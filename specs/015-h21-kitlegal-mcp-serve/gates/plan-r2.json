@@ -1,0 +1,113 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio (I-IX) y por regla de dependencia (R1-R6 y la nueva R7), más los gates por capa. Las dos filas que rehízo la corrección son veraces contra el código: I (cada llamada con su cliente y su `robots.txt`; el ritmo, del proceso) casa con que la copia de `robots.txt` y el limitador viven hoy en la entrada `sitio` de cada cliente (internal/httpx/sitio.go:20-49, 91-94; robots.go:116-137) y con que `DependenciasDeRed` ya construye un cliente por invocación (internal/app/boe.go:42-52); R2 (el sitio local de `TestDependenciasDeRed` es un `net.Listener`) casa con que la lista `red` de depguard solo veda `net/http` (.golangci.yml:145-160) y con que `compruebaSinRed` no mira los `_test.go` de internal/app (internal/arch_test.go:581-620)."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Una dependencia directa, `modelcontextprotocol/go-sdk`, que el principio V prevé y el ADR 0035 adelanta; los seis módulos que arrastra y las dos indirectas fijadas están en «Complexity Tracking». Comprobado en la caché de módulos en esta sesión: go-sdk v1.7.0 con zip y huella (de la v1.8.0 solo .info y .mod), jsonschema-go v0.4.3, segmentio/asm v1.2.1, segmentio/encoding v0.5.4, uritemplate v3.0.2, x/oauth2 v0.37.0 y x/sync v0.22.0 con su huella. La corrección de D8 no añade ninguna: `Ritmo` se hace con `golang.org/x/time/rate`, que `internal/httpx` ya importa (sitio.go:9)."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "`internal/mcp` es el único que importa el SDK (R7 en depguard y en TestArquitectura) y no importa `net/http`, SQLite ni llama a `os.Exit`; escribe el protocolo en el escritor de `internal/render` que recibe. `Ritmo`, `NuevoRitmo` y `ConRitmo` nacen dentro de `internal/httpx`, el dueño de la red, y los usa `internal/app`, que ya lo importa para componer `boe`. El test de composición usa `net`, que R2 no veda (`grep -rn '^\\s*\"net\"$'` sin resultados hoy; solo `net/http` está en la lista)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Ningún código nuevo: en una llamada la clase del ADR 0023 va en `data.clase` del sobre de fallo; `mcp serve` sale con 0 al cerrarse la entrada, 2 con `--asunto` y 1 con cualquier otro final. Lo que añade D8 usa las clases que ya da el código: un `Ritmo` nulo o de intervalo no positivo, `argumentos`, como `ConIntervalo(0)` (cliente.go:157-164); el turno que no cabe en el plazo, `fuente-no-disponible` (ritmo.go:63-73); el `robots.txt` que no se obtiene, `limite-o-tos` (robots.go:259-312). Ejecutado hoy: `kitlegal mcp serve --describe` sale con 2 («\"mcp\" no es ningún applet de kitlegal»)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "«Aceptación e2e» nombra cinco guiones congelados con la precondición `exec kitlegal --help` + `stdout '^\\s+mcp\\s'`: ejecutada la ayuda de hoy, empieza por `uso: ` y lista `boe`, `graph`, `skills` y `territorio`, sin `mcp`, así que falla por aserción. «Controles mecánicos» nombra los tests nuevos (con `TestRitmoCompartido`), los que cambian y las tareas `[datos]`. Comprobado con `grep` que existen con ese nombre y en ese fichero los que el plan dice que cambian: `TestDependenciasDeRed` (boe_test.go:616), `TestNewSinOpciones` y `TestOpcionesInvalidas` (cliente_test.go:26, 56), `TestReplayRechazaOpciones` (reproducir_test.go:503), `TestErrorMensajesEnEspanol` (errores_test.go:283), `TestMapaDeSitios` (sitio_test.go:121), y los de evals, skills, esquemas y arquitectura. Ningún otro test de `internal/httpx` lee el intervalo o el limitador por dentro (`grep` de `nuevosSitios(`, `.intervalo` y `.limitador`: solo cliente_test.go y sitio_test.go)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada pieza se traza a un FR («Trazabilidad»). El valor nuevo de `internal/httpx` es lo que FR-014 pide (el ritmo por sitio, entre todas las llamadas) sin tocar lo que H2 fijó de `robots.txt`: no se da vigencia a la copia, spec.md no cambia y ningún spec anterior se edita. Las dos desviaciones declaradas (la lista de applets de `argumentos.txtar` y la regla de D18) siguen en observaciones."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "El plan no prevé ningún `//nolint`, `t.Skip`, TODO ni error silenciado; los tests que cambian se actualizan, ninguno se desactiva, y FR-049 queda como obligación de tasks.md."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda anterior está corregido. research D8 elige ahora un cliente por llamada, como la orden, con el ritmo por sitio compartido en un `Ritmo` del proceso, y documenta cuatro rechazadas con su razón de calidad: el cliente por proceso (la denegación y las reglas vivirían lo que el servidor), el cliente por proceso con vigencia (dos vigencias y un reloj, y aun así otro sobre que la orden mientras dure la denegación), el cliente por llamada sin nada compartido (peticiones simultáneas al BOE, FR-014) y los turnos en una variable del paquete (estado global). Leído el código, la elegida es viable tal cual: el limitador y la copia de `robots.txt` comparten hoy la entrada `sitio` (sitio.go:24-49) y basta que el limitador salga del `Ritmo`."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Rehechas en esta sesión. Las tres nuevas: V43 (robots.go:26-38, 116-137, 259-312: la denegación se guarda sin caducidad y solo el contexto vencido no deja entrada; specs/003-h2-internal-httpx-cliente/spec.md:31 y :238), V44 (sitio.go:51-55, 91-94; ritmo.go:41-73; `TestRitmoSeparaPeticionesDelMismoSitio` en ritmo_test.go:34; transporte.go:15-34; `IdleConnTimeout: 90 * time.Second` en src/net/http/transport.go de go1.27.1) y V45 (`httptest` solo en internal/httpx y en internal/arch_test.go; las tablas y sus líneas; boe_test.go:616-640). Del SDK v1.7.0 en la caché: V6 (shared.go:45-63; server.go:912-927), V7 (server.go:250-321), V8 (server.go:615-663), V9 (transport.go:112-138) y V17 (server.go:955-962). V20 y V21, con `grep -a` sobre el binario de Claude Code 2.1.284. V25 (144 B el esquema de entrada de `boe_articulo` sin las ocho banderas), V35 (`git apply --numstat`: 298+60-61 = 297 y 170+37-17 = 190) y V40 (la ayuda de hoy). No pude rehacer V11-V13, V15, V16, V18 y V19 (los prototipos ya no existen), V2 (no ejecuté `go get`) ni V33 (no ejecuté el programa `jq`); lo que no se pudo comprobar figura como S1-S11."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "No se puede ejecutar antes de implementar: lo dice su cabecera, y no lo he ejecutado. Cotejado con el repositorio y con el plan: los nombres de test de §2 a §10 son los que fija el plan, incluida la línea nueva de §4 (`TestRitmoCompartido` en ./internal/httpx/) y su resultado esperado; el sobre de `territorio resolver Leganés --json` mide hoy 1 356 bytes; los `grep` de §8 casan con el prototipo (la línea, una vez por fichero, con sangría); todo va bajo `$T` y §14 compara `git status`. Los escenarios con modelo o red (§11-§13) están declarados fuera de las tareas."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguno: ni fuente ni grabación nuevas, `docs/SOURCES.md` no cambia (la fila `boe.legislacion-consolidada`, revisada el 2026-09-13, con ritmo `1s`) y `grabar_datos` no tiene nada que grabar (D23). Los tests nuevos de D8 usan un servidor local del propio test, no una fuente. `schemas/servidor.json` lo escribe `-actualizar-esquemas`; lo demás bajo `schemas/` y `testdata/` es formato y datos sintéticos, en tareas `[datos]`."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea para una persona ni de plataforma: el sondeo, el job y la prueba humana quedan fuera de las tareas («Obligaciones para tasks.md»), y el módulo entra con versiones ya verificadas en la caché, sin escribir en `sumdb`."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda anterior está corregido: ninguna llamada hereda el fallo de otra, y la fila «Error de herramienta» de plan.md y de contracts/servidor-mcp.md §8 dice que se apaga en la primera llamada hecha cuando su causa ha cesado; lo fija `TestRitmoCompartido` (un `robots.txt` que responde 429 una vez y después sus reglas: el segundo cliente lee). Cálculo rehecho: esquema de entrada de `boe_articulo`, 144 B; sobre de `territorio resolver`, 1 356 B; art. 21 LPAC, 4 433 B, y art. 118 LCSP, 2 625 B (`wc -c` de web/src/data/sobres/), dos veces en el mensaje; dos llamadas por bloque (`boe_articulo` y `graph_check`). Hacia el BOE, una llamada que llega a la red hace las peticiones de su orden —`robots.txt`, el bloque y los metadatos, a 1 s entre sí—, y entre llamadas no queda más que el turno de cada sitio: nada crece con cientos de normas y miles de bloques consultados, y ninguna señal se repite sin información nueva."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad» lleva cada paquete, función exportada, fichero y test a su FR; la fila nueva lleva `Ritmo`, `NuevoRitmo`, `ConRitmo` y `TestRitmoCompartido` a FR-014 y FR-010. Es lo mínimo para compartir el turno sin compartir la copia de `robots.txt`: un valor y una opción, sin reloj ni vigencia nuevos. El plan sigue remitiendo a la regla genérica lo que llega manipulado y nombra lo rechazado por no pedirlo el spec."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "22 filas (contadas con `awk`), que la corrección no tocó: las ocho de FR-082 (`evals:boe-legislacion:<recuento>:claude-sonnet-5-5:<modo>` y `duracion_de_las_sesiones:<modo>`, con `decide: true` y sin sumar modos) y una por cada umbral de `make ci`. Recorrido rehecho: `controles_de_celda` (scripts/workflow/comun.sh:165) extrae cada control, también los dos de una misma celda; `estado_control` resuelve el nombre del umbral con `cut -d: -f3-` y `ci:<ruta>:<Test>` con `git grep` (informe.sh:250-272), y `ci:Makefile:skills-check` casa con Makefile:125, que está en `ci` (Makefile:240); cada test nombrado que ya existe está en su fichero. Peor caso recalculado: 485 + (25 + 24 + 2) × 272 = 14 357 s ≤ 240 min, que comprueba `TestDefinicionDelJob`. Los umbrales de `legal-core` no existen (FR-045) y SC-002 lo mide una persona. `gates/plan-precheck.txt`, vacío tras la corrección."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "D8, llamadas a la vez: con el turno compartido y un `robots.txt` por llamada, `boe_articulo` fuera de la caché ocupa tres turnos de 1 s (`robots.txt`, bloque y metadatos); más de unas diez lecturas simultáneas sin caché no caben en el plazo por omisión de 30 s y las últimas devuelven `fuente-no-disponible` en el acto, donde diez órdenes sueltas saldrían todas a la vez. Es lo que pide FR-014 y D8 lo declara; la skill pide varios bloques con `boe_articulos`.",
+    "D8: `httpx.Cliente` no tiene cierre, así que el cliente de cada llamada deja su conexión ociosa abierta hasta 90 s (V44). Con uso sostenido son varias conexiones ociosas contra el BOE a la vez, y cada llamada repite el saludo TLS; ni la persona ni la skill lo ven.",
+    "D8 dice que una llamada que llega a la red «tarda lo que» su orden: si llega justo detrás de otra espera además hasta un intervalo por el turno compartido. No cambia el diseño.",
+    "`TestDependenciasDeRed` se describe «con un `Ritmo` de una hora», y `DependenciasDeRed()` no tiene parámetros y crea el suyo con el intervalo del BOE (1 s): el test necesita una costura sin exportar o un plazo menor que ese segundo. Es detalle de tasks.md.",
+    "Las filas nuevas de las tablas de opciones (`Ritmo` nulo o de intervalo no positivo, la última de `ConIntervalo` y `ConRitmo`, `Replay` la rechaza) no tienen emisor en el producto: siguen el contrato de opciones de H2 y las tablas que ya hay (la subprueba «la última repetida gana» existe en cliente_test.go:127-140).",
+    "`timeout-minutes: 240` (D20) deja el peor caso por encima de las 3 h que espera el cierre: solo se alcanza si casi todas las sesiones agotan su tope, y entonces el cierre se detiene con dossier en lugar de leer un `fallo`.",
+    "Cada resultado lleva el sobre dos veces (`structuredContent` y texto), como pide el hito: el índice de la LCSP son unos 70 KB en el mensaje. Qué parte entrega cada agente a su modelo sigue sin medirse.",
+    "S4, S5 y S6 (que Claude Code ofrezca las herramientas desde el primer turno, la forma de `tool_use`/`tool_result` en el transcript y que su validador acepte el `outputSchema` de `--describe`) deciden SC-001 en el modo herramienta y solo las mide el job de cierre.",
+    "El SDK se fija en la v1.7.0 y no en la v1.8.0 del ADR 0035 porque el sandbox del run no deja escribir en `sumdb`: es un defecto del proceso, que va en su propia rama.",
+    "D18 (una orden de `kitlegal` en una sesión sin binario la deja sin pasar) cambia el juicio más allá de FR-042; se sostiene en FR-040 y figura en gates/supuestos.md como `interno`, aunque cambia el veredicto de una sesión.",
+    "Constitution Check IV dice que `AddTool` solo entra en pánico por el esquema de entrada; también lo hace con un esquema de salida que no se serializa y con anotaciones de cabecera inválidas (server.go:300-314). No aplica a los esquemas generados.",
+    "Todas las herramientas se anuncian con `readOnlyHint`, también las de applets futuros: el primer verbo que escriba aparecería como de solo lectura sin tocar `mcp`. El spec lo deja fuera de alcance hasta ese verbo.",
+    "`cli.LineaDeLlamada` prevé booleanos, enteros y campos no posicionales, y hoy ningún verbo los tiene: se traza a FR-004 y no a un emisor de hoy.",
+    "Las dos evals nuevas no entran en la suite congelada (su clave no existe hasta la tarea del formato) y `argumentos.txtar`, guion de H1, cambia en su lista de applets: las dos cosas están declaradas en el plan y en supuestos.",
+    "Una línea del prototipo de `boe-legislacion` pasa de las 120 columnas; partirla puede dejar el fichero en 298 líneas, por debajo de 300."
+  ]
+}

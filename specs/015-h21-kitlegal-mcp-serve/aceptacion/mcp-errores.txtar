@@ -1,0 +1,92 @@
+# Una llamada que falla devuelve el sobre de fallo de su clase como error de
+# herramienta, y el servidor sigue: con mcp serve --offline y la caché vacía,
+# boe_articulo da fuente-no-disponible y territorio_resolver, que no consulta
+# ninguna fuente, responde; y en un mismo proceso, un bloque que no existe da
+# no-encontrado; unos argumentos que el esquema de entrada no admite —falta
+# uno obligatorio, sobra una propiedad, el nombre de una bandera global, un
+# número donde va una cadena— dan argumentos; una herramienta que el servidor
+# no anuncia la responde el protocolo, sin sobre; y la llamada siguiente
+# termina bien.
+#
+# Cubre: US1.2, US1.3, US1.4 · FR-011, FR-015, FR-020 · SC-004.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3: «error <clase>» es un resultado marcado como error
+# de herramienta, con su sobre en mcp-<n>.json, y «protocolo <mensaje>», un
+# error del protocolo, que no deja fichero. La orden comprueba por su cuenta
+# que isError acompaña a un sobre con ok falso. El texto del mensaje del
+# protocolo es del SDK y no se afirma. La norma y los bloques son los de
+# boe-codigos.txtar.
+
+# Precondición: el binario registra el applet mcp (FR-001).
+exec kitlegal --help
+stdout '^\s+mcp\s'
+
+# --- Con --offline y la caché vacía (US1.3, FR-011, FR-020) ---
+#
+# La bandera se da a mcp serve y vale para todas sus llamadas.
+! exists cache
+mcp sin-red.txt $KITLEGAL_T0_BIN mcp serve --offline
+cmp stdout sin-red.salida
+grep '^\{"ok":false,' mcp-1.json
+grep '"data":\{"clase":"fuente-no-disponible",' mcp-1.json
+grep '^\{"ok":true,' mcp-2.json
+
+# --- Las llamadas que fallan y la que no, en un mismo proceso (US1.2, US1.4, FR-011, FR-015) ---
+mcp fallos.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^protocolo 2026-07-28$'
+stdout '^capacidades tools$'
+stdout '^1 boe_articulo error no-encontrado$'
+stdout '^2 boe_articulo error argumentos$'
+stdout '^3 boe_articulo error argumentos$'
+stdout '^4 boe_articulo error argumentos$'
+stdout '^5 boe_articulo error argumentos$'
+stdout '^6 skills_install protocolo '
+stdout '^7 mcp_serve protocolo '
+stdout '^8 version protocolo '
+stdout '^9 boe_articulo resultado$'
+stdout '^salida 0$'
+
+# Un bloque que no existe en la norma.
+grep '^\{"ok":false,' mcp-1.json
+grep '"data":\{"clase":"no-encontrado",' mcp-1.json
+
+# Sin bloque, con una propiedad que el esquema no declara, con una bandera
+# global como argumento y con un número donde va una cadena.
+grep '^\{"ok":false,' mcp-2.json
+grep '"data":\{"clase":"argumentos",' mcp-2.json
+grep '^\{"ok":false,' mcp-3.json
+grep '"data":\{"clase":"argumentos",' mcp-3.json
+grep '^\{"ok":false,' mcp-4.json
+grep '"data":\{"clase":"argumentos",' mcp-4.json
+grep '^\{"ok":false,' mcp-5.json
+grep '"data":\{"clase":"argumentos",' mcp-5.json
+
+# Lo que el servidor no anuncia no tiene verbo que invocar: no hay sobre.
+! exists mcp-6.json
+! exists mcp-7.json
+! exists mcp-8.json
+
+# Y después de todos los fallos, el mismo proceso lee el artículo.
+grep '^\{"ok":true,' mcp-9.json
+grep '"data":\{"norma":"BOE-A-2015-10565","bloque":"a21",' mcp-9.json
+
+-- sin-red.txt --
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
+territorio_resolver {"consulta":"Leganés"}
+-- sin-red.salida --
+protocolo 2026-07-28
+capacidades tools
+1 boe_articulo error fuente-no-disponible
+2 territorio_resolver resultado
+salida 0
+-- fallos.txt --
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a9999"}
+boe_articulo {"norma":"BOE-A-2015-10565"}
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21","apartado":"1"}
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21","offline":true}
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":21}
+skills_install {}
+mcp_serve {}
+version
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}

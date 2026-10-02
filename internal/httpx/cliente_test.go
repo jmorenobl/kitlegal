@@ -40,12 +40,18 @@ func TestNewSinOpciones(t *testing.T) {
 	assert.Zero(t, cliente.cliente.Timeout, "el plazo es el del contexto (FR-004)")
 
 	require.NotNil(t, cliente.sitios, "el cliente tiene un solo registro de sitios (data-model.md §4, D14)")
+	require.NotNil(t, cliente.sitios.ritmo, "y su ritmo, del que sale el limitador de cada sitio")
 	assert.Equal(t, time.Second, intervaloPorOmision,
 		"el ritmo por omisión es conservador: una petición por segundo y sitio (FR-020, D8)")
-	assert.Equal(t, intervaloPorOmision, cliente.sitios.intervalo,
+	assert.Equal(t, intervaloPorOmision, cliente.sitios.ritmo.intervalo,
 		"sin ConIntervalo los sitios de este cliente nacen con el ritmo por omisión")
 	assert.Equal(t, 3, intentosPorOmision,
 		"sin ConIntentos son tres: una petición y dos reintentos (FR-024, D9)")
+
+	otro, err := New()
+	require.NoError(t, err)
+	assert.NotSame(t, cliente.sitios.ritmo, otro.sitios.ritmo,
+		"sin ConRitmo cada cliente tiene su propio ritmo: uno no espera turno por el otro")
 }
 
 // TestOpcionesInvalidas fija la regla de validez de cada opción y dónde se
@@ -92,6 +98,26 @@ func TestOpcionesInvalidas(t *testing.T) {
 			mencion: "ConIntervalo",
 		},
 		{
+			nombre:  "el ritmo declarado no puede ser nulo",
+			opcion:  ConRitmo(nil),
+			mencion: "ConRitmo",
+		},
+		{
+			nombre:  "ni de intervalo nulo",
+			opcion:  ConRitmo(NuevoRitmo(0)),
+			mencion: "ConRitmo",
+		},
+		{
+			nombre:  "ni de intervalo negativo",
+			opcion:  ConRitmo(NuevoRitmo(-time.Second)),
+			mencion: "ConRitmo",
+		},
+		{
+			nombre:  "ni el de un Ritmo a cero, que no ha pasado por NuevoRitmo",
+			opcion:  ConRitmo(&Ritmo{}),
+			mencion: "ConRitmo",
+		},
+		{
 			nombre:  "no se puede pedir menos de un intento",
 			opcion:  ConIntentos(0),
 			mencion: "ConIntentos",
@@ -135,8 +161,25 @@ func TestOpcionesInvalidas(t *testing.T) {
 
 		assert.Equal(t, "boe", cliente.fuente)
 		assert.Same(t, registrador, cliente.registrador)
-		assert.Equal(t, 2*time.Second, cliente.sitios.intervalo,
+		assert.Equal(t, 2*time.Second, cliente.sitios.ritmo.intervalo,
 			"el intervalo declarado es el que llevan los sitios de ese cliente (FR-020)")
+	})
+
+	t.Run("ConRitmo va en lugar de ConIntervalo, y de las dos vale la última", func(t *testing.T) {
+		t.Parallel()
+
+		compartido := NuevoRitmo(time.Minute)
+
+		conElCompartido, err := New(ConIntervalo(2*time.Second), ConRitmo(compartido))
+		require.NoError(t, err)
+		assert.Same(t, compartido, conElCompartido.sitios.ritmo,
+			"el cliente espera turno en el Ritmo que recibe, no en uno propio")
+
+		conElSuyo, err := New(ConRitmo(compartido), ConIntervalo(2*time.Second))
+		require.NoError(t, err)
+		assert.NotSame(t, compartido, conElSuyo.sitios.ritmo,
+			"el intervalo declarado después deja al cliente con su propio ritmo")
+		assert.Equal(t, 2*time.Second, conElSuyo.sitios.ritmo.intervalo)
 	})
 }
 

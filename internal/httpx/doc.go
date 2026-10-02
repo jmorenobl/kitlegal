@@ -8,6 +8,12 @@
 // puede reintentar y termina cuando termina el contexto de quien la pidió
 // (FR-001, FR-002).
 //
+// El ritmo de un sitio es de cada cliente, salvo que varios reciban el mismo
+// Ritmo con ConRitmo: entonces esperan turno entre todos, que es lo que necesita
+// un proceso que construye un cliente por llamada. Lo demás es siempre de cada
+// uno: lo que un cliente recuerda del robots.txt de un sitio vive y termina con
+// él.
+//
 // Por qué no se puede usar mal:
 //
 //   - Ninguna de esas garantías se declara como configuración, sino como la

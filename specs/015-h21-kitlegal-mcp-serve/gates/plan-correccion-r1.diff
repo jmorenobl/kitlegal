@@ -1,0 +1,356 @@
+diff antes/contracts/servidor-mcp.md ahora/contracts/servidor-mcp.md
+--- antes/contracts/servidor-mcp.md	2026-10-01 19:53:39
++++ ahora/contracts/servidor-mcp.md	2026-10-01 20:07:58
+@@ -103,7 +103,9 @@
+ 1. Convierte `arguments` en la línea de órdenes del verbo (`cli.LineaDeLlamada`): si no vale, el sobre de fallo de la
+    clase `argumentos`, sin ejecutar nada.
+ 2. Ejecuta el verbo como el kernel ejecuta la orden `kitlegal <applet> <verbo> --json --timeout=<plazo> [--offline]
+-   [--no-graph] -- <posicionales…>`: mismo análisis, mismo plazo por llamada, misma caché, mismo `internal/httpx`.
++   [--no-graph] -- <posicionales…>`: mismo análisis, mismo plazo por llamada, misma caché y, si llega a la red, un
++   cliente de `internal/httpx` propio de la llamada, como el de la orden: pide su `robots.txt` y espera turno en el
++   ritmo por sitio, que es de todo el servidor (D8).
+ 3. Monta el sobre —de éxito o de fallo— con `cli.Montador`, en un búfer.
+ 4. Si terminó bien, entrega al grafo del mundo lo que el verbo observó, antes de devolver. Si la entrega falla, el sobre
+    no cambia y la línea `kitlegal: lo observado no ha llegado al grafo del mundo: …` va a la salida de error (H7).
+@@ -117,7 +119,8 @@
+ | El plazo de `--timeout` vence | sobre de fallo con `clase` `fuente-no-disponible` y `isError` |
+ | `--offline` con la caché vacía | `fuente-no-disponible`; `territorio_resolver` y las de `graph` responden igual que sin él |
+ | Una herramienta que el servidor no anuncia (`skills_install`, `mcp_serve`, `version`) | error del protocolo `-32602`, `unknown tool "<nombre>"`, sin sobre (V17) |
+-| Varias llamadas a la vez | cada una, su resultado (V18); las que piden al BOE comparten el limitador por sitio (D8) |
++| Varias llamadas a la vez | cada una, su resultado (V18); las que piden al BOE esperan turno en el mismo ritmo por sitio: una petición por intervalo entre todas, el `robots.txt` de cada una incluido (D8) |
++| El `robots.txt` del BOE no se puede obtener (sin conexión, 5xx, 429) | el sobre de su orden: `limite-o-tos`, o `fuente-no-disponible` si vence el plazo. No pasa de esa llamada: la siguiente lo vuelve a pedir y, si la fuente responde, lee (D8) |
+ | Una llamada que falla, de la clase que sea | el servidor sigue (FR-015) |
+ | La entrada se cierra con llamadas en curso | terminan, sus resultados no se escriben, y el servidor sale con 0 (V11) |
+ 
+@@ -185,12 +188,23 @@
+ }
+ func DependenciasDeMCPDelSistema(version string) DependenciasDeMCP
+ func AppletMCP(dependencias DependenciasDeMCP) Applet
++
++// internal/httpx — junto a ConIntervalo
++type Ritmo struct{ /* sin campos exportados */ }
++func NuevoRitmo(intervalo time.Duration) *Ritmo
++func ConRitmo(ritmo *Ritmo) Opcion
+ ```
+ 
+ Sin exportar, en `internal/app`: la interfaz `servidor` que `ejecutarVerbo` reconoce (D4), `herramientasDe(registro, …)`
+ y `emitir`, el final que `Main` y cada llamada comparten. `RegistroDeProduccion` y el registro del binario de e2e
+-registran `AppletMCP`. `DependenciasDeRed` devuelve siempre el mismo cliente (D8).
++registran `AppletMCP`.
+ 
++`Ritmo` son los turnos por sitio, con su intervalo, de los clientes que lo reciben con `ConRitmo`; lo demás de cada
++cliente —también lo que recuerda de `robots.txt`— sigue siendo suyo. `DependenciasDeRed` crea uno con el intervalo del
++BOE y construye con él un cliente por invocación, como hoy: en la orden hay uno solo y nada cambia. `ConRitmo` va en
++lugar de `ConIntervalo` (dadas las dos, vale la última); un `Ritmo` nulo o de intervalo no positivo es un error de la
++clase `argumentos` al construir el cliente, y `Replay` la rechaza como rechaza `ConIntervalo` (D8).
++
+ ## 8. Uso, de fuera adentro
+ 
+ | Salida | Quién la pide y cuántas veces | Tamaño | Cuándo deja de darse |
+@@ -198,7 +212,7 @@
+ | `tools/list` | el agente, una vez por conexión | diez herramientas: 1 190 B de esquemas de entrada + 19 289 B de salida + 971 B de descripciones + unos 150 B de nombre, anotaciones y claves por herramienta ≈ 23 KB. Al modelo le llegan el nombre, la descripción y el esquema de entrada: unos 2,3 KB. Crece con los verbos (≈ 2,3 KB por verbo), no con el uso | no da señales |
+ | Resultado de una llamada | la skill, las veces que hoy la orden (§1 de [skills.md](./skills.md)) | el sobre, dos veces en el mensaje. Art. 21 de la Ley 39/2015: 4 433 B de sobre, ≈ 9 KB en el cable. Índice de la LCSP: 34 720 B, ≈ 70 KB. Lo acotan la norma y el bloque pedidos | cada llamada es independiente |
+ | `graph_check` | la skill, una vez por lectura de bloques, con su norma y sus bloques | ≈ 325 B sin nada; ≈ 1 000 B por bloque cambiado (H7.1) | la señal de un bloque se apaga con su siguiente lectura (H7.1) |
+-| Error de herramienta | la skill, cuando una llamada falla | sobre de fallo, 300-400 B | con la primera llamada que no falla |
++| Error de herramienta | la skill, cuando una llamada falla | sobre de fallo, 300-400 B | en la primera llamada que se hace cuando su causa ha cesado: ninguna hereda el fallo de otra, tampoco el de `robots.txt`, que cada llamada vuelve a pedir (D8) |
+ | `instructions` | el agente, una vez por conexión | 485 B | no da señales |
+ | Aviso de versión, en la salida de error | quien mira el registro de su agente, una vez por arranque | una línea | al reinstalar las skills |
+ | Eventos, en la salida de error | quien depura; sin `--verbose`, solo las llamadas que fallan | ≈ 150 B por línea | no es una señal para la skill |
+@@ -217,5 +231,7 @@
+ | `TestLineaDeLlamada`, `TestEsquemasDeHerramienta` | `internal/cli/herramienta_test.go` | los casos de §3 y el orden de los posicionales |
+ | `TestInstrucciones` | `internal/mcp/instrucciones_test.go` | las cinco frases y los 512 bytes (FR-077) |
+ | `TestServir` | `internal/mcp/servir_test.go` | lo que se anuncia, el resultado de una llamada y su `isError`, y el final con la entrada cerrada |
+-| `TestDependenciasDeRed` | `internal/app/boe_test.go` | el mismo cliente en dos peticiones (FR-014) |
++| `TestRitmoCompartido` | `internal/httpx/ritmo_test.go` | con el servidor local de los tests del paquete y dos clientes que reciben el mismo `Ritmo`: sus cuatro llegadas —el `robots.txt` y el recurso de cada uno— no se adelantan a su turno, medido como en `TestRitmoSeparaPeticionesDelMismoSitio` (FR-014); y con un `robots.txt` que responde 429 la primera vez que se pide y sus reglas después, el primer cliente recibe `limite-o-tos` y no lo vuelve a pedir, y el segundo lo pide y lee el recurso (FR-010) |
++| `TestDependenciasDeRed` | `internal/app/boe_test.go` | la composición: dos invocaciones reciben dos clientes distintos, y los dos esperan turno en el mismo `Ritmo`. Con un `Ritmo` de una hora, un plazo en el contexto y un sitio local —un `net.Listener` del test que responde 404 a todo y cuenta sus conexiones—, el primer cliente gasta el turno en su `robots.txt`, el segundo falla sin abrir ninguna conexión y uno de otras dependencias sí la abre; nada espera (FR-010, FR-014) |
++| `TestOpcionesInvalidas`, `TestReplayRechazaOpciones`, `TestErrorMensajesEnEspanol` | `internal/httpx/` | las filas de `ConRitmo` en las tablas de opciones del cliente (§7) |
+ | `TestArquitectura` (R7), `TestDependenciasDelBinario` | `internal/arch_test.go` | el SDK, solo desde `internal/mcp`; los siete módulos nuevos, declarados |
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-01 19:53:39
++++ ahora/data-model.md	2026-10-01 20:08:09
+@@ -27,8 +27,10 @@
+ | `Fallo` | `bool` | verdadero si y solo si el código de la invocación no es 0, que es cuando el sobre lleva `ok` falso (FR-011) |
+ 
+ Estados de una llamada: recibida → argumentos convertidos (o rechazados: `argumentos`) → verbo ejecutado con su plazo →
+-sobre montado → **entrega al grafo, si terminó bien y sin `--no-graph`** → resultado devuelto. No hay estado entre
+-llamadas: lo que una deja es lo que deja la orden (caché y grafo del mundo).
++sobre montado → **entrega al grafo, si terminó bien y sin `--no-graph`** → resultado devuelto. Lo que una llamada deja
++es lo que deja la orden (caché y grafo del mundo). En memoria, entre llamadas, solo queda el turno de cada sitio
++(`internal/httpx.Ritmo`, uno por proceso, que crea `DependenciasDeRed`): el cliente HTTP es de cada llamada, y con él lo
++que obtiene de `robots.txt` (research D8).
+ 
+ Correspondencia de la clase del sobre de fallo con el código de la orden (ADR 0023): `argumentos` 2, `no-encontrado` 3,
+ `fuente-no-disponible` 4, `limite-o-tos` 5, `identidad-humana` 6, `conflicto` 7, `inesperado` 1.
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-01 19:53:39
++++ ahora/plan.md	2026-10-01 20:07:30
+@@ -7,8 +7,8 @@
+ **Modo**: desatendido. Las decisiones técnicas se tomaron con el «Criterio de decisión autónoma» de la constitución y
+ están en [research.md](./research.md) (D1-D26), cada una con su alternativa rechazada. Toda afirmación sobre el SDK de
+ MCP, Claude Code, Go, los linters o el repositorio remite a la tabla V de research.md, comprobada en local en la sesión
+-del plan; lo que no se pudo comprobar así son los supuestos S1-S11. Los prototipos con los que se midió son material de
+-un solo uso, fuera de lo versionado (research, cabecera).
++del plan (V43 a V45, en la de su corrector); lo que no se pudo comprobar así son los supuestos S1-S11. Los prototipos con
++los que se midió son material de un solo uso, fuera de lo versionado (research, cabecera).
+ 
+ ## Summary
+ 
+@@ -25,8 +25,9 @@
+    es una herramienta sin tocar `mcp`.
+ 3. **Una llamada es una invocación del kernel** (D3, D8): el mismo análisis de Kong, el mismo plazo, la misma caché, el
+    mismo `internal/httpx` y el mismo `cli.Montador`, con el sobre en un búfer en lugar de en la salida estándar, y la
+-   entrega al grafo dentro de la llamada, antes de devolver. Un cliente HTTP por proceso, para que el ritmo por sitio sea
+-   de todas las llamadas.
++   entrega al grafo dentro de la llamada, antes de devolver. Cada llamada que llega a la red construye su cliente HTTP,
++   como la orden, y lo que obtiene de `robots.txt` no vive más que ella; lo que comparten todas es el ritmo por sitio,
++   con un valor nuevo de `internal/httpx` (`Ritmo`).
+ 4. **El applet `mcp`, verbo `serve`** (D4, D9): un verbo que sirve —sin plazo y sin sobre propio— que el kernel reconoce
+    por una interfaz sin exportar; `--offline`, `--no-graph` y `--timeout` valen para todas las llamadas; `--asunto` es un
+    error de argumentos; `--dry-run` no sirve.
+@@ -86,11 +87,11 @@
+ 
+ | Principio | Cómo lo cumple H21 |
+ |---|---|
+-| I · Fuentes públicas y frontera humana | Ninguna fuente nueva, ningún cambio en `docs/SOURCES.md` y nada que grabar (D23). Toda petición de una llamada sale por `internal/httpx`, por el mismo camino que la orden; con un cliente por proceso, las llamadas simultáneas comparten el ritmo por sitio en lugar de sumar peticiones al BOE (D8; FR-014). El servidor no abre ningún puerto ni atiende conexiones: su único transporte son la entrada y la salida estándar (FR-001). Ninguna herramienta escribe ni actúa con identidad: todas son de solo lectura (FR-005) y `skills` no tiene herramientas. Ningún método distinto de GET o HEAD en el módulo. |
++| I · Fuentes públicas y frontera humana | Ninguna fuente nueva, ningún cambio en `docs/SOURCES.md` y nada que grabar (D23). Toda petición de una llamada sale por `internal/httpx`, por el camino de la orden y con un cliente propio de la llamada: su `robots.txt` se pide y se evalúa en cada llamada que llega a la red, y ni sus reglas ni la denegación por no haberlo podido obtener viven más que ella, como en una invocación (D8; H2 FR 015, sin cambios). El ritmo por sitio es de todo el proceso: las llamadas, seguidas o a la vez, esperan turno en el mismo `Ritmo`, y el BOE no recibe del servidor más de una petición por intervalo (FR-014). El servidor no abre ningún puerto ni atiende conexiones: su único transporte son la entrada y la salida estándar (FR-001). Ninguna herramienta escribe ni actúa con identidad: todas son de solo lectura (FR-005) y `skills` no tiene herramientas. Ningún método distinto de GET o HEAD en el módulo. |
+ | II · Nada sin cita ni fuente | Cada llamada devuelve el sobre entero —`ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`—, el de su orden (FR-010); un fallo, el sobre de fallo con su clase (FR-011). `mcp serve` no imprime un sobre propio: el principio se cumple en cada llamada, dentro del protocolo (spec, Assumptions). Las `instructions` dicen que nada se afirma sin el texto devuelto y que cada afirmación lleva norma y bloque (FR-006). Sin herramienta ni binario, la skill no afirma nada de memoria y lo dice con una línea de forma fija, sin citas (FR-035), y dos evals lo miden (FR-046). |
+ | III · Tests primero y offline | La primera tarea escribe la suite congelada: cinco guiones, en rojo por una aserción («Aceptación e2e»). Unitarios y de integración offline, sobre las grabaciones de H4 y las derivadas de H7 y H7.1; la salida de `mcp serve --describe` se publica en `schemas/servidor.json` y `schema-check` la compara; los esquemas y los datos de prueba nuevos van en tareas `[datos]`. Cobertura dentro de `codecov.yml`. |
+ | IV · Hexagonal y errores tipados | `internal/mcp` es un adaptador: traduce el protocolo y no sabe de applets ni de sobres (recibe `Herramienta` y devuelve bytes). La composición sigue en `internal/app`. Los errores son los de hoy: `cli.ErrArgumentos` y las demás clases del ADR 0023, que en una llamada van en `data.clase` del sobre de fallo y en `mcp serve` salen como código (2 con `--asunto`; 0 al cerrarse la entrada; 1, `inesperado`, con cualquier otro final). Ningún `panic` en rutas de usuario: lo único que `AddTool` del SDK exige con uno es un esquema de entrada de tipo objeto (V7), que es el que `EsquemasDeHerramienta` da siempre y la conformidad comprueba verbo a verbo. Reglas R1-R7, abajo. |
+-| V · Simplicidad y dependencias | Una dependencia directa, de la lista del principio; las seis que arrastra, en Complexity Tracking. Cada mecanismo se traza a un FR («Trazabilidad»). Rechazados por no pedirlos el spec: un validador de JSON Schema (D5), un campo exportado en `Verbo` (D4), un contexto de cancelación en el kernel (D9), una caducidad para `robots.txt` (D8), un binario cliente aparte (D12), un trabajo del job por modo (D16) y cualquier pieza del protocolo que no sean las herramientas y las `instructions` (D7). |
++| V · Simplicidad y dependencias | Una dependencia directa, de la lista del principio; las seis que arrastra, en Complexity Tracking. Cada mecanismo se traza a un FR («Trazabilidad»). Rechazados por no pedirlos el spec: un validador de JSON Schema (D5), un campo exportado en `Verbo` (D4), un contexto de cancelación en el kernel (D9), un binario cliente aparte (D12), un trabajo del job por modo (D16) y cualquier pieza del protocolo que no sean las herramientas y las `instructions` (D7). |
+ | VI · Un binario, convenciones de agente | `mcp` es un applet del multicall, con su verbo en el registro, su ayuda, su `--describe` y las ocho banderas globales con el significado de siempre (FR-020 a FR-022). Las herramientas se generan de `--describe`, como prevé el principio. Ningún ejecutable nuevo en `cmd/`. |
+ | VII · Grafo y privacidad | La entrega al grafo de una llamada es la de la orden: después del resultado, con la procedencia del sobre, nunca en un fallo y nada con `--no-graph` (FR-013). El servidor no expone nada del asunto: `--asunto` es un error y ninguna herramienta lo recibe (FR-021). `graph_show` sigue sin devolver texto legal: es el verbo de H7. Ningún dato de persona. |
+ | VIII · Skills primero | No entrega skill nueva: protege las dos que hay, haciéndolas usables donde no hay shell. La tabla de comandos nombra cada operación como orden y como herramienta (constitución 2.10.0); `SKILL.md` < 300 líneas, sin `scripts/` y sin nombrar evals ni modelos; las evals miden las dos skills en los dos modos, con sus umbrales por modo. Ninguna herramienta que una skill no use: son los verbos que ya tienen. |
+@@ -101,7 +102,7 @@
+ | Regla | Cómo la cumple |
+ |---|---|
+ | R1 · `internal/core/**` no importa adaptadores | `internal/core` no cambia. La lista `core` de `depguard` gana `internal/mcp`, que es un adaptador más. |
+-| R2 · Solo `internal/httpx` importa `net/http` | Ningún paquete del módulo lo importa de nuevo: `internal/mcp` importa el SDK, no `net/http`. El paquete `mcp` del SDK sí lo importa, porque lleva sus transportes HTTP en el mismo paquete (V5), y el binario lo enlaza sin usarlo: `TestArquitectura` y `depguard` miran las importaciones directas de los paquetes del módulo (V28). Declarado en Complexity Tracking. |
++| R2 · Solo `internal/httpx` importa `net/http` | Ningún paquete del módulo lo importa de nuevo: `internal/mcp` importa el SDK, no `net/http`. El paquete `mcp` del SDK sí lo importa, porque lleva sus transportes HTTP en el mismo paquete (V5), y el binario lo enlaza sin usarlo: `TestArquitectura` y `depguard` miran las importaciones directas de los paquetes del módulo (V28). Declarado en Complexity Tracking. El sitio local de `TestDependenciasDeRed` es un `net.Listener` del test, sin `net/http` (V45). |
+ | R3 · Solo `cache`/`store`/`graph` importan SQLite y `database/sql` | Ningún fichero nuevo los importa: las llamadas llegan a la caché y al grafo por el kernel. |
+ | R4 · Solo `cli` y `cmd/` llaman a `os.Exit` | Ningún `os.Exit` nuevo: `Servir` devuelve un error y el kernel lo traduce a código, como con cualquier verbo. |
+ | R5 · Solo `render` escribe en stdout | `internal/mcp` escribe el protocolo en el escritor que recibe, que es `Salida()` del presentador del kernel (`internal/render`); ni `os.Stdout`, ni `os.Stderr`, ni `fmt.Print*` nuevos. El aviso y los eventos van por el presentador y el registrador, a la salida de error (FR-023). La entrada estándar llega por `DependenciasDeMCPDelSistema`, en la raíz de composición. |
+@@ -128,7 +129,7 @@
+ ```text
+ specs/015-h21-kitlegal-mcp-serve/
+ ├── plan.md                  # este fichero
+-├── research.md              # V1-V42, S1-S11, D1-D26
++├── research.md              # V1-V45, S1-S11, D1-D26
+ ├── data-model.md            # herramienta, llamada, servicio, modo, eval sin binario ni servidor, umbral por modo
+ ├── quickstart.md            # §1-§14
+ ├── contracts/
+@@ -161,12 +162,18 @@
+ ├── herramienta.go           # NUEVO: EsquemasDeHerramienta, LineaDeLlamada
+ ├── herramienta_test.go      # TestEsquemasDeHerramienta, TestLineaDeLlamada
+ └── describe.go              # el generador, compartido con herramienta.go
++internal/httpx/                                  # el ritmo por sitio que comparten los clientes de un proceso (D8)
++├── ritmo.go                 # Ritmo, NuevoRitmo
++├── cliente.go               # ConRitmo; Replay la rechaza
++├── sitio.go                 # el limitador de cada sitio sale del Ritmo del cliente
++├── ritmo_test.go            # TestRitmoCompartido
++└── cliente_test.go, reproducir_test.go, errores_test.go, sitio_test.go   # las tablas de opciones y lo que leen por dentro
+ internal/app/
+ ├── mcp.go                   # NUEVO: AppletMCP, DependenciasDeMCP, DependenciasDeMCPDelSistema, el verbo serve
+ ├── herramientas.go          # NUEVO: herramientasDe (del registro) y la llamada como invocación del kernel
+ ├── main.go                  # la interfaz servidor en ejecutarVerbo; emitir, el final que comparten Main y cada llamada
+ ├── registro.go              # RegistroDeProduccion registra AppletMCP
+-├── boe.go                   # DependenciasDeRed devuelve siempre el mismo cliente
++├── boe.go                   # DependenciasDeRed: un Ritmo por proceso y un cliente por invocación
+ ├── ejemplo/kitlegal-e2e/main.go                 # el registro de e2e registra AppletMCP
+ ├── mcp_test.go              # NUEVO: TestLlamadasSimultaneas, TestServirSinEntrada, TestServirEnEnsayo
+ ├── herramientas_test.go     # NUEVO: TestHerramientasDelServidor
+@@ -249,6 +256,7 @@
+ | `TestLlamadasSimultaneas` | `internal/app/mcp_test.go` | FR-014, FR-074; SC-007 |
+ | `TestServirSinEntrada`, `TestServirEnEnsayo` | `internal/app/mcp_test.go` | FR-022, FR-024 |
+ | `TestEsquemasDeHerramienta`, `TestLineaDeLlamada` | `internal/cli/herramienta_test.go` | FR-003, FR-011, FR-020 |
++| `TestRitmoCompartido` | `internal/httpx/ritmo_test.go` | FR-014 (dos clientes con el mismo `Ritmo`: ninguna llegada se adelanta a su turno), FR-010 (un `robots.txt` que falla una vez y responde después: el primer cliente no lee y el segundo sí) |
+ | `TestInstrucciones` | `internal/mcp/instrucciones_test.go` | FR-006, FR-077; SC-010 |
+ | `TestServir` | `internal/mcp/servir_test.go` | FR-005, FR-008, FR-010, FR-011, FR-024 |
+ | `TestSesion` | `internal/mcp/mcptest/sesion_test.go` | las comprobaciones que el arnés hace por su cuenta (FR-071 a FR-073) |
+@@ -259,7 +267,14 @@
+ 
+ ### Tests existentes que cambian
+ 
+-- `TestDependenciasDeRed` (`internal/app/boe_test.go`): el mismo cliente en dos peticiones (FR-014).
++- `TestDependenciasDeRed` (`internal/app/boe_test.go`): dos invocaciones reciben dos clientes distintos, y los dos
++  esperan turno en el mismo `Ritmo` —el segundo falla sin abrir ninguna conexión cuando el primero ha gastado el turno, y
++  uno de otras dependencias sí la abre— (FR-010, FR-014; research D8).
++- En `internal/httpx`, las tablas que recorren las opciones del cliente ganan las filas de `ConRitmo`:
++  `TestOpcionesInvalidas` (nulo y de intervalo no positivo, y la última de `ConIntervalo` y `ConRitmo` gana),
++  `TestReplayRechazaOpciones` y `TestErrorMensajesEnEspanol`. `TestNewSinOpciones` y `TestMapaDeSitios`, que leen por
++  dentro el intervalo y el limitador de un sitio, los leen del `Ritmo` del cliente (V45). Los demás tests del paquete no
++  cambian: sin `ConRitmo`, un cliente es el de hoy.
+ - `TestOrdenesDeLasSkillsEmpotradas` (`internal/app/skills_test.go`): toda herramienta de la tabla está entre las del
+   servidor, con un control que ve fallar una herramienta y una orden inventadas (FR-031).
+ - `TestRenderizarTabla` (`internal/skills/comandos_test.go`) y `TestTablaDeComandosCoincideConLaGramatica`: la columna
+@@ -352,8 +367,10 @@
+   norma y el bloque pedidos, y el servidor no guarda nada propio.
+ - **`graph_check`** (la skill; una por lectura de bloques, con su norma y sus bloques): ≈ 325 B sin nada y ≈ 1 000 B por
+   bloque cambiado (H7.1). Cada señal la apaga la siguiente lectura del bloque.
+-- **El error de herramienta** (la skill; cuando una llamada falla): el sobre de fallo, 300-400 B. Deja de darse con la
+-  primera llamada que no falla.
++- **El error de herramienta** (la skill; cuando una llamada falla): el sobre de fallo, 300-400 B. Ninguna llamada hereda
++  el fallo de otra: cada una vuelve a pedir lo que le falta, su `robots.txt` incluido (D8), así que deja de darse en la
++  primera llamada que se hace cuando su causa ha cesado —la fuente vuelve a responder, el argumento se corrige—, como
++  con la orden.
+ - **La línea `⚠ SIN CONSULTA AL BOE:`** (la persona; una por respuesta, no una por norma): ≈ 150 B más la causa. Deja de
+   darse en la primera pregunta tras instalar kitlegal o declarar el servidor.
+ - **Las `instructions`** (el agente; una vez por conexión): 485 B. No dan señales.
+@@ -376,7 +393,9 @@
+   registro como `version` (D4).
+ - **La entrada cerrada es un final normal**, reconocido por un lector que anota su fin y no por el texto de un error del
+   SDK (D7).
+-- **Un cliente HTTP por proceso**; la copia de `robots.txt` dura entonces lo que vive el servidor (D8; supuesto).
++- **Cada llamada construye su cliente HTTP, como la orden, y el ritmo por sitio es del proceso**: lo que se obtiene de
++  `robots.txt` —reglas o denegación— no vive más que la llamada, y un cliente por proceso lo dejaría vivo lo que el
++  servidor (D8; supuesto).
+ - **La conformidad y la concurrencia se prueban en proceso**, para que `-race` vea el código del servidor (D13).
+ - **El arnés gana la orden `mcp` con dos clientes**, el del SDK y uno de la 2025-11-25 escrito con la biblioteca estándar
+   (D12).
+@@ -404,7 +423,7 @@
+ | Registro sin avisador para las llamadas | FR-023 |
+ | Interfaz `servidor` en `ejecutarVerbo` | FR-020 (sin plazo de vida), FR-022, FR-023 |
+ | `AppletMCP`, `DependenciasDeMCP`, `DependenciasDeMCPDelSistema` | FR-001, FR-021, FR-022, FR-025 |
+-| `DependenciasDeRed` con un cliente por proceso | FR-014 |
++| `httpx.Ritmo`, `NuevoRitmo` y `ConRitmo`; `DependenciasDeRed` con un `Ritmo` por proceso y un cliente por invocación; `TestRitmoCompartido` | FR-014 (el ritmo por sitio, entre todas las llamadas); FR-010 (el `robots.txt` de cada llamada, como el de su orden) |
+ | `schemas/servidor.json` y su fila | FR-022 (`--describe`), FR-079 (`schema-check`) |
+ | R7 en `depguard` y en `TestArquitectura`; `modulosDelBinario` | FR-026, FR-079 |
+ | `internal/mcp/mcptest` y la orden `mcp` del arnés | FR-071 a FR-076 |
+@@ -443,9 +462,11 @@
+    tipos, con `TestInstrucciones` y `TestServir`), en la misma tarea: sin un paquete que lo importe, `go mod tidy`
+    retiraría el módulo. Con ella, R7 en `.golangci.yml` y en `TestArquitectura`, e `internal/mcp` en la lista de R1.
+ 3. `internal/mcp/mcptest`: los dos clientes, con `TestSesion`.
+-4. `internal/cli`: `EsquemasDeHerramienta` y `LineaDeLlamada`, con sus tests.
++4. `internal/cli`: `EsquemasDeHerramienta` y `LineaDeLlamada`, con sus tests. Y, sin depender de lo anterior,
++   `internal/httpx`: `Ritmo`, `NuevoRitmo` y `ConRitmo`, con `TestRitmoCompartido` y las filas nuevas de las tablas de
++   opciones.
+ 5. `internal/app`: primero el cuerpo —la interfaz `servidor` en `ejecutarVerbo`, `emitir`, `herramientasDe`, la llamada,
+-   `AppletMCP` y sus dependencias, el cliente por proceso de `DependenciasDeRed`—, probado sobre un registro local del
++   `AppletMCP` y sus dependencias, el `Ritmo` del proceso en `DependenciasDeRed`—, probado sobre un registro local del
+    test (`TestHerramientasDelServidor`, `TestLlamadasSimultaneas`, `TestServirSinEntrada`, `TestServirEnEnsayo`,
+    `TestDependenciasDeRed`), sin registrarlo. Después, **`[datos]`** e indivisible, su registro y su contrato publicado:
+    `RegistroDeProduccion` y el registro de e2e, `schemas/servidor.json` generado con `-actualizar-esquemas`, la fila de
+@@ -506,7 +527,7 @@
+ - f · Alcance: nada fuera del spec; la única edición de un guion anterior, declarada con su porqué.
+ - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos.
+ - h · Mejor alternativa: cada decisión con la rechazada (D1-D26).
+-- i · Afirmaciones verificadas: V1-V42 con fichero, línea u orden; S1-S11 como supuestos.
++- i · Afirmaciones verificadas: V1-V45 con fichero, línea u orden; S1-S11 como supuestos.
+ - j · Quickstart ejecutable: órdenes, rutas y nombres de test reales (los que fija este plan); todo bajo un temporal que
+   el último escenario borra; nada versionado cambia.
+ - k · Datos externos: ninguno.
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-01 19:53:39
++++ ahora/quickstart.md	2026-10-01 20:08:07
+@@ -81,10 +81,12 @@
+ ```sh
+ go test -race -count=1 -run '^(TestLlamadasSimultaneas|TestServirSinEntrada|TestServirEnEnsayo|TestDependenciasDeRed)$' ./internal/app/
+ go test -race -count=1 ./internal/mcp/...
++go test -race -count=1 -run '^TestRitmoCompartido$' ./internal/httpx/
+ ```
+ 
+ Pasan, sin carreras: cada llamada recibe el sobre de su entrada; la entrada que se cierra con una llamada en curso da 0;
+-`--dry-run` vuelve sin leer la entrada; y dos peticiones comparten el cliente de red.
++`--dry-run` vuelve sin leer la entrada; dos invocaciones reciben cada una su cliente de red y los dos esperan turno en
++el mismo ritmo por sitio; y un `robots.txt` que falla para un cliente se vuelve a pedir con el siguiente.
+ 
+ ## 5. A mano: listar y llamar con el binario distribuido (US1, US4, US6; FR-002, FR-005, FR-006, FR-010, FR-011)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-01 19:53:39
++++ ahora/research.md	2026-10-01 20:06:43
+@@ -3,7 +3,8 @@
+ Fase 0 del plan. Modo desatendido: cada decisión se tomó con el «Criterio de decisión autónoma» de la constitución y
+ lleva su alternativa rechazada. Toda afirmación sobre una herramienta o dependencia externa remite a la tabla V
+ (comprobada en local, en esta sesión) o a la tabla S (supuesto que no se pudo comprobar sin red o sin abrir una sesión con
+-modelo).
++modelo). V43 a V45 son de la sesión del corrector del plan, que rehízo D8: leídas, con las órdenes que nombran, en el
++repositorio y en la biblioteca estándar.
+ 
+ **Material de un solo uso, fuera de lo versionado** (en el directorio temporal de la sesión, borrado con ella):
+ 
+@@ -65,6 +66,9 @@
+ | V40 | `scripts/workflow/aceptacion.sh rojo-primero` da por inválido un guion cuya salida lleva `unknown command`, `cannot parse`, `unexpected command` o `usage: `, y por bueno el que falla sin ellos: una orden del arnés que aún no existe o un `exec` que falla no valen como rojo. La ayuda general de hoy empieza por `uso: kitlegal <applet> [verbo] [banderas]`, lista `boe`, `graph`, `skills` y `territorio`, uno por línea con dos espacios delante, y no lleva `mcp`; `kitlegal mcp …` sale hoy con 2 (`"mcp" no es ningún applet de kitlegal`) | `scripts/workflow/aceptacion.sh:45-63`; `go run ./cmd/kitlegal --help`; `go run ./cmd/kitlegal mcp serve --describe` |
+ | V41 | Registrar un applet cambia cuatro listas literales: `internal/app/registro_test.go:248`, `cmd/kitlegal/main_test.go:20`, `internal/app/ejemplo/kitlegal-e2e/main_test.go:166` e `internal/app/testdata/script/argumentos.txtar:24` y `:30` (`applets disponibles: boe, contar, echo, graph, skills, territorio`); `CONTRIBUTING.md:85` la repite en un ejemplo. H6, H19 y H7 lo hicieron en una tarea `[datos]` indivisible con el esquema publicado del applet. `Verbo.Salida` nulo es un verbo que no declara su `data`, y `--describe` lo deja sin restringir | `grep` de `applets disponibles` y de las listas; `specs/010-h7-internal-graph-grafo/tasks.md` T016 y `specs/009-h19-instalar-sin-clonar/tasks.md` T014; `internal/app/applet.go:47-51` |
+ | V42 | `make evals-sondeo` entra por `scripts/evals-sondeo-llavero.sh`, que rechaza un paso del workflow y, en macOS con el llavero y sin la credencial en el entorno, pide su contraseña antes de comprobar los argumentos; `scripts/evals-sesion.sh` termina su orden en `--disallowedTools WebFetch WebSearch`; `scripts/evals.sh` exige `kitlegal` en el `PATH`; y el peor caso del trabajo cuenta la prueba de red en las dos skills, la lleve o no el trabajo | `scripts/evals-sondeo-llavero.sh:25-51`; `scripts/evals-sesion.sh:20-22`; `scripts/evals.sh:121-124`; `internal/evals/definicion.go:301-331` |
++| V43 | Lo que un cliente recuerda de `robots.txt` por sitio no son solo las reglas: `reglasDelSitio.denegado` guarda también, sin caducidad, el no haberlo podido obtener —un 429, que no se reintenta; un 5xx o un fallo de transporte agotados los tres intentos; un contenido ilegible; una cadena de redirecciones en bucle o excedida—, y desde ahí toda petición de ese cliente a ese sitio devuelve `limite-o-tos` sin pedir nada. Solo el contexto vencido o cancelado no deja entrada. Esa copia y el limitador viven en la misma entrada `sitio`, una por cliente y sitio. H2 fijó la copia «sin caducidad» porque «un cliente vive una invocación de la línea de órdenes, que dura segundos», y dejó «cualquier vigencia entre invocaciones» fuera de la memoria del cliente | `internal/httpx/robots.go:26-38`, `:116-137`, `:259-312`; `internal/httpx/sitio.go:20-49`; `internal/httpx/cliente.go:51`, `:263-294`; `specs/003-h2-internal-httpx-cliente/spec.md:31`, `:238` (leído en la sesión del corrector del plan) |
++| V44 | El turno de un sitio es un cubo de un solo token, y `Wait` no espera un turno que no cabe en el plazo del contexto: devuelve el error en el acto y la petición sale como `fuente-no-disponible` («el turno en el sitio no llega dentro del plazo de la operación»). El test de H2 que mide el ritmo compara cada llegada al servidor de prueba con su turno, contado desde el comienzo, sin holgura. Cada cliente clona el transporte por omisión de la biblioteca, cuyas conexiones ociosas se cierran solas a los 90 s (`IdleConnTimeout`): un cliente que deja de usarse no deja nada abierto pasado ese tiempo | `internal/httpx/sitio.go:51-55`, `:91-94`; `internal/httpx/ritmo.go:41-73`; `internal/httpx/ritmo_test.go:34-88`; `internal/httpx/transporte.go:15-34`; `src/net/http/transport.go:47-58` de go1.27.1 (sesión del corrector del plan) |
++| V45 | `net/http/httptest` solo se usa en los tests de `internal/httpx`: R2 reserva `net/http` a ese árbol, por prefijo y también en los `_test.go` (V27), y no veda `net`, que hoy ningún fichero del módulo importa solo. Las tablas que recorren las opciones del cliente son `TestOpcionesInvalidas`, `TestReplayRechazaOpciones` y `TestErrorMensajesEnEspanol`; `TestNewSinOpciones` y `TestMapaDeSitios` leen por dentro el intervalo y el limitador de un sitio; y `TestDependenciasDeRed` construye hoy un cliente y pide en ensayo, sin emitir nada | `grep -rl httptest internal cmd`; `.golangci.yml:145-160`; `internal/arch_test.go:575-580`; `grep -rn -E '^\s*"net"$' --include='*.go' .` (sin resultados); `internal/httpx/cliente_test.go:26-56`, `internal/httpx/reproducir_test.go:503`, `internal/httpx/errores_test.go:283`, `internal/httpx/sitio_test.go:121`; `internal/app/boe_test.go:616-640` (sesión del corrector del plan) |
+ 
+ ## S · Supuestos no verificados
+ 
+@@ -197,19 +201,64 @@
+ **Alternativas rechazadas.** *Reconocer el cierre por el texto del error* (`server is closing: EOF`): depende de una
+ cadena de un paquete interno del SDK. *Anunciar `prompts` o `resources` vacíos*: fuera de alcance.
+ 
+-### D8 · Un cliente HTTP por proceso, para que el ritmo sea de todas las llamadas
++### D8 · Cada llamada, su cliente HTTP, como la orden; el ritmo por sitio, de todo el proceso
+ 
+-`DependenciasDeRed` construye el cliente la primera vez que una invocación lo pide y devuelve el mismo en las
+-siguientes. En la orden no cambia nada (una invocación por proceso). En el servidor, todas las llamadas comparten los
+-limitadores por sitio de ese cliente (V26; FR-014).
++`internal/httpx` gana un valor, `Ritmo` —los turnos por sitio, con su intervalo—, y una opción, `ConRitmo`: el cliente
++que la recibe espera turno en ese `Ritmo`, que comparte con todo cliente que lo reciba; lo demás sigue siendo de cada
++cliente, también lo que recuerda de `robots.txt`. `DependenciasDeRed` crea un `Ritmo` con el intervalo del BOE y sigue
++construyendo **un cliente por invocación**, como hoy (V26), cada uno con ese `Ritmo`.
+ 
+-**Consecuencia que se declara.** La copia de `robots.txt` dura lo que vive el cliente (H2, FR-015), y ahora eso es lo que
+-vive el servidor: se vuelve a leer al arrancarlo, no durante su vida. Queda anotado como supuesto para el informe final.
++- **En la orden no cambia nada**: una invocación por proceso, un cliente y un `Ritmo` que nadie más usa.
++- **En el servidor**, cada llamada que llega a la red construye su cliente (D3). Lo que obtiene de `robots.txt` —las
++  reglas, o la denegación por no haberlo podido obtener (V43)— vale para esa llamada y se va con ella: es lo que H2 fijó
++  para una invocación, y sigue siendo cierto palabra por palabra, porque el cliente sigue viviendo una (H2 FR 015, que no
++  se sustituye). Los turnos sí son de todas: el BOE no recibe del servidor más de una petición por intervalo, sea de una
++  llamada o de cinco, y el `robots.txt` de cada una ocupa el suyo (FR-014).
+ 
+-**Alternativas rechazadas.** *Un cliente por llamada*, como hoy: cinco llamadas a la vez serían cinco peticiones
+-simultáneas al BOE. *Renovar el cliente cada cierto tiempo*: en el instante de la renovación dos peticiones pueden salir
+-sin el intervalo. *Dar caducidad a `robots.txt` dentro de `internal/httpx`*: cambia un requisito de H2 que este spec no
+-toca.
++Lo que eso da, visto desde quien llama:
++
++- Una llamada que llega a la red hace las peticiones de su orden —su `robots.txt` y lo que pide— y tarda lo que ella. Una
++  que se sirve de la caché no construye ningún cliente, como hoy.
++- Un fallo al obtener `robots.txt` no pasa de la llamada que lo sufre: la siguiente lo vuelve a pedir y, si la fuente
++  responde, lee. Es el sobre de la orden para la misma entrada y el mismo estado (FR-010), y las reglas no se usan nunca
++  más allá de la llamada que las leyó.
++- Entre dos llamadas no queda en memoria más que el turno de cada sitio. Un cliente que ya no se usa no deja nada
++  abierto: sus conexiones ociosas se cierran solas (V44).
++- Varias llamadas a la vez que piden al BOE esperan turno una detrás de otra, y la que no lo alcanza dentro de su plazo
++  devuelve `fuente-no-disponible`: es lo que el ritmo ya hace con un plazo que no da para el turno (V44).
++
++`ConRitmo` declara el ritmo del cliente en lugar de `ConIntervalo`; si se dan las dos vale la última, como con una opción
++repetida. Un `Ritmo` nulo o de intervalo no positivo es un error de la clase `argumentos` al construir el cliente, como
++`ConIntervalo(0)`, y `Replay` la rechaza como rechaza `ConIntervalo`: su cadena no tiene ritmo. Sin `ConRitmo`, un
++cliente tiene su propio ritmo, como hoy.
++
++**Tests.** `TestRitmoCompartido`, en `internal/httpx`, con el servidor local de sus tests: dos clientes con el mismo
++`Ritmo` no adelantan ninguna de sus cuatro llegadas —el `robots.txt` y el recurso de cada uno— a su turno, con la medida
++de H2 (V44); y con un `robots.txt` que falla la primera vez que se pide (429) y responde después, el primer cliente
++recibe `limite-o-tos` y el segundo lee. `TestDependenciasDeRed`, en `internal/app`, comprueba la composición: dos
++invocaciones reciben dos clientes distintos que comparten los turnos. Lo hace sin esperar nada: con un `Ritmo` de una
++hora, un plazo en el contexto de cada petición y un sitio local que responde 404 a todo y cuenta sus conexiones, el
++primer cliente gasta el turno en su `robots.txt`; el segundo falla en el acto, sin abrir ninguna conexión, porque su
++turno no cabe en el plazo (V44); y uno de otras dependencias sí la abre. Ese sitio es un `net.Listener` del propio test:
++`net/http` sigue vedado fuera de `internal/httpx` (V45).
++
++**Alternativas rechazadas.**
++
++- *Un cliente por proceso*, que es lo que este plan decía. Lo que el cliente recuerda de `robots.txt` viviría lo que el
++  servidor, que una app de escritorio mantiene horas o días. Si la primera llamada que necesita la red llega sin
++  conexión, o el BOE responde 5xx o 429 a `/robots.txt`, el sitio quedaría denegado hasta reiniciar la app: toda llamada
++  que no esté en la caché devolvería `limite-o-tos` mientras la orden, con su cliente nuevo, lee en cuanto vuelve la
++  red. Es otro sobre para la misma entrada y el mismo estado (FR-010) y una señal que no se apaga; y las reglas pasarían
++  días sin releerse, cuando RFC 9309 §2.4 pide no usar la copia más de 24 h (principio I).
++- *Un cliente por proceso y vigencia para la copia* dentro de `internal/httpx` (la denegación, hasta la llamada
++  siguiente; las reglas, 24 h). Son dos vigencias y un reloj más en el cliente, y aun así el servidor respondería
++  distinto que la orden mientras durase una denegación. Lo que ahorra —no repetir `robots.txt` en cada llamada que llega
++  a la red— se lo ahorraría igual a las órdenes: es una copia de `robots.txt` entre invocaciones, que H2 dejó fuera de
++  la memoria del cliente (V43). El hito pide que la llamada recorra el camino de la orden, no uno más corto.
++- *Un cliente por llamada sin nada compartido*, como hoy: cinco llamadas a la vez serían cinco peticiones simultáneas al
++  BOE (FR-014).
++- *Los turnos en una variable del paquete `httpx`*, sin opción: estado global, que la raíz de composición no ve ni los
++  tests pueden aislar.
+ 
+ ### D9 · `--timeout`, `--offline`, `--no-graph`, `--verbose`, `--asunto`, `--dry-run`
+ 

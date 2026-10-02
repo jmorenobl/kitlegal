@@ -678,25 +678,28 @@ func probarDefectosDeLaDescripcion(t *testing.T) {
 }
 
 // Los bytes de la tabla que se repiten en los casos de TestRenderizarTabla
-// (contrato sincronizacion-y-comprobacion §3).
+// (contrato sincronizacion-y-comprobacion §3; contracts/skills.md §4 de H21).
 const (
-	columnasDeLaTabla = "| Orden | Qué hace | Qué devuelve en `data` |\n|---|---|---|\n"
+	columnasDeLaTabla = "| Orden | Herramienta | Qué hace | Qué devuelve en `data` |\n|---|---|---|---|\n"
 
-	filaDeBuscar = "| `kitlegal boe buscar <texto>...` | Busca normas consolidadas por las palabras de su título o " +
-		"con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, " +
+	filaDeBuscar = "| `kitlegal boe buscar <texto>...` | `boe_buscar` | Busca normas consolidadas por las palabras " +
+		"de su título o con una consulta de la fuente. | lista de objetos con `identificador`, `titulo`, `rango`, " +
 		"`vigencia_agotada`, `estado_consolidacion`, `url` |\n"
 
-	filaDeArticulo = "| `kitlegal boe articulo <norma> <bloque>` | Devuelve el texto vigente de un bloque de una " +
-		"norma, con los avisos de su vigencia. | objeto con `norma`, `bloque`, `titulo`, `tipo`, " +
+	filaDeArticulo = "| `kitlegal boe articulo <norma> <bloque>` | `boe_articulo` | Devuelve el texto vigente de " +
+		"un bloque de una norma, con los avisos de su vigencia. | objeto con `norma`, `bloque`, `titulo`, `tipo`, " +
 		"`fecha_version`, `fecha_vigencia`, `norma_modificadora`, `texto`, `hash_texto`, `avisos`, `url`, " +
 		"`url_eli` |\n"
+
+	filaDeVacio = "| `kitlegal ejemplo vacio` | `ejemplo_vacio` | No declara la forma de sus datos. | " +
+		"sin forma declarada |\n"
 
 	lineaDeLasBanderasDePrueba = "Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, " +
 		"`--describe`, `--no-graph`, `--asunto <valor>`, `--verbose`.\n"
 
 	pieDeLaTabla = "\n" +
-		"Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, " +
-		"`data` lleva `clase` y `mensaje`.\n" +
+		"La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, " +
+		"`fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.\n" +
 		"\n" +
 		lineaDeLasBanderasDePrueba +
 		"\n"
@@ -721,15 +724,18 @@ func describirDocumentos(t *testing.T, documentos ...describeDePrueba) []skills.
 
 // TestRenderizarTabla fija los bytes exactos de RenderizarTabla sobre documentos
 // de --describe de prueba (contrato sincronizacion-y-comprobacion §3; data-model
-// §2.2; FR-032, FR-034): las filas de buscar y articulo del contrato; una sección
-// por applet en el orden declarado, con sus filas en el orden de las
-// descripciones y sin las de un applet no declarado; la sintaxis de un argumento
-// obligatorio, de uno de varios valores y de los opcionales, anidados como los
-// escribe Kong: uno solo, uno seguido de otro de varios valores y los dos detrás
-// de los obligatorios; la barra de la ayuda
-// y de una clave escrita \|; data sin $ref y una lista de objetos sin claves; la
-// misma salida en dos llamadas; y cada conjunto de descripciones que no permite
-// escribir la tabla, con su defecto.
+// §2.2; FR-032, FR-034; contracts/skills.md §4 y FR-030 de H21): las filas de
+// buscar y articulo del contrato, cada una con su herramienta, `<applet>_<verbo>`,
+// en la segunda columna; una sección por applet en el orden declarado, con sus
+// filas en el orden de las descripciones y sin las de un applet no declarado; la
+// sintaxis de un argumento obligatorio, de uno de varios valores y de los
+// opcionales, anidados como los escribe Kong: uno solo, uno seguido de otro de
+// varios valores y los dos detrás de los obligatorios, sin que ninguno llegue al
+// nombre de la herramienta; la barra de la ayuda y de una clave escrita \|; data
+// sin $ref y una lista de objetos sin claves; la línea del sobre, que dice que la
+// orden y la herramienta de cada fila devuelven el mismo; la misma salida en dos
+// llamadas; y cada conjunto de descripciones que no permite escribir la tabla,
+// con su defecto.
 func TestRenderizarTabla(t *testing.T) {
 	t.Parallel()
 
@@ -750,11 +756,10 @@ func TestRenderizarTabla(t *testing.T) {
 			nombre:     "una-sola-clave-de-fallo",
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{unaClaveDeFallo},
-			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
-				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla + filaDeVacio +
 				"\n" +
-				"Todas devuelven el sobre `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` " +
-				"falso, `data` lleva `mensaje`.\n" +
+				"La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, " +
+				"`fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `mensaje`.\n" +
 				"\n" +
 				lineaDeLasBanderasDePrueba +
 				"\n",
@@ -769,8 +774,7 @@ func TestRenderizarTabla(t *testing.T) {
 			nombre:     "secciones-en-el-orden-declarado",
 			applets:    []string{"ejemplo", "boe"},
 			documentos: []describeDePrueba{buscarDePrueba(), vacio, noDeclarado, articuloDePrueba()},
-			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
-				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla + filaDeVacio +
 				"\n### `kitlegal boe`\n\n" + columnasDeLaTabla + filaDeBuscar + filaDeArticulo +
 				pieDeLaTabla,
 		},
@@ -779,10 +783,12 @@ func TestRenderizarTabla(t *testing.T) {
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{consultarDePrueba(), vacio, nadaDePrueba()},
 			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
-				"| `kitlegal ejemplo consultar <norma> <bloques>... [<desde> [<materias>...]]` | Consulta los " +
-				"bloques de una norma \\| o de varias. | objeto con `norma`, `con\\|barra` |\n" +
-				"| `kitlegal ejemplo vacio` | No declara la forma de sus datos. | sin forma declarada |\n" +
-				"| `kitlegal ejemplo nada` | Devuelve una lista de objetos sin claves. | lista de objetos |\n" +
+				"| `kitlegal ejemplo consultar <norma> <bloques>... [<desde> [<materias>...]]` | " +
+				"`ejemplo_consultar` | Consulta los bloques de una norma \\| o de varias. | objeto con `norma`, " +
+				"`con\\|barra` |\n" +
+				filaDeVacio +
+				"| `kitlegal ejemplo nada` | `ejemplo_nada` | Devuelve una lista de objetos sin claves. | " +
+				"lista de objetos |\n" +
 				pieDeLaTabla,
 		},
 		{
@@ -790,9 +796,10 @@ func TestRenderizarTabla(t *testing.T) {
 			applets:    []string{"ejemplo"},
 			documentos: []describeDePrueba{leerDePrueba(), comprobarDePrueba()},
 			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
-				"| `kitlegal ejemplo leer [<norma>]` | Lee una norma, o todas sin ella. | sin forma declarada |\n" +
-				"| `kitlegal ejemplo comprobar [<norma> [<bloques>...]]` | Comprueba una norma y sus bloques, o " +
-				"todo sin ellos. | sin forma declarada |\n" +
+				"| `kitlegal ejemplo leer [<norma>]` | `ejemplo_leer` | Lee una norma, o todas sin ella. | " +
+				"sin forma declarada |\n" +
+				"| `kitlegal ejemplo comprobar [<norma> [<bloques>...]]` | `ejemplo_comprobar` | Comprueba una " +
+				"norma y sus bloques, o todo sin ellos. | sin forma declarada |\n" +
 				pieDeLaTabla,
 		},
 	}

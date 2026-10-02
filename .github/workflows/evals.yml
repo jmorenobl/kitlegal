@@ -153,9 +153,11 @@ jobs:
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
     # cada skill, que TestDefinicionDelJob recalcula con las evals del repositorio (FR-035 y FR-052 de H7.3; research.md
-    # D13 de H7.3). 122 minutos: el peor caso de boe-legislacion con 20 evals y 97 sesiones es de 7285 s (research.md
-    # V13 de H7.4).
-    timeout-minutes: 122
+    # D13 de H7.3). 240 minutos: el peor caso de boe-legislacion con sus 21 evals en tres tandas —las sesiones del modo
+    # orden, las del modo herramienta y las de la eval sin binario ni servidor— es de 14 357 s, 239,3 minutos (FR-083 de
+    # H21; specs/015-h21-kitlegal-mcp-serve/research.md D20). Con 21 evals, el de un solo modo ya es de 7557 s y no cabe
+    # en los 122 minutos de antes.
+    timeout-minutes: 240
     permissions:
       contents: read
     env:

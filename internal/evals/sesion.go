@@ -4,10 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+
+	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
 // Ficheros que el guion de evals escribe siempre en el directorio de una sesión
@@ -52,6 +58,18 @@ const (
 	subtipoSuccess   = "success"
 	bloqueToolUse    = "tool_use"
 	herramientaSkill = "Skill"
+)
+
+// Lo que se lee de una llamada a una herramienta del servidor MCP y de su
+// resultado (research.md S5 y V21 de H21): el mensaje user que trae el bloque
+// tool_result, el bloque de texto de su contenido y lo que separa el nombre de
+// la herramienta del prefijo que le pone el agente, que en Claude Code es
+// mcp__<servidor>__.
+const (
+	mensajeUser         = "user"
+	bloqueToolResult    = "tool_result"
+	bloqueDeTexto       = "text"
+	separadorDelPrefijo = "__"
 )
 
 // Sesion es lo que se lee del directorio de una sesión de evals (data-model
@@ -122,6 +140,39 @@ type Sesion struct {
 	// result con is_error verdadero, sea cual sea el código de la sesión; vacío
 	// si no lo es o si no lleva result (research.md V3 y V18 de H7.3).
 	ErrorDelResultado string
+
+	// Llamadas son las llamadas a las herramientas del servidor MCP de kitlegal,
+	// en el orden de sus bloques tool_use en el transcript; ninguna si la sesión
+	// no llamó a ninguna (data-model §8 de H21).
+	Llamadas []Llamada
+}
+
+// Llamada es una llamada a una herramienta del servidor MCP de kitlegal leída
+// del transcript de una sesión: el bloque tool_use de un mensaje assistant y,
+// si el transcript lo trae, el bloque tool_result con su tool_use_id de un
+// mensaje user (data-model §8 de H21; contracts/evals-en-dos-modos.md §3 de H21;
+// research.md D17 y S5 de H21).
+type Llamada struct {
+	// Herramienta es el name del bloque tool_use sin lo que precede a su último
+	// «__»: boe_articulo, la nombre el agente mcp__kitlegal__boe_articulo o a
+	// secas.
+	Herramienta string
+
+	// Argumentos es su input, tal como está en el transcript.
+	Argumentos json.RawMessage
+
+	// ConResultado dice si el transcript trae su tool_result. No lo trae la
+	// llamada de una sesión que se cortó antes.
+	ConResultado bool
+
+	// Error dice si su resultado es un error: su is_error es verdadero o su
+	// contenido es un sobre con ok falso. No depende solo de is_error, que es lo
+	// que el agente dice del resultado y no lo que el servidor devolvió.
+	Error bool
+
+	// Clase es data.clase de ese sobre con ok falso; vacía si el resultado no lo
+	// trae o si de él no se lee.
+	Clase schema.Clase
 }
 
 // ReintentoDeLaAPI es un mensaje system/api_retry del transcript: Claude Code lo
@@ -167,7 +218,8 @@ func (s Sesion) ReintentosPorLimiteDeRitmo() int {
 // LeerSesion lee del directorio de una sesión de evals sesion.jsonl,
 // codigo-de-la-sesion y sesion.err, los tres ficheros que el guion escribe
 // siempre, y devuelve la sesión sin sus invocaciones (data-model §10.1; contrato
-// job-de-evals §3.2 y §4).
+// job-de-evals §3.2 y §4) y con sus llamadas a las herramientas del registro de
+// producción (contracts/evals-en-dos-modos.md §3 de H21).
 //
 // Nada que falte se toma por vacío ni por 0: un fichero ausente o que no se
 // puede leer, un código que no es un entero en una línea y una línea del
@@ -179,7 +231,12 @@ func (s Sesion) ReintentosPorLimiteDeRitmo() int {
 // ilegible: es el de una sesión que acabó, o que el tope cortó, antes de emitir
 // ningún mensaje, y su fin es «sin mensajes».
 func LeerSesion(dir string) (Sesion, error) {
-	leido, err := leerTranscript(dir)
+	herramientas, err := herramientasDelRegistro()
+	if err != nil {
+		return Sesion{}, err
+	}
+
+	leido, err := leerTranscript(dir, herramientas)
 	if err != nil {
 		return Sesion{}, err
 	}
@@ -215,11 +272,54 @@ func LeerSesion(dir string) (Sesion, error) {
 		Reintentos:          leido.reintentos,
 		TerminaEnReintento:  leido.ultimo != nil && leido.ultimo.tipo == mensajeSystem && leido.ultimo.subtipo == subtipoAPIRetry,
 		ErrorDelResultado:   errorDelResultado,
+		Llamadas:            leido.llamadas,
 	}, nil
+}
+
+// herramientasDelRegistro son los nombres de las herramientas que el servidor
+// MCP anuncia con el registro de producción, los de app.NombresDeHerramientas:
+// ninguna lista paralela. El registro se construye una sola vez, con la versión
+// vacía, la de quien no tiene ninguna: de él solo se leen nombres, que no
+// cambian mientras dura el proceso.
+var herramientasDelRegistro = sync.OnceValues(func() ([]string, error) {
+	registro, err := app.RegistroDeProduccion("")
+	if err != nil {
+		return nil, fmt.Errorf("el registro de applets del binario no se puede construir: %w", err)
+	}
+
+	return app.NombresDeHerramientas(registro), nil
+})
+
+// modoDeLaSesion es el modo que da el directorio de una sesión (data-model §6 de
+// H21; contracts/evals-en-dos-modos.md §3 de H21; research.md D16 de H21):
+// ModoHerramienta si tiene servidor.json, que el repartidor escribe solo en las
+// sesiones de ese modo; ninguno, el valor vacío, si no lo tiene y su eval es sin
+// binario ni servidor; y ModoOrden en otro caso.
+//
+// Un servidor.json del que no se puede saber si está no se toma por ausente: es
+// un error que empieza por su nombre y nombra su ruta, como los de LeerSesion.
+func modoDeLaSesion(dir string, eval Eval) (Modo, error) {
+	ruta := filepath.Join(dir, ficheroDelServidor)
+
+	switch _, err := os.Stat(ruta); {
+	case err == nil:
+		return ModoHerramienta, nil
+	case !errors.Is(err, fs.ErrNotExist):
+		return "", fmt.Errorf("%s: %s no se puede comprobar: %w", ficheroDelServidor, ruta, err)
+	case eval.SinBinarioNiServidor:
+		return "", nil
+	default:
+		return ModoOrden, nil
+	}
 }
 
 // transcriptLeido es lo que LeerSesion toma de sesion.jsonl.
 type transcriptLeido struct {
+	// herramientas son los nombres de las herramientas del registro de
+	// producción: de los bloques tool_use, solo los de una de ellas son una
+	// llamada.
+	herramientas []string
+
 	modelo  string
 	version string
 
@@ -236,6 +336,13 @@ type transcriptLeido struct {
 
 	reintentos []ReintentoDeLaAPI
 
+	llamadas []Llamada
+
+	// llamadaDelUso da, por el id de su bloque tool_use, la posición en llamadas
+	// de cada llamada: con él se reconoce su tool_result, que lo trae en
+	// tool_use_id.
+	llamadaDelUso map[string]int
+
 	// ultimo es el último mensaje leído; nil si el transcript no tiene ninguno.
 	ultimo *mensaje
 }
@@ -251,22 +358,25 @@ type mensaje struct {
 }
 
 // bloqueDeContenido es un bloque del message.content de un mensaje assistant,
-// con lo que dice si es la llamada que carga una skill.
+// con lo que dice si es la llamada que carga una skill o la llamada a una
+// herramienta del registro, y el id por el que se reconoce su resultado.
 type bloqueDeContenido struct {
 	Type  string          `json:"type"`
+	ID    string          `json:"id"`
 	Name  string          `json:"name"`
 	Input json.RawMessage `json:"input"`
 }
 
 // leerTranscript lee sesion.jsonl línea a línea: cada una, un mensaje JSON de
-// stream-json.
-func leerTranscript(dir string) (transcriptLeido, error) {
+// stream-json. herramientas son los nombres de las herramientas cuyas llamadas
+// se leen.
+func leerTranscript(dir string, herramientas []string) (transcriptLeido, error) {
 	contenido, err := leerFicheroDeSesion(dir, ficheroDelTranscript)
 	if err != nil {
 		return transcriptLeido{}, err
 	}
 
-	var leido transcriptLeido
+	leido := transcriptLeido{herramientas: herramientas}
 
 	numero := 0
 
@@ -306,6 +416,8 @@ func (t *transcriptLeido) leerMensaje(texto string) error {
 		leido, err = t.leerSystem(texto)
 	case mensajeAssistant:
 		err = t.leerAssistant(texto)
+	case mensajeUser:
+		err = t.leerUser(texto)
 	case mensajeResult:
 		leido, err = t.leerResult(texto)
 	}
@@ -379,7 +491,8 @@ func (t *transcriptLeido) leerReintento(texto string) error {
 // leerAssistant anota las skills que activa un mensaje assistant: la
 // input.skill de cada bloque tool_use de la herramienta Skill, cuya entrada es
 // {skill, args?} (research.md V6). Una llamada a Skill sin skill no se ignora:
-// podría ser la activación que decide una eval de no activación.
+// podría ser la activación que decide una eval de no activación. De los demás
+// bloques tool_use anota las llamadas a las herramientas del registro.
 func (t *transcriptLeido) leerAssistant(texto string) error {
 	var assistant struct {
 		Message struct {
@@ -396,7 +509,13 @@ func (t *transcriptLeido) leerAssistant(texto string) error {
 	}
 
 	for _, bloque := range assistant.Message.Content {
-		if bloque.Type != bloqueToolUse || bloque.Name != herramientaSkill {
+		if bloque.Type != bloqueToolUse {
+			continue
+		}
+
+		if bloque.Name != herramientaSkill {
+			t.leerLlamada(bloque)
+
 			continue
 		}
 
@@ -416,6 +535,136 @@ func (t *transcriptLeido) leerAssistant(texto string) error {
 	}
 
 	return nil
+}
+
+// leerLlamada anota la llamada de un bloque tool_use si su nombre, o lo que
+// sigue a su último «__», es el de una herramienta del registro, con su input
+// como argumentos y todavía sin resultado (contracts/evals-en-dos-modos.md §3
+// de H21). El prefijo es del agente —Claude Code antepone mcp__<servidor>__
+// (research.md V21 de H21)— y no dice de quién es la herramienta: lo dice el
+// registro. Un tool_use de cualquier otra herramienta no se lee.
+func (t *transcriptLeido) leerLlamada(bloque bloqueDeContenido) {
+	herramienta := bloque.Name
+	if corte := strings.LastIndex(herramienta, separadorDelPrefijo); corte >= 0 {
+		herramienta = herramienta[corte+len(separadorDelPrefijo):]
+	}
+
+	if !slices.Contains(t.herramientas, herramienta) {
+		return
+	}
+
+	if t.llamadaDelUso == nil {
+		t.llamadaDelUso = map[string]int{}
+	}
+
+	t.llamadaDelUso[bloque.ID] = len(t.llamadas)
+	t.llamadas = append(t.llamadas, Llamada{Herramienta: herramienta, Argumentos: bloque.Input})
+}
+
+// leerUser anota el resultado de las llamadas ya leídas: de la lista
+// message.content de un mensaje user, cada bloque tool_result cuyo tool_use_id
+// es el id de una de ellas (research.md S5 de H21). La llamada queda con
+// resultado; es un error si el bloque lleva is_error verdadero o si su contenido
+// es un sobre con ok falso, y su clase es la de ese sobre (research.md D17 de
+// H21).
+//
+// De un mensaje user no se exige más forma que la de la API, en la que su
+// contenido es un texto o una lista de bloques: el de un turno de texto y el
+// resultado de otra herramienta, como Skill o Bash, no aportan nada.
+func (t *transcriptLeido) leerUser(texto string) error {
+	var user struct {
+		Message struct {
+			Content any `json:"content"`
+		} `json:"message"`
+	}
+
+	if err := json.Unmarshal([]byte(texto), &user); err != nil {
+		return fmt.Errorf("el mensaje user no tiene la forma de stream-json: %w", err)
+	}
+
+	bloques, _ := user.Message.Content.([]any)
+
+	for _, bloque := range bloques {
+		campos, _ := bloque.(map[string]any)
+		if campos["type"] != bloqueToolResult {
+			continue
+		}
+
+		uso, _ := campos["tool_use_id"].(string)
+
+		posicion, deUnaLlamada := t.llamadaDelUso[uso]
+		if !deUnaLlamada {
+			continue
+		}
+
+		conError, _ := campos["is_error"].(bool)
+		clase, conSobreDeFallo := sobreDeFallo(campos["content"])
+
+		llamada := &t.llamadas[posicion]
+		llamada.ConResultado = true
+		llamada.Error = conError || conSobreDeFallo
+		llamada.Clase = clase
+	}
+
+	return nil
+}
+
+// sobreDeFallo dice si el contenido de un tool_result es un sobre con ok falso,
+// y da su data.clase, vacía si el sobre no la lleva como un texto. El sobre es
+// el primero de los textos del contenido que es un objeto JSON con ok: el
+// servidor devuelve uno por llamada, de éxito o de fallo (data-model §2 de H21).
+// Un texto que no lo es —el aviso del agente de que la herramienta no existe o
+// de que el servidor no responde— no es un sobre.
+func sobreDeFallo(contenido any) (schema.Clase, bool) {
+	for _, texto := range textosDelContenido(contenido) {
+		var sobre struct {
+			OK   *bool `json:"ok"`
+			Data any   `json:"data"`
+		}
+
+		if err := json.Unmarshal([]byte(texto), &sobre); err != nil || sobre.OK == nil {
+			continue
+		}
+
+		if *sobre.OK {
+			return "", false
+		}
+
+		datos, _ := sobre.Data.(map[string]any)
+		clase, _ := datos["clase"].(string)
+
+		return schema.Clase(clase), true
+	}
+
+	return "", false
+}
+
+// textosDelContenido son los textos del content de un tool_result, que en la
+// API es un texto o una lista de bloques: el propio texto o, de la lista, el de
+// cada bloque de texto, en su orden. Un contenido de otra forma, o ninguno, no
+// tiene textos.
+func textosDelContenido(contenido any) []string {
+	switch contenido := contenido.(type) {
+	case string:
+		return []string{contenido}
+	case []any:
+		var textos []string
+
+		for _, bloque := range contenido {
+			campos, _ := bloque.(map[string]any)
+			if campos["type"] != bloqueDeTexto {
+				continue
+			}
+
+			if texto, esTexto := campos["text"].(string); esTexto {
+				textos = append(textos, texto)
+			}
+		}
+
+		return textos
+	default:
+		return nil
+	}
 }
 
 // leerResult lee un mensaje result: su subtype y su is_error, que deciden el fin

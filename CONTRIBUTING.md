@@ -82,7 +82,7 @@ estables del proyecto:
 
 ```console
 $ ./bin/kitlegal inventado
-argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, graph, skills, territorio; la versión, con «kitlegal version»
+argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, graph, mcp, skills, territorio; la versión, con «kitlegal version»
 $ echo $?
 2
 ```
@@ -191,7 +191,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Medidas con el reloj de pared, las dos de `MEDIDAS_DE_TIEMPO`: las cotas de tiempo de los guiones e2e (`TestMedidasDeTiempo`: `boe articulo` desde la caché y `territorio resolver` por debajo de 200 ms, ahora entregando al grafo del mundo) y el coste del grafo (`TestCosteDelGrafo`: con un `world.db` que ya existe, la entrega no añade más de 150 ms a la mediana de 20 `boe articulo` desde la caché respecto de los mismos con `--no-graph`, y, en medianas de cinco sobre 10 000 nodos y 10 000 aristas `graph check` tarda menos de 3 s y `graph stats` menos de 1 s). Solas y sin la caché de resultados de `go test`, después de las dos anteriores, que las saltan: medir con el reloj mientras corren todos los paquetes mide la carga de la máquina, no el programa | `make test-tiempos` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
-| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals, lo grabado que necesitan y el grafo previo que nombran | `make skills-check` | sí |
+| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario, y cada herramienta, una de las que anuncia su servidor MCP; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals, lo grabado que necesitan y el grafo previo que nombran | `make skills-check` | sí |
 | Regeneración de lo que se deriva de cada skill (referencias y tabla de comandos de `SKILL.md`); una skill con `scripts/` la hace fallar | `make skills-sync` | no — escribe en el árbol |
 | Configuración de la release válida (`goreleaser check`, sin construir nada; una propiedad obsoleta en la versión fijada falla) | `make goreleaser-check` | sí |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
@@ -200,7 +200,7 @@ que se puede ejecutar con el árbol sucio sin miedo.
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
-| Sondeo local de unas evals de una skill con un modelo, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
+| Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm` y `checksums.txt`, que lista también `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | La web: tipos, cada cita contra su sobre y construcción en `web/dist` ([La web](#la-web)) | `make web` | no — necesita Node y pnpm; lo ejecuta el flujo `web` |
@@ -295,8 +295,9 @@ se sirve `install.sh` y sin el cual no se puede verificar la atestación. Al eti
 
 `make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
 distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`,
-`municipio.json`, el de `territorio`, `instalacion.json`, el de `skills`, y `grafo.json`, el de `graph`— y los
-compara con los ficheros versionados sin escribir nada. Si falla, nombra el fichero y el verbo: la salida
+`municipio.json`, el de `territorio`, `instalacion.json`, el de `skills`, `grafo.json`, el de `graph`, y
+`servidor.json`, el de `mcp`— y los compara con los ficheros versionados sin escribir nada. Si falla, nombra el
+fichero y el verbo: la salida
 de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
 regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
 
@@ -361,11 +362,63 @@ cambia ni un byte (`TestLeerSinRastro`), leer junto al `-wal` de una escritura p
 (`TestIntegracionRecuperacionDeclarada`). Un estado al que el binario no llega —un enlace, permisos cambiados, un
 diario de rollback, una base de otra aplicación— no lleva caso ni test propios: lo cubre la regla genérica.
 
+## El servidor MCP (`internal/mcp`)
+
+Desde H21 el binario sirve sus consultas como herramientas (ADR 0035). El applet `mcp` tiene un solo verbo, `serve`,
+sin argumentos propios ni verbo por omisión: `kitlegal mcp serve` atiende el protocolo MCP por la entrada y la salida
+estándar hasta que la entrada se cierra, y entonces termina con `0`. No abre ningún puerto. Por la salida estándar
+solo van mensajes del protocolo; el aviso de versión de las skills instaladas, una vez por arranque, el registro de
+eventos y el mensaje de cada llamada que falla van a la salida de error.
+
+- **Las herramientas salen del registro y de `--describe`: no hay ninguna lista escrita a mano.** `herramientasDe`
+  (`internal/app/herramientas.go`) da una por cada verbo de cada applet del registro, salvo los de `skills`, que
+  instala en el equipo y no consulta nada, y los de `mcp`, que es el propio servidor. Su nombre es
+  `<applet>_<verbo>`; su descripción, la del verbo; y sus dos esquemas, la `entrada` y la `salida` de `--describe`
+  de ese verbo (`cli.EsquemasDeHerramienta`), la de entrada sin las ocho banderas globales. Con el registro de
+  producción son diez, las de `boe`, `graph` y `territorio`. **Un verbo nuevo nace con su herramienta**, sin tocar
+  nada del servidor; lo que se regenera es la tabla de comandos de la skill que lo use (`make skills-sync`), que
+  nombra cada operación como orden y como herramienta.
+- **Una llamada es la orden de su verbo.** `cli.LineaDeLlamada` convierte los argumentos de la llamada en la línea de
+  órdenes del verbo —unos argumentos que no son un objeto, una propiedad de más o un valor que no es del tipo
+  declarado son un fallo de la clase `argumentos`, sin ejecutar nada—, y el servidor la ejecuta como el kernel
+  ejecuta `kitlegal <applet> <verbo> --json`: el mismo análisis, la misma caché, la misma entrega al grafo del mundo
+  y el mismo sobre, que va en el resultado como texto y como `structuredContent`, con `isError` si lleva `ok` falso.
+  `--timeout`, `--offline` y `--no-graph` se dan a `mcp serve` y valen para todas sus llamadas —el plazo es de cada
+  llamada, no del servidor—, y ninguna bandera es un parámetro de una herramienta; con `--asunto` termina con `2` sin
+  atender nada, porque el servidor no expone nada del asunto. Las llamadas se atienden a la vez y las que piden al
+  BOE esperan turno en un mismo ritmo por sitio (`httpx.Ritmo`, que `DependenciasDeRed` da a cada cliente con
+  `httpx.ConRitmo`): una petición por intervalo entre todas.
+- **Las `instructions`** del servidor son un texto fijo, `mcp.Instrucciones`: qué consultan las herramientas, que no
+  se afirma nada que no venga del texto devuelto, la forma de la cita, que los avisos se trasladan y que el protocolo
+  completo son las skills. Cambiarlo es cambiar esa constante, y `TestInstrucciones` exige sus cinco frases, en su
+  orden y dentro de los primeros 512 bytes.
+- **El SDK es del adaptador (regla R7).** `internal/mcp` es el único árbol del módulo que importa
+  `github.com/modelcontextprotocol/go-sdk`: recibe las herramientas ya hechas —nombre, descripción, esquemas y la
+  función que devuelve los bytes del sobre— y no sabe de applets ni de sobres. Lo hacen cumplir la lista `mcp` de
+  `depguard` en `.golangci.yml`, que vale también para los `_test.go`, y `TestArquitectura` sobre el grafo real de
+  importaciones. Por eso los clientes con los que los tests hablan con el servidor viven en `internal/mcp/mcptest`,
+  que el binario no enlaza, y `TestDependenciasDelBinario` declara los siete módulos que el SDK trae al binario.
+
+Sus tests, y la orden que los ejecuta:
+
+| Qué comprueban | Dónde | Orden |
+|---|---|---|
+| La conformidad: el conjunto anunciado es el de los verbos del registro menos los excluidos; cada nombre, descripción y par de esquemas es el de `--describe` de su verbo; todas de solo lectura, y `capabilities` es `{"tools":{}}` | `internal/app/herramientas_test.go` (`TestHerramientasDelServidor`) | `make test` |
+| El applet: una llamada da el sobre de su orden (`TestLlamadaComoLaOrden`), las llamadas a la vez (`TestLlamadasSimultaneas`), el plazo de cada llamada (`TestPlazoDeCadaLlamada`), la entrada que se cierra, `--dry-run`, `--asunto` y la salida de error | `internal/app/mcp_test.go` | `make test` |
+| La conversión de los argumentos de una llamada en la línea de órdenes de su verbo, y los dos esquemas de una herramienta | `internal/cli/herramienta_test.go` (`TestLineaDeLlamada`, `TestEsquemasDeHerramienta`) | `make test` |
+| Lo que el servidor anuncia, el resultado de una llamada con su `isError`, el final con la entrada cerrada y las `instructions` | `internal/mcp/servir_test.go`, `internal/mcp/instrucciones_test.go` | `make test` |
+| El ritmo que comparten dos clientes del mismo proceso | `internal/httpx/ritmo_test.go` (`TestRitmoCompartido`), `internal/app/boe_test.go` (`TestDependenciasDeRed`) | `make test` |
+| Los cinco guiones de extremo a extremo de la suite de aceptación del hito (`specs/015-h21-kitlegal-mcp-serve/aceptacion/`: herramientas, llamadas, errores, protocolo y proceso), que hablan con el binario por la orden `mcp` del arnés, con los dos clientes de `internal/mcp/mcptest`: el del SDK y uno de la especificación 2025-11-25 | `internal/app/testdata/script/`, con el prefijo `h21-` | `make test-e2e`, y `make test` con todo lo demás |
+| R7 y los módulos que el SDK trae al binario | `internal/arch_test.go` (`TestArquitectura`, `TestDependenciasDelBinario`) | `make test` |
+
 ## Skills y evals
 
-Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y `references/`, sin `scripts/` (ADR 0019): cada
-orden de la skill invoca `kitlegal <applet> <verbo> …` desde el `PATH`, y el binario la lleva empotrada y la instala con
-`kitlegal skills install`. Qué son los tres directorios llamados `skills` está en
+Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y `references/`, sin `scripts/` (ADR 0019). Cada
+operación de la skill se pide de dos formas (ADR 0035): con la herramienta `<applet>_<verbo>` del
+[servidor MCP](#el-servidor-mcp-internalmcp), si el agente la tiene, y si no, con la orden
+`kitlegal <applet> <verbo> …` desde el `PATH`. Sin la una ni la otra, la skill no afirma nada y responde con la línea
+`⚠ SIN CONSULTA AL BOE:`, que cada `SKILL.md` lleva tal cual en un bloque `text`. El binario lleva las skills
+empotradas y las instala con `kitlegal skills install`. Qué son los tres directorios llamados `skills` está en
 [Tres directorios llamados `skills`](#tres-directorios-llamados-skills) y cómo se instala, en el
 [`README.md`](README.md#instalar); esta sección es lo que hace falta para cambiar una skill, sus datos o sus evals.
 
@@ -375,7 +428,10 @@ se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio: `make skill
 regenera en memoria y falla nombrando la skill y el fichero que difieren. Comprueba además el frontmatter de cada
 `SKILL.md` y que tenga menos de 300 líneas, que ninguna skill tiene `scripts/` —una entrada `skills/<skill>/scripts`
 hace fallar también `make skills-sync`, que no la retira—, que cada orden de la tabla de comandos de cada skill
-empotrada nombra un applet y un verbo que el binario registra, la tabla de normas contra `schemas/normas.yaml.json`,
+empotrada nombra un applet y un verbo que el binario registra y cada herramienta de su columna «Herramienta», una de
+las que anuncia el servidor (`TestOrdenesDeLasSkillsEmpotradas`), que la línea `⚠ SIN CONSULTA AL BOE:` de cada
+`SKILL.md` es la que el juicio de las evals reconoce (`TestEvalsDelRepositorio`, subprueba `linea-sin-consulta`), la
+tabla de normas contra `schemas/normas.yaml.json`,
 que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa de `data/jerarquia.yaml` contra
 `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, y el
 formato y el conjunto de las evals, que lo que necesitan está grabado y que el grafo previo que nombran se prepara.
@@ -437,7 +493,7 @@ evals siguen el formato común de eval:
 |---|---|---|
 | `pregunta` | sí | La pregunta con la que se abre la sesión; no vacía |
 | `activa` | sí | Si la pregunta debe activar la skill |
-| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, cada una en una de cinco formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`) o una comprobación (`applet`, `verbo` `check` y, si se quiere, `norma`) |
+| `comandos` | sí si `activa` es `true`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, con su orden o con su herramienta, cada una en una de cinco formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`) o una comprobación (`applet`, `verbo` `check` y, si se quiere, `norma`) |
 | `citas` | sí si `activa` es `true` y no hay `territorio`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
 | `territorio` | sí si `activa` es `true` y no hay `citas`; prohibido si es `false` | Lo que la respuesta debe declarar del territorio que devuelve `territorio resolver`, con al menos una de estas claves: `comunidad`, `provincia`, los códigos de `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet (`boletin_autonomico: no-configurado`…) |
 | `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
@@ -448,17 +504,21 @@ evals siguen el formato común de eval:
 | `no_se_activan` | no | Las skills que la sesión no debe activar, por su nombre y sin repetir (`boe-legislacion` en las de `legal-core`); al menos una |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
+| `sin_binario_ni_servidor` | no; solo `true`, y solo si `activa` es `true` | La sesión de la eval tiene la skill y nada más: ni `kitlegal` en el `PATH` ni el servidor MCP declarado. La respuesta debe llevar la línea `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa misma línea, y ninguna cita. Una eval que la lleva no lleva `comandos`, `citas`, `territorio`, `avisos`, `hallazgos`, `prohibidos`, `grafo_previo`, `redacciones_modificadas`, `informativa` ni `reproduce`, aunque `activa` sea `true`; sí puede llevar `no_se_activan` |
 
 Cada fichero de eval de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra
 `schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre
 ni la lista de expresiones prohibidas, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
-eval positiva sin citas ni territorio o una de no activación con comandos fallan nombrando el fichero; ninguna se
-salta. Para `boe-legislacion`, `make ci` exige además las reglas de su conjunto: exactamente diez positivas que
-deciden, de materias distintas, al menos una de no activación y al menos una informativa, y ninguna informativa de no
-activación, entre otras. Para `legal-core`, al menos tres evals: una positiva que resuelve un municipio del territorio
-configurado y declara sus boletines, otra que resuelve uno de una comunidad sin configuración y declara no
-configurados el boletín autonómico y el provincial, al menos una de no activación, y citas o territorio en toda
-positiva. El directorio de cada `grafo_previo` tiene que existir, y su preparación, en temporales, deja en el grafo un
+eval positiva sin citas ni territorio, una de no activación con comandos o una sin binario ni servidor con alguna de
+las claves que no lleva fallan nombrando el fichero; ninguna se salta. Para `boe-legislacion`, `make ci` exige además
+las reglas de su conjunto: exactamente diez positivas que deciden, de materias distintas, al menos una de no
+activación y al menos una informativa, y ninguna informativa de no activación, entre otras. Para `legal-core`, al
+menos tres evals: una positiva que resuelve un municipio del territorio configurado y declara sus boletines, otra que
+resuelve uno de una comunidad sin configuración y declara no configurados el boletín autonómico y el provincial, al
+menos una de no activación, y citas o territorio en toda positiva. En los dos conjuntos, **exactamente una eval sin
+binario ni servidor**, que no cuenta como positiva (hoy, `21-sin-binario-ni-servidor.yaml` en `boe-legislacion` y
+`04-sin-binario-ni-servidor.yaml` en `legal-core`). El directorio de cada `grafo_previo` tiene que existir, y su
+preparación, en temporales, deja en el grafo un
 `BloqueVersion` por comando sin ninguna falta; después, leyendo como la sesión cada bloque de los `comandos` de la eval,
 `graph check` termina con `0` con exactamente las clases de `hallazgos` de la eval, y cada `version-obsoleta` con la
 fecha de vigencia de la redacción que dejó el grafo previo y la de la que acaba de leer; y cada redacción de
@@ -539,8 +599,27 @@ informe sin modelo, con lo que deja la sesión: su transcript y su traza. **La r
 pregunta**: el primer `result` del transcript, si termina bien (`subtype` `success` e `is_error` falso), y vacía si
 no; el aviso de una tarea en segundo plano que termina después abre otro turno, con su propio `result`, que no la
 sustituye. Si la sesión terminó se sigue leyendo de su último mensaje, y las skills activadas, de todo el transcript.
-Cada eval se abre varias veces con un mismo modelo, y esa serie pasa si las sesiones que pasan llegan al umbral
-([Job de evals](#job-de-evals)).
+Cada eval se abre varias veces con un mismo modelo y en un mismo modo, y esa serie pasa si las sesiones que pasan
+llegan al umbral ([Job de evals](#job-de-evals)).
+
+**Una llamada a una herramienta cuenta como la invocación de su orden.** De cada sesión se leen también, de su
+transcript, las llamadas a las herramientas de kitlegal —un `tool_use` cuyo nombre, o lo que sigue a su último `__`,
+es el de una herramienta del registro de producción— con su resultado (`TestLeerLasLlamadas`). Cada una se juzga como
+una invocación: el applet y el verbo de la herramienta, los argumentos que da `cli.LineaDeLlamada` y, como código,
+`0` si tiene resultado y no es un error, el de su `clase` si lo es, y ninguno si la sesión se cortó antes de recibirlo.
+Así, `boe_articulo` con la `norma` y el `bloque` de un comando de bloque lo cumple —con otra norma, otro bloque o un
+resultado de error, no—, `graph_show` es un `prohibido` con cualquier resultado, y una llamada con
+`fuente-no-disponible` o `limite-o-tos` es una consulta fuera de lo grabado. La invocación `mcp serve` de la traza,
+el proceso del servidor, no es una consulta. En una sesión sin `kitlegal` en el `PATH` —la del modo herramienta y la
+de una eval sin binario ni servidor—, una orden de `kitlegal` de otro applet que `mcp` la deja sin pasar, con el
+motivo `orden de kitlegal en una sesión sin kitlegal en el PATH: <orden>` (`TestJuzgarLasLlamadas`).
+
+**Una eval sin binario ni servidor** pasa si cumple lo de siempre que le toca —la abre el modelo pedido, activa la
+skill y ninguna de `no_se_activan`, termina y no lleva ninguna expresión prohibida— y su respuesta tiene una línea que
+empieza por `⚠ SIN CONSULTA AL BOE:` —con la tolerancia de las formas fijas de los avisos—, esa línea lleva
+`https://kitlegal.es/instalar/` y la respuesta no lleva ninguna cita. Cada defecto de la respuesta es un motivo:
+`línea ⚠ SIN CONSULTA AL BOE: ausente`, `la línea ⚠ SIN CONSULTA AL BOE: no lleva https://kitlegal.es/instalar/` y,
+por cada cita, `cita en una respuesta sin consulta: <norma> <bloque>` (`TestJuzgarSinBinarioNiServidor`).
 
 ### Job de evals
 
@@ -550,20 +629,39 @@ ningún Python accesible. Antes de la primera sesión comprueba todo eso, las va
 `CONCURRENCIA_DE_EVALS` es un entero mayor o igual que 1—, que ninguna eval ni la lista de expresiones prohibidas
 están mal formadas, que lo que necesitan está grabado, que la skill está instalada y que `kitlegal` está en el `PATH`,
 y termina con `1` si algo falla. Después, una sola orden de Go, `TestEjecucionDelJob` (etiqueta `evals`, en
-`internal/evals/job_test.go`), compone el plan —cada eval, tantas veces como repeticiones, con el modelo que decide y,
-si no es informativa, otras tantas con cada modelo informativo— y abre sus sesiones de Claude Code en ese orden,
-**como mucho `CONCURRENCIA_DE_EVALS` a la vez**. Cada sesión se prepara justo antes de abrirla, en su propio
-directorio: el de trabajo, su caché y su grafo, el estado de Claude Code (`CLAUDE_CONFIG_DIR`), con un enlace a cada
-skill tal como la deja `make install`, y su temporal (`TMPDIR`); ninguna escribe en nada de otra. La abre
+`internal/evals/job_test.go`), compone el plan **en dos modos** —cada eval, tantas veces como repeticiones, con el
+modelo que decide y, si no es informativa, otras tantas con cada modelo informativo, una vez en el modo orden y otra
+en el modo herramienta; la eval sin binario ni servidor, una sola vez y sin modo— y abre sus sesiones de Claude Code
+**en tres tandas**, una detrás de otra —las del modo orden, las del modo herramienta y las de la eval sin binario ni
+servidor—, **como mucho `CONCURRENCIA_DE_EVALS` a la vez** dentro de cada una. El modo es lo que la sesión tiene para
+consultar:
+
+| | Modo orden | Modo herramienta | Sin binario ni servidor |
+|---|---|---|---|
+| `kitlegal` en el `PATH` | sí | no: su `PATH` va sin el directorio del binario | no: su `PATH` va sin el directorio del binario |
+| Servidor MCP | no | sí: `servidor.json` en el directorio de la sesión declara `kitlegal mcp serve` por la ruta absoluta del binario, con la caché y los proxies de la sesión, y el guion lo pasa a `claude` con `--mcp-config` | no |
+| Directorio de la sesión | `<eval>[-prueba-de-red]-<modelo>-<nn>` | `<eval>-herramienta-<modelo>-<nn>` | `<eval>-<modelo>-<nn>` |
+| Qué mide | que la skill consulta y cita con órdenes | lo mismo con herramientas, sin ejecutar ninguna orden de `kitlegal` | que la skill, sin nada con lo que consultar, lo dice y no afirma nada |
+
+El binario es el del `PATH` del job, que `scripts/evals.sh` da con `-kitlegal`, y el modo de una sesión se lee de su
+directorio: herramienta si tiene `servidor.json`, ninguno si su eval es sin binario ni servidor, y orden en otro caso.
+Estas tandas son las del repartidor de sesiones; el trabajo `tanda` del flujo, más abajo, es otra cosa: decide si una
+ejecución mide su commit. Cada sesión se prepara justo antes de abrirla, en su propio directorio: el de trabajo, su
+caché y su grafo —que en el modo herramienta son los que usa el servidor—, el estado de Claude Code
+(`CLAUDE_CONFIG_DIR`), con un enlace a cada skill tal como la deja `make install`, y su temporal (`TMPDIR`); ninguna
+escribe en nada de otra. La abre
 `scripts/evals-sesion.sh` con la orden de `claude` de siempre, bajo `strace` y con la red cerrada salvo la del modelo,
 en su propio grupo de procesos, y el tope lo pone el repartidor de `internal/evals`: a los 240 s envía `TERM` al grupo
 y, 10 s después, `KILL` (la sesión queda con el código 124 o 137). Ninguna sesión se reintenta ni se abre dos veces, y
-`SIGINT` o `SIGTERM` cierran las abiertas y dejan la orden sin informe. Juzga cada sesión y agrupa las de cada eval
-con cada modelo en una serie con su tasa, cuántas de sus sesiones pasan; sin límites de uso, el informe es el mismo
-que abriéndolas una tras otra, salvo los tiempos. El informe publica la tasa de cada serie y da un veredicto global
-que falla si una serie que decide —la de una eval que no es informativa con el modelo que decide— no llega al umbral,
-una serie no tiene exactamente las sesiones que pide el plan, una sesión es ilegible, un fichero está mal formado, no
-hay ninguna eval bien formada que juzgar o una petición llega a la red (ADR 0016); y también si un umbral que decide
+`SIGINT` o `SIGTERM` cierran las abiertas y dejan la orden sin informe. Si una tanda acaba con sesiones sin abrir por
+el mensaje del límite de uso, las tandas siguientes no se abren y sus sesiones cuentan como sin abrir. Juzga cada
+sesión y agrupa las de cada eval con cada modelo y en cada modo en una serie con su tasa, cuántas de sus sesiones
+pasan; sin límites de uso, el informe es el mismo que abriéndolas una tras otra, salvo los tiempos. El informe publica
+la tasa de cada serie y da un veredicto global que falla si una serie que decide —la de una eval que no es informativa
+con el modelo que decide, **en cualquiera de los dos modos**, y la de la eval sin binario ni servidor— no llega al
+umbral, una serie no tiene exactamente las sesiones que pide el plan, una sesión es ilegible, un fichero está mal
+formado, no hay ninguna eval bien formada que juzgar o una petición llega a la red (ADR 0016); y también si un umbral
+que decide
 no se cumple, si alguna sesión queda sin medir por un límite de uso de la cuenta o si la duración de las sesiones
 pasa de su objetivo (abajo). Con `fallo`, la orden y el trabajo terminan en rojo.
 
@@ -571,7 +669,8 @@ Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), co
 ejecución —hoy `boe-legislacion` y `legal-core`—, cada uno con su informe y sin que el rojo de uno cancele el otro; el
 de cada skill se llama `evals (<skill>)`, que es por donde el cierre del workflow lee su informe.
 Cada trabajo instala con `make install` y añade al `PATH` el directorio donde `go install` deja el binario, de modo que
-las sesiones invocan `kitlegal` igual que quien lo usa.
+las sesiones del modo orden invocan `kitlegal` igual que quien lo usa, y las del modo herramienta tienen por servidor
+ese mismo binario.
 Fija en su definición, cada uno en su variable, el modelo que decide (`MODELO_DE_EVALS`, el del uso real de la skill), los modelos informativos
 (`MODELOS_INFORMATIVOS_DE_EVALS`, separados por comas, que se publican como límite inferior sin decidir), las
 repeticiones de cada eval con cada modelo (`REPETICIONES_DE_EVALS`) y el umbral de sesiones que pasan
@@ -597,13 +696,16 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `legal-core` |
 | `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
 
-Con las veinte evals de `boe-legislacion`, su trabajo abre 96 sesiones, cuatro a la vez: 36 de `claude-sonnet-5-5`
-sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001` sobre las doce que
-deciden. El tope de 122 minutos de cada trabajo (`timeout-minutes`) corta un cuelgue; no es el control de la duración,
-que es un umbral del informe, porque un trabajo cancelado no escribe informe. Cubre el peor caso de cada skill —todas
-las sesiones de su plan, con la de la prueba de red, llegando a su tope, con su concurrencia, más la preparación de
-cada una, la del runner y el informe—: `485 s + ⌈N / C⌉ × (22 s + 240 s + 10 s)`, con `N` esas sesiones y `C` su
-concurrencia (en `boe-legislacion`, 97 sesiones a 4: 7 285 s). `TestDefinicionDelJob` comprueba en `make ci` la
+Con las veintiuna evals de `boe-legislacion`, su trabajo abre 198 sesiones, cuatro a la vez: 96 en el modo orden —36
+de `claude-sonnet-5-5` sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001`
+sobre las doce que deciden—, otras 96 en el modo herramienta y 6 de la eval sin binario ni servidor, tres con cada
+modelo. El de `legal-core`, con cuatro evals, abre 42: 18, 18 y 6. El tope de 240 minutos de cada trabajo
+(`timeout-minutes`) corta un cuelgue; no es el control de la duración, que es un umbral del informe, porque un trabajo
+cancelado no escribe informe. Cubre el peor caso de cada skill —todas las sesiones de su plan, con la de la prueba de
+red, llegando a su tope, tanda a tanda y con su concurrencia, más la preparación de cada una, la del runner y el
+informe—: `485 s + (⌈N₁ / C⌉ + ⌈N₂ / C⌉ + ⌈N₃ / C⌉) × (22 s + 240 s + 10 s)`, con `N₁`, `N₂` y `N₃` las sesiones
+de cada una de las tres tandas —la del modo orden, con la prueba de red— y `C` su concurrencia (en `boe-legislacion`, 97, 96 y
+6 sesiones a 4: 14 357 s, 239,3 minutos). `TestDefinicionDelJob` comprueba en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
 cada skill depende de `tanda` y solo corre con `medir=si`; su nombre, el grupo de `concurrency` y
@@ -651,12 +753,20 @@ Cómo se lee el informe:
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
   fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas—, una petición llegada
   a la red o un umbral que decide y no se cumple
-  (`umbral expresiones_prohibidas:claude-sonnet-5-5: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %`). Detrás van, con el
+  (`umbral expresiones_prohibidas:claude-sonnet-5-5:herramienta: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %`). Los que
+  dependen del modo lo nombran, en el `<modelo>` de la serie —`claude-sonnet-5-5 (herramienta)` en el modo
+  herramienta, el id solo en el modo orden y en la eval sin binario ni servidor— o en el nombre del umbral. Una serie
+  que decide y no llega al umbral en un modo da `fallo` aunque pase en el otro. Detrás van, con el
   prefijo fijo `de la ejecución, no de la skill: `, que los distingue sin modelo de los de la skill, el de las sesiones
   sin medir por un límite de uso de la cuenta y el de la duración de las sesiones por encima de su objetivo: dicen que
   el job no pudo medir, o no midió a tiempo, y no piden cambiar la skill.
-- **La tabla «Tasas por eval»** tiene una fila por serie, con si decide, si la pide el plan, la tasa
-  (`<pasan> de <sesiones>`) y si llega al umbral. Se publica también la de las series que pasan: un `2 de 3` es verde,
+- **La tabla «Tasas por eval»** tiene una fila por serie —una por eval, modelo y modo: las del modo orden, las del
+  modo herramienta, las de la eval sin binario ni servidor y, al final, las que el plan no pide—, con su modo en la
+  columna «Modo» (`orden`, `herramienta` o `—`), si decide, si la pide el plan, la tasa (`<pasan> de <sesiones>`) y si
+  llega al umbral. En `informe.json`, cada elemento de `tasas` lleva `modo` (`"orden"`, `"herramienta"` o `""`) y, como
+  `modelo`, el id en el modo orden y en la eval sin binario ni servidor y `<id> (herramienta)` en el modo herramienta,
+  de modo que ninguna pareja de eval y `modelo` se repite: así las lee `scripts/workflow/informe.sh`. Se publica
+  también la de las series que pasan: un `2 de 3` es verde,
   pero es la degradación que conviene ver antes de que se vuelva roja. Un fallo aislado no se ve en el veredicto; se
   ve aquí y en la tabla de sesiones.
 - **Una serie informativa** —la de un modelo informativo, o la de una eval `informativa: true` con el modelo que
@@ -666,28 +776,37 @@ Cómo se lee el informe:
 - **Las expresiones prohibidas**: cada sesión publica en `informe.json` las de la lista que lleva su respuesta,
   `expresiones_prohibidas` —`[]` si ninguna o si no se le aplica la lista—, y la tabla «Sesiones» de `informe.md`, la
   columna «Expresiones prohibidas» (`ninguna` si no lleva ninguna). En la raíz de `informe.json`,
-  `expresiones_prohibidas_por_modelo` da un elemento por modelo del job —el que decide y después los informativos, en
-  su orden— con `modelo`, `respuestas`, las sesiones medidas de las series planificadas cuya eval activa la skill, las
-  informativas incluidas —**solo las terminadas**: ni las ilegibles, ni las sin medir, ni las que no terminaron, que
+  `expresiones_prohibidas_por_modelo` da un elemento por modelo del job y modo —los del modo orden delante y, en cada
+  modo, el que decide y después los informativos, en su orden— con `modelo`, que es `<id> (orden)` o
+  `<id> (herramienta)`, `modo`, `respuestas`, las sesiones medidas de las series planificadas de ese modo cuya eval
+  activa la skill, las informativas incluidas y las de la eval sin binario ni servidor no, que no son de ningún modo
+  —**solo las terminadas**: ni las ilegibles, ni las sin medir, ni las que no terminaron, que
   se publican con su motivo y no pasan en su serie, pero no cuentan en ningún recuento ni umbral—, y `con_alguna`, las
   de ellas que llevan alguna expresión; `informe.md` lo da en la sección «Expresiones prohibidas por modelo», detrás de
-  «Tasas por eval». Una skill sin lista da `[]` y el párrafo «la skill no tiene lista de expresiones prohibidas»: un
+  «Tasas por eval», con su columna «Modo». Una skill sin lista da `[]` y el párrafo «la skill no tiene lista de
+  expresiones prohibidas»: un
   recuento de cero diría que se buscó. Una sesión con alguna expresión no pasa, y su serie decide con el umbral de
   siempre si es de las que deciden; además, el recuento de cada modelo es un umbral.
 - **Los umbrales**: `umbrales`, siempre en la raíz de `informe.json`, con el contrato del ADR 0029 —`nombre`,
   `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
-  o de la propia `medida`, y se puede rehacer con los otros campos. Una skill con lista tiene, con las respuestas
-  medidas de cada modelo como `total`, **tres umbrales de la respuesta del modelo que decide**, los tres con
-  `decide: true` y en este orden: `expresiones_prohibidas:<modelo>`, las que llevan alguna expresión, con `umbral`
-  `0.05`; `sin_activar:<modelo>`, las que no activan la skill, con `umbral` `0`; y `redaccion_no_leida:<modelo>`, las
-  que llevan alguna expresión de la clase B, con `umbral` `0`. Con las 54 respuestas de `claude-sonnet-5-5` en las
-  evals de `boe-legislacion` que activan la skill, el primero admite como mucho 2 con alguna expresión, y los otros
-  dos, ninguna; una respuesta sin la skill activada y con una expresión cuenta, una vez, en cada umbral que la mide.
-  Detrás, uno por modelo informativo, `expresiones_prohibidas:<modelo>`, que se publica con `decide: false` (el de
-  `claude-haiku-4-5-20251001`, sobre 30). Una skill con objetivo de duración tiene además, al final,
-  `duracion_de_las_sesiones`, sin `total` y con `decide: true`; `legal-core` no tiene ninguno, `[]`. Uno que decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no
-  cambia nada. `informe.md` los da en la sección «Umbrales», detrás de «Expresiones prohibidas por modelo»: la tabla
+  o de la propia `medida`, y se puede rehacer con los otros campos. **Cada umbral es de un modo y lo nombra**: se
+  mide sobre las sesiones de ese modo, y las medidas de un modo no se suman a las del otro. Una skill con lista tiene,
+  por cada modo y con las respuestas medidas de cada modelo en ese modo como `total`, **tres umbrales de la respuesta
+  del modelo que decide**, los tres con `decide: true` y en este orden: `expresiones_prohibidas:<modelo>:<modo>`, las
+  que llevan alguna expresión, con `umbral` `0.05`; `sin_activar:<modelo>:<modo>`, las que no activan la skill, con
+  `umbral` `0`; y `redaccion_no_leida:<modelo>:<modo>`, las que llevan alguna expresión de la clase B, con `umbral`
+  `0`. Con las 54 respuestas de `claude-sonnet-5-5` en cada modo en las evals de `boe-legislacion` que activan la
+  skill, el primero admite como mucho 2 con alguna expresión en ese modo, y los otros dos, ninguna —con 3 de 54 en un
+  modo y 0 de 54 en el otro, el del primero no se cumple—; una respuesta sin la skill activada y con una expresión
+  cuenta, una vez, en cada umbral que la mide. Detrás de los tres, en cada modo, uno por modelo informativo,
+  `expresiones_prohibidas:<modelo>:<modo>`, que se publica con `decide: false` (el de `claude-haiku-4-5-20251001`,
+  sobre 30). Primero van los cuatro del modo orden y después los del modo herramienta. Una skill con objetivo de
+  duración tiene además, al final, uno por modo, `duracion_de_las_sesiones:<modo>`, los segundos de la tanda de ese
+  modo, sin `total` y con `decide: true`. En `boe-legislacion` son diez, ocho de ellos decidiendo; `legal-core` no
+  tiene ninguno, `[]`. Las sesiones de la eval sin binario ni servidor, y su tanda, no entran en ninguno. Uno que
+  decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no cambia nada. `informe.md` los
+  da en la sección «Umbrales», detrás de «Expresiones prohibidas por modelo»: la tabla
   `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
   `ninguno`.
 - **Las sesiones sin medir**: una sesión que un límite de la cuenta no dejó terminar no es una eval fallida. El informe
@@ -706,14 +825,22 @@ Cómo se lee el informe:
   del último `result` con `is_error` de su transcript (`código 1: result con is_error: Failed to authenticate. …`, el
   de una credencial que no sirve).
 - **Los reintentos y la duración**: `reintentos_por_limite_de_ritmo`, en cada sesión y sumados en la raíz, cuenta los
-  reintentos por `rate_limit` de su transcript; es el dato para ajustar la concurrencia. `duracion_de_las_sesiones`
-  son los segundos desde que se prepara la primera sesión hasta que termina la última, sin la preparación del runner.
-  La cabecera de `informe.md` lleva `Duración de las sesiones: <s> s` y `Reintentos por límite de ritmo: <n>`, y la
-  tabla «Sesiones», la columna «Reintentos por límite de ritmo». En `boe-legislacion`, más de 900 s da `fallo` con el
-  motivo `de la ejecución, no de la skill: duracion_de_las_sesiones: <s> s, y tiene que ser ≤ 900 s`.
+  reintentos por `rate_limit` de su transcript; es el dato para ajustar la concurrencia. La duración se mide tanda a
+  tanda, desde que se prepara su primera sesión hasta que termina la última, sin la preparación del runner:
+  `duracion_de_las_sesiones`, en la raíz de `informe.json`, es la suma de las tres tandas, y la de cada modo es la
+  `medida` de su umbral. La cabecera de `informe.md` lleva `Duración de las sesiones: <s> s` y
+  `Reintentos por límite de ritmo: <n>`, y la tabla «Sesiones», las columnas «Modo» y «Reintentos por límite de
+  ritmo». En `boe-legislacion`, una tanda de un modo de más de 900 s da `fallo` con el motivo
+  `de la ejecución, no de la skill: duracion_de_las_sesiones:<modo>: <s> s, y tiene que ser ≤ 900 s`.
+- **Las llamadas**: en `informe.json`, cada resultado de `evals` lleva `modo`, `linea_sin_consulta` —si la respuesta
+  de una eval sin binario ni servidor lleva la línea con su dirección— y `citas_sin_consulta` —las citas de una
+  respuesta así; vacía en las demás—, y cada elemento de sus `invocaciones`, `llamada`, verdadero en las que son
+  llamadas a una herramienta, cuya `orden` es entonces la herramienta seguida de sus argumentos. En `informe.md`, la
+  tabla de invocaciones de cada sesión lleva la columna «Llamada».
 
 La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` no puede pedir nada a la red, así que el de
-`legal-core` no la lleva—, con el modelo que decide, una sesión con la pregunta de la primera eval y dos consultas a
+`legal-core` no la lleva—, con el modelo que decide y al final de la tanda del modo orden, una sesión de ese modo con
+la pregunta de la primera eval y dos consultas a
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
 con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
 su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`. Se juzga con la lista de expresiones prohibidas
@@ -727,8 +854,17 @@ cuenta en la duración y en los reintentos.
 en Linux y sin `strace` ni `sudo`, las sesiones de unas evals de una skill con un solo modelo —con `CONCURRENCIA`
 vacía, como mucho las que abre a la vez el job para esa skill—, con el binario y la skill del árbol de trabajo, que
 construye e instala en un directorio temporal que borra al terminar, sin la configuración de Claude Code de quien lo
-lanza y con una sola credencial, `CLAUDE_CODE_OAUTH_TOKEN`. Prepara y juzga cada sesión con el código del job, sin lo
-que el job lee de la traza —los comandos esperados y los prohibidos y las llegadas a la red—, y su salida empieza por
+lanza y con una sola credencial, `CLAUDE_CODE_OAUTH_TOKEN`. **Mide solo el modo orden**: sus sesiones tienen
+`kitlegal` en el `PATH` y ningún servidor declarado. El modo herramienta y las evals sin binario ni servidor son del
+job de evals: el sondeo no abre ninguna sesión con el servidor, y un número de `EVALS` que es el de una eval sin
+binario ni servidor es un error de uso, con su línea, una por eval así y en el orden de `EVALS`:
+
+```text
+EVALS: <nn> es una eval sin binario ni servidor: solo la mide el job de evals
+```
+
+Prepara y juzga cada sesión con el código del job, sin lo que el job lee de la traza —los comandos esperados y los
+prohibidos y las llegadas a la red—, y su salida empieza por
 «Esto es un sondeo, no un veredicto: el veredicto de la skill lo da el job de evals.»: da la tasa de cada serie, las
 respuestas con alguna expresión prohibida de las sesiones terminadas, con el 5 % como referencia, y las sesiones sin
 medir o sin terminar, con su motivo, y termina con `0` si ha podido abrir y juzgar sus sesiones. Un argumento que no

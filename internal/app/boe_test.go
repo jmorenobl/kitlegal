@@ -1,6 +1,7 @@
 package app
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -9,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"maps"
+	"net"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -605,14 +607,20 @@ func sobreDeLaFuente(t *testing.T, consulta core.Consulta) map[string]any {
 
 // TestDependenciasDeRed fija, sin tocar la red, las dependencias del binario
 // distribuido (contrato puerto-y-applet §4): el cliente se construye por
-// invocación con httpx.New y el registrador que entrega el kernel —en ensayo no
-// emite nada, y su evento llega a ese registrador; uno nulo lo rechaza httpx—, y
-// la caché no lleva opciones, así que es la de la cuenta o la de
-// KITLEGAL_CACHE_DIR. El nombre de la fuente y el ritmo no se observan sin red:
-// los atan a SOURCES.md las constantes que usa (TestFuenteCoincideConSources).
+// invocación con httpx.New y el registrador que entrega el kernel —cada
+// invocación recibe el suyo; en ensayo no emite nada, y su evento llega a ese
+// registrador; uno nulo lo rechaza httpx—, y la caché no lleva opciones, así que
+// es la de la cuenta o la de KITLEGAL_CACHE_DIR. El nombre de la fuente y el
+// intervalo no se observan sin red: los atan a SOURCES.md las constantes que usa
+// (TestFuenteCoincideConSources).
+//
+// Lo que sí se observa, contra un sitio local y sin esperar nada, es de quién
+// son los turnos: de todo cliente de unas mismas dependencias y de ningún otro
+// (casosDeLosTurnos; H21 FR-010 y FR-014, research D8).
 //
 // No es paralelo porque neutraliza la variable de grabación, que httpx.New lee
-// del entorno del proceso entero.
+// del entorno del proceso entero; cada caso de los turnos la neutraliza también,
+// porque construye cada cliente que usa.
 func TestDependenciasDeRed(t *testing.T) {
 	t.Setenv(httpx.VariableGrabacion, "")
 
@@ -627,6 +635,12 @@ func TestDependenciasDeRed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, cliente)
 
+	deOtraInvocacion, err := dependencias.Cliente(eventos.registrador())
+	require.NoError(t, err)
+	require.NotNil(t, deOtraInvocacion)
+	assert.NotSame(t, cliente, deOtraInvocacion,
+		"cada invocación construye su cliente: lo que uno recuerda del robots.txt no pasa a la siguiente (H21 FR-010)")
+
 	respuesta, err := cliente.Pedir(t.Context(), schema.Contexto{DryRun: true},
 		httpx.Peticion{Metodo: "GET", URL: direccionDeLosMetadatos, Acepta: "application/json"})
 	require.NoError(t, err)
@@ -637,6 +651,267 @@ func TestDependenciasDeRed(t *testing.T) {
 	_, err = dependencias.Cliente(nil)
 	require.Error(t, err, "el registrador llega a httpx tal cual")
 	assert.Equal(t, schema.ClaseArgumentos, cli.Clasificar(err))
+
+	for _, caso := range casosDeLosTurnos() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Setenv(httpx.VariableGrabacion, "")
+
+			caso.comprobar(t)
+		})
+	}
+}
+
+// intervaloQueNoLlega y plazoDeLaPeticion son los dos tiempos con los que los
+// casos de los turnos no esperan nada: el turno siguiente de un sitio queda a
+// una hora, y cada petición trae un plazo de un minuto, en el que ese turno no
+// cabe. El ritmo no espera un turno que no cabe en el plazo: responde en el acto
+// (research V44 de H21). Un minuto sobra para lo único que sí se pide, que es un
+// robots.txt a la interfaz local.
+const (
+	intervaloQueNoLlega = time.Hour
+	plazoDeLaPeticion   = time.Minute
+)
+
+// peticionDelRobots es la primera línea de la petición del robots.txt, tal como
+// la recibe el sitio local.
+const peticionDelRobots = "GET /robots.txt HTTP/1.1"
+
+// casoDeLosTurnos es un caso de la composición del ritmo en
+// TestDependenciasDeRed. Cada uno abre su sitio y compone sus dependencias, de
+// modo que no depende de lo que haya hecho otro.
+type casoDeLosTurnos struct {
+	nombre    string
+	comprobar func(t *testing.T)
+}
+
+// casosDeLosTurnos fijan de quién son los turnos (H21 FR-014, research D8): todo
+// cliente de unas mismas dependencias —uno por invocación— espera turno en el
+// mismo Ritmo, y el de otras dependencias en otro.
+func casosDeLosTurnos() []casoDeLosTurnos {
+	return []casoDeLosTurnos{
+		{nombre: "el-primer-cliente-gasta-el-turno-en-su-robots", comprobar: compruebaElTurnoDelPrimerCliente},
+		{nombre: "el-segundo-cliente-no-abre-ninguna-conexion", comprobar: compruebaElSegundoClienteSinTurno},
+		{nombre: "el-de-otras-dependencias-abre-la-suya", comprobar: compruebaElClienteDeOtrasDependencias},
+	}
+}
+
+// compruebaElTurnoDelPrimerCliente: el primer cliente obtiene su robots.txt, que
+// gasta el turno del sitio, y su recurso ya no cabe en el plazo: no lo pide.
+func compruebaElTurnoDelPrimerCliente(t *testing.T) {
+	t.Helper()
+
+	sitio := nuevoSitioLocal(t)
+
+	fallo := pedirAlSitio(t, dependenciasDeRedConIntervalo(intervaloQueNoLlega), sitio)
+
+	assert.Equal(t, []string{peticionDelRobots}, sitio.peticiones(),
+		"el primer cliente gasta el turno del sitio en su robots.txt")
+	assert.Equal(t, int64(1), sitio.conexiones.Load(), "y no abre más conexión que esa")
+	assert.Equal(t, sitio.recurso(), peticionSinTurno(t, fallo),
+		"para el recurso ya no hay turno dentro del plazo")
+}
+
+// compruebaElSegundoClienteSinTurno: con el turno gastado por el primero, el
+// segundo cliente de las mismas dependencias no llega ni a pedir su robots.txt.
+// Falla sin abrir ninguna conexión, que es lo que no ocurriría con un ritmo por
+// cliente; y lo que el primero obtuvo del robots.txt no le sirve, porque eso
+// sigue siendo de cada cliente (H21 FR-010).
+func compruebaElSegundoClienteSinTurno(t *testing.T) {
+	t.Helper()
+
+	sitio, delProceso := sitioConElTurnoGastado(t)
+	abiertas := sitio.conexiones.Load()
+
+	fallo := pedirAlSitio(t, delProceso, sitio)
+
+	assert.Equal(t, abiertas, sitio.conexiones.Load(),
+		"el segundo cliente no abre ninguna conexión: espera turno en el Ritmo del primero (H21 FR-014)")
+	assert.Equal(t, sitio.direccion+"/robots.txt", peticionSinTurno(t, fallo),
+		"se queda sin turno ya para su robots.txt, que es solo suyo (H21 FR-010)")
+}
+
+// compruebaElClienteDeOtrasDependencias: el turno que gastó un cliente de unas
+// dependencias no es el de otras. El Ritmo es de cada composición, no del código
+// que la hace: dos composiciones no tienen ninguno en común.
+func compruebaElClienteDeOtrasDependencias(t *testing.T) {
+	t.Helper()
+
+	sitio, _ := sitioConElTurnoGastado(t)
+	abiertas, pedidas := sitio.conexiones.Load(), sitio.peticiones()
+
+	fallo := pedirAlSitio(t, dependenciasDeRedConIntervalo(intervaloQueNoLlega), sitio)
+
+	assert.Equal(t, abiertas+1, sitio.conexiones.Load(),
+		"un cliente de otras dependencias sí abre una conexión: su Ritmo es otro")
+	assert.Equal(t, append(pedidas, peticionDelRobots), sitio.peticiones(), "la de su robots.txt")
+	assert.Equal(t, sitio.recurso(), peticionSinTurno(t, fallo))
+}
+
+// sitioConElTurnoGastado abre un sitio local y compone unas dependencias cuyo
+// primer cliente ya le ha pedido algo: el turno del sitio en su Ritmo está
+// gastado. Qué pide exactamente ese primer cliente lo fija su propio caso; aquí
+// basta con que haya llegado al sitio.
+func sitioConElTurnoGastado(t *testing.T) (*sitioLocal, DependenciasDeBoe) {
+	t.Helper()
+
+	sitio := nuevoSitioLocal(t)
+	delProceso := dependenciasDeRedConIntervalo(intervaloQueNoLlega)
+
+	_ = pedirAlSitio(t, delProceso, sitio)
+
+	require.NotZero(t, sitio.conexiones.Load(), "el primer cliente ha llegado al sitio: el turno está gastado")
+
+	return sitio, delProceso
+}
+
+// pedirAlSitio construye el cliente de una invocación de esas dependencias, pide
+// con él el recurso del sitio con el plazo de la petición y devuelve el fallo
+// tal cual, haya o no. El plazo no puede haber vencido: nadie espera nada.
+func pedirAlSitio(t *testing.T, dependencias DependenciasDeBoe, sitio *sitioLocal) error {
+	t.Helper()
+
+	cliente, err := dependencias.Cliente(slog.New(slog.DiscardHandler))
+	require.NoError(t, err)
+
+	ctx, cancelar := context.WithTimeout(t.Context(), plazoDeLaPeticion)
+	defer cancelar()
+
+	_, err = cliente.Pedir(ctx, schema.Contexto{}, httpx.Peticion{Metodo: "GET", URL: sitio.recurso()})
+
+	require.NoError(t, ctx.Err(), "la petición termina en el acto, sin esperar a que venza el plazo")
+
+	return err
+}
+
+// peticionSinTurno es la dirección de la petición que se quedó sin turno: la del
+// recurso, o la del robots.txt si el cliente no llegó ni a obtenerlo. El fallo
+// tiene que ser de la clase «fuente no disponible», que es la de quien no llega
+// a la fuente; con el plazo sin vencer, solo la da el turno que no cabe en él.
+func peticionSinTurno(t *testing.T, err error) string {
+	t.Helper()
+
+	var fallo *httpx.Error
+
+	require.ErrorAs(t, err, &fallo, "con el turno siguiente a una hora, el recurso no se llega a pedir")
+	require.Equal(t, schema.ClaseFuenteNoDisponible, fallo.Clase(), "%v", err)
+
+	return fallo.Peticion.URL
+}
+
+// respuestaDelSitioLocal es lo único que el sitio local sabe responder: que no
+// lo tiene, y que cierra la conexión, de modo que cada petición abre la suya.
+const respuestaDelSitioLocal = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+
+// sitioLocal es un sitio en la interfaz local que responde 404 a todo, cuenta
+// las conexiones que le abren y anota qué se le pide en cada una. Es un
+// net.Listener del propio test y no un servidor de la biblioteca HTTP, que fuera
+// de internal/httpx está vedada también en los tests (R2; research V45 de H21).
+type sitioLocal struct {
+	// direccion es la del sitio, con su esquema y sin ruta.
+	direccion string
+	// conexiones son las que ha aceptado, hayan pedido algo o no.
+	conexiones atomic.Int64
+
+	mu sync.Mutex
+	// pedidas son las primeras líneas de las peticiones recibidas, en su orden.
+	pedidas []string
+}
+
+// nuevoSitioLocal abre el sitio en un puerto libre de la interfaz local y lo
+// cierra con el test, que no termina hasta que ha dejado de atender.
+func nuevoSitioLocal(t *testing.T) *sitioLocal {
+	t.Helper()
+
+	var escucha net.ListenConfig
+
+	oyente, err := escucha.Listen(t.Context(), "tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	sitio := &sitioLocal{direccion: "http://" + oyente.Addr().String()}
+
+	var atendiendo sync.WaitGroup
+
+	// Lo que falla al atender se anota con t.Errorf y no con una aserción que
+	// termine el test: desde otra goroutine no se puede terminar.
+	atendiendo.Go(func() {
+		for {
+			conexion, err := oyente.Accept()
+			if errors.Is(err, net.ErrClosed) {
+				return
+			}
+
+			if err != nil {
+				t.Errorf("el sitio local ha dejado de aceptar sin que nadie lo cierre: %v", err)
+
+				return
+			}
+
+			sitio.conexiones.Add(1)
+
+			if err := sitio.atender(conexion); err != nil {
+				t.Errorf("el sitio local no ha podido atender una conexión: %v", err)
+			}
+		}
+	})
+
+	t.Cleanup(func() {
+		assert.NoError(t, oyente.Close())
+		atendiendo.Wait()
+	})
+
+	return sitio
+}
+
+// recurso es la dirección que piden estas pruebas al sitio.
+func (s *sitioLocal) recurso() string {
+	return s.direccion + "/norma"
+}
+
+// atender lee la petición de una conexión, anota su primera línea, responde 404
+// y cierra, pase lo que pase con lo anterior.
+func (s *sitioLocal) atender(conexion net.Conn) error {
+	primera, err := leerLaPeticion(conexion)
+	if err == nil {
+		s.mu.Lock()
+		s.pedidas = append(s.pedidas, primera)
+		s.mu.Unlock()
+
+		_, err = io.WriteString(conexion, respuestaDelSitioLocal)
+	}
+
+	return errors.Join(err, conexion.Close())
+}
+
+// leerLaPeticion lee la cabecera de la petición de una conexión y devuelve su
+// primera línea. Las peticiones de estas pruebas no llevan cuerpo, así que la
+// cabecera, que termina en una línea vacía, es la petición entera. La conexión
+// tiene el plazo de la petición: un cliente que no escribe no deja colgado el
+// test.
+func leerLaPeticion(conexion net.Conn) (string, error) {
+	if err := conexion.SetDeadline(time.Now().Add(plazoDeLaPeticion)); err != nil {
+		return "", fmt.Errorf("fijando el plazo de la conexión: %w", err)
+	}
+
+	lector := bufio.NewReader(conexion)
+
+	primera, err := lector.ReadString('\n')
+	for linea := primera; err == nil && linea != "\r\n"; {
+		linea, err = lector.ReadString('\n')
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("leyendo la cabecera de la petición: %w", err)
+	}
+
+	return strings.TrimSpace(primera), nil
+}
+
+// peticiones son las primeras líneas de las peticiones recibidas hasta ahora.
+func (s *sitioLocal) peticiones() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return slices.Clone(s.pedidas)
 }
 
 // filaDeSalida es un caso de TestCodigosDeSalidaDeBoe: una fila del contrato

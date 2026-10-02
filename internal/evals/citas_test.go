@@ -119,3 +119,109 @@ func TestExtraerCitas(t *testing.T) {
 		})
 	}
 }
+
+// TestExtraerSinConsulta fija el reconocimiento de la línea ⚠ SIN CONSULTA AL
+// BOE: de una respuesta (contracts/skills.md §3 y contracts/evals-en-dos-modos.md
+// §4 de H21; data-model §9; FR-035, FR-047): la línea que empieza por la marca,
+// la etiqueta y los dos puntos, con la tolerancia de las etiquetas de los avisos
+// —blancos y énfasis de Markdown alrededor de sus partes, cualquier selector de
+// la marca y sin distinguir mayúsculas—, y si esa misma línea lleva
+// https://kitlegal.es/instalar/. La dirección en otra línea no cuenta, tampoco
+// con otra forma, y una etiqueta que no empieza su línea, incompleta o sin sus
+// dos puntos no es la línea.
+func TestExtraerSinConsulta(t *testing.T) {
+	t.Parallel()
+
+	const causa = "kitlegal no está instalado en este equipo"
+
+	casos := []struct {
+		nombre       string
+		respuesta    string
+		conLinea     bool
+		conDireccion bool
+	}{
+		{
+			nombre: "la-linea-con-su-direccion",
+			respuesta: "⚠ SIN CONSULTA AL BOE: " + causa + ". Para consultarlo hace falta instalar kitlegal: " +
+				"https://kitlegal.es/instalar/",
+			conLinea:     true,
+			conDireccion: true,
+		},
+		{
+			nombre: "entre-otras-lineas",
+			respuesta: "No he podido consultar la norma.\n\n" +
+				"⚠ SIN CONSULTA AL BOE: " + causa + ". Para consultarlo hace falta instalar kitlegal: " +
+				"https://kitlegal.es/instalar/\n\nCuando esté instalado, vuelve a preguntar.\n",
+			conLinea:     true,
+			conDireccion: true,
+		},
+		{
+			nombre: "con-enfasis",
+			respuesta: "**⚠ SIN CONSULTA AL BOE:** " + causa + ". Para consultarlo hace falta instalar kitlegal: " +
+				"<https://kitlegal.es/instalar/>",
+			conLinea:     true,
+			conDireccion: true,
+		},
+		{
+			nombre: "con-enfasis-blancos-selector-y-minusculas",
+			// La marca con su selector de presentación U+FE0F, escrita con sus bytes.
+			respuesta: "  _\xe2\x9a\xa0\xef\xb8\x8f  **Sin  consulta** al\tBOE_ : " + causa +
+				" ([instalar kitlegal](https://kitlegal.es/instalar/)).",
+			conLinea:     true,
+			conDireccion: true,
+		},
+		{
+			nombre:    "sin-la-direccion-en-su-linea",
+			respuesta: "⚠ SIN CONSULTA AL BOE: " + causa + ". Para consultarlo hace falta instalar kitlegal.",
+			conLinea:  true,
+		},
+		{
+			nombre: "con-la-direccion-en-otra-linea",
+			respuesta: "⚠ SIN CONSULTA AL BOE: " + causa + ". Para consultarlo hace falta instalar kitlegal:\n" +
+				"https://kitlegal.es/instalar/\n",
+			conLinea: true,
+		},
+		{
+			nombre:    "con-otra-direccion",
+			respuesta: "⚠ SIN CONSULTA AL BOE: " + causa + ". Más en https://kitlegal.es/instalar y en https://kitlegal.es/.",
+			conLinea:  true,
+		},
+		{
+			nombre: "una-de-dos-lineas-con-la-direccion",
+			respuesta: "⚠ SIN CONSULTA AL BOE: " + causa + ".\n" +
+				"⚠ SIN CONSULTA AL BOE: " + causa + ": https://kitlegal.es/instalar/\n",
+			conLinea:     true,
+			conDireccion: true,
+		},
+		{
+			nombre:    "sin-la-linea",
+			respuesta: "No he podido consultar el BOE. Instala kitlegal: https://kitlegal.es/instalar/\n",
+		},
+		{
+			nombre: "la-etiqueta-no-empieza-su-linea",
+			respuesta: "Aviso: ⚠ SIN CONSULTA AL BOE: " + causa + ". https://kitlegal.es/instalar/\n" +
+				"> ⚠ SIN CONSULTA AL BOE: " + causa + ". https://kitlegal.es/instalar/\n",
+		},
+		{
+			nombre: "otra-etiqueta-o-sin-los-dos-puntos",
+			respuesta: "⚠ SIN CONSULTA: " + causa + ". https://kitlegal.es/instalar/\n" +
+				"⚠ SIN CONSULTA AL BOE. " + causa + ". https://kitlegal.es/instalar/\n" +
+				"SIN CONSULTA AL BOE: " + causa + ". https://kitlegal.es/instalar/\n" +
+				"⚠ NORMA DEROGADA: esta norma ha sido derogada. https://kitlegal.es/instalar/\n",
+		},
+		{
+			nombre: "respuesta-vacia",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			conLinea, conDireccion := ExtraerSinConsulta(caso.respuesta)
+
+			assert.Equal(t, caso.conLinea, conLinea, "la respuesta tiene la línea")
+			assert.Equal(t, caso.conDireccion, conDireccion, "la línea lleva la dirección")
+		})
+	}
+}

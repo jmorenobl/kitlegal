@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "serve": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "conflicto",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://kitlegal.es/schemas/servidor.json/serve",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Atiende el protocolo MCP por la entrada y la salida estándar hasta que la entrada se cierra.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": true
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "mcp serve"
+    }
+  },
+  "$id": "https://kitlegal.es/schemas/servidor.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salida del verbo serve del applet mcp. Generado desde --describe con make schema-check; no editar.",
+  "title": "mcp · servidor"
+}

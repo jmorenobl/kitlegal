@@ -125,6 +125,19 @@ func (r *Registro) EntregarAlGrafo(almacen core.GraphStore) {
 	r.almacen = almacen
 }
 
+// sinAvisador es una copia del registro que no da el aviso de versión: los
+// mismos applets y el mismo almacén, sin avisador. Con ella resuelve el
+// servidor MCP cada llamada a una herramienta, que es una invocación del
+// kernel: el aviso lo da el kernel una vez, al arrancar `mcp serve`, y no una
+// por llamada (H21 FR-023; research.md D3 de H21). El registro del que sale no
+// cambia.
+func (r *Registro) sinAvisador() *Registro {
+	copia := *r
+	copia.avisador = nil
+
+	return &copia
+}
+
 // aviso es la línea del aviso registrado y si hay que darla. Sin avisador no
 // hay ninguna.
 func (r *Registro) aviso() (string, bool) {
@@ -193,14 +206,15 @@ func validarVerbos(applet string, verbos []Verbo) error {
 
 // RegistroDeProduccion es el registro del binario que se publica: el applet boe
 // con las dependencias de la red (DependenciasDeRed), el applet graph con las
-// del sistema (DependenciasDelGrafoDelSistema), el applet skills con las del
-// sistema (DependenciasDeSkillsDelSistema) y el applet territorio con los
-// ficheros que viajan en el binario (FuentesEmbebidas); y, como almacén al que
-// el kernel entrega lo que observa cada invocación, el grafo del mundo en
-// world.db, junto a la caché y con su misma regla de ubicación (graph.Nuevo sin
-// opciones; FR-001, FR-030). Los applets de ejemplo no se registran nunca aquí,
-// sino en el binario que compila el test e2e, que usa exactamente este mismo
-// mecanismo (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
+// del sistema (DependenciasDelGrafoDelSistema), el applet mcp con las del
+// sistema (DependenciasDeMCPDelSistema), el applet skills con las del sistema
+// (DependenciasDeSkillsDelSistema) y el applet territorio con los ficheros que
+// viajan en el binario (FuentesEmbebidas); y, como almacén al que el kernel
+// entrega lo que observa cada invocación, el grafo del mundo en world.db, junto
+// a la caché y con su misma regla de ubicación (graph.Nuevo sin opciones;
+// FR-001, FR-030). Los applets de ejemplo no se registran nunca aquí, sino en
+// el binario que compila el test e2e, que usa exactamente este mismo mecanismo
+// (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
 //
 // Esta función es la raíz de composición del registro distribuido, y devuelve
 // el error del registro en lugar de ocultarlo: un registro inválido es un
@@ -209,16 +223,17 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // inesperado antes de atender ninguna invocación, nunca en un código de salida
 // de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
 // nada ni abre nada: tampoco world.db, cuya ruta se resuelve al leer o al
-// entregar.
+// entregar, ni la entrada estándar, de la que mcp solo lee cuando sirve.
 //
 // Recibe la versión del binario que le pasa Arrancar —la cadena vacía quien no
 // tiene ninguna, que no tiene forma SemVer (FR-073)—, y la firma es la de
 // construir en Arrancar (research.md D4 de H19). La lleva a skills, que la
 // declara en el manifiesto de cada instalación y compara con ella en doctor,
 // junto con lo empotrado en el binario y el creador de enlaces del sistema de
-// internal/disco (FR-024, FR-031, FR-077); y con esas mismas dependencias
-// compone el aviso de versión, que registra (AvisoDeVersion; research.md D5 de
-// H19).
+// internal/disco (FR-024, FR-031, FR-077); con esas mismas dependencias compone
+// el aviso de versión, que registra (AvisoDeVersion; research.md D5 de H19); y
+// la lleva a mcp, que la da como la del servidor a quien se conecta (FR-001 de
+// H21; contracts/servidor-mcp.md §1 de H21).
 func RegistroDeProduccion(version string) (*Registro, error) {
 	fuentes, err := FuentesEmbebidas()
 	if err != nil {
@@ -232,6 +247,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 	applets := []Applet{
 		AppletBoe(DependenciasDeRed()),
 		AppletGrafo(DependenciasDelGrafoDelSistema()),
+		AppletMCP(DependenciasDeMCPDelSistema(version)),
 		AppletSkills(skills),
 		AppletTerritorio(fuentes),
 	}

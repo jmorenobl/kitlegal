@@ -4,11 +4,12 @@
 # necesita: Linux con strace y claude; que no hay Python accesible; que el proxy de las sesiones rechaza; que los
 # ficheros de eval están bien formados y que lo grabado sirve sin red cada consulta que necesitan; y que la skill está
 # instalada y kitlegal en el PATH. Después, una sola orden de Go, TestEjecucionDelJob, abre las sesiones que pide el
-# plan —cada eval con el modelo que decide y con cada modelo informativo, repetida REPETICIONES_DE_EVALS veces—, como
-# mucho CONCURRENCIA_DE_EVALS a la vez, cada una con scripts/evals-sesion.sh, preparada justo antes, en su propio
-# directorio y con su tope de 240 s, con la skill tal como la deja make install, sin red de ninguna fuente y bajo
-# strace; no abre ninguna más tras el mensaje del límite de uso de la cuenta; mide su duración; y las juzga todas en el
-# informe, con los umbrales que deciden (FR-030, FR-031, FR-044, FR-050 y FR-051 de H7.3).
+# plan —cada eval con el modelo que decide y con cada modelo informativo, repetida REPETICIONES_DE_EVALS veces, en el
+# modo orden y en el modo herramienta, y la eval sin binario ni servidor una sola vez (contracts/evals-en-dos-modos.md
+# §2 de H21)—, como mucho CONCURRENCIA_DE_EVALS a la vez, cada una con scripts/evals-sesion.sh, preparada justo antes,
+# en su propio directorio y con su tope de 240 s, con la skill tal como la deja make install, sin red de ninguna fuente
+# y bajo strace; no abre ninguna más tras el mensaje del límite de uso de la cuenta; mide su duración; y las juzga
+# todas en el informe, con los umbrales que deciden (FR-030, FR-031, FR-044, FR-050 y FR-051 de H7.3).
 #
 #   make evals SKILL=<skill>
 #
@@ -129,14 +130,16 @@ fi
 # terminó. La orden falla con un error —una falta en la preparación, una interrupción con SIGINT o SIGTERM—, sin
 # escribir el informe, o con el veredicto fallo: por una serie que no pasa, por un umbral que decide y no se cumple, por
 # la duración o por sesiones sin medir (FR-037 y FR-043 de H7.3). Sin límite de tiempo de go test: el de la ejecución
-# es el tope de la definición del job.
+# es el tope de la definición del job. -kitlegal es la ruta del binario del PATH, el del paso 6: la orden del servidor de
+# las sesiones del modo herramienta, y el directorio que sale del PATH de las que no son del modo orden
+# (contracts/evals-en-dos-modos.md §2.2 de H21).
 codigo_del_informe=0
 go test -tags evals -count=1 -timeout 0 -run '^TestEjecucionDelJob$' ./internal/evals/ -args \
 	-skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
 	-repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" -concurrencia "$CONCURRENCIA_DE_EVALS" \
 	-prueba-de-red="${PRUEBA_DE_RED:-false}" -objetivo-de-duracion "${OBJETIVO_DE_DURACION_DE_EVALS:-0}" \
-	-skills "$HOME/.claude/skills" -commit "$COMMIT_EVALUADO" -sin-python "$salida/sin-python.txt" \
-	-sesiones "$salida/sesiones" -informe "$salida" ||
+	-skills "$HOME/.claude/skills" -kitlegal "$(command -v kitlegal)" -commit "$COMMIT_EVALUADO" \
+	-sin-python "$salida/sin-python.txt" -sesiones "$salida/sesiones" -informe "$salida" ||
 	codigo_del_informe=$?
 
 # La carpeta se vació al empezar: un informe que falta es que el test no lo escribió en esta ejecución.
