@@ -179,6 +179,33 @@ haría, sin probar», pidiendo a quien lo intente que cuente si funciona, y pasa
 El `.mcpb` de H22 lleva el binario de macOS y el de Windows, este sin probar. El marketplace del plugin vive en `jmorenobl/kitlegal-plugins`, un catálogo por agente que no
 guarda ficheros de release.
 
+## Prueba con la v0.4.0 (2026-10-02)
+
+La aceptación humana de H22, con `kitlegal.mcpb` y `kitlegal-plugin.zip` descargados con un navegador de la v0.4.0 e
+instalados en la app de escritorio de Claude para macOS —en el mismo Mac que compila, porque no hay otro, y sin nada
+de las pruebas anteriores instalado—, en una conversación nueva sin carpeta (`docs/USO.md`, 2026-10-02):
+
+- **La respuesta lleva la cita con su forma**, `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, con el
+  texto del BOE y sin vocabulario interno.
+- **macOS no bloquea el binario descargado** (pendiente 1): no hace falta notarizar, con la salvedad de que el Mac es
+  el que desarrolla.
+- **La ficha de la extensión** sale con el icono y la descripción entera.
+- **La app no sincroniza un catálogo cuya entrada es de fuente `archive`** (pendiente 5): «Error al sincronizar el
+  marketplace», sin más detalle. Un repositorio de prueba con el mismo plugin dentro, como carpeta, y una fuente
+  relativa (`./plugins/kitlegal`) sí sincroniza. La documentación de Claude Code recoge `archive`; la de la app no
+  dice qué fuentes admite.
+
+De ahí una enmienda a H22: **el catálogo lleva el plugin dentro**. `jmorenobl/kitlegal-plugins` deja de ser un
+catálogo que «no guarda ningún fichero de release»: en cada etiqueta, el trabajo `catalogo` deja en él
+`.claude-plugin/marketplace.json` y, en `plugins/kitlegal/`, el contenido del `kitlegal-plugin.zip` de la release,
+comprobado contra su huella de `checksums.txt`. Lo que guarda son las skills, que son texto; la extensión y los
+binarios siguen solo en las releases, bajo su firma. Se elige porque subir el zip no avisa de las versiones nuevas a
+quien lo instaló, y la audiencia de kitlegal no mira releases (ADR 0034). El marketplace pasa a ser la forma
+recomendada de instalar el plugin, y el zip, la alternativa.
+
+Siguen sin probar los pendientes 2 —que el marketplace entregue la versión siguiente y cómo se actualiza la
+extensión—, 3 y 4.
+
 ## Pendiente de verificar (pasa a la aceptación humana de H22)
 
 1. Un `.mcpb` y un zip descargados de verdad con un navegador, en un Mac distinto del que compiló el binario. Si

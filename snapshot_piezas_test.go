@@ -790,9 +790,9 @@ func skillsQueInstala(t *testing.T, binario string) map[string][]byte {
 
 // TestPluginValido valida con Claude Code lo que kitlegal publica para el
 // marketplace (H22 contracts/release.md §4; FR-023, FR-030, FR-065; SC-008): el
-// plugin del snapshot, extraído, y el catálogo de la versión del snapshot, cada
-// uno en su carpeta —con los dos en la misma, `claude plugin validate` solo
-// mira el catálogo (research.md V12 de H22)—. Falla, con lo que la orden
+// plugin del snapshot, extraído, y el catálogo de la versión del snapshot, que
+// lleva ese plugin dentro, cada uno en su carpeta —en la del catálogo,
+// `claude plugin validate` solo mira el catálogo (research.md V12 de H22)—. Falla, con lo que la orden
 // escribió, si `claude` no está en el PATH o no da por válido alguno de los
 // dos. No abre ninguna sesión con modelo ni usa ninguna credencial.
 //
@@ -843,52 +843,29 @@ func extraerElPlugin(t *testing.T, snapshot snapshotLeido) string {
 }
 
 // escribirElCatalogo escribe en una carpeta temporal el catálogo que da la
-// orden catalogo del paso para la versión de metadata.json y la huella que
-// checksums.txt da para el plugin —la orden con la que la release compone el
-// de cada etiqueta (H22 contracts/release.md §6.3)—, y devuelve la ruta de la
-// carpeta. La versión del snapshot no lleva la `v` de una etiqueta.
+// orden catalogo del paso para la versión de metadata.json con el plugin del
+// snapshot dentro —la orden con la que la release compone el de cada
+// etiqueta—, y devuelve la ruta de la carpeta: es el árbol que la release deja
+// en el repositorio del catálogo. La versión del snapshot no lleva la `v` de
+// una etiqueta.
 func escribirElCatalogo(t *testing.T, snapshot snapshotLeido) string {
 	t.Helper()
 
 	carpeta := t.TempDir()
-	require.NoError(t, os.Mkdir(filepath.Join(carpeta, path.Dir(catalogoDelPlugin)), 0o700))
 
 	var errores bytes.Buffer
 
 	codigo := paso.Ejecutar([]string{
 		"catalogo",
 		"-version", snapshot.metadatos.Version,
-		"-sha256", huellaEnChecksums(t, snapshot, pluginDelSnapshot),
-		"-salida", filepath.Join(carpeta, filepath.FromSlash(catalogoDelPlugin)),
+		"-plugin", filepath.Join(carpetaDelSnapshot, pluginDelSnapshot),
+		"-salida", carpeta,
 	}, &errores)
 	require.Zerof(t, codigo, "la orden catalogo del paso no escribe el catálogo de la versión del snapshot (FR-030):\n%s",
 		errores.String())
+	require.FileExists(t, filepath.Join(carpeta, filepath.FromSlash(catalogoDelPlugin)))
 
 	return carpeta
-}
-
-// huellaEnChecksums es la huella que checksums.txt da para ese fichero del
-// snapshot, que tiene que tener su línea `<sha256>  <nombre>`. Es la que lee
-// quien instala, y no la calculada sobre el fichero: que las dos coinciden lo
-// fija dos-piezas.
-func huellaEnChecksums(t *testing.T, snapshot snapshotLeido, nombre string) string {
-	t.Helper()
-
-	ruta := path.Join(carpetaDelSnapshot, checksumsDelSnapshot)
-
-	contenido, err := fs.ReadFile(snapshot.raiz, ruta)
-	require.NoError(t, err)
-
-	for linea := range strings.Lines(string(contenido)) {
-		huella, deQuien, _ := strings.Cut(strings.TrimSuffix(linea, "\n"), separadorDeChecksums)
-		if deQuien == nombre {
-			return huella
-		}
-	}
-
-	require.Failf(t, "falta una línea de checksums.txt", "%s no lleva la línea de %s", ruta, nombre)
-
-	return ""
 }
 
 // validarConClaude ejecuta `claude plugin validate .` en la carpeta y falla,

@@ -1152,10 +1152,10 @@ const (
 	opcionesDeLosGuiones = "set -euo pipefail"
 	directorioDelHumo    = "runner.temp"
 
-	// escrituraDelCatalogo es la orden que escribe el catálogo: un PUT a la API
-	// de contenidos de GitHub, que falla, y con él su paso, si no puede escribir
-	// (H22 FR-031; contracts/release.md §6.3 de H22).
-	escrituraDelCatalogo = `gh api --method PUT "$destino" --silent --input - <<< "$cuerpo"`
+	// escrituraDelCatalogo es la orden que escribe el catálogo: empuja al
+	// repositorio del catálogo el commit con sus dos carpetas, y falla, y con
+	// ella su paso, si no puede escribir (H22 FR-031).
+	escrituraDelCatalogo = `git push --quiet origin HEAD`
 )
 
 // archivosDeLaRelease son los seis archivos que la release publica y atesta
@@ -1326,27 +1326,36 @@ var comprobacionesDelHumo = []comprobacionDelHumo{
 
 var (
 	// ordenesDeComponerElCatalogo son, enteras y en orden, las del paso que
-	// compone el catálogo de la etiqueta: la versión es la etiqueta sin su v, y la
-	// huella, la que el checksums.txt publicado da para el plugin (H22 FR-031;
-	// contracts/release.md §6.3 de H22).
+	// compone el catálogo de la etiqueta: la versión es la etiqueta sin su v, y
+	// el plugin, el de la release, comprobado contra la huella que el
+	// checksums.txt publicado le da, sin la cual sha256sum falla (H22 FR-031).
+	// El catálogo lleva el plugin dentro: la app de escritorio de Claude no
+	// sincroniza uno que apunta a un zip de fuera (ADR 0035, «Prueba con la
+	// v0.4.0»).
 	ordenesDeComponerElCatalogo = ordenesDelGuion(`
-		gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern checksums.txt --dir "$RUNNER_TEMP"
+		gh release download "$GITHUB_REF_NAME" --repo jmorenobl/kitlegal --pattern checksums.txt --pattern kitlegal-plugin.zip --dir "$RUNNER_TEMP"
 		huella=$(awk '$2 == "kitlegal-plugin.zip" { print $1 }' "$RUNNER_TEMP/checksums.txt")
-		go run ./cmd/empaquetar catalogo -version "${GITHUB_REF_NAME#v}" -sha256 "$huella" -salida "$RUNNER_TEMP/marketplace.json"
+		echo "$huella  $RUNNER_TEMP/kitlegal-plugin.zip" | sha256sum --check --strict
+		mkdir "$RUNNER_TEMP/catalogo"
+		go run ./cmd/empaquetar catalogo -version "${GITHUB_REF_NAME#v}" -plugin "$RUNNER_TEMP/kitlegal-plugin.zip" -salida "$RUNNER_TEMP/catalogo"
 	`)
 
 	// ordenesDePublicarElCatalogo son, enteras y en orden, las del paso que lo
-	// publica: solo escribe el marketplace.json del repositorio del catálogo, y lo
-	// sustituye entero, con el sha del que hay si lo hay (H22 FR-031, FR-032;
-	// contracts/release.md §6.3 de H22).
+	// publica: git pide el token a gh, de modo que no queda en el clon; sustituye
+	// enteras las dos carpetas del catálogo, .claude-plugin y plugins, y nada más
+	// del repositorio, en un solo commit; y si ya lleva lo mismo no hay commit
+	// (H22 FR-031, FR-032).
 	ordenesDePublicarElCatalogo = append(ordenesDelGuion(`
-		destino=repos/jmorenobl/kitlegal-plugins/contents/.claude-plugin/marketplace.json
-		contenido=$(base64 < "$RUNNER_TEMP/marketplace.json" | tr -d '\n')
-		if anterior=$(gh api "$destino" --jq .sha); then
-		  cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" --arg sha "$anterior" '{message: $message, content: $content, sha: $sha}')
-		else
-		  cuerpo=$(jq -n --arg message "kitlegal $GITHUB_REF_NAME" --arg content "$contenido" '{message: $message, content: $content}')
+		gh auth setup-git
+		git clone --quiet --depth 1 https://github.com/jmorenobl/kitlegal-plugins.git "$RUNNER_TEMP/kitlegal-plugins"
+		cd "$RUNNER_TEMP/kitlegal-plugins"
+		git rm -r --quiet --ignore-unmatch .claude-plugin plugins
+		cp -R "$RUNNER_TEMP/catalogo/." .
+		git add --all .claude-plugin plugins
+		if git diff --cached --quiet; then
+		  exit 0
 		fi
+		git -c user.name=kitlegal -c user.email=info@kitlegal.es commit --quiet --message "kitlegal $GITHUB_REF_NAME"
 	`), escrituraDelCatalogo)
 )
 

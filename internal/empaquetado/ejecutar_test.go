@@ -22,7 +22,7 @@ import (
 // lineaDeUso es la línea con la que el paso responde a una invocación que no
 // tiene la forma de ninguna de sus dos órdenes (contracts/paso.md §1).
 const lineaDeUso = "empaquetar: uso: empaquetar piezas -version … -macos … -windows … -icono … -salida … | " +
-	"empaquetar catalogo -version … -sha256 … -salida …\n"
+	"empaquetar catalogo -version … -plugin … -salida …\n"
 
 // prefijoDeLaLinea es con lo que empieza la línea de todo fallo del paso.
 const prefijoDeLaLinea = "empaquetar: "
@@ -46,7 +46,7 @@ var skillsDeHoy = []string{"skills/boe-legislacion/SKILL.md", "skills/legal-core
 // binarios de prueba, termina con 0 y sin nada en la salida de error, con
 // `tools` igual a lo que app.HerramientasAnunciadas da del registro de
 // producción y con el árbol `skills` del plugin igual a lo empotrado, sin un
-// fichero de más ni de menos; `catalogo` deja el documento en su fichero; y
+// fichero de más ni de menos; `catalogo` deja el catálogo en su carpeta; y
 // una invocación que no vale o a la que le falta una entrada termina con 1 y
 // una línea `empaquetar: …`. FR-001, FR-005, FR-014, FR-020, FR-070.
 func TestEjecutar(t *testing.T) {
@@ -57,7 +57,7 @@ func TestEjecutar(t *testing.T) {
 		comprobar func(t *testing.T)
 	}{
 		{nombre: "piezas, con la composición de producción", comprobar: comprobarLasPiezasDeProduccion},
-		{nombre: "catalogo deja el documento en su fichero", comprobar: comprobarElCatalogoEscrito},
+		{nombre: "catalogo deja el catálogo en su carpeta", comprobar: comprobarElCatalogoEscrito},
 		{nombre: "con la salida de error rota, el código sigue siendo 1", comprobar: comprobarLaSalidaDeErrorRota},
 	}
 
@@ -106,16 +106,20 @@ func ordenDePiezas(t *testing.T) []string {
 	}
 }
 
-// ordenDeCatalogo es una invocación de `catalogo` que vale: una versión, una
-// huella con su forma y un fichero de una carpeta que existe.
+// ordenDeCatalogo es una invocación de `catalogo` que vale: una versión, el
+// plugin de esa versión y una carpeta que existe y no lleva otro catálogo.
 func ordenDeCatalogo(t *testing.T) []string {
 	t.Helper()
 
+	const version = "0.4.1"
+
+	plugin, _ := pluginDePrueba(t, version)
+
 	return []string{
 		"catalogo",
-		"-version", "0.4.0",
-		"-sha256", huellaDePrueba,
-		"-salida", filepath.Join(t.TempDir(), "marketplace.json"),
+		"-version", version,
+		"-plugin", plugin,
+		"-salida", t.TempDir(),
 	}
 }
 
@@ -229,8 +233,8 @@ func ficherosDe(t *testing.T, arbol fs.FS) []string {
 }
 
 // comprobarElCatalogoEscrito ejecuta `catalogo` y comprueba que deja en su
-// fichero, y solo en él, el documento de esa versión y esa huella, que
-// TestCatalogo lee campo a campo.
+// carpeta el documento de esa versión, que TestCatalogo lee campo a campo, y
+// el plugin dentro, que TestCatalogoEscrito compara fichero a fichero.
 func comprobarElCatalogoEscrito(t *testing.T) {
 	t.Helper()
 
@@ -245,15 +249,18 @@ func comprobarElCatalogoEscrito(t *testing.T) {
 
 	salida := valorDe(t, orden, "-salida")
 
-	documento, err := empaquetado.DocumentoDelCatalogo(valorDe(t, orden, "-version"), valorDe(t, orden, "-sha256"))
+	documento, err := empaquetado.DocumentoDelCatalogo(valorDe(t, orden, "-version"))
 	require.NoError(t, err)
 
-	assert.Equal(t, string(documento), string(leerFichero(t, salida)),
-		"el fichero de salida lleva el catálogo de esa versión y esa huella (FR-030)")
+	assert.Equal(t, string(documento), string(leerFichero(t, filepath.Join(salida, filepath.FromSlash(rutaDelCatalogo)))),
+		"la carpeta de salida lleva el catálogo de esa versión (FR-030)")
+	assert.FileExists(t,
+		filepath.Join(salida, filepath.FromSlash(carpetaDelPluginEnElCatalogo), filepath.FromSlash(rutaDeLaFichaDelPlugin)),
+		"y el plugin dentro, con su plugin.json")
 
-	escritos, err := os.ReadDir(filepath.Dir(salida))
+	escritos, err := os.ReadDir(salida)
 	require.NoError(t, err)
-	assert.Len(t, escritos, 1, "`catalogo` no deja nada más en la carpeta de su fichero")
+	assert.Len(t, escritos, 2, "`catalogo` deja en su carpeta .claude-plugin y plugins, y nada más")
 }
 
 // escritorRoto es una salida de error en la que no se puede escribir.
@@ -282,7 +289,7 @@ type falloDeLaOrden struct {
 
 // fallosDeLaOrden son las invocaciones de contracts/paso.md §1 que terminan con
 // 1, cada una con su línea: sin orden, con una desconocida, sin una bandera —o
-// con ella vacía—, sin un binario, con una huella sin su forma y con una salida
+// con ella vacía—, sin un binario, con un plugin que no se puede leer y con una salida
 // que no se puede escribir. Una invocación que no tiene la forma de la orden
 // —una bandera que el paso no tiene, una sin su valor, un argumento de más, la
 // ayuda— responde con la línea de uso.
@@ -350,12 +357,14 @@ func fallosDeLaOrden() []falloDeLaOrden {
 			},
 		},
 		{
-			nombre: "catalogo con una huella sin su forma",
+			nombre: "catalogo con un plugin que no existe",
 			preparar: func(t *testing.T) ([]string, string) {
 				t.Helper()
 
-				return con(t, ordenDeCatalogo(t), "-sha256", "ABC"),
-					"empaquetar: «ABC» no es una huella SHA-256: 64 dígitos hexadecimales en minúsculas\n"
+				noExiste := filepath.Join(t.TempDir(), "no-existe.zip")
+
+				return con(t, ordenDeCatalogo(t), "-plugin", noExiste),
+					"empaquetar: no se puede leer " + noExiste + ": " + syscall.ENOENT.Error() + "\n"
 			},
 		},
 		{
@@ -363,7 +372,7 @@ func fallosDeLaOrden() []falloDeLaOrden {
 			preparar: func(t *testing.T) ([]string, string) {
 				t.Helper()
 
-				salida := filepath.Join(t.TempDir(), "no-existe", "marketplace.json")
+				salida := filepath.Join(t.TempDir(), "no-existe")
 
 				return con(t, ordenDeCatalogo(t), "-salida", salida),
 					"empaquetar: no se puede escribir " + salida + ": " + syscall.ENOENT.Error() + "\n"
@@ -382,7 +391,7 @@ func fallosDeLaOrden() []falloDeLaOrden {
 		})
 	}
 
-	for _, bandera := range []string{"-version", "-sha256", "-salida"} {
+	for _, bandera := range []string{"-version", "-plugin", "-salida"} {
 		fallos = append(fallos, falloDeLaOrden{
 			nombre: "catalogo sin " + bandera,
 			preparar: func(t *testing.T) ([]string, string) {

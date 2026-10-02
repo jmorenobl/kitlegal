@@ -10,6 +10,32 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-02 · La aceptación de H22 con la v0.4.0: las dos piezas funcionan, y la app no admite el marketplace
+
+- **Qué se pidió.** La aceptación humana de H22 con la v0.4.0, la primera release con las dos piezas: `kitlegal.mcpb`
+  y `kitlegal-plugin.zip` descargados de la release con un navegador e instalados en la app de escritorio de Claude en
+  macOS, sin abrir una terminal, y «¿qué dice el art. 21 de la Ley 39/2015?» en una conversación nueva sin carpeta. Fue
+  en el mismo Mac que desarrolla kitlegal, no en otro: no hay otro. La extensión y el plugin de la prueba de H21 se
+  habían desinstalado antes.
+- **Qué pasó.** La respuesta transcribió el artículo entero y llevó `art. 21 de la Ley 39/2015 [BOE-A-2015-10565,
+  bloque a21]`, el rango de la norma, el recordatorio de que el texto consolidado es informativo y el enlace del
+  índice, sin vocabulario interno. macOS no puso ningún reparo al `.mcpb` descargado con el navegador. La ficha de la
+  extensión salió con su icono y la descripción entera.
+- **Qué falló.** Añadir el marketplace `jmorenobl/kitlegal-plugins` en *Customize > Plugins*: «Error al sincronizar el
+  marketplace. Verifica la URL del repositorio e intenta de nuevo». El repositorio es público y su `marketplace.json`
+  pasa `claude plugin validate`; su entrada era de fuente `archive`, el zip de la release con su huella. Un
+  repositorio de prueba con el mismo plugin dentro, como carpeta, y fuente `./plugins/kitlegal` sí sincronizó.
+- **Qué faltó.**
+  - **Enterarse de las actualizaciones**: subiendo el zip, quien instala no recibe la versión siguiente ni sabe que
+    existe. Por eso el marketplace tiene que funcionar en la app.
+  - **El aviso rojo** sale también al añadir un marketplace («los plugins instalados desde tiendas no están
+    controlados por Anthropic»), además de en la ficha de la extensión. No depende de nada del manifiesto: solo deja
+    de salir con lo que está en el directorio de Anthropic.
+  - **Lo que sigue sin probar**: que el marketplace entregue de verdad la versión siguiente, cómo se actualiza la
+    extensión, Windows, y Claude en la web con el plugin y sin la extensión.
+- **Qué se hizo.** El catálogo pasa a llevar el plugin dentro, publicado por la release, y el README recomienda el
+  marketplace para el plugin (ADR 0035, «Prueba con la v0.4.0»).
+
 ### 2026-10-02 · La prueba a mano de H21 en la app de Claude: con la extensión sola no sale la cita
 
 - **Qué se pidió.** La aceptación humana de H21 en la app de escritorio de Claude: «¿qué dice el art. 21 de la Ley

@@ -278,7 +278,7 @@ Cuatro órdenes:
   las dos piezas; y los guiones `instalador-` del e2e ejecutan `scripts/install.sh` contra ese `dist/`, sin red. Sin
   ningún guion `instalador-` que ejecutar, falla en lugar de pasar en vacío.
 - **`make plugin-check`**, también sobre ese `dist/`: `TestPluginValido` extrae `kitlegal-plugin.zip` en una
-  carpeta, escribe en otra el catálogo de la versión del snapshot, con la huella que `checksums.txt` da al plugin, y
+  carpeta, escribe en otra el catálogo de la versión del snapshot, con ese plugin dentro, y
   ejecuta `claude plugin validate .` en cada una. Necesita Claude Code en el `PATH`, y falla si no está; no abre
   ninguna sesión con modelo ni usa ninguna credencial. Va aparte de `make snapshot-check` porque es la única de las
   cuatro que necesita Claude Code.
@@ -313,7 +313,7 @@ falló. Dos ejecuciones sobre las mismas entradas dan los mismos bytes.
 | Orden | Qué lee | Qué escribe |
 |---|---|---|
 | `go run ./cmd/empaquetar piezas -version <versión> -macos <binario> -windows <binario> -icono <png> -salida <carpeta>` | los dos binarios, que copia sin mirar; el icono, que tiene que ser un PNG de 512 × 512 px; las herramientas que anuncia el registro de applets; y las skills empotradas | `<carpeta>/kitlegal.mcpb`, con `manifest.json`, `icon.png`, `server/kitlegal` y `server/kitlegal.exe`, y `<carpeta>/kitlegal-plugin.zip`, con `.claude-plugin/plugin.json` y `skills/` |
-| `go run ./cmd/empaquetar catalogo -version <versión> -sha256 <huella> -salida <fichero>` | solo sus banderas | en `<fichero>`, el `marketplace.json` de esa versión: una entrada, `kitlegal`, de fuente `archive`, con la dirección de `kitlegal-plugin.zip` en la release de esa versión y su huella |
+| `go run ./cmd/empaquetar catalogo -version <versión> -plugin <kitlegal-plugin.zip> -salida <carpeta>` | el `kitlegal-plugin.zip` de esa versión; si su `plugin.json` dice otra, falla | en `<carpeta>`, que tiene que existir y no llevar otro catálogo, `.claude-plugin/marketplace.json` —una entrada, `kitlegal`, cuya fuente es `./plugins/kitlegal`— y, en `plugins/kitlegal/`, cada fichero del zip, byte a byte |
 
 De dónde sale cada cosa, sin ninguna lista escrita a mano:
 
@@ -354,11 +354,14 @@ Tras fusionar, una persona empuja la etiqueta `vX.Y.Z`, y solo eso dispara el fl
   manifiesto de la extensión lleva la versión de la etiqueta y sus campos fijos; que sus binarios son los de los
   archivos publicados; y que el servidor, arrancado con el binario de Linux de la release, lista las herramientas de
   `tools` del manifiesto.
-- **`catalogo`** solo corre si `humo` sale en verde. Compone con `go run ./cmd/empaquetar catalogo` el catálogo de
-  la etiqueta —la versión sin `v`, la dirección de `kitlegal-plugin.zip` en esa release y la huella que le da el
-  `checksums.txt` publicado— y lo escribe en `.claude-plugin/marketplace.json` de `jmorenobl/kitlegal-plugins`, el
-  único fichero que toca y que sustituye entero. No puede escribir en este repositorio. Si falla, el catálogo sigue
-  apuntando a la etiqueta anterior, sin afectar a `publicar` ni a `humo`, y volver a ejecutarlo escribe lo mismo.
+- **`catalogo`** solo corre si `humo` sale en verde. Descarga el `kitlegal-plugin.zip` de la release, lo comprueba
+  contra la huella que le da el `checksums.txt` publicado y compone con `go run ./cmd/empaquetar catalogo` el catálogo
+  de la etiqueta: `.claude-plugin/marketplace.json`, con la versión sin `v`, y el plugin dentro, en
+  `plugins/kitlegal/`. Lo publica en `jmorenobl/kitlegal-plugins` con un commit que sustituye enteras esas dos
+  carpetas y no toca nada más. El plugin va dentro, y no como una dirección a su zip, porque la app de escritorio de
+  Claude no sincroniza un catálogo que apunta fuera (ADR 0035, «Prueba con la v0.4.0»). No puede escribir en este
+  repositorio. Si falla, el catálogo sigue en la etiqueta anterior, sin afectar a `publicar` ni a `humo`, y volver a
+  ejecutarlo deja lo mismo.
 
 El único secreto de la publicación es `PUBLISHER_TOKEN`, con permiso de escritura en el tap, en el bucket y en
 `jmorenobl/kitlegal-plugins`. Solo lo ven dos pasos: el de goreleaser, en `publicar`, y el que publica el catálogo,
