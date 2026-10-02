@@ -1,6 +1,6 @@
 # Informe del hito H21 · `kitlegal mcp serve`: las herramientas del binario por MCP, con las skills y las evals en los dos modos (adelantado; ADR 0035)
 
-Generado por el workflow `hito` el 2026-10-02T05:38:39Z, sobre `faae2e6` de `015-h21-kitlegal-mcp-serve`.
+Generado por el workflow `hito` el 2026-10-02T05:57:17Z, sobre `c58edeb` de `015-h21-kitlegal-mcp-serve`.
 Lo escribe scripts/workflow/informe.sh sin modelo, desde los artefactos de `specs/015-h21-kitlegal-mcp-serve/`. Fusionar (squash-merge) es una decisión humana:
 si algo de lo que sigue no es lo que se quería, se corrige la sección del hito en docs/ROADMAP.md y se relanza.
 
@@ -8,12 +8,12 @@ si algo de lo que sigue no es lo que se quería, se corrige la sección del hito
 
 - **make ci local**: verde.
 - **CI y evals remotos** sobre `faae2e6` (medición 1): verde; es el producto de la cabeza (lo posterior solo toca `gates/`).
-- **Evals por skill**: legal-core aprobado (tasas en la sección 3).
-- **Umbrales del job**: legal-core: sin umbrales (sección 3).
+- **Evals por skill**: boe-legislacion aprobado, legal-core aprobado (tasas en la sección 3).
+- **Umbrales del job**: boe-legislacion: 10 umbrales, **2 sin cumplir o solo publicados** (`expresiones_prohibidas:claude-haiku-4-5-20251001:orden`, `expresiones_prohibidas:claude-haiku-4-5-20251001:herramienta`); legal-core: sin umbrales (sección 3).
 - **Revisión final**: juez A aprobado, juez B aprobado, 1 ronda.
 - **Cambios que ningún juez vio**: ninguno.
 - **Tareas**: 18 hechas, 0 en cuarentena, 0 pendientes sin cuarentena.
-- **Diff**: 23 commits; 166 files changed, 22596 insertions(+), 1123 deletions(-).
+- **Diff**: 24 commits; 171 files changed, 25110 insertions(+), 1123 deletions(-).
 
 ## 2. Supuestos y pendientes
 
@@ -57,6 +57,56 @@ Decisiones que el run tomó sin preguntar, ordenadas por impacto: cada paso que 
 Decisiones que no cambian nada observable (técnica, estructura, tests), por autor: T001 (5), T002 (1), T003 (2), T005 (2), T006 (2), T007 (3), T008 (1), T009 (7), T010 (5), T012 (1), T013 (5), T014 (5), T015 (6), T016 (7), T017 (2), T018 (3), corrector_spec (1), plan (2). Enteras en `specs/015-h21-kitlegal-mcp-serve/gates/supuestos.md`.
 
 ## 3. Evals sobre la cabeza
+
+**boe-legislacion**: aprobado sobre `faae2e6`; decide `claude-sonnet-5-5` con 2 de 3; 21 evals, 1 nuevas, 8 informativas.
+
+| Eval | claude-sonnet-5-5 | claude-haiku-4-5-20251001 | claude-sonnet-5-5 (herramienta) | claude-haiku-4-5-20251001 (herramienta) | Marca |
+|---|---|---|---|---|---|
+| `21-sin-binario-ni-servidor.yaml` | 2/3 | 3/3 | — | — | **nueva** |
+| `01-lpac-articulo-21.yaml` | 3/3 | 3/3 | 3/3 | 3/3 |  |
+| `02-lcsp-contrato-menor.yaml` | 3/3 | 2/3 | 3/3 | 3/3 |  |
+| `03-lrbrl-atribuciones-del-pleno.yaml` | 3/3 | 2/3 | 3/3 | 2/3 |  |
+| `04-lgt-prescripcion.yaml` | 2/3 | 2/3 | 3/3 | 2/3 |  |
+| `05-trlrhl-impuestos-municipales.yaml` | 3/3 | 1/3 | 3/3 | 1/3 |  |
+| `06-irpf-rendimientos-del-trabajo.yaml` | 3/3 | 1/3 | 3/3 | 0/3 |  |
+| `07-lrjsp-principio-de-legalidad.yaml` | 3/3 | 2/3 | 3/3 | 3/3 |  |
+| `08-ltaibg-plazo-de-resolucion.yaml` | 3/3 | 3/3 | 3/3 | 3/3 |  |
+| `09-constitucion-articulo-140.yaml` | 3/3 | 3/3 | 3/3 | 3/3 |  |
+| `10-et-vacaciones.yaml` | 3/3 | 3/3 | 3/3 | 2/3 |  |
+| `11-no-activa-programacion.yaml` | 3/3 | 3/3 | 3/3 | 3/3 |  |
+| `12-no-activa-acuerdo-entre-amigos.yaml` | 3/3 | 3/3 | 3/3 | 3/3 |  |
+| `13-lrbrl-atribuciones-por-materia.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `14-trlrhl-impuestos-por-materia.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `15-irpf-rendimientos-por-materia.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `16-lrjsp-legalidad-por-materia.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `17-ltaibg-plazo-por-materia.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `18-lrjpac-norma-derogada.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `19-lcsp-contrato-menor-redaccion-cambiada.yaml` | 3/3 | — | 3/3 | — | informativa |
+| `20-lcsp-dos-bloques-redaccion-cambiada.yaml` | 3/3 | — | 3/3 | — | informativa |
+
+Respuestas con alguna expresión prohibida, en las evals que activan la skill (`expresiones_prohibidas_por_modelo`):
+
+| Modelo | Con alguna | Respuestas | Porcentaje |
+|---|---|---|---|
+| `claude-sonnet-5-5 (orden)` | 0 | 54 | 0,0 % |
+| `claude-haiku-4-5-20251001 (orden)` | 0 | 30 | 0,0 % |
+| `claude-sonnet-5-5 (herramienta)` | 0 | 54 | 0,0 % |
+| `claude-haiku-4-5-20251001 (herramienta)` | 0 | 30 | 0,0 % |
+
+Umbrales que publica el job (ADR 0029):
+
+| Umbral | Medida | Condición | Cumple | Hace fallar el job |
+|---|---|---|---|---|
+| `expresiones_prohibidas:claude-sonnet-5-5:orden` | 0 de 54 (0,0 %) | ≤ 5,0 % | sí | sí |
+| `sin_activar:claude-sonnet-5-5:orden` | 0 de 54 (0,0 %) | ≤ 0,0 % | sí | sí |
+| `redaccion_no_leida:claude-sonnet-5-5:orden` | 0 de 54 (0,0 %) | ≤ 0,0 % | sí | sí |
+| `expresiones_prohibidas:claude-haiku-4-5-20251001:orden` | 0 de 30 (0,0 %) | ≤ 5,0 % | sí | no: solo se publica, no es un control |
+| `expresiones_prohibidas:claude-sonnet-5-5:herramienta` | 0 de 54 (0,0 %) | ≤ 5,0 % | sí | sí |
+| `sin_activar:claude-sonnet-5-5:herramienta` | 0 de 54 (0,0 %) | ≤ 0,0 % | sí | sí |
+| `redaccion_no_leida:claude-sonnet-5-5:herramienta` | 0 de 54 (0,0 %) | ≤ 0,0 % | sí | sí |
+| `expresiones_prohibidas:claude-haiku-4-5-20251001:herramienta` | 0 de 30 (0,0 %) | ≤ 5,0 % | sí | no: solo se publica, no es un control |
+| `duracion_de_las_sesiones:orden` | 471 | ≤ 900 | sí | sí |
+| `duracion_de_las_sesiones:herramienta` | 479 | ≤ 900 | sí | sí |
 
 **legal-core**: aprobado sobre `faae2e6`; decide `claude-sonnet-5-5` con 2 de 3; 4 evals, 1 nuevas, 0 informativas.
 
@@ -127,7 +177,7 @@ Ninguna.
 | FR-040 | T013(hecha) T015(hecha) T016(hecha) | — | tareas hechas | — |
 | FR-041 | T013(hecha) T014(hecha) T015(hecha) | — | tareas hechas | — |
 | FR-042 | T014(hecha) T015(hecha) | — | tareas hechas | — |
-| FR-043 | T013(hecha) T016(hecha) T018(hecha) | — | CONTROL SIN VERIFICAR | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:herramienta`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:herramienta`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:duracion_de_las_sesiones:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`: no hay informe del job de evals de boe-legislacion |
+| FR-043 | T013(hecha) T016(hecha) T018(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:orden`: 0 de 54 (0,0 %), ≤ 5,0 %; `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:herramienta`: 0 de 54 (0,0 %), ≤ 5,0 %; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:orden`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:herramienta`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:duracion_de_las_sesiones:orden`: 471, ≤ 900; `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`: 479, ≤ 900 |
 | FR-044 | T016(hecha) | — | tareas hechas | — |
 | FR-045 | T016(hecha) | — | tareas hechas | — |
 | FR-046 | T010(hecha) T013(hecha) T015(hecha) | — | tareas hechas | — |
@@ -154,7 +204,7 @@ Ninguna.
 | FR-083 | T010(hecha) T013(hecha) | — | comprobado por su control | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob`, en make ci (verde) |
 | FR-084 | T011(hecha) | — | comprobado por su control | `ci:internal/evals/sondeo_test.go:TestComprobarElSondeo`, en make ci (verde); `ci:internal/evals/sondeo_test.go:TestSondear`, en make ci (verde); `ci:internal/evals/sondeo_test.go:TestGuionDelSondeo`, en make ci (verde) |
 | FR-090 | T018(hecha) | — | tareas hechas | — |
-| SC-001 | T010(hecha) T016(hecha) | — | CONTROL SIN VERIFICAR | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:herramienta`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:herramienta`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:duracion_de_las_sesiones:orden`: no hay informe del job de evals de boe-legislacion; `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`: no hay informe del job de evals de boe-legislacion |
+| SC-001 | T010(hecha) T016(hecha) | — | comprobado por su control | `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:orden`: 0 de 54 (0,0 %), ≤ 5,0 %; `evals:boe-legislacion:expresiones_prohibidas:claude-sonnet-5-5:herramienta`: 0 de 54 (0,0 %), ≤ 5,0 %; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:orden`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:redaccion_no_leida:claude-sonnet-5-5:herramienta`: 0 de 54 (0,0 %), ≤ 0,0 %; `evals:boe-legislacion:duracion_de_las_sesiones:orden`: 471, ≤ 900; `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`: 479, ≤ 900 |
 | SC-002 | — | — | SIN TAREA | — |
 | SC-003 | T001(hecha) T004(hecha) T007(hecha) T008(hecha) | mcp-herramientas.txtar  | comprobado por su control | `ci:internal/app/herramientas_test.go:TestHerramientasDelServidor`, en make ci (verde) |
 | SC-004 | T001(hecha) T009(hecha) | mcp-errores.txtar mcp-llamadas.txtar  | comprobado por su control | `ci:internal/app/e2e_test.go:TestEntregaDelHito`, en make ci (verde) |
@@ -173,6 +223,7 @@ Ninguna.
 Cada commit posterior a lo que juzgó la primera ronda de la revisión final (`be4a12d`), con la ronda que lo vio y su veredicto, y lo que toca fuera de `gates/` (ADR 0030):
 
 - `faae2e6` docs(H21): veredictos de la revisión final: solo registros de `gates/`.
+- `c58edeb` docs(H21): informe final del run: solo registros de `gates/`.
 
 ### Cambios que ningún juez vio
 
@@ -181,4 +232,4 @@ Ninguno.
 ## 8. Cómo comprobarlo y consumo
 
 - Escenarios manuales: `specs/015-h21-kitlegal-mcp-serve/quickstart.md`. Suite de aceptación congelada: `specs/015-h21-kitlegal-mcp-serve/aceptacion/` (activada en `internal/app/testdata/script/`).
-- Run `af13b17c`: 13 h 57 min de reloj. Coste por paso y por rol: `scripts/coste-run.sh af13b17c`.
+- Run `af13b17c`: 14 h 16 min de reloj. Coste por paso y por rol: `scripts/coste-run.sh af13b17c`.
