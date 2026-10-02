@@ -6,7 +6,8 @@ historial de git; lo que escriben fuera de un directorio temporal es `dist/`, qu
 Hacen falta `go`, `make`, `unzip` y `jq`.
 
 Las órdenes y las salidas de §2 a §5 son las ejecutadas con el prototipo del plan (research, cabecera); los nombres de
-test son los que fija [plan.md](./plan.md).
+test son los que fija [plan.md](./plan.md). Con el árbol del hito, §1 a §9 se ejecutaron en el cierre de T007, con lo
+esperado en cada uno ([cierre.md §3](./cierre.md)).
 
 ## 1. Los tests del paso, en `make ci` (US3, US5)
 
@@ -72,7 +73,7 @@ ls dist/*.tar.gz dist/*.zip
 
 Esperado: los dos ficheros; dos líneas de `checksums.txt`, una de cada uno; y, en el último listado, los seis archivos
 de hoy más `dist/kitlegal-plugin.zip`, sin ningún `kitlegal_darwin_all.tar.gz`. Escribe `dist/` (lo vacía antes) y
-nada versionado. En el equipo del plan tardó 18 s.
+nada versionado. En el equipo del plan tardó 18 s; en el cierre de T007, 9 s.
 
 ## 6. Las comprobaciones del snapshot (US1.2 a US1.6, US5; FR-060 a FR-064, FR-066; SC-003 a SC-007, SC-009)
 

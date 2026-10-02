@@ -1,21 +1,11 @@
 {
-  "id": "T007",
-  "texto": "T007 Cierre de la Definition of Done, sin código de producto (`ROADMAP.md` §1; plan.md, «Gates» y «Obligaciones para tasks.md»): specs/016-h22-instalar-sin-terminal/cierre.md con (1) la lista, sacada de `git diff --name-status main`, de lo creado y lo modificado en el hito, y la comprobación de que no hay ningún fichero de los directorios `testdata`, `schemas`, `data`, `skills`, `evals`, `web` ni `docs`, ni de un spec anterior, ni del workflow `hito` (FR-053, FR-080): ni fuente nueva, ni fila nueva en `SOURCES.md`, ni esquema, ni fixture, ni ADR —el hito no cambia ninguna decisión de arquitectura que no cambiara ya el ADR 0035—; (2) la cobertura sobre `coverage.out` y `coverage-integration.out` de `make ci` con `go tool cover -func`: global ≥ 70 % y el dominio ≥ 85 % (Definition of Done §1.9), con la del paquete del paso; (3) quickstart.md §1 a §9 ejecutados tal cual, en orden y en primer plano, con la salida de cada uno frente a lo esperado —§5 y §6 son `make release` y `make snapshot-check`, y §9 retira el directorio del snapshot—, y §10 anotado como no ejecutado: `make plugin-check`, `release.yml`, la prueba de SC-002 y el cierre son de la persona o del workflow; (4) por cada fila de plan.md, «Controles de umbral», el test que la controla, que existe en la cabeza y que `make ci` lo ejecuta, y cuáles de las cinco medidas sobre el snapshot real quedan para el trabajo `snapshot` del cierre; (5) los supuestos que siguen sin medir (research S1 a S11), dichos como tales; y (6) lo que queda para la persona tras el run: que `PUBLISHER_TOKEN` pueda escribir en el repositorio del catálogo, la etiqueta, la release, la prueba de SC-002 con sus cuatro anotaciones y versionar el esquema oficial del manifiesto. Si algo de (1) a (4) no cuadra, se dice tal cual en cierre.md: esta tarea no corrige código. `make ci` en verde. — FR-053, FR-068, FR-069, FR-070, FR-080; SC-001, SC-011. Rutas: specs/016-h22-instalar-sin-terminal/cierre.md.",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "94fce5804fa5d3dc486d37cc54f76f2ce35c724c",
-  "rutas": [
-    "ROADMAP.md",
-    "SOURCES.md",
-    "cierre.md",
-    "plan.md",
-    "quickstart.md",
-    "release.yml",
-    "specs/016-h22-instalar-sin-terminal/cierre.md",
-    "specs/016-h22-instalar-sin-terminal/cierre.md.",
-    "tasks.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

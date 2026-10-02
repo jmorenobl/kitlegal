@@ -289,7 +289,7 @@ Detalle, con ejemplos y bytes medidos, en [contracts/paso.md §2 a §4 y §8](./
 - **`kitlegal.mcpb`** (la persona; una vez por versión): 42 711 814 bytes; cuatro entradas. Crece con el binario. No da
   señales.
 - **La ficha** (la persona; una vez, al instalar): `manifest.json`, 2 939 bytes: una descripción de 71 caracteres, un
-  párrafo de 491 y diez herramientas (1 384 bytes). Crece con los verbos. El aviso rojo es de la app: el README lo
+  párrafo de 491 y diez herramientas (1 383 bytes). Crece con los verbos. El aviso rojo es de la app: el README lo
   explica.
 - **`kitlegal-plugin.zip`** (la persona; una vez por versión si lo sube, ninguna con el catálogo): 17 739 bytes; seis
   entradas. Crece con las skills.

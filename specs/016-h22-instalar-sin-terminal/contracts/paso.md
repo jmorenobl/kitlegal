@@ -28,14 +28,19 @@ que falló; nada si termina bien.
 
 | Fallo | Línea (lo que va detrás de `empaquetar: `) |
 |---|---|
-| sin orden, o una que no es `piezas` ni `catalogo` | `uso: empaquetar piezas -version … -macos … -windows … -icono … -salida … \| empaquetar catalogo -version … -sha256 … -salida …` |
-| una bandera sin valor | `falta -<bandera>` |
+| sin orden, o una que no es `piezas` ni `catalogo`; o una invocación de una de las dos que no tiene su forma: una bandera que la orden no tiene, una bandera sin su valor al final, un argumento de más o `-h` | `uso: empaquetar piezas -version … -macos … -windows … -icono … -salida … \| empaquetar catalogo -version … -sha256 … -salida …` |
+| una bandera de la orden que no se da, o que llega vacía; con varias, la primera en el orden de la orden | `falta -<bandera>` |
 | un binario que no se puede leer | `falta el binario de macOS: <causa, con la ruta>` · `falta el binario de Windows: <causa, con la ruta>` |
 | el icono no se puede leer | `falta el icono: <causa, con la ruta>` |
 | el icono no es un PNG, o no mide 512 × 512 px | `el icono <ruta> no es un PNG de 512 × 512 px: <lo que es>` |
 | la descripción corta pasa de 120 caracteres | `la descripción corta tiene <n> caracteres y el máximo es 120` |
 | la salida no se puede escribir | `no se puede escribir <ruta>: <causa>` |
 | la huella no tiene su forma | `«<valor>» no es una huella SHA-256: 64 dígitos hexadecimales en minúsculas` |
+
+Una huella vacía es una bandera vacía: `falta -sha256`. Lo que lo empotrado y el registro de producción no dan nunca
+—un árbol sin su carpeta `skills`, una ruta que no cabe en un zip, un registro que no se construye— falla igual, con
+1 y una línea que lo nombra (`las skills no se pueden leer: …`, `la entrada <ruta> no cabe en el zip: …`, `el registro
+de applets no se puede construir: …`).
 
 Ejemplo (medido con el prototipo, que da ya las líneas de «falta»):
 
@@ -47,7 +52,8 @@ exit status 1
 ```
 
 Lo que el paso deja en la carpeta de salida cuando falla a medias no se promete: goreleaser falla con él y nada se
-publica (research V4).
+publica (research V4). `piezas` compone los dos zips en memoria antes de escribir ninguno, así que sin una entrada no
+deja nada; si lo que falla es la escritura del segundo, el primero queda.
 
 ## 2. `kitlegal.mcpb`
 
@@ -64,7 +70,7 @@ $ unzip -Z dist/kitlegal.mcpb
 
 (`unzip` enseña la fecha en la hora del equipo; en el zip es 1980-01-01T00:00:00Z.)
 
-`manifest.json`, entero (2 939 bytes; `tools`, compacto, 1 384):
+`manifest.json`, entero (2 939 bytes; `tools`, compacto, 1 383):
 
 ```json
 {
@@ -248,12 +254,12 @@ Todos offline, con binarios de prueba (unos bytes cualesquiera) y carpetas de `t
 |---|---|---|
 | `TestPiezas` | `internal/empaquetado/piezas_test.go` | Con dos herramientas y un árbol de dos skills dados: el `.mcpb` lleva exactamente las cuatro entradas, en orden, con los bytes de los dos binarios y del icono y sus modos; el manifiesto, leído de forma estricta, lleva cada campo de [data-model §3](../data-model.md) con su valor y ninguno más; el plugin lleva `plugin.json`, con los campos de §4 y ninguno más, y cada fichero del árbol, byte a byte, y nada más. Con una herramienta y una skill más en la entrada, aparecen (US5). FR-010 a FR-014, FR-020 a FR-022, FR-070 |
 | `TestPiezasReproducibles` | `internal/empaquetado/piezas_test.go` | Dos ejecuciones sobre los mismos binarios, en dos carpetas: los dos `.mcpb` son iguales byte a byte, y los dos plugins también. FR-004, FR-067 |
-| `TestPiezasSinEntrada` | `internal/empaquetado/piezas_test.go` | Sin el binario de macOS, sin el de Windows, sin el icono y con una carpeta de salida que no existe: error que nombra lo que falta o lo que falló. FR-005 |
-| `TestIcono` | `internal/empaquetado/piezas_test.go` | `mcp/icon.png` del árbol es un PNG de 512 × 512 px y el paso lo acepta; uno de 256 × 256 y unos bytes que no son un PNG, creados en el test, lo hacen fallar. FR-016, FR-066 |
+| `TestPiezasSinEntrada` | `internal/empaquetado/piezas_test.go` | Sin el binario de macOS, sin el de Windows, sin el icono, con una carpeta de salida que no existe y con una carpeta donde va el plugin: error que nombra lo que falta o lo que falló, con su ruta una sola vez y la causa del sistema. También con un árbol de skills sin su carpeta y con una skill cuya ruta no cabe en un zip, que lo empotrado no da nunca; en este último, además, la carpeta de salida queda vacía. FR-005 |
+| `TestIcono` | `internal/empaquetado/piezas_test.go` | `mcp/icon.png` del árbol es un PNG de 512 × 512 px y el paso lo acepta; uno de 256 × 256, uno de 512 × 256, uno de 256 × 512 y unos bytes que no son un PNG, creados en el test, lo hacen fallar. FR-016, FR-066 |
 | `TestDescripcionCorta` | `internal/empaquetado/textos_test.go` | `Descripcion` tiene 120 caracteres como mucho; una de 120 pasa y una de 121 falla, contando caracteres y no bytes. FR-015, FR-066 |
-| `TestCatalogo` | `internal/empaquetado/catalogo_test.go` | Con una versión y una huella: una sola entrada, `kitlegal`, de fuente `archive`, con la dirección de la release de esa versión, la huella, la versión y los textos, leído de forma estricta. Sin versión, o con una huella de 63 dígitos o en mayúsculas, error. FR-030, FR-031 |
-| `TestEjecutar` | `internal/empaquetado/ejecutar_test.go` | `piezas`, con la composición de producción y binarios de prueba: código 0, nada en la salida de error, `tools` igual a `app.HerramientasAnunciadas` del registro de producción —que contiene las diez de hoy, escritas en el test— y `skills/` igual a `kitlegal.Skills()`, sin un fichero de más ni de menos. `catalogo`: el documento en el fichero de salida y código 0. Sin orden, con una desconocida, sin una bandera y sin un binario: código 1 y una línea `empaquetar: …` en la salida de error. FR-001, FR-005, FR-014, FR-020, FR-070 |
-| `TestHerramientasAnunciadas` | `internal/app/herramientas_test.go` | Con el servidor en proceso y el cliente de `mcptest`, sobre los applets de producción y con los de ejemplo añadidos: el nombre y la descripción de cada herramienta que el servidor lista son, como conjunto, los que da `app.HerramientasAnunciadas`. FR-014 |
+| `TestCatalogo` | `internal/empaquetado/catalogo_test.go` | Con una versión —la de una etiqueta y la de un snapshot— y una huella: una sola entrada, `kitlegal`, de fuente `archive`, con la dirección de la release de esa versión, la huella, la versión y los textos, leído de forma estricta y con la forma de §5. Sin versión, sin huella, o con una huella de 63 o de 65 dígitos, en mayúsculas, con un dígito que no es hexadecimal o seguida de un salto de línea, error y ningún documento. FR-030, FR-031 |
+| `TestEjecutar` | `internal/empaquetado/ejecutar_test.go` | `piezas`, con la composición de producción y binarios de prueba: código 0, nada en la salida de error, `tools` igual a `app.HerramientasAnunciadas` del registro de producción —que contiene las diez de hoy, escritas en el test— y `skills/` igual a `kitlegal.Skills()`, sin un fichero de más ni de menos. `catalogo`: el documento en el fichero de salida, y solo él en su carpeta, y código 0. Sin orden, con una desconocida, con una bandera que el paso no tiene, sin su valor o vacía, con un argumento de más, pidiendo la ayuda, sin cada una de las banderas de las dos órdenes, sin un binario, con una huella sin su forma y con una salida en una carpeta que no existe: código 1 y una sola línea `empaquetar: …` en la salida de error, la de §1. Con la salida de error rota, el código sigue siendo 1. FR-001, FR-005, FR-014, FR-020, FR-070 |
+| `TestHerramientasAnunciadas` | `internal/app/herramientas_test.go` | Con el servidor en proceso y los dos clientes de `mcptest` —el de la especificación vigente y el de la anterior—, sobre los applets de producción y con los de ejemplo añadidos: el nombre y la descripción de cada herramienta que el servidor lista son, como conjunto, los que da `app.HerramientasAnunciadas`. FR-014 |
 | `TestElBinarioNoEnlazaElPaso` | `internal/arch_test.go` | El cierre de `./cmd/kitlegal` no contiene `internal/empaquetado`. FR-001 |
 
 `TestHerramientasDelServidor`, `schema-check`, `skills-check` y los guiones de H21 no se tocan y siguen en verde
@@ -268,7 +274,7 @@ mismo que el primer día.
 | Salida | Quién la pide y cuántas veces | Tamaño (medido) | Cuándo deja de darse su señal |
 |---|---|---|---|
 | `kitlegal.mcpb` | la persona, una vez por versión; la app lo extrae y arranca el servidor en cada arranque suyo | 42 711 814 bytes (78 292 776 sin comprimir): crece con el binario | no da señales |
-| La ficha (`manifest.json`) | la persona, una vez, al instalar | 2 939 bytes: una descripción de 71 caracteres, un párrafo de 491 y diez herramientas (1 384 bytes); crece con los verbos | no da señales; el aviso rojo es de la app |
+| La ficha (`manifest.json`) | la persona, una vez, al instalar | 2 939 bytes: una descripción de 71 caracteres, un párrafo de 491 y diez herramientas (1 383 bytes); crece con los verbos | no da señales; el aviso rojo es de la app |
 | `kitlegal-plugin.zip` | la persona, una vez por versión si lo sube; ninguna con el catálogo | 17 739 bytes (44 497 sin comprimir): crece con las skills | no da señales |
 | Las skills del plugin | el modelo, una vez por conversación en que se activa cada una | las de hoy, byte a byte: 23 944 y 12 716 bytes de `SKILL.md` | las suyas, sin cambios (H21) |
 | Las herramientas de la extensión | la skill, las veces por pregunta de H21: por cada bloque, `boe_articulo` y `graph_check`, más `boe_buscar` o `boe_indice` si hacen falta; `territorio_resolver`, una por municipio | el sobre de cada llamada, acotado por la norma y el bloque pedidos (H21: 4 433 bytes el art. 21 de la Ley 39/2015) | las de H21 y H7.1: cada `version-obsoleta` se apaga con la siguiente lectura del bloque |
