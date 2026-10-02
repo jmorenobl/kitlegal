@@ -51,7 +51,7 @@ sustituyen a este fichero.
 - **Esquema publicado del verbo `serve`**: `schemas/servidor.json`, el que emite `kitlegal mcp serve --describe`,
   que `make schema-check` compara como los demás. El verbo no declara ninguna salida propia —al servir no emite
   ningún sobre—, así que su `data` queda sin restringir.
-- **Dependencia nueva: el SDK de MCP para Go**, `github.com/modelcontextprotocol/go-sdk`, en su v1.7.0 (prevista en
+- **Dependencia nueva: el SDK de MCP para Go**, `github.com/modelcontextprotocol/go-sdk`, en su v1.8.0 (prevista en
   el principio V de la constitución y adelantada por el ADR 0035). Solo la importa `internal/mcp`, el adaptador del
   protocolo: es la regla de arquitectura R7, que hacen cumplir `depguard` en `make lint` y `TestArquitectura` en
   `make test`. Con ella llegan al binario seis módulos indirectos: `github.com/google/jsonschema-go`,
