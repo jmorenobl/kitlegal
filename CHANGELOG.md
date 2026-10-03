@@ -22,6 +22,11 @@ sustituyen a este fichero.
   kitlegal hace de verdad, deja la terminal para Claude Code y Linux, y marca como «sin probar» Windows, ChatGPT, Codex
   y Antigravity, pidiendo que se cuente si funciona. Las portadas, el pie, `/llms.txt` y la imagen para compartir de
   `/instalar/` dicen lo mismo.
+- **La web dice que kitlegal no es otra IA, sino la que ya se usa leyendo el BOE.** La portada de despachos abre con
+  «La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo» y con «No es otra
+  plataforma ni otra suscripción»; su descripción y la de la portada, que son lo que enseña el buscador, empiezan por
+  «No cambies de IA» y «No necesitas otra IA». Los títulos no cambian, y la web sigue sin prometer lo que no está
+  probado: nombra la app de escritorio de Claude, no ChatGPT, y no habla de jurisprudencia.
 
 ## [0.4.1] - 2026-10-03
 
