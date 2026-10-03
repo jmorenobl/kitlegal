@@ -1,4 +1,9 @@
 ---
+// Instalar kitlegal. El camino principal es el de la app de escritorio de
+// Claude, sin terminal: la extensión y el plugin, cada uno con su botón de
+// descarga a la última release. Después, la terminal para Claude Code y Linux,
+// y lo que nadie ha probado todavía (README, «Instalar sin terminal»).
+import Icono from "../../components/Icono.astro";
 import Orden from "../../components/Orden.astro";
 import Prosa from "../../components/Prosa.astro";
 import { instalar as pagina } from "../../data/paginas";
@@ -7,10 +12,10 @@ import { migas } from "../../lib/estructurados";
 import { CORREO, REPOSITORIO, versionPublicada } from "../../lib/proyecto";
 
 const version = versionPublicada();
-const [instalador] = pagina.macosLinux;
-const scoop = pagina.windows.slice(0, 2);
-// Para quien no trabaja con proyectos: las skills, en todas las carpetas.
-const skills = "kitlegal skills install -g";
+
+// Los botones de descarga, por encima del estilo de enlace del cuerpo.
+const descarga =
+  "inline-flex items-center justify-center gap-2 rounded-sm px-6 py-3 text-sm font-semibold no-underline! shadow-sm transition-colors";
 ---
 
 <Base
@@ -22,7 +27,7 @@ const skills = "kitlegal skills install -g";
   <Prosa
     etiqueta={`Instalar · ${version}`}
     titulo="Instalar kitlegal, paso a paso"
-    entradilla="Tres pasos que se hacen una sola vez, copiando y pegando. No hace falta saber programar. Después preguntas a tu asistente de IA como siempre."
+    entradilla="Dos descargas que se abren en la app de escritorio de Claude, sin terminal y sin saber programar. Se hace una sola vez; después preguntas a Claude como siempre."
     ilustracion={{
       nombre: "instalar",
       alt: "Un portátil con una ventana de terminal y, sobre él, tres pasos; el último, marcado como hecho.",
@@ -30,70 +35,102 @@ const skills = "kitlegal skills install -g";
   >
     <h2>Antes de empezar: qué necesitas</h2>
     <ul>
-      <li>Un ordenador con macOS, Linux o Windows.</li>
       <li>
-        Un asistente de IA de los que trabajan en tu ordenador: <strong>Claude Code</strong>, <strong>Codex</strong>{" "}
-        o <strong>Antigravity</strong>. kitlegal no lleva ninguna IA dentro: le da a la tuya la ley vigente.
+        La <strong>app de escritorio de Claude</strong>, en un Mac: es donde está probado. kitlegal no lleva ninguna IA
+        dentro: le da a Claude la ley vigente.
+      </li>
+      <li>
+        Dos piezas, y hacen falta las dos: <strong>la extensión</strong>, con las herramientas con las que Claude lee el
+        BOE, y <strong>el plugin</strong>, con las <em>skills</em>: las instrucciones con las que sabe cuándo consultarlo
+        y cómo citarlo.
       </li>
     </ul>
     <p>
-      Con los chats del navegador o del móvil (ChatGPT, el chat de Claude, Gemini) todavía no funciona: no pueden usar
-      un programa instalado en tu equipo.
+      En Claude en la web y en el móvil no funciona: ahí no hay dónde instalar la extensión, porque kitlegal corre en tu
+      ordenador. En Linux no hay app de escritorio de Claude: se usa con Claude Code, <a href="#terminal"
+        >con la terminal</a
+      >. En Windows, ChatGPT, Codex y Antigravity está <a href="#sin-probar">sin probar</a>.
     </p>
 
-    <h2>Paso 1: instala el programa</h2>
-    <h3>En macOS o Linux</h3>
+    <h2 id="paso1">Paso 1: instala la extensión</h2>
+    <p>Lleva las herramientas: el programa que lee el BOE y comprueba si cada norma sigue en vigor.</p>
     <p>
-      Abre la aplicación <strong>Terminal</strong>. En un Mac: pulsa Cmd + Espacio, escribe «Terminal» y pulsa Intro.
-      Copia esta línea, pégala en la ventana y pulsa Intro:
+      <a href={pagina.extension} class:list={[descarga, "bg-noche text-white! hover:bg-noche-2"]}>
+        <Icono nombre="download" class="size-[18px] text-sello" />
+        Descargar kitlegal.mcpb
+      </a>
     </p>
-    <Orden lineas={[instalador]} />
     <p>
-      Al terminar verás «kitlegal instalado en…». Si además te dice que una carpeta «no está en el PATH», copia la
-      línea que te muestra debajo (empieza por <code>export PATH</code>), pégala y pulsa Intro: es lo que permite a tu
-      equipo encontrar el programa. Vale para la ventana que tienes abierta, y el propio instalador te dice cómo
-      dejarla puesta para siempre.
+      Ábrelo con doble clic. La app de Claude te enseña una ficha con el nombre, el icono, la descripción y la lista de
+      herramientas de kitlegal, y un botón para instalarla.
     </p>
-    <p>Si ya usas Homebrew, es más corto: <code>brew install jmorenobl/tap/kitlegal</code>.</p>
+    <div class="space-y-3 rounded-lg border border-sello/30 bg-sello/5 p-5 text-[0.95rem]">
+      <h3 class="mt-0!">Antes de pulsar «Instalar»: el aviso en rojo</h3>
+      <p>
+        La app avisa en rojo de que instalarla «otorgará a esta extensión acceso a todo lo que hay en tu computadora» y
+        de que su desarrollador no está verificado por Anthropic. El aviso es de la app, no de kitlegal, y dice lo que
+        una extensión <em>podría</em> hacer, porque es un programa que corre en tu equipo. Lo que kitlegal hace de verdad:
+      </p>
+      <ul>
+        <li>Lee fuentes públicas: hoy, el BOE.</li>
+        <li>Escribe solo en <code>~/.cache/kitlegal/</code>, donde guarda lo que ya ha leído.</li>
+        <li>No envía nada a ningún servidor propio.</li>
+      </ul>
+      <p>Es software libre: su código está en <a href={REPOSITORIO}>GitHub</a>.</p>
+    </div>
 
-    <h3>En Windows</h3>
+    <h2 id="paso2">Paso 2: añade el plugin</h2>
+    <p>Lleva las <em>skills</em>: las instrucciones con las que Claude sabe cuándo consultar el BOE y cómo citarlo.</p>
+    <h3>Lo recomendado: desde el marketplace, y se actualiza solo</h3>
+    <ol class="space-y-2 [&>li]:list-decimal!">
+      <li>
+        En la app de Claude, en el modo de chat y no en Code, abre <strong>Customize &gt; Plugins &gt; Add</strong>. Lo
+        que se añade desde Code no llega a las conversaciones de chat.
+      </li>
+      <li>
+        Añade el marketplace <code class="select-all">{pagina.marketplace}</code>, con «Sincronizar automáticamente»
+        activado.
+      </li>
+      <li>Instala desde él el plugin <strong>kitlegal</strong>.</li>
+    </ol>
     <p>
-      Abre <strong>PowerShell</strong> (en el menú Inicio, escribe «PowerShell»). kitlegal se instala
-      con <a href="https://scoop.sh/">Scoop</a>, un instalador de programas para Windows; si no lo tienes, su web explica
-      cómo ponerlo. Después, copia y pega estas dos líneas, pulsando Intro tras cada una:
+      Al añadir el marketplace, la app avisa también de que los plugins instalados desde tiendas no están controlados por
+      Anthropic. Vale lo mismo que para el aviso del paso 1.
     </p>
-    <Orden indicador=">" lineas={scoop} />
+    <h3>Si prefieres no añadir un marketplace</h3>
+    <p>
+      Descarga el plugin y súbelo en <strong>Customize &gt; Plugins &gt; Add &gt; Upload plugin</strong>. Lleva las mismas
+      skills, pero no se actualiza solo: con cada versión nueva tendrás que subirlo otra vez.
+    </p>
+    <p>
+      <a
+        href={pagina.plugin}
+        class:list={[descarga, "border border-linea bg-white text-tinta! hover:border-linea-2 hover:bg-papel"]}
+      >
+        <Icono nombre="download" class="size-[18px] text-tenue" />
+        Descargar kitlegal-plugin.zip
+      </a>
+    </p>
 
-    <h2>Paso 2: enseña a tu asistente a usarlo</h2>
-    <p>
-      En la misma ventana, copia y pega esta línea y pulsa Intro. Instala las <em>skills</em>: las instrucciones con
-      las que tu asistente sabe cuándo consultar el BOE y cómo citarlo.
-    </p>
-    <Orden lineas={[skills]} />
-    <p>
-      Al terminar te dice dónde han quedado y qué asistente las verá. Si alguno de los tuyos no las ve, te da la orden
-      que lo arregla.
-    </p>
-
-    <h2>Paso 3: haz tu primera pregunta</h2>
-    <p>Abre tu asistente y pregunta con tus palabras, por ejemplo:</p>
+    <h2 id="paso3">Paso 3: haz tu primera pregunta</h2>
+    <p>Abre una conversación nueva y pregunta con tus palabras, por ejemplo:</p>
     <p class="rounded-sm border border-linea bg-panel p-4 font-serif italic">
       «Me han notificado una resolución y quiero recurrirla en alzada: ¿qué plazo tengo?»
     </p>
     <p>
-      Tu asistente ejecutará <code>kitlegal</code>, leerá el texto consolidado del BOE y te responderá citando la norma
-      y el artículo, de modo que puedas comprobarlo. Si la norma ya no está en vigor, te lo dirá antes de nada.
+      Claude leerá con kitlegal el texto consolidado del BOE y te responderá citando la norma y el artículo, de modo que
+      puedas comprobarlo. Si la norma ya no está en vigor, te lo dirá antes de nada.
     </p>
 
     <h2>Si algo no sale</h2>
     <ul>
       <li>
-        <strong>«command not found» al escribir kitlegal.</strong> Tu equipo no encuentra el programa: es
-        la línea del <code>PATH</code> del paso 1. Repite el paso 1 y copia la línea que te muestra al final.
+        <strong>Claude responde sin citar el BOE.</strong> Comprueba que tienes las dos piezas: solo con la extensión,
+        Claude lee el BOE, pero la respuesta puede no llevar la cita con su forma. Pregunta en una conversación nueva.
       </li>
       <li>
-        <strong>Tu asistente responde sin citar el BOE.</strong> Ejecuta <code>kitlegal skills doctor -g</code>:
-        comprueba lo instalado y, si algo no está como lo dejó, da la orden que lo arregla.
+        <strong>La respuesta empieza por «⚠ SIN CONSULTA AL BOE».</strong> Claude tiene las skills y ninguna
+        herramienta: falta la extensión del paso 1, o estás en Claude en la web o en el móvil, donde no funciona.
       </li>
       <li>
         <strong>Otra cosa.</strong> Escríbenos a <a href={`mailto:${CORREO}`}>{CORREO}</a> y cuéntanos qué has hecho y
@@ -103,13 +140,79 @@ const skills = "kitlegal skills install -g";
 
     <h2>Actualizar</h2>
     <p>
-      Repite el paso 1 (o <code>brew upgrade kitlegal</code>, o <code>scoop update kitlegal</code>) y después el paso 2.
-      Mientras lo instalado sea de una versión anterior a la del programa, el programa se lo hace saber a tu asistente en
-      cada consulta, sin pedir nada a la red, y tu asistente te lo dice.
+      La extensión: descarga otra vez <code>kitlegal.mcpb</code> con el botón del paso 1, que da siempre la última
+      versión, y ábrelo. El plugin: si añadiste el marketplace, se actualiza solo; si subiste el zip, sube el nuevo. Así
+      está previsto, y nadie lo ha probado todavía con una versión nueva: si algo no se actualiza, cuéntanoslo.
     </p>
 
+    <h2 id="terminal">Con la terminal: Claude Code y Linux</h2>
+    <p>
+      Para Claude Code, y la forma de usar kitlegal en Linux. Dos órdenes: la primera instala el programa; la segunda,
+      las skills, en la carpeta en la que estés.
+    </p>
+    <h3>En macOS o Linux</h3>
+    <p>
+      Abre la aplicación <strong>Terminal</strong> (en un Mac: pulsa Cmd + Espacio, escribe «Terminal» y pulsa Intro),
+      copia cada línea, pégala y pulsa Intro:
+    </p>
+    <Orden lineas={pagina.macosLinux} />
+    <p>
+      Si el instalador te dice que una carpeta «no está en el PATH», copia la línea que te muestra debajo (empieza por <code
+        >export PATH</code
+      >), pégala y pulsa Intro: es lo que permite a tu equipo encontrar el programa. Si ya usas Homebrew, es más corto: <code
+        >brew install jmorenobl/tap/kitlegal</code
+      >.
+    </p>
+    <h3>En Windows</h3>
+    <p>
+      Abre <strong>PowerShell</strong> (en el menú Inicio, escribe «PowerShell»). kitlegal se instala
+      con <a href="https://scoop.sh/">Scoop</a>, un instalador de programas para Windows; si no lo tienes, su web explica
+      cómo ponerlo. Después, copia y pega estas líneas, pulsando Intro tras cada una:
+    </p>
+    <Orden indicador=">" lineas={pagina.windows} />
+    <p>
+      Claude Code carga las skills de <code>.claude/skills/</code>: si la carpeta ya tiene un <code>.claude/</code>,
+      <code>kitlegal skills install</code> las enlaza también ahí, y en una carpeta nueva lo hace <code
+        >kitlegal skills install --host claude</code
+      >. Para tenerlas en todas tus carpetas a la vez: <code>kitlegal skills install -g</code>. Después, abre Claude Code
+      en esa carpeta y pregunta.
+    </p>
+    <ul>
+      <li>
+        <strong>«command not found» al escribir kitlegal.</strong> Tu equipo no encuentra el programa: es la línea del
+        <code>PATH</code>.
+      </li>
+      <li>
+        <strong>Claude Code responde sin citar el BOE.</strong> Ejecuta <code>kitlegal skills doctor</code>: comprueba lo
+        instalado y, si algo no está como lo dejó, da la orden que lo arregla.
+      </li>
+      <li>
+        <strong>Actualizar.</strong> Repite la primera orden (o <code>brew upgrade kitlegal</code>, o <code
+          >scoop update kitlegal</code
+        >) y vuelve a ejecutar <code>kitlegal skills install</code>.
+      </li>
+    </ul>
+
+    <h2 id="sin-probar">Sin probar: Windows, ChatGPT, Codex y Antigravity</h2>
+    <p>
+      Así se haría, y nadie lo ha probado todavía. Si lo intentas, cuéntanos si te funciona o qué falla, en <a
+        href={`${REPOSITORIO}/issues`}>las incidencias de GitHub</a
+      > o en <a href={`mailto:${CORREO}`}>{CORREO}</a>.
+    </p>
+    <ul>
+      <li>
+        <strong>Windows, en la app de escritorio de Claude</strong>: los pasos 1 y 2 de esta página.
+        <code>kitlegal.mcpb</code> lleva ya el programa para Windows.
+      </li>
+      <li>
+        <strong>La app de escritorio de ChatGPT, Codex y Antigravity</strong>: con el programa instalado <a
+          href="#terminal">con la terminal</a
+        >. Cómo se declara en cada uno, en <a href="#agentes">los detalles</a>.
+      </li>
+    </ul>
+
     <h2>Para quien quiera los detalles</h2>
-    <h3>Qué hace el instalador</h3>
+    <h3>Qué hace el instalador de la terminal</h3>
     <p>
       No necesita nada que no traigan ya macOS y cualquier Linux (<code>curl</code>, <code>tar</code> y{" "}
       <code>sha256sum</code> o <code>shasum</code>), comprueba la huella SHA-256 de lo que descarga y deja{" "}
@@ -133,39 +236,38 @@ const skills = "kitlegal skills install -g";
     </p>
 
     <h3 id="agentes">Dónde quedan las skills y qué asistente las lee</h3>
-    <p>
-      Con <code>-g</code>, como en el paso 2, las skills quedan en <code>~/.agents/skills/</code> y valen para cualquier
-      carpeta. Sin <code>-g</code>, <code>kitlegal skills install</code> las deja en <code>.agents/skills/</code> del
-      directorio en el que lo ejecutes, así que van con ese proyecto y las ve el asistente que abras ahí; si el proyecto
-      tiene un <code>.claude/</code>, las enlaza también en <code>.claude/skills/</code>, y <code>--host claude</code> lo
-      hace aunque ese directorio no exista todavía.
-    </p>
     <ul>
       <li>
+        <strong>La app de escritorio de Claude</strong> carga las skills de tu cuenta, las del plugin del paso 2, y no
+        las de tu disco: lo que instala <code>kitlegal skills install</code> no le llega. Las herramientas se las da la
+        extensión del paso 1, sin nada que declarar.
+      </li>
+      <li>
         <strong>Claude Code</strong> las carga de <code>.claude/skills/</code> y, con <code>-g</code>, de{" "}
-        <code>~/.claude/skills/</code>: los enlaces que crea kitlegal.
+        <code>~/.claude/skills/</code>: los enlaces que crea kitlegal. Si además instalas el plugin, en Claude Code las
+        tienes dos veces: las de tu disco y las del plugin. Las mismas consultas, como herramientas, se declaran una vez
+        con <code>claude mcp add kitlegal -- kitlegal mcp serve</code>.
       </li>
       <li>
-        <strong>Codex</strong> las lee de <code>.agents/skills/</code> y de <code>~/.agents/skills/</code>. Su entorno
-        aislado corta la red por omisión, así que te pedirá permiso en cada consulta al BOE. Para no aprobarlo cada vez,
-        añade a <code>~/.codex/rules/default.rules</code> la regla{" "}
-        <code>prefix_rule(pattern = ["kitlegal"], decision = "allow")</code>: con ella, Codex ejecuta{" "}
-        <code>kitlegal</code> sin preguntar y fuera de ese entorno aislado (sus reglas son todavía experimentales).
+        <strong>Codex</strong>, sin probar, las leería de <code>.agents/skills/</code> y de <code>~/.agents/skills/</code
+        >. Su entorno aislado corta la red por omisión, así que pedirá permiso en cada consulta al BOE; para no aprobarlo
+        cada vez, añade a <code>~/.codex/rules/default.rules</code> la regla{" "}
+        <code>prefix_rule(pattern = ["kitlegal"], decision = "allow")</code> (sus reglas son todavía experimentales). Las
+        herramientas se declaran, para Codex y la app de escritorio de ChatGPT a la vez, con{" "}
+        <code>codex mcp add kitlegal -- kitlegal mcp serve</code>.
       </li>
       <li>
-        <strong>Antigravity</strong> las lee de <code>.agents/skills/</code> del proyecto. En global no mira{" "}
-        <code>~/.agents/skills/</code> sino <code>~/.gemini/config/skills/</code>, y ahí las enlaza{" "}
-        <code>kitlegal skills install -g</code> si Antigravity está instalado; <code>--host antigravity</code> lo hace
-        aunque no lo esté todavía.
-      </li>
-      <li>
-        <strong>Claude Cowork y el chat de Claude</strong> todavía no: cargan las skills de tu cuenta de Claude y no las
-        de tu disco, así que lo que instala <code>kitlegal skills install</code> no les llega.
+        <strong>Antigravity</strong>, sin probar, las leería de <code>.agents/skills/</code> del proyecto; en global no
+        mira <code>~/.agents/skills/</code> sino <code>~/.gemini/config/skills/</code>, y ahí las enlaza{" "}
+        <code>kitlegal skills install -g</code> (si aún no lo has abierto, con <code>--host antigravity</code>). Las
+        herramientas se declaran en <code>~/.gemini/config/mcp_config.json</code>, con la orden <code>kitlegal</code> y
+        los argumentos <code>mcp serve</code>.
       </li>
     </ul>
     <p>
       <code>kitlegal skills install --dry-run</code> cuenta lo que haría sin tocar nada, y nunca sobrescribe nada que no
-      haya instalado él.
+      haya instalado él. Si un asistente no encuentra <code>kitlegal</code>, escribe en su lugar la ruta completa del
+      programa, la que da <code>command -v kitlegal</code>.
     </p>
   </Prosa>
 </Base>

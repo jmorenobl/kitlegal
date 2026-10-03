@@ -12,6 +12,17 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **https://kitlegal.es/instalar/ explica la instalación sin terminal, con los botones de descarga.** Es la instalación
+  oficial, probada en la app de escritorio de Claude en macOS: el botón de `kitlegal.mcpb`, la extensión, que se abre
+  con doble clic; el marketplace `jmorenobl/kitlegal-plugins` como forma recomendada de añadir el plugin, que así se
+  actualiza solo, y el botón de `kitlegal-plugin.zip` como alternativa. Las direcciones son las de la última release
+  (`releases/latest/download`), que no cambian con cada versión. La página explica el aviso en rojo de la app y lo que
+  kitlegal hace de verdad, deja la terminal para Claude Code y Linux, y marca como «sin probar» Windows, ChatGPT, Codex
+  y Antigravity, pidiendo que se cuente si funciona. Las portadas, el pie, `/llms.txt` y la imagen para compartir de
+  `/instalar/` dicen lo mismo.
+
 ## [0.4.1] - 2026-10-03
 
 ### Corregido

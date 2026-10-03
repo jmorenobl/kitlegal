@@ -201,7 +201,7 @@ export const despachos: Audiencia = {
   icono: "balance",
   titulo: "IA para abogados: cada cita, comprobada en el BOE | kitlegal",
   descripcion:
-    "Gratis, para Claude Code, Codex y Antigravity: tu asistente cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Para despachos en España.",
+    "Gratis, en la app de escritorio de Claude: tu asistente cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Para despachos en España.",
   imagen: "despachos",
   ilustracion: {
     nombre: "portada-despachos",
@@ -211,7 +211,7 @@ export const despachos: Audiencia = {
   insignia: "Para despachos en España · Software libre y gratuito",
   h1: "Usa IA en tu despacho con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
-    "kitlegal conecta tu asistente de IA (Claude Code, Codex, Antigravity) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
+    "kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
   secundario: { texto: "Cuéntanos qué necesita tu despacho", destino: "#contacto", icono: "mail" },
   metricas: [
     {

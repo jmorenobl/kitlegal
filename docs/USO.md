@@ -10,6 +10,18 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-03 · Con la v0.4.1, el marketplace sincroniza en la app de Claude
+
+- **Qué se pidió.** Repetir con la v0.4.1, la que publica el catálogo con el plugin dentro, el paso que falló en la
+  aceptación de H22: añadir el marketplace `jmorenobl/kitlegal-plugins` en *Customize > Plugins > Add* de la app de
+  escritorio de Claude en macOS, en el modo de chat, instalar desde él el plugin `kitlegal` y preguntar por el art. 21
+  de la Ley 39/2015 en una conversación nueva.
+- **Qué pasó.** El marketplace sincronizó, el plugin se instaló desde él y la respuesta llevó
+  `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`.
+- **Qué falta.** Sigue sin probar que la app entregue sola la versión siguiente del plugin cuando se publique.
+- **Qué se hizo.** La web pasa a ofrecer la instalación sin terminal como la oficial, con los botones de descarga de
+  las dos piezas y el marketplace como la forma recomendada para el plugin.
+
 ### 2026-10-02 · La aceptación de H22 con la v0.4.0: las dos piezas funcionan, y la app no admite el marketplace
 
 - **Qué se pidió.** La aceptación humana de H22 con la v0.4.0, la primera release con las dos piezas: `kitlegal.mcpb`

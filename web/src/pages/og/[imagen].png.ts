@@ -7,7 +7,7 @@ import { imagenDeConsulta, imagenParaCompartir } from "../../lib/imagenes";
 
 const imagenes: Record<string, { titulo: string; subtitulo: string }> = {
   ...Object.fromEntries(audiencias.map(({ imagen, h1, nombre }) => [imagen, { titulo: h1, subtitulo: nombre }])),
-  instalar: { titulo: "Instalar kitlegal", subtitulo: "Paso a paso, en macOS, Linux y Windows" },
+  instalar: { titulo: "Instalar kitlegal", subtitulo: "Sin terminal, en la app de escritorio de Claude" },
   consultas: { titulo: "Consultas habituales, con su cita", subtitulo: "La pregunta y el artículo vigente del BOE que la responde" },
   ...Object.fromEntries(
     consultas.map(({ slug, pregunta, etiqueta }) => [
