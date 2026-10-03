@@ -46,31 +46,28 @@ export async function imagenParaCompartir(titulo: string, subtitulo: string): Pr
       flexDirection: "column",
       justifyContent: "space-between",
       padding: "64px 72px",
-      backgroundColor: "#f7f8fb",
-      borderTop: "12px solid #2563eb",
+      backgroundColor: "#f8f9ff",
+      borderTop: "12px solid #d97706",
     },
     caja(
-      { alignItems: "center", gap: "18px" },
-      { type: "img", props: { src: icono, width: 64, height: 64 } },
-      caja({ fontFamily: "Bricolage Grotesque", fontWeight: 700, fontSize: "48px", color: "#10182b" }, "kitlegal"),
+      { alignItems: "center", gap: "20px" },
+      { type: "img", props: { src: icono, width: 72, height: 72 } },
+      caja(
+        { fontFamily: "Newsreader", fontWeight: 700, fontSize: "52px" },
+        caja({ color: "#0b1325" }, "kit"),
+        caja({ color: "#b45309" }, "legal"),
+      ),
     ),
     caja(
       { flexDirection: "column", gap: "20px" },
       caja(
-        {
-          fontFamily: "Bricolage Grotesque",
-          fontWeight: 700,
-          fontSize: "62px",
-          lineHeight: 1.05,
-          letterSpacing: "-0.03em",
-          color: "#10182b",
-        },
+        { fontFamily: "Newsreader", fontWeight: 600, fontSize: "60px", lineHeight: 1.15, color: "#0b1c30" },
         titulo,
       ),
-      caja({ fontFamily: "Figtree", fontWeight: 500, fontSize: "28px", color: "#45464c" }, subtitulo),
+      caja({ fontFamily: "Inter", fontWeight: 500, fontSize: "28px", color: "#45464c" }, subtitulo),
     ),
     caja(
-      { fontFamily: "Figtree", fontWeight: 500, fontSize: "24px", color: "#45464c", borderTop: "1px solid #e3e7ef", paddingTop: "24px" },
+      { fontFamily: "Inter", fontWeight: 500, fontSize: "24px", color: "#45464c", borderTop: "1px solid #e2e8f0", paddingTop: "24px" },
       "kitlegal.es · Texto vigente del BOE, con la cita exacta",
     ),
   );
@@ -79,13 +76,9 @@ export async function imagenParaCompartir(titulo: string, subtitulo: string): Pr
     width: 1200,
     height: 630,
     fonts: [
-      {
-        name: "Bricolage Grotesque",
-        weight: 700,
-        style: "normal",
-        data: fuente("@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-700-normal.woff"),
-      },
-      { name: "Figtree", weight: 500, style: "normal", data: fuente("@fontsource/figtree/files/figtree-latin-500-normal.woff") },
+      { name: "Newsreader", weight: 600, style: "normal", data: fuente("@fontsource/newsreader/files/newsreader-latin-600-normal.woff") },
+      { name: "Newsreader", weight: 700, style: "normal", data: fuente("@fontsource/newsreader/files/newsreader-latin-700-normal.woff") },
+      { name: "Inter", weight: 500, style: "normal", data: fuente("@fontsource/inter/files/inter-latin-500-normal.woff") },
     ],
   });
 

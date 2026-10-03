@@ -20,13 +20,8 @@ sustituyen a este fichero.
   actualiza solo, y el botón de `kitlegal-plugin.zip` como alternativa. Las direcciones son las de la última release
   (`releases/latest/download`), que no cambian con cada versión. La página explica el aviso en rojo de la app y lo que
   kitlegal hace de verdad, deja la terminal para Claude Code y Linux, y marca como «sin probar» Windows, ChatGPT, Codex
-  y Antigravity, pidiendo que se cuente si funciona. Las portadas, `/llms.txt` y la imagen para compartir de
+  y Antigravity, pidiendo que se cuente si funciona. Las portadas, el pie, `/llms.txt` y la imagen para compartir de
   `/instalar/` dicen lo mismo.
-- **La web estrena diseño** (`web/DESIGN.md`): la portada empieza por la pregunta, con una caja de ejemplos por tema
-  que enseña el texto literal del BOE de cada uno; tipografía Bricolage Grotesque y Figtree, botones en pastilla y
-  tarjetas de borde fino. Las fotografías dejan de mostrarse. Los textos, las citas y su comprobación al construir no
-  cambian, y la página sigue sin ejecutar JavaScript: las pestañas, el menú del móvil y el selector de sistema
-  funcionan con CSS.
 
 ## [0.4.1] - 2026-10-03
 

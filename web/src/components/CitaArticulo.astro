@@ -2,32 +2,22 @@
 // Un fragmento literal de una norma, con la procedencia que exige el sobre de
 // kitlegal: norma, bloque, fecha de consulta y huella, y el enlace al texto
 // consolidado en el BOE. Si el sobre trae avisos de vigencia, van con la cita.
-//
-// Variantes: `pregunta`, la de la caja de preguntas de la portada; `comparativa`,
-// la de la tarjeta «con kitlegal»; `consulta`, la cita principal de una página
-// de consulta; y `punto`, la de cada punto de esa página. Todas llevan la
-// procedencia entera: sin fuente, dirección, fecha y huella no hay cita.
 import { articulo, fechaCorta, huellaCorta } from "../lib/citas";
 
 interface Props {
   id: string;
-  variante: "pregunta" | "comparativa" | "consulta" | "punto";
-  // Falso cuando la página ya muestra los avisos de la misma norma junto a otra
-  // cita.
-  avisos?: boolean;
+  variante?: "tarjeta" | "destacada";
 }
 
-const { id, variante, avisos = true } = Astro.props;
+const { id, variante = "tarjeta" } = Astro.props;
 const cita = articulo(id);
-// En la caja de preguntas el fragmento va entero, sin resaltar.
-const resaltar = variante !== "pregunta";
 
 // Cada fragmento, partido alrededor del destacado si lo contiene (solo la
 // primera aparición), con la unión que le corresponde con el anterior.
 let resaltado = false;
 const partes = cita.fragmentos.map((fragmento, indice) => {
   const union = indice > 0 ? cita.uniones[indice - 1] : undefined;
-  const posicion = resaltar && cita.destacado && !resaltado ? fragmento.indexOf(cita.destacado) : -1;
+  const posicion = cita.destacado && !resaltado ? fragmento.indexOf(cita.destacado) : -1;
   if (posicion < 0) return { union, antes: fragmento };
   resaltado = true;
   return {
@@ -37,20 +27,16 @@ const partes = cita.fragmentos.map((fragmento, indice) => {
     despues: fragmento.slice(posicion + cita.destacado!.length),
   };
 });
-
-const texto = {
-  pregunta: "text-[19px] leading-[1.6]",
-  comparativa: "text-[21px] leading-[1.5]",
-  consulta: "text-[17px] leading-[1.65]",
-  punto: "text-[15px] leading-[1.65] text-tinta-cuerpo",
-}[variante];
-
-const consultado = `Consultado el ${fechaCorta(cita.fechaConsulta)}`;
-const version = cita.fechaVersion && `versión del ${fechaCorta(cita.fechaVersion)}`;
 ---
 
-<figure class:list={["flex flex-col gap-3", variante === "comparativa" && "flex-1 gap-4"]}>
-  <blockquote cite={cita.enlace} class={texto}>
+<figure class:list={[variante === "tarjeta" && "flex flex-1 flex-col"]}>
+  <blockquote
+    cite={cita.enlace}
+    class:list={[
+      "font-serif italic leading-relaxed",
+      variante === "destacada" ? "text-base text-tinta" : "mb-6 text-[0.95rem] text-tenue",
+    ]}
+  >
     <p>
       «{
         partes.map(({ union, antes, destacado, despues }) => (
@@ -59,7 +45,11 @@ const version = cita.fechaVersion && `versión del ${fechaCorta(cita.fechaVersio
             {union === "espacio" && " "}
             {union === "elision" && " […] "}
             {antes}
-            {destacado && <mark class:list={[variante === "comparativa" && "font-bold"]}>{destacado}</mark>}
+            {destacado && (
+              <strong class="font-medium not-italic text-tinta underline decoration-vigente decoration-2 underline-offset-2">
+                {destacado}
+              </strong>
+            )}
             {despues}
           </>
         ))
@@ -67,31 +57,29 @@ const version = cita.fechaVersion && `versión del ${fechaCorta(cita.fechaVersio
     </p>
   </blockquote>
   <figcaption
-    class:list={[
-      "flex flex-col gap-0.5 font-mono text-tenue",
-      variante === "punto" ? "text-xs leading-[1.6]" : "text-[13px] leading-[1.6]",
-      variante === "comparativa" && "mt-auto rounded-[14px] bg-white px-[18px] py-4",
-    ]}
+    class:list={["border-t border-linea/80 pt-3 font-mono text-estampa", variante === "tarjeta" && "mt-auto"]}
   >
-    <a
-      href={cita.enlace}
-      title="Texto consolidado en el BOE"
-      class:list={["tocable font-medium", variante === "comparativa" ? "text-vigente-tinta" : "text-agente"]}
-    >
-      <cite class="not-italic">{cita.referencia}</cite> [{cita.norma}, bloque {cita.bloque}]{
-        (variante === "consulta" || variante === "punto") && " ↗"
-      }
-    </a>
-    <span>
-      {consultado}{version && ` · ${version}`} · <span title={cita.hash}>{huellaCorta(cita.hash)}</span>
-    </span>
-  </figcaption>
-  {
-    avisos &&
-      cita.avisos.map(({ texto: aviso }) => (
-        <p role="note" class="rounded-[10px] bg-sello-fondo px-3.5 py-2.5 text-[13px] leading-[1.55] text-sello-tinta">
-          {aviso}
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <cite class="font-semibold not-italic text-sello-tinta">{cita.referencia}</cite>
+      <a
+        href={cita.enlace}
+        class="rounded-sm bg-panel-2 px-2 py-0.5 text-tenue transition-colors hover:text-tinta"
+        title="Texto consolidado en el BOE"
+      >
+        [{cita.norma}, bloque {cita.bloque}]
+      </a>
+    </div>
+    <p class="mt-2 text-tenue">
+      Consultado el {fechaCorta(cita.fechaConsulta)}{
+        cita.fechaVersion && <> · versión del {fechaCorta(cita.fechaVersion)}</>
+      } · <span title={cita.hash}>{huellaCorta(cita.hash)}</span>
+    </p>
+    {
+      cita.avisos.map(({ texto }) => (
+        <p role="note" class="mt-2 rounded-sm border border-sello/30 bg-sello/5 px-2 py-1.5 text-sello-tinta">
+          {texto}
         </p>
       ))
-  }
+    }
+  </figcaption>
 </figure>

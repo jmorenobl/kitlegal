@@ -1,15 +1,27 @@
 ---
-// El logotipo: el icono y la palabra kitlegal, en Bricolage Grotesque. La
-// palabra es texto, no imagen.
+// El logotipo: el icono y la palabra kitlegal, «kit» en noche y «legal» en
+// ámbar, en Newsreader. La palabra es texto, no imagen.
 interface Props {
   tamano?: "normal" | "pequeno";
 }
 
 const { tamano = "normal" } = Astro.props;
-const lado = tamano === "normal" ? 32 : 24;
 ---
 
-<span class:list={["inline-flex items-center font-titular font-bold text-tinta", tamano === "normal" ? "gap-2.5 text-2xl" : "gap-2 text-xl"]}>
-  <img src="/favicon.svg" alt="" width={lado} height={lado} />
-  <span class="leading-none">kitlegal</span>
+<span class="inline-flex items-center gap-2.5">
+  <img
+    src="/favicon.svg"
+    alt=""
+    width="36"
+    height="36"
+    class:list={[tamano === "normal" ? "size-9" : "size-8", "rounded-lg"]}
+  />
+  <span
+    class:list={[
+      "font-serif font-bold tracking-tight leading-none",
+      tamano === "normal" ? "text-[1.75rem]" : "text-2xl",
+    ]}
+  >
+    <span class="text-noche">kit</span><span class="text-sello-tinta">legal</span>
+  </span>
 </span>

@@ -2,38 +2,31 @@
 
 /*
  * Tokens de DESIGN.md. Los colores de estado y el ámbar tienen dos tonos: el
- * vivo, para puntos, bordes y rellenos, y el de texto (-tinta), que es el que
+ * vivo, para iconos, bordes y rellenos, y el de texto (-tinta), que es el que
  * alcanza el contraste 4,5:1 del nivel AA sobre el lienzo claro.
  */
 @theme {
-  --font-titular: "Bricolage Grotesque Variable", system-ui, sans-serif;
-  --font-sans: "Figtree Variable", system-ui, sans-serif;
+  --font-serif: "Newsreader Variable", Georgia, serif;
+  --font-sans: "Inter Variable", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 
-  --color-tinta: #10182b;
-  --color-tinta-cuerpo: #2b3242;
+  --color-noche: #0b1325;
+  --color-noche-2: #0f172a;
+  --color-tinta: #0b1c30;
   --color-tenue: #45464c;
-  --color-sobre-oscuro: #c6cfdd;
-  --color-oscuro-2: #1c2742;
-  --color-acento-oscuro: #7aa2ff;
+  --color-sobre-noche: #94a3b8;
 
-  --color-lienzo: #f7f8fb;
-  --color-superficie-2: #f6f8fb;
-  --color-pie-tarjeta: #fbfcfd;
-  --color-chip: #f2f4f8;
+  --color-lienzo: #f8f9ff;
   --color-panel: #eff4ff;
-  --color-linea: #e3e7ef;
-  --color-linea-2: #d5dbe6;
-  --color-linea-suave: #eef1f6;
-  --color-linea-hover: #c9d3e6;
-
-  --color-agente: #2563eb;
-  --color-cian: #38bdf8;
+  --color-panel-2: #e5eeff;
+  --color-papel: #f8fafc;
+  --color-linea: #e2e8f0;
+  --color-linea-2: #cbd5e1;
 
   --color-sello: #d97706;
   --color-sello-tinta: #b45309;
-  --color-sello-fondo: #fff7ea;
-  --color-sello-borde: #fde68a;
+  --color-agente: #2563eb;
+  --color-cian: #38bdf8;
 
   --color-vigente: #10b981;
   --color-vigente-tinta: #065f46;
@@ -45,43 +38,17 @@
   --color-derogada-fondo: #fef2f2;
   --color-derogada-borde: #fecaca;
 
-  --color-codigo: #10182b;
-  --color-codigo-boton: #2a3756;
-  --color-codigo-indicador: #6ee7b7;
-  --color-codigo-texto: #e6ebf5;
+  --color-codigo: #0a0e17;
+  --color-codigo-borde: #1e293b;
 
-  --shadow-destacada: 0 20px 50px -20px rgb(16 24 43 / 0.18);
-  --shadow-tarjeta: 0 20px 50px -24px rgb(16 24 43 / 0.28);
-
-  /* El margen lateral, el hueco entre secciones y el relleno de las tarjetas. */
-  --spacing-margen: clamp(20px, 4.4vw, 56px);
-  --spacing-seccion: clamp(64px, 9vw, 112px);
-  --spacing-seccion-1: clamp(56px, 7vw, 88px);
-  --spacing-tarjeta: clamp(22px, 3vw, 32px);
-  --spacing-tarjeta-amplia: clamp(24px, 3vw, 36px);
-
-  --text-h1: clamp(36px, 6vw, 66px);
-  --text-h1--line-height: 1.02;
-  --text-h1--letter-spacing: -0.03em;
-  --text-h1-pagina: clamp(36px, 6vw, 62px);
-  --text-h1-pagina--line-height: 1.03;
-  --text-h1-pagina--letter-spacing: -0.03em;
-  --text-h1-consulta: clamp(34px, 5.2vw, 56px);
-  --text-h1-consulta--line-height: 1.04;
-  --text-h1-consulta--letter-spacing: -0.03em;
-  --text-h2: clamp(30px, 4.4vw, 46px);
-  --text-h2--line-height: 1.05;
-  --text-h2--letter-spacing: -0.025em;
-  --text-h2-cta: clamp(34px, 5vw, 54px);
-  --text-h2-cta--line-height: 1.02;
-  --text-h2-cta--letter-spacing: -0.03em;
-  --text-entradilla: clamp(17px, 2vw, 20px);
-  --text-entradilla--line-height: 1.6;
+  --text-estampa: 0.6875rem;
+  --text-estampa--line-height: 1rem;
+  --text-estampa--letter-spacing: 0.06em;
 }
 
 @layer base {
   html {
-    scroll-padding-top: 1.5rem;
+    scroll-padding-top: 6rem;
   }
 
   body {
@@ -89,37 +56,10 @@
   }
 
   ::selection {
-    @apply bg-panel text-tinta;
+    @apply bg-panel-2 text-tinta;
   }
 
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-agente;
-  }
-
-  mark {
-    @apply rounded-[4px] bg-vigente-borde px-1 text-[inherit];
-  }
-}
-
-/* Enlaces y botones bajan de opacidad al pasar por encima (DESIGN.md). */
-@utility tocable {
-  transition-property: opacity;
-  transition-duration: 150ms;
-  @media (hover: hover) {
-    &:hover {
-      opacity: 0.8;
-    }
-  }
-}
-
-/* El código en línea de las páginas de texto: el de un párrafo o una lista, no
- * el de los bloques de órdenes. */
-@utility codigo-en-linea {
-  & :where(p, li) code {
-    border-radius: 5px;
-    background-color: var(--color-linea-suave);
-    padding: 1px 6px;
-    font-family: var(--font-mono);
-    font-size: 0.88em;
   }
 }

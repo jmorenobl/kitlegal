@@ -5,8 +5,6 @@
 // otras palabras. Lo que la norma citada no dice va en `limites`, que hablan
 // de la página y no afirman nada de otra norma.
 
-import type { Punto } from "../lib/clases";
-
 export interface Consulta {
   slug: string;
   // Título de la pestaña y de los resultados de búsqueda (≤ 60 caracteres).
@@ -14,8 +12,7 @@ export interface Consulta {
   // Descripción de los resultados de búsqueda (≤ 160 caracteres).
   descripcion: string;
   etiqueta: string;
-  // El color del punto que acompaña a la etiqueta en el índice.
-  punto: Punto;
+  icono: string;
   // La fotografía de la consulta (src/assets/ilustraciones/) y su descripción.
   ilustracion: string;
   alt: string;
@@ -43,7 +40,7 @@ export const consultas: Consulta[] = [
     descripcion:
       "Un mes para recurrir en alzada una resolución expresa. Cómo se cuenta, qué pasa si no te contestaron y cuánto tarda la respuesta, con el texto vigente del BOE.",
     etiqueta: "Recursos administrativos",
-    punto: "agente",
+    icono: "schedule",
     ilustracion: "consulta-recurso-de-alzada",
     alt: "Unas manos abren un sobre con un abrecartas; al fondo, un reloj de mesa.",
     pregunta: "¿Qué plazo tengo para presentar un recurso de alzada?",
@@ -93,7 +90,7 @@ export const consultas: Consulta[] = [
     descripcion:
       "Si la Administración no responde a tu solicitud en plazo, la regla general es que se entiende estimada, con excepciones. Art. 24 de la Ley 39/2015, vigente.",
     etiqueta: "Trámites con la Administración",
-    punto: "agente",
+    icono: "account-balance",
     ilustracion: "consulta-silencio-administrativo",
     alt: "Una ventanilla de atención al ciudadano con la persiana a medio bajar y una silla vacía delante.",
     pregunta: "Presenté una solicitud y la Administración no contesta. ¿Qué pasa?",
@@ -142,7 +139,7 @@ export const consultas: Consulta[] = [
     descripcion:
       "Pasado un mes desde que entregas las llaves, la fianza que te deban devolver genera el interés legal. Art. 36 de la Ley de Arrendamientos Urbanos, vigente.",
     etiqueta: "Alquiler y vivienda",
-    punto: "vigente",
+    icono: "home",
     ilustracion: "consulta-fianza-alquiler",
     alt: "Una mano deja unas llaves sobre una mesa, junto a una casita de madera y unas monedas.",
     pregunta: "Mi casero no me devuelve la fianza. ¿Qué dice la ley?",
@@ -189,7 +186,7 @@ export const consultas: Consulta[] = [
     descripcion:
       "El Estatuto de los Trabajadores no fija los días de preaviso para dejar tu trabajo: remite a tu convenio o a la costumbre del lugar. Art. 49.1.d), vigente.",
     etiqueta: "Trabajo",
-    punto: "sello",
+    icono: "badge",
     ilustracion: "consulta-preaviso-baja-voluntaria",
     alt: "Una caja de cartón con una planta sobre una mesa de oficina, junto a una silla vacía.",
     pregunta: "Quiero dejar mi trabajo. ¿Cuánto preaviso tengo que dar?",
@@ -222,7 +219,7 @@ export const consultas: Consulta[] = [
     descripcion:
       "Hacienda tiene cuatro años para liquidar una deuda tributaria y cuatro para cobrarla, pero el plazo se interrumpe y vuelve a empezar. Arts. 66 a 68 de la LGT.",
     etiqueta: "Hacienda",
-    punto: "cian",
+    icono: "receipt-long",
     ilustracion: "consulta-deudas-hacienda",
     alt: "Un reloj de arena sobre una mesa, junto a un taco de papel y unas monedas.",
     pregunta: "¿Cuánto tiempo tiene Hacienda para reclamarme una deuda?",
@@ -262,7 +259,7 @@ export const consultas: Consulta[] = [
     descripcion:
       "Hasta 1.200 euros al año por cada hijo menor de tres años, y hasta 1.000 más por gastos de guardería. Requisitos del art. 81 de la Ley del IRPF, texto vigente.",
     etiqueta: "Impuestos y familia",
-    punto: "cian",
+    icono: "child-friendly",
     ilustracion: "consulta-deduccion-maternidad",
     alt: "Una cuna de madera con una manta de punto, un conejo de peluche y una hucha.",
     pregunta: "¿Qué deducción por maternidad recoge el IRPF?",
