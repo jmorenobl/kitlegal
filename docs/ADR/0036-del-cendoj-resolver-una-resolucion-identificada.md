@@ -91,7 +91,8 @@ Se adopta la **opción 4**.
   público; se graban las mínimas.
 - **No encuentra la sentencia aplicable** ni comprueba que diga lo que se le atribuye: para eso hace falta el
   texto, que trae la persona.
-- El README («¿Y las sentencias?»), la web y la línea del CENDOJ en `CLAUDE.md` describen el ADR 0003 y cambian
-  con el hito que lo implemente, no antes.
+- El README («¿Y las sentencias?») y la web describen el ADR 0003 y cambian con el hito que lo implemente, no
+  antes. La línea del CENDOJ en `CLAUDE.md` cambia con el roadmap que numera ese hito, porque guía a las sesiones
+  de su run.
 - Buscar por materia o leer textos de forma automática sigue pidiendo el procedimiento de reutilización del CGPJ
   y un ADR nuevo, no una excepción en el código.
