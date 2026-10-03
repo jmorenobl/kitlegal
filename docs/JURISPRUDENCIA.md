@@ -76,8 +76,20 @@ Lo que enseña:
   aparece. Si aparece, **no se sortea**: es una medida técnica de protección.
 - El ejemplo confirma la equivalencia ECLI ↔ ROJ de más abajo.
 
-Sin probar: los campos `ROJ`, `NUMERORESOLUCION` y `NUMERORECURSO`; órganos distintos del Supremo; qué devuelve
-un ECLI que no existe; y a partir de cuántas consultas responde con CAPTCHA o con un bloqueo.
+Segunda prueba a mano, el 2026-10-03, con la misma sesión y seis segundos entre consultas:
+
+| Consulta | Respuesta |
+|---|---|
+| `ROJ=STS 3144/2023` | 200, un resultado: la misma sentencia |
+| `NUMERORESOLUCION=1088/2023` con `FECHARESOLUCIONDESDE` y `FECHARESOLUCIONHASTA` en `04/07/2023` | 200, un resultado: la misma sentencia |
+| `ECLI=ECLI:ES:TS:2023:999999` | 200, 744 bytes: «No se ha encontrado ningún resultado» |
+
+Así que la cita como se escribe en un escrito —«STS 1088/2023, de 4 de julio», con el número de resolución, que no
+es el ROJ— se resuelve a su ROJ y su ECLI, y una referencia inventada da cero resultados con una respuesta que se
+distingue. El número de resolución solo es único con la fecha: cada órgano numera las suyas.
+
+Sin probar: `NUMERORECURSO`; el filtro por órgano (`TIPOORGANOPUB`), que haría falta para un número de resolución
+sin fecha; órganos distintos del Supremo; y a partir de cuántas consultas responde con CAPTCHA o con un bloqueo.
 
 ### Lo que sigue sin poder hacerse sin el formulario
 
@@ -155,8 +167,8 @@ jurisprudencia y 10 de referencias falsas. Con el punto 3, una sentencia inventa
 
 - El código exacto de la sección del TC en el sumario: el XSD no enumera los códigos de sección.
 - Que la API del sumario responde 200 con `Accept: application/json` (documentado, no probado en vivo).
-- Del formulario del CENDOJ, lo que §3 deja sin probar: los campos `ROJ`, `NUMERORESOLUCION` y
-  `NUMERORECURSO`, otros órganos, un ECLI inexistente y cuándo aparece el CAPTCHA.
+- Del formulario del CENDOJ, lo que §3 deja sin probar: `NUMERORECURSO`, el filtro por órgano, otros órganos y
+  cuándo aparece el CAPTCHA.
 - Si la ruta de búsqueda por GET sirve como enlace para que la persona abra en su navegador una búsqueda ya
   preparada.
 - La cifra que circula de que el CENDOJ considera «descarga masiva» unas 100 descargas diarias no aparece en

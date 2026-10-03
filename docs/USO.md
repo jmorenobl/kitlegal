@@ -76,7 +76,8 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   búsqueda por materia la hace la persona con la consulta que le prepara la skill. El hito de jurisprudencia del
   backlog queda descrito con esa pieza. No se pide la evaluación todavía: antes, mejor H20, H8 y H9, que se suman a
   H22, ya publicado. Sí se puede escribir ya al observatorio para preguntar si un kit de skills sobre Claude encaja y cuándo es la
-  próxima campaña. Pendiente de una persona: aceptar el ADR y probar a mano los campos `ROJ` y número de resolución.
+  próxima campaña. Al día siguiente, otra prueba a mano: el ROJ y el número de resolución con su
+  fecha dan la misma sentencia, y un ECLI inventado, cero resultados. Pendiente de una persona: aceptar el ADR.
 
 ### 2026-10-02 · La prueba a mano de H21 en la app de Claude: con la extensión sola no sale la cita
 
