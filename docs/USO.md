@@ -48,6 +48,37 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 - **Qué se hizo.** El catálogo pasa a llevar el plugin dentro, publicado por la release, y el README recomienda el
   marketplace para el plugin (ADR 0035, «Prueba con la v0.4.0»).
 
+### 2026-10-02 · El benchmark de observatorio.legal: lo que más pesa es la jurisprudencia, y un ECLI del Supremo sí se puede comprobar
+
+- **Qué se pidió.** Si pedir a observatorio.legal que evalúe kitlegal en su benchmark de asistentes legales, y si es
+  el momento.
+- **Qué se vio.** La campaña publicada (C2026-Q3, del 7 de abril al 7 de agosto de 2026) mide 15 asistentes con 90
+  preguntas por tres réplicas, por la interfaz de cada producto: 30 de fondo, 15 de jurisprudencia, 10 de vigencia,
+  10 con referencias falsas, 8 de plazos, 6 de redacción, 6 que no deben rechazarse y 5 ambiguas. El índice da 23
+  puntos de 100 a que las citas existan y 9 a que estén verificadas. Claude Fable 5, sin nada más, está en 88,5; el
+  primero, en 90,6. Entra quien responde consultas en castellano sobre derecho español y se puede probar «por la vía
+  ordinaria»; no publican cómo se solicita ni cada cuánto miden.
+- **Qué faltó.**
+  - **Jurisprudencia**: kitlegal no consulta ninguna, y es la categoría que alimenta los dos componentes de citas.
+  - **Plazos y redacción**: son H9 y H11.
+  - **La vía ordinaria**: el día de la consulta, instalarlo pedía una terminal; H22 salió esa misma noche, en la
+    v0.4.0.
+  - Hoy kitlegal añadiría a Claude sobre todo la vigencia y las citas de legislación, y la diferencia tendría que
+    pasar de cinco puntos para contar.
+- **Qué se probó.** Que el formulario del CENDOJ resuelve un ECLI con HTTP simple y el agente identificable de
+  kitlegal: dos peticiones a mano devolvieron `STS 3144/2023` con su sala, fecha, números y URL, sin navegador y sin
+  CAPTCHA. El guion de la skill fiscal anterior usaba un navegador disfrazado de Chrome y buscaba por texto libre; no
+  hace falta ni se porta. Se leyó además el marco: el reglamento del CGPJ sobre reutilización está anulado desde 2011
+  y la Ley 37/2007 se aplica a las sentencias. Todo en `docs/JURISPRUDENCIA.md`.
+- **Qué se descartó.** Un modo de jurisprudencia desactivado por defecto y activado para la evaluación: mide un
+  producto que nadie tiene. Y buscar por materia o descargar sentencias de forma automática.
+- **Qué se hizo.** ADR 0036, en propuesta: del CENDOJ, resolver una resolución identificada por su formulario; la
+  búsqueda por materia la hace la persona con la consulta que le prepara la skill. El hito de jurisprudencia del
+  backlog queda descrito con esa pieza. No se pide la evaluación todavía: antes, mejor H20, H8 y H9, que se suman a
+  H22, ya publicado. Sí se puede escribir ya al observatorio para preguntar si un kit de skills sobre Claude encaja y cuándo es la
+  próxima campaña. Al día siguiente, otra prueba a mano: el ROJ y el número de resolución con su
+  fecha dan la misma sentencia, y un ECLI inventado, cero resultados. Pendiente de una persona: aceptar el ADR.
+
 ### 2026-10-02 · La prueba a mano de H21 en la app de Claude: con la extensión sola no sale la cita
 
 - **Qué se pidió.** La aceptación humana de H21 en la app de escritorio de Claude: «¿qué dice el art. 21 de la Ley
