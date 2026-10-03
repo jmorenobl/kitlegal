@@ -71,7 +71,7 @@ export const ciudadania: Audiencia = {
   icono: "person-outline",
   titulo: "kitlegal: tus derechos y plazos, con la ley vigente del BOE",
   descripcion:
-    "Pregunta a tu asistente de IA por un plazo, un recurso, tu alquiler o tu trabajo y recibe la respuesta con el texto vigente del BOE y su cita. Gratis.",
+    "No necesitas otra IA: kitlegal hace que tu asistente lea el texto vigente del BOE antes de contestarte por un plazo, tu alquiler o tu trabajo. Gratis.",
   imagen: "inicio",
   ilustracion: {
     nombre: "portada-ciudadania",
@@ -201,7 +201,7 @@ export const despachos: Audiencia = {
   icono: "balance",
   titulo: "IA para abogados: cada cita, comprobada en el BOE | kitlegal",
   descripcion:
-    "Gratis, en la app de escritorio de Claude: tu asistente cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Para despachos en España.",
+    "No cambies de IA: kitlegal hace que la app de Claude que ya usas cite el texto consolidado del BOE, con el artículo exacto y su vigencia. Gratis, sin cuotas.",
   imagen: "despachos",
   ilustracion: {
     nombre: "portada-despachos",
@@ -209,9 +209,9 @@ export const despachos: Audiencia = {
     foco: "object-[78%_50%]",
   },
   insignia: "Para despachos en España · Software libre y gratuito",
-  h1: "Usa IA en tu despacho con cada artículo comprobado en el BOE antes de citarlo.",
+  h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
-    "kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
+    "No es otra plataforma ni otra suscripción: kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
   secundario: { texto: "Cuéntanos qué necesita tu despacho", destino: "#contacto", icono: "mail" },
   metricas: [
     {

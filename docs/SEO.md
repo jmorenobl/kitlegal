@@ -128,8 +128,9 @@ Dos públicos, los dos de usuario final (ADR 0034): la ciudadanía, en la portad
 La web no habla al perfil técnico —que se lo monta solo o llega como ciudadano— ni a las administraciones públicas,
 así que los directorios de skills y de servidores MCP y las listas para desarrolladores no son una vía de la web.
 Las consultas traen a los dos públicos; el título y la descripción de `/despachos/` llevan lo que un abogado escribe
-(«IA para abogados», «España», «gratis», el asistente con el que funciona). Search Console dirá en dos meses qué
-consultas responden.
+(«IA para abogados», «gratis», el asistente con el que funciona) y lo que distingue a kitlegal de una IA jurídica de
+pago: no hay que cambiar de asistente ni pagar otra suscripción. «España» va en la insignia de la página. Search
+Console dirá en dos meses qué consultas responden.
 
 ## Si algo falla
 
