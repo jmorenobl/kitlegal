@@ -1,6 +1,6 @@
 # 0036 · Del CENDOJ, resolver una resolución identificada por su formulario; la búsqueda la hace la persona
 
-- **Estado**: propuesta. La acepta Jorge al fusionar el cambio que la trae; hasta entonces rige el ADR 0003 entero.
+- **Estado**: aceptada (2026-10-03, #109).
 - **Fecha**: 2026-10-02
 - **Hito**: transversal (tras H22, antes del hito de jurisprudencia del backlog «fuentes»). Sustituye del ADR
   0003 el primer punto de su decisión (resolver por el resolutor ECLI europeo, «no del buscador») y corrige dos

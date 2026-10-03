@@ -3,8 +3,7 @@
 Propuesta de hito para el backlog (grupo «fuentes»), con el estado de cada vía verificado el **2026-09-13** y,
 para el CENDOJ, vuelto a verificar el **2026-10-02** con una prueba a mano (§3). No es una decisión cerrada: es
 el trabajo previo para que, cuando la jurisprudencia entre en una fase, no haya que volver a investigar los
-términos de uso. Lo que aquí se propone sobre el CENDOJ depende del ADR 0036, que sustituye en parte al 0003 y
-está en estado de propuesta.
+términos de uso. Lo que aquí se dice del CENDOJ sigue el ADR 0036, que sustituye en parte al 0003.
 
 Ante conflicto, mandan la constitución y `docs/ROADMAP.md`. Lo que aquí se afirma sobre una fuente se comprueba
 contra su fila de `docs/SOURCES.md` el día que se implemente: los términos cambian.
@@ -33,7 +32,7 @@ propio BOE**, sin tocar ningún buscador judicial. Verificado sobre `BOE-A-2024-
 | **BOE datos abiertos** (sumario) | API REST documentada, XML y JSON; reutilización comercial y no comercial autorizada con atribución; `robots.txt` no menciona `/datosabiertos` | `BOE-A-…`, ELI; **no** da ECLI ni ROJ | 🟢 |
 | **HJ del Tribunal Constitucional** | solo HTML; `robots.txt` da 404 y **no se localiza aviso legal**; URLs estables por id interno (`/es/Resolucion/Show/{id}`, y `/Resolucion/Api/json|xml/{id}`, no documentadas); sin CAPTCHA observado | ECLI, nº de sentencia, **nº de recurso**, ponente, **nº y fecha de BOE** | 🟡 |
 | **Resolutor ECLI de e-Justice** | la URL `https://e-justice.europa.eu/ecli/{ECLI}` es oficial, pero por HTTP devuelve un armazón vacío (probado con un ECLI español, uno neerlandés y uno portugués); el servicio SOAP está declarado **no disponible** por la Comisión | — | 🟡 (enlace de cortesía, no fuente) |
-| **CENDOJ: resolver una resolución identificada** | el formulario tiene campos `ECLI`, `ROJ`, número de resolución y número de recurso; una consulta por HTTP simple devuelve los metadatos y la URL del documento (§3); `robots.txt` no excluye `/search/`, `Crawl-delay: 5` | ROJ + ECLI | 🟡 (ADR 0036, propuesta) |
+| **CENDOJ: resolver una resolución identificada** | el formulario tiene campos `ECLI`, `ROJ`, número de resolución y número de recurso; una consulta por HTTP simple devuelve los metadatos y la URL del documento (§3); `robots.txt` no excluye `/search/`, `Crawl-delay: 5` | ROJ + ECLI | 🟡 (ADR 0036) |
 | **CENDOJ: búsqueda por materia, texto íntegro, descarga** | consulta individual **para uso particular**; prohibidos uso comercial, descarga masiva y elaboración de bases de datos sin seguir el procedimiento del CGPJ | ROJ + ECLI | 🔴 |
 
 Aviso legal del CENDOJ, literal (`poderjudicial.es/search/indexAN.jsp`):
