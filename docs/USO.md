@@ -10,6 +10,69 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-04 · Cuatro pruebas antes de mejorar la instalación: una pieza basta y la versión nueva no llega sola
+
+- **Qué se pidió.** Cuatro pruebas antes de decidir cómo se mejora la instalación, a raíz de un abogado con Windows
+  y sin perfil técnico al que Scoop le dio miedo y cuyo equipo bloqueaba cada paso «por contener código peligroso»:
+  si la extensión se instala en la app de Claude en Windows; si un plugin con el servidor dentro trae skills y
+  herramientas con una sola instalación; si el marketplace entrega solo la versión siguiente del plugin, y con ella
+  el servidor; y si firmar el `.mcpb` cambia el aviso rojo. Los días 3 y 4, con la app de escritorio de Claude
+  2.19675.0 en macOS, Claude Code 2.1.284 y un plugin de prueba, `kitlegal-prueba`, en un catálogo aparte. La
+  pregunta, siempre en una conversación nueva: «¿Qué dice el art. 21 de la Ley 39/2015?».
+- **Qué pasó.**
+  - **Una sola pieza, con el `.mcpb` dentro del plugin** (`"mcpServers": "./servers/kitlegal.mcpb"`, 41 MB en el
+    repositorio del catálogo): la app sincroniza el catálogo y la ficha del plugin enseña «Conectores · 1 ·
+    kitlegal.mcpb · Se ejecuta en cada sesión». En una conversación de chat, sin carpeta y con ella, carga
+    `boe-legislacion`, pide permiso para las herramientas, llama a `boe_articulo` y `graph_check` del servidor del
+    plugin y responde con la cita. El servidor corre en el equipo, lanzado por la app. A Claude Code el plugin le
+    llega sincronizado desde la cuenta, sin instalarlo: `/mcp` enseña `plugin:kitlegal-prueba:kitlegal` y la respuesta
+    lleva `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, leída con la herramienta del plugin.
+  - **El servidor no arranca al instalar el plugin.** La app lo conecta en su ciclo de la hora o al reiniciarla (siete
+    segundos después de abrir). Seis minutos después de instalar, la conversación tenía la skill y ninguna
+    herramienta, y respondió «⚠ SIN CONSULTA AL BOE», sin citar nada de memoria.
+  - **Desde el móvil y desde claude.ai en un navegador**, con la app de escritorio abierta en el equipo: la
+    conversación usa las herramientas, que corren en el equipo (la caché se escribió allí). Lo mismo con la extensión
+    instalada a mano en lugar del plugin. Con la app de escritorio cerrada, el móvil responde «⚠ SIN CONSULTA AL BOE»
+    y explica que el ordenador puede estar dormido o con la app cerrada.
+  - **El binario de Windows, sin la app**: en un Windows Server 2025 de GitHub Actions, el `kitlegal.exe` del
+    `kitlegal.mcpb` de la v0.4.1 da su versión, lee el artículo con el mismo `hash` que en macOS y atiende como
+    servidor con sus diez herramientas; Defender no encuentra nada. Era la primera vez que se ejecutaba en Windows:
+    todo lo de `ci.yml` y `release.yml` corre en Linux.
+- **Qué falló.**
+  - **El servidor por URL.** Con `mcpServers` apuntando por `https://` al `kitlegal.mcpb` de una release, la app da
+    «Error al sincronizar el marketplace»; el mismo plugin sin esa línea sincroniza. `claude plugin validate` lo
+    acepta y la documentación de Claude Code lo describe.
+  - **La actualización sola.** Con «Sincronizar automáticamente» activado y la versión siguiente del plugin en el
+    repositorio, la app no la trajo en casi catorce horas, abierta toda la noche: sincronizó cada veinte minutos,
+    hizo un pase completo cada hora y se reinició una vez, siempre con «0 to download». Llegó con dos gestos: en la
+    ficha del plugin, ⋮ > «Buscar actualizaciones», que enciende «Actualizar» en menos de un minuto, y «Actualizar».
+    Nada avisa de que hay una versión nueva. Una vez actualizado el plugin, el servidor sí pasó solo de la v0.4.0 a
+    la v0.4.1, sin reiniciar, a los 43 minutos; Claude Code la recibió al abrir una sesión y la usó en la siguiente.
+  - **La firma.** Un `.mcpb` firmado con `mcpb sign --self-signed` (`mcpb` 2.1.2, la última) no se puede instalar:
+    «Error al previsualizar la extensión (…) Invalid comment length. Expected: 2264. Found: 0», que son los bytes del
+    bloque de firma detrás del final del zip. Y `mcpb verify` lo da por no firmado, como al original: la
+    verificación llama a una función de `node-forge` que no está escrita, con cualquier certificado, y la app lleva
+    la misma función.
+- **Qué faltó.**
+  - **La prueba en Windows con la app.** La persona no pudo hacerla. Siguen sin probar el doble clic, SmartScreen
+    sobre el fichero descargado y el antivirus o la política de su equipo, que es lo que le bloqueó. `kitlegal.exe`
+    no lleva firma de Windows.
+  - **Saber qué versión del servidor corre**: la app no lo enseña. Se vio desde fuera, buscando el proceso y
+    pidiéndole `--version`.
+  - **La forma de la cita** salió exacta en Claude Code y con variaciones en dos respuestas del chat (todo dentro del
+    corchete en una; el rango de la norma en medio en otra). Una respuesta de cada una no mide nada.
+  - **Lo que sigue sin probar**: el plugin con el `.mcpb` dentro en Windows, y cuánto pesa en el repositorio del
+    catálogo un paquete de 41 MB por release.
+- **Qué se corrige de lo anotado antes.**
+  - La documentación de Claude dice que el chat ignora el servidor local de un plugin, y la entrada del 2026-10-01
+    anotó que una conversación sin carpeta recibía la skill y no las herramientas: en la app de escritorio las
+    recibe, una vez que la app ha conectado el servidor. Aquella prueba pudo dar con el mismo retraso.
+  - La página `/instalar/` dice que en Claude en la web y en el móvil no funciona, y que el plugin del marketplace
+    se actualiza solo: con el equipo encendido y la app de escritorio abierta, la web y el móvil funcionan, y el
+    plugin no se actualiza solo.
+- **Qué se hizo.** Nada en el producto: estas pruebas deciden qué se construye después. El equipo queda con la
+  extensión de la v0.4.1 y el plugin del catálogo real.
+
 ### 2026-10-03 · Con la v0.4.1, el marketplace sincroniza en la app de Claude
 
 - **Qué se pidió.** Repetir con la v0.4.1, la que publica el catálogo con el plugin dentro, el paso que falló en la
