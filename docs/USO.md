@@ -10,6 +10,26 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-04 · El job de evals en rojo por dos respuestas correctas: lo que una lista de palabras no puede medir
+
+- **Qué se pidió.** Nada: la primera medición del job de evals desde el cierre de H22, al abrir una propuesta de
+  cambio que toca `internal/` (#115, el plugin con el servidor dentro, que no cambia nada de lo que las evals miden).
+- **Qué pasó.** `legal-core` pasa. En `boe-legislacion`, los diez umbrales se cumplen —0 de 54 en los tres recuentos
+  de cada modo, 484 s y 458 s— y el job sale en rojo por la eval 21, la que no tiene binario ni servidor: con
+  Sonnet 5.5 pasa 1 de 3.
+- **Qué falló.** El control, no la skill. Las dos respuestas que no pasan hacen lo que deben: empiezan por
+  `⚠ SIN CONSULTA AL BOE:`, con su dirección, no citan nada y no afirman el contenido de la norma. Después ofrecen
+  repetir la consulta —«Cuando kitlegal esté disponible, lo consulto y te respondo con el texto y su cita»—, y eso
+  casa con «respondo con el texto», que la lista de expresiones prohibidas tiene por anuncio de la respuesta.
+- **Qué faltó.** Un control que mida lo que la lista quiere medir. La lista compara por la forma: su cabecera ya dice
+  que lo dicho con otras palabras no se detecta, y ahora marca además lo correcto que comparte palabras. Añadir o
+  quitar expresiones traslada el problema a la siguiente respuesta. Lo que mide —si la respuesta cuenta el proceso
+  o afirma lo que no ha leído— es de significado, y está sin decidir con qué se mide un significado: un juez con
+  modelo cambia la premisa de que el juicio del job se hace sin ninguno (ADR 0029).
+- **Qué se hizo.** La eval sin binario ni servidor deja de juzgarse con la lista: la lista es de cómo no se cuenta una
+  consulta, y esa sesión no consulta nada. Su respuesta se sigue juzgando por lo que lleva: la línea, su dirección y
+  ninguna cita. No cambia ninguna expresión, y las otras veinte evals se siguen juzgando con la lista.
+
 ### 2026-10-04 · Cuatro pruebas antes de mejorar la instalación: una pieza basta y la versión nueva no llega sola
 
 - **Qué se pidió.** Cuatro pruebas antes de decidir cómo se mejora la instalación, a raíz de un abogado con Windows
