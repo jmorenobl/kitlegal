@@ -124,8 +124,10 @@ cuando cambia alguno de los cuatro.
 7. **Las dos primeras clases**, en `boe-legislacion`:
    - `afirma_lo_no_leido`: la respuesta dice qué dice, decía o exige un precepto, o una redacción de un precepto, que
      ninguna herramienta de la sesión devolvió. **Decide**, con umbral 0. Sustituye a `redaccion_no_leida`, que es un
-     caso suyo. No entra aquí la fidelidad, que la respuesta parafrasee mal un precepto que sí leyó: es otra clase,
-     queda sin medir y es un candidato del backlog.
+     caso suyo. Decir de qué trata un precepto que no leyó también cuenta: la validación lo encontró en la skill de
+     hoy, a veces con el dato mal. No entran decir qué norma derogó o sustituyó a otra, que es donde el juez se
+     divide, ni la fidelidad, que la respuesta parafrasee mal un precepto que sí leyó: esta es otra clase, queda sin
+     medir y es un candidato del backlog.
    - `cuenta_su_proceso`: la respuesta dice el estado de una comprobación o lo que el agente tiene, necesita o va a
      hacer. **Solo se publica**, con un voto. Pasa a decidir, o se retira, cuando una persona lo decida con las
      medidas de varios cierres.
@@ -210,7 +212,15 @@ servidores MCP, sin skills y sin ninguna fuente de ajustes. Las lecturas las hiz
 
 **Lo que la validación encontró y este ADR no esperaba.** Con el umbral en 0, el job saldría hoy en rojo por la
 skill: por unanimidad, el juez marca 3 respuestas de cada 54 en el informe de H21 y 1 de cada 54 en el de H22, en
-cada modo. H24 no puede cumplir su aceptación sin corregir `boe-legislacion`, que hoy deja fuera de su alcance.
+cada modo.
+
+**Decidido con el resultado delante (Jorge, 2026-10-05).** La glosa de un precepto no leído es un defecto, y H24
+incluye el arreglo de `boe-legislacion`. Decir qué norma derogó o sustituyó a otra queda fuera de la clase de forma
+expresa, y la rúbrica gana esa exclusión. La prosa de `SKILL.md` deja de enseñar «el sobre» y los nombres de campo.
+
+**Pendiente antes de aceptar.** La medida de arriba se hizo con la rúbrica sin esa exclusión, y una medida vale para
+la rúbrica con la que se hizo (decisión, punto 3): hay que repetirla con la rúbrica nueva. La exclusión sale de los
+casos divididos del ajuste, no de la medida. Y una persona tiene que confirmar las lecturas.
 
 ## Consecuencias
 
