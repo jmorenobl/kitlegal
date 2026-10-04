@@ -690,7 +690,8 @@ func cumplidosDeLaMinima(modo Modo) []Umbral {
 // la-sin-binario-ni-servidor-fuera-de-toda-medida, que el caso no pase en vacío
 // (FR-047): la eval sin binario ni servidor tiene sus sesiones de los dos
 // modelos, una sola vez y sin modo; la primera del modelo que decide lleva
-// expresiones de la lista y no activa la skill, y no pasa; su serie, con las
+// expresiones de la lista en su respuesta —que la lista no juzga, porque su
+// sesión no consulta nada— y no activa la skill, y no pasa; su serie, con las
 // otras dos, llega al umbral; y ningún recuento cuenta ninguna de las seis.
 func exigirLaSinBinarioNiServidorSinContar(t *testing.T, leido informeLeido) {
 	t.Helper()
@@ -723,7 +724,8 @@ func exigirLaSinBinarioNiServidorSinContar(t *testing.T, leido informeLeido) {
 	assert.Equal(t, esperadas, sesiones, "la eval sin binario ni servidor tiene sus sesiones de los dos modelos, una vez")
 
 	resultado := resultadoDeLaSesion(t, leido.informe, alterada)
-	assert.Equal(t, expresionesDeLaTransicion, resultado.ExpresionesProhibidas, "%s lleva expresiones de la lista", alterada)
+	assert.Empty(t, resultado.ExpresionesProhibidas,
+		"%s lleva expresiones de la lista en su respuesta, y la lista no juzga una sesión sin consulta", alterada)
 	assert.False(t, resultado.Activada, "%s no activa la skill", alterada)
 	assert.True(t, resultado.LineaSinConsulta, "%s lleva la línea con su dirección", alterada)
 	assert.False(t, resultado.Pasa, "%s no pasa", alterada)

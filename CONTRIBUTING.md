@@ -615,7 +615,9 @@ misma respuesta sin sus redacciones posteriores a una fecha de vigencia, y nada 
 exactamente una de las redacciones que trae la grabada, la de esa fecha.
 
 **La lista de expresiones prohibidas** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: las
-expresiones que no lleva la respuesta de una eval que activa la skill. `make ci` la reconoce por ese nombre exacto —no
+expresiones que no lleva la respuesta de una eval que activa la skill y consulta. La eval sin binario ni servidor no
+se juzga con ella: su sesión no consulta nada, y su respuesta se juzga por la línea `⚠ SIN CONSULTA AL BOE:`, su
+dirección y la ausencia de citas. `make ci` la reconoce por ese nombre exacto —no
 es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: cinco claves
 obligatorias, una por cada una de las cuatro familias, con una lista no vacía de expresiones de una o más palabras
 separadas por un espacio, sin blancos en los extremos ni `*` o `_`, y `formas_fijas`. Las familias son de dos clases:

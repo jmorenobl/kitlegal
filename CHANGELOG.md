@@ -42,6 +42,12 @@ sustituyen a este fichero.
 
 ### Corregido
 
+- **La lista de expresiones prohibidas ya no juzga la eval sin binario ni servidor.** La lista es de cómo no se
+  cuenta una consulta, y esa sesión no consulta nada: su respuesta se juzga por la línea `⚠ SIN CONSULTA AL BOE:`,
+  su dirección y la ausencia de citas. Con Sonnet 5.5, dos respuestas correctas de tres ofrecían repetir la consulta
+  («lo consulto y te respondo con el texto y su cita»), casaban con «respondo con el texto», que la lista tiene por
+  anuncio de la respuesta, y dejaban el job en rojo. No cambia ninguna expresión de la lista (`docs/USO.md`,
+  2026-10-04).
 - **La web y el README ya no dicen que el plugin se actualiza solo ni que el móvil y la web no funcionan.** Probado
   el 2026-10-04 (`docs/USO.md`): con «Sincronizar automáticamente» activado, la app de escritorio de Claude no trajo
   la versión siguiente del plugin en catorce horas, y sí con «Buscar actualizaciones» y «Actualizar» en la ficha del

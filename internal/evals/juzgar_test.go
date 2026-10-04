@@ -1187,6 +1187,11 @@ func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
 	municipio := *evalDe(t, deLegalCore.Evals, ficheroDelMunicipioCubierto)
 	require.True(t, municipio.Activa, "%s espera que la skill se active", ficheroDelMunicipioCubierto)
 
+	sinConsulta := *evalDe(t, conjunto.Evals, ficheroSinBinarioDeBoe)
+	require.True(t, sinConsulta.SinBinarioNiServidor, "%s es la eval sin binario ni servidor", ficheroSinBinarioDeBoe)
+	require.Equal(t, conjunto.Prohibidas, sinConsulta.Prohibidas, "%s lleva la lista de su carpeta",
+		ficheroSinBinarioDeBoe)
+
 	casos := []struct {
 		eval      Eval
 		skill     string
@@ -1207,7 +1212,21 @@ func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
 				return sesionDeTerritorio(respuesta, resuelveLeganes(t))
 			},
 		},
+		{
+			// La oferta es la de dos respuestas del job que la lista daba por un
+			// anuncio de la respuesta (docs/USO.md, 2026-10-04).
+			eval:      sinConsulta,
+			skill:     skillDeLasSesiones,
+			respuesta: lineaSinConsultaAlBOE + "\n\n" + ofertaDeConsultarDespues,
+			sesion: func(respuesta string) Sesion {
+				return sesionSinBinarioNiServidor(skillDeLasSesiones, respuesta)
+			},
+		},
 	}
+
+	require.Equal(t, []string{"respondo con el texto"},
+		ExtraerExpresionesProhibidas(ofertaDeConsultarDespues, conjunto.Prohibidas),
+		"la oferta de consultar después casa con una expresión de la lista")
 
 	for _, caso := range casos {
 		conExpresiones := caso.respuesta + "\n\n" + transicionDeLaMemoria + " " + loDichoEnOtraConversacion
@@ -1224,6 +1243,11 @@ func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
 		assert.Equal(t, antes, ahora, "%s se juzga igual con expresiones de la lista en la respuesta", caso.eval.Fichero)
 	}
 }
+
+// ofertaDeConsultarDespues es lo que la respuesta de una sesión sin binario ni
+// servidor añade a su línea cuando ofrece repetir la consulta, como la escribió
+// el modelo en el job.
+const ofertaDeConsultarDespues = "Cuando kitlegal esté disponible, lo consulto y te respondo con el texto y su cita."
 
 // Las clases de lo que la lista marca en una respuesta
 // (contracts/lista-de-expresiones.md §6 de H7.4): la A, alguna expresión y

@@ -1,5 +1,5 @@
-# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill (H7.2, FR-050; H7.3, FR-020;
-# H7.4, FR-030), en cuatro familias. Clase A: la maquinaria interna, lo dicho en otra conversación y el anuncio de la
+# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill y consulta (H7.2, FR-050;
+# H7.3, FR-020; H7.4, FR-030), en cuatro familias. La eval sin binario ni servidor no se juzga con ellas: no consulta nada. Clase A: la maquinaria interna, lo dicho en otra conversación y el anuncio de la
 # respuesta o del estado de lo comprobado (de la comprobación o de una lectura anterior, o de lo que el agente tiene,
 # necesita o va a hacer). Clase B, redaccion_no_leida: una redacción que ninguna orden devolvió (qué decía, hasta cuándo
 # rigió o qué cambió respecto de ella). Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de

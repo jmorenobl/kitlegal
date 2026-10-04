@@ -897,8 +897,16 @@ func (r *ResultadoDeEval) repartirTerritorio(esperado, declarado TerritorioEsper
 // lista es de lo que no dice la respuesta de la skill, y una eval de no activación
 // no la juzga (FR-052). Con la lista vacía, la de una skill sin lista, no anota
 // nada.
+//
+// Tampoco la juzga la eval sin binario ni servidor: la lista es de cómo no se
+// cuenta una consulta —su maquinaria, lo que se comprobó, el anuncio de la
+// respuesta—, y su sesión no consulta nada. Su respuesta la juzga
+// juzgarLaRespuestaSinConsulta, por lo que lleva: la línea, su dirección y
+// ninguna cita. Una oferta de consultarlo después («lo consulto y te respondo con
+// el texto y su cita») casaba con el anuncio de una respuesta que no existe
+// (docs/USO.md, 2026-10-04).
 func (r *ResultadoDeEval) anotarExpresionesProhibidas(eval Eval, respuesta string) {
-	if !eval.Activa {
+	if !eval.Activa || eval.SinBinarioNiServidor {
 		return
 	}
 
