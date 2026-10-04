@@ -1,7 +1,7 @@
 # 0037 · Lo que es de significado en una respuesta lo juzga un modelo, con rúbrica cerrada y cita comprobada; la lista de expresiones deja de decidir
 
-- **Estado**: propuesta. No se acepta sin la medida de «Validación», que exige sesiones con modelo lanzadas por una
-  persona, y la decide Jorge.
+- **Estado**: propuesta. La validación está hecha (2026-10-05); falta que una persona confirme sus lecturas, y la
+  decide Jorge.
 - **Fecha**: 2026-10-04
 - **Hito**: transversal (tras H22; antes de H24, que lo implementa en el job de evals, y de H23, que lo usa).
   Sustituye del ADR 0029 una palabra del punto 1 de su decisión —el control de un umbral era «mecánico»— y, del
@@ -136,8 +136,8 @@ cuando cambia alguno de los cuatro.
 
 ## Validación
 
-**Pendiente.** Hay que hacerla antes de aceptar este ADR y de lanzar H24, con sesiones con modelo que lanza una
-persona, o una sesión interactiva a petición suya, fuera de cualquier run (ADR 0032).
+Hecha el 2026-10-04 y el 2026-10-05, en una sesión interactiva a petición de Jorge y fuera de cualquier run
+(ADR 0032), con `claude-opus-5-5` y Claude Code 2.1.289. El resultado está al final de esta sección.
 
 **Material.** Las respuestas del modelo que decide, en las evals que activan la skill, de los seis informes
 versionados (`specs/01{1..6}-*/gates/evals/boe-legislacion.json`): 423 (51 en cada uno de los de H7.1, H7.2 y H7.3, 54
@@ -179,6 +179,38 @@ marca errónea que aparezca después.
 
 La rúbrica y los casos de esta validación entran en `main` con el ADR aceptado: son la entrada de H24, como la fila
 de `docs/SOURCES.md` lo es de una grabación.
+
+### Resultado
+
+La rúbrica es la primera que se escribió: no hizo falta corregirla. Cada voto fue una sesión sin herramientas, sin
+servidores MCP, sin skills y sin ninguna fuente de ajustes. Las lecturas las hizo el agente y están por confirmar.
+
+| Grupo | Clase | Casos | Marcados por unanimidad | Por mayoría |
+|---|---|---|---|---|
+| Ajuste | Defectos leídos | 5 | 5 | 5 |
+| Ajuste | Defectos derivados | 50 | 50 | 50 |
+| Ajuste | Sin etiqueta | 148 | 21 | 25 |
+| Medida | Defectos derivados | 90 | 90 | sin medir |
+| Medida | Sin etiqueta | 270 | 8 | sin medir |
+
+- **Los 145 defectos conocidos quedan marcados**, con los tres votos.
+- **Ninguna marca resultó errónea.** Las 29 respuestas sin etiqueta marcadas por unanimidad, y las 7 con algún voto
+  afirmativo, dicen algo de un precepto que ninguna orden devolvió: glosan una remisión («las entidades del art. 45
+  (entidades de ámbito territorial inferior al municipio)»), dicen de qué trata el artículo que declaran no haber
+  leído, o nombran la norma que sustituyó a la derogada. Tres de esas glosas están mal o se contradicen entre sí.
+- **Las 30 respuestas de las evals 19 y 20 de la medida** no describen la redacción anterior, y el juez no marcó
+  ninguna.
+- **Estabilidad**: los tres votos coinciden en 198 de 203 casos del ajuste. Ningún voto nulo ni error en 1.167.
+- **Votar por orden** perdió, en el ajuste, 2 de las 26 respuestas con algún voto afirmativo.
+- **`cuenta_su_proceso`**, con un voto: en H7.3 marca las siete respuestas de la lectura a mano y una más. En H7.4,
+  H21 y H22 marca entre 12 y 27 de cada 54, donde la lista daba 0: «El sobre no trae avisos de vigencia»,
+  «(`fecha_vigencia` 20161002)».
+- **Consumo**: unos 21.000 tokens de entrada y 8,4 s por voto. Una ejecución del job con 108 respuestas son unos 15
+  minutos de sesión.
+
+**Lo que la validación encontró y este ADR no esperaba.** Con el umbral en 0, el job saldría hoy en rojo por la
+skill: por unanimidad, el juez marca 3 respuestas de cada 54 en el informe de H21 y 1 de cada 54 en el de H22, en
+cada modo. H24 no puede cumplir su aceptación sin corregir `boe-legislacion`, que hoy deja fuera de su alcance.
 
 ## Consecuencias
 
