@@ -68,7 +68,8 @@ Son dos pasos y dos ficheros, los de la última release, siempre en la misma dir
    desde él el plugin `kitlegal`. Lo que se añade desde Code no llega a las conversaciones de chat. Si prefieres no
    añadir un marketplace, descarga
    [`kitlegal-plugin.zip`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal-plugin.zip) y
-   súbelo en *Customize > Plugins > Add > Upload plugin*: lleva las mismas skills, pero no se actualiza solo.
+   súbelo en *Customize > Plugins > Add > Upload plugin*: lleva las mismas skills, pero con cada versión nueva hay que
+   descargarlo y subirlo otra vez.
 
 Después abre una conversación nueva y pregunta.
 
@@ -83,9 +84,11 @@ que ya ha leído, y no envía nada a ningún servidor propio.
 BOE, pero la respuesta puede no llevar la cita con esa forma. Solo con el plugin hay skills y ninguna herramienta:
 Claude no puede consultar nada, y la respuesta es la línea `⚠ SIN CONSULTA AL BOE:` de más abajo.
 
-**Actualizar.** Lo previsto, que nadie ha probado todavía: la extensión se actualiza descargando el `kitlegal.mcpb`
-de la release nueva y abriéndolo; el plugin, sin hacer nada si añadiste el marketplace, que lleva el de cada release
-nueva, o subiendo el zip nuevo si lo subiste a mano.
+**Actualizar.** La app no avisa de que hay una versión nueva ni la instala sola, tampoco con «Sincronizar
+automáticamente» activado (probado el 2026-10-04: en catorce horas no la trajo). El plugin, si añadiste el
+marketplace: en *Customize > Plugins*, abre kitlegal, menú de los tres puntos, «Buscar actualizaciones», y cuando se
+encienda el botón, «Actualizar»; si lo subiste a mano, sube el zip nuevo. La extensión, lo previsto, que nadie ha
+probado todavía sobre una versión ya instalada: descargar el `kitlegal.mcpb` de la release nueva y abrirlo.
 
 **Si ya tienes las skills con `kitlegal skills install`** y además instalas el plugin, en Claude Code las tienes dos
 veces: las de tu disco y las del plugin, que llega también a Claude Code.
@@ -93,9 +96,10 @@ veces: las de tu disco y las del plugin, que llega también a Claude Code.
 **En Linux** no hay app de escritorio de Claude en la que abrir la extensión: se usa el programa instalado, con
 Claude Code, como hasta ahora ([Instalar con la terminal](#instalar-con-la-terminal)).
 
-**En la web y en el móvil no funciona**: ahí no hay dónde instalar la extensión, porque solo admiten servidores
-remotos y el de kitlegal corre en tu equipo. Si las skills del plugin te llegan también ahí, lo que verás, en lugar
-de una respuesta de memoria, es esta línea:
+**Desde Claude en el móvil y en la web** se puede preguntar una vez instalado, mientras tu equipo esté encendido y
+con la app de escritorio abierta: la conversación usa las herramientas de tu equipo, donde kitlegal sigue corriendo
+(probado el 2026-10-04 en macOS). Con el equipo apagado o la app cerrada llegan las skills del plugin y ninguna
+herramienta, y lo que verás, en lugar de una respuesta de memoria, es esta línea:
 
 ```text
 ⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/
@@ -215,8 +219,9 @@ Está probado en **Claude Code** y en la **app de escritorio de Claude** en macO
 escritorio de ChatGPT, en Codex y en Antigravity está en
 [Otras instalaciones, sin probar](#otras-instalaciones-sin-probar).
 
-**ChatGPT y Claude en la web y en el móvil no son compatibles**: solo admiten servidores remotos, y el de kitlegal
-corre en tu equipo.
+**ChatGPT en la web y en el móvil no es compatible**: solo admite servidores remotos, y el de kitlegal corre en tu
+equipo. Claude en la web y en el móvil funciona a través de la app de escritorio, con el equipo encendido y la app
+abierta ([Instalar sin terminal](#instalar-sin-terminal)).
 
 ## Cómo funciona y qué te garantiza
 

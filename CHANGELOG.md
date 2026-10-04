@@ -16,8 +16,8 @@ sustituyen a este fichero.
 
 - **https://kitlegal.es/instalar/ explica la instalación sin terminal, con los botones de descarga.** Es la instalación
   oficial, probada en la app de escritorio de Claude en macOS: el botón de `kitlegal.mcpb`, la extensión, que se abre
-  con doble clic; el marketplace `jmorenobl/kitlegal-plugins` como forma recomendada de añadir el plugin, que así se
-  actualiza solo, y el botón de `kitlegal-plugin.zip` como alternativa. Las direcciones son las de la última release
+  con doble clic; el marketplace `jmorenobl/kitlegal-plugins` como forma recomendada de añadir el plugin, y el botón
+  de `kitlegal-plugin.zip` como alternativa. Las direcciones son las de la última release
   (`releases/latest/download`), que no cambian con cada versión. La página explica el aviso en rojo de la app y lo que
   kitlegal hace de verdad, deja la terminal para Claude Code y Linux, y marca como «sin probar» Windows, ChatGPT, Codex
   y Antigravity, pidiendo que se cuente si funciona. Las portadas, el pie, `/llms.txt` y la imagen para compartir de
@@ -27,6 +27,15 @@ sustituyen a este fichero.
   plataforma ni otra suscripción»; su descripción y la de la portada, que son lo que enseña el buscador, empiezan por
   «No cambies de IA» y «No necesitas otra IA». Los títulos no cambian, y la web sigue sin prometer lo que no está
   probado: nombra la app de escritorio de Claude, no ChatGPT, y no habla de jurisprudencia.
+
+### Corregido
+
+- **La web y el README ya no dicen que el plugin se actualiza solo ni que el móvil y la web no funcionan.** Probado
+  el 2026-10-04 (`docs/USO.md`): con «Sincronizar automáticamente» activado, la app de escritorio de Claude no trajo
+  la versión siguiente del plugin en catorce horas, y sí con «Buscar actualizaciones» y «Actualizar» en la ficha del
+  plugin; `/instalar/` y el README lo explican así y dicen que la app no avisa de las versiones nuevas. Y desde Claude
+  en el móvil y en la web se puede preguntar mientras el equipo esté encendido y con la app de escritorio abierta: las
+  herramientas siguen corriendo en el equipo. ChatGPT y Gemini siguen sin funcionar ahí.
 
 ## [0.4.1] - 2026-10-03
 
