@@ -61,11 +61,29 @@ rúbrica cerrada. El significado de un texto libre no lo verifica un guion. El d
 5. **Un juez con modelo que valore la respuesta entera** («¿es una buena respuesta?»). Rechazada: no es reproducible,
    no deja evidencia y juzgaría también lo que un guion ya comprueba.
 6. **Un juez con modelo acotado**: una pregunta cerrada por clase, con los textos que la sesión leyó delante, una cita
-   literal que el job comprueba sin modelo, mayoría de tres y medido contra respuestas etiquetadas antes de decidir.
+   literal que el job comprueba sin modelo, tres votos y medido contra casos etiquetados antes de decidir.
    **Elegida.**
 
-Para el modelo del juez, **el mismo que se juzga** se rechaza: comparte sus puntos ciegos. Se propone el de los jueces
-del workflow (`claude-opus-5-5`, ADR 0033), fijado por su id completo. La validación lo confirma o lo cambia.
+Para el modelo del juez, **el mismo que se juzga** se rechaza. El juez tiene que ignorar lo que sabe: que el art. 66
+de la LGT diga cuatro años es verdad, y aun así es un defecto si ninguna herramienta lo leyó. Un modelo distinto y más
+capaz sigue mejor esa instrucción y no comparte los puntos ciegos del juzgado. Se elige el de los jueces del workflow
+(`claude-opus-5-5`, ADR 0033), fijado por su id completo.
+
+Para la clase que decide, **«la respuesta dice algo que no está en los textos leídos»** se rechaza: junta dos cosas.
+Que la respuesta hable de un precepto que ninguna herramienta devolvió es casi un hecho. Que parafrasee mal uno que sí
+leyó es un juicio de fidelidad, más difuso, y es donde un juez marca de más. Con umbral 0 y 108 respuestas por
+ejecución, una marca de más por cada cien respuestas deja en rojo sin motivo dos ejecuciones de cada tres, y una por
+cada mil, una de cada diez. Decide solo lo primero.
+
+Para la regla de los votos, **la mayoría de tres** se rechaza en la clase que decide, porque los dos errores no
+cuestan lo mismo. Una marca de más pone el job en rojo y, dentro de un run, hace que la reparación del cierre cambie
+la skill por un defecto que no existe. Una de menos deja el control mejor que la lista, que vio 1 de 9. Se elige la
+unanimidad, que además decide lo mismo votando por orden: un voto por respuesta, y dos más solo para las que el
+primero marca.
+
+Para cuándo se mide al juez, **en cada ejecución** se rechaza: con el modelo, la versión de Claude Code, la rúbrica y
+los casos fijados, repetir la medida solo repite el azar del modelo y añade otra causa de rojos sin motivo. Se mide
+cuando cambia alguno de los cuatro.
 
 ## Decisión
 
@@ -77,17 +95,26 @@ del workflow (`claude-opus-5-5`, ADR 0033), fijado por su id completo. La valida
    - Recibe la pregunta de la eval, la respuesta de la sesión y los textos que devolvieron sus herramientas. No recibe
      la skill, ni lo que la eval espera, ni el veredicto de las comprobaciones sin modelo.
    - Si responde que sí, copia de la respuesta la frase que lo prueba. El job comprueba sin modelo que esa frase está
-     en la respuesta. Un voto afirmativo cuya frase no está es nulo.
-   - Cada voto es un proceso nuevo, sin herramientas y sin acceso al repositorio. Tres votos por respuesta, y decide
-     la mayoría de los válidos. Una respuesta sin mayoría queda «sin juzgar», y el job falla con ese motivo, como
-     falla hoy con una sesión sin medir.
-   - El informe publica, de cada respuesta que el juez marca, la frase y los tres votos.
-3. **El juez se mide antes de decidir.** Una clase solo decide si el juez se ha medido contra respuestas etiquetadas
-   por una persona, versionadas con la procedencia de cada etiqueta. Ninguna respuesta etiquetada como defecto queda
-   sin marcar, y las marcadas de más no pasan del umbral que fije la validación. El job repite esa medida y, si el
-   juez no la cumple, sale en rojo diciendo que el instrumento no vale, sin dar veredicto de la skill.
-4. **El modelo del juez** se fija por su id completo junto al modelo que decide (`.github/workflows/evals.yml`) y
-   cambia solo con un diff, con la medida del punto 3 repetida.
+     en la respuesta. Un sí cuya frase no está es un voto nulo, y se repite una vez.
+   - Cada voto es un proceso nuevo, sin herramientas y sin acceso al repositorio.
+   - **En una clase que decide, una respuesta queda marcada solo si tres votos dicen que sí**, cada uno con su frase
+     comprobada. Se vota por orden: el segundo y el tercero solo se piden si los anteriores marcaron.
+   - Un voto que no llega a darse, por un límite de uso o por el tope de tiempo, deja la respuesta sin juzgar, y el
+     job falla con ese motivo, como falla hoy con una sesión sin medir.
+   - El informe publica, de cada respuesta con algún voto afirmativo, las frases y los votos.
+3. **El juez se mide antes de decidir, y cada vez que cambia.**
+   - Una clase solo decide si el juez se ha medido contra casos etiquetados, versionados con la procedencia de cada
+     etiqueta. Hay dos clases de caso: respuestas que una persona leyó, y defectos derivados quitándole a una sesión
+     correcta uno de los textos que leyó, sin escribir nada a mano.
+   - Ningún caso etiquetado como defecto queda sin marcar, y ninguno etiquetado como correcto queda marcado.
+   - La medida vale para la rúbrica, el id del modelo, la versión de Claude Code y los casos con los que se hizo. El
+     job la repite cuando la medida versionada no corresponde a lo que hay, y si el juez no la cumple sale en rojo
+     diciendo que el instrumento no vale, sin dar veredicto de la skill.
+   - **Una marca que una persona lee y da por errónea entra en los casos como correcta.** El arreglo va a la rúbrica,
+     no a la skill.
+   - La rúbrica, los casos y el modelo del juez no los cambia un run del workflow.
+4. **El modelo del juez** es `claude-opus-5-5`, fijado por su id completo junto al modelo que decide
+   (`.github/workflows/evals.yml`). Cambia solo con un diff, con la medida del punto 3 repetida.
 5. **Dónde corre.** En el job de evals y en el sondeo que lanza una persona. Nunca en un paso de un run del workflow
    (ADR 0032): dentro de un run, el juez se prueba con votos grabados.
 6. **Los umbrales del juez usan el contrato del ADR 0029**: entran en `umbrales` con su `nombre`, su `medida` y su
@@ -95,11 +122,13 @@ del workflow (`claude-opus-5-5`, ADR 0033), fijado por su id completo. La valida
    umbral medido sin persona tiene **un control** que pone en rojo su comprobación; ese control es un guion si lo
    medido tiene forma, y el juez de este ADR si es de significado.
 7. **Las dos primeras clases**, en `boe-legislacion`:
-   - `afirma_lo_no_leido`: la respuesta dice qué dice, decía o exige un precepto, y ese contenido no está en ningún
-     texto que devolvieran las herramientas de la sesión. **Decide**, con umbral 0. Sustituye a `redaccion_no_leida`,
-     que es un caso suyo.
+   - `afirma_lo_no_leido`: la respuesta dice qué dice, decía o exige un precepto, o una redacción de un precepto, que
+     ninguna herramienta de la sesión devolvió. **Decide**, con umbral 0. Sustituye a `redaccion_no_leida`, que es un
+     caso suyo. No entra aquí la fidelidad, que la respuesta parafrasee mal un precepto que sí leyó: es otra clase,
+     queda sin medir y es un candidato del backlog.
    - `cuenta_su_proceso`: la respuesta dice el estado de una comprobación o lo que el agente tiene, necesita o va a
-     hacer. **Solo se publica.** Pasa a decidir cuando una persona lo decida, con las medidas de varios cierres.
+     hacer. **Solo se publica**, con un voto. Pasa a decidir, o se retira, cuando una persona lo decida con las
+     medidas de varios cierres.
 8. **La lista de expresiones deja de juzgar respuestas.** Sale del veredicto y de `umbrales`. Lo decide una persona
    en la entrada de H24. No es un corrector rebajando un umbral: esa prohibición del ADR 0029 sigue vigente. El
    fichero se queda como el vocabulario que la prosa de `SKILL.md` no usa, que `make ci` ya comprueba
@@ -110,27 +139,44 @@ del workflow (`claude-opus-5-5`, ADR 0033), fijado por su id completo. La valida
 **Pendiente.** Hay que hacerla antes de aceptar este ADR y de lanzar H24, con sesiones con modelo que lanza una
 persona, o una sesión interactiva a petición suya, fuera de cualquier run (ADR 0032).
 
-Material: las respuestas del modelo que decide, en las evals que activan la skill, de los seis informes versionados
-(`specs/01{1..6}-*/gates/evals/boe-legislacion.json`): 423 (51 en cada uno de los de H7.1, H7.2 y H7.3, 54 en el de
-H7.4 y 108 en cada uno de los de H21 y H22). Los informes guardan la respuesta y las órdenes de cada sesión, no lo
-que devolvieron: esos textos se reconstruyen repitiendo las órdenes contra las grabaciones, sin modelo.
+**Material.** Las respuestas del modelo que decide, en las evals que activan la skill, de los seis informes
+versionados (`specs/01{1..6}-*/gates/evals/boe-legislacion.json`): 423 (51 en cada uno de los de H7.1, H7.2 y H7.3, 54
+en el de H7.4 y 108 en cada uno de los de H21 y H22). Los informes guardan la respuesta y las órdenes de cada sesión,
+no lo que devolvieron: esos textos se reconstruyen repitiendo las órdenes contra las grabaciones, sin modelo.
 
-1. **Ajuste**, sobre los tres informes que una persona leyó respuesta a respuesta (`docs/USO.md`, 2026-09-30). Tienen
-   cinco respuestas que describen una redacción que ninguna orden devolvió: la 19-01 de H7.1, la 19-01 y la 19-02 de
-   H7.2, y la 19-01 y la 19-02 de H7.3. La rúbrica se escribe y se corrige aquí, dos veces como mucho.
-2. **Medida**, una sola vez y con la rúbrica ya cerrada, sobre los tres informes que nadie ha leído (H7.4, H21 y
-   H22). Una persona lee cada respuesta que el juez marque, y además las de las evals 19 y 20 de esos tres informes,
-   las marque o no, porque son las que traen una redacción cambiada.
-3. **Lo que se anota**: por informe, las marcadas, las etiquetadas, las que el juez no vio y las que marcó de más;
-   los votos nulos y las respuestas sin mayoría; y los votos, el tiempo y el consumo de la suscripción por ejecución.
+**Casos.**
 
-**Se acepta si** en el ajuste el juez marca las cinco, en la medida no deja sin marcar ninguna que la persona
-etiquete, y las marcadas de más, leídas una a una, no pasan del umbral que Jorge fije con la cifra delante. **Se
-rechaza** si para lograrlo la rúbrica tiene que nombrar los casos. Entonces queda la opción 4 con una lectura a mano
-en cada cierre, y H23 se escribe sin «ni resume» en su umbral.
+- **Defectos que una persona leyó**: las cinco respuestas que describen una redacción que ninguna orden devolvió
+  (`docs/USO.md`, 2026-09-30): la 19-01 de H7.1, la 19-01 y la 19-02 de H7.2, y la 19-01 y la 19-02 de H7.3. Son todas
+  de la misma eval.
+- **Defectos derivados**: de cada sesión que leyó más de un bloque y pasó, la misma respuesta con uno de sus textos
+  quitado. La parte de la respuesta sobre ese bloque es, por construcción, un precepto que ninguna herramienta
+  devolvió. Dan defectos de normas y materias distintas.
+- **Lo demás** no está etiquetado como correcto: la lectura del 2026-09-30 buscó dos clases, no esta. Una persona
+  lee cada respuesta que el juez marque fuera de los dos grupos de arriba, y la etiqueta.
 
-La rúbrica y las etiquetas de esta validación entran en `main` con el ADR aceptado: son la entrada de H24, como la
-fila de `docs/SOURCES.md` lo es de una grabación.
+**Pasos.**
+
+1. **Ajuste**, sobre los informes de H7.1, H7.2 y H7.3 y la mitad de los defectos derivados, con los tres votos de
+   cada respuesta para comparar la unanimidad con la mayoría. La rúbrica se escribe y se corrige aquí, dos veces como
+   mucho.
+2. **Medida**, una sola vez y con la rúbrica ya cerrada, sobre los informes de H7.4, H21 y H22, que nadie ha leído,
+   y la otra mitad de los derivados. Una persona lee además las respuestas de las evals 19 y 20 de esos tres
+   informes, las marque el juez o no, porque son las que traen una redacción cambiada.
+3. **Lo que se anota**: por informe, las marcadas, las etiquetadas, las que el juez no vio y las que marcó de más,
+   con cada regla de votos; los votos nulos; y los votos, el tiempo y el consumo de la suscripción por ejecución.
+
+**Se acepta si**, con la unanimidad, el juez marca en el ajuste los cinco defectos leídos, en la medida marca todos
+los derivados y todos los que la persona etiquete, y ninguna marca de la medida resulta errónea. **Se rechaza** si
+para lograrlo la rúbrica tiene que nombrar los casos. Entonces queda la opción 4 con una lectura a mano en cada
+cierre, y H23 se escribe sin «ni resume» en su umbral.
+
+**Lo que la medida no puede dar.** Cero marcas erróneas en 270 respuestas solo acota la tasa en torno al 1 %, no
+en el uno por mil que haría raros los rojos sin motivo. Por eso el punto 3 de la decisión hace entrar en los casos cada
+marca errónea que aparezca después.
+
+La rúbrica y los casos de esta validación entran en `main` con el ADR aceptado: son la entrada de H24, como la fila
+de `docs/SOURCES.md` lo es de una grabación.
 
 ## Consecuencias
 
@@ -141,13 +187,17 @@ fila de `docs/SOURCES.md` lo es de una grabación.
 - El job deja de salir en rojo por una respuesta correcta que comparte palabras con una incorrecta.
 - H23 mide «ni resume» con la misma clase, sin otra lista.
 - Cada marca del juez lleva una frase que está en la respuesta: quien lee el informe ve por qué.
+- Con la votación por orden, son 108 votos por ejecución de `boe-legislacion`, y dos más por cada respuesta que el
+  primero marque.
 
 **En contra, y asumido**
 
-- **El juez no es determinista.** Lo acotan la mayoría de tres, la frase comprobada y la medida del punto 3, pero una
+- **El juez no es determinista.** Lo acotan la unanimidad, la frase comprobada y la medida del punto 3, pero una
   misma respuesta puede recibir votos distintos en dos ejecuciones. El informe publica los votos para que se vea.
-- **Cuesta suscripción y tiempo.** Con 54 respuestas del modelo que decide por modo, son 324 votos por ejecución de
-  `boe-legislacion`, más los de la medida del juez. La cifra real la da la validación; H24 le pone un umbral.
+- **La unanimidad deja pasar los casos dudosos.** Una respuesta con dos votos afirmativos de tres no queda marcada.
+  Se publica con sus frases, para que la lea una persona.
+- **La fidelidad queda sin medir.** Una respuesta que lee un precepto y lo parafrasea mal no la marca nadie, ni antes
+  ni ahora.
 - **`cuenta_su_proceso` se queda sin un control que decida.** Hoy lo decide la lista, mal. Es una pérdida declarada
   respecto del criterio de éxito de H7.2, hasta que una persona lo promueva.
 - **Juez y juzgado son modelos del mismo proveedor**, y pueden compartir errores. Lo mitigan que sean modelos
@@ -166,3 +216,5 @@ fila de `docs/SOURCES.md` lo es de una grabación.
   §3; la sección de H24; y en H23, cómo se mide «ni resume».
 - **`CLAUDE.md`**: «Modelo que decide las evals» nombra también el del juez, y el siguiente hito pasa a ser H24.
 - **`docs/WORKFLOW.md`**, donde describe el job de evals.
+- **El guardián de diff del workflow** protege la rúbrica y los casos del juez (`evals/*/juez/`), como protege
+  `testdata/` y `schemas/`: es un cambio del proceso, fuera de H24.
