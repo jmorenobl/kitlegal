@@ -142,26 +142,28 @@ persona, o una sesión interactiva a petición suya, fuera de cualquier run (ADR
 **Material.** Las respuestas del modelo que decide, en las evals que activan la skill, de los seis informes
 versionados (`specs/01{1..6}-*/gates/evals/boe-legislacion.json`): 423 (51 en cada uno de los de H7.1, H7.2 y H7.3, 54
 en el de H7.4 y 108 en cada uno de los de H21 y H22). Los informes guardan la respuesta y las órdenes de cada sesión,
-no lo que devolvieron: esos textos se reconstruyen repitiendo las órdenes contra las grabaciones, sin modelo.
+no lo que devolvieron: esos textos se reconstruyen repitiendo las órdenes contra las grabaciones, sin modelo. Son un
+superconjunto de lo que la sesión vio, que pudo filtrar la salida de una orden: eso puede hacer que el juez no marque
+algo, no que marque de más. En el job, el juez recibe los textos del transcript.
 
 **Casos.**
 
 - **Defectos que una persona leyó**: las cinco respuestas que describen una redacción que ninguna orden devolvió
   (`docs/USO.md`, 2026-09-30): la 19-01 de H7.1, la 19-01 y la 19-02 de H7.2, y la 19-01 y la 19-02 de H7.3. Son todas
   de la misma eval.
-- **Defectos derivados**: de cada sesión que leyó más de un bloque y pasó, la misma respuesta con uno de sus textos
-  quitado. La parte de la respuesta sobre ese bloque es, por construcción, un precepto que ninguna herramienta
-  devolvió. Dan defectos de normas y materias distintas.
+- **Defectos derivados**: por cada informe, eval y modo, la respuesta de la primera sesión que pasó, con el texto
+  del primer bloque que cita quitado. Lo que la respuesta dice de ese bloque es, por construcción, un precepto que
+  ninguna herramienta devolvió. Son 140, de las dieciocho evals: 50 de los informes del ajuste y 90 de los de la
+  medida.
 - **Lo demás** no está etiquetado como correcto: la lectura del 2026-09-30 buscó dos clases, no esta. Una persona
   lee cada respuesta que el juez marque fuera de los dos grupos de arriba, y la etiqueta.
 
 **Pasos.**
 
-1. **Ajuste**, sobre los informes de H7.1, H7.2 y H7.3 y la mitad de los defectos derivados, con los tres votos de
-   cada respuesta para comparar la unanimidad con la mayoría. La rúbrica se escribe y se corrige aquí, dos veces como
-   mucho.
+1. **Ajuste**, sobre los informes de H7.1, H7.2 y H7.3 y sus derivados, con los tres votos de cada respuesta para
+   comparar la unanimidad con la mayoría. La rúbrica se escribe y se corrige aquí, dos veces como mucho.
 2. **Medida**, una sola vez y con la rúbrica ya cerrada, sobre los informes de H7.4, H21 y H22, que nadie ha leído,
-   y la otra mitad de los derivados. Una persona lee además las respuestas de las evals 19 y 20 de esos tres
+   y sus derivados. Una persona lee además las respuestas de las evals 19 y 20 de esos tres
    informes, las marque el juez o no, porque son las que traen una redacción cambiada.
 3. **Lo que se anota**: por informe, las marcadas, las etiquetadas, las que el juez no vio y las que marcó de más,
    con cada regla de votos; los votos nulos; y los votos, el tiempo y el consumo de la suscripción por ejecución.
