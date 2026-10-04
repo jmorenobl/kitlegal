@@ -21,7 +21,7 @@ sustituyen a este fichero.
   un marketplace. A quien tenía la extensión le dicen que la desinstale, y que tras actualizar el plugin las
   herramientas pasan solas a la versión nueva. Probado el 2026-10-04 con la v0.5.0 y el marketplace real, en la app
   de escritorio de Claude en macOS: desinstalada la extensión y actualizado el plugin, la app arranca al abrirse un
-  solo servidor, el del plugin, con sus diez herramientas.
+  solo servidor, el del plugin, con sus diez herramientas, y la respuesta lleva la cita con su forma (`docs/USO.md`).
 
 ## [0.5.0] - 2026-10-04
 
