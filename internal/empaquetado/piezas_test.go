@@ -34,6 +34,8 @@ const (
 	// documentos JSON.
 	rutaDelManifiesto      = "manifest.json"
 	rutaDeLaFichaDelPlugin = ".claude-plugin/plugin.json"
+	// rutaDelServidorDelPlugin es la de la extensión dentro del plugin.
+	rutaDelServidorDelPlugin = "servers/kitlegal.mcpb"
 	// iconoDelArbol es el icono versionado, visto desde este paquete (FR-016).
 	iconoDelArbol = "../../mcp/icon.png"
 	// versionDePrueba es la que los tests dan al paso, con la forma de la de
@@ -118,8 +120,9 @@ type compatibilidadLeida struct {
 	Plataformas []string `json:"platforms"`
 }
 
-// fichaDelPluginLeida es plugin.json como lo fija data-model §4: sin
-// `mcpServers`, que la lectura estricta rechazaría (FR-021, FR-022).
+// fichaDelPluginLeida es plugin.json: los campos de data-model §4 y
+// `mcpServers`, con la ruta de la extensión dentro del plugin (ADR 0035,
+// «Prueba con un solo plugin»). La lectura estricta rechaza cualquier otro.
 type fichaDelPluginLeida struct {
 	Nombre      string       `json:"name"`
 	Version     string       `json:"version"`
@@ -127,6 +130,7 @@ type fichaDelPluginLeida struct {
 	Autoria     autoriaLeida `json:"author"`
 	Pagina      string       `json:"homepage"`
 	Licencia    string       `json:"license"`
+	Servidores  string       `json:"mcpServers"`
 }
 
 // manifiestoEsperado es el manifiesto de data-model §3 para esa versión, esa
@@ -168,6 +172,7 @@ func fichaDelPluginEsperada(version, descripcion string) fichaDelPluginLeida {
 		Autoria:     autoriaLeida{Nombre: empaquetado.Autoria},
 		Pagina:      "https://kitlegal.es",
 		Licencia:    "EUPL-1.2",
+		Servidores:  "./" + rutaDelServidorDelPlugin,
 	}
 }
 
@@ -504,21 +509,30 @@ func comprobarLaExtension(t *testing.T, piezas empaquetado.PiezasAEscribir) {
 }
 
 // comprobarElPlugin comprueba el plugin que el paso dejó con esas piezas:
-// plugin.json y cada fichero del árbol, en el orden de fs.WalkDir, byte a byte
-// y con el modo de un fichero, y nada más.
+// plugin.json, la extensión que dejó a su lado y cada fichero del árbol, en el
+// orden de fs.WalkDir, byte a byte y con el modo de un fichero, y nada más.
 func comprobarElPlugin(t *testing.T, piezas empaquetado.PiezasAEscribir, ficheros []string) {
 	t.Helper()
 
 	plugin := leerZip(t, filepath.Join(piezas.Salida, nombreDelPlugin))
 
-	formas := []formaDeEntrada{{Nombre: rutaDeLaFichaDelPlugin, Modo: 0o644}}
+	formas := []formaDeEntrada{
+		{Nombre: rutaDeLaFichaDelPlugin, Modo: 0o644},
+		{Nombre: rutaDelServidorDelPlugin, Modo: 0o644},
+	}
 	for _, fichero := range ficheros {
 		formas = append(formas, formaDeEntrada{Nombre: fichero, Modo: 0o644})
 	}
 
 	require.Equal(t, formas, formasDe(plugin),
-		"el plugin lleva plugin.json y, detrás, cada fichero del árbol con su ruta bajo skills, en el orden de "+
-			"fs.WalkDir, todos con modo 0644 y sin entradas de directorio, y nada más (FR-020, FR-022)")
+		"el plugin lleva plugin.json, la extensión y, detrás, cada fichero del árbol con su ruta bajo skills, en el "+
+			"orden de fs.WalkDir, todos con modo 0644 y sin entradas de directorio, y nada más (FR-020)")
+
+	assert.True(t,
+		bytes.Equal(leerFichero(t, filepath.Join(piezas.Salida, nombreDeLaExtension)),
+			contenidoDe(t, plugin, rutaDelServidorDelPlugin)),
+		"%s es el %s que el paso deja a su lado, byte a byte: el plugin y la extensión llevan el mismo servidor",
+		rutaDelServidorDelPlugin, nombreDeLaExtension)
 
 	for _, fichero := range ficheros {
 		delArbol, err := fs.ReadFile(piezas.Skills, fichero)
@@ -535,8 +549,8 @@ func comprobarElPlugin(t *testing.T, piezas empaquetado.PiezasAEscribir, fichero
 	leerEstricto(t, escrita, &ficha)
 
 	assert.Equal(t, esperada, ficha,
-		"plugin.json lleva cada campo de data-model §4 con su valor, sin `mcpServers` ni ninguno más, con la versión "+
-			"del manifiesto (FR-021, FR-022)")
+		"plugin.json lleva cada campo de data-model §4 con su valor y `mcpServers` con la ruta de la extensión dentro "+
+			"del plugin, y ninguno más, con la versión del manifiesto (FR-021)")
 	assert.Equal(t, conLaFormaDelContrato(t, esperada), string(escrita),
 		"plugin.json va con la forma de contracts/paso.md §5")
 }

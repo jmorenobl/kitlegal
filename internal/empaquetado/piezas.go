@@ -67,6 +67,12 @@ const (
 const (
 	rutaDeLaFichaDelPlugin = ".claude-plugin/plugin.json"
 	carpetaDeSkills        = "skills"
+	// rutaDelServidorDelPlugin es la de la extensión dentro del plugin, entera y
+	// con su nombre: `mcpServers` la nombra con una ruta relativa, que es la
+	// forma con la que la app de escritorio de Claude sincroniza el catálogo; con
+	// la dirección de la release da un error (ADR 0035, «Prueba con un solo
+	// plugin»).
+	rutaDelServidorDelPlugin = "servers/" + nombreDeLaExtension
 )
 
 // Los dos modos de las entradas de los zips y el de los ficheros que el paso
@@ -128,7 +134,7 @@ func escribirPiezas(piezas piezasAEscribir) error {
 		return err
 	}
 
-	plugin, err := pluginDe(piezas)
+	plugin, err := pluginDe(piezas, extension)
 	if err != nil {
 		return err
 	}
@@ -291,9 +297,11 @@ func manifiestoDe(piezas piezasAEscribir) manifiesto {
 }
 
 // fichaDelPlugin es plugin.json: los campos de data-model §4 de H22, en ese
-// orden, y ninguno más. No lleva `mcpServers`: las herramientas llegan con la
-// extensión, y con las dos piezas el servidor estaría dos veces (H22 FR-021,
-// FR-022).
+// orden, y `mcpServers`, con la ruta de la extensión dentro del plugin. H22 lo
+// dejó sin servidor, porque las herramientas de un plugin solo llegaban a las
+// conversaciones con una carpeta elegida; desde que llegan a todas, el plugin
+// lleva las skills y el servidor, y se instala una sola pieza (ADR 0035,
+// «Prueba con un solo plugin»).
 type fichaDelPlugin struct {
 	Nombre      string  `json:"name"`
 	Version     string  `json:"version"`
@@ -301,26 +309,32 @@ type fichaDelPlugin struct {
 	Autoria     autoria `json:"author"`
 	Pagina      string  `json:"homepage"`
 	Licencia    string  `json:"license"`
+	Servidores  string  `json:"mcpServers"`
 }
 
-// pluginDe compone kitlegal-plugin.zip: plugin.json y, detrás, cada fichero de
-// la carpeta de skills del árbol que se le da, con su ruta y en el orden en que
-// fs.WalkDir lo da, y nada más: ni entradas de directorio, ni `bin/`, ni
-// `.mcp.json` (H22 FR-020, FR-022; data-model §4). Todos van con el modo de un
-// fichero, sea cual sea el que el árbol diga de ellos.
-func pluginDe(piezas piezasAEscribir) ([]byte, error) {
-	ficheros := []ficheroDeZip{{
-		ruta: rutaDeLaFichaDelPlugin,
-		modo: modoDeFichero,
-		escribir: documento(fichaDelPlugin{
-			Nombre:      nombreDeLasPiezas,
-			Version:     piezas.Version,
-			Descripcion: piezas.Descripcion,
-			Autoria:     autoria{Nombre: Autoria},
-			Pagina:      paginaDelProyecto,
-			Licencia:    licenciaDelProyecto,
-		}),
-	}}
+// pluginDe compone kitlegal-plugin.zip: plugin.json, la extensión que se le da,
+// byte a byte, y, detrás, cada fichero de la carpeta de skills del árbol, con su
+// ruta y en el orden en que fs.WalkDir lo da, y nada más: ni entradas de
+// directorio, ni `bin/`, ni `.mcp.json` (H22 FR-020; data-model §4). Todos van
+// con el modo de un fichero, sea cual sea el que el árbol diga de ellos: los
+// binarios van dentro de la extensión, con el suyo.
+func pluginDe(piezas piezasAEscribir, extension []byte) ([]byte, error) {
+	ficheros := []ficheroDeZip{
+		{
+			ruta: rutaDeLaFichaDelPlugin,
+			modo: modoDeFichero,
+			escribir: documento(fichaDelPlugin{
+				Nombre:      nombreDeLasPiezas,
+				Version:     piezas.Version,
+				Descripcion: piezas.Descripcion,
+				Autoria:     autoria{Nombre: Autoria},
+				Pagina:      paginaDelProyecto,
+				Licencia:    licenciaDelProyecto,
+				Servidores:  fuenteRelativa + rutaDelServidorDelPlugin,
+			}),
+		},
+		{ruta: rutaDelServidorDelPlugin, modo: modoDeFichero, escribir: copia(extension)},
+	}
 
 	err := fs.WalkDir(piezas.Skills, carpetaDeSkills, func(ruta string, entrada fs.DirEntry, err error) error {
 		if err != nil {

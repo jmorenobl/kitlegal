@@ -1,17 +1,20 @@
 // Package empaquetado es la lógica del paso que empaqueta las dos piezas con
 // las que kitlegal se instala sin terminal (docs/ADR/0035; H22 research.md D1):
 // kitlegal.mcpb, la extensión de escritorio con el servidor MCP dentro, y
-// kitlegal-plugin.zip, el plugin de Claude con las skills. Su programa es
-// cmd/empaquetar, que solo inyecta los argumentos y la salida de error y termina
-// con el código que devuelve Ejecutar.
+// kitlegal-plugin.zip, el plugin de Claude con las skills y, dentro, esa misma
+// extensión. Con el plugin basta: la extensión sigue en la release como la
+// pieza que el plugin lleva y como alternativa si la app dejara de cargar el
+// servidor de un plugin (ADR 0035, «Prueba con un solo plugin»).
+// Su programa es cmd/empaquetar, que solo inyecta los argumentos y la salida de
+// error y termina con el código que devuelve Ejecutar.
 //
 // Tiene dos órdenes (contracts/paso.md §1 de H22):
 //
 //   - piezas escribe los dos zips a partir de los dos binarios que recibe, que
 //     copia sin mirarlos, del icono, de las herramientas que el registro de
 //     applets anuncia por MCP y de las skills empotradas (piezas.go);
-//   - catalogo escribe el marketplace.json de una versión, que apunta al plugin
-//     de la release de esa versión con su huella (catalogo.go).
+//   - catalogo escribe el catálogo de una versión, con el plugin de la release
+//     de esa versión dentro, como carpeta (catalogo.go).
 //
 // Los textos con los que las piezas se presentan viven en textos.go, y en
 // ningún otro sitio (H22 FR-015).

@@ -20,14 +20,14 @@ const (
 	Descripcion = "Tu asistente de IA responde con la ley vigente del BOE y la cita exacta"
 
 	// DescripcionLarga es `long_description` del manifiesto: qué hace la
-	// extensión, que todo corre en el equipo de quien la usa y que hace falta
-	// también el plugin.
+	// extensión, que todo corre en el equipo de quien la usa y que el plugin la
+	// lleva dentro, con las skills: vale suelta y dentro del plugin.
 	DescripcionLarga = "kitlegal da a Claude herramientas para leer la legislación consolidada del Boletín " +
 		"Oficial del Estado y situar una pregunta en su municipio: el texto vigente de cada artículo, con su " +
 		"norma y su bloque para citarlo. Todo corre en tu equipo: lee fuentes públicas, guarda una caché en " +
-		"~/.cache/kitlegal/ y no envía tus preguntas a ningún servidor de kitlegal. Para que las respuestas " +
-		"lleven la cita con su forma, instala también el plugin de kitlegal, que trae las skills " +
-		"(kitlegal-plugin.zip)."
+		"~/.cache/kitlegal/ y no envía tus preguntas a ningún servidor de kitlegal. Las respuestas llevan la " +
+		"cita con su forma con las skills, que llegan con el plugin de kitlegal; el plugin trae también estas " +
+		"herramientas, así que quien lo instala no necesita además esta extensión."
 
 	// Autoria es `author.name` del manifiesto, de plugin.json y de la entrada
 	// del catálogo, y `owner.name` del catálogo: el proyecto, sin nombre de

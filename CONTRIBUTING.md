@@ -293,7 +293,7 @@ falta, sobra o difiere:
 | `binarios-de-la-extension` | la extensión lleva exactamente sus cuatro entradas; `server/kitlegal`, con el bit de ejecución, es un universal de dos arquitecturas, `amd64` y `arm64`, cada una byte a byte el `kitlegal` del archivo de macOS de su arquitectura; y `server/kitlegal.exe` es byte a byte el de `kitlegal_windows_amd64.zip` |
 | `icono-de-la-extension` | `icon.png` de la extensión es, byte a byte, `mcp/icon.png`, un PNG de 512 × 512 px |
 | `servidor-de-la-extension` | con la extensión extraída en una carpeta cuyo nombre lleva espacios y la orden de su manifiesto, el servidor completa el saludo y lista exactamente las herramientas de `tools` |
-| `skills-del-plugin` | el plugin lleva `.claude-plugin/plugin.json` y, bajo `skills/`, los ficheros que deja `kitlegal skills install` del binario del snapshot, byte a byte, y nada más; y `plugin.json` no lleva ningún campo de más —tampoco `mcpServers`—, con la versión y los textos del manifiesto |
+| `skills-del-plugin` | el plugin lleva `.claude-plugin/plugin.json`, `servers/kitlegal.mcpb` —la extensión del snapshot, byte a byte— y, bajo `skills/`, los ficheros que deja `kitlegal skills install` del binario del snapshot, byte a byte, y nada más; y `plugin.json` lleva `mcpServers` con la ruta de esa extensión y ningún campo de más, con la versión y los textos del manifiesto |
 
 Las tres últimas órdenes no están en `make ci`: construyen seis plataformas o leen su `dist/`, y la última
 necesita además Claude Code. Las ejecuta, en cada propuesta de cambio y en cada push a `main`, el trabajo `snapshot`
@@ -312,7 +312,7 @@ falló. Dos ejecuciones sobre las mismas entradas dan los mismos bytes.
 
 | Orden | Qué lee | Qué escribe |
 |---|---|---|
-| `go run ./cmd/empaquetar piezas -version <versión> -macos <binario> -windows <binario> -icono <png> -salida <carpeta>` | los dos binarios, que copia sin mirar; el icono, que tiene que ser un PNG de 512 × 512 px; las herramientas que anuncia el registro de applets; y las skills empotradas | `<carpeta>/kitlegal.mcpb`, con `manifest.json`, `icon.png`, `server/kitlegal` y `server/kitlegal.exe`, y `<carpeta>/kitlegal-plugin.zip`, con `.claude-plugin/plugin.json` y `skills/` |
+| `go run ./cmd/empaquetar piezas -version <versión> -macos <binario> -windows <binario> -icono <png> -salida <carpeta>` | los dos binarios, que copia sin mirar; el icono, que tiene que ser un PNG de 512 × 512 px; las herramientas que anuncia el registro de applets; y las skills empotradas | `<carpeta>/kitlegal.mcpb`, con `manifest.json`, `icon.png`, `server/kitlegal` y `server/kitlegal.exe`, y `<carpeta>/kitlegal-plugin.zip`, con `.claude-plugin/plugin.json`, `servers/kitlegal.mcpb` —esa misma extensión— y `skills/` |
 | `go run ./cmd/empaquetar catalogo -version <versión> -plugin <kitlegal-plugin.zip> -salida <carpeta>` | el `kitlegal-plugin.zip` de esa versión; si su `plugin.json` dice otra, falla | en `<carpeta>`, que tiene que existir y no llevar otro catálogo, `.claude-plugin/marketplace.json` —una entrada, `kitlegal`, cuya fuente es `./plugins/kitlegal`— y, en `plugins/kitlegal/`, cada fichero del zip, byte a byte |
 
 De dónde sale cada cosa, sin ninguna lista escrita a mano:
@@ -323,6 +323,8 @@ De dónde sale cada cosa, sin ninguna lista escrita a mano:
   (`internal/app/herramientas.go`): el nombre y la descripción de cada herramienta que anuncia el
   [servidor MCP](#el-servidor-mcp-internalmcp). Un verbo nuevo llega a la ficha de la extensión sin tocar el paso.
 - **Las skills** del plugin, de lo empotrado en el binario: los ficheros que instala `kitlegal skills install`.
+- **El servidor** del plugin, de la extensión que el paso acaba de componer: va dentro, entera, y `mcpServers` la
+  nombra por su ruta. Con el plugin basta para tener skills y herramientas (ADR 0035, «Prueba con un solo plugin»).
 - **Los textos** —el nombre visible, la descripción corta, la descripción larga y la autoría—, de
   `internal/empaquetado/textos.go`, el único sitio en el que están escritos.
 
