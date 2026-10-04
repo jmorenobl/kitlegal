@@ -10,16 +10,15 @@ export interface Pagina {
   descripcion: string;
 }
 
-// Las direcciones de las dos piezas de la instalación sin terminal son las de
-// la última release (releases/latest/download): no cambian con cada versión.
+// La dirección del plugin de la instalación sin terminal es la de la última
+// release (releases/latest/download): no cambia con cada versión.
 const descargas = "https://github.com/jmorenobl/kitlegal/releases/latest/download";
 
 export const instalar = {
   ruta: "/instalar/",
   titulo: "Instalar kitlegal en la app de Claude, paso a paso",
   descripcion:
-    "Instala kitlegal sin terminal en la app de escritorio de Claude: una extensión y un plugin, con dos descargas y sin saber programar. También con la terminal.",
-  extension: `${descargas}/kitlegal.mcpb`,
+    "Instala kitlegal sin terminal en la app de escritorio de Claude: un plugin, desde su marketplace, sin descargas y sin saber programar. También con la terminal.",
   plugin: `${descargas}/kitlegal-plugin.zip`,
   marketplace: "jmorenobl/kitlegal-plugins",
   macosLinux: [
@@ -31,7 +30,7 @@ export const instalar = {
     "scoop install kitlegal",
     "kitlegal skills install",
   ],
-} satisfies Pagina & { extension: string; plugin: string; marketplace: string; macosLinux: string[]; windows: string[] };
+} satisfies Pagina & { plugin: string; marketplace: string; macosLinux: string[]; windows: string[] };
 
 export const consultas: Pagina = {
   ruta: "/consultas/",
