@@ -46,8 +46,9 @@ const descarga =
       </li>
     </ul>
     <p>
-      En Claude en la web y en el móvil no funciona: ahí no hay dónde instalar la extensión, porque kitlegal corre en tu
-      ordenador. En Linux no hay app de escritorio de Claude: se usa con Claude Code, <a href="#terminal"
+      Una vez instalado, también puedes preguntar desde Claude en el móvil o en la web, mientras tu ordenador esté
+      encendido y con la app de escritorio abierta: kitlegal sigue corriendo ahí, no en el móvil. Con el ordenador
+      apagado no funciona. En Linux no hay app de escritorio de Claude: se usa con Claude Code, <a href="#terminal"
         >con la terminal</a
       >. En Windows, ChatGPT, Codex y Antigravity está <a href="#sin-probar">sin probar</a>.
     </p>
@@ -81,7 +82,7 @@ const descarga =
 
     <h2 id="paso2">Paso 2: añade el plugin</h2>
     <p>Lleva las <em>skills</em>: las instrucciones con las que Claude sabe cuándo consultar el BOE y cómo citarlo.</p>
-    <h3>Lo recomendado: desde el marketplace, y se actualiza solo</h3>
+    <h3>Lo recomendado: desde el marketplace</h3>
     <ol class="space-y-2 [&>li]:list-decimal!">
       <li>
         En la app de Claude, en el modo de chat y no en Code, abre <strong>Customize &gt; Plugins &gt; Add</strong>. Lo
@@ -95,12 +96,14 @@ const descarga =
     </ol>
     <p>
       Al añadir el marketplace, la app avisa también de que los plugins instalados desde tiendas no están controlados por
-      Anthropic. Vale lo mismo que para el aviso del paso 1.
+      Anthropic. Vale lo mismo que para el aviso del paso 1. Con el marketplace añadido, <a href="#actualizar"
+        >actualizar el plugin</a
+      > son dos clics, sin descargar nada.
     </p>
     <h3>Si prefieres no añadir un marketplace</h3>
     <p>
       Descarga el plugin y súbelo en <strong>Customize &gt; Plugins &gt; Add &gt; Upload plugin</strong>. Lleva las mismas
-      skills, pero no se actualiza solo: con cada versión nueva tendrás que subirlo otra vez.
+      skills, pero con cada versión nueva tendrás que descargarlo y subirlo otra vez.
     </p>
     <p>
       <a
@@ -130,7 +133,8 @@ const descarga =
       </li>
       <li>
         <strong>La respuesta empieza por «⚠ SIN CONSULTA AL BOE».</strong> Claude tiene las skills y ninguna
-        herramienta: falta la extensión del paso 1, o estás en Claude en la web o en el móvil, donde no funciona.
+        herramienta: falta la extensión del paso 1, o preguntas desde el móvil o la web con el ordenador apagado,
+        dormido o con la app de escritorio cerrada.
       </li>
       <li>
         <strong>Otra cosa.</strong> Escríbenos a <a href={`mailto:${CORREO}`}>{CORREO}</a> y cuéntanos qué has hecho y
@@ -138,12 +142,24 @@ const descarga =
       </li>
     </ul>
 
-    <h2>Actualizar</h2>
+    <h2 id="actualizar">Actualizar</h2>
     <p>
-      La extensión: descarga otra vez <code>kitlegal.mcpb</code> con el botón del paso 1, que da siempre la última
-      versión, y ábrelo. El plugin: si añadiste el marketplace, se actualiza solo; si subiste el zip, sube el nuevo. Así
-      está previsto, y nadie lo ha probado todavía con una versión nueva: si algo no se actualiza, cuéntanoslo.
+      La app de Claude no avisa de que hay una versión nueva de kitlegal ni la instala sola, tampoco con «Sincronizar
+      automáticamente» activado. La última versión es la que ves al principio de esta página: {version}.
     </p>
+    <ul>
+      <li>
+        <strong>El plugin, si añadiste el marketplace.</strong> En <strong>Customize &gt; Plugins</strong>, abre kitlegal,
+        pulsa el menú de los tres puntos y elige «Buscar actualizaciones». En menos de un minuto se enciende el botón
+        «Actualizar»: púlsalo.
+      </li>
+      <li><strong>El plugin, si subiste el zip.</strong> Descarga el nuevo con el botón del paso 2 y súbelo.</li>
+      <li>
+        <strong>La extensión.</strong> Descarga otra vez <code>kitlegal.mcpb</code> con el botón del paso 1, que da
+        siempre la última versión, y ábrelo. Así está previsto, y nadie lo ha probado todavía sobre una versión ya
+        instalada: si no se actualiza, cuéntanoslo.
+      </li>
+    </ul>
 
     <h2 id="terminal">Con la terminal: Claude Code y Linux</h2>
     <p>
