@@ -237,8 +237,10 @@ terminal (ADR 0034), y porque actualizar el plugin actualiza también el servido
 
 Lo que cambia con ello:
 
-- **`kitlegal.mcpb` se sigue publicando suelto**, para quien solo quiera las herramientas. Quien instala el plugin no
-  la necesita, y quien la tenía instalada la desinstala: con las dos, el servidor está dos veces.
+- **`kitlegal.mcpb` sigue en la release y deja de ofrecerse a quien instala.** Es la pieza que el plugin lleva dentro
+  y la que comprueba `humo`, y es la alternativa si la app dejara de cargar el servidor de un plugin, un
+  comportamiento que su documentación no recoge y que ya cambió una vez. Sola da herramientas sin skills, y con el
+  plugin, el servidor dos veces: quien la tenía instalada la desinstala.
 - **El catálogo guarda ya los binarios**, dentro de la extensión, y deja de ser solo texto: unos 41 MB por release en
   un repositorio git. La extensión que lleva es la de la release, cuya huella está en `checksums.txt`. El peso se
   acumula por ahora; reescribir el historial en cada release queda por probar con la app y con Claude Code.
