@@ -1,8 +1,8 @@
 ---
 // Instalar kitlegal. El camino principal es el de la app de escritorio de
-// Claude, sin terminal: la extensión y el plugin, cada uno con su botón de
-// descarga a la última release. Después, la terminal para Claude Code y Linux,
-// y lo que nadie ha probado todavía (README, «Instalar sin terminal»).
+// Claude, sin terminal: el plugin, que lleva las skills y el servidor, desde su
+// marketplace. Después, la terminal para Claude Code y Linux, y lo que nadie ha
+// probado todavía (README, «Instalar sin terminal»).
 import Icono from "../../components/Icono.astro";
 import Orden from "../../components/Orden.astro";
 import Prosa from "../../components/Prosa.astro";
@@ -27,7 +27,7 @@ const descarga =
   <Prosa
     etiqueta={`Instalar · ${version}`}
     titulo="Instalar kitlegal, paso a paso"
-    entradilla="Dos descargas que se abren en la app de escritorio de Claude, sin terminal y sin saber programar. Se hace una sola vez; después preguntas a Claude como siempre."
+    entradilla="Un plugin que se añade a la app de escritorio de Claude, sin terminal, sin descargas y sin saber programar. Se hace una sola vez; después preguntas a Claude como siempre."
     ilustracion={{
       nombre: "instalar",
       alt: "Un portátil con una ventana de terminal y, sobre él, tres pasos; el último, marcado como hecho.",
@@ -40,9 +40,8 @@ const descarga =
         dentro: le da a Claude la ley vigente.
       </li>
       <li>
-        Dos piezas, y hacen falta las dos: <strong>la extensión</strong>, con las herramientas con las que Claude lee el
-        BOE, y <strong>el plugin</strong>, con las <em>skills</em>: las instrucciones con las que sabe cuándo consultarlo
-        y cómo citarlo.
+        Una sola pieza, <strong>el plugin de kitlegal</strong>. Lleva las herramientas con las que Claude lee el BOE y
+        las <em>skills</em>: las instrucciones con las que sabe cuándo consultarlo y cómo citarlo.
       </li>
     </ul>
     <p>
@@ -53,24 +52,23 @@ const descarga =
       >. En Windows, ChatGPT, Codex y Antigravity está <a href="#sin-probar">sin probar</a>.
     </p>
 
-    <h2 id="paso1">Paso 1: instala la extensión</h2>
-    <p>Lleva las herramientas: el programa que lee el BOE y comprueba si cada norma sigue en vigor.</p>
-    <p>
-      <a href={pagina.extension} class:list={[descarga, "bg-noche text-white! hover:bg-noche-2"]}>
-        <Icono nombre="download" class="size-[18px] text-sello" />
-        Descargar kitlegal.mcpb
-      </a>
-    </p>
-    <p>
-      Ábrelo con doble clic. La app de Claude te enseña una ficha con el nombre, el icono, la descripción y la lista de
-      herramientas de kitlegal, y un botón para instalarla.
-    </p>
+    <h2 id="paso1">Paso 1: añade el plugin</h2>
+    <ol class="space-y-2 [&>li]:list-decimal!">
+      <li>
+        En la app de Claude, en el modo de chat y no en Code, abre <strong>Customize &gt; Plugins &gt; Add</strong>. Lo
+        que se añade desde Code no llega a las conversaciones de chat.
+      </li>
+      <li>
+        Añade el marketplace <code class="select-all">{pagina.marketplace}</code>.
+      </li>
+      <li>Instala desde él el plugin <strong>kitlegal</strong>.</li>
+    </ol>
     <div class="space-y-3 rounded-lg border border-sello/30 bg-sello/5 p-5 text-[0.95rem]">
-      <h3 class="mt-0!">Antes de pulsar «Instalar»: el aviso en rojo</h3>
+      <h3 class="mt-0!">Antes de añadirlo: el aviso en rojo</h3>
       <p>
-        La app avisa en rojo de que instalarla «otorgará a esta extensión acceso a todo lo que hay en tu computadora» y
-        de que su desarrollador no está verificado por Anthropic. El aviso es de la app, no de kitlegal, y dice lo que
-        una extensión <em>podría</em> hacer, porque es un programa que corre en tu equipo. Lo que kitlegal hace de verdad:
+        Al añadir el marketplace, la app avisa en rojo de que los plugins instalados desde tiendas no están controlados
+        por Anthropic. El aviso es de la app, no de kitlegal, y sale con cualquier plugin que no venga de su directorio.
+        kitlegal lleva dentro un programa que corre en tu equipo. Lo que hace de verdad:
       </p>
       <ul>
         <li>Lee fuentes públicas: hoy, el BOE.</li>
@@ -80,30 +78,56 @@ const descarga =
       <p>Es software libre: su código está en <a href={REPOSITORIO}>GitHub</a>.</p>
     </div>
 
-    <h2 id="paso2">Paso 2: añade el plugin</h2>
-    <p>Lleva las <em>skills</em>: las instrucciones con las que Claude sabe cuándo consultar el BOE y cómo citarlo.</p>
-    <h3>Lo recomendado: desde el marketplace</h3>
-    <ol class="space-y-2 [&>li]:list-decimal!">
-      <li>
-        En la app de Claude, en el modo de chat y no en Code, abre <strong>Customize &gt; Plugins &gt; Add</strong>. Lo
-        que se añade desde Code no llega a las conversaciones de chat.
-      </li>
-      <li>
-        Añade el marketplace <code class="select-all">{pagina.marketplace}</code>, con «Sincronizar automáticamente»
-        activado.
-      </li>
-      <li>Instala desde él el plugin <strong>kitlegal</strong>.</li>
-    </ol>
+    <h2 id="paso2">Paso 2: cierra la app y ábrela otra vez</h2>
     <p>
-      Al añadir el marketplace, la app avisa también de que los plugins instalados desde tiendas no están controlados por
-      Anthropic. Vale lo mismo que para el aviso del paso 1. Con el marketplace añadido, <a href="#actualizar"
-        >actualizar el plugin</a
-      > son dos clics, sin descargar nada.
+      Ciérrala del todo —en un Mac, con Cmd + Q— y vuelve a abrirla. Las herramientas de kitlegal arrancan cuando la app
+      se abre: sin este paso, Claude tendría las instrucciones y ninguna herramienta hasta una hora después.
     </p>
-    <h3>Si prefieres no añadir un marketplace</h3>
+
+    <h2 id="paso3">Paso 3: haz tu primera pregunta</h2>
+    <p>Abre una conversación nueva y pregunta con tus palabras, por ejemplo:</p>
+    <p class="rounded-sm border border-linea bg-panel p-4 font-serif italic">
+      «Me han notificado una resolución y quiero recurrirla en alzada: ¿qué plazo tengo?»
+    </p>
     <p>
-      Descarga el plugin y súbelo en <strong>Customize &gt; Plugins &gt; Add &gt; Upload plugin</strong>. Lleva las mismas
-      skills, pero con cada versión nueva tendrás que descargarlo y subirlo otra vez.
+      La primera vez, Claude te pedirá permiso para usar las herramientas de kitlegal: dáselo. Leerá con ellas el texto
+      consolidado del BOE y te responderá citando la norma y el artículo, de modo que puedas comprobarlo. Si la norma ya
+      no está en vigor, te lo dirá antes de nada.
+    </p>
+
+    <h2>Si algo no sale</h2>
+    <ul>
+      <li>
+        <strong>La respuesta empieza por «⚠ SIN CONSULTA AL BOE».</strong> Claude tiene las skills y ninguna
+        herramienta: no has cerrado y abierto la app después de instalar el plugin, o preguntas desde el móvil o la web
+        con el ordenador apagado, dormido o con la app de escritorio cerrada.
+      </li>
+      <li>
+        <strong>Ya tenías la extensión de kitlegal</strong>, de una versión anterior. Desinstálala en
+        <strong>Settings &gt; Extensions</strong>: el plugin ya trae las herramientas, y con las dos las tendrías dos
+        veces.
+      </li>
+      <li>
+        <strong>Otra cosa.</strong> Escríbenos a <a href={`mailto:${CORREO}`}>{CORREO}</a> y cuéntanos qué has hecho y
+        qué ha salido. No hace falta que incluyas datos personales ni de tu asunto.
+      </li>
+    </ul>
+
+    <h2 id="actualizar">Actualizar</h2>
+    <p>
+      La app de Claude no avisa de que hay una versión nueva de kitlegal ni la instala sola. La última versión es la
+      que ves al principio de esta página: {version}.
+    </p>
+    <p>
+      En <strong>Customize &gt; Plugins</strong>, abre kitlegal, pulsa el menú de los tres puntos y elige «Buscar
+      actualizaciones». En menos de un minuto se enciende el botón «Actualizar»: púlsalo. Las herramientas pasan solas a
+      la versión nueva en menos de una hora, o al momento si cierras y abres la app.
+    </p>
+
+    <h2 id="otras">Si prefieres no añadir un marketplace</h2>
+    <p>
+      Descarga el plugin y súbelo en <strong>Customize &gt; Plugins &gt; Add &gt; Upload plugin</strong>. Es el mismo
+      plugin, pero con cada versión nueva tendrás que descargarlo y subirlo otra vez.
     </p>
     <p>
       <a
@@ -114,52 +138,6 @@ const descarga =
         Descargar kitlegal-plugin.zip
       </a>
     </p>
-
-    <h2 id="paso3">Paso 3: haz tu primera pregunta</h2>
-    <p>Abre una conversación nueva y pregunta con tus palabras, por ejemplo:</p>
-    <p class="rounded-sm border border-linea bg-panel p-4 font-serif italic">
-      «Me han notificado una resolución y quiero recurrirla en alzada: ¿qué plazo tengo?»
-    </p>
-    <p>
-      Claude leerá con kitlegal el texto consolidado del BOE y te responderá citando la norma y el artículo, de modo que
-      puedas comprobarlo. Si la norma ya no está en vigor, te lo dirá antes de nada.
-    </p>
-
-    <h2>Si algo no sale</h2>
-    <ul>
-      <li>
-        <strong>Claude responde sin citar el BOE.</strong> Comprueba que tienes las dos piezas: solo con la extensión,
-        Claude lee el BOE, pero la respuesta puede no llevar la cita con su forma. Pregunta en una conversación nueva.
-      </li>
-      <li>
-        <strong>La respuesta empieza por «⚠ SIN CONSULTA AL BOE».</strong> Claude tiene las skills y ninguna
-        herramienta: falta la extensión del paso 1, o preguntas desde el móvil o la web con el ordenador apagado,
-        dormido o con la app de escritorio cerrada.
-      </li>
-      <li>
-        <strong>Otra cosa.</strong> Escríbenos a <a href={`mailto:${CORREO}`}>{CORREO}</a> y cuéntanos qué has hecho y
-        qué ha salido. No hace falta que incluyas datos personales ni de tu asunto.
-      </li>
-    </ul>
-
-    <h2 id="actualizar">Actualizar</h2>
-    <p>
-      La app de Claude no avisa de que hay una versión nueva de kitlegal ni la instala sola, tampoco con «Sincronizar
-      automáticamente» activado. La última versión es la que ves al principio de esta página: {version}.
-    </p>
-    <ul>
-      <li>
-        <strong>El plugin, si añadiste el marketplace.</strong> En <strong>Customize &gt; Plugins</strong>, abre kitlegal,
-        pulsa el menú de los tres puntos y elige «Buscar actualizaciones». En menos de un minuto se enciende el botón
-        «Actualizar»: púlsalo.
-      </li>
-      <li><strong>El plugin, si subiste el zip.</strong> Descarga el nuevo con el botón del paso 2 y súbelo.</li>
-      <li>
-        <strong>La extensión.</strong> Descarga otra vez <code>kitlegal.mcpb</code> con el botón del paso 1, que da
-        siempre la última versión, y ábrelo. Así está previsto, y nadie lo ha probado todavía sobre una versión ya
-        instalada: si no se actualiza, cuéntanoslo.
-      </li>
-    </ul>
 
     <h2 id="terminal">Con la terminal: Claude Code y Linux</h2>
     <p>
@@ -217,8 +195,8 @@ const descarga =
     </p>
     <ul>
       <li>
-        <strong>Windows, en la app de escritorio de Claude</strong>: los pasos 1 y 2 de esta página.
-        <code>kitlegal.mcpb</code> lleva ya el programa para Windows.
+        <strong>Windows, en la app de escritorio de Claude</strong>: los tres pasos de esta página. El plugin lleva ya
+        el programa para Windows.
       </li>
       <li>
         <strong>La app de escritorio de ChatGPT, Codex y Antigravity</strong>: con el programa instalado <a
@@ -254,9 +232,9 @@ const descarga =
     <h3 id="agentes">Dónde quedan las skills y qué asistente las lee</h3>
     <ul>
       <li>
-        <strong>La app de escritorio de Claude</strong> carga las skills de tu cuenta, las del plugin del paso 2, y no
-        las de tu disco: lo que instala <code>kitlegal skills install</code> no le llega. Las herramientas se las da la
-        extensión del paso 1, sin nada que declarar.
+        <strong>La app de escritorio de Claude</strong> carga las skills de tu cuenta, las del plugin del paso 1, y no
+        las de tu disco: lo que instala <code>kitlegal skills install</code> no le llega. Las herramientas se las da ese
+        mismo plugin, sin nada que declarar.
       </li>
       <li>
         <strong>Claude Code</strong> las carga de <code>.claude/skills/</code> y, con <code>-g</code>, de{" "}

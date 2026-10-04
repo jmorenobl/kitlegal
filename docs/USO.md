@@ -10,6 +10,23 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-04 · Con la v0.5.0, el plugin del marketplace basta: un solo servidor, y la cita con su forma
+
+- **Qué se pidió.** La prueba del plugin con el servidor dentro (#115) con el marketplace real, en un equipo que
+  tenía la extensión v0.4.1 y el plugin de `jmorenobl/kitlegal-plugins`: desinstalar la extensión, «Buscar
+  actualizaciones» y «Actualizar» en la ficha del plugin, cerrar y abrir la app de escritorio de Claude (2.19675.0,
+  macOS) y preguntar por el art. 21 de la Ley 39/2015 en una conversación nueva.
+- **Qué pasó.** La respuesta llevó `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`, y Claude pidió permiso
+  para usar las herramientas la primera vez. En el registro de la app: la extensión se desinstala y su servidor se
+  cierra (22:53:27), el plugin queda instalado en la versión nueva (22:53:58), la app se abre (22:54:44) y cinco
+  segundos después está conectada a `plugin:kitlegal:kitlegal`, con sus diez herramientas. Queda un solo servidor de
+  la app, lanzado desde la caché del plugin, y es `kitlegal v0.5.0`.
+- **Qué falta.** Es una actualización sobre un equipo que ya tenía kitlegal, no una instalación desde cero con el
+  plugin publicado. La copia del plugin que Claude Code recibe de la cuenta seguía sin el servidor dos minutos
+  después, sin volver a mirarla. Y la app de Claude en Windows sigue sin probar.
+- **Qué se hizo.** La web y el README explican la instalación con una sola pieza, el plugin, y dejan de ofrecer la
+  extensión.
+
 ### 2026-10-04 · El job de evals en rojo por dos respuestas correctas: lo que una lista de palabras no puede medir
 
 - **Qué se pidió.** Nada: la primera medición del job de evals desde el cierre de H22, al abrir una propuesta de

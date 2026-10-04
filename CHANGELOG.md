@@ -12,6 +12,17 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **La web y el README explican la instalación con una sola pieza, el plugin.** https://kitlegal.es/instalar/, la
+  portada, `/llms.txt` y el README pasan de dos pasos —la extensión y el plugin— a uno: en la app de escritorio de
+  Claude, añadir el marketplace `jmorenobl/kitlegal-plugins`, instalar el plugin `kitlegal` y cerrar y abrir la app.
+  Ya no ofrecen `kitlegal.mcpb`, que sigue en cada release; `kitlegal-plugin.zip` queda para quien prefiera no añadir
+  un marketplace. A quien tenía la extensión le dicen que la desinstale, y que tras actualizar el plugin las
+  herramientas pasan solas a la versión nueva. Probado el 2026-10-04 con la v0.5.0 y el marketplace real, en la app
+  de escritorio de Claude en macOS: desinstalada la extensión y actualizado el plugin, la app arranca al abrirse un
+  solo servidor, el del plugin, con sus diez herramientas, y la respuesta lleva la cita con su forma (`docs/USO.md`).
+
 ## [0.5.0] - 2026-10-04
 
 ### Cambiado

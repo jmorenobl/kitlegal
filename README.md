@@ -57,43 +57,42 @@ autonómico y su boletín provincial no están configurados, en lugar de inventa
 Es la instalación oficial de kitlegal, y está probada en la **app de escritorio de Claude en macOS**. En Windows los
 pasos son los mismos y nadie los ha probado ([Otras instalaciones, sin probar](#otras-instalaciones-sin-probar)).
 
-Son dos pasos y dos ficheros, los de la última release, siempre en la misma dirección:
+Es una sola pieza, el plugin de kitlegal, y no hay que descargar nada:
 
-1. **La extensión, que lleva las herramientas.** Descarga
-   [`kitlegal.mcpb`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal.mcpb) y ábrelo con doble
-   clic. La app de Claude enseña una ficha con el nombre, el icono, la descripción y la lista de herramientas de
-   kitlegal, y un botón para instalarla. Enseña también un aviso en rojo, que se explica más abajo.
-2. **El plugin, que lleva las skills.** En *Customize > Plugins > Add*, estando en el modo de chat de la app y no en
-   Code, añade el marketplace `jmorenobl/kitlegal-plugins`, con «Sincronizar automáticamente» activado, e instala
-   desde él el plugin `kitlegal`. Lo que se añade desde Code no llega a las conversaciones de chat. Si prefieres no
-   añadir un marketplace, descarga
-   [`kitlegal-plugin.zip`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal-plugin.zip) y
-   súbelo en *Customize > Plugins > Add > Upload plugin*: lleva las mismas skills, pero con cada versión nueva hay que
-   descargarlo y subirlo otra vez.
+1. **Añade el plugin.** En *Customize > Plugins > Add*, estando en el modo de chat de la app y no en Code, añade el
+   marketplace `jmorenobl/kitlegal-plugins` e instala desde él el plugin `kitlegal`. Lo que se añade desde Code no
+   llega a las conversaciones de chat. El plugin lleva las skills y, dentro, el servidor con las herramientas.
+2. **Cierra la app del todo y ábrela otra vez.** Las herramientas arrancan cuando la app se abre; sin este paso
+   tardan hasta una hora en estar.
 
-Después abre una conversación nueva y pregunta.
+Después abre una conversación nueva y pregunta. La primera vez, Claude pide permiso para usar las herramientas.
 
-**El aviso rojo.** Al instalar la extensión, la app avisa en rojo de que instalarla «otorgará a esta extensión acceso
-a todo lo que hay en tu computadora» y de que su desarrollador no está verificado por Anthropic. El aviso es de la
-app, no de kitlegal, y dice lo que una extensión podría hacer, porque es un programa que corre en tu equipo. Lo que
-kitlegal hace de verdad: lee fuentes públicas —hoy, el BOE—, escribe solo en `~/.cache/kitlegal/`, donde guarda lo
-que ya ha leído, y no envía nada a ningún servidor propio.
+**El aviso rojo.** Al añadir el marketplace, la app avisa en rojo de que los plugins instalados desde tiendas no
+están controlados por Anthropic. El aviso es de la app, no de kitlegal, y sale con cualquier plugin que no venga de
+su directorio. kitlegal lleva dentro un programa que corre en tu equipo. Lo que hace de verdad: lee fuentes públicas
+—hoy, el BOE—, escribe solo en `~/.cache/kitlegal/`, donde guarda lo que ya ha leído, y no envía nada a ningún
+servidor propio.
 
-**Hacen falta las dos piezas.** Con las dos, la respuesta lleva la cita con su forma:
-`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`. Solo con la extensión hay herramientas, y Claude lee el
-BOE, pero la respuesta puede no llevar la cita con esa forma. Solo con el plugin hay skills y ninguna herramienta:
-Claude no puede consultar nada, y la respuesta es la línea `⚠ SIN CONSULTA AL BOE:` de más abajo.
+**Con el plugin basta.** La respuesta lleva la cita con su forma:
+`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`. Hasta la v0.4.1 eran dos piezas, la extensión y el
+plugin: si tienes instalada la extensión `kitlegal`, desinstálala en *Settings > Extensions*, porque el plugin trae
+las mismas herramientas y con las dos el servidor está dos veces.
+
+**Si prefieres no añadir un marketplace**, descarga
+[`kitlegal-plugin.zip`](https://github.com/jmorenobl/kitlegal/releases/latest/download/kitlegal-plugin.zip) y súbelo
+en *Customize > Plugins > Add > Upload plugin*: es el mismo plugin, pero con cada versión nueva hay que descargarlo y
+subirlo otra vez.
 
 **Actualizar.** La app no avisa de que hay una versión nueva ni la instala sola, tampoco con «Sincronizar
-automáticamente» activado (probado el 2026-10-04: en catorce horas no la trajo). El plugin, si añadiste el
-marketplace: en *Customize > Plugins*, abre kitlegal, menú de los tres puntos, «Buscar actualizaciones», y cuando se
-encienda el botón, «Actualizar»; si lo subiste a mano, sube el zip nuevo. La extensión, lo previsto, que nadie ha
-probado todavía sobre una versión ya instalada: descargar el `kitlegal.mcpb` de la release nueva y abrirlo.
+automáticamente» activado (probado el 2026-10-04: en catorce horas no la trajo). En *Customize > Plugins*, abre
+kitlegal, menú de los tres puntos, «Buscar actualizaciones», y cuando se encienda el botón, «Actualizar». Las
+herramientas pasan solas a la versión nueva en menos de una hora, o al momento al cerrar y abrir la app. Si subiste
+el zip, sube el nuevo.
 
 **Si ya tienes las skills con `kitlegal skills install`** y además instalas el plugin, en Claude Code las tienes dos
 veces: las de tu disco y las del plugin, que llega también a Claude Code.
 
-**En Linux** no hay app de escritorio de Claude en la que abrir la extensión: se usa el programa instalado, con
+**En Linux** no hay app de escritorio de Claude en la que instalar el plugin: se usa el programa instalado, con
 Claude Code, como hasta ahora ([Instalar con la terminal](#instalar-con-la-terminal)).
 
 **Desde Claude en el móvil y en la web** se puede preguntar una vez instalado, mientras tu equipo esté encendido y
@@ -156,8 +155,9 @@ Así se haría en cada uno de estos, y nadie lo ha probado: lo que sigue sale de
 documentación de cada programa. Si lo intentas, cuéntanos si te funciona o qué falla, en
 [las incidencias](https://github.com/jmorenobl/kitlegal/issues) o en `info@kitlegal.es`.
 
-- **La extensión en Windows**: los dos pasos de [Instalar sin terminal](#instalar-sin-terminal), en la app de
-  escritorio de Claude para Windows. `kitlegal.mcpb` lleva ya el programa para Windows.
+- **El plugin en Windows**: los dos pasos de [Instalar sin terminal](#instalar-sin-terminal), en la app de
+  escritorio de Claude para Windows. El plugin lleva ya el programa para Windows, que funciona en un Windows de
+  prueba; lo que nadie ha probado es instalarlo en la app.
 
 - **La app de escritorio de ChatGPT y Codex**, con el programa instalado
   ([Instalar con la terminal](#instalar-con-la-terminal)). Codex lee las skills de `.agents/skills/` cuando abres el
@@ -204,7 +204,7 @@ que su orden: el texto con su fuente, su dirección, su fecha de consulta y su h
 siempre que tu agente la tiene, y la orden cuando no.
 
 El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
-ningún puerto. En la app de escritorio de Claude lo trae la extensión de
+ningún puerto. En la app de escritorio de Claude lo trae el plugin de
 [Instalar sin terminal](#instalar-sin-terminal), y no hay nada que declarar. En **Claude Code** necesita el programa
 instalado y se declara una vez:
 
