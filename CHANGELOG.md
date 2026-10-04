@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-04
+
 ### Cambiado
 
 - **El plugin lleva el servidor dentro: kitlegal se instala en la app de Claude con una sola pieza.**
