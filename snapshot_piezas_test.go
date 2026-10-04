@@ -58,9 +58,12 @@ const (
 	servidorDeLaExtension   = "server/kitlegal"
 	servidorDeWindows       = "server/kitlegal.exe"
 
-	// fichaDelPlugin es la entrada del plugin que no es de ninguna skill
-	// (FR-020).
-	fichaDelPlugin = ".claude-plugin/plugin.json"
+	// fichaDelPlugin y servidorDelPlugin son las dos entradas del plugin que no
+	// son de ninguna skill: su ficha (FR-020) y la extensión, que lleva dentro
+	// desde que se instala una sola pieza (ADR 0035, «Prueba con un solo
+	// plugin»).
+	fichaDelPlugin    = ".claude-plugin/plugin.json"
+	servidorDelPlugin = "servers/kitlegal.mcpb"
 
 	// catalogoDelPlugin es el catálogo desde el que se instala el plugin, con
 	// la ruta que tiene en su repositorio y en la que `claude plugin validate`
@@ -192,8 +195,9 @@ type compatibilidadLeida struct {
 	Plataformas []string `json:"platforms"`
 }
 
-// fichaDelPluginLeida es plugin.json como lo fija data-model §4 de H22: sin
-// `mcpServers`, que la lectura estricta rechaza (FR-021, FR-022).
+// fichaDelPluginLeida es plugin.json: los campos de data-model §4 de H22 y
+// `mcpServers`, con la ruta de la extensión dentro del plugin (ADR 0035,
+// «Prueba con un solo plugin»). La lectura estricta rechaza cualquier otro.
 type fichaDelPluginLeida struct {
 	Nombre      string       `json:"name"`
 	Version     string       `json:"version"`
@@ -201,6 +205,7 @@ type fichaDelPluginLeida struct {
 	Autoria     autoriaLeida `json:"author"`
 	Pagina      string       `json:"homepage"`
 	Licencia    string       `json:"license"`
+	Servidores  string       `json:"mcpServers"`
 }
 
 // zipDelSnapshot es un zip de dist/, abierto: una de las dos piezas o el
@@ -710,13 +715,14 @@ func listarHerramientas(ctx context.Context, salida io.Reader, entrada io.WriteC
 	return anunciadas, nil
 }
 
-// probarSkillsDelPlugin: las entradas del plugin son exactamente plugin.json
-// y, bajo skills/, los ficheros que `kitlegal skills install` del binario del
-// snapshot deja en un directorio vacío, sin su manifiesto, byte a byte —de
-// modo que no lleva `bin/`, `.mcp.json` ni ningún `.mcpb`—; y plugin.json,
-// leído de forma estricta, lleva cada campo de data-model §4 y ninguno más
-// —tampoco `mcpServers`—, con la versión y los textos del manifiesto de la
-// extensión (H22 FR-063, SC-007).
+// probarSkillsDelPlugin: las entradas del plugin son exactamente plugin.json,
+// la extensión del snapshot, byte a byte, y, bajo skills/, los ficheros que
+// `kitlegal skills install` del binario del snapshot deja en un directorio
+// vacío, sin su manifiesto, byte a byte —de modo que no lleva `bin/` ni
+// `.mcp.json`—; y plugin.json, leído de forma estricta, lleva cada campo de
+// data-model §4 y `mcpServers` con la ruta de esa extensión, y ninguno más, con
+// la versión y los textos de su manifiesto (H22 FR-063, SC-007; ADR 0035,
+// «Prueba con un solo plugin»).
 func probarSkillsDelPlugin(t *testing.T, snapshot snapshotLeido) {
 	t.Helper()
 
@@ -724,14 +730,20 @@ func probarSkillsDelPlugin(t *testing.T, snapshot snapshotLeido) {
 	manifiesto := manifiestoDe(t, abrirZip(t, snapshot, extensionDelSnapshot))
 	instaladas := skillsQueInstala(t, binarioDeLaPlataforma(t, snapshot))
 
-	esperadas := []string{fichaDelPlugin}
+	esperadas := []string{fichaDelPlugin, servidorDelPlugin}
 	for ruta := range instaladas {
 		esperadas = append(esperadas, path.Join(carpetaDeSkills, ruta))
 	}
 
 	require.ElementsMatchf(t, esperadas, plugin.entradas(),
-		"las entradas de %s no son exactamente %s y, bajo %s/, los ficheros que instala `kitlegal skills install` (FR-063)",
-		plugin.ruta, fichaDelPlugin, carpetaDeSkills)
+		"las entradas de %s no son exactamente %s, %s y, bajo %s/, los ficheros que instala `kitlegal skills install` (FR-063)",
+		plugin.ruta, fichaDelPlugin, servidorDelPlugin, carpetaDeSkills)
+
+	extension, err := fs.ReadFile(snapshot.raiz, path.Join(carpetaDelSnapshot, extensionDelSnapshot))
+	require.NoError(t, err)
+
+	mismosBytes(t, extension, plugin.leer(t, servidorDelPlugin), servidorDelPlugin+" de "+plugin.ruta,
+		"la extensión del snapshot: el plugin y la extensión llevan el mismo servidor")
 
 	for ruta, instalada := range instaladas {
 		entrada := path.Join(carpetaDeSkills, ruta)
@@ -751,9 +763,10 @@ func probarSkillsDelPlugin(t *testing.T, snapshot snapshotLeido) {
 		Autoria:     manifiesto.Autoria,
 		Pagina:      paginaDeLasPiezas,
 		Licencia:    licenciaDelProyecto,
+		Servidores:  "./" + servidorDelPlugin,
 	}, ficha,
 		"plugin.json no lleva cada campo de data-model §4 con su valor, con la versión y los textos del manifiesto de "+
-			"la extensión (FR-063)")
+			"la extensión, y `mcpServers` con la ruta de la extensión dentro del plugin (FR-063)")
 }
 
 // skillsQueInstala ejecuta `kitlegal skills install` con ese binario en un

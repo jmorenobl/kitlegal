@@ -206,6 +206,49 @@ recomendada de instalar el plugin, y el zip, la alternativa.
 Siguen sin probar los pendientes 2 —que el marketplace entregue la versión siguiente y cómo se actualiza la
 extensión—, 3 y 4.
 
+## Prueba con un solo plugin (2026-10-03 y 2026-10-04)
+
+Cuatro pruebas antes de mejorar la instalación, con la app de escritorio de Claude 2.19675.0 en macOS, Claude Code
+2.1.284 y un plugin de prueba en un catálogo aparte (`docs/USO.md`, 2026-10-04):
+
+- **Las herramientas de un plugin llegan ya a toda conversación.** El 2026-10-01 solo llegaban a la que tenía elegida
+  una carpeta del equipo, y por eso se eligieron dos piezas. Con `"mcpServers": "./servers/kitlegal.mcpb"` y la
+  extensión dentro del plugin, una conversación de chat sin carpeta carga la skill, llama a las herramientas del
+  servidor del plugin y responde con la cita. El servidor corre en el equipo, lanzado por la app. A Claude Code el
+  plugin le llega sincronizado desde la cuenta, con su servidor.
+- **Por dirección, no.** Con `mcpServers` apuntando por `https://` al `kitlegal.mcpb` de la release, la app da
+  «Error al sincronizar el marketplace»; `claude plugin validate` lo acepta.
+- **El servidor no arranca al instalar el plugin**: la app lo conecta al reiniciarla o en su ciclo de la hora.
+- **Desde Claude en el móvil y en la web** (pendiente 3), con la app de escritorio abierta en el equipo, la
+  conversación usa las herramientas, que corren en el equipo. Con la app cerrada, la respuesta es la línea
+  `⚠ SIN CONSULTA AL BOE:`.
+- **El marketplace no entrega solo la versión siguiente** (pendiente 2): con «Sincronizar automáticamente», la app
+  no la trajo en catorce horas; llega con «Buscar actualizaciones» y «Actualizar» en la ficha del plugin. Con el
+  plugin actualizado, su servidor pasa solo a la versión nueva en menos de una hora.
+- **Firmar el `.mcpb` no sirve**: firmado con `mcpb sign`, la app no lo abre.
+- **En Windows** (pendiente 4), el `kitlegal.exe` de la extensión funciona en un runner de GitHub Actions y Defender
+  no lo marca. La instalación en la app de Claude en Windows sigue sin probar.
+
+De ahí una enmienda a H22: **el plugin lleva la extensión dentro, y con él basta**. `kitlegal-plugin.zip` pasa a
+llevar `servers/kitlegal.mcpb` —la misma extensión de la release, byte a byte— y `mcpServers` con esa ruta, y el
+catálogo lo recibe igual que antes, como el contenido de ese zip. La instalación pasa de dos pasos a uno: añadir el
+marketplace e instalar el plugin. Se elige porque es la barrera más baja que se ha probado para quien no usa una
+terminal (ADR 0034), y porque actualizar el plugin actualiza también el servidor.
+
+Lo que cambia con ello:
+
+- **`kitlegal.mcpb` se sigue publicando suelto**, para quien solo quiera las herramientas. Quien instala el plugin no
+  la necesita, y quien la tenía instalada la desinstala: con las dos, el servidor está dos veces.
+- **El catálogo guarda ya los binarios**, dentro de la extensión, y deja de ser solo texto: unos 41 MB por release en
+  un repositorio git. La extensión que lleva es la de la release, cuya huella está en `checksums.txt`. El peso se
+  acumula por ahora; reescribir el historial en cada release queda por probar con la app y con Claude Code.
+- **«La web y el móvil» de la decisión** dejan de ser sitios sin servidor para Claude: lo tienen mientras el equipo
+  esté encendido y con la app de escritorio abierta. Todo sigue corriendo en el equipo, y el servidor remoto sigue
+  aplazado: es la única vía hacia ChatGPT en la web y en el móvil, y hacia Claude con el equipo apagado.
+
+Siguen sin probar la instalación en Windows, el plugin con la extensión dentro en Windows, y la actualización de una
+extensión instalada suelta.
+
 ## Pendiente de verificar (pasa a la aceptación humana de H22)
 
 1. Un `.mcpb` y un zip descargados de verdad con un navegador, en un Mac distinto del que compiló el binario. Si

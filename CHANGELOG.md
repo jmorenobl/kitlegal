@@ -14,6 +14,17 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El plugin lleva el servidor dentro: kitlegal se instala en la app de Claude con una sola pieza.**
+  `kitlegal-plugin.zip`, y con él el plugin `kitlegal` del catálogo `jmorenobl/kitlegal-plugins`, lleva ahora
+  `servers/kitlegal.mcpb` —la extensión de la misma release, byte a byte— y `mcpServers` con esa ruta: quien añade
+  el marketplace e instala el plugin recibe las skills y las herramientas, sin abrir además la extensión. Hasta ahora
+  eran dos pasos, porque las herramientas de un plugin solo llegaban a las conversaciones con una carpeta elegida;
+  probado el 2026-10-04, llegan a todas, y también a las del móvil y la web mientras el equipo esté encendido y con
+  la app de escritorio abierta (ADR 0035, «Prueba con un solo plugin»; `docs/USO.md`). Tras instalar el plugin hay
+  que cerrar y abrir la app: el servidor no arranca hasta entonces. `kitlegal.mcpb` se sigue publicando suelta, para
+  quien solo quiera las herramientas. **Quien ya tenía la extensión instalada debe desinstalarla** al actualizar el
+  plugin, para no tener el servidor dos veces. La descripción larga de la extensión lo dice.
+
 - **https://kitlegal.es/instalar/ explica la instalación sin terminal, con los botones de descarga.** Es la instalación
   oficial, probada en la app de escritorio de Claude en macOS: el botón de `kitlegal.mcpb`, la extensión, que se abre
   con doble clic; el marketplace `jmorenobl/kitlegal-plugins` como forma recomendada de añadir el plugin, y el botón
