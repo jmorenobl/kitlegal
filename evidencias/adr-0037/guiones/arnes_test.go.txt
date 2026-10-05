@@ -1,0 +1,240 @@
+//go:build validacion
+
+package evals
+
+// Arnés de un solo uso para la validación del ADR 0037, fuera del repositorio:
+// reconstruye, sin modelo, los textos que devolvieron las herramientas de cada
+// sesión de un informe versionado, repitiendo sus órdenes contra las grabaciones.
+
+import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+	"time"
+)
+
+type invocacionDelInforme struct {
+	Orden   string `json:"orden"`
+	Codigo  int    `json:"codigo"`
+	Llamada bool   `json:"llamada"`
+}
+
+type sesionDelInforme struct {
+	Sesion           string                 `json:"sesion"`
+	Eval             string                 `json:"eval"`
+	Modelo           string                 `json:"modelo"`
+	Modo             string                 `json:"modo"`
+	Activa           bool                   `json:"activa"`
+	Pasa             bool                   `json:"pasa"`
+	Respuesta        string                 `json:"respuesta"`
+	CitasEncontradas []string               `json:"citas_encontradas"`
+	Invocaciones     []invocacionDelInforme `json:"invocaciones"`
+}
+
+type informeVersionado struct {
+	Commit          string             `json:"commit"`
+	ModeloQueDecide string             `json:"modelo_que_decide"`
+	Evals           []sesionDelInforme `json:"evals"`
+}
+
+type textoReconstruido struct {
+	Orden           string `json:"orden"`
+	CodigoDelInforme int    `json:"codigo_del_informe"`
+	Codigo          int    `json:"codigo"`
+	Salida          string `json:"salida"`
+}
+
+type sesionReconstruida struct {
+	Informe          string              `json:"informe"`
+	Commit           string              `json:"commit"`
+	Sesion           string              `json:"sesion"`
+	Eval             string              `json:"eval"`
+	Modo             string              `json:"modo"`
+	Pasa             bool                `json:"pasa"`
+	GrafoPrevio      string              `json:"grafo_previo"`
+	Respuesta        string              `json:"respuesta"`
+	CitasEncontradas []string            `json:"citas_encontradas"`
+	Textos           []textoReconstruido `json:"textos"`
+}
+
+const vigenciaDeLaBase = 100 * time.Second
+
+func TestReconstruirTextos(t *testing.T) { //nolint:paralleltest // arnés de un solo uso
+	binario := os.Getenv("VALIDACION_BINARIO")
+	salida := os.Getenv("VALIDACION_SALIDA")
+	viejos := os.Getenv("VALIDACION_GRAFOS_VIEJOS")
+	informes := strings.Split(os.Getenv("VALIDACION_INFORMES"), ":")
+
+	conjunto, err := LeerConjunto("../../evals/boe-legislacion")
+	if err != nil || len(conjunto.MalFormados) > 0 {
+		t.Fatalf("conjunto: %v %v", err, conjunto.MalFormados)
+	}
+
+	porFichero := map[string]Eval{}
+	for _, eval := range conjunto.Evals {
+		porFichero[eval.Fichero] = eval
+	}
+
+	evalVieja := Eval{
+		Fichero: "19-lpac-articulo-21-redaccion-cambiada.yaml",
+		GrafoPrevio: GrafoPrevio{
+			Grabaciones: "lpac-a21-version-anterior",
+			Comandos:    []ComandoEsperado{{Applet: "boe", Norma: "BOE-A-2015-10565", Bloque: "a21"}},
+		},
+	}
+
+	var base string
+
+	var preparada time.Time
+
+	prepararBase := func() {
+		base = t.TempDir()
+
+		faltas, err := Preparar(base, UnionDeGrabaciones(), ConsultasNecesarias(conjunto.Evals))
+		if err != nil || len(faltas) > 0 {
+			t.Fatalf("base: %v %v", err, faltas)
+		}
+
+		preparada = time.Now()
+	}
+
+	for _, par := range informes {
+		nombre, ruta, _ := strings.Cut(par, "=")
+
+		contenido, err := os.ReadFile(ruta)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		var informe informeVersionado
+		if err := json.Unmarshal(contenido, &informe); err != nil {
+			t.Fatal(err)
+		}
+
+		destino, err := os.Create(filepath.Join(salida, nombre+".jsonl"))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		codificador := json.NewEncoder(destino)
+		codificador.SetEscapeHTML(false)
+
+		for _, sesion := range informe.Evals {
+			if sesion.Modelo != informe.ModeloQueDecide || !sesion.Activa || strings.HasPrefix(sesion.Eval, "21-") {
+				continue
+			}
+
+			if base == "" || time.Since(preparada) > vigenciaDeLaBase {
+				prepararBase()
+			}
+
+			dir := t.TempDir()
+			dirCache := filepath.Join(dir, "cache")
+
+			if err := os.Mkdir(dirCache, 0o700); err != nil {
+				t.Fatal(err)
+			}
+
+			grafo := "ninguno"
+
+			eval, esta := porFichero[sesion.Eval]
+			if !esta && sesion.Eval == evalVieja.Fichero {
+				eval, esta = evalVieja, true
+			}
+
+			switch {
+			case !esta:
+				grafo = "la eval no está en main"
+			case eval.GrafoPrevio.Grabaciones != "":
+				grafos := GrafosPrevios
+				if eval.Fichero == evalVieja.Fichero {
+					grafos = viejos
+				}
+
+				faltas, err := prepararGrafoPrevio(dirCache, UnionDeGrabaciones(), grafos, eval)
+				if err != nil || len(faltas) > 0 {
+					t.Fatalf("grafo previo de %s: %v %v", sesion.Sesion, err, faltas)
+				}
+
+				grafo = eval.GrafoPrevio.Grabaciones
+			}
+
+			copiarDirectorio(t, base, dirCache)
+
+			reconstruida := sesionReconstruida{
+				Informe: nombre, Commit: informe.Commit, Sesion: sesion.Sesion, Eval: sesion.Eval,
+				Modo: sesion.Modo, Pasa: sesion.Pasa, GrafoPrevio: grafo, Respuesta: sesion.Respuesta,
+				CitasEncontradas: sesion.CitasEncontradas, Textos: []textoReconstruido{},
+			}
+
+			for _, invocacion := range sesion.Invocaciones {
+				if invocacion.Orden == "mcp serve" {
+					continue
+				}
+
+				argumentos := strings.Fields(invocacion.Orden)
+				if invocacion.Llamada {
+					applet, verbo, _ := strings.Cut(argumentos[0], "_")
+					argumentos = append([]string{applet, verbo}, argumentos[1:]...)
+					argumentos = append(argumentos, "--json")
+				}
+
+				argumentos = append(argumentos, "--offline")
+
+				orden := exec.Command(binario, argumentos...) //nolint:gosec,noctx // arnés de un solo uso
+				orden.Env = []string{"KITLEGAL_CACHE_DIR=" + dirCache, "HOME=" + dir, "PATH=/usr/bin:/bin"}
+
+				var escrito bytes.Buffer
+				orden.Stdout = &escrito
+
+				codigo := 0
+
+				if err := orden.Run(); err != nil {
+					var deSalida *exec.ExitError
+					if !errors.As(err, &deSalida) {
+						t.Fatalf("%s: %s: %v", sesion.Sesion, invocacion.Orden, err)
+					}
+
+					codigo = deSalida.ExitCode()
+				}
+
+				reconstruida.Textos = append(reconstruida.Textos, textoReconstruido{
+					Orden: invocacion.Orden, CodigoDelInforme: invocacion.Codigo, Codigo: codigo, Salida: escrito.String(),
+				})
+			}
+
+			if err := codificador.Encode(reconstruida); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if err := destino.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func copiarDirectorio(t *testing.T, origen, destino string) {
+	t.Helper()
+
+	entradas, err := os.ReadDir(origen)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, entrada := range entradas {
+		contenido, err := os.ReadFile(filepath.Join(origen, entrada.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := os.WriteFile(filepath.Join(destino, entrada.Name()), contenido, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+}

@@ -1,0 +1,1559 @@
+# Casos etiquetados de la clase afirma_lo_no_leido de boe-legislacion (ADR 0037, «Validación»).
+# Cada caso es la respuesta de una sesión de un informe versionado del job de evals. Nada está escrito a mano: la
+# respuesta se lee del informe, y los textos de sus herramientas se reconstruyen repitiendo sus órdenes contra las
+# grabaciones. Un caso con `quitado` es un defecto derivado: la misma respuesta sin el texto de ese bloque.
+# Procedencias: `bitacora` es la lectura a mano de docs/USO.md del 2026-09-30; `derivado`, por construcción;
+# `lectura` es la de la validación, del 2026-10-05: la hizo el agente y la revisa Jorge antes de aceptar el ADR.
+# `frase` es la que decide la etiqueta de una lectura: en un defecto, la que el juez citó en la medida final; en un
+# aviso correcto, la que citó con una rúbrica anterior, más estricta.
+clase: afirma_lo_no_leido
+casos:
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y de entidades de ámbito territorial inferior al municipio"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y entidades de ámbito territorial inferior (art. 45 LRBRL)"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y entidades de ámbito territorial inferior"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El cómputo de este plazo y las causas de interrupción se regulan en los artículos 67 y 68 de la misma ley"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "este bloque remite al art. 7 de la misma ley (exenciones) y al art. 51 (límites de reducción para mutualidades de previsión social) para varios matices"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "remisión a la ley (desarrollada en la LRBRL) para el régimen del concejo abierto"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "o con la suspensión del contrato por nacimiento/adopción/cuidado (art. 48.4, 5 y 7 ET)"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y entidades de ámbito territorial inferior (art. 45)"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "la letra b) remite al art. 45 de la propia LRBRL (entidades de ámbito territorial inferior al municipio)"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "la regulación detallada de cada uno de estos impuestos (hecho imponible, sujetos pasivos, base imponible, tipos, exenciones) se desarrolla en los artículos siguientes del propio TRLRHL"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "el desarrollo de cada uno de estos cinco impuestos se regula en las subsecciones siguientes de la misma sección (arts. 60 a 110 del TRLRHL)"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Cada uno de estos impuestos se regula con más detalle en artículos posteriores del mismo capítulo (IBI: arts. 60 y ss.; IAE: arts. 78 y ss.; IVTM: arts. 92 y ss.; ICIO: arts. 100 y ss.; IIVTNU: arts. 104 y ss.)."
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El artículo remite además al art. 7 de la misma ley (exenciones) respecto de ciertas prestaciones y becas"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Nota: varios pasajes remiten al art. 7 (rentas exentas) y a normativa sobre planes y fondos de pensiones"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "el art. 7 de la LIRPF (rentas exentas) para pensiones, becas y anualidades por alimentos"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "intenté también consultar el art. 26 (concordante, sobre irretroactividad)"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "que en artículos siguientes (26-31) desarrolla otros principios relacionados —irretroactividad, tipicidad, responsabilidad, proporcionalidad, prescripción y concurrencia de sanciones—"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "que sigue con otros principios conexos como la irretroactividad, la tipicidad, la responsabilidad o la proporcionalidad"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "esas causas de suspensión pasaron a regularse en el art. 22 de la Ley 39/2015, que no he consultado en esta respuesta"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "cuya materia equivalente a la obligación de resolver se regula ahora en el art. 21 de la Ley 39/2015 [BOE-A-2015-10565]"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "esa materia se regula ahora en el art. 22 de la Ley 39/2015, que no he consultado en esta respuesta"
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 19-lpac-articulo-21-redaccion-cambiada-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: bitacora
+  - informe: specs/011-h7-1-graph-check-acotado/gates/evals/boe-legislacion.json
+    sesion: 19-lpac-articulo-21-redaccion-cambiada-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y de entidades de ámbito territorial inferior"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El bloque remite además al art. 7 de la LIRPF para exenciones aplicables a algunas de estas prestaciones (pensiones de incapacidad, becas, anualidades por alimentos)"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Este artículo es la base constitucional de la autonomía local municipal, que luego desarrolla la Ley 7/1985 (LRBRL)."
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "(Las letras n) y o), relativas a determinadas operaciones de crédito y avales, fueron derogadas.)"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y entidades de ámbito territorial inferior"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "dos letras del apartado 2 (n y o, sobre reclamaciones sobre acuerdos de las Corporaciones locales y organización de servicios de recaudación) fueron **derogadas** por la Ley 30/2007"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-03
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "IBI: arts. 60-77; IAE: arts. 78-91; IVTM: arts. 92-99; ICIO: arts. 100-103; IIVTNU: arts. 104-110"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Cada uno de estos impuestos se regula después con más detalle en artículos específicos del propio TRLRHL (hecho imponible, sujetos pasivos, base imponible, tipos, etc.)"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "que continúa con los principios de irretroactividad (art. 26), tipicidad (art. 27), responsabilidad (art. 28), proporcionalidad (art. 29), prescripción (art. 30) y concurrencia de sanciones (art. 31)."
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Este principio de legalidad se completa con el principio de tipicidad del art. 27 de la misma ley, que exige que las infracciones y sanciones concretas estén definidas por ley"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "No he podido consultar los artículos 26 y 27 (tipicidad e irretroactividad, respectivamente), estrechamente relacionados con este principio"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "que regula hoy la obligación de resolver en su artículo 21"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Este contenido corresponde hoy, en lo sustancial, al art. 21 de la Ley 39/2015 (LPAC), que es el precepto vigente sobre la obligación de resolver"
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: bitacora
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/012-h7-2-la-consulta-repetida/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: bitacora
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "que regula la publicación periódica (al menos trimestral) de los contratos menores en el perfil de contratante"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y de entidades de ámbito territorial inferior al municipio"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y de entidades de ámbito territorial inferior al municipio"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Varios apartados remiten al art. 7 de la misma ley (rentas exentas) para casos concretos (pensiones, becas, anualidades por alimentos)"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "completando así el principio de tipicidad que regula el artículo siguiente (art. 27 de la misma ley)"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "con la suspensión del contrato por nacimiento u otras causas del art. 48.4, 48.5 y 48.7"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "creación o supresión de municipios y de las entidades del art. 45 (entidades de ámbito territorial inferior al municipio)"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "para el artículo 60, que quise leer como complemento sobre la ordenación de estos impuestos"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "No se ha podido consultar el art. 60 (que trataría sobre la ordenación de estos impuestos) por un límite de ritmo de la fuente"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El desarrollo de cada uno de estos impuestos (hecho imponible, sujetos pasivos, base imponible, tipos, exenciones y bonificaciones) se regula en los artículos siguientes de esa misma Sección (arts. 60 a 110 del TRLRHL)."
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El bloque remite además al art. 7 de la Ley 35/2006 (exenciones) para las pensiones, becas y anualidades por alimentos citadas"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Este artículo se completa con el art. 26 (irretroactividad), art. 27 (principio de tipicidad) y los siguientes del mismo Capítulo III, que desarrollan los demás principios de la potestad sancionadora"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "implementa a nivel legal el mandato del art. 25 de la Constitución Española (principio de legalidad penal y sancionadora)"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Debe distinguirse de la **tipicidad** (infracciones y sanciones), regulada separadamente en el art. 27 de la misma Ley, y de la irretroactividad (art. 26)"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "cuyo artículo equivalente en vigor es el art. 21 (obligación de resolver)"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "causas de suspensión del plazo máximo para resolver (requerimiento de subsanación, informes preceptivos, pruebas técnicas, negociaciones de pacto, etc.); esa materia se recoge ahora en el art. 22 de la Ley 39/2015, no en el art. 21."
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-03
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "esa materia pasó a regularse en el art. 22 de la misma ley, que no he consultado en esta respuesta"
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-01
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: bitacora
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/013-h7-3-el-umbral-de/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-02
+    grupo: ajuste
+    etiqueta: defecto
+    procedencia: bitacora
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Las reglas sobre cuándo empieza a contar, y sobre cómo se interrumpe, están en otros artículos de la ley, que no he leído para esta respuesta."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los artículos que regulan cuándo empieza a contar el plazo y qué lo interrumpe, que pueden cambiar el cómputo en un caso concreto."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El cómputo del plazo, su interrupción y sus efectos se regulan en otros artículos de la ley."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los regímenes especiales, como el de los municipios de gran población, que tiene su propio reparto de competencias."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Los municipios de gran población (Título X de la LRBRL) tienen un régimen propio de atribuciones del Pleno que no he consultado."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Intenté leer también el art. 15, sobre ordenanzas fiscales, y no pude: la fuente no respondió."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "La regulación de cada uno (hecho imponible, sujetos pasivos, tipos, etc.) está en otros artículos del texto refundido, que no he consultado."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El artículo remite además al art. 7 de la LIRPF (rentas exentas), que no he leído"
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "La tipicidad, la irretroactividad y el resto de principios de la potestad sancionadora están en otros artículos del mismo capítulo, que no he consultado."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El art. 26 (irretroactividad) no se pudo leer porque la fuente limitó las consultas."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El resto del Capítulo III, que contiene otros principios de la potestad sancionadora como la irretroactividad y la tipicidad, no lo he consultado."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población (Título X de la LRBRL), los emite el titular de la asesoría jurídica."
+  - informe: specs/014-h7-4-boe-legislacion-sin/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población (Título X de la Ley 7/1985), esos informes corresponden al titular de la asesoría jurídica."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Lo que decide cuándo empieza a contar y cuándo se interrumpe son otros artículos de la ley, que no he leído para esta respuesta."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Este artículo no dice cuándo empieza a contar el plazo ni qué lo interrumpe, y eso se regula en otros artículos de la ley."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El cómputo del plazo y las causas que lo interrumpen están en artículos posteriores, que no he leído."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "No he leído los artículos 67 a 70, que regulan cuándo empieza a contar el plazo, su interrupción y sus efectos."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Cuándo empieza a contarse, qué lo interrumpe y cómo se aplica la prescripción están en otros artículos de la ley que no he leído para esta respuesta."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Su regulación está en los artículos siguientes de la misma ley."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "su regulación detallada está en los artículos siguientes de la ley, que no he consultado"
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "La deducción de gastos para obtener el rendimiento neto se regula en otros preceptos que no he leído."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Los gastos deducibles (art. 19), la reducción por irregularidad (art. 18) y las retenciones se regulan en otros preceptos que no he leído aquí."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "También cabe la reclamación potestativa del art. 24, que es previa a ese recurso"
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he consultado el régimen especial de los municipios de gran población (Título X), que tiene su propia regulación de las atribuciones plenarias."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído las normas de los municipios de gran población (título X de la LRBRL) ni otras que puedan atribuir competencias plenarias."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "No pude leer el art. 60, que regula el régimen del impuesto sobre bienes inmuebles."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "arts. 60 (IBI), 78 (IAE), 92 (IVTM), 100 (ICIO) y 104 (IIVTNU)"
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "No pude leer el art. 18 (rendimientos con período de generación superior a dos años u obtenidos de forma notoriamente irregular), porque la fuente no permitió la consulta."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Para este último hay que aplicar los gastos deducibles de los arts. 18 y ss., que no he leído."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Ese artículo regula las rentas exentas y no lo he leído, así que no puedo decir qué supuestos quedan exentos."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los preceptos que regulan los gastos deducibles ni el rendimiento neto, así que no puedo darte su contenido."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Esta respuesta no cubre los artículos que la ley remite (por ejemplo, el art. 7 sobre rentas exentas)."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "puedo leer también los artículos siguientes del Capítulo III (irretroactividad, tipicidad, responsabilidad y demás principios de la potestad sancionadora)"
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "El art. 26 (irretroactividad) y los siguientes del mismo capítulo, que completan la regulación de la legalidad sancionadora, no he podido leerlos."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Otros principios del mismo Capítulo, como la irretroactividad o la tipicidad, tienen sus propios artículos y no los he consultado."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído otros artículos del Capítulo, como los de irretroactividad o tipicidad."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Si le interesa el resto del Capítulo III (tipicidad, irretroactividad, responsabilidad, prescripción), puedo consultarlo."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Esa norma se aplica a los procedimientos iniciados desde su entrada en vigor."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población (Título X de la LRBRL), los emite el titular de la asesoría jurídica."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población del Título X de la LRBRL, esos informes corresponden al titular de la asesoría jurídica."
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/015-h21-kitlegal-mcp-serve/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población (Título X de la LRBRL), emite estos informes el titular de la asesoría jurídica."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 01-lpac-articulo-21-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10565, bloque: a21}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 02-lcsp-contrato-menor-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 03-lrbrl-atribuciones-del-pleno-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Desde cuándo se cuenta y cómo se interrumpe se regula en otros artículos de la LGT, que no he leído para esta respuesta."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Cuándo empieza a contar, y qué lo interrumpe o lo extiende, lo regulan otros artículos de la Ley que no he leído para esta respuesta."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los artículos que regulan desde cuándo se cuenta ni cómo se interrumpe o se suspende, así que no puedo decirte nada sobre ellos."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2003-23186, bloque: a66}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 04-lgt-prescripcion-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los artículos que regulan cuándo empieza a contar el plazo ni cuándo se interrumpe"
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Su régimen concreto (hecho imponible, sujetos pasivos, tipos, etc.) está en los artículos siguientes de la ley, que no he leído para esta respuesta."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 06-irpf-rendimientos-del-trabajo-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 07-lrjsp-principio-de-legalidad-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 08-ltaibg-plazo-de-resolucion-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El artículo está en el Capítulo segundo («De la Administración Local») del Título VIII."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 09-constitucion-articulo-140-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1978-31229, bloque: a140}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 10-et-vacaciones-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-11430, bloque: a38}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1985-5392, bloque: a22}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído el régimen concreto de cada uno (hecho imponible, sujetos pasivos, tipos), que el texto regula después."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído el régimen de cada impuesto (hecho imponible, sujetos pasivos, tipos, bonificaciones), que el texto refundido desarrolla en artículos posteriores."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2004-4214, bloque: a59}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los artículos que regulan cada impuesto en particular, como hecho imponible, sujetos pasivos o tipos."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Remite a otros preceptos de la propia ley, como el art. 7 sobre rentas exentas y la disposición adicional decimoctava."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El rendimiento neto, con sus gastos deducibles y reducciones, se regula en los artículos siguientes de la ley, que no he consultado."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Esta respuesta no cubre el rendimiento neto (arts. 18 a 20) ni las exenciones del art. 7, que no he leído."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2006-20764, bloque: a17}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "Para el rendimiento neto hay que aplicar los gastos deducibles y reducciones de los arts. 18 a 20, que no he leído aquí."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "La determinación del rendimiento neto, con los gastos deducibles, está en los arts. 18 a 20, que no he leído para esta respuesta."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído los demás principios del Capítulo (irretroactividad, tipicidad, etc.), que son otros artículos."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El resto de principios del capítulo (irretroactividad, tipicidad, responsabilidad, etc.) están en artículos posteriores."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "No he leído en esta consulta los demás artículos del Capítulo (tipicidad, irretroactividad, etc.), que desarrollan otros principios."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2015-10566, bloque: a25}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "No he leído los demás artículos del capítulo, como el art. 27 sobre tipicidad, que complementa la legalidad."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+    frase: "También cabe la reclamación potestativa del art. 24, que es previa a ese recurso"
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 17-ltaibg-plazo-por-materia-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2013-12887, bloque: a20}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 18-lrjpac-norma-derogada-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-1992-26318, bloque: a42}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 19-lcsp-contrato-menor-redaccion-cambiada-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población del Título X de la LRBRL, esos informes corresponden al titular de la asesoría jurídica."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población (Título X de la LRBRL), los emite el titular de la asesoría jurídica."
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-herramienta-claude-sonnet-5-5-01
+    quitado: {norma: BOE-A-2017-12902, bloque: a1-30}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+  - informe: specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json
+    sesion: 20-lcsp-dos-bloques-redaccion-cambiada-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "En los municipios de gran población (Título X de la LRBRL), los informes los emite el titular de la asesoría jurídica."

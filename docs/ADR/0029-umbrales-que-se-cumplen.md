@@ -1,6 +1,8 @@
 # 0029 · Umbrales que se cumplen: todo umbral medido sin persona tiene un control que lo hace fallar, y el informe distingue «tareas hechas» de «comprobado»
 
-- **Estado**: aceptada
+- **Estado**: aceptada; sustituida en parte por el ADR 0037 (el control de un umbral ya no es siempre «mecánico»:
+  es un guion si lo medido tiene forma, y un juez con modelo si es el significado de una respuesta). Siguen vigentes
+  el contrato de `umbrales`, «Controles de umbral» en el plan y el informe final sin modelo.
 - **Fecha**: 2026-09-29
 - **Hito**: transversal (workflow `hito` 2.2.0 y constitución 2.7.0, tras H7.2 y antes de H7.3). Enmienda el ADR 0028
   —añade una quinta regla a lo que es un defecto para un juez— y el ADR 0018 en lo que dice el informe final. Define
