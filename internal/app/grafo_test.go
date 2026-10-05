@@ -2532,6 +2532,19 @@ const derivadasDelE2E = "testdata/derivadas"
 // puede importar desde sus tests.
 const grafosPreviosDeLasEvals = "../../testdata/evals/grafo-previo"
 
+// evalsRetiradas es la carpeta de las evals que salieron del conjunto y de las
+// que siguen dependiendo casos etiquetados del juez, relativa a este paquete: el
+// fichero de cada eval y, en grafo-previo/, las grabaciones derivadas de su
+// grafo previo, restaurados de la historia del repositorio
+// (contracts/medida-del-juez.md §4 de H24; research.md D15 de H24). No es la
+// carpeta de un conjunto: ningún plan la lee.
+const evalsRetiradas = "../../testdata/evals/retiradas"
+
+// evalRetiradaDeLaConsultaRepetida es el fichero de la eval de la consulta
+// repetida sobre el art. 21 de la Ley 39/2015, la que H7.2 retiró, en
+// evalsRetiradas.
+const evalRetiradaDeLaConsultaRepetida = "19-lpac-articulo-21-redaccion-cambiada.yaml"
+
 // Los nombres de las grabaciones de H4 que sustituyen las derivadas, los que les
 // da la dirección de la que salen: la del bloque a21 y la de los metadatos de la
 // Ley 39/2015.
@@ -2576,6 +2589,12 @@ const parrafoDeLaVersionPosterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueb
 // derivada version-ulterior, la redacción C del e2e (research.md D23 de H7.1): el
 // último de su versión.
 const parrafoDeLaVersionUlterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n ulterior " +
+	"derivada de la grabaci\xc3\xb3n de H4.]"
+
+// parrafoDeLaVersionAnterior es el que marca como sintética la redacción de la
+// derivada lpac-a21-version-anterior, el grafo previo de la eval de la consulta
+// repetida que H7.2 retiró: el último de su versión.
+const parrafoDeLaVersionAnterior = "[Redacci\xc3\xb3n sint\xc3\xa9tica de prueba: versi\xc3\xb3n anterior " +
 	"derivada de la grabaci\xc3\xb3n de H4.]"
 
 // grabacionDerivada es una derivada con lo que dice su nombre: la carpeta en la
@@ -2643,6 +2662,31 @@ func versionDelArticulo21(carpeta, fechaVigencia, parrafo string) grabacionDeriv
 				})
 		},
 	}
+}
+
+// derivadasDeLasEvalsRetiradas son las derivadas del grafo previo de las evals
+// de evalsRetiradas, con lo que dice su nombre: lpac-a21-version-anterior, la
+// fecha de vigencia 20151002 y su párrafo sintético al final del texto, con la
+// huella de ese texto. Es la entrada que tenía en grabacionesDerivadas antes de
+// que H7.2 retirara su eval, sobre la carpeta a la que vuelve (research.md D15
+// de H24; FR-024): una redacción sintética, y no una que la grabada traiga, que
+// es lo que compruebaLaDerivadaDelGrafoPrevio exige a las de las evals de hoy.
+func derivadasDeLasEvalsRetiradas() []grabacionDerivada {
+	return []grabacionDerivada{
+		versionDelArticulo21(filepath.Join(evalsRetiradas, "grafo-previo", "lpac-a21-version-anterior"), "20151002",
+			parrafoDeLaVersionAnterior),
+	}
+}
+
+// rutasDeLasDerivadas son las rutas de los ficheros de las derivadas, cada una
+// con su carpeta delante, relativas a este paquete.
+func rutasDeLasDerivadas(derivadas []grabacionDerivada) []string {
+	rutas := make([]string, 0, len(derivadas))
+	for _, derivada := range derivadas {
+		rutas = append(rutas, filepath.Join(derivada.carpeta, derivada.fichero))
+	}
+
+	return rutas
 }
 
 // derivadaDelGrafoPrevio es una derivada de grafosPreviosDeLasEvals: su
@@ -2713,14 +2757,19 @@ func redaccionOriginalDeLaLCSP(subcarpeta, fichero, bloque string) derivadaDelGr
 // compruebaLaDerivadaDelGrafoPrevio: son, byte a byte, la derivación de su
 // grabación, y dan una redacción que la grabada trae, la de su fecha (FR-010,
 // FR-011). Con -actualizar-derivadas, el test las escribe antes desde su
-// grabación.
+// grabación. La del grafo previo de la eval retirada
+// (derivadasDeLasEvalsRetiradas; research.md D15 de H24, FR-024) pasa por la
+// comprobación de las del e2e: leída con boe, es la grabación de H4 salvo
+// exactamente lo que dice su nombre.
 //
 // La carpeta decide la comprobación (FR-013): los ficheros de derivadasDelE2E
-// son los de las entradas del e2e, y los de grafosPreviosDeLasEvals, los de las
-// del grafo previo, en los dos sentidos. Todo fichero tiene la comprobación de
-// su carpeta y toda comprobación, su fichero: una derivada nueva que no dijera
-// qué cambia no pasa, y una entrada del e2e con fichero en la carpeta del grafo
-// previo falla nombrada.
+// son los de las entradas del e2e; los de grafosPreviosDeLasEvals, los de las
+// del grafo previo; y los de evalsRetiradas, la derivada restaurada y el fichero
+// de su eval, que no lleva comprobación —nada la valida contra el esquema de
+// eval de hoy—, en los dos sentidos. Todo fichero tiene la comprobación de su
+// carpeta y toda comprobación, su fichero: una derivada nueva que no dijera qué
+// cambia no pasa, y una entrada del e2e con fichero en la carpeta del grafo
+// previo falla nombrada, como un fichero de más o de menos en evalsRetiradas.
 func TestGrabacionesDerivadas(t *testing.T) {
 	t.Parallel()
 
@@ -2735,21 +2784,19 @@ func TestGrabacionesDerivadas(t *testing.T) {
 	}
 
 	derivadas := grabacionesDerivadas()
-
-	delE2E := make([]string, 0, len(derivadas))
-	for _, derivada := range derivadas {
-		delE2E = append(delE2E, filepath.Join(derivada.carpeta, derivada.fichero))
-	}
+	retiradas := derivadasDeLasEvalsRetiradas()
 
 	previas := make([]string, 0, len(delGrafoPrevio))
 	for _, derivada := range delGrafoPrevio {
 		previas = append(previas, filepath.Join(derivada.carpeta(), derivada.fichero))
 	}
 
-	compruebaLaCarpetaConSusEntradas(t, derivadasDelE2E, "del e2e", delE2E)
+	compruebaLaCarpetaConSusEntradas(t, derivadasDelE2E, "del e2e", rutasDeLasDerivadas(derivadas))
 	compruebaLaCarpetaConSusEntradas(t, grafosPreviosDeLasEvals, "del grafo previo", previas)
+	compruebaLaCarpetaConSusEntradas(t, evalsRetiradas, "de las evals retiradas",
+		append(rutasDeLasDerivadas(retiradas), filepath.Join(evalsRetiradas, evalRetiradaDeLaConsultaRepetida)))
 
-	for _, derivada := range derivadas {
+	for _, derivada := range slices.Concat(derivadas, retiradas) {
 		t.Run(filepath.Base(derivada.carpeta), func(t *testing.T) {
 			t.Parallel()
 
