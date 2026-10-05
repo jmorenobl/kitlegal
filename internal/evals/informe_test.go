@@ -3519,7 +3519,7 @@ func escribirElJuezDelInforme(t *testing.T, evals, medida string) {
 	require.NoError(t, err)
 	require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez, bien formada", evals)
 
-	_, err = leerMedidaDelJuez(conjunto.Juez.Medida)
+	_, err = leerMedidaDelJuez([]byte(conjunto.Juez.Medida))
 	require.NoError(t, err, "la medida del juez de %s se puede leer", evals)
 }
 

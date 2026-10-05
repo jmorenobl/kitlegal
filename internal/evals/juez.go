@@ -64,11 +64,12 @@ type Juez struct {
 	// los nombres de Clases.
 	Esquema string
 
-	// Casos es la ruta de casos.yaml, los casos etiquetados con los que se mide
-	// al juez.
+	// Casos es el contenido de casos.yaml, entero: los casos etiquetados con los
+	// que se mide al juez, que lee leerCasosEtiquetados.
 	Casos string
 
-	// Medida es la ruta de medida.json, la medida versionada del juez.
+	// Medida es el contenido de medida.json, entero: la medida versionada del
+	// juez, que lee leerMedidaDelJuez.
 	Medida string
 }
 
@@ -112,8 +113,9 @@ var esquemaDeClasesDelJuez = sync.OnceValues(func() (*jsonschema.Schema, error) 
 //   - de rubrica.md, de casos.yaml y de medida.json solo se exige que se puedan
 //     leer.
 //
-// El juez se devuelve solo si ninguno está mal formado: con la rúbrica y el
-// esquema enteros y con la ruta de los casos y la de la medida.
+// El juez se devuelve solo si ninguno está mal formado, con el contenido entero
+// de la rúbrica, del esquema, de los casos y de la medida: quien los usa no
+// vuelve a leer la carpeta.
 func leerJuez(dir string, entrada fs.DirEntry) (*Juez, []FicheroMalFormado) {
 	if !entrada.IsDir() {
 		return nil, []FicheroMalFormado{{
@@ -124,10 +126,10 @@ func leerJuez(dir string, entrada fs.DirEntry) (*Juez, []FicheroMalFormado) {
 
 	lectura := lecturaDelJuez{carpeta: filepath.Join(dir, carpetaDelJuez)}
 
-	lectura.contenido(ficheroDeCasosDelJuez)
+	casos, _ := lectura.contenido(ficheroDeCasosDelJuez)
 	clases := lectura.clases()
 	esquema := lectura.esquema(clases)
-	lectura.contenido(ficheroDeMedidaDelJuez)
+	medida, _ := lectura.contenido(ficheroDeMedidaDelJuez)
 	rubrica, _ := lectura.contenido(ficheroDeRubricaDelJuez)
 
 	if len(lectura.malFormados) > 0 {
@@ -138,8 +140,8 @@ func leerJuez(dir string, entrada fs.DirEntry) (*Juez, []FicheroMalFormado) {
 		Clases:  clases,
 		Rubrica: string(rubrica),
 		Esquema: string(esquema),
-		Casos:   filepath.Join(lectura.carpeta, ficheroDeCasosDelJuez),
-		Medida:  filepath.Join(lectura.carpeta, ficheroDeMedidaDelJuez),
+		Casos:   string(casos),
+		Medida:  string(medida),
 	}, nil
 }
 

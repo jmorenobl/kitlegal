@@ -76,7 +76,7 @@ const medidaSinCorresponder = "la medida versionada (juez/medida.json) no corres
 // medida (FR-032 de H24).
 const claseQueDecideEnElRepositorio = "afirma_lo_no_leido"
 
-// TestLeerMedidaDelJuez fija la lectura de la medida del juez
+// TestLeerMedidaDelJuez fija la lectura de la medida del juez de su contenido
 // (contracts/medida-del-juez.md §1 de H24; FR-040): se leen diez claves, cada
 // una a su campo, y las demás no se miran; y la que no tiene alguna de las diez,
 // o la tiene con null, o no es un documento JSON con esa forma, no se lee, con
@@ -88,7 +88,7 @@ func TestLeerMedidaDelJuez(t *testing.T) {
 	t.Run("entera", func(t *testing.T) {
 		t.Parallel()
 
-		medida, err := leerMedidaDelJuez(escribirMedida(t, []byte(medidaSintetica)))
+		medida, err := leerMedidaDelJuez([]byte(medidaSintetica))
 		require.NoError(t, err)
 
 		assert.Equal(t, MedidaDelJuez{
@@ -107,7 +107,7 @@ func TestLeerMedidaDelJuez(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := leerMedidaDelJuez(escribirMedida(t, caso.contenido))
+			_, err := leerMedidaDelJuez(caso.contenido)
 			require.EqualError(t, err, faltanClavesDeLaMedida+strings.Join(caso.faltan, ", "))
 		})
 	}
@@ -116,19 +116,11 @@ func TestLeerMedidaDelJuez(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			_, err := leerMedidaDelJuez(escribirMedida(t, caso.contenido))
+			_, err := leerMedidaDelJuez(caso.contenido)
 			require.Error(t, err)
 			assert.True(t, strings.HasPrefix(err.Error(), medidaQueNoEsJSON), err.Error())
 		})
 	}
-
-	t.Run("sin-fichero", func(t *testing.T) {
-		t.Parallel()
-
-		_, err := leerMedidaDelJuez(filepath.Join(t.TempDir(), ficheroDeMedidaDelJuez))
-		require.ErrorIs(t, err, fs.ErrNotExist)
-		assert.True(t, strings.HasPrefix(err.Error(), "no se puede leer: "), err.Error())
-	})
 }
 
 // medidaIlegible es un caso de TestLeerMedidaDelJuez: el contenido de una
@@ -207,17 +199,6 @@ func medidasQueNoSonJSON(t *testing.T) []medidaIlegible {
 	}
 }
 
-// escribirMedida escribe ese contenido como la medida de un directorio temporal
-// del test y devuelve su ruta.
-func escribirMedida(t *testing.T, contenido []byte) string {
-	t.Helper()
-
-	ruta := filepath.Join(t.TempDir(), ficheroDeMedidaDelJuez)
-	require.NoError(t, os.WriteFile(ruta, contenido, 0o600))
-
-	return ruta
-}
-
 // medidaCambiada es la medida de ese contenido con el cambio hecho en la clave
 // de esa ruta, que tiene que estar: las claves de la ruta van separadas por un
 // punto, como en rubrica.sha256, y todas menos la última son objetos.
@@ -272,9 +253,9 @@ func ponerEnLaClave(valor any) func(objeto map[string]any, clave string) {
 // versión fijada cambiados, uno cada vez, y con cada uno de los dos recuentos
 // distinto de 0, la única línea es la que lo nombra, seis de seis. Y ve lo demás
 // que la comprobación dice: la medida de una clase que no es la que decide; todo
-// a la vez, una línea por lo que falla y en el orden del contrato; la medida sin
-// una clave y la que no es JSON, que no corresponden; y lo que deja de poder
-// leerse con el juez ya leído. Las copias del repositorio solo se leen (FR-045).
+// a la vez, una línea por lo que falla y en el orden del contrato; y la medida
+// sin una clave y la que no es JSON, que no corresponden. Las copias del
+// repositorio solo se leen (FR-045).
 func TestMedidaVersionada(t *testing.T) {
 	t.Parallel()
 
@@ -308,14 +289,6 @@ func TestMedidaVersionada(t *testing.T) {
 
 		probarLasClasesQueDeciden(t, modelo, version)
 	})
-
-	for _, fichero := range []string{ficheroDeMedidaDelJuez, ficheroDeCasosDelJuez} {
-		t.Run("sin-"+fichero+"-tras-leer-el-juez", func(t *testing.T) {
-			t.Parallel()
-
-			probarLoQueDejaDePoderLeerse(t, modelo, version, fichero)
-		})
-	}
 }
 
 // fijadosParaElJuez son el id del modelo del juez y la versión de Claude Code de
@@ -542,29 +515,6 @@ func probarLasClasesQueDeciden(t *testing.T, modelo, version string) {
 	juez.Clases = []ClaseDelJuez{{Nombre: "clase_1"}, {Nombre: "clase_2"}}
 
 	assert.Empty(t, comprobarLaMedida(juez, modelo, version))
-}
-
-// probarLoQueDejaDePoderLeerse quita de la copia de la carpeta del juez, con el
-// juez ya leído de ella, el fichero de ese nombre, que la comprobación lee por
-// su ruta —la medida o los casos—, y exige una sola línea, que empieza diciendo
-// que no se puede leer y sigue con el error: ni se calla ni pasa por una huella
-// que no coincide.
-func probarLoQueDejaDePoderLeerse(t *testing.T, modelo, version, fichero string) {
-	t.Helper()
-
-	principios := map[string]string{
-		ficheroDeMedidaDelJuez: medidaSinCorresponder + "no se puede leer: ",
-		ficheroDeCasosDelJuez:  "los casos (juez/casos.yaml) no se pueden leer: ",
-	}
-
-	evals := copiarLaCarpetaDelJuez(t)
-	juez := juezDe(t, evals)
-
-	require.NoError(t, os.Remove(filepath.Join(evals, carpetaDelJuez, fichero)))
-
-	lineas := comprobarLaMedida(juez, modelo, version)
-	require.Len(t, lineas, 1, strings.Join(lineas, "\n"))
-	assert.True(t, strings.HasPrefix(lineas[0], principios[fichero]), lineas[0])
 }
 
 // copiarLaCarpetaDelJuez copia en un directorio temporal del test, dentro de su
@@ -878,7 +828,7 @@ func TestLeerCasosEtiquetados(t *testing.T) {
 	t.Run("leidos", func(t *testing.T) {
 		t.Parallel()
 
-		leidos, err := leerCasosEtiquetados(escribirCasos(t, casosSinteticos))
+		leidos, err := leerCasosEtiquetados([]byte(casosSinteticos))
 		require.NoError(t, err)
 
 		assert.Equal(t, CasosEtiquetados{
@@ -925,33 +875,12 @@ func TestLeerCasosEtiquetados(t *testing.T) {
 		t.Run(ilegible.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			leidos, err := leerCasosEtiquetados(escribirCasos(t, ilegible.contenido))
+			leidos, err := leerCasosEtiquetados([]byte(ilegible.contenido))
 
 			require.ErrorContains(t, err, ilegible.dice)
 			assert.Zero(t, leidos, "sin los casos enteros no hay ninguno")
 		})
 	}
-
-	t.Run("sin-fichero", func(t *testing.T) {
-		t.Parallel()
-
-		leidos, err := leerCasosEtiquetados(filepath.Join(t.TempDir(), ficheroDeCasosDelJuez))
-
-		require.ErrorIs(t, err, fs.ErrNotExist)
-		require.ErrorContains(t, err, "no se pueden leer: ")
-		assert.Zero(t, leidos)
-	})
-}
-
-// escribirCasos escribe ese contenido en el fichero de los casos de un
-// directorio temporal del test y devuelve su ruta.
-func escribirCasos(t *testing.T, contenido string) string {
-	t.Helper()
-
-	ruta := filepath.Join(t.TempDir(), ficheroDeCasosDelJuez)
-	require.NoError(t, os.WriteFile(ruta, []byte(contenido), 0o600))
-
-	return ruta
 }
 
 // TestArgumentosDeLaInvocacion fija con qué argumentos repite la reconstrucción
@@ -1742,17 +1671,16 @@ func exigirElSobreSinSusElementos(t *testing.T, deLaSesion, delDerivado Texto, b
 // cuando lo que la reconstrucción lee o prepara no sirve
 // (contracts/medida-del-juez.md §4 y §5 de H24): las evals de hoy que no se
 // pueden listar o que tienen un fichero mal formado, la base a la que le falta
-// una consulta de esas evals, el informe que no es un informe o que repite una
-// sesión, la eval retirada que no se puede leer o que no tiene pregunta, y el
-// grafo previo que no se puede copiar o cuyo comando no termina con 0. Ninguno
-// resuelve nada, y cada error nombra el caso y lo que falla.
+// una consulta de esas evals, el informe que no es un informe, la eval retirada
+// que no se puede leer o que no tiene pregunta, y el grafo previo que no se
+// puede copiar o cuyo comando no termina con 0. Ninguno resuelve nada, y cada
+// error nombra el caso y lo que falla.
 func TestResolverCasosSinPoderPreparar(t *testing.T) {
 	t.Parallel()
 
 	const (
-		informeRoto     = "informes/roto.json"
-		informeRepetido = "informes/repetido.json"
-		grafoDeLaLCSP   = "lcsp-a1-30-redaccion-original"
+		informeRoto   = "informes/roto.json"
+		grafoDeLaLCSP = "lcsp-a1-30-redaccion-original"
 	)
 
 	conGrafoPrevio := func(grabaciones, bloque string) []entradaDeConjunto {
@@ -1793,15 +1721,6 @@ func TestResolverCasosSinPoderPreparar(t *testing.T) {
 			evals:    evalsDelMundoSintetico(),
 			caso:     casoDelInforme(informeRoto),
 			dice:     []string{"el informe " + informeRoto + " no es un informe del job de evals: "},
-		},
-		{
-			nombre: "informe-con-la-sesion-repetida",
-			informes: map[string]string{
-				informeRepetido: `{"evals": [{"sesion": "una", "respuesta": "a"}, {"sesion": "una", "respuesta": "b"}]}`,
-			},
-			evals: evalsDelMundoSintetico(),
-			caso:  casoDelInforme(informeRepetido),
-			dice:  []string{"el informe " + informeRepetido + " tiene repetida la sesión una"},
 		},
 		{
 			nombre:    "retirada-ilegible",
@@ -2060,7 +1979,7 @@ var reconstructorDelRepositorio = sync.OnceValue(func() *reconstructor {
 func TestGrabacionesDerivadas(t *testing.T) {
 	t.Parallel()
 
-	leidos, err := leerCasosEtiquetados(juezDe(t, evalsDelRepositorio).Casos)
+	leidos, err := leerCasosEtiquetados([]byte(juezDe(t, evalsDelRepositorio).Casos))
 	require.NoError(t, err)
 
 	casos := leidos.Casos
@@ -2469,19 +2388,19 @@ func probarLos259Bien(t *testing.T) {
 	assert.Equal(t, copia.medidaDada(t, 0, 0), texto)
 	votante.exigirLosVotos(t, votosDeLaCopia, concurrenciaDeLaMedicion)
 
-	require.NoError(t, os.WriteFile(copia.juez.Medida, []byte(texto), 0o600))
+	copia.juez.Medida = texto
 	assert.Empty(t, comprobarLaMedida(copia.juez, copia.modelo, copia.version),
 		"la medida dada, puesta en el lugar de la versionada, corresponde a lo que hay y se cumple")
 }
 
-// probarLos259SinLaMedidaVersionada quita de la copia, con el juez ya leído de
-// ella, la medida versionada, y exige lo mismo que con ella: la ejecución de la
+// probarLos259SinLaMedidaVersionada deja al juez de la copia sin el contenido
+// de su medida versionada, y exige lo mismo que con ella: la ejecución de la
 // medida no la lee para decidir nada (FR-043, FR-051).
 func probarLos259SinLaMedidaVersionada(t *testing.T) {
 	t.Helper()
 
 	copia := nuevaCopiaAMedir(t)
-	require.NoError(t, os.Remove(copia.juez.Medida))
+	copia.juez.Medida = ""
 
 	lineas := comprobarLaMedida(copia.juez, copia.modelo, copia.version)
 	require.Len(t, lineas, 1, "premisa: la medida versionada de la copia no se puede leer")
@@ -2574,7 +2493,7 @@ func nuevaCopiaAMedir(t *testing.T) copiaAMedir {
 
 	juez := juezDe(t, evals)
 
-	versionada, err := leerMedidaDelJuez(juez.Medida)
+	versionada, err := leerMedidaDelJuez([]byte(juez.Medida))
 	require.NoError(t, err)
 
 	copia := copiaAMedir{
@@ -2592,7 +2511,7 @@ func nuevaCopiaAMedir(t *testing.T) copiaAMedir {
 	}, comprobarLaMedida(juez, copia.modelo, copia.version),
 		"premisa: la medida versionada de la copia no corresponde en ninguna de sus cuatro claves")
 
-	leidos, err := leerCasosEtiquetados(juez.Casos)
+	leidos, err := leerCasosEtiquetados([]byte(juez.Casos))
 	require.NoError(t, err)
 	exigirLosRecuentosDeLaCopia(t, leidos)
 
@@ -3123,11 +3042,13 @@ type medicionQueNoVota struct {
 
 // medicionesQueNoVotan son las de TestEjecucionDeLaMedida: sin juez, sin
 // votante, sin ningún caso que votar a la vez, con un esquema con el que no se
-// puede validar ningún voto y con unos casos que no se pueden votar —los que
-// han dejado de poder leerse, los de una clase que no es del juez, los de una
-// que solo se publica y los que no se pueden resolver—.
+// puede validar ningún voto y con unos casos que no se pueden votar —los que no
+// tienen su forma, los de una clase que no es del juez, los de una que solo se
+// publica y los que no se pueden resolver—.
 func medicionesQueNoVotan() []medicionQueNoVota {
 	const (
+		casosConOtraEtiqueta = "los casos etiquetados del juez (juez/casos.yaml): el caso 3 (informes/dos.json otra-sesion-02) " +
+			`tiene la etiqueta "dudoso"`
 		casosDeOtraClase      = "los casos son de la clase una_clase, que no es una clase del juez que decide"
 		casosDeLaQueSePublica = "los casos son de la clase " + claseCuentaSuProceso + ", que no es una clase del juez que decide"
 	)
@@ -3174,16 +3095,9 @@ func medicionesQueNoVotan() []medicionQueNoVota {
 			dice: "el esquema de la respuesta del juez no sirve para validar sus votos",
 		},
 		{
-			nombre: "sin-los-casos-tras-leer-el-juez",
-			preparar: func(t *testing.T, votar Votante) MedicionDelJuez {
-				t.Helper()
-
-				juez := juezDe(t, copiarLaCarpetaDelJuez(t))
-				require.NoError(t, os.Remove(juez.Casos))
-
-				return medicionDe(juez, votar)
-			},
-			dice: filepath.Join(carpetaDelJuez, ficheroDeCasosDelJuez) + ": no se pueden leer: ",
+			nombre:   "casos-con-otra-etiqueta",
+			preparar: medicionConEstosCasos(strings.Replace(casosSinteticos, "etiqueta: correcto", "etiqueta: dudoso", 1)),
+			dice:     casosConOtraEtiqueta,
 		},
 		{
 			nombre:   "casos-de-una-clase-que-no-es-del-juez",

@@ -103,21 +103,16 @@ type clavesDeLaMedida struct {
 	} `json:"correctos"`
 }
 
-// leerMedidaDelJuez lee la medida del juez de esa ruta
+// leerMedidaDelJuez lee la medida del juez de su contenido, el de medida.json
 // (contracts/medida-del-juez.md §1 de H24). No tiene esquema publicado: se lee
 // como un objeto JSON del que solo se miran las diez claves de MedidaDelJuez,
 // cada una con su tipo, un texto o un entero; una clave repetida es un error,
-// nunca la última que gana. Es un error que no se pueda leer, que no sea ese
-// documento o que le falte alguna de las diez, y una clave a null es una clave
-// que falta: el error las nombra todas, en el orden del contrato, con las de un
-// objeto detrás de la suya y de un punto, como rubrica.sha256. Ningún error
-// lleva delante de qué medida habla: lo pone quien la lee.
-func leerMedidaDelJuez(ruta string) (MedidaDelJuez, error) {
-	contenido, err := leerFichero(ruta)
-	if err != nil {
-		return MedidaDelJuez{}, fmt.Errorf("no se puede leer: %w", err)
-	}
-
+// nunca la última que gana. Es un error que no sea ese documento o que le falte
+// alguna de las diez, y una clave a null es una clave que falta: el error las
+// nombra todas, en el orden del contrato, con las de un objeto detrás de la
+// suya y de un punto, como rubrica.sha256. Ningún error lleva delante de qué
+// medida habla: lo pone quien la lee.
+func leerMedidaDelJuez(contenido []byte) (MedidaDelJuez, error) {
 	var leidas clavesDeLaMedida
 
 	if err := json.Unmarshal(contenido, &leidas); err != nil {
@@ -165,20 +160,17 @@ func valorDeLaClave[T any](leido *T, clave string, faltan *[]string) T {
 }
 
 // Las líneas de comprobarLaMedida: las de contracts/medida-del-juez.md §2 de
-// H24, carácter a carácter, y las dos de lo que no se puede leer. Cada fichero
-// lleva el nombre que tiene dentro de la carpeta de evals de la skill,
-// juez/<fichero>, como en los errores del conjunto.
+// H24, carácter a carácter. Cada fichero lleva el nombre que tiene dentro de la
+// carpeta de evals de la skill, juez/<fichero>, como en los errores del
+// conjunto.
 const (
-	// medidaQueNoCorresponde es la de la medida que no se puede leer o a la que
-	// le falta alguna de sus claves; sigue con el error de leerMedidaDelJuez.
+	// medidaQueNoCorresponde es la de la medida que no es su documento o a la
+	// que le falta alguna de sus claves; sigue con el error de
+	// leerMedidaDelJuez.
 	medidaQueNoCorresponde = "la medida versionada (" + carpetaDelJuez + "/" + ficheroDeMedidaDelJuez + ") no corresponde: %v"
 
 	rubricaDeOtraMedida = "la rúbrica (" + carpetaDelJuez + "/" + ficheroDeRubricaDelJuez + ") no es la de la medida versionada"
 	casosDeOtraMedida   = "los casos (" + carpetaDelJuez + "/" + ficheroDeCasosDelJuez + ") no son los de la medida versionada"
-
-	// casosQueNoSeLeen es la de los casos que han dejado de poder leerse desde
-	// que se leyó el juez; sigue con el error.
-	casosQueNoSeLeen = "los casos (" + carpetaDelJuez + "/" + ficheroDeCasosDelJuez + ") no se pueden leer: %v"
 
 	medidaDeOtroModelo  = "la medida versionada es del modelo %s y el fijado para el juez es %s"
 	medidaDeOtraVersion = "la medida versionada es de la versión %s de Claude Code y la fijada para los votos del juez es %s"
@@ -203,16 +195,16 @@ const (
 //   - Su recuento de correctos marcados no es 0.
 //
 // Las cuatro primeras son las de una medida que no corresponde, y las dos
-// últimas, las de una que no se cumple. La medida que no se puede leer, o sin
+// últimas, las de una que no se cumple. La medida que no es su documento, o sin
 // alguna de las claves que se leen, tampoco corresponde, y da una sola línea,
 // con el error de leerMedidaDelJuez: sin la medida entera no hay con qué
 // comparar lo demás.
 //
 // El modelo y la versión fijados los da quien la llama, y el juez es el de la
-// skill, nunca nil. Lee los casos y la medida de sus rutas, y nada más: no usa
-// ningún modelo ni abre ningún proceso.
+// skill, nunca nil. Compara lo que el juez lleva leído de su carpeta, y nada
+// más: no lee ningún fichero, no usa ningún modelo ni abre ningún proceso.
 func comprobarLaMedida(juez *Juez, modeloFijado, versionFijada string) []string {
-	medida, err := leerMedidaDelJuez(juez.Medida)
+	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
 	if err != nil {
 		return []string{fmt.Sprintf(medidaQueNoCorresponde, err)}
 	}
@@ -225,9 +217,8 @@ func comprobarLaMedida(juez *Juez, modeloFijado, versionFijada string) []string 
 }
 
 // lineasDeLasHuellas compara las huellas SHA-256 de la rúbrica del juez, que es
-// la que va tal cual como sus instrucciones, y de sus casos, leídos de su ruta,
-// con las de la medida. Unos casos que no se pueden leer no tienen huella que
-// comparar: dan su línea, con el error.
+// la que va tal cual como sus instrucciones, y de sus casos con las de la
+// medida.
 func lineasDeLasHuellas(juez *Juez, medida MedidaDelJuez) []string {
 	var lineas []string
 
@@ -235,12 +226,7 @@ func lineasDeLasHuellas(juez *Juez, medida MedidaDelJuez) []string {
 		lineas = append(lineas, rubricaDeOtraMedida)
 	}
 
-	casos, err := leerFichero(juez.Casos)
-
-	switch {
-	case err != nil:
-		lineas = append(lineas, fmt.Sprintf(casosQueNoSeLeen, err))
-	case huellaSHA256(casos) != medida.HuellaDeLosCasos:
+	if huellaSHA256([]byte(juez.Casos)) != medida.HuellaDeLosCasos {
 		lineas = append(lineas, casosDeOtraMedida)
 	}
 
@@ -387,43 +373,28 @@ func (c CasoEtiquetado) nombre() string {
 	return fmt.Sprintf("%s %s sin %s %s", c.Informe, c.Sesion, c.Quitado.Norma, c.Quitado.Bloque)
 }
 
-// leerCasosEtiquetados lee los casos etiquetados del juez de esa ruta
-// (contracts/medida-del-juez.md §4 de H24), con el lector común de documentos
-// YAML de internal/skills —una clave repetida es un defecto con sus dos líneas,
-// nunca la última que gana— y sin esquema publicado: de un caso solo exige que
-// su etiqueta sea una de las dos, porque con otra no se podría contar ni como
-// defecto ni como correcto. Lo demás lo exige resolverlo: un caso que no se
-// puede resolver es un error de la reconstrucción. Ningún error lleva delante de
-// qué casos habla: lo pone quien los lee.
-func leerCasosEtiquetados(ruta string) (CasosEtiquetados, error) {
-	leidos, _, err := leerCasosConSuHuella(ruta)
-
-	return leidos, err
-}
-
-// leerCasosConSuHuella lee los casos etiquetados de esa ruta, como
-// leerCasosEtiquetados, y da con ellos la huella SHA-256, en hexadecimal, del
-// contenido del que los ha leído: el fichero se lee una sola vez, así que la
-// huella es la de esos casos y no la de lo que el fichero tenga después.
-func leerCasosConSuHuella(ruta string) (CasosEtiquetados, string, error) {
-	contenido, err := leerFichero(ruta)
-	if err != nil {
-		return CasosEtiquetados{}, "", fmt.Errorf("no se pueden leer: %w", err)
-	}
-
+// leerCasosEtiquetados lee los casos etiquetados del juez de su contenido, el de
+// casos.yaml (contracts/medida-del-juez.md §4 de H24), con el lector común de
+// documentos YAML de internal/skills —una clave repetida es un defecto con sus
+// dos líneas, nunca la última que gana— y sin esquema publicado: de un caso
+// solo exige que su etiqueta sea una de las dos, porque con otra no se podría
+// contar ni como defecto ni como correcto. Lo demás lo exige resolverlo: un caso
+// que no se puede resolver es un error de la reconstrucción. Ningún error lleva
+// delante de qué casos habla: lo pone quien los lee.
+func leerCasosEtiquetados(contenido []byte) (CasosEtiquetados, error) {
 	leidos, err := skills.ValidarDocumentoYAML[CasosEtiquetados](contenido, nil)
 	if err != nil {
-		return CasosEtiquetados{}, "", err
+		return CasosEtiquetados{}, err
 	}
 
 	for posicion, caso := range leidos.Casos {
 		if caso.Etiqueta != etiquetaDefecto && caso.Etiqueta != etiquetaCorrecto {
-			return CasosEtiquetados{}, "", fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s",
+			return CasosEtiquetados{}, fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s",
 				posicion+1, caso.nombre(), caso.Etiqueta, etiquetaDefecto, etiquetaCorrecto)
 		}
 	}
 
-	return leidos, huellaSHA256(contenido), nil
+	return leidos, nil
 }
 
 // vigenciaDeLaBase es lo que sirve la base de una reconstrucción desde que se
@@ -673,8 +644,7 @@ func (r *reconstructor) sesionDelInforme(informe, nombre string) (sesionDelInfor
 // que va desde la raíz y con la barra de separador, y las devuelve por su
 // nombre. El informe solo se lee, y nunca de fuera de la raíz: una ruta que
 // sale de ella no se puede leer. Es un error que no sea un documento JSON con la
-// forma de un informe o que repita el nombre de una sesión: no habría una sola
-// respuesta que dar por la del caso.
+// forma de un informe.
 func leerSesionesDelInforme(raiz, informe string) (map[string]sesionDelInforme, error) {
 	contenido, err := fs.ReadFile(os.DirFS(raiz), informe)
 	if err != nil {
@@ -690,12 +660,7 @@ func leerSesionesDelInforme(raiz, informe string) (map[string]sesionDelInforme, 
 	}
 
 	sesiones := make(map[string]sesionDelInforme, len(leido.Evals))
-
 	for _, sesion := range leido.Evals {
-		if _, repetida := sesiones[sesion.Sesion]; repetida {
-			return nil, fmt.Errorf("el informe %s tiene repetida la sesión %s", informe, sesion.Sesion)
-		}
-
 		sesiones[sesion.Sesion] = sesion
 	}
 
@@ -1188,8 +1153,8 @@ const (
 //     uno por cada correcto que no.
 //  4. Devuelve la medida (medidaDada) con dos espacios de sangría y su salto
 //     final. Sus cuatro claves son las de lo que hay —las huellas de la rúbrica
-//     del juez y de los casos que ha leído, y el modelo y la versión
-//     recibidos—, no las de la medida versionada (FR-052).
+//     del juez y de sus casos, y el modelo y la versión recibidos—, no las de
+//     la medida versionada (FR-052).
 //  5. Si un defecto no queda marcado o un correcto queda marcado, devuelve
 //     además, con la medida y sus recuentos, un error con una línea por caso,
 //     en el orden de los casos: «<informe> <sesión> [sin <norma> <bloque>]:
@@ -1201,7 +1166,7 @@ const (
 //
 // Es un error, sin ningún voto ni ninguna medida, que la medición no tenga
 // juez, votante o al menos un caso a la vez, que el esquema del juez no sirva
-// para validar sus votos, que los casos no se puedan leer o no sean de una
+// para validar sus votos, que los casos no tengan su forma o no sean de una
 // clase del juez que decide, o que alguno no se pueda resolver.
 //
 // No escribe en la salida estándar ni en el repositorio (FR-054): el texto lo
@@ -1261,22 +1226,23 @@ type casosAMedir struct {
 	clase     string
 	deLaClase int
 
-	// huella es la huella SHA-256 del fichero de los casos, tal como se leyó.
-	huella string
-
 	// resueltos son los casos, en el orden del fichero, cada uno con su
 	// pregunta, su respuesta y sus textos.
 	resueltos []CasoEtiquetado
 }
 
+// casosMalFormados es el error de los casos etiquetados del juez que no tienen
+// su forma; sigue con el de leerCasosEtiquetados.
+const casosMalFormados = "los casos etiquetados del juez (" + carpetaDelJuez + "/" + ficheroDeCasosDelJuez + "): %w"
+
 // leerLosCasos lee los casos etiquetados del juez de la medición y los resuelve
-// con ese reconstructor. Es un error que no se puedan leer, que no sean de una
+// con ese reconstructor. Es un error que no tengan su forma, que no sean de una
 // clase del juez que decide —la medida es de una clase que decide (research D19
 // de H24), y con otra no habría qué contar— o que alguno no se pueda resolver.
 func (m MedicionDelJuez) leerLosCasos(deLosCasos *reconstructor) (casosAMedir, error) {
-	leidos, huella, err := leerCasosConSuHuella(m.Juez.Casos)
+	leidos, err := leerCasosEtiquetados([]byte(m.Juez.Casos))
 	if err != nil {
-		return casosAMedir{}, fmt.Errorf("los casos etiquetados del juez %s: %w", m.Juez.Casos, err)
+		return casosAMedir{}, fmt.Errorf(casosMalFormados, err)
 	}
 
 	deLaClase := slices.IndexFunc(m.Juez.Clases, func(clase ClaseDelJuez) bool {
@@ -1291,7 +1257,7 @@ func (m MedicionDelJuez) leerLosCasos(deLosCasos *reconstructor) (casosAMedir, e
 		return casosAMedir{}, err
 	}
 
-	return casosAMedir{clase: leidos.Clase, deLaClase: deLaClase, huella: huella, resueltos: resueltos}, nil
+	return casosAMedir{clase: leidos.Clase, deLaClase: deLaClase, resueltos: resueltos}, nil
 }
 
 // aJuzgar es lo que se da al juez de cada caso, en su orden: su pregunta, su
@@ -1405,11 +1371,11 @@ func frasesDeLosSies(deLaClase JuicioDeClase) []string {
 // textoDeLaMedida es el texto de la medida de esa ejecución
 // (contracts/medida-del-juez.md §7 de H24; FR-052): la skill, la clase de los
 // casos, el día de la fecha, el modelo y la versión recibidos, las huellas de
-// la rúbrica del juez, que es la que va como sus instrucciones, y de los casos
-// leídos, los dos recuentos y el origen, con el commit. Va con dos espacios de
-// sangría y su salto final, como una medida versionada. Es un error que alguno
-// de sus textos no sea UTF-8: una medida que no se puede escribir tal cual no
-// se da.
+// la rúbrica del juez, que es la que va como sus instrucciones, y de sus casos,
+// que son los votados, los dos recuentos y el origen, con el commit. Va con dos
+// espacios de sangría y su salto final, como una medida versionada. Es un error
+// que alguno de sus textos no sea UTF-8: una medida que no se puede escribir
+// tal cual no se da.
 func (m MedicionDelJuez) textoDeLaMedida(casos casosAMedir, recuento recuentoDeLaMedida) (string, error) {
 	medida := medidaDada{
 		Skill:               m.Skill,
@@ -1418,7 +1384,7 @@ func (m MedicionDelJuez) textoDeLaMedida(casos casosAMedir, recuento recuentoDeL
 		ModeloDelJuez:       m.ModeloDelJuez,
 		VersionDeClaudeCode: m.VersionDelJuez,
 		Rubrica:             ficheroMedido{Fichero: ficheroDeRubricaDelJuez, SHA256: huellaSHA256([]byte(m.Juez.Rubrica))},
-		Casos:               ficheroMedido{Fichero: ficheroDeCasosDelJuez, SHA256: casos.huella},
+		Casos:               ficheroMedido{Fichero: ficheroDeCasosDelJuez, SHA256: huellaSHA256([]byte(m.Juez.Casos))},
 		Defectos:            recuento.defectos,
 		Correctos:           recuento.correctos,
 		Origen:              fmt.Sprintf(origenDeLaMedidaDada, m.Commit),

@@ -1,0 +1,89 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log: «ci: todos los controles en verde», 0 issues de lint, 51 ok, govulncheck sin vulnerabilidades, goreleaser check, gitleaks sin leaks, go mod tidy -diff vacío; sobre la cabeza 81d025d (que solo toca docs/WORKFLOW.md y specs/) reproduje en una copia fuera del repositorio `go build ./...`, `go vet ./internal/evals/` y `go test -count=1 ./internal/evals/` (ok, 24 s). Árbol limpio salvo gates/revision-cambios.md y gates/revision-ciclo.json, que escribe esta misma revisión."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene test offline en make ci y los tests detectan lo que dicen: 24 mutantes en una copia fuera del repositorio, todos en rojo: votosParaMarcar=2 y publica-con-el-2.º voto (TestReglaDeLosVotos), blancos solo ASCII (TestFraseEnLaRespuesta), sin comprobar la rúbrica y recuento de defectos ignorado (TestMedidaVersionada), umbral de la medida a 1 y clase que se publica con decide:true (TestUmbralesDelInforme), juez a 1000 s, marcadas fuera del motivo, frasesQueCuentan con el nulo, conVotoAfirmativo solo con válidos y sinJuzgar que conserva la marca (TestInformeConElJuez), job sin comprobar la medida (TestEjecucionSinMedir), byte cambiado en la copia de la rúbrica (TestCopiasDelJuez), topes 351 y 268 (TestDefinicionDelJob), derivado que no quita y leyo que ignora el código (TestGrabacionesDerivadas), «el sobre» en la prosa (TestEvalsDelRepositorio), frase final del mensaje (TestMensajeDelVoto), nunca nulo, sin validar el esquema y frase siempre presente (TestVotoDelJuez), defecto sin marcar que no cuenta (TestEjecucionDeLaMedida). Premisas con require (36/11/9 y 259/212/47) impiden pasar en vacío (juzgar_test.go:1154-1165, medida_test.go:2124-2148). Suite de aceptación: «no aplica» con motivo (plan.md «Aceptación e2e»; el binario no cambia, cmd/kitlegal no enlaza internal/evals). Ningún t.Skip nuevo: los dos de la cabeza son los de main."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas a los .go no test de internal/evals, 0 coincidencias de \"net/http\", os.Exit, fmt.Print, os.Stdout, os.Stderr, database/sql y modernc (grep sobre git diff main...HEAD). El voto es un proceso (os/exec, juez.go:581); la medida se escribe en el fichero de -salida (job_test.go:345). internal/evals ya importaba app, cache y graph en main (preparar.go); el único .go fuera del paquete es internal/app/grafo_test.go. golangci-lint: 0 issues."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet ni salida del binario cambia (git diff main...HEAD no toca cmd/, internal/app salvo un _test.go, ni schemas de --describe); TestEsquemasPublicados en verde en gates/ci.log. Los dos esquemas tocados son de datos de evals: clases.yaml valida contra schemas/juez-clases.yaml.json (juez.go:98-100, 246) y la lista contra schemas/expresiones-prohibidas.yaml.json con la clave nueva; TestEvalsDelRepositorio/formato exige Juez con las dos clases en boe-legislacion."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. Los errores de internal/evals llevan el fichero o el voto delante (juez.go:156-160, medida.go:582, 666, 696); los cuatro motivos de un voto que no llega a darse son los de contracts/juez-y-voto.md §5 (juez.go:640-647) y los fija TestVotoDelJuez (juez_test.go:1224-1306); el guion de la medida sale con 1 sin argumento o variable y con el código de go test (scripts/evals-medir-juez.sh:38-50, 75), fijado por TestGuionDeLaMedida. 0 panic( en las líneas añadidas."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "CHANGELOG.md (Unreleased) registra boe-legislacion v0.1.7 y el job (líneas 25-93); CONTRIBUTING.md y docs/WORKFLOW.md dicen lo del job; sin ADR (la decisión es el 0037) y sin tocar docs/SOURCES.md, con motivo. Pero CHANGELOG.md:82-83 («su tope pasa de 240 a 352 minutos, que cubre el peor caso de las sesiones y de los votos (21 097 s…)»), CONTRIBUTING.md:875-879, .github/workflows/evals.yml:179-184 y 354-356 y contracts/job-de-evals.md §4 afirman que los topes cubren el peor caso con una fórmula que no es la del código que vota: ver el motivo [l][f]."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP nueva: el voto abre un proceso claude con --tools \"\" --strict-mcp-config (scripts/evals-voto.sh:28-29); la reconstrucción de los casos usa Replay de un directorio vacío y --offline (medida.go:920, 982), sin red. La credencial llega al voto solo por el entorno, como a las sesiones (juez.go:490-495); gitleaks sin leaks en gates/ci.log. Sin NIF ni datos de persona. Datos externos: ninguno grabado; los dos ficheros de testdata/evals/retiradas/ son byte a byte los de c4819d1^ (git rev-parse: 6ce6f957… y 410437a2… en los dos lados) y las cuatro copias de evals/boe-legislacion/juez/ son idénticas a evidencias/adr-0037/ (cmp, cuatro veces); evidencias/, data/, docs/ADR y go.mod sin cambios."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "0 //nolint, t.Skip, SkipNow, TODO o FIXME en las líneas añadidas fuera de specs/ (grep del diff); T018 retiró el único //nolint que T015 había dejado y lo llevó a ignore-rules de misspell con comentario (.golangci.yml:348-353), que es la costumbre del repositorio. Los tres descartes con _ son de valores que otra comprobación cubre (juez.go:131 tras len(malFormados), medida.go:399 huella no usada, medida.go:978 Cut). Ningún fixture ajustado: testdata solo gana los dos restaurados y schemas/ los dos esquemas de las tareas [datos]."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ es lo que enumera plan.md «Source Code»: internal/evals, los tres guiones, Makefile, evals.yml, .golangci.yml (T018, convergencia), la carpeta del juez, los dos esquemas, la lista, SKILL.md (19/19 líneas, el diff del contrato), testdata/evals/retiradas/ y los tres documentos. Ni ADR, ni specs de H7.1-H22, ni scripts/workflow/, ni evidencias/. Los supuestos de gates/supuestos.md son lecturas conservadoras (uno por fichero mal formado, no implementar lo no especificado, no leer la medida en la ejecución de la medida, la lista fuera también de comprobarConsultaRepetida por FR-070). El barrido 81d025d toca solo docs/WORKFLOW.md (2 líneas) y specs/."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna salida crece con el uso del kit: el binario y sus órdenes no cambian; el job parte de las 21 evals y los 259 casos del repositorio. umbrales son 12 elementos fijos (umbrales.go:159-184); juez.respuestas solo lleva respuestas con algún voto afirmativo (informe.go, informado) y lo acotan las 111 respuestas juzgadas; los motivos se dan solo mientras dura su causa (una marcada, una sin juzgar, >900 s, la medida que no corresponde); la medida impresa es una por lanzamiento; las líneas del sondeo, 4 más una por respuesta sin juzgar. La respuesta de la skill pierde frases (0 sobre preceptos no leídos) y SKILL.md queda en 298 líneas (wc -l)."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": false,
+      "evidencia": "Casi todo mecanismo se traza a su FR (plan.md «Trazabilidad»). Dos no: (1) leerJuez lee casos.yaml y medida.json y tira su contenido (juez.go:127 y 130, `lectura.contenido(...)` sin recoger el valor), y comprobarLaMedida los vuelve a leer del disco (medida.go:215, 238), lo que crea el estado «dejó de poder leerse entre las dos lecturas», con su línea propia casosQueNoSeLeen (medida.go:179-181, 240-242) y tres subtests para él (medida_test.go:312-318 «sin-medida.json-tras-leer-el-juez» y «sin-casos.yaml-tras-leer-el-juez», y 3177 «sin-los-casos-tras-leer-el-juez»); ese estado solo lo alcanza un fichero del repositorio tocado por algo que no es el binario, que la constitución deja a la regla genérica, y ningún FR ni contrato pide la línea. (2) leerSesionesDelInforme rechaza un informe versionado con una sesión repetida (medida.go:694-697) con su caso de test (medida_test.go:1798-1804): EscribirInforme nombra las sesiones por su directorio y nunca repite una, y los informes son ficheros versionados; ningún FR lo pide (supuesto T009)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": false,
+      "evidencia": "Los diez umbrales que deciden están en el código con decide:true y hacen fallar el job: lo vi en rojo con mutantes (umbral de la medida a 1, juez a 1000 s, marcadas fuera del motivo, job sin comprobar la medida, recuento ignorado) y los umbrales de make ci con los demás mutantes (criterio b). El de FR-092 (tope ≥ peor caso) tiene su control (TestDefinicionDelJob falla con 351 y con 268), pero la medida que compara no es el peor caso del código: definicion.go:441-448 cuenta ⌈respuestas × 6 / concurrencia⌉ tandas de 40 s, como si los 6 votos de una respuesta se repartieran entre los 4 hilos, y juzgarTodas (juez.go:827-847) da cada respuesta entera a una gorrutina, con sus votos uno detrás de otro, así que el peor caso es ⌈respuestas / concurrencia⌉ × 6 × 40 s: con 54, 54 y 3 respuestas a 4 son 14 + 14 + 1 oleadas de 240 s = 6 960 s, no 167 × 40 = 6 680 s, y el peor caso de evals es 14 357 + 60 + 6 960 = 21 377 s (356,3 min) frente a timeout-minutes: 352 (21 120 s); el de medida es 485 + 60 + 65 × 240 = 16 145 s (269,1 min) frente a 269 (16 140 s). El control deja pasar dos topes que no cubren su peor caso."
+    }
+  ],
+  "motivos": [
+    "[l][f] El peor caso del juez está mal modelado y los dos topes no lo cubren (FR-092; plan.md «Controles de umbral», fila FR-092). En internal/evals/definicion.go, peorCasoDelJuez.tandas (líneas 441-448) suma ⌈respuestas × votosPorRespuestaComoMucho / Concurrencia⌉ y Duracion multiplica por 40 s; pero juzgarTodas (juez.go:827-847) asigna cada respuesta entera a una gorrutina y pide sus hasta 6 votos uno detrás de otro, de modo que el peor caso real es ⌈respuestas / Concurrencia⌉ oleadas de 6 × 40 s = 240 s. Con 54, 54 y 3 respuestas a 4: 14 + 14 + 1 = 29 oleadas × 240 s = 6 960 s (no 167 × 40 = 6 680 s), y el trabajo evals llega a 21 377 s = 356,3 min > 352; con 259 casos a 4: 65 oleadas × 240 s = 15 600 s, y el trabajo medida llega a 16 145 s = 269,1 min > 269. Qué cambiar: en definicion.go, que tandas() sea Σ ⌈respuestas_g / Concurrencia⌉ × votosPorRespuestaComoMucho (o Duracion = Σ ⌈R/C⌉ × 6 × (tope + margen)) y que String presente «⌈54 / 4⌉ × 6» en lugar de «⌈54 × 6 / 4⌉»; subir timeout-minutes de evals a 357 y el de medida a 270 en .github/workflows/evals.yml, y corregir sus comentarios (líneas 179-184: 21 377 s, 356,3 min, 29 oleadas de 240 s; 354-356: 16 145 s, 269,1 min, 65 oleadas); alinear los casos sintéticos de definicion_test.go (peorCasoDeMedida en la línea 983 y los topes «un minuto por debajo», y los comentarios de 776-778 y 1456-1460), contracts/job-de-evals.md §4, plan.md («Performance Goals», línea 61, y la fila FR-092 de «Controles de umbral», línea 271), CONTRIBUTING.md:875-879, CHANGELOG.md:82-83 y la constancia de cierre.md §3 (quickstart §6) con las cifras nuevas. Los dos topes siguen por debajo de las 6 horas del runner (S4). No se rebaja ningún umbral: los dos topes suben.",
+    "[k] Dos mecanismos existen solo para estados sin vía real y no se trazan a ningún FR (constitución V; «Gates», umbral de materialidad): (1) leerJuez lee casos.yaml y medida.json y descarta su contenido (internal/evals/juez.go:127 y 130), y comprobarLaMedida los vuelve a leer del disco (internal/evals/medida.go:215 y 238), lo que obliga a tratar «el fichero dejó de poder leerse entre las dos lecturas»: la línea casosQueNoSeLeen (medida.go:179-181 y 240-242), que ningún contrato nombra, y los subtests «sin-medida.json-tras-leer-el-juez» y «sin-casos.yaml-tras-leer-el-juez» de TestMedidaVersionada (medida_test.go:312-318, probarLoQueDejaDePoderLeerse en 547-560) y «sin-los-casos-tras-leer-el-juez» de TestEjecucionDeLaMedida (medida_test.go:3177-3185); un fichero del repositorio que desaparece a mitad de un proceso es un fichero tocado por algo que no es el binario, de la regla genérica. Qué cambiar: que Juez conserve lo que leerJuez ya ha leído —la huella SHA-256 de casos.yaml (o sus bytes) y el contenido de medida.json—, que comprobarLaMedida, juezDelInforme (informe.go, leerMedidaDelJuez por ruta) y medirAlJuez (medida.go:1277, leerCasosConSuHuella) usen eso en lugar de volver al disco, que leerMedidaDelJuez lea de contenido y conserve solo sus dos motivos del contrato («no se puede leer como JSON», «claves que faltan»), y retirar casosQueNoSeLeen y esos tres subtests; actualizar data-model.md §1 («de los casos y de la medida, su ruta») y el supuesto de T004 en gates/supuestos.md. (2) leerSesionesDelInforme rechaza un informe versionado que repite el nombre de una sesión (medida.go:694-697) con el caso «informe-con-la-sesion-repetida» (medida_test.go:1798-1804): EscribirInforme nombra cada sesión por su directorio y no puede repetirla, y los seis informes son ficheros versionados que ningún emisor reescribe. Qué cambiar: retirar la comprobación y su caso de test, y la frase del supuesto de T009 que la introduce."
+  ],
+  "observaciones": [
+    "El tope de 35 s por voto (D6, S6) sigue sin ninguna medida: los votos versionados en evidencias/adr-0037/votos-*.jsonl no llevan segundos ni duracion_ms (lo comprobé con grep) y el ADR 0037 solo da «8 s por voto» de media. Si Opus tarda más de 35 s con los textos largos de boe articulos, la respuesta queda «sin juzgar» y SC-001 cae por la ejecución, no por la skill; lo mide el job de cierre y está registrado como supuesto [interno].",
+    "FR-111 pide «las dos respuestas» de la eval sin binario ni servidor del 2026-10-04 y TestJuzgarSinLaLista juzga una sola (juzgar_test.go:1076-1091), porque el repositorio solo guarda la frase que compartían (docs/USO.md, 2026-10-04); es la lectura honesta (supuesto T005), pero el nombre y el comentario del subtest podrían decirlo.",
+    "nuevoVotanteConTope rechaza un guion sin ruta absoluta (juez.go:479-481); los dos que lo llaman la pasan con filepath.Abs (job_test.go:248, 445), así que la rama no tiene vía real. Es una guarda de una línea; no llega a motivo.",
+    "La reconstrucción de los casos usa el reloj del sistema para graph check (medida.go:925) y escribe el sobre de boe articulos sin los blancos de json.dumps (supuesto T009): los textos que verá el juez en la medida que lance Jorge (SC-014) pueden diferir de los de la validación en fecha_consulta, hash y hallazgos de caducidad. El spec lo deja a esa medida humana.",
+    "cuenta_su_proceso se publica con umbral 0 y decide:false, así que llevará cumple:false en cuanto haya una respuesta con sí; el informe final lo mostrará entre «los que solo se publican», como pide el ADR 0029. Es lo que fija FR-031.",
+    "La condición de medida (`github.event.label.name == 'evals-medir-juez' || inputs.medir_al_juez == true`) y la de tanda son correctas para los cinco disparos de la tabla de contracts/job-de-evals.md §3; en un pull_request abierto inputs está vacío y label.name también, así que medida no corre."
+  ]
+}

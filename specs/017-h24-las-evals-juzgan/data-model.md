@@ -12,8 +12,10 @@ salida, en `contracts/`.
 | `Clases` | Las de `clases.yaml`, en su orden | Al menos una; nombres sin repetir; las propiedades de `esquema.json` son exactamente sus nombres |
 | `Rubrica` | El contenido de `rubrica.md`, entero | Va tal cual como instrucciones del juez |
 | `Esquema` | El contenido de `esquema.json` | Con él se valida cada voto |
-| `Casos` | La ruta de `casos.yaml` | Solo la lee la ejecución de la medida y el control de derivaciones |
-| `Medida` | La ruta de `medida.json` | La lee `comprobarLaMedida` |
+| `Casos` | El contenido de `casos.yaml`, entero | Su huella la compara `comprobarLaMedida`; como casos solo los leen la ejecución de la medida, el control de derivaciones y el peor caso del trabajo `medida` |
+| `Medida` | El contenido de `medida.json`, entero | De él la leen `comprobarLaMedida`, el informe y el sondeo |
+
+Los cinco ficheros se leen una vez, con el conjunto: quien usa el juez no vuelve a la carpeta.
 
 `ClaseDelJuez`: `Nombre` (`^[a-z0-9_]+$`), `Decide`, `Umbral` (0 a 1). Con `Decide`, la clase tiene su umbral del
 informe con `decide: true` y sus dos umbrales de la medida; sin él, se publica.

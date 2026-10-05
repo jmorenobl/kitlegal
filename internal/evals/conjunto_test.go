@@ -92,21 +92,6 @@ func entradasDelJuez(t *testing.T, cambios ...entradaDeConjunto) []entradaDeConj
 	return entradas
 }
 
-// juezEn es el juez que TestLeerConjunto espera de un conjunto creado en dir: el
-// del caso, con las rutas de sus casos y de su medida dentro de dir; o nil, si
-// el caso no espera ninguno.
-func juezEn(dir string, juez *Juez) *Juez {
-	if juez == nil {
-		return nil
-	}
-
-	enDir := *juez
-	enDir.Casos = filepath.Join(dir, juez.Casos)
-	enDir.Medida = filepath.Join(dir, juez.Medida)
-
-	return &enDir
-}
-
 // entradaDeConjunto es una entrada que un test crea en el directorio de un
 // conjunto de evals: un fichero con su contenido o, con carpeta, un
 // subdirectorio vacío. Su nombre puede llevar delante la carpeta en la que va,
@@ -412,7 +397,7 @@ func TestLeerConjunto(t *testing.T) {
 			require.NoError(t, err, "un fichero mal formado nunca es el error de la lectura")
 			assert.Equal(t, caso.evals, conjunto.Evals)
 			assert.Equal(t, caso.prohibidas, conjunto.Prohibidas)
-			assert.Equal(t, juezEn(dir, caso.juez), conjunto.Juez)
+			assert.Equal(t, caso.juez, conjunto.Juez)
 
 			ficheros := make([]string, 0, len(conjunto.MalFormados))
 			for _, malFormado := range conjunto.MalFormados {
@@ -506,8 +491,7 @@ type casoDeLeerConjunto struct {
 	// prohibidas es la lista que tiene que quedar en el conjunto.
 	prohibidas ExpresionesProhibidas
 
-	// juez es el juez que tiene que quedar en el conjunto, con las rutas de sus
-	// casos y de su medida relativas al directorio de evals; nil, ninguno.
+	// juez es el juez que tiene que quedar en el conjunto; nil, ninguno.
 	juez *Juez
 }
 
@@ -562,8 +546,8 @@ func casosDeLaCarpetaJuez(t *testing.T, eval entradaDeConjunto, leida Eval) []ca
 				},
 				Rubrica: rubricaDelJuez,
 				Esquema: esquemaDelJuez,
-				Casos:   casosEnElJuez,
-				Medida:  medidaEnElJuez,
+				Casos:   casosDelJuez,
+				Medida:  medidaDelJuez,
 			},
 		},
 		malFormado("juez-con-una-clave-de-mas", conClases(clasesDelJuez+"rubrica: rubrica.md\n"),

@@ -1156,9 +1156,9 @@ func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
 		return nil, err
 	}
 
-	medida, err := leerMedidaDelJuez(juez.Medida)
+	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
 	if err != nil {
-		return nil, fmt.Errorf("la medida versionada del juez %s: %w", juez.Medida, err)
+		return nil, fmt.Errorf("la medida versionada del juez (%s/%s): %w", carpetaDelJuez, ficheroDeMedidaDelJuez, err)
 	}
 
 	ahora := e.Ahora

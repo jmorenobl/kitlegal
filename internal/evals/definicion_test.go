@@ -1366,7 +1366,7 @@ func evalsSinteticas(t *testing.T) string {
 	escribirLaCarpetaDelJuez(t, conJuez)
 	crearEntradas(t, conJuez, []entradaDeConjunto{{nombre: casosEnElJuez, contenido: casos.String()}})
 
-	leidos, err := leerCasosEtiquetados(filepath.Join(conJuez, casosEnElJuez))
+	leidos, err := leerCasosEtiquetados([]byte(casos.String()))
 	require.NoError(t, err)
 	require.Len(t, leidos.Casos, casosDelJuezSintetico, "premisa: los casos etiquetados del juez sint\xc3\xa9tico")
 
@@ -1378,7 +1378,7 @@ func evalsSinteticas(t *testing.T) string {
 // entero no se lee, con un error que nombra la ruta; y el peor caso de una skill
 // sin su carpeta de evals o con un plan que no se puede componer no se obtiene,
 // con un error que dice por qué, ni el de la medida de una skill sin su carpeta
-// de evals o con unos casos etiquetados que no se pueden leer.
+// de evals o con unos casos etiquetados que no tienen su forma.
 func probarLosErroresDeLaDefinicion(t *testing.T) {
 	t.Parallel()
 
@@ -1427,7 +1427,7 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	require.ErrorContains(t, err, `el modelo que decide "Claude Sonnet" no tiene la forma de un id de modelo`)
 
 	// El peor caso de la medida tampoco se obtiene sin la carpeta de evals de la
-	// skill ni con unos casos etiquetados que no se pueden leer: su error nombra
+	// skill ni con unos casos etiquetados que no tienen su forma: su error nombra
 	// el fichero.
 	require.NotNil(t, leida.Medida, "premisa: la definici\xc3\xb3n del contrato tiene el trabajo medida")
 

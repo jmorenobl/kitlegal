@@ -20,6 +20,13 @@ De este fichero, T018 cambia solo lo que eso mueve, medido en su sesión sobre `
 encima: lo que esta cabecera dice de T018, los recuentos de §1 con `.golangci.yml`, «Atajos» de §5 y el primer punto
 que tenía §6. La cobertura, el quickstart y los controles siguen como los midió T017, sobre `b1c5156`.
 
+El corrector de la revisión final (ronda 1) cambia solo lo que mueve su corrección del motivo `[k]`, medido en su
+sesión sobre `81d025d` con sus cambios encima: en §3, el recuento de la primera orden de quickstart §4, que pasa de 49
+a 47 porque `TestMedidaVersionada` pierde las dos subpruebas del fichero que deja de poder leerse (de 14 a 12;
+`TestEjecucionDeLaMedida` sigue en 18, con una que sale y otra que entra); y en §4, las líneas de los seis tests de
+`medida_test.go` y `conjunto_test.go` que cambian de sitio. El motivo `[l][f]` queda sin arreglar
+(`gates/revision-pendiente.md`): los topes de 352 y 269 minutos y sus cifras siguen como estaban.
+
 ## 1. Lo creado y lo modificado en el hito
 
 `git diff --name-status main`, en T018 y antes de tocar este fichero, da **90 ficheros: 54 `A` y 36 `M`**, ninguna `D`
@@ -227,7 +234,7 @@ que ninguna pasara en vacío. Ninguna trae un `--- FAIL` ni un `--- SKIP`:
 - §3, 90: `TestInformeConElJuez` (13), `TestUmbralesDelInforme` (20), `TestEjecucionSinMedir` (11),
   `TestJuzgarSinLaLista` (2: `sin-binario-ni-servidor` y `calibrado`), `TestJuicioDelSondeo` (30) y
   `TestSalidaDelSondeo` (8).
-- §4, primera orden, 49: `TestMedidaVersionada` (14), `TestCopiasDelJuez` (10), `TestGrabacionesDerivadas` (3:
+- §4, primera orden, 47: `TestMedidaVersionada` (12), `TestCopiasDelJuez` (10), `TestGrabacionesDerivadas` (3:
   `respuestas`, `derivados` y `preguntas`) y `TestEjecucionDeLaMedida` (18). Segunda, 9: `TestGrabacionesDerivadas` de
   `internal/app` y sus ocho subpruebas, entre ellas `lpac-a21-version-anterior`, la derivada restaurada.
 - §5, 42: `TestProsaDeLaSkill` (26) y `TestEvalsDelRepositorio` (14). Entre las catorce no están
@@ -277,12 +284,12 @@ para `internal/evals` en las dos órdenes y en `skills-check`.
 | FR-102, SC-002 | `TestVotoDelJuez` | `internal/evals/juez_test.go:1032` | `PASS`, 19 subpruebas |
 | FR-103, SC-003 | `TestReglaDeLosVotos` | `internal/evals/juez_test.go:1337` | `PASS`, 9 subpruebas |
 | FR-104, SC-004 | `TestInformeConElJuez` y `TestEjecucionSinMedir` | `internal/evals/informe_test.go:3842` y `internal/evals/ejecucion_test.go:102` | `PASS`; la segunda, 11 subpruebas, entre ellas `medida-que-corresponde` y las mutaciones |
-| FR-042, FR-105, SC-005 | `TestMedidaVersionada` | `internal/evals/medida_test.go:278` | `PASS`, 14 subpruebas, entre ellas `del-repositorio` |
-| FR-106, SC-006 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:2404` | `PASS`, 18 subpruebas, entre ellas `un-defecto-sin-marcar` y `un-correcto-marcado` |
+| FR-042, FR-105, SC-005 | `TestMedidaVersionada` | `internal/evals/medida_test.go:259` | `PASS`, 12 subpruebas, entre ellas `del-repositorio` |
+| FR-106, SC-006 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:2323` | `PASS`, 18 subpruebas, entre ellas `un-defecto-sin-marcar` y `un-correcto-marcado` |
 | FR-107, SC-007 | `TestMensajeDelVoto` y `TestOrdenDelVoto` | `internal/evals/juez_test.go:280` y `:598` | `PASS`, 4 y 15 subpruebas |
-| FR-023, FR-108, SC-008 | `TestCopiasDelJuez` | `internal/evals/medida_test.go:678` | `PASS`, 10 subpruebas: `del-repositorio`, las cuatro `cambiada-…`, las cuatro `sin-…` y `skill-fuera-de-la-tabla` |
-| FR-109, SC-009 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:2060` | `PASS`: `respuestas`, `derivados` y `preguntas` |
-| FR-086, FR-110, SC-010 | `skills-check`, `TestProsaDeLaSkill` y `TestEvalsDelRepositorio` | `Makefile:126` (`skills-check: check-tools`); `internal/evals/conjunto_test.go:2087` y `:1411` | `make skills-check`, código 0; `PASS`, 26 y 14 subpruebas; `SKILL.md`, 298 líneas |
+| FR-023, FR-108, SC-008 | `TestCopiasDelJuez` | `internal/evals/medida_test.go:628` | `PASS`, 10 subpruebas: `del-repositorio`, las cuatro `cambiada-…`, las cuatro `sin-…` y `skill-fuera-de-la-tabla` |
+| FR-109, SC-009 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:1979` | `PASS`: `respuestas`, `derivados` y `preguntas` |
+| FR-086, FR-110, SC-010 | `skills-check`, `TestProsaDeLaSkill` y `TestEvalsDelRepositorio` | `Makefile:126` (`skills-check: check-tools`); `internal/evals/conjunto_test.go:2071` y `:1395` | `make skills-check`, código 0; `PASS`, 26 y 14 subpruebas; `SKILL.md`, 298 líneas |
 | FR-111, SC-011 | `TestJuzgarSinLaLista` | `internal/evals/juzgar_test.go:1053` | `PASS`: `sin-binario-ni-servidor` y `calibrado` |
 | FR-092, FR-112, SC-012 | `TestDefinicionDelJob` | `internal/evals/definicion_test.go:173` | `PASS`, con `del-repositorio`, `sinteticas` y `peor-caso`; topes de 352 y 269 minutos en `evals.yml` |
 

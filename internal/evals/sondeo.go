@@ -455,7 +455,7 @@ func versionDelEquipo(sesiones []sesionJuzgada) string {
 func medidaFrenteAlEquipo(juez *Juez, modelo, version string) []string {
 	lineas := comprobarLaMedida(juez, modelo, version)
 
-	medida, err := leerMedidaDelJuez(juez.Medida)
+	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
 	if err != nil {
 		return lineas
 	}

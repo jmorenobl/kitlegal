@@ -617,7 +617,7 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
 // (contracts/job-de-evals.md §4 de H24): sus casos son los casos etiquetados de
 // la carpeta juez de sus evals, dentro de evals, y su concurrencia, la que le da
 // el include del trabajo. Es un error una concurrencia menor que 1, una carpeta
-// que no se puede leer, una skill sin juez o unos casos que no se pueden leer.
+// que no se puede leer, una skill sin juez o unos casos que no tienen su forma.
 func (m TrabajoDeLaMedida) peorCaso(evals, skill string) (peorCasoDeLaMedida, error) {
 	concurrencia, err := concurrenciaDeLaSkill(m.ConcurrenciaPorSkill[skill], skill)
 	if err != nil {
@@ -633,9 +633,10 @@ func (m TrabajoDeLaMedida) peorCaso(evals, skill string) (peorCasoDeLaMedida, er
 		return peorCasoDeLaMedida{}, fmt.Errorf("%s no tiene juez que medir", skill)
 	}
 
-	etiquetados, err := leerCasosEtiquetados(conjunto.Juez.Casos)
+	etiquetados, err := leerCasosEtiquetados([]byte(conjunto.Juez.Casos))
 	if err != nil {
-		return peorCasoDeLaMedida{}, fmt.Errorf("los casos etiquetados del juez %s: %w", conjunto.Juez.Casos, err)
+		return peorCasoDeLaMedida{}, fmt.Errorf("los casos etiquetados del juez %s: %w",
+			filepath.Join(evals, skill, carpetaDelJuez, ficheroDeCasosDelJuez), err)
 	}
 
 	return peorCasoDeLaMedida{Casos: len(etiquetados.Casos), Concurrencia: concurrencia}, nil
