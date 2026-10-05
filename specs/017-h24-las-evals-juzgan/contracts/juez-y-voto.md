@@ -48,7 +48,8 @@ en el transcript, y nada más:
 | De una herramienta del registro (`boe_articulo`…, con el prefijo que le ponga el agente) | siempre | lo que el informe publica en `invocaciones[].orden` de esa llamada | ídem |
 
 - Vale en los dos modos y en la eval sin binario ni servidor: el modo no cambia la regla. Una orden o una llamada que
-  falló deja su texto, con el error. Un `tool_use` sin `tool_result` no deja ninguno.
+  falló deja su texto, con el error. Un `tool_use` sin `tool_result` no deja ninguno; un `tool_result` sin ningún
+  texto deja el suyo con la salida vacía, que el mensaje escribe `(sin salida)`.
 - No son textos el resultado de `Skill`, de `Read` ni de ninguna otra herramienta, ni las órdenes de Bash que no
   nombran `kitlegal`.
 - La traza de `strace` no interviene: el sondeo, que no la tiene, lee los mismos textos.
@@ -97,7 +98,7 @@ claude -p --model "$modelo" --tools "" --strict-mcp-config --disable-slash-comma
 | `$modelo`, `$rubrica`, `$esquema` | Los lee el guion de `../modelo.txt`, `../rubrica.md` (entero, con su salto de línea final, como `juez.py`; research V22) y `../esquema.json` (sin su salto de línea final), que quien vota deja en el directorio del juez |
 | Entrada estándar | El mensaje de §3 |
 | Directorio de trabajo | `<directorio del juez>/cwd`, vacío |
-| Entorno | Solo cuatro variables, como en la validación: `PATH`, `HOME` (el directorio del juez), `CLAUDE_CONFIG_DIR` (`<directorio del juez>/config`) y `CLAUDE_CODE_OAUTH_TOKEN` |
+| Entorno | Solo cuatro variables, como en la validación: `PATH`, `HOME` (el directorio del juez), `CLAUDE_CONFIG_DIR` (`<directorio del juez>/config`) y `CLAUDE_CODE_OAUTH_TOKEN`. Son las que el votante da al guion; `claude` ve además las que bash pone por su cuenta (`PWD`, `SHLVL`, `_`), que el guion ni lee ni quita |
 | `claude` | El primero del `PATH` del voto. En el job, el directorio del Claude Code del juez va delante ([job-de-evals.md](./job-de-evals.md) §2); en el sondeo, es el del equipo |
 | Tope | 35 s; pasado, el proceso se termina, y a los 5 s se cierran sus tuberías (`exec.CommandContext` con `WaitDelay`) |
 
@@ -165,7 +166,7 @@ El juicio de la sesión sin modelo no cambia con los votos: ni `pasa`, ni sus mo
 |---|---|---|
 | `TestTextosDeLaSesion` (`sesion_test.go`) | Con transcripts escritos en el test: los textos del modo orden y del modo herramienta en su orden; la orden que falla; ninguno de `Skill` ni de un Bash sin `kitlegal`; una sesión sin textos | FR-001, FR-107 |
 | `TestMensajeDelVoto` (`juez_test.go`) | El mensaje, byte a byte, con textos y sin ellos; la salida vacía; y que no lleva ni un byte de `SKILL.md`, de la eval salvo su pregunta, ni de los motivos del juicio | FR-001, FR-002, FR-004, FR-107; SC-007 |
-| `TestOrdenDelVoto` (`juez_test.go`) | Con el `claude` sustituto: sus argumentos, uno a uno y en su orden; su entrada estándar; su directorio; y sus cuatro variables de entorno y ninguna más | FR-003, FR-004, FR-107; SC-007 |
+| `TestOrdenDelVoto` (`juez_test.go`) | Con el `claude` sustituto: sus argumentos, uno a uno y en su orden; su entrada estándar; su directorio; y sus cuatro variables de entorno y ninguna más, descontadas las que pone una shell (`PWD`, `OLDPWD`, `SHLVL`, `_`) | FR-003, FR-004, FR-107; SC-007 |
 | `TestFraseEnLaRespuesta` (`juez_test.go`) | Tabla: frase literal; cruza un salto de línea; pierde un acento grave; pierde `*` y `_`; lleva un espacio de no separación; vacía; cambia una mayúscula, un acento o una coma | FR-005, FR-102 |
 | `TestVotoDelJuez` (`juez_test.go`) | Con salidas grabadas: sí con su frase, vale; sí con una frase que no está, nulo y repetido una vez; sí con una frase que solo difiere en blancos y énfasis, vale; y los cuatro motivos de un voto que no llega a darse, con el tope incluido | FR-005 a FR-007, FR-102; SC-002 |
 | `TestReglaDeLosVotos` (`juez_test.go`) | Las filas de §8 y la clase que solo se publica, con un votante que cuenta sus llamadas | FR-010, FR-011, FR-103; SC-003 |

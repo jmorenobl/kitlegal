@@ -88,10 +88,12 @@ true)`. La etiqueta `evals-medir-juez` ya no entra en `tanda`: no es ninguna de 
 | Despacho sin la entrada | sí | no |
 | Despacho con `medir_al_juez` | no | sí |
 
-`make evals-medir-juez SKILL=<skill>` ejecuta `scripts/evals-medir-juez.sh <skill>`: exige las variables de la
-tabla de arriba, `CLAUDE_DEL_JUEZ` y `CLAUDE_CODE_OAUTH_TOKEN`; ejecuta `TestMedidaDelJuez`, sin límite de tiempo de
-`go test`; imprime `medida.json` entre sus marcas si se escribió
-([medida-del-juez.md](./medida-del-juez.md) §7); y sale con el código del test. No forma parte de `make ci`.
+`make evals-medir-juez SKILL=<skill>` ejecuta `scripts/evals-medir-juez.sh <skill>`: exige la skill y, del `env` del
+trabajo, `MODELO_DEL_JUEZ`, `VERSION_DE_CLAUDE_CODE_DEL_JUEZ`, `CONCURRENCIA_DE_EVALS` y `COMMIT_EVALUADO`, además de
+`CLAUDE_DEL_JUEZ`, que tiene que ser un fichero ejecutable, y `CLAUDE_CODE_OAUTH_TOKEN`, y sin alguna sale con 1
+diciendo cuál falta; ejecuta `TestMedidaDelJuez`, sin límite de tiempo de `go test`; imprime `medida.json` entre sus
+marcas si se escribió, y ninguna marca si no ([medida-del-juez.md](./medida-del-juez.md) §7); y sale con el código
+del test. No forma parte de `make ci`.
 
 ## 4. Los topes (FR-092)
 

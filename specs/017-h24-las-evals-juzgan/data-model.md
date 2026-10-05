@@ -27,9 +27,9 @@ informe con `decide: true` y sus dos umbrales de la medida; sin él, se publica.
 
 | Tipo | Campos | Notas |
 |---|---|---|
-| `Votante` | `func(mensaje string) ([]byte, error)` | Devuelve la salida estándar de la sesión del juez; el error es que no llegó a darse (el tope, el proceso) |
-| Voto de una clase | `Voto` (1 a 3), `Nulo`, `Motivo`, `Respuesta` (`si` o `no`), `Frase`, `Precepto` (si la clase lo tiene), `FraseEnLaRespuesta` | Sus claves JSON son las de [contracts/informe-del-job.md](./contracts/informe-del-job.md) §3 |
-| Juicio de una respuesta | La sesión; por clase, sus votos y `Marcada`; y, si quedó sin juzgar, su motivo | Lo da la regla |
+| `Votante` | `func(mensaje string) ([]byte, error)` | Devuelve la salida estándar de la sesión del juez; el error es el del proceso del voto: con el del tope, el voto no llega a darse; con cualquier otro, la salida que dejó se lee igual, y su código va en el motivo si no es JSON |
+| Voto de una clase (`VotoDeClase`) | `Voto` (1 a 3), `Nulo`, `Motivo`, `Respuesta` (`si` o `no`), `Frase`, `Precepto` (si la clase lo tiene), `FraseEnLaRespuesta` | Sus claves JSON son las de [contracts/informe-del-job.md](./contracts/informe-del-job.md) §3 |
+| Juicio de una respuesta (`JuicioDeRespuesta`) | Por clase (`JuicioDeClase`), su nombre, sus votos y `Marcada`; y, si quedó sin juzgar, su motivo. La sesión la pone el informe | Lo da la regla |
 
 Estados de una respuesta juzgada, por clase que decide:
 

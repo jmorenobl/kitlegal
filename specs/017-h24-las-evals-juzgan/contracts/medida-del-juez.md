@@ -34,6 +34,11 @@ para sus votos, y devuelve una línea por lo que falla, o ninguna. No usa ningú
 | `clase` con las clases que deciden de `clases.yaml` | `la clase <c> decide y la medida versionada es de <d>` |
 | `defectos.sin_marcar` y `correctos.marcados` con 0 | `la medida versionada no se cumple: <n> defectos sin marcar` y `…: <n> correctos marcados` |
 
+Una medida que no se puede leer, o sin alguna de las claves de §1, da una sola línea, y ninguna de las demás: `la
+medida versionada (juez/medida.json) no corresponde: <motivo>`, con el error de su lectura (`no se puede leer como
+JSON: …` o `claves que faltan: …`). Una línea por cada clase que decide y no es la de la medida, en el orden de
+`clases.yaml`; y las de los recuentos no cambian con 1 («1 defectos sin marcar»).
+
 Quién la hace y con qué valores fijados:
 
 | Quién | Valores | Si falla |
@@ -96,8 +101,10 @@ binario:
    el applet `graph` y la entrega al grafo de esa caché. El texto es su `orden` y lo que escribe en la salida
    estándar, termine con el código que termine.
 4. **En un derivado**, de esos textos se quita el del bloque `quitado`: fuera el de cada `boe articulo` de esa norma y
-   ese bloque que terminó con 0, y del de cada `boe articulos` que lo pidió, los elementos de `data` con ese `bloque`
-   (si no queda ninguno, fuera el texto). El sobre se vuelve a escribir con sus seis claves en su orden.
+   ese bloque que terminó con 0, y del de cada `boe articulos` que lo pidió y terminó con 0, los elementos de `data`
+   con ese `bloque` (si no queda ninguno, fuera el texto). El sobre se vuelve a escribir con sus seis claves en su
+   orden, en una línea y con su salto final, como lo escribe el binario. El código es el de la invocación repetida, y
+   un derivado al que no se le quita nada es un error.
 
 Las sesiones de los seis informes solo invocaron `boe` (`indice`, `articulo`, `articulos`, `buscar`, `metadatos`,
 `analisis`), `graph check` y `mcp serve` (research M6): el registro no necesita más applets.
@@ -161,9 +168,12 @@ El de `internal/app`, del mismo nombre, sigue con las derivadas de las grabacion
 - 656 B la del ejemplo. Una por lanzamiento; no se repite sola, y nada la escribe en el repositorio (FR-054).
 - **Falla**, y el job sale en rojo, si un defecto no queda marcado o un correcto queda marcado: imprime la medida, con
   sus recuentos, y una línea por caso, `<informe> <sesión> [sin <norma> <bloque>]: etiquetado <etiqueta> y <marcado |
-  sin marcar>: «<frase>» · …`, unos 400 B por caso y como mucho 259.
-- **Con algún caso sin juzgar** (un voto que no llega a darse), falla con esos casos y su motivo y **no imprime
-  ninguna medida** (FR-053).
+  sin marcar>: «<frase>» · …`, unos 400 B por caso y como mucho 259. Las frases son las de sus votos que dicen sí con
+  su frase en la respuesta: tres en un correcto marcado, y dos, una o ninguna en un defecto sin marcar; sin ninguna,
+  la línea termina en `sin marcar`.
+- **Con algún caso sin juzgar** (un voto que no llega a darse), falla con esos casos y su motivo, una línea por cada
+  uno, `<informe> <sesión> [sin <norma> <bloque>]: sin juzgar: <motivo>`, y **no imprime ninguna medida** ni ninguna
+  de sus dos marcas (FR-053).
 
 ## 8. Tests, en `make ci`
 
@@ -173,7 +183,7 @@ El de `internal/app`, del mismo nombre, sigue con las derivadas de las grabacion
 | `TestCopiasDelJuez` | Las cuatro copias iguales; y, sobre una copia en un temporal, un byte cambiado en cada una, que la nombra | FR-023, FR-108; SC-008 |
 | `TestGrabacionesDerivadas` | §6 | FR-024, FR-109; SC-009 |
 | `TestEjecucionDeLaMedida` | Sobre el texto que `medirAlJuez` devuelve, que es el que el punto de entrada escribe y su guion imprime. Con un votante que responde según la etiqueta del caso: los 259 bien, con una medida versionada que **no** corresponde en la carpeta del juez (una copia en un temporal con la rúbrica cambiada): vota los 259, pide 683 votos y da la medida con las huellas de la copia y 0 de 212 y 0 de 47; un defecto sin marcar y un correcto marcado: falla con el caso y sus frases; un voto que no llega: falla sin dar medida; y en todos, ninguna llamada a quien abre sesiones de evals | FR-051 a FR-053, FR-106; SC-006 |
-| `TestGuionDeLaMedida` | `scripts/evals-medir-juez.sh` con el `go` sustituto, como `TestGuionDelSondeo`: sin una variable obligatoria sale con 1 sin ejecutar nada; imprime `medida.json` entre sus dos marcas si el test lo escribió, y nada entre marcas si no; y sale con el código del test | FR-052, FR-053 |
+| `TestGuionDeLaMedida` | `scripts/evals-medir-juez.sh` con el `go` sustituto, como `TestGuionDelSondeo`: sin la skill o sin una variable obligatoria sale con 1 sin ejecutar nada; imprime `medida.json` entre sus dos marcas si el test lo escribió, y ninguna marca si no; y sale con el código del test | FR-052, FR-053 |
 
 ## 9. Uso
 

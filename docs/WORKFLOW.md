@@ -18,7 +18,7 @@ Cada hito de `ROADMAP.md` se implementa con una pasada del workflow `hito` de sp
 | Skills | `.claude/skills/speckit-*` | Los comandos `/speckit-*` (generados por `specify init`, no editar a mano) |
 | Artefactos | `specs/NNN-hN-slug/` | `spec.md`, `plan.md`, `research.md`, `tasks.md`, `checklists/`, `aceptacion/`, `gates/` |
 | Evidencia de datos | `evidencias/<hito>/` | Material de origen grabado por `grabar_datos`, con `manifiesto.json` de huellas |
-| Evidencia de un ADR | `evidencias/adr-<número>/` | Material de la validación de un ADR, escrito fuera de un run, con `manifiesto.json` de huellas (hoy, la del ADR 0037: la rúbrica, los casos y la medida del juez de las evals, que la carpeta `evals/boe-legislacion/juez/` copia byte a byte) |
+| Evidencia de un ADR | `evidencias/adr-<número>/` | Material de la validación de un ADR, escrito fuera de un run, con `manifiesto.json` de huellas (hoy, la del ADR 0037: entre otras cosas, la rúbrica, el esquema de la respuesta, los casos y la medida del juez de las evals, los cuatro ficheros que la carpeta `evals/boe-legislacion/juez/` copia byte a byte) |
 
 ## Secuencia
 

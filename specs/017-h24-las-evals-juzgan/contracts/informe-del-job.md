@@ -12,7 +12,7 @@ informe:
 | Grupo | Respuestas | Cuenta en umbrales |
 |---|---|---|
 | De cada modo | Las del modelo que decide, de las series que pide el plan en ese modo, cuya eval activa la skill, terminadas, legibles y medidas: las mismas que forman el `total` de `sin_activar:<modelo>:<modo>` (54 por modo con las evals de hoy) | sí, en los de su modo |
-| De la eval sin binario ni servidor | Las del modelo que decide, terminadas, legibles y medidas (3) | no (FR-013) |
+| De la eval sin binario ni servidor | Las del modelo que decide, de la serie que pide el plan sin modo, cuya eval activa la skill, terminadas, legibles y medidas (3) | no (FR-013) |
 
 No se juzgan las del modelo informativo, la sesión de la prueba de red, ni las sesiones sin medir, sin terminar o
 ilegibles (FR-012). Los votos van por grupos, en ese orden —modo orden, modo herramienta, eval sin binario ni
@@ -64,7 +64,8 @@ Clave nueva de la raíz, detrás de `umbrales`: `null` si la skill no tiene juez
 | `sin_juzgar` | Una entrada por respuesta sin juzgar, en orden de sesión: `sesion` y `motivo` |
 
 `marcada`, en una clase que decide, es la de la regla de los tres votos; en una que solo se publica, que su primer
-voto dice sí con su frase.
+voto dice sí con su frase. Una respuesta sin juzgar va solo en `sin_juzgar`, sin los votos que sí llegaron, aunque
+alguno dijera sí: no es una respuesta juzgada.
 
 Una entrada con los tres votos de «sí, sí y no» (1.415 B):
 
@@ -104,7 +105,10 @@ corresponde o no se cumple, no abre ninguna sesión, ni de evals ni del juez, y 
 - `motivos`: uno por cada cosa que no coincide, con el prefijo de la ejecución: `de la ejecución, no de la skill: el
   instrumento no está medido: <qué>` (174 B el de la versión de Claude Code; research M4);
 - `umbrales`: `[]`; `juez`: con su modelo y su versión, `respuestas` y `sin_juzgar` vacías; `tasas`, `evals`,
-  `sesiones_sin_medir`, `fuera_de_lo_grabado` y `red`: `[]`.
+  `sesiones_sin_medir`, `fuera_de_lo_grabado` y `red`: `[]`;
+- lo demás, como en cualquier informe: la cabecera con lo recibido y `sin_python`; y, como no se leen las evals ni
+  ninguna sesión, `ficheros_mal_formados`, `modelos_de_sesion` y `versiones_de_claude_code` vacías, y la duración y
+  los reintentos a 0. `informe.md` es el documento de siempre, con «ninguna» o «ninguno» en cada sección sin filas.
 
 Así el informe final no da por medido ningún umbral del juez: sus controles salen como «el job no publica ese umbral».
 Deja de darse cuando una persona versiona una medida que corresponde y se cumple.

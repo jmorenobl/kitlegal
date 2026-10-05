@@ -1,9 +1,10 @@
 # Quickstart: comprobar H24
 
 Cómo ver que el hito funciona, con el árbol de la rama `017-h24-las-evals-juzgan` ya implementado. Los escenarios 1 a
-6 no usan la red ni abren ninguna sesión con modelo, y no cambian el árbol de trabajo, el índice ni la historia: los
-tests escriben solo en directorios temporales y en la caché de construcción de Go. El 7 y el 9 los lanza una persona;
-el 8 lo hace el workflow al cerrar. Las órdenes se ejecutan desde la raíz del repositorio.
+6 no abren ninguna sesión con modelo ni usan más red que la de las herramientas de Go en `make ci` (`make vuln`), y no
+cambian el árbol de trabajo, el índice ni la historia: los tests escriben solo en directorios temporales y en la caché
+de construcción de Go. El 7 y el 9 los lanza una persona; el 8 lo hace el workflow al cerrar. Las órdenes se ejecutan
+desde la raíz del repositorio.
 
 Los contratos: [contracts/](./contracts/). Los tipos: [data-model.md](./data-model.md).
 
@@ -44,7 +45,8 @@ go test -count=1 -run '^TestGrabacionesDerivadas$' ./internal/app/
 ```
 
 Esperado: `ok` en las dos. La primera reconstruye en proceso los textos de los 259 casos y vota con un votante que
-responde según la etiqueta: imprime en el test la medida con 0 de 212 y 0 de 47.
+responde según la etiqueta: el test exige que la medida que da `medirAlJuez` sea la de 0 de 212 y 0 de 47, con 683
+votos. La orden no la imprime, tampoco con `-v`: solo su línea `ok`.
 
 Las cuatro copias, a mano:
 

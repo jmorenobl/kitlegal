@@ -239,7 +239,8 @@ que ninguna pasara en vacío. Ninguna trae un `--- FAIL` ni un `--- SKIP`:
 de 47». La orden imprime solo su línea `ok`, y con `-v` tampoco sale ninguna línea que no sea de `go test`: la medida
 no se imprime, se exige. Lo hace `TestEjecucionDeLaMedida/los-259-bien-con-una-medida-que-no-corresponde`
 (`probarLos259Bien`, en `medida_test.go`), que compara el texto de la medida dada con el de 0 de 212 y 0 de 47 y exige
-683 votos. Lo «esperado» de la orden, `ok`, se cumple; quickstart.md no se ha tocado.
+683 votos. Lo «esperado» de la orden, `ok`, se cumple; quickstart.md no se ha tocado. (El barrido global, posterior a
+T018, corrigió esa frase de quickstart.md §4: ahora dice que el test exige la medida y que la orden no la imprime.)
 
 **Cómo se ejecutó.** Tres cosas difieren de teclear el quickstart en una terminal, y ninguna cambia una orden:
 

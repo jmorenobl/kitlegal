@@ -131,6 +131,7 @@ scripts/evals-voto.sh, scripts/evals-medir-juez.sh  # nuevos
 scripts/evals.sh                                    # las tres variables del juez
 Makefile                                            # objetivo evals-medir-juez
 .github/workflows/evals.yml                         # variables del juez, segundo Claude Code, trabajo medida, topes
+.golangci.yml                                       # «informativo» en ignore-rules de misspell (T018, la convergencia)
 internal/app/grafo_test.go                          # la derivada restaurada en TestGrabacionesDerivadas
 internal/evals/
 ├── juez.go                  # nuevo: clases, textos, mensaje, frase, lectura del voto, regla, votante
@@ -145,9 +146,11 @@ internal/evals/
 ├── sondeo.go                # el juez y sus líneas
 ├── consulta_repetida.go     # sin la lista
 ├── definicion.go            # variables del juez, trabajo medida, peores casos
+├── grabaciones.go           # EvalsRetiradas: dónde están la eval restaurada y su grafo previo
+├── preparar.go              # leerEvalsBienFormadas, que comparten PrepararSesion y la reconstrucción
 ├── job_test.go              # TestEjecucionDelJob con ejecutarElJob; TestMedidaDelJuez; TestSondeo
 ├── doc.go
-└── juez_test.go, medida_test.go, ejecucion_test.go y los _test.go de lo que cambia
+└── juez_test.go, medida_test.go, ejecucion_test.go, sustitutos_test.go y los _test.go de lo que cambia
 CHANGELOG.md, CONTRIBUTING.md, docs/WORKFLOW.md
 ```
 
