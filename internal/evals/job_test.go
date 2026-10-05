@@ -361,11 +361,19 @@ func TestMedidaDelJuez(t *testing.T) {
 //     scripts/evals-sesion.sh y el entorno de quien lo lanza que ven las
 //     sesiones del sondeo. SIGINT y SIGTERM cierran las abiertas con la
 //     secuencia del tope, y el test falla con el error que nombra cada una;
-//  4. las juzga con el código del job, sin lo que el job lee de la traza.
+//  4. las juzga con el código del job, sin lo que el job lee de la traza;
+//  5. con una skill que tiene juez, juzga con él sus respuestas, con el votante
+//     que abre cada voto con scripts/evals-voto.sh (votanteDelSondeo): el modelo
+//     del juez es el de la definición del job, y el claude de sus votos, el del
+//     PATH de quien lo lanza, el mismo que abre las sesiones
+//     (contracts/informe-del-job.md §8 de H24; FR-075 de H24). SIGINT y SIGTERM
+//     cortan los votos abiertos. Su salida dice si la medida versionada del juez
+//     corresponde a ese Claude Code, sin comprobarla para decidir nada (FR-076
+//     de H24).
 //
 // Escribe la salida en salida.txt del temporal, que su guion imprime, y ningún
-// informe ni veredicto: falla solo con un error, sean cuales sean las tasas
-// (FR-066 de H7.3). Con un error de uso —un argumento que no vale o la
+// informe ni veredicto: falla solo con un error, sean cuales sean las tasas y
+// lo que el juez marque (FR-066 de H7.3). Con un error de uso —un argumento que no vale o la
 // credencial que falta, un errorDeUso—, no falla: escribe su mensaje, con un
 // salto de línea final, en uso.txt del temporal, que su guion imprime solo en
 // la salida de error, y no escribe salida.txt (contracts/sondeo.md §2 de H7.4;
@@ -385,6 +393,10 @@ func TestSondeo(t *testing.T) {
 	guion, err := filepath.Abs(guionDeLaSesion)
 	require.NoError(t, err)
 
+	// Cada voto se ejecuta en su propio directorio, como cada sesión.
+	delVoto, err := filepath.Abs(guionDelVoto)
+	require.NoError(t, err)
+
 	senales, dejarDeEscuchar := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
 	defer dejarDeEscuchar()
 
@@ -402,6 +414,9 @@ func TestSondeo(t *testing.T) {
 		Temporal:                 *banderaTemporal,
 		Guion:                    guion,
 		PrepararElArbol:          prepararElArbol,
+		NuevoVotante: func(juez *Juez, modelo string) (Votante, error) {
+			return votanteDelSondeo(senales, t, delVoto, juez, modelo)
+		},
 	})
 
 	var uso *errorDeUso
@@ -415,6 +430,37 @@ func TestSondeo(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, os.WriteFile(filepath.Join(*banderaTemporal, ficheroDeLaSalidaDelSondeo), []byte(salida), 0o600))
+}
+
+// votanteDelSondeo da el votante del juez de la skill en el sondeo, el que abre
+// cada voto con el guion del voto de esa ruta, que es absoluta
+// (nuevoVotanteDelGuion; contracts/informe-del-job.md §8 y
+// contracts/juez-y-voto.md §4 de H24), y deja para el final del test la
+// retirada de su directorio. El juez y el id de su modelo los da sondear: el de
+// la carpeta de evals de la skill y el de la definición del job. El PATH de los
+// votos es el de quien lanza el sondeo, sin nada delante —su claude es el del
+// equipo, el que abre las sesiones—, su credencial es la suya, y su contexto, el
+// de las señales del punto de entrada, de modo que SIGINT y SIGTERM cortan los
+// votos abiertos.
+func votanteDelSondeo(senales context.Context, t *testing.T, guion string, juez *Juez, modelo string) (Votante, error) {
+	t.Helper()
+
+	entorno := os.Environ()
+
+	votar, retirar, err := nuevoVotanteDelGuion(senales, ordenDelVoto{
+		juez:        juez,
+		modelo:      modelo,
+		guion:       guion,
+		path:        valorEnElEntorno(entorno, variableDelPATH),
+		suscripcion: valorEnElEntorno(entorno, variableDeLaSuscripcion),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+	return votar, nil
 }
 
 // TestTandaDelCommit decide si la ejecución del flujo evals de -ejecucion mide

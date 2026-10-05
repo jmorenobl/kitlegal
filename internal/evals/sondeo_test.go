@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"io/fs"
@@ -67,6 +68,20 @@ type casoDelJuicioDelSondeo struct {
 // respuesta la juzga también como el job: sin terminar. Desde H24, ni el job ni
 // el sondeo juzgan ninguna respuesta con la lista de expresiones, y el sondeo no
 // tiene recuento de ellas (FR-070 de H24).
+//
+// Y fija lo que el juez con modelo de la skill deja en el juicio del sondeo
+// (contracts/informe-del-job.md §8 y §9 de H24; research D12 de H24; FR-075,
+// FR-076), con un sondeo sintético de nueve respuestas, una copia de la carpeta
+// del juez de boe-legislacion y un votante de salidas grabadas que cuenta sus
+// llamadas (casosDelJuezDelSondeo): ninguna marcada y dos con sí de nueve; una
+// marcada con sus tres votos; y una sin juzgar, con su motivo, que no cuenta
+// entre las juzgadas. En los tres, cada voto se pide con el mensaje de la
+// pregunta de su eval, su respuesta y los textos de sus herramientas, el juicio
+// lleva el modelo del juez y la versión de Claude Code que declaran los
+// transcripts, con lo que la comprobación de la medida dice de ella, y el
+// juicio sin modelo de las sesiones es el del mismo sondeo sin juez. Con un
+// esquema de la respuesta que no compila no hay juicio; y con una skill sin
+// juez, el juicio no lleva nada de él y no se pide ningún voto.
 func TestJuicioDelSondeo(t *testing.T) {
 	t.Parallel()
 
@@ -109,6 +124,321 @@ func TestJuicioDelSondeo(t *testing.T) {
 			"la sesi\xc3\xb3n sin terminar tiene su respuesta: el caso no pasa en vac\xc3\xado")
 		assert.Equal(t, []string{motivoDelTopeEsperado}, cortada.Motivos)
 	})
+
+	for _, caso := range casosDelJuezDelSondeo() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElJuicioDelJuez(t, caso)
+		})
+	}
+
+	t.Run("con-un-esquema-que-no-compila", func(t *testing.T) {
+		t.Parallel()
+
+		exigirQueSinEsquemaNoHayJuicio(t)
+	})
+
+	t.Run("sin-juez", func(t *testing.T) {
+		t.Parallel()
+
+		exigirElJuicioSinJuez(t)
+	})
+}
+
+// Con lo que juzga el juez en los tests del sondeo, además del modelo y la
+// versión de Claude Code de la medida de su copia de la carpeta del juez, que
+// son los de los tests del informe y los del ejemplo de
+// contracts/informe-del-job.md §8 de H24: la versión que declaran los
+// transcripts de ese ejemplo, que no es la de la medida, y lo que el juicio dice
+// de esa diferencia.
+const (
+	versionDeOtroEquipo = "2.1.290"
+
+	versionSinCorresponder = "la versi\xc3\xb3n de Claude Code de sus votos es 2.1.289 y la de este equipo es 2.1.290"
+)
+
+// sondeoConJuez es un sondeo sintético con juez de los tests del juicio y de la
+// salida: su copia, el juez de la carpeta de sus evals y el votante de sus
+// votos grabados.
+type sondeoConJuez struct {
+	copia   string
+	juez    *Juez
+	votante *votanteDelInforme
+}
+
+// armarSondeoConJuez arma un sondeo sintético de tres evals que deciden con
+// modeloSonnet5 y tres repeticiones, nueve sesiones (escribirSondeoSintetico),
+// cada una con la orden que lee el bloque en su transcript, y con una copia de
+// la carpeta del juez de boe-legislacion en la carpeta de sus evals. La medida
+// de la copia se deja con el modelo y la versión de los tests del informe, y lo
+// demás como está: corresponde a su rúbrica y a sus casos. Hace en la carpeta
+// del juez los cambios dados, antes de leer el juez; pone en el transcript de
+// cada sesión esa versión de Claude Code; y antepone a la respuesta de cada
+// sesión con votos grabados su párrafo.
+func armarSondeoConJuez(
+	t *testing.T, version string, grabados []votosDeUnaRespuesta, cambios ...cambioDeLaCarpetaDelJuez,
+) sondeoConJuez {
+	t.Helper()
+
+	copia := escribirSondeoSintetico(t, 3, 0, false)
+	evals := filepath.Join(copia, "evals")
+	require.NoError(t, os.CopyFS(evals, os.DirFS(copiarLaCarpetaDelJuez(t))))
+
+	for _, cambio := range slices.Concat([]cambioDeLaCarpetaDelJuez{
+		cambiarLaMedidaEn("modelo_del_juez", ponerEnLaClave(modeloDelJuezDelInforme)),
+		cambiarLaMedidaEn("version_de_claude_code", ponerEnLaClave(versionDelJuezDelInforme)),
+	}, cambios) {
+		cambio(t, filepath.Join(evals, carpetaDelJuez))
+	}
+
+	for numero := 1; numero <= 3; numero++ {
+		for vez := 1; vez <= repeticionesConUmbrales; vez++ {
+			anotarLaOrdenEnElTranscript(t, sesionDelSondeo(copia, numero, vez))
+			declararLaVersion(t, sesionDelSondeo(copia, numero, vez), version)
+		}
+	}
+
+	for _, grabado := range grabados {
+		anteponerALaRespuesta(t, filepath.Join(copia, "sesiones", grabado.sesion), grabado.parrafo+"\n\n")
+	}
+
+	return sondeoConJuez{copia: copia, juez: juezDe(t, evals), votante: nuevoVotanteDelInforme(t, grabados...)}
+}
+
+// declararLaVersion deja en el mensaje system/init del transcript de la sesión
+// del directorio esa versión de Claude Code en lugar de la suya, que es la de
+// la sesión del art. 21 del caso aprobado.
+func declararLaVersion(t *testing.T, dir, version string) {
+	t.Helper()
+
+	declarada := `"claude_code_version":"` + versionDeLasSesiones + `"`
+	transcript := contenidoDeLaSesion(t, dir, "sesion.jsonl")
+	require.Equal(t, 1, strings.Count(transcript, declarada), "el transcript de %s declara su versi\xc3\xb3n una vez", dir)
+
+	escribirEnLaCopia(t, dir, "sesion.jsonl",
+		strings.Replace(transcript, declarada, `"claude_code_version":"`+version+`"`, 1))
+}
+
+// juzgar juzga el sondeo con su juez y su votante, con el modelo del juez y la
+// concurrencia de los tests del informe.
+func (s sondeoConJuez) juzgar(t *testing.T) juicioDelSondeo {
+	t.Helper()
+
+	juicio, err := juzgarElSondeo(s.aJuzgar(t))
+	require.NoError(t, err)
+
+	return juicio
+}
+
+// aJuzgar es lo que el juicio del sondeo recibe de él: sus tres evals, sus
+// sesiones, su juez y su votante.
+func (s sondeoConJuez) aJuzgar(t *testing.T) SondeoAJuzgar {
+	t.Helper()
+
+	evals := filepath.Join(s.copia, "evals")
+
+	return SondeoAJuzgar{
+		Skill:               skillDeLasSesiones,
+		Evals:               evals,
+		Pedidas:             evalsDe(t, evals),
+		Sesiones:            filepath.Join(s.copia, "sesiones"),
+		Modelo:              modeloSonnet5,
+		Repeticiones:        repeticionesConUmbrales,
+		Juez:                s.juez,
+		Votar:               s.votante.votar,
+		ModeloDelJuez:       modeloDelJuezDelInforme,
+		ConcurrenciaDelJuez: concurrenciaDelJuezDelInforme,
+	}
+}
+
+// casoDelJuezDelSondeo es un caso de TestJuicioDelSondeo con el juez: los votos
+// grabados de algunas de las nueve respuestas del sondeo y lo que el juicio
+// tiene que llevar de él —las marcadas en afirma_lo_no_leido, las que tienen sí
+// en cuenta_su_proceso, las juzgadas y las sin juzgar—, con los votos que se
+// piden.
+type casoDelJuezDelSondeo struct {
+	nombre    string
+	grabados  func(t *testing.T) []votosDeUnaRespuesta
+	marcadas  int
+	conSi     int
+	juzgadas  int
+	sinJuzgar []RespuestaSinJuzgar
+	votos     int
+}
+
+// casosDelJuezDelSondeo son los casos de TestJuicioDelSondeo con el juez.
+func casosDelJuezDelSondeo() []casoDelJuezDelSondeo {
+	return []casoDelJuezDelSondeo{
+		{
+			// Los recuentos del ejemplo del contrato: 0 de 9 y 2 de 9, con un voto
+			// por respuesta.
+			nombre: "ninguna-marcada-y-dos-con-si", grabados: dosConSiEnElSondeo,
+			conSi: 2, juzgadas: 9, votos: 9,
+		},
+		{
+			// Sus tres votos dicen sí con su frase; de las otras ocho, uno.
+			nombre: "una-marcada", grabados: unaMarcadaEnElSondeo,
+			marcadas: 1, juzgadas: 9, votos: 11,
+		},
+		{
+			// El voto de una no llega a darse: no está entre las juzgadas, y la
+			// que tiene sí cuenta sobre las otras ocho.
+			nombre: "una-sin-juzgar", grabados: unaSinJuzgarEnElSondeo,
+			conSi: 1, juzgadas: 8, votos: 9,
+			sinJuzgar: []RespuestaSinJuzgar{
+				{Sesion: sesionSintetica(2, modeloSonnet5, 1), Motivo: motivoDelTopeDelVotoUno},
+			},
+		},
+	}
+}
+
+// dosConSiEnElSondeo son los votos grabados de dos respuestas del sondeo cuyo
+// primer voto dice sí en cuenta_su_proceso, cada una con su párrafo.
+func dosConSiEnElSondeo(t *testing.T) []votosDeUnaRespuesta {
+	t.Helper()
+
+	return []votosDeUnaRespuesta{
+		conSiEnElSondeo(t, sesionSintetica(1, modeloSonnet5, 1), parrafoDelProcesoUno),
+		conSiEnElSondeo(t, sesionSintetica(3, modeloSonnet5, 2), parrafoDelProcesoDos),
+	}
+}
+
+// conSiEnElSondeo son los votos grabados de la respuesta de esa sesión, que
+// lleva delante ese párrafo: uno, que dice sí en cuenta_su_proceso con él.
+func conSiEnElSondeo(t *testing.T, sesion, parrafo string) votosDeUnaRespuesta {
+	t.Helper()
+
+	return votosDeUnaRespuesta{
+		sesion: sesion, parrafo: parrafo,
+		votos: []grabacion{votoDeLasDosClases(t, afirmaQueNo(), cuentaQueSi(parrafo))},
+	}
+}
+
+// unaMarcadaEnElSondeo son los votos grabados de la respuesta del sondeo que
+// queda marcada en afirma_lo_no_leido: tres, cada uno con su frase.
+func unaMarcadaEnElSondeo(t *testing.T) []votosDeUnaRespuesta {
+	t.Helper()
+
+	return []votosDeUnaRespuesta{marcadaEnElSondeo(t, sesionSintetica(1, modeloSonnet5, 1))}
+}
+
+// marcadaEnElSondeo son los votos grabados de la respuesta de esa sesión, que
+// lleva delante el párrafo de los artículos 22 y 24: tres, que dicen sí en
+// afirma_lo_no_leido, cada uno con una frase de ese párrafo.
+func marcadaEnElSondeo(t *testing.T, sesion string) votosDeUnaRespuesta {
+	t.Helper()
+
+	votos := make([]grabacion, 0, 3)
+	for _, frase := range []string{fraseDelArticulo22, fraseDeLosDosArticulos, fraseDelArticulo24} {
+		votos = append(votos, votoDeLasDosClases(t, afirmaQueSi(frase), cuentaQueNo()))
+	}
+
+	return votosDeUnaRespuesta{sesion: sesion, parrafo: parrafoDeLosArticulos22Y24, votos: votos}
+}
+
+// unaSinJuzgarEnElSondeo son los votos grabados de dos respuestas del sondeo:
+// el de una agota su tope y no llega a darse, y el de la otra dice sí en
+// cuenta_su_proceso.
+func unaSinJuzgarEnElSondeo(t *testing.T) []votosDeUnaRespuesta {
+	t.Helper()
+
+	return []votosDeUnaRespuesta{
+		{
+			sesion: sesionSintetica(2, modeloSonnet5, 1), parrafo: parrafoLentoDeOrden,
+			votos: []grabacion{{err: errTopeDelVoto}},
+		},
+		conSiEnElSondeo(t, sesionSintetica(3, modeloSonnet5, 2), parrafoDelProcesoDos),
+	}
+}
+
+// exigirElJuicioDelJuez arma el sondeo con juez del caso, con los transcripts
+// de otra versión de Claude Code que la de la medida, y lo juzga: exige lo que
+// el juicio lleva del juez, que cada voto se pida con el mensaje de su
+// respuesta y que el juicio sin modelo de sus sesiones sea el del mismo sondeo
+// sin juez.
+func exigirElJuicioDelJuez(t *testing.T, caso casoDelJuezDelSondeo) {
+	t.Helper()
+
+	grabados := caso.grabados(t)
+	sondeo := armarSondeoConJuez(t, versionDeOtroEquipo, grabados)
+	juicio := sondeo.juzgar(t)
+
+	assert.Equal(t, &juezDelSondeo{
+		modelo: modeloDelJuezDelInforme,
+		clases: []claseDelSondeo{
+			{nombre: claseAfirmaLoNoLeido, decide: true, marcadas: caso.marcadas},
+			{nombre: claseCuentaSuProceso, marcadas: caso.conSi},
+		},
+		juzgadas:        caso.juzgadas,
+		sinJuzgar:       caso.sinJuzgar,
+		version:         versionDeOtroEquipo,
+		sinCorresponder: []string{versionSinCorresponder},
+	}, juicio.juez)
+
+	pedidos := sondeo.votante.pedidos()
+	require.Len(t, pedidos, caso.votos, "los votos que se piden")
+	assert.Equal(t, mensajesDelSondeo(grabados), pedidos, "cada voto se pide con el mensaje de su respuesta")
+
+	sinJuez := juicioDelSondeoDe(t, entradasDelSondeo(sondeo.copia, nil))
+	assert.Equal(t, sinJuez.resultados, juicio.resultados, "los votos no cambian el juicio de ninguna sesi\xc3\xb3n")
+	assert.Equal(t, sinJuez.series, juicio.series, "los votos no cambian la tasa de ninguna serie")
+}
+
+// mensajesDelSondeo son los mensajes de los votos de un sondeo de
+// armarSondeoConJuez con esos votos grabados, ordenados y escritos con lo que el
+// test sabe de sus sesiones: la pregunta de sus evals, que es la del art. 21; la
+// respuesta de cada una, con su párrafo delante si tiene votos grabados; y el
+// texto de la orden con la que leen el bloque. De cada respuesta, tantos como
+// votos tiene grabados, o uno.
+func mensajesDelSondeo(grabados []votosDeUnaRespuesta) []string {
+	var mensajes []string
+
+	for numero := 1; numero <= 3; numero++ {
+		for vez := 1; vez <= repeticionesConUmbrales; vez++ {
+			respuesta, votos := respuestaConCita, 1
+
+			for _, grabado := range grabados {
+				if grabado.sesion == sesionSintetica(numero, modeloSonnet5, vez) {
+					respuesta, votos = grabado.parrafo+"\n\n"+respuesta, len(grabado.votos)
+				}
+			}
+
+			mensaje := mensajeDelVoto(preguntaDeLasSinteticas, respuesta, []Texto{{Orden: ordenDelArticulo, Salida: sobreDelArticulo}})
+			mensajes = append(mensajes, slices.Repeat([]string{mensaje}, votos)...)
+		}
+	}
+
+	slices.Sort(mensajes)
+
+	return mensajes
+}
+
+// exigirQueSinEsquemaNoHayJuicio exige que el sondeo de una skill cuyo juez
+// tiene un esquema de la respuesta que no compila no dé ningún juicio ni pida
+// ningún voto: sin él no hay con qué validar lo que el juez responde.
+func exigirQueSinEsquemaNoHayJuicio(t *testing.T) {
+	t.Helper()
+
+	sondeo := armarSondeoConJuez(t, versionDeOtroEquipo, nil)
+	sondeo.juez.Esquema = `{"type":"objeto"}`
+
+	juicio, err := juzgarElSondeo(sondeo.aJuzgar(t))
+	require.ErrorContains(t, err, "el sondeo no se puede juzgar: el esquema de la respuesta del juez no sirve")
+	assert.Zero(t, juicio, "sin esquema no hay juicio, ni a medias")
+	assert.Empty(t, sondeo.votante.pedidos(), "sin esquema no se pide ning\xc3\xban voto")
+}
+
+// exigirElJuicioSinJuez exige que el juicio del sondeo de una skill sin juez no
+// lleve nada de él y que no se pida ningún voto, aunque reciba con qué votar.
+func exigirElJuicioSinJuez(t *testing.T) {
+	t.Helper()
+
+	sondeo := sondeoConJuez{copia: escribirSondeoSintetico(t, 3, 0, false), votante: nuevoVotanteDelInforme(t)}
+	juicio := sondeo.juzgar(t)
+
+	assert.Nil(t, juicio.juez, "una skill sin juez no tiene juicio del juez")
+	assert.Empty(t, sondeo.votante.pedidos(), "sin juez no se pide ning\xc3\xban voto")
 }
 
 // entradasConUnaSinTerminar son las entradas del informe del job de una copia del
@@ -370,6 +700,17 @@ func entradasSinMedirYSinAbrir(t *testing.T) InformeAEscribir {
 // respuestas con alguna expresión prohibida ni la de la skill sin lista, tenga o
 // no lista la carpeta de las evals, y la respuesta con expresiones pasa (FR-070
 // de H24).
+//
+// Donde iba esa línea, detrás de las tasas, van las del juez
+// (contracts/informe-del-job.md §8 y §9 de H24; research D12 de H24; FR-075,
+// FR-076): con una skill sin juez, la que lo dice, que es la de los dos sondeos
+// anteriores; y con juez, las cinco del ejemplo del contrato, byte a byte, con
+// la medida que no corresponde al Claude Code que declaran los transcripts
+// (casosDeLaSalidaConElJuez). Con otros sondeos, la línea de la medida que
+// corresponde; la de la versión que ningún transcript declara; la de la medida
+// que no corresponde por más de una cosa, y la de la que no se puede leer; y,
+// con una respuesta sin juzgar, su línea, con su sesión y su motivo. En ninguno
+// lleva la salida las frases que citan los votos.
 func TestSalidaDelSondeo(t *testing.T) {
 	t.Parallel()
 
@@ -384,6 +725,207 @@ func TestSalidaDelSondeo(t *testing.T) {
 
 		exigirLaSalidaSinLista(t)
 	})
+
+	t.Run("con-el-juez", func(t *testing.T) {
+		t.Parallel()
+
+		exigirLaSalidaDelContrato(t)
+	})
+
+	for _, caso := range casosDeLaSalidaConElJuez() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirLasLineasDelJuez(t, caso)
+		})
+	}
+}
+
+// lineasDelJuezDelContrato son las cinco líneas del juez del ejemplo de
+// contracts/informe-del-job.md §8 de H24, escritas a mano y byte a byte: una
+// salida con otras no pasa.
+const lineasDelJuezDelContrato = "Juez (claude-opus-5-5), sobre las respuestas de las evals que activan la skill:\n" +
+	"- marcadas en afirma_lo_no_leido, con sus tres votos: 0 de 9 (0,0 %).\n" +
+	"- con s\xc3\xad en cuenta_su_proceso, con un voto: 2 de 9 (22,2 %).\n" +
+	"La medida versionada del juez no corresponde a lo que hay: la versi\xc3\xb3n de Claude Code de sus votos es " +
+	"2.1.289 y la de este equipo es 2.1.290. Estos recuentos no son los de un juez medido.\n" +
+	"Respuestas sin juzgar: ninguna.\n"
+
+// bytesDeLasLineasDelContrato son los bytes de las cinco líneas del ejemplo del
+// contrato, con sus saltos de línea (research M4 de H24).
+const bytesDeLasLineasDelContrato = 432
+
+// Las otras líneas del juez de la salida del sondeo, escritas a mano: las dos
+// primeras de un sondeo sin ninguna respuesta juzgada, la de la medida que
+// corresponde, la de la versión que ningún transcript declara, lo que abre y
+// cierra la de la medida que no corresponde, y la de la skill sin juez.
+const (
+	tituloDelJuezEsperado    = "Juez (claude-opus-5-5), sobre las respuestas de las evals que activan la skill:"
+	ningunaMarcadaDeNinguna  = "- marcadas en afirma_lo_no_leido, con sus tres votos: 0 de 0 (0,0 %)."
+	ningunaConSiDeNinguna    = "- con s\xc3\xad en cuenta_su_proceso, con un voto: 0 de 0 (0,0 %)."
+	ningunaMarcadaDeNueve    = "- marcadas en afirma_lo_no_leido, con sus tres votos: 0 de 9 (0,0 %)."
+	ningunaConSiDeNueve      = "- con s\xc3\xad en cuenta_su_proceso, con un voto: 0 de 9 (0,0 %)."
+	ningunaMarcadaDeOcho     = "- marcadas en afirma_lo_no_leido, con sus tres votos: 0 de 8 (0,0 %)."
+	unaConSiDeOcho           = "- con s\xc3\xad en cuenta_su_proceso, con un voto: 1 de 8 (12,5 %)."
+	medidaQueCorresponde     = "La medida versionada del juez corresponde a lo que hay, con el Claude Code de este equipo (2.1.289)."
+	medidaSinVersionEsperada = "La medida versionada del juez no se puede comparar con lo que hay: ning\xc3\xban transcript de " +
+		"las sesiones declara la versi\xc3\xb3n de Claude Code de este equipo. No se sabe si estos recuentos son los de " +
+		"un juez medido."
+	principioDeLaQueNoCorresponde = "La medida versionada del juez no corresponde a lo que hay: "
+	finalDeLaQueNoCorresponde     = ". Estos recuentos no son los de un juez medido."
+	ningunaSinJuzgar              = "Respuestas sin juzgar: ninguna."
+	skillSinJuezEsperada          = "La skill no tiene juez."
+)
+
+// exigirLaSalidaDelContrato arma el sondeo con juez del ejemplo de
+// contracts/informe-del-job.md §8 de H24 —nueve respuestas, dos con sí en
+// cuenta_su_proceso y ninguna marcada, con los transcripts de otra versión de
+// Claude Code que la de la medida— y exige su salida entera: las cinco líneas
+// del ejemplo, byte a byte, donde iba la del recuento de las expresiones, entre
+// las tasas y las sesiones sin medir.
+func exigirLaSalidaDelContrato(t *testing.T) {
+	t.Helper()
+
+	require.Len(t, lineasDelJuezDelContrato, bytesDeLasLineasDelContrato, "las cinco l\xc3\xadneas son las del contrato")
+
+	salida := armarSondeoConJuez(t, versionDeOtroEquipo, dosConSiEnElSondeo(t)).juzgar(t).salida()
+
+	exigirLasDosPrimerasLineas(t, salida)
+
+	assert.Equal(t, lineasDeLaSalida(
+		primeraLineaDelSondeoEsperada,
+		segundaLineaDelSondeoEsperada,
+		"",
+		"Tasa de cada serie (sesiones que pasan de las medidas):",
+		"- 01-sintetica.yaml con claude-sonnet-5: 3 de 3",
+		"- 02-sintetica.yaml con claude-sonnet-5: 3 de 3",
+		"- 03-sintetica.yaml con claude-sonnet-5: 3 de 3",
+		"",
+		strings.TrimSuffix(lineasDelJuezDelContrato, "\n"),
+		"",
+		"Sesiones sin medir por l\xc3\xadmite de uso: ninguna.",
+		"",
+		tituloSinTerminarEsperado+": ninguna.",
+	), salida)
+
+	for _, parrafo := range []string{parrafoDelProcesoUno, parrafoDelProcesoDos} {
+		assert.NotContains(t, salida, parrafo, "la salida no lista las frases de los votos")
+	}
+}
+
+// casoDeLaSalidaConElJuez es un caso de TestSalidaDelSondeo con el juez: la
+// versión de Claude Code de los transcripts, vacía si ninguno la declara, los
+// votos grabados, lo que cambia en la carpeta del juez y las líneas del juez
+// que la salida tiene que llevar. La de la medida, que es la penúltima si no hay
+// respuestas sin juzgar, se da entera o, si lleva un error del sistema, por su
+// principio.
+type casoDeLaSalidaConElJuez struct {
+	nombre   string
+	version  string
+	grabados func(t *testing.T) []votosDeUnaRespuesta
+	cambios  []cambioDeLaCarpetaDelJuez
+	lineas   []string
+
+	// principioDeLaMedida es, si no está vacío, por lo que empieza la línea de
+	// la medida, que en lineas va vacía.
+	principioDeLaMedida string
+}
+
+// casosDeLaSalidaConElJuez son los casos de TestSalidaDelSondeo con el juez,
+// además del ejemplo del contrato.
+func casosDeLaSalidaConElJuez() []casoDeLaSalidaConElJuez {
+	sinVotos := func(*testing.T) []votosDeUnaRespuesta { return nil }
+
+	return []casoDeLaSalidaConElJuez{
+		{
+			nombre: "la-medida-corresponde", version: versionDelJuezDelInforme, grabados: sinVotos,
+			lineas: []string{
+				tituloDelJuezEsperado, ningunaMarcadaDeNueve, ningunaConSiDeNueve, medidaQueCorresponde, ningunaSinJuzgar,
+			},
+		},
+		{
+			// Ningún claude llegó a escribir nada: no hay versión del equipo, ni
+			// ninguna respuesta que juzgar, y el sondeo da sus líneas igual.
+			nombre: "ningun-transcript-declara-la-version", grabados: sinVotos,
+			lineas: []string{
+				tituloDelJuezEsperado, ningunaMarcadaDeNinguna, ningunaConSiDeNinguna, medidaSinVersionEsperada,
+				ningunaSinJuzgar,
+			},
+		},
+		{
+			// Lo que no coincide va en el orden de la comprobación de la medida,
+			// y la versión, con las palabras del sondeo.
+			nombre: "otra-rubrica-y-otra-version", version: versionDeOtroEquipo, grabados: sinVotos,
+			cambios: []cambioDeLaCarpetaDelJuez{cambiarUnByteDe(ficheroDeRubricaDelJuez)},
+			lineas: []string{
+				tituloDelJuezEsperado, ningunaMarcadaDeNueve, ningunaConSiDeNueve,
+				principioDeLaQueNoCorresponde + "la r\xc3\xbabrica (juez/rubrica.md) no es la de la medida versionada; " +
+					versionSinCorresponder + finalDeLaQueNoCorresponde,
+				ningunaSinJuzgar,
+			},
+		},
+		{
+			// El informe del job no se escribe sin la medida; el sondeo dice que no
+			// corresponde, con su error, y juzga igual.
+			nombre: "la-medida-no-se-puede-leer", version: versionDelJuezDelInforme, grabados: sinVotos,
+			cambios: []cambioDeLaCarpetaDelJuez{escribirEnLaCarpeta(ficheroDeMedidaDelJuez, "{")},
+			lineas:  []string{tituloDelJuezEsperado, ningunaMarcadaDeNueve, ningunaConSiDeNueve, "", ningunaSinJuzgar},
+			principioDeLaMedida: principioDeLaQueNoCorresponde +
+				"la medida versionada (juez/medida.json) no corresponde: ",
+		},
+		{
+			nombre: "una-sin-juzgar", version: versionDelJuezDelInforme, grabados: unaSinJuzgarEnElSondeo,
+			lineas: []string{
+				tituloDelJuezEsperado, ningunaMarcadaDeOcho, unaConSiDeOcho, medidaQueCorresponde,
+				"Respuestas sin juzgar:",
+				"- 02-sintetica-claude-sonnet-5-01: voto 1: tope de 35 s agotado",
+			},
+		},
+	}
+}
+
+// exigirLasLineasDelJuez arma el sondeo con juez del caso, lo juzga y exige que
+// las líneas del juez de su salida, que son su tercer párrafo, sean las del
+// caso.
+func exigirLasLineasDelJuez(t *testing.T, caso casoDeLaSalidaConElJuez) {
+	t.Helper()
+
+	sondeo := armarSondeoConJuez(t, cmp.Or(caso.version, versionDeLasSesiones), caso.grabados(t), caso.cambios...)
+	if caso.version == "" {
+		dejarSinTranscripts(t, sondeo.copia)
+	}
+
+	parrafos := strings.Split(sondeo.juzgar(t).salida(), "\n\n")
+	require.Len(t, parrafos, 5, "las dos primeras l\xc3\xadneas, las tasas, el juez y los dos apartados de sesiones")
+
+	lineas := strings.Split(parrafos[2], "\n")
+	require.Len(t, lineas, len(caso.lineas))
+
+	if caso.principioDeLaMedida != "" {
+		deLaMedida := slices.Index(caso.lineas, "")
+		require.GreaterOrEqual(t, deLaMedida, 0, "el caso deja vac\xc3\xada la l\xc3\xadnea de la medida")
+
+		assert.True(t, strings.HasPrefix(lineas[deLaMedida], caso.principioDeLaMedida), lineas[deLaMedida])
+		assert.True(t, strings.HasSuffix(lineas[deLaMedida], finalDeLaQueNoCorresponde), lineas[deLaMedida])
+
+		lineas[deLaMedida] = ""
+	}
+
+	assert.Equal(t, caso.lineas, lineas)
+}
+
+// dejarSinTranscripts deja cada sesión del sondeo sintético de tres evals como
+// la de un claude que no llegó a escribir nada: su transcript, vacío, y su
+// código, el de la orden que no se encuentra.
+func dejarSinTranscripts(t *testing.T, copia string) {
+	t.Helper()
+
+	for numero := 1; numero <= 3; numero++ {
+		for vez := 1; vez <= repeticionesConUmbrales; vez++ {
+			escribirEnLaCopia(t, sesionDelSondeo(copia, numero, vez), "sesion.jsonl", "")
+			escribirEnLaCopia(t, sesionDelSondeo(copia, numero, vez), "codigo-de-la-sesion", "127\n")
+		}
+	}
 }
 
 // exigirLaSalidaConLista arma un sondeo de dos evals que deciden y tres
@@ -428,6 +970,8 @@ func exigirLaSalidaConLista(t *testing.T) {
 		"- 04-sintetica.yaml con claude-sonnet-5 (informativa): 2 de 3",
 		"- 05-sintetica.yaml con claude-sonnet-5 (informativa): sin medir",
 		"",
+		skillSinJuezEsperada,
+		"",
 		"Sesiones sin medir por l\xc3\xadmite de uso:",
 		"- 05-sintetica-claude-sonnet-5-02: "+sinMedirPorElMensaje,
 		"- 05-sintetica-claude-sonnet-5-03: "+sinAbrirTrasElLimite,
@@ -456,6 +1000,8 @@ func exigirLaSalidaSinLista(t *testing.T) {
 		"Tasa de cada serie (sesiones que pasan de las medidas):",
 		"- 01-sintetica.yaml con claude-sonnet-5: 3 de 3",
 		"- 02-sintetica.yaml con claude-sonnet-5 (informativa): 3 de 3",
+		"",
+		skillSinJuezEsperada,
 		"",
 		"Sesiones sin medir por l\xc3\xadmite de uso: ninguna.",
 		"",
@@ -658,7 +1204,9 @@ func sondeoAComprobar() SondeoAEjecutar {
 
 // exigirLoComprobado exige que lo comprobado sea lo del sondeo sin error: su
 // skill, la carpeta de sus evals, las evals pedidas del caso, en su orden, su
-// modelo, sus repeticiones y la concurrencia del caso.
+// modelo, sus repeticiones y la concurrencia del caso; y, desde H24, el juez de
+// esa carpeta, que con la skill que no lo tiene es nil, y el modelo del juez que
+// fija la definición del job (contracts/informe-del-job.md §8 de H24).
 func exigirLoComprobado(t *testing.T, sondeo SondeoAEjecutar, caso casoDeComprobarElSondeo, comprobado sondeoComprobado) {
 	t.Helper()
 
@@ -666,6 +1214,8 @@ func exigirLoComprobado(t *testing.T, sondeo SondeoAEjecutar, caso casoDeComprob
 
 	conjunto, err := LeerConjunto(evals)
 	require.NoError(t, err)
+
+	modeloDelJuez, _ := fijadosParaElJuez(t)
 
 	pedidas := make([]Eval, 0, len(caso.pedidas))
 	for _, fichero := range caso.pedidas {
@@ -678,6 +1228,7 @@ func exigirLoComprobado(t *testing.T, sondeo SondeoAEjecutar, caso casoDeComprob
 	assert.Equal(t, sondeoComprobado{
 		skill: sondeo.Argumentos.Skill, evals: evals, pedidas: pedidas,
 		modelo: sondeo.Argumentos.Modelo, repeticiones: 3, concurrencia: caso.concurrencia,
+		juez: conjunto.Juez, modeloDelJuez: modeloDelJuez,
 	}, comprobado)
 }
 
@@ -943,7 +1494,9 @@ func carpetasDeEvals(t *testing.T, skill string, entradas ...entradaDeConjunto) 
 // repeticiones y su concurrencia son las del caso—, el código con el que sale
 // el sustituto de claude en todas las sesiones, el transcript y la espera de
 // cada una, por su posición en el plan, y, o bien su error, o bien las sesiones
-// del plan que se abren, desde la primera, y su salida.
+// del plan que se abren, desde la primera, y su salida. Con votos, la skill del
+// sondeo tiene juez —una copia de la carpeta del de boe-legislacion— y son los
+// votos grabados de sus respuestas, por el párrafo que llevan.
 type casoDeSondear struct {
 	nombre       string
 	repeticiones string
@@ -952,6 +1505,7 @@ type casoDeSondear struct {
 	codigo       int
 	transcripts  func(t *testing.T) map[int]string
 	esperas      map[int]int
+	votos        func(t *testing.T) []votosDeUnaRespuesta
 	error        string
 	abiertas     int
 	salida       func(plan []SesionPlanificada) string
@@ -982,10 +1536,20 @@ type casoDeSondear struct {
 // escribe en su propio TMPDIR —la preparación de cada sesión— y lo que go
 // install escribe en el de la base no lo mira: ese TMPDIR lo pone el guion
 // dentro de su temporal (TestGuionDelSondeo).
+//
+// Desde H24 (contracts/informe-del-job.md §8 y §9 de H24; research D12 de H24;
+// FR-075, FR-076), con una skill con juez el sondeo pide el votante una vez, con
+// el juez de la carpeta de sus evals y el modelo del juez que fija la
+// definición del job, antes de preparar el árbol, y juzga con él: con una
+// respuesta marcada con sus tres votos y con una medida que no es de la versión
+// de Claude Code que declaran los transcripts, termina sin error y con sus
+// líneas, sin informe ni veredicto. Si el votante no se puede preparar,
+// devuelve ese error, que no es de uso, sin preparar el árbol ni abrir ninguna
+// sesión. Con una skill sin juez no pide ningún votante, y su salida lo dice.
 func TestSondear(t *testing.T) {
 	t.Parallel()
 
-	for _, caso := range casosDeSondear() {
+	for _, caso := range casosDeSondear(t) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
@@ -1001,6 +1565,7 @@ func TestSondear(t *testing.T) {
 				var uso *errorDeUso
 				require.ErrorAs(t, err, &uso, "el error del caso es un error de uso")
 				sondeo.exigirQueNoSondea(t)
+				assert.Zero(t, sondeo.votante.veces, "con un error de uso no se pide ning\xc3\xban votante")
 
 				return
 			}
@@ -1008,16 +1573,79 @@ func TestSondear(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, caso.salida(sondeo.plan), salida)
 			sondeo.exigirLasSesiones(t, caso.abiertas)
+			sondeo.exigirElVotantePedido(t, caso.votos != nil)
 		})
 	}
+
+	t.Run("sin-poder-preparar-el-votante", func(t *testing.T) {
+		t.Parallel()
+
+		exigirQueSinVotanteNoSondea(t)
+	})
+}
+
+// exigirQueSinVotanteNoSondea exige que el sondeo de una skill con juez cuyo
+// votante no se puede preparar devuelva ese error, que no es un error de uso,
+// sin preparar el árbol, sin abrir ninguna sesión y sin escribir nada en el
+// temporal: sin con qué votar no se gasta ninguna sesión.
+func exigirQueSinVotanteNoSondea(t *testing.T) {
+	t.Helper()
+
+	sinVotante := errors.New("el directorio del juez no se puede crear")
+
+	sondeo := nuevoSondeoDelTest(t, casoDeSondear{
+		repeticiones: "1", votos: func(*testing.T) []votosDeUnaRespuesta { return nil },
+	})
+	sondeo.ejecutar.NuevoVotante = func(*Juez, string) (Votante, error) { return nil, sinVotante }
+
+	salida, err := sondear(t.Context().Done(), sondeo.ejecutar)
+	require.ErrorIs(t, err, sinVotante)
+	require.ErrorContains(t, err, "el votante del juez del sondeo no se puede preparar: ")
+	assert.Empty(t, salida)
+
+	var uso *errorDeUso
+	assert.NotErrorAs(t, err, &uso, "un votante que no se puede preparar no es un error de uso")
+
+	sondeo.exigirLaBaseSinTocar(t)
+	sondeo.exigirQueNoSondea(t)
+}
+
+// transcriptConLosArticulos22Y24 es el transcript stream-json de una sesión que
+// termina con una respuesta que es el párrafo de los artículos 22 y 24, con el
+// modelo y la versión de Claude Code de mensajeInit.
+func transcriptConLosArticulos22Y24(t *testing.T) string {
+	t.Helper()
+
+	return mensajeInit + `{"type":"result","subtype":"success","is_error":false,"result":` +
+		cadenaJSON(t, parrafoDeLosArticulos22Y24) + `}` + "\n"
 }
 
 // casosDeSondear son los casos de TestSondear.
-func casosDeSondear() []casoDeSondear {
+func casosDeSondear(t *testing.T) []casoDeSondear {
+	t.Helper()
+
 	faltaLaSuscripcion := "falta la credencial: CLAUDE_CODE_OAUTH_TOKEN, el token de la suscripci\xc3\xb3n que da " +
 		"claude setup-token, no est\xc3\xa1 en el entorno o est\xc3\xa1 vac\xc3\xada"
 
 	return []casoDeSondear{
+		{
+			// La única respuesta del sondeo queda marcada con sus tres votos, y
+			// la medida de la copia de la carpeta del juez es de otra versión de
+			// Claude Code que la de su transcript: el sondeo termina sin error.
+			nombre: "una-marcada-y-la-medida-de-otra-version", repeticiones: "1",
+			transcripts: func(t *testing.T) map[int]string {
+				t.Helper()
+
+				return map[int]string{0: transcriptConLosArticulos22Y24(t)}
+			},
+			votos: func(t *testing.T) []votosDeUnaRespuesta {
+				t.Helper()
+
+				return []votosDeUnaRespuesta{marcadaEnElSondeo(t, "la \xc3\xbanica del plan")}
+			},
+			abiertas: 1,
+			salida:   salidaConUnaMarcada(t),
+		},
 		{
 			nombre: "todas-las-sesiones-fallan", repeticiones: "2", codigo: 1,
 			transcripts: func(t *testing.T) map[int]string {
@@ -1106,6 +1734,8 @@ func salidaConTodasLasSesionesFallidas(plan []SesionPlanificada) string {
 		"Tasa de cada serie (sesiones que pasan de las medidas):",
 		"- " + nombreDeEval + " con " + modeloDeLaSesion + ": 0 de 2",
 		"",
+		skillSinJuezEsperada,
+		"",
 		"Sesiones sin medir por l\xc3\xadmite de uso: ninguna.",
 		"",
 		tituloSinTerminarEsperado + ":",
@@ -1119,6 +1749,39 @@ func salidaConTodasLasSesionesFallidas(plan []SesionPlanificada) string {
 	return lineasDeLaSalida(lineas...)
 }
 
+// salidaConUnaMarcada es la salida del sondeo de TestSondear cuya única
+// respuesta queda marcada por el juez: su sesión termina y no pasa, que no
+// activa la skill ni cita; las líneas del juez llevan el modelo que fija la
+// definición del job y dicen que la medida, que es de la versión de Claude Code
+// que esa definición fija para sus votos, no corresponde a la del transcript; y
+// no hay sesiones sin medir ni sin terminar.
+func salidaConUnaMarcada(t *testing.T) func(plan []SesionPlanificada) string {
+	t.Helper()
+
+	modelo, version := fijadosParaElJuez(t)
+	require.NotEqual(t, versionDeLasSesiones, version,
+		"premisa: la medida versionada no es de la versi\xc3\xb3n de Claude Code de los transcripts del test")
+
+	return func([]SesionPlanificada) string {
+		return lineasDeLaSalida(
+			primeraLineaDelSondeoEsperada, segundaLineaDelSondeoEsperada, "",
+			"Tasa de cada serie (sesiones que pasan de las medidas):",
+			"- "+nombreDeEval+" con "+modeloDeLaSesion+": 0 de 1",
+			"",
+			"Juez ("+modelo+"), sobre las respuestas de las evals que activan la skill:",
+			"- marcadas en afirma_lo_no_leido, con sus tres votos: 1 de 1 (100,0 %).",
+			"- con s\xc3\xad en cuenta_su_proceso, con un voto: 0 de 1 (0,0 %).",
+			principioDeLaQueNoCorresponde+"la versi\xc3\xb3n de Claude Code de sus votos es "+version+
+				" y la de este equipo es "+versionDeLasSesiones+finalDeLaQueNoCorresponde,
+			ningunaSinJuzgar,
+			"",
+			"Sesiones sin medir por l\xc3\xadmite de uso: ninguna.",
+			"",
+			tituloSinTerminarEsperado+": ninguna.",
+		)
+	}
+}
+
 // salidaTrasElLimiteDeUso es la salida del sondeo de TestSondear en el que la
 // primera sesión da el mensaje del límite de uso: su serie queda sin medir, y
 // salen sin medir la primera, con el mensaje, y las dos que no se abrieron.
@@ -1127,6 +1790,8 @@ func salidaTrasElLimiteDeUso(plan []SesionPlanificada) string {
 		primeraLineaDelSondeoEsperada, segundaLineaDelSondeoEsperada, "",
 		"Tasa de cada serie (sesiones que pasan de las medidas):",
 		"- "+nombreDeEval+" con "+modeloDeLaSesion+": sin medir",
+		"",
+		skillSinJuezEsperada,
 		"",
 		"Sesiones sin medir por l\xc3\xadmite de uso:",
 		"- "+plan[0].Nombre+": "+sinMedirPorElMensaje,
@@ -1139,7 +1804,8 @@ func salidaTrasElLimiteDeUso(plan []SesionPlanificada) string {
 
 // sondeoDelTest es un sondeo de TestSondear con lo que el test mira después:
 // sus sustitutos, su plan, el PATH de su base y las variables de §5 que se le
-// dan, el HOME y el TMPDIR de su base, y si se preparó su árbol.
+// dan, el HOME y el TMPDIR de su base, si se preparó su árbol y lo que anotó
+// quien le da el votante.
 type sondeoDelTest struct {
 	ejecutar   SondeoAEjecutar
 	sustitutos sustitutos
@@ -1152,6 +1818,31 @@ type sondeoDelTest struct {
 	temporalDeLaBase string
 
 	arbolPreparado *bool
+	votante        *votantePedido
+}
+
+// votantePedido es lo que anota quien da el votante a un sondeo de TestSondear:
+// cuántas veces se le pide, con qué juez y con qué modelo, y si al pedírselo
+// estaba ya preparado el árbol. grabado es el votante que da, el de los votos
+// grabados del caso.
+type votantePedido struct {
+	veces        int
+	juez         *Juez
+	modelo       string
+	conElArbolYa bool
+
+	grabado *votanteDelInforme
+}
+
+// dar es el NuevoVotante de un sondeo de TestSondear: anota la petición y da el
+// votante de los votos grabados, sin crear nada.
+func (v *votantePedido) dar(arbolPreparado *bool) func(juez *Juez, modelo string) (Votante, error) {
+	return func(juez *Juez, modelo string) (Votante, error) {
+		v.veces++
+		v.juez, v.modelo, v.conElArbolYa = juez, modelo, *arbolPreparado
+
+		return v.grabado.votar, nil
+	}
 }
 
 // nuevoSondeoDelTest arma el sondeo de un caso de TestSondear: los sustitutos,
@@ -1161,7 +1852,10 @@ type sondeoDelTest struct {
 // nada; y la base: la del proceso sin sus credenciales de Claude Code, con un
 // HOME y un TMPDIR vacíos, las variables de §5 con valores propios del test,
 // CLAUDE_CODE_OAUTH_TOKEN y las que las sesiones no tienen que ver. Deja los
-// transcripts y las esperas del caso, y el ajuste del caso, si lo hay.
+// transcripts y las esperas del caso, y el ajuste del caso, si lo hay. Con los
+// votos del caso, deja además en la carpeta de la skill una copia de la carpeta
+// del juez de boe-legislacion; y, con ellos o sin ellos, quien da el votante es
+// el que lo anota y da el de esos votos grabados (votantePedido).
 func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
 	t.Helper()
 
@@ -1171,12 +1865,18 @@ func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
 	guion, err := filepath.Abs(guionDeLaSesion)
 	require.NoError(t, err)
 
+	var grabados []votosDeUnaRespuesta
+	if caso.votos != nil {
+		grabados = caso.votos(t)
+	}
+
 	sondeo := sondeoDelTest{
 		sustitutos:       s,
 		rutaDeLaBase:     claude + string(os.PathListSeparator) + os.Getenv("PATH"),
 		personalDeLaBase: t.TempDir(),
 		temporalDeLaBase: t.TempDir(),
 		arbolPreparado:   new(bool),
+		votante:          &votantePedido{grabado: nuevoVotanteDelInforme(t, grabados...)},
 		queVen: []string{
 			"LANG=C", "LC_ALL=C", "LC_CTYPE=C", "LC_MESSAGES=C", "TERM=dumb", "USER=persona-de-la-base",
 			"LOGNAME=persona-de-la-base", "SHELL=/bin/sh", "TZ=UTC", variableDeLaSuscripcion + "=" + valorDeLaSuscripcion,
@@ -1198,10 +1898,16 @@ func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
 		Temporal:                 t.TempDir(),
 		Guion:                    guion,
 		PrepararElArbol:          arbolSinConstruir(sondeo.arbolPreparado),
+		NuevoVotante:             sondeo.votante.dar(sondeo.arbolPreparado),
 	}
 
 	if caso.ajustar != nil {
 		caso.ajustar(t, &sondeo.ejecutar)
+	}
+
+	if caso.votos != nil {
+		require.NoError(t, os.CopyFS(filepath.Join(sondeo.ejecutar.EvalsDeLasSkills, skillQueSondea),
+			os.DirFS(copiarLaCarpetaDelJuez(t))))
 	}
 
 	sondeo.plan = planDelSondeoDelTest(t, sondeo.ejecutar, caso.repeticiones)
@@ -1323,6 +2029,28 @@ func (d sondeoDelTest) exigirLasSesiones(t *testing.T, abiertas int) {
 	}
 
 	assert.Equal(t, []string{"bin", "home", "sesiones"}, nombres, "el temporal, sin informe ni veredicto")
+}
+
+// exigirElVotantePedido exige, con una skill con juez, que el sondeo haya
+// pedido el votante una sola vez, antes de preparar el árbol, con el juez de la
+// carpeta de sus evals y el modelo del juez que fija la definición del job; y,
+// con una skill sin juez, que no lo haya pedido ni se haya pedido ningún voto.
+func (d sondeoDelTest) exigirElVotantePedido(t *testing.T, conJuez bool) {
+	t.Helper()
+
+	if !conJuez {
+		assert.Zero(t, d.votante.veces, "con una skill sin juez no se pide ning\xc3\xban votante")
+		assert.Empty(t, d.votante.grabado.pedidos(), "con una skill sin juez no se pide ning\xc3\xban voto")
+
+		return
+	}
+
+	modelo, _ := fijadosParaElJuez(t)
+
+	assert.Equal(t, 1, d.votante.veces, "el votante se pide una vez")
+	assert.False(t, d.votante.conElArbolYa, "el votante se pide antes de preparar el \xc3\xa1rbol")
+	assert.Equal(t, juezDe(t, filepath.Join(d.ejecutar.EvalsDeLasSkills, skillQueSondea)), d.votante.juez)
+	assert.Equal(t, modelo, d.votante.modelo, "el modelo del juez es el de la definici\xc3\xb3n del job")
 }
 
 // exigirElEntornoDeLaSesion exige que el sustituto de claude haya visto en la

@@ -123,10 +123,46 @@ const (
 	ningunaEnElSondeo          = ningunaEnElInforme + "."
 )
 
+// Las líneas del juez con modelo en la salida del sondeo, carácter a carácter
+// (contracts/informe-del-job.md §8 de H24; FR-075, FR-076), que van donde hasta
+// H24 iba la del recuento de las expresiones prohibidas: la que lo nombra, con
+// su modelo; la de cada clase de clases.yaml, la que decide y la que solo se
+// publica, con su nombre y su medida sobre las respuestas juzgadas; la de la
+// medida versionada, que corresponde, con la versión de Claude Code del equipo,
+// o que no corresponde, con lo que no coincide, o que no se puede comparar, sin
+// esa versión; el título de las respuestas sin juzgar; y la de la skill sin
+// juez.
+const (
+	tituloDelJuezDelSondeo     = "Juez (%s), sobre las respuestas de las evals que activan la skill:"
+	claseQueDecideDelSondeo    = "- marcadas en %s, con sus tres votos: %s."
+	claseQueSePublicaDelSondeo = "- con sí en %s, con un voto: %s."
+
+	medidaQueCorrespondeDelSondeo = "La medida versionada del juez corresponde a lo que hay, " +
+		"con el Claude Code de este equipo (%s)."
+	medidaSinCorresponderDelSondeo = "La medida versionada del juez no corresponde a lo que hay: %s. " +
+		"Estos recuentos no son los de un juez medido."
+	medidaSinVersionDelSondeo = "La medida versionada del juez no se puede comparar con lo que hay: " +
+		"ningún transcript de las sesiones declara la versión de Claude Code de este equipo. " +
+		"No se sabe si estos recuentos son los de un juez medido."
+
+	// versionQueNoEsLaDelEquipo es, en la línea de la medida que no
+	// corresponde, lo que comprobarLaMedida dice con medidaDeOtraVersion: en el
+	// sondeo no hay versión fijada para los votos del juez, sino la del equipo.
+	versionQueNoEsLaDelEquipo = "la versión de Claude Code de sus votos es %s y la de este equipo es %s"
+
+	// separadorDeLoQueNoCorresponde separa, en esa línea, lo que no coincide.
+	separadorDeLoQueNoCorresponde = "; "
+
+	tituloSinJuzgarDelSondeo = "Respuestas sin juzgar"
+	sondeoSinJuez            = "La skill no tiene juez."
+)
+
 // SondeoAJuzgar es lo que el juicio del sondeo necesita de las sesiones que abrió
 // el repartidor (contracts/sondeo.md §3.4 y §3.5 de H7.3; data-model §8): su plan
 // —las evals pedidas con un solo modelo, sin modelos informativos ni prueba de
-// red— y dónde están sus sesiones.
+// red— y dónde están sus sesiones. Desde H24, además, con qué juzga sus
+// respuestas el juez con modelo de la skill, si lo tiene
+// (contracts/informe-del-job.md §8 de H24; FR-075).
 type SondeoAJuzgar struct {
 	// Skill es la skill sondeada: la activación que se busca.
 	Skill string
@@ -147,6 +183,20 @@ type SondeoAJuzgar struct {
 	// SinAbrir son las sesiones del plan que el repartidor no abrió tras una con
 	// el mensaje del límite de uso (FR-066).
 	SinAbrir []SesionPlanificada
+
+	// Juez es el juez con modelo de la skill, el de su carpeta de evals: nil si
+	// no lo tiene, y entonces no se mira nada de lo que sigue.
+	Juez *Juez
+
+	// Votar es quien da cada voto del juez. Se le llama desde varias gorrutinas
+	// a la vez, una por respuesta que se juzga.
+	Votar Votante
+
+	// ModeloDelJuez es el id del modelo del juez, el que fija la definición del
+	// job, y ConcurrenciaDelJuez, las respuestas que se votan a la vez como
+	// mucho, las de la concurrencia del sondeo.
+	ModeloDelJuez       string
+	ConcurrenciaDelJuez int
 }
 
 // juicioDelSondeo es lo que el sondeo sabe de sus sesiones, juzgadas con el
@@ -159,6 +209,10 @@ type juicioDelSondeo struct {
 
 	// series son las del plan, en su orden.
 	series []serieDelSondeo
+
+	// juez es lo que el juez con modelo de la skill deja de sus respuestas: nil
+	// si la skill no tiene juez.
+	juez *juezDelSondeo
 
 	// sinMedir son las sesiones que un límite de uso de la cuenta no dejó
 	// terminar y las que el repartidor no abrió tras él, en orden de sesión, como
@@ -195,8 +249,47 @@ type sesionSinTerminar struct {
 	motivo string
 }
 
+// juezDelSondeo es lo que el juez con modelo de la skill deja de un sondeo
+// (contracts/informe-del-job.md §8 de H24; research D12 de H24; FR-075,
+// FR-076): solo lo agregado, sin los votos ni las frases de ninguna respuesta,
+// y sin umbral ni veredicto, que el sondeo no decide nada.
+type juezDelSondeo struct {
+	// modelo es el id del modelo del juez: el que fija la definición del job.
+	modelo string
+
+	// clases son las del juez, en el orden de clases.yaml.
+	clases []claseDelSondeo
+
+	// juzgadas son las respuestas que el juez juzgó, el total de cada clase: las
+	// del modelo del sondeo en las evals que activan la skill, terminadas y
+	// medidas, menos las que quedaron sin juzgar.
+	juzgadas int
+
+	// sinJuzgar son las respuestas de las que un voto no llegó a darse, en orden
+	// de sesión, cada una con el motivo de ese voto.
+	sinJuzgar []RespuestaSinJuzgar
+
+	// version es la de Claude Code del equipo de quien lanza el sondeo, la que
+	// declaran los transcripts de sus sesiones: vacía si ninguno la declara.
+	version string
+
+	// sinCorresponder es lo que no coincide entre la medida versionada del juez y
+	// lo que hay, con ese modelo y esa versión: nada si la medida corresponde y
+	// se cumple, o si no hay versión con la que compararla.
+	sinCorresponder []string
+}
+
+// claseDelSondeo es una clase del juez con las respuestas juzgadas del sondeo
+// que deja marcadas en ella: con sus tres votos, si decide, y con el primero,
+// si solo se publica.
+type claseDelSondeo struct {
+	nombre   string
+	decide   bool
+	marcadas int
+}
+
 // juzgarElSondeo juzga las sesiones del sondeo con el código del job, sin su
-// traza y sin un juez propio (contracts/sondeo.md §3.5 de H7.3; research D17;
+// traza y sin un juicio propio (contracts/sondeo.md §3.5 de H7.3; research D17;
 // FR-061):
 //
 //  1. cada entrada de s.Sesiones, en orden de nombre, con juzgarSesionDelSondeo:
@@ -208,9 +301,13 @@ type sesionSinTerminar struct {
 //     el repartidor no abrió contadas como sin medir. Sin umbral: el sondeo no
 //     dice si una serie llega a él (FR-066);
 //  3. las sesiones sin medir con sesionesSinMedir, como el informe, y las que
-//     quedaron sin terminar por otra causa (sesionesSinTerminar).
+//     quedaron sin terminar por otra causa (sesionesSinTerminar);
+//  4. con una skill que tiene juez, sus respuestas con él (juzgarConElJuez),
+//     que no cambia el juicio de ninguna sesión ni la tasa de ninguna serie
+//     (contracts/informe-del-job.md §8 de H24; FR-075, FR-076).
 //
-// El error es solo para el directorio de sesiones que no se puede listar.
+// El error es solo para el directorio de sesiones que no se puede listar y para
+// el esquema de la respuesta del juez que no sirve para validar sus votos.
 func juzgarElSondeo(s SondeoAJuzgar) (juicioDelSondeo, error) {
 	e := InformeAEscribir{
 		Skill:           s.Skill,
@@ -255,7 +352,120 @@ func juzgarElSondeo(s SondeoAJuzgar) (juicioDelSondeo, error) {
 	juicio.sinMedir = sesionesSinMedir(juicio.resultados, s.SinAbrir)
 	juicio.sinTerminar = sesionesSinTerminar(sesiones)
 
+	juicio.juez, err = s.juzgarConElJuez(e, sesiones, series)
+	if err != nil {
+		return juicioDelSondeo{}, fmt.Errorf("el sondeo no se puede juzgar: %w", err)
+	}
+
 	return juicio, nil
+}
+
+// juzgarConElJuez juzga con el juez con modelo de la skill las respuestas del
+// sondeo, y da lo que deja de ellas (contracts/informe-del-job.md §8 de H24;
+// contracts/medida-del-juez.md §2 de H24; research D12 de H24; FR-075, FR-076):
+// nil si la skill no tiene juez, y entonces no se pide ningún voto.
+//
+//  1. Las respuestas son las que el juez juzga en el job (respuestasQueSeJuzgan)
+//     con el plan del sondeo: las del modelo del sondeo en las evals que activan
+//     la skill, terminadas y medidas. El plan es de un solo modo y sin evals sin
+//     binario ni servidor, así que van en orden de sesión.
+//  2. Cada una se juzga con el mensaje del voto y la regla de los votos, con el
+//     votante recibido y como mucho tantas a la vez como diga la concurrencia
+//     (juzgarTodas).
+//  3. De cada clase lleva las que quedan marcadas, y de las que quedan sin
+//     juzgar, su motivo: no están entre las juzgadas.
+//  4. La versión de Claude Code del equipo es la que declaran los transcripts
+//     (versionDelEquipo), y con ella y el modelo del juez se comprueba la medida
+//     versionada solo para decirlo (medidaFrenteAlEquipo): corresponda o no,
+//     las respuestas se juzgan igual.
+//
+// El error es el del esquema de la respuesta del juez que no compila.
+func (s SondeoAJuzgar) juzgarConElJuez(
+	e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada,
+) (*juezDelSondeo, error) {
+	if s.Juez == nil {
+		return nil, nil
+	}
+
+	votacion, err := nuevaVotacion(s.Juez, s.Votar)
+	if err != nil {
+		return nil, err
+	}
+
+	var delSondeo grupoJuzgado
+	for _, grupo := range respuestasQueSeJuzgan(e, sesiones, series) {
+		delSondeo.respuestas = append(delSondeo.respuestas, grupo.respuestas...)
+	}
+
+	for posicion, juicio := range votacion.juzgarTodas(delSondeo.aJuzgar(sesiones), s.ConcurrenciaDelJuez) {
+		delSondeo.respuestas[posicion].juicio = juicio
+	}
+
+	delJuez := &juezDelSondeo{modelo: s.ModeloDelJuez, version: versionDelEquipo(sesiones)}
+
+	for posicion, clase := range s.Juez.Clases {
+		delJuez.clases = append(delJuez.clases, claseDelSondeo{
+			nombre: clase.Nombre, decide: clase.Decide, marcadas: len(delSondeo.marcadasEn(posicion)),
+		})
+	}
+
+	for _, respuesta := range delSondeo.respuestas {
+		if respuesta.juicio.SinJuzgar != "" {
+			delJuez.sinJuzgar = append(delJuez.sinJuzgar,
+				RespuestaSinJuzgar{Sesion: respuesta.sesion, Motivo: respuesta.juicio.SinJuzgar})
+		}
+	}
+
+	delJuez.juzgadas = len(delSondeo.respuestas) - len(delJuez.sinJuzgar)
+
+	if delJuez.version != "" {
+		delJuez.sinCorresponder = medidaFrenteAlEquipo(s.Juez, s.ModeloDelJuez, delJuez.version)
+	}
+
+	return delJuez, nil
+}
+
+// versionDelEquipo es la versión de Claude Code del equipo de quien lanza el
+// sondeo: la que declara el transcript de sus sesiones, que se abren todas con
+// el claude de su PATH, el mismo que da los votos del juez (research D12 de
+// H24). Es la de la primera sesión que la declara, en orden de sesión, y vacía
+// si ninguna la declara: la de una sesión que no se pudo leer o cuyo claude no
+// llegó a escribir nada.
+func versionDelEquipo(sesiones []sesionJuzgada) string {
+	for _, juzgada := range sesiones {
+		if juzgada.sesion.VersionDeClaudeCode != "" {
+			return juzgada.sesion.VersionDeClaudeCode
+		}
+	}
+
+	return ""
+}
+
+// medidaFrenteAlEquipo es lo que no coincide entre la medida versionada del
+// juez y lo que hay en el equipo de quien lanza el sondeo: las líneas de
+// comprobarLaMedida con el modelo del juez y la versión de Claude Code de ese
+// equipo, en su orden, y ninguna si la medida corresponde y se cumple
+// (contracts/medida-del-juez.md §2 de H24; FR-076). La de la versión va con las
+// palabras del sondeo (versionQueNoEsLaDelEquipo): comprobarLaMedida habla de la
+// versión fijada para los votos del juez, que es la del job.
+//
+// Esa línea se reconoce por ser la que comprobarLaMedida da de la versión de la
+// medida, que se lee de nuevo. Si la medida no se puede leer, no hay versión
+// que nombrar, y comprobarLaMedida ya lo dice en su única línea.
+func medidaFrenteAlEquipo(juez *Juez, modelo, version string) []string {
+	lineas := comprobarLaMedida(juez, modelo, version)
+
+	medida, err := leerMedidaDelJuez(juez.Medida)
+	if err != nil {
+		return lineas
+	}
+
+	deLaVersion := slices.Index(lineas, fmt.Sprintf(medidaDeOtraVersion, medida.VersionDeClaudeCode, version))
+	if deLaVersion >= 0 {
+		lineas[deLaVersion] = fmt.Sprintf(versionQueNoEsLaDelEquipo, medida.VersionDeClaudeCode, version)
+	}
+
+	return lineas
 }
 
 // juzgarSesionDelSondeo lee la sesión del subdirectorio nombre sin su traza y la
@@ -376,17 +586,23 @@ func sesionesSinTerminar(sesiones []sesionJuzgada) []sesionSinTerminar {
 // salida es la salida del sondeo, la que su guion imprime (contracts/sondeo.md
 // §4 de H7.3; FR-065): las dos líneas fijas; la tasa de cada serie del plan,
 // «<pasan> de <sesiones>», con « (informativa)» detrás del modelo en las que no
-// deciden el veredicto del job, o «sin medir» con alguna sesión sin medir; y las
-// sesiones sin medir por límite de uso y las que quedaron sin terminar por otra
-// causa, cada una con su motivo, o «ninguna.». Una línea en blanco separa cada
-// parte, y cada sesión va en su línea. Desde H24 no lleva la línea del recuento
-// de las respuestas con alguna expresión prohibida (FR-070 de H24).
+// deciden el veredicto del job, o «sin medir» con alguna sesión sin medir; las
+// líneas del juez; y las sesiones sin medir por límite de uso y las que quedaron
+// sin terminar por otra causa, cada una con su motivo, o «ninguna.». Una línea
+// en blanco separa cada parte, y cada sesión va en su línea. Desde H24 no lleva
+// la línea del recuento de las respuestas con alguna expresión prohibida
+// (FR-070 de H24): donde iba van las del juez con modelo de la skill
+// (juezDelSondeo.lineas; contracts/informe-del-job.md §8 de H24; FR-075,
+// FR-076).
 func (j juicioDelSondeo) salida() string {
 	lineas := []string{primeraLineaDelSondeo, segundaLineaDelSondeo, "", tituloDeLasSeriesDelSondeo}
 
 	for _, serie := range j.series {
 		lineas = append(lineas, "- "+serie.escrita())
 	}
+
+	lineas = append(lineas, "")
+	lineas = append(lineas, j.juez.lineas()...)
 
 	sinMedir := make([]string, 0, len(j.sinMedir))
 	for _, sesion := range j.sinMedir {
@@ -419,16 +635,73 @@ func (s serieDelSondeo) escrita() string {
 	return serie + ": " + strconv.Itoa(s.pasan) + " de " + strconv.Itoa(s.sesiones)
 }
 
-// apartadoDelSondeo son las líneas de un apartado de sesiones de la salida del
-// sondeo, detrás de una en blanco: «<título>: ninguna.» sin ninguna, o el título
-// con dos puntos y una línea «- <sesión>: <motivo>» por sesión, con los saltos
-// de línea de su motivo como espacios.
-func apartadoDelSondeo(titulo string, sesiones []string) []string {
-	if len(sesiones) == 0 {
-		return []string{"", titulo + ": " + ningunaEnElSondeo}
+// lineas son las del juez en la salida del sondeo, las de
+// contracts/informe-del-job.md §8 de H24 (FR-075, FR-076): con una skill sin
+// juez, la que lo dice; con él, la que lo nombra con su modelo; una por clase,
+// en el orden de clases.yaml, con las respuestas que deja marcadas —con sus
+// tres votos en la que decide, y con sí en su primer voto en la que solo se
+// publica— sobre las juzgadas, escritas como la medida de un umbral del
+// informe, «<n> de <t> (<p> %)»; la de la medida versionada (lineaDeLaMedida); y
+// las respuestas sin juzgar, cada una en su línea con su motivo, o «ninguna.».
+// Nada de los votos ni de las frases de ninguna respuesta.
+func (j *juezDelSondeo) lineas() []string {
+	if j == nil {
+		return []string{sondeoSinJuez}
 	}
 
-	lineas := []string{"", titulo + ":"}
+	lineas := []string{fmt.Sprintf(tituloDelJuezDelSondeo, j.modelo)}
+
+	for _, clase := range j.clases {
+		forma := claseQueSePublicaDelSondeo
+		if clase.decide {
+			forma = claseQueDecideDelSondeo
+		}
+
+		medida := Umbral{Medida: float64(clase.marcadas), Total: &j.juzgadas}.medidaEscrita()
+		lineas = append(lineas, fmt.Sprintf(forma, clase.nombre, medida))
+	}
+
+	sinJuzgar := make([]string, 0, len(j.sinJuzgar))
+	for _, respuesta := range j.sinJuzgar {
+		sinJuzgar = append(sinJuzgar, respuesta.Sesion+": "+respuesta.Motivo)
+	}
+
+	return append(append(lineas, j.lineaDeLaMedida()), listaDelSondeo(tituloSinJuzgarDelSondeo, sinJuzgar)...)
+}
+
+// lineaDeLaMedida es la línea de la salida del sondeo que dice si la medida
+// versionada del juez corresponde al Claude Code con el que se ha votado
+// (contracts/informe-del-job.md §8 de H24; FR-076): sin versión del equipo, que
+// no se puede comparar; si nada deja de coincidir, que corresponde, con esa
+// versión; y si no, lo que no coincide, en su orden, y que los recuentos no son
+// los de un juez medido.
+func (j *juezDelSondeo) lineaDeLaMedida() string {
+	switch {
+	case j.version == "":
+		return medidaSinVersionDelSondeo
+	case len(j.sinCorresponder) == 0:
+		return fmt.Sprintf(medidaQueCorrespondeDelSondeo, j.version)
+	default:
+		return fmt.Sprintf(medidaSinCorresponderDelSondeo, strings.Join(j.sinCorresponder, separadorDeLoQueNoCorresponde))
+	}
+}
+
+// apartadoDelSondeo son las líneas de un apartado de sesiones de la salida del
+// sondeo, detrás de una en blanco (listaDelSondeo).
+func apartadoDelSondeo(titulo string, sesiones []string) []string {
+	return append([]string{""}, listaDelSondeo(titulo, sesiones)...)
+}
+
+// listaDelSondeo son las líneas de una lista de sesiones de la salida del
+// sondeo: «<título>: ninguna.» sin ninguna, o el título con dos puntos y una
+// línea «- <sesión>: <motivo>» por sesión, con los saltos de línea de su motivo
+// como espacios.
+func listaDelSondeo(titulo string, sesiones []string) []string {
+	if len(sesiones) == 0 {
+		return []string{titulo + ": " + ningunaEnElSondeo}
+	}
+
+	lineas := []string{titulo + ":"}
 	for _, sesion := range sesiones {
 		lineas = append(lineas, "- "+enUnaLinea.Replace(sesion))
 	}
@@ -481,6 +754,15 @@ type SondeoAEjecutar struct {
 	// prepararElArbol en el punto de entrada, y en los tests, un árbol que no
 	// construye nada.
 	PrepararElArbol func(temporal string, base []string) error
+
+	// NuevoVotante da quien vota con el juez de la skill, que recibe con el id
+	// de su modelo, el que fija la definición del job
+	// (contracts/informe-del-job.md §8 de H24; FR-075): en el punto de entrada,
+	// el votante que abre cada voto con el guion del voto, con el PATH y la
+	// credencial de quien lanza el sondeo (nuevoVotanteDelGuion), y en los
+	// tests, uno de salidas grabadas. Lo que cree para votar lo retira quien lo
+	// da. Con una skill sin juez no se llama.
+	NuevoVotante func(juez *Juez, modelo string) (Votante, error)
 }
 
 // sondeoComprobado es un sondeo cuyos argumentos y credencial valen, con sus
@@ -496,6 +778,12 @@ type sondeoComprobado struct {
 	modelo       string
 	repeticiones int
 	concurrencia int
+
+	// juez es el juez con modelo de la skill, el de la carpeta de sus evals, o
+	// nil si no lo tiene, y modeloDelJuez, el id de su modelo, el que fija la
+	// definición del job (contracts/informe-del-job.md §8 de H24).
+	juez          *Juez
+	modeloDelJuez string
 }
 
 // comprobarElSondeo comprueba el sondeo antes de construir nada, en este orden
@@ -540,10 +828,18 @@ func comprobarElSondeo(s SondeoAEjecutar) (sondeoComprobado, error) {
 // un entero mayor o igual que 1. Con una skill que no vale, de EVALS solo se
 // comprueba la forma. Los errores de todos los argumentos van juntos, uno por
 // línea y en ese orden, para que quien lanza la orden los corrija de una vez.
+//
+// Lo comprobado lleva además el juez de la carpeta de evals de la skill, si lo
+// tiene, y el modelo del juez de la definición del job, con los que el sondeo
+// juzga sus respuestas (contracts/informe-del-job.md §8 de H24; FR-075).
 func (a ArgumentosDelSondeo) comprobar(evalsDeLasSkills string, job DefinicionDelJob) (sondeoComprobado, error) {
-	comprobado := sondeoComprobado{skill: a.Skill, evals: filepath.Join(evalsDeLasSkills, a.Skill), modelo: a.Modelo}
+	comprobado := sondeoComprobado{
+		skill: a.Skill, evals: filepath.Join(evalsDeLasSkills, a.Skill), modelo: a.Modelo,
+		modeloDelJuez: job.ModeloDelJuez,
+	}
 
 	conjunto, errDeLaSkill := conjuntoDeLaSkill(a.Skill, comprobado.evals, job)
+	comprobado.juez = conjunto.Juez
 
 	numeros, errDeLasEvals := numerosDeLasEvals(a.Evals)
 	if errDeLaSkill == nil && errDeLasEvals == nil {
@@ -769,7 +1065,10 @@ func entornoDelSondeo(base []string, temporal string) []string {
 // FR-066):
 //
 //  1. comprueba los argumentos y la credencial (comprobarElSondeo), antes de
-//     construir nada;
+//     construir nada; y, con una skill que tiene juez, pide a NuevoVotante quien
+//     vota con él y con el modelo del juez de la definición del job: sin con qué
+//     votar no se construye nada ni se abre ninguna sesión
+//     (contracts/informe-del-job.md §8 de H24; FR-075);
 //  2. prepara el árbol de trabajo en el temporal con PrepararElArbol;
 //  3. abre con el repartidor, en sesiones/ del temporal, el plan de las evals
 //     pedidas en su orden, con MODELO como el modelo que decide, sin modelos
@@ -779,19 +1078,33 @@ func entornoDelSondeo(base []string, temporal string) []string {
 //     sesión y el tope de 240 s con su margen de 10 s. Tras una sesión con el
 //     mensaje del límite de uso, el repartidor no abre ninguna más;
 //  4. juzga las sesiones con juzgarElSondeo, con las que no se abrieron como sin
-//     medir, y compone la salida.
+//     medir, y, con una skill que tiene juez, sus respuestas con él, con ese
+//     votante y como mucho tantas a la vez como sesiones se abren a la vez; y
+//     compone la salida.
 //
 // Vuelve sin error sean cuales sean las tasas y aunque la cuenta no deje abrir
-// todas las sesiones: no escribe informe ni veredicto (FR-066). El error es el
-// de la comprobación, el del árbol, el del repartidor —también tras la
-// interrupción, con interrupcion cerrado— o el del directorio de sesiones. Solo
-// el de la comprobación de los argumentos o de la credencial es un errorDeUso,
-// y con él no prepara el árbol ni llama al repartidor (FR-080 y FR-081 de
-// H7.4).
+// todas las sesiones: no escribe informe ni veredicto (FR-066). Tampoco lo dan
+// lo que el juez marque, las respuestas que deje sin juzgar ni la medida
+// versionada que no corresponda al Claude Code del equipo (FR-075 y FR-076 de
+// H24): el sondeo no lista sus votos ni sus frases, no mide el modo herramienta
+// ni lanza la medida del juez. El error es el de la comprobación, el de quien
+// da el votante, el del árbol, el del repartidor —también tras la interrupción,
+// con interrupcion cerrado—, el del directorio de sesiones o el del esquema de
+// la respuesta del juez. Solo el de la comprobación de los argumentos o de la
+// credencial es un errorDeUso, y con él no pide el votante, no prepara el árbol
+// ni llama al repartidor (FR-080 y FR-081 de H7.4).
 func sondear(interrupcion <-chan struct{}, s SondeoAEjecutar) (string, error) {
 	comprobado, err := comprobarElSondeo(s)
 	if err != nil {
 		return "", err
+	}
+
+	var votar Votante
+	if comprobado.juez != nil {
+		votar, err = s.NuevoVotante(comprobado.juez, comprobado.modeloDelJuez)
+		if err != nil {
+			return "", fmt.Errorf("el votante del juez del sondeo no se puede preparar: %w", err)
+		}
 	}
 
 	temporal, err := filepath.Abs(s.Temporal)
@@ -836,6 +1149,11 @@ func sondear(interrupcion <-chan struct{}, s SondeoAEjecutar) (string, error) {
 		Modelo:       comprobado.modelo,
 		Repeticiones: comprobado.repeticiones,
 		SinAbrir:     ejecucion.SinAbrir,
+
+		Juez:                comprobado.juez,
+		Votar:               votar,
+		ModeloDelJuez:       comprobado.modeloDelJuez,
+		ConcurrenciaDelJuez: comprobado.concurrencia,
 	})
 	if err != nil {
 		return "", err
