@@ -104,8 +104,7 @@ const variableDeLaRuta = "PATH"
 // Textos fijos de la salida del sondeo (contracts/sondeo.md §4 de H7.3; FR-065):
 // las dos primeras líneas, siempre las mismas, que dicen que no es un veredicto y
 // lo que no comprueba; el título de las series y lo que lleva una serie
-// informativa o una con alguna sesión sin medir; el recuento de las expresiones
-// prohibidas, o la línea de la skill sin lista; y los títulos de los dos
+// informativa o una con alguna sesión sin medir; y los títulos de los dos
 // apartados de sesiones, con lo que dicen sin ninguna. El del segundo apartado va
 // en dos literales partidos dentro de un verbo: misspell toma el pretérito de
 // «terminar», suelto, por una errata inglesa.
@@ -118,10 +117,6 @@ const (
 	tituloDeLasSeriesDelSondeo = "Tasa de cada serie (sesiones que pasan de las medidas):"
 	serieInformativaDelSondeo  = " (informativa)"
 	serieSinMedirDelSondeo     = "sin medir"
-
-	recuentoDelSondeo = "Respuestas con alguna expresión prohibida en las evals que activan la skill: %s; " +
-		"referencia: como mucho el %s %%."
-	sondeoSinLista = "Respuestas con alguna expresión prohibida: " + sinListaDeExpresiones + "."
 
 	tituloSinMedirDelSondeo    = "Sesiones sin medir por límite de uso"
 	tituloSinTerminarDelSondeo = "Sesiones que no termin" + "aron por otra causa"
@@ -140,10 +135,6 @@ type SondeoAJuzgar struct {
 	// formadas que se sondean, en el orden del plan.
 	Evals   string
 	Pedidas []Eval
-
-	// Prohibidas es la lista de expresiones prohibidas de la skill, la de su
-	// directorio de evals: vacía si no la tiene.
-	Prohibidas ExpresionesProhibidas
 
 	// Sesiones es el directorio con un subdirectorio por sesión.
 	Sesiones string
@@ -168,12 +159,6 @@ type juicioDelSondeo struct {
 
 	// series son las del plan, en su orden.
 	series []serieDelSondeo
-
-	// recuento es el de las respuestas con alguna expresión prohibida de su
-	// modelo, sobre sus respuestas medidas —solo las terminadas—, como el del
-	// informe (recontarExpresiones y expresionesPorModelo; FR-082 de H7.4): nil si
-	// la skill no tiene lista.
-	recuento []RecuentoDeExpresiones
 
 	// sinMedir son las sesiones que un límite de uso de la cuenta no dejó
 	// terminar y las que el repartidor no abrió tras él, en orden de sesión, como
@@ -217,14 +202,11 @@ type sesionSinTerminar struct {
 //  1. cada entrada de s.Sesiones, en orden de nombre, con juzgarSesionDelSondeo:
 //     Juzgar sobre la eval sin sus comandos ni sus prohibidos y la sesión sin
 //     invocaciones, exigirElModeloPedido y ClasificarElLimite;
-//  2. las series con repartirEnSeries y el recuento con recontarExpresiones,
-//     solo de las respuestas terminadas, del que publica lo mismo que
-//     expresiones_prohibidas_por_modelo (expresionesPorModelo; FR-082 de H7.4),
-//     como el informe, con el plan del sondeo: las evals pedidas con su modelo
-//     como el que decide, en un solo modo, el modo orden, sin modelos
-//     informativos ni prueba de red, y las sesiones que el repartidor no abrió
-//     contadas como sin medir. Sin umbral: el sondeo no dice si una serie llega
-//     a él (FR-066);
+//  2. las series con repartirEnSeries, como el informe, con el plan del sondeo:
+//     las evals pedidas con su modelo como el que decide, en un solo modo, el
+//     modo orden, sin modelos informativos ni prueba de red, y las sesiones que
+//     el repartidor no abrió contadas como sin medir. Sin umbral: el sondeo no
+//     dice si una serie llega a él (FR-066);
 //  3. las sesiones sin medir con sesionesSinMedir, como el informe, y las que
 //     quedaron sin terminar por otra causa (sesionesSinTerminar).
 //
@@ -265,8 +247,6 @@ func juzgarElSondeo(s SondeoAJuzgar) (juicioDelSondeo, error) {
 			})
 		}
 	}
-
-	juicio.recuento = expresionesPorModelo(recontarExpresiones(e, s.Prohibidas, sesiones, series))
 
 	for _, juzgada := range sesiones {
 		juicio.resultados = append(juicio.resultados, juzgada.resultado)
@@ -396,20 +376,17 @@ func sesionesSinTerminar(sesiones []sesionJuzgada) []sesionSinTerminar {
 // salida es la salida del sondeo, la que su guion imprime (contracts/sondeo.md
 // §4 de H7.3; FR-065): las dos líneas fijas; la tasa de cada serie del plan,
 // «<pasan> de <sesiones>», con « (informativa)» detrás del modelo en las que no
-// deciden el veredicto del job, o «sin medir» con alguna sesión sin medir; el
-// recuento de las respuestas con alguna expresión prohibida con el 5 % como
-// referencia, o la línea de la skill sin lista; y las sesiones sin medir por
-// límite de uso y las que quedaron sin terminar por otra causa, cada una con su
-// motivo, o «ninguna.». Una línea en blanco separa cada parte. Nada por sesión de las
-// expresiones prohibidas, y cada sesión en su línea.
+// deciden el veredicto del job, o «sin medir» con alguna sesión sin medir; y las
+// sesiones sin medir por límite de uso y las que quedaron sin terminar por otra
+// causa, cada una con su motivo, o «ninguna.». Una línea en blanco separa cada
+// parte, y cada sesión va en su línea. Desde H24 no lleva la línea del recuento
+// de las respuestas con alguna expresión prohibida (FR-070 de H24).
 func (j juicioDelSondeo) salida() string {
 	lineas := []string{primeraLineaDelSondeo, segundaLineaDelSondeo, "", tituloDeLasSeriesDelSondeo}
 
 	for _, serie := range j.series {
 		lineas = append(lineas, "- "+serie.escrita())
 	}
-
-	lineas = append(lineas, "", j.recuentoEscrito())
 
 	sinMedir := make([]string, 0, len(j.sinMedir))
 	for _, sesion := range j.sinMedir {
@@ -440,25 +417,6 @@ func (s serieDelSondeo) escrita() string {
 	}
 
 	return serie + ": " + strconv.Itoa(s.pasan) + " de " + strconv.Itoa(s.sesiones)
-}
-
-// recuentoEscrito es la línea del recuento de la salida del sondeo: con la
-// medida escrita como la del umbral de las expresiones del informe, «<n> de <m>
-// (<p> %)», sobre las respuestas medidas —solo las terminadas, como en el
-// informe (FR-082 de H7.4)—, y el umbral del paquete como referencia; o la de la
-// skill sin lista.
-// El sondeo tiene un solo modelo y un solo modo, el modo orden, así que su
-// recuento tiene un solo elemento.
-func (j juicioDelSondeo) recuentoEscrito() string {
-	if len(j.recuento) == 0 {
-		return sondeoSinLista
-	}
-
-	respuestas := j.recuento[0].Respuestas
-	medida := Umbral{Medida: float64(j.recuento[0].ConAlguna), Total: &respuestas}.medidaEscrita()
-	referencia := strings.Replace(strconv.FormatFloat(umbralDeExpresionesProhibidas*100, 'f', -1, 64), ".", ",", 1)
-
-	return fmt.Sprintf(recuentoDelSondeo, medida, referencia)
 }
 
 // apartadoDelSondeo son las líneas de un apartado de sesiones de la salida del
@@ -532,10 +490,8 @@ type sondeoComprobado struct {
 	skill string
 	evals string
 
-	// pedidas son las evals de EVALS, en su orden, y prohibidas, la lista de
-	// expresiones prohibidas de la carpeta.
-	pedidas    []Eval
-	prohibidas ExpresionesProhibidas
+	// pedidas son las evals de EVALS, en su orden.
+	pedidas []Eval
 
 	modelo       string
 	repeticiones int
@@ -593,8 +549,6 @@ func (a ArgumentosDelSondeo) comprobar(evalsDeLasSkills string, job DefinicionDe
 	if errDeLaSkill == nil && errDeLasEvals == nil {
 		comprobado.pedidas, errDeLasEvals = evalsPedidas(numeros, a.Skill, conjunto)
 	}
-
-	comprobado.prohibidas = conjunto.Prohibidas
 
 	var errDeLasRepeticiones, errDeLaConcurrencia error
 
@@ -878,7 +832,6 @@ func sondear(interrupcion <-chan struct{}, s SondeoAEjecutar) (string, error) {
 		Skill:        comprobado.skill,
 		Evals:        comprobado.evals,
 		Pedidas:      comprobado.pedidas,
-		Prohibidas:   comprobado.prohibidas,
 		Sesiones:     sesiones,
 		Modelo:       comprobado.modelo,
 		Repeticiones: comprobado.repeticiones,

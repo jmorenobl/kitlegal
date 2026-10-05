@@ -25,7 +25,7 @@ var formaDelNombre = regexp.MustCompile(`^[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*\.yaml$
 // contracts/juez-y-voto.md §1 de H24).
 type Conjunto struct {
 	// Evals son las bien formadas, en orden de nombre de fichero, cada una con
-	// su Fichero y con la lista de la carpeta en su Prohibidas.
+	// su Fichero.
 	Evals []Eval
 
 	// MalFormados son las entradas que no se pueden leer como eval, o como la
@@ -35,7 +35,8 @@ type Conjunto struct {
 
 	// Prohibidas es la lista de expresiones prohibidas de la carpeta, leída de
 	// expresiones-prohibidas.yaml; vacía si la carpeta no la tiene o si está mal
-	// formada (research D5).
+	// formada (research D5). Desde H24 no juzga ninguna respuesta: es el
+	// vocabulario que la prosa de la skill no usa (FR-070 y FR-071 de H24).
 	Prohibidas ExpresionesProhibidas
 
 	// Juez es el juez con modelo de la skill, leído de la carpeta juez; nil si
@@ -78,9 +79,7 @@ type FicheroMalFormado struct {
 //  4. cada fichero de eval se lee y se pasa a LeerEval con su nombre: si no se
 //     puede leer o LeerEval devuelve un error, es un FicheroMalFormado con ese
 //     error; si no, su Eval va a Evals;
-//  5. cada eval de Evals lleva en Prohibidas la lista de la carpeta, vacía si la
-//     carpeta no la tiene o está mal formada;
-//  6. el error queda para un directorio que no se puede listar: lo nombra y va
+//  5. el error queda para un directorio que no se puede listar: lo nombra y va
 //     con un Conjunto vacío. Un directorio vacío da un Conjunto vacío sin error.
 //
 // Solo lee y comprueba el formato: las reglas del conjunto son de
@@ -106,10 +105,6 @@ func LeerConjunto(dir string) (Conjunto, error) {
 		if err := conjunto.leer(dir, entrada); err != nil {
 			conjunto.MalFormados = append(conjunto.MalFormados, FicheroMalFormado{Fichero: entrada.Name(), Error: err})
 		}
-	}
-
-	for indice := range conjunto.Evals {
-		conjunto.Evals[indice].Prohibidas = conjunto.Prohibidas
 	}
 
 	return conjunto, nil

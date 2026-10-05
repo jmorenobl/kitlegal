@@ -177,9 +177,10 @@ const (
 	motivoDeBoeLegislacionActivada = "se activ\xc3\xb3 la skill boe-legislacion, que la eval dice que no se activa"
 )
 
-// Lo que juzga TestJuzgarLasExpresionesProhibidas con la lista de
-// boe-legislacion (contrato lista-y-juicio §3 y §4 de H7.2;
-// contracts/lista-de-expresiones.md §6 de H7.3).
+// Respuestas con expresiones de la lista de boe-legislacion (contrato
+// lista-y-juicio §3 y §4 de H7.2; contracts/lista-de-expresiones.md §6 de H7.3),
+// con las que los tests del juicio, del informe y del sondeo fijan que la lista
+// ya no juzga ninguna (FR-070 de H24).
 const (
 	// transicionDeLaMemoria es la frase de transición de las respuestas de H7.1
 	// que cuentan la comprobación (research, «Causa de raíz del ruido»): lleva
@@ -281,7 +282,7 @@ type juicio struct {
 // en dos, pasa; con una sola, con las dos sin cita, con la cita de un bloque y las
 // fechas del otro, con las fechas en otro orden o con las dos en una sola línea,
 // no pasa, y cada ausente va a las ausentes con su motivo, detrás del de los
-// hallazgos y delante del de las expresiones; una eval sin redacciones esperadas
+// hallazgos; una eval sin redacciones esperadas
 // se juzga como antes aunque la respuesta lleve las líneas. Y una sesión que
 // activa una skill de no_se_activan no pasa, con un motivo que la nombra detrás
 // del de la activación y delante del de los comandos, en una eval de legal-core
@@ -998,439 +999,239 @@ func TestRedaccionesDelResultadoEnJSON(t *testing.T) {
 	}
 }
 
-// TestJuzgarLasExpresionesProhibidas fija el juicio con la lista de expresiones
-// prohibidas de boe-legislacion, la del repositorio leída con LeerConjunto
-// (contrato lista-y-juicio §4 de H7.2; FR-051, FR-052, FR-054, FR-083; SC-006;
-// US3.1 a US3.6; y contracts/lista-de-expresiones.md §6 de H7.3, FR-024 y
-// US1-3): con la eval 01 del repositorio y una sesión que cumple todo lo demás,
-// cada expresión que lleva la respuesta, de cualquiera de las tres familias, en
-// el orden de la lista y con las tolerancias de la forma fija de los avisos, va
-// a las expresiones prohibidas con su motivo y la eval no pasa; sin ninguna, o
-// con la línea
-// ⚠ REDACCIÓN MODIFICADA: con sus dos fechas, pasa y la lista queda vacía. Los
-// motivos van detrás de los de Juzgar y delante del del modelo; una eval de no
-// activación y una de una skill sin lista se juzgan como antes del hito aunque
-// la respuesta las lleve; y el resultado escribe la clave detrás de
-// territorio_ausente, una lista vacía si no hay ninguna.
-func TestJuzgarLasExpresionesProhibidas(t *testing.T) {
-	t.Parallel()
-
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
-	require.NoError(t, err)
-	require.NotEmpty(t, slices.Concat(conjunto.Prohibidas.Maquinaria, conjunto.Prohibidas.OtraConversacion,
-		conjunto.Prohibidas.Anuncio), "%s tiene su lista de expresiones prohibidas", evalsDelRepositorio)
-
-	positiva := *evalDe(t, conjunto.Evals, ficheroDeLaEval01)
-	require.True(t, positiva.Activa, "%s espera que la skill se active", ficheroDeLaEval01)
-	require.Equal(t, conjunto.Prohibidas, positiva.Prohibidas, "%s lleva la lista de su carpeta", ficheroDeLaEval01)
-
-	t.Run("positiva", func(t *testing.T) {
-		t.Parallel()
-		juzgarLaPositivaConLaLista(t, positiva)
-	})
-
-	t.Run("detras-de-los-demas-motivos", func(t *testing.T) {
-		t.Parallel()
-		juzgarLosMotivosEnSuOrden(t, conjunto.Prohibidas)
-	})
-
-	t.Run("como-antes-del-hito", func(t *testing.T) {
-		t.Parallel()
-		juzgarComoAntesDelHito(t, conjunto)
-	})
-
-	t.Run("json", func(t *testing.T) {
-		t.Parallel()
-		codificarLasExpresionesDelResultado(t, positiva)
-	})
-}
-
-// juzgarLaPositivaConLaLista juzga la eval positiva con la lista y la sesión que
-// la pasa, con cada respuesta de la tabla delante de la cita: el resultado es el
-// de la sesión que pasa con las expresiones encontradas y sus motivos, y pasa solo
-// si no hay ninguna.
-func juzgarLaPositivaConLaLista(t *testing.T, positiva Eval) {
-	t.Helper()
-
-	encontradasEnLaTransicion := []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"}
-	motivosDeLaTransicion := []string{
-		"expresión prohibida: memoria de consultas",
-		"expresión prohibida: hallazgos",
-		"expresión prohibida: tengo todo lo necesario",
-	}
-
-	casos := []struct {
-		nombre      string
-		antes       string
-		encontradas []string
-		motivos     []string
-	}{
-		{nombre: "sin-expresiones"},
-		{
-			nombre:      "maquinaria",
-			antes:       transicionDeLaMemoria,
-			encontradas: encontradasEnLaTransicion,
-			motivos:     motivosDeLaTransicion,
-		},
-		{
-			nombre:      "otra-conversacion",
-			antes:       loDichoEnOtraConversacion,
-			encontradas: []string{"te confirmé"},
-			motivos:     []string{"expresión prohibida: te confirmé"},
-		},
-		{
-			nombre:      "anuncio",
-			antes:       elAnuncioDeLaRespuesta,
-			encontradas: []string{"ya puedo responder"},
-			motivos:     []string{"expresión prohibida: ya puedo responder"},
-		},
-		{
-			nombre:      "otras-mayusculas",
-			antes:       "SIN HALLAZGOS EN LA MEMORIA DE CONSULTAS. Ya tengo todo lo necesario para responder.",
-			encontradas: encontradasEnLaTransicion,
-			motivos:     motivosDeLaTransicion,
-		},
-		{
-			// Dos espacios, tres y un espacio sin separación U+00A0.
-			nombre:      "espacios-de-mas",
-			antes:       "Sin  hallazgos en la memoria   de\xc2\xa0consultas. Ya tengo todo lo necesario para responder.",
-			encontradas: encontradasEnLaTransicion,
-			motivos:     motivosDeLaTransicion,
-		},
-		{
-			nombre:      "enfasis-alrededor",
-			antes:       "Sin hallazgos en la **memoria de consultas**. Ya tengo todo lo necesario para responder.",
-			encontradas: encontradasEnLaTransicion,
-			motivos:     motivosDeLaTransicion,
-		},
-		{
-			nombre:      "enfasis-entre-las-palabras",
-			antes:       "Sin _hallazgos_ en la *memoria* de _consultas_. Ya tengo todo lo necesario para responder.",
-			encontradas: encontradasEnLaTransicion,
-			motivos:     motivosDeLaTransicion,
-		},
-		{nombre: "redaccion-modificada", antes: redaccionModificadaDeLaLCSP},
-	}
-
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			respuesta := respuestaConCita
-			if caso.antes != "" {
-				respuesta = caso.antes + "\n\n" + respuestaConCita
-			}
-
-			esperado := cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
-				r.Respuesta = respuesta
-				r.ExpresionesProhibidas = caso.encontradas
-				r.Motivos = caso.motivos
-				r.Pasa = len(caso.encontradas) == 0
-			})
-
-			sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = respuesta })
-
-			assert.Equal(t, esperado, Juzgar(positiva, sesion, skillDeLasSesiones), "%s con la respuesta del caso",
-				positiva.Fichero)
-		})
-	}
-}
-
-// juzgarLosMotivosEnSuOrden juzga la eval del municipio cubierto con la lista
-// dada y una sesión que resuelve el municipio sin declarar su territorio y
-// responde con la transición de la memoria: los motivos de las expresiones van
-// detrás de los del territorio ausente, que son los últimos de antes del hito, y
-// delante del del modelo que la sesión declara sin ser el pedido.
-func juzgarLosMotivosEnSuOrden(t *testing.T, lista ExpresionesProhibidas) {
-	t.Helper()
-
-	eval := evalDelMunicipioCubierto()
-	sesion := sesionDeTerritorio(transicionDeLaMemoria, resuelveLeganes(t))
-
-	antes := Juzgar(eval, sesion, skillDeTerritorio)
-	require.Equal(t, prefijados(motivoDeTerritorioAusente, elementosDelMunicipio), antes.Motivos,
-		"sin la lista, los únicos motivos son los del territorio ausente")
-
-	eval.Prohibidas = lista
-	resultado := Juzgar(eval, sesion, skillDeTerritorio)
-	resultado.Modelo, resultado.ModeloDeLaSesion = modeloInformativoDelCaso, modeloDeLasSesiones
-	resultado.exigirElModeloPedido()
-
-	assert.Equal(t, []string{"memoria de consultas", "hallazgos", "tengo todo lo necesario"},
-		resultado.ExpresionesProhibidas)
-	assert.Equal(t, slices.Concat(antes.Motivos, []string{
-		"expresión prohibida: memoria de consultas",
-		"expresión prohibida: hallazgos",
-		"expresión prohibida: tengo todo lo necesario",
-		motivoDeOtroModelo + modeloDeLasSesiones + ", y se pidió " + modeloInformativoDelCaso,
-	}), resultado.Motivos)
-	assert.False(t, resultado.Pasa)
-}
-
-// juzgarComoAntesDelHito juzga la eval de no activación del conjunto, que lleva
-// la lista de su carpeta, y la del municipio cubierto de legal-core, cuya carpeta
-// no tiene lista, con una sesión que cumple lo que esperan y con la misma sesión
-// con expresiones de las tres familias detrás de la respuesta: el resultado es el
-// mismo salvo la respuesta, sin ninguna expresión, y pasa.
-func juzgarComoAntesDelHito(t *testing.T, conjunto Conjunto) {
-	t.Helper()
-
-	noActivacion := *evalDe(t, conjunto.Evals, ficheroDeNoActivacion)
-	require.False(t, noActivacion.Activa, "%s no espera que la skill se active", ficheroDeNoActivacion)
-	require.Equal(t, conjunto.Prohibidas, noActivacion.Prohibidas, "%s lleva la lista de su carpeta",
-		ficheroDeNoActivacion)
-
-	deLegalCore, err := LeerConjunto(evalsDeLegalCore)
-	require.NoError(t, err)
-	require.Zero(t, deLegalCore.Prohibidas, "%s no tiene lista de expresiones prohibidas", evalsDeLegalCore)
-
-	municipio := *evalDe(t, deLegalCore.Evals, ficheroDelMunicipioCubierto)
-	require.True(t, municipio.Activa, "%s espera que la skill se active", ficheroDelMunicipioCubierto)
-
-	sinConsulta := *evalDe(t, conjunto.Evals, ficheroSinBinarioDeBoe)
-	require.True(t, sinConsulta.SinBinarioNiServidor, "%s es la eval sin binario ni servidor", ficheroSinBinarioDeBoe)
-	require.Equal(t, conjunto.Prohibidas, sinConsulta.Prohibidas, "%s lleva la lista de su carpeta",
-		ficheroSinBinarioDeBoe)
-
-	casos := []struct {
-		eval      Eval
-		skill     string
-		respuesta string
-		sesion    func(respuesta string) Sesion
-	}{
-		{
-			eval:      noActivacion,
-			skill:     skillDeLasSesiones,
-			respuesta: respuestaSinSkill,
-			sesion:    func(respuesta string) Sesion { return sesionTerminada(false, respuesta) },
-		},
-		{
-			eval:      municipio,
-			skill:     skillDeTerritorio,
-			respuesta: respuestaDelMunicipio,
-			sesion: func(respuesta string) Sesion {
-				return sesionDeTerritorio(respuesta, resuelveLeganes(t))
-			},
-		},
-		{
-			// La oferta es la de dos respuestas del job que la lista daba por un
-			// anuncio de la respuesta (docs/USO.md, 2026-10-04).
-			eval:      sinConsulta,
-			skill:     skillDeLasSesiones,
-			respuesta: lineaSinConsultaAlBOE + "\n\n" + ofertaDeConsultarDespues,
-			sesion: func(respuesta string) Sesion {
-				return sesionSinBinarioNiServidor(skillDeLasSesiones, respuesta)
-			},
-		},
-	}
-
-	require.Equal(t, []string{"respondo con el texto"},
-		ExtraerExpresionesProhibidas(ofertaDeConsultarDespues, conjunto.Prohibidas),
-		"la oferta de consultar después casa con una expresión de la lista")
-
-	for _, caso := range casos {
-		conExpresiones := caso.respuesta + "\n\n" + transicionDeLaMemoria + " " + loDichoEnOtraConversacion
-		require.NotEmpty(t, ExtraerExpresionesProhibidas(conExpresiones, conjunto.Prohibidas),
-			"la respuesta del caso de %s lleva expresiones de la lista", caso.eval.Fichero)
-
-		antes := Juzgar(caso.eval, caso.sesion(caso.respuesta), caso.skill)
-		require.True(t, antes.Pasa, "la sesión del caso de %s cumple lo que la eval espera", caso.eval.Fichero)
-
-		ahora := Juzgar(caso.eval, caso.sesion(conExpresiones), caso.skill)
-		assert.Nil(t, ahora.ExpresionesProhibidas, "%s no encuentra ninguna expresión", caso.eval.Fichero)
-
-		ahora.Respuesta = antes.Respuesta
-		assert.Equal(t, antes, ahora, "%s se juzga igual con expresiones de la lista en la respuesta", caso.eval.Fichero)
-	}
-}
-
-// ofertaDeConsultarDespues es lo que la respuesta de una sesión sin binario ni
-// servidor añade a su línea cuando ofrece repetir la consulta, como la escribió
-// el modelo en el job.
-const ofertaDeConsultarDespues = "Cuando kitlegal esté disponible, lo consulto y te respondo con el texto y su cita."
-
-// Las clases de lo que la lista marca en una respuesta
-// (contracts/lista-de-expresiones.md §6 de H7.4): la A, alguna expresión y
-// ninguna de la redacción no leída; la B, alguna de la redacción no leída; y
-// ninguna, sin marcar.
+// Lo que la lista de expresiones dejaba en el resultado de una sesión hasta H24,
+// escrito a mano: la clave con las expresiones que llevaba su respuesta y el
+// principio del motivo de cada una, al que seguía la expresión
+// (contracts/informe-del-job.md §6 de H24).
 const (
-	claseA    = "A"
-	claseB    = "B"
-	sinMarcar = "sin marcar"
+	claveDeLasExpresiones         = "expresiones_prohibidas"
+	principioDeExpresionProhibida = "expresión prohibida: "
 )
 
-// El origen de las frases de TestJuzgarLasClasesDeLaRespuesta que no salen de
-// un informe con su commit: las de la ejecución de la línea de base, y las
-// escritas aquí.
+// Las premisas de TestJuzgarSinLaLista sobre el calibrado de H7.4 (FR-111 de
+// H24; H7.4 FR 032): las respuestas que la lista del repositorio marca en los
+// tres informes y, de ellas, las de una eval cuyo fichero ya no está en la
+// carpeta —las de la que retiró H7.2, que el informe de H7.1 nombra y aquí se
+// nombra solo por sus dos cifras (FR-020 de H7.2)—.
 const (
-	origenDeBase    = "l\xc3\xadnea de base"
-	origenSinSesion = "-"
+	marcadasEnElCalibrado     = 56
+	marcadasDeLaEvalRetirada  = 2
+	cifrasDeLaEvalRetirada    = "19"
+	informeDeLaEvalRetirada   = informeDeH71
+	cifrasDelFicheroDeUnaEval = 2
 )
 
-// TestJuzgarLasClasesDeLaRespuesta fija el juicio de las dos clases de la
-// respuesta con la lista de expresiones prohibidas del repositorio
-// (contracts/lista-de-expresiones.md §6 de H7.4; FR-010, FR-011, FR-012, FR-022,
-// FR-031, FR-034, FR-094; SC-007): con la eval 01 del repositorio, que activa la
-// skill, y la sesión que la pasa, cada frase de la tabla, entera y delante de la
-// respuesta con su cita, se marca en su clase y la eval no pasa: las de la
-// bitácora que cuentan la comprobación o anuncian lo que el agente tiene o va a
-// hacer, en la A; las que describen una redacción que ninguna orden devolvió, en
-// la B; y las palabras de las formas fijas fuera de ellas, en la A. Sin marcar, y
-// la eval pasa: la respuesta hecha de lo que enseña la skill, respuestaDeLaSkill,
-// la que dice que no hay avisos y las dos que dicen que la redacción anterior no se
-// ha leído.
-func TestJuzgarLasClasesDeLaRespuesta(t *testing.T) {
+// marcadasDeCadaInforme son los tres informes del calibrado de H7.4, en su
+// orden, con las respuestas que la lista del repositorio marca en cada uno. Son
+// lo que queda de ese calibrado: su reparto por eval y por familia ya no se
+// exige (FR-071 de H24).
+var marcadasDeCadaInforme = []struct {
+	informe  string
+	marcadas int
+}{
+	{informe: informeDeH71, marcadas: 36},
+	{informe: informeDeH72, marcadas: 11},
+	{informe: informeDeH73, marcadas: 9},
+}
+
+// TestJuzgarSinLaLista fija que la lista de expresiones ya no juzga ninguna
+// respuesta (contracts/informe-del-job.md §6 y §9 de H24; FR-070, FR-111;
+// SC-011), con las evals que LeerConjunto lee de la carpeta de boe-legislacion y
+// la lista de esa carpeta, que sigue en ella para la prosa de la skill:
+//
+//   - la respuesta de la eval sin binario ni servidor que ofrece repetir la
+//     consulta, la de las dos sesiones del job que la lista daba por un anuncio
+//     (docs/USO.md, 2026-10-04), en una sesión que cumple todo lo demás de su
+//     eval, pasa;
+//   - cada respuesta que la lista marca en los tres informes del calibrado de
+//     H7.4 —36, 11 y 9, exigidas como premisa—, juzgada con su eval y una sesión
+//     terminada hecha de su entrada, deja un resultado sin la clave de las
+//     expresiones y sin ningún motivo de una: 0 sesiones marcadas por la lista.
+//
+// No se busca la expresión dentro de los motivos: graph check es una expresión
+// de la lista y también el texto de un comando ausente.
+func TestJuzgarSinLaLista(t *testing.T) {
 	t.Parallel()
 
 	conjunto, err := LeerConjunto(evalsDelRepositorio)
 	require.NoError(t, err)
 
 	lista := listaDelRepositorio(t, conjunto)
-	positiva := *evalDe(t, conjunto.Evals, ficheroDeLaEval01)
-	require.True(t, positiva.Activa, "%s espera que la skill se active", ficheroDeLaEval01)
-	require.Equal(t, lista, positiva.Prohibidas, "%s lleva la lista de su carpeta", ficheroDeLaEval01)
 
-	// Cada frase va entera, como la escribió la sesión. Dos llevan una palabra que
-	// el diccionario inglés de misspell toma por una errata, y se escriben partidas
-	// en dos literales que Go junta: «pro» + «cede» y «ext» + «racto».
-	frases := []struct {
-		origen, sesion, clase, frase string
-	}{
-		{"196ee05", "01-02", claseA, "No hay avisos de vigencia sobre este bloque ni cambios de redacci\xc3\xb3n " +
-			"respecto a una consulta anterior."},
-		{"196ee05", "05-02", claseA, "No se encontraron avisos de vigencia sobre este bloque, y no consta que su " +
-			"redacci\xc3\xb3n haya cambiado desde una consulta anterior."},
-		{"196ee05", "13-02", claseA, "Este art\xc3\xadculo ha sido modificado en varias ocasiones (\xc3\xbaltima " +
-			"modificaci\xc3\xb3n por el Real Decreto Legislativo 7/2015, con vigencia desde el 31/10/2015); no " +
-			"presenta avisos de vigencia adicionales ni indicios de redacci\xc3\xb3n posterior a la consultada."},
-		{"196ee05", "13-03", claseA, "No se ha detectado ning\xc3\xban cambio de redacci\xc3\xb3n respecto a una " +
-			"lectura anterior de este bloque."},
-		{"196ee05", "14-01", claseA, "Article 59 already answers the question fully, so I don't need art. 60. " +
-			"I have enough to respond now."},
-		{"196ee05", "14-02", claseA, "Con el art\xc3\xadculo 59 tengo suficiente para responder a la pregunta " +
-			"completa; no necesito el art\xc3\xadculo 60 para esto."},
-		{"196ee05", "14-03", claseA, "El art\xc3\xadculo 59 responde directamente a la pregunta. La " +
-			"comprobaci\xc3\xb3n de redacci\xc3\xb3n termin\xc3\xb3 sin hallazgos, as\xc3\xad que no hay cambios que " +
-			"se\xc3\xb1alar."},
-		{"196ee05", "19-01", claseB, "El art\xc3\xadculo cambi\xc3\xb3 porque el Real Decreto-ley 3/2020, de 4 de " +
-			"febrero, modific\xc3\xb3 el art. 118 de la LCSP (entrada en vigor el 20180206... correcci\xc3\xb3n: el " +
-			"20200206). Esto elev\xc3\xb3 el umbral de los contratos menores de obras de 40.000 \xe2\x82\xac (ya " +
-			"estaba as\xc3\xad) pero, sobre todo, cambi\xc3\xb3 el apartado 2: ya no exige tres informes separados, " +
-			"sino que ahora basta con un \xc3\xbanico informe del \xc3\xb3rgano de contrataci\xc3\xb3n."},
-		{"196ee05", "19-02", claseB, "Esta redacci\xc3\xb3n pro" + "cede de la modificaci\xc3\xb3n del Real " +
-			"Decreto-ley 3/2020, de 4 de febrero (disposici\xc3\xb3n final 1.1) [BOE-A-2020-1651], vigente desde el 6 " +
-			"de febrero de 2020, y es distinta de la que se consult\xc3\xb3 antes (vigente hasta el 9 de marzo de " +
-			"2018): esa versi\xc3\xb3n anterior no distingu\xc3\xada umbrales entre obras y suministros/servicios " +
-			"del mismo modo ni inclu\xc3\xada la excepci\xc3\xb3n del apartado 5 sobre anticipos de caja fija."},
-		{"6ab3add", "03-03", claseA, "Sin cambios de redacci\xc3\xb3n respecto a lecturas anteriores. " +
-			"Aqu\xc3\xad est\xc3\xa1 la respuesta."},
-		{"6ab3add", "13-03", claseA, "Sin cambios desde una lectura anterior. Respondo."},
-		{"6ab3add", "19-01", claseB, "Esta es la redacci\xc3\xb3n vigente hoy; la versi\xc3\xb3n anterior, " +
-			"aplicable hasta el 5 de febrero de 2020, no inclu\xc3\xada la excepci\xc3\xb3n del apartado 5 ni la " +
-			"obligaci\xc3\xb3n de motivar que no se fracciona el objeto para eludir el umbral, entre otras " +
-			"diferencias de redacci\xc3\xb3n."},
-		{"eb6b4c8", "14-01", claseA, "Este art\xc3\xadculo ya da la respuesta completa. Sin avisos de vigencia ni " +
-			"cambios desde una lectura anterior."},
-		{"eb6b4c8", "19-01", claseB, "Este art\xc3\xadculo cambi\xc3\xb3 respecto a su redacci\xc3\xb3n original de " +
-			"2017: hasta el 5 de febrero de 2020, el apartado 2 exig\xc3\xada justificar solo la necesidad del " +
-			"contrato (sin el requisito de no fraccionamiento) y no exist\xc3\xada la excepci\xc3\xb3n del apartado " +
-			"5 para anticipos de caja fija; ambos elementos los introdujo el Real Decreto-ley 3/2020."},
-		{"eb6b4c8", "19-02", claseB, "Esta redacci\xc3\xb3n proviene de la modificaci\xc3\xb3n introducida por el " +
-			"Real Decreto-ley 3/2020, de 4 de febrero, vigente desde el 6 de febrero de 2020 \xe2\x80\x94 distinta " +
-			"de la versi\xc3\xb3n (vigente hasta el 9 de marzo de 2018) que pudiste haber consultado anteriormente. " +
-			"El cambio m\xc3\xa1s relevante respecto a versiones anteriores es que ya no exige un informe del " +
-			"\"\xc3\xb3rgano de contrataci\xc3\xb3n\" motivando la elecci\xc3\xb3n del contratista entre varios " +
-			"presupuestos (esa exigencia de comparar ofertas se elimin\xc3\xb3); ahora el foco est\xc3\xa1 en " +
-			"justificar la necesidad y la no alteraci\xc3\xb3n del objeto para evitar los umbrales."},
-		{"H7.1", "19-01", claseB, "Es decir, lo que se consult\xc3\xb3 antes era la versi\xc3\xb3n previa a su " +
-			"entrada en vigor, y lo que ahora se cita es la versi\xc3\xb3n ya en vigor \xe2\x80\x94 el contenido " +
-			"normativo del art\xc3\xadculo 21 no ha cambiado por una reforma posterior, simplemente la versi\xc3\xb3n " +
-			"indexada pas\xc3\xb3 a ser la vigente desde la entrada en vigor de la ley."},
-		{"H7.2", "19-01", claseB, "Si lo que ten\xc3\xadas en mente era la redacci\xc3\xb3n original de 2018 (por " +
-			"ejemplo, sin el requisito espec\xc3\xadfico de motivar la no alteraci\xc3\xb3n del objeto contra el " +
-			"fraccionamiento en los t\xc3\xa9rminos actuales, y con otro r\xc3\xa9gimen sobre la " +
-			"publicaci\xc3\xb3n/aprobaci\xc3\xb3n previa del gasto), esa versi\xc3\xb3n ya no est\xc3\xa1 vigente."},
-		{"H7.2", "19-02", claseB, "\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: la redacci\xc3\xb3n con fecha de " +
-			"vigencia 20180309, que es la que probablemente se consult\xc3\xb3 en aquella ocasi\xc3\xb3n anterior, ha " +
-			"sido sustituida por la de fecha de vigencia 20200206, que es la que se cita aqu\xc3\xad. El cambio " +
-			"relevante fue que se elimin\xc3\xb3 la exigencia de un informe adicional del \xc3\xb3rgano de " +
-			"contrataci\xc3\xb3n acreditando que el contratista no hab\xc3\xada suscrito otros contratos menores por " +
-			"importe superior, individual o en conjunto, al umbral \xe2\x80\x94ese control de acumulaci\xc3\xb3n " +
-			"desapareci\xc3\xb3 de la ley en esta redacci\xc3\xb3n; ahora el informe del apartado 2 solo debe " +
-			"justificar la necesidad y la no alteraci\xc3\xb3n del objeto para eludir umbrales."},
-		{origenDeBase, "07-03", claseA, "La comprobaci\xc3\xb3n de redacci\xc3\xb3n no detecta cambios desde una " +
-			"lectura anterior."},
-		{origenDeBase, "01-03", claseA, "Es un ext" + "racto fiel del texto consolidado. Aqu\xc3\xad va apartado por " +
-			"apartado."},
-		{origenDeBase, "04-01", claseA, "Respondo de memoria, sin haber consultado el texto consolidado del BOE."},
-		{origenDeBase, "19-02", sinMarcar, "No puedo decirte qu\xc3\xa9 conten\xc3\xada la redacci\xc3\xb3n anterior."},
-		{origenSinSesion, "skill", sinMarcar, respuestaDeLaSkill(t, string(contenidoDelFichero(t, skillDelRepositorio)))},
-		{origenSinSesion, "sin-avisos", sinMarcar, "No hay avisos de vigencia sobre este bloque."},
-		{origenSinSesion, "fr-022", sinMarcar, "Cito la redacci\xc3\xb3n vigente; la que hab\xc3\xada antes no la he " +
-			"le\xc3\xaddo, as\xc3\xad que no puedo decir qu\xc3\xa9 ha cambiado."},
-		{origenSinSesion, "la-linea-fuera-de-su-forma", claseA, "Esta redacci\xc3\xb3n es distinta de la que se " +
-			"consult\xc3\xb3 antes."},
-		{origenSinSesion, "las-dos-fuera-de-su-forma", claseA, "La redacci\xc3\xb3n es la misma que la que se " +
-			"consult\xc3\xb3 antes y no ha cambiado desde una consulta anterior."},
-	}
+	t.Run("sin-binario-ni-servidor", func(t *testing.T) {
+		t.Parallel()
+		juzgarLaOfertaSinLaLista(t, conjunto.Evals, lista)
+	})
 
-	for _, caso := range frases {
-		t.Run(caso.origen+" "+caso.sesion, func(t *testing.T) {
-			t.Parallel()
-
-			respuesta := caso.frase + "\n\n" + respuestaConCita
-			sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = respuesta })
-			resultado := Juzgar(positiva, sesion, skillDeLasSesiones)
-
-			assert.Equal(t, caso.clase, claseDeLoMarcado(lista, resultado.ExpresionesProhibidas),
-				"la frase de %s %s, con las expresiones %v", caso.origen, caso.sesion, resultado.ExpresionesProhibidas)
-			assert.Equal(t, caso.clase == sinMarcar, resultado.Pasa,
-				"%s pasa solo con la respuesta sin marcar: %v", ficheroDeLaEval01, resultado.Motivos)
-		})
-	}
+	t.Run("calibrado", func(t *testing.T) {
+		t.Parallel()
+		juzgarElCalibradoSinLaLista(t, conjunto.Evals, lista)
+	})
 }
 
-// claseDeLoMarcado es la clase de las expresiones que la lista encuentra en una
-// respuesta: la B si alguna es de la redacción no leída; la A si hay alguna y
-// ninguna lo es; y sin marcar si no hay ninguna.
-func claseDeLoMarcado(lista ExpresionesProhibidas, encontradas []string) string {
-	switch {
-	case slices.ContainsFunc(encontradas, lista.esDeLaClaseB):
-		return claseB
-	case len(encontradas) > 0:
-		return claseA
-	default:
-		return sinMarcar
-	}
-}
-
-// codificarLasExpresionesDelResultado codifica, como lo codifica
-// EscribirInforme, el resultado de la eval positiva con la sesión que la pasa, sin
-// expresiones y con la transición de la memoria: expresiones_prohibidas va detrás
-// de territorio_ausente, una lista vacía, nunca null, si no hay ninguna.
-func codificarLasExpresionesDelResultado(t *testing.T, positiva Eval) {
+// juzgarLaOfertaSinLaLista juzga la eval sin binario ni servidor de la carpeta
+// con la sesión que la cumple y la respuesta que, detrás de su línea, ofrece
+// repetir la consulta: la oferta casa con una expresión de la lista, y la sesión
+// pasa sin nada de la lista en su resultado.
+func juzgarLaOfertaSinLaLista(t *testing.T, evals []Eval, lista ExpresionesProhibidas) {
 	t.Helper()
 
-	casos := []struct {
-		respuesta string
-		clave     string
-	}{
-		{respuesta: respuestaConCita, clave: `"territorio_ausente":[],"expresiones_prohibidas":[],`},
-		{
-			respuesta: transicionDeLaMemoria + "\n\n" + respuestaConCita,
-			clave: `"territorio_ausente":[],` +
-				`"expresiones_prohibidas":["memoria de consultas","hallazgos","tengo todo lo necesario"],`,
-		},
-	}
+	sinConsulta := *evalDe(t, evals, ficheroSinBinarioDeBoe)
+	require.True(t, sinConsulta.SinBinarioNiServidor, "%s es la eval sin binario ni servidor", ficheroSinBinarioDeBoe)
+	require.True(t, sinConsulta.Activa, "%s espera que la skill se active", ficheroSinBinarioDeBoe)
+	require.Equal(t, []string{"respondo con el texto"}, ExtraerExpresionesProhibidas(ofertaDeConsultarDespues, lista),
+		"la oferta de consultar después casa con una expresión de la lista")
 
-	for _, caso := range casos {
-		sesion := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Respuesta = caso.respuesta })
+	respuesta := lineaSinConsultaAlBOE + "\n\n" + ofertaDeConsultarDespues
+	resultado := Juzgar(sinConsulta, sesionSinBinarioNiServidor(skillDeLasSesiones, respuesta), skillDeLasSesiones)
 
-		codificado, err := json.Marshal(Juzgar(positiva, sesion, skillDeLasSesiones))
-		require.NoError(t, err)
-		assert.Contains(t, string(codificado), caso.clave)
-	}
+	assert.True(t, resultado.Pasa, "%s pasa con la oferta de consultar después: %v", ficheroSinBinarioDeBoe,
+		resultado.Motivos)
+	assert.Empty(t, deLaLista(t, resultado), "%s no lleva nada de la lista en su resultado", ficheroSinBinarioDeBoe)
 }
+
+// respuestaDelCalibrado es una respuesta de un informe del calibrado de H7.4 que
+// la lista del repositorio marca, con el informe del que sale y la eval con la
+// que se juzga.
+type respuestaDelCalibrado struct {
+	informe string
+	entrada entradaDelInforme
+	eval    Eval
+
+	// enLaCarpeta dice si el fichero de su eval está en la carpeta de evals.
+	enLaCarpeta bool
+}
+
+// juzgarElCalibradoSinLaLista juzga cada respuesta del calibrado de H7.4
+// (respuestasDelCalibrado) con una sesión terminada hecha de su entrada —su
+// respuesta tal cual y la skill activada si la entrada lo dice, sin
+// invocaciones—: lo que falte de lo que su eval espera da sus motivos de
+// siempre, y ningún resultado lleva nada de la lista.
+func juzgarElCalibradoSinLaLista(t *testing.T, evals []Eval, lista ExpresionesProhibidas) {
+	t.Helper()
+
+	var marcadasPorLaLista []string
+
+	for _, caso := range respuestasDelCalibrado(t, evals, lista) {
+		sesion := sesionTerminada(caso.entrada.Activada, caso.entrada.Respuesta)
+
+		for _, rastro := range deLaLista(t, Juzgar(caso.eval, sesion, skillDeLasSesiones)) {
+			marcadasPorLaLista = append(marcadasPorLaLista, caso.informe+", "+caso.entrada.Sesion+": "+rastro)
+		}
+	}
+
+	assert.Empty(t, marcadasPorLaLista, "sesiones del calibrado de H7.4 que Juzgar marca por la lista de %s:\n%s",
+		evalsDelRepositorio, strings.Join(marcadasPorLaLista, "\n"))
+}
+
+// respuestasDelCalibrado son las respuestas de los tres informes del calibrado
+// de H7.4 que marca la lista, aplicada con ExtraerExpresionesProhibidas a la
+// respuesta de cada entrada, en el orden de los informes y de sus entradas, con
+// sus premisas: son las de marcadasDeCadaInforme, 56 en total; la eval de todas
+// espera que la skill se active, porque la lista solo juzgaba esas; y el fichero
+// de su eval está en la carpeta en todas menos en dos, las del informe de H7.1 y
+// de la eval que retiró H7.2. Esas dos se juzgan con una eval que solo declara
+// lo que su entrada dice de ella, su fichero y que activa la skill; las demás,
+// con la de la carpeta.
+func respuestasDelCalibrado(t *testing.T, evals []Eval, lista ExpresionesProhibidas) []respuestaDelCalibrado {
+	t.Helper()
+
+	var respuestas []respuestaDelCalibrado
+
+	for _, calibrado := range marcadasDeCadaInforme {
+		delInforme := 0
+
+		for _, entrada := range entradasDelInforme(t, calibrado.informe) {
+			if len(ExtraerExpresionesProhibidas(entrada.Respuesta, lista)) == 0 {
+				continue
+			}
+
+			delInforme++
+
+			respuestas = append(respuestas, respuestaDelCalibradoDe(t, evals, calibrado.informe, entrada))
+		}
+
+		require.Equal(t, calibrado.marcadas, delInforme, "respuestas del informe %s que marca la lista de %s",
+			calibrado.informe, evalsDelRepositorio)
+	}
+
+	require.Len(t, respuestas, marcadasEnElCalibrado, "respuestas de los tres informes que marca la lista de %s",
+		evalsDelRepositorio)
+
+	fueraDeLaCarpeta := slices.DeleteFunc(slices.Clone(respuestas), func(respuesta respuestaDelCalibrado) bool {
+		return respuesta.enLaCarpeta
+	})
+	require.Len(t, fueraDeLaCarpeta, marcadasDeLaEvalRetirada, "respuestas marcadas cuya eval no está en %s",
+		evalsDelRepositorio)
+
+	for _, respuesta := range fueraDeLaCarpeta {
+		require.Equal(t, informeDeLaEvalRetirada, respuesta.informe, "el informe de la eval retirada")
+		require.Equal(t, cifrasDeLaEvalRetirada, respuesta.entrada.Eval[:cifrasDelFicheroDeUnaEval],
+			"las dos cifras de la eval retirada")
+	}
+
+	return respuestas
+}
+
+// respuestaDelCalibradoDe es la respuesta marcada de la entrada del informe con
+// su eval: la de la carpeta con ese fichero, como la deja LeerConjunto, o, si no
+// está, una que solo declara lo que la entrada dice de ella. La entrada dice que
+// su eval espera que la skill se active, y su fichero empieza por sus dos
+// cifras.
+func respuestaDelCalibradoDe(t *testing.T, evals []Eval, informe string, entrada entradaDelInforme) respuestaDelCalibrado {
+	t.Helper()
+
+	require.True(t, entrada.Activa, "la eval de %s, del informe %s, espera que la skill se active", entrada.Sesion,
+		informe)
+	require.Regexp(t, `^[0-9]{2}-`, entrada.Eval, "el fichero de la eval de %s, del informe %s, empieza por sus dos "+
+		"cifras", entrada.Sesion, informe)
+
+	respuesta := respuestaDelCalibrado{
+		informe: informe,
+		entrada: entrada,
+		eval:    Eval{Fichero: entrada.Eval, Activa: entrada.Activa},
+	}
+
+	posicion := slices.IndexFunc(evals, func(eval Eval) bool { return eval.Fichero == entrada.Eval })
+	if posicion >= 0 {
+		respuesta.eval, respuesta.enLaCarpeta = evals[posicion], true
+	}
+
+	return respuesta
+}
+
+// deLaLista es lo que el resultado lleva de la lista de expresiones, una línea
+// por cosa: la clave de las expresiones, si está en el resultado codificado como
+// lo codifica EscribirInforme, y cada motivo que empieza como el de una
+// expresión. Nil si no lleva nada.
+func deLaLista(t *testing.T, resultado ResultadoDeEval) []string {
+	t.Helper()
+
+	codificado, err := json.Marshal(resultado)
+	require.NoError(t, err)
+
+	var claves map[string]jsontext.Value
+	require.NoError(t, json.Unmarshal(codificado, &claves))
+
+	var rastros []string
+
+	if valor, conLaClave := claves[claveDeLasExpresiones]; conLaClave {
+		rastros = append(rastros, "la clave "+claveDeLasExpresiones+", con "+string(valor))
+	}
+
+	for _, motivo := range resultado.Motivos {
+		if strings.HasPrefix(motivo, principioDeExpresionProhibida) {
+			rastros = append(rastros, "el motivo «"+motivo+"»")
+		}
+	}
+
+	return rastros
+}
+
+// ofertaDeConsultarDespues es lo que la respuesta de una sesión sin binario ni
+// servidor añade a su línea cuando ofrece repetir la consulta, como la escribió
+// el modelo en el job.
+const ofertaDeConsultarDespues = "Cuando kitlegal esté disponible, lo consulto y te respondo con el texto y su cita."
 
 // prefijados son los textos con el principio dado delante de cada uno.
 func prefijados(principio string, textos []string) []string {
@@ -2337,26 +2138,23 @@ func losDosBloquesEnDosOrdenes(t *testing.T) juicio {
 	}
 }
 
-// redaccionesDetrasDelHallazgo es el juicio de la eval de los dos bloques con una
-// lista que prohíbe «ya puedo responder» y la sesión de conLasLineas cuya
-// respuesta lo anuncia sin ninguna línea: los motivos van en su orden, el del
-// hallazgo ausente, el de cada redacción ausente, en el orden de la eval, y el de
-// la expresión.
+// redaccionesDetrasDelHallazgo es el juicio de la eval de los dos bloques con la
+// sesión de conLasLineas cuya respuesta anuncia que ya puede responder, sin
+// ninguna línea: los motivos van en su orden, el del hallazgo ausente y el de
+// cada redacción ausente, en el orden de la eval, y ninguno por el anuncio, que
+// lleva una expresión de la lista de boe-legislacion.
 func redaccionesDetrasDelHallazgo(t *testing.T) juicio {
 	t.Helper()
 
 	caso := conLasLineas(t, []string{elAnuncioDeLaRespuesta}, nil, nil)
-	caso.eval.Prohibidas = ExpresionesProhibidas{Anuncio: []string{"ya puedo responder"}}
 	caso.esperado = cambiado(caso.esperado, func(r *ResultadoDeEval) {
 		r.HallazgosEncontrados = nil
 		r.HallazgosAusentes = []string{versionObsoleta}
 		r.RedaccionesAusentes = []string{redaccionDelArticulo118, redaccionDeLaDA3}
-		r.ExpresionesProhibidas = []string{"ya puedo responder"}
 		r.Motivos = []string{
 			motivoDeVersionObsoleta,
 			principioDeRedaccionAusente + redaccionDelArticulo118,
 			principioDeRedaccionAusente + redaccionDeLaDA3,
-			"expresi\xc3\xb3n prohibida: ya puedo responder",
 		}
 		r.Pasa = false
 	})
@@ -3610,9 +3408,10 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 // (contracts/evals-en-dos-modos.md §4 de H21; FR-042, FR-047): modo, detrás de
 // modelo_de_la_sesion, con el texto del modo y vacío en una eval sin binario ni
 // servidor; linea_sin_consulta y citas_sin_consulta, detrás de
-// expresiones_prohibidas, la segunda una lista vacía, nunca null, en las evals
-// de modo; y llamada en cada elemento de invocaciones, detrás de conexiones,
-// verdadero solo en las que son llamadas a una herramienta.
+// territorio_ausente desde H24, que quita expresiones_prohibidas de entre ellas
+// (contracts/informe-del-job.md §6 de H24), la segunda una lista vacía, nunca
+// null, en las evals de modo; y llamada en cada elemento de invocaciones, detrás
+// de conexiones, verdadero solo en las que son llamadas a una herramienta.
 func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 	t.Parallel()
 
@@ -3628,7 +3427,7 @@ func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 			resultado: Juzgar(evalDelArticulo21(), sesionQuePasa(t), skillDeLasSesiones),
 			claves: []string{
 				`"modelo_de_la_sesion":"","modo":"orden","decide":false,`,
-				`"expresiones_prohibidas":[],"linea_sin_consulta":false,"citas_sin_consulta":[],"invocaciones":[` +
+				`"territorio_ausente":[],"linea_sin_consulta":false,"citas_sin_consulta":[],"invocaciones":[` +
 					`{"orden":"boe articulo BOE-A-2015-10565 a21 --json","codigo":0,"conexiones":[],"llamada":false}],`,
 			},
 		},
@@ -3649,7 +3448,7 @@ func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 				skillDeLasSesiones),
 			claves: []string{
 				`"modelo_de_la_sesion":"","modo":"","decide":false,`,
-				`"expresiones_prohibidas":[],"linea_sin_consulta":true,` +
+				`"territorio_ausente":[],"linea_sin_consulta":true,` +
 					`"citas_sin_consulta":["BOE-A-2015-10565 a53"],"invocaciones":[],`,
 			},
 		},

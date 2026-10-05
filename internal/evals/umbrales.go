@@ -6,37 +6,25 @@ import (
 	"strings"
 )
 
-// Las proporciones de las respuestas medidas del modelo que decide que admite
-// cada umbral de sus respuestas: el 5 % de H7.2 SC 001 con alguna expresión
-// prohibida, y ninguna sin la skill activada ni con una expresión de
-// redaccion_no_leida (FR-040 a FR-042 de H7.4). Van con la lista, en el paquete,
-// y no en la definición del job, que solo da el objetivo de duración (research
-// D5 de H7.3; FR-002, FR-004 de H7.3).
-const (
-	umbralDeExpresionesProhibidas         = 0.05
-	umbralDeRespuestasSinActivar          = 0
-	umbralDeRespuestasConRedaccionNoLeida = 0
-)
+// La proporción de las respuestas medidas del modelo que decide que admite el
+// umbral de las que no activaron la skill: ninguna (FR-041 de H7.4). Va en el
+// paquete, y no en la definición del job, que solo da el objetivo de duración
+// (research D5 de H7.3; FR-002, FR-004 de H7.3).
+const umbralDeRespuestasSinActivar = 0
 
 // Lo que lleva cada umbral del informe (contrato informe-del-job §1 de H7.3;
-// contracts/informe-del-job.md §2 de H7.4; data-model §1;
+// contracts/informe-del-job.md §2 de H7.4 y de H24; data-model §1;
 // contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10 de H21). Cada uno
-// se mide sobre las sesiones de un solo modo: los de las respuestas de un modelo
-// se nombran con lo que miden seguido del modelo y del modo, y el de la
-// duración, con el modo; su descripción los nombra, primero el modelo y después
-// el modo; y la única comparación es «<=», que informe.md escribe «≤».
+// se mide sobre las sesiones de un solo modo: el de las respuestas de un modelo
+// se nombra con lo que mide seguido del modelo y del modo, y el de la duración,
+// con el modo; su descripción los nombra, primero el modelo y después el modo; y
+// la única comparación es «<=», que informe.md escribe «≤».
 const (
-	prefijoDelUmbralDeExpresiones  = "expresiones_prohibidas:"
 	prefijoDelUmbralSinActivar     = "sin_activar:"
-	prefijoDelUmbralDeRedaccion    = "redaccion_no_leida:"
 	prefijoDelUmbralDeLaDuracion   = "duracion_de_las_sesiones:"
 	separadorDelModoDelUmbral      = ":"
-	descripcionDelUmbralDeUnModelo = "Respuestas de %s en el modo %s con alguna expresión prohibida, sobre sus " +
-		"respuestas medidas en las evals que activan la skill"
 	descripcionDelUmbralSinActivar = "Respuestas de %s en el modo %s sin la skill activada, sobre sus respuestas " +
 		"medidas en las evals que la activan"
-	descripcionDelUmbralDeRedaccion = "Respuestas de %s en el modo %s con alguna expresión de redaccion_no_leida " +
-		"(una redacción que ninguna orden devolvió), sobre sus respuestas medidas en las evals que activan la skill"
 	descripcionDelUmbralDeLaDuracion = "Segundos de la tanda del modo %s, desde que se prepara su primera sesión " +
 		"hasta que termina la última"
 
@@ -59,8 +47,7 @@ const (
 // umbrales en informe.json.
 type Umbral struct {
 	// Nombre es lo que cita el plan en evals:<skill>:<nombre>, único en el
-	// informe: expresiones_prohibidas:<modelo>:<modo>, sin_activar:<modelo>:<modo>,
-	// redaccion_no_leida:<modelo>:<modo> o duracion_de_las_sesiones:<modo>, con
+	// informe: sin_activar:<modelo>:<modo> o duracion_de_las_sesiones:<modo>, con
 	// <modo> orden u herramienta (data-model §10 de H21).
 	Nombre string `json:"nombre"`
 
@@ -68,9 +55,8 @@ type Umbral struct {
 	// respuestas.
 	Descripcion string `json:"descripcion"`
 
-	// Medida es lo medido en las sesiones de su modo: las respuestas con alguna
-	// expresión prohibida, sin la skill activada o con alguna expresión de
-	// redaccion_no_leida, o los segundos de su tanda.
+	// Medida es lo medido en las sesiones de su modo: las respuestas sin la
+	// skill activada, o los segundos de su tanda.
 	Medida float64 `json:"medida"`
 
 	// Total, solo en los de las respuestas, son las respuestas medidas del
@@ -95,41 +81,31 @@ type Umbral struct {
 
 // umbralesDelInforme son los umbrales del informe, sin ningún caso por skill
 // (research D5 de H7.3 y D14 de H7.4; FR-002, FR-004 a FR-006, FR-051 de H7.3;
-// FR-040 a FR-048 de H7.4), por cada modelo del recuento —que solo existe si la
-// skill tiene lista—, en su orden, el que decide delante de los informativos,
-// todos con sus respuestas medidas como total: el de las expresiones
-// prohibidas, con las respuestas con alguna como medida, que decide solo en el
-// modelo que decide; y, detrás de él y solo en el que decide, el de las
-// respuestas sin la skill activada y el de las que llevan alguna expresión de
-// redaccion_no_leida, que deciden con 0. Detrás de todos, los de la duración de
-// las sesiones si el job da un objetivo mayor que 0, sin total y decidiendo.
-// Nil, [] en informe.json, si no hay ninguno.
+// FR-040 a FR-048 de H7.4): por cada elemento del recuento —que solo existe si
+// la skill tiene juez (research D13 de H24)—, el de las respuestas del modelo
+// que decide sin la skill activada, con sus respuestas medidas como total, que
+// decide con 0. Detrás de todos, los de la duración de las sesiones si el job
+// da un objetivo mayor que 0, sin total y decidiendo. Nil, [] en informe.json,
+// si no hay ninguno.
 //
 // Desde H21 (contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10;
 // research.md D19; FR-043 a FR-045), cada umbral es de un modo del plan y lo
-// nombra: el recuento lleva un elemento por modelo y modo, los del modo orden
-// delante, así que los de las respuestas de un modo van seguidos, y detrás de
-// todos, el de la duración de cada modo, en su orden, que mide los segundos de
-// la tanda de ese modo frente al mismo objetivo. Ninguno suma las medidas de dos
-// modos ni cuenta las sesiones o la tanda de las evals sin binario ni servidor.
-// Con el plan del job, los dos modos, y la lista y el objetivo de
-// boe-legislacion son diez, ocho de ellos decidiendo.
+// nombra: el recuento lleva un elemento por modo, el del modo orden delante, y
+// detrás de los de las respuestas, el de la duración de cada modo, en su orden,
+// que mide los segundos de la tanda de ese modo frente al mismo objetivo.
+// Ninguno suma las medidas de dos modos ni cuenta las sesiones o la tanda de las
+// evals sin binario ni servidor.
+//
+// Desde H24 (contracts/informe-del-job.md §2 y §6 de H24; FR-034), ninguno mide
+// las expresiones de la lista: salen expresiones_prohibidas:<modelo>:<modo>, de
+// todos los modelos, y redaccion_no_leida:<modelo>:<modo>. Con el plan del job,
+// los dos modos, y el juez y el objetivo de boe-legislacion son cuatro, y todos
+// deciden.
 func umbralesDelInforme(e InformeAEscribir, recuento []recuentoDeRespuestas) []Umbral {
 	var umbrales []Umbral
 
-	for _, delModelo := range recuento {
-		decide := delModelo.modelo == e.ModeloQueDecide
-
-		umbrales = append(umbrales, umbralDeRespuestas(prefijoDelUmbralDeExpresiones, descripcionDelUmbralDeUnModelo,
-			delModelo, delModelo.conAlguna, umbralDeExpresionesProhibidas, decide))
-
-		if decide {
-			umbrales = append(umbrales,
-				umbralDeRespuestas(prefijoDelUmbralSinActivar, descripcionDelUmbralSinActivar,
-					delModelo, delModelo.sinActivar, umbralDeRespuestasSinActivar, true),
-				umbralDeRespuestas(prefijoDelUmbralDeRedaccion, descripcionDelUmbralDeRedaccion,
-					delModelo, delModelo.conRedaccionNoLeida, umbralDeRespuestasConRedaccionNoLeida, true))
-		}
+	for _, delModo := range recuento {
+		umbrales = append(umbrales, umbralDeSinActivar(delModo))
 	}
 
 	if e.ObjetivoDeDuracion > 0 {
@@ -147,22 +123,20 @@ func umbralesDelInforme(e InformeAEscribir, recuento []recuentoDeRespuestas) []U
 	return umbrales
 }
 
-// umbralDeRespuestas es el umbral de las respuestas medidas de un modelo en un
-// modo con el prefijo y la descripción dados, la medida dada sobre ellas y el
-// umbral dado, ya comparado: se nombra con el prefijo seguido del modelo y del
-// modo, y su descripción los nombra.
-func umbralDeRespuestas(
-	prefijo, descripcion string, delModelo recuentoDeRespuestas, medida int, umbral float64, decide bool,
-) Umbral {
-	total := delModelo.respuestas
+// umbralDeSinActivar es el umbral de las respuestas sin la skill activada del
+// recuento de un modelo en un modo, sobre sus respuestas medidas, ya comparado:
+// se nombra con su prefijo seguido del modelo y del modo, su descripción los
+// nombra, y decide.
+func umbralDeSinActivar(delModo recuentoDeRespuestas) Umbral {
+	total := delModo.respuestas
 
 	return compararUmbral(Umbral{
-		Nombre:      prefijo + delModelo.modelo + separadorDelModoDelUmbral + string(delModelo.modo),
-		Descripcion: fmt.Sprintf(descripcion, delModelo.modelo, delModelo.modo),
-		Medida:      float64(medida),
+		Nombre:      prefijoDelUmbralSinActivar + delModo.modelo + separadorDelModoDelUmbral + string(delModo.modo),
+		Descripcion: fmt.Sprintf(descripcionDelUmbralSinActivar, delModo.modelo, delModo.modo),
+		Medida:      float64(delModo.sinActivar),
 		Total:       &total,
-		Umbral:      umbral,
-		Decide:      decide,
+		Umbral:      umbralDeRespuestasSinActivar,
+		Decide:      true,
 	})
 }
 

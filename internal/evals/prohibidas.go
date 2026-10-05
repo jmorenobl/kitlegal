@@ -72,7 +72,8 @@ var piezaDeFormaFija = regexp.MustCompile(`[ \t]+|<cita>|<fecha>|[^ \t<]+|<`)
 // redacción no leída, de la clase B. Se lee de
 // evals/<skill>/expresiones-prohibidas.yaml, validada contra
 // schemas/expresiones-prohibidas.yaml.json, que exige las cinco claves; su valor
-// cero es el de una skill sin lista.
+// cero es el de una skill sin lista. Desde H24 no juzga ninguna respuesta: es
+// el vocabulario que la prosa de la skill no usa (FR-070 y FR-071 de H24).
 type ExpresionesProhibidas struct {
 	// Maquinaria son las de la maquinaria interna —la memoria de consultas,
 	// kitlegal graph y sus verbos, los códigos de salida, los hallazgos y sus
@@ -164,13 +165,6 @@ func ExtraerExpresionesProhibidas(texto string, lista ExpresionesProhibidas) []s
 // de una skill sin lista.
 func (l ExpresionesProhibidas) expresiones() []string {
 	return slices.Concat(l.Maquinaria, l.OtraConversacion, l.Anuncio, l.RedaccionNoLeida)
-}
-
-// esDeLaClaseB dice si la expresión es de la clase B, una de las de la
-// redacción no leída de la lista (FR-011 y FR-042 de H7.4; data-model §1 de
-// H7.4).
-func (l ExpresionesProhibidas) esDeLaClaseB(expresion string) bool {
-	return slices.Contains(l.RedaccionNoLeida, expresion)
 }
 
 // sinFormasFijas es el texto sin las formas fijas de la skill

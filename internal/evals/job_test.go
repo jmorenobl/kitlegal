@@ -326,34 +326,20 @@ func TestTandaDelCommit(t *testing.T) {
 }
 
 // TestComprobarConsultaRepetida comprueba las dos respuestas de la consulta
-// repetida del quickstart §6 con comprobarConsultaRepetida: la lista de
-// expresiones prohibidas de las evals de la skill de -skill y las conversaciones
+// repetida del quickstart §6 con comprobarConsultaRepetida: las conversaciones
 // de -primera y -segunda, leídas con LeerSesion como las lee el job, y las fechas
 // de -fecha-superada y -fecha-leida. Falla con las conversaciones que no se
 // pueden leer o con una línea por condición que falla, una por renglón; si no
 // falla ninguna, lo registra (contracts/comprobacion-del-quickstart.md; FR-061).
 // Solo lo ejecuta la persona en el quickstart, porque necesita las dos
 // conversaciones con modelo (FR-062); lo que decide lo fija
-// TestCondicionesDeLaConsultaRepetida.
+// TestCondicionesDeLaConsultaRepetida. Desde H24 no lee la lista de expresiones
+// prohibidas de ninguna skill, que ya no juzga ninguna respuesta (research D14
+// de H24): -skill, que el quickstart pasaba para leerla, ya no hace falta.
 func TestComprobarConsultaRepetida(t *testing.T) {
 	t.Parallel()
 
-	exigirBanderas(t, "skill", "primera", "segunda", "fecha-superada", "fecha-leida")
-
-	evals := filepath.Join(directorioDeEvalsDeLasSkills, *banderaSkill)
-
-	conjunto, err := LeerConjunto(evals)
-	require.NoError(t, err)
-
-	// Con la lista mal formada, el conjunto la deja vacía y ninguna respuesta
-	// llevaría expresiones prohibidas sin haberlas mirado.
-	malFormados := make([]string, 0, len(conjunto.MalFormados))
-	for _, malFormado := range conjunto.MalFormados {
-		malFormados = append(malFormados, malFormado.Error.Error())
-	}
-
-	require.Emptyf(t, malFormados, "el directorio de evals %s tiene ficheros mal formados:\n%s", evals,
-		strings.Join(malFormados, "\n"))
+	exigirBanderas(t, "primera", "segunda", "fecha-superada", "fecha-leida")
 
 	primera := leerConversacion(t, "primera", *banderaPrimera)
 	segunda := leerConversacion(t, "segunda", *banderaSegunda)
@@ -362,13 +348,13 @@ func TestComprobarConsultaRepetida(t *testing.T) {
 		t.FailNow()
 	}
 
-	if lineas := comprobarConsultaRepetida(primera, segunda, conjunto.Prohibidas, *banderaFechaSuperada,
+	if lineas := comprobarConsultaRepetida(primera, segunda, *banderaFechaSuperada,
 		*banderaFechaLeida); len(lineas) > 0 {
 		t.Fatal(strings.Join(lineas, "\n"))
 	}
 
-	t.Logf("se cumplen las tres condiciones: la forma con %s y %s en la primera respuesta, sin ella en la segunda, "+
-		"y ninguna expresión prohibida en las dos", *banderaFechaSuperada, *banderaFechaLeida)
+	t.Logf("se cumplen las dos condiciones: la forma con %s y %s en la primera respuesta, y sin ella en la segunda",
+		*banderaFechaSuperada, *banderaFechaLeida)
 }
 
 // leerConversacion lee con LeerSesion la conversación del directorio dado. Si

@@ -25,12 +25,13 @@ const (
 
 // TestCondicionesDeLaConsultaRepetida fija las condiciones con las que la
 // comprobación del quickstart juzga las dos respuestas de la consulta repetida
-// (contracts/comprobacion-del-quickstart.md §2 y §3; FR-061; US5.3), con la
-// lista de expresiones prohibidas del repositorio y sesiones construidas aquí:
-// una línea por lo que falla, en el orden del contrato, y ninguna si la primera
-// lleva la forma de version-obsoleta en una línea con las dos fechas como
-// palabras, la segunda no la lleva y ninguna lleva expresiones de la lista. Una
+// (contracts/comprobacion-del-quickstart.md §2 y §3; FR-061; US5.3), con
+// sesiones construidas aquí: una línea por lo que falla, en el orden del
+// contrato, y ninguna si la primera lleva la forma de version-obsoleta en una
+// línea con las dos fechas como palabras y la segunda no la lleva. Una
 // conversación sin terminar se nombra con su motivo y su respuesta no se mira.
+// Desde H24, las expresiones de la lista de boe-legislacion que lleve una
+// respuesta no dan ninguna línea (research D14 de H24; FR-070).
 func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 	t.Parallel()
 
@@ -46,16 +47,18 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 		"\n\n[BOE-A-2017-12902, bloque a1-30]"
 	segundaBuena := respuestaConLaCita118
 
-	// Sin terminar, la respuesta de cada una fallaría todas sus condiciones: sin
-	// la forma y con expresiones la primera, y con la forma y con expresiones la
-	// segunda.
+	// Sin terminar, la respuesta de cada una fallaría su condición: sin la forma
+	// la primera, y con la forma la segunda.
 	primeraSinTerminar := sinTerminar(transicionDeLaMemoria + "\n\n" + respuestaConLaCita118)
 	segundaSinTerminar := sinTerminar(redaccionModificadaDeLaLCSP + "\n\n" + loDichoEnOtraConversacion)
 
-	// Desde H7.4, las palabras de la forma fija de la línea fuera de ella son de
-	// la lista (contracts/lista-de-expresiones.md §1 y §3 de H7.4): la línea con
-	// otras palabras, o con unas fechas que no son las de la forma, las lleva.
-	conLaLineaFueraDeSuForma := "la primera respuesta lleva expresiones prohibidas: se consult\xc3\xb3 antes"
+	// Las dos buenas con una expresión de la lista delante: la premisa del caso
+	// que fija que la lista ya no se mira.
+	primeraConExpresion := "La comprobaci\xc3\xb3n con graph check no ha dado nada.\n\n" + primeraBuena
+	segundaConExpresion := loDichoEnOtraConversacion + "\n\n" + segundaBuena
+
+	require.Equal(t, []string{"graph check"}, ExtraerExpresionesProhibidas(primeraConExpresion, lista))
+	require.Equal(t, []string{"te confirm\xc3\xa9"}, ExtraerExpresionesProhibidas(segundaConExpresion, lista))
 
 	casos := []struct {
 		nombre           string
@@ -79,7 +82,7 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 				"consult\xc3\xb3 antes ha sido sustituida.\nLa de 20180309 ha pasado a ser la de 20200206.\n\n"+
 				respuestaConLaCita118),
 			segunda: sesionTerminada(true, segundaBuena),
-			lineas:  []string{primeraSinLaForma, conLaLineaFueraDeSuForma},
+			lineas:  []string{primeraSinLaForma},
 		},
 		{
 			nombre: "la-forma-con-una-sola-fecha-en-su-linea",
@@ -96,7 +99,7 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 				"fecha de vigencia 201803091, la que se consult\xc3\xb3 antes, ha sido sustituida por la de "+
 				"202002060, que es la que se cita.\n\n"+respuestaConLaCita118),
 			segunda: sesionTerminada(true, segundaBuena),
-			lineas:  []string{primeraSinLaForma, conLaLineaFueraDeSuForma},
+			lineas:  []string{primeraSinLaForma},
 		},
 		{
 			nombre:  "la-segunda-con-la-forma",
@@ -105,16 +108,9 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 			lineas:  []string{segundaConLaForma},
 		},
 		{
-			nombre:  "una-expresion-en-la-primera",
-			primera: sesionTerminada(true, "La comprobaci\xc3\xb3n con graph check no ha dado nada.\n\n"+primeraBuena),
-			segunda: sesionTerminada(true, segundaBuena),
-			lineas:  []string{"la primera respuesta lleva expresiones prohibidas: graph check"},
-		},
-		{
-			nombre:  "una-expresion-en-la-segunda",
-			primera: sesionTerminada(true, primeraBuena),
-			segunda: sesionTerminada(true, loDichoEnOtraConversacion+"\n\n"+segundaBuena),
-			lineas:  []string{"la segunda respuesta lleva expresiones prohibidas: te confirm\xc3\xa9"},
+			nombre:  "una-expresion-de-la-lista-en-cada-una",
+			primera: sesionTerminada(true, primeraConExpresion),
+			segunda: sesionTerminada(true, segundaConExpresion),
 		},
 		{
 			nombre:  "la-primera-sin-terminar",
@@ -129,18 +125,13 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 			lineas:  []string{"la segunda conversaci\xc3\xb3n no termin\xc3\xb3: tope de 240 s agotado (c\xc3\xb3digo 124)"},
 		},
 		{
-			// La primera sin la forma y con tres expresiones, separadas por «, »,
-			// y la segunda con la forma: las líneas van por condición, no por
+			// La primera sin la forma, y con tres expresiones de la lista, y la
+			// segunda con la forma: las líneas van por condición, no por
 			// conversación.
-			nombre:  "tres-fallos-a-la-vez",
+			nombre:  "dos-fallos-a-la-vez",
 			primera: sesionTerminada(true, transicionDeLaMemoria+"\n\n"+respuestaConLaCita118),
 			segunda: sesionTerminada(true, primeraBuena),
-			lineas: []string{
-				primeraSinLaForma,
-				segundaConLaForma,
-				"la primera respuesta lleva expresiones prohibidas: memoria de consultas, hallazgos, " +
-					"tengo todo lo necesario",
-			},
+			lineas:  []string{primeraSinLaForma, segundaConLaForma},
 		},
 	}
 
@@ -148,7 +139,7 @@ func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			lineas := comprobarConsultaRepetida(caso.primera, caso.segunda, lista,
+			lineas := comprobarConsultaRepetida(caso.primera, caso.segunda,
 				fechaSuperadaDelQuickstart, fechaLeidaDelQuickstart)
 
 			assert.Equal(t, caso.lineas, lineas)

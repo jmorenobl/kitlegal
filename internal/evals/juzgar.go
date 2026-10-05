@@ -32,32 +32,30 @@ const verboArticulos = "articulos"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
 // la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
-// una cita, un aviso, un hallazgo o un elemento del territorio ausentes, el de un
-// comando prohibido ejecutado y el de una expresión prohibida, van seguidos de su
-// texto, el mismo con el que los presenta el informe, que en un aviso es su código,
-// en un hallazgo, su clase, y en una expresión, la de la lista (contrato de
-// formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6; contrato
-// evals-y-skill §2 de H7 y de H7.1; contrato lista-y-juicio §4 de H7.2). Desde
-// H7.4, el de una redacción modificada ausente va seguido de su texto
-// (RedaccionEsperada.texto), y el de una skill que la eval dice que no se activa,
-// que la nombra en medio, lo compone motivoDeLaQueNoSeActiva
+// una cita, un aviso, un hallazgo o un elemento del territorio ausentes y el de un
+// comando prohibido ejecutado van seguidos de su texto, el mismo con el que los
+// presenta el informe, que en un aviso es su código y, en un hallazgo, su clase
+// (contrato de formato, juicio e informe §4 de H5.1; contrato de evals §2 de H6;
+// contrato evals-y-skill §2 de H7 y de H7.1). Desde H7.4, el de una redacción
+// modificada ausente va seguido de su texto (RedaccionEsperada.texto), y el de
+// una skill que la eval dice que no se activa, que la nombra en medio, lo
+// compone motivoDeLaQueNoSeActiva
 // (contracts/evals-y-juicio.md §2 de H7.4). Desde H21, el de una orden de kitlegal
 // en una sesión que no lo tiene en el PATH va seguido de la orden, y el de una
 // cita en la respuesta de una eval sin binario ni servidor, de su texto
 // (contracts/evals-en-dos-modos.md §4 de H21).
 const (
-	motivoDeSesionSinTerminar  = "la sesión no terminó: "
-	motivoDeComandoAusente     = "comando ausente: "
-	motivoDeComandoProhibido   = "comando prohibido ejecutado: "
-	motivoDeOrdenSinKitlegal   = "orden de kitlegal en una sesión sin kitlegal en el PATH: "
-	motivoDeCitaAusente        = "cita ausente: "
-	motivoDeAvisoAusente       = "aviso ausente: "
-	motivoDeHallazgoAusente    = "forma de hallazgo ausente: "
-	motivoDeRedaccionAusente   = "redacción modificada ausente: "
-	motivoDeTerritorioAusente  = "territorio ausente: "
-	motivoDeCitaSinConsulta    = "cita en una respuesta sin consulta: "
-	motivoDeExpresionProhibida = "expresión prohibida: "
-	motivoDeOtroModelo         = "la sesión no declara el modelo que se le pidió: "
+	motivoDeSesionSinTerminar = "la sesión no terminó: "
+	motivoDeComandoAusente    = "comando ausente: "
+	motivoDeComandoProhibido  = "comando prohibido ejecutado: "
+	motivoDeOrdenSinKitlegal  = "orden de kitlegal en una sesión sin kitlegal en el PATH: "
+	motivoDeCitaAusente       = "cita ausente: "
+	motivoDeAvisoAusente      = "aviso ausente: "
+	motivoDeHallazgoAusente   = "forma de hallazgo ausente: "
+	motivoDeRedaccionAusente  = "redacción modificada ausente: "
+	motivoDeTerritorioAusente = "territorio ausente: "
+	motivoDeCitaSinConsulta   = "cita en una respuesta sin consulta: "
+	motivoDeOtroModelo        = "la sesión no declara el modelo que se le pidió: "
 )
 
 // Los dos motivos de texto fijo de la línea con la que la respuesta de una eval
@@ -171,13 +169,6 @@ type ResultadoDeEval struct {
 	TerritorioEncontrado []string `json:"territorio_encontrado"`
 	TerritorioAusente    []string `json:"territorio_ausente"`
 
-	// ExpresionesProhibidas son las expresiones de la lista de la eval que lleva
-	// la respuesta (ExtraerExpresionesProhibidas), en el orden de la lista —la
-	// maquinaria y después lo dicho en otra conversación— y cada una una vez.
-	// Vacía si no lleva ninguna, si la eval no espera que la skill se active o si
-	// su skill no tiene lista (contrato lista-y-juicio §4 de H7.2; FR-052).
-	ExpresionesProhibidas []string `json:"expresiones_prohibidas"`
-
 	// LineaSinConsulta dice, en una eval sin binario ni servidor, si la respuesta
 	// lleva una línea que empieza por ⚠ SIN CONSULTA AL BOE: con su dirección en
 	// esa misma línea (ExtraerSinConsulta). Falso en las demás evals, que no la
@@ -238,16 +229,16 @@ type ResultadoDeEval struct {
 	// activación que no coincide; cada skill que la eval dice que no se activa y
 	// se activó; cada comando ausente; cada comando prohibido ejecutado; cada cita
 	// ausente; cada aviso ausente; cada hallazgo ausente; cada redacción
-	// modificada ausente; cada elemento del territorio ausente; cada expresión
-	// prohibida; y el modelo que la sesión declara sin ser el pedido, que pone
-	// EscribirInforme. Vacío si pasa. La sesión sin medir lleva solo el del límite
-	// (FR-040 de H7.3; contracts/evals-y-juicio.md §2 de H7.4).
+	// modificada ausente; cada elemento del territorio ausente; y el modelo que la
+	// sesión declara sin ser el pedido, que pone EscribirInforme. Vacío si pasa.
+	// La sesión sin medir lleva solo el del límite (FR-040 de H7.3;
+	// contracts/evals-y-juicio.md §2 de H7.4).
 	//
 	// Desde H21, detrás de los de los comandos prohibidos va el de cada orden de
 	// kitlegal de una sesión que no lo tiene en el PATH; y, en una eval sin binario
-	// ni servidor, detrás de los del territorio y delante de los de las
-	// expresiones, el de la línea ⚠ SIN CONSULTA AL BOE: ausente o sin su
-	// dirección y el de cada cita de la respuesta
+	// ni servidor, detrás de los del territorio, el de la línea
+	// ⚠ SIN CONSULTA AL BOE: ausente o sin su dirección y el de cada cita de la
+	// respuesta
 	// (contracts/evals-en-dos-modos.md §4 de H21). El de las llamadas que no se
 	// pueden juzgar, que solo se da si el registro de applets del binario no se
 	// puede construir, va delante de los de los comandos.
@@ -256,10 +247,10 @@ type ResultadoDeEval struct {
 	// Pasa dice si la sesión terminó, la activación coincide, no se activó
 	// ninguna skill que la eval dice que no se activa, no falta ningún comando,
 	// ninguna cita, ningún aviso, ningún hallazgo, ninguna redacción modificada ni
-	// ningún elemento del territorio esperados, no se ejecutó ningún comando
-	// prohibido y la respuesta no lleva ninguna expresión prohibida. No lo cambian
-	// FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed (FR-076), ni la forma fija
-	// de un aviso o de un hallazgo, ni una línea de redacción modificada, que la
+	// ningún elemento del territorio esperados y no se ejecutó ningún comando
+	// prohibido. No lo cambian FueraDeLoGrabado, OtrasFallidas ni LlegadasALaRed
+	// (FR-076), ni la forma fija de un aviso o de un hallazgo, ni una línea de
+	// redacción modificada, que la
 	// eval no espera. Una sesión sin medir no pasa. Desde H21, tampoco pasa la
 	// sesión sin kitlegal en el PATH que ejecuta una orden suya ni, en una eval
 	// sin binario ni servidor, la respuesta sin la línea con su dirección o con
@@ -350,12 +341,6 @@ type LlegadaALaRed struct {
 // hallazgos deja vacíos los dos y su juicio es el de antes (contrato
 // evals-y-skill §2 de H7.1; FR-050 a FR-052).
 //
-// Desde H7.2, en una eval que espera que la skill se active, anota además cada
-// expresión de su lista que lleva la respuesta (ExtraerExpresionesProhibidas),
-// con su motivo detrás de los del territorio, y una encontrada impide pasar. Una
-// eval de no activación, o la de una skill sin lista, deja vacía la lista y su
-// juicio es el de antes (contrato lista-y-juicio §4 de H7.2; FR-051, FR-052).
-//
 // Desde H7.3, publica además los reintentos por rate_limit de la sesión, que no
 // cambian su juicio (FR-033 y FR-041 de H7.3).
 //
@@ -372,6 +357,11 @@ type LlegadaALaRed struct {
 // sin servidor.json: el modo orden o, si la eval es sin binario ni servidor,
 // ninguno. La sesión del modo herramienta la juzga juzgarEnModo, que dice lo que
 // el juicio gana en ese hito (contracts/evals-en-dos-modos.md §4 de H21).
+//
+// Desde H24, no mira la lista de expresiones de la skill, con la que de H7.2 a
+// H22 anotaba cada expresión que llevaba la respuesta: ninguna sesión deja de
+// pasar por una, y el resultado no las lleva ni tiene un motivo por ellas
+// (contracts/informe-del-job.md §6 de H24; FR-070).
 func Juzgar(eval Eval, sesion Sesion, skill string) ResultadoDeEval {
 	return juzgarEnModo(eval, sesion, skill, modoSinServidor(eval))
 }
@@ -441,7 +431,6 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 	resultado.repartirRedacciones(eval.RedaccionesModificadas, ExtraerRedaccionesModificadas(sesion.Respuesta))
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
 	sinConsultaComoSeEspera := resultado.juzgarLaRespuestaSinConsulta(eval, sesion.Respuesta, citas)
-	resultado.anotarExpresionesProhibidas(eval, sesion.Respuesta)
 
 	for _, invocacion := range invocaciones {
 		resultado.informarLaJuzgada(invocacion)
@@ -634,14 +623,14 @@ var verbosDeLasHerramientas = sync.OnceValues(func() (map[string]cli.Verbo, erro
 
 // cumpleLoEsperado dice si la activación coincide con la esperada, no falta
 // ningún comando, ninguna cita, ningún aviso, ningún hallazgo, ninguna redacción
-// modificada ni ningún elemento del territorio esperados, no se ejecutó ningún
-// comando prohibido y la respuesta no lleva ninguna expresión prohibida.
+// modificada ni ningún elemento del territorio esperados y no se ejecutó ningún
+// comando prohibido.
 func (r *ResultadoDeEval) cumpleLoEsperado() bool {
 	return r.Activa == r.Activada &&
 		len(r.ComandosAusentes) == 0 && len(r.ComandosProhibidosEjecutados) == 0 &&
 		len(r.CitasAusentes) == 0 && len(r.AvisosAusentes) == 0 &&
 		len(r.HallazgosAusentes) == 0 && len(r.RedaccionesAusentes) == 0 &&
-		len(r.TerritorioAusente) == 0 && len(r.ExpresionesProhibidas) == 0
+		len(r.TerritorioAusente) == 0
 }
 
 // exigirElModeloPedido deja de pasar, con su motivo, la sesión que declara un
@@ -889,31 +878,6 @@ func (r *ResultadoDeEval) repartirTerritorio(esperado, declarado TerritorioEsper
 
 		r.TerritorioAusente = append(r.TerritorioAusente, elemento)
 		r.Motivos = append(r.Motivos, motivoDeTerritorioAusente+elemento)
-	}
-}
-
-// anotarExpresionesProhibidas anota, con su motivo, cada expresión de la lista de
-// la eval que lleva la respuesta, si la eval espera que la skill se active: la
-// lista es de lo que no dice la respuesta de la skill, y una eval de no activación
-// no la juzga (FR-052). Con la lista vacía, la de una skill sin lista, no anota
-// nada.
-//
-// Tampoco la juzga la eval sin binario ni servidor: la lista es de cómo no se
-// cuenta una consulta —su maquinaria, lo que se comprobó, el anuncio de la
-// respuesta—, y su sesión no consulta nada. Su respuesta la juzga
-// juzgarLaRespuestaSinConsulta, por lo que lleva: la línea, su dirección y
-// ninguna cita. Una oferta de consultarlo después («lo consulto y te respondo con
-// el texto y su cita») casaba con el anuncio de una respuesta que no existe
-// (docs/USO.md, 2026-10-04).
-func (r *ResultadoDeEval) anotarExpresionesProhibidas(eval Eval, respuesta string) {
-	if !eval.Activa || eval.SinBinarioNiServidor {
-		return
-	}
-
-	r.ExpresionesProhibidas = ExtraerExpresionesProhibidas(respuesta, eval.Prohibidas)
-
-	for _, expresion := range r.ExpresionesProhibidas {
-		r.Motivos = append(r.Motivos, motivoDeExpresionProhibida+expresion)
 	}
 }
 
