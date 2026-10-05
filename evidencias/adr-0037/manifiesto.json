@@ -2,8 +2,8 @@
   "ficheros": [
     {
       "fichero": "LEEME.md",
-      "sha256": "48c7d5ace76bbdb950d3ad94a51f04abc94f589ff20eb32ac9fd0a447dd76880",
-      "bytes": 3119,
+      "sha256": "7e46998ec73d3014a46ce011090070169d9b9d26e9b5213e9538ae11ead2f947",
+      "bytes": 3769,
       "fecha": "2026-10-05",
       "versionado": "sí",
       "origen": "validación del ADR 0037"
@@ -60,6 +60,14 @@
       "fichero": "lectura.md",
       "sha256": "70277623b10be0a46151e3a4dc0feae86df047416966ae80840e649586d5da98",
       "bytes": 22462,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "medida.json",
+      "sha256": "eb1eff770b4a27137460fb00772faaedb635cec7be1d8ba7282e2e773d15c96f",
+      "bytes": 717,
       "fecha": "2026-10-05",
       "versionado": "sí",
       "origen": "validación del ADR 0037"

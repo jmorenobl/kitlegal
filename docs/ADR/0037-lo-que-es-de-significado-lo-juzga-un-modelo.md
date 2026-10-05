@@ -1,6 +1,8 @@
 # 0037 · Lo que es de significado en una respuesta lo juzga un modelo, con rúbrica cerrada y cita comprobada; la lista de expresiones deja de decidir
 
-- **Estado**: aceptada (2026-10-05), con la validación de abajo.
+- **Estado**: aceptada (2026-10-05), con la validación de abajo. Enmendada el mismo día, antes de lanzar H24, en los
+  puntos 3, 4 y 5 de la decisión: la medida del juez se repite a petición de una persona, no en el job («Enmienda: la
+  medida, a petición»).
 - **Fecha**: 2026-10-04
 - **Hito**: transversal (tras H22; antes de H24, que lo implementa en el job de evals, y de H23, que lo usa).
   Sustituye del ADR 0029 una palabra del punto 1 de su decisión —el control de un umbral era «mecánico»— y, del
@@ -112,19 +114,24 @@ cuando cambia alguno de los cuatro.
    - Una clase solo decide si el juez se ha medido contra casos etiquetados, versionados con la procedencia de cada
      etiqueta. Hay dos clases de caso: respuestas que una persona leyó, y defectos derivados quitándole a una sesión
      correcta uno de los textos que leyó, sin escribir nada a mano.
-   - La rúbrica y los casos validados viven en `evidencias/`, que ningún run escribe. Lo que el job usa es su copia,
-     y `make ci` comprueba que es idéntica.
+   - La rúbrica, los casos validados y la medida viven en `evidencias/`, que ningún run escribe. Lo que el job usa
+     es su copia, y `make ci` comprueba que es idéntica.
    - Ningún caso etiquetado como defecto queda sin marcar, y ninguno etiquetado como correcto queda marcado.
-   - La medida vale para la rúbrica, el id del modelo, la versión de Claude Code y los casos con los que se hizo. El
-     job la repite cuando la medida versionada no corresponde a lo que hay, y si el juez no la cumple sale en rojo
-     diciendo que el instrumento no vale, sin dar veredicto de la skill.
+   - La medida vale para la rúbrica, los casos, el id del modelo del juez y la versión de Claude Code de sus votos
+     con los que se hizo, y se versiona con las cuatro. Una ejecución normal del job no la repite: comprueba sin
+     modelo que la versionada corresponde a lo que hay, y `make ci` hace la misma comprobación. Si no corresponde, el
+     job no abre el juez y sale en rojo diciendo que el instrumento no está medido, sin dar veredicto de la skill.
+   - **La medida se repite a petición de una persona**, en una ejecución propia del job, cuando cambia alguna de las
+     cuatro. Si el juez no la cumple, esa ejecución sale en rojo con los casos, y la medida no se versiona.
    - **Una marca que una persona lee y da por errónea entra en los casos como correcta.** El arreglo va a la rúbrica,
      no a la skill.
    - La rúbrica, los casos y el modelo del juez no los cambia un run del workflow.
 4. **El modelo del juez** es `claude-opus-5-5`, fijado por su id completo junto al modelo que decide
-   (`.github/workflows/evals.yml`). Cambia solo con un diff, con la medida del punto 3 repetida.
+   (`.github/workflows/evals.yml`). Cambia solo con un diff, con la medida del punto 3 repetida. La versión de
+   Claude Code de sus votos se fija en el mismo fichero, aparte de la de las sesiones, que sube cuando cambia el
+   alias `sonnet` (ADR 0031); cambia también solo con un diff y con la medida repetida.
 5. **Dónde corre.** En el job de evals y en el sondeo que lanza una persona. Nunca en un paso de un run del workflow
-   (ADR 0032): dentro de un run, el juez se prueba con votos grabados.
+   (ADR 0032): dentro de un run, el juez se prueba con votos grabados, y un run tampoco lanza la medida del punto 3.
 6. **Los umbrales del juez usan el contrato del ADR 0029**: entran en `umbrales` con su `nombre`, su `medida` y su
    `decide`, y el informe final los lee como hoy. Del punto 1 de la decisión del ADR 0029 cambia una palabra: todo
    umbral medido sin persona tiene **un control** que pone en rojo su comprobación; ese control es un guion si lo
@@ -252,9 +259,16 @@ tiene que llevar la respuesta.
 - Cada marca del juez lleva una frase que está en la respuesta: quien lee el informe ve por qué.
 - Con la votación por orden, son 108 votos por ejecución de `boe-legislacion`, y dos más por cada respuesta que el
   primero marque.
+- La medida del juez, 683 votos con los casos de hoy, no entra en ninguna ejecución normal: se paga cuando una
+  persona cambia el instrumento.
 
 **En contra, y asumido**
 
+- **La primera medida no se hizo con el código del job**, sino con los guiones de la validación y con textos
+  reconstruidos. Las cuatro cosas de las que depende coinciden, y H24 fija la orden y el mensaje del voto a los de
+  la validación; aun así, una persona lanza la medida una vez sobre la propuesta de H24, antes de fusionar.
+- **Entre un cambio del instrumento y su medida, el job no juzga**: sale en rojo sin abrir el juez, y `make ci`
+  también. Es lo que se busca.
 - **El juez no es determinista, y es sensible a la rúbrica.** Lo acotan la unanimidad, la frase comprobada y la
   medida del punto 3, pero una línea de la rúbrica mueve los casos de la frontera. Por eso la rúbrica dice dónde
   está, vive en `evidencias/` y no cambia sin repetir la medida.
@@ -288,3 +302,39 @@ Van en la propuesta que acepta este ADR:
 
 Lo que cambia con H24 y no aquí: el job (`internal/evals`, `.github/workflows/evals.yml`), lo que `docs/WORKFLOW.md`
 y `CONTRIBUTING.md` dicen de él, y `boe-legislacion`.
+
+## Enmienda: la medida, a petición (2026-10-05)
+
+Hecha al comprobar la entrada de H24 antes de lanzarlo, y decidida por Jorge. Cambia los puntos 3, 4 y 5 de la
+decisión, que arriba llevan ya la redacción nueva.
+
+**Qué decía.** «El job la repite cuando la medida versionada no corresponde a lo que hay».
+
+**Qué fallaba.**
+
+- La medida de la validación se hizo con Claude Code 2.1.289 y el job fija 2.1.284 (ADR 0031): no habría
+  correspondido nunca.
+- El job no escribe en el repositorio y un run no abre el juez (ADR 0032): nadie versionaba la medida que el job
+  repitiera. La habría repetido en todas sus ejecuciones, que es la opción que este ADR rechaza en «Opciones
+  consideradas».
+- Medir al juez son 683 votos con los casos de hoy —tres por cada uno de los 212 defectos y uno por cada uno de los
+  47 correctos—, unos 91 minutos con un voto detrás de otro. Juzgar las respuestas son 108. En el cierre de un hito
+  se mide hasta tres veces.
+- La versión de Claude Code del job sube cuando cambia el alias `sonnet`. Con una sola versión para las sesiones y
+  para el juez, cada subida habría invalidado la medida del juez por un motivo que no es suyo.
+
+**Qué dice ahora.**
+
+- La medida se versiona con las cuatro cosas de las que depende: `evidencias/adr-0037/medida.json`. La primera es la
+  de «La medida final», recontada por caso desde `casos.yaml` y los votos versionados: 212 de 212 defectos marcados
+  con los tres votos y 0 de 47 correctos.
+- Una ejecución normal del job no mide al juez. Comprueba sin modelo que la medida versionada corresponde a lo que
+  hay, y `make ci` hace la misma comprobación: una propuesta que cambia la rúbrica, los casos, el modelo del juez o
+  su versión de Claude Code no pasa `make ci` sin su medida.
+- La medida la lanza una persona, con una etiqueta propia, y la versiona una persona fuera de un run.
+- El juez tiene su versión de Claude Code, fijada aparte de la de las sesiones.
+- Si una medida no se cumple, no se versiona. Qué sigue lo decide una persona: la rúbrica se corrige fuera de un
+  run, y el código, con un hito de seguimiento.
+
+No cambia cuándo hay que medir —cuando cambia alguna de las cuatro—, ni la regla de los votos, ni que una clase solo
+decide con el juez medido. Cambia quién lanza la medida y dónde queda.
