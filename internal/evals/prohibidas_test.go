@@ -130,7 +130,10 @@ func listaConFormasFijas() ExpresionesProhibidas {
 // punto, sin él y seguida de un paréntesis— y la marca, la etiqueta y los dos
 // puntos de cada aviso, y se busca lo que sigue en la línea y las mismas
 // palabras fuera de esas formas; que una lista sin formas fijas no quita nada;
-// y que cada expresión y cada forma fija se compilan una sola vez.
+// que lo que devuelven las herramientas, que desde H24 está en la lista y no es
+// una de las cuatro familias, no se busca (FR-085 de H24;
+// contracts/skill-boe-legislacion.md §4 de H24); y que cada expresión y cada
+// forma fija se compilan una sola vez.
 func TestExtraerExpresionesProhibidas(t *testing.T) {
 	t.Parallel()
 
@@ -334,6 +337,24 @@ func TestExtraerExpresionesProhibidas(t *testing.T) {
 			nombre: "solo-formas-fijas",
 			texto:  "Ya no exige nada; ya puedo responder.",
 			lista:  ExpresionesProhibidas{FormasFijas: conFormasFijas.FormasFijas},
+		},
+		{
+			// Lo que devuelven las herramientas no es una de las cuatro familias:
+			// en un texto no se busca (FR-085 de H24).
+			nombre: "salida-de-las-herramientas-no-se-busca",
+			texto:  "El sobre trae fecha_vigencia y hallazgos.",
+			lista: ExpresionesProhibidas{
+				Maquinaria:              []string{"hallazgos"},
+				SalidaDeLasHerramientas: []string{"el sobre", "fecha_vigencia"},
+			},
+			encontradas: []string{"hallazgos"},
+		},
+		{
+			// Sin familias no hay nada que buscar, tampoco con lo que devuelven
+			// las herramientas.
+			nombre: "solo-salida-de-las-herramientas",
+			texto:  "El sobre trae fecha_vigencia.",
+			lista:  ExpresionesProhibidas{SalidaDeLasHerramientas: []string{"el sobre", "fecha_vigencia"}},
 		},
 		{
 			nombre: "dentro-de-otra-palabra",

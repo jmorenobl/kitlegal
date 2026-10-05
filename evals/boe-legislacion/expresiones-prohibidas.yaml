@@ -1,10 +1,13 @@
-# Expresiones que no lleva la respuesta de boe-legislacion en una eval que activa la skill y consulta (H7.2, FR-050;
-# H7.3, FR-020; H7.4, FR-030), en cuatro familias. La eval sin binario ni servidor no se juzga con ellas: no consulta nada. Clase A: la maquinaria interna, lo dicho en otra conversación y el anuncio de la
-# respuesta o del estado de lo comprobado (de la comprobación o de una lectura anterior, o de lo que el agente tiene,
-# necesita o va a hacer). Clase B, redaccion_no_leida: una redacción que ninguna orden devolvió (qué decía, hasta cuándo
-# rigió o qué cambió respecto de ella). Se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis de
-# Markdown entre palabras, delimitadas como palabras, después de quitar las formas fijas que enseña la skill;
-# lo dicho con otras palabras no se detecta.
+# El vocabulario que la prosa del SKILL.md de boe-legislacion no usa, fuera de sus bloques delimitados y de su región
+# generada (H24, FR-071, FR-085). Desde H24 no juzga ninguna respuesta. Nació como la lista de lo que la respuesta no
+# lleva (H7.2, FR-050; H7.3, FR-020; H7.4, FR-030), y de ahí sus cuatro familias. Clase A: la maquinaria interna, lo
+# dicho en otra conversación y el anuncio de la respuesta o del estado de lo comprobado (de la comprobación o de una
+# lectura anterior, o de lo que el agente tiene, necesita o va a hacer). Clase B, redaccion_no_leida: una redacción que
+# ninguna orden devolvió (qué decía, hasta cuándo rigió o qué cambió respecto de ella). Las cuatro se buscan en la
+# prosa sin su código en línea, después de quitar las formas fijas que enseña la skill. salida_de_las_herramientas
+# (H24): lo que devuelve una orden o una herramienta y los nombres de sus campos, que se buscan también en el código
+# en línea, sin sus acentos graves. Todas se comparan por la forma, sin distinguir mayúsculas y con blancos y énfasis
+# de Markdown entre palabras, delimitadas como palabras; lo dicho con otras palabras no se detecta.
 maquinaria:
   - memoria de consultas
   - hallazgo
@@ -96,6 +99,10 @@ redaccion_no_leida:
   - artículo cambió
   - no ha cambiado por
   - esa versión ya no
+salida_de_las_herramientas:
+  - el sobre
+  - fecha_vigencia
+  - norma_modificadora
 formas_fijas:
   - "⚠ REDACCIÓN MODIFICADA: <cita>: la redacción con fecha de vigencia <fecha>, la que se consultó antes, ha sido sustituida por la de <fecha>, que es la que se cita."
   - "No se ha podido comprobar si la redacción ha cambiado desde una consulta anterior"

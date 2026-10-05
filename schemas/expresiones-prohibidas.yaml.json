@@ -4,12 +4,18 @@
   "title": "evals/<skill>/expresiones-prohibidas.yaml",
   "type": "object",
   "additionalProperties": false,
-  "required": ["maquinaria", "otra_conversacion", "anuncio", "redaccion_no_leida", "formas_fijas"],
+  "required": [
+    "maquinaria", "otra_conversacion", "anuncio", "redaccion_no_leida", "salida_de_las_herramientas", "formas_fijas"
+  ],
   "properties": {
     "maquinaria": { "$ref": "#/$defs/expresiones" },
     "otra_conversacion": { "$ref": "#/$defs/expresiones" },
     "anuncio": { "$ref": "#/$defs/expresiones" },
     "redaccion_no_leida": { "$ref": "#/$defs/expresiones" },
+    "salida_de_las_herramientas": {
+      "type": "array", "minItems": 1,
+      "items": { "type": "string", "pattern": "^[^\\s*`]+( [^\\s*`]+)*$" }
+    },
     "formas_fijas": {
       "type": "array", "minItems": 1,
       "items": { "type": "string", "pattern": "^[^\\n]*[^\\s<>][^\\n]*$" }

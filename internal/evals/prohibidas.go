@@ -71,9 +71,11 @@ var piezaDeFormaFija = regexp.MustCompile(`[ \t]+|<cita>|<fecha>|[^ \t<]+|<`)
 // maquinaria, lo dicho en otra conversación y el anuncio son de la clase A; la
 // redacción no leída, de la clase B. Se lee de
 // evals/<skill>/expresiones-prohibidas.yaml, validada contra
-// schemas/expresiones-prohibidas.yaml.json, que exige las cinco claves; su valor
+// schemas/expresiones-prohibidas.yaml.json, que exige las seis claves; su valor
 // cero es el de una skill sin lista. Desde H24 no juzga ninguna respuesta: es
-// el vocabulario que la prosa de la skill no usa (FR-070 y FR-071 de H24).
+// el vocabulario que la prosa de la skill no usa (FR-070 y FR-071 de H24), y
+// tiene además lo que devuelven las herramientas, que no es una de las cuatro
+// familias (FR-085 de H24).
 type ExpresionesProhibidas struct {
 	// Maquinaria son las de la maquinaria interna —la memoria de consultas,
 	// kitlegal graph y sus verbos, los códigos de salida, los hallazgos y sus
@@ -94,6 +96,13 @@ type ExpresionesProhibidas struct {
 	// que ninguna orden devolvió qué decía, hasta cuándo rigió o qué cambió
 	// respecto de ella, en el orden del fichero (FR-011 y FR-030 de H7.4).
 	RedaccionNoLeida []string `yaml:"redaccion_no_leida"`
+
+	// SalidaDeLasHerramientas son las que nombran lo que devuelve una orden o
+	// una herramienta —el sobre— y sus campos, en el orden del fichero: la prosa
+	// de la skill no las usa, tampoco escritas como código en línea (FR-085 y
+	// FR-110 de H24; contracts/skill-boe-legislacion.md §4 de H24). No son una
+	// de las cuatro familias: ExtraerExpresionesProhibidas no las busca.
+	SalidaDeLasHerramientas []string `yaml:"salida_de_las_herramientas"`
 
 	// FormasFijas son los textos que enseña la skill y que se quitan de la
 	// respuesta antes de buscar las expresiones, en el orden del fichero: cada

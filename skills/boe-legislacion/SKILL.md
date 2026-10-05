@@ -106,12 +106,10 @@ menudo; no es exhaustiva.
 
 Mira si hace falta leer algo más para responder:
 
-- **Remisiones**: si el bloque remite a otro artículo, a otra ley o a un reglamento que cambia la respuesta, léelo
-  (paso 3).
-- **Vigencia**: si el sobre trae avisos (derogada, vigencia agotada, consolidación no finalizada) o la fecha de
+- **Remisiones**: si el bloque remite a otro precepto o a otra norma que cambia la respuesta, léelo (paso 3).
+- **Vigencia**: si la lectura trae avisos (derogada, vigencia agotada, consolidación no finalizada) o la fecha de
   vigencia del bloque no encaja con la situación preguntada, tenlo en cuenta y trasládalo (regla 3).
-- **Modificaciones**: si una norma posterior cambió el bloque (`norma_modificadora`) de un modo que importa para la
-  pregunta, consulta sus metadatos o su análisis (paso 3).
+- **Modificaciones**: si una norma posterior cambió el bloque y eso importa, lee sus metadatos o su análisis (paso 3).
 
 Si falta algo que no puedes leer con `kitlegal boe` ni con sus herramientas, dilo en la respuesta en lugar de suplirlo.
 Lo que decidas en este paso no va en la respuesta: quien pregunta no ve los pasos.
@@ -131,17 +129,20 @@ Lo que decidas en este paso no va en la respuesta: quien pregunta no ve los paso
   en la misma línea, de `[<identificador>, bloque <id>]`. Lo que la hace cita es que los corchetes terminen en
   `<identificador>, bloque <id>]`, con el identificador `BOE-A-…` y el id tal como los da la fuente (más en «Cómo se
   cita»).
+- **De un precepto que no has leído, nada.** De un artículo, un apartado o una disposición que nada te ha devuelto en
+  esta conversación no digas qué dice ni de qué trata, ni entre paréntesis ni aunque creas saberlo: sería texto legal
+  sin fuente. Si lo nombras, por su número y nada más. Una remisión va como el texto la da, sin describir lo remitido;
+  si importa, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
 - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
 - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
   compartidas o cedidas, desarrollo autonómico, régimen foral), dilo; y cuando corresponda a ordenanzas u otras normas
   locales, di que no están en esta fuente.
-- Traslada cada aviso de vigencia del sobre con su forma fija: `⚠`, la etiqueta del aviso tal como la da el binario y
-  dos puntos, seguidos de la frase del binario o de una explicación (más en «Cómo se cita»). De la vigencia del bloque,
-  la respuesta dice lo que trae el sobre de `kitlegal boe`: sus avisos y, de la redacción leída, qué norma la dio
-  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`). Hasta cuándo, nunca: ningún sobre trae el fin de una
-  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente. El de
-  `kitlegal graph check` no dice nada de ella. Recuerda que los textos consolidados del BOE tienen carácter informativo.
+- Traslada cada aviso de vigencia de la lectura con su forma fija («Cómo se cita», regla 3). De la vigencia del bloque,
+  la respuesta dice, con palabras de quien lee la norma, sus avisos y, de la redacción leída, qué norma la dio y desde
+  cuándo rige, sin nombrar lo que devuelve una orden ni sus campos. Hasta cuándo, nunca: ninguna lectura trae el fin de
+  una redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente.
+  `kitlegal graph check` no dice nada de la vigencia.
 - Repasa cada cita de la respuesta: sus corchetes se abren y se cierran en la misma línea y terminan en
   `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
   corchetes va además la forma legible, va delante del identificador.
@@ -168,7 +169,7 @@ art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]
   de cierre lo delimita.
 - Una cita por bloque. Un bloque remitido se cita por separado, con su norma y su id.
 
-Los avisos de vigencia también tienen forma fija. Cada aviso del sobre va en la respuesta con `⚠`, la etiqueta del
+Los avisos de vigencia también tienen forma fija. Cada aviso de la lectura va en la respuesta con `⚠`, la etiqueta del
 aviso tal como la da el binario —lo que su `texto` lleva entre `⚠` y los dos puntos— y dos puntos, seguidos de la frase
 del binario o de una explicación:
 
@@ -194,9 +195,8 @@ protocolo solo usa `check`, tras cada lectura de bloques: en su misma orden o en
 - Una entrada de `clase` `version-obsoleta` dice que la redacción que acabas de leer de ese bloque no es la que se leyó
   la vez anterior. La respuesta lo dice con una línea por bloque, con su forma fija: `⚠ REDACCIÓN MODIFICADA:` —`⚠`, la
   etiqueta `REDACCIÓN MODIFICADA` y dos puntos—, la cita del bloque como en «Cómo se cita» y dos puntos, y detrás, en
-  la misma línea, las dos fechas de vigencia tal como las da esa entrada (`AAAAMMDD`): la de la redacción superada
-  (`fecha_vigencia`) y la de la que acabas de leer (`fecha_vigencia_reciente`). La forma, con marcadores en lugar de
-  datos:
+  la misma línea, las dos fechas de vigencia tal como las da esa entrada (`AAAAMMDD`): primero la de la redacción
+  superada y después la más reciente, que es la de la que acabas de leer. La forma, con marcadores en lugar de datos:
 
   ```text
   ⚠ REDACCIÓN MODIFICADA: <forma legible> [<identificador>, bloque <id>]: la redacción con fecha de vigencia AAAAMMDD, la que se consultó antes, ha sido sustituida por la de AAAAMMDD, que es la que se cita.
@@ -215,8 +215,8 @@ protocolo solo usa `check`, tras cada lectura de bloques: en su misma orden o en
 - **La redacción superada no la has leído.** `kitlegal boe articulo` da solo la redacción vigente, y
   `kitlegal graph check`, dos fechas: nada de lo que devuelven dice qué decía la redacción superada ni en qué se
   diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
-  legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción
-  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`); hasta cuándo, nunca (paso 5).
+  legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción y desde
+  cuándo rige; hasta cuándo, nunca (paso 5).
 - Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y que la que había antes
   no la ha leído.
 
@@ -265,8 +265,8 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    consultar y por qué con lo que significa para quien pregunta —que el artículo no está en la norma, que la fuente no
    estaba disponible, que la fuente limitó las consultas—, sin el código, y no suplas el texto con conocimiento propio.
    Si la orden que falló pedía varios bloques, dilo solo después de haber pedido cada bloque por separado con
-   `kitlegal boe articulo` (paso 3), y di cuáles no se pudieron consultar. Si no tienes ni la herramienta ni el binario,
-   vale la regla 8.
+   `kitlegal boe articulo` (paso 3), y di cuáles no se pudieron consultar, por su número y sin decir de qué tratan. Si
+   no tienes ni la herramienta ni el binario, vale la regla 8.
 3. **Trasladar la vigencia.** Traslada cada aviso de vigencia que devuelve el binario (derogada, vigencia agotada,
    consolidación no finalizada) con su forma fija —`⚠`, la etiqueta del aviso tal como la da el binario y dos puntos,
    con la frase del binario o una explicación detrás— y no presentes como vigente el texto de una norma derogada.

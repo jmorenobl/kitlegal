@@ -893,10 +893,11 @@ const (
 
 	// listaSinOtraConversacion es una lista de expresiones prohibidas mal formada:
 	// le falta la familia otra_conversacion, que el esquema exige; las otras dos
-	// familias de H7.3 y las dos claves de H7.4 están bien formadas.
+	// familias de H7.3, las dos claves de H7.4 y la de H24 están bien formadas.
 	listaSinOtraConversacion = "maquinaria:\n  - memoria de consultas\n  - hallazgos\n" +
 		"anuncio:\n  - ya puedo responder\n" +
 		"redaccion_no_leida:\n  - ya no exige\n" +
+		"salida_de_las_herramientas:\n  - el sobre\n" +
 		"formas_fijas:\n  - No se ha podido comprobar si la redacci\xc3\xb3n ha cambiado\n"
 )
 

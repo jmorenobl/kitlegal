@@ -147,7 +147,10 @@ type malFormadoEsperado struct {
 // Desde H7.4 (contracts/lista-de-expresiones.md §1 y §2; FR-030, FR-031), la
 // lista bien formada tiene sus cinco claves, y la familia redaccion_no_leida y
 // las formas_fijas quedan también en Conjunto.Prohibidas; y cada lista mal
-// formada lo está solo por su defecto. Y cada eval se lee
+// formada lo está solo por su defecto. Desde H24
+// (contracts/skill-boe-legislacion.md §4; FR-085), tiene seis: la clave
+// salida_de_las_herramientas queda también en Conjunto.Prohibidas, y la lista de
+// cinco claves de H7.4, sin ella, es un fichero mal formado. Y cada eval se lee
 // con sus claves de H7.4 (contracts/evals-y-juicio.md §1 y §5; FR-003, FR-004,
 // FR-053): las de legal-core, con la skill que no se activa en NoSeActivan, y la
 // positiva de los dos bloques de la LCSP, con sus redacciones modificadas en
@@ -180,20 +183,22 @@ func TestLeerConjunto(t *testing.T) {
 	}
 	sinLaForma := "no tiene la forma <nn>-<descripción>.yaml"
 
-	// Lo que se lee de listaBienFormada, la del test del esquema con sus cinco
-	// claves; y las dos claves de H7.4 bien formadas, para que la lista sin una
-	// familia de H7.3 lo esté solo por eso.
+	// Lo que se lee de listaBienFormada, la del test del esquema con sus seis
+	// claves; las dos claves de H7.4 bien formadas; y esas dos con la de H24, para
+	// que la lista sin una familia de H7.3 lo esté solo por eso.
 	lista := ExpresionesProhibidas{
-		Maquinaria:       []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
-		OtraConversacion: []string{"te dije", "conversaci\xc3\xb3n anterior"},
-		Anuncio:          []string{"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
-		RedaccionNoLeida: []string{"ya no exige", "se elimin\xc3\xb3"},
+		Maquinaria:              []string{"memoria de consultas", "hallazgos", "c\xc3\xb3digo de salida"},
+		OtraConversacion:        []string{"te dije", "conversaci\xc3\xb3n anterior"},
+		Anuncio:                 []string{"que trasladar", "ya puedo responder", "as\xc3\xad que respondo"},
+		RedaccionNoLeida:        []string{"ya no exige", "se elimin\xc3\xb3"},
+		SalidaDeLasHerramientas: []string{"el sobre", "fecha_vigencia"},
 		FormasFijas: []string{
 			"\xe2\x9a\xa0 REDACCI\xc3\x93N MODIFICADA: <cita>: vigente desde <fecha>.",
 			"No se ha podido comprobar si la redacci\xc3\xb3n ha cambiado",
 		},
 	}
 	clavesDeH74 := redaccionNoLeidaBienFormada + formasFijasBienFormadas
+	demasClaves := clavesDeH74 + salidaDeLasHerramientasBienFormada
 
 	casos := []casoDeLeerConjunto{
 		{
@@ -273,7 +278,7 @@ func TestLeerConjunto(t *testing.T) {
 				{nombre: "02-no-activa-programacion.yaml", contenido: contenidoDeProgramacion},
 				{
 					nombre:    ficheroDeExpresionesProhibidas,
-					contenido: maquinariaBienFormada + anuncioBienFormado + clavesDeH74,
+					contenido: maquinariaBienFormada + anuncioBienFormado + demasClaves,
 				},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
@@ -289,7 +294,7 @@ func TestLeerConjunto(t *testing.T) {
 			entradas: []entradaDeConjunto{
 				{
 					nombre:    ficheroDeExpresionesProhibidas,
-					contenido: maquinariaBienFormada + otraConversacionBienFormada + clavesDeH74,
+					contenido: maquinariaBienFormada + otraConversacionBienFormada + demasClaves,
 				},
 				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
 			},
@@ -297,6 +302,24 @@ func TestLeerConjunto(t *testing.T) {
 			malFormados: []malFormadoEsperado{
 				{fichero: ficheroDeExpresionesProhibidas, fragmento: "missing property 'anuncio'"},
 			},
+		},
+		{
+			// La lista de cinco claves de H7.4, sin la de H24, está mal formada:
+			// el conjunto queda sin lista (FR-085 de H24).
+			nombre: "lista-sin-salida-de-las-herramientas",
+			entradas: []entradaDeConjunto{
+				{
+					nombre: ficheroDeExpresionesProhibidas,
+					contenido: maquinariaBienFormada + otraConversacionBienFormada + anuncioBienFormado +
+						clavesDeH74,
+				},
+				{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
+			},
+			evals: []Eval{leidaDelArticulo21},
+			malFormados: []malFormadoEsperado{{
+				fichero:   ficheroDeExpresionesProhibidas,
+				fragmento: "missing property 'salida_de_las_herramientas'",
+			}},
 		},
 		{
 			nombre: "lista-con-una-familia-repetida",
@@ -309,7 +332,7 @@ func TestLeerConjunto(t *testing.T) {
 			},
 			evals: []Eval{leidaDelArticulo21},
 			malFormados: []malFormadoEsperado{
-				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 18"},
+				{fichero: ficheroDeExpresionesProhibidas, fragmento: "maquinaria repetido en las l\xc3\xadneas 1 y 21"},
 			},
 		},
 		{
@@ -1746,8 +1769,9 @@ func entradasDelInforme(t *testing.T, ruta string) []entradaDelInforme {
 
 // listaDelRepositorio es la lista de expresiones prohibidas de
 // evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
-// TestEvalsDelRepositorio. Tiene expresiones en sus cuatro familias y formas
-// fijas: sin ellas, los tests que la aplican pasarían en vacío.
+// TestEvalsDelRepositorio. Tiene expresiones en sus cuatro familias, las de lo
+// que devuelven las herramientas y formas fijas: sin ellas, los tests que la
+// aplican pasarían en vacío.
 func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas {
 	t.Helper()
 
@@ -1760,6 +1784,8 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 		evalsDelRepositorio)
 	require.NotEmpty(t, lista.RedaccionNoLeida, "%s tiene lista de expresiones prohibidas, con las de la redacción "+
 		"no leída", evalsDelRepositorio)
+	require.NotEmpty(t, lista.SalidaDeLasHerramientas, "%s tiene lista de expresiones prohibidas, con las de lo que "+
+		"devuelven las herramientas", evalsDelRepositorio)
 	require.NotEmpty(t, lista.FormasFijas, "%s tiene lista de expresiones prohibidas, con sus formas fijas",
 		evalsDelRepositorio)
 
@@ -1767,25 +1793,59 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 }
 
 // textoAMirar es un texto que no puede llevar ninguna expresión prohibida, con
-// lo que lo nombra en un fallo.
+// lo que lo nombra en un fallo: un párrafo de la prosa de un SKILL.md.
 type textoAMirar struct {
 	nombre string
-	texto  string
+
+	// texto es el párrafo con cada tramo de código en línea cambiado por un
+	// espacio: en él se buscan las cuatro familias de la lista.
+	texto string
+
+	// conCodigo es el párrafo con cada tramo de código en línea sin sus acentos
+	// graves y con su texto: en él se busca lo que devuelven las herramientas,
+	// que un SKILL.md escribe como código (contracts/skill-boe-legislacion.md §4
+	// de H24).
+	conCodigo string
 }
 
 // expresionesEn da una línea por cada texto que lleva alguna expresión de la
 // lista, con su nombre y las expresiones que lleva, en el orden de los textos; o
-// nil si ninguno lleva ninguna.
+// nil si ninguno lleva ninguna. Las de las cuatro familias se buscan en el texto
+// sin su código en línea, con ExtraerExpresionesProhibidas, y van delante; las
+// de lo que devuelven las herramientas, en el texto con él, con
+// salidaDeLasHerramientasEn.
 func expresionesEn(textos []textoAMirar, lista ExpresionesProhibidas) []string {
 	var lineas []string
 
 	for _, texto := range textos {
-		if encontradas := ExtraerExpresionesProhibidas(texto.texto, lista); len(encontradas) > 0 {
+		encontradas := slices.Concat(ExtraerExpresionesProhibidas(texto.texto, lista),
+			salidaDeLasHerramientasEn(texto.conCodigo, lista))
+		if len(encontradas) > 0 {
 			lineas = append(lineas, texto.nombre+": "+strings.Join(encontradas, ", "))
 		}
 	}
 
 	return lineas
+}
+
+// salidaDeLasHerramientasEn son las expresiones de la clave
+// salida_de_las_herramientas de la lista que lleva el texto, en el orden de la
+// lista y sin repetir, o nil si no lleva ninguna. La comparación es la de las
+// familias, formaDeExpresion: las palabras de la expresión en su orden, sin
+// distinguir mayúsculas y sin letra ni cifra a los lados, de modo que «del
+// sobre» no es «el sobre» y fecha_vigencia_reciente sí lleva fecha_vigencia
+// (contracts/skill-boe-legislacion.md §4 de H24; FR-085). No quita las formas
+// fijas: se aplica a la prosa de un SKILL.md, no a una respuesta.
+func salidaDeLasHerramientasEn(texto string, lista ExpresionesProhibidas) []string {
+	var encontradas []string
+
+	for _, expresion := range lista.SalidaDeLasHerramientas {
+		if !slices.Contains(encontradas, expresion) && formasDeExpresiones.forma(expresion).MatchString(texto) {
+			encontradas = append(encontradas, expresion)
+		}
+	}
+
+	return encontradas
 }
 
 // articuloLeido es lo que estas pruebas miran de la data de boe articulo --json:
@@ -1864,7 +1924,9 @@ func bloquesDeTexto(markdown string) []string {
 // prosa del SKILL.md de boe-legislacion, frontmatter incluido, lleva ninguna
 // expresión de la lista, y ninguna línea del fichero lleva una fecha AAAAMMDD
 // escrita con cifras. El fichero tiene prosa: sin ella, la subprueba pasaría en
-// vacío.
+// vacío. Desde H24 (contracts/skill-boe-legislacion.md §4; FR-085, FR-110,
+// SC-010), tampoco lleva ninguna de las de lo que devuelven las herramientas,
+// ni escrita como código en línea: es el control de ese umbral, 0 usos.
 func probarProsaDeLaSkill(t *testing.T, lista ExpresionesProhibidas) {
 	t.Helper()
 
@@ -1894,8 +1956,10 @@ var (
 	elementoDeLista = regexp.MustCompile(`^[ \t]*(?:[-*]|[0-9]+\.) `)
 
 	// codigoEnLinea casa con un tramo de código en línea, que en la prosa se
-	// cambia por un espacio para que no junte las palabras de sus lados.
-	codigoEnLinea = regexp.MustCompile("`[^`]*`")
+	// cambia por un espacio para que no junte las palabras de sus lados. El
+	// grupo es su texto, sin los acentos graves: lo que queda de él donde se
+	// busca lo que devuelven las herramientas.
+	codigoEnLinea = regexp.MustCompile("`([^`]*)`")
 
 	// fechaConCifras casa con una fecha AAAAMMDD escrita con cifras: ocho
 	// cifras, sin otra delante ni detrás, con un mes de 01 a 12 y un día de 01 a
@@ -1907,7 +1971,10 @@ var (
 // (parrafosDeLaProsa) que lleva alguna expresión de la lista, con el número de
 // su primera línea y las expresiones, en el orden del fichero, y detrás una por
 // cada línea del fichero entero, sin quitar nada, que lleva una fecha AAAAMMDD
-// escrita con cifras, con su número y sus fechas; o nil si no hay ninguna.
+// escrita con cifras, con su número y sus fechas; o nil si no hay ninguna. Las
+// expresiones de un párrafo son las de expresionesEn: las de las cuatro
+// familias, que no miran su código en línea, y las de lo que devuelven las
+// herramientas, que sí.
 func defectosDeLaProsa(markdown string, lista ExpresionesProhibidas) []string {
 	defectos := expresionesEn(parrafosDeLaProsa(markdown), lista)
 
@@ -1935,7 +2002,9 @@ func defectosDeLaProsa(markdown string, lista ExpresionesProhibidas) []string {
 // delimitados ni la región generada, partido en párrafos por las líneas en
 // blanco, por las de esos bloques y de esa región y por cada línea que abre un
 // elemento de lista, con las líneas de cada párrafo juntas con un espacio, sin su
-// sangría, y cada tramo de código en línea cambiado por un espacio. Como en
+// sangría, y cada tramo de código en línea cambiado por un espacio. Cada párrafo
+// va además con su código en línea (conCodigo): cada tramo, sin sus acentos
+// graves y con su texto (contracts/skill-boe-legislacion.md §4 de H24). Como en
 // CommonMark, un bloque o una región que no se cierran llegan hasta el final.
 func parrafosDeLaProsa(markdown string) []textoAMirar {
 	var (
@@ -1947,9 +2016,11 @@ func parrafosDeLaProsa(markdown string) []textoAMirar {
 
 	cerrarElParrafo := func() {
 		if len(lineas) > 0 {
+			parrafo := strings.Join(lineas, " ")
 			parrafos = append(parrafos, textoAMirar{
-				nombre: fmt.Sprintf("párrafo de la línea %d", primera),
-				texto:  codigoEnLinea.ReplaceAllString(strings.Join(lineas, " "), " "),
+				nombre:    fmt.Sprintf("párrafo de la línea %d", primera),
+				texto:     codigoEnLinea.ReplaceAllString(parrafo, " "),
+				conCodigo: codigoEnLinea.ReplaceAllString(parrafo, "${1}"),
 			})
 		}
 
@@ -2002,13 +2073,52 @@ func parrafosDeLaProsa(markdown string) []textoAMirar {
 // el orden de la lista. Una fecha AAAAMMDD con cifras cuenta en cualquier parte
 // del fichero, también dentro de un bloque; AAAAMMDD, un identificador BOE-A-…,
 // nueve cifras o un mes o un día imposibles, no.
+//
+// Desde H24 (contracts/skill-boe-legislacion.md §4; FR-085, FR-110, SC-010),
+// fija también lo que devuelven las herramientas, la clave
+// salida_de_las_herramientas de la lista, que se busca en toda la prosa con su
+// código en línea: los dos párrafos de SKILL.md v0.1.6 que señala el hito, tal
+// cual, dan su defecto con sus expresiones; el nombre de un campo en un tramo de
+// código cuenta, y graph check en otro del mismo párrafo sigue sin contar; en un
+// bloque delimitado y en la región generada no cuenta ninguna; «del sobre», «el
+// mismo sobre» y «sobre el texto» no son «el sobre», y fecha_vigencia_reciente sí
+// lleva fecha_vigencia; no distingue mayúsculas; y en un párrafo van detrás de
+// las de las familias.
 func TestProsaDeLaSkill(t *testing.T) {
 	t.Parallel()
 
+	// Los dos párrafos de SKILL.md v0.1.6 con las frases que señala FR-085 de
+	// H24, con sus líneas y su sangría: el de la vigencia, del paso 5, y el de la
+	// redacción superada, de «Redacción modificada».
+	const (
+		vigenciaDeLaVersionAnterior = "- Traslada cada aviso de vigencia del sobre con su forma fija: `⚠`, la " +
+			"etiqueta del aviso tal como la da el binario y\n" +
+			"  dos puntos, seguidos de la frase del binario o de una explicación (más en «Cómo se cita»). De la " +
+			"vigencia del bloque,\n" +
+			"  la respuesta dice lo que trae el sobre de `kitlegal boe`: sus avisos y, de la redacción leída, qué " +
+			"norma la dio\n" +
+			"  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`). Hasta cuándo, nunca: ningún sobre " +
+			"trae el fin de una\n" +
+			"  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin " +
+			"fuente. El de\n" +
+			"  `kitlegal graph check` no dice nada de ella. Recuerda que los textos consolidados del BOE tienen " +
+			"carácter informativo.\n" //nolint:misspell // «informativo» es español: el párrafo va tal cual.
+		redaccionSuperadaDeLaVersionAnterior = "- **La redacción superada no la has leído.** `kitlegal boe " +
+			"articulo` da solo la redacción vigente, y\n" +
+			"  `kitlegal graph check`, dos fechas: nada de lo que devuelven dice qué decía la redacción superada " +
+			"ni en qué se\n" +
+			"  diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas " +
+			"saberlo: sería texto\n" +
+			"  legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa " +
+			"redacción\n" +
+			"  (`norma_modificadora`) y desde cuándo rige (`fecha_vigencia`); hasta cuándo, nunca (paso 5).\n"
+	)
+
 	lista := ExpresionesProhibidas{
-		Maquinaria:       []string{"memoria de consultas", "hallazgos", "graph check"},
-		OtraConversacion: []string{"te dije"},
-		Anuncio:          []string{"redacto la respuesta"},
+		Maquinaria:              []string{"memoria de consultas", "hallazgos", "graph check"},
+		OtraConversacion:        []string{"te dije"},
+		Anuncio:                 []string{"redacto la respuesta"},
+		SalidaDeLasHerramientas: []string{"el sobre", "fecha_vigencia", "norma_modificadora"},
 	}
 	region := "<!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->\n"
 	finDeLaRegion := "<!-- fin de la tabla de comandos -->\n"
@@ -2103,6 +2213,50 @@ func TestProsaDeLaSkill(t *testing.T) {
 			nombre: "no-son-fechas",
 			markdown: "Las fechas van como `AAAAMMDD` o AAAAMMDD, en BOE-A-2015-10565, no 123456789, " +
 				"20251301 ni 20250132.\n",
+		},
+		{
+			nombre:   "la-vigencia-de-la-version-anterior",
+			markdown: vigenciaDeLaVersionAnterior,
+			defectos: []string{"párrafo de la línea 1: el sobre, fecha_vigencia, norma_modificadora"},
+		},
+		{
+			nombre:   "la-redaccion-superada-de-la-version-anterior",
+			markdown: redaccionSuperadaDeLaVersionAnterior,
+			defectos: []string{"párrafo de la línea 1: fecha_vigencia, norma_modificadora"},
+		},
+		{
+			nombre:   "un-campo-en-un-tramo-de-codigo",
+			markdown: "Di desde cuándo rige (`fecha_vigencia`) y comprueba con `kitlegal graph check`.\n",
+			defectos: []string{"párrafo de la línea 1: fecha_vigencia"},
+		},
+		{
+			nombre: "la-salida-en-un-bloque-delimitado",
+			markdown: "Por ejemplo:\n\n```text\nel sobre lleva fecha_vigencia y norma_modificadora\n```\n\n" +
+				"Y nada más.\n",
+		},
+		{
+			nombre: "la-salida-en-la-region-generada",
+			markdown: "Antes.\n\n" + region + "\n| `boe_articulo` | el sobre, con `fecha_vigencia` y " +
+				"`norma_modificadora` |\n\n" + finDeLaRegion + "\nDespués.\n",
+		},
+		{
+			nombre:   "no-es-el-sobre",
+			markdown: "Cada aviso del sobre, el mismo sobre y una afirmación sobre el texto.\n",
+		},
+		{
+			nombre:   "un-campo-dentro-de-otro",
+			markdown: "La fecha de la que acabas de leer (`fecha_vigencia_reciente`).\n",
+			defectos: []string{"párrafo de la línea 1: fecha_vigencia"},
+		},
+		{
+			nombre:   "la-salida-sin-distinguir-mayusculas",
+			markdown: "El sobre trae los avisos.\n",
+			defectos: []string{"párrafo de la línea 1: el sobre"},
+		},
+		{
+			nombre:   "la-salida-detras-de-las-familias",
+			markdown: "Si el sobre trae hallazgos, lee `norma_modificadora`.\n",
+			defectos: []string{"párrafo de la línea 1: hallazgos, el sobre, norma_modificadora"},
 		},
 	}
 
