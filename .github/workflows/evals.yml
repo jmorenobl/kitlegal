@@ -12,11 +12,17 @@ on:
         description: "Añade la sesión de prueba de red de la eval 01 de boe-legislacion (SC-012)"
         type: boolean
         default: false
+      # Con ella, el despacho no abre las sesiones de evals: ejecuta la medida del juez, el trabajo medida (ADR 0037).
+      medir_al_juez:
+        description: "Ejecuta la medida del juez de boe-legislacion en lugar de sus evals (ADR 0037)"
+        type: boolean
+        default: false
   # Al abrir (o reabrir) una propuesta de cambio que toque lo que las evals miden, y al poner la etiqueta evals o
   # evals-prueba-de-red en cualquiera, también la que no toca nada de eso (FR-070, FR-082; ADR 0016). Sin schedule: la
   # ejecución semanal sobre main, con el modelo, la versión de Claude Code y las respuestas del BOE fijados, no medía
   # ningún cambio. Sin synchronize: cada ejecución abre decenas de sesiones con modelo, y un hito empuja muchas veces;
-  # la etiqueta es el botón de «vuelve a medir», y es lo que usa la ejecución de cierre.
+  # la etiqueta es el botón de «vuelve a medir», y es lo que usa la ejecución de cierre. La etiqueta evals-medir-juez no
+  # mide la skill: lanza la medida del juez, que solo corre con ella o con la entrada medir_al_juez del despacho.
   pull_request:
     types: [opened, reopened, labeled]
 
@@ -67,12 +73,14 @@ jobs:
   # etiqueta evals o evals-prueba-de-red, o la apertura que toca lo que las evals miden— y decide si mide: no mide si una
   # ejecución anterior del flujo sobre el mismo commit, sin terminar, ya mide. Espera, como mucho unos segundos, a que
   # decidan las anteriores; nunca a su tanda. Su último paso es la marca que leen las posteriores. Sin concurrency: ni
-  # queda en espera ni se cancela, y no deja nunca una comprobación roja por decidir no medir.
+  # queda en espera ni se cancela, y no deja nunca una comprobación roja por decidir no medir. El despacho con la entrada
+  # medir_al_juez no quiere medir la skill sino al juez, y no la corre; la etiqueta evals-medir-juez tampoco, porque no
+  # es ninguna de las suyas y cambios no corre con labeled.
   tanda:
     needs: [cambios]
     if: >-
       !cancelled() && needs.cambios.result != 'failure' && (
-        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'workflow_dispatch' && inputs.medir_al_juez != true) ||
         github.event.label.name == 'evals' ||
         github.event.label.name == 'evals-prueba-de-red' ||
         needs.cambios.outputs.coincide == 'si'
@@ -153,11 +161,14 @@ jobs:
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
     # cada skill, que TestDefinicionDelJob recalcula con las evals del repositorio (FR-035 y FR-052 de H7.3; research.md
-    # D13 de H7.3). 240 minutos: el peor caso de boe-legislacion con sus 21 evals en tres tandas —las sesiones del modo
-    # orden, las del modo herramienta y las de la eval sin binario ni servidor— es de 14 357 s, 239,3 minutos (FR-083 de
-    # H21; specs/015-h21-kitlegal-mcp-serve/research.md D20). Con 21 evals, el de un solo modo ya es de 7557 s y no cabe
-    # en los 122 minutos de antes.
-    timeout-minutes: 240
+    # D13 de H7.3). 352 minutos: el peor caso de boe-legislacion es de 21 097 s, 351,6 minutos. Son los 14 357 s de sus
+    # sesiones, con sus 21 evals en tres tandas —las del modo orden, las del modo herramienta y las de la eval sin
+    # binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md D20), más lo que añade su juez:
+    # 60 s de instalar su Claude Code y 167 tandas de votos de 40 s, el tope de un voto y su margen. Las tandas son, por
+    # grupo, los 6 votos que como mucho pide cada respuesta, a 4 respuestas a la vez: 81, 81 y 5, con las 54, 54 y 3
+    # respuestas que juzga (FR-092 de H24; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). Cabe en las 6
+    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, no cambia.
+    timeout-minutes: 352
     permissions:
       contents: read
     env:
@@ -208,6 +219,10 @@ jobs:
             go.sum
             tools/*/go.sum
 
+      # Dos Claude Code: el de las sesiones, global, y el de los votos del juez, en un prefijo aparte y en su propia
+      # versión; su ruta queda en CLAUDE_DEL_JUEZ para los pasos siguientes. Si npm no deja el ejecutable en
+      # node_modules/.bin de ese prefijo, el paso falla al pedir su versión, antes de abrir ninguna sesión
+      # (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2; research.md S1).
       - name: Instalar strace y Claude Code
         shell: bash
         run: |
@@ -217,6 +232,9 @@ jobs:
           sudo apt-get install -y strace
           npm install -g "@anthropic-ai/claude-code@${VERSION_DE_CLAUDE_CODE}"
           claude --version
+          npm install --prefix "$RUNNER_TEMP/claude-del-juez" "@anthropic-ai/claude-code@${VERSION_DE_CLAUDE_CODE_DEL_JUEZ}"
+          "$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" --version
+          echo "CLAUDE_DEL_JUEZ=$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" >> "$GITHUB_ENV"
 
       - name: Instalar kitlegal y las skills como las deja make install
         shell: bash
@@ -252,6 +270,9 @@ jobs:
           usados=("$GITHUB_WORKSPACE" "$HOME/.claude" "$HOME/.agents")
           kitlegal=$(readlink -e "$(command -v kitlegal)")
           usados+=("$kitlegal")
+          # El Claude Code del juez no está en el PATH: es la ruta que dejó el paso de instalación, y su enlace resuelto.
+          del_juez=$(readlink -e "$CLAUDE_DEL_JUEZ")
+          usados+=("$CLAUDE_DEL_JUEZ" "$del_juez")
           for orden in bash sudo find rm timeout strace claude node go make git; do
             if ! ruta=$(command -v "$orden"); then echo "falta $orden" >&2; exit 1; fi
             real=$(readlink -e "$ruta")
@@ -304,3 +325,61 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: make evals SKILL="$SKILL_EVALUADA"
+
+  # La medida del juez (ADR 0037; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §3): vota los casos
+  # etiquetados de la skill e imprime medida.json, que versiona una persona. Solo corre con la etiqueta evals-medir-juez
+  # o con la entrada medir_al_juez del despacho, y entonces tanda y evals no corren: no abre sesiones de evals, y por eso
+  # no depende de tanda, no instala strace ni las skills y no retira Python. No es un paso de evals, cuyo informe lee el
+  # cierre por el nombre del trabajo y cuyo tope es otro. Repite el modelo del juez y la versión de Claude Code de sus
+  # votos del trabajo evals, y TestDefinicionDelJob exige en make ci que coincidan. Su tope cubre el peor caso de la
+  # medida, que ese test recalcula con los casos del repositorio: 16 105 s, 268,4 minutos, con los 485 s de fuera de los
+  # votos, los 60 s de instalar el Claude Code del juez y 389 tandas de 40 s, las de los 6 votos que como mucho pide cada
+  # uno de sus 259 casos, a 4 a la vez.
+  medida:
+    name: medida del juez (${{ matrix.skill }})
+    if: github.event.label.name == 'evals-medir-juez' || inputs.medir_al_juez == true
+    strategy:
+      fail-fast: false
+      matrix:
+        skill: [boe-legislacion]
+        include:
+          - skill: boe-legislacion
+            concurrencia: 4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 269
+    permissions:
+      contents: read
+    env:
+      MODELO_DEL_JUEZ: claude-opus-5-5
+      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: 2.1.289
+      CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
+      SKILL_EVALUADA: ${{ matrix.skill }}
+      COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Obtener el código del commit evaluado
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Instalar Go y restaurar la caché
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            tools/*/go.sum
+
+      - name: Instalar el Claude Code del juez
+        shell: bash
+        run: |
+          # Las opciones las fija el propio paso (research.md V56).
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/claude-del-juez" "@anthropic-ai/claude-code@${VERSION_DE_CLAUDE_CODE_DEL_JUEZ}"
+          "$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" --version
+          echo "CLAUDE_DEL_JUEZ=$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" >> "$GITHUB_ENV"
+
+      - name: Ejecutar la medida del juez
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: make evals-medir-juez SKILL="$SKILL_EVALUADA"
