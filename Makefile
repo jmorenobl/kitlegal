@@ -56,8 +56,9 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources evals evals-sondeo skills-sync secrets mod-verify mod-tidy-check \
-	goreleaser-check release snapshot-check plugin-check web web-dev web-citas check-web-tools check-tools hooks ci help
+	vuln schema-check skills-check verify-sources evals evals-sondeo evals-medir-juez skills-sync secrets \
+	mod-verify mod-tidy-check goreleaser-check release snapshot-check plugin-check web web-dev web-citas \
+	check-web-tools check-tools hooks ci help
 
 ## build: construye bin/kitlegal con los datos de versión inyectados
 build: check-tools
@@ -142,6 +143,16 @@ evals: check-tools
 ## evals-sondeo: sondeo local de unas evals de una skill con Claude Code, sin strace ni veredicto (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN)
 evals-sondeo: check-tools
 	@scripts/evals-sondeo-llavero.sh "$(SKILL)" "$(EVALS)" "$(MODELO)" "$(REPETICIONES)" "$(CONCURRENCIA)"
+
+# La medida del juez no es de una ejecución normal del job de evals: la lanza
+# una persona, con la etiqueta evals-medir-juez en una propuesta de cambio o con
+# la entrada medir_al_juez del flujo lanzado a mano, cuando cambia la rúbrica,
+# los casos, el modelo del juez o su versión de Claude Code, y es ella quien
+# versiona la medida que se imprime; ningún paso del workflow `hito` la lanza
+# (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §3; docs/ADR/0037).
+## evals-medir-juez: ejecuta la medida del juez de una skill con Claude Code e imprime medida.json, sin escribirla en el repositorio (consume la suscripción; fuera de ci)
+evals-medir-juez: check-tools
+	scripts/evals-medir-juez.sh "$(SKILL)"
 
 ## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools

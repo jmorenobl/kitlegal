@@ -60,7 +60,10 @@ var (
 // del job de una skill con juez (contracts/job-de-evals.md §2 de H24): el modelo
 // del juez y la versión de Claude Code de sus votos, los fijados en la
 // definición del job, y el claude de esa versión, que no es el de las sesiones.
-// Con una skill sin juez no las pasa ni se miran.
+// Con una skill sin juez no las pasa ni se miran. Son también, con -skill,
+// -concurrencia, -commit y -salida, las de la ejecución de la medida del juez,
+// con las que la invoca scripts/evals-medir-juez.sh (contracts/job-de-evals.md
+// §3 de H24).
 var (
 	banderaModeloDelJuez  = flag.String("modelo-del-juez", "", "id del modelo del juez de la skill")
 	banderaVersionDelJuez = flag.String("version-del-juez", "", "versión de Claude Code de los votos del juez")
@@ -80,10 +83,15 @@ var (
 
 // Banderas con las que el paso decidir del trabajo tanda invoca, tras -args, la
 // decisión de la tanda, además de -commit (contracts/tanda-del-job.md §1 y §3
-// de H7.4): su ejecución del flujo y su GITHUB_OUTPUT.
+// de H7.4): su ejecución del flujo y su GITHUB_OUTPUT. -salida es además la
+// bandera con la que scripts/evals-medir-juez.sh dice a la ejecución de la
+// medida del juez en qué fichero la escribe (contracts/medida-del-juez.md §7 de
+// H24).
 var (
 	banderaEjecucion = flag.String("ejecucion", "", "databaseId de la ejecución del flujo evals que decide si mide")
-	banderaSalida    = flag.String("salida", "", "fichero al que se añade la línea medir=si o medir=no")
+	banderaSalida    = flag.String("salida", "",
+		"en la decisión de la tanda, fichero al que se añade la línea medir=si o medir=no; en la medida del juez, "+
+			"fichero en el que se escribe la medida")
 )
 
 // Banderas con las que el quickstart invoca, tras -args, la comprobación de la
@@ -221,13 +229,14 @@ func TestEjecucionDelJob(t *testing.T) {
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
 }
 
-// votanteDelJuez da el votante del juez de la skill en el job, el que abre cada
-// voto con scripts/evals-voto.sh (nuevoVotanteDelGuion; contracts/job-de-evals.md
-// §2 y contracts/juez-y-voto.md §4 de H24), y deja para el final del test la
-// retirada de su directorio. Exige las tres banderas del juez, que
-// scripts/evals.sh pasa con una skill que lo tiene. El PATH de los votos es el
-// del job con el directorio de -claude-del-juez delante (pathDelJuez), su
-// credencial es la del job, y su contexto, el de las señales del punto de
+// votanteDelJuez da el votante del juez de la skill en el job y en la ejecución
+// de su medida, el que abre cada voto con scripts/evals-voto.sh
+// (nuevoVotanteDelGuion; contracts/job-de-evals.md §2 y contracts/juez-y-voto.md
+// §4 de H24), y deja para el final del test la retirada de su directorio. Exige
+// las tres banderas del juez, que scripts/evals.sh pasa con una skill que lo
+// tiene y scripts/evals-medir-juez.sh, siempre. El PATH de los votos es el de
+// quien lo lanza con el directorio de -claude-del-juez delante (pathDelJuez),
+// su credencial es la suya, y su contexto, el de las señales del punto de
 // entrada, de modo que SIGINT y SIGTERM cortan los votos abiertos.
 func votanteDelJuez(senales context.Context, t *testing.T, juez *Juez) Votante {
 	t.Helper()
@@ -267,6 +276,76 @@ func enteroDeLaBandera(t *testing.T, nombre string) int {
 	require.NoErrorf(t, err, "la bandera -%s es un entero", nombre)
 
 	return entero
+}
+
+// TestMedidaDelJuez es la ejecución de la medida del juez de una skill, entera
+// y en una sola orden (contracts/medida-del-juez.md §7 y
+// contracts/job-de-evals.md §3 de H24; FR-050 a FR-054 de H24):
+//
+//  1. exige sus banderas —-skill, -modelo-del-juez, -version-del-juez,
+//     -claude-del-juez, -concurrencia, -commit y -salida— y lee el juez de la
+//     skill de sus evals de la raíz del repositorio. Falla si el directorio
+//     tiene algún fichero mal formado: con la carpeta del juez mal formada no
+//     hay juez que medir, y la reconstrucción de los casos necesita las evals;
+//  2. prepara el votante que abre cada voto con scripts/evals-voto.sh
+//     (votanteDelJuez), con el directorio de -claude-del-juez delante en su
+//     PATH y el contexto de SIGINT y SIGTERM, que cortan los votos abiertos:
+//     sus casos quedan sin juzgar;
+//  3. llama a medirAlJuez con el reconstructor de la skill, el modelo y la
+//     versión de sus banderas, que van a la medida tal cual, -concurrencia
+//     casos a la vez, el commit y el instante en el que se lanza. No comprueba
+//     la medida versionada ni abre ninguna sesión de evals (FR-043, FR-051);
+//  4. escribe en el fichero de -salida el texto de la medida, si medirAlJuez da
+//     alguno: es el que su guion imprime entre sus dos marcas (FR-052). Con
+//     algún caso sin juzgar no hay texto y no escribe nada (FR-053). No escribe
+//     en ningún otro sitio, tampoco en el repositorio (FR-054);
+//  5. falla con el error de medirAlJuez, que nombra cada caso: el defecto que
+//     no queda marcado y el correcto que queda marcado, con la medida ya
+//     escrita, o el que queda sin juzgar, con su motivo.
+//
+// Solo lo ejecuta scripts/evals-medir-juez.sh, porque abre sesiones con modelo;
+// lo que decide lo fija TestEjecucionDeLaMedida, y la orden que lo ejecuta y lo
+// que su guion hace con el fichero de -salida, TestGuionDeLaMedida.
+func TestMedidaDelJuez(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "skill", "modelo-del-juez", "version-del-juez", "claude-del-juez", "concurrencia", "commit",
+		"salida")
+
+	concurrencia := enteroDeLaBandera(t, "concurrencia")
+
+	evals := filepath.Join(directorioDeEvalsDeLasSkills, *banderaSkill)
+
+	conjunto, err := LeerConjunto(evals)
+	require.NoError(t, err)
+	require.Empty(t, conjunto.MalFormados, "el directorio de evals no tiene ficheros mal formados")
+
+	senales, dejarDeEscuchar := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
+	defer dejarDeEscuchar()
+
+	// Sin juez no hay con qué preparar el votante: medirAlJuez dice que la
+	// skill no lo tiene.
+	var votar Votante
+	if conjunto.Juez != nil {
+		votar = votanteDelJuez(senales, t, conjunto.Juez)
+	}
+
+	texto, err := medirAlJuez(nuevoReconstructor(evals), MedicionDelJuez{
+		Skill:          *banderaSkill,
+		Juez:           conjunto.Juez,
+		Votar:          votar,
+		ModeloDelJuez:  *banderaModeloDelJuez,
+		VersionDelJuez: *banderaVersionDelJuez,
+		Concurrencia:   concurrencia,
+		Commit:         *banderaCommit,
+		Fecha:          time.Now(),
+	})
+
+	if texto != "" {
+		require.NoError(t, os.WriteFile(*banderaSalida, []byte(texto), 0o600))
+	}
+
+	require.NoError(t, err)
 }
 
 // TestSondeo es el sondeo local de unas evals de una skill, entero y en una sola

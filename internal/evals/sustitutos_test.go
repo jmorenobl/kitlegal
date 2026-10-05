@@ -436,18 +436,15 @@ func argumentosAnotados(t *testing.T, anotaciones string) []string {
 	return strings.Split(strings.TrimSuffix(string(contenido), "\x00"), "\x00")
 }
 
-// sustitutoDeGo es el go que TestGuionDelSondeo pone delante en el PATH en
-// lugar del de verdad, que construiría el paquete de evals y abriría el sondeo
-// con modelo (research D18 de H7.3; FR-068): crea go/ en el directorio común,
-// que falla si ya se ejecutó, y anota en él su directorio de trabajo, su
-// TMPDIR, sus argumentos, cada uno terminado en NUL, y lo que hay en el
-// -temporal que recibe; deja un directorio en su TMPDIR, como el de trabajo de
-// go y la preparación de cada sesión, y no lo borra, como cuando go test muere
-// sin llegar a hacerlo; escribe en el temporal salida.txt con
-// salidaDelSustitutoDeGo; escribe una línea en su salida estándar y otra en la
-// de error; y sale con el código de KITLEGAL_SUSTITUTO_CODIGO. Nada de lo que
-// escribe lleva comillas simples, porque va entre ellas en el guion.
-const sustitutoDeGo = `#!/bin/sh
+// principioDelSustitutoDeGo es con lo que empieza el go que los tests de los
+// guiones que ejecutan go test ponen delante en el PATH en lugar del de verdad,
+// que construiría el paquete de evals y abriría sesiones con modelo (research
+// D18 de H7.3; FR-068 de H7.3; FR-093 de H24): crea go/ en el directorio común,
+// que falla si ya se ejecutó, y anota en él su directorio de trabajo, su TMPDIR
+// y sus argumentos, cada uno terminado en NUL; y deja un directorio en su
+// TMPDIR, como el de trabajo de go y la preparación de cada sesión, y no lo
+// borra, como cuando go test muere sin llegar a hacerlo.
+const principioDelSustitutoDeGo = `#!/bin/sh
 set -eu
 anotaciones="$KITLEGAL_SUSTITUTO_COMUN/go"
 mkdir "$anotaciones"
@@ -455,7 +452,21 @@ pwd -P > "$anotaciones/directorio"
 printf '%s\n' "$TMPDIR" > "$anotaciones/tmpdir"
 mkdir "$TMPDIR/go-build-del-sustituto"
 printf '%s\0' "$@" > "$anotaciones/argumentos"
-temporal=
+`
+
+// finalDelSustitutoDeGo es con lo que termina: escribe una línea en su salida
+// estándar y otra en la de error, que son el registro de go test, y sale con el
+// código de KITLEGAL_SUSTITUTO_CODIGO.
+const finalDelSustitutoDeGo = `echo '` + registroDeGoEnSuSalida + `'
+echo '` + registroDeGoEnLaDeError + `' >&2
+exit "${KITLEGAL_SUSTITUTO_CODIGO:-0}"
+`
+
+// sustitutoDeGo es el go de TestGuionDelSondeo: entre su principio y su final,
+// anota lo que hay en el -temporal que recibe y escribe en él salida.txt con
+// salidaDelSustitutoDeGo. Nada de lo que escribe lleva comillas simples, porque
+// va entre ellas en el guion.
+const sustitutoDeGo = principioDelSustitutoDeGo + `temporal=
 while [ $# -gt 0 ]; do
 	case $1 in
 	-temporal) temporal=$2; shift 2 ;;
@@ -464,10 +475,25 @@ while [ $# -gt 0 ]; do
 done
 ls "$temporal" > "$anotaciones/temporal"
 printf '%s' '` + salidaDelSustitutoDeGo + `' > "$temporal/` + ficheroDeLaSalidaDelSondeo + `"
-echo '` + registroDeGoEnSuSalida + `'
-echo '` + registroDeGoEnLaDeError + `' >&2
-exit "${KITLEGAL_SUSTITUTO_CODIGO:-0}"
-`
+` + finalDelSustitutoDeGo
+
+// sustitutoDeGoDeLaMedida es el go de TestGuionDeLaMedida: entre su principio y
+// su final, anota lo que hay en el directorio del fichero de -salida que recibe
+// y, si KITLEGAL_SUSTITUTO_MEDIDA nombra un fichero, escribe en el de -salida lo
+// que hay en él, como TestMedidaDelJuez cuando medirAlJuez da una medida; sin
+// esa variable no lo escribe, como cuando no da ninguna.
+const sustitutoDeGoDeLaMedida = principioDelSustitutoDeGo + `salida=
+while [ $# -gt 0 ]; do
+	case $1 in
+	-salida) salida=$2; shift 2 ;;
+	*) shift ;;
+	esac
+done
+ls "${salida%/*}" > "$anotaciones/temporal"
+if [ -n "${` + variableDeLaMedida + `:-}" ]; then
+	cat "$` + variableDeLaMedida + `" > "$salida"
+fi
+` + finalDelSustitutoDeGo
 
 // Lo que escribe el sustituto de go: la salida del sondeo, en salida.txt del
 // temporal, y una línea en cada una de sus dos salidas, que son el registro de
@@ -478,14 +504,34 @@ const (
 	registroDeGoEnLaDeError = "go test escribe esto en su salida de error"
 )
 
-// sustitutoGo es el nombre del go que sustituye sustitutoDeGo, el suyo en el
-// PATH y en el directorio común.
+// variableDeLaMedida es la variable con la que TestGuionDeLaMedida da al
+// sustituto de go de la medida el fichero con la medida que escribe; sin ella,
+// no escribe ninguna.
+const variableDeLaMedida = "KITLEGAL_SUSTITUTO_MEDIDA"
+
+// sustitutoGo es el nombre del go que sustituyen sustitutoDeGo y
+// sustitutoDeGoDeLaMedida, el suyo en el PATH y en el directorio común.
 const sustitutoGo = "go"
 
-// escribirElGoDelSondeo escribe el sustituto de go, ejecutable, en un
-// directorio temporal del test, a través de un os.Root, y devuelve ese
+// escribirElGoDelSondeo escribe el sustituto de go del sondeo y devuelve su
 // directorio, que va delante en el PATH del guion del sondeo.
 func escribirElGoDelSondeo(t *testing.T) string {
+	t.Helper()
+
+	return escribirElGo(t, sustitutoDeGo)
+}
+
+// escribirElGoDeLaMedida escribe el sustituto de go de la medida y devuelve su
+// directorio, que va delante en el PATH del guion de la medida.
+func escribirElGoDeLaMedida(t *testing.T) string {
+	t.Helper()
+
+	return escribirElGo(t, sustitutoDeGoDeLaMedida)
+}
+
+// escribirElGo escribe ese sustituto de go, ejecutable, en un directorio
+// temporal del test, a través de un os.Root, y devuelve ese directorio.
+func escribirElGo(t *testing.T, guion string) string {
 	t.Helper()
 
 	bin := t.TempDir()
@@ -495,9 +541,62 @@ func escribirElGoDelSondeo(t *testing.T) string {
 
 	defer func() { require.NoError(t, raiz.Close()) }()
 
-	require.NoError(t, escribirEjecutable(raiz, sustitutoGo, sustitutoDeGo))
+	require.NoError(t, escribirEjecutable(raiz, sustitutoGo, guion))
 
 	return bin
+}
+
+// goAnotado es lo que un sustituto de go anotó de su ejecución: sus
+// argumentos, en su orden; su directorio de trabajo, el físico; su TMPDIR; y lo
+// que había, una entrada por línea, en el directorio que mira —el -temporal
+// del sondeo o el del fichero de -salida de la medida—.
+type goAnotado struct {
+	argumentos []string
+	directorio string
+	tmpdir     string
+	temporal   string
+}
+
+// leerElGoAnotado lee lo que un sustituto de go anotó en el directorio de sus
+// anotaciones, cada anotación sin su salto de línea final.
+func leerElGoAnotado(t *testing.T, anotaciones string) goAnotado {
+	t.Helper()
+
+	anotado := goAnotado{argumentos: argumentosAnotados(t, anotaciones)}
+
+	for anotacion, destino := range map[string]*string{
+		"directorio": &anotado.directorio,
+		"tmpdir":     &anotado.tmpdir,
+		"temporal":   &anotado.temporal,
+	} {
+		contenido, err := leerFichero(filepath.Join(anotaciones, anotacion))
+		require.NoError(t, err)
+
+		*destino = strings.TrimSuffix(string(contenido), "\n")
+	}
+
+	return anotado
+}
+
+// codigoYSalidas ejecuta la orden, ya con su entorno, y devuelve el código con
+// el que termina y lo que escribe en su salida estándar y en la de error. Que
+// no llegue a ejecutarse falla el test.
+func codigoYSalidas(t *testing.T, orden *exec.Cmd) (codigo int, salida, deError string) {
+	t.Helper()
+
+	var estandar, deErr strings.Builder
+
+	orden.Stdout, orden.Stderr = &estandar, &deErr
+
+	var terminada *exec.ExitError
+
+	if err := orden.Run(); errors.As(err, &terminada) {
+		codigo = terminada.ExitCode()
+	} else {
+		require.NoError(t, err)
+	}
+
+	return codigo, estandar.String(), deErr.String()
 }
 
 // entorno es lo que el sustituto de claude anotó que ve en la sesión, por

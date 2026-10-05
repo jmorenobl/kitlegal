@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json/jsontext"
@@ -10,11 +11,13 @@ import (
 	"io/fs"
 	"maps"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -3231,4 +3234,376 @@ func (m medicionQueNoVota) probar(t *testing.T) {
 	require.ErrorContains(t, err, m.dice)
 	assert.Empty(t, texto, "sin votar no hay medida")
 	assert.Zero(t, pedidos.Load(), "no se pide ningún voto")
+}
+
+// guionDeLaMedida es scripts/evals-medir-juez.sh, relativo al directorio de este
+// paquete, que es donde go test ejecuta los tests.
+const guionDeLaMedida = "../../scripts/evals-medir-juez.sh"
+
+// Lo que el guion de la medida imprime alrededor de medida.json, cada marca en
+// su línea (contracts/medida-del-juez.md §7 de H24), y el nombre de ese fichero
+// en su temporal.
+const (
+	inicioDeLaMedidaImpresa   = "--- inicio de medida.json ---\n"
+	finDeLaMedidaImpresa      = "--- fin de medida.json ---\n"
+	ficheroDeLaMedidaDelGuion = "medida.json"
+)
+
+// Las variables obligatorias del guion de la medida que no tienen nombre en el
+// paquete (contracts/job-de-evals.md §3 de H24): cuántos casos se votan a la
+// vez y la ruta del claude del juez.
+const (
+	variableDeLaConcurrencia = "CONCURRENCIA_DE_EVALS"
+	variableDelClaudeDelJuez = "CLAUDE_DEL_JUEZ"
+)
+
+// obligatoriasDelGuionDeLaMedida son las seis variables sin las que el guion de
+// la medida no ejecuta nada, en el orden en el que las mira.
+var obligatoriasDelGuionDeLaMedida = []string{
+	variableDelModeloDelJuez, variableDeLaVersionDelJuez, variableDeLaConcurrencia, variableDelCommitEvaluado,
+	variableDelClaudeDelJuez, variableDeLaSuscripcion,
+}
+
+// Lo que TestGuionDeLaMedida da al guion en las variables del modelo del juez,
+// de la versión de Claude Code de sus votos y de los casos a la vez: en las
+// demás, el commit de la medición, un claude que no hace nada y la suscripción
+// de la base.
+const (
+	modeloDelGuion       = "claude-juez-1-2"
+	versionDelGuion      = "1.2.3"
+	concurrenciaDelGuion = "4"
+)
+
+// Lo que el guion de la medida dice en su salida de error cuando no ejecuta
+// nada: su uso, sin la skill, y el principio de la línea de la variable que
+// falta, que sigue con su nombre.
+const (
+	usoDelGuionDeLaMedida    = "evals-medir-juez: uso: scripts/evals-medir-juez.sh <skill>\n"
+	faltaEnElGuionDeLaMedida = "evals-medir-juez: falta "
+)
+
+// nombreDelTemporalDeLaMedida es el del directorio que el guion de la medida
+// crea en TMPDIR: la plantilla de mktemp, kitlegal-medida-del-juez.XXXXXX, con
+// sus seis caracteres sustituidos.
+var nombreDelTemporalDeLaMedida = regexp.MustCompile(`^kitlegal-medida-del-juez\.[A-Za-z0-9]{6}$`)
+
+// casoDelGuionDeLaMedida es un caso de TestGuionDeLaMedida: la orden que ejecuta
+// el guion de la ruta dada, escrita entera con constantes (gosec G204); lo que
+// cambia en las seis variables obligatorias, que el test da todas; la medida
+// que el sustituto de go escribe, ninguna si está vacía, y el código con el que
+// sale; y lo que se espera del guion: su código, sus dos salidas y si no
+// ejecuta go.
+type casoDelGuionDeLaMedida struct {
+	nombre     string
+	orden      func(ctx context.Context, guion string) *exec.Cmd
+	cambiar    func(t *testing.T, variables map[string]string)
+	medida     string
+	codigoDeGo int
+
+	codigo  int
+	salida  string
+	deError string
+	sinGo   bool
+}
+
+// TestGuionDeLaMedida fija scripts/evals-medir-juez.sh
+// (contracts/medida-del-juez.md §7 y §8 y contracts/job-de-evals.md §3 de H24;
+// FR-050, FR-052 a FR-054) con el sustituto de go de la medida delante en el
+// PATH y un TMPDIR vacío del test, como TestGuionDelSondeo.
+//
+//   - Sin la skill —sin argumentos, con ella vacía, que es lo que da make sin
+//     SKILL, o con un argumento más—, su uso; y sin una de sus seis variables
+//     obligatorias, con ella vacía o con un CLAUDE_DEL_JUEZ que no es un
+//     fichero ejecutable, la línea que dice cuál falta. En todos sale con 1,
+//     con la salida estándar vacía y sin ejecutar go.
+//   - Con todo, crea en TMPDIR su temporal con la plantilla
+//     kitlegal-medida-del-juez.XXXXXX y ejecuta, en la raíz del repositorio y
+//     con el tmp/ de ese temporal como TMPDIR, la orden go test del punto de
+//     entrada de la medida, sin límite de tiempo, con sus banderas tras -args y
+//     -salida con el medida.json de ese temporal, donde aún no hay más que
+//     tmp/. Las dos salidas de go test son las del guion, que no las guarda.
+//   - Si go test escribe la medida, el guion la imprime detrás, entera, entre
+//     sus dos marcas, y sale con el código de go test: 0, u otro si además
+//     falla, que es el defecto sin marcar o el correcto marcado (FR-052).
+//   - Si go test falla sin escribirla, que es el caso sin juzgar, el guion no
+//     imprime ninguna marca y sale con el código de go test (FR-053).
+//
+// En todos los casos el TMPDIR del test queda vacío: la medida y lo que go test
+// deja en su TMPDIR, que el sustituto no borra, están en el temporal, y el
+// guion lo borra. No queda nada escrito fuera de él (FR-054).
+func TestGuionDeLaMedida(t *testing.T) {
+	t.Parallel()
+
+	guion, err := filepath.Abs(guionDeLaMedida)
+	require.NoError(t, err)
+
+	raiz, err := filepath.EvalSymlinks(filepath.Dir(filepath.Dir(guion)))
+	require.NoError(t, err)
+
+	for _, caso := range casosDelGuionDeLaMedida() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			comun, temporal := t.TempDir(), t.TempDir()
+
+			variables := variablesDelGuionDeLaMedida(t)
+			if caso.cambiar != nil {
+				caso.cambiar(t, variables)
+			}
+
+			orden := caso.orden(t.Context(), guion)
+			prepararElGuionDeLaMedida(t, orden, caso, variables, comun, temporal)
+
+			codigo, salida, deError := codigoYSalidas(t, orden)
+
+			assert.Equalf(t, caso.codigo, codigo, "el código del guion, con esta salida de error:\n%s", deError)
+			assert.Equal(t, caso.salida, salida, "la salida estándar del guion")
+			assert.Equal(t, caso.deError, deError, "la salida de error del guion")
+
+			entradas, err := os.ReadDir(temporal)
+			require.NoError(t, err)
+			assert.Empty(t, entradas, "el guion borra su temporal y el TMPDIR queda vacío")
+
+			anotaciones := filepath.Join(comun, sustitutoGo)
+			if caso.sinGo {
+				assert.NoDirExists(t, anotaciones, "sin la skill o sin una variable obligatoria, el guion no ejecuta go")
+
+				return
+			}
+
+			exigirLaOrdenDeLaMedida(t, leerElGoAnotado(t, anotaciones), variables[variableDelClaudeDelJuez], temporal, raiz)
+		})
+	}
+}
+
+// casosDelGuionDeLaMedida son los casos de TestGuionDeLaMedida: los tres en los
+// que el guion ejecuta go test —escribe la medida y sale con 0, falla sin
+// escribirla y la escribe y falla, con dos códigos que no son el 1 de los demás
+// casos—, los tres sin la skill y los de cada variable obligatoria.
+func casosDelGuionDeLaMedida() []casoDelGuionDeLaMedida {
+	cumplida, sinMarcar := medidaDelGuion(0, 0), medidaDelGuion(1, 0)
+
+	casos := []casoDelGuionDeLaMedida{
+		{
+			nombre:  "go-test-escribe-la-medida-y-sale-con-0",
+			orden:   guionDeLaMedidaConLaSkill,
+			medida:  cumplida,
+			codigo:  0,
+			salida:  registroDeGoEnSuSalida + "\n" + inicioDeLaMedidaImpresa + cumplida + finDeLaMedidaImpresa,
+			deError: registroDeGoEnLaDeError + "\n",
+		},
+		{
+			nombre:     "go-test-falla-sin-escribir-la-medida",
+			orden:      guionDeLaMedidaConLaSkill,
+			codigoDeGo: 2,
+			codigo:     2,
+			salida:     registroDeGoEnSuSalida + "\n",
+			deError:    registroDeGoEnLaDeError + "\n",
+		},
+		{
+			nombre:     "go-test-escribe-la-medida-y-falla",
+			orden:      guionDeLaMedidaConLaSkill,
+			medida:     sinMarcar,
+			codigoDeGo: 3,
+			codigo:     3,
+			salida:     registroDeGoEnSuSalida + "\n" + inicioDeLaMedidaImpresa + sinMarcar + finDeLaMedidaImpresa,
+			deError:    registroDeGoEnLaDeError + "\n",
+		},
+		{
+			nombre: "sin-argumentos",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion)
+			},
+			codigo:  1,
+			deError: usoDelGuionDeLaMedida,
+			sinGo:   true,
+		},
+		{
+			nombre: "con-la-skill-vacia",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "")
+			},
+			codigo:  1,
+			deError: usoDelGuionDeLaMedida,
+			sinGo:   true,
+		},
+		{
+			nombre: "con-un-argumento-mas",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, skillDeLaMedicion, otraSkillQueSondea)
+			},
+			codigo:  1,
+			deError: usoDelGuionDeLaMedida,
+			sinGo:   true,
+		},
+	}
+
+	for _, variable := range obligatoriasDelGuionDeLaMedida {
+		casos = append(casos,
+			casoSinLaVariable("sin-"+variable, variable, func(_ *testing.T, variables map[string]string) {
+				delete(variables, variable)
+			}),
+			casoSinLaVariable("con-"+variable+"-vacia", variable, func(_ *testing.T, variables map[string]string) {
+				variables[variable] = ""
+			}))
+	}
+
+	return append(casos, casosDelClaudeQueNoSirve()...)
+}
+
+// casosDelClaudeQueNoSirve son los casos de TestGuionDeLaMedida con un
+// CLAUDE_DEL_JUEZ que tiene valor y no es la ruta de un fichero ejecutable: una
+// en la que no hay nada, la de un fichero sin permiso de ejecución y la de un
+// directorio. Lo que falta es el ejecutable, y la línea es la misma.
+func casosDelClaudeQueNoSirve() []casoDelGuionDeLaMedida {
+	return []casoDelGuionDeLaMedida{
+		casoSinLaVariable("con-un-claude-del-juez-que-no-esta", variableDelClaudeDelJuez,
+			func(t *testing.T, variables map[string]string) {
+				t.Helper()
+
+				variables[variableDelClaudeDelJuez] = filepath.Join(t.TempDir(), sustitutoClaude)
+			}),
+		casoSinLaVariable("con-un-claude-del-juez-que-no-es-ejecutable", variableDelClaudeDelJuez,
+			func(t *testing.T, variables map[string]string) {
+				t.Helper()
+
+				ruta := filepath.Join(t.TempDir(), sustitutoClaude)
+				require.NoError(t, os.WriteFile(ruta, []byte(kitlegalQueNoHaceNada), 0o600))
+
+				variables[variableDelClaudeDelJuez] = ruta
+			}),
+		casoSinLaVariable("con-un-claude-del-juez-que-es-un-directorio", variableDelClaudeDelJuez,
+			func(t *testing.T, variables map[string]string) {
+				t.Helper()
+
+				variables[variableDelClaudeDelJuez] = t.TempDir()
+			}),
+	}
+}
+
+// casoSinLaVariable es el caso de TestGuionDeLaMedida de ese nombre en el que,
+// con la skill y con ese cambio en sus variables, el guion dice que falta esa
+// variable y sale con 1 sin ejecutar go.
+func casoSinLaVariable(nombre, variable string, cambiar func(t *testing.T, variables map[string]string),
+) casoDelGuionDeLaMedida {
+	return casoDelGuionDeLaMedida{
+		nombre:  nombre,
+		orden:   guionDeLaMedidaConLaSkill,
+		cambiar: cambiar,
+		codigo:  1,
+		deError: faltaEnElGuionDeLaMedida + variable + "\n",
+		sinGo:   true,
+	}
+}
+
+// guionDeLaMedidaConLaSkill es la orden que ejecuta el guion de la medida de
+// esa ruta con la skill de la medición, su único argumento.
+func guionDeLaMedidaConLaSkill(ctx context.Context, guion string) *exec.Cmd {
+	return exec.CommandContext(ctx, guion, skillDeLaMedicion)
+}
+
+// medidaDelGuion es la medida que el sustituto de go escribe en
+// TestGuionDeLaMedida: la forma de la que da medirAlJuez, con lo que el test da
+// al guion y con esos dos recuentos.
+func medidaDelGuion(sinMarcar, marcados int) string {
+	return fmt.Sprintf(formaDeLaMedidaDada, skillDeLaMedicion, claseQueDecideEnElRepositorio, fechaDeLaMedidaDada,
+		modeloDelGuion, versionDelGuion, "huella-de-la-rubrica", "huella-de-los-casos",
+		defectosDeLaCopia, sinMarcar, correctosDeLaCopia, marcados, commitDeLaMedicion)
+}
+
+// variablesDelGuionDeLaMedida son las seis variables obligatorias del guion de
+// la medida, por su nombre, con lo que TestGuionDeLaMedida les da: el claude
+// del juez es un fichero ejecutable de un directorio temporal del test, que el
+// guion no llega a ejecutar.
+func variablesDelGuionDeLaMedida(t *testing.T) map[string]string {
+	t.Helper()
+
+	dir := t.TempDir()
+
+	raiz, err := os.OpenRoot(dir)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	require.NoError(t, escribirEjecutable(raiz, sustitutoClaude, kitlegalQueNoHaceNada))
+
+	return map[string]string{
+		variableDelModeloDelJuez:   modeloDelGuion,
+		variableDeLaVersionDelJuez: versionDelGuion,
+		variableDeLaConcurrencia:   concurrenciaDelGuion,
+		variableDelCommitEvaluado:  commitDeLaMedicion,
+		variableDelClaudeDelJuez:   filepath.Join(dir, sustitutoClaude),
+		variableDeLaSuscripcion:    valorDeLaSuscripcion,
+	}
+}
+
+// prepararElGuionDeLaMedida da a la orden del guion de la medida su entorno: el
+// del proceso sin sus credenciales de Claude Code ni ninguna de las variables
+// obligatorias del guion, con el sustituto de go de la medida delante en el
+// PATH, el TMPDIR y el directorio común dados, el código de go del caso, el
+// fichero con la medida que el sustituto escribe, si el caso tiene alguna, y
+// las variables obligatorias dadas.
+func prepararElGuionDeLaMedida(t *testing.T, orden *exec.Cmd, caso casoDelGuionDeLaMedida,
+	variables map[string]string, comun, temporal string,
+) {
+	t.Helper()
+
+	entorno := []string{
+		"TMPDIR=" + temporal,
+		variableDelComun + "=" + comun,
+		variableDeCodigo + "=" + strconv.Itoa(caso.codigoDeGo),
+		variableDelPATH + "=" + escribirElGoDeLaMedida(t) + string(os.PathListSeparator) + os.Getenv(variableDelPATH),
+	}
+
+	if caso.medida != "" {
+		fichero := filepath.Join(t.TempDir(), ficheroDeLaMedidaDelGuion)
+		require.NoError(t, os.WriteFile(fichero, []byte(caso.medida), 0o600))
+
+		entorno = append(entorno, variableDeLaMedida+"="+fichero)
+	}
+
+	for _, variable := range obligatoriasDelGuionDeLaMedida {
+		if valor, esta := variables[variable]; esta {
+			entorno = append(entorno, variable+"="+valor)
+		}
+	}
+
+	orden.Env = sobreLaBase(os.Environ(), entorno,
+		slices.Concat(obligatoriasDelGuionDeLaMedida, accesosDeClaudeCode, []string{variableDeLaMedida})...)
+}
+
+// exigirLaOrdenDeLaMedida exige que el sustituto de go se haya ejecutado en la
+// raíz del repositorio con la orden del punto de entrada de la medida
+// (ordenDeLaMedida), con ese claude del juez y con -salida en un temporal del
+// TMPDIR dado, con el nombre de la plantilla, que solo tenía su tmp/, y con ese
+// tmp/ como TMPDIR.
+func exigirLaOrdenDeLaMedida(t *testing.T, anotado goAnotado, claude, temporal, raiz string) {
+	t.Helper()
+
+	require.NotEmpty(t, anotado.argumentos)
+	temporalDelGuion := filepath.Dir(anotado.argumentos[len(anotado.argumentos)-1])
+
+	fisico, err := filepath.EvalSymlinks(temporal)
+	require.NoError(t, err)
+
+	assert.Equal(t, fisico, filepath.Dir(temporalDelGuion), "el temporal del guion está en TMPDIR")
+	assert.Regexp(t, nombreDelTemporalDeLaMedida, filepath.Base(temporalDelGuion))
+	assert.Equal(t, goAnotado{
+		argumentos: ordenDeLaMedida(claude, temporalDelGuion),
+		directorio: raiz,
+		tmpdir:     filepath.Join(temporalDelGuion, "tmp"),
+		temporal:   "tmp",
+	}, anotado, "lo que el sustituto de go anota de su ejecución")
+}
+
+// ordenDeLaMedida son los argumentos de go de la orden del punto de entrada de
+// la medida (contracts/job-de-evals.md §3 de H24), con la skill del guion, lo de
+// sus variables y, en su temporal, el fichero de la medida.
+func ordenDeLaMedida(claude, temporal string) []string {
+	return []string{
+		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestMedidaDelJuez$", "./internal/evals/", "-args",
+		"-skill", skillDeLaMedicion, "-modelo-del-juez", modeloDelGuion, "-version-del-juez", versionDelGuion,
+		"-claude-del-juez", claude, "-concurrencia", concurrenciaDelGuion, "-commit", commitDeLaMedicion,
+		"-salida", filepath.Join(temporal, ficheroDeLaMedidaDelGuion),
+	}
 }
