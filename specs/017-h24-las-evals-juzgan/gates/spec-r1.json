@@ -1,0 +1,81 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cubre Entrega (1) a (7) con la tabla de trazabilidad, y cada viñeta del Alcance del hito tiene su requisito: lo que el juez recibe (FR-001, FR-002), el voto (FR-003 a FR-007), la regla (FR-010, FR-011), las clases (FR-020 a FR-022), los umbrales (FR-030 a FR-034), los casos y sus copias (FR-023, FR-024), la medida a petición (FR-040 a FR-054), el sondeo (FR-075, FR-076), `SKILL.md` v0.1.7 (FR-080 a FR-086), la lista (FR-070, FR-071), el modelo, la versión y los topes (FR-090 a FR-092), dentro del run (FR-045, FR-093) y lo que sustituye («Relación con H5.1 a H22»). No añade umbrales ni clases: 12 elementos de `umbrales`, 10 que deciden, que son los 10 del informe de H22 (`specs/016-h22-instalar-sin-terminal/gates/evals/boe-legislacion.json`) menos los 6 de la lista más los 8 del hito. Los estados que detalla llegan por una vía real (la frase libre del juez, un límite de uso, la eval 21); lo mal formado va a la regla genérica (FR-020: «un fichero mal formado, como una eval»)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» lleva las ocho viñetas del hito, literales (comprobado en esta sesión con sed y grep -c -x -F contra las líneas 541 a 548 de `docs/ROADMAP.md`: 8 de 8), y trece de lo no especificado: el modelo informativo y la prueba de red (FR-012), el efecto del voto en la serie (FR-014), que la eval sin binario ni servidor decida (FR-013), que la ejecución de la medida compruebe la versionada (FR-043, FR-051), la similitud, clases nuevas, evals nuevas, lo que el sondeo no hace (FR-075), que la medida se versione sola (FR-054), meter en los casos una marca errónea, grabar respuestas nuevas, reintentar un voto (FR-006, FR-007), y un ADR nuevo y la release."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": false,
+      "evidencia": "Q1 está en FR-013, FR-012, FR-101, «Edge Cases» y «Fuera de alcance», con `(auto: conservadora)` y su alternativa rechazada, y deja fuera exactamente que la marca de la eval 21 decida. Q2 está en FR-005 y en FR-102 («al menos en un salto de línea y en un acento grave, además de en `*` o `_`»). Q3 está en FR-043, FR-051, FR-052, «Edge Cases» y «Fuera de alcance», pero falta una parte de la respuesta: «Los tests de FR-106 no dependen de que la medida versionada corresponda, y el caso de los 259 casos bien se ejercita al menos una vez con una medida versionada que no corresponde: vota e imprime la medida nueva. Con una que corresponde, el test no distinguiría esta lectura de la que termina sin votar». FR-106, SC-006 y los escenarios de US4 siguen con la lista literal del hito y no lo llevan."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«Criterios del hito, literales» transcribe Entrega, Controles y Aceptación: comprobado en esta sesión con sed y grep -c -x -F contra las líneas 511, 550 a 563 y 564 de `docs/ROADMAP.md` (2 de 2 y 14 de 14). Cada control del hito tiene su FR (FR-100 a FR-113) y su SC con recuento (SC-002 a SC-013). La Aceptación es SC-001, como condiciones con umbral y su **Control**, y SC-014, la parte humana. US1 a US7 suman 30 escenarios Dado/Cuando/Entonces."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "El juez es el que cierra `CLAUDE.md` («Juez con modelo en las evals», ADR 0037): `claude-opus-5-5` por su id y distinto del que decide (FR-090); la versión de Claude Code de sus votos, aparte de la de las sesiones (FR-091); pregunta cerrada por clase y frase comprobada sin modelo (FR-003, FR-005); tres votos unánimes (FR-010); la medida versionada, que una ejecución normal no repite y que `make ci` comprueba (FR-041 a FR-044); la repite una persona con su etiqueta (FR-050, FR-054); y nunca en un paso del run (FR-093, ADR 0032). No toca el modelo que decide, las repeticiones ni la regla por serie (FR-014 y «Se queda»), ni el binario. `SKILL.md` sigue por debajo de 300 líneas y sin `scripts/` (FR-086). La lista sale del veredicto por la entrada del hito, no por un corrector (FR-034, FR-036)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": false,
+      "evidencia": "Son ciertas las marcas de contenido y las de a, b, d, e, g, i y j: 30 escenarios contados, las transcripciones comprobadas, SC-001 a SC-013 con **Control**, y FR-086 y FR-092 con su comprobación de `make ci`. Dos no lo son. «c. Clarificaciones: las tres respuestas […] aplicadas en FR-005, FR-013, FR-043, FR-051, FR-052, FR-102, «Edge Cases» y «Fuera de alcance»»: la parte de Q3 sobre los tests de FR-106 no está aplicada en ningún sitio. Y «Requirements are testable and unambiguous — […] El efecto de FR-013 quedó fijado en `## Clarifications`, con su comprobable en FR-104»: FR-104 enumera cuatro casos (`afirma_lo_no_leido` con 1 y con 0, `cuenta_su_proceso` con 3 y la medida que no corresponde) y ninguno es de la eval sin binario ni servidor."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "Lo que nombra del repositorio lo fija el hito: `voto_real`, `prompt_de`, `esquema.json`, `evals/<skill>/juez/`, `schemas/`, `.github/workflows/evals.yml`, `MODELO_DE_EVALS`, `VERSION_DE_CLAUDE_CODE`, `Juzgar`, `TestProsaDeLaSkill`, `TestGrabacionesDerivadas`, `TestDefinicionDelJob` y la etiqueta `evals-medir-juez`. FR-005 fija qué tolera la comparación de la frase, no cómo se programa («el plan fija cómo lo iguala el código»). Quedan para el plan, dicho en Assumptions y en los propios requisitos: el formato de la declaración de clases, las claves de los votos en el informe (FR-060), los nombres de las variables del juez, el tope de un voto y cuántos a la vez (FR-007), cómo se graban los votos de los tests, la delimitación de la prosa (FR-085) y los nombres de los dos umbrales de la medida (FR-032)."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "No hay requisitos contradictorios. El voto nulo (FR-006) y el que no llega a darse (FR-007) se separan, con su caso límite. FR-043 acota la comprobación a la ejecución normal, y FR-051 a FR-053 dicen qué hace la de la medida, también con casos sin juzgar. La eval 21 queda fuera de la medida, del total y de la duración de todo umbral (FR-013) y dentro del «sin juzgar» (FR-007). Las cifras cuadran: 18 evals que activan × 3 = 54 por modo (FR-012; contadas en `evals/boe-legislacion/`), 212 × 3 + 47 = 683 (FR-051), 5 + 140 + 67 = 212 defectos y 47 correctos sobre 259 (FR-024; contados en `evidencias/adr-0037/casos.yaml`), y (900 − 432) / 16 ≈ 29 («Edge Cases»). De cada requisito sale un test que lo distingue: la comparación de la frase con sus reglas y lo que no tolera (FR-005), la regla por orden (FR-010, FR-011), «corresponde» y «se cumple» (FR-041), cada umbral con su medida y su total (FR-030 a FR-033), lo que hace la ejecución de la medida con una versionada que no corresponde (FR-051) y la prosa con las dos frases de v0.1.6 (FR-085). Lo que queda abierto no pasa el umbral de materialidad y va a observaciones."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro» da nueve salidas con quién las pide, su tamaño y cuándo dejan de darse. Recorrido: la respuesta de la skill la pide la persona, una por pregunta, y no cuenta lo acumulado (FR-081 a FR-084); el aviso de lo que no cubre deja de darse cuando la respuesta lee esa materia, y el de un precepto que no pudo leer sale solo en la pregunta en que la consulta falla. Cálculo de lo nuevo del informe (FR-060): 108 respuestas de los dos modos (FR-012) + 3 de la eval 21 (FR-013) = 111; como mucho 6 votos por respuesta (3 por orden, cada uno repetido una vez por nulo; FR-006, FR-010) × ≈1,2 KB por voto con las dos clases ≈ 800 KB, una vez por job. Con `cuenta_su_proceso` entre 12 y 30 de cada 54 son de 24 a 60 respuestas con un voto, de 30 a 70 KB, sobre un informe que hoy ocupa 799 KB (el de H22). `umbrales`: 12 × ≈300 B ≈ 3,6 KB, fijo. El motivo de `fallo` (FR-035): ≈1 KB por respuesta marcada, como mucho 108. La medida impresa (FR-052): 717 B hoy, más ≈1 KB por caso que falla, como mucho 259. Nada crece con el uso del kit: cada ejecución parte de las evals y de los casos del repositorio. Cada job y cada lanzamiento escriben de nuevo; los dos umbrales de la medida repiten el recuento versionado porque lo pide la entrada, hasta que una persona versiona otra medida."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "FR-030 (`afirma_lo_no_leido:<modelo>:<modo>` <= 0, en el job de cierre): «con una respuesta marcada, el veredicto es `fallo` y el job de evals de `boe-legislacion` sale en rojo (FR-035)». FR-032 (los dos de la medida del juez <= 0, en `make ci` y en el job): «con un recuento distinto de 0, `make ci` falla (FR-042) y el job termina con `fallo` sin abrir ninguna sesión (FR-043)». FR-033 (`duracion_del_juez:<modo>` <= 900 s, en el job): «por encima de 900 s, el veredicto es `fallo` […] y el job sale en rojo (FR-035)». FR-086 (menos de 300 líneas, en `make ci`): «`skills-check` falla en `make ci` con 300 líneas o más»; la comprobación existe (`internal/skills/sincronia.go`). FR-092 (cada tope cubre su peor caso, en `make ci`): «`TestDefinicionDelJob` falla en `make ci` si un tope no cubre su peor caso». SC-001: su **Control** enumera cada vía del rojo del job y dice que «el cierre del workflow cuenta ese rojo». SC-002 a SC-013: cada uno nombra el test o la comprobación de `make ci` que falla. FR-101 fija las seis filas de «Controles de umbral». `cuenta_su_proceso` (FR-031) no es un umbral del hito: la entrada lo deja publicado y «que decida» está en su «Fuera de alcance» (ADR 0037, punto 7). SC-014 lo mide una persona."
+    }
+  ],
+  "motivos": [
+    "[c][f] La respuesta Q3 de `gates/clarify-respuestas.json` no está entera en el spec. Dice: «Los tests de FR-106 no dependen de que la medida versionada corresponda, y el caso de los 259 casos bien se ejercita al menos una vez con una medida versionada que no corresponde: vota e imprime la medida nueva. Con una que corresponde, el test no distinguiría esta lectura de la que termina sin votar». FR-106, SC-006 y los escenarios de US4 no lo recogen (la parte equivalente de Q2 sí llegó a FR-102), y el ítem c del checklist da las tres respuestas por aplicadas. Vía: la etiqueta `evals-medir-juez` sobre una propuesta que cambia la rúbrica, los casos, el modelo del juez o su versión de Claude Code, que es el estado de US4 y de FR-054; diferencia: la ejecución vota los 259 casos e imprime la medida con las claves de lo que hay, o termina en rojo sin votar ninguno, y con FR-106 como está las dos pasan sus tests, porque la medida versionada del repositorio corresponde (y la de SC-014 también). Qué cambiar: en FR-106 y en SC-006, decir que esos tests no dependen de que la medida versionada corresponda y que el caso de los 259 bien se ejercita al menos una vez con una medida versionada que no corresponde: vota e imprime la medida con las cuatro claves de lo que hay, no las de la versionada (FR-051, FR-052). Añadir ese escenario a US4. Y en `checklists/requirements.md`, ítem c, citar FR-106. No añade comportamiento: FR-043, FR-051 y FR-052 ya lo fijan.",
+    "[f] FR-013 dice «Comprobable: FR-104», y el checklist lo repite en «Requirements are testable and unambiguous» («con su comprobable en FR-104»), pero FR-104 y SC-004 enumeran cuatro casos —`afirma_lo_no_leido` con 1 y con 0, `cuenta_su_proceso` con 3 y la medida que no corresponde— y ninguno es de la eval sin binario ni servidor. Vía: la eval 21, que existe y que FR-013 manda juzgar; la propia respuesta Q1 dice que el juez puede marcar una respuesta correcta suya, porque la pregunta ya dice de qué trata el art. 53 y la sesión no tiene textos. Diferencia: con una implementación que cuente esa marca en un umbral, o que dé un motivo por ella, el job sale en rojo por una respuesta correcta de esa eval (lo que pasó con la lista el 2026-10-04, #116) y `umbrales` cambia, y los tests que FR-104 exige no lo distinguen. Qué cambiar: en FR-104 y en SC-004, añadir el caso con sesiones sintéticas: una respuesta de la eval sin binario ni servidor marcada con tres síes va al informe con sus votos y sus frases (FR-060) y no cambia la `medida` ni el `total` de ningún umbral, no añade ningún elemento a `umbrales`, no da motivo de fallo y no cambia si su sesión pasa (FR-013). No añade comportamiento: FR-013 ya lo fija."
+  ],
+  "observaciones": [
+    "FR-043: la frase «Si la medida no corresponde o no se cumple, MUST terminar sin abrir ninguna» va detrás de la que habla de la ejecución de la medida, y su sujeto es la ejecución normal; se entiende por FR-051 y por «Edge Cases», pero el orden invita a leerla mal.",
+    "FR-043: el motivo dice «cuál de las cuatro no coincide»; con una medida que corresponde y un recuento distinto de 0 no falla ninguna de las cuatro, y el requisito no dice qué nombra entonces el motivo (FR-042 sí lo separa para `make ci`). Solo cambia el detalle del motivo: el veredicto es `fallo` en las dos lecturas.",
+    "FR-030 y FR-031 no dicen si una respuesta «sin juzgar» entra en el `total`. Con umbral 0 no cambia `cumple`, y el veredicto ya es `fallo` por FR-007.",
+    "US7, «Independent Test», remite a SC-004, que es de los tests del informe. FR-100 a FR-113 no llevan ningún test del sondeo (el hito tampoco lo lista); lo cubren los dos escenarios de US7.",
+    "Checklist, «Requirements are testable and unambiguous»: «cada FR lleva «Comprobable», un Control o remite a un control de FR-100 a FR-113» no es literal: FR-012, FR-014, FR-051, FR-053, FR-075 y FR-076 no llevan ninguna de las tres cosas. Son comprobables por sus escenarios.",
+    "FR-085 deja para el plan qué es usar «el sobre» y los dos nombres de campo «para lo que la respuesta dice o lleva». `SKILL.md` v0.1.6 los usa también en otros sitios que hablan de lo que la respuesta lleva (paso 5, «Traslada cada aviso de vigencia del sobre»; «Cómo se cita», «Cada aviso del sobre va en la respuesta»; y `fecha_vigencia` en la línea `⚠ REDACCIÓN MODIFICADA:`), y FR-086 manda mantenerlos: la delimitación la tendrá que mirar el juez del plan.",
+    "FR-092: el tope de hoy es de 240 minutos para un peor caso de 239,3. El peor caso con el juez (111 respuestas y hasta 6 votos cada una) y el de la ejecución de la medida (259 casos) tienen que caber en el máximo de un trabajo de la plataforma: lo condicionan el tope de un voto y cuántos se piden a la vez, que fija el plan.",
+    "FR-012: «cada respuesta que el primer voto marca añade dos» es el máximo; añade uno si el segundo voto no marca (FR-010).",
+    "Assumptions: que `scripts/workflow/informe.sh` no necesita cambios coincide con lo leído en esta sesión (lee `expresiones_prohibidas_por_modelo` con `// []` y los `umbrales` por su nombre); no se ha ejecutado."
+  ],
+  "entrada": []
+}

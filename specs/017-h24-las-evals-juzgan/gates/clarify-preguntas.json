@@ -1,0 +1,67 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Alcance funcional y comportamiento (marcador [NEEDS CLARIFICATION] de FR-013)",
+      "pregunta": "¿Qué efecto tiene en el veredicto que el juez deje marcada en `afirma_lo_no_leido` una respuesta de la eval sin binario ni servidor (la 21), y dónde cuenta el tiempo de sus votos?",
+      "por_que_importa": "El hito dice que esa eval «se juzga igual», pero los umbrales `afirma_lo_no_leido:<modelo>:<modo>` y `duracion_del_juez:<modo>` son por modo, esa eval no es de ningún modo (H21 FR 047) y los 108 votos que cuenta el hito son los de las 54 respuestas de cada modo (FR-012). Su juicio sin modelo solo mira la línea `⚠ SIN CONSULTA AL BOE:` y la ausencia de citas: una respuesta con la línea y, además, una frase sin cita sobre el artículo pasa ese juicio. De la respuesta dependen el número de elementos de `umbrales`, las filas de «Controles de umbral» (FR-101), los tests del informe (FR-104) y qué pone el job en rojo.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Solo se publica. Sus votos y sus frases van al informe como los de cualquier respuesta con algún voto afirmativo (FR-060); una marca no entra en ningún umbral ni da motivo de fallo, y el tiempo de sus votos no entra en `duracion_del_juez` de ningún modo (lo cubre solo el tope del trabajo). `umbrales` se queda en doce elementos y «Controles de umbral» en seis filas. Una marca en esa eval no cambia el veredicto."
+        },
+        {
+          "id": "B",
+          "texto": "Decide con un umbral propio, sin modo. `umbrales` gana un elemento más, sin `<modo>` en su nombre, con `medida` las respuestas marcadas de esa eval, `total` las juzgadas (3 con todas terminadas), `\"<=\"` 0 y `decide: true`: son trece elementos, once que deciden, y siete filas en «Controles de umbral». Una marca pone el veredicto en `fallo` y el job en rojo. El tiempo de sus votos no entra en `duracion_del_juez` de ningún modo."
+        },
+        {
+          "id": "C",
+          "texto": "Decide sin umbral nuevo. Una marca pone el veredicto en `fallo` con un motivo propio que nombra la respuesta y sus frases, como el de una respuesta «sin juzgar» (FR-007). `umbrales` se queda en doce elementos y «Controles de umbral» en seis filas: el recuento de esa eval no se publica en `umbrales` ni tiene fila. El tiempo de sus votos no entra en `duracion_del_juez` de ningún modo."
+        },
+        {
+          "id": "D",
+          "texto": "Decide por su serie. Una respuesta marcada hace que su sesión no pase, y la eval sigue decidiendo como hasta ahora, por la regla por serie (ADR 0016): con una sesión marcada de tres la serie pasa, y con dos no. `umbrales` se queda en doce elementos. Para esta eval, el voto del juez cambia si una sesión pasa, que es lo que FR-014 excluye para las demás. El tiempo de sus votos no entra en `duracion_del_juez` de ningún modo."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Criterios de aceptación y consistencia (FR-004 frente a FR-005)",
+      "pregunta": "¿Con qué comprobación decide el job que la frase que cita un voto está en la respuesta: con la tolerancia que tienen hoy las formas fijas del job, o con la de la validación del ADR 0037 (`normal` y `frase_esta` de `evidencias/adr-0037/guiones/juez.py`)?",
+      "por_que_importa": "FR-005 remite a «la tolerancia a blancos y a énfasis de Markdown que ya usa para las formas fijas (H5.1)» y FR-004 a la validación, con la que se hizo la medida versionada; leídas en el repositorio, no son la misma. En `internal/evals/avisos.go`, el separador de las formas fijas admite tabuladores, blancos de la categoría Zs de Unicode, `*` y `_` entre las partes, y ninguna pieza admite un salto de línea. `normal` quita `*`, `_` y el acento grave en cualquier punto de los dos textos y colapsa cualquier blanco, también los saltos de línea, antes de buscar la frase. Una frase citada que cruza un salto de línea de la respuesta, o que solo difiere de ella en acentos graves, está con una y no está con la otra: el voto vale o es nulo y se repite, y la respuesta queda marcada o no. Los recuentos de la medida versionada (0 de 212 y 0 de 47) se contaron con la segunda. En esta sesión no se ha ejecutado ninguna comparación sobre los votos de la validación: no se sabe cuántos dependen de la diferencia.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La de la validación. El job comprueba la frase como la comprobó el guion con el que se contó la medida: sin `*`, `_` ni acento grave en ningún punto y con cualquier blanco, también el salto de línea, colapsado. FR-005 deja de remitir a la tolerancia de las formas fijas, que sigue como está para los avisos y las citas, y los tests del voto (FR-102) fijan esa normalización."
+        },
+        {
+          "id": "B",
+          "texto": "La de las formas fijas de hoy. El job reutiliza la tolerancia de H5.1: tabuladores, blancos de la categoría Zs, `*` y `_` entre palabras, sin salto de línea ni acento grave. Una frase que cruza un salto de línea o difiere en acentos graves no está, y su voto es nulo. La comprobación del job no es aquella con la que se contó la medida versionada, y si eso cambia algún recuento se ve por primera vez en la medida que lanza la persona tras el run (SC-014)."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Flujos y estados (FR-043 frente a US4, FR-051 y FR-054)",
+      "pregunta": "Cuando una persona lanza la ejecución de la medida del juez (con la etiqueta `evals-medir-juez` o con su entrada) y la medida versionada no corresponde a la rúbrica, a los casos, al modelo del juez o a su versión de Claude Code que hay, ¿qué hace esa ejecución con la comprobación de FR-041?",
+      "por_que_importa": "FR-043 pide la comprobación al «job de una skill con juez», «antes de abrir ninguna sesión, de evals o del juez», y que termine sin abrir ninguna si la medida no corresponde; no distingue la ejecución normal de la ejecución de la medida. US4 y FR-054 describen la ejecución de la medida justo en ese estado: alguien ha cambiado la rúbrica y todavía no hay medida nueva que versionar. El hito escribe la comprobación al hablar de «una ejecución normal del job». Según la lectura, esa ejecución vota los casos o termina sin votar ninguno, y los tests de FR-106 se escriben con una medida versionada que corresponde o con una que no.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "No la hace. La ejecución de la medida vota los casos con la rúbrica, los casos, el modelo del juez y la versión de Claude Code que hay, corresponda o no la medida versionada, e imprime la medida nueva. La comprobación de FR-043 queda acotada a la ejecución normal."
+        },
+        {
+          "id": "B",
+          "texto": "La hace y solo lo dice. Su registro dice si la medida versionada corresponde y, si no, cuál de las cuatro no coincide; vota los casos e imprime la medida nueva igual, y su resultado (`fallo` o no) no depende de esa comprobación."
+        },
+        {
+          "id": "C",
+          "texto": "La hace y decide. Si la medida versionada no corresponde, termina con `fallo` sin votar ningún caso, como la ejecución normal. Para medir tras un cambio de la rúbrica, de los casos, del modelo o de la versión, la persona tiene que versionar antes una medida con las cuatro claves nuevas."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}
