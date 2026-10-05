@@ -165,6 +165,10 @@ jobs:
       # VERSION_DE_CLAUDE_CODE, fijado aquí por su id; los dos cambian juntos, en este fichero (ADR 0031, que sustituye
       # en esto al ADR 0016).
       MODELO_DE_EVALS: claude-sonnet-5-5
+      # El modelo del juez, el que juzga el significado de las respuestas: distinto del que decide y fijado por su id
+      # completo, no por un alias (ADR 0037). Es el de la medida versionada del juez: con otro, make ci falla hasta que
+      # una persona versiona la medida de ese.
+      MODELO_DEL_JUEZ: claude-opus-5-5
       # Los modelos que se ejecutan y se publican como límite inferior, sin decidir el veredicto, separados por comas.
       MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
       # Cada eval se repite con cada modelo y pasa con el umbral, en lugar de exigir una sola tirada perfecta (ADR 0016).
@@ -177,6 +181,10 @@ jobs:
       # La versión de Claude Code de las sesiones: la primera en la que el alias sonnet resuelve a MODELO_DE_EVALS, que
       # la anterior del job, 2.1.270, no reconoce (ADR 0031); su comportamiento es el de research.md de H5, V1-V13.
       VERSION_DE_CLAUDE_CODE: 2.1.284
+      # La versión de Claude Code de los votos del juez: la de la medida versionada del juez, que va aparte de la de las
+      # sesiones. Subir una no obliga a repetir la medida de la otra: la de las sesiones cambia sin volver a medir al
+      # juez, y con otra aquí make ci falla hasta que una persona versiona la medida de esa (ADR 0037).
+      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: 2.1.289
       SKILL_EVALUADA: ${{ matrix.skill }}
       COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
       # La prueba de red es solo de boe-legislacion: su texto invoca el applet boe para provocar dos invocaciones fuera

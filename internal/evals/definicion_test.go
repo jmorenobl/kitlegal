@@ -128,6 +128,59 @@ func TestDefinicionDelJob(t *testing.T) {
 	t.Run("estado-de-la-tanda", probarElEstadoDeLaTanda)
 }
 
+// TestJuezDeLaDefinicionDelJob fija de dónde se leen el modelo del juez y la
+// versión de Claude Code de sus votos (contracts/job-de-evals.md §1 de H24;
+// data-model §6 de H24; FR-090, FR-091): de MODELO_DEL_JUEZ y de
+// VERSION_DE_CLAUDE_CODE_DEL_JUEZ del env del trabajo evals, tal cual. La
+// versión de las sesiones, VERSION_DE_CLAUDE_CODE, va aparte y no es la de los
+// votos; el modelo que decide no cambia; y una definición sin esas dos
+// variables los deja vacíos.
+func TestJuezDeLaDefinicionDelJob(t *testing.T) {
+	t.Parallel()
+
+	const (
+		modeloDelJuez      = "claude-juez-9-8"
+		versionDelJuez     = "9.8.7"
+		versionDeSesiones  = "1.2.3"
+		modeloDelContrato  = "claude-sonnet-5"
+		entornoConElDelJob = "      VERSION_DE_CLAUDE_CODE: " + versionDeSesiones + "\n"
+		entornoConElJuez   = entornoConElDelJob +
+			"      MODELO_DEL_JUEZ: " + modeloDelJuez + "\n" +
+			"      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: " + versionDelJuez + "\n"
+	)
+
+	casos := []struct {
+		nombre  string
+		entorno string
+		modelo  string
+		version string
+	}{
+		{nombre: "con-las-dos-variables", entorno: entornoConElJuez, modelo: modeloDelJuez, version: versionDelJuez},
+		{nombre: "sin-las-dos-variables", entorno: entornoConElDelJob},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			// El env es lo último de la definición del contrato: lo que se le añade
+			// con su sangría son más variables suyas.
+			ruta := filepath.Join(t.TempDir(), "evals.yml")
+			require.NoError(t, os.WriteFile(ruta, []byte(definicionDelContrato+caso.entorno), 0o600))
+
+			leida, err := leerDefinicionDelJob(ruta)
+			require.NoError(t, err)
+
+			require.Equal(t, versionDeSesiones, leida.Env["VERSION_DE_CLAUDE_CODE"],
+				"premisa: lo añadido a la definición se lee como variables de su env")
+
+			assert.Equal(t, caso.modelo, leida.ModeloDelJuez)
+			assert.Equal(t, caso.version, leida.VersionDelJuez)
+			assert.Equal(t, modeloDelContrato, leida.ModeloQueDecide)
+		})
+	}
+}
+
 // probarLaDefinicionDelRepositorio lee la definición real del job y falla, con
 // una línea por clave, si no es la del contrato o si su tope no cubre el peor
 // caso de alguna skill con las evals del repositorio.

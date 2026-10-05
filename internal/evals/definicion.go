@@ -24,6 +24,15 @@ const (
 	variableDeLasRepeticiones        = "REPETICIONES_DE_EVALS"
 )
 
+// Las variables del env del trabajo evals que fijan el juez con modelo, junto a
+// la del modelo que decide (contracts/job-de-evals.md §1 de H24; FR-090 y FR-091
+// de H24; ADR 0037): el id completo de su modelo y la versión de Claude Code de
+// sus votos, que va aparte de la de las sesiones, VERSION_DE_CLAUDE_CODE.
+const (
+	variableDelModeloDelJuez   = "MODELO_DEL_JUEZ"
+	variableDeLaVersionDelJuez = "VERSION_DE_CLAUDE_CODE_DEL_JUEZ"
+)
+
 // Los términos del peor caso del trabajo de una skill (research.md D13 de H7.3):
 // dos medidos en el cierre de H7.2 y el tope de una sesión con su margen.
 const (
@@ -44,9 +53,10 @@ const (
 )
 
 // DefinicionDelJob es lo que se lee de la definición del job de evals, trabajo
-// evals y trabajo tanda, para comprobarla y para dar al sondeo la concurrencia
-// de cada skill (data-model §6 de H7.3; research.md D15 de H7.3;
-// contracts/tanda-del-job.md §4 de H7.4).
+// evals y trabajo tanda, para comprobarla, para dar al sondeo la concurrencia
+// de cada skill y para dar a la comprobación de la medida del juez el modelo y
+// la versión de Claude Code fijados para él (data-model §6 de H7.3; research.md
+// D15 de H7.3; contracts/tanda-del-job.md §4 de H7.4; data-model §6 de H24).
 type DefinicionDelJob struct {
 	// Nombre es el name del trabajo, o vacío si no lo tiene.
 	Nombre string
@@ -78,6 +88,13 @@ type DefinicionDelJob struct {
 	ModeloQueDecide     string
 	ModelosInformativos []string
 	Repeticiones        int
+
+	// ModeloDelJuez y VersionDelJuez son el id del modelo del juez y la versión
+	// de Claude Code de sus votos, leídos del env; vacíos si no los fija. Son los
+	// que tiene que llevar la medida versionada del juez para corresponder
+	// (contracts/medida-del-juez.md §2 de H24).
+	ModeloDelJuez  string
+	VersionDelJuez string
 
 	// Dependencias es su needs, o nil si no lo tiene.
 	Dependencias []string
@@ -221,6 +238,8 @@ func leerDefinicionDelJob(ruta string) (DefinicionDelJob, error) {
 		PorSkill:            map[string]AjustesDeSkill{},
 		ModeloQueDecide:     trabajo.Env[variableDelModeloQueDecide],
 		ModelosInformativos: separarLosModelos(trabajo.Env[variableDeLosModelosInformativos]),
+		ModeloDelJuez:       trabajo.Env[variableDelModeloDelJuez],
+		VersionDelJuez:      trabajo.Env[variableDeLaVersionDelJuez],
 		Dependencias:        trabajo.Dependencias,
 		Condicion:           trabajo.Condicion,
 	}
