@@ -12,6 +12,7 @@ paso `grabar_datos`. `manifiesto.json` da la huella y el tamaño de cada fichero
 | `rubrica.md` | El prompt de sistema del juez, con sus dos preguntas: `afirma_lo_no_leido` y `cuenta_su_proceso`. Es la cuarta versión, la de la frontera del precepto identificado |
 | `esquema.json` | La forma de la respuesta del juez |
 | `casos.yaml` | Los 259 casos etiquetados de `afirma_lo_no_leido`: 5 defectos de la bitácora, 140 derivados y 114 de la lectura (67 defectos y 47 avisos correctos). Cada uno nombra su informe versionado y su sesión |
+| `medida.json` | La medida del juez con la que una clase decide (ADR 0037, punto 3): la rúbrica y los casos por su huella, el modelo del juez, la versión de Claude Code de sus votos y los dos recuentos, 212 de 212 defectos marcados con los tres votos y 0 de 47 correctos. Sale de `casos.yaml` y de los dos ficheros de votos, recontados por caso. El job de evals no la repite: comprueba que corresponde a lo que hay |
 | `lectura.md` | Las 114 etiquetas de la lectura, con la frase que decide cada una, para revisarlas |
 | `votos-ajuste.jsonl`, `votos-medida.jsonl` | Los 1.189 votos de la medida final, sin los datos de consumo: por caso y voto, la respuesta, la frase, el precepto y el motivo |
 | `guiones/` | Lo que se ejecutó: el test que reconstruye los textos (`arnes_test.go.txt`), y los guiones que construyen los casos, votan y resumen. No son parte del producto ni se ejecutan en `make ci` |
@@ -34,6 +35,8 @@ paso `grabar_datos`. `manifiesto.json` da la huella y el tamaño de cada fichero
   la rúbrica transmite la frontera sin ambigüedad; no es una estimación independiente de los errores del juez.
 - **Las etiquetas de la lectura salen de las frases que el juez citó** en alguna vuelta. Una respuesta etiquetada
   como correcta puede llevar en otra parte una frase que ningún voto citó.
+- **La medida no se hizo con el código del job**, que escribe H24, sino con `guiones/juez.py`. H24 fija la orden y el
+  mensaje del voto a los de ese guion, y una persona lanza la medida una vez con el job antes de fusionar H24.
 - **Los textos reconstruidos son un superconjunto** de lo que la sesión vio, si filtró la salida de una orden. En el
   job, el juez recibe los textos del transcript.
 - **Las 303 respuestas que ninguna rúbrica marcó** no se han leído enteras.
