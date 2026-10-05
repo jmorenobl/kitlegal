@@ -54,7 +54,9 @@ type ficheroIlegible struct {
 // no terminó; el fin con su texto fijo; y los ficheros ausentes o las líneas
 // ilegibles como error que los nombra, salvo el transcript vacío de una sesión
 // que el tope cortó antes de su primer mensaje (contrato job-de-evals §4 y §9;
-// FR-071, FR-072).
+// FR-071, FR-072). La sesión que lanza una orden kitlegal en segundo plano lleva
+// en sus textos esa orden con lo que Bash devolvió de ella, y las demás, que no
+// ejecutan ninguna, no llevan ninguno (contracts/juez-y-voto.md §2 de H24).
 func TestLeerSesion(t *testing.T) {
 	t.Parallel()
 
@@ -67,6 +69,12 @@ func TestLeerSesion(t *testing.T) {
 		Terminada:           true,
 	}
 
+	conUnaOrdenEnSegundoPlano := activadaYTerminada
+	conUnaOrdenEnSegundoPlano.Textos = []Texto{{
+		Orden:  "kitlegal boe buscar 'obligación de resolver'",
+		Salida: "Command running in background with ID: tarea_sintetica_01",
+	}}
+
 	casos := []struct {
 		nombre   string
 		activada bool
@@ -74,7 +82,7 @@ func TestLeerSesion(t *testing.T) {
 		ilegible *ficheroIlegible
 	}{
 		{nombre: "activada", activada: true, sesion: activadaYTerminada},
-		{nombre: "respuesta-antes-de-una-tarea-en-segundo-plano", activada: true, sesion: activadaYTerminada},
+		{nombre: "respuesta-antes-de-una-tarea-en-segundo-plano", activada: true, sesion: conUnaOrdenEnSegundoPlano},
 		{
 			nombre: "no-activada",
 			sesion: Sesion{
@@ -266,10 +274,24 @@ const (
 // una herramienta del registro, sea la de un verbo de un applet que el servidor
 // no anuncia o Bash, aunque su resultado sea un sobre. El modo es herramienta
 // en las sesiones cuyo directorio tiene servidor.json y orden en las demás.
+//
+// Cada llamada con resultado deja además su texto, con la orden que el informe
+// publica de ella y lo que devolvió, sea un sobre de éxito o de fallo; lo deja
+// también la orden kitlegal de Bash de modo-orden, que no es una llamada; y no
+// deja ninguno la llamada sin resultado ni la de una herramienta que no es del
+// registro (contracts/juez-y-voto.md §2 de H24).
 func TestLeerLasLlamadas(t *testing.T) {
 	t.Parallel()
 
-	conLlamada := func(skill, respuesta string, llamada Llamada) Sesion {
+	// usoDeLaConsulta es el id del bloque tool_use de la consulta de cada
+	// transcript de leer-llamadas: el primero es el de Skill.
+	const usoDeLaConsulta = "toolu_sintetico_02"
+
+	devuelto := func(caso string) string {
+		return textoDelResultado(t, filepath.Join(casosDeLeerLasLlamadas, caso), usoDeLaConsulta)
+	}
+
+	conLlamada := func(skill, respuesta string, llamada Llamada, texto Texto) Sesion {
 		return Sesion{
 			Modelo:              modeloDeLasSesiones,
 			VersionDeClaudeCode: versionDeLasSesiones,
@@ -278,10 +300,11 @@ func TestLeerLasLlamadas(t *testing.T) {
 			Fin:                 "result success",
 			Terminada:           true,
 			Llamadas:            []Llamada{llamada},
+			Textos:              []Texto{texto},
 		}
 	}
 
-	sinLlamadas := func(respuesta string) Sesion {
+	sinLlamadas := func(respuesta string, textos ...Texto) Sesion {
 		return Sesion{
 			Modelo:              modeloDeLasSesiones,
 			VersionDeClaudeCode: versionDeLasSesiones,
@@ -289,6 +312,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 			Respuesta:           respuesta,
 			Fin:                 "result success",
 			Terminada:           true,
+			Textos:              textos,
 		}
 	}
 
@@ -303,7 +327,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 				Herramienta:  "boe_articulo",
 				Argumentos:   json.RawMessage(argumentosDelArticulo21),
 				ConResultado: true,
-			}),
+			}, Texto{Orden: "boe_articulo BOE-A-2015-10565 a21", Salida: devuelto("con-prefijo")}),
 			modo: ModoHerramienta,
 		},
 		{
@@ -312,7 +336,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 				Herramienta:  "boe_articulo",
 				Argumentos:   json.RawMessage(argumentosDelArticulo24),
 				ConResultado: true,
-			}),
+			}, Texto{Orden: "boe_articulo BOE-A-2015-10565 a24", Salida: devuelto("sin-prefijo")}),
 			modo: ModoHerramienta,
 		},
 		{
@@ -323,7 +347,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 				ConResultado: true,
 				Error:        true,
 				Clase:        schema.ClaseNoEncontrado,
-			}),
+			}, Texto{Orden: "territorio_resolver Villainexistente", Salida: devuelto("error-por-is-error")}),
 			modo: ModoOrden,
 		},
 		{
@@ -334,7 +358,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 				ConResultado: true,
 				Error:        true,
 				Clase:        schema.ClaseFuenteNoDisponible,
-			}),
+			}, Texto{Orden: "boe_articulo BOE-A-2015-10565 a21", Salida: devuelto("error-por-ok-falso")}),
 			modo: ModoOrden,
 		},
 		{
@@ -355,7 +379,14 @@ func TestLeerLasLlamadas(t *testing.T) {
 			modo: ModoOrden,
 		},
 		{nombre: "herramienta-ajena", sesion: sinLlamadas(respuestaSinLlamada), modo: ModoOrden},
-		{nombre: "modo-orden", sesion: sinLlamadas(respuestaConCita), modo: ModoOrden},
+		{
+			nombre: "modo-orden",
+			sesion: sinLlamadas(respuestaConCita, Texto{
+				Orden:  "kitlegal boe articulo BOE-A-2015-10565 a21 --json",
+				Salida: devuelto("modo-orden"),
+			}),
+			modo: ModoOrden,
+		},
 	}
 
 	nombres := make([]string, 0, len(casos))
@@ -560,6 +591,268 @@ func mensajeDeResultados(t *testing.T, resultados ...resultadoDeHerramienta) str
 	}
 
 	return `{"type":"user","message":{"role":"user","content":[` + strings.Join(bloques, ",") + `]}}` + "\n"
+}
+
+// textoDelResultado es el texto del bloque tool_result con ese tool_use_id en
+// el transcript versionado del directorio, leído sin LeerSesion: su content, si
+// es un texto, o el de su único bloque, si es una lista.
+func textoDelResultado(t *testing.T, dir, uso string) string {
+	t.Helper()
+
+	for linea := range strings.Lines(contenidoDeLaSesion(t, dir, ficheroDelTranscript)) {
+		if !strings.Contains(linea, `"tool_use_id":"`+uso+`"`) {
+			continue
+		}
+
+		var mensaje struct {
+			Message struct {
+				Content []struct {
+					Content any `json:"content"`
+				} `json:"content"`
+			} `json:"message"`
+		}
+
+		require.NoError(t, json.Unmarshal([]byte(linea), &mensaje))
+		require.Len(t, mensaje.Message.Content, 1, "el mensaje lleva solo ese tool_result")
+
+		if texto, esTexto := mensaje.Message.Content[0].Content.(string); esTexto {
+			return texto
+		}
+
+		bloques, esLista := mensaje.Message.Content[0].Content.([]any)
+		require.True(t, esLista, "el content de un tool_result es un texto o una lista de bloques")
+		require.Len(t, bloques, 1, "el content lleva un solo bloque")
+
+		campos, esObjeto := bloques[0].(map[string]any)
+		require.True(t, esObjeto)
+
+		texto, esTexto := campos["text"].(string)
+		require.True(t, esTexto, "el bloque es de texto")
+
+		return texto
+	}
+
+	require.Failf(t, "sin resultado", "%s no tiene ningún tool_result con el tool_use_id %s", dir, uso)
+
+	return ""
+}
+
+// entradaDeBash es el input de un bloque tool_use de Bash con esa orden.
+func entradaDeBash(t *testing.T, orden string) string {
+	t.Helper()
+
+	return `{"command":` + cadenaJSON(t, orden) + `,"description":"Consulta el BOE"}`
+}
+
+// contenidoDeTextos es el content de un tool_result que es una lista con un
+// bloque de texto por cada texto dado, en su orden.
+func contenidoDeTextos(t *testing.T, textos ...string) string {
+	t.Helper()
+
+	bloques := make([]string, 0, len(textos))
+	for _, texto := range textos {
+		bloques = append(bloques, `{"type":"text","text":`+cadenaJSON(t, texto)+`}`)
+	}
+
+	return "[" + strings.Join(bloques, ",") + "]"
+}
+
+// Lo que piden y devuelven las herramientas de los transcripts de
+// TestTextosDeLaSesion: dos órdenes kitlegal de Bash, la segunda dentro de una
+// orden compuesta y con el binario por su ruta, y los sobres que devuelven, con
+// uno de fallo.
+const (
+	ordenDelIndice   = "kitlegal boe indice BOE-A-2015-10565 --json"
+	ordenDelArticulo = "cd /tmp/trabajo && /usr/local/bin/kitlegal boe articulo BOE-A-2015-10565 a21 --json | head -c 4000"
+
+	sobreDelIndice = `{"ok":true,"fuente":"boe.legislacion-consolidada","data":{"norma":"BOE-A-2015-10565",` +
+		`"bloques":[{"id":"a21","titulo":"Artículo 21"}]}}`
+	sobreDelArticulo = `{"ok":true,"fuente":"boe.legislacion-consolidada","data":{"norma":"BOE-A-2015-10565",` +
+		`"bloque":"a21","texto":"Artículo 21. Obligación de resolver.\n1. La Administración está obligada a dictar ` +
+		`resolución expresa."}}`
+	sobreSinFuente = `{"ok":false,"fuente":"boe.legislacion-consolidada","data":{"clase":"fuente-no-disponible",` +
+		`"mensaje":"con --offline no se pide nada a la fuente"}}`
+
+	activacionDeLaSkill = `{"skill":"` + skillDeLasSesiones + `"}`
+	argumentosDelIndice = `{"norma":"BOE-A-2015-10565"}`
+)
+
+// TestTextosDeLaSesion fija los textos de las herramientas que LeerSesion deja
+// en Sesion.Textos (contracts/juez-y-voto.md §2 y §9 de H24; data-model §2 de
+// H24; research D2 de H24; FR-001, FR-107), sobre transcripts que el propio test
+// escribe en t.TempDir(). La regla es una por herramienta, la misma en los dos
+// modos: da texto la orden de Bash que lleva la palabra kitlegal, con la orden
+// tal cual y los textos del content de su tool_result unidos por un salto de
+// línea, y la llamada a una herramienta del registro, con el prefijo del agente
+// o sin él, con la orden que el informe publica de ella. Quedan en el orden de
+// sus tool_use, lleguen sus resultados como lleguen y se mezclen o no las dos
+// herramientas. La orden y la llamada que fallan dejan su texto, con el error;
+// el tool_use sin tool_result, ninguno; el tool_result sin ningún texto, uno con
+// la salida vacía; y no dan texto Skill, Read, otra herramienta, una que no es
+// del registro ni el Bash que no nombra kitlegal en su orden —tampoco el que no
+// trae ninguna—, digan lo que digan su entrada y su resultado.
+func TestTextosDeLaSesion(t *testing.T) {
+	t.Parallel()
+
+	const (
+		errorDeBash = "Exit code 127\n/bin/bash: line 1: kitlegal: command not found"
+		skillMD     = "---\nname: boe-legislacion\n---\n\nConsulta el BOE con kitlegal boe articulo."
+	)
+
+	skill := usoDeHerramienta{id: "toolu_01", nombre: herramientaSkill, entrada: activacionDeLaSkill}
+	skillLanzada := resultadoDeHerramienta{id: "toolu_01", contenido: `"Launching skill: boe-legislacion"`}
+
+	casos := []struct {
+		nombre     string
+		transcript string
+		textos     []Texto
+	}{
+		{
+			nombre: "modo-orden-en-su-orden",
+			transcript: mensajeDeLlamadas(t, skill) + mensajeDeResultados(t, skillLanzada) +
+				mensajeDeLlamadas(t,
+					usoDeHerramienta{id: "toolu_02", nombre: "Bash", entrada: entradaDeBash(t, ordenDelIndice)},
+					usoDeHerramienta{id: "toolu_03", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)},
+				) +
+				mensajeDeResultados(t, resultadoDeHerramienta{
+					id:        "toolu_03",
+					contenido: contenidoDeTextos(t, sobreDelArticulo, "Shell cwd was reset to /tmp/trabajo"),
+				}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, sobreDelIndice)}),
+			textos: []Texto{
+				{Orden: ordenDelIndice, Salida: sobreDelIndice},
+				{Orden: ordenDelArticulo, Salida: sobreDelArticulo + "\nShell cwd was reset to /tmp/trabajo"},
+			},
+		},
+		{
+			nombre: "modo-herramienta-en-su-orden",
+			transcript: mensajeDeLlamadas(t, skill) + mensajeDeResultados(t, skillLanzada) +
+				mensajeDeLlamadas(t,
+					usoDeHerramienta{id: "toolu_02", nombre: "mcp__kitlegal__boe_indice", entrada: argumentosDelIndice},
+					usoDeHerramienta{id: "toolu_03", nombre: "boe_articulo", entrada: argumentosDelArticulo21},
+				) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_03", contenido: contenidoDeTextos(t, sobreDelArticulo)},
+					resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, sobreDelIndice)},
+				),
+			textos: []Texto{
+				{Orden: "boe_indice BOE-A-2015-10565", Salida: sobreDelIndice},
+				{Orden: "boe_articulo BOE-A-2015-10565 a21", Salida: sobreDelArticulo},
+			},
+		},
+		{
+			nombre: "la-orden-y-la-llamada-que-fallan",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "mcp__kitlegal__boe_indice", entrada: argumentosDelIndice}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, sobreDelIndice)}) +
+				mensajeDeLlamadas(t,
+					usoDeHerramienta{id: "toolu_02", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)}) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, errorDeBash), conError: true}) +
+				mensajeDeLlamadas(t,
+					usoDeHerramienta{id: "toolu_03", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21}) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_03", contenido: cadenaJSON(t, sobreSinFuente), conError: true}),
+			textos: []Texto{
+				{Orden: "boe_indice BOE-A-2015-10565", Salida: sobreDelIndice},
+				{Orden: ordenDelArticulo, Salida: errorDeBash},
+				{Orden: "boe_articulo BOE-A-2015-10565 a21", Salida: sobreSinFuente},
+			},
+		},
+		{
+			nombre: "ni-skill-ni-read-ni-otra-herramienta-ni-bash-sin-kitlegal",
+			transcript: mensajeDeLlamadas(t,
+				skill,
+				usoDeHerramienta{id: "toolu_02", nombre: "Read", entrada: `{"file_path":"/tmp/trabajo/.claude/skills/boe-legislacion/SKILL.md"}`},
+				usoDeHerramienta{id: "toolu_03", nombre: "Bash", entrada: entradaDeBash(t, "ls -la /tmp/trabajo")},
+				usoDeHerramienta{id: "toolu_04", nombre: "Bash", entrada: entradaDeBash(t, "echo kitlegales; ls mikitlegal; env | sort")},
+				usoDeHerramienta{id: "toolu_05", nombre: "Grep", entrada: `{"pattern":"kitlegal","path":"."}`},
+				usoDeHerramienta{id: "toolu_06", nombre: "mcp__kitlegal__skills_list", entrada: `{}`},
+				usoDeHerramienta{id: "toolu_07", nombre: "Bash", entrada: `{"description":"kitlegal boe articulo"}`},
+			) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, skillMD)},
+					resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, skillMD)},
+					resultadoDeHerramienta{id: "toolu_03", contenido: cadenaJSON(t, "kitlegal\nSKILL.md")},
+					resultadoDeHerramienta{id: "toolu_04", contenido: cadenaJSON(t, sobreDelArticulo)},
+					resultadoDeHerramienta{id: "toolu_05", contenido: cadenaJSON(t, "SKILL.md: kitlegal boe articulo")},
+					resultadoDeHerramienta{id: "toolu_06", contenido: cadenaJSON(t, sobreDelIndice), conError: true},
+					resultadoDeHerramienta{
+						id:        "toolu_07",
+						contenido: cadenaJSON(t, "InputValidationError: Bash: falta command (kitlegal)"),
+						conError:  true,
+					},
+				),
+		},
+		{
+			nombre: "uso-sin-resultado",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "Bash", entrada: entradaDeBash(t, ordenDelIndice)}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, sobreDelIndice)}) +
+				mensajeDeLlamadas(t,
+					usoDeHerramienta{id: "toolu_02", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)},
+					usoDeHerramienta{id: "toolu_03", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21},
+				),
+			textos: []Texto{{Orden: ordenDelIndice, Salida: sobreDelIndice}},
+		},
+		{
+			nombre: "resultado-sin-ningun-texto",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "Bash", entrada: entradaDeBash(t, ordenDelIndice)},
+				usoDeHerramienta{id: "toolu_02", nombre: "boe_articulo", entrada: argumentosDelArticulo21},
+			) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_01", contenido: `""`},
+					resultadoDeHerramienta{id: "toolu_02"},
+				),
+			textos: []Texto{{Orden: ordenDelIndice}, {Orden: "boe_articulo BOE-A-2015-10565 a21"}},
+		},
+		{nombre: "sin-textos"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sesion, err := LeerSesion(escribirSesion(t, mensajeInit+caso.transcript+mensajeResultCorrecto))
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.textos, sesion.Textos)
+		})
+	}
+
+	t.Run("la-orden-de-una-llamada-es-la-que-publica-el-informe", func(t *testing.T) {
+		t.Parallel()
+
+		sesion, err := LeerSesion(escribirSesion(t, mensajeInit+
+			mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "mcp__kitlegal__boe_indice", entrada: argumentosDelIndice},
+				usoDeHerramienta{id: "toolu_02", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21},
+				usoDeHerramienta{id: "toolu_03", nombre: "mcp__kitlegal__boe_buscar", entrada: `{"terminos":["silencio","administrativo"]}`},
+			)+
+			mensajeDeResultados(t,
+				resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, sobreDelIndice)},
+				resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, sobreDelArticulo)},
+				resultadoDeHerramienta{id: "toolu_03", contenido: cadenaJSON(t, sobreSinFuente), conError: true},
+			)+mensajeResultCorrecto))
+		require.NoError(t, err)
+
+		var publicadas []string
+
+		for _, invocacion := range Juzgar(Eval{}, sesion, skillDeLasSesiones).Invocaciones {
+			require.True(t, invocacion.Llamada, "la sesión no tiene más invocaciones que sus llamadas")
+
+			publicadas = append(publicadas, invocacion.Orden)
+		}
+
+		ordenes := make([]string, 0, len(sesion.Textos))
+		for _, texto := range sesion.Textos {
+			ordenes = append(ordenes, texto.Orden)
+		}
+
+		require.Len(t, publicadas, 3)
+		assert.Equal(t, publicadas, ordenes)
+	})
 }
 
 // TestModoDeLaSesion fija el modo que da el directorio de una sesión (data-model
