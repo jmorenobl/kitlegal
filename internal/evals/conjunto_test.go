@@ -2102,7 +2102,7 @@ func TestProsaDeLaSkill(t *testing.T) {
 			"  redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin " +
 			"fuente. El de\n" +
 			"  `kitlegal graph check` no dice nada de ella. Recuerda que los textos consolidados del BOE tienen " +
-			"carácter informativo.\n" //nolint:misspell // «informativo» es español: el párrafo va tal cual.
+			"carácter informativo.\n"
 		redaccionSuperadaDeLaVersionAnterior = "- **La redacción superada no la has leído.** `kitlegal boe " +
 			"articulo` da solo la redacción vigente, y\n" +
 			"  `kitlegal graph check`, dos fechas: nada de lo que devuelven dice qué decía la redacción superada " +

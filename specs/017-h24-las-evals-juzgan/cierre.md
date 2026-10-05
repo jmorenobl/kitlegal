@@ -5,25 +5,34 @@ T017. La rama está al día con `main`: `git merge-base main HEAD` da la cabeza 
 `git diff --name-status main` da exactamente lo que cambia el hito. Las cinco partes son las de la tarea: lo creado y lo
 modificado, la cobertura, el quickstart, los controles de umbral, y los umbrales y los atajos.
 
-Todo lo que se cita aquí se ejecutó en la sesión de T017, en primer plano, y se vio terminar, o está en el repositorio.
-Lo que no se pudo medir se dice tal cual (§3, escenarios 7 a 9; §4, las diez filas `evals:`).
+Todo lo que se cita aquí se ejecutó en la sesión de T017 —o en la de T018, donde se dice—, en primer plano, y se vio
+terminar, o está en el repositorio. Lo que no se pudo medir se dice tal cual (§3, escenarios 7 a 9; §4, las diez filas
+`evals:`).
 
-**Una de las constancias que pide la tarea no se puede dar: el árbol lleva un `//nolint` nuevo.** Es el
-`//nolint:misspell` de `internal/evals/conjunto_test.go:2105`, que añadió T015 con su motivo y con su supuesto en
-`gates/supuestos.md`. plan.md («Constraints») y la batería de tasks.md dicen «ningún `//nolint`». No se retira aquí:
-los dos ficheros que habría que tocar no están entre las rutas de esta tarea (§5, «Atajos»). Lo demás de (1) a (5)
-cuadra. Esta tarea no toca código ni añade ningún test: sus ficheros son este, una línea de `gates/supuestos.md` y su
-marca en `tasks.md`.
+**La constancia que T017 no pudo dar la da T018: el hito no añade ningún `//nolint`.** T017 encontró uno nuevo, el
+`//nolint:misspell` que T015 dejó en `internal/evals/conjunto_test.go:2105`, y no lo retiró: los dos ficheros que había
+que tocar no estaban entre sus rutas. T018 lo retira y neutraliza la palabra donde el repositorio neutraliza el
+español, en `ignore-rules` de `misspell`, en `.golangci.yml`: los ficheros Go llevan 7 directivas `//nolint:` en `main`
+y 7 en el árbol de T018 (§5, «Atajos»). Lo demás de (1) a (5) ya cuadraba en T017, que no tocó código ni añadió ningún
+test.
+
+De este fichero, T018 cambia solo lo que eso mueve, medido en su sesión sobre `d5ae2e7`, que es T017, con sus cambios
+encima: lo que esta cabecera dice de T018, los recuentos de §1 con `.golangci.yml`, «Atajos» de §5 y el primer punto
+que tenía §6. La cobertura, el quickstart y los controles siguen como los midió T017, sobre `b1c5156`.
 
 ## 1. Lo creado y lo modificado en el hito
 
-`git diff --name-status main`, antes de escribir este fichero, da **88 ficheros: 53 `A` y 35 `M`**, ninguna `D` ni `R`
-(21 522 líneas añadidas y 2 861 quitadas). 37 están en `specs/017-h24-las-evals-juzgan/`, todos `A`; con este
-`cierre.md` serán 38. Los otros 51 son 16 `A` y 35 `M` (17 696 líneas añadidas y 2 861 quitadas).
+`git diff --name-status main`, en T018 y antes de tocar este fichero, da **90 ficheros: 54 `A` y 36 `M`**, ninguna `D`
+ni `R` (21 897 líneas añadidas y 2 861 quitadas). 38 están en `specs/017-h24-las-evals-juzgan/`, todos `A`, con este
+`cierre.md`. Los otros 52 son 16 `A` y 36 `M` (17 702 líneas añadidas y 2 861 quitadas).
+
+T017 midió 88, 53 `A` y 35 `M`, antes de escribir este fichero: los dos de más son este y `.golangci.yml`, que T018
+modifica. La orden no cuenta `gates/converge-hecho`, vacío y sin seguimiento: `git ls-files --others
+--exclude-standard` da en T018 ese fichero y ningún otro, y T017 no vio ninguno.
 
 ### Los esquemas, la carpeta del juez, los dos ficheros restaurados, la lista y la skill
 
-Son once de esos 51, con la tarea que los tocó (`git log --format=%s main..HEAD -- <ruta>`) y sus líneas
+Son once de esos 52, con la tarea que los tocó (`git log --format=%s main..HEAD -- <ruta>`) y sus líneas
 (`git diff --numstat main`):
 
 | Estado | Fichero | Tarea | Líneas | Qué es |
@@ -54,8 +63,10 @@ Tres comprobaciones sobre ellos:
   `redaccion_no_leida` 10 —las 87 del cierre de H7.4—, más las 3 de `salida_de_las_herramientas` y 2 formas fijas. El
   diff no quita ninguna línea de expresión: las 7 que quita son de la cabecera.
 
-### Los otros 40
+### Los otros 41
 
+- `.golangci.yml` (T018): la entrada `informativo` de `ignore-rules` de `misspell`, con su comentario; +6 líneas y
+  ninguna quitada (§5, «Atajos»).
 - `internal/evals`, 31 ficheros: los nuevos `juez.go`, `medida.go` y `ejecucion.go` con sus tres `_test.go`, y 25
   modificados (`conjunto`, `consulta_repetida`, `definicion`, `formato`, `informe`, `juzgar`, `prohibidas`, `sesion`,
   `sondeo` y `umbrales` con sus tests, y `doc.go`, `grabaciones.go`, `preparar.go`, `job_test.go` y
@@ -325,30 +336,43 @@ Las cinco funciones están en `internal/evals/umbrales.go`. Los diez nombres est
   T001 a T016 no se puede constatar desde aquí; lo que sí se ve es que la medida versionada no ha cambiado desde T001 y
   es la de la evidencia (§1).
 
-### Atajos: un `//nolint` nuevo, ningún `t.Skip` y ningún TODO
+### Atajos: ningún `//nolint` nuevo, ningún `t.Skip` y ningún TODO
 
-En las 15 518 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`), la búsqueda de `nolint`, `t.Skip`,
-`.Skip(`, `SkipNow`, `TODO`, `FIXME` y `XXX` da cuatro líneas. Tres son la plantilla `kitlegal-medida-del-juez.XXXXXX`
-de `mktemp`, en `scripts/evals-medir-juez.sh` y en dos comentarios. La cuarta es esta:
+En las 15 524 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`, en T018; T017 contó 15 518, y las
+seis de más son las de `.golangci.yml`), la búsqueda de `nolint`, `t.Skip`, `.Skip(`, `SkipNow`, `TODO`, `FIXME` y
+`XXX` da tres líneas, y las tres son la plantilla `kitlegal-medida-del-juez.XXXXXX` de `mktemp`, en
+`scripts/evals-medir-juez.sh` y en dos comentarios. T017 encontró una cuarta, que T018 retira:
 
 ```go
 "carácter informativo.\n" //nolint:misspell // «informativo» es español: el párrafo va tal cual.
 ```
 
-- **Dónde y de quién.** `internal/evals/conjunto_test.go:2105`, en `TestProsaDeLaSkill`. La añadió T015 (`816a43a`);
-  `main` no lleva ningún `nolint` en ese fichero. En todo el árbol versionado, `main` tiene 7 directivas `//nolint` y
-  la cabeza, 8.
-- **Por qué está.** El test lleva byte a byte el párrafo del paso 5 de `SKILL.md` v0.1.6, que termina en «carácter
-  informativo», y `misspell` lee «informativo» como una errata. T015 lo dejó escrito en `gates/supuestos.md`: la
-  costumbre del repositorio es neutralizar la palabra en `ignore-rules` de `.golangci.yml`, que no estaba entre sus
-  rutas.
-- **Qué contradice.** plan.md, «Constraints» («ningún `//nolint`»), y la batería de tasks.md («si […] `misspell` marcan
-  algo, se reestructura o se renombra»). Lleva motivo, así que no es un `nolint` sin justificar, pero es un `//nolint`
-  nuevo: **la constancia de que el árbol no lleva ninguno no se puede dar**.
-- **Por qué no se retira aquí.** Retirarlo es añadir `informativo` a `ignore-rules` y quitar el comentario: dos
-  ficheros, `.golangci.yml` e `internal/evals/conjunto_test.go`, que no están entre las rutas de T017, cuya línea solo
-  admite tests nuevos por una cobertura bajo su umbral. Queda como supuesto `[alcance]` de T017 en
-  `gates/supuestos.md`, para la revisión final.
+- **Dónde estaba y de quién era.** `internal/evals/conjunto_test.go:2105`, en `TestProsaDeLaSkill`: la última línea de
+  la constante `vigenciaDeLaVersionAnterior`, que lleva byte a byte el párrafo del paso 5 de `SKILL.md` v0.1.6 y
+  termina en «carácter informativo». `misspell` lee «informativo» como una errata de «information». La añadió T015
+  (`816a43a`), con su supuesto en `gates/supuestos.md`, porque `.golangci.yml` no estaba entre sus rutas; T017 la dejó
+  como supuesto `[alcance]`, por lo mismo. Contradecía plan.md, «Constraints» («ningún `//nolint`»), y la batería de
+  tasks.md, «Sin atajos».
+- **Primero, en rojo.** T018 quitó de esa línea la directiva y su motivo, y nada más: `git diff --numstat` da `1 1` a
+  ese fichero, y lo que queda en la línea es el literal, `"carácter informativo.\n"`. `make lint` terminó entonces con
+  error y una sola incidencia: ``internal/evals/conjunto_test.go:2105:15: `informativo` is a misspelling of
+  `information` (misspell)``.
+- **Después, donde el repositorio neutraliza el español.** `informativo` entra en `ignore-rules` de `misspell`, en
+  `.golangci.yml`, entre `disposicion` e `inventario`, con un comentario como el de sus vecinas: qué palabra es, dónde
+  está y cómo la lee `misspell`. `git diff --numstat` da `6 0` a ese fichero: la entrada y las cinco líneas de su
+  comentario. Ninguna otra regla, exclusión ni entrada cambia. `make lint` terminó con 0 y `0 issues.`
+- **El recuento.** `git grep -c '//nolint:' main -- '*.go'` y la misma orden sin `main`, sobre el árbol de T018, dan
+  lo mismo: **7 directivas en `main` y 7 en el árbol**, en los mismos seis ficheros de test y en las mismas líneas
+  (`coste_test.go`, `e2e_test.go`, con dos, y `tuberia_unix_test.go`, de `internal/app`; `internal/arch_test.go`;
+  `internal/core/territorio/coste_test.go`; e `internal/evals/cierre_test.go`). `git grep -n nolint --
+  internal/evals/conjunto_test.go` no da nada. T017 contó 7 y 8. **El hito no añade ningún `//nolint`.**
+- **Lo que no cambia.** El párrafo sigue siendo el de v0.1.6: ni se recorta ni se parte la palabra en dos literales, y
+  ningún caso del test cambia. `go test -count=1 -v -run '^TestProsaDeLaSkill$' ./internal/evals/` da `ok` y 27
+  `--- PASS`, el test y sus 26 subpruebas de §3, sin ningún `--- FAIL` ni `--- SKIP`.
+- **`make ci`.** Sobre el árbol de T018, antes de tocar este fichero: código 0 y `ci: todos los controles en verde`,
+  con `0 issues.` del lint, 51 `ok` y ningún `FAIL`; 12 de esos `ok`, todos de `test-integration`, salieron de la caché
+  de tests, y `internal/evals` no es uno de ellos. La verificación de T018 es otro `make ci`, posterior a este
+  fichero: su resultado no está aquí.
 
 `t.Skip`: los dos de la cabeza son los dos de `main` (`internal/cache/integracion_test.go:451` e
 `internal/evals/cierre_test.go:70`). TODO y FIXME: ninguno en la cabeza ni en `main`, en `*.go`, `Makefile`,
@@ -356,7 +380,6 @@ de `mktemp`, en `scripts/evals-medir-juez.sh` y en dos comentarios. La cuarta es
 
 ## 6. Lo que queda fuera del run
 
-- **El `//nolint` de T015** (§5): lo decide la revisión final o quien lea el informe.
 - **Las diez filas `evals:`** (§4) y SC-001: las mide el job de cierre que lanza el workflow.
 - **`codecov/patch`** (§2): solo se sabe en la propuesta de cambio.
 - **quickstart.md §7 y §9**, y SC-014: de una persona. Antes de fusionar, Jorge lanza la medida del juez con el código
