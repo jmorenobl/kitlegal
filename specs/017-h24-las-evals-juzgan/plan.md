@@ -201,8 +201,9 @@ se tocan no salen de `--describe`.
 ### Tests existentes que cambian
 
 - `TestEvalsDelRepositorio`: salen `expresiones-calibradas`, `expresiones-en-los-bloques` y `expresiones-de-la-skill`,
-  con lo que solo ellas usan (FR-071); `formato` lee además la carpeta del juez; `prosa-de-la-skill` aplica la clave
-  nueva. `TestProsaDeLaSkill` gana los casos de contracts/skill-boe-legislacion.md §4. `TestLeerConjunto`, los de la
+  con lo que solo ellas usan (FR-071), salvo las rutas de los tres informes del calibrado y la lectura de sus
+  entradas, que pasan a `TestJuzgarSinLaLista`; `formato` lee además la carpeta del juez; `prosa-de-la-skill`
+  aplica la clave nueva. `TestProsaDeLaSkill` gana los casos de contracts/skill-boe-legislacion.md §4. `TestLeerConjunto`, los de la
   carpeta `juez`.
 - `TestUmbralesDelInforme`, `TestInforme…` y `TestJuzgar…`: sin `expresiones_prohibidas` en el resultado, en los
   motivos, en el recuento ni en `umbrales`; con los doce umbrales donde la skill sintética tiene juez.
@@ -263,7 +264,7 @@ Los diez umbrales que deciden en el informe del cierre —los seis nuevos que fi
 | FR-023, FR-108, SC-008 | 4 de 4 copias idénticas | comparación byte a byte | `ci:internal/evals/medida_test.go:TestCopiasDelJuez` |
 | FR-109, SC-009 | 259 respuestas iguales a las de su informe; 140 derivados que solo pierden su texto | reconstrucción en proceso | `ci:internal/evals/medida_test.go:TestGrabacionesDerivadas` |
 | FR-086, FR-110, SC-010 | `SKILL.md` < 300 líneas; 0 usos de las tres expresiones en la prosa | `TestSkillsDelRepositorio` en `skills-check`; la prosa | `ci:Makefile:skills-check`, `ci:internal/evals/conjunto_test.go:TestProsaDeLaSkill`, `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
-| FR-111, SC-011 | 0 sesiones que dejan de pasar por la lista | las respuestas del 2026-10-04 y las de los informes de H7.1 a H7.3 | `ci:internal/evals/juzgar_test.go:TestJuzgarSinLaLista` |
+| FR-111, SC-011 | 0 sesiones que dejan de pasar por la lista | las dos respuestas del 2026-10-04 y las 56 del calibrado de H7.4: las 36, 11 y 9 que la lista del repositorio marca, aplicada a la `respuesta` de cada entrada, en los informes de H7.1, H7.2 y H7.3, exigidas como premisa | `ci:internal/evals/juzgar_test.go:TestJuzgarSinLaLista` |
 | FR-092, FR-112, SC-012 | cada `timeout-minutes` ≥ su peor caso (21 097 s y 16 105 s); 2 versiones de Claude Code fijadas aparte; 0 formas de lanzar la medida fuera de su etiqueta y su entrada | la definición del repositorio y las sintéticas | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob` |
 
 SC-013 es `make ci` entero, y SC-014 lo mide una persona: no tienen fila.
