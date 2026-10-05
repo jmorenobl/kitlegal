@@ -10,6 +10,35 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-05 · Un juez con modelo lee las respuestas de seis cierres: la skill glosa lo que no ha leído, y dice «el sobre»
+
+- **Qué se pidió.** Validar el juez con modelo del ADR 0037 antes de aceptarlo: que lea las 423 respuestas del modelo
+  que decide en los seis informes versionados de `boe-legislacion`, con los textos que devolvieron sus herramientas
+  delante, y diga cuáles afirman lo que ninguna herramienta devolvió (`evidencias/adr-0037/`).
+- **Qué pasó.** El juez marca los 145 defectos conocidos con cuatro rúbricas distintas, y con la última, los 212
+  defectos etiquetados y ninguno de los 47 avisos correctos. Y encuentra en la skill lo que nadie había buscado.
+- **Qué falló.**
+  - **La skill glosa de memoria preceptos que no ha leído.** Al repetir una remisión: «las entidades del art. 45
+    (entidades de ámbito territorial inferior al municipio)», cuando el art. 22 leído solo dice «las entidades a que
+    se refiere el artículo 45». Y al decir lo que no leyó: «No he leído los artículos 67 a 70, que regulan cuándo
+    empieza a contar el plazo, su interrupción y sus efectos». Con la skill de hoy son 20 de 270 respuestas: 3 de 54
+    en el informe de H7.4; 5 y 6 en el de H21, por modo; 2 y 4 en el de H22. En los de H7.1 a H7.3, 52 de 153.
+  - **Algunas glosas están mal.** Dos respuestas de H7.2 dicen cosas distintas de las letras derogadas n) y o) del
+    art. 22.2 de la LRBRL —«operaciones de crédito y avales» y «reclamaciones sobre acuerdos de las Corporaciones
+    locales y organización de servicios de recaudación»—, cuando el texto leído solo dice «(Derogada)». Otra dice
+    «los artículos 26 y 27 (tipicidad e irretroactividad, respectivamente)» de la Ley 40/2015, con el orden al revés.
+  - **Un tercio de las respuestas nombra «el sobre» o un campo de la salida.** «El sobre no trae avisos de
+    vigencia», «rige desde el 2 de octubre de 2016 (`fecha_vigencia` 20161002)». Desde H7.4 la lista de expresiones
+    da 0 en todas ellas. Sale de la prosa de `SKILL.md`, que dice «la respuesta dice lo que trae el sobre» y nombra
+    los dos campos.
+  - **La lista de expresiones no vio nada de esto**, y el juez solo es estable si la rúbrica dice dónde está la
+    frontera: con una que no lo decía, cambiar una línea movió 3 de las 21 marcas.
+- **Qué faltó.** Que la skill no diga de qué trata un artículo que nombra y no ha leído, ni cambie una remisión por
+  su descripción, y que diga la vigencia con palabras de quien lee. Lo que sí hace bien, y se queda: avisar de lo que
+  la respuesta no cubre («el cómputo se regula en otros artículos, que no he leído»).
+- **Qué se hizo.** Aceptar el ADR 0037 con la frontera del precepto identificado, y abrir H24 por delante de H23,
+  con el juez y con el arreglo de la skill.
+
 ### 2026-10-04 · Con la v0.5.0, el plugin del marketplace basta: un solo servidor, y la cita con su forma
 
 - **Qué se pidió.** La prueba del plugin con el servidor dentro (#115) con el marketplace real, en un equipo que

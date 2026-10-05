@@ -1,0 +1,92 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "48c7d5ace76bbdb950d3ad94a51f04abc94f589ff20eb32ac9fd0a447dd76880",
+      "bytes": 3119,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "casos.yaml",
+      "sha256": "4827894aefc4133f99d0af93672585f70c9d3f2b8803af36eb2cec4f1811401a",
+      "bytes": 78214,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "esquema.json",
+      "sha256": "b3a622159b449ae8fa64367083fada1d1a0bc73bb7cc56bb85f4a9da5c9df427",
+      "bytes": 609,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "guiones/arnes_test.go.txt",
+      "sha256": "2c859b5d3be5b5eee3198f93ff9c25dfd1be4e3a952362454d8eebdf77c4c576",
+      "bytes": 6746,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "guiones/casos.py",
+      "sha256": "84c13721b3c08484878bc5ed1819c4e643a01c92c2c5c9aec27fa2daef774a58",
+      "bytes": 4955,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "guiones/juez.py",
+      "sha256": "c770cce55ef73dfa861a3eb9ff5d119b1affc146ce7871c4ec09554d87e8386a",
+      "bytes": 10773,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "guiones/resumen.py",
+      "sha256": "16975cd02287bea960de996acd7765336a0e7f6c34a56b13065237fe11f5b6e2",
+      "bytes": 4925,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "lectura.md",
+      "sha256": "70277623b10be0a46151e3a4dc0feae86df047416966ae80840e649586d5da98",
+      "bytes": 22462,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "rubrica.md",
+      "sha256": "5f1e2115b107d942ccdb4dd9b55f8f9606b1b56b52a2cc3e5a8fdef9692d06ee",
+      "bytes": 4708,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "votos-ajuste.jsonl",
+      "sha256": "187b428ca3b3b17f6bb3311cfbd77ea510ed0fbe8ea05c7c801750ea5c506e3f",
+      "bytes": 465030,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    },
+    {
+      "fichero": "votos-medida.jsonl",
+      "sha256": "386a1150b36863ba8ab490c1ff8116c33a2fb70dbe69756169968ea21d9b489a",
+      "bytes": 484697,
+      "fecha": "2026-10-05",
+      "versionado": "sí",
+      "origen": "validación del ADR 0037"
+    }
+  ]
+}
