@@ -795,6 +795,63 @@ func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRe
 	return juicio
 }
 
+// respuestaAJuzgar es una respuesta que se da a juzgar al juez: la pregunta de
+// su eval, la respuesta de la sesión y los textos de sus herramientas, que es
+// lo que lleva el mensaje de cada uno de sus votos (mensajeDelVoto).
+type respuestaAJuzgar struct {
+	pregunta  string
+	respuesta string
+	textos    []Texto
+}
+
+// juzgarTodas juzga las respuestas dadas, como mucho concurrencia a la vez, y
+// devuelve sus juicios en su mismo orden (contracts/informe-del-job.md §1 de
+// H24; research D6 de H24). Los votos de una misma respuesta van uno detrás de
+// otro, que es como los pide juzgar, y cada respuesta se juzga en su gorrutina:
+// un canal con concurrencia huecos es el semáforo y un sync.WaitGroup espera a
+// las que están en curso, como en ejecutarSesiones. La concurrencia es al menos
+// 1, y el votante se puede llamar desde varias gorrutinas a la vez.
+func (v *votacion) juzgarTodas(respuestas []respuestaAJuzgar, concurrencia int) []JuicioDeRespuesta {
+	juicios := make([]JuicioDeRespuesta, len(respuestas))
+	huecos := make(chan struct{}, concurrencia)
+
+	var enCurso sync.WaitGroup
+
+	for posicion, respuesta := range respuestas {
+		huecos <- struct{}{}
+
+		enCurso.Go(func() {
+			defer func() { <-huecos }()
+
+			// Cada gorrutina escribe solo en la posición de su respuesta.
+			juicios[posicion] = v.juzgar(respuesta.pregunta, respuesta.respuesta, respuesta.textos)
+		})
+	}
+
+	enCurso.Wait()
+
+	return juicios
+}
+
+// frasesQueCuentan son las frases de los votos de la clase que cuentan, una por
+// número de voto y en su orden: de un voto nulo y su repetición cuenta la
+// repetición, que va detrás de él con su mismo número (votosDelNumero). En una
+// clase que decide con la respuesta marcada, son las tres frases que la marcan
+// (contracts/informe-del-job.md §4 de H24; FR-035).
+func (j JuicioDeClase) frasesQueCuentan() []string {
+	frases := make([]string, 0, votosParaMarcar)
+
+	for posicion, voto := range j.Votos {
+		if posicion+1 < len(j.Votos) && j.Votos[posicion+1].Voto == voto.Voto {
+			continue
+		}
+
+		frases = append(frases, voto.Frase)
+	}
+
+	return frases
+}
+
 // contar cuenta en cada clase el voto con ese número, que es el que cuenta de
 // él, y dice si alguna clase que decide sigue con todos sus votos en sí con su
 // frase: en una que decide, un voto que no lo dice la deja sin marcar para
