@@ -2,16 +2,21 @@ package evals
 
 import (
 	"bytes"
+	"context"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 	"unicode"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -401,6 +406,221 @@ type errorConCodigo interface {
 // un proceso que no llegó a terminar: el mismo que da ExitCode de un proceso
 // sin código.
 const codigoSinProceso = -1
+
+// El tope de un voto y su margen (contracts/juez-y-voto.md §4 de H24; research
+// D6 de H24; FR-007): pasado el tope, el proceso del voto se termina, y pasado
+// además el margen, se cierran las salidas que haya dejado abiertas. Con seis
+// votos por respuesta como mucho, es lo que cabe en el tope del trabajo del job
+// junto al peor caso de sus sesiones. causaDelTope dice el tope.
+const (
+	topeDelVoto   = 35 * time.Second
+	margenDelVoto = 5 * time.Second
+)
+
+// Lo que hay en el directorio del juez además de modelo.txt, rubrica.md y
+// esquema.json, que el guion del voto lee desde el directorio de cada voto
+// (contracts/juez-y-voto.md §4 de H24): el directorio de trabajo de los votos y
+// el de Claude Code, los de la validación del ADR 0037. Y el prefijo de su
+// nombre en el temporal del sistema.
+const (
+	// directorioDelVoto es el directorio de trabajo de cada voto, vacío.
+	directorioDelVoto = "cwd"
+
+	// directorioDeClaudeDelJuez es el directorio de configuración de Claude Code
+	// de los votos, CLAUDE_CONFIG_DIR.
+	directorioDeClaudeDelJuez = "config"
+
+	prefijoDelDirectorioDelJuez = "kitlegal-evals-juez-"
+)
+
+// ordenDelVoto es con lo que el votante del guion abre cada voto de una
+// ejecución, lo mismo en todos (contracts/juez-y-voto.md §4 de H24).
+type ordenDelVoto struct {
+	// juez es el de la skill: su rúbrica son las instrucciones de cada voto, y
+	// su esquema, la forma que se le pide a su respuesta.
+	juez *Juez
+
+	// modelo es el id del modelo del juez.
+	modelo string
+
+	// guion es la ruta absoluta de scripts/evals-voto.sh, que abre cada voto.
+	guion string
+
+	// path es el PATH de cada voto: su primer claude es el Claude Code del juez.
+	path string
+
+	// suscripcion es el valor de CLAUDE_CODE_OAUTH_TOKEN de quien pide los
+	// votos.
+	suscripcion string
+}
+
+// nuevoVotanteDelGuion da el Votante de los puntos de entrada, el que abre cada
+// voto con el guion del voto, con el tope de un voto y su margen
+// (contracts/juez-y-voto.md §4 de H24; research D4 y D5 de H24; FR-003, FR-004,
+// FR-007). Crea el directorio del juez, un temporal de esta ejecución, y
+// devuelve con el votante la función que lo retira, que llama quien lo pidió
+// cuando ya no va a pedir más votos.
+//
+// El contexto es el de las señales del punto de entrada: Votante no recibe
+// ninguno en cada voto (research D5 de H24), así que el de cada voto deriva de
+// este, y SIGINT y SIGTERM cortan los votos abiertos. El votante se puede
+// llamar desde varias gorrutinas a la vez, una por respuesta que se juzga.
+func nuevoVotanteDelGuion(ctx context.Context, orden ordenDelVoto) (Votante, func() error, error) {
+	return nuevoVotanteConTope(ctx, orden, topeDelVoto, margenDelVoto)
+}
+
+// nuevoVotanteConTope es nuevoVotanteDelGuion con el tope de cada voto y su
+// margen como parámetros, para que un test los fije en lo que puede esperar.
+// Sin un guion con ruta absoluta no hay votante: cada voto se ejecuta en su
+// propio directorio, y desde él se buscaría un guion con ruta relativa.
+func nuevoVotanteConTope(ctx context.Context, orden ordenDelVoto, tope, margen time.Duration) (
+	Votante, func() error, error,
+) {
+	if !filepath.IsAbs(orden.guion) {
+		return nil, nil, fmt.Errorf("el guion del voto %s no tiene ruta absoluta", orden.guion)
+	}
+
+	dir, err := crearElDirectorioDelJuez(orden)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	voto := votoEnMarcha{
+		dir: filepath.Join(dir, directorioDelVoto),
+		entorno: []string{
+			variableDelPATH + "=" + orden.path,
+			"HOME=" + dir,
+			"CLAUDE_CONFIG_DIR=" + filepath.Join(dir, directorioDeClaudeDelJuez),
+			variableDeLaSuscripcion + "=" + orden.suscripcion,
+		},
+		tope:   tope,
+		margen: margen,
+	}
+
+	votar := func(mensaje string) ([]byte, error) { return ejecutarElVoto(ctx, orden.guion, voto, mensaje) }
+	retirar := func() error { return retirarTemporal(dir) }
+
+	return votar, retirar, nil
+}
+
+// crearElDirectorioDelJuez crea el directorio del juez de una ejecución, un
+// temporal fuera del repositorio, con lo que escribirElDirectorioDelJuez deja
+// en él, y devuelve su ruta. Si no se puede crear entero, no queda nada de él.
+func crearElDirectorioDelJuez(orden ordenDelVoto) (string, error) {
+	dir, err := os.MkdirTemp("", prefijoDelDirectorioDelJuez)
+	if err == nil {
+		err = escribirElDirectorioDelJuez(dir, orden)
+	}
+
+	if err != nil {
+		// Si el directorio llegó a crearse, se retira; si no, dir está vacío y
+		// no hay nada que retirar.
+		return "", errors.Join(fmt.Errorf("el directorio del juez no se puede crear: %w", err), retirarTemporal(dir))
+	}
+
+	return dir, nil
+}
+
+// escribirElDirectorioDelJuez deja en el directorio del juez lo que el guion
+// del voto lee desde el directorio de cada voto —modelo.txt, con el id del
+// modelo en su línea; rubrica.md, con la rúbrica entera; y esquema.json, con el
+// esquema entero— y, vacíos y solo para quien vota, el directorio de trabajo de
+// los votos y el de Claude Code.
+func escribirElDirectorioDelJuez(dir string, orden ordenDelVoto) error {
+	ficheros := []struct{ nombre, contenido string }{
+		{ficheroDelModelo, orden.modelo + "\n"},
+		{ficheroDeRubricaDelJuez, orden.juez.Rubrica},
+		{ficheroDeEsquemaDelJuez, orden.juez.Esquema},
+	}
+	for _, fichero := range ficheros {
+		if err := escribirFichero(filepath.Join(dir, fichero.nombre), []byte(fichero.contenido)); err != nil {
+			return err
+		}
+	}
+
+	for _, directorio := range []string{directorioDelVoto, directorioDeClaudeDelJuez} {
+		if err := os.Mkdir(filepath.Join(dir, directorio), permisosDeLaSesion); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// votoEnMarcha es lo que ejecutarElVoto necesita de un voto, además del guion y
+// del mensaje: su directorio de trabajo, su entorno, su tope y el margen tras
+// él.
+type votoEnMarcha struct {
+	dir     string
+	entorno []string
+	tope    time.Duration
+	margen  time.Duration
+}
+
+// ejecutarElVoto abre un voto: un proceso nuevo del guion del voto, sin
+// argumentos y con el mensaje por su entrada estándar, y devuelve lo que
+// escribió en la estándar (contracts/juez-y-voto.md §4 de H24; FR-003, FR-007).
+// El guion llega como parámetro para que la orden no lleve nada que no sea
+// constante (research D4 y V8 de H24).
+//
+// El contexto del voto deriva del recibido, con el tope: cuando termina, exec
+// termina el proceso, y si pasado el margen alguien sigue teniendo abiertas sus
+// salidas, las cierra y deja de esperar (research V7 de H24). El error es
+// entonces la causa de ese contexto: errTopeDelVoto si se agotó el tope, y la
+// del recibido si fue él el que se cortó, que es una interrupción y no un voto
+// lento. Del proceso que termina por sí mismo con un código distinto de 0, el
+// error es el de conSuSalidaDeError.
+func ejecutarElVoto(ctx context.Context, guion string, voto votoEnMarcha, mensaje string) ([]byte, error) {
+	contextoDelVoto, cancelar := context.WithTimeoutCause(ctx, voto.tope, errTopeDelVoto)
+	defer cancelar()
+
+	// exec solo llama a Cancel si el contexto termina antes que el proceso, así
+	// que cortado dice si al voto lo terminó su contexto y no él mismo.
+	var cortado atomic.Bool
+
+	orden := exec.CommandContext(contextoDelVoto, guion)
+	orden.Dir = voto.dir
+	orden.Env = voto.entorno
+	orden.Stdin = strings.NewReader(mensaje)
+	orden.WaitDelay = voto.margen
+	orden.Cancel = func() error {
+		err := orden.Process.Kill()
+		cortado.Store(err == nil)
+
+		return err
+	}
+
+	salida, err := orden.Output()
+
+	switch {
+	case err == nil:
+		return salida, nil
+	case cortado.Load():
+		return salida, fmt.Errorf("el voto se ha cortado antes de terminar: %w", context.Cause(contextoDelVoto))
+	default:
+		return salida, conSuSalidaDeError(err)
+	}
+}
+
+// conSuSalidaDeError es el error del proceso de un voto con lo que el proceso
+// escribió en su salida de error detrás, si terminó con un código y escribió
+// algo: es lo que dice por qué una sesión del juez no dio su salida, y va en el
+// motivo del voto que no llega a darse, donde
+// evidencias/adr-0037/guiones/juez.py ponía esa salida. El error sigue llevando
+// el código del proceso.
+func conSuSalidaDeError(err error) error {
+	delProceso, conCodigo := errors.AsType[*exec.ExitError](err)
+	if !conCodigo {
+		return err
+	}
+
+	escrito := strings.TrimFunc(string(delProceso.Stderr), esBlanco)
+	if escrito == "" {
+		return err
+	}
+
+	return fmt.Errorf("%w: %s", err, escrito)
+}
 
 // respuestaSi es la respuesta con la que el juez marca una clase; la otra del
 // esquema de su respuesta es «no».

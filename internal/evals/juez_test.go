@@ -1,11 +1,20 @@
 package evals
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -485,6 +494,502 @@ func TestFraseEnLaRespuesta(t *testing.T) {
 			assert.Equal(t, caso.esta, fraseEsta(caso.frase, respuesta))
 		})
 	}
+}
+
+// guionDelVoto es scripts/evals-voto.sh, relativo al directorio de este
+// paquete, que es donde go test ejecuta los tests.
+const guionDelVoto = "../../scripts/evals-voto.sh"
+
+// Lo que TestOrdenDelVoto da al votante del guion: el id del modelo del juez,
+// que la orden recibe tal cual y ninguna sesión usa; y una rúbrica con varias
+// líneas, comillas, un dólar, un acento grave y una barra invertida, que la
+// orden recibe carácter a carácter, y con una línea en blanco delante de su
+// salto de línea final, que $(…) de la shell quitaría con él.
+const (
+	modeloDelJuezDelGuion = "claude-opus-5-5"
+
+	rubricaDelGuion = "# Rúbrica del juez\n\n" +
+		"Responde \"si\" o 'no' a cada pregunta: ni $HOME, ni `orden`, ni \\n se tocan.\n\n"
+)
+
+// El tope y el margen de los votos de los tests que agotan el tope —los de
+// verdad son 35 s y 5 s (contracts/juez-y-voto.md §4 de H24)— y lo que el
+// sustituto de claude espera en ellos sin terminar: el votante que lo esperase
+// entero tardaría eso, y el que lo corta, el tope o el tope y el margen. Un
+// voto llega a la espera del sustituto en unos 30 ms, también con el paquete
+// entero en marcha, así que el tope no lo corta antes; y el margen es la
+// holgura con la que se exige que el proceso se termine al agotarse el tope, y
+// no después.
+const (
+	topeDelVotoDePrueba   = 2 * time.Second
+	margenDelVotoDePrueba = 3 * time.Second
+	esperaSinTerminar     = 30 * time.Second
+)
+
+// variablesDeLaShell son las que una shell pone por su cuenta en el entorno de
+// lo que ejecuta: el guion del voto es de bash y el sustituto de claude, de sh,
+// así que el entorno que el sustituto anota las lleva además de las que el
+// votante da al voto.
+var variablesDeLaShell = []string{"PWD", "OLDPWD", "SHLVL", "_"}
+
+// ordenDelVotoConElSustituto es la orden de los votos de un test: con ese juez,
+// la ruta absoluta de scripts/evals-voto.sh, el sustituto de claude delante en
+// el PATH y una credencial sin forma de secreto.
+func ordenDelVotoConElSustituto(t *testing.T, claude claudeDelJuez, juez *Juez) ordenDelVoto {
+	t.Helper()
+
+	guion, err := filepath.Abs(guionDelVoto)
+	require.NoError(t, err)
+
+	return ordenDelVoto{
+		juez:        juez,
+		modelo:      modeloDelJuezDelGuion,
+		guion:       guion,
+		path:        claude.path(),
+		suscripcion: valorDeLaSuscripcion,
+	}
+}
+
+// votoPedido es lo que un votante devolvió de un voto que se le pidió.
+type votoPedido struct {
+	salida []byte
+	err    error
+}
+
+// juzgarConElVotante juzga respuestaJuzgada con el juez de las dos clases y ese
+// votante, y da el juicio y lo que el votante devolvió de cada voto, en su
+// orden.
+func juzgarConElVotante(t *testing.T, votar Votante) (JuicioDeRespuesta, []votoPedido) {
+	t.Helper()
+
+	var pedidos []votoPedido
+
+	votacion, err := nuevaVotacion(juezDeLasDosClases(), func(mensaje string) ([]byte, error) {
+		salida, err := votar(mensaje)
+		pedidos = append(pedidos, votoPedido{salida: salida, err: err})
+
+		return salida, err
+	})
+	require.NoError(t, err)
+
+	return votacion.juzgar(preguntaJuzgada, respuestaJuzgada, textosJuzgados()), pedidos
+}
+
+// TestOrdenDelVoto fija la orden con la que el votante del guion abre cada
+// voto y su tope (contracts/juez-y-voto.md §4 y §9 de H24; research D4, D6 y V22
+// de H24; FR-003, FR-004, FR-007, FR-107; SC-007), con scripts/evals-voto.sh y
+// un claude sustituto delante en el PATH del voto, sin ninguna sesión con
+// modelo:
+//
+//   - cada voto es un proceso nuevo de claude con los argumentos de voto_real
+//     de evidencias/adr-0037/guiones/juez.py, uno a uno y en su orden, con la
+//     rúbrica entera y el esquema sin su salto de línea final; con el mensaje
+//     por su entrada estándar; en el directorio cwd, vacío, del directorio del
+//     juez, un temporal que se retira al acabar; y con cuatro variables de
+//     entorno y ninguna más;
+//   - el votante devuelve la salida estándar del proceso, también si termina
+//     con error, y entonces con un error que lleva su código y lo que escribió
+//     en su salida de error;
+//   - pasado el tope, termina el proceso, que no queda vivo, y devuelve el
+//     error del tope; si el proceso deja sus salidas abiertas en otro, las
+//     cierra pasado el margen y no lo espera;
+//   - y si se corta el contexto que recibió, corta el voto abierto, con un
+//     error que no es el del tope.
+func TestOrdenDelVoto(t *testing.T) {
+	t.Parallel()
+
+	t.Run("orden", probarLaOrdenDelVoto)
+	t.Run("proceso-que-termina-con-error", probarElVotoQueTerminaConError)
+	t.Run("guion-que-no-existe", probarElGuionQueNoExiste)
+	t.Run("tope", probarElTopeDelVoto)
+	t.Run("tope-y-margen-de-verdad", probarElTopeDeVerdad)
+	t.Run("contexto-que-se-corta", probarElVotoInterrumpido)
+	t.Run("guion-sin-ruta-absoluta", probarElGuionSinRutaAbsoluta)
+	t.Run("directorio-que-no-se-puede-escribir", probarElDirectorioQueNoSePuedeEscribir)
+}
+
+// probarLaOrdenDelVoto pide dos votos al votante del guion, con el sustituto
+// de claude que escribe una salida grabada, y exige de cada uno la orden de
+// contracts/juez-y-voto.md §4 de H24, y del directorio del juez, lo que tiene
+// y que se retira.
+func probarLaOrdenDelVoto(t *testing.T) {
+	t.Parallel()
+
+	grabada := votoDeLasDosClases(t, afirmaQueNo(), cuentaQueNo()).salida
+	claude := escribirElClaudeDelJuez(t, map[string]string{salidaDelClaudeDelJuez: grabada})
+
+	juez := juezDeLasDosClases()
+	juez.Rubrica = rubricaDelGuion
+	juez.Esquema = esquemaDeLasDosClases + "\n"
+
+	orden := ordenDelVotoConElSustituto(t, claude, juez)
+
+	votar, retirar, err := nuevoVotanteDelGuion(t.Context(), orden)
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+	mensaje := mensajeDelVoto(preguntaJuzgada, respuestaJuzgada, textosJuzgados())
+
+	for range 2 {
+		salida, err := votar(mensaje)
+		require.NoError(t, err)
+		assert.Equal(t, grabada, string(salida), "el votante devuelve la salida estándar de la sesión del juez")
+	}
+
+	votos := claude.votos(t)
+	require.Len(t, votos, 2, "cada voto es un proceso nuevo")
+
+	dirDelJuez := votos[0].entorno["HOME"]
+	exigirElDirectorioDelJuez(t, dirDelJuez)
+
+	dirDelVoto, err := filepath.EvalSymlinks(filepath.Join(dirDelJuez, "cwd"))
+	require.NoError(t, err)
+
+	for _, voto := range votos {
+		assert.Equal(t, []string{
+			"-p", "--model", modeloDelJuezDelGuion, "--tools", "", "--strict-mcp-config", "--disable-slash-commands",
+			"--no-session-persistence", "--system-prompt", rubricaDelGuion, "--output-format", "json",
+			"--json-schema", esquemaDeLasDosClases,
+		}, voto.argumentos, "los argumentos de claude, uno a uno y en su orden")
+		assert.Equal(t, mensaje, voto.entrada, "el mensaje llega por la entrada estándar, byte a byte")
+		assert.Equal(t, dirDelVoto, voto.directorio, "el voto se ejecuta en cwd, en el directorio del juez")
+		assert.Empty(t, voto.enElDirectorio, "el directorio del voto está vacío")
+		assert.Equal(t, map[string]string{
+			variableDelPATH:         orden.path,
+			"HOME":                  dirDelJuez,
+			"CLAUDE_CONFIG_DIR":     filepath.Join(dirDelJuez, "config"),
+			variableDeLaSuscripcion: valorDeLaSuscripcion,
+		}, sinLasDeLaShell(voto.entorno), "el voto ve cuatro variables y ninguna más")
+	}
+
+	require.NoError(t, retirar())
+	assert.NoDirExists(t, dirDelJuez, "el directorio del juez se retira al acabar")
+}
+
+// exigirElDirectorioDelJuez exige que el directorio del juez sea un temporal,
+// fuera del repositorio, con modelo.txt, rubrica.md, esquema.json, cwd y config
+// y nada más.
+func exigirElDirectorioDelJuez(t *testing.T, dir string) {
+	t.Helper()
+
+	assert.Equal(t, filepath.Clean(os.TempDir()), filepath.Dir(dir), "el directorio del juez es un temporal")
+
+	entradas, err := os.ReadDir(dir)
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(entradas))
+	for _, entrada := range entradas {
+		nombres = append(nombres, entrada.Name())
+	}
+
+	assert.Equal(t, []string{"config", "cwd", "esquema.json", "modelo.txt", "rubrica.md"}, nombres)
+	assert.DirExists(t, filepath.Join(dir, "config"))
+	assert.DirExists(t, filepath.Join(dir, "cwd"))
+}
+
+// sinLasDeLaShell es el entorno anotado por el sustituto de claude del juez sin
+// las variables que una shell pone por su cuenta.
+func sinLasDeLaShell(entorno map[string]string) map[string]string {
+	delVoto := maps.Clone(entorno)
+	maps.DeleteFunc(delVoto, func(variable, _ string) bool { return slices.Contains(variablesDeLaShell, variable) })
+
+	return delVoto
+}
+
+// probarElVotoQueTerminaConError fija lo que el votante del guion devuelve del
+// voto cuyo proceso termina con un código distinto de 0: la salida estándar que
+// dejó y un error que lleva ese código y, detrás, lo que el proceso escribió en
+// su salida de error. Con ello, la lectura del voto da el motivo de la sesión
+// que terminó con error, que la sesión escribe en su salida, o el de la salida
+// que no es JSON, con su código (contracts/juez-y-voto.md §5 de H24).
+func probarElVotoQueTerminaConError(t *testing.T) {
+	t.Parallel()
+
+	sesionConError := `{"type":"result","subtype":"success","is_error":true,"result":` +
+		cadenaJSON(t, limiteDeUsoDeLaSesion) + `}` + "\n"
+
+	casos := []struct {
+		nombre    string
+		gobierno  map[string]string
+		salida    string
+		codigo    int
+		sinJuzgar string
+	}{
+		{
+			nombre:    "con-la-salida-de-la-sesion",
+			gobierno:  map[string]string{salidaDelClaudeDelJuez: sesionConError, codigoDelClaudeDelJuez: "1"},
+			salida:    sesionConError,
+			codigo:    1,
+			sinJuzgar: prefijoDeSesionConError + limiteDeUsoDeLaSesion,
+		},
+		{
+			nombre: "sin-salida-y-con-la-de-error",
+			gobierno: map[string]string{
+				salidaDeErrorDelClaudeDelJuez: "\nError: el sustituto no arranca\n",
+				codigoDelClaudeDelJuez:        "3",
+			},
+			codigo:    3,
+			sinJuzgar: "voto 1: la salida no es JSON (código 3): exit status 3: Error: el sustituto no arranca",
+		},
+		{
+			nombre:    "sin-ninguna-salida",
+			gobierno:  map[string]string{codigoDelClaudeDelJuez: "4"},
+			codigo:    4,
+			sinJuzgar: "voto 1: la salida no es JSON (código 4): exit status 4",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			claude := escribirElClaudeDelJuez(t, caso.gobierno)
+
+			votar, retirar, err := nuevoVotanteDelGuion(t.Context(),
+				ordenDelVotoConElSustituto(t, claude, juezDeLasDosClases()))
+			require.NoError(t, err)
+			t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+			juicio, pedidos := juzgarConElVotante(t, votar)
+
+			require.Len(t, pedidos, 1)
+			require.Error(t, pedidos[0].err)
+			require.NotErrorIs(t, pedidos[0].err, errTopeDelVoto)
+			assert.Equal(t, caso.codigo, codigoDelVoto(pedidos[0].err), "el error lleva el código del proceso")
+			assert.Equal(t, caso.salida, string(pedidos[0].salida), "la salida del proceso llega con su error")
+			assert.Equal(t, caso.sinJuzgar, juicio.SinJuzgar)
+		})
+	}
+}
+
+// probarElGuionQueNoExiste fija lo que el votante devuelve del voto cuyo guion
+// no se puede ejecutar: un error sin código de ningún proceso, que la lectura
+// del voto da como una salida que no es JSON.
+func probarElGuionQueNoExiste(t *testing.T) {
+	t.Parallel()
+
+	votar, retirar, err := nuevoVotanteDelGuion(t.Context(), ordenDelVoto{
+		juez:        juezDeLasDosClases(),
+		modelo:      modeloDelJuezDelGuion,
+		guion:       filepath.Join(t.TempDir(), "no-esta.sh"),
+		path:        os.Getenv(variableDelPATH),
+		suscripcion: valorDeLaSuscripcion,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+	juicio, pedidos := juzgarConElVotante(t, votar)
+
+	require.Len(t, pedidos, 1)
+	require.ErrorIs(t, pedidos[0].err, fs.ErrNotExist)
+	assert.Equal(t, codigoSinProceso, codigoDelVoto(pedidos[0].err))
+	assert.Empty(t, pedidos[0].salida)
+	assert.True(t, strings.HasPrefix(juicio.SinJuzgar, "voto 1: la salida no es JSON (código -1): fork/exec "),
+		"el motivo es el de la salida que no es JSON, sin código de proceso: %s", juicio.SinJuzgar)
+}
+
+// probarElTopeDelVoto fija el tope de un voto (contracts/juez-y-voto.md §4 de
+// H24; research D6 y V7 de H24; FR-007), con un tope y un margen de prueba y el
+// sustituto de claude que espera sin terminar: al agotarse el tope, y no pasado
+// el margen, el votante termina el proceso, que no queda vivo, y devuelve el
+// error del tope, con el que la respuesta queda sin juzgar. Si el proceso había
+// dejado sus salidas abiertas en otro, que lo sobrevive, las cierra pasado el
+// margen y no espera a que ese otro termine.
+func probarElTopeDelVoto(t *testing.T) {
+	t.Parallel()
+
+	espera := strconv.Itoa(int(esperaSinTerminar.Seconds()))
+
+	casos := []struct {
+		nombre   string
+		gobierno map[string]string
+
+		// minimo es lo que tarda el voto como poco: el tope si basta terminar el
+		// proceso, y el tope más el margen si hay que cerrar sus salidas.
+		minimo time.Duration
+
+		// maximo es lo que el voto no llega a tardar: el tope más el margen si
+		// basta terminar el proceso, que es al agotarse el tope y no pasado el
+		// margen, y lo que espera el otro proceso si hay que cerrar sus salidas.
+		maximo time.Duration
+	}{
+		{
+			nombre:   "el-proceso-no-termina",
+			gobierno: map[string]string{esperaDelClaudeDelJuez: espera},
+			minimo:   topeDelVotoDePrueba,
+			maximo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
+		},
+		{
+			nombre:   "deja-sus-salidas-abiertas",
+			gobierno: map[string]string{esperaDelClaudeDelJuez: espera, hijoDelClaudeDelJuez: espera},
+			minimo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
+			maximo:   esperaSinTerminar,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			claude := escribirElClaudeDelJuez(t, caso.gobierno)
+			t.Cleanup(func() { claude.terminarLosHijos(t) })
+
+			votar, retirar, err := nuevoVotanteConTope(t.Context(),
+				ordenDelVotoConElSustituto(t, claude, juezDeLasDosClases()), topeDelVotoDePrueba, margenDelVotoDePrueba)
+			require.NoError(t, err)
+			t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+			inicio := time.Now()
+			juicio, pedidos := juzgarConElVotante(t, votar)
+			transcurrido := time.Since(inicio)
+
+			require.Len(t, pedidos, 1)
+			require.ErrorIs(t, pedidos[0].err, errTopeDelVoto)
+			assert.Equal(t, motivoDelTopeDelVotoUno, juicio.SinJuzgar)
+			assert.GreaterOrEqual(t, transcurrido, caso.minimo)
+			assert.Less(t, transcurrido, caso.maximo, "el votante corta el voto a su tiempo, y no se limita a esperarlo")
+
+			votos := claude.votos(t)
+			require.Len(t, votos, 1)
+			assert.True(t, procesoTerminado(votos[0].pid), "el proceso del voto no queda vivo")
+		})
+	}
+}
+
+// probarElTopeDeVerdad fija el tope de un voto y su margen, 35 s y 5 s
+// (contracts/juez-y-voto.md §4 de H24; research D6 de H24), y que el motivo del
+// voto que lo agota dice ese tope y no otro.
+func probarElTopeDeVerdad(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, 35*time.Second, topeDelVoto)
+	assert.Equal(t, 5*time.Second, margenDelVoto)
+	assert.Contains(t, causaDelTope, fmt.Sprintf("tope de %d s ", int(topeDelVoto.Seconds())))
+}
+
+// probarElVotoInterrumpido fija que el contexto de cada voto deriva del que el
+// votante recibió (contracts/juez-y-voto.md §4 de H24): cortado ese contexto
+// con un voto abierto, como hacen SIGINT y SIGTERM en el punto de entrada, el
+// votante termina el proceso del voto, que no queda vivo, sin esperar a su
+// tope, y su error es el de ese contexto y no el del tope.
+func probarElVotoInterrumpido(t *testing.T) {
+	t.Parallel()
+
+	claude := escribirElClaudeDelJuez(t, map[string]string{
+		esperaDelClaudeDelJuez: strconv.Itoa(int(esperaSinTerminar.Seconds())),
+	})
+	orden := ordenDelVotoConElSustituto(t, claude, juezDeLasDosClases())
+
+	contexto, interrumpir := context.WithCancel(t.Context())
+	defer interrumpir()
+
+	votar, retirar, err := nuevoVotanteDelGuion(contexto, orden)
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+	pedido := make(chan votoPedido, 1)
+
+	go func() {
+		salida, err := votar("un mensaje")
+		pedido <- votoPedido{salida: salida, err: err}
+	}()
+
+	require.Eventually(t, func() bool { return claude.esperando() == 1 }, topeSinCorte, 10*time.Millisecond,
+		"el sustituto de claude empieza su espera")
+	interrumpir()
+
+	dado := <-pedido
+
+	require.ErrorIs(t, dado.err, context.Canceled)
+	require.NotErrorIs(t, dado.err, errTopeDelVoto)
+
+	votos := claude.votos(t)
+	require.Len(t, votos, 1)
+	assert.True(t, procesoTerminado(votos[0].pid), "el proceso del voto no queda vivo")
+}
+
+// probarElGuionSinRutaAbsoluta fija que el votante no se construye con un
+// guion sin ruta absoluta, que cada voto buscaría desde su directorio de
+// trabajo: el error lo nombra.
+func probarElGuionSinRutaAbsoluta(t *testing.T) {
+	t.Parallel()
+
+	votar, retirar, err := nuevoVotanteDelGuion(t.Context(), ordenDelVoto{
+		juez:        juezDeLasDosClases(),
+		modelo:      modeloDelJuezDelGuion,
+		guion:       guionDelVoto,
+		path:        os.Getenv(variableDelPATH),
+		suscripcion: valorDeLaSuscripcion,
+	})
+
+	require.ErrorContains(t, err, "el guion del voto "+guionDelVoto+" no tiene ruta absoluta")
+	assert.Nil(t, votar)
+	assert.Nil(t, retirar)
+}
+
+// probarElDirectorioQueNoSePuedeEscribir fija el error de lo que el votante
+// deja en el directorio del juez cuando no se puede escribir, por la estructura
+// de un directorio temporal y no por permisos: con un directorio donde va la
+// rúbrica y con un fichero donde va el directorio de los votos.
+func probarElDirectorioQueNoSePuedeEscribir(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre  string
+		estorbo func(dir string) error
+		es      error
+	}{
+		{
+			nombre:  "un-directorio-donde-va-la-rubrica",
+			estorbo: func(dir string) error { return os.Mkdir(filepath.Join(dir, "rubrica.md"), 0o750) },
+			es:      syscall.EISDIR,
+		},
+		{
+			nombre:  "un-fichero-donde-va-el-directorio-de-los-votos",
+			estorbo: func(dir string) error { return os.WriteFile(filepath.Join(dir, "cwd"), nil, 0o600) },
+			es:      syscall.EEXIST,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			dir := t.TempDir()
+			require.NoError(t, caso.estorbo(dir))
+
+			err := escribirElDirectorioDelJuez(dir, ordenDelVoto{juez: juezDeLasDosClases(), modelo: modeloDelJuezDelGuion})
+
+			require.ErrorIs(t, err, caso.es)
+		})
+	}
+}
+
+// TestVotanteSinDirectorioDelJuez fija que el votante del guion no se
+// construye si no puede crear el directorio del juez, con TMPDIR en un fichero
+// de un directorio temporal del test: el error dice qué no se puede crear. No es
+// paralelo, porque t.Setenv cambia el entorno de todo el proceso.
+func TestVotanteSinDirectorioDelJuez(t *testing.T) {
+	noEsUnDirectorio := filepath.Join(t.TempDir(), "tmp")
+	require.NoError(t, os.WriteFile(noEsUnDirectorio, nil, 0o600))
+
+	guion, err := filepath.Abs(guionDelVoto)
+	require.NoError(t, err)
+
+	t.Setenv("TMPDIR", noEsUnDirectorio)
+
+	votar, retirar, err := nuevoVotanteDelGuion(t.Context(), ordenDelVoto{
+		juez:        juezDeLasDosClases(),
+		modelo:      modeloDelJuezDelGuion,
+		guion:       guion,
+		path:        os.Getenv(variableDelPATH),
+		suscripcion: valorDeLaSuscripcion,
+	})
+
+	require.ErrorIs(t, err, syscall.ENOTDIR)
+	require.ErrorContains(t, err, "el directorio del juez no se puede crear")
+	assert.Nil(t, votar)
+	assert.Nil(t, retirar)
 }
 
 // casoDeVoto es un caso de TestVotoDelJuez: las grabaciones que devuelve el

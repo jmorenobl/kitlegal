@@ -507,7 +507,15 @@ func escribirElGoDelSondeo(t *testing.T) string {
 func (s sustitutos) entorno(t *testing.T, sesion string) map[string]string {
 	t.Helper()
 
-	contenido, err := leerFichero(filepath.Join(s.comun, sustitutoClaude, sesion, "entorno"))
+	return entornoAnotado(t, filepath.Join(s.comun, sustitutoClaude, sesion))
+}
+
+// entornoAnotado es lo que un sustituto anotó en el fichero entorno del
+// directorio de sus anotaciones, clave=valor en cada línea, por clave.
+func entornoAnotado(t *testing.T, anotaciones string) map[string]string {
+	t.Helper()
+
+	contenido, err := leerFichero(filepath.Join(anotaciones, "entorno"))
 	require.NoError(t, err)
 
 	anotado := map[string]string{}
@@ -521,4 +529,198 @@ func (s sustitutos) entorno(t *testing.T, sesion string) map[string]string {
 	}
 
 	return anotado
+}
+
+// sustitutoDeClaudeDelJuez es el cuerpo del claude que los tests del votante
+// ponen delante en el PATH del voto en lugar del de verdad, que abriría una
+// sesión del juez con modelo (contracts/juez-y-voto.md §9 de H24; FR-093 de
+// H24). El voto solo ve sus cuatro variables de entorno, así que ninguna le
+// dice dónde anotar ni qué hacer: escribirElClaudeDelJuez le pone delante la
+// línea que da a comun el directorio común del test, y lo gobiernan los
+// ficheros de ese directorio. Crea votos/<su pid>, que falla si ya existe, y
+// anota en él sus argumentos, cada uno terminado en NUL, su directorio de
+// trabajo, el físico, lo que hay en él, su entorno entero, como lo da env, y su
+// entrada estándar, hasta que se cierra; escribe en la salida de error lo que
+// haya en salida-de-error y en la estándar lo que haya en salida, la salida
+// grabada de una sesión del juez; y después:
+//
+//   - con hijo, deja en segundo plano un sleep de esos segundos, que hereda sus
+//     dos salidas y las tiene abiertas cuando él ya no está, y anota su pid;
+//   - con espera, deja la marca espera-empezada y se cambia con exec por un
+//     sleep de esos segundos: quien duerme es el proceso del voto, con su pid,
+//     y no un hijo que lo sobreviva;
+//   - con codigo, sale con ese código.
+//
+// Con variableDeCalentar, termina con 0 sin hacer nada.
+const sustitutoDeClaudeDelJuez = `if [ "${KITLEGAL_SUSTITUTO_CALENTAR:-}" = si ]; then exit 0; fi
+set -eu
+anotaciones="$comun/` + directorioDeVotos + `/$$"
+mkdir "$anotaciones"
+printf '%s\0' "$@" > "$anotaciones/argumentos"
+pwd -P > "$anotaciones/directorio"
+ls -A > "$anotaciones/en-el-directorio"
+env > "$anotaciones/entorno"
+cat > "$anotaciones/entrada"
+if [ -f "$comun/` + salidaDeErrorDelClaudeDelJuez + `" ]; then cat "$comun/` + salidaDeErrorDelClaudeDelJuez + `" >&2; fi
+if [ -f "$comun/` + salidaDelClaudeDelJuez + `" ]; then cat "$comun/` + salidaDelClaudeDelJuez + `"; fi
+if [ -f "$comun/` + hijoDelClaudeDelJuez + `" ]; then
+	sleep "$(cat "$comun/` + hijoDelClaudeDelJuez + `")" &
+	printf '%s\n' "$!" > "$anotaciones/pid-del-hijo"
+fi
+if [ -f "$comun/` + esperaDelClaudeDelJuez + `" ]; then
+	: > "$anotaciones/espera-empezada"
+	exec sleep "$(cat "$comun/` + esperaDelClaudeDelJuez + `")"
+fi
+if [ -f "$comun/` + codigoDelClaudeDelJuez + `" ]; then exit "$(cat "$comun/` + codigoDelClaudeDelJuez + `")"; fi
+`
+
+// Lo que gobierna al sustituto de claude del juez, por el nombre de su fichero
+// en el directorio común: la salida grabada que escribe en su salida estándar,
+// lo que escribe en la de error, el código con el que sale, los segundos que
+// espera sin terminar y los que dura el hijo que deja con sus salidas abiertas.
+// Y directorioDeVotos, donde anota cada voto.
+const (
+	salidaDelClaudeDelJuez        = "salida"
+	salidaDeErrorDelClaudeDelJuez = "salida-de-error"
+	codigoDelClaudeDelJuez        = "codigo"
+	esperaDelClaudeDelJuez        = "espera"
+	hijoDelClaudeDelJuez          = "hijo"
+	directorioDeVotos             = "votos"
+)
+
+// claudeDelJuez es dónde está el sustituto de claude de un test del votante: el
+// directorio que va delante en el PATH del voto y el común, con los ficheros
+// que lo gobiernan y, en votos/, lo que anota de cada voto.
+type claudeDelJuez struct {
+	bin   string
+	comun string
+}
+
+// escribirElClaudeDelJuez escribe el sustituto de claude del juez, ejecutable,
+// en un directorio temporal del test, a través de un os.Root, con el directorio
+// común que crea para él escrito en su segunda línea, y lo ejecuta una vez con
+// variableDeCalentar, como escribirSustitutos. Lo gobiernan los ficheros dados,
+// por su nombre, que deja en el común antes de que nadie lo ejecute.
+func escribirElClaudeDelJuez(t *testing.T, gobierno map[string]string) claudeDelJuez {
+	t.Helper()
+
+	c := claudeDelJuez{bin: t.TempDir(), comun: t.TempDir()}
+	require.NoError(t, os.Mkdir(filepath.Join(c.comun, directorioDeVotos), 0o750))
+
+	for fichero, contenido := range gobierno {
+		require.NoError(t, os.WriteFile(filepath.Join(c.comun, fichero), []byte(contenido), 0o600))
+	}
+
+	raiz, err := os.OpenRoot(c.bin)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	guion := "#!/bin/sh\ncomun=" + entreComillasSimples(c.comun) + "\n" + sustitutoDeClaudeDelJuez
+	require.NoError(t, escribirEjecutable(raiz, sustitutoClaude, guion))
+	calentar(t, filepath.Join(c.bin, sustitutoClaude))
+
+	return c
+}
+
+// path es el PATH de un voto del test: el directorio del sustituto delante del
+// PATH del proceso, del que el guion del voto y el sustituto toman bash, env,
+// cat y las demás órdenes que usan.
+func (c claudeDelJuez) path() string {
+	return c.bin + string(os.PathListSeparator) + os.Getenv(variableDelPATH)
+}
+
+// votoAnotado es lo que el sustituto de claude del juez anotó de un voto: su
+// pid, sus argumentos, su directorio de trabajo, el físico, lo que había en él,
+// su entorno entero, por variable, y su entrada estándar.
+type votoAnotado struct {
+	pid            int
+	argumentos     []string
+	directorio     string
+	enElDirectorio string
+	entorno        map[string]string
+	entrada        string
+}
+
+// votos son los votos que el sustituto de claude del juez anotó, por orden de
+// pid, que no es el orden en que se pidieron.
+func (c claudeDelJuez) votos(t *testing.T) []votoAnotado {
+	t.Helper()
+
+	entradas, err := os.ReadDir(filepath.Join(c.comun, directorioDeVotos))
+	require.NoError(t, err)
+
+	votos := make([]votoAnotado, 0, len(entradas))
+
+	for _, entrada := range entradas {
+		anotaciones := filepath.Join(c.comun, directorioDeVotos, entrada.Name())
+
+		pid, err := strconv.Atoi(entrada.Name())
+		require.NoErrorf(t, err, "el sustituto anota cada voto en el directorio de su pid: %s", entrada.Name())
+
+		votos = append(votos, votoAnotado{
+			pid:            pid,
+			argumentos:     argumentosAnotados(t, anotaciones),
+			directorio:     strings.TrimSuffix(anotacionDelVoto(t, anotaciones, "directorio"), "\n"),
+			enElDirectorio: anotacionDelVoto(t, anotaciones, "en-el-directorio"),
+			entorno:        entornoAnotado(t, anotaciones),
+			entrada:        anotacionDelVoto(t, anotaciones, "entrada"),
+		})
+	}
+
+	slices.SortFunc(votos, func(a, b votoAnotado) int { return a.pid - b.pid })
+
+	return votos
+}
+
+// anotacionDelVoto es lo que el sustituto de claude del juez anotó de un voto en
+// el fichero de ese nombre, entero.
+func anotacionDelVoto(t *testing.T, anotaciones, nombre string) string {
+	t.Helper()
+
+	contenido, err := leerFichero(filepath.Join(anotaciones, nombre))
+	require.NoError(t, err)
+
+	return string(contenido)
+}
+
+// esperando es cuántos votos tienen al sustituto de claude del juez en su
+// espera, con la marca que deja al empezarla. No recibe el test porque es la
+// condición de assert.Eventually, que la evalúa en otra gorrutina.
+func (c claudeDelJuez) esperando() int {
+	marcas, err := filepath.Glob(filepath.Join(c.comun, directorioDeVotos, "*", "espera-empezada"))
+	if err != nil {
+		return 0
+	}
+
+	return len(marcas)
+}
+
+// terminarLosHijos termina, con KILL, el hijo que el sustituto de claude del
+// juez dejó en cada voto con sus salidas abiertas, que sobrevive al voto: el
+// votante termina el proceso del voto y no a sus descendientes. Un hijo que ya
+// no está no es un error.
+func (c claudeDelJuez) terminarLosHijos(t *testing.T) {
+	t.Helper()
+
+	anotados, err := filepath.Glob(filepath.Join(c.comun, directorioDeVotos, "*", "pid-del-hijo"))
+	require.NoError(t, err)
+
+	for _, anotado := range anotados {
+		contenido, err := leerFichero(anotado)
+		require.NoError(t, err)
+
+		pid, err := strconv.Atoi(strings.TrimSuffix(string(contenido), "\n"))
+		require.NoErrorf(t, err, "el pid del hijo es un entero en su línea: %s", anotado)
+
+		if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+			require.ErrorIs(t, err, syscall.ESRCH)
+		}
+	}
+}
+
+// procesoTerminado dice si ya no hay ningún proceso con ese pid: el sistema
+// responde ESRCH a una señal 0.
+func procesoTerminado(pid int) bool {
+	return errors.Is(syscall.Kill(pid, 0), syscall.ESRCH)
 }
