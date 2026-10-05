@@ -201,6 +201,7 @@ versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
+| Medida del juez con modelo de una skill: vota sus casos etiquetados e imprime `medida.json`, sin escribirla en el repositorio (`scripts/evals-medir-juez.sh`; [Job de evals](#job-de-evals), «La medida del juez») | `make evals-medir-juez` | no — sesiones con modelo y credencial, fuera de `make ci`; la lanza una persona, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez` del flujo `evals`, y ningún paso del workflow `hito` la lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm`, las dos piezas de la instalación sin terminal —la extensión de escritorio, `kitlegal.mcpb`, y el plugin de Claude, `kitlegal-plugin.zip`— y `checksums.txt`, que lista también las dos piezas e `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`, que comprueba también las dos piezas: su huella, el manifiesto, los binarios, el icono y el servidor de la extensión, y las skills del plugin) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | El plugin del snapshot y el catálogo de su versión, válidos para `claude plugin validate` (`TestPluginValido`), sin sesión con modelo ni credencial | `make plugin-check` | no — necesita Claude Code y el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
@@ -570,8 +571,8 @@ dentro del binario, así que un cambio en ellos llega a `territorio resolver` al
 
 Las evals de una skill se escriben **antes** que la skill o que el cambio que la mejora (ritual, paso 1), en su propio
 directorio, `evals/<skill>/`, con un fichero YAML por eval llamado `<nn>-<descripción>.yaml` —dos cifras y una
-descripción en minúsculas con guiones— y, si la skill la tiene, su lista de expresiones prohibidas (abajo). Todas las
-evals siguen el formato común de eval:
+descripción en minúsculas con guiones— y, si la skill los tiene, su lista de expresiones y la carpeta `juez` de su
+juez con modelo (las dos, abajo). Todas las evals siguen el formato común de eval:
 
 | Campo | ¿Obligatorio? | Qué fija |
 |---|---|---|
@@ -591,8 +592,8 @@ evals siguen el formato común de eval:
 | `sin_binario_ni_servidor` | no; solo `true`, y solo si `activa` es `true` | La sesión de la eval tiene la skill y nada más: ni `kitlegal` en el `PATH` ni el servidor MCP declarado. La respuesta debe llevar la línea `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa misma línea, y ninguna cita. Una eval que la lleva no lleva `comandos`, `citas`, `territorio`, `avisos`, `hallazgos`, `prohibidos`, `grafo_previo`, `redacciones_modificadas`, `informativa` ni `reproduce`, aunque `activa` sea `true`; sí puede llevar `no_se_activan` |
 
 Cada fichero de eval de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra
-`schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre
-ni la lista de expresiones prohibidas, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
+`schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre,
+ni la lista de expresiones, ni la carpeta `juez`, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
 eval positiva sin citas ni territorio, una de no activación con comandos o una sin binario ni servidor con alguna de
 las claves que no lleva fallan nombrando el fichero; ninguna se salta. Para `boe-legislacion`, `make ci` exige además
 las reglas de su conjunto: exactamente diez positivas que deciden, de materias distintas, al menos una de no
@@ -614,58 +615,83 @@ misma respuesta sin sus redacciones posteriores a una fecha de vigencia, y nada 
 `TestGrabacionesDerivadas` exige que sea, byte a byte, esa derivación y que, servida en lugar de la grabación, `boe` dé
 exactamente una de las redacciones que trae la grabada, la de esa fecha.
 
-**La lista de expresiones prohibidas** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: las
-expresiones que no lleva la respuesta de una eval que activa la skill y consulta. La eval sin binario ni servidor no
-se juzga con ella: su sesión no consulta nada, y su respuesta se juzga por la línea `⚠ SIN CONSULTA AL BOE:`, su
-dirección y la ausencia de citas. `make ci` la reconoce por ese nombre exacto —no
-es un fichero de eval— y la valida contra su propio esquema, `schemas/expresiones-prohibidas.yaml.json`: cinco claves
-obligatorias, una por cada una de las cuatro familias, con una lista no vacía de expresiones de una o más palabras
-separadas por un espacio, sin blancos en los extremos ni `*` o `_`, y `formas_fijas`. Las familias son de dos clases:
-la A, lo que la respuesta no cuenta, y la B, una redacción que la respuesta no ha leído, que tiene su propio umbral en
-el informe ([Job de evals](#job-de-evals)):
+**La lista de expresiones** es `evals/<skill>/expresiones-prohibidas.yaml`, opcional y una por skill: **el
+vocabulario que la prosa de `SKILL.md` no usa**. No juzga ninguna respuesta: ninguna sesión deja de pasar por una
+expresión, y el informe no publica de ellas ningún recuento ni ningún umbral. Lo que una respuesta quiere decir lo
+juzga el juez con modelo (abajo), que ve también lo mismo dicho con otras palabras, que una lista no detecta.
+`make ci` la reconoce por ese nombre exacto —no es un fichero de eval— y la valida contra su propio esquema,
+`schemas/expresiones-prohibidas.yaml.json`: seis claves obligatorias, cada una con una lista no vacía —una por cada
+una de las cuatro familias, `salida_de_las_herramientas` y `formas_fijas`—. Una expresión de una familia tiene una o
+más palabras separadas por un espacio, sin blancos en los extremos ni `*` o `_`; una de `salida_de_las_herramientas`,
+lo mismo sin `*` ni acento grave, de modo que admite el guion bajo de un nombre de campo. Las familias nacieron como
+lo que la respuesta no lleva (H7.2 a H7.4), y de ahí sus dos clases: la A, lo que la respuesta no cuenta, y la B, una
+redacción que no ha leído.
 
-| Familia | Clase | Qué recoge |
+| Clave | Clase | Qué recoge |
 |---|---|---|
 | `maquinaria` | A | Lo que la respuesta no cuenta de cómo trabaja la skill: la memoria de consultas, `kitlegal graph` y sus verbos, los códigos de salida, los hallazgos y sus clases, el JSON y el sobre, en formas que no chocan con el castellano corriente ni con el texto de las normas (`memoria de consultas`, `graph check`, `código 0`, `sobre de salida`…) |
 | `otra_conversacion` | A | Lo que atribuye a la skill algo dicho a quien pregunta en otra conversación: un verbo de decir con «te» en pretérito o en condicional compuesto, y `conversación anterior` (`te dije`, `te habría confirmado`…) |
 | `anuncio` | A | El anuncio de la respuesta o del estado de lo comprobado —de la comprobación o de una lectura anterior, o de lo que el agente tiene, necesita o va a hacer—: que va a responder, que ya tiene lo que necesita, que no hay nada que trasladar o que la redacción no ha cambiado (`ya puedo responder`, `tengo suficiente`, `que trasladar`, `consulta anterior`, `la comprobación de la redacción`, `se consultó antes`…). Ninguna dice a quien lee que la norma no está derogada o que no tiene avisos: eso es derecho, no maquinaria |
 | `redaccion_no_leida` | B | Una redacción que ninguna orden devolvió: qué decía, hasta cuándo rigió o qué cambió respecto de ella (`ya no exige`, `vigente hasta`, `el cambio relevante`…) |
+| `salida_de_las_herramientas` | — | Lo que devuelve una orden o una herramienta y los nombres de sus campos, que la skill no enseña a decir a quien pregunta: `el sobre`, `fecha_vigencia` y `norma_modificadora`. No es una familia |
 
-`formas_fijas` no es una familia: son las formas que la skill enseña a escribir y que llevan palabras de la lista,
-cada una de una sola línea, con los marcadores `<cita>` —opcional: la forma casa también sin la cita— y `<fecha>`
-—ocho cifras— en lugar de sus datos (en `boe-legislacion`, la línea `⚠ REDACCIÓN MODIFICADA:` y la frase de la
-regla 7 sin su punto final). **Se quitan de la respuesta antes de buscar**, en todas sus apariciones, con varios
-blancos donde la forma lleva uno y, en una `⚠` inicial, las tolerancias de la forma fija de los avisos; y se quitan
-también la marca, la etiqueta y los dos puntos de cada aviso de vigencia. Cada tramo quitado deja un salto de línea.
-Así «la que se consultó antes» dentro de la línea no cuenta, y fuera de ella, sí.
+`formas_fijas` tampoco es una familia: son las formas que la skill enseña a escribir y que llevan palabras de la
+lista, cada una de una sola línea, con los marcadores `<cita>` —opcional: la forma casa también sin la cita— y
+`<fecha>` —ocho cifras— en lugar de sus datos (en `boe-legislacion`, la línea `⚠ REDACCIÓN MODIFICADA:` y la frase de
+la regla 7 sin su punto final). **Se quitan del texto antes de buscar las cuatro familias**, en todas sus
+apariciones, con varios blancos donde la forma lleva uno y, en una `⚠` inicial, las tolerancias de la forma fija de
+los avisos; y se quitan también la marca, la etiqueta y los dos puntos de cada aviso de vigencia. Cada tramo quitado
+deja un salto de línea. Así «la que se consultó antes» dentro de la línea no cuenta, y fuera de ella, sí.
 
-Cada expresión se compara con lo que queda de la respuesta por la forma, sin ningún modelo y con la tolerancia de las
-formas fijas de los avisos (H5.1): sin distinguir mayúsculas y con blancos y énfasis de Markdown de más entre las
-palabras y alrededor; delimitada como palabra —`hallazgo` no se encuentra dentro de `hallazgos`—, sin plegar tildes y
-sin admitir un salto de línea entre dos palabras; y se buscan en el orden de las familias, sin repetir.
-**Lo mismo dicho con otras palabras no se detecta**: es una limitación declarada, y el informe publica cada respuesta
-para verlo. Una lista mal formada —clave desconocida o repetida, familia o `formas_fijas` que falta o vacía, expresión
-con blancos en un extremo o con `*` o `_`, forma fija en blanco o de más de una línea, o una entrada con ese
-nombre que no es un fichero— es un fichero mal formado, como una eval: `make ci` falla nombrándola y las evals de la
-carpeta se leen sin lista. Hoy solo la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` comprueba además la suya:
-marca exactamente 36 de las 93 respuestas del informe de evals de H7.1, 11 de las 93 del de H7.2 y 9 de las 93 del de
-H7.3, los informes versionados en los directorios de esos hitos en `specs/`, eval por eval, familia por familia y en
-las que llevan alguna, y ninguna otra (subprueba `expresiones-calibradas`), así que una expresión nueva que marca una
-respuesta más, o una retirada que deja de marcar una, hace fallar `make ci` nombrando el informe, la eval y la
-familia; ninguna expresión casa con el texto de los bloques que leen sus evals y sus grafos previos
-(`expresiones-en-los-bloques`), ni con la respuesta que compone, con datos de ejemplo, la forma fija de cada aviso y
-de cada hallazgo y los bloques `text` de su `SKILL.md`, que son lo que la skill enseña a escribir, una vez quitadas las
-formas fijas de la lista, y cada una de ellas quita algo de esa respuesta, de modo que la skill y la lista dicen lo
-mismo (`expresiones-de-la-skill`); cada orden de lectura y comprobación de su `SKILL.md`, la de `articulo` y la de
-`articulos`, lleva detrás su forma para PowerShell, con la misma norma y los mismos bloques
-(`ordenes-para-powershell`); y **la prosa de su `SKILL.md` no enseña lo que la respuesta no puede decir**
-(`prosa-de-la-skill`): sobre el fichero entero,
-frontmatter incluido, sin los bloques delimitados, los tramos de código en línea ni la región generada de la tabla de
-comandos, y párrafo a párrafo —partido por las líneas en blanco y por cada elemento de lista—, ninguna expresión de la
-lista, y en todo el fichero ninguna fecha `AAAAMMDD` escrita con cifras, que un ejemplo daría a copiar. Falla
-nombrando la primera línea de cada párrafo que lleva alguna, con sus expresiones, y cada línea con una fecha. Lo que la
-skill ejecuta y lo que lee en la salida del binario va en código (`version-obsoleta`, `data.hallazgos`, `3`), y no
-cuenta; los ejemplos de una forma que lleva datos del binario usan marcadores como `AAAAMMDD`.
+Cada expresión se compara con el texto por la forma, sin ningún modelo y con la tolerancia de las formas fijas de los
+avisos (H5.1): sin distinguir mayúsculas y con blancos y énfasis de Markdown de más entre las palabras y alrededor;
+delimitada como palabra —`hallazgo` no se encuentra dentro de `hallazgos`, «del sobre» no es `el sobre` y
+`fecha_vigencia_reciente` sí lleva `fecha_vigencia`—, sin plegar tildes y sin admitir un salto de línea entre dos
+palabras; y se buscan en el orden de las familias, sin repetir. Una lista mal formada —clave desconocida o repetida,
+alguna de las seis que falta o vacía, expresión con blancos en un extremo o con un carácter que su clave no admite,
+forma fija en blanco o de más de una línea, o una entrada con ese nombre que no es un fichero— es un fichero mal
+formado, como una eval: `make ci` falla nombrándola y las evals de la carpeta se leen sin lista.
+
+Hoy solo la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` la aplica a su `SKILL.md`: **la prosa de la skill no
+usa ese vocabulario** (subprueba `prosa-de-la-skill`). Mira el fichero entero, frontmatter incluido, sin los bloques
+delimitados ni la región generada de la tabla de comandos, párrafo a párrafo —partido por las líneas en blanco y por
+cada elemento de lista—. Las cuatro familias se buscan sin los tramos de código en línea: lo que la skill ejecuta y
+lo que lee en la salida del binario va en código (`version-obsoleta`, `data.hallazgos`, `3`), y no cuenta.
+`salida_de_las_herramientas` se busca **también en el código en línea**, sin sus acentos graves y sin quitar las
+formas fijas, porque un nombre de campo se escribe como código. Y en todo el fichero no hay ninguna fecha `AAAAMMDD`
+escrita con cifras, que un ejemplo daría a copiar: los ejemplos de una forma que lleva datos del binario usan
+marcadores como `AAAAMMDD`. Falla nombrando la primera línea de cada párrafo que lleva alguna expresión, con sus
+expresiones, y cada línea con una fecha. `TestEvalsDelRepositorio` ya no compara la lista con ninguna respuesta, con
+los bloques grabados ni con las formas de la skill: de su calibrado sobre los informes de H7.1, H7.2 y H7.3 quedan
+solo sus tres totales (36, 11 y 9 respuestas marcadas), como premisa de `TestJuzgarSinLaLista`, que fija que ninguna
+de esas respuestas deja ya un motivo ni una clave de la lista en su resultado. Aparte, cada orden de lectura y
+comprobación de su `SKILL.md`, la de `articulo` y la de `articulos`, lleva detrás su forma para PowerShell, con la
+misma norma y los mismos bloques (`ordenes-para-powershell`).
+
+**El juez con modelo** de una skill es la carpeta `evals/<skill>/juez/` (ADR 0037). Juzga lo que ningún guion puede
+comprobar, el significado de una respuesta; lo que tiene forma o es un hecho de la sesión —citas, avisos, formas
+fijas, órdenes, activación, red, duración— se sigue comprobando sin modelo y no pasa por él. Una skill sin esa
+carpeta no tiene juez: ni votos, ni umbrales del juez, ni comprobación de la medida. Hoy solo la tiene
+`boe-legislacion`. Sus cinco ficheros:
+
+| Fichero | Qué es |
+|---|---|
+| `clases.yaml` | Las clases del juez, contra `schemas/juez-clases.yaml.json`: de cada una, `nombre`, `decide` —si su umbral del informe hace fallar el job o solo se publica— y `umbral`, la proporción de respuestas marcadas que admite, de 0 a 1 |
+| `rubrica.md` | Las instrucciones del juez, con una pregunta cerrada por clase: es el *system prompt* de cada voto |
+| `esquema.json` | La forma de la respuesta del juez, con una propiedad por clase |
+| `casos.yaml` | Los casos etiquetados con los que se mide al juez: respuestas de informes versionados, cada una con su etiqueta, `defecto` o `correcto` |
+| `medida.json` | La medida versionada: lo que dio votar esos casos, y con qué rúbrica, qué casos, qué modelo y qué versión de Claude Code ([Job de evals](#job-de-evals)) |
+
+En `boe-legislacion` las clases son dos. `afirma_lo_no_leido` **decide**, con umbral 0: la respuesta expone una regla
+que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
+trata un precepto que nombra y no leyó; avisar de lo que la respuesta no cubre sin nombrar ningún precepto no cuenta.
+`cuenta_su_proceso` **solo se publica**. `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json` son copias, byte
+a byte, de los de `evidencias/adr-0037/`, y no se editan en la carpeta: `TestCopiasDelJuez` falla en `make ci`
+nombrando cada una que difiere o falta. Un fichero de la carpeta que falta, que no se puede leer o que no tiene su
+forma —`clases.yaml` que no cumple su esquema o repite un nombre, o un `esquema.json` cuyas propiedades no son
+exactamente las clases declaradas— es un fichero mal formado, con el nombre `juez/<fichero>`, y una entrada `juez`
+que no es un directorio, también: `make ci` falla nombrándolo (`TestEvalsDelRepositorio`, subprueba `formato`), y el
+job, como con una eval.
 
 Una sesión de una eval pasa si la abre el modelo pedido, activa la skill cuando debe y no la activa cuando no debe, no
 activa ninguna de `no_se_activan` —cada una que activa es un motivo
@@ -678,10 +704,9 @@ cada boletín como palabra exacta y cada aspecto de cobertura en su forma fija `
 de cada aviso de `avisos` y de cada clase de `hallazgos`, con una línea por cada redacción de
 `redacciones_modificadas` —una línea con la forma fija de `version-obsoleta` cuya primera cita es de esa norma y ese
 bloque y cuyas dos primeras fechas `AAAAMMDD` son las suyas, en su orden; cada una que falta es un motivo
-`redacción modificada ausente: <norma> <bloque> <fecha_vigencia> <fecha_vigencia_reciente>`— y, si la eval activa la
-skill y la skill tiene lista, sin ninguna expresión prohibida —cada una encontrada es un motivo
-`expresión prohibida: <expresión>`—; una eval de no activación, o una de una skill sin lista, no la mira. Lo juzga el
-informe sin modelo, con lo que deja la sesión: su transcript y su traza. **La respuesta que se juzga es la de la
+`redacción modificada ausente: <norma> <bloque> <fecha_vigencia> <fecha_vigencia_reciente>`—. Lo juzga el informe
+sin modelo, con lo que deja la sesión: su transcript y su traza; ni la lista de expresiones ni los votos del juez
+cambian si una sesión pasa, sus motivos o la tasa de su serie. **La respuesta que se juzga es la de la
 pregunta**: el primer `result` del transcript, si termina bien (`subtype` `success` e `is_error` falso), y vacía si
 no; el aviso de una tarea en segundo plano que termina después abre otro turno, con su propio `result`, que no la
 sustituye. Si la sesión terminó se sigue leyendo de su último mensaje, y las skills activadas, de todo el transcript.
@@ -701,7 +726,7 @@ de una eval sin binario ni servidor—, una orden de `kitlegal` de otro applet q
 motivo `orden de kitlegal en una sesión sin kitlegal en el PATH: <orden>` (`TestJuzgarLasLlamadas`).
 
 **Una eval sin binario ni servidor** pasa si cumple lo de siempre que le toca —la abre el modelo pedido, activa la
-skill y ninguna de `no_se_activan`, termina y no lleva ninguna expresión prohibida— y su respuesta tiene una línea que
+skill y ninguna de `no_se_activan`, y termina— y su respuesta tiene una línea que
 empieza por `⚠ SIN CONSULTA AL BOE:` —con la tolerancia de las formas fijas de los avisos—, esa línea lleva
 `https://kitlegal.es/instalar/` y la respuesta no lleva ninguna cita. Cada defecto de la respuesta es un motivo:
 `línea ⚠ SIN CONSULTA AL BOE: ausente`, `la línea ⚠ SIN CONSULTA AL BOE: no lleva https://kitlegal.es/instalar/` y,
@@ -712,8 +737,9 @@ por cada cita, `cita en una respuesta sin consulta: <norma> <bloque>` (`TestJuzg
 `make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
 ningún Python accesible. Antes de la primera sesión comprueba todo eso, las variables del job —también que
-`CONCURRENCIA_DE_EVALS` es un entero mayor o igual que 1—, que ninguna eval ni la lista de expresiones prohibidas
-están mal formadas, que lo que necesitan está grabado, que la skill está instalada y que `kitlegal` está en el `PATH`,
+`CONCURRENCIA_DE_EVALS` es un entero mayor o igual que 1 y, con una skill que tiene juez, las tres del juez (abajo)—,
+que ninguna eval, ni la lista de expresiones, ni la carpeta del juez están mal formadas, que lo que necesitan está
+grabado, que la skill está instalada y que `kitlegal` está en el `PATH`,
 y termina con `1` si algo falla. Después, una sola orden de Go, `TestEjecucionDelJob` (etiqueta `evals`, en
 `internal/evals/job_test.go`), compone el plan **en dos modos** —cada eval, tantas veces como repeticiones, con el
 modelo que decide y, si no es informativa, otras tantas con cada modelo informativo, una vez en el modo orden y otra
@@ -748,8 +774,48 @@ con el modelo que decide, **en cualquiera de los dos modos**, y la de la eval si
 umbral, una serie no tiene exactamente las sesiones que pide el plan, una sesión es ilegible, un fichero está mal
 formado, no hay ninguna eval bien formada que juzgar o una petición llega a la red (ADR 0016); y también si un umbral
 que decide
-no se cumple, si alguna sesión queda sin medir por un límite de uso de la cuenta o si la duración de las sesiones
-pasa de su objetivo (abajo). Con `fallo`, la orden y el trabajo terminan en rojo.
+no se cumple, si alguna sesión queda sin medir por un límite de uso de la cuenta, si la duración de las sesiones
+pasa de su objetivo o, con una skill que tiene juez, si el juez deja alguna respuesta sin juzgar, si sus votos pasan
+de 900 s en un modo o si el instrumento no está medido (abajo). Con `fallo`, la orden y el trabajo terminan en rojo.
+
+**Con una skill que tiene juez, esa misma orden hace dos cosas más** (`ejecutarElJob`, en
+`internal/evals/ejecucion.go`). **Antes de abrir ninguna sesión comprueba la medida del juez** («La medida del juez»,
+abajo): si no corresponde o no se cumple, no abre ninguna, ni de evals ni del juez, y escribe el informe del
+instrumento sin medir. **Tras las sesiones, el juez vota las respuestas**, y lo que marca son umbrales del informe.
+Una ejecución normal no mide al juez: no vota ningún caso etiquetado.
+
+**Qué respuestas se juzgan.** Las del modelo que decide, terminadas, legibles y medidas, en tres grupos que se votan
+uno detrás de otro: las de cada modo cuya eval activa la skill, de las series que pide el plan —las mismas que
+forman el `total` de `sin_activar:<modelo>:<modo>`, 54 por modo con las evals de `boe-legislacion`—, y las de la eval
+sin binario ni servidor (3), que se juzgan y se publican, pero no cuentan en ningún umbral ni dan ningún motivo. No
+se juzgan las de un modelo informativo, la sesión de la prueba de red, ni las sesiones sin medir, sin terminar o
+ilegibles.
+
+**Qué recibe un voto, y qué no.** Cada voto es un proceso nuevo de `scripts/evals-voto.sh`, que abre `claude -p` con
+el modelo del juez, `--tools ""`, `--strict-mcp-config`, `--disable-slash-commands` y `--no-session-persistence`
+—una sesión sin herramientas, sin servidores MCP, sin órdenes de barra y sin guardar—, con `rubrica.md` como
+`--system-prompt` y `esquema.json` como `--json-schema`. Por su entrada estándar recibe un mensaje con tres partes y
+nada más: **los textos que devolvieron las herramientas de la sesión** —lo que devolvió cada orden de Bash que nombra
+`kitlegal` y cada llamada a una herramienta del registro, en su orden, también la que falló, con su error—, **la
+pregunta** de la eval y **la respuesta** a la pregunta. No recibe `SKILL.md`, ni la eval salvo su pregunta, ni el
+juicio sin modelo de la sesión, ni lo que devolvieron `Skill`, `Read` u otra herramienta. Su entorno son cuatro
+variables —`PATH`, `HOME`, `CLAUDE_CONFIG_DIR` y `CLAUDE_CODE_OAUTH_TOKEN`—, su directorio, uno temporal y vacío, y
+su tope, 35 s. Se votan a la vez, como mucho, tantas respuestas como sesiones abre a la vez la skill; los votos de
+una misma respuesta van uno detrás de otro. Los textos se leen del transcript, no de la traza: son los mismos en los
+dos modos, en la eval sin binario ni servidor y en el sondeo.
+
+**La frase, el voto nulo y la regla.** En cada clase el voto dice `si` o `no`, y con `si` cita la frase de la
+respuesta en la que se apoya. **El job comprueba sin modelo que esa frase está en la respuesta**: quitados `*`, `_` y
+el acento grave de las dos, y con cada serie de blancos como un espacio, la frase tiene que ser, sin quedar vacía,
+una subcadena de la respuesta; mayúsculas, tildes y puntuación se comparan tal cual. Un voto que dice `si` en alguna
+clase con una frase que no está es **nulo**: se publica como nulo y se pide otro, una sola vez, que es el que cuenta;
+si el repetido lleva también un `si` sin su frase, en esa clase no cuenta como sí. **Una respuesta queda marcada en
+una clase que decide solo con tres votos que dicen sí con su frase.** Los votos se piden por orden, y se deja de
+votar en cuanto ninguna clase que decide sigue con todos sus votos en sí: con un no en el primero se pide un voto;
+con «sí, sí y no», tres, y la respuesta no queda marcada y se publica con sus dos frases. En una clase que solo se
+publica cuenta el primer voto. Un voto que **no llega a darse** —agota su tope, su sesión termina con error, o su
+salida no es JSON o no tiene la forma del esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto
+(`voto 2: tope de 35 s agotado`); no se reintenta, y un límite de uso de la cuenta es uno de esos errores.
 
 Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
 ejecución —hoy `boe-legislacion` y `legal-core`—, cada uno con su informe y sin que el rojo de uno cancele el otro; el
@@ -781,24 +847,49 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion`; `1` en `legal-core` |
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `legal-core` |
 | `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
+| `MODELO_DEL_JUEZ` | `claude-opus-5-5` |
+| `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` | `2.1.289` |
+
+**El modelo del juez y la versión de Claude Code de sus votos se fijan aparte de los de las sesiones** (ADR 0037).
+`MODELO_DEL_JUEZ` va por su id completo, no por un alias, y es distinto del modelo que decide;
+`VERSION_DE_CLAUDE_CODE_DEL_JUEZ` no es `VERSION_DE_CLAUDE_CODE`, y subir una no toca la otra: la de las sesiones
+cambia sin volver a medir al juez. Las dos del juez son las de su medida versionada, así que cambiar cualquiera deja
+`make ci` en rojo hasta que una persona versiona la medida de ese modelo o de esa versión («La medida del juez»,
+abajo). El trabajo instala dos Claude Code, el de las sesiones, global, y el del juez, en un prefijo aparte cuya ruta
+deja en `CLAUDE_DEL_JUEZ`, y los votos encuentran el suyo porque su `PATH` lleva delante ese directorio. Con una skill
+que tiene juez, `scripts/evals.sh` exige las dos variables y un `CLAUDE_DEL_JUEZ` ejecutable antes de la primera
+sesión; con una sin juez no las mira.
 
 Con las veintiuna evals de `boe-legislacion`, su trabajo abre 198 sesiones, cuatro a la vez: 96 en el modo orden —36
 de `claude-sonnet-5-5` sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001`
 sobre las doce que deciden—, otras 96 en el modo herramienta y 6 de la eval sin binario ni servidor, tres con cada
-modelo. El de `legal-core`, con cuatro evals, abre 42: 18, 18 y 6. El tope de 240 minutos de cada trabajo
-(`timeout-minutes`) corta un cuelgue; no es el control de la duración, que es un umbral del informe, porque un trabajo
-cancelado no escribe informe. Cubre el peor caso de cada skill —todas las sesiones de su plan, con la de la prueba de
-red, llegando a su tope, tanda a tanda y con su concurrencia, más la preparación de cada una, la del runner y el
-informe—: `485 s + (⌈N₁ / C⌉ + ⌈N₂ / C⌉ + ⌈N₃ / C⌉) × (22 s + 240 s + 10 s)`, con `N₁`, `N₂` y `N₃` las sesiones
-de cada una de las tres tandas —la del modo orden, con la prueba de red— y `C` su concurrencia (en `boe-legislacion`, 97, 96 y
-6 sesiones a 4: 14 357 s, 239,3 minutos). `TestDefinicionDelJob` comprueba en `make ci` la
+modelo; y su juez juzga 111 respuestas: 54, 54 y 3. El de `legal-core`, con cuatro evals, abre 42: 18, 18 y 6.
+**Hay dos topes** (`timeout-minutes`), el de cada trabajo `evals (<skill>)`, 352 minutos, y el del trabajo
+`medida del juez (<skill>)`, 269. Cortan un cuelgue; ninguno es el control de la duración, que es un umbral del
+informe, porque un trabajo cancelado no escribe informe. El primero cubre el peor caso de cada skill. El de sus
+sesiones —todas las de su plan, con la de la prueba de red, llegando a su tope, tanda a tanda y con su concurrencia,
+más la preparación de cada una, la del runner y el informe— es
+`485 s + (⌈N₁ / C⌉ + ⌈N₂ / C⌉ + ⌈N₃ / C⌉) × (22 s + 240 s + 10 s)`, con `N₁`, `N₂` y `N₃` las sesiones de cada una
+de las tres tandas —la del modo orden, con la prueba de red— y `C` su concurrencia (en `boe-legislacion`, 97, 96 y 6
+sesiones a 4: 14 357 s). Con una skill que tiene juez se le suma el de su juez,
+`60 s + (⌈R₁ × 6 / C⌉ + ⌈R₂ × 6 / C⌉ + ⌈R₃ × 6 / C⌉) × (35 s + 5 s)`: 60 s de instalar su Claude Code, `R₁`, `R₂`
+y `R₃` las respuestas de cada grupo que juzga, 6 los votos que como mucho pide una respuesta —tres, cada uno con su
+repetición por nulo— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas a 4: 81, 81
+y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El segundo cubre el peor caso de la medida:
+`485 s + 60 s + ⌈259 × 6 / 4⌉ × 40 s`, 16 105 s, 268,4 minutos, con sus 259 casos. `TestDefinicionDelJob` comprueba
+en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
 cada skill depende de `tanda` y solo corre con `medir=si`; su nombre, el grupo de `concurrency` y
-`cancel-in-progress`, que no hay `concurrency` de nivel de flujo, la concurrencia y el objetivo de cada skill y que el
-tope cubre su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval nueva que deja el peor
-caso por encima del tope la hace fallar. Prueba también, con consultas sintéticas y sin red, cómo decide `tanda`
-(subpruebas `segundo-disparo` y `estado-de-la-tanda`). Se lanza de tres formas:
+`cancel-in-progress`, que no hay `concurrency` de nivel de flujo, la concurrencia y el objetivo de cada skill; que
+`MODELO_DEL_JUEZ` está, tiene la forma de un id completo y no es `MODELO_DE_EVALS`; que
+`VERSION_DE_CLAUDE_CODE_DEL_JUEZ` está, con la forma `<n>.<n>.<n>`, y que el paso de instalación instala con ella el
+Claude Code del juez en su prefijo y no el de las sesiones; que el trabajo `medida` repite ese modelo y esa versión,
+tiene exactamente su condición y no depende de ningún otro; que ni `tanda` ni `evals` nombran `evals-medir-juez` y
+`tanda` no admite el despacho con `medir_al_juez`; que esa entrada está, con `false` por omisión; y que los dos
+topes cubren su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval o un caso nuevos
+que dejan un peor caso por encima de su tope la hacen fallar. Prueba también, con consultas sintéticas y sin red,
+cómo decide `tanda` (subpruebas `segundo-disparo` y `estado-de-la-tanda`). Las evals se lanzan de tres formas:
 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
@@ -832,20 +923,66 @@ del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ej
 cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
 posterior obliga a repetirlas.
 
+**La medida del juez.** Un juez solo decide si está medido contra casos etiquetados (ADR 0037). La medida versionada
+es `evals/<skill>/juez/medida.json`. Dice lo que dio votar los casos de `casos.yaml` —`defectos.casos` y
+`defectos.sin_marcar`, `correctos.casos` y `correctos.marcados`: en `boe-legislacion`, 0 defectos sin marcar de 212 y
+0 correctos marcados de 47— y **con qué se midió, en sus cuatro claves**: `rubrica.sha256` y `casos.sha256`, las
+huellas de `rubrica.md` y de `casos.yaml`; `modelo_del_juez`; y `version_de_claude_code`. Corresponde si las cuatro
+son las de lo que hay y su `clase` es la que decide, y se cumple si los dos recuentos son 0. Lo comprueba, sin modelo,
+la misma función en tres sitios:
+
+| Quién | Con qué modelo y qué versión | Si no corresponde o no se cumple |
+|---|---|---|
+| `make ci` (`TestMedidaVersionada`) | `MODELO_DEL_JUEZ` y `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` de `.github/workflows/evals.yml` | El test falla con una línea por cada cosa que no coincide |
+| El job, antes de abrir ninguna sesión | Los que recibe de esas dos variables | **El instrumento sin medir**: no abre ninguna sesión, ni de evals ni del juez, y escribe el informe con el veredicto `fallo`, un motivo por cada cosa que no coincide (`de la ejecución, no de la skill: el instrumento no está medido: <qué>`), `umbrales` vacío y `juez` con su modelo y su versión y sin respuestas. El informe no da por medido ningún umbral del juez |
+| El sondeo | El modelo de la definición del job y la versión de Claude Code del equipo | Lo dice en su salida y sigue ([Sondeo local](#sondeo-local)) |
+
+`make ci` exige además que las copias de la carpeta sean las de la evidencia (`TestCopiasDelJuez`). Así, **cambiar la
+rúbrica, los casos, `MODELO_DEL_JUEZ` o `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` deja `make ci` en rojo** hasta que la
+medida se repite y se versiona en el mismo cambio. Una ejecución normal del job no la repite: publica los dos
+umbrales de la medida con los recuentos de la versionada. **La repite una persona, fuera de un run**, de una de dos
+formas y ninguna más:
+
+| Lanzamiento | Cómo |
+|---|---|
+| Por etiqueta | Poniendo la etiqueta `evals-medir-juez` en la propuesta de cambio |
+| Manual | Desde la plataforma, con la entrada `medir_al_juez` del flujo lanzado a mano |
+
+Las dos lanzan el trabajo `medida del juez (<skill>)` del flujo `evals` y no los de las evals: la etiqueta
+`evals-medir-juez` no es una de las de `tanda`, y el despacho con `medir_al_juez` no la corre. La etiqueta `evals`,
+la apertura de una propuesta y el despacho sin esa entrada no lanzan la medida. El trabajo instala el Claude Code del
+juez y ejecuta `make evals-medir-juez SKILL=<skill>` —`scripts/evals-medir-juez.sh`, que llama a `TestMedidaDelJuez`
+(etiqueta `evals`), fuera de `make ci`—: reconstruye en proceso, sin red y sin modelo, los textos que devolvieron las
+herramientas en cada caso, desde su informe versionado y las grabaciones; vota cada caso con la regla de arriba,
+cuatro a la vez —tres votos por cada defecto que se marca y uno por cada correcto que no: 683 con los 259 casos de
+hoy si la medida se cumple—; e **imprime `medida.json` entre las marcas `--- inicio de medida.json ---` y
+`--- fin de medida.json ---`**, con las huellas de lo que ha leído y el modelo y la versión que ha recibido, no los de
+la medida versionada. No abre ninguna sesión de evals ni escribe nada en el repositorio. Termina en rojo si un
+defecto no queda marcado o un correcto queda marcado —imprime la medida, con sus recuentos, y una línea por caso— y
+si algún caso queda sin juzgar, sin imprimir entonces ninguna medida. **La versiona la persona que la lanzó**, en
+`evidencias/adr-0037/medida.json` y en su copia de la carpeta del juez, en la misma propuesta que cambia la rúbrica,
+los casos, el modelo del juez o su versión. Una medida que no se cumple no se versiona: si alguien lo hace, `make ci`
+falla. Ningún paso del workflow `hito` la lanza ni la escribe: un run solo pone la etiqueta `evals`.
+
 Cómo se lee el informe:
 
 - **El veredicto** es `aprobado` o `fallo`, y los motivos son exactamente las causas del fallo: una serie que decide y
   no llega al umbral —`<eval> con <modelo>: pasan 1 de 3, y el umbral es 2`, seguido de los motivos de sus sesiones
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
-  fichero mal formado del directorio de evals —una eval o la lista de expresiones prohibidas—, una petición llegada
-  a la red o un umbral que decide y no se cumple
-  (`umbral expresiones_prohibidas:claude-sonnet-5-5:herramienta: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %`). Los que
+  fichero mal formado del directorio de evals —una eval, la lista de expresiones o un fichero de la carpeta del
+  juez—, una petición llegada a la red o un umbral que decide y no se cumple. El de una clase del juez nombra detrás
+  cada respuesta marcada, por su sesión y con las frases de sus tres votos:
+  `umbral afirma_lo_no_leido:claude-sonnet-5-5:herramienta: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %: <sesión>: «<frase 1>» · «<frase 2>» · «<frase 3>»`,
+  y `; <sesión>: …` por cada otra. Los que
   dependen del modo lo nombran, en el `<modelo>` de la serie —`claude-sonnet-5-5 (herramienta)` en el modo
   herramienta, el id solo en el modo orden y en la eval sin binario ni servidor— o en el nombre del umbral. Una serie
   que decide y no llega al umbral en un modo da `fallo` aunque pase en el otro. Detrás van, con el
   prefijo fijo `de la ejecución, no de la skill: `, que los distingue sin modelo de los de la skill, el de las sesiones
-  sin medir por un límite de uso de la cuenta y el de la duración de las sesiones por encima de su objetivo: dicen que
-  el job no pudo medir, o no midió a tiempo, y no piden cambiar la skill.
+  sin medir por un límite de uso de la cuenta, el de las respuestas que el juez dejó sin juzgar
+  (`el juez dejó <n> respuestas sin juzgar: <sesión> (<motivo>), …`), el de la duración de las sesiones por encima de
+  su objetivo y el de los votos del juez por encima de 900 s en un modo: dicen que
+  el job no pudo medir, o no midió a tiempo, y no piden cambiar la skill. Con el instrumento sin medir, los motivos
+  son solo los suyos, con ese mismo prefijo.
 - **La tabla «Tasas por eval»** tiene una fila por serie —una por eval, modelo y modo: las del modo orden, las del
   modo herramienta, las de la eval sin binario ni servidor y, al final, las que el plan no pide—, con su modo en la
   columna «Modo» (`orden`, `herramienta` o `—`), si decide, si la pide el plan, la tasa (`<pasan> de <sesiones>`) y si
@@ -859,54 +996,58 @@ Cómo se lee el informe:
   decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo, así que su
   tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
   ilegible, una sin medir o una petición llegada a la red hacen fallar el veredicto igual.
-- **Las expresiones prohibidas**: cada sesión publica en `informe.json` las de la lista que lleva su respuesta,
-  `expresiones_prohibidas` —`[]` si ninguna o si no se le aplica la lista—, y la tabla «Sesiones» de `informe.md`, la
-  columna «Expresiones prohibidas» (`ninguna` si no lleva ninguna). En la raíz de `informe.json`,
-  `expresiones_prohibidas_por_modelo` da un elemento por modelo del job y modo —los del modo orden delante y, en cada
-  modo, el que decide y después los informativos, en su orden— con `modelo`, que es `<id> (orden)` o
-  `<id> (herramienta)`, `modo`, `respuestas`, las sesiones medidas de las series planificadas de ese modo cuya eval
-  activa la skill, las informativas incluidas y las de la eval sin binario ni servidor no, que no son de ningún modo
-  —**solo las terminadas**: ni las ilegibles, ni las sin medir, ni las que no terminaron, que
-  se publican con su motivo y no pasan en su serie, pero no cuentan en ningún recuento ni umbral—, y `con_alguna`, las
-  de ellas que llevan alguna expresión; `informe.md` lo da en la sección «Expresiones prohibidas por modelo», detrás de
-  «Tasas por eval», con su columna «Modo». Una skill sin lista da `[]` y el párrafo «la skill no tiene lista de
-  expresiones prohibidas»: un
-  recuento de cero diría que se buscó. Una sesión con alguna expresión no pasa, y su serie decide con el umbral de
-  siempre si es de las que deciden; además, el recuento de cada modelo es un umbral.
 - **Los umbrales**: `umbrales`, siempre en la raíz de `informe.json`, con el contrato del ADR 0029 —`nombre`,
   `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
-  o de la propia `medida`, y se puede rehacer con los otros campos. **Cada umbral es de un modo y lo nombra**: se
-  mide sobre las sesiones de ese modo, y las medidas de un modo no se suman a las del otro. Una skill con lista tiene,
-  por cada modo y con las respuestas medidas de cada modelo en ese modo como `total`, **tres umbrales de la respuesta
-  del modelo que decide**, los tres con `decide: true` y en este orden: `expresiones_prohibidas:<modelo>:<modo>`, las
-  que llevan alguna expresión, con `umbral` `0.05`; `sin_activar:<modelo>:<modo>`, las que no activan la skill, con
-  `umbral` `0`; y `redaccion_no_leida:<modelo>:<modo>`, las que llevan alguna expresión de la clase B, con `umbral`
-  `0`. Con las 54 respuestas de `claude-sonnet-5-5` en cada modo en las evals de `boe-legislacion` que activan la
-  skill, el primero admite como mucho 2 con alguna expresión en ese modo, y los otros dos, ninguna —con 3 de 54 en un
-  modo y 0 de 54 en el otro, el del primero no se cumple—; una respuesta sin la skill activada y con una expresión
-  cuenta, una vez, en cada umbral que la mide. Detrás de los tres, en cada modo, uno por modelo informativo,
-  `expresiones_prohibidas:<modelo>:<modo>`, que se publica con `decide: false` (el de `claude-haiku-4-5-20251001`,
-  sobre 30). Primero van los cuatro del modo orden y después los del modo herramienta. Una skill con objetivo de
-  duración tiene además, al final, uno por modo, `duracion_de_las_sesiones:<modo>`, los segundos de la tanda de ese
-  modo, sin `total` y con `decide: true`. En `boe-legislacion` son diez, ocho de ellos decidiendo; `legal-core` no
-  tiene ninguno, `[]`. Las sesiones de la eval sin binario ni servidor, y su tanda, no entran en ninguno. Uno que
-  decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no decide, no cambia nada. `informe.md` los
-  da en la sección «Umbrales», detrás de «Expresiones prohibidas por modelo»: la tabla
+  o de la propia `medida`, y se puede rehacer con los otros campos. Los de las respuestas existen solo si la skill
+  tiene juez, y los de un modo se miden sobre las sesiones de ese modo, sin sumar las del otro. **En
+  `boe-legislacion` son doce, diez de ellos decidiendo**, en este orden; `legal-core` no tiene ninguno, `[]`:
+
+  | `nombre` | `medida` | `total` | `umbral` | `decide` |
+  |---|---|---|---|---|
+  | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (54) | `0` | sí |
+  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0` | sí |
+  | `cuenta_su_proceso:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
+  | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (212) | `0` | sí |
+  | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (47) | `0` | sí |
+  | `duracion_de_las_sesiones:<modo>` | Segundos de la tanda de ese modo | — | `900`, el objetivo del job | sí |
+  | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
+
+  Primero van los tres del modo orden y los tres del modo herramienta; después, los dos de la medida; y al final,
+  los de la duración de las sesiones y los de la del juez, cada pareja con el modo orden delante. Los de una clase
+  salen de `clases.yaml` —su nombre, su `umbral` y su `decide`—, y los dos de la medida, de cada clase que decide.
+  **Salen `expresiones_prohibidas:<modelo>:<modo>`, de todos los modelos, y `redaccion_no_leida:<modelo>:<modo>`**:
+  `umbrales` no los lleva. Una respuesta sin juzgar sigue en el `total` y no está en ninguna `medida`: el veredicto
+  ya es `fallo` por su motivo. Las sesiones de la eval sin binario ni servidor, su tanda y los votos de sus
+  respuestas no entran en ninguno. Uno que decide y no se cumple da su motivo y `fallo`; uno que se cumple, o que no
+  decide, no cambia nada. `informe.md` los da en la sección «Umbrales», detrás de «Tasas por eval»: la tabla
   `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
   `ninguno`.
+- **El juez**: `juez`, en la raíz de `informe.json` detrás de `umbrales`, y `null` si la skill no tiene juez. Lleva
+  `modelo` y `version_de_claude_code`, los fijados para el juez; `respuestas`, una entrada por respuesta juzgada con
+  **algún voto afirmativo** en cualquier clase, también nulo, en orden de sesión —las demás no están—, con su
+  `sesion` y sus `clases`, una por clase y en el orden de `clases.yaml`, con `clase`, `marcada` y `votos`: todos los
+  de la respuesta, en su orden y también los nulos, cada uno con `voto` (1 a 3), `nulo`, lo que dio el juez (`motivo`,
+  `respuesta`, `frase` y, si la clase lo tiene, `precepto`) y `frase_en_la_respuesta`; y `sin_juzgar`, una entrada por respuesta
+  sin juzgar, con su `sesion` y su `motivo`. `marcada` es, en una clase que decide, la de la regla de los tres votos,
+  y en una que solo se publica, que su primer voto dice sí con su frase. Ahí están también las respuestas de la eval
+  sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da en la sección «Juez», detrás de
+  «Umbrales»: el modelo y la versión, la tabla de los votos y la de las respuestas sin juzgar, o «La skill no tiene
+  juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
+  `expresiones_prohibidas_por_modelo` de la raíz, `expresiones_prohibidas` de cada sesión, la sección «Expresiones
+  prohibidas por modelo» y la columna «Expresiones prohibidas» de «Sesiones».
 - **Las sesiones sin medir**: una sesión que un límite de la cuenta no dejó terminar no es una eval fallida. El informe
   la reconoce sin modelo por su transcript —(a) su resultado es el mensaje del límite de uso de Claude Code, el que
   empieza por `You've hit your`, `You've reached your` o `You're out of`; (b) agotó los reintentos por `rate_limit`;
   (c) la cortó el tope durante reintentos por `rate_limit`— y la deja sin medir: no pasa ni falla, lleva como único
-  motivo `sin medir por límite de uso: <clase>` y no cuenta en `respuestas` ni en `con_alguna`, así que tampoco en los
-  umbrales. Su serie queda sin medir —`sin medir (<n>)` en la columna «Resultado» de «Tasas por eval», sin pasar y sin
+  motivo `sin medir por límite de uso: <clase>`, no cuenta en el `total` de ningún umbral y el juez no la juzga. Su
+  serie queda sin medir —`sin medir (<n>)` en la columna «Resultado» de «Tasas por eval», sin pasar y sin
   el motivo «pasan N de M»—. Los reintentos por otra causa, como la sobrecarga, no son un límite de la cuenta, y una
   sesión que se recupera de sus reintentos se mide como cualquier otra. Tras una de la clase (a), que no se repone
   dentro del job, el job no abre ninguna sesión más: las abiertas terminan y se juzgan, y las que faltaban del plan
   cuentan en su serie como sin medir, `sin abrir tras el límite de uso`; tras (b) o (c), sigue. `informe.json` las
   lista en `sesiones_sin_medir` (`sesion`, `eval`, `modelo` y `motivo`), y `informe.md`, en la sección «Sesiones sin
-  medir», detrás de «Umbrales», y en la columna «Sin medir» de «Sesiones». Con alguna, el veredicto es `fallo` por la
+  medir», detrás de «Juez», y en la columna «Sin medir» de «Sesiones». Con alguna, el veredicto es `fallo` por la
   ejecución, no por la skill: no pide cambiarla. El motivo de una sesión que no terminó por otra causa lleva el texto
   del último `result` con `is_error` de su transcript (`código 1: result con is_error: Failed to authenticate. …`, el
   de una credencial que no sirve).
@@ -917,7 +1058,9 @@ Cómo se lee el informe:
   `medida` de su umbral. La cabecera de `informe.md` lleva `Duración de las sesiones: <s> s` y
   `Reintentos por límite de ritmo: <n>`, y la tabla «Sesiones», las columnas «Modo» y «Reintentos por límite de
   ritmo». En `boe-legislacion`, una tanda de un modo de más de 900 s da `fallo` con el motivo
-  `de la ejecución, no de la skill: duracion_de_las_sesiones:<modo>: <s> s, y tiene que ser ≤ 900 s`.
+  `de la ejecución, no de la skill: duracion_de_las_sesiones:<modo>: <s> s, y tiene que ser ≤ 900 s`. Los votos del
+  juez se miden aparte, por modo, y no entran en `duracion_de_las_sesiones`: más de 900 s en un modo dan `fallo` con
+  `de la ejecución, no de la skill: duracion_del_juez:<modo>: <s> s, y tiene que ser ≤ 900 s`.
 - **Las llamadas**: en `informe.json`, cada resultado de `evals` lleva `modo`, `linea_sin_consulta` —si la respuesta
   de una eval sin binario ni servidor lleva la línea con su dirección— y `citas_sin_consulta` —las citas de una
   respuesta así; vacía en las demás—, y cada elemento de sus `invocaciones`, `llamada`, verdadero en las que son
@@ -929,10 +1072,9 @@ La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` no p
 la pregunta de la primera eval y dos consultas a
 un bloque que no está grabado, sin y con `--offline`: comprueba que el binario no alcanza la fuente —termina con `5` y
 con `4` sin pedirle nada— y que el informe registra las dos como consultas fuera de lo grabado. No se repite ni decide:
-su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`. Se juzga con la lista de expresiones prohibidas
-y publica las suyas, pero no entra en `expresiones_prohibidas_por_modelo` ni en ningún umbral de las respuestas: el
-recuento es el mismo con la prueba de red y sin ella. Sí ocupa su sitio entre las sesiones que se abren a la vez y
-cuenta en la duración y en los reintentos.
+su fila de tasas lleva «(pregunta ampliada)» y «Planificada» en `no`. El juez no la juzga, y no entra en ningún
+umbral de las respuestas: los recuentos son los mismos con la prueba de red y sin ella. Sí ocupa su sitio entre las
+sesiones que se abren a la vez y cuenta en la duración y en los reintentos.
 
 ### Sondeo local
 
@@ -952,8 +1094,34 @@ EVALS: <nn> es una eval sin binario ni servidor: solo la mide el job de evals
 Prepara y juzga cada sesión con el código del job, sin lo que el job lee de la traza —los comandos esperados y los
 prohibidos y las llegadas a la red—, y su salida empieza por
 «Esto es un sondeo, no un veredicto: el veredicto de la skill lo da el job de evals.»: da la tasa de cada serie, las
-respuestas con alguna expresión prohibida de las sesiones terminadas, con el 5 % como referencia, y las sesiones sin
-medir o sin terminar, con su motivo, y termina con `0` si ha podido abrir y juzgar sus sesiones. Un argumento que no
+líneas del juez y las sesiones sin medir o sin terminar, con su motivo, y termina con `0` si ha podido abrir y juzgar
+sus sesiones, sean cuales sean sus recuentos.
+
+**El sondeo juzga con el juez**, con una skill que lo tiene: vota las respuestas de su modelo en las evals que
+activan la skill con el mismo código que el job —`scripts/evals-voto.sh`, la frase comprobada sin modelo, el voto
+nulo y la regla de los tres votos—, con el modelo del juez de la definición del job (`MODELO_DEL_JUEZ`) y **el
+`claude` del equipo de quien lo lanza**, no el de la versión fijada para los votos. Donde iba el recuento de
+expresiones y su 5 % van sus líneas:
+
+```text
+Juez (claude-opus-5-5), sobre las respuestas de las evals que activan la skill:
+- marcadas en afirma_lo_no_leido, con sus tres votos: 0 de 9 (0,0 %).
+- con sí en cuenta_su_proceso, con un voto: 2 de 9 (22,2 %).
+La medida versionada del juez no corresponde a lo que hay: la versión de Claude Code de sus votos es 2.1.289 y la de este equipo es 2.1.290. Estos recuentos no son los de un juez medido.
+Respuestas sin juzgar: ninguna.
+```
+
+Hay una línea por clase de `clases.yaml`, sobre las respuestas juzgadas: en la que decide, las marcadas con sus tres
+votos, y en la que solo se publica, las que tienen sí en el primero. La de la medida dice si la versionada
+corresponde al Claude Code con el que se ha votado, cuya versión se lee de los transcripts de las sesiones del
+sondeo: si corresponde, `La medida versionada del juez corresponde a lo que hay, con el Claude Code de este equipo
+(<versión>).`; si no, lo que no coincide; y si ningún transcript declara la versión, que no se puede comparar. En
+ningún caso deja de juzgar ni falla por ello. Detrás van las respuestas sin juzgar, cada una en su línea con su
+motivo (`- <sesión>: <motivo>`), o `ninguna.`. No lista votos ni frases, que publica el informe del job, y con una
+skill sin juez la línea es `La skill no tiene juez.`. Cada voto es una sesión con modelo más, que también consume la
+suscripción.
+
+Un argumento que no
 vale, o la credencial que falta o vacía, es un error de uso: la salida de error es solo su mensaje —una línea por
 argumento que no vale, que lo nombra, o la de la credencial—, sin el registro de `go test`, la salida estándar queda
 vacía, no se abre ninguna sesión y el guion termina con `1` (`make` añade detrás su propia línea de error y termina

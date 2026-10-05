@@ -2,6 +2,14 @@
 # deterministas (ADR 0008, «En contra, y asumido»). Contrato: specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md;
 # la matriz de skills, specs/008-h6-territorio-skill-legal/contracts/evals-de-legal-core.md §5; la instalación con make
 # install y kitlegal en el PATH, specs/009-h19-instalar-sin-clonar/contracts/skills-e-invocacion.md §6.
+#
+# Desde H24 (ADR 0037; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md), el flujo usa además un juez con modelo,
+# distinto del que decide y con su propio Claude Code, de dos maneras. El trabajo evals, con una skill que tiene juez,
+# comprueba sin modelo, antes de abrir ninguna sesión, que la medida versionada del juez corresponde y se cumple —si no,
+# no abre ninguna y su informe sale en fallo—, y tras las sesiones el juez vota el significado de las respuestas: lo que
+# marca son umbrales del informe (contracts/informe-del-job.md §1, §2 y §5; contracts/juez-y-voto.md). Y el trabajo
+# medida repite la medida del juez, solo cuando la lanza una persona (contracts/medida-del-juez.md §7). Una ejecución
+# normal no mide al juez, y la lista de expresiones ya no juzga ninguna respuesta (contracts/informe-del-job.md §6).
 name: evals
 
 on:
@@ -75,7 +83,8 @@ jobs:
   # decidan las anteriores; nunca a su tanda. Su último paso es la marca que leen las posteriores. Sin concurrency: ni
   # queda en espera ni se cancela, y no deja nunca una comprobación roja por decidir no medir. El despacho con la entrada
   # medir_al_juez no quiere medir la skill sino al juez, y no la corre; la etiqueta evals-medir-juez tampoco, porque no
-  # es ninguna de las suyas y cambios no corre con labeled.
+  # es ninguna de las suyas y cambios no corre con labeled (FR-050 de H24;
+  # specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §3).
   tanda:
     needs: [cambios]
     if: >-
@@ -127,6 +136,12 @@ jobs:
   # Un trabajo por skill en la misma ejecución del flujo, cada uno con su informe: el de una skill en rojo no cancela el
   # de la otra, que termina y publica el suyo (SC-015; research.md D23). La definición del trabajo la comprueba
   # TestDefinicionDelJob en make ci (specs/013-h7-3-el-umbral-de/contracts/ejecucion-del-job.md §6 y §7).
+  # Desde H24, con una skill que tiene juez —la carpeta juez en sus evals: hoy, boe-legislacion— el trabajo comprueba la
+  # medida versionada del juez antes de abrir ninguna sesión y, si corresponde y se cumple, tras las sesiones el juez
+  # vota las respuestas del modelo que decide con MODELO_DEL_JUEZ y el Claude Code de CLAUDE_DEL_JUEZ; sus recuentos,
+  # los de la medida y la duración de sus votos son umbrales del informe, y una respuesta sin juzgar lo deja en fallo.
+  # No vota ningún caso etiquetado. Con una skill sin juez, legal-core, hace lo de antes
+  # (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2 y §5; contracts/informe-del-job.md §1 a §5).
   evals:
     # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
     # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
@@ -321,6 +336,10 @@ jobs:
           echo "búsqueda tras retirar: ninguno"
           echo "--- fin de la $marca ---"
 
+      # scripts/evals.sh: con una skill que tiene juez exige MODELO_DEL_JUEZ, VERSION_DE_CLAUDE_CODE_DEL_JUEZ y un
+      # CLAUDE_DEL_JUEZ ejecutable antes de la primera sesión, y los votos se abren con scripts/evals-voto.sh, con el
+      # directorio de ese claude delante en su PATH (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2;
+      # contracts/juez-y-voto.md §4).
       - name: Ejecutar las evals
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

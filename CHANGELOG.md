@@ -22,6 +22,75 @@ sustituyen a este fichero.
   herramientas pasan solas a la versión nueva. Probado el 2026-10-04 con la v0.5.0 y el marketplace real, en la app
   de escritorio de Claude en macOS: desinstalada la extensión y actualizado el plugin, la app arranca al abrirse un
   solo servidor, el del plugin, con sus diez herramientas, y la respuesta lleva la cita con su forma (`docs/USO.md`).
+- **`boe-legislacion` v0.1.7: de un precepto que no ha leído, nada.** De un artículo, un apartado o una disposición
+  que ninguna orden ni herramienta le ha devuelto en la conversación, la respuesta **no dice qué dice ni de qué
+  trata**, tampoco entre paréntesis ni aunque el agente crea saberlo: sería texto legal sin fuente. Si lo nombra, por
+  su número y nada más. **Traslada las remisiones como el texto las da**, sin describir lo remitido, y si lo remitido
+  importa para responder, lo lee y lo cita. Puede avisar de que una materia se regula en otra parte, sin nombrar
+  precepto ni regla, y de los bloques que no pudo consultar dice cuáles son por su número, sin decir de qué tratan.
+  Antes, v0.1.6 decía cuándo leer una remisión y no qué hacer con la que no se lee, y la respuesta la cambiaba por su
+  descripción («el art. 7 sobre rentas exentas») o exponía la regla de un artículo que no había leído. **Dice la
+  vigencia sin «el sobre» ni nombres de campos**: de la redacción leída, qué norma la dio y desde cuándo rige, con
+  palabras de quien lee la norma y sin nombrar lo que devuelve una orden ni sus campos (`fecha_vigencia`,
+  `norma_modificadora`), que desde v0.1.4 llegaban a la respuesta. No cambian la `description`, las órdenes de cada
+  paso, la forma de la cita, la de los avisos de vigencia, la línea `⚠ REDACCIÓN MODIFICADA:` ni la línea
+  `⚠ SIN CONSULTA AL BOE:`; `SKILL.md` sigue en 298 líneas. Sustituye a `boe-legislacion` v0.1.6.
+- **El job de evals juzga el significado de las respuestas con un modelo, y «afirma lo que no ha leído» decide**
+  (ADR 0037). Lo que tiene forma o es un hecho de la sesión —citas, avisos, formas fijas, órdenes, activación, red y
+  duración— se sigue comprobando sin modelo; lo que la respuesta quiere decir lo juzga un juez, un modelo distinto
+  del que decide.
+  - **El juez y sus dos clases.** Una skill tiene juez si sus evals tienen la carpeta `juez`
+    (`evals/boe-legislacion/juez/`; `legal-core` no la tiene): `clases.yaml` declara las clases, contra el esquema
+    nuevo `schemas/juez-clases.yaml.json`, y `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json` son copias,
+    byte a byte, de la evidencia del ADR 0037. `afirma_lo_no_leido` **decide** con 0: la respuesta expone una regla
+    que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
+    trata un precepto que nombra y no leyó. `cuenta_su_proceso` **solo se publica**. Cada voto es una sesión nueva de
+    Claude Code sin herramientas (`scripts/evals-voto.sh`), que recibe los textos que devolvieron las herramientas de
+    la sesión, la pregunta y la respuesta, y nada más.
+  - **La regla de los tres votos.** Una respuesta queda marcada en una clase que decide solo si tres votos seguidos
+    dicen sí, cada uno con una frase que el job comprueba sin modelo que está en la respuesta; al primer no, se deja
+    de votar. Un voto que dice sí con una frase que no está es nulo y se repite una vez. En la clase que solo se
+    publica cuenta el primer voto. Un voto que no llega a darse —agota sus 35 s, su sesión termina con error, o su
+    salida no es JSON o no tiene la forma del esquema— deja la respuesta **sin juzgar**, y con alguna el veredicto es
+    `fallo` por la ejecución, no por la skill. El juicio sin modelo de cada sesión no cambia con los votos.
+  - **Umbrales nuevos, y dos que salen.** `umbrales` gana `afirma_lo_no_leido:<modelo>:<modo>` (0, decide) y
+    `cuenta_su_proceso:<modelo>:<modo>` (se publica) sobre las respuestas del modelo que decide en cada modo;
+    `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` (0 de 212) y
+    `medida_del_juez:afirma_lo_no_leido:correctos_marcados` (0 de 47), con los recuentos de la medida versionada; y
+    `duracion_del_juez:<modo>` (≤ 900 s de votos). **Salen** `expresiones_prohibidas:<modelo>:<modo>`, de todos los
+    modelos, y `redaccion_no_leida:<modelo>:<modo>`. Siguen `sin_activar:<modelo>:<modo>` y
+    `duracion_de_las_sesiones:<modo>`. `boe-legislacion` publica doce, diez de ellos decidiendo, y `legal-core`, `[]`.
+  - **La clave `juez` del informe.** `informe.json` gana `juez`, detrás de `umbrales` y `null` en una skill sin juez:
+    el modelo y la versión de Claude Code del juez, `respuestas` —cada respuesta con algún voto afirmativo, con todos
+    sus votos, sus frases y si quedó marcada— y `sin_juzgar`, con el motivo de cada una. `informe.md` gana la sección
+    «Juez», detrás de «Umbrales». Salen `expresiones_prohibidas_por_modelo` de la raíz, `expresiones_prohibidas` de
+    cada sesión, la sección «Expresiones prohibidas por modelo» y la columna «Expresiones prohibidas» de «Sesiones».
+  - **La medida versionada, y qué hace fallar `make ci`.** El juez solo decide si está medido contra sus casos
+    etiquetados: `medida.json` dice con qué rúbrica, qué casos, qué modelo y qué versión de Claude Code se midió, y
+    que ningún defecto quedó sin marcar ni ningún correcto marcado. `make ci` falla si la medida no corresponde a la
+    rúbrica, a los casos, al modelo del juez o a su versión fijados, o si no se cumple (`TestMedidaVersionada`), y si
+    alguna de las cuatro copias difiere de la evidencia (`TestCopiasDelJuez`). El job lo comprueba antes de abrir
+    ninguna sesión: con el instrumento sin medir no abre ninguna, ni de evals ni del juez, y su informe sale en
+    `fallo` con `umbrales` vacío. Una ejecución normal no vota ningún caso etiquetado.
+  - **`make evals-medir-juez SKILL=<skill>`**, fuera de `make ci`, repite la medida: vota los 259 casos e imprime
+    `medida.json` entre dos marcas, sin escribirla en el repositorio. La lanza una persona, con la etiqueta
+    `evals-medir-juez` en una propuesta de cambio o con la entrada `medir_al_juez` del flujo lanzado a mano —el
+    trabajo nuevo `medida del juez (<skill>)`, con un tope de 269 minutos—, y es ella quien versiona la medida, en el
+    mismo cambio que toca la rúbrica, los casos, el modelo del juez o su versión.
+  - **El modelo del juez y su versión de Claude Code** se fijan en la definición del job, aparte de los de las
+    sesiones: `MODELO_DEL_JUEZ` (`claude-opus-5-5`) y `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` (`2.1.289`). El trabajo de
+    cada skill instala un segundo Claude Code para los votos, y su tope pasa de 240 a 352 minutos, que cubre el peor
+    caso de las sesiones y de los votos (21 097 s en `boe-legislacion`); `TestDefinicionDelJob` lo recalcula en
+    `make ci`.
+  - **El sondeo local juzga con el juez.** `make evals-sondeo` da, en lugar del recuento de expresiones y su 5 %,
+    las respuestas marcadas en `afirma_lo_no_leido` con sus tres votos y las que tienen sí en `cuenta_su_proceso`,
+    sobre las juzgadas; si la medida versionada corresponde al Claude Code del equipo con el que ha votado; y las
+    respuestas sin juzgar, con su motivo. Sigue sin ser un veredicto y termina con `0` sean cuales sean sus recuentos.
+  - **La lista de expresiones es solo el vocabulario de la prosa.** `evals/boe-legislacion/expresiones-prohibidas.yaml`
+    deja de juzgar respuestas: una sesión ya no deja de pasar por una expresión. Se queda, con su esquema, como lo
+    que la prosa de `SKILL.md` no usa (`TestEvalsDelRepositorio`, subprueba `prosa-de-la-skill`), y gana una clave
+    obligatoria, `salida_de_las_herramientas` —`el sobre`, `fecha_vigencia` y `norma_modificadora`—, que se busca
+    también en el código en línea.
 
 ## [0.5.0] - 2026-10-04
 
