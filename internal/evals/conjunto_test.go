@@ -40,9 +40,79 @@ const (
 	ficheroDeDosBloquesDeLaLCSP = "20-lcsp-dos-bloques-redaccion-cambiada.yaml"
 )
 
+// Los ficheros de la carpeta juez sintética de TestLeerConjunto
+// (contracts/juez-y-voto.md §1 de H24). La declaración lleva dos clases: la que
+// decide, con un umbral que no es el valor cero, y la que solo se publica, con
+// el mayor que admite su esquema; y el esquema de la respuesta, una propiedad
+// por clase.
+const (
+	claseQueDecide = "  - nombre: afirma_lo_no_leido\n" +
+		"    decide: true\n" +
+		"    umbral: 0.05\n"
+	claseQueSePublica = "  - nombre: clase_2\n" +
+		"    decide: false\n" +
+		"    umbral: 1\n"
+	clasesDelJuez = "# Las clases del juez de una skill sintética.\n" +
+		"clases:\n" + claseQueDecide + claseQueSePublica
+	rubricaDelJuez = "# Rúbrica\n\nResponde a las dos preguntas sobre la respuesta.\n"
+	esquemaDelJuez = `{"type":"object","properties":{"afirma_lo_no_leido":{"type":"object"},"clase_2":{"type":"object"}}}` + "\n"
+	casosDelJuez   = "clase: afirma_lo_no_leido\ncasos: []\n"
+	medidaDelJuez  = "{\"clase\":\"afirma_lo_no_leido\"}\n"
+)
+
+// Los nombres, dentro de la carpeta de evals, de los cinco ficheros de la
+// carpeta juez, que son los que llevan delante sus errores.
+const (
+	casosEnElJuez   = "juez/casos.yaml"
+	clasesEnElJuez  = "juez/clases.yaml"
+	esquemaEnElJuez = "juez/esquema.json"
+	medidaEnElJuez  = "juez/medida.json"
+	rubricaEnElJuez = "juez/rubrica.md"
+)
+
+// entradasDelJuez son las entradas de la carpeta juez de un conjunto sintético:
+// sus cinco ficheros bien formados, en orden de nombre, salvo los de cambios,
+// cada uno en lugar del que lleva su nombre.
+func entradasDelJuez(t *testing.T, cambios ...entradaDeConjunto) []entradaDeConjunto {
+	t.Helper()
+
+	entradas := []entradaDeConjunto{
+		{nombre: casosEnElJuez, contenido: casosDelJuez},
+		{nombre: clasesEnElJuez, contenido: clasesDelJuez},
+		{nombre: esquemaEnElJuez, contenido: esquemaDelJuez},
+		{nombre: medidaEnElJuez, contenido: medidaDelJuez},
+		{nombre: rubricaEnElJuez, contenido: rubricaDelJuez},
+	}
+
+	for _, cambio := range cambios {
+		posicion := slices.IndexFunc(entradas, func(entrada entradaDeConjunto) bool { return entrada.nombre == cambio.nombre })
+		require.GreaterOrEqual(t, posicion, 0, "%s es uno de los cinco ficheros de la carpeta juez", cambio.nombre)
+
+		entradas[posicion] = cambio
+	}
+
+	return entradas
+}
+
+// juezEn es el juez que TestLeerConjunto espera de un conjunto creado en dir: el
+// del caso, con las rutas de sus casos y de su medida dentro de dir; o nil, si
+// el caso no espera ninguno.
+func juezEn(dir string, juez *Juez) *Juez {
+	if juez == nil {
+		return nil
+	}
+
+	enDir := *juez
+	enDir.Casos = filepath.Join(dir, juez.Casos)
+	enDir.Medida = filepath.Join(dir, juez.Medida)
+
+	return &enDir
+}
+
 // entradaDeConjunto es una entrada que un test crea en el directorio de un
 // conjunto de evals: un fichero con su contenido o, con carpeta, un
-// subdirectorio vacío.
+// subdirectorio vacío. Su nombre puede llevar delante la carpeta en la que va,
+// que se crea con ella.
 type entradaDeConjunto struct {
 	nombre    string
 	contenido string
@@ -83,6 +153,18 @@ type malFormadoEsperado struct {
 // FR-053): las de legal-core, con la skill que no se activa en NoSeActivan, y la
 // positiva de los dos bloques de la LCSP, con sus redacciones modificadas en
 // RedaccionesModificadas.
+//
+// Desde H24 (contracts/juez-y-voto.md §1; FR-020), fija también la carpeta del
+// juez, con los casos de casosDeLaCarpetaJuez: la entrada que se llama
+// exactamente juez no es un fichero de eval. Si es una carpeta bien formada,
+// queda en Conjunto.Juez, con sus clases en su orden, la rúbrica y el esquema
+// enteros y las rutas de los casos y de la medida. Cada fichero suyo que falta,
+// que no se puede leer o que no tiene su forma —la declaración que incumple su
+// esquema o repite un nombre, y el esquema cuyas propiedades no son exactamente
+// las clases declaradas— es un fichero mal formado con su nombre,
+// juez/<fichero>, y el conjunto se queda sin juez; y si juez no es una carpeta,
+// el mal formado es ella. Un conjunto sin esa entrada no tiene juez: es lo que
+// se exige de todos los casos anteriores.
 func TestLeerConjunto(t *testing.T) {
 	t.Parallel()
 
@@ -119,15 +201,7 @@ func TestLeerConjunto(t *testing.T) {
 		return eval
 	}
 
-	casos := []struct {
-		nombre      string
-		entradas    []entradaDeConjunto
-		evals       []Eval
-		malFormados []malFormadoEsperado
-
-		// prohibidas es la lista que tiene que quedar en el conjunto.
-		prohibidas ExpresionesProhibidas
-	}{
+	casos := []casoDeLeerConjunto{
 		{
 			nombre: "bien-formadas",
 			entradas: []entradaDeConjunto{
@@ -308,14 +382,20 @@ func TestLeerConjunto(t *testing.T) {
 		},
 	}
 
+	casos = append(casos, casosDeLaCarpetaJuez(t,
+		entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21}, leidaDelArticulo21)...)
+
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			conjunto, err := LeerConjunto(crearConjunto(t, caso.entradas))
+			dir := crearConjunto(t, caso.entradas)
+
+			conjunto, err := LeerConjunto(dir)
 			require.NoError(t, err, "un fichero mal formado nunca es el error de la lectura")
 			assert.Equal(t, caso.evals, conjunto.Evals)
 			assert.Equal(t, caso.prohibidas, conjunto.Prohibidas)
+			assert.Equal(t, juezEn(dir, caso.juez), conjunto.Juez)
 
 			ficheros := make([]string, 0, len(conjunto.MalFormados))
 			for _, malFormado := range conjunto.MalFormados {
@@ -364,15 +444,136 @@ func crearConjunto(t *testing.T, entradas []entradaDeConjunto) string {
 	for _, entrada := range entradas {
 		ruta := filepath.Join(dir, entrada.nombre)
 		if entrada.carpeta {
-			require.NoError(t, os.Mkdir(ruta, 0o750))
+			require.NoError(t, os.MkdirAll(ruta, 0o750))
 
 			continue
 		}
 
+		require.NoError(t, os.MkdirAll(filepath.Dir(ruta), 0o750))
 		require.NoError(t, os.WriteFile(ruta, []byte(entrada.contenido), 0o600))
 	}
 
 	return dir
+}
+
+// casoDeLeerConjunto es un caso de TestLeerConjunto: las entradas de un
+// directorio de evals y lo que LeerConjunto tiene que leer de él.
+type casoDeLeerConjunto struct {
+	nombre      string
+	entradas    []entradaDeConjunto
+	evals       []Eval
+	malFormados []malFormadoEsperado
+
+	// prohibidas es la lista que tiene que quedar en el conjunto.
+	prohibidas ExpresionesProhibidas
+
+	// juez es el juez que tiene que quedar en el conjunto, con las rutas de sus
+	// casos y de su medida relativas al directorio de evals; nil, ninguno.
+	juez *Juez
+}
+
+// casosDeLaCarpetaJuez son los casos de TestLeerConjunto de la carpeta del juez
+// (contracts/juez-y-voto.md §1 de H24; FR-020). El conjunto de cada uno lleva
+// además la eval dada, que se lee igual con el juez bien o mal formado: la
+// carpeta bien formada; la declaración de clases que incumple su esquema, de
+// cinco maneras —una clave de más, en la raíz y en una clase, una clase sin
+// nombre, un nombre con mayúscula, un umbral de 2 y ninguna clase—, y la que
+// repite un nombre; el esquema de la respuesta sin la propiedad de una clase,
+// con una propiedad que no es de ninguna y que no es JSON; cada uno de los
+// cinco ficheros que falta y que no se puede leer, con una carpeta en su lugar;
+// y la entrada juez que no es una carpeta. Cada carpeta mal formada lo está
+// solo por su defecto, así que da solo ese fichero.
+func casosDeLaCarpetaJuez(t *testing.T, eval entradaDeConjunto, leida Eval) []casoDeLeerConjunto {
+	t.Helper()
+
+	conJuez := func(cambios ...entradaDeConjunto) []entradaDeConjunto {
+		return append([]entradaDeConjunto{eval}, entradasDelJuez(t, cambios...)...)
+	}
+	conClases := func(clases string) []entradaDeConjunto {
+		return conJuez(entradaDeConjunto{nombre: clasesEnElJuez, contenido: clases})
+	}
+	conEsquema := func(esquema string) []entradaDeConjunto {
+		return conJuez(entradaDeConjunto{nombre: esquemaEnElJuez, contenido: esquema})
+	}
+	malFormado := func(nombre string, entradas []entradaDeConjunto, fichero, fragmento string) casoDeLeerConjunto {
+		return casoDeLeerConjunto{
+			nombre:      nombre,
+			entradas:    entradas,
+			evals:       []Eval{leida},
+			malFormados: []malFormadoEsperado{{fichero: fichero, fragmento: fragmento}},
+		}
+	}
+
+	const (
+		sinNombre      = "  - decide: true\n    umbral: 0.05\n"
+		conMayuscula   = "  - nombre: Afirma_lo_no_leido\n    decide: true\n    umbral: 0.05\n"
+		conUmbralDe2   = "  - nombre: afirma_lo_no_leido\n    decide: true\n    umbral: 2\n"
+		noSonLasClases = "no son exactamente las clases declaradas (afirma_lo_no_leido, clase_2)"
+	)
+
+	casos := []casoDeLeerConjunto{
+		{
+			nombre:   "juez-bien-formado",
+			entradas: conJuez(),
+			evals:    []Eval{leida},
+			juez: &Juez{
+				Clases: []ClaseDelJuez{
+					{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.05},
+					{Nombre: "clase_2", Decide: false, Umbral: 1},
+				},
+				Rubrica: rubricaDelJuez,
+				Esquema: esquemaDelJuez,
+				Casos:   casosEnElJuez,
+				Medida:  medidaEnElJuez,
+			},
+		},
+		malFormado("juez-con-una-clave-de-mas", conClases(clasesDelJuez+"rubrica: rubrica.md\n"),
+			clasesEnElJuez, "additional properties 'rubrica' not allowed"),
+		malFormado("juez-con-una-clave-de-mas-en-una-clase",
+			conClases("clases:\n"+claseQueDecide+"    descripcion: inventa\n"+claseQueSePublica),
+			clasesEnElJuez, "additional properties 'descripcion' not allowed"),
+		malFormado("juez-con-una-clase-sin-nombre", conClases("clases:\n"+sinNombre+claseQueSePublica),
+			clasesEnElJuez, "missing property 'nombre'"),
+		malFormado("juez-con-mayuscula-en-un-nombre", conClases("clases:\n"+conMayuscula+claseQueSePublica),
+			clasesEnElJuez, "'Afirma_lo_no_leido' does not match pattern"),
+		malFormado("juez-con-un-umbral-de-2", conClases("clases:\n"+conUmbralDe2+claseQueSePublica),
+			clasesEnElJuez, "maximum: got 2, want 1"),
+		malFormado("juez-sin-ninguna-clase", conClases("clases: []\n"),
+			clasesEnElJuez, "minItems: got 0, want 1"),
+		malFormado("juez-con-una-clase-repetida", conClases(clasesDelJuez+claseQueDecide),
+			clasesEnElJuez, clasesEnElJuez+": la clase afirma_lo_no_leido está repetida"),
+		malFormado("juez-con-un-esquema-sin-una-clase",
+			conEsquema(`{"type":"object","properties":{"afirma_lo_no_leido":{"type":"object"}}}`),
+			esquemaEnElJuez, esquemaEnElJuez+": sus propiedades (afirma_lo_no_leido) "+noSonLasClases),
+		malFormado("juez-con-un-esquema-con-otra-propiedad",
+			conEsquema(`{"properties":{"afirma_lo_no_leido":{},"clase_2":{},"clase_3":{}}}`),
+			esquemaEnElJuez, esquemaEnElJuez+": sus propiedades (afirma_lo_no_leido, clase_2, clase_3) "+noSonLasClases),
+		malFormado("juez-con-un-esquema-que-no-es-json", conEsquema("no es JSON\n"),
+			esquemaEnElJuez, esquemaEnElJuez+": no se puede leer como JSON: "),
+		{
+			// Con su nombre, un fichero no es una eval sin la forma de nombre: es
+			// la carpeta del juez, que no es un directorio.
+			nombre:   "juez-que-no-es-una-carpeta",
+			entradas: []entradaDeConjunto{eval, {nombre: "juez", contenido: clasesDelJuez}},
+			evals:    []Eval{leida},
+			malFormados: []malFormadoEsperado{{
+				fichero:   "juez",
+				fragmento: "juez: no es un directorio",
+				exacto:    true,
+			}},
+		},
+	}
+
+	for _, fichero := range []string{casosEnElJuez, clasesEnElJuez, esquemaEnElJuez, medidaEnElJuez, rubricaEnElJuez} {
+		sinElFichero := slices.DeleteFunc(conJuez(), func(entrada entradaDeConjunto) bool { return entrada.nombre == fichero })
+
+		casos = append(casos,
+			malFormado("juez-sin-"+filepath.Base(fichero), sinElFichero, fichero, fichero+": no se puede leer: "),
+			malFormado("juez-con-una-carpeta-por-"+filepath.Base(fichero),
+				conJuez(entradaDeConjunto{nombre: fichero, carpeta: true}), fichero, fichero+": no se puede leer: "))
+	}
+
+	return casos
 }
 
 // Identificadores de las normas sintéticas de TestConjuntoDeEvals. Salvo el de
@@ -1163,8 +1364,13 @@ const (
 // §4 de H7.4; FR-032, FR-033, FR-093, FR-095; SC-002, SC-003, SC-005). Desde
 // H21, las 21 evals de boe-legislacion y las 4 de legal-core cumplen además la
 // regla sin binario ni servidor de su juego: cada carpeta lleva exactamente una
-// eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Lee
-// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
+// eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde
+// H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
+// da ningún fichero mal formado: la de boe-legislacion declara sus dos clases,
+// afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, las
+// dos con umbral 0, y legal-core no tiene juez (contracts/juez-y-voto.md §1 de
+// H24; FR-020, FR-021). Lee las carpetas enteras, así que ningún fichero de eval
+// se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1192,6 +1398,18 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		require.Contains(t, carpetas, evalsDelRepositorio)
 		assert.Empty(t, malFormados, "ficheros mal formados en %s:\n%s",
 			directorioDeEvals, strings.Join(malFormados, "\n"))
+
+		// La carpeta del juez se lee con las evals: boe-legislacion declara sus
+		// dos clases y legal-core no tiene juez (FR-020 y FR-021 de H24).
+		require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez", evalsDelRepositorio)
+		assert.Equal(t, []ClaseDelJuez{
+			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0},
+			{Nombre: "cuenta_su_proceso", Decide: false, Umbral: 0},
+		}, conjunto.Juez.Clases)
+
+		deLegalCore, err := LeerConjunto(evalsDeLegalCore)
+		require.NoError(t, err)
+		assert.Nil(t, deLegalCore.Juez, "%s no tiene juez", evalsDeLegalCore)
 	})
 
 	t.Run("conjunto", func(t *testing.T) {

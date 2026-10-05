@@ -19,28 +19,37 @@ import (
 var formaDelNombre = regexp.MustCompile(`^[0-9]{2}-[a-z0-9]+(-[a-z0-9]+)*\.yaml$`)
 
 // Conjunto es lo que LeerConjunto lee de un directorio de evals: las evals bien
-// formadas, la lista de expresiones prohibidas y, aparte, las entradas que no se
-// pueden leer como lo que su nombre dice que son (contrato evals-y-grabaciones
-// §1; contrato lista-y-juicio §1 de H7.2).
+// formadas, la lista de expresiones prohibidas, el juez y, aparte, las entradas
+// que no se pueden leer como lo que su nombre dice que son (contrato
+// evals-y-grabaciones §1; contrato lista-y-juicio §1 de H7.2;
+// contracts/juez-y-voto.md §1 de H24).
 type Conjunto struct {
 	// Evals son las bien formadas, en orden de nombre de fichero, cada una con
 	// su Fichero y con la lista de la carpeta en su Prohibidas.
 	Evals []Eval
 
 	// MalFormados son las entradas que no se pueden leer como eval, o como la
-	// lista la que lleva su nombre, en orden de nombre de fichero.
+	// lista la que lleva su nombre, y los ficheros de la carpeta del juez que
+	// faltan o no tienen su forma, en orden de nombre de fichero.
 	MalFormados []FicheroMalFormado
 
 	// Prohibidas es la lista de expresiones prohibidas de la carpeta, leída de
 	// expresiones-prohibidas.yaml; vacía si la carpeta no la tiene o si está mal
 	// formada (research D5).
 	Prohibidas ExpresionesProhibidas
+
+	// Juez es el juez con modelo de la skill, leído de la carpeta juez; nil si
+	// la carpeta de evals no la tiene, que es no tener juez, o si está mal
+	// formada (contracts/juez-y-voto.md §1 de H24; FR-020).
+	Juez *Juez
 }
 
 // FicheroMalFormado es una entrada del directorio de evals que no es una eval
-// (data-model §6).
+// (data-model §6), o un fichero de su carpeta del juez que falta o no tiene su
+// forma.
 type FicheroMalFormado struct {
-	// Fichero es el nombre de la entrada dentro del directorio.
+	// Fichero es el nombre de la entrada dentro del directorio; el de un fichero
+	// de la carpeta del juez lleva la carpeta delante, juez/<fichero>.
 	Fichero string
 
 	// Error dice por qué no es una eval; su texto empieza por Fichero.
@@ -49,22 +58,29 @@ type FicheroMalFormado struct {
 
 // LeerConjunto lee todas las entradas del directorio antes de devolver nada y las
 // separa en evals bien formadas y ficheros mal formados, los dos en orden de
-// nombre, y la lista de expresiones prohibidas (contrato evals-y-grabaciones §1,
-// FR-071; contrato lista-y-juicio §1 de H7.2):
+// nombre, la lista de expresiones prohibidas y el juez (contrato
+// evals-y-grabaciones §1, FR-071; contrato lista-y-juicio §1 de H7.2;
+// contracts/juez-y-voto.md §1 de H24):
 //
 //  1. la entrada que se llama exactamente expresiones-prohibidas.yaml es la
 //     lista, no un fichero de eval: si no es un fichero regular, no se puede
 //     leer o no valida, es un FicheroMalFormado con ese motivo; si no, va a
 //     Prohibidas;
-//  2. cualquier otra entrada es un fichero de eval: la que no es un fichero
+//  2. la entrada que se llama exactamente juez es la carpeta del juez de la
+//     skill, no un fichero de eval: si no es un directorio, es un
+//     FicheroMalFormado con ese motivo; si lo es, se lee con leerJuez, y cada
+//     fichero suyo que falta, no se puede leer o no tiene su forma es un
+//     FicheroMalFormado con su nombre, juez/<fichero>; bien formada, va a Juez.
+//     Sin esa entrada, Juez es nil: la skill no tiene juez (FR-020 de H24);
+//  3. cualquier otra entrada es un fichero de eval: la que no es un fichero
 //     regular, o cuyo nombre no tiene la forma <nn>-<descripción>.yaml, es un
 //     FicheroMalFormado con ese motivo, nunca una entrada que se salta;
-//  3. cada fichero de eval se lee y se pasa a LeerEval con su nombre: si no se
+//  4. cada fichero de eval se lee y se pasa a LeerEval con su nombre: si no se
 //     puede leer o LeerEval devuelve un error, es un FicheroMalFormado con ese
 //     error; si no, su Eval va a Evals;
-//  4. cada eval de Evals lleva en Prohibidas la lista de la carpeta, vacía si la
+//  5. cada eval de Evals lleva en Prohibidas la lista de la carpeta, vacía si la
 //     carpeta no la tiene o está mal formada;
-//  5. el error queda para un directorio que no se puede listar: lo nombra y va
+//  6. el error queda para un directorio que no se puede listar: lo nombra y va
 //     con un Conjunto vacío. Un directorio vacío da un Conjunto vacío sin error.
 //
 // Solo lee y comprueba el formato: las reglas del conjunto son de
@@ -78,6 +94,15 @@ func LeerConjunto(dir string) (Conjunto, error) {
 	var conjunto Conjunto
 
 	for _, entrada := range entradas {
+		if entrada.Name() == carpetaDelJuez {
+			juez, malFormados := leerJuez(dir, entrada)
+
+			conjunto.Juez = juez
+			conjunto.MalFormados = append(conjunto.MalFormados, malFormados...)
+
+			continue
+		}
+
 		if err := conjunto.leer(dir, entrada); err != nil {
 			conjunto.MalFormados = append(conjunto.MalFormados, FicheroMalFormado{Fichero: entrada.Name(), Error: err})
 		}
@@ -90,10 +115,10 @@ func LeerConjunto(dir string) (Conjunto, error) {
 	return conjunto, nil
 }
 
-// leer lee en el conjunto una entrada del directorio: la de la lista, en
-// Prohibidas, y cualquier otra, como eval, en Evals. El error es el de la entrada
-// que no se puede leer como lo que su nombre dice que es, y empieza por su
-// nombre.
+// leer lee en el conjunto una entrada del directorio que no es la carpeta del
+// juez: la de la lista, en Prohibidas, y cualquier otra, como eval, en Evals. El
+// error es el de la entrada que no se puede leer como lo que su nombre dice que
+// es, y empieza por su nombre.
 func (c *Conjunto) leer(dir string, entrada fs.DirEntry) error {
 	if entrada.Name() == ficheroDeExpresionesProhibidas {
 		lista, err := leerLista(dir, entrada)

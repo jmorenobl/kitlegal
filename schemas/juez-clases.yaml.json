@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kitlegal.es/schemas/juez-clases.yaml.json",
+  "title": "evals/<skill>/juez/clases.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["clases"],
+  "properties": {
+    "clases": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nombre", "decide", "umbral"],
+        "properties": {
+          "nombre": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "decide": { "type": "boolean" },
+          "umbral": { "type": "number", "minimum": 0, "maximum": 1 }
+        }
+      }
+    }
+  }
+}
