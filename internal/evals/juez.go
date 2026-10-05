@@ -652,34 +652,37 @@ const vallaDeCodigo = "```"
 
 // VotoDeClase es lo que un voto del juez dice de una clase de una respuesta
 // (data-model §3 de H24): los campos de esquema.json para esa clase, tal como
-// los dio el juez, y lo que el job comprueba de ellos sin modelo.
+// los dio el juez, y lo que el job comprueba de ellos sin modelo. Sus claves
+// JSON, en el orden de sus campos, son las de un voto de juez.respuestas de
+// informe.json (contracts/informe-del-job.md §3 de H24; FR-060).
 type VotoDeClase struct {
 	// Voto es el número del voto, de 1 a 3. Un voto nulo y su repetición llevan
 	// el mismo.
-	Voto int
+	Voto int `json:"voto"`
 
 	// Nulo dice si el voto es nulo: en alguna clase dice sí y su frase no está
 	// en la respuesta. Es del voto entero, así que lo llevan igual sus votos de
 	// todas las clases (FR-006 de H24).
-	Nulo bool
+	Nulo bool `json:"nulo"`
 
 	// Motivo es el motivo que el juez da de su respuesta.
-	Motivo string
+	Motivo string `json:"motivo"`
 
 	// Respuesta es «si» o «no».
-	Respuesta string
+	Respuesta string `json:"respuesta"`
 
 	// Frase es la frase de la respuesta juzgada que el juez cita como prueba de
 	// su sí; vacía con un no.
-	Frase string
+	Frase string `json:"frase"`
 
 	// Precepto es el precepto del que habla la frase, en la clase cuyo esquema
-	// lo tiene; nil en la que no.
-	Precepto *string
+	// lo tiene; nil, y sin clave en informe.json, en la que no. El de un voto
+	// que dice no es vacío, y su clave va igual.
+	Precepto *string `json:"precepto,omitzero"`
 
 	// FraseEnLaRespuesta dice si Frase está en la respuesta juzgada, con la
 	// tolerancia de fraseEsta. Una frase vacía no está.
-	FraseEnLaRespuesta bool
+	FraseEnLaRespuesta bool `json:"frase_en_la_respuesta"`
 }
 
 // diceSi dice si el voto dice sí de su clase con su frase en la respuesta, que
@@ -689,19 +692,20 @@ func (v VotoDeClase) diceSi() bool {
 }
 
 // JuicioDeClase es lo que el juez deja de una respuesta en una de sus clases
-// (data-model §3 de H24).
+// (data-model §3 de H24). Sus claves JSON son las de una clase de una respuesta
+// de juez.respuestas de informe.json (contracts/informe-del-job.md §3 de H24).
 type JuicioDeClase struct {
 	// Clase es el nombre de la clase.
-	Clase string
+	Clase string `json:"clase"`
 
 	// Marcada dice, en una clase que decide, si tres votos dicen sí con su
 	// frase; en una que solo se publica, si lo dice el primero. Con la respuesta
 	// sin juzgar es falsa.
-	Marcada bool
+	Marcada bool `json:"marcada"`
 
 	// Votos son todos los votos de la respuesta, en su orden, con lo que cada
 	// uno dice de la clase: también los nulos, delante de su repetición.
-	Votos []VotoDeClase
+	Votos []VotoDeClase `json:"votos"`
 }
 
 // JuicioDeRespuesta es el juicio del juez con modelo sobre una respuesta, el
@@ -715,6 +719,15 @@ type JuicioDeRespuesta struct {
 	// juzgar no queda marcada en ninguna clase, y conserva los votos que sí
 	// llegaron (FR-007 de H24).
 	SinJuzgar string
+}
+
+// conVotoAfirmativo dice si algún voto de la respuesta dice sí en alguna clase,
+// esté o no su frase en la respuesta: también cuenta el sí de un voto nulo, que
+// en la regla de los votos no cuenta como sí (FR-060 de H24).
+func (j JuicioDeRespuesta) conVotoAfirmativo() bool {
+	return slices.ContainsFunc(j.Clases, func(clase JuicioDeClase) bool {
+		return slices.ContainsFunc(clase.Votos, func(voto VotoDeClase) bool { return voto.Respuesta == respuestaSi })
+	})
 }
 
 // votacion es con lo que se juzgan las respuestas de una skill: las clases de

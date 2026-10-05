@@ -86,6 +86,13 @@ const (
 	// de ningún modo: las de una eval sin binario ni servidor
 	// (contracts/evals-en-dos-modos.md §5.3 de H21).
 	sinModoEnElInforme = "—"
+
+	// skillSinJuez es la sección «Juez» entera de una skill sin juez, y
+	// vacioEnElVoto, la celda de lo que el juez dejó vacío en un voto —la frase
+	// y el precepto de uno que dice no— y la del precepto de la clase que no lo
+	// tiene (contracts/informe-del-job.md §7 de H24).
+	skillSinJuez  = "La skill no tiene juez."
+	vacioEnElVoto = "—"
 )
 
 // modeloConSuModo es el modelo de lo que el informe publica de un modo cuando
@@ -97,7 +104,8 @@ const modeloConSuModo = "%s (%s)"
 // Encabezados de las tablas de informe.md (contrato job-de-evals §5; contrato
 // informe-del-job §4 de H7.3 y de H7.4; contracts/evals-en-dos-modos.md §5.3 de
 // H21; contracts/informe-del-job.md §7 de H24, que quita la columna y la tabla
-// de las expresiones prohibidas).
+// de las expresiones prohibidas y añade las dos del juez: la de los votos y la
+// de las respuestas sin juzgar).
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
@@ -114,6 +122,10 @@ var (
 		"Eval", "Modelo", "Modo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
 	}
 	encabezadosDeUmbrales = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
+	encabezadosDeVotos    = []string{
+		"Sesión", "Clase", "Voto", "Nulo", "Respuesta", "Frase", "En la respuesta", "Precepto", "Motivo", "Marcada",
+	}
+	encabezadosDeSinJuzgar = []string{"Sesión", "Motivo"}
 )
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
@@ -265,6 +277,12 @@ type Informe struct {
 	// contracts/informe-del-job.md §2 de H24; research D13 de H24).
 	Umbrales []Umbral `json:"umbrales"`
 
+	// Juez es lo que el juez con modelo de la skill deja a la vista de quien lee
+	// el informe: nil, null en informe.json, si la skill no tiene juez
+	// (contracts/informe-del-job.md §3 de H24; research D10 de H24; FR-060,
+	// FR-061).
+	Juez *JuezInformado `json:"juez"`
+
 	// DuracionDeLasSesiones son los segundos recibidos, tal cual: la suma de las
 	// tandas del repartidor (FR-050 de H7.3; contracts/evals-en-dos-modos.md §5
 	// de H21).
@@ -345,6 +363,47 @@ type TasaDelInforme struct {
 	Pasa     bool `json:"pasa"`
 }
 
+// JuezInformado es el juez con modelo de la skill como lo presenta el informe
+// (contracts/informe-del-job.md §3 de H24; research D10 de H24; FR-060,
+// FR-061): con qué votó y, de las respuestas que juzgó, las que tienen algún
+// voto afirmativo, con sus votos y sus frases, y las que dejó sin juzgar. De
+// una respuesta cuyos votos dicen todos no, no lleva nada: lo acotan las
+// respuestas que se juzgan, no el uso.
+type JuezInformado struct {
+	// Modelo y VersionDeClaudeCode son el id del modelo del juez y la versión de
+	// Claude Code de sus votos, los fijados para el job, tal como se recibieron.
+	Modelo              string `json:"modelo"`
+	VersionDeClaudeCode string `json:"version_de_claude_code"`
+
+	// Respuestas son las respuestas juzgadas con algún voto afirmativo en
+	// cualquier clase, también uno nulo y también si no quedaron marcadas, en
+	// orden de sesión; [] en informe.json si no hay ninguna.
+	Respuestas []RespuestaConVotos `json:"respuestas"`
+
+	// SinJuzgar son las respuestas de las que un voto no llegó a darse, en orden
+	// de sesión; [] en informe.json si no hay ninguna. Ninguna está además en
+	// Respuestas, aunque un voto anterior dijera sí: no es una respuesta
+	// juzgada.
+	SinJuzgar []RespuestaSinJuzgar `json:"sin_juzgar"`
+}
+
+// RespuestaConVotos es una respuesta juzgada con algún voto afirmativo: su
+// sesión y, por cada clase del juez, en el orden de clases.yaml, todos sus
+// votos —también los nulos, y los de la clase en la que todos dicen no— y si
+// quedó marcada en ella (JuicioDeClase).
+type RespuestaConVotos struct {
+	Sesion string          `json:"sesion"`
+	Clases []JuicioDeClase `json:"clases"`
+}
+
+// RespuestaSinJuzgar es una respuesta que el juez dejó sin juzgar: su sesión y
+// el motivo del voto que no llegó a darse, que lo nombra por su número (FR-007
+// de H24).
+type RespuestaSinJuzgar struct {
+	Sesion string `json:"sesion"`
+	Motivo string `json:"motivo"`
+}
+
 // juicioDelJuez es lo que el juez con modelo de la skill deja de una ejecución
 // (contracts/informe-del-job.md §1 de H24; data-model §3 y §5 de H24): las
 // respuestas del modelo que decide que se juzgan, por grupos, cada una con su
@@ -413,6 +472,26 @@ func (j *juicioDelJuez) deLosModos() []grupoJuzgado {
 	return deLosModos
 }
 
+// respuestasQue son las respuestas de todos los grupos que cumplen la
+// condición, en orden de sesión: las de los modos y las de las evals sin
+// binario ni servidor, que el juez juzga y el informe publica como las demás
+// (FR-013 de H24).
+func (j *juicioDelJuez) respuestasQue(cumple func(respuesta respuestaDelJuez) bool) []respuestaDelJuez {
+	var respuestas []respuestaDelJuez
+
+	for _, grupo := range j.grupos {
+		for _, respuesta := range grupo.respuestas {
+			if cumple(respuesta) {
+				respuestas = append(respuestas, respuesta)
+			}
+		}
+	}
+
+	slices.SortFunc(respuestas, func(a, b respuestaDelJuez) int { return cmp.Compare(a.posicion, b.posicion) })
+
+	return respuestas
+}
+
 // sinJuzgar son las respuestas de las que un voto no llegó a darse, las de
 // todos los grupos, en orden de sesión (FR-007 y FR-013 de H24); ninguna si la
 // skill no tiene juez.
@@ -421,19 +500,37 @@ func (j *juicioDelJuez) sinJuzgar() []respuestaDelJuez {
 		return nil
 	}
 
-	var sinJuzgar []respuestaDelJuez
+	return j.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.juicio.SinJuzgar != "" })
+}
 
-	for _, grupo := range j.grupos {
-		for _, respuesta := range grupo.respuestas {
-			if respuesta.juicio.SinJuzgar != "" {
-				sinJuzgar = append(sinJuzgar, respuesta)
-			}
-		}
+// informado es el juez como lo presenta el informe, con el id de su modelo y la
+// versión de Claude Code de sus votos tal como se recibieron
+// (contracts/informe-del-job.md §3 de H24; FR-060, FR-061): nil si la skill no
+// tiene juez. De las respuestas juzgadas lleva las que tienen algún voto
+// afirmativo, cada una con todos sus votos en cada clase; y de las que quedaron
+// sin juzgar, su motivo y nada más, tampoco los votos que sí llegaron: una
+// respuesta sin juzgar no es una respuesta juzgada sin marcar.
+func (j *juicioDelJuez) informado(modelo, version string) *JuezInformado {
+	if j == nil {
+		return nil
 	}
 
-	slices.SortFunc(sinJuzgar, func(a, b respuestaDelJuez) int { return cmp.Compare(a.posicion, b.posicion) })
+	informado := &JuezInformado{Modelo: modelo, VersionDeClaudeCode: version}
 
-	return sinJuzgar
+	conVotoAfirmativo := j.respuestasQue(func(respuesta respuestaDelJuez) bool {
+		return respuesta.juicio.SinJuzgar == "" && respuesta.juicio.conVotoAfirmativo()
+	})
+	for _, respuesta := range conVotoAfirmativo {
+		informado.Respuestas = append(informado.Respuestas,
+			RespuestaConVotos{Sesion: respuesta.sesion, Clases: respuesta.juicio.Clases})
+	}
+
+	for _, respuesta := range j.sinJuzgar() {
+		informado.SinJuzgar = append(informado.SinJuzgar,
+			RespuestaSinJuzgar{Sesion: respuesta.sesion, Motivo: respuesta.juicio.SinJuzgar})
+	}
+
+	return informado
 }
 
 // sinActivar son las respuestas del grupo cuya sesión no activó la skill.
@@ -589,6 +686,15 @@ type RedDelInforme struct {
 // juzgar. Las de las evals sin binario ni servidor no cuentan en ningún umbral
 // ni en ninguna duración, y una marca suya no da ningún motivo. Con una skill
 // sin juez, el votante no se llama (FR-037).
+//
+// Lo que el juez deja a la vista va en la clave juez de informe.json, detrás de
+// los umbrales, y en la sección «Juez» de informe.md
+// (contracts/informe-del-job.md §3 y §7 de H24; research D10 de H24; FR-013,
+// FR-060, FR-061): el modelo del juez y la versión de Claude Code de sus votos,
+// tal como se recibieron; cada respuesta juzgada con algún voto afirmativo —las
+// de las evals sin binario ni servidor, como las demás—, con todos sus votos y
+// sus frases y con si quedó marcada en cada clase; y cada respuesta sin juzgar,
+// con su motivo. Con una skill sin juez, juez es null.
 //
 // El error es solo para lo que impide escribir el informe —un plan sin sentido,
 // un objetivo de duración negativo, sin-python.txt, las evals o las sesiones
@@ -1093,6 +1199,7 @@ func componerInforme(
 	}
 
 	informe.Umbrales = umbralesDelInforme(e, delJuez)
+	informe.Juez = delJuez.informado(e.ModeloDelJuez, e.VersionDelJuez)
 
 	for _, juzgada := range sesiones {
 		resultado := juzgada.resultado
@@ -1507,8 +1614,10 @@ func retirarFichero(ruta string) error {
 // reintentos por límite de ritmo al final (contrato informe-del-job §4 de H7.3);
 // la comprobación sin Python en un bloque; los ficheros mal formados, las
 // invocaciones fuera de lo grabado y las peticiones llegadas a la red; las tasas
-// por eval; los umbrales, o «ninguno»; las sesiones sin medir, o «ninguna»; la
-// tabla de las sesiones; y una sección por sesión. Las tablas de las tasas y de
+// por eval; los umbrales, o «ninguno»; el juez, con sus votos y las respuestas
+// que dejó sin juzgar (documento.juez; contracts/informe-del-job.md §7 de H24);
+// las sesiones sin medir, o «ninguna»; la tabla de las sesiones; y una sección
+// por sesión. Las tablas de las tasas y de
 // las sesiones llevan el modo detrás del modelo, y la de las invocaciones de
 // cada sesión, si cada una es una llamada a una herramienta
 // (contracts/evals-en-dos-modos.md §5.3 de H21). Desde H24 no lleva la sección
@@ -1562,6 +1671,9 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.parrafo("## Umbrales")
 	md.tablaOVacia(encabezadosDeUmbrales, filasDeUmbrales(informe.Umbrales), ningunoEnElInforme)
 
+	md.parrafo("## Juez")
+	md.juez(informe.Juez)
+
 	md.parrafo("## Sesiones sin medir")
 	md.tablaOVacia(encabezadosDeSinMedir, filasDeSinMedir(informe.SesionesSinMedir), ningunaEnElInforme)
 
@@ -1573,6 +1685,65 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	}
 
 	return md.unido()
+}
+
+// juez añade el cuerpo de la sección del juez (contracts/informe-del-job.md §7
+// de H24; FR-060, FR-061): sin juez, que la skill no lo tiene; y con él, su
+// modelo, la versión de Claude Code de sus votos, la tabla de los votos de las
+// respuestas con algún voto afirmativo y la de las respuestas sin juzgar, cada
+// una con «ninguna» en su lugar si no tiene filas.
+func (d *documento) juez(juez *JuezInformado) {
+	if juez == nil {
+		d.parrafo(skillSinJuez)
+
+		return
+	}
+
+	d.parrafo("Modelo: " + juez.Modelo)
+	d.parrafo("Versión de Claude Code: " + juez.VersionDeClaudeCode)
+	d.tablaConEtiqueta("Votos", encabezadosDeVotos, filasDeVotos(juez.Respuestas))
+	d.tablaConEtiqueta("Respuestas sin juzgar", encabezadosDeSinJuzgar, filasDeSinJuzgar(juez.SinJuzgar))
+}
+
+// filasDeVotos son las filas de la tabla de los votos del juez: una por voto de
+// cada clase de cada respuesta, en el orden de informe.json —las respuestas,
+// sus clases y los votos de cada una—, con una celda por cada encabezado de
+// encabezadosDeVotos. Lo que el juez dio va tal cual, con vacioEnElVoto en lo
+// que dejó vacío y en el precepto de la clase que no lo tiene; y si la
+// respuesta quedó marcada en la clase lo dice cada fila de esa clase.
+func filasDeVotos(respuestas []RespuestaConVotos) [][]string {
+	var filas [][]string
+
+	for _, respuesta := range respuestas {
+		for _, clase := range respuesta.Clases {
+			for _, voto := range clase.Votos {
+				precepto := ""
+				if voto.Precepto != nil {
+					precepto = *voto.Precepto
+				}
+
+				filas = append(filas, []string{
+					respuesta.Sesion, clase.Clase, strconv.Itoa(voto.Voto), siONo(voto.Nulo),
+					cmp.Or(voto.Respuesta, vacioEnElVoto), cmp.Or(voto.Frase, vacioEnElVoto),
+					siONo(voto.FraseEnLaRespuesta), cmp.Or(precepto, vacioEnElVoto), cmp.Or(voto.Motivo, vacioEnElVoto),
+					siONo(clase.Marcada),
+				})
+			}
+		}
+	}
+
+	return filas
+}
+
+// filasDeSinJuzgar son las filas de la tabla de las respuestas que el juez dejó
+// sin juzgar.
+func filasDeSinJuzgar(sinJuzgar []RespuestaSinJuzgar) [][]string {
+	filas := make([][]string, 0, len(sinJuzgar))
+	for _, respuesta := range sinJuzgar {
+		filas = append(filas, []string{respuesta.Sesion, respuesta.Motivo})
+	}
+
+	return filas
 }
 
 // sesion añade la sección de una sesión: su eval, la pregunta, las invocaciones
@@ -1588,14 +1759,10 @@ func (d *documento) sesion(juzgada sesionJuzgada) {
 	d.parrafo("Modelo de la sesión: " + cmp.Or(resultado.ModeloDeLaSesion, sinLeer))
 	d.textoLeido("Pregunta", juzgada.pregunta, juzgada.preguntaLeida)
 
-	switch {
-	case !juzgada.trazaLeida:
+	if juzgada.trazaLeida {
+		d.tablaConEtiqueta("Invocaciones", encabezadosDeInvocaciones, filasDeInvocaciones(resultado.Invocaciones))
+	} else {
 		d.parrafo("Invocaciones: " + sinLeer)
-	case len(resultado.Invocaciones) == 0:
-		d.parrafo("Invocaciones: " + ningunaEnElInforme)
-	default:
-		d.parrafo("Invocaciones:")
-		d.tablaOVacia(encabezadosDeInvocaciones, filasDeInvocaciones(resultado.Invocaciones), ningunaEnElInforme)
 	}
 
 	d.textoLeido("Respuesta", resultado.Respuesta, juzgada.leida)
@@ -1853,6 +2020,19 @@ func (d *documento) tablaOVacia(encabezados []string, filas [][]string, vacia st
 	}
 
 	*d = append(*d, tabla.String())
+}
+
+// tablaConEtiqueta añade «<etiqueta>: ninguna» o, con filas, la etiqueta y la
+// tabla con sus encabezados y una fila por elemento.
+func (d *documento) tablaConEtiqueta(etiqueta string, encabezados []string, filas [][]string) {
+	if len(filas) == 0 {
+		d.parrafo(etiqueta + ": " + ningunaEnElInforme)
+
+		return
+	}
+
+	d.parrafo(etiqueta + ":")
+	d.tablaOVacia(encabezados, filas, ningunaEnElInforme)
 }
 
 // bloqueDeTexto añade el contenido tal cual entre una línea ```text y una línea
