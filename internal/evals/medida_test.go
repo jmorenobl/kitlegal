@@ -1,20 +1,27 @@
 package evals
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
+	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
+	"unicode"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2292,4 +2299,936 @@ func lecturaDelBloque(t *testing.T, texto Texto, bloque BloqueQuitado) (verbo st
 	}
 
 	return palabras[1], leerSobre(t, texto.Salida).Ok
+}
+
+// Lo que TestEjecucionDeLaMedida da a medirAlJuez de quien lanza la medida, que
+// no sale de la carpeta del juez: la skill; el commit; cuántos casos se votan a
+// la vez, que son los cuatro de contracts/medida-del-juez.md §7 de H24; y la
+// fecha, que la medida lleva sin su hora.
+const (
+	skillDeLaMedicion        = "boe-legislacion"
+	commitDeLaMedicion       = "0123456789abcdef0123456789abcdef01234567"
+	concurrenciaDeLaMedicion = 4
+	fechaDeLaMedidaDada      = "2026-10-06"
+)
+
+// votosDeLaCopia son los votos que pide la ejecución de la medida con los casos
+// de la copia del repositorio cuando la medida se cumple (research M2 de H24;
+// FR-051): tres por cada uno de los 212 defectos y uno por cada uno de los 47
+// correctos.
+const votosDeLaCopia = 683
+
+// formaDeLaMedidaDada es el texto de la medida que da medirAlJuez, carácter a
+// carácter, el de contracts/medida-del-juez.md §7 de H24 (FR-052): sus claves en
+// ese orden, con dos espacios de sangría y su salto final. Sus huecos son, por
+// orden, la skill, la clase, la fecha, el modelo del juez, la versión de Claude
+// Code de sus votos, la huella de la rúbrica, la de los casos, los defectos y
+// los que no quedan marcados, los correctos y los que quedan marcados, y el
+// commit.
+const formaDeLaMedidaDada = `{
+  "skill": "%s",
+  "clase": "%s",
+  "fecha": "%s",
+  "modelo_del_juez": "%s",
+  "version_de_claude_code": "%s",
+  "rubrica": {
+    "fichero": "rubrica.md",
+    "sha256": "%s"
+  },
+  "casos": {
+    "fichero": "casos.yaml",
+    "sha256": "%s"
+  },
+  "defectos": {
+    "casos": %d,
+    "sin_marcar": %d
+  },
+  "correctos": {
+    "casos": %d,
+    "marcados": %d
+  },
+  "origen": "ejecución de la medida del juez del job de evals sobre %s"
+}
+`
+
+// bytesDelEjemploDeLaMedida son los de la medida del ejemplo de
+// contracts/medida-del-juez.md §7 de H24, con su salto final.
+const bytesDelEjemploDeLaMedida = 656
+
+// Cómo nombra la ejecución de la medida lo que el juez deja de un caso que no
+// da lo que dice su etiqueta, y con qué empieza el motivo del que queda sin
+// juzgar.
+const (
+	quedaMarcado   = "marcado"
+	quedaSinMarcar = "sin marcar"
+	quedaSinJuzgar = "sin juzgar: "
+)
+
+// instanteDeLaMedicion es cuándo lanza la medida TestEjecucionDeLaMedida: el
+// último segundo del día de fechaDeLaMedidaDada.
+func instanteDeLaMedicion() time.Time {
+	return time.Date(2026, time.October, 6, 23, 59, 59, 0, time.UTC)
+}
+
+// TestEjecucionDeLaMedida es el control de umbral de FR-106 y SC-006 de H24
+// (contracts/medida-del-juez.md §7 y §8; research D18 de H24; FR-050 a FR-054),
+// sobre el texto que medirAlJuez devuelve, que es el que su punto de entrada
+// escribe y su guion imprime. Vota un votante que responde según la etiqueta de
+// cada caso —sí tres veces, cada una con una frase de su respuesta, al que es un
+// defecto, y no al correcto— y cuenta sus llamadas, sin leer los votos de la
+// evidencia: cuando una persona versione otra medida, pueden no estar.
+//
+//   - Los 259 casos bien, sobre una copia de la carpeta del juez con la rúbrica
+//     cambiada, de modo que la medida versionada no corresponde: vota los 259,
+//     pide 683 votos y da la medida con las huellas de la copia, el modelo y la
+//     versión recibidos, y 0 de 212 y 0 de 47. Y lo mismo sin la medida
+//     versionada, que no lee para nada, y con las clases del juez en otro orden.
+//   - Un defecto sin marcar, y un correcto marcado: la medida, con su recuento,
+//     y un error con el caso y sus frases.
+//   - Un voto que no llega: un error con el caso y su motivo, y ninguna medida.
+//   - Un voto nulo, que se repite: de él cuenta su repetición, y la frase que
+//     no está en la respuesta no es una de las del caso.
+//   - Un modelo que no es texto: un error tras los 683 votos, y ninguna medida.
+//   - Lo que impide votar —sin juez, sin votante, sin ningún caso a la vez, con
+//     unos casos que no se leen, que son de otra clase o que no se resuelven—:
+//     un error, ningún voto y ninguna medida.
+//
+// Ningún caso depende de que la medida versionada corresponda. No es paralelo,
+// ni lo son sus casos: cada uno pone como directorio temporal del proceso uno
+// suyo (t.Setenv), que al terminar sigue vacío. medirAlJuez no recibe a quien
+// abre las sesiones de evals ni un directorio de sesiones, y no deja ninguna,
+// ni nada más, en el temporal.
+func TestEjecucionDeLaMedida(t *testing.T) {
+	for _, caso := range casosDeLaEjecucionDeLaMedida() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			temporal := t.TempDir()
+			t.Setenv("TMPDIR", temporal)
+
+			caso.probar(t)
+
+			entradas, err := os.ReadDir(temporal)
+			require.NoError(t, err)
+			assert.Empty(t, entradas, "la ejecución de la medida no deja nada en el directorio temporal: ninguna sesión de evals")
+		})
+	}
+}
+
+// casoDeLaEjecucion es un caso de TestEjecucionDeLaMedida.
+type casoDeLaEjecucion struct {
+	nombre string
+	probar func(t *testing.T)
+}
+
+// casosDeLaEjecucionDeLaMedida son los de TestEjecucionDeLaMedida, todos en su
+// primer nivel: las ejecuciones con los 259 casos bien, las que tienen algún
+// caso al que el votante responde otra cosa que lo de su etiqueta y las que no
+// llegan a votar.
+func casosDeLaEjecucionDeLaMedida() []casoDeLaEjecucion {
+	casos := []casoDeLaEjecucion{
+		{nombre: "los-259-bien-con-una-medida-que-no-corresponde", probar: probarLos259Bien},
+		{nombre: "los-259-bien-sin-la-medida-versionada", probar: probarLos259SinLaMedidaVersionada},
+		{nombre: "los-259-bien-con-las-clases-en-otro-orden", probar: probarLos259ConLasClasesEnOtroOrden},
+		{nombre: "los-259-bien-con-un-modelo-que-no-es-texto", probar: probarLaMedidaQueNoSePuedeEscribir},
+	}
+
+	for _, conCambios := range ejecucionesConCasosCambiados() {
+		casos = append(casos, casoDeLaEjecucion{nombre: conCambios.nombre, probar: conCambios.probar})
+	}
+
+	for _, sinVotar := range medicionesQueNoVotan() {
+		casos = append(casos, casoDeLaEjecucion{nombre: sinVotar.nombre, probar: sinVotar.probar})
+	}
+
+	return casos
+}
+
+// probarLos259Bien ejecuta la medida de la copia cuya medida versionada no
+// corresponde con el votante que responde a cada caso según su etiqueta, y
+// exige la medida de lo que hay, con 0 de 212 y 0 de 47, sin error y con 683
+// votos, como mucho cuatro casos a la vez. Y que esa medida sea la que una
+// persona puede versionar: puesta en el lugar de la versionada, corresponde y
+// se cumple.
+func probarLos259Bien(t *testing.T) {
+	t.Helper()
+
+	ejemplo := fmt.Sprintf(formaDeLaMedidaDada, "boe-legislacion", "afirma_lo_no_leido", "2026-10-06", "claude-opus-5-5",
+		"2.1.289", "5f1e2115b107d942ccdb4dd9b55f8f9606b1b56b52a2cc3e5a8fdef9692d06ee",
+		"4827894aefc4133f99d0af93672585f70c9d3f2b8803af36eb2cec4f1811401a", 212, 0, 47, 0,
+		"0123456789abcdef0123456789abcdef01234567")
+	require.Len(t, ejemplo, bytesDelEjemploDeLaMedida, "premisa: la forma es la del ejemplo del contrato")
+
+	copia := nuevaCopiaAMedir(t)
+	votante := nuevoVotanteDeLaMedida(t, copia.casos, nil)
+
+	texto, err := copia.medir(votante, concurrenciaDeLaMedicion)
+
+	require.NoError(t, err)
+	assert.Equal(t, copia.medidaDada(t, 0, 0), texto)
+	votante.exigirLosVotos(t, votosDeLaCopia, concurrenciaDeLaMedicion)
+
+	require.NoError(t, os.WriteFile(copia.juez.Medida, []byte(texto), 0o600))
+	assert.Empty(t, comprobarLaMedida(copia.juez, copia.modelo, copia.version),
+		"la medida dada, puesta en el lugar de la versionada, corresponde a lo que hay y se cumple")
+}
+
+// probarLos259SinLaMedidaVersionada quita de la copia, con el juez ya leído de
+// ella, la medida versionada, y exige lo mismo que con ella: la ejecución de la
+// medida no la lee para decidir nada (FR-043, FR-051).
+func probarLos259SinLaMedidaVersionada(t *testing.T) {
+	t.Helper()
+
+	copia := nuevaCopiaAMedir(t)
+	require.NoError(t, os.Remove(copia.juez.Medida))
+
+	lineas := comprobarLaMedida(copia.juez, copia.modelo, copia.version)
+	require.Len(t, lineas, 1, "premisa: la medida versionada de la copia no se puede leer")
+	require.True(t, strings.HasPrefix(lineas[0], medidaSinCorresponder), lineas[0])
+
+	votante := nuevoVotanteDeLaMedida(t, copia.casos, nil)
+
+	texto, err := copia.medir(votante, concurrenciaDeLaMedicion)
+
+	require.NoError(t, err)
+	assert.Equal(t, copia.medidaDada(t, 0, 0), texto)
+	votante.exigirLosVotos(t, votosDeLaCopia, concurrenciaDeLaMedicion)
+}
+
+// probarLos259ConLasClasesEnOtroOrden ejecuta la medida de la copia con las
+// clases del juez en el orden contrario al de su declaración, la que solo se
+// publica delante, y exige lo mismo: lo que el juez deja de cada caso se lee de
+// la clase de los casos, esté donde esté entre las del juez.
+func probarLos259ConLasClasesEnOtroOrden(t *testing.T) {
+	t.Helper()
+
+	copia := nuevaCopiaAMedir(t)
+
+	slices.Reverse(copia.juez.Clases)
+	require.NotEqual(t, claseQueDecideEnElRepositorio, copia.juez.Clases[0].Nombre,
+		"premisa: la clase de los casos no es la primera del juez")
+
+	votante := nuevoVotanteDeLaMedida(t, copia.casos, nil)
+
+	texto, err := copia.medir(votante, concurrenciaDeLaMedicion)
+
+	require.NoError(t, err)
+	assert.Equal(t, copia.medidaDada(t, 0, 0), texto)
+	votante.exigirLosVotos(t, votosDeLaCopia, concurrenciaDeLaMedicion)
+}
+
+// probarLaMedidaQueNoSePuedeEscribir ejecuta la medida de la copia con un
+// modelo del juez que no es texto en UTF-8, y exige que, con sus 683 votos
+// dados, la ejecución termine con un error y sin ninguna medida: la que no se
+// puede escribir tal cual no se da.
+func probarLaMedidaQueNoSePuedeEscribir(t *testing.T) {
+	t.Helper()
+
+	copia := nuevaCopiaAMedir(t)
+	copia.modelo = "claude-juez-\xff"
+
+	votante := nuevoVotanteDeLaMedida(t, copia.casos, nil)
+
+	texto, err := copia.medir(votante, concurrenciaDeLaMedicion)
+
+	require.ErrorContains(t, err, "la medida no se puede escribir: ")
+	assert.Empty(t, texto)
+	votante.exigirLosVotos(t, votosDeLaCopia, concurrenciaDeLaMedicion)
+}
+
+// copiaAMedir es la copia de la carpeta del juez del repositorio sobre la que
+// TestEjecucionDeLaMedida ejecuta la medida: con la rúbrica y los casos
+// cambiados y con otro modelo y otra versión, de modo que su medida
+// versionada, que es la del repositorio, no corresponde en ninguna de sus
+// cuatro claves.
+type copiaAMedir struct {
+	// carpeta es la del juez de la copia.
+	carpeta string
+
+	// juez es el leído de ella, con sus cambios.
+	juez *Juez
+
+	// modelo y version son los que se dan a la ejecución de la medida.
+	modelo  string
+	version string
+
+	// casos son los de la copia, en su orden, resueltos por el test.
+	casos []CasoEtiquetado
+}
+
+// nuevaCopiaAMedir copia la carpeta del juez, le añade una línea a su rúbrica y
+// un comentario a sus casos, que siguen siendo los 259, lee el juez de ella y
+// resuelve sus casos con el reconstructor del repositorio. Exige como premisa
+// que la comprobación de la medida versionada dé sus cuatro líneas: con una
+// medida que correspondiera, el test no distinguiría la ejecución que vota de
+// la que termina sin votar (FR-106).
+func nuevaCopiaAMedir(t *testing.T) copiaAMedir {
+	t.Helper()
+
+	evals := copiarLaCarpetaDelJuez(t)
+	carpeta := filepath.Join(evals, carpetaDelJuez)
+
+	anadirA(ficheroDeRubricaDelJuez, "\nUna línea más, que la medida versionada no midió.\n")(t, carpeta)
+	anadirA(ficheroDeCasosDelJuez, "# Un comentario más, que no cambia ningún caso.\n")(t, carpeta)
+
+	juez := juezDe(t, evals)
+
+	versionada, err := leerMedidaDelJuez(juez.Medida)
+	require.NoError(t, err)
+
+	copia := copiaAMedir{
+		carpeta: carpeta,
+		juez:    juez,
+		modelo:  otroFijado(versionada.ModeloDelJuez),
+		version: otroFijado(versionada.VersionDeClaudeCode),
+	}
+
+	require.Equal(t, []string{
+		lineaDeLaRubrica,
+		lineaDeLosCasos,
+		lineaDelModelo(versionada.ModeloDelJuez, copia.modelo),
+		lineaDeLaVersion(versionada.VersionDeClaudeCode, copia.version),
+	}, comprobarLaMedida(juez, copia.modelo, copia.version),
+		"premisa: la medida versionada de la copia no corresponde en ninguna de sus cuatro claves")
+
+	leidos, err := leerCasosEtiquetados(juez.Casos)
+	require.NoError(t, err)
+	exigirLosRecuentosDeLaCopia(t, leidos)
+
+	copia.casos, err = reconstructorDelRepositorio().resolver(leidos.Casos)
+	require.NoError(t, err)
+
+	return copia
+}
+
+// anadirA da el cambio que añade ese texto al final del fichero de ese nombre
+// de la copia de la carpeta del juez.
+func anadirA(fichero, texto string) cambioDeLaCarpetaDelJuez {
+	return func(t *testing.T, carpeta string) {
+		t.Helper()
+
+		ruta := filepath.Join(carpeta, fichero)
+		contenido := append(contenidoDelFichero(t, ruta), texto...)
+		require.NoError(t, os.WriteFile(ruta, contenido, 0o600))
+	}
+}
+
+// medicionDe es la medición de TestEjecucionDeLaMedida de ese juez con ese
+// votante: lo demás es lo de quien lanza la medida, con un modelo y una versión
+// que no son los de ninguna medida versionada.
+func medicionDe(juez *Juez, votar Votante) MedicionDelJuez {
+	return MedicionDelJuez{
+		Skill:          skillDeLaMedicion,
+		Juez:           juez,
+		Votar:          votar,
+		ModeloDelJuez:  "claude-juez-1-2",
+		VersionDelJuez: "1.2.3",
+		Concurrencia:   concurrenciaDeLaMedicion,
+		Commit:         commitDeLaMedicion,
+		Fecha:          instanteDeLaMedicion(),
+	}
+}
+
+// medir ejecuta la medida del juez de la copia con ese votante, con el modelo y
+// la versión de la copia y con tantos casos a la vez, sobre el reconstructor
+// del repositorio, que ya recuerda sus casos.
+func (c copiaAMedir) medir(votante *votanteDeLaMedida, aLaVez int) (string, error) {
+	medicion := medicionDe(c.juez, votante.votar)
+	medicion.ModeloDelJuez, medicion.VersionDelJuez, medicion.Concurrencia = c.modelo, c.version, aLaVez
+
+	return medirAlJuez(reconstructorDelRepositorio(), medicion)
+}
+
+// medidaDada es el texto de la medida que la ejecución tiene que dar de la
+// copia con esos dos recuentos: la forma del contrato con lo que hay, que son
+// las huellas de la rúbrica y de los casos de la copia, calculadas aparte, y el
+// modelo y la versión dados, y con lo de quien la lanza.
+func (c copiaAMedir) medidaDada(t *testing.T, sinMarcar, marcados int) string {
+	t.Helper()
+
+	return fmt.Sprintf(formaDeLaMedidaDada, skillDeLaMedicion, claseQueDecideEnElRepositorio, fechaDeLaMedidaDada,
+		c.modelo, c.version,
+		huellaLeidaAparte(t, filepath.Join(c.carpeta, ficheroDeRubricaDelJuez)),
+		huellaLeidaAparte(t, filepath.Join(c.carpeta, ficheroDeCasosDelJuez)),
+		defectosDeLaCopia, sinMarcar, correctosDeLaCopia, marcados, commitDeLaMedicion)
+}
+
+// huellaLeidaAparte es la huella SHA-256 del fichero de esa ruta, en
+// hexadecimal, calculada sin la del paquete.
+func huellaLeidaAparte(t *testing.T, ruta string) string {
+	t.Helper()
+
+	suma := sha256.Sum256(contenidoDelFichero(t, ruta))
+
+	return hex.EncodeToString(suma[:])
+}
+
+// votoDeLaMedida es lo que el votante de TestEjecucionDeLaMedida hace con un
+// voto de un caso.
+type votoDeLaMedida int
+
+const (
+	// diceQueNo es el voto que dice no en la clase de los casos.
+	diceQueNo votoDeLaMedida = iota + 1
+
+	// diceQueSi es el que dice sí, con una frase de la respuesta del caso.
+	diceQueSi
+
+	// citaLoQueNoEsta es el que dice sí con una frase que no está en la respuesta
+	// del caso: un voto nulo, que se repite una vez y cuyo sí no cuenta.
+	citaLoQueNoEsta
+
+	// nuloPorLaOtraClase es el que dice sí en la clase de los casos, con la
+	// primera frase de la respuesta, y también en la que solo se publica, con una
+	// que no está: un voto nulo, que se repite una vez, y del que cuenta su
+	// repetición aunque su frase de la clase de los casos sí esté.
+	nuloPorLaOtraClase
+
+	// noLlega es el que agota su tope y no llega a darse.
+	noLlega
+)
+
+// fraseDeNingunCaso es la frase que cita el voto nulo del votante de la medida:
+// no está en la respuesta de ningún caso.
+const fraseDeNingunCaso = "Esta frase no la dice la respuesta de ningún caso etiquetado."
+
+// votosDeLaEtiqueta son los votos con los que el votante responde a un caso
+// según su etiqueta, que son los que dejan al juez bien medido: tres síes al
+// defecto, que queda marcado, y un no al correcto, que no.
+func votosDeLaEtiqueta(etiqueta string) []votoDeLaMedida {
+	if etiqueta == etiquetaDefecto {
+		return []votoDeLaMedida{diceQueSi, diceQueSi, diceQueSi}
+	}
+
+	return []votoDeLaMedida{diceQueNo}
+}
+
+// frasesDeLaRespuesta son las frases de una respuesta que citan los votos que
+// dicen sí de ella: sus líneas con alguna letra, sin los blancos de sus
+// extremos. El enésimo voto que dice sí con su frase en la respuesta cita la
+// enésima, y vuelve a la primera si no hay tantas.
+func frasesDeLaRespuesta(respuesta string) []string {
+	var frases []string
+
+	for linea := range strings.Lines(respuesta) {
+		if strings.ContainsFunc(linea, unicode.IsLetter) {
+			frases = append(frases, strings.TrimSpace(linea))
+		}
+	}
+
+	return frases
+}
+
+// nombreDelCaso nombra un caso como lo hace la ejecución de la medida: su
+// informe y su sesión y, en un derivado, el bloque que se quita.
+func nombreDelCaso(caso CasoEtiquetado) string {
+	nombre := caso.Informe + " " + caso.Sesion
+	if caso.Quitado != nil {
+		nombre += " sin " + caso.Quitado.Norma + " " + caso.Quitado.Bloque
+	}
+
+	return nombre
+}
+
+// lineaDelCasoMedido es la línea con la que la ejecución de la medida nombra un
+// caso que no da lo que dice su etiqueta (contracts/medida-del-juez.md §7 de
+// H24): «<informe> <sesión> [sin <norma> <bloque>]: etiquetado <etiqueta> y
+// <marcado | sin marcar>» y, si alguno de sus votos dijo sí, «: «<frase>» ·
+// …», con la frase de cada uno.
+func lineaDelCasoMedido(caso CasoEtiquetado, queda string, frases ...string) string {
+	linea := nombreDelCaso(caso) + ": etiquetado " + caso.Etiqueta + " y " + queda
+	if len(frases) == 0 {
+		return linea
+	}
+
+	citadas := make([]string, 0, len(frases))
+	for _, frase := range frases {
+		citadas = append(citadas, "«"+frase+"»")
+	}
+
+	return linea + ": " + strings.Join(citadas, " · ")
+}
+
+// votosDeUnCaso son los votos que el votante de la medida da de un caso.
+type votosDeUnCaso struct {
+	// nombre es el del caso.
+	nombre string
+
+	// votos son las grabaciones de sus votos, en su orden.
+	votos []grabacion
+
+	// pedidos son los que ya se le han pedido.
+	pedidos int
+}
+
+// votanteDeLaMedida es el votante de TestEjecucionDeLaMedida. Reconoce cada
+// caso por el mensaje de sus votos, que es el de su pregunta, su respuesta y
+// sus textos reconstruidos, y le responde con sus votos, por orden: los de su
+// etiqueta o, si el test los cambia, otros. Cuenta los votos que se le piden,
+// los de cada caso y cuántos tiene en curso a la vez. Un voto con otro mensaje,
+// o uno de más de un caso, hace fallar el test y no llega a darse. medirAlJuez
+// lo llama desde varias gorrutinas.
+type votanteDeLaMedida struct {
+	t *testing.T
+
+	// casos son los votos de cada caso, por el mensaje con el que se piden. El
+	// mapa no cambia; lo que cambia de cada caso lo protege mutex.
+	casos map[string]*votosDeUnCaso
+
+	// mutex protege lo que sigue y los pedidos de cada caso.
+	mutex sync.Mutex
+
+	pedidos      int
+	aLaVez       int
+	maximoALaVez int
+}
+
+// nuevoVotanteDeLaMedida da el votante de esos casos resueltos: a cada uno le
+// responde según su etiqueta, y a los de las posiciones de otros, con esos
+// votos. Exige como premisa que no haya dos casos con el mismo mensaje, que no
+// podría distinguir, y que la respuesta de cada uno tenga alguna frase que
+// citar.
+func nuevoVotanteDeLaMedida(t *testing.T, casos []CasoEtiquetado, otros map[int][]votoDeLaMedida) *votanteDeLaMedida {
+	t.Helper()
+
+	votante := &votanteDeLaMedida{t: t, casos: make(map[string]*votosDeUnCaso, len(casos))}
+
+	for posicion, caso := range casos {
+		votos, cambiados := otros[posicion]
+		if !cambiados {
+			votos = votosDeLaEtiqueta(caso.Etiqueta)
+		}
+
+		mensaje := mensajeDelVoto(caso.Pregunta, caso.Respuesta, caso.Textos)
+		require.NotContains(t, votante.casos, mensaje, "premisa: el mensaje de %s no es el de otro caso", nombreDelCaso(caso))
+
+		votante.casos[mensaje] = &votosDeUnCaso{nombre: nombreDelCaso(caso), votos: grabacionesDelCaso(t, caso, votos)}
+	}
+
+	return votante
+}
+
+// grabacionesDelCaso son las grabaciones de esos votos de un caso: la del que
+// dice sí cita la frase de su respuesta que le toca entre los que la citan; la
+// del nulo, una que no está en ella; la del que dice no, ninguna; y la del que
+// no llega es el error del tope. Ninguno dice sí de la clase que solo se
+// publica.
+func grabacionesDelCaso(t *testing.T, caso CasoEtiquetado, votos []votoDeLaMedida) []grabacion {
+	t.Helper()
+
+	frases := frasesDeLaRespuesta(caso.Respuesta)
+	require.NotEmpty(t, frases, "premisa: la respuesta de %s tiene alguna frase que citar", nombreDelCaso(caso))
+
+	grabaciones := make([]grabacion, 0, len(votos))
+	citadas := 0
+
+	for _, voto := range votos {
+		switch voto {
+		case diceQueSi:
+			grabaciones = append(grabaciones, votoDeLasDosClases(t, afirmaQueSi(frases[citadas%len(frases)]), cuentaQueNo()))
+			citadas++
+		case citaLoQueNoEsta:
+			require.NotContains(t, caso.Respuesta, fraseDeNingunCaso, "premisa: %s no dice la frase del voto nulo", nombreDelCaso(caso))
+
+			grabaciones = append(grabaciones, votoDeLasDosClases(t, afirmaQueSi(fraseDeNingunCaso), cuentaQueNo()))
+		case nuloPorLaOtraClase:
+			require.NotContains(t, caso.Respuesta, fraseDeNingunCaso, "premisa: %s no dice la frase del voto nulo", nombreDelCaso(caso))
+
+			grabaciones = append(grabaciones, votoDeLasDosClases(t, afirmaQueSi(frases[0]), cuentaQueSi(fraseDeNingunCaso)))
+		case diceQueNo:
+			grabaciones = append(grabaciones, votoDeLasDosClases(t, afirmaQueNo(), cuentaQueNo()))
+		case noLlega:
+			grabaciones = append(grabaciones, grabacion{err: errTopeDelVoto})
+		}
+	}
+
+	return grabaciones
+}
+
+func (v *votanteDeLaMedida) votar(mensaje string) ([]byte, error) {
+	v.mutex.Lock()
+
+	v.pedidos++
+	v.aLaVez++
+	v.maximoALaVez = max(v.maximoALaVez, v.aLaVez)
+
+	caso, suyo := v.casos[mensaje]
+	numero := 0
+
+	if suyo {
+		caso.pedidos++
+		numero = caso.pedidos
+	}
+
+	v.mutex.Unlock()
+
+	// Cede el paso con el voto en curso, para que los que se piden a la vez
+	// coincidan y se cuenten juntos.
+	runtime.Gosched()
+
+	v.mutex.Lock()
+	v.aLaVez--
+	v.mutex.Unlock()
+
+	switch {
+	case !suyo:
+		v.t.Errorf("se pide un voto con un mensaje de %d bytes que no es el de ningún caso resuelto", len(mensaje))
+
+		return nil, errors.New("voto de ningún caso")
+	case numero > len(caso.votos):
+		v.t.Errorf("de %s se pide el voto %d y solo tiene %d", caso.nombre, numero, len(caso.votos))
+
+		return nil, errors.New("voto de más")
+	}
+
+	return []byte(caso.votos[numero-1].salida), caso.votos[numero-1].err
+}
+
+// exigirLosVotos exige que al votante se le hayan pedido esos votos en total,
+// de cada caso exactamente los suyos —tres del defecto que se marca y uno del
+// correcto que no, si el test no los cambia— y nunca más de tantos a la vez,
+// que es uno por caso que se vota.
+func (v *votanteDeLaMedida) exigirLosVotos(t *testing.T, votos, aLaVez int) {
+	t.Helper()
+
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
+	assert.Equal(t, votos, v.pedidos, "los votos pedidos")
+	assert.Positive(t, v.maximoALaVez)
+	assert.LessOrEqual(t, v.maximoALaVez, aLaVez, "los votos en curso a la vez, uno por caso que se vota")
+
+	var conOtrosVotos []string
+
+	for _, caso := range v.casos {
+		if caso.pedidos != len(caso.votos) {
+			conOtrosVotos = append(conOtrosVotos, fmt.Sprintf("%s: %d de %d", caso.nombre, caso.pedidos, len(caso.votos)))
+		}
+	}
+
+	slices.Sort(conOtrosVotos)
+	assert.Empty(t, conOtrosVotos, "los casos a los que no se les piden sus votos, ni uno más ni uno menos")
+}
+
+// casoCambiado es un caso de la copia al que el votante de una ejecución de
+// TestEjecucionDeLaMedida responde otra cosa que lo de su etiqueta.
+type casoCambiado struct {
+	// que dice qué caso es, para la premisa de que lo hay.
+	que string
+
+	// es dice si un caso es el que se busca, con las frases que sus votos pueden
+	// citar: se cambia el primero que lo es.
+	es func(caso CasoEtiquetado, frases []string) bool
+
+	// votos son los que el votante da de él.
+	votos []votoDeLaMedida
+
+	// linea da la línea con la que el error de la ejecución lo nombra, con esas
+	// frases; nil si no lo nombra.
+	linea func(caso CasoEtiquetado, frases []string) string
+}
+
+// ejecucionConCasosCambiados es un caso de TestEjecucionDeLaMedida en el que el
+// votante responde a algún caso otra cosa que lo de su etiqueta.
+type ejecucionConCasosCambiados struct {
+	nombre string
+
+	// cambiados son esos casos.
+	cambiados []casoCambiado
+
+	// aLaVez son los casos que se votan a la vez, y votos, los que se piden.
+	aLaVez int
+	votos  int
+
+	// sinMarcar y marcados son los recuentos de la medida que da; con
+	// sinMedida, no da ninguna.
+	sinMarcar int
+	marcados  int
+	sinMedida bool
+}
+
+// Los casos que cambian las ejecuciones de TestEjecucionDeLaMedida: un defecto
+// derivado y un correcto con frases bastantes para que cada voto que dice sí
+// cite una distinta, y un defecto que no es un derivado.
+
+func esUnDefectoDerivado(caso CasoEtiquetado, frases []string) bool {
+	return caso.Etiqueta == etiquetaDefecto && caso.Quitado != nil && len(frases) >= votosParaMarcar
+}
+
+func esUnDefectoSinDerivar(caso CasoEtiquetado, _ []string) bool {
+	return caso.Etiqueta == etiquetaDefecto && caso.Quitado == nil
+}
+
+func esUnCorrecto(caso CasoEtiquetado, frases []string) bool {
+	return caso.Etiqueta == etiquetaCorrecto && len(frases) >= votosParaMarcar
+}
+
+// ejecucionesConCasosCambiados son las de TestEjecucionDeLaMedida (FR-052,
+// FR-053, FR-106; SC-006):
+//
+//   - un defecto sin marcar, con los votos sí, sí y no: la medida con 1 de 212
+//     y un error con el caso, que es un derivado, y sus dos frases; de uno en
+//     uno, con los mismos 683 votos;
+//   - un correcto marcado, con tres síes: la medida con 1 de 47 y un error con
+//     el caso y sus tres frases; dos votos más;
+//   - los dos a la vez, con otro defecto que no tiene ningún sí: una línea por
+//     caso, en el orden de los casos, y la de ese sin ninguna frase;
+//   - un correcto marcado tras un voto nulo por la clase que solo se publica,
+//     que se repite: sus tres frases son las de los votos que cuentan, sin la
+//     del nulo, que también está en la respuesta; tres votos más;
+//   - un defecto sin marcar por un voto nulo que vuelve a serlo: su sí no
+//     cuenta, y su única frase es la del voto que dijo sí con ella;
+//   - y un voto que no llega, con un correcto marcado en otra parte: un error
+//     con el caso sin juzgar y su motivo, y ninguna medida.
+func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
+	sinMarcarConDosFrases := casoCambiado{
+		que: "un defecto derivado con tres frases", es: esUnDefectoDerivado,
+		votos: []votoDeLaMedida{diceQueSi, diceQueSi, diceQueNo},
+		linea: func(caso CasoEtiquetado, frases []string) string {
+			return lineaDelCasoMedido(caso, quedaSinMarcar, frases[0], frases[1])
+		},
+	}
+	marcado := casoCambiado{
+		que: "un correcto con tres frases", es: esUnCorrecto,
+		votos: []votoDeLaMedida{diceQueSi, diceQueSi, diceQueSi},
+		linea: func(caso CasoEtiquetado, frases []string) string {
+			return lineaDelCasoMedido(caso, quedaMarcado, frases[0], frases[1], frases[2])
+		},
+	}
+	sinNingunSi := casoCambiado{
+		que: "un defecto que no es un derivado", es: esUnDefectoSinDerivar,
+		votos: []votoDeLaMedida{diceQueNo},
+		linea: func(caso CasoEtiquetado, _ []string) string { return lineaDelCasoMedido(caso, quedaSinMarcar) },
+	}
+	sinJuzgar := casoCambiado{
+		que: "un defecto que no es un derivado", es: esUnDefectoSinDerivar,
+		votos: []votoDeLaMedida{diceQueSi, noLlega},
+		linea: func(caso CasoEtiquetado, _ []string) string {
+			return nombreDelCaso(caso) + ": " + quedaSinJuzgar + motivoDelTopeDelVotoDos
+		},
+	}
+	marcadoSinNombrar := marcado
+	marcadoSinNombrar.linea = nil
+
+	marcadoTrasUnNulo := marcado
+	marcadoTrasUnNulo.votos = []votoDeLaMedida{nuloPorLaOtraClase, diceQueSi, diceQueSi, diceQueSi}
+
+	sinMarcarPorUnNulo := casoCambiado{
+		que: "un defecto derivado con tres frases", es: esUnDefectoDerivado,
+		votos: []votoDeLaMedida{diceQueSi, citaLoQueNoEsta, citaLoQueNoEsta},
+		linea: func(caso CasoEtiquetado, frases []string) string {
+			return lineaDelCasoMedido(caso, quedaSinMarcar, frases[0])
+		},
+	}
+
+	return []ejecucionConCasosCambiados{
+		{
+			nombre:    "un-defecto-sin-marcar",
+			cambiados: []casoCambiado{sinMarcarConDosFrases},
+			aLaVez:    1, votos: votosDeLaCopia,
+			sinMarcar: 1,
+		},
+		{
+			nombre:    "un-correcto-marcado",
+			cambiados: []casoCambiado{marcado},
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2,
+			marcados: 1,
+		},
+		{
+			nombre:    "varios-casos-sin-lo-que-dice-su-etiqueta",
+			cambiados: []casoCambiado{marcado, sinNingunSi, sinMarcarConDosFrases},
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2 - 2,
+			sinMarcar: 2, marcados: 1,
+		},
+		{
+			nombre:    "un-correcto-marcado-tras-un-voto-nulo",
+			cambiados: []casoCambiado{marcadoTrasUnNulo},
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 3,
+			marcados: 1,
+		},
+		{
+			nombre:    "un-defecto-sin-marcar-por-un-voto-nulo",
+			cambiados: []casoCambiado{sinMarcarPorUnNulo},
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia,
+			sinMarcar: 1,
+		},
+		{
+			nombre:    "un-voto-que-no-llega",
+			cambiados: []casoCambiado{marcadoSinNombrar, sinJuzgar},
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2 - 1,
+			sinMedida: true,
+		},
+	}
+}
+
+// probar ejecuta la medida de la copia con el votante que responde a los casos
+// cambiados con sus votos, y exige el error con las líneas de los que nombra,
+// una por caso y en el orden de los casos; la medida con sus dos recuentos, o
+// ninguna; y los votos pedidos.
+func (e ejecucionConCasosCambiados) probar(t *testing.T) {
+	t.Helper()
+
+	copia := nuevaCopiaAMedir(t)
+
+	otros := make(map[int][]votoDeLaMedida, len(e.cambiados))
+	lineas := make(map[int]string, len(e.cambiados))
+
+	for _, cambiado := range e.cambiados {
+		posicion := slices.IndexFunc(copia.casos, func(caso CasoEtiquetado) bool {
+			return cambiado.es(caso, frasesDeLaRespuesta(caso.Respuesta))
+		})
+		require.GreaterOrEqual(t, posicion, 0, "premisa: entre los casos de la copia hay %s", cambiado.que)
+		require.NotContains(t, otros, posicion, "premisa: cada caso cambiado es uno distinto")
+
+		otros[posicion] = cambiado.votos
+
+		if cambiado.linea != nil {
+			lineas[posicion] = cambiado.linea(copia.casos[posicion], frasesDeLaRespuesta(copia.casos[posicion].Respuesta))
+		}
+	}
+
+	enSuOrden := make([]string, 0, len(lineas))
+	for _, posicion := range slices.Sorted(maps.Keys(lineas)) {
+		enSuOrden = append(enSuOrden, lineas[posicion])
+	}
+
+	votante := nuevoVotanteDeLaMedida(t, copia.casos, otros)
+
+	texto, err := copia.medir(votante, e.aLaVez)
+
+	require.EqualError(t, err, strings.Join(enSuOrden, "\n"))
+	votante.exigirLosVotos(t, e.votos, e.aLaVez)
+
+	if e.sinMedida {
+		assert.Empty(t, texto, "con un caso sin juzgar no hay medida")
+
+		return
+	}
+
+	assert.Equal(t, copia.medidaDada(t, e.sinMarcar, e.marcados), texto)
+}
+
+// medicionQueNoVota es un caso de TestEjecucionDeLaMedida en el que la ejecución
+// termina con un error antes de pedir ningún voto, y sin dar ninguna medida.
+type medicionQueNoVota struct {
+	nombre string
+
+	// preparar da la medición del caso, con ese votante.
+	preparar func(t *testing.T, votar Votante) MedicionDelJuez
+
+	// dice es lo que su error contiene.
+	dice string
+}
+
+// medicionesQueNoVotan son las de TestEjecucionDeLaMedida: sin juez, sin
+// votante, sin ningún caso que votar a la vez, con un esquema con el que no se
+// puede validar ningún voto y con unos casos que no se pueden votar —los que
+// han dejado de poder leerse, los de una clase que no es del juez, los de una
+// que solo se publica y los que no se pueden resolver—.
+func medicionesQueNoVotan() []medicionQueNoVota {
+	const (
+		casosDeOtraClase      = "los casos son de la clase una_clase, que no es una clase del juez que decide"
+		casosDeLaQueSePublica = "los casos son de la clase " + claseCuentaSuProceso + ", que no es una clase del juez que decide"
+	)
+
+	return []medicionQueNoVota{
+		{
+			nombre: "sin-juez",
+			preparar: func(_ *testing.T, votar Votante) MedicionDelJuez {
+				return medicionDe(nil, votar)
+			},
+			dice: "la skill " + skillDeLaMedicion + " no tiene juez",
+		},
+		{
+			nombre: "sin-votante",
+			preparar: func(t *testing.T, _ Votante) MedicionDelJuez {
+				t.Helper()
+
+				return medicionDe(juezDe(t, copiarLaCarpetaDelJuez(t)), nil)
+			},
+			dice: "el juez de la skill " + skillDeLaMedicion + " no tiene votante",
+		},
+		{
+			nombre: "sin-ningun-caso-a-la-vez",
+			preparar: func(t *testing.T, votar Votante) MedicionDelJuez {
+				t.Helper()
+
+				medicion := medicionDe(juezDe(t, copiarLaCarpetaDelJuez(t)), votar)
+				medicion.Concurrencia = 0
+
+				return medicion
+			},
+			dice: "los casos que se votan a la vez son 0 y tienen que ser al menos 1",
+		},
+		{
+			nombre: "con-un-esquema-que-no-compila",
+			preparar: func(t *testing.T, votar Votante) MedicionDelJuez {
+				t.Helper()
+
+				juez := juezDe(t, copiarLaCarpetaDelJuez(t))
+				juez.Esquema = "{"
+
+				return medicionDe(juez, votar)
+			},
+			dice: "el esquema de la respuesta del juez no sirve para validar sus votos",
+		},
+		{
+			nombre: "sin-los-casos-tras-leer-el-juez",
+			preparar: func(t *testing.T, votar Votante) MedicionDelJuez {
+				t.Helper()
+
+				juez := juezDe(t, copiarLaCarpetaDelJuez(t))
+				require.NoError(t, os.Remove(juez.Casos))
+
+				return medicionDe(juez, votar)
+			},
+			dice: filepath.Join(carpetaDelJuez, ficheroDeCasosDelJuez) + ": no se pueden leer: ",
+		},
+		{
+			nombre:   "casos-de-una-clase-que-no-es-del-juez",
+			preparar: medicionConEstosCasos(casosSinteticos),
+			dice:     casosDeOtraClase,
+		},
+		{
+			nombre:   "casos-de-una-clase-que-solo-se-publica",
+			preparar: medicionConEstosCasos(strings.Replace(casosSinteticos, "una_clase", claseCuentaSuProceso, 1)),
+			dice:     casosDeLaQueSePublica,
+		},
+		{
+			nombre:   "un-caso-que-no-se-resuelve",
+			preparar: medicionConEstosCasos(strings.Replace(casosSinteticos, "una_clase", claseQueDecideEnElRepositorio, 1)),
+			dice:     "el caso informes/uno.json una-sesion-01: el informe informes/uno.json no se puede leer",
+		},
+	}
+}
+
+// medicionConEstosCasos da la medición del juez de una copia de la carpeta del
+// juez cuyos casos son ese contenido.
+func medicionConEstosCasos(casos string) func(t *testing.T, votar Votante) MedicionDelJuez {
+	return func(t *testing.T, votar Votante) MedicionDelJuez {
+		t.Helper()
+
+		evals := copiarLaCarpetaDelJuez(t)
+		escribirEnLaCarpeta(ficheroDeCasosDelJuez, casos)(t, filepath.Join(evals, carpetaDelJuez))
+
+		return medicionDe(juezDe(t, evals), votar)
+	}
+}
+
+// probar ejecuta la medición del caso con un votante que cuenta sus llamadas, y
+// exige su error, ninguna medida y ningún voto.
+func (m medicionQueNoVota) probar(t *testing.T) {
+	t.Helper()
+
+	var pedidos atomic.Int64
+
+	medicion := m.preparar(t, func(string) ([]byte, error) {
+		pedidos.Add(1)
+
+		return nil, errors.New("un voto que no se tenía que pedir")
+	})
+
+	texto, err := medirAlJuez(reconstructorDelRepositorio(), medicion)
+
+	require.ErrorContains(t, err, m.dice)
+	assert.Empty(t, texto, "sin votar no hay medida")
+	assert.Zero(t, pedidos.Load(), "no se pide ningún voto")
 }

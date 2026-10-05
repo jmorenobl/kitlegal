@@ -53,25 +53,25 @@ type MedidaDelJuez struct {
 }
 
 // DefectosDeLaMedida son los casos etiquetados como defecto de una medida del
-// juez.
+// juez. Sus claves JSON son las de defectos en la medida que da medirAlJuez.
 type DefectosDeLaMedida struct {
 	// Casos es cuántos son.
-	Casos int
+	Casos int `json:"casos"`
 
 	// SinMarcar es cuántos de ellos no quedaron marcados: con alguno, la medida
 	// no se cumple.
-	SinMarcar int
+	SinMarcar int `json:"sin_marcar"`
 }
 
 // CorrectosDeLaMedida son los casos etiquetados como correctos de una medida del
-// juez.
+// juez. Sus claves JSON son las de correctos en la medida que da medirAlJuez.
 type CorrectosDeLaMedida struct {
 	// Casos es cuántos son.
-	Casos int
+	Casos int `json:"casos"`
 
 	// Marcados es cuántos de ellos quedaron marcados: con alguno, la medida no
 	// se cumple.
-	Marcados int
+	Marcados int `json:"marcados"`
 }
 
 // clavesDeLaMedida son las claves de medida.json que lee leerMedidaDelJuez; las
@@ -396,24 +396,34 @@ func (c CasoEtiquetado) nombre() string {
 // puede resolver es un error de la reconstrucción. Ningún error lleva delante de
 // qué casos habla: lo pone quien los lee.
 func leerCasosEtiquetados(ruta string) (CasosEtiquetados, error) {
+	leidos, _, err := leerCasosConSuHuella(ruta)
+
+	return leidos, err
+}
+
+// leerCasosConSuHuella lee los casos etiquetados de esa ruta, como
+// leerCasosEtiquetados, y da con ellos la huella SHA-256, en hexadecimal, del
+// contenido del que los ha leído: el fichero se lee una sola vez, así que la
+// huella es la de esos casos y no la de lo que el fichero tenga después.
+func leerCasosConSuHuella(ruta string) (CasosEtiquetados, string, error) {
 	contenido, err := leerFichero(ruta)
 	if err != nil {
-		return CasosEtiquetados{}, fmt.Errorf("no se pueden leer: %w", err)
+		return CasosEtiquetados{}, "", fmt.Errorf("no se pueden leer: %w", err)
 	}
 
 	leidos, err := skills.ValidarDocumentoYAML[CasosEtiquetados](contenido, nil)
 	if err != nil {
-		return CasosEtiquetados{}, err
+		return CasosEtiquetados{}, "", err
 	}
 
 	for posicion, caso := range leidos.Casos {
 		if caso.Etiqueta != etiquetaDefecto && caso.Etiqueta != etiquetaCorrecto {
-			return CasosEtiquetados{}, fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s",
+			return CasosEtiquetados{}, "", fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s",
 				posicion+1, caso.nombre(), caso.Etiqueta, etiquetaDefecto, etiquetaCorrecto)
 		}
 	}
 
-	return leidos, nil
+	return leidos, huellaSHA256(contenido), nil
 }
 
 // vigenciaDeLaBase es lo que sirve la base de una reconstrucción desde que se
@@ -1087,4 +1097,337 @@ func sobreSinElBloque(salida, bloque string) (string, int, error) {
 	}
 
 	return string(escrito) + "\n", fuera, nil
+}
+
+// MedicionDelJuez es lo que medirAlJuez recibe de quien lanza la medida del
+// juez de una skill (contracts/medida-del-juez.md §7 de H24; FR-050 a FR-054).
+// No lleva a quien abre las sesiones de evals ni un directorio de sesiones: la
+// ejecución de la medida no abre ninguna (FR-051).
+type MedicionDelJuez struct {
+	// Skill es la skill cuyo juez se mide: el campo skill de la medida.
+	Skill string
+
+	// Juez es el juez de la skill, el que LeerConjunto lee de su carpeta de
+	// evals: sus clases, su rúbrica, el esquema con el que se valida cada voto y
+	// la ruta de sus casos. Su medida versionada no se lee.
+	Juez *Juez
+
+	// Votar es quien da cada voto. Se le llama desde varias gorrutinas a la vez,
+	// una por caso que se vota.
+	Votar Votante
+
+	// ModeloDelJuez y VersionDelJuez son el id del modelo del juez y la versión
+	// de Claude Code de sus votos: van a la medida tal cual.
+	ModeloDelJuez  string
+	VersionDelJuez string
+
+	// Concurrencia es cuántos casos se votan a la vez como mucho, al menos 1; los
+	// votos de un mismo caso van uno detrás de otro.
+	Concurrencia int
+
+	// Commit es el commit sobre el que se ejecuta la medida: va en su origen.
+	Commit string
+
+	// Fecha es cuándo se ejecuta: la medida lleva su día, el de su huso.
+	Fecha time.Time
+}
+
+// medidaDada es la medida que da medirAlJuez, con sus claves JSON en el orden
+// de contracts/medida-del-juez.md §7 de H24 (FR-052): las diez que
+// leerMedidaDelJuez lee de una medida versionada y, con ellas, la skill, el
+// fichero de cada huella y el origen. No lleva votos: los de una ejecución no
+// se guardan.
+type medidaDada struct {
+	Skill               string              `json:"skill"`
+	Clase               string              `json:"clase"`
+	Fecha               string              `json:"fecha"`
+	ModeloDelJuez       string              `json:"modelo_del_juez"`
+	VersionDeClaudeCode string              `json:"version_de_claude_code"`
+	Rubrica             ficheroMedido       `json:"rubrica"`
+	Casos               ficheroMedido       `json:"casos"`
+	Defectos            DefectosDeLaMedida  `json:"defectos"`
+	Correctos           CorrectosDeLaMedida `json:"correctos"`
+	Origen              string              `json:"origen"`
+}
+
+// ficheroMedido es un fichero de la carpeta del juez con el que se midió: su
+// nombre en ella y la huella SHA-256, en hexadecimal, de lo que se leyó de él.
+type ficheroMedido struct {
+	Fichero string `json:"fichero"`
+	SHA256  string `json:"sha256"`
+}
+
+// Lo que medirAlJuez dice en su medida y en su error
+// (contracts/medida-del-juez.md §7 de H24): el origen de la medida, que sigue
+// con el commit; la línea del caso que no da lo que dice su etiqueta, con su
+// nombre, su etiqueta y cómo queda, y que sigue con sus frases si las tiene; y
+// la del caso sin juzgar, con su nombre y el motivo del voto que no llegó.
+const (
+	origenDeLaMedidaDada = "ejecución de la medida del juez del job de evals sobre %s"
+
+	casoSinLoDeSuEtiqueta = "%s: etiquetado %s y %s"
+	casoMarcado           = "marcado"
+	casoSinMarcar         = "sin marcar"
+
+	casoSinJuzgar = "%s: sin juzgar: %s"
+)
+
+// medirAlJuez ejecuta la medida del juez de una skill
+// (contracts/medida-del-juez.md §7 de H24; FR-050 a FR-054): vota sus casos
+// etiquetados y devuelve el texto de la medida de lo que hay, lista para que
+// una persona la versione.
+//
+//  1. No comprueba la medida versionada ni la lee para decidir nada: vota
+//     corresponda o no a lo que hay (FR-043, FR-051).
+//  2. Lee los casos del juez, que tienen que ser de una clase suya que decide,
+//     y los resuelve con el reconstructor dado —el de la skill
+//     (nuevoReconstructor) en su punto de entrada, y el que comparten los
+//     tests—, sin preparar ni abrir ninguna sesión de evals.
+//  3. Vota cada caso con la regla de los votos (votacion.juzgar), como mucho
+//     Concurrencia casos a la vez: tres votos por cada defecto que se marca y
+//     uno por cada correcto que no.
+//  4. Devuelve la medida (medidaDada) con dos espacios de sangría y su salto
+//     final. Sus cuatro claves son las de lo que hay —las huellas de la rúbrica
+//     del juez y de los casos que ha leído, y el modelo y la versión
+//     recibidos—, no las de la medida versionada (FR-052).
+//  5. Si un defecto no queda marcado o un correcto queda marcado, devuelve
+//     además, con la medida y sus recuentos, un error con una línea por caso,
+//     en el orden de los casos: «<informe> <sesión> [sin <norma> <bloque>]:
+//     etiquetado <etiqueta> y <marcado | sin marcar>» y, si alguno de sus votos
+//     dijo sí con su frase, «: «<frase>» · …» (frasesDeLosSies).
+//  6. Si algún caso queda sin juzgar, porque un voto suyo no llegó a darse,
+//     devuelve solo un error, con una línea por cada uno de esos casos y su
+//     motivo: una medida con casos sin juzgar no es una medida (FR-053).
+//
+// Es un error, sin ningún voto ni ninguna medida, que la medición no tenga
+// juez, votante o al menos un caso a la vez, que el esquema del juez no sirva
+// para validar sus votos, que los casos no se puedan leer o no sean de una
+// clase del juez que decide, o que alguno no se pueda resolver.
+//
+// No escribe en la salida estándar ni en el repositorio (FR-054): el texto lo
+// escribe quien la llama, y lo que la reconstrucción deja en el directorio
+// temporal lo retira antes de volver.
+func medirAlJuez(deLosCasos *reconstructor, medicion MedicionDelJuez) (string, error) {
+	votacion, err := medicion.prepararLaVotacion()
+	if err != nil {
+		return "", err
+	}
+
+	aMedir, err := medicion.leerLosCasos(deLosCasos)
+	if err != nil {
+		return "", err
+	}
+
+	recuento := aMedir.contar(votacion.juzgarTodas(aMedir.aJuzgar(), medicion.Concurrencia))
+	if len(recuento.sinJuzgar) > 0 {
+		return "", errors.New(strings.Join(recuento.sinJuzgar, "\n"))
+	}
+
+	texto, err := medicion.textoDeLaMedida(aMedir, recuento)
+	if err != nil {
+		return "", err
+	}
+
+	if len(recuento.sinLoDeSuEtiqueta) > 0 {
+		return texto, errors.New(strings.Join(recuento.sinLoDeSuEtiqueta, "\n"))
+	}
+
+	return texto, nil
+}
+
+// prepararLaVotacion prepara la votación de los casos con el juez y el votante
+// de la medición. Es un error que no tenga juez o votante, que los casos que se
+// votan a la vez sean menos de uno o que el esquema de la respuesta del juez no
+// sirva para validar sus votos.
+func (m MedicionDelJuez) prepararLaVotacion() (*votacion, error) {
+	switch {
+	case m.Juez == nil:
+		return nil, fmt.Errorf("la skill %s no tiene juez", m.Skill)
+	case m.Votar == nil:
+		return nil, fmt.Errorf("el juez de la skill %s no tiene votante", m.Skill)
+	case m.Concurrencia < 1:
+		return nil, fmt.Errorf("los casos que se votan a la vez son %d y tienen que ser al menos 1", m.Concurrencia)
+	}
+
+	return nuevaVotacion(m.Juez, m.Votar)
+}
+
+// casosAMedir son los casos etiquetados con los que se mide al juez en una
+// ejecución de la medida: leídos, resueltos y con lo que la medida dice de
+// ellos.
+type casosAMedir struct {
+	// clase es la clase de los casos, y deLaClase, su posición entre las del
+	// juez, que es la de su juicio en el de cada caso.
+	clase     string
+	deLaClase int
+
+	// huella es la huella SHA-256 del fichero de los casos, tal como se leyó.
+	huella string
+
+	// resueltos son los casos, en el orden del fichero, cada uno con su
+	// pregunta, su respuesta y sus textos.
+	resueltos []CasoEtiquetado
+}
+
+// leerLosCasos lee los casos etiquetados del juez de la medición y los resuelve
+// con ese reconstructor. Es un error que no se puedan leer, que no sean de una
+// clase del juez que decide —la medida es de una clase que decide (research D19
+// de H24), y con otra no habría qué contar— o que alguno no se pueda resolver.
+func (m MedicionDelJuez) leerLosCasos(deLosCasos *reconstructor) (casosAMedir, error) {
+	leidos, huella, err := leerCasosConSuHuella(m.Juez.Casos)
+	if err != nil {
+		return casosAMedir{}, fmt.Errorf("los casos etiquetados del juez %s: %w", m.Juez.Casos, err)
+	}
+
+	deLaClase := slices.IndexFunc(m.Juez.Clases, func(clase ClaseDelJuez) bool {
+		return clase.Decide && clase.Nombre == leidos.Clase
+	})
+	if deLaClase < 0 {
+		return casosAMedir{}, fmt.Errorf("los casos son de la clase %s, que no es una clase del juez que decide", leidos.Clase)
+	}
+
+	resueltos, err := deLosCasos.resolver(leidos.Casos)
+	if err != nil {
+		return casosAMedir{}, err
+	}
+
+	return casosAMedir{clase: leidos.Clase, deLaClase: deLaClase, huella: huella, resueltos: resueltos}, nil
+}
+
+// aJuzgar es lo que se da al juez de cada caso, en su orden: su pregunta, su
+// respuesta y sus textos, que es lo que lleva el mensaje de cada uno de sus
+// votos.
+func (c casosAMedir) aJuzgar() []respuestaAJuzgar {
+	aJuzgar := make([]respuestaAJuzgar, 0, len(c.resueltos))
+
+	for _, caso := range c.resueltos {
+		aJuzgar = append(aJuzgar, respuestaAJuzgar{pregunta: caso.Pregunta, respuesta: caso.Respuesta, textos: caso.Textos})
+	}
+
+	return aJuzgar
+}
+
+// recuentoDeLaMedida es lo que una ejecución de la medida cuenta de sus casos
+// votados (data-model §4 de H24).
+type recuentoDeLaMedida struct {
+	// defectos y correctos son los casos de cada etiqueta, con los que no dan lo
+	// que dice.
+	defectos  DefectosDeLaMedida
+	correctos CorrectosDeLaMedida
+
+	// sinLoDeSuEtiqueta son las líneas de los defectos que no quedan marcados y
+	// de los correctos que quedan marcados, en el orden de los casos.
+	sinLoDeSuEtiqueta []string
+
+	// sinJuzgar son las líneas de los casos de los que un voto no llegó a darse,
+	// en el orden de los casos: con alguno, no hay medida.
+	sinJuzgar []string
+}
+
+// contar cuenta los casos con sus juicios, que llegan en su mismo orden. Un
+// caso sin juzgar solo da su línea, con el motivo del voto que no llegó; de los
+// demás, cada uno cuenta en su etiqueta con lo que el juez deja de su clase.
+func (c casosAMedir) contar(juicios []JuicioDeRespuesta) recuentoDeLaMedida {
+	var recuento recuentoDeLaMedida
+
+	for posicion, caso := range c.resueltos {
+		juicio := juicios[posicion]
+
+		switch {
+		case juicio.SinJuzgar != "":
+			recuento.sinJuzgar = append(recuento.sinJuzgar, fmt.Sprintf(casoSinJuzgar, caso.nombre(), juicio.SinJuzgar))
+		case caso.Etiqueta == etiquetaDefecto:
+			recuento.contarElDefecto(caso, juicio.Clases[c.deLaClase])
+		default:
+			recuento.contarElCorrecto(caso, juicio.Clases[c.deLaClase])
+		}
+	}
+
+	return recuento
+}
+
+// contarElDefecto cuenta un caso etiquetado como defecto: si su clase no queda
+// marcada, cuenta además en SinMarcar y da su línea.
+func (r *recuentoDeLaMedida) contarElDefecto(caso CasoEtiquetado, deLaClase JuicioDeClase) {
+	r.defectos.Casos++
+
+	if !deLaClase.Marcada {
+		r.defectos.SinMarcar++
+		r.sinLoDeSuEtiqueta = append(r.sinLoDeSuEtiqueta, lineaDelCaso(caso, casoSinMarcar, deLaClase))
+	}
+}
+
+// contarElCorrecto cuenta un caso etiquetado como correcto: si su clase queda
+// marcada, cuenta además en Marcados y da su línea.
+func (r *recuentoDeLaMedida) contarElCorrecto(caso CasoEtiquetado, deLaClase JuicioDeClase) {
+	r.correctos.Casos++
+
+	if deLaClase.Marcada {
+		r.correctos.Marcados++
+		r.sinLoDeSuEtiqueta = append(r.sinLoDeSuEtiqueta, lineaDelCaso(caso, casoMarcado, deLaClase))
+	}
+}
+
+// lineaDelCaso es la línea del error de medirAlJuez de un caso que no da lo que
+// dice su etiqueta: su nombre, su etiqueta, cómo queda y, si las tiene, las
+// frases de los votos de su clase que dicen sí.
+func lineaDelCaso(caso CasoEtiquetado, queda string, deLaClase JuicioDeClase) string {
+	linea := fmt.Sprintf(casoSinLoDeSuEtiqueta, caso.nombre(), caso.Etiqueta, queda)
+
+	frases := frasesDeLosSies(deLaClase)
+	if len(frases) == 0 {
+		return linea
+	}
+
+	return linea + ": " + strings.Join(frases, separadorDeLasFrases)
+}
+
+// frasesDeLosSies son, entre comillas y en su orden, las frases de los votos
+// de la clase que cuentan y dicen sí con su frase en la respuesta: las tres que
+// marcan un caso marcado, y las dos, la una o ninguna del que no llega a
+// estarlo. De un voto nulo y su repetición cuenta la repetición, que va detrás
+// de él con su mismo número (votosDelNumero); y el sí de un voto que cita una
+// frase que no está en la respuesta no cuenta como sí, ni su frase como una de
+// las del caso.
+func frasesDeLosSies(deLaClase JuicioDeClase) []string {
+	frases := make([]string, 0, votosParaMarcar)
+
+	for posicion, voto := range deLaClase.Votos {
+		seRepite := posicion+1 < len(deLaClase.Votos) && deLaClase.Votos[posicion+1].Voto == voto.Voto
+		if !seRepite && voto.diceSi() {
+			frases = append(frases, comillaQueAbre+voto.Frase+comillaQueCierra)
+		}
+	}
+
+	return frases
+}
+
+// textoDeLaMedida es el texto de la medida de esa ejecución
+// (contracts/medida-del-juez.md §7 de H24; FR-052): la skill, la clase de los
+// casos, el día de la fecha, el modelo y la versión recibidos, las huellas de
+// la rúbrica del juez, que es la que va como sus instrucciones, y de los casos
+// leídos, los dos recuentos y el origen, con el commit. Va con dos espacios de
+// sangría y su salto final, como una medida versionada. Es un error que alguno
+// de sus textos no sea UTF-8: una medida que no se puede escribir tal cual no
+// se da.
+func (m MedicionDelJuez) textoDeLaMedida(casos casosAMedir, recuento recuentoDeLaMedida) (string, error) {
+	medida := medidaDada{
+		Skill:               m.Skill,
+		Clase:               casos.clase,
+		Fecha:               m.Fecha.Format(time.DateOnly),
+		ModeloDelJuez:       m.ModeloDelJuez,
+		VersionDeClaudeCode: m.VersionDelJuez,
+		Rubrica:             ficheroMedido{Fichero: ficheroDeRubricaDelJuez, SHA256: huellaSHA256([]byte(m.Juez.Rubrica))},
+		Casos:               ficheroMedido{Fichero: ficheroDeCasosDelJuez, SHA256: casos.huella},
+		Defectos:            recuento.defectos,
+		Correctos:           recuento.correctos,
+		Origen:              fmt.Sprintf(origenDeLaMedidaDada, m.Commit),
+	}
+
+	escrita, err := json.Marshal(medida, jsontext.WithIndent("  "))
+	if err != nil {
+		return "", fmt.Errorf("la medida no se puede escribir: %w", err)
+	}
+
+	return string(escrita) + "\n", nil
 }
