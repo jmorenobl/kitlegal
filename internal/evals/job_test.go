@@ -56,6 +56,18 @@ var (
 	banderaInforme   = flag.String("informe", "", "directorio en el que se escriben informe.md e informe.json")
 )
 
+// Banderas con las que scripts/evals.sh invoca además, tras -args, la ejecución
+// del job de una skill con juez (contracts/job-de-evals.md §2 de H24): el modelo
+// del juez y la versión de Claude Code de sus votos, los fijados en la
+// definición del job, y el claude de esa versión, que no es el de las sesiones.
+// Con una skill sin juez no las pasa ni se miran.
+var (
+	banderaModeloDelJuez  = flag.String("modelo-del-juez", "", "id del modelo del juez de la skill")
+	banderaVersionDelJuez = flag.String("version-del-juez", "", "versión de Claude Code de los votos del juez")
+	banderaClaudeDelJuez  = flag.String("claude-del-juez", "",
+		"ruta absoluta del claude con el que vota el juez: su directorio va delante en el PATH de sus votos")
+)
+
 // Banderas con las que scripts/evals-sondeo.sh invoca, tras -args, el sondeo,
 // además de -skill, -repeticiones y -concurrencia (contracts/sondeo.md §2 y §3
 // de H7.3; data-model §8 de H7.3): las evals y el modelo, tal como los escribe
@@ -87,7 +99,8 @@ var (
 
 // TestEjecucionDelJob es la ejecución del job de evals de una skill, entera y en
 // una sola orden (contracts/ejecucion-del-job.md §1 y §5 de H7.3; research.md
-// D19 de H7.3):
+// D19 de H7.3). Desde H24 reúne lo de sus banderas y lo ejecuta con
+// ejecutarElJob (contracts/job-de-evals.md §2 de H24):
 //
 //  1. lee las evals de la skill de la raíz del repositorio y compone el plan de
 //     sesiones con los modelos, las repeticiones y la prueba de red de sus
@@ -96,32 +109,45 @@ var (
 //     tiene algún fichero mal formado: el guion ya lo ha comprobado antes, y
 //     planificar sobre un conjunto incompleto abriría menos sesiones sin
 //     decirlo;
-//  2. reparte las sesiones del plan con ejecutarSesiones, como mucho
-//     -concurrencia a la vez, bajo strace, con scripts/evals-sesion.sh, el
-//     entorno del job debajo del de cada sesión, las skills instaladas de
-//     -skills, el binario de -kitlegal, que es el servidor del modo herramienta
-//     y lo que sale del PATH de las sesiones que no son del modo orden, y el
-//     tope de 240 s con su margen de 10 s. Lo llama una vez por tanda, con
+//  2. con una skill que tiene juez, exige -modelo-del-juez, -version-del-juez y
+//     -claude-del-juez y prepara el votante que abre cada voto con
+//     scripts/evals-voto.sh (votanteDelJuez); con una skill sin juez no los
+//     mira ni hay votante;
+//  3. ejecutarElJob comprueba, con una skill que tiene juez, que su medida
+//     versionada corresponde y se cumple con ese modelo y esa versión; si no,
+//     escribe el informe del instrumento sin medir sin abrir ninguna sesión, de
+//     evals o del juez (FR-043 de H24);
+//  4. si la medida corresponde y se cumple, o la skill no tiene juez, reparte
+//     las sesiones del plan con ejecutarSesiones, como mucho -concurrencia a la
+//     vez, bajo strace, con scripts/evals-sesion.sh, el entorno del job debajo
+//     del de cada sesión, las skills instaladas de -skills, el binario de
+//     -kitlegal, que es el servidor del modo herramienta y lo que sale del PATH
+//     de las sesiones que no son del modo orden, y el tope de 240 s con su
+//     margen de 10 s. ejecutarElJob lo llama una vez por tanda, con
 //     ejecutarPorTandas —la del modo orden, la del modo herramienta y la de las
 //     evals sin binario ni servidor—, y mide cada una; si una acaba con sesiones
 //     sin abrir por el límite de uso, las siguientes no se abren
 //     (contracts/evals-en-dos-modos.md §2.2 de H21). SIGINT y SIGTERM cierran
 //     las abiertas con la secuencia del tope, y el test falla con el error que
 //     nombra cada una, sin escribir el informe (FR-037 de H7.3);
-//  3. escribe informe.md e informe.json con EscribirInforme: las mismas evals y
+//  5. escribe informe.md e informe.json con EscribirInforme: las mismas evals y
 //     los mismos modos, las sesiones, las que el repartidor no abrió tras el
 //     mensaje del límite de uso y las duraciones que midió, en segundos
 //     redondeados hacia arriba —la suma de las tres tandas y la de la tanda de
 //     cada modo—, frente al objetivo de -objetivo-de-duracion (FR-044, FR-050 y
-//     FR-051 de H7.3; FR-043 de H21).
+//     FR-051 de H7.3; FR-043 de H21); y, con una skill que tiene juez, el juicio
+//     de sus respuestas, votadas como mucho -concurrencia a la vez, sin votar
+//     ningún caso etiquetado (FR-044 de H24).
 //
 // Falla con un error o con el veredicto fallo, nombrando sus motivos: así el job
 // sale en rojo por una serie que no pasa en un modo, por un umbral que decide y
-// no se cumple en un modo, por la duración de una tanda o por sesiones sin medir
-// (FR-043 de H7.3; FR-044 de H21). Solo lo ejecuta scripts/evals.sh, porque abre
-// sesiones con modelo; lo que decide lo fijan TestPlan, TestPlanEnDosModos, los
-// tests del repartidor, TestEjecutarPorTandas, TestInforme,
-// TestInformeEnDosModos y TestUmbralesDelInforme.
+// no se cumple en un modo, por la duración de una tanda, por sesiones sin medir
+// (FR-043 de H7.3; FR-044 de H21), por una respuesta que el juez marca o deja
+// sin juzgar o por el instrumento sin medir (FR-043 de H24). Solo lo ejecuta
+// scripts/evals.sh, porque abre sesiones con modelo; lo que decide lo fijan
+// TestPlan, TestPlanEnDosModos, los tests del repartidor, TestEjecutarPorTandas,
+// TestInforme, TestInformeEnDosModos, TestUmbralesDelInforme,
+// TestInformeConElJuez, TestEjecucionSinMedir y TestEjecutarElJob.
 func TestEjecucionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -137,16 +163,6 @@ func TestEjecucionDelJob(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, conjunto.MalFormados, "el directorio de evals no tiene ficheros mal formados")
 
-	plan := PlanDeEvals{
-		Evals:               conjunto.Evals,
-		ModeloQueDecide:     *banderaQueDecide,
-		ModelosInformativos: separarLosModelos(*banderaInformativos),
-		Repeticiones:        repeticiones,
-		Modos:               []Modo{ModoOrden, ModoHerramienta},
-		PruebaDeRed:         *banderaPruebaDeRed,
-	}
-	require.NoError(t, plan.Comprobar())
-
 	// El repartidor ejecuta el guion en el directorio de trabajo de cada sesión:
 	// su ruta relativa a este paquete no le serviría.
 	guion, err := filepath.Abs(guionDeLaSesion)
@@ -159,42 +175,87 @@ func TestEjecucionDelJob(t *testing.T) {
 	// cancelan (research.md D9 de H7.3), que se toma aquí, fuera del cierre.
 	interrupcion := senales.Done()
 
-	ejecucion, err := ejecutarPorTandas(plan.Sesiones(), func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
-		return ejecutarSesiones(interrupcion, SesionesAEjecutar{
-			Plan:          tanda,
-			Concurrencia:  concurrencia,
-			Evals:         evals,
-			Sesiones:      *banderaSesiones,
-			Skills:        *banderaSkills,
-			Guion:         guion,
-			Binario:       *banderaKitlegal,
-			Entorno:       os.Environ(),
-			Traza:         true,
-			Tope:          topeDeUnaSesion,
-			MargenDelTope: margenDelTopeDeUnaSesion,
-		})
-	})
-	require.NoError(t, err)
+	var votar Votante
+	if conjunto.Juez != nil {
+		votar = votanteDelJuez(senales, t, conjunto.Juez)
+	}
 
-	informe, err := EscribirInforme(InformeAEscribir{
-		Skill:                 *banderaSkill,
-		Evals:                 evals,
-		Sesiones:              *banderaSesiones,
-		Destino:               *banderaInforme,
-		ModeloQueDecide:       *banderaQueDecide,
-		ModelosInformativos:   plan.ModelosInformativos,
-		Repeticiones:          repeticiones,
-		Umbral:                *banderaUmbral,
-		Modos:                 plan.Modos,
-		Commit:                *banderaCommit,
-		SinPython:             *banderaSinPython,
-		SinAbrir:              ejecucion.sinAbrir,
-		DuracionDeLasSesiones: ejecucion.duracion,
-		DuracionDeLosModos:    ejecucion.porModo,
-		ObjetivoDeDuracion:    *banderaObjetivo,
+	informe, err := ejecutarElJob(EjecucionDelJob{
+		Skill: *banderaSkill,
+		Evals: evals,
+		Plan: PlanDeEvals{
+			Evals:               conjunto.Evals,
+			ModeloQueDecide:     *banderaQueDecide,
+			ModelosInformativos: separarLosModelos(*banderaInformativos),
+			Repeticiones:        repeticiones,
+			Modos:               []Modo{ModoOrden, ModoHerramienta},
+			PruebaDeRed:         *banderaPruebaDeRed,
+		},
+		AbrirLaTanda: func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+			return ejecutarSesiones(interrupcion, SesionesAEjecutar{
+				Plan:          tanda,
+				Concurrencia:  concurrencia,
+				Evals:         evals,
+				Sesiones:      *banderaSesiones,
+				Skills:        *banderaSkills,
+				Guion:         guion,
+				Binario:       *banderaKitlegal,
+				Entorno:       os.Environ(),
+				Traza:         true,
+				Tope:          topeDeUnaSesion,
+				MargenDelTope: margenDelTopeDeUnaSesion,
+			})
+		},
+		Sesiones:            *banderaSesiones,
+		Destino:             *banderaInforme,
+		Umbral:              *banderaUmbral,
+		Commit:              *banderaCommit,
+		SinPython:           *banderaSinPython,
+		ObjetivoDeDuracion:  *banderaObjetivo,
+		Votar:               votar,
+		ModeloDelJuez:       *banderaModeloDelJuez,
+		VersionDelJuez:      *banderaVersionDelJuez,
+		ConcurrenciaDelJuez: concurrencia,
 	})
 	require.NoError(t, err)
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
+}
+
+// votanteDelJuez da el votante del juez de la skill en el job, el que abre cada
+// voto con scripts/evals-voto.sh (nuevoVotanteDelGuion; contracts/job-de-evals.md
+// §2 y contracts/juez-y-voto.md §4 de H24), y deja para el final del test la
+// retirada de su directorio. Exige las tres banderas del juez, que
+// scripts/evals.sh pasa con una skill que lo tiene. El PATH de los votos es el
+// del job con el directorio de -claude-del-juez delante (pathDelJuez), su
+// credencial es la del job, y su contexto, el de las señales del punto de
+// entrada, de modo que SIGINT y SIGTERM cortan los votos abiertos.
+func votanteDelJuez(senales context.Context, t *testing.T, juez *Juez) Votante {
+	t.Helper()
+
+	exigirBanderas(t, "modelo-del-juez", "version-del-juez", "claude-del-juez")
+
+	// Cada voto se ejecuta en su propio directorio: la ruta del guion relativa a
+	// este paquete no le serviría.
+	guion, err := filepath.Abs(guionDelVoto)
+	require.NoError(t, err)
+
+	entorno := os.Environ()
+
+	path, err := pathDelJuez(*banderaClaudeDelJuez, valorEnElEntorno(entorno, variableDelPATH))
+	require.NoError(t, err)
+
+	votar, retirar, err := nuevoVotanteDelGuion(senales, ordenDelVoto{
+		juez:        juez,
+		modelo:      *banderaModeloDelJuez,
+		guion:       guion,
+		path:        path,
+		suscripcion: valorEnElEntorno(entorno, variableDeLaSuscripcion),
+	})
+	require.NoError(t, err)
+
+	t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+	return votar
 }
 
 // enteroDeLaBandera es el entero del valor de la bandera de la ejecución del

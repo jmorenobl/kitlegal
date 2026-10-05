@@ -59,11 +59,15 @@ const (
 // contrato informe-del-job §2). El del límite de uso lleva cuántas sesiones
 // quedaron sin medir y, separadas por «, », cada una con su motivo entre
 // paréntesis; y el de las respuestas que el juez dejó sin juzgar, lo mismo de
-// ellas (contracts/informe-del-job.md §4 de H24; FR-007 de H24).
+// ellas (contracts/informe-del-job.md §4 de H24; FR-007 de H24). El del
+// instrumento sin medir va seguido de una línea de comprobarLaMedida, la de lo
+// que no coincide o no se cumple (contracts/informe-del-job.md §5 de H24;
+// FR-043 de H24).
 const (
-	motivoDeLaEjecucion  = "de la ejecución, no de la skill: "
-	motivoDelLimiteDeUso = "límite de uso de la cuenta: %d sesiones sin medir: %s"
-	motivoDeLasSinJuzgar = "el juez dejó %d respuestas sin juzgar: %s"
+	motivoDeLaEjecucion          = "de la ejecución, no de la skill: "
+	motivoDelLimiteDeUso         = "límite de uso de la cuenta: %d sesiones sin medir: %s"
+	motivoDeLasSinJuzgar         = "el juez dejó %d respuestas sin juzgar: %s"
+	motivoDelInstrumentoSinMedir = "el instrumento no está medido: "
 )
 
 // Textos fijos de informe.md (contrato job-de-evals §5).
@@ -221,6 +225,13 @@ type InformeAEscribir struct {
 	// Ahora es el reloj con el que se mide lo que tardan los votos de cada
 	// modo; nil, time.Now (research D7 de H24).
 	Ahora func() time.Time
+
+	// InstrumentoSinMedir son las líneas de comprobarLaMedida, las que da quien
+	// ejecuta el job de una skill con juez cuando su medida versionada no
+	// corresponde o no se cumple: con alguna, el informe es el del instrumento
+	// sin medir, que no lleva nada medido (contracts/informe-del-job.md §5 de
+	// H24; research D11 de H24; FR-043 de H24).
+	InstrumentoSinMedir []string
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -696,6 +707,13 @@ type RedDelInforme struct {
 // sus frases y con si quedó marcada en cada clase; y cada respuesta sin juzgar,
 // con su motivo. Con una skill sin juez, juez es null.
 //
+// Con alguna línea en e.InstrumentoSinMedir (contracts/informe-del-job.md §5 de
+// H24; research D11 de H24; FR-043), el informe es el del instrumento sin medir
+// (informeDelInstrumentoSinMedir): el job no ha abierto ninguna sesión, y
+// EscribirInforme no lee las evals ni ninguna sesión ni llama al votante, que
+// puede faltar. Lo recibido se comprueba y sin-python.txt se lee como en
+// cualquier otro informe.
+//
 // El error es solo para lo que impide escribir el informe —un plan sin sentido,
 // un objetivo de duración negativo, sin-python.txt, las evals o las sesiones
 // que no se pueden leer, un juez sin con qué votar o sin su medida, o un destino
@@ -727,6 +745,10 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 			e.SinPython, err)
 	}
 
+	if len(e.InstrumentoSinMedir) > 0 {
+		return e.escribir(informeDelInstrumentoSinMedir(e, string(sinPython)), nil)
+	}
+
 	conjunto, err := LeerConjunto(e.Evals)
 	if err != nil {
 		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
@@ -745,6 +767,13 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 	series := repartirEnSeries(e, conjunto.Evals, sesiones)
 	informe := componerInforme(e, string(sinPython), conjunto, sesiones, series, juez.juzgar(e, sesiones, series))
 
+	return e.escribir(informe, sesiones)
+}
+
+// escribir deja en e.Destino informe.md e informe.json del informe ya
+// compuesto, con las sesiones juzgadas de las que sale la sección de cada una
+// en informe.md —ninguna, en el del instrumento sin medir—, y lo devuelve.
+func (e InformeAEscribir) escribir(informe Informe, sesiones []sesionJuzgada) (Informe, error) {
 	// Un argv de la traza puede traer cualquier octeto: el que no es UTF-8 válido
 	// se escribe como el carácter de sustitución, en lugar de dejar la ejecución
 	// sin informe.
@@ -758,6 +787,44 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 	}
 
 	return informe, nil
+}
+
+// cabeceraDelInforme es el informe con lo que lleva de lo recibido, tal cual, y
+// de sin-python.txt: lo que tiene todo informe antes de juzgar nada.
+func cabeceraDelInforme(e InformeAEscribir, sinPython string) Informe {
+	return Informe{
+		Skill:                 e.Skill,
+		ModeloQueDecide:       e.ModeloQueDecide,
+		ModelosInformativos:   e.ModelosInformativos,
+		Repeticiones:          e.Repeticiones,
+		Umbral:                e.Umbral,
+		Commit:                e.Commit,
+		SinPython:             sinPython,
+		DuracionDeLasSesiones: e.DuracionDeLasSesiones,
+	}
+}
+
+// informeDelInstrumentoSinMedir es el informe de la ejecución que no abrió
+// ninguna sesión, de evals o del juez, porque la medida versionada del juez no
+// corresponde o no se cumple (contracts/informe-del-job.md §5 de H24; research
+// D11 de H24; FR-043): el veredicto es fallo, con un motivo de la ejecución por
+// cada línea de e.InstrumentoSinMedir, que dice que el instrumento no está
+// medido y qué es lo que no coincide. No lleva nada medido: ningún umbral —los
+// de las respuestas sin activar y los de la duración saldrían cumplidos sin
+// ninguna sesión—, ninguna serie, ninguna sesión, y del juez, solo su modelo y
+// la versión de Claude Code de sus votos, los fijados, sin ninguna respuesta.
+// Así quien lee el informe no da por medido ningún umbral del juez.
+func informeDelInstrumentoSinMedir(e InformeAEscribir, sinPython string) Informe {
+	informe := cabeceraDelInforme(e, sinPython)
+
+	for _, linea := range e.InstrumentoSinMedir {
+		informe.Motivos = append(informe.Motivos, motivoDeLaEjecucion+motivoDelInstrumentoSinMedir+linea)
+	}
+
+	informe.Juez = &JuezInformado{Modelo: e.ModeloDelJuez, VersionDeClaudeCode: e.VersionDelJuez}
+	informe.Veredicto = veredictoDelInforme(informe)
+
+	return informe
 }
 
 // ejecucionPorTandas es lo que el informe recibe del repartidor cuando ejecuta el
@@ -789,7 +856,8 @@ type ejecucionPorTandas struct {
 //
 // ejecutar es el repartidor, ejecutarSesiones, con la tanda como plan: lo recibe
 // para que TestEjecucionDelJob, que es quien abre sesiones con modelo, no sea el
-// único sitio en el que está el reparto por tandas.
+// único sitio en el que está el reparto por tandas. Desde H24 lo llama
+// ejecutarElJob, con quien abre las sesiones que le da ese punto de entrada.
 func ejecutarPorTandas(
 	plan []SesionPlanificada, ejecutar func(tanda []SesionPlanificada) (EjecucionDeSesiones, error),
 ) (ejecucionPorTandas, error) {
@@ -1068,7 +1136,7 @@ type juezDelInforme struct {
 // para validar sus votos o que su medida versionada no se pueda leer: sin ella
 // no hay con qué publicar sus dos umbrales. Si la medida corresponde y se
 // cumple lo comprueba, antes de abrir ninguna sesión, quien ejecuta el job
-// (comprobarLaMedida): aquí solo se lee.
+// (ejecutarElJob, con comprobarLaMedida): aquí solo se lee.
 func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
 	if juez == nil {
 		return nil, nil
@@ -1174,16 +1242,7 @@ func componerInforme(
 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
 	delJuez *juicioDelJuez,
 ) Informe {
-	informe := Informe{
-		Skill:                 e.Skill,
-		ModeloQueDecide:       e.ModeloQueDecide,
-		ModelosInformativos:   e.ModelosInformativos,
-		Repeticiones:          e.Repeticiones,
-		Umbral:                e.Umbral,
-		Commit:                e.Commit,
-		SinPython:             sinPython,
-		DuracionDeLasSesiones: e.DuracionDeLasSesiones,
-	}
+	informe := cabeceraDelInforme(e, sinPython)
 
 	for _, malFormado := range conjunto.MalFormados {
 		informe.FicherosMalFormados = append(informe.FicherosMalFormados,
