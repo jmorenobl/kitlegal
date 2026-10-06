@@ -1,0 +1,12 @@
+{
+  "fuente": "cendoj.jurisprudencia",
+  "consultas": [
+    {"ecli": "ECLI:ES:TS:2023:3144", "para": "golden por ECLI; e2e; eval (d)"},
+    {"roj": "STS 3144/2023", "para": "golden por ROJ; e2e con su fecha y con otra; eval (f)"},
+    {"resolucion": "1088/2023", "fecha": "2023-07-04", "para": "golden por número con fecha; e2e; eval (a)"},
+    {"ecli": "ECLI:ES:TS:2023:999999", "para": "cero resultados: golden; e2e"},
+    {"resolucion": "9999/2023", "fecha": "2023-01-01", "para": "eval (b), primer intento"},
+    {"roj": "STS 9999/2023", "para": "eval (b), segundo intento"},
+    {"resolucion": "3144/2023", "fecha": "2023-01-01", "para": "eval (f), primer intento"}
+  ]
+}
