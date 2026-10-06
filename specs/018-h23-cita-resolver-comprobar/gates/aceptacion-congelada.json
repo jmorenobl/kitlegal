@@ -1,0 +1,11 @@
+{
+  "tarea": "T001",
+  "commit": "04b642f6b6599d59d689c56cd2044be2cf1bdded",
+  "ficheros": {
+    "specs/018-h23-cita-resolver-comprobar/aceptacion/cita-bloqueo.txtar": "d0d61948f103d2156f361b49d45aa0d05bd966ae2b735ead2e8bd6a28fb90fec",
+    "specs/018-h23-cita-resolver-comprobar/aceptacion/cita-cache.txtar": "bee48eb710d158859e87b1b3dc0f1a873dd184ac6bee26248175ea163a6b5ce8",
+    "specs/018-h23-cita-resolver-comprobar/aceptacion/cita-formas.txtar": "b3da80175c023148be258815bae93b453d3929f12b69083252933074827359e4",
+    "specs/018-h23-cita-resolver-comprobar/aceptacion/cita-herramienta.txtar": "f56ffd2d38e97e15031656f3da73755ba02f3dfcfcb90a36d4a0ceeca4e680d6",
+    "specs/018-h23-cita-resolver-comprobar/aceptacion/cita-no-comprobada.txtar": "766dba8eac1d9f906b0bd2b2e8bd3a22fa0885dec3cb8ab404e12909b460ad2b"
+  }
+}

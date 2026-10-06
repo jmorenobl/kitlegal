@@ -31,6 +31,8 @@ func TestClaseDeLosErrores(t *testing.T) {
 		codigoINE          = "el código INE"
 		codigoINEConDigito = "el código INE con dígito de control"
 		codigoDIR3         = "el código DIR3"
+		ecli               = "el ECLI"
+		roj                = "el ROJ"
 	)
 
 	leganes, err := ids.AnalizarCodigoINE("28074")
@@ -48,6 +50,16 @@ func TestClaseDeLosErrores(t *testing.T) {
 	}
 	analizarDIR3 := func(entrada string) error {
 		_, err := ids.AnalizarDIR3(entrada)
+
+		return err
+	}
+	analizarECLI := func(entrada string) error {
+		_, err := ids.AnalizarECLI(entrada)
+
+		return err
+	}
+	analizarROJ := func(entrada string) error {
+		_, err := ids.AnalizarROJ(entrada)
 
 		return err
 	}
@@ -74,6 +86,27 @@ func TestClaseDeLosErrores(t *testing.T) {
 		{"DIR3 de otra entidad local", codigoDIR3, "L02280748", analizarDIR3("L02280748")},
 		{"DIR3 de provincia inexistente", codigoDIR3, "L01000748", analizarDIR3("L01000748")},
 		{"DIR3 de municipio 000", codigoDIR3, "L01280008", analizarDIR3("L01280008")},
+		{"ECLI vacío", ecli, "", analizarECLI("")},
+		{"ECLI con otro número de partes", ecli, "ECLI:ES:TS:2023", analizarECLI("ECLI:ES:TS:2023")},
+		{"ECLI que no empieza por ECLI", ecli, "ecli:es:ts:2023:3144", analizarECLI("ecli:es:ts:2023:3144")},
+		{"ECLI de otro país", ecli, "ECLI:FR:CC:2023:1", analizarECLI("ECLI:FR:CC:2023:1")},
+		{"ECLI con el país mal escrito", ecli, "ECLI:es:TS:2023:3144", analizarECLI("ECLI:es:TS:2023:3144")},
+		{"ECLI con algo ajeno en el órgano", ecli, "ECLI:ES:ts:2023:3144", analizarECLI("ECLI:ES:ts:2023:3144")},
+		{"ECLI con el órgano de otra longitud", ecli, "ECLI:ES:TSJMADRI:2023:1", analizarECLI("ECLI:ES:TSJMADRI:2023:1")},
+		{"ECLI con el órgano que empieza por cifra", ecli, "ECLI:ES:1TS:2023:1", analizarECLI("ECLI:ES:1TS:2023:1")},
+		{"ECLI con algo que no es cifra en el año", ecli, "ECLI:ES:TS:20A3:3144", analizarECLI("ECLI:ES:TS:20A3:3144")},
+		{"ECLI con el año de otra longitud", ecli, "ECLI:ES:TS:202:3144", analizarECLI("ECLI:ES:TS:202:3144")},
+		{"ECLI con algo ajeno en el número", ecli, "ECLI:ES:TS:2023:3144a", analizarECLI("ECLI:ES:TS:2023:3144a")},
+		{"ECLI con el número de otra longitud", ecli, "ECLI:ES:TS:2023:", analizarECLI("ECLI:ES:TS:2023:")},
+		{"ROJ vacío", roj, "", analizarROJ("")},
+		{"ROJ sin espacio", roj, "STS3144/2023", analizarROJ("STS3144/2023")},
+		{"ROJ sin barra", roj, "STS 3144", analizarROJ("STS 3144")},
+		{"ROJ con las siglas mal separadas", roj, " STS 3144/2023", analizarROJ(" STS 3144/2023")},
+		{"ROJ con algo ajeno en las siglas", roj, "ROJ: STS 3144/2023", analizarROJ("ROJ: STS 3144/2023")},
+		{"ROJ con el número vacío", roj, "STS /2023", analizarROJ("STS /2023")},
+		{"ROJ con algo que no es cifra en el número", roj, "STS 3144A/2023", analizarROJ("STS 3144A/2023")},
+		{"ROJ con algo que no es cifra en el año", roj, "STS 3144/20/23", analizarROJ("STS 3144/20/23")},
+		{"ROJ con el año de otra longitud", roj, "STS 3144/23", analizarROJ("STS 3144/23")},
 	}
 
 	for _, caso := range casos {
@@ -123,10 +156,11 @@ func compruebaRechazo(t *testing.T, err error, entrada, motivo string) {
 //go:embed *.go
 var fuentesDelPaquete embed.FS
 
-// superficieDelContrato es lo que el paquete exporta, copiado del contrato de
-// identificadores §1: dos tipos con sus campos privados, tres analizadores, un
-// constructor y seis métodos. Nada más: ELI, ECLI, CELEX y NIF entran con sus
-// hitos (FR-034).
+// superficieDelContrato es lo que el paquete exporta: lo del contrato de
+// identificadores §1 de H6 —dos tipos con sus campos privados, tres
+// analizadores, un constructor y seis métodos— y lo del data-model §1 de H23,
+// el ECLI y el ROJ, cada uno un tipo con sus campos privados, su analizador y
+// sus métodos. Nada más: ELI, CELEX y NIF entran con sus hitos (FR-034 de H6).
 var superficieDelContrato = []string{
 	"type CodigoINE struct{ /* campos privados */ }",
 	"func AnalizarCodigoINE(entrada string) (CodigoINE, error)",
@@ -140,6 +174,13 @@ var superficieDelContrato = []string{
 	"func (d DIR3) String() string",
 	"func (d DIR3) CodigoINE() CodigoINE",
 	"func (d DIR3) Digito() byte",
+	"type ECLI struct{ /* campos privados */ }",
+	"func AnalizarECLI(entrada string) (ECLI, error)",
+	"func (e ECLI) String() string",
+	"func (e ECLI) Organo() string",
+	"type ROJ struct{ /* campos privados */ }",
+	"func AnalizarROJ(entrada string) (ROJ, error)",
+	"func (r ROJ) String() string",
 }
 
 // camposPrivados es como se escribe en superficieDelContrato un tipo
@@ -148,11 +189,11 @@ var superficieDelContrato = []string{
 // analizando.
 const camposPrivados = "struct{ /* campos privados */ }"
 
-// TestSuperficieDeIds exige que lo exportado sea exactamente el contrato §1,
-// firma a firma, y se comprueba a sí mismo: la segunda subprueba demuestra
-// sobre fuentes sintéticas que la revisión ve cada forma de exportar algo,
-// para que un ELI, un ECLI, un CELEX o un NIF no pudieran entrar sin que el
-// test lo notara (FR-034).
+// TestSuperficieDeIds exige que lo exportado sea exactamente
+// superficieDelContrato, firma a firma, y se comprueba a sí mismo: la segunda
+// subprueba demuestra sobre fuentes sintéticas que la revisión ve cada forma
+// de exportar algo, para que un ELI, un CELEX o un NIF no pudieran entrar sin
+// que el test lo notara (FR-034 de H6).
 func TestSuperficieDeIds(t *testing.T) {
 	t.Parallel()
 
@@ -178,8 +219,8 @@ func TestSuperficieDeIds(t *testing.T) {
 
 		require.NotEmpty(t, fuentes, "el paquete no tiene ningún fichero de código que revisar")
 		assert.ElementsMatch(t, superficieDelContrato, superficieDe(t, fuentes),
-			"lo exportado por internal/core/ids no es el contrato de identificadores §1: "+
-				"ni ELI, ni ECLI, ni CELEX, ni NIF, que entran con sus hitos (FR-034)")
+			"lo exportado por internal/core/ids no es el contrato de identificadores §1 de H6 "+
+				"más el ECLI y el ROJ de H23: ni ELI, ni CELEX, ni NIF, que entran con sus hitos (FR-034 de H6)")
 	})
 
 	t.Run("la revisión ve toda forma de exportar", func(t *testing.T) {
@@ -204,7 +245,7 @@ func TestSuperficieDeIds(t *testing.T) {
 			{"método de un tipo sin exportar", "type t struct{}\n\nfunc (x t) Valor() {}", nil},
 			{"campo exportado", "type T struct{ A int }", []string{"type T struct{ A int }"}},
 			{"campo embebido", "type T struct{ fmt.Stringer }", []string{"type T struct{ fmt.Stringer }"}},
-			{"tipo que no es estructura", "type ECLI string", []string{"type ECLI string"}},
+			{"tipo que no es estructura", "type CELEX string", []string{"type CELEX string"}},
 			{"variable exportada", "var ELI = \"\"", []string{"var ELI"}},
 			{"constante exportada", "const NIF = \"\"", []string{"const NIF"}},
 			{"grupo con una exportada", "var (\n\tcelex = 1\n\tCELEX = 2\n)", []string{"var CELEX"}},
