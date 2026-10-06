@@ -722,6 +722,225 @@ func TestDescribeGramatica(t *testing.T) {
 	})
 }
 
+// argumentosConBanderas tienen la forma de los de un verbo que se pide por un
+// argumento de posición o por sus banderas propias: una de una palabra y otra de
+// dos, que la gramática escribe con un guion.
+type argumentosConBanderas struct {
+	Norma      string `arg:"" optional:"" help:"La norma, por su posición."`
+	Rango      string `help:"El rango de la norma."`
+	FechaDesde string `help:"La fecha desde la que se busca."`
+}
+
+// verbosConBanderas es la gramática de ese verbo: con ella lee el analizador la
+// orden escrita con lo que el documento dice de cada bandera.
+type verbosConBanderas struct {
+	Consultar argumentosConBanderas `cmd:"" help:"Consulta por la norma o por sus banderas."`
+}
+
+// verboConBanderas es la definición del verbo cuyos argumentos son los de arriba.
+// No declara salida: lo que este verbo existe para comprobar está entero en la
+// parte de entrada del documento.
+func verboConBanderas() Verbo {
+	return Verbo{
+		Applet:     nombreDePrueba,
+		Verbo:      "consultar",
+		Ayuda:      "Consulta por la norma o por sus banderas.",
+		Argumentos: &argumentosConBanderas{},
+	}
+}
+
+// claveDeLaEscritura es la palabra con la que la entrada del documento dice cómo
+// se escribe una bandera propia.
+const claveDeLaEscritura = "title"
+
+// escriturasDeLaEntrada son las propiedades de la entrada del documento de un
+// verbo que llevan su escritura, cada una con la suya. Las que no la llevan no
+// están, de modo que comparar el mapa entero afirma a la vez quién la lleva y
+// quién no.
+func escriturasDeLaEntrada(t *testing.T, def Verbo) map[string]string {
+	t.Helper()
+
+	documento, _ := describirDePrueba(t, def)
+	propiedades := bajar(t, documento, "properties", "entrada", "properties")
+
+	escrituras := map[string]string{}
+
+	for nombre := range propiedades {
+		escritura, marcada := bajar(t, propiedades, nombre)[claveDeLaEscritura]
+		if !marcada {
+			continue
+		}
+
+		texto, esTexto := escritura.(string)
+		require.True(t, esTexto, "la escritura de %s es una cadena", nombre)
+
+		escrituras[nombre] = texto
+	}
+
+	return escrituras
+}
+
+// TestDescribeBanderasPropias comprueba que la entrada del documento dice qué
+// argumento propio de un verbo es una bandera y cómo se escribe: todo campo de
+// sus argumentos que no va por su posición lleva `title` con su escritura, y ni
+// los de posición ni las banderas globales lo llevan. La regla es una y no mira
+// el applet (research.md D16 y contracts/cita-resolver.md §9 de H23; FR-001).
+func TestDescribeBanderasPropias(t *testing.T) {
+	t.Parallel()
+
+	subtests := []struct {
+		nombre string
+		probar func(*testing.T)
+	}{
+		{"cada bandera propia lleva title con su escritura", probarEscrituraDeCadaBandera},
+		{"ni el argumento de posición ni las banderas globales lo llevan", probarSinEscrituraFueraDeLasPropias},
+		{"la escritura es la que lee la gramática", probarEscrituraDeLaGramatica},
+		{"todo campo que no va por su posición, sea cual sea", probarEscriturasDeCadaVerbo},
+		{"la regla no mira el applet", probarEscriturasEnCualquierApplet},
+		{"la marca no cambia lo que la entrada valida", probarEscrituraSinValidarNada},
+	}
+
+	for _, subtest := range subtests {
+		t.Run(subtest.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			subtest.probar(t)
+		})
+	}
+}
+
+func probarEscrituraDeCadaBandera(t *testing.T) {
+	t.Helper()
+
+	documento, _ := describirDePrueba(t, verboConBanderas())
+	propiedades := bajar(t, documento, "properties", "entrada", "properties")
+
+	assert.Equal(t, "--rango", bajar(t, propiedades, "rango")[claveDeLaEscritura])
+	assert.Equal(t, "--fecha-desde", bajar(t, propiedades, "fecha-desde")[claveDeLaEscritura],
+		"el nombre es el de la invocación, con su guion, y no el del campo")
+
+	assert.Equal(t, nombreDePrueba+" consultar", documento["title"],
+		"el título del documento sigue siendo el applet y el verbo")
+}
+
+func probarSinEscrituraFueraDeLasPropias(t *testing.T) {
+	t.Helper()
+
+	documento, _ := describirDePrueba(t, verboConBanderas())
+	propiedades := bajar(t, documento, "properties", "entrada", "properties")
+
+	assert.Equal(t, map[string]any{"type": "string"}, bajar(t, propiedades, "norma"),
+		"el argumento de posición se describe como antes: no se escribe con ninguna bandera")
+
+	for _, global := range nombresDeLasOcho {
+		assert.NotContains(t, bajar(t, propiedades, global), claveDeLaEscritura,
+			"la bandera global %s no es un argumento propio del verbo", global)
+	}
+
+	sinArgumentos := verboConBanderas()
+	sinArgumentos.Argumentos = nil
+
+	assert.Empty(t, escriturasDeLaEntrada(t, sinArgumentos),
+		"el documento de un verbo sin argumentos, el de las banderas globales, no cambia")
+}
+
+func probarEscrituraDeLaGramatica(t *testing.T) {
+	t.Helper()
+
+	escrituras := escriturasDeLaEntrada(t, verboConBanderas())
+	require.Len(t, escrituras, 2)
+
+	// La orden se escribe con lo que dice el documento y no con una lista
+	// paralela: que el analizador la lea y rellene cada campo es lo que hace
+	// cierto que la marca describe lo que el binario acepta (FR-048).
+	verbos := &verbosConBanderas{}
+	_, err := Analizar(&presentadorDoble{}, nombreDePrueba, verbos, []string{
+		"consultar",
+		escrituras["rango"] + "=ley",
+		escrituras["fecha-desde"] + "=2015-10-02",
+		"BOE-A-2015-10565",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t,
+		argumentosConBanderas{Norma: "BOE-A-2015-10565", Rango: "ley", FechaDesde: "2015-10-02"},
+		verbos.Consultar)
+}
+
+func probarEscriturasDeCadaVerbo(t *testing.T) {
+	t.Helper()
+
+	// Los verbos de los otros tests de este paquete, que entre todos declaran
+	// banderas de cada tipo —también la que no lleva valor y la que se repite—,
+	// obligatorias y opcionales, promovidas de un campo embebido, delante y
+	// detrás de los argumentos de posición, y cuyo esquema es una referencia.
+	casos := map[string]struct {
+		def        Verbo
+		escrituras map[string]string
+	}{
+		"un argumento de posición y dos banderas": {
+			def:        verboConBanderas(),
+			escrituras: map[string]string{"rango": "--rango", "fecha-desde": "--fecha-desde"},
+		},
+		"banderas de cada tipo delante de los de posición": {
+			def: verboVariado(),
+			escrituras: map[string]string{
+				"etiqueta": "--etiqueta", "forzar": "--forzar", "limite": "--limite", "materias": "--materias",
+			},
+		},
+		"obligatoria, opcional, con omisión y promovida": {
+			def: verboConMarcas(),
+			escrituras: map[string]string{
+				"compartido": "--compartido", "opcional": "--opcional", "predeterminado": "--predeterminado",
+			},
+		},
+		"una bandera cuyo esquema es una referencia": {
+			def:        verboConFiltro(),
+			escrituras: map[string]string{"filtro": "--filtro"},
+		},
+		"solo argumentos de posición":       {def: verboDeArticulo(), escrituras: map[string]string{}},
+		"argumentos de posición opcionales": {def: verboDeComprobacion(), escrituras: map[string]string{}},
+		"ningún argumento":                  {def: verboSinArgumentos(), escrituras: map[string]string{}},
+	}
+
+	for nombre, caso := range casos {
+		assert.Equal(t, caso.escrituras, escriturasDeLaEntrada(t, caso.def), nombre)
+	}
+}
+
+func probarEscriturasEnCualquierApplet(t *testing.T) {
+	t.Helper()
+
+	documento, _ := describirDePrueba(t, verboConBanderas())
+	esperada := bajar(t, documento, "properties", "entrada")
+
+	for _, applet := range []string{"cita", "skills", "mcp", "otro"} {
+		def := verboConBanderas()
+		def.Applet = applet
+
+		otro, _ := describirDePrueba(t, def)
+		assert.Equal(t, esperada, bajar(t, otro, "properties", "entrada"),
+			"los mismos argumentos se describen igual en el applet %s", applet)
+	}
+}
+
+func probarEscrituraSinValidarNada(t *testing.T) {
+	t.Helper()
+
+	documento, _ := describirDePrueba(t, verboConBanderas())
+	require.NotNil(t, compilarGenerado(t, documento, ""), "el documento sigue siendo un esquema válido")
+
+	entrada := compilarGenerado(t, documento, "#/properties/entrada")
+
+	// La escritura es una anotación: dice cómo se escribe la bandera en una orden
+	// y no restringe su valor, que sigue siendo el de su tipo.
+	require.NoError(t, entrada.Validate(map[string]any{"rango": "ley", "fecha-desde": "", "norma": "N"}))
+	require.Error(t, entrada.Validate(map[string]any{"rango": json.Number("7")}),
+		"una bandera de cadena sigue sin admitir un número")
+	require.Error(t, entrada.Validate(map[string]any{"--rango": "ley"}),
+		"la propiedad se llama como el campo, sin los guiones de su escritura")
+}
+
 // TestDescribeDefectosDelKernel comprueba los dos fallos que no puede provocar quien
 // invoca, sino quien declara el sobre o el documento: el sobre que dejara de
 // declarar una de las dos claves de las que depende la condición, y el documento que

@@ -16,12 +16,15 @@ import (
 // EsquemasDeHerramienta da los dos esquemas con los que el servidor MCP anuncia
 // un verbo como herramienta: el de lo que una llamada puede dar y el del sobre
 // que devuelve. Salen del mismo generador que el documento de --describe y son
-// sus dos partes, con tres diferencias que pide quien los recibe
-// (contracts/servidor-mcp.md §2; research.md D6 de H21):
+// sus dos partes, con cuatro diferencias que pide quien los recibe
+// (contracts/servidor-mcp.md §2; research.md D6 de H21; research.md D16 de H23):
 //
 //   - la entrada no lleva las ocho banderas globales: son del servidor, que las
 //     recibe una vez y las aplica a todas las llamadas, de modo que el nombre de
 //     una de ellas es en una llamada una propiedad de más (FR-020);
+//   - tampoco lleva la escritura de las banderas propias, el `title` con el que
+//     el documento dice cómo se escribe cada una en la orden: una herramienta
+//     recibe sus argumentos por su nombre, sean banderas o de posición;
 //   - cada esquema es un documento que se vale solo, con las definiciones que
 //     referencia en sus propios `$defs`, porque el protocolo los entrega por
 //     separado y una referencia a la raíz de otro documento no resolvería;
@@ -87,7 +90,9 @@ func (g *generador) retirarDefiniciones() jsonschema.Definitions {
 
 // Las dos marcas de una línea de órdenes que escribe la conversión: la que
 // precede al nombre de una bandera y el terminador, que separa las banderas de lo
-// que solo puede ser un argumento de posición (research.md V24 de H21).
+// que solo puede ser un argumento de posición (research.md V24 de H21). La
+// primera es también la de la escritura que el documento de --describe da a cada
+// bandera propia (describe.go).
 const (
 	prefijoDeBandera     = "--"
 	terminadorDeBanderas = "--"

@@ -344,17 +344,38 @@ func probarEntradaSinGlobales(t *testing.T) {
 func probarPartesDeDescribe(t *testing.T) {
 	t.Helper()
 
+	// marcadas cuenta las banderas propias a las que se les quita su escritura:
+	// si ningún verbo de este test tuviera alguna, comparar la entrada sin ella
+	// no diría nada de la marca.
+	marcadas := 0
+
 	for nombre, def := range verbosDeLosEsquemas() {
 		documento, _ := describirDePrueba(t, def)
-		_, _, leidos := esquemasDePrueba(t, def)
+		entrada, salida, leidos := esquemasDePrueba(t, def)
 
-		// La parte de entrada del documento, sin las ocho: ninguna es obligatoria,
-		// así que quitarlas de las propiedades es quitarlas del todo.
+		// La parte de entrada del documento, sin las ocho —ninguna es obligatoria,
+		// así que quitarlas de las propiedades es quitarlas del todo— y sin la
+		// escritura de las banderas propias, que es de la orden: una herramienta
+		// recibe sus argumentos por su nombre (research.md D16 de H23).
 		parteDeEntrada := bajar(t, documento, claveDePropiedades, "entrada")
 		propiedades := bajar(t, parteDeEntrada, claveDePropiedades)
 
 		for _, global := range nombresDeLasOcho {
 			delete(propiedades, global)
+		}
+
+		for propia := range propiedades {
+			propiedad := bajar(t, propiedades, propia)
+			if _, marcada := propiedad[claveDeLaEscritura]; marcada {
+				marcadas++
+			}
+
+			delete(propiedad, claveDeLaEscritura)
+		}
+
+		for _, esquema := range [][]byte{entrada, salida} {
+			assert.NotContains(t, string(esquema), `"`+claveDeLaEscritura+`"`,
+				"%s: ninguno de los dos esquemas lleva la escritura de una bandera", nombre)
 		}
 
 		assert.Equal(t, parteDeEntrada, sinDefiniciones(leidos[0]), "%s: la entrada", nombre)
@@ -370,6 +391,8 @@ func probarPartesDeDescribe(t *testing.T) {
 			}
 		}
 	}
+
+	assert.Positive(t, marcadas, "algún verbo de este test tiene banderas propias, con su escritura en el documento")
 }
 
 func probarDefinicionesDeCadaEsquema(t *testing.T) {

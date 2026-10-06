@@ -113,12 +113,14 @@
               "type": "boolean"
             },
             "dir": {
+              "title": "--dir",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "global": {
+              "title": "--global",
               "type": "boolean"
             },
             "json": {
@@ -304,18 +306,21 @@
               "type": "boolean"
             },
             "dir": {
+              "title": "--dir",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "global": {
+              "title": "--global",
               "type": "boolean"
             },
             "host": {
               "items": {
                 "type": "string"
               },
+              "title": "--host",
               "type": "array"
             },
             "json": {
@@ -546,12 +551,14 @@
               "type": "boolean"
             },
             "dir": {
+              "title": "--dir",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "global": {
+              "title": "--global",
               "type": "boolean"
             },
             "json": {

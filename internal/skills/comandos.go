@@ -84,7 +84,8 @@ type DescripcionDeVerbo struct {
 	Hace string
 
 	// Argumentos son las propiedades de la entrada, en su orden, sin las
-	// banderas globales; nil si el verbo no declara ninguno.
+	// banderas globales: los que van por su posición y las banderas propias del
+	// verbo; nil si no declara ninguno.
 	Argumentos []Argumento
 
 	// Banderas son las banderas globales, en el orden del documento de un verbo
@@ -98,10 +99,15 @@ type DescripcionDeVerbo struct {
 	Sobre Sobre
 }
 
-// Argumento es un argumento de un verbo.
+// Argumento es un argumento de un verbo: uno de posición o una bandera propia.
 type Argumento struct {
 	// Nombre es el de la propiedad de la entrada.
 	Nombre string
+
+	// Escritura es cómo se escribe en la orden un argumento que es una bandera
+	// propia del verbo, `--roj`: el title de su propiedad. Está vacía en el que
+	// va por su posición, que no lo lleva (research.md D16 de H23).
+	Escritura string
 
 	// Obligatorio dice si la entrada lo exige: si está en su required.
 	Obligatorio bool
@@ -169,7 +175,9 @@ type Sobre struct {
 //     banderas globales, en su orden, y llevan valor si su tipo no es boolean;
 //   - los argumentos son las propiedades de la entrada del verbo, en su orden,
 //     salvo las que se llaman como una bandera; cada uno es obligatorio si está
-//     en el required de la entrada y admite varios valores si su tipo es array;
+//     en el required de la entrada, admite varios valores si su tipo es array y
+//     es una bandera propia del verbo si su propiedad lleva title, que es cómo
+//     se escribe (research.md D16 de H23);
 //   - lo que devuelve sale del data de la rama then de la salida: con $ref, un
 //     objeto; con items.$ref, una lista de objetos; con las claves de la
 //     definición de $defs a la que apunta, en el orden de sus propiedades; y sin
@@ -269,7 +277,8 @@ func describirVerbo(verbo esquemaDescrito, banderas []Bandera) (DescripcionDeVer
 }
 
 // argumentosDeLaEntrada son las propiedades de la entrada de un verbo que no se
-// llaman como ninguna bandera global, en su orden.
+// llaman como ninguna bandera global, en su orden, cada una con la escritura que
+// declara su title.
 func argumentosDeLaEntrada(entrada *esquemaDescrito, banderas []Bandera) []Argumento {
 	var argumentos []Argumento
 
@@ -283,6 +292,7 @@ func argumentosDeLaEntrada(entrada *esquemaDescrito, banderas []Bandera) []Argum
 
 		argumentos = append(argumentos, Argumento{
 			Nombre:      propiedad.nombre,
+			Escritura:   propiedad.esquema.Titulo,
 			Obligatorio: slices.Contains(entrada.Obligatorias, propiedad.nombre),
 			Varios:      propiedad.esquema.Tipo == tipoLista,
 		})
@@ -480,10 +490,11 @@ func (p propiedadesEnOrden) nombres() []string {
 //     <applet>` como título y una tabla con una fila por verbo del applet, en el
 //     orden de las descripciones; las de un applet que no se declara no se
 //     presentan;
-//   - cada fila da la sintaxis de la orden —<nombre> por cada argumento,
-//     <nombre>... si admite varios valores, y con [ delante si es opcional, con
-//     los corchetes cerrados al final, como la ayuda de Kong: [<norma>
-//     [<bloques>...]]—, la herramienta del servidor MCP que hace lo mismo,
+//   - cada fila da la sintaxis de la orden —<nombre> por cada argumento de
+//     posición, <nombre>... si admite varios valores, y con [ delante si es
+//     opcional, con los corchetes cerrados detrás del último, como la ayuda de
+//     Kong: [<norma> [<bloques>...]]; y, detrás, [--<nombre>=<nombre>] por cada
+//     bandera propia del verbo—, la herramienta del servidor MCP que hace lo mismo,
 //     `<applet>_<verbo>`, lo que hace y lo que devuelve en data; en cada celda la
 //     barra se escribe \| y un salto de línea es un espacio;
 //   - detrás de la última sección, la línea del sobre, que es el mismo por la
@@ -584,16 +595,27 @@ func filaDelVerbo(verbo DescripcionDeVerbo) string {
 }
 
 // sintaxisDeLaOrden es la orden de un verbo: kitlegal, su applet y el verbo, con
-// cada argumento en su orden (data-model §2.2; research.md D7). Un argumento
-// opcional abre un corchete que se cierra al final de la orden, así que los
-// opcionales quedan anidados como en la ayuda de Kong: `[<norma> [<bloques>...]]`.
-// Todos los argumentos propios de un verbo de una tabla son de posición, y Kong
-// no admite un obligatorio detrás de un opcional.
+// cada argumento de posición en su orden y, detrás, cada bandera propia en el
+// suyo (data-model §2.2; research.md D7; research.md D16 de H23). Un argumento
+// de posición opcional abre un corchete que se cierra detrás del último, así que
+// los opcionales quedan anidados como en la ayuda de Kong: `[<norma>
+// [<bloques>...]]`; Kong no admite un obligatorio detrás de un opcional. Una
+// bandera propia se escribe con su escritura y su nombre como valor,
+// `[--roj=<roj>]`: no hay otra forma para la que no lleva valor ni para la que
+// se repite, que ningún verbo de una tabla tiene.
 func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
 	partes := []string{programaDeLasOrdenes, verbo.Applet, verbo.Verbo}
 	abiertos := 0
 
+	var banderas []string
+
 	for _, argumento := range verbo.Argumentos {
+		if argumento.Escritura != "" {
+			banderas = append(banderas, "["+argumento.Escritura+"=<"+argumento.Nombre+">]")
+
+			continue
+		}
+
 		parte := "<" + argumento.Nombre + ">"
 		if argumento.Varios {
 			parte += "..."
@@ -607,7 +629,9 @@ func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
 		partes = append(partes, parte)
 	}
 
-	return strings.Join(partes, " ") + strings.Repeat("]", abiertos)
+	dePosicion := strings.Join(partes, " ") + strings.Repeat("]", abiertos)
+
+	return strings.Join(slices.Concat([]string{dePosicion}, banderas), " ")
 }
 
 // nombreDeLaHerramienta es el de la herramienta del servidor MCP de un verbo:

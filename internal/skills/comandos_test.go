@@ -246,6 +246,31 @@ func comprobarDePrueba() describeDePrueba {
 	return documento
 }
 
+// filtrarDePrueba es el documento de un verbo con un argumento de posición,
+// opcional, y dos banderas propias, que llevan en title su escritura. Una va
+// delante del argumento de posición: el orden de la entrada no es el de la fila.
+func filtrarDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo filtrar", "Filtra por una norma o por sus banderas.")
+	documento.argumentos = `"rango": {"type": "string", "title": "--rango"},
+        "norma": {"type": "string"},
+        "fecha-desde": {"type": "string", "title": "--fecha-desde"}`
+
+	return documento
+}
+
+// acotarDePrueba es el documento de un verbo con una bandera propia entre un
+// argumento obligatorio y dos opcionales, el segundo de varios valores.
+func acotarDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo acotar", "Acota los bloques de una norma.")
+	documento.argumentos = `"norma": {"type": "string"},
+        "rango": {"type": "string", "title": "--rango"},
+        "desde": {"type": "string"},
+        "bloques": {"items": {"type": "string"}, "type": "array"}`
+	documento.obligatorios = `["norma"]`
+
+	return documento
+}
+
 // nadaDePrueba es el documento de un verbo cuyo data es una lista de objetos
 // cuya definición no declara ninguna propiedad.
 func nadaDePrueba() describeDePrueba {
@@ -281,7 +306,9 @@ func sobreEsperado() skills.Sobre {
 // TestDescripcionDeVerbo fija LeerDescripcionDeVerbo (data-model §2.1; research.md
 // D6): el applet y el verbo del título, la ayuda, los argumentos en su orden sin
 // las banderas globales —las del documento de un verbo sin argumentos, por su
-// nombre— con su obligatoriedad y si admiten varios valores, las banderas con si
+// nombre— con su obligatoriedad, si admiten varios valores y, los que son una
+// bandera propia del verbo, con su escritura, que es el title de su propiedad
+// (research.md D16 de H23), las banderas con si
 // llevan valor, las claves de data de un objeto y de una lista en el orden de las
 // propiedades de su definición, la forma sin declarar cuando data no tiene $ref, y
 // el sobre; y cada documento que no permite describir el verbo, con el defecto
@@ -394,6 +421,27 @@ func TestDescripcionDeVerbo(t *testing.T) {
 					{Nombre: "norma", Obligatorio: true},
 					{Nombre: "desde"},
 					{Nombre: "materias", Varios: true},
+				},
+				Banderas: banderasEsperadas(),
+				Devuelve: skills.Devuelve{Forma: skills.FormaSinDeclarar},
+				Sobre:    sobreEsperado(),
+			},
+		},
+		{
+			// Una propiedad de la entrada con title es una bandera propia del verbo,
+			// y su title, cómo se escribe. Sigue en su sitio entre los argumentos:
+			// el orden lo pone la fila.
+			nombre:    "banderas-propias",
+			documento: filtrarDePrueba(),
+			globales:  globalesDePrueba(),
+			esperada: skills.DescripcionDeVerbo{
+				Applet: "ejemplo",
+				Verbo:  "filtrar",
+				Hace:   "Filtra por una norma o por sus banderas.",
+				Argumentos: []skills.Argumento{
+					{Nombre: "rango", Escritura: "--rango"},
+					{Nombre: "norma"},
+					{Nombre: "fecha-desde", Escritura: "--fecha-desde"},
 				},
 				Banderas: banderasEsperadas(),
 				Devuelve: skills.Devuelve{Forma: skills.FormaSinDeclarar},
@@ -731,7 +779,10 @@ func describirDocumentos(t *testing.T, documentos ...describeDePrueba) []skills.
 // sintaxis de un argumento obligatorio, de uno de varios valores y de los
 // opcionales, anidados como los escribe Kong: uno solo, uno seguido de otro de
 // varios valores y los dos detrás de los obligatorios, sin que ninguno llegue al
-// nombre de la herramienta; la barra de la ayuda y de una clave escrita \|; data
+// nombre de la herramienta; las banderas propias de un verbo, cada una como
+// [--<nombre>=<nombre>] detrás de los argumentos de posición y de sus corchetes,
+// esté donde esté en la entrada (research.md D16 de H23); la barra de la ayuda y
+// de una clave escrita \|; data
 // sin $ref y una lista de objetos sin claves; la línea del sobre, que dice que la
 // orden y la herramienta de cada fila devuelven el mismo; la misma salida en dos
 // llamadas; y cada conjunto de descripciones que no permite escribir la tabla,
@@ -800,6 +851,17 @@ func TestRenderizarTabla(t *testing.T) {
 				"sin forma declarada |\n" +
 				"| `kitlegal ejemplo comprobar [<norma> [<bloques>...]]` | `ejemplo_comprobar` | Comprueba una " +
 				"norma y sus bloques, o todo sin ellos. | sin forma declarada |\n" +
+				pieDeLaTabla,
+		},
+		{
+			nombre:     "banderas-propias",
+			applets:    []string{"ejemplo"},
+			documentos: []describeDePrueba{filtrarDePrueba(), acotarDePrueba()},
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
+				"| `kitlegal ejemplo filtrar [<norma>] [--rango=<rango>] [--fecha-desde=<fecha-desde>]` | " +
+				"`ejemplo_filtrar` | Filtra por una norma o por sus banderas. | sin forma declarada |\n" +
+				"| `kitlegal ejemplo acotar <norma> [<desde> [<bloques>...]] [--rango=<rango>]` | " +
+				"`ejemplo_acotar` | Acota los bloques de una norma. | sin forma declarada |\n" +
 				pieDeLaTabla,
 		},
 	}

@@ -113,6 +113,7 @@ func (d Verbo) esquema() (*jsonschema.Schema, error) {
 	// applet no declara y recibe igualmente (FR-018, SC-010): quien invoca no
 	// distingue una bandera del kernel de un argumento del verbo.
 	entrada := g.entrada(append(campos, camposVisibles(tipoDeGlobales)...))
+	marcarBanderasPropias(entrada, campos)
 
 	salida, err := g.salida(d.Salida)
 	if err != nil {
@@ -194,6 +195,32 @@ func (g *generador) entrada(campos []reflect.StructField) *jsonschema.Schema {
 	}
 
 	return entrada
+}
+
+// marcarBanderasPropias dice en la entrada del documento de --describe cuáles de
+// los argumentos del verbo son banderas y cómo se escriben: todo campo que no va
+// por su posición lleva en `title` su escritura, `--roj`. Sin la marca la entrada
+// es un objeto plano, y quien escribe la orden desde ella —la tabla de comandos
+// de una skill— no distingue una bandera propia de un argumento de posición
+// (research.md D16 de H23).
+//
+// La regla es una y no mira el applet. No la llevan los argumentos de posición ni
+// las ocho globales, que son las mismas en todo verbo; y tampoco los esquemas de
+// una herramienta del servidor MCP, que recibe sus argumentos por su nombre: por
+// eso se marca aquí, sobre la entrada ya construida, y no al construirla, que es
+// común a los dos (herramienta.go).
+func marcarBanderasPropias(entrada *jsonschema.Schema, campos []reflect.StructField) {
+	for _, campo := range campos {
+		if _, dePosicion := campo.Tag.Lookup("arg"); dePosicion {
+			continue
+		}
+
+		nombre := nombreEnLaInvocacion(campo)
+
+		// La entrada se acaba de construir con estos mismos campos: cada uno
+		// tiene su propiedad.
+		entrada.Properties.Value(nombre).Title = prefijoDeBandera + nombre
+	}
 }
 
 // salida describe el sobre completo con `data` condicionado a `ok`: el del
