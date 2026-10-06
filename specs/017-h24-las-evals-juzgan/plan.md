@@ -306,7 +306,12 @@ casos del repositorio.
 - **El vocabulario nuevo se busca en toda la prosa, con el código en línea** (D22).
 - **v0.1.7 quita también los nombres de campo de la línea de la redacción modificada y los del paso 4** (D23, C5 y
   C7): los pide la delimitación de D22.
-- Las demás, con su alternativa rechazada, en research D1-D26.
+- **Reparación del cierre: C9, el inciso detrás de una remisión** (D27, V23; contracts/skill-boe-legislacion.md §8):
+  con C1-C8, `afirma_lo_no_leido:claude-sonnet-5-5:orden` dio 1 de 54 («del artículo 24, que es previa a ese
+  recurso», la regla de un artículo no leído colgada de la remisión del art. 20.5); la viñeta de C1 nombra el inciso y
+  la remisión va con las palabras del texto leído. Una línea, pagada con un blanco de «Cómo se cita»: 298 líneas. Su
+  efecto lo mide el job de la medición siguiente.
+- Las demás, con su alternativa rechazada, en research D1-D27.
 
 ## Trazabilidad: cada mecanismo y su requisito
 
@@ -346,7 +351,9 @@ C1-C8 de contracts/skill-boe-legislacion.md §2, cada uno con sus líneas de v0.
 y su requisito. En resumen: v0.1.6 dice cuándo leer una remisión y no qué hacer con la que no se lee; manda decir lo
 que falta y no cómo; y solo enseña «no lo has leído, no lo digas» para la redacción anterior (C1, C2). Y desde H7.4
 dice lo que la respuesta lleva de la vigencia con «el sobre» y dos nombres de campo (C3 a C7). C8 es una línea del
-presupuesto de 298.
+presupuesto de 298. C9 (reparación del cierre; contracts §8, research V23 y D27) es la forma c medida en el cierre:
+C1 no nombraba el inciso que cuelga de una remisión y sitúa lo remitido, y paga su línea con un blanco de «Cómo se
+cita».
 
 ## Datos externos
 

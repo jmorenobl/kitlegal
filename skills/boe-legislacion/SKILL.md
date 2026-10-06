@@ -130,9 +130,10 @@ Lo que decidas en este paso no va en la respuesta: quien pregunta no ve los paso
   `<identificador>, bloque <id>]`, con el identificador `BOE-A-…` y el id tal como los da la fuente (más en «Cómo se
   cita»).
 - **De un precepto que no has leído, nada.** De un artículo, un apartado o una disposición que nada te ha devuelto en
-  esta conversación no digas qué dice ni de qué trata, ni entre paréntesis ni aunque creas saberlo: sería texto legal
-  sin fuente. Si lo nombras, por su número y nada más. Una remisión va como el texto la da, sin describir lo remitido;
-  si importa, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
+  esta conversación no digas qué dice, de qué trata ni cuándo o cómo se aplica, ni en un paréntesis o un inciso, ni
+  aunque creas saberlo: sería texto legal sin fuente. Si lo nombras, por su número y nada más. Una remisión va con
+  las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido; si
+  importa, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
 - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
 - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
@@ -180,7 +181,6 @@ del binario o de una explicación:
 ```text
 ⚠ NORMA DEROGADA: esta norma ha sido derogada.
 ```
-
 - La etiqueta va entera y sin cambiar ninguna palabra, con `⚠` delante y los dos puntos detrás, todo en la misma línea.
   Decir con otras palabras que la norma está derogada no traslada el aviso.
 

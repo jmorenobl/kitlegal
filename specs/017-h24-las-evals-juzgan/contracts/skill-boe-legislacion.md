@@ -46,12 +46,13 @@ no separa las dos causas: v0.1.7 quita el vocabulario de toda la prosa, y el cie
 | C6 | «Cómo se cita», línea 171 | «Cada aviso de la lectura» en lugar de «Cada aviso del sobre» | el vocabulario | FR-084 |
 | C7 | «Redacción modificada», líneas 197-199 | Las dos fechas de la línea se dicen por su orden («primero la de la redacción superada y después la más reciente, que es la de la que acabas de leer»), sin los dos nombres de campo | el vocabulario | FR-085 |
 | C8 | Paso 4, líneas 109-110 | «Remisiones» en una línea: «a otro precepto o a otra norma» | las líneas de C1 | FR-086 (menos de 300) |
+| C9 | Paso 5, la viñeta de C1 (reparación del cierre, §8) | La viñeta dice también «cuándo o cómo se aplica» y «ni en un paréntesis o un inciso», y de la remisión, que «va con las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido»; una línea más, que paga la línea en blanco entre el ejemplo `⚠ NORMA DEROGADA:` y su viñeta en «Cómo se cita» | forma c, medida en el cierre (§8) | FR-081, FR-082 |
 
 **Las líneas.** v0.1.6 tiene 298 y ese es el tope efectivo: `skills-check` falla con 300 o más y el mutante
 `dos-inicios` de `internal/app/skills_test.go` añade una (research V13). C1 cuesta cuatro. Salen de C3 (una: la forma
 del aviso, que ese párrafo repetía, queda en «Cómo se cita» y en la regla 3, a las que remite; y «Recuerda que los
 textos consolidados…», que sigue en la regla 3), de C5 (una), de C7 (una) y de C8 (una). El prototipo tiene 298
-(research V14).
+(research V14). C9 cuesta una, que paga el blanco de «Cómo se cita» (§8): sigue en 298.
 
 ## 3. Lo que se queda (FR-086)
 
@@ -100,3 +101,37 @@ En `make ci`: `skills-check` (menos de 300 líneas, frontmatter, región sin dri
 `afirma_lo_no_leido:<modelo>:<modo>`, que decide con 0 en cada modo, y `cuenta_su_proceso:<modelo>:<modo>`, que se
 publica ([informe-del-job.md](./informe-del-job.md) §2). Si el cierre marca alguna respuesta, la reparación corrige
 `SKILL.md` con la frase marcada delante; no toca la rúbrica, los casos, la medida ni el umbral (FR-036).
+
+## 8. Reparación del cierre: C9, el inciso detrás de una remisión (FR-081, FR-082)
+
+Lo añade `reparar_cierre` tras la medición sobre `a5bda45` (research V23, D27): con C1-C8,
+`afirma_lo_no_leido:claude-sonnet-5-5:orden` da 1 de 54 frente al umbral 0 —la sesión
+`08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01`, con tres votos sobre la frase «También cabe la reclamación
+potestativa del artículo 24, que es previa a ese recurso»— y el del modo herramienta, 0 de 54; los demás umbrales se
+cumplen y `legal-core` aprueba.
+
+**Causa.** La sesión leyó solo el art. 20 de la Ley 19/2013, cuyo apartado 5 dice «sin perjuicio de la posibilidad de
+interposición de la reclamación potestativa prevista en el artículo 24», y nada más del art. 24; que la reclamación
+sea previa al recurso es la regla del art. 24, que no leyó. Es la forma c de §1, con la misma frase que marcó la
+validación en los informes de H21 y H22 (`evidencias/adr-0037/casos.yaml`, dos casos `defecto`). C1 prohibía decir
+«qué dice» o «de qué trata» el precepto no leído y mandaba trasladar la remisión «como el texto la da, sin describir
+lo remitido»: el modelo parafrasea el art. 20.5, que sí leyó, nombra el art. 24 solo por su número, como C1 pide, y
+cuelga de la remisión un inciso que sitúa lo remitido —cuándo va respecto del recurso— sin tomarlo por una
+descripción de lo que dice el art. 24. Otra respuesta del mismo cierre hace la misma construcción con un inciso que no
+afirma nada («del artículo 24, que es otra vía», `08-…-herramienta-…-01`, sin ningún voto afirmativo): es la que C1 no
+nombraba.
+
+**Qué cambia (C9).** La viñeta de C1 enumera lo que no se dice del precepto no leído («qué dice, de qué trata ni
+cuándo o cómo se aplica»), nombra el inciso junto al paréntesis y dice de la remisión que va con las palabras del texto
+leído y sin un «que es…» ni un «que regula…» detrás, porque eso es contenido de lo remitido; «si importa, léelo y
+cítalo» y el aviso de lo que no cubre quedan como estaban. Una línea más (la viñeta pasa de cuatro a cinco), que paga
+la línea en blanco entre el ejemplo `⚠ NORMA DEROGADA:` y la viñeta que lo sigue, en «Cómo se cita», como hizo H7.4
+con C11: `SKILL.md` sigue en 298 líneas, con las mismas 14 de más de 120 caracteres, y la prosa sin ninguna expresión
+de la lista (`make skills-check`, en verde en la sesión de la reparación). Ninguna forma fija, eval, rúbrica, caso,
+medida ni umbral cambia (FR-036). Rechazado: la frase marcada como ejemplo en la skill, porque es contenido legal del
+art. 24 y el modelo repite el vocabulario de la prosa (H7.3); y leer siempre el precepto remitido, que añade una
+lectura a preguntas que no la necesitan cuando C1 ya manda leerlo si importa.
+
+**Lo que no se ha medido.** El efecto de C9 sobre `afirma_lo_no_leido` y sobre las demás evals no se puede medir en
+una sesión de un paso, que no abre sesiones con modelo (ADR 0032): lo mide el job de evals de la medición siguiente,
+en los dos modos.

@@ -36,6 +36,7 @@ Lo que dependía de ellos está en «Supuestos».
 | V20 | La lista se aplica a respuestas en `Juzgar`, en el recuento del informe y del sondeo y en `comprobarConsultaRepetida` | `juzgar.go:908-913`, `informe.go:381-395, 1041-1083`, `sondeo.go:269`, `consulta_repetida.go:62` |
 | V21 | `TestGrabacionesDerivadas` está en `internal/app`, que no puede importar `internal/evals` desde sus tests | `internal/app/grafo_test.go:2527-2533, 2724` |
 | V22 | En bash 3.2, `$(…)` quita los saltos de línea finales, y con `$(…; printf x)` seguido de `${v%x}` se conservan: así lee el guion del voto la rúbrica entera | `/bin/bash` 3.2.57 del equipo, con `od -c` |
+| V23 | En el informe del cierre sobre `a5bda45`, `afirma_lo_no_leido:claude-sonnet-5-5:orden` da 1 de 54 —la sesión `08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01`, tres votos con la frase «También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso» y el precepto «Artículo 24 de la Ley 19/2013»— y el del modo herramienta, 0 de 54; `sin_activar` 0 y 0, `cuenta_su_proceso` 0 y 3, la medida del juez 0 de 212 y 0 de 47, las sesiones 447 s y 446 s, el juez 102 s y 101 s, ninguna sin juzgar; `legal-core` aprueba. La sesión leyó solo `a20` de `BOE-A-2013-12887`, cuyo apartado 5 grabado dice «sin perjuicio de la posibilidad de interposición de la reclamación potestativa prevista en el artículo 24» y no que sea previa. La misma frase es un caso `defecto` dos veces en `casos.yaml` (H21, `08-…-herramienta-…-02`; H22, `17-…-02`), y otra respuesta del cierre dice «del artículo 24, que es otra vía» sin ningún voto afirmativo | `gates/cierre.json`, `gates/evals/boe-legislacion.json` y `legal-core.json`, con `jq`; `testdata/evals/boe.legislacion-consolidada/…BOE-A-2013-12887_texto_bloque_a20.json`; `evidencias/adr-0037/casos.yaml:979-983, 1495-1499` |
 
 ## Medido
 
@@ -192,6 +193,23 @@ en `testdata/` se restaura de la historia del repositorio (D15) y en `schemas/` 
 **D26. No se añade una guarda por variable de entorno contra abrir el juez en un run.** `juez.py` la tenía. La
 garantía es el sandbox de las sesiones de un paso (ADR 0032), y el guion del voto y el de la medida caen en el patrón
 que la política ya deniega (V9). `scripts/workflow/` no se toca (FR-096).
+
+**D27. Reparación del cierre: C9, el inciso detrás de una remisión (FR-081, FR-082).** Lo decide `reparar_cierre`
+con la medición de V23: con C1-C8, `afirma_lo_no_leido` da 1 de 54 en el modo orden frente al umbral 0, lo que S8
+preveía. **Causa.** C1 decía qué no se dice del precepto no leído («qué dice ni de qué trata») y que la remisión va
+«como el texto la da, sin describir lo remitido». La respuesta parafrasea el art. 20.5 de la Ley 19/2013, que leyó,
+nombra el art. 24 solo por su número y cuelga de la remisión un inciso que sitúa lo remitido respecto del recurso
+—«que es previa a ese recurso»—, que es la regla del art. 24: el modelo no lo toma por «describir lo remitido» ni por
+decir «de qué trata». Es la forma c de contracts/skill-boe-legislacion.md §1, que C1 cubría solo con la regla general,
+y la misma construcción aparece en otra respuesta del cierre con un inciso que no afirma nada («que es otra vía»).
+**Qué cambia.** La viñeta de C1 gana «cuándo o cómo se aplica», «ni en un paréntesis o un inciso» y, de la remisión,
+«va con las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido»
+(contracts §8, C9). Cuesta una línea, que paga el blanco entre el ejemplo `⚠ NORMA DEROGADA:` y su viñeta en «Cómo se
+cita», como C11 de H7.4: 298 líneas, `make skills-check` en verde. **Rechazado:** la frase marcada como ejemplo en la
+skill, porque es contenido legal del art. 24 y el modelo repite el vocabulario de la prosa (H7.3); leer siempre el
+precepto remitido, que añade una lectura a preguntas que no la necesitan cuando C1 ya manda leerlo si importa; y tocar
+la eval, la rúbrica, los casos, la medida o el umbral (FR-036; ADR 0029). **Sin medir:** el efecto de C9 lo mide el
+job de evals de la medición siguiente, en los dos modos; esta sesión no abre sesiones con modelo (ADR 0032).
 
 ## Datos externos
 
