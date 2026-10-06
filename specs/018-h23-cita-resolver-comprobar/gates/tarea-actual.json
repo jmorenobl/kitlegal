@@ -1,15 +1,16 @@
 {
-  "id": "T003",
-  "texto": "T003 [datos] El corpus mínimo del fuzz de ECLI y de ROJ, y **nada más** (data-model §1; plan.md, «Fixtures», primer punto): en internal/core/ids/testdata/fuzz/FuzzECLI/ y en internal/core/ids/testdata/fuzz/FuzzROJ/, un fichero por entrada con el formato de corpus de Go (`go test fuzz v1`), como los de sus vecinos `FuzzCodigoINE` y `FuzzCodigoDIR3`: para el ECLI, los aceptados y los rechazados de FR-003 y de los casos límite del spec (el de la sentencia conocida, uno del Tribunal Constitucional, uno que termina en letra, el mal formado, el de minúsculas, el de otro país y uno con un blanco); para el ROJ, `STS 3144/2023`, unas siglas de dos palabras, el que lleva el prefijo `ROJ:` y uno sin año. Son las formas que el spec nombra, no datos de ninguna fuente. Ningún fichero Go cambia. **Verificación**: `go test -count=1 -v -run '^Fuzz(ECLI|ROJ)$'` del paquete ejecuta cada fichero del corpus como subprueba —contadas con `rtk proxy`, para que no pase en vacío—; `make ci`. — FR-113. Rutas: internal/core/ids/testdata/fuzz/FuzzECLI/, internal/core/ids/testdata/fuzz/FuzzROJ/",
+  "id": "T004",
+  "texto": "T004 El tipo de nodo `Resolucion` y las claves de sus datos en el vocabulario del grafo (data-model §5; contracts/cita-resolver.md §6; research D14, V15; plan.md paso 3). `vocabulario.go`: la constante `TipoResolucion = \"Resolucion\"` y las ocho claves de sus datos —`DatoECLI`, `DatoROJ`, `DatoOrgano`, `DatoFecha`, `DatoNumeroResolucion`, `DatoNumeroRecurso`, `DatoPonente` y `DatoURL`—, con los valores `ecli`, `roj`, `organo`, `fecha`, `numero_resolucion`, `numero_recurso`, `ponente` y `url`, los de `data`. Ningún tipo de arista, ningún nodo `Persona` y ningún cambio en la comprobación del grafo: `graph check` no da hallazgos de una `Resolucion` porque solo los da de una norma, un bloque o una versión de bloque. **Tests**: `vocabulario_test.go` gana el tipo y sus ocho claves donde fija el vocabulario, con sus valores uno a uno. Antes de escribir: `grep` de las listas de tipos de nodo en los tests del dominio del grafo y de su almacén, por si alguna compara el vocabulario entero. — FR-042, FR-043. Rutas: internal/core/grafo/vocabulario.go",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "f605651e90637a42ecdc0cb4d9bf099455eb3676",
+  "base": "6c976982ea5d26e2b98531c7fb58862b71c6f0b5",
   "rutas": [
-    "3144/2023",
-    "internal/core/ids/testdata/fuzz/FuzzECLI/",
-    "internal/core/ids/testdata/fuzz/FuzzROJ/",
-    "plan.md"
+    "contracts/cita-resolver.md",
+    "internal/core/grafo/vocabulario.go",
+    "plan.md",
+    "vocabulario.go",
+    "vocabulario_test.go"
   ],
   "cierre": false,
   "converger": false,

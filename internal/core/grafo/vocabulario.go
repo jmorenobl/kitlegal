@@ -19,6 +19,10 @@ const (
 	// vigila la validación del lote, que rechaza una Persona con un documento
 	// de identidad en su id o en sus datos (FR-025, constitución VII).
 	TipoPersona = "Persona"
+	// TipoResolucion es una resolución judicial, por su ECLI. `graph check` no
+	// da hallazgos de ella: solo los da de una norma, un bloque o una versión
+	// de bloque (H23 FR-042, FR-043).
+	TipoResolucion = "Resolucion"
 )
 
 // Las relaciones del grafo del mundo, cada una entre dos tipos de nodo
@@ -56,6 +60,31 @@ const (
 	DatoNombre = "nombre"
 	// DatoDIR3 es el código DIR3 de un Organo.
 	DatoDIR3 = "dir3"
+)
+
+// Las claves de los datos de una Resolucion: sus metadatos, con los nombres
+// que llevan en `data` (H23 FR-042; data-model §5). Ninguna lleva el resumen
+// ni el texto de la resolución, y el ponente es un dato del nodo: no da lugar
+// a ningún nodo Persona.
+const (
+	// DatoECLI es el ECLI de una Resolucion, que es también su id.
+	DatoECLI = "ecli"
+	// DatoROJ es el ROJ de una Resolucion, el identificador que le da el
+	// CENDOJ.
+	DatoROJ = "roj"
+	// DatoOrgano es el órgano judicial, con su sala, que dictó una Resolucion.
+	DatoOrgano = "organo"
+	// DatoFecha es la fecha, AAAA-MM-DD, de una Resolucion.
+	DatoFecha = "fecha"
+	// DatoNumeroResolucion es el número de una Resolucion.
+	DatoNumeroResolucion = "numero_resolucion"
+	// DatoNumeroRecurso es el número del recurso que resuelve una Resolucion.
+	DatoNumeroRecurso = "numero_recurso"
+	// DatoPonente es el nombre de quien fue ponente de una Resolucion.
+	DatoPonente = "ponente"
+	// DatoURL es la URL del documento de una Resolucion, tal como la da el
+	// CENDOJ.
+	DatoURL = "url"
 )
 
 // ClaseDeHallazgo es la clase de un hallazgo de `graph check`. Es un tipo
