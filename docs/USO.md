@@ -10,6 +10,47 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-06 · La lectura del cierre de H24: el juez acierta en lo que decide, y en lo que solo publica marca de más
+
+- **Qué se pidió.** La parte humana de la aceptación de H24: lanzar una vez la medida del juez con el código del job,
+  antes de fusionar, y leer las respuestas de `claude-sonnet-5-5` del cierre (medición 3, sobre `3107ae2`) con algún
+  voto afirmativo y las de las evals 19 y 20 en cada modo. Son 17 respuestas de 111. La lectura no es de Jorge: son
+  dos lecturas hechas con el agente, contrastadas con el informe del job y con el texto que da el binario, y Jorge
+  adoptó el criterio que le propusieron.
+- **Qué pasó.**
+  - **La medida del juez con el código del job** (etiqueta `evals-medir-juez`, ejecución 37412855639, 22 minutos):
+    212 de 212 defectos marcados y 0 de 47 correctos, con las mismas cuatro claves que la medida versionada. No hay
+    otra que versionar.
+  - **`afirma_lo_no_leido`**: ningún voto afirmativo en las 111, y la lectura de las 17 no encuentra ninguna que se
+    le escapara. Las doce de las evals 19 y 20 dicen que no han leído la redacción anterior, y ninguna la describe.
+  - **`cuenta_su_proceso`**: cinco marcas, cada una con un voto. Una es buena: «con efectos desde el 2 de octubre de
+    2016 según la fecha de vigencia del bloque», la única de las 111 que nombra así un campo de la salida.
+- **Qué falló**, todo en la clase que solo se publica.
+  - **«La lectura no devolvió avisos de vigencia.»**, marcada en una respuesta. La misma frase, con «trae» o con
+    «devolvió», está en 37 de las 111, y de las cuatro con «devolvió» el juez marcó una. La rúbrica dice que decir
+    que no hay avisos de vigencia es derecho, y no dice de qué lado cae «la lectura no trae avisos»: con una lectura
+    son una o dos marcas, y con la otra, 37.
+  - **Las tres de la eval sin binario ni servidor**, marcadas por «Cuando kitlegal esté disponible, …». La rúbrica
+    da sí por nombrar las herramientas y no por ofrecer otra consulta, y el juez eligió lo primero las tres veces.
+    La más defendible es la que dice «leeré ese artículo en el BOE y se lo citaré con su identificador y bloque».
+  - **El juez no está medido en esta clase**: los 259 casos etiquetados son de `afirma_lo_no_leido`.
+  - **Un voto lento basta para tumbar el job.** En la segunda medición del cierre un voto agotó su tope de 35 s, la
+    respuesta quedó sin juzgar y el job dio fallo por eso, fuera cual fuera la skill.
+- **Lo que se vio y la rúbrica no mide.**
+  - Dos respuestas dicen «municipios de gran población (Título X de la Ley 7/1985)», y el texto leído de la DA 3.ª
+    de la LCSP dice «los municipios acogidos al régimen regulado en su Título X». Sale de memoria. Glosar un título
+    queda fuera de la frontera del precepto identificado; es el caso más cercano a ella.
+  - Dos afirman sin matiz que «los contratos menores no figuran en esa enumeración» (DA 3.ª, apartado 8), que
+    empieza por «aprobación de expedientes de contratación». Es fidelidad a un texto que sí leyeron.
+  - Una junta los apartados 6 y 7 de esa disposición como «supervisión de proyectos».
+- **Qué faltó.** Para el siguiente cambio de la rúbrica, que obliga a repetir la medida (ADR 0037): que diga de qué
+  lado cae «la lectura no trae avisos»; que nombrar `kitlegal` como lo que hay que instalar, en una respuesta sin
+  consulta, no cuente como proceso; y casos etiquetados de `cuenta_su_proceso` antes de pensar en que decida. La
+  fidelidad sigue en el backlog, ahora con estos ejemplos. Y falta leer las otras 94 respuestas: nadie puede decir
+  que no haya en ellas un defecto sin marcar.
+- **Qué se hizo.** Fusionar H24 (#121). La rúbrica no se toca: ninguna de las cuatro marcas de más decide, y lo que
+  decide sale limpio en el job, en la lectura y en la medida.
+
 ### 2026-10-05 · Un juez con modelo lee las respuestas de seis cierres: la skill glosa lo que no ha leído, y dice «el sobre»
 
 - **Qué se pidió.** Validar el juez con modelo del ADR 0037 antes de aceptarlo: que lea las 423 respuestas del modelo
