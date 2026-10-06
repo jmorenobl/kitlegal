@@ -1,6 +1,7 @@
 # 0036 · Del CENDOJ, resolver una resolución identificada por su formulario; la búsqueda la hace la persona
 
-- **Estado**: aceptada (2026-10-03, #109).
+- **Estado**: aceptada (2026-10-03, #109). Enmendada el 2026-10-06, antes de lanzar H23, sin cambiar la decisión
+  («Enmienda: lo que la entrada de H23 contradecía»).
 - **Fecha**: 2026-10-02
 - **Hito**: transversal (tras H22, antes del hito de jurisprudencia del backlog «fuentes»). Sustituye del ADR
   0003 el primer punto de su decisión (resolver por el resolutor ECLI europeo, «no del buscador») y corrige dos
@@ -96,3 +97,46 @@ Se adopta la **opción 4**.
   de su run.
 - Buscar por materia o leer textos de forma automática sigue pidiendo el procedimiento de reutilización del CGPJ
   y un ADR nuevo, no una excepción en el código.
+
+## Enmienda: lo que la entrada de H23 contradecía (2026-10-06)
+
+Hecha al comprobar la entrada de H23 antes de lanzarlo, y decidida por Jorge. No cambia la decisión: la lleva a
+donde este ADR no llegó, y corrige la entrada del hito donde chocaba con él.
+
+- **La constitución no se enmendó con este ADR.** Su principio I decía «No existe ninguna llamada HTTP con método
+  distinto de GET/HEAD en el módulo» y «CENDOJ: solo resolución de ECLI y metadatos». El formulario del buscador
+  se envía con `POST`, con la cookie de sesión de la página, y se consulta también por ROJ y por número de
+  resolución con su fecha. `internal/httpx` rechaza hoy todo lo que no sea GET o HEAD y no guarda cookies, y los
+  dos jueces de la revisión final del workflow lo exigen. Con la constitución como estaba, el hito no se podía
+  especificar. **Constitución 2.12.0**: GET y HEAD, con una sola excepción, el envío del formulario de consulta
+  de un buscador público cuya fila de `docs/SOURCES.md`, revisada por una persona, lo declara. Es una consulta
+  sin identidad, que no presenta, firma ni cambia nada en la fuente: «nunca un POST a una sede» (ADR 0004) sigue
+  como estaba. Workflow `hito` 2.5.1: la rúbrica de los jueces finales dice lo mismo.
+  - Considerado y rechazado: probar si el buscador responde a un GET. El formulario es un `POST`, y usarlo como
+    lo usa una persona es lo que sostiene la lectura del aviso legal.
+- **La integración continua no consulta el CENDOJ, tampoco de noche.** La entrada de H23 ponía una consulta en el
+  flujo nocturno, contra «Cómo se pide» y contra «una consulta por resolución, que nace de una pregunta de la
+  persona». La comprobación de que la respuesta del buscador se sigue interpretando la lanza una persona, por su
+  nombre, antes de una release o cuando alguien avisa. Lo que se pierde es enterarse solo de un cambio de forma:
+  el applet lo dice a quien consulta, con la fila de «rate-limited/TOS».
+- **Una cita probada como ROJ lleva su fecha.** La entrada decía que «STS 1088/2023, de 4 de julio» se prueba
+  como número de resolución con su fecha y, si no da nada, como ROJ. Los ROJ son correlativos: casi cualquier
+  número existe como ROJ de otra sentencia, y una cita inventada, o con la fecha mal recordada, quedaba
+  comprobada con el enlace de un asunto ajeno. Con `--roj` y `--fecha`, lo encontrado con otra fecha no es lo
+  pedido, y lo compara la herramienta, no el modelo. Una cita así sin fecha no se prueba como ROJ.
+- **«Cita» se mide por el ECLI.** La entrada medía que una respuesta no citara una sentencia inventada por «el
+  ECLI, el ROJ o el número de resolución con su fecha», y la respuesta correcta tiene que nombrar ese número
+  para decir que no lo ha comprobado. La cita y la línea `⚠ SENTENCIA NO COMPROBADA:` tienen forma fija, y el
+  umbral cuenta los ECLI que no vienen de una entrega ni de la persona: un hecho de la sesión (ADR 0037).
+- **«Resume» lo decide un juez medido, en un hito propio.** La entrada daba por hecho que `jurisprudencia`
+  declaraba la clase `afirma_lo_no_leido` y que decidía. El ADR 0037 exige para eso una rúbrica, casos
+  etiquetados y una medida; la rúbrica validada pregunta por preceptos y por el BOE, y no hay casos de una skill
+  que no existe. H23 decide con lo que tiene forma, y H25, con la rúbrica validada fuera de un run sobre las
+  respuestas del cierre de H23, hace decidir al juez. Ninguna release lleva `jurisprudencia` antes.
+- **El texto de una sentencia lo trae una persona, también en las evals.** La eval de «la persona pega el texto»
+  necesita un texto real, y un run ni lo descarga ni lo escribe de memoria. Es un fragmento —el encabezamiento y
+  el fallo de una sentencia— que una persona copió del buscador con su navegador: `evidencias/adr-0036/`. Con las
+  grabaciones, es lo único del CENDOJ que hay en el repositorio, y se mantiene en lo mínimo.
+- **Si el CENDOJ bloquea una grabación, no se insiste.** El test de grabación falla con una respuesta que no es
+  ni resultados ni «no se ha encontrado»: un CAPTCHA o un 403 no quedan como fixture, el run se detiene y decide
+  una persona. La página del CAPTCHA no se provoca para tenerla: en los tests es una página que no se reconoce.

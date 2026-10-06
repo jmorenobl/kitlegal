@@ -5,7 +5,7 @@ Documento normativo que gobierna toda especificación, plan, tarea e implementac
 ## Principios
 
 ### I. Fuentes públicas y frontera humana (INNEGOCIABLE)
-Solo se automatizan fuentes públicas. Presentar escritos, notificaciones y cualquier acción con identidad terminan en "fichero listo para firmar" y exit 6; nunca un POST a una sede. CENDOJ: solo resolución de ECLI y metadatos. Toda petición HTTP pasa por `internal/httpx` (User-Agent identificable, `robots.txt`, rate limit por host, sin paralelismo agresivo). No existe ninguna llamada HTTP con método distinto de GET/HEAD en el módulo.
+Solo se automatizan fuentes públicas. Presentar escritos, notificaciones y cualquier acción con identidad terminan en "fichero listo para firmar" y exit 6; nunca un POST a una sede. CENDOJ: solo resolver una resolución identificada —por su ECLI, su ROJ o su número de resolución con su fecha— a sus metadatos, una consulta por resolución (ADR 0036). Toda petición HTTP pasa por `internal/httpx` (User-Agent identificable, `robots.txt`, rate limit por host, sin paralelismo agresivo). No existe ninguna llamada HTTP con método distinto de GET/HEAD en el módulo, con una sola excepción: el envío del formulario de consulta de un buscador público, cuando la fila de la fuente en `docs/SOURCES.md`, revisada por una persona, declara ese formulario. Es una consulta sin identidad, que no presenta, firma ni cambia nada en la fuente; la emite solo `internal/httpx`, a la dirección que declara la fila, y ningún adaptador la usa para otra cosa (ADR 0036).
 
 ### II. Nada sin cita ni fuente
 Todo applet emite el sobre `{ok, fuente, url, fecha_consulta, hash, data}`. Sin `fuente`+`url`+`fecha_consulta`+`hash` no hay cita. Un dato sin `source` no entra en el grafo. Nunca se inventa contenido legal; se distingue ley de reglamento y se señala variación autonómica. Nunca se aplican los recursos, los plazos ni los escritos del procedimiento común a lo que la ley regula aparte (DA 1ª.2 LPAC y equivalentes): se declara no cubierto, con la norma que lo rige, hasta que una vertical lo cubra (ADR 0027).
@@ -82,4 +82,4 @@ Se aplica en `clarify`, en los gates automáticos del workflow `hito` y en cualq
 
 Esta constitución prevalece sobre cualquier otra práctica. Toda PR se revisa contra ella. Enmiendas: cambio en este fichero + ADR que lo motive + actualización de `CLAUDE.md` si afecta a una decisión cerrada. Las decisiones listadas como cerradas en `CLAUDE.md` no se reabren en spec, plan ni clarify.
 
-**Version**: 2.11.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-10-05
+**Version**: 2.12.0 | **Ratified**: 2026-09-09 | **Last Amended**: 2026-10-06
