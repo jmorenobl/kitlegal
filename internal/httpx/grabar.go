@@ -58,13 +58,41 @@ type grabacion struct {
 }
 
 // peticionGrabada es la petición tal como se emitió, y es además la clave de
-// emparejamiento: el método y la dirección completa son lo que la grabación
-// compara para detectar una colisión y lo que la reproducción compara para
-// aceptar un fichero (FR-039, contrato §3 y §4).
+// emparejamiento: el método, la dirección completa y el cuerpo son lo que la
+// grabación compara para detectar una colisión y lo que la reproducción compara
+// para aceptar un fichero (FR-039, contrato §3 y §4; FR-034 de H23).
+//
+// El cuerpo es el de un envío de formulario, ya codificado, y solo lo lleva la
+// petición que envía campos: en las demás va vacío y omitempty deja el fichero
+// sin la clave, byte a byte como antes de que hubiera cuerpos. No hace falta
+// distinguir «no está» de «está y va vacío», porque un envío lleva al menos un
+// campo y su cuerpo nunca es la cadena vacía (contrato httpx-formulario §2 y §5
+// de H23).
 type peticionGrabada struct {
 	Metodo    string    `json:"metodo"`
 	URL       string    `json:"url"`
+	Cuerpo    string    `json:"cuerpo,omitempty"`
 	Cabeceras Cabeceras `json:"cabeceras"`
+}
+
+// esLaMisma es la regla de emparejamiento, la misma al grabar y al reproducir:
+// el método, la dirección y el cuerpo tienen que coincidir **exactamente**. Las
+// cabeceras no participan, porque la identificación lleva la versión del binario
+// y la haría cambiar de una versión a otra (FR-039, FR-047, contrato §4), y la
+// cookie de una consulta es otra en cada sesión.
+func (p peticionGrabada) esLaMisma(otra peticionGrabada) bool {
+	return p.Metodo == otra.Metodo && p.URL == otra.URL && p.Cuerpo == otra.Cuerpo
+}
+
+// descripcion nombra la petición en un mensaje con lo que la empareja: el método
+// y la dirección y, si envía un formulario, su cuerpo, que es lo único que
+// distingue a dos envíos a la misma dirección.
+func (p peticionGrabada) descripcion() string {
+	if p.Cuerpo == sinCuerpo {
+		return p.Metodo + " " + p.URL
+	}
+
+	return p.Metodo + " " + p.URL + " con el cuerpo " + p.Cuerpo
 }
 
 // respuestaGrabada es lo que la fuente respondió. El cuerpo va en una de las dos
@@ -124,7 +152,7 @@ func (g *decoradorDeGrabacion) RoundTrip(peticion *http.Request) (*http.Response
 		return nil, err
 	}
 
-	cuerpo, err := leerYCerrar(respuesta)
+	cuerpo, err := leerYCerrar(respuesta.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -138,15 +166,16 @@ func (g *decoradorDeGrabacion) RoundTrip(peticion *http.Request) (*http.Response
 	return respuesta, nil
 }
 
-// leerYCerrar deja la respuesta sin cuerpo abierto y devuelve lo que traía. El
-// cierre se hace pase lo que pase con la lectura —«the caller should close
-// resp.Body when done reading from it» (go doc net/http.RoundTripper)—, y el
-// error que gana es el de la lectura, que es el que dice qué falló; el del
-// cierre solo cuenta cuando la lectura fue bien.
-func leerYCerrar(respuesta *http.Response) ([]byte, error) {
-	cuerpo, errDeLectura := io.ReadAll(respuesta.Body)
+// leerYCerrar deja el cuerpo cerrado y devuelve lo que traía. El cierre se hace
+// pase lo que pase con la lectura —«the caller should close resp.Body when done
+// reading from it» (go doc net/http.RoundTripper)—, y el error que gana es el de
+// la lectura, que es el que dice qué falló; el del cierre solo cuenta cuando la
+// lectura fue bien. Vale igual para el cuerpo de una respuesta que para la copia
+// del de una petición.
+func leerYCerrar(cuerpo io.ReadCloser) ([]byte, error) {
+	contenido, errDeLectura := io.ReadAll(cuerpo)
 
-	errAlCerrar := respuesta.Body.Close()
+	errAlCerrar := cuerpo.Close()
 
 	if errDeLectura != nil {
 		return nil, errDeLectura
@@ -156,7 +185,7 @@ func leerYCerrar(respuesta *http.Response) ([]byte, error) {
 		return nil, errAlCerrar
 	}
 
-	return cuerpo, nil
+	return contenido, nil
 }
 
 // escribir deja la grabación en <directorio>/<nombre>.json, con el nombre que la
@@ -165,20 +194,22 @@ func leerYCerrar(respuesta *http.Response) ([]byte, error) {
 // construcción; después escribe en firme.
 func (g *decoradorDeGrabacion) escribir(peticion *http.Request, respuesta *http.Response, cuerpo []byte) error {
 	implicada := Peticion{Metodo: peticion.Method, URL: peticion.URL.String()}
-	ruta := filepath.Join(g.directorio, nombreDeGrabacion(peticion.Method, peticion.URL))
 
-	if err := comprobarQueEsLaMisma(ruta, implicada); err != nil {
+	emitida, err := peticionEmitida(peticion, implicada)
+	if err != nil {
+		return err
+	}
+
+	ruta := filepath.Join(g.directorio, nombreDeGrabacion(peticion.Method, peticion.URL, emitida.Cuerpo))
+
+	if err := comprobarQueEsLaMisma(ruta, implicada, emitida); err != nil {
 		return err
 	}
 
 	contenido := &grabacion{
 		Formato:   formatoDeGrabacion,
 		GrabadoEn: time.Now().UTC().Format(time.RFC3339),
-		Peticion: peticionGrabada{
-			Metodo:    implicada.Metodo,
-			URL:       implicada.URL,
-			Cabeceras: Cabeceras(peticion.Header),
-		},
+		Peticion:  emitida,
 		Respuesta: respuestaGrabadaDe(respuesta, cuerpo),
 	}
 
@@ -187,6 +218,58 @@ func (g *decoradorDeGrabacion) escribir(peticion *http.Request, respuesta *http.
 	}
 
 	return nil
+}
+
+// peticionEmitida traduce la petición que baja por la cadena al objeto del
+// contrato §1, que es también lo que se empareja: su método, su dirección, el
+// cuerpo con el que sale y sus cabeceras. La usan la grabación, para escribirla,
+// y la reproducción, para buscarla, de modo que las dos leen el cuerpo de la
+// misma manera (research D6 de H23).
+func peticionEmitida(peticion *http.Request, implicada Peticion) (peticionGrabada, error) {
+	cuerpo, err := cuerpoEnviado(peticion, implicada)
+	if err != nil {
+		return peticionGrabada{}, err
+	}
+
+	return peticionGrabada{
+		Metodo:    implicada.Metodo,
+		URL:       implicada.URL,
+		Cuerpo:    cuerpo,
+		Cabeceras: Cabeceras(peticion.Header),
+	}, nil
+}
+
+// cuerpoEnviado devuelve el cuerpo con el que sale la petición —los campos de un
+// formulario, ya codificados— o sinCuerpo si no envía nada. No toca el que se
+// envía: lee una copia, la que da GetBody, que es como la biblioteca deja leer un
+// cuerpo otra vez (go doc net/http.Request.GetBody), y el transporte recibe el
+// suyo entero y sin empezar.
+//
+// El único cuerpo que sale del paquete lo pone ponerFormulario, que declara
+// GetBody. Un cuerpo sin GetBody no se podría leer sin consumirlo, y grabarlo o
+// emparejarlo como si la petición no enviara nada sería hacerlo mal en silencio:
+// es un fallo del mecanismo, como el de la copia que no se deja abrir o leer.
+func cuerpoEnviado(peticion *http.Request, implicada Peticion) (string, error) {
+	if peticion.GetBody == nil {
+		if peticion.Body == nil || peticion.Body == http.NoBody {
+			return sinCuerpo, nil
+		}
+
+		return sinCuerpo, errorInesperado(implicada, nil,
+			"el cuerpo de la petición no se puede leer sin consumir el que se envía: no declara GetBody")
+	}
+
+	copia, err := peticion.GetBody()
+	if err != nil {
+		return sinCuerpo, errorInesperado(implicada, err, "el cuerpo de la petición no se ha podido leer")
+	}
+
+	contenido, err := leerYCerrar(copia)
+	if err != nil {
+		return sinCuerpo, errorInesperado(implicada, err, "el cuerpo de la petición no se ha podido leer")
+	}
+
+	return string(contenido), nil
 }
 
 // respuestaGrabadaDe traduce la respuesta al objeto del contrato §1, con el
@@ -215,15 +298,16 @@ func respuestaGrabadaDe(respuesta *http.Response, cuerpo []byte) respuestaGrabad
 
 // comprobarQueEsLaMisma es la detección de colisión por contenido de FR-039. El
 // nombre se deriva de la petición, pero dos peticiones distintas pueden
-// sanearse al mismo —«/a,b» y «/a_b», o «/A» y «/a» en un sistema de ficheros
-// insensible a mayúsculas—, así que lo que decide es lo que el fichero guarda
-// dentro: la misma petición se regraba y otra distinta es un fallo del mecanismo
-// que nombra las dos y el fichero, sin escribir nada (contrato §3).
+// sanearse al mismo —«/a,b» y «/a_b», «/A» y «/a» en un sistema de ficheros
+// insensible a mayúsculas, o dos envíos cuyos cuerpos solo difieren en lo que el
+// saneado iguala—, así que lo que decide es lo que el fichero guarda dentro: la
+// misma petición se regraba y otra distinta es un fallo del mecanismo que nombra
+// las dos y el fichero, sin escribir nada (contrato §3).
 //
 // Un fichero que está pero no se deja leer o no se deja interpretar tampoco
 // autoriza a escribir encima: no se sabe qué guarda, y sobrescribirlo sería
 // perder una grabación ajena en silencio.
-func comprobarQueEsLaMisma(ruta string, implicada Peticion) error {
+func comprobarQueEsLaMisma(ruta string, implicada Peticion, emitida peticionGrabada) error {
 	// filepath.Clean es lo que el control de rutas reconoce como saneado antes
 	// de abrir un fichero (gosec G304); la ruta la compone este paquete a partir
 	// del directorio validado en la construcción y de un nombre que solo lleva
@@ -246,13 +330,13 @@ func comprobarQueEsLaMisma(ruta string, implicada Peticion) error {
 			"la grabación que ya había en "+ruta+" no se ha podido interpretar")
 	}
 
-	if existente.Peticion.Metodo == implicada.Metodo && existente.Peticion.URL == implicada.URL {
+	if existente.Peticion.esLaMisma(emitida) {
 		return nil
 	}
 
 	return errorInesperado(implicada, nil,
-		"la grabación "+ruta+" guarda "+existente.Peticion.Metodo+" "+existente.Peticion.URL+
-			" y aquí se iba a grabar "+implicada.Metodo+" "+implicada.URL)
+		"la grabación "+ruta+" guarda "+existente.Peticion.descripcion()+
+			" y aquí se iba a grabar "+emitida.descripcion())
 }
 
 // escribirEnFirme escribe la grabación en un temporal del mismo directorio y la

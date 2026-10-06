@@ -25,31 +25,36 @@ const largoMaximoDeLaTabla = 120
 // mano, por la misma razón.
 const extensionDeLaTabla = ".json"
 
-// filaDeNombre es una fila de las dos tablas de este fichero: una petición
-// —método y dirección completa, que es todo lo que entra en la derivación— y el
-// fichero que le corresponde.
+// filaDeNombre es una fila de las tablas de este fichero: una petición —método,
+// dirección completa y, si envía un formulario, el cuerpo codificado, que es
+// todo lo que entra en la derivación— y el fichero que le corresponde.
 type filaDeNombre struct {
 	nombre    string
 	metodo    string
 	direccion string
+	cuerpo    string
 	fichero   string
 }
 
 // TestNombreDeGrabacion fija el nombre con el que se graba una petición y con
 // el que la reproducción la busca después: la única clave que une las dos
-// mitades del mecanismo, derivada del método y de la dirección completa y de
-// nada más, porque nadie fuera del paquete la declara (FR-039, D12).
+// mitades del mecanismo, derivada del método, de la dirección completa y del
+// cuerpo que envía, y de nada más, porque nadie fuera del paquete la declara
+// (FR-039, D12; FR-034 de H23).
 //
-// Son dos tablas que tienen que decir lo mismo desde dos sitios distintos: la
-// del contrato de grabación §2, que fija las reglas, y la de los diez ficheros
-// escritos a mano de plan.md §«Fixtures», que fija los nombres que T012 va a
-// escribir en el árbol. Un fichero mal nombrado falla aquí antes de que ningún
-// test de reproducción lo busque.
+// Las dos primeras tablas tienen que decir lo mismo desde dos sitios distintos:
+// la del contrato de grabación §2, que fija las reglas, y la de los diez
+// ficheros escritos a mano de plan.md §«Fixtures», que fija los nombres que
+// T012 va a escribir en el árbol. Un fichero mal nombrado falla aquí antes de
+// que ningún test de reproducción lo busque. Toda dirección de las dos es de un
+// host ficticio o local —`fuente.prueba`, `otra.prueba` o `127.0.0.1`—, que es
+// lo único que admite la comprobación «solo direcciones locales» del quickstart
+// (obligación 11 del plan).
 //
-// Toda dirección de las dos tablas es de un host ficticio o local
-// —`fuente.prueba`, `otra.prueba` o `127.0.0.1`—, que es lo único que admite la
-// comprobación «solo direcciones locales» del quickstart (obligación 11 del
-// plan).
+// La tercera es la de H23: los nombres que midió su prototipo (research M1).
+// Nombra la dirección del buscador porque son esos nombres, carácter a
+// carácter, los que van a quedar en el árbol; aquí solo se deriva un nombre de
+// ella y no se le pide nada.
 func TestNombreDeGrabacion(t *testing.T) {
 	t.Parallel()
 
@@ -68,15 +73,32 @@ func TestNombreDeGrabacion(t *testing.T) {
 		exigeLaTablaDeNombres(t, filas)
 	})
 
+	t.Run("los envíos de un formulario y los nombres del prototipo de H23", func(t *testing.T) {
+		t.Parallel()
+
+		exigeLaTablaDeNombres(t, filasDelFormulario())
+	})
+
 	t.Run("dos direcciones distintas pueden compartir nombre", func(t *testing.T) {
 		t.Parallel()
 
-		conComa := nombreDeGrabacion("GET", direccionDePrueba(t, "http://fuente.prueba/a,b"))
-		conGuionBajo := nombreDeGrabacion("GET", direccionDePrueba(t, "http://fuente.prueba/a_b"))
+		conComa := nombreDeGrabacion("GET", direccionDePrueba(t, "http://fuente.prueba/a,b"), sinCuerpo)
+		conGuionBajo := nombreDeGrabacion("GET", direccionDePrueba(t, "http://fuente.prueba/a_b"), sinCuerpo)
 
 		assert.Equal(t, conComa, conGuionBajo,
 			"el nombre no es único por construcción: la colisión se resuelve por contenido, "+
 				"comparando la petición guardada (contrato de grabación §3 y §4, FR-039)")
+	})
+
+	t.Run("y dos cuerpos distintos, también", func(t *testing.T) {
+		t.Parallel()
+
+		formulario := direccionDePrueba(t, "http://fuente.prueba/buscar")
+
+		assert.Equal(t,
+			nombreDeGrabacion("POST", formulario, "q=a%2Cb"), nombreDeGrabacion("POST", formulario, "q=a_2Cb"),
+			"el cuerpo se sanea con la misma regla que la dirección: la colisión se resuelve por contenido, "+
+				"comparando el cuerpo guardado (contrato httpx-formulario §5 de H23)")
 	})
 }
 
@@ -203,10 +225,119 @@ func filasDeLosFixtures() []filaDeNombre {
 	}
 }
 
+// Las dos direcciones de las filas de H23: el formulario de consulta del
+// buscador y su página (contracts/fuente-cendoj-y-grabacion.md §1). Solo se
+// nombran: ninguna tabla de este paquete las pide.
+const (
+	formularioDelPrototipo = "https://www.poderjudicial.es/search/search.action"
+	paginaDelPrototipo     = "https://www.poderjudicial.es/search/indexAN.jsp"
+)
+
+// camposFijosDelPrototipo es la cola de todo cuerpo del prototipo: los cinco
+// campos que no cambian de una consulta a otra, que por su inicial van detrás de
+// los de la referencia —las mayúsculas se ordenan antes— (contrato de la fuente
+// §2).
+const camposFijosDelPrototipo = "&action=query&databasematch=AN&recordsPerPage=10" +
+	"&sort=IN_FECHARESOLUCION%3Adecreasing&start=1"
+
+// filasDelFormulario son los nombres de una petición con cuerpo. La primera fila
+// fija la regla donde se lee entera, con un cuerpo corto; las siete siguientes
+// son los envíos del manifiesto del prototipo de H23 y la que les sigue, su
+// página, con los nombres de contracts/fuente-cendoj-y-grabacion.md §4 copiados
+// tal cual (research M1); y la última, una petición sin cuerpo de las que ya
+// están grabadas en el árbol, que no cambia.
+//
+// Los siete envíos pasan del tope, así que lo que los distingue es el resumen,
+// que se calcula también sobre el cuerpo: el tercero, el quinto y el séptimo
+// comparten los cien primeros caracteres.
+func filasDelFormulario() []filaDeNombre {
+	return []filaDeNombre{
+		{
+			nombre:    "el cuerpo va tras _c_, saneado con la misma regla que la dirección",
+			metodo:    "POST",
+			direccion: "http://fuente.prueba/buscar",
+			cuerpo:    "ECLI=ECLI%3AES%3ATS%3A2023%3A3144&action=query",
+			fichero:   "POST_http_fuente.prueba_buscar_c_ECLI_ECLI_3AES_3ATS_3A2023_3A3144_action_query.json",
+		},
+		{
+			nombre:    "1 · por ECLI",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo:    "ECLI=ECLI%3AES%3ATS%3A2023%3A3144" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_ECLI_ECLI_3AES_3ATS_3A2023_3A3144_action_quer" +
+				"-2740d948.json",
+		},
+		{
+			nombre:    "2 · por ROJ, cuyo espacio sale como un signo más",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo:    "ROJ=STS+3144%2F2023" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_ROJ_STS_3144_2F2023_action_query_databasematc" +
+				"-f743cbdf.json",
+		},
+		{
+			nombre:    "3 · por número de resolución, con sus dos fechas",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo: "FECHARESOLUCIONDESDE=04%2F07%2F2023&FECHARESOLUCIONHASTA=04%2F07%2F2023" +
+				"&NUMERORESOLUCION=1088%2F2023" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_FECHARESOLUCIONDESDE_04_2F07_2F2023_FECHARESO" +
+				"-13d3b725.json",
+		},
+		{
+			nombre:    "4 · por un ECLI que no da resultados",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo:    "ECLI=ECLI%3AES%3ATS%3A2023%3A999999" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_ECLI_ECLI_3AES_3ATS_3A2023_3A999999_action_qu" +
+				"-27a990b2.json",
+		},
+		{
+			nombre:    "5 · por un número de resolución que no existe",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo: "FECHARESOLUCIONDESDE=01%2F01%2F2023&FECHARESOLUCIONHASTA=01%2F01%2F2023" +
+				"&NUMERORESOLUCION=9999%2F2023" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_FECHARESOLUCIONDESDE_01_2F01_2F2023_FECHARESO" +
+				"-5f2d7f9d.json",
+		},
+		{
+			nombre:    "6 · por un ROJ que no existe",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo:    "ROJ=STS+9999%2F2023" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_ROJ_STS_9999_2F2023_action_query_databasematc" +
+				"-d01ce834.json",
+		},
+		{
+			nombre:    "7 · por otro número con las fechas del quinto, del que solo lo separa el resumen",
+			metodo:    "POST",
+			direccion: formularioDelPrototipo,
+			cuerpo: "FECHARESOLUCIONDESDE=01%2F01%2F2023&FECHARESOLUCIONHASTA=01%2F01%2F2023" +
+				"&NUMERORESOLUCION=3144%2F2023" + camposFijosDelPrototipo,
+			fichero: "POST_https_www.poderjudicial.es_search_search.action_c_FECHARESOLUCIONDESDE_01_2F01_2F2023_FECHARESO" +
+				"-16c2f425.json",
+		},
+		{
+			nombre:    "la página del buscador, que no envía nada",
+			metodo:    "GET",
+			direccion: paginaDelPrototipo,
+			fichero:   "GET_https_www.poderjudicial.es_search_indexAN.jsp.json",
+		},
+		{
+			nombre:    "y una petición sin cuerpo de las ya grabadas, que no cambia",
+			metodo:    "GET",
+			direccion: "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a21",
+			fichero: "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21" +
+				".json",
+		},
+	}
+}
+
 // exigeLaTablaDeNombres comprueba fila a fila que la derivación produce el
 // fichero declarado y que ese fichero es portable. Un fallo aquí es del código
 // bajo prueba o de la tabla; nunca del entorno, porque la derivación no depende
-// de nada más que de sus dos argumentos.
+// de nada más que de sus tres argumentos.
 func exigeLaTablaDeNombres(t *testing.T, filas []filaDeNombre) {
 	t.Helper()
 
@@ -214,7 +345,7 @@ func exigeLaTablaDeNombres(t *testing.T, filas []filaDeNombre) {
 		t.Run(fila.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			obtenido := nombreDeGrabacion(fila.metodo, direccionDePrueba(t, fila.direccion))
+			obtenido := nombreDeGrabacion(fila.metodo, direccionDePrueba(t, fila.direccion), fila.cuerpo)
 
 			assert.Equal(t, fila.fichero, obtenido,
 				"%s %s se graba en un solo fichero, el que fija el contrato §2", fila.metodo, fila.direccion)

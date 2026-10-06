@@ -3,6 +3,7 @@ package httpx
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,9 +11,11 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"sync/atomic"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -483,6 +486,397 @@ func TestGrabarCuerpoBinario(t *testing.T) {
 		"la clave del texto ni siquiera aparece")
 }
 
+// TestGrabacionDeFormularios es el control de FR-034 y la mitad de FR-112 que
+// toca a la grabación (contrato httpx-formulario §5 de H23): dos envíos a la
+// misma dirección con campos distintos son dos grabaciones. Lo que las separa
+// es el cuerpo, que entra en el nombre del fichero, se guarda dentro y se
+// compara —exacto, con el método y la dirección— al grabar y al reproducir.
+//
+// Todo ocurre en un temporal. Las grabaciones sin cuerpo que el paquete ya
+// versiona solo se leen: lo que se vuelve a grabar de ellas va a otro
+// directorio.
+func TestGrabacionDeFormularios(t *testing.T) {
+	t.Setenv(VariableGrabacion, variableActiva)
+
+	t.Run("dos envíos dejan dos ficheros y cada uno reproduce el suyo", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, variableActiva)
+
+		probarDosEnviosDosGrabaciones(t)
+	})
+
+	t.Run("otro cuerpo con el mismo nombre ni se graba encima ni se reproduce", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, variableActiva)
+
+		probarEnviosQueCompartenNombre(t)
+	})
+
+	t.Run("una grabación sin cuerpo se reproduce y se vuelve a grabar igual", func(t *testing.T) {
+		// Con la variable apagada: aquí no graba ningún cliente, sino el escalón
+		// de grabación montado a mano, que no la lee.
+		t.Setenv(VariableGrabacion, "")
+
+		probarGrabacionSinCuerpo(t)
+	})
+}
+
+// probarDosEnviosDosGrabaciones graba dos envíos contra un sitio de prueba y los
+// reproduce después sin él. El sitio responde a cada uno con el cuerpo que
+// recibió, de modo que la respuesta dice dos cosas: que el cuerpo llegó entero
+// —leerlo para grabarlo no consumió el que se enviaba— y de cuál de los dos
+// envíos es cada grabación.
+func probarDosEnviosDosGrabaciones(t *testing.T) {
+	t.Helper()
+
+	raiz := t.TempDir()
+	servidor, contador := servidorIdentificado(t, formularioQueRepite())
+	formulario := servidor.URL + rutaDelFormulario
+	envios := enviosDePrueba()
+
+	consulta := consultaDePrueba(t, clienteQueGraba(t, raiz, ConFormulario(formulario)))
+
+	for _, envio := range envios {
+		respuesta, err := consulta.Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodPost, URL: formulario, Campos: envio.campos})
+		require.NoError(t, err, "grabar no cambia el resultado del envío")
+		assert.Equal(t, loRecibido+envio.cuerpo, string(respuesta.Cuerpo),
+			"el sitio recibe el cuerpo entero: leerlo para grabarlo no consume el que se envía")
+	}
+
+	directorio := filepath.Join(raiz, fuenteDePrueba)
+
+	require.ElementsMatch(t, []string{
+		nombreDelServidor(t, servidor, "GET", "_robots.txt"),
+		nombreDelServidor(t, servidor, "POST", envios[0].resto),
+		nombreDelServidor(t, servidor, "POST", envios[1].resto),
+	}, nombresDe(t, directorio),
+		"dos envíos a la misma dirección con campos distintos son dos grabaciones (FR-034)")
+
+	esperado := `{
+  "formato": 1,
+  "grabado_en": "` + fechaNeutralizada + `",
+  "peticion": {
+    "metodo": "POST",
+    "url": "` + formulario + `",
+    "cuerpo": "` + envios[0].cuerpo + `",
+    "cabeceras": {
+      "Content-Type": [
+        "application/x-www-form-urlencoded"
+      ],
+      "User-Agent": [
+        "` + AgenteDeUsuario() + `"
+      ],
+      "X-Requested-With": [
+        "XMLHttpRequest"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Content-Length": [
+        "` + strconv.Itoa(len(loRecibido+envios[0].cuerpo)) + `"
+      ],
+      "Content-Type": [
+        "text/plain; charset=utf-8"
+      ],
+      "Date": [
+        "` + fechaNeutralizada + `"
+      ]
+    },
+    "cuerpo": "` + loRecibido + envios[0].cuerpo + `"
+  }
+}
+`
+
+	assert.Equal(t, esperado, neutralizado(t, rutaGrabada(raiz, nombreDelServidor(t, servidor, "POST", envios[0].resto))),
+		"la petición gana «cuerpo» entre «url» y «cabeceras», y «formato» sigue en 1 (contrato §5)")
+
+	// Grabar y reproducir a la vez es un error de argumentos: lo grabado se
+	// reproduce con la variable apagada, que es como lo hace quien lo usa.
+	t.Setenv(VariableGrabacion, "")
+
+	emitidas := contador.total.Load()
+	reproduccion := consultaDePrueba(t, clienteDeReproduccion(t, directorio, ConFormulario(formulario)))
+
+	// En el orden contrario al de la grabación: lo que empareja un envío con su
+	// fichero es su cuerpo, no el turno en que se pidió.
+	for _, envio := range slices.Backward(envios) {
+		respuesta, err := reproduccion.Pedir(t.Context(), schema.Contexto{},
+			Peticion{Metodo: http.MethodPost, URL: formulario, Campos: envio.campos})
+		require.NoError(t, err, "un envío grabado se reproduce")
+		assert.Equal(t, http.StatusOK, respuesta.Estado)
+		assert.Equal(t, loRecibido+envio.cuerpo, string(respuesta.Cuerpo),
+			"cada envío reproduce su grabación, y no la del otro (FR-034)")
+	}
+
+	respuesta, err := reproduccion.Pedir(t.Context(), schema.Contexto{}, Peticion{
+		Metodo: http.MethodPost, URL: formulario,
+		Campos: map[string]string{"action": "query", "ECLI": "ECLI:ES:TS:2023:1"},
+	})
+
+	fallo := falloDe(t, err)
+	assert.Equal(t, schema.ClaseInesperado, fallo.Clase(),
+		"un envío cuyos campos no están grabados falla como una petición sin grabación (contrato §5)")
+	assert.Equal(t, Respuesta{}, respuesta, "y no reproduce la de ningún otro envío")
+	assert.Contains(t, fallo.Error(),
+		filepath.Join(directorio, nombreDelServidor(t, servidor, "POST", "_buscar_c_ECLI_ECLI_3AES_3ATS_3A2023_3A1_action_query")),
+		"el mensaje nombra el fichero que falta, que es el de su cuerpo")
+
+	assert.Equal(t, emitidas, contador.total.Load(), "reproducir no pide nada al sitio")
+}
+
+// probarEnviosQueCompartenNombre es la colisión que el nombre no puede evitar:
+// dos cuerpos distintos que se sanean a los mismos caracteres —la coma
+// codificada de uno, «%2C», y el «_2C» literal del otro—. La resuelve el
+// contenido, igual que entre dos direcciones: el segundo no se graba encima del
+// primero ni se reproduce con su respuesta, y el fallo nombra los dos cuerpos y
+// el fichero. Es lo que deja de pasar si el emparejamiento no mira el cuerpo.
+func probarEnviosQueCompartenNombre(t *testing.T) {
+	t.Helper()
+
+	const (
+		cuerpoGrabado  = "q=a%2Cb"
+		cuerpoParecido = "q=a_2Cb"
+	)
+
+	raiz := t.TempDir()
+	servidor, _ := servidorIdentificado(t, formularioQueRepite())
+	formulario := servidor.URL + rutaDelFormulario
+
+	grabado := Peticion{Metodo: http.MethodPost, URL: formulario, Campos: map[string]string{"q": "a,b"}}
+	parecido := Peticion{Metodo: http.MethodPost, URL: formulario, Campos: map[string]string{"q": "a_2Cb"}}
+
+	consulta := consultaDePrueba(t, clienteQueGraba(t, raiz, ConFormulario(formulario)))
+
+	_, err := consulta.Pedir(t.Context(), schema.Contexto{}, grabado)
+	require.NoError(t, err, "el primer envío se graba")
+
+	ruta := rutaGrabada(raiz, nombreDelServidor(t, servidor, "POST", "_buscar_c_q_a_2Cb"))
+	yaEscrita := string(contenidoDe(t, ruta))
+
+	respuesta, err := consulta.Pedir(t.Context(), schema.Contexto{}, parecido)
+
+	assert.Equal(t, Respuesta{}, respuesta, "una colisión no entrega ninguna respuesta")
+
+	fallo := falloDe(t, err)
+	assert.Equal(t, schema.ClaseInesperado, fallo.Clase(),
+		"que dos envíos compartan fichero es un fallo del mecanismo, no de la fuente")
+	assert.Contains(t, fallo.Error(), cuerpoGrabado, "el mensaje nombra el cuerpo ya grabado")
+	assert.Contains(t, fallo.Error(), cuerpoParecido, "y el que se iba a grabar")
+	assert.Contains(t, fallo.Error(), ruta, "y el fichero de los dos")
+	assert.Equal(t, yaEscrita, string(contenidoDe(t, ruta)), "la grabación del otro envío se queda como estaba")
+
+	t.Setenv(VariableGrabacion, "")
+
+	reproduccion := consultaDePrueba(t, clienteDeReproduccion(t, filepath.Dir(ruta), ConFormulario(formulario)))
+
+	propia, err := reproduccion.Pedir(t.Context(), schema.Contexto{}, grabado)
+	require.NoError(t, err, "el envío grabado se reproduce")
+	assert.Equal(t, loRecibido+cuerpoGrabado, string(propia.Cuerpo))
+
+	ajena, err := reproduccion.Pedir(t.Context(), schema.Contexto{}, parecido)
+
+	assert.Equal(t, Respuesta{}, ajena, "la grabación de otro envío no se sirve nunca")
+
+	fallo = falloDe(t, err)
+	assert.Equal(t, schema.ClaseInesperado, fallo.Clase())
+	assert.Contains(t, fallo.Error(), cuerpoParecido, "el mensaje nombra el cuerpo que se buscaba")
+	assert.Contains(t, fallo.Error(), cuerpoGrabado, "y el que encontró en su lugar")
+	assert.Contains(t, fallo.Error(), ruta, "y el fichero de los dos")
+}
+
+// probarGrabacionSinCuerpo es la otra mitad de FR-034: una petición sin campos
+// se nombra, se graba y se reproduce byte a byte como antes de que hubiera
+// cuerpos. Cada grabación que el paquete versiona se reproduce con la petición
+// que guarda y se vuelve a grabar, en un temporal, con el mismo nombre y el
+// mismo contenido; lo único que cambia es la fecha en que se graba.
+//
+// La grabación se monta aquí sobre la reproducción, y no sobre un servidor,
+// porque es la única forma de volver a grabar sin red una dirección que no es
+// de esta máquina. La petición lleva las cabeceras con las que se grabó: no
+// entran en el emparejamiento, pero sí en el fichero.
+func probarGrabacionSinCuerpo(t *testing.T) {
+	t.Helper()
+
+	origen := grabacionesDePrueba(t)
+	destino := t.TempDir()
+	cadena := conGrabacion(nuevoTransporteDeReproduccion(origen), destino)
+
+	versionadas := nombresDe(t, origen)
+	require.NotEmpty(t, versionadas, "el paquete versiona grabaciones sin cuerpo")
+
+	for _, nombre := range versionadas {
+		original := contenidoDe(t, filepath.Join(origen, nombre))
+		grabada := grabacionLeida(t, filepath.Join(origen, nombre))
+		require.Nil(t, grabada.Peticion.Cuerpo, "%s es de una petición sin campos", nombre)
+
+		peticion, err := nuevaPeticionIdentificada(t.Context(), grabada.Peticion.Metodo, grabada.Peticion.URL)
+		require.NoError(t, err)
+
+		peticion.Header = grabada.Peticion.Cabeceras
+
+		respuesta, err := cadena.RoundTrip(peticion)
+		require.NoError(t, err, "%s se reproduce como hasta ahora", nombre)
+		require.NoError(t, respuesta.Body.Close())
+		assert.Equal(t, grabada.Respuesta.Estado, respuesta.StatusCode)
+
+		assert.Equal(t, sinFechaDeGrabacion(original), sinFechaDeGrabacion(contenidoDe(t, filepath.Join(destino, nombre))),
+			"%s se vuelve a grabar con su nombre y byte a byte, sin la clave «cuerpo» en la petición", nombre)
+	}
+
+	assert.Equal(t, versionadas, nombresDe(t, destino), "una grabación por cada una de las versionadas, y ninguna más")
+}
+
+// TestCuerpoQueNoSePuedeLeer cubre lo que ningún envío del paquete puede
+// provocar, porque el único cuerpo que sale de él lo pone ponerFormulario: una
+// petición cuyo cuerpo no declara cómo leerlo otra vez, o cuya copia no se deja
+// abrir o leer. Ni se graba ni se empareja como si no enviara nada, que sería
+// hacerlo mal en silencio: es un fallo del mecanismo —clase «inesperado»—, igual
+// al grabar que al reproducir, y no deja ningún fichero.
+//
+// Los dos escalones se prueban sueltos, y el de grabación sobre uno de mentira,
+// porque lo que se estropea es la petición que les llega y eso no lo puede hacer
+// nadie desde fuera del paquete.
+func TestCuerpoQueNoSePuedeLeer(t *testing.T) {
+	t.Parallel()
+
+	errDeLaCopia := errors.New("la copia del cuerpo no está")
+
+	casos := []struct {
+		nombre   string
+		estropea func(*http.Request)
+		causa    error
+	}{
+		{
+			nombre:   "el cuerpo no declara cómo leerlo otra vez",
+			estropea: func(peticion *http.Request) { peticion.GetBody = nil },
+		},
+		{
+			nombre: "la copia del cuerpo no se deja abrir",
+			estropea: func(peticion *http.Request) {
+				peticion.GetBody = func() (io.ReadCloser, error) { return nil, errDeLaCopia }
+			},
+			causa: errDeLaCopia,
+		},
+		{
+			nombre: "la copia del cuerpo no se deja leer",
+			estropea: func(peticion *http.Request) {
+				peticion.GetBody = func() (io.ReadCloser, error) {
+					return io.NopCloser(iotest.ErrReader(errDeLaCopia)), nil
+				}
+			},
+			causa: errDeLaCopia,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			directorio := t.TempDir()
+
+			escalones := []struct {
+				paso    string
+				escalon http.RoundTripper
+			}{
+				{"al grabar", conGrabacion(&escalonQueFalla{estado: http.StatusOK, aciertaEn: 1}, directorio)},
+				{"al reproducir", nuevoTransporteDeReproduccion(directorio)},
+			}
+
+			for _, fila := range escalones {
+				peticion, err := nuevaPeticionIdentificada(t.Context(), http.MethodPost, direccionDelEscalon)
+				require.NoError(t, err)
+
+				ponerFormulario(peticion, camposDePrueba())
+				caso.estropea(peticion)
+
+				fallo := falloDelEscalon(t, fila.escalon, peticion)
+
+				assert.Equal(t, schema.ClaseInesperado, fallo.Clase(),
+					"%s, un cuerpo que no se puede leer es un fallo del mecanismo", fila.paso)
+				assert.Contains(t, fallo.Error(), "el cuerpo de la petición", "%s, el mensaje dice qué no se pudo leer", fila.paso)
+				assert.Equal(t, Peticion{Metodo: http.MethodPost, URL: direccionDelEscalon}, fallo.Peticion,
+					"%s, la petición implicada es la que bajaba por la cadena", fila.paso)
+
+				if caso.causa != nil {
+					require.ErrorIs(t, fallo, caso.causa, "%s, el fallo conserva su causa", fila.paso)
+				}
+			}
+
+			assert.Empty(t, entradasDe(t, directorio), "y no queda ninguna grabación escrita")
+		})
+	}
+}
+
+// falloDelEscalon baja la petición por un escalón suelto que tiene que
+// rechazarla, y devuelve su fallo. Un escalón que falla no entrega respuesta;
+// si la entregara, se cierra aquí antes de decirlo, como manda la biblioteca.
+func falloDelEscalon(t *testing.T, escalon http.RoundTripper, peticion *http.Request) *Error {
+	t.Helper()
+
+	respuesta, err := escalon.RoundTrip(peticion)
+	if respuesta != nil {
+		require.NoError(t, respuesta.Body.Close())
+	}
+
+	require.Nil(t, respuesta, "un escalón que falla no entrega ninguna respuesta")
+
+	return falloDe(t, err)
+}
+
+// envioDePrueba es un envío de TestGrabacionDeFormularios: sus campos, el cuerpo
+// con el que tienen que salir y lo que ese cuerpo añade al nombre del fichero,
+// los dos escritos a mano y no derivados con el código que se prueba.
+type envioDePrueba struct {
+	campos map[string]string
+	cuerpo string
+	resto  string
+}
+
+// enviosDePrueba son dos envíos a la misma dirección que solo se distinguen por
+// el valor de un campo. Sus cuerpos son cortos a propósito: el nombre del
+// fichero no llega al tope con ningún puerto del servidor de prueba, y se puede
+// escribir entero.
+func enviosDePrueba() []envioDePrueba {
+	return []envioDePrueba{
+		{
+			campos: map[string]string{"action": "query", "ECLI": "ECLI:ES:TS:2023:3144"},
+			cuerpo: "ECLI=ECLI%3AES%3ATS%3A2023%3A3144&action=query",
+			resto:  "_buscar_c_ECLI_ECLI_3AES_3ATS_3A2023_3A3144_action_query",
+		},
+		{
+			campos: map[string]string{"action": "query", "ECLI": "ECLI:ES:TS:2023:999999"},
+			cuerpo: "ECLI=ECLI%3AES%3ATS%3A2023%3A999999&action=query",
+			resto:  "_buscar_c_ECLI_ECLI_3AES_3ATS_3A2023_3A999999_action_query",
+		},
+	}
+}
+
+// loRecibido es lo que el formulario de prueba antepone al cuerpo que repite.
+const loRecibido = "recibido: "
+
+// formularioQueRepite responde al formulario con el cuerpo que recibió, tal
+// cual, y a nada más.
+func formularioQueRepite() http.HandlerFunc {
+	return func(escritor http.ResponseWriter, peticion *http.Request) {
+		if peticion.URL.Path != rutaDelFormulario {
+			http.NotFound(escritor, peticion)
+
+			return
+		}
+
+		cuerpo, err := io.ReadAll(peticion.Body)
+		if err != nil {
+			http.Error(escritor, err.Error(), http.StatusBadRequest)
+
+			return
+		}
+
+		escritor.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = io.WriteString(escritor, loRecibido+string(cuerpo))
+	}
+}
+
 // clienteQueGraba construye el cliente que graba bajo la raíz que se le indica,
 // con el ritmo acelerado que usan todas las tablas del paquete: el intervalo por
 // omisión separaría un segundo la petición del robots.txt de la del recurso y
@@ -525,6 +919,7 @@ type grabacionEnDisco struct {
 	Peticion  struct {
 		Metodo    string              `json:"metodo"`
 		URL       string              `json:"url"`
+		Cuerpo    *string             `json:"cuerpo"`
 		Cabeceras map[string][]string `json:"cabeceras"`
 	} `json:"peticion"`
 	Respuesta struct {
@@ -571,6 +966,21 @@ func entradasDe(t *testing.T, directorio string) []os.DirEntry {
 	return entradas
 }
 
+// nombresDe son los nombres de lo que hay dentro de un directorio, en el orden
+// en que lo da el sistema, que es el alfabético (go doc os.ReadDir).
+func nombresDe(t *testing.T, directorio string) []string {
+	t.Helper()
+
+	entradas := entradasDe(t, directorio)
+	nombres := make([]string, 0, len(entradas))
+
+	for _, entrada := range entradas {
+		nombres = append(nombres, entrada.Name())
+	}
+
+	return nombres
+}
+
 // fechaNeutralizada es lo que ocupa el sitio de los dos campos que declaran
 // cuándo se grabó, y que FR-040 deja fuera de la comparación.
 const fechaNeutralizada = "«cuando sea»"
@@ -590,10 +1000,16 @@ var (
 func neutralizado(t *testing.T, ruta string) string {
 	t.Helper()
 
-	sinFecha := fechaDelFichero.ReplaceAll(contenidoDe(t, ruta),
-		[]byte(`"grabado_en": "`+fechaNeutralizada+`"`))
+	sinFecha := sinFechaDeGrabacion(contenidoDe(t, ruta))
 
-	return string(fechaDelServidor.ReplaceAll(sinFecha, []byte(`${1}"`+fechaNeutralizada+`"`)))
+	return fechaDelServidor.ReplaceAllString(sinFecha, `${1}"`+fechaNeutralizada+`"`)
+}
+
+// sinFechaDeGrabacion neutraliza solo la fecha que el fichero anota. Es todo lo
+// que cambia al volver a grabar desde una grabación, donde hasta la fecha del
+// servidor es la que ya estaba guardada.
+func sinFechaDeGrabacion(contenido []byte) string {
+	return string(fechaDelFichero.ReplaceAll(contenido, []byte(`"grabado_en": "`+fechaNeutralizada+`"`)))
 }
 
 // grabacionAMano es el fichero que un intento anterior habría dejado para otra

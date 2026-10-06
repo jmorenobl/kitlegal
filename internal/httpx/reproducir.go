@@ -50,9 +50,15 @@ func nuevoTransporteDeReproduccion(directorio string) http.RoundTripper {
 // red (FR-046, FR-047).
 func (r *transporteDeReproduccion) RoundTrip(peticion *http.Request) (*http.Response, error) {
 	buscada := Peticion{Metodo: peticion.Method, URL: peticion.URL.String()}
-	ruta := filepath.Join(r.directorio, nombreDeGrabacion(peticion.Method, peticion.URL))
 
-	grabada, err := grabacionDe(ruta, buscada)
+	emitida, err := peticionEmitida(peticion, buscada)
+	if err != nil {
+		return nil, err
+	}
+
+	ruta := filepath.Join(r.directorio, nombreDeGrabacion(peticion.Method, peticion.URL, emitida.Cuerpo))
+
+	grabada, err := grabacionDe(ruta, buscada, emitida)
 	if err != nil {
 		return nil, err
 	}
@@ -66,16 +72,19 @@ func (r *transporteDeReproduccion) RoundTrip(peticion *http.Request) (*http.Resp
 }
 
 // grabacionDe lee la grabación que le toca a la petición y comprueba que es la
-// suya: el nombre se deriva del método y de la dirección (contrato §2), pero no
-// es único por construcción, así que lo que decide es lo que el fichero guarda
-// dentro. El método y la dirección tienen que coincidir **exactamente**; las
-// cabeceras no participan, porque la identificación lleva la versión del binario
-// y la haría cambiar de una versión a otra (FR-039, FR-047, contrato §4).
+// suya: el nombre se deriva del método, de la dirección y del cuerpo (contrato
+// §2; contrato httpx-formulario §5 de H23), pero no es único por construcción,
+// así que lo que decide es lo que el fichero guarda dentro. El método, la
+// dirección y el cuerpo tienen que coincidir **exactamente**; las cabeceras no
+// participan, porque la identificación lleva la versión del binario y la haría
+// cambiar de una versión a otra (FR-039, FR-047, contrato §4).
 //
 // Las cuatro formas de no tener grabación que servir son la misma clase y las
 // cuatro nombran el fichero: un fixture ausente, ilegible, de otro formato o de
-// otra petición no es un fallo de ninguna fuente (FR-063).
-func grabacionDe(ruta string, buscada Peticion) (*grabacion, error) {
+// otra petición no es un fallo de ninguna fuente (FR-063). Un envío cuyos
+// campos no están grabados es la primera: su fichero, que lleva el cuerpo en el
+// nombre, no está (FR-034 de H23).
+func grabacionDe(ruta string, buscada Peticion, emitida peticionGrabada) (*grabacion, error) {
 	// filepath.Clean es lo que el control de rutas reconoce como saneado antes
 	// de abrir un fichero (gosec G304); la ruta la compone este paquete con el
 	// directorio validado en la construcción y un nombre que solo lleva
@@ -85,7 +94,7 @@ func grabacionDe(ruta string, buscada Peticion) (*grabacion, error) {
 	contenido, err := os.ReadFile(limpia)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil, errorInesperado(buscada, err,
-			"no hay grabación de "+buscada.Metodo+" "+buscada.URL+": falta el fichero "+ruta)
+			"no hay grabación de "+emitida.descripcion()+": falta el fichero "+ruta)
 	}
 
 	if err != nil {
@@ -103,10 +112,10 @@ func grabacionDe(ruta string, buscada Peticion) (*grabacion, error) {
 				" y solo se puede reproducir el "+strconv.Itoa(formatoDeGrabacion))
 	}
 
-	if leida.Peticion.Metodo != buscada.Metodo || leida.Peticion.URL != buscada.URL {
+	if !leida.Peticion.esLaMisma(emitida) {
 		return nil, errorInesperado(buscada, nil,
-			"la grabación "+ruta+" guarda "+leida.Peticion.Metodo+" "+leida.Peticion.URL+
-				" y se buscaba "+buscada.Metodo+" "+buscada.URL)
+			"la grabación "+ruta+" guarda "+leida.Peticion.descripcion()+
+				" y se buscaba "+emitida.descripcion())
 	}
 
 	return &leida, nil

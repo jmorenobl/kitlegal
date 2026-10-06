@@ -31,45 +31,55 @@ const (
 	digitosDelResumen = 8
 )
 
+// sinCuerpo es el cuerpo de la petición que no envía nada: toda la que no es el
+// envío de un formulario. Con él, el nombre, el resumen y el fichero de una
+// grabación son los de antes de que hubiera cuerpos (research D6 de H23).
+const sinCuerpo = ""
+
 // nombreDeGrabacion es el nombre del fichero donde se graba una petición y
-// donde la reproducción la busca después. Se deriva del método y de la
-// dirección completa —esquema, sitio, ruta y consulta— y de nada más, porque
-// nadie fuera del paquete lo declara: buena parte de las peticiones que se
-// graban las origina el propio cliente —robots.txt, redirecciones, reintentos—
-// y no el adaptador que pidió el recurso (FR-039, research.md D12).
+// donde la reproducción la busca después. Se deriva del método, de la dirección
+// completa —esquema, sitio, ruta y consulta— y, si la petición envía un
+// formulario, de su cuerpo codificado, y de nada más, porque nadie fuera del
+// paquete lo declara: buena parte de las peticiones que se graban las origina
+// el propio cliente —robots.txt, redirecciones, reintentos— y no el adaptador
+// que pidió el recurso (FR-039, research.md D12). El cuerpo entra porque dos
+// envíos a la misma dirección con campos distintos son dos grabaciones (FR-034
+// de H23).
 //
 // El resultado es determinista —la misma petición da el mismo nombre en
 // cualquier máquina—, legible en un diff y portable: solo lleva caracteres de
 // [A-Za-z0-9._-], así que no hay ninguno de los que Windows prohíbe ni espacios.
-// No es único: dos direcciones distintas pueden sanearse al mismo nombre, y por
-// eso tanto la grabación como la reproducción comparan además la petición
-// guardada dentro del fichero (contrato de grabación §2, §3 y §4).
-func nombreDeGrabacion(metodo string, direccion *url.URL) string {
-	nombre := saneado(partesDelNombre(metodo, direccion))
+// No es único: dos direcciones distintas, o dos cuerpos, pueden sanearse al
+// mismo nombre, y por eso tanto la grabación como la reproducción comparan
+// además la petición guardada dentro del fichero (contrato de grabación §2, §3
+// y §4; contrato httpx-formulario §5 de H23).
+func nombreDeGrabacion(metodo string, direccion *url.URL, cuerpo string) string {
+	nombre := saneado(partesDelNombre(metodo, direccion, cuerpo))
 
 	// El nombre saneado es ASCII puro, así que contarlo y cortarlo por bytes es
 	// contarlo y cortarlo por caracteres.
 	if len(nombre) > largoMaximoDelNombre {
-		nombre = nombre[:largoDelPrefijoRecortado] + "-" + resumenDeLaPeticion(metodo, direccion)
+		nombre = nombre[:largoDelPrefijoRecortado] + "-" + resumenDeLaPeticion(metodo, direccion, cuerpo)
 	}
 
 	return nombre + extensionDeGrabacion
 }
 
 // partesDelNombre encadena las partes de la petición que entran en el nombre,
-// con la forma del contrato §2: <MÉTODO>_<esquema>_<host>[-<puerto>]<ruta>[_q_<consulta>].
+// con la forma del contrato §2 y, detrás, el cuerpo de un envío:
+// <MÉTODO>_<esquema>_<host>[-<puerto>]<ruta>[_q_<consulta>][_c_<cuerpo>].
 //
-// La ruta y la consulta se escriben **como vienen**; que la barra de la ruta y
-// el `=` y el `&` de la consulta acaben en guion bajo no se hace aquí, sino en
-// el saneado, porque los tres están fuera del conjunto admitido y esa es
-// exactamente su regla. Escribirlo dos veces daría el mismo nombre y una regla
-// más que mantener.
+// La ruta, la consulta y el cuerpo se escriben **como vienen**; que la barra de
+// la ruta y el `=`, el `&` y el `%` de la consulta y del cuerpo acaben en guion
+// bajo no se hace aquí, sino en el saneado, porque todos están fuera del
+// conjunto admitido y esa es exactamente su regla. Escribirlo dos veces daría el
+// mismo nombre y una regla más que mantener.
 //
 // La ruta va sin descodificar de más ni de menos: se toma url.URL.Path, la
 // forma descodificada, para que un espacio de la ruta acabe en el mismo guion
 // bajo que cualquier otro carácter fuera del conjunto y no en un `%20` que no
 // hay quien lea.
-func partesDelNombre(metodo string, direccion *url.URL) string {
+func partesDelNombre(metodo string, direccion *url.URL, cuerpo string) string {
 	var partes strings.Builder
 
 	partes.WriteString(metodo)
@@ -93,6 +103,11 @@ func partesDelNombre(metodo string, direccion *url.URL) string {
 	if consulta := direccion.RawQuery; consulta != "" {
 		partes.WriteString("_q_")
 		partes.WriteString(consulta)
+	}
+
+	if cuerpo != sinCuerpo {
+		partes.WriteString("_c_")
+		partes.WriteString(cuerpo)
 	}
 
 	return partes.String()
@@ -142,15 +157,24 @@ func esSeparadorDelNombre(caracter rune) bool {
 }
 
 // resumenDeLaPeticion son los primeros dígitos hexadecimales del resumen de la
-// petición entera, con la forma «<MÉTODO> <dirección>». Va detrás del nombre
-// recortado para que dos peticiones largas que comparten los cien primeros
-// caracteres —dos anexos del mismo expediente, por ejemplo— no acaben en el
-// mismo fichero solo por ser largas.
+// petición entera, con la forma «<MÉTODO> <dirección>» y, si envía un
+// formulario, su cuerpo en la línea siguiente. Va detrás del nombre recortado
+// para que dos peticiones largas que comparten los cien primeros caracteres
+// —dos anexos del mismo expediente, o dos envíos cuyos campos empiezan igual—
+// no acaben en el mismo fichero solo por ser largas.
 //
-// El resumen no protege nada: solo desempata nombres. Se toma de la dirección
-// tal como se emitió, que es la misma cadena que el fichero guarda dentro.
-func resumenDeLaPeticion(metodo string, direccion *url.URL) string {
-	resumen := sha256.Sum256([]byte(metodo + " " + direccion.String()))
+// El resumen no protege nada: solo desempata nombres. Se toma de la dirección y
+// del cuerpo tal como se emitieron, que son las mismas cadenas que el fichero
+// guarda dentro. El de una petición sin cuerpo es el de siempre: sin él no hay
+// línea siguiente.
+func resumenDeLaPeticion(metodo string, direccion *url.URL, cuerpo string) string {
+	resumida := metodo + " " + direccion.String()
+
+	if cuerpo != sinCuerpo {
+		resumida += "\n" + cuerpo
+	}
+
+	resumen := sha256.Sum256([]byte(resumida))
 
 	return hex.EncodeToString(resumen[:])[:digitosDelResumen]
 }
