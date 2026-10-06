@@ -1,0 +1,858 @@
+diff --git a/internal/evals/conjunto_test.go b/internal/evals/conjunto_test.go
+index dc398c2..5e0ec7c 100644
+--- a/internal/evals/conjunto_test.go
++++ b/internal/evals/conjunto_test.go
+@@ -92,21 +92,6 @@ func entradasDelJuez(t *testing.T, cambios ...entradaDeConjunto) []entradaDeConj
+ 	return entradas
+ }
+ 
+-// juezEn es el juez que TestLeerConjunto espera de un conjunto creado en dir: el
+-// del caso, con las rutas de sus casos y de su medida dentro de dir; o nil, si
+-// el caso no espera ninguno.
+-func juezEn(dir string, juez *Juez) *Juez {
+-	if juez == nil {
+-		return nil
+-	}
+-
+-	enDir := *juez
+-	enDir.Casos = filepath.Join(dir, juez.Casos)
+-	enDir.Medida = filepath.Join(dir, juez.Medida)
+-
+-	return &enDir
+-}
+-
+ // entradaDeConjunto es una entrada que un test crea en el directorio de un
+ // conjunto de evals: un fichero con su contenido o, con carpeta, un
+ // subdirectorio vacío. Su nombre puede llevar delante la carpeta en la que va,
+@@ -412,7 +397,7 @@ func TestLeerConjunto(t *testing.T) {
+ 			require.NoError(t, err, "un fichero mal formado nunca es el error de la lectura")
+ 			assert.Equal(t, caso.evals, conjunto.Evals)
+ 			assert.Equal(t, caso.prohibidas, conjunto.Prohibidas)
+-			assert.Equal(t, juezEn(dir, caso.juez), conjunto.Juez)
++			assert.Equal(t, caso.juez, conjunto.Juez)
+ 
+ 			ficheros := make([]string, 0, len(conjunto.MalFormados))
+ 			for _, malFormado := range conjunto.MalFormados {
+@@ -506,8 +491,7 @@ type casoDeLeerConjunto struct {
+ 	// prohibidas es la lista que tiene que quedar en el conjunto.
+ 	prohibidas ExpresionesProhibidas
+ 
+-	// juez es el juez que tiene que quedar en el conjunto, con las rutas de sus
+-	// casos y de su medida relativas al directorio de evals; nil, ninguno.
++	// juez es el juez que tiene que quedar en el conjunto; nil, ninguno.
+ 	juez *Juez
+ }
+ 
+@@ -562,8 +546,8 @@ func casosDeLaCarpetaJuez(t *testing.T, eval entradaDeConjunto, leida Eval) []ca
+ 				},
+ 				Rubrica: rubricaDelJuez,
+ 				Esquema: esquemaDelJuez,
+-				Casos:   casosEnElJuez,
+-				Medida:  medidaEnElJuez,
++				Casos:   casosDelJuez,
++				Medida:  medidaDelJuez,
+ 			},
+ 		},
+ 		malFormado("juez-con-una-clave-de-mas", conClases(clasesDelJuez+"rubrica: rubrica.md\n"),
+diff --git a/internal/evals/definicion.go b/internal/evals/definicion.go
+index 83d0186..61828b4 100644
+--- a/internal/evals/definicion.go
++++ b/internal/evals/definicion.go
+@@ -617,7 +617,7 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
+ // (contracts/job-de-evals.md §4 de H24): sus casos son los casos etiquetados de
+ // la carpeta juez de sus evals, dentro de evals, y su concurrencia, la que le da
+ // el include del trabajo. Es un error una concurrencia menor que 1, una carpeta
+-// que no se puede leer, una skill sin juez o unos casos que no se pueden leer.
++// que no se puede leer, una skill sin juez o unos casos que no tienen su forma.
+ func (m TrabajoDeLaMedida) peorCaso(evals, skill string) (peorCasoDeLaMedida, error) {
+ 	concurrencia, err := concurrenciaDeLaSkill(m.ConcurrenciaPorSkill[skill], skill)
+ 	if err != nil {
+@@ -633,9 +633,10 @@ func (m TrabajoDeLaMedida) peorCaso(evals, skill string) (peorCasoDeLaMedida, er
+ 		return peorCasoDeLaMedida{}, fmt.Errorf("%s no tiene juez que medir", skill)
+ 	}
+ 
+-	etiquetados, err := leerCasosEtiquetados(conjunto.Juez.Casos)
++	etiquetados, err := leerCasosEtiquetados([]byte(conjunto.Juez.Casos))
+ 	if err != nil {
+-		return peorCasoDeLaMedida{}, fmt.Errorf("los casos etiquetados del juez %s: %w", conjunto.Juez.Casos, err)
++		return peorCasoDeLaMedida{}, fmt.Errorf("los casos etiquetados del juez %s: %w",
++			filepath.Join(evals, skill, carpetaDelJuez, ficheroDeCasosDelJuez), err)
+ 	}
+ 
+ 	return peorCasoDeLaMedida{Casos: len(etiquetados.Casos), Concurrencia: concurrencia}, nil
+diff --git a/internal/evals/definicion_test.go b/internal/evals/definicion_test.go
+index caa1077..0572fe4 100644
+--- a/internal/evals/definicion_test.go
++++ b/internal/evals/definicion_test.go
+@@ -1366,7 +1366,7 @@ func evalsSinteticas(t *testing.T) string {
+ 	escribirLaCarpetaDelJuez(t, conJuez)
+ 	crearEntradas(t, conJuez, []entradaDeConjunto{{nombre: casosEnElJuez, contenido: casos.String()}})
+ 
+-	leidos, err := leerCasosEtiquetados(filepath.Join(conJuez, casosEnElJuez))
++	leidos, err := leerCasosEtiquetados([]byte(casos.String()))
+ 	require.NoError(t, err)
+ 	require.Len(t, leidos.Casos, casosDelJuezSintetico, "premisa: los casos etiquetados del juez sint\xc3\xa9tico")
+ 
+@@ -1378,7 +1378,7 @@ func evalsSinteticas(t *testing.T) string {
+ // entero no se lee, con un error que nombra la ruta; y el peor caso de una skill
+ // sin su carpeta de evals o con un plan que no se puede componer no se obtiene,
+ // con un error que dice por qué, ni el de la medida de una skill sin su carpeta
+-// de evals o con unos casos etiquetados que no se pueden leer.
++// de evals o con unos casos etiquetados que no tienen su forma.
+ func probarLosErroresDeLaDefinicion(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -1427,7 +1427,7 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
+ 	require.ErrorContains(t, err, `el modelo que decide "Claude Sonnet" no tiene la forma de un id de modelo`)
+ 
+ 	// El peor caso de la medida tampoco se obtiene sin la carpeta de evals de la
+-	// skill ni con unos casos etiquetados que no se pueden leer: su error nombra
++	// skill ni con unos casos etiquetados que no tienen su forma: su error nombra
+ 	// el fichero.
+ 	require.NotNil(t, leida.Medida, "premisa: la definici\xc3\xb3n del contrato tiene el trabajo medida")
+ 
+diff --git a/internal/evals/informe.go b/internal/evals/informe.go
+index 99d1c12..fd7e5fe 100644
+--- a/internal/evals/informe.go
++++ b/internal/evals/informe.go
+@@ -1156,9 +1156,9 @@ func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
+ 		return nil, err
+ 	}
+ 
+-	medida, err := leerMedidaDelJuez(juez.Medida)
++	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
+ 	if err != nil {
+-		return nil, fmt.Errorf("la medida versionada del juez %s: %w", juez.Medida, err)
++		return nil, fmt.Errorf("la medida versionada del juez (%s/%s): %w", carpetaDelJuez, ficheroDeMedidaDelJuez, err)
+ 	}
+ 
+ 	ahora := e.Ahora
+diff --git a/internal/evals/informe_test.go b/internal/evals/informe_test.go
+index 99befc9..fd79867 100644
+--- a/internal/evals/informe_test.go
++++ b/internal/evals/informe_test.go
+@@ -3519,7 +3519,7 @@ func escribirElJuezDelInforme(t *testing.T, evals, medida string) {
+ 	require.NoError(t, err)
+ 	require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez, bien formada", evals)
+ 
+-	_, err = leerMedidaDelJuez(conjunto.Juez.Medida)
++	_, err = leerMedidaDelJuez([]byte(conjunto.Juez.Medida))
+ 	require.NoError(t, err, "la medida del juez de %s se puede leer", evals)
+ }
+ 
+diff --git a/internal/evals/juez.go b/internal/evals/juez.go
+index 3d48bc1..88cc759 100644
+--- a/internal/evals/juez.go
++++ b/internal/evals/juez.go
+@@ -64,11 +64,12 @@ type Juez struct {
+ 	// los nombres de Clases.
+ 	Esquema string
+ 
+-	// Casos es la ruta de casos.yaml, los casos etiquetados con los que se mide
+-	// al juez.
++	// Casos es el contenido de casos.yaml, entero: los casos etiquetados con los
++	// que se mide al juez, que lee leerCasosEtiquetados.
+ 	Casos string
+ 
+-	// Medida es la ruta de medida.json, la medida versionada del juez.
++	// Medida es el contenido de medida.json, entero: la medida versionada del
++	// juez, que lee leerMedidaDelJuez.
+ 	Medida string
+ }
+ 
+@@ -112,8 +113,9 @@ var esquemaDeClasesDelJuez = sync.OnceValues(func() (*jsonschema.Schema, error)
+ //   - de rubrica.md, de casos.yaml y de medida.json solo se exige que se puedan
+ //     leer.
+ //
+-// El juez se devuelve solo si ninguno está mal formado: con la rúbrica y el
+-// esquema enteros y con la ruta de los casos y la de la medida.
++// El juez se devuelve solo si ninguno está mal formado, con el contenido entero
++// de la rúbrica, del esquema, de los casos y de la medida: quien los usa no
++// vuelve a leer la carpeta.
+ func leerJuez(dir string, entrada fs.DirEntry) (*Juez, []FicheroMalFormado) {
+ 	if !entrada.IsDir() {
+ 		return nil, []FicheroMalFormado{{
+@@ -124,10 +126,10 @@ func leerJuez(dir string, entrada fs.DirEntry) (*Juez, []FicheroMalFormado) {
+ 
+ 	lectura := lecturaDelJuez{carpeta: filepath.Join(dir, carpetaDelJuez)}
+ 
+-	lectura.contenido(ficheroDeCasosDelJuez)
++	casos, _ := lectura.contenido(ficheroDeCasosDelJuez)
+ 	clases := lectura.clases()
+ 	esquema := lectura.esquema(clases)
+-	lectura.contenido(ficheroDeMedidaDelJuez)
++	medida, _ := lectura.contenido(ficheroDeMedidaDelJuez)
+ 	rubrica, _ := lectura.contenido(ficheroDeRubricaDelJuez)
+ 
+ 	if len(lectura.malFormados) > 0 {
+@@ -138,8 +140,8 @@ func leerJuez(dir string, entrada fs.DirEntry) (*Juez, []FicheroMalFormado) {
+ 		Clases:  clases,
+ 		Rubrica: string(rubrica),
+ 		Esquema: string(esquema),
+-		Casos:   filepath.Join(lectura.carpeta, ficheroDeCasosDelJuez),
+-		Medida:  filepath.Join(lectura.carpeta, ficheroDeMedidaDelJuez),
++		Casos:   string(casos),
++		Medida:  string(medida),
+ 	}, nil
+ }
+ 
+diff --git a/internal/evals/medida.go b/internal/evals/medida.go
+index 025d165..6bba477 100644
+--- a/internal/evals/medida.go
++++ b/internal/evals/medida.go
+@@ -103,21 +103,16 @@ type clavesDeLaMedida struct {
+ 	} `json:"correctos"`
+ }
+ 
+-// leerMedidaDelJuez lee la medida del juez de esa ruta
++// leerMedidaDelJuez lee la medida del juez de su contenido, el de medida.json
+ // (contracts/medida-del-juez.md §1 de H24). No tiene esquema publicado: se lee
+ // como un objeto JSON del que solo se miran las diez claves de MedidaDelJuez,
+ // cada una con su tipo, un texto o un entero; una clave repetida es un error,
+-// nunca la última que gana. Es un error que no se pueda leer, que no sea ese
+-// documento o que le falte alguna de las diez, y una clave a null es una clave
+-// que falta: el error las nombra todas, en el orden del contrato, con las de un
+-// objeto detrás de la suya y de un punto, como rubrica.sha256. Ningún error
+-// lleva delante de qué medida habla: lo pone quien la lee.
+-func leerMedidaDelJuez(ruta string) (MedidaDelJuez, error) {
+-	contenido, err := leerFichero(ruta)
+-	if err != nil {
+-		return MedidaDelJuez{}, fmt.Errorf("no se puede leer: %w", err)
+-	}
+-
++// nunca la última que gana. Es un error que no sea ese documento o que le falte
++// alguna de las diez, y una clave a null es una clave que falta: el error las
++// nombra todas, en el orden del contrato, con las de un objeto detrás de la
++// suya y de un punto, como rubrica.sha256. Ningún error lleva delante de qué
++// medida habla: lo pone quien la lee.
++func leerMedidaDelJuez(contenido []byte) (MedidaDelJuez, error) {
+ 	var leidas clavesDeLaMedida
+ 
+ 	if err := json.Unmarshal(contenido, &leidas); err != nil {
+@@ -165,21 +160,18 @@ func valorDeLaClave[T any](leido *T, clave string, faltan *[]string) T {
+ }
+ 
+ // Las líneas de comprobarLaMedida: las de contracts/medida-del-juez.md §2 de
+-// H24, carácter a carácter, y las dos de lo que no se puede leer. Cada fichero
+-// lleva el nombre que tiene dentro de la carpeta de evals de la skill,
+-// juez/<fichero>, como en los errores del conjunto.
++// H24, carácter a carácter. Cada fichero lleva el nombre que tiene dentro de la
++// carpeta de evals de la skill, juez/<fichero>, como en los errores del
++// conjunto.
+ const (
+-	// medidaQueNoCorresponde es la de la medida que no se puede leer o a la que
+-	// le falta alguna de sus claves; sigue con el error de leerMedidaDelJuez.
++	// medidaQueNoCorresponde es la de la medida que no es su documento o a la
++	// que le falta alguna de sus claves; sigue con el error de
++	// leerMedidaDelJuez.
+ 	medidaQueNoCorresponde = "la medida versionada (" + carpetaDelJuez + "/" + ficheroDeMedidaDelJuez + ") no corresponde: %v"
+ 
+ 	rubricaDeOtraMedida = "la rúbrica (" + carpetaDelJuez + "/" + ficheroDeRubricaDelJuez + ") no es la de la medida versionada"
+ 	casosDeOtraMedida   = "los casos (" + carpetaDelJuez + "/" + ficheroDeCasosDelJuez + ") no son los de la medida versionada"
+ 
+-	// casosQueNoSeLeen es la de los casos que han dejado de poder leerse desde
+-	// que se leyó el juez; sigue con el error.
+-	casosQueNoSeLeen = "los casos (" + carpetaDelJuez + "/" + ficheroDeCasosDelJuez + ") no se pueden leer: %v"
+-
+ 	medidaDeOtroModelo  = "la medida versionada es del modelo %s y el fijado para el juez es %s"
+ 	medidaDeOtraVersion = "la medida versionada es de la versión %s de Claude Code y la fijada para los votos del juez es %s"
+ 	medidaDeOtraClase   = "la clase %s decide y la medida versionada es de %s"
+@@ -203,16 +195,16 @@ const (
+ //   - Su recuento de correctos marcados no es 0.
+ //
+ // Las cuatro primeras son las de una medida que no corresponde, y las dos
+-// últimas, las de una que no se cumple. La medida que no se puede leer, o sin
++// últimas, las de una que no se cumple. La medida que no es su documento, o sin
+ // alguna de las claves que se leen, tampoco corresponde, y da una sola línea,
+ // con el error de leerMedidaDelJuez: sin la medida entera no hay con qué
+ // comparar lo demás.
+ //
+ // El modelo y la versión fijados los da quien la llama, y el juez es el de la
+-// skill, nunca nil. Lee los casos y la medida de sus rutas, y nada más: no usa
+-// ningún modelo ni abre ningún proceso.
++// skill, nunca nil. Compara lo que el juez lleva leído de su carpeta, y nada
++// más: no lee ningún fichero, no usa ningún modelo ni abre ningún proceso.
+ func comprobarLaMedida(juez *Juez, modeloFijado, versionFijada string) []string {
+-	medida, err := leerMedidaDelJuez(juez.Medida)
++	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
+ 	if err != nil {
+ 		return []string{fmt.Sprintf(medidaQueNoCorresponde, err)}
+ 	}
+@@ -225,9 +217,8 @@ func comprobarLaMedida(juez *Juez, modeloFijado, versionFijada string) []string
+ }
+ 
+ // lineasDeLasHuellas compara las huellas SHA-256 de la rúbrica del juez, que es
+-// la que va tal cual como sus instrucciones, y de sus casos, leídos de su ruta,
+-// con las de la medida. Unos casos que no se pueden leer no tienen huella que
+-// comparar: dan su línea, con el error.
++// la que va tal cual como sus instrucciones, y de sus casos con las de la
++// medida.
+ func lineasDeLasHuellas(juez *Juez, medida MedidaDelJuez) []string {
+ 	var lineas []string
+ 
+@@ -235,12 +226,7 @@ func lineasDeLasHuellas(juez *Juez, medida MedidaDelJuez) []string {
+ 		lineas = append(lineas, rubricaDeOtraMedida)
+ 	}
+ 
+-	casos, err := leerFichero(juez.Casos)
+-
+-	switch {
+-	case err != nil:
+-		lineas = append(lineas, fmt.Sprintf(casosQueNoSeLeen, err))
+-	case huellaSHA256(casos) != medida.HuellaDeLosCasos:
++	if huellaSHA256([]byte(juez.Casos)) != medida.HuellaDeLosCasos {
+ 		lineas = append(lineas, casosDeOtraMedida)
+ 	}
+ 
+@@ -387,43 +373,28 @@ func (c CasoEtiquetado) nombre() string {
+ 	return fmt.Sprintf("%s %s sin %s %s", c.Informe, c.Sesion, c.Quitado.Norma, c.Quitado.Bloque)
+ }
+ 
+-// leerCasosEtiquetados lee los casos etiquetados del juez de esa ruta
+-// (contracts/medida-del-juez.md §4 de H24), con el lector común de documentos
+-// YAML de internal/skills —una clave repetida es un defecto con sus dos líneas,
+-// nunca la última que gana— y sin esquema publicado: de un caso solo exige que
+-// su etiqueta sea una de las dos, porque con otra no se podría contar ni como
+-// defecto ni como correcto. Lo demás lo exige resolverlo: un caso que no se
+-// puede resolver es un error de la reconstrucción. Ningún error lleva delante de
+-// qué casos habla: lo pone quien los lee.
+-func leerCasosEtiquetados(ruta string) (CasosEtiquetados, error) {
+-	leidos, _, err := leerCasosConSuHuella(ruta)
+-
+-	return leidos, err
+-}
+-
+-// leerCasosConSuHuella lee los casos etiquetados de esa ruta, como
+-// leerCasosEtiquetados, y da con ellos la huella SHA-256, en hexadecimal, del
+-// contenido del que los ha leído: el fichero se lee una sola vez, así que la
+-// huella es la de esos casos y no la de lo que el fichero tenga después.
+-func leerCasosConSuHuella(ruta string) (CasosEtiquetados, string, error) {
+-	contenido, err := leerFichero(ruta)
+-	if err != nil {
+-		return CasosEtiquetados{}, "", fmt.Errorf("no se pueden leer: %w", err)
+-	}
+-
++// leerCasosEtiquetados lee los casos etiquetados del juez de su contenido, el de
++// casos.yaml (contracts/medida-del-juez.md §4 de H24), con el lector común de
++// documentos YAML de internal/skills —una clave repetida es un defecto con sus
++// dos líneas, nunca la última que gana— y sin esquema publicado: de un caso
++// solo exige que su etiqueta sea una de las dos, porque con otra no se podría
++// contar ni como defecto ni como correcto. Lo demás lo exige resolverlo: un caso
++// que no se puede resolver es un error de la reconstrucción. Ningún error lleva
++// delante de qué casos habla: lo pone quien los lee.
++func leerCasosEtiquetados(contenido []byte) (CasosEtiquetados, error) {
+ 	leidos, err := skills.ValidarDocumentoYAML[CasosEtiquetados](contenido, nil)
+ 	if err != nil {
+-		return CasosEtiquetados{}, "", err
++		return CasosEtiquetados{}, err
+ 	}
+ 
+ 	for posicion, caso := range leidos.Casos {
+ 		if caso.Etiqueta != etiquetaDefecto && caso.Etiqueta != etiquetaCorrecto {
+-			return CasosEtiquetados{}, "", fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s",
++			return CasosEtiquetados{}, fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s",
+ 				posicion+1, caso.nombre(), caso.Etiqueta, etiquetaDefecto, etiquetaCorrecto)
+ 		}
+ 	}
+ 
+-	return leidos, huellaSHA256(contenido), nil
++	return leidos, nil
+ }
+ 
+ // vigenciaDeLaBase es lo que sirve la base de una reconstrucción desde que se
+@@ -673,8 +644,7 @@ func (r *reconstructor) sesionDelInforme(informe, nombre string) (sesionDelInfor
+ // que va desde la raíz y con la barra de separador, y las devuelve por su
+ // nombre. El informe solo se lee, y nunca de fuera de la raíz: una ruta que
+ // sale de ella no se puede leer. Es un error que no sea un documento JSON con la
+-// forma de un informe o que repita el nombre de una sesión: no habría una sola
+-// respuesta que dar por la del caso.
++// forma de un informe.
+ func leerSesionesDelInforme(raiz, informe string) (map[string]sesionDelInforme, error) {
+ 	contenido, err := fs.ReadFile(os.DirFS(raiz), informe)
+ 	if err != nil {
+@@ -690,12 +660,7 @@ func leerSesionesDelInforme(raiz, informe string) (map[string]sesionDelInforme,
+ 	}
+ 
+ 	sesiones := make(map[string]sesionDelInforme, len(leido.Evals))
+-
+ 	for _, sesion := range leido.Evals {
+-		if _, repetida := sesiones[sesion.Sesion]; repetida {
+-			return nil, fmt.Errorf("el informe %s tiene repetida la sesión %s", informe, sesion.Sesion)
+-		}
+-
+ 		sesiones[sesion.Sesion] = sesion
+ 	}
+ 
+@@ -1188,8 +1153,8 @@ const (
+ //     uno por cada correcto que no.
+ //  4. Devuelve la medida (medidaDada) con dos espacios de sangría y su salto
+ //     final. Sus cuatro claves son las de lo que hay —las huellas de la rúbrica
+-//     del juez y de los casos que ha leído, y el modelo y la versión
+-//     recibidos—, no las de la medida versionada (FR-052).
++//     del juez y de sus casos, y el modelo y la versión recibidos—, no las de
++//     la medida versionada (FR-052).
+ //  5. Si un defecto no queda marcado o un correcto queda marcado, devuelve
+ //     además, con la medida y sus recuentos, un error con una línea por caso,
+ //     en el orden de los casos: «<informe> <sesión> [sin <norma> <bloque>]:
+@@ -1201,7 +1166,7 @@ const (
+ //
+ // Es un error, sin ningún voto ni ninguna medida, que la medición no tenga
+ // juez, votante o al menos un caso a la vez, que el esquema del juez no sirva
+-// para validar sus votos, que los casos no se puedan leer o no sean de una
++// para validar sus votos, que los casos no tengan su forma o no sean de una
+ // clase del juez que decide, o que alguno no se pueda resolver.
+ //
+ // No escribe en la salida estándar ni en el repositorio (FR-054): el texto lo
+@@ -1261,22 +1226,23 @@ type casosAMedir struct {
+ 	clase     string
+ 	deLaClase int
+ 
+-	// huella es la huella SHA-256 del fichero de los casos, tal como se leyó.
+-	huella string
+-
+ 	// resueltos son los casos, en el orden del fichero, cada uno con su
+ 	// pregunta, su respuesta y sus textos.
+ 	resueltos []CasoEtiquetado
+ }
+ 
++// casosMalFormados es el error de los casos etiquetados del juez que no tienen
++// su forma; sigue con el de leerCasosEtiquetados.
++const casosMalFormados = "los casos etiquetados del juez (" + carpetaDelJuez + "/" + ficheroDeCasosDelJuez + "): %w"
++
+ // leerLosCasos lee los casos etiquetados del juez de la medición y los resuelve
+-// con ese reconstructor. Es un error que no se puedan leer, que no sean de una
++// con ese reconstructor. Es un error que no tengan su forma, que no sean de una
+ // clase del juez que decide —la medida es de una clase que decide (research D19
+ // de H24), y con otra no habría qué contar— o que alguno no se pueda resolver.
+ func (m MedicionDelJuez) leerLosCasos(deLosCasos *reconstructor) (casosAMedir, error) {
+-	leidos, huella, err := leerCasosConSuHuella(m.Juez.Casos)
++	leidos, err := leerCasosEtiquetados([]byte(m.Juez.Casos))
+ 	if err != nil {
+-		return casosAMedir{}, fmt.Errorf("los casos etiquetados del juez %s: %w", m.Juez.Casos, err)
++		return casosAMedir{}, fmt.Errorf(casosMalFormados, err)
+ 	}
+ 
+ 	deLaClase := slices.IndexFunc(m.Juez.Clases, func(clase ClaseDelJuez) bool {
+@@ -1291,7 +1257,7 @@ func (m MedicionDelJuez) leerLosCasos(deLosCasos *reconstructor) (casosAMedir, e
+ 		return casosAMedir{}, err
+ 	}
+ 
+-	return casosAMedir{clase: leidos.Clase, deLaClase: deLaClase, huella: huella, resueltos: resueltos}, nil
++	return casosAMedir{clase: leidos.Clase, deLaClase: deLaClase, resueltos: resueltos}, nil
+ }
+ 
+ // aJuzgar es lo que se da al juez de cada caso, en su orden: su pregunta, su
+@@ -1405,11 +1371,11 @@ func frasesDeLosSies(deLaClase JuicioDeClase) []string {
+ // textoDeLaMedida es el texto de la medida de esa ejecución
+ // (contracts/medida-del-juez.md §7 de H24; FR-052): la skill, la clase de los
+ // casos, el día de la fecha, el modelo y la versión recibidos, las huellas de
+-// la rúbrica del juez, que es la que va como sus instrucciones, y de los casos
+-// leídos, los dos recuentos y el origen, con el commit. Va con dos espacios de
+-// sangría y su salto final, como una medida versionada. Es un error que alguno
+-// de sus textos no sea UTF-8: una medida que no se puede escribir tal cual no
+-// se da.
++// la rúbrica del juez, que es la que va como sus instrucciones, y de sus casos,
++// que son los votados, los dos recuentos y el origen, con el commit. Va con dos
++// espacios de sangría y su salto final, como una medida versionada. Es un error
++// que alguno de sus textos no sea UTF-8: una medida que no se puede escribir
++// tal cual no se da.
+ func (m MedicionDelJuez) textoDeLaMedida(casos casosAMedir, recuento recuentoDeLaMedida) (string, error) {
+ 	medida := medidaDada{
+ 		Skill:               m.Skill,
+@@ -1418,7 +1384,7 @@ func (m MedicionDelJuez) textoDeLaMedida(casos casosAMedir, recuento recuentoDeL
+ 		ModeloDelJuez:       m.ModeloDelJuez,
+ 		VersionDeClaudeCode: m.VersionDelJuez,
+ 		Rubrica:             ficheroMedido{Fichero: ficheroDeRubricaDelJuez, SHA256: huellaSHA256([]byte(m.Juez.Rubrica))},
+-		Casos:               ficheroMedido{Fichero: ficheroDeCasosDelJuez, SHA256: casos.huella},
++		Casos:               ficheroMedido{Fichero: ficheroDeCasosDelJuez, SHA256: huellaSHA256([]byte(m.Juez.Casos))},
+ 		Defectos:            recuento.defectos,
+ 		Correctos:           recuento.correctos,
+ 		Origen:              fmt.Sprintf(origenDeLaMedidaDada, m.Commit),
+diff --git a/internal/evals/medida_test.go b/internal/evals/medida_test.go
+index 86650da..0be4f13 100644
+--- a/internal/evals/medida_test.go
++++ b/internal/evals/medida_test.go
+@@ -76,7 +76,7 @@ const medidaSinCorresponder = "la medida versionada (juez/medida.json) no corres
+ // medida (FR-032 de H24).
+ const claseQueDecideEnElRepositorio = "afirma_lo_no_leido"
+ 
+-// TestLeerMedidaDelJuez fija la lectura de la medida del juez
++// TestLeerMedidaDelJuez fija la lectura de la medida del juez de su contenido
+ // (contracts/medida-del-juez.md §1 de H24; FR-040): se leen diez claves, cada
+ // una a su campo, y las demás no se miran; y la que no tiene alguna de las diez,
+ // o la tiene con null, o no es un documento JSON con esa forma, no se lee, con
+@@ -88,7 +88,7 @@ func TestLeerMedidaDelJuez(t *testing.T) {
+ 	t.Run("entera", func(t *testing.T) {
+ 		t.Parallel()
+ 
+-		medida, err := leerMedidaDelJuez(escribirMedida(t, []byte(medidaSintetica)))
++		medida, err := leerMedidaDelJuez([]byte(medidaSintetica))
+ 		require.NoError(t, err)
+ 
+ 		assert.Equal(t, MedidaDelJuez{
+@@ -107,7 +107,7 @@ func TestLeerMedidaDelJuez(t *testing.T) {
+ 		t.Run(caso.nombre, func(t *testing.T) {
+ 			t.Parallel()
+ 
+-			_, err := leerMedidaDelJuez(escribirMedida(t, caso.contenido))
++			_, err := leerMedidaDelJuez(caso.contenido)
+ 			require.EqualError(t, err, faltanClavesDeLaMedida+strings.Join(caso.faltan, ", "))
+ 		})
+ 	}
+@@ -116,19 +116,11 @@ func TestLeerMedidaDelJuez(t *testing.T) {
+ 		t.Run(caso.nombre, func(t *testing.T) {
+ 			t.Parallel()
+ 
+-			_, err := leerMedidaDelJuez(escribirMedida(t, caso.contenido))
++			_, err := leerMedidaDelJuez(caso.contenido)
+ 			require.Error(t, err)
+ 			assert.True(t, strings.HasPrefix(err.Error(), medidaQueNoEsJSON), err.Error())
+ 		})
+ 	}
+-
+-	t.Run("sin-fichero", func(t *testing.T) {
+-		t.Parallel()
+-
+-		_, err := leerMedidaDelJuez(filepath.Join(t.TempDir(), ficheroDeMedidaDelJuez))
+-		require.ErrorIs(t, err, fs.ErrNotExist)
+-		assert.True(t, strings.HasPrefix(err.Error(), "no se puede leer: "), err.Error())
+-	})
+ }
+ 
+ // medidaIlegible es un caso de TestLeerMedidaDelJuez: el contenido de una
+@@ -207,17 +199,6 @@ func medidasQueNoSonJSON(t *testing.T) []medidaIlegible {
+ 	}
+ }
+ 
+-// escribirMedida escribe ese contenido como la medida de un directorio temporal
+-// del test y devuelve su ruta.
+-func escribirMedida(t *testing.T, contenido []byte) string {
+-	t.Helper()
+-
+-	ruta := filepath.Join(t.TempDir(), ficheroDeMedidaDelJuez)
+-	require.NoError(t, os.WriteFile(ruta, contenido, 0o600))
+-
+-	return ruta
+-}
+-
+ // medidaCambiada es la medida de ese contenido con el cambio hecho en la clave
+ // de esa ruta, que tiene que estar: las claves de la ruta van separadas por un
+ // punto, como en rubrica.sha256, y todas menos la última son objetos.
+@@ -272,9 +253,9 @@ func ponerEnLaClave(valor any) func(objeto map[string]any, clave string) {
+ // versión fijada cambiados, uno cada vez, y con cada uno de los dos recuentos
+ // distinto de 0, la única línea es la que lo nombra, seis de seis. Y ve lo demás
+ // que la comprobación dice: la medida de una clase que no es la que decide; todo
+-// a la vez, una línea por lo que falla y en el orden del contrato; la medida sin
+-// una clave y la que no es JSON, que no corresponden; y lo que deja de poder
+-// leerse con el juez ya leído. Las copias del repositorio solo se leen (FR-045).
++// a la vez, una línea por lo que falla y en el orden del contrato; y la medida
++// sin una clave y la que no es JSON, que no corresponden. Las copias del
++// repositorio solo se leen (FR-045).
+ func TestMedidaVersionada(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -308,14 +289,6 @@ func TestMedidaVersionada(t *testing.T) {
+ 
+ 		probarLasClasesQueDeciden(t, modelo, version)
+ 	})
+-
+-	for _, fichero := range []string{ficheroDeMedidaDelJuez, ficheroDeCasosDelJuez} {
+-		t.Run("sin-"+fichero+"-tras-leer-el-juez", func(t *testing.T) {
+-			t.Parallel()
+-
+-			probarLoQueDejaDePoderLeerse(t, modelo, version, fichero)
+-		})
+-	}
+ }
+ 
+ // fijadosParaElJuez son el id del modelo del juez y la versión de Claude Code de
+@@ -544,29 +517,6 @@ func probarLasClasesQueDeciden(t *testing.T, modelo, version string) {
+ 	assert.Empty(t, comprobarLaMedida(juez, modelo, version))
+ }
+ 
+-// probarLoQueDejaDePoderLeerse quita de la copia de la carpeta del juez, con el
+-// juez ya leído de ella, el fichero de ese nombre, que la comprobación lee por
+-// su ruta —la medida o los casos—, y exige una sola línea, que empieza diciendo
+-// que no se puede leer y sigue con el error: ni se calla ni pasa por una huella
+-// que no coincide.
+-func probarLoQueDejaDePoderLeerse(t *testing.T, modelo, version, fichero string) {
+-	t.Helper()
+-
+-	principios := map[string]string{
+-		ficheroDeMedidaDelJuez: medidaSinCorresponder + "no se puede leer: ",
+-		ficheroDeCasosDelJuez:  "los casos (juez/casos.yaml) no se pueden leer: ",
+-	}
+-
+-	evals := copiarLaCarpetaDelJuez(t)
+-	juez := juezDe(t, evals)
+-
+-	require.NoError(t, os.Remove(filepath.Join(evals, carpetaDelJuez, fichero)))
+-
+-	lineas := comprobarLaMedida(juez, modelo, version)
+-	require.Len(t, lineas, 1, strings.Join(lineas, "\n"))
+-	assert.True(t, strings.HasPrefix(lineas[0], principios[fichero]), lineas[0])
+-}
+-
+ // copiarLaCarpetaDelJuez copia en un directorio temporal del test, dentro de su
+ // carpeta juez, todos los ficheros de la carpeta del juez de la primera pareja
+ // de la tabla de las copias, y devuelve ese directorio, que es el de las evals
+@@ -878,7 +828,7 @@ func TestLeerCasosEtiquetados(t *testing.T) {
+ 	t.Run("leidos", func(t *testing.T) {
+ 		t.Parallel()
+ 
+-		leidos, err := leerCasosEtiquetados(escribirCasos(t, casosSinteticos))
++		leidos, err := leerCasosEtiquetados([]byte(casosSinteticos))
+ 		require.NoError(t, err)
+ 
+ 		assert.Equal(t, CasosEtiquetados{
+@@ -925,33 +875,12 @@ func TestLeerCasosEtiquetados(t *testing.T) {
+ 		t.Run(ilegible.nombre, func(t *testing.T) {
+ 			t.Parallel()
+ 
+-			leidos, err := leerCasosEtiquetados(escribirCasos(t, ilegible.contenido))
++			leidos, err := leerCasosEtiquetados([]byte(ilegible.contenido))
+ 
+ 			require.ErrorContains(t, err, ilegible.dice)
+ 			assert.Zero(t, leidos, "sin los casos enteros no hay ninguno")
+ 		})
+ 	}
+-
+-	t.Run("sin-fichero", func(t *testing.T) {
+-		t.Parallel()
+-
+-		leidos, err := leerCasosEtiquetados(filepath.Join(t.TempDir(), ficheroDeCasosDelJuez))
+-
+-		require.ErrorIs(t, err, fs.ErrNotExist)
+-		require.ErrorContains(t, err, "no se pueden leer: ")
+-		assert.Zero(t, leidos)
+-	})
+-}
+-
+-// escribirCasos escribe ese contenido en el fichero de los casos de un
+-// directorio temporal del test y devuelve su ruta.
+-func escribirCasos(t *testing.T, contenido string) string {
+-	t.Helper()
+-
+-	ruta := filepath.Join(t.TempDir(), ficheroDeCasosDelJuez)
+-	require.NoError(t, os.WriteFile(ruta, []byte(contenido), 0o600))
+-
+-	return ruta
+ }
+ 
+ // TestArgumentosDeLaInvocacion fija con qué argumentos repite la reconstrucción
+@@ -1742,17 +1671,16 @@ func exigirElSobreSinSusElementos(t *testing.T, deLaSesion, delDerivado Texto, b
+ // cuando lo que la reconstrucción lee o prepara no sirve
+ // (contracts/medida-del-juez.md §4 y §5 de H24): las evals de hoy que no se
+ // pueden listar o que tienen un fichero mal formado, la base a la que le falta
+-// una consulta de esas evals, el informe que no es un informe o que repite una
+-// sesión, la eval retirada que no se puede leer o que no tiene pregunta, y el
+-// grafo previo que no se puede copiar o cuyo comando no termina con 0. Ninguno
+-// resuelve nada, y cada error nombra el caso y lo que falla.
++// una consulta de esas evals, el informe que no es un informe, la eval retirada
++// que no se puede leer o que no tiene pregunta, y el grafo previo que no se
++// puede copiar o cuyo comando no termina con 0. Ninguno resuelve nada, y cada
++// error nombra el caso y lo que falla.
+ func TestResolverCasosSinPoderPreparar(t *testing.T) {
+ 	t.Parallel()
+ 
+ 	const (
+-		informeRoto     = "informes/roto.json"
+-		informeRepetido = "informes/repetido.json"
+-		grafoDeLaLCSP   = "lcsp-a1-30-redaccion-original"
++		informeRoto   = "informes/roto.json"
++		grafoDeLaLCSP = "lcsp-a1-30-redaccion-original"
+ 	)
+ 
+ 	conGrafoPrevio := func(grabaciones, bloque string) []entradaDeConjunto {
+@@ -1794,15 +1722,6 @@ func TestResolverCasosSinPoderPreparar(t *testing.T) {
+ 			caso:     casoDelInforme(informeRoto),
+ 			dice:     []string{"el informe " + informeRoto + " no es un informe del job de evals: "},
+ 		},
+-		{
+-			nombre: "informe-con-la-sesion-repetida",
+-			informes: map[string]string{
+-				informeRepetido: `{"evals": [{"sesion": "una", "respuesta": "a"}, {"sesion": "una", "respuesta": "b"}]}`,
+-			},
+-			evals: evalsDelMundoSintetico(),
+-			caso:  casoDelInforme(informeRepetido),
+-			dice:  []string{"el informe " + informeRepetido + " tiene repetida la sesión una"},
+-		},
+ 		{
+ 			nombre:    "retirada-ilegible",
+ 			evals:     evalsDelMundoSintetico(),
+@@ -2060,7 +1979,7 @@ var reconstructorDelRepositorio = sync.OnceValue(func() *reconstructor {
+ func TestGrabacionesDerivadas(t *testing.T) {
+ 	t.Parallel()
+ 
+-	leidos, err := leerCasosEtiquetados(juezDe(t, evalsDelRepositorio).Casos)
++	leidos, err := leerCasosEtiquetados([]byte(juezDe(t, evalsDelRepositorio).Casos))
+ 	require.NoError(t, err)
+ 
+ 	casos := leidos.Casos
+@@ -2469,19 +2388,19 @@ func probarLos259Bien(t *testing.T) {
+ 	assert.Equal(t, copia.medidaDada(t, 0, 0), texto)
+ 	votante.exigirLosVotos(t, votosDeLaCopia, concurrenciaDeLaMedicion)
+ 
+-	require.NoError(t, os.WriteFile(copia.juez.Medida, []byte(texto), 0o600))
++	copia.juez.Medida = texto
+ 	assert.Empty(t, comprobarLaMedida(copia.juez, copia.modelo, copia.version),
+ 		"la medida dada, puesta en el lugar de la versionada, corresponde a lo que hay y se cumple")
+ }
+ 
+-// probarLos259SinLaMedidaVersionada quita de la copia, con el juez ya leído de
+-// ella, la medida versionada, y exige lo mismo que con ella: la ejecución de la
++// probarLos259SinLaMedidaVersionada deja al juez de la copia sin el contenido
++// de su medida versionada, y exige lo mismo que con ella: la ejecución de la
+ // medida no la lee para decidir nada (FR-043, FR-051).
+ func probarLos259SinLaMedidaVersionada(t *testing.T) {
+ 	t.Helper()
+ 
+ 	copia := nuevaCopiaAMedir(t)
+-	require.NoError(t, os.Remove(copia.juez.Medida))
++	copia.juez.Medida = ""
+ 
+ 	lineas := comprobarLaMedida(copia.juez, copia.modelo, copia.version)
+ 	require.Len(t, lineas, 1, "premisa: la medida versionada de la copia no se puede leer")
+@@ -2574,7 +2493,7 @@ func nuevaCopiaAMedir(t *testing.T) copiaAMedir {
+ 
+ 	juez := juezDe(t, evals)
+ 
+-	versionada, err := leerMedidaDelJuez(juez.Medida)
++	versionada, err := leerMedidaDelJuez([]byte(juez.Medida))
+ 	require.NoError(t, err)
+ 
+ 	copia := copiaAMedir{
+@@ -2592,7 +2511,7 @@ func nuevaCopiaAMedir(t *testing.T) copiaAMedir {
+ 	}, comprobarLaMedida(juez, copia.modelo, copia.version),
+ 		"premisa: la medida versionada de la copia no corresponde en ninguna de sus cuatro claves")
+ 
+-	leidos, err := leerCasosEtiquetados(juez.Casos)
++	leidos, err := leerCasosEtiquetados([]byte(juez.Casos))
+ 	require.NoError(t, err)
+ 	exigirLosRecuentosDeLaCopia(t, leidos)
+ 
+@@ -3123,11 +3042,13 @@ type medicionQueNoVota struct {
+ 
+ // medicionesQueNoVotan son las de TestEjecucionDeLaMedida: sin juez, sin
+ // votante, sin ningún caso que votar a la vez, con un esquema con el que no se
+-// puede validar ningún voto y con unos casos que no se pueden votar —los que
+-// han dejado de poder leerse, los de una clase que no es del juez, los de una
+-// que solo se publica y los que no se pueden resolver—.
++// puede validar ningún voto y con unos casos que no se pueden votar —los que no
++// tienen su forma, los de una clase que no es del juez, los de una que solo se
++// publica y los que no se pueden resolver—.
+ func medicionesQueNoVotan() []medicionQueNoVota {
+ 	const (
++		casosConOtraEtiqueta = "los casos etiquetados del juez (juez/casos.yaml): el caso 3 (informes/dos.json otra-sesion-02) " +
++			`tiene la etiqueta "dudoso"`
+ 		casosDeOtraClase      = "los casos son de la clase una_clase, que no es una clase del juez que decide"
+ 		casosDeLaQueSePublica = "los casos son de la clase " + claseCuentaSuProceso + ", que no es una clase del juez que decide"
+ 	)
+@@ -3174,16 +3095,9 @@ func medicionesQueNoVotan() []medicionQueNoVota {
+ 			dice: "el esquema de la respuesta del juez no sirve para validar sus votos",
+ 		},
+ 		{
+-			nombre: "sin-los-casos-tras-leer-el-juez",
+-			preparar: func(t *testing.T, votar Votante) MedicionDelJuez {
+-				t.Helper()
+-
+-				juez := juezDe(t, copiarLaCarpetaDelJuez(t))
+-				require.NoError(t, os.Remove(juez.Casos))
+-
+-				return medicionDe(juez, votar)
+-			},
+-			dice: filepath.Join(carpetaDelJuez, ficheroDeCasosDelJuez) + ": no se pueden leer: ",
++			nombre:   "casos-con-otra-etiqueta",
++			preparar: medicionConEstosCasos(strings.Replace(casosSinteticos, "etiqueta: correcto", "etiqueta: dudoso", 1)),
++			dice:     casosConOtraEtiqueta,
+ 		},
+ 		{
+ 			nombre:   "casos-de-una-clase-que-no-es-del-juez",
+diff --git a/internal/evals/sondeo.go b/internal/evals/sondeo.go
+index ac115e5..a5f96ea 100644
+--- a/internal/evals/sondeo.go
++++ b/internal/evals/sondeo.go
+@@ -455,7 +455,7 @@ func versionDelEquipo(sesiones []sesionJuzgada) string {
+ func medidaFrenteAlEquipo(juez *Juez, modelo, version string) []string {
+ 	lineas := comprobarLaMedida(juez, modelo, version)
+ 
+-	medida, err := leerMedidaDelJuez(juez.Medida)
++	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
+ 	if err != nil {
+ 		return lineas
+ 	}
+diff --git a/specs/017-h24-las-evals-juzgan/cierre.md b/specs/017-h24-las-evals-juzgan/cierre.md
+index 1209a3c..831fa0e 100644
+--- a/specs/017-h24-las-evals-juzgan/cierre.md
++++ b/specs/017-h24-las-evals-juzgan/cierre.md
+@@ -20,6 +20,13 @@ De este fichero, T018 cambia solo lo que eso mueve, medido en su sesión sobre `
+ encima: lo que esta cabecera dice de T018, los recuentos de §1 con `.golangci.yml`, «Atajos» de §5 y el primer punto
+ que tenía §6. La cobertura, el quickstart y los controles siguen como los midió T017, sobre `b1c5156`.
+ 
++El corrector de la revisión final (ronda 1) cambia solo lo que mueve su corrección del motivo `[k]`, medido en su
++sesión sobre `81d025d` con sus cambios encima: en §3, el recuento de la primera orden de quickstart §4, que pasa de 49
++a 47 porque `TestMedidaVersionada` pierde las dos subpruebas del fichero que deja de poder leerse (de 14 a 12;
++`TestEjecucionDeLaMedida` sigue en 18, con una que sale y otra que entra); y en §4, las líneas de los seis tests de
++`medida_test.go` y `conjunto_test.go` que cambian de sitio. El motivo `[l][f]` queda sin arreglar
++(`gates/revision-pendiente.md`): los topes de 352 y 269 minutos y sus cifras siguen como estaban.
++
+ ## 1. Lo creado y lo modificado en el hito
+ 
+ `git diff --name-status main`, en T018 y antes de tocar este fichero, da **90 ficheros: 54 `A` y 36 `M`**, ninguna `D`
+@@ -227,7 +234,7 @@ que ninguna pasara en vacío. Ninguna trae un `--- FAIL` ni un `--- SKIP`:
+ - §3, 90: `TestInformeConElJuez` (13), `TestUmbralesDelInforme` (20), `TestEjecucionSinMedir` (11),
+   `TestJuzgarSinLaLista` (2: `sin-binario-ni-servidor` y `calibrado`), `TestJuicioDelSondeo` (30) y
+   `TestSalidaDelSondeo` (8).
+-- §4, primera orden, 49: `TestMedidaVersionada` (14), `TestCopiasDelJuez` (10), `TestGrabacionesDerivadas` (3:
++- §4, primera orden, 47: `TestMedidaVersionada` (12), `TestCopiasDelJuez` (10), `TestGrabacionesDerivadas` (3:
+   `respuestas`, `derivados` y `preguntas`) y `TestEjecucionDeLaMedida` (18). Segunda, 9: `TestGrabacionesDerivadas` de
+   `internal/app` y sus ocho subpruebas, entre ellas `lpac-a21-version-anterior`, la derivada restaurada.
+ - §5, 42: `TestProsaDeLaSkill` (26) y `TestEvalsDelRepositorio` (14). Entre las catorce no están
+@@ -277,12 +284,12 @@ para `internal/evals` en las dos órdenes y en `skills-check`.
+ | FR-102, SC-002 | `TestVotoDelJuez` | `internal/evals/juez_test.go:1032` | `PASS`, 19 subpruebas |
+ | FR-103, SC-003 | `TestReglaDeLosVotos` | `internal/evals/juez_test.go:1337` | `PASS`, 9 subpruebas |
+ | FR-104, SC-004 | `TestInformeConElJuez` y `TestEjecucionSinMedir` | `internal/evals/informe_test.go:3842` y `internal/evals/ejecucion_test.go:102` | `PASS`; la segunda, 11 subpruebas, entre ellas `medida-que-corresponde` y las mutaciones |
+-| FR-042, FR-105, SC-005 | `TestMedidaVersionada` | `internal/evals/medida_test.go:278` | `PASS`, 14 subpruebas, entre ellas `del-repositorio` |
+-| FR-106, SC-006 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:2404` | `PASS`, 18 subpruebas, entre ellas `un-defecto-sin-marcar` y `un-correcto-marcado` |
++| FR-042, FR-105, SC-005 | `TestMedidaVersionada` | `internal/evals/medida_test.go:259` | `PASS`, 12 subpruebas, entre ellas `del-repositorio` |
++| FR-106, SC-006 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:2323` | `PASS`, 18 subpruebas, entre ellas `un-defecto-sin-marcar` y `un-correcto-marcado` |
+ | FR-107, SC-007 | `TestMensajeDelVoto` y `TestOrdenDelVoto` | `internal/evals/juez_test.go:280` y `:598` | `PASS`, 4 y 15 subpruebas |
+-| FR-023, FR-108, SC-008 | `TestCopiasDelJuez` | `internal/evals/medida_test.go:678` | `PASS`, 10 subpruebas: `del-repositorio`, las cuatro `cambiada-…`, las cuatro `sin-…` y `skill-fuera-de-la-tabla` |
+-| FR-109, SC-009 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:2060` | `PASS`: `respuestas`, `derivados` y `preguntas` |
+-| FR-086, FR-110, SC-010 | `skills-check`, `TestProsaDeLaSkill` y `TestEvalsDelRepositorio` | `Makefile:126` (`skills-check: check-tools`); `internal/evals/conjunto_test.go:2087` y `:1411` | `make skills-check`, código 0; `PASS`, 26 y 14 subpruebas; `SKILL.md`, 298 líneas |
++| FR-023, FR-108, SC-008 | `TestCopiasDelJuez` | `internal/evals/medida_test.go:628` | `PASS`, 10 subpruebas: `del-repositorio`, las cuatro `cambiada-…`, las cuatro `sin-…` y `skill-fuera-de-la-tabla` |
++| FR-109, SC-009 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:1979` | `PASS`: `respuestas`, `derivados` y `preguntas` |
++| FR-086, FR-110, SC-010 | `skills-check`, `TestProsaDeLaSkill` y `TestEvalsDelRepositorio` | `Makefile:126` (`skills-check: check-tools`); `internal/evals/conjunto_test.go:2071` y `:1395` | `make skills-check`, código 0; `PASS`, 26 y 14 subpruebas; `SKILL.md`, 298 líneas |
+ | FR-111, SC-011 | `TestJuzgarSinLaLista` | `internal/evals/juzgar_test.go:1053` | `PASS`: `sin-binario-ni-servidor` y `calibrado` |
+ | FR-092, FR-112, SC-012 | `TestDefinicionDelJob` | `internal/evals/definicion_test.go:173` | `PASS`, con `del-repositorio`, `sinteticas` y `peor-caso`; topes de 352 y 269 minutos en `evals.yml` |
+ 
+diff --git a/specs/017-h24-las-evals-juzgan/data-model.md b/specs/017-h24-las-evals-juzgan/data-model.md
+index 5a2ad92..fb97860 100644
+--- a/specs/017-h24-las-evals-juzgan/data-model.md
++++ b/specs/017-h24-las-evals-juzgan/data-model.md
+@@ -12,8 +12,10 @@ salida, en `contracts/`.
+ | `Clases` | Las de `clases.yaml`, en su orden | Al menos una; nombres sin repetir; las propiedades de `esquema.json` son exactamente sus nombres |
+ | `Rubrica` | El contenido de `rubrica.md`, entero | Va tal cual como instrucciones del juez |
+ | `Esquema` | El contenido de `esquema.json` | Con él se valida cada voto |
+-| `Casos` | La ruta de `casos.yaml` | Solo la lee la ejecución de la medida y el control de derivaciones |
+-| `Medida` | La ruta de `medida.json` | La lee `comprobarLaMedida` |
++| `Casos` | El contenido de `casos.yaml`, entero | Su huella la compara `comprobarLaMedida`; como casos solo los leen la ejecución de la medida, el control de derivaciones y el peor caso del trabajo `medida` |
++| `Medida` | El contenido de `medida.json`, entero | De él la leen `comprobarLaMedida`, el informe y el sondeo |
++
++Los cinco ficheros se leen una vez, con el conjunto: quien usa el juez no vuelve a la carpeta.
+ 
+ `ClaseDelJuez`: `Nombre` (`^[a-z0-9_]+$`), `Decide`, `Umbral` (0 a 1). Con `Decide`, la clase tiene su umbral del
+ informe con `decide: true` y sus dos umbrales de la medida; sin él, se publica.
+diff --git a/specs/017-h24-las-evals-juzgan/tasks.md b/specs/017-h24-las-evals-juzgan/tasks.md
+index 2e485c3..4602994 100644
+--- a/specs/017-h24-las-evals-juzgan/tasks.md
++++ b/specs/017-h24-las-evals-juzgan/tasks.md
+@@ -128,7 +128,7 @@ originales (plan.md, paso 1).
+ 
+ **Prueba independiente**: `go test -count=1 -run '^(TestLeerConjunto|TestEvalsDelRepositorio|TestCopiasDelJuez)$' ./internal/evals/`.
+ 
+-- [X] T001 [datos] [US3] La carpeta del juez de `boe-legislacion` con su declaración de clases, el esquema de esa declaración y su lectura en `LeerConjunto`, con los casos que los fijan, y **nada más** (contracts/juez-y-voto.md §1; contracts/medida-del-juez.md §3; data-model §1 y §7; research D19, D20, V17; plan.md, «Orden de implementación», paso 1, y *Complexity Tracking*, segunda fila: con la carpeta en el árbol y la lectura de hoy, la subprueba `formato` de `TestEvalsDelRepositorio` da un fichero mal formado, y sin el esquema la declaración no se puede validar, así que van juntos). **El esquema**, nuevo, con la cabecera (`$schema`, `$id`, `title`) de la forma de sus vecinos `*.yaml.json`: un objeto sin más claves que `clases`, obligatoria; `clases`, una lista de al menos un objeto con exactamente `nombre` (`^[a-z0-9_]+$`), `decide` (booleano) y `umbral` (número entre 0 y 1), los tres obligatorios. **La carpeta**, nueva: `clases.yaml`, con un comentario de cabecera que dice qué es y las dos clases de contracts/juez-y-voto.md §1 carácter a carácter (`afirma_lo_no_leido`, `decide: true`, `umbral: 0`; `cuenta_su_proceso`, `decide: false`, `umbral: 0`); y `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json`, copiados una sola vez con `cp` desde la carpeta de la evidencia del ADR 0037 (la pareja de carpetas, en contracts/medida-del-juez.md §3), sin abrirlos con un editor, y comparados con `cmp` antes de terminar; la carpeta de la evidencia no se escribe. **La lectura**: en `juez.go`, nuevo, `ClaseDelJuez{Nombre, Decide, Umbral}` y `Juez{Clases, Rubrica, Esquema, Casos, Medida}` (data-model §1: de la rúbrica y del esquema, su contenido entero; de los casos y de la medida, su ruta) y la función que lee la carpeta, que valida `clases.yaml` con el lector común de YAML y su esquema compilado con `compilarEsquemaPublicado`, como la lista; en `conjunto.go`, `Conjunto.Juez *Juez` y `LeerConjunto`, que deja de tomar la entrada `juez` por un fichero de eval: si es un directorio, lee de él el juez; si no lo es, es un fichero mal formado. Son mal formados, con su nombre delante (`juez/clases.yaml: …`), como una eval: `clases.yaml` que no cumple su esquema o repite un nombre; un `esquema.json` cuyas propiedades no son exactamente las clases declaradas; y cualquiera de los cinco que falta o no se puede leer. Una carpeta sin `juez` deja `Juez` en `nil`: esa skill no tiene juez. **Tests**: `TestLeerConjunto` gana los casos de la carpeta `juez`, escritos por el test en `t.TempDir()` —bien formada, con sus dos clases en su orden, la rúbrica y el esquema enteros y las dos rutas; cada mal formado de arriba, uno por caso, con el esquema incumplido de cinco maneras (clave de más, sin `nombre`, nombre con mayúscula, `umbral` 2, lista vacía); `juez` como fichero regular; y sin `juez`—; `formato` de `TestEvalsDelRepositorio` sigue sin ficheros mal formados y exige `Juez` con las dos clases en `boe-legislacion` y `nil` en `legal-core` (FR-021); y `TestCopiasDelJuez`, en `medida_test.go`, nuevo: compara byte a byte las cuatro copias con sus originales, con la pareja de carpetas como tabla del test, y falla nombrando cada fichero que difiere o falta; una skill con `juez` que no esté en la tabla lo hace fallar; y, sobre una copia de las dos carpetas en `t.TempDir()`, un byte cambiado en cada una de las cuatro la nombra: 4 de 4 (control de umbral de FR-023, FR-108 y SC-008). Antes de escribir: `grep` de quien recorre el directorio de evals de una skill en el paquete y en `scripts`, por si algo lee sus entradas sin `LeerConjunto`. — FR-020, FR-021, FR-022, FR-023, FR-040, FR-108; SC-008. Rutas: schemas/juez-clases.yaml.json, evals/boe-legislacion/juez/, internal/evals/juez.go, internal/evals/conjunto.go, internal/evals/medida_test.go
++- [X] T001 [datos] [US3] La carpeta del juez de `boe-legislacion` con su declaración de clases, el esquema de esa declaración y su lectura en `LeerConjunto`, con los casos que los fijan, y **nada más** (contracts/juez-y-voto.md §1; contracts/medida-del-juez.md §3; data-model §1 y §7; research D19, D20, V17; plan.md, «Orden de implementación», paso 1, y *Complexity Tracking*, segunda fila: con la carpeta en el árbol y la lectura de hoy, la subprueba `formato` de `TestEvalsDelRepositorio` da un fichero mal formado, y sin el esquema la declaración no se puede validar, así que van juntos). **El esquema**, nuevo, con la cabecera (`$schema`, `$id`, `title`) de la forma de sus vecinos `*.yaml.json`: un objeto sin más claves que `clases`, obligatoria; `clases`, una lista de al menos un objeto con exactamente `nombre` (`^[a-z0-9_]+$`), `decide` (booleano) y `umbral` (número entre 0 y 1), los tres obligatorios. **La carpeta**, nueva: `clases.yaml`, con un comentario de cabecera que dice qué es y las dos clases de contracts/juez-y-voto.md §1 carácter a carácter (`afirma_lo_no_leido`, `decide: true`, `umbral: 0`; `cuenta_su_proceso`, `decide: false`, `umbral: 0`); y `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json`, copiados una sola vez con `cp` desde la carpeta de la evidencia del ADR 0037 (la pareja de carpetas, en contracts/medida-del-juez.md §3), sin abrirlos con un editor, y comparados con `cmp` antes de terminar; la carpeta de la evidencia no se escribe. **La lectura**: en `juez.go`, nuevo, `ClaseDelJuez{Nombre, Decide, Umbral}` y `Juez{Clases, Rubrica, Esquema, Casos, Medida}` (data-model §1: de la rúbrica, del esquema, de los casos y de la medida, su contenido entero) y la función que lee la carpeta, que valida `clases.yaml` con el lector común de YAML y su esquema compilado con `compilarEsquemaPublicado`, como la lista; en `conjunto.go`, `Conjunto.Juez *Juez` y `LeerConjunto`, que deja de tomar la entrada `juez` por un fichero de eval: si es un directorio, lee de él el juez; si no lo es, es un fichero mal formado. Son mal formados, con su nombre delante (`juez/clases.yaml: …`), como una eval: `clases.yaml` que no cumple su esquema o repite un nombre; un `esquema.json` cuyas propiedades no son exactamente las clases declaradas; y cualquiera de los cinco que falta o no se puede leer. Una carpeta sin `juez` deja `Juez` en `nil`: esa skill no tiene juez. **Tests**: `TestLeerConjunto` gana los casos de la carpeta `juez`, escritos por el test en `t.TempDir()` —bien formada, con sus dos clases en su orden, la rúbrica y el esquema enteros y las dos rutas; cada mal formado de arriba, uno por caso, con el esquema incumplido de cinco maneras (clave de más, sin `nombre`, nombre con mayúscula, `umbral` 2, lista vacía); `juez` como fichero regular; y sin `juez`—; `formato` de `TestEvalsDelRepositorio` sigue sin ficheros mal formados y exige `Juez` con las dos clases en `boe-legislacion` y `nil` en `legal-core` (FR-021); y `TestCopiasDelJuez`, en `medida_test.go`, nuevo: compara byte a byte las cuatro copias con sus originales, con la pareja de carpetas como tabla del test, y falla nombrando cada fichero que difiere o falta; una skill con `juez` que no esté en la tabla lo hace fallar; y, sobre una copia de las dos carpetas en `t.TempDir()`, un byte cambiado en cada una de las cuatro la nombra: 4 de 4 (control de umbral de FR-023, FR-108 y SC-008). Antes de escribir: `grep` de quien recorre el directorio de evals de una skill en el paquete y en `scripts`, por si algo lee sus entradas sin `LeerConjunto`. — FR-020, FR-021, FR-022, FR-023, FR-040, FR-108; SC-008. Rutas: schemas/juez-clases.yaml.json, evals/boe-legislacion/juez/, internal/evals/juez.go, internal/evals/conjunto.go, internal/evals/medida_test.go
+ 
+ **Checkpoint**: `make ci` lee la carpeta del juez como parte del conjunto y falla si una copia difiere de su original.
+ 

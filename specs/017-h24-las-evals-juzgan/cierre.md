@@ -24,8 +24,10 @@ El corrector de la revisión final (ronda 1) cambia solo lo que mueve su correcc
 sesión sobre `81d025d` con sus cambios encima: en §3, el recuento de la primera orden de quickstart §4, que pasa de 49
 a 47 porque `TestMedidaVersionada` pierde las dos subpruebas del fichero que deja de poder leerse (de 14 a 12;
 `TestEjecucionDeLaMedida` sigue en 18, con una que sale y otra que entra); y en §4, las líneas de los seis tests de
-`medida_test.go` y `conjunto_test.go` que cambian de sitio. El motivo `[l][f]` queda sin arreglar
-(`gates/revision-pendiente.md`): los topes de 352 y 269 minutos y sus cifras siguen como estaban.
+`medida_test.go` y `conjunto_test.go` que cambian de sitio. El motivo `[l][f]` quedó sin arreglar en esa
+ronda y el juez B lo retiró en la ronda 2 (`gates/revision-b-r2.json`, criterio l): el peor caso del código, con 215 s
+por respuesta como mucho, es 20 652 s en `evals` y 14 520 s en `medida`, bajo la cota que calcula `definicion.go` y
+bajo los topes de 352 y 269 minutos, que siguen como estaban, con sus cifras.
 
 ## 1. Lo creado y lo modificado en el hito
 

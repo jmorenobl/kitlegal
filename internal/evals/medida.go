@@ -1074,7 +1074,7 @@ type MedicionDelJuez struct {
 
 	// Juez es el juez de la skill, el que LeerConjunto lee de su carpeta de
 	// evals: sus clases, su rúbrica, el esquema con el que se valida cada voto y
-	// la ruta de sus casos. Su medida versionada no se lee.
+	// sus casos. Su medida versionada no se usa.
 	Juez *Juez
 
 	// Votar es quien da cada voto. Se le llama desde varias gorrutinas a la vez,

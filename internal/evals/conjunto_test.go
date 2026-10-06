@@ -144,8 +144,8 @@ type malFormadoEsperado struct {
 // Desde H24 (contracts/juez-y-voto.md §1; FR-020), fija también la carpeta del
 // juez, con los casos de casosDeLaCarpetaJuez: la entrada que se llama
 // exactamente juez no es un fichero de eval. Si es una carpeta bien formada,
-// queda en Conjunto.Juez, con sus clases en su orden, la rúbrica y el esquema
-// enteros y las rutas de los casos y de la medida. Cada fichero suyo que falta,
+// queda en Conjunto.Juez, con sus clases en su orden y la rúbrica, el esquema,
+// los casos y la medida enteros. Cada fichero suyo que falta,
 // que no se puede leer o que no tiene su forma —la declaración que incumple su
 // esquema o repite un nombre, y el esquema cuyas propiedades no son exactamente
 // las clases declaradas— es un fichero mal formado con su nombre,
