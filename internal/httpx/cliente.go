@@ -51,10 +51,11 @@ const intervaloPorOmision = time.Second
 const intentosPorOmision = 3
 
 // Cliente es el único objeto del módulo capaz de emitir una petición HTTP, y
-// Pedir su única operación: no hay ninguna otra forma de salir a la red desde
-// este paquete, ni forma alguna de construir uno al que le falte una de sus
-// garantías. Sus campos son privados porque ninguna de ellas se negocia desde
-// fuera (FR-001, FR-002, D1).
+// Pedir su operación: no hay ninguna otra forma de salir a la red desde este
+// paquete que la suya y la de las consultas que él abre —Consulta.Pedir, que es
+// el mismo pedido con las cookies de esa consulta—, ni forma alguna de construir
+// uno al que le falte una de sus garantías. Sus campos son privados porque
+// ninguna de ellas se negocia desde fuera (FR-001, FR-002, D1).
 //
 // Es seguro para uso concurrente: no guarda nada de una petición a la siguiente.
 type Cliente struct {
@@ -80,6 +81,11 @@ type Cliente struct {
 	// nula: sin la opción, es time.Now (contrato httpx-acepta-e-instante §3 de
 	// H4).
 	hora func() time.Time
+	// formulario es la única dirección a la que una consulta de este cliente
+	// puede enviar un formulario, tal como la escribe url.URL.String. Vacía, el
+	// cliente no declaró ninguno con ConFormulario y no abre consultas (contrato
+	// httpx-formulario §1 y §2 de H23).
+	formulario string
 }
 
 // configuracionDelCliente es lo que las opciones rellenan antes de que New
@@ -88,6 +94,7 @@ type Cliente struct {
 type configuracionDelCliente struct {
 	fuente          string
 	raizDeGrabacion string
+	formulario      string
 	// intervalo y ritmo son las dos formas de declarar el ritmo del cliente, y
 	// de las dos queda escrita solo la última: ConIntervalo borra el ritmo y
 	// ConRitmo el intervalo. Así el cero de cada uno sigue diciendo quién lo
@@ -333,6 +340,7 @@ func New(opciones ...Opcion) (*Cliente, error) {
 		fuente:      config.fuente,
 		registrador: config.registrador,
 		hora:        config.hora,
+		formulario:  config.formulario,
 	}, nil
 }
 
@@ -379,6 +387,7 @@ func Replay(dir string, opciones ...Opcion) (*Cliente, error) {
 		fuente:      config.fuente,
 		registrador: config.registrador,
 		hora:        config.hora,
+		formulario:  config.formulario,
 	}, nil
 }
 
@@ -481,6 +490,10 @@ func comprobarReproduccion(dir string, config configuracionDelCliente) error {
 // reproducir a la vez (FR-043)— y el ritmo, en sus dos formas, y los intentos,
 // cuyos escalones no están en esta cadena. Rechazarlas es lo que impide que
 // quien las declare crea que hacen algo (contrato §3, D1).
+//
+// El formulario de consulta no está entre ellas: una consulta se reproduce como
+// se pide, y sin la opción el cliente de reproducción no podría abrirla ni
+// reconocer la dirección de su envío (contrato httpx-formulario §1 de H23).
 func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 	switch {
 	case config.raizDeGrabacion != "":
@@ -504,11 +517,12 @@ func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 	}
 }
 
-// Pedir es la única operación de red del módulo. Exige el contexto de
-// cancelación como primer parámetro —el plazo de la operación es el suyo y solo
-// el suyo (FR-003, FR-004)— y el contexto de ejecución del kernel como segundo,
-// que es lo que hace que --dry-run llegue hasta aquí sin que quien llama pueda
-// olvidarlo (FR-050, D1).
+// Pedir es la operación de red del módulo: no hay otra que ella y la de una
+// Consulta, que es este mismo pedido. Exige el contexto de cancelación como
+// primer parámetro —el plazo de la operación es el suyo y solo el suyo (FR-003,
+// FR-004)— y el contexto de ejecución del kernel como segundo, que es lo que
+// hace que --dry-run llegue hasta aquí sin que quien llama pueda olvidarlo
+// (FR-050, D1).
 //
 // Fuera de la cadena de decoradores viven las tres cosas que necesitan decidir
 // antes o después de ella: la comprobación del método, de la dirección y del
@@ -523,8 +537,35 @@ func comprobarOpcionesDeReproduccion(config configuracionDelCliente) error {
 // petición —el robots.txt la deniega, no hay turno, el plazo terminó antes—, el
 // instante es el del abandono, y el de un fallo de argumentos también; en ensayo
 // no hay ninguno (contrato httpx-acepta-e-instante §2 y §4 de H4).
+//
+// Desde aquí no se envía ningún formulario: el POST de un formulario de consulta
+// solo sale de una Consulta, y fuera de ella sigue siendo un fallo de argumentos,
+// también en el cliente que lo declaró (contrato httpx-formulario §2 de H23).
 func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Peticion) (Respuesta, error) {
-	direccion, fallo := comprobarPeticion(p)
+	return c.pedir(ctx, ejecucion, p, sinFormulario, c.seguirLaCadena)
+}
+
+// sinFormulario es la dirección a la que Cliente.Pedir admite un envío: ninguna.
+const sinFormulario = ""
+
+// recorrido es lo que se hace con una petición ya admitida, fuera del ensayo:
+// bajarla por la cadena y entregar lo que la fuente respondió. Hay dos, y es lo
+// que distingue a quien pide: el del cliente, que sigue las redirecciones
+// (seguirLaCadena), y el de una consulta, que no sigue ninguna. Devuelve el
+// *Error del paquete, y no un error cualquiera, porque el pedido fecha todo fallo
+// antes de entregarlo.
+type recorrido func(ctx context.Context, p Peticion, destino *url.URL, marca *marcaDeEmision) (Respuesta, *Error)
+
+// pedir es el pedido que comparten Cliente.Pedir y Consulta.Pedir, y que por eso
+// es uno solo: las mismas comprobaciones antes de abrir nada, el mismo ensayo y
+// el mismo instante. Lo que cambia de uno a otro se le declara: la dirección a
+// la que se admite un envío —la del formulario dentro de una consulta, ninguna
+// fuera— y el recorrido de la petición admitida (contrato httpx-formulario §1 de
+// H23).
+func (c *Cliente) pedir(
+	ctx context.Context, ejecucion schema.Contexto, p Peticion, formulario string, recorrer recorrido,
+) (Respuesta, error) {
+	direccion, fallo := comprobarPeticion(p, formulario)
 	if fallo != nil {
 		return Respuesta{}, fallo.fechado(c.hora())
 	}
@@ -538,7 +579,7 @@ func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Petici
 
 	marca := &marcaDeEmision{}
 
-	respuesta, fallo := c.seguirLaCadena(contextoConMarca(ctx, marca), p, direccion, marca)
+	respuesta, fallo := recorrer(contextoConMarca(ctx, marca), p, direccion, marca)
 
 	instante := marca.instanteO(c.hora)
 
@@ -551,14 +592,22 @@ func (c *Cliente) Pedir(ctx context.Context, ejecucion schema.Contexto, p Petici
 	return respuesta, nil
 }
 
-// comprobarPeticion aplica las tres comprobaciones que no necesitan red y que por
-// eso rigen también en ensayo: el método es GET o HEAD (FR-010), la dirección es
-// absoluta, de esquema de red y con sitio (research D19), y el formato, si se
-// pide, se puede poner en una cabecera (research D4 de H4). Las tres son de la
-// clase «argumentos» y ninguna llega a abrir una conexión.
-func comprobarPeticion(p Peticion) (*url.URL, *Error) {
-	if p.Metodo != http.MethodGet && p.Metodo != http.MethodHead {
-		return nil, errorDeArgumentos(p, nil, "el método de una petición solo puede ser GET o HEAD")
+// comprobarPeticion aplica las comprobaciones que no necesitan red y que por eso
+// rigen también en ensayo: el método y los campos son los que admite quien pide
+// (FR-010; contrato httpx-formulario §2 de H23), la dirección es absoluta, de
+// esquema de red y con sitio (research D19), el formato, si se pide, se puede
+// poner en una cabecera (research D4 de H4), y un envío va a la dirección
+// declarada y a ninguna otra. Todas son de la clase «argumentos» y ninguna llega
+// a abrir una conexión.
+//
+// formulario es la dirección a la que quien pide admite un envío, tal como la
+// escribe url.URL.String: la que el cliente declaró con ConFormulario, dentro de
+// una consulta, y ninguna —sinFormulario— desde Cliente.Pedir. La del envío se
+// compara entera con ella, escrita igual: otra ruta, otra consulta u otro sitio
+// son otra dirección.
+func comprobarPeticion(p Peticion, formulario string) (*url.URL, *Error) {
+	if fallo := comprobarMetodo(p, formulario); fallo != nil {
+		return nil, fallo
 	}
 
 	direccion, err := url.Parse(p.URL)
@@ -578,7 +627,47 @@ func comprobarPeticion(p Peticion) (*url.URL, *Error) {
 		return nil, fallo
 	}
 
+	if p.Metodo == http.MethodPost && direccion.String() != formulario {
+		return nil, errorDeArgumentos(p, nil,
+			"un formulario solo se envía a la dirección declarada con ConFormulario: "+formulario)
+	}
+
 	return direccion, nil
+}
+
+// comprobarMetodo es la parte de la tabla de admisión que no mira la dirección
+// (contrato httpx-formulario §2 de H23). GET y HEAD se piden sin campos, desde
+// el cliente y desde una consulta. POST es solo el envío de un formulario: lo
+// admite quien tiene una dirección declarada a la que enviarlo —una consulta,
+// nunca Cliente.Pedir— y con al menos un campo. Cualquier otro método no existe
+// en el módulo (constitución, principio I).
+func comprobarMetodo(p Peticion, formulario string) *Error {
+	switch p.Metodo {
+	case http.MethodGet, http.MethodHead:
+		if len(p.Campos) > 0 {
+			return errorDeArgumentos(p, nil,
+				"una petición GET o HEAD no lleva campos: son los de un formulario, que se envía con POST")
+		}
+
+		return nil
+
+	case http.MethodPost:
+		if formulario == sinFormulario {
+			return errorDeArgumentos(p, nil,
+				"un POST solo se admite para enviar el formulario de una consulta, "+
+					"que abre Cliente.Consulta en un cliente que lo declara (ConFormulario)")
+		}
+
+		if len(p.Campos) == 0 {
+			return errorDeArgumentos(p, nil, "el envío de un formulario lleva al menos un campo")
+		}
+
+		return nil
+
+	default:
+		return errorDeArgumentos(p, nil,
+			"el método de una petición solo puede ser GET o HEAD, o POST para enviar el formulario de una consulta")
+	}
 }
 
 // comprobarFormato valida Peticion.Acepta antes de que llegue a la cabecera
@@ -633,13 +722,8 @@ func (c *Cliente) seguirLaCadena(
 		// httpx-acepta-e-instante §4 de H4).
 		marca.reiniciar()
 
-		// El contexto se comprueba antes de cada salto y no solo dentro del
-		// transporte: lo que corta la operación es el plazo de quien la pidió, y
-		// tiene que cortarla igual cuando abajo no hay ninguna conexión que
-		// esperar sino una grabación que leer (FR-005, FR-049 a, D13).
-		if err := ctx.Err(); err != nil {
-			return Respuesta{}, errorDeFuenteNoDisponible(p, 0, err,
-				"la operación ha terminado antes de pedir "+destino.String())
+		if fallo := terminadaAntesDePedir(ctx, p, destino); fallo != nil {
+			return Respuesta{}, fallo
 		}
 
 		if _, repetida := visitadas[destino.String()]; repetida {
@@ -649,7 +733,7 @@ func (c *Cliente) seguirLaCadena(
 
 		visitadas[destino.String()] = struct{}{}
 
-		recibida, fallo := c.emitir(ctx, p, destino)
+		recibida, fallo := c.emitir(ctx, c.cliente, p, destino)
 		if fallo != nil {
 			return Respuesta{}, fallo
 		}
@@ -673,6 +757,21 @@ func (c *Cliente) seguirLaCadena(
 		"la cadena de redirecciones supera los "+strconv.Itoa(topeDeRedirecciones)+" saltos")
 }
 
+// terminadaAntesDePedir comprueba el contexto antes de cada petición, y no solo
+// dentro del transporte: lo que corta la operación es el plazo de quien la
+// pidió, y tiene que cortarla igual cuando abajo no hay ninguna conexión que
+// esperar sino una grabación que leer (FR-005, FR-049 a, D13). Lo usan los dos
+// recorridos, antes de cada salto el del cliente y antes de su única petición el
+// de una consulta.
+func terminadaAntesDePedir(ctx context.Context, p Peticion, destino *url.URL) *Error {
+	if err := ctx.Err(); err != nil {
+		return errorDeFuenteNoDisponible(p, 0, err,
+			"la operación ha terminado antes de pedir "+destino.String())
+	}
+
+	return nil
+}
+
 // recibida es lo que emitir devuelve: la respuesta con el cuerpo ya leído y el
 // *http.Response ya cerrado. El único de todo el módulo se abre y se cierra
 // aquí dentro, que es lo que impide que cerrarlo quede nunca en manos de quien
@@ -691,8 +790,15 @@ type recibida struct {
 // El formato lo pone aquí, en cada salto, porque es de la petición pedida y no de
 // la cadena: cada salto es una petición completa que no hereda nada del anterior
 // (D10), y la del robots.txt, que fabrica su propio escalón, no lo lleva
-// (research D4 de H4).
-func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (recibida, *Error) {
+// (research D4 de H4). Y los campos, por lo mismo: una petición que los trae es
+// el envío de un formulario, ya admitido, y aquí recibe su cuerpo y sus dos
+// cabeceras (contrato httpx-formulario §3 de H23).
+//
+// Quien ejecuta la cadena es el emisor que se le entrega: el del cliente, sin
+// cookies, o el de una consulta, con las suyas. La cadena es la misma en los dos.
+func (c *Cliente) emitir(
+	ctx context.Context, emisor *http.Client, p Peticion, destino *url.URL,
+) (recibida, *Error) {
 	peticion, err := nuevaPeticionIdentificada(ctx, p.Metodo, destino.String())
 	if err != nil {
 		return recibida{}, errorDeArgumentos(p, err, "la dirección no se puede pedir")
@@ -702,9 +808,13 @@ func (c *Cliente) emitir(ctx context.Context, p Peticion, destino *url.URL) (rec
 		peticion.Header.Set(cabeceraDelFormato, p.Acepta)
 	}
 
+	if len(p.Campos) > 0 {
+		ponerFormulario(peticion, p.Campos)
+	}
+
 	comienzo := time.Now()
 
-	respuesta, err := c.cliente.Do(peticion)
+	respuesta, err := emisor.Do(peticion)
 	if err != nil {
 		return recibida{}, falloAlEmitir(ctx, p, err)
 	}
@@ -810,12 +920,19 @@ func entregar(p Peticion, direccion *url.URL, recibida recibida) (Respuesta, *Er
 			"el sitio ha respondido con una redirección que no se puede seguir")
 
 	default:
-		return Respuesta{
-			Peticion:  p,
-			URL:       direccion.String(),
-			Estado:    recibida.estado,
-			Cabeceras: recibida.cabeceras,
-			Cuerpo:    recibida.cuerpo,
-		}, nil
+		return respuestaDe(p, direccion, recibida), nil
+	}
+}
+
+// respuestaDe es la respuesta que se entrega a quien pidió, con lo que la fuente
+// respondió en la dirección que de verdad lo entregó. El instante lo pone el
+// pedido, que es quien lo conoce.
+func respuestaDe(p Peticion, direccion *url.URL, recibida recibida) Respuesta {
+	return Respuesta{
+		Peticion:  p,
+		URL:       direccion.String(),
+		Estado:    recibida.estado,
+		Cabeceras: recibida.cabeceras,
+		Cuerpo:    recibida.cuerpo,
 	}
 }

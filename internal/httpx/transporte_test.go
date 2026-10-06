@@ -3,6 +3,7 @@ package httpx
 import (
 	"errors"
 	"net/http"
+	"net/http/cookiejar"
 	"testing"
 	"time"
 
@@ -57,6 +58,25 @@ func TestTransporteConfiguracion(t *testing.T) {
 		require.NotNil(t, cliente.CheckRedirect, "sin política propia la biblioteca seguiría diez saltos por su cuenta")
 		assert.ErrorIs(t, cliente.CheckRedirect(nil, nil), http.ErrUseLastResponse,
 			"las redirecciones las sigue Pedir, que es quien sabe someter cada salto a la cadena entera (FR-011, D10)")
+	})
+
+	t.Run("el cliente de una consulta es el mismo, con el almacén de cookies de esa consulta", func(t *testing.T) {
+		t.Parallel()
+
+		almacen, err := cookiejar.New(nil)
+		require.NoError(t, err)
+
+		cadena := nuevoTransporte()
+		cliente := nuevoClienteHTTPConCookies(cadena, almacen)
+		require.NotNil(t, cliente)
+
+		assert.Same(t, cadena, cliente.Transport, "la consulta ejecuta la cadena que se le entrega, que es la de su cliente")
+		assert.Same(t, almacen, cliente.Jar, "con el almacén de cookies que se le declara (research D3 de H23)")
+		assert.Zero(t, cliente.Timeout, "el plazo de la operación sigue siendo solo el del contexto (FR-004)")
+
+		require.NotNil(t, cliente.CheckRedirect)
+		assert.ErrorIs(t, cliente.CheckRedirect(nil, nil), http.ErrUseLastResponse,
+			"y la biblioteca tampoco sigue aquí ninguna redirección: dentro de una consulta no la sigue nadie")
 	})
 
 	t.Run("un transporte por omisión ajeno no se adopta", func(t *testing.T) {

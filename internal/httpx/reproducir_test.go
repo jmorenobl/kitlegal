@@ -550,6 +550,12 @@ func TestReplayRechazaOpciones(t *testing.T) {
 			opciones:   []Opcion{ConIntentos(2)},
 			mencion:    "ConIntentos",
 		},
+		{
+			nombre:     "y un formulario mal declarado se rechaza como contra la red",
+			directorio: directorio,
+			opciones:   []Opcion{ConFormulario("/search/search.action")},
+			mencion:    "ConFormulario",
+		},
 	}
 
 	for _, caso := range casos {
@@ -593,6 +599,21 @@ func TestReplayRechazaOpciones(t *testing.T) {
 		assert.Same(t, registrador, cliente.registrador)
 		assert.Nil(t, cliente.sitios,
 			"un cliente de reproducción no lleva registro de sitios: no hay ritmo ni robots.txt que guardar")
+	})
+
+	t.Run("el formulario entre ellas: la reproducción lo admite y da consultas", func(t *testing.T) {
+		t.Setenv(VariableGrabacion, "")
+
+		const formulario = "https://fuente.prueba/search/search.action"
+
+		cliente, err := Replay(directorio, ConFuente(fuenteDePrueba), ConFormulario(formulario))
+		require.NoError(t, err, "la fuente que envía un formulario se reproduce con la misma opción con que se graba")
+
+		assert.Equal(t, formulario, cliente.formulario)
+
+		consulta, err := cliente.Consulta()
+		require.NoError(t, err, "y sus consultas se abren igual que contra la red (contrato httpx-formulario §1 de H23)")
+		assert.NotNil(t, consulta)
 	})
 }
 

@@ -48,9 +48,25 @@ func nuevoClienteHTTP(cadena http.RoundTripper) *http.Client {
 		// salto a la cadena entera y clasificar el exceso o el bucle con su
 		// clase (FR-011, D3, D10).
 		CheckRedirect: noSeguirRedirecciones,
-		// Sin almacén de cookies: ninguna petición hereda estado de otra.
+		// Sin almacén de cookies: ninguna petición hereda estado de otra. El
+		// único que hay en el paquete es el de una consulta, y vive lo que ella
+		// (nuevoClienteHTTPConCookies).
 		Jar: nil,
 	}
+}
+
+// nuevoClienteHTTPConCookies es el cliente que ejecuta la cadena para una
+// consulta: el de nuevoClienteHTTP —sin plazo propio y sin seguir
+// redirecciones— con el almacén de cookies de esa consulta, que es lo único que
+// lo distingue. La biblioteca pone en cada petición las cookies del almacén que
+// valen para su dirección y guarda las que trae cada respuesta (go doc
+// net/http.Client), de modo que el paquete no copia ninguna cabecera a mano
+// (research D3 de H23).
+func nuevoClienteHTTPConCookies(cadena http.RoundTripper, almacen http.CookieJar) *http.Client {
+	cliente := nuevoClienteHTTP(cadena)
+	cliente.Jar = almacen
+
+	return cliente
 }
 
 // noSeguirRedirecciones es la política que devuelve la última respuesta en vez

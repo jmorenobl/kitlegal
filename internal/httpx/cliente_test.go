@@ -132,6 +132,31 @@ func TestOpcionesInvalidas(t *testing.T) {
 			opcion:  ConRegistrador(nil),
 			mencion: "ConRegistrador",
 		},
+		{
+			nombre:  "la dirección del formulario no puede ir vacía",
+			opcion:  ConFormulario(""),
+			mencion: "ConFormulario",
+		},
+		{
+			nombre:  "ni ser una que no se puede interpretar",
+			opcion:  ConFormulario("http://fuente.prueba/buscar%zz"),
+			mencion: "ConFormulario",
+		},
+		{
+			nombre:  "ni una ruta, que no es absoluta",
+			opcion:  ConFormulario("/search/search.action"),
+			mencion: "ConFormulario",
+		},
+		{
+			nombre:  "ni un sitio sin esquema, que tampoco lo es",
+			opcion:  ConFormulario("fuente.prueba/buscar"),
+			mencion: "ConFormulario",
+		},
+		{
+			nombre:  "ni de un esquema que no es http ni https",
+			opcion:  ConFormulario("ftp://fuente.prueba/buscar"),
+			mencion: "ConFormulario",
+		},
 	}
 
 	for _, caso := range casos {
@@ -156,13 +181,23 @@ func TestOpcionesInvalidas(t *testing.T) {
 		registrador := slog.New(slog.DiscardHandler)
 
 		cliente, err := New(ConFuente("placsp"), ConFuente("boe"), ConRegistrador(registrador),
-			ConIntervalo(time.Minute), ConIntervalo(2*time.Second))
+			ConIntervalo(time.Minute), ConIntervalo(2*time.Second),
+			ConFormulario("https://fuente.prueba/antiguo"), ConFormulario("HTTPS://fuente.prueba/buscar"))
 		require.NoError(t, err)
 
 		assert.Equal(t, "boe", cliente.fuente)
 		assert.Same(t, registrador, cliente.registrador)
 		assert.Equal(t, 2*time.Second, cliente.sitios.ritmo.intervalo,
 			"el intervalo declarado es el que llevan los sitios de ese cliente (FR-020)")
+		assert.Equal(t, "https://fuente.prueba/buscar", cliente.formulario,
+			"la dirección del formulario se guarda tal como la escribe url.URL.String, que es con lo que se compara "+
+				"la de cada envío (contrato httpx-formulario §2 de H23)")
+	})
+
+	t.Run("sin ConFormulario el cliente no declara ningún formulario", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, clienteDePrueba(t).formulario)
 	})
 
 	t.Run("ConRitmo va en lugar de ConIntervalo, y de las dos vale la última", func(t *testing.T) {
@@ -215,34 +250,52 @@ func TestConHoraRechazaNula(t *testing.T) {
 	})
 }
 
-// TestPedirRechazaMetodo comprueba la restricción de la constitución §I: no
-// existe en el módulo ninguna llamada HTTP con método distinto de GET o HEAD.
-// El rechazo es de argumentos y llega **sin abrir ninguna conexión**, que es lo
-// que el contador del servidor demuestra (FR-010, tabla §3 fila 9).
+// TestPedirRechazaMetodo comprueba la restricción de la constitución §I: desde
+// Pedir no sale ninguna llamada HTTP con método distinto de GET o HEAD. El
+// rechazo es de argumentos y llega **sin abrir ninguna conexión**, que es lo que
+// el contador del servidor demuestra (FR-010, tabla §3 fila 9).
+//
+// La única excepción del módulo, el envío del formulario de consulta, no pasa
+// por aquí: sale de una Consulta. Por eso la tabla se repite con un cliente que
+// declara su formulario justo en la dirección pedida, y con los campos que un
+// envío llevaría: fuera de una consulta, el POST sigue rechazado (FR-031 de H23;
+// contrato httpx-formulario §2).
 func TestPedirRechazaMetodo(t *testing.T) {
 	t.Parallel()
 
 	metodos := []struct {
 		nombre string
 		metodo string
+		campos map[string]string
 	}{
 		{nombre: "POST no se emite", metodo: http.MethodPost},
+		{nombre: "POST con campos tampoco", metodo: http.MethodPost, campos: map[string]string{"ECLI": "ECLI:ES:TS:2023:3144"}},
 		{nombre: "PUT no se emite", metodo: http.MethodPut},
 		{nombre: "DELETE no se emite", metodo: http.MethodDelete},
+		{nombre: "PATCH no se emite", metodo: http.MethodPatch},
 		{nombre: "el método va en mayúsculas y solo en mayúsculas", metodo: "get"},
 		{nombre: "un método vacío no es GET por omisión", metodo: ""},
 	}
 
 	servidor, contador := servidorIdentificado(t, redireccionesDePrueba())
-	cliente := clienteDePrueba(t)
+
+	quienes := []struct {
+		nombre  string
+		cliente *Cliente
+	}{
+		{nombre: "sin formulario declarado", cliente: clienteDePrueba(t)},
+		{nombre: "con el formulario declarado en esa dirección", cliente: clienteDePrueba(t, ConFormulario(servidor.URL+"/norma"))},
+	}
 
 	for _, caso := range metodos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
+		for _, quien := range quienes {
+			t.Run(caso.nombre+", "+quien.nombre, func(t *testing.T) {
+				t.Parallel()
 
-			exigeArgumentosSinConexion(t, cliente, contador, schema.Contexto{},
-				Peticion{Metodo: caso.metodo, URL: servidor.URL + "/norma"})
-		})
+				exigeArgumentosSinConexion(t, quien.cliente, contador, schema.Contexto{},
+					Peticion{Metodo: caso.metodo, URL: servidor.URL + "/norma", Campos: caso.campos})
+			})
+		}
 	}
 }
 

@@ -5,15 +5,19 @@ import (
 	"time"
 )
 
-// Peticion es lo que un adaptador de fuente pide: un método, una dirección y el
-// formato en que quiere el recurso, y nada más. No lleva un juego de cabeceras
-// porque la que no se negocia no es suya —la identificación la pone el paquete en
-// toda petición (FR-009)— y la única que una fuente necesita elegir es la del
-// formato (research D4 de H4); ni cuerpo, porque los únicos métodos admitidos son
-// GET y HEAD. Los tres campos se validan antes de abrir nada, y un valor inválido
-// es un fallo de la clase «argumentos» (data-model.md §2).
+// Peticion es lo que un adaptador de fuente pide: un método, una dirección, el
+// formato en que quiere el recurso y, solo cuando envía un formulario de
+// consulta, sus campos; nada más. No lleva un juego de cabeceras porque la que no
+// se negocia no es suya —la identificación la pone el paquete en toda petición
+// (FR-009)— y la única que una fuente necesita elegir es la del formato (research
+// D4 de H4); ni un cuerpo libre, porque el único que sale del paquete es el de
+// los campos de un formulario declarado, y lo escribe él (research D2 de H23).
+// Todo se valida antes de abrir nada, y un valor inválido es un fallo de la clase
+// «argumentos» (data-model.md §2).
 type Peticion struct {
-	// Metodo es «GET» o «HEAD» (FR-010).
+	// Metodo es «GET» o «HEAD» (FR-010) o, solo desde una Consulta y hacia la
+	// dirección que su cliente declaró con ConFormulario, «POST» (contrato
+	// httpx-formulario §2 de H23).
 	Metodo string
 	// URL es la dirección absoluta, de esquema http o https (D19).
 	URL string
@@ -22,6 +26,11 @@ type Peticion struct {
 	// su cadena de redirecciones. Vacío, la petición no lleva Accept (contrato
 	// httpx-acepta-e-instante §1 de H4).
 	Acepta string
+	// Campos son los campos del formulario que se envía: solo con «POST», y
+	// entonces al menos uno. Salen en el cuerpo, codificados y ordenados por
+	// clave; con «GET» o «HEAD» van vacíos (contrato httpx-formulario §2 y §3 de
+	// H23).
+	Campos map[string]string
 }
 
 // Respuesta es lo que el paquete devuelve cuando la petición no falla. Es un
@@ -35,8 +44,11 @@ type Respuesta struct {
 	// URL es la dirección final, la que de verdad entregó el contenido: es la
 	// que el sobre tiene que citar cuando hubo redirecciones (FR-011).
 	URL string
-	// Estado es el estado HTTP de la respuesta final. Nunca es 3xx, 429 ni
-	// 5xx: esos terminan en un fallo con su clase (FR-029, FR-030, FR-032).
+	// Estado es el estado HTTP de la respuesta final. Nunca es 429 ni 5xx, que
+	// terminan en un fallo con su clase, ni 3xx fuera de una Consulta (FR-029,
+	// FR-030, FR-032). Dentro de una Consulta ninguna redirección se sigue, y la
+	// respuesta 3xx se entrega con su estado (contrato httpx-formulario §4 de
+	// H23).
 	Estado int
 	// Cabeceras son las de la respuesta final, con los nombres canónicos.
 	Cabeceras Cabeceras
