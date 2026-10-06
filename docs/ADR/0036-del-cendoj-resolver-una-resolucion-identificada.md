@@ -123,7 +123,10 @@ donde este ADR no llegó, y corrige la entrada del hito donde chocaba con él.
   como número de resolución con su fecha y, si no da nada, como ROJ. Los ROJ son correlativos: casi cualquier
   número existe como ROJ de otra sentencia, y una cita inventada, o con la fecha mal recordada, quedaba
   comprobada con el enlace de un asunto ajeno. Con `--roj` y `--fecha`, lo encontrado con otra fecha no es lo
-  pedido, y lo compara la herramienta, no el modelo. Una cita así sin fecha no se prueba como ROJ.
+  pedido, y lo compara la herramienta, no el modelo. Una cita así sin fecha no se prueba como ROJ. Visto el mismo
+  día, al traer el texto de abajo: «STS 1088/2023» es, por su número de resolución, la sentencia de 4 de julio
+  (ROJ `STS 3144/2023`) y, por su ROJ, otra de 9 de febrero (resolución 204/2023). Pedida sin más, llegó la
+  segunda.
 - **«Cita» se mide por el ECLI.** La entrada medía que una respuesta no citara una sentencia inventada por «el
   ECLI, el ROJ o el número de resolución con su fecha», y la respuesta correcta tiene que nombrar ese número
   para decir que no lo ha comprobado. La cita y la línea `⚠ SENTENCIA NO COMPROBADA:` tienen forma fija, y el
@@ -135,8 +138,9 @@ donde este ADR no llegó, y corrige la entrada del hito donde chocaba con él.
   respuestas del cierre de H23, hace decidir al juez. Ninguna release lleva `jurisprudencia` antes.
 - **El texto de una sentencia lo trae una persona, también en las evals.** La eval de «la persona pega el texto»
   necesita un texto real, y un run ni lo descarga ni lo escribe de memoria. Es un fragmento —el encabezamiento y
-  el fallo de una sentencia— que una persona copió del buscador con su navegador: `evidencias/adr-0036/`. Con las
-  grabaciones, es lo único del CENDOJ que hay en el repositorio, y se mantiene en lo mínimo.
+  el fallo de una sentencia— del documento que una persona descargó del buscador con su navegador:
+  `evidencias/adr-0036/`, con la huella del documento, que no se versiona. Con las grabaciones, es lo único del
+  CENDOJ que hay en el repositorio, y se mantiene en lo mínimo.
 - **Si el CENDOJ bloquea una grabación, no se insiste.** El test de grabación falla con una respuesta que no es
   ni resultados ni «no se ha encontrado»: un CAPTCHA o un 403 no quedan como fixture, el run se detiene y decide
   una persona. La página del CAPTCHA no se provoca para tenerla: en los tests es una página que no se reconoce.
