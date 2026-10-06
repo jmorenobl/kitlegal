@@ -1,0 +1,49 @@
+# El servidor kitlegal mcp serve ofrece la herramienta cita_resolver, que sale
+# del registro como las demás: está en la lista que anuncia; llamada con el
+# ECLI de la sentencia, devuelve el mismo sobre que la orden cita resolver con
+# --json, byte a byte; y con un ECLI al que le falta una parte, un resultado
+# marcado como error con la clase argumentos.
+#
+# Cubre: US1.5 · FR-050.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los del
+# arnés de H21: mcp-<n>.txt lleva la lista de herramientas, una por línea, y
+# mcp-<n>.json, el sobre de una llamada, comparable con la salida de la orden;
+# «error <clase>» es un resultado marcado como error de herramienta, con su
+# sobre de fallo. La orden y la llamada se comparan sobre la misma caché, como
+# en el guion de las llamadas de H21: la orden va primero y la llamada recibe
+# lo que quedó guardado, con su fecha de consulta. Las respuestas del buscador
+# son las grabaciones de reproduccion/cendoj.jurisprudencia
+# (contracts/fuente-cendoj-y-grabacion.md §4). Cuántas herramientas anuncia el
+# servidor no se afirma aquí.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- La orden, que deja la consulta en la caché ---
+exec kitlegal cita resolver ECLI:ES:TS:2023:3144 --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia",'
+cp stdout orden.json
+
+# --- La lista, la llamada y la llamada que falla (US1.5; FR-050) ---
+mcp llamadas.txt $KITLEGAL_BIN mcp serve
+stdout '^1 herramientas [0-9]+$'
+stdout '^2 cita_resolver resultado$'
+stdout '^3 cita_resolver error argumentos$'
+stdout '^salida 0$'
+
+# El servidor la anuncia.
+grep '^cita_resolver ' mcp-1.txt
+
+# El sobre de la llamada es el de la orden.
+cmp mcp-2.json orden.json
+
+# Y el de la llamada con un ECLI mal formado, el sobre de fallo de su clase.
+grep '^\{"ok":false,' mcp-3.json
+grep '"data":\{"clase":"argumentos",' mcp-3.json
+
+-- llamadas.txt --
+herramientas
+cita_resolver {"ecli":"ECLI:ES:TS:2023:3144"}
+cita_resolver {"ecli":"ECLI:ES:TS:2023"}

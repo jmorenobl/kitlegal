@@ -1,0 +1,130 @@
+# Quien tiene la referencia de una sentencia la comprueba por cualquiera de sus
+# tres formas —su ECLI, su ROJ o su número de resolución con su fecha— y recibe
+# la misma resolución: cita resolver con ECLI:ES:TS:2023:3144, con --roj
+# "STS 3144/2023", con --resolucion 1088/2023 --fecha 2023-07-04 y con ese ROJ
+# y su fecha termina con 0, con el sobre de la fuente cendoj.jurisprudencia
+# —fuente, url, fecha_consulta y hash— y, en data, una sola resolución con su
+# ECLI, su ROJ, su órgano y sala, su fecha, su número de resolución, su número
+# de recurso, su ponente y la dirección de su documento, la página sin
+# completar y la cobertura; y sin --json, la salida legible enseña de la
+# resolución los mismos datos que data.
+#
+# Cubre: US1.1, US1.2, US1.3, US1.4, US1.6 · FR-001, FR-002, FR-006, FR-010,
+# FR-011, FR-018 · SC-002.
+#
+# Las respuestas del buscador son las grabaciones de
+# reproduccion/cendoj.jurisprudencia (contracts/fuente-cendoj-y-grabacion.md
+# §4): cada forma tiene la de su campo del formulario y ninguna otra, de modo
+# que una consulta por otro campo, o con otros campos, no tendría grabación
+# (FR-006). La caché es la del directorio de trabajo del guion. De la
+# sentencia se afirma lo que el spec fija —su ECLI, su ROJ, su fecha, su
+# número de resolución y su número de recurso, que el órgano nombra el
+# Tribunal Supremo y lo Civil, que el ponente no va vacío y que la dirección
+# del documento está bajo /search/AN/openDocument/ del sitio del buscador— y
+# nada del texto exacto del órgano, ni de sus mayúsculas, ni del nombre del
+# ponente ni del resto de la dirección, que son los que dé la fuente: que las
+# cuatro consultas y la salida legible llevan lo mismo lo comparan
+# resoluciones.sh y mismos-datos.sh, al pie de este guion, con lo que dio la
+# primera. El orden de las claves dentro de data y de la resolución no se
+# afirma.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- Por su ECLI (US1.1; FR-006, FR-010) ---
+exec kitlegal cita resolver ECLI:ES:TS:2023:3144 --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{.*\}\}\n\z'
+
+# Una sola resolución, con los datos de la sentencia.
+stdout '"resoluciones":\[\{[^{}]*\}\]'
+stdout '"resoluciones":\[\{[^{}]*"ecli":"ECLI:ES:TS:2023:3144"'
+stdout '"resoluciones":\[\{[^{}]*"roj":"STS 3144/2023"'
+stdout '"resoluciones":\[\{[^{}]*"organo":"[^"]*(?i:tribunal supremo)[^"]*"'
+stdout '"resoluciones":\[\{[^{}]*"organo":"[^"]*(?i:civil)[^"]*"'
+stdout '"resoluciones":\[\{[^{}]*"fecha":"2023-07-04"'
+stdout '"resoluciones":\[\{[^{}]*"numero_resolucion":"1088/2023"'
+stdout '"resoluciones":\[\{[^{}]*"numero_recurso":"4703/2019"'
+stdout '"resoluciones":\[\{[^{}]*"ponente":"[^"]+"'
+stdout '"resoluciones":\[\{[^{}]*"url":"https?://www\.poderjudicial\.es/search/AN/openDocument/[^"]+"'
+
+# La página no vino completa, y el órgano está en la fuente que se consulta.
+stdout '"pagina_completa":false'
+stdout '"cobertura":"cubierto"'
+cp stdout por-ecli.json
+
+exec sh $WORK/resoluciones.sh por-ecli.json
+cp stdout por-ecli.resoluciones
+
+# --- Por su ROJ: la misma resolución (US1.2; FR-006) ---
+exec kitlegal cita resolver --roj 'STS 3144/2023' --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{.*\}\}\n\z'
+stdout '"pagina_completa":false'
+stdout '"cobertura":"cubierto"'
+cp stdout por-roj.json
+
+exec sh $WORK/resoluciones.sh por-roj.json
+cmp stdout por-ecli.resoluciones
+
+# --- Por su número de resolución con su fecha: la misma resolución (US1.3; FR-006) ---
+exec kitlegal cita resolver --resolucion 1088/2023 --fecha 2023-07-04 --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{.*\}\}\n\z'
+stdout '"pagina_completa":false'
+stdout '"cobertura":"cubierto"'
+cp stdout por-numero.json
+
+exec sh $WORK/resoluciones.sh por-numero.json
+cmp stdout por-ecli.resoluciones
+
+# --- Por su ROJ con su fecha: la misma, porque su fecha es la pedida (US1.4; FR-011) ---
+exec kitlegal cita resolver --roj 'STS 3144/2023' --fecha 2023-07-04 --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{.*\}\}\n\z'
+stdout '"pagina_completa":false'
+stdout '"cobertura":"cubierto"'
+cp stdout por-roj-con-fecha.json
+
+exec sh $WORK/resoluciones.sh por-roj-con-fecha.json
+cmp stdout por-ecli.resoluciones
+
+# --- Sin --json, la salida legible: los mismos datos de la resolución (US1.6; FR-018) ---
+#
+# No es el sobre, y enseña cada uno de los ocho datos que lleva la resolución
+# en data.
+exec kitlegal cita resolver ECLI:ES:TS:2023:3144
+! stdout '\A\{'
+stdout 'ECLI:ES:TS:2023:3144'
+stdout 'STS 3144/2023'
+stdout '(?i:tribunal supremo)'
+stdout '(?i:civil)'
+stdout '2023-07-04'
+stdout '1088/2023'
+stdout '4703/2019'
+stdout '/search/AN/openDocument/'
+cp stdout legible.txt
+
+exec sh $WORK/mismos-datos.sh por-ecli.json legible.txt
+
+-- resoluciones.sh --
+# resoluciones.sh <sobre>: escribe la lista «resoluciones» del sobre de
+# cita resolver --json, con sus corchetes y tal como va en él, para comparar
+# byte a byte la de una consulta con la de otra. Si el sobre no la lleva,
+# falla, para no comparar en vacío.
+set -u
+lista=$(sed -n 's/^.*"resoluciones":\(\[[^]]*]\).*$/\1/p' "$1")
+test -n "$lista" || { echo "el sobre $1 no lleva la lista de resoluciones" >&2; exit 1; }
+printf '%s\n' "$lista"
+-- mismos-datos.sh --
+# mismos-datos.sh <sobre> <legible>: cada uno de los ocho datos de la
+# resolución que lleva <sobre>, el de cita resolver --json, aparece tal cual
+# en <legible>, la salida de la misma consulta sin --json (FR-018). El valor
+# de cada clave se toma de la resolución, sea cual sea el orden de sus claves;
+# si alguno no se encuentra o va vacío, falla, para no pasar en vacío: de esta
+# sentencia la fuente los da todos.
+set -u
+sobre=$1
+legible=$2
+for clave in ecli roj organo fecha numero_resolucion numero_recurso ponente url; do
+	valor=$(sed -n 's/^.*"resoluciones":\[{[^{}]*"'"$clave"'":"\([^"]*\)".*$/\1/p' "$sobre")
+	test -n "$valor" || { echo "el sobre no lleva ${clave} en su resolución" >&2; exit 1; }
+	grep -qF -- "$valor" "$legible" || { echo "la salida legible no enseña ${clave}: ${valor}" >&2; exit 1; }
+done

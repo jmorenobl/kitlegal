@@ -1,0 +1,80 @@
+# Una referencia inventada, con la fecha cambiada o mal escrita no pasa por
+# comprobada: un ECLI que no existe termina con 3 y no-encontrado; el ROJ de
+# la sentencia de 4 de julio de 2023 pedido con otra fecha termina con 3, su
+# mensaje nombra el ROJ y la fecha pedidos y la salida no lleva ningún dato de
+# la sentencia encontrada que no esté en lo pedido; un ECLI al que le falta
+# una parte, uno de otro país y un número de resolución sin su fecha terminan
+# con 2 sin pedir nada; y un ECLI del Tribunal Constitucional termina con 0
+# sin pedir nada, sin ninguna resolución y con la cobertura que lo declara.
+#
+# Cubre: US2.1, US2.2, US2.3, US2.4, US2.5 · FR-003, FR-005, FR-011, FR-012,
+# FR-015 · SC-002.
+#
+# Las respuestas del buscador son las grabaciones de
+# reproduccion/cendoj.jurisprudencia (contracts/fuente-cendoj-y-grabacion.md
+# §4): la del ECLI que no existe, sin resultados, y la del ROJ de la
+# sentencia, que la encuentra con su fecha, 2023-07-04. Los códigos distintos
+# de cero los comprueba el intérprete de órdenes, como en los guiones de boe.
+# «No sale ninguna petición» se afirma retirando la grabación de la página del
+# buscador, que es lo primero que pide toda consulta: sin ella, pedir algo
+# sería un fallo inesperado, con código 1, y no el 2 ni el 0 que se esperan.
+# Del texto de los mensajes solo se afirma lo que FR-012 exige.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- Un ECLI que no existe (US2.1; FR-012) ---
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023:999999 --json; test $? -eq 3'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"no-encontrado","mensaje":".+"\}\}\n\z'
+
+# --- El ROJ de la sentencia, con una fecha que no es la suya (US2.2; FR-011, FR-012) ---
+#
+# La fuente la encuentra, con su fecha; la pedida es otra, así que no es la
+# pedida. El mensaje nombra la referencia como se pidió.
+exec sh -c 'kitlegal cita resolver --roj "STS 3144/2023" --fecha 2023-01-01 --json; test $? -eq 3'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"no-encontrado","mensaje":".+"\}\}\n\z'
+stdout '"mensaje":".*STS 3144/2023'
+stdout '"mensaje":".*2023-01-01'
+
+# Y de la sentencia encontrada no sale nada que no esté en lo pedido: ni su
+# ECLI, ni su fecha, ni su número de resolución, ni su número de recurso, ni
+# la dirección de su documento; tampoco en la salida de error.
+! stdout 'ECLI:ES:TS:2023:3144'
+! stdout '2023-07-04'
+! stdout '1088/2023'
+! stdout '4703/2019'
+! stdout 'openDocument'
+! stderr 'ECLI:ES:TS:2023:3144'
+! stderr '2023-07-04'
+! stderr '1088/2023'
+! stderr '4703/2019'
+! stderr 'openDocument'
+
+# --- Sin la grabación de la página, nada de lo que sigue pide nada ---
+rm reproduccion/cendoj.jurisprudencia/GET_https_www.poderjudicial.es_search_indexAN.jsp.json
+
+# --- Un ECLI al que le falta una parte, y uno de otro país (US2.3; FR-003) ---
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023 --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+
+exec sh -c 'kitlegal cita resolver ECLI:FR:CC:2023:1 --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+
+# --- Un número de resolución sin su fecha (US2.4; FR-005) ---
+exec sh -c 'kitlegal cita resolver --resolucion 1088/2023 --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+
+# --- Un ECLI del Tribunal Constitucional (US2.5; FR-015) ---
+#
+# No es un fallo: termina con 0, sin ninguna resolución, y lo firma el applet,
+# que no ha consultado ninguna fuente.
+exec kitlegal cita resolver ECLI:ES:TC:2024:79 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita",'
+stdout '"resoluciones":\[\]'
+stdout '"cobertura":"tribunal-constitucional-no-cubierto"'

@@ -1,0 +1,90 @@
+# Un bloqueo se dice, no se sortea: si el buscador responde al formulario con
+# una página que no es ni una lista de resultados ni «No se ha encontrado
+# ningún resultado» —que es como llega un CAPTCHA—, cita resolver termina con
+# 5 y limite-o-tos, y nada queda en la caché: la misma consulta con --offline
+# termina después con 4; y si la página del buscador responde 403, termina con
+# 5 y limite-o-tos sin enviar el formulario.
+#
+# Cubre: US5.1, US5.2 · FR-016, FR-022, FR-094 · SC-002.
+#
+# Las dos respuestas son sintéticas: van escritas al pie de este guion, con la
+# forma de fichero de contracts/httpx-formulario.md §5, y se copian sobre la
+# grabación de su petición en reproduccion/cendoj.jurisprudencia, con los
+# nombres de contracts/fuente-cendoj-y-grabacion.md §4. La que no se reconoce
+# sustituye a la del envío por ECLI, con el mismo cuerpo de la petición; el
+# 403, a la de la página. «El formulario no se envía» se afirma retirando la
+# grabación del envío: sin ella, enviarlo sería un fallo inesperado, con
+# código 1, y no el 5 que se espera. Los códigos distintos de cero los
+# comprueba el intérprete de órdenes, como en los guiones de boe. Del texto de
+# los mensajes no se afirma nada.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- El formulario responde con una página que no se reconoce (US5.1; FR-016, FR-022) ---
+cp no-reconocida.json reproduccion/cendoj.jurisprudencia/POST_https_www.poderjudicial.es_search_search.action_c_ECLI_ECLI_3AES_3ATS_3A2023_3A3144_action_quer-2740d948.json
+
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023:3144 --json; test $? -eq 5'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"limite-o-tos","mensaje":".+"\}\}\n\z'
+
+# Un fallo de límite o TOS no se guarda: sin red, la misma consulta no tiene
+# de dónde servirse.
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023:3144 --offline --json; test $? -eq 4'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"fuente-no-disponible","mensaje":".+"\}\}\n\z'
+
+# --- La página del buscador responde 403: el formulario no se envía (US5.2; FR-016, FR-094) ---
+#
+# En otra caché, para que nada de lo anterior decida este caso.
+env KITLEGAL_CACHE_DIR=$WORK/cache-403
+cp pagina-403.json reproduccion/cendoj.jurisprudencia/GET_https_www.poderjudicial.es_search_indexAN.jsp.json
+rm reproduccion/cendoj.jurisprudencia/POST_https_www.poderjudicial.es_search_search.action_c_ECLI_ECLI_3AES_3ATS_3A2023_3A3144_action_quer-2740d948.json
+
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023:3144 --json; test $? -eq 5'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"limite-o-tos","mensaje":".+"\}\}\n\z'
+
+-- no-reconocida.json --
+{
+  "formato": 1,
+  "grabado_en": "2026-10-06T10:00:05Z",
+  "peticion": {
+    "metodo": "POST",
+    "url": "https://www.poderjudicial.es/search/search.action",
+    "cuerpo": "ECLI=ECLI%3AES%3ATS%3A2023%3A3144&action=query&databasematch=AN&recordsPerPage=10&sort=IN_FECHARESOLUCION%3Adecreasing&start=1",
+    "cabeceras": {
+      "Content-Type": [
+        "application/x-www-form-urlencoded"
+      ],
+      "X-Requested-With": [
+        "XMLHttpRequest"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Content-Type": [
+        "text/html;charset=UTF-8"
+      ]
+    },
+    "cuerpo": "<html><head><title>Comprobación</title></head><body><p>Antes de seguir, confirme que no es un robot.</p></body></html>"
+  }
+}
+-- pagina-403.json --
+{
+  "formato": 1,
+  "grabado_en": "2026-10-06T10:00:00Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.poderjudicial.es/search/indexAN.jsp",
+    "cabeceras": {}
+  },
+  "respuesta": {
+    "estado": 403,
+    "cabeceras": {},
+    "cuerpo": ""
+  }
+}

@@ -1,0 +1,72 @@
+# De lo comprobado se guardan los metadatos, y se sirven sin volver al
+# buscador: tras una consulta que termina con 0, la misma con --offline
+# termina con 0 con el mismo sobre, byte a byte; tras un «no encontrado», la
+# misma con --offline termina con 3 con el mismo sobre; una consulta que no
+# está en la caché, con --offline, termina con 4 y fuente-no-disponible sin
+# pedir nada; graph show del ECLI enseña el nodo Resolucion que la consulta
+# entregó, con su fuente; y con --no-graph, en otra caché, la consulta
+# termina con 0 y el grafo no tiene ese nodo.
+#
+# Cubre: US6.1, US6.2, US6.4, US6.5, US6.6 · FR-017, FR-040, FR-041, FR-042,
+# FR-043 · SC-002.
+#
+# Las respuestas del buscador son las grabaciones de
+# reproduccion/cendoj.jurisprudencia (contracts/fuente-cendoj-y-grabacion.md
+# §4). La caché y el grafo del mundo viven en el directorio de trabajo del
+# guion, y «en otra caché» es otra carpeta de ese directorio. «No sale ninguna
+# petición» se afirma de dos maneras: la consulta que no está en la caché se
+# pide con --offline mientras su grabación sigue en la reproducción, de modo
+# que pedirla terminaría con 0 y no con 4; y lo guardado se pide con --offline
+# después de retirar la grabación de la página y las de los dos envíos, de
+# modo que pedir algo sería un fallo inesperado, con código 1. Los códigos
+# distintos de cero los comprueba el intérprete de órdenes, como en los
+# guiones de boe.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- Siembra: una entrega y un «no encontrado» (FR-040, FR-041) ---
+exec kitlegal cita resolver ECLI:ES:TS:2023:3144 --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia",'
+cp stdout entrega.json
+
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023:999999 --json; test $? -eq 3'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"no-encontrado","mensaje":".+"\}\}\n\z'
+cp stdout no-encontrado.json
+
+# --- graph show enseña el nodo de la resolución entregada (US6.4; FR-042, FR-043) ---
+exec kitlegal graph show ECLI:ES:TS:2023:3144 --json
+stdout '\A\{"ok":true,'
+stdout '"nodo":\{"id":"ECLI:ES:TS:2023:3144","tipo":"Resolucion",'
+stdout '"ultima_observacion":\{"fuente":"cendoj\.jurisprudencia",'
+
+# --- Una consulta que no está en la caché, con --offline (US6.2; FR-017) ---
+#
+# Es otra consulta que la sembrada, aunque daría con la misma resolución, y su
+# grabación está en la reproducción: si --offline pidiera algo, terminaría
+# bien.
+exec sh -c 'kitlegal cita resolver --roj "STS 3144/2023" --offline --json; test $? -eq 4'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"fuente-no-disponible","mensaje":".+"\}\}\n\z'
+
+# --- En otra caché, con --no-graph, el grafo no cambia (US6.5; FR-042) ---
+env KITLEGAL_CACHE_DIR=$WORK/cache-sin-grafo
+exec kitlegal cita resolver ECLI:ES:TS:2023:3144 --no-graph --json
+stdout '\A\{"ok":true,"fuente":"cendoj\.jurisprudencia",'
+exec sh -c 'kitlegal graph show ECLI:ES:TS:2023:3144 --json; test $? -eq 3'
+env KITLEGAL_CACHE_DIR=$WORK/cache
+
+# --- Sin grabaciones de las que pedir, lo guardado se sirve igual (US6.1, US6.6; FR-040, FR-041) ---
+rm reproduccion/cendoj.jurisprudencia/GET_https_www.poderjudicial.es_search_indexAN.jsp.json
+rm reproduccion/cendoj.jurisprudencia/POST_https_www.poderjudicial.es_search_search.action_c_ECLI_ECLI_3AES_3ATS_3A2023_3A3144_action_quer-2740d948.json
+rm reproduccion/cendoj.jurisprudencia/POST_https_www.poderjudicial.es_search_search.action_c_ECLI_ECLI_3AES_3ATS_3A2023_3A999999_action_qu-27a990b2.json
+
+# La entrega: el mismo sobre, con la fecha_consulta de la consulta original.
+exec kitlegal cita resolver ECLI:ES:TS:2023:3144 --offline --json
+cmp stdout entrega.json
+
+# El «no encontrado»: código 3 y el mismo sobre.
+exec sh -c 'kitlegal cita resolver ECLI:ES:TS:2023:999999 --offline --json; test $? -eq 3'
+cmp stdout no-encontrado.json
