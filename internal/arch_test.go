@@ -257,15 +257,32 @@ const plantillaDeModulos = "{{if .Module}}{{.Module.Path}}{{end}}"
 // comprobaciones los alcancen. Lo que impide enlazarlos es esta comprobación sobre
 // el cierre transitivo real de cmd/kitlegal, junto con la lista `ejemplo` de
 // depguard (docs/ADR/0010-applets-de-ejemplo-fuera-de-testdata.md).
+//
+// Desde H23 comprueba lo mismo del sitio local de prueba de internal/httpx: es
+// código de apoyo para tests, y vive en un paquete normal porque la biblioteca
+// HTTP solo se importa bajo internal/httpx (regla R2) y el test que cuenta las
+// peticiones de una consulta está en el paquete de su adaptador, fuera de ese
+// árbol (H23 research.md D32; plan.md, Complexity Tracking). A él no lo vigila
+// ninguna lista de depguard: lo que impide enlazarlo es solo esta comprobación,
+// que por eso ve antes el paquete donde sí está, como TestElBinarioNoEnlazaElPaso.
+// Sin eso pasaría en vacío el día que el paquete se mudara.
 func TestElBinarioNoEnlazaLosEjemplos(t *testing.T) {
 	t.Parallel()
 
 	modulo := rutaDelModulo(t)
+	sitio := paqueteDelSitioDePrueba(modulo)
+
+	require.Contains(t, cierreDe(t, carpetaDelSitioDePrueba), sitio,
+		"el cierre de %s no contiene %s: la comprobación sobre el binario distribuido no vigilaría nada",
+		carpetaDelSitioDePrueba, sitio)
 
 	for _, paquete := range paquetesDelBinario(t, modulo) {
 		assert.False(t, cuelgaDe(paquete, paqueteDeEjemplo(modulo)),
 			"el binario distribuido enlaza %s: los applets de ejemplo no son funcionalidad y solo los "+
 				"registra el binario de e2e (ADR 0010)", paquete)
+		assert.False(t, cuelgaDe(paquete, sitio),
+			"el binario distribuido enlaza %s: el sitio local de prueba es código de apoyo para tests, y solo "+
+				"lo importan ficheros de test (H23 research.md D32)", paquete)
 	}
 }
 
@@ -939,6 +956,17 @@ func grafoDelModulo(t *testing.T) grafo {
 // el binario distribuido.
 func paqueteDeEjemplo(modulo string) string {
 	return modulo + "/internal/app/ejemplo"
+}
+
+// carpetaDelSitioDePrueba es el paquete del sitio local de prueba de
+// internal/httpx, como lo nombra `go list` desde la raíz del módulo.
+const carpetaDelSitioDePrueba = "./internal/httpx/httpxtest"
+
+// paqueteDelSitioDePrueba es la ruta de importación de ese paquete: código de
+// apoyo para tests, sujeto a las mismas reglas que el resto del árbol y a una
+// más, la de no enlazarse en el binario distribuido.
+func paqueteDelSitioDePrueba(modulo string) string {
+	return modulo + "/internal/httpx/httpxtest"
 }
 
 // programaDelPaso es el punto de entrada del paso que empaqueta la extensión de
