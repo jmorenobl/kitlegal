@@ -1,0 +1,330 @@
+diff antes/contracts/cita-resolver.md ahora/contracts/cita-resolver.md
+--- antes/contracts/cita-resolver.md	2026-10-06 20:13:11
++++ ahora/contracts/cita-resolver.md	2026-10-06 20:26:20
+@@ -189,8 +189,21 @@
+ 
+ `kitlegal cita resolver --describe` da el documento del verbo. En su `entrada`, `roj`, `resolucion` y `fecha` llevan
+ `"title"` con su escritura (`"--roj"`, `"--resolucion"`, `"--fecha"`); `ecli` no lo lleva: va por su posición
+-(research D16). Su parte publicada es `schemas/resolucion.json`, y `make schema-check` falla si difieren. La fila de la
+-tabla de comandos que sale de él:
++(research D16). Su parte publicada es `schemas/resolucion.json`, y `make schema-check` falla si difieren.
++
++La marca no es de este verbo: la lleva toda bandera propia de todo verbo. Los tres que ya tenían alguna la ganan con
++este hito, y es lo único que cambia de lo que emite un verbo de hoy:
++
++| Verbo | Propiedades de su `entrada` que ganan `"title"` |
++|---|---|
++| `skills install` | `global` (`"--global"`), `host` (`"--host"`), `dir` (`"--dir"`) |
++| `skills list` y `skills doctor` | `global` (`"--global"`), `dir` (`"--dir"`) |
++
++Con ellos cambia su parte publicada, `schemas/instalacion.json`: siete líneas más, 234 bytes, y nada de lo que valida
++(research M5). Se regenera en la misma tarea que cambia `--describe`. Los verbos de `boe`, `territorio`, `graph` y `mcp`
++no tienen banderas propias, y ni su documento ni su esquema publicado cambian.
++
++La fila de la tabla de comandos que sale del documento de `cita resolver`:
+ 
+ ```text
+ | `kitlegal cita resolver [<ecli>] [--roj=<roj>] [--resolucion=<resolucion>] [--fecha=<fecha>]` | `cita_resolver` | … | objeto con `resoluciones`, `pagina_completa`, `cobertura` |
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-06 20:13:11
++++ ahora/plan.md	2026-10-06 20:28:24
+@@ -8,7 +8,8 @@
+ están en [research.md](./research.md) (D1-D32), cada una con su alternativa rechazada. Toda afirmación sobre Go, una
+ dependencia o el propio repositorio remite a su tabla V, comprobada en local; las medidas, a la tabla M; y lo que no se
+ pudo comprobar en esta sesión —sin red, sin grabaciones y sin modelo— son los supuestos S1-S11. En esta sesión no se ha
+-ejecutado ningún test del repositorio ni `make ci`.
++ejecutado ningún test del repositorio ni `make ci`. La corrección del plan (ronda 1) rehízo V17 y D16 y midió lo que
++D16 cambia de lo publicado sobre una copia del árbol, fuera del repositorio (research M5).
+ 
+ ## Summary
+ 
+@@ -24,7 +25,9 @@
+ 4. **El applet `cita`** (D15, D18, D19), con un verbo, `resolver`, registrado en producción: de él salen la orden, la
+    herramienta `cita_resolver` y `schemas/resolucion.json`. Un ECLI del Tribunal Constitucional se declara fuera de
+    cobertura sin pedir nada.
+-5. **La tabla de comandos con banderas propias** (D16): `cita resolver` es el primer verbo que las tiene.
++5. **Las banderas propias en `--describe` y en la tabla de comandos** (D16): `cita resolver` es el primer verbo de una
++   tabla que las tiene. `--describe` las marca en todo verbo, así que cambia también el documento de los tres verbos
++   de `skills`, que ya las tenían, y con él `schemas/instalacion.json`.
+ 6. **La skill** (D29): `skills/jurisprudencia/SKILL.md`, 197 líneas en su prototipo.
+ 7. **Las evals y su umbral** (D20-D25): seis evals, cinco cosas que gana el formato, y `cita_sin_resolver`, que decide
+    con 0 en cada modo junto a `sin_activar`, sin modelo.
+@@ -78,7 +81,7 @@
+ | III · Tests primero y offline | Cinco guiones de aceptación congelados, escritos por la primera tarea. Todo test de `make ci` es offline: reproducción, sitio local y sintéticos. Las respuestas reales las graba `grabar_datos`, sin modelo. Cada salida del verbo se valida contra `schemas/resolucion.json` (`TestSalidasDeCitaContraSuEsquema`). `internal/core/ids` gana código con tests y fuzz, por encima del 85 %. |
+ | IV · Hexagonal y errores tipados | Identificadores en el dominio; el adaptador implementa `core.Source`; el applet se compone en `internal/app`. Los fallos llevan su clase (`schema.ConClase`) y el kernel la traduce: 2, 3, 4 y 5, y 1 para lo inesperado. Ningún `panic`. Reglas de dependencia, abajo. |
+ | V · Simplicidad y dependencias | Ninguna dependencia nueva. Cada mecanismo se traza a un requisito («Trazabilidad»). Se rechazaron una biblioteca de HTML, cabeceras libres en `Peticion`, un formato 2 de grabación, un almacén de cookies por cliente, un paquete `core/cita` y un fichero de umbrales por skill (research D1-D6, D10, D22). |
+-| VI · Un binario, convenciones de agente | `cita` es un applet más del multicall, con las ocho banderas globales. `--describe` es de donde salen la herramienta, el esquema publicado y la fila de la tabla; gana decir qué argumento propio es una bandera. |
++| VI · Un binario, convenciones de agente | `cita` es un applet más del multicall, con las ocho banderas globales. `--describe` es de donde salen la herramienta, el esquema publicado y la fila de la tabla; gana decir qué argumento propio es una bandera, con una regla para todo verbo y sin caso por applet: lo dice también el documento de `skills install`, `list` y `doctor`, y `schemas/instalacion.json` se regenera (D16). |
+ | VII · Grafo y privacidad | Id natural, el ECLI, en `world.db`. El ponente es un dato del nodo `Resolucion`: no se crea ningún nodo `Persona`. Ni texto ni resumen. Nada del asunto. |
+ | VIII · Skills primero | El hito entrega una skill nueva con sus evals, y el verbo existe porque la skill lo usa. Va a Go lo que exige determinismo: la consulta, el reconocimiento, la comparación de la fecha, la caché y el grafo. El protocolo —qué se resuelve, con qué forma y qué se dice— vive en `SKILL.md`, de menos de 300 líneas, sin `scripts/` y con la tabla generada, que nombra la orden y la herramienta (ADR 0035). |
+ | IX · Genericidad territorial | El verbo y la skill no tienen dimensión territorial: ningún municipio, comunidad ni órgano tiene un caso propio, y no se validan siglas ni códigos de órgano contra ninguna lista. La cobertura que sí existe, por órgano, se declara dentro de `data` (`cobertura`), y la skill no concluye «no existe» de un «no encontrado». No aplica la matriz territorial. |
+@@ -98,16 +101,18 @@
+ ### Gates
+ 
+ - **Capa 1**, todo en `make ci` o en el workflow: suite congelada con «rojo primero»; `schema-check` con
+-  `schemas/resolucion.json`; `skills-check` con la skill nueva; `TestArquitectura`; validación de cada salida contra su
+-  esquema; códigos 2, 3, 4 y 5 forzados con grabaciones y sintéticos (el 6 no es de este verbo); tests offline contra
+-  `testdata/` grabado; citas de las evals comparadas por identificador; fila revisada en `docs/SOURCES.md` de `main`
+-  para la fuente que se graba (V28); guardián de diff con `testdata/` y `schemas/` solo en tareas `[datos]`; «Controles
+-  de umbral» con requisitos del spec.
++  `schemas/resolucion.json` y con `schemas/instalacion.json` regenerado; `skills-check` con la skill nueva;
++  `TestArquitectura`; validación de cada salida contra su esquema; códigos 2, 3, 4 y 5 forzados con grabaciones y
++  sintéticos (el 6 no es de este verbo); tests offline contra `testdata/` grabado; citas de las evals comparadas por
++  identificador; fila revisada en `docs/SOURCES.md` de `main` para la fuente que se graba (V28); guardián de diff con
++  `testdata/` y `schemas/` solo en tareas `[datos]`; «Controles de umbral» con requisitos del spec.
+ - **Capa 2**: los jueces del plan, de las tareas y de la revisión final, que revisan además el adaptador nuevo; la
+   activación de la skill, por el job de evals. Ningún juez con modelo sobre las respuestas (FR-076).
+ - **Capa 3**, al leer el informe final: el adaptador nuevo bajo `internal/source/`; las grabaciones y los goldens;
+-  `schemas/resolucion.json` y `schemas/eval.yaml.json`; los guiones de hitos anteriores cuyas listas cambian; los
+-  supuestos del run; la lectura humana de SC-008; la fusión. **Ninguna pausa a mitad del run.**
++  `schemas/resolucion.json`, nuevo, y los dos ficheros existentes de `schemas/` que cambian: `schemas/eval.yaml.json` y
++  `schemas/instalacion.json`, que gana siete líneas `title` en la `entrada` de `doctor`, `install` y `list` (D16); los
++  guiones de hitos anteriores cuyas listas cambian; los supuestos del run; la lectura humana de SC-008; la fusión.
++  **Ninguna pausa a mitad del run.**
+ 
+ ## Project Structure
+ 
+@@ -159,7 +164,7 @@
+ ├── ejemplo/kitlegal-e2e/main.go         # cita en reproducción
+ ├── fuentes_red_test.go, fuentes_test.go # TestVerificarCendoj; su gemelo sin red; el control de FR-091
+ └── e2e_test.go, esquemas_test.go, skills_test.go, registro_test.go   # la copia de las grabaciones; resolucion.json; listas
+-internal/cli/describe.go                 # title en las banderas propias de un verbo
++internal/cli/describe.go                 # title en las banderas propias de todo verbo
+ internal/skills/comandos.go              # la fila con banderas propias
+ internal/evals/
+ ├── sentencias.go                        # nuevo: ExtraerSentencias, ExtraerSentenciaNoComprobada, ECLISinResolver
+@@ -168,6 +173,7 @@
+ ├── informe.go, umbrales.go              # los umbrales de las respuestas sin juez; cita_sin_resolver y su motivo
+ └── definicion.go, doc.go                # la skill nueva en la matriz
+ schemas/resolucion.json                  # nuevo [datos]
++schemas/instalacion.json                 # title en las banderas propias de los tres verbos de skills [datos]
+ schemas/eval.yaml.json                   # la forma de resolución y cuatro claves [datos]
+ skills/jurisprudencia/SKILL.md           # nuevo
+ evals/jurisprudencia/01-…06-….yaml       # nuevas
+@@ -249,10 +255,10 @@
+ | `TestPedirRechazaMetodo`, `TestOpcionesInvalidas`, `TestReplayRechazaOpciones`, `TestSuperficieExportada`, `TestNombreDeGrabacion` (`internal/httpx`) | el `POST` fuera de una consulta sigue rechazado; `ConFormulario` inválida; `Replay` la admite; la superficie nueva; los nombres con cuerpo |
+ | `TestRegistroDeProduccion`, `TestPuntoDeEntrada` (`cmd/kitlegal`), `TestRegistroDeE2E` (`kitlegal-e2e`) | `cita` en la lista de applets |
+ | `TestDescripcionDeVerbo`, `TestRenderizarTabla` (`internal/skills`) | un verbo con banderas propias: se leen de `title` y se escriben en su fila |
+-| `TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos` | `resolucion.json` en `ficherosDeEsquemas` |
+-| `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas`, `TestTablaDeComandosCoincideConLaGramatica` | `jurisprudencia` en `skillsExigidas`; la sintaxis con banderas propias, que la invocación mínima omite |
++| `TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos` | `resolucion.json` en `ficherosDeEsquemas` (paso 10). Antes, en el paso 5, `TestEsquemasPublicados` no cambia de código, pero sí lo que compara: las partes `doctor`, `install` y `list` de `schemas/instalacion.json`, que esa misma tarea regenera (research M5) |
++| `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas`, `TestTablaDeComandosCoincideConLaGramatica` | `jurisprudencia` en `skillsExigidas`; la sintaxis con banderas propias —la de `cita resolver` y, en la tabla que ese último test genera para todo el registro, las de los tres verbos de `skills`—, que la invocación mínima omite |
+ | `TestHerramientasDelServidor`, `TestHerramientasAnunciadas` | una herramienta más; su esquema de entrada sin `title` |
+-| los de `internal/cli/describe_test.go` e `internal/cli/herramienta_test.go` | el `title` de una bandera propia en `--describe`, con un verbo de test; su ausencia en los esquemas de la herramienta |
++| los de `internal/cli/describe_test.go` e `internal/cli/herramienta_test.go` | el `title` de una bandera propia en `--describe`, con un verbo de test; su ausencia en los esquemas de la herramienta: el subtest `los dos esquemas son las partes del documento de --describe` de `TestEsquemasDeHerramienta` pasa a comparar la entrada sin esa marca (research M5) |
+ | `TestEntregaDelHito` | `Setup` copia también las grabaciones del CENDOJ |
+ | `TestArquitectura`, `TestElBinarioNoEnlazaLosEjemplos` | el binario distribuido no enlaza `internal/httpx/httpxtest` |
+ | `TestEjecutar` (`internal/empaquetado/ejecutar_test.go`) y la lista `herramientasDeHoy`, también la de `snapshot_piezas_test.go` | `cita_resolver` entre las herramientas que el manifiesto tiene que listar: datos de prueba, sin tocar el paso que empaqueta (FR-051) |
+@@ -274,6 +280,11 @@
+   `grabar_datos` deja `testdata/cendoj.jurisprudencia/` (nueve ficheros).
+ - `internal/source/cendoj/testdata/golden/`: lo que la lectura da de las grabaciones 1 a 4, escrito con
+   `go test -run '^TestLecturaDeLasGrabaciones$' ./internal/source/cendoj/ -args -actualizar-golden`.
++- `schemas/instalacion.json`, un fichero existente. Lo regenera
++  `go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/ -args -actualizar-esquemas` en la tarea `[datos]`
++  del paso 5, la misma que cambia `--describe`: gana siete líneas y no pierde ninguna —`"title": "--dir"` y
++  `"title": "--global"` en la `entrada` de `doctor`, `install` y `list`, y `"title": "--host"` en la de `install`—, de
++  15 977 a 16 211 bytes (research M5). Ningún otro fichero de `schemas/` cambia en ese paso.
+ - `schemas/resolucion.json`, escrito por `TestEsquemasPublicados -actualizar-esquemas`, con el registro de `cita` y las
+   listas literales de applets y de herramientas: `argumentos.txtar` (dos líneas) y `h21-mcp-herramientas.txtar` (14
+   herramientas).
+@@ -357,7 +368,10 @@
+ - **Una redirección del buscador es una respuesta que no se reconoce** (D4): código 5, sin seguirla.
+ - **`data` es un objeto** con `resoluciones`, `pagina_completa` y `cobertura` (D11), y el sobre del Tribunal
+   Constitucional no repite el ECLI pedido.
+-- **`--describe` marca las banderas propias de un verbo con `title`** (D16). Ningún esquema publicado de hoy cambia.
++- **`--describe` marca las banderas propias de todo verbo con `title`** (D16). Cambia lo que emite
++  `kitlegal skills install`, `list` y `doctor` con `--describe`, y con ello `schemas/instalacion.json`, que la web sirve
++  en `https://kitlegal.es/schemas/instalacion.json`: siete líneas `title` más, 234 bytes, sin cambiar nada de lo que el
++  esquema valida. Los demás esquemas publicados de hoy no cambian.
+ - **La skill resuelve por el ECLI cuando tiene ECLI y ROJ** (D29), y no nombra operadores del buscador que no consten
+   en el repositorio.
+ - **Las evals (b) y (f) esperan los dos intentos del protocolo** (D24): el número con su fecha y, después, el ROJ con
+@@ -391,6 +405,7 @@
+ | El ensayo | FR-019 |
+ | `AppletCita` en el registro; `schemas/resolucion.json` | FR-001, FR-050, FR-051 |
+ | `title` en las banderas propias; la fila con banderas | FR-060 (la tabla nombra la orden como se escribe) |
++| `schemas/instalacion.json` regenerado | FR-001, SC-009 (`schema-check` sin diferencias: el documento de los tres verbos de `skills` cambia con la marca) |
+ | El manifiesto, `TestGrabarConsultas` y la copia desde un temporal | FR-092 a FR-094 |
+ | El argumento de `verify-sources.sh`, `FUENTE` y `TestVerificarCendoj` | FR-090, FR-091 |
+ | `cita` en el binario de e2e y la copia de sus grabaciones | FR-111 |
+@@ -433,8 +448,9 @@
+ 2. `internal/core/ids`: ECLI y ROJ, con sus tests y su fuzz; **`[datos]`** el corpus.
+ 3. `internal/core/grafo`: `TipoResolucion` y sus claves.
+ 4. `internal/httpx`: `ConFormulario`, `Campos`, `Consulta`, la grabación con cuerpo y `httpxtest`.
+-5. `internal/cli` e `internal/skills`: las banderas propias en `--describe` y en la tabla, probadas con un verbo de
+-   test.
++5. **`[datos]`** `internal/cli` e `internal/skills`: las banderas propias en `--describe` y en la tabla, probadas con
++   un verbo de test; y `schemas/instalacion.json` regenerado, porque la marca cambia el documento de los tres verbos de
++   `skills`.
+ 6. `internal/source/cendoj`, primera parte: términos, direcciones, referencia, campos, `clasificar` y opciones.
+ 7. **`[datos]`** el manifiesto, `grabacion_test.go` y `casos_test.go`. **Aquí graba `grabar_datos`.**
+ 8. **`[datos]`** la lectura de la lista con sus goldens, con las grabaciones delante.
+@@ -445,7 +461,8 @@
+ 12. **`[datos]`** el formato de eval, el juicio y el umbral, con `schemas/eval.yaml.json`.
+ 13. **`[datos]`** la skill y sus seis evals, con `skillsExigidas`, los 15 guiones que enumeran las skills, la matriz
+     del job y las subpruebas de `TestEvalsDelRepositorio`.
+-14. La documentación: README, `docs/JURISPRUDENCIA.md`, `CONTRIBUTING.md` y `CHANGELOG.md`.
++14. La documentación: README, `docs/JURISPRUDENCIA.md`, `CONTRIBUTING.md` y `CHANGELOG.md`, que dice también el cambio
++    de contrato de D16: `--describe` marca las banderas propias y `schemas/instalacion.json` gana sus `title`.
+ 
+ Después, el workflow activa los guiones, ejecuta `make ci`, pasa la revisión final y hace el cierre. Ninguna tarea usa
+ la red, graba, abre una sesión con modelo, publica ni mide en la plataforma.
+@@ -455,9 +472,9 @@
+ | Desviación | Por qué hace falta | Alternativa más simple rechazada |
+ |---|---|---|
+ | `internal/httpx/httpxtest`, un paquete que no es de test con código solo para tests | R2 reserva `net/http`, y con él `httptest`, al árbol de `internal/httpx`; el control de FR-021 cuenta las peticiones de una consulta del adaptador contra un sitio de prueba, con su `robots.txt` y sin reproducción. Mismo patrón que `internal/mcp/mcptest`. El binario no lo enlaza, y `TestElBinarioNoEnlazaLosEjemplos` gana esa comprobación | Contar con la reproducción, que no tiene `robots.txt` ni reintentos; o poner el test del adaptador dentro de `internal/httpx` |
+-| Tareas `[datos]` que mezclan código (pasos 7, 8, 10, 12 y 13) | El manifiesto y su test de grabación van juntos (`grabar_datos` exige los dos); la lectura y sus goldens, igual; en cuanto `cita` está registrado, `TestEsquemasCubrenTodosLosVerbos` exige su esquema y cambian las listas literales; el esquema de eval, su tipo y las evals que lo cumplen. Mismo patrón que H6, H19, H7 y H21 | Separar código y datos: `make ci` en rojo entre dos tareas |
++| Tareas `[datos]` que mezclan código (pasos 5, 7, 8, 10, 12 y 13) | El cambio de `--describe` y `schemas/instalacion.json` regenerado van juntos: con uno sin el otro, `TestEsquemasPublicados` está en rojo (research M5); el manifiesto y su test de grabación van juntos (`grabar_datos` exige los dos); la lectura y sus goldens, igual; en cuanto `cita` está registrado, `TestEsquemasCubrenTodosLosVerbos` exige su esquema y cambian las listas literales; el esquema de eval, su tipo y las evals que lo cumplen. Mismo patrón que H6, H19, H7 y H21 | Separar código y datos: `make ci` en rojo entre dos tareas |
+ | Dieciséis guiones de hitos anteriores cambian en sus listas literales: `argumentos.txtar` (applets), `h21-mcp-herramientas.txtar` (herramientas) y los 15 que enumeran las skills instaladas, 72 líneas (V35) | El binario de e2e registra los applets y empotra las skills de verdad: con un applet y una skill más, lo que instalan y enumeran esos guiones es otra cosa. El cambio es añadir `cita`, `cita_resolver` y `jurisprudencia` a cada enumeración, nada más | Un binario de e2e con las skills de H19 congeladas: el e2e dejaría de probar lo que se distribuye |
+-| `--describe` gana `title` en las banderas propias de un verbo, y la tabla de comandos, una forma más de escribir un argumento | `cita resolver` es el primer verbo con banderas propias, que el hito fija (`--roj`, `--resolucion`, `--fecha`), y sin eso su fila diría una orden que no funciona (V17) | Explicar las banderas solo en prosa y dejar la fila generada como salga |
++| `--describe` gana `title` en las banderas propias de todo verbo, y la tabla de comandos, una forma más de escribir un argumento. Con ello cambia un fichero publicado de un hito anterior, `schemas/instalacion.json` (H19): siete líneas `title` | `cita resolver` es el primer verbo de una tabla de comandos con banderas propias, que el hito fija (`--roj`, `--resolucion`, `--fecha`), y sin eso su fila diría una orden que no funciona (V17). Los tres verbos de `skills` ya tenían las suyas, y su documento las marca por la misma regla (D16) | Explicar las banderas solo en prosa y dejar la fila generada como salga; o no marcar los verbos de `skills` para no tocar su esquema, que es un caso por applet en el kernel |
+ | Los umbrales de las respuestas dejan de depender solo del juez (D13 de H24) | FR-082 y FR-083 piden `sin_activar` y `cita_sin_resolver` para una skill sin juez | Dar a `jurisprudencia` una carpeta `juez`, que FR-076 veta |
+ 
+ ## Comprobación contra la rúbrica del juez (`juez_plan`) y `precheck.sh plan`
+@@ -467,7 +484,10 @@
+   que el spec define y un control con forma. Ejecutado al terminar el plan
+   (`bash scripts/workflow/precheck.sh plan`): `precheck_plan ok`. Una réplica de un solo uso de sus reglas, fuera del
+   repositorio, cuenta 22 filas y 33 controles. Los nombres de los diez umbrales de `boe-legislacion` son los de
+-  `specs/017-h24-las-evals-juzgan/gates/evals/boe-legislacion.json`.
++  `specs/017-h24-las-evals-juzgan/gates/evals/boe-legislacion.json`. Tras la corrección de la ronda 1 el guion no se
++  ha vuelto a ejecutar —pide aprobación en la sesión del corrector—; sus comprobaciones, lanzadas sueltas, dan lo
++  mismo: ninguna marca pendiente, las dos secciones y la línea de aceptación en su sitio, y la tabla de umbrales, que la
++  corrección no toca, con sus 22 filas.
+ - a · Constitution Check: un ítem por principio (I-IX) y por regla de dependencia (R1-R7).
+ - b · Dependencias: ninguna nueva.
+ - c · Reglas de dependencia: `net/http` y `cookiejar` solo en `internal/httpx`; ni SQLite, ni `os.Exit`, ni salida
+@@ -475,11 +495,13 @@
+ - d · Errores y códigos: las filas del ADR 0023 en [contracts/cita-resolver.md §4](./contracts/cita-resolver.md); ningún
+   código nuevo.
+ - e · Tests primero: cinco guiones congelados con su precondición; tests nuevos, tests que cambian, fixtures y tareas
+-  `[datos]`.
++  `[datos]`, con `schemas/instalacion.json` y la tarea del paso 5 que lo regenera.
+ - f · Alcance: nada fuera del spec; las ediciones de guiones anteriores, declaradas con su porqué.
+ - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos.
+-- h · Mejor alternativa: cada decisión con la rechazada (D1-D32).
+-- i · Afirmaciones verificadas: V1-V39 con fichero, línea u orden; M1-M4 del prototipo; S1-S11 como supuestos.
++- h · Mejor alternativa: cada decisión con la rechazada (D1-D32); D16, rehecha sobre los verbos que ya tienen banderas
++  propias.
++- i · Afirmaciones verificadas: V1-V39 con fichero, línea u orden; M1-M4 del prototipo y M5 del de la corrección;
++  S1-S11 como supuestos.
+ - j · Quickstart ejecutable: órdenes, rutas y nombres de test que fija este plan; todo bajo un temporal que §10 borra;
+   §11 y §12, para la persona y el workflow.
+ - k · Datos externos: una fuente con fila revisada en `main`, su manifiesto y su test de grabación; nada a `data/`.
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-06 20:13:11
++++ ahora/quickstart.md	2026-10-06 20:26:36
+@@ -22,11 +22,16 @@
+ ```bash
+ "$Q/kitlegal" --help | grep -E '^\s+cita\s'
+ "$Q/kitlegal" cita resolver --describe | grep -c '"title": "cita resolver"'
++"$Q/kitlegal" cita resolver --describe | grep -c '"title": "--'
++"$Q/kitlegal" skills install --describe | grep -c '"title": "--'
+ make schema-check
++git diff --numstat main -- schemas/instalacion.json
+ ```
+ 
+-Esperado: la línea de `cita` en la ayuda; `1`; y `schema-check` en verde, con `schemas/resolucion.json` igual a lo que
+-emite `--describe`.
++Esperado: la línea de `cita` en la ayuda; `1`; `3`, las banderas propias de `cita resolver` (`--roj`, `--resolucion`,
++`--fecha`); `3`, las de `skills install` (`--global`, `--host`, `--dir`), que hoy da `0`; `schema-check` en verde, con
++`schemas/resolucion.json` y `schemas/instalacion.json` iguales a lo que emite `--describe`; y
++`7	0	schemas/instalacion.json`: siete líneas `title` añadidas y ninguna quitada (research D16, M5).
+ 
+ ## 2. Una referencia mal dada termina con 2, sin pedir nada (FR-002 a FR-005; US2)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-06 20:13:11
++++ ahora/research.md	2026-10-06 20:28:37
+@@ -17,6 +17,15 @@
+ umbral», que enseña cada fila y cada control (22 y 33). El guion de verdad se ejecutó al terminar
+ (`bash scripts/workflow/precheck.sh plan`): `precheck_plan ok`.
+ 
++**Corrección del plan, ronda 1 (2026-10-06)**. El juez rechazó V17 y D16: daban `cita resolver` por el primer verbo con
++banderas propias y concluían que marcarlas en `--describe` no cambiaba ningún esquema publicado. Las dos están
++rehechas. En la sesión del corrector se ejecutó, en el repositorio, `go run ./cmd/kitlegal <applet> <verbo> --describe`
++de los 14 verbos del registro (V17); y, sobre una copia del árbol de trabajo en `h23-corr/wt/` del directorio temporal
++—sin `.git`, `.github`, `specs/` ni `web/`, con un bucle añadido a `internal/cli/describe.go` que pone `title` a cada
++bandera propia y, después, con la tabla de `internal/skills/comandos.go` leyéndolo—, los tests y la regeneración que
++nombra M5. Esa copia es otro material de un solo uso, que queda en el directorio temporal: nada de ella entra en el
++repositorio. Tampoco en esa sesión se ha ejecutado `make ci` ni ningún test sobre el repositorio.
++
+ ## V · Verificado en local, en esta sesión
+ 
+ | # | Afirmación | Dónde se comprobó |
+@@ -37,7 +46,7 @@
+ | V14 | Un applet que no consulta ninguna fuente firma con `kitlegal.<nombre>` y `kitlegal:applet/<nombre>`; el ADR 0006 prevé `cita` entre ellos | `docs/ADR/0006-*.md:88-93`; `internal/app/territorio.go:19-22` |
+ | V15 | Las operaciones de grafo viajan en `Resultado.Grafo`, con la procedencia del sobre; los tipos de nodo son constantes de `internal/core/grafo/vocabulario.go` y `Resolucion` no está; `graph check` solo da `fuente-caducada` de una `Norma`, un `Bloque` o una `BloqueVersion`; `ValidarID` admite un id con dos puntos; `schemas/grafo.json` no enumera tipos de nodo | `internal/core/schema/sobre.go:90-123`; `internal/core/grafo/vocabulario.go:5-22`; `internal/core/grafo/comprobar.go:285-323`; `internal/core/grafo/id.go:25-41`; `grep -n Municipio schemas/grafo.json` (sin resultados) |
+ | V16 | Las herramientas MCP salen del registro, una por verbo, salvo las de `mcp` y `skills`; `LineaDeLlamada` escribe cada campo que no es de posición como `--<nombre>=<valor>`, el terminador `--` y los de posición | `internal/app/herramientas.go:35-73`; `internal/cli/herramienta.go:118-178` |
+-| V17 | El documento de `--describe` da la `entrada` como un objeto plano, sin decir qué propiedad va por su posición; la tabla de comandos toma por argumento de posición toda propiedad que no se llama como una bandera global, y lo dice: «todos los argumentos propios de un verbo de una tabla son de posición». Ningún verbo de hoy tiene banderas propias | `internal/cli/describe.go:180-197`; `internal/skills/comandos.go:273-292`, `:585-610`; `internal/app/skills_test.go:158-197` |
++| V17 | El documento de `--describe` da la `entrada` como un objeto plano, sin decir qué propiedad va por su posición y cuál es una bandera propia; la tabla de comandos toma por argumento de posición toda propiedad que no se llama como una bandera global, y lo dice: «todos los argumentos propios de un verbo de una tabla son de posición». De los 14 verbos del registro, tres tienen banderas propias: `skills install` (`--global`, `--host`, `--dir`) y `skills list` y `skills doctor` (`--global`, `--dir`), siete propiedades entre los tres; los otros once solo tienen argumentos de posición o ninguno. Ninguna skill declara el applet `skills`, así que ningún verbo de una tabla de comandos de hoy tiene banderas propias. `TestTablaDeComandosCoincideConLaGramatica` sí genera una fila por cada verbo del registro, también de esos tres: hoy las escribe como argumentos de posición opcionales, y su invocación mínima omite todo lo que empieza por `[` | `internal/cli/describe.go:180-197`; `internal/skills/comandos.go:273-292`, `:585-610`; `internal/app/instalacion.go:163-167`, `:184-186`; `grep -n kitlegal-applets skills/*/SKILL.md` (`boe graph` y `territorio`); `internal/app/skills_test.go:158-197`, `:1466-1486`; `go run ./cmd/kitlegal <applet> <verbo> --describe` de los 14 verbos (sesión del corrector) |
+ | V18 | `jsonschema.Schema` de `invopop/jsonschema` v0.14.0 tiene `Title`, que se escribe como `title` | `~/go/pkg/mod/github.com/invopop/jsonschema@v0.14.0/schema.go:70` |
+ | V19 | Una skill declara sus applets en `metadata.kitlegal-applets` y sus referencias en `kitlegal-referencias`, que puede faltar; lo empotrado es `skills/*/SKILL.md` y `skills/*/references/*`; `skillsExigidas` son las que `skills/` tiene que tener | `internal/skills/frontmatter.go:42-43`, `:98-103`; `skills.go:24`; `internal/app/skills_test.go:56-60`, `:93-100` |
+ | V20 | El formato de eval: `comandos` con cinco formas que decide el verbo (`resolver` es hoy la de territorio); una eval que activa exige `comandos` y `citas` o `territorio`; la cita se extrae con `formaDeCita`; las formas fijas, con `patronDeEtiqueta` | `internal/evals/formato.go:103-214`; `schemas/eval.yaml.json:18-98`; `internal/evals/citas.go:8-45`; `internal/evals/avisos.go:16-93` |
+@@ -56,12 +65,12 @@
+ | V33 | El binario de e2e registra los applets de producción con `boe` sobre la reproducción y las skills empotradas de verdad; su reloj se fija con `-ldflags` | `internal/app/ejemplo/kitlegal-e2e/main.go:128-164`; `internal/app/e2e_test.go:120-143` |
+ | V34 | Registrar un applet cambia cuatro listas literales y un ejemplo: `internal/app/registro_test.go:249`, `cmd/kitlegal/main_test.go:20`, `internal/app/ejemplo/kitlegal-e2e/main_test.go` y `internal/app/testdata/script/argumentos.txtar:24` y `:30`; `CONTRIBUTING.md:85` | `grep -rn "applets disponibles"`; `grep -rn '"boe", "graph"'` |
+ | V35 | Una skill nueva en `skills/` cambia lo que instala el binario de e2e: 15 guiones de `internal/app/testdata/script/` enumeran las dos skills de hoy en la misma línea, 72 líneas en total (salidas de `skills install`, `list` y `doctor`, árboles y el mensaje «skills disponibles») | `grep -c "boe-legislacion.*legal-core" internal/app/testdata/script/*.txtar` |
+-| V36 | `ficherosDeEsquemas` da a cada applet su fichero de `schemas/`, con el nombre de su entidad, y `TestEsquemasPublicados -actualizar-esquemas` lo escribe desde `--describe` | `internal/app/esquemas_test.go:23-70` |
++| V36 | `ficherosDeEsquemas` da a cada applet su fichero de `schemas/`, con el nombre de su entidad, y `TestEsquemasPublicados -actualizar-esquemas` lo escribe desde `--describe`. Cada parte publicada es el documento entero de su verbo, con su `entrada`: las de `doctor`, `install` y `list` en `schemas/instalacion.json` llevan `dir` y `global`, y la de `install`, `host`. La web sirve `schemas/` tal cual en `https://kitlegal.es/schemas/`, y su flujo se lanza con un cambio en `schemas/**` | `internal/app/esquemas_test.go:23-70`; `schemas/instalacion.json:115`, `:121`, `:306`, `:312`, `:315`, `:548`, `:554`; `web/src/pages/schemas/[nombre].json.ts`; `.github/workflows/web.yml:19`, `:27` |
+ | V37 | El texto de la eval (d) existe y ocupa 2 353 bytes | `wc -c evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt` |
+ | V38 | `depguard` reserva `net/http` a `internal/httpx/**`, por prefijo de ruta de fichero | `.golangci.yml:156-171`; `internal/arch_test.go:81-90` |
+ | V39 | El README dice hoy, en «¿Y las sentencias?», que la jurisprudencia del CENDOJ «no llegará por ahora» | `README.md:259-277` |
+ 
+-## M · Medido en esta sesión (prototipo `h23-proto`)
++## M · Medido en esta sesión (prototipo `h23-proto`; M5, en la del corrector, con `h23-corr`)
+ 
+ | # | Medida | Resultado |
+ |---|---|---|
+@@ -69,6 +78,7 @@
+ | M2 | Cuerpo de un envío, codificado | 126 B (ECLI), 112 B (ROJ), 193 B (número con sus dos fechas) |
+ | M3 | JSON compacto: una resolución, 318 B; `data` con una, 384 B; el sobre con una, 625 B; con diez, 3 495 B; el del Tribunal Constitucional, 297 B; el de «no encontrado» por la fecha, 422 B | `encoding/json` sobre los ejemplos de [contracts/cita-resolver.md](./contracts/cita-resolver.md), con una URL de documento supuesta de 93 caracteres |
+ | M4 | La entrada de caché de una entrega con una resolución, 502 B; la de un «no encontrado», 270 B; los datos del nodo `Resolucion`, 318 B; un elemento de `umbrales`, 355 B; la cita, 71 caracteres; la línea, 147 | ídem |
++| M5 | Lo que cambia al marcar con `title` cada bandera propia de todo verbo en `--describe` y al escribirla la tabla como `[--<nombre>=<nombre>]` detrás de los argumentos de posición (D16) | Con la marca y `schemas/` sin regenerar fallan dos tests, y ningún otro de `internal/cli`, `internal/skills`, `internal/mcp/...`, `internal/app/...`, `internal/core/instalacion`, `internal/source/...` y `cmd/...`: `TestEsquemasPublicados/schemas`, por las partes `doctor`, `install` y `list` de `schemas/instalacion.json`, y `TestEsquemasDeHerramienta/los_dos_esquemas_son_las_partes_del_documento_de_--describe`. Con `-actualizar-esquemas`, de `schemas/` solo cambia `instalacion.json` (`diff -rq`): siete líneas añadidas y ninguna quitada —`"title": "--dir"` y `"title": "--global"` en `doctor`, `install` y `list`, y `"title": "--host"` en `install`—, de 15 977 a 16 211 bytes; y con él regenerado, `internal/app/...` vuelve a pasar. Con la tabla leyendo la marca, los tests de `internal/skills` pasan sin tocarlos, y también `TestSkillsDelRepositorio` —las tablas de `boe-legislacion` y de `legal-core` no cambian—, `TestOrdenesDeLasSkillsEmpotradas` y `TestTablaDeComandosCoincideConLaGramatica`, con sus tres subtests de `skills`. `internal/evals` no se midió: la copia no lleva `.github/`, y ningún fichero Go de ese paquete nombra `cli.Describir`, `EsquemasDeHerramienta`, `LeerDescripcionDeVerbo` ni `instalacion.json` (`grep`) |
+ 
+ ## S · Supuestos no verificados
+ 
+@@ -216,16 +226,35 @@
+ `data` sin resoluciones y con su `cobertura`; ninguna petición, ni caché, ni grafo (FR-015).
+ **Rechazado**: que lo devuelva la fuente `cendoj.jurisprudencia`, cuyo nombre no puede firmar lo que no ha consultado.
+ 
+-### D16 · La tabla de comandos aprende las banderas propias de un verbo
++### D16 · `--describe` dice qué argumento propio es una bandera, en todo verbo, y la tabla de comandos lo lee
+ 
+-`cita resolver` es el primer verbo con banderas propias, y hoy la tabla las escribiría como argumentos de posición
+-(V17). El documento de `--describe` marca cada bandera propia con `title`, que lleva cómo se escribe (`--roj`); la tabla
+-la escribe `[--roj=<roj>]`, detrás de los argumentos de posición. Las banderas globales y los argumentos de posición no
+-cambian, así que ningún esquema publicado de hoy cambia. Los esquemas de una herramienta MCP no llevan la marca: una
+-herramienta recibe sus argumentos por su nombre.
+-**Rechazado**: una palabra propia (`x-bandera`), que cada validador trata a su manera; marcar los de posición, que
+-cambiaría todos los ficheros de `schemas/`; y dejar la fila como salga y explicar las banderas en prosa, que deja en la
+-tabla una orden que no funciona.
++`cita resolver` es el primer verbo de una tabla de comandos con banderas propias: los tres de `skills` ya las tienen,
++pero ninguna skill declara ese applet y ninguna tabla los escribe (V17). Hoy la tabla escribiría `--roj`,
++`--resolucion` y `--fecha` como argumentos de posición, una orden que no funciona, porque la `entrada` de `--describe`
++no distingue una cosa de la otra.
++
++El documento de `--describe` marca cada bandera propia con `title`, que lleva cómo se escribe (`--roj`). La regla es
++una y no mira el applet: la lleva todo campo de los argumentos de un verbo que no va por su posición. Las banderas
++globales y los argumentos de posición no cambian. La tabla escribe los argumentos de posición como hoy y, detrás, cada
++bandera propia: `[--roj=<roj>]`. Los esquemas de una herramienta MCP no llevan la marca: una herramienta recibe sus
++argumentos por su nombre.
++
++**Lo que cambia de lo publicado** (M5): el documento de `skills install`, `skills list` y `skills doctor` gana `title`
++en `global`, `dir` y `host`, y con él `schemas/instalacion.json`, que es ese documento publicado y que la web sirve
++(V36): siete líneas más, 234 bytes, sin cambiar nada de lo que el esquema valida. Los demás ficheros de `schemas/` no
++cambian: sus verbos no tienen banderas propias. El fichero lo regenera la misma tarea que cambia `--describe`, que por
++eso es `[datos]`: con el documento cambiado y el fichero sin regenerar, `TestEsquemasPublicados` deja `make ci` en rojo.
++
++Una bandera propia sin valor o que se repite solo la tienen esos tres verbos de `skills`. Su fila solo existe dentro de
++`TestTablaDeComandosCoincideConLaGramatica`, que la convierte en una invocación mínima sin nada de lo opcional: no la
++lee ninguna persona ni ninguna skill, y no se le diseña ni se le prueba una forma propia (umbral de materialidad).
++
++**Rechazado**: no marcar los verbos de `skills` y `mcp`, o marcar solo los de un applet con tabla, para dejar
++`schemas/instalacion.json` como está: es un caso por applet en el kernel, y dos verbos con banderas propias se
++describirían de dos maneras; marcar también las globales, que cambiaría los seis ficheros publicados para decir lo que
++la tabla ya sabe por el documento de un verbo sin argumentos; una palabra propia (`x-bandera`), que cada validador
++trata a su manera; marcar los de posición, que cambiaría cinco de los seis ficheros en lugar de uno; y dejar la fila
++como salga y explicar las banderas en prosa, que deja en la tabla una orden que no funciona.
+ 
+ ### D17 · El esquema publicado
+ 

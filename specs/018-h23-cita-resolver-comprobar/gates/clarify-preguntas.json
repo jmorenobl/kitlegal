@@ -1,0 +1,105 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Datos y ciclo de vida de la caché; evals (marcador [NEEDS CLARIFICATION] de FR-041)",
+      "pregunta": "¿Guarda la caché también el resultado «no encontrado» de `cita resolver` —y durante cuánto tiempo—, o de dónde recibe una sesión de eval el «no encontrado» de las evals (b) y (f)?",
+      "por_que_importa": "El hito dice que en la caché quedan «los metadatos de la entrega», y un «no encontrado» no tiene entrega (FR-040). Pero las evals (b) y (f) esperan la línea `⚠ SENTENCIA NO COMPROBADA:` tras una consulta `cita resolver` (FR-070), en sesiones que no consultan el CENDOJ y con `red` vacío (FR-074, SC-001). Leído en el repositorio: una sesión de eval usa el binario de producción con una caché llena de antemano (`internal/evals/preparar.go`: `Preparar` registra solo el applet `boe` sobre `httpx.Replay` y cuenta como falta toda consulta que no termina en 0); fuera de los tests, `httpx.Replay` solo lo usan ese fichero y el binario de ejemplo del e2e; y el adaptador de `boe` no guarda ningún fallo (`internal/source/boe/doc.go`). De la respuesta dependen FR-040 y su control de los 30 días, la fila del «no encontrado» en «Uso, de fuera adentro», lo que hace `Preparar` con una consulta que termina en 3, y si (f) mide en la sesión que la fecha la compara la herramienta.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "La caché guarda el «no encontrado» con la misma vigencia que una entrega, 30 días, por la misma clave (forma, valor y fecha), sin datos de ninguna resolución. La consulta repetida termina con 3 desde la caché, también con `--offline`. Una referencia que entre en el buscador después sigue dando «no encontrado» en ese equipo hasta que la entrada vence. Las sesiones de (b) y (f) lo reciben de la caché preparada, y la preparación admite consultas que terminan en 3."
+        },
+        {
+          "id": "B",
+          "texto": "La caché guarda el «no encontrado», sin datos de ninguna resolución, con una vigencia propia y más corta que los 30 días de una entrega (la respuesta dice cuánto). La fuente fija entonces dos vigencias, y el control de FR-040 comprueba las dos. Las sesiones de (b) y (f) lo reciben de la caché preparada, mientras la preparación y la sesión quepan en esa vigencia, y la preparación admite consultas que terminan en 3."
+        },
+        {
+          "id": "C",
+          "texto": "La caché no guarda el «no encontrado»: FR-040 se queda como está y cada consulta repetida de una referencia no encontrada vuelve a la fuente. Las sesiones de eval lo reciben por un medio nuevo, que hoy no existe: una forma de que el binario de la sesión reproduzca grabaciones en lugar de salir a la red, que el hito tendría que definir, con su alcance y su control."
+        },
+        {
+          "id": "D",
+          "texto": "La caché no guarda el «no encontrado» y no se añade ningún medio de reproducción. En las sesiones de (b) y (f) la consulta que la caché no tiene no termina en «no encontrado»: el spec tiene que decir con qué termina y cómo queda `red`. Esas dos evals se juzgan por la línea y por la ausencia de cita, sea cual sea el motivo, y que la herramienta compara la fecha lo comprueba solo el e2e de FR-111, no una sesión."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Comportamiento de la skill (marcador [NEEDS CLARIFICATION] de FR-067)",
+      "pregunta": "Cuando la entrega de `cita resolver` trae más de una resolución, ¿qué hace la respuesta de la skill `jurisprudencia` con ellas?",
+      "por_que_importa": "La herramienta da todas las resoluciones con el mismo número y la misma fecha (FR-013), porque el filtro por órgano queda fuera del hito, y el hito no dice qué hace la skill con más de una. Cada órgano numera sus resoluciones (`docs/JURISPRUDENCIA.md` §3), así que una cita escrita con número y fecha se prueba primero por un campo que no distingue el órgano (FR-061), y el segundo intento, como ROJ, solo llega si el primero termina en «no encontrado». Ningún control decide este caso: todos los ECLI de la entrega cuentan como entregados para `cita_sin_resolver` (FR-081) y una eval con varias resoluciones está fuera de alcance. Lo que se responda es el texto del protocolo de `SKILL.md` y lo que lee quien pregunta por una sentencia de un órgano que no es el Tribunal Supremo.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Las da todas, cada una con su cita de forma fija y su URL, y dice que hay más de una resolución con ese número y esa fecha. La respuesta puede citar una resolución de un órgano distinto del que nombraba la referencia; ningún paso compara el órgano."
+        },
+        {
+          "id": "B",
+          "texto": "Cita solo la del órgano que nombra la referencia («STS», «SAP B»…), comparando el modelo esas siglas con el órgano y el ROJ de cada resolución de la entrega. Si ninguna coincide, no cita ninguna y lo dice con la línea `⚠ SENTENCIA NO COMPROBADA:`. La comparación es un juicio del modelo, sin control en este hito."
+        },
+        {
+          "id": "C",
+          "texto": "No cita ninguna con la forma fija: dice que la referencia corresponde a más de una resolución y pide a la persona el ECLI o el ROJ de la que busca. Una referencia con número, fecha y órgano que solo coincide en número y fecha con otra queda sin cita hasta que la persona vuelve con el identificador."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q3",
+      "categoria": "Fuente externa: ritmo y términos de uso (marcador [NEEDS CLARIFICATION] de FR-024)",
+      "pregunta": "¿Tiene que cumplirse la separación de 5 s entre peticiones al CENDOJ también entre la última petición de una invocación de `cita resolver` y la primera de la siguiente, o solo entre las peticiones de cada invocación?",
+      "por_que_importa": "El ritmo lo guarda hoy cada proceso para sus propias peticiones (`internal/httpx/doc.go`: «el ritmo de un sitio es de cada cliente», salvo que varios compartan el mismo `Ritmo`, que es lo que hace un proceso que atiende varias invocaciones). Con órdenes, cada `cita resolver` es un proceso nuevo, y la skill lanza una o dos por sentencia (FR-061) y varias por respuesta; con herramientas es un solo proceso. La fila de la fuente fija `5s` por el `Crawl-delay` de su `robots.txt`, el ADR 0036 dice «el ritmo del `robots.txt` (5 s)», y `docs/JURISPRUDENCIA.md` §3 deja sin probar a partir de cuántas consultas responde el buscador con un CAPTCHA o un bloqueo. De la respuesta dependen si el binario guarda estado entre procesos, el tiempo de una respuesta con varias sentencias («Uso, de fuera adentro») y qué comprueba el control del ritmo.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Solo dentro de cada invocación, como hoy. Dos órdenes seguidas pueden pedir al sitio con menos de 5 s entre la última petición de una y la primera de la siguiente; lo que las separa es el tiempo que tarda el agente en lanzar la segunda. No se añade estado entre procesos. En el modo de herramientas, que es un solo proceso, la separación se cumple entre todas las consultas."
+        },
+        {
+          "id": "B",
+          "texto": "También entre invocaciones. El binario deja en disco, junto a la caché, cuándo pidió por última vez al sitio, y la invocación siguiente espera su turno antes de su primera petición. Se añade un estado que escriben invocaciones concurrentes, hasta 5 s más por invocación, que cuentan dentro del plazo de `--timeout`, y un control de `make ci` para esa separación."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q4",
+      "categoria": "Fuente externa: fallos y reintentos (FR-021 y FR-017 frente a «Relación con otros hitos», H2)",
+      "pregunta": "Cuando el CENDOJ responde con un error del servidor (5xx) o falla la conexión, ¿se reintentan las peticiones de `cita resolver` como las de cualquier otra fuente, o cada petición se hace una sola vez?",
+      "por_que_importa": "El spec dice las dos cosas. FR-021 fija que una consulta hace al sitio «como mucho» la petición de `robots.txt`, una de la página del buscador y un envío del formulario, con un control en `make ci` que cuenta las peticiones; US5 dice que kitlegal «no insiste». Y «Relación con otros hitos» dice que de `internal/httpx` se quedan, entre otras cosas, los reintentos, mientras FR-033 enumera lo que atraviesa el envío del formulario sin nombrarlos. Leído en el repositorio: `internal/httpx` hace por omisión hasta tres intentos de cada petición (`intentosPorOmision = 3`), repite los 5xx y los fallos de transporte y nunca un 4xx (`internal/httpx/reintentos.go`), y un cliente puede declarar otro número de intentos (`ConIntentos`). El 403 y la página que no se reconoce no se repiten en ninguna lectura (FR-016). Lo que cambia: cuántas peticiones recibe el sitio en una consulta que falla, cuánto tarda, si un fallo pasajero termina en 0 o en 4 (FR-017), y qué cuenta el control de FR-021.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Ninguna petición a esta fuente se reintenta: `robots.txt`, la página y el formulario se piden una vez cada uno, y un 5xx o un fallo de conexión termina con 4 a la primera. FR-021 vale al pie de la letra también cuando la fuente falla, y su control lo comprueba con un sitio de prueba que falla."
+        },
+        {
+          "id": "B",
+          "texto": "Se reintentan como en cualquier fuente: hasta tres intentos por petición ante un 5xx o un fallo de conexión, cada uno esperando su turno de 5 s, también el envío del formulario. El «como mucho» de FR-021 pasa a contar peticiones distintas y no intentos: una consulta puede llegar a nueve peticiones al sitio y a más de 40 s, y su control cuenta sin fallos del servidor."
+        },
+        {
+          "id": "C",
+          "texto": "Se reintentan las lecturas —`robots.txt` y la página del buscador—, hasta tres intentos cada una, y el formulario se envía una sola vez: si ese envío da un 5xx o falla la conexión, termina con 4. FR-021 mantiene «un envío del formulario» y deja de limitar a una las peticiones de la página."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q5",
+      "categoria": "Comportamiento de la skill: forma de la respuesta (FR-061 y US3 frente a FR-063)",
+      "pregunta": "Cuando la persona da una sentencia por su número sin la fecha («¿existe la STS 1088/2023?») y la skill pide la fecha, ¿lleva esa respuesta la línea `⚠ SENTENCIA NO COMPROBADA:` para esa referencia?",
+      "por_que_importa": "FR-061 y el escenario 4 de US3 dicen que esa respuesta «pide la fecha» y no lleva ninguna cita, sin nombrar la línea. FR-063 manda decir con la línea toda sentencia «que no se ha podido comprobar» y enumera sus motivos —no se encuentra, la fuente no responde o responde con un bloqueo, o no se ha podido consultar—, entre los que no está que falte la fecha. Es la forma en que se escribe muchas veces una sentencia, ninguna de las seis evals la cubre, y el protocolo de `SKILL.md` tiene que decir una de las dos cosas; es también lo que leerá la persona en el cierre y de donde salen los casos de H25.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Sí: la respuesta lleva la línea `⚠ SENTENCIA NO COMPROBADA:` con la referencia como se dio y, como motivo, que sin la fecha no se puede comprobar, y pide la fecha. La línea aparece entonces también en respuestas en las que no se ha hecho ninguna consulta, y «falta la fecha» se suma a los motivos de FR-063."
+        },
+        {
+          "id": "B",
+          "texto": "No: la respuesta pide la fecha, sin cita y sin la línea. La línea queda para las referencias que se han intentado comprobar, o que no se han podido consultar, y los motivos de FR-063 no cambian. Una respuesta puede entonces nombrar una sentencia sin cita y sin línea, mientras espera la fecha."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}

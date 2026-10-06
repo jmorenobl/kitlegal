@@ -1,0 +1,116 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "Un ítem por principio (I a IX) y por regla de dependencia (R1 a R7), más las tres capas de gates. La fila VI y la capa 3 dicen ya lo que faltaba en la ronda 1: la marca vale para todo verbo y `schemas/instalacion.json` es, con `schemas/eval.yaml.json`, uno de los dos ficheros existentes de `schemas/` que cambian. Cotejado con el código: R2 tiene por dueño `internal/httpx` (internal/arch_test.go:81-92) y depguard excluye `**/internal/httpx/**` (.golangci.yml:165-171), así que `httpxtest` puede importar `net/http`; las banderas globales son las ocho de la constitución VI."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna nueva. `grep golang.org/x/net go.mod` no da nada; `net/http/cookiejar`, `net/url` y `regexp` son de la biblioteca estándar, y research D10 documenta el rechazo de una biblioteca de HTML, que el ADR 0036 descarta."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "El formulario, la `Consulta`, `cookiejar` y el sitio de prueba quedan bajo `internal/httpx` (formulario.go y httpxtest/sitio.go). La cadena de `New` y la de `Replay` (internal/httpx/cliente.go:306-383) no cambian: la `Consulta` es otro `http.Client` sobre la misma cadena, y `Replay` sigue sin ritmo, reintentos ni `robots.txt`, que es por lo que existe `OpcionesDeReproduccion`. El adaptador usa el puerto de caché, el applet devuelve `Resultado` con `Datos` y `Legible`, y no hay `os.Exit`, SQLite ni salida estándar nuevos. La marca de D16 vive en `internal/cli/describe.go` y la lee `internal/skills/comandos.go`: ningún paquete nuevo importa otro."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "contracts/cita-resolver.md §4 da cada situación con su `data.clase` y su fila del ADR 0023 (2, 0, 3, 5, 4 y la regla genérica del 1; nunca 6 ni 7). Coincide con lo que entrega hoy `internal/httpx` (cliente.go:794-821: 429 a `limite-o-tos`, 5xx a `fuente-no-disponible`, el resto con su `Estado`; errores.go:183-212) y con FR-016, FR-017 y FR-022: la redirección dentro de una `Consulta` se entrega y el adaptador la da como 5 (D4), y el «no encontrado» sale solo de la respuesta reconocida o del filtro por fecha."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "Motivo de la ronda 1, corregido: `schemas/instalacion.json` está en «Fixtures, testdata/ y schemas/» con la orden que lo regenera (`-actualizar-esquemas`), en «Tests existentes que cambian», en el árbol de «Source Code» y en el paso 5, que pasa a ser `[datos]`. Comprobado: `TestEsquemasDeHerramienta` tiene el subtest que el plan nombra (internal/cli/herramienta_test.go:265-274) y compara la entrada del documento sin las ocho globales con la de la herramienta (:344-373), y entre sus verbos de prueba hay dos con banderas propias (:141-150), así que cambia como dice el plan; ningún guion de internal/app/testdata/script/ compara el `--describe` de un verbo de `skills` (grep). El resto sigue: cinco guiones congelados con su precondición, tests nuevos con fichero y requisito, fixtures y tareas `[datos]`."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada pieza se traza al spec («Trazabilidad»). Lo que D16 cambia de un hito anterior —siete anotaciones `title` en un esquema publicado de H19— es consecuencia de una regla sin caso por applet, está declarado en Complexity Tracking, en la capa 3 y en gates/supuestos.md como [comportamiento], y no toca el applet `skills`, `skills/boe-legislacion/` ni `skills/legal-core/` (sus verbos no tienen banderas propias: internal/app/boe.go:157-203, grafo.go:118-180, territorio.go:75). La entrada del hito (docs/ROADMAP.md, H23) pide que la tabla nombre la orden, y no dice cómo."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos (grep sobre plan.md, research.md, data-model.md, quickstart.md y contracts/: solo las dos frases que dicen que no los hay). La fila de los tres verbos de `skills`, que no lee nadie, no gana forma ni test propios, y lo dice (D16, umbral de materialidad). Lo que no se pudo comprobar va a S1-S11 con lo que lo mide."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "Motivo de la ronda 1, corregido: D16 está rehecha sobre la premisa cierta —tres verbos ya tienen banderas propias— y compara cinco alternativas con lo que cada una cambia de lo publicado: no marcar los verbos de `skills` (un caso por applet en el kernel), marcar también las globales (los seis ficheros), marcar los de posición (cinco de seis), una palabra propia y la prosa. Rehecho: los ficheros publicados desde `--describe` son seis (internal/app/esquemas_test.go:60-67) y los verbos con argumentos de posición están en cinco de ellos, todos menos servidor.json. Las demás decisiones no cambian."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Motivo de la ronda 1, corregido, y comprobado por mí. V17: de los 14 verbos del registro solo `skills install` (`Global`, `Host`, `Dir`) y `list` y `doctor` (`Global`, `Dir`) tienen campos sin `arg:\"\"` (internal/app/instalacion.go:164-167, :185-186; los demás, grep de las etiquetas en internal/app); `kitlegal mcp serve --describe` da una entrada con las ocho globales y nada más; ninguna skill declara `skills` (`kitlegal-applets: boe graph` y `territorio`); `TestTablaDeComandosCoincideConLaGramatica` genera una fila por verbo del registro y su invocación mínima omite lo que empieza por `[` (internal/app/skills_test.go:170-197, :1461-1486). V36: las siete propiedades están en las líneas citadas de schemas/instalacion.json, la web sirve `schemas/` tal cual (web/src/pages/schemas/[nombre].json.ts) y su flujo se lanza con `schemas/**` (.github/workflows/web.yml:19, :27). M5: el fichero mide hoy 15 977 bytes (`wc -c`) y, con las claves ordenadas como en lo publicado, las siete líneas suman 3 × 32 + 3 × 35 + 33 = 234 bytes, 16 211; ningún fichero de internal/evals nombra `Describir`, `EsquemasDeHerramienta`, `LeerDescripcionDeVerbo` ni `instalacion.json` (grep). También V1, V2, V4, V5, V6, V8, V10, V15, V26, V27, V28, V29, V37 y V38 contra su fichero o su `go doc`. Lo que no he podido rehacer: las ejecuciones de tests de M5 sobre la copia del corrector y los 8 hexadecimales de M1 (observaciones)."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Lo que añadió la corrección a §1 es coherente con el binario de hoy, compilado en el directorio temporal: `skills install --describe` da 0 líneas con `\"title\": \"--` —el «hoy da 0» del quickstart— y 1 con `\"title\": \"skills install\"`, la forma que espera el recuento de `cita resolver`; describe sin instalar nada (`git status --short` solo enseña el directorio del feature); y `--help | grep -E '^\\s+boe\\s'` casa en esta plataforma. El `7` y `0` de `git diff --numstat` son las siete líneas de M5, ninguna quitada porque `title` ordena antes que `type`. Los demás escenarios no cambian: órdenes, rutas y tests son los del plan, y lo que escriben va a un temporal que §10 borra."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Una sola fuente, `cendoj.jurisprudencia`, con fila en docs/SOURCES.md (línea 43, «Revisado» 2026-10-03; `git show main:docs/SOURCES.md` la tiene y el hito no la cambia). Manifiesto con `fuente` y `TestGrabarConsultas` (`//go:build grabacion`), como exige scripts/workflow/grabar-datos.sh; `-run '^TestGrabar'` no alcanza a `TestGrabacionesCompletas` ni a `TestGrabacionRechazaLoNoReconocido`, y lo copiado queda bajo `testdata/` del paquete, lo único que el paso admite. `schemas/instalacion.json` y los goldens los escribe código (`-actualizar-esquemas`, `-actualizar-golden`); el CAPTCHA y el 403 son sintéticos; el texto de (d) es el de evidencias/adr-0036/ (2 353 bytes). Ningún fichero de `data/` cambia."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea usa la red, graba, abre sesiones con modelo ni mide en la plataforma. La regeneración de `schemas/instalacion.json` es una orden de `go test` dentro de la tarea del paso 5, sin persona. `make verify-sources FUENTE=cendoj` solo lo lanza una persona; el job de evals lo lanza el workflow en el cierre, y scripts/workflow/cierre.sh recoge `evals (<skill>)` por su nombre, sin lista de skills. Si el CENDOJ bloquea la grabación, se detiene `grabar_datos` con su dossier."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Cálculo rehecho a mano sobre los ejemplos del contrato: una resolución, 318 B; `data` con una, 384 B; el sobre con una, 625 B; con diez, 625 + 9 × 319 − 1 = 3 495 B; el del Tribunal Constitucional, 297 B; el «no encontrado», 422 B; la entrada de caché, 502 y 270 B. La SKILL.md pide de una en una: 1 consulta por ECLI o ROJ, 1 o 2 por cita con número y fecha, 0 sin fecha, por materia o del Constitucional; cinco sentencias, de 5 a 10 consultas y como mucho 6 250 B por órdenes, el doble por herramienta. Lo acotan la referencia y la página de 10, no lo acumulado. `pagina_completa` solo es verdadero con 10; el «no encontrado» vence a los 30 días; el nodo `Resolucion` no da señales (internal/core/grafo/comprobar.go:314-323: solo Norma, Bloque y BloqueVersion). Lo que D16 añade a una salida que alguien lee es una fila de la tabla de `SKILL.md`; los `title` de `skills` no los consume ninguna skill."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "D16 es una regla y no un caso: la marca la lleva todo campo que no va por su posición, y se traza a FR-060 (la tabla generada nombra una orden que funciona); `schemas/instalacion.json` regenerado se traza a FR-001 y SC-009 (`schema-check` sin diferencias). La alternativa que dejaba el fichero como está pedía un caso por applet en el kernel. No se diseña ni se prueba la fila de una bandera sin valor o repetida, que solo existe dentro de un test. El resto de mecanismos conserva su requisito en «Trazabilidad»; lo menor queda en observaciones."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "La tabla no cambia con la corrección: 22 filas, y gates/plan-precheck.txt, regenerado después de ella (20:29:13, tras plan.md y research.md), está vacío. Cada requisito del spec con «Control» tiene la suya: FR-014, FR-021, FR-040/041, FR-060, FR-073, FR-075, FR-080 y FR-082 en cada modo, FR-083, FR-091, SC-001 a SC-007 y SC-009; la del esquema (`ci:Makefile:schema-check`, `TestEsquemasPublicados`) es la que pone en rojo `make ci` si `schemas/instalacion.json` no se regenera. Recorrido: una medida por encima de 0 en `cita_sin_resolver` o `sin_activar` es un umbral con `decide: true` que no se cumple, veredicto `fallo` y `evals (jurisprudencia)` en rojo, que scripts/workflow/cierre.sh cuenta entre los rojos de la cabeza. `red` vacío no es un elemento de `umbrales`: cada llegada es un motivo del informe (internal/evals/informe.go:1520-1521) y se clasifica por dirección, sin lista de fuentes (internal/evals/trazas.go). El peor caso del trabajo nuevo, 73 tandas de 272 s más 485 s, 20 341 s, cabe en los 352 minutos."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Segunda ronda. El único motivo de la ronda 1 ([e][h][i], V17 y D16) está corregido en todos los sitios que nombraba: research V17, V36, M5 y D16; plan.md (Summary, Constitution Check VI, Gates, Source Code, tests que cambian, fixtures, Decisiones, Trazabilidad, orden y Complexity Tracking); contracts/cita-resolver.md §9; quickstart §1; y gates/supuestos.md, con su línea [comportamiento]. No queda «ningún esquema publicado de hoy cambia» ni «el primer verbo con banderas propias» fuera de la nota que cuenta la corrección.",
+    "No he podido rehacer las ejecuciones de M5: se hicieron en la sesión del corrector sobre una copia del árbol que no está en el repositorio. He comprobado lo que se deriva de ellas sin ejecutarlas: los tres verbos y sus siete propiedades, los 234 bytes, los dos tests que nombra y por qué fallarían.",
+    "Tampoco he podido rehacer los 8 hexadecimales de los nombres de M1: `shasum` y un `go run` fuera del repositorio piden aprobación en esta sesión. A mano coinciden los 100 primeros caracteres de los nombres 1 a 4 y los bytes de M2 (126, 112 y 193). Los guiones congelados copian sus sintéticos sobre esos nombres: conviene que la tarea de `internal/httpx` los fije en `TestNombreDeGrabacion` tal como están en el contrato.",
+    "El árbol de «Documentation» de plan.md sigue diciendo «M1-M4» de research.md; ya hay M5.",
+    "contracts/skill-jurisprudencia.md §4 dice que `TestTablaDeComandosCoincideConLaGramatica` falla si la fila no escribe una bandera propia como bandera; su invocación mínima omite todo lo que empieza por `[` (internal/app/skills_test.go:1461-1486), así que una bandera opcional escrita como argumento de posición opcional también pasaría. Lo que fija la fila es `TestRenderizarTabla` con su verbo de prueba y la fila literal del contrato §9.",
+    "Para la persona que lee el informe final: `https://kitlegal.es/schemas/instalacion.json` gana sus siete `title` al fusionar, antes de que ninguna release emita ese `--describe`; no cambia nada de lo que el esquema valida.",
+    "Sigue de la ronda 1: contracts/fuente-cendoj-y-grabacion.md §1 y §5 nombran `cendoj.OpcionesDelCliente()`, con `ConIntentos(1)` dentro; plan.md y data-model.md §7 fijan `OpcionesDeRed()` y `OpcionesDeReproduccion()`. Manda el plan: `Replay` rechaza que se declaren los intentos (internal/httpx/cliente.go, comentario de `Replay`).",
+    "Sigue de la ronda 1: `snapshot_piezas_test.go` está en la raíz del repositorio, no en internal/empaquetado/; Complexity Tracking dice «Dieciséis guiones» y enumera diecisiete; «Aceptación e2e» dice que las evals entran en el paso 12 y la skill es el paso 13.",
+    "Sigue de la ronda 1: contracts/fuente-cendoj-y-grabacion.md §6 pone `TestNiResumenNiPagina` entre los tests del adaptador y da a `TestOperacionesDeGrafo` la procedencia y el «aplicar dos veces»; plan.md los pone en internal/app/cita_test.go.",
+    "Para las tareas: `TestGrabacionesCompletas` no puede entrar en la tarea del manifiesto (paso 7). scripts/workflow/verificar.sh ejecuta `make ci` antes del commit y `grabar_datos` graba después; el de `boe` falla sin grabaciones (internal/source/boe/casos_test.go:195-215). Va con el paso 8.",
+    "Para las tareas: el prompt de tareas pide que una tarea `[datos]` no mezcle otro trabajo; el plan justifica en Complexity Tracking las seis que mezclan (pasos 5, 7, 8, 10, 12 y 13), la del paso 5 porque el cambio de `--describe` sin el esquema regenerado deja `TestEsquemasPublicados` en rojo.",
+    "Sigue de la ronda 1: el control de FR-091 no vería un flujo que ejecutara `go test -tags=fuentes` sin `-run`; hoy ninguno usa esa etiqueta fuera de scripts/verify-sources.sh. Por debajo del umbral.",
+    "Sigue de la ronda 1: D25 da 74 tandas y 20 613 s como cota del trabajo `evals (jurisprudencia)`; con las 72 sesiones y la prueba de red son 73 y 20 341 s. Cabe igual; lo recalcula `TestDefinicionDelJob` (S9).",
+    "Sigue de la ronda 1: `TestGrabacionRechazaLoNoReconocido` usa un cliente en reproducción, que no graba; «el destino queda vacío» solo prueba algo si el directorio del que copia `grabarConsultas` tiene ficheros en ese test.",
+    "Sigue de la ronda 1: el nodo `Resolucion` lleva la vigencia de la caché (D14), que FR-042 no pide y hoy no tiene efecto; y research D32 dice de `internal/mcp/mcptest` que «un test lo comprueba», sin que internal/arch_test.go lo nombre.",
+    "Sigue de la ronda 1: DoD §1.10 y el prompt de tareas piden las evals antes que el código; aquí entran con la skill porque sus claves no existen hasta que cambia schemas/eval.yaml.json. Su contenido queda fijado en contracts/evals-jurisprudencia.md §2.",
+    "Para la persona que lee el informe final, como en la ronda 1: el envío lleva `X-Requested-With: XMLHttpRequest`, que la fila de docs/SOURCES.md no nombra y sí la prueba de docs/JURISPRUDENCIA.md §3 (D5); la dirección del buscador del Tribunal Constitucional no está en el repositorio y va sin comprobar (S6); y las grabaciones guardan la cookie de sesión del buscador en un repositorio público (S8 solo mira si `gitleaks` la marca).",
+    "Lo ejecutado en esta sesión: lecturas y búsquedas en el repositorio; `go build` del binario a un directorio temporal y, con `go run`, `--help`, `skills install --describe` y `mcp serve --describe`; `go doc` de `http.NewRequestWithContext` y `url.Values.Encode`; `wc -c` de schemas/ y de la evidencia; `git status --short`; y cuentas a mano de los bytes de los ejemplos. No he ejecutado `make ci`, ningún test del repositorio ni `scripts/workflow/precheck.sh`, no he consultado ninguna fuente y no he abierto ninguna sesión con modelo. Queda material de un solo uso en el directorio temporal (`juez-r2/`), nada en el repositorio."
+  ]
+}
