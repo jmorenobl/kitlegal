@@ -1,25 +1,17 @@
 {
-  "id": "T002",
-  "texto": "T002 El reconocimiento de ECLI y de ROJ en el dominio, con su fuzz (data-model §1; contracts/cita-resolver.md §1; research D1, S7; plan.md paso 2). **`ecli.go`**, nuevo: el tipo `ECLI`, `AnalizarECLI(entrada) (ECLI, error)`, `String()` y `Organo()`; un ECLI válido tiene cinco partes separadas por dos puntos, sin blancos y en mayúsculas —`ECLI`, el país `ES`, el órgano `[A-Z][A-Z0-9]{0,6}`, el año `[0-9]{4}` y el número `[A-Z0-9.]{1,25}`—; nada se recorta ni se pasa a mayúsculas; el error es el del paquete, de la clase `argumentos`, con la entrada y el motivo, y el de un ECLI bien formado de otro país dice que no es español. **`roj.go`**, nuevo: el tipo `ROJ`, `AnalizarROJ(entrada) (ROJ, error)` y `String()`; un ROJ válido es `[A-Z]+( [A-Z]+)* [0-9]+/[0-9]{4}`, sin nada delante ni detrás; no hay lista de órganos ni de siglas. `doc.go`: el comentario del paquete nombra los dos identificadores nuevos. **Tests**: `TestAnalizarECLI` y `TestAnalizarROJ`, tablas con lo que FR-003 y FR-004 aceptan y rechazan y con los casos límite del spec —`ECLI:ES:TS:2023:3144` y `ECLI:ES:TC:2024:79` (con `Organo()` igual a `TC`) aceptados, y también un número que termina en letra, un órgano de 7 caracteres y un número de 25; rechazados `ECLI:ES:TS:2023`, `ecli:es:ts:2023:3144`, `ECLI:FR:CC:2023:1`, uno con un blanco delante, un órgano de 8 caracteres o que empieza por cifra, un número vacío o de 26; aceptados `STS 3144/2023` y unas siglas de dos palabras; rechazados `ROJ: STS 3144/2023`, unas siglas en minúsculas, un año de dos cifras y un blanco al final—; y `FuzzECLI` y `FuzzROJ`, con sus semillas dadas con `f.Add`: ninguna entrada entra en pánico, y lo aceptado casa con la forma del requisito, escrita en el test aparte de la del analizador, y vuelve igual por `String()`. La cobertura del paquete sigue por encima del 85 %. **La superficie y los rechazos del paquete** (redelimitada en el intento 1: specs/018-h23-cita-resolver-comprobar/gates/tarea-T002.md), en internal/core/ids/errores_test.go: `superficieDelContrato` gana las siete declaraciones exportadas nuevas —los dos tipos con sus campos privados, sus dos analizadores y sus tres métodos—, `TestSuperficieDeIds` deja de nombrar el ECLI entre lo que todavía no ha entrado y su caso sintético del tipo que no es estructura pasa a llamarse `CELEX`, y `TestClaseDeLosErrores` gana una fila por cada camino de rechazo del ECLI y del ROJ; es el diff de specs/018-h23-cita-resolver-comprobar/gates/tarea-T002-errores_test.diff, que se aplica tal cual. — FR-003, FR-004, FR-113. Rutas: internal/core/ids/ecli.go, internal/core/ids/roj.go, internal/core/ids/doc.go, internal/core/ids/errores_test.go",
-  "intento": 2,
-  "datos": false,
+  "id": "T003",
+  "texto": "T003 [datos] El corpus mínimo del fuzz de ECLI y de ROJ, y **nada más** (data-model §1; plan.md, «Fixtures», primer punto): en internal/core/ids/testdata/fuzz/FuzzECLI/ y en internal/core/ids/testdata/fuzz/FuzzROJ/, un fichero por entrada con el formato de corpus de Go (`go test fuzz v1`), como los de sus vecinos `FuzzCodigoINE` y `FuzzCodigoDIR3`: para el ECLI, los aceptados y los rechazados de FR-003 y de los casos límite del spec (el de la sentencia conocida, uno del Tribunal Constitucional, uno que termina en letra, el mal formado, el de minúsculas, el de otro país y uno con un blanco); para el ROJ, `STS 3144/2023`, unas siglas de dos palabras, el que lleva el prefijo `ROJ:` y uno sin año. Son las formas que el spec nombra, no datos de ninguna fuente. Ningún fichero Go cambia. **Verificación**: `go test -count=1 -v -run '^Fuzz(ECLI|ROJ)$'` del paquete ejecuta cada fichero del corpus como subprueba —contadas con `rtk proxy`, para que no pase en vacío—; `make ci`. — FR-113. Rutas: internal/core/ids/testdata/fuzz/FuzzECLI/, internal/core/ids/testdata/fuzz/FuzzROJ/",
+  "intento": 1,
+  "datos": true,
   "aceptacion": false,
-  "base": "04b642f6b6599d59d689c56cd2044be2cf1bdded",
+  "base": "f605651e90637a42ecdc0cb4d9bf099455eb3676",
   "rutas": [
     "3144/2023",
-    "contracts/cita-resolver.md",
-    "doc.go",
-    "ecli.go",
-    "internal/core/ids/doc.go",
-    "internal/core/ids/ecli.go",
-    "internal/core/ids/errores_test.go",
-    "internal/core/ids/roj.go",
-    "plan.md",
-    "roj.go",
-    "specs/018-h23-cita-resolver-comprobar/gates/tarea-T002-errores_test.diff",
-    "specs/018-h23-cita-resolver-comprobar/gates/tarea-T002.md"
+    "internal/core/ids/testdata/fuzz/FuzzECLI/",
+    "internal/core/ids/testdata/fuzz/FuzzROJ/",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "8ad21494ef1d6ccc87ec78356e868c9435396a17ed22d81536a26e4d78542540"
+  "nota": "-"
 }
