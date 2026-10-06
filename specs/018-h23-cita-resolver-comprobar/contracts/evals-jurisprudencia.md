@@ -142,6 +142,9 @@ sin_sentencias: true
   `materia`, `texto pegado`, `constitucional` y `otra fecha`—, cada una definida por sus comandos y sus claves de
   arriba (FR-075). Y la subprueba `direcciones-de-la-skill`: cada dirección de una eval está en el `SKILL.md` de su
   skill.
+- Como el conjunto no lleva ninguna eval sin binario ni servidor, la subprueba `linea-sin-consulta`, de H21, no exige a
+  `jurisprudencia` la línea `⚠ SIN CONSULTA AL BOE: …`: desde este hito la pide a las skills cuyo conjunto lleva esa
+  eval, que son `boe-legislacion` y `legal-core` (research D33).
 
 ## 3. Qué no se compara
 

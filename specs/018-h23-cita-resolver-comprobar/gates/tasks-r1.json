@@ -1,0 +1,73 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": false,
+      "evidencia": "gates/analyze.md da dos HIGH (C1 y C2) y ninguno está resuelto: tasks.md se escribió antes del análisis (su línea 462 lo dice) y no hay ninguna corrección posterior. `grep -rn` de `SIN CONSULTA`, `linea-sin-consulta`, `instalar.txtar` e `instalar-sin-gobin` en spec.md, plan.md, research.md, tasks.md y contracts/ solo da coincidencias en gates/analyze.md. Los dos se confirman leyendo el código (no se ha ejecutado ningún test): C1, `probarLineaSinConsulta` (internal/evals/conjunto_test.go:1584-1604) recorre `skills.Listar` y exige en un bloque `text` de cada SKILL.md la línea `⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/`, que el prototipo que T021 copia con `cp` no lleva (0 coincidencias en contracts/skill-jurisprudencia.prototipo.md; sus líneas 156-157 mandan la línea `⚠ SENTENCIA NO COMPROBADA:`, como el caso límite del spec y FR-063); C2, internal/skills/testdata/script/instalar.txtar:28 y :33 e instalar-sin-gobin.txtar:19 comparan de principio a fin el listado de `~/.agents/skills` y de `~/.claude/skills` con las dos skills de hoy, `rutasDeLaInstalacion` (internal/skills/instalacion_test.go:73) copia `skills/` entera y `test-integration` está en `ci` (Makefile:91 y :264)."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Las 23 tareas terminan citando sus FR y SC. La tabla «Requisitos → tareas» de tasks.md cubre los 72 FR (FR-001 a FR-118) y los 9 SC del spec; SC-001 y SC-008 no son tarea por diseño (el cierre del workflow y una persona después del run), y lo dicen spec, plan y tasks. Las 22 filas de «Controles de umbral» de plan.md tienen su tarea y su test en la tabla «Controles de umbral (plan.md) → tarea que construye el control»: las cuatro de `evals:jurisprudencia:…` en T020 con T018 (`TestUmbralDeCitaSinResolver`, `TestUmbralesDelInforme`), la de `boe-legislacion` sin cambios, y las 17 `ci:` en T005, T006, T007, T009, T010, T012, T013, T014, T015, T016, T020 y T021, cada una con el caso negativo o el mutante temporal con que se ve en rojo. Cada test `ci:<ruta>:<Test>` cae en un `_test.go` de un fichero que su tarea declara o en un `_test.go` declarado por su ruta."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": false,
+      "evidencia": "Dos tareas no pueden dejar `make ci` en verde con lo que dicen y declaran (deducido leyendo guiones y tests; no se ha ejecutado `make ci`). T015 registra `cita` en el binario de e2e, que pasa de 13 a 14 herramientas, y solo actualiza h21-mcp-herramientas.txtar: internal/app/testdata/script/h21-mcp-proceso.txtar:69 (`cmp stdout cierre.txt`, línea 27) y h21-mcp-protocolo.txtar:63, :69 y :79 (`cmp stdout` de vigente.txt, anterior.txt y otra-version.txt, líneas 28, 39 y 52) llevan `1 herramientas 13` y fallarían en `TestEntregaDelHito`; los dos corren con `$KITLEGAL_T0_BIN` y `$KITLEGAL_V2_BIN`, que salen de `./ejemplo/kitlegal-e2e` (internal/app/e2e_test.go:52, :149, :151). T021 añade `skills/jurisprudencia/` y deja en rojo `linea-sin-consulta` (C1) y los dos guiones de `TestInstalacion` (C2). El resto del orden sí es ejecutable: la tabla de dependencias no tiene aristas hacia delante, la grabación va tras T010 y antes de T011, y T001, T003, T022 y T023 declaran por qué no son rebanadas de código."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": false,
+      "evidencia": "Ninguna ruta genérica: tras «Rutas:» hay ficheros concretos o carpetas nuevas del hito (aceptacion/, los dos corpus de fuzz, testdata/golden/, evals/jurisprudencia/). Pero faltan cuatro ficheros que las tareas tienen que tocar para quedar en verde, los cuatro bajo un `testdata/` protegido por el guardián: en T015, internal/app/testdata/script/h21-mcp-proceso.txtar e internal/app/testdata/script/h21-mcp-protocolo.txtar; en T021, internal/skills/testdata/script/instalar.txtar e internal/skills/testdata/script/instalar-sin-gobin.txtar. La búsqueda previa que T015 se manda (`git grep` de `applets disponibles`, de `\"skills\", \"territorio\"` y de `graph_stats`) no encuentra los dos primeros: ninguno contiene esos textos, solo `herramientas 13`."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Las siete tareas que tocan `schemas/` o un `testdata/` llevan `[datos]` (T003, T008, T010, T011, T015, T017, T021) y gates/tasks-precheck.txt está vacío. T003 es solo datos; las otras seis llevan lo que el dato obliga a cambiar a la vez, justificado en plan.md, Complexity Tracking, fila 2, y en la cabecera de tasks.md (sin ello `make ci` queda en rojo entre dos tareas). Los datos externos salen del manifiesto de T010 (internal/source/cendoj/testdata/grabaciones.json, con `fuente`) y de `TestGrabarConsultas` con `//go:build grabacion`, que es lo que exige scripts/workflow/grabar-datos.sh:70-77, y los graba el workflow; los esquemas y los goldens los escriben tests con su bandera, no a mano; el texto de la eval 04 se copia con una orden de evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt (2 353 bytes, comprobado con `wc -c`) y un test exige la igualdad byte a byte; los valores de la sentencia conocida en T001 son los de spec.md, US1 escenario 1; los sintéticos del CAPTCHA y del 403 van escritos en su test o en su guion."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "La tabla «Definition of Done → tareas» recorre los 13 puntos de docs/ROADMAP.md §1 (líneas 24-36): CHANGELOG en T022; esquemas en T008, T015 y T017; fixtures en T003, T010 y T011; el caso de scripts/verify-sources.sh en T016; cobertura en T002 y T023; grafo en T004, T013 y T014; evals antes que SKILL.md en T021. Sin ADR nuevo (la decisión es el ADR 0036, ya aceptado) y sin tocar docs/SOURCES.md (fila revisada en main, atada por el test de T009), con su motivo; puntos 11 y 13, no aplican y lo dice."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md no tiene ningún ítem sin marcar y sus cifras se sostienen: 72 FR y 9 SC, 81 ids; 44 escenarios (6, 5, 6, 5, 4, 6, 5, 3, 3 y 1, contados en spec.md); 5 líneas en «Clarifications»; `grep -c 'NEEDS CLARIFICATION' spec.md` da 0; diez viñetas literales en «Fuera de alcance», siete de ellas comprobadas una a una con `grep -o -F` contra docs/ROADMAP.md. Las tareas no cambian el checklist."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "T001 es la única tarea `[aceptacion]` y la primera. Sus cinco guiones cubren US1 (1 a 4 y 6 en cita-formas; 5 en cita-herramienta), US2 (1 a 5 en cita-no-comprobada), US5 (1 y 2 en cita-bloqueo) y US6 (1, 2, 4, 5 y 6 en cita-cache), y con ellos los once casos de FR-111 y SC-002 más la repetición con `--offline`. plan.md, «Aceptación e2e», justifica lo que no tiene guion: US3, US7, US8 y US10 no son comportamiento del binario; US4 y US9 son tests de `internal/httpx` y de la fuente; US5.3 y US6.3 van en `TestPeticionesDeUnaConsulta` y `TestNiResumenNiPagina`. Cada guion empieza por una precondición que hoy falla en su aserción."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide nada a una persona, publica la rama, abre la propuesta de cambio ni mide CI o evals remotas: T010 y T016 solo compilan lo que lleva etiqueta (`go vet -tags=grabacion`, `-tags=fuentes`), T021 no abre sesiones con modelo, y T023 deja constancia de que quickstart.md §11 es de una persona y §12 del workflow. La batería de verificación lo repite y gates/tasks-precheck.txt no da ningún defecto de plataforma ni de persona."
+    }
+  ],
+  "motivos": [
+    "T021 (tasks.md) y «Tests existentes que cambian» (plan.md): decidir y escribir cómo trata a `jurisprudencia` la subprueba `linea-sin-consulta` de `TestEvalsDelRepositorio` (hallazgo C1 de analyze.md, HIGH, sin resolver). Hoy recorre todas las skills de `skills/` (internal/evals/conjunto_test.go:1584-1604) y exige la línea `⚠ SIN CONSULTA AL BOE: …`, que el prototipo no lleva, así que T021 deja `make ci` en rojo tal como está escrita. El spec ya dice qué responde esta skill sin herramienta ni binario —la línea `⚠ SENTENCIA NO COMPROBADA:` con el motivo «no se ha podido consultar» (Edge Cases; FR-063)— y FR-069 veta tocar las otras dos skills: la corrección no puede meter la línea del BOE en `skills/jurisprudencia/SKILL.md` ni cambiar el prototipo; tiene que acotar la subprueba a las skills que llevan esa regla, sin que pase en vacío para `boe-legislacion` y `legal-core`, decir en T021 qué cambia de `conjunto_test.go` (que ya está en sus rutas) y con qué caso se ve en rojo, y anotar la decisión como supuesto en gates/supuestos.md.",
+    "T021 (tasks.md): añadir a su texto y a sus rutas internal/skills/testdata/script/instalar.txtar (líneas 28 y 33, y su comentario «las dos skills») e internal/skills/testdata/script/instalar-sin-gobin.txtar (línea 19), que `TestInstalacion` (etiqueta `integration`, en `make ci` por `test-integration`) ejecuta sobre una copia de `skills/` entera y que comparan el listado completo de lo instalado (hallazgo C2 de analyze.md, HIGH, sin resolver). Corregir con ello la cuenta de guiones de hitos anteriores que cambian: «quince» en la cabecera de T021 y en la lista de tareas `[datos]` de tasks.md (líneas 69-72), y en plan.md la fila 3 de Complexity Tracking, «Fixtures» y el paso 13, y la fila V35 de research.md, que solo contó `internal/app/testdata/script/`.",
+    "T015 (tasks.md): añadir a su texto y a sus rutas internal/app/testdata/script/h21-mcp-proceso.txtar (línea 69) e internal/app/testdata/script/h21-mcp-protocolo.txtar (líneas 63, 69 y 79), cuyas salidas esperadas llevan `1 herramientas 13` y se comparan con `cmp stdout`: con `cita` registrado en el binario de e2e son 14 y `TestEntregaDelHito` queda en rojo. Añadir `herramientas 13` a la búsqueda previa de la tarea, que hoy no los encuentra, y corregir la frase de h21-mcp-herramientas.txtar («no cambia nada más»: cambian su lista y también el `1 herramientas 13` de su `salida.txt`). Reflejarlo en plan.md (Project Structure, «Fixtures» y la fila 3 de Complexity Tracking, que además dice «Dieciséis» para 1 + 1 + 15), en research.md V34 y en la línea 71 de tasks.md («dos guiones de hitos anteriores»).",
+    "T021 (tasks.md) y la fila de `TestOrdenesParaPowerShell` en contracts/skill-jurisprudencia.md (línea 51): quitar la afirmación de que ese test «cubre las órdenes de la skill nueva», o decir exactamente qué cambia. El test (internal/evals/conjunto_test.go:2485) y la subprueba `ordenes-para-powershell` (:1551) solo miran el SKILL.md de `boe-legislacion` y la pareja `kitlegal boe <verbo> … && kitlegal graph check`; aplicado a `jurisprudencia`, `defectosDeLasOrdenesParaPowerShell` (:2439-2451) daría un defecto por cada verbo de lectura de `boe` que la skill no tiene. El spec no pide ningún control de PowerShell para esta skill, y tal como está la tarea nombra como control algo que no controla nada de ella."
+  ],
+  "observaciones": [
+    "No se ha ejecutado `make ci` ni ningún test en esta sesión: los tres rojos de T015 y T021 se deducen de leer los guiones, los tests y el Makefile, no de verlos fallar.",
+    "T008 lleva en la misma tarea `[datos]` la fila de la tabla de comandos (`internal/skills/comandos.go`), que no es indivisible de `schemas/instalacion.json` (research M5: los tests de `internal/skills` pasan sin tocarla). El plan aprobado los junta en su paso 5 como una sola decisión (D16) y el esquema lo regenera un test, así que no llega a motivo.",
+    "T023 ejecuta quickstart.md §5 con los guiones copiados con el prefijo `zz-`, pero la orden de §5 filtra por `/h23-`: con copias `zz-cita-…` no casaría ninguna subprueba y saldría `ok` en vacío. Conviene que T023 diga, como T015, que filtra a las copias y cuenta sus cinco `--- PASS`.",
+    "T009 escribe `clasificar` antes de que exista ninguna grabación, y T010 la usa para decidir si lo grabado se copia: si las dos marcas de docs/JURISPRUDENCIA.md §3 no casan con la respuesta real, `grabar_datos` no deja nada y el run se detiene con su dossier. Es el riesgo declarado del hito (analyze.md A1; research S1, S2), no algo que una corrección de tareas resuelva.",
+    "La dirección del buscador del Tribunal Constitucional que T021 escribe en SKILL.md y que espera la eval 05 no está en el repositorio ni se ha comprobado (research S6; analyze.md A2): queda como supuesto para la persona.",
+    "analyze.md I1 (los escenarios de US3 numerados 1, 2, 3, 4, 6, 5) y U1 (el cambio de `--describe` de D16 sin requisito propio en el spec, trazado en T008 a FR-001, FR-060 y FR-069) siguen como están; son LOW y no afectan a la ejecución."
+  ]
+}

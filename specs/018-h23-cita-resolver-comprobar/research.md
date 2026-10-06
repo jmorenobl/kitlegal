@@ -63,14 +63,14 @@ repositorio. Tampoco en esa sesión se ha ejecutado `make ci` ni ningún test so
 | V31 | Un guion de aceptación tiene que fallar hoy por una aserción y no por una orden desconocida; al activarse se copia a `internal/app/testdata/script/` con el prefijo del hito, `h23-` | `scripts/workflow/aceptacion.sh:36-63`, `:74-92` |
 | V32 | `testscript` desempaqueta el archivo del guion antes de llamar a `Setup`; el arnés copia en `Setup` las grabaciones a `$WORK/reproduccion/<fuente>` con `os.CopyFS`, que no sobrescribe; un guion pone en juego otra respuesta copiándola con `cp` sobre la de su reproducción | `~/go/pkg/mod/github.com/rogpeppe/go-internal@v1.16.0/testscript/testscript.go:528-545`; `go doc os.CopyFS`; `internal/app/e2e_test.go:556-573`, `:660-690` |
 | V33 | El binario de e2e registra los applets de producción con `boe` sobre la reproducción y las skills empotradas de verdad; su reloj se fija con `-ldflags` | `internal/app/ejemplo/kitlegal-e2e/main.go:128-164`; `internal/app/e2e_test.go:120-143` |
-| V34 | Registrar un applet cambia cuatro listas literales y un ejemplo: `internal/app/registro_test.go:249`, `cmd/kitlegal/main_test.go:20`, `internal/app/ejemplo/kitlegal-e2e/main_test.go` y `internal/app/testdata/script/argumentos.txtar:24` y `:30`; `CONTRIBUTING.md:85` | `grep -rn "applets disponibles"`; `grep -rn '"boe", "graph"'` |
-| V35 | Una skill nueva en `skills/` cambia lo que instala el binario de e2e: 15 guiones de `internal/app/testdata/script/` enumeran las dos skills de hoy en la misma línea, 72 líneas en total (salidas de `skills install`, `list` y `doctor`, árboles y el mensaje «skills disponibles») | `grep -c "boe-legislacion.*legal-core" internal/app/testdata/script/*.txtar` |
+| V34 | Registrar un applet cambia cuatro listas literales de applets y un ejemplo: `internal/app/registro_test.go:249`, `cmd/kitlegal/main_test.go:20`, `internal/app/ejemplo/kitlegal-e2e/main_test.go` y `internal/app/testdata/script/argumentos.txtar:24` y `:30`; `CONTRIBUTING.md:85`. Y como el servidor MCP anuncia una herramienta por verbo, cambia también lo que cuenta las herramientas: los dos recuentos de `TestHerramientasDelServidor` (`internal/app/herramientas_test.go:134-135`, 10 y 13) y tres guiones de H21 cuya salida esperada lleva `1 herramientas 13` y se compara con `cmp stdout`: `h21-mcp-herramientas.txtar:40`, con su lista de trece líneas y los comentarios que las cuentan; `h21-mcp-proceso.txtar:69`; y `h21-mcp-protocolo.txtar:63`, `:69` y `:79`. Los tres corren con el binario de e2e. Ninguno de los dos últimos contiene `applets disponibles`, `graph_stats` ni una lista de applets: solo el recuento | `grep -rn "applets disponibles"`; `grep -rn '"boe", "graph"'`; `git grep -n 'herramientas 1[0-9]'`; M6 |
+| V35 | Una skill nueva en `skills/` cambia lo que instala el binario de e2e y lo que instala `make install`. En `internal/app/testdata/script/`, 17 guiones: los 15 que enumeran las dos skills de hoy en la misma línea, 72 líneas en total (salidas de `skills install`, `list` y `doctor`, árboles y el mensaje «skills disponibles»), y dos que no las nombran juntas y cuentan una versión por skill en el manifiesto, `h19-skills-aviso.txtar:144`, `:145` y `:158` y `h19-skills-aviso-sin-aviso.txtar:94` (`grep -count=`). En `internal/skills/testdata/script/`, tres de los cuatro guiones que ejecuta `TestInstalacion` (`//go:build integration`; en `make ci` por `test-integration`, `Makefile:91` y `:264`) sobre una copia de `skills/` entera (`internal/skills/instalacion_test.go:73`), con `make install`: `instalar.txtar:28` y `:33` e `instalar-sin-gobin.txtar:19` comparan con `\A…\z` el listado completo de lo instalado, e `instalar-de-nuevo.txtar:19-20` lo enumera línea a línea, sin fallar; `instalar-con-conflicto.txtar` no instala nada y no cambia. La primera cuenta de esta fila, 15, solo miraba las líneas con las dos skills juntas en un directorio | `grep -c "boe-legislacion.*legal-core" internal/app/testdata/script/*.txtar`; `git grep -n 'legal-core' -- '*.txtar'`; M6 |
 | V36 | `ficherosDeEsquemas` da a cada applet su fichero de `schemas/`, con el nombre de su entidad, y `TestEsquemasPublicados -actualizar-esquemas` lo escribe desde `--describe`. Cada parte publicada es el documento entero de su verbo, con su `entrada`: las de `doctor`, `install` y `list` en `schemas/instalacion.json` llevan `dir` y `global`, y la de `install`, `host`. La web sirve `schemas/` tal cual en `https://kitlegal.es/schemas/`, y su flujo se lanza con un cambio en `schemas/**` | `internal/app/esquemas_test.go:23-70`; `schemas/instalacion.json:115`, `:121`, `:306`, `:312`, `:315`, `:548`, `:554`; `web/src/pages/schemas/[nombre].json.ts`; `.github/workflows/web.yml:19`, `:27` |
 | V37 | El texto de la eval (d) existe y ocupa 2 353 bytes | `wc -c evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt` |
 | V38 | `depguard` reserva `net/http` a `internal/httpx/**`, por prefijo de ruta de fichero | `.golangci.yml:156-171`; `internal/arch_test.go:81-90` |
 | V39 | El README dice hoy, en «¿Y las sentencias?», que la jurisprudencia del CENDOJ «no llegará por ahora» | `README.md:259-277` |
 
-## M · Medido en esta sesión (prototipo `h23-proto`; M5, en la del corrector, con `h23-corr`)
+## M · Medido en esta sesión (prototipo `h23-proto`; M5, en la del corrector, con `h23-corr`; M6, en la del corrector de tareas, con `h23-tareas`)
 
 | # | Medida | Resultado |
 |---|---|---|
@@ -79,6 +79,7 @@ repositorio. Tampoco en esa sesión se ha ejecutado `make ci` ni ningún test so
 | M3 | JSON compacto: una resolución, 318 B; `data` con una, 384 B; el sobre con una, 625 B; con diez, 3 495 B; el del Tribunal Constitucional, 297 B; el de «no encontrado» por la fecha, 422 B | `encoding/json` sobre los ejemplos de [contracts/cita-resolver.md](./contracts/cita-resolver.md), con una URL de documento supuesta de 93 caracteres |
 | M4 | La entrada de caché de una entrega con una resolución, 502 B; la de un «no encontrado», 270 B; los datos del nodo `Resolucion`, 318 B; un elemento de `umbrales`, 355 B; la cita, 71 caracteres; la línea, 147 | ídem |
 | M5 | Lo que cambia al marcar con `title` cada bandera propia de todo verbo en `--describe` y al escribirla la tabla como `[--<nombre>=<nombre>]` detrás de los argumentos de posición (D16) | Con la marca y `schemas/` sin regenerar fallan dos tests, y ningún otro de `internal/cli`, `internal/skills`, `internal/mcp/...`, `internal/app/...`, `internal/core/instalacion`, `internal/source/...` y `cmd/...`: `TestEsquemasPublicados/schemas`, por las partes `doctor`, `install` y `list` de `schemas/instalacion.json`, y `TestEsquemasDeHerramienta/los_dos_esquemas_son_las_partes_del_documento_de_--describe`. Con `-actualizar-esquemas`, de `schemas/` solo cambia `instalacion.json` (`diff -rq`): siete líneas añadidas y ninguna quitada —`"title": "--dir"` y `"title": "--global"` en `doctor`, `install` y `list`, y `"title": "--host"` en `install`—, de 15 977 a 16 211 bytes; y con él regenerado, `internal/app/...` vuelve a pasar. Con la tabla leyendo la marca, los tests de `internal/skills` pasan sin tocarlos, y también `TestSkillsDelRepositorio` —las tablas de `boe-legislacion` y de `legal-core` no cambian—, `TestOrdenesDeLasSkillsEmpotradas` y `TestTablaDeComandosCoincideConLaGramatica`, con sus tres subtests de `skills`. `internal/evals` no se midió: la copia no lleva `.github/`, y ningún fichero Go de ese paquete nombra `cli.Describir`, `EsquemasDeHerramienta`, `LeerDescripcionDeVerbo` ni `instalacion.json` (`grep`) |
+| M6 | Qué tests y guiones de hoy fallan al registrar un applet `cita` y al añadir una skill sin referencias. Un árbol de trabajo desechable de la cabeza de la rama, bajo el directorio temporal y ya retirado, con un applet `cita` de relleno —un verbo `resolver` con un argumento de posición y tres banderas, sin fuente— registrado en producción y en el binario de e2e, y después con el prototipo de la skill copiado a `skills/jurisprudencia/SKILL.md`; `go test -count=1 -tags=integration ./...`, sin `-race` y sin las dos medidas de tiempo | **Con el applet** fallan `TestPuntoDeEntrada`, `TestRegistroDeProduccion`, `TestRegistroDeE2E`, `TestEsquemasCubrenTodosLosVerbos`, las cuatro subpruebas de `TestHerramientasDelServidor` y cuatro guiones de `TestEntregaDelHito` —`argumentos`, `h21-mcp-herramientas`, `h21-mcp-proceso` y `h21-mcp-protocolo`, los tres últimos con `1 herramientas 14` donde esperan 13—, y ningún otro test de ningún paquete: `TestHerramientasAnunciadas`, `TestEjecutar` y los del paquete raíz pasan, porque `herramientasDeHoy` solo pide «al menos» (`Subset`). **Con la skill, además**: `TestEvalsDelRepositorio/linea-sin-consulta`; `TestInstalacion/instalar` e `instalar-sin-gobin`; diecisiete guiones de `TestEntregaDelHito`, los quince de V35 más `h19-skills-aviso` y `h19-skills-aviso-sin-aviso`; y, de `TestSkillsDelRepositorio`, `regenerar-dos-veces/jurisprudencia`, que escribe `references/antigua.md` sin crear la carpeta, y las trece subpruebas de `frontmatter/jurisprudencia`, cuyo ayudante `metadataDeKitlegal` escribe `kitlegal-referencias:` sin valor («no es una cadena»). Con esos dos ayudantes corregidos en la copia —la línea, solo si la skill declara referencias; la carpeta, creada antes de escribir—, `TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas` y `TestTablaDeComandosCoincideConLaGramatica` pasan con la skill. Una tercera carpeta en `evals/`, copia de la de `legal-core`, no hace fallar ningún otro test de `internal/evals`, `internal/skills`, `internal/empaquetado` ni del paquete raíz; `skillsDeHoy` pide «al menos», como `herramientasDeHoy`. **No medido**: los tests con las etiquetas `snapshot`, `evals`, `fuentes` y `grabacion`; el lint y el resto de `make ci`; las seis evals del hito, que piden el formato que aún no existe; ni el applet real, del que el relleno solo tiene el nombre, el verbo y sus argumentos |
 
 ## S · Supuestos no verificados
 
@@ -357,9 +358,18 @@ con un test que las ata. No nombra operadores del buscador que no consten en el 
 
 ### D30 · Las listas literales
 
-`cita` entra en las cuatro listas de applets y en el ejemplo de `CONTRIBUTING.md` (V34). `jurisprudencia` entra en
-`skillsExigidas` y en las 72 líneas de los 15 guiones que enumeran las skills instaladas (V35). Son datos de prueba que
-dicen qué lleva el binario; cambian con él, en tareas `[datos]`.
+`cita` entra en las cuatro listas de applets y en el ejemplo de `CONTRIBUTING.md`, y `cita_resolver`, en lo que cuenta
+las herramientas: los dos recuentos de `TestHerramientasDelServidor` y los tres guiones de H21 que comparan lo que
+anuncia el servidor (V34). `jurisprudencia` entra en `skillsExigidas`, en los diecisiete guiones de e2e que enumeran o
+cuentan las skills instaladas y en tres de los de `make install` (V35). Son datos de prueba que dicen qué lleva el
+binario; cambian con él, en tareas `[datos]`, y lo que cambia de cada guion es eso: la enumeración, el recuento y el
+comentario que los cuenta.
+
+Las listas que solo piden «al menos» no fallan (M6). `herramientasDeHoy` gana `cita_resolver`, porque es donde FR-051
+se comprueba; `skillsDeHoy` no se toca: FR-051 solo admite en `internal/empaquetado` datos de prueba que enumeren
+herramientas.
+
+Dos comprobaciones de hoy no fallan por una lista, sino por dar por hecho algo que la skill nueva no tiene: D33.
 
 ### D31 · Lo que no se especifica
 
@@ -377,3 +387,29 @@ apoyo que el binario no enlaza, y un test lo comprueba.
 **Rechazado**: un cliente de mentira que cuente lo que el adaptador pide, que no vería ni el `robots.txt` ni un
 reintento; y poner el test del adaptador dentro de `internal/httpx`, que obligaría a exportar del adaptador una opción
 solo para tests.
+
+### D33 · Dos comprobaciones de hoy que daban por hecho algo que la skill nueva no tiene
+
+M6 las encontró al añadir la skill; las dos se corrigen en el test, no en la skill.
+
+**`linea-sin-consulta`** (`TestEvalsDelRepositorio`, H21) exige hoy a toda skill de `skills/` la línea
+`⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/`. Esa
+línea es la respuesta que espera la eval sin binario ni servidor de un conjunto: la reconoce `ExtraerSinConsulta`, el
+mismo juicio de esa eval, y la subprueba existe para atar las dos cosas. `jurisprudencia` no tiene esa eval —queda
+fuera de alcance en el spec— y sin herramienta ni binario responde con `⚠ SENTENCIA NO COMPROBADA:` y el motivo «no se
+ha podido consultar» (FR-063, casos límite). La subprueba pasa a exigir la línea a las skills cuyo conjunto de evals
+lleva una eval con `sin_binario_ni_servidor: true`, leído de `evals/<skill>/`, y `skillsConLineaSinConsulta` queda como
+premisa: `boe-legislacion` y `legal-core` tienen que estar entre ellas, para que no pase en vacío. No hay ningún caso
+por nombre de skill, y una skill que gane esa eval queda obligada a la línea sin tocar el test.
+**Rechazado**: escribir la línea del BOE en `skills/jurisprudencia/SKILL.md`, que contradice FR-063 y manda a una skill
+del CENDOJ decir que no ha consultado el BOE; eximir a `jurisprudencia` por su nombre, que es un caso por skill; y dar a
+la línea la fuente como parámetro, que cambia la forma fija que el juicio reconoce y obliga a tocar las otras dos
+skills (FR-069).
+
+**Una skill sin referencias.** El producto la admite (V19), pero dos ayudantes de `TestSkillsDelRepositorio` no:
+`metadataDeKitlegal` escribe siempre la línea `kitlegal-referencias:`, que sin nombres queda sin valor y no se lee, y
+`probarRegenerarDosVeces` escribe `references/antigua.md` sin crear la carpeta. Los dos dejan de darlo por hecho: la
+línea se escribe solo si la skill declara referencias, y la carpeta se crea antes de escribir. Ningún caso se retira:
+los de una skill con referencias siguen igual y los de `jurisprudencia` pasan a ejecutarse.
+**Rechazado**: dar a `jurisprudencia` una carpeta `references/` para no tocar el test: el hito no le da ningún dato de
+`data/`.

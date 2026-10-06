@@ -48,9 +48,22 @@ probado con ningún modelo: lo miden las evals del cierre.
 | `TestOrdenesDeLasSkillsEmpotradas` | una orden de la tabla que no está en el registro o una herramienta que el servidor no anuncia |
 | `TestTablaDeComandosCoincideConLaGramatica` | una fila cuya sintaxis rechaza la gramática del verbo; con una bandera propia, que la fila no la escriba como bandera |
 | `TestEvalsDelRepositorio`, subpruebas `formas-de-jurisprudencia` y `direcciones-de-la-skill` | `SKILL.md` sin la forma de la cita o sin la línea `⚠ SENTENCIA NO COMPROBADA:` tal como las extrae el job; una dirección de una eval que no está en `SKILL.md` |
-| `TestOrdenesParaPowerShell` | una orden de `SKILL.md` que PowerShell no ejecuta igual |
 
 `skillsExigidas` gana `jurisprudencia`: sin ella en `skills/`, esos controles no pasan en vacío.
+
+Dos controles de las otras skills **no** miran esta, y lo que cambia para que sea así está en research D33:
+
+- **La forma para PowerShell.** `TestOrdenesParaPowerShell` y la subprueba `ordenes-para-powershell` solo leen el
+  `SKILL.md` de `boe-legislacion` y la pareja `kitlegal boe <verbo> … && kitlegal graph check …`. No cubren ninguna
+  orden de `jurisprudencia`, que no encadena órdenes —el prototipo no lleva ningún `&&`—, y el spec no pide ese control
+  para esta skill.
+- **La línea `⚠ SIN CONSULTA AL BOE: …`.** La subprueba `linea-sin-consulta` la exige a las skills cuyo conjunto de
+  evals lleva la eval sin binario ni servidor. El de `jurisprudencia` no la lleva: sin herramienta ni binario, la skill
+  responde con su línea `⚠ SENTENCIA NO COMPROBADA:` y el motivo «no se ha podido consultar» (FR-063), y el prototipo
+  no lleva la del BOE.
+
+Y la skill es la primera sin referencias (§1): dos ayudantes de `TestSkillsDelRepositorio` que daban por hecho que toda
+skill las declara cambian para que sus casos de frontmatter y de regeneración se ejecuten también sobre ella.
 
 ## 5. Uso, de fuera adentro
 
