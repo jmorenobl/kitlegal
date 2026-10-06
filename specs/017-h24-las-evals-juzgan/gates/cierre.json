@@ -1,79 +1,79 @@
 {
-  "sha": "b0a7a9c3d34b9b6c2f745d7469e657b65bebb031",
-  "verde": false,
-  "fecha": "2026-10-06T02:13:37Z",
-  "ronda": 2,
-  "reparaciones": 1,
+  "sha": "3107ae28eba0b81935418f33b7818a2f8da09b51",
+  "verde": true,
+  "fecha": "2026-10-06T03:26:06Z",
+  "ronda": 3,
+  "reparaciones": 2,
   "checks": [
     {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406586514/job/112085595993",
+      "name": "evals (legal-core)",
+      "startedAt": "2026-10-06T02:57:21Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406586514/job/112085595991",
+      "name": "evals (boe-legislacion)",
+      "startedAt": "2026-10-06T02:57:20Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
       "bucket": "skipping",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400990041/job/112068121334",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406582320/job/112085551131",
       "name": "desplegar",
-      "startedAt": "2026-10-06T01:48:59Z",
+      "startedAt": "2026-10-06T02:57:07Z",
       "state": "SKIPPED",
       "workflow": "web"
     },
     {
-      "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400993299/job/112068066763",
-      "name": "evals (legal-core)",
-      "startedAt": "2026-10-06T01:48:48Z",
-      "state": "SUCCESS",
-      "workflow": "evals"
-    },
-    {
-      "bucket": "fail",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400993299/job/112068066671",
-      "name": "evals (boe-legislacion)",
-      "startedAt": "2026-10-06T01:48:47Z",
-      "state": "FAILURE",
-      "workflow": "evals"
-    },
-    {
       "bucket": "skipping",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400993299/job/112067925381",
-      "name": "medida del juez (${{ matrix.skill }})",
-      "startedAt": "2026-10-06T01:48:12Z",
-      "state": "SKIPPED",
-      "workflow": "evals"
-    },
-    {
-      "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400993299/job/112067901065",
-      "name": "tanda",
-      "startedAt": "2026-10-06T01:48:08Z",
-      "state": "SUCCESS",
-      "workflow": "evals"
-    },
-    {
-      "bucket": "skipping",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400993299/job/112067901197",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406586514/job/112085426716",
       "name": "cambios",
-      "startedAt": "2026-10-06T01:48:06Z",
+      "startedAt": "2026-10-06T02:56:37Z",
       "state": "SKIPPED",
       "workflow": "evals"
     },
     {
       "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400990000/job/112067890311",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406586514/job/112085395344",
+      "name": "tanda",
+      "startedAt": "2026-10-06T02:56:31Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406586514/job/112085396022",
+      "name": "medida del juez (${{ matrix.skill }})",
+      "startedAt": "2026-10-06T02:56:30Z",
+      "state": "SKIPPED",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406582253/job/112085381680",
       "name": "ci",
-      "startedAt": "2026-10-06T01:48:06Z",
+      "startedAt": "2026-10-06T02:56:28Z",
       "state": "SUCCESS",
       "workflow": "ci"
     },
     {
       "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400990041/job/112067890603",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406582320/job/112085382630",
       "name": "construir",
-      "startedAt": "2026-10-06T01:48:06Z",
+      "startedAt": "2026-10-06T02:56:28Z",
       "state": "SUCCESS",
       "workflow": "web"
     },
     {
       "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37400990000/job/112067890471",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/37406582253/job/112085381773",
       "name": "snapshot",
-      "startedAt": "2026-10-06T01:48:06Z",
+      "startedAt": "2026-10-06T02:56:28Z",
       "state": "SUCCESS",
       "workflow": "ci"
     }
