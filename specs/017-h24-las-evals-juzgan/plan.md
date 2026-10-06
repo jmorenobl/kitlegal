@@ -5,7 +5,7 @@
 **Input**: Feature specification from `/specs/017-h24-las-evals-juzgan/spec.md`
 
 **Modo**: desatendido. Las decisiones técnicas se tomaron con el «Criterio de decisión autónoma» de la constitución y
-están en [research.md](./research.md) (D1-D26), cada una con su alternativa rechazada. Toda afirmación sobre Go, el
+están en [research.md](./research.md) (D1-D27), cada una con su alternativa rechazada. Toda afirmación sobre Go, el
 repositorio, los guiones del workflow o la definición del job remite a la tabla V de research.md, comprobada en local;
 las medidas, a la tabla M; y lo que no se pudo comprobar en esta sesión —Claude Code, npm, Python y los tiempos— son
 los supuestos S1-S8.
@@ -104,7 +104,7 @@ están en Complexity Tracking.*
 ```text
 specs/017-h24-las-evals-juzgan/
 ├── plan.md                  # este fichero
-├── research.md              # V1-V22, M1-M7, S1-S8, D1-D26
+├── research.md              # V1-V23, M1-M7, S1-S8, D1-D27
 ├── data-model.md            # juez, texto, voto, medida, caso, informe, job, ficheros
 ├── quickstart.md            # §1-§9; §7, el sondeo; §8, el job de cierre; §9, la medida
 ├── contracts/
@@ -112,8 +112,8 @@ specs/017-h24-las-evals-juzgan/
 │   ├── informe-del-job.md                   # qué se juzga, umbrales, juez, motivos, instrumento sin medir, sondeo
 │   ├── medida-del-juez.md                   # medida, comprobación, copias, casos, reconstrucción, ejecución
 │   ├── job-de-evals.md                      # evals.yml, guiones, topes, TestDefinicionDelJob
-│   ├── skill-boe-legislacion.md             # causa, C1-C8, lo que se queda, la prosa, uso
-│   └── skill-boe-legislacion-v0.1.7.diff    # el prototipo, aplicable con git apply
+│   ├── skill-boe-legislacion.md             # causa, C1-C9, lo que se queda, la prosa, uso
+│   └── skill-boe-legislacion-v0.1.7.diff    # el prototipo de C1-C8, aplicable con git apply
 ├── checklists/              # del spec
 └── tasks.md                 # la escribe /speckit-tasks
 ```
@@ -334,7 +334,7 @@ casos del repositorio.
 | `medirAlJuez`, `TestMedidaDelJuez`, `scripts/evals-medir-juez.sh`, el objetivo de `make` | FR-050 a FR-054 |
 | La lista fuera de `Juzgar`, del resultado, del recuento, del sondeo y de `comprobarConsultaRepetida`; los tres subtests retirados | FR-062, FR-070, FR-071 |
 | El juez en el sondeo y sus líneas; la versión del equipo desde los transcripts | FR-075, FR-076 |
-| `SKILL.md` v0.1.7 (C1-C8) | FR-080 a FR-086 |
+| `SKILL.md` v0.1.7 (C1-C9) | FR-080 a FR-086 |
 | `salida_de_las_herramientas`, su esquema y la prosa con código en línea | FR-085, FR-110 |
 | Las dos variables del juez, el segundo Claude Code, el trabajo `medida`, la condición de `tanda` | FR-050, FR-090, FR-091 |
 | Los peores casos y los dos topes | FR-092 |

@@ -29,6 +29,13 @@ ronda y el juez B lo retiró en la ronda 2 (`gates/revision-b-r2.json`, criterio
 por respuesta como mucho, es 20 652 s en `evals` y 14 520 s en `medida`, bajo la cota que calcula `definicion.go` y
 bajo los topes de 352 y 269 minutos, que siguen como estaban, con sus cifras.
 
+El corrector de la revisión final (ronda 4) cambia solo lo que mueve la reparación del cierre, `b50e05b`, que añade C9
+a `SKILL.md` y lo recoge en `CHANGELOG.md` (contracts/skill-boe-legislacion.md §8), medido en su sesión sobre
+`b50e05b`, con sus cambios encima, que no tocan ninguno de esos dos ficheros: en §1, la fila de `SKILL.md` de la tabla
+(de +19 −19 a +20 −20), el punto de la skill y el diff del contrato, que T017 midió sin C9, y, en la Definition of
+Done, las líneas de `CHANGELOG.md` (de +69 a +71). Lo demás sigue como lo midieron T017, T018 y el corrector de la
+ronda 1.
+
 ## 1. Lo creado y lo modificado en el hito
 
 `git diff --name-status main`, en T018 y antes de tocar este fichero, da **90 ficheros: 54 `A` y 36 `M`**, ninguna `D`
@@ -56,7 +63,7 @@ Son once de esos 52, con la tarea que los tocó (`git log --format=%s main..HEAD
 | A | `testdata/evals/retiradas/19-lpac-articulo-21-redaccion-cambiada.yaml` | T008 `[datos]` | +28 | La eval 19 de H7.1, restaurada. |
 | A | `testdata/evals/retiradas/grafo-previo/lpac-a21-version-anterior/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2015-10565_texto_bloque_a21.json` | T008 `[datos]` | +52 | Su grafo previo: una derivada de la grabación de H4, restaurada. |
 | M | `evals/boe-legislacion/expresiones-prohibidas.yaml` | T015 | +14 −7 | La cabecera, que dice que ya no juzga ninguna respuesta, y la familia nueva con tres expresiones: `el sobre`, `fecha_vigencia` y `norma_modificadora`. |
-| M | `skills/boe-legislacion/SKILL.md` | T015 | +19 −19 | v0.1.7: 298 líneas, las mismas que en `main`. |
+| M | `skills/boe-legislacion/SKILL.md` | T015 y la reparación del cierre (C9) | +20 −20 | v0.1.7: 298 líneas, las mismas que en `main`. |
 
 Tres comprobaciones sobre ellos:
 
@@ -65,9 +72,16 @@ Tres comprobaciones sobre ellos:
   (`6ce6f957…`), y el mismo para la derivada de `c4819d1^:testdata/evals/grafo-previo/lpac-a21-version-anterior/` y la
   de la cabeza (`410437a2…`). `c4819d1` es el commit de H7.2 que los retiró. La derivada la comprueba además
   `TestGrabacionesDerivadas/lpac-a21-version-anterior`, de `internal/app` (§3, escenario 4).
-- **La skill es el diff del contrato y nada más.** `git apply --check -R` de
-  `contracts/skill-boe-legislacion-v0.1.7.diff` termina con 0, y su `--numstat` da `19 19`, lo mismo que
-  `git diff --numstat main -- skills/boe-legislacion/SKILL.md`.
+- **La skill es el diff del contrato más C9, y nada más.** `contracts/skill-boe-legislacion-v0.1.7.diff` es el
+  prototipo de C1-C8: T017 vio sobre `b1c5156` que su `git apply --check -R` terminaba con 0 y que su `--numstat`,
+  `19 19`, era el de `git diff --numstat main -- skills/boe-legislacion/SKILL.md`. La reparación del cierre añade C9
+  encima (contracts/skill-boe-legislacion.md §8) y no toca ese diff. Sobre `b50e05b`, en la sesión del corrector de la
+  ronda 4: `git diff --numstat main -- skills/boe-legislacion/SKILL.md` da `20 20`; `git diff --numstat ae250eb HEAD`
+  da `4 4` a la skill, las líneas de C9; `--numstat` del diff del contrato sigue dando `19 19`, y su `git apply --check
+  -R` termina con 1 (`patch failed: skills/boe-legislacion/SKILL.md:129`), porque la cabeza lleva C9. La skill de
+  `ae250eb`, el commit anterior a la reparación, es el mismo objeto que la de `b1c5156` (`c1f327dd…`), y su `git diff
+  main` solo se distingue del diff del contrato en las dos líneas de cabecera de `git`, en el texto que sigue a cada
+  `@@` y en el espacio de las líneas de contexto en blanco: ninguna línea añadida ni quitada difiere.
 - **La lista no pierde ninguna expresión.** En la cabeza tiene `maquinaria` 22, `otra_conversacion` 16, `anuncio` 39 y
   `redaccion_no_leida` 10 —las 87 del cierre de H7.4—, más las 3 de `salida_de_las_herramientas` y 2 formas fijas. El
   diff no quita ninguna línea de expresión: las 7 que quita son de la cabecera.
@@ -138,7 +152,7 @@ carpeta. En `make ci` lo fija `TestCopiasDelJuez/del-repositorio` (§3, escenari
 | 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las líneas añadidas a los `.go` de `internal/evals` que no son tests, 0 coincidencias de `"net/http"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"` y `modernc.org` (la misma búsqueda da 55 con `fmt.Errorf`). `golangci-lint`: `0 issues.` |
 | 4 · esquemas y `schema-check` | los dos esquemas tocados no salen de `--describe` | `make schema-check` en verde dentro de `make ci` (`ok` en `TestEsquemasPublicados`). |
 | 5 · errores con código estable | ningún código de `kitlegal` cambia | `cmd` e `internal` fuera de `internal/evals`: solo `grafo_test.go`. |
-| 6 · e2e y `CHANGELOG.md` | e2e no aplica (plan.md); `CHANGELOG.md` sí | `CHANGELOG.md` +69 (T016), con `boe-legislacion` v0.1.7 en *Unreleased* (línea 25). |
+| 6 · e2e y `CHANGELOG.md` | e2e no aplica (plan.md); `CHANGELOG.md` sí | `CHANGELOG.md` +71 (T016, +69, y la reparación del cierre, que lleva C9 a la entrada de v0.1.7: 7 líneas dentro y 5 fuera), con `boe-legislacion` v0.1.7 en *Unreleased* (línea 25). |
 | 7 · ADR | no | `docs/ADR` sin cambios. |
 | 8 · `SOURCES.md` | no | `docs/SOURCES.md` sin cambios. |
 | 9 · cobertura | sí | §2. |

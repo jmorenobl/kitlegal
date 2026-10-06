@@ -1,8 +1,11 @@
 # Contrato: `boe-legislacion` v0.1.7
 
 Qué cambia en `skills/boe-legislacion/SKILL.md`, por qué y qué lo comprueba (FR-080 a FR-087, FR-110; SC-010). El
-texto exacto es el de [skill-boe-legislacion-v0.1.7.diff](./skill-boe-legislacion-v0.1.7.diff), un prototipo que se
-aplica sobre v0.1.6 con `git apply` (research V14: se aplica limpio, 19 líneas fuera y 19 dentro).
+texto exacto de C1-C8 es el de [skill-boe-legislacion-v0.1.7.diff](./skill-boe-legislacion-v0.1.7.diff), un prototipo
+que se aplica sobre v0.1.6 con `git apply` (research V14: se aplica limpio, 19 líneas fuera y 19 dentro). C9 (§8), de
+la reparación del cierre, va encima y no está en el prototipo: el texto de v0.1.7 es ese diff más C9, 20 líneas fuera
+y 20 dentro frente a v0.1.6 (`git diff --numstat main -- skills/boe-legislacion/SKILL.md`), y sobre él el prototipo ya
+no se aplica en reverso.
 
 ## 1. La causa, con las respuestas de la validación
 
@@ -107,8 +110,8 @@ publica ([informe-del-job.md](./informe-del-job.md) §2). Si el cierre marca alg
 Lo añade `reparar_cierre` tras la medición sobre `a5bda45` (research V23, D27): con C1-C8,
 `afirma_lo_no_leido:claude-sonnet-5-5:orden` da 1 de 54 frente al umbral 0 —la sesión
 `08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01`, con tres votos sobre la frase «También cabe la reclamación
-potestativa del artículo 24, que es previa a ese recurso»— y el del modo herramienta, 0 de 54; los demás umbrales se
-cumplen y `legal-core` aprueba.
+potestativa del artículo 24, que es previa a ese recurso»— y el del modo herramienta, 0 de 54; los demás umbrales que
+deciden se cumplen, `cuenta_su_proceso`, que solo se publica, da 0 y 3, y `legal-core` aprueba.
 
 **Causa.** La sesión leyó solo el art. 20 de la Ley 19/2013, cuyo apartado 5 dice «sin perjuicio de la posibilidad de
 interposición de la reclamación potestativa prevista en el artículo 24», y nada más del art. 24; que la reclamación
