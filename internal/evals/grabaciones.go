@@ -30,6 +30,20 @@ const (
 // UnionDeGrabaciones: lo derivado llega al grafo de la sesión y nunca a su caché.
 const GrafosPrevios = "../../testdata/evals/grafo-previo"
 
+// EvalsRetiradas es el directorio de las evals que un hito retiró del conjunto
+// de su skill y de cuyas sesiones, en un informe versionado, sale algún caso
+// etiquetado del juez (contracts/medida-del-juez.md §4 de H24; research D15 de
+// H24): el fichero de cada una, con el nombre que tenía, y, en su subdirectorio
+// grafosPreviosDeLasRetiradas, el conjunto de grabaciones derivadas del grafo
+// previo de cada una, con la forma de GrafosPrevios. No es un directorio de
+// evals: LeerConjunto no lo lee, ninguna entra en un plan y de cada una solo se
+// leen su pregunta y su grafo previo, sin validarla contra el formato de hoy.
+const EvalsRetiradas = "../../testdata/evals/retiradas"
+
+// grafosPreviosDeLasRetiradas es el nombre, dentro de un directorio de evals
+// retiradas, del que hace de GrafosPrevios para esas evals.
+const grafosPreviosDeLasRetiradas = "grafo-previo"
+
 // UnionDeGrabaciones son los dos conjuntos en el orden en que Preparar los copia
 // a un mismo directorio para reproducir: H4 y, encima, H5. Solo comparten el
 // nombre de GET_https_www.boe.es_robots.txt.json, que la reproducción no usa

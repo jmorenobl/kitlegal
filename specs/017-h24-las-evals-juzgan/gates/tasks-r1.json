@@ -1,0 +1,76 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md: «Sin hallazgos CRITICAL ni HIGH» (métricas: CRITICAL 0 · HIGH 0 · MEDIUM 3 · LOW 5). F1 a F8 son MEDIUM o LOW. F2 (MEDIUM, T005) es el hallazgo que está detrás del motivo del criterio c; los demás van a observaciones."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Las 17 líneas de tarea terminan con sus FR y SC. Medido con awk sobre spec.md y tasks.md: 85 ids definidos (71 FR y 14 SC), todos citados en alguna línea de tarea salvo SC-001 (el cierre del workflow) y SC-014 (una persona, después del run), que la tabla «Requisitos → tareas» explica; ningún id citado sin definir. Las 17 filas de «Controles de umbral» de plan.md tienen su tarea y su test en la tabla «Controles de umbral → tarea»: T006 (`TestInformeConElJuez`: 1 marcada da `cumple: false`; 901 s da `fallo`; un voto que no llega), T004 (`TestMedidaVersionada`, 6 de 6 mutaciones), T011 (`TestEjecucionSinMedir`), T002 y T003 (`TestVotoDelJuez`, `TestReglaDeLosVotos`, `TestMensajeDelVoto`, `TestOrdenDelVoto`), T001 (`TestCopiasDelJuez`, 4 de 4), T009 con T008 (`TestGrabacionesDerivadas`), T010 (`TestEjecucionDeLaMedida`), T015 (`TestProsaDeLaSkill`, `prosa-de-la-skill`, `skills-check`), T005 (`TestJuzgarSinLaLista`; los de `sin_activar` y la duración, que siguen) y T013 (`TestDefinicionDelJob`, cada tope un minuto por debajo). Cada control `ci:<ruta>:<Test>` cae en la ruta donde la tarea crea el test (`medida_test.go` lo declara T001 a propósito, antes de que exista `medida.go`), y los que ya existen están donde dice el plan: `TestProsaDeLaSkill` (conjunto_test.go:2100), `TestEvalsDelRepositorio` (:1168), `TestDefinicionDelJob` (definicion_test.go:120), y los casos de `fallo` de `sin_activar` y de `duracion_de_las_sesiones` (umbrales_test.go:236 y :375). La población del test de FR-111 es parte del motivo de c."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": false,
+      "evidencia": "T005, `TestJuzgarSinLaLista`: «las respuestas que la lista marcaba en los informes versionados de H7.1, H7.2 y H7.3 —las que llevan expresiones en su entrada de esos tres informes—, juzgadas con la eval de su sesión». Las dos lecturas de esa frase fallan. (1) Por la clave de la entrada: medido con jq, ninguna de las 93 entradas del informe de H7.1 lleva `expresiones_prohibidas`, y la llevan no vacía 10 del de H7.2 y 1 del de H7.3; son 11 respuestas, ninguna de H7.1, y no «las del calibrado de H7.4» que fijan FR-111 y SC-011 (36, 11 y 9; `informesCalibrados`, conjunto_test.go:1559-1600, que hoy pasa: `go test -run '^TestEvalsDelRepositorio$/^expresiones-calibradas$'` ejecutado en esta sesión, PASS). (2) Por la lista aplicada a la respuesta, que es el calibrado: 2 de las 36 de H7.1 son de la eval 19 de ese informe (`\"19\": {…, alguna: 2}`), cuyo `eval` es `19-lpac-articulo-21-redaccion-cambiada.yaml` (jq), el fichero que borró c4819d1 y que no vuelve al árbol hasta T008, tres tareas después: T005 no puede juzgarlas «con la eval de su sesión» en su sitio del orden, y la tabla de dependencias dice que T005 solo necesita T001. Lo demás del criterio se cumple: T002 a T007 y T009 a T014 traen test e implementación; las excepciones (T001, T008 y T015 de datos; T016 documentación; T017 cierre) están declaradas con su verificación; el tramo T006-T011 sin votante en el punto de entrada solo afecta a un fichero con la etiqueta `evals`, que `make ci` compila y no ejecuta; y ninguna otra tarea usa algo de una posterior (comprobado: `ejecutarPorTandas` está en informe.go:613; `prepararGrafoPrevio` ya recibe la carpeta, preparar.go:336; el prototipo de T015 se aplica limpio, `git apply --check`, 19 y 19, y deja 298 líneas)."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Extraídas las rutas de cada línea con la misma expresión que usa `scripts/workflow/tarea.sh`: cada tarea declara ficheros concretos o las dos carpetas nuevas de datos (`evals/boe-legislacion/juez/`, `testdata/evals/retiradas/`); ninguna ruta genérica. Contrastado con el repositorio lo que cada tarea rompe fuera de su `x_test.go`: los ficheros que nombran la lista (`grep` de `Prohibidas|esDeLaClaseB|RecuentoDeExpresiones`) son todos de las rutas de T005 o sus `_test.go`; las comparaciones de una `Sesion` entera están solo en sesion_test.go (T002); los que llaman a `EscribirInforme` fuera de informe_test.go y umbrales_test.go usan skills sintéticas sin carpeta `juez` (sesiones_test.go:877, sondeo_test.go:83 y :187) o son job_test.go, que T011 declara; `TestInformeEnDosModos` y `TestInformeMarkdownDeLosUmbrales` están en informe_test.go (T006, T007); `TestEsquemasPublicados` no enumera los `*.yaml.json` (esquemas_test.go:60-67), así que el esquema nuevo de T001 no pide rutas de `internal/app`; solo conjunto.go:73 recorre la carpeta de evals de una skill; nada en `internal` exige que las subcarpetas de `testdata/evals/` sean las conocidas, salvo la del grafo previo en grafo_test.go, que T008 declara; `release_test.go` trata los objetivos del Makefile como subconjunto y lee `jobs.evals.env` sin modo estricto (T012 no lo necesita; T013 lo declara); y `sondeo_integracion_test.go` solo prepara el árbol."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "gates/tasks-precheck.txt está vacío. Solo T001, T008 y T015 nombran `schemas/` o `testdata/`, y las tres llevan [datos]. Ningún dato externo: ninguna cambia un manifiesto `grabaciones.json` ni añade un test de grabación (`grabar-datos.sh` no graba sin manifiesto cambiado), y ninguna usa la red ni la variable de grabación. T001 copia con `cp` cuatro ficheros ya versionados y los compara con `cmp` y con `TestCopiasDelJuez`; T008 escribe con `git show c4819d1^:…` dos ficheros de la historia (comprobado: el commit existe y los dos orígenes están en `c4819d1^`; su entrada, `versionDelArticulo21` con `20151002` y `parrafoDeLaVersionAnterior`, también) y recupera el control que prueba que la derivada es la grabación de H4 salvo lo que dice su nombre. Llevan además el tipo, la lectura y los casos que el dato obliga a cambiar a la vez: es la desviación de plan.md, *Complexity Tracking*, segunda fila, con el precedente de H7.3 (T001) y H7.4 (T001, T002, T005, T009)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md, «Definition of Done → tareas», recorre los 13 puntos de `docs/ROADMAP.md` §1: `make ci` (todas y T017), tests offline (T001 a T015), `CHANGELOG.md` *Unreleased* (T016, FR-087 y FR-095), esquemas (T001 y T015, que no salen de `--describe`), cobertura (T017), skill con `skills-check` y menos de 300 líneas (T015). ADR: no aplica, la decisión es el ADR 0037 ya aceptado (FR-096). `SOURCES.md` y fixtures grabados: no aplica, ninguna fuente nueva (plan.md, «Datos externos»). E2e: «no aplica», con su motivo. `CONTRIBUTING.md` y `docs/WORKFLOW.md`, que pide la Entrega (7), en T016, cuyas secciones existen (CONTRIBUTING.md:569, :710 y :937)."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md: 26 marcas [x] y ninguna sin marcar. Comprobado en esta sesión: 0 marcadores NEEDS CLARIFICATION en spec.md; 3 entradas `- Q:` en `## Clarifications` y 3 preguntas y 3 respuestas en gates/clarify-*.json; 31 escenarios Dado/Cuando/Entonces (4, 10, 5, 5, 3, 2 y 2); las ocho viñetas literales de «Fuera de alcance» (spec.md:408-415) coinciden con `docs/ROADMAP.md`:541-548; SC-001 a SC-013 llevan **Control** y SC-014 dice que lo mide una persona; FR-101 fija las seis filas. tasks.md no cambia la checklist."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "plan.md, «Aceptación e2e»: «**Aceptación e2e: no aplica.** El hito no cambia el binario —cambiarlo está fuera de alcance, y `cmd/kitlegal` no enlaza `internal/evals`—», con la tabla de los tests de `make ci` que fijan cada historia y la primera fila de *Complexity Tracking*. tasks.md no tiene ninguna tarea [aceptacion], como exige `precheck.sh tasks` cuando el plan lo dice, y lo explica en su cabecera. La aceptación del hito es el job de cierre (SC-001), que lanza el workflow."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna línea de tarea casa con los patrones de plataforma ni de persona de `precheck.sh`. T003, T011 y T012 dicen que no ejecutan a mano el guion del voto, el del job ni el de la medida, y la batería veta `claude`, `make evals`, `make evals-sondeo`, `make evals-medir-juez`, los guiones `evals*.sh`, `TestEjecucionDelJob`, `TestMedidaDelJuez` y `TestSondeo`. T017 ejecuta quickstart.md §1 a §6, que son locales y sin modelo, y deja constancia de que §7 y §9 son de una persona y §8 del workflow. La etiqueta `evals-medir-juez` y versionar una medida quedan fuera del run (FR-045, FR-050, FR-054)."
+    }
+  ],
+  "motivos": [
+    "tasks.md, T005, `TestJuzgarSinLaLista` (criterio c; FR-111, SC-011; analyze F2): la tarea no puede cumplir FR-111 en su sitio del orden tal como está escrita. Cambiar dos cosas en su línea. (1) Qué respuestas: decir que son las que marca la lista del repositorio aplicada con `ExtraerExpresionesProhibidas` a la `respuesta` de cada entrada de los tres informes —las del calibrado de H7.4: 36, 11 y 9, exigidas como premisa para que el test no pase en vacío—, y no «las que llevan expresiones en su entrada»: ninguna de las 93 entradas del informe de H7.1 lleva la clave `expresiones_prohibidas`, y la llevan no vacía 10 del de H7.2 y 1 del de H7.3 (jq), así que esa lectura da 11 respuestas y ninguna de H7.1. Y decir qué auxiliares del calibrado que se retira se quedan para este test (las rutas de los tres informes y la lectura de sus respuestas), que hoy solo usa `expresiones-calibradas`. (2) Con qué eval se juzgan: 2 de las 36 de H7.1 son de la eval 19 de ese informe, la que retiró H7.2, y su fichero no está en el árbol hasta T008. O T008 pasa delante de T005 (no depende de ninguna tarea) y T005 dice qué lee de la carpeta restaurada, con la tabla de dependencias al día; o T005 dice cómo se juzgan esas dos sin su fichero (por ejemplo, con una eval que solo declara lo que su entrada del informe dice de ella, que basta para lo que el test comprueba: ningún resultado con la clave ni motivo que nombre una expresión)."
+  ],
+  "observaciones": [
+    "Primera ronda: no había gates/tasks.json, gates/tasks-pendiente.md ni gates/tasks-correccion-r*.diff.",
+    "analyze F1: T008 y T009 vuelven a poner en el árbol, y a nombrar en código y en tests, la eval y la derivada que H7.2 FR 020 mandó retirar («no existen, y ningún fichero de código ni de test del repositorio los nombra»), y «Sustituye» del spec no lo lista. Hace falta para FR-024 (2 de los 259 casos) y consta en gates/supuestos.md como [alcance], que el informe final enseña; ningún test lo impone hoy (solo el comentario de conjunto_test.go:1610-1611).",
+    "T008: «la carpeta nueva entra en la comprobación de que sus ficheros son los de sus entradas, en los dos sentidos», pero `testdata/evals/retiradas/` lleva también el YAML de la eval en su raíz: la comprobación tendrá que apuntar a su subcarpeta `grafo-previo` o dar entrada al YAML. Cabe en sus rutas.",
+    "T009: «la carpeta del grafo previo como parámetro» ya es así (`prepararGrafoPrevio(dirCache, grabaciones, grafosPrevios, eval)`, preparar.go:336). Si su firma cambiara, conjunto_test.go:2674 la llama y no está en las rutas de T009.",
+    "T011: lo que cambia en `scripts/evals.sh` (exigir las tres variables del juez y pasarlas) no tiene test en `make ci`, solo `bash -n`; hoy tampoco lo tiene ese guion (ningún `_test.go` lo ejecuta). Un defecto ahí lo ve el job del cierre.",
+    "T015 lleva `SKILL.md` v0.1.7 dentro de una tarea [datos]. Lo que obliga a cambiarla a la vez no es la clave del esquema sino aplicar la clave a la prosa; se podría partir (clave, lista y tipo; después prosa y skill). Sigue el paso 11 del plan y su *Complexity Tracking*, y no cambia el producto.",
+    "T007 no dice si el voto repetido que vuelve a ser nulo lleva `nulo: true`; el spec («Edge Cases») dice que el informe publica los dos como nulos, y la definición de voto nulo de contracts/juez-y-voto.md §7 da esa lectura. Ningún test de T002 ni de T007 ejercita la repetición también nula.",
+    "analyze F4: el `case` de `cambios` en evals.yml lista `scripts/evals.sh` y `scripts/evals-sesion.sh` y no los dos guiones nuevos; una propuesta que solo toque el guion del voto no lanza las evals al abrirse (la etiqueta sí). analyze F5: `TestDefinicionDelJob` exige que cada tope cubra su peor caso, no que quepa en los 360 minutos de un trabajo; con 352 quedan 8.",
+    "La reconstrucción de T009 repite en proceso las órdenes de 218 sesiones distintas (los 259 casos, contado con awk) dentro de `make ci`, en `test` y en `test-integration`, con `-race`. Su duración no está medida; research S3 solo acota la del job.",
+    "Checklist, «Requirements are testable and unambiguous»: la marca es cierta, pero su nota («cada FR lleva «Comprobable», un **Control** o remite a un control») no es literal para FR-003, FR-012, FR-014 o FR-061, entre otros. Ya lo observó el juez del spec.",
+    "Comprobado y cierto, por si sirve al cierre: las huellas SHA-256 de `rubrica.md` y de `casos.yaml` son las de `medida.json` (5f1e2115…06ee y 4827894a…401a; calculadas con una herramienta Go de un solo uso en el directorio temporal), así que `del-repositorio` de T004 puede pasar; `casos.yaml` tiene 259 casos, 212 `defecto` y 47 `correcto`, y 5, 140 y 114 por procedencia; `esquema.json` tiene exactamente las dos clases; la orden del voto de T003 es la de `voto_real` (juez.py:70-72), con la rúbrica leída entera y el esquema con `strip()` (juez.py:176-177); `git diff --name-status a8aeb0d HEAD -- evals/boe-legislacion/` solo da cuatro ficheros añadidos y el borrado; y el prototipo de v0.1.7 aplicado a una copia en el temporal da lo que espera quickstart §5: 298 líneas, `fecha_vigencia` en las líneas 240, 241 y 242, `norma_modificadora` en la 240 y la 241, y ninguna vez «el sobre».",
+    "No ejecutado en esta sesión: `make ci`, ningún otro test que el subtest `expresiones-calibradas`, `claude`, ningún guion `evals*.sh`, `npm` ni `python3`. No medidos: los tiempos (8 s por voto, 35 s de tope, 60 s de instalación, la reconstrucción) ni los supuestos S1 a S8 del research."
+  ]
+}

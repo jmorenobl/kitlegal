@@ -28,9 +28,10 @@ const (
 // Lo que escribirEjecucionConUmbrales pone en las sesiones que altera
 // (contracts/informe-del-job.md §6 de H7.4).
 const (
-	// redaccionNoLeida es lo que se antepone a una respuesta con una redacción
-	// que ninguna orden devolvió: lleva ya no exige, la expresión de
-	// redaccion_no_leida de la lista del repositorio, y ninguna otra.
+	// redaccionNoLeida cuenta una redacción que ninguna orden devolvió: lleva ya
+	// no exige, la expresión de redaccion_no_leida de la lista del repositorio, y
+	// ninguna otra. Con la transición de la memoria de consultas delante, es lo
+	// que se antepone a una respuesta con expresiones de la lista.
 	redaccionNoLeida = "Tras la reforma, el precepto ya no exige esa firma."
 
 	// notificacionDeUnaTarea es la notificación de una tarea en segundo plano que
@@ -65,8 +66,23 @@ type ejecucionConUmbrales struct {
 	// y abre solo las evals que deciden; el que decide es siempre modeloSonnet55.
 	conHaiku bool
 
-	// sinLista dice que la carpeta de evals no lleva la lista del repositorio.
-	sinLista bool
+	// sinJuez dice que la carpeta de evals no lleva la carpeta juez de una skill
+	// sintética, que el test escribe en ella (escribirElJuezDelInforme): sin
+	// ella, la skill no tiene juez. Y sinLista, que no lleva la lista de
+	// expresiones prohibidas del repositorio.
+	sinJuez, sinLista bool
+
+	// medidaDelJuez es el contenido de la medida de la carpeta juez; vacío, el
+	// de medidaDelJuezDelInforme, que se cumple.
+	medidaDelJuez string
+
+	// conTextos dice que el transcript de cada sesión del modo orden lleva la
+	// orden con la que lee el bloque y lo que devolvió, que son los textos de
+	// sus herramientas; las del modo herramienta llevan siempre los de su
+	// llamada. Y conLaPruebaDeRed, que lleva además la sesión de la prueba de
+	// red: la del modo orden de su primera eval con modeloSonnet55, con la
+	// pregunta ampliada.
+	conTextos, conLaPruebaDeRed bool
 
 	// respuestasAlteradas son las del modo orden.
 	respuestasAlteradas
@@ -92,7 +108,7 @@ type ejecucionConUmbrales struct {
 	// vez y sin modo, que responden con la línea ⚠ SIN CONSULTA AL BOE: y pasan;
 	// y sinBinarioAlteradas, cuántas de las de modeloSonnet55, las primeras,
 	// llevan además delante la transición de la memoria de consultas, con
-	// expresiones de la lista, y no activan la skill, de modo que no pasan.
+	// expresiones de la lista, y no activan la skill, que es por lo que no pasan.
 	conLaSinBinarioNiServidor bool
 	sinBinarioAlteradas       int
 
@@ -114,18 +130,17 @@ type ejecucionConUmbrales struct {
 // respuestasAlteradas son las respuestas de un modo de una ejecucionConUmbrales
 // que no son la copia que pasa.
 type respuestasAlteradas struct {
-	// conAlguna son, por modelo, cuántas de sus respuestas llevan delante la
-	// transición de la memoria de consultas, que tiene expresiones de la lista: la
-	// primera sesión de otras tantas de sus series, repartidas por igual entre
-	// ellas, de modo que cada serie que decide sigue llegando al umbral con las
-	// que pasan.
-	conAlguna map[string]int
+	// conExpresiones son cuántas respuestas de modeloSonnet55 llevan delante la
+	// transición de la memoria de consultas y redaccionNoLeida, con expresiones
+	// de la lista del repositorio: la primera sesión de otras tantas de sus
+	// series, repartidas por igual entre ellas.
+	conExpresiones int
 
-	// sinActivar y conRedaccionNoLeida son cuántas respuestas de modeloSonnet55
-	// no activan la skill —su transcript no la carga— y cuántas llevan delante
-	// redaccionNoLeida: como las de conAlguna, la primera sesión de otras tantas
-	// de sus series, de modo que con una de cada es la misma sesión.
-	sinActivar, conRedaccionNoLeida int
+	// sinActivar son cuántas respuestas de modeloSonnet55 no activan la skill
+	// —su transcript no la carga—: como las de conExpresiones, la primera sesión
+	// de otras tantas de sus series, de modo que cada serie que decide sigue
+	// llegando al umbral con las que pasan, y con una de cada es la misma sesión.
+	sinActivar int
 }
 
 // modos son los modos del plan de la ejecución: los dos del job con dosModos y,
@@ -164,50 +179,66 @@ const (
 // veredicto (contrato informe-del-job §1, §2 y §6 de H7.3; contrato de umbrales
 // del ADR 0029; data-model §1; research D5 y D14; FR-001 a FR-006, FR-050,
 // FR-051, FR-092; SC-006; US2-1 a US2-5, US3-5), con ejecuciones sintéticas
-// escritas con EscribirInforme en t.TempDir(): si la skill tiene lista, los tres
-// del modelo que decide —el de las expresiones, el de las respuestas sin la skill
-// activada y el de las que llevan una expresión de redaccion_no_leida—, con sus
-// respuestas medidas de las evals que activan la skill —las informativas
-// incluidas— como total, y detrás los de las expresiones de los informativos,
-// que no deciden; y el de la duración si hay objetivo, sin total y decidiendo. Un
-// umbral que decide y no se cumple pone el veredicto en fallo con su motivo,
-// detrás de los de siempre y delante del de las sesiones sin medir, y el de la
-// duración, con el prefijo de la ejecución, detrás de él; uno que se cumple, o que
-// no decide, no cambia nada. Los valores esperados son los del contrato escritos
-// a mano —0.05 y 0, no las constantes del paquete—, para que un umbral cambiado en
-// el código no pase. En todos, rehacer la comparación de cada umbral da su cumple
+// escritas con EscribirInforme en t.TempDir(): el de las respuestas del modelo
+// que decide sin la skill activada, con sus respuestas medidas de las evals que
+// activan la skill —las informativas incluidas— como total; y el de la duración
+// si hay objetivo, sin total y decidiendo. Un umbral que decide y no se cumple
+// pone el veredicto en fallo con su motivo, detrás de los de siempre y delante
+// del de las sesiones sin medir, y el de la duración, con el prefijo de la
+// ejecución, detrás de él; uno que se cumple no cambia nada. Los valores
+// esperados son los del contrato escritos a mano —0, no la constante del
+// paquete—, para que un umbral cambiado en el código no pase. En todos, rehacer
+// la comparación de cada umbral da su cumple
 // (exigirLosInvariantesDeLosUmbrales, desde leerInformeEscrito).
 //
 // Desde H7.4 (contracts/informe-del-job.md §1, §2, §3 y §6; data-model §5 y §6;
-// research D13 y D14; FR-040 a FR-048, FR-061, FR-097; SC-006; US4-1 a US4-3,
-// US5-2), sobre una ejecución como la del cierre —18 evals que activan la skill,
-// 8 de ellas informativas: 54 respuestas del modelo que decide—, cuenta como
-// respuesta medida solo la sesión terminada: seis más que el tope cortó tras su
-// respuesta se publican con su motivo y no cuentan ni en la medida ni en el
-// total; una sesión de una eval que no activa la skill no cuenta como sin
-// activar; y la sesión sin activar y con una expresión de redaccion_no_leida
-// cuenta una vez en cada umbral.
+// research D13 y D14; FR-041, FR-045, FR-048, FR-061, FR-097; SC-006; US4-1 a
+// US4-3, US5-2), sobre una ejecución como la del cierre —18 evals que activan la
+// skill, 8 de ellas informativas: 54 respuestas del modelo que decide—, cuenta
+// como respuesta medida solo la sesión terminada: seis más que el tope cortó
+// tras su respuesta se publican con su motivo y no cuentan en el total; y una
+// sesión de una eval que no activa la skill no cuenta como sin activar.
 //
 // Desde H21 (contracts/evals-en-dos-modos.md §5.1, §5.2 y §8; data-model §10;
 // research D19; FR-043, FR-044, FR-047, FR-080; SC-011; US5-1, US5-2, US5-5),
 // cada umbral se mide sobre las sesiones de un solo modo y lo nombra: un plan de
 // un modo, el de los casos de antes, da los suyos del modo orden, y el del job,
-// los diez —los cuatro de las respuestas del modo orden, los del modo herramienta
-// y las dos duraciones—, ocho de ellos decidiendo. Cada uno de los cuatro que
-// deciden incumplido en un solo modo pone el veredicto en fallo con el motivo
-// que lo nombra con su modo; 2 de 54 en los dos modos se cumplen; 3 de 54 en un
-// modo y 0 de 54 en el otro no se cumple, aunque sumados, 3 de 108, cumplirían;
-// 901 s en la tanda de un modo y 900 en la otra, tampoco; y las sesiones de la
-// eval sin binario ni servidor no entran en ninguna medida, en ningún total ni
-// en ninguna duración, aunque duracion_de_las_sesiones sume las tres tandas.
+// los de los dos. Cada uno incumplido en un solo modo pone el veredicto en fallo
+// con el motivo que lo nombra con su modo; 901 s en la tanda de un modo y 900 en
+// la otra, también; y las sesiones de la eval sin binario ni servidor no entran
+// en ninguna medida, en ningún total ni en ninguna duración, aunque
+// duracion_de_las_sesiones sume las tres tandas.
+//
+// Desde H24 (contracts/informe-del-job.md §2 y §6 de H24; research D13 y D14;
+// FR-034, FR-037, FR-070), umbrales no lleva ningún elemento de las expresiones
+// de la lista —ni expresiones_prohibidas ni redaccion_no_leida, de ningún modelo
+// ni modo—, y las respuestas que las llevan pasan y no cuentan en nada; el de las
+// respuestas sin activar existe si la skill tiene juez, la carpeta juez que la
+// ejecución sintética escribe junto a sus evals, y no si tiene lista: con juez y
+// sin lista está, y con lista y sin juez, no. Con el plan del job, el juez y el
+// objetivo, esos cuatro siguen decidiendo: cada uno incumplido sigue dando
+// fallo.
+//
+// Con el juez (contracts/informe-del-job.md §1, §2 y §9 de H24; FR-030 a
+// FR-034, FR-037, FR-044), una skill que lo tiene lleva además los suyos, y con
+// el plan del job y el objetivo son los doce del contrato, en su orden, diez de
+// ellos decidiendo: detrás del de las respuestas sin activar de cada modo, el
+// de cada clase del juez sobre esas mismas respuestas; detrás de los de los dos
+// modos, los dos de la medida versionada del juez, con sus recuentos y sus
+// totales, que no se cumplen si la medida no se cumple; y detrás de los de la
+// duración de las sesiones, el de la duración del juez de cada modo. Aquí el
+// juez dice no a todo —lo que hace con sus votos lo fija TestInformeConElJuez—
+// y se le pide un voto por respuesta medida de las evals que activan la skill:
+// ninguno de las sin medir, de las sin terminar, de la eval de no activación ni
+// de una skill sin juez, y tres más por la eval sin binario ni servidor.
 func TestUmbralesDelInforme(t *testing.T) {
 	t.Parallel()
 
 	// comoElJob es la ejecución del cierre de boe-legislacion desde H7.4: 18
 	// evals que activan la skill, 8 de ellas informativas, con Sonnet 5.5 y Haiku
-	// 4.5 (54 y 30 respuestas); minima, con una de cada clase (6 y 3). Las dos,
-	// en un solo modo; enDosModos y minimaEnDosModos, las mismas con el plan del
-	// job desde H21: 54 y 30 respuestas, o 6 y 3, en cada modo.
+	// 4.5 (54 respuestas del que decide); minima, con una de cada clase (6). Las
+	// dos, en un solo modo; enDosModos y minimaEnDosModos, las mismas con el plan
+	// del job desde H21: 54 respuestas, o 6, en cada modo.
 	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 8, conHaiku: true}
 	minima := ejecucionConUmbrales{queDeciden: 1, informativas: 1, conHaiku: true}
 	enDosModos := conCambios(comoElJob, func(e *ejecucionConUmbrales) { e.dosModos = true })
@@ -227,12 +258,7 @@ func TestUmbralesDelInforme(t *testing.T) {
 		{
 			nombre:    "sin-activar-una",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) { e.sinActivar = 1 }),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 0, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 1, 54, false),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 1)),
 			motivos:   []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
 			veredicto: VeredictoFallo,
 		},
@@ -241,266 +267,141 @@ func TestUmbralesDelInforme(t *testing.T) {
 			// ella espera, no cuentan: ni como sin activar ni en el total.
 			nombre:    "sin-activar-ninguna",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) { e.conLaDeNoActivacion = true }),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 0, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 0)),
 			veredicto: VeredictoAprobado,
 			exigir:    exigirLaDeNoActivacionSinContar,
 		},
 		{
-			nombre:    "redaccion-no-leida-una",
-			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) { e.conRedaccionNoLeida = 1 }),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 1, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 1, 54, false),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
-			motivos:   []string{"umbral redaccion_no_leida:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
-			veredicto: VeredictoFallo,
-		},
-		{
-			// Una expresión de otra familia cuenta en el de las expresiones y no en
-			// el de redaccion_no_leida.
-			nombre: "redaccion-no-leida-ninguna",
-			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna = map[string]int{modeloSonnet55: 1}
-			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 1, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
+			// Tres respuestas con expresiones de la lista, de 54: hasta H24, un 5,6 %
+			// que no cumplía su umbral. La lista está en la carpeta y no juzga nada.
+			nombre:    "tres-con-expresiones-de-la-lista",
+			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) { e.conExpresiones = 3 }),
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 0)),
 			veredicto: VeredictoAprobado,
+			exigir:    exigirLasTresConExpresionesQuePasan,
 		},
 		{
-			nombre: "tres-de-54",
+			// Con las seis sin terminar en el total, sería 1 de 60 (1,7 %).
+			nombre: "una-sin-activar-y-seis-sin-terminar",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna = map[string]int{modeloSonnet55: 3}
+				e.sinActivar, e.sinTerminar = 1, 2
 			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 3, 54, false, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
-			motivos:   []string{"umbral expresiones_prohibidas:claude-sonnet-5-5:orden: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %"},
-			veredicto: VeredictoFallo,
-		},
-		{
-			nombre: "dos-de-54",
-			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna = map[string]int{modeloSonnet55: 2}
-			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 2, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
-			veredicto: VeredictoAprobado,
-		},
-		{
-			// Con las seis sin terminar en el total, 3 de 60 se cumpliría.
-			nombre: "tres-de-54-y-seis-sin-terminar",
-			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna, e.sinTerminar = map[string]int{modeloSonnet55: 3}, 2
-			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 3, 54, false, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
-			motivos:   []string{"umbral expresiones_prohibidas:claude-sonnet-5-5:orden: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %"},
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 1)),
+			motivos:   []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
 			veredicto: VeredictoFallo,
 			exigir:    exigirLasSeisSinTerminar,
 		},
 		{
-			nombre: "una-sin-activar-con-expresion",
+			nombre: "una-sin-activar-con-expresiones",
 			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.sinActivar, e.conRedaccionNoLeida = 1, 1
+				e.sinActivar, e.conExpresiones = 1, 1
 			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 1, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 1, 54, false),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 1, 54, false),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			},
-			motivos: []string{
-				"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %",
-				"umbral redaccion_no_leida:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %",
-			},
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 1)),
+			motivos:   []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
 			veredicto: VeredictoFallo,
-			exigir:    exigirLaMismaSesionSinActivarConExpresion,
+			exigir:    exigirLaMismaSesionSinActivarConExpresiones,
 		},
 		{
-			nombre: "dos-de-30-de-haiku-4-5",
-			ejecucion: conCambios(comoElJob, func(e *ejecucionConUmbrales) {
-				e.conAlguna = map[string]int{modeloHaiku45: 2}
-			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 0, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 2, 30, false, false),
-			},
-			veredicto: VeredictoAprobado,
-		},
-		{
-			// Sin lista, la respuesta con expresiones pasa; y sin objetivo, ninguna
-			// duración es un umbral: ni siquiera el de las respuestas sin activar,
-			// como en legal-core (FR-048).
-			nombre: "sin-lista-ni-objetivo",
+			// Sin juez, ni la respuesta sin activar es un umbral, aunque la carpeta
+			// tenga lista; y sin objetivo, tampoco ninguna duración: como en
+			// legal-core (FR-037 de H24).
+			nombre: "sin-juez-ni-objetivo",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) {
-				e.sinLista, e.conAlguna, e.sinActivar, e.duracion = true, map[string]int{modeloSonnet55: 1}, 1, 2000
+				e.sinJuez, e.conExpresiones, e.sinActivar, e.duracion = true, 1, 1, 2000
 			}),
 			umbrales:  []Umbral{},
 			veredicto: VeredictoAprobado,
 		},
 		{
+			// El objetivo de duración no depende del juez: sigue como hasta H24.
+			nombre: "sin-juez-y-con-objetivo",
+			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) {
+				e.sinJuez, e.sinActivar, e.duracion, e.objetivo = true, 1, 900, 900
+			}),
+			umbrales:  []Umbral{umbralDeDuracion(ModoOrden, 900, 900, true)},
+			veredicto: VeredictoAprobado,
+		},
+		{
+			// Con juez y sin lista, el de las respuestas sin activar está: no
+			// depende de la lista (research D13 de H24).
+			nombre:    "con-juez-y-sin-lista",
+			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) { e.sinLista, e.sinActivar = true, 1 }),
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(6, 1)),
+			motivos:   []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %"},
+			veredicto: VeredictoFallo,
+		},
+		{
 			nombre:    "901-s-con-objetivo-900",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) { e.duracion, e.objetivo = 901, 900 }),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 0, 6, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 6, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 6, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 3, true, false),
-				umbralDeDuracion(ModoOrden, 901, 900, false),
-			},
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{umbralDeDuracion(ModoOrden, 901, 900, false)},
+				enOrden(6, 0)),
 			motivos:   []string{"de la ejecución, no de la skill: duracion_de_las_sesiones:orden: 901 s, y tiene que ser ≤ 900 s"},
 			veredicto: VeredictoFallo,
 		},
 		{
 			nombre:    "900-s-con-objetivo-900",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) { e.duracion, e.objetivo = 900, 900 }),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 0, 6, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 6, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 6, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 3, true, false),
-				umbralDeDuracion(ModoOrden, 900, 900, true),
-			},
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{umbralDeDuracion(ModoOrden, 900, 900, true)},
+				enOrden(6, 0)),
 			veredicto: VeredictoAprobado,
 		},
 		{
-			// Sin ninguna respuesta medida, las proporciones son 0 y los umbrales se
-			// cumplen; el veredicto ya es fallo por las sesiones sin medir, y sus
+			// La medida versionada del juez no se cumple: sus dos umbrales llevan
+			// los recuentos y los totales de la medida, sin votar ningún caso, y
+			// cada uno pone el veredicto en fallo (FR-032, FR-044).
+			nombre:    "la-medida-del-juez-sin-cumplirse",
+			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) { e.medidaDelJuez = medidaDelJuezSinCumplirse }),
+			umbrales: slices.Concat(
+				umbralesDeUnModo(modeloSonnet55, enOrden(6, 0)),
+				umbralesDeLaMedidaDelJuez(1, 20, 2, 5),
+				[]Umbral{umbralDeLaDuracionDelJuez(ModoOrden, 0)}),
+			motivos: []string{
+				"umbral medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar: 1 de 20 (5,0 %), y tiene que ser ≤ 0,0 %",
+				"umbral medida_del_juez:afirma_lo_no_leido:correctos_marcados: 2 de 5 (40,0 %), y tiene que ser ≤ 0,0 %",
+			},
+			veredicto: VeredictoFallo,
+		},
+		{
+			// Sin ninguna respuesta medida, la proporción es 0 y el umbral se
+			// cumple; el veredicto ya es fallo por las sesiones sin medir, y sus
 			// series, sin medir, no dan el motivo de su tasa.
 			nombre:    "todas-las-de-sonnet-5-5-sin-medir",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) { e.sinMedir = modeloSonnet55 }),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 0, 0, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 0, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 0, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 3, true, false),
-			},
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(0, 0)),
 			motivos:   []string{motivoEsperadoDelLimite(sesionesSinMedirDe(modeloSonnet55, 2)...)},
 			veredicto: VeredictoFallo,
 		},
 		{
 			// Los tres motivos de H7.3 a la vez, en su orden: el del umbral que
-			// decide, el de las sesiones sin medir —las de Haiku 4.5, cuyo umbral
-			// queda en 0 de 0— y el de la duración.
+			// decide, el de las sesiones sin medir —las de Haiku 4.5— y el de la
+			// duración.
 			nombre: "los-tres-motivos-en-su-orden",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) {
-				e.conAlguna, e.sinMedir, e.duracion, e.objetivo = map[string]int{modeloSonnet55: 1}, modeloHaiku45, 901, 900
+				e.sinActivar, e.sinMedir, e.duracion, e.objetivo = 1, modeloHaiku45, 901, 900
 			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 1, 6, false, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 6, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 6, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 0, true, false),
-				umbralDeDuracion(ModoOrden, 901, 900, false),
-			},
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{umbralDeDuracion(ModoOrden, 901, 900, false)},
+				enOrden(6, 1)),
 			motivos: []string{
-				"umbral expresiones_prohibidas:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 5,0 %",
+				"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %",
 				motivoEsperadoDelLimite(sesionesSinMedirDe(modeloHaiku45, 1)...),
 				"de la ejecución, no de la skill: duracion_de_las_sesiones:orden: 901 s, y tiene que ser ≤ 900 s",
 			},
 			veredicto: VeredictoFallo,
 		},
 		{
-			// Sumados, 3 de 108 (2,8 %) cumplirían: las medidas de un modo no se
-			// suman a las del otro (FR-043).
-			nombre: "tres-de-54-en-herramienta-y-cero-en-orden",
-			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) {
-				e.enHerramienta.conAlguna = map[string]int{modeloSonnet55: 3}
-			}),
-			umbrales: slices.Concat(cumplidosDelModo(ModoOrden), []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoHerramienta, 3, 54, false, true),
-				umbralSinActivar(modeloSonnet55, ModoHerramienta, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoHerramienta, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoHerramienta, 0, 30, true, false),
-			}),
-			motivos: []string{
-				"umbral expresiones_prohibidas:claude-sonnet-5-5:herramienta: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %",
-			},
+			// Las medidas de un modo no se suman a las del otro (FR-043 de H21).
+			nombre:    "sin-activar-solo-en-orden",
+			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) { e.sinActivar = 1 }),
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 1), enHerramienta(54, 0)),
+			motivos:   []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
 			veredicto: VeredictoFallo,
-		},
-		{
-			nombre: "tres-de-54-en-orden-y-cero-en-herramienta",
-			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) {
-				e.conAlguna = map[string]int{modeloSonnet55: 3}
-			}),
-			umbrales: slices.Concat([]Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 3, 54, false, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-			}, cumplidosDelModo(ModoHerramienta)),
-			motivos: []string{
-				"umbral expresiones_prohibidas:claude-sonnet-5-5:orden: 3 de 54 (5,6 %), y tiene que ser ≤ 5,0 %",
-			},
-			veredicto: VeredictoFallo,
-		},
-		{
-			nombre: "dos-de-54-en-los-dos-modos",
-			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) {
-				e.conAlguna = map[string]int{modeloSonnet55: 2}
-				e.enHerramienta.conAlguna = map[string]int{modeloSonnet55: 2}
-			}),
-			umbrales: []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoOrden, 2, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoOrden, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoOrden, 0, 30, true, false),
-				umbralDeExpresiones(modeloSonnet55, ModoHerramienta, 2, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoHerramienta, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoHerramienta, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoHerramienta, 0, 30, true, false),
-			},
-			veredicto: VeredictoAprobado,
 		},
 		{
 			nombre:    "sin-activar-solo-en-herramienta",
 			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) { e.enHerramienta.sinActivar = 1 }),
-			umbrales: slices.Concat(cumplidosDelModo(ModoOrden), []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoHerramienta, 0, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoHerramienta, 1, 54, false),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoHerramienta, 0, 54, true),
-				umbralDeExpresiones(modeloHaiku45, ModoHerramienta, 0, 30, true, false),
-			}),
+			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 0), enHerramienta(54, 1)),
 			motivos: []string{
 				"umbral sin_activar:claude-sonnet-5-5:herramienta: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %",
-			},
-			veredicto: VeredictoFallo,
-		},
-		{
-			nombre:    "redaccion-no-leida-solo-en-herramienta",
-			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) { e.enHerramienta.conRedaccionNoLeida = 1 }),
-			umbrales: slices.Concat(cumplidosDelModo(ModoOrden), []Umbral{
-				umbralDeExpresiones(modeloSonnet55, ModoHerramienta, 1, 54, true, true),
-				umbralSinActivar(modeloSonnet55, ModoHerramienta, 0, 54, true),
-				umbralDeRedaccionNoLeida(modeloSonnet55, ModoHerramienta, 1, 54, false),
-				umbralDeExpresiones(modeloHaiku45, ModoHerramienta, 0, 30, true, false),
-			}),
-			motivos: []string{
-				"umbral redaccion_no_leida:claude-sonnet-5-5:herramienta: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %",
 			},
 			veredicto: VeredictoFallo,
 		},
@@ -510,10 +411,10 @@ func TestUmbralesDelInforme(t *testing.T) {
 			ejecucion: conCambios(minimaEnDosModos, func(e *ejecucionConUmbrales) {
 				e.duracion, e.duracionEnHerramienta, e.objetivo = 900, 901, 900
 			}),
-			umbrales: slices.Concat(cumplidosDeLaMinima(ModoOrden), cumplidosDeLaMinima(ModoHerramienta), []Umbral{
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{
 				umbralDeDuracion(ModoOrden, 900, 900, true),
 				umbralDeDuracion(ModoHerramienta, 901, 900, false),
-			}),
+			}, enOrden(6, 0), enHerramienta(6, 0)),
 			motivos: []string{
 				"de la ejecución, no de la skill: duracion_de_las_sesiones:herramienta: 901 s, y tiene que ser ≤ 900 s",
 			},
@@ -524,10 +425,10 @@ func TestUmbralesDelInforme(t *testing.T) {
 			ejecucion: conCambios(minimaEnDosModos, func(e *ejecucionConUmbrales) {
 				e.duracion, e.duracionEnHerramienta, e.objetivo = 901, 900, 900
 			}),
-			umbrales: slices.Concat(cumplidosDeLaMinima(ModoOrden), cumplidosDeLaMinima(ModoHerramienta), []Umbral{
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{
 				umbralDeDuracion(ModoOrden, 901, 900, false),
 				umbralDeDuracion(ModoHerramienta, 900, 900, true),
-			}),
+			}, enOrden(6, 0), enHerramienta(6, 0)),
 			motivos: []string{
 				"de la ejecución, no de la skill: duracion_de_las_sesiones:orden: 901 s, y tiene que ser ≤ 900 s",
 			},
@@ -539,26 +440,26 @@ func TestUmbralesDelInforme(t *testing.T) {
 			ejecucion: conCambios(minimaEnDosModos, func(e *ejecucionConUmbrales) {
 				e.duracion, e.duracionEnHerramienta, e.objetivo = 900, 900, 900
 			}),
-			umbrales: slices.Concat(cumplidosDeLaMinima(ModoOrden), cumplidosDeLaMinima(ModoHerramienta), []Umbral{
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{
 				umbralDeDuracion(ModoOrden, 900, 900, true),
 				umbralDeDuracion(ModoHerramienta, 900, 900, true),
-			}),
+			}, enOrden(6, 0), enHerramienta(6, 0)),
 			veredicto: VeredictoAprobado,
+			exigir:    exigirLosDoceDelContrato,
 		},
 		{
 			// Las sesiones de la eval sin binario ni servidor no son de ningún modo:
-			// ni la que lleva expresiones de la lista y no activa la skill cuenta en
-			// una medida, ni las seis en un total, ni los 5000 s de su tanda en una
-			// duración (FR-047).
+			// ni la que no activa la skill cuenta en una medida, ni las seis en un
+			// total, ni los 5000 s de su tanda en una duración (FR-047 de H21).
 			nombre: "la-sin-binario-ni-servidor-fuera-de-toda-medida",
 			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) {
 				e.conLaSinBinarioNiServidor, e.sinBinarioAlteradas = true, 1
 				e.duracion, e.duracionEnHerramienta, e.duracionSinModo, e.objetivo = 500, 600, 5000, 900
 			}),
-			umbrales: slices.Concat(cumplidosDelModo(ModoOrden), cumplidosDelModo(ModoHerramienta), []Umbral{
+			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{
 				umbralDeDuracion(ModoOrden, 500, 900, true),
 				umbralDeDuracion(ModoHerramienta, 600, 900, true),
-			}),
+			}, enOrden(54, 0), enHerramienta(54, 0)),
 			veredicto: VeredictoAprobado,
 			exigir:    exigirLaSinBinarioNiServidorSinContar,
 		},
@@ -575,6 +476,8 @@ func TestUmbralesDelInforme(t *testing.T) {
 			assert.Equal(t, caso.veredicto, leido.informe.Veredicto)
 			assert.Equal(t, caso.ejecucion.duracionDeLasTandas(), leido.informe.DuracionDeLasSesiones,
 				"duracion_de_las_sesiones es la suma de las tres tandas")
+			assert.Len(t, leido.votos, votosDeUnJuezQueDiceNo(caso.ejecucion, caso.umbrales),
+				"un voto por respuesta medida de las evals que activan la skill, y ninguno más")
 
 			if caso.exigir != nil {
 				caso.exigir(t, leido)
@@ -600,6 +503,34 @@ func TestUmbralesDelInforme(t *testing.T) {
 	})
 }
 
+// TestUmbralQueSoloSePublica fija lo que el informe hace con un umbral que no
+// decide (contrato de umbrales del ADR 0029; contrato informe-del-job §2 y §4 de
+// H7.3; FR-003), con umbrales escritos aquí: desde H24, el plan del job no da
+// ninguno hasta que el juez publique una clase. Sin cumplirse, no da ningún
+// motivo, ni de la skill ni de la ejecución, y su fila de informe.md dice «no:
+// solo se publica» donde la del que decide dice «sí».
+func TestUmbralQueSoloSePublica(t *testing.T) {
+	t.Parallel()
+
+	total := 30
+	publicado := compararUmbral(Umbral{
+		Nombre: "se_publica:claude-haiku-4-5-20251001:orden", Medida: 2, Total: &total, Umbral: 0.05,
+	})
+	queDecide := umbralSinActivar(modeloSonnet55, ModoOrden, 1, 54, false)
+
+	require.False(t, publicado.Cumple, "2 de 30 no cumple el 5 %%")
+
+	umbrales := []Umbral{queDecide, publicado}
+
+	assert.Equal(t, []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
+		motivosDeLosUmbrales(umbrales, nil))
+	assert.Empty(t, motivosDeLaDuracionDeLasSesiones(umbrales))
+	assert.Equal(t, [][]string{
+		{"`sin_activar:claude-sonnet-5-5:orden`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
+		{"`se_publica:claude-haiku-4-5-20251001:orden`", "2 de 30 (6,7 %)", "≤ 5,0 %", "no", "no: solo se publica"},
+	}, filasDeUmbrales(umbrales))
+}
+
 // conCambios es la ejecución dada con lo que cambie cambiar.
 func conCambios(ejecucion ejecucionConUmbrales, cambiar func(e *ejecucionConUmbrales)) ejecucionConUmbrales {
 	cambiar(&ejecucion)
@@ -607,27 +538,10 @@ func conCambios(ejecucion ejecucionConUmbrales, cambiar func(e *ejecucionConUmbr
 	return ejecucion
 }
 
-// umbralDeExpresiones es el umbral de las expresiones prohibidas de un modelo en
-// un modo tal como lo fijan el contrato informe-del-job §1 de H7.3 y
-// contracts/evals-en-dos-modos.md §5.1 de H21, con sus valores escritos a mano.
-func umbralDeExpresiones(modelo string, modo Modo, conAlguna, respuestas int, cumple, decide bool) Umbral {
-	return Umbral{
-		Nombre: "expresiones_prohibidas:" + modelo + ":" + string(modo),
-		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " con alguna expresión prohibida, " +
-			"sobre sus respuestas medidas en las evals que activan la skill",
-		Medida:      float64(conAlguna),
-		Total:       &respuestas,
-		Comparacion: "<=",
-		Umbral:      0.05,
-		Cumple:      cumple,
-		Decide:      decide,
-	}
-}
-
 // umbralSinActivar es el umbral de las respuestas del modelo que decide sin la
 // skill activada en un modo tal como lo fijan contracts/informe-del-job.md §2 de
-// H7.4 y contracts/evals-en-dos-modos.md §5.1 de H21, con sus valores escritos a
-// mano: 0 y decidiendo.
+// H7.4 y de H24 y contracts/evals-en-dos-modos.md §5.1 de H21, con sus valores
+// escritos a mano: 0 y decidiendo.
 func umbralSinActivar(modelo string, modo Modo, sinActivar, respuestas int, cumple bool) Umbral {
 	return Umbral{
 		Nombre: "sin_activar:" + modelo + ":" + string(modo),
@@ -642,57 +556,237 @@ func umbralSinActivar(modelo string, modo Modo, sinActivar, respuestas int, cump
 	}
 }
 
-// umbralDeRedaccionNoLeida es el umbral de las respuestas del modelo que decide
-// con alguna expresión de redaccion_no_leida en un modo tal como lo fijan
-// contracts/informe-del-job.md §2 de H7.4 y contracts/evals-en-dos-modos.md §5.1
-// de H21, con sus valores escritos a mano: 0 y decidiendo.
-func umbralDeRedaccionNoLeida(modelo string, modo Modo, conRedaccionNoLeida, respuestas int, cumple bool) Umbral {
+// medidasDeUnModo son las medidas de los umbrales de las respuestas del modelo
+// que decide en un modo de una ejecución con juez, y los segundos de sus votos.
+type medidasDeUnModo struct {
+	modo Modo
+
+	// respuestas son las medidas del modelo en ese modo, el total de sus tres
+	// umbrales; y sinActivar, marcadas y conSi, las medidas de cada uno: las que
+	// no activaron la skill, las que el juez marca en afirma_lo_no_leido y las
+	// que tienen sí en cuenta_su_proceso.
+	respuestas, sinActivar, marcadas, conSi int
+
+	// segundosDelJuez son los de los votos de las respuestas del modo.
+	segundosDelJuez int
+}
+
+// enOrden y enHerramienta son las medidas de un modo en el que el juez no marca
+// ninguna respuesta ni dice sí de ninguna, con sus votos en 0 s.
+func enOrden(respuestas, sinActivar int) medidasDeUnModo {
+	return medidasDeUnModo{modo: ModoOrden, respuestas: respuestas, sinActivar: sinActivar}
+}
+
+func enHerramienta(respuestas, sinActivar int) medidasDeUnModo {
+	return medidasDeUnModo{modo: ModoHerramienta, respuestas: respuestas, sinActivar: sinActivar}
+}
+
+// umbralesConJuez son los umbrales del informe de una skill con juez, en el
+// orden de contracts/informe-del-job.md §2 de H24: los de las respuestas de
+// cada modo (umbralesDeUnModo); los dos de la medida del juez, con los
+// recuentos de medidaDelJuezDelInforme, 0 de 212 y 0 de 47; los de la duración
+// de las sesiones dados; y, por cada modo, el de la duración del juez.
+func umbralesConJuez(modelo string, deLaDuracion []Umbral, porModo ...medidasDeUnModo) []Umbral {
+	var umbrales []Umbral
+
+	for _, medidas := range porModo {
+		umbrales = append(umbrales, umbralesDeUnModo(modelo, medidas)...)
+	}
+
+	umbrales = append(umbrales, umbralesDeLaMedidaDelJuez(0, 212, 0, 47)...)
+	umbrales = append(umbrales, deLaDuracion...)
+
+	for _, medidas := range porModo {
+		umbrales = append(umbrales, umbralDeLaDuracionDelJuez(medidas.modo, medidas.segundosDelJuez))
+	}
+
+	return umbrales
+}
+
+// umbralesDeUnModo son los tres umbrales de las respuestas del modelo que
+// decide en un modo, tal como los fija contracts/informe-del-job.md §2 de H24,
+// con sus valores escritos a mano: el de las respuestas sin activar; el de
+// afirma_lo_no_leido, que decide con 0; y el de cuenta_su_proceso, que lleva 0
+// y solo se publica. Los tres, sobre las mismas respuestas, y cada uno cumplido
+// si su medida es 0.
+func umbralesDeUnModo(modelo string, medidas medidasDeUnModo) []Umbral {
+	deLasEvals := "sobre sus respuestas juzgadas en las evals que activan la skill"
+	delModo := "Respuestas de " + modelo + " en el modo " + string(medidas.modo)
+
+	afirma, cuenta := medidas.respuestas, medidas.respuestas
+
+	return []Umbral{
+		umbralSinActivar(modelo, medidas.modo, medidas.sinActivar, medidas.respuestas, medidas.sinActivar == 0),
+		{
+			Nombre:      "afirma_lo_no_leido:" + modelo + ":" + string(medidas.modo),
+			Descripcion: delModo + " que el juez marca en afirma_lo_no_leido con sus tres votos, " + deLasEvals,
+			Medida:      float64(medidas.marcadas),
+			Total:       &afirma,
+			Comparacion: "<=",
+			Umbral:      0,
+			Cumple:      medidas.marcadas == 0,
+			Decide:      true,
+		},
+		{
+			Nombre:      "cuenta_su_proceso:" + modelo + ":" + string(medidas.modo),
+			Descripcion: delModo + " con sí en cuenta_su_proceso en el primer voto del juez, " + deLasEvals,
+			Medida:      float64(medidas.conSi),
+			Total:       &cuenta,
+			Comparacion: "<=",
+			Umbral:      0,
+			Cumple:      medidas.conSi == 0,
+			Decide:      false,
+		},
+	}
+}
+
+// umbralesDeLaMedidaDelJuez son los dos umbrales de la medida del juez de
+// afirma_lo_no_leido, la clase que decide, tal como los fija
+// contracts/informe-del-job.md §2 de H24, con los recuentos y los totales de
+// una medida: los dos deciden con 0.
+func umbralesDeLaMedidaDelJuez(sinMarcar, defectos, marcados, correctos int) []Umbral {
+	return []Umbral{
+		{
+			Nombre: "medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar",
+			Descripcion: "Casos etiquetados como defecto que el juez no marca en afirma_lo_no_leido, sobre los casos " +
+				"etiquetados como defecto de su medida versionada",
+			Medida:      float64(sinMarcar),
+			Total:       &defectos,
+			Comparacion: "<=",
+			Umbral:      0,
+			Cumple:      sinMarcar == 0,
+			Decide:      true,
+		},
+		{
+			Nombre: "medida_del_juez:afirma_lo_no_leido:correctos_marcados",
+			Descripcion: "Casos etiquetados como correctos que el juez marca en afirma_lo_no_leido, sobre los casos " +
+				"etiquetados como correctos de su medida versionada",
+			Medida:      float64(marcados),
+			Total:       &correctos,
+			Comparacion: "<=",
+			Umbral:      0,
+			Cumple:      marcados == 0,
+			Decide:      true,
+		},
+	}
+}
+
+// umbralDeLaDuracionDelJuez es el umbral de los segundos de los votos de las
+// respuestas de un modo, tal como lo fija contracts/informe-del-job.md §2 de
+// H24: sin total y decidiendo con 900 s.
+func umbralDeLaDuracionDelJuez(modo Modo, segundos int) Umbral {
 	return Umbral{
-		Nombre: "redaccion_no_leida:" + modelo + ":" + string(modo),
-		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " con alguna expresión de " +
-			"redaccion_no_leida (una redacción que ninguna orden devolvió), sobre sus respuestas medidas en las evals " +
-			"que activan la skill",
-		Medida:      float64(conRedaccionNoLeida),
-		Total:       &respuestas,
+		Nombre: "duracion_del_juez:" + string(modo),
+		Descripcion: "Segundos de los votos del juez sobre las respuestas del modo " + string(modo) +
+			", desde que empieza el primero hasta que termina el último",
+		Medida:      float64(segundos),
 		Comparacion: "<=",
-		Umbral:      0,
-		Cumple:      cumple,
+		Umbral:      900,
+		Cumple:      segundos <= 900,
 		Decide:      true,
 	}
 }
 
-// cumplidosDelModo son los cuatro umbrales de las respuestas de un modo de una
-// ejecución como la del job en la que ese modo no tiene ninguna respuesta
-// alterada: 0 de 54 en los tres del modelo que decide y 0 de 30 en el de
-// modeloHaiku45, que solo se publica.
-func cumplidosDelModo(modo Modo) []Umbral {
-	return []Umbral{
-		umbralDeExpresiones(modeloSonnet55, modo, 0, 54, true, true),
-		umbralSinActivar(modeloSonnet55, modo, 0, 54, true),
-		umbralDeRedaccionNoLeida(modeloSonnet55, modo, 0, 54, true),
-		umbralDeExpresiones(modeloHaiku45, modo, 0, 30, true, false),
+// votosDeUnJuezQueDiceNo son los votos que pide la ejecución con un juez que
+// dice no a todo, uno por respuesta que se juzga: las del total de cada umbral
+// de las respuestas sin activar —ninguno sin juez— y, con juez, las tres del
+// modelo que decide de la eval sin binario ni servidor, si la lleva
+// (contracts/informe-del-job.md §1 de H24).
+func votosDeUnJuezQueDiceNo(ejecucion ejecucionConUmbrales, umbrales []Umbral) int {
+	votos := 0
+
+	for _, umbral := range umbrales {
+		if strings.HasPrefix(umbral.Nombre, "sin_activar:") {
+			votos += *umbral.Total
+		}
 	}
+
+	if ejecucion.conLaSinBinarioNiServidor && !ejecucion.sinJuez {
+		votos += repeticionesConUmbrales
+	}
+
+	return votos
 }
 
-// cumplidosDeLaMinima son los cuatro umbrales de las respuestas de un modo de la
-// ejecución mínima, con una eval de cada clase, sin ninguna respuesta alterada:
-// 0 de 6 y 0 de 3.
-func cumplidosDeLaMinima(modo Modo) []Umbral {
-	return []Umbral{
-		umbralDeExpresiones(modeloSonnet55, modo, 0, 6, true, true),
-		umbralSinActivar(modeloSonnet55, modo, 0, 6, true),
-		umbralDeRedaccionNoLeida(modeloSonnet55, modo, 0, 6, true),
-		umbralDeExpresiones(modeloHaiku45, modo, 0, 3, true, false),
+// exigirLosDoceDelContrato exige, del caso 900-s-en-los-dos-modos, los doce
+// elementos de umbrales de contracts/informe-del-job.md §2 de H24, en su orden,
+// cada uno con su nombre, su descripción y su decide, escritos a mano: diez
+// deciden, todos comparan con «<=» y ninguno es de los dos que salieron con la
+// lista de expresiones (FR-030 a FR-034).
+func exigirLosDoceDelContrato(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	type elemento struct {
+		nombre, descripcion string
+		decide              bool
 	}
+
+	const (
+		deOrden       = "Respuestas de claude-sonnet-5-5 en el modo orden "
+		deHerramienta = "Respuestas de claude-sonnet-5-5 en el modo herramienta "
+		sinActivar    = "sin la skill activada, sobre sus respuestas medidas en las evals que la activan"
+		deLasEvals    = ", sobre sus respuestas juzgadas en las evals que activan la skill"
+		queMarca      = "que el juez marca en afirma_lo_no_leido con sus tres votos" + deLasEvals
+		conSi         = "con sí en cuenta_su_proceso en el primer voto del juez" + deLasEvals
+		deLaTanda     = ", desde que se prepara su primera sesión hasta que termina la última"
+		deLosVotos    = ", desde que empieza el primero hasta que termina el último"
+	)
+
+	esperados := []elemento{
+		{"sin_activar:claude-sonnet-5-5:orden", deOrden + sinActivar, true},
+		{"afirma_lo_no_leido:claude-sonnet-5-5:orden", deOrden + queMarca, true},
+		{"cuenta_su_proceso:claude-sonnet-5-5:orden", deOrden + conSi, false},
+		{"sin_activar:claude-sonnet-5-5:herramienta", deHerramienta + sinActivar, true},
+		{"afirma_lo_no_leido:claude-sonnet-5-5:herramienta", deHerramienta + queMarca, true},
+		{"cuenta_su_proceso:claude-sonnet-5-5:herramienta", deHerramienta + conSi, false},
+		{
+			"medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar",
+			"Casos etiquetados como defecto que el juez no marca en afirma_lo_no_leido, sobre los casos etiquetados como " +
+				"defecto de su medida versionada",
+			true,
+		},
+		{
+			"medida_del_juez:afirma_lo_no_leido:correctos_marcados",
+			"Casos etiquetados como correctos que el juez marca en afirma_lo_no_leido, sobre los casos etiquetados como " +
+				"correctos de su medida versionada",
+			true,
+		},
+		{"duracion_de_las_sesiones:orden", "Segundos de la tanda del modo orden" + deLaTanda, true},
+		{"duracion_de_las_sesiones:herramienta", "Segundos de la tanda del modo herramienta" + deLaTanda, true},
+		{"duracion_del_juez:orden", "Segundos de los votos del juez sobre las respuestas del modo orden" + deLosVotos, true},
+		{
+			"duracion_del_juez:herramienta",
+			"Segundos de los votos del juez sobre las respuestas del modo herramienta" + deLosVotos, true,
+		},
+	}
+
+	publicados := make([]elemento, 0, len(leido.informe.Umbrales))
+	deciden := 0
+
+	for _, umbral := range leido.informe.Umbrales {
+		publicados = append(publicados, elemento{umbral.Nombre, umbral.Descripcion, umbral.Decide})
+
+		assert.Equal(t, "<=", umbral.Comparacion, "la comparación de %s", umbral.Nombre)
+
+		if umbral.Decide {
+			deciden++
+		}
+
+		for _, retirado := range []string{"expresiones_prohibidas:", "redaccion_no_leida:"} {
+			assert.False(t, strings.HasPrefix(umbral.Nombre, retirado), "%s salió con la lista de expresiones", umbral.Nombre)
+		}
+	}
+
+	assert.Equal(t, esperados, publicados, "los doce, en su orden")
+	assert.Equal(t, 10, deciden, "diez de los doce deciden")
 }
 
 // exigirLaSinBinarioNiServidorSinContar exige, del caso
 // la-sin-binario-ni-servidor-fuera-de-toda-medida, que el caso no pase en vacío
 // (FR-047): la eval sin binario ni servidor tiene sus sesiones de los dos
-// modelos, una sola vez y sin modo; la primera del modelo que decide lleva
-// expresiones de la lista en su respuesta —que la lista no juzga, porque su
-// sesión no consulta nada— y no activa la skill, y no pasa; su serie, con las
-// otras dos, llega al umbral; y ningún recuento cuenta ninguna de las seis.
+// modelos, una sola vez y sin modo; la primera del modelo que decide no activa
+// la skill, y no pasa; y su serie, con las otras dos, llega al umbral. Ningún
+// umbral cuenta ninguna de las seis: los del caso tienen 0 de 54.
 func exigirLaSinBinarioNiServidorSinContar(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -724,8 +818,6 @@ func exigirLaSinBinarioNiServidorSinContar(t *testing.T, leido informeLeido) {
 	assert.Equal(t, esperadas, sesiones, "la eval sin binario ni servidor tiene sus sesiones de los dos modelos, una vez")
 
 	resultado := resultadoDeLaSesion(t, leido.informe, alterada)
-	assert.Empty(t, resultado.ExpresionesProhibidas,
-		"%s lleva expresiones de la lista en su respuesta, y la lista no juzga una sesión sin consulta", alterada)
 	assert.False(t, resultado.Activada, "%s no activa la skill", alterada)
 	assert.True(t, resultado.LineaSinConsulta, "%s lleva la línea con su dirección", alterada)
 	assert.False(t, resultado.Pasa, "%s no pasa", alterada)
@@ -737,18 +829,12 @@ func exigirLaSinBinarioNiServidorSinContar(t *testing.T, leido informeLeido) {
 			Pasa: true,
 		}, tasaDeLaSerie(t, leido.informe, sinBinario, modelo))
 	}
-
-	assert.Equal(t, []RecuentoDeExpresiones{
-		recuentoEsperado(modeloSonnet55, ModoOrden, 0, 54),
-		recuentoEsperado(modeloHaiku45, ModoOrden, 0, 30),
-		recuentoEsperado(modeloSonnet55, ModoHerramienta, 0, 54),
-		recuentoEsperado(modeloHaiku45, ModoHerramienta, 0, 30),
-	}, leido.informe.ExpresionesProhibidasPorModelo)
 }
 
 // exigirLaDeNoActivacionSinContar exige, del caso sin-activar-ninguna, que el
 // caso no pase en vacío: las sesiones de la eval de no activación, de los dos
-// modelos, no activan la skill y pasan, y el recuento no las cuenta.
+// modelos, no activan la skill y pasan. El umbral del caso no las cuenta: tiene
+// 0 de 54.
 func exigirLaDeNoActivacionSinContar(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -769,16 +855,42 @@ func exigirLaDeNoActivacionSinContar(t *testing.T, leido informeLeido) {
 	}
 
 	assert.Equal(t, 2*repeticionesConUmbrales, sesiones, "la eval de no activación tiene sus sesiones de los dos modelos")
-	assert.Equal(t, []RecuentoDeExpresiones{
-		recuentoEsperado(modeloSonnet55, ModoOrden, 0, 54),
-		recuentoEsperado(modeloHaiku45, ModoOrden, 0, 30),
-	}, leido.informe.ExpresionesProhibidasPorModelo)
 }
 
-// exigirLasSeisSinTerminar exige, del caso tres-de-54-y-seis-sin-terminar, que
-// las seis sesiones que el tope cortó se publiquen con su respuesta y su motivo,
-// sin pasar, y que expresiones_prohibidas_por_modelo no las cuente (FR-045,
-// FR-061).
+// exigirLasTresConExpresionesQuePasan exige, del caso
+// tres-con-expresiones-de-la-lista, que el caso no pase en vacío: tres sesiones
+// del modelo que decide, y solo ellas, llevan en su respuesta lo que la lista
+// del repositorio marca, y las tres pasan, sin ningún motivo.
+func exigirLasTresConExpresionesQuePasan(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+
+	lista := listaDelRepositorio(t, conjunto)
+
+	var conExpresiones []string
+
+	for _, resultado := range leido.informe.Evals {
+		if len(ExtraerExpresionesProhibidas(resultado.Respuesta, lista)) == 0 {
+			continue
+		}
+
+		conExpresiones = append(conExpresiones, resultado.Sesion)
+
+		assert.True(t, resultado.Pasa, "%s pasa con expresiones de la lista en su respuesta", resultado.Sesion)
+		assert.Empty(t, resultado.Motivos, "%s no tiene ningún motivo", resultado.Sesion)
+	}
+
+	assert.Equal(t, []string{
+		sesionSintetica(1, modeloSonnet55, 1), sesionSintetica(7, modeloSonnet55, 1), sesionSintetica(13, modeloSonnet55, 1),
+	}, conExpresiones, "las tres respuestas con expresiones, repartidas entre las series del modelo que decide")
+}
+
+// exigirLasSeisSinTerminar exige, del caso una-sin-activar-y-seis-sin-terminar,
+// que las seis sesiones que el tope cortó se publiquen con su respuesta y su
+// motivo, sin pasar (FR-045, FR-061). El umbral del caso no las cuenta en su
+// total: tiene 54, y no 60.
 func exigirLasSeisSinTerminar(t *testing.T, leido informeLeido) {
 	t.Helper()
 
@@ -806,17 +918,14 @@ func exigirLasSeisSinTerminar(t *testing.T, leido informeLeido) {
 	}
 
 	assert.Equal(t, cortadas, sinTerminar, "las seis son las únicas sin terminar")
-	assert.Equal(t, []RecuentoDeExpresiones{
-		recuentoEsperado(modeloSonnet55, ModoOrden, 3, 54),
-		recuentoEsperado(modeloHaiku45, ModoOrden, 0, 30),
-	}, leido.informe.ExpresionesProhibidasPorModelo)
 }
 
-// exigirLaMismaSesionSinActivarConExpresion exige, del caso
-// una-sin-activar-con-expresion, que la sesión sin la skill activada y la de la
-// expresión de redaccion_no_leida sean la misma y la única de cada clase: la
-// primera de la primera eval con el modelo que decide.
-func exigirLaMismaSesionSinActivarConExpresion(t *testing.T, leido informeLeido) {
+// exigirLaMismaSesionSinActivarConExpresiones exige, del caso
+// una-sin-activar-con-expresiones, que la sesión sin la skill activada y la de
+// las expresiones de la lista sean la misma, la primera de la primera eval con
+// el modelo que decide, y que su único motivo sea el de la activación: por las
+// expresiones no tiene ninguno.
+func exigirLaMismaSesionSinActivarConExpresiones(t *testing.T, leido informeLeido) {
 	t.Helper()
 
 	var sinActivar, conExpresiones []string
@@ -826,7 +935,7 @@ func exigirLaMismaSesionSinActivarConExpresion(t *testing.T, leido informeLeido)
 			sinActivar = append(sinActivar, resultado.Sesion)
 		}
 
-		if len(resultado.ExpresionesProhibidas) > 0 {
+		if strings.Contains(resultado.Respuesta, redaccionNoLeida) {
 			conExpresiones = append(conExpresiones, resultado.Sesion)
 		}
 	}
@@ -834,7 +943,9 @@ func exigirLaMismaSesionSinActivarConExpresion(t *testing.T, leido informeLeido)
 	misma := sesionSintetica(1, modeloSonnet55, 1)
 	assert.Equal(t, []string{misma}, sinActivar)
 	assert.Equal(t, []string{misma}, conExpresiones)
-	assert.Equal(t, []string{"ya no exige"}, resultadoDeLaSesion(t, leido.informe, misma).ExpresionesProhibidas)
+	assert.Equal(t,
+		[]string{"la activación no coincide: se esperaba que la skill boe-legislacion se activara y no se activó"},
+		resultadoDeLaSesion(t, leido.informe, misma).Motivos)
 }
 
 // umbralDeDuracion es el umbral de la duración de las sesiones de un modo, la de
@@ -981,8 +1092,9 @@ func (e ejecucionConUmbrales) ajustar(entradas *InformeAEscribir) {
 }
 
 // armarEjecucionConUmbrales arma la ejecución en un directorio temporal del test
-// —sus evals, con la lista del repositorio si la lleva, y sus sesiones, con las
-// respuestas alteradas de cada modo— y devuelve su ruta.
+// —sus evals, con la carpeta juez de una skill sintética y la lista del
+// repositorio si las lleva, y sus sesiones, con las respuestas alteradas de cada
+// modo— y devuelve su ruta.
 func armarEjecucionConUmbrales(t *testing.T, ejecucion ejecucionConUmbrales) string {
 	t.Helper()
 
@@ -990,25 +1102,29 @@ func armarEjecucionConUmbrales(t *testing.T, ejecucion ejecucionConUmbrales) str
 	evals := filepath.Join(copia, "evals")
 	require.NoError(t, os.Mkdir(evals, 0o750))
 
+	if !ejecucion.sinJuez {
+		escribirElJuezDelInforme(t, evals, ejecucion.medidaDelJuez)
+	}
+
 	if !ejecucion.sinLista {
 		copiarLaListaDelRepositorio(t, evals)
 	}
 
 	series := escribirLasEvalsConUmbrales(t, copia, ejecucion)
 
+	if ejecucion.conLaPruebaDeRed {
+		escribirLaSesionDeLaPruebaDeRed(t, copia)
+	}
+
 	for _, modo := range ejecucion.modos() {
 		alteradas := ejecucion.alteradas(modo)
 
-		for modelo, cuantas := range alteradas.conAlguna {
-			alterarLaPrimeraDeLasSeries(t, copia, modo, modelo, series[modelo], cuantas, func(dir string) {
-				anteponerALaRespuesta(t, dir, transicionDeLaMemoria+"\n\n")
-			})
-		}
-
-		alterarLaPrimeraDeLasSeries(t, copia, modo, modeloSonnet55, series[modeloSonnet55], alteradas.conRedaccionNoLeida,
-			func(dir string) { anteponerALaRespuesta(t, dir, redaccionNoLeida+"\n\n") })
-		alterarLaPrimeraDeLasSeries(t, copia, modo, modeloSonnet55, series[modeloSonnet55], alteradas.sinActivar,
-			func(dir string) { quitarLaActivacion(t, dir) })
+		alterarLaPrimeraDeLasSeries(t, copia, modo, series, alteradas.conExpresiones, func(dir string) {
+			anteponerALaRespuesta(t, dir, transicionDeLaMemoria+" "+redaccionNoLeida+"\n\n")
+		})
+		alterarLaPrimeraDeLasSeries(t, copia, modo, series, alteradas.sinActivar, func(dir string) {
+			quitarLaActivacion(t, dir)
+		})
 	}
 
 	return copia
@@ -1016,18 +1132,19 @@ func armarEjecucionConUmbrales(t *testing.T, ejecucion ejecucionConUmbrales) str
 
 // escribirLasEvalsConUmbrales escribe en la copia las evals de la ejecución y
 // sus sesiones con cada modelo en cada modo —el que decide abre todas, y los
-// informativos, solo las que deciden— y devuelve, por modelo, los números de las
-// evals de sus series con respuestas medidas, en su orden, que son las mismas en
-// cada modo: sin las sin terminar, la de no activación ni la eval sin binario ni
-// servidor.
-func escribirLasEvalsConUmbrales(t *testing.T, copia string, ejecucion ejecucionConUmbrales) map[string][]int {
+// informativos, solo las que deciden— y devuelve los números de las evals de las
+// series del modelo que decide con respuestas medidas, en su orden, que son las
+// mismas en cada modo: sin las sin terminar, la de no activación ni la eval sin
+// binario ni servidor.
+func escribirLasEvalsConUmbrales(t *testing.T, copia string, ejecucion ejecucionConUmbrales) []int {
 	t.Helper()
 
 	evals := filepath.Join(copia, "evals")
 	delCasoAprobado := filepath.Join(casosDeInforme, casoAprobado)
 	eval := contenidoDeLaSesion(t, filepath.Join(delCasoAprobado, "evals"), ficheroDeLaEval01)
 
-	series := map[string][]int{}
+	var series []int
+
 	medidas := ejecucion.queDeciden + ejecucion.informativas
 
 	for numero := 1; numero <= medidas+ejecucion.sinTerminar; numero++ {
@@ -1040,13 +1157,13 @@ func escribirLasEvalsConUmbrales(t *testing.T, copia string, ejecucion ejecucion
 
 		escribirEnLaCopia(t, evals, ficheroSintetico(numero), contenido)
 
+		if numero <= medidas {
+			series = append(series, numero)
+		}
+
 		for _, modelo := range ejecucion.modelos() {
 			if informativa && modelo != modeloSonnet55 {
 				continue
-			}
-
-			if numero <= medidas {
-				series[modelo] = append(series[modelo], numero)
 			}
 
 			escribirLasSesionesDeLaSerie(t, copia, ejecucion, numero, modelo, numero > medidas)
@@ -1127,6 +1244,12 @@ func escribirLasSesionesDeLaSerie(
 		for vez := 1; vez <= repeticionesConUmbrales; vez++ {
 			dir := escribirSesionSinteticaEn(t, copia, modo, numero, modelo, vez, ejecucion.sinMedir == modelo)
 
+			// La que termina con el mensaje del límite de uso no llegó a pedir
+			// ninguna orden.
+			if ejecucion.conTextos && modo == ModoOrden && ejecucion.sinMedir != modelo {
+				anotarLaOrdenEnElTranscript(t, dir)
+			}
+
 			if ejecucion.prefijoDeLasRespuestas != "" {
 				anteponerALaRespuesta(t, dir, ejecucion.prefijoDeLasRespuestas)
 			}
@@ -1139,18 +1262,19 @@ func escribirLasSesionesDeLaSerie(
 }
 
 // alterarLaPrimeraDeLasSeries aplica alterar al directorio de la primera sesión
-// del modo dado de cuantas de las series del modelo dadas, repartidas por igual
-// entre ellas, de modo que cada serie que decide sigue llegando al umbral con las
-// que pasan.
+// del modo dado de cuantas de las series de modeloSonnet55 dadas, repartidas por
+// igual entre ellas, de modo que cada serie que decide sigue llegando al umbral
+// con las que pasan.
 func alterarLaPrimeraDeLasSeries(
-	t *testing.T, copia string, modo Modo, modelo string, series []int, cuantas int, alterar func(dir string),
+	t *testing.T, copia string, modo Modo, series []int, cuantas int, alterar func(dir string),
 ) {
 	t.Helper()
 
-	require.LessOrEqual(t, cuantas, len(series), "hay una serie de %s por respuesta alterada", modelo)
+	require.LessOrEqual(t, cuantas, len(series), "hay una serie de %s por respuesta alterada", modeloSonnet55)
 
 	for k := range cuantas {
-		alterar(filepath.Join(copia, "sesiones", sesionSinteticaEn(modo, series[k*len(series)/cuantas], modelo, 1)))
+		alterar(filepath.Join(copia, "sesiones",
+			sesionSinteticaEn(modo, series[k*len(series)/cuantas], modeloSonnet55, 1)))
 	}
 }
 
@@ -1287,6 +1411,37 @@ func pasarAlModoHerramienta(t *testing.T, dir string) {
 	escribirEnLaCopia(t, dir, "servidor.json", servidorDeLaSesionSintetica)
 	escribirEnLaCopia(t, filepath.Join(dir, directorioDeLaTraza), "t.2000", trazaDelServidorSintetico)
 
+	insertarAntesDeLaRespuesta(t, dir, llamadaSinteticaAlArticulo21)
+
+	sesion, err := LeerSesion(dir)
+	require.NoError(t, err)
+	require.Len(t, sesion.Llamadas, 1, "la sesión de %s lee el bloque con una llamada", dir)
+}
+
+// anotarLaOrdenEnElTranscript deja en el transcript de la sesión del modo orden
+// del directorio, delante del mensaje con la respuesta, la orden de Bash con la
+// que lee el bloque y lo que devolvió: los textos de sus herramientas, que su
+// traza no da (contracts/juez-y-voto.md §2 de H24). El juicio sin modelo de la
+// sesión no cambia con ellos.
+func anotarLaOrdenEnElTranscript(t *testing.T, dir string) {
+	t.Helper()
+
+	insertarAntesDeLaRespuesta(t, dir,
+		mensajeDeLlamadas(t, usoDeHerramienta{id: "toolu_sintetico_orden", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)})+
+			mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_sintetico_orden", contenido: cadenaJSON(t, sobreDelArticulo)}))
+
+	sesion, err := LeerSesion(dir)
+	require.NoError(t, err)
+	require.Equal(t, []Texto{{Orden: ordenDelArticulo, Salida: sobreDelArticulo}}, sesion.Textos,
+		"la sesión de %s tiene el texto de su orden", dir)
+}
+
+// insertarAntesDeLaRespuesta mete las líneas dadas en el transcript de la
+// sesión del directorio delante de su último mensaje del asistente, que es el
+// que lleva la respuesta.
+func insertarAntesDeLaRespuesta(t *testing.T, dir, mensajes string) {
+	t.Helper()
+
 	lineas := strings.SplitAfter(contenidoDeLaSesion(t, dir, "sesion.jsonl"), "\n")
 
 	conLaRespuesta := -1
@@ -1298,12 +1453,22 @@ func pasarAlModoHerramienta(t *testing.T, dir string) {
 	}
 
 	require.GreaterOrEqual(t, conLaRespuesta, 0, "el transcript de %s tiene el mensaje con la respuesta", dir)
-	escribirEnLaCopia(t, dir, "sesion.jsonl",
-		strings.Join(slices.Insert(lineas, conLaRespuesta, llamadaSinteticaAlArticulo21), ""))
+	escribirEnLaCopia(t, dir, "sesion.jsonl", strings.Join(slices.Insert(lineas, conLaRespuesta, mensajes), ""))
+}
 
-	sesion, err := LeerSesion(dir)
-	require.NoError(t, err)
-	require.Len(t, sesion.Llamadas, 1, "la sesión de %s lee el bloque con una llamada", dir)
+// escribirLaSesionDeLaPruebaDeRed escribe en la copia la sesión de la prueba de
+// red de una ejecución sintética: la del caso de fuera de lo grabado, con el
+// nombre que le da el plan, con modeloSonnet55 y con la primera eval sintética
+// como la suya. Su pregunta no es la de la eval, así que no es de ninguna serie
+// que pida el plan (contrato job-de-evals §6).
+func escribirLaSesionDeLaPruebaDeRed(t *testing.T, copia string) {
+	t.Helper()
+
+	dir := filepath.Join(copia, "sesiones", nombreDeSesion(ficheroSintetico(1), modeloSonnet55, ModoOrden, 1, true))
+
+	copiarSesionConOtroModelo(t, filepath.Join(casosDeInforme, "fuera-de-lo-grabado-no-cambia-el-veredicto", "sesiones",
+		sesionDeLaPruebaDeRed), dir, modeloSonnet55)
+	escribirEnLaCopia(t, dir, "eval.txt", ficheroSintetico(1)+"\n")
 }
 
 // escribirSesionSinBinarioNiServidor escribe la sesión de esa repetición de la

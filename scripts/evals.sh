@@ -11,6 +11,13 @@
 # y bajo strace; no abre ninguna más tras el mensaje del límite de uso de la cuenta; mide su duración; y las juzga
 # todas en el informe, con los umbrales que deciden (FR-030, FR-031, FR-044, FR-050 y FR-051 de H7.3).
 #
+# Con una skill que tiene juez —la carpeta juez en sus evals—, esa orden comprueba antes de abrir ninguna sesión que la
+# medida versionada del juez corresponde y se cumple con el modelo y la versión de Claude Code fijados para él; si no,
+# no abre ninguna, ni de evals ni del juez, y escribe el informe del instrumento sin medir, con el veredicto fallo. Si
+# corresponde y se cumple, tras las sesiones el juez vota sus respuestas con scripts/evals-voto.sh y su propio Claude
+# Code, sin votar ningún caso etiquetado (contracts/job-de-evals.md §2 y contracts/informe-del-job.md §5 de H24;
+# FR-043, FR-044 de H24).
+#
 #   make evals SKILL=<skill>
 #
 # Abre sesiones con modelo y consume la credencial de Claude Code: lo ejecuta el job de evals
@@ -21,6 +28,10 @@
 # MODELOS_INFORMATIVOS_DE_EVALS, separados por comas, que se ejecutan y se publican como límite inferior sin decidir;
 # REPETICIONES_DE_EVALS y UMBRAL_DE_EVALS, las sesiones que se abren de cada eval con cada modelo y cuántas tienen que
 # pasar (ADR 0016); CONCURRENCIA_DE_EVALS, cuántas sesiones se abren a la vez como mucho; y COMMIT_EVALUADO.
+# Obligatorias además con una skill que tiene juez, y sin mirar con una que no lo tiene: MODELO_DEL_JUEZ, el id del
+# modelo del juez, y VERSION_DE_CLAUDE_CODE_DEL_JUEZ, la versión de Claude Code de sus votos, las dos fijadas en la
+# definición del job, aparte de las de las sesiones; y CLAUDE_DEL_JUEZ, la ruta absoluta del claude de esa versión, un
+# ejecutable que no es el claude de las sesiones (contracts/job-de-evals.md §2 de H24).
 # Opcionales: OBJETIVO_DE_DURACION_DE_EVALS, los segundos que el job admite para sus sesiones, 0 si no está, que es no
 # tener objetivo; PRUEBA_DE_RED, que con el valor true añade la sesión de prueba de red de la primera eval (§6);
 # CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code; y RUNNER_TEMP o TMPDIR, donde vive la carpeta de salida
@@ -61,6 +72,29 @@ fi
 if [[ ! "${CONCURRENCIA_DE_EVALS:-}" =~ $forma_de_entero ]]; then
 	echo "evals: la concurrencia ${CONCURRENCIA_DE_EVALS:-} tiene que ser un entero mayor o igual que 1" >&2
 	exit 1
+fi
+
+# Lo del juez, solo con una skill que lo tiene, que es la que tiene la carpeta juez en sus evals
+# (contracts/job-de-evals.md §2 de H24): el modelo, la versión de Claude Code de sus votos y el claude de esa versión,
+# que falta también si su ruta no es la de un fichero ejecutable. Van a TestEjecucionDelJob con sus tres banderas; con
+# una skill sin juez, ninguna.
+banderas_del_juez=()
+if [[ -d "evals/$skill/juez" ]]; then
+	for variable in MODELO_DEL_JUEZ VERSION_DE_CLAUDE_CODE_DEL_JUEZ CLAUDE_DEL_JUEZ; do
+		if [[ -z "${!variable:-}" ]]; then
+			echo "evals: falta $variable" >&2
+			exit 1
+		fi
+	done
+	if [[ ! -f "$CLAUDE_DEL_JUEZ" ]] || [[ ! -x "$CLAUDE_DEL_JUEZ" ]]; then
+		echo "evals: falta CLAUDE_DEL_JUEZ" >&2
+		exit 1
+	fi
+	banderas_del_juez=(
+		-modelo-del-juez "$MODELO_DEL_JUEZ"
+		-version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ"
+		-claude-del-juez "$CLAUDE_DEL_JUEZ"
+	)
 fi
 
 # La carpeta de salida se vacía al empezar, de modo que ningún fichero de una ejecución anterior —un sin-python.txt, un
@@ -132,14 +166,16 @@ fi
 # la duración o por sesiones sin medir (FR-037 y FR-043 de H7.3). Sin límite de tiempo de go test: el de la ejecución
 # es el tope de la definición del job. -kitlegal es la ruta del binario del PATH, el del paso 6: la orden del servidor de
 # las sesiones del modo herramienta, y el directorio que sale del PATH de las que no son del modo orden
-# (contracts/evals-en-dos-modos.md §2.2 de H21).
+# (contracts/evals-en-dos-modos.md §2.2 de H21). Con una skill que tiene juez van además sus tres banderas, y la orden
+# no abre ninguna sesión si su medida versionada no corresponde o no se cumple: escribe el informe del instrumento sin
+# medir y falla con su veredicto (contracts/informe-del-job.md §5 de H24; FR-043 de H24).
 codigo_del_informe=0
 go test -tags evals -count=1 -timeout 0 -run '^TestEjecucionDelJob$' ./internal/evals/ -args \
 	-skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
 	-repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" -concurrencia "$CONCURRENCIA_DE_EVALS" \
 	-prueba-de-red="${PRUEBA_DE_RED:-false}" -objetivo-de-duracion "${OBJETIVO_DE_DURACION_DE_EVALS:-0}" \
 	-skills "$HOME/.claude/skills" -kitlegal "$(command -v kitlegal)" -commit "$COMMIT_EVALUADO" \
-	-sin-python "$salida/sin-python.txt" -sesiones "$salida/sesiones" -informe "$salida" ||
+	-sin-python "$salida/sin-python.txt" -sesiones "$salida/sesiones" -informe "$salida" "${banderas_del_juez[@]}" ||
 	codigo_del_informe=$?
 
 # La carpeta se vació al empezar: un informe que falta es que el test no lo escribió en esta ejecución.

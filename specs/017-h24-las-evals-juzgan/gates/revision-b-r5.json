@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es el de la cabeza 51db15e: está escrito a las 03:41:18, el segundo del commit (git log -1 --format=%ci), y empieza por «guardián de diff ok ((global), 16 ficheros)», que son los 16 de git show --stat 51db15e; lint «0 issues.» (ci.log:9), todos los paquetes ok con -race y con -tags=integration (internal/evals 97,6 % y 98,2 %), govulncheck «No vulnerabilities found.», TestEsquemasPublicados ok (76-77), las tres líneas de skills-check ok (78-81), goreleaser check, gitleaks «no leaks found» (88), go mod verify y tidy -diff vacío, «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». Reproducido en esta sesión sobre un clon de 51db15e en $TMPDIR (kl-b5.VXYIyS): go test -count=1 con el patrón de skills-check en internal/app, internal/skills e internal/evals, los tres ok. El rango b50e05b..HEAD no toca ningún .go ni nada que el binario empotre: fuera de gates/ son cierre.md, contracts/skill-boe-legislacion.md y plan.md (git show --stat 51db15e; SKILL.md y CHANGELOG.md tienen el mismo blob en b50e05b y en HEAD: f64acc02… y a8b7206e…). Árbol: solo lo que el workflow escribe en gates/ para esta ronda (git status: base-global-pendiente borrado, revision-cambios.md y revision-cambios-r5.diff). El diff publicado en gates/revision-cambios-r5.diff es el de los tres ficheros del rango."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no cambia ningún test, ninguna sentencia de Go ni ningún dato que un test lea (los tres ficheros son .md de specs/). Los controles sin modelo de la skill pasan en la cabeza, en ci.log:78-81 y en el clon; en la ronda 4 vi con mutantes que los dos muerden sobre el texto de C9 (300 líneas y «el sobre» en la línea 133), y SKILL.md no ha cambiado desde entonces (mismo blob). Suite de aceptación congelada: no aplica, el binario no cambia (plan.md «no aplica»); las de hitos anteriores pasan en internal/app e internal/app/ejemplo/kitlegal-e2e (ci.log:16-18, 43-45)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Ninguna línea de Go ni ningún import en el rango (git show --stat 51db15e: tres .md fuera de gates/). golangci-lint con depguard y forbidigo, «0 issues.» sobre ./... en gates/ci.log:9 para la cabeza; el test de arquitectura del paquete internal, ok (ci.log:15). Lo juzgado en las rondas 1 a 3 sobre el código del hito no cambia."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet, esquema ni skill empotrada cambia en el rango. TestEsquemasPublicados pasa en gates/ci.log:76-77 e internal/app pasa en el clon; schemas/ no está en git show --stat 51db15e."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida, texto de error ni ruta de usuario cambia: el rango es prosa de artefactos de specs/. Lo que el contrato del job promete se vio ocurrir en la plataforma con la medición de a5bda45 (gates/evals/boe-legislacion.json: veredicto «fallo» con afirma_lo_no_leido:claude-sonnet-5-5:orden medida 1, umbral 0, cumple:false, decide:true; cierre.log «make: *** [Makefile:135: evals] Error 1»), y lo juzgado en la ronda 2 sobre medida.go, informe.go y definicion.go (0 panic) sigue igual."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Mi motivo de la ronda 4 está corregido por la segunda de las dos salidas que ofrecía: sin regenerar el prototipo, los dos sitios dicen que el texto de la cabeza es ese diff más C9, con numstat 20 20 (contracts/skill-boe-legislacion.md:3-8; cierre.md:74-82), y la cabecera de cierre.md lleva el párrafo de la reparación (cierre.md:32-37) con la fila de SKILL.md (cierre.md:66, +20 −20) y la línea de CHANGELOG.md (cierre.md:155, +71). Cada cifra nueva, medida en esta sesión sobre el repositorio o el clon: git diff --numstat main -- SKILL.md CHANGELOG.md da 20 20 y 71 0 en HEAD, y 19 19 y 69 0 en ae250eb; git diff --numstat ae250eb HEAD da 4 4 a la skill y 7 5 al changelog (iguales a ae250eb b50e05b); git apply --numstat del prototipo, 19 19; git apply --check -R del prototipo termina con 1 y «patch failed: skills/boe-legislacion/SKILL.md:129» sobre 51db15e, y con 0 sobre b1c5156 y sobre ae250eb; SKILL.md tiene el mismo blob c1f327dd… en b1c5156, d5ae2e7 y ae250eb; y git diff main ae250eb -- SKILL.md, sin las líneas diff --git e index, con el texto tras @@ quitado y sin blancos finales, es idéntico al prototipo (diff vacío; las 29 líneas +/- con texto, idénticas sin filtrar). «T017 vio sobre b1c5156» cuadra con cierre.md:3 («Cierre de T017 … sobre b1c5156»). Los cuatro motivos del juez A (gates/revision-a-r4.json) también están corregidos y sin romper nada: cierre.md líneas 66, 74-82, 155 y la cabecera; contracts:3-8; «los demás umbrales que deciden se cumplen, cuenta_su_proceso, que solo se publica, da 0 y 3» en contracts:113-114 y en gates/supuestos.md:93 (git diff b50e05b HEAD -- gates/supuestos.md), que es lo que dice gates/evals/boe-legislacion.json con jq (cuenta_su_proceso:…:orden medida 0 y :herramienta medida 3, umbral 0, cumple:false, decide:false); plan.md:8, 107, 115-116 y 337 en D1-D27, V1-V23 y C1-C9, y research.md tiene V14, V23 y D27 (líneas 30, 39, 197) y no cambia en el rango. Los «C1-C8» que quedan (contracts:4 y 110, plan.md:116, 310 y 350, research:198) nombran el prototipo o lo que había antes de C9, y plan.md:426-427 es el registro de la sesión del plan. CHANGELOG (Unreleased) sigue con v0.1.7 y el juez; sin ADR nuevo ni fuente nueva; gates/supuestos.md:97-98 registra las dos correcciones con impacto [interno]."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca scripts/, internal/httpx, testdata/, evidencias/, data/, .github ni evals/boe-legislacion/juez/ (git show --stat 51db15e). gitleaks «no leaks found» sobre la cabeza (ci.log:88). Sin NIF ni datos de persona en lo añadido. En esta sesión no se ha abierto ninguna sesión con modelo ni leído ninguna credencial; las órdenes han corrido en primer plano, con escritura solo en el clon de $TMPDIR y en este fichero."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin nolint, t.Skip, TODO, FIXME ni fixture tocado en el rango (gates/revision-cambios-r5.diff: 45 líneas, todas prosa). La corrección no retocó el prototipo ni ninguna medida para que cuadrara: dejó las cifras de la cabeza tal como son, con el apply --check -R en 1, y lo dice. La rúbrica, los casos, la medida y los umbrales siguen intactos (decide:true y umbral 0 en el informe)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente lo que pedían los motivos de la ronda 4, en los ficheros que nombraban (cierre.md, contracts/skill-boe-legislacion.md, plan.md y gates/supuestos.md), sin tocar SKILL.md, CHANGELOG.md, el prototipo, research.md ni el producto. La elección entre las dos salidas de mi motivo (no regenerar el diff) es la que cumple a la vez el motivo del juez A, y está registrada en gates/supuestos.md:97 con su medición. Los supuestos nuevos (supuestos.md:97-98) son lecturas conservadoras coherentes con el spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada de lo que consume una skill o una persona cambia en el rango: SKILL.md sigue en 298 líneas y 24 388 B (wc, mismo blob que b50e05b), el binario, el job y sus salidas no cambian. Lo medido en la ronda 4 (+116 B por activación, ninguna orden nueva por pregunta, ninguna señal que se acumule) sigue valiendo."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, rama, opción, reintento ni test. Son 45 líneas de prosa en tres artefactos que alinean lo afirmado con lo medido (FR-036 y la Definition of Done de docs/ROADMAP.md §1, que piden que ninguna afirmación de los artefactos la contradiga el producto). Nada que retirar."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún umbral ni control cambia en el rango (plan.md «Controles de umbral» intacto; evals.yml, definicion.go y clases.yaml fuera del diff). El control de SC-001 se ha visto en rojo de verdad en el job: afirma_lo_no_leido:claude-sonnet-5-5:orden con medida 1, umbral 0, cumple:false y decide:true pone el veredicto en «fallo» (jq sobre gates/evals/boe-legislacion.json en esta sesión) y el check queda en FAILURE (gates/cierre.json). Los dos controles de make ci sobre la skill se vieron en rojo con mutantes en la ronda 4 y el texto que miden no ha cambiado. Las diez filas evals: las mide el job de la medición siguiente, sobre esta cabeza ya juzgada."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "cierre.md §1 (línea 41) sigue con los totales que T018 midió antes de b50e05b y 51db15e (90 ficheros, 21 897 líneas añadidas y 2 861 quitadas); el fichero fecha esa medida en T018 y la cabecera dice que «lo demás sigue como lo midieron», así que no afirma nada falso de la cabeza, pero quien lea los totales como actuales se encontrará unas pocas líneas de más en SKILL.md, CHANGELOG.md y los tres .md del rango. No toca el producto.",
+    "plan.md:350 («C1-C8 de contracts/skill-boe-legislacion.md §2») describe la tabla de §2 por su contenido original; esa tabla lleva ahora también la fila de C9, que plan.md:354 trata aparte. Es coherente, no es un índice y no lo cuento como motivo.",
+    "El efecto de C9 sigue sin medir, como dicen contracts §8, research D27 y supuestos.md:93: gates/evals/*.json miden a5bda45. Lo mide el job de la medición siguiente, en los dos modos.",
+    "cuenta_su_proceso:claude-sonnet-5-5:herramienta sale con medida 3, umbral 0 y cumple:false con decide:false: se publica sin afectar al veredicto, como piden FR-031 y FR-084; ahora lo dicen también contracts §8 y supuestos.md:93.",
+    "Siguen en pie, sin cambios en el rango, las observaciones de mis rondas anteriores (gates/revision-b-r2.json, -r3.json y -r4.json): el precedente de C11 en H7.4 no es el mismo mecanismo de pago de línea; la viñeta pegada al cierre ```text en SKILL.md:183-184; la cota del juez por tandas frente al reparto por respuestas; el tope de 35 s por voto sin medida; el guardián global sobre .github/*; y las de la ronda 2.",
+    "Las medidas de esta ronda se hicieron sobre un clon de 51db15e en $TMPDIR (kl-b5.VXYIyS), con checkouts de b1c5156 y ae250eb para el apply --check -R y restaurado a la cabeza antes de los tests; en el árbol de trabajo no se ha escrito nada salvo este veredicto."
+  ]
+}

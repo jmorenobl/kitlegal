@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log está escrito a las 02:16:42, el mismo segundo que el commit de la cabeza (ae250eb), empieza por «guardián de diff ok ((global), 15 ficheros)» —los 15 ficheros del commit según git show --stat— y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0»: lint «0 issues», go test -race en verde en todos los paquetes (internal/evals 97,6 % y 98,2 % de cobertura), medidas de tiempo, govulncheck sin vulnerabilidades, esquemas publicados, skills-check, goreleaser, gitleaks «no leaks found», go mod verify y tidy -diff vacío. Reproducido en esta sesión sobre un clon de ae250eb en $TMPDIR: go build ./..., go vet ./internal/evals/ con y sin -tags evals, gofmt -l vacío, el golangci-lint del repositorio sobre ./internal/evals/... («0 issues») y go test -count=1 -race -shuffle=on de internal/evals, internal/app e internal/skills, los tres ok. Árbol: solo gates/ (el borrado de base-global-pendiente, revision-cambios.md y revision-cambios-r3.diff), que escribe el workflow para esta ronda. El diff publicado en gates/revision-cambios-r3.diff corresponde hunk a hunk al rango 10484b5..HEAD fuera de gates/ (comparado por contenido en el clon: los mismos cuatro ficheros y las mismas líneas)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no cambia ningún test ni código ejecutable: son dos comentarios de documentación (internal/evals/conjunto_test.go:147-148 e internal/evals/medida.go:1074-1076), así que los controles que vi en rojo con mutantes en las rondas 1 y 2 siguen idénticos y pasan en el clon con -race y -shuffle. En las líneas añadidas del diff main...HEAD fuera de specs/ no hay t.Skip, SkipNow ni test desactivado (grep de esta sesión: 0). Suite de aceptación congelada: no aplica, el binario no cambia en el hito (plan.md «no aplica»); las de hitos anteriores pasan en internal/app."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas a los .go que no son de test del diff main...HEAD: 0 coincidencias de net/http, os.Exit, fmt.Print, panic(, os.Stdout, os.Stderr y database/sql (grep de esta sesión). El rango no añade ningún import. golangci-lint, con depguard y forbidigo, «0 issues» sobre internal/evals en el clon y sobre ./... en gates/ci.log."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet ni esquema (git show --stat ae250eb: dos ficheros de internal/evals y dos de specs/). TestEsquemasPublicados pasa en gates/ci.log:76-77 y en el clon (internal/app ok)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni texto de error cambia en el rango; lo que juzgué en la ronda 2 (medida.go:1236, informe.go:1161, definicion.go:638-639; 0 panic) sigue igual."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Mi motivo [f] de la ronda 2 está corregido en sus partes: (1) tasks.md:131 (T001, «Tests») dice ya «la rúbrica y el esquema enteros y los casos y la medida enteros», que es lo que el caso juez-bien-formado de TestLeerConjunto compara (conjunto_test.go:546-553: Rubrica, Esquema, Casos, Medida). (2) gates/supuestos.md:91 dice que el juez B retiró el motivo en la ronda 2 con la premisa del código —un voto que agota su tope deja la respuesta sin juzgar; 215 s por respuesta; 20 652 s y 14 520 s bajo la cota de definicion.go (21 097 s y 16 105 s) y bajo los topes (352 min, 21 120 s; 269 min, 16 140 s)— y que nada cambia; gates/revision-pendiente.md dice «No queda nada pendiente», sin la tabla ni «Qué cambiar»; cierre.md:28-31 dice que el juez B lo retiró en la ronda 2 citando gates/revision-b-r2.json, que es byte a byte mi veredicto de esa ronda (cmp). Las cuentas son correctas: 14 357 + 60 + 29 × 215 = 20 652 y 485 + 60 + 65 × 215 = 14 520. Ninguna de las cifras retiradas (21 377, 16 145, 357, 270) queda en specs/*.md, contracts/, CHANGELOG.md, CONTRIBUTING.md ni docs/ (grep sin coincidencias). Los dos comentarios de Go del rango corresponden al código: conjunto_test.go:147-148 («la rúbrica, el esquema, los casos y la medida enteros») es lo que ese caso exige; medida.go:1074-1076 («sus casos. Su medida versionada no se usa»): medirAlJuez lee los casos por leerLosCasos (medida.go:1243, con m.Juez.Casos y m.Juez.Clases) y las únicas lecturas de Juez.Medida fuera de tests son comprobarLaMedida (medida.go:207, llamada desde ejecucion.go:95 y sondeo.go:456) e informe.go:1159, ninguna en la ejecución de la medida. CHANGELOG.md y CONTRIBUTING.md no cambian y siguen sostenidos."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca scripts/, internal/httpx, testdata/, evidencias/, data/ ni .github (git show --stat ae250eb); ninguna petición ni proceso nuevo. gitleaks sin fugas en gates/ci.log:88. Sin secretos ni datos de persona."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "0 líneas añadidas con nolint, t.Skip, SkipNow, TODO, FIXME o HACK en el diff main...HEAD fuera de specs/ (grep de esta sesión). El único //nolint de internal/evals es el de gosec de cierre_test.go:242, justificado y anterior al hito; el //nolint:misspell que T015 dejó lo retiró T018 (01ea12f) a ignore-rules de .golangci.yml («informativo»), como cuenta cierre.md:12-15. Ningún fixture ni esquema tocado en el rango."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es la corrección de mi motivo [f] de la ronda 2 —tasks.md T001, la línea [l][f] de gates/supuestos.md, gates/revision-pendiente.md y el párrafo de cierre.md— más dos comentarios de Go con la misma inexactitud (ruta en lugar de contenido): 14 líneas en cuatro ficheros fuera de gates/, y nada más. Ningún umbral, tope, código ni configuración cambia; .github/workflows/evals.yml y definicion.go siguen como en la ronda 2, que es lo que el motivo retirado pedía."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada del binario, de las skills ni de las salidas del job cambia en el rango (solo comentarios y artefactos). Las medidas de la ronda 2 siguen: el juez lleva en memoria casos.yaml y medida.json una vez por lectura del conjunto, y ninguna señal nueva se repite ni crece con el uso."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, rama, opción ni test; solo corrige dos comentarios (conjunto_test.go:147-148 y medida.go:1074-1076) para que digan lo que el código hace. Lo que juzgué en la ronda 2 (todo trazado a su FR; los dos mecanismos sin FR retirados) sigue igual."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún umbral ni control cambia en el rango. Los controles de la ronda 2 siguen en pie: TestDefinicionDelJob compara cada timeout-minutes con la cota de definicion.go:461-472 (en rojo con 351 y 268 en la ronda 1), los diez umbrales del job con decide:true y en rojo con sus mutantes, y los de make ci con los suyos. El peor caso del código (20 652 s y 14 520 s, con 215 s por respuesta) queda bajo la cota y bajo los dos topes, y ahora los artefactos lo dicen así (gates/supuestos.md:91, gates/revision-pendiente.md, cierre.md:28-31)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "La cota del juez de definicion.go:461-472 (research D6; contracts/job-de-evals.md §4; CONTRIBUTING.md:875-879) cuenta ⌈R × 6 / C⌉ tandas de 40 s y el reparto real es por respuestas de 215 s como mucho (Σ ⌈R/C⌉ × (5 × 35 + 40) s): con las cifras del repositorio queda por encima del peor caso (445 s en evals y 1 585 s en medida de margen) y para un grupo de menos de 8,6 × (C − 1) respuestas puede quedar corta (3 a 4: 200 s frente a 215 s). Sigue por debajo del umbral de materialidad: el control cumple con las cifras del repositorio y el spec fija la cota por su research.",
+    "gates/supuestos.md:86 ([alcance] T017) dice que el //nolint:misspell de conjunto_test.go «queda para la revisión final», y lo retiró T018 (01ea12f) antes de ella, como cuenta cierre.md:12-15 y tasks.md T018; es el registro de lo que decidió un paso, anterior al rango y sin efecto en el producto.",
+    "El tope de 35 s por voto (D6, S6) sigue sin ninguna medida: los votos versionados en evidencias/adr-0037/votos-*.jsonl no llevan su duración. Si Opus tarda más con los textos largos de boe articulos, la respuesta queda «sin juzgar» y SC-001 cae por la ejecución, no por la skill; lo mide el job de cierre y está registrado como supuesto [interno].",
+    "El guardián global aparta cualquier corrección que toque .github/* (scripts/workflow/guardian-diff.sh:78): un motivo de la revisión final que exija cambiar evals.yml no lo puede aplicar ningún corrector. No es del hito, sino del workflow.",
+    "Siguen en pie, sin cambios en el rango, las demás observaciones de mi ronda 2 (gates/revision-b-r2.json): FR-111 y la única respuesta de TestJuzgarSinLaLista; la guarda de ruta absoluta de nuevoVotanteConTope (juez.go:481-483) sin vía real; el reloj del sistema en la reconstrucción de los casos y el sobre compacto de boe articulos; cuenta_su_proceso con umbral 0 y decide:false; y un casos.yaml o medida.json que falta como fichero mal formado del conjunto.",
+    "El diff del rango que calculé en el clon lo reescribió el gancho RTK a su formato compacto, por lo que su hash no es comparable con el de gates/revision-cambios-r3.diff; la comparación la hice por contenido, hunk a hunk, y coincide."
+  ]
+}

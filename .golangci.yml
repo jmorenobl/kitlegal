@@ -348,6 +348,12 @@ linters:
         # (FR-040, FR-050, research.md D9 y D18); misspell lo lee como
         # «disposition».
         - disposicion
+        # «Carácter informativo», el final del párrafo del paso 5 de SKILL.md
+        # v0.1.6 de boe-legislacion, que TestProsaDeLaSkill, en
+        # internal/evals/conjunto_test.go, lleva byte a byte en
+        # vigenciaDeLaVersionAnterior (H24 FR-085); misspell lo lee como
+        # «information».
+        - informativo
         # «Inventario de tests», la sección de plan.md que cada tabla cita;
         # misspell lo lee como «Inventor».
         - inventario

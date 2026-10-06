@@ -130,8 +130,10 @@ func listaConFormasFijas() ExpresionesProhibidas {
 // punto, sin él y seguida de un paréntesis— y la marca, la etiqueta y los dos
 // puntos de cada aviso, y se busca lo que sigue en la línea y las mismas
 // palabras fuera de esas formas; que una lista sin formas fijas no quita nada;
-// que cada expresión y cada forma fija se compilan una sola vez; y que
-// esDeLaClaseB dice si una expresión es de la redacción no leída.
+// que lo que devuelven las herramientas, que desde H24 está en la lista y no es
+// una de las cuatro familias, no se busca (FR-085 de H24;
+// contracts/skill-boe-legislacion.md §4 de H24); y que cada expresión y cada
+// forma fija se compilan una sola vez.
 func TestExtraerExpresionesProhibidas(t *testing.T) {
 	t.Parallel()
 
@@ -337,6 +339,24 @@ func TestExtraerExpresionesProhibidas(t *testing.T) {
 			lista:  ExpresionesProhibidas{FormasFijas: conFormasFijas.FormasFijas},
 		},
 		{
+			// Lo que devuelven las herramientas no es una de las cuatro familias:
+			// en un texto no se busca (FR-085 de H24).
+			nombre: "salida-de-las-herramientas-no-se-busca",
+			texto:  "El sobre trae fecha_vigencia y hallazgos.",
+			lista: ExpresionesProhibidas{
+				Maquinaria:              []string{"hallazgos"},
+				SalidaDeLasHerramientas: []string{"el sobre", "fecha_vigencia"},
+			},
+			encontradas: []string{"hallazgos"},
+		},
+		{
+			// Sin familias no hay nada que buscar, tampoco con lo que devuelven
+			// las herramientas.
+			nombre: "solo-salida-de-las-herramientas",
+			texto:  "El sobre trae fecha_vigencia.",
+			lista:  ExpresionesProhibidas{SalidaDeLasHerramientas: []string{"el sobre", "fecha_vigencia"}},
+		},
+		{
 			nombre: "dentro-de-otra-palabra",
 			texto:  "hallazgoss",
 			lista:  delContrato,
@@ -408,12 +428,5 @@ func TestExtraerExpresionesProhibidas(t *testing.T) {
 		primera := formasDeLasFormasFijas.forma(forma)
 		assert.Same(t, primera, formasDeLasFormasFijas.forma(forma),
 			"la segunda vez que se pide la expresión de una forma fija es la compilada la primera")
-	})
-
-	t.Run("clase-b", func(t *testing.T) {
-		t.Parallel()
-
-		assert.True(t, conFormasFijas.esDeLaClaseB("ya no exige"), "ya no exige es de la redacción no leída")
-		assert.False(t, conFormasFijas.esDeLaClaseB("ya puedo responder"), "ya puedo responder es del anuncio")
 	})
 }

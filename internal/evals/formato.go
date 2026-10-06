@@ -21,12 +21,6 @@ type Eval struct {
 	// YAML: lo pone LeerEval, y con él se nombra la eval.
 	Fichero string `yaml:"-"`
 
-	// Prohibidas es la lista de expresiones prohibidas de la carpeta de la eval,
-	// la de su skill. No es una clave del YAML: la pone LeerConjunto en cada eval
-	// de la carpeta, y queda vacía si la carpeta no la tiene o está mal formada
-	// (contrato lista-y-juicio §1 de H7.2; research D5).
-	Prohibidas ExpresionesProhibidas `yaml:"-"`
-
 	// Pregunta es lo que se pregunta en la sesión.
 	Pregunta string `yaml:"pregunta"`
 

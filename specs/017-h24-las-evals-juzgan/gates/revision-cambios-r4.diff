@@ -1,0 +1,171 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index e935910..a8b7206 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -23,11 +23,13 @@ sustituyen a este fichero.
+   de escritorio de Claude en macOS: desinstalada la extensión y actualizado el plugin, la app arranca al abrirse un
+   solo servidor, el del plugin, con sus diez herramientas, y la respuesta lleva la cita con su forma (`docs/USO.md`).
+ - **`boe-legislacion` v0.1.7: de un precepto que no ha leído, nada.** De un artículo, un apartado o una disposición
+-  que ninguna orden ni herramienta le ha devuelto en la conversación, la respuesta **no dice qué dice ni de qué
+-  trata**, tampoco entre paréntesis ni aunque el agente crea saberlo: sería texto legal sin fuente. Si lo nombra, por
+-  su número y nada más. **Traslada las remisiones como el texto las da**, sin describir lo remitido, y si lo remitido
+-  importa para responder, lo lee y lo cita. Puede avisar de que una materia se regula en otra parte, sin nombrar
+-  precepto ni regla, y de los bloques que no pudo consultar dice cuáles son por su número, sin decir de qué tratan.
++  que ninguna orden ni herramienta le ha devuelto en la conversación, la respuesta **no dice qué dice, de qué trata
++  ni cuándo o cómo se aplica**, tampoco en un paréntesis o un inciso ni aunque el agente crea saberlo: sería texto
++  legal sin fuente. Si lo nombra, por su número y nada más. **Traslada las remisiones con las palabras del texto
++  leído**, sin describir lo remitido ni colgarle un «que es…» o un «que regula…», que es contenido de lo remitido, y
++  si lo remitido importa para responder, lo lee y lo cita. Puede avisar de que una materia se regula en otra parte,
++  sin nombrar precepto ni regla, y de los bloques que no pudo consultar dice cuáles son por su número, sin decir de
++  qué tratan.
+   Antes, v0.1.6 decía cuándo leer una remisión y no qué hacer con la que no se lee, y la respuesta la cambiaba por su
+   descripción («el art. 7 sobre rentas exentas») o exponía la regla de un artículo que no había leído. **Dice la
+   vigencia sin «el sobre» ni nombres de campos**: de la redacción leída, qué norma la dio y desde cuándo rige, con
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index c1f327d..f64acc0 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -130,9 +130,10 @@ Lo que decidas en este paso no va en la respuesta: quien pregunta no ve los paso
+   `<identificador>, bloque <id>]`, con el identificador `BOE-A-…` y el id tal como los da la fuente (más en «Cómo se
+   cita»).
+ - **De un precepto que no has leído, nada.** De un artículo, un apartado o una disposición que nada te ha devuelto en
+-  esta conversación no digas qué dice ni de qué trata, ni entre paréntesis ni aunque creas saberlo: sería texto legal
+-  sin fuente. Si lo nombras, por su número y nada más. Una remisión va como el texto la da, sin describir lo remitido;
+-  si importa, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
++  esta conversación no digas qué dice, de qué trata ni cuándo o cómo se aplica, ni en un paréntesis o un inciso, ni
++  aunque creas saberlo: sería texto legal sin fuente. Si lo nombras, por su número y nada más. Una remisión va con
++  las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido; si
++  importa, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
+ - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
+   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
+ - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
+@@ -180,7 +181,6 @@ del binario o de una explicación:
+ ```text
+ ⚠ NORMA DEROGADA: esta norma ha sido derogada.
+ ```
+-
+ - La etiqueta va entera y sin cambiar ninguna palabra, con `⚠` delante y los dos puntos detrás, todo en la misma línea.
+   Decir con otras palabras que la norma está derogada no traslada el aviso.
+ 
+diff --git a/specs/017-h24-las-evals-juzgan/contracts/skill-boe-legislacion.md b/specs/017-h24-las-evals-juzgan/contracts/skill-boe-legislacion.md
+index 6b30066..ea6a693 100644
+--- a/specs/017-h24-las-evals-juzgan/contracts/skill-boe-legislacion.md
++++ b/specs/017-h24-las-evals-juzgan/contracts/skill-boe-legislacion.md
+@@ -46,12 +46,13 @@ no separa las dos causas: v0.1.7 quita el vocabulario de toda la prosa, y el cie
+ | C6 | «Cómo se cita», línea 171 | «Cada aviso de la lectura» en lugar de «Cada aviso del sobre» | el vocabulario | FR-084 |
+ | C7 | «Redacción modificada», líneas 197-199 | Las dos fechas de la línea se dicen por su orden («primero la de la redacción superada y después la más reciente, que es la de la que acabas de leer»), sin los dos nombres de campo | el vocabulario | FR-085 |
+ | C8 | Paso 4, líneas 109-110 | «Remisiones» en una línea: «a otro precepto o a otra norma» | las líneas de C1 | FR-086 (menos de 300) |
++| C9 | Paso 5, la viñeta de C1 (reparación del cierre, §8) | La viñeta dice también «cuándo o cómo se aplica» y «ni en un paréntesis o un inciso», y de la remisión, que «va con las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido»; una línea más, que paga la línea en blanco entre el ejemplo `⚠ NORMA DEROGADA:` y su viñeta en «Cómo se cita» | forma c, medida en el cierre (§8) | FR-081, FR-082 |
+ 
+ **Las líneas.** v0.1.6 tiene 298 y ese es el tope efectivo: `skills-check` falla con 300 o más y el mutante
+ `dos-inicios` de `internal/app/skills_test.go` añade una (research V13). C1 cuesta cuatro. Salen de C3 (una: la forma
+ del aviso, que ese párrafo repetía, queda en «Cómo se cita» y en la regla 3, a las que remite; y «Recuerda que los
+ textos consolidados…», que sigue en la regla 3), de C5 (una), de C7 (una) y de C8 (una). El prototipo tiene 298
+-(research V14).
++(research V14). C9 cuesta una, que paga el blanco de «Cómo se cita» (§8): sigue en 298.
+ 
+ ## 3. Lo que se queda (FR-086)
+ 
+@@ -100,3 +101,37 @@ En `make ci`: `skills-check` (menos de 300 líneas, frontmatter, región sin dri
+ `afirma_lo_no_leido:<modelo>:<modo>`, que decide con 0 en cada modo, y `cuenta_su_proceso:<modelo>:<modo>`, que se
+ publica ([informe-del-job.md](./informe-del-job.md) §2). Si el cierre marca alguna respuesta, la reparación corrige
+ `SKILL.md` con la frase marcada delante; no toca la rúbrica, los casos, la medida ni el umbral (FR-036).
++
++## 8. Reparación del cierre: C9, el inciso detrás de una remisión (FR-081, FR-082)
++
++Lo añade `reparar_cierre` tras la medición sobre `a5bda45` (research V23, D27): con C1-C8,
++`afirma_lo_no_leido:claude-sonnet-5-5:orden` da 1 de 54 frente al umbral 0 —la sesión
++`08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01`, con tres votos sobre la frase «También cabe la reclamación
++potestativa del artículo 24, que es previa a ese recurso»— y el del modo herramienta, 0 de 54; los demás umbrales se
++cumplen y `legal-core` aprueba.
++
++**Causa.** La sesión leyó solo el art. 20 de la Ley 19/2013, cuyo apartado 5 dice «sin perjuicio de la posibilidad de
++interposición de la reclamación potestativa prevista en el artículo 24», y nada más del art. 24; que la reclamación
++sea previa al recurso es la regla del art. 24, que no leyó. Es la forma c de §1, con la misma frase que marcó la
++validación en los informes de H21 y H22 (`evidencias/adr-0037/casos.yaml`, dos casos `defecto`). C1 prohibía decir
++«qué dice» o «de qué trata» el precepto no leído y mandaba trasladar la remisión «como el texto la da, sin describir
++lo remitido»: el modelo parafrasea el art. 20.5, que sí leyó, nombra el art. 24 solo por su número, como C1 pide, y
++cuelga de la remisión un inciso que sitúa lo remitido —cuándo va respecto del recurso— sin tomarlo por una
++descripción de lo que dice el art. 24. Otra respuesta del mismo cierre hace la misma construcción con un inciso que no
++afirma nada («del artículo 24, que es otra vía», `08-…-herramienta-…-01`, sin ningún voto afirmativo): es la que C1 no
++nombraba.
++
++**Qué cambia (C9).** La viñeta de C1 enumera lo que no se dice del precepto no leído («qué dice, de qué trata ni
++cuándo o cómo se aplica»), nombra el inciso junto al paréntesis y dice de la remisión que va con las palabras del texto
++leído y sin un «que es…» ni un «que regula…» detrás, porque eso es contenido de lo remitido; «si importa, léelo y
++cítalo» y el aviso de lo que no cubre quedan como estaban. Una línea más (la viñeta pasa de cuatro a cinco), que paga
++la línea en blanco entre el ejemplo `⚠ NORMA DEROGADA:` y la viñeta que lo sigue, en «Cómo se cita», como hizo H7.4
++con C11: `SKILL.md` sigue en 298 líneas, con las mismas 14 de más de 120 caracteres, y la prosa sin ninguna expresión
++de la lista (`make skills-check`, en verde en la sesión de la reparación). Ninguna forma fija, eval, rúbrica, caso,
++medida ni umbral cambia (FR-036). Rechazado: la frase marcada como ejemplo en la skill, porque es contenido legal del
++art. 24 y el modelo repite el vocabulario de la prosa (H7.3); y leer siempre el precepto remitido, que añade una
++lectura a preguntas que no la necesitan cuando C1 ya manda leerlo si importa.
++
++**Lo que no se ha medido.** El efecto de C9 sobre `afirma_lo_no_leido` y sobre las demás evals no se puede medir en
++una sesión de un paso, que no abre sesiones con modelo (ADR 0032): lo mide el job de evals de la medición siguiente,
++en los dos modos.
+diff --git a/specs/017-h24-las-evals-juzgan/plan.md b/specs/017-h24-las-evals-juzgan/plan.md
+index 44d073e..10f2d98 100644
+--- a/specs/017-h24-las-evals-juzgan/plan.md
++++ b/specs/017-h24-las-evals-juzgan/plan.md
+@@ -306,7 +306,12 @@ casos del repositorio.
+ - **El vocabulario nuevo se busca en toda la prosa, con el código en línea** (D22).
+ - **v0.1.7 quita también los nombres de campo de la línea de la redacción modificada y los del paso 4** (D23, C5 y
+   C7): los pide la delimitación de D22.
+-- Las demás, con su alternativa rechazada, en research D1-D26.
++- **Reparación del cierre: C9, el inciso detrás de una remisión** (D27, V23; contracts/skill-boe-legislacion.md §8):
++  con C1-C8, `afirma_lo_no_leido:claude-sonnet-5-5:orden` dio 1 de 54 («del artículo 24, que es previa a ese
++  recurso», la regla de un artículo no leído colgada de la remisión del art. 20.5); la viñeta de C1 nombra el inciso y
++  la remisión va con las palabras del texto leído. Una línea, pagada con un blanco de «Cómo se cita»: 298 líneas. Su
++  efecto lo mide el job de la medición siguiente.
++- Las demás, con su alternativa rechazada, en research D1-D27.
+ 
+ ## Trazabilidad: cada mecanismo y su requisito
+ 
+@@ -346,7 +351,9 @@ C1-C8 de contracts/skill-boe-legislacion.md §2, cada uno con sus líneas de v0.
+ y su requisito. En resumen: v0.1.6 dice cuándo leer una remisión y no qué hacer con la que no se lee; manda decir lo
+ que falta y no cómo; y solo enseña «no lo has leído, no lo digas» para la redacción anterior (C1, C2). Y desde H7.4
+ dice lo que la respuesta lleva de la vigencia con «el sobre» y dos nombres de campo (C3 a C7). C8 es una línea del
+-presupuesto de 298.
++presupuesto de 298. C9 (reparación del cierre; contracts §8, research V23 y D27) es la forma c medida en el cierre:
++C1 no nombraba el inciso que cuelga de una remisión y sitúa lo remitido, y paga su línea con un blanco de «Cómo se
++cita».
+ 
+ ## Datos externos
+ 
+diff --git a/specs/017-h24-las-evals-juzgan/research.md b/specs/017-h24-las-evals-juzgan/research.md
+index 9f83d43..f11ee12 100644
+--- a/specs/017-h24-las-evals-juzgan/research.md
++++ b/specs/017-h24-las-evals-juzgan/research.md
+@@ -36,6 +36,7 @@ Lo que dependía de ellos está en «Supuestos».
+ | V20 | La lista se aplica a respuestas en `Juzgar`, en el recuento del informe y del sondeo y en `comprobarConsultaRepetida` | `juzgar.go:908-913`, `informe.go:381-395, 1041-1083`, `sondeo.go:269`, `consulta_repetida.go:62` |
+ | V21 | `TestGrabacionesDerivadas` está en `internal/app`, que no puede importar `internal/evals` desde sus tests | `internal/app/grafo_test.go:2527-2533, 2724` |
+ | V22 | En bash 3.2, `$(…)` quita los saltos de línea finales, y con `$(…; printf x)` seguido de `${v%x}` se conservan: así lee el guion del voto la rúbrica entera | `/bin/bash` 3.2.57 del equipo, con `od -c` |
++| V23 | En el informe del cierre sobre `a5bda45`, `afirma_lo_no_leido:claude-sonnet-5-5:orden` da 1 de 54 —la sesión `08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01`, tres votos con la frase «También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso» y el precepto «Artículo 24 de la Ley 19/2013»— y el del modo herramienta, 0 de 54; `sin_activar` 0 y 0, `cuenta_su_proceso` 0 y 3, la medida del juez 0 de 212 y 0 de 47, las sesiones 447 s y 446 s, el juez 102 s y 101 s, ninguna sin juzgar; `legal-core` aprueba. La sesión leyó solo `a20` de `BOE-A-2013-12887`, cuyo apartado 5 grabado dice «sin perjuicio de la posibilidad de interposición de la reclamación potestativa prevista en el artículo 24» y no que sea previa. La misma frase es un caso `defecto` dos veces en `casos.yaml` (H21, `08-…-herramienta-…-02`; H22, `17-…-02`), y otra respuesta del cierre dice «del artículo 24, que es otra vía» sin ningún voto afirmativo | `gates/cierre.json`, `gates/evals/boe-legislacion.json` y `legal-core.json`, con `jq`; `testdata/evals/boe.legislacion-consolidada/…BOE-A-2013-12887_texto_bloque_a20.json`; `evidencias/adr-0037/casos.yaml:979-983, 1495-1499` |
+ 
+ ## Medido
+ 
+@@ -193,6 +194,23 @@ en `testdata/` se restaura de la historia del repositorio (D15) y en `schemas/`
+ garantía es el sandbox de las sesiones de un paso (ADR 0032), y el guion del voto y el de la medida caen en el patrón
+ que la política ya deniega (V9). `scripts/workflow/` no se toca (FR-096).
+ 
++**D27. Reparación del cierre: C9, el inciso detrás de una remisión (FR-081, FR-082).** Lo decide `reparar_cierre`
++con la medición de V23: con C1-C8, `afirma_lo_no_leido` da 1 de 54 en el modo orden frente al umbral 0, lo que S8
++preveía. **Causa.** C1 decía qué no se dice del precepto no leído («qué dice ni de qué trata») y que la remisión va
++«como el texto la da, sin describir lo remitido». La respuesta parafrasea el art. 20.5 de la Ley 19/2013, que leyó,
++nombra el art. 24 solo por su número y cuelga de la remisión un inciso que sitúa lo remitido respecto del recurso
++—«que es previa a ese recurso»—, que es la regla del art. 24: el modelo no lo toma por «describir lo remitido» ni por
++decir «de qué trata». Es la forma c de contracts/skill-boe-legislacion.md §1, que C1 cubría solo con la regla general,
++y la misma construcción aparece en otra respuesta del cierre con un inciso que no afirma nada («que es otra vía»).
++**Qué cambia.** La viñeta de C1 gana «cuándo o cómo se aplica», «ni en un paréntesis o un inciso» y, de la remisión,
++«va con las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido»
++(contracts §8, C9). Cuesta una línea, que paga el blanco entre el ejemplo `⚠ NORMA DEROGADA:` y su viñeta en «Cómo se
++cita», como C11 de H7.4: 298 líneas, `make skills-check` en verde. **Rechazado:** la frase marcada como ejemplo en la
++skill, porque es contenido legal del art. 24 y el modelo repite el vocabulario de la prosa (H7.3); leer siempre el
++precepto remitido, que añade una lectura a preguntas que no la necesitan cuando C1 ya manda leerlo si importa; y tocar
++la eval, la rúbrica, los casos, la medida o el umbral (FR-036; ADR 0029). **Sin medir:** el efecto de C9 lo mide el
++job de evals de la medición siguiente, en los dos modos; esta sesión no abre sesiones con modelo (ADR 0032).
++
+ ## Datos externos
+ 
+ Ninguno (D25). `docs/SOURCES.md` no cambia y el paso `grabar_datos` no tiene nada que grabar.

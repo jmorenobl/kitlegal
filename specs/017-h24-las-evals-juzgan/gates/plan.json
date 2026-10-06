@@ -1,0 +1,112 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio (I a IX) y por regla de dependencia (R1 a R6), con la desviación del principio III («Aceptación e2e: no aplica») en Complexity Tracking. Cotejado: `internal/evals` importa hoy `internal/app`, `internal/cache` e `internal/graph` y ni `database/sql`, ni `net/http`, ni `os.Exit`, ni `fmt.Print*` (grep de los ficheros que no son de test); el voto es un proceso (`os/exec`) y la medida se escribe en un fichero que imprime su guion (contracts/medida-del-juez.md §7 y §8, `TestGuionDeLaMedida`)."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Technical Context: ninguna dependencia nueva. `santhosh-tekuri/jsonschema` ya se usa fuera de los tests en `internal/evals` (`formato.go`, `prohibidas.go`, `avisos.go`, `hallazgos.go`); `npm` y `gh` ya están en el job."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Ningún paquete nuevo (research D1): `juez.go`, `medida.go` y `ejecucion.go` en `internal/evals`, que no entra en el binario. La reconstrucción usa `app.Main`, `AppletGrafo` y `DependenciasDeGrafo.Almacen` (existen: `internal/app/grafo.go:38-66`, `main.go:149`) y abre caché y grafo con las opciones de sus paquetes, como `prepararGrafoPrevio` hoy (`preparar.go:336-380`)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "El hito no toca `kitlegal` ni sus códigos (ADR 0023 intacto). `internal/evals` devuelve `error` con el fichero o el voto delante; los cuatro motivos de un voto que no llega a darse están fijados (contracts/juez-y-voto.md §5); los dos guiones salen con 1 o con el código del test."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "«Aceptación e2e: no aplica» con motivo (el binario no cambia; `cmd/kitlegal` no enlaza `internal/evals`) y tabla historia → tests. «Tests nuevos» (11 filas con fichero y requisito), «Tests existentes que cambian», puntos de entrada con etiqueta `evals`, fixtures y las tres tareas `[datos]` (pasos 1, 7 y 11). Los tests citados que ya existen están donde dice el plan (`TestProsaDeLaSkill` y `TestEvalsDelRepositorio` en `conjunto_test.go`, `TestDefinicionDelJob` en `definicion_test.go`, `TestUmbralesDelInforme`, `TestJuicioDelSondeo`, `TestSalidaDelSondeo`, `TestSondear`, `TestCondicionesDeLaConsultaRepetida`, `TestExtraerExpresionesProhibidas`, `TestGrabacionesDerivadas` de `internal/app`)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada pieza se traza a un FR («Trazabilidad»). Lo que el spec no preveía está declarado y registrado en gates/supuestos.md: los dos ficheros restaurados (D15, comprobado: `casos.yaml` líneas 234 y 239 nombran la sesión `19-lpac-articulo-21-redaccion-cambiada-claude-sonnet-5-01`, y `c4819d1` borró esa eval y su grafo previo) y la lista fuera de `comprobarConsultaRepetida` (D14, por la regla general de FR-070 y FR-071). `evidencias/`, `scripts/workflow/` y `specs/011-…` a `specs/016-…` no se tocan."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos; el guion del voto existe para no necesitar un `//nolint` de gosec G204 (D4, con el precedente de `sesiones.go:709` y `tanda.go:303-311`, leídos). «Ninguno se desactiva ni se salta»; los tres subtests que salen los retira FR-071."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research D1 a D26, con la alternativa rechazada en las que tienen más de una opción: paquete aparte (D1), reconstruir los textos o una regla por modo (D2), argumentos en Go o `sh -c` (D4), 900 s, más concurrencia o plazo por modo (D6), solo blancos ASCII (D8), votos dentro de cada eval (D10), historia de git o pregunta en el código (D15), binario del `PATH` (D17), `env` de nivel de flujo (D21), delimitaciones más estrechas de la prosa (D22), guarda por variable de entorno (D26). La justificación de D5 va a observaciones."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión: V1 (`juez.py`: `normal`, `frase_esta`, `prompt_de`, `voto_real`, concurrencia 3 por omisión); V3 (`sesion.go:540-668`: solo llamadas del registro, el resultado de `Bash` se descarta); V4; V8; V9 (`politica-paso.sh`: `make evals-medir-juez` no casa con `evals(-sondeo)?`, `scripts/evals[a-z-]*\\.sh` sí); V10 (`informe.sh`: `// []`, `^(func <Test>\\(|<Test>:)`, `cut -d: -f3-`); V11 y V12 (`evals.yml`, `definicion.go`: 14 357 s); V13 (`maximoDeLineas = 299`, mutante `dos-inicios`); V14 (`git apply --check` sin errores, numstat 19/19, `SKILL.md` con 298 líneas); V16 (`git diff --name-status a8aeb0d HEAD`: solo A y D; evals 19 y 20 sin cambios desde `c4819d1` y `3a8fe57`); V17; V18; V20; M2 (259 casos, 212 y 47, 140 derivados); M3 (580 + 609 líneas, sin datos de duración); M5 (H7.4: 21 de 54 con 9, 13 y 5; H22: 45 de 108, con `jq`); M6. Lo que depende de `claude`, `npm`, Python y los tiempos figura como supuesto S1 a S8, cada uno con lo que pasa si no se cumple."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Escenarios 1 a 6: `make ci`, `go test -run` con nombres que el plan fija, `cmp`, `shasum`, `jq`, `grep`, `wc` y `make skills-check`, ninguno escribe en el árbol. Rehecho el esperado del §5 sobre el prototipo: tras el diff no queda «el sobre» ni «del sobre» en el fichero, y `fecha_vigencia` y `norma_modificadora` quedan solo en las líneas 240 a 242 de la tabla generada (los cuatro trozos del diff suman 0 líneas desde la 203). Las claves de `jq` del §4 y del §8 son las de `medida.json` y las del contrato del informe. El 7 y el 9 son de una persona y el 8, del workflow."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguna fuente ni grabación nueva (D25); `docs/SOURCES.md` no cambia. Lo que entra en `testdata/` son dos ficheros restaurados byte a byte de `c4819d1^` (existen ahí: comprobado con `git show` y `git ls-tree`), uno de ellos una derivada de la grabación de H4 que `TestGrabacionesDerivadas` de `internal/app` vuelve a comprobar con código. Las cuatro copias de la evidencia las compara `TestCopiasDelJuez` byte a byte y ninguna tarea escribe en `evidencias/`."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "«Obligaciones para tasks.md»: ninguna tarea para una persona, ninguna abre sesiones con modelo ni ejecuta `make evals*`, `scripts/evals*.sh`, `TestEjecucionDelJob`, `TestMedidaDelJuez` o `TestSondeo`, y ninguna publica ni mide en la plataforma. La medida (etiqueta `evals-medir-juez`) y el sondeo son de una persona, después del run; el cierre lo hace el workflow con la etiqueta `evals`. El trabajo `medida`, saltado en el cierre, no cuenta como rojo (`cierre.sh`: solo `fail` y `cancel`) ni lo recoge `recoger_evals` (su nombre no es `evals (<skill>)`)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada crece con el uso del kit: el binario no cambia y el job parte de las evals y de los casos. Rehecho: `umbrales`, 12 elementos de unos 325 B, unos 3,9 KB fijos; `juez`, acotado por 111 respuestas (54, 54 y 3) y hasta 6 votos, 111 × 6 × 0,8 KB ≈ 530 KB como máximo y de 20 a 50 KB con 24 a 60 respuestas de un voto; motivo, unos 400 B por respuesta marcada, como mucho 54 por modo; medida impresa, 656 B; sondeo, 432 B más una línea por respuesta sin juzgar. Cada señal se apaga con su causa (cada job mide de nuevo). La respuesta de la skill no gana órdenes por pregunta y el aviso de lo que no cubre (80 B) deja de darse cuando se lee esa materia."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad: cada mecanismo y su requisito» cubre los 23 mecanismos; los dos guiones, el segundo Claude Code, el trabajo `medida` y los dos ficheros restaurados están además en Complexity Tracking con la alternativa más simple rechazada. Sin caso propio para ficheros ilegibles o tocados desde fuera: remite a las reglas que ya hay (fichero mal formado, test que falla). Se rechazaron un esquema para la medida, los votos versionados como datos de test y una guarda por variable de entorno."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "22 filas: los seis umbrales nuevos que deciden (FR-101), los cuatro que siguen, «sin juzgar» y una por SC-002 a SC-012. Recorrido rehecho: con una respuesta marcada, `afirma_lo_no_leido:<modelo>:<modo>` sale con `cumple: false` y `decide: true`, veredicto `fallo` y trabajo en rojo, que ve `medir_cierre`; por encima de 900 s, `duracion_del_juez:<modo>` igual, con motivo de la ejecución; con un recuento distinto de 0 o una clave cambiada, `TestMedidaVersionada` falla en `make ci` y el job termina en `fallo` sin sesiones; con una respuesta sin juzgar, `fallo` por motivo. Cada `evals:` da su nombre a `informe.sh` con `cut -d: -f3-` y cada `ci:` casa con `^(func <Test>\\(|<Test>:)` en su ruta (`ci:Makefile:skills-check` casa con el objetivo). Ningún umbral queda solo publicado salvo `cuenta_su_proceso`, que el hito deja con `decide: false`."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Peor caso (contracts/job-de-evals.md §4): la fórmula reparte votos de cuatro en cuatro (⌈54×6/4⌉ × 40 s) y el contrato reparte respuestas, con los votos de cada una seguidos; con sus propios términos serían (14 + 14 + 1) × 6 × 40 = 6 960 s y 65 × 240 = 15 600 s, es decir 21 377 s y 16 145 s (357 y 270 min, que caben en 6 h). No llega a motivo: un voto que agota su tope termina la respuesta, así que una respuesta tarda como mucho 5 × 35 + 40 = 215 s y lo alcanzable (6 235 s y 13 975 s de votos) queda por debajo de lo que cubren 352 y 269 min. Con un grupo pequeño frente a la concurrencia la fórmula se queda corta (3 respuestas: 200 s frente a 215 s).",
+    "research D5 rechaza pasar el contexto por `EscribirInforme` porque «obligaría a cambiar su firma en todos sus tests»: es un motivo de coste, no de calidad. El diseño se sostiene por otra razón (el votante es una función inyectada, como `Ahora`), pero deja sin decir qué pasa con SIGINT o SIGTERM durante los votos: con `Votante` sin contexto, un voto cortado es un voto que no llega a darse y el informe se escribiría con todas las respuestas restantes «sin juzgar», donde H7.3 FR 037 dejaba la interrupción de las sesiones en un error sin informe.",
+    "La comprobación de la prosa compara por palabras, así que «del sobre» no es «el sobre» (contracts/skill-boe-legislacion.md §4): v0.1.7 quita «Cada aviso del sobre va en la respuesta» (línea 171 de v0.1.6), que es el mismo uso que FR-085 quiere fuera, pero `make ci` no impediría que volviera. Cumple el mínimo de FR-085 (las dos frases que el hito señala).",
+    "El tope de 35 s por voto no está medido (S6: los votos de `evidencias/adr-0037/` no llevan duración; comprobado) y el spec no admite reintentos: un solo voto lento entre 111 deja el job de cierre en `fallo` por la ejecución. Ya consta en gates/supuestos.md; es lo primero que mirar si el cierre sale en rojo sin motivo de la skill.",
+    "S7 (el `tool_result` de `Bash` trae la salida en `content`) no se puede comprobar en local: ningún transcript de `internal/evals/testdata/` lleva un resultado de `Bash`. Si no se cumple, falla hacia el rojo (textos vacíos y respuestas marcadas), no hacia el verde.",
+    "En los 2 derivados que quitan un bloque de un `boe articulos`, la validación reescribió el sobre con `json.dumps` de Python (separadores con espacio, sin escapes de HTML) y el plan lo reescribe en Go: el texto que ve el juez no será idéntico byte a byte al de la medida versionada en esos 2 de 259 casos. El control compara valores JSON, que es lo que pide FR-109.",
+    "El trabajo `cambios` de `evals.yml` lista `scripts/evals.sh` y `scripts/evals-sesion.sh` entre lo que las evals miden; el plan no añade `scripts/evals-voto.sh`, así que una propuesta que solo toque ese guion no lanza las evals al abrirse (la etiqueta sigue sirviendo).",
+    "C5 quita `norma_modificadora` del paso 4 («Modificaciones»), que no dice lo que la respuesta lleva: va más allá del mínimo de FR-085 por la delimitación de D22 (toda la prosa). Está en gates/supuestos.md como [skill], con el riesgo sobre las evals 19 y 20 que mide el cierre.",
+    "`comprobarLaMedida` compara además la `clase` de la medida con las clases que deciden (contracts/medida-del-juez.md §2), una quinta línea que `TestMedidaVersionada` no ejercita («seis de seis»). Se sostiene por el ADR 0037 (una clase solo decide si está medida).",
+    "contracts/juez-y-voto.md §7 dice del repetido que vuelve a ser nulo que «se publica igual»; el spec («Edge Cases») dice que el informe publica los dos votos como nulos. Falta decir si ese segundo voto lleva `nulo: true`.",
+    "Cifras que no cambian el diseño: 12 elementos de 325 B son 3,9 KB, no 3,6 (plan.md «Uso» y contracts/informe-del-job.md §2); quickstart §4 dice que el test «imprime» la medida, y sin `-v` solo sale `ok`.",
+    "Coste en `make ci`, que el plan no estima: medido en esta sesión, `go test -race ./internal/evals/` tarda 53,7 s, de los que 40,8 s son de `expresiones-calibradas`, que sale con FR-071; `grabado` (preparar la caché y comprobarla sin red) tarda 0,87 s. La reconstrucción de los 259 casos corre en `test` y en `test-integration`, dentro del plazo de 10 min por paquete de `go test` si se hace una vez por binario.",
+    "`cierre.sh` espera 10 800 s a las comprobaciones y el tope del trabajo pasa a 352 min: ya era mayor que la espera con 240 min, y `scripts/workflow/` no se toca.",
+    "No medido en esta sesión: `make ci`; las huellas SHA-256 de `rubrica.md` y `casos.yaml` (las órdenes de huella pedían aprobación; solo se ha visto que `medida.json` trae las que cita el quickstart); S1 a S8; y de la tabla del research, V5 a V7, V15, V19 entero, V22, M4 y M7."
+  ]
+}

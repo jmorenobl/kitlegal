@@ -252,28 +252,19 @@ func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
 		return nil, fmt.Errorf("el modelo %q de la sesión %s no tiene la forma de un id de modelo", s.Modelo, s.Directorio)
 	}
 
-	conjunto, err := LeerConjunto(s.Evals)
+	evals, err := leerEvalsBienFormadas(s.Evals)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(conjunto.MalFormados) > 0 {
-		motivos := make([]error, 0, len(conjunto.MalFormados))
-		for _, malFormado := range conjunto.MalFormados {
-			motivos = append(motivos, malFormado.Error)
-		}
-
-		return nil, fmt.Errorf("el directorio de evals %s tiene ficheros mal formados:\n%w", s.Evals, errors.Join(motivos...))
-	}
-
-	posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == s.Fichero })
+	posicion := slices.IndexFunc(evals, func(eval Eval) bool { return eval.Fichero == s.Fichero })
 	if posicion < 0 {
 		return nil, fmt.Errorf("la eval %s no es ninguna de las evals bien formadas de %s", s.Fichero, s.Evals)
 	}
 
-	eval := conjunto.Evals[posicion]
+	eval := evals[posicion]
 
-	faltas, err := prepararLaCache(s, conjunto.Evals, eval)
+	faltas, err := prepararLaCache(s, evals, eval)
 	if len(faltas) > 0 || err != nil {
 		return faltas, err
 	}
@@ -295,6 +286,31 @@ func PrepararSesion(s SesionAPreparar) ([]Falta, error) {
 	}
 
 	return nil, nil
+}
+
+// leerEvalsBienFormadas lee las evals del directorio con LeerConjunto y las
+// devuelve, en orden de nombre, solo si ningún fichero suyo está mal formado:
+// el error de LeerConjunto va tal cual, y con algún fichero mal formado el error
+// nombra el directorio y cada uno con su motivo. Es la lectura del paso 1 de
+// PrepararSesion y la de la reconstrucción de los casos etiquetados del juez
+// (contracts/medida-del-juez.md §5 de H24): ninguna de las dos prepara nada con
+// un conjunto a medias.
+func leerEvalsBienFormadas(dir string) ([]Eval, error) {
+	conjunto, err := LeerConjunto(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(conjunto.MalFormados) > 0 {
+		motivos := make([]error, 0, len(conjunto.MalFormados))
+		for _, malFormado := range conjunto.MalFormados {
+			motivos = append(motivos, malFormado.Error)
+		}
+
+		return nil, fmt.Errorf("el directorio de evals %s tiene ficheros mal formados:\n%w", dir, errors.Join(motivos...))
+	}
+
+	return conjunto.Evals, nil
 }
 
 // prepararLaCache hace los pasos 3 y 4 de PrepararSesion en cache/ de la

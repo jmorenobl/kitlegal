@@ -1,0 +1,76 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md: «Sin hallazgos CRITICAL ni HIGH» (CRITICAL 0 · HIGH 0 · MEDIUM 3 · LOW 5). El informe es de las 14:57 y la corrección de las 15:23 (stat): describe el T005 de la ronda 1. F2, el MEDIUM que estaba detrás del motivo anterior, queda resuelto en el T005 de ahora, que nombra qué auxiliares del calibrado se quedan y usa un solo nombre («las del calibrado de H7.4»). F1 y F3 (MEDIUM) y F4 a F8 (LOW) siguen como estaban y van a observaciones."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Medido con grep y comm sobre spec.md y tasks.md: 85 ids definidos (71 FR y 14 SC); 83 citados en alguna de las 17 líneas de tarea, las 17 con «— FR/SC … Rutas:»; los dos que faltan son SC-001 (el cierre del workflow) y SC-014 (una persona, después del run), que explica «Requisitos → tareas»; ningún id citado sin definir. Las 22 filas de «Controles de umbral» de plan.md (17 en la tabla de tasks.md, que junta los dos modos) tienen su tarea y su test: T006 (`TestInformeConElJuez`: 1 marcada, 901 s, un voto que no llega), T004 (`TestMedidaVersionada`, 6 de 6), T011 (`TestEjecucionSinMedir`), T002 y T003 (`TestVotoDelJuez`, `TestReglaDeLosVotos`, `TestMensajeDelVoto`, `TestOrdenDelVoto`), T001 (`TestCopiasDelJuez`), T009 con T008 (`TestGrabacionesDerivadas`), T010 (`TestEjecucionDeLaMedida`), T015 (`TestProsaDeLaSkill`, `prosa-de-la-skill`, `skills-check`), T005 (`TestJuzgarSinLaLista` y los de `sin_activar` y la duración, que siguen) y T013 (`TestDefinicionDelJob`). La fila de FR-111 y SC-011, la que tocó la corrección, dice lo mismo en spec.md (FR-071, FR-111, SC-011, «Sustituye»), plan.md («Controles de umbral» y «Tests existentes que cambian»), contracts/informe-del-job.md §9 y tasks.md (T005 y las dos tablas): las dos respuestas del 2026-10-04 y las 56 del calibrado de H7.4, con 36, 11 y 9 como premisa; y coincide con el control de la entrada (`docs/ROADMAP.md`:561). Que ese test ve fallar su umbral está medido en c."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 1 está corregido en sus dos partes, y lo he medido con un prototipo de un solo uso de la parte (b) de `TestJuzgarSinLaLista`: un `_test.go` en el directorio temporal, añadido al paquete con `go test -overlay`, sin tocar el repositorio (`git status` igual que al empezar), sobre el árbol de antes de la tarea. (1) Qué respuestas: T005 las elige con `ExtraerExpresionesProhibidas` sobre la `respuesta` de cada entrada y no por la clave de la entrada; el prototipo da 93 entradas en cada informe y 36, 11 y 9 marcadas, 56 en total, las 56 con `activa: true`. Con jq: ninguna entrada de H7.1 lleva `expresiones_prohibidas`, y la llevan no vacía 10 de H7.2 y 1 de H7.3, como dice la tarea. Los auxiliares que T005 manda conservar existen y son del mismo paquete que `juzgar_test.go` (`package evals`): `informeDeH71`, `informeDeH72`, `informeDeH73`, `respuestasDeCadaInforme`, `listaDelRepositorio` (conjunto_test.go:1496-1509) y la lectura de `marcadasEnElInforme` (:1632); `expresionesEn` lo usa la prosa (:2007). (2) Con qué eval: el fichero de la clave `eval` está en el conjunto de hoy en 54 y falta en 2, las sesiones 19-…-01 y 19-…-03 del informe de H7.1; `Juzgar` con una eval que solo lleva `Fichero` y `Activa` y una sesión terminada sin invocaciones funciona, así que T005 no lee nada de lo que restaura T008 y la tabla de dependencias lo dice. Rojo antes de la tarea, como afirma: los 56 resultados codifican la clave `expresiones_prohibidas` (`json` sin `omitempty`, juzgar.go:179; `null` en las 2) y los 54 juzgados con la eval del conjunto llevan además expresiones y un motivo que empieza por `expresión prohibida: ` (juzgar.go:59). Que no se busque la expresión dentro de los motivos es correcto: `graph check` es una expresión de la lista (expresiones-prohibidas.yaml:12) y un comando ausente lleva su texto. La parte (a) es ejecutable: la oferta del 2026-10-04 y su sesión están en juzgar_test.go:1215-1250. La cláusula añadida a T015 (la familia nueva no entra en `ExtraerExpresionesProhibidas`, así que 36, 11 y 9 no cambian) es coherente con su tipo. El resto del criterio no cambió con la corrección, que solo tocó T005, esa cláusula de T015 y dos filas de tablas: T002 a T007 y T009 a T014 traen test e implementación; las excepciones (T001, T008 y T015 de datos; T016 documentación; T017 cierre) están declaradas con su verificación; y lo que cada tarea usa de una anterior existe o lo deja una anterior (`leerDefinicionDelJob`, `ejecutarPorTandas`, `Preparar`, `UnionDeGrabaciones`, `prepararGrafoPrevio`, `textosDelContenido`, `compilarEsquemaPublicado`, `sustitutos_test.go`; `internal/evals` ya importa `app`, `graph`, `cache` y `source/boe`, que es lo que pide la reconstrucción de T009)."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "La corrección no cambió ninguna lista de «Rutas:» (en gates/tasks-correccion-r1.diff, las de T005 y T015 son idénticas antes y después). Lo que el T005 corregido añade vive en `juzgar_test.go` y `conjunto_test.go`, que el guardián admite por `juzgar.go` y `conjunto.go` declarados (scripts/workflow/guardian-diff.sh:88, el `x_test.go` de un `x.go`); los tres informes de H7.1 a H7.3 solo se leen. Cada tarea declara ficheros concretos o las dos carpetas nuevas de datos (`evals/boe-legislacion/juez/`, `testdata/evals/retiradas/`); ninguna ruta genérica, y gates/tasks-precheck.txt, regenerado después de la corrección, no da ninguna «tarea sin rutas declaradas»."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "gates/tasks-precheck.txt está vacío y es posterior a la corrección (15:25:34, frente a 15:23:33 de tasks.md). Solo T001, T008 y T015 nombran `schemas/` o `testdata/`, y las tres llevan [datos] (etiquetas de las 17 líneas, extraídas con grep). Ningún dato externo: ninguna cambia un manifiesto `grabaciones.json`, añade un test de grabación ni usa la red o la variable de grabación; T001 copia con `cp` cuatro ficheros ya versionados y los compara; T008 escribe con `git show c4819d1^:…` dos ficheros de la historia, y los dos orígenes están en ese commit (`git ls-tree`). Llevan además el tipo, la lectura y los casos que el dato obliga a cambiar a la vez: es la desviación de plan.md, *Complexity Tracking*, segunda fila, con el precedente de H7.2 a H7.4."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md, «Definition of Done → tareas», recorre los 13 puntos de `docs/ROADMAP.md` §1: `make ci` (todas y T017), tests offline (T001 a T015), `CHANGELOG.md` *Unreleased* (T016; FR-087, FR-095, FR-113), esquemas (T001 y T015, que no salen de `--describe`), cobertura (T017) y skill con `skills-check` y menos de 300 líneas (T015; `SKILL.md` tiene hoy 298, `wc -l`). ADR: no aplica, la decisión es el ADR 0037 ya aceptado (FR-096). `SOURCES.md` y fixtures grabados: no aplica, ninguna fuente nueva (plan.md, «Datos externos»). E2e: «no aplica», con su motivo. `CONTRIBUTING.md`, `docs/WORKFLOW.md` y `doc.go`, en T016. La corrección no tocó nada de esto."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md no cambió con la corrección (`git status` no lo lista): 26 marcas [x] y ninguna sin marcar. Medido en esta sesión sobre el spec corregido: 0 marcadores NEEDS CLARIFICATION; 3 entradas `- Q:` en `## Clarifications`; 31 escenarios Dado/Cuando/Entonces; las ocho viñetas literales de «Fuera de alcance» (spec.md:408-415) son idénticas a `docs/ROADMAP.md`:541-548 (`diff` vacío); SC-001 a SC-013 llevan **Control** (el de SC-001, en su línea siguiente) y SC-014 dice que lo mide una persona; FR-101 fija las seis filas. Lo que la corrección cambió en el spec (FR-071, FR-111, SC-011 y una viñeta de «Sustituye») no contradice ninguna marca: FR-111 sigue siendo comprobable y más preciso, y coincide con el control literal del hito."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "plan.md, «Aceptación e2e»: «**Aceptación e2e: no aplica.** El hito no cambia el binario —cambiarlo está fuera de alcance, y `cmd/kitlegal` no enlaza `internal/evals`—», con la tabla de los tests de `make ci` que fijan cada historia y la primera fila de *Complexity Tracking*. tasks.md no tiene ninguna tarea [aceptacion] (ninguna de las 17 líneas lleva la etiqueta), que es lo que exige `precheck.sh tasks` cuando el plan lo dice, y lo explica en su cabecera. La aceptación del hito es el job de cierre (SC-001), que lanza el workflow."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "El precheck posterior a la corrección no da ninguna tarea de plataforma ni que exija a una persona. T003, T011 y T012 dicen que no ejecutan a mano el guion del voto, el del job ni el de la medida, y la batería veta `claude`, `make evals`, `make evals-sondeo`, `make evals-medir-juez`, los guiones `evals*.sh`, `TestEjecucionDelJob`, `TestMedidaDelJuez` y `TestSondeo`. T017 ejecuta quickstart.md §1 a §6, que he leído: `make ci`, `go test` de tests sin modelo, `cmp`, `shasum`, `jq`, `wc` y `grep`; §7 y §9 son de una persona y §8 del workflow, y T017 lo deja constatado. El T005 corregido solo lee ficheros del repositorio. La etiqueta `evals-medir-juez` y versionar una medida quedan fuera del run (FR-045, FR-050, FR-054)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Segunda ronda. El único motivo de la ronda 1 (T005, `TestJuzgarSinLaLista`: qué respuestas y con qué eval) está corregido; gates/tasks-correccion-r1.diff cambia T005, una cláusula de T015, dos filas de tablas de tasks.md y, para que digan lo mismo, spec.md (FR-071, FR-111, SC-011, «Sustituye»), plan.md y contracts/informe-del-job.md §9. No hay gates/tasks-pendiente.md. Ningún hallazgo nuevo llega a motivo.",
+    "La premisa 36, 11 y 9 deja atada la lista a tres informes versionados: cambiar una expresión de sus cuatro familias que aparezca en esas respuestas obliga a actualizar los totales del test, aunque la lista ya solo sea el vocabulario de la prosa. Lo registra gates/supuestos.md ([interno], corrector_tasks) y lo dicen FR-071 y FR-111; es lo que hace falta para que el test no pase en vacío, y lo pidió el motivo anterior.",
+    "En el árbol de antes de la tarea, la parte (a) de `TestJuzgarSinLaLista` ya pasa (desde el arreglo del 2026-10-04 la lista no juzga la eval sin binario ni servidor), y las 2 respuestas juzgadas con la eval mínima solo fallan por la clave (`null`, sin expresiones ni motivos): el rojo de FR-111 lo dan las 56 de la parte (b), y con sus motivos, 54. T005 lo dice así.",
+    "US6, escenario 1, dice «ningún motivo nombra una» expresión; T005 comprueba que ningún motivo empieza por `expresión prohibida: `, porque `graph check` es de la lista y también texto de un comando ausente. Es la lectura correcta; la letra del escenario es más ancha.",
+    "analyze F1 sigue sin trazar en el spec: T008 y T009 vuelven a poner en el árbol la eval y la derivada que H7.2 FR 020 mandó retirar, y «Sustituye» no lo lista. Hace falta para FR-024 (2 de los 259 casos) y consta en plan.md (*Complexity Tracking*, tercera fila) y en gates/supuestos.md. El T005 corregido, en cambio, no escribe el nombre de la eval retirada: lo lee de la entrada del informe.",
+    "T008: «la carpeta nueva entra en la comprobación de que sus ficheros son los de sus entradas» (`compruebaLaCarpetaConSusEntradas`, grafo_test.go:2779), pero `testdata/evals/retiradas/` lleva también el YAML de la eval en su raíz: la comprobación tendrá que apuntar a su subcarpeta `grafo-previo`, como hoy apunta a la de los grafos previos (:2750). Cabe en sus rutas.",
+    "T009: «la carpeta del grafo previo como parámetro» ya es así (`prepararGrafoPrevio(dirCache, grabaciones, grafosPrevios, eval)`, preparar.go:336).",
+    "T011: lo que cambia en `scripts/evals.sh` no tiene test en `make ci`, solo `bash -n`; hoy tampoco lo tiene ese guion. Un defecto ahí lo ve el job del cierre.",
+    "T015 lleva `SKILL.md` v0.1.7 dentro de una tarea [datos]; se podría partir (clave, lista y tipo; después prosa y skill). Sigue el paso 11 del plan y su *Complexity Tracking*, y no cambia el producto.",
+    "T007 no ejercita la repetición del voto que vuelve a ser nula; el spec («Edge Cases») dice que el informe publica los dos como nulos.",
+    "analyze F4 y F5: el `case` de `cambios` en evals.yml no lista los dos guiones nuevos (la etiqueta `evals` sí lanza el job), y `TestDefinicionDelJob` exige que cada tope cubra su peor caso, no que quepa en los 360 minutos de un trabajo; con 352 quedan 8. analyze F3: el tope de 35 s por voto, sin reintento, no tiene medida de su cola (research S6).",
+    "La reconstrucción de T009 repite en proceso las órdenes de las sesiones de los 259 casos dentro de `make ci`, con `-race`; su duración no está medida.",
+    "Checklist, «Requirements are testable and unambiguous»: la marca es cierta, pero su nota («cada FR lleva «Comprobable», un **Control** o remite a un control») no es literal para FR-003, FR-012, FR-014 o FR-061, que se comprueban por FR-107 y FR-104 sin decirlo. Ya lo observaron el juez del spec y la ronda 1.",
+    "Ejecutado en esta sesión: el prototipo con `go test -count=1 -overlay … -run '^TestZZPrototipoDelJuezDeTasks$' -v ./internal/evals/` (PASS; total=56, con_clave=56, con_expresiones=54, con_motivo_de_la_lista=54), jq sobre los tres informes, grep, comm, diff, stat, `git ls-tree`, `git status` y `git diff` del directorio del feature. No ejecutado: `make ci`, ningún otro test, `git apply --check` del prototipo de v0.1.7 (la orden pedía aprobación; la ronda 1 lo dio por limpio y `SKILL.md` no ha cambiado), `claude`, ningún guion `evals*.sh`, `npm` ni `python3`. No medidos: los tiempos (8 s por voto, 35 s de tope, 60 s de instalación, la reconstrucción) ni los supuestos S1 a S8 del research."
+  ]
+}

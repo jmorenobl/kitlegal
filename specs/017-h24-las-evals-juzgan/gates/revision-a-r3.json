@@ -1,0 +1,81 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es el de la cabeza: empieza por «guardián de diff ok ((global), 15 ficheros)», su gitleaks es de las 2:16 (el commit ae250eb es de las 02:16:42) y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con «0 issues.» de lint, «No vulnerabilities found.» y go mod tidy -diff sin salida. Reproducido en esta sesión sobre un clon de ae250eb en el directorio temporal: go build ./...; go vet ./internal/evals/ con y sin -tags evals; golangci-lint del repositorio sobre ./..., «0 issues.», y fmt --diff de ./internal/evals/... vacío; go test -count=1 -race -shuffle=on de ./internal/evals/ (49,1 s) y ./internal/skills/, ok; go test -count=1 ./... sin los dos tests de tiempo, los 23 paquetes con tests ok, entre ellos internal/app, que lleva TestEsquemasPublicados y las de skills-check. git status: solo registros del run en gates/ (base-global-pendiente, revision-cambios.md, revision-cambios-r3.diff y el veredicto del otro juez), que escribe el workflow para esta ronda. Mi veredicto de la ronda 2 no tenía motivos que comprobar."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna sentencia: en internal/evals son dos líneas de comentario de conjunto_test.go y una de medida.go (gates/revision-cambios-r3.diff). Primera orden de quickstart §4 con -v en el clon: 47 «--- PASS», 0 FAIL y 0 SKIP (TestMedidaVersionada 12, TestCopiasDelJuez 10, TestGrabacionesDerivadas 3 y TestEjecucionDeLaMedida 18), lo que dice cierre.md. Los tests siguen detectando lo que dicen, visto en esta sesión con diez mutantes en el clon, uno cada vez (los enumera el criterio l): cada uno deja en rojo el test que plan.md nombra como su control. Ningún t.Skip en las líneas añadidas del diff del hito. Aceptación e2e: «no aplica» (plan.md:164), sin tarea [aceptacion]; las suites congeladas de hitos anteriores no se tocan (git diff --name-only main...HEAD vacío en internal/app/e2e_test.go e internal/app/ejemplo) y pasan en el clon (internal/app e internal/app/ejemplo/kitlegal-e2e, ok). Cobertura de internal/evals en ci.log: 97,6 % y 98,2 %."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de git diff main...HEAD a los .go que no son de test, 0 coincidencias de «net/http», os.Exit, fmt.Print, os.Stdout, os.Stderr, «database/sql», panic( y modernc.org (grep de esta sesión). El rango no añade ningún import ni ninguna sentencia. golangci-lint, con depguard y forbidigo, «0 issues.» sobre ./... en el clon; el test de arquitectura (paquete internal) pasa en ci.log:15 y en el clon. go list -deps ./cmd/kitlegal ./cmd/empaquetar no enlaza internal/evals (0 coincidencias)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia: de cmd, internal (sin internal/evals), pkg, skills y data, git diff --name-only main...HEAD solo nombra internal/app/grafo_test.go y skills/boe-legislacion/SKILL.md, que el binario empotra; el rango no toca ningún applet ni ningún esquema. TestEsquemasPublicados, que valida la salida real contra el esquema que el binario emite, pasa en ci.log:76-77 y en el clon (internal/app, ok). Los dos esquemas del hito (schemas/juez-clases.yaml.json y schemas/expresiones-prohibidas.yaml.json) no salen de --describe y los valida TestEvalsDelRepositorio, que pasa y que vi en rojo con clases.yaml cambiado (criterio l)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia: el binario no enlaza internal/evals y el rango no toca ninguna sentencia. Lo que los guiones prometen sigue en su sitio: scripts/evals-medir-juez.sh sale con 1 y su línea de uso o «falta <variable>» (líneas 26-44) y con el código de go test (línea 75); scripts/evals.sh exige las tres variables del juez solo con una skill que tiene la carpeta juez. El voto que agota su tope deja la respuesta sin juzgar con su motivo y no pide ninguno más (juez.go:795-797, 911-926 y 1008-1010), y con alguna sin juzgar el veredicto es fallo (informe.go:1530-1532; mutante del criterio l). Ningún panic( añadido (grep del criterio c)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "El motivo [f] del juez B en la ronda 2 está corregido en sus tres partes. (1) tasks.md:131 dice que el caso bien formado de TestLeerConjunto exige «la rúbrica y el esquema enteros y los casos y la medida enteros», y es lo que compara conjunto_test.go:546-550 (Rubrica, Esquema, Casos y Medida). (2) La línea «[interno] corrector_revision: [l][f]» de gates/supuestos.md y gates/revision-pendiente.md dicen que el motivo se retiró y que nada cambia, con 20 652 s y 14 520 s: repetí la aritmética (14 357 + 60 + 29 × 215 y 485 + 60 + 65 × 215; 21 097 = 14 357 + 60 + 167 × 40 y 16 105 = 485 + 60 + 389 × 40) y leí el código que la sostiene (juez.go:418-419, 786-797 y 911-926); la tabla y la lista «Qué cambiar» ya no están. (3) cierre.md:27-30 dice que el juez B lo retiró en la ronda 2. Los dos comentarios de Go que el corrector alinea además dicen lo que el código hace: Juez.Casos y Juez.Medida son contenido (juez.go:68-74 y 139-145) y la ejecución de la medida usa m.Juez.Casos (medida.go:1243 y 1387) y nunca Juez.Medida (grep de los usos). Fuera de gates/ no queda ningún texto con lo retirado (grep de «las dos rutas», «ruta de sus casos», casosQueNoSeLeen, leerCasosConSuHuella, «tras-leer-el-juez», 21 377, 16 145, 357 y 270 minutos: sin coincidencias del hito). Lo demás sigue sosteniéndose: CHANGELOG.md (Unreleased, líneas 25-93) lleva boe-legislacion v0.1.7 y el job con el juez; sin ADR nuevo y sin tocar docs/ADR, docs/SOURCES.md, evidencias/ ni scripts/workflow/; SKILL.md, 298 líneas (wc -l); las líneas de los 14 tests que cita cierre.md §4 y las de evals.yml de §3 (186, 197, 213, 359, 368, 372 y 373) son las del árbol (grep -n)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún HTTP nuevo ni fuente nueva: git diff --name-only main...HEAD sobre internal/httpx, internal/source, cmd, go.mod, go.sum, tools, docs/ADR, docs/SOURCES.md, evidencias, scripts/workflow, .specify, data, testdata y schemas solo nombra los dos esquemas y los dos ficheros restaurados de testdata/evals/retiradas/, que tienen el mismo blob que en c4819d1^ (6ce6f957… y 410437a2…, git rev-parse y ls-tree de esta sesión); las cuatro copias de evals/boe-legislacion/juez/ son idénticas a evidencias/adr-0037/ (cmp, sin salida). El voto es un proceso, no una petición del kit: scripts/evals-voto.sh:28-29 ejecuta con exec «claude -p --tools \"\" --strict-mcp-config --disable-slash-commands --no-session-persistence». La credencial solo es el secreto del paso que ejecuta las evals o la medida (evals.yml:343-346 y 401-404), con permissions contents: read. gitleaks, «no leaks found» (ci.log:86-88). Sin NIF ni datos de persona. En esta sesión no se ha abierto ninguna sesión con modelo ni leído ninguna credencial."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas de git diff main...HEAD fuera de specs/, la búsqueda de nolint, t.Skip, SkipNow, .Skip(, TODO, FIXME, HACK y XXX solo da las tres XXXXXX de la plantilla de mktemp (dos comentarios y scripts/evals-medir-juez.sh:51). Los ficheros .go con //nolint son 6 en main y 6 en la cabeza (git grep -c). Ningún fixture ajustado: el rango no toca testdata/, evidencias/ ni la carpeta del juez, y las copias y los restaurados son byte a byte los originales (criterio g). El rango no desactiva ni retira ningún test."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango 10484b5..ae250eb es la corrección del motivo [f] del juez B y nada más (git show --stat ae250eb): una frase de T001 (tasks.md:131), cuatro líneas de cierre.md, la línea [l][f] de gates/supuestos.md, gates/revision-pendiente.md reescrito y dos comentarios de Go con la misma afirmación caducada sobre «las rutas» (conjunto_test.go:147-148 y medida.go:1075-1077); 14 líneas fuera de gates/, ninguna sentencia. La línea de supuestos.md sigue siendo [interno] y es coherente con el spec: no rebaja ni retira ningún umbral ni tope y no toca definicion.go ni .github/workflows/evals.yml (git diff --stat 10484b5..HEAD no los nombra). El resto del hito no cambia desde mis veredictos de las rondas 1 y 2."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El binario no cambia de comportamiento: no enlaza internal/evals y de lo que empotra solo cambia SKILL.md, medida en esta sesión en 24 272 B y 298 líneas frente a 24 045 B y 298 en main (227 B más por activación de la skill); su diff no añade ninguna orden por pregunta: toca la prosa de los pasos 4 y 5, de «Cómo se cita», de la sección de graph check y de la regla 2, y no la tabla de comandos ni las órdenes de los pasos 1 a 3. Lo que el hito entrega no crece con el uso del kit sino con las evals y los casos del repositorio: umbrales son 12 elementos fijos, y el juez lleva en memoria casos.yaml (78 214 B) y medida.json (717 B, wc -c), una vez por lectura del conjunto. Las medidas del mensaje de un voto (de 1 875 B a 141 639 B, mediana 26 622 B) están en gates/revision-a-r1.json y no se repiten: el rango no toca mensajeDelVoto. Las señales caducan con su causa: las líneas de comprobarLaMedida dejan de darse cuando la medida corresponde (TestMedidaVersionada/del-repositorio pasa sin ninguna), y el motivo de una respuesta marcada o sin juzgar es de la ejecución que la tiene."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las 22 filas de «Controles de umbral» (plan.md:250-271) conservan su control, y el camino al veredicto es directo: un umbral con decide que no cumple da un motivo (umbrales.go:350-367 y 412-423) y cualquier motivo pone fallo (informe.go:1637-1643). Los vi en rojo en esta sesión con mutantes en el clon, uno cada vez y restaurando entre ellos: (1) compararUmbral siempre cumple (umbrales.go:320): TestUmbralesDelInforme, TestInformeConElJuez, TestUmbralQueSoloSePublica y TestInformeMarkdownDeLosUmbrales; (2) segundosDelJuezPorModo 900→9000: TestInformeConElJuez, TestUmbralesDelInforme y otros tres; (3) umbralDeLaMedidaDelJuez 0→1: TestEjecucionSinMedir, TestUmbralesDelInforme, TestInformeConElJuez y otros tres; (4) el umbral de la clase con Decide: false (umbrales.go:216): TestInformeConElJuez, TestUmbralesDelInforme y otros tres; (5) timeout-minutes 352→351: TestDefinicionDelJob/del-repositorio, «vale 351 (21060 s), y lo esperado es al menos … 21097 s», y /peor-caso; (6) 269→268: «vale 268 (16080 s) … 16105 s»; (7) \"marcados\": 1 en medida.json y en su original: TestMedidaVersionada, TestEjecucionSinMedir, TestEjecutarElJob y cuatro más, con «la medida versionada no se cumple: 1 correctos marcados»; (8) umbral: 0.5 en afirma_lo_no_leido de clases.yaml: TestEvalsDelRepositorio/formato; (9) sin el motivo de las respuestas sin juzgar (informe.go:1530): TestInformeConElJuez/un-voto-que-no-llega, /dos-sin-juzgar y /los-motivos-en-su-orden; (10) sin comparar la huella de los casos (medida.go:229): TestMedidaVersionada/casos-cambiados y /todo-a-la-vez, TestEjecucionSinMedir y TestEjecucionDeLaMedida; y un byte de más en la copia de esquema.json: TestCopiasDelJuez/del-repositorio. FR-092: los dos topes cubren la cota que calcula definicion.go:461-473 (21 097 s y 16 105 s) y el peor caso del código (20 652 s y 14 520 s, con 215 s por respuesta como mucho: juez.go:786-797 corta la respuesta en el primer voto que no llega); el motivo [l][f] de la ronda 1 del juez B quedó retirado en la ronda 2 y el rango no toca ningún umbral ni tope. Las diez filas evals: se miden en el job de cierre, no aquí."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "La fórmula del peor caso del juez (definicion.go:461-473; contracts/job-de-evals.md §4; evals.yml:179-184 y 354-356) cuenta ⌈R × 6 / C⌉ tandas de 40 s y juzgarTodas reparte respuestas enteras, con sus votos en serie (juez.go:829-849): la exacta sería Σ ⌈R/C⌉ × (5 × 35 + 40) s. Con las cifras del repositorio la de hoy queda por encima (445 s en evals y 1 585 s en medida), pero en un grupo pequeño puede quedarse corta (3 respuestas a 4: 200 s frente a 215 s). Sigue como en mis rondas 1 y 2.",
+    "Los 215 s por respuesta que ahora citan cierre.md, gates/supuestos.md y gates/revision-pendiente.md suponen que un voto válido termina antes de sus 35 s. Un claude que terminara solo antes del tope y dejara sus salidas abiertas en otro proceso durante el margen daría un voto válido de hasta 40 s (exec.ErrWaitDelay no es el error del tope y la salida se lee: juez.go:597-604 y 1008-1017); no he visto nada que lo haga y aquí no se puede ejecutar claude para medirlo.",
+    "gates/revision-pendiente.md dice que el juez A midió las cifras en un clon y remite a gates/revision-a-r2.json: es lo que dice ese veredicto; en esta ronda he repetido la aritmética y leído el código, no la medida de tiempos.",
+    "El corrector alinea dos comentarios de Go que el motivo del juez B no nombraba (conjunto_test.go:147-148 y medida.go:1075-1077): decían lo mismo que la frase de tasks.md, que el juez lleva rutas, y ya no era cierto. No cambia ninguna sentencia.",
+    "scripts/evals.sh:178 expande \"${banderas_del_juez[@]}\" con set -u, y con una skill sin juez la matriz está vacía: en un bash anterior a 4.4 eso es un error de variable sin valor. No tiene vía real: el guion exige Linux con strace (evals.sh:111) y el job corre en ubuntu-24.04; no lo he ejecutado.",
+    "Siguen en pie, sin cambios en el rango y sin volver a comprobarlas en esta ronda, las observaciones 2 a 9 de mi veredicto de la ronda 1 (gates/revision-a-r1.json): el tope de 35 s de un voto no está medido; los textos del juez salen del transcript entero; la reconstrucción toma la pregunta de la eval de hoy; los dos derivados de boe articulos se escriben compactos; el trabajo cambios no cuenta los guiones del voto y de la medida; SKILL.md:78 dice «Devuelve dos sobres»; TestOrdenDelVoto/tope mide tiempo real; y el paso de instalación instala el Claude Code del juez también en legal-core.",
+    "gates/revision-b.json lo leí al empezar, cuando era todavía el veredicto de la ronda 2 del juez B; el juez B lo ha reescrito mientras corría esta revisión (git status lo da modificado) y no lo he vuelto a leer."
+  ]
+}

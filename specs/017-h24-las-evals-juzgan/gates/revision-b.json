@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es el de la cabeza d53bc89: está escrito a las 04:40:00, el segundo del commit (git show --format=%ci d53bc89), y empieza por «guardián de diff ok ((global), 14 ficheros)», que son los 14 de git show --stat d53bc89; lint «0 issues.» (ci.log:9), todos los paquetes ok con -race y con -tags=integration (internal/evals 97,6 % y 98,2 %, internal/app 96,8 %), TestMedidasDeTiempo y TestCosteDelGrafo ok (64-65), govulncheck «No vulnerabilities found.» (69), TestEsquemasPublicados ok (76-77), las tres líneas de skills-check ok (78-81), goreleaser check, gitleaks «no leaks found» (88), go mod verify en los seis módulos, tidy -diff vacío, «ci: todos los controles en verde» y «kitlegal-verificacion exit=0» (102-104). Reproducido en esta sesión sobre una copia del árbol sin .git en el directorio temporal (/tmp/claude-501/kl-b6/clon, con rsync; el sandbox no dejó clonar ni extraer un tar): go -C … test -count=1 con TestSkillsDelRepositorio, TestOrdenesDeLasSkillsEmpotradas y TestEvalsDelRepositorio en internal/app e internal/evals, los dos ok. Árbol: fuera de gates/ no hay nada cambiado (git status: base-global-pendiente borrado, cierre-reparaciones, revision-cambios.md, revision-ciclo.json y supuestos.md modificados y revision-cambios-r6.diff nuevo, todo del workflow para esta ronda). git diff --name-only b0a7a9c HEAD fuera de gates/ da los seis ficheros que nombra revision-cambios.md, y el diff publicado en revision-cambios-r6.diff es el de esos seis."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango no cambia ningún .go, ningún test, ningún fixture ni ningún dato que un test lea salvo el propio SKILL.md (git diff --name-only b0a7a9c HEAD: CHANGELOG.md, SKILL.md y cuatro .md de specs/). Los dos controles que miden ese texto se han visto en rojo con mutantes sobre el texto de la cabeza, en la copia de $TMPDIR: con dos líneas más en la viñeta de C10 (300 líneas), TestSkillsDelRepositorio falla con «boe-legislacion: SKILL.md tiene 300 líneas (máximo 299)»; con «el sobre» en la frase de la remisión de C10 (línea 136), TestEvalsDelRepositorio/prosa-de-la-skill falla con «párrafo de la línea 131: el sobre». Restaurados, los dos pasan (la copia volvió al texto de la cabeza antes del segundo mutante, y el primero se hizo con el texto restaurado). Suite de aceptación congelada: no aplica, el código del binario no cambia (plan.md «no aplica»; cierre.md DoD fila 6); lo que el binario empota lo fijan TestSkillsDelRepositorio y TestOrdenesDeLasSkillsEmpotradas, ok en ci.log:79 y en la copia; las suites de hitos anteriores pasan en internal/app e internal/app/ejemplo/kitlegal-e2e (ci.log:16-18, 43-45)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Ninguna línea de Go ni ningún import en el rango. golangci-lint con depguard y forbidigo, «0 issues.» sobre ./... en gates/ci.log:9 para la cabeza; el test de arquitectura del paquete internal, ok (ci.log:15 y 42). Lo juzgado en las rondas 1 a 3 sobre el código del hito no cambia."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet ni esquema cambia en el rango; schemas/ no está en git show --stat d53bc89. TestEsquemasPublicados pasa en gates/ci.log:76-77 e internal/app pasa en la copia."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida, texto de error ni ruta de usuario cambia: el rango es prosa de la skill, del CHANGELOG y de specs/. Lo que el contrato del job promete se vio ocurrir en la plataforma con la medición de b0a7a9c que motiva la reparación: gates/evals/boe-legislacion.json (commit b0a7a9c…, modelo_que_decide claude-sonnet-5-5) da veredicto «fallo» con afirma_lo_no_leido:claude-sonnet-5-5:herramienta medida 3, umbral 0, cumple:false, decide:true, y sesiones_sin_medir vacío; gates/cierre.json pone «evals (boe-legislacion)» en FAILURE y «ci», «snapshot», «tanda» y «evals (legal-core)» en SUCCESS; cierre.log termina con «make: *** [Makefile:135: evals] Error 1». Visto con jq en esta sesión."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Cada cifra y cada hecho que el rango afirma se ha medido en esta sesión y cuadra: git diff --numstat main -- SKILL.md da 26 26 y CHANGELOG.md 73 0 (contracts:3-8 «26 líneas fuera y 26 dentro»; cierre.md:96 «+26 −26»; cierre.md:166 «+73»); git diff --numstat b0a7a9c HEAD da 11 11 a la skill y 8 6 al changelog (cierre.md:116-117 «11 11»; cierre.md:166 «8 dentro y 6 fuera»); SKILL.md tiene 298 líneas y 24 462 B; la entrada de v0.1.7 empieza en CHANGELOG.md:25 y lleva C10 («el índice tampoco lo dice», «el número de un precepto no leído y su materia no van juntos», «por su número, y por qué, sin decir de qué tratan ni para qué los pedía»), que es lo que dice la skill (SKILL.md:131-137 y 262-267) y lo que pide FR-087. research V24 contra gates/evals/boe-legislacion.json con jq: las tres sesiones marcadas son 14-trlrhl-…-herramienta-…-02, 15-irpf-…-herramienta-…-03 y 16-lrjsp-…-herramienta-…-03, con tres votos «si» cada una, las frases citadas tal cual y «el índice solo da «Artículo N», sin rúbrica» en los motivos; sin_activar 0 y 0, cuenta_su_proceso 1 y 1 (decide:false), medida del juez 0 y 0, sesiones 438 y 434 s, juez 105 y 129 s; juez.sin_juzgar = [05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-03, «voto 1: tope de 35 s agotado»], y sus dos hermanas de Sonnet hacen las mismas 4 invocaciones con respuestas de 1 211, 1 493 y 1 344 caracteres; la sesión 14-02 tiene 10 invocaciones y seis fuera_de_lo_grabado con código 5; legal-core.json: aprobado sobre b0a7a9c. Los quince *_texto_indice.json grabados dan como titulo de cada artículo «Artículo N» (o «Art N», «Artículo N bis») y de cada disposición su ordinal, sin rúbrica (jq sobre los 15: 2 322 «Artículo N», 1 976 «Art N», ninguna rúbrica de artículo). La decisión está registrada donde el rúbrica lo pide: research D28 con sus rechazados y V24 con su evidencia, plan.md «Decisiones» (líneas 314-321) y trazabilidad (C1-C10), contracts §9 y gates/supuestos.md:97-98 ([skill] y [interno], con impacto). Sin ADR nuevo (ninguna decisión cerrada cambia: D6 sigue) ni fuente nueva (docs/SOURCES.md fuera del rango)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca scripts/, internal/httpx, testdata/, evidencias/, data/, .github ni evals/boe-legislacion/juez/ (git diff --name-only b0a7a9c HEAD). gitleaks «no leaks found» sobre la cabeza (ci.log:88). Sin NIF ni datos de persona en lo añadido. En esta sesión no se ha abierto ninguna sesión con modelo ni leído ninguna credencial; las órdenes han corrido en primer plano, con escritura solo en la copia de /tmp/claude-501/kl-b6 (que es $TMPDIR) y en este fichero."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin nolint, t.Skip, TODO, FIXME ni fixture tocado en el rango (revision-cambios-r6.diff: prosa). La reparación no toca la eval, la rúbrica, los casos, la medida ni ningún umbral (FR-036): evals/, evidencias/ y internal/evals fuera de git diff --name-only b0a7a9c HEAD; el informe sigue con decide:true y umbral 0 en afirma_lo_no_leido y la respuesta sin juzgar sigue en el informe y en sus artefactos, no sacada del total. Las líneas que la reparación quita del paso 4 y de la regla 2 son las que contracts §1 (líneas 28-29) ya señalaba como causa de la forma a antes de la reparación, no una recorte para cuadrar."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es C10 y lo que lo recoge: cada cambio de la viñeta se traza a una de las tres respuestas marcadas (la materia delante del número, en una negación, en un ofrecimiento) y a FR-081 y FR-083; «el índice tampoco lo dice» a los motivos de los votos y a los índices grabados; las líneas del paso 4 y de la regla 2 a las filas 116 y 263-269 de la tabla de causas de contracts §1 (forma a). Nada fuera de la skill, el CHANGELOG y los artefactos del hito. Los supuestos nuevos (gates/supuestos.md:97-98) son lecturas conservadoras coherentes con el spec y el plan: no se toca el tope del voto, el margen ni la concurrencia, que D6 (research.md:101-108) reserva a una persona si el cierre deja respuestas sin juzgar; y se rechaza dar rúbricas en boe indice, que sería una herramienta nueva fuera del spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Lo que consume una persona o un agente del rango es SKILL.md: 298 líneas y 24 462 B en la cabeza frente a 24 388 B en b0a7a9c y 24 045 B en main (git show | wc): +74 B por activación respecto de la ronda anterior, +417 B respecto de v0.1.6, sin ninguna orden ni herramienta nueva por pregunta (la tabla de comandos y los pasos 1-3 no cambian) y sin ninguna señal que se acumule o se repita: C10 solo quita lo que la respuesta puede decir. Ninguna línea añadida pasa de 120 bytes (grep sobre git diff b0a7a9c HEAD: 0). El binario, el job y sus salidas no cambian."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, rama, opción, reintento ni test. Son 11 líneas cambiadas de prosa en la skill, con saldo cero de líneas (−1 en el paso 4, +2 en la viñeta, −1 en la regla 2), 8/6 en el CHANGELOG y prosa en cuatro artefactos. Cada frase nueva se traza: las tres construcciones en marcadores de SKILL.md:134-136, a las tres respuestas de la medición (una cada una); «el índice tampoco lo dice», a los motivos de los nueve votos y a los índices grabados; la regla 2 y el paso 4, a FR-083 y a la forma a de contracts §1. Lo rechazado está dicho (contracts §9: ejemplos con contenido legal, prohibir nombrar por su número, rúbricas en boe indice, tocar eval/rúbrica/casos/medida/umbral). Nada que retirar."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún umbral ni control cambia en el rango (plan.md «Controles de umbral» intacto; evals.yml, definicion.go y clases.yaml fuera del diff). El control de SC-001 se ha visto en rojo de verdad sobre b0a7a9c: afirma_lo_no_leido:claude-sonnet-5-5:herramienta con medida 3, umbral 0, cumple:false y decide:true pone el veredicto en «fallo» (jq sobre gates/evals/boe-legislacion.json) y el check queda en FAILURE (gates/cierre.json). Los dos controles de make ci sobre la skill se han visto en rojo en esta sesión con mutantes sobre el texto de la cabeza (criterio b). Las diez filas evals: las mide el job de la medición siguiente, sobre esta cabeza ya juzgada; una respuesta sin juzgar por sí sola vuelve a darle «fallo» (FR-007), y así lo dice gates/supuestos.md:98."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "SKILL.md:133 («el índice tampoco lo dice, da el número de cada bloque y nada más»), CHANGELOG.md:28 y research V24 («sin texto detrás») son exactos para los artículos y las disposiciones de los quince índices grabados y para los preceptos de las tres respuestas marcadas; dos cabeceras de sección del índice del Código Civil (BOE-A-1889-4763, bloques `disposiciones` y `delofrecimientodelpagoydelaconsignacion`) sí llevan un rótulo. La instrucción es conservadora y no cambia nada observable; no toca el producto.",
+    "Las tres construcciones en marcadores de SKILL.md:134-136 nombran la forma que se prohíbe («no puedo decir qué <regla> fija»); H7.3 vio que el modelo repite el vocabulario de la prosa. Si esa frase acaba en una respuesta lo mide el job de la medición siguiente, no esta sesión; contracts §9 deja constancia de por qué no van ejemplos con contenido legal.",
+    "La respuesta sin juzgar del informe de b0a7a9c (05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-03, tope de 35 s en el voto 1) basta por sí sola para el «fallo» de FR-007; el rango no toca el tope, el margen ni la concurrencia, como pide D6, así que si la medición siguiente vuelve a dejar una, el job sale en rojo por la ejecución y lo decide una persona (gates/supuestos.md:98).",
+    "El mutante «las palabras del sobre» no hace saltar prosa-de-la-skill, porque la lista compara expresiones delimitadas como palabras (expresiones-prohibidas.yaml:9-10) y «del» no es «el»; con «con el sobre» salta. Es el diseño documentado de la lista, no un defecto del control.",
+    "cierre.md §1 (línea 41) sigue con los totales que T018 midió (90 ficheros, 21 897 y 2 861 líneas), fechados como de T018 y con la cabecera que dice qué mueve cada reparación; las dos reparaciones y los dos correctores han añadido unas pocas líneas a SKILL.md, CHANGELOG.md y los .md del hito que esos totales no incluyen. No afirma nada falso de la cabeza.",
+    "Siguen en pie, sin cambios en el rango, las observaciones de mis rondas anteriores (gates/revision-b-r2.json a -r5.json): el precedente de C11 en H7.4, la viñeta pegada al cierre ```text, la cota del juez por tandas, el tope de 35 s sin medida y el guardián global sobre .github/*.",
+    "Las medidas de esta ronda se hicieron sobre una copia del árbol sin .git en $TMPDIR (/tmp/claude-501/kl-b6/clon, rsync), porque el sandbox no dejó clonar el repositorio ni extraer un tar de git archive; los mutantes se aplicaron y se deshicieron en esa copia; en el árbol de trabajo no se ha escrito nada salvo este veredicto."
+  ]
+}

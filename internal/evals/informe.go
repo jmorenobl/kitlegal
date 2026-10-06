@@ -36,7 +36,8 @@ const (
 	// eval mal formados, con todas las sesiones que el plan pide y legibles, con
 	// cada serie que decide llegando al umbral, sin ninguna petición llegada a la
 	// red (ADR 0016), con cada umbral que decide cumplido (FR-003 y FR-051 de
-	// H7.3) y sin ninguna sesión sin medir (FR-043 de H7.3).
+	// H7.3), sin ninguna sesión sin medir (FR-043 de H7.3) y sin ninguna
+	// respuesta que el juez dejara sin juzgar (FR-007 de H24).
 	VeredictoAprobado Veredicto = "aprobado"
 
 	// VeredictoFallo es el de cualquier otra ejecución.
@@ -57,23 +58,27 @@ const (
 // el prefijo fijo, que los distingue sin modelo de los demás (FR-043 de H7.3;
 // contrato informe-del-job §2). El del límite de uso lleva cuántas sesiones
 // quedaron sin medir y, separadas por «, », cada una con su motivo entre
-// paréntesis.
+// paréntesis; y el de las respuestas que el juez dejó sin juzgar, lo mismo de
+// ellas (contracts/informe-del-job.md §4 de H24; FR-007 de H24). El del
+// instrumento sin medir va seguido de una línea de comprobarLaMedida, la de lo
+// que no coincide o no se cumple (contracts/informe-del-job.md §5 de H24;
+// FR-043 de H24).
 const (
-	motivoDeLaEjecucion  = "de la ejecución, no de la skill: "
-	motivoDelLimiteDeUso = "límite de uso de la cuenta: %d sesiones sin medir: %s"
+	motivoDeLaEjecucion          = "de la ejecución, no de la skill: "
+	motivoDelLimiteDeUso         = "límite de uso de la cuenta: %d sesiones sin medir: %s"
+	motivoDeLasSinJuzgar         = "el juez dejó %d respuestas sin juzgar: %s"
+	motivoDelInstrumentoSinMedir = "el instrumento no está medido: "
 )
 
-// Textos fijos de informe.md (contrato job-de-evals §5; contrato lista-y-juicio
-// §5 de H7.2).
+// Textos fijos de informe.md (contrato job-de-evals §5).
 const (
-	ningunoEnElInforme    = "ninguno"
-	ningunaEnElInforme    = "ninguna"
-	sinLlegadasALaRed     = "ninguna petición llegó a la red de una fuente"
-	sinCodigoPorElCorte   = "sin código (sesión cortada)"
-	sinConexiones         = "sin conexiones"
-	sinLeer               = "sin leer"
-	vaciaEnElInforme      = "vacía"
-	sinListaDeExpresiones = "la skill no tiene lista de expresiones prohibidas"
+	ningunoEnElInforme  = "ninguno"
+	ningunaEnElInforme  = "ninguna"
+	sinLlegadasALaRed   = "ninguna petición llegó a la red de una fuente"
+	sinCodigoPorElCorte = "sin código (sesión cortada)"
+	sinConexiones       = "sin conexiones"
+	sinLeer             = "sin leer"
+	vaciaEnElInforme    = "vacía"
 
 	// medidaEnElInforme es la celda «Sin medir» de una sesión que se midió, y
 	// serieSinMedir, el resultado de una serie con sesiones sin medir, con
@@ -85,6 +90,13 @@ const (
 	// de ningún modo: las de una eval sin binario ni servidor
 	// (contracts/evals-en-dos-modos.md §5.3 de H21).
 	sinModoEnElInforme = "—"
+
+	// skillSinJuez es la sección «Juez» entera de una skill sin juez, y
+	// vacioEnElVoto, la celda de lo que el juez dejó vacío en un voto —la frase
+	// y el precepto de uno que dice no— y la del precepto de la clase que no lo
+	// tiene (contracts/informe-del-job.md §7 de H24).
+	skillSinJuez  = "La skill no tiene juez."
+	vacioEnElVoto = "—"
 )
 
 // modeloConSuModo es el modelo de lo que el informe publica de un modo cuando
@@ -94,8 +106,10 @@ const (
 const modeloConSuModo = "%s (%s)"
 
 // Encabezados de las tablas de informe.md (contrato job-de-evals §5; contrato
-// lista-y-juicio §5 de H7.2; contrato informe-del-job §4 de H7.3 y de H7.4;
-// contracts/evals-en-dos-modos.md §5.3 de H21).
+// informe-del-job §4 de H7.3 y de H7.4; contracts/evals-en-dos-modos.md §5.3 de
+// H21; contracts/informe-del-job.md §7 de H24, que quita la columna y la tabla
+// de las expresiones prohibidas y añade las dos del juez: la de los votos y la
+// de las respuestas sin juzgar).
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
@@ -104,17 +118,18 @@ var (
 		"Comandos prohibidos ejecutados", "Citas ausentes", "Avisos encontrados", "Avisos ausentes",
 		"Hallazgos encontrados", "Hallazgos ausentes", "Redacciones modificadas encontradas",
 		"Redacciones modificadas ausentes", "Territorio encontrado", "Territorio ausente",
-		"Expresiones prohibidas", "Reintentos por límite de ritmo", "Sin medir", "Resultado",
+		"Reintentos por límite de ritmo", "Sin medir", "Resultado",
 	}
 	encabezadosDeSinMedir     = []string{"Sesión", "Eval", "Modelo", "Motivo"}
 	encabezadosDeInvocaciones = []string{"Orden", "Código", "Conexiones", "Llamada"}
 	encabezadosDeTasas        = []string{
 		"Eval", "Modelo", "Modo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
 	}
-	encabezadosDeExpresiones = []string{
-		"Modelo", "Modo", "Respuestas con alguna expresión", "Respuestas en evals que activan la skill",
-	}
 	encabezadosDeUmbrales = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
+	encabezadosDeVotos    = []string{
+		"Sesión", "Clase", "Voto", "Nulo", "Respuesta", "Frase", "En la respuesta", "Precepto", "Motivo", "Marcada",
+	}
+	encabezadosDeSinJuzgar = []string{"Sesión", "Motivo"}
 )
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
@@ -189,6 +204,34 @@ type InformeAEscribir struct {
 	// uno negativo impide escribir el informe (contrato informe-del-job §5 de
 	// H7.3; FR-051).
 	ObjetivoDeDuracion int
+
+	// Votar es quien da cada voto del juez de la skill
+	// (contracts/informe-del-job.md §1 de H24; research D5 y D7 de H24): con una
+	// skill con juez, sin él no se puede escribir el informe; con una sin juez,
+	// no se llama (FR-037 de H24). Se le llama desde varias gorrutinas a la vez,
+	// una por respuesta que se juzga.
+	Votar Votante
+
+	// ModeloDelJuez y VersionDelJuez son el id del modelo del juez y la versión
+	// de Claude Code de sus votos, los fijados para el job.
+	ModeloDelJuez  string
+	VersionDelJuez string
+
+	// ConcurrenciaDelJuez es cuántas respuestas se votan a la vez como mucho;
+	// los votos de una misma respuesta van uno detrás de otro. Con una skill con
+	// juez, tiene que ser al menos 1.
+	ConcurrenciaDelJuez int
+
+	// Ahora es el reloj con el que se mide lo que tardan los votos de cada
+	// modo; nil, time.Now (research D7 de H24).
+	Ahora func() time.Time
+
+	// InstrumentoSinMedir son las líneas de comprobarLaMedida, las que da quien
+	// ejecuta el job de una skill con juez cuando su medida versionada no
+	// corresponde o no se cumple: con alguna, el informe es el del instrumento
+	// sin medir, que no lleva nada medido (contracts/informe-del-job.md §5 de
+	// H24; research D11 de H24; FR-043 de H24).
+	InstrumentoSinMedir []string
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -239,18 +282,17 @@ type Informe struct {
 	// (data-model §10.4; contracts/evals-en-dos-modos.md §5 de H21).
 	Tasas []TasaDelInforme `json:"tasas"`
 
-	// ExpresionesProhibidasPorModelo es el recuento de las respuestas con alguna
-	// expresión prohibida, uno por modelo del job y modo del plan: los del modo
-	// orden delante y, en cada modo, el que decide y después los informativos, en
-	// su orden. Vacío, [] en informe.json, si la skill no tiene lista (contrato
-	// lista-y-juicio §5 de H7.2; contracts/evals-en-dos-modos.md §5 de H21;
-	// FR-053).
-	ExpresionesProhibidasPorModelo []RecuentoDeExpresiones `json:"expresiones_prohibidas_por_modelo"`
-
 	// Umbrales son los del contrato del ADR 0029, en el orden de
-	// umbralesDelInforme: nil, [] en informe.json, si la skill no tiene lista ni
-	// objetivo de duración (contrato informe-del-job §1 de H7.3; FR-001, FR-006).
+	// umbralesDelInforme: nil, [] en informe.json, si la skill no tiene juez ni
+	// objetivo de duración (contrato informe-del-job §1 de H7.3; FR-001, FR-006;
+	// contracts/informe-del-job.md §2 de H24; research D13 de H24).
 	Umbrales []Umbral `json:"umbrales"`
+
+	// Juez es lo que el juez con modelo de la skill deja a la vista de quien lee
+	// el informe: nil, null en informe.json, si la skill no tiene juez
+	// (contracts/informe-del-job.md §3 de H24; research D10 de H24; FR-060,
+	// FR-061).
+	Juez *JuezInformado `json:"juez"`
 
 	// DuracionDeLasSesiones son los segundos recibidos, tal cual: la suma de las
 	// tandas del repartidor (FR-050 de H7.3; contracts/evals-en-dos-modos.md §5
@@ -332,89 +374,203 @@ type TasaDelInforme struct {
 	Pasa     bool `json:"pasa"`
 }
 
-// RecuentoDeExpresiones es, para un modelo del job en un modo, cuántas
-// respuestas de las evals que activan la skill llevan alguna expresión prohibida
-// (contrato lista-y-juicio §5 de H7.2; data-model §3;
-// contracts/evals-en-dos-modos.md §5 de H21; FR-053). Es lo que se compara con el
-// umbral de SC-001.
-type RecuentoDeExpresiones struct {
-	// Modelo es el id del modelo, tal como lo fija el job, seguido de su modo
-	// entre paréntesis, «<id> (orden)» o «<id> (herramienta)»:
-	// scripts/workflow/informe.sh da una fila por recuento con su modelo, y así
-	// cada fila dice de qué modo es (research.md V33 de H21; FR-048).
-	Modelo string `json:"modelo"`
+// JuezInformado es el juez con modelo de la skill como lo presenta el informe
+// (contracts/informe-del-job.md §3 de H24; research D10 de H24; FR-060,
+// FR-061): con qué votó y, de las respuestas que juzgó, las que tienen algún
+// voto afirmativo, con sus votos y sus frases, y las que dejó sin juzgar. De
+// una respuesta cuyos votos dicen todos no, no lleva nada: lo acotan las
+// respuestas que se juzgan, no el uso.
+type JuezInformado struct {
+	// Modelo y VersionDeClaudeCode son el id del modelo del juez y la versión de
+	// Claude Code de sus votos, los fijados para el job, tal como se recibieron.
+	Modelo              string `json:"modelo"`
+	VersionDeClaudeCode string `json:"version_de_claude_code"`
 
-	// Modo es el modo de las sesiones que cuenta.
-	Modo Modo `json:"modo"`
+	// Respuestas son las respuestas juzgadas con algún voto afirmativo en
+	// cualquier clase, también uno nulo y también si no quedaron marcadas, en
+	// orden de sesión; [] en informe.json si no hay ninguna.
+	Respuestas []RespuestaConVotos `json:"respuestas"`
 
-	// ConAlguna son las de Respuestas que llevan alguna expresión prohibida.
-	ConAlguna int `json:"con_alguna"`
-
-	// Respuestas son las respuestas medidas del modelo en ese modo: sus sesiones
-	// juzgadas —no las ilegibles—, no sin medir y terminadas de las series de ese
-	// modo que pide el plan con ese modelo cuya eval espera que la skill se
-	// active (contracts/informe-del-job.md §1 de H7.4; FR-045). Las de una eval
-	// sin binario ni servidor no son de ningún modo y no entran en ninguno
-	// (FR-047 de H21).
-	Respuestas int `json:"respuestas"`
+	// SinJuzgar son las respuestas de las que un voto no llegó a darse, en orden
+	// de sesión; [] en informe.json si no hay ninguna. Ninguna está además en
+	// Respuestas, aunque un voto anterior dijera sí: no es una respuesta
+	// juzgada.
+	SinJuzgar []RespuestaSinJuzgar `json:"sin_juzgar"`
 }
 
-// recuentoDeRespuestas es, para un modelo del job en un modo del plan, el
-// recuento de sus respuestas medidas (data-model §5 de H7.4; data-model §10 de
-// H21): lo que publica expresiones_prohibidas_por_modelo —el modelo, el modo,
-// las respuestas y las que llevan alguna expresión— y, para los umbrales del
-// modelo que decide en ese modo, las que llevan alguna de redaccion_no_leida y
-// las que no activaron la skill (FR-041, FR-042).
-type recuentoDeRespuestas struct {
+// RespuestaConVotos es una respuesta juzgada con algún voto afirmativo: su
+// sesión y, por cada clase del juez, en el orden de clases.yaml, todos sus
+// votos —también los nulos, y los de la clase en la que todos dicen no— y si
+// quedó marcada en ella (JuicioDeClase).
+type RespuestaConVotos struct {
+	Sesion string          `json:"sesion"`
+	Clases []JuicioDeClase `json:"clases"`
+}
+
+// RespuestaSinJuzgar es una respuesta que el juez dejó sin juzgar: su sesión y
+// el motivo del voto que no llegó a darse, que lo nombra por su número (FR-007
+// de H24).
+type RespuestaSinJuzgar struct {
+	Sesion string `json:"sesion"`
+	Motivo string `json:"motivo"`
+}
+
+// juicioDelJuez es lo que el juez con modelo de la skill deja de una ejecución
+// (contracts/informe-del-job.md §1 de H24; data-model §3 y §5 de H24): las
+// respuestas del modelo que decide que se juzgan, por grupos, cada una con su
+// juicio, y con ellas lo que miden los umbrales de las respuestas
+// (umbralesDelInforme). Una skill sin juez no tiene ninguno: ni umbrales de sus
+// respuestas ni votos (research D13 de H24; FR-037).
+type juicioDelJuez struct {
+	// modelo es el que decide: el de las respuestas que se juzgan.
 	modelo string
-	modo   Modo
 
-	// respuestas son las medidas; conAlguna, las que llevan alguna expresión de
-	// la lista; conRedaccionNoLeida, las que llevan alguna de
-	// redaccion_no_leida; y sinActivar, las que no activaron la skill.
-	respuestas, conAlguna, conRedaccionNoLeida, sinActivar int
+	// clases son las del juez, en el orden de clases.yaml, y medida, su medida
+	// versionada.
+	clases []ClaseDelJuez
+	medida MedidaDelJuez
+
+	// grupos son los de las respuestas, en el orden en que se votan: uno por
+	// modo del plan, el del modo orden delante, y detrás el de las evals sin
+	// binario ni servidor, que no es de ningún modo.
+	grupos []grupoJuzgado
 }
 
-// contar cuenta el resultado de una respuesta medida en su recuento: como
-// respuesta y, si le corresponde, con alguna expresión, con alguna de
-// redaccion_no_leida y sin la skill activada, una vez en cada uno.
-func (r *recuentoDeRespuestas) contar(resultado ResultadoDeEval, lista ExpresionesProhibidas) {
-	r.respuestas++
+// grupoJuzgado son las respuestas del modelo que decide que se juzgan juntas
+// (contracts/informe-del-job.md §1 de H24): las de un modo del plan o, sin
+// modo, las de las evals sin binario ni servidor. Las de un modo son las
+// respuestas medidas del modelo en ese modo, el total de sus umbrales
+// (data-model §5 de H7.4; data-model §10 de H21); las de las evals sin binario
+// ni servidor se juzgan igual y no cuentan en ningún umbral ni en ninguna
+// duración (FR-013 de H24).
+type grupoJuzgado struct {
+	modo Modo
 
-	if len(resultado.ExpresionesProhibidas) > 0 {
-		r.conAlguna++
-	}
+	// respuestas van en orden de sesión.
+	respuestas []respuestaDelJuez
 
-	if slices.ContainsFunc(resultado.ExpresionesProhibidas, lista.esDeLaClaseB) {
-		r.conRedaccionNoLeida++
-	}
-
-	if !resultado.Activada {
-		r.sinActivar++
-	}
+	// segundos son los que tardaron sus votos, desde que empieza el primero
+	// hasta que termina el último, redondeados hacia arriba; 0 sin respuestas.
+	segundos int
 }
 
-// expresionesPorModelo es lo que publica expresiones_prohibidas_por_modelo del
-// recuento: por modelo y modo, en su orden, el modelo con su modo, el modo, las
-// respuestas con alguna expresión y las respuestas medidas
-// (contracts/informe-del-job.md §1 de H7.4; contracts/evals-en-dos-modos.md §5
-// de H21). Nil, [] en informe.json, si no hay recuento: la skill no tiene lista.
-func expresionesPorModelo(recuento []recuentoDeRespuestas) []RecuentoDeExpresiones {
-	if recuento == nil {
+// respuestaDelJuez es una respuesta del modelo que decide con lo que el juez
+// dejó de ella.
+type respuestaDelJuez struct {
+	// posicion es la de su sesión entre las de la ejecución, que van en orden
+	// de nombre, y sesion, ese nombre.
+	posicion int
+	sesion   string
+
+	// activada dice si su sesión activó la skill.
+	activada bool
+
+	// juicio es el del juez: el de la regla de los votos.
+	juicio JuicioDeRespuesta
+}
+
+// deLosModos son los grupos de las respuestas de los modos del plan, en su
+// orden: todos menos el de las evals sin binario ni servidor.
+func (j *juicioDelJuez) deLosModos() []grupoJuzgado {
+	deLosModos := make([]grupoJuzgado, 0, len(j.grupos))
+
+	for _, grupo := range j.grupos {
+		if grupo.modo != "" {
+			deLosModos = append(deLosModos, grupo)
+		}
+	}
+
+	return deLosModos
+}
+
+// respuestasQue son las respuestas de todos los grupos que cumplen la
+// condición, en orden de sesión: las de los modos y las de las evals sin
+// binario ni servidor, que el juez juzga y el informe publica como las demás
+// (FR-013 de H24).
+func (j *juicioDelJuez) respuestasQue(cumple func(respuesta respuestaDelJuez) bool) []respuestaDelJuez {
+	var respuestas []respuestaDelJuez
+
+	for _, grupo := range j.grupos {
+		for _, respuesta := range grupo.respuestas {
+			if cumple(respuesta) {
+				respuestas = append(respuestas, respuesta)
+			}
+		}
+	}
+
+	slices.SortFunc(respuestas, func(a, b respuestaDelJuez) int { return cmp.Compare(a.posicion, b.posicion) })
+
+	return respuestas
+}
+
+// sinJuzgar son las respuestas de las que un voto no llegó a darse, las de
+// todos los grupos, en orden de sesión (FR-007 y FR-013 de H24); ninguna si la
+// skill no tiene juez.
+func (j *juicioDelJuez) sinJuzgar() []respuestaDelJuez {
+	if j == nil {
 		return nil
 	}
 
-	publicado := make([]RecuentoDeExpresiones, 0, len(recuento))
-	for _, delModelo := range recuento {
-		publicado = append(publicado, RecuentoDeExpresiones{
-			Modelo:     fmt.Sprintf(modeloConSuModo, delModelo.modelo, delModelo.modo),
-			Modo:       delModelo.modo,
-			ConAlguna:  delModelo.conAlguna,
-			Respuestas: delModelo.respuestas,
-		})
+	return j.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.juicio.SinJuzgar != "" })
+}
+
+// informado es el juez como lo presenta el informe, con el id de su modelo y la
+// versión de Claude Code de sus votos tal como se recibieron
+// (contracts/informe-del-job.md §3 de H24; FR-060, FR-061): nil si la skill no
+// tiene juez. De las respuestas juzgadas lleva las que tienen algún voto
+// afirmativo, cada una con todos sus votos en cada clase; y de las que quedaron
+// sin juzgar, su motivo y nada más, tampoco los votos que sí llegaron: una
+// respuesta sin juzgar no es una respuesta juzgada sin marcar.
+func (j *juicioDelJuez) informado(modelo, version string) *JuezInformado {
+	if j == nil {
+		return nil
 	}
 
-	return publicado
+	informado := &JuezInformado{Modelo: modelo, VersionDeClaudeCode: version}
+
+	conVotoAfirmativo := j.respuestasQue(func(respuesta respuestaDelJuez) bool {
+		return respuesta.juicio.SinJuzgar == "" && respuesta.juicio.conVotoAfirmativo()
+	})
+	for _, respuesta := range conVotoAfirmativo {
+		informado.Respuestas = append(informado.Respuestas,
+			RespuestaConVotos{Sesion: respuesta.sesion, Clases: respuesta.juicio.Clases})
+	}
+
+	for _, respuesta := range j.sinJuzgar() {
+		informado.SinJuzgar = append(informado.SinJuzgar,
+			RespuestaSinJuzgar{Sesion: respuesta.sesion, Motivo: respuesta.juicio.SinJuzgar})
+	}
+
+	return informado
+}
+
+// sinActivar son las respuestas del grupo cuya sesión no activó la skill.
+func (g grupoJuzgado) sinActivar() int {
+	sinActivar := 0
+
+	for _, respuesta := range g.respuestas {
+		if !respuesta.activada {
+			sinActivar++
+		}
+	}
+
+	return sinActivar
+}
+
+// marcadasEn son las respuestas del grupo que el juez dejó marcadas en la clase
+// que ocupa esa posición entre las suyas, en orden de sesión: con sus tres
+// votos, si la clase decide, y con el primero, si solo se publica
+// (JuicioDeClase.Marcada). Una respuesta sin juzgar no está.
+func (g grupoJuzgado) marcadasEn(clase int) []respuestaDelJuez {
+	var marcadas []respuestaDelJuez
+
+	for _, respuesta := range g.respuestas {
+		if respuesta.juicio.Clases[clase].Marcada {
+			marcadas = append(marcadas, respuesta)
+		}
+	}
+
+	return marcadas
 }
 
 // modeloDeLaSerie es el modelo que publica la serie de un modelo en un modo: el
@@ -485,20 +641,19 @@ type RedDelInforme struct {
 //     de la eval— y las compara con las que pide el plan (PlanDeEvals) en los
 //     modos de e.Modos: cada serie lleva su tasa, y una serie que decide pasa si
 //     llegan al umbral (data-model §10.4; ADR 0016) y ninguna quedó sin medir,
-//     contando como sin medir las de e.SinAbrir (FR-042 y FR-044 de H7.3); con la
-//     lista de expresiones prohibidas de la skill, cuenta además por modelo y
-//     modo las respuestas medidas —terminadas— de las series de ese modo que
-//     pide el plan cuya eval activa la skill, las que llevan alguna expresión,
-//     alguna de redaccion_no_leida o no activaron la skill (recontarExpresiones;
-//     contrato lista-y-juicio §5 de H7.2; contracts/informe-del-job.md §1 de
-//     H7.4), sin que eso cambie la regla del veredicto: una sesión con una
-//     expresión es una sesión que no pasa (FR-054), y una sin terminar sigue sin
-//     pasar en su serie;
-//  4. con el recuento, compone los umbrales (umbralesDelInforme): si la skill
-//     tiene lista, por cada modo, los tres del modelo que decide y los de las
-//     expresiones de los informativos, y los de la duración de cada modo si hay
-//     objetivo (contrato informe-del-job §1 de H7.3; contracts/informe-del-job.md
-//     §2 de H7.4; contracts/evals-en-dos-modos.md §5.1 de H21);
+//     contando como sin medir las de e.SinAbrir (FR-042 y FR-044 de H7.3); con
+//     una skill que tiene juez, reúne además, del modelo que decide y por modo,
+//     las respuestas medidas —terminadas— de las series de ese modo que pide el
+//     plan cuya eval activa la skill (respuestasQueSeJuzgan;
+//     contracts/informe-del-job.md §1 de H7.4; research D13 de H24), sin que eso
+//     cambie el juicio de ninguna sesión: una sin terminar sigue sin pasar en su
+//     serie;
+//  4. con ellas, compone los umbrales (umbralesDelInforme): si la skill tiene
+//     juez, por cada modo, el de las respuestas sin la skill activada del modelo
+//     que decide y los del juez, y los de la duración de cada modo si hay
+//     objetivo (contrato informe-del-job §1 de H7.3;
+//     contracts/informe-del-job.md §2 de H7.4 y de H24;
+//     contracts/evals-en-dos-modos.md §5.1 de H21);
 //  5. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
@@ -506,11 +661,12 @@ type RedDelInforme struct {
 //     juzgar; cada fichero mal formado; cada petición llegada a la red; el de
 //     cada umbral que decide y no se cumple, salvo los de la duración (FR-003 de
 //     H7.3); con alguna sesión sin medir, uno solo de la ejecución que las nombra
-//     (FR-043 de H7.3); y, si deciden y no se cumplen, los de la duración,
-//     también de la ejecución (FR-051 de H7.3). El veredicto es fallo si hay
-//     algún motivo y aprobado si no hay ninguno, de modo que los motivos son
-//     exactamente las causas del fallo, y un umbral que decide y no se cumple lo
-//     pone en fallo.
+//     (FR-043 de H7.3); con alguna respuesta que el juez dejó sin juzgar, otro de
+//     la ejecución que las nombra (FR-007 de H24); y, si deciden y no se cumplen,
+//     los de la duración, también de la ejecución (FR-051 de H7.3; FR-033 de
+//     H24). El veredicto es fallo si hay algún motivo y aprobado si no hay
+//     ninguno, de modo que los motivos son exactamente las causas del fallo, y un
+//     umbral que decide y no se cumple lo pone en fallo.
 //
 // Desde H21 (contracts/evals-en-dos-modos.md §3 a §5; FR-043, FR-044, FR-047,
 // FR-048), cada sesión se juzga con el modo que da su directorio
@@ -520,13 +676,49 @@ type RedDelInforme struct {
 // eval pase en el otro; las medidas de un modo no se suman a las del otro; y las
 // sesiones de una eval sin binario ni servidor forman su serie, que decide, y no
 // entran en ningún recuento ni en ningún umbral. El modo lo nombran el modelo de
-// la serie (modeloDeLaSerie), el del recuento y el nombre del umbral, y con ellos
-// los motivos.
+// la serie (modeloDeLaSerie) y el nombre del umbral, y con ellos los motivos.
+//
+// Desde H24 (contracts/informe-del-job.md §2, §6 y §7 de H24; research D13 y
+// D14; FR-034, FR-062, FR-070), el informe no lleva nada de la lista de
+// expresiones prohibidas de la skill: ni el recuento por modelo, ni las de cada
+// sesión, ni sus umbrales, ni su sección ni su columna de informe.md. Los
+// umbrales de las respuestas dependen de que la skill tenga juez.
+//
+// Con una skill que tiene juez (contracts/informe-del-job.md §1, §2 y §4 de
+// H24; research D7 de H24; FR-007, FR-012 a FR-014, FR-030 a FR-035), entre el
+// juicio sin modelo de las sesiones y la composición del informe el juez juzga,
+// con el votante de e.Votar, las respuestas medidas del modelo que decide de las
+// evals que activan la skill —las de cada modo y, aparte, las de las evals sin
+// binario ni servidor— (juezDelInforme.juzgar). Sus votos no cambian si una
+// sesión pasa, ni sus motivos, ni la tasa de ninguna serie: actúan en el
+// veredicto solo por sus umbrales —las respuestas marcadas en cada clase que
+// decide, cuyo motivo las nombra con sus frases, la medida versionada del juez y
+// lo que tardan los votos de cada modo— y por las respuestas que quedan sin
+// juzgar. Las de las evals sin binario ni servidor no cuentan en ningún umbral
+// ni en ninguna duración, y una marca suya no da ningún motivo. Con una skill
+// sin juez, el votante no se llama (FR-037).
+//
+// Lo que el juez deja a la vista va en la clave juez de informe.json, detrás de
+// los umbrales, y en la sección «Juez» de informe.md
+// (contracts/informe-del-job.md §3 y §7 de H24; research D10 de H24; FR-013,
+// FR-060, FR-061): el modelo del juez y la versión de Claude Code de sus votos,
+// tal como se recibieron; cada respuesta juzgada con algún voto afirmativo —las
+// de las evals sin binario ni servidor, como las demás—, con todos sus votos y
+// sus frases y con si quedó marcada en cada clase; y cada respuesta sin juzgar,
+// con su motivo. Con una skill sin juez, juez es null.
+//
+// Con alguna línea en e.InstrumentoSinMedir (contracts/informe-del-job.md §5 de
+// H24; research D11 de H24; FR-043), el informe es el del instrumento sin medir
+// (informeDelInstrumentoSinMedir): el job no ha abierto ninguna sesión, y
+// EscribirInforme no lee las evals ni ninguna sesión ni llama al votante, que
+// puede faltar. Lo recibido se comprueba y sin-python.txt se lee como en
+// cualquier otro informe.
 //
 // El error es solo para lo que impide escribir el informe —un plan sin sentido,
-// un objetivo de duración negativo, o sin-python.txt, las evals o las sesiones
-// que no se pueden leer, o un destino en el que no se puede escribir— y nombra el
-// fichero, el directorio o el valor. Todo se lee
+// un objetivo de duración negativo, sin-python.txt, las evals o las sesiones
+// que no se pueden leer, un juez sin con qué votar o sin su medida, o un destino
+// en el que no se puede escribir— y nombra el fichero, el directorio o el valor.
+// Todo se lee
 // antes de escribir nada y, con cualquiera de esos errores, en el destino no queda
 // ni informe.md ni informe.json, de modo que un sin_python vacío o a medias no
 // llega nunca a un informe (FR-081).
@@ -553,7 +745,16 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 			e.SinPython, err)
 	}
 
+	if len(e.InstrumentoSinMedir) > 0 {
+		return e.escribir(informeDelInstrumentoSinMedir(e, string(sinPython)), nil)
+	}
+
 	conjunto, err := LeerConjunto(e.Evals)
+	if err != nil {
+		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
+	}
+
+	juez, err := e.juezDelInforme(conjunto.Juez)
 	if err != nil {
 		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
 	}
@@ -563,8 +764,16 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 		return Informe{}, fmt.Errorf("el informe no se puede escribir: %w", err)
 	}
 
-	informe := componerInforme(e, string(sinPython), conjunto, sesiones)
+	series := repartirEnSeries(e, conjunto.Evals, sesiones)
+	informe := componerInforme(e, string(sinPython), conjunto, sesiones, series, juez.juzgar(e, sesiones, series))
 
+	return e.escribir(informe, sesiones)
+}
+
+// escribir deja en e.Destino informe.md e informe.json del informe ya
+// compuesto, con las sesiones juzgadas de las que sale la sección de cada una
+// en informe.md —ninguna, en el del instrumento sin medir—, y lo devuelve.
+func (e InformeAEscribir) escribir(informe Informe, sesiones []sesionJuzgada) (Informe, error) {
 	// Un argv de la traza puede traer cualquier octeto: el que no es UTF-8 válido
 	// se escribe como el carácter de sustitución, en lugar de dejar la ejecución
 	// sin informe.
@@ -578,6 +787,44 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 	}
 
 	return informe, nil
+}
+
+// cabeceraDelInforme es el informe con lo que lleva de lo recibido, tal cual, y
+// de sin-python.txt: lo que tiene todo informe antes de juzgar nada.
+func cabeceraDelInforme(e InformeAEscribir, sinPython string) Informe {
+	return Informe{
+		Skill:                 e.Skill,
+		ModeloQueDecide:       e.ModeloQueDecide,
+		ModelosInformativos:   e.ModelosInformativos,
+		Repeticiones:          e.Repeticiones,
+		Umbral:                e.Umbral,
+		Commit:                e.Commit,
+		SinPython:             sinPython,
+		DuracionDeLasSesiones: e.DuracionDeLasSesiones,
+	}
+}
+
+// informeDelInstrumentoSinMedir es el informe de la ejecución que no abrió
+// ninguna sesión, de evals o del juez, porque la medida versionada del juez no
+// corresponde o no se cumple (contracts/informe-del-job.md §5 de H24; research
+// D11 de H24; FR-043): el veredicto es fallo, con un motivo de la ejecución por
+// cada línea de e.InstrumentoSinMedir, que dice que el instrumento no está
+// medido y qué es lo que no coincide. No lleva nada medido: ningún umbral —los
+// de las respuestas sin activar y los de la duración saldrían cumplidos sin
+// ninguna sesión—, ninguna serie, ninguna sesión, y del juez, solo su modelo y
+// la versión de Claude Code de sus votos, los fijados, sin ninguna respuesta.
+// Así quien lee el informe no da por medido ningún umbral del juez.
+func informeDelInstrumentoSinMedir(e InformeAEscribir, sinPython string) Informe {
+	informe := cabeceraDelInforme(e, sinPython)
+
+	for _, linea := range e.InstrumentoSinMedir {
+		informe.Motivos = append(informe.Motivos, motivoDeLaEjecucion+motivoDelInstrumentoSinMedir+linea)
+	}
+
+	informe.Juez = &JuezInformado{Modelo: e.ModeloDelJuez, VersionDeClaudeCode: e.VersionDelJuez}
+	informe.Veredicto = veredictoDelInforme(informe)
+
+	return informe
 }
 
 // ejecucionPorTandas es lo que el informe recibe del repartidor cuando ejecuta el
@@ -609,7 +856,8 @@ type ejecucionPorTandas struct {
 //
 // ejecutar es el repartidor, ejecutarSesiones, con la tanda como plan: lo recibe
 // para que TestEjecucionDelJob, que es quien abre sesiones con modelo, no sea el
-// único sitio en el que está el reparto por tandas.
+// único sitio en el que está el reparto por tandas. Desde H24 lo llama
+// ejecutarElJob, con quien abre las sesiones que le da ese punto de entrada.
 func ejecutarPorTandas(
 	plan []SesionPlanificada, ejecutar func(tanda []SesionPlanificada) (EjecucionDeSesiones, error),
 ) (ejecucionPorTandas, error) {
@@ -868,27 +1116,139 @@ func leerEvalDeLaSesion(dir, directorioDeEvals string, evals []Eval) (string, Ev
 	return nombre, evals[posicion], nil
 }
 
-// componerInforme reúne en el informe lo recibido, lo leído y los resultados de
-// las sesiones, reparte las sesiones en series y decide sus motivos y su
-// veredicto.
-func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada) Informe {
-	informe := Informe{
-		Skill:                 e.Skill,
-		ModeloQueDecide:       e.ModeloQueDecide,
-		ModelosInformativos:   e.ModelosInformativos,
-		Repeticiones:          e.Repeticiones,
-		Umbral:                e.Umbral,
-		Commit:                e.Commit,
-		SinPython:             sinPython,
-		DuracionDeLasSesiones: e.DuracionDeLasSesiones,
+// juezDelInforme es con lo que EscribirInforme juzga las respuestas de una
+// ejecución con el juez de su skill: la votación, con sus clases y su votante;
+// la medida versionada del juez, de la que salen dos de sus umbrales; cuántas
+// respuestas se votan a la vez; y el reloj con el que se mide lo que tardan los
+// votos de cada modo.
+type juezDelInforme struct {
+	votacion     *votacion
+	medida       MedidaDelJuez
+	concurrencia int
+	ahora        func() time.Time
+}
+
+// juezDelInforme prepara con qué juzgar las respuestas con el juez de la skill
+// (contracts/informe-del-job.md §1 de H24): nil si la skill no tiene juez, y
+// entonces ni el votante se mira (FR-037). Con juez, es un error, que impide
+// escribir el informe, que no haya votante, que las respuestas que se votan a
+// la vez sean menos de una, que el esquema de la respuesta del juez no sirva
+// para validar sus votos o que su medida versionada no se pueda leer: sin ella
+// no hay con qué publicar sus dos umbrales. Si la medida corresponde y se
+// cumple lo comprueba, antes de abrir ninguna sesión, quien ejecuta el job
+// (ejecutarElJob, con comprobarLaMedida): aquí solo se lee.
+func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
+	if juez == nil {
+		return nil, nil
 	}
+
+	if e.Votar == nil {
+		return nil, errors.New("el juez de la skill no tiene votante")
+	}
+
+	if e.ConcurrenciaDelJuez < 1 {
+		return nil, fmt.Errorf("la concurrencia del juez es %d y tiene que ser un entero mayor o igual que 1",
+			e.ConcurrenciaDelJuez)
+	}
+
+	votacion, err := nuevaVotacion(juez, e.Votar)
+	if err != nil {
+		return nil, err
+	}
+
+	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
+	if err != nil {
+		return nil, fmt.Errorf("la medida versionada del juez (%s/%s): %w", carpetaDelJuez, ficheroDeMedidaDelJuez, err)
+	}
+
+	ahora := e.Ahora
+	if ahora == nil {
+		ahora = time.Now
+	}
+
+	return &juezDelInforme{votacion: votacion, medida: medida, concurrencia: e.ConcurrenciaDelJuez, ahora: ahora}, nil
+}
+
+// juzgar juzga con el juez las respuestas de la ejecución que se juzgan
+// (respuestasQueSeJuzgan), después del juicio sin modelo de cada sesión
+// (contracts/informe-del-job.md §1 de H24; research D6 y D7 de H24; FR-012,
+// FR-013): nil si la skill no tiene juez. Los votos van por grupos y en su
+// orden —el modo orden, el modo herramienta y las evals sin binario ni
+// servidor—, y dentro de cada uno, como mucho tantas respuestas a la vez como
+// diga la concurrencia, con los votos de una misma respuesta uno detrás de otro
+// (juzgarTodas). Cada respuesta se juzga con la pregunta de su eval, su
+// respuesta y los textos de sus herramientas, y con nada más de su sesión ni de
+// su juicio sin modelo, que los votos no cambian (FR-002, FR-014).
+//
+// El reloj de un grupo va de que empieza su primer voto a que termina el
+// último: se lee antes de pedir ninguno y cuando todos han terminado, y sus
+// segundos se redondean hacia arriba, como los de una tanda de sesiones. Un
+// grupo sin respuestas no pide ningún voto ni mira el reloj.
+func (j *juezDelInforme) juzgar(e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada) *juicioDelJuez {
+	if j == nil {
+		return nil
+	}
+
+	delJuez := &juicioDelJuez{
+		modelo: e.ModeloQueDecide,
+		clases: j.votacion.clases,
+		medida: j.medida,
+		grupos: respuestasQueSeJuzgan(e, sesiones, series),
+	}
+
+	for posicion := range delJuez.grupos {
+		grupo := &delJuez.grupos[posicion]
+		if len(grupo.respuestas) == 0 {
+			continue
+		}
+
+		inicio := j.ahora()
+		juicios := j.votacion.juzgarTodas(grupo.aJuzgar(sesiones), j.concurrencia)
+		grupo.segundos = segundosHaciaArriba(j.ahora().Sub(inicio))
+
+		// Los juicios llegan en el orden de las respuestas del grupo.
+		for deLaRespuesta, juicio := range juicios {
+			grupo.respuestas[deLaRespuesta].juicio = juicio
+		}
+	}
+
+	return delJuez
+}
+
+// aJuzgar es lo que se da al juez de cada respuesta del grupo, en su orden: la
+// pregunta de su eval, su respuesta y los textos de sus herramientas. La sesión
+// de una serie que pide el plan pregunta lo que pregunta su eval: su
+// pregunta.txt es esa pregunta seguida de un salto de línea.
+func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
+	aJuzgar := make([]respuestaAJuzgar, 0, len(g.respuestas))
+
+	for _, respuesta := range g.respuestas {
+		juzgada := sesiones[respuesta.posicion]
+
+		aJuzgar = append(aJuzgar, respuestaAJuzgar{
+			pregunta:  strings.TrimSuffix(juzgada.pregunta, "\n"),
+			respuesta: juzgada.resultado.Respuesta,
+			textos:    juzgada.sesion.Textos,
+		})
+	}
+
+	return aJuzgar
+}
+
+// componerInforme reúne en el informe lo recibido, lo leído, los resultados de
+// las sesiones, sus series y el juicio del juez, que es nil si la skill no lo
+// tiene, y decide sus motivos y su veredicto.
+func componerInforme(
+	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
+	delJuez *juicioDelJuez,
+) Informe {
+	informe := cabeceraDelInforme(e, sinPython)
 
 	for _, malFormado := range conjunto.MalFormados {
 		informe.FicherosMalFormados = append(informe.FicherosMalFormados,
 			FicheroMalFormadoDelInforme{Fichero: malFormado.Fichero, Error: malFormado.Error.Error()})
 	}
 
-	series := repartirEnSeries(e, conjunto.Evals, sesiones)
 	for _, serie := range series {
 		informe.Tasas = append(informe.Tasas, serie.tasa)
 
@@ -897,9 +1257,8 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 		}
 	}
 
-	recuento := recontarExpresiones(e, conjunto.Prohibidas, sesiones, series)
-	informe.ExpresionesProhibidasPorModelo = expresionesPorModelo(recuento)
-	informe.Umbrales = umbralesDelInforme(e, recuento)
+	informe.Umbrales = umbralesDelInforme(e, delJuez)
+	informe.Juez = delJuez.informado(e.ModeloDelJuez, e.VersionDelJuez)
 
 	for _, juzgada := range sesiones {
 		resultado := juzgada.resultado
@@ -926,7 +1285,7 @@ func componerInforme(e InformeAEscribir, sinPython string, conjunto Conjunto, se
 	}
 
 	informe.SesionesSinMedir = sesionesSinMedir(informe.Evals, e.SinAbrir)
-	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series)
+	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series, delJuez)
 	informe.Veredicto = veredictoDelInforme(informe)
 
 	return informe
@@ -1016,57 +1375,46 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 	return series
 }
 
-// recontarExpresiones da el recuento de las respuestas medidas por modelo
-// (contrato lista-y-juicio §5 de H7.2; contracts/informe-del-job.md §1 de H7.4;
-// data-model §5 de H7.4; research D13 de H7.4; FR-053; FR-045 y FR-061 de H7.4):
-// un elemento por modelo del job, el que decide y después los informativos en su
-// orden, con sus respuestas medidas —las sesiones juzgadas, no las ilegibles, que
-// no tienen respuesta juzgada, ni las sin medir, que no se midieron (FR-002 de
-// H7.3), ni las sin terminar, cuya respuesta no es la de una sesión que acabó—
-// de las series que pide el plan cuya eval espera que la skill se active, y
-// cuántas de ellas llevan alguna expresión, alguna de redaccion_no_leida o no
-// activaron la skill. Las de una serie que el plan no pide —la de la prueba de
-// red o la de una sesión cuya eval, modelo o pregunta no se pudieron leer— y las
-// sin terminar publican sus expresiones y sus motivos, pero no cuentan. Nil, []
-// en informe.json, si la skill no tiene lista —si están vacías sus cuatro
-// familias (contracts/lista-de-expresiones.md §3 de H7.3 y de H7.4)—: un
-// recuento de cero diría que se buscó.
+// respuestasQueSeJuzgan reparte en grupos las respuestas medidas del modelo que
+// decide (contracts/informe-del-job.md §1 de H7.4; data-model §5 de H7.4;
+// research D13 de H7.4; FR-045 y FR-061 de H7.4): las sesiones juzgadas —no las
+// ilegibles, que no tienen respuesta juzgada, ni las sin medir, que no se
+// midieron (FR-002 de H7.3), ni las sin terminar, cuya respuesta no es la de
+// una sesión que acabó— de las series que pide el plan con ese modelo cuya eval
+// espera que la skill se active. Las de una serie que el plan no pide —la de la
+// prueba de red o la de una sesión cuya eval, modelo o pregunta no se pudieron
+// leer— no están, ni las de los modelos informativos: ningún umbral se mide
+// sobre ellas, y el juez no las juzga.
 //
 // Desde H21 (contracts/evals-en-dos-modos.md §5 de H21; research.md D19; FR-043,
-// FR-047), hay un elemento por modelo y modo del plan, los del modo orden
-// delante, y cada uno cuenta solo las respuestas de las series de su modo: las
-// de un modo no se suman a las del otro. Las series de una eval sin binario ni
-// servidor, que el plan pide sin modo, no cuentan en ninguno, aunque su eval
-// espere que la skill se active.
-func recontarExpresiones(
-	e InformeAEscribir, lista ExpresionesProhibidas, sesiones []sesionJuzgada, series []serieJuzgada,
-) []recuentoDeRespuestas {
-	if len(lista.expresiones()) == 0 {
-		return nil
-	}
-
+// FR-047), hay un grupo por modo del plan, el del modo orden delante, y cada
+// uno lleva solo las respuestas de las series de su modo: las de un modo no se
+// suman a las del otro, y son el total de sus umbrales.
+//
+// Desde H24 (contracts/informe-del-job.md §1 de H24; FR-012, FR-013), son además
+// las que juzga el juez, y detrás de los grupos de los modos va uno más, sin
+// modo, con las de las series de las evals sin binario ni servidor, que el plan
+// pide sin modo: se juzgan y no cuentan en ningún umbral. Dentro de cada grupo
+// van en orden de sesión, sin juicio todavía.
+func respuestasQueSeJuzgan(e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada) []grupoJuzgado {
 	modos := e.plan(nil).modos()
-	modelos := slices.Concat([]string{e.ModeloQueDecide}, e.ModelosInformativos)
 
-	recuento := make([]recuentoDeRespuestas, 0, len(modos)*len(modelos))
-
+	grupos := make([]grupoJuzgado, 0, len(modos)+1)
 	for _, modo := range modos {
-		for _, modelo := range modelos {
-			recuento = append(recuento, recuentoDeRespuestas{modelo: modelo, modo: modo})
-		}
+		grupos = append(grupos, grupoJuzgado{modo: modo})
 	}
+
+	grupos = append(grupos, grupoJuzgado{})
 
 	for _, serie := range series {
-		// Las series que pide el plan son de los modelos del job y, las que
-		// tienen modo, de uno de los suyos.
-		enElRecuento := slices.IndexFunc(recuento, func(r recuentoDeRespuestas) bool {
-			return r.modelo == serie.clave.modelo && r.modo == serie.clave.modo
-		})
-		if !serie.tasa.Planificada || enElRecuento < 0 {
+		// Las series que pide el plan son de uno de sus modos o, las de una eval
+		// sin binario ni servidor, de ninguno.
+		enLosGrupos := slices.IndexFunc(grupos, func(grupo grupoJuzgado) bool { return grupo.modo == serie.clave.modo })
+		if !serie.tasa.Planificada || serie.clave.modelo != e.ModeloQueDecide || enLosGrupos < 0 {
 			continue
 		}
 
-		delModelo := &recuento[enElRecuento]
+		grupo := &grupos[enLosGrupos]
 
 		for _, posicion := range serie.sesiones {
 			juzgada := sesiones[posicion]
@@ -1075,11 +1423,17 @@ func recontarExpresiones(
 				continue
 			}
 
-			delModelo.contar(juzgada.resultado, lista)
+			grupo.respuestas = append(grupo.respuestas, respuestaDelJuez{
+				posicion: posicion, sesion: juzgada.resultado.Sesion, activada: juzgada.resultado.Activada,
+			})
 		}
 	}
 
-	return recuento
+	for _, grupo := range grupos {
+		slices.SortFunc(grupo.respuestas, func(a, b respuestaDelJuez) int { return cmp.Compare(a.posicion, b.posicion) })
+	}
+
+	return grupos
 }
 
 // formasExigidas son las formas fijas que exige la eval del fichero dado entre
@@ -1139,6 +1493,7 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // ellos nombran su modo (contracts/evals-en-dos-modos.md §5.2 de H21; FR-044).
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
+	delJuez *juicioDelJuez,
 ) []string {
 	var motivos []string
 
@@ -1166,13 +1521,30 @@ func motivosDelInforme(
 		motivos = append(motivos, llegada.Sesion+motivoDeLlegadaALaRed+llegada.Orden+" → "+llegada.Destino)
 	}
 
-	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales)...)
+	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales, delJuez)...)
 
 	if len(informe.SesionesSinMedir) > 0 {
 		motivos = append(motivos, motivoDeLasSesionesSinMedir(informe.SesionesSinMedir))
 	}
 
+	if sinJuzgar := delJuez.sinJuzgar(); len(sinJuzgar) > 0 {
+		motivos = append(motivos, motivoDeLasRespuestasSinJuzgar(sinJuzgar))
+	}
+
 	return append(motivos, motivosDeLaDuracionDeLasSesiones(informe.Umbrales)...)
+}
+
+// motivoDeLasRespuestasSinJuzgar es el motivo de la raíz que dan las respuestas
+// de las que un voto del juez no llegó a darse: el prefijo de la ejecución,
+// cuántas son y cada una, por su sesión, con el motivo de ese voto entre
+// paréntesis, en su orden (contracts/informe-del-job.md §4 de H24; FR-007).
+func motivoDeLasRespuestasSinJuzgar(sinJuzgar []respuestaDelJuez) string {
+	nombradas := make([]string, 0, len(sinJuzgar))
+	for _, respuesta := range sinJuzgar {
+		nombradas = append(nombradas, respuesta.sesion+" ("+respuesta.juicio.SinJuzgar+")")
+	}
+
+	return motivoDeLaEjecucion + fmt.Sprintf(motivoDeLasSinJuzgar, len(sinJuzgar), strings.Join(nombradas, ", "))
 }
 
 // motivosDeLaSerie son los motivos de la raíz que da una serie: si el plan la
@@ -1301,13 +1673,15 @@ func retirarFichero(ruta string) error {
 // reintentos por límite de ritmo al final (contrato informe-del-job §4 de H7.3);
 // la comprobación sin Python en un bloque; los ficheros mal formados, las
 // invocaciones fuera de lo grabado y las peticiones llegadas a la red; las tasas
-// por eval; el recuento de las expresiones prohibidas por modelo, o el párrafo de
-// la skill sin lista (contrato lista-y-juicio §5 de H7.2); junto a él, los
-// umbrales, o «ninguno»; las sesiones sin medir, o «ninguna»; la tabla de las
-// sesiones; y una sección por sesión. Las tablas de las tasas, de las
-// expresiones y de las sesiones llevan el modo detrás del modelo, y la de las
-// invocaciones de cada sesión, si cada una es una llamada a una herramienta
-// (contracts/evals-en-dos-modos.md §5.3 de H21).
+// por eval; los umbrales, o «ninguno»; el juez, con sus votos y las respuestas
+// que dejó sin juzgar (documento.juez; contracts/informe-del-job.md §7 de H24);
+// las sesiones sin medir, o «ninguna»; la tabla de las sesiones; y una sección
+// por sesión. Las tablas de las tasas y de
+// las sesiones llevan el modo detrás del modelo, y la de las invocaciones de
+// cada sesión, si cada una es una llamada a una herramienta
+// (contracts/evals-en-dos-modos.md §5.3 de H21). Desde H24 no lleva la sección
+// «Expresiones prohibidas por modelo» ni la columna «Expresiones prohibidas» de
+// la tabla de las sesiones (contracts/informe-del-job.md §7 de H24; FR-062).
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -1353,14 +1727,11 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.parrafo("## Tasas por eval")
 	md.tablaOVacia(encabezadosDeTasas, filasDeTasas(informe.Tasas), ningunaEnElInforme)
 
-	// El recuento solo está vacío si la skill no tiene lista: con ella, lleva
-	// siempre al menos el modelo que decide.
-	md.parrafo("## Expresiones prohibidas por modelo")
-	md.tablaOVacia(encabezadosDeExpresiones, filasDeExpresiones(informe.ExpresionesProhibidasPorModelo),
-		sinListaDeExpresiones)
-
 	md.parrafo("## Umbrales")
 	md.tablaOVacia(encabezadosDeUmbrales, filasDeUmbrales(informe.Umbrales), ningunoEnElInforme)
+
+	md.parrafo("## Juez")
+	md.juez(informe.Juez)
 
 	md.parrafo("## Sesiones sin medir")
 	md.tablaOVacia(encabezadosDeSinMedir, filasDeSinMedir(informe.SesionesSinMedir), ningunaEnElInforme)
@@ -1373,6 +1744,65 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	}
 
 	return md.unido()
+}
+
+// juez añade el cuerpo de la sección del juez (contracts/informe-del-job.md §7
+// de H24; FR-060, FR-061): sin juez, que la skill no lo tiene; y con él, su
+// modelo, la versión de Claude Code de sus votos, la tabla de los votos de las
+// respuestas con algún voto afirmativo y la de las respuestas sin juzgar, cada
+// una con «ninguna» en su lugar si no tiene filas.
+func (d *documento) juez(juez *JuezInformado) {
+	if juez == nil {
+		d.parrafo(skillSinJuez)
+
+		return
+	}
+
+	d.parrafo("Modelo: " + juez.Modelo)
+	d.parrafo("Versión de Claude Code: " + juez.VersionDeClaudeCode)
+	d.tablaConEtiqueta("Votos", encabezadosDeVotos, filasDeVotos(juez.Respuestas))
+	d.tablaConEtiqueta("Respuestas sin juzgar", encabezadosDeSinJuzgar, filasDeSinJuzgar(juez.SinJuzgar))
+}
+
+// filasDeVotos son las filas de la tabla de los votos del juez: una por voto de
+// cada clase de cada respuesta, en el orden de informe.json —las respuestas,
+// sus clases y los votos de cada una—, con una celda por cada encabezado de
+// encabezadosDeVotos. Lo que el juez dio va tal cual, con vacioEnElVoto en lo
+// que dejó vacío y en el precepto de la clase que no lo tiene; y si la
+// respuesta quedó marcada en la clase lo dice cada fila de esa clase.
+func filasDeVotos(respuestas []RespuestaConVotos) [][]string {
+	var filas [][]string
+
+	for _, respuesta := range respuestas {
+		for _, clase := range respuesta.Clases {
+			for _, voto := range clase.Votos {
+				precepto := ""
+				if voto.Precepto != nil {
+					precepto = *voto.Precepto
+				}
+
+				filas = append(filas, []string{
+					respuesta.Sesion, clase.Clase, strconv.Itoa(voto.Voto), siONo(voto.Nulo),
+					cmp.Or(voto.Respuesta, vacioEnElVoto), cmp.Or(voto.Frase, vacioEnElVoto),
+					siONo(voto.FraseEnLaRespuesta), cmp.Or(precepto, vacioEnElVoto), cmp.Or(voto.Motivo, vacioEnElVoto),
+					siONo(clase.Marcada),
+				})
+			}
+		}
+	}
+
+	return filas
+}
+
+// filasDeSinJuzgar son las filas de la tabla de las respuestas que el juez dejó
+// sin juzgar.
+func filasDeSinJuzgar(sinJuzgar []RespuestaSinJuzgar) [][]string {
+	filas := make([][]string, 0, len(sinJuzgar))
+	for _, respuesta := range sinJuzgar {
+		filas = append(filas, []string{respuesta.Sesion, respuesta.Motivo})
+	}
+
+	return filas
 }
 
 // sesion añade la sección de una sesión: su eval, la pregunta, las invocaciones
@@ -1388,14 +1818,10 @@ func (d *documento) sesion(juzgada sesionJuzgada) {
 	d.parrafo("Modelo de la sesión: " + cmp.Or(resultado.ModeloDeLaSesion, sinLeer))
 	d.textoLeido("Pregunta", juzgada.pregunta, juzgada.preguntaLeida)
 
-	switch {
-	case !juzgada.trazaLeida:
+	if juzgada.trazaLeida {
+		d.tablaConEtiqueta("Invocaciones", encabezadosDeInvocaciones, filasDeInvocaciones(resultado.Invocaciones))
+	} else {
 		d.parrafo("Invocaciones: " + sinLeer)
-	case len(resultado.Invocaciones) == 0:
-		d.parrafo("Invocaciones: " + ningunaEnElInforme)
-	default:
-		d.parrafo("Invocaciones:")
-		d.tablaOVacia(encabezadosDeInvocaciones, filasDeInvocaciones(resultado.Invocaciones), ningunaEnElInforme)
 	}
 
 	d.textoLeido("Respuesta", resultado.Respuesta, juzgada.leida)
@@ -1479,21 +1905,6 @@ func filasDeSinMedir(sinMedir []SesionSinMedir) [][]string {
 	return filas
 }
 
-// filasDeExpresiones son las filas de la tabla del recuento de las expresiones
-// prohibidas: por modelo y modo, el modelo, el modo, las respuestas con alguna
-// expresión y las respuestas en evals que activan la skill.
-func filasDeExpresiones(recuento []RecuentoDeExpresiones) [][]string {
-	filas := make([][]string, 0, len(recuento))
-	for _, delModelo := range recuento {
-		filas = append(filas, []string{
-			delModelo.Modelo, modoEscrito(delModelo.Modo), strconv.Itoa(delModelo.ConAlguna),
-			strconv.Itoa(delModelo.Respuestas),
-		})
-	}
-
-	return filas
-}
-
 // modoEscrito es el modo como lo escribe la columna «Modo» de informe.md:
 // «orden», «herramienta» o, si no es ninguno, «—»
 // (contracts/evals-en-dos-modos.md §5.3 de H21).
@@ -1519,17 +1930,16 @@ func resultadoDeLaSerie(tasa TasaDelInforme) string {
 // prohibidos ejecutados, citas ausentes, avisos encontrados, avisos ausentes,
 // hallazgos encontrados, hallazgos ausentes, redacciones modificadas encontradas,
 // redacciones modificadas ausentes, territorio encontrado, territorio ausente,
-// expresiones prohibidas, reintentos por límite de ritmo, sin medir —«no» o la
-// clase— y resultado. Los comandos prohibidos ejecutados
+// reintentos por límite de ritmo, sin medir —«no» o la clase— y resultado. Los
+// comandos prohibidos ejecutados
 // van junto a los ausentes, cada uno con su texto (contrato evals-y-skill §2 de
 // H7); los avisos, junto a las citas, cada uno con su código (contrato de formato,
 // juicio e informe §5 de H5.1); los hallazgos, junto a los avisos, cada uno con su
 // clase (contrato evals-y-skill §6 de H7.1); las redacciones modificadas, junto a
 // los hallazgos, cada una con su texto (contracts/informe-del-job.md §4 de H7.4);
 // el territorio, detrás, cada elemento con su texto (contrato de evals §2 de H6);
-// y las expresiones prohibidas, detrás del territorio, en el orden de la lista
-// (contrato lista-y-juicio §5 de H7.2); los reintentos y si quedó sin medir,
-// detrás de las expresiones (contrato informe-del-job §4 de H7.3).
+// y los reintentos y si quedó sin medir, detrás del territorio (contrato
+// informe-del-job §4 de H7.3).
 func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 	filas := make([][]string, 0, len(resultados))
 
@@ -1563,7 +1973,6 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 			unidosOVacio(resultado.RedaccionesAusentes, ningunaEnElInforme),
 			unidosOVacio(resultado.TerritorioEncontrado, ningunoEnElInforme),
 			unidosOVacio(resultado.TerritorioAusente, ningunoEnElInforme),
-			unidosOVacio(resultado.ExpresionesProhibidas, ningunaEnElInforme),
 			strconv.Itoa(resultado.ReintentosPorLimiteDeRitmo),
 			cmp.Or(resultado.SinMedir, medidaEnElInforme),
 			pasa,
@@ -1670,6 +2079,19 @@ func (d *documento) tablaOVacia(encabezados []string, filas [][]string, vacia st
 	}
 
 	*d = append(*d, tabla.String())
+}
+
+// tablaConEtiqueta añade «<etiqueta>: ninguna» o, con filas, la etiqueta y la
+// tabla con sus encabezados y una fila por elemento.
+func (d *documento) tablaConEtiqueta(etiqueta string, encabezados []string, filas [][]string) {
+	if len(filas) == 0 {
+		d.parrafo(etiqueta + ": " + ningunaEnElInforme)
+
+		return
+	}
+
+	d.parrafo(etiqueta + ":")
+	d.tablaOVacia(encabezados, filas, ningunaEnElInforme)
 }
 
 // bloqueDeTexto añade el contenido tal cual entre una línea ```text y una línea

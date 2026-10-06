@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
@@ -71,6 +72,11 @@ const (
 	bloqueDeTexto       = "text"
 	separadorDelPrefijo = "__"
 )
+
+// herramientaBash es la herramienta con la que Claude Code ejecuta una orden:
+// la que nombra kitlegal da uno de los textos de la sesión
+// (contracts/juez-y-voto.md §2 de H24).
+const herramientaBash = "Bash"
 
 // Sesion es lo que se lee del directorio de una sesión de evals (data-model
 // §10.1; contrato job-de-evals §4): lo que declara su transcript stream-json, el
@@ -145,6 +151,31 @@ type Sesion struct {
 	// en el orden de sus bloques tool_use en el transcript; ninguna si la sesión
 	// no llamó a ninguna (data-model §8 de H21).
 	Llamadas []Llamada
+
+	// Textos son los textos que devolvieron las herramientas de la sesión, en el
+	// orden de sus bloques tool_use en el transcript: lo que el juez con modelo
+	// recibe de ella; ninguno si ninguna devolvió nada (data-model §2 de H24;
+	// contracts/juez-y-voto.md §2 de H24).
+	Textos []Texto
+}
+
+// Texto es el texto que devolvió una herramienta de la sesión, leído del
+// transcript: el bloque tool_use de un mensaje assistant y el bloque tool_result
+// con su tool_use_id de un mensaje user (data-model §2 de H24;
+// contracts/juez-y-voto.md §2 de H24; FR-001 de H24). La regla es la misma en
+// los dos modos y en la eval sin binario ni servidor: dan texto la orden de Bash
+// que nombra kitlegal y la llamada a una herramienta del registro, también
+// cuando fallan, y nada más; un tool_use sin tool_result no da ninguno.
+type Texto struct {
+	// Orden es, en una orden de Bash, su input.command tal cual y, en una
+	// llamada a una herramienta del registro, lo que el informe publica en
+	// invocaciones[].orden de esa llamada: la herramienta sin el prefijo del
+	// agente, seguida de sus argumentos.
+	Orden string
+
+	// Salida son los textos del content de su tool_result, unidos por un salto
+	// de línea; vacía si no trae ninguno.
+	Salida string
 }
 
 // Llamada es una llamada a una herramienta del servidor MCP de kitlegal leída
@@ -218,8 +249,9 @@ func (s Sesion) ReintentosPorLimiteDeRitmo() int {
 // LeerSesion lee del directorio de una sesión de evals sesion.jsonl,
 // codigo-de-la-sesion y sesion.err, los tres ficheros que el guion escribe
 // siempre, y devuelve la sesión sin sus invocaciones (data-model §10.1; contrato
-// job-de-evals §3.2 y §4) y con sus llamadas a las herramientas del registro de
-// producción (contracts/evals-en-dos-modos.md §3 de H21).
+// job-de-evals §3.2 y §4), con sus llamadas a las herramientas del registro de
+// producción (contracts/evals-en-dos-modos.md §3 de H21) y con los textos que
+// devolvieron sus herramientas (contracts/juez-y-voto.md §2 de H24).
 //
 // Nada que falte se toma por vacío ni por 0: un fichero ausente o que no se
 // puede leer, un código que no es un entero en una línea y una línea del
@@ -236,7 +268,12 @@ func LeerSesion(dir string) (Sesion, error) {
 		return Sesion{}, err
 	}
 
-	leido, err := leerTranscript(dir, herramientas)
+	verbos, err := verbosDeLasHerramientas()
+	if err != nil {
+		return Sesion{}, err
+	}
+
+	leido, err := leerTranscript(dir, herramientas, verbos)
 	if err != nil {
 		return Sesion{}, err
 	}
@@ -273,6 +310,7 @@ func LeerSesion(dir string) (Sesion, error) {
 		TerminaEnReintento:  leido.ultimo != nil && leido.ultimo.tipo == mensajeSystem && leido.ultimo.subtipo == subtipoAPIRetry,
 		ErrorDelResultado:   errorDelResultado,
 		Llamadas:            leido.llamadas,
+		Textos:              leido.textosDeLasHerramientas(),
 	}, nil
 }
 
@@ -320,6 +358,10 @@ type transcriptLeido struct {
 	// llamada.
 	herramientas []string
 
+	// verbos da, por el nombre de cada una de esas herramientas, su verbo: con
+	// él se escribe la orden de una llamada como la publica el informe.
+	verbos map[string]cli.Verbo
+
 	modelo  string
 	version string
 
@@ -343,8 +385,28 @@ type transcriptLeido struct {
 	// tool_use_id.
 	llamadaDelUso map[string]int
 
+	// textos son los usos de herramienta que dan texto —la orden de Bash que
+	// nombra kitlegal y la llamada a una herramienta del registro—, en el orden
+	// de sus bloques tool_use.
+	textos []textoDeUso
+
+	// textoDelUso da, por el id de su bloque tool_use, la posición en textos de
+	// cada uno: con él se reconoce su tool_result, como con llamadaDelUso.
+	textoDelUso map[string]int
+
 	// ultimo es el último mensaje leído; nil si el transcript no tiene ninguno.
 	ultimo *mensaje
+}
+
+// textoDeUso es el texto de un uso de herramienta que da texto: su orden desde
+// que se lee su bloque tool_use y su salida desde que se lee su tool_result.
+type textoDeUso struct {
+	Texto
+
+	// conResultado dice si el transcript trae su tool_result. Sin él, el uso no
+	// deja ningún texto: la sesión se cortó antes de que la herramienta
+	// devolviera nada.
+	conResultado bool
 }
 
 // mensaje es lo que decide el fin de la sesión de un mensaje del transcript: su
@@ -369,14 +431,14 @@ type bloqueDeContenido struct {
 
 // leerTranscript lee sesion.jsonl línea a línea: cada una, un mensaje JSON de
 // stream-json. herramientas son los nombres de las herramientas cuyas llamadas
-// se leen.
-func leerTranscript(dir string, herramientas []string) (transcriptLeido, error) {
+// se leen, y verbos, el verbo de cada una.
+func leerTranscript(dir string, herramientas []string, verbos map[string]cli.Verbo) (transcriptLeido, error) {
 	contenido, err := leerFicheroDeSesion(dir, ficheroDelTranscript)
 	if err != nil {
 		return transcriptLeido{}, err
 	}
 
-	leido := transcriptLeido{herramientas: herramientas}
+	leido := transcriptLeido{herramientas: herramientas, verbos: verbos}
 
 	numero := 0
 
@@ -492,7 +554,8 @@ func (t *transcriptLeido) leerReintento(texto string) error {
 // input.skill de cada bloque tool_use de la herramienta Skill, cuya entrada es
 // {skill, args?} (research.md V6). Una llamada a Skill sin skill no se ignora:
 // podría ser la activación que decide una eval de no activación. De los demás
-// bloques tool_use anota las llamadas a las herramientas del registro.
+// bloques tool_use anota las órdenes de Bash que nombran kitlegal y las
+// llamadas a las herramientas del registro.
 func (t *transcriptLeido) leerAssistant(texto string) error {
 	var assistant struct {
 		Message struct {
@@ -510,6 +573,12 @@ func (t *transcriptLeido) leerAssistant(texto string) error {
 
 	for _, bloque := range assistant.Message.Content {
 		if bloque.Type != bloqueToolUse {
+			continue
+		}
+
+		if bloque.Name == herramientaBash {
+			t.leerOrdenDeBash(bloque)
+
 			continue
 		}
 
@@ -543,6 +612,10 @@ func (t *transcriptLeido) leerAssistant(texto string) error {
 // de H21). El prefijo es del agente —Claude Code antepone mcp__<servidor>__
 // (research.md V21 de H21)— y no dice de quién es la herramienta: lo dice el
 // registro. Un tool_use de cualquier otra herramienta no se lee.
+//
+// La llamada da además uno de los textos de la sesión, con la orden que el
+// informe publica de ella en invocaciones[].orden: la de invocacionDeLaLlamada,
+// que no depende de su resultado (contracts/juez-y-voto.md §2 de H24).
 func (t *transcriptLeido) leerLlamada(bloque bloqueDeContenido) {
 	herramienta := bloque.Name
 	if corte := strings.LastIndex(herramienta, separadorDelPrefijo); corte >= 0 {
@@ -557,8 +630,72 @@ func (t *transcriptLeido) leerLlamada(bloque bloqueDeContenido) {
 		t.llamadaDelUso = map[string]int{}
 	}
 
+	llamada := Llamada{Herramienta: herramienta, Argumentos: bloque.Input}
+
 	t.llamadaDelUso[bloque.ID] = len(t.llamadas)
-	t.llamadas = append(t.llamadas, Llamada{Herramienta: herramienta, Argumentos: bloque.Input})
+	t.llamadas = append(t.llamadas, llamada)
+	t.anotarElTexto(bloque.ID, invocacionDeLaLlamada(llamada, t.verbos[herramienta]).orden)
+}
+
+// leerOrdenDeBash anota el texto que dará un bloque tool_use de Bash si su
+// input.command lleva la palabra kitlegal, con la orden tal cual y todavía sin
+// salida (contracts/juez-y-voto.md §2 de H24; research D2 de H24). La palabra
+// es la de contieneComoPalabra: la orden que la lleva dentro de otra, como
+// «mikitlegal», no la nombra.
+func (t *transcriptLeido) leerOrdenDeBash(bloque bloqueDeContenido) {
+	var entrada struct {
+		Command string `json:"command"`
+	}
+
+	// Un input sin la orden como texto —el de una llamada que el modelo dio sin
+	// su forma, y que Bash rechaza— no lleva la palabra: no es un defecto del
+	// transcript, y no da texto.
+	if json.Unmarshal(bloque.Input, &entrada) != nil || !contieneComoPalabra(entrada.Command, binarioMulticall) {
+		return
+	}
+
+	t.anotarElTexto(bloque.ID, entrada.Command)
+}
+
+// anotarElTexto anota, detrás de los ya leídos, el uso de herramienta con ese
+// id como uno que da texto, con su orden y todavía sin salida.
+func (t *transcriptLeido) anotarElTexto(uso, orden string) {
+	if t.textoDelUso == nil {
+		t.textoDelUso = map[string]int{}
+	}
+
+	t.textoDelUso[uso] = len(t.textos)
+	t.textos = append(t.textos, textoDeUso{Texto: Texto{Orden: orden}})
+}
+
+// anotarLaSalida deja, en el texto del uso con ese id, los textos del content
+// de su tool_result unidos por un salto de línea, sea o no un error
+// (contracts/juez-y-voto.md §2 de H24). El resultado de un uso que no da texto
+// —el de Skill, el de Read, el de un Bash que no nombra kitlegal— no se anota.
+func (t *transcriptLeido) anotarLaSalida(uso string, contenido any) {
+	posicion, daTexto := t.textoDelUso[uso]
+	if !daTexto {
+		return
+	}
+
+	texto := &t.textos[posicion]
+	texto.Salida = strings.Join(textosDelContenido(contenido), "\n")
+	texto.conResultado = true
+}
+
+// textosDeLasHerramientas son los textos de los usos cuyo tool_result trae el
+// transcript, en el orden de sus bloques tool_use; ninguno, y no una lista
+// vacía, si no hay ninguno.
+func (t *transcriptLeido) textosDeLasHerramientas() []Texto {
+	var textos []Texto
+
+	for _, texto := range t.textos {
+		if texto.conResultado {
+			textos = append(textos, texto.Texto)
+		}
+	}
+
+	return textos
 }
 
 // leerUser anota el resultado de las llamadas ya leídas: de la lista
@@ -570,7 +707,11 @@ func (t *transcriptLeido) leerLlamada(bloque bloqueDeContenido) {
 //
 // De un mensaje user no se exige más forma que la de la API, en la que su
 // contenido es un texto o una lista de bloques: el de un turno de texto y el
-// resultado de otra herramienta, como Skill o Bash, no aportan nada.
+// resultado de otra herramienta, como Skill, no aportan nada.
+//
+// Antes, cada bloque tool_result deja su salida en el texto de su uso, si es de
+// los que dan texto: el de una orden de Bash que nombra kitlegal o el de una de
+// esas llamadas (contracts/juez-y-voto.md §2 de H24).
 func (t *transcriptLeido) leerUser(texto string) error {
 	var user struct {
 		Message struct {
@@ -591,6 +732,8 @@ func (t *transcriptLeido) leerUser(texto string) error {
 		}
 
 		uso, _ := campos["tool_use_id"].(string)
+
+		t.anotarLaSalida(uso, campos["content"])
 
 		posicion, deUnaLlamada := t.llamadaDelUso[uso]
 		if !deUnaLlamada {

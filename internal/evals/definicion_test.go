@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -48,9 +49,11 @@ const (
 	// condicionDeLaTanda es el if del trabajo tanda, el que llevaba evals hasta
 	// H7.3: solo corre en una ejecución que quiere medir. Es el texto del
 	// escalar plegado de la definición, que conserva los saltos de línea de las
-	// líneas más sangradas.
+	// líneas más sangradas. Desde H24, el despacho con la entrada de la medida
+	// del juez no la corre: lanza la medida, y no las sesiones de evals
+	// (contracts/job-de-evals.md §3 de H24).
 	condicionDeLaTanda = sinCancelar + " && needs.cambios.result != 'failure' && (\n" +
-		"  github.event_name == 'workflow_dispatch' ||\n" +
+		"  " + despachoSinLaMedida + " ||\n" +
 		"  github.event.label.name == 'evals' ||\n" +
 		"  github.event.label.name == 'evals-prueba-de-red' ||\n" +
 		"  needs.cambios.outputs.coincide == 'si'\n" +
@@ -81,6 +84,48 @@ const (
 	// implícito, que podría saltarlo por cambios, saltado en la etiqueta y en
 	// el despacho (research.md S9 de H7.4).
 	condicionDelTrabajo = "${{ " + sinCancelar + " && needs.tanda.outputs.medir == 'si' }}"
+)
+
+// Lo que TestDefinicionDelJob exige al juez con modelo del trabajo evals y a la
+// ejecución de su medida (contracts/job-de-evals.md §2, §3 y §5 de H24; FR-050,
+// FR-090, FR-091 y FR-112 de H24).
+const (
+	// etiquetaDeLaMedida es la etiqueta que lanza la medida del juez en una
+	// propuesta de cambio, y entradaDeLaMedida, la entrada del despacho que la
+	// lanza a mano: las dos formas de lanzarla, y ninguna más.
+	etiquetaDeLaMedida = "evals-medir-juez"
+	entradaDeLaMedida  = "medir_al_juez"
+
+	// despachoSinLaMedida es, en el if del trabajo tanda, el despacho que quiere
+	// medir la skill: el que no lleva la entrada de la medida del juez.
+	despachoSinLaMedida = "(github.event_name == 'workflow_dispatch' && inputs." + entradaDeLaMedida + " != true)"
+
+	// condicionDeLaMedida es el if del trabajo medida: solo corre con su
+	// etiqueta o con su entrada.
+	condicionDeLaMedida = "github.event.label.name == '" + etiquetaDeLaMedida + "' || inputs." + entradaDeLaMedida +
+		" == true"
+
+	// claudeCodeDelJuez es el Claude Code de los votos del juez como lo nombra
+	// npm: el paquete en la versión fijada para él, que no es la de las
+	// sesiones. E instalacionDelJuez, la línea del paso de instalación que lo
+	// instala en su prefijo, aparte del de las sesiones.
+	claudeCodeDelJuez   = paqueteDeClaudeCode + "@${" + variableDeLaVersionDelJuez + "}"
+	instalacionDelJuez  = `npm install --prefix "$RUNNER_TEMP/claude-del-juez" "` + claudeCodeDelJuez + `"`
+	pasoDeLaInstalacion = "jobs.evals.steps, el que instala Claude Code, run"
+
+	// modeloDelJuezEsperado y versionDelJuezEsperada son lo que se espera de las
+	// dos variables del juez del env del trabajo evals.
+	modeloDelJuezEsperado = "el id completo de un modelo (^claude-[a-z]+(-[0-9]+)+$), distinto del de " +
+		variableDelModeloQueDecide
+	versionDelJuezEsperada = "una versi\xc3\xb3n de Claude Code, <n>.<n>.<n>"
+)
+
+// formaDelIDCompleto es la forma del id completo de un modelo, la que no tiene
+// un alias, y formaDeLaVersion, la de una versión de Claude Code
+// (contracts/job-de-evals.md §5 de H24).
+var (
+	formaDelIDCompleto = regexp.MustCompile(`^claude-[a-z]+(-[0-9]+)+$`)
+	formaDeLaVersion   = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+$`)
 )
 
 // dependenciasDelTrabajo son las de su needs: solo la tanda.
@@ -116,7 +161,15 @@ var entornoDelTrabajo = map[string]string{
 // FR-054, FR-070, FR-071 y FR-100 de H7.4; SC-010 de H7.4): el trabajo tanda y
 // la dependencia del trabajo evals de él son los del contrato, un segundo
 // disparo no mide mientras una ejecución anterior sin terminar mide, y la
-// etiqueta sobre un commit cuya tanda terminó vuelve a medir.
+// etiqueta sobre un commit cuya tanda terminó vuelve a medir. Y, desde H24, el
+// juez con modelo y la ejecución de su medida (contracts/job-de-evals.md §4 y §5
+// de H24; FR-050, FR-090, FR-091, FR-092 y FR-112 de H24; SC-012 de H24): el
+// modelo del juez es un id completo y no es el que decide; la versión de Claude
+// Code de sus votos se fija aparte de la de las sesiones y solo instala el del
+// juez, en su prefijo; el trabajo medida repite las dos, solo corre con su
+// etiqueta o con su entrada y no depende de la tanda, que no corre con ninguna
+// de las dos; y cada tope cubre su peor caso, que en una skill con juez cuenta
+// también sus votos.
 func TestDefinicionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -126,6 +179,62 @@ func TestDefinicionDelJob(t *testing.T) {
 	t.Run("peor-caso", probarElPeorCasoDelTrabajo)
 	t.Run("segundo-disparo", probarElSegundoDisparo)
 	t.Run("estado-de-la-tanda", probarElEstadoDeLaTanda)
+}
+
+// TestJuezDeLaDefinicionDelJob fija de dónde se leen el modelo del juez y la
+// versión de Claude Code de sus votos (contracts/job-de-evals.md §1 de H24;
+// data-model §6 de H24; FR-090, FR-091): de MODELO_DEL_JUEZ y de
+// VERSION_DE_CLAUDE_CODE_DEL_JUEZ del env del trabajo evals, tal cual. La
+// versión de las sesiones, VERSION_DE_CLAUDE_CODE, va aparte y no es la de los
+// votos; el modelo que decide no cambia; y una definición sin esas dos
+// variables los deja vacíos. Las del trabajo medida, que las repite, no son las
+// que se leen: en los dos casos se quedan como están.
+func TestJuezDeLaDefinicionDelJob(t *testing.T) {
+	t.Parallel()
+
+	const (
+		modeloDelJuez     = "claude-juez-9-8"
+		versionDelJuez    = "9.8.7"
+		modeloDelContrato = "claude-sonnet-5"
+		entornoConOtros   = "      MODELO_DEL_JUEZ: " + modeloDelJuez + "\n" +
+			"      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: " + versionDelJuez + "\n"
+	)
+
+	casos := []struct {
+		nombre  string
+		entorno string
+		modelo  string
+		version string
+	}{
+		{nombre: "con-las-dos-variables", entorno: entornoConOtros, modelo: modeloDelJuez, version: versionDelJuez},
+		{nombre: "sin-las-dos-variables"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			contenido := strings.Replace(definicionDelContrato, trabajoDeEvalsDelContrato,
+				strings.Replace(trabajoDeEvalsDelContrato, entornoDelJuezDelContrato, caso.entorno, 1), 1)
+			require.NotEqual(t, definicionDelContrato, contenido, "premisa: el caso cambia el env del trabajo evals")
+
+			ruta := filepath.Join(t.TempDir(), "evals.yml")
+			require.NoError(t, os.WriteFile(ruta, []byte(contenido), 0o600))
+
+			leida, err := leerDefinicionDelJob(ruta)
+			require.NoError(t, err)
+
+			require.Equal(t, versionDeLasSesionesDelContrato, leida.Env["VERSION_DE_CLAUDE_CODE"],
+				"premisa: la definición fija la versión de las sesiones, que no es la de los votos")
+			require.NotNil(t, leida.Medida, "premisa: la definición tiene el trabajo medida")
+			require.Equal(t, modeloDelJuezDelContrato, leida.Medida.Env[variableDelModeloDelJuez],
+				"premisa: el trabajo medida repite el modelo del juez del contrato")
+
+			assert.Equal(t, caso.modelo, leida.ModeloDelJuez)
+			assert.Equal(t, caso.version, leida.VersionDelJuez)
+			assert.Equal(t, modeloDelContrato, leida.ModeloQueDecide)
+		})
+	}
 }
 
 // probarLaDefinicionDelRepositorio lee la definición real del job y falla, con
@@ -138,8 +247,9 @@ func probarLaDefinicionDelRepositorio(t *testing.T) {
 	require.NoError(t, err)
 
 	if fallos := comprobarLaDefinicion(leida, directorioDeEvals); len(fallos) > 0 {
-		t.Fatalf("la definici\xc3\xb3n del job no es la de contracts/tanda-del-job.md \xc2\xa74 de H7.4 y "+
-			"contracts/ejecucion-del-job.md \xc2\xa77 de H7.3:\n%s", strings.Join(fallos, "\n"))
+		t.Fatalf("la definici\xc3\xb3n del job no es la de contracts/tanda-del-job.md \xc2\xa74 de H7.4, "+
+			"contracts/ejecucion-del-job.md \xc2\xa77 de H7.3 y contracts/job-de-evals.md \xc2\xa75 de H24:\n%s",
+			strings.Join(fallos, "\n"))
 	}
 }
 
@@ -149,7 +259,10 @@ func probarLaDefinicionDelRepositorio(t *testing.T) {
 // no es la de contracts/ejecucion-del-job.md §7 de H7.3, en el orden de los
 // contratos, y una por cada skill de la matriz cuyo peor caso, con las evals de
 // su carpeta dentro de evals, no cubre timeout-minutes o no se puede obtener.
-// Sin ninguna línea, la definición es la de los contratos.
+// Detrás de las del env van las del juez con modelo, y al final, las del
+// trabajo medida, la de la entrada del despacho que lo lanza y las de su tope,
+// en el orden de contracts/job-de-evals.md §5 de H24. Sin ninguna línea, la
+// definición es la de los contratos.
 func comprobarLaDefinicion(leida DefinicionDelJob, evals string) []string {
 	var fallos []string
 
@@ -158,7 +271,11 @@ func comprobarLaDefinicion(leida DefinicionDelJob, evals string) []string {
 	fallos = append(fallos, fallosDeLaConcurrencia(leida)...)
 	fallos = append(fallos, fallosDeLaMatriz(leida)...)
 	fallos = append(fallos, fallosDelEntorno(leida)...)
+	fallos = append(fallos, fallosDelJuez(leida)...)
 	fallos = append(fallos, fallosDelTope(leida, evals)...)
+	fallos = append(fallos, fallosDeLaMedida(leida)...)
+	fallos = append(fallos, fallosDeLaEntrada(leida)...)
+	fallos = append(fallos, fallosDelTopeDeLaMedida(leida.Medida, evals)...)
 
 	return fallos
 }
@@ -356,25 +473,170 @@ func fallosDelEntorno(leida DefinicionDelJob) []string {
 	return fallos
 }
 
-// fallosDelTope comprueba §7.4: para cada skill de la matriz, timeout-minutes
-// cubre su peor caso, que nombra con sus términos.
-func fallosDelTope(leida DefinicionDelJob, evals string) []string {
+// fallosDelJuez comprueba las dos primeras filas de contracts/job-de-evals.md §5
+// de H24: el modelo del juez del env del trabajo evals está, tiene la forma de
+// un id completo, que un alias no tiene, y no es el modelo que decide; y la
+// versión de Claude Code de sus votos está, es <n>.<n>.<n> y es la del Claude
+// Code que el paso de instalación instala en su prefijo, y de ningún otro.
+func fallosDelJuez(leida DefinicionDelJob) []string {
 	var fallos []string
 
-	tope := time.Duration(leida.TopeEnMinutos) * time.Minute
+	if modelo := leida.ModeloDelJuez; !formaDelIDCompleto.MatchString(modelo) || modelo == leida.ModeloQueDecide {
+		fallos = append(fallos, fallo("jobs.evals.env."+variableDelModeloDelJuez, presentarTexto(modelo),
+			modeloDelJuezEsperado))
+	}
 
-	for _, skill := range leida.Skills {
-		peor, err := leida.peorCaso(evals, skill)
+	if version := leida.VersionDelJuez; !formaDeLaVersion.MatchString(version) {
+		fallos = append(fallos, fallo("jobs.evals.env."+variableDeLaVersionDelJuez, presentarTexto(version),
+			versionDelJuezEsperada))
+	}
+
+	return append(fallos, fallosDeLaInstalacion(leida.OrdenDeInstalacion)...)
+}
+
+// fallosDeLaInstalacion comprueba el run del paso del trabajo evals que instala
+// Claude Code (contracts/job-de-evals.md §2 y §5 de H24), línea a línea y sin
+// su sangría: una de ellas instala el del juez en su prefijo, y ninguna otra
+// instala Claude Code en la versión del juez, que sería instalar con ella el de
+// las sesiones.
+func fallosDeLaInstalacion(orden string) []string {
+	var (
+		fallos []string
+		lineas []string
+	)
+
+	for linea := range strings.SplitSeq(orden, "\n") {
+		lineas = append(lineas, strings.TrimSpace(linea))
+	}
+
+	if !slices.Contains(lineas, instalacionDelJuez) {
+		fallos = append(fallos, fallo(pasoDeLaInstalacion, presentarTexto(orden),
+			"que tenga la l\xc3\xadnea "+strconv.Quote(instalacionDelJuez)))
+	}
+
+	for _, linea := range lineas {
+		if linea != instalacionDelJuez && strings.Contains(linea, claudeCodeDelJuez) {
+			fallos = append(fallos, fallo(pasoDeLaInstalacion, "tiene la l\xc3\xadnea "+strconv.Quote(linea),
+				"que con "+variableDeLaVersionDelJuez+" solo instale el del juez, en su prefijo"))
+		}
+	}
+
+	return fallos
+}
+
+// fallosDelTope comprueba §7.4: para cada skill de la matriz, timeout-minutes
+// cubre su peor caso, que nombra con sus términos. Desde H24, el de una skill
+// con juez lleva también los de sus votos (contracts/job-de-evals.md §4 de H24).
+func fallosDelTope(leida DefinicionDelJob, evals string) []string {
+	return fallosDeUnTope("jobs.evals.timeout-minutes", leida.TopeEnMinutos, leida.Skills,
+		func(skill string) (peorCasoConTerminos, error) { return leida.peorCaso(evals, skill) })
+}
+
+// fallosDeLaMedida comprueba el trabajo medida de contracts/job-de-evals.md §3
+// y §5 de H24: que está; que su env repite el modelo del juez y la versión de
+// Claude Code de sus votos del env del trabajo evals; su if, que es exactamente
+// el de su etiqueta o su entrada; y que no tiene needs. Sin el trabajo, solo esa
+// línea.
+func fallosDeLaMedida(leida DefinicionDelJob) []string {
+	medida := leida.Medida
+	if medida == nil {
+		return []string{fallo("jobs.medida", noEsta, "el trabajo que ejecuta la medida del juez")}
+	}
+
+	var fallos []string
+
+	fijadas := []struct {
+		variable string
+		enEvals  string
+	}{
+		{variable: variableDelModeloDelJuez, enEvals: leida.ModeloDelJuez},
+		{variable: variableDeLaVersionDelJuez, enEvals: leida.VersionDelJuez},
+	}
+
+	for _, fijada := range fijadas {
+		if enLaMedida := medida.Env[fijada.variable]; enLaMedida != fijada.enEvals {
+			fallos = append(fallos, fallo("jobs.medida.env."+fijada.variable, presentarTexto(enLaMedida),
+				"lo de jobs.evals.env."+fijada.variable+", que "+presentarTexto(fijada.enEvals)))
+		}
+	}
+
+	if medida.Condicion != condicionDeLaMedida {
+		fallos = append(fallos, fallo("jobs.medida.if", presentarTexto(medida.Condicion),
+			strconv.Quote(condicionDeLaMedida)))
+	}
+
+	if medida.ConDependencias {
+		fallos = append(fallos, fallo("jobs.medida.needs", "est\xc3\xa1",
+			queNoEste+": la medida no abre sesiones de evals, y no depende de la tanda que las decide"))
+	}
+
+	return fallos
+}
+
+// fallosDeLaEntrada comprueba la entrada del despacho que lanza la medida del
+// juez (contracts/job-de-evals.md §3 y §5 de H24): que está y que su valor por
+// omisión es false, de modo que un despacho que no la da mide la skill, como
+// hasta ahora.
+func fallosDeLaEntrada(leida DefinicionDelJob) []string {
+	const clave = "on.workflow_dispatch.inputs." + entradaDeLaMedida
+
+	entrada, esta := leida.EntradasDelDespacho[entradaDeLaMedida]
+	if !esta {
+		return []string{fallo(clave, noEsta, "la entrada que lanza la medida del juez, con default: false")}
+	}
+
+	if porOmision, esBooleano := entrada.PorOmision.(bool); esBooleano && !porOmision {
+		return nil
+	}
+
+	encontrado := noEsta
+	if entrada.PorOmision != nil {
+		encontrado = fmt.Sprintf("vale %#v", entrada.PorOmision)
+	}
+
+	return []string{fallo(clave+".default", encontrado, "false")}
+}
+
+// fallosDelTopeDeLaMedida comprueba que el timeout-minutes del trabajo medida
+// cubre, para cada skill de su matriz, el peor caso de su medida, que nombra
+// con sus términos (contracts/job-de-evals.md §4 de H24; FR-092 de H24). Sin el
+// trabajo no hay tope que comprobar: su línea la da fallosDeLaMedida.
+func fallosDelTopeDeLaMedida(medida *TrabajoDeLaMedida, evals string) []string {
+	if medida == nil {
+		return nil
+	}
+
+	return fallosDeUnTope("jobs.medida.timeout-minutes", medida.TopeEnMinutos, medida.Skills,
+		func(skill string) (peorCasoConTerminos, error) { return medida.peorCaso(evals, skill) })
+}
+
+// peorCasoConTerminos es el peor caso de un trabajo: lo que dura y sus
+// términos.
+type peorCasoConTerminos interface {
+	Duracion() time.Duration
+	fmt.Stringer
+}
+
+// fallosDeUnTope devuelve una línea, con esa clave, por cada skill cuyo peor
+// caso no cubre el tope en minutos de su trabajo, con el peor caso y sus
+// términos, o no se puede obtener, con el porqué.
+func fallosDeUnTope(clave string, minutos int, skills []string,
+	peorCaso func(skill string) (peorCasoConTerminos, error),
+) []string {
+	var fallos []string
+
+	tope := time.Duration(minutos) * time.Minute
+
+	for _, skill := range skills {
+		peor, err := peorCaso(skill)
 		if err != nil {
-			fallos = append(fallos, fmt.Sprintf("jobs.evals.timeout-minutes: el peor caso de %s no se puede obtener: %v",
-				skill, err))
+			fallos = append(fallos, fmt.Sprintf("%s: el peor caso de %s no se puede obtener: %v", clave, skill, err))
 
 			continue
 		}
 
 		if tope < peor.Duracion() {
-			fallos = append(fallos, fallo("jobs.evals.timeout-minutes",
-				fmt.Sprintf("vale %d (%d s)", leida.TopeEnMinutos, int(tope/time.Second)),
+			fallos = append(fallos, fallo(clave, fmt.Sprintf("vale %d (%d s)", minutos, int(tope/time.Second)),
 				fmt.Sprintf("al menos el peor caso de %s, %s", skill, peor)))
 		}
 	}
@@ -416,7 +678,7 @@ const trabajoDeLaTandaDelContrato = `  tanda:
     needs: [cambios]
     if: >-
       ` + sinCancelar + ` && needs.cambios.result != 'failure' && (
-        github.event_name == 'workflow_dispatch' ||
+        ` + despachoSinLaMedida + ` ||
         github.event.label.name == 'evals' ||
         github.event.label.name == 'evals-prueba-de-red' ||
         needs.cambios.outputs.coincide == 'si'
@@ -439,20 +701,93 @@ const trabajoDeLaTandaDelContrato = `  tanda:
         run: echo mide
 `
 
+// Lo que definicionDelContrato fija para el juez con modelo: su modelo y la
+// versión de Claude Code de sus votos, las dos líneas con las que los repiten
+// el env del trabajo evals y el del trabajo medida, y la versión de las
+// sesiones, que va aparte.
+const (
+	modeloDelJuezDelContrato        = "claude-opus-5-5"
+	versionDelJuezDelContrato       = "2.1.289"
+	versionDeLasSesionesDelContrato = "2.1.284"
+
+	modeloDelJuezEnElEnv  = "      MODELO_DEL_JUEZ: " + modeloDelJuezDelContrato + "\n"
+	versionDelJuezEnElEnv = "      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: " + versionDelJuezDelContrato + "\n"
+
+	entornoDelJuezDelContrato = modeloDelJuezEnElEnv + versionDelJuezEnElEnv
+)
+
+// Las líneas de definicionDelContrato que cambian las definiciones sintéticas
+// del juez y de su medida: las dos del paso de instalación que instalan un
+// Claude Code, la del if del trabajo medida y las tres de la entrada del
+// despacho que la lanza.
+const (
+	instalacionDeLasSesiones = `npm install -g "` + paqueteDeClaudeCode + `@${VERSION_DE_CLAUDE_CODE}"`
+
+	lineaDeLaInstalacionDelJuez = "          " + instalacionDelJuez + "\n"
+	lineaDelIfDeLaMedida        = "    if: " + condicionDeLaMedida + "\n"
+	valorPorOmisionDeLaEntrada  = "        default: false\n"
+	entradaDeLaMedidaDelFlujo   = "      " + entradaDeLaMedida + ":\n        type: boolean\n" + valorPorOmisionDeLaEntrada
+)
+
+// pasosDeEvalsDelContrato son los pasos del trabajo evals de
+// definicionDelContrato: de los de contracts/job-de-evals.md §2 de H24, el
+// único que se comprueba, el que instala los dos Claude Code.
+const pasosDeEvalsDelContrato = `    steps:
+      - name: Instalar strace y Claude Code
+        run: |
+          ` + instalacionDeLasSesiones + `
+          claude --version
+` + lineaDeLaInstalacionDelJuez + `          "$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" --version
+          echo "CLAUDE_DEL_JUEZ=$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" >> "$GITHUB_ENV"
+`
+
+// trabajoDeLaMedidaDelContrato es el trabajo medida de definicionDelContrato, el
+// de contracts/job-de-evals.md §3 de H24 sin sus pasos, que no se comprueban, y
+// con el tope que cubre el peor caso de la medida con los casos de
+// evalsSinteticas.
+const trabajoDeLaMedidaDelContrato = `  medida:
+    name: medida del juez (${{ matrix.skill }})
+` + lineaDelIfDeLaMedida + `    strategy:
+      fail-fast: false
+      matrix:
+        skill: [boe-legislacion]
+        include:
+          - skill: boe-legislacion
+            concurrencia: 4
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    permissions:
+      contents: read
+    env:
+` + entornoDelJuezDelContrato + `      CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
+      SKILL_EVALUADA: ${{ matrix.skill }}
+      COMMIT_EVALUADO: ${{ github.event.pull_request.head.sha || github.sha }}
+`
+
 // definicionDelContrato es una definición sintética del job con las claves de
 // los contratos y el env de hoy (contracts/ejecucion-del-job.md §6 de H7.3;
-// contracts/tanda-del-job.md §1 de H7.4). Con las evals de evalsSinteticas,
-// cada skill tiene 7 sesiones en el modo orden —la eval con el modelo que decide
-// y con el de Haiku, tres veces con cada uno, y la prueba de red— y 6 en el modo
-// herramienta, así que el peor caso es de 1573 s en boe-legislacion (⌈7 / 4⌉ +
-// ⌈6 / 4⌉ = 4 tandas) y de 4021 s en legal-core (13 tandas): 120 minutos los
-// cubren.
+// contracts/tanda-del-job.md §1 de H7.4; contracts/job-de-evals.md §1 a §3 de
+// H24). Con las evals de evalsSinteticas, cada skill tiene 7 sesiones en el modo
+// orden —la eval con el modelo que decide y con el de Haiku, tres veces con cada
+// uno, y la prueba de red— y 6 en el modo herramienta, así que el peor caso de
+// sus sesiones es de 1573 s en boe-legislacion (⌈7 / 4⌉ + ⌈6 / 4⌉ = 4 tandas) y
+// de 4021 s en legal-core (13 tandas). boe-legislacion tiene además juez, que
+// juzga las 3 respuestas del modelo que decide en cada modo: 60 s de instalar su
+// Claude Code y (⌈3 × 6 / 4⌉ + ⌈3 × 6 / 4⌉) × 40 s de sus votos, 2033 s en
+// total. 120 minutos cubren los dos. Y el de la medida, con sus 7 casos
+// etiquetados, es de 485 + 60 + ⌈7 × 6 / 4⌉ × 40 = 985 s, que cubren los 17
+// minutos de su trabajo.
 const definicionDelContrato = `name: evals
 on:
-  pull_request:
+  workflow_dispatch:
+    inputs:
+` + entradaDeLaMedidaDelFlujo + `  pull_request:
     types: [opened, reopened, labeled]
 jobs:
-` + trabajoDeLaTandaDelContrato + `  evals:
+` + trabajoDeLaTandaDelContrato + trabajoDeEvalsDelContrato + trabajoDeLaMedidaDelContrato
+
+// trabajoDeEvalsDelContrato es el trabajo evals de definicionDelContrato.
+const trabajoDeEvalsDelContrato = `  evals:
     name: evals (${{ matrix.skill }})
     needs: [tanda]
     if: ` + condicionDelTrabajo + `
@@ -474,18 +809,36 @@ jobs:
     timeout-minutes: 120
     env:
       MODELO_DE_EVALS: claude-sonnet-5
-      MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
+` + entornoDelJuezDelContrato + `      MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
       REPETICIONES_DE_EVALS: 3
       UMBRAL_DE_EVALS: 2
       CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
       OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}
-`
+      VERSION_DE_CLAUDE_CODE: ` + versionDeLasSesionesDelContrato + `
+` + pasosDeEvalsDelContrato
 
 // cambioDeLaDefinicion sustituye, en definicionDelContrato, un fragmento por
-// otro.
+// otro: el primero que haya. El trabajo evals va delante del trabajo medida,
+// así que un fragmento que está en los dos se cambia en el trabajo evals.
 type cambioDeLaDefinicion struct {
 	antes   string
 	despues string
+}
+
+// enLaMedida es el cambio de un fragmento por otro dentro del trabajo medida de
+// definicionDelContrato, también si el fragmento está antes en otro trabajo.
+func enLaMedida(antes, despues string) cambioDeLaDefinicion {
+	return cambioDeLaDefinicion{
+		antes:   trabajoDeLaMedidaDelContrato,
+		despues: strings.Replace(trabajoDeLaMedidaDelContrato, antes, despues, 1),
+	}
+}
+
+// enLosDosTrabajos son los cambios de un fragmento por otro en el trabajo evals
+// y en el trabajo medida de definicionDelContrato, que lo tienen los dos: el
+// env de la medida repite el modelo y la versión del juez del de evals.
+func enLosDosTrabajos(antes, despues string) []cambioDeLaDefinicion {
+	return []cambioDeLaDefinicion{{antes, despues}, enLaMedida(antes, despues)}
 }
 
 // definicionSintetica es una definición que parte de la del contrato con sus
@@ -513,6 +866,7 @@ func probarLasDefinicionesSinteticas(t *testing.T) {
 			contenido := definicionDelContrato
 			for _, cambio := range caso.cambios {
 				require.Contains(t, contenido, cambio.antes, "premisa: la definici\xc3\xb3n tiene lo que el caso cambia")
+				require.NotEqual(t, cambio.antes, cambio.despues, "premisa: el cambio del caso cambia algo")
 				contenido = strings.Replace(contenido, cambio.antes, cambio.despues, 1)
 			}
 
@@ -528,9 +882,223 @@ func probarLasDefinicionesSinteticas(t *testing.T) {
 }
 
 // definicionesSinteticas son los casos de probarLasDefinicionesSinteticas: uno
-// por comprobación de contracts/ejecucion-del-job.md §7 de H7.3, y los del tope
-// que lo cubren.
+// por comprobación de contracts/ejecucion-del-job.md §7 de H7.3, los del tope
+// que lo cubren y, detrás, los del juez y de su medida.
 func definicionesSinteticas() []definicionSintetica {
+	return slices.Concat(definicionesSinteticasDelJob(), definicionesSinteticasDelJuez(),
+		definicionesSinteticasDeLaMedida())
+}
+
+// definicionesSinteticasDelJuez son las definiciones que se apartan de
+// contracts/job-de-evals.md §5 de H24 en el juez del trabajo evals, cada una con
+// su línea: el modelo del juez que falta, que es un alias o que es el que
+// decide; la versión de Claude Code de sus votos que falta o que no es
+// <n>.<n>.<n>; y el paso de instalación que no instala el del juez en su
+// prefijo, que no está o que instala con su versión el de las sesiones. El
+// modelo y la versión cambian a la vez en el trabajo medida, que los repite:
+// así la única línea es la suya.
+func definicionesSinteticasDelJuez() []definicionSintetica {
+	const (
+		modeloEnElEnv  = "jobs.evals.env.MODELO_DEL_JUEZ: "
+		versionEnElEnv = "jobs.evals.env.VERSION_DE_CLAUDE_CODE_DEL_JUEZ: "
+		yLoEsperadoEs  = ", y lo esperado es "
+		conLaDelJuez   = `npm install -g "` + claudeCodeDelJuez + `"`
+		soloElDelJuez  = "que con VERSION_DE_CLAUDE_CODE_DEL_JUEZ solo instale el del juez, en su prefijo"
+		ordenSinElJuez = instalacionDeLasSesiones + "\nclaude --version\n" +
+			"\"$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude\" --version\n" +
+			"echo \"CLAUDE_DEL_JUEZ=$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude\" >> \"$GITHUB_ENV\"\n"
+	)
+
+	return []definicionSintetica{
+		{
+			nombre:  "sin-el-modelo-del-juez",
+			cambios: enLosDosTrabajos(modeloDelJuezEnElEnv, ""),
+			fallos:  []string{modeloEnElEnv + noEsta + yLoEsperadoEs + modeloDelJuezEsperado},
+		},
+		{
+			nombre:  "modelo-del-juez-que-es-un-alias",
+			cambios: enLosDosTrabajos(modeloDelJuezEnElEnv, "      MODELO_DEL_JUEZ: opus\n"),
+			fallos:  []string{modeloEnElEnv + `vale "opus"` + yLoEsperadoEs + modeloDelJuezEsperado},
+		},
+		{
+			nombre:  "modelo-del-juez-que-es-el-que-decide",
+			cambios: enLosDosTrabajos(modeloDelJuezEnElEnv, "      MODELO_DEL_JUEZ: claude-sonnet-5\n"),
+			fallos:  []string{modeloEnElEnv + `vale "claude-sonnet-5"` + yLoEsperadoEs + modeloDelJuezEsperado},
+		},
+		{
+			nombre:  "sin-la-version-del-juez",
+			cambios: enLosDosTrabajos(versionDelJuezEnElEnv, ""),
+			fallos:  []string{versionEnElEnv + noEsta + yLoEsperadoEs + versionDelJuezEsperada},
+		},
+		{
+			nombre:  "version-del-juez-sin-su-tercer-numero",
+			cambios: enLosDosTrabajos(versionDelJuezEnElEnv, "      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: 2.1\n"),
+			fallos:  []string{versionEnElEnv + `vale "2.1"` + yLoEsperadoEs + versionDelJuezEsperada},
+		},
+		{
+			nombre:  "version-del-juez-que-es-una-etiqueta",
+			cambios: enLosDosTrabajos(versionDelJuezEnElEnv, "      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: latest\n"),
+			fallos:  []string{versionEnElEnv + `vale "latest"` + yLoEsperadoEs + versionDelJuezEsperada},
+		},
+		{
+			nombre:  "instalacion-sin-el-del-juez-en-su-prefijo",
+			cambios: []cambioDeLaDefinicion{{lineaDeLaInstalacionDelJuez, ""}},
+			fallos: []string{pasoDeLaInstalacion + ": vale " + strconv.Quote(ordenSinElJuez) + yLoEsperadoEs +
+				"que tenga la l\xc3\xadnea " + strconv.Quote(instalacionDelJuez)},
+		},
+		{
+			nombre:  "sin-el-paso-de-instalacion",
+			cambios: []cambioDeLaDefinicion{{pasosDeEvalsDelContrato, ""}},
+			fallos: []string{pasoDeLaInstalacion + ": " + noEsta + yLoEsperadoEs + "que tenga la l\xc3\xadnea " +
+				strconv.Quote(instalacionDelJuez)},
+		},
+		{
+			nombre:  "instalacion-de-las-sesiones-con-la-version-del-juez",
+			cambios: []cambioDeLaDefinicion{{instalacionDeLasSesiones, conLaDelJuez}},
+			fallos: []string{pasoDeLaInstalacion + ": tiene la l\xc3\xadnea " + strconv.Quote(conLaDelJuez) +
+				yLoEsperadoEs + soloElDelJuez},
+		},
+	}
+}
+
+// definicionesSinteticasDeLaMedida son las definiciones que se apartan de
+// contracts/job-de-evals.md §5 de H24 en la ejecución de la medida del juez,
+// cada una con su línea: el trabajo medida que falta, con otro modelo, con otra
+// versión, con otro if o con needs; el trabajo tanda o el trabajo evals que
+// nombran la etiqueta de la medida, o la tanda que admite el despacho con su
+// entrada; la entrada que falta, sin valor por omisión o con otro; y el tope de
+// la medida un minuto por debajo de su peor caso, o con un peor caso que no se
+// puede obtener.
+func definicionesSinteticasDeLaMedida() []definicionSintetica {
+	const (
+		yLoEsperadoEs    = ", y lo esperado es "
+		soloConEtiqueta  = "github.event.label.name == 'evals-medir-juez'"
+		despachoDeAntes  = "github.event_name == 'workflow_dispatch'"
+		conLaEtiqueta    = "  github.event.label.name == 'evals-medir-juez' ||\n"
+		lineaDelDespacho = "  " + despachoSinLaMedida + " ||\n"
+		evalsConEtiqueta = "${{ " + sinCancelar + " && (needs.tanda.outputs.medir == 'si' || " + soloConEtiqueta + ") }}"
+		entradaDelFlujo  = "on.workflow_dispatch.inputs.medir_al_juez"
+		topeDeLaMedida   = "jobs.medida.timeout-minutes: "
+		concurrenciaDe4  = "            concurrencia: 4\n"
+		peorCasoDeMedida = "985 s = 485 s + 60 s + (\xe2\x8c\x887 \xc3\x97 6 / 4\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
+	)
+
+	return []definicionSintetica{
+		{
+			nombre:  "sin-medida",
+			cambios: []cambioDeLaDefinicion{{trabajoDeLaMedidaDelContrato, ""}},
+			fallos: []string{"jobs.medida: " + noEsta + yLoEsperadoEs +
+				"el trabajo que ejecuta la medida del juez"},
+		},
+		{
+			nombre:  "medida-con-otro-modelo",
+			cambios: []cambioDeLaDefinicion{enLaMedida(modeloDelJuezEnElEnv, "      MODELO_DEL_JUEZ: claude-opus-5\n")},
+			fallos: []string{`jobs.medida.env.MODELO_DEL_JUEZ: vale "claude-opus-5"` + yLoEsperadoEs +
+				`lo de jobs.evals.env.MODELO_DEL_JUEZ, que vale "claude-opus-5-5"`},
+		},
+		{
+			nombre: "medida-con-otra-version",
+			cambios: []cambioDeLaDefinicion{
+				enLaMedida(versionDelJuezEnElEnv, "      VERSION_DE_CLAUDE_CODE_DEL_JUEZ: 2.1.284\n"),
+			},
+			fallos: []string{`jobs.medida.env.VERSION_DE_CLAUDE_CODE_DEL_JUEZ: vale "2.1.284"` + yLoEsperadoEs +
+				`lo de jobs.evals.env.VERSION_DE_CLAUDE_CODE_DEL_JUEZ, que vale "2.1.289"`},
+		},
+		{
+			nombre:  "medida-sin-la-version",
+			cambios: []cambioDeLaDefinicion{enLaMedida(versionDelJuezEnElEnv, "")},
+			fallos: []string{"jobs.medida.env.VERSION_DE_CLAUDE_CODE_DEL_JUEZ: " + noEsta + yLoEsperadoEs +
+				`lo de jobs.evals.env.VERSION_DE_CLAUDE_CODE_DEL_JUEZ, que vale "2.1.289"`},
+		},
+		{
+			nombre:  "medida-solo-con-su-etiqueta",
+			cambios: []cambioDeLaDefinicion{{lineaDelIfDeLaMedida, "    if: " + soloConEtiqueta + "\n"}},
+			fallos: []string{"jobs.medida.if: vale " + strconv.Quote(soloConEtiqueta) + yLoEsperadoEs +
+				strconv.Quote(condicionDeLaMedida)},
+		},
+		{
+			nombre:  "medida-sin-if",
+			cambios: []cambioDeLaDefinicion{{lineaDelIfDeLaMedida, ""}},
+			fallos:  []string{"jobs.medida.if: " + noEsta + yLoEsperadoEs + strconv.Quote(condicionDeLaMedida)},
+		},
+		{
+			nombre:  "medida-con-needs",
+			cambios: []cambioDeLaDefinicion{{lineaDelIfDeLaMedida, lineaDelIfDeLaMedida + "    needs: [tanda]\n"}},
+			fallos: []string{"jobs.medida.needs: est\xc3\xa1" + yLoEsperadoEs + queNoEste +
+				": la medida no abre sesiones de evals, y no depende de la tanda que las decide"},
+		},
+		{
+			nombre:  "tanda-que-nombra-la-etiqueta-de-la-medida",
+			cambios: []cambioDeLaDefinicion{{"      " + lineaDelDespacho, "      " + lineaDelDespacho + "      " + conLaEtiqueta}},
+			fallos: []string{"jobs.tanda.if: vale " +
+				strconv.Quote(strings.Replace(condicionDeLaTanda, lineaDelDespacho, lineaDelDespacho+conLaEtiqueta, 1)) +
+				yLoEsperadoEs + strconv.Quote(condicionDeLaTanda)},
+		},
+		{
+			nombre:  "tanda-que-admite-el-despacho-con-la-entrada",
+			cambios: []cambioDeLaDefinicion{{despachoSinLaMedida, despachoDeAntes}},
+			fallos: []string{"jobs.tanda.if: vale " +
+				strconv.Quote(strings.Replace(condicionDeLaTanda, despachoSinLaMedida, despachoDeAntes, 1)) +
+				yLoEsperadoEs + strconv.Quote(condicionDeLaTanda)},
+		},
+		{
+			nombre:  "evals-que-nombra-la-etiqueta-de-la-medida",
+			cambios: []cambioDeLaDefinicion{{condicionDelTrabajo, evalsConEtiqueta}},
+			fallos: []string{"jobs.evals.if: vale " + strconv.Quote(evalsConEtiqueta) + yLoEsperadoEs +
+				strconv.Quote(condicionDelTrabajo)},
+		},
+		{
+			nombre:  "sin-la-entrada-de-la-medida",
+			cambios: []cambioDeLaDefinicion{{entradaDeLaMedidaDelFlujo, ""}},
+			fallos: []string{entradaDelFlujo + ": " + noEsta + yLoEsperadoEs +
+				"la entrada que lanza la medida del juez, con default: false"},
+		},
+		{
+			nombre:  "entrada-de-la-medida-sin-default",
+			cambios: []cambioDeLaDefinicion{{valorPorOmisionDeLaEntrada, ""}},
+			fallos:  []string{entradaDelFlujo + ".default: " + noEsta + yLoEsperadoEs + "false"},
+		},
+		{
+			nombre:  "entrada-de-la-medida-con-default-true",
+			cambios: []cambioDeLaDefinicion{{valorPorOmisionDeLaEntrada, "        default: true\n"}},
+			fallos:  []string{entradaDelFlujo + ".default: vale true" + yLoEsperadoEs + "false"},
+		},
+		{
+			// Un texto no es el booleano false, aunque se escriba igual.
+			nombre:  "entrada-de-la-medida-con-un-texto-de-default",
+			cambios: []cambioDeLaDefinicion{{valorPorOmisionDeLaEntrada, "        default: \"false\"\n"}},
+			fallos:  []string{entradaDelFlujo + `.default: vale "false"` + yLoEsperadoEs + "false"},
+		},
+		{
+			// 16 minutos son 960 s, y el peor caso de la medida, 985 s: los cubren
+			// los 17 de la definición del contrato.
+			nombre:  "tope-de-la-medida-por-debajo-de-su-peor-caso",
+			cambios: []cambioDeLaDefinicion{{"timeout-minutes: 17", "timeout-minutes: 16"}},
+			fallos: []string{topeDeLaMedida + "vale 16 (960 s)" + yLoEsperadoEs +
+				"al menos el peor caso de boe-legislacion, " + peorCasoDeMedida},
+		},
+		{
+			nombre:  "medida-sin-la-concurrencia-de-su-skill",
+			cambios: []cambioDeLaDefinicion{enLaMedida(concurrenciaDe4, "")},
+			fallos: []string{topeDeLaMedida + "el peor caso de boe-legislacion no se puede obtener: la concurrencia " +
+				"de boe-legislacion es 0 y tiene que ser un entero mayor o igual que 1"},
+		},
+		{
+			// legal-core no tiene juez: no hay medida suya que quepa en ningún tope.
+			nombre: "medida-de-una-skill-sin-juez",
+			cambios: []cambioDeLaDefinicion{enLaMedida(
+				"skill: [boe-legislacion]\n        include:\n          - skill: boe-legislacion\n",
+				"skill: [legal-core]\n        include:\n          - skill: legal-core\n")},
+			fallos: []string{topeDeLaMedida + "el peor caso de legal-core no se puede obtener: legal-core no tiene " +
+				"juez que medir"},
+		},
+	}
+}
+
+// definicionesSinteticasDelJob son las definiciones que se apartan de
+// contracts/tanda-del-job.md §4 de H7.4 y de contracts/ejecucion-del-job.md §7
+// de H7.3, y las del tope del trabajo evals que lo cubren.
+func definicionesSinteticasDelJob() []definicionSintetica {
 	const (
 		grupoPorCommit   = "group: evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"
 		cancelaEnCurso   = "      cancel-in-progress: false\n"
@@ -715,15 +1283,27 @@ func definicionesSinteticas() []definicionSintetica {
 				"caso de legal-core, " + peorCasoDeLegal},
 		},
 		{
+			// 33 minutos son 1980 s, uno menos que el peor caso de boe-legislacion
+			// con su juez: cubrirían el de sus sesiones solas, 1573 s, que es el de
+			// una skill sin juez.
 			nombre:  "tope-por-debajo-de-los-dos",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 26"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 33"}},
 			fallos: []string{
-				"jobs.evals.timeout-minutes: vale 26 (1560 s), y lo esperado es al menos el peor caso de " +
-					"boe-legislacion, 1573 s = 485 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
-					"\xc3\x97 (22 s + 240 s + 10 s)",
-				"jobs.evals.timeout-minutes: vale 26 (1560 s), y lo esperado es al menos el peor caso de " +
+				"jobs.evals.timeout-minutes: vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
+					"boe-legislacion, 2033 s = 485 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
+					"\xc3\x97 (22 s + 240 s + 10 s) + 60 s + (\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
+					"\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)",
+				"jobs.evals.timeout-minutes: vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
 					"legal-core, " + peorCasoDeLegal,
 			},
+		},
+		{
+			// 34 minutos, 2040 s, cubren el de boe-legislacion con su juez, y no el
+			// de legal-core.
+			nombre:  "tope-que-cubre-el-de-la-skill-con-juez",
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 34"}},
+			fallos: []string{"jobs.evals.timeout-minutes: vale 34 (2040 s), y lo esperado es al menos el peor " +
+				"caso de legal-core, " + peorCasoDeLegal},
 		},
 		{
 			nombre:  "tope-que-cubre-el-peor-caso",
@@ -752,9 +1332,17 @@ func definicionesSinteticas() []definicionSintetica {
 	}
 }
 
+// skillConJuezSintetico es la skill de evalsSinteticas que tiene juez, y
+// casosDelJuezSintetico, sus casos etiquetados.
+const (
+	skillConJuezSintetico = "boe-legislacion"
+	casosDelJuezSintetico = 7
+)
+
 // evalsSinteticas crea un directorio temporal de evals con una carpeta por
 // skill de la matriz, cada una con la eval sintética del art. 21 de la LPAC, y
-// devuelve su ruta.
+// devuelve su ruta. La de boe-legislacion lleva además la carpeta del juez, con
+// siete casos etiquetados; la de legal-core, no: es la skill sin juez.
 func evalsSinteticas(t *testing.T) string {
 	t.Helper()
 
@@ -765,6 +1353,23 @@ func evalsSinteticas(t *testing.T) string {
 		require.NoError(t, os.WriteFile(filepath.Join(evals, skill, nombreDeEval), []byte(contenidoDelArticulo21), 0o600))
 	}
 
+	var casos strings.Builder
+
+	casos.WriteString("clase: afirma_lo_no_leido\ncasos:\n")
+
+	for numero := range casosDelJuezSintetico {
+		fmt.Fprintf(&casos, "  - informe: specs/sintetico/informe.json\n    sesion: sesion-%02d\n"+
+			"    grupo: medida\n    etiqueta: defecto\n    procedencia: lectura\n", numero+1)
+	}
+
+	conJuez := filepath.Join(evals, skillConJuezSintetico)
+	escribirLaCarpetaDelJuez(t, conJuez)
+	crearEntradas(t, conJuez, []entradaDeConjunto{{nombre: casosEnElJuez, contenido: casos.String()}})
+
+	leidos, err := leerCasosEtiquetados([]byte(casos.String()))
+	require.NoError(t, err)
+	require.Len(t, leidos.Casos, casosDelJuezSintetico, "premisa: los casos etiquetados del juez sint\xc3\xa9tico")
+
 	return evals
 }
 
@@ -772,7 +1377,8 @@ func evalsSinteticas(t *testing.T) string {
 // definición que no existe, que no es YAML o cuyas repeticiones no son un
 // entero no se lee, con un error que nombra la ruta; y el peor caso de una skill
 // sin su carpeta de evals o con un plan que no se puede componer no se obtiene,
-// con un error que dice por qué.
+// con un error que dice por qué, ni el de la medida de una skill sin su carpeta
+// de evals o con unos casos etiquetados que no tienen su forma.
 func probarLosErroresDeLaDefinicion(t *testing.T) {
 	t.Parallel()
 
@@ -814,9 +1420,26 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	_, err = leida.peorCaso(t.TempDir(), "boe-legislacion")
 	require.ErrorIs(t, err, os.ErrNotExist, "sin la carpeta de evals de la skill")
 
+	evals := evalsSinteticas(t)
+
 	leida.ModeloQueDecide = "Claude Sonnet"
-	_, err = leida.peorCaso(evalsSinteticas(t), "boe-legislacion")
+	_, err = leida.peorCaso(evals, "boe-legislacion")
 	require.ErrorContains(t, err, `el modelo que decide "Claude Sonnet" no tiene la forma de un id de modelo`)
+
+	// El peor caso de la medida tampoco se obtiene sin la carpeta de evals de la
+	// skill ni con unos casos etiquetados que no tienen su forma: su error nombra
+	// el fichero.
+	require.NotNil(t, leida.Medida, "premisa: la definici\xc3\xb3n del contrato tiene el trabajo medida")
+
+	_, err = leida.Medida.peorCaso(t.TempDir(), skillConJuezSintetico)
+	require.ErrorIs(t, err, os.ErrNotExist, "sin la carpeta de evals de la skill")
+
+	etiquetados := filepath.Join(evals, skillConJuezSintetico, casosEnElJuez)
+	require.NoError(t, os.WriteFile(etiquetados, []byte("clase: afirma_lo_no_leido\ncasos:\n  - etiqueta: dudoso\n"), 0o600))
+
+	_, err = leida.Medida.peorCaso(evals, skillConJuezSintetico)
+	require.ErrorContains(t, err, "los casos etiquetados del juez "+etiquetados+": ")
+	require.ErrorContains(t, err, `tiene la etiqueta "dudoso"`)
 }
 
 // probarElPeorCasoDelTrabajo fija el peor caso del trabajo de una skill desde
@@ -824,16 +1447,27 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 // FR-083 de H21): una tanda por cada grupo de sesiones —las del modo orden con
 // la prueba de red, las del modo herramienta y las de las evals sin binario ni
 // servidor— y no por la suma de todas. Con las evals del repositorio y la
-// definición del job son 14 357 s en boe-legislacion y 12 181 s en legal-core,
-// que cuenta la prueba de red aunque su trabajo no la lleve, y el tope de la
-// definición los cubre.
+// definición del job, las sesiones son 14 357 s en boe-legislacion y 12 181 s
+// en legal-core, que cuenta la prueba de red aunque su trabajo no la lleve.
+//
+// Desde H24 (contracts/job-de-evals.md §4 de H24; research D6 y S3 de H24;
+// FR-092 de H24; SC-012 de H24), el de una skill con juez suma los 60 s de
+// instalar su Claude Code y, por grupo, una tanda de 40 s —el tope de un voto y
+// su margen— por cada ⌈respuestas × 6 / concurrencia⌉, con las respuestas del
+// modelo que decide en las evals que activan la skill: 54, 54 y 3 en
+// boe-legislacion, que con ello llega a 21 097 s. El de legal-core, que no tiene
+// juez, no cambia. Y el de la medida del juez de boe-legislacion, con sus 259
+// casos etiquetados, es de 16 105 s. El tope de cada trabajo cubre el suyo.
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
 	leida, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
 
-	const terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
+	const (
+		terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
+		terminosDeUnVoto   = " \xc3\x97 (35 s + 5 s)"
+	)
 
 	casos := []struct {
 		skill    string
@@ -842,11 +1476,16 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		texto    string
 	}{
 		{
-			skill:    "boe-legislacion",
-			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{97, 96, 6}, Concurrencia: 4},
-			duracion: 14357 * time.Second,
-			texto: "14357 s = 485 s + (\xe2\x8c\x8897 / 4\xe2\x8c\x89 + \xe2\x8c\x8896 / 4\xe2\x8c\x89 + " +
-				"\xe2\x8c\x886 / 4\xe2\x8c\x89)" + terminosDeUnaTanda,
+			skill: "boe-legislacion",
+			peor: peorCasoDelTrabajo{
+				SesionesPorGrupo: []int{97, 96, 6},
+				Concurrencia:     4,
+				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{54, 54, 3}, Concurrencia: 4},
+			},
+			duracion: 21097 * time.Second,
+			texto: "21097 s = 485 s + (\xe2\x8c\x8897 / 4\xe2\x8c\x89 + \xe2\x8c\x8896 / 4\xe2\x8c\x89 + " +
+				"\xe2\x8c\x886 / 4\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
+				"\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89)" + terminosDeUnVoto,
 		},
 		{
 			skill:    "legal-core",
@@ -873,6 +1512,33 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 	enUnSoloGrupo := peorCasoDelTrabajo{SesionesPorGrupo: []int{199}, Concurrencia: 4}
 	assert.Equal(t, 14085*time.Second, enUnSoloGrupo.Duracion())
 	assert.Equal(t, "14085 s = 485 s + (\xe2\x8c\x88199 / 4\xe2\x8c\x89)"+terminosDeUnaTanda, enUnSoloGrupo.String())
+
+	// Los términos del juez son los del tope de un voto y su margen, 35 s y 5 s,
+	// y los de los seis votos que una respuesta puede pedir como mucho: tres,
+	// cada uno con su repetición por nulo.
+	assert.Equal(t, 40*time.Second, topeDelVoto+margenDelVoto)
+	assert.Equal(t, 6, votosPorRespuestaComoMucho)
+
+	// Los votos de un grupo tampoco llenan su última tanda con los del
+	// siguiente: 3 y 3 respuestas, a 4 a la vez, son 5 + 5 tandas de votos, y las
+	// 6 en un solo grupo serían 9.
+	delJuez := peorCasoDelJuez{RespuestasPorGrupo: []int{3, 3}, Concurrencia: 4}
+	assert.Equal(t, 460*time.Second, delJuez.Duracion())
+	assert.Equal(t, 420*time.Second, peorCasoDelJuez{RespuestasPorGrupo: []int{6}, Concurrencia: 4}.Duracion())
+
+	// La medida del juez (contracts/job-de-evals.md §4 de H24): sin sesiones de
+	// evals, lo de fuera de las sesiones, la instalación del Claude Code del
+	// juez y los votos de sus casos etiquetados, que son los de la copia.
+	require.NotNil(t, leida.Medida, "la definici\xc3\xb3n del job tiene el trabajo medida")
+
+	deLaMedida, err := leida.Medida.peorCaso(directorioDeEvals, "boe-legislacion")
+	require.NoError(t, err)
+
+	assert.Equal(t, peorCasoDeLaMedida{Casos: 259, Concurrencia: 4}, deLaMedida)
+	assert.Equal(t, 16105*time.Second, deLaMedida.Duracion())
+	assert.Equal(t, "16105 s = 485 s + 60 s + (\xe2\x8c\x88259 \xc3\x97 6 / 4\xe2\x8c\x89)"+terminosDeUnVoto, deLaMedida.String())
+	assert.GreaterOrEqual(t, time.Duration(leida.Medida.TopeEnMinutos)*time.Minute, deLaMedida.Duracion(),
+		"el tope del trabajo medida cubre el peor caso de la medida")
 }
 
 // ejecucionPropia es la ejecución que decide en segundo-disparo: las de
