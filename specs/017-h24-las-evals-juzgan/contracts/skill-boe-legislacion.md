@@ -2,10 +2,10 @@
 
 Qué cambia en `skills/boe-legislacion/SKILL.md`, por qué y qué lo comprueba (FR-080 a FR-087, FR-110; SC-010). El
 texto exacto de C1-C8 es el de [skill-boe-legislacion-v0.1.7.diff](./skill-boe-legislacion-v0.1.7.diff), un prototipo
-que se aplica sobre v0.1.6 con `git apply` (research V14: se aplica limpio, 19 líneas fuera y 19 dentro). C9 (§8), de
-la reparación del cierre, va encima y no está en el prototipo: el texto de v0.1.7 es ese diff más C9, 20 líneas fuera
-y 20 dentro frente a v0.1.6 (`git diff --numstat main -- skills/boe-legislacion/SKILL.md`), y sobre él el prototipo ya
-no se aplica en reverso.
+que se aplica sobre v0.1.6 con `git apply` (research V14: se aplica limpio, 19 líneas fuera y 19 dentro). C9 (§8) y
+C10 (§9), de las dos reparaciones del cierre, van encima y no están en el prototipo: el texto de v0.1.7 es ese diff
+más C9 y C10, 26 líneas fuera y 26 dentro frente a v0.1.6 (`git diff --numstat main -- skills/boe-legislacion/SKILL.md`),
+y sobre él el prototipo ya no se aplica en reverso.
 
 ## 1. La causa, con las respuestas de la validación
 
@@ -50,12 +50,14 @@ no separa las dos causas: v0.1.7 quita el vocabulario de toda la prosa, y el cie
 | C7 | «Redacción modificada», líneas 197-199 | Las dos fechas de la línea se dicen por su orden («primero la de la redacción superada y después la más reciente, que es la de la que acabas de leer»), sin los dos nombres de campo | el vocabulario | FR-085 |
 | C8 | Paso 4, líneas 109-110 | «Remisiones» en una línea: «a otro precepto o a otra norma» | las líneas de C1 | FR-086 (menos de 300) |
 | C9 | Paso 5, la viñeta de C1 (reparación del cierre, §8) | La viñeta dice también «cuándo o cómo se aplica» y «ni en un paréntesis o un inciso», y de la remisión, que «va con las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido»; una línea más, que paga la línea en blanco entre el ejemplo `⚠ NORMA DEROGADA:` y su viñeta en «Cómo se cita» | forma c, medida en el cierre (§8) | FR-081, FR-082 |
+| C10 | Paso 5, la viñeta de C1; regla 2; paso 4 (segunda reparación del cierre, §9) | La viñeta dice que el índice tampoco dice de qué trata un bloque y que «su número y su materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…», «los artículos que regulan <materia> (N y M)»), ni negando lo que puedes decir de él («no puedo decir qué <regla> fija»), ni al ofrecer leerlo: o el número solo, o la materia sola»; la remisión «va con las palabras del texto leído y nada detrás» (las dos formas de C9 quedan en la lista). La regla 2 pide los bloques que fallaron «por su número, y por qué … sin decir de qué tratan ni para qué los pedías» y pierde «con lo que significa para quien pregunta» (§1, forma a). El paso 4 queda en una línea, sin «dilo en la respuesta en lugar de suplirlo» (§1, forma a). Dos líneas más, que pagan una del paso 4 y una de la regla 2 | formas a y b, medidas en el cierre (§9) | FR-081, FR-082, FR-083 |
 
 **Las líneas.** v0.1.6 tiene 298 y ese es el tope efectivo: `skills-check` falla con 300 o más y el mutante
 `dos-inicios` de `internal/app/skills_test.go` añade una (research V13). C1 cuesta cuatro. Salen de C3 (una: la forma
 del aviso, que ese párrafo repetía, queda en «Cómo se cita» y en la regla 3, a las que remite; y «Recuerda que los
 textos consolidados…», que sigue en la regla 3), de C5 (una), de C7 (una) y de C8 (una). El prototipo tiene 298
-(research V14). C9 cuesta una, que paga el blanco de «Cómo se cita» (§8): sigue en 298.
+(research V14). C9 cuesta una, que paga el blanco de «Cómo se cita» (§8): sigue en 298. C10 cuesta dos en la viñeta,
+que pagan el paso 4 y la regla 2 (§9): sigue en 298.
 
 ## 3. Lo que se queda (FR-086)
 
@@ -136,5 +138,46 @@ art. 24 y el modelo repite el vocabulario de la prosa (H7.3); y leer siempre el 
 lectura a preguntas que no la necesitan cuando C1 ya manda leerlo si importa.
 
 **Lo que no se ha medido.** El efecto de C9 sobre `afirma_lo_no_leido` y sobre las demás evals no se puede medir en
+una sesión de un paso, que no abre sesiones con modelo (ADR 0032): lo mide el job de evals de la medición siguiente,
+en los dos modos.
+
+## 9. Segunda reparación del cierre: C10, el número y la materia de lo no leído nunca juntos (FR-081 a FR-083)
+
+Lo añade `reparar_cierre` tras la medición sobre `b0a7a9c` (research V24, D28): con C1-C9,
+`afirma_lo_no_leido:claude-sonnet-5-5:orden` da 0 de 54 —el 1 de §8 ya no se da— y el del modo herramienta, 3 de 54
+frente al umbral 0, tres votos cada una: `14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-02` («Intenté
+leer los artículos que regulan cada impuesto (60, 78, 92, 100 y 104), pero la fuente no estaba disponible y no se pudo
+consultar ninguno.»; sus seis lecturas de esos bloques quedaron fuera de lo grabado y terminaron con `5`),
+`15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03` («se remiten al artículo 7 de la Ley, que no he
+leído. No puedo decir aquí qué rentas exime.») y `16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-03`
+(«Puedo leer también los demás artículos del mismo capítulo (arts. 26 a 31), que desarrollan otros principios de la
+potestad sancionadora.»). Los demás umbrales que deciden se cumplen, `cuenta_su_proceso`, que solo se publica, da 1 y
+1, y `legal-core` aprueba. Una respuesta queda sin juzgar por el tope de un voto, que es de la ejecución y que D6
+reserva a una persona (research D28; `gates/supuestos.md`).
+
+**Causa.** Son las formas a y b de §1, en las mismas evals y sobre los mismos preceptos que marcaron la validación (el
+art. 60 del TRLRHL en H21, `14-…-01`; el art. 7 de la LIRPF en H22, `15-…-02`). Cada respuesta nombra el precepto no
+leído por su número, como C1 pide, y le pone la materia al lado en una construcción que C1 y C2 no nombraban: delante
+del número, como razón de la lectura que falló; negando lo que puede decir de él; o al ofrecer leerlo. Esa materia no
+sale de ninguna lectura: en los quince índices grabados de `testdata/evals/boe.legislacion-consolidada/` cada `titulo`
+es «Artículo N», «CAPÍTULO III» o «Disposición adicional primera», sin rúbrica, y los tres votos lo dicen («el índice
+solo da «Artículo N», sin rúbrica»). La rúbrica del juez cuenta «de qué trata un artículo … que nombra por su número …
+aunque sea con una etiqueta breve» y no cuenta «nombrar la materia que la respuesta no cubre» sin precepto: la
+frontera es número con materia. Y dos líneas que §1 señalaba como causa de la forma a seguían en v0.1.7: «dilo en la
+respuesta en lugar de suplirlo» (paso 4) y «con lo que significa para quien pregunta» (regla 2).
+
+**Qué cambia (C10).** La viñeta de C1 dice que el índice tampoco dice de qué trata un bloque y fija esa frontera con
+las tres construcciones en marcadores, sin contenido legal, y la alternativa («o el número solo, o la materia sola»);
+la remisión va «con las palabras del texto leído y nada detrás», con «que es…» como una de las formas, así que C9
+queda dentro. La regla 2 pide los bloques que fallaron por su número y su causa, «sin decir de qué tratan ni para qué
+los pedías», sin «con lo que significa para quien pregunta». El paso 4 queda en una línea: «Lo que no puedas leer, no
+lo suplas (paso 5)». Dos líneas más en la viñeta, que pagan una del paso 4 y una de la regla 2: `SKILL.md` sigue en
+298 líneas y `make skills-check` y `TestEvalsDelRepositorio/prosa-de-la-skill` están en verde en la sesión de la
+reparación. Ninguna forma fija, eval, rúbrica, caso, medida ni umbral cambia (FR-036). Rechazado: las frases marcadas
+como ejemplo en la skill, porque son contenido legal y el modelo repite el vocabulario de la prosa (H7.3); prohibir
+nombrar por su número lo no leído, porque la rúbrica lo admite y la regla 2 necesita decir qué bloques fallaron; y
+dar rúbricas en `boe indice`, porque la fuente no las trae en su índice y sería una lectura más por bloque.
+
+**Lo que no se ha medido.** El efecto de C10 sobre `afirma_lo_no_leido` y sobre las demás evals no se puede medir en
 una sesión de un paso, que no abre sesiones con modelo (ADR 0032): lo mide el job de evals de la medición siguiente,
 en los dos modos.

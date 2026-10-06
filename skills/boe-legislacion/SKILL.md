@@ -111,8 +111,7 @@ Mira si hace falta leer algo más para responder:
   vigencia del bloque no encaja con la situación preguntada, tenlo en cuenta y trasládalo (regla 3).
 - **Modificaciones**: si una norma posterior cambió el bloque y eso importa, lee sus metadatos o su análisis (paso 3).
 
-Si falta algo que no puedes leer con `kitlegal boe` ni con sus herramientas, dilo en la respuesta en lugar de suplirlo.
-Lo que decidas en este paso no va en la respuesta: quien pregunta no ve los pasos.
+Lo que no puedas leer, no lo suplas (paso 5); lo que decidas aquí no va en la respuesta: quien pregunta no ve los pasos.
 
 ### 5. Responder citando
 
@@ -131,9 +130,11 @@ Lo que decidas en este paso no va en la respuesta: quien pregunta no ve los paso
   cita»).
 - **De un precepto que no has leído, nada.** De un artículo, un apartado o una disposición que nada te ha devuelto en
   esta conversación no digas qué dice, de qué trata ni cuándo o cómo se aplica, ni en un paréntesis o un inciso, ni
-  aunque creas saberlo: sería texto legal sin fuente. Si lo nombras, por su número y nada más. Una remisión va con
-  las palabras del texto leído y sin un «que es…» ni un «que regula…» detrás: eso es contenido de lo remitido; si
-  importa, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
+  aunque creas saberlo: sería texto legal sin fuente; el índice tampoco lo dice, da el número de cada bloque y nada
+  más. Su número y su materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…», «los artículos que
+  regulan <materia> (N y M)»), ni negando lo que puedes decir de él («no puedo decir qué <regla> fija»), ni al ofrecer
+  leerlo: o el número solo, o la materia sola. Una remisión va con las palabras del texto leído y nada detrás; si
+  importa, léela y cítala. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
 - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
 - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
@@ -261,12 +262,11 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 1. **No concluir que algo no existe.** Una búsqueda vacía, o que una norma no esté en `references/normas.md`, no prueba
    que la norma o la regulación no existan: di «no encontrada con esta búsqueda» y propón reformular la búsqueda.
 2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla —termina con `3` (no encontrado), `4` (fuente no
-   disponible) o `5` (límite de ritmo), o sin caché con `--offline`— o no está disponible, di qué no se pudo
-   consultar y por qué con lo que significa para quien pregunta —que el artículo no está en la norma, que la fuente no
-   estaba disponible, que la fuente limitó las consultas—, sin el código, y no suplas el texto con conocimiento propio.
-   Si la orden que falló pedía varios bloques, dilo solo después de haber pedido cada bloque por separado con
-   `kitlegal boe articulo` (paso 3), y di cuáles no se pudieron consultar, por su número y sin decir de qué tratan. Si
-   no tienes ni la herramienta ni el binario, vale la regla 8.
+   disponible) o `5` (límite de ritmo), o sin caché con `--offline`— o no está disponible, di qué bloques no se
+   pudieron consultar, por su número, y por qué —no están en la norma, la fuente no estaba disponible o limitó las
+   consultas—, sin el código y sin decir de qué tratan ni para qué los pedías, y no suplas el texto con conocimiento
+   propio. Si la orden que falló pedía varios bloques, dilo solo después de pedir cada uno por separado con
+   `kitlegal boe articulo` (paso 3). Si no tienes ni la herramienta ni el binario, vale la regla 8.
 3. **Trasladar la vigencia.** Traslada cada aviso de vigencia que devuelve el binario (derogada, vigencia agotada,
    consolidación no finalizada) con su forma fija —`⚠`, la etiqueta del aviso tal como la da el binario y dos puntos,
    con la frase del binario o una explicación detrás— y no presentes como vigente el texto de una norma derogada.

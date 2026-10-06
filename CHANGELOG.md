@@ -25,13 +25,15 @@ sustituyen a este fichero.
 - **`boe-legislacion` v0.1.7: de un precepto que no ha leído, nada.** De un artículo, un apartado o una disposición
   que ninguna orden ni herramienta le ha devuelto en la conversación, la respuesta **no dice qué dice, de qué trata
   ni cuándo o cómo se aplica**, tampoco en un paréntesis o un inciso ni aunque el agente crea saberlo: sería texto
-  legal sin fuente. Si lo nombra, por su número y nada más. **Traslada las remisiones con las palabras del texto
-  leído**, sin describir lo remitido ni colgarle un «que es…» o un «que regula…», que es contenido de lo remitido, y
-  si lo remitido importa para responder, lo lee y lo cita. Puede avisar de que una materia se regula en otra parte,
-  sin nombrar precepto ni regla, y de los bloques que no pudo consultar dice cuáles son por su número, sin decir de
-  qué tratan.
+  legal sin fuente, y el índice tampoco lo dice: da el número de cada bloque y nada más. **El número de un precepto no
+  leído y su materia no van juntos en ninguna frase** —ni afirmando, ni negando lo que puede decir de él, ni al
+  ofrecer leerlo—: o el número solo, o la materia sola. **Traslada las remisiones con las palabras del texto leído**
+  y nada detrás, y si lo remitido importa para responder, lo lee y lo cita. Puede avisar de que una materia se regula
+  en otra parte, sin nombrar precepto ni regla; de los bloques que no pudo consultar dice cuáles son, por su número,
+  y por qué, sin decir de qué tratan ni para qué los pedía.
   Antes, v0.1.6 decía cuándo leer una remisión y no qué hacer con la que no se lee, y la respuesta la cambiaba por su
-  descripción («el art. 7 sobre rentas exentas») o exponía la regla de un artículo que no había leído. **Dice la
+  descripción («el art. 7 sobre rentas exentas»), exponía la regla de un artículo que no había leído o ponía la
+  materia al lado del número de uno que no pudo leer («los artículos que regulan cada impuesto (60, 78…)»). **Dice la
   vigencia sin «el sobre» ni nombres de campos**: de la redacción leída, qué norma la dio y desde cuándo rige, con
   palabras de quien lee la norma y sin nombrar lo que devuelve una orden ni sus campos (`fecha_vigencia`,
   `norma_modificadora`), que desde v0.1.4 llegaban a la respuesta. No cambian la `description`, las órdenes de cada

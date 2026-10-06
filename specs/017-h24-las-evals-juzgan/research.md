@@ -37,6 +37,7 @@ Lo que dependía de ellos está en «Supuestos».
 | V21 | `TestGrabacionesDerivadas` está en `internal/app`, que no puede importar `internal/evals` desde sus tests | `internal/app/grafo_test.go:2527-2533, 2724` |
 | V22 | En bash 3.2, `$(…)` quita los saltos de línea finales, y con `$(…; printf x)` seguido de `${v%x}` se conservan: así lee el guion del voto la rúbrica entera | `/bin/bash` 3.2.57 del equipo, con `od -c` |
 | V23 | En el informe del cierre sobre `a5bda45`, `afirma_lo_no_leido:claude-sonnet-5-5:orden` da 1 de 54 —la sesión `08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01`, tres votos con la frase «También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso» y el precepto «Artículo 24 de la Ley 19/2013»— y el del modo herramienta, 0 de 54; `sin_activar` 0 y 0, `cuenta_su_proceso` 0 y 3, la medida del juez 0 de 212 y 0 de 47, las sesiones 447 s y 446 s, el juez 102 s y 101 s, ninguna sin juzgar; `legal-core` aprueba. La sesión leyó solo `a20` de `BOE-A-2013-12887`, cuyo apartado 5 grabado dice «sin perjuicio de la posibilidad de interposición de la reclamación potestativa prevista en el artículo 24» y no que sea previa. La misma frase es un caso `defecto` dos veces en `casos.yaml` (H21, `08-…-herramienta-…-02`; H22, `17-…-02`), y otra respuesta del cierre dice «del artículo 24, que es otra vía» sin ningún voto afirmativo | `gates/cierre.json`, `gates/evals/boe-legislacion.json` y `legal-core.json`, con `jq`; `testdata/evals/boe.legislacion-consolidada/…BOE-A-2013-12887_texto_bloque_a20.json`; `evidencias/adr-0037/casos.yaml:979-983, 1495-1499` |
+| V24 | En el informe del cierre sobre `b0a7a9c` (ronda 2), `afirma_lo_no_leido:claude-sonnet-5-5:herramienta` da 3 de 54 y el del modo orden, 0 de 54, tres votos cada una: `14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-02` («Intenté leer los artículos que regulan cada impuesto (60, 78, 92, 100 y 104), pero la fuente no estaba disponible y no se pudo consultar ninguno.»; sus seis lecturas de esos bloques, fuera de lo grabado, terminan con `5`), `15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03` («se remiten al artículo 7 de la Ley, que no he leído. No puedo decir aquí qué rentas exime.») y `16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-03` («Puedo leer también los demás artículos del mismo capítulo (arts. 26 a 31), que desarrollan otros principios de la potestad sancionadora.»); `sin_activar` 0 y 0, `cuenta_su_proceso` 1 y 1, la medida del juez 0 de 212 y 0 de 47, las sesiones 438 s y 434 s, el juez 105 s y 129 s; una respuesta sin juzgar, `05-trlrhl-impuestos-municipales-herramienta-claude-sonnet-5-5-03` («voto 1: tope de 35 s agotado»), con las mismas cuatro llamadas que sus dos hermanas, juzgadas, y una respuesta de 1 344 caracteres frente a 1 211 y 1 493; `legal-core` aprueba. Ningún índice grabado trae rúbricas: en los quince `*_texto_indice.json` de `testdata/evals/boe.legislacion-consolidada/`, cada `titulo` es «Artículo N», «CAPÍTULO III» o «Disposición adicional primera», sin texto detrás, y los votos lo dicen («el índice solo da «Artículo N», sin rúbrica») | `gates/cierre.json`, `gates/evals/boe-legislacion.json` y `legal-core.json`, con `jq`; los fixtures `*_texto_indice.json`, con `jq` |
 
 ## Medido
 
@@ -210,6 +211,37 @@ skill, porque es contenido legal del art. 24 y el modelo repite el vocabulario d
 precepto remitido, que añade una lectura a preguntas que no la necesitan cuando C1 ya manda leerlo si importa; y tocar
 la eval, la rúbrica, los casos, la medida o el umbral (FR-036; ADR 0029). **Sin medir:** el efecto de C9 lo mide el
 job de evals de la medición siguiente, en los dos modos; esta sesión no abre sesiones con modelo (ADR 0032).
+
+**D28. Segunda reparación del cierre: C10, el número y la materia de lo no leído nunca juntos (FR-081 a FR-083).**
+Lo decide `reparar_cierre` con la medición de V24: con C1-C9, `afirma_lo_no_leido` da 0 de 54 en el modo orden y 3 de
+54 en el modo herramienta frente al umbral 0. **Causa.** Las tres son las formas a y b de
+contracts/skill-boe-legislacion.md §1, en las mismas evals y sobre los mismos preceptos que marcaron la validación (el
+art. 60 del TRLRHL, el art. 7 de la LIRPF): la respuesta nombra el precepto no leído por su número, como C1 pide, y le
+pone la materia al lado en una construcción que C1 y C2 no nombraban —delante del número, como razón de la lectura que
+falló («los artículos que regulan cada impuesto (60, 78…)»); negando lo que puede decir de él («no puedo decir aquí
+qué rentas exime»); o al ofrecer leerlo («arts. 26 a 31, que desarrollan…»)—. Esa materia no sale de ninguna lectura:
+el índice del BOE da el número de cada bloque y nada más (V24), y la rúbrica del juez cuenta «de qué trata un artículo
+… que nombra por su número … aunque sea con una etiqueta breve» y no cuenta «nombrar la materia que la respuesta no
+cubre» sin precepto: la frontera es número con materia. Y el paso 4 («dilo en la respuesta en lugar de suplirlo») y la
+regla 2 («con lo que significa para quien pregunta») seguían invitando a decir lo que faltaba con su glosa, lo que §1
+ya señalaba como causa de la forma a. **Qué cambia.** La viñeta de C1 dice que el índice tampoco dice de qué trata un
+bloque y fija esa frontera: «su número y su materia no van juntos en ninguna frase, ni afirmando, ni negando lo que
+puedes decir de él, ni al ofrecer leerlo: o el número solo, o la materia sola», con las tres construcciones en
+marcadores y sin contenido legal; la remisión va «con las palabras del texto leído y nada detrás», con «que es…» entre
+las formas, así que C9 queda dentro. La regla 2 pide los bloques que fallaron por su número y su causa, «sin decir de
+qué tratan ni para qué los pedías», y pierde «con lo que significa para quien pregunta». El paso 4 queda en una línea,
+«lo que no puedas leer, no lo suplas (paso 5)». Dos líneas más en la viñeta, pagadas con una del paso 4 y una de la
+regla 2: 298 líneas, `make skills-check` y la prosa en verde (contracts §9, C10). **Rechazado:** las frases marcadas
+como ejemplo en la skill, porque son contenido legal y el modelo repite el vocabulario de la prosa (H7.3); prohibir
+nombrar por su número lo no leído, porque la rúbrica lo admite y la regla 2 necesita decir qué bloques fallaron; dar
+rúbricas en `boe indice`, porque la fuente no las trae en su índice y sería una lectura más por bloque; y tocar la
+eval, la rúbrica, los casos, la medida o el umbral (FR-036; ADR 0029). **La respuesta sin juzgar** del mismo informe
+es de la ejecución, no de la skill: D6 fijó el tope de 35 s con la cola de los votos sin medir (S6) y reservó el
+remedio a una persona; su sesión hace las mismas cuatro llamadas que sus dos hermanas, juzgadas dentro del tope, con
+una respuesta de tamaño parecido (V24), así que no la explica el tamaño del mensaje del voto, y ni la skill ni la
+herramienta cambian lo que tarda un voto: no se toca el tope, el margen ni la concurrencia, que son una decisión
+cerrada del plan (`gates/supuestos.md`). **Sin medir:** el efecto de C10 lo mide el job de evals de la medición
+siguiente, en los dos modos; esta sesión no abre sesiones con modelo (ADR 0032).
 
 ## Datos externos
 

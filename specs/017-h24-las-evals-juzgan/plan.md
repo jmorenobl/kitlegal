@@ -5,7 +5,7 @@
 **Input**: Feature specification from `/specs/017-h24-las-evals-juzgan/spec.md`
 
 **Modo**: desatendido. Las decisiones técnicas se tomaron con el «Criterio de decisión autónoma» de la constitución y
-están en [research.md](./research.md) (D1-D27), cada una con su alternativa rechazada. Toda afirmación sobre Go, el
+están en [research.md](./research.md) (D1-D28), cada una con su alternativa rechazada. Toda afirmación sobre Go, el
 repositorio, los guiones del workflow o la definición del job remite a la tabla V de research.md, comprobada en local;
 las medidas, a la tabla M; y lo que no se pudo comprobar en esta sesión —Claude Code, npm, Python y los tiempos— son
 los supuestos S1-S8.
@@ -104,7 +104,7 @@ están en Complexity Tracking.*
 ```text
 specs/017-h24-las-evals-juzgan/
 ├── plan.md                  # este fichero
-├── research.md              # V1-V23, M1-M7, S1-S8, D1-D27
+├── research.md              # V1-V24, M1-M7, S1-S8, D1-D28
 ├── data-model.md            # juez, texto, voto, medida, caso, informe, job, ficheros
 ├── quickstart.md            # §1-§9; §7, el sondeo; §8, el job de cierre; §9, la medida
 ├── contracts/
@@ -112,7 +112,7 @@ specs/017-h24-las-evals-juzgan/
 │   ├── informe-del-job.md                   # qué se juzga, umbrales, juez, motivos, instrumento sin medir, sondeo
 │   ├── medida-del-juez.md                   # medida, comprobación, copias, casos, reconstrucción, ejecución
 │   ├── job-de-evals.md                      # evals.yml, guiones, topes, TestDefinicionDelJob
-│   ├── skill-boe-legislacion.md             # causa, C1-C9, lo que se queda, la prosa, uso
+│   ├── skill-boe-legislacion.md             # causa, C1-C10, lo que se queda, la prosa, uso
 │   └── skill-boe-legislacion-v0.1.7.diff    # el prototipo de C1-C8, aplicable con git apply
 ├── checklists/              # del spec
 └── tasks.md                 # la escribe /speckit-tasks
@@ -311,7 +311,15 @@ casos del repositorio.
   recurso», la regla de un artículo no leído colgada de la remisión del art. 20.5); la viñeta de C1 nombra el inciso y
   la remisión va con las palabras del texto leído. Una línea, pagada con un blanco de «Cómo se cita»: 298 líneas. Su
   efecto lo mide el job de la medición siguiente.
-- Las demás, con su alternativa rechazada, en research D1-D27.
+- **Segunda reparación del cierre: C10, el número y la materia de lo no leído nunca juntos** (D28, V24;
+  contracts/skill-boe-legislacion.md §9): con C1-C9, `afirma_lo_no_leido:claude-sonnet-5-5:herramienta` dio 3 de 54
+  (y el modo orden, 0 de 54): tres respuestas ponen la materia al lado del número de un precepto que no leyeron, delante
+  del número, en una negación o al ofrecer leerlo, materia que el índice no da. La viñeta de C1 dice que el índice no
+  dice de qué trata un bloque y que número y materia no van juntos en ninguna frase, la regla 2 pide los bloques
+  fallidos por su número y su causa y el paso 4 deja de invitar a «decir lo que falta». Dos líneas, pagadas con una del
+  paso 4 y una de la regla 2: 298 líneas. Su efecto lo mide el job de la medición siguiente. La respuesta sin juzgar
+  del mismo informe es de la ejecución y D6 la reserva a una persona: el tope y la concurrencia no cambian.
+- Las demás, con su alternativa rechazada, en research D1-D28.
 
 ## Trazabilidad: cada mecanismo y su requisito
 
@@ -334,7 +342,7 @@ casos del repositorio.
 | `medirAlJuez`, `TestMedidaDelJuez`, `scripts/evals-medir-juez.sh`, el objetivo de `make` | FR-050 a FR-054 |
 | La lista fuera de `Juzgar`, del resultado, del recuento, del sondeo y de `comprobarConsultaRepetida`; los tres subtests retirados | FR-062, FR-070, FR-071 |
 | El juez en el sondeo y sus líneas; la versión del equipo desde los transcripts | FR-075, FR-076 |
-| `SKILL.md` v0.1.7 (C1-C9) | FR-080 a FR-086 |
+| `SKILL.md` v0.1.7 (C1-C10) | FR-080 a FR-086 |
 | `salida_de_las_herramientas`, su esquema y la prosa con código en línea | FR-085, FR-110 |
 | Las dos variables del juez, el segundo Claude Code, el trabajo `medida`, la condición de `tanda` | FR-050, FR-090, FR-091 |
 | Los peores casos y los dos topes | FR-092 |
@@ -353,7 +361,9 @@ que falta y no cómo; y solo enseña «no lo has leído, no lo digas» para la r
 dice lo que la respuesta lleva de la vigencia con «el sobre» y dos nombres de campo (C3 a C7). C8 es una línea del
 presupuesto de 298. C9 (reparación del cierre; contracts §8, research V23 y D27) es la forma c medida en el cierre:
 C1 no nombraba el inciso que cuelga de una remisión y sitúa lo remitido, y paga su línea con un blanco de «Cómo se
-cita».
+cita». C10 (segunda reparación; contracts §9, research V24 y D28) son las formas a y b medidas en el cierre: C1 y C2
+no nombraban la materia puesta delante del número, en una negación o en un ofrecimiento, y el paso 4 y la regla 2
+seguían invitando a decir lo que faltaba; paga sus dos líneas con una del paso 4 y una de la regla 2.
 
 ## Datos externos
 
