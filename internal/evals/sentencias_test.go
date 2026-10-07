@@ -694,17 +694,32 @@ func juiciosDeLaDireccionDeBusqueda(t *testing.T) []juicioDeSentencias {
 	}
 }
 
-// juiciosDeLasSeisEvals son los de las seis evals del repositorio, leídas de su
-// carpeta, cada una con una sesión que la pasa en cada modo y, de la más
-// completa, la respuesta que no lleva nada, con sus motivos en el orden de la
-// tabla.
-func juiciosDeLasSeisEvals(t *testing.T) []juicioDeSentencias {
-	t.Helper()
+// operacionDeCita es una operación del applet cita en una sesión sintética:
+// los tokens de su orden detrás de kitlegal cita, sin --json; la herramienta y
+// los argumentos de su llamada; y el sobre que devuelve, el mismo por las dos
+// vías.
+type operacionDeCita struct {
+	orden       []string
+	herramienta string
+	argumentos  string
+	sobre       string
+}
 
-	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
-	require.NoError(t, err)
-	require.Empty(t, conjunto.MalFormados)
-	require.Len(t, conjunto.Evals, 6, "%s tiene las seis evals", evalsDeJurisprudencia)
+// sesionModelo es la sesión de quien sigue la skill ante una de las seis evals
+// del repositorio: su respuesta y, en su orden, las operaciones que pide.
+type sesionModelo struct {
+	respuesta   string
+	operaciones []operacionDeCita
+}
+
+// sesionesModeloDeLasSeisEvals son, en el orden de las seis evals de
+// evalsDeJurisprudencia, las sesiones que las pasan en los dos modos
+// (contracts/evals-jurisprudencia.md §5 de H23). Los sobres son los golden del
+// applet cita o, de la consulta que ningún golden tiene, uno con su forma: el
+// del cotejo de la 04 lleva en su ficha el ECLI que la respuesta cita, y la
+// respuesta de la 05 repite el ECLI de su pregunta.
+func sesionesModeloDeLasSeisEvals(t *testing.T) []sesionModelo {
+	t.Helper()
 
 	const (
 		consulta = "No la he consultado. B\xc3\xbascala en " + direccionDelCendoj + " con estas casillas:\n\n"
@@ -722,66 +737,116 @@ func juiciosDeLasSeisEvals(t *testing.T) []juicioDeSentencias {
 			"El documento que traes es el del ROJ STS 3144/2023; 1088/2023 es su n\xc3\xbamero de resoluci\xc3\xb3n. " +
 			"Para la del ROJ que dices, busca en " + direccionDelCendoj + " con la casilla " + casillaDeROJ +
 			": STS 1088/2023"
+
+		documento = `{"documento":"Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144"`
 	)
 
-	documento := `{"documento":"Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144"`
+	golden := func(nombre string) string {
+		return string(contenidoDelFichero(t, "../app/testdata/cita/"+nombre+".json"))
+	}
 
-	modelos := []struct {
-		respuesta string
-		ordenes   [][]string
-		llamadas  []Llamada
-		salidas   []string
-	}{
+	// La consulta de la 02 es la del golden de la 01 con otro número y otra
+	// fecha.
+	deLaResolucion := golden("preparar-resolucion")
+	deOtraResolucion := strings.NewReplacer("1088/2023", "9999/2023", "2023-07-04", "2023-01-01",
+		"04/07/2023", "01/01/2023").Replace(deLaResolucion)
+
+	return []sesionModelo{
 		{
 			respuesta: respuesta01 + fmt.Sprintf(porFecha, "04/07/2023"),
-			ordenes:   [][]string{{"preparar", "--resolucion", "1088/2023", "--fecha", "2023-07-04"}},
-			llamadas:  []Llamada{llamadaCorrecta(herramientaDePreparar, `{"resolucion":"1088/2023","fecha":"2023-07-04"}`)},
+			operaciones: []operacionDeCita{{
+				orden:       []string{"preparar", "--resolucion", "1088/2023", "--fecha", "2023-07-04"},
+				herramienta: herramientaDePreparar,
+				argumentos:  `{"resolucion":"1088/2023","fecha":"2023-07-04"}`,
+				sobre:       deLaResolucion,
+			}},
 		},
 		{
 			respuesta: respuesta02 + fmt.Sprintf(porFecha, "01/01/2023"),
-			ordenes:   [][]string{{"preparar", "--resolucion", "9999/2023", "--fecha", "2023-01-01"}},
-			llamadas:  []Llamada{llamadaCorrecta(herramientaDePreparar, `{"resolucion":"9999/2023","fecha":"2023-01-01"}`)},
+			operaciones: []operacionDeCita{{
+				orden:       []string{"preparar", "--resolucion", "9999/2023", "--fecha", "2023-01-01"},
+				herramienta: herramientaDePreparar,
+				argumentos:  `{"resolucion":"9999/2023","fecha":"2023-01-01"}`,
+				sobre:       deOtraResolucion,
+			}},
 		},
 		{
 			respuesta: respuesta03,
-			ordenes:   [][]string{{"preparar", "--texto", "cl\xc3\xa1usula suelo"}},
-			llamadas:  []Llamada{llamadaCorrecta(herramientaDePreparar, argumentosDeLaBusqueda)},
-			salidas:   []string{sobreDeCita(true, dataDeLaBusqueda)},
+			operaciones: []operacionDeCita{{
+				orden:       []string{"preparar", "--texto", textoDeLaBusqueda},
+				herramienta: herramientaDePreparar,
+				argumentos:  argumentosDeLaBusqueda,
+				sobre:       sobreDeCita(true, dataDeLaBusqueda),
+			}},
 		},
 		{
 			respuesta: respuesta04,
-			ordenes:   [][]string{{"cotejar"}},
-			llamadas:  []Llamada{llamadaCorrecta(herramientaDeCotejar, documento+"}")},
+			operaciones: []operacionDeCita{{
+				orden:       []string{"cotejar"},
+				herramienta: herramientaDeCotejar,
+				argumentos:  documento + "}",
+				sobre:       golden("cotejar-sin-referencia"),
+			}},
 		},
 		{respuesta: respuesta05},
 		{
 			respuesta: respuesta06,
-			ordenes:   [][]string{{"cotejar", "--roj", rojQueNoEsElSuyo}, {"preparar", "--roj=" + rojQueNoEsElSuyo}},
-			llamadas: []Llamada{
-				llamadaCorrecta(herramientaDeCotejar, documento+`,"roj":"STS 1088/2023"}`),
-				llamadaCorrecta(herramientaDePreparar, `{"roj":"STS 1088/2023"}`),
+			operaciones: []operacionDeCita{
+				{
+					orden:       []string{"cotejar", "--roj", rojQueNoEsElSuyo},
+					herramienta: herramientaDeCotejar,
+					argumentos:  documento + `,"roj":"STS 1088/2023"}`,
+					sobre:       golden("cotejar-roj-cruzado"),
+				},
+				{
+					orden:       []string{"preparar", "--roj=" + rojQueNoEsElSuyo},
+					herramienta: herramientaDePreparar,
+					argumentos:  `{"roj":"STS 1088/2023"}`,
+					sobre:       sobreDeCita(true, dataDelROJ),
+				},
 			},
 		},
 	}
+}
 
+// juiciosDeLasSeisEvals son los de las seis evals del repositorio, leídas de su
+// carpeta, cada una con la sesión de sesionesModeloDeLasSeisEvals, que la pasa
+// en cada modo, y, de la más completa, la respuesta que no lleva nada, con sus
+// motivos en el orden de la tabla.
+func juiciosDeLasSeisEvals(t *testing.T) []juicioDeSentencias {
+	t.Helper()
+
+	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
+	require.NoError(t, err)
+	require.Empty(t, conjunto.MalFormados)
+	require.Len(t, conjunto.Evals, 6, "%s tiene las seis evals", evalsDeJurisprudencia)
+
+	modelos := sesionesModeloDeLasSeisEvals(t)
 	casos := make([]juicioDeSentencias, 0, 2*len(modelos)+1)
 
 	for posicion, modelo := range modelos {
 		eval := conjunto.Evals[posicion]
 
-		invocaciones := make([]Invocacion, 0, len(modelo.ordenes))
-		for _, orden := range modelo.ordenes {
-			invocaciones = append(invocaciones, ordenDeCita(t, 0, orden...))
+		var (
+			invocaciones []Invocacion
+			llamadas     []Llamada
+			salidas      []string
+		)
+
+		for _, operacion := range modelo.operaciones {
+			invocaciones = append(invocaciones, ordenDeCita(t, 0, operacion.orden...))
+			llamadas = append(llamadas, llamadaCorrecta(operacion.herramienta, operacion.argumentos))
+			salidas = append(salidas, operacion.sobre)
 		}
 
 		casos = append(casos,
 			juicioDeSentencias{
 				nombre: eval.Fichero + "-por-orden", eval: eval,
-				sesion: conTextos(sesionDeJurisprudencia(modelo.respuesta, invocaciones...), modelo.salidas...),
+				sesion: conTextos(sesionDeJurisprudencia(modelo.respuesta, invocaciones...), salidas...),
 			},
 			juicioDeSentencias{
 				nombre: eval.Fichero + "-por-herramienta", eval: eval, modo: ModoHerramienta,
-				sesion: conTextos(sesionDeJurisprudenciaConLlamadas(t, modelo.respuesta, modelo.llamadas...), modelo.salidas...),
+				sesion: conTextos(sesionDeJurisprudenciaConLlamadas(t, modelo.respuesta, llamadas...), salidas...),
 			},
 		)
 	}
@@ -986,4 +1051,188 @@ func TestExtraerDeLosSobres(t *testing.T) {
 		assert.Equal(t, []string{ecliDelFragmento}, ExtraerECLICotejados(deLosGolden))
 		assert.Equal(t, []string{direccionDeLaBusqueda}, ExtraerDireccionesDeBusqueda(deLosGolden))
 	})
+}
+
+// TestCitaSinDocumento fija el hecho de la sesión que mide el umbral
+// cita_sin_documento, sobre una respuesta (contracts/evals-jurisprudencia.md §3
+// y §4; FR-060, FR-061, FR-086): cuenta la que lleva una cita cuyo ECLI no leyó
+// en la ficha de un documento ningún cita cotejar de su sesión que terminara
+// bien —no vale el que se le dio como referencia pedida, ni el de la pregunta,
+// ni el de un cita preparar—, y la que lleva, fuera de una cita y de una línea
+// que empieza por la marca, un ECLI que no está en ningún sobre de su sesión,
+// terminara como terminara, ni en la pregunta. Cada ECLI se delimita igual en
+// la respuesta, en la pregunta y en un sobre —el punto que cierra la frase no
+// es suyo— y se compara sin distinguir mayúsculas. De la que cuenta se dice
+// con qué ECLI y por cuál de las dos condiciones, sin repetir.
+func TestCitaSinDocumento(t *testing.T) {
+	t.Parallel()
+
+	const (
+		// sinDocumento es el ECLI que ningún documento de la sesión trae, y
+		// suCita, la cita que lo lleva.
+		sinDocumento = "ECLI:ES:TS:2023:9999"
+		suCita       = "[" + sinDocumento + ", ROJ: STS 9999/2023]"
+
+		preguntaSinECLI = "\xc2\xbfexiste la STS 1088/2023, de 4 de julio?"
+		conLaCita       = "Es la STS 1088/2023, de 4 de julio " + citaDelFragmento + "."
+		conElSuelto     = "La doctrina es la de " + sinDocumento + ", que no he le\xc3\xaddo."
+
+		// dataDelECLI es el data de la consulta de ese ECLI con cita preparar, y
+		// dataDelFallo, el de la orden que lo rechaza.
+		dataDelECLI = `{"referencia":{"forma":"ecli","valor":"` + sinDocumento + `"},"direccion":"` + direccionDelCendoj +
+			`","casillas":[{"nombre":"ECLI","valor":"` + sinDocumento + `"}]}`
+		dataDelFallo = `{"clase":"argumentos","mensaje":"` + sinDocumento + ` no es un ROJ"}`
+	)
+
+	sinCotejo := []ECLISinDocumento{{ECLI: sinDocumento, Condicion: CitaSinDocumentoCotejado}}
+	sinOrigen := []ECLISinDocumento{{ECLI: sinDocumento, Condicion: ECLISinOrigen}}
+
+	casos := []struct {
+		nombre   string
+		pregunta string
+		sesion   Sesion
+		cuentan  []ECLISinDocumento
+	}{
+		{
+			nombre:   "cita-sin-ningun-cotejo",
+			pregunta: preguntaSinECLI,
+			sesion:   sesionDeJurisprudencia(conLaCita),
+			cuentan:  []ECLISinDocumento{{ECLI: ecliDelFragmento, Condicion: CitaSinDocumentoCotejado}},
+		},
+		{
+			nombre:   "cita-con-el-ecli-que-leyo-un-cotejo",
+			pregunta: preguntaSinECLI,
+			sesion:   conTextos(sesionDeJurisprudencia(conLaCita), sobreDeCita(true, dataDelCotejo)),
+		},
+		{
+			nombre:   "cita-con-el-ecli-en-otras-mayusculas-que-leyo-un-cotejo",
+			pregunta: preguntaSinECLI,
+			sesion: conTextos(sesionDeJurisprudencia("Es la [ecli:es:ts:2023:3144, ROJ: STS 3144/2023]."),
+				sobreDeCita(true, dataDelCotejo)),
+		},
+		{
+			// El cotejo leyó en la ficha el ECLI del fragmento: el de la cita solo
+			// se le dio como referencia pedida.
+			nombre:   "cita-con-el-ecli-solo-como-referencia-pedida",
+			pregunta: preguntaSinECLI,
+			sesion:   conTextos(sesionDeJurisprudencia("Es la "+suCita+"."), sobreDeCita(true, dataDelCotejo)),
+			cuentan:  sinCotejo,
+		},
+		{
+			nombre:   "cita-con-un-cotejo-que-no-termino-bien",
+			pregunta: preguntaSinECLI,
+			sesion:   conTextos(sesionDeJurisprudencia(conLaCita), sobreDeCita(false, dataDelCotejo)),
+			cuentan:  []ECLISinDocumento{{ECLI: ecliDelFragmento, Condicion: CitaSinDocumentoCotejado}},
+		},
+		{
+			// Ni la pregunta ni un cita preparar son un documento cotejado.
+			nombre:   "cita-con-el-ecli-en-la-pregunta-y-en-un-preparar",
+			pregunta: "C\xc3\xadtame la del " + sinDocumento,
+			sesion:   conTextos(sesionDeJurisprudencia("Es la "+suCita+"."), sobreDeCita(true, dataDelECLI)),
+			cuentan:  sinCotejo,
+		},
+		{
+			// La cita lo es en cualquier línea: lo que una línea de aviso deja
+			// fuera es el ECLI suelto.
+			nombre:   "cita-en-una-linea-de-aviso",
+			pregunta: preguntaSinECLI,
+			sesion:   sesionDeJurisprudencia(marcaDeLosAvisos + " Ojo: no he visto el documento de " + suCita),
+			cuentan:  sinCotejo,
+		},
+		{
+			nombre:   "ecli-suelto-sin-origen",
+			pregunta: preguntaSinECLI,
+			sesion:   sesionDeJurisprudencia(conElSuelto),
+			cuentan:  sinOrigen,
+		},
+		{
+			nombre:   "ecli-suelto-de-la-pregunta",
+			pregunta: "\xc2\xbfQu\xc3\xa9 resolvi\xc3\xb3 el Supremo en su sentencia (" + sinDocumento + ")?",
+			sesion:   sesionDeJurisprudencia(conElSuelto),
+		},
+		{
+			nombre:   "ecli-suelto-del-sobre-de-un-preparar",
+			pregunta: preguntaSinECLI,
+			sesion:   conTextos(sesionDeJurisprudencia(conElSuelto), sobreDeCita(true, dataDelECLI)),
+		},
+		{
+			nombre:   "ecli-suelto-del-sobre-de-una-orden-que-fallo",
+			pregunta: preguntaSinECLI,
+			sesion:   conTextos(sesionDeJurisprudencia(conElSuelto), sobreDeCita(false, dataDelFallo)),
+		},
+		{
+			nombre:   "ecli-suelto-que-el-cotejo-repite-como-referencia-pedida",
+			pregunta: preguntaSinECLI,
+			sesion:   conTextos(sesionDeJurisprudencia(conElSuelto), sobreDeCita(true, dataDelCotejo)),
+		},
+		{
+			nombre:   "ecli-suelto-en-una-linea-de-aviso",
+			pregunta: preguntaSinECLI,
+			sesion: sesionDeJurisprudencia("Antes.\n  **" + marcaDeLosAvisos + " SENTENCIA NO COMPROBADA:** " +
+				sinDocumento + "\nDespu\xc3\xa9s."),
+		},
+		{
+			nombre:   "ecli-suelto-dentro-y-fuera-de-una-linea-de-aviso",
+			pregunta: preguntaSinECLI,
+			sesion: sesionDeJurisprudencia(marcaDeLosAvisos + " SENTENCIA NO COMPROBADA: " + sinDocumento + "\n" +
+				conElSuelto),
+			cuentan: sinOrigen,
+		},
+		{
+			// Lo que la orden lee de otro sitio no es la salida de una operación
+			// de kitlegal: solo lo es la línea que es un sobre.
+			nombre:   "ecli-suelto-que-la-orden-leyo-de-otro-sitio",
+			pregunta: preguntaSinECLI,
+			sesion: conTextos(sesionDeJurisprudencia(conElSuelto),
+				"La cita se escribe STS 9999/2023 "+suCita+"\n"+sobreDeCita(true, dataDelROJ)),
+			cuentan: sinOrigen,
+		},
+		{
+			nombre:   "ecli-suelto-delante-del-punto-que-esta-en-la-pregunta",
+			pregunta: "Busco la sentencia " + sinDocumento + " del Supremo",
+			sesion:   sesionDeJurisprudencia("No la he consultado: su ECLI es " + sinDocumento + "."),
+		},
+		{
+			nombre:   "ecli-suelto-que-la-pregunta-escribe-delante-del-punto",
+			pregunta: "Busco la sentencia del Supremo. Su ECLI es " + sinDocumento + ".",
+			sesion:   sesionDeJurisprudencia(conElSuelto),
+		},
+		{
+			nombre:   "ecli-suelto-delante-del-punto-que-leyo-un-cotejo",
+			pregunta: preguntaSinECLI,
+			sesion: conTextos(sesionDeJurisprudencia("El documento es el del "+ecliDelFragmento+"."),
+				sobreDeCita(true, dataDelCotejo)),
+		},
+		{
+			nombre:   "ecli-suelto-en-otras-mayusculas-que-las-de-la-pregunta",
+			pregunta: "Busco la sentencia " + sinDocumento,
+			sesion:   sesionDeJurisprudencia("No he consultado ecli:es:ts:2023:9999."),
+		},
+		{
+			// Cada ECLI, una vez por condición: los de las citas delante, y
+			// detrás los sueltos, en el orden en que aparecen.
+			nombre:   "las-dos-condiciones-sin-repetir",
+			pregunta: preguntaSinECLI,
+			sesion: sesionDeJurisprudencia("La " + suCita + " y otra vez la " + suCita + ".\n" +
+				"V\xc3\xa9anse ECLI:ES:TS:2022:1, " + sinDocumento + " y ecli:es:ts:2022:1."),
+			cuentan: []ECLISinDocumento{
+				{ECLI: sinDocumento, Condicion: CitaSinDocumentoCotejado},
+				{ECLI: "ECLI:ES:TS:2022:1", Condicion: ECLISinOrigen},
+				{ECLI: sinDocumento, Condicion: ECLISinOrigen},
+			},
+		},
+		{
+			nombre:   "sin-cita-ni-ecli",
+			pregunta: preguntaSinECLI,
+			sesion:   sesionDeJurisprudencia(lineaNoComprobada + "\n\nB\xc3\xbascala en " + direccionDelCendoj),
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.cuentan, CitaSinDocumento(caso.pregunta, caso.sesion))
+		})
+	}
 }

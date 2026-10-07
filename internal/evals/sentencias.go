@@ -209,7 +209,7 @@ func ExtraerECLICotejados(sesion Sesion) []string {
 			continue
 		}
 
-		if !slices.ContainsFunc(cotejados, func(otro string) bool { return MismoECLI(otro, data.Ficha.ECLI) }) {
+		if !estaElECLI(cotejados, data.Ficha.ECLI) {
 			cotejados = append(cotejados, data.Ficha.ECLI)
 		}
 	}
@@ -242,6 +242,115 @@ func ExtraerDireccionesDeBusqueda(sesion Sesion) []string {
 	}
 
 	return direcciones
+}
+
+// CondicionSinDocumento es la condición por la que un ECLI hace contar en el
+// umbral cita_sin_documento a la respuesta que lo lleva
+// (contracts/evals-jurisprudencia.md §4 de H23; FR-060 de H23). Su texto es el
+// que el motivo del umbral escribe entre paréntesis detrás del ECLI.
+type CondicionSinDocumento string
+
+const (
+	// CitaSinDocumentoCotejado es la de la cita cuyo ECLI no leyó en la ficha
+	// de un documento ningún cita cotejar de la sesión.
+	CitaSinDocumentoCotejado CondicionSinDocumento = "cita sin documento cotejado"
+
+	// ECLISinOrigen es la del ECLI, fuera de una cita y de una línea de aviso,
+	// que no está en ningún sobre de la sesión ni en la pregunta.
+	ECLISinOrigen CondicionSinDocumento = "sin origen"
+)
+
+// ECLISinDocumento es un ECLI por el que la respuesta de una sesión cuenta en
+// el umbral cita_sin_documento, como está escrito en ella, con la condición por
+// la que cuenta.
+type ECLISinDocumento struct {
+	ECLI      string
+	Condicion CondicionSinDocumento
+}
+
+// CitaSinDocumento es el hecho de la sesión que mide el umbral
+// cita_sin_documento (contracts/evals-jurisprudencia.md §3 y §4 de H23;
+// data-model §7 de H23; FR-060, FR-061 de H23): devuelve los ECLI por los que
+// la respuesta de la sesión cuenta, cada uno con su condición, o nil si no
+// cuenta. Se comprueba sin modelo y no depende del modo de la sesión.
+//
+//  1. Cuenta el ECLI de cada cita de la respuesta que no leyó ningún cita
+//     cotejar de la sesión (ExtraerECLICotejados): el de la ficha de un
+//     documento, en una invocación que terminó con ok verdadero. El que la
+//     salida repite por habérsele dado como referencia pedida no vale, ni el de
+//     la pregunta, ni el de un cita preparar. La cita lo es en cualquier línea.
+//  2. Cuenta el ECLI que la respuesta lleva fuera de una cita y fuera de una
+//     línea que empieza por la marca de los avisos, y que no está en ningún
+//     sobre de la sesión —terminara la operación como terminara— ni en la
+//     pregunta, que es el texto de la eval con lo que la persona pega en él.
+//     Lo que la sesión lee de otro sitio no es la salida de una operación de
+//     kitlegal (ExtraerSobres).
+//
+// Un ECLI se delimita con la misma regla en la respuesta, en la pregunta y en
+// un sobre (ExtraerECLI), y se compara sin distinguir mayúsculas (MismoECLI).
+// No se mide por el ROJ ni por el número de resolución con su fecha, que la
+// respuesta correcta tiene que nombrar.
+//
+// Van primero los de las citas y detrás los sueltos, cada grupo en el orden en
+// que aparecen en la respuesta y cada ECLI una sola vez por condición: el que
+// está en una cita sin documento cotejado y además suelto y sin origen cuenta
+// por las dos.
+func CitaSinDocumento(pregunta string, sesion Sesion) []ECLISinDocumento {
+	var cuentan []ECLISinDocumento
+
+	anotar := func(ecli string, condicion CondicionSinDocumento) {
+		yaEsta := slices.ContainsFunc(cuentan, func(otro ECLISinDocumento) bool {
+			return otro.Condicion == condicion && MismoECLI(otro.ECLI, ecli)
+		})
+		if !yaEsta {
+			cuentan = append(cuentan, ECLISinDocumento{ECLI: ecli, Condicion: condicion})
+		}
+	}
+
+	cotejados := ExtraerECLICotejados(sesion)
+	for _, cita := range ExtraerCitasDeSentencia(sesion.Respuesta) {
+		if !estaElECLI(cotejados, cita.ECLI) {
+			anotar(cita.ECLI, CitaSinDocumentoCotejado)
+		}
+	}
+
+	conOrigen := eclisConOrigen(pregunta, sesion)
+	for _, ecli := range eclisSueltos(sesion.Respuesta) {
+		if !estaElECLI(conOrigen, ecli) {
+			anotar(ecli, ECLISinOrigen)
+		}
+	}
+
+	return cuentan
+}
+
+// eclisSueltos son los ECLI del texto que no están en una cita de sentencia ni
+// en una línea que empieza por la marca de los avisos, en el orden en que
+// aparecen y con sus repeticiones (FR-060 de H23). Lo que se deja fuera se
+// quita sin juntar lo que tiene a los lados: la línea de aviso deja su salto de
+// línea, y la cita, un blanco, que no es de ningún ECLI.
+func eclisSueltos(texto string) []string {
+	sinAvisos := lineaDeAviso.ReplaceAllLiteralString(texto, "")
+
+	return ExtraerECLI(formaDeCitaDeSentencia.ReplaceAllLiteralString(sinAvisos, " "))
+}
+
+// eclisConOrigen son los ECLI que una respuesta puede nombrar fuera de una cita
+// sin contar: los de la pregunta y los que aparecen en cualquier parte de un
+// sobre de la sesión, terminara su operación como terminara (FR-061 de H23).
+func eclisConOrigen(pregunta string, sesion Sesion) []string {
+	conOrigen := ExtraerECLI(pregunta)
+
+	for _, sobre := range ExtraerSobres(sesion) {
+		conOrigen = append(conOrigen, ExtraerECLI(sobre.Linea)...)
+	}
+
+	return conOrigen
+}
+
+// estaElECLI dice si el ECLI es alguno de los dados (MismoECLI).
+func estaElECLI(entre []string, ecli string) bool {
+	return slices.ContainsFunc(entre, func(otro string) bool { return MismoECLI(otro, ecli) })
 }
 
 // Principio de los motivos por los que una eval no pasa por lo que su
