@@ -115,6 +115,8 @@ Probado a mano, en un navegador:
 | `https://www.poderjudicial.es/search/indexAN.jsp` | El buscador, con sus casillas: «Nº ROJ», «ECLI», «Nº Resolución», «Nº Recurso», «Fecha resolución» («Desde» y «Hasta»), «Ponente» y la búsqueda por texto libre |
 | `…/search/indexAN.jsp?ECLI=ECLI:ES:TS:2023:3144` | El buscador vacío: la dirección no rellena ninguna casilla |
 | `…/search/sentencias/clausula%20suelo/1/AN` | El buscador con la búsqueda hecha: 4.237 resultados, cada uno con su ROJ, su ECLI, su órgano, su fecha y el resumen del CENDOJ; da como mucho 200 |
+| `…/search/sentencias/cl%C3%A1usula%20suelo/1/AN` | Lo mismo, con la tilde codificada: «Tema: cláusula suelo» y los mismos 4.237 resultados |
+| `…/search/sentencias/ECLI:ES:TS:2023:3144/1/AN` | El buscador vacío: la búsqueda por texto no encuentra un ECLI, como el 2026-09-13 |
 | `…/search/search.action?action=query&…&ECLI=ECLI:ES:TS:2023:3144` | Un CAPTCHA y, resuelto, la lista de resultados suelta y sin estilos. Es la respuesta interna del formulario: no es una dirección para dar a nadie |
 
 Así que una búsqueda por texto tiene dirección, y una sentencia identificada no: se busca escribiendo su
