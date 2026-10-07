@@ -10,6 +10,38 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-07 · El buscador del CENDOJ pide un CAPTCHA a kitlegal, y no a una persona: H23 se cierra sin entrega y cambia de forma
+
+- **Qué se pidió.** Lanzar H23: `cita resolver`, que comprobaba por el formulario del CENDOJ que una sentencia
+  existe, y la skill `jurisprudencia` (run `94cbbfec`, del 2026-10-06 por la tarde).
+- **Qué pasó.**
+  - **Antes de lanzar**, comprobar la entrada sacó siete cosas que la habrían hecho fracasar (#124). La mayor: la
+    constitución prohibía todo método que no fuera GET o HEAD, y el formulario es un POST.
+  - **Al pedir a Jorge el texto de «la STS 1088/2023»**, trajo otra sentencia: la que tiene ese número como ROJ, de 9
+    de febrero, y no la de número de resolución 1088/2023, de 4 de julio. Con el ECLI y el nombre de la casilla, a
+    la segunda trajo la buena.
+  - **El run** pasó el juez de entrada a la tercera ronda, sin rechazo, e hizo diez tareas de veintitrés en ocho
+    horas. Se detuvo al grabar: la página del buscador respondió, y el envío del formulario recibió una
+    redirección, las dos veces.
+  - **La misma prueba a mano del 2 de octubre**, repetida por la mañana: redirección a `captchalogin.jsp`. En el
+    navegador de Jorge, y en una ventana privada, la misma búsqueda da la sentencia sin CAPTCHA.
+- **Qué falló.**
+  - **El buscador frena al programa que se identifica.** El 2 y el 3 de octubre no lo hacía. No se sabe con qué lo
+    distingue ni desde cuándo.
+  - **El test de grabación rechazó la respuesta sin decir adónde redirigía.** Saberlo pidió otra consulta, a mano.
+- **Qué se decidió.** No sortearlo: ni presentarse como un navegador, ni automatizar la búsqueda por texto, que
+  sigue teniendo dirección, ni grabar desde el navegador de una persona. H23 pasa a ser más pequeño: la skill
+  prepara la consulta, la persona busca y trae el documento, y el binario comprueba sin red que es el pedido. La
+  constitución vuelve a GET y HEAD sin excepción (ADR 0036, «Enmienda: el buscador pide un CAPTCHA»).
+- **Qué se probó a mano en el navegador** (`docs/JURISPRUDENCIA.md` §3): la búsqueda por texto tiene una dirección
+  que abre el buscador con la búsqueda hecha; una sentencia identificada no, y se busca escribiendo su ECLI, su ROJ
+  o su número con su fecha en su casilla.
+- **Qué faltó.** Que la skill ayude a elegir qué descargar de la lista de resultados, sin buscar ella: la persona
+  pega la lista y la skill dice cuáles. Queda como candidato detrás de H23 y H25. Y para el siguiente test de
+  grabación de cualquier fuente: que diga el estado y el destino de la respuesta que rechaza.
+- **Lo que queda del run.** La rama `018-h23-cita-resolver-comprobar`, como material de lectura: el reconocimiento
+  de ECLI y de ROJ, el spec y el plan.
+
 ### 2026-10-06 · La lectura del cierre de H24: el juez acierta en lo que decide, y en lo que solo publica marca de más
 
 - **Qué se pidió.** La parte humana de la aceptación de H24: lanzar una vez la medida del juez con el código del job,

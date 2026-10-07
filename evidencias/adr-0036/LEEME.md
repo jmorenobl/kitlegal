@@ -4,8 +4,8 @@ El texto de una sentencia que trae una persona (ADR 0036, «Enmienda», 2026-10-
 en la que la persona pega el texto de una sentencia: un run ni lo descarga ni lo escribe de memoria. Como todo
 `evidencias/`, un run del workflow no la escribe.
 
-No la escribió el paso `grabar_datos`, y `cita resolver` no la pide: del CENDOJ, el binario solo resuelve una
-resolución identificada, a sus metadatos. `manifiesto.json` da la huella y el tamaño de cada fichero.
+No la escribió el paso `grabar_datos`, y el binario no la pide: kitlegal no consulta el CENDOJ (ADR 0036, enmienda
+del 2026-10-07). Es también la ficha con la que se prueba `cita cotejar`. `manifiesto.json` da la huella y el tamaño de cada fichero.
 
 | Fichero | Qué es |
 |---|---|

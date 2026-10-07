@@ -1,7 +1,8 @@
 # Jurisprudencia: qué se puede consultar y por dónde
 
 Propuesta de hito para el backlog (grupo «fuentes»), con el estado de cada vía verificado el **2026-09-13** y,
-para el CENDOJ, vuelto a verificar el **2026-10-02** con una prueba a mano (§3). No es una decisión cerrada: es
+para el CENDOJ, vuelto a verificar el **2026-10-02** con una prueba a mano y el **2026-10-07**, cuando el buscador
+respondió con un CAPTCHA (§3). No es una decisión cerrada: es
 el trabajo previo para que, cuando la jurisprudencia entre en una fase, no haya que volver a investigar los
 términos de uso. Lo que aquí se dice del CENDOJ sigue el ADR 0036, que sustituye en parte al 0003.
 
@@ -32,7 +33,7 @@ propio BOE**, sin tocar ningún buscador judicial. Verificado sobre `BOE-A-2024-
 | **BOE datos abiertos** (sumario) | API REST documentada, XML y JSON; reutilización comercial y no comercial autorizada con atribución; `robots.txt` no menciona `/datosabiertos` | `BOE-A-…`, ELI; **no** da ECLI ni ROJ | 🟢 |
 | **HJ del Tribunal Constitucional** | solo HTML; `robots.txt` da 404 y **no se localiza aviso legal**; URLs estables por id interno (`/es/Resolucion/Show/{id}`, y `/Resolucion/Api/json|xml/{id}`, no documentadas); sin CAPTCHA observado | ECLI, nº de sentencia, **nº de recurso**, ponente, **nº y fecha de BOE** | 🟡 |
 | **Resolutor ECLI de e-Justice** | la URL `https://e-justice.europa.eu/ecli/{ECLI}` es oficial, pero por HTTP devuelve un armazón vacío (probado con un ECLI español, uno neerlandés y uno portugués); el servicio SOAP está declarado **no disponible** por la Comisión | — | 🟡 (enlace de cortesía, no fuente) |
-| **CENDOJ: resolver una resolución identificada** | el formulario tiene campos `ECLI`, `ROJ`, número de resolución y número de recurso; una consulta por HTTP simple devuelve los metadatos y la URL del documento (§3); `robots.txt` no excluye `/search/`, `Crawl-delay: 5` | ROJ + ECLI | 🟡 (ADR 0036) |
+| **CENDOJ: resolver una resolución identificada** | el formulario tiene campos `ECLI`, `ROJ`, número de resolución y número de recurso; el 2026-10-02 una consulta por HTTP simple devolvía los metadatos y la URL del documento; desde el 2026-10-07 responde con un CAPTCHA al cliente que se identifica como programa (§3). No se sortea: la consulta la hace la persona | ROJ + ECLI | 🔴 (ADR 0036, enmienda del 2026-10-07) |
 | **CENDOJ: búsqueda por materia, texto íntegro, descarga** | consulta individual **para uso particular**; prohibidos uso comercial, descarga masiva y elaboración de bases de datos sin seguir el procedimiento del CGPJ | ROJ + ECLI | 🔴 |
 
 Aviso legal del CENDOJ, literal (`poderjudicial.es/search/indexAN.jsp`):
@@ -90,6 +91,37 @@ distingue. El número de resolución solo es único con la fecha: cada órgano n
 Sin probar: `NUMERORECURSO`; el filtro por órgano (`TIPOORGANOPUB`), que haría falta para un número de resolución
 sin fecha; órganos distintos del Supremo; y a partir de cuántas consultas responde con CAPTCHA o con un bloqueo.
 
+### El buscador pide un CAPTCHA al cliente identificado (2026-10-07)
+
+El run de H23 fue a grabar de madrugada: la página del buscador, 200 con su cookie; el envío del formulario con
+`ECLI:ES:TS:2023:3144`, `302`. La prueba a mano del 2026-10-02, repetida a las 08:28 con `curl` y el agente
+`kitlegal/0.3 (+https://kitlegal.es/bot)`:
+
+| Petición | Respuesta |
+|---|---|
+| `GET /search/indexAN.jsp` | 200, 73 kB, `Set-Cookie: JSESSIONID=…; Path=/search; HttpOnly` |
+| `POST /search/search.action` con la cookie, `X-Requested-With` y los seis campos | `302`, sin cuerpo, `Location: captchalogin.jsp?prevaction=query&sort=…&ECLI=ECLI%3AES%3ATS%3A2023%3A3144&` |
+
+Una persona con un navegador no lo recibe: el mismo ECLI, buscado en el navegador de siempre y en una ventana
+privada, sin cookies, da la sentencia. La página es la de julio (`guid=202607230816`) y su formulario no lleva
+ninguna clave: lo que decide está en el servidor. No se sabe con qué distingue al programa, y no se prueba.
+
+### Lo que la persona puede abrir (2026-10-07)
+
+Probado a mano, en un navegador:
+
+| Dirección | Qué muestra |
+|---|---|
+| `https://www.poderjudicial.es/search/indexAN.jsp` | El buscador, con sus casillas: «Nº ROJ», «ECLI», «Nº Resolución», «Nº Recurso», «Fecha resolución» («Desde» y «Hasta»), «Ponente» y la búsqueda por texto libre |
+| `…/search/indexAN.jsp?ECLI=ECLI:ES:TS:2023:3144` | El buscador vacío: la dirección no rellena ninguna casilla |
+| `…/search/sentencias/clausula%20suelo/1/AN` | El buscador con la búsqueda hecha: 4.237 resultados, cada uno con su ROJ, su ECLI, su órgano, su fecha y el resumen del CENDOJ; da como mucho 200 |
+| `…/search/sentencias/cl%C3%A1usula%20suelo/1/AN` | Lo mismo, con la tilde codificada: «Tema: cláusula suelo» y los mismos 4.237 resultados |
+| `…/search/sentencias/ECLI:ES:TS:2023:3144/1/AN` | El buscador vacío: la búsqueda por texto no encuentra un ECLI, como el 2026-09-13 |
+| `…/search/search.action?action=query&…&ECLI=ECLI:ES:TS:2023:3144` | Un CAPTCHA y, resuelto, la lista de resultados suelta y sin estilos. Es la respuesta interna del formulario: no es una dirección para dar a nadie |
+
+Así que una búsqueda por texto tiene dirección, y una sentencia identificada no: se busca escribiendo su
+identificador en su casilla.
+
 ### Lo que sigue sin poder hacerse sin el formulario
 
 - Las URLs de documento llevan un **id interno opaco** (`/search/AN/openDocument/{hash}/{fecha}`,
@@ -133,6 +165,9 @@ comercial; cuáles son las tarifas y condiciones vigentes; y si resolver un iden
 persona cuenta como reutilización.
 
 ## 4. Hito propuesto
+
+> Los puntos 2 a 4 son la propuesta de septiembre y de octubre. Desde el 2026-10-07 el punto 3 no se hace: la
+> comprobación de una sentencia identificada la hace también la persona (`docs/ROADMAP.md`, H23; ADR 0036).
 
 Reutiliza la infraestructura de H4 (`httpx`, caché, sobre, exit codes, `--describe`, grabación de fixtures). Lo
 nuevo es el parseo del sumario, que tiene XSD, el descomponedor de ECLI y el adaptador del formulario.
