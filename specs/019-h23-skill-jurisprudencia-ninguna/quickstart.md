@@ -93,8 +93,11 @@ go test -count=1 -run '^TestEntregaDelHito$/^h23-cita-herramientas$' ./internal/
 
 Esperado: `ok` las dos. La primera exige doce herramientas, las de los verbos del registro menos los de `skills` y
 `mcp`, con los esquemas de `--describe`; la segunda, que `cita_cotejar` con la ficha y el ROJ `STS 1088/2023`
-devuelve un resultado con su hallazgo, que sin `documento`, o con él vacío, devuelve el error `argumentos`, y que el
-sobre es el de la orden.
+devuelve un resultado con su hallazgo, que sin `documento`, o con él vacío, devuelve el error `argumentos`, y que una
+llamada con resultado a cada una de las dos herramientas da el sobre de su orden salvo `fecha_consulta`:
+`cita_cotejar` con la ficha sola y con la ficha y ese ROJ, y `cita_preparar` con `resolucion` `1088/2023` y `fecha`
+`2023-07-04` —el sobre de `cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json`, con sus tres casillas—,
+con `texto` `cláusula suelo`, con `roj` `STS 1088/2023` y con `ecli` `ECLI:ES:TS:2023:3144`.
 
 ## 5. Sin red, sin caché y sin grafo (US4.1, US4.2)
 

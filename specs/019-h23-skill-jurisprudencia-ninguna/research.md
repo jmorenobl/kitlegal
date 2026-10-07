@@ -24,6 +24,11 @@ como campos puntero (D3), `cobertura` solo fuera de cobertura (D4) y el paso 3 d
 tres cambios, `go test -count=1 ./...` deja en rojo en el prototipo tests y guiones de la lista de M4, y ninguno
 que no esté en ella.
 
+Tras el rechazo de las tareas —el guion `cita-herramientas` comparaba con su orden solo el sobre de `cita_cotejar`,
+y US4.3 lo pide de una llamada a cada una—, la corrección ejecutó en el mismo prototipo, sin cambiarlo, un guion de
+un solo uso con las llamadas que el guion gana: la fila V42 es de esa tercera pasada. El guion y el mutante con que
+se le vio fallar se retiraron, y el prototipo quedó como estaba.
+
 ## V · Verificado en local
 
 | # | Afirmación | Dónde se comprobó |
@@ -69,6 +74,7 @@ que no esté en ella.
 | V39 | Con los campos como punteros, `--describe` sigue dando cada argumento como cadena, con la misma anotación `x-banderas`, y la tabla de comandos no cambia; una llamada de herramienta lo sigue recibiendo como cadena y lo escribe `--<nombre>=<valor>`, también vacío | prototipo: `schemas/cita.json` regenerado con `-actualizar-esquemas` y comparado con el anterior con `diff`: cuatro líneas, las cuatro de `cobertura` (D4), y ninguna de `entrada`; `-regenerar-skills` deja `SKILL.md` idéntico (`cmp`); las llamadas de V40 |
 | V40 | Un argumento escrito con valor vacío termina con 2 y la clase `argumentos`, como orden y como llamada de herramienta | prototipo, como orden: `cita preparar ECLI:ES:TS:2023:3144 --texto ""`, `… --roj ""`, `… --fecha ""`, `--roj ""`, `--roj=`, `""`, `--texto ""`, `--resolucion "" --fecha 2023-07-04` y `--resolucion 1088/2023 --fecha ""`; y `cita cotejar --documento ""`, `--documento=`, `--roj ""` y `""`, las cuatro con el fragmento en la entrada estándar. Como llamada, guion con la orden `mcp`: `cita_preparar` con `{"ecli":"ECLI:ES:TS:2023:3144","texto":""}`, con `{"ecli":"ECLI:ES:TS:2023:3144","roj":""}`, con `{"ecli":""}` y con `{"texto":""}`, y `cita_cotejar` con `{"documento":""}` y con `{"roj":"","documento":<la ficha>}`: las seis, `error argumentos`, y el servidor sigue (`salida 0`) |
 | V41 | La ficha sola da el mismo cotejo que el fragmento entero: los mismos `data` y `hash`, y otra `url`, la de su texto | prototipo: las once primeras líneas del fragmento (316 bytes) con `--roj "STS 1088/2023"`, 949 bytes, como el fragmento entero; y la ficha por la entrada estándar y en `documento` de una llamada, el mismo sobre salvo `fecha_consulta` (`cmp`) |
+| V42 | Una llamada con resultado a cada una de las dos herramientas da el sobre de su orden, byte a byte salvo `fecha_consulta`, también cuando sus argumentos son banderas en la orden; y ninguna cambia la caché ni el grafo | prototipo, guion de un solo uso con la orden `mcp` y ocho llamadas en un proceso del servidor: `cita_cotejar` con `{"roj":"STS 1088/2023","documento":<la ficha>}`, con `{"roj":"STS 1088/2023"}`, con `{"roj":"STS 1088/2023","documento":""}` y con `{"documento":<la ficha>}`, y `cita_preparar` con `{"resolucion":"1088/2023","fecha":"2023-07-04"}`, con `{"texto":"cláusula suelo"}`, con `{"roj":"STS 1088/2023"}` y con `{"ecli":"ECLI:ES:TS:2023:3144"}` → `resultado` la primera, la cuarta y las cuatro de `cita_preparar`, y `error argumentos` la segunda y la tercera, `salida 0`; cada sobre `mcp-<n>.json` con resultado, pasado por el `sed` de V10 y comparado con `cmp` con el de su orden (`cita cotejar --roj 'STS 1088/2023' --json` y `cita cotejar --json` con la ficha por `stdin`; `cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json`, `--texto 'cláusula suelo'`, `--roj 'STS 1088/2023'` y `ECLI:ES:TS:2023:3144`): sin diferencias; en los de las llamadas, las tres casillas del número con su fecha, la `direccion` codificada del texto y la casilla «Nº ROJ»; `arbol cache` antes de las llamadas y después de todo, el mismo listado (`cmp`), con `cache.db` y `world.db` ya escritos por una lectura de `boe articulo`. Mutante, puesto y retirado: con `LineaDeLlamada` sin escribir la propiedad `fecha`, la llamada con `resolucion` y `fecha` da `error argumentos` y el guion falla en la comparación de la salida de `mcp` |
 
 ## M · Medido
 
@@ -311,7 +317,11 @@ toque también el esquema y el lector: dejaría de ser una tarea sin código de 
 **D24 · La aceptación e2e** son cuatro guiones (plan.md). Toman el fragmento del repositorio por
 `$KITLEGAL_SKILLS/../evidencias/…` (V8), sin copiarlo; la llamada de herramienta, que necesita el texto dentro de un
 JSON, lleva la ficha —las once primeras líneas del fragmento, que es lo que la skill manda pasar (D17)—, y el guion
-comprueba con `cmp` que son las del fragmento (V41). La orden y la llamada se comparan sin `fecha_consulta` (V10).
+comprueba con `cmp` que son las del fragmento (V41). La orden y la llamada se comparan sin `fecha_consulta` (V10),
+y se compara una llamada con resultado de cada una de las dos herramientas, no solo de `cita_cotejar`: las que la
+skill hace en modo herramienta en las seis evals y la del ECLI, de modo que cada argumento que en la orden es una
+bandera viaja en alguna (V42). Son los primeros verbos cuyos argumentos de herramienta son banderas, y sin esas
+llamadas el camino con éxito de `cita_preparar` como herramienta solo lo vería el job del cierre.
 Los dos guiones de los verbos llevan además los casos de D3 que un campo de cadena dejaría pasar: una referencia
 junto a `--texto ""`, y `--documento ""` con el fragmento en la entrada (V40). *Rechazado*: una variable nueva en el
 arnés: no hace falta.

@@ -105,7 +105,7 @@ justificadas están en Complexity Tracking.*
 ```text
 specs/019-h23-skill-jurisprudencia-ninguna/
 ├── plan.md                  # este fichero
-├── research.md              # V1-V41, M1-M5, S1-S7, D1-D30
+├── research.md              # V1-V42, M1-M5, S1-S7, D1-D30
 ├── data-model.md            # identificadores, referencia, consulta, ficha, cotejo, cita, eval, umbral
 ├── quickstart.md            # §0-§9; §10, el cierre; §11, la persona
 ├── contracts/
@@ -169,8 +169,8 @@ que es el que §2 nombra para el dominio de las citas y al que H8 añade las de 
 |---|---|---|---|
 | `cita-preparar.txtar` | US1 | Las tres formas y el texto, con su dirección, sus casillas y su equivalente, y sin `cobertura` (0); el ECLI del Tribunal Constitucional, fuera de cobertura en `data` (0); el ECLI mal formado, el de otro país, `--resolucion` sin `--fecha`, la referencia con `--texto` —con un texto y con `--texto ""`—, la referencia con `--roj ""` y `cita` sin verbo (2, `argumentos`) | FR-001, FR-004 a FR-006, FR-010 a FR-015, FR-082; SC-003 |
 | `cita-cotejar.txtar` | US2 | Con el fragmento por la entrada estándar: sin referencia, sus ocho datos, la correspondencia y la `url` con su huella; pedido por sus tres formas (0, es el pedido); como ROJ `STS 1088/2023`, con otra fecha y como número `3144/2023` (0, con su hallazgo y su cruce); un texto sin ficha (2); y `--documento ""` con el fragmento en la entrada, que no se lee (2) | FR-004, FR-020 a FR-026, FR-082; SC-003 |
-| `cita-herramientas.txtar` | US4 | El servidor anuncia `cita_cotejar` y `cita_preparar`; `cita_cotejar` con la ficha —las once primeras líneas del fragmento— y el ROJ `STS 1088/2023` da un resultado con su hallazgo; sin `documento`, o con él vacío, el error `argumentos`, y el servidor sigue; el sobre de la llamada es el de su orden salvo `fecha_consulta` | FR-020, FR-025, FR-026, FR-030 |
-| `cita-sin-efectos.txtar` | US4 | Con la caché y el grafo ya con contenido, `arbol` da el mismo listado antes y después de los dos verbos, como orden y como herramienta, también con `--offline`, `--no-graph` y `--dry-run` | FR-003, FR-085; SC-006 |
+| `cita-herramientas.txtar` | US4 | El servidor anuncia `cita_cotejar` y `cita_preparar`; `cita_cotejar` con la ficha —las once primeras líneas del fragmento— y el ROJ `STS 1088/2023` da un resultado con su hallazgo; sin `documento`, o con él vacío, el error `argumentos`, y el servidor sigue; y una llamada con resultado a cada una de las dos da el sobre de su orden salvo `fecha_consulta` (US4.3), con cada uno de sus seis argumentos en alguna: `cita_cotejar` con la ficha sola y con la ficha y el ROJ `STS 1088/2023`, y `cita_preparar` con `resolucion` `1088/2023` y `fecha` `2023-07-04`, con `texto` `cláusula suelo`, con `roj` `STS 1088/2023` y con `ecli` `ECLI:ES:TS:2023:3144`, cada una frente a su orden con `--json` (research V42) | FR-020, FR-025, FR-026, FR-030 |
+| `cita-sin-efectos.txtar` | US4 | Con la caché y el grafo ya con contenido, `arbol` da el mismo listado antes y después de los dos verbos, cada uno como orden y cada uno como herramienta, con una llamada con resultado a `cita_preparar` y otra a `cita_cotejar`, también con `--offline`, `--no-graph` y `--dry-run` | FR-003, FR-085; SC-006 |
 
 Lo que usan del arnés es lo que ya hay: `stdin`, `exec`, `cmp`, `arbol`, `mcp` y `$KITLEGAL_SKILLS`, por la que
 llegan al fragmento de la evidencia sin copiarlo (research V8, D24). Afirman lo que el spec y los contratos fijan
@@ -449,7 +449,7 @@ en la del paso 7 (research D23).
 - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos; los riesgos de lint, en S7.
 - h · Mejor alternativa: cada decisión con la rechazada (D1-D30); en D3 y D4, la rechazada es la que este plan
   tenía antes de su corrección, con el requisito que incumplía.
-- i · Afirmaciones verificadas: V1-V41 con fichero, orden o prototipo; M1-M5 medidas o calculadas, y dicho cuál;
+- i · Afirmaciones verificadas: V1-V42 con fichero, orden o prototipo; M1-M5 medidas o calculadas, y dicho cuál;
   S1-S7 como supuestos, con lo que pasa si no se cumplen. Lo que D3 dice del analizador está en V38 a V40.
 - j · Quickstart ejecutable: órdenes, rutas, banderas y datos reales; los nombres de test, los que fija este plan;
   lo que cada escenario deja en el árbol, declarado; el 10 es del workflow y el 11, de una persona.

@@ -179,8 +179,9 @@ prototipo como orden y como llamada, en research V40.
 - El kernel le da la entrada al verbo: la del proceso en una orden, y ninguna en una llamada de herramienta
   (research D12). Una llamada a `cita_cotejar` sin `documento`, o con él vacío, es el error de argumentos «ningún
   texto»; el servidor no lee de su entrada nada más que el protocolo y sigue atendiendo (research V7).
-- La llamada devuelve el sobre de su orden: con el mismo texto, los mismos bytes salvo `fecha_consulta` (research
-  V10). Un hallazgo no es un error de herramienta; un error de argumentos sí, con su clase (FR-030).
+- La llamada a cada una de las dos herramientas devuelve el sobre de su orden: con los mismos argumentos y el mismo
+  texto, los mismos bytes salvo `fecha_consulta`, también con los argumentos que en la orden son banderas (research
+  V10, V42). Un hallazgo no es un error de herramienta; un error de argumentos sí, con su clase (FR-030).
 - `mcp.go`, `herramientas.go` e `internal/mcp` no cambian. El servidor pasa a anunciar doce herramientas.
 
 ## 8. `--describe`
