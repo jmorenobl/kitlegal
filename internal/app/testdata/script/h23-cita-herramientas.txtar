@@ -1,0 +1,147 @@
+# Los dos verbos de cita llegan como herramientas sin tocar el servidor: mcp
+# serve anuncia cita_cotejar y cita_preparar, las dos de solo lectura. Una
+# llamada a cita_cotejar con la ficha en documento y, como referencia pedida,
+# el ROJ STS 1088/2023 da un resultado, no un error de herramienta, con su
+# hallazgo; sin documento, y con él vacío, da el error argumentos —una llamada
+# no tiene entrada estándar que leer—, y la llamada siguiente del mismo
+# proceso responde. Y una llamada a cada una de las dos devuelve el sobre de
+# su orden, byte a byte salvo fecha_consulta: seis llamadas con resultado
+# frente a su orden con --json, de modo que cada uno de los seis argumentos
+# del applet —ecli, y los cinco que en la orden son banderas: roj, resolucion,
+# fecha, texto y documento— viaja en alguna.
+#
+# Cubre: US4.3, US4.4 · FR-020, FR-025, FR-026, FR-030.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3 de H21: mcp-<n>.json es el sobre de la llamada n,
+# con su salto de línea, comparable con la salida de la orden. Cuántas
+# herramientas anuncia el servidor no se mira aquí: lo fija el control de
+# conformidad (FR-030). Los sobres son los de contracts/applet-cita.md §2 a
+# §4, y lo de la entrada estándar y las herramientas, lo de §7. El kernel
+# fecha cada sobre de cita con su reloj, también en el binario T0: por eso la
+# orden y la llamada se comparan sin fecha_consulta.
+#
+# La ficha son las once primeras líneas del fragmento de la evidencia del ADR
+# 0036, que es lo que la skill pasa. Llegan al fichero de llamadas con una
+# orden, desde el fragmento y sin copiarlo aquí: llamadas.plantilla lleva
+# @FICHA@ donde va la ficha, y la orden la pone escrita como va dentro de un
+# JSON, cada línea con su \n. El fragmento no tiene comillas dobles, barras
+# invertidas ni tabuladores, así que no hay nada más que escribir de otra
+# forma.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- El servidor anuncia las dos, de solo lectura (US4.3, FR-030) ---
+mcp anuncio.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 herramientas '
+stdout '^salida 0$'
+grep '^cita_cotejar lectura=true$' mcp-1.txt
+grep '^cita_preparar lectura=true$' mcp-1.txt
+
+# --- La ficha, del fragmento al fichero de llamadas ---
+exec head -n 11 $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+cp stdout ficha.txt
+exec awk 'NR == FNR { ficha = ficha $0 "\\n"; next } { i = index($0, "@FICHA@"); if (i > 0) $0 = substr($0, 1, i - 1) ficha substr($0, i + 7); print }' ficha.txt llamadas.plantilla
+cp stdout llamadas.txt
+
+# Lo que las llamadas 1 y 4 llevan en documento, devuelto a sus líneas, son
+# las once primeras del fragmento, las dos veces.
+exec awk '{ i = index($0, "\"documento\":\""); if (i == 0) next; resto = substr($0, i + 13); while ((j = index(resto, "\\n")) > 0) { print substr(resto, 1, j - 1); resto = substr(resto, j + 2) } }' llamadas.txt
+cp stdout fichas-de-las-llamadas.txt
+exec cat ficha.txt ficha.txt
+cmp stdout fichas-de-las-llamadas.txt
+
+# --- Las ocho llamadas, en un mismo proceso (US4.3, US4.4, FR-026, FR-030) ---
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 cita_cotejar resultado$'
+stdout '^2 cita_cotejar error argumentos$'
+stdout '^3 cita_cotejar error argumentos$'
+stdout '^4 cita_cotejar resultado$'
+stdout '^5 cita_preparar resultado$'
+stdout '^6 cita_preparar resultado$'
+stdout '^7 cita_preparar resultado$'
+stdout '^8 cita_preparar resultado$'
+stdout '^salida 0$'
+
+# El documento que no es el pedido es un resultado con su hallazgo, no un
+# error de herramienta (US4.4, FR-025).
+grep '^\{"ok":true,"fuente":"kitlegal\.cita",' mcp-1.json
+grep '"pedida":\{"forma":"roj","valor":"STS 1088/2023"\},"es_la_pedida":false,"hallazgos":\[\{"clase":"documento-distinto","difiere":\[\{"dato":"roj","pedido":"STS 1088/2023","documento":"STS 3144/2023"\}\],"cruce":"numero-de-resolucion",' mcp-1.json
+
+# Sin documento, y con él vacío: el error de argumentos, con su clase. Tras
+# los dos, la llamada 4 ha dado su resultado: el servidor sigue (FR-026).
+grep '^\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita",' mcp-2.json
+grep '"data":\{"clase":"argumentos",' mcp-2.json
+grep '^\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita",' mcp-3.json
+grep '"data":\{"clase":"argumentos",' mcp-3.json
+
+# --- Cada llamada con resultado da el sobre de su orden (US4.3, FR-030) ---
+#
+# cita_cotejar con la ficha y el ROJ STS 1088/2023, frente a la orden con la
+# ficha por la entrada estándar: documento y roj.
+stdin ficha.txt
+exec $KITLEGAL_T0_BIN cita cotejar --roj 'STS 1088/2023' --json
+cp stdout orden-1.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-1.json
+cp stdout orden-1.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-1.json
+cmp stdout orden-1.sin-fecha
+
+# cita_cotejar con la ficha sola: documento.
+stdin ficha.txt
+exec $KITLEGAL_T0_BIN cita cotejar --json
+cp stdout orden-4.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-4.json
+cp stdout orden-4.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-4.json
+cmp stdout orden-4.sin-fecha
+
+# cita_preparar con un número de resolución y su fecha: resolucion y fecha.
+# Sus tres casillas son las que la respuesta tiene que llevar.
+exec $KITLEGAL_T0_BIN cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json
+cp stdout orden-5.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-5.json
+cp stdout orden-5.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-5.json
+cmp stdout orden-5.sin-fecha
+grep '"casillas":\[\{"nombre":"Nº Resolución","valor":"1088/2023"\},\{"nombre":"Fecha resolución","campo":"Desde","valor":"04/07/2023"\},\{"nombre":"Fecha resolución","campo":"Hasta","valor":"04/07/2023"\}\]' mcp-5.json
+
+# cita_preparar con un texto: texto. Su dirección, codificada.
+exec $KITLEGAL_T0_BIN cita preparar --texto 'cláusula suelo' --json
+cp stdout orden-6.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-6.json
+cp stdout orden-6.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-6.json
+cmp stdout orden-6.sin-fecha
+grep '"direccion":"https://www\.poderjudicial\.es/search/sentencias/cl%C3%A1usula%20suelo/1/AN"' mcp-6.json
+
+# cita_preparar con un ROJ: roj. Su casilla «Nº ROJ».
+exec $KITLEGAL_T0_BIN cita preparar --roj 'STS 1088/2023' --json
+cp stdout orden-7.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-7.json
+cp stdout orden-7.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-7.json
+cmp stdout orden-7.sin-fecha
+grep '"casillas":\[\{"nombre":"Nº ROJ","valor":"STS 1088/2023"\}\]' mcp-7.json
+
+# cita_preparar con un ECLI, que en la orden es el argumento de posición: ecli.
+exec $KITLEGAL_T0_BIN cita preparar ECLI:ES:TS:2023:3144 --json
+cp stdout orden-8.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-8.json
+cp stdout orden-8.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-8.json
+cmp stdout orden-8.sin-fecha
+
+-- anuncio.txt --
+herramientas
+-- llamadas.plantilla --
+cita_cotejar {"roj":"STS 1088/2023","documento":"@FICHA@"}
+cita_cotejar {"roj":"STS 1088/2023"}
+cita_cotejar {"roj":"STS 1088/2023","documento":""}
+cita_cotejar {"documento":"@FICHA@"}
+cita_preparar {"resolucion":"1088/2023","fecha":"2023-07-04"}
+cita_preparar {"texto":"cláusula suelo"}
+cita_preparar {"roj":"STS 1088/2023"}
+cita_preparar {"ecli":"ECLI:ES:TS:2023:3144"}

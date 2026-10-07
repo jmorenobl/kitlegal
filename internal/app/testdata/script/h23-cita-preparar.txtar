@@ -1,0 +1,97 @@
+# cita preparar da la consulta exacta con la que una persona encuentra una
+# sentencia en el buscador del CENDOJ, y no consulta nada. De un ECLI, de un
+# ROJ y de un número de resolución con su fecha: la dirección del buscador y
+# cada casilla con el nombre que se ve en la pantalla y su valor; y del ECLI y
+# del ROJ, además, el equivalente que se deduce. De un texto: la dirección que
+# abre el buscador con la búsqueda hecha, con el espacio y la tilde
+# codificados, y ninguna casilla. Ninguna de las cuatro lleva cobertura: el
+# binario no sabe si el CENDOJ tiene la sentencia. El ECLI del Tribunal
+# Constitucional termina con 0 y declara en data que queda fuera, sin
+# dirección, sin casillas y sin equivalente. Y una referencia mal dada, o dada
+# junto a otra cosa, es un error de argumentos, código 2: el ECLI mal formado,
+# el de otro país, --resolucion sin --fecha, la referencia junto a --texto
+# —con un texto y con --texto ""—, la referencia junto a --roj "" y cita sin
+# verbo, porque ninguno de los dos es el verbo por omisión.
+#
+# Cubre: US1.1, US1.2, US1.3, US1.4, US1.5, US1.6 · FR-001, FR-004, FR-005,
+# FR-006, FR-010, FR-011, FR-012, FR-013, FR-014, FR-015, FR-082 · SC-003.
+#
+# El sobre y las claves y los valores de data son los de
+# contracts/applet-cita.md §2 y §3; los errores, los de §6. De fecha_consulta
+# y de hash se mira solo la forma, y del texto libre —el motivo de la
+# cobertura y el mensaje de un error—, nada: sus bytes los fijan los golden
+# (FR-080). El sobre de cita sin verbo es del kernel, y de él se mira el
+# código, ok y la clase.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- Un ECLI: la casilla «ECLI» y el ROJ que se deduce (US1.1, FR-010, FR-011, FR-012) ---
+exec kitlegal cita preparar ECLI:ES:TS:2023:3144 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"https://www\.poderjudicial\.es/search/indexAN\.jsp","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"referencia":\{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"\},"equivalente":\{"forma":"roj","valor":"STS 3144/2023"\},"direccion":"https://www\.poderjudicial\.es/search/indexAN\.jsp","casillas":\[\{"nombre":"ECLI","valor":"ECLI:ES:TS:2023:3144"\}\]\}\}\n\z'
+! stdout '"cobertura"'
+
+# --- Un ROJ: la casilla «Nº ROJ» y el ECLI que se deduce (US1.2, FR-011, FR-012) ---
+exec kitlegal cita preparar --roj 'STS 3144/2023' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"https://www\.poderjudicial\.es/search/indexAN\.jsp","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"referencia":\{"forma":"roj","valor":"STS 3144/2023"\},"equivalente":\{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"\},"direccion":"https://www\.poderjudicial\.es/search/indexAN\.jsp","casillas":\[\{"nombre":"Nº ROJ","valor":"STS 3144/2023"\}\]\}\}\n\z'
+! stdout '"cobertura"'
+
+# --- Un número de resolución con su fecha: tres casillas, en su orden (US1.3, FR-011) ---
+#
+# La fecha se da AAAA-MM-DD y va a las casillas como la escribe el buscador,
+# dd/mm/aaaa. De un número de resolución no se deduce ningún equivalente.
+exec kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"https://www\.poderjudicial\.es/search/indexAN\.jsp","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"referencia":\{"forma":"resolucion","valor":"1088/2023","fecha":"2023-07-04"\},"direccion":"https://www\.poderjudicial\.es/search/indexAN\.jsp","casillas":\[\{"nombre":"Nº Resolución","valor":"1088/2023"\},\{"nombre":"Fecha resolución","campo":"Desde","valor":"04/07/2023"\},\{"nombre":"Fecha resolución","campo":"Hasta","valor":"04/07/2023"\}\]\}\}\n\z'
+! stdout '"equivalente"'
+! stdout '"cobertura"'
+
+# --- Un texto: la dirección con la búsqueda hecha y ninguna casilla (US1.4, FR-013) ---
+#
+# El texto va a data tal como se dio y a la dirección como un segmento de
+# ruta: la «á», en sus dos octetos, y el espacio, %20. La dirección del sobre
+# es la que abre la persona.
+exec kitlegal cita preparar --texto 'cláusula suelo' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"https://www\.poderjudicial\.es/search/sentencias/cl%C3%A1usula%20suelo/1/AN","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"texto":"cláusula suelo","direccion":"https://www\.poderjudicial\.es/search/sentencias/cl%C3%A1usula%20suelo/1/AN","casillas":\[\]\}\}\n\z'
+! stdout '"referencia"'
+! stdout '"equivalente"'
+! stdout '"cobertura"'
+
+# --- El ECLI del Tribunal Constitucional: 0, y fuera de cobertura en data (US1.5, FR-014) ---
+#
+# Sin nada que abrir, la dirección del sobre es la del applet.
+exec kitlegal cita preparar ECLI:ES:TC:2024:79 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"referencia":\{"forma":"ecli","valor":"ECLI:ES:TC:2024:79"\},"cobertura":\{"cendoj":"no-cubierto","motivo":"(?:[^"\\]|\\.)+"\},"casillas":\[\]\}\}\n\z'
+! stdout '"direccion"'
+! stdout '"equivalente"'
+
+# --- Los errores de argumentos: código 2 y la clase (US1.6, FR-006, FR-015) ---
+#
+# Un ECLI mal formado: le falta el número.
+exec sh -c 'kitlegal cita preparar ECLI:ES:TS:2023 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# Un ECLI de otro país.
+exec sh -c 'kitlegal cita preparar ECLI:FR:CC:2023:1 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# Un número de resolución sin su fecha.
+exec sh -c 'kitlegal cita preparar --resolucion 1088/2023 --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# Una referencia junto a --texto: son excluyentes, también si el texto va
+# vacío, porque un argumento escrito con valor vacío cuenta como dado.
+exec sh -c 'kitlegal cita preparar ECLI:ES:TS:2023:3144 --texto "cláusula suelo" --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+exec sh -c 'kitlegal cita preparar ECLI:ES:TS:2023:3144 --texto "" --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# Una referencia junto a --roj "": dos formas de referencia, aunque una vaya
+# vacía.
+exec sh -c 'kitlegal cita preparar ECLI:ES:TS:2023:3144 --roj "" --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# cita sin verbo: nombrar el verbo es obligatorio (FR-001).
+exec sh -c 'kitlegal cita --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos",'
