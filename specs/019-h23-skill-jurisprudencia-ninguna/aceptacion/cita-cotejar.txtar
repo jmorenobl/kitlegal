@@ -1,0 +1,101 @@
+# cita cotejar lee la ficha del documento del CENDOJ que trae la persona y
+# dice si es la sentencia que se pidió, sin consultar nada. Con el fragmento
+# de la evidencia del ADR 0036 por la entrada estándar: sin referencia, da los
+# ocho datos de la ficha y que su ROJ y su ECLI se corresponden, y no dice
+# nada de lo pedido; pedido por su ECLI, por su ROJ y por su número con su
+# fecha, dice que es el pedido, sin hallazgo; y pedido como ROJ STS 1088/2023,
+# con otra fecha o por el número 3144/2023, termina con 0 y ok verdadero y
+# lleva un hallazgo documento-distinto con lo que difiere y, cuando el número
+# pedido es el otro número del documento, con su cruce. Un texto sin ficha —el
+# fragmento sin su encabezamiento, y una frase cualquiera— es un error de
+# argumentos, código 2; y también --documento "" con el fragmento en la
+# entrada estándar, que entonces no se lee.
+#
+# Cubre: US2.1, US2.2, US2.3, US2.4, US2.5, US2.6 · FR-004, FR-020, FR-021,
+# FR-022, FR-023, FR-024, FR-025, FR-026, FR-082 · SC-003.
+#
+# El sobre y las claves y los valores de data son los de
+# contracts/applet-cita.md §2 y §4; los errores, los de §6, y la entrada
+# estándar, la de §7. El fragmento se toma del repositorio, sin copiarlo aquí:
+# la url del sobre lleva la huella de su texto, que es la de su manifiesto. De
+# fecha_consulta y de hash se mira solo la forma, y del texto libre —la
+# explicación de un hallazgo y el mensaje de un error—, nada: sus bytes los
+# fijan los golden (FR-081).
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- Sin referencia: la ficha y la correspondencia, y nada de lo pedido (US2.1, FR-021, FR-022, FR-023) ---
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"ficha":\{"roj":"STS 3144/2023","ecli":"ECLI:ES:TS:2023:3144","organo":"Tribunal Supremo\. Sala de lo Civil","fecha":"2023-07-04","recurso":"4703/2019","resolucion":"1088/2023","ponente":"PEDRO JOSE VELA TORRES","tipo":"Sentencia"\},"correspondencia":"se-corresponden","hallazgos":\[\]\}\}\n\z'
+! stdout '"pedida"'
+! stdout '"es_la_pedida"'
+
+# --- Pedido por sus tres formas: es el pedido, sin hallazgo (US2.2, FR-024) ---
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar ECLI:ES:TS:2023:3144 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27",'
+stdout '"correspondencia":"se-corresponden","pedida":\{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"\},"es_la_pedida":true,"hallazgos":\[\]\}\}\n\z'
+
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --roj 'STS 3144/2023' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27",'
+stdout '"correspondencia":"se-corresponden","pedida":\{"forma":"roj","valor":"STS 3144/2023"\},"es_la_pedida":true,"hallazgos":\[\]\}\}\n\z'
+
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --resolucion 1088/2023 --fecha 2023-07-04 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27",'
+stdout '"correspondencia":"se-corresponden","pedida":\{"forma":"resolucion","valor":"1088/2023","fecha":"2023-07-04"\},"es_la_pedida":true,"hallazgos":\[\]\}\}\n\z'
+
+# --- Pedido como ROJ STS 1088/2023: no es el pedido, y 1088/2023 es su número de resolución (US2.3, FR-024, FR-025) ---
+#
+# Un hallazgo no es un fallo: código 0 y ok verdadero.
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --roj 'STS 1088/2023' --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27",'
+stdout '"correspondencia":"se-corresponden","pedida":\{"forma":"roj","valor":"STS 1088/2023"\},"es_la_pedida":false,"hallazgos":\[\{"clase":"documento-distinto","difiere":\[\{"dato":"roj","pedido":"STS 1088/2023","documento":"STS 3144/2023"\}\],"cruce":"numero-de-resolucion","explicacion":"(?:[^"\\]|\\.)+"\}\]\}\}\n\z'
+
+# --- Con otra fecha: difiere la fecha, y no hay cruce (US2.4, FR-024, FR-025) ---
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --resolucion 1088/2023 --fecha 2023-01-01 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27",'
+stdout '"correspondencia":"se-corresponden","pedida":\{"forma":"resolucion","valor":"1088/2023","fecha":"2023-01-01"\},"es_la_pedida":false,"hallazgos":\[\{"clase":"documento-distinto","difiere":\[\{"dato":"fecha","pedido":"2023-01-01","documento":"2023-07-04"\}\],"explicacion":"(?:[^"\\]|\\.)+"\}\]\}\}\n\z'
+! stdout '"cruce"'
+
+# --- Por el número 3144/2023: difiere el número, y 3144/2023 es el del ROJ (US2.5, FR-025) ---
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --resolucion 3144/2023 --fecha 2023-07-04 --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.cita","url":"kitlegal:documento/sha256:4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27",'
+stdout '"correspondencia":"se-corresponden","pedida":\{"forma":"resolucion","valor":"3144/2023","fecha":"2023-07-04"\},"es_la_pedida":false,"hallazgos":\[\{"clase":"documento-distinto","difiere":\[\{"dato":"resolucion","pedido":"3144/2023","documento":"1088/2023"\}\],"cruce":"numero-del-roj","explicacion":"(?:[^"\\]|\\.)+"\}\]\}\}\n\z'
+
+# --- Un texto sin ficha: código 2 y la clase (US2.6, FR-026) ---
+#
+# El fragmento sin su encabezamiento: lo que sigue a las once líneas de la
+# ficha, sacado con una orden. No lleva ninguna línea «Roj:».
+exec sed -n '12,$p' $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+stdout .
+! stdout '^Roj:'
+cp stdout sin-ficha.txt
+
+stdin sin-ficha.txt
+exec sh -c 'kitlegal cita cotejar --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# Y una frase cualquiera.
+stdin frase.txt
+exec sh -c 'kitlegal cita cotejar --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+# --- --documento "" con el fragmento en la entrada: no se lee (FR-020, FR-026) ---
+#
+# Con --documento, el texto es el suyo, también si va vacío: la entrada
+# estándar trae un documento con su ficha, y la orden termina sin haberlo
+# leído, con ningún texto.
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec sh -c 'kitlegal cita cotejar --documento "" --json; test $? -eq 2'
+stdout '\A\{"ok":false,"fuente":"kitlegal\.cita","url":"kitlegal:applet/cita","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"'
+
+-- frase.txt --
+Una frase cualquiera, que no es el encabezamiento de ningún documento.
