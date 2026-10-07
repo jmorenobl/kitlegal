@@ -1,0 +1,12 @@
+# Eval (c): una pregunta por materia. La sesión pide cita preparar con un texto, el que elija, y la respuesta da la
+# dirección de búsqueda que esa operación devolvió y no cita ninguna sentencia: la búsqueda la hace la persona (FR-046,
+# FR-050).
+pregunta: "¿qué dice la jurisprudencia sobre la cláusula suelo?"
+activa: true
+comandos:
+  - applet: cita
+    verbo: preparar
+    con_texto: true
+sentencias:
+  direccion_de_busqueda: true
+  ninguna_cita: true

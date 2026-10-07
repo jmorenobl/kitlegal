@@ -2,6 +2,8 @@ package evals
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
@@ -743,12 +745,15 @@ func sinMateria(conjunto *conjuntoSintetico, materia string) {
 // boe-legislacion llega a 21 y los dos juegos llevan la regla sin binario ni
 // servidor, la última de cada tabla: exactamente una eval que lo declara, que no
 // cuenta como positiva ni necesita un esperado verificable
-// (contracts/evals-en-dos-modos.md §1 de H21; FR-046).
+// (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde H23, el tercer
+// juego, el de jurisprudencia (contracts/evals-jurisprudencia.md §5 de H23;
+// FR-056).
 func TestConjuntoDeEvals(t *testing.T) {
 	t.Parallel()
 
 	t.Run("boe-legislacion", probarReglasDeBoeLegislacion)
 	t.Run("legal-core", probarReglasDeLegalCore)
+	t.Run("jurisprudencia", probarReglasDeJurisprudencia)
 }
 
 // probarReglasDeBoeLegislacion fija ComprobarConjunto con ReglasDeBoeLegislacion
@@ -1287,6 +1292,346 @@ func probarReglasDeLegalCore(t *testing.T) {
 	})
 }
 
+// Las evals sintéticas del conjunto de jurisprudencia de
+// probarReglasDeJurisprudencia, con los nombres de las seis de
+// contracts/evals-jurisprudencia.md §5 de H23, y la que los casos le añaden.
+const (
+	jurisprudenciaExiste       = "01-existe-con-numero-y-fecha.yaml"
+	jurisprudenciaResumen      = "02-resumen-sin-documento.yaml"
+	jurisprudenciaPorMateria   = "03-por-materia.yaml"
+	jurisprudenciaDocumento    = "04-documento-pegado.yaml"
+	jurisprudenciaDelTC        = "05-tribunal-constitucional.yaml"
+	jurisprudenciaNoEsElPedido = "06-documento-que-no-es-el-pedido.yaml"
+	jurisprudenciaDeMas        = "07-una-de-mas.yaml"
+)
+
+// conjuntoDeJurisprudencia devuelve, nuevo en cada llamada, un conjunto que
+// cumple las reglas de jurisprudencia: las seis evals del contrato, con lo que
+// cada una espera y una pregunta corta en las dos que pegan el documento.
+func conjuntoDeJurisprudencia() []Eval {
+	preparar := ComandoEsperado{Applet: "cita", Verbo: "preparar"}
+
+	porNumeroYFecha := func(fichero, pregunta, numero, fecha string) Eval {
+		return Eval{
+			Fichero:  fichero,
+			Pregunta: pregunta,
+			Activa:   true,
+			Comandos: []ComandoEsperado{preparar},
+			Sentencias: SentenciasEsperadas{
+				NoComprobada: true,
+				Direcciones:  []string{direccionDelCendoj},
+				Casillas: []CasillaEsperada{
+					{Nombre: casillaDeResolucion, Valor: numero}, {Nombre: casillaDeFecha, Valor: fecha},
+				},
+				NingunaCita: true,
+			},
+		}
+	}
+
+	return []Eval{
+		porNumeroYFecha(jurisprudenciaExiste, "\xc2\xbfexiste la STS 1088/2023, de 4 de julio?", "1088/2023", "04/07/2023"),
+		porNumeroYFecha(jurisprudenciaResumen, "res\xc3\xbameme la STS 9999/2023, de 1 de enero", "9999/2023", "01/01/2023"),
+		{
+			Fichero:    jurisprudenciaPorMateria,
+			Pregunta:   "\xc2\xbfqu\xc3\xa9 dice la jurisprudencia sobre la cl\xc3\xa1usula suelo?",
+			Activa:     true,
+			Comandos:   []ComandoEsperado{{Applet: "cita", Verbo: "preparar", ConTexto: true}},
+			Sentencias: SentenciasEsperadas{DireccionDeBusqueda: true, NingunaCita: true},
+		},
+		{
+			Fichero:  jurisprudenciaDocumento,
+			Pregunta: "C\xc3\xadtame esta sentencia.\n\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\n",
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "cita", Verbo: "cotejar"}},
+			Sentencias: SentenciasEsperadas{
+				Citas: []CitaDeSentenciaEsperada{{ECLI: ecliDelFragmento, ROJ: rojDelFragmento}},
+			},
+		},
+		{
+			Fichero:    jurisprudenciaDelTC,
+			Pregunta:   "\xc2\xbfQu\xc3\xa9 resolvi\xc3\xb3 el Tribunal Constitucional en su sentencia 79/2024 (ECLI:ES:TC:2024:79)?",
+			Activa:     true,
+			Sentencias: SentenciasEsperadas{Direcciones: []string{direccionDelTC}, NingunaCita: true},
+		},
+		{
+			Fichero:  jurisprudenciaNoEsElPedido,
+			Pregunta: "Traigo la sentencia de ROJ STS 1088/2023.\n\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\n",
+			Activa:   true,
+			Comandos: []ComandoEsperado{
+				{Applet: "cita", Verbo: "cotejar", ROJ: rojQueNoEsElSuyo},
+				{Applet: "cita", Verbo: "preparar", ROJ: rojQueNoEsElSuyo},
+			},
+			Sentencias: SentenciasEsperadas{
+				NoComprobada:  true,
+				Direcciones:   []string{direccionDelCendoj},
+				Casillas:      []CasillaEsperada{{Nombre: casillaDeROJ, Valor: rojQueNoEsElSuyo}},
+				SinCitaDelROJ: []string{rojQueNoEsElSuyo},
+			},
+		},
+	}
+}
+
+// probarReglasDeJurisprudencia fija ComprobarConjunto con ReglasDeJurisprudencia
+// (contracts/evals-jurisprudencia.md §5 de H23; FR-056): el conjunto de las seis
+// evals no da ningún defecto; cada copia a la que le falta una de las seis, o en
+// la que una deja de declarar lo que espera, da el defecto de la regla de esa
+// eval, con su nombre y un mensaje que dice cuántas hay, cuántas lleva el
+// conjunto y qué ficheros la cumplen; y un conjunto que las incumple todas da un
+// defecto por regla, en el orden de la tabla.
+func probarReglasDeJurisprudencia(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cumple-todas", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, ComprobarConjunto(conjuntoDeJurisprudencia(), nil, ReglasDeJurisprudencia()))
+	})
+
+	const (
+		tamanio           = "tama\xc3\xb1o"
+		activanLaSkill    = "activaci\xc3\xb3n"
+		sentencias        = "sentencias"
+		numeroYFecha      = "n\xc3\xbamero y fecha"
+		materia           = "materia"
+		documento         = "documento"
+		noCubierta        = "no cubierta"
+		documentoDistinto = "documento distinto"
+	)
+
+	// cambiar devuelve la modificación que aplica el cambio a la eval con ese
+	// fichero, que tiene que estar.
+	cambiar := func(fichero string, cambio func(eval *Eval)) func(t *testing.T, evals []Eval) []Eval {
+		return func(t *testing.T, evals []Eval) []Eval {
+			t.Helper()
+			cambio(evalDe(t, evals, fichero))
+
+			return evals
+		}
+	}
+
+	// deMas es una séptima eval, que activa la skill y declara sentencias sin ser
+	// ninguna de las seis.
+	deMas := Eval{
+		Fichero:    jurisprudenciaDeMas,
+		Pregunta:   "\xc2\xbfD\xc3\xb3nde se buscan las sentencias del Tribunal Supremo?",
+		Activa:     true,
+		Comandos:   []ComandoEsperado{{Applet: "cita", Verbo: "preparar"}},
+		Sentencias: SentenciasEsperadas{Direcciones: []string{direccionDelCendoj}},
+	}
+
+	casos := []struct {
+		nombre    string
+		modificar func(t *testing.T, evals []Eval) []Eval
+		reglas    []string
+
+		// dice es lo que dicen, entre todos, los mensajes de los defectos.
+		dice []string
+	}{
+		{
+			nombre:    "sin-la-01",
+			modificar: sinLaEval(jurisprudenciaExiste),
+			reglas:    []string{tamanio, numeroYFecha},
+			dice: []string{
+				"hay 5 evals y el conjunto lleva exactamente 6",
+				"hay 1 evals con la l\xc3\xadnea, ninguna cita y las casillas \xc2\xabN\xc2\xba Resoluci\xc3\xb3n\xc2\xbb y " +
+					"\xc2\xabFecha resoluci\xc3\xb3n\xc2\xbb, con cita preparar, y el conjunto lleva exactamente 2: " +
+					jurisprudenciaResumen,
+			},
+		},
+		{
+			nombre:    "sin-la-03",
+			modificar: sinLaEval(jurisprudenciaPorMateria),
+			reglas:    []string{tamanio, materia},
+			dice: []string{
+				"hay 0 evals con la direcci\xc3\xb3n de b\xc3\xbasqueda y ninguna cita, con cita preparar con texto, " +
+					"y el conjunto lleva exactamente 1: ning\xc3\xban fichero",
+			},
+		},
+		{
+			nombre:    "sin-la-04",
+			modificar: sinLaEval(jurisprudenciaDocumento),
+			reglas:    []string{tamanio, documento},
+			dice:      []string{"hay 0 evals con una cita, con cita cotejar, y el conjunto lleva exactamente 1"},
+		},
+		{
+			nombre:    "sin-la-05",
+			modificar: sinLaEval(jurisprudenciaDelTC),
+			reglas:    []string{tamanio, noCubierta},
+			dice:      []string{"hay 0 evals sin comandos, con una direcci\xc3\xb3n y ninguna cita, y el conjunto lleva exactamente 1"},
+		},
+		{
+			nombre:    "sin-la-06",
+			modificar: sinLaEval(jurisprudenciaNoEsElPedido),
+			reglas:    []string{tamanio, documentoDistinto},
+			dice: []string{
+				"hay 0 evals con la l\xc3\xadnea, un ROJ que no se cita, y cita cotejar y cita preparar con ese ROJ, " +
+					"y el conjunto lleva exactamente 1",
+			},
+		},
+		{
+			nombre:    "con-una-de-mas",
+			modificar: func(_ *testing.T, evals []Eval) []Eval { return append(evals, deMas) },
+			reglas:    []string{tamanio},
+			dice:      []string{"hay 7 evals y el conjunto lleva exactamente 6", jurisprudenciaExiste, jurisprudenciaDeMas},
+		},
+		{
+			nombre: "con-dos-del-tribunal-constitucional",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+
+				otra := *evalDe(t, evals, jurisprudenciaDelTC)
+				otra.Fichero = jurisprudenciaDeMas
+
+				return append(evals, otra)
+			},
+			reglas: []string{tamanio, noCubierta},
+			dice: []string{
+				"hay 2 evals sin comandos, con una direcci\xc3\xb3n y ninguna cita, y el conjunto lleva exactamente 1: " +
+					jurisprudenciaDelTC + ", " + jurisprudenciaDeMas,
+			},
+		},
+		{
+			nombre:    "una-que-no-activa-la-skill",
+			modificar: cambiar(jurisprudenciaDelTC, func(eval *Eval) { eval.Activa = false }),
+			reglas:    []string{activanLaSkill},
+			dice:      []string{"evals que no activan la skill (activa: false): " + jurisprudenciaDelTC},
+		},
+		{
+			nombre: "una-que-no-declara-sentencias",
+			modificar: cambiar(jurisprudenciaDocumento, func(eval *Eval) {
+				eval.Sentencias = SentenciasEsperadas{}
+				eval.Citas = []CitaEsperada{{Norma: normaLPAC, Bloque: "a21"}}
+			}),
+			reglas: []string{sentencias, documento},
+			dice:   []string{"evals que no declaran sentencias: " + jurisprudenciaDocumento},
+		},
+		{
+			nombre:    "01-sin-ninguna-cita",
+			modificar: cambiar(jurisprudenciaExiste, func(eval *Eval) { eval.Sentencias.NingunaCita = false }),
+			reglas:    []string{numeroYFecha},
+			dice:      []string{"hay 1 evals", "exactamente 2: " + jurisprudenciaResumen},
+		},
+		{
+			nombre:    "02-sin-la-linea",
+			modificar: cambiar(jurisprudenciaResumen, func(eval *Eval) { eval.Sentencias.NoComprobada = false }),
+			reglas:    []string{numeroYFecha},
+			dice:      []string{"hay 1 evals", "exactamente 2: " + jurisprudenciaExiste},
+		},
+		{
+			nombre: "01-sin-la-casilla-de-la-fecha",
+			modificar: cambiar(jurisprudenciaExiste, func(eval *Eval) {
+				eval.Sentencias.Casillas = eval.Sentencias.Casillas[:1]
+			}),
+			reglas: []string{numeroYFecha},
+		},
+		{
+			nombre:    "01-con-cotejar-y-no-preparar",
+			modificar: cambiar(jurisprudenciaExiste, func(eval *Eval) { eval.Comandos[0].Verbo = "cotejar" }),
+			reglas:    []string{numeroYFecha},
+		},
+		{
+			nombre:    "03-con-preparar-sin-texto",
+			modificar: cambiar(jurisprudenciaPorMateria, func(eval *Eval) { eval.Comandos[0].ConTexto = false }),
+			reglas:    []string{materia},
+		},
+		{
+			nombre: "03-sin-la-direccion-de-busqueda",
+			modificar: cambiar(jurisprudenciaPorMateria, func(eval *Eval) {
+				eval.Sentencias.DireccionDeBusqueda = false
+			}),
+			reglas: []string{materia},
+		},
+		{
+			nombre: "03-sin-ninguna-cita",
+			modificar: cambiar(jurisprudenciaPorMateria, func(eval *Eval) {
+				eval.Sentencias.NingunaCita = false
+			}),
+			reglas: []string{materia},
+		},
+		{
+			nombre:    "04-con-preparar-y-no-cotejar",
+			modificar: cambiar(jurisprudenciaDocumento, func(eval *Eval) { eval.Comandos[0].Verbo = "preparar" }),
+			reglas:    []string{documento},
+		},
+		{
+			nombre: "04-sin-la-cita",
+			modificar: cambiar(jurisprudenciaDocumento, func(eval *Eval) {
+				eval.Sentencias = SentenciasEsperadas{NingunaCita: true}
+			}),
+			reglas: []string{documento},
+		},
+		{
+			nombre: "05-con-un-comando",
+			modificar: cambiar(jurisprudenciaDelTC, func(eval *Eval) {
+				eval.Comandos = []ComandoEsperado{{Applet: "cita", Verbo: "preparar"}}
+			}),
+			reglas: []string{noCubierta},
+		},
+		{
+			nombre: "05-sin-direccion",
+			modificar: cambiar(jurisprudenciaDelTC, func(eval *Eval) {
+				eval.Sentencias.Direcciones = nil
+			}),
+			reglas: []string{noCubierta},
+		},
+		{
+			nombre:    "06-que-prepara-otro-roj",
+			modificar: cambiar(jurisprudenciaNoEsElPedido, func(eval *Eval) { eval.Comandos[1].ROJ = rojDelFragmento }),
+			reglas:    []string{documentoDistinto},
+		},
+		{
+			nombre:    "06-que-coteja-sin-el-roj",
+			modificar: cambiar(jurisprudenciaNoEsElPedido, func(eval *Eval) { eval.Comandos[0].ROJ = "" }),
+			reglas:    []string{documentoDistinto},
+		},
+		{
+			nombre: "06-sin-la-linea",
+			modificar: cambiar(jurisprudenciaNoEsElPedido, func(eval *Eval) {
+				eval.Sentencias.NoComprobada = false
+			}),
+			reglas: []string{documentoDistinto},
+		},
+		{
+			nombre: "06-sin-el-roj-que-no-se-cita",
+			modificar: cambiar(jurisprudenciaNoEsElPedido, func(eval *Eval) {
+				eval.Sentencias.SinCitaDelROJ = nil
+			}),
+			reglas: []string{documentoDistinto},
+		},
+		{
+			// El applet es parte del comando: el de otro applet con el mismo verbo
+			// no es cita cotejar.
+			nombre:    "04-con-cotejar-de-otro-applet",
+			modificar: cambiar(jurisprudenciaDocumento, func(eval *Eval) { eval.Comandos[0].Applet = "boe" }),
+			reglas:    []string{documento},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			defectos := ComprobarConjunto(caso.modificar(t, conjuntoDeJurisprudencia()), nil, ReglasDeJurisprudencia())
+			require.Equal(t, caso.reglas, reglasIncumplidas(defectos), "la copia incumple solo esas reglas: %v", defectos)
+
+			mensajes := presentarDefectos(defectos)
+			for _, dicho := range caso.dice {
+				assert.Contains(t, mensajes, dicho, "los mensajes dicen cu\xc3\xa1l falta")
+			}
+		})
+	}
+
+	t.Run("orden-de-la-tabla", func(t *testing.T) {
+		t.Parallel()
+
+		ninguna := []Eval{{Fichero: "01-no-activa-receta-de-cocina.yaml", Pregunta: "\xc2\xbfC\xc3\xb3mo hago una tortilla?"}}
+
+		assert.Equal(t, []string{
+			tamanio, activanLaSkill, sentencias, numeroYFecha, materia, documento, noCubierta, documentoDistinto,
+		}, reglasIncumplidas(ComprobarConjunto(ninguna, nil, ReglasDeJurisprudencia())))
+	})
+}
+
 // sinLaEval devuelve la modificación de probarReglasDeLegalCore que quita del
 // conjunto la eval con ese fichero, que tiene que estar.
 func sinLaEval(fichero string) func(t *testing.T, evals []Eval) []Eval {
@@ -1347,6 +1692,11 @@ const (
 	// paquete: las evals de la skill legal-core, a las que se aplican las reglas
 	// de su juego (contrato de evals §3 y §4 de H6).
 	evalsDeLegalCore = "../../evals/legal-core"
+
+	// evalsDeJurisprudencia es evals/jurisprudencia/, relativo al directorio de
+	// este paquete: las evals de la skill jurisprudencia, a las que se aplican
+	// las reglas de su juego (contracts/evals-jurisprudencia.md §5 de H23).
+	evalsDeJurisprudencia = "../../evals/jurisprudencia"
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -1383,6 +1733,9 @@ const (
 // H21, las 21 evals de boe-legislacion y las 4 de legal-core cumplen además la
 // regla sin binario ni servidor de su juego: cada carpeta lleva exactamente una
 // eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde
+// H23, las seis evals de evals/jurisprudencia/ cumplen las reglas de su juego,
+// y su carpeta no tiene juez (contracts/evals-jurisprudencia.md §5 de H23;
+// FR-055, FR-056). Desde
 // H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
 // da ningún fichero mal formado: la de boe-legislacion declara sus dos clases,
 // afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, las
@@ -1450,6 +1803,23 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		defectosDeLegalCore := ComprobarConjunto(deLegalCore.Evals, normasConocidasDe(normas), ReglasDeLegalCore())
 		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
 			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
+	})
+
+	t.Run("conjunto-jurisprudencia", func(t *testing.T) {
+		t.Parallel()
+
+		deJurisprudencia, err := LeerConjunto(evalsDeJurisprudencia)
+		require.NoError(t, err)
+		assert.Nil(t, deJurisprudencia.Juez, "%s no tiene juez", evalsDeJurisprudencia)
+
+		defectosDeJurisprudencia := ComprobarConjunto(deJurisprudencia.Evals, nil, ReglasDeJurisprudencia())
+		assert.Empty(t, defectosDeJurisprudencia, "defectos del conjunto de %s:\n%s",
+			evalsDeJurisprudencia, presentarDefectos(defectosDeJurisprudencia))
+
+		// El applet cita no consulta nada: sus evals no necesitan grabaciones
+		// (FR-054 de H23).
+		assert.Empty(t, ConsultasNecesarias(deJurisprudencia.Evals),
+			"las evals de %s no necesitan ninguna respuesta grabada", evalsDeJurisprudencia)
 	})
 
 	t.Run("normas-conocidas", func(t *testing.T) {
@@ -2940,6 +3310,88 @@ func TestFormatoDeLasEvalsDeCadaSkill(t *testing.T) {
 	require.Len(t, malFormados, 1)
 	assert.True(t, strings.HasPrefix(malFormados[0], beta+": 01-sin-pregunta.yaml: "), malFormados[0])
 	assert.Contains(t, malFormados[0], "missing property 'pregunta'")
+}
+
+// El fragmento que la persona pega en dos evals de jurisprudencia y lo que lo
+// fija (spec de H23, FR-053 y SC-008): su ruta, relativa al directorio de este
+// paquete, su tamaño y su SHA-256, que son los de su manifiesto.
+const (
+	fragmentoDelRepositorio = "../../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt"
+	bytesDelFragmento       = 2353
+	huellaDelFragmento      = "4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27"
+)
+
+// evalsConElFragmento son las dos evals de jurisprudencia cuya pregunta lleva
+// pegado el fragmento: la que pide que se cite y la que dice traer otra
+// sentencia (contracts/evals-jurisprudencia.md §5 de H23).
+var evalsConElFragmento = []string{jurisprudenciaDocumento, jurisprudenciaNoEsElPedido}
+
+// preguntasSinElFragmento son, de las evals de evalsConElFragmento leídas de
+// dir, las que no llevan el fragmento byte a byte en su pregunta, tal como la
+// lee LeerEval.
+func preguntasSinElFragmento(t *testing.T, dir string, fragmento []byte) []string {
+	t.Helper()
+
+	var sinEl []string
+
+	for _, fichero := range evalsConElFragmento {
+		eval, err := LeerEval(fichero, contenidoDelFichero(t, filepath.Join(dir, fichero)))
+		require.NoError(t, err)
+
+		if !strings.Contains(eval.Pregunta, string(fragmento)) {
+			sinEl = append(sinEl, fichero)
+		}
+	}
+
+	return sinEl
+}
+
+// TestPreguntasConElFragmento fija que el texto que la persona pega en las
+// evals 04 y 06 de jurisprudencia es el fragmento del repositorio, byte a byte
+// (spec de H23, FR-053 y SC-008): el fichero es el de su manifiesto, por su
+// tamaño y su huella; la pregunta de cada una, tal como la lee LeerEval, lo
+// contiene entero; y con un solo byte del texto pegado cambiado en una copia de
+// las dos evals, la de ese byte deja de contenerlo.
+func TestPreguntasConElFragmento(t *testing.T) {
+	t.Parallel()
+
+	fragmento := contenidoDelFichero(t, fragmentoDelRepositorio)
+	require.Len(t, fragmento, bytesDelFragmento, "%s no ha cambiado de tama\xc3\xb1o", fragmentoDelRepositorio)
+
+	huella := sha256.Sum256(fragmento)
+	require.Equal(t, huellaDelFragmento, hex.EncodeToString(huella[:]), "%s no ha cambiado", fragmentoDelRepositorio)
+
+	assert.Empty(t, preguntasSinElFragmento(t, evalsDeJurisprudencia, fragmento),
+		"evals de %s cuya pregunta no lleva %s byte a byte", evalsDeJurisprudencia, fragmentoDelRepositorio)
+
+	// La última línea del fragmento, que en la eval va con la sangría del bloque:
+	// su último byte es el que se cambia en la copia.
+	lineas := strings.Split(strings.TrimRight(string(fragmento), "\n"), "\n")
+	ultima := []byte("  " + lineas[len(lineas)-1] + "\n")
+
+	for _, cambiada := range evalsConElFragmento {
+		t.Run("con-un-byte-cambiado-en-la-"+cambiada[:2], func(t *testing.T) {
+			t.Parallel()
+
+			copia := t.TempDir()
+
+			for _, fichero := range evalsConElFragmento {
+				contenido := contenidoDelFichero(t, filepath.Join(evalsDeJurisprudencia, fichero))
+
+				if fichero == cambiada {
+					posicion := bytes.LastIndex(contenido, ultima)
+					require.GreaterOrEqual(t, posicion, 0, "%s lleva la \xc3\xbaltima l\xc3\xadnea del fragmento", fichero)
+
+					// El byte anterior al salto de línea, que deja de ser el suyo.
+					contenido[posicion+len(ultima)-2]++
+				}
+
+				require.NoError(t, os.WriteFile(filepath.Join(copia, fichero), contenido, 0o600))
+			}
+
+			assert.Equal(t, []string{cambiada}, preguntasSinElFragmento(t, copia, fragmento))
+		})
+	}
 }
 
 // normasConocidasDe es, por identificador, lo que las reglas del conjunto
