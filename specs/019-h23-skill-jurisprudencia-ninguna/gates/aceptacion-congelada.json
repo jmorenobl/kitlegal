@@ -1,0 +1,10 @@
+{
+  "tarea": "T001",
+  "commit": "e96204e899a17c64419b023220b2c0f5c1daf777",
+  "ficheros": {
+    "specs/019-h23-skill-jurisprudencia-ninguna/aceptacion/cita-cotejar.txtar": "1680962b888494bdc89be3db30c7b59e084dd3cefd3a8ef21821680c11f008ad",
+    "specs/019-h23-skill-jurisprudencia-ninguna/aceptacion/cita-herramientas.txtar": "f0ae5a36a1ff08a38ed03caf37640083a4a28c38206f43dbb041eb4f7b0a394e",
+    "specs/019-h23-skill-jurisprudencia-ninguna/aceptacion/cita-preparar.txtar": "1246494bb714b8c9c34a64b761125ed9aea4447d5a67d39093fb7806b54c8815",
+    "specs/019-h23-skill-jurisprudencia-ninguna/aceptacion/cita-sin-efectos.txtar": "bc3885fbefb164876570117726ce0b8c12499f2132ab12dc142f8288b64251c7"
+  }
+}

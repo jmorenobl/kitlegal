@@ -1,0 +1,142 @@
+package ids
+
+import (
+	"fmt"
+	"strings"
+)
+
+// La forma del ROJ, el identificador nacional de una resolución en el CENDOJ
+// (H23, FR-005; data-model §1): unas siglas, un espacio, el número, una barra
+// y el año. Los mensajes de rechazo nombran la forma.
+const (
+	// formaROJ es la forma entera, la que nombran los mensajes de rechazo.
+	formaROJ = "<siglas> <número>/<año>"
+	// espacioROJ va entre las palabras de las siglas y entre las siglas y el
+	// número: un solo carácter U+0020, ningún otro blanco.
+	espacioROJ = " "
+	// barraROJ va entre el número y el año.
+	barraROJ = "/"
+)
+
+// ROJ es el identificador nacional de una resolución, <siglas>
+// <número>/<año>: STS 3144/2023. Es inmutable y solo se construye analizando,
+// con AnalizarROJ, o deduciéndolo de un ECLI analizado. El valor cero no es
+// ningún ROJ y se escribe como la cadena vacía.
+type ROJ struct {
+	// siglas son la palabra o las palabras que van delante del número.
+	siglas string
+	// numero son las cifras del número, con sus ceros por delante.
+	numero string
+	// anio son las cuatro cifras del año.
+	anio string
+}
+
+// AnalizarROJ analiza un ROJ: las siglas —una o más palabras de letras
+// mayúsculas ASCII separadas por un solo espacio—, un espacio, el número —una
+// o más cifras ASCII—, una barra y el año de cuatro cifras, sin nada delante
+// ni detrás. La entrada no se recorta ni se pasa a mayúsculas, y las siglas no
+// se buscan en ninguna lista de órganos. Fuera de esa forma devuelve un error
+// de clase «argumentos» que nombra la entrada y dice qué tiene de malo (H23,
+// FR-005, FR-006).
+func AnalizarROJ(entrada string) (ROJ, error) {
+	if entrada == "" {
+		return ROJ{}, entradaInvalida(identificadorROJ, entrada, "está vacío y la forma es "+formaROJ)
+	}
+
+	corte := strings.LastIndex(entrada, espacioROJ)
+	if corte < 0 {
+		return ROJ{}, entradaInvalida(identificadorROJ, entrada, fmt.Sprintf(
+			"no lleva ningún espacio y la forma %s separa con uno las siglas del número", formaROJ))
+	}
+
+	siglas, resto := entrada[:corte], entrada[corte+len(espacioROJ):]
+
+	numero, anio, conBarra := strings.Cut(resto, barraROJ)
+	if !conBarra {
+		return ROJ{}, entradaInvalida(identificadorROJ, entrada, fmt.Sprintf(
+			"tras el último espacio va %q y la forma %s lleva ahí el número, una barra y el año", resto, formaROJ))
+	}
+
+	if err := comprobarSiglas(entrada, siglas); err != nil {
+		return ROJ{}, err
+	}
+
+	if err := comprobarNumeroDelROJ(entrada, numero); err != nil {
+		return ROJ{}, err
+	}
+
+	if err := comprobarAnio(identificadorROJ, entrada, anio); err != nil {
+		return ROJ{}, err
+	}
+
+	return ROJ{siglas: siglas, numero: numero, anio: anio}, nil
+}
+
+// String devuelve el ROJ como se escribió: analizar lo que devuelve da el
+// mismo ROJ.
+func (r ROJ) String() string {
+	if r == (ROJ{}) {
+		return ""
+	}
+
+	return r.siglas + espacioROJ + r.Numero()
+}
+
+// Numero devuelve el número del ROJ con su año, <número>/<año>, tal como van
+// tras las siglas: es lo que se compara con un número de resolución para decir
+// que alguien ha cruzado los dos (H23, FR-025). El del valor cero es la cadena
+// vacía.
+func (r ROJ) Numero() string {
+	if r == (ROJ{}) {
+		return ""
+	}
+
+	return r.numero + barraROJ + r.anio
+}
+
+// ECLI devuelve el ECLI que equivale al ROJ y si se deduce. Se deduce en una
+// sola pareja, la de ECLI.ROJ en el otro sentido: el ROJ de siglas STS es el
+// ECLI de órgano TS con su número y su año, trasladados carácter a carácter y
+// sin normalizar. De cualquier otro —otras siglas, el valor cero— no se deduce
+// nada, y tampoco de uno cuyo número no cabe en un ECLI, que admite hasta 25
+// caracteres: lo que acompaña al falso es el valor cero, nunca un ECLI
+// compuesto a medias ni uno que AnalizarECLI rechazaría (H23, FR-012).
+func (r ROJ) ECLI() (ECLI, bool) {
+	if r.siglas != siglasDeLaPareja || len(r.numero) > maximoDelNumero {
+		return ECLI{}, false
+	}
+
+	return ECLI{organo: organoDeLaPareja, anio: r.anio, numero: r.numero}, true
+}
+
+// comprobarSiglas exige que las siglas sean una o más palabras de letras
+// mayúsculas ASCII, separada cada una de la siguiente por un solo espacio.
+func comprobarSiglas(entrada, siglas string) error {
+	for palabra := range strings.SplitSeq(siglas, espacioROJ) {
+		if palabra == "" {
+			return entradaInvalida(identificadorROJ, entrada, fmt.Sprintf(
+				"las siglas %q no son una o más palabras separadas por un solo espacio", siglas))
+		}
+
+		if ajeno, hayAjeno := caracterAjeno(palabra, esMayuscula); hayAjeno {
+			return entradaInvalida(identificadorROJ, entrada, fmt.Sprintf(
+				"las siglas %q llevan %q, que no es una letra mayúscula de la A a la Z", siglas, ajeno))
+		}
+	}
+
+	return nil
+}
+
+// comprobarNumeroDelROJ exige que el número sean una o más cifras ASCII.
+func comprobarNumeroDelROJ(entrada, numero string) error {
+	if numero == "" {
+		return entradaInvalida(identificadorROJ, entrada, "el número está vacío y son una o más cifras")
+	}
+
+	if ajeno, hayAjeno := caracterAjeno(numero, esCifra); hayAjeno {
+		return entradaInvalida(identificadorROJ, entrada, fmt.Sprintf(
+			"el número %q lleva %q, que no es una cifra", numero, ajeno))
+	}
+
+	return nil
+}

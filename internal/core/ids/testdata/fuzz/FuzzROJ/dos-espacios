@@ -1,0 +1,2 @@
+go test fuzz v1
+string("SAP  M 1234/2020")
