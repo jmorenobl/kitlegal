@@ -2,9 +2,9 @@
   "ficheros": [
     {
       "fichero": "LEEME.md",
-      "sha256": "5d6b1310a05f7ca2ddaff8bf35843fc5fd7dd9cf9a29d580250024a9371a9d5c",
-      "bytes": 2129,
-      "fecha": "2026-10-06",
+      "sha256": "3764375d316eee11870ec667a07be9f7493d56a33f47ac79e350d68d621e6ae4",
+      "bytes": 2166,
+      "fecha": "2026-10-07",
       "versionado": "sí",
       "origen": "enmienda del ADR 0036"
     },

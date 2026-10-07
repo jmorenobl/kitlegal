@@ -1,7 +1,9 @@
 # 0036 · Del CENDOJ, resolver una resolución identificada por su formulario; la búsqueda la hace la persona
 
 - **Estado**: aceptada (2026-10-03, #109). Enmendada el 2026-10-06, antes de lanzar H23, sin cambiar la decisión
-  («Enmienda: lo que la entrada de H23 contradecía»).
+  («Enmienda: lo que la entrada de H23 contradecía»). **Enmendada otra vez el 2026-10-07: la consulta automática deja de
+  hacerse** («Enmienda: el buscador pide un CAPTCHA»). Siguen en pie lo que no se hace y que la búsqueda es de la
+  persona; cambia que kitlegal resuelva una resolución identificada.
 - **Fecha**: 2026-10-02
 - **Hito**: transversal (tras H22, antes del hito de jurisprudencia del backlog «fuentes»). Sustituye del ADR
   0003 el primer punto de su decisión (resolver por el resolutor ECLI europeo, «no del buscador») y corrige dos
@@ -144,3 +146,60 @@ donde este ADR no llegó, y corrige la entrada del hito donde chocaba con él.
 - **Si el CENDOJ bloquea una grabación, no se insiste.** El test de grabación falla con una respuesta que no es
   ni resultados ni «no se ha encontrado»: un CAPTCHA o un 403 no quedan como fixture, el run se detiene y decide
   una persona. La página del CAPTCHA no se provoca para tenerla: en los tests es una página que no se reconoce.
+
+## Enmienda: el buscador pide un CAPTCHA (2026-10-07)
+
+Decidida por Jorge. Cambia el primer punto de la decisión —«Qué se consulta»— y con él «Qué se obtiene» y «Cómo se
+pide»: kitlegal no consulta el CENDOJ. El resto queda como estaba, y se cumple lo que «En contra, y asumido» ya
+decía: «la función dejaría de responder […]; no se buscaría otra forma de entrar».
+
+**Qué pasó.**
+
+- El run de H23 (`94cbbfec`) llegó a grabar el 2026-10-07 de madrugada. La página del buscador respondió 200, con
+  su cookie; el envío del formulario con `ECLI:ES:TS:2023:3144`, un 302, las dos veces. El test de grabación no
+  guardó nada y el run se detuvo, como pedía la enmienda del día anterior.
+- La prueba a mano del 2026-10-02, repetida esa mañana con `curl` y el agente del proyecto, dio lo mismo: `302`,
+  con `Location: captchalogin.jsp?prevaction=query&…`. La petición de kitlegal, volcada contra un servidor local,
+  era la de esa prueba: no era un defecto de `internal/httpx`.
+- Una persona con un navegador no recibe el CAPTCHA: Jorge buscó ese ECLI en su navegador y en una ventana
+  privada, sin cookies, y obtuvo la sentencia. La página no ha cambiado desde julio y su formulario no lleva
+  ninguna clave. El buscador distingue al cliente que se identifica como programa.
+
+**Opciones consideradas.**
+
+1. **Presentarse como un navegador**, o pedir desde un navegador sin ventana. Rechazada: es lo que este ADR
+   prohíbe con esas palabras, y lo que sostiene su lectura del aviso legal es que kitlegal dice quién es. Si
+   funcionara, el producto no podría llevarlo.
+2. **Automatizar solo la búsqueda por texto**, por la dirección que abre el buscador con una búsqueda hecha, y que
+   la skill diga qué descargar. Rechazada: es la búsqueda por materia que este ADR dejó a la persona, es buscar otra
+   entrada el día en que el buscador cierra una, y su lista trae los resúmenes del CENDOJ.
+3. **Grabar las respuestas desde el navegador de una persona** y entregar `cita resolver`. Rechazada: tests en
+   verde sobre algo que no funciona para quien lo usa.
+4. **Esperar y repetir la prueba.** Rechazada como plan: aunque el control fuera intermitente, la función fallaría
+   en uso real sin aviso.
+5. **Que la comprobación la haga la persona, con lo que le prepara la skill.** Elegida.
+
+**Qué se decide.**
+
+- **kitlegal no consulta el CENDOJ de forma automática**, ni por su formulario ni por ninguna otra dirección.
+  `cendoj.jurisprudencia` sale de `docs/SOURCES.md`: sin fila, ningún run graba de él.
+- **La persona comprueba y trae el documento.** La skill le da, para una sentencia identificada, la dirección del
+  buscador y la casilla con su valor, y para una búsqueda por materia, la dirección que abre el buscador con la
+  búsqueda hecha. Las dos se probaron a mano el 2026-10-07 (`docs/JURISPRUDENCIA.md` §3). La persona descarga lo
+  que le interesa y lo adjunta.
+- **Ninguna sentencia se cita sin su documento delante**, y la respuesta no dice que una sentencia existe ni que
+  no existe: no lo ha comprobado. El binario comprueba, sin red, que el documento traído es el pedido.
+- **La constitución vuelve a GET y HEAD sin excepción** (2.13.0), y dice que un CAPTCHA o un bloqueo de una fuente
+  no se sortean. La excepción del formulario duró un día y no la usó ningún código de `main`. Workflow `hito`
+  2.5.2: la rúbrica de los jueces finales, como antes.
+- **De la enmienda del día anterior siguen en pie**: la fecha para probar un número como ROJ, que pasa a ser para
+  prepararlo; la forma fija de la cita y de la línea `⚠ SENTENCIA NO COMPROBADA:`; el umbral por el ECLI; el juez
+  de `jurisprudencia` en H25; y el fragmento que trae una persona. Decaen el formulario en `internal/httpx`, la
+  comprobación de la fuente a petición y las reglas de la grabación: no hay nada que grabar.
+
+**Lo que se pierde, y se asume.** La comprobación deja de hacerla la máquina: la cita se apoya en el documento que
+aporta la persona, y la respuesta lo dice. Un documento falso o alterado no lo detecta nadie. A cambio, la función
+no depende de que el buscador deje pasar a un programa.
+
+**Lo que haría volver a abrirlo.** Un acuerdo con el CGPJ por su procedimiento de reutilización, con un ADR nuevo.
+No un cambio de comportamiento del buscador que se descubra probando.
