@@ -1941,15 +1941,17 @@ const (
 		"https://kitlegal.es/instalar/"
 )
 
-// skillsConLineaSinConsulta son las skills que skills/ tiene que tener para que
-// la subprueba linea-sin-consulta no pase en vacío para ninguna de las dos que
-// llevan la regla (FR-035 de H21).
+// skillsConLineaSinConsulta son las skills que llevan la regla, las dos que
+// consultan el BOE, y las que skills/ tiene que tener para que la subprueba
+// linea-sin-consulta no pase en vacío para ninguna (FR-035 de H21).
+// jurisprudencia no está: no consulta el BOE y, sin herramienta ni binario,
+// lleva su propia línea (research.md D16 de H23).
 var skillsConLineaSinConsulta = []string{"boe-legislacion", "legal-core"}
 
 // probarLineaSinConsulta es la subprueba linea-sin-consulta de
 // TestEvalsDelRepositorio (contracts/skills.md §5 de H21; FR-035, FR-077): el
-// SKILL.md de cada skill de skills/ dice la línea de contracts/skills.md §3 tal
-// cual en un bloque de código text, y esa línea casa con lo que el juicio
+// SKILL.md de cada skill que lleva la regla dice la línea de contracts/skills.md
+// §3 tal cual en un bloque de código text, y esa línea casa con lo que el juicio
 // reconoce, ExtraerSinConsulta, con su dirección. Cada defecto nombra la skill.
 func probarLineaSinConsulta(t *testing.T) {
 	t.Parallel()
@@ -1960,7 +1962,7 @@ func probarLineaSinConsulta(t *testing.T) {
 
 	var defectos []string
 
-	for _, nombre := range nombres {
+	for _, nombre := range skillsConLineaSinConsulta {
 		skill, err := skills.Cargar(raizDeLasSkills, nombre)
 		require.NoError(t, err)
 
@@ -1969,7 +1971,7 @@ func probarLineaSinConsulta(t *testing.T) {
 		}
 	}
 
-	assert.Empty(t, defectos, "cada SKILL.md de skills/ enseña la línea %s en un bloque text:\n%s",
+	assert.Empty(t, defectos, "cada SKILL.md que lleva la regla enseña la línea %s en un bloque text:\n%s",
 		formaEscrita(etiquetaSinConsulta), strings.Join(defectos, "\n"))
 }
 

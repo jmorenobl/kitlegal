@@ -55,9 +55,10 @@ const (
 
 // skillsExigidas son las skills que skills/ tiene que tener: sin una de ellas,
 // las comprobaciones sobre skills/ pasarían en vacío para ella (plan, obligación
-// 12). boe-legislacion la trajo H5 y legal-core, H6. Los casos negativos no
-// salen de esta lista, sino de las skills que hay (skillsDelRecorrido).
-var skillsExigidas = []string{"boe-legislacion", "legal-core"}
+// 12). boe-legislacion la trajo H5; legal-core, H6, y jurisprudencia, H23. Los
+// casos negativos no salen de esta lista, sino de las skills que hay
+// (skillsDelRecorrido).
+var skillsExigidas = []string{"boe-legislacion", "jurisprudencia", "legal-core"}
 
 // cabeceraDeUnaReferencia es la primera línea de una referencia generada, que
 // nombra el YAML de datos del que sale (FR-031, FR-065, FR-066).
@@ -893,15 +894,21 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 }
 
 // metadataDeKitlegal es el bloque metadata de un frontmatter que declara los
-// applets y las referencias dados, en su orden.
+// applets y las referencias dados, en su orden. Sin referencias no lleva la
+// clave kitlegal-referencias, como el frontmatter de la skill que no declara
+// ninguna (research.md D15 de H23).
 func metadataDeKitlegal(applets []string, referencias []referenciaDelRecorrido) string {
+	metadata := "metadata:\n  kitlegal-applets: " + strings.Join(applets, " ") + "\n"
+	if len(referencias) == 0 {
+		return metadata
+	}
+
 	nombres := make([]string, 0, len(referencias))
 	for _, referencia := range referencias {
 		nombres = append(nombres, referencia.nombre)
 	}
 
-	return "metadata:\n  kitlegal-applets: " + strings.Join(applets, " ") + "\n  kitlegal-referencias: " +
-		strings.Join(nombres, " ") + "\n"
+	return metadata + "  kitlegal-referencias: " + strings.Join(nombres, " ") + "\n"
 }
 
 // referenciaSinSusDatos es el caso de la referencia sin el YAML de datos del que
@@ -1090,6 +1097,9 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 		fallos = append(fallos, skill.nombre+": "+referencia.fichero()+": fichero-ausente")
 	}
 
+	// La skill que no declara referencias no tiene references/ (research.md D15
+	// de H23): la carpeta se crea antes de dejar en ella la sobrante.
+	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
 	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "antigua.md"), "# Antigua\n")
 	fallos = append(fallos, skill.nombre+": references/antigua.md: fichero-sobrante")
 

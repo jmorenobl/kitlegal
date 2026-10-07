@@ -2,7 +2,7 @@
 # fichero, enlace a otro sitio o enlace roto—, en el directorio neutro o en el
 # del host, es un conflicto: `install` los comprueba todos antes de escribir
 # nada, los nombra todos con su clase y su ruta, no crea ni cambia nada y
-# termina con 7 (ADR 0023); un conflicto en la segunda skill deja la primera sin instalar;
+# termina con 7 (ADR 0023); un conflicto en la última skill deja las anteriores sin instalar;
 # y el enlace de host que ya es exactamente el esperado no es conflicto, aunque
 # cuelgue: se adopta y se declara.
 #
@@ -135,9 +135,10 @@ cmp stdout $WORK/antes.txt
 
 # --- Todos a la vez: se nombran todos, por ruta (FR-040, FR-042) ---
 #
-# Un conflicto en cada entrada de las dos skills, en el directorio neutro y en
-# el host: cuatro, uno por entrada, ordenados por ruta byte a byte —que aquí no
-# es ni el orden de las clases ni el de las skills— y nada escrito.
+# Un conflicto en cada entrada de boe-legislacion y de legal-core, en el
+# directorio neutro y en el host, y ninguno en las de jurisprudencia: cuatro,
+# uno por entrada, ordenados por ruta byte a byte —que aquí no es ni el orden de
+# las clases ni el de las skills— y nada escrito.
 mkdir $WORK/varios/.agents/skills
 mkdir $WORK/varios/.claude/skills
 cd $WORK/varios
@@ -151,11 +152,12 @@ stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto
 arbol .
 cmp stdout $WORK/antes.txt
 
-# --- Atomicidad entre skills: un conflicto en la segunda (FR-043, SC-008) ---
+# --- Atomicidad entre skills: un conflicto en la última (FR-043, SC-008) ---
 #
-# legal-core es una carpeta ajena y boe-legislacion no tiene ninguno: la orden
-# sale con 7 y boe-legislacion no se instala; el disco queda intacto.
-cd $WORK/segunda
+# legal-core es una carpeta ajena y boe-legislacion y jurisprudencia no tienen
+# ninguno: la orden sale con 7 y ninguna de las dos se instala; el disco queda
+# intacto.
+cd $WORK/ultima
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
@@ -163,6 +165,7 @@ stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","
 arbol .
 cmp stdout $WORK/antes.txt
 ! exists .agents/skills/boe-legislacion
+! exists .agents/skills/jurisprudencia
 ! exists .agents/skills/kitlegal.json
 
 # Sin la bandera --json, el mismo mensaje en la salida de error y nada en la
@@ -177,17 +180,19 @@ cmp stdout $WORK/antes.txt
 #
 # .claude/skills/boe-legislacion ya es ../../.agents/skills/boe-legislacion y
 # el manifiesto no existe: no es conflicto; queda tal cual, declarado, y la
-# salida lo nombra con su modo; legal-core se enlaza como siempre.
+# salida lo nombra con su modo; jurisprudencia y legal-core se enlazan como
+# siempre.
 mkdir $WORK/adopta/.claude/skills
 cd $WORK/adopta
 symlink .claude/skills/boe-legislacion -> ../../.agents/skills/boe-legislacion
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 exec readlink .claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
 cmp .claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
 grep '"ruta": *"\.claude/skills/boe-legislacion"' .agents/skills/kitlegal.json
+grep '"ruta": *"\.claude/skills/jurisprudencia"' .agents/skills/kitlegal.json
 grep '"ruta": *"\.claude/skills/legal-core"' .agents/skills/kitlegal.json
 
 -- carpeta-ajena/.agents/skills/boe-legislacion/mio.md --
@@ -208,5 +213,5 @@ Un fichero con el nombre de una skill.
 Una carpeta que no instaló kitlegal.
 -- varios/otro-sitio/mio.md --
 Lo que hay al otro lado del enlace.
--- segunda/.agents/skills/legal-core/mio.md --
+-- ultima/.agents/skills/legal-core/mio.md --
 Una carpeta que no instaló kitlegal.

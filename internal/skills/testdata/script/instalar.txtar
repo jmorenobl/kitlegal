@@ -1,6 +1,6 @@
 # Instalación en limpio: `make install` deja el binario en el directorio de
 # binarios de Go y, con ese binario recién instalado, instala las skills en
-# global: las dos skills y su manifiesto en ~/.agents/skills/ y un enlace
+# global: las tres skills y su manifiesto en ~/.agents/skills/ y un enlace
 # relativo por skill en ~/.claude/skills/, con el destino literal
 # ../../.agents/skills/<skill>; y no crea bin/instalado/ (US2 escenario 3,
 # FR-125, FR-126, SC-018; contracts/skills-e-invocacion.md §5).
@@ -22,21 +22,24 @@ exec make -C $WORK/repo install
 exists $WORK/gobin/kitlegal
 ! exists $WORK/repo/bin/instalado
 
-# En ~/.agents/skills/, las dos skills y el manifiesto, y nada más (FR-126,
+# En ~/.agents/skills/, las tres skills y el manifiesto, y nada más (FR-126,
 # SC-018).
 exec ls -A $HOME/.agents/skills
-stdout '\Aboe-legislacion\nkitlegal\.json\nlegal-core\n\z'
+stdout '\Aboe-legislacion\njurisprudencia\nkitlegal\.json\nlegal-core\n\z'
 
 # En ~/.claude/skills/, un enlace relativo por skill con el destino literal
 # ../../.agents/skills/<skill>, y nada más (FR-126, SC-018).
 exec ls -A $HOME/.claude/skills
-stdout '\Aboe-legislacion\nlegal-core\n\z'
+stdout '\Aboe-legislacion\njurisprudencia\nlegal-core\n\z'
 exec readlink $HOME/.claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $HOME/.claude/skills/jurisprudencia
+stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink $HOME/.claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 
 # Y el SKILL.md instalado de cada skill es, byte a byte, el del árbol del que
 # se compiló el binario (FR-126).
 cmp $HOME/.agents/skills/boe-legislacion/SKILL.md $WORK/repo/skills/boe-legislacion/SKILL.md
+cmp $HOME/.agents/skills/jurisprudencia/SKILL.md $WORK/repo/skills/jurisprudencia/SKILL.md
 cmp $HOME/.agents/skills/legal-core/SKILL.md $WORK/repo/skills/legal-core/SKILL.md

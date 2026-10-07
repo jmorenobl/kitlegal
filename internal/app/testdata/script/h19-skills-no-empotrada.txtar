@@ -13,7 +13,7 @@
 # La skill no empotrada, otra-skill, se declara en un manifiesto escrito como
 # lo habría escrito ese otro binario (contracts/manifiesto.md §1): su SKILL.md
 # en el disco no tiene la huella declarada, su versión es v0.0.9 y su entrada de
-# host apunta a otro sitio. Todos los binarios del arnés empotran las mismas dos
+# host apunta a otro sitio. Todos los binarios del arnés empotran las mismas tres
 # skills (contracts/arnes-e2e.md §2). Que su entrada queda byte a byte se
 # comprueba sobre el manifiesto entero tras una actualización con otro binario:
 # devolviendo la versión nueva a la anterior, es el mismo de antes.
@@ -34,19 +34,19 @@ cp stdout $WORK/otra-skill.txt
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c '"$KITLEGAL_V1_BIN" skills install otra-skill --json; test $? -eq 2'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
-stderr 'no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, jurisprudencia, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr 'no es ninguna skill de este binario; skills disponibles: boe-legislacion, jurisprudencia, legal-core'
 exec sh -c '"$KITLEGAL_V1_BIN" skills install legal-core otra-skill; test $? -eq 2'
-stderr 'no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core'
+stderr 'no es ninguna skill de este binario; skills disponibles: boe-legislacion, jurisprudencia, legal-core'
 arbol .
 cmp stdout $WORK/antes.txt
 
 # --- install sin nombres no la pide ni la toca (US4.9) ---
 #
-# Instala y enlaza las dos empotradas, y otra-skill sigue declarada, con sus
+# Instala y enlaza las tres empotradas, y otra-skill sigue declarada, con sus
 # ficheros y su enlace de host como estaban.
 exec $KITLEGAL_V1_BIN skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stdout 'otra-skill'
 ! stderr .
 arbol .agents/skills/otra-skill
@@ -60,7 +60,7 @@ grep '"ruta": *"\.claude/skills/otra-skill"' .agents/skills/kitlegal.json
 
 # --- list la muestra, marcada como no empotrada (US4.9, FR-060) ---
 exec $KITLEGAL_V1_BIN skills list --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\},\{"nombre":"otra-skill","ruta":"\.agents/skills/otra-skill","version":"v0\.0\.9","empotrada":false,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/otra-skill","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\},\{"nombre":"otra-skill","ruta":"\.agents/skills/otra-skill","version":"v0\.0\.9","empotrada":false,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/otra-skill","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stderr .
 
 # --- doctor no la diagnostica (US4.9, SC-011) ---
@@ -78,7 +78,7 @@ exec $KITLEGAL_V1_BIN territorio resolver Leganés --json
 # --- Una actualización con otro binario conserva su entrada byte a byte (FR-034, FR-036) ---
 cp .agents/skills/kitlegal.json $WORK/manifiesto-v1.json
 exec $KITLEGAL_V2_BIN skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stdout 'otra-skill'
 exec sh -c 'sed "s/\"v0\.2\.0\"/\"v0.1.0\"/g" .agents/skills/kitlegal.json'
 cmp stdout $WORK/manifiesto-v1.json
@@ -100,7 +100,7 @@ exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
 # porque tienen entrada de host; ejecutada, deja doctor en 0 y otra-skill como
 # estaba.
 exec $KITLEGAL_V1_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core --host claude"\}\]\}\}\n\z'
 ! stderr .
 cp stdout $WORK/doctor.json
 mkdir $WORK/bin-v1
