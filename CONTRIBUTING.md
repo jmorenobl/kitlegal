@@ -82,7 +82,7 @@ estables del proyecto:
 
 ```console
 $ ./bin/kitlegal inventado
-argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, graph, mcp, skills, territorio; la versión, con «kitlegal version»
+argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, cita, graph, mcp, skills, territorio; la versión, con «kitlegal version»
 $ echo $?
 2
 ```

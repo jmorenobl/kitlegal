@@ -60,13 +60,13 @@ boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
 -- vigente.txt --
 protocolo 2026-07-28
 capacidades tools
-1 herramientas 13
+1 herramientas 15
 2 boe_articulo resultado
 salida 0
 -- anterior.txt --
 protocolo 2025-11-25
 capacidades tools
-1 herramientas 13
+1 herramientas 15
 2 boe_articulo resultado
 salida 0
 -- dos-llamadas.txt --
@@ -76,7 +76,7 @@ boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21"}
 -- otra-version.txt --
 protocolo 2025-11-25
 capacidades tools
-1 herramientas 13
+1 herramientas 15
 2 territorio_resolver resultado
 3 boe_articulo resultado
 salida 0

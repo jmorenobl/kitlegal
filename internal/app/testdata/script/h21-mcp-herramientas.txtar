@@ -2,15 +2,17 @@
 # del registro salvo los de skills y mcp, con el nombre <applet>_<verbo> y de
 # solo lectura; ninguna otra capacidad que tools; y unas instructions de texto
 # fijo, con sus cinco frases. El binario de e2e lleva en su registro, además de
-# los applets de producción, los de ejemplo, así que su lista tiene las diez
-# herramientas de producción y contar_letras, contar_palabras y echo_repetir:
-# un applet más aparece como herramienta sin tocar mcp.
+# los applets de producción, los de ejemplo, así que su lista tiene las doce
+# herramientas de producción —con cita_cotejar y cita_preparar desde H23— y
+# contar_letras, contar_palabras y echo_repetir: un applet más aparece como
+# herramienta sin tocar mcp.
 #
 # Cubre: US6.1, US6.2, US4.6 · FR-001, FR-002, FR-003, FR-004, FR-005, FR-006,
 # FR-008 · SC-003.
 #
 # La orden mcp, las líneas que escribe y los ficheros que deja son los de
-# contracts/arnes-e2e.md §3; las trece herramientas, las de §2. El orden de la
+# contracts/arnes-e2e.md §3; las quince herramientas, las de §2 y las dos de
+# cita (contracts/applet-cita.md §7 de H23). El orden de la
 # lista y la capacidad son los de contracts/servidor-mcp.md §2 y §6, y el texto
 # de las instructions, el de §5. Los esquemas y la descripción de cada
 # herramienta no se miran aquí: los compara con --describe el control de
@@ -24,7 +26,7 @@ stdout '^\s+mcp\s'
 mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
 cmp stdout salida.txt
 
-# Las trece, en el orden del servidor y todas de solo lectura: ninguna de
+# Las quince, en el orden del servidor y todas de solo lectura: ninguna de
 # skills, ninguna de mcp y ninguna del verbo reservado version (FR-002,
 # FR-004, FR-005).
 cmp mcp-1.txt herramientas.txt
@@ -37,7 +39,7 @@ herramientas
 -- salida.txt --
 protocolo 2026-07-28
 capacidades tools
-1 herramientas 13
+1 herramientas 15
 salida 0
 -- herramientas.txt --
 boe_analisis lectura=true
@@ -46,6 +48,8 @@ boe_articulos lectura=true
 boe_buscar lectura=true
 boe_indice lectura=true
 boe_metadatos lectura=true
+cita_cotejar lectura=true
+cita_preparar lectura=true
 contar_letras lectura=true
 contar_palabras lectura=true
 echo_repetir lectura=true

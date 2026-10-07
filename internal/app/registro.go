@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 	"unicode"
@@ -225,16 +226,19 @@ func validarVerbos(applet string, verbos []Verbo) error {
 }
 
 // RegistroDeProduccion es el registro del binario que se publica: el applet boe
-// con las dependencias de la red (DependenciasDeRed), el applet graph con las
-// del sistema (DependenciasDelGrafoDelSistema), el applet mcp con las del
+// con las dependencias de la red (DependenciasDeRed), el applet cita, que no
+// tiene ninguna (H23 FR-001), el applet graph con las del sistema
+// (DependenciasDelGrafoDelSistema), el applet mcp con las del
 // sistema (DependenciasDeMCPDelSistema), el applet skills con las del sistema
 // (DependenciasDeSkillsDelSistema) y el applet territorio con los ficheros que
-// viajan en el binario (FuentesEmbebidas); y, como almacén al que el kernel
+// viajan en el binario (FuentesEmbebidas); como almacén al que el kernel
 // entrega lo que observa cada invocación, el grafo del mundo en world.db, junto
 // a la caché y con su misma regla de ubicación (graph.Nuevo sin opciones;
-// FR-001, FR-030). Los applets de ejemplo no se registran nunca aquí, sino en
-// el binario que compila el test e2e, que usa exactamente este mismo mecanismo
-// (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
+// FR-001, FR-030); y, como entrada de las órdenes, la entrada estándar del
+// proceso, que el kernel da al verbo que la lee y a nadie más (H23 FR-020;
+// research.md D12 de H23). Los applets de ejemplo no se registran nunca aquí,
+// sino en el binario que compila el test e2e, que usa exactamente este mismo
+// mecanismo (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
 //
 // Esta función es la raíz de composición del registro distribuido, y devuelve
 // el error del registro en lugar de ocultarlo: un registro inválido es un
@@ -243,7 +247,8 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // inesperado antes de atender ninguna invocación, nunca en un código de salida
 // de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
 // nada ni abre nada: tampoco world.db, cuya ruta se resuelve al leer o al
-// entregar, ni la entrada estándar, de la que mcp solo lee cuando sirve.
+// entregar, ni la entrada estándar, de la que mcp solo lee cuando sirve y cita
+// cotejar, cuando se ejecuta sin su documento en un argumento.
 //
 // Recibe la versión del binario que le pasa Arrancar —la cadena vacía quien no
 // tiene ninguna, que no tiene forma SemVer (FR-073)—, y la firma es la de
@@ -266,6 +271,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 
 	applets := []Applet{
 		AppletBoe(DependenciasDeRed()),
+		AppletCita(),
 		AppletGrafo(DependenciasDelGrafoDelSistema()),
 		AppletMCP(DependenciasDeMCPDelSistema(version)),
 		AppletSkills(skills),
@@ -280,6 +286,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 
 	registro.Avisar(AvisoDeVersion(skills))
 	registro.EntregarAlGrafo(graph.Nuevo())
+	registro.LeerDe(os.Stdin)
 
 	return &registro, nil
 }
