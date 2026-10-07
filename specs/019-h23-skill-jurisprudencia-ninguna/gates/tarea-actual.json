@@ -1,16 +1,21 @@
 {
-  "id": "T010",
-  "texto": "T010 [US5] `jurisprudencia` en la matriz del job de evals, comprobada en `make ci` (contracts/evals-jurisprudencia.md §6; research D22, M5, V29, V32, S4; plan.md paso 10). **El flujo**: la matriz del trabajo de evals pasa a `boe-legislacion`, `jurisprudencia` y `legal-core`, con la entrada de `include` de la nueva —concurrencia 1 y objetivo de duración 0, como `legal-core`—; el trabajo se llama `evals (jurisprudencia)`; el tope del trabajo no cambia, porque su peor caso calculado, 20 341 s, cabe en él; ni prueba de red, ni juez, ni grabaciones, ni otra clave del flujo; el trabajo de la medida del juez sigue solo con `boe-legislacion`. **`TestDefinicionDelJob`** (`definicion_test.go`): la lista de skills del trabajo y sus ajustes ganan la tercera, y con definiciones sintéticas falla si la skill no está en la matriz, si su objetivo de duración no es 0 o si el tope queda por debajo del peor caso de alguna de las tres, calculado con la carpeta de evals del repositorio (FR-063). Verificación: con la skill quitada un momento de la matriz del flujo, el test falla nombrándola (se restaura antes de `make ci`); `make ci` en verde. El job no se ejecuta en esta tarea: lo lanza el workflow en el cierre — FR-050, FR-054, FR-063; SC-001. Rutas: .github/workflows/evals.yml, internal/evals/definicion.go",
+  "id": "T011",
+  "texto": "T011 [US6] La documentación que el hito deja falsa o incompleta (contracts/applet-cita.md; contracts/evals-jurisprudencia.md; contracts/skill-jurisprudencia.md; plan.md paso 11). README.md, en «¿Y las sentencias?»: kitlegal sigue sin consultar el CENDOJ, y lo que hace —prepara la consulta exacta, coteja el documento que trae quien pregunta y solo cita la sentencia cuyo documento tiene delante—, con el ADR 0036 como decisión y sin remitir a la sustituida; fuera de esa sección, solo la frase o la lista que el hito deja falsa (las skills que hay, las herramientas del servidor), sin prometer ninguna release. docs/JURISPRUDENCIA.md: lo que pasa a estar hecho —el applet `cita` con sus dos verbos y la skill—, en su apartado del hito y en lo pendiente, sin tocar lo que documenta lo probado a mano. CHANGELOG.md, *Unreleased*: `kitlegal cita preparar` y `kitlegal cita cotejar` con lo que dan y sus códigos, las herramientas `cita_preparar` y `cita_cotejar`, la skill `jurisprudencia` con lo que hace para quien la usa, la anotación `x-banderas` de `--describe` y las banderas en la tabla de comandos, y lo del job: `sentencias` y los comandos de `cita` en el formato de eval, el umbral `cita_sin_documento` y el trabajo `evals (jurisprudencia)`. CONTRIBUTING.md, en «Skills y evals» («Formato común de eval» y «Job de evals»): las claves nuevas y su juicio sin modelo, qué cuenta como salida de una operación, los cuatro umbrales de `jurisprudencia`, que no tiene juez hasta H25 y la tercera skill de la matriz; y, donde describe el servidor MCP o `--describe`, las dos herramientas nuevas y la anotación. internal/evals/doc.go: el comentario del paquete con `sentencias.go` y el umbral nuevo. Verificación: cada orden, fichero, test, clave y umbral que se nombra existe en el árbol (`grep` uno a uno); ningún texto dice que una sentencia se comprueba sin su documento ni que kitlegal consulta el CENDOJ; `make ci` en verde. No se editan los ADR, el roadmap, la bitácora de uso, la memoria del proyecto, la web ni los specs de otros hitos — FR-070, FR-088; SC-010. Rutas: README.md, docs/JURISPRUDENCIA.md, CHANGELOG.md, CONTRIBUTING.md, internal/evals/doc.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "510a79006bc9e8a253029f85082b4913dc179175",
+  "base": "4f8b6b69008b0ead022ebf5deec317eed276804f",
   "rutas": [
-    ".github/workflows/evals.yml",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "README.md",
+    "contracts/applet-cita.md",
     "contracts/evals-jurisprudencia.md",
-    "definicion_test.go",
-    "internal/evals/definicion.go",
-    "plan.md"
+    "contracts/skill-jurisprudencia.md",
+    "docs/JURISPRUDENCIA.md",
+    "internal/evals/doc.go",
+    "plan.md",
+    "sentencias.go"
   ],
   "cierre": false,
   "converger": false,
