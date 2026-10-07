@@ -78,6 +78,10 @@ Cada cosa que falta da su motivo y la sesión no pasa. Nada de esto usa un model
 | `casillas` | la respuesta contiene el nombre y el valor de cada una, tal cual | `falta la casilla <nombre>`, `falta el valor <valor> de la casilla <nombre>` |
 | `direccion_de_busqueda` | la respuesta contiene, tal cual, la `direccion` que devolvió en la sesión un `cita preparar` con texto (§3) | `ninguna orden devolvió una dirección de búsqueda`, o `falta la dirección de búsqueda <dirección>` |
 
+Dos casos que la tabla no da: si la orden escribe `--roj` dos veces, vale el último, que es el que vale para el
+binario; y si la sesión hizo varias búsquedas por texto, vale la dirección de cualquiera, y el motivo de que falte las
+nombra todas, separadas por « o ».
+
 Lo que la respuesta escribe delante del corchete, lo que dice que difiere y lo que sigue a la marca de la línea no se
 comparan (FR-051). El resultado de cada sesión en `informe.json` no gana claves: lo que falta va en sus `motivos`.
 Un comando de `cita` no pide ninguna respuesta grabada al preparar la sesión, como los de `territorio`: el applet no
@@ -121,7 +125,8 @@ D20). Por cada modo del plan, el del modo orden delante:
 Los dos con `"<="` 0 y `decide: true`. Con las evals del repositorio, `umbrales` de `jurisprudencia` son cuatro, en
 este orden: `sin_activar` y `cita_sin_documento` del modo orden, y los dos del modo herramienta; los de
 `boe-legislacion` siguen siendo doce y los de `legal-core`, ninguno (FR-063). Ninguno de duración: el trabajo no
-tiene objetivo. Un elemento, 330 bytes:
+tiene objetivo. Un elemento, 376 bytes escrito sin blancos; el de `sin_activar` de ese modo, 273, y los dos del modo
+herramienta, 12 más cada uno:
 
 ```json
 {"nombre":"cita_sin_documento:claude-sonnet-5-5:orden","descripcion":"Respuestas de claude-sonnet-5-5 en el modo orden con una cita de sentencia sin documento cotejado o con un ECLI que no viene de una operación ni de la pregunta, sobre sus respuestas medidas en las evals que activan la skill","medida":0,"total":18,"comparacion":"<=","umbral":0,"cumple":true,"decide":true}
@@ -134,7 +139,8 @@ umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 18 (5,6 %), y tiene que 
 ```
 
 con el nombre de la sesión en `<sesión>`, `(cita sin documento cotejado)` para la condición 1 y `(sin origen)` para
-la 2; las sesiones, separadas por `; `. Con un motivo, el veredicto es `fallo` y el trabajo `evals (jurisprudencia)` sale en rojo, como hoy.
+la 2; los ECLI de una misma sesión, separados por ` · `, y las sesiones, por `; `. Con un motivo, el veredicto es
+`fallo` y el trabajo `evals (jurisprudencia)` sale en rojo, como hoy.
 
 ## 5. Los seis ficheros de `evals/jurisprudencia/`
 
@@ -285,7 +291,7 @@ Todas las sesiones de estos tests son sintéticas: ninguno abre una sesión con 
 
 | Salida | Quién la lee y cuándo | Tamaño | Cuándo deja de darse |
 |---|---|---|---|
-| `umbrales` del informe de `jurisprudencia` | El job, el informe final del workflow y la persona; una vez por job | 4 elementos de 230 a 330 bytes, sobre 18 respuestas por modo; fijo | Cada job los mide de nuevo sobre su commit |
+| `umbrales` del informe de `jurisprudencia` | El job, el informe final del workflow y la persona; una vez por job | 4 elementos de 273 a 388 bytes, escritos sin blancos, sobre 18 respuestas por modo; fijo | Cada job los mide de nuevo sobre su commit |
 | El motivo de `cita_sin_documento` | La persona y la reparación del cierre | Unos 170 bytes más unos 90 por respuesta que cuenta; como mucho 18 por modo | En el primer job que lo cumple |
 | Las tasas | `scripts/workflow/informe.sh` y la persona; una vez por run | 24 series: seis evals, dos modos y dos modelos | Cada job las mide de nuevo |
 | `invocaciones[].orden` de una llamada a `cita_cotejar` | La persona, al leer `informe.json` | Lleva el `documento` que pasó el modelo: la ficha, 316 bytes en las evals 04 y 06, por sesión, si sigue el paso 3 de la skill; como mucho, el fragmento entero, 2,4 kB | No es una señal |

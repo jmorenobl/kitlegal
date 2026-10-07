@@ -16,9 +16,11 @@ cada tarea lo deja en verde al terminar.
 **ficha** son sus once primeras líneas, 316 bytes. Ninguna tarea lo escribe ni lo cambia, y ninguna escribe de memoria
 el texto de una sentencia: los tests lo leen de su fichero, un guion e2e lo toma por
 `$KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt`, y donde hace falta dentro de otro
-fichero —las preguntas de dos evals, la ficha de una llamada de herramienta— se lleva con una orden (`sed`, `head`),
-nunca tecleado. Las líneas de las tareas lo nombran «el fragmento» y no por su ruta, porque el extractor de rutas del
-workflow declara toda ruta que aparece en una línea y `precheck.sh` rechaza la que nombra esa carpeta.
+fichero —las preguntas de dos evals, la ficha de una llamada de herramienta y, porque un test de `internal/core` no
+puede abrir un fichero de fuera de su paquete (R1), la semilla `fragmento` del corpus de `FuzzLeerFicha`, cuya huella
+comprueban los tests de ese paquete— se lleva con una orden (`sed`, `head`), nunca tecleado. Las líneas de las tareas
+lo nombran «el fragmento» y no por su ruta, porque el extractor de rutas del workflow declara toda ruta que aparece en
+una línea y `precheck.sh` rechaza la que nombra esa carpeta.
 
 **Aceptación**: cuatro guiones `testscript` (plan.md, «Aceptación e2e»), que escribe T001 en
 `specs/019-h23-skill-jurisprudencia-ninguna/aceptacion/` y quedan congelados. El workflow comprueba que cada uno falla
@@ -78,9 +80,10 @@ tras la revisión final; quickstart.md §10 queda para el workflow y §11 para u
   guiones e2e), T007 (`schemas/eval.yaml.json`) y T009 (diecinueve guiones). H23 no graba nada de ninguna fuente
   (plan.md, «Datos externos»; research D29): no hay manifiesto `grabaciones.json` nuevo, ni test de grabación, ni nada
   que grabar para el paso `grabar_datos`. Los golden los escribe el verbo, no una mano; los corpus de fuzz son
-  semillas sintéticas; los esquemas se regeneran desde `--describe` o se editan como contrato del formato de eval; y
-  ningún fichero de `data/` cambia. Las sesiones y los sobres de los tests del juicio y del informe son constantes del
-  `_test.go` o ficheros escritos en `t.TempDir()`.
+  semillas sintéticas, salvo las de `FuzzLeerFicha`: una es el fragmento, copiado de su fichero con una orden, y las
+  otras diez salen de ella con operaciones de texto (`gates/supuestos.md`, T003); los esquemas se regeneran desde
+  `--describe` o se editan como contrato del formato de eval; y ningún fichero de `data/` cambia. Las sesiones y los
+  sobres de los tests del juicio y del informe son constantes del `_test.go` o ficheros escritos en `t.TempDir()`.
 - **[P]**: ninguna tarea lo lleva; en el bucle del workflow todo va en secuencia.
 - **[Story]**: US1 saber qué buscar y dónde · US2 saber si el documento traído es el pedido · US3 una respuesta solo
   cita la sentencia cuyo documento tiene delante · US4 el applet no toca la red, la caché ni el grafo, y llega como

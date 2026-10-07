@@ -92,7 +92,7 @@ se le vio fallar se retiraron, y el prototipo quedó como estaba.
 | `cita cotejar --json`, sin referencia, con el fragmento o con su ficha sola | 559 |
 | `cita cotejar` con el documento pedido, por sus tres formas | 628 a 652 |
 | `cita cotejar` con hallazgo: otra fecha, ROJ cruzado, número cruzado | 869, 949, 1 005 |
-| Un error de argumentos | 294 a 379 |
+| Un error de argumentos | 294 a 379 en el prototipo; 294 a 418 en el binario del hito, donde los tres que da el applet empiezan por «argumentos inválidos:» (contracts/applet-cita.md §6 y §10) |
 | `--describe` de `preparar` y de `cotejar` | 5 385 y 6 472 |
 | La tabla mínima de `cotejar` con hallazgo, sin `--json` | 1 345 |
 
@@ -107,7 +107,9 @@ se le vio fallar se retiraron, y el prototipo quedó como estaba.
   `TestRegistroDeE2E`, `TestHerramientasDelServidor`, `TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos`,
   `TestSuperficieDeIds`), 2 por la anotación y la tabla (`TestTablaDeComandosCoincideConLaGramatica`,
   `TestEsquemasDeHerramienta`), 2 por la skill (`TestSkillsDelRepositorio`, `TestEvalsDelRepositorio`), y 21 guiones
-  e2e (4 por el applet, 17 por la skill).
+  e2e (4 por el applet, 17 por la skill). Es la medida sin la etiqueta `integration`: con ella, que `make ci` ejecuta,
+  la skill rompe además dos guiones de la instalación de desarrollo, `instalar` e `instalar-sin-gobin`, y los guiones
+  son 23 (tasks.md, «Diecinueve guiones, y no diecisiete»).
 - **M5**, cálculo y no medida: el peor caso del trabajo de `jurisprudencia` con concurrencia 1 es
   485 + (⌈37/1⌉ + ⌈36/1⌉) × 272 = 20 341 s, 339,0 minutos (V29: 6 evals × 2 modelos × 3 repeticiones = 36 sesiones por
   modo, más la prueba de red contada en el modo orden; ninguna sin binario ni servidor). Cabe en los 352 del trabajo.
@@ -200,6 +202,9 @@ va `dd/mm/aaaa`: así lo pedido y lo del documento se comparan y se nombran igua
 (`schema.ConClase`, como los de `ids`), con un mensaje en español que nombra la entrada y lo que falla; el kernel lo
 traduce a 2. El applet firma también el fallo (`kitlegal.cita`, `kitlegal:applet/cita`). Orden: primero la
 referencia (FR-006, «antes de hacer nada más»), después el texto. Nada devuelve otra clase: no hay fuente que falle.
+En el producto, tres de esos errores no los puede decidir el dominio y los da el applet con `cli.ErrArgumentos`, con
+el mismo código y la misma clase: `preparar` sin referencia ni `--texto`, la referencia junto a `--texto`, y
+`cotejar` sin ningún texto (contracts/applet-cita.md §6).
 Lo demás —una entrada estándar que no se puede leer— es `inesperado`, 1, por la regla genérica.
 
 **D10 · Sin salida legible propia.** Sin `--json` vale la tabla mínima del kernel (spec, Fuera de alcance; M1).

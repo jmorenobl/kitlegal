@@ -43,11 +43,11 @@ alrededor de ella es un cálculo.
 
 | Pregunta | Operaciones | Lo que el modelo escribe al pedirlas | Lo que recibe | Lo que lleva la respuesta |
 |---|---|---|---|---|
-| Una sentencia que no está delante | 1 `cita preparar` por sentencia | La referencia: menos de 80 bytes, con la orden entera | 470 a 572 bytes por sentencia | Una línea de 60 a 150 bytes y la consulta: la dirección y de una a tres casillas |
+| Una sentencia que no está delante | 1 `cita preparar` por sentencia | La referencia: menos de 80 bytes, con la orden entera | 404 a 572 bytes por sentencia: 470 a 572 con equivalente o con número y fecha, y de 404 a 422 las de M1 sin equivalente | Una línea de 60 a 150 bytes y la consulta: la dirección y de una a tres casillas |
 | Cinco sentencias que no están delante | 5 | Cinco referencias | Unos 2,9 kB | Cinco líneas y cinco consultas |
 | Un documento traído, sin haber pedido ninguno | 1 `cita cotejar` | La ficha: 316 bytes en la del fragmento, y menos de 60 de orden o de llamada alrededor | 559 bytes | La cita, de unos 70 caracteres |
 | Un documento traído, que es el pedido | 1 `cita cotejar` | La ficha y la referencia: unos 400 bytes | 628 a 652 bytes | La cita |
-| Un documento traído, que no es el pedido | 1 `cita cotejar` y 1 `cita preparar` | La ficha y, dos veces, la referencia: menos de 500 bytes | 869 a 1 005 bytes, y 470 a 572 | Qué difiere, la línea de la pedida y su consulta |
+| Un documento traído, que no es el pedido | 1 `cita cotejar` y 1 `cita preparar` | La ficha y, dos veces, la referencia: menos de 500 bytes | 869 a 1 005 bytes, y 404 a 572 | Qué difiere, la línea de la pedida y su consulta |
 | Una pregunta por materia | 1 `cita preparar` con texto | Los términos de la búsqueda | 389 bytes con «cláusula suelo»; el texto va una vez tal cual y dos codificado | Una dirección |
 | Una sentencia del Tribunal Constitucional | Ninguna | Nada | Nada | La declaración y una dirección |
 | Un número sin fecha | Ninguna | Nada | Nada | La línea y la petición de la fecha |

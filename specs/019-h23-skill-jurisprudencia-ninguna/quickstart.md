@@ -1,9 +1,10 @@
 # Quickstart: validar H23
 
 Guía para comprobar la entrega sobre la cabeza del hito. Todas las órdenes se dan desde la raíz del repositorio.
-Los escenarios 1 a 9 no tocan la red ni abren ninguna sesión con modelo; el 10 lo ejecuta el workflow y el 11, una
-persona. Contratos: [applet-cita](./contracts/applet-cita.md), [evals-jurisprudencia](./contracts/evals-jurisprudencia.md)
-y [skill-jurisprudencia](./contracts/skill-jurisprudencia.md).
+Los escenarios 1 a 9 no piden nada a ninguna fuente ni abren ninguna sesión con modelo —la única red es la de las
+herramientas de Go en `make ci` (`vuln`), en el 9—; el 10 lo ejecuta el workflow y el 11, una persona. Contratos:
+[applet-cita](./contracts/applet-cita.md), [evals-jurisprudencia](./contracts/evals-jurisprudencia.md) y
+[skill-jurisprudencia](./contracts/skill-jurisprudencia.md).
 
 **Lo que dejan en el árbol.** `make build` deja `bin/kitlegal`, y `make ci`, `coverage.out` y
 `coverage-integration.out`: los tres los ignora git (`.gitignore`: `/bin/`, `/coverage.*`). Ningún escenario toca el

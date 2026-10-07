@@ -65,8 +65,9 @@ el sobre es el SHA-256 de sus bytes: la skill pasa la ficha sola, y la `url` es 
 | Ponente | `Ponente` | `ponente` | Texto no vacío |
 | Tipo de resolución | `Tipo de Resolución` | `tipo` | Texto no vacío |
 
-Se lee la primera ficha del texto, desde la primera línea `Roj:`; con uno de los ocho de menos, o uno de los cuatro
-primeros de la tabla con forma sin la suya, no hay ficha (FR-021, FR-026).
+Se lee la primera ficha del texto, desde la primera línea `Roj:`; con uno de los ocho de menos, o con uno de los
+cuatro que tienen forma exigida —ROJ, ECLI, fecha y número de resolución— sin la suya, no hay ficha (FR-021, FR-026).
+El error nombra el primero que falta o que no tiene su forma, en el orden de la tabla.
 
 ## 5. Cotejo
 

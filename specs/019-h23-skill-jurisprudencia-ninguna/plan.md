@@ -65,7 +65,8 @@ líneas; `mcp.go`, `herramientas.go`, `internal/mcp`, `cmd/empaquetar`, `interna
 
 **Scale/Scope**: 2 verbos, 2 herramientas (12 en total), 1 skill, 6 evals (72 sesiones por job: 6 × 2 modos × 2
 modelos × 3 repeticiones), 4 umbrales, 4 guiones de aceptación, 11 golden; y lo que la entrega rompe y hay que
-alinear: 11 tests de Go y 21 guiones e2e (research M4).
+alinear: 11 tests de Go y 23 guiones —los 21 de e2e que midió el prototipo (research M4) y dos de la instalación de
+desarrollo, que solo corren con la etiqueta `integration` (tasks.md, «Diecinueve guiones, y no diecisiete»)—.
 
 ## Constitution Check
 
@@ -79,7 +80,7 @@ justificadas están en Complexity Tracking.*
 | I · Fuentes públicas y frontera humana | Es el principio que el hito aplica: kitlegal no consulta el CENDOJ de ninguna forma. El applet no puede abrir una conexión, por lo que importa (FR-002; `TestArquitectura`); las direcciones que da las abre la persona. Ninguna petición HTTP nueva, ningún método, ninguna grabación, ninguna fila de `docs/SOURCES.md`. |
 | II · Nada sin cita ni fuente | Los dos verbos emiten el sobre; `fuente` `kitlegal.cita` dice que no hubo consulta, y `url` identifica lo que abre la persona o el documento aportado por su huella (research D6). Nada entra en el grafo: lo leído no tiene fuente. La skill no cita una sentencia sin su documento cotejado, y `cita_sin_documento` lo decide con 0. |
 | III · Tests primero y offline | Cuatro guiones `testscript` escritos antes que el código y congelados; unitarios offline; cada salida, contra `schemas/cita.json`; el dominio nuevo está en `internal/core/**`, con su cobertura. No hay fixtures de red: el applet no pide nada. |
-| IV · Hexagonal y errores tipados | Dominio puro en `internal/core/cita` e `internal/core/ids`; el applet, en `internal/app`. Todo error es de clase `argumentos` (2), declarada por el dominio; que el documento no sea el pedido es un hallazgo con 0 (ADR 0023); lo demás, `inesperado` (1). Ningún `panic`: lo ejercen tres fuzz. |
+| IV · Hexagonal y errores tipados | Dominio puro en `internal/core/cita` e `internal/core/ids`; el applet, en `internal/app`. Todo error es de clase `argumentos` (2), declarada por el dominio y, en las tres filas que solo el applet puede decidir —`preparar` sin referencia ni `--texto`, la referencia junto a `--texto` y `cotejar` sin texto—, por el applet con `cli.ErrArgumentos`; que el documento no sea el pedido es un hallazgo con 0 (ADR 0023); lo demás, `inesperado` (1). Ningún `panic`: lo ejercen tres fuzz. |
 | V · Simplicidad y dependencias | Ninguna dependencia nueva. Cada mecanismo, con su requisito («Trazabilidad»). Se rechazaron un adaptador de fuente, un tipo de argumento con memoria, un lector compartido con estado, una variable nueva en el arnés e2e, una declaración de umbrales por skill y campos nuevos en el informe (research D1, D3, D12, D18, D20, D24). |
 | VI · Un binario, convenciones de agente | Un applet más en el multicall, con las banderas globales heredadas. `--describe` sigue siendo la única fuente de las herramientas y de la tabla: por eso es ahí donde se dice qué argumentos son banderas (research D14). |
 | VII · Grafo y privacidad | El applet no emite operaciones de grafo ni abre `world.db`; el documento de la persona no se guarda en ningún sitio, y de él solo sale su ficha (FR-003, FR-022). |
@@ -152,6 +153,8 @@ schemas/cita.json                         # nuevo [datos]
 schemas/instalacion.json                  # x-banderas en sus tres partes [datos]
 schemas/eval.yaml.json                    # sentencias y los comandos de cita [datos]
 .github/workflows/evals.yml               # jurisprudencia en la matriz
+.golangci.yml                             # «constitucional» en ignore-rules de misspell
+internal/skills/testdata/script/          # instalar e instalar-sin-gobin, con la tercera skill [datos]
 README.md, docs/JURISPRUDENCIA.md, CHANGELOG.md, CONTRIBUTING.md
 ```
 
@@ -232,6 +235,11 @@ La lista es la que da el prototipo con el applet en los dos registros y la skill
   `h19-skills-` `ambito-dir`, `ambito-global`, `aviso`, `aviso-sin-aviso`, `conflictos-dentro`,
   `conflictos-entradas`, `conflictos-rutas`, `doctor-copia`, `doctor-hallazgos`, `dry-run`, `idempotencia`,
   `install-hosts`, `install-local`, `list-doctor` y `no-empotrada`.
+- **Guiones de la instalación de desarrollo**, en `internal/skills/testdata/script/`, también `[datos]` y también por
+  la skill: `instalar.txtar` e `instalar-sin-gobin.txtar`, que exigen la lista cerrada de lo que `make install` deja
+  instalado. El prototipo no los vio en rojo porque solo corren con la etiqueta `integration`, que `make ci` sí
+  ejecuta (`test-integration`); los midió la sesión de las tareas. Con ellos, los guiones por la skill son diecinueve
+  y los que el hito alinea, veintitrés.
 
 Ninguno se desactiva ni se salta, y ninguno pierde lo que comprobaba: cada cambio es el dato nuevo en una lista o
 una cifra.
@@ -243,7 +251,7 @@ una cifra.
 - `schemas/eval.yaml.json`: `sentencias` y las dos formas de comando.
 - `internal/app/testdata/cita/`: los once golden (contracts/applet-cita.md §9).
 - `internal/core/ids/testdata/fuzz/FuzzECLI/` y `FuzzROJ/`, e `internal/core/cita/testdata/fuzz/FuzzLeerFicha/`.
-- Los veintiún guiones e2e de arriba.
+- Los veintitrés guiones de arriba: veintiuno de e2e y dos de la instalación de desarrollo.
 
 Ninguna tarea escribe en la carpeta de la evidencia: los tests y los guiones leen de ella el fragmento.
 
@@ -298,8 +306,8 @@ lo que el modelo escribe para pedirla y lo que recibe.
   como mucho, deja de darse con el documento pedido.
 - **Las dos herramientas** (el agente; una vez por conexión): 5,4 y 6,5 kB de esquemas con las globales.
 - **`SKILL.md`** (el modelo; una vez por conversación en que se activa): 195 líneas, 13,6 kB.
-- **`umbrales` del informe** (el job, el informe final, la persona; una vez por job): cuatro elementos de 230 a 330
-  bytes; cada job los mide de nuevo.
+- **`umbrales` del informe** (el job, el informe final, la persona; una vez por job): cuatro elementos de 273 a 388
+  bytes, escritos sin blancos; cada job los mide de nuevo.
 
 **Nada crece con lo acumulado, ni con el documento.** El applet no guarda nada: tras meses de uso diario, con cientos
 de sentencias preparadas y cotejadas, la invocación siguiente devuelve los mismos bytes que la primera, porque solo
@@ -401,7 +409,8 @@ fichero de `data/` se añade ni cambia.
    `evals/jurisprudencia/`, y su carpeta en `TestEvalsDelRepositorio` con `TestPreguntasConElFragmento`.
 8. Los umbrales: `umbrales.go` e `informe.go`, con `TestCitaSinDocumento` y `TestUmbralesDeJurisprudencia`.
 9. **`[datos]`** La skill: `skills/jurisprudencia/SKILL.md` desde el borrador, con su tabla regenerada; el arnés de
-   `TestSkillsDelRepositorio`; `linea-sin-consulta`; y los diecisiete guiones e2e que enumeran las skills.
+   `TestSkillsDelRepositorio`; `linea-sin-consulta`; y los diecinueve guiones que enumeran las skills, diecisiete de
+   e2e y dos de la instalación de desarrollo.
 10. El job: `jurisprudencia` en la matriz de `.github/workflows/evals.yml` y `TestDefinicionDelJob`.
 11. La documentación: README («¿Y las sentencias?»), `docs/JURISPRUDENCIA.md`, `CHANGELOG.md` (*Unreleased*),
     `CONTRIBUTING.md` e `internal/evals/doc.go`.
@@ -427,7 +436,7 @@ en la del paso 7 (research D23).
 |---|---|---|
 | El kernel gana la entrega de la entrada estándar (`Registro.LeerDe`, `Despacho.Entrada`, una interfaz sin exportar), que el spec no nombra | FR-020 pide que la orden lea el documento de la entrada y que una llamada de herramienta no la lea nunca, y FR-030, no tocar `mcp`: en el servidor, la entrada es el protocolo | Dar `os.Stdin` al applet como dependencia: una llamada sin `documento` leería el protocolo (research D12) |
 | `--describe` gana la anotación `x-banderas`, la tabla de comandos escribe banderas y `schemas/instalacion.json` cambia, que el spec no prevé | Los verbos de `cita` son los primeros con banderas propias en la tabla de una skill, y la tabla generada daría `kitlegal cita preparar [<ecli> [<roj> …]]` (research V14): FR-040 pide la tabla generada con cada orden | Escribir la orden a mano en `SKILL.md`: la tabla es generada y `skills-check` exige que lo sea. Deducir las banderas: `--describe` no las distingue de un argumento de posición opcional |
-| Veintiún guiones e2e y once tests de hitos anteriores cambian | Enumeran literalmente los applets, las herramientas o las skills empotradas, y el hito añade un applet, dos herramientas y una skill (research V21) | Ninguna: dejarlos es dejar `make ci` en rojo. El cambio en cada uno es el dato nuevo |
+| Veintitrés guiones —veintiuno de e2e y dos de la instalación de desarrollo— y once tests de hitos anteriores cambian | Enumeran literalmente los applets, las herramientas o las skills empotradas o instaladas, y el hito añade un applet, dos herramientas y una skill (research V21; los dos de la instalación, medidos con la etiqueta `integration` en la sesión de las tareas) | Ninguna: dejarlos es dejar `make ci` en rojo. El cambio en cada uno es el dato nuevo |
 | Tareas `[datos]` con código y tests | El applet, su esquema, sus golden y los guiones que enumeran applets tienen que entrar juntos para que `make ci` quede en verde; igual la skill con los guiones que enumeran skills. Precedente: H7.2 a H24 | Separar datos y código: `make ci` en rojo entre dos tareas |
 | El arnés de `TestSkillsDelRepositorio` y la subprueba `linea-sin-consulta` cambian | Suponían que toda skill tiene referencias y lleva la línea del BOE; la tercera no (research V18, V20) | Dar a `jurisprudencia` una referencia que no usa o una línea que habla del BOE |
 

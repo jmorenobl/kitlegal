@@ -395,6 +395,8 @@ El informe del job de `jurisprudencia` da, en cada modo, dos umbrales que decide
 
 Cada salida del hito, desde quien la consume (criterio de uso, ADR 0028). Lo que gana la skill: dar a la persona la consulta exacta sin escribirla de memoria, y saber, antes de citar, qué documento tiene delante y si es el pedido. Volumen de referencia: meses de uso diario, con cientos de sentencias preparadas y cotejadas, la mayoría hace más de una semana. **Ninguna salida crece con ese volumen**: el applet no guarda nada —ni en la caché, ni en el grafo— y cada invocación solo depende de sus argumentos y de su texto (FR-003).
 
+Los tamaños de esta sección son cálculos de la sesión del spec, anteriores a los verbos. Lo medido después con el binario del hito está en contracts/applet-cita.md §10 —una consulta preparada, de 389 a 572 bytes de sobre; un cotejo, de 559 a 1 005; un error, de 294 a 418— y en contracts/evals-jurisprudencia.md §4 y §8 —cada elemento de `umbrales`, de 273 a 388 bytes escrito sin blancos—; donde una cifra de aquí y una de allí difieren, vale la de los contratos.
+
 Cálculos de esta sesión, no medidas: los verbos no existen todavía. Se han compuesto con `jq` cinco `data` de ejemplo con los datos de este spec, con claves supuestas, que fija el plan, y se han contado sus bytes: 276 la consulta por número y fecha, 241 la de un ECLI con su equivalente, 116 la de un texto, 297 los ocho datos de la ficha con su correspondencia y 672 el mismo cotejo con un hallazgo y su explicación. Lo que el sobre añade a `data` son 199 bytes en `territorio resolver Leganés --json`, medido en esta sesión con el binario que había compilado en `bin/` (`v0.3.2-22-g4152c2b`, anterior a la cabeza de `main`). La ficha del fragmento ocupa 316 bytes y el fragmento entero, 2 353. Por herramienta, el sobre va dos veces en el mensaje (H21).
 
 | Salida | Quién la pide, cuántas veces y qué hace con ella | Tamaño | Cuándo deja de darse cada señal |
@@ -414,7 +416,7 @@ Cálculos de esta sesión, no medidas: los verbos no existen todavía. Se han co
 | `umbrales` del informe de `jurisprudencia` (FR-060 a FR-063) | El job, que decide con ellos; el informe final del workflow, que los lee sin modelo; y la persona. Una vez por job. | 4 elementos de ≈ 250 bytes, sobre 18 respuestas por modo: seis evals por tres repeticiones. Tamaño fijo. | Cada job los mide de nuevo sobre su commit. Uno incumplido deja de darse en el primer job que lo cumple. |
 | Las tasas del informe (FR-050) | `scripts/workflow/informe.sh`, una vez por run, y la persona. | 24 series: seis evals, dos modos y dos modelos. Lo fija el conjunto de evals, no el uso. | Cada job las mide de nuevo. |
 
-Tiempo: ninguno de los dos verbos espera a nadie. No hay red, ni ritmo, ni reintentos, ni caché que abrir: cada invocación es un proceso local, o una llamada al servidor, que termina con lo que tarda en leer sus argumentos y su texto. No se ha medido, porque los verbos no existen.
+Tiempo: ninguno de los dos verbos espera a nadie. No hay red, ni ritmo, ni reintentos, ni caché que abrir: cada invocación es un proceso local, o una llamada al servidor, que termina con lo que tarda en leer sus argumentos y su texto. No se midió en la sesión del spec, porque los verbos no existían, y el hito no le pone umbral ni control: el plan lo deja sin objetivo («Performance Goals»).
 
 ## Fuera de alcance
 

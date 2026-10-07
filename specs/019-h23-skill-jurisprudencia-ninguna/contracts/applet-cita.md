@@ -1,10 +1,12 @@
 # Contrato: el applet `cita`
 
 Lo que fija el plan donde el spec lo deja abierto (FR-004, FR-010, FR-012, FR-020, FR-022, FR-025). Los ejemplos son
-salidas del prototipo (research V1, M1), con sus bytes. **Fijo** es lo que este contrato escribe como código: claves,
-valores de vocabulario, nombres de casilla, direcciones y la forma de `url`. **Libre** es el texto para la persona
-—`motivo`, `explicacion` y el mensaje de un error—: cada uno dice qué tiene que nombrar, y sus bytes los fijan los
-golden cuando existan.
+salidas del prototipo (research V1, M1), con sus bytes, y el binario del hito da las mismas, con los mismos bytes; de
+los errores, cuyo mensaje es libre, §10 da el tamaño medido con el binario. **Fijo** es lo que este contrato escribe
+como código: claves, valores de vocabulario, nombres de casilla, direcciones y la forma de `url`. **Libre** es el
+texto para la persona —`motivo`, `explicacion` y el mensaje de un error—: cada uno dice qué tiene que nombrar. Los
+bytes de `explicacion` los fijan los golden de `cotejar` con hallazgo (§9); los de `motivo` y los del mensaje de un
+error no están en ningún golden.
 
 ## 1. Verbos y argumentos
 
@@ -167,9 +169,12 @@ su argumento, nunca en la de «no dado».
 | `cotejar`: texto sin línea `Roj:` | que falta la ficha |
 | `cotejar`: ficha sin un dato, o con uno de los cuatro sin su forma | el dato, con su etiqueta |
 
-La referencia se comprueba antes que el texto. Un error del propio análisis de la línea de órdenes —una bandera que
-no existe— es del kernel, como en cualquier verbo. Las invocaciones con un argumento vacío, ejecutadas en el
-prototipo como orden y como llamada, en research V40.
+La referencia se comprueba antes que el texto. Tres filas las decide el applet y no el dominio, porque solo él tiene
+lo que hace falta: `preparar` sin referencia ni `--texto`, la referencia junto a `--texto`, y `cotejar` sin ningún
+texto. Tienen el mismo código y la misma clase, y su mensaje empieza por «argumentos inválidos:», como los del kernel;
+los de las demás filas, del dominio, no llevan ese prefijo. Un error del propio análisis de la línea de órdenes —una
+bandera que no existe— es del kernel, como en cualquier verbo. Las invocaciones con un argumento vacío, ejecutadas en
+el prototipo como orden y como llamada, en research V40.
 
 ## 7. La entrada estándar y las herramientas
 
@@ -225,7 +230,7 @@ cientos de sentencias preparadas y cotejadas, la salida de la siguiente tiene lo
 |---|---|---|
 | Una consulta preparada | 389 a 572 | Nada acumulado: como mucho tres casillas; el texto de búsqueda, que va una vez tal cual y dos codificado |
 | Un cotejo | 559 a 1 005 | Nada acumulado, ni el tamaño del documento: del texto solo sale la ficha |
-| Un error | 294 a 379 | El argumento que nombra |
+| Un error | 294 a 418 | El argumento que nombra; los tres más largos, de 386 a 418, son los que da el applet y no el dominio, que empiezan por «argumentos inválidos:» (§6) |
 | El esquema de cada herramienta, una vez por conexión | 5 385 y 6 472 con las globales | Nada |
 
 **Lo que escribe quien invoca.** En `preparar`, la referencia o el texto de la búsqueda: unas decenas de bytes. En
