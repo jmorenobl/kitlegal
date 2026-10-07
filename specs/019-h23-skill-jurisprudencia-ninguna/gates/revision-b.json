@@ -1,0 +1,90 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza (su guardián cuenta 13 ficheros, los de 8d0533d) y termina en «ci: todos los controles en verde», exit=0, con lint «0 issues.», -race -shuffle, test-integration, test-tiempos, vuln, schema-check, skills-check, goreleaser, gitleaks y tidy. Reproducido en una copia de HEAD exportada con git archive a $TMPDIR/juezb: go test -count=1 de internal/core/ids, internal/core/cita, internal/cli, internal/skills, internal/evals, internal, cmd/... (3096 tests ok) e internal/app (1010 ok, con los cuatro h23-* en PASS), go test -tags=integration -run TestInstalacion ./internal/skills/ ok, golangci-lint run ./... «0 issues.», go mod tidy -diff sin salida. Árbol limpio: git status solo da gates/revision-cambios.md y gates/revision-ciclo.json, que escribe el propio workflow."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada intacta y activada: git diff e96204e HEAD -- specs/019-h23-skill-jurisprudencia-ninguna/aceptacion/ vacío, y cmp de cada guion con su copia internal/app/testdata/script/h23-*.txtar sin diferencias; los cuatro pasan (TestEntregaDelHito/h23-cita-cotejar, -preparar, -herramientas, -sin-efectos en --- PASS, en la copia). Los tests detectan lo que dicen: de 40 mutantes aplicados en la copia (sentencias.go, umbrales.go, informe.go, juzgar.go, conjunto.go, ecli.go, roj.go, cotejo.go, ficha.go, consulta.go, referencia.go, cita.go, main.go, registro.go, describe.go, comandos.go, evals.yml, eval 04, SKILL.md a 300 líneas), 37 ponen en rojo el test que los vigila, 1 es equivalente (M25: añadir \"\" a los cotejados no cambia ninguna comparación) y 2 son el mismo mutante contra el nivel equivocado (el ECLI pedido distinto del de la ficha no lo ven ni los golden ni el e2e, que FR-081/FR-082 no piden, y sí TestCotejar en internal/core/cita/cotejo_test.go). Tests nuevos con casos negativos por fila: internal/app/cita_test.go:412-563 (19 rechazos de referencia, 7 de preparar, 8 de cotejar, por orden y por llamada), internal/evals/sentencias_test.go (TestJuzgarSentencias 102 subpruebas; TestCitaSinDocumento 21, con los casos de FR-086), internal/evals/informe_test.go:769-881 (TestUmbralesDeJurisprudencia), internal/evals/conjunto_test.go:418-670 y 806-846, internal/app/main_test.go (TestEntradaDeLaOrden), tres fuzz con corpus versionado."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "internal/arch_test.go:408-411 añade internal/core/cita e internal/core/ids a paquetesSinRed y :422 app/cita.go a ficherosSinRed; el mutante «import _ \"net\"» en cita.go pone TestArquitectura en rojo. internal/core/cita importa solo ids, schema y biblioteca estándar (referencia.go:3-10, ficha.go:3-10, cotejo.go:3-6, consulta.go:3). Ningún net/http, os.Exit ni fmt.Print* nuevos (grep de las líneas añadidas; depguard y forbidigo en «0 issues.»); os.Stdin solo en las dos raíces de composición (internal/app/registro.go:289 e internal/app/ejemplo/kitlegal-e2e/main.go:169), que es donde H21 ya nombraba la entrada del proceso. internal/mcp, internal/app/mcp.go y herramientas.go sin cambios (git diff --stat main HEAD vacío)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Los dos verbos firman el sobre con fuente kitlegal.cita y url de lo que abre la persona o del documento por su huella (internal/app/cita.go:20-28, 137-142, 227-232, 261-263). internal/app/cita_test.go:224-232 (exigirSalidaDeCita) valida cada salida real, también las de fallo, contra la parte de su verbo en schemas/cita.json —leída con esquemaPublicadoDeCita:211-218— y exige que data con una clave de más no valide; TestEsquemasPublicados (ci.log) fija que schemas/cita.json es lo que emite --describe. Los 11 golden (internal/app/testdata/cita/) coinciden byte a byte salvo fecha_consulta y validan (cita_test.go:329-355). Los guiones h23-cita-preparar y h23-cita-cotejar afirman el sobre entero de cada caso con \\A…\\z."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Todo rechazo es de clase argumentos → 2: internal/core/cita/referencia.go:212-236 (errorDeArgumentos, Clase), internal/core/ids/errores.go (errorDeEntrada, misma clase), internal/app/cita.go:149,157,213 (cli.ErrArgumentos en las tres filas que solo el applet decide); el documento que no es el pedido es un hallazgo con 0 y ok verdadero (internal/core/cita/cotejo.go:95-120; h23-cita-cotejar «test $? -eq 0» implícito en exec y «\"ok\":true» con hallazgos); kitlegal cita sin verbo termina con 2 nombrando los dos verbos (cita_test.go:945-948); una entrada que no se puede leer sale como inesperado (cita.go:251-254), por la regla genérica. Ningún panic en rutas de usuario: comprobarOrgano guarda organo==\"\" antes de organo[0] (ecli.go:162-167), LeerFicha solo indexa lineas[0] con len>0 (ficha.go:83-89), y FuzzECLI, FuzzROJ y FuzzLeerFicha corren con su corpus (ci.log). Lo que el CHANGELOG promete de códigos se ejecuta en los guiones e2e y en cita_test.go."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md [Unreleased] +107: los dos verbos con sus claves y códigos, las dos herramientas (doce), schemas/cita.json, la skill, x-banderas y el job; cada cifra cotejada con el producto: 12 herramientas (herramientas_test.go:143), x-banderas de preparar y cotejar (schemas/cita.json:513-518 y 251-256), 195 líneas de SKILL.md (wc -l), 72 sesiones (6×2×3 por modo), 4 umbrales (umbrales.go:1080-1101), 20 341 s (definicion_test.go:661-662). README «¿Y las sentencias?» dice que kitlegal sigue sin consultar el CENDOJ y qué hace, remite al ADR 0036 y declara que la v0.5.0 no lleva la skill (comprobado por git ls-tree en supuestos.md:56). docs/JURISPRUDENCIA.md §4 «Lo que H23 deja hecho» y §5. Sin ADR nuevo ni docs/SOURCES.md (diff vacío), con su motivo en el spec. Las cifras de bytes de contracts/applet-cita.md §3-§4 y §10 casan con los golden medidos con wc -c (462, 458, 560, 377; 547, 624, 616, 640, 937, 857, 993 bytes con la fecha de 20 caracteres de los golden, que son los 474…389 y 559…1 005 del contrato con una fecha_consulta real de 32)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP: el applet no alcanza net ni internal/httpx (TestArquitectura) y compone direcciones sin pedirlas (consulta.go:5-16). Ningún método nuevo, ninguna grabación ni fila de SOURCES.md; el único dato externo es evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt, ya en main y sin cambios (git diff --stat main HEAD -- evidencias/ data/ vacío), que cita_test.go:98-107 y conjunto_test.go:806-846 exigen byte a byte por su SHA-256 del manifiesto. Sin secretos (gitleaks «no leaks found» en ci.log), sin NIF: la ficha solo lleva ROJ, ECLI, órgano, fecha, recurso, resolución, ponente y tipo (ficha.go:44-66). El documento de la persona no se guarda: ni caché ni grafo (h23-cita-sin-efectos, arbol antes y después con cmp), ninguna operación de grafo (cita_test.go:693-705)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep de nolint, t.Skip, TODO, FIXME, XXX y «_ = » sobre las líneas añadidas del diff en .go, .txtar, .yml y .yaml: ninguna. Los golden los escribe el verbo con -actualizar-golden-de-cita (cita_test.go:32-33, 345-348) y solo los toca T006 (git log main..HEAD -- internal/app/testdata/cita: e84a7ff); los corpus de fuzz solo T002/T003; los guiones de hitos anteriores cambian solo en la lista literal que el applet o la skill nueva alarga (diff de argumentos.txtar, h21-mcp-*.txtar, h19-skills-*.txtar). gates/cuarentena.json vacía y las doce tareas al primer intento (gates/tareas-intentos.json). La palabra «constitucional» va a ignore-rules de misspell (.golangci.yml:319-323), que es la vía admitida."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "git diff --stat main HEAD vacío en todo lo que el spec declara intocable: evidencias/, data/, docs/SOURCES.md, internal/httpx, internal/mcp, cmd/empaquetar, internal/empaquetado, scripts/workflow, skills/boe-legislacion, skills/legal-core, evals/boe-legislacion, evals/legal-core, .specify, internal/app/mcp.go, internal/app/herramientas.go, docs/ADR, docs/ROADMAP.md, CLAUDE.md, web/, Makefile, go.mod, go.sum. Lo que el spec no nombraba está trazado: Registro.LeerDe, Despacho.Entrada y la interfaz lector → FR-020/FR-030 (plan.md Complexity Tracking fila 1; main.go:179-198); x-banderas → FR-040 (fila 2; describe.go:467-481); la cota de 25 en ROJ.ECLI → FR-012 (supuestos.md T002); el argumento escrito vacío como dado → FR-006/FR-015/FR-020 (supuestos.md corrector_plan). Cada supuesto de gates/supuestos.md es la lectura que menos implementa: FR-047 sin línea ni cita preparar, cobertura solo con el ECLI TC, ficha reconocible solo con los ocho datos, el ECLI de la ficha y no el de pedida como leído, lo leído de otro sitio no es salida de una operación."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido sobre los golden que escribe el binario (wc -c): una consulta preparada, 377 a 560 bytes de sobre; un cotejo, 547 a 993; con la fecha real, 389 a 572 y 559 a 1 005, como dice contracts/applet-cita.md §10. Nada crece con lo acumulado: el applet no abre caché ni grafo (h23-cita-sin-efectos: arbol de la caché con contenido, igual antes y después de los dos verbos como orden y como herramienta, también con --offline --no-graph y --dry-run), y cada sobre depende solo de sus argumentos y de su texto; del documento solo sale la ficha (cita_test.go:896-917: la ficha sola da el mismo data y hash que el fragmento entero). La skill pide la ficha (316 bytes) y no el documento (SKILL.md:83-87), con lo que la entrada del cotejo no crece con la sentencia. Invocaciones por pregunta: un cita preparar por sentencia que falta o por materia y un cita cotejar por documento traído (SKILL.md pasos 2, 3 y 6). Señales que caducan: la línea ⚠ SENTENCIA NO COMPROBADA deja de darse cuando el documento se coteja, el hallazgo solo sale con un documento distinto, cobertura solo con un ECLI TC y en su propia consulta (consulta.go:103-117), y no-se-deduce no llega a la respuesta (SKILL.md:103-106). SKILL.md: 195 líneas y 13 648 bytes, una vez por conversación; dos herramientas más por conexión. No medido: el tamaño de --describe con el binario (ejecutar un binario construido pide aprobación en este sandbox); el plan da 5 385 y 6 472 bytes."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a un requisito que lo exige (plan.md «Trazabilidad», comprobado en el código): ids.ECLI/ROJ y sus analizadores → FR-005/006 (ecli.go:66-101, roj.go:41-73); la equivalencia en una sola pareja → FR-012 (ecli.go:125-135, roj.go:104-110); Referencia desde cuatro punteros → FR-006 con el argumento vacío (referencia.go:85-111); Consulta/Casilla/Cobertura solo con TC → FR-010/011/014 (consulta.go:103-117); LeerFicha con sus ocho datos y nada más → FR-021/022; Cotejo/Hallazgo/cruce → FR-023/025; lector/LeerDe/Entrada → FR-020/030 (main.go:179-198, registro.go:241-243); x-banderas y BanderasPropias → FR-040 (describe.go:467-481, comandos.go:632-662, 739-754); cli.Literal en documento → FR-004 (misma huella del mismo texto, cita.go:165-173); SentenciasEsperadas con siete claves, las que usan las seis evals, y ReglasDeJurisprudencia con las ocho reglas del contrato → FR-050/056; CitaSinDocumento y umbralDeCitaSinDocumento sin nombre de skill → FR-060/063. Ningún estado sin vía real tiene caso propio: la entrada ilegible, el documento falso y la caché tocada van a la regla genérica (cita.go:235-241). Lo único sin consumidor de producción es ExtraerLineasDeAviso (sentencias.go:96-101), un acceso de test a la expresión lineaDeAviso que sí usa eclisSueltos; va a observaciones."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» de plan.md tiene su control en el código y se pone en rojo: cita_sin_documento y sin_activar con \"<=\" 0 y Decide: true (umbrales.go:1155-1166 y 300), y los mutantes Decide:false en los dos, «sin publicar cita_sin_documento», «el informe no mide» y «la condición 1/2 apagada» ponen en rojo TestUmbralesDeJurisprudencia o TestCitaSinDocumento; el motivo nombra umbral, modo, medida, sesión y ECLI (informe_test.go:803-820). SKILL.md a 300 líneas → TestSkillsDelRepositorio en rojo; AppletCita fuera del registro → TestHerramientasDelServidor (12 y 15) en rojo; un byte en un golden (hex en minúsculas, cruce quitado) → TestCitaPreparar/TestCitaCotejar en rojo; import net → TestArquitectura; jurisprudencia fuera de la matriz → TestDefinicionDelJob (y el tope con 351/339/203 minutos, definicion_test.go:420-437); un byte del fragmento en la eval 04 → TestPreguntasConElFragmento; cinco evals → TestEvalsDelRepositorio; los 11 casos de código y el arbol con cmp en los guiones h23-*. Los diez de boe-legislacion no cambian (TestUmbralesDelInforme en ci.log; evals/boe-legislacion y umbrales.go sin ningún valor tocado). Ningún umbral solo se publica."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Los golden y los guiones e2e no cubren «pedido por un ECLI distinto del de la ficha» (FR-024): el mutante que lo da siempre por pedido pasa TestCitaCotejar y h23-cita-cotejar y solo lo ve TestCotejar (internal/core/cita/cotejo_test.go). FR-081 y FR-082 no piden ese caso; el control existe en el dominio.",
+    "ExtraerLineasDeAviso (internal/evals/sentencias.go:96-101) es una función exportada sin consumidor de producción: la usa solo TestExtraerDeUnaRespuesta; la producción usa la expresión lineaDeAviso en eclisSueltos.",
+    "kitlegal cita cotejar sin --documento y con la entrada estándar de una terminal abierta espera al fin de fichero: io.ReadAll (cita.go:251) no mira el contexto, así que --timeout no la interrumpe. Es lo que hace cualquier filtro; la skill pasa siempre la ficha.",
+    "La dirección del buscador del Tribunal Constitucional, https://hj.tribunalconstitucional.es/ (SKILL.md:153 y evals/jurisprudencia/05), sigue sin comprobar: supuesto S1 de gates/supuestos.md para la persona.",
+    "gates/analyze.md C1: reglas MUST de la skill sin eval ni control —FR-042 tercera viñeta (un número sin fecha no se prepara como ROJ), FR-049— que gates/supuestos.md no lista como no comprobadas más allá de FR-045, FR-047 y FR-048; el informe final no debe darlas por comprobadas.",
+    "Condición 2 de FR-061 por diseño: un ECLI que el modelo da a cita preparar vuelve en su sobre y deja de contar suelto (supuestos.md lo anota); una cita con ese ECLI sigue contando por la condición 1, que es la que protege la cita.",
+    "El esquema de entrada de cada herramienta es el de --describe menos x-banderas (herramientas_test.go sinLasBanderasGlobales, herramienta_test.go:360-363): una divergencia de la letra de FR-030, decidida en research D14 y registrada en plan.md Complexity Tracking.",
+    "No reproducido en la copia: make ci entero (test-tiempos, vuln, goreleaser, gitleaks), que gates/ci.log cubre sobre la cabeza; ni el tamaño de --describe con el binario.",
+    "El tope de 352 minutos del trabajo evals cubre un peor caso calculado de 20 341 s para jurisprudencia, no una medida: lo dice el comentario de evals.yml y lo decide el job de cierre.",
+    "El mutante M25 (contar los sobres sin ficha como ECLI vacío en los cotejados) es equivalente: una cadena vacía no iguala a ningún ECLI."
+  ]
+}

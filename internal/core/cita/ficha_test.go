@@ -203,25 +203,38 @@ func TestLeerFicha(t *testing.T) {
 }
 
 // compruebaLaMismaFicha fija lo que no cambia la lectura: lo que sigue a la
-// ficha y lo que la precede, el final de línea \r\n, los blancos de los
-// extremos de cada línea, el salto final y una etiqueta repetida más abajo,
-// de la que se lee la primera.
+// ficha y lo que la precede, también cuando lleva las etiquetas de sus datos;
+// el final de línea \r\n; los blancos de los extremos de cada línea, que son
+// los de Unicode; el salto final; y una etiqueta repetida más abajo, de la que
+// se lee la primera.
 func compruebaLaMismaFicha(t *testing.T) {
 	t.Helper()
+
+	// espacioDuro es U+00A0, el blanco que deja un PDF copiado.
+	const espacioDuro = "\xc2\xa0"
+
+	// otrosDatos son las seis etiquetas que siguen a la línea «Roj:», con
+	// valores que no son los de la ficha del fragmento.
+	const otrosDatos = "Órgano: Otro Órgano\nFecha: 01/01/2000\nNº de Recurso: 1/1999\n" +
+		"Nº de Resolución: 1/2000\nPonente: OTRO PONENTE\nTipo de Resolución: Auto\n"
 
 	ficha := fichaDelFragmento(t)
 	esperada := leida(t, fragmento(t))
 
-	conBlancos := "  \t" + strings.ReplaceAll(strings.TrimSuffix(ficha, "\n"), "\n", " \t\n  \t") + " \t\n"
+	sinSaltoFinal := strings.TrimSuffix(ficha, "\n")
+	conBlancos := "  \t" + strings.ReplaceAll(sinSaltoFinal, "\n", " \t\n  \t") + " \t\n"
+	conEspaciosDuros := espacioDuro + strings.ReplaceAll(sinSaltoFinal, "\n", espacioDuro+"\n"+espacioDuro) + espacioDuro + "\n"
 
 	casos := []struct{ nombre, texto string }{
 		{"la ficha sola", ficha},
 		{"con texto delante", "JURISPRUDENCIA\n\n" + ficha},
 		{"con texto delante y detrás, sin línea en blanco", "JURISPRUDENCIA\n" + ficha + "TRIBUNAL SUPREMO\n"},
+		{"con las etiquetas de sus datos delante, con otros valores", otrosDatos + ficha},
 		{"con los finales de línea \\r\\n", strings.ReplaceAll(ficha, "\n", "\r\n")},
 		{"con el fragmento entero y sus finales \\r\\n", strings.ReplaceAll(fragmento(t), "\n", "\r\n")},
 		{"con blancos en los extremos de cada línea", conBlancos},
-		{"sin el salto final", strings.TrimSuffix(ficha, "\n")},
+		{"con espacios duros en los extremos de cada línea", conEspaciosDuros},
+		{"sin el salto final", sinSaltoFinal},
 		{"con una etiqueta repetida más abajo", ficha + "Fecha: 01/01/2000\nPonente: OTRO PONENTE\n"},
 	}
 
@@ -266,11 +279,13 @@ func compruebaTextosSinFicha(t *testing.T) {
 // compruebaDatosQueFaltan fija que con cada uno de los ocho datos quitado no
 // hay ficha y el error nombra el que falta con su etiqueta. «Nº de Recurso» y
 // «Nº de Resolución» no se confunden: sin la línea de una, la de la otra no
-// da su dato.
+// da su dato. Y un dato cuya primera línea va sin valor falta, aunque más
+// abajo haya otra línea con su etiqueta.
 func compruebaDatosQueFaltan(t *testing.T) {
 	t.Helper()
 
 	ficha := fichaDelFragmento(t)
+	conElPonenteVacio := conLaLinea(t, ficha, "Ponente", "Ponente:")
 
 	casos := []struct{ nombre, etiqueta, texto string }{
 		{"sin el ROJ", "Roj", conLaLinea(t, ficha, "Roj", "Roj: - ECLI:ES:TS:2023:3144")},
@@ -283,7 +298,8 @@ func compruebaDatosQueFaltan(t *testing.T) {
 		{"sin la línea de la resolución", "Nº de Resolución", sinLaLinea(t, ficha, "Nº de Resolución")},
 		{"sin la línea del ponente", "Ponente", sinLaLinea(t, ficha, "Ponente")},
 		{"sin la línea del tipo", "Tipo de Resolución", sinLaLinea(t, ficha, "Tipo de Resolución")},
-		{"con la línea del ponente vacía", "Ponente", conLaLinea(t, ficha, "Ponente", "Ponente:")},
+		{"con la línea del ponente vacía", "Ponente", conElPonenteVacio},
+		{"con la línea del ponente vacía y otra con valor más abajo", "Ponente", conElPonenteVacio + "Ponente: OTRO PONENTE\n"},
 		{"con un blanco entre la etiqueta del ponente y sus dos puntos", "Ponente", strings.Replace(ficha, "Ponente:", "Ponente :", 1)},
 		{"con la línea de la fecha solo de blancos", "Fecha", conLaLinea(t, ficha, "Fecha", "Fecha:  \t")},
 	}
