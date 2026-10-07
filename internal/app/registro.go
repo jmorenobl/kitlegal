@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"io"
 	"maps"
 	"slices"
 	"strings"
@@ -62,6 +63,10 @@ type Registro struct {
 	// almacen es el grafo del mundo al que el kernel entrega lo que observan
 	// las invocaciones, o nulo si el registro no entrega nada.
 	almacen core.GraphStore
+
+	// entrada es la entrada estándar de las órdenes, o nula si el registro no
+	// tiene ninguna.
+	entrada io.Reader
 }
 
 // Registrar añade un applet al registro después de comprobar las cinco reglas
@@ -125,12 +130,27 @@ func (r *Registro) EntregarAlGrafo(almacen core.GraphStore) {
 	r.almacen = almacen
 }
 
+// LeerDe registra la entrada estándar de las órdenes: la que el kernel da, en
+// una orden, al verbo que la lee, y a nadie más (H23 FR-020; research.md D12 de
+// H23). La registra la raíz de composición al construir el registro, que es
+// quien nombra la entrada del proceso; una nueva sustituye a la anterior y una
+// nula deja el registro sin entrada, como el valor cero. Registrarla no lee
+// nada: de ella lee solo ese verbo, cuando se ejecuta.
+//
+// No es la entrada de las llamadas de herramienta, que no tienen ninguna: en el
+// servidor MCP, la entrada del proceso es el protocolo (H23 FR-026).
+func (r *Registro) LeerDe(entrada io.Reader) {
+	r.entrada = entrada
+}
+
 // sinAvisador es una copia del registro que no da el aviso de versión: los
-// mismos applets y el mismo almacén, sin avisador. Con ella resuelve el
-// servidor MCP cada llamada a una herramienta, que es una invocación del
-// kernel: el aviso lo da el kernel una vez, al arrancar `mcp serve`, y no una
-// por llamada (H21 FR-023; research.md D3 de H21). El registro del que sale no
-// cambia.
+// mismos applets, el mismo almacén y la misma entrada, sin avisador. Con ella
+// resuelve el servidor MCP cada llamada a una herramienta, que es una
+// invocación del kernel: el aviso lo da el kernel una vez, al arrancar `mcp
+// serve`, y no una por llamada (H21 FR-023; research.md D3 de H21). La entrada
+// tampoco llega a ninguna llamada, y no porque la copia la pierda: al verbo se
+// le da la del despacho, y una llamada construye el suyo sin ella. El registro
+// del que sale no cambia.
 func (r *Registro) sinAvisador() *Registro {
 	copia := *r
 	copia.avisador = nil

@@ -294,6 +294,11 @@ func resolver(
 
 		return fin
 	case DestinoApplet:
+		// La entrada estándar es de la orden: su despacho lleva la que el
+		// registro tenga registrada. El de una llamada de herramienta no pasa
+		// por aquí y no lleva ninguna (research.md D12 de H23).
+		despacho.Entrada = registro.entrada
+
 		return atender(p, registrador, registro, despacho, previo)
 	}
 
@@ -463,6 +468,24 @@ type servidor interface {
 	) error
 }
 
+// lector es el verbo que lee la entrada estándar de su invocación: el que
+// recibe por ella lo que no le llega en un argumento. Como servidor, la
+// interfaz no se exporta ni es parte del contrato de un applet (research.md D12
+// de H23).
+//
+// La entrada no es una dependencia del applet, que la tendría también cuando
+// su verbo se ejecuta como herramienta del servidor MCP, donde la entrada del
+// proceso es el protocolo: se la da el kernel en cada ejecución, y es la del
+// despacho. En una orden es la que la raíz de composición registró con
+// Registro.LeerDe; una llamada de herramienta construye su despacho sin
+// ninguna, y el verbo recibe nil (H23 FR-020, FR-026, FR-030).
+type lector interface {
+	// leerDe recibe, antes de Ejecutar, la entrada de la invocación, o nil si
+	// no tiene ninguna que leer. Recibirla no es leerla: lo decide el verbo al
+	// ejecutarse.
+	leerDe(entrada io.Reader)
+}
+
 // ejecutarVerbo entrega el control al applet con el contexto de ejecución —las
 // seis opciones globales que le llegan ya interpretadas— y el registrador ya
 // montado, de modo que no tenga que leer ninguna bandera (FR-018).
@@ -493,6 +516,13 @@ func ejecutarVerbo(
 		fin.err = sirve.servir(context.Background(), ejecucion, registrador, p, registro)
 
 		return fin, analisis.Verbo
+	}
+
+	// El verbo que lee su entrada recibe la del despacho, y nunca la del
+	// registro: la de la orden, o ninguna en una llamada de herramienta (H23
+	// FR-020, FR-026; research.md D12 de H23).
+	if lee, es := argumentos.(lector); es {
+		lee.leerDe(despacho.Entrada)
 	}
 
 	// --timeout es el plazo de **toda** la operación y no el de una petición

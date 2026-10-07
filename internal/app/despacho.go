@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"io"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -63,6 +64,14 @@ type Despacho struct {
 	// pedir la ayuda de un applet no resuelve ningún verbo. En un verbo
 	// reservado van vacíos: no admite ninguno.
 	Args []string
+	// Entrada es la entrada estándar de la invocación, la que el kernel da al
+	// verbo que la lee antes de ejecutarlo. No la decide Despachar: quien
+	// resuelve una orden se la pone al despacho de su applet, con la que el
+	// registro tenga registrada. En cualquier otro despacho es nula: el de un
+	// verbo reservado, el de la ayuda y el que construye una llamada de
+	// herramienta, que no tiene ninguna entrada que leer (research.md D12 de
+	// H23).
+	Entrada io.Reader
 }
 
 // Despachar decide quién atiende la invocación y con qué argumentos, con la
