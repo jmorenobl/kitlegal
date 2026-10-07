@@ -722,6 +722,92 @@ func TestDescribeGramatica(t *testing.T) {
 	})
 }
 
+// anotacionDeLasBanderas es la clave con la que la parte de entrada del documento
+// nombra las banderas propias del verbo, escrita aquí y no leída de la constante
+// que la emite: es la del contrato, y la que lee la tabla de comandos de las
+// skills (contracts/applet-cita.md §8 de H23).
+const anotacionDeLasBanderas = "x-banderas"
+
+// clavesDeUnaEntradaSinBanderas son las de la parte de entrada del documento de
+// un verbo sin banderas propias: las de antes de que existiera la anotación.
+// `required` solo está cuando la gramática exige algún argumento.
+var clavesDeUnaEntradaSinBanderas = []string{"additionalProperties", "properties", "required", "type"}
+
+// TestDescribeBanderasPropias comprueba que el documento dice cuáles de los
+// argumentos propios de un verbo se escriben como banderas, que es lo único de la
+// orden que no se podía deducir de él: un argumento de posición opcional y una
+// bandera se describen igual (research.md D14 de H23). La anotación lleva los
+// nombres de las banderas del verbo en el orden de sus campos, va solo en la
+// parte de entrada y solo existe cuando hay alguna: el documento de un verbo sin
+// ellas es el de antes de que existiera.
+func TestDescribeBanderasPropias(t *testing.T) {
+	t.Parallel()
+
+	t.Run("un verbo con banderas las nombra en el orden de sus campos", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboVariado())
+		entrada := bajar(t, documento, "properties", "entrada")
+
+		assert.Equal(t, []any{"etiqueta", "forzar", "limite", "materias"}, entrada[anotacionDeLasBanderas],
+			"las cuatro banderas del verbo, de cadena, booleana, entera y de lista; ni sus tres "+
+				"argumentos de posición ni ninguna de las ocho globales")
+		assert.Subset(t, claves(bajar(t, entrada, "properties")), []string{"norma", "veces", "bloques"},
+			"los de posición siguen descritos: la anotación no quita nada de las propiedades")
+	})
+
+	t.Run("una bandera obligatoria y la de un campo embebido también lo son", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboConMarcas())
+		entrada := bajar(t, documento, "properties", "entrada")
+
+		assert.Equal(t, []any{"compartido", "opcional", "predeterminado"}, entrada[anotacionDeLasBanderas],
+			"ser bandera no es ser opcional: lo decide que el campo no vaya por su posición")
+		assert.ElementsMatch(t, []any{"compartido", "de-posicion"}, entrada["required"])
+	})
+
+	t.Run("la anotación va en la entrada y en ninguna otra parte", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboVariado())
+
+		assert.NotContains(t, documento, anotacionDeLasBanderas)
+		assert.NotContains(t, bajar(t, documento, "properties", "salida"), anotacionDeLasBanderas)
+	})
+
+	t.Run("el documento con la anotación sigue siendo un esquema válido", func(t *testing.T) {
+		t.Parallel()
+
+		documento, _ := describirDePrueba(t, verboVariado())
+
+		// Una clave fuera del vocabulario del borrador no es un error para un
+		// validador: la ignora. Lo que se compila es el documento entero.
+		require.NotNil(t, compilarGenerado(t, documento, ""))
+	})
+
+	sinBanderas := map[string]Verbo{
+		"un argumento de posición":            verboDePrueba(),
+		"argumentos de posición opcionales":   verboDeComprobacion(),
+		"ningún argumento: solo las globales": verboSinArgumentos(),
+	}
+
+	for nombre, def := range sinBanderas {
+		t.Run("un verbo sin banderas no lleva la anotación: "+nombre, func(t *testing.T) {
+			t.Parallel()
+
+			documento, doble := describirDePrueba(t, def)
+			entrada := bajar(t, documento, "properties", "entrada")
+
+			assert.NotContains(t, entrada, anotacionDeLasBanderas,
+				"ni vacía: el documento de un verbo sin banderas no cambia un byte")
+			assert.Subset(t, clavesDeUnaEntradaSinBanderas, claves(entrada),
+				"la entrada no gana ninguna clave")
+			assert.NotContains(t, doble.salida.String(), anotacionDeLasBanderas)
+		})
+	}
+}
+
 // TestDescribeDefectosDelKernel comprueba los dos fallos que no puede provocar quien
 // invoca, sino quien declara el sobre o el documento: el sobre que dejara de
 // declarar una de las dos claves de las que depende la condición, y el documento que

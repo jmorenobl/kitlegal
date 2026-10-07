@@ -29,6 +29,11 @@ var appletsSinHerramientas = []string{"mcp", "skills"}
 // esquema y nada más.
 const urlDelEsquemaDeHerramienta = "https://kitlegal.es/schemas/herramienta.json"
 
+// anotacionDeLasBanderas es la clave con la que la entrada del documento de
+// --describe nombra las banderas propias de un verbo, escrita aquí y no tomada
+// del código que se prueba (contracts/applet-cita.md §8 de H23).
+const anotacionDeLasBanderas = "x-banderas"
+
 // verboConHerramienta es un verbo del registro que el servidor tiene que
 // anunciar, con el applet que lo ofrece.
 type verboConHerramienta struct {
@@ -325,11 +330,17 @@ func esquemaAnunciado(t *testing.T, herramienta string, anunciado json.RawMessag
 }
 
 // sinLasBanderasGlobales es la entrada de --describe sin las ocho banderas
-// globales, que tiene que llevar todas; y exige que el esquema anunciado no
-// lleve ninguna: las banderas son del servidor y nunca un parámetro de una
-// herramienta (FR-020).
+// globales, que tiene que llevar todas, ni la anotación de las banderas propias
+// del verbo, si la lleva; y exige que el esquema anunciado no lleve ninguna de
+// las ocho: las banderas son del servidor y nunca un parámetro de una
+// herramienta (FR-020). Tampoco lleva la anotación, que dice cómo se escribe la
+// orden: una herramienta recibe un objeto (research.md D14 de H23).
 func sinLasBanderasGlobales(t *testing.T, herramienta string, descrita, anunciada map[string]any) map[string]any {
 	t.Helper()
+
+	assert.NotContains(t, anunciada, anotacionDeLasBanderas,
+		"%s: el esquema de entrada no lleva la anotación de las banderas propias", herramienta)
+	delete(descrita, anotacionDeLasBanderas)
 
 	deLaOrden, sonUnObjeto := descrita["properties"].(map[string]any)
 	require.True(t, sonUnObjeto, "%s: la entrada de --describe declara sus propiedades", herramienta)
