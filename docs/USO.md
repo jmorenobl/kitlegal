@@ -10,6 +10,50 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-08 · La lectura del cierre de H23: ninguna respuesta resume lo que no tiene delante, y la skill anuncia a la persona un CAPTCHA que no le sale
+
+- **Qué se pidió.** La parte humana de la aceptación de H23: leer las respuestas de `claude-sonnet-5-5` del cierre
+  (medición 1, sobre `bf4befd`) al resumen de una sentencia que no se trae, al documento pegado y al documento que
+  no es el pedido —las evals 02, 04 y 06—, en los dos modos, y anotar si alguna resume o caracteriza una sentencia
+  cuyo texto no tenía delante. Son 17 respuestas de 35: la decimoctava no existe. La lectura no es de Jorge: la hizo
+  el agente, contrastada con el fragmento de `evidencias/adr-0036/` y con el informe del job, y Jorge la adoptó. Y
+  abrir la dirección del buscador del Tribunal Constitucional que da la skill, que el run no pudo comprobar.
+- **Qué pasó.**
+  - **El resumen de una sentencia que no se trae** (seis): ninguna la resume. Todas llevan la línea
+    `⚠ SENTENCIA NO COMPROBADA:`, la dirección del buscador y las casillas con sus valores, y dicen que no han
+    comprobado que exista ni qué dice.
+  - **El documento pegado** (cinco): todas dan la cita con su forma, dicen que sale del documento aportado y que
+    kitlegal no ha consultado el buscador. Del texto cuentan lo que dice el fallo, y dicen que lo que va tras `[…]`
+    no lo han leído y que de los fundamentos no pueden decir nada. Las cinco avisan de que el fallo salta del
+    apartado 2.º al 4.º, que es como está en el fragmento.
+  - **El documento que no es el pedido** (seis): todas dicen que no lo es y qué difiere —1088/2023 es su número de
+    resolución, no su ROJ—, llevan la línea para el ROJ pedido y no dicen de esa sentencia ni que existe ni de qué
+    trata. El documento traído lo citan como lo que es, no como el pedido.
+  - **La dirección del Tribunal Constitucional**, `https://hj.tribunalconstitucional.es/`: Jorge la abrió en su
+    navegador y abre el «Buscador de jurisprudencia constitucional» del tribunal.
+- **Qué falló.**
+  - **La skill anuncia a la persona un CAPTCHA.** Lo nombran 8 de las 35 respuestas. Cuatro lo dan como el motivo
+    de que kitlegal no consulte. Las otras cuatro se lo anuncian a quien pregunta: «El buscador te pedirá un
+    CAPTCHA, que tienes que resolver tú», «Resuelve el CAPTCHA» y, dos veces, «Es posible que te pida un CAPTCHA». A
+    una persona con su navegador no le sale (entrada del 2026-10-07). Viene de la frase con que `SKILL.md` explica
+    por qué kitlegal no consulta, y ningún control lo mira.
+  - **Cinco sesiones del modo herramienta terminaron con un error 500 de la API** y no tienen respuesta: una de la
+    eval 04 de `jurisprudencia` y cuatro de evals informativas de `boe-legislacion` (13, 14, 18 y 20). El job no
+    las repite, no las lista como sesiones sin medir y las saca del denominador: por eso los umbrales se midieron
+    sobre 17 y sobre 50. Las cinco series pasan con 2 de 3.
+- **Lo que se vio y ningún control mide.**
+  - Las seis respuestas al documento que no es el pedido dan «el ECLI equivalente sería `ECLI:ES:TS:2023:1088`».
+    Sale de `cita preparar --roj`, no de la memoria, y por eso no cuenta en `cita_sin_documento`; es un dato
+    deducido, no comprobado, y solo una de las seis lo dice.
+  - Haiku 4.5, que no decide, no pasa esa eval en ninguna de sus seis sesiones, y en cuatro no activa la skill.
+- **Qué faltó.** Para H25, que cambia la skill y escribe la rúbrica: que `SKILL.md` diga por qué kitlegal no
+  consulta sin anunciar a la persona un CAPTCHA, y que la rúbrica diga qué puede afirmar una respuesta del
+  equivalente que deduce el binario. Para el job de evals: repetir, o al menos listar, la sesión que muere por un
+  error de la API. Y falta leer enteras las otras 18 respuestas, las de las evals 01, 03 y 05: en ellas solo se
+  buscó la palabra CAPTCHA.
+- **Qué se hizo.** Fusionar H23 (#126). La skill no se toca en caliente: lo que decide sale limpio en el job y en
+  la lectura, y ninguna release lleva `jurisprudencia` hasta que H25 esté en `main`.
+
 ### 2026-10-07 · El buscador del CENDOJ pide un CAPTCHA a kitlegal, y no a una persona: H23 se cierra sin entrega y cambia de forma
 
 - **Qué se pidió.** Lanzar H23: `cita resolver`, que comprobaba por el formulario del CENDOJ que una sentencia
