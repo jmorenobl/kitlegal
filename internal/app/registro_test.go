@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -227,8 +228,9 @@ func TestRegistroRechaza(t *testing.T) {
 }
 
 // TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
-// H21: boe, graph, mcp, skills y territorio, y nada más, y el almacén del grafo
-// del mundo al que el kernel entrega. Los applets de ejemplo no se registran nunca
+// H23: boe, cita, graph, mcp, skills y territorio, y nada más, el almacén del
+// grafo del mundo al que el kernel entrega y la entrada estándar del proceso
+// como entrada de las órdenes. Los applets de ejemplo no se registran nunca
 // aquí, así que `kitlegal echo hola` sobre el binario que se publica termina como
 // cualquier otro nombre desconocido (FR-001, FR-009,
 // contracts/registro-y-describe.md §3 de H1). Construirlo no pide nada ni abre
@@ -237,8 +239,10 @@ func TestRegistroRechaza(t *testing.T) {
 // binario (contrato del applet territorio §7), skills lee lo empotrado la
 // primera vez que se ejecuta uno de sus verbos (contracts/applet-skills.md §1 de
 // H19), graph y el almacén resuelven la ruta de world.db en cada invocación
-// (contracts/applet-graph.md §1; contracts/almacen-world-db.md §1 de H7), y mcp
-// solo lee de su entrada cuando sirve (contracts/servidor-mcp.md §1 de H21).
+// (contracts/applet-graph.md §1; contracts/almacen-world-db.md §1 de H7), mcp
+// solo lee de su entrada cuando sirve (contracts/servidor-mcp.md §1 de H21), y
+// de la entrada registrada solo lee el verbo de cita que la recibe, cuando se
+// ejecuta (contracts/applet-cita.md §7 de H23).
 func TestRegistroDeProduccion(t *testing.T) {
 	t.Parallel()
 
@@ -246,10 +250,20 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 
-	assert.Equal(t, []string{"boe", "graph", "mcp", "skills", "territorio"}, registro.Nombres(),
-		"el binario distribuido registra exactamente boe, graph, mcp, skills y territorio")
+	assert.Equal(t, []string{"boe", "cita", "graph", "mcp", "skills", "territorio"}, registro.Nombres(),
+		"el binario distribuido registra exactamente boe, cita, graph, mcp, skills y territorio")
 
-	applet, existe := registro.Buscar("graph")
+	applet, existe := registro.Buscar("cita")
+	require.True(t, existe)
+	assert.Equal(t, []string{"preparar", "cotejar"}, nombresDeLosVerbos(applet),
+		"con sus dos verbos, en el orden del contrato (contracts/applet-cita.md §1 de H23)")
+
+	// La entrada de las órdenes es la del proceso, que nombra la raíz de
+	// composición: la que cita cotejar lee cuando no recibe su documento en un
+	// argumento (H23 FR-020).
+	assert.Same(t, os.Stdin, registro.entrada, "la entrada de las órdenes es la entrada estándar del proceso")
+
+	applet, existe = registro.Buscar("graph")
 	require.True(t, existe)
 	assert.Equal(t, []string{"show", "stats", "check"}, nombresDeLosVerbos(applet),
 		"con sus tres verbos, en el orden del contrato (contracts/applet-graph.md §1)")

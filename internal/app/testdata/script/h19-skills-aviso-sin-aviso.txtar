@@ -84,14 +84,14 @@ cmp stdout $WORK/territorio.json
 
 # --- Versiones que solo difieren en la v inicial (US3.7, FR-077) ---
 #
-# El manifiesto y sus dos skills en 0.1.0 frente al binario v0.1.0: iguales.
+# El manifiesto y sus tres skills en 0.1.0 frente al binario v0.1.0: iguales.
 # El control, v0.2.0: distintas, y la línea da la versión tal como la guarda el
 # manifiesto.
 mkdir $WORK/sin-v
 cd $WORK/sin-v
 exec $KITLEGAL_V1_BIN skills install
 exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
-grep -count=3 '"0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=4 '"0\.1\.0"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V1_BIN territorio resolver Leganés --json
 ! stderr .
 cmp stdout $WORK/territorio.json

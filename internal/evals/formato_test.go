@@ -832,7 +832,9 @@ func TestLeerEval(t *testing.T) {
 // verbos de su enumerado— y ni el comando de territorio ni, desde H7, el de
 // comprobación, con el verbo check, son una consulta de norma (contrato
 // evals-y-skill §1 de H7); tampoco, desde H7.1, la comprobación que lleva la
-// norma que consulta (contrato evals-y-skill §1 de H7.1).
+// norma que consulta (contrato evals-y-skill §1 de H7.1), ni, desde H23, los dos
+// comandos de cita, que tienen cada uno la suya (contracts/evals-jurisprudencia.md
+// §1 de H23).
 func TestFormaDelComando(t *testing.T) {
 	t.Parallel()
 
@@ -884,6 +886,16 @@ func TestFormaDelComando(t *testing.T) {
 			comando: comprobacionDelGrafo + normaDeLaComprobacion,
 			forma:   formaComprobacion,
 		},
+		{
+			nombre:  "preparar",
+			comando: "  - applet: cita\n    verbo: preparar\n    con_texto: true\n",
+			forma:   formaPreparar,
+		},
+		{
+			nombre:  "cotejar",
+			comando: "  - applet: cita\n    verbo: cotejar\n    roj: STS 1088/2023\n",
+			forma:   formaCotejar,
+		},
 	}
 
 	for _, caso := range casos {
@@ -898,6 +910,275 @@ func TestFormaDelComando(t *testing.T) {
 			assert.Equal(t, caso.forma, formaDelComando(eval.Comandos[0]))
 		})
 	}
+}
+
+// TestFormatoDeSentencias fija lo que H23 da al formato de eval
+// (contracts/evals-jurisprudencia.md §1; FR-052): las siete claves de
+// sentencias y los dos comandos de cita, con su roj y con con_texto, se leen
+// enteros, y una eval con sentencias puede no llevar comandos; una eval de las
+// otras dos skills se lee igual, sin sentencias y sin ningún comando de cita, y
+// la positiva sin nada que esperar se sigue rechazando con el error de hoy; y
+// sentencias en una eval que no activa la skill o que es sin binario ni
+// servidor, vacías, con citas y ninguna_cita a la vez, con un valor falso, con
+// un ECLI que no es español, con un ROJ, una dirección, una cita o una casilla
+// que no tienen su forma o con otra clave, y un comando de cita con lo que su
+// forma no admite, se rechazan: cada documento es el bien formado con solo ese
+// defecto.
+func TestFormatoDeSentencias(t *testing.T) {
+	t.Parallel()
+
+	const (
+		preguntaLeida = "\xc2\xbfexiste la STS 1088/2023, de 4 de julio?"
+		pregunta      = "pregunta: \"" + preguntaLeida + "\"\n"
+		activa        = pregunta + "activa: true\n"
+		ningunaCita   = "sentencias:\n  ninguna_cita: true\n"
+		preparar      = "comandos:\n  - applet: cita\n    verbo: preparar\n"
+		cotejar       = "comandos:\n  - applet: cita\n    verbo: cotejar\n"
+
+		ecliDelEsquema = "'^ECLI:ES:[A-Z][A-Z0-9]{0,6}:[0-9]{4}:[A-Z0-9.]{1,25}$'"
+		rojDelEsquema  = "'^[A-Z]+( [A-Z]+)* [0-9]+/[0-9]{4}$'"
+	)
+
+	// sentencias es el documento que activa la skill, sin comandos, con esas
+	// líneas bajo sentencias, que es su línea 3.
+	sentencias := func(lineas string) string { return activa + "sentencias:\n" + lineas }
+
+	casos := []struct {
+		nombre     string
+		documento  string
+		leida      Eval
+		error      string
+		fragmentos []string
+	}{
+		{
+			nombre: "todas-las-claves",
+			documento: "# Eval de jurisprudencia: lo que espera de la sesi\xc3\xb3n y de su respuesta.\n" + activa +
+				"comandos:\n" +
+				"  - applet: cita\n    verbo: cotejar\n    roj: STS 1088/2023\n" +
+				"  - applet: cita\n    verbo: preparar\n    roj: STS 1088/2023\n" +
+				"  - applet: cita\n    verbo: preparar\n    con_texto: true\n" +
+				"  - applet: cita\n    verbo: cotejar\n" +
+				"sentencias:\n" +
+				"  citas:\n    - ecli: ECLI:ES:TS:2023:3144\n      roj: STS 3144/2023\n" +
+				"    - ecli: ECLI:ES:APM:2020:1A.2\n      roj: SAP M 15/2020\n" +
+				"  sin_cita_del_roj:\n    - STS 1088/2023\n" +
+				"  no_comprobada: true\n" +
+				"  direcciones:\n    - " + direccionDelCendoj + "\n    - " + direccionDelTC + "\n" +
+				"  casillas:\n    - nombre: " + casillaDeROJ + "\n      valor: STS 1088/2023\n" +
+				"    - nombre: " + casillaDeFecha + "\n      valor: 04/07/2023\n" +
+				"  direccion_de_busqueda: true\n",
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: preguntaLeida,
+				Activa:   true,
+				Comandos: []ComandoEsperado{
+					{Applet: "cita", Verbo: "cotejar", ROJ: rojQueNoEsElSuyo},
+					{Applet: "cita", Verbo: "preparar", ROJ: rojQueNoEsElSuyo},
+					{Applet: "cita", Verbo: "preparar", ConTexto: true},
+					{Applet: "cita", Verbo: "cotejar"},
+				},
+				Sentencias: SentenciasEsperadas{
+					Citas: []CitaDeSentenciaEsperada{
+						{ECLI: ecliDelFragmento, ROJ: rojDelFragmento}, {ECLI: "ECLI:ES:APM:2020:1A.2", ROJ: "SAP M 15/2020"},
+					},
+					SinCitaDelROJ: []string{rojQueNoEsElSuyo},
+					NoComprobada:  true,
+					Direcciones:   []string{direccionDelCendoj, direccionDelTC},
+					Casillas: []CasillaEsperada{
+						{Nombre: casillaDeROJ, Valor: rojQueNoEsElSuyo}, {Nombre: casillaDeFecha, Valor: "04/07/2023"},
+					},
+					DireccionDeBusqueda: true,
+				},
+			},
+		},
+		{
+			// Con sentencias, comandos deja de ser obligatorio.
+			nombre:    "ninguna-cita-sin-comandos",
+			documento: activa + ningunaCita,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Sentencias: SentenciasEsperadas{NingunaCita: true},
+			},
+		},
+		{
+			// Y las claves de hoy siguen valiendo a su lado.
+			nombre:    "con-una-cita-del-boe",
+			documento: activa + preparar + citaDelArticulo21 + ningunaCita,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Comandos:   []ComandoEsperado{{Applet: "cita", Verbo: "preparar"}},
+				Citas:      []CitaEsperada{{Norma: "BOE-A-2015-10565", Bloque: "a21"}},
+				Sentencias: SentenciasEsperadas{NingunaCita: true},
+			},
+		},
+		{
+			// Sin sentencias, la que activa la skill sigue necesitando sus comandos
+			// y algo que esperar, con el error de hoy.
+			nombre:    "sin-sentencias-ni-comandos",
+			documento: activa,
+			error: nombreDeEval + ": l\xc3\xadnea 1: missing property 'citas'\n" +
+				"l\xc3\xadnea 1: missing property 'comandos'\n" +
+				"l\xc3\xadnea 1: missing property 'territorio'",
+		},
+		{
+			nombre:    "sin-sentencias-y-con-un-comando-de-cita",
+			documento: activa + preparar,
+			error: nombreDeEval + ": l\xc3\xadnea 1: missing property 'citas'\n" +
+				"l\xc3\xadnea 1: missing property 'territorio'",
+		},
+		{
+			nombre:    "en-una-eval-que-no-activa-la-skill",
+			documento: pregunta + "activa: false\n" + ningunaCita,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "en-una-eval-sin-binario-ni-servidor",
+			documento: activa + sinBinarioNiServidor + ningunaCita,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "vacias",
+			documento: activa + "sentencias: {}\n",
+			error:     nombreDeEval + ": sentencias, l\xc3\xadnea 3: minProperties: got 0, want 1",
+		},
+		{
+			nombre: "con-citas-y-ninguna-cita",
+			documento: sentencias("  citas:\n    - ecli: ECLI:ES:TS:2023:3144\n      roj: STS 3144/2023\n" +
+				"  ninguna_cita: true\n"),
+			error: nombreDeEval + ": sentencias, l\xc3\xadnea 4: 'not' failed",
+		},
+		{
+			nombre:    "ninguna-cita-falsa",
+			documento: sentencias("  ninguna_cita: false\n"),
+			error:     nombreDeEval + ": sentencias/ninguna_cita, l\xc3\xadnea 4: value must be true",
+		},
+		{
+			nombre:    "no-comprobada-falsa",
+			documento: sentencias("  no_comprobada: false\n"),
+			error:     nombreDeEval + ": sentencias/no_comprobada, l\xc3\xadnea 4: value must be true",
+		},
+		{
+			nombre:    "direccion-de-busqueda-falsa",
+			documento: sentencias("  direccion_de_busqueda: false\n"),
+			error:     nombreDeEval + ": sentencias/direccion_de_busqueda, l\xc3\xadnea 4: value must be true",
+		},
+		{
+			nombre:    "citas-vacias",
+			documento: sentencias("  citas: []\n"),
+			error:     nombreDeEval + ": sentencias/citas, l\xc3\xadnea 4: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "cita-con-un-ecli-de-otro-pais",
+			documento: sentencias("  citas:\n    - ecli: ECLI:EU:C:2019:123\n      roj: STJUE 123/2019\n"),
+			error: nombreDeEval + ": sentencias/citas/0/ecli, l\xc3\xadnea 5: " +
+				"'ECLI:EU:C:2019:123' does not match pattern " + ecliDelEsquema,
+		},
+		{
+			nombre:    "cita-sin-roj",
+			documento: sentencias("  citas:\n    - ecli: ECLI:ES:TS:2023:3144\n"),
+			error:     nombreDeEval + ": sentencias/citas/0, l\xc3\xadnea 5: missing property 'roj'",
+		},
+		{
+			nombre:    "cita-con-otra-clave",
+			documento: sentencias("  citas:\n    - ecli: ECLI:ES:TS:2023:3144\n      roj: STS 3144/2023\n      fecha: 2023-07-04\n"),
+			error:     nombreDeEval + ": sentencias/citas/0, l\xc3\xadnea 5: additional properties 'fecha' not allowed",
+		},
+		{
+			nombre:    "roj-que-no-se-cita-en-minusculas",
+			documento: sentencias("  sin_cita_del_roj:\n    - sts 1088/2023\n"),
+			error: nombreDeEval + ": sentencias/sin_cita_del_roj/0, l\xc3\xadnea 5: " +
+				"'sts 1088/2023' does not match pattern " + rojDelEsquema,
+		},
+		{
+			nombre:     "direccion-que-no-lo-es",
+			documento:  sentencias("  direcciones:\n    - \"el buscador del CENDOJ\"\n"),
+			fragmentos: []string{"sentencias/direcciones/0, l\xc3\xadnea 5: 'el buscador del CENDOJ' is not valid uri"},
+		},
+		{
+			nombre:    "casilla-sin-valor",
+			documento: sentencias("  casillas:\n    - nombre: " + casillaDeROJ + "\n"),
+			error:     nombreDeEval + ": sentencias/casillas/0, l\xc3\xadnea 5: missing property 'valor'",
+		},
+		{
+			nombre:    "casilla-con-el-valor-vacio",
+			documento: sentencias("  casillas:\n    - nombre: " + casillaDeROJ + "\n      valor: \"\"\n"),
+			error:     nombreDeEval + ": sentencias/casillas/0/valor, l\xc3\xadnea 6: minLength: got 0, want 1",
+		},
+		{
+			nombre:    "con-otra-clave",
+			documento: sentencias("  contiene:\n    - STS 1088/2023\n"),
+			error:     nombreDeEval + ": sentencias, l\xc3\xadnea 4: additional properties 'contiene' not allowed",
+		},
+		{
+			nombre:     "preparar-con-una-norma",
+			documento:  activa + preparar + "    norma: BOE-A-2015-10565\n" + ningunaCita,
+			fragmentos: []string{"comandos/0, l\xc3\xadnea 4: additional properties 'norma' not allowed"},
+		},
+		{
+			nombre:     "preparar-con-texto-falso",
+			documento:  activa + preparar + "    con_texto: false\n" + ningunaCita,
+			fragmentos: []string{"comandos/0/con_texto, l\xc3\xadnea 6: value must be true"},
+		},
+		{
+			nombre:     "cotejar-con-texto",
+			documento:  activa + cotejar + "    con_texto: true\n" + ningunaCita,
+			fragmentos: []string{"comandos/0, l\xc3\xadnea 4: additional properties 'con_texto' not allowed"},
+		},
+		{
+			nombre:     "cotejar-con-un-roj-sin-su-forma",
+			documento:  activa + cotejar + "    roj: STS-1088\n" + ningunaCita,
+			fragmentos: []string{"comandos/0/roj, l\xc3\xadnea 6: 'STS-1088' does not match pattern " + rojDelEsquema},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			leida, err := LeerEval(nombreDeEval, []byte(caso.documento))
+			if caso.error == "" && len(caso.fragmentos) == 0 {
+				require.NoError(t, err)
+				assert.Equal(t, caso.leida, leida)
+				assert.True(t, leida.Sentencias.declaradas(), "la eval declara sentencias")
+
+				return
+			}
+
+			require.Error(t, err)
+			assert.Zero(t, leida, "una eval mal formada no se entrega a medias")
+
+			if caso.error != "" {
+				require.EqualError(t, err, caso.error)
+			}
+
+			for _, fragmento := range caso.fragmentos {
+				assert.ErrorContains(t, err, fragmento)
+			}
+		})
+	}
+
+	t.Run("las-evals-de-hoy", func(t *testing.T) {
+		t.Parallel()
+
+		for _, dir := range []string{evalsDelRepositorio, evalsDeLegalCore} {
+			conjunto, err := LeerConjunto(dir)
+			require.NoError(t, err)
+			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
+			require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
+
+			for _, eval := range conjunto.Evals {
+				assert.False(t, eval.Sentencias.declaradas(), "%s de %s no declara sentencias", eval.Fichero, dir)
+				assert.Zero(t, eval.Sentencias, "%s de %s se lee sin sentencias", eval.Fichero, dir)
+
+				for posicion, comando := range eval.Comandos {
+					assert.Empty(t, comando.ROJ, "el comando %d de %s de %s se lee sin ROJ", posicion, eval.Fichero, dir)
+					assert.False(t, comando.ConTexto, "el comando %d de %s de %s se lee sin texto", posicion, eval.Fichero, dir)
+					assert.NotContains(t, []formaDeComando{formaPreparar, formaCotejar}, formaDelComando(comando),
+						"el comando %d de %s de %s conserva su forma", posicion, eval.Fichero, dir)
+				}
+			}
+		}
+	})
 }
 
 // TestEsquemaDeEval comprueba que el esquema publicado del formato común de eval

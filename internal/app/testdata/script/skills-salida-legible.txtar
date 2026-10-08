@@ -50,7 +50,7 @@ exec kitlegal skills doctor -g
 
 # Con --json, el sobre de siempre y nada más: sin ~ ni nombres de marca.
 exec kitlegal skills list -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stdout 'Claude Code|~/'
 ! stderr .
 
@@ -122,6 +122,9 @@ Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
   boe-legislacion  instalada
     Claude Code  ~/.claude/skills/boe-legislacion
     Antigravity  ~/.gemini/config/skills/boe-legislacion
+  jurisprudencia   instalada
+    Claude Code  ~/.claude/skills/jurisprudencia
+    Antigravity  ~/.gemini/config/skills/jurisprudencia
   legal-core       instalada
     Claude Code  ~/.claude/skills/legal-core
     Antigravity  ~/.gemini/config/skills/legal-core
@@ -133,6 +136,9 @@ Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
   boe-legislacion  sin cambios
     Claude Code  ~/.claude/skills/boe-legislacion
     Antigravity  ~/.gemini/config/skills/boe-legislacion
+  jurisprudencia   sin cambios
+    Claude Code  ~/.claude/skills/jurisprudencia
+    Antigravity  ~/.gemini/config/skills/jurisprudencia
   legal-core       sin cambios
     Claude Code  ~/.claude/skills/legal-core
     Antigravity  ~/.gemini/config/skills/legal-core
@@ -144,6 +150,9 @@ Skills de kitlegal en ~/.agents/skills (Codex las lee de ahí):
   boe-legislacion  dev
     Claude Code  ~/.claude/skills/boe-legislacion
     Antigravity  ~/.gemini/config/skills/boe-legislacion
+  jurisprudencia   dev
+    Claude Code  ~/.claude/skills/jurisprudencia
+    Antigravity  ~/.gemini/config/skills/jurisprudencia
   legal-core       dev
     Claude Code  ~/.claude/skills/legal-core
     Antigravity  ~/.gemini/config/skills/legal-core
@@ -153,6 +162,7 @@ Todo en orden: las skills de ~/.agents/skills son de kitlegal dev y están como 
 Skills de kitlegal dev en .agents/skills (Codex y Antigravity las leen de ahí):
 
   boe-legislacion  instalada
+  jurisprudencia   instalada
   legal-core       instalada
 
 Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».
@@ -161,6 +171,7 @@ Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la L
 Skills de kitlegal en .agents/skills (Codex y Antigravity las leen de ahí):
 
   boe-legislacion  dev
+  jurisprudencia   dev
   legal-core       dev
 
 Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».
@@ -171,18 +182,22 @@ Skills de kitlegal v0.1.0 en .agents/skills (Codex y Antigravity las leen de ah�
 
   boe-legislacion  instalada
     Claude Code  .claude/skills/boe-legislacion (copia, porque en esa carpeta no se pueden crear enlaces)
+  jurisprudencia   instalada
+    Claude Code  .claude/skills/jurisprudencia (copia, porque en esa carpeta no se pueden crear enlaces)
   legal-core       instalada
     Claude Code  .claude/skills/legal-core (copia, porque en esa carpeta no se pueden crear enlaces)
 
 Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
 -- esperado/doctor-copia.txt --
-Hay 3 cosas que arreglar en las skills de .agents/skills:
+Hay 4 cosas que arreglar en las skills de .agents/skills:
 
   1. Las skills son de kitlegal v0.1.0 y este kitlegal es dev.
-     kitlegal skills install boe-legislacion legal-core --host claude
+     kitlegal skills install boe-legislacion jurisprudencia legal-core --host claude
   2. .claude/skills/boe-legislacion es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
      kitlegal skills install boe-legislacion --host claude
-  3. .claude/skills/legal-core es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+  3. .claude/skills/jurisprudencia es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install jurisprudencia --host claude
+  4. .claude/skills/legal-core es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
      kitlegal skills install legal-core --host claude
 
 Ejecuta las órdenes en ese orden y vuelve a comprobarlo con «kitlegal skills doctor».

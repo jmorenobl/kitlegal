@@ -1,0 +1,2 @@
+go test fuzz v1
+string("sts 3144/2023")

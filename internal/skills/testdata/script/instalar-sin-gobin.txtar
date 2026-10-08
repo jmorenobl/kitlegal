@@ -16,9 +16,11 @@ exists $WORK/gopath/bin/kitlegal
 ! exists $WORK/repo/bin/instalado
 
 exec ls -A $HOME/.agents/skills
-stdout '\Aboe-legislacion\nkitlegal\.json\nlegal-core\n\z'
+stdout '\Aboe-legislacion\njurisprudencia\nkitlegal\.json\nlegal-core\n\z'
 exec readlink $HOME/.claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $HOME/.claude/skills/jurisprudencia
+stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink $HOME/.claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 cmp $HOME/.agents/skills/legal-core/SKILL.md $WORK/repo/skills/legal-core/SKILL.md

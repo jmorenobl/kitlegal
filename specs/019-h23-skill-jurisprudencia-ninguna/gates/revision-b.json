@@ -1,0 +1,84 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza be7e8ec: su guardián dice «(global), 12 ficheros», que son los 12 de `git diff --stat 8d0533d..HEAD` (gates/base-global = 8d0533d), y su hora de escritura (19:35:01) es la del commit be7e8ec; termina en «ci: todos los controles en verde», exit=0, con lint «0 issues.», -race -shuffle, test-integration, test-tiempos, vuln, esquemas publicados, skills, goreleaser check, gitleaks «no leaks found», go mod verify y tidy -diff sin salida. Reproducido en un clon de be7e8ec bajo $TMPDIR (juezb2-clon): `go test -count=1 ./internal/core/cita/` ok, `go test -race -shuffle=on -count=1 ./internal/core/cita/` ok, `golangci-lint run ./internal/core/cita/...` «0 issues.». Árbol limpio: `git status --short` solo da gates/base-global-pendiente (borrado), gates/revision-cambios.md y gates/revision-cambios-r2.diff, que escribe el propio workflow."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango 8d0533d..HEAD cambia fuera de gates/ solo internal/core/cita/ficha_test.go (30 líneas): tres casos nuevos en TestLeerFicha (líneas 232, 236 y 302) con sus constantes (213-219, 224-226, 288). En el clon, cada uno de los tres mutantes del motivo del juez A pone en rojo exactamente su caso y ninguno más: lineasDesdeLaFicha devolviendo la línea «Roj:» seguida de las anteriores y después de las posteriores (ficha.go:139) → «con las etiquetas de sus datos delante, con otros valores»; datoDe sin su break (ficha.go:188) → «con la línea del ponente vacía y otra con valor más abajo»; strings.TrimSpace cambiado por strings.Trim(linea, \" \\t\\r\") (ficha.go:129) → «con espacios duros en los extremos de cada línea». Sin mutante, los tres en --- PASS con -v. La suite congelada sigue intacta: los ocho SHA-256 de specs/…/aceptacion/*.txtar e internal/app/testdata/script/h23-*.txtar son los cuatro de gates/aceptacion-congelada.json, dos veces cada uno (shasum en esta sesión), y el rango no toca ningún testdata/ ni corpus de fuzz (`git diff --name-only 8d0533d..HEAD` fuera de gates/: solo ficha_test.go). Lo demás de la ronda 1 (37 de 40 mutantes detectados, casos negativos por fila en cita_test.go, sentencias_test.go, informe_test.go, conjunto_test.go, main_test.go, tres fuzz con corpus) sigue en pie porque ningún fichero de producto ha cambiado."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no toca código de producto; ficha_test.go no cambia sus imports (strings, testing, testify y el paquete cita, los de antes) y `golangci-lint run ./internal/core/cita/...` en el clon da «0 issues.», con depguard y forbidigo. Lo de la ronda 1 sigue: internal/arch_test.go:408-422 con internal/core/cita, internal/core/ids y app/cita.go entre los orígenes sin red; internal/core/cita importa solo ids, schema y biblioteca estándar; sin net/http, os.Exit ni fmt.Print* nuevos."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Sin cambio en el rango. Sigue lo de la ronda 1: los dos verbos firman el sobre (internal/app/cita.go:20-28, 137-142, 227-232, 261-263); exigirSalidaDeCita (cita_test.go:224-232) valida cada salida real contra su parte de schemas/cita.json y TestEsquemasPublicados fija que ese fichero es lo que emite --describe (en verde en gates/ci.log de la cabeza); los guiones h23-cita-preparar y h23-cita-cotejar afirman el sobre entero."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambio de producto en el rango. El caso nuevo «con la línea del ponente vacía y otra con valor más abajo» (ficha_test.go:302) exige, por compruebaErrorDeArgumentos, la clase argumentos y el mensaje «falta el dato «Ponente»», que es lo que FR-026 promete y lo que el applet traduce a 2 (internal/core/cita/referencia.go:212-236; cita.go:149-157). Sigue lo de la ronda 1: ningún panic en rutas de usuario (ecli.go:162-167, ficha.go:83-89; FuzzLeerFicha, FuzzECLI y FuzzROJ con su corpus en ci.log)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "El rango no toca documentación ni artefactos salvo gates/supuestos.md, que gana una línea del corrector (línea 63) con lo que se fijó y lo que no, y los comentarios del test, que pasan a describir los casos nuevos (ficha_test.go:205-209 y 279-283) sin afirmar nada que el código no haga. Lo de la ronda 1 sigue: CHANGELOG [Unreleased] con cada cifra cotejada, README «¿Y las sentencias?», docs/JURISPRUDENCIA.md §4 y §5, sin ADR ni docs/SOURCES.md nuevos con su motivo en el spec."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin código de producto en el rango. El texto de los casos nuevos es sintético —«Otro Órgano», «OTRO PONENTE», fechas del año 2000— y la ficha sale del fragmento de evidencias/adr-0036, que el test exige por su SHA-256 (ficha_test.go:87-96); ningún dato externo nuevo, ninguna petición, ningún NIF. Sigue lo de la ronda 1: el applet no alcanza net ni internal/httpx (TestArquitectura), no guarda nada (h23-cita-sin-efectos), gitleaks sin hallazgos en el ci.log de la cabeza."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep de nolint, t.Skip, SkipNow, TODO, FIXME, XXX, «_ = » y recover( sobre las líneas añadidas de `git diff 8d0533d..HEAD` fuera de gates/: ninguna. Ningún fixture, golden, corpus ni guion tocado en el rango; el producto no cambia para que pase ningún test: los tres casos nuevos pasan con el código de 8d0533d (lo dice el corrector y lo confirma que ficha.go no cambia en el rango y los casos están en verde). gates/cuarentena.json sigue vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente lo que el motivo [b] del juez A pedía: tres casos en internal/core/cita/ficha_test.go, sin tocar testdata/, el corpus de fuzz, la suite de aceptación ni el producto. El supuesto nuevo de gates/supuestos.md (línea 63) es una lectura conservadora coherente con el spec: no fija con un test una cuarta conducta —el espacio duro entre los dos puntos de la etiqueta y el valor— que ni FR-021 ni contracts/applet-cita.md §5 («las reglas son las de FR-021, sin añadir ninguna») declaran. Lo de la ronda 1 sigue: diff vacío en todo lo que el spec declara intocable."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Sin cambio en lo que consume una skill o una persona: el rango es un fichero de test. Sigue lo medido en la ronda 1 sobre los golden que escribe el binario: 377 a 560 bytes por consulta preparada y 547 a 993 por cotejo (389…572 y 559…1 005 con la fecha real); nada crece con lo acumulado porque el applet no abre caché ni grafo; la skill pasa la ficha (316 bytes) y no el documento; una invocación de preparar por sentencia que falta y una de cotejar por documento traído; las señales caducan con el cotejo."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada caso nuevo se traza a una regla que el hito declara: «con las etiquetas de sus datos delante, con otros valores» (ficha_test.go:232) → FR-021, primera regla («lo que hay antes no se lee») y Edge Cases del spec (spec.md:206); «con espacios duros en los extremos de cada línea» (236) → FR-021 («blancos al principio y al final de cada línea»), leídos como los de Unicode en gates/supuestos.md T003 (línea 29); «con la línea del ponente vacía y otra con valor más abajo» (302) → FR-021 («la primera línea que lleva su etiqueta») y supuestos.md T003 (línea 28). Ningún mecanismo nuevo en el producto; ningún auxiliar nuevo en el test (reutiliza conLaLinea y fichaDelFragmento; sinSaltoFinal y conElPonenteVacio son variables locales que evitan repetir una expresión); y el corrector deja sin test la cuarta conducta que no se traza a ningún FR, como pide este criterio. Lo de la ronda 1 sigue: cada paquete, tipo y rama trazado en plan.md «Trazabilidad»; lo único sin consumidor de producción es ExtraerLineasDeAviso, en observaciones."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Sin cambio en el rango. Sigue lo de la ronda 1: cita_sin_documento y sin_activar con \"<=\" 0 y Decide: true (internal/evals/umbrales.go:1155-1166 y 300) y sus mutantes en rojo en TestUmbralesDeJurisprudencia y TestCitaSinDocumento; SKILL.md a 300 líneas, AppletCita fuera del registro, un byte de un golden, import net, jurisprudencia fuera de la matriz y el tope del job, cada uno con su test en rojo; ninguno solo se publica. gates/ci.log de la cabeza da internal/evals, internal/app e internal/skills en ok."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "La cuarta conducta que el corrector encontró y no fijó —el espacio duro (U+00A0) entre los dos puntos de la etiqueta y el valor, que el producto quita con strings.TrimSpace en internal/core/cita/ficha.go:184— queda sin test por decisión registrada (gates/supuestos.md:63): ni FR-021 ni contracts/applet-cita.md §5 la declaran. Da la misma data con o sin el espacio; por debajo del umbral de materialidad.",
+    "No reproducido en esta sesión: make ci entero; solo internal/core/cita (go test con y sin -race -shuffle) y golangci-lint sobre ese paquete, en un clon de be7e8ec bajo $TMPDIR. gates/ci.log, de la cabeza, cubre el resto.",
+    "Siguen en pie las observaciones de la ronda 1, sin cambio en el producto: los golden y los guiones e2e no cubren «pedido por un ECLI distinto del de la ficha» (FR-024), que solo ve TestCotejar; ExtraerLineasDeAviso (internal/evals/sentencias.go:96-101) sin consumidor de producción; io.ReadAll de la entrada (internal/app/cita.go:251) no mira el contexto; la dirección del buscador del Tribunal Constitucional sin comprobar (supuesto S1); las reglas MUST de la skill sin eval ni control que gates/analyze.md C1 lista y supuestos.md no da por comprobadas; la condición 2 de FR-061 por diseño; el esquema de herramienta sin x-banderas (research D14); el tope de 352 minutos del job calculado y no medido; el mutante M25 equivalente.",
+    "Las dos reglas de orden de los mensajes que el juez A anotó (la fecha sin número antes que más de una forma; «Fecha» antes que «Órgano») siguen sin test propio; cambian solo el mensaje con el mismo código 2 y la misma clase."
+  ]
+}

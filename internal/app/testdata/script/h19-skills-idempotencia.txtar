@@ -26,7 +26,7 @@ exec kitlegal skills install
 arbol .
 cp stdout $WORK/primera.txt
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 arbol .
 cmp stdout $WORK/primera.txt
@@ -35,13 +35,14 @@ cmp stdout $WORK/primera.txt
 mkdir $WORK/actualizar/.claude
 cd $WORK/actualizar
 exec $KITLEGAL_V1_BIN skills install
-grep -count=3 '"v0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=4 '"v0\.1\.0"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V2_BIN skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
-grep -count=3 '"v0\.2\.0"' .agents/skills/kitlegal.json
+grep -count=4 '"v0\.2\.0"' .agents/skills/kitlegal.json
 ! grep '"v0\.1\.0"' .agents/skills/kitlegal.json
 cmp .agents/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .agents/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
 cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
@@ -49,15 +50,16 @@ arbol .
 cp stdout $WORK/actualizada.txt
 
 exec $KITLEGAL_V2_BIN skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 arbol .
 cmp stdout $WORK/actualizada.txt
 
 # --- Un subconjunto con otro binario conserva a las demás (FR-034) ---
 #
-# El manifiesto pasa a la versión nueva y legal-core también; la entrada de
-# boe-legislacion queda byte a byte como estaba: devolviendo la versión nueva
-# a la anterior, el manifiesto es el mismo que antes.
+# El manifiesto pasa a la versión nueva y legal-core también; las entradas de
+# boe-legislacion y de jurisprudencia quedan byte a byte como estaban:
+# devolviendo la versión nueva a la anterior, el manifiesto es el mismo que
+# antes.
 mkdir $WORK/subconjunto
 cd $WORK/subconjunto
 exec $KITLEGAL_V1_BIN skills install
@@ -65,20 +67,20 @@ cp .agents/skills/kitlegal.json $WORK/manifiesto-v1.json
 exec $KITLEGAL_V2_BIN skills install legal-core --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 grep -count=2 '"v0\.2\.0"' .agents/skills/kitlegal.json
-grep -count=1 '"v0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=2 '"v0\.1\.0"' .agents/skills/kitlegal.json
 exec sh -c 'sed "s/\"v0\.2\.0\"/\"v0.1.0\"/g" .agents/skills/kitlegal.json'
 cmp stdout $WORK/manifiesto-v1.json
 
 # --- Un fichero declarado que falta se repone (FR-046) ---
 #
-# Solo cambia la skill a la que le falta: esa sale actualizada y la otra, sin
+# Solo cambia la skill a la que le falta: esa sale actualizada y las otras, sin
 # cambios.
 mkdir $WORK/falta
 cd $WORK/falta
 exec kitlegal skills install
 rm .agents/skills/legal-core/references/leyes_vertebrales.md
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
 
 # --- Un fichero declarado que ya no se empotra, con la huella intacta, se retira (FR-046) ---
@@ -95,7 +97,7 @@ cp $WORK/antigua.md .agents/skills/legal-core/references/antigua.md
 exec sh $WORK/declarar.sh .agents/skills/kitlegal.json legal-core/references/antigua.md .agents/skills/legal-core/references/antigua.md
 exec kitlegal skills list --json
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 ! exists .agents/skills/legal-core/references/antigua.md
 cmp .agents/skills/kitlegal.json $WORK/manifiesto-completo.json
 

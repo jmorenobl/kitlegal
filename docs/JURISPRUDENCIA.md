@@ -167,7 +167,8 @@ persona cuenta como reutilización.
 ## 4. Hito propuesto
 
 > Los puntos 2 a 4 son la propuesta de septiembre y de octubre. Desde el 2026-10-07 el punto 3 no se hace: la
-> comprobación de una sentencia identificada la hace también la persona (`docs/ROADMAP.md`, H23; ADR 0036).
+> comprobación de una sentencia identificada la hace también la persona (`docs/ROADMAP.md`, H23; ADR 0036). Lo que
+> H23 ha hecho de la propuesta está al final de esta sección.
 
 Reutiliza la infraestructura de H4 (`httpx`, caché, sobre, exit codes, `--describe`, grabación de fixtures). Lo
 nuevo es el parseo del sumario, que tiene XSD, el descomponedor de ECLI y el adaptador del formulario.
@@ -197,16 +198,52 @@ Por qué importa: las multas de los tribunales por escritos hechos con IA han si
 mayor peso de su índice (fiabilidad de fuente, 23 de 100; trazabilidad, 9), con 15 de sus 90 preguntas de
 jurisprudencia y 10 de referencias falsas. Con el punto 3, una sentencia inventada da cero resultados.
 
+### Lo que H23 deja hecho
+
+La parte del CENDOJ, con la comprobación hecha por la persona (ADR 0036, enmienda del 2026-10-07). Nada de ello pide
+nada a la red:
+
+- **El applet `cita`**, con dos verbos, que el servidor MCP ofrece también como las herramientas `cita_preparar` y
+  `cita_cotejar`. No consulta ninguna fuente y no escribe en la caché ni en el grafo, de modo que lo que §6 pregunta
+  no se plantea para él.
+  - **`kitlegal cita preparar`** dice qué tiene que hacer la persona para encontrar una sentencia. Con una
+    referencia —un ECLI español, `--roj`, o `--resolucion` con `--fecha`—, da la dirección del buscador y cada
+    casilla de §3 con su valor: «ECLI», «Nº ROJ», o «Nº Resolución» con la fecha en «Fecha resolución», la misma en
+    «Desde» y en «Hasta». Da también el equivalente que se deduce sin consultar nada, el ROJ de un ECLI del Tribunal
+    Supremo y el ECLI de un ROJ suyo (§3). Con `--texto`, da la dirección que abre el buscador con la búsqueda hecha
+    (§3): es lo que queda del punto 4. Un ECLI del Tribunal Constitucional lo declara fuera de cobertura.
+  - **`kitlegal cita cotejar`** lee la ficha con la que el CENDOJ encabeza el documento que trae la persona, que le
+    llega como texto por la entrada estándar o en `--documento`, y, con la referencia que se había pedido, dice si
+    el documento es ese. Que no lo sea es un hallazgo, que nombra qué difiere y, si el número pedido como ROJ es el
+    número de resolución del documento, o al revés, lo dice. Es lo que hay en lugar del punto 3: no dice si una
+    sentencia existe, sino si el documento traído es el pedido.
+- **El reconocimiento de un ECLI y de un ROJ** y su equivalencia (`internal/core/ids`): el descomponedor de ECLI de
+  la propuesta.
+- **La skill `jurisprudencia`** (`skills/jurisprudencia/SKILL.md`), con la regla del punto 5 como queda tras el ADR
+  0036: una sentencia solo se cita con su documento en la conversación y su ficha cotejada, con la forma fija
+  `STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]`; la que no está delante lleva la línea
+  `⚠ SENTENCIA NO COMPROBADA:` y la consulta preparada, sin decir que existe ni que no existe; ninguna se resume ni
+  se caracteriza sin su texto; y una del Tribunal Constitucional se declara no cubierta. Sus evals están en
+  `evals/jurisprudencia/`, y el job decide con `cita_sin_documento`, un hecho de la sesión; que no resuma lo que no
+  ha leído no lo decide ningún control hasta H25.
+
+Siguen sin hacer los puntos 1 y 2, los del Tribunal Constitucional por el BOE: no hay `boe sumario`, y el applet
+`cita` no tiene `resolver`. Y, del punto 4, los operadores, la jurisdicción, el órgano y las fechas de la búsqueda
+por texto, que no se han probado.
+
 ## 5. Pendiente de verificar antes de fijar nada en `data/` o en código
 
 - El código exacto de la sección del TC en el sumario: el XSD no enumera los códigos de sección.
 - Que la API del sumario responde 200 con `Accept: application/json` (documentado, no probado en vivo).
 - Del formulario del CENDOJ, lo que §3 deja sin probar: `NUMERORECURSO`, el filtro por órgano, otros órganos y
-  cuándo aparece el CAPTCHA.
-- Si la ruta de búsqueda por GET sirve como enlace para que la persona abra en su navegador una búsqueda ya
-  preparada.
+  cuándo aparece el CAPTCHA. H23 no usa el formulario: `cita preparar` da las casillas que rellena la persona (§3),
+  las mismas para cualquier órgano, y a mano solo se han probado con una sentencia del Supremo.
 - La cifra que circula de que el CENDOJ considera «descarga masiva» unas 100 descargas diarias no aparece en
   ningún texto oficial.
+
+Dejó de estar pendiente con H23: si la ruta de búsqueda por GET sirve como enlace para que la persona abra en su
+navegador una búsqueda ya preparada. Se probó a mano el 2026-10-07 (§3), y es la dirección que da
+`kitlegal cita preparar --texto`.
 
 ## 6. Nota sobre la caché y el grafo
 

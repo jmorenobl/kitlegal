@@ -47,7 +47,7 @@ arbol .
 cp stdout $WORK/instalado.txt
 
 exec $KITLEGAL_V1_BIN skills list --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\.1\.0","skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stderr .
 
 exec $KITLEGAL_V1_BIN skills doctor --json

@@ -31,7 +31,7 @@ symlink $WORK/bin-sin-enlaces/kitlegal -> $KITLEGAL_SIN_ENLACES_BIN
 mkdir $WORK/copia/.claude
 cd $WORK/copia
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
 ! stderr .
 
 # Directorios reales con los mismos ficheros que el directorio neutro, ningún
@@ -39,20 +39,23 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills"
 # con su ruta relativa a la raíz del ámbito.
 arbol .claude
 stdout '^d skills/boe-legislacion$'
+stdout '^d skills/jurisprudencia$'
 stdout '^d skills/legal-core$'
 stdout '^f skills/legal-core/SKILL\.md '
 ! stdout '^l '
 cmp .claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
 cmp .claude/skills/boe-legislacion/references/normas.md $KITLEGAL_SKILLS/boe-legislacion/references/normas.md
+cmp .claude/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
 cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 cmp .claude/skills/legal-core/references/jerarquia_normativa.md $KITLEGAL_SKILLS/legal-core/references/jerarquia_normativa.md
 cmp .claude/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
-grep -count=2 '"modo": *"copia"' .agents/skills/kitlegal.json
+grep -count=3 '"modo": *"copia"' .agents/skills/kitlegal.json
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/jurisprudencia/SKILL.md .claude/skills/jurisprudencia/SKILL.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/legal-core/SKILL.md .claude/skills/legal-core/SKILL.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/boe-legislacion/references/normas.md .claude/skills/boe-legislacion/references/normas.md
 
 exec $KITLEGAL_SIN_ENLACES_BIN skills list --json
-stdout '"skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\}\n\z'
+stdout '"skills":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","version":"v0\.1\.0","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\}\n\z'
 
 # Con el creador que sigue fallando, la copia no es un hallazgo (FR-069) y una
 # segunda instalación no cambia nada.
@@ -61,7 +64,7 @@ stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"v0\
 arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -98,7 +101,7 @@ env PATH=$PATH_ORIGINAL
 arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_V1_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"copia","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"copia","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"copia","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"copia","ruta":"\.claude/skills/jurisprudencia","orden":"kitlegal skills install jurisprudencia --host claude"\},\{"clase":"copia","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
@@ -109,9 +112,11 @@ stdout '"hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
 exec readlink .claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/jurisprudencia
+stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
-grep -count=2 '"modo": *"enlace"' .agents/skills/kitlegal.json
+grep -count=3 '"modo": *"enlace"' .agents/skills/kitlegal.json
 ! grep '"copia"' .agents/skills/kitlegal.json
 ! grep '"\.claude/skills/legal-core/SKILL\.md"' .agents/skills/kitlegal.json
 
@@ -120,9 +125,9 @@ mkdir $WORK/a-enlace/.claude
 cd $WORK/a-enlace
 exec $KITLEGAL_SIN_ENLACES_BIN skills install
 exec $KITLEGAL_V1_BIN skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 arbol .claude
-stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
+stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
 
 # --- Una copia con un fichero editado o una entrada no declarada (US4.8) ---
 #
@@ -154,7 +159,7 @@ cmp stdout $WORK/antes.txt
 # Con el creador que falla, esa copia se mantiene: la entrada no declarada no
 # coincide con ninguna ruta empotrada y se deja como está (FR-047).
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -168,7 +173,7 @@ cd $WORK/recrear
 exec kitlegal skills install
 rm .claude/skills/legal-core
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 
@@ -177,7 +182,7 @@ cd $WORK/recrear-copia
 exec $KITLEGAL_V1_BIN skills install
 rm .claude/skills/legal-core
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
 cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 
 mkdir $WORK/sin-claude/.claude
@@ -185,7 +190,7 @@ cd $WORK/sin-claude
 exec kitlegal skills install
 rm .claude
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 ! grep '"hosts"' .agents/skills/kitlegal.json
 arbol .
 ! stdout '\.claude'
@@ -197,7 +202,7 @@ cd $WORK/con-host
 exec kitlegal skills install
 rm .claude
 exec kitlegal skills install --host claude --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 exec readlink .claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
 

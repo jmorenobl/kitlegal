@@ -6,7 +6,11 @@
 // lleva (redacciones_modificadas; FR-003, FR-004 y FR-053 de H7.4), y con la
 // eval sin binario ni servidor, la que declara sin_binario_ni_servidor: su
 // sesión tiene la skill y nada con lo que consultar, y no lleva comandos ni nada
-// de lo que una respuesta con consulta debe traer (FR-046 de H21).
+// de lo que una respuesta con consulta debe traer (FR-046 de H21). Desde H23
+// una eval puede declarar además sentencias —lo que la respuesta debe llevar, y
+// lo que no, de las sentencias de las que habla— y, entre sus comandos, los dos
+// del applet cita, preparar y cotejar; con sentencias puede no llevar comandos,
+// citas ni territorio (FR-052 de H23).
 //
 // De la misma carpeta lee LeerConjunto, si la skill las tiene, dos cosas que no
 // son evals:
@@ -83,6 +87,23 @@
 //     respuesta lleva la línea ⚠ SIN CONSULTA AL BOE: con su dirección, que lee
 //     ExtraerSinConsulta, y ninguna cita (FR-047 de H21). No mira la lista de
 //     expresiones: ninguna deja una sesión sin pasar (FR-070 de H24);
+//   - las sentencias (sentencias.go) se juzgan por su forma, sin ningún modelo.
+//     De lo que una eval declara en sentencias, Juzgar compara con la respuesta
+//     las citas de sentencia —un corchete con el ECLI y el ROJ, que lee
+//     ExtraerCitasDeSentencia—, la línea ⚠ SENTENCIA NO COMPROBADA:, que
+//     reconoce ExtraerNoComprobada, y las direcciones y las casillas, que la
+//     respuesta lleva tal cual; y con la sesión, la dirección de búsqueda que
+//     devolvió en ella un cita preparar con texto
+//     (ExtraerDireccionesDeBusqueda). Cada cosa que falta o que sobra es un
+//     motivo, y un comando de cita lo cumple una invocación de su verbo, con el
+//     --roj o el --texto que pida, como orden o como herramienta. La salida de
+//     una operación es cada sobre de kitlegal entre los textos de la sesión
+//     (ExtraerSobres): una orden sin --json no da ninguno. Con ellos,
+//     CitaSinDocumento da el hecho de la sesión que mide el umbral
+//     cita_sin_documento: los ECLI de una cita que ningún cita cotejar de la
+//     sesión leyó en una ficha (ExtraerECLICotejados) y los que, fuera de una
+//     cita y de una línea que empieza por ⚠, no están en ningún sobre de la
+//     sesión ni en la pregunta (FR-051, FR-060 y FR-061 de H23);
 //   - el juez vota las respuestas (juez.go). De cada una compone un mensaje con
 //     los textos de sus herramientas, la pregunta y la respuesta, y nada más
 //     (mensajeDelVoto), y pide cada voto a un Votante, que en el job, en la
@@ -130,13 +151,20 @@
 //     medida_del_juez:<clase>:correctos_marcados; y, por cada modo,
 //     duracion_de_las_sesiones, si el job da un objetivo, y duracion_del_juez.
 //     Hacen fallar el veredicto todos menos el de la clase que solo se publica.
+//     Con una skill cuyas evals declaran sentencias, tenga juez o no, los
+//     umbrales de cada modo llevan además cita_sin_documento, las respuestas
+//     con una cita sin documento cotejado o con un ECLI sin origen, que decide
+//     con 0 y cuyo motivo nombra cada respuesta que cuenta, por su sesión y
+//     con sus ECLI: en jurisprudencia, que no tiene juez ni objetivo, son
+//     cuatro, sin_activar y cita_sin_documento del modo orden y los dos del
+//     modo herramienta. Una skill sin juez ni sentencias no tiene ninguno.
 //     Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta
 //     con algún voto afirmativo y las que quedaron sin juzgar, que ponen el
 //     veredicto en fallo por la ejecución, no por la skill (FR-001 a FR-008,
 //     FR-033 y FR-051 de H7.3; FR-040 a FR-045 de H7.4; FR-043 a FR-048 de H21;
-//     FR-030 a FR-037 y FR-060 a FR-062 de H24);
+//     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23);
 //   - leerDefinicionDelJob lee la definición del job, .github/workflows/evals.yml:
 //     con ella la comprueba TestDefinicionDelJob en make ci —también el modelo
 //     del juez y la versión de Claude Code de sus votos, fijados aparte de los de

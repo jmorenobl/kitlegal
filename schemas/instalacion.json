@@ -137,7 +137,11 @@
               "type": "boolean"
             }
           },
-          "type": "object"
+          "type": "object",
+          "x-banderas": [
+            "global",
+            "dir"
+          ]
         },
         "salida": {
           "additionalProperties": false,
@@ -340,7 +344,12 @@
               "type": "boolean"
             }
           },
-          "type": "object"
+          "type": "object",
+          "x-banderas": [
+            "global",
+            "host",
+            "dir"
+          ]
         },
         "salida": {
           "additionalProperties": false,
@@ -570,7 +579,11 @@
               "type": "boolean"
             }
           },
-          "type": "object"
+          "type": "object",
+          "x-banderas": [
+            "global",
+            "dir"
+          ]
         },
         "salida": {
           "additionalProperties": false,

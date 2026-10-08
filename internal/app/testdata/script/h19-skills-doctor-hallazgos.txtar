@@ -1,7 +1,7 @@
 # Cada hallazgo de `doctor`, con su clase, su ruta y la orden que lo arregla:
 # fichero editado (con rm) y fichero que falta (sin rm); enlace de host colgando,
 # a otro sitio (otro destino, un fichero o un directorio en su lugar) o que falta
-# (una entrada o todo .claude/); versión distinta del manifiesto y de sus dos
+# (una entrada o todo .claude/); versión distinta del manifiesto y de sus tres
 # skills (un único hallazgo) o de una sola skill; y, dentro del directorio de
 # una skill, el enlace que ocupa el sitio de la skill o de references/ y el
 # SKILL.md que es un enlace o un directorio. doctor sale con 0 sin cambiar nada,
@@ -149,13 +149,15 @@ stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 
 rm .claude
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/jurisprudencia","orden":"kitlegal skills install jurisprudencia --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 exec readlink .claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/jurisprudencia
+stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 
@@ -262,7 +264,7 @@ exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 
-# --- Versión distinta del manifiesto y de sus dos skills (US4.10) ---
+# --- Versión distinta del manifiesto y de sus tres skills (US4.10) ---
 #
 # Un único hallazgo, con la ruta del manifiesto, cuya orden reinstala todas las
 # skills declaradas y empotradas, por orden de nombre, con --host claude porque
@@ -271,7 +273,7 @@ mkdir $WORK/version/.claude
 cd $WORK/version
 exec $KITLEGAL_V1_BIN skills install
 exec $KITLEGAL_V2_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
 exec sh $WORK/ordenes.sh $WORK/doctor.json
@@ -286,17 +288,17 @@ cd $WORK/version-dev
 exec $KITLEGAL_V1_BIN skills install
 exec kitlegal skills doctor
 stdout '^  1\. Las skills son de kitlegal v0\.1\.0 y este kitlegal es dev\.$'
-stdout '^     kitlegal skills install boe-legislacion legal-core$'
+stdout '^     kitlegal skills install boe-legislacion jurisprudencia legal-core$'
 
 # --- Versión distinta de una sola skill (US4.10) ---
 #
-# Tras instalar un subconjunto con otro binario, el manifiesto coincide y solo
-# boe-legislacion difiere: un hallazgo con la ruta de su directorio y una orden
-# que solo la nombra a ella.
+# Tras instalar un subconjunto con otro binario —las otras dos—, el manifiesto
+# coincide y solo boe-legislacion difiere: un hallazgo con la ruta de su
+# directorio y una orden que solo la nombra a ella.
 mkdir $WORK/version-una
 cd $WORK/version-una
 exec $KITLEGAL_V1_BIN skills install
-exec $KITLEGAL_V2_BIN skills install legal-core
+exec $KITLEGAL_V2_BIN skills install jurisprudencia legal-core
 exec $KITLEGAL_V2_BIN skills doctor --json
 stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
@@ -317,7 +319,7 @@ exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL
 arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_V2_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\},\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\},\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
@@ -329,13 +331,14 @@ env PATH=$PATH_ORIGINAL
 
 # --- Dentro de un grupo, por ruta (FR-066) ---
 #
-# Dos hallazgos sin rm: la versión distinta de legal-core y la entrada de host
-# de boe-legislacion que falta. Van por ruta byte a byte, que aquí no es ni el
-# orden de las clases ni el de las skills.
+# Dos hallazgos sin rm: la versión distinta de legal-core, la única que no se
+# reinstala con el otro binario, y la entrada de host de boe-legislacion que
+# falta. Van por ruta byte a byte, que aquí no es ni el orden de las clases ni el
+# de las skills.
 mkdir $WORK/grupo/.claude
 cd $WORK/grupo
 exec $KITLEGAL_V1_BIN skills install
-exec $KITLEGAL_V2_BIN skills install boe-legislacion
+exec $KITLEGAL_V2_BIN skills install boe-legislacion jurisprudencia
 rm .claude/skills/boe-legislacion
 exec $KITLEGAL_V2_BIN skills doctor --json
 stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\}\]\}\}\n\z'
@@ -356,13 +359,13 @@ mkdir $WORK/igualdad
 cd $WORK/igualdad
 exec $KITLEGAL_V1_BIN skills install
 exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
-grep -count=3 '"0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=4 '"0\.1\.0"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V1_BIN skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
 exec sh -c 'sed "s/\"0\.1\.0\"/\"0.1.0+abc\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
-grep -count=3 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
+grep -count=4 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V1_BIN skills doctor --json
-stdout '"hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v1${:}$PATH_ORIGINAL
 exec sh $WORK/ordenes.sh $WORK/doctor.json

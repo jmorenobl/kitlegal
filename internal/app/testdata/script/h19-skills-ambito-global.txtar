@@ -22,21 +22,23 @@ mkdir $WORK/home/.claude
 mkdir $WORK/proyecto
 cd $WORK/proyecto
 exec kitlegal skills install -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 
 # Nada en el directorio de trabajo.
 arbol .
 ! stdout .
 
-# En HOME, lo de una instalación local con .claude/: las dos skills y el
+# En HOME, lo de una instalación local con .claude/: las tres skills y el
 # manifiesto en el directorio neutro y un enlace relativo por skill.
 arbol $WORK/home
-stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:boe-legislacion|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+|d \.claude|d \.claude/skills|l \.claude/skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion|l \.claude/skills/legal-core -> \.\./\.\./\.agents/skills/legal-core)\n)+\z'
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:boe-legislacion|jurisprudencia|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+|d \.claude|d \.claude/skills|l \.claude/skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion|l \.claude/skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia|l \.claude/skills/legal-core -> \.\./\.\./\.agents/skills/legal-core)\n)+\z'
 stdout '^f \.agents/skills/kitlegal\.json '
 stdout '^f \.agents/skills/boe-legislacion/SKILL\.md '
+stdout '^f \.agents/skills/jurisprudencia/SKILL\.md '
 stdout '^f \.agents/skills/legal-core/SKILL\.md '
 stdout '^l \.claude/skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion$'
+stdout '^l \.claude/skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia$'
 stdout '^l \.claude/skills/legal-core -> \.\./\.\./\.agents/skills/legal-core$'
 exec readlink $WORK/home/.claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
@@ -49,7 +51,7 @@ grep '"ruta": *"\.claude/skills/legal-core"' $WORK/home/.agents/skills/kitlegal.
 env HOME=$WORK/home-sin-claude
 mkdir $WORK/home-sin-claude
 exec kitlegal skills install -g --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 arbol $WORK/home-sin-claude
 ! stdout '\.claude'
 arbol .
@@ -58,12 +60,12 @@ arbol .
 # --- list y doctor con -g leen el global, no el local (US6.4) ---
 #
 # El local solo tiene legal-core, sin host, y con un fichero editado; el global,
-# las dos skills y sus enlaces, sin tocar.
+# las tres skills y sus enlaces, sin tocar.
 env HOME=$WORK/home
 exec kitlegal skills install legal-core
 exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
 exec kitlegal skills list -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stderr .
 exec kitlegal skills doctor -g --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'

@@ -1,0 +1,768 @@
+diff antes/contracts/SKILL-jurisprudencia.prototipo.md ahora/contracts/SKILL-jurisprudencia.prototipo.md
+--- antes/contracts/SKILL-jurisprudencia.prototipo.md	2026-10-07 11:45:44
++++ ahora/contracts/SKILL-jurisprudencia.prototipo.md	2026-10-07 11:55:45
+@@ -29,7 +29,8 @@
+ 
+ - **Con su herramienta**, si entre las tuyas hay una con su nombre —`cita_preparar`, `cita_cotejar`—, solo o detrás
+   del prefijo que le ponga tu agente, como `mcp__kitlegal__cita_preparar`. Sus argumentos van por su nombre (`ecli`,
+-  `roj`, `resolucion`, `fecha`, `texto`, `documento`). Si la tienes, úsala siempre.
++  `roj`, `resolucion`, `fecha`, `texto`, `documento`), y solo los que uses: uno escrito vacío es un error de
++  argumentos. Si la tienes, úsala siempre.
+ - **Con su orden**, `kitlegal cita <verbo> … --json`, si no la tienes. Siempre con `--json`.
+ 
+ Donde un paso dice que una orden termina con un código, con la herramienta el resultado viene marcado como error y su
+@@ -77,20 +78,22 @@
+ - **La respuesta no dice que la sentencia existe ni que no existe**: nadie lo ha comprobado. Tampoco dice de qué
+   trata, qué resolvió ni si es firme (paso 5).
+ 
+-### 3. Con el documento delante: cotejarlo
++### 3. Con el documento delante: cotejar su ficha
+ 
+-Pasa el texto del documento a `cita_cotejar` en `documento` —con su ficha; mejor el texto entero, tal como llegó— y,
+-si se había pedido una sentencia concreta, la referencia en la forma en que se pidió (`ecli`, `roj`, o `resolucion`
+-con `fecha`). Con la orden, el texto va por la entrada estándar, o en `--documento` si tu shell no tiene `<<`:
++Pasa a `cita_cotejar`, en `documento`, **la ficha y nada más**: sus líneas tal como están en el documento, desde la
++de `Roj:` hasta la de `Tipo de Resolución:`, con las que haya entre ellas. La operación solo lee la ficha: el resto
++del texto no cambia lo que devuelve, y copiarlo alarga cada cotejo con el tamaño de la sentencia. Si se había pedido
++una sentencia concreta, da además la referencia en la forma en que se pidió (`ecli`, `roj`, o `resolucion` con
++`fecha`). Con la orden, la ficha va por la entrada estándar, o en `--documento` si tu shell no tiene `<<`:
+ 
+ ```bash
+ kitlegal cita cotejar --roj "STS 1088/2023" --json <<'DOCUMENTO'
+ Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144
+-…el resto del texto…
++…las demás líneas de la ficha, hasta la de «Tipo de Resolución:»…
+ DOCUMENTO
+ ```
+ 
+-- Un PDF lo lees tú y pasas su texto: kitlegal no abre ficheros.
++- Un PDF lo lees tú y pasas su ficha: kitlegal no abre ficheros.
+ - Devuelve los ocho datos de la ficha (`ficha`), si el documento es el pedido (`es_la_pedida`, solo si diste una
+   referencia) y, si no lo es, un hallazgo que dice qué difiere (`hallazgos`).
+ - **Si el documento no es el pedido**, dilo con lo que difiere, con las palabras del hallazgo —por ejemplo, que
+@@ -101,8 +104,9 @@
+   resolución: **no cites el documento**, di que no se corresponden, da los dos tal como están en la ficha y pide a la
+   persona que vuelva a descargar el documento del buscador y lo traiga. Con cualquier otro valor, cita y no digas nada
+   de esto.
+-- Si termina con el código 2 (`argumentos`) porque el texto no lleva una ficha reconocible, no hay sentencia que
+-  citar: di qué falta —el encabezamiento del documento del CENDOJ, o el dato que nombre el mensaje— y pide el
++- Si termina con el código 2 (`argumentos`) porque el texto no lleva una ficha reconocible, mira el dato que nombra
++  el mensaje. Si está en el documento, no pasaste la ficha entera: repite el cotejo con todas sus líneas. Si no
++  está, no hay sentencia que citar: di qué falta —el encabezamiento del documento del CENDOJ, o ese dato— y pide el
+   documento completo. Sobre un texto sin ficha puedes responder, sin atribuirlo a una sentencia identificada.
+ 
+ ### 4. Citar
+diff antes/contracts/applet-cita.md ahora/contracts/applet-cita.md
+--- antes/contracts/applet-cita.md	2026-10-07 11:45:44
++++ ahora/contracts/applet-cita.md	2026-10-07 12:00:03
+@@ -20,9 +20,12 @@
+ | `texto` | `--texto <texto>` | `texto` | `preparar` | El texto de una búsqueda por materia |
+ | `documento` | `--documento <texto>` | `documento` | `cotejar` | El texto del documento, con su ficha |
+ 
+-Todos son cadenas; `documento` conserva los bytes con los que llega (research D12). Un argumento con valor vacío
+-cuenta como no dado (research D3). Las banderas globales valen lo que en cualquier verbo; `--offline` y `--no-graph`
+-no cambian nada.
++Todos son cadenas; `documento` conserva los bytes con los que llega (research D12). Un argumento escrito con valor
++vacío **no** es un argumento no dado: cuenta como dado y es el error de su fila de §6, en la orden (`--roj ""`,
++`--roj=`, un ECLI `""`) y en la llamada (`"roj": ""`). El verbo los distingue porque sus campos son punteros, que el
++analizador deja en `nil` cuando el argumento no se escribe (research D3, V38); para `--describe`, para el esquema de
++la herramienta y para la tabla de comandos siguen siendo cadenas (research V39). Las banderas globales valen lo que
++en cualquier verbo; `--offline` y `--no-graph` no cambian nada.
+ 
+ ## 2. El sobre
+ 
+@@ -45,31 +48,35 @@
+ | `referencia` | con una referencia | `{forma, valor, fecha?}`: `forma` es `ecli`, `roj` o `resolucion`; `valor`, tal como se dio; `fecha`, `AAAA-MM-DD`, solo con `resolucion` |
+ | `texto` | con `--texto` | el texto, tal como se dio |
+ | `equivalente` | solo si se deduce (FR-012) | `{forma, valor}`: `forma` es `roj` o `ecli` |
+-| `cobertura` | siempre | `{cendoj, motivo?}`: `cendoj` es `cubierto` o `no-cubierto`; `motivo`, libre, solo con `no-cubierto`, dice que el Tribunal Constitucional no está en el CENDOJ |
++| `cobertura` | solo con un ECLI de órgano `TC` (FR-014) | `{cendoj, motivo}`: `cendoj` es `no-cubierto`, su único valor; `motivo`, libre, dice que el Tribunal Constitucional no está en el CENDOJ |
+ | `direccion` | si hay algo que abrir | `https://www.poderjudicial.es/search/indexAN.jsp`, o la de la búsqueda por texto (FR-013) |
+ | `casillas` | siempre | lista de `{nombre, campo?, valor}`, en el orden de FR-011; vacía con `--texto` y fuera de cobertura |
+ 
++`cobertura` declara lo que queda fuera, y sin esa declaración la clave no está: de una referencia que no es el ECLI
++del Tribunal Constitucional, y de un texto, `data` no dice que el CENDOJ lo tenga, porque el binario no lo sabe
++(research D4). `--roj "STC 79/2024"` se prepara como cualquier otro ROJ, sin `cobertura` (spec, Edge Cases).
++
+ Las casillas, fijas: «ECLI»; «Nº ROJ»; y «Nº Resolución» seguida de «Fecha resolución» con `campo` «Desde» y de
+ «Fecha resolución» con `campo` «Hasta», las dos con la fecha `dd/mm/aaaa`.
+ 
+-Ejemplos, la salida entera de la orden con `--json`:
++Ejemplos, la salida entera de la orden con `--json`; los bytes, con `fecha_consulta` de seis decimales (research M1):
+ 
+-`kitlegal cita preparar ECLI:ES:TS:2023:3144 --json` · 508 bytes:
++`kitlegal cita preparar ECLI:ES:TS:2023:3144 --json` · 474 bytes:
+ 
+ ```json
+-{"ok":true,"fuente":"kitlegal.cita","url":"https://www.poderjudicial.es/search/indexAN.jsp","fecha_consulta":"2026-10-07T10:56:14.208801+02:00","hash":"sha256:968dffd8c9f29432cf3c428bbbbf4947c5b210553601072c89f0fe4423404652","data":{"referencia":{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"},"equivalente":{"forma":"roj","valor":"STS 3144/2023"},"cobertura":{"cendoj":"cubierto"},"direccion":"https://www.poderjudicial.es/search/indexAN.jsp","casillas":[{"nombre":"ECLI","valor":"ECLI:ES:TS:2023:3144"}]}}
++{"ok":true,"fuente":"kitlegal.cita","url":"https://www.poderjudicial.es/search/indexAN.jsp","fecha_consulta":"2026-10-07T11:51:51.830392+02:00","hash":"sha256:7822e8eb4dd8b0ff30e558f31b6a0fb8175bcb816a57d5f86e74df04469206b3","data":{"referencia":{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"},"equivalente":{"forma":"roj","valor":"STS 3144/2023"},"direccion":"https://www.poderjudicial.es/search/indexAN.jsp","casillas":[{"nombre":"ECLI","valor":"ECLI:ES:TS:2023:3144"}]}}
+ ```
+ 
+-`kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json` · 606 bytes; su `data`:
++`kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json` · 572 bytes; su `data`:
+ 
+ ```json
+-{"referencia":{"forma":"resolucion","valor":"1088/2023","fecha":"2023-07-04"},"cobertura":{"cendoj":"cubierto"},"direccion":"https://www.poderjudicial.es/search/indexAN.jsp","casillas":[{"nombre":"Nº Resolución","valor":"1088/2023"},{"nombre":"Fecha resolución","campo":"Desde","valor":"04/07/2023"},{"nombre":"Fecha resolución","campo":"Hasta","valor":"04/07/2023"}]}
++{"referencia":{"forma":"resolucion","valor":"1088/2023","fecha":"2023-07-04"},"direccion":"https://www.poderjudicial.es/search/indexAN.jsp","casillas":[{"nombre":"Nº Resolución","valor":"1088/2023"},{"nombre":"Fecha resolución","campo":"Desde","valor":"04/07/2023"},{"nombre":"Fecha resolución","campo":"Hasta","valor":"04/07/2023"}]}
+ ```
+ 
+-`kitlegal cita preparar --texto "cláusula suelo" --json` · 423 bytes; su `data`:
++`kitlegal cita preparar --texto "cláusula suelo" --json` · 389 bytes; su `data`:
+ 
+ ```json
+-{"texto":"cláusula suelo","cobertura":{"cendoj":"cubierto"},"direccion":"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo/1/AN","casillas":[]}
++{"texto":"cláusula suelo","direccion":"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo/1/AN","casillas":[]}
+ ```
+ 
+ `kitlegal cita preparar ECLI:ES:TC:2024:79 --json` · 424 bytes, con `url` `kitlegal:applet/cita`; su `data`:
+@@ -78,9 +85,14 @@
+ {"referencia":{"forma":"ecli","valor":"ECLI:ES:TC:2024:79"},"cobertura":{"cendoj":"no-cubierto","motivo":"Las resoluciones del Tribunal Constitucional no están en el CENDOJ: su buscador no las tiene."},"casillas":[]}
+ ```
+ 
+-Con `--roj "STS 3144/2023"`, 504 bytes: una casilla «Nº ROJ» y `equivalente` `{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"}`.
+-Sin equivalente —`ECLI:ES:AN:2019:1.2.A`, `--roj "SAP M 1234/2020"`, `--roj "STC 79/2024"`— la clave no está.
++Con `--roj "STS 3144/2023"`, 470 bytes: una casilla «Nº ROJ» y `equivalente` `{"forma":"ecli","valor":"ECLI:ES:TS:2023:3144"}`.
++Sin equivalente —`ECLI:ES:AN:2019:1.2.A`, `--roj "SAP M 1234/2020"`, `--roj "STC 79/2024"`— la clave no está: 422,
++412 y 404 bytes. El último, su `data`:
+ 
++```json
++{"referencia":{"forma":"roj","valor":"STC 79/2024"},"direccion":"https://www.poderjudicial.es/search/indexAN.jsp","casillas":[{"nombre":"Nº ROJ","valor":"STC 79/2024"}]}
++```
++
+ ## 4. `data` de `cita cotejar`
+ 
+ | Clave | Cuándo está | Forma |
+@@ -113,12 +125,14 @@
+ "pedida":{"forma":"roj","valor":"STS 1088/2023"},"es_la_pedida":false,"hallazgos":[{"clase":"documento-distinto","difiere":[{"dato":"roj","pedido":"STS 1088/2023","documento":"STS 3144/2023"}],"cruce":"numero-de-resolucion","explicacion":"El documento no es el pedido: se pidió el ROJ STS 1088/2023 y el del documento es STS 3144/2023. 1088/2023 es el número de resolución del documento, no su ROJ."}]
+ ```
+ 
+-Con el documento pedido —por su ECLI, su ROJ o su número con su fecha—, de 627 a 651 bytes: `es_la_pedida` verdadero y
++Con el documento pedido —por su ECLI, su ROJ o su número con su fecha—, de 628 a 652 bytes: `es_la_pedida` verdadero y
+ `hallazgos` vacío. Con `--resolucion 1088/2023 --fecha 2023-01-01`, 869 bytes: `difiere` solo con `fecha`
+ (`2023-01-01` y `2023-07-04`), sin `cruce`. Con `--resolucion 3144/2023 --fecha 2023-07-04`, 1 005 bytes: `difiere`
+ con `resolucion` y `cruce` `numero-del-roj`.
+ 
+ `data` no lleva nada más del documento: ni «Id Cendoj», «Sede», «Sección» o «Procedimiento», ni su texto (FR-022).
++Por eso la ficha sola —las once primeras líneas del fragmento, 316 bytes— da los mismos `data` y `hash` que el
++fragmento entero, y otra `url`, la de su texto (research V41): es lo que la skill pasa (§10).
+ 
+ ## 5. La lectura de la ficha
+ 
+@@ -133,32 +147,35 @@
+ ## 6. Errores de argumentos
+ 
+ Todos terminan con 2, `ok` falso y `data` `{clase: "argumentos", mensaje}` (FR-006, FR-015, FR-026). El mensaje
+-nombra lo que esta tabla dice.
++nombra lo que esta tabla dice. «Dado» es escrito, también con valor vacío (§1): un argumento vacío cae en la fila de
++su argumento, nunca en la de «no dado».
+ 
+ | Caso | El mensaje nombra |
+ |---|---|
+-| ECLI mal formado, en minúsculas o con un blanco | el ECLI entre comillas y qué tiene de malo frente a su forma |
++| ECLI mal formado, en minúsculas, con un blanco o vacío | el ECLI entre comillas y qué tiene de malo frente a su forma |
+ | ECLI de otro país | el ECLI y que no es español |
+-| ROJ sin su forma | el ROJ entre comillas y su forma |
+-| Número de resolución sin su forma | el número y su forma, `<número>/<año>` |
++| ROJ sin su forma, o vacío | el ROJ entre comillas y su forma |
++| Número de resolución sin su forma, o vacío | el número y su forma, `<número>/<año>` |
+ | `--resolucion` sin `--fecha` | que el número necesita su fecha |
+-| `--fecha` sin `--resolucion` | que la fecha solo vale con el número |
+-| Fecha sin su forma o que no es un día | la fecha entre comillas y su forma |
+-| Más de una forma de referencia | las formas dadas |
+-| `preparar`: ni referencia ni texto | lo que se puede dar |
+-| `preparar`: referencia y `--texto` | que son excluyentes |
+-| `preparar`: `--texto` solo de blancos | el texto entre comillas |
+-| `cotejar`: ningún texto, ni en `--documento` ni en la entrada | por dónde se da |
++| `--fecha`, también vacía, sin `--resolucion` | que la fecha solo vale con el número |
++| Fecha sin su forma, vacía o que no es un día | la fecha entre comillas y su forma |
++| Más de una forma de referencia, también si alguna va vacía | las formas dadas |
++| `preparar`: ni referencia ni `--texto` | lo que se puede dar |
++| `preparar`: referencia y `--texto`, también vacío | que son excluyentes |
++| `preparar`: `--texto` vacío o solo de blancos | el texto entre comillas |
++| `cotejar`: ningún texto: `--documento` vacío o, sin él, una entrada vacía o una llamada de herramienta | por dónde se da |
+ | `cotejar`: texto sin línea `Roj:` | que falta la ficha |
+ | `cotejar`: ficha sin un dato, o con uno de los cuatro sin su forma | el dato, con su etiqueta |
+ 
+ La referencia se comprueba antes que el texto. Un error del propio análisis de la línea de órdenes —una bandera que
+-no existe— es del kernel, como en cualquier verbo.
++no existe— es del kernel, como en cualquier verbo. Las invocaciones con un argumento vacío, ejecutadas en el
++prototipo como orden y como llamada, en research V40.
+ 
+ ## 7. La entrada estándar y las herramientas
+ 
+ - En la orden, sin `--documento`, `cotejar` lee el texto de la entrada estándar hasta su final. Con `--documento`,
+-  no la lee.
++  el texto es el suyo y la entrada no se lee, tampoco si va vacío: `kitlegal cita cotejar --documento ""` con un
++  documento en la entrada termina con 2, «ningún texto» (FR-020, FR-026).
+ - El kernel le da la entrada al verbo: la del proceso en una orden, y ninguna en una llamada de herramienta
+   (research D12). Una llamada a `cita_cotejar` sin `documento`, o con él vacío, es el error de argumentos «ningún
+   texto»; el servidor no lee de su entrada nada más que el protocolo y sigue atendiendo (research V7).
+@@ -205,7 +222,13 @@
+ 
+ | Salida | Bytes | Qué la hace crecer |
+ |---|---|---|
+-| Una consulta preparada | 423 a 606 | Nada acumulado: como mucho tres casillas; el texto de búsqueda, tres veces sus octetos |
++| Una consulta preparada | 389 a 572 | Nada acumulado: como mucho tres casillas; el texto de búsqueda, que va una vez tal cual y dos codificado |
+ | Un cotejo | 559 a 1 005 | Nada acumulado, ni el tamaño del documento: del texto solo sale la ficha |
+-| Un error | 294 a 392 | El argumento que nombra |
+-| El esquema de cada herramienta, una vez por conexión | 5 386 y 6 472 con las globales | Nada |
++| Un error | 294 a 379 | El argumento que nombra |
++| El esquema de cada herramienta, una vez por conexión | 5 385 y 6 472 con las globales | Nada |
++
++**Lo que escribe quien invoca.** En `preparar`, la referencia o el texto de la búsqueda: unas decenas de bytes. En
++`cotejar`, el texto que pasa, que con la herramienta escribe el modelo: la skill pasa la ficha —316 bytes en la del
++fragmento, once líneas— y no el documento, de modo que tampoco la entrada crece con el tamaño de la sentencia
++(contracts/skill-jurisprudencia.md §3). El verbo admite la ficha con lo que la siga (FR-020), para quien da el
++fichero entero desde la terminal.
+diff antes/contracts/evals-jurisprudencia.md ahora/contracts/evals-jurisprudencia.md
+--- antes/contracts/evals-jurisprudencia.md	2026-10-07 11:45:44
++++ ahora/contracts/evals-jurisprudencia.md	2026-10-07 12:01:12
+@@ -288,6 +288,6 @@
+ | `umbrales` del informe de `jurisprudencia` | El job, el informe final del workflow y la persona; una vez por job | 4 elementos de 230 a 330 bytes, sobre 18 respuestas por modo; fijo | Cada job los mide de nuevo sobre su commit |
+ | El motivo de `cita_sin_documento` | La persona y la reparación del cierre | Unos 170 bytes más unos 90 por respuesta que cuenta; como mucho 18 por modo | En el primer job que lo cumple |
+ | Las tasas | `scripts/workflow/informe.sh` y la persona; una vez por run | 24 series: seis evals, dos modos y dos modelos | Cada job las mide de nuevo |
+-| `invocaciones[].orden` de una llamada a `cita_cotejar` | La persona, al leer `informe.json` | Lleva el `documento` entero: 2,4 kB en las evals 04 y 06, por sesión | No es una señal |
++| `invocaciones[].orden` de una llamada a `cita_cotejar` | La persona, al leer `informe.json` | Lleva el `documento` que pasó el modelo: la ficha, 316 bytes en las evals 04 y 06, por sesión, si sigue el paso 3 de la skill; como mucho, el fragmento entero, 2,4 kB | No es una señal |
+ 
+ Nada crece con el uso del kit: lo fija el conjunto de evals.
+diff antes/contracts/skill-jurisprudencia.md ahora/contracts/skill-jurisprudencia.md
+--- antes/contracts/skill-jurisprudencia.md	2026-10-07 11:45:44
++++ ahora/contracts/skill-jurisprudencia.md	2026-10-07 12:01:09
+@@ -11,10 +11,10 @@
+ |---|---|---|
+ | Frontmatter | `name`, `description` con las preguntas que la activan —una sentencia nombrada, pedida, citada o resumida; si existe; jurisprudencia por materia; un documento traído— y `kitlegal-applets: cita`; sin `kitlegal-referencias` | FR-040 |
+ | Introducción | Que kitlegal no consulta el buscador, por qué, y qué hace en su lugar | FR-040, FR-041 |
+-| Protocolo, cabecera | Las dos formas de pedir cada operación, herramienta y orden; la orden, siempre con `--json` | FR-040; contracts/evals-jurisprudencia.md §3 |
++| Protocolo, cabecera | Las dos formas de pedir cada operación, herramienta y orden; la herramienta, solo con los argumentos que se usan, porque uno vacío es un error (contracts/applet-cita.md §1); la orden, siempre con `--json` | FR-040, FR-049; contracts/evals-jurisprudencia.md §3 |
+ | Paso 1 | Qué es tener una sentencia delante: su documento, con su ficha; qué no lo es | FR-041 |
+ | Paso 2 | La línea `⚠ SENTENCIA NO COMPROBADA:` con su forma, una por referencia; cómo se prepara cada forma de referencia; sin fecha no se prepara; la consulta sale de lo devuelto; ni «existe» ni «no existe» | FR-042 |
+-| Paso 3 | Cotejar con `documento` o por la entrada estándar; el documento que no es el pedido; `no-se-corresponden`; el texto sin ficha | FR-043, FR-048, FR-049 |
++| Paso 3 | Cotejar la ficha y nada más —sus líneas, de la de `Roj:` a la de `Tipo de Resolución:`—, en `documento` o por la entrada estándar; el documento que no es el pedido; `no-se-corresponden`; el texto sin ficha, y el cotejo que se repite si la ficha no se pasó entera | FR-020, FR-043, FR-048, FR-049 |
+ | Paso 4 | La forma fija de la cita, con los datos de la ficha; que sale del documento aportado; ningún ECLI que no venga de una operación o de la persona | FR-044 |
+ | Paso 5 | Con la ficha sola, la cita y sus datos; con el texto, lo que el texto dice; nunca un resumen de lo que no está | FR-045 |
+ | Paso 6 | La pregunta por materia: `cita preparar --texto`, la dirección, y ninguna sentencia de memoria | FR-046 |
+@@ -37,24 +37,33 @@
+ 
+ ## 3. Uso, de fuera adentro
+ 
+-Lo que pide la skill por pregunta, y lo que la respuesta lleva. Los bytes son los medidos en research M1.
++Lo que pide la skill por pregunta, lo que el modelo escribe para pedirlo, lo que recibe y lo que la respuesta
++lleva. Los bytes recibidos son los medidos en research M1; los de la ficha, los de M3; lo que el modelo escribe
++alrededor de ella es un cálculo.
+ 
+-| Pregunta | Operaciones | Lo que entra en la conversación | Lo que lleva la respuesta |
+-|---|---|---|---|
+-| Una sentencia que no está delante | 1 `cita preparar` por sentencia | 504 a 606 bytes por sentencia | Una línea de 60 a 150 bytes y la consulta: la dirección y de una a tres casillas |
+-| Cinco sentencias que no están delante | 5 | Unos 3 kB | Cinco líneas y cinco consultas |
+-| Un documento traído, sin haber pedido ninguno | 1 `cita cotejar` | 559 bytes | La cita, de unos 70 caracteres |
+-| Un documento traído, que es el pedido | 1 `cita cotejar` | 627 a 651 bytes | La cita |
+-| Un documento traído, que no es el pedido | 1 `cita cotejar` y 1 `cita preparar` | 869 a 1 005 bytes, y 504 a 606 | Qué difiere, la línea de la pedida y su consulta |
+-| Una pregunta por materia | 1 `cita preparar` con texto | 423 bytes más tres veces, como mucho, los octetos del texto | Una dirección |
+-| Una sentencia del Tribunal Constitucional | Ninguna | Nada | La declaración y una dirección |
+-| Un número sin fecha | Ninguna | Nada | La línea y la petición de la fecha |
++| Pregunta | Operaciones | Lo que el modelo escribe al pedirlas | Lo que recibe | Lo que lleva la respuesta |
++|---|---|---|---|---|
++| Una sentencia que no está delante | 1 `cita preparar` por sentencia | La referencia: menos de 80 bytes, con la orden entera | 470 a 572 bytes por sentencia | Una línea de 60 a 150 bytes y la consulta: la dirección y de una a tres casillas |
++| Cinco sentencias que no están delante | 5 | Cinco referencias | Unos 2,9 kB | Cinco líneas y cinco consultas |
++| Un documento traído, sin haber pedido ninguno | 1 `cita cotejar` | La ficha: 316 bytes en la del fragmento, y menos de 60 de orden o de llamada alrededor | 559 bytes | La cita, de unos 70 caracteres |
++| Un documento traído, que es el pedido | 1 `cita cotejar` | La ficha y la referencia: unos 400 bytes | 628 a 652 bytes | La cita |
++| Un documento traído, que no es el pedido | 1 `cita cotejar` y 1 `cita preparar` | La ficha y, dos veces, la referencia: menos de 500 bytes | 869 a 1 005 bytes, y 470 a 572 | Qué difiere, la línea de la pedida y su consulta |
++| Una pregunta por materia | 1 `cita preparar` con texto | Los términos de la búsqueda | 389 bytes con «cláusula suelo»; el texto va una vez tal cual y dos codificado | Una dirección |
++| Una sentencia del Tribunal Constitucional | Ninguna | Nada | Nada | La declaración y una dirección |
++| Un número sin fecha | Ninguna | Nada | Nada | La línea y la petición de la fecha |
+ 
+-Con la herramienta, el sobre va dos veces en el mensaje (H21): el doble de esos bytes. El texto del documento lo
+-pone la persona, no kitlegal: `cita cotejar` no lo devuelve.
++Con la herramienta, el sobre va dos veces en el mensaje (H21): el doble de los bytes recibidos. `cita cotejar` no
++devuelve el texto que se le pasa.
+ 
++**Lo que el modelo escribe por cotejo no crece con el documento.** Con la herramienta, `documento` lo escribe el
++modelo; con la orden, también, en la entrada de la orden. El paso 3 manda pasar la ficha y nada más: once líneas y
++316 bytes en la del fragmento, las mismas etiquetas en cualquier documento del CENDOJ (research S5), mida lo que
++mida la sentencia. Con el texto entero serían 2 353 bytes ya en el fragmento, que es un encabezamiento y un fallo; el
++documento completo de esa sentencia es un PDF de 175 955 bytes cuyo texto no está en el repositorio y no se ha
++medido. La ficha da el mismo cotejo que el texto entero (research V41).
++
+ **Ninguna salida crece con el uso.** Tras meses de uso diario, la consulta de la sentencia siguiente y el cotejo del
+-documento siguiente tienen esos mismos bytes: el applet no guarda nada.
++documento siguiente tienen esos mismos bytes, y la ficha que se pasa, los suyos: el applet no guarda nada.
+ 
+ **Cuándo deja de darse cada señal.**
+ 
+@@ -66,8 +75,8 @@
+   deja de darse con el candidato `tc` del backlog.
+ - `no-se-deduce` no llega a la respuesta.
+ 
+-`SKILL.md` lo lee el modelo una vez por conversación en que se activa: 191 líneas, 13 kB. Las dos herramientas, una
+-vez por conexión.
++`SKILL.md` lo lee el modelo una vez por conversación en que se activa: 195 líneas, 13,6 kB (research M2). Las dos
++herramientas, una vez por conexión.
+ 
+ ## 4. Lo que comprueba `make ci`
+ 
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-07 11:45:44
++++ ahora/data-model.md	2026-10-07 12:00:19
+@@ -27,9 +27,10 @@
+ | `valor` | Tal como se dio | Con `resolucion`, `<número>/<año>` en cifras y con el año de cuatro |
+ | `fecha` | `AAAA-MM-DD` | Solo con `resolucion`, y obligatoria con ella; un día que existe |
+ 
+-Se construye de los cuatro argumentos —ECLI, ROJ, número y fecha—; un argumento vacío no cuenta. Errores: más de una
+-forma; `fecha` sin `resolucion`; `resolucion` sin `fecha`; cualquier forma mal escrita (FR-006). Sin ninguna forma no
+-hay referencia, que es un error en `preparar` sin texto y lo normal en `cotejar`.
++Se construye de los cuatro argumentos —ECLI, ROJ, número y fecha—, cada uno dado o no dado: el que se escribe con
++valor vacío está dado, y se comprueba con su forma como cualquier otro (research D3). Errores: más de una forma
++dada; `fecha` sin `resolucion`; `resolucion` sin `fecha`; cualquier forma mal escrita, y la vacía lo es (FR-006). Sin
++ninguna forma dada no hay referencia, que es un error en `preparar` sin texto y lo normal en `cotejar`.
+ 
+ ## 3. Consulta preparada
+ 
+@@ -37,8 +38,8 @@
+ |---|---|
+ | `referencia` o `texto` | Uno de los dos, nunca los dos (FR-015). El texto, ni vacío ni solo de blancos |
+ | `equivalente` | `{forma, valor}`; solo si §1 lo deduce de la referencia |
+-| `cobertura` | `{cendoj: cubierto}`; `{cendoj: no-cubierto, motivo}` con un ECLI de órgano `TC` (FR-014) |
+-| `direccion` | La del buscador con una referencia cubierta; la de la búsqueda con un texto; ausente fuera de cobertura |
++| `cobertura` | Solo con un ECLI de órgano `TC` (FR-014): `{cendoj: no-cubierto, motivo}`. En cualquier otra consulta no está: el binario no afirma que el CENDOJ tenga lo que se busca (research D4) |
++| `direccion` | La del buscador con una referencia; la de la búsqueda con un texto; ausente con la referencia fuera de cobertura |
+ | `casillas` | Las de la forma dada, en el orden de FR-011; ninguna con un texto o fuera de cobertura |
+ 
+ **Casilla**: `{nombre, campo?, valor}`. Nombres: «ECLI», «Nº ROJ», «Nº Resolución», «Fecha resolución» con `campo`
+@@ -49,8 +50,9 @@
+ 
+ ## 4. Ficha y documento
+ 
+-El **documento** es el texto que llega: por `--documento` o, en la orden, por la entrada estándar. Su identidad en
+-el sobre es el SHA-256 de sus bytes.
++El **documento** es el texto que llega: por `--documento` —dado, también vacío, es el texto, y la entrada no se
++lee— o, en la orden y sin él, por la entrada estándar. Un texto vacío no es un documento (FR-026). Su identidad en
++el sobre es el SHA-256 de sus bytes: la skill pasa la ficha sola, y la `url` es entonces la de la ficha.
+ 
+ | Dato de la ficha | Etiqueta en el documento | Clave | Forma exigida |
+ |---|---|---|---|
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-07 11:45:44
++++ ahora/plan.md	2026-10-07 12:02:44
+@@ -16,11 +16,12 @@
+ su cita; nunca una sentencia de memoria. Lo entregan seis piezas:
+ 
+ 1. **La skill `jurisprudencia` v0** (contracts/skill-jurisprudencia.md): siete pasos, dos formas fijas —la línea
+-   `⚠ SENTENCIA NO COMPROBADA:` y la cita con su corchete— y una tabla de comandos generada. El borrador, de 191
++   `⚠ SENTENCIA NO COMPROBADA:` y la cita con su corchete— y una tabla de comandos generada. El borrador, de 195
+    líneas, está en contracts/SKILL-jurisprudencia.prototipo.md.
+ 2. **El applet `cita`** (contracts/applet-cita.md), con dos verbos que no piden nada a la red: `preparar` da la
+    dirección y las casillas, o la dirección de una búsqueda; `cotejar` lee la ficha del texto que le llega y dice si
+-   es el pedido, con un hallazgo y código 0 si no lo es. Su dominio, puro, en `internal/core/cita`; el ECLI y el ROJ,
++   es el pedido, con un hallazgo y código 0 si no lo es. Un argumento escrito con valor vacío es un error de
++   argumentos, no un argumento no dado (research D3). Su dominio, puro, en `internal/core/cita`; el ECLI y el ROJ,
+    en `internal/core/ids`.
+ 3. **La entrada estándar, entregada por el kernel** (research D12): el verbo la recibe en una orden y no en una
+    llamada de herramienta, de modo que el servidor MCP gana `cita_preparar` y `cita_cotejar` sin tocar `mcp`.
+@@ -82,8 +83,8 @@
+ | V · Simplicidad y dependencias | Ninguna dependencia nueva. Cada mecanismo, con su requisito («Trazabilidad»). Se rechazaron un adaptador de fuente, un tipo de argumento con memoria, un lector compartido con estado, una variable nueva en el arnés e2e, una declaración de umbrales por skill y campos nuevos en el informe (research D1, D3, D12, D18, D20, D24). |
+ | VI · Un binario, convenciones de agente | Un applet más en el multicall, con las banderas globales heredadas. `--describe` sigue siendo la única fuente de las herramientas y de la tabla: por eso es ahí donde se dice qué argumentos son banderas (research D14). |
+ | VII · Grafo y privacidad | El applet no emite operaciones de grafo ni abre `world.db`; el documento de la persona no se guarda en ningún sitio, y de él solo sale su ficha (FR-003, FR-022). |
+-| VIII · Skills primero | El hito entrega una skill medible con evals; el binario solo hace lo que exige determinismo: reconocer identificadores, componer la consulta, leer la ficha y comparar. `SKILL.md` de 191 líneas, sin `scripts/`, con cada operación como orden y como herramienta. |
+-| IX · Genericidad territorial | Sin dimensión territorial: ni municipio, ni comunidad, ni boletín. La cobertura se declara en `data` (`cobertura.cendoj`), y ni el binario ni la skill concluyen que una sentencia no existe. Las dos reglas que nombran un órgano —la equivalencia del Tribunal Supremo y la cobertura del Constitucional— son las que el spec fija con su fuente (FR-012, FR-014), no casos de un territorio. |
++| VIII · Skills primero | El hito entrega una skill medible con evals; el binario solo hace lo que exige determinismo: reconocer identificadores, componer la consulta, leer la ficha y comparar. `SKILL.md` de 195 líneas, sin `scripts/`, con cada operación como orden y como herramienta. |
++| IX · Genericidad territorial | Sin dimensión territorial: ni municipio, ni comunidad, ni boletín. Lo que queda fuera de cobertura se declara en `data` (`cobertura`, solo con el ECLI del Tribunal Constitucional: FR-014, research D4), y ni el binario ni la skill concluyen que una sentencia no existe ni que el CENDOJ la tiene. Las dos reglas que nombran un órgano —la equivalencia del Tribunal Supremo y la cobertura del Constitucional— son las que el spec fija con su fuente (FR-012, FR-014), no casos de un territorio. |
+ 
+ ### Reglas de dependencia (`docs/ROADMAP.md` §2, constitución IV)
+ 
+@@ -104,7 +105,7 @@
+ ```text
+ specs/019-h23-skill-jurisprudencia-ninguna/
+ ├── plan.md                  # este fichero
+-├── research.md              # V1-V37, M1-M5, S1-S7, D1-D30
++├── research.md              # V1-V41, M1-M5, S1-S7, D1-D30
+ ├── data-model.md            # identificadores, referencia, consulta, ficha, cotejo, cita, eval, umbral
+ ├── quickstart.md            # §0-§9; §10, el cierre; §11, la persona
+ ├── contracts/
+@@ -166,9 +167,9 @@
+ 
+ | Guion | Historia | Qué describe | Requisitos |
+ |---|---|---|---|
+-| `cita-preparar.txtar` | US1 | Las tres formas y el texto, con su dirección, sus casillas y su equivalente (0); el ECLI del Tribunal Constitucional, fuera de cobertura en `data` (0); el ECLI mal formado, el de otro país, `--resolucion` sin `--fecha`, la referencia con `--texto` y `cita` sin verbo (2, `argumentos`) | FR-001, FR-004 a FR-006, FR-010 a FR-015, FR-082; SC-003 |
+-| `cita-cotejar.txtar` | US2 | Con el fragmento por la entrada estándar: sin referencia, sus ocho datos, la correspondencia y la `url` con su huella; pedido por sus tres formas (0, es el pedido); como ROJ `STS 1088/2023`, con otra fecha y como número `3144/2023` (0, con su hallazgo y su cruce); y un texto sin ficha (2) | FR-004, FR-020 a FR-026, FR-082; SC-003 |
+-| `cita-herramientas.txtar` | US4 | El servidor anuncia `cita_cotejar` y `cita_preparar`; `cita_cotejar` con el documento y el ROJ `STS 1088/2023` da un resultado con su hallazgo; sin `documento`, el error `argumentos`, y el servidor sigue; el sobre de la llamada es el de su orden salvo `fecha_consulta` | FR-020, FR-025, FR-026, FR-030 |
++| `cita-preparar.txtar` | US1 | Las tres formas y el texto, con su dirección, sus casillas y su equivalente, y sin `cobertura` (0); el ECLI del Tribunal Constitucional, fuera de cobertura en `data` (0); el ECLI mal formado, el de otro país, `--resolucion` sin `--fecha`, la referencia con `--texto` —con un texto y con `--texto ""`—, la referencia con `--roj ""` y `cita` sin verbo (2, `argumentos`) | FR-001, FR-004 a FR-006, FR-010 a FR-015, FR-082; SC-003 |
++| `cita-cotejar.txtar` | US2 | Con el fragmento por la entrada estándar: sin referencia, sus ocho datos, la correspondencia y la `url` con su huella; pedido por sus tres formas (0, es el pedido); como ROJ `STS 1088/2023`, con otra fecha y como número `3144/2023` (0, con su hallazgo y su cruce); un texto sin ficha (2); y `--documento ""` con el fragmento en la entrada, que no se lee (2) | FR-004, FR-020 a FR-026, FR-082; SC-003 |
++| `cita-herramientas.txtar` | US4 | El servidor anuncia `cita_cotejar` y `cita_preparar`; `cita_cotejar` con la ficha —las once primeras líneas del fragmento— y el ROJ `STS 1088/2023` da un resultado con su hallazgo; sin `documento`, o con él vacío, el error `argumentos`, y el servidor sigue; el sobre de la llamada es el de su orden salvo `fecha_consulta` | FR-020, FR-025, FR-026, FR-030 |
+ | `cita-sin-efectos.txtar` | US4 | Con la caché y el grafo ya con contenido, `arbol` da el mismo listado antes y después de los dos verbos, como orden y como herramienta, también con `--offline`, `--no-graph` y `--dry-run` | FR-003, FR-085; SC-006 |
+ 
+ Lo que usan del arnés es lo que ya hay: `stdin`, `exec`, `cmp`, `arbol`, `mcp` y `$KITLEGAL_SKILLS`, por la que
+@@ -196,10 +197,10 @@
+ |---|---|---|
+ | `TestAnalizarECLI`, `TestAnalizarROJ`, `TestEquivalencia` | `internal/core/ids/ecli_test.go`, `roj_test.go` | FR-005, FR-006, FR-012 (la tabla de los casos sin equivalente) |
+ | `FuzzECLI`, `FuzzROJ` | los mismos | FR-083 |
+-| `TestReferencia`, `TestPreparar` | `internal/core/cita/referencia_test.go`, `consulta_test.go` | FR-005, FR-006, FR-010 a FR-015 |
++| `TestReferencia`, `TestPreparar` | `internal/core/cita/referencia_test.go`, `consulta_test.go` | FR-005, FR-006, FR-010 a FR-015: cada argumento, no dado, dado y dado vacío; `cobertura`, solo con el ECLI de órgano `TC` |
+ | `TestLeerFicha`, `FuzzLeerFicha` | `internal/core/cita/ficha_test.go` | FR-021, FR-026, FR-083 |
+ | `TestCotejar` | `internal/core/cita/cotejo_test.go` | FR-023 a FR-025 |
+-| `TestCitaPreparar`, `TestCitaCotejar` | `internal/app/cita_test.go` | Los once golden, cada salida contra su esquema; el sobre de FR-004; los errores de FR-015 y FR-026 (FR-080, FR-081; SC-004) |
++| `TestCitaPreparar`, `TestCitaCotejar` | `internal/app/cita_test.go` | Los once golden, cada salida contra su esquema; el sobre de FR-004; cada fila de errores de contracts/applet-cita.md §6, también con el argumento escrito vacío, por la línea de órdenes y por la línea de una llamada; `--documento ""` con un documento en la entrada, que no se lee (FR-006, FR-015, FR-020, FR-026, FR-080, FR-081; SC-004) |
+ | `TestEntradaDeLaOrden` | `internal/app/main_test.go` | El kernel da la entrada a la orden y no a la llamada de herramienta (FR-020) |
+ | `TestFormatoDeSentencias`, `TestJuzgarSentencias`, `TestCitaSinDocumento`, `TestUmbralesDeJurisprudencia`, `TestPreguntasConElFragmento` | `internal/evals/` (contracts/evals-jurisprudencia.md §7) | FR-052, FR-053, FR-055, FR-060 a FR-063, FR-086, FR-087; SC-007, SC-008 |
+ 
+@@ -280,31 +281,47 @@
+ 
+ ## Uso, de fuera adentro (criterio de uso, ADR 0028)
+ 
+-El detalle, con ejemplos y bytes medidos (research M1), está en contracts/skill-jurisprudencia.md §3,
+-contracts/applet-cita.md §10 y contracts/evals-jurisprudencia.md §8.
++El detalle, con ejemplos y bytes medidos (research M1 a M3), está en contracts/skill-jurisprudencia.md §3,
++contracts/applet-cita.md §10 y contracts/evals-jurisprudencia.md §8. Cada operación se cuenta en sus dos sentidos:
++lo que el modelo escribe para pedirla y lo que recibe.
+ 
+ - **La respuesta de la skill** (la persona; una por pregunta): por cada sentencia que no está delante, una línea de
+   60 a 150 bytes y su consulta, con una dirección y de una a tres casillas; por cada documento cotejado, una cita de
+   unos 70 caracteres. La línea deja de darse cuando la persona trae el documento y se coteja como el pedido.
+-- **La consulta preparada** (la skill; una invocación por sentencia que falta, o por pregunta por materia): de 423 a
+-  606 bytes; cinco sentencias, unos 3 kB.
+-- **El cotejo** (la skill; una invocación por documento traído): de 559 a 1 005 bytes, sea cual sea el tamaño del
+-  documento. El hallazgo, uno como mucho, deja de darse con el documento pedido.
++- **La consulta preparada** (la skill; una invocación por sentencia que falta, o por pregunta por materia): el
++  modelo escribe la referencia o los términos, menos de 80 bytes con la orden entera, y recibe de 389 a 572 bytes;
++  cinco sentencias, unos 2,9 kB.
++- **El cotejo** (la skill; una invocación por documento traído): el modelo escribe la ficha y nada más —316 bytes en
++  la del fragmento, once líneas; con la referencia y la orden o la llamada alrededor, unos 400—, y recibe de 559 a
++  1 005 bytes. Ni lo uno ni lo otro crece con el tamaño del documento: la ficha es el mismo encabezamiento, con las
++  mismas etiquetas, mida lo que mida la sentencia (research S5), y del texto solo sale la ficha. El hallazgo, uno
++  como mucho, deja de darse con el documento pedido.
+ - **Las dos herramientas** (el agente; una vez por conexión): 5,4 y 6,5 kB de esquemas con las globales.
+-- **`SKILL.md`** (el modelo; una vez por conversación en que se activa): 191 líneas, 13 kB.
++- **`SKILL.md`** (el modelo; una vez por conversación en que se activa): 195 líneas, 13,6 kB.
+ - **`umbrales` del informe** (el job, el informe final, la persona; una vez por job): cuatro elementos de 230 a 330
+   bytes; cada job los mide de nuevo.
+ 
+-**Ninguna salida crece con lo acumulado.** El applet no guarda nada: tras meses de uso diario, con cientos de
+-sentencias preparadas y cotejadas, la invocación siguiente devuelve los mismos bytes que la primera, porque solo
+-depende de sus argumentos y de su texto. No hay ninguna señal que se repita sin información nueva: `no-se-deduce` no
+-llega a la respuesta, y la cobertura del Tribunal Constitucional responde a su propia consulta.
++**Nada crece con lo acumulado, ni con el documento.** El applet no guarda nada: tras meses de uso diario, con cientos
++de sentencias preparadas y cotejadas, la invocación siguiente devuelve los mismos bytes que la primera, porque solo
++depende de sus argumentos y de su texto. Lo único que podía crecer con algo que no es la pregunta era la entrada del
++cotejo, que con la herramienta escribe el modelo: con el texto entero eran 2 353 bytes ya en el fragmento —el
++documento completo de esa sentencia es un PDF de 175 955 bytes, cuyo texto no se ha medido—, y por eso el paso 3 de
++la skill pasa la ficha (research D17, V41). No hay ninguna señal que se repita sin información nueva: `no-se-deduce`
++no llega a la respuesta, y la cobertura del Tribunal Constitucional responde a su propia consulta y no va en ninguna
++otra.
+ 
+ ## Decisiones
+ 
+ - **El dominio va a `internal/core/{ids,cita}`, y no a un adaptador de fuente** (D1, D2).
+-- **Un argumento vacío cuenta como no dado** (D3): una decisión de comportamiento, anotada en `gates/supuestos.md`.
+-- **En `data`, lo que no aplica no está**; `cobertura` y las listas van siempre (D4, D7).
++- **Un argumento escrito con valor vacío no es un argumento no dado: es el error de su requisito** (D3). Los
++  argumentos de los dos verbos son campos puntero, que el analizador deja en `nil` si no se escriben (research V38):
++  `ECLI:ES:TS:2023:3144 --texto ""`, `… --roj ""` y `cita cotejar --documento ""` con un documento en la entrada
++  terminan con 2 (FR-006, FR-015, FR-020), como orden y como llamada (V40). `--describe`, las herramientas y la tabla
++  de comandos no cambian (V39). Anotada en `gates/supuestos.md`.
++- **En `data`, lo que no aplica no está**, y `cobertura` tampoco: solo va con el ECLI del Tribunal Constitucional,
++  que es lo único que FR-014 declara. Las listas van siempre (D4, D7).
++- **La skill pasa a `cita cotejar` la ficha, no el documento** (D17): es lo que dice la entrada del hito, lo único
++  que la operación lee y lo que hace que la entrada del cotejo no crezca con la sentencia.
+ - **`url` identifica lo que abre la persona o el documento, por su huella; `fecha_consulta` es la del reloj** (D6).
+ - **La entrada estándar la entrega el kernel** (D12): es lo que permite cumplir a la vez FR-020 y FR-030.
+ - **`--describe` anota las banderas propias, y la tabla las escribe** (D14). El spec no lo preveía; sin ello la tabla
+@@ -324,12 +341,14 @@
+ | `ids.ECLI`, `ids.ROJ`, sus analizadores y `ECLI.Organo` | FR-005, FR-006, FR-014 |
+ | `ECLI.ROJ`, `ROJ.ECLI`, `ROJ.Numero` | FR-012, FR-023, FR-025 |
+ | `cita.Referencia` y su construcción desde los cuatro argumentos | FR-005, FR-006, FR-024 |
+-| `cita.Consulta`, `Equivalente`, `Cobertura`, `Casilla`; `Preparar` | FR-010, FR-011, FR-012, FR-014 |
++| Los argumentos de los dos verbos como campos puntero: dado, también vacío, o no dado | FR-006, FR-015, FR-020, FR-026 |
++| `cita.Consulta`, `Equivalente`, `Casilla`; `Preparar` | FR-010, FR-011, FR-012 |
++| `cita.Cobertura`, solo en la consulta del ECLI de órgano `TC` | FR-014 |
+ | `PrepararTexto` y la codificación del segmento | FR-013, FR-015 |
+ | `cita.Ficha`, `LeerFicha` | FR-021, FR-022, FR-026 |
+ | `cita.Cotejo`, `Hallazgo`, `Diferencia`; `Cotejar` | FR-022 a FR-025 |
+ | El applet `cita` y sus dos verbos, con su firma del sobre | FR-001, FR-004 |
+-| El argumento `documento`, `cli.Literal` | FR-004, FR-020 |
++| El argumento `documento`, `cli.Literal` tras su puntero | FR-004, FR-020 |
+ | `Registro.LeerDe`, `Despacho.Entrada`, la interfaz `lector` | FR-020, FR-026, FR-030 |
+ | La anotación `x-banderas` y las banderas en `sintaxisDeLaOrden` | FR-040 (la tabla generada, con cada orden) |
+ | `schemas/cita.json` y su fila en la tabla de esquemas | FR-004, FR-088 |
+@@ -428,15 +447,17 @@
+ - f · Alcance: nada fuera del spec. Lo que el spec no nombraba y el plan añade para cumplirlo —la entrada por el
+   kernel, la anotación de las banderas, el arnés de skills— está en Complexity Tracking, con su requisito.
+ - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos; los riesgos de lint, en S7.
+-- h · Mejor alternativa: cada decisión con la rechazada (D1-D30).
+-- i · Afirmaciones verificadas: V1-V37 con fichero, orden o prototipo; M1-M5 medidas o calculadas, y dicho cuál;
+-  S1-S7 como supuestos, con lo que pasa si no se cumplen.
++- h · Mejor alternativa: cada decisión con la rechazada (D1-D30); en D3 y D4, la rechazada es la que este plan
++  tenía antes de su corrección, con el requisito que incumplía.
++- i · Afirmaciones verificadas: V1-V41 con fichero, orden o prototipo; M1-M5 medidas o calculadas, y dicho cuál;
++  S1-S7 como supuestos, con lo que pasa si no se cumplen. Lo que D3 dice del analizador está en V38 a V40.
+ - j · Quickstart ejecutable: órdenes, rutas, banderas y datos reales; los nombres de test, los que fija este plan;
+   lo que cada escenario deja en el árbol, declarado; el 10 es del workflow y el 11, de una persona.
+ - k · Datos externos: ninguno.
+ - l · Autonomía: ninguna tarea para una persona; el cierre en la plataforma lo hace el workflow.
+-- m · Uso: «Uso, de fuera adentro» y los tres contratos, con bytes medidos, invocaciones por pregunta y lo que apaga
+-  cada señal.
+-- n · Proporcionalidad: «Trazabilidad»; sin mecanismos para estados sin vía real.
++- m · Uso: «Uso, de fuera adentro» y los tres contratos, con bytes medidos, invocaciones por pregunta, lo que el
++  modelo escribe y lo que recibe en cada una, y lo que apaga cada señal.
++- n · Proporcionalidad: «Trazabilidad»; sin mecanismos para estados sin vía real, y sin claves de `data` que ningún
++  requisito pida ni ninguna skill lea.
+ - o · Controles de umbral: los cuatro que deciden en el cierre, los de la skill que sigue, y una fila por cada
+   umbral medido en `make ci`.
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-07 11:45:44
++++ ahora/quickstart.md	2026-10-07 12:05:46
+@@ -41,6 +41,8 @@
+ 4. `"direccion":"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo/1/AN"` y `"casillas":[]`.
+ 5. `"cobertura":{"cendoj":"no-cubierto",…}`, sin `direccion` y con `"casillas":[]`.
+ 
++Solo la quinta lleva `cobertura`: las cuatro primeras no tienen esa clave.
++
+ ## 2. Los errores de argumentos (US1.6)
+ 
+ ```bash
+@@ -48,11 +50,14 @@
+ bin/kitlegal cita preparar ECLI:FR:CC:2023:1 --json; echo "código $?"
+ bin/kitlegal cita preparar --resolucion 1088/2023 --json; echo "código $?"
+ bin/kitlegal cita preparar ECLI:ES:TS:2023:3144 --texto "cláusula suelo" --json; echo "código $?"
++bin/kitlegal cita preparar ECLI:ES:TS:2023:3144 --texto "" --json; echo "código $?"
++bin/kitlegal cita preparar ECLI:ES:TS:2023:3144 --roj "" --json; echo "código $?"
+ bin/kitlegal cita --json; echo "código $?"
+ ```
+ 
+-Esperado: las cinco con `código 2`, `"ok":false` y `"clase":"argumentos"`; el mensaje de la segunda dice que el ECLI
+-no es español.
++Esperado: las siete con `código 2`, `"ok":false` y `"clase":"argumentos"`; el mensaje de la segunda dice que el ECLI
++no es español. La quinta y la sexta llevan un argumento escrito vacío, que no es un argumento no dado: una
++referencia junto a `--texto`, y más de una forma de referencia.
+ 
+ ## 3. El cotejo (US2)
+ 
+@@ -63,6 +68,8 @@
+ bin/kitlegal cita cotejar --roj "STS 1088/2023" --json < "$F"; echo "código $?"
+ bin/kitlegal cita cotejar --resolucion 3144/2023 --fecha 2023-07-04 --json < "$F"
+ tail -n 12 "$F" | bin/kitlegal cita cotejar --json; echo "código $?"
++bin/kitlegal cita cotejar --documento "" --json < "$F"; echo "código $?"
++head -n 11 "$F" | bin/kitlegal cita cotejar --roj "STS 1088/2023" --json
+ ```
+ 
+ Esperado:
+@@ -74,6 +81,8 @@
+    `"cruce":"numero-de-resolucion"`.
+ 4. `"cruce":"numero-del-roj"`.
+ 5. `código 2`, `argumentos`: el final del fragmento no lleva ficha.
++6. `código 2`, `argumentos`: con `--documento`, también vacío, la entrada no se lee.
++7. La ficha sola, que es lo que la skill pasa: el mismo `data` que la tercera, con otra `url`.
+ 
+ ## 4. Las herramientas (US4.3, US4.4)
+ 
+@@ -83,9 +92,9 @@
+ ```
+ 
+ Esperado: `ok` las dos. La primera exige doce herramientas, las de los verbos del registro menos los de `skills` y
+-`mcp`, con los esquemas de `--describe`; la segunda, que `cita_cotejar` con el documento y el ROJ `STS 1088/2023`
+-devuelve un resultado con su hallazgo, que sin `documento` devuelve el error `argumentos`, y que el sobre es el de la
+-orden.
++`mcp`, con los esquemas de `--describe`; la segunda, que `cita_cotejar` con la ficha y el ROJ `STS 1088/2023`
++devuelve un resultado con su hallazgo, que sin `documento`, o con él vacío, devuelve el error `argumentos`, y que el
++sobre es el de la orden.
+ 
+ ## 5. Sin red, sin caché y sin grafo (US4.1, US4.2)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-07 11:45:44
++++ ahora/research.md	2026-10-07 12:05:23
+@@ -18,21 +18,27 @@
+ repositorio, `contracts/SKILL-jurisprudencia.prototipo.md`; el resto no se versiona. No se ejecutó `golangci-lint`
+ sobre él (S7).
+ 
++Tras el rechazo del plan, la corrección llevó al mismo prototipo sus tres cambios —los argumentos de los dos verbos
++como campos puntero (D3), `cobertura` solo fuera de cobertura (D4) y el paso 3 del borrador, que pasa la ficha
++(D17)— y volvió a ejecutarlo: las filas V38 a V41, y las medidas de M1 a M3, son de esa segunda pasada. Con los
++tres cambios, `go test -count=1 ./...` deja en rojo en el prototipo tests y guiones de la lista de M4, y ninguno
++que no esté en ella.
++
+ ## V · Verificado en local
+ 
+ | # | Afirmación | Dónde se comprobó |
+ |---|---|---|
+ | V1 | Go del equipo, `go1.27.1`; el árbol exportado compila sin red | `go version`; `go -C $TMPDIR/kl-proto build ./cmd/kitlegal` |
+ | V2 | Kong v1.16.1 admite en un mismo verbo un argumento de posición opcional y banderas propias con valor; `--<bandera>=<valor>` acepta un valor de varias líneas | `go list -m github.com/alecthomas/kong` → v1.16.1; prototipo: `cita cotejar --help` da `Usage: cita cotejar [<ecli>] [flags]`; llamada de herramienta con `documento` de siete líneas, que el servidor convierte en `--documento=<texto>` |
+-| V3 | Un campo `string` pasa por una codificación JSON que cambia cada byte no UTF-8 por U+FFFD; `cli.Literal` lo conserva y `--describe` lo presenta como cadena | `internal/cli/literal.go` (comentario y `Decode`); prototipo: `--documento=LITERAL` en la ayuda y `"documento": {"type": "string"}` en `--describe` |
++| V3 | Un campo `string` pasa por una codificación JSON que cambia cada byte no UTF-8 por U+FFFD; `cli.Literal` lo conserva, también detrás de un puntero, y `--describe` lo presenta como cadena | `internal/cli/literal.go` (comentario y `Decode`); prototipo: `"documento": {"type": "string"}` en `--describe`, y el fragmento con dos bytes que no son UTF-8 detrás da la misma `url` por `--documento` y por la entrada estándar |
+ | V4 | `invopop/jsonschema` v0.14.0 tiene `Schema.Extras map[string]any` para claves fuera del vocabulario, y las serializa | `go doc github.com/invopop/jsonschema Schema` (línea `Extras`); prototipo: `"x-banderas": ["roj","resolucion","fecha","texto"]` en `schemas/cita.json` regenerado |
+ | V5 | `santhosh-tekuri/jsonschema` v6.0.3 compila y valida un esquema con esa clave desconocida | prototipo: `go test ./...` con la anotación puesta: `TestSalidaContraSuEsquema`, `TestEsquemasPublicados/schemas` e `internal/skills` en verde |
+-| V6 | Un campo con `omitempty` sale del `required` del esquema generado, y las etiquetas `jsonschema:"enum=…"` de un tipo de salida llegan al esquema | prototipo: `cita preparar --describe` (`cita.Consulta.required` = `cobertura`, `casillas`; `cita.Cobertura.cendoj.enum`); precedente: `internal/core/territorio/salida.go` y `schemas/municipio.json` |
++| V6 | Un campo con `omitempty` sale del `required` del esquema generado, y las etiquetas `jsonschema:"enum=…"` de un tipo de salida llegan al esquema | prototipo: `cita preparar --describe` (`cita.Consulta.required` = `casillas`; `cita.Cobertura.required` = `cendoj`, `motivo`; `cita.Cobertura.cendoj.enum` = `no-cubierto`); precedente: `internal/core/territorio/salida.go` y `schemas/municipio.json` |
+ | V7 | El servidor MCP (SDK v1.8.0) anuncia las dos herramientas sin tocar `mcp`; la llamada con `documento` devuelve el sobre; la llamada sin él devuelve el error `argumentos` y el servidor sigue atendiendo | prototipo, guion con la orden `mcp`: `1 cita_cotejar resultado`, `2 cita_cotejar error argumentos`, `3 cita_preparar resultado`, `4 cita_preparar resultado`, `salida 0` |
+ | V8 | En `testscript` (go-internal v1.16.0), `stdin <fichero>` da el fichero a la orden siguiente como entrada estándar, también por una ruta absoluta con `..` | prototipo: `stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt` y `exec $KITLEGAL_T0_BIN cita cotejar --json` → 0 con la ficha |
+ | V9 | El kernel fecha con su reloj el sobre del applet que no declara `FechaConsulta`, también en el binario `$KITLEGAL_T0_BIN`, que solo fija el reloj de `boe` y de `graph` | `internal/core/schema/sobre.go` (`Procedencia.FechaConsulta`); prototipo: `"fecha_consulta":"2026-10-07T11:09:02.919508+02:00"` con el binario T0 |
+ | V10 | El sobre de la llamada y el de la orden, con el mismo texto, son iguales byte a byte salvo `fecha_consulta` | prototipo: `sed -E 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/'` sobre los dos y `cmp` |
+-| V11 | Tras los dos verbos, la caché y el grafo no cambian | prototipo: con `cache.db` y `world.db` ya creados por `boe articulo`, `arbol cache` antes y después de cuatro llamadas de herramienta, cinco órdenes —una, fallida; otra, con `--offline --no-graph`— y un `--dry-run` da el mismo listado, con las mismas huellas (`cmp`); y con un `KITLEGAL_CACHE_DIR` vacío, 0 entradas tras 47 invocaciones en proceso |
++| V11 | Tras los dos verbos, la caché y el grafo no cambian | prototipo: con `cache.db` y `world.db` ya creados por `boe articulo`, `arbol cache` antes y después de cuatro llamadas de herramienta, cinco órdenes —una, fallida; otra, con `--offline --no-graph`— y un `--dry-run` da el mismo listado, con las mismas huellas (`cmp`); y con un `KITLEGAL_CACHE_DIR` vacío, 0 entradas tras las 60 invocaciones en proceso de la segunda pasada |
+ | V12 | El SHA-256 del fragmento que da el sobre de `cita cotejar` es el del manifiesto de la evidencia | prototipo: `url` = `kitlegal:documento/sha256:4886e0c8…ee27`; `evidencias/adr-0036/manifiesto.json`: `"sha256": "4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27"`, 2 353 bytes |
+ | V13 | El fragmento no tiene tabuladores, espacios al principio o al final de una línea, comillas dobles ni barras invertidas | `grep -c -E` con esas cinco clases → 0 |
+ | V14 | La tabla de comandos escribe hoy como argumentos de posición las banderas propias de un verbo | `internal/skills/comandos.go`, `sintaxisDeLaOrden`: «Todos los argumentos propios de un verbo de una tabla son de posición»; prototipo, primera generación: `kitlegal cita preparar [<ecli> [<roj> [<resolucion> [<fecha> [<texto>]]]]]` |
+@@ -40,7 +46,7 @@
+ | V16 | Los verbos de `skills` ya tienen banderas propias, y `TestTablaDeComandosCoincideConLaGramatica` deja de pasar para `skills doctor`, `skills list` y los dos de `cita` en cuanto la tabla las escribe como banderas: su auxiliar `invocacionDeLaSintaxis` solo entiende argumentos de posición | prototipo: `go test ./internal/app/` |
+ | V17 | `TestEsquemasDeHerramienta/los dos esquemas son las partes del documento de --describe` (`internal/cli`) deja de pasar si la anotación va en `--describe` y no en el esquema de la herramienta | prototipo: `go test ./internal/cli/` |
+ | V18 | El arnés de `TestSkillsDelRepositorio` supone que toda skill declara referencias: `metadataDeKitlegal` escribe siempre `kitlegal-referencias:` y `probarRegenerarDosVeces` escribe `references/antigua.md` sin crear la carpeta | `internal/app/skills_test.go:850-858` y `:1046`; prototipo: 13 subtests de `frontmatter/jurisprudencia` y `regenerar-dos-veces/jurisprudencia` en rojo, y en verde con las dos líneas cambiadas |
+-| V19 | Una skill con `kitlegal-applets` y sin `kitlegal-referencias` ni carpeta `references/` pasa la comprobación de producción | `internal/skills/frontmatter.go` (`defectosDeLasReferencias`: sin declaradas no lista nada) y `sincronia.go` (`referenciasGeneradas`); prototipo: `TestSkillsDelRepositorio` en verde tras V18, con `SKILL.md` de 191 líneas |
++| V19 | Una skill con `kitlegal-applets` y sin `kitlegal-referencias` ni carpeta `references/` pasa la comprobación de producción | `internal/skills/frontmatter.go` (`defectosDeLasReferencias`: sin declaradas no lista nada) y `sincronia.go` (`referenciasGeneradas`); prototipo: `TestSkillsDelRepositorio` en verde tras V18, con `SKILL.md` de 195 líneas |
+ | V20 | `TestEvalsDelRepositorio/linea-sin-consulta` recorre todas las skills de `skills/` y exige en cada una la línea `⚠ SIN CONSULTA AL BOE:` | `internal/evals/conjunto_test.go:1577-1604`; prototipo: en rojo con la skill nueva |
+ | V21 | Lo que rompe registrar el applet y empotrar la skill: la lista de «Tests y guiones existentes que cambian» de `plan.md` | prototipo: `go test -count=1 ./...` con el applet en los dos registros y la skill en `skills/` |
+ | V22 | El applet `cita` y su dominio pasan la garantía sin red tal como está escrita | prototipo: `internal/arch_test.go` con `internal/core/cita` e `internal/core/ids` entre los orígenes y `app/cita.go` en `ficherosSinRed`; `TestArquitectura` en verde, también R1 |
+@@ -59,29 +65,38 @@
+ | V35 | En H21, las evals que usaban una clave nueva no las escribió la primera tarea: entraron «con el formato que las admite» | `specs/015-h21-kitlegal-mcp-serve/tasks.md`, T001 |
+ | V36 | Con el applet en los dos registros y la skill en `skills/`, el empaquetado de la extensión y del plugin, el paquete del servidor y la instalación de skills siguen en verde sin tocarlos | prototipo, `go test ./...`: `ok` en `internal/empaquetado`, `internal/mcp`, `internal/mcp/mcptest`, `internal/core/instalacion`, `internal/disco`, `internal/skills` y el paquete raíz |
+ | V37 | Preparar la sesión de una eval no pide ninguna respuesta grabada para un comando que no consulta una fuente: los de `territorio` y la comprobación del grafo ya son así | `internal/evals/consultas.go`, `ConsultasNecesarias` (ramas `formaTerritorio` y `formaComprobacion`) |
++| V38 | Kong v1.16.1 deja en `nil` el campo puntero del argumento que no se escribe y lo rellena cuando se escribe, también con valor vacío, sea una bandera o el argumento de posición, y sea `*string` o `*cli.Literal` | `kong@v1.16.1/model.go:364` (`Value.Parse` crea el puntero antes de decodificar y marca `Set`, `model.go:271`) y `mapper.go:754` y `:776` (`ptrMapper`); prototipo, con los campos de los dos verbos como punteros: las invocaciones de V40 |
++| V39 | Con los campos como punteros, `--describe` sigue dando cada argumento como cadena, con la misma anotación `x-banderas`, y la tabla de comandos no cambia; una llamada de herramienta lo sigue recibiendo como cadena y lo escribe `--<nombre>=<valor>`, también vacío | prototipo: `schemas/cita.json` regenerado con `-actualizar-esquemas` y comparado con el anterior con `diff`: cuatro líneas, las cuatro de `cobertura` (D4), y ninguna de `entrada`; `-regenerar-skills` deja `SKILL.md` idéntico (`cmp`); las llamadas de V40 |
++| V40 | Un argumento escrito con valor vacío termina con 2 y la clase `argumentos`, como orden y como llamada de herramienta | prototipo, como orden: `cita preparar ECLI:ES:TS:2023:3144 --texto ""`, `… --roj ""`, `… --fecha ""`, `--roj ""`, `--roj=`, `""`, `--texto ""`, `--resolucion "" --fecha 2023-07-04` y `--resolucion 1088/2023 --fecha ""`; y `cita cotejar --documento ""`, `--documento=`, `--roj ""` y `""`, las cuatro con el fragmento en la entrada estándar. Como llamada, guion con la orden `mcp`: `cita_preparar` con `{"ecli":"ECLI:ES:TS:2023:3144","texto":""}`, con `{"ecli":"ECLI:ES:TS:2023:3144","roj":""}`, con `{"ecli":""}` y con `{"texto":""}`, y `cita_cotejar` con `{"documento":""}` y con `{"roj":"","documento":<la ficha>}`: las seis, `error argumentos`, y el servidor sigue (`salida 0`) |
++| V41 | La ficha sola da el mismo cotejo que el fragmento entero: los mismos `data` y `hash`, y otra `url`, la de su texto | prototipo: las once primeras líneas del fragmento (316 bytes) con `--roj "STS 1088/2023"`, 949 bytes, como el fragmento entero; y la ficha por la entrada estándar y en `documento` de una llamada, el mismo sobre salvo `fecha_consulta` (`cmp`) |
+ 
+ ## M · Medido
+ 
+-Con el prototipo (V1), el sobre entero en la salida estándar, con su salto final:
++**M1.** Con el prototipo corregido (V1, V38), el sobre entero en la salida estándar, con su salto final y con
++`fecha_consulta` de seis decimales; cada cero en que acaben los microsegundos es un byte menos:
+ 
+ | Invocación | Bytes |
+ |---|---|
+-| `cita preparar ECLI:ES:TS:2023:3144 --json` (con equivalente) | 508 |
+-| `cita preparar --roj "STS 3144/2023" --json` | 504 |
+-| `cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json` (tres casillas) | 606 |
+-| `cita preparar --texto "cláusula suelo" --json` | 423 |
++| `cita preparar ECLI:ES:TS:2023:3144 --json` (con equivalente) | 474 |
++| `cita preparar --roj "STS 3144/2023" --json` | 470 |
++| `cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json` (tres casillas) | 572 |
++| `cita preparar --texto "cláusula suelo" --json` | 389 |
+ | `cita preparar ECLI:ES:TC:2024:79 --json` (fuera de cobertura) | 424 |
+-| `cita cotejar --json`, sin referencia | 559 |
+-| `cita cotejar` con el documento pedido, por sus tres formas | 627 a 651 |
++| `cita preparar` sin equivalente: `--roj "STC 79/2024"`, `--roj "SAP M 1234/2020"`, `ECLI:ES:AN:2019:1.2.A` | 404, 412, 422 |
++| `cita cotejar --json`, sin referencia, con el fragmento o con su ficha sola | 559 |
++| `cita cotejar` con el documento pedido, por sus tres formas | 628 a 652 |
+ | `cita cotejar` con hallazgo: otra fecha, ROJ cruzado, número cruzado | 869, 949, 1 005 |
+-| Un error de argumentos | 294 a 392 |
+-| `--describe` de `preparar` y de `cotejar` | 5 386 y 6 472 |
++| Un error de argumentos | 294 a 379 |
++| `--describe` de `preparar` y de `cotejar` | 5 385 y 6 472 |
+ | La tabla mínima de `cotejar` con hallazgo, sin `--json` | 1 345 |
+ 
+-- **M2**. El borrador de `SKILL.md` con su tabla generada: 191 líneas y 13 173 bytes; su `description`, por debajo de
++- **M2**. El borrador de `SKILL.md` con su tabla generada: 195 líneas y 13 648 bytes; su `description`, por debajo de
+   los 1 024 caracteres que admite `TestSkillsDelRepositorio` (V19). El borrador de `contracts/`, copiado al prototipo,
+-  pasa `TestSkillsDelRepositorio` y `TestOrdenesDeLasSkillsEmpotradas`.
+-- **M3**. La ficha del fragmento, 11 líneas; el fragmento, 2 353 bytes (V12).
++  pasa `TestSkillsDelRepositorio` y `TestOrdenesDeLasSkillsEmpotradas`, y regenerar su tabla lo deja igual (V39).
++- **M3**. La ficha del fragmento, de la línea `Roj:` a la de `Tipo de Resolución:`: 11 líneas y 316 bytes
++  (`head -n 11 … | wc -c`); el fragmento, 39 líneas y 2 353 bytes (V12). El documento entero de esa sentencia es un
++  PDF de 175 955 bytes (`evidencias/adr-0036/manifiesto.json`) que no está en el repositorio: el tamaño de su texto
++  no se ha medido.
+ - **M4**. Lo que rompe (V21): 7 tests de Go por el applet (`TestPuntoDeEntrada`, `TestRegistroDeProduccion`,
+   `TestRegistroDeE2E`, `TestHerramientasDelServidor`, `TestEsquemasPublicados`, `TestEsquemasCubrenTodosLosVerbos`,
+   `TestSuperficieDeIds`), 2 por la anotación y la tabla (`TestTablaDeComandosCoincideConLaGramatica`,
+@@ -97,7 +112,7 @@
+ |---|---|---|
+ | S1 | La dirección del buscador del Tribunal Constitucional es `https://hj.tribunalconstitucional.es/`. No está en el repositorio (V33) y esta sesión no tiene red | La skill daría una dirección que no es. La eval (e) no lo detecta: compara esa misma cadena. La persona la comprueba al leer el informe final; cambiarla son `SKILL.md` y la eval 05 |
+ | S2 | Con el borrador de `SKILL.md`, el modelo que decide activa la skill, pide las operaciones y escribe la línea y la cita con su forma. Esta sesión no abre sesiones con modelo | Lo mide el job de cierre; un fallo ahí es de la skill y lo repara el cierre sin tocar los umbrales (FR-064) |
+-| S3 | En las sesiones del modo orden, Bash acepta un documento por la entrada estándar con `<<'DOCUMENTO'` | La orden tiene además `--documento`; lo mide el job de cierre con las evals (d) y (f) |
++| S3 | En las sesiones del modo orden, Bash acepta la ficha por la entrada estándar con `<<'DOCUMENTO'`, y el modelo copia sus once líneas sin cambiarlas | La orden tiene además `--documento`; con una línea de menos, `cita cotejar` nombra el dato que falta y la skill repite el cotejo. Lo mide el job de cierre con las evals (d) y (f) |
+ | S4 | El trabajo `evals (jurisprudencia)` termina muy por debajo de su peor caso. No hay medida | El tope de 352 minutos lo cubre (M5) |
+ | S5 | La ficha de todo documento del CENDOJ lleva las ocho etiquetas de la del fragmento. El repositorio solo tiene una, del Tribunal Supremo (spec, Assumptions) | `cita cotejar` daría «falta el dato …» y la skill no citaría: el fallo va del lado que no cita |
+ | S6 | Las cotas del ECLI —órgano de hasta 7 caracteres, número de hasta 25— son las de la rama de lectura, sin contrastar con el estándar europeo (spec, Assumptions) | Un ECLI válido más largo sería un error de argumentos |
+@@ -119,21 +134,39 @@
+ (FR-025). *Rechazado*: exportar órgano, año y número de cada tipo y componer fuera: cinco métodos en lugar de tres, y
+ la regla repartida.
+ 
+-**D3 · Una bandera con valor vacío es una bandera no dada.** Los campos son `string`, y Kong no dice si una bandera
+-se escribió. `--roj ""` solo, `--texto ""` solo y un ECLI vacío son un error de argumentos, porque no queda nada que
+-preparar o cotejar; `--texto "   "` lo es por FR-015. Junto a una forma válida, la vacía no cuenta:
+-`ECLI:ES:TS:2023:3144 --texto ""` prepara el ECLI. *Por qué*: un agente rellena a menudo con `""` los argumentos de
+-herramienta que no usa, y tratarlo como «más de una forma» le negaría una llamada bien formada. *Rechazado*: un tipo
+-que recuerde si se escribió: pide tocar el generador de `--describe` para presentarlo como cadena, por una
+-combinación que el spec no define.
++**D3 · Un argumento escrito con valor vacío no es un argumento no dado: es el error de su requisito.** Los
++argumentos propios de los dos verbos son campos puntero —`*string`, y `*cli.Literal` el documento—: `nil` es «no se
++escribió», y cualquier otro valor, «se escribió», también vacío (V38). El dominio recibe cada uno así y lo comprueba
++con su forma en cuanto está dado:
+ 
+-**D4 · Las claves de `data` de `preparar`.** `referencia` o `texto`, `equivalente` si se deduce, `cobertura`,
+-`direccion` si hay algo que abrir y `casillas`, siempre una lista. Lo que no aplica **no está**: ni cadena vacía ni
+-`null`. Así «`data` MUST NOT llevar equivalente» (FR-012) es literal, y quien lee no confunde una dirección vacía con
+-una dirección. `cobertura` va siempre, con vocabulario cerrado —`cubierto`, `no-cubierto`—, como la de `territorio`
+-(constitución IX). *Rechazado*: todas las claves siempre, con valores vacíos: un `equivalente` con sus dos campos
+-vacíos es «un ROJ compuesto a medias». Ejemplos con sus bytes, en contracts/applet-cita.md §3.
++- un ECLI, un ROJ, un número o una fecha vacíos no tienen su forma (FR-006): `cita preparar ""`, `--roj ""`,
++  `--resolucion "" --fecha 2023-07-04` y `--resolucion 1088/2023 --fecha ""` terminan con 2;
++- el vacío cuenta como una forma dada: `ECLI:ES:TS:2023:3144 --roj ""` es «más de una forma», y
++  `ECLI:ES:TS:2023:3144 --fecha ""`, una fecha sin su número (FR-006);
++- `--texto ""` solo es «un `--texto` vacío», y junto a una referencia, «una referencia junto a `--texto`» (FR-015);
++- `--documento ""` es el texto del documento, vacío: la entrada estándar no se lee (FR-020), y no hay texto (FR-026).
+ 
++Vale igual en una llamada de herramienta, que escribe cada propiedad que recibe como `--<nombre>=<valor>` (V40): un
++agente que rellene con `""` un argumento que no usa recibe el error de argumentos con su mensaje y corrige la
++llamada, y la skill le dice que dé solo los que use (D17). Nada cambia en `--describe`, en el esquema de las
++herramientas ni en la tabla de comandos: un puntero a cadena se describe como una cadena (V39). *Rechazado*: dar
++por no dado el argumento vacío, que era la decisión anterior de este plan: `ECLI:ES:TS:2023:3144 --texto ""`
++terminaba con 0 donde FR-015 pide 2, y `cita cotejar --documento ""` leía la entrada donde FR-020 dice que no se
++lee. *Rechazado*: un tipo propio que recuerde si se escribió, o que el kernel entregue al verbo qué valores marcó
++el analizador como escritos: el puntero ya lo dice, sin tocar el kernel ni el generador de `--describe`.
++
++**D4 · Las claves de `data` de `preparar`.** `referencia` o `texto`, `equivalente` si se deduce, `cobertura` si la
++referencia queda fuera de cobertura, `direccion` si hay algo que abrir y `casillas`, siempre una lista. Lo que no
++aplica **no está**: ni cadena vacía ni `null`. Así «`data` MUST NOT llevar equivalente» (FR-012) es literal, y quien
++lee no confunde una dirección vacía con una dirección. `cobertura` sigue esa misma regla: solo está con el ECLI de
++órgano `TC`, que es la única cobertura que el binario declara (FR-014), con `cendoj` `no-cubierto` y su `motivo`.
++En las demás salidas no está, porque el binario no sabe si el CENDOJ tiene lo que se busca: de
++`--roj "STC 79/2024"`, de un número con su fecha o de un texto no afirma nada (spec, Edge Cases), y ninguna skill
++lee esa clave. *Rechazado*: `cobertura` en toda salida, con `cubierto`, que era la decisión anterior de este plan:
++afirmaba cubierta una sentencia del Tribunal Constitucional nombrada por sus siglas. *Rechazado*: todas las claves
++siempre, con valores vacíos: un `equivalente` con sus dos campos vacíos es «un ROJ compuesto a medias». Ejemplos
++con sus bytes, en contracts/applet-cita.md §3.
++
+ **D5 · La casilla de dos partes.** «Fecha resolución» son dos entradas, con `campo` «Desde» y «Hasta». *Rechazado*:
+ un nombre compuesto («Fecha resolución · Desde»): no es lo que la persona ve.
+ 
+@@ -171,8 +204,10 @@
+ ### La entrada estándar
+ 
+ **D12 · El texto llega por `--documento` o por la entrada estándar, y la entrada la entrega el kernel.** El
+-argumento se llama `documento` y es un `cli.Literal`, para que el texto dado por la bandera y el dado por la entrada
+-sean los mismos bytes y den la misma huella (V3). La entrada estándar no es una dependencia del applet: la raíz de
++argumento se llama `documento` y es un `cli.Literal` —tras un puntero, como los demás (D3)—, para que el texto dado
++por la bandera y el dado por la entrada sean los mismos bytes y den la misma huella (V3). Escrito, también vacío, es
++el texto, y la entrada no se lee; solo sin él lee el verbo la entrada. La entrada estándar no es una dependencia del
++applet: la raíz de
+ composición la registra en el registro (`Registro.LeerDe`), el despacho de una orden la pone en `Despacho.Entrada`, y
+ el kernel se la da al verbo que la lee, por una interfaz sin exportar, `lector`, como la de `servidor`. Una llamada
+ de herramienta construye su `Despacho` sin ella (V24): el verbo recibe `nil`, no tiene nada que leer y responde con
+@@ -219,7 +254,14 @@
+ **D17 · La redacción de `SKILL.md`** es contracts/SKILL-jurisprudencia.prototipo.md, con su tabla generada (V15, M2).
+ Sigue las lecciones de H7.2 a H24: cada forma fija, con su ejemplo en un bloque; cada prohibición, con su razón; la
+ respuesta habla a la persona y no nombra los campos de lo que devuelve una orden (regla 3); las órdenes, siempre con
+-`--json`. La dirección del Tribunal Constitucional está en un solo sitio de la skill, el paso 7 (S1).
++`--json`. La dirección del Tribunal Constitucional está en un solo sitio de la skill, el paso 7 (S1). **El paso 3
++manda pasar a `cita cotejar` la ficha y nada más** —sus líneas, de la de `Roj:` a la de `Tipo de Resolución:`—, que
++es lo que dicen la entrada del hito y Edge Cases del spec («pasa la ficha a `cita cotejar`») y lo único que la
++operación lee (V41): con la herramienta, `documento` lo escribe el modelo, y el texto entero haría crecer cada
++cotejo con el tamaño de la sentencia —2 353 bytes ya en el fragmento, frente a los 316 de su ficha (M3)—. Si el
++error de argumentos nombra un dato que sí está en el documento, la skill repite el cotejo con la ficha completa. Y
++la cabecera del protocolo dice que una herramienta recibe solo los argumentos que se usan (D3). *Rechazado*: «mejor
++el texto entero, tal como llegó», que era la redacción anterior: no da nada que la ficha no dé.
+ 
+ ### Las evals
+ 
+@@ -268,9 +310,11 @@
+ 
+ **D24 · La aceptación e2e** son cuatro guiones (plan.md). Toman el fragmento del repositorio por
+ `$KITLEGAL_SKILLS/../evidencias/…` (V8), sin copiarlo; la llamada de herramienta, que necesita el texto dentro de un
+-JSON, lleva las siete líneas de la ficha que `cotejar` lee, y el guion comprueba con `cmp` que son las del fragmento.
+-La orden y la llamada se comparan sin `fecha_consulta` (V10). *Rechazado*: una variable nueva en el arnés: no hace
+-falta.
++JSON, lleva la ficha —las once primeras líneas del fragmento, que es lo que la skill manda pasar (D17)—, y el guion
++comprueba con `cmp` que son las del fragmento (V41). La orden y la llamada se comparan sin `fecha_consulta` (V10).
++Los dos guiones de los verbos llevan además los casos de D3 que un campo de cadena dejaría pasar: una referencia
++junto a `--texto ""`, y `--documento ""` con el fragmento en la entrada (V40). *Rechazado*: una variable nueva en el
++arnés: no hace falta.
+ 
+ **D25 · Que nada cambia en la caché ni en el grafo lo comprueba un guion** (V11), con `arbol`, que ya da la huella de
+ cada fichero. *Rechazado*: un test de Go que abra `cache.db` y `world.db`: R3 lo impide fuera de sus paquetes.

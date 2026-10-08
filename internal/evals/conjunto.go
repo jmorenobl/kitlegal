@@ -254,8 +254,8 @@ const (
 const sinBinarioNiServidorDelConjunto = 1
 
 // ReglaDelConjunto es una regla de un juego de reglas del conjunto de evals, con
-// su nombre en la tabla de ese juego. Los juegos los dan ReglasDeBoeLegislacion y
-// ReglasDeLegalCore, y los aplica ComprobarConjunto.
+// su nombre en la tabla de ese juego. Los juegos los dan ReglasDeBoeLegislacion,
+// ReglasDeLegalCore y ReglasDeJurisprudencia, y los aplica ComprobarConjunto.
 type ReglaDelConjunto struct {
 	nombre string
 
@@ -302,9 +302,57 @@ func ReglasDeLegalCore() []ReglaDelConjunto {
 	}
 }
 
+// Lo que fijan las reglas del conjunto de evals de jurisprudencia
+// (contracts/evals-jurisprudencia.md §5 de H23; FR-050, FR-056): las seis evals
+// y cuántas hay de cada una de sus cinco clases.
+const (
+	tamanioDeJurisprudencia = 6
+
+	// porNumeroYFechaDelConjunto son las que preguntan por una sentencia que se
+	// da por su número de resolución y su fecha, y unaDeCadaClase, las de cada
+	// una de las otras cuatro clases.
+	porNumeroYFechaDelConjunto = 2
+	unaDeCadaClase             = 1
+
+	// appletDeLaCita es el applet de los dos comandos de cita.
+	appletDeLaCita = "cita"
+
+	// Las dos casillas del buscador que da cita preparar para un número de
+	// resolución con su fecha.
+	casillaDelNumeroDeResolucion = "Nº Resolución"
+	casillaDeLaFechaDeResolucion = "Fecha resolución"
+)
+
+// ReglasDeJurisprudencia son las reglas del conjunto de evals de jurisprudencia
+// de contracts/evals-jurisprudencia.md §5 de H23, en su orden: son seis evals,
+// todas activan la skill y todas declaran sentencias; y, por lo que espera cada
+// una, dos son por número y fecha, una por materia, una con el documento
+// traído, una de una sentencia no cubierta y una con un documento que no es el
+// pedido. Cada regla que no se cumple dice cuántas hay, cuántas lleva el
+// conjunto y qué ficheros la cumplen. Cada llamada devuelve un juego nuevo.
+func ReglasDeJurisprudencia() []ReglaDelConjunto {
+	return []ReglaDelConjunto{
+		{nombre: "tamaño", incumplimiento: incumplimientoDelTamanioDeJurisprudencia},
+		{nombre: "activación", incumplimiento: incumplimientoDeLaActivacion},
+		{nombre: "sentencias", incumplimiento: incumplimientoDeLasSentencias},
+		{nombre: "número y fecha", incumplimiento: incumplimientoDeLaClase(porNumeroYFechaDelConjunto,
+			"con la línea, ninguna cita y las casillas «"+casillaDelNumeroDeResolucion+"» y «"+
+				casillaDeLaFechaDeResolucion+"», con cita preparar", esPorNumeroYFecha)},
+		{nombre: "materia", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
+			"con la dirección de búsqueda y ninguna cita, con cita preparar con texto", esPorMateria)},
+		{nombre: "documento", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
+			"con una cita, con cita cotejar", esConElDocumento)},
+		{nombre: "no cubierta", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
+			"sin comandos, con una dirección y ninguna cita", esDeUnaNoCubierta)},
+		{nombre: "documento distinto", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
+			"con la línea, un ROJ que no se cita, y cita cotejar y cita preparar con ese ROJ", esConOtroDocumento)},
+	}
+}
+
 // ComprobarConjunto aplica a las evals bien formadas de una carpeta evals/<skill>/
 // las reglas del juego dado, con las normas de data/normas.yaml por identificador
-// (contrato evals-y-grabaciones §2 de H5; contrato de evals §3 de H6). Devuelve un
+// (contrato evals-y-grabaciones §2 de H5; contrato de evals §3 de H6;
+// contracts/evals-jurisprudencia.md §5 de H23). Devuelve un
 // defecto por cada regla que se incumple, en el orden del juego, y ninguno si se
 // cumplen todas. No lee ficheros.
 func ComprobarConjunto(evals []Eval, normas map[string]NormaConocida, reglas []ReglaDelConjunto) []DefectoDelConjunto {
@@ -690,6 +738,130 @@ func incumplimientoDeSinBinarioNiServidor(conjunto *conjuntoAComprobar) string {
 	return fmt.Sprintf("hay %d evals sin binario ni servidor (sin_binario_ni_servidor: true) "+
 		"y el conjunto lleva exactamente %d: %s", len(conjunto.sinBinarioNiServidor),
 		sinBinarioNiServidorDelConjunto, conjunto.ficheros(conjunto.sinBinarioNiServidor))
+}
+
+// incumplimientoDelTamanioDeJurisprudencia: exactamente seis evals.
+func incumplimientoDelTamanioDeJurisprudencia(conjunto *conjuntoAComprobar) string {
+	if len(conjunto.evals) == tamanioDeJurisprudencia {
+		return ""
+	}
+
+	return fmt.Sprintf("hay %d evals y el conjunto lleva exactamente %d: %s",
+		len(conjunto.evals), tamanioDeJurisprudencia, conjunto.todosLosFicheros())
+}
+
+// incumplimientoDeLaActivacion: todas activan la skill. Nombra las que no.
+func incumplimientoDeLaActivacion(conjunto *conjuntoAComprobar) string {
+	sinActivar := conjunto.posicionesDeLasQue(func(eval Eval) bool { return !eval.Activa })
+	if len(sinActivar) == 0 {
+		return ""
+	}
+
+	return "evals que no activan la skill (activa: false): " + conjunto.ficheros(sinActivar)
+}
+
+// incumplimientoDeLasSentencias: todas declaran sentencias. Nombra las que no.
+func incumplimientoDeLasSentencias(conjunto *conjuntoAComprobar) string {
+	sinSentencias := conjunto.posicionesDeLasQue(func(eval Eval) bool { return !eval.Sentencias.declaradas() })
+	if len(sinSentencias) == 0 {
+		return ""
+	}
+
+	return "evals que no declaran sentencias: " + conjunto.ficheros(sinSentencias)
+}
+
+// incumplimientoDeLaClase devuelve el incumplimiento de una regla que fija
+// cuántas evals del conjunto son de una clase: exactamente esas. El mensaje
+// dice cuántas hay, con la descripción de la clase, cuántas lleva el conjunto
+// y qué ficheros lo son.
+func incumplimientoDeLaClase(cuantas int, descripcion string, esDeLaClase func(Eval) bool,
+) func(conjunto *conjuntoAComprobar) string {
+	return func(conjunto *conjuntoAComprobar) string {
+		deLaClase := conjunto.posicionesDeLasQue(esDeLaClase)
+		if len(deLaClase) == cuantas {
+			return ""
+		}
+
+		return fmt.Sprintf("hay %d evals %s, y el conjunto lleva exactamente %d: %s",
+			len(deLaClase), descripcion, cuantas, conjunto.ficheros(deLaClase))
+	}
+}
+
+// esPorNumeroYFecha dice si la eval es de las que preguntan por una sentencia
+// que se da por su número de resolución y su fecha: espera la línea, ninguna
+// cita y las dos casillas de esa consulta, con cita preparar.
+func esPorNumeroYFecha(eval Eval) bool {
+	esperadas := eval.Sentencias
+
+	return esperadas.NoComprobada && esperadas.NingunaCita &&
+		esperaLaCasilla(eval, casillaDelNumeroDeResolucion) && esperaLaCasilla(eval, casillaDeLaFechaDeResolucion) &&
+		esperaElComandoDeCita(eval, func(comando ComandoEsperado) bool { return comando.Verbo == verboPreparar })
+}
+
+// esPorMateria dice si la eval es la de una pregunta por materia: espera la
+// dirección de búsqueda que devuelva la sesión y ninguna cita, con cita
+// preparar con texto.
+func esPorMateria(eval Eval) bool {
+	return eval.Sentencias.DireccionDeBusqueda && eval.Sentencias.NingunaCita &&
+		esperaElComandoDeCita(eval, func(comando ComandoEsperado) bool {
+			return comando.Verbo == verboPreparar && comando.ConTexto
+		})
+}
+
+// esConElDocumento dice si la eval es la del documento que la persona trae
+// para que se cite: espera una cita, con cita cotejar.
+func esConElDocumento(eval Eval) bool {
+	return len(eval.Sentencias.Citas) > 0 &&
+		esperaElComandoDeCita(eval, func(comando ComandoEsperado) bool { return comando.Verbo == verboCotejar })
+}
+
+// esDeUnaNoCubierta dice si la eval es la de una sentencia que kitlegal no
+// cubre: no espera ningún comando, y sí una dirección y ninguna cita.
+func esDeUnaNoCubierta(eval Eval) bool {
+	return len(eval.Comandos) == 0 && len(eval.Sentencias.Direcciones) > 0 && eval.Sentencias.NingunaCita
+}
+
+// esConOtroDocumento dice si la eval es la del documento que no es el pedido:
+// espera la línea y un ROJ que no se cita, con cita cotejar y cita preparar
+// con ese mismo ROJ.
+func esConOtroDocumento(eval Eval) bool {
+	return eval.Sentencias.NoComprobada && slices.ContainsFunc(eval.Sentencias.SinCitaDelROJ, func(roj string) bool {
+		conEseROJ := func(verbo string) func(ComandoEsperado) bool {
+			return func(comando ComandoEsperado) bool { return comando.Verbo == verbo && comando.ROJ == roj }
+		}
+
+		return esperaElComandoDeCita(eval, conEseROJ(verboCotejar)) && esperaElComandoDeCita(eval, conEseROJ(verboPreparar))
+	})
+}
+
+// esperaLaCasilla dice si la eval espera en la respuesta la casilla con ese
+// nombre.
+func esperaLaCasilla(eval Eval, nombre string) bool {
+	return slices.ContainsFunc(eval.Sentencias.Casillas, func(casilla CasillaEsperada) bool {
+		return casilla.Nombre == nombre
+	})
+}
+
+// esperaElComandoDeCita dice si la eval espera algún comando del applet cita
+// que cumple la condición.
+func esperaElComandoDeCita(eval Eval, condicion func(ComandoEsperado) bool) bool {
+	return slices.ContainsFunc(eval.Comandos, func(comando ComandoEsperado) bool {
+		return comando.Applet == appletDeLaCita && condicion(comando)
+	})
+}
+
+// posicionesDeLasQue son las posiciones de las evals del conjunto que cumplen
+// la condición, en su orden.
+func (c *conjuntoAComprobar) posicionesDeLasQue(condicion func(Eval) bool) []int {
+	var posiciones []int
+
+	for posicion, eval := range c.evals {
+		if condicion(eval) {
+			posiciones = append(posiciones, posicion)
+		}
+	}
+
+	return posiciones
 }
 
 // deComunidadSinConfiguracion dice si la eval espera el territorio de un

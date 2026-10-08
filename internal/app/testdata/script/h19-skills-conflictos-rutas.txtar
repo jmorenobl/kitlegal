@@ -126,13 +126,13 @@ cmp stdout $WORK/antes.txt
 # enlace .claude.
 cd $WORK/claude-fichero
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 cmp .claude $WORK/claude-fichero-original
 ! grep '"hosts"' .agents/skills/kitlegal.json
 
 cd $WORK/claude-enlace
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 arbol real-claude
 ! stdout .
 exec readlink .claude
@@ -212,7 +212,7 @@ stdout '"data":\{"clase":"conflicto","mensaje":"skills list: manifiesto ilegible
 # legible: la instalación termina bien.
 cd $WORK/legible
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 
 -- agents-fichero/.agents --
 No soy un directorio.

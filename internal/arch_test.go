@@ -25,7 +25,9 @@
 //
 // Desde H19 comprueba además, sobre el mismo grafo, una garantía que no es una
 // regla del contrato sino de un hito, y que sí es de importación: lo que
-// instala las skills y da el aviso no alcanza la red (H19 research.md D32). Y
+// instala las skills y da el aviso no alcanza la red (H19 research.md D32), ni
+// tampoco, desde H23, lo que prepara y coteja la cita de una sentencia (H23
+// FR-002, FR-084; research.md D27 de H23). Y
 // desde H7, una cuarta regla de importación, R6: el adaptador del grafo del
 // mundo no alcanza las fuentes ni la presentación (H7 FR-092, research.md D30).
 // Y desde H21, una quinta, R7: el SDK de MCP solo lo importa el adaptador del
@@ -140,8 +142,8 @@ func TestArquitectura(t *testing.T) {
 		})
 	})
 
-	t.Run("sin red · instalacion, disco, el paquete raíz y los ficheros del applet skills y del aviso no alcanzan net, "+
-		"net/http ni internal/httpx", func(t *testing.T) {
+	t.Run("sin red · instalacion, disco, cita, ids, el paquete raíz y los ficheros de los applets skills y cita y del aviso "+
+		"no alcanzan net, net/http ni internal/httpx", func(t *testing.T) {
 		t.Parallel()
 
 		compruebaSinRed(t, grafo)
@@ -638,6 +640,11 @@ func compruebaAdaptadorDelGrafo(t *testing.T, g grafo) {
 // FR-072, FR-076, SC-022), que R2 no da: R2 reserva net/http a internal/httpx,
 // pero no prohíbe net a nadie.
 //
+// Desde H23 es también la del applet cita, que no consulta el CENDOJ de
+// ninguna forma: sus dos dominios —la cita y los identificadores de una
+// sentencia— son orígenes, y su fichero de internal/app, uno de los vigilados
+// (H23 FR-002, FR-084, SC-005; research.md D27 de H23).
+//
 // Lo que no ve es una llamada de esos ficheros a otro fichero de internal/app,
 // paquete que sí importa internal/httpx para componer boe: un análisis de
 // importaciones no llega dentro de un paquete. Eso lo miden los guiones e2e
@@ -655,15 +662,15 @@ func compruebaSinRed(t *testing.T, g grafo) {
 	denegados := []string{"net/http", "net", g.modulo + "/internal/httpx"}
 
 	// Sin estas comprobaciones la garantía pasaría en vacío el día que uno de
-	// los tres paquetes se renombrara o se mudara, que es cuando deja de
-	// vigilar lo que dice vigilar.
+	// los paquetes se renombrara o se mudara, que es cuando deja de vigilar lo
+	// que dice vigilar.
 	require.Contains(t, g.importa, g.modulo,
 		"el grafo no contiene el paquete raíz, que lleva lo empotrado: la garantía sin red no lo vigilaría")
 
 	origenes := []string{g.modulo}
 
-	for _, raiz := range []string{g.modulo + "/internal/core/instalacion", g.modulo + "/internal/disco"} {
-		paquetes := g.paquetesBajo(raiz)
+	for _, raiz := range paquetesSinRed {
+		paquetes := g.paquetesBajo(g.modulo + "/" + raiz)
 		require.NotEmpty(t, paquetes, "el grafo no contiene %s: la garantía sin red no lo vigilaría", raiz)
 
 		origenes = append(origenes, paquetes...)
@@ -671,31 +678,42 @@ func compruebaSinRed(t *testing.T, g grafo) {
 
 	for _, origen := range origenes {
 		for _, violada := range g.alcanza(origen, denegados, nil) {
-			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El applet skills y el aviso no abren "+
-				"ninguna conexión: el dominio de la instalación, el adaptador del disco y lo empotrado no "+
-				"dependen de la red, que solo se usa a través de internal/httpx desde los adaptadores de "+
-				"fuente (H19 FR-016, FR-072, FR-076, SC-022; research.md D32).",
+			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El applet skills, el aviso y el applet cita no "+
+				"abren ninguna conexión: el dominio de la instalación, el adaptador del disco, lo empotrado, el "+
+				"dominio de la cita y los identificadores no dependen de la red, que solo se usa a través de "+
+				"internal/httpx desde los adaptadores de fuente (H19 FR-016, FR-072, FR-076, SC-022; research.md "+
+				"D32; H23 FR-002, FR-084).",
 				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
 		}
 	}
 
 	for _, fichero := range ficherosSinRed {
 		for _, violada := range violacionesDelFichero(t, g, fichero, denegados) {
-			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El fichero es del applet skills o del aviso, "+
-				"que no abren ninguna conexión: solo importa el dominio de la instalación, el adaptador del "+
-				"disco, lo empotrado y lo que no llega a la red (H19 FR-016, FR-072, FR-076, SC-022; "+
-				"research.md D32).",
+			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El fichero es del applet skills, del aviso o del "+
+				"applet cita, que no abren ninguna conexión: solo importa su dominio, el adaptador del disco, lo "+
+				"empotrado y lo que no llega a la red (H19 FR-016, FR-072, FR-076, SC-022; research.md D32; H23 "+
+				"FR-002, FR-084).",
 				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
 		}
 	}
 }
 
+// paquetesSinRed son, relativos al módulo, las raíces de los paquetes que no
+// alcanzan la red, además del paquete raíz: el dominio de la instalación y el
+// adaptador del disco, de H19, y el dominio de la cita y el de los
+// identificadores, de H23, que es todo lo que el applet cita tiene debajo
+// (research.md D27 de H23).
+var paquetesSinRed = []string{
+	"internal/core/instalacion", "internal/disco",
+	"internal/core/cita", "internal/core/ids",
+}
+
 // ficherosSinRed son, relativos a internal/, los ficheros de producción de
 // internal/app que componen el applet skills —el applet y la lectura de lo
-// empotrado— y el avisador de versión que llama el kernel. La garantía sin red
-// no puede ser del paquete, que importa internal/httpx para componer boe: es
-// de lo que importa cada uno de ellos.
-var ficherosSinRed = []string{"app/instalacion.go", "app/empotradas.go", "app/aviso.go"}
+// empotrado—, el avisador de versión que llama el kernel y, desde H23, el
+// applet cita. La garantía sin red no puede ser del paquete, que importa
+// internal/httpx para componer boe: es de lo que importa cada uno de ellos.
+var ficherosSinRed = []string{"app/instalacion.go", "app/empotradas.go", "app/aviso.go", "app/cita.go"}
 
 // violacionesDelFichero son las importaciones prohibidas del fichero: cada una
 // que prohíbe una denegación, con el fichero como cadena, y cada una que

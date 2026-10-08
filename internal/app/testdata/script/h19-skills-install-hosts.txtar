@@ -25,25 +25,28 @@ stdout '^  skills +\S'
 mkdir $WORK/proyecto/.claude
 cd $WORK/proyecto
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 
 # El destino literal, leído del enlace (FR-021).
 exec readlink .claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/jurisprudencia
+stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 
-# En .claude no hay nada más que skills/ y los dos enlaces: ninguna copia
+# En .claude no hay nada más que skills/ y los tres enlaces: ninguna copia
 # (FR-025) y ningún resto de la sonda del creador de enlaces.
 arbol .claude
-stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
+stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
 
 # El manifiesto declara cada entrada de host con su ruta, relativa a la raíz
 # del ámbito, y su modo.
 grep '"ruta": *"\.claude/skills/boe-legislacion"' .agents/skills/kitlegal.json
+grep '"ruta": *"\.claude/skills/jurisprudencia"' .agents/skills/kitlegal.json
 grep '"ruta": *"\.claude/skills/legal-core"' .agents/skills/kitlegal.json
-grep -count=2 '"modo": *"enlace"' .agents/skills/kitlegal.json
+grep -count=3 '"modo": *"enlace"' .agents/skills/kitlegal.json
 ! grep '"copia"' .agents/skills/kitlegal.json
 
 # --- El proyecto copiado a otra ruta (US1.5) ---
@@ -59,6 +62,7 @@ cd $WORK/otra/ruta/proyecto
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 cmp .claude/skills/boe-legislacion/SKILL.md $KITLEGAL_SKILLS/boe-legislacion/SKILL.md
+cmp .claude/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
 cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 exec kitlegal skills doctor --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
@@ -66,24 +70,26 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills"
 
 # --- --host claude sin .claude/ (US1.3, SC-003) ---
 #
-# Se crean .claude/ y .claude/skills/ y los dos enlaces relativos (FR-023).
+# Se crean .claude/ y .claude/skills/ y los tres enlaces relativos (FR-023).
 mkdir $WORK/sin-claude
 cd $WORK/sin-claude
 exec kitlegal skills install --host claude --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 exec readlink .claude/skills/boe-legislacion
 stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/jurisprudencia
+stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink .claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 arbol .claude
-stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
+stdout '\Ad skills\nl skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion\nl skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia\nl skills/legal-core -> \.\./\.\./\.agents/skills/legal-core\n\z'
 
 # --- Sin .claude/ y sin --host, ningún host (FR-022) ---
 mkdir $WORK/sin-host
 cd $WORK/sin-host
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 arbol .
 ! stdout '\.claude'
 

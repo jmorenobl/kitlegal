@@ -12,6 +12,71 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **`kitlegal cita preparar` y `kitlegal cita cotejar`: el applet `cita`, para las sentencias** (ADR 0036). kitlegal
+  no consulta el buscador del CENDOJ, que responde con un CAPTCHA al programa que se identifica como programa: la
+  búsqueda la hace la persona con su navegador, y el applet hace lo de alrededor. Sus dos verbos no piden nada a
+  ninguna fuente ni escriben en la caché o en el grafo del mundo —`--offline` y `--no-graph` no cambian nada—, y
+  ninguno es el verbo por omisión: `kitlegal cita` termina con `2` nombrando los dos. Su sobre lleva `fuente`
+  `kitlegal.cita`, que dice que no se ha consultado ninguna fuente.
+  - **`kitlegal cita preparar`** dice qué tiene que hacer la persona para encontrar una sentencia; no dice si
+    existe. Con una referencia —un ECLI español como argumento (`ECLI:ES:TS:2023:3144`), `--roj "STS 3144/2023"` o
+    `--resolucion 1088/2023 --fecha 2023-07-04`—, `data` lleva la `referencia` reconocida, la `direccion` del buscador
+    (`https://www.poderjudicial.es/search/indexAN.jsp`) y sus `casillas`, cada una con el `nombre` que la persona ve
+    y el `valor` que tiene que escribir: «ECLI», «Nº ROJ», o «Nº Resolución» y, dos veces, «Fecha resolución», con
+    `campo` «Desde» y «Hasta» y la fecha `dd/mm/aaaa`. Lleva además `equivalente` cuando se deduce sin consultar nada:
+    el ROJ de un ECLI del Tribunal Supremo, o el ECLI de un ROJ de siglas `STS`. Con `--texto "cláusula suelo"`, para
+    una búsqueda por materia, `data` lleva el `texto` y la `direccion` que abre el buscador con esa búsqueda hecha
+    (`https://www.poderjudicial.es/search/sentencias/<texto codificado>/1/AN`), con `casillas` vacía. Un ECLI del
+    Tribunal Constitucional, que no está en el CENDOJ, se reconoce y se declara fuera de cobertura dentro de `data`
+    —`cobertura`, con `cendoj` `no-cubierto` y su `motivo`—, sin `direccion`, y termina con `0`. La `url` del sobre es
+    la `direccion`, o `kitlegal:applet/cita` si `data` no lleva ninguna.
+  - **`kitlegal cita cotejar`** lee la ficha con la que el CENDOJ encabeza cada documento —la línea
+    `Roj: <ROJ> - <ECLI>` y, debajo, «Órgano», «Fecha», «Nº de Recurso», «Nº de Resolución», «Ponente» y «Tipo de
+    Resolución»— del texto que le llega por la entrada estándar o en `--documento`, y, si se le da la referencia que
+    se había pedido, con las tres formas de `preparar`, dice si el documento es ese. `data` lleva la `ficha`, con sus
+    ocho datos; `correspondencia`, si el ROJ y el ECLI de la ficha son de la misma resolución (`se-corresponden`,
+    `no-se-corresponden` o `no-se-deduce`); y, con una referencia, `pedida` y `es_la_pedida`. **Que el documento no
+    sea el pedido es un hallazgo, con salida `0`** (ADR 0023): `hallazgos` lleva uno de la clase
+    `documento-distinto`, que nombra cada dato que difiere, con el pedido y el del documento, y, en `cruce`, si el
+    número pedido como ROJ es el número de resolución del documento (`numero-de-resolucion`) o al revés
+    (`numero-del-roj`). Del documento no sale nada más que la ficha, y la `url` del sobre es la huella del texto
+    recibido, `kitlegal:documento/sha256:<64 hex>`. No abre ficheros: un PDF lo lee el agente, que le pasa la ficha.
+  - **Códigos.** `0`, también con un hallazgo o con una sentencia fuera de cobertura; y `2`, `argumentos`, con un
+    ECLI mal formado o de otro país, un ROJ o un número de resolución sin su forma, `--resolucion` sin `--fecha` o
+    `--fecha` sin `--resolucion`, una fecha que no es un día, más de una forma de referencia, `preparar` sin
+    referencia ni `--texto` o con las dos cosas, un `--texto` vacío, y `cotejar` sin ningún texto, con un texto sin
+    la línea `Roj:` o con una ficha a la que le falta un dato o que lleva sin su forma el ROJ, el ECLI, la fecha o el
+    número de resolución. Un argumento escrito con valor vacío (`--roj ""`) está dado, y es el error de su argumento.
+- **Las herramientas `cita_preparar` y `cita_cotejar`** en `kitlegal mcp serve`, que pasa a anunciar doce. Salen del
+  registro, como las demás, y cada llamada devuelve el sobre de su orden; sus argumentos van por su nombre (`ecli`,
+  `roj`, `resolucion`, `fecha`, `texto`, `documento`). Una llamada no tiene entrada estándar: `cita_cotejar` recibe
+  el texto en `documento`, y sin él, o con él vacío, es un error de la clase `argumentos`.
+- **Esquema publicado de los dos verbos**: `schemas/cita.json`, el que emiten `kitlegal cita preparar --describe` y
+  `kitlegal cita cotejar --describe`, que `make schema-check` compara como los demás.
+- **La skill `jurisprudencia` v0: ninguna sentencia citada de memoria.** Se activa cuando la pregunta nombra, pide,
+  cita o resume una sentencia o un auto, pregunta si existe, pide jurisprudencia sobre una materia o trae el texto o
+  el PDF de una resolución. Va empotrada en el binario con las otras dos, y `kitlegal skills install` la instala.
+  - **Una sentencia solo se cita con su documento en la conversación** —pegado o adjunto— y su ficha cotejada con
+    `cita cotejar`, con una forma fija y los datos de la ficha:
+    `STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]`. La respuesta dice que la cita sale del
+    documento aportado, y no escribe ningún ECLI que no venga de una operación o de la persona.
+  - **De la que no está delante**, la respuesta lleva una línea de forma fija,
+    `⚠ SENTENCIA NO COMPROBADA: <la referencia, como se dio>`, y debajo la consulta que prepara `cita preparar`: la
+    dirección del buscador y cada casilla con su valor. Una cita escrita como «STS 1088/2023, de 4 de julio» se
+    prepara como número de resolución con su fecha; sin fecha no se prepara, tampoco como ROJ, y se pide la fecha.
+    No dice que la sentencia existe ni que no existe: nadie lo ha comprobado.
+  - **Si el documento traído no es el pedido**, lo dice con lo que difiere y no lo cita como si lo fuera.
+  - **Ante una pregunta por materia**, da la dirección de la búsqueda por texto, y no cita ninguna sentencia de
+    memoria: sigue con las que traiga la persona.
+  - **Una sentencia del Tribunal Constitucional** la declara no cubierta, con la dirección del buscador del
+    tribunal, sin citarla.
+  - **No resume ni caracteriza una sentencia cuyo texto no está en la conversación**: con la ficha sola da la cita y
+    sus datos. Es una regla de la skill que ningún control del job decide: `jurisprudencia` no tiene juez.
+  - Pide cada operación con su herramienta, si el agente la tiene, y si no, con su orden, siempre con `--json`. Sin
+    herramienta y sin binario no cita ninguna sentencia. `SKILL.md` tiene 195 líneas y no lleva `references/`.
+
 ### Cambiado
 
 - **La web y el README explican la instalación con una sola pieza, el plugin.** https://kitlegal.es/instalar/, la
@@ -95,6 +160,48 @@ sustituyen a este fichero.
     que la prosa de `SKILL.md` no usa (`TestEvalsDelRepositorio`, subprueba `prosa-de-la-skill`), y gana una clave
     obligatoria, `salida_de_las_herramientas` —`el sobre`, `fecha_vigencia` y `norma_modificadora`—, que se busca
     también en el código en línea.
+- **`--describe` nombra las banderas propias de cada verbo, y la tabla de comandos de una skill las escribe como
+  banderas.** La `entrada` del documento de `--describe` gana la anotación `x-banderas`, con los nombres de las
+  banderas propias del verbo en su orden: la llevan los verbos que las tienen —`cita preparar`
+  (`["roj","resolucion","fecha","texto"]`), `cita cotejar` (`["roj","resolucion","fecha","documento"]`) y los tres
+  de `skills`— y ninguno más. No es del vocabulario de JSON Schema, así que un validador la ignora, y no va en el
+  esquema de entrada de ninguna herramienta. `schemas/instalacion.json` la gana en sus tres partes. Con ella, la
+  orden de cada fila de la tabla de comandos de un `SKILL.md` lleva los argumentos de posición y, detrás, cada
+  bandera propia como bandera —`kitlegal cita preparar [<ecli>] [--roj <roj>] [--resolucion <resolucion>] …`—; sin
+  ella las habría escrito como argumentos de posición. Las tablas de `boe-legislacion` y de `legal-core`, cuyos
+  verbos no tienen banderas propias, no cambian.
+- **El job de evals mide `jurisprudencia`, y `cita_sin_documento` decide.** Lo que juzga de sus respuestas tiene
+  forma o es un hecho de la sesión, y se comprueba sin modelo: `jurisprudencia` no tiene juez.
+  - **El formato común de eval gana `sentencias`** (`schemas/eval.yaml.json`): lo que la respuesta debe llevar, y lo
+    que no, de las sentencias, con al menos una de sus claves. `citas`, las parejas de `ecli` y `roj` que debe citar
+    con la forma fija; `ninguna_cita`, que no cite ninguna; `sin_cita_del_roj`, los ROJ con los que no puede citar;
+    `no_comprobada`, que lleve la línea `⚠ SENTENCIA NO COMPROBADA:`; `direcciones` y `casillas` —cada una con su
+    `nombre` y su `valor`—, que la respuesta debe llevar tal cual; y `direccion_de_busqueda`, que lleve la
+    `direccion` que devolvió en la sesión un `cita preparar` con texto. Solo la admite una eval que activa la skill
+    y que no es sin binario ni servidor, y con ella la eval puede no llevar `comandos`, `citas` ni `territorio`.
+    Cada cosa que falta o que sobra es un motivo de la sesión (`falta la cita de sentencia [<ECLI>, ROJ: <ROJ>]`,
+    `la respuesta cita una sentencia: […]`, `falta la línea ⚠ SENTENCIA NO COMPROBADA:`…). Una eval sin la clave se
+    lee y se juzga como antes.
+  - **`comandos` gana las dos formas de `cita`**: `applet` `cita` con `verbo` `preparar` —y, opcionales, `roj`, el
+    que tiene que recibir en `--roj`, y `con_texto: true`, que lleve `--texto` con un valor— y con `verbo` `cotejar`
+    —y, opcional, `roj`—. Las cumple una invocación del applet con ese verbo que consulta y termina con `0`, pedida
+    como orden o como herramienta. No necesitan ninguna respuesta grabada: el applet no consulta nada.
+  - **El umbral `cita_sin_documento:<modelo>:<modo>`**, nuevo, con `"<="` 0 y `decide: true`: las respuestas del
+    modelo que decide, en las evals que activan la skill, que llevan una cita cuyo ECLI no leyó ningún
+    `cita cotejar` de su sesión, o un ECLI —fuera de una cita y fuera de una línea que empieza por `⚠`— que no está
+    en la salida de ninguna operación de la sesión ni en la pregunta. La salida de una operación es cada sobre de
+    kitlegal que devuelve una orden o una llamada a una herramienta, terminara como terminara; una orden sin
+    `--json` no da ninguno. Lo tiene la skill con alguna eval que declara `sentencias`, junto a
+    `sin_activar:<modelo>:<modo>`, que hasta ahora solo existía con juez. Su motivo nombra cada respuesta que
+    cuenta, por su sesión y con sus ECLI, cada uno con `(cita sin documento cotejado)` o `(sin origen)`.
+  - **El trabajo `evals (jurisprudencia)`**, el tercero de la matriz del flujo `evals`, con las seis evals de
+    `evals/jurisprudencia/`: de una en una, sin objetivo de duración, sin juez y sin prueba de red. Abre 72
+    sesiones, 36 en cada modo, y su informe lleva cuatro umbrales, los cuatro decidiendo: `sin_activar` y
+    `cita_sin_documento` del modo orden, y los dos del modo herramienta. Los doce de `boe-legislacion` y el `[]` de
+    `legal-core` no cambian, ni el tope de 352 minutos, que cubre su peor caso calculado, 20 341 s.
+  - **`make ci`** valida las seis evals y las reglas de su conjunto (`TestEvalsDelRepositorio`), y
+    `TestPreguntasConElFragmento` exige que las dos que traen un documento lo lleven byte a byte: es el fragmento
+    de `evidencias/adr-0036/`, que nadie escribe a mano.
 
 ## [0.5.0] - 2026-10-04
 

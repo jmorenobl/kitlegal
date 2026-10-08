@@ -1,0 +1,2 @@
+go test fuzz v1
+string("Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144\r\nId Cendoj: 28079110012023101073\r\nÓrgano: Tribunal Supremo. Sala de lo Civil\r\nSede: Madrid\r\nSección: 1\r\nFecha: 04/07/2023\r\nNº de Recurso: 4703/2019\r\nNº de Resolución: 1088/2023\r\nProcedimiento: Recurso de casación\r\nPonente: PEDRO JOSE VELA TORRES\r\nTipo de Resolución: Sentencia\r\n")

@@ -3,7 +3,9 @@ package app
 import (
 	"errors"
 	"fmt"
+	"io"
 	"maps"
+	"os"
 	"slices"
 	"strings"
 	"unicode"
@@ -62,6 +64,10 @@ type Registro struct {
 	// almacen es el grafo del mundo al que el kernel entrega lo que observan
 	// las invocaciones, o nulo si el registro no entrega nada.
 	almacen core.GraphStore
+
+	// entrada es la entrada estándar de las órdenes, o nula si el registro no
+	// tiene ninguna.
+	entrada io.Reader
 }
 
 // Registrar añade un applet al registro después de comprobar las cinco reglas
@@ -125,12 +131,27 @@ func (r *Registro) EntregarAlGrafo(almacen core.GraphStore) {
 	r.almacen = almacen
 }
 
+// LeerDe registra la entrada estándar de las órdenes: la que el kernel da, en
+// una orden, al verbo que la lee, y a nadie más (H23 FR-020; research.md D12 de
+// H23). La registra la raíz de composición al construir el registro, que es
+// quien nombra la entrada del proceso; una nueva sustituye a la anterior y una
+// nula deja el registro sin entrada, como el valor cero. Registrarla no lee
+// nada: de ella lee solo ese verbo, cuando se ejecuta.
+//
+// No es la entrada de las llamadas de herramienta, que no tienen ninguna: en el
+// servidor MCP, la entrada del proceso es el protocolo (H23 FR-026).
+func (r *Registro) LeerDe(entrada io.Reader) {
+	r.entrada = entrada
+}
+
 // sinAvisador es una copia del registro que no da el aviso de versión: los
-// mismos applets y el mismo almacén, sin avisador. Con ella resuelve el
-// servidor MCP cada llamada a una herramienta, que es una invocación del
-// kernel: el aviso lo da el kernel una vez, al arrancar `mcp serve`, y no una
-// por llamada (H21 FR-023; research.md D3 de H21). El registro del que sale no
-// cambia.
+// mismos applets, el mismo almacén y la misma entrada, sin avisador. Con ella
+// resuelve el servidor MCP cada llamada a una herramienta, que es una
+// invocación del kernel: el aviso lo da el kernel una vez, al arrancar `mcp
+// serve`, y no una por llamada (H21 FR-023; research.md D3 de H21). La entrada
+// tampoco llega a ninguna llamada, y no porque la copia la pierda: al verbo se
+// le da la del despacho, y una llamada construye el suyo sin ella. El registro
+// del que sale no cambia.
 func (r *Registro) sinAvisador() *Registro {
 	copia := *r
 	copia.avisador = nil
@@ -205,16 +226,19 @@ func validarVerbos(applet string, verbos []Verbo) error {
 }
 
 // RegistroDeProduccion es el registro del binario que se publica: el applet boe
-// con las dependencias de la red (DependenciasDeRed), el applet graph con las
-// del sistema (DependenciasDelGrafoDelSistema), el applet mcp con las del
+// con las dependencias de la red (DependenciasDeRed), el applet cita, que no
+// tiene ninguna (H23 FR-001), el applet graph con las del sistema
+// (DependenciasDelGrafoDelSistema), el applet mcp con las del
 // sistema (DependenciasDeMCPDelSistema), el applet skills con las del sistema
 // (DependenciasDeSkillsDelSistema) y el applet territorio con los ficheros que
-// viajan en el binario (FuentesEmbebidas); y, como almacén al que el kernel
+// viajan en el binario (FuentesEmbebidas); como almacén al que el kernel
 // entrega lo que observa cada invocación, el grafo del mundo en world.db, junto
 // a la caché y con su misma regla de ubicación (graph.Nuevo sin opciones;
-// FR-001, FR-030). Los applets de ejemplo no se registran nunca aquí, sino en
-// el binario que compila el test e2e, que usa exactamente este mismo mecanismo
-// (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
+// FR-001, FR-030); y, como entrada de las órdenes, la entrada estándar del
+// proceso, que el kernel da al verbo que la lee y a nadie más (H23 FR-020;
+// research.md D12 de H23). Los applets de ejemplo no se registran nunca aquí,
+// sino en el binario que compila el test e2e, que usa exactamente este mismo
+// mecanismo (FR-001, FR-009, contracts/registro-y-describe.md §3 de H1).
 //
 // Esta función es la raíz de composición del registro distribuido, y devuelve
 // el error del registro en lugar de ocultarlo: un registro inválido es un
@@ -223,7 +247,8 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // inesperado antes de atender ninguna invocación, nunca en un código de salida
 // de usuario ni en un pánico (FR-008; research.md D16 de H4). Construirlo no pide
 // nada ni abre nada: tampoco world.db, cuya ruta se resuelve al leer o al
-// entregar, ni la entrada estándar, de la que mcp solo lee cuando sirve.
+// entregar, ni la entrada estándar, de la que mcp solo lee cuando sirve y cita
+// cotejar, cuando se ejecuta sin su documento en un argumento.
 //
 // Recibe la versión del binario que le pasa Arrancar —la cadena vacía quien no
 // tiene ninguna, que no tiene forma SemVer (FR-073)—, y la firma es la de
@@ -246,6 +271,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 
 	applets := []Applet{
 		AppletBoe(DependenciasDeRed()),
+		AppletCita(),
 		AppletGrafo(DependenciasDelGrafoDelSistema()),
 		AppletMCP(DependenciasDeMCPDelSistema(version)),
 		AppletSkills(skills),
@@ -260,6 +286,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 
 	registro.Avisar(AvisoDeVersion(skills))
 	registro.EntregarAlGrafo(graph.Nuevo())
+	registro.LeerDe(os.Stdin)
 
 	return &registro, nil
 }

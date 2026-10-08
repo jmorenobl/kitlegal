@@ -283,9 +283,11 @@ type Informe struct {
 	Tasas []TasaDelInforme `json:"tasas"`
 
 	// Umbrales son los del contrato del ADR 0029, en el orden de
-	// umbralesDelInforme: nil, [] en informe.json, si la skill no tiene juez ni
-	// objetivo de duración (contrato informe-del-job §1 de H7.3; FR-001, FR-006;
-	// contracts/informe-del-job.md §2 de H24; research D13 de H24).
+	// umbralesDelInforme: nil, [] en informe.json, si la skill no tiene juez, ni
+	// ninguna eval que declare sentencias, ni objetivo de duración (contrato
+	// informe-del-job §1 de H7.3; FR-001, FR-006; contracts/informe-del-job.md §2
+	// de H24; research D13 de H24; contracts/evals-jurisprudencia.md §4 de H23;
+	// research D20 de H23).
 	Umbrales []Umbral `json:"umbrales"`
 
 	// Juez es lo que el juez con modelo de la skill deja a la vista de quien lee
@@ -415,12 +417,58 @@ type RespuestaSinJuzgar struct {
 	Motivo string `json:"motivo"`
 }
 
+// respuestasMedidas son las respuestas del modelo que decide de una ejecución
+// con lo que el informe mide de ellas en sus umbrales
+// (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23; FR-060 a
+// FR-063 de H23): nil si la skill no tiene umbrales de sus respuestas. Los tiene
+// si tiene juez o si alguna de sus evals declara sentencias, sin ningún caso
+// por skill: lo dicen su carpeta juez y sus evals.
+type respuestasMedidas struct {
+	// modelo es el que decide: el de las respuestas.
+	modelo string
+
+	// grupos son los de respuestasQueSeJuzgan: uno por modo del plan, el del
+	// modo orden delante, y detrás el de las evals sin binario ni servidor, que
+	// no es de ningún modo. Las de un modo son el total de todos los umbrales de
+	// ese modo.
+	grupos []grupoJuzgado
+
+	// delJuez es lo que el juez de la skill deja de ellas, nil si no lo tiene.
+	// Sus grupos son esos mismos, con el juicio de cada respuesta.
+	delJuez *juicioDelJuez
+
+	// conSentencias dice si alguna eval de la skill declara sentencias: con
+	// ello, cada respuesta de un modo lleva los ECLI por los que cuenta en
+	// cita_sin_documento, y el umbral se publica.
+	conSentencias bool
+}
+
+// juez es lo que el juez de la skill deja de las respuestas: nil si la skill no
+// tiene umbrales de sus respuestas o no tiene juez.
+func (r *respuestasMedidas) juez() *juicioDelJuez {
+	if r == nil {
+		return nil
+	}
+
+	return r.delJuez
+}
+
+// deLosModos son los grupos de las respuestas de los modos del plan, en su
+// orden; ninguno si la skill no tiene umbrales de sus respuestas.
+func (r *respuestasMedidas) deLosModos() []grupoJuzgado {
+	if r == nil {
+		return nil
+	}
+
+	return gruposDeLosModos(r.grupos)
+}
+
 // juicioDelJuez es lo que el juez con modelo de la skill deja de una ejecución
 // (contracts/informe-del-job.md §1 de H24; data-model §3 y §5 de H24): las
 // respuestas del modelo que decide que se juzgan, por grupos, cada una con su
-// juicio, y con ellas lo que miden los umbrales de las respuestas
-// (umbralesDelInforme). Una skill sin juez no tiene ninguno: ni umbrales de sus
-// respuestas ni votos (research D13 de H24; FR-037).
+// juicio, y con ellas lo que miden los umbrales de sus clases
+// (umbralesDelInforme). Una skill sin juez no tiene ninguno: ni umbrales de
+// clases ni votos (research D13 de H24; FR-037).
 type juicioDelJuez struct {
 	// modelo es el que decide: el de las respuestas que se juzgan.
 	modelo string
@@ -436,7 +484,7 @@ type juicioDelJuez struct {
 	grupos []grupoJuzgado
 }
 
-// grupoJuzgado son las respuestas del modelo que decide que se juzgan juntas
+// grupoJuzgado son las respuestas del modelo que decide que se miden juntas
 // (contracts/informe-del-job.md §1 de H24): las de un modo del plan o, sin
 // modo, las de las evals sin binario ni servidor. Las de un modo son las
 // respuestas medidas del modelo en ese modo, el total de sus umbrales
@@ -454,8 +502,8 @@ type grupoJuzgado struct {
 	segundos int
 }
 
-// respuestaDelJuez es una respuesta del modelo que decide con lo que el juez
-// dejó de ella.
+// respuestaDelJuez es una respuesta del modelo que decide con lo que se mide
+// de ella: lo que dice su sesión y, si la skill tiene juez, lo que él dejó.
 type respuestaDelJuez struct {
 	// posicion es la de su sesión entre las de la ejecución, que van en orden
 	// de nombre, y sesion, ese nombre.
@@ -465,6 +513,11 @@ type respuestaDelJuez struct {
 	// activada dice si su sesión activó la skill.
 	activada bool
 
+	// sinDocumento son los ECLI por los que cuenta en cita_sin_documento
+	// (CitaSinDocumento): ninguno si no cuenta, o si ninguna eval de la skill
+	// declara sentencias y no se mide.
+	sinDocumento []ECLISinDocumento
+
 	// juicio es el del juez: el de la regla de los votos.
 	juicio JuicioDeRespuesta
 }
@@ -472,9 +525,16 @@ type respuestaDelJuez struct {
 // deLosModos son los grupos de las respuestas de los modos del plan, en su
 // orden: todos menos el de las evals sin binario ni servidor.
 func (j *juicioDelJuez) deLosModos() []grupoJuzgado {
-	deLosModos := make([]grupoJuzgado, 0, len(j.grupos))
+	return gruposDeLosModos(j.grupos)
+}
 
-	for _, grupo := range j.grupos {
+// gruposDeLosModos son, de los grupos de respuestasQueSeJuzgan, los de los
+// modos del plan, en su orden: todos menos el de las evals sin binario ni
+// servidor, que no es de ninguno.
+func gruposDeLosModos(grupos []grupoJuzgado) []grupoJuzgado {
+	deLosModos := make([]grupoJuzgado, 0, len(grupos))
+
+	for _, grupo := range grupos {
 		if grupo.modo != "" {
 			deLosModos = append(deLosModos, grupo)
 		}
@@ -555,6 +615,21 @@ func (g grupoJuzgado) sinActivar() int {
 	}
 
 	return sinActivar
+}
+
+// sinDocumento son las respuestas del grupo que cuentan en cita_sin_documento,
+// en orden de sesión: las que llevan una cita sin documento cotejado o un ECLI
+// sin origen (CitaSinDocumento).
+func (g grupoJuzgado) sinDocumento() []respuestaDelJuez {
+	var cuentan []respuestaDelJuez
+
+	for _, respuesta := range g.respuestas {
+		if len(respuesta.sinDocumento) > 0 {
+			cuentan = append(cuentan, respuesta)
+		}
+	}
+
+	return cuentan
 }
 
 // marcadasEn son las respuestas del grupo que el juez dejó marcadas en la clase
@@ -642,18 +717,21 @@ type RedDelInforme struct {
 //     modos de e.Modos: cada serie lleva su tasa, y una serie que decide pasa si
 //     llegan al umbral (data-model §10.4; ADR 0016) y ninguna quedó sin medir,
 //     contando como sin medir las de e.SinAbrir (FR-042 y FR-044 de H7.3); con
-//     una skill que tiene juez, reúne además, del modelo que decide y por modo,
-//     las respuestas medidas —terminadas— de las series de ese modo que pide el
-//     plan cuya eval activa la skill (respuestasQueSeJuzgan;
-//     contracts/informe-del-job.md §1 de H7.4; research D13 de H24), sin que eso
-//     cambie el juicio de ninguna sesión: una sin terminar sigue sin pasar en su
-//     serie;
-//  4. con ellas, compone los umbrales (umbralesDelInforme): si la skill tiene
-//     juez, por cada modo, el de las respuestas sin la skill activada del modelo
-//     que decide y los del juez, y los de la duración de cada modo si hay
-//     objetivo (contrato informe-del-job §1 de H7.3;
-//     contracts/informe-del-job.md §2 de H7.4 y de H24;
-//     contracts/evals-en-dos-modos.md §5.1 de H21);
+//     una skill que tiene umbrales de sus respuestas —la que tiene juez o alguna
+//     eval que declara sentencias—, reúne además, del modelo que decide y por
+//     modo, las respuestas medidas —terminadas— de las series de ese modo que
+//     pide el plan cuya eval activa la skill (medirLasRespuestas;
+//     contracts/informe-del-job.md §1 de H7.4; research D13 de H24; research
+//     D20 de H23), sin que eso cambie el juicio de ninguna sesión: una sin
+//     terminar sigue sin pasar en su serie;
+//  4. con ellas, compone los umbrales (umbralesDelInforme): por cada modo, el
+//     de las respuestas sin la skill activada del modelo que decide, los del
+//     juez, si la skill lo tiene, y el de las que llevan una cita sin documento
+//     cotejado o un ECLI sin origen, si alguna eval declara sentencias; y los
+//     de la duración de cada modo si hay objetivo (contrato informe-del-job §1
+//     de H7.3; contracts/informe-del-job.md §2 de H7.4 y de H24;
+//     contracts/evals-en-dos-modos.md §5.1 de H21;
+//     contracts/evals-jurisprudencia.md §4 de H23);
 //  5. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
@@ -682,7 +760,16 @@ type RedDelInforme struct {
 // D14; FR-034, FR-062, FR-070), el informe no lleva nada de la lista de
 // expresiones prohibidas de la skill: ni el recuento por modelo, ni las de cada
 // sesión, ni sus umbrales, ni su sección ni su columna de informe.md. Los
-// umbrales de las respuestas dependen de que la skill tenga juez.
+// umbrales de las clases dependen de que la skill tenga juez.
+//
+// Desde H23 (contracts/evals-jurisprudencia.md §4 de H23; research D20 y D21;
+// FR-060 a FR-063), una skill sin juez con alguna eval que declara sentencias
+// tiene también umbrales de sus respuestas: por cada modo, el de las que no
+// activaron la skill y el de las que llevan una cita sin documento cotejado o
+// un ECLI sin origen (CitaSinDocumento), que es un hecho de la sesión y se
+// comprueba sin modelo. Los dos deciden con 0, y el motivo del segundo nombra
+// cada sesión que cuenta, con sus ECLI y la condición de cada uno. Una skill
+// sin juez y sin sentencias sigue sin ninguno.
 //
 // Con una skill que tiene juez (contracts/informe-del-job.md §1, §2 y §4 de
 // H24; research D7 de H24; FR-007, FR-012 a FR-014, FR-030 a FR-035), entre el
@@ -765,7 +852,8 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 	}
 
 	series := repartirEnSeries(e, conjunto.Evals, sesiones)
-	informe := componerInforme(e, string(sinPython), conjunto, sesiones, series, juez.juzgar(e, sesiones, series))
+	respuestas := medirLasRespuestas(e, conjunto.Evals, sesiones, series, juez)
+	informe := componerInforme(e, string(sinPython), conjunto, sesiones, series, respuestas)
 
 	return e.escribir(informe, sesiones)
 }
@@ -1169,22 +1257,81 @@ func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
 	return &juezDelInforme{votacion: votacion, medida: medida, concurrencia: e.ConcurrenciaDelJuez, ahora: ahora}, nil
 }
 
-// juzgar juzga con el juez las respuestas de la ejecución que se juzgan
-// (respuestasQueSeJuzgan), después del juicio sin modelo de cada sesión
+// medirLasRespuestas reúne lo que el informe mide de las respuestas del modelo
+// que decide (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23;
+// FR-060 a FR-063 de H23), después del juicio sin modelo de cada sesión: nil si
+// la skill no tiene juez ni ninguna eval que declare sentencias, que es no
+// tener umbrales de sus respuestas, y entonces no se mide nada. Ningún nombre
+// de skill decide: lo dicen su carpeta juez y sus evals bien formadas.
+//
+// Los grupos son los de respuestasQueSeJuzgan, los mismos con juez y sin él.
+// Con sentencias, cada respuesta de un modo lleva los ECLI por los que cuenta
+// en cita_sin_documento (medirLasCitasSinDocumento); con juez, cada respuesta
+// lleva además su juicio (juzgar). Lo uno no cambia lo otro, y ninguno de los
+// dos, el juicio de una sesión ni la tasa de una serie.
+func medirLasRespuestas(
+	e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada, juez *juezDelInforme,
+) *respuestasMedidas {
+	conSentencias := slices.ContainsFunc(evals, func(eval Eval) bool { return eval.Sentencias.declaradas() })
+	if juez == nil && !conSentencias {
+		return nil
+	}
+
+	respuestas := &respuestasMedidas{
+		modelo:        e.ModeloQueDecide,
+		grupos:        respuestasQueSeJuzgan(e, sesiones, series),
+		conSentencias: conSentencias,
+	}
+
+	if conSentencias {
+		respuestas.medirLasCitasSinDocumento(sesiones)
+	}
+
+	respuestas.delJuez = juez.juzgar(e, sesiones, respuestas.grupos)
+
+	return respuestas
+}
+
+// medirLasCitasSinDocumento deja en cada respuesta de los grupos de los modos
+// los ECLI por los que cuenta en cita_sin_documento (CitaSinDocumento;
+// contracts/evals-jurisprudencia.md §4 de H23; FR-060, FR-061 de H23), con la
+// pregunta de su sesión y lo que su sesión leyó. La sesión de una serie que
+// pide el plan pregunta lo que pregunta su eval: su pregunta.txt es esa
+// pregunta seguida de un salto de línea. Las respuestas de las evals sin
+// binario ni servidor no cuentan en ningún umbral, y no se miden.
+func (r *respuestasMedidas) medirLasCitasSinDocumento(sesiones []sesionJuzgada) {
+	for deGrupo := range r.grupos {
+		grupo := &r.grupos[deGrupo]
+		if grupo.modo == "" {
+			continue
+		}
+
+		for deRespuesta := range grupo.respuestas {
+			respuesta := &grupo.respuestas[deRespuesta]
+			juzgada := sesiones[respuesta.posicion]
+
+			respuesta.sinDocumento = CitaSinDocumento(strings.TrimSuffix(juzgada.pregunta, "\n"), juzgada.sesion)
+		}
+	}
+}
+
+// juzgar juzga con el juez las respuestas de los grupos de la ejecución, los
+// de respuestasQueSeJuzgan, después del juicio sin modelo de cada sesión
 // (contracts/informe-del-job.md §1 de H24; research D6 y D7 de H24; FR-012,
-// FR-013): nil si la skill no tiene juez. Los votos van por grupos y en su
-// orden —el modo orden, el modo herramienta y las evals sin binario ni
-// servidor—, y dentro de cada uno, como mucho tantas respuestas a la vez como
-// diga la concurrencia, con los votos de una misma respuesta uno detrás de otro
-// (juzgarTodas). Cada respuesta se juzga con la pregunta de su eval, su
-// respuesta y los textos de sus herramientas, y con nada más de su sesión ni de
-// su juicio sin modelo, que los votos no cambian (FR-002, FR-014).
+// FR-013): nil si la skill no tiene juez. Se queda con los grupos, y deja en
+// ellos el juicio de cada respuesta y los segundos de sus votos. Los votos van
+// por grupos y en su orden —el modo orden, el modo herramienta y las evals sin
+// binario ni servidor—, y dentro de cada uno, como mucho tantas respuestas a la
+// vez como diga la concurrencia, con los votos de una misma respuesta uno
+// detrás de otro (juzgarTodas). Cada respuesta se juzga con la pregunta de su
+// eval, su respuesta y los textos de sus herramientas, y con nada más de su
+// sesión ni de su juicio sin modelo, que los votos no cambian (FR-002, FR-014).
 //
 // El reloj de un grupo va de que empieza su primer voto a que termina el
 // último: se lee antes de pedir ninguno y cuando todos han terminado, y sus
 // segundos se redondean hacia arriba, como los de una tanda de sesiones. Un
 // grupo sin respuestas no pide ningún voto ni mira el reloj.
-func (j *juezDelInforme) juzgar(e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada) *juicioDelJuez {
+func (j *juezDelInforme) juzgar(e InformeAEscribir, sesiones []sesionJuzgada, grupos []grupoJuzgado) *juicioDelJuez {
 	if j == nil {
 		return nil
 	}
@@ -1193,7 +1340,7 @@ func (j *juezDelInforme) juzgar(e InformeAEscribir, sesiones []sesionJuzgada, se
 		modelo: e.ModeloQueDecide,
 		clases: j.votacion.clases,
 		medida: j.medida,
-		grupos: respuestasQueSeJuzgan(e, sesiones, series),
+		grupos: grupos,
 	}
 
 	for posicion := range delJuez.grupos {
@@ -1236,11 +1383,12 @@ func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
 }
 
 // componerInforme reúne en el informe lo recibido, lo leído, los resultados de
-// las sesiones, sus series y el juicio del juez, que es nil si la skill no lo
-// tiene, y decide sus motivos y su veredicto.
+// las sesiones, sus series y lo que se mide de las respuestas del modelo que
+// decide, que es nil si la skill no tiene umbrales de sus respuestas, y decide
+// sus motivos y su veredicto.
 func componerInforme(
 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
-	delJuez *juicioDelJuez,
+	respuestas *respuestasMedidas,
 ) Informe {
 	informe := cabeceraDelInforme(e, sinPython)
 
@@ -1257,8 +1405,8 @@ func componerInforme(
 		}
 	}
 
-	informe.Umbrales = umbralesDelInforme(e, delJuez)
-	informe.Juez = delJuez.informado(e.ModeloDelJuez, e.VersionDelJuez)
+	informe.Umbrales = umbralesDelInforme(e, respuestas)
+	informe.Juez = respuestas.juez().informado(e.ModeloDelJuez, e.VersionDelJuez)
 
 	for _, juzgada := range sesiones {
 		resultado := juzgada.resultado
@@ -1285,7 +1433,7 @@ func componerInforme(
 	}
 
 	informe.SesionesSinMedir = sesionesSinMedir(informe.Evals, e.SinAbrir)
-	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series, delJuez)
+	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series, respuestas)
 	informe.Veredicto = veredictoDelInforme(informe)
 
 	return informe
@@ -1396,6 +1544,10 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 // modo, con las de las series de las evals sin binario ni servidor, que el plan
 // pide sin modo: se juzgan y no cuentan en ningún umbral. Dentro de cada grupo
 // van en orden de sesión, sin juicio todavía.
+//
+// Desde H23 (contracts/evals-jurisprudencia.md §4 de H23; research D20), son
+// también, sin juez, las de una skill con alguna eval que declara sentencias,
+// todavía sin los ECLI por los que cuentan (medirLasRespuestas).
 func respuestasQueSeJuzgan(e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada) []grupoJuzgado {
 	modos := e.plan(nil).modos()
 
@@ -1491,9 +1643,12 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // umbral absorbe (ADR 0016); y una serie sin medir ni pasa ni falla (FR-042 de
 // H7.3). Los de una serie nombran su modelo, y los de un umbral, su nombre: con
 // ellos nombran su modo (contracts/evals-en-dos-modos.md §5.2 de H21; FR-044).
+// El de un umbral de las respuestas nombra además las que cuentan en él
+// (motivosDeLosUmbrales): respuestas es lo que se mide de ellas, nil si la
+// skill no tiene esos umbrales.
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
-	delJuez *juicioDelJuez,
+	respuestas *respuestasMedidas,
 ) []string {
 	var motivos []string
 
@@ -1521,13 +1676,13 @@ func motivosDelInforme(
 		motivos = append(motivos, llegada.Sesion+motivoDeLlegadaALaRed+llegada.Orden+" → "+llegada.Destino)
 	}
 
-	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales, delJuez)...)
+	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales, respuestas)...)
 
 	if len(informe.SesionesSinMedir) > 0 {
 		motivos = append(motivos, motivoDeLasSesionesSinMedir(informe.SesionesSinMedir))
 	}
 
-	if sinJuzgar := delJuez.sinJuzgar(); len(sinJuzgar) > 0 {
+	if sinJuzgar := respuestas.juez().sinJuzgar(); len(sinJuzgar) > 0 {
 		motivos = append(motivos, motivoDeLasRespuestasSinJuzgar(sinJuzgar))
 	}
 

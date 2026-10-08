@@ -531,6 +531,60 @@ func TestUmbralQueSoloSePublica(t *testing.T) {
 	}, filasDeUmbrales(umbrales))
 }
 
+// TestUmbralesConJuezYConSentencias fija los umbrales de las respuestas de una
+// skill que tiene juez y alguna eval que declara sentencias
+// (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23), con
+// respuestas escritas aquí: ninguna skill del repositorio tiene hoy las dos
+// cosas. Por cada modo, y en este orden, el de las respuestas sin activar, el
+// de cada clase del juez y el de las que llevan una cita sin documento cotejado
+// o un ECLI sin origen, los tres sobre las mismas respuestas; las de las evals
+// sin binario ni servidor no cuentan en ninguno; y el motivo de cada uno que
+// decide y no se cumple nombra, si las tiene, las respuestas que cuentan en él.
+func TestUmbralesConJuezYConSentencias(t *testing.T) {
+	t.Parallel()
+
+	sinMarcar := JuicioDeRespuesta{Clases: []JuicioDeClase{{Clase: "afirma_lo_no_leido"}, {Clase: "cuenta_su_proceso"}}}
+	sinOrigen := []ECLISinDocumento{{ECLI: "ECLI:ES:TS:2023:9999", Condicion: ECLISinOrigen}}
+
+	grupos := []grupoJuzgado{
+		{modo: ModoOrden, respuestas: []respuestaDelJuez{
+			{sesion: "01-a-01", activada: true, juicio: sinMarcar},
+			{sesion: "01-a-02", activada: true, sinDocumento: sinOrigen, juicio: sinMarcar},
+			{sesion: "01-a-03", juicio: sinMarcar},
+		}},
+		{modo: ModoHerramienta, respuestas: []respuestaDelJuez{
+			{sesion: "01-a-herramienta-01", activada: true, juicio: sinMarcar},
+		}},
+		{respuestas: []respuestaDelJuez{{sesion: "02-sin-binario-01", sinDocumento: sinOrigen, juicio: sinMarcar}}},
+	}
+
+	respuestas := &respuestasMedidas{
+		modelo: modeloSonnet55,
+		grupos: grupos,
+		delJuez: &juicioDelJuez{
+			modelo: modeloSonnet55,
+			clases: []ClaseDelJuez{{Nombre: "afirma_lo_no_leido", Decide: true}, {Nombre: "cuenta_su_proceso"}},
+			grupos: grupos,
+		},
+		conSentencias: true,
+	}
+
+	umbrales := respuestas.umbrales()
+
+	assert.Equal(t, slices.Concat(
+		umbralesDeUnModo(modeloSonnet55, enOrden(3, 1)),
+		[]Umbral{umbralCitaSinDocumento(modeloSonnet55, ModoOrden, 1, 3, false)},
+		umbralesDeUnModo(modeloSonnet55, enHerramienta(1, 0)),
+		[]Umbral{umbralCitaSinDocumento(modeloSonnet55, ModoHerramienta, 0, 1, true)},
+	), umbrales)
+
+	assert.Equal(t, []string{
+		"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %",
+		"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: " +
+			"01-a-02: ECLI:ES:TS:2023:9999 (sin origen)",
+	}, motivosDeLosUmbrales(umbrales, respuestas))
+}
+
 // conCambios es la ejecución dada con lo que cambie cambiar.
 func conCambios(ejecucion ejecucionConUmbrales, cambiar func(e *ejecucionConUmbrales)) ejecucionConUmbrales {
 	cambiar(&ejecucion)

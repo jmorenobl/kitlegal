@@ -1,0 +1,18 @@
+# Eval (a): se pregunta si existe una sentencia que se da por su número de resolución y su fecha. La sesión pide
+# cita preparar, y la respuesta dice que no la ha comprobado con la línea ⚠ SENTENCIA NO COMPROBADA:, da la dirección del
+# buscador del CENDOJ y las dos casillas con su valor, y no cita ninguna sentencia (FR-042, FR-050).
+pregunta: "¿existe la STS 1088/2023, de 4 de julio?"
+activa: true
+comandos:
+  - applet: cita
+    verbo: preparar
+sentencias:
+  no_comprobada: true
+  direcciones:
+    - https://www.poderjudicial.es/search/indexAN.jsp
+  casillas:
+    - nombre: Nº Resolución
+      valor: 1088/2023
+    - nombre: Fecha resolución
+      valor: 04/07/2023
+  ninguna_cita: true
