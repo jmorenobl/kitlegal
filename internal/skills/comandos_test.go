@@ -22,8 +22,9 @@ const (
 
 // plantillaDelDocumento es un documento de --describe con la forma del que emite
 // cli.Describir: $defs con DatosError y las definiciones del caso; la entrada con
-// los argumentos del verbo seguidos de las banderas globales; y la salida con el
-// sobre y data condicionado a ok. Cada verbo de formato es una parte de
+// los argumentos del verbo seguidos de las banderas globales y, detrás de
+// required, la anotación de las banderas propias si el caso la lleva; y la salida
+// con el sobre y data condicionado a ok. Cada verbo de formato es una parte de
 // describeDePrueba.
 const plantillaDelDocumento = `{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -33,7 +34,7 @@ const plantillaDelDocumento = `{
       "properties": {%s},
       "additionalProperties": false,
       "type": "object",
-      "required": %s
+      "required": %s%s
     },
     "salida": {
       "if": {"properties": {"ok": {"const": true}}},
@@ -100,6 +101,11 @@ type describeDePrueba struct {
 	// obligatorios es entrada.required.
 	obligatorios string
 
+	// propias es entrada.x-banderas, la anotación de las banderas propias del
+	// verbo; vacío, la entrada no la lleva, que es el documento de un verbo sin
+	// ellas.
+	propias string
+
 	// datos es then.properties.data, y fallo, else.properties.data.
 	datos, fallo string
 
@@ -129,7 +135,18 @@ func (d describeDePrueba) contenido() []byte {
 	return fmt.Appendf(nil, plantillaDelDocumento,
 		unirMiembros(definicionDeLosDatosDeError, d.definiciones),
 		unirMiembros(d.argumentos, d.banderas),
-		d.obligatorios, d.datos, d.fallo, d.sobre, d.titulo, d.ayuda)
+		d.obligatorios, d.anotacion(), d.datos, d.fallo, d.sobre, d.titulo, d.ayuda)
+}
+
+// anotacion es el miembro x-banderas de la entrada, con la coma que lo separa de
+// required, o nada si el documento no lo lleva.
+func (d describeDePrueba) anotacion() string {
+	if d.propias == "" {
+		return ""
+	}
+
+	return `,
+      "x-banderas": ` + d.propias
 }
 
 // unirMiembros une los miembros de un objeto JSON que no están vacíos.
@@ -246,6 +263,46 @@ func comprobarDePrueba() describeDePrueba {
 	return documento
 }
 
+// prepararDePrueba es el documento de un verbo con un argumento de posición
+// opcional y, detrás, tres banderas propias: una de cadena, una booleana y una de
+// varios valores. Es la forma de los verbos de cita.
+func prepararDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo preparar", "Prepara la consulta de una resolución.")
+	documento.argumentos = `"ecli": {"type": "string"},
+        "roj": {"type": "string"},
+        "completa": {"type": "boolean"},
+        "materias": {"items": {"type": "string"}, "type": "array"}`
+	documento.propias = `["roj", "completa", "materias"]`
+
+	return documento
+}
+
+// variarDePrueba es el documento de un verbo que declara sus banderas propias
+// delante de sus argumentos de posición, uno obligatorio y dos opcionales, el
+// último de varios valores: el orden de los campos no es el de la orden.
+func variarDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo variar", "Ejerce cada forma de argumento.")
+	documento.argumentos = `"etiqueta": {"type": "string"},
+        "forzar": {"type": "boolean"},
+        "norma": {"type": "string"},
+        "desde": {"type": "string"},
+        "bloques": {"items": {"type": "string"}, "type": "array"}`
+	documento.obligatorios = `["norma"]`
+	documento.propias = `["etiqueta", "forzar"]`
+
+	return documento
+}
+
+// diagnosticarDePrueba es el documento de un verbo sin argumentos de posición y
+// con dos banderas propias, como skills doctor.
+func diagnosticarDePrueba() describeDePrueba {
+	documento := documentoDeVerbo("ejemplo diagnosticar", "Comprueba lo instalado en el ámbito.")
+	documento.argumentos = `"global": {"type": "boolean"}, "dir": {"type": "string"}`
+	documento.propias = `["global", "dir"]`
+
+	return documento
+}
+
 // nadaDePrueba es el documento de un verbo cuyo data es una lista de objetos
 // cuya definición no declara ninguna propiedad.
 func nadaDePrueba() describeDePrueba {
@@ -282,7 +339,9 @@ func sobreEsperado() skills.Sobre {
 // D6): el applet y el verbo del título, la ayuda, los argumentos en su orden sin
 // las banderas globales —las del documento de un verbo sin argumentos, por su
 // nombre— con su obligatoriedad y si admiten varios valores, las banderas con si
-// llevan valor, las claves de data de un objeto y de una lista en el orden de las
+// llevan valor, las banderas propias que nombra la anotación de la entrada, fuera
+// de los argumentos y vayan sus propiedades detrás o delante de los de posición
+// (research.md D14 de H23), las claves de data de un objeto y de una lista en el orden de las
 // propiedades de su definición, la forma sin declarar cuando data no tiene $ref, y
 // el sobre; y cada documento que no permite describir el verbo, con el defecto
 // que lo impide.
@@ -398,6 +457,61 @@ func TestDescripcionDeVerbo(t *testing.T) {
 				Banderas: banderasEsperadas(),
 				Devuelve: skills.Devuelve{Forma: skills.FormaSinDeclarar},
 				Sobre:    sobreEsperado(),
+			},
+		},
+		{
+			// Las banderas propias son las propiedades que nombra la anotación de la
+			// entrada: no están entre los argumentos, que son los de posición, y
+			// llevan valor si su tipo no es boolean.
+			nombre:    "banderas-propias-detras-del-argumento-de-posicion",
+			documento: prepararDePrueba(),
+			globales:  globalesDePrueba(),
+			esperada: skills.DescripcionDeVerbo{
+				Applet:     "ejemplo",
+				Verbo:      "preparar",
+				Hace:       "Prepara la consulta de una resolución.",
+				Argumentos: []skills.Argumento{{Nombre: "ecli"}},
+				BanderasPropias: []skills.Bandera{
+					{Nombre: "roj", ConValor: true},
+					{Nombre: "completa"},
+					{Nombre: "materias", ConValor: true},
+				},
+				Banderas: banderasEsperadas(),
+				Devuelve: skills.Devuelve{Forma: skills.FormaSinDeclarar},
+				Sobre:    sobreEsperado(),
+			},
+		},
+		{
+			nombre:    "banderas-propias-delante-de-los-argumentos-de-posicion",
+			documento: variarDePrueba(),
+			globales:  globalesDePrueba(),
+			esperada: skills.DescripcionDeVerbo{
+				Applet: "ejemplo",
+				Verbo:  "variar",
+				Hace:   "Ejerce cada forma de argumento.",
+				Argumentos: []skills.Argumento{
+					{Nombre: "norma", Obligatorio: true},
+					{Nombre: "desde"},
+					{Nombre: "bloques", Varios: true},
+				},
+				BanderasPropias: []skills.Bandera{{Nombre: "etiqueta", ConValor: true}, {Nombre: "forzar"}},
+				Banderas:        banderasEsperadas(),
+				Devuelve:        skills.Devuelve{Forma: skills.FormaSinDeclarar},
+				Sobre:           sobreEsperado(),
+			},
+		},
+		{
+			nombre:    "solo-banderas-propias",
+			documento: diagnosticarDePrueba(),
+			globales:  globalesDePrueba(),
+			esperada: skills.DescripcionDeVerbo{
+				Applet:          "ejemplo",
+				Verbo:           "diagnosticar",
+				Hace:            "Comprueba lo instalado en el ámbito.",
+				BanderasPropias: []skills.Bandera{{Nombre: "global"}, {Nombre: "dir", ConValor: true}},
+				Banderas:        banderasEsperadas(),
+				Devuelve:        skills.Devuelve{Forma: skills.FormaSinDeclarar},
+				Sobre:           sobreEsperado(),
 			},
 		},
 		{
@@ -731,7 +845,10 @@ func describirDocumentos(t *testing.T, documentos ...describeDePrueba) []skills.
 // sintaxis de un argumento obligatorio, de uno de varios valores y de los
 // opcionales, anidados como los escribe Kong: uno solo, uno seguido de otro de
 // varios valores y los dos detrás de los obligatorios, sin que ninguno llegue al
-// nombre de la herramienta; la barra de la ayuda y de una clave escrita \|; data
+// nombre de la herramienta; las banderas propias detrás de los argumentos de
+// posición, cada una entre corchetes, con -- delante de su nombre y el de su
+// valor detrás, o sola si es booleana (research.md D14 de H23;
+// contracts/applet-cita.md §8); la barra de la ayuda y de una clave escrita \|; data
 // sin $ref y una lista de objetos sin claves; la línea del sobre, que dice que la
 // orden y la herramienta de cada fila devuelven el mismo; la misma salida en dos
 // llamadas; y cada conjunto de descripciones que no permite escribir la tabla,
@@ -800,6 +917,19 @@ func TestRenderizarTabla(t *testing.T) {
 				"sin forma declarada |\n" +
 				"| `kitlegal ejemplo comprobar [<norma> [<bloques>...]]` | `ejemplo_comprobar` | Comprueba una " +
 				"norma y sus bloques, o todo sin ellos. | sin forma declarada |\n" +
+				pieDeLaTabla,
+		},
+		{
+			nombre:     "banderas-propias",
+			applets:    []string{"ejemplo"},
+			documentos: []describeDePrueba{prepararDePrueba(), variarDePrueba(), diagnosticarDePrueba()},
+			esperada: "\n### `kitlegal ejemplo`\n\n" + columnasDeLaTabla +
+				"| `kitlegal ejemplo preparar [<ecli>] [--roj <roj>] [--completa] [--materias <materias>]` | " +
+				"`ejemplo_preparar` | Prepara la consulta de una resolución. | sin forma declarada |\n" +
+				"| `kitlegal ejemplo variar <norma> [<desde> [<bloques>...]] [--etiqueta <etiqueta>] [--forzar]` | " +
+				"`ejemplo_variar` | Ejerce cada forma de argumento. | sin forma declarada |\n" +
+				"| `kitlegal ejemplo diagnosticar [--global] [--dir <dir>]` | `ejemplo_diagnosticar` | Comprueba " +
+				"lo instalado en el ámbito. | sin forma declarada |\n" +
 				pieDeLaTabla,
 		},
 	}

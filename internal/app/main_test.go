@@ -3,8 +3,10 @@ package app
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
 	"testing"
@@ -820,4 +822,218 @@ func compruebaEntregarAlGrafoSustituye(t *testing.T) {
 	require.Equal(t, 0, res.codigo, res.errores)
 	assert.Len(t, segundo.lotes, 1, "con el nulo el registro deja de entregar")
 	assert.Nil(t, almacenDeLaInvocacion(registro, desenlace{}))
+}
+
+// textoDeLaEntrada es lo que da la entrada que se registra en estas tablas: dos
+// líneas, con caracteres de más de un byte y sin salto final, de modo que se
+// vea que al verbo le llegan los bytes tal cual.
+const textoDeLaEntrada = "primera línea\nsegunda línea, sin salto final"
+
+// entradaEspia es la entrada que se registra en estas tablas: da su texto y
+// cuenta las veces que alguien le pide algo, que es como se ve desde fuera si
+// alguien ha leído de ella.
+type entradaEspia struct {
+	texto    io.Reader
+	lecturas int
+}
+
+func (e *entradaEspia) Read(p []byte) (int, error) {
+	e.lecturas++
+
+	return e.texto.Read(p)
+}
+
+// nuevaEntradaEspia es una entrada con el texto de estas tablas, sin leer.
+func nuevaEntradaEspia() *entradaEspia {
+	return &entradaEspia{texto: strings.NewReader(textoDeLaEntrada)}
+}
+
+// lecturaDeEntrada es lo que el verbo que lee su entrada anota de cada
+// ejecución: si el kernel le dio alguna y lo que leyó de ella hasta su final.
+type lecturaDeEntrada struct {
+	conEntrada bool
+	leido      string
+}
+
+// appletDeEntrada es el applet cuyo verbo lee su entrada: declara lo mismo que
+// cualquier applet, y sus argumentos, además, lo que el kernel pide al verbo
+// que lee la entrada de su orden.
+type appletDeEntrada struct {
+	lecturas *[]lecturaDeEntrada
+}
+
+func (a appletDeEntrada) Nombre() string { return "entrada" }
+
+func (a appletDeEntrada) Descripcion() string { return "applet que lee su entrada" }
+
+func (a appletDeEntrada) Verbos() []Verbo {
+	return []Verbo{{
+		Nombre:      "leer",
+		Descripcion: "lee su entrada hasta el final y anota lo que leyó",
+		Argumentos:  func() Argumentos { return &argumentosQueLeen{lecturas: a.lecturas} },
+		Salida:      map[string]any{},
+	}}
+}
+
+// argumentosQueLeen son los argumentos del verbo, que no declara ninguno: el
+// cuaderno y la entrada van en campos no exportados, que la gramática no ve.
+type argumentosQueLeen struct {
+	lecturas *[]lecturaDeEntrada
+	entrada  io.Reader
+}
+
+func (a *argumentosQueLeen) leerDe(entrada io.Reader) { a.entrada = entrada }
+
+func (a *argumentosQueLeen) Ejecutar(
+	_ context.Context, _ schema.Contexto, _ *slog.Logger,
+) (schema.Resultado, error) {
+	lectura := lecturaDeEntrada{conEntrada: a.entrada != nil}
+
+	if a.entrada != nil {
+		leido, err := io.ReadAll(a.entrada)
+		if err != nil {
+			return schema.Resultado{}, fmt.Errorf("la entrada no se puede leer: %w", err)
+		}
+
+		lectura.leido = string(leido)
+	}
+
+	*a.lecturas = append(*a.lecturas, lectura)
+
+	return schema.Resultado{Procedencia: procedenciaDePrueba}, nil
+}
+
+var (
+	_ Applet     = appletDeEntrada{}
+	_ Argumentos = (*argumentosQueLeen)(nil)
+	_ lector     = (*argumentosQueLeen)(nil)
+)
+
+// registroDeEntrada construye el registro con el applet que lee su entrada, sin
+// ninguna entrada registrada, y devuelve además el cuaderno en el que anota.
+func registroDeEntrada(t *testing.T) (*Registro, *[]lecturaDeEntrada) {
+	t.Helper()
+
+	lecturas := &[]lecturaDeEntrada{}
+
+	var registro Registro
+
+	require.NoError(t, registro.Registrar(appletDeEntrada{lecturas: lecturas}))
+
+	return &registro, lecturas
+}
+
+// TestEntradaDeLaOrden comprueba a quién da el kernel la entrada estándar
+// (research.md D12 de H23; contracts/applet-cita.md §7 de H23): la que la raíz
+// de composición registró con LeerDe llega, en una orden, al verbo que la lee;
+// una llamada de herramienta no recibe ninguna, tampoco con una registrada,
+// porque construye su despacho sin ella; un registro sin entrada no da ninguna;
+// y la de una orden cuyo verbo no la lee no la lee nadie (H23 FR-020, FR-026,
+// FR-030).
+func TestEntradaDeLaOrden(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre    string
+		comprueba func(t *testing.T)
+	}{
+		{"una orden recibe los bytes registrados con LeerDe", compruebaEntradaDeUnaOrden},
+		{"una llamada de herramienta no recibe ninguna", compruebaLlamadaSinEntrada},
+		{"un registro sin entrada registrada no da ninguna", compruebaRegistroSinEntrada},
+		{"un verbo que no la lee no recibe nada", compruebaVerboQueNoLee},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			caso.comprueba(t)
+		})
+	}
+}
+
+// compruebaEntradaDeUnaOrden exige que, en una orden, el verbo que lee su
+// entrada reciba la que se registró con LeerDe y lea de ella los mismos bytes
+// (FR-020).
+func compruebaEntradaDeUnaOrden(t *testing.T) {
+	t.Helper()
+
+	registro, lecturas := registroDeEntrada(t)
+	registro.LeerDe(nuevaEntradaEspia())
+
+	res := invocar(t, registro, "kitlegal", "entrada", "leer")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Equal(t, []lecturaDeEntrada{{conEntrada: true, leido: textoDeLaEntrada}}, *lecturas,
+		"el verbo lee de la entrada registrada los bytes que da, ni uno más ni uno menos")
+}
+
+// compruebaLlamadaSinEntrada exige que el verbo que lee su entrada no reciba
+// ninguna cuando lo ejecuta una llamada de herramienta, con el despacho que la
+// llamada construye y aunque el registro del servidor tenga una registrada: en
+// el servidor, la entrada del proceso es el protocolo, y nadie más lee de ella
+// (FR-026, FR-030).
+func compruebaLlamadaSinEntrada(t *testing.T) {
+	t.Helper()
+
+	registro, lecturas := registroDeEntrada(t)
+	entrada := nuevaEntradaEspia()
+	registro.LeerDe(entrada)
+
+	herramientas, err := herramientasDe(registro, schema.Contexto{Timeout: timeoutDelContrato},
+		slog.New(slog.DiscardHandler), io.Discard)
+	require.NoError(t, err)
+	require.Len(t, herramientas, 1, "el registro de este caso da una sola herramienta")
+	require.Equal(t, "entrada_leer", herramientas[0].Nombre)
+
+	resultado := herramientas[0].Llamar(json.RawMessage(`{}`))
+
+	require.False(t, resultado.Fallo, string(resultado.Sobre))
+	assert.Equal(t, []lecturaDeEntrada{{}}, *lecturas,
+		"el verbo se ejecuta sin entrada: una llamada no tiene ninguna que darle")
+	assert.Zero(t, entrada.lecturas, "la entrada registrada no la lee ninguna llamada")
+}
+
+// compruebaRegistroSinEntrada exige que el verbo que lee su entrada no reciba
+// ninguna en la orden de un registro que no tiene ninguna registrada: el valor
+// cero, y el que la tuvo y recibió después una nula.
+func compruebaRegistroSinEntrada(t *testing.T) {
+	t.Helper()
+
+	registro, lecturas := registroDeEntrada(t)
+
+	res := invocar(t, registro, "kitlegal", "entrada", "leer")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Equal(t, []lecturaDeEntrada{{}}, *lecturas, "sin entrada registrada, el verbo no tiene nada que leer")
+
+	entrada := nuevaEntradaEspia()
+	registro.LeerDe(entrada)
+	registro.LeerDe(nil)
+
+	res = invocar(t, registro, "kitlegal", "entrada", "leer")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Equal(t, []lecturaDeEntrada{{}, {}}, *lecturas, "con la nula el registro deja de dar la anterior")
+	assert.Zero(t, entrada.lecturas, "la entrada que el registro ya no tiene no la lee nadie")
+}
+
+// compruebaVerboQueNoLee exige que el verbo que no lee su entrada se ejecute
+// como siempre en una orden con una entrada registrada, y que de esa entrada no
+// lea nadie: ni el verbo, que no tiene por dónde recibirla, ni el kernel.
+func compruebaVerboQueNoLee(t *testing.T) {
+	t.Helper()
+
+	_, lee := any(&argumentosDeContexto{}).(lector)
+	require.False(t, lee, "el verbo de este caso es de los que no leen su entrada")
+
+	registro, ejecuciones := registroDeContexto(t)
+	entrada := nuevaEntradaEspia()
+	registro.LeerDe(entrada)
+
+	res := invocar(t, registro, "kitlegal", "contexto", "hola")
+
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Len(t, *ejecuciones, 1, "el verbo se ejecuta igual que sin entrada registrada")
+	assert.Zero(t, entrada.lecturas, "de la entrada de una orden cuyo verbo no la lee no lee nadie")
 }

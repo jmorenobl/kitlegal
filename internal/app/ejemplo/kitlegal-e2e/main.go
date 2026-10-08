@@ -1,7 +1,7 @@
 // Command kitlegal-e2e es el binario contra el que se ejecuta el test de
 // extremo a extremo: el **kernel real** —el mismo internal/app que enlaza el
-// binario que se publica— con los applets de ejemplo y los applets boe, graph,
-// mcp, skills y territorio. Lo único que cambia entre este binario y el
+// binario que se publica— con los applets de ejemplo y los applets boe, cita,
+// graph, mcp, skills y territorio. Lo único que cambia entre este binario y el
 // distribuido es la composición: qué applets se registran, de dónde responde boe,
 // que aquí es la reproducción de sus grabaciones y nunca la red, y, si la
 // construcción lo elige, un creador de enlaces de skills que siempre falla y un
@@ -105,8 +105,11 @@ func main() {
 }
 
 // registroDeE2E construye el registro de este binario: los applets de ejemplo,
-// boe sobre la reproducción, graph con las mismas dependencias del sistema que
-// el binario distribuido, mcp con las mismas dependencias del sistema que el
+// boe sobre la reproducción, cita, que no tiene dependencias, y con él la
+// entrada estándar del proceso como entrada de las órdenes, igual que en el
+// binario distribuido (H23 FR-001, FR-020; research.md D12 de H23), graph con
+// las mismas dependencias del sistema que el binario distribuido, mcp con las
+// mismas dependencias del sistema que el
 // binario distribuido —la entrada estándar del proceso y la versión de este
 // binario (contracts/arnes-e2e.md §2 de H21)—, skills con las mismas
 // dependencias del sistema que el binario distribuido —la versión de este
@@ -148,6 +151,7 @@ func registroDeE2E(version string) (*app.Registro, error) {
 
 	applets := []app.Applet{
 		app.AppletBoe(deBoe),
+		app.AppletCita(),
 		app.AppletGrafo(delGrafo),
 		app.AppletMCP(app.DependenciasDeMCPDelSistema(version)),
 		app.AppletSkills(skills),
@@ -162,6 +166,7 @@ func registroDeE2E(version string) (*app.Registro, error) {
 
 	registro.Avisar(app.AvisoDeVersion(skills))
 	registro.EntregarAlGrafo(graph.Nuevo())
+	registro.LeerDe(os.Stdin)
 
 	return registro, nil
 }

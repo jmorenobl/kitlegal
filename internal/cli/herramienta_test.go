@@ -357,6 +357,12 @@ func probarPartesDeDescribe(t *testing.T) {
 			delete(propiedades, global)
 		}
 
+		// Ni la anotación de las banderas propias: dice cómo se escribe la orden,
+		// y una herramienta recibe un objeto (research.md D14 de H23).
+		assert.NotContains(t, leidos[0], anotacionDeLasBanderas,
+			"%s: el esquema de entrada de la herramienta no lleva la anotación", nombre)
+		delete(parteDeEntrada, anotacionDeLasBanderas)
+
 		assert.Equal(t, parteDeEntrada, sinDefiniciones(leidos[0]), "%s: la entrada", nombre)
 		assert.Equal(t, bajar(t, documento, claveDePropiedades, "salida"), sinDefiniciones(leidos[1]),
 			"%s: la salida", nombre)

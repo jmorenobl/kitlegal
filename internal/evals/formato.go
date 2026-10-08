@@ -95,16 +95,88 @@ type Eval struct {
 	// una vez por modelo, fuera de los dos modos (data-model §7 y
 	// contracts/evals-en-dos-modos.md §1 de H21; FR-046).
 	SinBinarioNiServidor bool `yaml:"sin_binario_ni_servidor"`
+
+	// Sentencias es lo que la respuesta tiene que llevar, y lo que no, de las
+	// sentencias de las que habla, cada cosa por su forma; vacío si la eval no lo
+	// declara. Solo lo admite una eval que activa la skill y que no es sin
+	// binario ni servidor, y con él puede no llevar comandos, citas ni territorio
+	// (contracts/evals-jurisprudencia.md §1 de H23; FR-052).
+	Sentencias SentenciasEsperadas `yaml:"sentencias"`
+}
+
+// SentenciasEsperadas es lo que una eval espera de la respuesta sobre las
+// sentencias de las que habla (contracts/evals-jurisprudencia.md §1 y §2 de
+// H23): cada clave que la eval escribe es una cosa que el juicio compara por su
+// forma, sin ningún modelo, y lo que no escribe queda vacío. Una eval que la
+// declara escribe al menos una, y nunca Citas y NingunaCita a la vez.
+type SentenciasEsperadas struct {
+	// Citas son las citas de sentencia que la respuesta tiene que llevar, cada
+	// una con su corchete, en el orden del fichero.
+	Citas []CitaDeSentenciaEsperada `yaml:"citas"`
+
+	// NingunaCita dice que la respuesta no puede llevar ninguna cita de
+	// sentencia, del ECLI que sea.
+	NingunaCita bool `yaml:"ninguna_cita"`
+
+	// SinCitaDelROJ son los ROJ con los que ninguna cita de la respuesta puede
+	// ir, en el orden del fichero.
+	SinCitaDelROJ []string `yaml:"sin_cita_del_roj"`
+
+	// NoComprobada dice que la respuesta tiene que llevar la línea
+	// ⚠ SENTENCIA NO COMPROBADA:.
+	NoComprobada bool `yaml:"no_comprobada"`
+
+	// Direcciones son las direcciones que la respuesta tiene que llevar, tal
+	// cual, en el orden del fichero.
+	Direcciones []string `yaml:"direcciones"`
+
+	// Casillas son las casillas del buscador cuyo nombre y cuyo valor tiene que
+	// llevar la respuesta, tal cual, en el orden del fichero.
+	Casillas []CasillaEsperada `yaml:"casillas"`
+
+	// DireccionDeBusqueda dice que la respuesta tiene que llevar la dirección
+	// que devolvió en la sesión un cita preparar con texto.
+	DireccionDeBusqueda bool `yaml:"direccion_de_busqueda"`
+}
+
+// declaradas dice si la eval declara sentencias: si escribe alguna de sus
+// claves, que es lo que su esquema exige a la que escribe la clave sentencias.
+func (s SentenciasEsperadas) declaradas() bool {
+	return len(s.Citas) > 0 || s.NingunaCita || len(s.SinCitaDelROJ) > 0 || s.NoComprobada ||
+		len(s.Direcciones) > 0 || len(s.Casillas) > 0 || s.DireccionDeBusqueda
+}
+
+// CitaDeSentenciaEsperada es una cita de sentencia que la respuesta tiene que
+// contener: la pareja exacta de ECLI y ROJ de su corchete
+// (contracts/evals-jurisprudencia.md §2 de H23).
+type CitaDeSentenciaEsperada struct {
+	// ECLI es el ECLI de la sentencia citada, español.
+	ECLI string `yaml:"ecli"`
+
+	// ROJ es el ROJ de la sentencia citada.
+	ROJ string `yaml:"roj"`
+}
+
+// CasillaEsperada es una casilla del buscador del CENDOJ que la respuesta tiene
+// que dar: su nombre y su valor, como los da data de cita preparar.
+type CasillaEsperada struct {
+	// Nombre es el nombre de la casilla en el buscador, como «Nº ROJ».
+	Nombre string `yaml:"nombre"`
+
+	// Valor es lo que hay que escribir en ella.
+	Valor string `yaml:"valor"`
 }
 
 // ComandoEsperado es un comando que la sesión tiene que ejecutar, en una de las
-// cinco formas excluyentes de data-model §6.1 de H5 y de H6 y del contrato
-// evals-y-skill §1 de H7, que decide formaDelComando: bloque (Applet, Norma y
-// Bloque, sin Verbo), consulta de norma (Applet, Verbo indice, metadatos o
-// analisis, y Norma), búsqueda (Applet, Verbo buscar y Terminos), territorio
-// (Applet, Verbo resolver y Municipio) o comprobación (Applet y Verbo check, y
-// desde H7.1 Norma opcional; contrato evals-y-skill §1 de H7.1). Lo que su forma
-// no lleva queda vacío.
+// siete formas excluyentes de data-model §6.1 de H5 y de H6, del contrato
+// evals-y-skill §1 de H7 y de contracts/evals-jurisprudencia.md §1 de H23, que
+// decide formaDelComando: bloque (Applet, Norma y Bloque, sin Verbo), consulta
+// de norma (Applet, Verbo indice, metadatos o analisis, y Norma), búsqueda
+// (Applet, Verbo buscar y Terminos), territorio (Applet, Verbo resolver y
+// Municipio), comprobación (Applet y Verbo check, y desde H7.1 Norma opcional;
+// contrato evals-y-skill §1 de H7.1) o, desde H23, preparar (Applet y Verbo
+// preparar, con ROJ y ConTexto opcionales) y cotejar (Applet y Verbo cotejar,
+// con ROJ opcional). Lo que su forma no lleva queda vacío.
 type ComandoEsperado struct {
 	// Applet es el applet que se invoca, como boe, territorio o graph.
 	Applet string `yaml:"applet"`
@@ -128,6 +200,14 @@ type ComandoEsperado struct {
 	// Municipio es el municipio que resuelve un comando de territorio, tal como
 	// lo escribe la eval.
 	Municipio string `yaml:"municipio"`
+
+	// ROJ es el ROJ que un comando de preparar o de cotejar tiene que recibir
+	// con --roj; vacío si la eval no lo exige.
+	ROJ string `yaml:"roj"`
+
+	// ConTexto dice que un comando de preparar tiene que recibir --texto con
+	// algún valor: es una búsqueda por texto, del texto que sea.
+	ConTexto bool `yaml:"con_texto"`
 }
 
 // verboResolver es el verbo de un comando de territorio, el único del applet
@@ -137,6 +217,13 @@ const verboResolver = "resolver"
 // verboCheck es el verbo de un comando de comprobación, el de graph check
 // (contrato evals-y-skill §1 de H7).
 const verboCheck = "check"
+
+// Los verbos de los dos comandos de cita, los del applet cita
+// (contracts/evals-jurisprudencia.md §1 de H23).
+const (
+	verboPreparar = "preparar"
+	verboCotejar  = "cotejar"
+)
 
 // ComandoProhibido es un comando que ninguna invocación de la sesión puede
 // ejecutar: un verbo de un applet, con cualquier argumento (contrato
@@ -163,11 +250,12 @@ type GrafoPrevio struct {
 	Comandos []ComandoEsperado `yaml:"comandos"`
 }
 
-// formaDeComando es una de las cinco formas de un comando esperado.
+// formaDeComando es una de las siete formas de un comando esperado.
 type formaDeComando int
 
-// Las cinco formas de un comando esperado (data-model §6.1 de H5 y de H6;
-// contrato evals-y-skill §1 de H7).
+// Las siete formas de un comando esperado (data-model §6.1 de H5 y de H6;
+// contrato evals-y-skill §1 de H7; contracts/evals-jurisprudencia.md §1 de
+// H23).
 const (
 	// formaConsultaDeNorma es la de una consulta de norma: el verbo con la norma.
 	formaConsultaDeNorma formaDeComando = iota
@@ -185,13 +273,23 @@ const (
 	// formaComprobacion es la de un comando de comprobación: check, con la
 	// norma que consulta o sin ella.
 	formaComprobacion
+
+	// formaPreparar es la de un comando que prepara la consulta de una
+	// sentencia: preparar, con el ROJ que recibe, con un texto o sin nada más.
+	formaPreparar
+
+	// formaCotejar es la de un comando que coteja el documento de una
+	// sentencia: cotejar, con el ROJ que recibe o sin él.
+	formaCotejar
 )
 
 // formaDelComando es la forma del comando esperado, que decide su verbo, el que
-// distingue las cinco de data-model §6.1 y del contrato evals-y-skill §1 de H7:
-// sin verbo, la forma bloque; buscar, la búsqueda; resolver, el comando de
-// territorio; check, la comprobación; y cualquier otro, la consulta de norma,
-// porque el esquema de eval solo admite en esa forma los verbos de su enumerado.
+// distingue las siete de data-model §6.1, del contrato evals-y-skill §1 de H7 y
+// de contracts/evals-jurisprudencia.md §1 de H23: sin verbo, la forma bloque;
+// buscar, la búsqueda; resolver, el comando de territorio; check, la
+// comprobación; preparar y cotejar, los dos de cita; y cualquier otro, la
+// consulta de norma, porque el esquema de eval solo admite en esa forma los
+// verbos de su enumerado.
 // Es el único sitio que decide la variante: la consumen el juicio, el texto del
 // comando y las consultas necesarias (research D21 de H6).
 func formaDelComando(comando ComandoEsperado) formaDeComando {
@@ -204,6 +302,10 @@ func formaDelComando(comando ComandoEsperado) formaDeComando {
 		return formaTerritorio
 	case verboCheck:
 		return formaComprobacion
+	case verboPreparar:
+		return formaPreparar
+	case verboCotejar:
+		return formaCotejar
 	default:
 		return formaConsultaDeNorma
 	}

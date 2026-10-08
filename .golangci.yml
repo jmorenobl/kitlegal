@@ -319,6 +319,11 @@ linters:
         # las claves comandos_ejecutados y comandos_ausentes del informe (contrato
         # del job §5, research.md D20); misspell lo lee como «commandos».
         - comandos
+        # «Tribunal Constitucional», el órgano TC cuyo ECLI se reconoce y se
+        # declara fuera de cobertura: lo nombran el comentario de ECLI.Organo, en
+        # internal/core/ids/ecli.go, y los casos de sus tests (H23 FR-014,
+        # data-model §1); misspell lo lee como «Constitutional».
+        - constitucional
         # Plural español de «control» —los controles mecánicos del hito, palabra
         # de todos los documentos del proyecto—; misspell lo lee como «controls».
         - controles

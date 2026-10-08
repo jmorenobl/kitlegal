@@ -1,7 +1,8 @@
 # Evals de skills con Claude Code (FR-070). No forma parte de make ci: las evals con modelo cuestan y no son
 # deterministas (ADR 0008, «En contra, y asumido»). Contrato: specs/006-h5-skill-boe-legislacion/contracts/job-de-evals.md;
-# la matriz de skills, specs/008-h6-territorio-skill-legal/contracts/evals-de-legal-core.md §5; la instalación con make
-# install y kitlegal en el PATH, specs/009-h19-instalar-sin-clonar/contracts/skills-e-invocacion.md §6.
+# la matriz de skills, specs/008-h6-territorio-skill-legal/contracts/evals-de-legal-core.md §5 y, con jurisprudencia,
+# specs/019-h23-skill-jurisprudencia-ninguna/contracts/evals-jurisprudencia.md §6; la instalación con make install y
+# kitlegal en el PATH, specs/009-h19-instalar-sin-clonar/contracts/skills-e-invocacion.md §6.
 #
 # Desde H24 (ADR 0037; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md), el flujo usa además un juez con modelo,
 # distinto del que decide y con su propio Claude Code, de dos maneras. El trabajo evals, con una skill que tiene juez,
@@ -142,6 +143,9 @@ jobs:
   # los de la medida y la duración de sus votos son umbrales del informe, y una respuesta sin juzgar lo deja en fallo.
   # No vota ningún caso etiquetado. Con una skill sin juez, legal-core, hace lo de antes
   # (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2 y §5; contracts/informe-del-job.md §1 a §5).
+  # Desde H23, jurisprudencia es la tercera skill de la matriz: tampoco tiene juez, y sus umbrales, cita_sin_documento y
+  # sin_activar en cada modo, se miden sin modelo
+  # (specs/019-h23-skill-jurisprudencia-ninguna/contracts/evals-jurisprudencia.md §4 y §6).
   evals:
     # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
     # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
@@ -162,14 +166,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        skill: [boe-legislacion, legal-core]
+        skill: [boe-legislacion, jurisprudencia, legal-core]
         # Cuántas sesiones abre a la vez el trabajo de cada skill y el objetivo de duración de sus sesiones, en
         # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
-        # de H7.3; research.md D12 de H7.3).
+        # de H7.3; research.md D12 de H7.3). jurisprudencia va como legal-core, de una en una y sin objetivo: no hay
+        # medida de la que sacar otra cifra, y los tres trabajos corren a la vez contra la misma suscripción
+        # (specs/019-h23-skill-jurisprudencia-ninguna/research.md D22).
         include:
           - skill: boe-legislacion
             concurrencia: 4
             objetivo_de_duracion: 900
+          - skill: jurisprudencia
+            concurrencia: 1
+            objetivo_de_duracion: 0
           - skill: legal-core
             concurrencia: 1
             objetivo_de_duracion: 0
@@ -182,7 +191,11 @@ jobs:
     # 60 s de instalar su Claude Code y 167 tandas de votos de 40 s, el tope de un voto y su margen. Las tandas son, por
     # grupo, los 6 votos que como mucho pide cada respuesta, a 4 respuestas a la vez: 81, 81 y 5, con las 54, 54 y 3
     # respuestas que juzga (FR-092 de H24; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). Cabe en las 6
-    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, no cambia.
+    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, no cambia. El de jurisprudencia,
+    # sin juez y de una en una, es de 20 341 s, 339,0 minutos, y cabe en el mismo tope, que no cambia: 73 tandas de una
+    # sesión, las 36 de sus seis evals en cada modo y la de la prueba de red, que el cálculo cuenta en el modo orden
+    # aunque su trabajo no la lleve (specs/019-h23-skill-jurisprudencia-ninguna/research.md M5). Es un cálculo, y no
+    # una medida de lo que tarda.
     timeout-minutes: 352
     permissions:
       contents: read

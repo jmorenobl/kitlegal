@@ -43,7 +43,8 @@ const (
 	textoDeListaDeObjetos  = "lista de objetos"
 	textoSinFormaDeclarada = "sin forma declarada"
 
-	// valorDeUnaBandera es lo que sigue a una bandera que lleva valor.
+	// valorDeUnaBandera es lo que sigue a una bandera global que lleva valor; el
+	// de una bandera propia de un verbo se llama como ella.
 	valorDeUnaBandera = "<valor>"
 )
 
@@ -83,9 +84,15 @@ type DescripcionDeVerbo struct {
 	// Hace es la ayuda del verbo: la descripción del documento.
 	Hace string
 
-	// Argumentos son las propiedades de la entrada, en su orden, sin las
-	// banderas globales; nil si el verbo no declara ninguno.
+	// Argumentos son los argumentos de posición: las propiedades de la entrada,
+	// en su orden, sin las banderas globales ni las propias; nil si el verbo no
+	// declara ninguno.
 	Argumentos []Argumento
+
+	// BanderasPropias son las banderas del verbo: las propiedades de la entrada
+	// que nombra su anotación x-banderas, en su orden; nil si el verbo no tiene
+	// ninguna, que es cuando la entrada no lleva la anotación.
+	BanderasPropias []Bandera
 
 	// Banderas son las banderas globales, en el orden del documento de un verbo
 	// sin argumentos.
@@ -98,7 +105,7 @@ type DescripcionDeVerbo struct {
 	Sobre Sobre
 }
 
-// Argumento es un argumento de un verbo.
+// Argumento es un argumento de posición de un verbo.
 type Argumento struct {
 	// Nombre es el de la propiedad de la entrada.
 	Nombre string
@@ -110,7 +117,7 @@ type Argumento struct {
 	Varios bool
 }
 
-// Bandera es una bandera global.
+// Bandera es una bandera: una de las globales o una de las propias de un verbo.
 type Bandera struct {
 	// Nombre es el de la propiedad de la entrada, sin los guiones con que se
 	// escribe.
@@ -167,9 +174,14 @@ type Sobre struct {
 //     espacio, y lo que hace, la descripción;
 //   - las banderas son las propiedades de la entrada del documento de las
 //     banderas globales, en su orden, y llevan valor si su tipo no es boolean;
-//   - los argumentos son las propiedades de la entrada del verbo, en su orden,
-//     salvo las que se llaman como una bandera; cada uno es obligatorio si está
-//     en el required de la entrada y admite varios valores si su tipo es array;
+//   - las banderas propias del verbo son las propiedades de su entrada que
+//     nombra la anotación x-banderas de esa entrada, en su orden, y llevan valor
+//     si su tipo no es boolean; sin la anotación, el verbo no tiene ninguna
+//     (research.md D14 de H23);
+//   - los argumentos son las demás propiedades de la entrada del verbo, en su
+//     orden, salvo las que se llaman como una bandera global; cada uno es
+//     obligatorio si está en el required de la entrada y admite varios valores
+//     si su tipo es array;
 //   - lo que devuelve sale del data de la rama then de la salida: con $ref, un
 //     objeto; con items.$ref, una lista de objetos; con las claves de la
 //     definición de $defs a la que apunta, en el orden de sus propiedades; y sin
@@ -222,8 +234,8 @@ func leerBanderas(globales []byte) ([]Bandera, error) {
 	}
 
 	banderas := make([]Bandera, 0, len(entrada.Propiedades))
-	for _, bandera := range entrada.Propiedades {
-		banderas = append(banderas, Bandera{Nombre: bandera.nombre, ConValor: bandera.esquema.Tipo != tipoBooleano})
+	for _, propiedad := range entrada.Propiedades {
+		banderas = append(banderas, propiedad.bandera())
 	}
 
 	return banderas, nil
@@ -257,38 +269,44 @@ func describirVerbo(verbo esquemaDescrito, banderas []Bandera) (DescripcionDeVer
 		return DescripcionDeVerbo{}, err
 	}
 
+	argumentos, propias := propiosDeLaEntrada(entrada, banderas)
+
 	return DescripcionDeVerbo{
-		Applet:     partes[0],
-		Verbo:      partes[1],
-		Hace:       verbo.Ayuda,
-		Argumentos: argumentosDeLaEntrada(entrada, banderas),
-		Banderas:   banderas,
-		Devuelve:   devuelve,
-		Sobre:      sobre,
+		Applet:          partes[0],
+		Verbo:           partes[1],
+		Hace:            verbo.Ayuda,
+		Argumentos:      argumentos,
+		BanderasPropias: propias,
+		Banderas:        banderas,
+		Devuelve:        devuelve,
+		Sobre:           sobre,
 	}, nil
 }
 
-// argumentosDeLaEntrada son las propiedades de la entrada de un verbo que no se
-// llaman como ninguna bandera global, en su orden.
-func argumentosDeLaEntrada(entrada *esquemaDescrito, banderas []Bandera) []Argumento {
-	var argumentos []Argumento
-
+// propiosDeLaEntrada reparte las propiedades de la entrada de un verbo que no
+// se llaman como ninguna bandera global, cada una en su orden: las que nombra la
+// anotación x-banderas de la entrada son sus banderas propias, y las demás, sus
+// argumentos de posición.
+func propiosDeLaEntrada(entrada *esquemaDescrito, globales []Bandera) (argumentos []Argumento, propias []Bandera) {
 	for _, propiedad := range entrada.Propiedades {
-		esBandera := slices.ContainsFunc(banderas, func(bandera Bandera) bool {
+		esGlobal := slices.ContainsFunc(globales, func(bandera Bandera) bool {
 			return bandera.Nombre == propiedad.nombre
 		})
-		if esBandera {
-			continue
-		}
 
-		argumentos = append(argumentos, Argumento{
-			Nombre:      propiedad.nombre,
-			Obligatorio: slices.Contains(entrada.Obligatorias, propiedad.nombre),
-			Varios:      propiedad.esquema.Tipo == tipoLista,
-		})
+		switch {
+		case esGlobal:
+		case slices.Contains(entrada.BanderasPropias, propiedad.nombre):
+			propias = append(propias, propiedad.bandera())
+		default:
+			argumentos = append(argumentos, Argumento{
+				Nombre:      propiedad.nombre,
+				Obligatorio: slices.Contains(entrada.Obligatorias, propiedad.nombre),
+				Varios:      propiedad.esquema.Tipo == tipoLista,
+			})
+		}
 	}
 
-	return argumentos
+	return argumentos, propias
 }
 
 // loQueDevuelve es la forma de data en un sobre correcto, desde su esquema, o
@@ -369,16 +387,17 @@ func definicionReferida(definiciones map[string]*esquemaDescrito, ruta, referenc
 // el data sin restringir de un verbo que no declara su salida, no declara nada
 // de eso y se lee vacío.
 type esquemaDescrito struct {
-	Titulo       string                      `json:"title"`
-	Ayuda        string                      `json:"description"`
-	Tipo         string                      `json:"type"`
-	Referencia   string                      `json:"$ref"`
-	Obligatorias []string                    `json:"required"`
-	Propiedades  propiedadesEnOrden          `json:"properties"`
-	Elementos    *esquemaDescrito            `json:"items"`
-	Entonces     *esquemaDescrito            `json:"then"`
-	SiNo         *esquemaDescrito            `json:"else"`
-	Definiciones map[string]*esquemaDescrito `json:"$defs"`
+	Titulo          string                      `json:"title"`
+	Ayuda           string                      `json:"description"`
+	Tipo            string                      `json:"type"`
+	Referencia      string                      `json:"$ref"`
+	Obligatorias    []string                    `json:"required"`
+	BanderasPropias []string                    `json:"x-banderas"`
+	Propiedades     propiedadesEnOrden          `json:"properties"`
+	Elementos       *esquemaDescrito            `json:"items"`
+	Entonces        *esquemaDescrito            `json:"then"`
+	SiNo            *esquemaDescrito            `json:"else"`
+	Definiciones    map[string]*esquemaDescrito `json:"$defs"`
 }
 
 // UnmarshalJSONFrom lee un esquema booleano como un esquema vacío y cualquier
@@ -402,6 +421,12 @@ func (e *esquemaDescrito) UnmarshalJSONFrom(decodificador *jsontext.Decoder) err
 type propiedad struct {
 	nombre  string
 	esquema esquemaDescrito
+}
+
+// bandera es la bandera que describe la propiedad: se llama como ella y lleva
+// valor si su tipo no es boolean.
+func (p propiedad) bandera() Bandera {
+	return Bandera{Nombre: p.nombre, ConValor: p.esquema.Tipo != tipoBooleano}
 }
 
 // propiedadesEnOrden son los miembros de properties en el orden del documento,
@@ -480,10 +505,12 @@ func (p propiedadesEnOrden) nombres() []string {
 //     <applet>` como título y una tabla con una fila por verbo del applet, en el
 //     orden de las descripciones; las de un applet que no se declara no se
 //     presentan;
-//   - cada fila da la sintaxis de la orden —<nombre> por cada argumento,
-//     <nombre>... si admite varios valores, y con [ delante si es opcional, con
-//     los corchetes cerrados al final, como la ayuda de Kong: [<norma>
-//     [<bloques>...]]—, la herramienta del servidor MCP que hace lo mismo,
+//   - cada fila da la sintaxis de la orden —<nombre> por cada argumento de
+//     posición, <nombre>... si admite varios valores, y con [ delante si es
+//     opcional, con los corchetes cerrados detrás del último, como la ayuda de
+//     Kong: [<norma> [<bloques>...]]; y, detrás, cada bandera propia del verbo
+//     entre corchetes, [--<nombre> <nombre>], o [--<nombre>] si no lleva valor
+//     (research.md D14 de H23)—, la herramienta del servidor MCP que hace lo mismo,
 //     `<applet>_<verbo>`, lo que hace y lo que devuelve en data; en cada celda la
 //     barra se escribe \| y un salto de línea es un espacio;
 //   - detrás de la última sección, la línea del sobre, que es el mismo por la
@@ -584,11 +611,13 @@ func filaDelVerbo(verbo DescripcionDeVerbo) string {
 }
 
 // sintaxisDeLaOrden es la orden de un verbo: kitlegal, su applet y el verbo, con
-// cada argumento en su orden (data-model §2.2; research.md D7). Un argumento
-// opcional abre un corchete que se cierra al final de la orden, así que los
-// opcionales quedan anidados como en la ayuda de Kong: `[<norma> [<bloques>...]]`.
-// Todos los argumentos propios de un verbo de una tabla son de posición, y Kong
-// no admite un obligatorio detrás de un opcional.
+// cada argumento de posición en su orden y, detrás, cada bandera propia en el
+// suyo (data-model §2.2; research.md D7; research.md D14 de H23). Un argumento
+// opcional abre un corchete que se cierra detrás del último argumento, así que
+// los opcionales quedan anidados como en la ayuda de Kong: `[<norma>
+// [<bloques>...]]`; Kong no admite un obligatorio detrás de un opcional. Una
+// bandera propia va entre sus propios corchetes, con su nombre como el de su
+// valor si lo lleva: `[--roj <roj>]`, o `[--global]`.
 func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
 	partes := []string{programaDeLasOrdenes, verbo.Applet, verbo.Verbo}
 	abiertos := 0
@@ -607,7 +636,13 @@ func sintaxisDeLaOrden(verbo DescripcionDeVerbo) string {
 		partes = append(partes, parte)
 	}
 
-	return strings.Join(partes, " ") + strings.Repeat("]", abiertos)
+	partes[len(partes)-1] += strings.Repeat("]", abiertos)
+
+	for _, bandera := range verbo.BanderasPropias {
+		partes = append(partes, "["+bandera.escrita("<"+bandera.Nombre+">")+"]")
+	}
+
+	return strings.Join(partes, " ")
 }
 
 // nombreDeLaHerramienta es el de la herramienta del servidor MCP de un verbo:
@@ -655,15 +690,20 @@ func lineaDeLasBanderas(banderas []Bandera) string {
 	escritas := make([]string, 0, len(banderas))
 
 	for _, bandera := range banderas {
-		escrita := "--" + bandera.Nombre
-		if bandera.ConValor {
-			escrita += " " + valorDeUnaBandera
-		}
-
-		escritas = append(escritas, escrita)
+		escritas = append(escritas, bandera.escrita(valorDeUnaBandera))
 	}
 
 	return "Banderas comunes: " + strings.Join(comoCodigo(escritas), ", ") + "."
+}
+
+// escrita es la bandera como se escribe en una orden: -- y su nombre y, detrás,
+// si lleva valor, el texto que lo nombra.
+func (b Bandera) escrita(valor string) string {
+	if !b.ConValor {
+		return "--" + b.Nombre
+	}
+
+	return "--" + b.Nombre + " " + valor
 }
 
 // comoCodigo escribe cada texto como código de Markdown.

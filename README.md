@@ -21,9 +21,10 @@ Web del proyecto: **[kitlegal.es](https://kitlegal.es)**.
 
 ## Qué sabe hacer tu agente con kitlegal
 
-Con las dos skills que hay hoy, `boe-legislacion` y `legal-core`, tu agente responde sobre **cualquier norma
-consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas autonómicas que el BOE
-consolida— y sitúa **cualquier municipio de España** en su territorio. Por ejemplo:
+Hay tres skills. La tercera, `jurisprudencia`, es la de las sentencias, y tiene su apartado:
+[¿Y las sentencias?](#y-las-sentencias). Con las otras dos, `boe-legislacion` y `legal-core`, tu agente responde sobre
+**cualquier norma consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas autonómicas
+que el BOE consolida— y sitúa **cualquier municipio de España** en su territorio. Por ejemplo:
 
 - «¿Qué dice el artículo 21 de la Ley 39/2015?»
 - «¿Cuál es el límite de un contrato menor en la Ley de Contratos del Sector Público?»
@@ -199,9 +200,10 @@ Si el agente no encuentra `kitlegal`, escribe en su lugar la ruta completa del p
 
 Las skills consultan con órdenes de `kitlegal`, que tu agente ejecuta en una terminal. `kitlegal mcp serve` les da
 otra vía: un servidor MCP que ofrece cada consulta como una herramienta —buscar una norma, leer su índice, uno o
-varios artículos, sus metadatos y su análisis, situar un municipio y repasar lo ya consultado—, con el mismo resultado
-que su orden: el texto con su fuente, su dirección, su fecha de consulta y su huella. Las skills usan la herramienta
-siempre que tu agente la tiene, y la orden cuando no.
+varios artículos, sus metadatos y su análisis, situar un municipio, repasar lo ya consultado, preparar la consulta de
+una sentencia y cotejar el documento que traes—, con el mismo resultado que su orden: el texto con su fuente, su
+dirección, su fecha de consulta y su huella. Las skills usan la herramienta siempre que tu agente la tiene, y la orden
+cuando no.
 
 El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
 ningún puerto. En la app de escritorio de Claude lo trae el plugin de
@@ -258,25 +260,44 @@ detectar si la fuente ha cambiado.
 
 ## ¿Y las sentencias?
 
-Hoy kitlegal no consulta jurisprudencia, y la del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores
-de justicia y las audiencias provinciales no llegará por ahora, por una razón que no es técnica. Esas sentencias se
-consultan en el buscador del **CENDOJ**, el Centro de Documentación Judicial del Consejo General del Poder Judicial, y
-sus condiciones de uso **prohíben expresamente consultarlo de forma masiva o automatizada**; además, lo protege un
-CAPTCHA. Un programa que lo recorriera, aunque fuera despacio, incumpliría esas condiciones y esquivaría una barrera
-puesta a propósito. kitlegal solo usa fuentes que permiten lo que hace con ellas, así que no lo hace.
+kitlegal **no consulta el CENDOJ**, el buscador del Centro de Documentación Judicial del Consejo General del Poder
+Judicial, que es donde están las sentencias del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de
+justicia y las audiencias provinciales. Ese buscador responde con un CAPTCHA al programa que se identifica como
+programa, y a una persona con su navegador, no. kitlegal dice quién es ante cada fuente, y un CAPTCHA no se sortea: ni
+presentándose como un navegador, ni resolviéndolo, ni entrando por otra dirección del mismo buscador. Su aviso legal,
+además, reserva la consulta al uso particular y prohíbe la descarga masiva.
 
-Lo que sí está previsto, por vías que lo permiten:
+Así que la búsqueda la haces tú, con tu navegador, y tu agente, con la skill `jurisprudencia`, hace lo de alrededor:
 
-- **Las sentencias del Tribunal Constitucional**, que se publican todas en el BOE, y las del Supremo que anulan una
-  disposición, que también se publican en él: tu agente podrá leerlas y citarlas con su ECLI igual que hoy cita un
-  artículo.
-- **Reconocer y citar bien una sentencia que tú identifiques** (por su ECLI o su ROJ) y decirte dónde consultarla,
-  sin resumir nunca un texto que el programa no ha leído.
+- **Prepara la consulta exacta.** De una sentencia que nombras —por su ECLI, por su ROJ o como se escribe en un
+  escrito, «STS 1088/2023, de 4 de julio»— te da la dirección del buscador y cada casilla con lo que hay que escribir
+  en ella; de una pregunta por materia, la dirección que abre el buscador con la búsqueda ya hecha. Descargas el
+  documento y se lo traes, pegado o adjunto.
+- **Coteja el documento que traes.** Lee la ficha con la que el CENDOJ encabeza cada documento y te dice si es la
+  sentencia que se pidió; si no lo es, qué difiere. Pasa: el número con el que se cita una sentencia no es su ROJ, y
+  buscada por ese número como ROJ sale la de otro asunto.
+- **Solo cita la sentencia cuyo documento tiene delante**, con los datos de su ficha y siempre con la misma forma:
 
-Mientras tanto, si necesitas una sentencia del Supremo o de otro tribunal, búscala en el CENDOJ o en una base de datos
-jurídica y pégasela a tu agente: con el texto delante, la analizará y la citará con el mismo rigor. Si el Consejo
-General del Poder Judicial abre una vía pública para programas o cambia sus condiciones, se revisará. La decisión, en
-[docs/ADR/0003-no-cendoj-masivo.md](docs/ADR/0003-no-cendoj-masivo.md).
+  > STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]
+
+  De la que no tiene delante no dice que existe ni que no existe, porque nadie lo ha comprobado. Lo dice así, con la
+  consulta para encontrarla debajo:
+
+  > ⚠ SENTENCIA NO COMPROBADA: STS 1088/2023, de 4 de julio
+
+Las dos operaciones, `kitlegal cita preparar` y `kitlegal cita cotejar`, corren en tu equipo y no piden nada a la red.
+La cita se apoya en el documento que aportas: que sea auténtico no lo comprueba nadie. Con la ficha sola, tu agente da
+la cita y sus datos; de lo que dice la sentencia responde con su texto delante.
+
+**Las sentencias del Tribunal Constitucional** no están en el CENDOJ: hoy tu agente lo dice y te remite al buscador
+del propio tribunal, sin citarlas. Está previsto que lleguen por una vía que lo permite: se publican todas en el BOE,
+como las del Supremo que anulan una disposición, y tu agente podrá leerlas y citarlas con su ECLI igual que hoy cita
+un artículo.
+
+La skill `jurisprudencia` y sus dos operaciones están en el repositorio; la v0.5.0 no las lleva. Buscar o leer
+sentencias de forma automática pediría un acuerdo con el Consejo General del Poder Judicial, por su procedimiento de
+reutilización. La decisión, en
+[docs/ADR/0036-del-cendoj-resolver-una-resolucion-identificada.md](docs/ADR/0036-del-cendoj-resolver-una-resolucion-identificada.md).
 
 ## Lo que viene
 

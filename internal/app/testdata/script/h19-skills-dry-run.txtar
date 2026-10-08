@@ -23,20 +23,20 @@ arbol .
 cp stdout $WORK/antes.txt
 exec kitlegal skills install --dry-run --json
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; Claude Code \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; Claude Code \.claude/skills/legal-core \(enlace\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; Claude Code \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; Claude Code \.claude/skills/legal-core \(enlace\)\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
 # Lo que predijo es lo que hace la orden real.
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 
 # --- Sin cambios ---
 arbol .
 cp stdout $WORK/antes.txt
 exec kitlegal skills install --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: sin cambios; Claude Code \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: sin cambios; Claude Code \.claude/skills/legal-core \(enlace\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: sin cambios; Claude Code \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: sin cambios; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: sin cambios; Claude Code \.claude/skills/legal-core \(enlace\)\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -56,16 +56,16 @@ arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_V2_BIN skills install --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: actualizada\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: actualizada\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: actualizada\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: actualizada\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: actualizada\n\z'
 exec $KITLEGAL_V2_BIN skills install legal-core --dry-run
 ! stdout .
 stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: actualizada\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
-grep -count=3 '"v0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=4 '"v0\.1\.0"' .agents/skills/kitlegal.json
 
 exec $KITLEGAL_V2_BIN skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"actualizada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 
 # --- Con conflictos: el mismo fallo y el mismo código que sin la bandera ---
 cd $WORK/conflicto
@@ -92,7 +92,7 @@ mkdir $WORK/forzado
 cd $WORK/forzado
 exec kitlegal skills install --host claude --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; Claude Code \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; Claude Code \.claude/skills/legal-core \(enlace\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; Claude Code \.claude/skills/boe-legislacion \(enlace\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; Claude Code \.claude/skills/legal-core \(enlace\)\n\z'
 arbol .
 ! stdout .
 
@@ -106,11 +106,11 @@ arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; Claude Code \.claude/skills/boe-legislacion \(copia\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; Claude Code \.claude/skills/legal-core \(copia\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar boe-legislacion en \.agents/skills/boe-legislacion: instalada; Claude Code \.claude/skills/boe-legislacion \(copia\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(copia\)\n--dry-run: se habría pedido instalar legal-core en \.agents/skills/legal-core: instalada; Claude Code \.claude/skills/legal-core \(copia\)\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"copia"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"copia"\}\]\}\]\}\n\z'
 
 -- conflicto/.agents/skills/boe-legislacion/mio.md --
 Una carpeta que no instaló kitlegal.

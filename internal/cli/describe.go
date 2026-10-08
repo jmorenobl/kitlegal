@@ -23,6 +23,13 @@ const (
 	claveSalida  = "salida"
 )
 
+// claveDeBanderas es la anotación con la que la parte de entrada del documento
+// nombra las banderas propias del verbo. Lleva el prefijo `x-` porque no es del
+// vocabulario del borrador: un validador la ignora, y quien la lee es la tabla
+// de comandos de las skills, que sin ella no distingue una bandera de un
+// argumento de posición opcional (research.md D14 de H23).
+const claveDeBanderas = "x-banderas"
+
 // errEsquemaImposible es el fallo de quien declaró el verbo, no el de quien lo
 // invoca: unos argumentos que no son un struct, un sobre que dejó de declarar
 // sus claves o dos tipos distintos que se describirían con el mismo nombre. No
@@ -113,6 +120,7 @@ func (d Verbo) esquema() (*jsonschema.Schema, error) {
 	// applet no declara y recibe igualmente (FR-018, SC-010): quien invoca no
 	// distingue una bandera del kernel de un argumento del verbo.
 	entrada := g.entrada(append(campos, camposVisibles(tipoDeGlobales)...))
+	anotarBanderas(entrada, campos)
 
 	salida, err := g.salida(d.Salida)
 	if err != nil {
@@ -194,6 +202,33 @@ func (g *generador) entrada(campos []reflect.StructField) *jsonschema.Schema {
 	}
 
 	return entrada
+}
+
+// anotarBanderas deja dicho en la entrada del documento cuáles de los campos del
+// verbo se escriben como banderas: los que no van por su posición, con el nombre
+// de su propiedad y en el orden de sus campos. Las ocho globales no están entre
+// ellos: son las mismas en todos los verbos y el documento de uno sin argumentos
+// ya las da.
+//
+// Un verbo sin banderas propias no lleva la anotación, ni vacía: su documento es,
+// byte a byte, el de antes de que existiera. Y es del documento de --describe y
+// no de la entrada que construye el generador, porque dice cómo se escribe la
+// orden: el esquema de entrada de una herramienta, que recibe un objeto, no la
+// lleva (herramienta.go).
+func anotarBanderas(entrada *jsonschema.Schema, campos []reflect.StructField) {
+	var banderas []string
+
+	for _, campo := range campos {
+		if _, dePosicion := campo.Tag.Lookup("arg"); !dePosicion {
+			banderas = append(banderas, nombreEnLaInvocacion(campo))
+		}
+	}
+
+	if len(banderas) == 0 {
+		return
+	}
+
+	entrada.Extras = map[string]any{claveDeBanderas: banderas}
 }
 
 // salida describe el sobre completo con `data` condicionado a `ok`: el del

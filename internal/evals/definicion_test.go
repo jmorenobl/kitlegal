@@ -131,13 +131,18 @@ var (
 // dependenciasDelTrabajo son las de su needs: solo la tanda.
 var dependenciasDelTrabajo = []string{trabajoDeLaTanda}
 
-// skillsDelTrabajo son las skills de su matriz, en su orden.
-var skillsDelTrabajo = []string{"boe-legislacion", "legal-core"}
+// skillsDelTrabajo son las skills de su matriz, en su orden. Desde H23,
+// jurisprudencia es la tercera (contracts/evals-jurisprudencia.md §6 de H23;
+// FR-063 de H23).
+var skillsDelTrabajo = []string{"boe-legislacion", "jurisprudencia", "legal-core"}
 
 // ajustesDelTrabajo son la concurrencia y el objetivo de duración que su
 // include da a cada skill (FR-030 y FR-051 de H7.3; research.md D12 de H7.3).
+// jurisprudencia va como legal-core, de una en una y sin objetivo de duración
+// (research.md D22 de H23; FR-063 de H23).
 var ajustesDelTrabajo = map[string]AjustesDeSkill{
 	"boe-legislacion": {Concurrencia: 4, ObjetivoDeDuracion: 900},
+	"jurisprudencia":  {Concurrencia: 1, ObjetivoDeDuracion: 0},
 	"legal-core":      {Concurrencia: 1, ObjetivoDeDuracion: 0},
 }
 
@@ -169,7 +174,11 @@ var entornoDelTrabajo = map[string]string{
 // juez, en su prefijo; el trabajo medida repite las dos, solo corre con su
 // etiqueta o con su entrada y no depende de la tanda, que no corre con ninguna
 // de las dos; y cada tope cubre su peor caso, que en una skill con juez cuenta
-// también sus votos.
+// también sus votos. Y, desde H23, la tercera skill de la matriz
+// (contracts/evals-jurisprudencia.md §6 de H23; FR-063 de H23): jurisprudencia
+// está en ella, su include la deja de una en una y sin objetivo de duración, y
+// el tope del trabajo cubre el peor caso de las tres con las evals del
+// repositorio.
 func TestDefinicionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -177,6 +186,7 @@ func TestDefinicionDelJob(t *testing.T) {
 	t.Run("sinteticas", probarLasDefinicionesSinteticas)
 	t.Run("errores", probarLosErroresDeLaDefinicion)
 	t.Run("peor-caso", probarElPeorCasoDelTrabajo)
+	t.Run("tope-con-las-evals-del-repositorio", probarElTopeConLasEvalsDelRepositorio)
 	t.Run("segundo-disparo", probarElSegundoDisparo)
 	t.Run("estado-de-la-tanda", probarElEstadoDeLaTanda)
 }
@@ -248,7 +258,8 @@ func probarLaDefinicionDelRepositorio(t *testing.T) {
 
 	if fallos := comprobarLaDefinicion(leida, directorioDeEvals); len(fallos) > 0 {
 		t.Fatalf("la definici\xc3\xb3n del job no es la de contracts/tanda-del-job.md \xc2\xa74 de H7.4, "+
-			"contracts/ejecucion-del-job.md \xc2\xa77 de H7.3 y contracts/job-de-evals.md \xc2\xa75 de H24:\n%s",
+			"contracts/ejecucion-del-job.md \xc2\xa77 de H7.3, contracts/job-de-evals.md \xc2\xa75 de H24 y "+
+			"contracts/evals-jurisprudencia.md \xc2\xa76 de H23:\n%s",
 			strings.Join(fallos, "\n"))
 	}
 }
@@ -771,12 +782,12 @@ const trabajoDeLaMedidaDelContrato = `  medida:
 // orden —la eval con el modelo que decide y con el de Haiku, tres veces con cada
 // uno, y la prueba de red— y 6 en el modo herramienta, así que el peor caso de
 // sus sesiones es de 1573 s en boe-legislacion (⌈7 / 4⌉ + ⌈6 / 4⌉ = 4 tandas) y
-// de 4021 s en legal-core (13 tandas). boe-legislacion tiene además juez, que
-// juzga las 3 respuestas del modelo que decide en cada modo: 60 s de instalar su
-// Claude Code y (⌈3 × 6 / 4⌉ + ⌈3 × 6 / 4⌉) × 40 s de sus votos, 2033 s en
-// total. 120 minutos cubren los dos. Y el de la medida, con sus 7 casos
-// etiquetados, es de 485 + 60 + ⌈7 × 6 / 4⌉ × 40 = 985 s, que cubren los 17
-// minutos de su trabajo.
+// de 4021 s en jurisprudencia y en legal-core (13 tandas), que van de una en
+// una. boe-legislacion tiene además juez, que juzga las 3 respuestas del modelo
+// que decide en cada modo: 60 s de instalar su Claude Code y (⌈3 × 6 / 4⌉ +
+// ⌈3 × 6 / 4⌉) × 40 s de sus votos, 2033 s en total. 120 minutos cubren los
+// tres. Y el de la medida, con sus 7 casos etiquetados, es de 485 + 60 +
+// ⌈7 × 6 / 4⌉ × 40 = 985 s, que cubren los 17 minutos de su trabajo.
 const definicionDelContrato = `name: evals
 on:
   workflow_dispatch:
@@ -797,11 +808,14 @@ const trabajoDeEvalsDelContrato = `  evals:
     strategy:
       fail-fast: false
       matrix:
-        skill: [boe-legislacion, legal-core]
+        skill: [boe-legislacion, jurisprudencia, legal-core]
         include:
           - skill: boe-legislacion
             concurrencia: 4
             objetivo_de_duracion: 900
+          - skill: jurisprudencia
+            concurrencia: 1
+            objetivo_de_duracion: 0
           - skill: legal-core
             concurrencia: 1
             objetivo_de_duracion: 0
@@ -863,20 +877,110 @@ func probarLasDefinicionesSinteticas(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			contenido := definicionDelContrato
-			for _, cambio := range caso.cambios {
-				require.Contains(t, contenido, cambio.antes, "premisa: la definici\xc3\xb3n tiene lo que el caso cambia")
-				require.NotEqual(t, cambio.antes, cambio.despues, "premisa: el cambio del caso cambia algo")
-				contenido = strings.Replace(contenido, cambio.antes, cambio.despues, 1)
-			}
+			assert.Equal(t, caso.fallos, comprobarLaDefinicion(leerLaSintetica(t, caso.cambios), evals))
+		})
+	}
+}
 
-			ruta := filepath.Join(t.TempDir(), "evals.yml")
-			require.NoError(t, os.WriteFile(ruta, []byte(contenido), 0o600))
+// leerLaSintetica escribe en un directorio temporal la definición del contrato
+// con los cambios, en su orden, y la lee con leerDefinicionDelJob.
+func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDelJob {
+	t.Helper()
 
-			leida, err := leerDefinicionDelJob(ruta)
-			require.NoError(t, err)
+	contenido := definicionDelContrato
+	for _, cambio := range cambios {
+		require.Contains(t, contenido, cambio.antes, "premisa: la definici\xc3\xb3n tiene lo que el caso cambia")
+		require.NotEqual(t, cambio.antes, cambio.despues, "premisa: el cambio del caso cambia algo")
+		contenido = strings.Replace(contenido, cambio.antes, cambio.despues, 1)
+	}
 
-			assert.Equal(t, caso.fallos, comprobarLaDefinicion(leida, evals))
+	ruta := filepath.Join(t.TempDir(), "evals.yml")
+	require.NoError(t, os.WriteFile(ruta, []byte(contenido), 0o600))
+
+	leida, err := leerDefinicionDelJob(ruta)
+	require.NoError(t, err)
+
+	return leida
+}
+
+// probarElTopeConLasEvalsDelRepositorio fija, con definiciones sintéticas y la
+// carpeta de evals del repositorio, qué tope cubre el peor caso de cada una de
+// las tres skills de la matriz (contracts/evals-jurisprudencia.md §6 de H23;
+// research.md M5 de H23; FR-063 de H23). El de jurisprudencia, con sus seis
+// evals de una en una, es de 20 341 s —37 sesiones en el modo orden, con la
+// prueba de red, que se cuenta aunque su trabajo no la lleve, y 36 en el modo
+// herramienta—: queda por debajo del de boe-legislacion y por encima del de
+// legal-core. El tope de la definición del job cubre los tres; con 351 minutos,
+// 21 060 s, ya no cubre el de boe-legislacion; con 339, que son 20 340 s,
+// tampoco el de jurisprudencia; y con 203, 12 180 s, ninguno. El trabajo medida
+// va con el tope de la definición del job, que cubre su peor caso con los casos
+// etiquetados del repositorio: así toda línea es del tope del trabajo evals.
+func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	const (
+		topeDelJob      = "timeout-minutes: 120"
+		topeDeLaMedida  = "timeout-minutes: 17"
+		enMinutos       = "timeout-minutes: "
+		alMenosElPeorDe = ", y lo esperado es al menos el peor caso de "
+		sinElDeBoe      = "jobs.evals.timeout-minutes: vale 351 (21060 s)" + alMenosElPeorDe
+		sinElDeJuris    = "jobs.evals.timeout-minutes: vale 339 (20340 s)" + alMenosElPeorDe
+		sinNinguno      = "jobs.evals.timeout-minutes: vale 203 (12180 s)" + alMenosElPeorDe
+		deBoe           = "boe-legislacion, " + peorCasoDeBoeLegislacion
+		deJuris         = "jurisprudencia, " + peorCasoDeJurisprudencia
+		deLegal         = "legal-core, " + peorCasoDeLegalCore
+	)
+
+	delRepositorio, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+	require.NotNil(t, delRepositorio.Medida, "premisa: la definici\xc3\xb3n del job tiene el trabajo medida")
+
+	// La definición sintética reparte las sesiones como la del repositorio: las
+	// mismas skills, con su concurrencia, las mismas repeticiones y los mismos
+	// modelos, que solo cuentan por cuántos son. Los casos solo le cambian los
+	// topes.
+	delContrato := leerLaSintetica(t, nil)
+	require.Equal(t, delRepositorio.Skills, delContrato.Skills, "premisa: las skills de la matriz")
+	require.Equal(t, delRepositorio.Repeticiones, delContrato.Repeticiones, "premisa: las repeticiones")
+	require.Len(t, delContrato.ModelosInformativos, len(delRepositorio.ModelosInformativos),
+		"premisa: los modelos informativos")
+
+	for _, skill := range delRepositorio.Skills {
+		require.Equal(t, delRepositorio.PorSkill[skill].Concurrencia, delContrato.PorSkill[skill].Concurrencia,
+			"premisa: la concurrencia de %s", skill)
+	}
+
+	conElTope := func(minutos int) []cambioDeLaDefinicion {
+		return []cambioDeLaDefinicion{
+			{topeDelJob, enMinutos + strconv.Itoa(minutos)},
+			enLaMedida(topeDeLaMedida, enMinutos+strconv.Itoa(delRepositorio.Medida.TopeEnMinutos)),
+		}
+	}
+
+	casos := []definicionSintetica{
+		{nombre: "el-del-repositorio", cambios: conElTope(delRepositorio.TopeEnMinutos)},
+		{
+			nombre:  "por-debajo-del-de-boe-legislacion",
+			cambios: conElTope(351),
+			fallos:  []string{sinElDeBoe + deBoe},
+		},
+		{
+			nombre:  "por-debajo-del-de-jurisprudencia",
+			cambios: conElTope(339),
+			fallos:  []string{sinElDeJuris + deBoe, sinElDeJuris + deJuris},
+		},
+		{
+			nombre:  "por-debajo-de-los-tres",
+			cambios: conElTope(203),
+			fallos:  []string{sinNinguno + deBoe, sinNinguno + deJuris, sinNinguno + deLegal},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.fallos, comprobarLaDefinicion(leerLaSintetica(t, caso.cambios), directorioDeEvals))
 		})
 	}
 }
@@ -1097,20 +1201,36 @@ func definicionesSinteticasDeLaMedida() []definicionSintetica {
 
 // definicionesSinteticasDelJob son las definiciones que se apartan de
 // contracts/tanda-del-job.md §4 de H7.4 y de contracts/ejecucion-del-job.md §7
-// de H7.3, y las del tope del trabajo evals que lo cubren.
+// de H7.3, y las del tope del trabajo evals que lo cubren. Desde H23, también
+// las que se apartan de contracts/evals-jurisprudencia.md §6 de H23 (FR-063 de
+// H23): jurisprudencia fuera de la matriz, con objetivo de duración o sin su
+// entrada de include. Con las evals de evalsSinteticas, jurisprudencia y
+// legal-core tienen la misma eval y la misma concurrencia, y por eso el mismo
+// peor caso.
 func definicionesSinteticasDelJob() []definicionSintetica {
 	const (
 		grupoPorCommit   = "group: evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"
 		cancelaEnCurso   = "      cancel-in-progress: false\n"
-		matrizDelJob     = "skill: [boe-legislacion, legal-core]"
-		includeDeLegal   = "          - skill: legal-core\n            concurrencia: 1\n            objetivo_de_duracion: 0\n"
+		matrizDelJob     = "skill: [boe-legislacion, jurisprudencia, legal-core]"
+		matrizEsperada   = "[boe-legislacion, jurisprudencia, legal-core]"
+		deUnaEnUna       = "            concurrencia: 1\n"
+		sinObjetivo      = "            objetivo_de_duracion: 0\n"
+		conObjetivo      = "            objetivo_de_duracion: 900\n"
+		entradaDeJuris   = "          - skill: jurisprudencia\n" + deUnaEnUna
+		entradaDeLegal   = "          - skill: legal-core\n" + deUnaEnUna
+		includeDeJuris   = entradaDeJuris + sinObjetivo
+		includeDeLegal   = entradaDeLegal + sinObjetivo
+		includeDeSkill   = "jobs.evals.strategy.matrix.include, skill "
 		topeDelJob       = "timeout-minutes: 120"
+		topeDeEvals      = "jobs.evals.timeout-minutes: "
 		concurrenciaEnv  = "      CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}\n"
 		objetivoEnv      = "OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}"
 		repeticionesEnv  = "REPETICIONES_DE_EVALS: 3"
 		ajustesDeBoe     = "{concurrencia: 4, objetivo_de_duracion: 900}"
+		ajustesDeJuris   = "{concurrencia: 1, objetivo_de_duracion: 0}"
 		ajustesDeLegal   = "{concurrencia: 1, objetivo_de_duracion: 0}"
-		peorCasoDeLegal  = "4021 s = 485 s + (\xe2\x8c\x887 / 1\xe2\x8c\x89 + \xe2\x8c\x886 / 1\xe2\x8c\x89) \xc3\x97 (22 s + 240 s + 10 s)"
+		peorCasoDeJuris  = "4021 s = 485 s + (\xe2\x8c\x887 / 1\xe2\x8c\x89 + \xe2\x8c\x886 / 1\xe2\x8c\x89) \xc3\x97 (22 s + 240 s + 10 s)"
+		peorCasoDeLegal  = peorCasoDeJuris
 		esperadoDelGrupo = `"evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"`
 		pruebaDeRed      = "  github.event.label.name == 'evals-prueba-de-red' ||\n"
 		ejecucionDeGh    = ` -ejecucion "$EJECUCION"`
@@ -1231,35 +1351,59 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		},
 		{
 			nombre:  "matriz-sin-legal-core",
-			cambios: []cambioDeLaDefinicion{{matrizDelJob, "skill: [boe-legislacion]"}},
-			fallos: []string{"jobs.evals.strategy.matrix.skill: vale [boe-legislacion], y lo esperado es " +
-				"[boe-legislacion, legal-core]"},
+			cambios: []cambioDeLaDefinicion{{matrizDelJob, "skill: [boe-legislacion, jurisprudencia]"}},
+			fallos: []string{"jobs.evals.strategy.matrix.skill: vale [boe-legislacion, jurisprudencia], y lo esperado es " +
+				matrizEsperada},
+		},
+		{
+			// La matriz de antes de H23: sin jurisprudencia, el job no la mide.
+			nombre:  "matriz-sin-jurisprudencia",
+			cambios: []cambioDeLaDefinicion{{matrizDelJob, "skill: [boe-legislacion, legal-core]"}},
+			fallos: []string{"jobs.evals.strategy.matrix.skill: vale [boe-legislacion, legal-core], y lo esperado es " +
+				matrizEsperada},
 		},
 		{
 			nombre:  "otra-concurrencia",
 			cambios: []cambioDeLaDefinicion{{"concurrencia: 4", "concurrencia: 2"}},
-			fallos: []string{"jobs.evals.strategy.matrix.include, skill boe-legislacion: vale " +
+			fallos: []string{includeDeSkill + "boe-legislacion: vale " +
 				"{concurrencia: 2, objetivo_de_duracion: 900}, y lo esperado es " + ajustesDeBoe},
 		},
 		{
 			nombre:  "otro-objetivo",
-			cambios: []cambioDeLaDefinicion{{"objetivo_de_duracion: 0", "objetivo_de_duracion: 900"}},
-			fallos: []string{"jobs.evals.strategy.matrix.include, skill legal-core: vale " +
+			cambios: []cambioDeLaDefinicion{{includeDeLegal, entradaDeLegal + conObjetivo}},
+			fallos: []string{includeDeSkill + "legal-core: vale " +
 				"{concurrencia: 1, objetivo_de_duracion: 900}, y lo esperado es " + ajustesDeLegal},
+		},
+		{
+			// jurisprudencia va sin objetivo de duración, como legal-core: no hay
+			// medida de la que sacar otra cifra (research.md D22 y S4 de H23).
+			nombre:  "jurisprudencia-con-objetivo",
+			cambios: []cambioDeLaDefinicion{{includeDeJuris, entradaDeJuris + conObjetivo}},
+			fallos: []string{includeDeSkill + "jurisprudencia: vale " +
+				"{concurrencia: 1, objetivo_de_duracion: 900}, y lo esperado es " + ajustesDeJuris},
 		},
 		{
 			nombre:  "include-sin-legal-core",
 			cambios: []cambioDeLaDefinicion{{includeDeLegal, ""}},
 			fallos: []string{
-				"jobs.evals.strategy.matrix.include, skill legal-core: no est\xc3\xa1, y lo esperado es " + ajustesDeLegal,
-				"jobs.evals.timeout-minutes: el peor caso de legal-core no se puede obtener: la concurrencia de " +
+				includeDeSkill + "legal-core: no est\xc3\xa1, y lo esperado es " + ajustesDeLegal,
+				topeDeEvals + "el peor caso de legal-core no se puede obtener: la concurrencia de " +
 					"legal-core es 0 y tiene que ser un entero mayor o igual que 1",
+			},
+		},
+		{
+			nombre:  "include-sin-jurisprudencia",
+			cambios: []cambioDeLaDefinicion{{includeDeJuris, ""}},
+			fallos: []string{
+				includeDeSkill + "jurisprudencia: no est\xc3\xa1, y lo esperado es " + ajustesDeJuris,
+				topeDeEvals + "el peor caso de jurisprudencia no se puede obtener: la concurrencia de " +
+					"jurisprudencia es 0 y tiene que ser un entero mayor o igual que 1",
 			},
 		},
 		{
 			nombre:  "include-con-otra-skill",
 			cambios: []cambioDeLaDefinicion{{includeDeLegal, includeDeLegal + "          - skill: cita\n            concurrencia: 1\n"}},
-			fallos: []string{"jobs.evals.strategy.matrix.include, skill cita: vale " +
+			fallos: []string{includeDeSkill + "cita: vale " +
 				"{concurrencia: 1, objetivo_de_duracion: 0}, y lo esperado es que no est\xc3\xa9"},
 		},
 		{
@@ -1275,35 +1419,45 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 				`"${{ matrix.objetivo_de_duracion }}"`},
 		},
 		{
-			// 67 minutos son 4020 s, uno menos que el peor caso de legal-core, y
-			// cubren el de boe-legislacion.
+			// 67 minutos son 4020 s, uno menos que el peor caso de jurisprudencia y
+			// de legal-core, y cubren el de boe-legislacion.
 			nombre:  "tope-por-debajo-del-peor-caso",
 			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 67"}},
-			fallos: []string{"jobs.evals.timeout-minutes: vale 67 (4020 s), y lo esperado es al menos el peor " +
-				"caso de legal-core, " + peorCasoDeLegal},
+			fallos: []string{
+				topeDeEvals + "vale 67 (4020 s), y lo esperado es al menos el peor caso de jurisprudencia, " +
+					peorCasoDeJuris,
+				topeDeEvals + "vale 67 (4020 s), y lo esperado es al menos el peor caso de legal-core, " +
+					peorCasoDeLegal,
+			},
 		},
 		{
 			// 33 minutos son 1980 s, uno menos que el peor caso de boe-legislacion
 			// con su juez: cubrirían el de sus sesiones solas, 1573 s, que es el de
 			// una skill sin juez.
-			nombre:  "tope-por-debajo-de-los-dos",
+			nombre:  "tope-por-debajo-de-los-tres",
 			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 33"}},
 			fallos: []string{
-				"jobs.evals.timeout-minutes: vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
+				topeDeEvals + "vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
 					"boe-legislacion, 2033 s = 485 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
 					"\xc3\x97 (22 s + 240 s + 10 s) + 60 s + (\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
 					"\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)",
-				"jobs.evals.timeout-minutes: vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
+				topeDeEvals + "vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
+					"jurisprudencia, " + peorCasoDeJuris,
+				topeDeEvals + "vale 33 (1980 s), y lo esperado es al menos el peor caso de " +
 					"legal-core, " + peorCasoDeLegal,
 			},
 		},
 		{
 			// 34 minutos, 2040 s, cubren el de boe-legislacion con su juez, y no el
-			// de legal-core.
+			// de jurisprudencia ni el de legal-core.
 			nombre:  "tope-que-cubre-el-de-la-skill-con-juez",
 			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 34"}},
-			fallos: []string{"jobs.evals.timeout-minutes: vale 34 (2040 s), y lo esperado es al menos el peor " +
-				"caso de legal-core, " + peorCasoDeLegal},
+			fallos: []string{
+				topeDeEvals + "vale 34 (2040 s), y lo esperado es al menos el peor caso de jurisprudencia, " +
+					peorCasoDeJuris,
+				topeDeEvals + "vale 34 (2040 s), y lo esperado es al menos el peor caso de legal-core, " +
+					peorCasoDeLegal,
+			},
 		},
 		{
 			nombre:  "tope-que-cubre-el-peor-caso",
@@ -1311,8 +1465,8 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		},
 		{
 			// Con una repetición, 3 sesiones por skill en el modo orden y 2 en el
-			// modo herramienta: 485 + 5 × 272 = 1845 s en legal-core, que 31
-			// minutos cubren.
+			// modo herramienta: 485 + 5 × 272 = 1845 s en jurisprudencia y en
+			// legal-core, que 31 minutos cubren.
 			nombre: "tope-con-las-repeticiones-del-env",
 			cambios: []cambioDeLaDefinicion{
 				{topeDelJob, "timeout-minutes: 31"},
@@ -1321,8 +1475,8 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		},
 		{
 			// Sin modelos informativos, 4 sesiones por skill en el modo orden y 3
-			// en el modo herramienta: 485 + 7 × 272 = 2389 s en legal-core, que 40
-			// minutos cubren.
+			// en el modo herramienta: 485 + 7 × 272 = 2389 s en jurisprudencia y
+			// en legal-core, que 40 minutos cubren.
 			nombre: "tope-con-los-modelos-del-env",
 			cambios: []cambioDeLaDefinicion{
 				{topeDelJob, "timeout-minutes: 40"},
@@ -1342,7 +1496,8 @@ const (
 // evalsSinteticas crea un directorio temporal de evals con una carpeta por
 // skill de la matriz, cada una con la eval sintética del art. 21 de la LPAC, y
 // devuelve su ruta. La de boe-legislacion lleva además la carpeta del juez, con
-// siete casos etiquetados; la de legal-core, no: es la skill sin juez.
+// siete casos etiquetados; las de jurisprudencia y legal-core, no: son las
+// skills sin juez.
 func evalsSinteticas(t *testing.T) string {
 	t.Helper()
 
@@ -1442,6 +1597,25 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	require.ErrorContains(t, err, `tiene la etiqueta "dudoso"`)
 }
 
+// Los peores casos de los trabajos de las tres skills con las evals del
+// repositorio y los ajustes de la definición del job, con sus términos: los de
+// una tanda de sesiones, que llevan los tres, y los de una tanda de votos, que
+// lleva solo el de la skill con juez. Los fija probarElPeorCasoDelTrabajo.
+const (
+	terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
+	terminosDeUnVoto   = " \xc3\x97 (35 s + 5 s)"
+
+	peorCasoDeBoeLegislacion = "21097 s = 485 s + (\xe2\x8c\x8897 / 4\xe2\x8c\x89 + \xe2\x8c\x8896 / 4\xe2\x8c\x89 + " +
+		"\xe2\x8c\x886 / 4\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
+		"\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89)" + terminosDeUnVoto
+
+	peorCasoDeJurisprudencia = "20341 s = 485 s + (\xe2\x8c\x8837 / 1\xe2\x8c\x89 + \xe2\x8c\x8836 / 1\xe2\x8c\x89)" +
+		terminosDeUnaTanda
+
+	peorCasoDeLegalCore = "12181 s = 485 s + (\xe2\x8c\x8819 / 1\xe2\x8c\x89 + \xe2\x8c\x8818 / 1\xe2\x8c\x89 + " +
+		"\xe2\x8c\x886 / 1\xe2\x8c\x89)" + terminosDeUnaTanda
+)
+
 // probarElPeorCasoDelTrabajo fija el peor caso del trabajo de una skill desde
 // H21 (contracts/evals-en-dos-modos.md §6 de H21; research.md D20 de H21;
 // FR-083 de H21): una tanda por cada grupo de sesiones —las del modo orden con
@@ -1458,16 +1632,17 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 // boe-legislacion, que con ello llega a 21 097 s. El de legal-core, que no tiene
 // juez, no cambia. Y el de la medida del juez de boe-legislacion, con sus 259
 // casos etiquetados, es de 16 105 s. El tope de cada trabajo cubre el suyo.
+//
+// Desde H23 (contracts/evals-jurisprudencia.md §6 de H23; research.md M5 y V29
+// de H23; FR-063 de H23), el de jurisprudencia: sus seis evals son de modo, así
+// que sus sesiones van en dos grupos y no en tres —36 por modo, y la prueba de
+// red contada en el modo orden—, de una en una y sin juez: 20 341 s, que el tope
+// del trabajo cubre sin cambiar.
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
 	leida, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
-
-	const (
-		terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
-		terminosDeUnVoto   = " \xc3\x97 (35 s + 5 s)"
-	)
 
 	casos := []struct {
 		skill    string
@@ -1483,16 +1658,19 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{54, 54, 3}, Concurrencia: 4},
 			},
 			duracion: 21097 * time.Second,
-			texto: "21097 s = 485 s + (\xe2\x8c\x8897 / 4\xe2\x8c\x89 + \xe2\x8c\x8896 / 4\xe2\x8c\x89 + " +
-				"\xe2\x8c\x886 / 4\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
-				"\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89)" + terminosDeUnVoto,
+			texto:    peorCasoDeBoeLegislacion,
+		},
+		{
+			skill:    "jurisprudencia",
+			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{37, 36}, Concurrencia: 1},
+			duracion: 20341 * time.Second,
+			texto:    peorCasoDeJurisprudencia,
 		},
 		{
 			skill:    "legal-core",
 			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{19, 18, 6}, Concurrencia: 1},
 			duracion: 12181 * time.Second,
-			texto: "12181 s = 485 s + (\xe2\x8c\x8819 / 1\xe2\x8c\x89 + \xe2\x8c\x8818 / 1\xe2\x8c\x89 + " +
-				"\xe2\x8c\x886 / 1\xe2\x8c\x89)" + terminosDeUnaTanda,
+			texto:    peorCasoDeLegalCore,
 		},
 	}
 

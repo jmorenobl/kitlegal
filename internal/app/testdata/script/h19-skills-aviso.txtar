@@ -134,15 +134,15 @@ cmp stdout $WORK/territorio.json
 # --- Solo una skill declarada de otra versión (US3.6, FR-071) ---
 #
 # Tras instalar un subconjunto con el binario nuevo, el manifiesto está en la
-# versión nueva pero boe-legislacion sigue declarada con la anterior: el aviso
-# la ve, con esa versión.
+# versión nueva pero boe-legislacion y jurisprudencia siguen declaradas con la
+# anterior: el aviso las ve, con esa versión.
 env HOME=$WORK/home
 mkdir $WORK/subconjunto
 cd $WORK/subconjunto
 exec $KITLEGAL_V1_BIN skills install
 exec $KITLEGAL_V2_BIN skills install legal-core
 grep -count=2 '"v0\.2\.0"' .agents/skills/kitlegal.json
-grep -count=1 '"v0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=2 '"v0\.1\.0"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json
 cmp stdout $WORK/territorio.json
 stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario es kitlegal v0\.2\.0; ejecuta: kitlegal skills install\n\z'
@@ -155,7 +155,7 @@ mkdir $WORK/metadatos
 cd $WORK/metadatos
 exec $KITLEGAL_V1_BIN skills install
 exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0+abc\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
-grep -count=3 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
+grep -count=4 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V1_BIN territorio resolver Leganés --json
 cmp stdout $WORK/territorio.json
 stderr '\Aaviso: las skills instaladas son de kitlegal 0\.1\.0\+abc y este binario es kitlegal v0\.1\.0; ejecuta: kitlegal skills install\n\z'

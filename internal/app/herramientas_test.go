@@ -23,11 +23,21 @@ import (
 // uno.
 var appletsSinHerramientas = []string{"mcp", "skills"}
 
+// herramientasDeCita son las dos que el servidor anuncia desde H23, con los
+// registros de los dos casos, escritas aquí y no derivadas del registro: las de
+// los verbos del applet cita (H23 FR-030; contracts/applet-cita.md §7 de H23).
+var herramientasDeCita = []string{"cita_cotejar", "cita_preparar"}
+
 // urlDelEsquemaDeHerramienta identifica ante el compilador cada esquema que el
 // servidor anuncia. Es una URL de recurso, no una dirección que se visite: el
 // compilador resuelve contra ella las referencias `#/$defs/…` del propio
 // esquema y nada más.
 const urlDelEsquemaDeHerramienta = "https://kitlegal.es/schemas/herramienta.json"
+
+// anotacionDeLasBanderas es la clave con la que la entrada del documento de
+// --describe nombra las banderas propias de un verbo, escrita aquí y no tomada
+// del código que se prueba (contracts/applet-cita.md §8 de H23).
+const anotacionDeLasBanderas = "x-banderas"
 
 // verboConHerramienta es un verbo del registro que el servidor tiene que
 // anunciar, con el applet que lo ofrece.
@@ -111,8 +121,9 @@ func verbosConHerramienta(t *testing.T, registro *app.Registro) map[string]verbo
 // con el servidor arrancado en proceso y el cliente de prueba de cada
 // especificación, sobre los applets del registro de producción y sobre un
 // registro local que lleva además los de ejemplo (FR-004): el conjunto
-// anunciado es el de los verbos del registro menos los excluidos —diez y
-// trece—; cada nombre, cada descripción y cada par de esquemas es el de
+// anunciado es el de los verbos del registro menos los excluidos —doce y
+// quince, con cita_cotejar y cita_preparar desde H23 (H23 FR-030)—; cada
+// nombre, cada descripción y cada par de esquemas es el de
 // `--describe` de su verbo, el de entrada sin las ocho banderas globales; los
 // nombres que da app.NombresDeHerramientas son los anunciados; cada
 // `$ref` resuelve en su esquema; todas se anuncian de solo lectura; las
@@ -131,8 +142,8 @@ func TestHerramientasDelServidor(t *testing.T) {
 		conLosDeEjemplo bool
 		herramientas    int
 	}{
-		{nombre: "con los applets de producción", herramientas: 10},
-		{nombre: "con los de producción y los de ejemplo", conLosDeEjemplo: true, herramientas: 13},
+		{nombre: "con los applets de producción", herramientas: 12},
+		{nombre: "con los de producción y los de ejemplo", conLosDeEjemplo: true, herramientas: 15},
 	}
 
 	especificaciones := []struct {
@@ -212,6 +223,8 @@ func compruebaElConjuntoAnunciado(
 		strings.Join(appletsSinHerramientas, " y "))
 	assert.Len(t, esperados, cuantas, "los verbos del registro menos los excluidos")
 	assert.True(t, slices.IsSorted(nombres), "el orden de la lista es el del SDK, por nombre: %q", nombres)
+	assert.Subset(t, nombres, herramientasDeCita,
+		"los dos verbos de cita llegan como herramientas sin tocar el servidor (H23 FR-030)")
 }
 
 // descripcionDelVerbo es el documento que un verbo emite con --describe, con
@@ -325,11 +338,17 @@ func esquemaAnunciado(t *testing.T, herramienta string, anunciado json.RawMessag
 }
 
 // sinLasBanderasGlobales es la entrada de --describe sin las ocho banderas
-// globales, que tiene que llevar todas; y exige que el esquema anunciado no
-// lleve ninguna: las banderas son del servidor y nunca un parámetro de una
-// herramienta (FR-020).
+// globales, que tiene que llevar todas, ni la anotación de las banderas propias
+// del verbo, si la lleva; y exige que el esquema anunciado no lleve ninguna de
+// las ocho: las banderas son del servidor y nunca un parámetro de una
+// herramienta (FR-020). Tampoco lleva la anotación, que dice cómo se escribe la
+// orden: una herramienta recibe un objeto (research.md D14 de H23).
 func sinLasBanderasGlobales(t *testing.T, herramienta string, descrita, anunciada map[string]any) map[string]any {
 	t.Helper()
+
+	assert.NotContains(t, anunciada, anotacionDeLasBanderas,
+		"%s: el esquema de entrada no lleva la anotación de las banderas propias", herramienta)
+	delete(descrita, anotacionDeLasBanderas)
 
 	deLaOrden, sonUnObjeto := descrita["properties"].(map[string]any)
 	require.True(t, sonUnObjeto, "%s: la entrada de --describe declara sus propiedades", herramienta)

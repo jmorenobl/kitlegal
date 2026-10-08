@@ -55,9 +55,10 @@ const (
 
 // skillsExigidas son las skills que skills/ tiene que tener: sin una de ellas,
 // las comprobaciones sobre skills/ pasarían en vacío para ella (plan, obligación
-// 12). boe-legislacion la trajo H5 y legal-core, H6. Los casos negativos no
-// salen de esta lista, sino de las skills que hay (skillsDelRecorrido).
-var skillsExigidas = []string{"boe-legislacion", "legal-core"}
+// 12). boe-legislacion la trajo H5; legal-core, H6, y jurisprudencia, H23. Los
+// casos negativos no salen de esta lista, sino de las skills que hay
+// (skillsDelRecorrido).
+var skillsExigidas = []string{"boe-legislacion", "jurisprudencia", "legal-core"}
 
 // cabeceraDeUnaReferencia es la primera línea de una referencia generada, que
 // nombra el YAML de datos del que sale (FR-031, FR-065, FR-066).
@@ -163,10 +164,16 @@ func TestSkillsDelRepositorio(t *testing.T) {
 // seguida de --describe, y esa invocación termina en 0 describiendo ese verbo.
 // Desde H21, la fila lleva además la herramienta de ese mismo verbo, su título
 // con un guion bajo en lugar del espacio (contracts/skills.md §4 de H21;
-// FR-030). Los dos últimos subtests demuestran que la comprobación no pasa en
-// vacío: con argumentos obligatorios presentados como opcionales —uno solo, y uno
-// seguido de otro de varios valores, anidados como los escribe Kong—, la
-// gramática rechaza la invocación que sale de la tabla.
+// FR-030). Desde H23, la fila escribe las banderas propias del verbo como
+// banderas (research.md D14 de H23), y termina en 0 describiendo ese verbo
+// también la invocación completa, la que escribe además todo lo opcional: es la
+// que distingue una bandera de un argumento de posición opcional, que la mínima
+// no escribe. Los tres últimos subtests demuestran que la comprobación no pasa
+// en vacío: con argumentos obligatorios presentados como opcionales —uno solo, y
+// uno seguido de otro de varios valores, anidados como los escribe Kong—, la
+// gramática rechaza la invocación mínima que sale de la tabla; y con las banderas
+// de un verbo presentadas como argumentos de posición opcionales, que es como
+// las daría un documento sin la anotación, rechaza la completa.
 func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 	t.Parallel()
 
@@ -182,14 +189,19 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 		t.Run(verbos[indice], func(t *testing.T) {
 			t.Parallel()
 
-			argv := invocacionDeLaSintaxis(t, fila.orden)
+			invocaciones := [][]string{
+				invocacionDeLaSintaxis(t, fila.orden),
+				invocacionCompletaDeLaSintaxis(t, fila.orden),
+			}
 
-			res := invocar(t, registro, argv...)
-			require.Equal(t, 0, res.codigo, "%s: %s", strings.Join(argv, " "), res.errores)
+			for _, argv := range invocaciones {
+				res := invocar(t, registro, argv...)
+				require.Equal(t, 0, res.codigo, "%s: %s", strings.Join(argv, " "), res.errores)
 
-			documento, err := objetoJSON([]byte(res.salida))
-			require.NoError(t, err)
-			assert.Equal(t, verbos[indice], documento["title"], "%s describe su verbo", strings.Join(argv, " "))
+				documento, err := objetoJSON([]byte(res.salida))
+				require.NoError(t, err)
+				assert.Equal(t, verbos[indice], documento["title"], "%s describe su verbo", strings.Join(argv, " "))
+			}
 
 			assert.Equal(t, strings.ReplaceAll(verbos[indice], " ", separadorDeHerramienta), fila.herramienta,
 				"la fila de %s nombra la herramienta de su verbo", verbos[indice])
@@ -222,6 +234,42 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 			probarObligatoriosComoOpcionales(t, registro, descripciones, caso.verbo, caso.argumentos, caso.orden)
 		})
 	}
+
+	t.Run("banderas-presentadas-como-argumentos-de-posicion", func(t *testing.T) {
+		t.Parallel()
+
+		probarBanderasComoArgumentos(t, registro, descripciones)
+	})
+}
+
+// probarBanderasComoArgumentos presenta las banderas propias de skills doctor
+// como argumentos de posición opcionales, que es como las da la lectura de un
+// documento de --describe sin la anotación de las banderas, comprueba que la
+// fila de la tabla las escribe con la sintaxis de antes de H23 y que la gramática
+// rechaza la invocación completa que sale de ella. La mínima, que no escribe
+// nada opcional, termina en 0 con esa fila: por eso no basta.
+func probarBanderasComoArgumentos(t *testing.T, registro *Registro, descripciones []skills.DescripcionDeVerbo) {
+	t.Helper()
+
+	cambiadas := slices.Clone(descripciones)
+	indice := indiceDelVerbo(t, cambiadas, "skills", "doctor")
+	require.NotEmpty(t, cambiadas[indice].BanderasPropias, "skills doctor declara banderas propias")
+
+	cambiadas[indice].Argumentos = slices.Clone(cambiadas[indice].Argumentos)
+	for _, bandera := range cambiadas[indice].BanderasPropias {
+		cambiadas[indice].Argumentos = append(cambiadas[indice].Argumentos, skills.Argumento{Nombre: bandera.Nombre})
+	}
+
+	cambiadas[indice].BanderasPropias = nil
+
+	orden := sintaxisDeLaTabla(t, registro.Nombres(), cambiadas)[indice]
+	require.Equal(t, "kitlegal skills doctor [<global> [<dir>]]", orden)
+
+	res := invocar(t, registro, invocacionDeLaSintaxis(t, orden)...)
+	assert.Equal(t, 0, res.codigo, "la invocación mínima no escribe nada opcional: %s", res.errores)
+
+	res = invocar(t, registro, invocacionCompletaDeLaSintaxis(t, orden)...)
+	assert.Equal(t, 2, res.codigo, "skills doctor no tiene argumentos de posición: %s", res.errores)
 }
 
 // probarObligatoriosComoOpcionales presenta como opcionales los argumentos de un
@@ -846,15 +894,21 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 }
 
 // metadataDeKitlegal es el bloque metadata de un frontmatter que declara los
-// applets y las referencias dados, en su orden.
+// applets y las referencias dados, en su orden. Sin referencias no lleva la
+// clave kitlegal-referencias, como el frontmatter de la skill que no declara
+// ninguna (research.md D15 de H23).
 func metadataDeKitlegal(applets []string, referencias []referenciaDelRecorrido) string {
+	metadata := "metadata:\n  kitlegal-applets: " + strings.Join(applets, " ") + "\n"
+	if len(referencias) == 0 {
+		return metadata
+	}
+
 	nombres := make([]string, 0, len(referencias))
 	for _, referencia := range referencias {
 		nombres = append(nombres, referencia.nombre)
 	}
 
-	return "metadata:\n  kitlegal-applets: " + strings.Join(applets, " ") + "\n  kitlegal-referencias: " +
-		strings.Join(nombres, " ") + "\n"
+	return metadata + "  kitlegal-referencias: " + strings.Join(nombres, " ") + "\n"
 }
 
 // referenciaSinSusDatos es el caso de la referencia sin el YAML de datos del que
@@ -1043,6 +1097,9 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 		fallos = append(fallos, skill.nombre+": "+referencia.fichero()+": fichero-ausente")
 	}
 
+	// La skill que no declara referencias no tiene references/ (research.md D15
+	// de H23): la carpeta se crea antes de dejar en ella la sobrante.
+	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
 	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "antigua.md"), "# Antigua\n")
 	fallos = append(fallos, skill.nombre+": references/antigua.md: fichero-sobrante")
 
@@ -1461,9 +1518,33 @@ func tramoDeCodigo(celda string) string {
 // tabla, seguida de --describe (contrato sincronizacion-y-comprobacion §3;
 // contracts/skills-e-invocacion.md §2 de H19): kitlegal como nombre del programa,
 // el applet y el verbo, que es como lo invoca la skill desde el PATH, x por cada
-// argumento obligatorio, x y por cada uno de varios valores y ninguno de los
-// opcionales, que son los que abren corchete.
+// argumento obligatorio, x y por cada uno de varios valores y nada de lo
+// opcional, que es lo que va entre corchetes: los argumentos de posición
+// opcionales y las banderas propias, con su valor.
 func invocacionDeLaSintaxis(t *testing.T, orden string) []string {
+	t.Helper()
+
+	return invocacionDe(t, orden, false)
+}
+
+// invocacionCompletaDeLaSintaxis es la invocación que escribe todo lo que admite
+// una sintaxis de la tabla, seguida de --describe: la mínima y, además, x por
+// cada argumento de posición opcional, x y si es de varios valores, y cada
+// bandera propia como la escribe la fila, con x detrás la que lleva valor
+// (research.md D14 de H23).
+func invocacionCompletaDeLaSintaxis(t *testing.T, orden string) []string {
+	t.Helper()
+
+	return invocacionDe(t, orden, true)
+}
+
+// invocacionDe convierte una sintaxis de la tabla en una invocación, seguida de
+// --describe, con lo que va entre corchetes o sin ello. Es opcional la parte que
+// abre un corchete y toda la que va dentro de uno abierto, que es como queda el
+// valor de una bandera: `[--dir <dir>]` son dos partes. De cada parte, sin sus
+// corchetes, una bandera se escribe tal cual, un argumento de varios valores da x
+// y, y cualquier otro —también el valor de una bandera— da x.
+func invocacionDe(t *testing.T, orden string, conLoOpcional bool) []string {
 	t.Helper()
 
 	partes := strings.Fields(orden)
@@ -1471,16 +1552,27 @@ func invocacionDeLaSintaxis(t *testing.T, orden string) []string {
 	require.Equal(t, programaDeLasOrdenes, partes[0], "la sintaxis %q invoca kitlegal", orden)
 
 	argv := []string{partes[0], partes[1], partes[2]}
+	abiertos := 0
 
 	for _, parte := range partes[3:] {
-		switch {
-		case strings.HasPrefix(parte, "["):
-		case strings.HasSuffix(parte, ">..."):
+		opcional := abiertos > 0 || strings.HasPrefix(parte, "[")
+		abiertos += strings.Count(parte, "[") - strings.Count(parte, "]")
+
+		if opcional && !conLoOpcional {
+			continue
+		}
+
+		switch escrita := strings.Trim(parte, "[]"); {
+		case strings.HasPrefix(escrita, "--"):
+			argv = append(argv, escrita)
+		case strings.HasSuffix(escrita, ">..."):
 			argv = append(argv, "x", "y")
 		default:
 			argv = append(argv, "x")
 		}
 	}
+
+	require.Zero(t, abiertos, "la sintaxis %q cierra cada corchete que abre", orden)
 
 	return append(argv, "--describe")
 }

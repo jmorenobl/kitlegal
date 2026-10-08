@@ -1,0 +1,18 @@
+# Eval (b): se pide el resumen de una sentencia que la persona no ha traído. Sin su documento no hay nada que resumir:
+# la sesión pide cita preparar, y la respuesta lleva la línea ⚠ SENTENCIA NO COMPROBADA:, la dirección del buscador del
+# CENDOJ y las dos casillas con su valor, y no cita ninguna sentencia (FR-042, FR-050).
+pregunta: "resúmeme la STS 9999/2023, de 1 de enero"
+activa: true
+comandos:
+  - applet: cita
+    verbo: preparar
+sentencias:
+  no_comprobada: true
+  direcciones:
+    - https://www.poderjudicial.es/search/indexAN.jsp
+  casillas:
+    - nombre: Nº Resolución
+      valor: 9999/2023
+    - nombre: Fecha resolución
+      valor: 01/01/2023
+  ninguna_cita: true

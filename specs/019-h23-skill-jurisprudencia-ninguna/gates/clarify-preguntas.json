@@ -1,0 +1,100 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Dominio y modelo de datos",
+      "pregunta": "¿Para qué órganos y tipos de resolución deducen `cita preparar` y `cita cotejar` el equivalente entre un ECLI y un ROJ sin consultar nada, y qué lleva `data` cuando no se deduce? (FR-012)",
+      "por_que_importa": "Fija los golden de los dos verbos, cuándo `cita cotejar` responde «no se deduce» (FR-023) y qué ECLI o ROJ que nadie ha leído en un documento puede llegar a `data`, de donde la skill puede copiarlo a la respuesta fuera de una cita. `docs/JURISPRUDENCIA.md` §3 da la regla del número y el ejemplo del Tribunal Supremo y deja sin probar los demás órganos; el repositorio no documenta las siglas de los demás órganos ni las de los autos.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Solo entre un ECLI cuyo órgano es `TS` y cuyo número final es solo de cifras y un ROJ de siglas `STS`: `ECLI:ES:TS:<año>:<n>` ↔ `STS <n>/<año>`. En cualquier otro caso `cita preparar` no lleva equivalente en `data` y `cita cotejar` da «no se deduce»; todo documento de otro órgano y todo auto se coteja con «no se deduce»."
+        },
+        {
+          "id": "B",
+          "texto": "`cita preparar` da el equivalente solo en el caso de la opción A. `cita cotejar` decide la correspondencia para cualquier órgano comparando solo lo que nombra la regla documentada —el número final del ECLI con el número del ROJ, y los dos años—, sin comparar las siglas con el órgano, y da «no se deduce» cuando el número final del ECLI no es solo de cifras. Una ficha con las siglas de un órgano y el ECLI de otro, con el mismo número y el mismo año, sale como correspondida."
+        },
+        {
+          "id": "C",
+          "texto": "Para cualquier órgano y tipo de resolución, en los dos verbos, con una regla general que relaciona las siglas del ROJ con el código de órgano del ECLI y con el tipo de resolución; «no se deduce» queda para lo que esa regla no alcance. El repositorio no documenta esa regla ni la tiene probada fuera del ejemplo del Tribunal Supremo: el run la escribe sin una fuente versionada, y el equivalente que dé llega a `data` como un ECLI o un ROJ que la skill puede escribir."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Criterios de aceptación y comprobabilidad",
+      "pregunta": "Cuando el documento que trae la persona no es el que pidió, ¿lleva la respuesta la línea `⚠ SENTENCIA NO COMPROBADA:` para la referencia pedida, y con qué comprueba sin modelo la eval (f) que la respuesta dice que no es la pedida? (FR-043)",
+      "por_que_importa": "Decide el paso del protocolo de `SKILL.md` para ese caso, lo que espera la eval (f) en los dos modos y qué gana el formato común de eval (FR-052). El hito nombra la línea en (a) y en (b) y no en (f), y pide que la cita y la línea se comparen por su forma fija, sin modelo.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Lleva la línea con la referencia pedida y la consulta preparada de esa referencia, como en FR-042. La eval (f) exige, además de lo ya fijado en FR-050, la línea, haber pedido `cita preparar` con el ROJ `STS 1088/2023`, la dirección del buscador y la casilla «Nº ROJ» con su valor."
+        },
+        {
+          "id": "B",
+          "texto": "Lleva la línea con la referencia pedida; dar la consulta preparada no se exige. La eval (f) añade a lo ya fijado en FR-050 solo la línea, comparada por su forma."
+        },
+        {
+          "id": "C",
+          "texto": "No lleva esa línea: lleva otra línea de forma fija, propia de este caso, cuya etiqueta fija el plan. Es una forma nueva, que el hito no nombra; la eval (f) la compara por su forma y el formato de eval gana cómo decirla."
+        },
+        {
+          "id": "D",
+          "texto": "No lleva ninguna línea de forma fija. La eval (f) comprueba que la respuesta contiene los dos ROJ que nombra el hallazgo —el pedido, `STS 1088/2023`, y el del documento, `STS 3144/2023`— por estar en la respuesta tal como los da `data`, como una dirección o el valor de una casilla (FR-051)."
+        },
+        {
+          "id": "E",
+          "texto": "No lleva ninguna línea de forma fija y la eval (f) no comprueba que la respuesta lo dice: pasa con `cita cotejar` pedido con el ROJ `STS 1088/2023` y sin ninguna cita cuyo corchete tenga ese ROJ. Que la respuesta lo diga queda como regla de la skill sin control en este hito, anotada como supuesto y leída por una persona en el cierre."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    },
+    {
+      "id": "Q3",
+      "categoria": "Casos límite y manejo de fallos",
+      "pregunta": "Cuando `cita cotejar` dice que el ROJ y el ECLI de la ficha no se corresponden, ¿cita la respuesta ese documento, y qué dice? (FR-048)",
+      "por_que_importa": "Es el paso del protocolo de `SKILL.md` que usa la correspondencia de FR-023, y la cita con forma fija lleva en su corchete justo esos dos datos. El hito da el dato en `data` y su protocolo no dice qué hace la skill con él. Este hito deja fuera una eval con una ficha así, y `cita_sin_documento` da por leído el ECLI de toda ficha reconocible (FR-061): lo que se decida es una regla de la skill sin control propio.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "No lo cita. La respuesta dice que el ROJ y el ECLI de la ficha no se corresponden, da los dos como están en la ficha y pide a la persona que vuelva a traer el documento del buscador."
+        },
+        {
+          "id": "B",
+          "texto": "No lo cita, y lleva además la línea `⚠ SENTENCIA NO COMPROBADA:` con la referencia pedida —o, si no se pidió ninguna, con el ROJ de la ficha— junto a lo que dice la opción A."
+        },
+        {
+          "id": "C",
+          "texto": "Lo cita con la forma fija y los datos de la ficha, y dice junto a la cita que el ROJ y el ECLI de esa ficha no se corresponden."
+        },
+        {
+          "id": "D",
+          "texto": "Lo cita como cualquier otra ficha reconocible y no dice nada de la correspondencia: la skill no usa ese dato en este hito, FR-048 se retira y la correspondencia queda solo en `data`."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    },
+    {
+      "id": "Q4",
+      "categoria": "Flujo de interacción de la skill",
+      "pregunta": "Cuando `cita cotejar` da «no se deduce» para la correspondencia entre el ROJ y el ECLI de la ficha, ¿qué hace la respuesta con ese resultado? (FR-023, FR-048)",
+      "por_que_importa": "Según lo que se decida para FR-012, «no se deduce» puede ser el resultado de todo documento que no sea una sentencia del Tribunal Supremo. FR-048 manda leer la correspondencia en cada cotejo y no dice qué hace la skill con ese tercer valor: de ello depende si esas respuestas llevan la cita sin más, la cita con una advertencia o ninguna cita.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Cita el documento con la forma fija y no dice nada de la correspondencia."
+        },
+        {
+          "id": "B",
+          "texto": "Cita el documento con la forma fija y dice, junto a la cita, que no se ha podido deducir si el ROJ y el ECLI de la ficha se corresponden."
+        },
+        {
+          "id": "C",
+          "texto": "Lo trata igual que «no se corresponden»: hace lo que se decida para ese caso en FR-048."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    }
+  ]
+}

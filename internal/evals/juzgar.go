@@ -242,6 +242,13 @@ type ResultadoDeEval struct {
 	// (contracts/evals-en-dos-modos.md §4 de H21). El de las llamadas que no se
 	// pueden juzgar, que solo se da si el registro de applets del binario no se
 	// puede construir, va delante de los de los comandos.
+	//
+	// Desde H23, detrás de los del territorio van los de lo que la eval espera
+	// de las sentencias: cada cita de sentencia que falta, que sobra o que va
+	// con un ROJ que no se cita; la línea ⚠ SENTENCIA NO COMPROBADA: que falta;
+	// cada dirección, cada casilla y cada valor que faltan; y la dirección de
+	// búsqueda que ninguna orden devolvió o que falta. El resultado no tiene
+	// otra clave para ellos (contracts/evals-jurisprudencia.md §2 de H23).
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide, no se activó
@@ -254,7 +261,8 @@ type ResultadoDeEval struct {
 	// eval no espera. Una sesión sin medir no pasa. Desde H21, tampoco pasa la
 	// sesión sin kitlegal en el PATH que ejecuta una orden suya ni, en una eval
 	// sin binario ni servidor, la respuesta sin la línea con su dirección o con
-	// alguna cita.
+	// alguna cita. Desde H23, tampoco la que no cumple algo de lo que su eval
+	// espera de las sentencias.
 	Pasa bool `json:"pasa"`
 }
 
@@ -393,6 +401,13 @@ func modoSinServidor(eval Eval) Modo {
 //   - y en una eval sin binario ni servidor, la respuesta tiene que llevar la
 //     línea ⚠ SIN CONSULTA AL BOE: con su dirección y ninguna cita, y lo que
 //     falte de eso lleva su motivo.
+//
+// Desde H23, juzga además lo que la eval espera de las sentencias de las que
+// habla la respuesta (juzgarLasSentencias), con sus motivos detrás de los del
+// territorio, y los dos comandos de cita los satisface la invocación de su
+// verbo con el ROJ y el texto que el comando pida, sea una orden o una llamada
+// (pideLaCita). Una eval sin sentencias y sin comandos de cita se juzga como
+// antes (contracts/evals-jurisprudencia.md §2 de H23; FR-051, FR-052).
 func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -430,6 +445,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 		ExtraerHallazgos(sesion.Respuesta), motivoDeHallazgoAusente)
 	resultado.repartirRedacciones(eval.RedaccionesModificadas, ExtraerRedaccionesModificadas(sesion.Respuesta))
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
+	sentenciasComoSeEsperan := resultado.juzgarLasSentencias(eval.Sentencias, sesion)
 	sinConsultaComoSeEspera := resultado.juzgarLaRespuestaSinConsulta(eval, sesion.Respuesta, citas)
 
 	for _, invocacion := range invocaciones {
@@ -437,7 +453,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 	}
 
 	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && conLasLlamadas && ordenesSinKitlegal == 0 &&
-		sinConsultaComoSeEspera && resultado.cumpleLoEsperado()
+		sentenciasComoSeEsperan && sinConsultaComoSeEspera && resultado.cumpleLoEsperado()
 
 	return resultado
 }
@@ -939,7 +955,9 @@ func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
 // búsqueda, ser buscar con cada término como palabra de sus argumentos; en el
 // comando de territorio, ser resolver con el municipio como argumento; y en la
 // comprobación, ser check (contrato evals-y-skill §2 de H7) y, si el comando
-// lleva norma, con esa norma (contrato evals-y-skill §2 de H7.1).
+// lleva norma, con esa norma (contrato evals-y-skill §2 de H7.1); y en los dos
+// de cita, ser de su verbo con el ROJ y el texto que el comando pida
+// (pideLaCita; contracts/evals-jurisprudencia.md §2 de H23).
 func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	if !consultoConExito(invocacion) || invocacion.Applet != comando.Applet {
 		return false
@@ -957,10 +975,18 @@ func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	case formaTerritorio:
 		satisfecho = invocacion.Verbo == verboResolver && resuelveElMunicipio(invocacion.Argumentos, comando.Municipio)
 	case formaComprobacion:
-		satisfecho = invocacion.Verbo == verboCheck && (comando.Norma == "" || esDeLaNorma(invocacion, comando.Norma))
+		satisfecho = compruebaLaMemoria(invocacion, comando.Norma)
+	case formaPreparar, formaCotejar:
+		satisfecho = pideLaCita(invocacion, comando)
 	}
 
 	return satisfecho
+}
+
+// compruebaLaMemoria dice si la invocación es check y, si el comando lleva
+// norma, con esa norma.
+func compruebaLaMemoria(invocacion Invocacion, norma string) bool {
+	return invocacion.Verbo == verboCheck && (norma == "" || esDeLaNorma(invocacion, norma))
 }
 
 // consultoConExito dice si la invocación consultó y terminó con código 0: ni
@@ -1063,7 +1089,9 @@ func ordenDeLaInvocacion(invocacion Invocacion) string {
 // <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
 // la búsqueda; <applet> resolver <municipio> en el comando de territorio; y
 // <applet> check en la comprobación (contrato evals-y-skill §1 de H7), seguido de
-// su norma si la lleva (contrato evals-y-skill §2 de H7.1).
+// su norma si la lleva (contrato evals-y-skill §2 de H7.1); y, en los dos de
+// cita, el de textoDelComandoDeCita (contracts/evals-jurisprudencia.md §2 de
+// H23).
 func textoDelComando(comando ComandoEsperado) string {
 	var partes []string
 
@@ -1081,6 +1109,8 @@ func textoDelComando(comando ComandoEsperado) string {
 		if comando.Norma != "" {
 			partes = append(partes, comando.Norma)
 		}
+	case formaPreparar, formaCotejar:
+		return textoDelComandoDeCita(comando)
 	}
 
 	return strings.Join(partes, " ")

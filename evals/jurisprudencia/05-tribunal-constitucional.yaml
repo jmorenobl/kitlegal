@@ -1,0 +1,9 @@
+# Eval (e): una sentencia del Tribunal Constitucional, que kitlegal no cubre. La respuesta la declara no cubierta con la
+# dirección del buscador del Tribunal y no cita ninguna sentencia; no se le exige ninguna operación ni la línea. La
+# pregunta lleva el ECLI para que la respuesta pueda nombrarlo: viene de la persona (FR-047, FR-050).
+pregunta: "¿Qué resolvió el Tribunal Constitucional en su sentencia 79/2024 (ECLI:ES:TC:2024:79)?"
+activa: true
+sentencias:
+  direcciones:
+    - https://hj.tribunalconstitucional.es/
+  ninguna_cita: true

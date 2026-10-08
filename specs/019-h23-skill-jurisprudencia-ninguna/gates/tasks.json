@@ -1,0 +1,74 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "Segunda ronda: el veredicto anterior (gates/tasks.json, idéntico a tasks-r1.json) rechazaba por un solo motivo, el de h, que está corregido (ver h). gates/analyze.md no tiene ningún hallazgo CRITICAL ni HIGH: A1 y C1 son MEDIUM e I1, I2, I3 y U1, LOW, y «Métricas» da «Problemas críticos: 0». gates/tasks-precheck.txt tiene 0 bytes y fecha 12:58:13, posterior a la última edición de la corrección (gates/supuestos.md, 12:57:47); gates/plan-precheck.txt, también 0 bytes, de las 12:58:01. No existe gates/tasks-pendiente.md."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Contado con grep en esta sesión: spec.md define 65 ids (55 FR y 10 SC); las doce líneas de tarea terminan citando sus FR y SC, todos definidos; los únicos que ninguna línea cita son FR-066 y SC-002, y «Requisitos → tareas» dice por qué (la sección del plan; una persona después del run). Esa tabla, leída contra la lista de los 65, tiene fila para cada uno. Las quince filas de plan.md, «Controles de umbral», están en las trece de «Controles de umbral (plan.md) → tarea» (los dos modos de FR-060 y los dos de FR-062, juntos), cada una con la tarea que construye el control y el test que lo ve fallar: T008 con `TestUmbralesDeJurisprudencia` y `TestCitaSinDocumento` (una respuesta que cuenta da `cumple: false` y `fallo`; mutante con `decide` a falso), T009 con el fichero alargado a 300 líneas, T006 con 12 y 15 herramientas, un golden cambiado y un `import` de `net`, T007 con un byte cambiado y una eval apartada, T010 con la skill fuera de la matriz, y T001 con un mutante por guion. La corrección solo cambió aquí la fila de FR-030, que ahora nombra el guion `cita-herramientas`."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "La corrección no cambió ningún orden ni dependencia: T001 → T012, sin ninguna hacia delante, y cada tarea de código con su test y su implementación en el mismo diff; las excepciones (T001 aceptación, T011 documentación, T012 cierre) siguen declaradas en la cabecera. Leído en el código en esta sesión, sin ejecutar ningún test: internal/app/herramientas.go:284 construye `Despacho{Destino, Applet, Args}` y .golangci.yml no activa `exhaustruct`, así que el campo `Entrada` de T004 queda nulo sin tocar ese fichero; internal/app/main_test.go es `package app` y main.go ya tiene una interfaz sin exportar para el verbo que sirve (`servidor`); las dos raíces de composición donde T006 registra la entrada son `RegistroDeProduccion` (internal/app/registro.go) y `registroDeE2E` (internal/app/ejemplo/kitlegal-e2e/main.go), las dos en sus rutas —cmd/kitlegal/main.go solo pasa la función—, y `os.Stdin` ya se nombra en internal/app/mcp.go; en internal/evals/conjunto_test.go, lo que recorre toda carpeta de evals/ es el formato (`conjuntosDeCadaSkill`) y `juecesFueraDeLaTabla`, que salta la carpeta sin `juez`, de modo que las evals de T007 pueden entrar antes que la skill; y `probarLineaSinConsulta` recorre `skills.Listar`, que es lo que rompe la tercera skill y lo que T009 lleva en sus rutas. `formaDeComando` es un tipo de internal/evals/formato.go y `exhaustive` está activo: sus usos son de ficheros de T007."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Las doce líneas llevan «Rutas:» con ficheros concretos o directorios acotados (la carpeta de la suite, internal/app/testdata/cita/ y los tres corpus de fuzz); ninguna ruta genérica. Recorridas una a una con un bucle en esta sesión: de las 89 rutas declaradas, 57 existen en el árbol y las 32 restantes son las que el hito crea (en T008 y T012, las que crea una tarea anterior). scripts/workflow/guardian-diff.sh admite además el `x_test.go` de cada `x.go` declarado, y los tests cuyo `.go` no está en la tarea van por su nombre (internal/app/skills_test.go, internal/cli/herramienta_test.go, internal/app/herramientas_test.go, internal/app/esquemas_test.go, cmd/kitlegal/main_test.go, internal/evals/conjunto_test.go). La corrección no cambió ninguna ruta: T001 sigue con la carpeta de la suite."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Con grep sobre las líneas de tarea: las seis que nombran `testdata/` o `schemas/` (T002, T003, T005, T006, T007 y T009) llevan [datos], y las otras seis no nombran esos directorios; ninguna nombra la carpeta de evidencias ni la variable de grabación (0 coincidencias). Lo que llevan además es lo que el dato obliga a cambiar a la vez para que `make ci` quede en verde, declarado en la cabecera de tasks.md y justificado en plan.md (*Complexity Tracking*, «Tareas [datos] con código y tests»; precedente, H7.2 a H24); el guardián solo exige la etiqueta para tocar lo protegido y las rutas declaradas. Ningún dato externo: plan.md, «Datos externos: Ninguno», sin manifiesto `grabaciones.json` ni test de grabación; los golden los escribe el verbo, los esquemas se regeneran con `-actualizar-esquemas`, los corpus son semillas sintéticas y el fragmento se lee de su fichero o se lleva con una orden."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "«Definition of Done → tareas» recorre los trece puntos de docs/ROADMAP.md §1 y la corrección no la tocó: `make ci` (todas), tests offline (T002 a T010), esquemas y `schema-check` (T005, T006, T007), errores con clase (T002, T003, T006), e2e y `CHANGELOG.md` (T001, T006, T009; T011 con *Unreleased*), cobertura con `go tool cover -func` (T012) y skill con sus evals antes y menos de 300 líneas (T007 antes que T009). No aplican, con su motivo y de acuerdo con el spec: ADR (la decisión es el 0036 con su enmienda), `SOURCES.md` (ninguna fuente, FR-088), fixtures grabados (el applet no pide nada), dimensión territorial, operaciones de grafo (FR-003) y recursos o plazos."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "checklists/requirements.md tiene 23 marcas [x] y ninguna sin marcar, y ni él ni spec.md han cambiado desde el commit 303cd60 (`git status` no los lista; la corrección no los toca). Comprobado en esta sesión lo que tiene cifra: 0 marcas NEEDS CLARIFICATION en spec.md; 4 respuestas en `## Clarifications`; 29 escenarios Dado/Cuando/Entonces (6, 6, 7, 4, 5 y 1); 65 ids definidos; y, con awk contra docs/ROADMAP.md, los catorce criterios literales (tres de Entrega, diez de Controles y uno de Aceptación) y las doce viñetas literales de «Fuera de alcance» están carácter a carácter dentro de una línea del roadmap."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "T001 es la primera tarea y la única [aceptacion] (grep: 1). El motivo anterior está corregido: el guion `cita-herramientas` afirma ahora que una llamada con resultado a cada una de las dos herramientas da el sobre de su orden (US4.3 entero), con `cmp` y sin `fecha_consulta`, en seis llamadas —`cita_cotejar` con la ficha sola y con la ficha y `roj` `STS 1088/2023`; `cita_preparar` con `resolucion` `1088/2023` y `fecha` `2023-07-04`, con `texto`, con `roj` y con `ecli`—, cada una frente a su orden con `--json`, más las tres casillas, la `direccion` codificada y la casilla «Nº ROJ», y un segundo mutante (la propiedad `fecha` que no llega al verbo). Son las llamadas de contracts/evals-jurisprudencia.md §5 (01 y 02, número y fecha; 03, texto; 04, la ficha; 06, cotejo y consulta con el ROJ) más la del ECLI, y los seis argumentos de contracts/applet-cita.md §1 viajan cada uno en alguna. Lo mismo está en plan.md («Aceptación e2e», filas `cita-herramientas` y `cita-sin-efectos`), quickstart.md §4, contracts/applet-cita.md §7, research D24 y V42 y gates/supuestos.md, como pedía el motivo. El arnés lo admite sin nada nuevo: internal/app/testdata/script/h21-mcp-llamadas.txtar ya hace `mcp <fichero> $KITLEGAL_T0_BIN mcp serve` y `cmp mcp-<n>.json` con el sobre de la orden. Con eso tienen guion US1.1 a US1.6, US2.1 a US2.6, US4.2 (cada verbo como orden y como herramienta), US4.3 y US4.4; plan.md justifica sin guion US3, US5 y US6, y US4.1 lo fija `TestArquitectura` en T006. Ejecutado en esta sesión en el prototipo de research (`go -C $TMPDIR/kl-proto run ./cmd/kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json`): `ok` verdadero, la dirección del buscador y las tres casillas, «Nº Resolución» con `1088/2023` y «Fecha resolución», «Desde» y «Hasta», con `04/07/2023`. Las llamadas por el servidor MCP no las he podido repetir (ver observaciones)."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Con grep sobre las doce líneas: ninguna nombra a una persona, una publicación de la rama, una propuesta de cambio, `gh` ni una etiqueta de plataforma (0 coincidencias), y el precheck posterior a la corrección está vacío. T010 dice que el job no se ejecuta en la tarea y que lo lanza el workflow en el cierre; T012 deja quickstart.md §10 para el workflow y §11 para después del run; la batería veta `claude`, `make evals`, `make evals-sondeo`, `make evals-medir-juez`, `TestEjecucionDelJob`, `TestMedidaDelJuez` y `TestSondeo`. Lo que la corrección añade a T001 es una validación contra el prototipo bajo `$TMPDIR`, fuera del repositorio y sin versionar, que hace la propia sesión de la tarea."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Lo que no he medido: no he ejecutado `make ci` ni ningún test. De research V42 (seis llamadas con resultado iguales al sobre de su orden, y el mutante de `fecha`) solo he repetido la orden de número y fecha en el prototipo; las llamadas por `mcp serve` no: un intento con la entrada por una tubería terminó sin salida, sin que sepa si fue por el cierre inmediato de la entrada, y las demás formas las rechazaron los permisos de la sesión. V42 queda como lo que afirma la corrección en research.md, y la «Verificación» de T001 obliga a la tarea a verlo pasar y fallar en el prototipo antes de congelar la suite.",
+    "La línea de T001 lleva dentro una constancia de ejecución de otra sesión («Ejecutado en el prototipo en la sesión del corrector de tasks…»). Es contexto y no una instrucción; quien ejecute T001 no debe darla por suya: su verificación es la del final de la línea.",
+    "El guion compara los sobres «quitada de los dos `fecha_consulta`», lo que pide pasar cada sobre por `sed` con `exec` y guardarlo con `cp`; la lista de órdenes del arnés de T001 no nombra `cp`, que es de `testscript`. No impide nada: research V10 lo hizo así.",
+    "Como herramienta con resultado, `cita_cotejar` solo viaja con `documento` y `roj`; `ecli`, `resolucion` y `fecha` van con resultado en `cita_preparar`, y en `cita_cotejar` solo como orden (guion `cita-cotejar`). La línea de una llamada la compone el kernel igual para los dos verbos, así que no es un hueco de US4.3.",
+    "US4.3 pide también «los esquemas de `--describe` de su verbo»: no lo afirma el guion, sino `TestHerramientasDelServidor` y `TestEsquemasDeHerramienta` (T005, T006), en `make ci`. US4.1 tampoco tiene guion y ni plan.md, «Aceptación e2e», ni la cabecera de tasks.md lo dicen como dicen lo de US3, US5 y US6; lo fija `TestArquitectura`.",
+    "gates/analyze.md es de las 12:37, anterior a la corrección (12:57): describe el T001 de antes. No tiene nada CRITICAL ni HIGH que resolver. Su C1 (MEDIUM) sigue sin aplicar: gates/supuestos.md no lleva líneas para las reglas de la skill sin control que no son «resume» ni `no-se-corresponden` (US3.7, que la respuesta diga que el documento no es el pedido, que no diga que una sentencia existe, FR-049), así que el informe final no las enseñará como no comprobadas. Y A1 (MEDIUM): la dirección del buscador del Tribunal Constitucional sale de memoria y entra igual en `SKILL.md` y en la eval 05; está en gates/supuestos.md para que la persona la compruebe.",
+    "plan.md sigue diciendo veintiún guiones e2e y diecisiete por la skill («Tests y guiones existentes que cambian», «Fixtures», *Complexity Tracking*); tasks.md alinea veintitrés y diecinueve, con los dos de internal/skills/testdata/script/. Manda tasks.md, y está anotado en gates/supuestos.md.",
+    "T002 y T003 llevan [datos] por un corpus de fuzz mínimo y su trabajo principal es código; se acepta por la justificación del plan y el precedente.",
+    "La lista de tests de T003 no nombra el resultado `no-se-corresponden`, ni un carácter reservado en la codificación de FR-013; lo verán la cobertura de T012 y la revisión final.",
+    "Las seis evals entran en T007 y no quedan en gates/aceptacion-congelada.json; que una reparación del cierre no las toque lo sostienen FR-064, la batería y `TestEvalsDelRepositorio`, no el guardián. Es el precedente de H21.",
+    "quickstart.md §4 a §6 nombra los guiones `h23-`, que no existen hasta que el workflow los activa tras el bucle; T012 los ejerce con copias de prefijo `zz-`, y el filtro de `-run` tiene que llevar ese prefijo.",
+    "En `$TMPDIR/juez-tasks-r2/` quedan un guion de recuento que no llegó a ejecutarse y el binario del prototipo compilado para esta comprobación; están fuera del repositorio y no forman parte de ningún artefacto."
+  ]
+}

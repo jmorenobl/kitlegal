@@ -12,12 +12,14 @@ const (
 	identificadorINE          = "el código INE"
 	identificadorINEConDigito = "el código INE con dígito de control"
 	identificadorDIR3         = "el código DIR3"
+	identificadorECLI         = "el ECLI"
+	identificadorROJ          = "el ROJ"
 )
 
 // errorDeEntrada es el rechazo de una entrada que no es el identificador que
-// se esperaba. No se exporta —la superficie del paquete es la del contrato de
-// identificadores §1—: quien lo recibe lo reconoce por su clase, con
-// errors.As a schema.ConClase, que es como lo reconoce el kernel.
+// se esperaba. No se exporta —la superficie del paquete son sus tipos, sus
+// analizadores y sus métodos, y nada más—: quien lo recibe lo reconoce por su
+// clase, con errors.As a schema.ConClase, que es como lo reconoce el kernel.
 type errorDeEntrada struct {
 	// identificador es el que se esperaba, con su artículo.
 	identificador string
@@ -45,7 +47,8 @@ func (e *errorDeEntrada) Error() string {
 }
 
 // Clase es siempre «argumentos»: una entrada mal formada es un fallo de quien
-// la escribe, que el kernel traduce a código 2 (FR-033, research.md V18).
+// la escribe, que el kernel traduce a código 2 (FR-033 y research.md V18 de
+// H6; FR-006 de H23).
 func (*errorDeEntrada) Clase() schema.Clase {
 	return schema.ClaseArgumentos
 }

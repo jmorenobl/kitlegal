@@ -1,0 +1,584 @@
+{
+  "$defs": {
+    "cotejar": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "conflicto",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "cita.Cotejo": {
+          "additionalProperties": false,
+          "properties": {
+            "correspondencia": {
+              "enum": [
+                "se-corresponden",
+                "no-se-corresponden",
+                "no-se-deduce"
+              ],
+              "type": "string"
+            },
+            "es_la_pedida": {
+              "type": "boolean"
+            },
+            "ficha": {
+              "$ref": "#/$defs/cita.Ficha"
+            },
+            "hallazgos": {
+              "items": {
+                "$ref": "#/$defs/cita.Hallazgo"
+              },
+              "type": "array"
+            },
+            "pedida": {
+              "$ref": "#/$defs/cita.Referencia"
+            }
+          },
+          "required": [
+            "ficha",
+            "correspondencia",
+            "hallazgos"
+          ],
+          "type": "object"
+        },
+        "cita.Diferencia": {
+          "additionalProperties": false,
+          "properties": {
+            "dato": {
+              "enum": [
+                "ecli",
+                "roj",
+                "resolucion",
+                "fecha"
+              ],
+              "type": "string"
+            },
+            "documento": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "pedido": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "dato",
+            "pedido",
+            "documento"
+          ],
+          "type": "object"
+        },
+        "cita.Ficha": {
+          "additionalProperties": false,
+          "properties": {
+            "ecli": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "fecha": {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            },
+            "organo": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "ponente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "recurso": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "resolucion": {
+              "pattern": "^[0-9]+/[0-9]{4}$",
+              "type": "string"
+            },
+            "roj": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "tipo": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "roj",
+            "ecli",
+            "organo",
+            "fecha",
+            "recurso",
+            "resolucion",
+            "ponente",
+            "tipo"
+          ],
+          "type": "object"
+        },
+        "cita.Hallazgo": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "documento-distinto"
+              ],
+              "type": "string"
+            },
+            "cruce": {
+              "enum": [
+                "numero-de-resolucion",
+                "numero-del-roj"
+              ],
+              "type": "string"
+            },
+            "difiere": {
+              "items": {
+                "$ref": "#/$defs/cita.Diferencia"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            "explicacion": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "difiere",
+            "explicacion"
+          ],
+          "type": "object"
+        },
+        "cita.Referencia": {
+          "additionalProperties": false,
+          "properties": {
+            "fecha": {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            },
+            "forma": {
+              "enum": [
+                "ecli",
+                "roj",
+                "resolucion"
+              ],
+              "type": "string"
+            },
+            "valor": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "forma",
+            "valor"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://kitlegal.es/schemas/cita.json/cotejar",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Lee la ficha del documento del CENDOJ que trae la persona y dice si es la sentencia que se pidió. No consulta nada.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "documento": {
+              "type": "string"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "ecli": {
+              "type": "string"
+            },
+            "fecha": {
+              "type": "string"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "resolucion": {
+              "type": "string"
+            },
+            "roj": {
+              "type": "string"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object",
+          "x-banderas": [
+            "roj",
+            "resolucion",
+            "fecha",
+            "documento"
+          ]
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/cita.Cotejo"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "cita cotejar"
+    },
+    "preparar": {
+      "$defs": {
+        "DatosError": {
+          "additionalProperties": false,
+          "properties": {
+            "clase": {
+              "enum": [
+                "argumentos",
+                "no-encontrado",
+                "fuente-no-disponible",
+                "limite-o-tos",
+                "identidad-humana",
+                "conflicto",
+                "inesperado"
+              ],
+              "type": "string"
+            },
+            "mensaje": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "clase",
+            "mensaje"
+          ],
+          "type": "object"
+        },
+        "cita.Casilla": {
+          "additionalProperties": false,
+          "properties": {
+            "campo": {
+              "type": "string"
+            },
+            "nombre": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "valor": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "nombre",
+            "valor"
+          ],
+          "type": "object"
+        },
+        "cita.Cobertura": {
+          "additionalProperties": false,
+          "properties": {
+            "cendoj": {
+              "enum": [
+                "no-cubierto"
+              ],
+              "type": "string"
+            },
+            "motivo": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "cendoj",
+            "motivo"
+          ],
+          "type": "object"
+        },
+        "cita.Consulta": {
+          "additionalProperties": false,
+          "properties": {
+            "casillas": {
+              "items": {
+                "$ref": "#/$defs/cita.Casilla"
+              },
+              "type": "array"
+            },
+            "cobertura": {
+              "$ref": "#/$defs/cita.Cobertura"
+            },
+            "direccion": {
+              "format": "uri",
+              "type": "string"
+            },
+            "equivalente": {
+              "$ref": "#/$defs/cita.Equivalente"
+            },
+            "referencia": {
+              "$ref": "#/$defs/cita.Referencia"
+            },
+            "texto": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "casillas"
+          ],
+          "type": "object"
+        },
+        "cita.Equivalente": {
+          "additionalProperties": false,
+          "properties": {
+            "forma": {
+              "enum": [
+                "ecli",
+                "roj"
+              ],
+              "type": "string"
+            },
+            "valor": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "forma",
+            "valor"
+          ],
+          "type": "object"
+        },
+        "cita.Referencia": {
+          "additionalProperties": false,
+          "properties": {
+            "fecha": {
+              "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+              "type": "string"
+            },
+            "forma": {
+              "enum": [
+                "ecli",
+                "roj",
+                "resolucion"
+              ],
+              "type": "string"
+            },
+            "valor": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "forma",
+            "valor"
+          ],
+          "type": "object"
+        }
+      },
+      "$id": "https://kitlegal.es/schemas/cita.json/preparar",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "description": "Dice qué tiene que hacer la persona para encontrar una sentencia en el buscador del CENDOJ: la dirección y cada casilla con su valor, o la dirección de una búsqueda por texto. No consulta nada.",
+      "properties": {
+        "entrada": {
+          "additionalProperties": false,
+          "properties": {
+            "asunto": {
+              "type": "string"
+            },
+            "describe": {
+              "type": "boolean"
+            },
+            "dry-run": {
+              "type": "boolean"
+            },
+            "ecli": {
+              "type": "string"
+            },
+            "fecha": {
+              "type": "string"
+            },
+            "json": {
+              "type": "boolean"
+            },
+            "no-graph": {
+              "type": "boolean"
+            },
+            "offline": {
+              "type": "boolean"
+            },
+            "resolucion": {
+              "type": "string"
+            },
+            "roj": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            },
+            "timeout": {
+              "type": "string"
+            },
+            "verbose": {
+              "type": "boolean"
+            }
+          },
+          "type": "object",
+          "x-banderas": [
+            "roj",
+            "resolucion",
+            "fecha",
+            "texto"
+          ]
+        },
+        "salida": {
+          "additionalProperties": false,
+          "else": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/DatosError"
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "properties": {
+            "data": true,
+            "fecha_consulta": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "fuente": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "hash": {
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "url": {
+              "format": "uri",
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "ok",
+            "fuente",
+            "url",
+            "fecha_consulta",
+            "hash",
+            "data"
+          ],
+          "then": {
+            "properties": {
+              "data": {
+                "$ref": "#/$defs/cita.Consulta"
+              }
+            }
+          },
+          "type": "object"
+        }
+      },
+      "title": "cita preparar"
+    }
+  },
+  "$id": "https://kitlegal.es/schemas/cita.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Salidas de los verbos cotejar y preparar del applet cita. Generado desde --describe con make schema-check; no editar.",
+  "title": "cita · cita"
+}

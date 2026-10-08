@@ -21,7 +21,7 @@ mkdir $WORK/home/.gemini/config
 mkdir $WORK/proyecto
 cd $WORK/proyecto
 exec kitlegal skills install -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 
 exec readlink $WORK/home/.gemini/config/skills/legal-core
@@ -35,7 +35,7 @@ grep '"ruta": *"\.gemini/config/skills/legal-core"' $WORK/home/.agents/skills/ki
 arbol .
 ! stdout .
 exec kitlegal skills install -g --json
-stdout '"estado":"sin cambios","enlaces":\[\{"host":"antigravity".*"estado":"sin cambios","enlaces":\[\{"host":"antigravity"'
+stdout '"estado":"sin cambios","enlaces":\[\{"host":"antigravity".*"estado":"sin cambios","enlaces":\[\{"host":"antigravity".*"estado":"sin cambios","enlaces":\[\{"host":"antigravity"'
 ! stdout '"instalada"|"actualizada"'
 
 # --- Con ~/.claude/ también: los dos hosts, claude primero ---
@@ -69,7 +69,7 @@ stdout '\A\.\./\.\./\.\./\.agents/skills/boe-legislacion\n\z'
 env HOME=$WORK/home-gemini-cli
 mkdir $WORK/home-gemini-cli/.gemini
 exec kitlegal skills install -g --json
-stdout '"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 arbol $WORK/home-gemini-cli
 ! stdout '\.gemini/'
 
@@ -78,7 +78,7 @@ env HOME=$WORK/home
 mkdir $WORK/local
 cd $WORK/local
 exec kitlegal skills install --host antigravity --json
-stdout '"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\},\{.*"estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 arbol .
 ! stdout '\.gemini|\.claude'

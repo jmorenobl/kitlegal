@@ -22,6 +22,11 @@ import (
 // lee el grafo de la sesión y no la caché preparada: la eval de la consulta
 // repetida solo necesita las consultas de su bloque y de su norma, las mismas que
 // la eval 01 (contrato evals-y-skill §1 de H7).
+//
+// Desde H23, tampoco generan ninguna los dos comandos de cita, con su ROJ, con
+// texto o sin nada más: el applet no consulta ninguna fuente, y las seis evals
+// de jurisprudencia no necesitan ninguna respuesta grabada
+// (contracts/evals-jurisprudencia.md §2 de H23; FR-054).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
@@ -202,6 +207,10 @@ func TestConsultasNecesarias(t *testing.T) {
 				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDeConsultaRepetida}},
 				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDeConsultaRepetida}},
 			},
+		},
+		{
+			nombre:   "cita-sin-consultas",
+			conjunto: conjuntoDeJurisprudencia(),
 		},
 		{
 			nombre: "sin-evals",

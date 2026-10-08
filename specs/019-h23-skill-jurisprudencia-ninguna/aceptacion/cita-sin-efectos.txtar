@@ -1,0 +1,72 @@
+# Los dos verbos de cita no dejan nada en el equipo: con la caché y el grafo
+# del mundo ya con contenido, el directorio de la caché tiene las mismas
+# entradas, con los mismos bytes, antes y después de cita preparar y de cita
+# cotejar, cada uno como orden y cada uno como herramienta. Entre las órdenes
+# hay una de cada verbo que termina con 0, una que falla, una con --offline
+# --no-graph y una con --dry-run; y entre las llamadas, una a cita_preparar y
+# otra a cita_cotejar, las dos con resultado.
+#
+# Cubre: US4.2 · FR-003, FR-085 · SC-006.
+#
+# La caché y el grafo los deja con contenido una lectura de boe articulo sobre
+# la reproducción, con el reloj T0, como en los guiones de graph. arbol es la
+# orden de contracts/arnes-e2e.md §4 de H19: una línea por entrada del
+# directorio, y de cada fichero, sus permisos y la huella de su contenido; un
+# fichero nuevo, uno que falta y uno que cambia dan otro listado. La ficha de
+# la llamada a cita_cotejar son las once primeras líneas del fragmento de la
+# evidencia del ADR 0036, que llegan al fichero de llamadas con una orden,
+# como en cita-herramientas.txtar. Lo que el guion escribe —los listados, la
+# ficha y lo que deja la orden mcp— queda en su directorio de trabajo, fuera
+# del de la caché.
+
+# Precondición: el binario registra el applet cita (FR-001).
+exec kitlegal --help
+stdout '^\s+cita\s'
+
+# --- La caché y el grafo, con contenido, y su listado ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '^\{"ok":true,'
+arbol cache
+stdout '^f cache\.db [0-7]{3} [0-9a-f]{64}$'
+stdout '^f world\.db [0-7]{3} [0-9a-f]{64}$'
+cp stdout antes.txt
+
+# --- Los dos verbos, como orden (US4.2, FR-003) ---
+exec kitlegal cita preparar ECLI:ES:TS:2023:3144 --json
+stdout '^\{"ok":true,'
+
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --json
+stdout '^\{"ok":true,'
+
+# Una que falla.
+exec sh -c 'kitlegal cita preparar ECLI:ES:TS:2023 --json; test $? -eq 2'
+
+# Una con --offline --no-graph, que no cambian nada: el applet no usa ni la
+# red ni el grafo.
+stdin $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+exec kitlegal cita cotejar --roj 'STS 1088/2023' --offline --no-graph --json
+stdout '^\{"ok":true,'
+
+# Y una con --dry-run, que no ejecuta nada.
+exec kitlegal cita preparar --texto 'cláusula suelo' --dry-run --json
+! stdout .
+
+# --- Los dos verbos, como herramienta (US4.2, FR-003) ---
+exec head -n 11 $KITLEGAL_SKILLS/../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt
+cp stdout ficha.txt
+exec awk 'NR == FNR { ficha = ficha $0 "\\n"; next } { i = index($0, "@FICHA@"); if (i > 0) $0 = substr($0, 1, i - 1) ficha substr($0, i + 7); print }' ficha.txt llamadas.plantilla
+cp stdout llamadas.txt
+
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 cita_preparar resultado$'
+stdout '^2 cita_cotejar resultado$'
+stdout '^salida 0$'
+
+# --- Ni la caché ni el grafo han cambiado (FR-085, SC-006) ---
+arbol cache
+cmp stdout antes.txt
+
+-- llamadas.plantilla --
+cita_preparar {"ecli":"ECLI:ES:TS:2023:3144"}
+cita_cotejar {"roj":"STS 1088/2023","documento":"@FICHA@"}

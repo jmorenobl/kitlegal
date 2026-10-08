@@ -1,0 +1,111 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio (I-IX) y una por regla de dependencia (R1-R6, más R7 del test), sin violaciones y con las cinco desviaciones en Complexity Tracking. Veracidad comprobada en esta sesión: `go test -count=1 -v -run '^TestArquitectura$' ./internal/` en el prototipo de `$TMPDIR/kl-proto` da PASS en R1, R2, R3, R6, R7 y en la garantía sin red, con `internal/core/cita`, `internal/core/ids` y `app/cita.go` dentro de ella; `.golangci.yml:260-290` solo veta `os.Exit`, `fmt.Print*`, `os.Stdout` y `os.Stderr`; e `internal/app/mcp.go:37` ya nombra `os.Stdin` en la raíz de composición. La fila IX dice ya lo que hace el diseño corregido: `cobertura` solo con el ECLI del Tribunal Constitucional."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: `git diff --no-index --stat` entre el `go.mod` del repositorio y el del prototipo no da ninguna diferencia, y Complexity Tracking no declara ninguna. Kong v1.16.1, `invopop/jsonschema`, `santhosh-tekuri/jsonschema`, `yaml.v3`, `go-internal` y `testify` son de la lista fijada; la huella SHA-256 y lo demás, de la biblioteca estándar."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Dominio en `internal/core/{ids,cita}` y applet en `internal/app/cita.go`. Leído en el prototipo: `core/cita` importa `core/ids`, `core/schema`, `fmt`, `strings` y `time`; `app/cita.go`, `internal/cli`, `core/cita`, `core/schema`, `crypto/sha256`, `io` y `log/slog`: ni `net/http`, ni SQLite, ni `os.Exit`, ni salida estándar. `TestArquitectura` en verde en el prototipo (ejecutado). La entrada estándar llega al verbo por `Despacho.Entrada`, que una llamada de herramienta no rellena: `internal/app/herramientas.go:284` construye `Despacho{Destino, Applet, Args}`."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "contracts/applet-cita.md §6: todo error del applet es de clase `argumentos` (2), el documento distinto es un hallazgo con 0 y `ok` verdadero (ADR 0023) y lo demás, `inesperado` (1). Ejecutado con el prototipo (`go -C $TMPDIR/kl-proto run ./cmd/kitlegal …` y `TestPrototipoDeCita`, 60 invocaciones): terminan con 2 y `clase` `argumentos` el ECLI mal formado, el de otro país, `--resolucion` sin `--fecha`, la referencia con `--texto`, `--texto \"\"`, `--roj \"\"`, `--roj=`, un ECLI `\"\"`, `--fecha \"\"`, `cita` sin verbo, el texto sin ficha y `cotejar --documento \"\"`; `cotejar --roj \"STS 1088/2023\"` con el fragmento termina con 0, `ok` verdadero y su hallazgo. El plazo vencido sigue la regla del kernel (`internal/app/main.go:583`, `conPlazoAgotado`)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "plan.md «Aceptación e2e»: cuatro guiones `testscript` con su historia y sus requisitos, que la primera tarea escribe en `aceptacion/` y quedan congelados; tabla de tests nuevos, lista de los que cambian, fixtures y tareas `[datos]`. Rehíce la lista de lo que rompe la entrega con `go test -count=1 ./...` en el prototipo ya corregido: fallan `TestPuntoDeEntrada`, `TestRegistroDeProduccion`, `TestRegistroDeE2E`, `TestHerramientasDelServidor`, `TestEsquemasPublicados`, `TestSuperficieDeIds`, `TestTablaDeComandosCoincideConLaGramatica`, `TestEsquemasDeHerramienta`, `TestEvalsDelRepositorio/linea-sin-consulta` y 21 guiones de `TestEntregaDelHito` —`argumentos`, los tres `h21-mcp-*` y los diecisiete que enumeran las skills—: todos están en la lista del plan y ninguno fuera de ella. Los guiones ganan los casos del argumento vacío (`--texto \"\"`, `--roj \"\"`, `--documento \"\"`) y la llamada con la ficha."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Los tres motivos de la ronda anterior están corregidos y lo he comprobado con el prototipo. (1) Un argumento escrito vacío es el error de su requisito (research D3; contracts/applet-cita.md §1, §6 y §7; data-model.md §2 y §4; gates/supuestos.md): `cita preparar ECLI:ES:TS:2023:3144 --texto \"\"`, `… --roj \"\"` y `cita cotejar --documento \"\"` con el fragmento en la entrada terminan con 2 y `argumentos`, como pide FR-006, FR-015 y FR-020. (2) `cobertura` solo va con el ECLI de órgano `TC` (D4; contrato §3; data-model §3; quickstart §1): `--roj \"STC 79/2024\"` da `referencia`, `direccion` y `casillas`, sin `cobertura`, y `ECLI:ES:TC:2024:79`, `{\"cendoj\":\"no-cubierto\",…}`. (3) El paso 3 del borrador manda pasar «la ficha y nada más», de la línea `Roj:` a la de `Tipo de Resolución:`. Lo que el plan añade a lo que el spec nombra —la entrada entregada por el kernel, la anotación `x-banderas`, el arnés de skills— está en Complexity Tracking con su requisito. No he visto nada más fuera del spec ni de la entrada del hito."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "plan.md «Constraints» y «Comprobación contra la rúbrica» excluyen `//nolint`, `t.Skip`, TODO y errores silenciados; research S7 remite los riesgos de `dupl` y `gocyclo` a partir funciones. «Tests y guiones existentes que cambian» no desactiva ninguno: cada cambio es el dato nuevo de una lista o una cifra. La corrección no añade ningún atajo: el prototipo no se linteó y lo dice (S7)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1-D30 llevan cada una su alternativa rechazada. D3 elige ahora campos puntero, que distinguen «no escrito» de «escrito vacío» sin tocar el kernel ni el generador de `--describe`, y rechaza con su razón la decisión anterior (terminaba con 0 donde FR-015 pide 2), un tipo propio con memoria y que el kernel entregue las marcas del analizador; D4 y D17 rechazan, con el requisito que incumplían, `cobertura` en toda salida y «el texto entero». La frase falsa sobre Kong ya no está (`grep` de «Kong no dice» en plan, research, data-model, quickstart y contracts: sin resultados)."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobadas por mí en esta sesión. V38: `kong@v1.16.1/model.go:271` (`Set`), `model.go:364` (`Value.Parse` crea el puntero antes de decodificar), `mapper.go:754` y `:776` (`ptrMapper` y su `Decode`). V39: `cita cotejar --describe` da cada argumento como `{\"type\":\"string\"}` y `x-banderas` `[roj, resolucion, fecha, documento]`; el `internal/cli` del prototipo solo difiere del repositorio en `describe.go` (14 líneas, la anotación), y su `SKILL.md` es idéntico al borrador de contracts/ (`git diff --no-index`, sin salida). V40: las órdenes del criterio d y, como llamada, el guion `zz-proto-cita-vacios` del prototipo: seis `error argumentos` y el servidor sigue (`salida 0`). V41: las once primeras líneas del fragmento (316 bytes, `head -n 11 | wc -c`) dan el mismo `data` y el mismo `hash` (`sha256:fc3a73e9…`) que el fragmento entero, con otra `url`. V3: el fragmento con dos bytes no UTF-8 da la misma `url` (`…55a3dd14…`) por `--documento` y por la entrada. V11: `arbol cache` igual antes y después (guion `zz-proto-cita`) y 0 entradas en `KITLEGAL_CACHE_DIR` tras 60 invocaciones. V12: la `url` del fragmento es la huella del manifiesto, `4886e0c8…ee27`, 2 353 bytes. M1: 474, 470, 572, 387-389, 424, 404, 412, 422, 559, 628-652, 869, 949, 1 005, 5 385 y 6 472 bytes, medidos. V21 y M4: criterio e. V23, V24, V25, V29, V30 y V32, leídas en `.golangci.yml`, `herramientas.go`, `main.go`, `definicion.go` (485, 22, 240 y su margen), `informe.sh:250-257` y `cierre.sh:64-70`. Lo no comprobable —el modelo, la red, el lint— figura como supuestos S1-S7."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Ejecuté contra el prototipo, con `go run` y los mismos argumentos, las órdenes de los escenarios 1, 2 y 3: las cinco de §1 con código 0, `fuente` `kitlegal.cita` y lo esperado (solo la quinta lleva `cobertura`); las de §2 con código 2 y `clase` `argumentos`, la segunda diciendo «no es español»; y de §3, el cotejo sin referencia (ocho datos, `se-corresponden`, la `url` con `4886e0c8…ee27`), el ROJ cruzado (0, `es_la_pedida` falso, `cruce` `numero-de-resolucion`), el número cruzado (1 005 bytes), `tail -n 12` (2), `--documento \"\"` con el fragmento en la entrada (2) y `head -n 11` (el mismo `data` que la tercera, con otra `url`). §0: `go1.27.1`. `make build` deja `bin/kitlegal` (Makefile:63-65) y `.gitignore` ignora `/bin/` y `/coverage.*`; `TestEntregaDelHito`, `TestHerramientasDelServidor` y `TestArquitectura` existen, y la forma `-run '^TestEntregaDelHito$/^<guion>$'` es la que usé con los guiones del prototipo. No he ejecutado tal cual `bin/kitlegal` (no existe con el applet), `shasum` (lo rechazó el sistema de permisos de la sesión; la huella la vi en la `url` del cotejo) ni los escenarios 4 a 9, que dependen de código que aún no existe."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "plan.md «Datos externos»: ninguno, sin manifiesto ni `TestGrabar*`, y `docs/SOURCES.md` no cambia (su línea 44 dice que `cendoj.jurisprudencia` salió de la tabla el 2026-10-07: nada se graba). El único texto de una sentencia es `evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt`, que está en `main` con su manifiesto (`git ls-tree main evidencias/adr-0036/`) y que ninguna tarea escribe; nada va a `data/`. La dirección del buscador del Tribunal Constitucional no sale de ninguna fuente: figura como supuesto no verificado (S1), como manda Assumptions del spec."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "«Obligaciones para tasks.md»: ninguna tarea usa la red, abre una sesión con modelo, publica ni mide en la plataforma; los escenarios 10 (el cierre, del workflow) y 11 (la persona, después) no son tareas. `scripts/workflow/cierre.sh:64-70` recoge el informe de cada trabajo `evals (<skill>)` sin enumerar skills, así que el trabajo nuevo no pide tocar el workflow."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Cálculo rehecho con medidas de esta sesión. Por sentencia que falta, un `cita preparar`: el modelo escribe menos de 80 bytes y recibe de 404 a 572 (387-389 con un texto; 424 fuera de cobertura); cinco sentencias, 2,9 kB como mucho, el doble con la herramienta. Por documento traído, un `cita cotejar`: el modelo escribe la ficha, 316 bytes, más la referencia y la orden, y recibe de 559 a 1 005; el caso mayor, documento que no es el pedido, son un cotejo y una consulta, unos 1,6 kB recibidos y menos de 500 escritos. La entrada del cotejo ya no crece con la sentencia: el paso 3 pasa la ficha, que da el mismo `data` que el fragmento entero (2 353 bytes), y «Uso» de plan.md y contracts/skill-jurisprudencia.md §3 cuentan lo que el modelo escribe además de lo que recibe. Nada crece con lo acumulado: 0 entradas en la caché tras 60 invocaciones, y cada salida depende solo de sus argumentos. Cada señal tiene quien la apaga —la línea, con el documento cotejado como el pedido; el hallazgo, con el documento pedido; `no-se-corresponden`, con el documento descargado de nuevo— y `cobertura` ya no va en ninguna consulta que no sea la del ECLI `TC`. `SKILL.md`, 195 líneas y 13 648 bytes, una vez por conversación; los dos esquemas, 5 385 y 6 472 bytes, una vez por conexión."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad» lleva cada mecanismo a su FR. `cita.Cobertura` queda solo en la consulta del ECLI de órgano `TC` (FR-014), con `no-cubierto` como único valor (`consulta.go` del prototipo y su esquema). Los campos puntero se trazan a FR-006, FR-015, FR-020 y FR-026, y sus casos de test pasan el umbral: la vía es un argumento de quien usa el kit o una propiedad de una llamada, y la diferencia, el código 2 en lugar del 0. No hay mecanismo para un estado sin vía real: el documento falso, la caché tocada a mano y la entrada que no se puede leer siguen la regla genérica, sin caso propio."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "La corrección no tocó la sección. La tabla tiene los cuatro `evals:jurisprudencia:…` de FR-066, los diez que deciden en `boe-legislacion` (nombres con los prefijos de `internal/evals/umbrales.go:39-42`) y una fila por SC-003 a SC-009, FR-055, FR-056 y FR-063. Recorrido: una respuesta que cuenta deja su umbral, con `decide: true`, en `cumple: false`, el veredicto en `fallo` y el trabajo `evals (jurisprudencia)` en rojo, que `cierre.sh` cuenta entre los rojos de la cabeza; en `make ci` lo ven fallar `TestCitaSinDocumento` y `TestUmbralesDeJurisprudencia` con sesiones sintéticas, un modo cada vez. Las formas son las que resuelve `scripts/workflow/informe.sh:250-257` (`git cat-file -e` para `ci:<ruta>`, `git grep` de `func <Test>(` o `<Test>:` para `ci:<ruta>:<Test>`): existen `skills-check:` (Makefile:126), `TestSkillsDelRepositorio`, `TestHerramientasDelServidor`, `TestArquitectura`, `TestDefinicionDelJob` y `TestEvalsDelRepositorio`. El tope: 485 + (37 + 36) × 272 = 20 341 s, por debajo de los 352 minutos de `evals.yml:186` (21 120 s)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "El ejemplo de un elemento de `umbrales` de contracts/evals-jurisprudencia.md §4 mide 376 bytes (contados), y plan.md y el contrato dicen «de 230 a 330». No cambia el diseño: son cuatro elementos por job.",
+    "contracts/skill-jurisprudencia.md §3 dice «470 a 572 bytes por sentencia», y una referencia sin equivalente da menos: 404, 412 y 422 bytes medidos (`--roj \"STC 79/2024\"`, `--roj \"SAP M 1234/2020\"`, `ECLI:ES:AN:2019:1.2.A`). plan.md lo acota bien, de 389 a 572.",
+    "La fila «FR-055, FR-063» de «Controles de umbral» pone `TestUmbralesDeJurisprudencia` como control de «12 en `boe-legislacion` y 0 en `legal-core`», y contracts/evals-jurisprudencia.md §7 lo deja en `TestUmbralesDelInforme` (que está en `internal/evals/umbrales_test.go:234`) y en los tests de hoy de `legal-core`.",
+    "`red` vacío (SC-001, FR-054) no tiene fila: lo decide el veredicto del job, que el hito no cambia en eso.",
+    "El cierre espera 10 800 s a las comprobaciones de la cabeza (`scripts/workflow/cierre.sh:52`) y, si no terminan, deja un dossier de dependencia inaccesible; el peor caso calculado de `evals (jurisprudencia)` a concurrencia 1 son 20 341 s, y research S4 solo lo contrasta con el tope de 352 minutos. Con lo medido en `boe-legislacion` (471 s para las 97 sesiones de un modo a concurrencia 4, `CLAUDE.md` y `definicion.go:540`) quedaría muy por debajo de la espera; no hay medida del trabajo nuevo.",
+    "Con la corrección, una llamada de herramienta que rellene con `\"\"` un argumento que no usa recibe un error de argumentos. El borrador lo avisa en la cabecera del protocolo; que el modelo que decide lo siga en el modo herramienta solo lo mide el cierre (research S2).",
+    "Los ejemplos del borrador de `SKILL.md` usan la sentencia de las evals 01, 04 y 06 (STS 1088/2023, de 4 de julio, con su ECLI): si el modelo los llevara a la respuesta de la 01, contaría en `cita_sin_documento`. FR-061 lo cuenta así a propósito; solo lo mide el cierre.",
+    "La `url` del sobre de un cotejo pedido por la skill es la huella de la ficha tal como la copia el modelo, no la del documento: está en gates/supuestos.md para la persona.",
+    "research D13: una lectura de la entrada que espera en una terminal no se corta a los 30 s; el kernel mira el plazo cuando el verbo vuelve (`conPlazoAgotado`) y termina con 4, `fuente-no-disponible`, un código que «Comandos» del borrador no nombra. La skill no escribe a mano en una terminal.",
+    "research D9 y la fila IV del Constitution Check dicen que todo error de argumentos lo declara el dominio; en el prototipo, tres los compone `app/cita.go` con `cli.ErrArgumentos`. Mismo código y misma clase: diferencia solo interna.",
+    "El prototipo no tiene evals, juicio ni umbrales: que cada tarea de los pasos 7 a 10 deje `make ci` en verde —las evals antes que la skill, la matriz al final— no está ejercido. Leí que `TestDefinicionDelJob` recorre las skills de la matriz, no las carpetas de `evals/`.",
+    "La dirección `https://hj.tribunalconstitucional.es/` va en el paso 7 del borrador y en la eval 05, que compara esa misma cadena: ningún control detecta que no sea la buena. Está en gates/supuestos.md para la persona (S1).",
+    "No he ejecutado en esta sesión: `make ci`, `golangci-lint` sobre el prototipo, `shasum` ni el binario compilado directamente (el sistema de permisos solo me dejó las órdenes de `go`), ni ninguna sesión con modelo."
+  ]
+}

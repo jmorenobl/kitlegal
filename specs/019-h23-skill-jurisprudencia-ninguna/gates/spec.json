@@ -1,0 +1,85 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La tabla de trazabilidad lleva cada parte del hito a sus requisitos: el applet y sus dos verbos (FR-001 a FR-026), las herramientas y el plugin (FR-030, FR-031), los siete pasos del protocolo (FR-041 a FR-047, uno por paso), el juez después (FR-055, FR-065), la documentación (FR-070), los controles (FR-080 a FR-088) y el umbral (FR-060 a FR-066). La corrección r1 no añade nada de fuera del hito: las dos prohibiciones nuevas de FR-047 (ni la línea ni `cita preparar` para una sentencia del Constitucional) cierran el paso 7 del protocolo, y la regla de delimitación de FR-061 precisa el umbral que el hito define. Los estados bajo el umbral no se especifican caso a caso: «Edge Cases», última viñeta, los remite a la regla genérica (`inesperado`, código 1, ADR 0023) y al ADR 0036 el documento falso."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» lleva las doce viñetas del hito, leídas en esta sesión una a una contra la línea 588 de `docs/ROADMAP.md`, y diecinueve de lo que el hito no especifica (líneas 438 a 456 del spec): otros verbos, `--fecha` con un ECLI o un ROJ, listas de siglas y la dirección del buscador del Constitucional en `data`, fichas que no son del CENDOJ o incompletas, abrir ficheros, el órgano como dato comparado, el documento falso, la salida legible propia, el grafo, el applet `mcp` y un mecanismo que excluya la skill de una release, el equivalente fuera del Supremo, citar con advertencia, las evals que no son las seis, lo que las evals no comparan, los umbrales del modelo informativo y de duración, `make evals-sondeo`, `references/` y `data/`, `docs/SOURCES.md`, y `CLAUDE.md`, el roadmap, un ADR y la release. El diff de la corrección no tiene ningún trozo en esa sección."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "Las cuatro respuestas de `gates/clarify-respuestas.json` están en «Clarifications» con su prefijo `(auto…)` y en los requisitos, y la corrección no deshace ninguna. Q1 (conservadora, comportamiento): FR-012, FR-023, «Fuera de alcance» («Deducir el equivalente… para otro órgano») y Assumptions; deja fuera justo lo dudoso, los demás órganos y los autos. Q2: FR-043 —que tras la corrección dice «rige el paso de FR-042», con la línea y la consulta de la referencia pedida— y la fila (f) de FR-050, con la línea, `cita preparar` con el ROJ, la dirección y la casilla «Nº ROJ». Q3 (conservadora): FR-048 («MUST NOT citar el documento, ni con la forma fija ni de otra manera», sin la línea de FR-042), FR-065 y Assumptions. Q4: FR-048 («sin mencionar la correspondencia») y la fila de la correspondencia de «Uso»."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«Criterios del hito, literales» (líneas 44 a 58 del spec) transcribe Entrega, Controles y Aceptación: leídas en esta sesión contra las líneas 568 a 570, 590 a 599 y 600 de `docs/ROADMAP.md`; el diff de la corrección no toca esa sección y `git status` solo enseña el directorio del feature, sin cambios en el roadmap. La Aceptación del run es SC-001, con su control, y la humana, SC-002. Cada control del hito es un requisito con su condición: golden (FR-080, FR-081: cuatro y siete), e2e con el código de cada caso (FR-082, SC-003: once, siete con 0 y cuatro con 2), fuzz (FR-083), arquitectura y caché y grafo (FR-084, FR-085), las seis evals con lo que hace pasar a cada sesión (FR-050), el texto byte a byte (FR-053, SC-008) y el umbral (FR-060 a FR-062). Los 29 escenarios de US1 a US6 van en Dado/Cuando/Entonces."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "CENDOJ (ADR 0036): el applet no alcanza `internal/httpx`, `net` ni `net/http` y las direcciones las abre la persona (FR-002); ninguna sentencia se cita sin su documento ni se dice que existe (FR-041, FR-042). Contrato de resultados (ADR 0023): el documento que no es el pedido es un hallazgo con 0 y `ok` verdadero (FR-025) y la referencia mal dada, `argumentos` con 2 (FR-006, FR-026). Sobre de todo applet sin cambiar el contrato (FR-004). Cobertura declarada dentro de `data` (FR-014) y ninguna conclusión de «no existe» (FR-042). Skill sin código, genérica, con menos de 300 líneas y la tabla con orden y herramienta (FR-040; ADR 0035). Juez: ninguna clase sin medir, y `jurisprudencia` sin carpeta `juez` (FR-055; ADR 0037). Modelo que decide por su id (Vocabulario; ADR 0031). Verbos, banderas y claves en español. `boe-legislacion` y `legal-core` no cambian (FR-049). La corrección no toca ninguna: declarar no cubierta la sentencia del Constitucional sin preparar nada (FR-047) es el paso 7 del hito."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión: `gates/spec-precheck.txt` tiene 0 bytes (`wc -c`), ningún defecto mecánico; 65 ids definidos (55 FR y 10 SC, contados al leer); 29 escenarios (6, 6, 7, 4, 5 y 1); las doce viñetas literales; el fragmento de `evidencias/adr-0036/` mide 2 353 bytes (`wc -c`); el control de las 300 líneas existe (`internal/skills/sincronia.go:359`). La marca que en la ronda 1 no era cierta, «Requirements are testable and unambiguous», ya lo es: nombra la regla de FR-061 que dice dónde acaba un ECLI y su caso en FR-086, y las dos excepciones del Constitucional (FR-010 a FR-014 y FR-042 a FR-047), y las cuatro cosas están en el spec y en `gates/spec-correccion-r1.diff`. La nota de la corrección enumera los requisitos tocados y coincide con ese diff, y dice que el corrector no ejecutó ningún test."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "Lo que nombra del repositorio lo fija el hito o ya existe: `internal/httpx`, `net`, `net/http`, `testscript`, `make ci`, `skills-check`, `schema-check`, `evals/jurisprudencia/`, el trabajo `evals (jurisprudencia)`, `gates/supuestos.md`. Las formas de FR-005, FR-013 y FR-021, y la delimitación de un ECLI que la corrección añade a FR-061, dicen qué admite o qué cuenta, no cómo se construye. Quedan para el plan, dicho en cada requisito y en la última viñeta de Assumptions: las claves de `data`, el nombre del argumento del texto, los valores de `fuente` y `url`, el identificador del hallazgo, los paquetes, los campos nuevos del formato de eval y la redacción de `SKILL.md`."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "Los dos motivos de la ronda 1 están corregidos. (1) FR-061 delimita un ECLI con una sola regla, «la misma en la respuesta, en la pregunta y en la salida de una operación»: «el número llega hasta el primer carácter que no es una letra ASCII, una cifra o un punto, y los puntos en que termine no son suyos», con su ejemplo («su ECLI es ECLI:ES:TS:2023:3144.» da `ECLI:ES:TS:2023:3144`), y FR-086 gana el caso del ECLI delante del punto que cierra la frase, que no cuenta. Recorrida con las formas que dan las seis evals: en el corchete de la cita acaba en la coma; en la ficha, en el fin de línea; en el JSON de un sobre, en la comilla; entre énfasis de Markdown, en el asterisco. (2) FR-042 exceptúa «la del Tribunal Constitucional (FR-047)», y FR-047 dice que el paso de FR-042 no rige para ella, que la respuesta no lleva la línea ni una consulta del CENDOJ y que la skill no pide `cita preparar`, «tampoco con su ECLI»; concuerdan el escenario 6 de US3, la viñeta de «Edge Cases», la fila (e) de FR-050 («no se le exige ninguna operación ni la línea») y la fila de FR-014 de «Uso». FR-010 exceptúa el ECLI del Constitucional con su remisión a FR-014 y FR-011 se acota a «la salida de FR-010». Releído el spec entero tras la corrección, no queda ningún par de requisitos que no pueda cumplirse a la vez, y lo que la corrección deja sin decir no pasa el umbral (observaciones)."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro» da, por salida, quién la pide, cuántas veces, su tamaño y cuándo deja de darse. Cálculo, con las cifras del spec —cálculos suyos con claves supuestas, no medidas: los verbos no existen; en esta sesión solo he medido el fragmento, 2 353 bytes—: `cita preparar`, como mucho 3 casillas (FR-011), unos 276 bytes de `data` más unos 199 de sobre, una invocación por sentencia que falta (FR-042): cinco sentencias, unos 2,4 KB, y cerca del doble por herramienta, donde el sobre va dos veces (H21); `cita cotejar`, 8 datos y como mucho 1 hallazgo (FR-022, FR-025), de 297 a 672 bytes más 199, una invocación por documento (FR-043). Con cientos de sentencias acumuladas no crece nada: el applet no escribe ni en la caché ni en el grafo (FR-003) y cada invocación depende solo de sus argumentos y de su texto. Recorrido: en la consulta siguiente la línea `⚠ SENTENCIA NO COMPROBADA:` deja de darse si la persona trajo el documento y se cotejó, y el hallazgo, con el documento pedido; «no se deduce» no llega a la respuesta (FR-048); al cabo de un mes no queda ninguna señal guardada y la misma entrada da la misma salida. La fila que en la ronda 1 dependía del segundo motivo ya está fijada: la skill no pide la declaración de cobertura del Constitucional (FR-047) y la línea no se da para una sentencia cuyo documento nunca tendría ficha del CENDOJ, que habría sido una señal que no caduca (Assumptions)."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "`cita_sin_documento:<modelo>:<modo>` <= 0, en el job de cierre (FR-060): «con la medida por encima de 0 en cualquiera de los dos modos, el veredicto del informe es `fallo`… y la comprobación `evals (jurisprudencia)` de la propuesta de cambio sale en rojo». `sin_activar:<modelo>:<modo>` <= 0 (FR-062): «el veredicto es `fallo` y `evals (jurisprudencia)` sale en rojo». SC-001: las tres comprobaciones `evals (<skill>)`, «que el cierre del workflow cuenta»; leído en esta sesión: el trabajo se llama `evals (${{ matrix.skill }})` (`.github/workflows/evals.yml:148`) y `scripts/workflow/cierre.sh:160-161` deja el cierre sin verde con cualquier comprobación en `fail` o `cancel`. Menos de 300 líneas (FR-040, SC-009): «`make skills-check`, en `make ci`, falla con 300 líneas o más». Doce herramientas (FR-030, SC-009): «el control de conformidad de H21 falla en `make ci`». Exactamente cuatro umbrales y ninguno de duración (FR-063, SC-007): «los tests de `make ci` sobre la definición del job y sobre el informe fallan». Seis evals (FR-056): «la comprobación del conjunto, en `make ci`, falla». 2 353 bytes (FR-053, SC-008): «un test de `make ci` falla». Once casos, once golden, 0 caminos y 0 cambios (SC-003 a SC-006): cada uno con su **Control** en `make ci`. La corrección no rebaja ninguno: los cuatro siguen en <= 0 y `decide: true`, FR-064 lo prohíbe y FR-066 fija las filas de «Controles de umbral». SC-002 lo mide una persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Nueva, de la corrección: las dos prohibiciones de FR-047 —que la respuesta a una sentencia del Constitucional no lleve la línea y que la sesión no pida `cita preparar`— no tienen control: la eval (e) no las compara. Está dicho en FR-047 y en `gates/supuestos.md`, pero FR-065 sigue enumerando solo dos reglas sin comprobar y «Fuera de alcance» no lo lista. No es un umbral numérico y el informe final ya lo recibe por `supuestos.md`.",
+    "Nueva, de la corrección: FR-061 dice que un ECLI «se compara sin distinguir mayúsculas de minúsculas» y no dice si un texto escrito `ecli:es:…` se reconoce como ECLI. Solo importaría con un modelo que escribiera en minúsculas un ECLI inventado.",
+    "Nueva, de la corrección: con la regla de FR-061, un ECLI seguido de un punto y de una letra sin espacio («…3144.El», o un nombre de fichero «…3144.pdf») se lee con un número más largo y dejaría de casar con el de la pregunta o el de la ficha. Las seis evals pegan texto y no adjuntan ficheros.",
+    "FR-051 compara una dirección «por estar en la respuesta tal como los da `data`», y la del buscador del Constitucional de la eval (e) no la da ninguna operación: será un literal de la eval, que fija el plan (Assumptions).",
+    "FR-047 y eval (e): la dirección del buscador del Tribunal Constitucional no está en el repositorio (`grep` de `tribunalconstitucional` en `docs`, `skills`, `evals`, `data`, `internal`, `web/src`, `README.md` y `CLAUDE.md`, en esta sesión: sin resultados); el run la escribirá de memoria en `SKILL.md` y en la eval. El spec lo deja como supuesto para la persona.",
+    "FR-042 dice «Comprobable: las evals (a) y (b)», y esas evals no comprueban que la respuesta no diga que la sentencia existe («Fuera de alcance» lo dice): a «¿existe…?», una respuesta que diga que existe y lleve la línea y la consulta pasa. Lo lee una persona en SC-002, con la release.",
+    "FR-044: «el órgano» de la parte de la cita anterior al corchete no dice si sale de las siglas del ROJ o del dato «Órgano» de la ficha; con un documento del Supremo coinciden, con otro no. No se compara (FR-051) y lo fija la redacción de `SKILL.md`.",
+    "FR-051 da tolerancias a la línea y no dice cuáles tiene el corchete de la cita (texto delante del ECLI dentro del corchete, énfasis de Markdown); las de las etiquetas de los avisos están escritas en `internal/evals/citas.go`. Es del plan.",
+    "FR-043 no dice qué pasa la skill a `cita cotejar` cuando el texto está pegado: la ficha o el documento entero. «Edge Cases» dice «pasa la ficha» para el PDF, como el hito. Con un documento de varias páginas, el texto entero son decenas de KB que el modelo reescribe en el argumento, y la huella del sobre es la de lo que se pasa. Conviene que el plan lo fije en `SKILL.md`.",
+    "FR-021 no dice dónde acaba la ficha ni cuántos blancos admite entre la etiqueta y su valor o alrededor del guion de la línea `Roj:`; admite blancos al principio y al final de cada línea. El repositorio solo tiene una ficha, y no hay evidencia de otra forma.",
+    "Para el plan: la tercera skill empotrada cambia la salida de `skills install`, `list` y `doctor`. Nombran `legal-core` `internal/app/testdata/script/skills-salida-legible.txtar`, `skills-host-antigravity.txtar`, quince guiones `h19-skills-*.txtar`, `internal/app/skills_test.go` e `internal/empaquetado/ejecutar_test.go` (`grep -l legal-core`, en esta sesión; no he leído qué exige cada uno); lo que cambie bajo `testdata/` va en tareas `[datos]`, que FR-052 solo dice del formato de eval.",
+    "El ejemplo de la cita de FR-044 es la sentencia por la que preguntan la eval (a) y la aceptación humana. Si `SKILL.md` lo lleva literal, el modelo tiene en contexto su ECLI y su ROJ cuando se le pregunta si existe; FR-061 no lo da por salida de una operación, así que contaría en el umbral.",
+    "FR-030 y SC-009: el control de conformidad compara las herramientas con los verbos del registro, no con doce: lo dice el propio FR-030. FR-001 dice «Comprobable: FR-082» y FR-082 no tiene el caso de `kitlegal cita` sin verbo. Lo juzga el plan (FR-066).",
+    "Fila (f) de FR-050: «lleva la línea con esa referencia»; FR-051 dice que el resto de la línea no se compara. Rige FR-051, y el valor `STS 1088/2023` ya se exige por la casilla.",
+    "FR-020: pedido como orden, sin el argumento del texto y con una terminal en la entrada estándar, el verbo espera hasta el fin de la entrada; el spec no lo dice. Solo le pasa a una persona en la terminal, que puede pegar el texto.",
+    "Assumptions: lo que el modelo da como argumento a `cita preparar` vuelve en su sobre y deja de contar en la segunda condición de `cita_sin_documento`, y el equivalente de FR-012 lleva a la respuesta un ECLI deducido, no leído en un documento. Es la definición literal del hito («la salida de ninguna herramienta de la sesión») y el spec lo anota para quien lea el informe final."
+  ],
+  "entrada": []
+}
