@@ -1,0 +1,833 @@
+{
+  "sondeo": "con-skill",
+  "modelo": "claude-sonnet-5-5",
+  "repeticiones": 3,
+  "preguntas": [
+    {
+      "id": "07-resumen-de-una-conocida",
+      "origen": "nueva"
+    },
+    {
+      "id": "08-doctrina-por-materia",
+      "origen": "nueva"
+    },
+    {
+      "id": "09-doctrina-con-el-fallo-delante",
+      "origen": "nueva"
+    },
+    {
+      "id": "10-resumen-con-el-fallo-delante",
+      "origen": "nueva"
+    },
+    {
+      "id": "11-de-que-trata-con-la-ficha-sola",
+      "origen": "nueva"
+    },
+    {
+      "id": "12-doctrina-dada-por-hecha",
+      "origen": "nueva"
+    }
+  ],
+  "inicio": {
+    "tools": [
+      "Task",
+      "Bash",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "Edit",
+      "EnterWorktree",
+      "ExitWorktree",
+      "ListAgents",
+      "NotebookEdit",
+      "Read",
+      "RemoteTrigger",
+      "ReportFindings",
+      "ScheduleWakeup",
+      "SendMessage",
+      "Skill",
+      "TaskStop",
+      "ToolSearch",
+      "Workflow",
+      "Write"
+    ],
+    "mcp_servers": [],
+    "skills": [
+      "boe-legislacion",
+      "jurisprudencia",
+      "legal-core",
+      "deep-research",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "schedule",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      }
+    ],
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "slash_commands": [
+      "boe-legislacion",
+      "jurisprudencia",
+      "legal-core",
+      "deep-research",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "schedule",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "focus",
+      "heapdump",
+      "init",
+      "mcp",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage-credits",
+      "extra-usage",
+      "usage",
+      "insights",
+      "recap",
+      "goal",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "permissionMode": "bypassPermissions",
+    "model": "claude-sonnet-5-5"
+  },
+  "sesiones": [
+    {
+      "sesion": "07-resumen-de-una-conocida-con-skill-01",
+      "pregunta": "07-resumen-de-una-conocida",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo resumirla todavía: la sentencia no está en la conversación, y no cito ni resumo una sentencia de memoria.\n\n⚠ SENTENCIA NO COMPROBADA: STS 241/2013, de 9 de mayo\n\nNo he comprobado que exista, ni qué resolvió. Para encontrarla en el buscador del CENDOJ, que pide un CAPTCHA y por eso lo tiene que usar usted:\n\n1. Abra https://www.poderjudicial.es/search/indexAN.jsp\n2. Escriba estos valores en sus casillas:\n   - **Nº Resolución:** `241/2013`\n   - **Fecha resolución, Desde:** `09/05/2013`\n   - **Fecha resolución, Hasta:** `09/05/2013`\n3. Busque y descargue el documento de la sentencia.\n4. Péguelo aquí o adjunte el PDF.\n\nCuando lo traiga, compruebo que es la sentencia que pidió, la cito con sus datos y le hago el resumen a partir de su texto.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json",
+            "description": "Prepare CENDOJ search for the ruling"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/indexAN.jsp\",\"fecha_consulta\":\"2026-10-09T14:20:23.969408+02:00\",\"hash\":\"sha256:fad3f3d67577be0d768cf9eb247ffc3b919aa29291b923c49fd9613763b67277\",\"data\":{\"referencia\":{\"forma\":\"resolucion\",\"valor\":\"241/2013\",\"fecha\":\"2013-05-09\"},\"direccion\":\"https://www.poderjudicial.es/search/indexAN.jsp\",\"casillas\":[{\"nombre\":\"Nº Resolución\",\"valor\":\"241/2013\"},{\"nombre\":\"Fecha resolución\",\"campo\":\"Desde\",\"valor\":\"09/05/2013\"},{\"nombre\":\"Fecha resolución\",\"campo\":\"Hasta\",\"valor\":\"09/05/2013\"}]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 9.4
+    },
+    {
+      "sesion": "07-resumen-de-una-conocida-con-skill-02",
+      "pregunta": "07-resumen-de-una-conocida",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "⚠ SENTENCIA NO COMPROBADA: STS 241/2013, de 9 de mayo\n\nNo puedo resumirla. La sentencia no está en la conversación y no la cito de memoria. Tampoco puedo decirle si existe, de qué trata ni qué resolvió, porque nadie ha comprobado nada de eso. kitlegal no consulta el buscador del CENDOJ, que pide un CAPTCHA. Esto es lo que tiene que hacer usted:\n\n1. Abra https://www.poderjudicial.es/search/indexAN.jsp\n2. Escriba estos valores en las casillas:\n   - **Nº Resolución:** `241/2013`\n   - **Fecha resolución, Desde:** `09/05/2013`\n   - **Fecha resolución, Hasta:** `09/05/2013`\n3. Pulse buscar y descargue el documento de la sentencia.\n4. Tráigalo, pegado o como PDF adjunto.\n\nCon el documento delante comprobaré que es la sentencia pedida y la citaré con los datos de su ficha. Después le resumiré el contenido.\n\nSi es una sentencia del Tribunal Constitucional, no está en el CENDOJ. Se consulta en https://hj.tribunalconstitucional.es/.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json",
+            "description": "Prepare CENDOJ search for the ruling"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/indexAN.jsp\",\"fecha_consulta\":\"2026-10-09T14:20:23.916547+02:00\",\"hash\":\"sha256:fad3f3d67577be0d768cf9eb247ffc3b919aa29291b923c49fd9613763b67277\",\"data\":{\"referencia\":{\"forma\":\"resolucion\",\"valor\":\"241/2013\",\"fecha\":\"2013-05-09\"},\"direccion\":\"https://www.poderjudicial.es/search/indexAN.jsp\",\"casillas\":[{\"nombre\":\"Nº Resolución\",\"valor\":\"241/2013\"},{\"nombre\":\"Fecha resolución\",\"campo\":\"Desde\",\"valor\":\"09/05/2013\"},{\"nombre\":\"Fecha resolución\",\"campo\":\"Hasta\",\"valor\":\"09/05/2013\"}]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 9.6
+    },
+    {
+      "sesion": "07-resumen-de-una-conocida-con-skill-03",
+      "pregunta": "07-resumen-de-una-conocida",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo resumirte la STS 241/2013, de 9 de mayo, porque no tengo su documento. Una sentencia citada de memoria puede no existir o decir otra cosa. Tampoco puedo decirte si existe, porque nadie la ha comprobado.\n\n⚠ SENTENCIA NO COMPROBADA: STS 241/2013, de 9 de mayo\n\nPara encontrarla en el buscador de jurisprudencia del CENDOJ:\n\n1. Abre https://www.poderjudicial.es/search/indexAN.jsp\n2. Escribe `241/2013` en la casilla **Nº Resolución**.\n3. Escribe `09/05/2013` en **Fecha resolución**, tanto en «Desde» como en «Hasta».\n4. Busca y descarga el documento.\n5. Tráelo, pegado o como PDF adjunto. Debe incluir el encabezamiento con la línea `Roj:`, `Órgano:`, `Fecha:`, etc.\n\nCon el documento delante compruebo que es la sentencia pedida y te la resumo con su texto.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json",
+            "description": "Prepare CENDOJ search for the ruling"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/indexAN.jsp\",\"fecha_consulta\":\"2026-10-09T14:20:23.993894+02:00\",\"hash\":\"sha256:fad3f3d67577be0d768cf9eb247ffc3b919aa29291b923c49fd9613763b67277\",\"data\":{\"referencia\":{\"forma\":\"resolucion\",\"valor\":\"241/2013\",\"fecha\":\"2013-05-09\"},\"direccion\":\"https://www.poderjudicial.es/search/indexAN.jsp\",\"casillas\":[{\"nombre\":\"Nº Resolución\",\"valor\":\"241/2013\"},{\"nombre\":\"Fecha resolución\",\"campo\":\"Desde\",\"valor\":\"09/05/2013\"},{\"nombre\":\"Fecha resolución\",\"campo\":\"Hasta\",\"valor\":\"09/05/2013\"}]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 9.4
+    },
+    {
+      "sesion": "08-doctrina-por-materia-con-skill-01",
+      "pregunta": "08-doctrina-por-materia",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo darle la doctrina del Tribunal Supremo sobre el vencimiento anticipado de memoria. Una sentencia solo se puede citar o resumir con su documento delante, y en esta conversación no hay ninguno. Además, kitlegal no consulta el buscador del CENDOJ, porque pide un CAPTCHA, así que la búsqueda tiene que hacerla usted desde su navegador.\n\n**Cómo localizar las sentencias**\n\n1. Abra esta dirección, que lanza en el buscador del Poder Judicial la búsqueda «vencimiento anticipado préstamo hipotecario»:\n   https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\n2. La búsqueda no tiene más casillas que rellenar. Si quiere acotarla, filtre por órgano (Tribunal Supremo, Sala Primera) y por fecha.\n3. Descargue las sentencias que le interesen, en PDF o como texto, y adjúntelas o péguelas aquí.\n\n**Qué haré con lo que traiga**\n\n- Comprobaré que cada documento es la sentencia que usted busca, a partir de su ficha (el encabezamiento del CENDOJ).\n- Las citaré con su número, fecha, ECLI y ROJ tal como figuren en la ficha.\n- Le resumiré la doctrina solo con lo que digan los textos aportados. Si un texto está recortado, le diré qué partes no he leído.\n\nMientras tanto, la norma sí puedo consultarla con `boe-legislacion`. Por ejemplo, el artículo 693 de la Ley de Enjuiciamiento Civil, el artículo 24 de la Ley 5/2019 de contratos de crédito inmobiliario y el artículo 129 bis de la Ley Hipotecaria. Dígame si quiere que los lea.\n\nSi ya tiene alguna sentencia en mente, dígame su número y fecha, o su ECLI, y le preparo la consulta exacta para encontrarla.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia",
+            "args": "doctrina del Tribunal Supremo sobre el vencimiento anticipado en préstamos hipotecarios"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --texto \"vencimiento anticipado préstamo hipotecario\" --json",
+            "description": "Prepare CENDOJ search for the topic"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\",\"fecha_consulta\":\"2026-10-09T14:20:33.168655+02:00\",\"hash\":\"sha256:448abb49f41ee4766f11f98eaa8884d306aff9523dd3b848636f620d6a1cf956\",\"data\":{\"texto\":\"vencimiento anticipado préstamo hipotecario\",\"direccion\":\"https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\",\"casillas\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 11.9
+    },
+    {
+      "sesion": "08-doctrina-por-materia-con-skill-02",
+      "pregunta": "08-doctrina-por-materia",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo darte la doctrina del Tribunal Supremo sobre el vencimiento anticipado sin tener delante las sentencias. Una sentencia citada de memoria puede no existir o decir otra cosa, y un escrito que la lleve se paga caro. No cito ni resumo ninguna por ahora.\n\nkitlegal no consulta el buscador del CENDOJ, porque pide un CAPTCHA. Esta es la búsqueda ya preparada:\n\n1. Abre esta dirección. Lanza la búsqueda «vencimiento anticipado préstamo hipotecario»:\n   https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\n2. Si quieres acotar, filtra por órgano (Tribunal Supremo, Sala Primera) y por fecha.\n3. Descarga las sentencias que te interesen y pégalas o adjúntalas aquí.\n\nCon los documentos delante, haré lo siguiente:\n- Cotejaré la ficha de cada uno.\n- Los citaré en la forma fija, con ECLI y ROJ.\n- Resumiré la doctrina a partir de su texto.\n\nTambién puedo traerte el texto vigente de los artículos que sirven de base, con la skill `boe-legislacion`. Son el art. 693 de la LEC y el art. 24 de la Ley 5/2019, de contratos de crédito inmobiliario. Dime si los quieres.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia",
+            "args": "doctrina del Tribunal Supremo sobre vencimiento anticipado en préstamos hipotecarios"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --texto \"vencimiento anticipado préstamo hipotecario\" --json",
+            "description": "Prepara la consulta de jurisprudencia en el CENDOJ"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\",\"fecha_consulta\":\"2026-10-09T14:20:53.827809+02:00\",\"hash\":\"sha256:448abb49f41ee4766f11f98eaa8884d306aff9523dd3b848636f620d6a1cf956\",\"data\":{\"texto\":\"vencimiento anticipado préstamo hipotecario\",\"direccion\":\"https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\",\"casillas\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 32.2
+    },
+    {
+      "sesion": "08-doctrina-por-materia-con-skill-03",
+      "pregunta": "08-doctrina-por-materia",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo resumir la doctrina del Tribunal Supremo sobre el vencimiento anticipado sin tener las sentencias delante. Una sentencia citada de memoria puede no existir o decir otra cosa, y en un escrito eso sale caro. Por eso no cito ninguna ni resumo su contenido.\n\n**Cómo conseguir las sentencias**\n\nAbra esta dirección, que lleva la búsqueda ya hecha en el buscador del CENDOJ:\n\nhttps://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\n\nEl buscador pide un CAPTCHA, así que esa parte tiene que hacerla usted. Cuando aparezcan los resultados, le sugiero este orden:\n\n1. Filtre por órgano: Tribunal Supremo, Sala Primera (Civil). Ahí está la doctrina sobre cláusulas abusivas en contratos de préstamo hipotecario. Los autos de inadmisión que citan esas sentencias también sirven.\n2. Ordene por fecha y descargue las más recientes. Estas son las que fijan el criterio vigente.\n3. Descargue también las sentencias del Pleno. Suelen ser las que fijan doctrina, y las posteriores acostumbran a remitirse a ellas.\n4. Si busca una sentencia concreta, dígame su número y fecha, su ECLI o su ROJ. Le preparo la consulta exacta, casilla por casilla.\n\n**Qué haré cuando las traiga**\n\nAdjúntelas o péguelas con su encabezamiento (el que empieza por `Roj: … - ECLI:…`). Entonces:\n\n- Compruebo que cada documento es el que busca.\n- Las cito con sus datos (número, fecha, ECLI y ROJ) tal como constan en el documento.\n- Le explico la doctrina a partir de su texto: requisitos de la cláusula, control de abusividad y consecuencias de su nulidad. Si falta algún fundamento en lo que me pase, se lo diré.\n\n**Normativa**\n\nSi le interesa la regulación que aplican las sentencias, por ejemplo el artículo 693 de la LEC o el artículo 24 de la Ley 5/2019, puedo leerla en el BOE con la skill `boe-legislacion` y citarla con su identificador.\n\n**Sentencias del TJUE**\n\nEl Tribunal Supremo aplica en esta materia la jurisprudencia del TJUE. Si quiere que la analice, necesitaré también esas resoluciones. Las del Tribunal de Justicia no están en el CENDOJ.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia",
+            "args": "doctrina del Tribunal Supremo sobre el vencimiento anticipado en préstamos hipotecarios"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --texto \"vencimiento anticipado préstamo hipotecario\" --json",
+            "description": "Preparar consulta CENDOJ sobre vencimiento anticipado"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\",\"fecha_consulta\":\"2026-10-09T14:20:34.665753+02:00\",\"hash\":\"sha256:448abb49f41ee4766f11f98eaa8884d306aff9523dd3b848636f620d6a1cf956\",\"data\":{\"texto\":\"vencimiento anticipado préstamo hipotecario\",\"direccion\":\"https://www.poderjudicial.es/search/sentencias/vencimiento%20anticipado%20pr%C3%A9stamo%20hipotecario/1/AN\",\"casillas\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 14.7
+    },
+    {
+      "sesion": "09-doctrina-con-el-fallo-delante-con-skill-01",
+      "pregunta": "09-doctrina-con-el-fallo-delante",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con lo que has traído no puedo decirte la doctrina ni los fundamentos. El texto que has pegado tiene la ficha y el fallo, pero los fundamentos de derecho están omitidos con un `[…]`. Esa parte no la he leído, y no la voy a reconstruir de memoria.\n\n**Cita**\n\nSTS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]\n\nLa cita sale del documento que has aportado. kitlegal no ha consultado el buscador del CENDOJ. El ROJ y el ECLI de la ficha corresponden a la misma resolución.\n\n**Datos de la ficha**\n- Órgano: Tribunal Supremo, Sala de lo Civil.\n- Recurso: 4703/2019.\n- Ponente: Pedro José Vela Torres.\n- Tipo de resolución: sentencia.\n\n**Lo que dice el fallo**\n- Estima los recursos de casación y por infracción procesal de D.ª Inocencia. Casa y anula la sentencia 876/2019, de 15 de mayo, de la Sección 15.ª de la Audiencia Provincial de Barcelona.\n- Al asumir la instancia, estima parcialmente el recurso de apelación de la demandante y revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona.\n- Estima parcialmente la demanda y declara solo la nulidad, por abusiva, de una cláusula del préstamo hipotecario de 13 de junio de 2008 con Bankinter. Esa cláusula permitía a la entidad dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses. Esa facultad operaba si el contravalor del capital pendiente excedía del límite pactado.\n- Desestima las demás pretensiones, incluida la subsidiaria, e impone a la demandada las costas de primera instancia.\n- No impone costas ni en apelación ni en los recursos extraordinarios, y ordena devolver los depósitos.\n\n**Lo que el fallo permite deducir**\nSolo declara abusiva la cláusula de vencimiento anticipado por exceso del contravalor del capital pendiente, y rechaza lo demás. Eso no me dice por qué la declara abusiva, qué criterio aplica ni qué doctrina fija o reitera. El fallo tampoco indica si el préstamo estaba referenciado a una divisa, aunque la mención al «contravalor» podría apuntarlo. No puedo afirmarlo sin los fundamentos.\n\n**Para completar el análisis**\nPega el texto íntegro de la sentencia o adjunta el PDF descargado del CENDOJ, con los fundamentos de derecho. Con eso te resumo la doctrina y su fundamentación con las palabras de la propia sentencia. También te señalaré qué sentencias cita en apoyo, que se nombrarán como las nombra el texto.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha del documento"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:20:45.575209+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 13.6
+    },
+    {
+      "sesion": "09-doctrina-con-el-fallo-delante-con-skill-02",
+      "pregunta": "09-doctrina-con-el-fallo-delante",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo decirle qué doctrina fija la sentencia ni en qué fundamentos se apoya. El texto que ha pegado trae la ficha y el fallo, pero los antecedentes y los fundamentos de derecho están sustituidos por `[…]`. No he leído la ratio decidendi y no voy a reconstruirla de memoria.\n\n**Cita** (sale del documento que ha aportado; kitlegal no ha consultado el buscador del CENDOJ):\n\nSTS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]\n\n**Datos de la ficha**, que se corresponden entre sí (el ROJ y el ECLI son de la misma resolución):\n- Órgano: Tribunal Supremo, Sala de lo Civil, Sección 1.ª.\n- Recurso: casación 4703/2019.\n- Ponente: Pedro José Vela Torres.\n- Tipo de resolución: sentencia.\n\n**Qué resuelve, según el fallo**\n- Estima los recursos extraordinario por infracción procesal y de casación de la prestataria, y casa y anula la sentencia 876/2019 de la Sección 15.ª de la Audiencia Provincial de Barcelona.\n- Asumiendo la instancia, estima parcialmente su recurso de apelación contra la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona (juicio ordinario 364/2016) y estima parcialmente la demanda.\n- Declara únicamente la nulidad, por abusiva, de la cláusula del préstamo hipotecario de 13 de junio de 2008 que permitía a Bankinter dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses. La cláusula se refiere al caso en que el contravalor del capital pendiente excediera del límite pactado.\n- Desestima las demás pretensiones, incluida la subsidiaria.\n- Impone a la demandada las costas de primera instancia. No impone las costas de la apelación ni las de los recursos extraordinarios, y ordena devolver los depósitos.\n\n**Qué se puede deducir del fallo y qué no**\n- El fallo indica que la cláusula de vencimiento anticipado cuestionada se declara abusiva y las demás pretensiones se rechazan. No dice por qué.\n- Las razones sobre el control de abusividad, el criterio aplicado a esa cláusula y por qué se rechazan las otras pretensiones están en los fundamentos que faltan. Tampoco sé si la sentencia cita otros precedentes o si fija una doctrina nueva.\n\n**Cómo obtener lo que falta**\nDescargue la sentencia completa desde el buscador del CENDOJ, con el mismo documento que ya tiene, y péguela o adjúntela, incluidos los antecedentes de hecho y los fundamentos de derecho. Con el texto delante podré indicarle la doctrina y los fundamentos en los que se apoya.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha del documento del CENDOJ"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:20:50.483756+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 15.6
+    },
+    {
+      "sesion": "09-doctrina-con-el-fallo-delante-con-skill-03",
+      "pregunta": "09-doctrina-con-el-fallo-delante",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo decirle qué doctrina fija esta sentencia ni en qué fundamentos se apoya. El documento que ha pegado solo trae la ficha y el fallo. Entre ambos hay un `[…]`, así que faltan los antecedentes y los fundamentos de derecho, que son donde está la doctrina y su razonamiento. Si la resumiera o le atribuyera una doctrina sin ese texto, sería jurisprudencia sin fuente.\n\n**Cita (sale del documento que ha aportado; kitlegal no ha consultado el buscador del CENDOJ):**\n\nSTS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]\n\nLa ficha es coherente: el ROJ y el ECLI son de la misma resolución. Sus datos son estos:\n- **Órgano:** Tribunal Supremo, Sala de lo Civil.\n- **Fecha:** 4 de julio de 2023.\n- **Recurso:** 4703/2019, de casación.\n- **Ponente:** Pedro José Vela Torres.\n- **Tipo de resolución:** sentencia.\n\n**Lo que sí dice el fallo que ha pegado:**\n- Estima los recursos de casación y extraordinario por infracción procesal de D.ª Inocencia contra la sentencia 876/2019 de la Sección 15.ª de la Audiencia Provincial de Barcelona, que casa y anula.\n- Asumiendo la instancia, estima parcialmente el recurso de apelación de la demandante y revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona (juicio ordinario 364/2016).\n- Estima parcialmente la demanda y declara únicamente la nulidad, por abusiva, de una cláusula del préstamo hipotecario de 13 de junio de 2008 con Bankinter, S.A. Esa cláusula permitía a la entidad dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses si el contravalor del capital pendiente excedía del límite pactado.\n- Desestima las demás pretensiones, incluida la subsidiaria.\n- Impone a la demandada las costas de primera instancia. No impone costas en apelación ni en los recursos extraordinarios, y ordena devolver los depósitos.\n\nEl fallo muestra qué se anuló y qué se mantuvo. No muestra por qué la cláusula es abusiva, qué criterio aplica el Tribunal ni por qué rechaza el resto de pretensiones. Tampoco indica si el vencimiento anticipado tiene alguna relación con otras cláusulas del contrato (por ejemplo, otras garantías).\n\n**Para responder a su pregunta:**\n1. Vuelva al documento del CENDOJ.\n2. Copie el texto completo, o adjunte el PDF.\n3. Incluya los fundamentos de derecho, no solo el encabezamiento y el fallo.\n\nCon ese texto le resumo la doctrina y los fundamentos con las palabras de la propia sentencia.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha del documento del CENDOJ"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:21:02.596977+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 17.8
+    },
+    {
+      "sesion": "10-resumen-con-el-fallo-delante-con-skill-01",
+      "pregunta": "10-resumen-con-el-fallo-delante",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "**STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]**\n\nLa cita sale del documento que has aportado. kitlegal no ha consultado el buscador del CENDOJ. El ROJ y el ECLI de la ficha corresponden a la misma resolución.\n\n**Datos de la ficha**\n- Órgano: Tribunal Supremo, Sala de lo Civil, Sección 1.ª\n- Fecha: 4 de julio de 2023\n- Recurso: casación 4703/2019\n- Ponente: Pedro José Vela Torres\n- Tipo: sentencia\n\n**Qué he podido leer**\nSolo tengo el encabezamiento y el fallo. El resto aparece como `[…]`, así que no he leído los antecedentes ni los fundamentos de derecho. Por eso no puedo resumir el razonamiento del Tribunal ni su doctrina. Lo que sigue es lo que resuelve el fallo.\n\n**Fallo**\n1. **Recursos del Supremo.** Estima los recursos de casación y por infracción procesal de D.ª Inocencia. Casa y anula la sentencia 876/2019, de 15 de mayo, de la Sección 15.ª de la Audiencia Provincial de Barcelona (apelación 117/2018).\n2. **Apelación.** Estima parcialmente el recurso de apelación de la demandante contra la sentencia de 26 de septiembre de 2017 del Juzgado de Primera Instancia n.º 9 de Barcelona (juicio ordinario 364/2016). Revoca esa sentencia y estima parcialmente la demanda.\n3. **Qué se declara.** Se declara únicamente la nulidad, por abusiva, de una cláusula del préstamo hipotecario de 13 de junio de 2008 con Bankinter, S.A. Esa cláusula permitía al banco dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses, si el contravalor del capital pendiente excedía del límite pactado.\n4. **Lo que se desestima.** Las demás pretensiones de la demanda, incluida la formulada de forma subsidiaria.\n5. **Costas.**\n   - Las de primera instancia se imponen a la demandada.\n   - No se imponen las de apelación.\n   - No se imponen las de los recursos extraordinarios por infracción procesal y casación.\n6. **Depósitos.** Se ordena devolver los depósitos constituidos para los recursos de apelación, extraordinario por infracción procesal y casación.\n\nEl fallo del texto salta del punto 2 al 4, sin punto 3. No sé si es un error del documento o una omisión de tu copia.\n\nSi quieres un resumen del razonamiento (por qué se considera abusiva esa cláusula, por qué se rechaza el resto), pega el texto completo o adjunta el PDF.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha del documento aportado"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:330445293036c5fe2ad350315214bd58f2365176305cb1abd9bdeea7c1367709\",\"fecha_consulta\":\"2026-10-09T14:21:04.897169+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 13.5
+    },
+    {
+      "sesion": "10-resumen-con-el-fallo-delante-con-skill-02",
+      "pregunta": "10-resumen-con-el-fallo-delante",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "**STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]**\n\nLa cita sale del documento que ha aportado. kitlegal no ha consultado el buscador del CENDOJ. El ROJ y el ECLI de la ficha se corresponden.\n\n**Datos de la ficha**\n- Órgano: Tribunal Supremo, Sala de lo Civil (Sección 1.ª), Madrid.\n- Recurso de casación nº 4703/2019.\n- Ponente: Pedro José Vela Torres.\n- Tipo de resolución: sentencia.\n\n**Qué hay en el texto que ha pegado**\nSolo trae la ficha y el fallo. Los antecedentes y los fundamentos de derecho aparecen como `[…]`, así que no los he leído. Por eso no puedo resumir el razonamiento del Tribunal ni la doctrina que aplica. Tampoco puedo decir por qué considera abusiva la cláusula ni por qué rechaza el resto de pretensiones. Lo que sigue es lo que dice el fallo.\n\n**Contenido del fallo**\n1. **Recursos de la demandante.** Estima los recursos de casación y extraordinario por infracción procesal de D.ª Inocencia. Casa y anula la sentencia 876/2019, de 15 de mayo, de la Sección 15.ª de la Audiencia Provincial de Barcelona (apelación 117/2018).\n2. **Apelación.** Estima parcialmente el recurso de apelación de la demandante. Revoca la sentencia de 26 de septiembre de 2017 del Juzgado de Primera Instancia n.º 9 de Barcelona (juicio ordinario 364/2016). En su lugar, estima parcialmente la demanda.\n3. **Alcance de la estimación.** Declara únicamente la nulidad, por abusiva, de una cláusula del préstamo hipotecario de 13 de junio de 2008 con Bankinter S.A. Esa cláusula le permitía dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses, si el contravalor del capital pendiente excedía del límite pactado. Desestima las demás pretensiones, incluida la subsidiaria.\n4. **Costas.**\n   - Primera instancia: se imponen a la demandada.\n   - Recursos extraordinario por infracción procesal y de casación: no se imponen.\n   - Apelación: no se imponen.\n5. **Depósitos.** Ordena devolver los depósitos constituidos para los recursos.\n\nEl fallo que ha pegado salta del punto 2 al 4. Falta un apartado 3, que el texto no recoge. Puede ser un error de numeración del propio documento o una omisión al copiarlo, y desde aquí no lo sé. Conviene revisarlo en el original.\n\nSi quiere un resumen del razonamiento, descargue la sentencia completa del CENDOJ y péguela o adjúntela con todos los fundamentos.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha de la sentencia aportada"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:21:07.347744+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 15.2
+    },
+    {
+      "sesion": "10-resumen-con-el-fallo-delante-con-skill-03",
+      "pregunta": "10-resumen-con-el-fallo-delante",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Esta es la sentencia que sale del documento que has aportado. kitlegal no ha consultado el buscador del CENDOJ, solo ha leído la ficha del texto que pegaste.\n\n**STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]**\n\n- **Órgano:** Tribunal Supremo, Sala de lo Civil (Sección 1.ª)\n- **Recurso:** casación 4703/2019\n- **Ponente:** Pedro José Vela Torres\n- **Tipo:** sentencia\n\n**Alcance del resumen.** El texto que pegaste omite los antecedentes y los fundamentos de derecho (aparecen como `[…]`) y empieza de nuevo en el fallo. No he leído los argumentos del Tribunal. Lo que sigue es lo que dice el fallo, y no puedo decirte por qué razones decide así ni qué doctrina aplica.\n\n**Lo que resuelve el fallo**\n\n1. **Recursos ante el Supremo.** Estima los recursos de casación y extraordinario por infracción procesal de D.ª Inocencia contra la sentencia 876/2019, de 15 de mayo, de la Sección 15.ª de la Audiencia Provincial de Barcelona (apelación 117/2018). Casa y anula esa sentencia.\n\n2. **Resolución sobre el fondo.** Estima parcialmente la apelación de la demandante contra la sentencia de 26 de septiembre de 2017 del Juzgado de Primera Instancia n.º 9 de Barcelona (juicio ordinario 364/2016). Revoca esa sentencia y estima parcialmente la demanda.\n   - **Declaración de nulidad.** Declara únicamente la nulidad, por abusiva, de una cláusula del préstamo hipotecario firmado con Bankinter S.A. el 13 de junio de 2008. Es la cláusula que permite a la entidad dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses, si el contravalor del capital pendiente excede del límite pactado.\n   - **Pretensiones desestimadas.** Rechaza las demás pretensiones de la demandante, incluida la planteada de forma subsidiaria.\n   - **Costas de primera instancia.** Impone a la demandada el pago de las costas de primera instancia.\n\n3. **Costas y depósitos**\n   - **Recursos extraordinarios.** No impone las costas del recurso extraordinario por infracción procesal ni del de casación.\n   - **Apelación.** No hace expresa imposición de las costas de la apelación.\n   - **Depósitos.** Ordena devolver los depósitos constituidos para los tres recursos: apelación, infracción procesal y casación.\n\n**Una irregularidad del texto.** La numeración del fallo salta del punto 2.º al 4.º, y falta el 3.º. Puede ser un error del texto descargado o una omisión al copiarlo. Conviene comprobarlo en el PDF original, porque ese punto podría contener un pronunciamiento que aquí no consta.\n\nSi me traes los fundamentos de derecho, te resumo también la razón de la decisión y la doctrina que aplica.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha del documento del CENDOJ"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:21:18.720767+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 16.4
+    },
+    {
+      "sesion": "11-de-que-trata-con-la-ficha-sola-con-skill-01",
+      "pregunta": "11-de-que-trata-con-la-ficha-sola",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con la ficha sola no puedo decirle de qué trata la sentencia. Eso solo lo dice el texto, y no lo tengo. La ficha es el encabezamiento del documento y no trae ni el asunto ni el fallo. Tampoco voy a resumirla de memoria, porque sería jurisprudencia sin fuente.\n\nLo que sí consta en la ficha, que he cotejado (el ROJ y el ECLI corresponden a la misma resolución):\n\n**STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]**\n\nEsta cita sale del documento que ha aportado. kitlegal no ha consultado el buscador del CENDOJ.\n\n- **Órgano:** Tribunal Supremo, Sala de lo Civil, Sección 1.ª (Madrid).\n- **Fecha:** 4 de julio de 2023.\n- **Tipo de resolución:** sentencia, en un recurso de casación.\n- **Nº de recurso:** 4703/2019.\n- **Ponente:** Pedro José Vela Torres.\n\nPara que le diga de qué trata, pegue aquí el texto de la sentencia o adjunte el PDF descargado del CENDOJ. Con el texto delante le resumo el asunto, los fundamentos y el fallo, y le aviso de cualquier parte que falte.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha del CENDOJ aportada"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:21:17.978615+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 10.3
+    },
+    {
+      "sesion": "11-de-que-trata-con-la-ficha-sola-con-skill-02",
+      "pregunta": "11-de-que-trata-con-la-ficha-sola",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con la ficha sola no puedo decirte de qué trata la sentencia. La ficha identifica el documento, pero el contenido está en el texto, y no lo tengo en la conversación. Resumirla de memoria sería jurisprudencia sin fuente.\n\nLa ficha es coherente: el ROJ y el ECLI corresponden a la misma resolución. La cita, tal como sale del documento que has aportado, es esta. kitlegal no ha consultado el buscador del CENDOJ.\n\n**STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]**\n\nLo que dice la ficha:\n- **Órgano:** Tribunal Supremo, Sala de lo Civil, Sección 1.ª (Madrid).\n- **Fecha:** 4 de julio de 2023.\n- **Recurso:** casación n.º 4703/2019.\n- **Ponente:** Pedro José Vela Torres.\n- **Tipo de resolución:** sentencia.\n\nPara saber de qué trata, pega aquí el texto de la sentencia o adjunta el PDF que descargaste. Con eso te resumo el objeto del litigio, los motivos del recurso y el fallo, citando sus propias palabras.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha de la sentencia con kitlegal"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:21:21.252584+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 10.4
+    },
+    {
+      "sesion": "11-de-que-trata-con-la-ficha-sola-con-skill-03",
+      "pregunta": "11-de-que-trata-con-la-ficha-sola",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con la ficha sola no puedo decirle de qué trata la sentencia. La ficha solo identifica el documento. El contenido está en el texto, y ese texto no está en la conversación. Si lo dedujera de lo que creo recordar, sería jurisprudencia sin fuente.\n\nEsto es lo que sí consta en la ficha. Se ha cotejado: el ROJ y el ECLI son de la misma resolución.\n\n**STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]**\n\nEsta cita sale del documento que ha aportado. kitlegal no ha consultado el buscador del CENDOJ.\n\n- **Órgano:** Tribunal Supremo, Sala de lo Civil, Sección 1.ª (Madrid)\n- **Fecha:** 4 de julio de 2023\n- **Tipo de resolución:** sentencia, en recurso de casación\n- **Número de recurso:** 4703/2019\n- **Número de resolución:** 1088/2023\n- **Ponente:** Pedro José Vela Torres\n\nLa ficha tampoco indica la materia ni si el recurso se estimó o se desestimó.\n\nPara saber de qué trata, pegue aquí el texto de la sentencia o adjunte el PDF completo. Normalmente basta con los antecedentes de hecho y los fundamentos de derecho. Con el texto delante, le resumo lo que resolvió con sus propias palabras. Si el texto viene incompleto, por ejemplo con tramos omitidos con «[…]», le diré qué partes no he leído.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita cotejar --json <<'DOCUMENTO'\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073\nÓrgano: Tribunal Supremo. Sala de lo Civil\nSede: Madrid\nSección: 1\nFecha: 04/07/2023\nNº de Recurso: 4703/2019\nNº de Resolución: 1088/2023\nProcedimiento: Recurso de casación\nPonente: PEDRO JOSE VELA TORRES\nTipo de Resolución: Sentencia\nDOCUMENTO",
+            "description": "Cotejar la ficha de la sentencia"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"kitlegal:documento/sha256:e2fbe650b2943327e7637f7e7257828830792d73b69e8474191e1ec24df8ab1e\",\"fecha_consulta\":\"2026-10-09T14:21:28.408591+02:00\",\"hash\":\"sha256:ee05de1a8400736bb52f01aec9131ed7da7fd03540e695252315735f437dcf6d\",\"data\":{\"ficha\":{\"roj\":\"STS 3144/2023\",\"ecli\":\"ECLI:ES:TS:2023:3144\",\"organo\":\"Tribunal Supremo. Sala de lo Civil\",\"fecha\":\"2023-07-04\",\"recurso\":\"4703/2019\",\"resolucion\":\"1088/2023\",\"ponente\":\"PEDRO JOSE VELA TORRES\",\"tipo\":\"Sentencia\"},\"correspondencia\":\"se-corresponden\",\"hallazgos\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 11.2
+    },
+    {
+      "sesion": "12-doctrina-dada-por-hecha-con-skill-01",
+      "pregunta": "12-doctrina-dada-por-hecha",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo decirte en qué sentencia sin tener su documento delante. Una sentencia citada de memoria puede no existir o estar mal referenciada, y un escrito que la lleve se paga caro. Por eso no te doy ninguna referencia ni confirmo desde aquí qué resolvió el Tribunal Supremo. Tampoco he comprobado la premisa de tu pregunta, que las cláusulas suelo se declararon nulas por falta de transparencia. Eso hay que verlo en el texto de la sentencia.\n\nkitlegal no consulta el buscador de jurisprudencia del CENDOJ, así que la búsqueda la haces tú:\n\n1. Abre esta dirección, que lanza ya la búsqueda «cláusula suelo transparencia»: https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN\n2. Entre los resultados, descarga las sentencias del Tribunal Supremo que te interesen.\n3. Tráelas, pegadas o adjuntas.\n\nCon los documentos delante, compruebo que son los que buscas y te digo qué resolvieron, con su cita completa. Si ya tienes en mente una sentencia concreta, dame su número y fecha, o su ECLI, y te preparo la consulta exacta para encontrarla.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --texto \"cláusula suelo transparencia\" --json",
+            "description": "Prepare CENDOJ search for cláusula suelo"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN\",\"fecha_consulta\":\"2026-10-09T14:21:30.861192+02:00\",\"hash\":\"sha256:e5eab2189a605e89f24e735e54053e6f36fb98cfaa9a83a45bee382c8cedb5af\",\"data\":{\"texto\":\"cláusula suelo transparencia\",\"direccion\":\"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN\",\"casillas\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 9.4
+    },
+    {
+      "sesion": "12-doctrina-dada-por-hecha-con-skill-02",
+      "pregunta": "12-doctrina-dada-por-hecha",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo darle una sentencia concreta, porque no tengo ninguna delante y no cito jurisprudencia de memoria. Una referencia que recordara mal, o que no existiera, sería peligrosa en un escrito. Tampoco puedo confirmar ni desmentir su afirmación con una resolución que pueda comprobarse.\n\nSí puedo preparar la búsqueda para que la haga usted:\n\n1. Abra esta dirección en su navegador. Es el buscador de jurisprudencia del CENDOJ con la búsqueda ya hecha: https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20falta%20de%20transparencia%20nulidad/1/AN\n2. Si el buscador le pide resolver un CAPTCHA, resuélvalo. Es un paso que no puedo hacer yo.\n3. Descargue las sentencias del Tribunal Supremo que le interesen. Fíjese en que el documento conserve el encabezamiento que abre cada documento del CENDOJ: la línea `Roj: … - ECLI:…` y las de órgano, fecha, recurso, resolución, ponente y tipo.\n4. Tráigalas pegadas o adjuntas. Comprobaré que cada documento es el que busca y le diré, con su texto delante, qué resolvió el Tribunal y si su afirmación se sostiene. También podré citarlas en la forma correcta.\n\nSi ya tiene una sentencia en mente, dígame su número y fecha, o su ECLI o ROJ. Le preparo la consulta exacta para localizarla.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --texto \"cláusula suelo falta de transparencia nulidad\" --json",
+            "description": "Prepare CENDOJ search for the topic"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20falta%20de%20transparencia%20nulidad/1/AN\",\"fecha_consulta\":\"2026-10-09T14:21:32.700192+02:00\",\"hash\":\"sha256:b446d57a943629c283f0081714a4fb5fc447be71ac5c93f4b33d79f6a6cb6857\",\"data\":{\"texto\":\"cláusula suelo falta de transparencia nulidad\",\"direccion\":\"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20falta%20de%20transparencia%20nulidad/1/AN\",\"casillas\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 10.5
+    },
+    {
+      "sesion": "12-doctrina-dada-por-hecha-con-skill-03",
+      "pregunta": "12-doctrina-dada-por-hecha",
+      "modo": "con-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Lo que sí puedo decir es que el Tribunal Supremo se ha pronunciado sobre las cláusulas suelo. No te doy el número ni la fecha de ninguna sentencia, porque no tengo ninguna delante y una sentencia citada de memoria puede no existir o estar mal identificada. Tampoco te confirmo ni desmiento el contenido que planteas (nulidad por falta de transparencia), porque eso sería hablar de jurisprudencia sin fuente.\n\nPara localizarla:\n\n1. Abre esta dirección. Lanza en el buscador del CENDOJ la búsqueda «cláusula suelo transparencia»: https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN\n2. Filtra por Tribunal Supremo, Sala Primera, y revisa los resultados.\n3. Descarga las sentencias que te interesen y adjúntalas aquí, pegadas o en PDF.\n\nCon los documentos delante, compruebo su encabezamiento, te las cito con su ECLI y ROJ correctos y respondo sobre lo que dice cada texto.\n\nSi tienes ya una referencia concreta, por ejemplo «STS …/…, de …», dímela con su fecha y te preparo la consulta exacta.",
+      "invocaciones": [
+        {
+          "herramienta": "Skill",
+          "entrada": {
+            "skill": "jurisprudencia"
+          },
+          "salida": "Launching skill: jurisprudencia",
+          "error": false
+        },
+        {
+          "herramienta": "Bash",
+          "entrada": {
+            "command": "kitlegal cita preparar --texto \"cláusula suelo transparencia\" --json",
+            "description": "Prepare CENDOJ search for floor clause case law"
+          },
+          "salida": "{\"ok\":true,\"fuente\":\"kitlegal.cita\",\"url\":\"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN\",\"fecha_consulta\":\"2026-10-09T14:21:38.008966+02:00\",\"hash\":\"sha256:e5eab2189a605e89f24e735e54053e6f36fb98cfaa9a83a45bee382c8cedb5af\",\"data\":{\"texto\":\"cláusula suelo transparencia\",\"direccion\":\"https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN\",\"casillas\":[]}}",
+          "error": false
+        }
+      ],
+      "activada": [
+        "jurisprudencia"
+      ],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 4,
+      "segundos": 9.1
+    }
+  ]
+}
