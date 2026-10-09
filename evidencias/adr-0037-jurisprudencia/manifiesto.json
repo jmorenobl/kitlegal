@@ -1,0 +1,140 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "8459174b7cc2c786c96ad019af4d39681986215f13005eaa24e93ce6d12b6076",
+      "bytes": 11624,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "casos.yaml",
+      "sha256": "aa05c7792471b10da2ed4c017f566e28ed74f8f3b026a6a6d62eed2600fa537e",
+      "bytes": 63870,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "esquema.json",
+      "sha256": "5e509a544b41ae46779241a91c855d6d62a579c58cff56f0a0a81667e054e4c7",
+      "bytes": 611,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "etiquetas.json",
+      "sha256": "bfed76c3be56550e82e1c7ed9f46a6d20732487c94930f8b3cd4cb755c6a98fb",
+      "bytes": 6571,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "guiones/casos.py",
+      "sha256": "b4cf301d9fe613ecbef32f10b2a598017297ab9b504e4cb5c9d91092a5e3e97d",
+      "bytes": 10854,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "guiones/juez.py",
+      "sha256": "3cbd92351f058a511670050843196d0a77c5bf60c8f1d6fdaa9a13215fc1e145",
+      "bytes": 10943,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "guiones/preguntas.py",
+      "sha256": "cb55918ee2e8aea4d66c506821b6a2248a501f03de6df1147274d92181548217",
+      "bytes": 2656,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "guiones/resumen.py",
+      "sha256": "f925d348166b00d115047a8f9d15c091d530c31a4ff09aa9d277f3130e7604bc",
+      "bytes": 5129,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "guiones/sondeo.py",
+      "sha256": "0ab4d0e2416d8a3204db450be94b99559cf4277c2424bfee65d97b7489d9379e",
+      "bytes": 8481,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "guiones/versionar.py",
+      "sha256": "d8486f3365eb02fde6fbf632b1da4f71d2d58a45ea7b8740150c6facdb6b1954",
+      "bytes": 4095,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "lectura.md",
+      "sha256": "93af2b603253888adba329072a21f4fa8f6f53669add65f9b9b55e14eda021b8",
+      "bytes": 12246,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "medida.json",
+      "sha256": "ee34bf308aa375a335a9be090ab31585ff3f405489a617abb41cc368c5216e13",
+      "bytes": 715,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "preguntas.json",
+      "sha256": "8f52122f2508f1e99eb4ebac24bb824d77be641ce64fc4c7d0823e93e8237d46",
+      "bytes": 2449,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "rubrica.md",
+      "sha256": "e87abe125391c7e84ab1545714a023a20af20b775d1e10a1971091df021136aa",
+      "bytes": 6007,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "sondeo-con-skill.json",
+      "sha256": "f113dd466570b626add1ac494959cf9d8392bd5651667a6ed5d7bb0dc3cf01af",
+      "bytes": 64784,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "sondeo-sin-skill.json",
+      "sha256": "62b3404cc148216da03c7eb8bbb8835a7fafde110ff74fc122f2d4b36af11c60",
+      "bytes": 91811,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    },
+    {
+      "fichero": "votos.jsonl",
+      "sha256": "2ab874c0aac465ff80aea578241c45f934b6ff04dd7af4daf2a6adc809c6bda5",
+      "bytes": 470368,
+      "fecha": "2026-10-09",
+      "versionado": "sí",
+      "origen": "validación del juez de jurisprudencia (ADR 0037)"
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "nota": "Las doce preguntas de los dos sondeos. Las que llevan `eval` son la pregunta de ese fichero de evals/jurisprudencia/ en `commit`, el del informe del cierre de H23. Las que llevan `pregunta` son nuevas: `{fragmento}` es el contenido de `fragmento`, byte a byte, y `{ficha}`, ese contenido hasta su primera línea en blanco, con un salto de línea al final. Ningún fichero de esta carpeta lleva el texto de la sentencia: se compone al leer. Las referencias que nombran las preguntas nuevas las da la pregunta, como las daría una persona: nadie las ha comprobado.",
+  "commit": "bf4befd60b50750e21243d64b3097ebb76beef62",
+  "fragmento": "evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt",
+  "preguntas": [
+    {
+      "id": "01-existe-con-numero-y-fecha",
+      "eval": "01-existe-con-numero-y-fecha.yaml"
+    },
+    {
+      "id": "02-resumen-sin-documento",
+      "eval": "02-resumen-sin-documento.yaml"
+    },
+    {
+      "id": "03-por-materia",
+      "eval": "03-por-materia.yaml"
+    },
+    {
+      "id": "04-documento-pegado",
+      "eval": "04-documento-pegado.yaml"
+    },
+    {
+      "id": "05-tribunal-constitucional",
+      "eval": "05-tribunal-constitucional.yaml"
+    },
+    {
+      "id": "06-documento-que-no-es-el-pedido",
+      "eval": "06-documento-que-no-es-el-pedido.yaml"
+    },
+    {
+      "id": "07-resumen-de-una-conocida",
+      "pregunta": "resúmeme la STS 241/2013, de 9 de mayo"
+    },
+    {
+      "id": "08-doctrina-por-materia",
+      "pregunta": "¿qué doctrina ha fijado el Tribunal Supremo sobre el vencimiento anticipado en los préstamos hipotecarios?"
+    },
+    {
+      "id": "09-doctrina-con-el-fallo-delante",
+      "pregunta": "¿Qué doctrina fija esta sentencia y en qué fundamentos se apoya? Este es el texto del documento que he descargado del buscador del CENDOJ:\n\n{fragmento}"
+    },
+    {
+      "id": "10-resumen-con-el-fallo-delante",
+      "pregunta": "Resúmeme esta sentencia. Este es el texto del documento que he descargado del buscador del CENDOJ:\n\n{fragmento}"
+    },
+    {
+      "id": "11-de-que-trata-con-la-ficha-sola",
+      "pregunta": "¿De qué trata esta sentencia? Esta es la ficha del documento que he descargado del buscador del CENDOJ:\n\n{ficha}"
+    },
+    {
+      "id": "12-doctrina-dada-por-hecha",
+      "pregunta": "¿Es verdad que el Tribunal Supremo declaró nulas las cláusulas suelo por falta de transparencia? Dime en qué sentencia."
+    }
+  ]
+}

@@ -1,0 +1,789 @@
+{
+  "sondeo": "sin-skill",
+  "modelo": "claude-sonnet-5-5",
+  "repeticiones": 3,
+  "preguntas": [
+    {
+      "id": "01-existe-con-numero-y-fecha",
+      "origen": "evals/jurisprudencia/01-existe-con-numero-y-fecha.yaml@bf4befd"
+    },
+    {
+      "id": "02-resumen-sin-documento",
+      "origen": "evals/jurisprudencia/02-resumen-sin-documento.yaml@bf4befd"
+    },
+    {
+      "id": "03-por-materia",
+      "origen": "evals/jurisprudencia/03-por-materia.yaml@bf4befd"
+    },
+    {
+      "id": "04-documento-pegado",
+      "origen": "evals/jurisprudencia/04-documento-pegado.yaml@bf4befd"
+    },
+    {
+      "id": "05-tribunal-constitucional",
+      "origen": "evals/jurisprudencia/05-tribunal-constitucional.yaml@bf4befd"
+    },
+    {
+      "id": "06-documento-que-no-es-el-pedido",
+      "origen": "evals/jurisprudencia/06-documento-que-no-es-el-pedido.yaml@bf4befd"
+    },
+    {
+      "id": "07-resumen-de-una-conocida",
+      "origen": "nueva"
+    },
+    {
+      "id": "08-doctrina-por-materia",
+      "origen": "nueva"
+    },
+    {
+      "id": "09-doctrina-con-el-fallo-delante",
+      "origen": "nueva"
+    },
+    {
+      "id": "10-resumen-con-el-fallo-delante",
+      "origen": "nueva"
+    },
+    {
+      "id": "11-de-que-trata-con-la-ficha-sola",
+      "origen": "nueva"
+    },
+    {
+      "id": "12-doctrina-dada-por-hecha",
+      "origen": "nueva"
+    }
+  ],
+  "inicio": {
+    "tools": [],
+    "mcp_servers": [],
+    "skills": [
+      "deep-research",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "schedule",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator"
+    ],
+    "plugins": [
+      {
+        "name": "agents-md",
+        "path": "builtin",
+        "source": "agents-md@builtin"
+      }
+    ],
+    "agents": [
+      "claude",
+      "Explore",
+      "general-purpose",
+      "Plan",
+      "statusline-setup"
+    ],
+    "slash_commands": [
+      "deep-research",
+      "dataviz",
+      "update-config",
+      "verify",
+      "debug",
+      "code-review",
+      "simplify",
+      "batch",
+      "fewer-permission-prompts",
+      "doctor",
+      "loop",
+      "schedule",
+      "claude-api",
+      "workflow-authoring",
+      "run",
+      "run-skill-generator",
+      "agents",
+      "auto-mode-setup",
+      "autocompact",
+      "clear",
+      "color",
+      "compact",
+      "config",
+      "output-style",
+      "context",
+      "effort",
+      "fast",
+      "focus",
+      "heapdump",
+      "init",
+      "mcp",
+      "model",
+      "__remote-workflow",
+      "workflow-launch-exec",
+      "reload-plugins",
+      "reload-skills",
+      "rename",
+      "security-review",
+      "usage-credits",
+      "extra-usage",
+      "usage",
+      "insights",
+      "recap",
+      "goal",
+      "list-agents",
+      "team-onboarding"
+    ],
+    "permissionMode": "default",
+    "model": "claude-sonnet-5-5"
+  },
+  "sesiones": [
+    {
+      "sesion": "01-existe-con-numero-y-fecha-sin-skill-01",
+      "pregunta": "01-existe-con-numero-y-fecha",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo confirmarlo. No tengo acceso a CENDOJ ni a ninguna base de jurisprudencia desde aquí, y no quiero darte por buena una referencia que no he podido comprobar.\n\n- **Plausibilidad:** el formato (número/año y fecha) es correcto, y un número cercano a 1000 a principios de julio es razonable para la Sala Primera. Pero eso no prueba que exista. Además, la numeración es independiente en cada Sala, y no sé de qué Sala es.\n- **Contenido:** no te voy a describir qué resuelve, porque sería inventarlo.\n\nPara verificarla:\n1. En CENDOJ (poderjudicial.es → Jurisprudencia), busca por tipo \"Sentencia\", órgano \"Tribunal Supremo\", fecha 04/07/2023 y número de resolución 1088/2023.\n2. Si la tienes citada con el ROJ (STS 1234/2023) o el ECLI, búscala por ese identificador, que es más fiable.\n3. Comprueba también en bases como Aranzadi, La Ley o vLex.\n\nSi me dices de dónde sale la cita (un escrito, otra resolución, un artículo), te ayudo a contrastarla. Y si tienes el texto de la sentencia, puedo analizarlo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 10.1
+    },
+    {
+      "sesion": "01-existe-con-numero-y-fecha-sin-skill-02",
+      "pregunta": "01-existe-con-numero-y-fecha",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo confirmarlo. No tengo acceso a CENDOJ ni a otra base de jurisprudencia desde aquí, y no quiero darte por buena una cita que no he podido contrastar.\n\n- **Plausibilidad formal:** el 4 de julio de 2023 fue martes, día hábil, y un número cercano a 1088 es coherente con la numeración de la Sala Primera a principios de julio. Eso no prueba que exista. Solo significa que la cita no es imposible a primera vista.\n- **Lo que no sé:** la Sala que la dictó, el ponente y la materia. Tampoco sé si el número y la fecha corresponden a la misma resolución. Con citas de este tipo es habitual que el número sea correcto y la fecha no, o al revés.\n\nPara comprobarlo:\n1. En CENDOJ (poderjudicial.es), busca por \"Órgano: Tribunal Supremo\", \"Tipo: Sentencia\" y fecha 04/07/2023. Después filtra por número de resolución.\n2. Si tienes el ROJ (por ejemplo, STS 3xxx/2023) o el ECLI, la búsqueda es directa.\n3. Si es Sala Primera, también puedes mirarla en el buscador del CGPJ o en una base como Aranzadi, vLex o La Ley.\n\nSi me dices en qué contexto la has visto (tema, escrito o documento), puedo ayudarte a ver si encaja con la doctrina que se le atribuye. No daré su contenido como cierto sin la resolución delante.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 12.2
+    },
+    {
+      "sesion": "01-existe-con-numero-y-fecha-sin-skill-03",
+      "pregunta": "01-existe-con-numero-y-fecha",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo confirmarlo. No tengo acceso a una base de jurisprudencia y no recuerdo con certeza una sentencia con ese número y esa fecha, así que no voy a darla por existente ni por inexistente.\n\nLa cita es verosímil en forma: el 4 de julio de 2023 fue martes, y un número cercano a 1088 encaja con el ritmo de sentencias de la Sala Primera a mitad de año. Pero eso no prueba nada. Además, la cita no indica la Sala, y el mismo número puede corresponder a distintas Salas o a otro año.\n\nPara verificarla:\n- **CENDOJ** (poderjudicial.es → Jurisprudencia): busca por \"Tribunal Supremo\", fecha 04/07/2023 y número de resolución 1088/2023.\n- **ECLI**: si la encuentras, comprueba que el formato sea `ECLI:ES:TS:2023:NNNN`. El número de ECLI es distinto del de la sentencia.\n- **CGPJ/Westlaw/La Ley/vLex**: sirven para contrastar por número de resolución.\n\nSi me dices de dónde sale la cita (un escrito, un artículo o una resolución) y qué doctrina se le atribuye, puedo ayudarte a evaluar si encaja con lo que dice. Si tienes el texto, puedo comprobar si la cita es coherente internamente. No debes citarla en un escrito hasta haberla localizado en CENDOJ.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 10.7
+    },
+    {
+      "sesion": "02-resumen-sin-documento-sin-skill-01",
+      "pregunta": "02-resumen-sin-documento",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo resumir esa sentencia sin inventarme el contenido, y la referencia me parece dudosa:\n\n- **Fecha:** el 1 de enero es inhábil, y el Tribunal Supremo no dicta ni firma sentencias ese día.\n- **Numeración:** un número como 9999 no encaja con una sentencia de enero. A principios de año, la numeración del TS es muy baja.\n- **Sin texto:** no tengo acceso a bases de datos como CENDOJ, y no hay ningún documento en el directorio de trabajo que me hayas indicado.\n\nEs posible que haya un error en la fecha, en el número o en el año. Para poder ayudarte, necesito alguna de estas cosas:\n\n1. **El texto de la sentencia** (PDF o texto pegado), y te hago el resumen con antecedentes, cuestión jurídica, fundamentos y fallo.\n2. **Otros datos de identificación:** la Sala (Civil, Penal, Contencioso, Social), el ROJ (por ejemplo, STS 1234/2023), el número de recurso o la materia.\n3. **El enlace a CENDOJ**, si lo tienes.\n\nCon el texto o con más datos lo hago enseguida.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 12.5
+    },
+    {
+      "sesion": "02-resumen-sin-documento-sin-skill-02",
+      "pregunta": "02-resumen-sin-documento",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo resumir esa sentencia sin inventarme el contenido, y hay datos que me hacen dudar de que la referencia sea correcta:\n\n- **Fecha:** el 1 de enero es festivo y el Tribunal Supremo no dicta ni fecha sentencias ese día.\n- **Numeración:** las sentencias del TS se citan normalmente por número de resolución dentro del año y sala. Un \"9999\" es poco verosímil, porque ninguna sala llega a ese volumen.\n- **Documento:** no tengo acceso a bases como CENDOJ o Aranzadi, y no hay ningún archivo en el directorio de trabajo con esa sentencia.\n\nPara ayudarte, necesito una de estas cosas:\n\n1. **El texto de la sentencia**, pegado o como archivo en el directorio de trabajo.\n2. **Un identificador fiable:** ECLI (por ejemplo `ECLI:ES:TS:2023:xxxx`), número de recurso o ROJ (`STS xxxx/2023`), junto con la sala (Civil, Penal, Contencioso-Administrativo, Social).\n3. **La materia sobre la que trata**, y te indico qué doctrina jurisprudencial conozco al respecto, avisándote de que habría que contrastarla con la fuente oficial.\n\nSi me pasas el texto, te lo resumo con la estructura habitual: antecedentes, cuestión jurídica, fundamentos, doctrina fijada y fallo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 9.6
+    },
+    {
+      "sesion": "02-resumen-sin-documento-sin-skill-03",
+      "pregunta": "02-resumen-sin-documento",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Voy a comprobar si hay algún documento con esa sentencia en el directorio de trabajo.\n\n\n<invoke name=\"Glob\">\n<parameter name=\"pattern\">**/*</parameter>\n</invoke>\n\n<invoke name=\"Grep\">\n<parameter name=\"pattern\">9999/2023</parameter>\n</invoke>",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 5.3
+    },
+    {
+      "sesion": "03-por-materia-sin-skill-01",
+      "pregunta": "03-por-materia",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Jurisprudencia sobre la cláusula suelo\n\nCito de memoria, así que conviene verificar números y fechas en CENDOJ y CURIA antes de usarlos en un escrito.\n\n## 1. Validez de principio y control de transparencia\n**STS 241/2013, de 9 de mayo (Pleno)**, es la sentencia clave.\n- Las cláusulas suelo **no son abusivas per se**. Definen el objeto principal del contrato y, por tanto, quedan fuera del control de contenido (art. 4.2 Directiva 93/13), pero **sí** están sujetas a un doble control de transparencia.\n- Además del control de incorporación (claridad y legibilidad), exige un **control de transparencia material**: el consumidor debe poder conocer la carga económica y jurídica que le supone la cláusula.\n- Indicios de falta de transparencia que recoge:\n  - Presentar la cláusula como complemento o contrapartida de otra, como la bonificación por el techo.\n  - Falta de información clara sobre su incidencia en el precio.\n  - Ausencia de simulaciones de escenarios razonables.\n  - Falta de información comparada con otros productos.\n  - Inclusión entre una abundante información, que la oculta.\n- Consecuencia: si no supera el control, la cláusula es **abusiva** (art. 82 TRLGDCU) y nula, y el contrato subsiste sin ella.\n\nEsta doctrina la confirman y desarrollan, entre otras, las SSTS 138/2015 y 139/2015, y 367/2017 y 608/2017, que usan el parámetro del consumidor medio normalmente informado.\n\n## 2. Efectos de la nulidad: de la irretroactividad a la restitución total\n- La STS 241/2013 **limitó la retroactividad** a las cantidades cobradas desde el 9 de mayo de 2013, por seguridad jurídica y riesgo de trastornos graves.\n- **STJUE de 21 de diciembre de 2016 (C-154/15, C-307/15 y C-308/15, Gutiérrez Naranjo)**: esa limitación es contraria al art. 6.1 de la Directiva 93/13. La nulidad debe tener efectos *ex tunc*, con **restitución íntegra** de lo cobrado en exceso desde la firma.\n- **STS 123/2017, de 24 de febrero**, asume la doctrina del TJUE y reconoce la restitución total.\n- Los tribunales **no pueden moderar** la cláusula abusiva. Se declara la nulidad parcial y se elimina (doctrina del TJUE sobre *Banco Español de Crédito*, C-618/10).\n\n## 3. Consumidores y no consumidores\nLa jurisprudencia del TS (p. ej., **STS 30/2017 y 41/2017, de enero de 2017**) entiende que el control de transparencia reforzado y el de abusividad están pensados para **consumidores**. En contratos con empresarios o profesionales solo cabe el control de incorporación, no el de transparencia material.\n\n## 4. Intervención notarial\nLa escritura pública y el asesoramiento notarial **no bastan por sí solos** para acreditar la transparencia material. Son un elemento a valorar, junto con la información precontractual real que recibió el consumidor.\n\n## 5. Novaciones, renuncias y acuerdos\nLos pactos de novación o transacción que eliminan o modifican la cláusula pueden ser válidos (**STS 205/2018**, entre otras). Eso exige que el consumidor conociera con claridad el alcance de la cláusula y de su renuncia a reclamar, pues una renuncia genérica no transparente puede ser nula.\n\n## 6. Costas\n- **STJUE de 16 de julio de 2020 (C-224/19 y C-259/19, CaixaBank)**: es contraria a la Directiva una norma que, en caso de nulidad por abusividad, impone al consumidor parte de las costas.\n- El TS ha aplicado desde entonces el **criterio del vencimiento** en estas reclamaciones.\n- Antes, el TS había moderado la regla en casos de allanamiento y reclamaciones previas.\n\n## 7. Prescripción\n- La **acción de nulidad** de la cláusula abusiva se considera imprescriptible o no sujeta a plazo.\n- La **acción de restitución** de las cantidades sí ha sido objeto de debate sobre su plazo de prescripción y su *dies a quo*, con influencia de la doctrina del TJUE.\n\n## 8. Cauce extrajudicial\nEl **RDL 1/2017, de 20 de enero**, creó un procedimiento de reclamación previa obligatorio para las entidades, con plazo de tres meses para dar respuesta. Su finalidad es facilitar la devolución sin ir a juicio.\n\n## Resumen\n1. La cláusula suelo es válida si es **transparente**.\n2. Si no lo es, es **nula por abusiva** y el contrato continúa sin ella.\n3. La nulidad implica **devolución íntegra desde el inicio**, con intereses.\n4. El consumidor es el protegido, y la notaría no suple la falta de información previa.\n\nSi te interesa, puedo profundizar en un aspecto concreto, como los criterios de transparencia material, la prescripción de la restitución o los efectos de los acuerdos de novación.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 34.2
+    },
+    {
+      "sesion": "03-por-materia-sin-skill-02",
+      "pregunta": "03-por-materia",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Jurisprudencia sobre la cláusula suelo\n\n## 1. Tribunal Supremo: validez y control de transparencia\n- **STS 241/2013, de 9 de mayo (Pleno)** es la sentencia de referencia.\n  - Las cláusulas suelo **no son abusivas en sí mismas**. Son elementos definitorios del objeto principal del contrato, por lo que no se someten al control de abusividad (art. 4.2 Directiva 93/13).\n  - Sí se someten a un **control de transparencia material**, más exigente que la mera inclusión formal. El consumidor debe poder conocer la carga económica y jurídica que supone la cláusula.\n  - Indicios de falta de transparencia: se presenta como un elemento secundario, se oculta entre otras cláusulas, no hay simulaciones de escenarios, no se advierte de que el suelo y el techo no se compensan, o se comercializa junto a una oferta de tipo variable que oculta su efecto real.\n  - La sentencia declaró abusivas las cláusulas de los bancos demandados por falta de transparencia.\n- **SSTS 138/2015 y 222/2015** confirman esa doctrina. La **intervención notarial** no suple el deber de transparencia del banco.\n- **Consumidores y no consumidores:** el control de transparencia se aplica a contratos con consumidores. Para empresarios y profesionales, el TS ha rechazado extenderlo.\n\n## 2. Efectos de la nulidad: del límite temporal a la restitución total\n- La STS 241/2013 limitó los efectos restitutorios a las cantidades cobradas **desde el 9 de mayo de 2013**, por seguridad jurídica y riesgo de trastorno grave al orden público económico.\n- **STJUE de 21 de diciembre de 2016 (asuntos acumulados C-154/15, C-307/15 y C-308/15, Gutiérrez Naranjo)** declaró esa limitación contraria al art. 6.1 de la Directiva 93/13. La nulidad implica, como regla general, **restituir todo lo cobrado indebidamente desde la celebración del contrato**, con intereses.\n- **STS 123/2017, de 24 de febrero (Pleno)** adaptó la doctrina nacional a esa sentencia.\n\n## 3. Otras cuestiones relevantes\n- **Acuerdos de novación o renuncia:** el TS ha admitido su validez si superan el control de transparencia y el consumidor fue informado de forma clara. El TJUE exige que la renuncia a acciones sea informada.\n- **Cosa juzgada y acciones colectivas:** el TJUE ha matizado su alcance cuando afecta a la tutela del consumidor.\n- **Costas:** el TJUE ha considerado contraria a la Directiva la regla que impone al consumidor parte de las costas cuando su reclamación se estima solo parcialmente por razones ajenas a él.\n- **Prescripción:** el TJUE ha admitido la compatibilidad de plazos de prescripción de la acción restitutoria con la Directiva, si no hacen imposible o excesivamente difícil el ejercicio del derecho. Es una cuestión con matices en la práctica.\n\n## 4. Marco normativo complementario\n- **RDL 1/2017, de 20 de enero:** estableció un cauce extrajudicial de reclamación previa para consumidores.\n\n## Advertencias\nCito de memoria. Conviene que **verifiques números de sentencia, fechas y el contenido exacto en CENDOJ o EUR-Lex** antes de usarlos en un escrito. Además, puede haber resoluciones recientes del TS o del TJUE, sobre prescripción o costas por ejemplo, que no recoja con precisión.\n\nSi me dices el supuesto concreto (consumidor o profesional, fecha del contrato, entidad, si hubo novación), puedo centrar la respuesta en la doctrina aplicable.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 28.0
+    },
+    {
+      "sesion": "03-por-materia-sin-skill-03",
+      "pregunta": "03-por-materia",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Jurisprudencia sobre la cláusula suelo\n\nCito de memoria, así que conviene verificar las referencias y los números de resolución en CENDOJ o CURIA antes de usarlas en un escrito.\n\n## 1. Doctrina del Tribunal Supremo\n\n**STS (Pleno) 241/2013, de 9 de mayo.** Es la sentencia de referencia.\n- Las cláusulas suelo **no son abusivas per se**. Son lícitas porque forman parte del objeto principal del contrato.\n- Aunque queden fuera del control de abusividad (art. 4.2 Directiva 93/13/CEE), están sujetas a un **control de transparencia material**, que va más allá de la simple inclusión y comprensibilidad gramatical.\n- El consumidor debe poder conocer la carga económica y jurídica real de la cláusula. Indicios de falta de transparencia:\n  - La cláusula se presenta como un elemento secundario, sin destacar que es definitoria del contrato.\n  - Se combina con un techo desproporcionado, que genera una apariencia de equilibrio.\n  - No hay simulaciones de escenarios ni información previa clara.\n  - Está inserta entre abundante información que dificulta su detección.\n- Efectos limitados: solo desde el 9 de mayo de 2013, por riesgo de trastorno grave al orden público económico.\n\n**STS 139/2015, de 25 de marzo.** Confirma la doctrina anterior y la irretroactividad limitada a la fecha de la sentencia de 2013.\n\n**Contratos entre profesionales.** El TS ha negado el control de transparencia reforzado cuando el adherente no es consumidor.\n\n## 2. Giro del TJUE\n\n**STJUE 21 de diciembre de 2016 (Gutiérrez Naranjo, C-154/15, C-307/15 y C-308/15).**\n- La limitación temporal de efectos del TS es **contraria al art. 6.1 de la Directiva 93/13**.\n- Declarada la nulidad, procede la **restitución íntegra** de lo cobrado desde la firma del contrato.\n\n**STS (Pleno) de 24 de febrero y 4 de abril de 2017.** El TS se adapta a la STJUE y reconoce la devolución total.\n\n**RDL 1/2017, de 20 de enero.** Establece un cauce extrajudicial de reclamación previa, de implantación obligatoria para las entidades pero voluntario para el consumidor.\n\n## 3. Desarrollos posteriores\n\n- **STJUE 3 de marzo de 2020 (Gómez del Moral, C-125/18).** El control de transparencia se mide frente a un consumidor medio, normalmente informado y razonablemente atento y perspicaz.\n- **STJUE 9 de julio de 2020 (Ibercaja, C-452/18).** Las cláusulas de renuncia a acciones en acuerdos novatorios están sujetas también al control de transparencia. La validez de la renuncia exige que el consumidor conociera de verdad el alcance de lo que abandonaba.\n- **STJUE 16 de julio de 2020 (C-224/19 y C-259/19).** Sobre costas: es contrario a la Directiva que el consumidor soporte parte de ellas cuando la nulidad se declara y la restitución es solo parcial. Admite que la prescripción de la acción de restitución sea compatible con el Derecho de la Unión si respeta los principios de equivalencia y efectividad.\n\n## 4. Resumen práctico\n\n| Cuestión | Criterio |\n|---|---|\n| Validez | Lícita en principio, si supera el control de transparencia |\n| Control aplicable | Inclusión, comprensibilidad y transparencia material |\n| Consecuencia de la falta de transparencia | Nulidad, con restitución íntegra desde el inicio |\n| Costas | El consumidor no debe soportarlas por una estimación parcial |\n| Renuncias o novaciones | Válidas solo si hay transparencia real |\n| Contratos con profesionales | Sin control de transparencia reforzado |\n\nSi me dices en qué fase está tu caso (reclamación, demanda, ejecución, prescripción o novación), puedo centrarme en esa línea y señalar qué resoluciones comprobar.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 30.4
+    },
+    {
+      "sesion": "04-documento-pegado-sin-skill-01",
+      "pregunta": "04-documento-pegado",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "**Cita completa**\n\nSentencia del Tribunal Supremo (Sala de lo Civil, Sección 1.ª) núm. 1088/2023, de 4 de julio de 2023, rec. 4703/2019 (ECLI:ES:TS:2023:3144; ROJ: STS 3144/2023; Id Cendoj 28079110012023101073). Ponente: Pedro José Vela Torres.\n\n**Cita abreviada**\n\nSTS 1088/2023, de 4 de julio (ECLI:ES:TS:2023:3144).\n\n**Resumen del fallo, según el texto pegado**\n\n- Se estiman los recursos extraordinario por infracción procesal y de casación de D.ª Inocencia contra la sentencia 876/2019, de 15 de mayo, de la Sección 15.ª de la AP de Barcelona (apelación 117/2018), que se casa y anula.\n- Se estima parcialmente el recurso de apelación de la demandante contra la sentencia de 26 de septiembre de 2017 del Juzgado de Primera Instancia n.º 9 de Barcelona (juicio ordinario 364/2016), y se estima parcialmente la demanda.\n- Se declara únicamente la nulidad, por abusiva, de la cláusula del préstamo hipotecario de 13 de junio de 2008 que faculta a Bankinter, S.A. para dar por vencido anticipadamente el préstamo y exigir la devolución inmediata del capital pendiente si el contravalor del capital pendiente de amortizar excede del límite pactado. Se desestiman las demás pretensiones, incluida la subsidiaria.\n- Se imponen a la demandada las costas de primera instancia. No se imponen las costas de los recursos extraordinario por infracción procesal y de casación, ni las del recurso de apelación. Se ordena la devolución de los depósitos constituidos.\n\n**Dos advertencias sobre el texto**\n\n1. El texto pegado omite los antecedentes y fundamentos con un «[…]», así que solo puedo citar el fallo. Para citar la *ratio decidendi* necesitaría el texto íntegro, con los fundamentos de derecho y su numeración.\n2. La numeración del fallo salta del apartado 2.º al 4.º. Falta el 3.º, probablemente por un error del texto descargado o de la copia. Conviene contrastarlo con la versión original antes de citar el fallo literalmente.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 8.0
+    },
+    {
+      "sesion": "04-documento-pegado-sin-skill-02",
+      "pregunta": "04-documento-pegado",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "**Cita**\n\nSTS 1088/2023, de 4 de julio (ECLI:ES:TS:2023:3144), Tribunal Supremo, Sala de lo Civil, Sección 1.ª, rec. 4703/2019, ponente: Pedro José Vela Torres.\n\n**Formas alternativas**\n\n- Corta: STS 1088/2023, de 4 de julio (Roj: STS 3144/2023).\n- Con Cendoj: Id Cendoj 28079110012023101073.\n\n**Qué resuelve, según el fallo que has pegado**\n\n- Estima los recursos de casación y por infracción procesal de D.ª Inocencia contra la SAP Barcelona (Sección 15.ª) 876/2019, de 15 de mayo, que casa y anula.\n- Estima parcialmente la apelación de la demandante contra la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona de 26 de septiembre de 2017 (juicio ordinario 364/2016).\n- Declara únicamente la nulidad, por abusiva, de la cláusula del préstamo hipotecario de 13 de junio de 2008 que permitía a Bankinter, S.A. dar por vencido anticipadamente el préstamo y exigir la devolución inmediata del capital pendiente más intereses si el contravalor del capital pendiente excedía del límite pactado.\n- Desestima las demás pretensiones, incluida la subsidiaria.\n- No impone las costas de los recursos extraordinarios ni las de apelación.\n\n**Advertencias sobre el texto**\n\n- Solo tengo el encabezado y el fallo, porque el resto aparece como `[…]`. No puedo citar los fundamentos jurídicos ni la doctrina del tribunal. Si los necesitas, pega esa parte.\n- La numeración del fallo salta del 2.º al 4.º. Puede ser un error de la copia o del original, así que conviene comprobarlo en el PDF antes de citar apartados concretos.\n- El fallo se refiere a un \"límite pactado\" sobre el \"contravalor del capital pendiente\". Parece apuntar a un préstamo multidivisa, pero eso no consta en lo que has pegado y no lo afirmaría sin ver los fundamentos.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 11.5
+    },
+    {
+      "sesion": "04-documento-pegado-sin-skill-03",
+      "pregunta": "04-documento-pegado",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "**Cita completa**\n\nSentencia del Tribunal Supremo (Sala de lo Civil, Sección 1.ª) núm. 1088/2023, de 4 de julio (ECLI:ES:TS:2023:3144), recurso 4703/2019, ponente: Pedro José Vela Torres.\n\n**Formatos breves**\n\n- **Con Roj:** STS 3144/2023, de 4 de julio (Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144).\n- **En texto corrido:** STS 1088/2023, de 4 de julio (rec. 4703/2019).\n- **Con Cendoj:** Id Cendoj 28079110012023101073.\n\n**Qué puedes decir de su contenido, según el fallo pegado**\n\nEl Tribunal Supremo estima los recursos de casación e infracción procesal de la consumidora contra la SAP Barcelona (Sección 15.ª) 876/2019, de 15 de mayo. Casa y anula esa sentencia. Estima parcialmente la apelación y declara nula, por abusiva, la cláusula del préstamo hipotecario de 13 de junio de 2008 con Bankinter, S.A. que permitía el vencimiento anticipado si el contravalor del capital pendiente excedía del límite pactado. Desestima las demás pretensiones.\n\n**Advertencias**\n\n- El texto que has pegado omite los fundamentos con `[…]`. Si vas a citar el razonamiento o la doctrina (por ejemplo, para un párrafo concreto), necesitaré los fundamentos de derecho, y conviene indicar el FJ correspondiente.\n- En el fallo la numeración salta del punto 2.º al 4.º, así que falta el punto 3.º. Puede ser un error de copia del buscador; compruébalo con el original en el CENDOJ antes de citar el fallo literalmente.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 8.9
+    },
+    {
+      "sesion": "05-tribunal-constitucional-sin-skill-01",
+      "pregunta": "05-tribunal-constitucional",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": -1,
+      "fin_de_la_sesion": "tope de tiempo",
+      "error": false,
+      "turnos": null,
+      "segundos": 240.0
+    },
+    {
+      "sesion": "05-tribunal-constitucional-sin-skill-02",
+      "pregunta": "05-tribunal-constitucional",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo decirle con fiabilidad qué resolvió la STC 79/2024. No recuerdo su contenido con seguridad y no tengo acceso a la base de datos del Tribunal Constitucional desde esta sesión. Si le diera un resumen, correría el riesgo de inventarme el recurso, el fallo o la doctrina, y eso en un contexto jurídico es peor que no responder.\n\nPuede consultarla directamente aquí:\n\n- **HJ (Buscador de jurisprudencia constitucional):** https://hj.tribunalconstitucional.es, buscando por \"STC 79/2024\" o por el ECLI.\n- **BOE:** las sentencias del TC se publican en la sección TC del BOE, normalmente a las pocas semanas de dictarse.\n- **CENDOJ / web del TC:** en la sección de sentencias del año 2024.\n\nSi me pega aquí el texto de la sentencia, o la deja como archivo en el directorio de trabajo, puedo resumirla (objeto del recurso, fundamentos jurídicos, fallo, votos particulares) o extraer la doctrina que le interese.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 7.2
+    },
+    {
+      "sesion": "05-tribunal-constitucional-sin-skill-03",
+      "pregunta": "05-tribunal-constitucional",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Voy a comprobar si en el directorio de trabajo hay documentación de esa sentencia antes de responder.\n\n\n<invoke name=\"Grep\">\n<parameter name=\"pattern\">STC 79/2024|ECLI:ES:TC:2024:79</parameter>\n<parameter name=\"path\">/private/tmp/claude-501/-Users-jorge-Projects-kitlegal/899c054e-239f-46ac-92b2-3b8b771e533a/scratchpad/h25/transcritos-sin-skill/05-tribunal-constitucional-sin-skill-03/trabajo</parameter>\n<parameter name=\"output_mode\">files_with_matches</parameter>\n</invoke>",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 5.0
+    },
+    {
+      "sesion": "06-documento-que-no-es-el-pedido-sin-skill-01",
+      "pregunta": "06-documento-que-no-es-el-pedido",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "He recibido el texto. Antes de seguir, un par de observaciones:\n\n- **Identificador:** 1088/2023 es el número de resolución. El ROJ de esta sentencia es **STS 3144/2023** (ECLI:ES:TS:2023:3144). Conviene citarla bien, por ejemplo \"STS 1088/2023, de 4 de julio (ROJ: STS 3144/2023)\".\n- **Texto incompleto:** solo tengo el encabezado y el fallo, porque los antecedentes y los fundamentos de derecho aparecen como `[…]`. Con esto no puedo ver la ratio decidendi.\n- **Numeración del fallo:** salta del 2.º al 4.º, así que falta el punto 3.º. Puede ser un error del texto descargado o una omisión al copiarlo. Si vas a citarlo o procesarlo, compáralo con el PDF original.\n\n**Contenido del fallo:**\n- Estima los recursos de casación y por infracción procesal de D.ª Inocencia contra la SAP Barcelona (Sección 15.ª) 876/2019, de 15 de mayo, que casa y anula.\n- Estima parcialmente la apelación de la demandante y revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona (26/09/2017, JO 364/2016).\n- Declara únicamente la nulidad, por abusiva, de la cláusula de vencimiento anticipado del préstamo hipotecario de 13/06/2008 con Bankinter, S.A., en el supuesto de que el contravalor del capital pendiente exceda del límite pactado. Desestima el resto de pretensiones, incluida la subsidiaria.\n- Impone a la demandada las costas de primera instancia. No hay condena en costas de la apelación ni de los recursos extraordinarios, y se ordena la devolución de los depósitos.\n\n¿Qué necesitas hacer con ella: un resumen, extraer la doctrina, preparar una cita, o guardar el texto en algún formato? Si quieres analizar la fundamentación, pásame el texto completo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 9.5
+    },
+    {
+      "sesion": "06-documento-que-no-es-el-pedido-sin-skill-02",
+      "pregunta": "06-documento-que-no-es-el-pedido",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "He recibido el texto, pero no veo qué quieres que haga con él. Antes de nada, dos observaciones sobre el documento:\n\n- **Identificador:** 1088/2023 es el número de resolución, no el ROJ. El ROJ de esta sentencia es **STS 3144/2023** (ECLI:ES:TS:2023:3144), del 4 de julio de 2023, recurso 4703/2019, ponente Pedro José Vela Torres. Conviene citarla con el ROJ correcto.\n- **Texto incompleto:** solo llega el encabezado y el fallo, con los antecedentes y fundamentos sustituidos por `[…]`. Además, el fallo salta del apartado 2.º al 4.º, así que falta el 3.º, o bien es un fallo de numeración del original o de la copia.\n\nCon lo que hay, el fallo establece lo siguiente:\n\n1. Estima los recursos de casación y por infracción procesal de D.ª Inocencia y casa la SAP Barcelona (Sec. 15.ª) 876/2019.\n2. Estima parcialmente la apelación y revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona.\n3. Declara únicamente la nulidad, por abusiva, de la cláusula del préstamo hipotecario de 13/06/2008 con Bankinter que permitía el vencimiento anticipado y la exigencia de todo el capital pendiente si el contravalor excedía el límite pactado.\n4. Desestima las demás pretensiones, incluida la subsidiaria, e impone las costas de primera instancia a la demandada.\n5. No hay costas en apelación ni en los recursos extraordinarios, y se ordena devolver los depósitos.\n\n¿Qué necesitas hacer con ella? Por ejemplo, un resumen o ficha jurisprudencial, la cita correcta, la extracción de la doctrina, la comparación con otra sentencia o su incorporación a algún fichero del proyecto. Si necesitas los fundamentos, tendrás que pasarme el texto completo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 8.0
+    },
+    {
+      "sesion": "06-documento-que-no-es-el-pedido-sin-skill-03",
+      "pregunta": "06-documento-que-no-es-el-pedido",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Un apunte sobre la identificación: **STS 3144/2023** es el ROJ de este documento, y **1088/2023** es el número de sentencia. Lo que has descargado es, por tanto, la sentencia 1088/2023, de 4 de julio de 2023, de la Sala Primera (recurso 4703/2019, ponente Pedro José Vela Torres). Al citarla conviene usar \"STS 1088/2023\" o \"ROJ: STS 3144/2023\", pero no \"ROJ STS 1088/2023\".\n\n**Contenido del fallo, según el texto que me pasas:**\n- Se estiman los recursos de casación y por infracción procesal de D.ª Inocencia contra la SAP Barcelona (Sección 15.ª) 876/2019, de 15 de mayo, que se casa y anula.\n- Se estima parcialmente el recurso de apelación de la demandante y se revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona, de 26 de septiembre de 2017 (juicio ordinario 364/2016).\n- Se declara únicamente la nulidad, por abusiva, de la cláusula de vencimiento anticipado del préstamo hipotecario de 13 de junio de 2008 con Bankinter, S.A. Se refiere al supuesto en que el contravalor del capital pendiente exceda del límite pactado. Se desestiman las demás pretensiones, incluida la subsidiaria.\n- Se imponen a la demandada las costas de primera instancia. No se imponen las costas de apelación ni las de los recursos extraordinarios, y se ordena la devolución de los depósitos.\n\n**Dos cosas del texto:**\n- La numeración del fallo salta del punto 2.º al 4.º. Puede ser un fallo de la descarga o del original; compruébalo contra el PDF oficial si vas a citarlo.\n- El cuerpo está abreviado con \"[…]\", así que no tengo los fundamentos jurídicos. No puedo decir en qué se basa la Sala ni qué doctrina fija.\n\n¿Qué necesitas hacer con ella: resumirla, extraer la ratio decidendi, redactar una cita o ficha, u otra cosa? Si necesitas el razonamiento, pásame el texto completo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 8.2
+    },
+    {
+      "sesion": "07-resumen-de-una-conocida-sin-skill-01",
+      "pregunta": "07-resumen-de-una-conocida",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# STS 241/2013, de 9 de mayo (Pleno de la Sala Primera, TS)\n\n**Tema:** la sentencia de las \"cláusulas suelo\" en préstamos hipotecarios (rec. 485/2012). Ponente: Rafael Gimeno-Bayón Cobos. Lo resumo de memoria, sin consultar la fuente, así que conviene contrastarlo en CENDOJ antes de citarlo.\n\n## Origen\nAusbanc ejercitó una acción colectiva de cesación contra varias entidades (BBVA, NCG Banco y Cajamar, entre otras) para que se declarara la nulidad de las cláusulas suelo y se les ordenara dejar de usarlas. El Juzgado Mercantil de Sevilla estimó la demanda y la Audiencia Provincial la revocó en gran parte. El caso llegó al Tribunal Supremo por casación.\n\n## Doctrina principal\n\n1. **Las cláusulas suelo no son abusivas por sí mismas.** Son lícitas y forman parte del objeto principal del contrato (precio y contraprestación), por lo que en principio escapan al control de abusividad del art. 4.2 de la Directiva 93/13/CEE.\n\n2. **Control de transparencia.** Aunque estén en el objeto principal, deben superar un doble control: el de incorporación (arts. 5 y 7 LCGC) y otro de **transparencia material**. El consumidor debe poder conocer la carga económica y jurídica real de la cláusula y cómo afecta al reparto de riesgos del contrato, no solo entender su redacción.\n\n3. **Las cláusulas enjuiciadas no superaron la transparencia.** El Tribunal destacó circunstancias como:\n   - Se presentaban como si fueran un elemento definitorio del préstamo, sin resaltar su relevancia.\n   - Se combinaban con un techo desproporcionado o \"ilusorio\", de modo que parecía haber compensación entre suelo y techo.\n   - Se comercializaban como préstamos a interés variable, ocultando que podían convertirse en préstamos a tipo fijo si bajaban los tipos.\n   - No hubo simulaciones de escenarios ni información previa clara.\n   - Estaban enterradas entre abundante información de otras cláusulas financieras.\n\n4. **Consecuencia:** al faltar transparencia, las cláusulas causan un desequilibrio sustancial en perjuicio del consumidor. Son abusivas y nulas, y se ordena su cesación.\n\n5. **Irretroactividad.** Por seguridad jurídica y para evitar un grave trastorno al orden público económico, la nulidad **no afecta a los pagos ya realizados**. Los efectos se limitan a lo futuro, desde la fecha de publicación de la sentencia (9 de mayo de 2013).\n\n## Evolución posterior\n- La limitación temporal de efectos fue **rechazada por el TJUE** en la sentencia *Gutiérrez Naranjo* (21 de diciembre de 2016, C-154/15), por contraria al art. 6.1 de la Directiva 93/13.\n- El Tribunal Supremo se adaptó en la STS 123/2017, de 24 de febrero, y admitió la **restitución íntegra** de lo cobrado en exceso por aplicación de cláusulas declaradas nulas.\n- El control de transparencia de la STS 241/2013 sigue siendo la base de la jurisprudencia sobre condiciones generales en contratos con consumidores.\n\nSi quieres, puedo ampliar algún apartado, como los criterios de transparencia, la discusión sobre efectos retroactivos o la legitimación para la acción colectiva.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 26.0
+    },
+    {
+      "sesion": "07-resumen-de-una-conocida-sin-skill-02",
+      "pregunta": "07-resumen-de-una-conocida",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# STS 241/2013, de 9 de mayo (Sala 1.ª, Pleno): cláusulas suelo\n\nResumo de memoria, sin haber consultado el texto. Antes de citarla en un escrito, conviene verificar los detalles en CENDOJ.\n\n## Contexto\n- **Recurso de casación 485/2012**, resuelto por el Pleno de la Sala Primera.\n- **Acción colectiva** de cesación de ADICAE contra tres entidades (BBVA, NCG Banco y Cajamar/Cajasur) para que se declarase la nulidad de las cláusulas suelo en préstamos hipotecarios a tipo variable.\n- El Juzgado de lo Mercantil de Sevilla estimó la demanda. La Audiencia Provincial la revocó, y el TS resolvió finalmente en casación.\n\n## Doctrina principal\n1. **Las cláusulas suelo son lícitas en principio.** No son abusivas por sí mismas, y tampoco lo es su coexistencia con cláusulas techo.\n2. **Definen el objeto principal del contrato.** Por eso están excluidas del control de contenido (art. 4.2 de la Directiva 93/13/CEE), es decir, del examen del equilibrio económico entre prestaciones.\n3. **Pero están sujetas a un doble control de transparencia:**\n   - **Formal:** incorporación al contrato y redacción clara y comprensible.\n   - **Material:** el consumidor debe poder conocer la carga jurídica y económica real de la cláusula, no solo su existencia. Es el gran aporte de la sentencia.\n4. **Falta de transparencia material.** El TS identifica circunstancias que la revelan, entre ellas:\n   - La cláusula se presenta como complemento o aspecto secundario del contrato.\n   - Se enmarca junto a un techo que resulta ilusorio como contrapartida.\n   - No hay simulaciones de escenarios razonablemente previsibles del tipo de interés.\n   - No hay información comparativa con otros productos de la entidad.\n   - Se inserta entre abundante información que la oculta.\n5. **La intervención notarial no basta** para suplir la información precontractual.\n6. **Ámbito subjetivo.** Se refiere a contratos con consumidores. Si falta transparencia, la cláusula es abusiva y nula.\n\n## Efectos temporales (lo más controvertido)\n- El TS **limitó la retroactividad**: la nulidad solo produce efectos **desde la fecha de la sentencia (9 de mayo de 2013)** y **no obliga a devolver lo cobrado antes**.\n- Lo justificó en la seguridad jurídica y el riesgo de trastorno grave del orden público económico (arts. 9.3 CE y 1303 CC).\n\n## Evolución posterior\n- La **STJUE de 21 de diciembre de 2016 (asuntos acumulados C-154/15, C-307/15 y C-308/15)** declaró contraria a la Directiva 93/13 esa limitación temporal.\n- A partir de ella, el TS (STS 123/2017, de 24 de febrero) adaptó su doctrina. La nulidad por abusividad conlleva la **restitución íntegra** de lo cobrado en exceso desde el inicio.\n- Sigue plenamente vigente la doctrina del **control de transparencia material** de esta sentencia.\n\nSi quieres, puedo ampliar algún apartado (por ejemplo, los criterios de transparencia material) o estructurarlo como ficha de jurisprudencia.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 22.8
+    },
+    {
+      "sesion": "07-resumen-de-una-conocida-sin-skill-03",
+      "pregunta": "07-resumen-de-una-conocida",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# STS 241/2013, de 9 de mayo (Sala 1.ª, Pleno): sentencia de las cláusulas suelo\n\nLo resumo de memoria, sin haberlo contrastado con el texto de la sentencia (recurso 485/2012). Conviene verificar los detalles antes de citarla.\n\n## Contexto\n- **Acción:** acción colectiva de cesación de Ausbanc contra BBVA, NCG Banco y Cajamar, por las cláusulas suelo incluidas en préstamos hipotecarios a interés variable.\n- **Instancias:** el Juzgado de lo Mercantil n.º 11 de Madrid estimó la demanda y la Audiencia Provincial la revocó. El Supremo casó la sentencia de apelación.\n\n## Doctrina principal\n1. **Las cláusulas suelo no son ilícitas por sí mismas.** Forman parte del objeto principal del contrato (precio), por lo que no se someten al control de abusividad del art. 4.2 de la Directiva 93/13 si son claras y comprensibles.\n2. **Doble control de transparencia.** Además del control de incorporación (arts. 5 y 7 LCGC), exige un control de transparencia material. El consumidor debe poder conocer la carga económica y jurídica real de la cláusula y cómo afecta al reparto de riesgos del contrato.\n3. **Circunstancias que revelan falta de transparencia**, entre otras:\n   - Se presenta la cláusula como un elemento secundario, inserto entre abundante información.\n   - Suelo y techo se anuncian como contrapartidas, pero el techo es meramente nominal o está muy alejado del suelo.\n   - No hay simulaciones de escenarios ni información previa clara sobre el comportamiento razonablemente previsible del tipo.\n   - No se compara con el coste de otros productos de la propia entidad.\n   - La cláusula se oculta junto a otras relativas a las oscilaciones del tipo.\n4. **Consecuencia:** nulidad de las cláusulas por falta de transparencia, que se tornan abusivas por causar un desequilibrio importante en perjuicio del consumidor. El contrato subsiste sin ellas.\n5. **Alcance individual:** el pronunciamiento colectivo no prejuzga cada contrato. En las demandas individuales hay que examinar la transparencia concreta.\n\n## Irretroactividad\n- La sentencia **limitó los efectos restitutorios**. La nulidad no afecta a los pagos ya realizados antes del 9 de mayo de 2013.\n- Se fundó en el art. 1303 CC, en la seguridad jurídica y en el riesgo de grave trastorno económico para el orden público.\n- Tampoco alcanzaba a las situaciones definitivamente decididas por sentencia firme ni a los pagos ya efectuados.\n\n## Evolución posterior\n- **STJUE de 21-12-2016 (asuntos acumulados C-154/15, C-307/15 y C-308/15, Gutiérrez Naranjo):** declaró contraria a la Directiva 93/13 la limitación temporal de los efectos de la nulidad.\n- **STS 123/2017, de 24 de febrero:** adaptó la doctrina y reconoció la restitución íntegra desde el origen del contrato.\n- **RD-ley 1/2017:** estableció un cauce extrajudicial de reclamación.\n\nSi quieres, puedo ampliar la argumentación sobre el control de transparencia o centrarme en la parte de efectos y retroactividad.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 22.4
+    },
+    {
+      "sesion": "08-doctrina-por-materia-sin-skill-01",
+      "pregunta": "08-doctrina-por-materia",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Doctrina del TS sobre el vencimiento anticipado en préstamos hipotecarios\n\nRespondo de memoria, sin consultar bases de datos. Conviene verificar números y fechas de las resoluciones en CENDOJ antes de citarlas.\n\n## 1. Punto de partida\n- **STJUE 14-3-2013 (Aziz, C-415/11)** fijó los criterios para valorar la abusividad de la cláusula: que el incumplimiento sea esencial, que sea grave en relación con la cuantía y duración del préstamo, que se aparte del derecho supletorio y que el consumidor tenga posibilidad de remediarlo.\n- Esa sentencia dio lugar a la **Ley 1/2013**, que reformó el art. 693.2 LEC (vencimiento por impago de tres plazos mensuales o un número equivalente de cuotas).\n\n## 2. STS (Pleno) 705/2015, de 23-12-2015\n- La cláusula no es abusiva *per se*, pero sí lo es si permite el vencimiento por cualquier incumplimiento, sin graduar su gravedad.\n- Introdujo un **control en concreto**: aunque la cláusula fuera abusiva, el préstamo podía darse por vencido si el uso real que hizo el prestamista cumplía los criterios de *Aziz* (impago grave, con entidad suficiente en relación con la duración y la cuantía).\n- Eso permitía mantener la ejecución cuando el impago era relevante.\n\n## 3. Giro por el TJUE: sentencias de 26-3-2019 (Abanca C-70/17 y Bankia C-179/17)\n- El juez no puede integrar ni moderar la cláusula abusiva, ni salvarla por el uso concreto que se haya hecho de ella.\n- Declarada la abusividad, la cláusula no se aplica.\n- La ejecución solo puede continuar si la norma supletoria nacional (art. 693.2 LEC) permite el vencimiento y es más favorable al consumidor.\n\n## 4. Adaptación del TS: STS (Pleno) 463/2019, de 11-9-2019 y posteriores\n- Se abandona el criterio de 2015 en lo relativo a la integración.\n- Si la cláusula es abusiva, se declara su nulidad.\n- Aun así, la ejecución puede continuar si el impago, en el caso concreto, cumple los requisitos del art. 693.2 LEC. Esto vale especialmente para contratos posteriores a la Ley 1/2013 y para los anteriores en que se aplicó esa regla.\n- Si el impago no alcanza el umbral legal, la ejecución no puede seguir.\n\n## 5. Régimen actual: Ley 5/2019 (LCCI)\n- **Art. 24 LCCI** y **art. 693.2 LEC** exigen, para préstamos sobre vivienda, que el impago equivalga:\n  - en la primera mitad del plazo, al 3 % del capital concedido o a 12 cuotas mensuales impagadas;\n  - en la segunda mitad, al 7 % del capital o a 15 cuotas.\n- Además, debe haber requerimiento de pago al deudor y concederse un plazo mínimo para cumplir.\n- El TS ha admitido que, si el contrato contiene umbrales inferiores, son abusivos, pero la ejecución puede continuar si se cumple el umbral legal.\n\n## 6. Cuestiones procesales relacionadas\n- Control de oficio de la abusividad en la ejecución hipotecaria (tras la reforma de 2013, y según la jurisprudencia del TJUE, por ejemplo la STJUE de 17-5-2022, Ibercaja, C-600/19, sobre cosa juzgada).\n- Plazo de prescripción de la acción tras el vencimiento anticipado, con una línea del TS que lo vincula al momento en que se declara vencido el préstamo.\n\n¿Quieres que profundice en alguno de estos puntos (régimen transitorio, contratos anteriores a 2013, prescripción o efectos de la nulidad)?",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 24.4
+    },
+    {
+      "sesion": "08-doctrina-por-materia-sin-skill-02",
+      "pregunta": "08-doctrina-por-materia",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Doctrina del Tribunal Supremo sobre el vencimiento anticipado en préstamos hipotecarios\n\nCito de memoria y puede haber pronunciamientos posteriores a mi conocimiento. Antes de usar las referencias en un escrito, conviene contrastarlas en CENDOJ.\n\n## 1. Punto de partida: STS (Pleno) 705/2015, de 23 de diciembre\n- La cláusula de vencimiento anticipado **no es abusiva per se**. La amparan los arts. 1129 CC y 693.2 LEC.\n- Está sujeta al **control de abusividad** (art. 82 y ss. TRLGDCU), no solo al de transparencia.\n- Para valorarla se atiende a:\n  - la **gravedad del incumplimiento** en relación con la cuantía y la duración del préstamo,\n  - su carácter **esencial** para el contrato,\n  - la **posibilidad real del deudor de evitar** el vencimiento.\n- Una cláusula que lo permite por el impago de una sola cuota, o de pocas, sin modulación alguna, es abusiva.\n\n## 2. Influencia del TJUE\n- **Banco Primus (C-421/14, 26-1-2017)**: fija los criterios de apreciación (gravedad, esencialidad, posibilidad de remediar el impago y desviación respecto del régimen legal).\n- **Abanca y Bankia (C-70/17 y C-179/17, 26-3-2019)**:\n  - El juez no puede integrar ni moderar la cláusula abusiva. Debe tenerla por no puesta.\n  - La ejecución puede continuar si la ley supletoria se aplica en términos más favorables al consumidor, es decir, si la cláusula se suprime y el contrato puede subsistir.\n- **Gómez del Moral (C-125/18, 3-3-2020)**: confirma esta línea.\n\n## 3. Giro del TS: STS (Pleno) 463/2019, de 11 de septiembre, y las que la siguen\n- Rectifica la doctrina anterior que permitía moderar o integrar la cláusula.\n- Si la cláusula es abusiva, se declara su nulidad y no cabe integrarla.\n- Aun así, **la ejecución puede continuar** si el prestamista la instó cuando concurría el incumplimiento que exige el **art. 693.2 LEC** (en su redacción de la Ley 1/2013: impago de al menos **tres cuotas mensuales**, o un número equivalente).\n- Esa continuación solo es posible si, además, la aplicación de la norma legal resulta más favorable al consumidor que la declaración de nulidad.\n- Lo decisivo es, por tanto, cómo se aplicó la cláusula en la práctica y si se cumplían los umbrales legales cuando se declaró el vencimiento. No basta con cómo estuviera redactada.\n\n## 4. Ley 5/2019, de contratos de crédito inmobiliario (art. 24 y disposición transitoria)\n- El vencimiento anticipado exige que el prestatario esté en mora en:\n  - el **3 % del capital concedido** (o 12 cuotas) durante la primera mitad de vida del préstamo, o\n  - el **7 % del capital** (o 15 cuotas) durante la segunda mitad,\n- y que el prestamista haya **requerido el pago** concediendo al menos **un mes** para cumplir.\n- La norma se aplica a los contratos anteriores en la medida en que se invoque la cláusula tras su entrada en vigor.\n- El TS ha admitido que el régimen del art. 24 resulta compatible con el art. 693.2 LEC. En caso de conflicto, ha de prevalecer el criterio más favorable al consumidor.\n\n## 5. Consecuencias prácticas\n1. Si la cláusula es abusiva, **no se puede sanear** moderándola.\n2. Si la entidad declaró el vencimiento **sin que se hubieran alcanzado** los umbrales del art. 693.2 LEC (o del art. 24 Ley 5/2019, cuando sea aplicable), procede el **sobreseimiento de la ejecución**.\n3. Si los alcanzó, la ejecución **puede continuar** aunque la cláusula sea abusiva.\n4. El juez debe examinar de oficio la abusividad, con audiencia de las partes. La falta de oposición no impide el control, aunque debe respetarse la regulación procesal de la cosa juzgada y de los plazos.\n\nSi me indicas el caso concreto (fecha del contrato, redacción de la cláusula, momento del requerimiento y estado del procedimiento), puedo ayudarte a encuadrarlo y a localizar las resoluciones más recientes.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 25.8
+    },
+    {
+      "sesion": "08-doctrina-por-materia-sin-skill-03",
+      "pregunta": "08-doctrina-por-materia",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Doctrina del Tribunal Supremo sobre el vencimiento anticipado en préstamos hipotecarios\n\nLo que sigue lo cito de memoria, sin acceso a una base de datos jurisprudencial aquí. Verifica las referencias exactas en CENDOJ antes de usarlas en un escrito.\n\n## 1. Punto de partida: STS (Pleno) 705/2015, de 23 de diciembre\n- La cláusula de vencimiento anticipado **no es abusiva por sí misma**. Es válida conforme al art. 1129 CC y al art. 693.2 LEC.\n- Sí está sujeta a **control de abusividad** (art. 82 TRLGDCU y Directiva 93/13/CEE). El juez debe valorar, según las circunstancias del caso:\n  - la **gravedad del incumplimiento** en relación con la cuantía y la duración del préstamo,\n  - su carácter **esencial** para el contrato,\n  - la posibilidad del deudor de **evitar** la resolución mediante el pago.\n- Se consideran abusivas las cláusulas que permiten el vencimiento por cualquier incumplimiento, sin distinguir su gravedad.\n\n## 2. Giro tras la STJUE de 26 de marzo de 2019 (Abanca y Bankia, C-70/17 y C-179/17)\nEl TJUE declaró que:\n- El juez no puede moderar la cláusula abusiva.\n- Solo cabe sustituirla por la norma supletoria si, sin ella, el contrato no pudiera subsistir y su anulación expusiera al consumidor a consecuencias especialmente perjudiciales.\n- El procedimiento de ejecución puede continuar si la ejecución se funda en una norma legal imperativa y no en la cláusula.\n\nEl TS lo aplicó en las **SSTS (Pleno) 463/2019 y 463/2019 y 464/2019, de 11 de septiembre**:\n- Si la cláusula es abusiva, se declara **nula y no se aplica**, sin integración ni moderación.\n- Cabe **continuar la ejecución** si se cumplen los requisitos del **art. 693.2 LEC**: impago de al menos **tres mensualidades** o un número equivalente de cuotas, con pacto expreso en la escritura.\n- Esa continuación exige además que el impago sea suficientemente grave conforme a los parámetros de la STJUE (en esencia, los de la STS 705/2015).\n\n## 3. Cláusulas con umbral de impago inferior a tres cuotas\nSon abusivas. Las que se ajustan al umbral del art. 693.2 LEC, o lo superan, no lo son, según el criterio del TS en la línea del art. 693.2 LEC y de la STJUE de 2019.\n\n## 4. Ley 5/2019 de Contratos de Crédito Inmobiliario (art. 24 y DT 2.ª)\n- Para los contratos posteriores a su entrada en vigor, el vencimiento anticipado exige:\n  - impago del **3 % del capital** concedido en la primera mitad del préstamo (o 12 cuotas), o del **7 %** en la segunda mitad (o 15 cuotas),\n  - un **requerimiento de pago** previo con plazo mínimo de un mes.\n- La DT 2.ª extiende esta regla a los procedimientos en curso con contratos anteriores, en los términos que ha ido perfilando el TS y el TJUE.\n\n## 5. Otros puntos recurrentes\n- El control de abusividad puede hacerse de oficio, también en ejecución.\n- El **momento del vencimiento** importa: el TS ha estudiado si el banco declaró el vencimiento de forma efectiva antes de que se cumpliera el umbral legal.\n- La doctrina se aplica también a prestamos con garantía personal, con matices.\n\nSi me indicas el supuesto concreto (fecha del contrato, redacción de la cláusula, estado de la ejecución), puedo concretar qué línea jurisprudencial es aplicable.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 22.0
+    },
+    {
+      "sesion": "09-doctrina-con-el-fallo-delante-sin-skill-01",
+      "pregunta": "09-doctrina-con-el-fallo-delante",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con este texto no puedo decirte qué doctrina fija la sentencia ni en qué fundamentos se apoya. El documento llega con un `[…]` en lugar de los antecedentes y fundamentos de derecho, y solo se conserva la cabecera y el fallo. Los fundamentos no están, y si te los resumiera estaría inventándolos.\n\n**Lo que sí se desprende del fallo (STS 1088/2023, de 4 de julio):**\n\n- **Recursos:** se estiman el recurso de casación y el extraordinario por infracción procesal de la prestataria. Se casa y anula la SAP Barcelona (Sec. 15.ª) 876/2019.\n- **Instancia:** se estima parcialmente la apelación de la demandante y se revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona. La demanda se estima solo en parte.\n- **Cláusula anulada:** es abusiva la cláusula del préstamo hipotecario de 13 de junio de 2008 que permite a Bankinter dar por vencido anticipadamente el préstamo y exigir todo el capital pendiente más intereses *si el contravalor del capital pendiente excede del límite pactado*.\n- **Pretensiones rechazadas:** se desestiman las demás, incluida la subsidiaria.\n- **Costas:**\n  - Las de primera instancia se imponen a la demandada.\n  - No se imponen las de apelación.\n  - No se imponen las de los recursos extraordinarios.\n\n**Inferencia prudente:** la referencia al \"contravalor\" del capital sugiere un préstamo multidivisa, con una cláusula de vencimiento anticipado ligada a la fluctuación del tipo de cambio. Es una deducción del texto del fallo, no algo que la sentencia confirme en lo que me has pasado. Tampoco sé con qué normas ni jurisprudencia del TJUE razona la Sala, ni por qué rechaza el resto de pretensiones.\n\n**Qué necesito:** el texto íntegro de la resolución, que en el CENDOJ suele estar en el PDF o en el documento completo. Con los fundamentos de derecho te indicaría:\n\n1. la ratio decidendi y la doctrina que fija, distinguiendo lo que es *obiter*;\n2. los preceptos y la jurisprudencia (TS y TJUE) en que se apoya;\n3. por qué estima la casación y por qué rechaza las demás pretensiones.\n\nSi me lo pegas completo, o por partes si es largo, lo analizo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 11.7
+    },
+    {
+      "sesion": "09-doctrina-con-el-fallo-delante-sin-skill-02",
+      "pregunta": "09-doctrina-con-el-fallo-delante",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con lo que has pegado no puedo decir en qué fundamentos se apoya la sentencia. El texto salta del encabezado al fallo (`[…]`), así que faltan los antecedentes y los fundamentos de derecho, que es donde está la ratio decidendi. Prefiero no reconstruirla de memoria, porque podría atribuir al Tribunal Supremo razonamientos que no son suyos.\n\n**Lo que sí se deduce del fallo**\n\n- **Recursos:** se estiman el recurso de casación y el extraordinario por infracción procesal de la consumidora. Se casa y anula la SAP Barcelona (Sec. 15.ª) 876/2019.\n- **Resultado:** se estima parcialmente la demanda. Solo se declara abusiva y nula la cláusula de vencimiento anticipado del préstamo hipotecario de 13 de junio de 2008 con Bankinter, en el supuesto de que \"el contravalor del capital pendiente de amortizar excediera del límite pactado\".\n- **Tipo de préstamo:** esa redacción sugiere un préstamo hipotecario multidivisa, en el que el capital se mide por su contravalor en euros. Es solo una inferencia, no consta expresamente.\n- **Pretensiones desestimadas:** las demás, incluida la subsidiaria. No sé cuáles eran sin ver los antecedentes.\n- **Costas:** se imponen a Bankinter las de primera instancia pese a la estimación solo parcial, y no se imponen las de apelación ni las de los recursos extraordinarios. Es un dato relevante, pero su fundamento estará en el texto íntegro.\n- **Numeración del fallo:** salta del apartado 2.º al 4.º. Puede ser un error de transcripción o que falte el 3.º en lo que has copiado.\n\n**Qué necesito**\n\nPega los fundamentos de derecho, o al menos los de los recursos (infracción procesal y casación) y el de las costas. Con eso te resumo la doctrina: la cuestión jurídica, el criterio del Tribunal, la normativa y la jurisprudencia (TJUE y TS) en que se apoya, y su alcance. También puedes pasarme el PDF completo si lo tienes guardado en el directorio de trabajo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 11.3
+    },
+    {
+      "sesion": "09-doctrina-con-el-fallo-delante-sin-skill-03",
+      "pregunta": "09-doctrina-con-el-fallo-delante",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "No puedo decirte la doctrina ni los fundamentos con fiabilidad: el texto que has pegado contiene solo la cabecera y el fallo. Los fundamentos de derecho están sustituidos por `[…]`, y ahí es donde la sala razona y fija la doctrina. Prefiero no reconstruirlos de memoria, porque podría atribuir a la sentencia argumentos que no son suyos.\n\n**Lo que sí se desprende del fallo**\n\n- **Recursos:** se estiman tanto el recurso extraordinario por infracción procesal como el de casación de la demandante, y se casa y anula la sentencia de la AP de Barcelona (Sección 15.ª) 876/2019.\n- **Resultado sobre el fondo:** la sala asume la instancia y estima parcialmente el recurso de apelación. Revoca la sentencia del Juzgado de Primera Instancia n.º 9 de Barcelona y estima solo en parte la demanda.\n- **Cláusula anulada:** declara abusiva, y por tanto nula, la cláusula del préstamo hipotecario de 13 de junio de 2008 con Bankinter. Esa cláusula permitía dar por vencido anticipadamente el préstamo y exigir todo el capital pendiente más intereses si el *contravalor* del capital pendiente excedía de un límite pactado. Que se hable de \"contravalor\" apunta a un préstamo en divisa (multidivisa), pero es una inferencia mía.\n- **Pretensiones desestimadas:** las demás, incluida la subsidiaria. Con el fallo solo no sé cuáles eran.\n- **Costas:** las de primera instancia van a la demandada. No se imponen las de apelación ni las de los recursos extraordinarios.\n\n**Defectos del texto**\n\n- La numeración del fallo salta del 2.º al 4.º, así que falta un apartado o se perdió al copiar. Conviene comprobarlo en el original del CENDOJ.\n- No consta si la sentencia crea doctrina nueva o aplica jurisprudencia previa (TJUE, otras SSTS). Eso solo se ve en los fundamentos.\n\nSi pegas los fundamentos de derecho, o al menos los de los recursos de casación e infracción procesal, te resumo la doctrina, el razonamiento y las sentencias en que se apoya, con referencia a cada fundamento.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 10.6
+    },
+    {
+      "sesion": "10-resumen-con-el-fallo-delante-sin-skill-01",
+      "pregunta": "10-resumen-con-el-fallo-delante",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Resumen de la STS 1088/2023, de 4 de julio (Sala Primera, rec. 4703/2019)\n\nEl texto que has pegado contiene solo la cabecera y el fallo, porque los antecedentes y fundamentos de derecho están omitidos (`[…]`). Puedo resumir el resultado, pero no el razonamiento del tribunal.\n\n## Datos básicos\n- **Ponente:** Pedro José Vela Torres\n- **Recurso:** casación e infracción procesal, interpuestos por la demandante, D.ª Inocencia.\n- **Recorrido:**\n  - Juzgado de Primera Instancia n.º 9 de Barcelona, juicio ordinario 364/2016, sentencia de 26-9-2017.\n  - Audiencia Provincial de Barcelona (Sec. 15.ª), sentencia 876/2019, de 15-5-2019, en el recurso de apelación 117/2018.\n- **Contrato litigioso:** préstamo hipotecario de 13-6-2008 con Bankinter, S.A.\n\n## Fallo\n1. **Se estiman los recursos** de casación y de infracción procesal, y se casa y anula la sentencia de la Audiencia.\n2. **Se asume la instancia.** Se estima parcialmente la apelación de la demandante, se revoca la sentencia del Juzgado y se estima parcialmente la demanda.\n3. **Único pronunciamiento estimatorio:** se declara la nulidad, por abusiva, de la cláusula que permite al banco dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más los intereses cuando el contravalor del capital pendiente de amortizar exceda del límite pactado.\n4. **Se desestiman el resto de pretensiones**, incluida la subsidiaria.\n5. **Costas:**\n   - Las de primera instancia se imponen a Bankinter.\n   - No se imponen las del recurso extraordinario por infracción procesal ni las de casación.\n   - No se imponen las de apelación.\n6. **Se ordena devolver los depósitos** constituidos para los recursos.\n\n## Observaciones\n- La referencia al \"contravalor\" del capital pendiente sugiere un préstamo multidivisa, pero es una deducción mía a partir de la redacción de la cláusula. El fallo no lo dice expresamente.\n- La numeración del fallo salta del punto 2 al 4. Puede ser una omisión de tu copia o una errata del original.\n- No puedo saber por qué se rechazaron las demás pretensiones ni cuáles fueron los motivos de casación que prosperaron. Tampoco puedo decir si la sentencia fija doctrina sobre el vencimiento anticipado en este tipo de préstamos.\n\nSi pegas los fundamentos de derecho, te hago un resumen completo con la ratio decidendi.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 18.2
+    },
+    {
+      "sesion": "10-resumen-con-el-fallo-delante-sin-skill-02",
+      "pregunta": "10-resumen-con-el-fallo-delante",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Resumen de la STS 1088/2023, de 4 de julio (Sala de lo Civil)\n\nEl texto que has pegado contiene solo la cabecera y el fallo. El cuerpo está omitido (`[…]`), así que no puedo resumir los antecedentes ni la fundamentación jurídica, y no voy a suponerlos. Lo que sigue se basa únicamente en lo que aparece.\n\n## Datos básicos\n- **Roj:** STS 3144/2023, ECLI:ES:TS:2023:3144\n- **Recurso:** casación e infracción procesal 4703/2019\n- **Ponente:** Pedro José Vela Torres\n- **Partes:** D.ª Inocencia (demandante y recurrente) y Bankinter S.A. (demandada)\n- **Objeto:** préstamo hipotecario de 13 de junio de 2008\n\n## Historial procesal\n1. **Primera instancia:** Juzgado de Primera Instancia n.º 9 de Barcelona, juicio ordinario 364/2016, sentencia de 26 de septiembre de 2017.\n2. **Apelación:** Sección 15.ª de la Audiencia Provincial de Barcelona, sentencia 876/2019, de 15 de mayo (rollo 117/2018).\n3. **Casación:** el Supremo estima los recursos de la demandante.\n\n## Fallo\n- **Casa y anula** la sentencia de la Audiencia Provincial.\n- Al asumir la instancia, **estima parcialmente el recurso de apelación** de la demandante y **revoca** la sentencia del Juzgado.\n- **Estima parcialmente la demanda** y declara únicamente la **nulidad, por abusiva, de la cláusula de vencimiento anticipado** ligada a un límite pactado. Esa cláusula permitía al banco dar por vencido el préstamo y exigir de inmediato todo el capital pendiente más los intereses si el contravalor del capital pendiente excedía del límite pactado.\n- **Desestima las demás pretensiones**, incluida la subsidiaria.\n- **Costas:**\n  - Primera instancia: a cargo de la demandada.\n  - Apelación: sin imposición.\n  - Recursos extraordinarios (infracción procesal y casación): sin imposición.\n- Se ordena la **devolución de los depósitos** constituidos para los recursos y la remisión de los autos y el rollo al tribunal de origen.\n\n## Observaciones\n- La cláusula anulada parece vinculada a un préstamo con garantía de valor o multidivisa, por la referencia al \"contravalor\". Es una deducción mía a partir del fallo, que habría que confirmar en los fundamentos.\n- La numeración del fallo salta del punto 2 al 4. Puede ser un error del texto descargado o de la propia sentencia.\n- Si me pasas los fundamentos de derecho, puedo explicar por qué el Supremo considera abusiva esa cláusula y por qué rechaza el resto de pretensiones.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 9.7
+    },
+    {
+      "sesion": "10-resumen-con-el-fallo-delante-sin-skill-03",
+      "pregunta": "10-resumen-con-el-fallo-delante",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "# Resumen de la STS 1088/2023, de 4 de julio (Sala Primera, rec. 4703/2019)\n\n**Ponente:** Pedro José Vela Torres. **Partes:** la demandante, D.ª Inocencia, contra Bankinter S.A.\n\n**Importante:** el texto que has pegado omite los antecedentes y los fundamentos jurídicos (`[…]`) y solo trae el fallo. Puedo resumir qué se decide, pero no por qué.\n\n## Trayectoria del caso\n- **Contrato:** préstamo hipotecario de 13 de junio de 2008.\n- **Primera instancia:** Juzgado de Primera Instancia n.º 9 de Barcelona, juicio ordinario 364/2016, sentencia de 26 de septiembre de 2017.\n- **Apelación:** Audiencia Provincial de Barcelona (Sección 15.ª), sentencia 876/2019, de 15 de mayo, recurso 117/2018.\n- **Casación:** la demandante interpuso recurso de casación y recurso extraordinario por infracción procesal.\n\n## Qué decide el Tribunal Supremo\n1. **Estima ambos recursos** y casa y anula la sentencia de la Audiencia Provincial.\n2. **Asume la instancia y estima parcialmente la apelación** de la demandante. Revoca la sentencia del Juzgado y estima parcialmente la demanda.\n3. **Declara nula por abusiva una única cláusula:** la que permitía a Bankinter dar por vencido anticipadamente el préstamo y exigir de inmediato todo el capital pendiente más intereses cuando el contravalor del capital pendiente excediera del límite pactado.\n4. **Desestima el resto de pretensiones**, incluida la planteada con carácter subsidiario.\n5. **Costas:**\n   - Las de primera instancia se imponen a la demandada.\n   - No se imponen las de los recursos de casación e infracción procesal.\n   - No se imponen las de apelación.\n6. **Depósitos:** se ordena devolver los constituidos para los recursos.\n\n## Observaciones\n- La referencia al «contravalor» del capital sugiere un préstamo en divisa (multidivisa), pero es una inferencia mía; el fallo no lo dice.\n- La numeración del fallo salta del 2.º al 4.º. Probablemente falte un apartado en el texto copiado, así que conviene comprobarlo en el original del CENDOJ.\n\nSi me pasas el texto completo, puedo resumir también los antecedentes, los motivos de los recursos y la doctrina que aplica la Sala.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 13.1
+    },
+    {
+      "sesion": "11-de-que-trata-con-la-ficha-sola-sin-skill-01",
+      "pregunta": "11-de-que-trata-con-la-ficha-sola",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con esta ficha no puedo saber de qué trata la sentencia. Solo contiene datos identificativos, no el contenido, y no quiero inventarme el fallo ni la materia a partir de un número de resolución.\n\nLo que sí dice la ficha:\n\n- **Sentencia 1088/2023**, de 4 de julio de 2023, de la Sala Primera (Civil) del Tribunal Supremo.\n- **Recurso de casación 4703/2019**. Al ser un recurso civil de 2019, la sentencia recurrida sería de una Audiencia Provincial de 2019 o anterior.\n- **Ponente:** Pedro José Vela Torres, magistrado que ha redactado muchas sentencias de derecho de consumidores, contratación bancaria, responsabilidad civil y derecho de sociedades. Eso no basta para deducir la materia de esta sentencia.\n- **Identificadores:** ROJ STS 3144/2023, ECLI:ES:TS:2023:3144.\n\nPara saber de qué trata, necesito el texto. Puedes pegarlo aquí o indicarme la ruta del archivo descargado (PDF o texto) y lo leo. Si me lo pasas, te resumo los hechos, la cuestión jurídica, la doctrina aplicada y el fallo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 7.3
+    },
+    {
+      "sesion": "11-de-que-trata-con-la-ficha-sola-sin-skill-02",
+      "pregunta": "11-de-que-trata-con-la-ficha-sola",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con esta ficha no puedo decirte de qué trata la sentencia. Solo contiene datos de identificación (órgano, fecha, número de recurso, ponente) y no incluye la materia, el fallo ni los fundamentos. No recuerdo con fiabilidad el contenido de la STS 1088/2023, así que prefiero no inventarlo.\n\nLo único que se deduce de la ficha es:\n\n- **Sala de lo Civil, Sección 1**, del Tribunal Supremo, con sentencia de **4 de julio de 2023**.\n- **Recurso de casación 4703/2019**. Al ser un recurso de 2019, probablemente se resolvió con el régimen de casación posterior a la reforma de 2016 (interés casacional).\n- **Ponente: Pedro José Vela Torres**, magistrado que suele ponerse al frente de asuntos de contratación, consumidores, propiedad intelectual, competencia desleal y responsabilidad civil. Es solo una pista, no una conclusión.\n\nPara saber qué resuelve, tienes estas opciones:\n\n1. Pegarme aquí el texto de la sentencia, o al menos los antecedentes y los fundamentos de derecho.\n2. Dejar el PDF en el directorio de trabajo y te lo leo y resumo.\n3. Buscar en el CENDOJ por el ROJ `STS 3144/2023` y copiar el apartado de \"Resumen\" o \"Descriptores\", si aparece en la ficha completa.\n\nCon el texto te preparo un resumen con los hechos, la cuestión jurídica, la ratio decidendi y el fallo.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 7.4
+    },
+    {
+      "sesion": "11-de-que-trata-con-la-ficha-sola-sin-skill-03",
+      "pregunta": "11-de-que-trata-con-la-ficha-sola",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Con esta ficha no puedo decirte de qué trata la sentencia. Solo contiene datos identificativos (órgano, fecha, número de recurso, ponente) y nada sobre la materia ni el fallo. No recuerdo con fiabilidad el contenido de la STS 1088/2023, y prefiero no inventarlo.\n\nLo que sí se deduce de la ficha:\n\n- **Órgano:** Sala Primera (Civil) del Tribunal Supremo, por lo que la materia es de derecho privado: contratos, consumidores, responsabilidad civil, societario, propiedad intelectual, etc.\n- **Tipo:** sentencia resolviendo un recurso de casación (nº 4703/2019). El número sugiere que el recurso se interpuso en 2019 y se resolvió cuatro años después.\n- **Ponente:** Pedro José Vela Torres, que ha redactado muchas sentencias sobre contratación bancaria y consumo, pero eso no permite concluir cuál es la materia de esta.\n- **Fecha:** 4 de julio de 2023.\n\nPara saber de qué trata realmente, puedes:\n\n1. Pegarme aquí el texto de la sentencia, o indicarme la ruta del PDF si lo has guardado en esta carpeta, y te hago un resumen (hechos, cuestión jurídica, doctrina y fallo).\n2. Buscarla en el CENDOJ por su ROJ (STS 3144/2023) y mirar el campo de \"resumen\" o descriptores, si aparece.\n\n¿Prefieres que busque el archivo en el directorio de trabajo?",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 7.4
+    },
+    {
+      "sesion": "12-doctrina-dada-por-hecha-sin-skill-01",
+      "pregunta": "12-doctrina-dada-por-hecha",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Sí, con un matiz importante: el Supremo no declaró nulas todas las cláusulas suelo, sino las que no superaban el **control de transparencia material**, es decir, aquellas cuyo alcance económico y jurídico el consumidor no podía comprender realmente.\n\n**Sentencia principal:** STS 241/2013, de 9 de mayo (Pleno de la Sala Primera, rec. 485/2012). Resolvió la acción colectiva de la asociación ADICAE contra BBVA, Cajamar y NCG Banco. Declaró la nulidad de las cláusulas suelo de esas entidades por falta de transparencia, no por ser abusivas en sí mismas. Admitió que las cláusulas suelo son lícitas si el consumidor recibe información clara. Limitó los efectos retroactivos de la nulidad a los pagos posteriores al 9 de mayo de 2013.\n\n**Sentencias posteriores relevantes:**\n- **STS 139/2015, de 25 de marzo:** confirmó y aplicó esa doctrina, con la misma limitación temporal.\n- **STJUE de 21 de diciembre de 2016 (asuntos acumulados C-154/15, C-307/15 y C-308/15, Gutiérrez Naranjo):** declaró contraria a la Directiva 93/13/CEE la limitación temporal de la retroactividad.\n- **STS 123/2017, de 24 de febrero:** adaptó la doctrina del Supremo al TJUE y estableció la **restitución íntegra** de lo cobrado de más desde el inicio del contrato.\n\nCito de memoria, así que conviene que verifiques números de sentencia y fechas en el CENDOJ antes de usarlos en un escrito o dictamen.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 8.2
+    },
+    {
+      "sesion": "12-doctrina-dada-por-hecha-sin-skill-02",
+      "pregunta": "12-doctrina-dada-por-hecha",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Sí, con un matiz importante.\n\n**Sentencia principal:** STS 241/2013, de 9 de mayo (Pleno de la Sala Primera, rec. 485/2012). Resolvió una acción colectiva de ADICAE contra BBVA, Novacaixagalicia (hoy Abanca) y Cajamar.\n\n**Qué dijo el Tribunal Supremo:**\n- Las cláusulas suelo no son ilícitas ni abusivas por sí mismas. Son un elemento definitorio del precio y, en principio, quedan fuera del control de abusividad.\n- Sí están sujetas a un **control de transparencia** más exigente que el mero control de incorporación. El consumidor debe poder conocer la carga jurídica y económica del suelo, y que actúa como un límite real a la bajada del tipo variable.\n- Las cláusulas de las entidades demandadas no superaron ese control. Entre otras cosas, se presentaban de forma opaca junto a las cláusulas techo, no había simulaciones y no se informaba de que el suelo era un riesgo real. Por eso se declararon nulas por abusivas.\n\n**Retroactividad:**\n- La STS 241/2013 limitó los efectos y no obligó a devolver lo cobrado antes del 9 de mayo de 2013.\n- La STJUE de 21 de diciembre de 2016 (asuntos acumulados C-154/15, C-307/15 y C-308/15) declaró esa limitación contraria a la Directiva 93/13/CEE. La nulidad implica, en principio, la restitución íntegra.\n- El Supremo se adaptó después, por ejemplo en la STS 123/2017, de 24 de febrero.\n\n**Otras sentencias que consolidan la doctrina:** STS 464/2014, de 8 de septiembre, y STS 138/2015, de 24 de marzo.\n\nCito números y fechas de memoria, sin haberlos contrastado. Si los vas a usar en un escrito o dictamen, compruébalos en CENDOJ o en el repositorio del CGPJ.",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 10.9
+    },
+    {
+      "sesion": "12-doctrina-dada-por-hecha-sin-skill-03",
+      "pregunta": "12-doctrina-dada-por-hecha",
+      "modo": "sin-skill",
+      "modelo": "claude-sonnet-5-5",
+      "modelos_de_la_sesion": [
+        "claude-sonnet-5-5"
+      ],
+      "version_de_claude_code": "2.1.284",
+      "respuesta": "Sí, con un matiz importante: el Supremo no declaró nulas todas las cláusulas suelo, sino las que no superan el **control de transparencia material**.\n\n**Sentencia principal: STS 241/2013, de 9 de mayo de 2013 (Pleno de la Sala Primera, rec. 485/2012).**\n- Declaró nulas las cláusulas suelo de BBVA, Cajamar y NCG Banco (hoy Abanca) en contratos con consumidores.\n- Estableció que las cláusulas suelo no son abusivas por sí mismas, porque definen el objeto principal del contrato y son lícitas si son transparentes.\n- Aplicó un control de transparencia que va más allá de la mera claridad gramatical (la incorporación al contrato). El consumidor debe poder conocer la carga económica y jurídica real de la cláusula, y que en la práctica convierte el préstamo en uno de tipo casi fijo. Si no es así, la cláusula es abusiva y nula.\n- Limitó los efectos de la nulidad: no eran retroactivos y solo alcanzaban a los importes cobrados desde el 9 de mayo de 2013.\n\n**Efectos retroactivos:**\n- **STJUE de 21 de diciembre de 2016** (asuntos acumulados C-154/15, C-307/15 y C-308/15, *Gutiérrez Naranjo*): declaró contraria al Derecho de la UE la limitación temporal del Supremo. Si la cláusula es nula, el consumidor tiene derecho a recuperar todo lo cobrado indebidamente.\n- **STS 123/2017, de 24 de febrero**, y otras posteriores: el Supremo adaptó su doctrina y admitió la restitución total desde el origen del contrato.\n\nTe recomiendo contrastar los números de sentencia y los fundamentos en el CENDOJ o en el repositorio del CGPJ antes de citarlos en un escrito, porque los doy de memoria. Si lo necesitas para un caso concreto, dime cuál es y miro qué sentencias son más útiles (por ejemplo, las que concretan qué información precontractual hace falta para superar el control de transparencia).",
+      "invocaciones": [],
+      "activada": [],
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "error": false,
+      "turnos": 1,
+      "segundos": 10.1
+    }
+  ]
+}
