@@ -112,5 +112,6 @@ todas activan y declaran `sentencias`; por clase, 3, 2, 3, 1 y 1.
 | `internal/evals/medida.go` | `Quitado`, el informe de un sondeo, las órdenes `cita`, el texto pegado |
 | `internal/evals/conjunto.go` | Las reglas del conjunto con las diez |
 | `internal/evals/doc.go` | Lo que dice de `jurisprudencia` |
-| `internal/evals/*_test.go` | Los de «Controles mecánicos» del plan |
+| `internal/evals/umbrales.go` | Solo el comentario de `umbralesDelInforme`, que decía que la skill no tiene juez; el código no cambia |
+| `internal/evals/*_test.go` | Los de «Controles mecánicos» del plan, `sentencias_test.go` (tasks.md, T003) y un comentario en `umbrales_test.go` y en `consultas_test.go` (T009) |
 | `CHANGELOG.md`, `CONTRIBUTING.md`, `docs/JURISPRUDENCIA.md`, `docs/WORKFLOW.md` | FR-084, FR-090 a FR-093 |

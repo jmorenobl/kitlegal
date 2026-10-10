@@ -2,8 +2,9 @@
 
 Lo que el job lee, pide y publica del juez con modelo de `jurisprudencia`. El voto, la frase comprobada, el voto nulo,
 la regla de los tres votos y la respuesta sin juzgar son los de H24 y no se vuelven a definir aquí
-(`specs/017-h24-las-evals-juzgan/contracts/juez-y-voto.md` e `informe-del-job.md`). Los tamaños son medidos
-(research M10) salvo donde se dice.
+(`specs/017-h24-las-evals-juzgan/contracts/juez-y-voto.md` e `informe-del-job.md`). Los tamaños son medidos: los de
+los ejemplos, sobre su línea; el de los doce umbrales y el de una entrada de `juez.respuestas`, con el código de la
+cabeza (research M10).
 
 ## 1. La carpeta del juez (FR-001, FR-002)
 
@@ -104,8 +105,9 @@ propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en `b
 ```
 
 - Un voto de `afirma_que_existe` no lleva `sentencia` ni `precepto`.
-- Una entrada de `juez.respuestas` con los tres votos de una respuesta marcada, en las dos clases, ocupa 1 510 bytes.
-  Solo tienen entrada las respuestas con algún voto afirmativo.
+- Una entrada de `juez.respuestas` con los tres votos de una respuesta marcada, en las dos clases, ocupa 1 619 bytes:
+  es la del caso `con-sentencia` de `TestInformeConElJuez`, cuyo primer voto es el de arriba. Solo tienen entrada las
+  respuestas con algún voto afirmativo.
 - En `informe.md`, la tabla «Votos» conserva sus diez columnas. La octava se llama «Sentencia» si algún voto de la
   tabla lleva `sentencia`, y «Precepto» en otro caso: la de `boe-legislacion` no cambia. La celda de la clase que no
   lo tiene es «—».
@@ -132,7 +134,8 @@ propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en `b
 - Ningún paso del run cumple uno de ellos rebajándolo, dejándolo en `decide: false`, sacando respuestas de su total ni
   cambiando la rúbrica, los casos o la medida (FR-026).
 
-Un elemento (325 bytes); los doce, 3 772 bytes, fijos, una vez por job:
+Un elemento (324 bytes); los doce, de 249 a 388 bytes cada uno, 3 767 bytes escritos sin blancos, sin ninguna
+respuesta que cuente y con 0 s de votos —cada cifra de más en una medida es un byte más—, una vez por job:
 
 ```json
 {"nombre":"afirma_lo_no_leido:claude-sonnet-5-5:orden","descripcion":"Respuestas de claude-sonnet-5-5 en el modo orden que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus respuestas juzgadas en las evals que activan la skill","medida":0,"total":30,"comparacion":"<=","umbral":0,"cumple":true,"decide":true}
@@ -172,8 +175,8 @@ de la ejecución, no de la skill: el instrumento no está medido: la rúbrica (j
 
 | Salida | Quién la consume y cuántas veces | Tamaño | Cuándo deja de darse |
 |---|---|---|---|
-| `umbrales` | El job, que decide el veredicto; el informe final del workflow, sin modelo; y la persona. Una vez por job | 12 elementos, 3 772 bytes. Fijo: no crece con las evals ni con el uso del kit | Se mide de nuevo en cada job. Los dos de la medida repiten los recuentos versionados hasta que una persona versiona otra medida |
-| `juez.respuestas`, con `sentencia` | La persona que lee el informe: en la aceptación y ante un job en rojo. Una vez por job | 1 510 bytes por respuesta con sus tres votos; ninguna entrada si ningún voto dice sí. Como mucho 60 respuestas con 6 votos cada una, unos 180 KB | Cada job lo escribe de nuevo. Una respuesta sin votos afirmativos no deja nada |
+| `umbrales` | El job, que decide el veredicto; el informe final del workflow, sin modelo; y la persona. Una vez por job | 12 elementos, 3 767 bytes con todas sus medidas en 0. Fijo: no crece con las evals ni con el uso del kit | Se mide de nuevo en cada job. Los dos de la medida repiten los recuentos versionados hasta que una persona versiona otra medida |
+| `juez.respuestas`, con `sentencia` | La persona que lee el informe: en la aceptación y ante un job en rojo. Una vez por job | 1 619 bytes por respuesta con sus tres votos; ninguna entrada si ningún voto dice sí. Como mucho 60 respuestas con 6 votos cada una, unos 195 KB | Cada job lo escribe de nuevo. Una respuesta sin votos afirmativos no deja nada |
 | El motivo de una respuesta marcada | La persona, y la reparación del cierre, que lee los motivos. Uno por umbral incumplido | 374 bytes con una marcada; como mucho 30 por modo | En el primer job sin respuestas marcadas en ese modo |
 | El motivo del instrumento sin medir | Quien cambia la rúbrica, los casos, el modelo del juez o su versión | 128 bytes por línea, como mucho seis | Cuando una persona versiona una medida que corresponde y se cumple |
 | La tabla «Votos» de `informe.md` | La persona. Una vez por job | Una fila por voto y clase de cada respuesta con algún sí | Igual que `juez.respuestas` |

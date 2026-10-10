@@ -130,14 +130,17 @@ internal/evals/
 ├── medida.go                # Quitado con texto; el informe de un sondeo; el texto pegado; las órdenes cita
 ├── conjunto.go              # las reglas del conjunto con las diez
 ├── doc.go                   # lo que dice de jurisprudencia
+├── umbrales.go              # solo el comentario de umbralesDelInforme, que el hito dejaba falso (T009)
 └── juez_test.go, sesion_test.go, informe_test.go, medida_test.go, ejecucion_test.go,
-    conjunto_test.go, definicion_test.go
+    conjunto_test.go, definicion_test.go, sentencias_test.go (tasks.md, T003), y un comentario
+    en umbrales_test.go y en consultas_test.go (T009)
 CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, docs/WORKFLOW.md
 ```
 
 **Structure Decision**: la de `docs/ROADMAP.md` §2 y `CLAUDE.md`, sin paquetes ni ficheros Go nuevos: todo cabe en
-los ficheros de `internal/evals` que ya tienen el juez, la medida y las reglas. `umbrales.go`, `ejecucion.go`,
-`sesion.go`, `definicion.go`, los guiones de `scripts/` y el `Makefile` no cambian (research V4 a V6, V23).
+los ficheros de `internal/evals` que ya tienen el juez, la medida y las reglas. `ejecucion.go`, `sesion.go`,
+`definicion.go`, los guiones de `scripts/` y el `Makefile` no cambian, y de `umbrales.go` no cambia el código: solo
+un comentario, que decía que la skill no tiene juez (research V4 a V6, V23; tasks.md, T009).
 
 ## Aceptación e2e
 
@@ -191,6 +194,9 @@ Ninguno nuevo ni cambiado. `test` y `skills-check` llevan más dentro: los tests
 - `TestPreguntasConElFragmento`: además, la eval (h) con el fragmento y la (i) con su ficha.
 - `TestDefinicionDelJob`: `del-repositorio`, `sinteticas`, `peor-caso` y `tope-con-las-evals-del-repositorio`, con lo
   de contracts/job-de-evals.md §4.
+- Y cuatro que esta lista no nombraba y fija tasks.md: `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales`,
+  con el voto que lleva `sentencia` y su columna (T001); `TestLeerCasosEtiquetados`, con un derivado con `texto`
+  (T002); y `TestJuzgarSentencias`, con las sesiones modelo de las diez evals (T003).
 
 Ninguno se desactiva ni se salta. Ninguno se retira sin el que lo sustituye.
 
@@ -256,13 +262,13 @@ contracts/skill-jurisprudencia.md §4. Nada de lo que el hito entrega crece con 
   pregunta por materia—. De 768 a 2 695 bytes en el sondeo. Por sentencia sin documento, la línea y su consulta, unos
   360 bytes; salen mientras la sentencia no esté delante, y con su documento cotejado las sustituye la cita. Ninguna
   frase sobre un CAPTCHA.
-- **`umbrales`** (el job, el informe final, la persona; una vez por job): doce elementos, 3 772 bytes, fijos. Se miden
-  de nuevo en cada job.
-- **`juez`** del informe, con `sentencia` (la persona; una vez por job): 1 510 bytes por respuesta con sus tres votos;
-  nada si ningún voto dice sí; unos 180 KB como mucho. Acotado por 60 respuestas.
+- **`umbrales`** (el job, el informe final, la persona; una vez por job): doce elementos, 3 767 bytes con todas sus
+  medidas en 0, fijos. Se miden de nuevo en cada job.
+- **`juez`** del informe, con `sentencia` (la persona; una vez por job): 1 619 bytes por respuesta con sus tres votos;
+  nada si ningún voto dice sí; unos 195 KB como mucho. Acotado por 60 respuestas.
 - **Los motivos** (la persona y la reparación del cierre): 374 bytes por respuesta marcada; 128 el del instrumento sin
   medir. Cada uno deja de darse cuando deja de darse su causa.
-- **La medida impresa** (quien pone la etiqueta; una por lanzamiento y por skill): unos 700 bytes; si no se cumple,
+- **La medida impresa** (quien pone la etiqueta; una por lanzamiento y por skill): unos 650 bytes; si no se cumple,
   unos 280 más por caso mal juzgado.
 - **Las líneas de `TestDefinicionDelJob`, de las reglas del conjunto y de un caso que no se resuelve** (quien cambia
   el job, las evals o el reconstructor; en `make ci`): una línea por defecto, hasta que se corrige.

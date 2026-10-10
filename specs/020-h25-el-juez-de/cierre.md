@@ -36,7 +36,10 @@ este mismo fichero; T008 midió 10 999 líneas añadidas y 842 quitadas en 61 fi
 `git ls-files --others --exclude-standard` da un fichero sin seguimiento, `gates/converge-hecho`, que deja el
 workflow, y `git status --porcelain`, antes de editar este fichero en T009, da además los tres ficheros de Go de la
 tarea y los tres que el workflow lleva modificados (`tasks.md`, `gates/tarea-actual.json` y
-`gates/tareas-intentos.json`).
+`gates/tareas-intentos.json`). Son las cifras de cuando T009 escribió esto. Con su commit (`adf90b7`), que versiona
+`gates/converge-hecho`, la misma orden da 66 ficheros, 44 `A` y 22 `M`, 35 de ellos en `specs/020-h25-el-juez-de/`
+(medido en el barrido); los 31 de fuera de `specs/`, con sus 7 698 líneas añadidas y 855 quitadas, son los mismos, y
+el barrido no toca ninguno. Los de `specs/` siguen creciendo con lo que el workflow deja en `gates/`.
 
 ### Los 31 ficheros
 
@@ -88,8 +91,8 @@ tienen» donde decía «de boe-legislacion».
 | `consultas_test.go` | T009 | +2 −2 |
 
 Son 940 líneas añadidas a los seis que no son tests y 4 749 a los diez de test. Ningún fichero ni paquete de Go es
-nuevo. `sentencias_test.go` no está en la lista de plan.md, «Source Code»: lo añade tasks.md, que dice por qué en su
-cabecera.
+nuevo. `sentencias_test.go` no estaba en la lista de plan.md, «Source Code»: lo añade tasks.md, que dice por qué en su
+cabecera. Desde el barrido, esa lista lo nombra, con `umbrales.go` y los dos ficheros de test de T009.
 
 **Los tres de T009 solo cambian comentarios.** En `git diff main` de los tres, cada línea añadida o quitada empieza
 por `//`: un trozo en cada fichero, el final del comentario de `umbralesDelInforme` (`@@ -184,11 +184,18 @@`), el de
@@ -486,15 +489,18 @@ contra `main`:
 
 Los tres siguen en su sitio, con «ninguna todavía»:
 
-- plan.md, «Decisiones», línea 290: «**Reparaciones del cierre** (FR-027): ninguna todavía. Si las hay, cada una se
+- plan.md, «Decisiones», línea 296 (era la 290 hasta el barrido, que añade seis líneas más arriba, en «Source Code»,
+  en «Structure Decision» y en «Tests existentes que cambian»): «**Reparaciones del cierre** (FR-027): ninguna todavía. Si las hay, cada una se
   anota aquí y en research.md, con la medición como evidencia.»
 - research.md, `## Reparaciones del cierre (FR-027)`, línea 221: «Ninguna todavía. Si una medición del cierre da pie a
   un cambio de `SKILL.md` fuera de los dos pasajes, la decisión se anota aquí […]».
 - contracts/skill-jurisprudencia.md, `## 6. Reparaciones del cierre (FR-027)`, línea 87: «Ninguna todavía. Una
   reparación que toque `SKILL.md` añade aquí su cambio —C3 en adelante— […]».
 
-`grep -ci 'ninguna todavía'` da 1 en cada uno, y solo un commit toca los tres, el del plan (`2698bf9`): ninguna tarea
-los ha cambiado. Es donde una reparación del cierre deja su traza, y hasta la primera medición no hay ninguna.
+`grep -ci 'ninguna todavía'` da 1 en cada uno, y cuando se escribió esto solo un commit tocaba los tres, el del plan
+(`2698bf9`): ninguna tarea los ha cambiado. El barrido, después, edita plan.md y research.md en otros apartados —las
+cifras de «Uso», «Source Code», «Structure Decision» y «Tests existentes que cambian», y la fila M10—, y no toca ninguno de estos tres. Es donde una
+reparación del cierre deja su traza, y hasta la primera medición no hay ninguna.
 
 ## 8. Lo que queda fuera del run
 

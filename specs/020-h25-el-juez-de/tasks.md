@@ -42,7 +42,7 @@ reglas del conjunto y la concurrencia van juntas en T003. Y la carpeta del juez 
 (research M4): va en T004 con su fila en la tabla de las copias, los doce umbrales y la matriz de `medida`.
 
 **Lo que este fichero añade al plan, comprobado en el árbol en esta sesión.** plan.md, «Tests existentes que cambian»,
-no nombra `TestJuzgarSentencias`. En `internal/evals/sentencias_test.go`, `juiciosDeLasSeisEvals` exige que la carpeta
+no nombraba `TestJuzgarSentencias` (lo nombra desde el barrido, como añadido de este fichero). En `internal/evals/sentencias_test.go`, `juiciosDeLasSeisEvals` exige que la carpeta
 de evals de la skill tenga seis (`require.Len(t, conjunto.Evals, 6, …)`, línea 822), y `sesionesModeloDeLasSeisEvals`
 da la sesión que pasa cada una, que es además la que `armarSesionesDeJurisprudencia` escribe para
 `TestUmbralesDeJurisprudencia` (`internal/evals/informe_test.go`, líneas 4528 y 4529). Con diez evals, los dos fallan.
@@ -212,8 +212,8 @@ como un dato de la sentencia (plan.md, paso 6, y «Cambios de `SKILL.md` trazado
 
 ## Dependencias y orden de ejecución
 
-El orden es el de plan.md, «Orden de implementación (de dentro afuera)», y es estrictamente secuencial: T001 → T008.
-Ninguna tarea depende de una posterior.
+El orden es el de plan.md, «Orden de implementación (de dentro afuera)», y es estrictamente secuencial: T001 → T008,
+y detrás T009, la de la convergencia (Phase 10). Ninguna tarea depende de una posterior.
 
 | Tarea | Paso del plan | Necesita |
 |---|---|---|
@@ -323,7 +323,7 @@ T003.
 | FR-013, FR-108, SC-008 | `TestVotoDelJuez`, `TestUmbralesDeJurisprudencia` | T001, T004 | El voto sin `sentencia` no tiene la forma; el publicado la lleva |
 | FR-010, FR-109, SC-009 | `TestTextosDeLaSesion`, `TestMensajeDelVoto` | T004 | El mensaje, byte a byte, en los dos modos |
 | FR-065, FR-066, FR-110, SC-010 | `TestPreguntasDelSondeo`, `TestPreguntasConElFragmento`, `TestConjuntoDeEvals`, `TestEvalsDelRepositorio` | T003 | Un byte cambiado en una eval; nueve y once evals |
-| FR-083, SC-011 | `ci:Makefile:skills-check` | T006 | Los casos de las 300 líneas y del drift de `TestSkillsDelRepositorio`, que no cambian |
+| FR-083, SC-011 | `ci:Makefile:skills-check` | T006 | Los casos de las 300 líneas y del drift de `TestRegenerarYComparar` (`sincronia_test.go`, de `internal/skills`), que no cambian; `skills-check` aplica esa misma comprobación al repositorio con `TestSkillsDelRepositorio` |
 | FR-111, SC-013 | `ci:internal/evals/informe_test.go:TestUmbralesDeJurisprudencia` | T004 | Los cuatro casos de FR-111 y los doce elementos |
 
 ### Definition of Done (`ROADMAP.md` §1) → tareas
@@ -353,7 +353,8 @@ T003.
   al final, la skill y la documentación.
 - **Lo mínimo que ya da valor** son US2, US3 y US5 con el job (T001, T003 y T004): un job que marca la respuesta que
   resume una sentencia que no tenía delante, sobre preguntas que provocan el defecto, y que no decide sin estar
-  medido. No es una entrega parcial: el run ejecuta las ocho, y SC-001 pide el cierre entero.
+  medido. No es una entrega parcial: el run ejecuta las ocho, y la que añade la convergencia (T009), y SC-001 pide el
+  cierre entero.
 - **Lo que el run no puede medir** (research S1 a S9): que el juez vota los casos reconstruidos en Go como votó los de
   la validación; que nueve sesiones a la vez no chocan con el límite de ritmo; cuánto tarda un voto; que las series de
   las cuatro evals nuevas pasan en el modo herramienta; y que v0.1 quita el CAPTCHA de las respuestas. Lo primero lo
@@ -366,7 +367,8 @@ T003.
 
 ## Comprobación contra la rúbrica de `juez_tasks` y `precheck.sh tasks`
 
-- `precheck.sh tasks`: ocho líneas con el formato `- [ ] Tnnn`, ids únicos y correlativos; todas con rutas; ninguna
+- `precheck.sh tasks`: ocho líneas con el formato `- [ ] Tnnn` —nueve desde la convergencia, que añade T009 (Phase
+  10)—, ids únicos y correlativos; todas con rutas; ninguna
   nombra el directorio de esquemas ni uno de fixtures, y ninguna lleva la etiqueta de datos; ninguna nombra la carpeta
   de la evidencia por su ruta, ni la variable de grabación, ni una acción de plataforma, ni pide nada a una persona;
   ninguna tarea de aceptación, como pide «Aceptación e2e: no aplica». El único defecto que da hoy es que falta

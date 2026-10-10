@@ -163,9 +163,9 @@ evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json 07-resumen-de-una-conoc
 
 | Salida | Quién la consume y cuántas veces | Tamaño | Cuándo deja de darse |
 |---|---|---|---|
-| La medida impresa | La persona que puso la etiqueta, una vez por lanzamiento y por skill: la compara con la versionada o la versiona | Unos 700 bytes; la versionada tiene 715 | Una por lanzamiento. No se repite sola |
+| La medida impresa | La persona que puso la etiqueta, una vez por lanzamiento y por skill: la compara con la versionada o la versiona | Unos 650 bytes: 624 la de §9, con `<commit>` donde va el commit. La versionada, que lleva además `votos`, tiene 715 | Una por lanzamiento. No se repite sola |
 | Las líneas de los casos mal juzgados | La misma persona | Unos 280 bytes por caso; como mucho 249 | Solo si la medida no se cumple |
-| El error de un caso que no se resuelve | Quien cambia una eval de H23, el reconstructor o el applet `cita`, en `make ci`; y quien lanza la medida | Una línea, unos 250 bytes | Cuando el caso vuelve a resolverse |
+| El error de un caso que no se resuelve | Quien cambia una eval de H23, el reconstructor o el applet `cita`, en `make ci`; y quien lanza la medida | Una línea, unos 200 bytes (201 la del ejemplo de §7) | Cuando el caso vuelve a resolverse |
 
 Nada crece con el uso del kit: cada ejecución parte de los casos del repositorio.
 
