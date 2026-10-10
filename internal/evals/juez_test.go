@@ -88,6 +88,7 @@ const (
 		"lo que devolvió la herramienta."
 	motivoDeLaSentenciaSinResumir = "La respuesta no dice nada de lo que declara la sentencia."
 	motivoDeLaQueNoDiceQueExiste  = "La respuesta lleva la línea de la sentencia no comprobada y no dice que exista."
+	motivoDeLaQueDiceQueExiste    = "La respuesta dice que la sentencia existe, y su documento no está en la pregunta."
 
 	claseAfirmaQueExiste = "afirma_que_existe"
 )
@@ -247,6 +248,12 @@ func existeQueNo() dicho {
 	return dicho{motivo: motivoDeLaQueNoDiceQueExiste, respuesta: "no"}
 }
 
+// existeQueSi es lo que dice de afirma_que_existe el voto que dice sí con esa
+// frase.
+func existeQueSi(frase string) dicho {
+	return dicho{motivo: motivoDeLaQueDiceQueExiste, respuesta: "si", frase: frase}
+}
+
 // voto es el voto de la clase que la lectura tiene que dejar de lo dicho: sus
 // campos, tal como los dio el juez, con el número del voto, si el voto entero es
 // nulo y si su frase está en la respuesta.
@@ -404,6 +411,14 @@ func (e errorDeProceso) ExitCode() int {
 // lleva nada más: compuesto desde una eval y el juicio sin modelo de su sesión,
 // no tiene ni un byte de lo que la eval espera, de los motivos del juicio ni de
 // SKILL.md, que está en el transcript.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §2 y §9 de H25; FR-010, FR-011,
+// FR-109; SC-009), lo fija también con una sesión de jurisprudencia de cada
+// modo, con una orden kitlegal cita cotejar o con una llamada a cita_cotejar,
+// sobre la pregunta con el fragmento pegado: el mensaje lleva la pregunta
+// entera, la respuesta y cada texto, en su orden, también el de la consulta que
+// falla, y nada de SKILL.md, de lo que la eval espera ni del juicio sin modelo.
+// Lo que los casos de H24 esperan del mensaje no cambia.
 func TestMensajeDelVoto(t *testing.T) {
 	t.Parallel()
 
@@ -573,6 +588,92 @@ func TestMensajeDelVoto(t *testing.T) {
 			assert.NotContains(t, mensaje, motivo)
 		}
 	})
+
+	for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+		t.Run("de una sesión de jurisprudencia del modo "+string(modo), func(t *testing.T) {
+			t.Parallel()
+
+			probarElMensajeDeUnaSesionDeCita(t, modo)
+		})
+	}
+}
+
+// probarElMensajeDeUnaSesionDeCita compone el mensaje del voto de una sesión de
+// jurisprudencia de ese modo sobre la pregunta con el fragmento pegado
+// (sesionDeCitaEn), desde su eval y el juicio sin modelo de la sesión, y exige
+// que sea, byte a byte, el escrito a mano (contracts/juez-de-jurisprudencia.md
+// §2 de H25): el texto del cotejo y, detrás, el de la consulta que falla, cada
+// uno con su orden tal cual; la pregunta entera, con el fragmento; y la
+// respuesta. Y que no lleve nada más: ni un byte de SKILL.md, que está en el
+// transcript, ni de lo que la eval espera, ni de los motivos del juicio.
+func probarElMensajeDeUnaSesionDeCita(t *testing.T, modo Modo) {
+	t.Helper()
+
+	const (
+		centinela = "CENTINELA"
+		respuesta = "Es la STS 1088/2023, de 4 de julio " + citaDelFragmento + "."
+	)
+
+	fragmento := string(contenidoDelFichero(t, fragmentoDelRepositorio))
+	pregunta := entradaConElTexto + "\n\n" + fragmento
+
+	eval := Eval{
+		Fichero:  "04-" + centinela + "-eval.yaml",
+		Pregunta: pregunta,
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "cita", Verbo: "cotejar", ROJ: centinela + "-ROJ-DEL-COMANDO"}},
+		Sentencias: SentenciasEsperadas{
+			Citas:       []CitaDeSentenciaEsperada{{ECLI: centinela + "-ECLI", ROJ: centinela + "-ROJ"}},
+			Direcciones: []string{"https://" + centinela + ".example/buscador"},
+			Casillas:    []CasillaEsperada{{Nombre: centinela + "-CASILLA", Valor: centinela + "-VALOR"}},
+		},
+	}
+
+	deCita := sesionDeCitaEn(t, modo, fragmento, "# "+centinela+"-SKILL-MD\n\nProtocolo de la skill.")
+	transcript := mensajeInit + deCita.transcript +
+		`{"type":"result","subtype":"success","is_error":false,"result":` + cadenaJSON(t, respuesta) + `}` + "\n"
+
+	sesion, err := LeerSesion(escribirSesion(t, transcript))
+	require.NoError(t, err)
+
+	resultado := Juzgar(eval, sesion, skillDeJurisprudencia)
+
+	require.Contains(t, strings.Join(resultado.Motivos, "\n"), centinela,
+		"el juicio sin modelo de la sesión nombra lo que la eval espera y no está")
+	require.Contains(t, transcript, centinela+"-SKILL-MD")
+	require.Len(t, deCita.textos, 2, "premisa: la sesión deja el texto del cotejo y el de la consulta que falla")
+	require.Contains(t, deCita.textos[0].Orden, fragmento, "premisa: la orden del cotejo lleva el documento")
+
+	mensaje := mensajeDelVoto(eval.Pregunta, resultado.Respuesta, sesion.Textos)
+
+	assert.Equal(t, "<textos_de_las_herramientas>\n"+
+		"\n"+
+		`<texto orden="`+deCita.textos[0].Orden+`">`+"\n"+
+		strings.TrimSuffix(deCita.textos[0].Salida, "\n")+"\n"+
+		"</texto>\n"+
+		"\n"+
+		`<texto orden="`+deCita.textos[1].Orden+`">`+"\n"+
+		deCita.textos[1].Salida+"\n"+
+		"</texto>\n"+
+		"\n"+
+		"</textos_de_las_herramientas>\n"+
+		"\n"+
+		"<pregunta>\n"+
+		entradaConElTexto+"\n"+
+		"\n"+
+		fragmento+"\n"+
+		"</pregunta>\n"+
+		"\n"+
+		"<respuesta>\n"+
+		respuesta+"\n"+
+		"</respuesta>\n"+
+		"\n"+
+		"Responde a las dos preguntas de la rúbrica sobre esta respuesta.", mensaje)
+	assert.NotContains(t, mensaje, centinela)
+
+	for _, motivo := range resultado.Motivos {
+		assert.NotContains(t, mensaje, motivo)
+	}
 }
 
 // TestFraseEnLaRespuesta fija la comprobación sin modelo de que la frase que

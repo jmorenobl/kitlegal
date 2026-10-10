@@ -1874,11 +1874,13 @@ const (
 // H21, las 21 evals de boe-legislacion y las 4 de legal-core cumplen además la
 // regla sin binario ni servidor de su juego: cada carpeta lleva exactamente una
 // eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde
-// H23, las evals de evals/jurisprudencia/ cumplen las reglas de su juego, y su
-// carpeta no tiene juez (contracts/evals-jurisprudencia.md §5 de H23; FR-055,
-// FR-056); desde H25 son diez, con las cuatro que llevan una pregunta del
-// sondeo de la validación de su juez (contracts/evals-jurisprudencia.md §3 de
-// H25; FR-065; SC-010). Desde
+// H23, las evals de evals/jurisprudencia/ cumplen las reglas de su juego
+// (contracts/evals-jurisprudencia.md §5 de H23; FR-056); desde H25 son diez, con
+// las cuatro que llevan una pregunta del sondeo de la validación de su juez
+// (contracts/evals-jurisprudencia.md §3 de H25; FR-065; SC-010), y su carpeta
+// tiene juez, que declara sus dos clases, afirma_lo_no_leido, que decide, y
+// afirma_que_existe, que solo se publica, las dos con umbral 0
+// (contracts/juez-de-jurisprudencia.md §1 de H25; FR-002). Desde
 // H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
 // da ningún fichero mal formado: la de boe-legislacion declara sus dos clases,
 // afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, las
@@ -1953,11 +1955,20 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		deJurisprudencia, err := LeerConjunto(evalsDeJurisprudencia)
 		require.NoError(t, err)
-		assert.Nil(t, deJurisprudencia.Juez, "%s no tiene juez", evalsDeJurisprudencia)
 
-		defectosDeJurisprudencia := ComprobarConjunto(deJurisprudencia.Evals, nil, ReglasDeJurisprudencia())
-		assert.Empty(t, defectosDeJurisprudencia, "defectos del conjunto de %s:\n%s",
-			evalsDeJurisprudencia, presentarDefectos(defectosDeJurisprudencia))
+		// Desde H25 tiene juez: su carpeta se lee con sus evals y declara sus dos
+		// clases, la que decide y la que solo se publica, las dos con umbral 0, y
+		// no cuenta_su_proceso (contracts/juez-de-jurisprudencia.md §1 de H25;
+		// FR-002).
+		require.NotNil(t, deJurisprudencia.Juez, "%s tiene la carpeta del juez", evalsDeJurisprudencia)
+		assert.Equal(t, []ClaseDelJuez{
+			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0},
+			{Nombre: "afirma_que_existe", Decide: false, Umbral: 0},
+		}, deJurisprudencia.Juez.Clases)
+
+		delConjunto := ComprobarConjunto(deJurisprudencia.Evals, nil, ReglasDeJurisprudencia())
+		assert.Empty(t, delConjunto, "defectos del conjunto de %s:\n%s",
+			evalsDeJurisprudencia, presentarDefectos(delConjunto))
 
 		// El applet cita no consulta nada: sus evals no necesitan grabaciones
 		// (FR-054 de H23).

@@ -23,7 +23,7 @@ on:
         default: false
       # Con ella, el despacho no abre las sesiones de evals: ejecuta la medida del juez, el trabajo medida (ADR 0037).
       medir_al_juez:
-        description: "Ejecuta la medida del juez de boe-legislacion en lugar de sus evals (ADR 0037)"
+        description: "Ejecuta la medida del juez de las skills que lo tienen en lugar de sus evals (ADR 0037)"
         type: boolean
         default: false
   # Al abrir (o reabrir) una propuesta de cambio que toque lo que las evals miden, y al poner la etiqueta evals o
@@ -373,9 +373,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        skill: [boe-legislacion]
+        skill: [boe-legislacion, jurisprudencia]
         include:
           - skill: boe-legislacion
+            concurrencia: 4
+          - skill: jurisprudencia
             concurrencia: 4
     runs-on: ubuntu-24.04
     timeout-minutes: 269

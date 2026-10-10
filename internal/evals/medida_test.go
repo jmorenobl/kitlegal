@@ -71,10 +71,19 @@ const (
 // error de su lectura.
 const medidaSinCorresponder = "la medida versionada (juez/medida.json) no corresponde: "
 
-// claseQueDecideEnElRepositorio es la clase que decide del juez de la skill de
-// la primera pareja de la tabla de las copias, boe-legislacion, que es la de su
-// medida (FR-032 de H24).
+// claseQueDecideEnElRepositorio es la clase que decide del juez de cada skill de
+// la tabla de las copias, boe-legislacion y jurisprudencia, que es la de su
+// medida (FR-032 de H24; FR-002 y FR-022 de H25).
 const claseQueDecideEnElRepositorio = "afirma_lo_no_leido"
+
+// Los casos de la medida versionada del juez de jurisprudencia, escritos a mano:
+// de sus 249, los etiquetados como defecto y los etiquetados como correctos, que
+// son los totales de sus dos umbrales (contracts/juez-de-jurisprudencia.md §5 de
+// H25; FR-022 de H25).
+const (
+	defectosDeJurisprudencia  = 125
+	correctosDeJurisprudencia = 124
+)
 
 // TestLeerMedidaDelJuez fija la lectura de la medida del juez de su contenido
 // (contracts/medida-del-juez.md §1 de H24; FR-040): se leen diez claves, cada
@@ -256,6 +265,11 @@ func ponerEnLaClave(valor any) func(objeto map[string]any, clave string) {
 // a la vez, una línea por lo que falla y en el orden del contrato; y la medida
 // sin una clave y la que no es JSON, que no corresponden. Las copias del
 // repositorio solo se leen (FR-045).
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §7 y §9 de H25; research V13 de
+// H25; FR-031, FR-104; SC-004), lo ve fallar con la carpeta del juez de cada
+// fila de la tabla de las copias, y no solo con la de la primera: la de
+// jurisprudencia da, con cada una de las seis, su línea.
 func TestMedidaVersionada(t *testing.T) {
 	t.Parallel()
 
@@ -274,13 +288,19 @@ func TestMedidaVersionada(t *testing.T) {
 	})
 
 	mutaciones := mutacionesDeLaMedida(modelo, version)
-	require.Len(t, mutaciones, 6, "las seis mutaciones de SC-005 de H24")
+	require.Len(t, mutaciones, 6, "las seis mutaciones de SC-005 de H24 y de SC-004 de H25")
 
-	for _, mutacion := range slices.Concat(mutaciones, otrasMedidasSinCorresponder(modelo, version)) {
-		t.Run(mutacion.nombre, func(t *testing.T) {
+	for _, pareja := range copiasDelJuez {
+		t.Run(pareja.skill(), func(t *testing.T) {
 			t.Parallel()
 
-			probarMutacionDeLaMedida(t, modelo, version, mutacion)
+			for _, mutacion := range slices.Concat(mutaciones, otrasMedidasSinCorresponder(modelo, version)) {
+				t.Run(mutacion.nombre, func(t *testing.T) {
+					t.Parallel()
+
+					probarMutacionDeLaMedida(t, pareja, modelo, version, mutacion)
+				})
+			}
 		})
 	}
 
@@ -461,14 +481,17 @@ func otrasMedidasSinCorresponder(modelo, version string) []mutacionDeLaMedida {
 	}
 }
 
-// probarMutacionDeLaMedida copia la carpeta del juez, exige que la copia sin
-// tocar no dé ninguna línea con el modelo y la versión que fija la definición
-// del job, hace los cambios del caso, lee el juez de la copia y exige que la
-// comprobación, con el modelo y la versión del caso, dé exactamente sus líneas.
-func probarMutacionDeLaMedida(t *testing.T, modelo, version string, mutacion mutacionDeLaMedida) {
+// probarMutacionDeLaMedida copia la carpeta del juez de la pareja, exige que la
+// copia sin tocar no dé ninguna línea con el modelo y la versión que fija la
+// definición del job, hace los cambios del caso, lee el juez de la copia y exige
+// que la comprobación, con el modelo y la versión del caso, dé exactamente sus
+// líneas.
+func probarMutacionDeLaMedida(
+	t *testing.T, pareja parejaDeCarpetas, modelo, version string, mutacion mutacionDeLaMedida,
+) {
 	t.Helper()
 
-	evals := copiarLaCarpetaDelJuez(t)
+	evals := copiarLaCarpetaDelJuezDe(t, pareja)
 	require.Empty(t, comprobarLaMedida(juezDe(t, evals), modelo, version),
 		"premisa: la medida de la copia sin tocar corresponde y se cumple")
 
@@ -517,14 +540,22 @@ func probarLasClasesQueDeciden(t *testing.T, modelo, version string) {
 	assert.Empty(t, comprobarLaMedida(juez, modelo, version))
 }
 
-// copiarLaCarpetaDelJuez copia en un directorio temporal del test, dentro de su
-// carpeta juez, todos los ficheros de la carpeta del juez de la primera pareja
-// de la tabla de las copias, y devuelve ese directorio, que es el de las evals
-// de la copia. La carpeta del repositorio solo se lee (FR-045 de H24).
+// copiarLaCarpetaDelJuez es copiarLaCarpetaDelJuezDe con la primera pareja de la
+// tabla de las copias, la de boe-legislacion.
 func copiarLaCarpetaDelJuez(t *testing.T) string {
 	t.Helper()
 
-	origen := filepath.Join(raizDelRepositorio, filepath.FromSlash(copiasDelJuez[0].copias))
+	return copiarLaCarpetaDelJuezDe(t, copiasDelJuez[0])
+}
+
+// copiarLaCarpetaDelJuezDe copia en un directorio temporal del test, dentro de
+// su carpeta juez, todos los ficheros de la carpeta del juez de esa pareja de la
+// tabla de las copias, y devuelve ese directorio, que es el de las evals de la
+// copia. La carpeta del repositorio solo se lee (FR-045 de H24).
+func copiarLaCarpetaDelJuezDe(t *testing.T, pareja parejaDeCarpetas) string {
+	t.Helper()
+
+	origen := filepath.Join(raizDelRepositorio, filepath.FromSlash(pareja.copias))
 
 	entradas, err := os.ReadDir(origen)
 	require.NoError(t, err, "la carpeta del juez %s", origen)
@@ -603,12 +634,19 @@ type parejaDeCarpetas struct {
 	origen string
 }
 
+// skill es la skill de la pareja: la carpeta de evals que tiene la de su juez.
+func (p parejaDeCarpetas) skill() string {
+	return path.Base(path.Dir(p.copias))
+}
+
 // copiasDelJuez es la tabla de TestCopiasDelJuez: la carpeta del juez de cada
 // skill que lo tiene, con la de la evidencia que la validó
 // (contracts/medida-del-juez.md §3 de H24; FR-023). Una skill con juez que no
-// esté aquí hace fallar el test.
+// esté aquí hace fallar el test. Desde H25 lleva la fila de jurisprudencia
+// (contracts/juez-de-jurisprudencia.md §1 de H25; FR-001, FR-102).
 var copiasDelJuez = []parejaDeCarpetas{
 	{copias: "evals/boe-legislacion/juez", origen: "evidencias/adr-0037"},
+	{copias: "evals/jurisprudencia/juez", origen: "evidencias/adr-0037-jurisprudencia"},
 }
 
 // ficherosCopiadosDelJuez son los cuatro ficheros de la carpeta del juez que son
@@ -621,10 +659,15 @@ var ficherosCopiadosDelJuez = []string{"rubrica.md", "esquema.json", "casos.yaml
 // juez de cada skill de la tabla son idénticas, byte a byte, a su original, y
 // ninguna skill tiene juez sin estar en la tabla. Cada defecto nombra su fichero.
 //
-// Sobre una copia de las dos carpetas en t.TempDir(), lo ve fallar: con un byte
-// cambiado en cada una de las cuatro copias, y sin cada una de ellas, el único
-// defecto es el de ese fichero, cuatro de cuatro; y la carpeta del juez de una
-// skill que no está en la tabla da el suyo.
+// Sobre una copia de las carpetas de la tabla en t.TempDir(), lo ve fallar: con
+// un byte cambiado en cada una de las cuatro copias, y sin cada una de ellas, el
+// único defecto es el de ese fichero, cuatro de cuatro; y la carpeta del juez de
+// una skill que no está en la tabla da el suyo.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §1 y §9 de H25; FR-001, FR-102;
+// SC-002), la tabla lleva la fila de jurisprudencia, y lo ve fallar con las
+// cuatro copias de cada fila: el defecto nombra el fichero de la carpeta del
+// juez de esa skill y el de su evidencia.
 func TestCopiasDelJuez(t *testing.T) {
 	t.Parallel()
 
@@ -635,17 +678,11 @@ func TestCopiasDelJuez(t *testing.T) {
 		assert.Empty(t, defectos, "copias del juez que no son las de su original:\n%s", strings.Join(defectos, "\n"))
 	})
 
-	for _, fichero := range ficherosCopiadosDelJuez {
-		t.Run("cambiada-"+fichero, func(t *testing.T) {
+	for _, pareja := range copiasDelJuez {
+		t.Run(pareja.skill(), func(t *testing.T) {
 			t.Parallel()
 
-			probarCopiaCambiada(t, fichero)
-		})
-
-		t.Run("sin-"+fichero, func(t *testing.T) {
-			t.Parallel()
-
-			probarCopiaQueFalta(t, fichero)
+			probarLasCopiasDe(t, pareja)
 		})
 	}
 
@@ -661,13 +698,32 @@ func TestCopiasDelJuez(t *testing.T) {
 	})
 }
 
-// probarCopiaCambiada cambia un byte, el último, de la copia de ese fichero en
-// una copia de las carpetas de la tabla, que antes no tenía ningún defecto, y
-// exige el defecto que la nombra y ningún otro.
-func probarCopiaCambiada(t *testing.T, fichero string) {
+// probarLasCopiasDe ve fallar la comparación con cada una de las cuatro copias
+// de la carpeta del juez de esa pareja: con un byte cambiado y sin ella.
+func probarLasCopiasDe(t *testing.T, pareja parejaDeCarpetas) {
 	t.Helper()
 
-	pareja := copiasDelJuez[0]
+	for _, fichero := range ficherosCopiadosDelJuez {
+		t.Run("cambiada-"+fichero, func(t *testing.T) {
+			t.Parallel()
+
+			probarCopiaCambiada(t, pareja, fichero)
+		})
+
+		t.Run("sin-"+fichero, func(t *testing.T) {
+			t.Parallel()
+
+			probarCopiaQueFalta(t, pareja, fichero)
+		})
+	}
+}
+
+// probarCopiaCambiada cambia un byte, el último, de la copia de ese fichero de
+// la pareja en una copia de las carpetas de la tabla, que antes no tenía ningún
+// defecto, y exige el defecto que la nombra y ningún otro.
+func probarCopiaCambiada(t *testing.T, pareja parejaDeCarpetas, fichero string) {
+	t.Helper()
+
 	raiz := copiarLasParejas(t, copiasDelJuez)
 	require.Empty(t, defectosDeLasCopias(t, raiz, copiasDelJuez), "la copia sin tocar no tiene ningún defecto")
 
@@ -683,12 +739,11 @@ func probarCopiaCambiada(t *testing.T, fichero string) {
 		defectosDeLasCopias(t, raiz, copiasDelJuez))
 }
 
-// probarCopiaQueFalta quita la copia de ese fichero de una copia de las carpetas
-// de la tabla y exige el defecto que la nombra y ningún otro.
-func probarCopiaQueFalta(t *testing.T, fichero string) {
+// probarCopiaQueFalta quita la copia de ese fichero de la pareja de una copia de
+// las carpetas de la tabla y exige el defecto que la nombra y ningún otro.
+func probarCopiaQueFalta(t *testing.T, pareja parejaDeCarpetas, fichero string) {
 	t.Helper()
 
-	pareja := copiasDelJuez[0]
 	raiz := copiarLasParejas(t, copiasDelJuez)
 	require.NoError(t, os.Remove(filepath.Join(raiz, pareja.copias, fichero)))
 

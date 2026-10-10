@@ -99,10 +99,75 @@ func (j *jobDePrueba) exigirSinInforme(t *testing.T, informe Informe) {
 // puede leer. Y con la medida que corresponde y se cumple, se llama a quien abre
 // las sesiones y el informe publica los dos umbrales de la medida con sus
 // recuentos, sin votar ningún caso etiquetado.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §7 y §9 de H25; research V13 de
+// H25; FR-022, FR-032, FR-104; SC-004), lo fija con la carpeta del juez de cada
+// fila de la tabla de las copias, y no solo con la de la primera: con la de
+// jurisprudencia, las seis mutaciones dejan el job en fallo sin abrir ninguna
+// sesión, con el motivo que dice cuál y sin ningún umbral, y con su medida
+// versionada, que corresponde y se cumple, el job juzga sin medir y publica sus
+// dos umbrales con 0 de 125 y 0 de 124.
 func TestEjecucionSinMedir(t *testing.T) {
 	t.Parallel()
 
 	modelo, version := fijadosParaElJuez(t)
+
+	medidos := juecesMedidos()
+	require.Len(t, medidos, len(copiasDelJuez), "un juez medido por cada fila de la tabla de las copias")
+
+	for _, medido := range medidos {
+		t.Run(medido.pareja.skill(), func(t *testing.T) {
+			t.Parallel()
+
+			probarLaEjecucionSinMedirDe(t, medido, modelo, version)
+		})
+	}
+}
+
+// juezMedido es el juez de una fila de la tabla de las copias con lo que los
+// tests de la ejecución saben de él, escrito a mano: los casos etiquetados como
+// defecto y como correctos de su medida versionada, que son los totales de sus
+// dos umbrales, y el voto que dice no en sus clases, con la forma de su esquema.
+type juezMedido struct {
+	pareja              parejaDeCarpetas
+	defectos, correctos int
+	queNo               func(t *testing.T) grabacion
+}
+
+// juecesMedidos son los jueces de la tabla de las copias, en su orden: el de
+// boe-legislacion, con los 212 y los 47 casos de su medida (FR-044 de H24) y el
+// voto de sus dos clases, y el de jurisprudencia, con los 125 y los 124 de la
+// suya (contracts/juez-de-jurisprudencia.md §5 de H25; FR-022) y el voto cuyo
+// esquema lleva sentencia.
+func juecesMedidos() []juezMedido {
+	return []juezMedido{
+		{
+			pareja:   copiasDelJuez[0],
+			defectos: 212, correctos: 47,
+			queNo: func(t *testing.T) grabacion {
+				t.Helper()
+
+				return votoDeLasDosClases(t, afirmaQueNo(), cuentaQueNo())
+			},
+		},
+		{
+			pareja:   copiasDelJuez[1],
+			defectos: defectosDeJurisprudencia, correctos: correctosDeJurisprudencia,
+			queNo: func(t *testing.T) grabacion {
+				t.Helper()
+
+				return votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo())
+			},
+		},
+	}
+}
+
+// probarLaEjecucionSinMedirDe ve, con la carpeta del juez de esa fila, lo que
+// TestEjecucionSinMedir fija: cada medida que no corresponde o no se cumple deja
+// el job sin abrir ninguna sesión, y la versionada, que corresponde y se cumple,
+// lo deja juzgar sin medir.
+func probarLaEjecucionSinMedirDe(t *testing.T, medido juezMedido, modelo, version string) {
+	t.Helper()
 
 	mutaciones := mutacionesDeLaMedida(modelo, version)
 	require.Len(t, mutaciones, 6, "las cuatro claves que no coinciden y los dos recuentos distintos de 0")
@@ -111,26 +176,27 @@ func TestEjecucionSinMedir(t *testing.T) {
 		t.Run(mutacion.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			probarElJobSinMedir(t, modelo, version, mutacion)
+			probarElJobSinMedir(t, medido.pareja, modelo, version, mutacion)
 		})
 	}
 
 	t.Run("medida-que-corresponde", func(t *testing.T) {
 		t.Parallel()
 
-		probarElJobConElInstrumentoMedido(t, modelo, version)
+		probarElJobConElInstrumentoMedido(t, medido, modelo, version)
 	})
 }
 
-// probarElJobSinMedir copia la carpeta del juez, exige que la copia sin tocar
-// corresponda y se cumpla, hace los cambios del caso y ejecuta el job con el
-// modelo y la versión del caso: exige que no se llame a quien abre las sesiones
-// ni al votante, que no se cree el directorio de sesiones y que el informe sea
-// el del instrumento sin medir, con un motivo por cada línea del caso.
-func probarElJobSinMedir(t *testing.T, modelo, version string, mutacion mutacionDeLaMedida) {
+// probarElJobSinMedir copia la carpeta del juez de la pareja, exige que la
+// copia sin tocar corresponda y se cumpla, hace los cambios del caso y ejecuta
+// el job con el modelo y la versión del caso: exige que no se llame a quien abre
+// las sesiones ni al votante, que no se cree el directorio de sesiones y que el
+// informe sea el del instrumento sin medir, con un motivo por cada línea del
+// caso.
+func probarElJobSinMedir(t *testing.T, pareja parejaDeCarpetas, modelo, version string, mutacion mutacionDeLaMedida) {
 	t.Helper()
 
-	evals := copiarLaCarpetaDelJuez(t)
+	evals := copiarLaCarpetaDelJuezDe(t, pareja)
 	require.Empty(t, comprobarLaMedida(juezDe(t, evals), modelo, version),
 		"premisa: la medida de la copia sin tocar corresponde y se cumple")
 
@@ -211,18 +277,20 @@ func exigirNadaMedido(t *testing.T, leido informeLeido, ejecucion EjecucionDelJo
 }
 
 // probarElJobConElInstrumentoMedido ejecuta el job con la copia de la carpeta
-// del juez sin tocar, cuya medida corresponde y se cumple con el modelo y la
-// versión que fija la definición del job: exige que se llame a quien abre las
+// del juez medido sin tocar, cuya medida corresponde y se cumple con el modelo
+// y la versión que fija la definición del job, y con el votante diciendo no con
+// la forma del esquema de ese juez: exige que se llame a quien abre las
 // sesiones, una vez por tanda y con las sesiones del plan; que el informe sea
 // el de sus sesiones, aprobado, con los dos umbrales de la medida versionada
-// con sus recuentos (FR-044 de H24); y que al votante solo se le pida el voto
-// de la respuesta que se juzga, la de la sesión de la eval que activa la skill,
-// y el de ningún caso etiquetado.
-func probarElJobConElInstrumentoMedido(t *testing.T, modelo, version string) {
+// con sus recuentos (FR-044 de H24; FR-022 de H25); y que al votante solo se le
+// pida el voto de la respuesta que se juzga, la de la sesión de la eval que
+// activa la skill, y el de ningún caso etiquetado.
+func probarElJobConElInstrumentoMedido(t *testing.T, medido juezMedido, modelo, version string) {
 	t.Helper()
 
-	evals := copiarLaCarpetaDelJuez(t)
+	evals := copiarLaCarpetaDelJuezDe(t, medido.pareja)
 	job := nuevoJobDePrueba(t, evals, modelo, version)
+	job.votante.queNo = medido.queNo(t).salida
 
 	informe, err := ejecutarElJob(job.ejecucion)
 	require.NoError(t, err)
@@ -239,7 +307,7 @@ func probarElJobConElInstrumentoMedido(t *testing.T, modelo, version string) {
 	deLaMedida := slices.DeleteFunc(slices.Clone(leido.informe.Umbrales), func(umbral Umbral) bool {
 		return !strings.HasPrefix(umbral.Nombre, "medida_del_juez:")
 	})
-	assert.Equal(t, umbralesDeLaMedidaDelJuez(0, 212, 0, 47), deLaMedida,
+	assert.Equal(t, umbralesDeLaMedidaDelJuez(0, medido.defectos, 0, medido.correctos), deLaMedida,
 		"los dos umbrales de la medida, con los recuentos de la versionada")
 
 	assert.Equal(t, &JuezInformado{

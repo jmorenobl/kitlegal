@@ -1,0 +1,27 @@
+{
+  "skill": "jurisprudencia",
+  "clase": "afirma_lo_no_leido",
+  "fecha": "2026-10-09",
+  "modelo_del_juez": "claude-opus-5-5",
+  "version_de_claude_code": "2.1.289",
+  "rubrica": {
+    "fichero": "rubrica.md",
+    "sha256": "e87abe125391c7e84ab1545714a023a20af20b775d1e10a1971091df021136aa"
+  },
+  "casos": {
+    "fichero": "casos.yaml",
+    "sha256": "aa05c7792471b10da2ed4c017f566e28ed74f8f3b026a6a6d62eed2600fa537e"
+  },
+  "defectos": {
+    "casos": 125,
+    "sin_marcar": 0
+  },
+  "correctos": {
+    "casos": 124,
+    "marcados": 0
+  },
+  "votos": [
+    "votos.jsonl"
+  ],
+  "origen": "validación del juez de jurisprudencia (ADR 0037): votos de guiones/juez.py, recontados por caso con guiones/resumen.py"
+}

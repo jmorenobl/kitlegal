@@ -4572,124 +4572,109 @@ const (
 	respuestasDeJurisprudenciaPorModo = 30
 )
 
-// TestUmbralesDeJurisprudencia fija los umbrales del informe de una skill sin
-// juez cuyas evals declaran sentencias (contracts/evals-jurisprudencia.md §4;
-// research D20, D21; FR-055, FR-060 a FR-063, FR-086; SC-007), con las evals
-// del repositorio y las sesiones sintéticas de armarSesionesDeJurisprudencia,
-// las del plan del job, que pasan todas:
+// medidasDeJurisprudencia son las medidas de los umbrales de un modo del informe
+// de jurisprudencia: las respuestas del modelo que decide que no activaron la
+// skill, las que el juez marca en afirma_lo_no_leido, las que tienen sí en
+// afirma_que_existe y las que llevan una cita sin documento cotejado o un ECLI
+// sin origen; y los segundos de los votos de las respuestas del modo.
+type medidasDeJurisprudencia struct {
+	sinActivar, marcadas, conSi, sinDocumento int
+	segundosDelJuez                           int
+}
+
+// votoDeJurisprudencia es un voto de una respuesta como lo publica el informe
+// del juez de jurisprudencia: lo que dice de cada una de sus dos clases.
+type votoDeJurisprudencia struct {
+	afirma, existe dicho
+}
+
+// casoDeUmbralesDeJurisprudencia es un caso de TestUmbralesDeJurisprudencia:
+// lo que cambia en las sesiones del plan del job, los votos grabados de algunas
+// de sus respuestas y lo que el informe tiene que decir.
+type casoDeUmbralesDeJurisprudencia struct {
+	nombre string
+
+	// prefijos es lo que se antepone a la respuesta de cada sesión, por su
+	// nombre, y sinActivar, la sesión a la que se le quita la activación.
+	prefijos   map[string]string
+	sinActivar string
+
+	// grabados son los votos grabados de algunas respuestas: a cada una se le
+	// antepone su párrafo, y de las demás el votante dice no en las dos clases.
+	grabados []votosDeUnaRespuesta
+
+	// porModo son las medidas de los umbrales de cada modo, 0 en lo que no se
+	// da; motivos, los de la raíz; y votos, los que se piden al votante.
+	porModo map[Modo]medidasDeJurisprudencia
+	motivos []string
+	votos   int
+
+	// respuestas son las entradas de juez.respuestas del informe, en su orden,
+	// y escrita, si no está vacía, la primera tal como tiene que estar escrita
+	// en informe.json.
+	respuestas []RespuestaConVotos
+	escrita    string
+}
+
+// Los párrafos que TestUmbralesDeJurisprudencia antepone a las respuestas con
+// votos grabados que dicen sí en afirma_que_existe, cada uno distinto de los
+// demás y ninguno con un ECLI ni con una cita: la frase que cita cada voto es su
+// párrafo entero.
+const (
+	parrafoDeLaQueExisteUno  = "Esa sentencia existe y es firme."
+	parrafoDeLaQueExisteDos  = "Esa sentencia existe y está publicada en el buscador."
+	parrafoDeLaQueExisteTres = "No existe ninguna sentencia con ese número y esa fecha."
+
+	// parrafoDelInformativo es lo que lleva delante la respuesta de cada sesión
+	// del modelo informativo: ningún voto se pide con él.
+	parrafoDelInformativo = "Esta respuesta es la de un modelo que no decide."
+)
+
+// TestUmbralesDeJurisprudencia fija los umbrales del informe de jurisprudencia,
+// una skill con juez cuyas evals declaran sentencias y que no tiene objetivo de
+// duración (contracts/juez-de-jurisprudencia.md §2, §4 a §6 y §9 de H25;
+// data-model §7 de H25; research V6 de H25; FR-012, FR-013, FR-020 a FR-025,
+// FR-108, FR-111; SC-008, SC-013; y contracts/evals-jurisprudencia.md §4 de H23),
+// con las evals y la carpeta del juez del repositorio, las sesiones sintéticas
+// de armarSesionesDeJurisprudencia, las del plan del job, que pasan todas, y un
+// votante de salidas grabadas que cuenta sus llamadas:
 //
-//   - umbrales son exactamente cuatro, en el orden del contrato —sin_activar y
-//     cita_sin_documento del modo orden, y los dos del modo herramienta—, sobre
-//     las 30 respuestas del modelo que decide en cada modo —las de las diez
-//     evals desde H25 (FR-024 de H25)—, con «<=» 0 y decidiendo: ninguno de una
-//     clase de juez, porque la skill no lo tiene, ni de duración, porque no
-//     tiene objetivo;
-//   - con ninguna respuesta que cuente, los cuatro se cumplen y el veredicto es
+//   - umbrales son exactamente doce, en el orden del contrato: de cada modo, el
+//     del modo orden delante, sin_activar, afirma_lo_no_leido, afirma_que_existe
+//     y cita_sin_documento, sobre las 30 respuestas del modelo que decide en ese
+//     modo; los dos de la medida versionada del juez, con 0 de 125 y 0 de 124; y
+//     duracion_del_juez de cada modo. Deciden diez: todos menos
+//     afirma_que_existe de cada modo. Ninguno es de la duración de las sesiones,
+//     porque la skill no tiene objetivo;
+//   - con ninguna respuesta que cuente, los doce se cumplen y el veredicto es
 //     aprobado: la cita de la eval 04 lleva el ECLI que leyó su cita cotejar, y
 //     el ECLI de la respuesta de la 05 está en su pregunta;
-//   - con una que cuenta en un modo y ninguna en el otro, el de ese modo no se
-//     cumple y el veredicto es fallo, con un motivo que nombra el umbral, y con
-//     él su modo, su medida, la sesión, su ECLI y la condición; la respuesta de
-//     un modelo informativo no cuenta;
-//   - el motivo nombra cada sesión que cuenta, en su orden y separadas por «; »,
-//     con cada ECLI y su condición, separados por « · »;
-//   - y con una respuesta sin la skill activada, el veredicto es fallo por
-//     sin_activar.
+//   - con una respuesta marcada en afirma_lo_no_leido en un modo y ninguna en el
+//     otro, el de ese modo no se cumple y el veredicto es fallo, con un motivo
+//     que nombra el umbral, su medida, la sesión y sus tres frases; y el voto
+//     publicado lleva sentencia y no precepto;
+//   - con tres respuestas con sí en afirma_que_existe, su umbral mide 3, no
+//     decide y el veredicto no cambia, y sus frases están en juez;
+//   - una respuesta marcada con sí en las dos clases cuenta una vez en cada
+//     umbral;
+//   - con 901 s de votos en un modo, el veredicto es fallo con el motivo de la
+//     ejecución;
+//   - se juzgan las respuestas del modelo que decide y ninguna del informativo:
+//     60 votos si ninguna se marca, y dos más por cada una que el primer voto
+//     marca, cada uno con el mensaje de su pregunta, su respuesta y sus textos;
+//   - y los casos de cita_sin_documento y de sin_activar siguen dando su fallo,
+//     ahora entre los doce: con una que cuenta en un modo y ninguna en el otro,
+//     con un motivo que nombra cada sesión, en su orden y separadas por «; », con
+//     cada ECLI y su condición, separados por « · »; la respuesta de un modelo
+//     informativo no cuenta.
 func TestUmbralesDeJurisprudencia(t *testing.T) {
 	t.Parallel()
 
-	const (
-		eval01 = "01-existe-con-numero-y-fecha.yaml"
-		eval04 = "04-documento-pegado.yaml"
-
-		sinOrigen = "Véase también ECLI:ES:TS:2023:9999.\n\n"
-	)
-
-	// primera es la primera sesión de la eval con el modelo en el modo.
-	primera := func(eval, modelo string, modo Modo) string { return nombreDeSesion(eval, modelo, modo, 1, false) }
-
-	casos := []struct {
-		nombre string
-
-		// prefijos es lo que se antepone a la respuesta de cada sesión, por su
-		// nombre, y sinActivar, la sesión a la que se le quita la activación.
-		prefijos   map[string]string
-		sinActivar string
-
-		// sinActivarPorModo y sinDocumentoPorModo son las medidas de los umbrales
-		// de cada modo, y motivos, los de la raíz.
-		sinActivarPorModo, sinDocumentoPorModo map[Modo]int
-		motivos                                []string
-	}{
-		{nombre: "ninguna-cuenta"},
-		{
-			nombre: "una-en-el-modo-orden",
-			prefijos: map[string]string{
-				primera(eval01, modeloSonnet55, ModoOrden):      sinOrigen,
-				primera(eval01, modeloHaiku45, ModoHerramienta): sinOrigen,
-			},
-			sinDocumentoPorModo: map[Modo]int{ModoOrden: 1},
-			motivos: []string{
-				"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: " +
-					"01-existe-con-numero-y-fecha-claude-sonnet-5-5-01: ECLI:ES:TS:2023:9999 (sin origen)",
-			},
-		},
-		{
-			nombre: "dos-en-el-modo-herramienta",
-			prefijos: map[string]string{
-				primera(eval04, modeloSonnet55, ModoHerramienta): "Como la [ECLI:ES:TS:2023:9999, ROJ: STS 9999/2023].\n\n",
-				primera(eval01, modeloSonnet55, ModoHerramienta): "Véanse ECLI:ES:TS:2022:1 y ECLI:ES:TS:2022:2.\n\n",
-			},
-			sinDocumentoPorModo: map[Modo]int{ModoHerramienta: 2},
-			motivos: []string{
-				"umbral cita_sin_documento:claude-sonnet-5-5:herramienta: 2 de 30 (6,7 %), y tiene que ser ≤ 0,0 %: " +
-					"01-existe-con-numero-y-fecha-herramienta-claude-sonnet-5-5-01: " +
-					"ECLI:ES:TS:2022:1 (sin origen) · ECLI:ES:TS:2022:2 (sin origen); " +
-					"04-documento-pegado-herramienta-claude-sonnet-5-5-01: ECLI:ES:TS:2023:9999 (cita sin documento cotejado)",
-			},
-		},
-		{
-			nombre:            "una-sin-activar",
-			sinActivar:        primera(eval01, modeloSonnet55, ModoOrden),
-			sinActivarPorModo: map[Modo]int{ModoOrden: 1},
-			motivos:           []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %"},
-		},
-	}
-
-	for _, caso := range casos {
+	for _, caso := range casosDeLosUmbralesDeJurisprudencia(t) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			sesiones := armarSesionesDeJurisprudencia(t)
-
-			for sesion, prefijo := range caso.prefijos {
-				anteponerALaRespuesta(t, filepath.Join(sesiones, sesion), prefijo)
-			}
-
-			if caso.sinActivar != "" {
-				quitarLaActivacion(t, filepath.Join(sesiones, caso.sinActivar))
-			}
-
-			leido := informeDeJurisprudencia(t, sesiones)
-
-			exigirUmbrales(t, leido, umbralesDeJurisprudencia(caso.sinActivarPorModo, caso.sinDocumentoPorModo))
-			exigirLosInvariantesDeLosUmbrales(t, leido)
-			exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
-			assert.Nil(t, leido.informe.Juez, "%s no tiene juez en su informe", skillDeJurisprudencia)
-
-			if len(caso.motivos) == 0 {
-				assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
-			} else {
-				assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
-			}
-
-			// Cada umbral tiene su fila en informe.md, con su medida y si se
-			// cumple.
-			deLosUmbrales := seccionDelInforme(t, leido.md, "Umbrales")
-			for _, umbral := range leido.informe.Umbrales {
-				exigirLineas(t, deLosUmbrales, filaDeTabla("`"+umbral.Nombre+"`", umbral.medidaEscrita(), "≤ 0,0 %",
-					siONo(umbral.Cumple), "sí"))
-			}
+			exigirLosUmbralesDeJurisprudencia(t, caso)
 		})
 	}
 
@@ -4709,24 +4694,388 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 
 		assert.JSONEq(t, elemento, umbralEscrito(t, umbralCitaSinDocumento(modeloSonnet55, ModoOrden, 0,
 			respuestasDelContrato, true)))
+
+		// Y el de contracts/juez-de-jurisprudencia.md §5 de H25, tal cual: el de
+		// la clase que decide en el modo orden, sin ninguna respuesta marcada.
+		const elementoDelJuez = `{"nombre":"afirma_lo_no_leido:claude-sonnet-5-5:orden","descripcion":"Respuestas de ` +
+			`claude-sonnet-5-5 en el modo orden que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus ` +
+			`respuestas juzgadas en las evals que activan la skill","medida":0,"total":30,"comparacion":"<=","umbral":0,` +
+			`"cumple":true,"decide":true}`
+
+		assert.JSONEq(t, elementoDelJuez, umbralEscrito(t, umbralesDeLasClasesDeJurisprudencia(ModoOrden, 0, 0)[0]))
 	})
 }
 
-// umbralesDeJurisprudencia son los cuatro umbrales del informe de jurisprudencia
-// con las evals del repositorio, en el orden de contracts/evals-jurisprudencia.md
-// §4 de H23, con las medidas dadas por modo —0 en el que no se da— y cada uno
-// cumplido si su medida es 0.
-func umbralesDeJurisprudencia(sinActivar, sinDocumento map[Modo]int) []Umbral {
+// casosDeLosUmbralesDeJurisprudencia son los de TestUmbralesDeJurisprudencia.
+func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurisprudencia {
+	t.Helper()
+
+	const (
+		eval01 = "01-existe-con-numero-y-fecha.yaml"
+		eval04 = "04-documento-pegado.yaml"
+		eval07 = "07-resumen-de-una-conocida.yaml"
+		eval10 = "10-doctrina-dada-por-hecha.yaml"
+
+		sinOrigen = "Véase también ECLI:ES:TS:2023:9999.\n\n"
+
+		// Sin ninguna respuesta marcada, un voto por cada una de las 30 de cada
+		// modo; y dos más por cada una que el primer voto marca (FR-012).
+		votosSinMarcar = 60
+
+		tresFrases = "«" + fraseDeLaNulidad + "» · «" + fraseDeLasClausulas + "» · «" + fraseDeLaTransparencia + "»"
+	)
+
+	// sesion es la sesión de la eval con el modelo en el modo y con ese número.
+	sesion := func(eval, modelo string, modo Modo, numero int) string {
+		return nombreDeSesion(eval, modelo, modo, numero, false)
+	}
+
+	queNo := votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo())
+	marca := func(frase string) grabacion {
+		return votoConSentencia(t, afirmaConSentenciaQueSi(frase), existeQueNo())
+	}
+	existe := func(frase string) grabacion {
+		return votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueSi(frase))
+	}
+
+	// Lo que cada uno de esos votos deja publicado.
+	publicadoQueMarca := func(frase string) votoDeJurisprudencia {
+		return votoDeJurisprudencia{afirma: afirmaConSentenciaQueSi(frase), existe: existeQueNo()}
+	}
+	publicadoQueExiste := func(frase string) votoDeJurisprudencia {
+		return votoDeJurisprudencia{afirma: afirmaConSentenciaQueNo(), existe: existeQueSi(frase)}
+	}
+
+	marcadaEnOrden := sesion(eval07, modeloSonnet55, ModoOrden, 1)
+	marcadaEnLasDos := sesion(eval07, modeloSonnet55, ModoHerramienta, 2)
+	parrafoDeLasDos := parrafoDeLaSentencia + " " + parrafoDeLaQueExisteUno
+
+	conSiUna := sesion(eval07, modeloSonnet55, ModoHerramienta, 1)
+	conSiDos := sesion(eval07, modeloSonnet55, ModoHerramienta, 3)
+	conSiTres := sesion(eval10, modeloSonnet55, ModoHerramienta, 1)
+
+	return []casoDeUmbralesDeJurisprudencia{
+		{nombre: "ninguna-cuenta", votos: votosSinMarcar},
+		{
+			nombre: "una-marcada-en-el-modo-orden",
+			grabados: []votosDeUnaRespuesta{{
+				sesion: marcadaEnOrden, parrafo: parrafoDeLaSentencia,
+				votos: []grabacion{marca(fraseDeLaNulidad), marca(fraseDeLasClausulas), marca(fraseDeLaTransparencia)},
+			}},
+			porModo: map[Modo]medidasDeJurisprudencia{ModoOrden: {marcadas: 1}},
+			motivos: []string{
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: " +
+					"07-resumen-de-una-conocida-claude-sonnet-5-5-01: " + tresFrases,
+			},
+			votos: votosSinMarcar + 2,
+			respuestas: []RespuestaConVotos{respuestaDeJurisprudenciaPublicada(marcadaEnOrden, true, false,
+				publicadoQueMarca(fraseDeLaNulidad), publicadoQueMarca(fraseDeLasClausulas),
+				publicadoQueMarca(fraseDeLaTransparencia))},
+			escrita: strings.Replace(entradaConSentencia, "01-sintetica-claude-sonnet-5-5-01",
+				"07-resumen-de-una-conocida-claude-sonnet-5-5-01", 1),
+		},
+		{
+			// Con sí en la clase que solo se publica basta el primer voto: no se
+			// pide ninguno más, y el veredicto no cambia.
+			nombre: "tres-con-si-en-afirma-que-existe",
+			grabados: []votosDeUnaRespuesta{
+				{sesion: conSiTres, parrafo: parrafoDeLaQueExisteTres, votos: []grabacion{existe(parrafoDeLaQueExisteTres)}},
+				{sesion: conSiUna, parrafo: parrafoDeLaQueExisteUno, votos: []grabacion{existe(parrafoDeLaQueExisteUno)}},
+				{sesion: conSiDos, parrafo: parrafoDeLaQueExisteDos, votos: []grabacion{existe(parrafoDeLaQueExisteDos)}},
+			},
+			porModo: map[Modo]medidasDeJurisprudencia{ModoHerramienta: {conSi: 3}},
+			votos:   votosSinMarcar,
+			respuestas: []RespuestaConVotos{
+				respuestaDeJurisprudenciaPublicada(conSiUna, false, true, publicadoQueExiste(parrafoDeLaQueExisteUno)),
+				respuestaDeJurisprudenciaPublicada(conSiDos, false, true, publicadoQueExiste(parrafoDeLaQueExisteDos)),
+				respuestaDeJurisprudenciaPublicada(conSiTres, false, true, publicadoQueExiste(parrafoDeLaQueExisteTres)),
+			},
+		},
+		{
+			// Sus tres votos dicen sí en las dos clases: cuenta una vez en el
+			// umbral de cada una, y solo el de la que decide da su motivo.
+			nombre: "una-marcada-en-las-dos-clases",
+			grabados: []votosDeUnaRespuesta{{
+				sesion: marcadaEnLasDos, parrafo: parrafoDeLasDos,
+				votos: []grabacion{
+					votoConSentencia(t, afirmaConSentenciaQueSi(fraseDeLaNulidad), existeQueSi(parrafoDeLaQueExisteUno)),
+					votoConSentencia(t, afirmaConSentenciaQueSi(fraseDeLasClausulas), existeQueSi(parrafoDeLaQueExisteUno)),
+					votoConSentencia(t, afirmaConSentenciaQueSi(fraseDeLaTransparencia), existeQueSi(parrafoDeLaQueExisteUno)),
+				},
+			}},
+			porModo: map[Modo]medidasDeJurisprudencia{ModoHerramienta: {marcadas: 1, conSi: 1}},
+			motivos: []string{
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5:herramienta: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: " +
+					"07-resumen-de-una-conocida-herramienta-claude-sonnet-5-5-02: " + tresFrases,
+			},
+			votos: votosSinMarcar + 2,
+			respuestas: []RespuestaConVotos{respuestaDeJurisprudenciaPublicada(marcadaEnLasDos, true, true,
+				votoDeJurisprudencia{afirmaConSentenciaQueSi(fraseDeLaNulidad), existeQueSi(parrafoDeLaQueExisteUno)},
+				votoDeJurisprudencia{afirmaConSentenciaQueSi(fraseDeLasClausulas), existeQueSi(parrafoDeLaQueExisteUno)},
+				votoDeJurisprudencia{afirmaConSentenciaQueSi(fraseDeLaTransparencia), existeQueSi(parrafoDeLaQueExisteUno)})},
+		},
+		{
+			// 900 s y un milisegundo son 901 s: se redondea hacia arriba.
+			nombre: "901-s-del-juez-en-el-modo-orden",
+			grabados: []votosDeUnaRespuesta{{
+				sesion: marcadaEnOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{queNo},
+				tarda: 900*time.Second + time.Millisecond,
+			}},
+			porModo: map[Modo]medidasDeJurisprudencia{ModoOrden: {segundosDelJuez: 901}},
+			motivos: []string{"de la ejecución, no de la skill: duracion_del_juez:orden: 901 s, y tiene que ser ≤ 900 s"},
+			votos:   votosSinMarcar,
+		},
+		{
+			nombre: "una-sin-documento-en-el-modo-orden",
+			prefijos: map[string]string{
+				sesion(eval01, modeloSonnet55, ModoOrden, 1):      sinOrigen,
+				sesion(eval01, modeloHaiku45, ModoHerramienta, 1): sinOrigen,
+			},
+			porModo: map[Modo]medidasDeJurisprudencia{ModoOrden: {sinDocumento: 1}},
+			motivos: []string{
+				"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: " +
+					"01-existe-con-numero-y-fecha-claude-sonnet-5-5-01: ECLI:ES:TS:2023:9999 (sin origen)",
+			},
+			votos: votosSinMarcar,
+		},
+		{
+			nombre: "dos-sin-documento-en-el-modo-herramienta",
+			prefijos: map[string]string{
+				sesion(eval04, modeloSonnet55, ModoHerramienta, 1): "Como la [ECLI:ES:TS:2023:9999, ROJ: STS 9999/2023].\n\n",
+				sesion(eval01, modeloSonnet55, ModoHerramienta, 1): "Véanse ECLI:ES:TS:2022:1 y ECLI:ES:TS:2022:2.\n\n",
+			},
+			porModo: map[Modo]medidasDeJurisprudencia{ModoHerramienta: {sinDocumento: 2}},
+			motivos: []string{
+				"umbral cita_sin_documento:claude-sonnet-5-5:herramienta: 2 de 30 (6,7 %), y tiene que ser ≤ 0,0 %: " +
+					"01-existe-con-numero-y-fecha-herramienta-claude-sonnet-5-5-01: " +
+					"ECLI:ES:TS:2022:1 (sin origen) · ECLI:ES:TS:2022:2 (sin origen); " +
+					"04-documento-pegado-herramienta-claude-sonnet-5-5-01: ECLI:ES:TS:2023:9999 (cita sin documento cotejado)",
+			},
+			votos: votosSinMarcar,
+		},
+		{
+			// La respuesta sin la skill activada sigue en el total de su modo, y se
+			// juzga como las demás.
+			nombre:     "una-sin-activar",
+			sinActivar: sesion(eval01, modeloSonnet55, ModoOrden, 1),
+			porModo:    map[Modo]medidasDeJurisprudencia{ModoOrden: {sinActivar: 1}},
+			motivos:    []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %"},
+			votos:      votosSinMarcar,
+		},
+	}
+}
+
+// exigirLosUmbralesDeJurisprudencia arma las sesiones del plan del job, hace
+// los cambios del caso, antepone a cada respuesta con votos grabados su párrafo
+// y escribe el informe con el votante de esos votos: exige sus doce umbrales,
+// diez de ellos decidiendo, sus motivos y su veredicto, que es fallo si hay
+// algún motivo; lo que publica del juez; que se pida cada voto de cada respuesta
+// del modelo que decide, con su mensaje, y ninguno más; y la fila de cada umbral
+// en informe.md.
+func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisprudencia) {
+	t.Helper()
+
+	sesiones := armarSesionesDeJurisprudencia(t)
+
+	for sesion, prefijo := range caso.prefijos {
+		anteponerALaRespuesta(t, filepath.Join(sesiones, sesion), prefijo)
+	}
+
+	if caso.sinActivar != "" {
+		quitarLaActivacion(t, filepath.Join(sesiones, caso.sinActivar))
+	}
+
+	for _, grabado := range caso.grabados {
+		anteponerALaRespuesta(t, filepath.Join(sesiones, grabado.sesion), grabado.parrafo+"\n\n")
+	}
+
+	votante := nuevoVotanteDelInforme(t, caso.grabados...)
+	votante.queNo = votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo()).salida
+
+	leido := informeDeJurisprudencia(t, sesiones, votante)
+
+	exigirUmbrales(t, leido, umbralesDeJurisprudencia(caso.porModo))
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
+
+	require.Len(t, leido.informe.Umbrales, 12, "los doce de contracts/juez-de-jurisprudencia.md §5 de H25")
+
+	deciden := slices.DeleteFunc(slices.Clone(leido.informe.Umbrales), func(umbral Umbral) bool { return !umbral.Decide })
+	assert.Len(t, deciden, 10, "deciden todos menos afirma_que_existe de cada modo")
+
+	if len(caso.motivos) == 0 {
+		assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+	} else {
+		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+	}
+
+	// En lo leído de informe.json, una lista vacía no es nil.
+	assert.Equal(t, &JuezInformado{
+		Modelo:              modeloDelJuezDelInforme,
+		VersionDeClaudeCode: versionDelJuezDelInforme,
+		Respuestas:          append([]RespuestaConVotos{}, caso.respuestas...),
+		SinJuzgar:           []RespuestaSinJuzgar{},
+	}, leido.informe.Juez)
+
+	if caso.escrita != "" {
+		exigirLaEntradaEscrita(t, leido, caso.escrita)
+	}
+
+	pedidos := votante.pedidos()
+
+	assert.Len(t, pedidos, caso.votos)
+	assert.Equal(t, mensajesDeLosVotosDeJurisprudencia(t, sesiones, caso.grabados), pedidos,
+		"se pide cada voto de cada respuesta del modelo que decide, con su mensaje, y ninguno más")
+
+	for _, pedido := range pedidos {
+		assert.NotContains(t, pedido, parrafoDelInformativo, "no se juzga ninguna respuesta del modelo informativo")
+	}
+
+	// Cada umbral tiene su fila en informe.md, con su medida, su condición, si
+	// se cumple y si hace fallar el veredicto.
+	deLosUmbrales := seccionDelInforme(t, leido.md, "Umbrales")
+
+	for _, umbral := range leido.informe.Umbrales {
+		condicion, decide := "≤ 0,0 %", "sí"
+		if umbral.Total == nil {
+			condicion = "≤ 900"
+		}
+
+		if !umbral.Decide {
+			decide = "no: solo se publica"
+		}
+
+		exigirLineas(t, deLosUmbrales, filaDeTabla("`"+umbral.Nombre+"`", umbral.medidaEscrita(), condicion,
+			siONo(umbral.Cumple), decide))
+	}
+}
+
+// mensajesDeLosVotosDeJurisprudencia son los mensajes de los votos que la
+// ejecución tiene que pedir, ordenados: de cada sesión del plan del job con el
+// modelo que decide —las diez evals activan la skill—, tantos como votos
+// grabados tenga, o uno si no tiene ninguno, cada uno con la pregunta de su eval
+// entera, su respuesta y sus textos, leídos de su directorio. No hay ninguno de
+// modeloHaiku45, que no decide.
+func mensajesDeLosVotosDeJurisprudencia(t *testing.T, sesiones string, grabados []votosDeUnaRespuesta) []string {
+	t.Helper()
+
+	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
+	require.NoError(t, err)
+
+	var mensajes []string
+
+	for _, planificada := range planDeJurisprudencia(conjunto.Evals).Sesiones() {
+		if planificada.Modelo != modeloSonnet55 {
+			continue
+		}
+
+		deLaEval := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
+
+		sesion, err := LeerSesion(filepath.Join(sesiones, planificada.Nombre))
+		require.NoError(t, err)
+
+		votos := 1
+
+		for _, grabado := range grabados {
+			if grabado.sesion == planificada.Nombre {
+				votos = len(grabado.votos)
+			}
+		}
+
+		mensaje := mensajeDelVoto(conjunto.Evals[deLaEval].Pregunta, sesion.Respuesta, sesion.Textos)
+		mensajes = append(mensajes, slices.Repeat([]string{mensaje}, votos)...)
+	}
+
+	slices.Sort(mensajes)
+
+	return mensajes
+}
+
+// respuestaDeJurisprudenciaPublicada es la entrada de juez.respuestas de la
+// sesión con esos votos del juez de jurisprudencia, que son todos los suyos y
+// ninguno nulo, y con si quedó marcada en cada una de sus dos clases. La frase
+// de un voto que dice sí está en la respuesta, y la de uno que dice no, vacía,
+// no está.
+func respuestaDeJurisprudenciaPublicada(
+	sesion string, enAfirma, enExiste bool, votos ...votoDeJurisprudencia,
+) RespuestaConVotos {
+	afirma := JuicioDeClase{Clase: claseAfirmaLoNoLeido, Marcada: enAfirma}
+	existe := JuicioDeClase{Clase: claseAfirmaQueExiste, Marcada: enExiste}
+
+	for posicion, voto := range votos {
+		afirma.Votos = append(afirma.Votos, voto.afirma.voto(posicion+1, false, voto.afirma.respuesta == "si"))
+		existe.Votos = append(existe.Votos, voto.existe.voto(posicion+1, false, voto.existe.respuesta == "si"))
+	}
+
+	return RespuestaConVotos{Sesion: sesion, Clases: []JuicioDeClase{afirma, existe}}
+}
+
+// umbralesDeJurisprudencia son los doce umbrales del informe de jurisprudencia
+// con las evals y el juez del repositorio, en el orden de
+// contracts/juez-de-jurisprudencia.md §5 de H25, con las medidas dadas por modo
+// —0 en lo que no se da— y cada uno cumplido si su medida no pasa de su umbral:
+// de cada modo, sin_activar, los de las dos clases del juez y
+// cita_sin_documento; los dos de la medida versionada del juez, con 0 de 125 y 0
+// de 124; y, de cada modo, el de la duración de sus votos.
+func umbralesDeJurisprudencia(porModo map[Modo]medidasDeJurisprudencia) []Umbral {
 	var umbrales []Umbral
 
-	for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+	modos := []Modo{ModoOrden, ModoHerramienta}
+
+	for _, modo := range modos {
+		medidas := porModo[modo]
+
 		umbrales = append(umbrales,
-			umbralSinActivar(modeloSonnet55, modo, sinActivar[modo], respuestasDeJurisprudenciaPorModo, sinActivar[modo] == 0),
-			umbralCitaSinDocumento(modeloSonnet55, modo, sinDocumento[modo], respuestasDeJurisprudenciaPorModo,
-				sinDocumento[modo] == 0))
+			umbralSinActivar(modeloSonnet55, modo, medidas.sinActivar, respuestasDeJurisprudenciaPorModo, medidas.sinActivar == 0))
+		umbrales = append(umbrales, umbralesDeLasClasesDeJurisprudencia(modo, medidas.marcadas, medidas.conSi)...)
+		umbrales = append(umbrales,
+			umbralCitaSinDocumento(modeloSonnet55, modo, medidas.sinDocumento, respuestasDeJurisprudenciaPorModo,
+				medidas.sinDocumento == 0))
+	}
+
+	umbrales = append(umbrales, umbralesDeLaMedidaDelJuez(0, defectosDeJurisprudencia, 0, correctosDeJurisprudencia)...)
+
+	for _, modo := range modos {
+		umbrales = append(umbrales, umbralDeLaDuracionDelJuez(modo, porModo[modo].segundosDelJuez))
 	}
 
 	return umbrales
+}
+
+// umbralesDeLasClasesDeJurisprudencia son los umbrales de las dos clases del
+// juez de jurisprudencia sobre las respuestas del modelo que decide en un modo,
+// tal como los fija contracts/juez-de-jurisprudencia.md §5 de H25, con sus
+// valores escritos a mano: el de afirma_lo_no_leido, que decide con 0, y el de
+// afirma_que_existe, que lleva 0 y solo se publica. Los dos, sobre las mismas
+// respuestas, y cada uno cumplido si su medida es 0.
+func umbralesDeLasClasesDeJurisprudencia(modo Modo, marcadas, conSi int) []Umbral {
+	deLasEvals := "sobre sus respuestas juzgadas en las evals que activan la skill"
+	delModo := "Respuestas de " + modeloSonnet55 + " en el modo " + string(modo)
+
+	afirma, existe := respuestasDeJurisprudenciaPorModo, respuestasDeJurisprudenciaPorModo
+
+	return []Umbral{
+		{
+			Nombre:      "afirma_lo_no_leido:" + modeloSonnet55 + ":" + string(modo),
+			Descripcion: delModo + " que el juez marca en afirma_lo_no_leido con sus tres votos, " + deLasEvals,
+			Medida:      float64(marcadas),
+			Total:       &afirma,
+			Comparacion: "<=",
+			Umbral:      0,
+			Cumple:      marcadas == 0,
+			Decide:      true,
+		},
+		{
+			Nombre:      "afirma_que_existe:" + modeloSonnet55 + ":" + string(modo),
+			Descripcion: delModo + " con sí en afirma_que_existe en el primer voto del juez, " + deLasEvals,
+			Medida:      float64(conSi),
+			Total:       &existe,
+			Comparacion: "<=",
+			Umbral:      0,
+			Cumple:      conSi == 0,
+			Decide:      false,
+		},
+	}
 }
 
 // umbralCitaSinDocumento es el umbral de las respuestas del modelo que decide
@@ -4763,15 +5112,18 @@ func planDeJurisprudencia(evals []Eval) PlanDeEvals {
 // armarSesionesDeJurisprudencia escribe en un directorio temporal del test las
 // sesiones que el plan del job pide con las evals del repositorio —las diez,
 // tres veces, con los dos modelos y en los dos modos—, cada una la de
-// sesionesModeloDeLasDiezEvals para su eval, y devuelve el directorio. La skill
-// no tiene juez (FR-055 de H23).
+// sesionesModeloDeLasDiezEvals para su eval, y devuelve el directorio. Las del
+// modelo informativo llevan parrafoDelInformativo delante de su respuesta, que
+// no cambia su juicio sin modelo: así el mensaje del voto de una de ellas no es
+// el de ninguna del modelo que decide. La skill tiene juez desde H25 (FR-001 de
+// H25).
 func armarSesionesDeJurisprudencia(t *testing.T) string {
 	t.Helper()
 
 	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
 	require.NoError(t, err)
 	require.Empty(t, conjunto.MalFormados)
-	require.Nil(t, conjunto.Juez, "%s no tiene juez", skillDeJurisprudencia)
+	require.NotNil(t, conjunto.Juez, "%s tiene juez", skillDeJurisprudencia)
 
 	modelos := sesionesModeloDeLasDiezEvals(t)
 	require.Len(t, conjunto.Evals, len(modelos), "hay una sesión modelo por eval de %s", evalsDeJurisprudencia)
@@ -4781,7 +5133,12 @@ func armarSesionesDeJurisprudencia(t *testing.T) string {
 	for _, planificada := range planDeJurisprudencia(conjunto.Evals).Sesiones() {
 		deLaEval := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
 
-		escribirSesionDeJurisprudencia(t, sesiones, planificada, conjunto.Evals[deLaEval].Pregunta, modelos[deLaEval])
+		deLaSesion := modelos[deLaEval]
+		if planificada.Modelo != modeloSonnet55 {
+			deLaSesion.respuesta = parrafoDelInformativo + "\n\n" + deLaSesion.respuesta
+		}
+
+		escribirSesionDeJurisprudencia(t, sesiones, planificada, conjunto.Evals[deLaEval].Pregunta, deLaSesion)
 	}
 
 	return sesiones
@@ -4884,16 +5241,17 @@ func argvDeStrace(argv []string) string {
 }
 
 // informeDeJurisprudencia escribe con EscribirInforme el informe de las
-// sesiones dadas, con las evals del repositorio y el plan del job, sin objetivo
-// de duración —aunque sus tandas duren— y sin votante, y lo lee: informe.json,
-// también en crudo, e informe.md.
-func informeDeJurisprudencia(t *testing.T, sesiones string) informeLeido {
+// sesiones dadas, con las evals y la carpeta del juez del repositorio y el plan
+// del job, sin objetivo de duración —aunque sus tandas duren— y con ese votante,
+// su reloj, el modelo y la versión del juez y cuántas respuestas se votan a la
+// vez, y lo lee: informe.json, también en crudo, e informe.md.
+func informeDeJurisprudencia(t *testing.T, sesiones string, votante *votanteDelInforme) informeLeido {
 	t.Helper()
 
 	plan := planDeJurisprudencia(nil)
 	destino := t.TempDir()
 
-	informe, err := EscribirInforme(InformeAEscribir{
+	entradas := InformeAEscribir{
 		Skill:                 skillDeJurisprudencia,
 		Evals:                 evalsDeJurisprudencia,
 		Sesiones:              sesiones,
@@ -4907,11 +5265,23 @@ func informeDeJurisprudencia(t *testing.T, sesiones string) informeLeido {
 		SinPython:             filepath.Join(casosDeInforme, ficheroSinPython),
 		DuracionDeLasSesiones: 2000,
 		DuracionDeLosModos:    map[Modo]int{ModoOrden: 950, ModoHerramienta: 1000},
-	})
+	}
+	votante.darA(&entradas)
+
+	informe, err := EscribirInforme(entradas)
 	require.NoError(t, err)
 
-	leido := informeLeido{informe: informe, md: contenidoDelInforme(t, destino, "informe.md")}
-	require.NoError(t, json.Unmarshal([]byte(contenidoDelInforme(t, destino, "informe.json")), &leido.crudo))
+	escrito := contenidoDelInforme(t, destino, "informe.json")
+
+	codificado, err := json.Marshal(informe)
+	require.NoError(t, err)
+	assert.JSONEq(t, string(codificado), escrito, "informe.json es el Informe que devuelve EscribirInforme")
+
+	// Lo que se exige es lo publicado: el informe se lee de informe.json, donde
+	// una lista vacía no es nil.
+	leido := informeLeido{md: contenidoDelInforme(t, destino, "informe.md")}
+	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.informe))
+	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.crudo))
 
 	return leido
 }
