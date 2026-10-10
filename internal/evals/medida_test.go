@@ -815,6 +815,27 @@ casos:
     procedencia: bitacora
 `
 
+// casosDerivadosPorTexto son los casos etiquetados de una skill cuyos derivados
+// quitan una parte del texto pegado en la pregunta
+// (contracts/medida-y-casos.md §1 de H25): el caso leído y su derivado, que
+// lleva quitado con texto y, además, regla, que dice con qué cuenta se etiquetó
+// y no se lee.
+const casosDerivadosPorTexto = `clase: una_clase
+casos:
+  - informe: informes/uno.json
+    sesion: una-sesion-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: informes/uno.json
+    sesion: una-sesion-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+`
+
 // TestLeerCasosEtiquetados fija la lectura de los casos etiquetados del juez
 // (contracts/medida-del-juez.md §4 de H24; data-model §4; FR-024): la clase y
 // cada caso con su informe, su sesión, su grupo, su etiqueta, su procedencia y,
@@ -822,6 +843,11 @@ casos:
 // con el lector común de YAML —una clave repetida es un error con sus dos
 // líneas— y sin esquema publicado; lo único que la lectura exige de un caso es
 // que su etiqueta sea una de las dos, porque con otra no se podría contar.
+//
+// El derivado de una skill como jurisprudencia quita una parte del texto pegado
+// en la pregunta: se lee con su texto, y su nombre en un error lo lleva; la
+// clave regla del fichero no se lee (contracts/medida-y-casos.md §1 y
+// data-model §3 de H25; research D3).
 func TestLeerCasosEtiquetados(t *testing.T) {
 	t.Parallel()
 
@@ -840,12 +866,34 @@ func TestLeerCasosEtiquetados(t *testing.T) {
 				},
 				{
 					Informe: "informes/uno.json", Sesion: "una-sesion-01", Grupo: "medida",
-					Quitado:  &BloqueQuitado{Norma: "BOE-A-2015-10565", Bloque: "a21"},
+					Quitado:  &Quitado{Norma: "BOE-A-2015-10565", Bloque: "a21"},
 					Etiqueta: "defecto", Procedencia: "derivado",
 				},
 				{
 					Informe: "informes/dos.json", Sesion: "otra-sesion-02", Grupo: "medida",
 					Etiqueta: "correcto", Procedencia: "bitacora",
+				},
+			},
+		}, leidos)
+	})
+
+	t.Run("derivado-por-texto", func(t *testing.T) {
+		t.Parallel()
+
+		leidos, err := leerCasosEtiquetados([]byte(casosDerivadosPorTexto))
+		require.NoError(t, err)
+
+		assert.Equal(t, CasosEtiquetados{
+			Clase: "una_clase",
+			Casos: []CasoEtiquetado{
+				{
+					Informe: "informes/uno.json", Sesion: "una-sesion-01", Grupo: "medida",
+					Etiqueta: "correcto", Procedencia: "lectura",
+				},
+				{
+					Informe: "informes/uno.json", Sesion: "una-sesion-01", Grupo: "medida",
+					Quitado:  &Quitado{Texto: "fallo"},
+					Etiqueta: "defecto", Procedencia: "derivado",
 				},
 			},
 		}, leidos)
@@ -869,6 +917,11 @@ func TestLeerCasosEtiquetados(t *testing.T) {
 			contenido: strings.Replace(casosSinteticos, "    etiqueta: defecto\n    procedencia: derivado\n", "", 1),
 			dice:      `el caso 2 (informes/uno.json una-sesion-01 sin BOE-A-2015-10565 a21) tiene la etiqueta ""`,
 		},
+		{
+			nombre:    "derivado-por-texto-sin-etiqueta",
+			contenido: strings.Replace(casosDerivadosPorTexto, "    etiqueta: defecto\n", "", 1),
+			dice:      `el caso 2 (informes/uno.json una-sesion-01 sin fallo) tiene la etiqueta ""`,
+		},
 	}
 
 	for _, ilegible := range ilegibles {
@@ -889,8 +942,21 @@ func TestLeerCasosEtiquetados(t *testing.T) {
 // <applet>_<verbo> pasa a <applet> <verbo> y gana --json, que es lo que hace
 // que su texto sea el sobre; y todas ganan --offline, también la que ya lo
 // llevaba.
+//
+// La orden del applet cita, que empieza por «cita » o por «cita_», tiene su
+// regla (contracts/medida-y-casos.md §4 de H25; research D5; FR-041): se parte
+// en cada blanco seguido de -- y una letra minúscula. Lo de delante da el
+// applet, el verbo y la referencia que va sin bandera; cada trozo de detrás,
+// una bandera con su nombre, hasta el primer = o blanco, y su valor, que puede
+// llevar espacios y va sin blancos en los extremos, salvo el de --documento,
+// que va tal cual, con sus saltos de línea. --json va una sola vez, al final,
+// lo llevara o no, y no gana --offline: el applet no pide nada a la red.
 func TestArgumentosDeLaInvocacion(t *testing.T) {
 	t.Parallel()
+
+	// Las dos primeras líneas de la ficha de un documento del CENDOJ, como las
+	// lleva la orden de una llamada del informe.
+	const dosLineasDeLaFicha = "Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073"
 
 	casos := []struct {
 		nombre     string
@@ -931,6 +997,67 @@ func TestArgumentosDeLaInvocacion(t *testing.T) {
 			nombre:     "llamada-sin-orden",
 			invocacion: invocacionDelInforme{Llamada: true},
 			argumentos: []string{"--offline"},
+		},
+		{
+			nombre:     "cita-con-un-valor-con-espacios",
+			invocacion: invocacionDelInforme{Orden: "cita cotejar --roj STS 1088/2023 --json"},
+			argumentos: []string{"cita", "cotejar", "--roj", "STS 1088/2023", "--json"},
+		},
+		{
+			nombre: "llamada-de-cita-con-el-documento",
+			invocacion: invocacionDelInforme{
+				Orden: "cita_cotejar --roj=STS 1088/2023 --documento=" + dosLineasDeLaFicha, Llamada: true,
+			},
+			argumentos: []string{"cita", "cotejar", "--roj", "STS 1088/2023", "--documento", dosLineasDeLaFicha, "--json"},
+		},
+		{
+			nombre:     "cita-con-la-referencia-sin-bandera",
+			invocacion: invocacionDelInforme{Orden: "cita preparar ECLI:ES:TS:2023:3144 --json"},
+			argumentos: []string{"cita", "preparar", "ECLI:ES:TS:2023:3144", "--json"},
+		},
+		{
+			nombre:     "llamada-de-cita-con-la-referencia-sin-bandera",
+			invocacion: invocacionDelInforme{Orden: "cita_preparar ECLI:ES:TS:2023:3144", Llamada: true},
+			argumentos: []string{"cita", "preparar", "ECLI:ES:TS:2023:3144", "--json"},
+		},
+		{
+			nombre:     "cita-con-dos-banderas",
+			invocacion: invocacionDelInforme{Orden: "cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json"},
+			argumentos: []string{"cita", "preparar", "--resolucion", "1088/2023", "--fecha", "2023-07-04", "--json"},
+		},
+		{
+			nombre:     "cita-con-json-delante-y-detras",
+			invocacion: invocacionDelInforme{Orden: "cita preparar --json --texto  cláusula suelo \t--json"},
+			argumentos: []string{"cita", "preparar", "--texto", "cláusula suelo", "--json"},
+		},
+		{
+			nombre:     "llamada-de-cita-sin-banderas",
+			invocacion: invocacionDelInforme{Orden: "cita_cotejar", Llamada: true},
+			argumentos: []string{"cita", "cotejar", "--json"},
+		},
+		{
+			nombre: "cita-con-el-documento-tal-cual",
+			invocacion: invocacionDelInforme{
+				Orden: "cita_cotejar --documento= " + dosLineasDeLaFicha + "\n\n --roj= STS 1088/2023 ", Llamada: true,
+			},
+			argumentos: []string{
+				"cita", "cotejar", "--documento", " " + dosLineasDeLaFicha + "\n\n", "--roj", "STS 1088/2023", "--json",
+			},
+		},
+		{
+			nombre:     "cita-con-un-valor-vacio",
+			invocacion: invocacionDelInforme{Orden: "cita_cotejar --documento=", Llamada: true},
+			argumentos: []string{"cita", "cotejar", "--documento", "", "--json"},
+		},
+		{
+			nombre:     "cita-con-una-bandera-sin-valor",
+			invocacion: invocacionDelInforme{Orden: "cita preparar --no-graph --roj STS 1088/2023"},
+			argumentos: []string{"cita", "preparar", "--no-graph", "--roj", "STS 1088/2023", "--json"},
+		},
+		{
+			nombre:     "cita-con-guiones-que-no-son-de-una-bandera",
+			invocacion: invocacionDelInforme{Orden: "cita preparar --texto cláusula --Suelo -- nula --json"},
+			argumentos: []string{"cita", "preparar", "--texto", "cláusula --Suelo -- nula", "--json"},
 		},
 	}
 
@@ -1004,7 +1131,7 @@ func TestSinElBloque(t *testing.T) {
 		leerOtros2  = "boe articulos BOE-A-2015-10565 a22 a23 --json"
 	)
 
-	quitado := BloqueQuitado{Norma: "BOE-A-2015-10565", Bloque: "a21"}
+	quitado := Quitado{Norma: "BOE-A-2015-10565", Bloque: "a21"}
 
 	elIndice := textoDeLaInvocacion("boe indice BOE-A-2015-10565 --json", false, 0, `{"ok":true}`+"\n")
 	laComprobacion := textoDeLaInvocacion("graph check BOE-A-2015-10565 a21 --json", false, 0, `{"ok":true}`+"\n")
@@ -1120,6 +1247,199 @@ func TestSinElBloque(t *testing.T) {
 
 			require.ErrorContains(t, err, caso.dice)
 			assert.Nil(t, quedan)
+		})
+	}
+}
+
+// entradaConElTexto es lo que escribe quien pega un texto en las preguntas
+// sintéticas de los tests de la reconstrucción: lo que va delante de la línea
+// en blanco y del texto pegado.
+const entradaConElTexto = "Cítame esta sentencia. Este es el texto del documento que he descargado del buscador del CENDOJ:"
+
+// textosDelFragmento son el fragmento del repositorio y lo que sale de él,
+// calculado por líneas y sin las funciones del paquete: su ficha, que es lo
+// anterior a su primera línea en blanco; lo anterior a la línea en blanco que
+// precede a la línea «F A L L O»; y el fragmento sin la línea del apartado 2.º
+// del fallo ni la línea en blanco que la sigue. Cada uno termina con un salto
+// de línea.
+type textosDelFragmento struct {
+	entero        string
+	ficha         string
+	hastaElFallo  string
+	sinElApartado string
+}
+
+// leerTextosDelFragmento lee el fragmento del repositorio, que solo se lee, y
+// saca de él sus textos.
+func leerTextosDelFragmento(t *testing.T) textosDelFragmento {
+	t.Helper()
+
+	entero := string(contenidoDelFichero(t, fragmentoDelRepositorio))
+	lineas := strings.Split(entero, "\n")
+
+	enBlanco := slices.Index(lineas, "")
+	delFallo := slices.Index(lineas, "F A L L O")
+	delApartado := slices.IndexFunc(lineas, func(linea string) bool { return strings.HasPrefix(linea, "2.º-") })
+
+	require.Positive(t, enBlanco, "%s tiene una ficha y, detrás, una línea en blanco", fragmentoDelRepositorio)
+	require.Greater(t, delFallo, enBlanco+1, "%s tiene la línea del fallo detrás de su ficha", fragmentoDelRepositorio)
+	require.Empty(t, lineas[delFallo-1], "delante de la línea del fallo hay una en blanco")
+	require.NotEmpty(t, lineas[delFallo-2], "y delante de ella, una que no lo está")
+	require.Greater(t, delApartado, delFallo, "%s tiene el apartado 2.º en su fallo", fragmentoDelRepositorio)
+	require.Empty(t, lineas[delApartado+1], "detrás del apartado 2.º hay una línea en blanco")
+
+	return textosDelFragmento{
+		entero:        entero,
+		ficha:         strings.Join(lineas[:enBlanco], "\n") + "\n",
+		hastaElFallo:  strings.Join(lineas[:delFallo-1], "\n") + "\n",
+		sinElApartado: strings.Join(slices.Concat(lineas[:delApartado], lineas[delApartado+2:]), "\n"),
+	}
+}
+
+// TestTextoQuitado fija el texto pegado de una pregunta y lo que un derivado
+// quita de él (contracts/medida-y-casos.md §3 y data-model §5 de H25; FR-043),
+// sobre el fragmento del repositorio y sobre su ficha.
+//
+// La pregunta con una línea en blanco seguida de «Roj:» se parte por su primera
+// línea en blanco: delante, la entrada, y detrás, el texto pegado; otra no lleva
+// ninguno. Con documento no queda nada; con fallo, lo anterior a la línea
+// «F A L L O», sin sus saltos de línea finales y con uno; y con apartado-2, el
+// texto sin el párrafo que empieza por «2.º-» ni la línea en blanco que lo
+// sigue. La pregunta del derivado es la entrada y, si queda algo, una línea en
+// blanco y lo que queda. Sin quitar nada, la pregunta va tal cual y queda el
+// texto pegado entero.
+//
+// No hay recorte, y es un error, en la pregunta sin texto pegado, con fallo o
+// apartado-2 sobre un texto sin la línea «F A L L O», con apartado-2 sobre uno
+// sin ese párrafo y con una parte que no es ninguna de las tres.
+func TestTextoQuitado(t *testing.T) {
+	t.Parallel()
+
+	const (
+		sinTextoPegado = "¿existe la STS 1088/2023, de 4 de julio?\n\nLa necesito para un recurso."
+		noHayTexto     = "la pregunta no lleva ningún texto pegado"
+		noHayFallo     = "el texto pegado no tiene la línea «F A L L O»"
+		noHayApartado  = "el texto pegado no tiene ningún párrafo que empiece por «2.º-» con una línea en blanco detrás"
+	)
+
+	fragmento := leerTextosDelFragmento(t)
+	conElFragmento := entradaConElTexto + "\n\n" + fragmento.entero
+	conLaFicha := entradaConElTexto + "\n\n" + fragmento.ficha
+
+	pegados := []struct {
+		nombre   string
+		pregunta string
+		entrada  string
+		pegado   string
+	}{
+		{nombre: "el-fragmento", pregunta: conElFragmento, entrada: entradaConElTexto, pegado: fragmento.entero},
+		{nombre: "la-ficha", pregunta: conLaFicha, entrada: entradaConElTexto, pegado: fragmento.ficha},
+		{nombre: "ninguno", pregunta: sinTextoPegado, entrada: sinTextoPegado},
+		{
+			nombre:   "roj-sin-linea-en-blanco-delante",
+			pregunta: "¿Es esta?\nRoj: STS 3144/2023\n",
+			entrada:  "¿Es esta?\nRoj: STS 3144/2023\n",
+		},
+		{
+			nombre:   "por-su-primera-linea-en-blanco",
+			pregunta: "Hola.\n\nTraigo esto:\n\nRoj: STS 3144/2023\n",
+			entrada:  "Hola.",
+			pegado:   "Traigo esto:\n\nRoj: STS 3144/2023\n",
+		},
+	}
+
+	for _, caso := range pegados {
+		t.Run("texto-pegado-"+caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			entrada, pegado := textoPegado(caso.pregunta)
+
+			assert.Equal(t, caso.entrada, entrada)
+			assert.Equal(t, caso.pegado, pegado)
+		})
+	}
+
+	recortes := []struct {
+		nombre   string
+		pregunta string
+		quitado  string
+		derivada string
+		queda    string
+	}{
+		{nombre: "el-documento", pregunta: conElFragmento, quitado: "documento", derivada: entradaConElTexto},
+		{
+			nombre:   "el-fallo",
+			pregunta: conElFragmento, quitado: "fallo",
+			derivada: entradaConElTexto + "\n\n" + fragmento.hastaElFallo, queda: fragmento.hastaElFallo,
+		},
+		{
+			nombre:   "el-apartado-2",
+			pregunta: conElFragmento, quitado: "apartado-2",
+			derivada: entradaConElTexto + "\n\n" + fragmento.sinElApartado, queda: fragmento.sinElApartado,
+		},
+		{nombre: "el-documento-de-la-ficha", pregunta: conLaFicha, quitado: "documento", derivada: entradaConElTexto},
+		{
+			nombre:   "el-fallo-sin-linea-en-blanco-delante",
+			pregunta: entradaConElTexto + "\n\n" + fragmento.ficha + "F A L L O\n\nSe estima.\n", quitado: "fallo",
+			derivada: entradaConElTexto + "\n\n" + fragmento.ficha, queda: fragmento.ficha,
+		},
+		{nombre: "nada", pregunta: conElFragmento, derivada: conElFragmento, queda: fragmento.entero},
+		{nombre: "nada-de-la-ficha", pregunta: conLaFicha, derivada: conLaFicha, queda: fragmento.ficha},
+		{nombre: "nada-sin-texto-pegado", pregunta: sinTextoPegado, derivada: sinTextoPegado},
+	}
+
+	for _, caso := range recortes {
+		t.Run("sin-"+caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			derivada, queda, err := sinElTexto(caso.pregunta, caso.quitado)
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.derivada, derivada, "la pregunta del derivado")
+			assert.Equal(t, caso.queda, queda, "lo que queda del texto pegado")
+		})
+	}
+
+	sinRecorte := []struct {
+		nombre   string
+		pregunta string
+		quitado  string
+		dice     string
+	}{
+		{nombre: "documento-sin-texto-pegado", pregunta: sinTextoPegado, quitado: "documento", dice: noHayTexto},
+		{nombre: "fallo-sin-texto-pegado", pregunta: sinTextoPegado, quitado: "fallo", dice: noHayTexto},
+		{nombre: "apartado-2-sin-texto-pegado", pregunta: sinTextoPegado, quitado: "apartado-2", dice: noHayTexto},
+		{nombre: "fallo-sin-la-linea-del-fallo", pregunta: conLaFicha, quitado: "fallo", dice: noHayFallo},
+		{nombre: "apartado-2-sin-la-linea-del-fallo", pregunta: conLaFicha, quitado: "apartado-2", dice: noHayFallo},
+		{
+			nombre:   "fallo-en-mitad-de-una-linea",
+			pregunta: conLaFicha + "\nVisto el F A L L O de la instancia.\n\n2.º- Se confirma.\n\nFin.\n",
+			quitado:  "fallo", dice: noHayFallo,
+		},
+		{
+			nombre:   "apartado-2-sin-su-parrafo",
+			pregunta: entradaConElTexto + "\n\n" + fragmento.sinElApartado, quitado: "apartado-2", dice: noHayApartado,
+		},
+		{
+			nombre:   "apartado-2-sin-linea-en-blanco-detras",
+			pregunta: conLaFicha + "\nF A L L O\n\n2.º- Se confirma.\n", quitado: "apartado-2", dice: noHayApartado,
+		},
+		{
+			nombre:   "otra-parte",
+			pregunta: conElFragmento, quitado: "antecedentes",
+			dice: `quitado.texto es "antecedentes" y tiene que ser documento, fallo o apartado-2`,
+		},
+	}
+
+	for _, caso := range sinRecorte {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			derivada, queda, err := sinElTexto(caso.pregunta, caso.quitado)
+
+			require.ErrorContains(t, err, caso.dice)
+			assert.Empty(t, derivada, "sin recorte no hay pregunta")
+			assert.Empty(t, queda)
 		})
 	}
 }
@@ -1249,7 +1569,7 @@ func casoDe(sesion, quitado string) CasoEtiquetado {
 	}
 
 	if quitado != "" {
-		caso.Quitado = &BloqueQuitado{Norma: "BOE-A-2015-10565", Bloque: quitado}
+		caso.Quitado = &Quitado{Norma: "BOE-A-2015-10565", Bloque: quitado}
 		caso.Etiqueta, caso.Procedencia, caso.Frase = etiquetaDefecto, "derivado", ""
 	}
 
@@ -1274,6 +1594,10 @@ func casoDelInforme(informe string) CasoEtiquetado {
 // de la base y, si la eval lo tiene, sobre su grafo previo. En un derivado, sin
 // el texto del bloque quitado. Lo que ya se ha reconstruido de una sesión se
 // recuerda. Y un caso que no se puede resolver es un error que lo nombra.
+//
+// Los casos de una skill como jurisprudencia —las órdenes del applet cita, el
+// informe de un sondeo y los derivados que quitan una parte del texto pegado—
+// los fija probarLaResolucionDeJurisprudencia, sobre otro mundo sintético.
 func TestResolverCasos(t *testing.T) {
 	t.Parallel()
 
@@ -1394,6 +1718,8 @@ func TestResolverCasos(t *testing.T) {
 			assert.Nil(t, resueltos, "con un caso sin resolver no hay ninguno")
 		})
 	}
+
+	t.Run("jurisprudencia", probarLaResolucionDeJurisprudencia)
 }
 
 // casoSinResolver es un caso del informe sintético que no se puede resolver, con
@@ -1454,13 +1780,824 @@ func casosSinResolver() []casoSinResolver {
 	}
 }
 
+// El mundo sintético de jurisprudencia de TestResolverCasos
+// (contracts/medida-y-casos.md §2 a §7 de H25): el informe de un job cuyas
+// sesiones invocaron el applet cita, en sus dos modos; el informe de un sondeo,
+// con sus preguntas junto a él y el fragmento que nombran, que el test copia
+// bajo su raíz; y cinco carpetas con el informe de otro sondeo al que le falta
+// algo.
+const (
+	informeDeCita       = "informes/jurisprudencia.json"
+	informeDeUnSondeo   = "sondeos/sondeo-con-skill.json"
+	preguntasDeUnSondeo = "sondeos/preguntas.json"
+	fragmentoDeUnSondeo = "textos/fragmento.txt"
+
+	carpetaSinPreguntas         = "sin-preguntas"
+	carpetaDePreguntasIlegibles = "preguntas-ilegibles"
+	carpetaSinFragmento         = "sin-fragmento"
+	carpetaSinFicha             = "sin-ficha"
+	carpetaSinSesiones          = "sin-sesiones"
+
+	otroSondeo          = "sondeo.json"
+	susPreguntas        = "preguntas.json"
+	fragmentoQueNoEsta  = "textos/no-esta.txt"
+	fragmentoDeUnaLinea = "textos/sin-linea-en-blanco.txt"
+)
+
+// Las sesiones del informe del job del mundo de jurisprudencia.
+const (
+	// sesionDelCotejoPorOrden es la de una sesión del modo orden de la eval con
+	// el fragmento pegado: cotejó lo pegado, que leyó por la entrada estándar,
+	// y preparó la consulta de un ROJ, cuyo valor lleva un espacio.
+	sesionDelCotejoPorOrden = "04-documento-pegado-un-modelo-01"
+
+	// sesionDelCotejoPorLlamada es la de una sesión del modo herramienta de esa
+	// eval: el proceso del servidor y una llamada que cotejó la ficha, que lleva
+	// en --documento con sus saltos de línea.
+	sesionDelCotejoPorLlamada = "04-documento-pegado-herramienta-un-modelo-01"
+
+	// sesionSinTextoPegado es la de una sesión de la eval sin texto pegado:
+	// preparó una consulta y pidió cotejar sin tener nada que cotejar.
+	sesionSinTextoPegado = "01-existe-con-numero-y-fecha-un-modelo-01"
+
+	// sesionConOtroCodigo y sesionConOtroCodigoPorLlamada son las de dos
+	// sesiones con una orden que el informe da por terminada con 0 y que,
+	// repetida, termina con 2: su ROJ no tiene forma de ROJ.
+	sesionConOtroCodigo           = "04-documento-pegado-un-modelo-02"
+	sesionConOtroCodigoPorLlamada = "04-documento-pegado-herramienta-un-modelo-02"
+
+	// sesionSinCodigo es la de una sesión con una orden que quedó sin código.
+	sesionSinCodigo = "04-documento-pegado-un-modelo-03"
+)
+
+// Las órdenes de las sesiones del informe del job del mundo de jurisprudencia,
+// como las publica un informe.
+const (
+	cotejarLoPegado      = "cita cotejar --json"
+	prepararElROJ        = "cita preparar --roj STS 1088/2023 --json"
+	prepararPorNumero    = "cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json"
+	cotejarUnROJSinForma = "cita cotejar --roj 1088 --json"
+
+	// llamarACotejar y llamarACotejarSinForma van seguidas del documento.
+	llamarACotejar         = "cita_cotejar --roj=STS 3144/2023 --documento="
+	llamarACotejarSinForma = "cita_cotejar --roj=1088 --documento="
+
+	// codigoDeCotejarSinTexto es el código con el que terminó, en su sesión, la
+	// orden cotejar que no recibió ningún texto: el de un error de argumentos.
+	codigoDeCotejarSinTexto = 2
+)
+
+// Las sesiones del informe del sondeo del mundo de jurisprudencia, cada una con
+// el id de su pregunta delante, y las de los otros sondeos.
+const (
+	sesionDelSondeoConEval         = "01-existe-con-numero-y-fecha-con-skill-01"
+	sesionDelSondeoSinInvocaciones = "07-resumen-de-una-conocida-sin-skill-01"
+	sesionDelSondeoSinSuPregunta   = "08-no-esta-entre-las-preguntas-con-skill-01"
+	sesionDelSondeoConElFragmento  = "09-doctrina-con-el-fallo-delante-con-skill-01"
+	sesionDelSondeoConLaFicha      = "11-de-que-trata-con-la-ficha-sola-con-skill-01"
+	sesionDelSondeoConOtraEval     = "13-con-una-eval-que-no-esta-con-skill-01"
+	sesionDelSondeoSinNada         = "14-sin-eval-ni-pregunta-con-skill-01"
+
+	sesionDeOtroSondeoConElFragmento = "con-el-fragmento-01"
+	sesionDeOtroSondeoConLaFicha     = "con-la-ficha-01"
+	sesionDeOtroSondeoSinMarcas      = "sin-marcas-01"
+)
+
+// Las órdenes de Bash de las sesiones del sondeo y lo que devolvieron, que no
+// es ningún sobre: la reconstrucción no las repite ni las lee, las copia.
+const (
+	prepararEnElSondeo = "kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json"
+	buscarEnElSondeo   = `kitlegal cita preparar --texto "vencimiento anticipado" --json`
+
+	// cotejarEnElSondeo va seguida del documento y de finDelDocumento.
+	cotejarEnElSondeo = "kitlegal cita cotejar --json <<'DOCUMENTO'\n"
+	finDelDocumento   = "DOCUMENTO"
+
+	salidaDePreparar = "lo que devolvió cita preparar en el sondeo\n"
+	salidaDeBuscar   = "lo que devolvió la búsqueda por texto,\n  con dos líneas y sin salto final"
+	salidaDeCotejar  = "lo que devolvió cita cotejar en el sondeo\n"
+)
+
+// Las preguntas del mundo de jurisprudencia: la de la eval sin texto pegado, lo
+// que va delante del texto pegado en las dos plantillas del sondeo y la
+// plantilla que no lleva ninguno.
+const (
+	preguntaSinTextoPegado  = "¿existe la STS 1088/2023, de 4 de julio?"
+	entradaConElFragmento   = "¿Qué doctrina fija esta sentencia? Este es el texto del documento que he descargado:"
+	entradaConLaFicha       = "¿De qué trata esta sentencia? Esta es la ficha del documento que he descargado:"
+	plantillaSinTextoPegado = "resúmeme la STS 241/2013, de 9 de mayo"
+)
+
+// contenidoDeLaEvalSinTexto es el de la eval de hoy del mundo de jurisprudencia
+// cuya pregunta no lleva ningún texto pegado.
+const contenidoDeLaEvalSinTexto = `pregunta: "` + preguntaSinTextoPegado + `"
+activa: true
+comandos:
+  - applet: cita
+    verbo: preparar
+sentencias:
+  no_comprobada: true
+  direcciones:
+    - https://www.poderjudicial.es/search/indexAN.jsp
+  casillas:
+    - nombre: Nº Resolución
+      valor: 1088/2023
+    - nombre: Fecha resolución
+      valor: 04/07/2023
+  ninguna_cita: true
+`
+
+// contenidoDeLasPreguntas es el de las preguntas del sondeo del mundo de
+// jurisprudencia (data-model §4 de H25), con claves que la reconstrucción no
+// lee: una con eval, una sin texto pegado, una con el fragmento, una con su
+// ficha, una con una eval que no es de las de hoy y una sin eval ni pregunta.
+const contenidoDeLasPreguntas = `{
+  "nota": "Las preguntas de un sondeo sintético.",
+  "commit": "0000000000000000000000000000000000000000",
+  "fragmento": "` + fragmentoDeUnSondeo + `",
+  "preguntas": [
+    {"id": "01-existe-con-numero-y-fecha", "eval": "` + jurisprudenciaExiste + `"},
+    {"id": "07-resumen-de-una-conocida", "pregunta": "` + plantillaSinTextoPegado + `"},
+    {"id": "09-doctrina-con-el-fallo-delante", "pregunta": "` + entradaConElFragmento + `\n\n{fragmento}"},
+    {"id": "11-de-que-trata-con-la-ficha-sola", "pregunta": "` + entradaConLaFicha + `\n\n{ficha}"},
+    {"id": "13-con-una-eval-que-no-esta", "eval": "13-no-esta.yaml"},
+    {"id": "14-sin-eval-ni-pregunta"}
+  ]
+}
+`
+
+// preguntasDeOtroSondeo es el contenido de las preguntas de los otros sondeos
+// del mundo de jurisprudencia, con la ruta de su fragmento por poner: una con
+// el fragmento, una con su ficha y una sin ninguno de los dos. Y
+// contenidoDelFragmentoDeUnaLinea, el de un fragmento sin línea en blanco.
+const (
+	preguntasDeOtroSondeo = `{"fragmento": "%s", "preguntas": [
+  {"id": "con-el-fragmento", "pregunta": "Resúmeme esto:\n\n{fragmento}"},
+  {"id": "con-la-ficha", "pregunta": "¿De qué trata esto?\n\n{ficha}"},
+  {"id": "sin-marcas", "pregunta": "` + plantillaSinTextoPegado + `"}
+]}
+`
+	contenidoDelFragmentoDeUnaLinea = "Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nTipo de Resolución: Sentencia\n"
+)
+
+// contenidoDeLaEvalConElTexto es el de la eval de hoy del mundo de
+// jurisprudencia cuya pregunta lleva pegado ese texto, detrás de
+// entradaConElTexto y de una línea en blanco: un escalar de bloque, con cada
+// línea que no está en blanco sangrada.
+func contenidoDeLaEvalConElTexto(texto string) string {
+	var pregunta strings.Builder
+
+	for linea := range strings.Lines(entradaConElTexto + "\n\n" + texto) {
+		if linea != "\n" {
+			pregunta.WriteString("  ")
+		}
+
+		pregunta.WriteString(linea)
+	}
+
+	return "pregunta: |\n" + pregunta.String() + `activa: true
+comandos:
+  - applet: cita
+    verbo: cotejar
+sentencias:
+  citas:
+    - ecli: ECLI:ES:TS:2023:3144
+      roj: STS 3144/2023
+`
+}
+
+// objetoJSON es un objeto de un informe sintético que el test escribe con el
+// codificador, y no a mano, porque lleva textos con saltos de línea.
+type objetoJSON = map[string]any
+
+// documentoJSON escribe el valor como un documento JSON.
+func documentoJSON(t *testing.T, valor any) string {
+	t.Helper()
+
+	escrito, err := json.Marshal(valor)
+	require.NoError(t, err)
+
+	return string(escrito)
+}
+
+// respuestaDeLaSesion es la respuesta de esa sesión en los informes del mundo
+// de jurisprudencia, con blancos que no se pueden perder.
+func respuestaDeLaSesion(sesion string) string {
+	return "La respuesta de " + sesion + ".\n\n  Con dos espacios delante y un salto detrás.\n"
+}
+
+// contenidoDelInformeDeCita es el del informe del job del mundo de
+// jurisprudencia, con la forma de un informe versionado del job de evals y con
+// claves que la reconstrucción no lee.
+func contenidoDelInformeDeCita(t *testing.T, fragmento textosDelFragmento) string {
+	t.Helper()
+
+	invocacion := func(orden string, codigo any, llamada bool) objetoJSON {
+		return objetoJSON{"orden": orden, "codigo": codigo, "conexiones": []string{}, "llamada": llamada}
+	}
+
+	sesion := func(nombre, eval string, invocaciones ...objetoJSON) objetoJSON {
+		return objetoJSON{
+			"sesion": nombre, "eval": eval, "pasa": true,
+			"respuesta": respuestaDeLaSesion(nombre), "invocaciones": invocaciones,
+		}
+	}
+
+	return documentoJSON(t, objetoJSON{
+		"commit": "0000000000000000000000000000000000000000",
+		"skill":  "jurisprudencia",
+		"evals": []objetoJSON{
+			sesion(sesionDelCotejoPorOrden, jurisprudenciaDocumento,
+				invocacion(cotejarLoPegado, 0, false), invocacion(prepararElROJ, 0, false)),
+			sesion(sesionDelCotejoPorLlamada, jurisprudenciaDocumento,
+				invocacion(ordenDelProcesoDelServidor, nil, false), invocacion(llamarACotejar+fragmento.ficha, 0, true)),
+			sesion(sesionSinTextoPegado, jurisprudenciaExiste,
+				invocacion(prepararPorNumero, 0, false), invocacion(cotejarLoPegado, codigoDeCotejarSinTexto, false)),
+			sesion(sesionConOtroCodigo, jurisprudenciaDocumento, invocacion(cotejarUnROJSinForma, 0, false)),
+			sesion(sesionConOtroCodigoPorLlamada, jurisprudenciaDocumento,
+				invocacion(llamarACotejarSinForma+fragmento.ficha, 0, true)),
+			sesion(sesionSinCodigo, jurisprudenciaDocumento, invocacion(prepararElROJ, nil, false)),
+		},
+	})
+}
+
+// contenidoDelInformeDelSondeo es el del informe del sondeo del mundo de
+// jurisprudencia, con la forma del informe de un sondeo de la validación del
+// juez y con claves que la reconstrucción no lee. Sus invocaciones llevan lo
+// que da texto —la orden de Bash que empieza por «kitlegal »— y lo que no: la
+// de otra herramienta, la orden de Bash que no empieza así y la que es de otra
+// herramienta aunque su entrada lleve una orden, que ni siquiera es un texto.
+func contenidoDelInformeDelSondeo(t *testing.T, fragmento textosDelFragmento) string {
+	t.Helper()
+
+	deLaHerramienta := func(herramienta string, entrada objetoJSON, salida string) objetoJSON {
+		return objetoJSON{"herramienta": herramienta, "entrada": entrada, "salida": salida, "error": false}
+	}
+
+	bash := func(orden, salida string) objetoJSON {
+		return deLaHerramienta("Bash", objetoJSON{"command": orden, "description": "Una orden."}, salida)
+	}
+
+	sesion := func(nombre, pregunta string, invocaciones ...objetoJSON) objetoJSON {
+		return objetoJSON{
+			"sesion": nombre, "pregunta": pregunta, "modelo": "un-modelo", "activada": true,
+			"respuesta": respuestaDeLaSesion(nombre), "invocaciones": invocaciones,
+		}
+	}
+
+	laSkill := deLaHerramienta("Skill", objetoJSON{"skill": "jurisprudencia"}, "Launching skill: jurisprudencia")
+
+	return documentoJSON(t, objetoJSON{
+		"sondeo":       "con-skill",
+		"modelo":       "un-modelo",
+		"preguntas":    7,
+		"repeticiones": 1,
+		"sesiones": []objetoJSON{
+			sesion(sesionDelSondeoConEval, "01-existe-con-numero-y-fecha",
+				laSkill,
+				bash(prepararEnElSondeo, salidaDePreparar),
+				bash("cd /tmp && "+prepararEnElSondeo, "no empieza por kitlegal"),
+				bash("kitlegal", "tampoco: es kitlegal sin nada detrás"),
+				deLaHerramienta("Read", objetoJSON{"command": prepararEnElSondeo}, "no es de Bash"),
+				deLaHerramienta("Otra", objetoJSON{"command": []string{"kitlegal ", "cita"}}, "ni es un texto"),
+				bash(cotejarEnElSondeo+fragmento.ficha+finDelDocumento, "cotejar sin texto pegado en la pregunta")),
+			sesion(sesionDelSondeoSinInvocaciones, "07-resumen-de-una-conocida"),
+			sesion(sesionDelSondeoSinSuPregunta, "08-no-esta-entre-las-preguntas"),
+			sesion(sesionDelSondeoConElFragmento, "09-doctrina-con-el-fallo-delante",
+				laSkill,
+				bash(cotejarEnElSondeo+fragmento.entero+finDelDocumento, salidaDeCotejar),
+				bash(buscarEnElSondeo, salidaDeBuscar)),
+			sesion(sesionDelSondeoConLaFicha, "11-de-que-trata-con-la-ficha-sola",
+				bash(cotejarEnElSondeo+fragmento.ficha+finDelDocumento, salidaDeCotejar)),
+			sesion(sesionDelSondeoConOtraEval, "13-con-una-eval-que-no-esta"),
+			sesion(sesionDelSondeoSinNada, "14-sin-eval-ni-pregunta"),
+		},
+	})
+}
+
+// contenidoDeOtroSondeo es el del informe de los otros sondeos del mundo de
+// jurisprudencia: tres sesiones sin invocaciones, una por cada pregunta de
+// preguntasDeOtroSondeo.
+func contenidoDeOtroSondeo(t *testing.T) string {
+	t.Helper()
+
+	sesion := func(nombre, pregunta string) objetoJSON {
+		return objetoJSON{
+			"sesion": nombre, "pregunta": pregunta, "respuesta": respuestaDeLaSesion(nombre), "invocaciones": []objetoJSON{},
+		}
+	}
+
+	return documentoJSON(t, objetoJSON{
+		"sondeo": "otro",
+		"sesiones": []objetoJSON{
+			sesion(sesionDeOtroSondeoConElFragmento, "con-el-fragmento"),
+			sesion(sesionDeOtroSondeoConLaFicha, "con-la-ficha"),
+			sesion(sesionDeOtroSondeoSinMarcas, "sin-marcas"),
+		},
+	})
+}
+
+// mundoDeJurisprudencia es el mundo sintético de jurisprudencia de
+// TestResolverCasos: los textos del fragmento, con los que el test dice qué
+// espera, y el reconstructor de ese mundo.
+type mundoDeJurisprudencia struct {
+	fragmento textosDelFragmento
+	sintetico *reconstructor
+}
+
+// nuevoMundoDeJurisprudencia escribe el mundo de jurisprudencia bajo una raíz
+// temporal del test: sus informes, las preguntas de cada sondeo junto a su
+// informe, los fragmentos que nombran y sus dos evals de hoy.
+func nuevoMundoDeJurisprudencia(t *testing.T) mundoDeJurisprudencia {
+	t.Helper()
+
+	fragmento := leerTextosDelFragmento(t)
+	deOtroSondeo := contenidoDeOtroSondeo(t)
+
+	ficheros := map[string]string{
+		informeDeCita:       contenidoDelInformeDeCita(t, fragmento),
+		informeDeUnSondeo:   contenidoDelInformeDelSondeo(t, fragmento),
+		preguntasDeUnSondeo: contenidoDeLasPreguntas,
+		fragmentoDeUnSondeo: fragmento.entero,
+		fragmentoDeUnaLinea: contenidoDelFragmentoDeUnaLinea,
+
+		path.Join(carpetaSinPreguntas, otroSondeo):           deOtroSondeo,
+		path.Join(carpetaDePreguntasIlegibles, otroSondeo):   deOtroSondeo,
+		path.Join(carpetaDePreguntasIlegibles, susPreguntas): "{",
+		path.Join(carpetaSinFragmento, otroSondeo):           deOtroSondeo,
+		path.Join(carpetaSinFragmento, susPreguntas):         fmt.Sprintf(preguntasDeOtroSondeo, fragmentoQueNoEsta),
+		path.Join(carpetaSinFicha, otroSondeo):               deOtroSondeo,
+		path.Join(carpetaSinFicha, susPreguntas):             fmt.Sprintf(preguntasDeOtroSondeo, fragmentoDeUnaLinea),
+		path.Join(carpetaSinSesiones, otroSondeo):            `{"sondeo": "roto", "sesiones": "ninguna"}`,
+	}
+
+	evals := []entradaDeConjunto{
+		{nombre: jurisprudenciaExiste, contenido: contenidoDeLaEvalSinTexto},
+		{nombre: jurisprudenciaDocumento, contenido: contenidoDeLaEvalConElTexto(fragmento.entero)},
+	}
+
+	return mundoDeJurisprudencia{fragmento: fragmento, sintetico: reconstructorSintetico(t, ficheros, evals)}
+}
+
+// casoDeJurisprudencia es un caso etiquetado de esa sesión de ese informe del
+// mundo de jurisprudencia, sin resolver: con texto, el derivado que quita esa
+// parte del texto pegado en su pregunta.
+func casoDeJurisprudencia(informe, sesion, texto string) CasoEtiquetado {
+	caso := CasoEtiquetado{
+		Informe: informe, Sesion: sesion, Grupo: "medida",
+		Etiqueta: etiquetaCorrecto, Procedencia: procedenciaDeLaLectura, Frase: "una frase",
+	}
+
+	if texto != "" {
+		caso.Quitado = &Quitado{Texto: texto}
+		caso.Etiqueta, caso.Procedencia, caso.Frase = etiquetaDefecto, procedenciaDeUnDerivado, ""
+	}
+
+	return caso
+}
+
+// resolver resuelve esos casos del mundo, que se pueden resolver, y los
+// devuelve en su orden: cada uno es el mismo caso con su pregunta, su respuesta
+// —la de su sesión en su informe, tal cual— y sus textos.
+func (m mundoDeJurisprudencia) resolver(t *testing.T, casos ...CasoEtiquetado) []CasoEtiquetado {
+	t.Helper()
+
+	resueltos, err := m.sintetico.resolver(casos)
+	require.NoError(t, err)
+	require.Len(t, resueltos, len(casos))
+
+	for posicion, resuelto := range resueltos {
+		assert.Equal(t, respuestaDeLaSesion(casos[posicion].Sesion), resuelto.Respuesta,
+			"la respuesta del caso %d va tal cual, con sus blancos", posicion+1)
+
+		resuelto.Pregunta, resuelto.Respuesta, resuelto.Textos = "", "", nil
+		assert.Equal(t, casos[posicion], resuelto, "el caso %d resuelto es el mismo caso", posicion+1)
+	}
+
+	return resueltos
+}
+
+// probarLaResolucionDeJurisprudencia fija, dentro de TestResolverCasos, la
+// resolución de los casos de una skill como jurisprudencia sobre su mundo
+// sintético (contracts/medida-y-casos.md §2 a §7 y data-model §3 a §6 de H25;
+// FR-041 a FR-044): las órdenes del applet cita de un informe del job, que se
+// repiten en proceso; el informe de un sondeo, cuyas órdenes no se repiten; los
+// derivados que quitan una parte del texto pegado en la pregunta, de los dos
+// tipos de informe; lo reconstruido, que se recuerda por lo que se quita; y los
+// casos que no se pueden resolver, cada uno con un error que lo nombra.
+func probarLaResolucionDeJurisprudencia(t *testing.T) {
+	t.Parallel()
+
+	mundo := nuevoMundoDeJurisprudencia(t)
+
+	partes := []struct {
+		nombre string
+		probar func(t *testing.T)
+	}{
+		{nombre: "ordenes-de-cita", probar: mundo.probarLasOrdenesDeCita},
+		{nombre: "derivados-del-job", probar: mundo.probarLosDerivadosDelJob},
+		{nombre: "informe-de-un-sondeo", probar: mundo.probarElInformeDeUnSondeo},
+		{nombre: "derivados-del-sondeo", probar: mundo.probarLosDerivadosDelSondeo},
+		{nombre: "otros-sondeos", probar: mundo.probarOtrosSondeos},
+		{nombre: "lo-reconstruido-se-recuerda", probar: mundo.probarQueSeRecuerda},
+	}
+
+	for _, parte := range partes {
+		t.Run(parte.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			parte.probar(t)
+		})
+	}
+
+	for _, caso := range casosDeJurisprudenciaSinResolver() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			resueltos, err := mundo.sintetico.resolver([]CasoEtiquetado{
+				casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoSinInvocaciones, ""), caso.caso,
+			})
+
+			for _, fragmento := range caso.dice {
+				require.ErrorContains(t, err, fragmento)
+			}
+
+			if caso.es != nil {
+				require.ErrorIs(t, err, caso.es)
+			}
+
+			assert.NotContains(t, err.Error(), "\n", "el error de un caso que no se resuelve es una línea")
+			assert.Nil(t, resueltos, "con un caso sin resolver no hay ninguno")
+		})
+	}
+}
+
+// probarLasOrdenesDeCita fija los textos de las sesiones de un informe del job
+// que invocaron el applet cita (contracts/medida-y-casos.md §4 de H25; FR-041):
+// cada orden se repite en proceso y da su orden, la del informe tal cual, y su
+// sobre. La orden cotejar del modo orden recibe por la entrada estándar el texto
+// pegado en la pregunta, y la del modo herramienta, el documento que lleva; el
+// valor de una bandera llega entero, con sus espacios; el proceso del servidor
+// no da texto; y sin texto pegado en la pregunta, tampoco la orden cotejar, que
+// ni se compara con el código de su informe.
+func (m mundoDeJurisprudencia) probarLasOrdenesDeCita(t *testing.T) {
+	t.Helper()
+
+	resueltos := m.resolver(t,
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, ""),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorLlamada, ""),
+		casoDeJurisprudencia(informeDeCita, sesionSinTextoPegado, ""),
+	)
+	porOrden, porLlamada, sinTextoPegado := resueltos[0], resueltos[1], resueltos[2]
+
+	conElFragmento := entradaConElTexto + "\n\n" + m.fragmento.entero
+	assert.Equal(t, conElFragmento, porOrden.Pregunta, "la pregunta de su eval, con el fragmento byte a byte")
+	assert.Equal(t, conElFragmento, porLlamada.Pregunta)
+	assert.Equal(t, preguntaSinTextoPegado, sinTextoPegado.Pregunta)
+
+	require.Equal(t, []string{cotejarLoPegado, prepararElROJ}, ordenesDe(porOrden.Textos))
+
+	cotejo := exigirElCotejo(t, porOrden.Textos[0], cotejarLoPegado, m.fragmento.entero)
+	assert.Equal(t, rojDelFragmento, cotejo.Ficha.ROJ)
+	assert.Nil(t, cotejo.Pedida, "la orden no pidió ninguna referencia")
+
+	consulta := exigirElSobreDeCita(t, porOrden.Textos[1])
+	assert.Equal(t, referenciaLeida{Forma: "roj", Valor: rojQueNoEsElSuyo},
+		datosDelSobre[consultaLeida](t, porOrden.Textos[1].Salida).Referencia, "el valor de --roj llega con su espacio")
+	assert.Equal(t, direccionDelCendoj, consulta.URL)
+
+	llamada := llamarACotejar + m.fragmento.ficha
+	require.Equal(t, []string{llamada}, ordenesDe(porLlamada.Textos), "mcp serve no da ningún texto")
+
+	cotejo = exigirElCotejo(t, porLlamada.Textos[0], llamada, m.fragmento.ficha)
+	require.NotNil(t, cotejo.Pedida)
+	assert.Equal(t, referenciaLeida{Forma: "roj", Valor: rojDelFragmento}, *cotejo.Pedida)
+	require.NotNil(t, cotejo.EsLaPedida)
+	assert.True(t, *cotejo.EsLaPedida)
+
+	require.Equal(t, []string{prepararPorNumero}, ordenesDe(sinTextoPegado.Textos),
+		"sin texto pegado, la orden cotejar no da texto")
+	exigirElSobreDeCita(t, sinTextoPegado.Textos[0])
+}
+
+// probarLosDerivadosDelJob fija los derivados por texto de una sesión de un
+// informe del job (contracts/medida-y-casos.md §3 y §4 de H25; FR-043): la
+// pregunta de cada uno es la de su sesión sin la parte quitada. Sin el
+// documento, ninguna orden cotejar da texto, lleve o no --documento, y las
+// demás siguen; sin el fallo y sin su apartado 2.º, la orden cotejar que leyó
+// por la entrada estándar se repite con lo que queda, y la que lleva su
+// documento, con él.
+func (m mundoDeJurisprudencia) probarLosDerivadosDelJob(t *testing.T) {
+	t.Helper()
+
+	resueltos := m.resolver(t,
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "documento"),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "fallo"),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "apartado-2"),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorLlamada, "documento"),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorLlamada, "fallo"),
+	)
+	sinElDocumento, sinElFallo, sinElApartado := resueltos[0], resueltos[1], resueltos[2]
+	porLlamadaSinElDocumento, porLlamadaSinElFallo := resueltos[3], resueltos[4]
+
+	assert.Equal(t, entradaConElTexto, sinElDocumento.Pregunta, "sin el texto pegado ni la línea en blanco")
+	require.Equal(t, []string{prepararElROJ}, ordenesDe(sinElDocumento.Textos), "ninguna orden cotejar")
+	exigirElSobreDeCita(t, sinElDocumento.Textos[0])
+
+	assert.Equal(t, entradaConElTexto, porLlamadaSinElDocumento.Pregunta)
+	assert.Empty(t, porLlamadaSinElDocumento.Textos, "tampoco la orden cotejar que lleva su documento")
+
+	quedan := []struct {
+		derivado CasoEtiquetado
+		queda    string
+	}{
+		{derivado: sinElFallo, queda: m.fragmento.hastaElFallo},
+		{derivado: sinElApartado, queda: m.fragmento.sinElApartado},
+	}
+
+	for _, caso := range quedan {
+		assert.Equal(t, entradaConElTexto+"\n\n"+caso.queda, caso.derivado.Pregunta,
+			"la pregunta de %s", caso.derivado.Quitado.Texto)
+		require.Equal(t, []string{cotejarLoPegado, prepararElROJ}, ordenesDe(caso.derivado.Textos))
+		exigirElCotejo(t, caso.derivado.Textos[0], cotejarLoPegado, caso.queda)
+	}
+
+	assert.Equal(t, entradaConElTexto+"\n\n"+m.fragmento.hastaElFallo, porLlamadaSinElFallo.Pregunta)
+	require.Len(t, porLlamadaSinElFallo.Textos, 1)
+	exigirElCotejo(t, porLlamadaSinElFallo.Textos[0], llamarACotejar+m.fragmento.ficha, m.fragmento.ficha)
+}
+
+// probarElInformeDeUnSondeo fija la resolución de los casos del informe de un
+// sondeo (contracts/medida-y-casos.md §2 y §5 de H25; FR-042): la pregunta es
+// la de sus preguntas —la de la eval de hoy que nombran, o su plantilla con el
+// fragmento, byte a byte, o con su ficha—, y los textos, sin repetir ninguna
+// orden, los de cada orden de Bash que empieza por «kitlegal », con su salida
+// tal cual y en su orden. Una sesión sin invocaciones no tiene textos, y sin
+// texto pegado en la pregunta, la orden cita cotejar no da ninguno.
+func (m mundoDeJurisprudencia) probarElInformeDeUnSondeo(t *testing.T) {
+	t.Helper()
+
+	resueltos := m.resolver(t,
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConEval, ""),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConElFragmento, ""),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConLaFicha, ""),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoSinInvocaciones, ""),
+	)
+	conEval, conElFragmento, conLaFicha, sinInvocaciones := resueltos[0], resueltos[1], resueltos[2], resueltos[3]
+
+	assert.Equal(t, preguntaSinTextoPegado, conEval.Pregunta, "la de la eval de hoy que nombra su pregunta")
+	assert.Equal(t, []Texto{{Orden: prepararEnElSondeo, Salida: salidaDePreparar}}, conEval.Textos,
+		"solo la orden de Bash que empieza por «kitlegal », y sin la de cotejar: su pregunta no lleva texto pegado")
+
+	assert.Equal(t, entradaConElFragmento+"\n\n"+m.fragmento.entero, conElFragmento.Pregunta)
+	assert.Equal(t, []Texto{
+		{Orden: cotejarEnElSondeo + m.fragmento.entero + finDelDocumento, Salida: salidaDeCotejar},
+		{Orden: buscarEnElSondeo, Salida: salidaDeBuscar},
+	}, conElFragmento.Textos)
+
+	assert.Equal(t, entradaConLaFicha+"\n\n"+m.fragmento.ficha, conLaFicha.Pregunta)
+	assert.Equal(t, []Texto{
+		{Orden: cotejarEnElSondeo + m.fragmento.ficha + finDelDocumento, Salida: salidaDeCotejar},
+	}, conLaFicha.Textos)
+
+	assert.Equal(t, plantillaSinTextoPegado, sinInvocaciones.Pregunta)
+	assert.Empty(t, sinInvocaciones.Textos, "una sesión sin invocaciones no tiene textos")
+}
+
+// probarLosDerivadosDelSondeo fija los derivados por texto de una sesión del
+// informe de un sondeo (contracts/medida-y-casos.md §3 y §5 de H25): la
+// pregunta de cada uno es la de su sesión sin la parte quitada; sin el
+// documento, sus textos son los de su sesión menos los de cita cotejar, y con
+// otra parte quitada, los de su sesión, como están en su informe.
+func (m mundoDeJurisprudencia) probarLosDerivadosDelSondeo(t *testing.T) {
+	t.Helper()
+
+	resueltos := m.resolver(t,
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConElFragmento, ""),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConElFragmento, "documento"),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConElFragmento, "fallo"),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConElFragmento, "apartado-2"),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConLaFicha, "documento"),
+	)
+	deLaSesion, sinElDocumento, sinElFallo, sinElApartado := resueltos[0], resueltos[1], resueltos[2], resueltos[3]
+	laFichaSinElDocumento := resueltos[4]
+
+	assert.Equal(t, entradaConElFragmento, sinElDocumento.Pregunta)
+	assert.Equal(t, []Texto{{Orden: buscarEnElSondeo, Salida: salidaDeBuscar}}, sinElDocumento.Textos)
+
+	assert.Equal(t, entradaConElFragmento+"\n\n"+m.fragmento.hastaElFallo, sinElFallo.Pregunta)
+	assert.Equal(t, deLaSesion.Textos, sinElFallo.Textos)
+
+	assert.Equal(t, entradaConElFragmento+"\n\n"+m.fragmento.sinElApartado, sinElApartado.Pregunta)
+	assert.Equal(t, deLaSesion.Textos, sinElApartado.Textos)
+
+	assert.Equal(t, entradaConLaFicha, laFichaSinElDocumento.Pregunta)
+	assert.Empty(t, laFichaSinElDocumento.Textos)
+}
+
+// probarOtrosSondeos fija que una pregunta solo necesita del fragmento lo que
+// su plantilla nombra (contracts/medida-y-casos.md §2 de H25): la que no lleva
+// ninguna de las dos marcas se compone aunque el fragmento no esté, y la que
+// lleva el fragmento, aunque no tenga la línea en blanco que cierra su ficha.
+func (m mundoDeJurisprudencia) probarOtrosSondeos(t *testing.T) {
+	t.Helper()
+
+	resueltos := m.resolver(t,
+		casoDeJurisprudencia(path.Join(carpetaSinFragmento, otroSondeo), sesionDeOtroSondeoSinMarcas, ""),
+		casoDeJurisprudencia(path.Join(carpetaSinFicha, otroSondeo), sesionDeOtroSondeoConElFragmento, ""),
+	)
+	sinMarcas, conElFragmento := resueltos[0], resueltos[1]
+
+	assert.Equal(t, plantillaSinTextoPegado, sinMarcas.Pregunta)
+	assert.Equal(t, "Resúmeme esto:\n\n"+contenidoDelFragmentoDeUnaLinea, conElFragmento.Pregunta)
+}
+
+// probarQueSeRecuerda fija que lo reconstruido de una sesión se recuerda por su
+// informe, su sesión y el texto quitado (research D10 de H25): el sobre de una
+// orden repetida lleva el instante de su invocación, así que si la sesión se
+// reconstruyera otra vez no sería el mismo; y el derivado que quita otra parte
+// no toma lo de su sesión, porque su orden cotejar recibe otro texto.
+func (m mundoDeJurisprudencia) probarQueSeRecuerda(t *testing.T) {
+	t.Helper()
+
+	casos := []CasoEtiquetado{
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, ""),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "fallo"),
+		casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "apartado-2"),
+		casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConElFragmento, "fallo"),
+	}
+
+	resueltos := m.resolver(t, casos...)
+
+	assert.Equal(t, resueltos, m.resolver(t, casos...))
+
+	assert.NotEqual(t, resueltos[0].Textos[0].Salida, resueltos[1].Textos[0].Salida,
+		"el cotejo del derivado no es el de su sesión: recibe lo que queda")
+	assert.NotEqual(t, resueltos[1].Textos[0].Salida, resueltos[2].Textos[0].Salida)
+}
+
+// casosDeJurisprudenciaSinResolver son los casos del mundo de jurisprudencia
+// que la reconstrucción no puede resolver (contracts/medida-y-casos.md §7 de
+// H25; FR-044): la orden repetida que termina con otro código que el de su
+// informe, o que no tiene ninguno en él; el recorte que no se puede hacer; y la
+// pregunta de un sondeo que no está. Su error empieza por el caso, con su
+// informe, su sesión y, en un derivado, lo quitado, y es una sola línea: de una
+// orden con saltos de línea lleva la primera.
+func casosDeJurisprudenciaSinResolver() []casoSinResolver {
+	const (
+		delJob     = "el caso " + informeDeCita + " "
+		delSondeo  = "el caso " + informeDeUnSondeo + " "
+		otroCodigo = "» termina con 2 y el informe dice 0"
+	)
+
+	conLasDosFormas := casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "fallo")
+	conLasDosFormas.Quitado.Norma, conLasDosFormas.Quitado.Bloque = "BOE-A-2015-10565", "a21"
+
+	deOtroSondeo := func(carpeta, sesion string) CasoEtiquetado {
+		return casoDeJurisprudencia(path.Join(carpeta, otroSondeo), sesion, "")
+	}
+
+	return []casoSinResolver{
+		{
+			nombre: "orden-con-otro-codigo",
+			caso:   casoDeJurisprudencia(informeDeCita, sesionConOtroCodigo, ""),
+			dice:   []string{delJob + sesionConOtroCodigo + ": la orden «" + cotejarUnROJSinForma + otroCodigo},
+		},
+		{
+			nombre: "orden-con-otro-codigo-en-un-derivado",
+			caso:   casoDeJurisprudencia(informeDeCita, sesionConOtroCodigo, "fallo"),
+			dice:   []string{delJob + sesionConOtroCodigo + " sin fallo: la orden «" + cotejarUnROJSinForma + otroCodigo},
+		},
+		{
+			nombre: "orden-de-varias-lineas-con-otro-codigo",
+			caso:   casoDeJurisprudencia(informeDeCita, sesionConOtroCodigoPorLlamada, ""),
+			dice: []string{
+				delJob + sesionConOtroCodigoPorLlamada + ": la orden «" + llamarACotejarSinForma +
+					"Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144…" + otroCodigo,
+			},
+		},
+		{
+			nombre: "orden-sin-codigo",
+			caso:   casoDeJurisprudencia(informeDeCita, sesionSinCodigo, ""),
+			dice: []string{
+				delJob + sesionSinCodigo + ": la orden «" + prepararElROJ + "» termina con 0 y el informe no le da ningún código",
+			},
+		},
+		{
+			nombre: "derivado-sin-texto-pegado",
+			caso:   casoDeJurisprudencia(informeDeCita, sesionSinTextoPegado, "documento"),
+			dice:   []string{delJob + sesionSinTextoPegado + " sin documento: la pregunta no lleva ningún texto pegado"},
+		},
+		{
+			nombre: "derivado-de-otra-parte",
+			caso:   casoDeJurisprudencia(informeDeCita, sesionDelCotejoPorOrden, "antecedentes"),
+			dice:   []string{delJob + sesionDelCotejoPorOrden + ` sin antecedentes: quitado.texto es "antecedentes"`},
+		},
+		{
+			nombre: "derivado-con-las-dos-formas",
+			caso:   conLasDosFormas,
+			dice: []string{
+				delJob + sesionDelCotejoPorOrden + " sin fallo: quitado lleva un bloque (BOE-A-2015-10565 a21) y un texto (fallo)",
+			},
+		},
+		{
+			nombre: "sesion-que-no-esta-en-el-sondeo",
+			caso:   casoDeJurisprudencia(informeDeUnSondeo, "una-sesion-que-no-esta", ""),
+			dice: []string{
+				delSondeo + "una-sesion-que-no-esta: el informe " + informeDeUnSondeo + " no tiene la sesión una-sesion-que-no-esta",
+			},
+		},
+		{
+			nombre: "pregunta-que-no-esta",
+			caso:   casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoSinSuPregunta, ""),
+			dice: []string{
+				delSondeo + sesionDelSondeoSinSuPregunta + ": las preguntas " + preguntasDeUnSondeo +
+					" no tienen la pregunta 08-no-esta-entre-las-preguntas",
+			},
+		},
+		{
+			nombre: "pregunta-de-una-eval-que-no-es-de-hoy",
+			caso:   casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConOtraEval, ""),
+			dice: []string{
+				delSondeo + sesionDelSondeoConOtraEval +
+					": la eval 13-no-esta.yaml de la pregunta 13-con-una-eval-que-no-esta no es de las de hoy de ",
+			},
+		},
+		{
+			nombre: "pregunta-sin-eval-ni-plantilla",
+			caso:   casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoSinNada, ""),
+			dice: []string{
+				delSondeo + sesionDelSondeoSinNada + ": la pregunta 14-sin-eval-ni-pregunta de " + preguntasDeUnSondeo +
+					" no lleva eval ni pregunta",
+			},
+		},
+		{
+			nombre: "derivado-del-sondeo-sin-texto-pegado",
+			caso:   casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoSinInvocaciones, "fallo"),
+			dice:   []string{delSondeo + sesionDelSondeoSinInvocaciones + " sin fallo: la pregunta no lleva ningún texto pegado"},
+		},
+		{
+			nombre: "derivado-del-sondeo-sin-la-linea-del-fallo",
+			caso:   casoDeJurisprudencia(informeDeUnSondeo, sesionDelSondeoConLaFicha, "apartado-2"),
+			dice: []string{
+				delSondeo + sesionDelSondeoConLaFicha + " sin apartado-2: el texto pegado no tiene la línea «F A L L O»",
+			},
+		},
+		{
+			nombre: "sondeo-sin-preguntas",
+			caso:   deOtroSondeo(carpetaSinPreguntas, sesionDeOtroSondeoSinMarcas),
+			dice:   []string{"las preguntas " + path.Join(carpetaSinPreguntas, susPreguntas) + " no se pueden leer: "},
+			es:     fs.ErrNotExist,
+		},
+		{
+			nombre: "sondeo-con-preguntas-ilegibles",
+			caso:   deOtroSondeo(carpetaDePreguntasIlegibles, sesionDeOtroSondeoSinMarcas),
+			dice: []string{
+				"las preguntas " + path.Join(carpetaDePreguntasIlegibles, susPreguntas) + " no son las de un sondeo: ",
+			},
+		},
+		{
+			nombre: "sondeo-sin-fragmento",
+			caso:   deOtroSondeo(carpetaSinFragmento, sesionDeOtroSondeoConElFragmento),
+			dice: []string{
+				"el fragmento " + fragmentoQueNoEsta + " de " + path.Join(carpetaSinFragmento, susPreguntas) +
+					" no se puede leer: ",
+			},
+			es: fs.ErrNotExist,
+		},
+		{
+			nombre: "sondeo-sin-fragmento-para-la-ficha",
+			caso:   deOtroSondeo(carpetaSinFragmento, sesionDeOtroSondeoConLaFicha),
+			dice:   []string{"el fragmento " + fragmentoQueNoEsta + " de "},
+			es:     fs.ErrNotExist,
+		},
+		{
+			nombre: "sondeo-con-un-fragmento-sin-ficha",
+			caso:   deOtroSondeo(carpetaSinFicha, sesionDeOtroSondeoConLaFicha),
+			dice: []string{
+				"el fragmento " + fragmentoDeUnaLinea + " de " + path.Join(carpetaSinFicha, susPreguntas) +
+					" no tiene ninguna línea en blanco: no hay ficha que poner en la pregunta con-la-ficha",
+			},
+		},
+		{
+			nombre: "sondeo-sin-sesiones",
+			caso:   deOtroSondeo(carpetaSinSesiones, sesionDeOtroSondeoSinMarcas),
+			dice: []string{
+				"el informe " + path.Join(carpetaSinSesiones, otroSondeo) + " no es un informe de un sondeo: ",
+			},
+		},
+	}
+}
+
 // Lo que los tests de la reconstrucción leen del sobre de una salida, por su
-// cuenta: sus dos primeras claves y su data, que es, según la orden, un bloque,
-// una lista de bloques, una comprobación del grafo o un fallo.
+// cuenta: sus tres primeras claves y su data, que es, según la orden, un
+// bloque, una lista de bloques, una comprobación del grafo, un fallo, la
+// consulta que prepara cita o su cotejo.
 type (
 	sobreLeido struct {
 		Ok     bool           `json:"ok"`
 		Fuente string         `json:"fuente"`
+		URL    string         `json:"url"`
 		Data   jsontext.Value `json:"data"`
 	}
 
@@ -1478,14 +2615,35 @@ type (
 		Clase   string `json:"clase"`
 		Mensaje string `json:"mensaje"`
 	}
+
+	referenciaLeida struct {
+		Forma string `json:"forma"`
+		Valor string `json:"valor"`
+	}
+
+	consultaLeida struct {
+		Referencia referenciaLeida `json:"referencia"`
+	}
+
+	cotejoLeido struct {
+		Ficha struct {
+			ROJ string `json:"roj"`
+		} `json:"ficha"`
+		Pedida     *referenciaLeida `json:"pedida"`
+		EsLaPedida *bool            `json:"es_la_pedida"`
+	}
 )
 
 // Las fuentes y la clase de error con las que los tests de la reconstrucción
-// reconocen cada sobre.
+// reconocen cada sobre, y lo que va delante de la huella del texto recibido en
+// la url del sobre de cita cotejar.
 const (
 	fuenteDelBoeEnElSobre   = "boe.legislacion-consolidada"
 	fuenteDelGrafoEnElSobre = "kitlegal.graph"
+	fuenteDeCitaEnElSobre   = "kitlegal.cita"
 	claseFuenteNoDisponible = "fuente-no-disponible"
+
+	documentoEnLaURLDelSobre = "kitlegal:documento/sha256:"
 )
 
 // clavesDelSobre son las seis claves del sobre de salida, en su orden.
@@ -1569,6 +2727,37 @@ func valorJSON(t *testing.T, texto []byte) any {
 	require.NoError(t, json.Unmarshal(texto, &valor), "no es JSON: %s", texto)
 
 	return valor
+}
+
+// exigirElSobreDeCita exige que la salida del texto sea el sobre de una orden
+// del applet cita que terminó con 0, como lo escribe el binario, y lo devuelve.
+func exigirElSobreDeCita(t *testing.T, texto Texto) sobreLeido {
+	t.Helper()
+
+	assert.Equal(t, clavesDelSobre, clavesEnSuOrden(t, texto.Salida), "la salida de «%s» es su sobre", texto.Orden)
+	assert.True(t, strings.HasSuffix(texto.Salida, "}\n"), "la salida de «%s» va como la escribe el binario", texto.Orden)
+
+	sobre := leerSobre(t, texto.Salida)
+	assert.True(t, sobre.Ok, "«%s» termina con 0", texto.Orden)
+	assert.Equal(t, fuenteDeCitaEnElSobre, sobre.Fuente)
+
+	return sobre
+}
+
+// exigirElCotejo exige que el texto sea el de esa orden cotejar, tal cual, con
+// el sobre de cotejar ese documento: su url lleva la huella SHA-256 del texto
+// que la orden recibió, byte a byte, que es como se ve cuál fue. Devuelve su
+// cotejo.
+func exigirElCotejo(t *testing.T, texto Texto, orden, documento string) cotejoLeido {
+	t.Helper()
+
+	assert.Equal(t, orden, texto.Orden, "la orden va tal cual")
+
+	huella := sha256.Sum256([]byte(documento))
+	assert.Equal(t, documentoEnLaURLDelSobre+hex.EncodeToString(huella[:]), exigirElSobreDeCita(t, texto).URL,
+		"«%s» recibe ese documento y ningún otro", strings.SplitN(orden, "\n", 2)[0])
+
+	return datosDelSobre[cotejoLeido](t, texto.Salida)
 }
 
 // exigirLosTextosDeLasOrdenes exige los textos de la sesión de órdenes del mundo
@@ -2196,7 +3385,7 @@ func exigirSoloElTextoQuitado(t *testing.T, derivado CasoEtiquetado, deLaSesion 
 // terminó con 0, y con qué verbo. Lo lee de la orden, que en una llamada nombra
 // la herramienta y no el applet y el verbo, y del ok del sobre de su salida, que
 // es verdadero si y solo si la invocación terminó con 0.
-func lecturaDelBloque(t *testing.T, texto Texto, bloque BloqueQuitado) (verbo string, esSuLectura bool) {
+func lecturaDelBloque(t *testing.T, texto Texto, bloque Quitado) (verbo string, esSuLectura bool) {
 	t.Helper()
 
 	palabras := strings.Fields(texto.Orden)

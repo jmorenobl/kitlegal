@@ -1,0 +1,14 @@
+# Supuestos y pendientes del run
+
+Cada línea la escribe un paso del workflow y empieza por su impacto: [comportamiento], [alcance], [skill], [interno] o [proceso]. El informe final las ordena por él.
+
+- [interno] T002: el contrato habla de «la línea `F A L L O`» (contracts/medida-y-casos.md §3) y el guion de la validación busca esa marca en cualquier parte del texto pegado → se exige la línea entera: un texto con la marca solo en mitad de una línea no tiene fallo que quitar y el derivado no se resuelve. Es la lectura que menos recorta, y con el fragmento del repositorio las dos dan lo mismo.
+- [interno] T002: «el párrafo que empieza por `2.º-`» no dice si un párrafo puede tener varias líneas → es, como en el guion de la validación, una línea que empieza por `2.º-` y tiene detrás una línea en blanco; se quitan esa línea y la que la sigue, una vez. Sin ella, o sin la línea del fallo, el derivado no se resuelve.
+- [interno] T002: la regla de los argumentos de una orden `cita` da a cada bandera «su nombre, hasta el primer `=` o blanco, y su valor, lo que sigue», y no dice qué es una bandera sin `=` ni blanco (`--no-graph`) → va sola, sin valor. La que lleva `=` o un blanco y nada detrás va con su valor vacío. Ninguna orden de los informes versionados lleva una así.
+- [interno] T002: «blanco», en esa regla, no está definido → es lo que Go llama espacio (`unicode.IsSpace`), el mismo criterio con el que se separan las palabras de las demás órdenes y se recortan los valores.
+- [interno] T002: el contrato pide que el error de una orden repetida con otro código la lleve entre comillas (§7) y que ese error sea una línea (§10), y la orden de una llamada con `--documento=` tiene varias → la orden va hasta su primer salto de línea, seguida de «…».
+- [interno] T002: el contrato compara el código de la orden repetida con «el que el informe da a esa invocación» y no dice qué pasa si no le da ninguno (`codigo: null`, la que el tope cortó) → el caso no se resuelve, con un error que lo dice: sin código no hay con qué comparar.
+- [interno] T002: un derivado «lleva una de las dos formas» de `quitado` (data-model §3) y nada dice del que lleva las dos → no se resuelve, con un error que lo nombra, en lugar de aplicar una e ignorar la otra.
+- [interno] T002: la pregunta de un sondeo que nombra una eval es «la de esa eval de hoy» (§2) → se busca solo entre las evals de hoy de la skill, no entre las retiradas; si no está, el caso no se resuelve.
+- [interno] T002: `{ficha}` es el fragmento «hasta su primera línea en blanco» y no se dice qué es si no tiene ninguna → el caso no se resuelve. El fragmento se lee solo si la plantilla lleva `{fragmento}` o `{ficha}`.
+- [interno] T002: nada dice qué es la invocación de un sondeo cuya entrada lleva en `command` algo que no es un texto → no es una orden y no da texto; el informe se sigue leyendo.
