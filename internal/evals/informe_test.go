@@ -4567,8 +4567,9 @@ const (
 	primerProcesoDeLaSesion = 2000
 
 	// respuestasDeJurisprudenciaPorModo son las respuestas del modelo que decide
-	// en un modo con las evals del repositorio: seis evals, tres veces.
-	respuestasDeJurisprudenciaPorModo = 18
+	// en un modo con las evals del repositorio: diez evals, tres veces (FR-012 de
+	// H25).
+	respuestasDeJurisprudenciaPorModo = 30
 )
 
 // TestUmbralesDeJurisprudencia fija los umbrales del informe de una skill sin
@@ -4579,9 +4580,10 @@ const (
 //
 //   - umbrales son exactamente cuatro, en el orden del contrato —sin_activar y
 //     cita_sin_documento del modo orden, y los dos del modo herramienta—, sobre
-//     las 18 respuestas del modelo que decide en cada modo, con «<=» 0 y
-//     decidiendo: ninguno de una clase de juez, porque la skill no lo tiene, ni
-//     de duración, porque no tiene objetivo;
+//     las 30 respuestas del modelo que decide en cada modo —las de las diez
+//     evals desde H25 (FR-024 de H25)—, con «<=» 0 y decidiendo: ninguno de una
+//     clase de juez, porque la skill no lo tiene, ni de duración, porque no
+//     tiene objetivo;
 //   - con ninguna respuesta que cuente, los cuatro se cumplen y el veredicto es
 //     aprobado: la cita de la eval 04 lleva el ECLI que leyó su cita cotejar, y
 //     el ECLI de la respuesta de la 05 está en su pregunta;
@@ -4628,7 +4630,7 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 			},
 			sinDocumentoPorModo: map[Modo]int{ModoOrden: 1},
 			motivos: []string{
-				"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 18 (5,6 %), y tiene que ser ≤ 0,0 %: " +
+				"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: " +
 					"01-existe-con-numero-y-fecha-claude-sonnet-5-5-01: ECLI:ES:TS:2023:9999 (sin origen)",
 			},
 		},
@@ -4640,7 +4642,7 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 			},
 			sinDocumentoPorModo: map[Modo]int{ModoHerramienta: 2},
 			motivos: []string{
-				"umbral cita_sin_documento:claude-sonnet-5-5:herramienta: 2 de 18 (11,1 %), y tiene que ser ≤ 0,0 %: " +
+				"umbral cita_sin_documento:claude-sonnet-5-5:herramienta: 2 de 30 (6,7 %), y tiene que ser ≤ 0,0 %: " +
 					"01-existe-con-numero-y-fecha-herramienta-claude-sonnet-5-5-01: " +
 					"ECLI:ES:TS:2022:1 (sin origen) · ECLI:ES:TS:2022:2 (sin origen); " +
 					"04-documento-pegado-herramienta-claude-sonnet-5-5-01: ECLI:ES:TS:2023:9999 (cita sin documento cotejado)",
@@ -4650,7 +4652,7 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 			nombre:            "una-sin-activar",
 			sinActivar:        primera(eval01, modeloSonnet55, ModoOrden),
 			sinActivarPorModo: map[Modo]int{ModoOrden: 1},
-			motivos:           []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 18 (5,6 %), y tiene que ser ≤ 0,0 %"},
+			motivos:           []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %"},
 		},
 	}
 
@@ -4694,16 +4696,19 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 	t.Run("el-elemento-del-contrato", func(t *testing.T) {
 		t.Parallel()
 
-		// El elemento de contracts/evals-jurisprudencia.md §4, tal cual: lo que
+		// El elemento de contracts/evals-jurisprudencia.md §4 de H23, tal cual,
+		// con el total de entonces, las 18 respuestas de sus seis evals: lo que
 		// los casos comparan con el informe, con sus claves en el orden del
-		// contrato del ADR 0029, es ese elemento.
+		// contrato del ADR 0029, es ese elemento con el total de hoy.
+		const respuestasDelContrato = 18
+
 		const elemento = `{"nombre":"cita_sin_documento:claude-sonnet-5-5:orden","descripcion":"Respuestas de ` +
 			`claude-sonnet-5-5 en el modo orden con una cita de sentencia sin documento cotejado o con un ECLI que no ` +
 			`viene de una operación ni de la pregunta, sobre sus respuestas medidas en las evals que activan la skill",` +
 			`"medida":0,"total":18,"comparacion":"<=","umbral":0,"cumple":true,"decide":true}`
 
 		assert.JSONEq(t, elemento, umbralEscrito(t, umbralCitaSinDocumento(modeloSonnet55, ModoOrden, 0,
-			respuestasDeJurisprudenciaPorModo, true)))
+			respuestasDelContrato, true)))
 	})
 }
 
@@ -4756,9 +4761,9 @@ func planDeJurisprudencia(evals []Eval) PlanDeEvals {
 }
 
 // armarSesionesDeJurisprudencia escribe en un directorio temporal del test las
-// sesiones que el plan del job pide con las evals del repositorio —las seis,
+// sesiones que el plan del job pide con las evals del repositorio —las diez,
 // tres veces, con los dos modelos y en los dos modos—, cada una la de
-// sesionesModeloDeLasSeisEvals para su eval, y devuelve el directorio. La skill
+// sesionesModeloDeLasDiezEvals para su eval, y devuelve el directorio. La skill
 // no tiene juez (FR-055 de H23).
 func armarSesionesDeJurisprudencia(t *testing.T) string {
 	t.Helper()
@@ -4768,7 +4773,7 @@ func armarSesionesDeJurisprudencia(t *testing.T) string {
 	require.Empty(t, conjunto.MalFormados)
 	require.Nil(t, conjunto.Juez, "%s no tiene juez", skillDeJurisprudencia)
 
-	modelos := sesionesModeloDeLasSeisEvals(t)
+	modelos := sesionesModeloDeLasDiezEvals(t)
 	require.Len(t, conjunto.Evals, len(modelos), "hay una sesión modelo por eval de %s", evalsDeJurisprudencia)
 
 	sesiones := t.TempDir()

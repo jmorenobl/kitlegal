@@ -177,7 +177,7 @@ jobs:
             concurrencia: 4
             objetivo_de_duracion: 900
           - skill: jurisprudencia
-            concurrencia: 1
+            concurrencia: 4
             objetivo_de_duracion: 0
           - skill: legal-core
             concurrencia: 1
