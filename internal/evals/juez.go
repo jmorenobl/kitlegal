@@ -656,7 +656,9 @@ const vallaDeCodigo = "```"
 // (data-model §3 de H24): los campos de esquema.json para esa clase, tal como
 // los dio el juez, y lo que el job comprueba de ellos sin modelo. Sus claves
 // JSON, en el orden de sus campos, son las de un voto de juez.respuestas de
-// informe.json (contracts/informe-del-job.md §3 de H24; FR-060).
+// informe.json (contracts/informe-del-job.md §3 de H24; FR-060): entre la frase
+// y si está en la respuesta va el campo propio de la clase, si su esquema lo
+// tiene (contracts/juez-de-jurisprudencia.md §4 de H25).
 type VotoDeClase struct {
 	// Voto es el número del voto, de 1 a 3. Un voto nulo y su repetición llevan
 	// el mismo.
@@ -681,6 +683,14 @@ type VotoDeClase struct {
 	// lo tiene; nil, y sin clave en informe.json, en la que no. El de un voto
 	// que dice no es vacío, y su clave va igual.
 	Precepto *string `json:"precepto,omitzero"`
+
+	// Sentencia es la sentencia o la jurisprudencia de la que habla la frase, en
+	// la clase cuyo esquema la tiene, con las reglas de Precepto: nil, y sin
+	// clave en informe.json, en la que no, y vacía, con su clave, en un voto que
+	// dice no. Es el campo propio de la clase donde el esquema no lleva
+	// precepto, y ningún voto lleva los dos
+	// (contracts/juez-de-jurisprudencia.md §3 y §4 de H25; FR-013 de H25).
+	Sentencia *string `json:"sentencia,omitzero"`
 
 	// FraseEnLaRespuesta dice si Frase está en la respuesta juzgada, con la
 	// tolerancia de fraseEsta. Una frase vacía no está.
@@ -954,6 +964,7 @@ func (v *votacion) pedirElVoto(numero int, mensaje, respuesta string) ([]VotoDeC
 			Respuesta:          dicho.Respuesta,
 			Frase:              dicho.Frase,
 			Precepto:           dicho.Precepto,
+			Sentencia:          dicho.Sentencia,
 			FraseEnLaRespuesta: fraseEsta(dicho.Frase, respuesta),
 		}
 
@@ -978,12 +989,14 @@ type salidaDelVoto struct {
 }
 
 // dichoDeClase es lo que el juicio de un voto dice de una clase: los campos de
-// esquema.json que se leen de ella. Precepto es nil si la clase no lo tiene.
+// esquema.json que se leen de ella. Precepto y Sentencia son nil si la clase no
+// los tiene.
 type dichoDeClase struct {
 	Motivo    string  `json:"motivo"`
 	Respuesta string  `json:"respuesta"`
 	Frase     string  `json:"frase"`
 	Precepto  *string `json:"precepto"`
+	Sentencia *string `json:"sentencia"`
 }
 
 // leerElVoto lee el juicio de un voto de lo que devolvió el Votante, como

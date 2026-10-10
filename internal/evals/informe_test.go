@@ -990,16 +990,28 @@ var encabezadosDeLaTablaDeUmbrales = []string{"Umbral", "Medida", "Condición", 
 // afirmativo, con una fila por voto y clase, y la de las respuestas sin
 // juzgar—, cada una con «ninguna» en su lugar si no tiene filas; y sin juez,
 // «La skill no tiene juez.».
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §4 de H25; FR-013 de H25), la
+// octava columna de la tabla de los votos, que sigue teniendo diez, toma su
+// nombre de los votos que lleva: «Sentencia» con un juez cuyo esquema lleva
+// sentencia, con «—» en la sentencia que un voto dejó vacía y en la de la clase
+// que no la tiene; y «Precepto» con el juez de siempre, cuya sección no cambia
+// en un byte (FR-005 de H25).
 func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 	t.Parallel()
 
 	comoElJob := ejecucionConUmbrales{queDeciden: 10, informativas: 8, conHaiku: true}
 
 	conVotos, seccionConVotos := votosDelMarkdown(t)
+	conSentencia, seccionConSentencia := votosDelMarkdownConSentencia(t)
 
 	casos := []struct {
 		nombre    string
 		ejecucion ejecucionConUmbrales
+
+		// conSentencia dice que el juez de la ejecución es el del esquema con
+		// sentencia (escribirEjecucionConSentencia), y no el de siempre.
+		conSentencia bool
 
 		// grabados son los votos grabados de algunas de sus respuestas; sin
 		// ellos, el juez dice no a todo.
@@ -1127,13 +1139,35 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 			},
 			juez: seccionConVotos,
 		},
+		{
+			// Sí, sí y no: ninguna marcada. La clase que solo se publica es la
+			// de jurisprudencia, y la tabla de los votos lleva «Sentencia».
+			nombre:       "con-los-votos-de-un-juez-con-sentencia",
+			ejecucion:    ejecucionConUmbrales{queDeciden: 1, informativas: 1, conHaiku: true},
+			conSentencia: true,
+			grabados:     conSentencia,
+			filas: [][]string{
+				{"`sin_activar:claude-sonnet-5-5:orden`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`afirma_lo_no_leido:claude-sonnet-5-5:orden`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`afirma_que_existe:claude-sonnet-5-5:orden`", "0 de 6 (0,0 %)", "≤ 0,0 %", "sí", "no: solo se publica"},
+				{"`medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`", "0 de 212 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`medida_del_juez:afirma_lo_no_leido:correctos_marcados`", "0 de 47 (0,0 %)", "≤ 0,0 %", "sí", "sí"},
+				{"`duracion_del_juez:orden`", "0", "≤ 900", "sí", "sí"},
+			},
+			juez: seccionConSentencia,
+		},
 	}
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			leido, _ := escribirEjecucionConVotos(t, caso.ejecucion, caso.grabados)
+			escribir := escribirEjecucionConVotos
+			if caso.conSentencia {
+				escribir = escribirEjecucionConSentencia
+			}
+
+			leido, _ := escribir(t, caso.ejecucion, caso.grabados)
 
 			exigirLineas(t, seccionDelInforme(t, leido.md, "Cabecera"),
 				"Duración de las sesiones: "+strconv.Itoa(caso.ejecucion.duracionDeLasTandas())+" s")
@@ -1170,10 +1204,15 @@ func TestInformeMarkdownDeLosUmbrales(t *testing.T) {
 
 // encabezadosDeLaTablaDeVotos y encabezadosDeLaTablaSinJuzgar son los de las dos
 // tablas de la sección «Juez» de informe.md (contracts/informe-del-job.md §7 de
-// H24).
+// H24); y encabezadosDeLaTablaConSentencia, los de la de los votos cuando alguno
+// lleva sentencia, que solo cambian el octavo
+// (contracts/juez-de-jurisprudencia.md §4 de H25).
 var (
 	encabezadosDeLaTablaDeVotos = []string{
 		"Sesión", "Clase", "Voto", "Nulo", "Respuesta", "Frase", "En la respuesta", "Precepto", "Motivo", "Marcada",
+	}
+	encabezadosDeLaTablaConSentencia = []string{
+		"Sesión", "Clase", "Voto", "Nulo", "Respuesta", "Frase", "En la respuesta", "Sentencia", "Motivo", "Marcada",
 	}
 	encabezadosDeLaTablaSinJuzgar = []string{"Sesión", "Motivo"}
 )
@@ -1252,6 +1291,60 @@ func votosDelMarkdown(t *testing.T) ([]votosDeUnaRespuesta, string) {
 			}) +
 		"\n\nRespuestas sin juzgar:\n\n" +
 		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{sinJuzgar, "voto 1: tope de 35 s agotado"})
+
+	return grabados, seccion
+}
+
+// votosDelMarkdownConSentencia son los votos grabados del caso
+// con-los-votos-de-un-juez-con-sentencia de TestInformeMarkdownDeLosUmbrales, de
+// una respuesta del modo orden de una ejecución de dos evals, y la sección
+// «Juez» que dan con el juez cuyo esquema lleva sentencia
+// (contracts/juez-de-jurisprudencia.md §4 de H25): la de «sí, sí y no», con sus
+// tres votos en cada clase. La octava columna es «Sentencia»: la que el juez
+// dio en cada sí, y «—» en la del voto que dice no, que va vacía, y en la de
+// afirma_que_existe, que no la tiene.
+func votosDelMarkdownConSentencia(t *testing.T) ([]votosDeUnaRespuesta, string) {
+	t.Helper()
+
+	siSiYNo := sesionSintetica(1, modeloSonnet55, 1)
+
+	marca := func(frase string) grabacion {
+		return votoConSentencia(t, afirmaConSentenciaQueSi(frase), existeQueNo())
+	}
+
+	grabados := []votosDeUnaRespuesta{{
+		sesion: siSiYNo, parrafo: parrafoDeLaSentencia,
+		votos: []grabacion{
+			marca(fraseDeLaNulidad), marca(fraseDeLasClausulas),
+			votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo()),
+		},
+	}}
+
+	siDeAfirma := func(voto, frase string) []string {
+		return []string{
+			siSiYNo, "afirma_lo_no_leido", voto, "no", "si", frase, "sí", "STS 241/2013, de 9 de mayo",
+			"La respuesta dice qué declaró la sentencia, y su texto no está ni en la pregunta ni en lo que devolvió " +
+				"la herramienta.",
+			"no",
+		}
+	}
+	noDeExiste := func(voto string) []string {
+		return []string{
+			siSiYNo, "afirma_que_existe", voto, "no", "no", "—", "no", "—",
+			"La respuesta lleva la línea de la sentencia no comprobada y no dice que exista.", "no",
+		}
+	}
+
+	seccion := "Modelo: claude-opus-5-5\n\nVersión de Claude Code: 2.1.289\n\nVotos:\n\n" +
+		tablaEscrita(encabezadosDeLaTablaConSentencia,
+			siDeAfirma("1", "declaró la nulidad de las cláusulas suelo por falta de transparencia"),
+			siDeAfirma("2", "declaró la nulidad de las cláusulas suelo"),
+			[]string{
+				siSiYNo, "afirma_lo_no_leido", "3", "no", "no", "—", "no", "—",
+				"La respuesta no dice nada de lo que declara la sentencia.", "no",
+			},
+			noDeExiste("1"), noDeExiste("2"), noDeExiste("3")) +
+		"\n\nRespuestas sin juzgar: ninguna"
 
 	return grabados, seccion
 }
@@ -3523,6 +3616,32 @@ func escribirElJuezDelInforme(t *testing.T, evals, medida string) {
 	require.NoError(t, err, "la medida del juez de %s se puede leer", evals)
 }
 
+// clasesDelJuezConSentencia son las clases que los tests del informe ponen en
+// la carpeta juez de su skill sintética cuando su juez es el del esquema con
+// sentencia (ponerElJuezConSentencia): las dos de jurisprudencia, con su umbral,
+// como las declara contracts/juez-de-jurisprudencia.md §1 de H25.
+const clasesDelJuezConSentencia = "clases:\n" +
+	"  - nombre: afirma_lo_no_leido\n    decide: true\n    umbral: 0\n" +
+	"  - nombre: afirma_que_existe\n    decide: false\n    umbral: 0\n"
+
+// ponerElJuezConSentencia cambia, en la carpeta juez que
+// escribirElJuezDelInforme dejó en la carpeta de evals dada, las clases y el
+// esquema de la respuesta por los del juez cuyo esquema lleva sentencia: las
+// dos clases de jurisprudencia y esquemaConSentencia. La rúbrica, los casos y la
+// medida siguen siendo los de la skill sintética.
+func ponerElJuezConSentencia(t *testing.T, evals string) {
+	t.Helper()
+
+	crearEntradas(t, evals, []entradaDeConjunto{
+		{nombre: clasesEnElJuez, contenido: clasesDelJuezConSentencia},
+		{nombre: esquemaEnElJuez, contenido: esquemaConSentencia},
+	})
+
+	conjunto, err := LeerConjunto(evals)
+	require.NoError(t, err)
+	require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez, bien formada", evals)
+}
+
 // votosDeUnaRespuesta son los votos grabados de la respuesta de una sesión de
 // una ejecución sintética.
 type votosDeUnaRespuesta struct {
@@ -3671,6 +3790,15 @@ const (
 	parrafoLentoSinBinario    = "Esta respuesta sin binario ni servidor tarda en juzgarse."
 )
 
+// Las otras dos frases que los votos del juez cuyo esquema lleva sentencia
+// citan de parrafoDeLaSentencia, que es el párrafo que los tests del informe
+// anteponen a la respuesta con esos votos: con fraseDeLaNulidad, las tres de la
+// respuesta que marcan.
+const (
+	fraseDeLasClausulas    = "declaró la nulidad de las cláusulas suelo"
+	fraseDeLaTransparencia = "las cláusulas suelo por falta de transparencia"
+)
+
 // Las tres frases de cada uno de los dos párrafos con preceptos, como las
 // escribe el motivo de la respuesta que marcan (contracts/informe-del-job.md §4
 // de H24).
@@ -3727,6 +3855,34 @@ const entradaDeSiSiYNo = `{"sesion":"01-sintetica-claude-sonnet-5-5-01","clases"
 	`{"voto":2,"nulo":false,"motivo":"No cuenta comprobaciones ni nombra herramientas.",` +
 	`"respuesta":"no","frase":"","frase_en_la_respuesta":false},` +
 	`{"voto":3,"nulo":false,"motivo":"No cuenta comprobaciones ni nombra herramientas.",` +
+	`"respuesta":"no","frase":"","frase_en_la_respuesta":false}]}]}`
+
+// entradaConSentencia es la entrada de juez.respuestas de la respuesta marcada
+// del caso con-sentencia de TestInformeConElJuez, escrita a mano con la forma
+// de contracts/juez-de-jurisprudencia.md §4 de H25, cuyo voto de ejemplo es el
+// primero: sus tres votos en cada clase, con sentencia y sin precepto en la que
+// decide, donde queda marcada, y sin ninguno de los dos en la que solo se
+// publica.
+const entradaConSentencia = `{"sesion":"01-sintetica-claude-sonnet-5-5-01","clases":[` +
+	`{"clase":"afirma_lo_no_leido","marcada":true,"votos":[` +
+	`{"voto":1,"nulo":false,"motivo":"La respuesta dice qué declaró la sentencia, y su texto no está ni en la ` +
+	`pregunta ni en lo que devolvió la herramienta.","respuesta":"si",` +
+	`"frase":"declaró la nulidad de las cláusulas suelo por falta de transparencia",` +
+	`"sentencia":"STS 241/2013, de 9 de mayo","frase_en_la_respuesta":true},` +
+	`{"voto":2,"nulo":false,"motivo":"La respuesta dice qué declaró la sentencia, y su texto no está ni en la ` +
+	`pregunta ni en lo que devolvió la herramienta.","respuesta":"si",` +
+	`"frase":"declaró la nulidad de las cláusulas suelo",` +
+	`"sentencia":"STS 241/2013, de 9 de mayo","frase_en_la_respuesta":true},` +
+	`{"voto":3,"nulo":false,"motivo":"La respuesta dice qué declaró la sentencia, y su texto no está ni en la ` +
+	`pregunta ni en lo que devolvió la herramienta.","respuesta":"si",` +
+	`"frase":"las cláusulas suelo por falta de transparencia",` +
+	`"sentencia":"STS 241/2013, de 9 de mayo","frase_en_la_respuesta":true}]},` +
+	`{"clase":"afirma_que_existe","marcada":false,"votos":[` +
+	`{"voto":1,"nulo":false,"motivo":"La respuesta lleva la línea de la sentencia no comprobada y no dice que exista.",` +
+	`"respuesta":"no","frase":"","frase_en_la_respuesta":false},` +
+	`{"voto":2,"nulo":false,"motivo":"La respuesta lleva la línea de la sentencia no comprobada y no dice que exista.",` +
+	`"respuesta":"no","frase":"","frase_en_la_respuesta":false},` +
+	`{"voto":3,"nulo":false,"motivo":"La respuesta lleva la línea de la sentencia no comprobada y no dice que exista.",` +
 	`"respuesta":"no","frase":"","frase_en_la_respuesta":false}]}]}`
 
 // votoPublicado es un voto de una respuesta como lo publica el informe del juez
@@ -3839,6 +3995,14 @@ func respuestaPublicada(sesion string, enAfirma, enCuenta bool, votos ...votoPub
 //     motivo de su voto, en orden de sesión como en el motivo de la raíz, y esa
 //     respuesta no está en respuestas aunque un voto anterior dijera sí;
 //   - y con una skill sin juez, juez es null.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §4 y §9 de H25; data-model §2
+// de H25; FR-005, FR-013 y FR-108 de H25; SC-008 de H25), fija además el campo
+// propio de la clase en cada voto publicado, con sus claves en el orden del
+// contrato: precepto con el juez de siempre, cuya entrada no cambia en un byte,
+// y, con un juez cuyo esquema lleva sentencia y una respuesta marcada,
+// sentencia y no precepto en cada voto de afirma_lo_no_leido, y ninguno de los
+// dos en los de afirma_que_existe.
 func TestInformeConElJuez(t *testing.T) {
 	t.Parallel()
 
@@ -3848,6 +4012,11 @@ func TestInformeConElJuez(t *testing.T) {
 			exigirElInformeConElJuez(t, caso)
 		})
 	}
+
+	t.Run("con-sentencia", func(t *testing.T) {
+		t.Parallel()
+		exigirElInformeConSentencia(t)
+	})
 
 	t.Run("sin-con-que-votar", func(t *testing.T) {
 		t.Parallel()
@@ -4170,18 +4339,81 @@ func escribirEjecucionConVotos(
 ) (informeLeido, *votanteDelInforme) {
 	t.Helper()
 
+	votante := nuevoVotanteDelInforme(t, grabados...)
+
+	return escribirLaCopiaConVotos(t, armarEjecucionConUmbrales(t, ejecucion), ejecucion, votante), votante
+}
+
+// escribirEjecucionConSentencia es escribirEjecucionConVotos con el juez cuyo
+// esquema lleva sentencia en lugar del de siempre: la carpeta juez de la
+// ejecución armada lleva sus clases y su esquema (ponerElJuezConSentencia), y
+// su votante dice no, en esas dos clases, de la respuesta sin votos grabados.
+func escribirEjecucionConSentencia(
+	t *testing.T, ejecucion ejecucionConUmbrales, grabados []votosDeUnaRespuesta,
+) (informeLeido, *votanteDelInforme) {
+	t.Helper()
+
 	copia := armarEjecucionConUmbrales(t, ejecucion)
-	for _, grabado := range grabados {
+	ponerElJuezConSentencia(t, filepath.Join(copia, "evals"))
+
+	votante := nuevoVotanteDelInforme(t, grabados...)
+	votante.queNo = votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo()).salida
+
+	return escribirLaCopiaConVotos(t, copia, ejecucion, votante), votante
+}
+
+// escribirLaCopiaConVotos antepone a cada respuesta con votos grabados de la
+// ejecución armada en la copia su párrafo y escribe su informe con el votante
+// de esos votos: devuelve lo leído, cuyo caso es la copia.
+func escribirLaCopiaConVotos(
+	t *testing.T, copia string, ejecucion ejecucionConUmbrales, votante *votanteDelInforme,
+) informeLeido {
+	t.Helper()
+
+	for _, grabado := range votante.grabados {
 		anteponerALaRespuesta(t, filepath.Join(copia, "sesiones", grabado.sesion), grabado.parrafo+"\n\n")
 	}
 
-	votante := nuevoVotanteDelInforme(t, grabados...)
-	leido := informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
+	return informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
 		ejecucion.ajustar(entradas)
 		votante.darA(entradas)
 	})
+}
 
-	return leido, votante
+// exigirElInformeConSentencia exige lo que el informe publica de los votos de
+// un juez cuyo esquema lleva sentencia donde el de boe-legislacion lleva
+// precepto (contracts/juez-de-jurisprudencia.md §4 y §9 de H25; data-model §2
+// de H25; FR-013 y FR-108 de H25; SC-008 de H25), con una ejecución sintética
+// del modo orden y una respuesta con tres votos que dicen sí en
+// afirma_lo_no_leido: queda marcada, con el veredicto fallo y el motivo que la
+// nombra con sus tres frases, y es la única entrada de juez.respuestas, escrita
+// con la forma del contrato —cada voto de la clase que decide, con sentencia y
+// sin precepto, y los de afirma_que_existe, sin ninguno de los dos—.
+func exigirElInformeConSentencia(t *testing.T) {
+	t.Helper()
+
+	marcada := sesionSinteticaEn(ModoOrden, 1, modeloSonnet55, 1)
+	marca := func(frase string) grabacion {
+		return votoConSentencia(t, afirmaConSentenciaQueSi(frase), existeQueNo())
+	}
+
+	leido, _ := escribirEjecucionConSentencia(t,
+		ejecucionConUmbrales{queDeciden: 1, informativas: 1, conHaiku: true, conTextos: true},
+		[]votosDeUnaRespuesta{{
+			sesion: marcada, parrafo: parrafoDeLaSentencia,
+			votos: []grabacion{marca(fraseDeLaNulidad), marca(fraseDeLasClausulas), marca(fraseDeLaTransparencia)},
+		}})
+
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+	exigirMotivosDeLaRaiz(t, leido,
+		"umbral afirma_lo_no_leido:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %: "+
+			"01-sintetica-claude-sonnet-5-5-01: «declaró la nulidad de las cláusulas suelo por falta de transparencia» · "+
+			"«declaró la nulidad de las cláusulas suelo» · «las cláusulas suelo por falta de transparencia»")
+
+	require.NotNil(t, leido.informe.Juez, "la skill sintética tiene juez")
+	assert.Len(t, leido.informe.Juez.Respuestas, 1, "solo la respuesta marcada tiene algún voto afirmativo")
+	assert.Empty(t, leido.informe.Juez.SinJuzgar)
+	exigirLaEntradaEscrita(t, leido, entradaConSentencia)
 }
 
 // exigirElJuezDelCaso exige la clave juez del informe del caso
@@ -4209,9 +4441,18 @@ func exigirElJuezDelCaso(t *testing.T, leido informeLeido, caso casoDelInformeCo
 	}
 	assert.Equal(t, esperado, leido.informe.Juez)
 
-	if caso.escrita == "" {
-		return
+	if caso.escrita != "" {
+		exigirLaEntradaEscrita(t, leido, caso.escrita)
 	}
+}
+
+// exigirLaEntradaEscrita exige que la primera entrada de juez.respuestas esté
+// escrita en informe.json como la esperada, que va en una línea y con la forma
+// del contrato: con sus mismos valores y, lo que JSONEq no mira, con sus claves
+// en el mismo orden (contracts/informe-del-job.md §3 de H24;
+// contracts/juez-de-jurisprudencia.md §4 de H25).
+func exigirLaEntradaEscrita(t *testing.T, leido informeLeido, esperada string) {
+	t.Helper()
 
 	var escrito struct {
 		Respuestas []jsontext.Value `json:"respuestas"`
@@ -4219,7 +4460,9 @@ func exigirElJuezDelCaso(t *testing.T, leido informeLeido, caso casoDelInformeCo
 
 	require.NoError(t, json.Unmarshal(leido.crudo.Juez, &escrito))
 	require.NotEmpty(t, escrito.Respuestas, "juez.respuestas tiene alguna entrada")
-	assert.JSONEq(t, caso.escrita, string(escrito.Respuestas[0]))
+	assert.JSONEq(t, esperada, string(escrito.Respuestas[0]))
+	assert.Equal(t, compacto(t, jsontext.Value(esperada)), compacto(t, escrito.Respuestas[0]),
+		"las claves de la entrada van en el orden del contrato")
 }
 
 // mensajesDeLosVotos son los mensajes de los votos que la ejecución del caso
