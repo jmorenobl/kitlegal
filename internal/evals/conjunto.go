@@ -303,15 +303,20 @@ func ReglasDeLegalCore() []ReglaDelConjunto {
 }
 
 // Lo que fijan las reglas del conjunto de evals de jurisprudencia
-// (contracts/evals-jurisprudencia.md §5 de H23; FR-050, FR-056): las seis evals
-// y cuántas hay de cada una de sus cinco clases.
+// (contracts/evals-jurisprudencia.md §5 de H23; FR-050, FR-056 de H23; y, desde
+// H25, contracts/evals-jurisprudencia.md §3 de H25; FR-065 de H25): las diez
+// evals y cuántas hay de cada una de sus cinco clases.
 const (
-	tamanioDeJurisprudencia = 6
+	tamanioDeJurisprudencia = 10
 
 	// porNumeroYFechaDelConjunto son las que preguntan por una sentencia que se
-	// da por su número de resolución y su fecha, y unaDeCadaClase, las de cada
-	// una de las otras cuatro clases.
-	porNumeroYFechaDelConjunto = 2
+	// da por su número de resolución y su fecha; porMateriaDelConjunto, las de
+	// una pregunta por materia; conElDocumentoDelConjunto, las del documento que
+	// la persona trae; y unaDeCadaClase, las de cada una de las otras dos
+	// clases.
+	porNumeroYFechaDelConjunto = 3
+	porMateriaDelConjunto      = 2
+	conElDocumentoDelConjunto  = 3
 	unaDeCadaClase             = 1
 
 	// appletDeLaCita es el applet de los dos comandos de cita.
@@ -324,23 +329,26 @@ const (
 )
 
 // ReglasDeJurisprudencia son las reglas del conjunto de evals de jurisprudencia
-// de contracts/evals-jurisprudencia.md §5 de H23, en su orden: son seis evals,
-// todas activan la skill y todas declaran sentencias; y, por lo que espera cada
-// una, dos son por número y fecha, una por materia, una con el documento
-// traído, una de una sentencia no cubierta y una con un documento que no es el
-// pedido. Cada regla que no se cumple dice cuántas hay, cuántas lleva el
-// conjunto y qué ficheros la cumplen. Cada llamada devuelve un juego nuevo.
+// de contracts/evals-jurisprudencia.md §5 de H23, en su orden, con las cuentas
+// de contracts/evals-jurisprudencia.md §3 de H25: son diez evals, todas activan
+// la skill y todas declaran sentencias; y, por lo que espera cada una, tres son
+// por número y fecha, dos por materia, tres con el documento traído, una de
+// una sentencia no cubierta y una con un documento que no es el pedido. Ninguna
+// regla fija los valores de una eval: una clase se reconoce por lo que la eval
+// declara, no por su número, su fecha ni su cita. Cada regla que no se cumple
+// dice cuántas hay, cuántas lleva el conjunto y qué ficheros la cumplen. Cada
+// llamada devuelve un juego nuevo.
 func ReglasDeJurisprudencia() []ReglaDelConjunto {
 	return []ReglaDelConjunto{
 		{nombre: "tamaño", incumplimiento: incumplimientoDelTamanioDeJurisprudencia},
 		{nombre: "activación", incumplimiento: incumplimientoDeLaActivacion},
 		{nombre: "sentencias", incumplimiento: incumplimientoDeLasSentencias},
 		{nombre: "número y fecha", incumplimiento: incumplimientoDeLaClase(porNumeroYFechaDelConjunto,
-			"con la línea, ninguna cita y las casillas «"+casillaDelNumeroDeResolucion+"» y «"+
+			"con la línea, ninguna cita, una dirección y las casillas «"+casillaDelNumeroDeResolucion+"» y «"+
 				casillaDeLaFechaDeResolucion+"», con cita preparar", esPorNumeroYFecha)},
-		{nombre: "materia", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
+		{nombre: "materia", incumplimiento: incumplimientoDeLaClase(porMateriaDelConjunto,
 			"con la dirección de búsqueda y ninguna cita, con cita preparar con texto", esPorMateria)},
-		{nombre: "documento", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
+		{nombre: "documento", incumplimiento: incumplimientoDeLaClase(conElDocumentoDelConjunto,
 			"con una cita, con cita cotejar", esConElDocumento)},
 		{nombre: "no cubierta", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
 			"sin comandos, con una dirección y ninguna cita", esDeUnaNoCubierta)},
@@ -740,7 +748,7 @@ func incumplimientoDeSinBinarioNiServidor(conjunto *conjuntoAComprobar) string {
 		sinBinarioNiServidorDelConjunto, conjunto.ficheros(conjunto.sinBinarioNiServidor))
 }
 
-// incumplimientoDelTamanioDeJurisprudencia: exactamente seis evals.
+// incumplimientoDelTamanioDeJurisprudencia: exactamente diez evals.
 func incumplimientoDelTamanioDeJurisprudencia(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.evals) == tamanioDeJurisprudencia {
 		return ""
@@ -789,16 +797,17 @@ func incumplimientoDeLaClase(cuantas int, descripcion string, esDeLaClase func(E
 
 // esPorNumeroYFecha dice si la eval es de las que preguntan por una sentencia
 // que se da por su número de resolución y su fecha: espera la línea, ninguna
-// cita y las dos casillas de esa consulta, con cita preparar.
+// cita, al menos una dirección —la del buscador, desde H25 (FR-061 de H25)— y
+// las dos casillas de esa consulta, con cita preparar.
 func esPorNumeroYFecha(eval Eval) bool {
 	esperadas := eval.Sentencias
 
-	return esperadas.NoComprobada && esperadas.NingunaCita &&
+	return esperadas.NoComprobada && esperadas.NingunaCita && len(esperadas.Direcciones) > 0 &&
 		esperaLaCasilla(eval, casillaDelNumeroDeResolucion) && esperaLaCasilla(eval, casillaDeLaFechaDeResolucion) &&
 		esperaElComandoDeCita(eval, func(comando ComandoEsperado) bool { return comando.Verbo == verboPreparar })
 }
 
-// esPorMateria dice si la eval es la de una pregunta por materia: espera la
+// esPorMateria dice si la eval es de las de una pregunta por materia: espera la
 // dirección de búsqueda que devuelva la sesión y ninguna cita, con cita
 // preparar con texto.
 func esPorMateria(eval Eval) bool {
@@ -808,8 +817,8 @@ func esPorMateria(eval Eval) bool {
 		})
 }
 
-// esConElDocumento dice si la eval es la del documento que la persona trae
-// para que se cite: espera una cita, con cita cotejar.
+// esConElDocumento dice si la eval es de las del documento que la persona
+// trae: espera una cita, con cita cotejar.
 func esConElDocumento(eval Eval) bool {
 	return len(eval.Sentencias.Citas) > 0 &&
 		esperaElComandoDeCita(eval, func(comando ComandoEsperado) bool { return comando.Verbo == verboCotejar })

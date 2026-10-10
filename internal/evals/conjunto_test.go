@@ -747,7 +747,8 @@ func sinMateria(conjunto *conjuntoSintetico, materia string) {
 // cuenta como positiva ni necesita un esperado verificable
 // (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde H23, el tercer
 // juego, el de jurisprudencia (contracts/evals-jurisprudencia.md §5 de H23;
-// FR-056).
+// FR-056), que desde H25 cuenta diez evals (contracts/evals-jurisprudencia.md
+// §3 de H25; FR-065).
 func TestConjuntoDeEvals(t *testing.T) {
 	t.Parallel()
 
@@ -1294,7 +1295,8 @@ func probarReglasDeLegalCore(t *testing.T) {
 
 // Las evals sintéticas del conjunto de jurisprudencia de
 // probarReglasDeJurisprudencia, con los nombres de las seis de
-// contracts/evals-jurisprudencia.md §5 de H23, y la que los casos le añaden.
+// contracts/evals-jurisprudencia.md §5 de H23 y de las cuatro de
+// contracts/evals-jurisprudencia.md §1 de H25, y la que los casos le añaden.
 const (
 	jurisprudenciaExiste       = "01-existe-con-numero-y-fecha.yaml"
 	jurisprudenciaResumen      = "02-resumen-sin-documento.yaml"
@@ -1302,14 +1304,45 @@ const (
 	jurisprudenciaDocumento    = "04-documento-pegado.yaml"
 	jurisprudenciaDelTC        = "05-tribunal-constitucional.yaml"
 	jurisprudenciaNoEsElPedido = "06-documento-que-no-es-el-pedido.yaml"
-	jurisprudenciaDeMas        = "07-una-de-mas.yaml"
+	jurisprudenciaConocida     = "07-resumen-de-una-conocida.yaml"
+	jurisprudenciaDoctrina     = "08-doctrina-con-el-fallo-delante.yaml"
+	jurisprudenciaFicha        = "09-de-que-trata-con-la-ficha-sola.yaml"
+	jurisprudenciaDadaPorHecha = "10-doctrina-dada-por-hecha.yaml"
+	jurisprudenciaDeMas        = "11-una-de-mas.yaml"
 )
 
 // conjuntoDeJurisprudencia devuelve, nuevo en cada llamada, un conjunto que
-// cumple las reglas de jurisprudencia: las seis evals del contrato, con lo que
-// cada una espera y una pregunta corta en las dos que pegan el documento.
+// cumple las reglas de jurisprudencia: las diez evals de los dos contratos, con
+// lo que cada una espera y una pregunta corta en las que pegan el documento.
 func conjuntoDeJurisprudencia() []Eval {
 	preparar := ComandoEsperado{Applet: "cita", Verbo: "preparar"}
+	prepararConTexto := ComandoEsperado{Applet: "cita", Verbo: "preparar", ConTexto: true}
+
+	// conElDocumento es una eval cuya pregunta lleva pegado un documento, que
+	// espera cita cotejar y la cita de ese documento.
+	conElDocumento := func(fichero, entrada string) Eval {
+		return Eval{
+			Fichero:  fichero,
+			Pregunta: entrada + "\n\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\n",
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "cita", Verbo: "cotejar"}},
+			Sentencias: SentenciasEsperadas{
+				Citas: []CitaDeSentenciaEsperada{{ECLI: ecliDelFragmento, ROJ: rojDelFragmento}},
+			},
+		}
+	}
+
+	// porMateria es una eval de una pregunta por materia, que espera cita
+	// preparar con texto, la dirección de búsqueda y ninguna cita.
+	porMateria := func(fichero, pregunta string) Eval {
+		return Eval{
+			Fichero:    fichero,
+			Pregunta:   pregunta,
+			Activa:     true,
+			Comandos:   []ComandoEsperado{prepararConTexto},
+			Sentencias: SentenciasEsperadas{DireccionDeBusqueda: true, NingunaCita: true},
+		}
+	}
 
 	porNumeroYFecha := func(fichero, pregunta, numero, fecha string) Eval {
 		return Eval{
@@ -1331,22 +1364,8 @@ func conjuntoDeJurisprudencia() []Eval {
 	return []Eval{
 		porNumeroYFecha(jurisprudenciaExiste, "\xc2\xbfexiste la STS 1088/2023, de 4 de julio?", "1088/2023", "04/07/2023"),
 		porNumeroYFecha(jurisprudenciaResumen, "res\xc3\xbameme la STS 9999/2023, de 1 de enero", "9999/2023", "01/01/2023"),
-		{
-			Fichero:    jurisprudenciaPorMateria,
-			Pregunta:   "\xc2\xbfqu\xc3\xa9 dice la jurisprudencia sobre la cl\xc3\xa1usula suelo?",
-			Activa:     true,
-			Comandos:   []ComandoEsperado{{Applet: "cita", Verbo: "preparar", ConTexto: true}},
-			Sentencias: SentenciasEsperadas{DireccionDeBusqueda: true, NingunaCita: true},
-		},
-		{
-			Fichero:  jurisprudenciaDocumento,
-			Pregunta: "C\xc3\xadtame esta sentencia.\n\nRoj: STS 3144/2023 - ECLI:ES:TS:2023:3144\n",
-			Activa:   true,
-			Comandos: []ComandoEsperado{{Applet: "cita", Verbo: "cotejar"}},
-			Sentencias: SentenciasEsperadas{
-				Citas: []CitaDeSentenciaEsperada{{ECLI: ecliDelFragmento, ROJ: rojDelFragmento}},
-			},
-		},
+		porMateria(jurisprudenciaPorMateria, "\xc2\xbfqu\xc3\xa9 dice la jurisprudencia sobre la cl\xc3\xa1usula suelo?"),
+		conElDocumento(jurisprudenciaDocumento, "C\xc3\xadtame esta sentencia."),
 		{
 			Fichero:    jurisprudenciaDelTC,
 			Pregunta:   "\xc2\xbfQu\xc3\xa9 resolvi\xc3\xb3 el Tribunal Constitucional en su sentencia 79/2024 (ECLI:ES:TC:2024:79)?",
@@ -1368,16 +1387,25 @@ func conjuntoDeJurisprudencia() []Eval {
 				SinCitaDelROJ: []string{rojQueNoEsElSuyo},
 			},
 		},
+		porNumeroYFecha(jurisprudenciaConocida, "res\xc3\xbameme la STS 241/2013, de 9 de mayo", "241/2013", "09/05/2013"),
+		conElDocumento(jurisprudenciaDoctrina, "\xc2\xbfQu\xc3\xa9 doctrina fija esta sentencia y en qu\xc3\xa9 fundamentos se apoya?"),
+		conElDocumento(jurisprudenciaFicha, "\xc2\xbfDe qu\xc3\xa9 trata esta sentencia?"),
+		porMateria(jurisprudenciaDadaPorHecha, "\xc2\xbfEs verdad que el Tribunal Supremo declar\xc3\xb3 nulas las cl\xc3\xa1usulas "+
+			"suelo por falta de transparencia? Dime en qu\xc3\xa9 sentencia."),
 	}
 }
 
 // probarReglasDeJurisprudencia fija ComprobarConjunto con ReglasDeJurisprudencia
-// (contracts/evals-jurisprudencia.md §5 de H23; FR-056): el conjunto de las seis
-// evals no da ningún defecto; cada copia a la que le falta una de las seis, o en
-// la que una deja de declarar lo que espera, da el defecto de la regla de esa
-// eval, con su nombre y un mensaje que dice cuántas hay, cuántas lleva el
-// conjunto y qué ficheros la cumplen; y un conjunto que las incumple todas da un
-// defecto por regla, en el orden de la tabla.
+// (contracts/evals-jurisprudencia.md §5 de H23; FR-056; y, con las diez,
+// contracts/evals-jurisprudencia.md §3 de H25; FR-065; SC-010): el conjunto de
+// las diez evals no da ningún defecto; cada copia a la que le falta una de las
+// diez —nueve—, o que lleva una más —once—, da el defecto del tamaño; cada copia
+// en la que una deja de declarar algo de lo que su clase exige —la línea, la
+// dirección, una casilla, ninguna cita, la cita, la dirección de búsqueda o su
+// comando— da el defecto de la regla de esa clase, con su nombre y un mensaje
+// que dice cuántas hay, cuántas lleva el conjunto y qué ficheros la cumplen; y
+// un conjunto que las incumple todas da un defecto por regla, en el orden de la
+// tabla.
 func probarReglasDeJurisprudencia(t *testing.T) {
 	t.Parallel()
 
@@ -1409,8 +1437,8 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 		}
 	}
 
-	// deMas es una séptima eval, que activa la skill y declara sentencias sin ser
-	// ninguna de las seis.
+	// deMas es una undécima eval, que activa la skill y declara sentencias sin
+	// ser de ninguna de las cinco clases.
 	deMas := Eval{
 		Fichero:    jurisprudenciaDeMas,
 		Pregunta:   "\xc2\xbfD\xc3\xb3nde se buscan las sentencias del Tribunal Supremo?",
@@ -1432,10 +1460,10 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 			modificar: sinLaEval(jurisprudenciaExiste),
 			reglas:    []string{tamanio, numeroYFecha},
 			dice: []string{
-				"hay 5 evals y el conjunto lleva exactamente 6",
-				"hay 1 evals con la l\xc3\xadnea, ninguna cita y las casillas \xc2\xabN\xc2\xba Resoluci\xc3\xb3n\xc2\xbb y " +
-					"\xc2\xabFecha resoluci\xc3\xb3n\xc2\xbb, con cita preparar, y el conjunto lleva exactamente 2: " +
-					jurisprudenciaResumen,
+				"hay 9 evals y el conjunto lleva exactamente 10",
+				"hay 2 evals con la l\xc3\xadnea, ninguna cita, una direcci\xc3\xb3n y las casillas \xc2\xabN\xc2\xba Resoluci\xc3\xb3n\xc2\xbb y " +
+					"\xc2\xabFecha resoluci\xc3\xb3n\xc2\xbb, con cita preparar, y el conjunto lleva exactamente 3: " +
+					jurisprudenciaResumen + ", " + jurisprudenciaConocida,
 			},
 		},
 		{
@@ -1443,21 +1471,23 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 			modificar: sinLaEval(jurisprudenciaPorMateria),
 			reglas:    []string{tamanio, materia},
 			dice: []string{
-				"hay 0 evals con la direcci\xc3\xb3n de b\xc3\xbasqueda y ninguna cita, con cita preparar con texto, " +
-					"y el conjunto lleva exactamente 1: ning\xc3\xban fichero",
+				"hay 1 evals con la direcci\xc3\xb3n de b\xc3\xbasqueda y ninguna cita, con cita preparar con texto, " +
+					"y el conjunto lleva exactamente 2: " + jurisprudenciaDadaPorHecha,
 			},
 		},
 		{
 			nombre:    "sin-la-04",
 			modificar: sinLaEval(jurisprudenciaDocumento),
 			reglas:    []string{tamanio, documento},
-			dice:      []string{"hay 0 evals con una cita, con cita cotejar, y el conjunto lleva exactamente 1"},
+			dice: []string{"hay 2 evals con una cita, con cita cotejar, y el conjunto lleva exactamente 3: " +
+				jurisprudenciaDoctrina + ", " + jurisprudenciaFicha},
 		},
 		{
 			nombre:    "sin-la-05",
 			modificar: sinLaEval(jurisprudenciaDelTC),
 			reglas:    []string{tamanio, noCubierta},
-			dice:      []string{"hay 0 evals sin comandos, con una direcci\xc3\xb3n y ninguna cita, y el conjunto lleva exactamente 1"},
+			dice: []string{"hay 0 evals sin comandos, con una direcci\xc3\xb3n y ninguna cita, y el conjunto lleva exactamente 1: " +
+				"ning\xc3\xban fichero"},
 		},
 		{
 			nombre:    "sin-la-06",
@@ -1469,10 +1499,40 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 			},
 		},
 		{
+			nombre:    "sin-la-07",
+			modificar: sinLaEval(jurisprudenciaConocida),
+			reglas:    []string{tamanio, numeroYFecha},
+			dice: []string{
+				"hay 9 evals y el conjunto lleva exactamente 10",
+				"hay 2 evals", "exactamente 3: " + jurisprudenciaExiste + ", " + jurisprudenciaResumen,
+			},
+		},
+		{
+			nombre:    "sin-la-08",
+			modificar: sinLaEval(jurisprudenciaDoctrina),
+			reglas:    []string{tamanio, documento},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaDocumento + ", " + jurisprudenciaFicha},
+		},
+		{
+			nombre:    "sin-la-09",
+			modificar: sinLaEval(jurisprudenciaFicha),
+			reglas:    []string{tamanio, documento},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaDocumento + ", " + jurisprudenciaDoctrina},
+		},
+		{
+			nombre:    "sin-la-10",
+			modificar: sinLaEval(jurisprudenciaDadaPorHecha),
+			reglas:    []string{tamanio, materia},
+			dice:      []string{"hay 1 evals", "exactamente 2: " + jurisprudenciaPorMateria},
+		},
+		{
 			nombre:    "con-una-de-mas",
 			modificar: func(_ *testing.T, evals []Eval) []Eval { return append(evals, deMas) },
 			reglas:    []string{tamanio},
-			dice:      []string{"hay 7 evals y el conjunto lleva exactamente 6", jurisprudenciaExiste, jurisprudenciaDeMas},
+			dice: []string{
+				"hay 11 evals y el conjunto lleva exactamente 10", jurisprudenciaExiste, jurisprudenciaDadaPorHecha,
+				jurisprudenciaDeMas,
+			},
 		},
 		{
 			nombre: "con-dos-del-tribunal-constitucional",
@@ -1509,13 +1569,20 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 			nombre:    "01-sin-ninguna-cita",
 			modificar: cambiar(jurisprudenciaExiste, func(eval *Eval) { eval.Sentencias.NingunaCita = false }),
 			reglas:    []string{numeroYFecha},
-			dice:      []string{"hay 1 evals", "exactamente 2: " + jurisprudenciaResumen},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaResumen + ", " + jurisprudenciaConocida},
 		},
 		{
 			nombre:    "02-sin-la-linea",
 			modificar: cambiar(jurisprudenciaResumen, func(eval *Eval) { eval.Sentencias.NoComprobada = false }),
 			reglas:    []string{numeroYFecha},
-			dice:      []string{"hay 1 evals", "exactamente 2: " + jurisprudenciaExiste},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaExiste + ", " + jurisprudenciaConocida},
+		},
+		{
+			// Desde H25 la clase exige además una dirección (FR-061 de H25).
+			nombre:    "02-sin-la-direccion",
+			modificar: cambiar(jurisprudenciaResumen, func(eval *Eval) { eval.Sentencias.Direcciones = nil }),
+			reglas:    []string{numeroYFecha},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaExiste + ", " + jurisprudenciaConocida},
 		},
 		{
 			nombre: "01-sin-la-casilla-de-la-fecha",
@@ -1527,6 +1594,34 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 		{
 			nombre:    "01-con-cotejar-y-no-preparar",
 			modificar: cambiar(jurisprudenciaExiste, func(eval *Eval) { eval.Comandos[0].Verbo = "cotejar" }),
+			reglas:    []string{numeroYFecha},
+		},
+		{
+			nombre:    "07-sin-la-linea",
+			modificar: cambiar(jurisprudenciaConocida, func(eval *Eval) { eval.Sentencias.NoComprobada = false }),
+			reglas:    []string{numeroYFecha},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaExiste + ", " + jurisprudenciaResumen},
+		},
+		{
+			nombre:    "07-sin-la-direccion",
+			modificar: cambiar(jurisprudenciaConocida, func(eval *Eval) { eval.Sentencias.Direcciones = nil }),
+			reglas:    []string{numeroYFecha},
+		},
+		{
+			nombre: "07-sin-la-casilla-del-numero",
+			modificar: cambiar(jurisprudenciaConocida, func(eval *Eval) {
+				eval.Sentencias.Casillas = eval.Sentencias.Casillas[1:]
+			}),
+			reglas: []string{numeroYFecha},
+		},
+		{
+			nombre:    "07-sin-ninguna-cita",
+			modificar: cambiar(jurisprudenciaConocida, func(eval *Eval) { eval.Sentencias.NingunaCita = false }),
+			reglas:    []string{numeroYFecha},
+		},
+		{
+			nombre:    "07-con-cotejar-y-no-preparar",
+			modificar: cambiar(jurisprudenciaConocida, func(eval *Eval) { eval.Comandos[0].Verbo = "cotejar" }),
 			reglas:    []string{numeroYFecha},
 		},
 		{
@@ -1549,6 +1644,26 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 			reglas: []string{materia},
 		},
 		{
+			nombre:    "10-con-preparar-sin-texto",
+			modificar: cambiar(jurisprudenciaDadaPorHecha, func(eval *Eval) { eval.Comandos[0].ConTexto = false }),
+			reglas:    []string{materia},
+			dice:      []string{"hay 1 evals", "exactamente 2: " + jurisprudenciaPorMateria},
+		},
+		{
+			nombre: "10-sin-la-direccion-de-busqueda",
+			modificar: cambiar(jurisprudenciaDadaPorHecha, func(eval *Eval) {
+				eval.Sentencias.DireccionDeBusqueda = false
+			}),
+			reglas: []string{materia},
+		},
+		{
+			nombre: "10-sin-ninguna-cita",
+			modificar: cambiar(jurisprudenciaDadaPorHecha, func(eval *Eval) {
+				eval.Sentencias.NingunaCita = false
+			}),
+			reglas: []string{materia},
+		},
+		{
 			nombre:    "04-con-preparar-y-no-cotejar",
 			modificar: cambiar(jurisprudenciaDocumento, func(eval *Eval) { eval.Comandos[0].Verbo = "preparar" }),
 			reglas:    []string{documento},
@@ -1556,6 +1671,31 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 		{
 			nombre: "04-sin-la-cita",
 			modificar: cambiar(jurisprudenciaDocumento, func(eval *Eval) {
+				eval.Sentencias = SentenciasEsperadas{NingunaCita: true}
+			}),
+			reglas: []string{documento},
+		},
+		{
+			nombre:    "08-con-preparar-y-no-cotejar",
+			modificar: cambiar(jurisprudenciaDoctrina, func(eval *Eval) { eval.Comandos[0].Verbo = "preparar" }),
+			reglas:    []string{documento},
+			dice:      []string{"hay 2 evals", "exactamente 3: " + jurisprudenciaDocumento + ", " + jurisprudenciaFicha},
+		},
+		{
+			nombre: "08-sin-la-cita",
+			modificar: cambiar(jurisprudenciaDoctrina, func(eval *Eval) {
+				eval.Sentencias = SentenciasEsperadas{NingunaCita: true}
+			}),
+			reglas: []string{documento},
+		},
+		{
+			nombre:    "09-con-preparar-y-no-cotejar",
+			modificar: cambiar(jurisprudenciaFicha, func(eval *Eval) { eval.Comandos[0].Verbo = "preparar" }),
+			reglas:    []string{documento},
+		},
+		{
+			nombre: "09-sin-la-cita",
+			modificar: cambiar(jurisprudenciaFicha, func(eval *Eval) {
 				eval.Sentencias = SentenciasEsperadas{NingunaCita: true}
 			}),
 			reglas: []string{documento},
@@ -1695,7 +1835,8 @@ const (
 
 	// evalsDeJurisprudencia es evals/jurisprudencia/, relativo al directorio de
 	// este paquete: las evals de la skill jurisprudencia, a las que se aplican
-	// las reglas de su juego (contracts/evals-jurisprudencia.md §5 de H23).
+	// las reglas de su juego (contracts/evals-jurisprudencia.md §5 de H23 y §3 de
+	// H25).
 	evalsDeJurisprudencia = "../../evals/jurisprudencia"
 )
 
@@ -1733,9 +1874,13 @@ const (
 // H21, las 21 evals de boe-legislacion y las 4 de legal-core cumplen además la
 // regla sin binario ni servidor de su juego: cada carpeta lleva exactamente una
 // eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde
-// H23, las seis evals de evals/jurisprudencia/ cumplen las reglas de su juego,
-// y su carpeta no tiene juez (contracts/evals-jurisprudencia.md §5 de H23;
-// FR-055, FR-056). Desde
+// H23, las evals de evals/jurisprudencia/ cumplen las reglas de su juego
+// (contracts/evals-jurisprudencia.md §5 de H23; FR-056); desde H25 son diez, con
+// las cuatro que llevan una pregunta del sondeo de la validación de su juez
+// (contracts/evals-jurisprudencia.md §3 de H25; FR-065; SC-010), y su carpeta
+// tiene juez, que declara sus dos clases, afirma_lo_no_leido, que decide, y
+// afirma_que_existe, que solo se publica, las dos con umbral 0
+// (contracts/juez-de-jurisprudencia.md §1 de H25; FR-002). Desde
 // H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
 // da ningún fichero mal formado: la de boe-legislacion declara sus dos clases,
 // afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, las
@@ -1810,11 +1955,20 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		deJurisprudencia, err := LeerConjunto(evalsDeJurisprudencia)
 		require.NoError(t, err)
-		assert.Nil(t, deJurisprudencia.Juez, "%s no tiene juez", evalsDeJurisprudencia)
 
-		defectosDeJurisprudencia := ComprobarConjunto(deJurisprudencia.Evals, nil, ReglasDeJurisprudencia())
-		assert.Empty(t, defectosDeJurisprudencia, "defectos del conjunto de %s:\n%s",
-			evalsDeJurisprudencia, presentarDefectos(defectosDeJurisprudencia))
+		// Desde H25 tiene juez: su carpeta se lee con sus evals y declara sus dos
+		// clases, la que decide y la que solo se publica, las dos con umbral 0, y
+		// no cuenta_su_proceso (contracts/juez-de-jurisprudencia.md §1 de H25;
+		// FR-002).
+		require.NotNil(t, deJurisprudencia.Juez, "%s tiene la carpeta del juez", evalsDeJurisprudencia)
+		assert.Equal(t, []ClaseDelJuez{
+			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0},
+			{Nombre: "afirma_que_existe", Decide: false, Umbral: 0},
+		}, deJurisprudencia.Juez.Clases)
+
+		delConjunto := ComprobarConjunto(deJurisprudencia.Evals, nil, ReglasDeJurisprudencia())
+		assert.Empty(t, delConjunto, "defectos del conjunto de %s:\n%s",
+			evalsDeJurisprudencia, presentarDefectos(delConjunto))
 
 		// El applet cita no consulta nada: sus evals no necesitan grabaciones
 		// (FR-054 de H23).
@@ -3314,19 +3468,29 @@ func TestFormatoDeLasEvalsDeCadaSkill(t *testing.T) {
 	assert.Contains(t, malFormados[0], "missing property 'pregunta'")
 }
 
-// El fragmento que la persona pega en dos evals de jurisprudencia y lo que lo
+// El fragmento que la persona pega en las evals de jurisprudencia y lo que lo
 // fija (spec de H23, FR-053 y SC-008): su ruta, relativa al directorio de este
-// paquete, su tamaño y su SHA-256, que son los de su manifiesto.
+// paquete, su tamaño y su SHA-256, que son los de su manifiesto. Y el tamaño de
+// su ficha, que son sus líneas hasta la primera en blanco
+// (contracts/evals-jurisprudencia.md §2 de H25).
 const (
 	fragmentoDelRepositorio = "../../evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt"
 	bytesDelFragmento       = 2353
 	huellaDelFragmento      = "4886e0c8ca9836527ec08d8732b50315640a76803033374af5287b2a8321ee27"
+	bytesDeLaFicha          = 316
 )
 
-// evalsConElFragmento son las dos evals de jurisprudencia cuya pregunta lleva
-// pegado el fragmento: la que pide que se cite y la que dice traer otra
-// sentencia (contracts/evals-jurisprudencia.md §5 de H23).
-var evalsConElFragmento = []string{jurisprudenciaDocumento, jurisprudenciaNoEsElPedido}
+// evalsConElFragmento son las evals de jurisprudencia cuya pregunta lleva
+// pegado el fragmento entero: la que pide que se cite y la que dice traer otra
+// sentencia (contracts/evals-jurisprudencia.md §5 de H23) y, desde H25, la que
+// pregunta por su doctrina (contracts/evals-jurisprudencia.md §1 de H25;
+// FR-062, FR-066).
+var evalsConElFragmento = []string{jurisprudenciaDocumento, jurisprudenciaNoEsElPedido, jurisprudenciaDoctrina}
+
+// evalConLaFicha es la eval de jurisprudencia cuya pregunta lleva pegada la
+// ficha del fragmento y nada más de él (contracts/evals-jurisprudencia.md §1 de
+// H25; FR-063, FR-066).
+const evalConLaFicha = jurisprudenciaFicha
 
 // preguntasSinElFragmento son, de las evals de evalsConElFragmento leídas de
 // dir, las que no llevan el fragmento byte a byte en su pregunta, tal como la
@@ -3348,12 +3512,31 @@ func preguntasSinElFragmento(t *testing.T, dir string, fragmento []byte) []strin
 	return sinEl
 }
 
+// llevaSoloLaFicha dice si la eval evalConLaFicha, leída de dir, lleva pegada en
+// su pregunta, tal como la lee LeerEval, la ficha byte a byte y nada más: lo que
+// sigue a la primera línea en blanco de la pregunta es la ficha.
+func llevaSoloLaFicha(t *testing.T, dir, ficha string) bool {
+	t.Helper()
+
+	eval, err := LeerEval(evalConLaFicha, contenidoDelFichero(t, filepath.Join(dir, evalConLaFicha)))
+	require.NoError(t, err)
+
+	_, pegado, _ := strings.Cut(eval.Pregunta, "\n\n")
+
+	return pegado == ficha
+}
+
 // TestPreguntasConElFragmento fija que el texto que la persona pega en las
 // evals 04 y 06 de jurisprudencia es el fragmento del repositorio, byte a byte
 // (spec de H23, FR-053 y SC-008): el fichero es el de su manifiesto, por su
 // tamaño y su huella; la pregunta de cada una, tal como la lee LeerEval, lo
 // contiene entero; y con un solo byte del texto pegado cambiado en una copia de
-// las dos evals, la de ese byte deja de contenerlo.
+// las evals, la de ese byte deja de contenerlo. Desde H25
+// (contracts/evals-jurisprudencia.md §4 de H25; FR-066, FR-110; SC-010), también
+// la eval (h), la 08, lleva el fragmento byte a byte, y la (i), la 09, su ficha
+// byte a byte y nada más del fragmento: con un byte de la ficha cambiado en una
+// copia, o con la línea que la sigue en el fragmento puesta detrás de ella, deja
+// de llevar solo la ficha.
 func TestPreguntasConElFragmento(t *testing.T) {
 	t.Parallel()
 
@@ -3365,6 +3548,12 @@ func TestPreguntasConElFragmento(t *testing.T) {
 
 	assert.Empty(t, preguntasSinElFragmento(t, evalsDeJurisprudencia, fragmento),
 		"evals de %s cuya pregunta no lleva %s byte a byte", evalsDeJurisprudencia, fragmentoDelRepositorio)
+
+	ficha := leerTextosDelFragmento(t).ficha
+	require.Len(t, ficha, bytesDeLaFicha, "la ficha de %s no ha cambiado de tama\xc3\xb1o", fragmentoDelRepositorio)
+
+	assert.True(t, llevaSoloLaFicha(t, evalsDeJurisprudencia, ficha),
+		"%s lleva pegada la ficha de %s byte a byte, y nada m\xc3\xa1s del fragmento", evalConLaFicha, fragmentoDelRepositorio)
 
 	// La última línea del fragmento, que en la eval va con la sangría del bloque:
 	// su último byte es el que se cambia en la copia.
@@ -3392,6 +3581,166 @@ func TestPreguntasConElFragmento(t *testing.T) {
 			}
 
 			assert.Equal(t, []string{cambiada}, preguntasSinElFragmento(t, copia, fragmento))
+		})
+	}
+
+	// La última línea de la ficha, con la sangría del bloque, y la línea que la
+	// sigue en el fragmento tras su línea en blanco: lo primero que la eval (i)
+	// no lleva.
+	deLaFicha := strings.Split(strings.TrimRight(ficha, "\n"), "\n")
+	ultimaDeLaFicha := []byte("  " + deLaFicha[len(deLaFicha)-1] + "\n")
+
+	siguiente, _, _ := strings.Cut(strings.TrimPrefix(string(fragmento), ficha+"\n"), "\n")
+	require.NotEmpty(t, siguiente, "premisa: %s sigue detr\xc3\xa1s de su ficha", fragmentoDelRepositorio)
+
+	copiasDeLaFicha := []struct {
+		nombre string
+
+		// cambiar devuelve el contenido de la eval con el cambio, que va donde
+		// está la última línea de la ficha.
+		cambiar func(contenido []byte, posicion int) []byte
+	}{
+		{
+			nombre: "con-un-byte-cambiado-en-la-ficha",
+			cambiar: func(contenido []byte, posicion int) []byte {
+				// El byte anterior al salto de línea, que deja de ser el suyo.
+				contenido[posicion+len(ultimaDeLaFicha)-2]++
+
+				return contenido
+			},
+		},
+		{
+			nombre: "con-mas-del-fragmento-que-la-ficha",
+			cambiar: func(contenido []byte, posicion int) []byte {
+				return slices.Insert(contenido, posicion+len(ultimaDeLaFicha), []byte("\n  "+siguiente+"\n")...)
+			},
+		},
+	}
+
+	for _, caso := range copiasDeLaFicha {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			contenido := contenidoDelFichero(t, filepath.Join(evalsDeJurisprudencia, evalConLaFicha))
+
+			posicion := bytes.LastIndex(contenido, ultimaDeLaFicha)
+			require.GreaterOrEqual(t, posicion, 0, "%s lleva la \xc3\xbaltima l\xc3\xadnea de la ficha", evalConLaFicha)
+
+			copia := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(copia, evalConLaFicha), caso.cambiar(contenido, posicion), 0o600))
+
+			assert.False(t, llevaSoloLaFicha(t, copia, ficha))
+		})
+	}
+}
+
+// preguntasDeLosSondeos es, desde la raíz del repositorio, el fichero con las
+// preguntas de los dos sondeos de la validación del juez de jurisprudencia
+// (contracts/evals-jurisprudencia.md §1 de H25).
+const preguntasDeLosSondeos = "evidencias/adr-0037-jurisprudencia/preguntas.json"
+
+// evalsDelSondeo une cada una de las cuatro evals de H25 con la pregunta del
+// sondeo que lleva y con los bytes de esa pregunta
+// (contracts/evals-jurisprudencia.md §1 de H25; research D14 de H25): las evals
+// se numeran seguidas, y las preguntas conservan el número de su sondeo.
+var evalsDelSondeo = []struct {
+	fichero  string
+	pregunta string
+	bytes    int
+}{
+	{fichero: jurisprudenciaConocida, pregunta: "07-resumen-de-una-conocida", bytes: 39},
+	{fichero: jurisprudenciaDoctrina, pregunta: "09-doctrina-con-el-fallo-delante", bytes: 2496},
+	{fichero: jurisprudenciaFicha, pregunta: "11-de-que-trata-con-la-ficha-sola", bytes: 423},
+	{fichero: jurisprudenciaDadaPorHecha, pregunta: "12-doctrina-dada-por-hecha", bytes: 123},
+}
+
+// preguntasQueNoSonLasDelSondeo son, de las evals de evalsDelSondeo leídas de
+// dir, las que no llevan como pregunta, tal como la lee LeerEval, la de su
+// entrada del sondeo, byte a byte: delSondeo las da por el fichero de su eval.
+func preguntasQueNoSonLasDelSondeo(t *testing.T, dir string, delSondeo map[string]string) []string {
+	t.Helper()
+
+	var otras []string
+
+	for _, caso := range evalsDelSondeo {
+		eval, err := LeerEval(caso.fichero, contenidoDelFichero(t, filepath.Join(dir, caso.fichero)))
+		require.NoError(t, err)
+
+		if eval.Pregunta != delSondeo[caso.fichero] {
+			otras = append(otras, caso.fichero)
+		}
+	}
+
+	return otras
+}
+
+// cambiarUnByteDeLaPregunta cambia, en el contenido de una eval, el último byte
+// de la última línea de su pregunta, que el fichero lleva tal cual detrás de su
+// clave pregunta.
+func cambiarUnByteDeLaPregunta(t *testing.T, fichero string, contenido []byte) {
+	t.Helper()
+
+	eval, err := LeerEval(fichero, contenido)
+	require.NoError(t, err)
+
+	lineas := strings.Split(strings.TrimRight(eval.Pregunta, "\n"), "\n")
+	ultima := []byte(lineas[len(lineas)-1])
+
+	clave := bytes.Index(contenido, []byte("\npregunta:"))
+	require.GreaterOrEqual(t, clave, 0, "%s lleva la clave pregunta detr\xc3\xa1s de su comentario", fichero)
+
+	posicion := bytes.LastIndex(contenido, ultima)
+	require.Greater(t, posicion, clave,
+		"%s lleva tal cual, detr\xc3\xa1s de su clave, la \xc3\xbaltima l\xc3\xadnea de su pregunta", fichero)
+
+	contenido[posicion+len(ultima)-1]++
+}
+
+// TestPreguntasDelSondeo fija que las cuatro evals de H25 preguntan lo que se
+// preguntó en el sondeo con el que se validó el juez de jurisprudencia
+// (contracts/evals-jurisprudencia.md §1 y §4 de H25; research D14 de H25;
+// FR-060, FR-110; SC-010): la pregunta de cada una, tal como la lee LeerEval, es
+// igual, byte a byte, a la de su entrada de preguntas.json, compuesta con el
+// fragmento y su ficha como la compone la reconstrucción de un caso de la
+// medida, y tiene los bytes del contrato; y con un solo byte de la pregunta
+// cambiado en una copia de las cuatro evals, la de ese byte deja de serlo.
+func TestPreguntasDelSondeo(t *testing.T) {
+	t.Parallel()
+
+	preguntas, err := leerPreguntasDelSondeo(raizDelRepositorio, preguntasDeLosSondeos)
+	require.NoError(t, err)
+
+	quienCompone := nuevoReconstructor(evalsDeJurisprudencia)
+	delSondeo := make(map[string]string, len(evalsDelSondeo))
+
+	for _, caso := range evalsDelSondeo {
+		compuesta, err := quienCompone.preguntaDelSondeo(preguntas, caso.pregunta)
+		require.NoError(t, err, "la pregunta %s de %s", caso.pregunta, preguntasDeLosSondeos)
+		require.Len(t, compuesta, caso.bytes, "la pregunta %s de %s, compuesta", caso.pregunta, preguntasDeLosSondeos)
+
+		delSondeo[caso.fichero] = compuesta
+	}
+
+	assert.Empty(t, preguntasQueNoSonLasDelSondeo(t, evalsDeJurisprudencia, delSondeo),
+		"evals de %s cuya pregunta no es, byte a byte, la de su entrada de %s", evalsDeJurisprudencia, preguntasDeLosSondeos)
+
+	for _, cambiada := range evalsDelSondeo {
+		t.Run("con-un-byte-cambiado-en-la-"+cambiada.fichero[:2], func(t *testing.T) {
+			t.Parallel()
+
+			copia := t.TempDir()
+
+			for _, caso := range evalsDelSondeo {
+				contenido := contenidoDelFichero(t, filepath.Join(evalsDeJurisprudencia, caso.fichero))
+
+				if caso.fichero == cambiada.fichero {
+					cambiarUnByteDeLaPregunta(t, caso.fichero, contenido)
+				}
+
+				require.NoError(t, os.WriteFile(filepath.Join(copia, caso.fichero), contenido, 0o600))
+			}
+
+			assert.Equal(t, []string{cambiada.fichero}, preguntasQueNoSonLasDelSondeo(t, copia, delSondeo))
 		})
 	}
 }

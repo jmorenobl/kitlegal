@@ -53,11 +53,58 @@ const (
 	claseCuentaSuProceso     = "cuenta_su_proceso"
 	motivoDelTopeDelVotoUno  = "voto 1: tope de 35 s agotado"
 	motivoDelTopeDelVotoDos  = "voto 2: tope de 35 s agotado"
+	motivoDelTopeDosVecesUno = motivoDelTopeDelVotoUno + " dos veces"
+	motivoDelTopeDosVecesDos = motivoDelTopeDelVotoDos + " dos veces"
 	prefijoDeSesionConError  = "voto 1: la sesión del juez terminó con error: "
 	prefijoDeSalidaSinForma  = "voto 1: la respuesta no tiene la forma del esquema: "
 	limiteDeUsoDeLaSesion    = "You've hit your limit · resets 3am (Europe/Madrid)"
 	respuestaQueNoEsUnJuicio = "No puedo responder a esas dos preguntas."
 )
+
+// La pregunta, la respuesta y el texto con los que juzgan los tests del juez
+// cuyo esquema lleva sentencia, los del ejemplo de
+// contracts/juez-de-jurisprudencia.md §2 de H25: la respuesta lleva la línea de
+// la sentencia no comprobada y, en su segundo párrafo, lo que dice que declaró
+// una sentencia cuyo texto no tiene delante.
+const (
+	preguntaDeLaSentencia = "resúmeme la STS 241/2013, de 9 de mayo"
+
+	parrafoDeLaSentencia = "La STS 241/2013, de 9 de mayo, declaró la nulidad de las cláusulas suelo por falta de transparencia."
+
+	respuestaConLaSentencia = "⚠ SENTENCIA NO COMPROBADA: STS 241/2013, de 9 de mayo\n\n" + parrafoDeLaSentencia + "\n"
+
+	ordenDeLaSentencia = "kitlegal cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json"
+	sobreDeLaSentencia = `{"ok":true,"fuente":"kitlegal.cita","url":"https://www.poderjudicial.es/search/indexAN.jsp",` +
+		`"data":{"referencia":{"forma":"resolucion","valor":"241/2013","fecha":"2013-05-09"}}}`
+)
+
+// Lo que los votos grabados de ese juez dicen de respuestaConLaSentencia, que
+// es lo que dice el voto del ejemplo de contracts/juez-de-jurisprudencia.md §3
+// de H25: la frase que citan de parrafoDeLaSentencia, la sentencia de la que
+// habla y el motivo de cada respuesta en cada clase.
+const (
+	fraseDeLaNulidad    = "declaró la nulidad de las cláusulas suelo por falta de transparencia"
+	sentenciaDeLosVotos = "STS 241/2013, de 9 de mayo"
+
+	motivoDeLaSentenciaNoLeida = "La respuesta dice qué declaró la sentencia, y su texto no está ni en la pregunta ni en " +
+		"lo que devolvió la herramienta."
+	motivoDeLaSentenciaSinResumir = "La respuesta no dice nada de lo que declara la sentencia."
+	motivoDeLaQueNoDiceQueExiste  = "La respuesta lleva la línea de la sentencia no comprobada y no dice que exista."
+	motivoDeLaQueDiceQueExiste    = "La respuesta dice que la sentencia existe, y su documento no está en la pregunta."
+
+	claseAfirmaQueExiste = "afirma_que_existe"
+)
+
+// juicioDelEjemploConSentencia es el voto del ejemplo de
+// contracts/juez-de-jurisprudencia.md §3 de H25, escrito a mano: lo que el juez
+// de jurisprudencia da por structured_output cuando dice sí en la clase que
+// decide, con su frase y su sentencia, y no en la que solo se publica.
+const juicioDelEjemploConSentencia = `{"afirma_lo_no_leido":{"motivo":"La respuesta dice qué declaró la sentencia, ` +
+	`y su texto no está ni en la pregunta ni en lo que devolvió la herramienta.","respuesta":"si",` +
+	`"frase":"declaró la nulidad de las cláusulas suelo por falta de transparencia",` +
+	`"sentencia":"STS 241/2013, de 9 de mayo"},` +
+	`"afirma_que_existe":{"motivo":"La respuesta lleva la línea de la sentencia no comprobada y no dice que exista.",` +
+	`"respuesta":"no","frase":""}}`
 
 // Dos blancos que no son ASCII, escritos por sus bytes en UTF-8 para que se
 // vean en el fuente: el espacio de no separación, U+00A0, y el separador de
@@ -76,6 +123,19 @@ const esquemaDeLasDosClases = `{"type":"object","additionalProperties":false,` +
 	`"required":["motivo","respuesta","frase","precepto"],"properties":{"motivo":{"type":"string"},` +
 	`"respuesta":{"type":"string","enum":["si","no"]},"frase":{"type":"string"},"precepto":{"type":"string"}}},` +
 	`"cuenta_su_proceso":{"type":"object","additionalProperties":false,` +
+	`"required":["motivo","respuesta","frase"],"properties":{"motivo":{"type":"string"},` +
+	`"respuesta":{"type":"string","enum":["si","no"]},"frase":{"type":"string"}}}}}`
+
+// esquemaConSentencia es el esquema de la respuesta de un juez con las dos
+// clases de jurisprudencia, con la forma del que validó el ADR 0037 para esa
+// skill: las dos obligatorias, sin más propiedades, y sentencia, donde el de
+// boe-legislacion lleva precepto, solo en la que decide.
+const esquemaConSentencia = `{"type":"object","additionalProperties":false,` +
+	`"required":["afirma_lo_no_leido","afirma_que_existe"],"properties":{` +
+	`"afirma_lo_no_leido":{"type":"object","additionalProperties":false,` +
+	`"required":["motivo","respuesta","frase","sentencia"],"properties":{"motivo":{"type":"string"},` +
+	`"respuesta":{"type":"string","enum":["si","no"]},"frase":{"type":"string"},"sentencia":{"type":"string"}}},` +
+	`"afirma_que_existe":{"type":"object","additionalProperties":false,` +
 	`"required":["motivo","respuesta","frase"],"properties":{"motivo":{"type":"string"},` +
 	`"respuesta":{"type":"string","enum":["si","no"]},"frase":{"type":"string"}}}}}`
 
@@ -115,13 +175,38 @@ func juezDeLasDosClases() *Juez {
 	}
 }
 
+// juezConSentencia es un juez con las dos clases de jurisprudencia: la que
+// decide, cuyo esquema lleva sentencia, y la que solo se publica, en ese orden.
+func juezConSentencia() *Juez {
+	return &Juez{
+		Clases: []ClaseDelJuez{
+			{Nombre: claseAfirmaLoNoLeido, Decide: true},
+			{Nombre: claseAfirmaQueExiste},
+		},
+		Esquema: esquemaConSentencia,
+	}
+}
+
+// respuestaSobreLaSentencia es la respuesta que juzgan los tests del juez cuyo
+// esquema lleva sentencia: respuestaConLaSentencia, con su pregunta y el texto
+// de su herramienta.
+func respuestaSobreLaSentencia() respuestaAJuzgar {
+	return respuestaAJuzgar{
+		pregunta:  preguntaDeLaSentencia,
+		respuesta: respuestaConLaSentencia,
+		textos:    []Texto{{Orden: ordenDeLaSentencia, Salida: sobreDeLaSentencia}},
+	}
+}
+
 // dicho es lo que un voto grabado dice de una clase, con los campos de
-// esquema.json: precepto es nil en la clase que no lo tiene.
+// esquema.json: precepto y sentencia son nil en la clase que no los tiene, y
+// ninguna tiene los dos.
 type dicho struct {
 	motivo    string
 	respuesta string
 	frase     string
 	precepto  *string
+	sentencia *string
 }
 
 // afirmaQueSi es lo que dice de afirma_lo_no_leido el voto que la marca con
@@ -146,6 +231,31 @@ func cuentaQueNo() dicho {
 	return dicho{motivo: motivoDelProcesoSinNada, respuesta: "no"}
 }
 
+// afirmaConSentenciaQueSi es lo que dice de afirma_lo_no_leido, con el juez
+// cuyo esquema lleva sentencia, el voto que la marca con esa frase.
+func afirmaConSentenciaQueSi(frase string) dicho {
+	return dicho{
+		motivo: motivoDeLaSentenciaNoLeida, respuesta: "si", frase: frase, sentencia: new(sentenciaDeLosVotos),
+	}
+}
+
+// afirmaConSentenciaQueNo es lo que dice de afirma_lo_no_leido, con ese juez,
+// el voto que no la marca: su sentencia va vacía.
+func afirmaConSentenciaQueNo() dicho {
+	return dicho{motivo: motivoDeLaSentenciaSinResumir, respuesta: "no", sentencia: new("")}
+}
+
+// existeQueNo es lo que dice de afirma_que_existe el voto que dice no.
+func existeQueNo() dicho {
+	return dicho{motivo: motivoDeLaQueNoDiceQueExiste, respuesta: "no"}
+}
+
+// existeQueSi es lo que dice de afirma_que_existe el voto que dice sí con esa
+// frase.
+func existeQueSi(frase string) dicho {
+	return dicho{motivo: motivoDeLaQueDiceQueExiste, respuesta: "si", frase: frase}
+}
+
 // voto es el voto de la clase que la lectura tiene que dejar de lo dicho: sus
 // campos, tal como los dio el juez, con el número del voto, si el voto entero es
 // nulo y si su frase está en la respuesta.
@@ -157,6 +267,7 @@ func (d dicho) voto(numero int, nulo, enLaRespuesta bool) VotoDeClase {
 		Respuesta:          d.respuesta,
 		Frase:              d.frase,
 		Precepto:           d.precepto,
+		Sentencia:          d.sentencia,
 		FraseEnLaRespuesta: enLaRespuesta,
 	}
 }
@@ -179,6 +290,10 @@ func juicioGrabado(t *testing.T, dichos map[string]dicho) string {
 		campos := map[string]string{"motivo": dicho.motivo, "respuesta": dicho.respuesta, "frase": dicho.frase}
 		if dicho.precepto != nil {
 			campos["precepto"] = *dicho.precepto
+		}
+
+		if dicho.sentencia != nil {
+			campos["sentencia"] = *dicho.sentencia
 		}
 
 		juicio[clase] = campos
@@ -204,6 +319,14 @@ func votoDeLasDosClases(t *testing.T, afirma, cuenta dicho) grabacion {
 	t.Helper()
 
 	return votoGrabado(t, map[string]dicho{claseAfirmaLoNoLeido: afirma, claseCuentaSuProceso: cuenta})
+}
+
+// votoConSentencia es la grabación de un voto del juez cuyo esquema lleva
+// sentencia, con lo que dice de cada una de sus dos clases.
+func votoConSentencia(t *testing.T, afirma, existe dicho) grabacion {
+	t.Helper()
+
+	return votoGrabado(t, map[string]dicho{claseAfirmaLoNoLeido: afirma, claseAfirmaQueExiste: existe})
 }
 
 // votanteGrabado es un votante que devuelve, por orden, sus grabaciones y
@@ -235,15 +358,28 @@ func (v *votanteGrabado) votar(mensaje string) ([]byte, error) {
 func juzgarConGrabaciones(t *testing.T, juez *Juez, grabaciones ...grabacion) (JuicioDeRespuesta, int) {
 	t.Helper()
 
+	return juzgarLaRespuesta(t, juez, respuestaAJuzgar{
+		pregunta: preguntaJuzgada, respuesta: respuestaJuzgada, textos: textosJuzgados(),
+	}, grabaciones...)
+}
+
+// juzgarLaRespuesta juzga esa respuesta con ese juez y un votante que devuelve
+// esas grabaciones, y da el juicio y los votos pedidos. Cada voto se pide con
+// el mensaje de la respuesta, el mismo en todos.
+func juzgarLaRespuesta(
+	t *testing.T, juez *Juez, juzgada respuestaAJuzgar, grabaciones ...grabacion,
+) (JuicioDeRespuesta, int) {
+	t.Helper()
+
 	votante := &votanteGrabado{t: t, grabaciones: grabaciones}
 
 	votacion, err := nuevaVotacion(juez, votante.votar)
 	require.NoError(t, err)
 
-	juicio := votacion.juzgar(preguntaJuzgada, respuestaJuzgada, textosJuzgados())
+	juicio := votacion.juzgar(juzgada.pregunta, juzgada.respuesta, juzgada.textos)
 
 	for _, mensaje := range votante.mensajes {
-		assert.Equal(t, mensajeDelVoto(preguntaJuzgada, respuestaJuzgada, textosJuzgados()), mensaje,
+		assert.Equal(t, mensajeDelVoto(juzgada.pregunta, juzgada.respuesta, juzgada.textos), mensaje,
 			"cada voto se pide con el mensaje de la respuesta")
 	}
 
@@ -277,6 +413,14 @@ func (e errorDeProceso) ExitCode() int {
 // lleva nada más: compuesto desde una eval y el juicio sin modelo de su sesión,
 // no tiene ni un byte de lo que la eval espera, de los motivos del juicio ni de
 // SKILL.md, que está en el transcript.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §2 y §9 de H25; FR-010, FR-011,
+// FR-109; SC-009), lo fija también con una sesión de jurisprudencia de cada
+// modo, con una orden kitlegal cita cotejar o con una llamada a cita_cotejar,
+// sobre la pregunta con el fragmento pegado: el mensaje lleva la pregunta
+// entera, la respuesta y cada texto, en su orden, también el de la consulta que
+// falla, y nada de SKILL.md, de lo que la eval espera ni del juicio sin modelo.
+// Lo que los casos de H24 esperan del mensaje no cambia.
 func TestMensajeDelVoto(t *testing.T) {
 	t.Parallel()
 
@@ -446,6 +590,92 @@ func TestMensajeDelVoto(t *testing.T) {
 			assert.NotContains(t, mensaje, motivo)
 		}
 	})
+
+	for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+		t.Run("de una sesión de jurisprudencia del modo "+string(modo), func(t *testing.T) {
+			t.Parallel()
+
+			probarElMensajeDeUnaSesionDeCita(t, modo)
+		})
+	}
+}
+
+// probarElMensajeDeUnaSesionDeCita compone el mensaje del voto de una sesión de
+// jurisprudencia de ese modo sobre la pregunta con el fragmento pegado
+// (sesionDeCitaEn), desde su eval y el juicio sin modelo de la sesión, y exige
+// que sea, byte a byte, el escrito a mano (contracts/juez-de-jurisprudencia.md
+// §2 de H25): el texto del cotejo y, detrás, el de la consulta que falla, cada
+// uno con su orden tal cual; la pregunta entera, con el fragmento; y la
+// respuesta. Y que no lleve nada más: ni un byte de SKILL.md, que está en el
+// transcript, ni de lo que la eval espera, ni de los motivos del juicio.
+func probarElMensajeDeUnaSesionDeCita(t *testing.T, modo Modo) {
+	t.Helper()
+
+	const (
+		centinela = "CENTINELA"
+		respuesta = "Es la STS 1088/2023, de 4 de julio " + citaDelFragmento + "."
+	)
+
+	fragmento := string(contenidoDelFichero(t, fragmentoDelRepositorio))
+	pregunta := entradaConElTexto + "\n\n" + fragmento
+
+	eval := Eval{
+		Fichero:  "04-" + centinela + "-eval.yaml",
+		Pregunta: pregunta,
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "cita", Verbo: "cotejar", ROJ: centinela + "-ROJ-DEL-COMANDO"}},
+		Sentencias: SentenciasEsperadas{
+			Citas:       []CitaDeSentenciaEsperada{{ECLI: centinela + "-ECLI", ROJ: centinela + "-ROJ"}},
+			Direcciones: []string{"https://" + centinela + ".example/buscador"},
+			Casillas:    []CasillaEsperada{{Nombre: centinela + "-CASILLA", Valor: centinela + "-VALOR"}},
+		},
+	}
+
+	deCita := sesionDeCitaEn(t, modo, fragmento, "# "+centinela+"-SKILL-MD\n\nProtocolo de la skill.")
+	transcript := mensajeInit + deCita.transcript +
+		`{"type":"result","subtype":"success","is_error":false,"result":` + cadenaJSON(t, respuesta) + `}` + "\n"
+
+	sesion, err := LeerSesion(escribirSesion(t, transcript))
+	require.NoError(t, err)
+
+	resultado := Juzgar(eval, sesion, skillDeJurisprudencia)
+
+	require.Contains(t, strings.Join(resultado.Motivos, "\n"), centinela,
+		"el juicio sin modelo de la sesión nombra lo que la eval espera y no está")
+	require.Contains(t, transcript, centinela+"-SKILL-MD")
+	require.Len(t, deCita.textos, 2, "premisa: la sesión deja el texto del cotejo y el de la consulta que falla")
+	require.Contains(t, deCita.textos[0].Orden, fragmento, "premisa: la orden del cotejo lleva el documento")
+
+	mensaje := mensajeDelVoto(eval.Pregunta, resultado.Respuesta, sesion.Textos)
+
+	assert.Equal(t, "<textos_de_las_herramientas>\n"+
+		"\n"+
+		`<texto orden="`+deCita.textos[0].Orden+`">`+"\n"+
+		strings.TrimSuffix(deCita.textos[0].Salida, "\n")+"\n"+
+		"</texto>\n"+
+		"\n"+
+		`<texto orden="`+deCita.textos[1].Orden+`">`+"\n"+
+		deCita.textos[1].Salida+"\n"+
+		"</texto>\n"+
+		"\n"+
+		"</textos_de_las_herramientas>\n"+
+		"\n"+
+		"<pregunta>\n"+
+		entradaConElTexto+"\n"+
+		"\n"+
+		fragmento+"\n"+
+		"</pregunta>\n"+
+		"\n"+
+		"<respuesta>\n"+
+		respuesta+"\n"+
+		"</respuesta>\n"+
+		"\n"+
+		"Responde a las dos preguntas de la rúbrica sobre esta respuesta.", mensaje)
+	assert.NotContains(t, mensaje, centinela)
+
+	for _, motivo := range resultado.Motivos {
+		assert.NotContains(t, mensaje, motivo)
+	}
 }
 
 // TestFraseEnLaRespuesta fija la comprobación sin modelo de que la frase que
@@ -792,37 +1022,44 @@ func probarElGuionQueNoExiste(t *testing.T) {
 // H24; research D6 y V7 de H24; FR-007), con un tope y un margen de prueba y el
 // sustituto de claude que espera sin terminar: al agotarse el tope, y no pasado
 // el margen, el votante termina el proceso, que no queda vivo, y devuelve el
-// error del tope, con el que la respuesta queda sin juzgar. Si el proceso había
-// dejado sus salidas abiertas en otro, que lo sobrevive, las cierra pasado el
-// margen y no espera a que ese otro termine.
+// error del tope, con el que el voto se pide otra vez, una sola; cortada
+// también la repetición, la respuesta queda sin juzgar, y lo dice su motivo
+// (research «Reparaciones del cierre» de H25). Si el proceso había dejado sus
+// salidas abiertas en otro, que lo sobrevive, las cierra pasado el margen y no
+// espera a que ese otro termine.
 func probarElTopeDelVoto(t *testing.T) {
 	t.Parallel()
 
 	espera := strconv.Itoa(int(esperaSinTerminar.Seconds()))
 
+	// Las dos peticiones del voto, cortadas las dos.
+	const peticiones = 2
+
 	casos := []struct {
 		nombre   string
 		gobierno map[string]string
 
-		// minimo es lo que tarda el voto como poco: el tope si basta terminar el
-		// proceso, y el tope más el margen si hay que cerrar sus salidas.
+		// minimo es lo que tardan las dos peticiones como poco: el tope cada una
+		// si basta terminar el proceso, y el tope más el margen si hay que cerrar
+		// sus salidas.
 		minimo time.Duration
 
-		// maximo es lo que el voto no llega a tardar: el tope más el margen si
-		// basta terminar el proceso, que es al agotarse el tope y no pasado el
-		// margen, y lo que espera el otro proceso si hay que cerrar sus salidas.
+		// maximo es lo que las dos peticiones no llegan a tardar: el tope más el
+		// margen cada una si basta terminar el proceso, que es al agotarse el
+		// tope y no pasado el margen, y lo que espera el otro proceso si hay que
+		// cerrar sus salidas.
 		maximo time.Duration
 	}{
 		{
 			nombre:   "el-proceso-no-termina",
 			gobierno: map[string]string{esperaDelClaudeDelJuez: espera},
-			minimo:   topeDelVotoDePrueba,
-			maximo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
+			minimo:   peticiones * topeDelVotoDePrueba,
+			maximo:   peticiones * (topeDelVotoDePrueba + margenDelVotoDePrueba),
 		},
 		{
 			nombre:   "deja-sus-salidas-abiertas",
 			gobierno: map[string]string{esperaDelClaudeDelJuez: espera, hijoDelClaudeDelJuez: espera},
-			minimo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
+			minimo:   peticiones * (topeDelVotoDePrueba + margenDelVotoDePrueba),
 			maximo:   esperaSinTerminar,
 		},
 	}
@@ -843,28 +1080,36 @@ func probarElTopeDelVoto(t *testing.T) {
 			juicio, pedidos := juzgarConElVotante(t, votar)
 			transcurrido := time.Since(inicio)
 
-			require.Len(t, pedidos, 1)
-			require.ErrorIs(t, pedidos[0].err, errTopeDelVoto)
-			assert.Equal(t, motivoDelTopeDelVotoUno, juicio.SinJuzgar)
+			require.Len(t, pedidos, peticiones)
+			for _, pedido := range pedidos {
+				require.ErrorIs(t, pedido.err, errTopeDelVoto)
+			}
+
+			assert.Equal(t, []string{motivoDelTopeDelVotoUno}, juicio.Cortados)
+			assert.Equal(t, motivoDelTopeDosVecesUno, juicio.SinJuzgar)
 			assert.GreaterOrEqual(t, transcurrido, caso.minimo)
 			assert.Less(t, transcurrido, caso.maximo, "el votante corta el voto a su tiempo, y no se limita a esperarlo")
 
 			votos := claude.votos(t)
-			require.Len(t, votos, 1)
-			assert.True(t, procesoTerminado(votos[0].pid), "el proceso del voto no queda vivo")
+			require.Len(t, votos, peticiones)
+			for _, voto := range votos {
+				assert.True(t, procesoTerminado(voto.pid), "el proceso del voto no queda vivo")
+			}
 		})
 	}
 }
 
 // probarElTopeDeVerdad fija el tope de un voto y su margen, 35 s y 5 s
 // (contracts/juez-y-voto.md §4 de H24; research D6 de H24), y que el motivo del
-// voto que lo agota dice ese tope y no otro.
+// voto que lo agota dice ese tope y no otro, también el del voto que lo agota
+// dos veces.
 func probarElTopeDeVerdad(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, 35*time.Second, topeDelVoto)
 	assert.Equal(t, 5*time.Second, margenDelVoto)
 	assert.Contains(t, causaDelTope, fmt.Sprintf("tope de %d s ", int(topeDelVoto.Seconds())))
+	assert.Equal(t, causaDelTope+" dos veces", causaDelTopeRepetido)
 }
 
 // probarElVotoInterrumpido fija que el contexto de cada voto deriva del que el
@@ -1006,6 +1251,10 @@ type casoDeVoto struct {
 	// cuentaMarcada dice si la respuesta cuenta en la clase que solo se publica.
 	cuentaMarcada bool
 
+	// cortados son los motivos de los votos que el tope cortó y se pidieron
+	// otra vez, en su orden; nil si ninguno.
+	cortados []string
+
 	// sinJuzgar es el motivo de la respuesta sin juzgar; vacío si se juzgó.
 	sinJuzgar string
 }
@@ -1024,11 +1273,26 @@ type casoDeVoto struct {
 //     que cuenta en todas las clases, también si vuelve a ser nulo;
 //   - un sí con una frase que solo difiere de la respuesta en blancos y énfasis
 //     vale;
+//   - un voto que el tope corta se pide otra vez, exactamente una, con su mismo
+//     número, y el juicio lleva el motivo del corte aparte de los votos; la
+//     repetición que es nula no se repite, y la de un nulo que el tope corta
+//     no se vuelve a pedir (research «Reparaciones del cierre» de H25);
 //   - y un voto que no llega a darse deja la respuesta sin juzgar y sin marcar,
-//     con el motivo que nombra el voto: el tope agotado, la sesión que terminó
-//     con error, la salida que no es JSON, con el código del proceso, y la
-//     respuesta sin la forma del esquema. Su texto va en una línea y cortado a
-//     300 caracteres.
+//     con el motivo que nombra el voto: el tope agotado dos veces, la sesión
+//     que terminó con error, la salida que no es JSON, con el código del
+//     proceso, y la respuesta sin la forma del esquema. Su texto va en una
+//     línea y cortado a 300 caracteres.
+//
+// Y fija el campo propio de la clase que decide en jurisprudencia
+// (contracts/juez-de-jurisprudencia.md §3 y §9 de H25; data-model §2 de H25;
+// FR-013 y FR-108 de H25; SC-008 de H25), con un juez cuyo esquema lleva
+// sentencia donde el de boe-legislacion lleva precepto:
+//
+//   - el voto del ejemplo del contrato vale, y deja en la clase que decide su
+//     sentencia, sin precepto, y en la que solo se publica, ninguno de los dos;
+//   - el mismo voto sin sentencia no tiene la forma del esquema y no llega a
+//     darse;
+//   - y un voto que dice no lleva la sentencia vacía, que no es no llevarla.
 func TestVotoDelJuez(t *testing.T) {
 	t.Parallel()
 
@@ -1048,6 +1312,17 @@ func TestVotoDelJuez(t *testing.T) {
 		})
 	}
 
+	for _, caso := range casosDeVotosConSentencia(t) {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			juicio, pedidos := juzgarLaRespuesta(t, juezConSentencia(), respuestaSobreLaSentencia(), caso.grabaciones...)
+
+			assert.Equal(t, caso.pedidos, pedidos, "votos pedidos")
+			assert.Equal(t, caso.juicio, juicio)
+		})
+	}
+
 	t.Run("con un esquema que no compila no hay con qué leer los votos", func(t *testing.T) {
 		t.Parallel()
 
@@ -1062,7 +1337,8 @@ func TestVotoDelJuez(t *testing.T) {
 }
 
 // exigirElVoto juzga respuestaJuzgada con las grabaciones del caso y exige sus
-// votos pedidos, los votos de cada clase, sus marcas y su motivo sin juzgar.
+// votos pedidos, los votos de cada clase, sus marcas, sus votos cortados y su
+// motivo sin juzgar.
 func exigirElVoto(t *testing.T, caso casoDeVoto) {
 	t.Helper()
 
@@ -1074,13 +1350,14 @@ func exigirElVoto(t *testing.T, caso casoDeVoto) {
 			{Clase: claseAfirmaLoNoLeido, Votos: caso.afirma},
 			{Clase: claseCuentaSuProceso, Marcada: caso.cuentaMarcada, Votos: caso.cuenta},
 		},
+		Cortados:  caso.cortados,
 		SinJuzgar: caso.sinJuzgar,
 	}, juicio)
 }
 
 // casosDeVotosQueSeDan son los casos de TestVotoDelJuez cuyos votos llegan a
-// darse: el que vale, el nulo con su repetición y el que solo difiere en
-// blancos y énfasis.
+// darse: el que vale, el nulo con su repetición, el que solo difiere en
+// blancos y énfasis y el que el tope corta y se pide otra vez.
 func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
 	t.Helper()
 
@@ -1088,8 +1365,50 @@ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
 	juicioConElProceso := juicioGrabado(t, map[string]dicho{
 		claseAfirmaLoNoLeido: afirmaQueNo(), claseCuentaSuProceso: cuentaQueSi(fraseDelProceso),
 	})
+	cortado := grabacion{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)}
 
 	return []casoDeVoto{
+		{
+			nombre:      "el voto que el tope corta se pide otra vez, con su mismo número",
+			grabaciones: []grabacion{cortado, sinMarcas},
+			pedidos:     2,
+			afirma:      []VotoDeClase{afirmaQueNo().voto(1, false, false)},
+			cuenta:      []VotoDeClase{cuentaQueNo().voto(1, false, false)},
+			cortados:    []string{motivoDelTopeDelVotoUno},
+		},
+		{
+			nombre: "el cortado en el segundo voto, que se pide otra vez y cuenta",
+			grabaciones: []grabacion{
+				votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueNo()),
+				cortado,
+				votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueNo()),
+				sinMarcas,
+			},
+			pedidos: 4,
+			afirma: []VotoDeClase{
+				afirmaQueSi(fraseDelArticulo22).voto(1, false, true),
+				afirmaQueSi(fraseDelArticulo22).voto(2, false, true),
+				afirmaQueNo().voto(3, false, false),
+			},
+			cuenta: []VotoDeClase{
+				cuentaQueNo().voto(1, false, false),
+				cuentaQueNo().voto(2, false, false),
+				cuentaQueNo().voto(3, false, false),
+			},
+			cortados: []string{motivoDelTopeDelVotoDos},
+		},
+		{
+			nombre: "la repetición del cortado que es nula no se repite ni cuenta como sí",
+			grabaciones: []grabacion{
+				cortado,
+				votoDeLasDosClases(t, afirmaQueSi(fraseQueNoEsta), cuentaQueSi(fraseDelProceso)),
+			},
+			pedidos:       2,
+			afirma:        []VotoDeClase{afirmaQueSi(fraseQueNoEsta).voto(1, true, false)},
+			cuenta:        []VotoDeClase{cuentaQueSi(fraseDelProceso).voto(1, true, true)},
+			cuentaMarcada: true,
+			cortados:      []string{motivoDelTopeDelVotoUno},
+		},
 		{
 			nombre: "un sí con su frase vale",
 			grabaciones: []grabacion{
@@ -1200,7 +1519,9 @@ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
 
 // casosDeVotosQueNoLlegan son los casos de TestVotoDelJuez de un voto que no
 // llega a darse: los cuatro motivos, en el primer voto, en el segundo y en la
-// repetición de un nulo, con su texto en una línea y cortado.
+// repetición de un nulo, con su texto en una línea y cortado. El tope deja la
+// respuesta sin juzgar cuando corta las dos peticiones de un voto, o la
+// repetición de un nulo, que no se vuelve a pedir.
 func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 	t.Helper()
 
@@ -1223,10 +1544,14 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 
 	return []casoDeVoto{
 		{
-			nombre:      "el tope agotado",
-			grabaciones: []grabacion{{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)}},
-			pedidos:     1,
-			sinJuzgar:   motivoDelTopeDelVotoUno,
+			nombre: "el tope agotado dos veces",
+			grabaciones: []grabacion{
+				{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)},
+				{err: fmt.Errorf("la repetición del voto: %w", errTopeDelVoto)},
+			},
+			pedidos:   2,
+			cortados:  []string{motivoDelTopeDelVotoUno},
+			sinJuzgar: motivoDelTopeDosVecesUno,
 		},
 		{
 			nombre: "la sesión que termina con error, con su código",
@@ -1286,11 +1611,22 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 		},
 		{
 			nombre:      "en el segundo voto, sin juzgar y no sin marcar",
-			grabaciones: []grabacion{conElArticulo22, {err: errTopeDelVoto}},
-			pedidos:     2,
+			grabaciones: []grabacion{conElArticulo22, {err: errTopeDelVoto}, {err: errTopeDelVoto}},
+			pedidos:     3,
 			afirma:      []VotoDeClase{afirmaQueSi(fraseDelArticulo22).voto(1, false, true)},
 			cuenta:      []VotoDeClase{cuentaQueSi(fraseDelProceso).voto(1, false, true)},
-			sinJuzgar:   motivoDelTopeDelVotoDos,
+			cortados:    []string{motivoDelTopeDelVotoDos},
+			sinJuzgar:   motivoDelTopeDosVecesDos,
+		},
+		{
+			nombre: "el cortado cuya repetición no es JSON, sin juzgar por la repetición",
+			grabaciones: []grabacion{
+				{err: errTopeDelVoto},
+				{err: errorDeProceso{codigo: 127, texto: "exit status 127: claude: command not found"}},
+			},
+			pedidos:   2,
+			cortados:  []string{motivoDelTopeDelVotoUno},
+			sinJuzgar: "voto 1: la salida no es JSON (código 127): exit status 127: claude: command not found",
 		},
 		{
 			nombre: "en la repetición de un nulo, con el número de su voto",
@@ -1302,6 +1638,75 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 			afirma:    []VotoDeClase{afirmaQueSi(fraseQueNoEsta).voto(1, true, false)},
 			cuenta:    []VotoDeClase{cuentaQueNo().voto(1, true, false)},
 			sinJuzgar: motivoDelTopeDelVotoUno,
+		},
+	}
+}
+
+// casoDeVotoConSentencia es un caso de TestVotoDelJuez con el juez cuyo esquema
+// lleva sentencia, que juzga respuestaConLaSentencia: las grabaciones que
+// devuelve el votante, los votos que se le piden y el juicio que queda.
+type casoDeVotoConSentencia struct {
+	nombre      string
+	grabaciones []grabacion
+	pedidos     int
+	juicio      JuicioDeRespuesta
+}
+
+// casosDeVotosConSentencia son los casos de TestVotoDelJuez del juez cuyo
+// esquema lleva sentencia: el voto del ejemplo del contrato, que dice sí en la
+// clase que decide y pide por eso un segundo voto; ese mismo voto sin su
+// sentencia; y el voto que dice no. Lo que queda de cada voto va escrito campo
+// a campo: Precepto, que ninguno lleva, es nil en todos.
+func casosDeVotosConSentencia(t *testing.T) []casoDeVotoConSentencia {
+	t.Helper()
+
+	delEjemplo := grabacion{salida: cabeceraDeLaSalidaDelJuez + juicioDelEjemploConSentencia + pieDeLaSalidaDelJuez}
+	queNo := votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo())
+
+	sinSentencia := strings.Replace(juicioDelEjemploConSentencia, `,"sentencia":"`+sentenciaDeLosVotos+`"`, "", 1)
+	require.NotContains(t, sinSentencia, `"sentencia":`, "el voto sin sentencia no lleva su clave")
+
+	return []casoDeVotoConSentencia{
+		{
+			nombre:      "el voto del contrato, con su sentencia, vale",
+			grabaciones: []grabacion{delEjemplo, queNo},
+			pedidos:     2,
+			juicio: JuicioDeRespuesta{Clases: []JuicioDeClase{
+				{Clase: claseAfirmaLoNoLeido, Votos: []VotoDeClase{
+					{
+						Voto: 1, Motivo: motivoDeLaSentenciaNoLeida, Respuesta: "si", Frase: fraseDeLaNulidad,
+						Sentencia: new(sentenciaDeLosVotos), FraseEnLaRespuesta: true,
+					},
+					{Voto: 2, Motivo: motivoDeLaSentenciaSinResumir, Respuesta: "no", Sentencia: new("")},
+				}},
+				{Clase: claseAfirmaQueExiste, Votos: []VotoDeClase{
+					{Voto: 1, Motivo: motivoDeLaQueNoDiceQueExiste, Respuesta: "no"},
+					{Voto: 2, Motivo: motivoDeLaQueNoDiceQueExiste, Respuesta: "no"},
+				}},
+			}},
+		},
+		{
+			// El juicio pasa de 300 caracteres, y el motivo lleva los 300 primeros.
+			nombre:      "el mismo voto sin sentencia no tiene la forma del esquema",
+			grabaciones: []grabacion{{salida: cabeceraDeLaSalidaDelJuez + sinSentencia + pieDeLaSalidaDelJuez}},
+			pedidos:     1,
+			juicio: JuicioDeRespuesta{
+				Clases:    []JuicioDeClase{{Clase: claseAfirmaLoNoLeido}, {Clase: claseAfirmaQueExiste}},
+				SinJuzgar: prefijoDeSalidaSinForma + string([]rune(sinSentencia)[:300]),
+			},
+		},
+		{
+			nombre:      "un no lleva la sentencia vacía",
+			grabaciones: []grabacion{queNo},
+			pedidos:     1,
+			juicio: JuicioDeRespuesta{Clases: []JuicioDeClase{
+				{Clase: claseAfirmaLoNoLeido, Votos: []VotoDeClase{
+					{Voto: 1, Motivo: motivoDeLaSentenciaSinResumir, Respuesta: "no", Sentencia: new("")},
+				}},
+				{Clase: claseAfirmaQueExiste, Votos: []VotoDeClase{
+					{Voto: 1, Motivo: motivoDeLaQueNoDiceQueExiste, Respuesta: "no"},
+				}},
+			}},
 		},
 	}
 }

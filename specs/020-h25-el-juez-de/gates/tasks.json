@@ -1,0 +1,73 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md, «Resultado»: «Sin hallazgos CRITICAL ni HIGH», y sus métricas: CRITICAL 0, HIGH 0, MEDIUM 2 (F1, F2), LOW 4 (F3 a F6). gates/tasks-precheck.txt tiene 0 bytes: ningún defecto mecánico. No existían gates/tasks.json, gates/tasks-pendiente.md ni gates/tasks-correccion-r*.diff: es la primera ronda. Los dos MEDIUM van en observaciones."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Las ocho tareas cierran su línea con sus FR y SC. La tabla «Requisitos → tareas» de tasks.md cubre los 64 FR del spec (FR-001 a 005, 010 a 013, 020 a 027, 030 a 033, 040 a 045, 050, 051, 060 a 066, 070 a 073, 080 a 084, 090 a 093, 095, 096 y 100 a 112, contados contra spec.md) y los 15 SC; FR-027, FR-073, SC-001 y SC-014 remiten al workflow o a la persona con su motivo, y T008 los deja constatados. Las 22 filas de plan.md, «Controles de umbral», están en las 17 de tasks.md (las diez `evals:` agrupadas por modo), cada una con su tarea y el test que la ve fallar: T004 (1 respuesta marcada, 901 s, cada recuento distinto de 0, un byte en cada copia, seis mutaciones de la medida), T003 y T004 (las mutaciones «de una en una»), T005 (un defecto sin marcar, un correcto marcado, un caso que no se resuelve), T001 (el voto sin `sentencia`) y T006 (`skills-check`). Visto en el árbol que los controles que siguen ya tienen su caso en rojo: `TestUmbralesDeJurisprudencia` con 1 y 2 respuestas en `cita_sin_documento` y 1 en `sin_activar` (internal/evals/informe_test.go:4353-4411), `TestInformeConElJuez` con «un-voto-que-no-llega» (informe_test.go:4004) y las 300 líneas en internal/skills/sincronia_test.go:497-517. Leído internal/evals/umbrales.go:192-278: con dos clases, sentencias, dos modos y sin objetivo salen los doce elementos en el orden de contracts/juez-de-jurisprudencia.md §5 (leído, no ejecutado con esta skill)."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "T001 a T004 y T006 traen test e implementación; T005 (tests sobre el código de T002 con los casos que llegan en T004), T007 (documentación) y T008 (cierre) son excepciones declaradas en la cabecera con su verificación. La tabla de dependencias no tiene ninguna hacia delante. Medido en esta sesión en una copia de la cabeza en el directorio temporal, con `go test -count=1 ./...` sin `-race` ni lint: (1) con las cuatro evals del contrato y nada más, 23 paquetes en verde e `internal/evals` en rojo solo por `TestJuzgarSentencias`, `TestUmbralesDeJurisprudencia`, `TestEvalsDelRepositorio/conjunto-jurisprudencia` —las cuatro reglas de research M5: tamaño, número y fecha, materia y documento— y `TestDefinicionDelJob`: los cuatro que T003 cambia, juntos, que es por lo que es una sola tarea; (2) con la carpeta del juez además, y `-tags=integration`, se suma solo `TestCopiasDelJuez/del-repositorio`, y `TestDefinicionDelJob` da 47 857 s para la skill de una en una, la cifra de FR-072; (3) con la fila de la skill añadida a la tabla de las copias, `TestCopiasDelJuez`, `TestMedidaVersionada/del-repositorio` y `TestEjecucionSinMedir` pasan sin tocar código de H24; (4) con el diff de contracts/skill-jurisprudencia-v0.1.diff aplicado, `SKILL.md` tiene 197 líneas, CAPTCHA aparece en dos líneas (19 y 21) y ningún test de ningún paquete cambia de estado. No he ejecutado `make ci`."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "Las ocho tareas terminan en «Rutas:» con ficheros concretos o la carpeta nueva `evals/jurisprudencia/juez/`; ninguna ruta genérica. Contrastado con el árbol que cada test nombrado vive en un fichero declarado o en el `_test.go` de un `.go` declarado, que el guardián admite (scripts/workflow/guardian-diff.sh:91): juez_test.go (`TestVotoDelJuez`, `TestMensajeDelVoto`), informe_test.go (`TestInformeConElJuez`, `TestInformeMarkdownDeLosUmbrales`, `TestUmbralesDeJurisprudencia`), medida_test.go (`TestLeerCasosEtiquetados`, `TestArgumentosDeLaInvocacion`, `TestSinElBloque`, `TestResolverCasos`, `TestCopiasDelJuez`, `TestMedidaVersionada`, `TestGrabacionesDerivadas`, `TestEjecucionDeLaMedida`), conjunto_test.go (`TestConjuntoDeEvals`, `TestEvalsDelRepositorio`, `TestPreguntasConElFragmento`), sentencias_test.go, ejecucion_test.go, sesion_test.go y definicion_test.go. `BloqueQuitado` solo está en medida.go y medida_test.go; `Precepto`, solo en juez.go, informe.go y sus tests; los ayudantes que T003 manda revisar, solo en conjunto.go, conjunto_test.go, sentencias_test.go e informe_test.go; y lo que `TestDefinicionDelJob` exige de la matriz vive en definicion_test.go (`fallosDeLaMedida`, `fallosDeLaMatriz`), no en definicion.go. Los tests que la copia de prueba deja en rojo (criterio c) están todos en ficheros declarados por T003 o T004. Reproducida sobre las ocho líneas la extracción de scripts/workflow/tarea.sh:141: ninguna ficha de más cae en `testdata/`, `schemas/`, `evidencias/` ni abre un directorio entero. `.github/workflows/evals.yml` es declarable en una tarea: el guardián solo lo veda en modo global (guardian-diff.sh:81-86)."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Ninguna tarea lleva `[datos]` ni nombra `testdata/` o `schemas/`, y el precheck no da ninguna línea. Medido en la copia: las diez evals y `clases.yaml` del contrato se leen con los esquemas de hoy sin ningún fichero mal formado (el rojo de `TestEvalsDelRepositorio` son solo las reglas del conjunto, y el juez se lee con sus dos clases), así que `schemas/` no tiene que cambiar. Las sesiones modelo de sentencias_test.go salen de los goldens que ya hay en internal/app/testdata/cita, que solo se leen, y de constantes; `TestTextosDeLaSesion` escribe sus transcripts en `t.TempDir()`. No hay dato externo (plan.md, «Datos externos»): las cuatro copias se hacen con `cp` y se comparan con `cmp`, y las preguntas de las evals las fija byte a byte `TestPreguntasDelSondeo` contra `preguntas.json`. Comprobado que las cifras de las tareas son las de la evidencia: 249 casos, 125 y 124, 45, 41 y 41 por lo quitado, y la medida con 0 de 125 y 0 de 124, `claude-opus-5-5` y 2.1.289, que son los que fija .github/workflows/evals.yml:210-226 y 385-386."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md, «Definition of Done → tareas», recorre los 13 puntos de docs/ROADMAP.md §1: `make ci` por tarea y en T008; `CHANGELOG.md` (*Unreleased*) en T007 (FR-084, FR-090, FR-112); cobertura en T008; las evals (T003) antes que `SKILL.md` (T006), con `skills-check`; sin ADR (FR-096: la decisión es el ADR 0037); sin fila de `docs/SOURCES.md` (ninguna fuente); ningún esquema ni fixture, con `schema-check` constatado en T008; y los puntos 5, 11, 12 y 13 no aplican porque ni el binario ni ningún applet cambian."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Comprobado sin modelo sobre checklists/requirements.md y spec.md: ningún ítem sin marcar; 0 marcas NEEDS CLARIFICATION o TODO en spec.md; 31 escenarios «Dado» (3, 5, 4, 8, 6, 2 y 3 por historia), como dice la marca; los 7 puntos de la Entrega, los 12 de los Controles y la Aceptación del spec están literales en docs/ROADMAP.md (21 de 21 líneas comparadas, con su cabecera) y las 9 viñetas de «Fuera de alcance», también (9 de 9; los «10» del ítem d salen de partir la tercera por su punto y coma interior); «Clarifications» lleva las dos del ítem c; y los casos límite que enumera la marca están en «Edge Cases»."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "plan.md, «Aceptación e2e: no aplica» (líneas 142-158), con su fila en Complexity Tracking (línea 379) y el precedente de H24; tasks.md no lleva tarea `[aceptacion]` y el precheck lo admite. La justificación se sostiene en el árbol: fuera de su paquete, `internal/evals` solo lo importa internal/skills/normas_test.go, así que el binario no lo enlaza y no hay comportamiento de `kitlegal` que un guion describa. Los 31 escenarios del spec tienen su test en `make ci` (US1.2 y US1.3, US2 y US3 en T001 y T004; US4 en T002, T004 y T005; US5 y US6 en T003 y T004; US7.1 en T006) o lo mide el cierre (US1.1, SC-001) o se lee (US7.2 y US7.3, sobre el diff del contrato, que dice las dos cosas de FR-081 y la de FR-082). Las evals van en T003, antes que la skill."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide nada a una persona, publica la rama, abre la propuesta ni mide CI o evals remotas: lo dicen la batería («Sin red ni modelo», «Sin personas a mitad») y T008, que deja quickstart.md §10 al workflow y §11 para después del run; el precheck no da ninguna línea de plataforma, de persona ni de grabación. T008 ejecuta quickstart.md §0 a §9, que son órdenes locales: `make build`, `go test`, `cmp`, `grep`, las tres órdenes del applet `cita`, que no pide nada a la red, y `make ci`."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "analyze.md, F1 (MEDIUM), sigue sin aplicar y lo he confirmado en el árbol: el comentario de `umbralesDelInforme` (internal/evals/umbrales.go:183-190) dice que las evals de jurisprudencia, «que no tiene juez ni objetivo, son cuatro y los cuatro deciden», y con T004 serán doce y diez. Es la misma frase que T007 corrige en internal/evals/doc.go:158. T004 declara `umbrales.go`, pero solo manda tocarlo si el test descubre un defecto; T007 no lo declara. No cambia nada que vea quien usa el kit, así que no llega a motivo (constitución, umbral de materialidad), pero quedaría falso a sabiendas: basta añadir a T004 «y el comentario de `umbralesDelInforme`», o la ruta a T007. Si no, le toca al barrido.",
+    "`CHANGELOG.md`, sección *Unreleased* (líneas 13 a 205), lleva lo que H23 dijo de la skill y H25 deja falso en la misma sección: «`jurisprudencia` no tiene juez» (líneas 76 y 174) y «de una en una, sin objetivo de duración, sin juez… 72 sesiones… cuatro umbrales… 20 341 s» (líneas 198 a 201). T007 dice qué añadir y no qué hacer con esas frases; la próxima release las publicaría juntas. El fichero siempre entra en el diff de una tarea.",
+    "analyze.md, F2 (MEDIUM): nueve sesiones a la vez contra la misma suscripción no se han medido y el spec decide que bajar la concurrencia no es una corrección del run (FR-073, Assumptions). Si el límite de ritmo corta sesiones, el cierre queda en `fallo` por la ejecución sin reparación prevista. Es una decisión registrada; conviene que el informe final lo muestre aparte de las marcas del juez.",
+    "analyze.md, F3 (LOW): quickstart.md §10 espera los doce umbrales «todos con `cumple` verdadero», y `afirma_que_existe` puede publicar `cumple` falso sin que SC-001 deje de cumplirse (FR-021). Ninguna tarea ejecuta §10.",
+    "analyze.md, F5 (LOW): SC-003 y la tabla de controles dicen «2 de 2» mutaciones y T004 mantiene tres (de una en una en `evals`, en `medida`, y sin la skill en `medida`); T003 y T004 las reparten de otro modo que el plan. Sin efecto en lo que se construye.",
+    "tasks.md es un superconjunto del plan en dos puntos, y lo dice en su cabecera: declara `internal/evals/sentencias_test.go` (por `TestJuzgarSentencias`, que el plan no nombra y que he visto fallar con diez evals) e `internal/evals/umbrales.go` (el plan dice que no cambia). Manda tasks.md.",
+    "La tabla de controles atribuye los casos negativos de las 300 líneas y del drift a `TestSkillsDelRepositorio`; están en `TestRegenerarYComparar` (internal/skills/sincronia_test.go), como dice el texto de T006. El control `ci:Makefile:skills-check` no cambia.",
+    "T004 reúne 35 requisitos y 10 rutas (analyze.md, F6): es la tarea con más riesgo de cuarentena, y de ella dependen T005 a T008. Partirla dejaría `make ci` en rojo entre tareas, como he visto en la copia: la carpeta sola pone en rojo `TestCopiasDelJuez`, `TestEvalsDelRepositorio`, `TestUmbralesDeJurisprudencia` y `TestDefinicionDelJob`.",
+    "Entre T003 y T007, los comentarios de .github/workflows/evals.yml (líneas 146, 172-174 y 194-197) dicen «de una en una», «sin juez» y 20 341 s junto a los valores ya cambiados. No lo comprueba ningún test y T007 lo cierra.",
+    "Lo que no he medido: `make ci`, `-race`, el lint y `govulncheck`; el prototipo de research M2 (249 de 249 casos resueltos en Go); que el código de H24 publique los doce umbrales con esta skill (lo he leído en umbrales.go, y T004 prevé la corrección en ese fichero); y las tres órdenes del binario de quickstart.md §3, porque compilar el binario en la copia pedía una aprobación que no se dio (dos de ellas las da research M7).",
+    "La copia de prueba y sus registros siguen en el directorio temporal del sistema (`h25-juez-tasks*`): retirarlos pedía una aprobación que no se dio. En el repositorio solo he escrito este fichero."
+  ]
+}

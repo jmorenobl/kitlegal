@@ -93,10 +93,17 @@ const (
 
 	// skillSinJuez es la sección «Juez» entera de una skill sin juez, y
 	// vacioEnElVoto, la celda de lo que el juez dejó vacío en un voto —la frase
-	// y el precepto de uno que dice no— y la del precepto de la clase que no lo
-	// tiene (contracts/informe-del-job.md §7 de H24).
+	// y el precepto o la sentencia de uno que dice no— y la del campo propio de
+	// la clase que no lo tiene (contracts/informe-del-job.md §7 de H24;
+	// contracts/juez-de-jurisprudencia.md §4 de H25).
 	skillSinJuez  = "La skill no tiene juez."
 	vacioEnElVoto = "—"
+
+	// encabezadoDelPrecepto y encabezadoDeLaSentencia son los dos nombres de la
+	// octava columna de la tabla de los votos del juez, la del campo propio de
+	// la clase (encabezadosDeVotos).
+	encabezadoDelPrecepto   = "Precepto"
+	encabezadoDeLaSentencia = "Sentencia"
 )
 
 // modeloConSuModo es el modelo de lo que el informe publica de un modo cuando
@@ -109,7 +116,8 @@ const modeloConSuModo = "%s (%s)"
 // informe-del-job §4 de H7.3 y de H7.4; contracts/evals-en-dos-modos.md §5.3 de
 // H21; contracts/informe-del-job.md §7 de H24, que quita la columna y la tabla
 // de las expresiones prohibidas y añade las dos del juez: la de los votos y la
-// de las respuestas sin juzgar).
+// de las respuestas sin juzgar). Los de la de los votos dependen de los votos
+// que lleva, y los da encabezadosDeVotos.
 var (
 	encabezadosDeFueraDeLoGrabado = []string{"Sesión", "Eval", "Orden", "Código"}
 	encabezadosDeRed              = []string{"Sesión", "Eval", "Orden", "Destino"}
@@ -125,12 +133,14 @@ var (
 	encabezadosDeTasas        = []string{
 		"Eval", "Modelo", "Modo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
 	}
-	encabezadosDeUmbrales = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
-	encabezadosDeVotos    = []string{
-		"Sesión", "Clase", "Voto", "Nulo", "Respuesta", "Frase", "En la respuesta", "Precepto", "Motivo", "Marcada",
-	}
-	encabezadosDeSinJuzgar = []string{"Sesión", "Motivo"}
+	encabezadosDeUmbrales      = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
+	encabezadosDeSinJuzgar     = []string{"Sesión", "Motivo"}
+	encabezadosDeVotosCortados = []string{"Sesión", "Motivo"}
 )
+
+// etiquetaDeVotosCortados es la de la tabla de informe.md con los votos que el
+// tope cortó y que se pidieron otra vez.
+const etiquetaDeVotosCortados = "Votos cortados por el tope y pedidos otra vez"
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
 // \r o \n, los tres finales de línea de CommonMark— se sustituye por un espacio.
@@ -398,6 +408,13 @@ type JuezInformado struct {
 	// Respuestas, aunque un voto anterior dijera sí: no es una respuesta
 	// juzgada.
 	SinJuzgar []RespuestaSinJuzgar `json:"sin_juzgar"`
+
+	// VotosCortados son los votos que el tope cortó y que se pidieron otra vez,
+	// de las respuestas juzgadas, en orden de sesión y, en una misma respuesta,
+	// en el de sus votos; [] en informe.json si no hay ninguno (research
+	// «Reparaciones del cierre» de H25). Los de una respuesta sin juzgar no
+	// están: de ella solo va su motivo.
+	VotosCortados []VotoCortado `json:"votos_cortados"`
 }
 
 // RespuestaConVotos es una respuesta juzgada con algún voto afirmativo: su
@@ -413,6 +430,14 @@ type RespuestaConVotos struct {
 // el motivo del voto que no llegó a darse, que lo nombra por su número (FR-007
 // de H24).
 type RespuestaSinJuzgar struct {
+	Sesion string `json:"sesion"`
+	Motivo string `json:"motivo"`
+}
+
+// VotoCortado es un voto que el tope cortó y que se pidió otra vez: la sesión
+// de su respuesta y el motivo del corte, que nombra el voto por su número
+// («voto 1: tope de 35 s agotado»).
+type VotoCortado struct {
 	Sesion string `json:"sesion"`
 	Motivo string `json:"motivo"`
 }
@@ -599,6 +624,15 @@ func (j *juicioDelJuez) informado(modelo, version string) *JuezInformado {
 	for _, respuesta := range j.sinJuzgar() {
 		informado.SinJuzgar = append(informado.SinJuzgar,
 			RespuestaSinJuzgar{Sesion: respuesta.sesion, Motivo: respuesta.juicio.SinJuzgar})
+	}
+
+	conVotosCortados := j.respuestasQue(func(respuesta respuestaDelJuez) bool {
+		return respuesta.juicio.SinJuzgar == "" && len(respuesta.juicio.Cortados) > 0
+	})
+	for _, respuesta := range conVotosCortados {
+		for _, cortado := range respuesta.juicio.Cortados {
+			informado.VotosCortados = append(informado.VotosCortados, VotoCortado{Sesion: respuesta.sesion, Motivo: cortado})
+		}
 	}
 
 	return informado
@@ -1915,15 +1949,44 @@ func (d *documento) juez(juez *JuezInformado) {
 
 	d.parrafo("Modelo: " + juez.Modelo)
 	d.parrafo("Versión de Claude Code: " + juez.VersionDeClaudeCode)
-	d.tablaConEtiqueta("Votos", encabezadosDeVotos, filasDeVotos(juez.Respuestas))
+	d.tablaConEtiqueta("Votos", encabezadosDeVotos(juez.Respuestas), filasDeVotos(juez.Respuestas))
 	d.tablaConEtiqueta("Respuestas sin juzgar", encabezadosDeSinJuzgar, filasDeSinJuzgar(juez.SinJuzgar))
+	d.tablaConEtiqueta(etiquetaDeVotosCortados, encabezadosDeVotosCortados, filasDeVotosCortados(juez.VotosCortados))
+}
+
+// encabezadosDeVotos son los encabezados de la tabla de los votos del juez
+// sobre esas respuestas, diez siempre (contracts/informe-del-job.md §7 de H24).
+// El octavo es el del campo propio de la clase, y toma su nombre de los votos
+// de la tabla: «Sentencia» si alguno lleva sentencia, aunque vaya vacía, y
+// «Precepto» en otro caso, que es el de un juez cuyo esquema lleva precepto
+// (contracts/juez-de-jurisprudencia.md §4 de H25; FR-005 y FR-013 de H25).
+func encabezadosDeVotos(respuestas []RespuestaConVotos) []string {
+	propio := encabezadoDelPrecepto
+	if algunVotoLlevaSentencia(respuestas) {
+		propio = encabezadoDeLaSentencia
+	}
+
+	return []string{
+		"Sesión", "Clase", "Voto", "Nulo", "Respuesta", "Frase", "En la respuesta", propio, "Motivo", "Marcada",
+	}
+}
+
+// algunVotoLlevaSentencia dice si algún voto de alguna clase de esas respuestas
+// lleva sentencia, que es llevar su clave: también la del voto que dice no,
+// que va vacía.
+func algunVotoLlevaSentencia(respuestas []RespuestaConVotos) bool {
+	return slices.ContainsFunc(respuestas, func(respuesta RespuestaConVotos) bool {
+		return slices.ContainsFunc(respuesta.Clases, func(clase JuicioDeClase) bool {
+			return slices.ContainsFunc(clase.Votos, func(voto VotoDeClase) bool { return voto.Sentencia != nil })
+		})
+	})
 }
 
 // filasDeVotos son las filas de la tabla de los votos del juez: una por voto de
 // cada clase de cada respuesta, en el orden de informe.json —las respuestas,
 // sus clases y los votos de cada una—, con una celda por cada encabezado de
 // encabezadosDeVotos. Lo que el juez dio va tal cual, con vacioEnElVoto en lo
-// que dejó vacío y en el precepto de la clase que no lo tiene; y si la
+// que dejó vacío y en el campo propio de la clase que no lo tiene; y si la
 // respuesta quedó marcada en la clase lo dice cada fila de esa clase.
 func filasDeVotos(respuestas []RespuestaConVotos) [][]string {
 	var filas [][]string
@@ -1931,16 +1994,11 @@ func filasDeVotos(respuestas []RespuestaConVotos) [][]string {
 	for _, respuesta := range respuestas {
 		for _, clase := range respuesta.Clases {
 			for _, voto := range clase.Votos {
-				precepto := ""
-				if voto.Precepto != nil {
-					precepto = *voto.Precepto
-				}
-
 				filas = append(filas, []string{
 					respuesta.Sesion, clase.Clase, strconv.Itoa(voto.Voto), siONo(voto.Nulo),
 					cmp.Or(voto.Respuesta, vacioEnElVoto), cmp.Or(voto.Frase, vacioEnElVoto),
-					siONo(voto.FraseEnLaRespuesta), cmp.Or(precepto, vacioEnElVoto), cmp.Or(voto.Motivo, vacioEnElVoto),
-					siONo(clase.Marcada),
+					siONo(voto.FraseEnLaRespuesta), cmp.Or(propioDelVoto(voto), vacioEnElVoto),
+					cmp.Or(voto.Motivo, vacioEnElVoto), siONo(clase.Marcada),
 				})
 			}
 		}
@@ -1949,12 +2007,35 @@ func filasDeVotos(respuestas []RespuestaConVotos) [][]string {
 	return filas
 }
 
+// propioDelVoto es lo que el voto lleva en el campo propio de su clase: la
+// sentencia o el precepto del que habla su frase, que ningún voto lleva los
+// dos. Vacío si su clase no tiene ninguno o si el voto, que dice no, lo dejó
+// vacío.
+func propioDelVoto(voto VotoDeClase) string {
+	if propio := cmp.Or(voto.Sentencia, voto.Precepto); propio != nil {
+		return *propio
+	}
+
+	return ""
+}
+
 // filasDeSinJuzgar son las filas de la tabla de las respuestas que el juez dejó
 // sin juzgar.
 func filasDeSinJuzgar(sinJuzgar []RespuestaSinJuzgar) [][]string {
 	filas := make([][]string, 0, len(sinJuzgar))
 	for _, respuesta := range sinJuzgar {
 		filas = append(filas, []string{respuesta.Sesion, respuesta.Motivo})
+	}
+
+	return filas
+}
+
+// filasDeVotosCortados son las filas de la tabla de los votos que el tope cortó
+// y que se pidieron otra vez.
+func filasDeVotosCortados(cortados []VotoCortado) [][]string {
+	filas := make([][]string, 0, len(cortados))
+	for _, voto := range cortados {
+		filas = append(filas, []string{voto.Sesion, voto.Motivo})
 	}
 
 	return filas

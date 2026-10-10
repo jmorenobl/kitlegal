@@ -184,11 +184,18 @@ type Umbral struct {
 // FR-060 a FR-063 de H23), los de las respuestas de cada modo son tres cosas,
 // cada una por su razón: el de las que no activaron la skill, con juez o con
 // sentencias; el de cada clase, con juez; y el de las que llevan una cita sin
-// documento cotejado o un ECLI sin origen, con sentencias. Con el plan del job
-// y las evals de jurisprudencia, que no tiene juez ni objetivo, son cuatro y
-// los cuatro deciden: sin_activar y cita_sin_documento del modo orden, y los
-// dos del modo herramienta. Los de una skill sin juez ni sentencias siguen
-// siendo ninguno.
+// documento cotejado o un ECLI sin origen, con sentencias. Una skill sin juez
+// con alguna eval que declara sentencias lleva, de cada modo, sin_activar y
+// cita_sin_documento, y los dos deciden. Los de una skill sin juez ni
+// sentencias siguen siendo ninguno.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §5 de H25; FR-020 a FR-026 de
+// H25), jurisprudencia tiene juez y sigue sin objetivo, y con el plan del job
+// sus umbrales son doce, de los que deciden diez: de cada modo, sin_activar,
+// afirma_lo_no_leido, afirma_que_existe y cita_sin_documento; los dos de la
+// medida versionada; y duracion_del_juez de cada modo, sin
+// duracion_de_las_sesiones. No decide afirma_que_existe, que solo se publica,
+// en ninguno de los dos modos.
 func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()

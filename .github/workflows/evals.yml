@@ -11,6 +11,10 @@
 # marca son umbrales del informe (contracts/informe-del-job.md §1, §2 y §5; contracts/juez-y-voto.md). Y el trabajo
 # medida repite la medida del juez, solo cuando la lanza una persona (contracts/medida-del-juez.md §7). Una ejecución
 # normal no mide al juez, y la lista de expresiones ya no juzga ninguna respuesta (contracts/informe-del-job.md §6).
+#
+# Desde H25 (specs/020-h25-el-juez-de/contracts/job-de-evals.md), jurisprudencia tiene juez: su trabajo evals va a cuatro
+# sesiones a la vez, como el de boe-legislacion, y la skill entra en la matriz del trabajo medida, de modo que la
+# etiqueta evals-medir-juez y la entrada medir_al_juez miden al juez de las dos, sin selector por skill.
 name: evals
 
 on:
@@ -23,7 +27,7 @@ on:
         default: false
       # Con ella, el despacho no abre las sesiones de evals: ejecuta la medida del juez, el trabajo medida (ADR 0037).
       medir_al_juez:
-        description: "Ejecuta la medida del juez de boe-legislacion en lugar de sus evals (ADR 0037)"
+        description: "Ejecuta la medida del juez de las skills que lo tienen en lugar de sus evals (ADR 0037)"
         type: boolean
         default: false
   # Al abrir (o reabrir) una propuesta de cambio que toque lo que las evals miden, y al poner la etiqueta evals o
@@ -137,15 +141,17 @@ jobs:
   # Un trabajo por skill en la misma ejecución del flujo, cada uno con su informe: el de una skill en rojo no cancela el
   # de la otra, que termina y publica el suyo (SC-015; research.md D23). La definición del trabajo la comprueba
   # TestDefinicionDelJob en make ci (specs/013-h7-3-el-umbral-de/contracts/ejecucion-del-job.md §6 y §7).
-  # Desde H24, con una skill que tiene juez —la carpeta juez en sus evals: hoy, boe-legislacion— el trabajo comprueba la
-  # medida versionada del juez antes de abrir ninguna sesión y, si corresponde y se cumple, tras las sesiones el juez
-  # vota las respuestas del modelo que decide con MODELO_DEL_JUEZ y el Claude Code de CLAUDE_DEL_JUEZ; sus recuentos,
-  # los de la medida y la duración de sus votos son umbrales del informe, y una respuesta sin juzgar lo deja en fallo.
-  # No vota ningún caso etiquetado. Con una skill sin juez, legal-core, hace lo de antes
+  # Desde H24, con una skill que tiene juez —la carpeta juez en sus evals: hoy, boe-legislacion y jurisprudencia— el
+  # trabajo comprueba la medida versionada del juez antes de abrir ninguna sesión y, si corresponde y se cumple, tras las
+  # sesiones el juez vota las respuestas del modelo que decide con MODELO_DEL_JUEZ y el Claude Code de CLAUDE_DEL_JUEZ;
+  # sus recuentos, los de la medida y la duración de sus votos son umbrales del informe, y una respuesta sin juzgar lo
+  # deja en fallo. No vota ningún caso etiquetado. Con una skill sin juez, legal-core, hace lo de antes
   # (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2 y §5; contracts/informe-del-job.md §1 a §5).
-  # Desde H23, jurisprudencia es la tercera skill de la matriz: tampoco tiene juez, y sus umbrales, cita_sin_documento y
-  # sin_activar en cada modo, se miden sin modelo
-  # (specs/019-h23-skill-jurisprudencia-ninguna/contracts/evals-jurisprudencia.md §4 y §6).
+  # Desde H23, jurisprudencia es la tercera skill de la matriz, y sus umbrales cita_sin_documento y sin_activar de cada
+  # modo se miden sin modelo (specs/019-h23-skill-jurisprudencia-ninguna/contracts/evals-jurisprudencia.md §4 y §6).
+  # Desde H25 tiene juez, y su informe lleva además, por modo, los de sus dos clases —afirma_lo_no_leido, que decide, y
+  # afirma_que_existe, que solo se publica— y el de la duración de sus votos, y los dos de su medida: doce umbrales,
+  # diez que deciden (specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md §5; contracts/job-de-evals.md §1).
   evals:
     # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
     # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
@@ -169,15 +175,17 @@ jobs:
         skill: [boe-legislacion, jurisprudencia, legal-core]
         # Cuántas sesiones abre a la vez el trabajo de cada skill y el objetivo de duración de sus sesiones, en
         # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
-        # de H7.3; research.md D12 de H7.3). jurisprudencia va como legal-core, de una en una y sin objetivo: no hay
-        # medida de la que sacar otra cifra, y los tres trabajos corren a la vez contra la misma suscripción
-        # (specs/019-h23-skill-jurisprudencia-ninguna/research.md D22).
+        # de H7.3; research.md D12 de H7.3). jurisprudencia va desde H25 a cuatro a la vez, como boe-legislacion: de
+        # una en una, con sus diez evals y su juez, el tope del trabajo no cubre su peor caso. Sigue sin objetivo, como
+        # legal-core: no hay medida con esa concurrencia de la que sacar una cifra. Los tres trabajos corren a la vez
+        # contra la misma suscripción, con nueve sesiones entre los tres, que no se han medido
+        # (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1, §3 y §5; FR-070 de H25).
         include:
           - skill: boe-legislacion
             concurrencia: 4
             objetivo_de_duracion: 900
           - skill: jurisprudencia
-            concurrencia: 1
+            concurrencia: 4
             objetivo_de_duracion: 0
           - skill: legal-core
             concurrencia: 1
@@ -192,10 +200,12 @@ jobs:
     # grupo, los 6 votos que como mucho pide cada respuesta, a 4 respuestas a la vez: 81, 81 y 5, con las 54, 54 y 3
     # respuestas que juzga (FR-092 de H24; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). Cabe en las 6
     # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, no cambia. El de jurisprudencia,
-    # sin juez y de una en una, es de 20 341 s, 339,0 minutos, y cabe en el mismo tope, que no cambia: 73 tandas de una
-    # sesión, las 36 de sus seis evals en cada modo y la de la prueba de red, que el cálculo cuenta en el modo orden
-    # aunque su trabajo no la lleve (specs/019-h23-skill-jurisprudencia-ninguna/research.md M5). Es un cálculo, y no
-    # una medida de lo que tarda.
+    # con su juez y a cuatro a la vez, es de 12 577 s, 209,6 minutos, y cabe en el mismo tope, que no cambia: 31 tandas
+    # de sesiones de 272 s —16 y 15, con las 60 sesiones de sus diez evals en cada modo y la de la prueba de red, que el
+    # cálculo cuenta en el modo orden aunque su trabajo no la lleve— y, de su juez, los 60 s de instalar su Claude Code y
+    # 90 tandas de votos de 40 s, 45 por modo con las 30 respuestas que juzga en cada uno. De una en una serían
+    # 47 857 s, que el tope no cubre (specs/020-h25-el-juez-de/contracts/job-de-evals.md §3; FR-072 de H25). Es un
+    # cálculo, y no una medida de lo que tarda.
     timeout-minutes: 352
     permissions:
       contents: read
@@ -364,18 +374,24 @@ jobs:
   # no depende de tanda, no instala strace ni las skills y no retira Python. No es un paso de evals, cuyo informe lee el
   # cierre por el nombre del trabajo y cuyo tope es otro. Repite el modelo del juez y la versión de Claude Code de sus
   # votos del trabajo evals, y TestDefinicionDelJob exige en make ci que coincidan. Su tope cubre el peor caso de la
-  # medida, que ese test recalcula con los casos del repositorio: 16 105 s, 268,4 minutos, con los 485 s de fuera de los
-  # votos, los 60 s de instalar el Claude Code del juez y 389 tandas de 40 s, las de los 6 votos que como mucho pide cada
-  # uno de sus 259 casos, a 4 a la vez.
+  # medida de cada skill de su matriz, que ese test recalcula con los casos del repositorio. El de boe-legislacion:
+  # 16 105 s, 268,4 minutos, con los 485 s de fuera de los votos, los 60 s de instalar el Claude Code del juez y 389
+  # tandas de 40 s, las de los 6 votos que como mucho pide cada uno de sus 259 casos, a 4 a la vez. El de jurisprudencia,
+  # que está en la matriz desde H25: 15 505 s, 258,4 minutos, con 374 tandas, las de sus 249 casos; de uno en uno serían
+  # 60 305 s, que el tope no cubre. Con la etiqueta o con la entrada corren los dos trabajos de la matriz, sin selector
+  # por skill y cada uno con su resultado (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1 a §3; FR-050, FR-071 y
+  # FR-072 de H25).
   medida:
     name: medida del juez (${{ matrix.skill }})
     if: github.event.label.name == 'evals-medir-juez' || inputs.medir_al_juez == true
     strategy:
       fail-fast: false
       matrix:
-        skill: [boe-legislacion]
+        skill: [boe-legislacion, jurisprudencia]
         include:
           - skill: boe-legislacion
+            concurrencia: 4
+          - skill: jurisprudencia
             concurrencia: 4
     runs-on: ubuntu-24.04
     timeout-minutes: 269

@@ -24,8 +24,8 @@ import (
 // la eval 01 (contrato evals-y-skill §1 de H7).
 //
 // Desde H23, tampoco generan ninguna los dos comandos de cita, con su ROJ, con
-// texto o sin nada más: el applet no consulta ninguna fuente, y las seis evals
-// de jurisprudencia no necesitan ninguna respuesta grabada
+// texto o sin nada más: el applet no consulta ninguna fuente, y las evals de
+// jurisprudencia no necesitan ninguna respuesta grabada
 // (contracts/evals-jurisprudencia.md §2 de H23; FR-054).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()

@@ -1,0 +1,83 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza, 4a127c5: su guardián dice «(global), 14 ficheros», los 14 de ese commit (git show --stat), y termina con «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». Reproducido en esta sesión sobre un clon de 4a127c5 fuera del repositorio, en primer plano y en dos tandas que suman los doce requisitos del objetivo ci (Makefile:264-266): `make fmt-check lint test`, código 0, con «0 issues.» y `ok` en internal/evals con 97,2 %; y `make test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check`, código 0, con `ok` en internal/evals con 97,7 %, «No vulnerabilities found.», «no leaks found» y «all modules verified»; el clon queda limpio después. En el repositorio, `git status --porcelain` solo da gates/base-global-pendiente, gates/revision-cambios.md y gates/revision-cambios-r2.diff, que deja el workflow para esta ronda. La rama parte de la cabeza de main (merge-base ece5df8)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango solo cambia tests en medida_test.go: TestArgumentosDeLaInvocacion da cada orden a su regla (medida_test.go:1015-1145: las de boe y graph a argumentosDeLaInvocacion, las de cita a partirLaOrdenDeCita) sin cambiar lo que ningún caso espera (el diff solo mueve los casos a dos listas), y el informe sintético del sondeo pierde la invocación «Otra» que sostenía el mecanismo retirado. Ejecutado en el clon con -v: TestArgumentosDeLaInvocacion, TestTextoQuitado, TestResolverCasos, TestGrabacionesDerivadas y TestReconstruccionDeJurisprudencia dan 92 PASS (19, 23, 40, 9 y 1) y ningún FAIL. Tres mutantes sobre lo que toca la corrección, cada uno restaurado y el clon comprobado limpio: (1) textosDelSondeo sin mirar la herramienta (medida.go:1017) -> TestResolverCasos/jurisprudencia/informe-de-un-sondeo en rojo; (2) partirLaOrdenDeCita con FindAllStringIndex(orden, 0) (medida.go:1426) -> las nueve subpruebas de cita de TestArgumentosDeLaInvocacion, TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas/jurisprudencia, cuatro de TestResolverCasos y las cuatro de jurisprudencia de TestEjecucionDeLaMedida en rojo; (3) el único despacho que queda, el de repetirLasInvocaciones (medida.go:1291), mandando las órdenes cita a argumentosDeLaInvocacion -> TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas/jurisprudencia/textos y seis subpruebas de TestResolverCasos en rojo. El error con el que deja de leerse un informe de un sondeo que no tiene su forma (medida.go:904-906) lo fija el caso sondeo-sin-sesiones (medida_test.go:2655-2661); leerInformeDeUnSondeo, textosDelSondeo, argumentosDeLaInvocacion y partirLaOrdenDeCita están al 100 % en el perfil del clon. Suite de aceptación: plan.md:147 dice «Aceptación e2e: no aplica» con su desviación (plan.md:385), porque el hito no cambia el binario; las suites congeladas de hitos anteriores no están en el diff (internal/app y specs/001 a 019 sin cambios) y pasan en las dos tandas reproducidas."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las 7 694 líneas añadidas fuera de specs/ (git diff main, contadas en esta sesión) no hay ninguna con net/http, net, os.Exit, fmt.Print, os.Stdout, os.Stderr, panic(, database/sql, modernc.org ni internal/httpx. El rango no añade ninguna importación: quita una aserción de tipo y una rama (gates/revision-cambios-r2.diff). La salida de cada orden repetida sigue yendo a un búfer y la de error a io.Discard (medida.go:1321-1324). golangci-lint, con depguard y forbidigo: «0 issues.» en gates/ci.log y en el clon; el test de arquitectura (paquete internal) pasa en las dos tandas."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El hito no cambia ningún applet ni ningún esquema: `git diff --stat main...HEAD` sobre internal/app, internal/core, internal/cli, internal/httpx, internal/mcp, cmd y schemas no da nada. Medido en esta sesión con el binario del clon (`go run ./cmd/kitlegal`): `cita preparar ECLI:ES:TS:2023:3144 --json`, `cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json` y `cita cotejar ECLI:ES:TS:2023:3144 --json` con el fragmento de evidencias/adr-0036/ por la entrada estándar dan el sobre con sus seis claves (ok, fuente, url, fecha_consulta, hash, data). TestEsquemasPublicados pasa en el schema-check reproducido, y TestReconstruccionDeJurisprudencia sigue exigiendo el sobre de cada orden cita repetida."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. Medido con el binario del clon: las dos órdenes `cita preparar` terminan con 0; `cita cotejar` con el fragmento, con 0; con un texto sin ficha, con 2, el sobre ok:false con clase y mensaje y el registro «clase=argumentos» (fila de argumentos del ADR 0023). En el rango, el informe de un sondeo que lleve en `command` algo que no es un texto deja de leerse con un error que lo nombra, «el informe … no es un informe de un sondeo: …» (medida.go:899-906), sin panic; la corrección no añade ningún índice ni aserción, y el guard de verbo() sigue en su sitio (medida.go:1470-1476). Los demás errores de internal/evals son los fmt.Errorf con el caso, el informe o la orden delante: 21 en las líneas añadidas del hito."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "El rango actualiza specs/020-h25-el-juez-de/cierre.md y la línea 14 de gates/supuestos.md, y lo que dicen se sostiene, contrastado en esta sesión: 31 ficheros fuera de specs/ con 7 694 líneas añadidas y 843 quitadas (git diff --shortstat main); medida.go +795 −105 y medida_test.go +2 497 −230 (numstat), que suman 932 en los seis .go que no son tests y 4 753 en los diez de test; argumentosDeLaInvocacion es byte a byte la de main (cmp de la función extraída de las dos versiones); los números de línea son los del árbol (medida.go:883, :957, :1258 y :1472; medida_test.go:3264, :3265, :4234, :3351, :3792, :4404, :5467 y :5501); la cobertura reproducida en el clon da medida.go 492 de 504 en los dos perfiles (97,6 %), doce bloques sin cubrir, el paquete de evals 3 770 y 3 787 de 3 878 (97,2 % y 97,7 %), el global 10 699 de 11 093 y 96,5 % y 96,9 % en `go tool cover -func`, con leerInforme, preguntaDelSondeo, registroDeLaSesion y verbo en 93,3 %, 92,9 %, 80,0 % y 66,7 %; las 92 subpruebas de §4; y las 36 invocaciones de los dos informes de sondeo versionados, 18 de Bash y 18 de Skill, con `command` de tipo texto en las 18 que lo llevan (jq sobre evidencias/adr-0037-jurisprudencia/). Ningún otro artefacto ni documento nombra los dos mecanismos retirados (búsqueda en specs/020, docs, CONTRIBUTING.md, CHANGELOG.md y README.md: solo cierre.md y supuestos.md, ya corregidos; data-model.md:46 y contracts/medida-y-casos.md:84 solo dicen que la orden es `entrada.command`). CHANGELOG.md (Unreleased), docs/JURISPRUDENCIA.md, docs/WORKFLOW.md y CONTRIBUTING.md no cambian en el rango; no hay ADR nuevo ni fuente tocada (docs/ADR y docs/SOURCES.md sin cambios en el hito)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición de red nueva: internal/httpx, testdata, evidencias y docs/SOURCES.md no están en el diff del hito, y el rango no toca nada que alcance la red. La reconstrucción repite las órdenes del applet cita en proceso (medida.go:1318-1327), que no pide red por construcción, y las de boe y graph con --offline (medida.go:1356-1365). El CENDOJ no se consulta: el documento es el fragmento ya versionado en evidencias/adr-0036/. Con el binario del clon, las cuatro órdenes cita medidas no crean el directorio de la caché. Sin secretos (gitleaks: «no leaks found» en el clon) y sin NIF de persona. Ni la medida del juez ni un sondeo se han lanzado en esta sesión, y nada del rango los lanza."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las 7 694 líneas añadidas fuera de specs/ no hay nolint, t.Skip, .Skip(, SkipNow, TODO, FIXME ni XXX, ni ninguna asignación a _ que tire un error (búsqueda de esta sesión). La corrección no ajusta ningún fixture para que pase un test: quita del informe sintético la invocación que solo sostenía el código retirado, no cambia lo que ningún caso espera y los mutantes del criterio b siguen en rojo. testdata/ y evidencias/ no cambian en el hito. Las nueve tareas van por su primer intento y la cuarentena está vacía (gates/tareas-intentos.json, gates/cuarentena.json)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango 062c399..4a127c5 toca fuera de gates/ tres ficheros (git diff --stat): medida.go (+7 −15), medida_test.go y cierre.md, y en gates/, la línea 14 de supuestos.md. Es exactamente lo que pedía el motivo [k] del juez B, corregido entero: `Command string` en invocacionDeUnSondeo y textosDelSondeo sin la aserción de tipo (medida.go:501-510, :1016-1017); fuera la rama de las órdenes cita de argumentosDeLaInvocacion y las líneas de su comentario (medida.go:1350-1365), con la nota de --offline llevada a argumentos() (medida.go:1478-1482); fuera la invocación «Otra» del test y reescrito su comentario; y el supuesto de T002 pasa a la regla genérica. No añade comportamiento ni toca la rúbrica, los casos, la medida, un umbral, la skill ni el job. cierre.md cambia solo en lo que la corrección deja distinto. El supuesto reescrito es la lectura conservadora: un informe que no tiene la forma de un sondeo no se lee, con el error que ya había. Los demás supuestos no cambian desde el veredicto anterior."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El binario no cambia en el hito ni en el rango, y el applet cita no lee ni escribe caché ni grafo, así que ninguna salida crece con lo acumulado: medido con el binario del clon, `cita preparar` da 474 bytes por ECLI y 570 por número y fecha; `cita cotejar` con la referencia y el fragmento por la entrada estándar, 636; el sobre de fallo, 355; y tras las cuatro órdenes el directorio de la caché sigue sin existir, como exige TestReconstruccionDeJurisprudencia. Invocaciones por pregunta que pide skills/jurisprudencia/SKILL.md (197 líneas, sin cambios en el rango): un preparar por sentencia sin documento y un cotejar por documento. Señales: la línea ⚠ SENTENCIA NO COMPROBADA sale mientras la sentencia no está delante y la sustituye la cita con el documento cotejado; v0.1 no anuncia el CAPTCHA (2 menciones, las del párrafo inicial). Del job, informe.go y umbrales.go no cambian en el rango: `umbrales` son doce elementos fijos y `juez.respuestas` está acotado por las 60 respuestas juzgadas, como quedó medido en la ronda 1 (gates/revision-a-r1.json); lo que cambia el rango es interno de la reconstrucción de casos de `make ci` y no da ninguna salida a una skill ni a una persona."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún control de umbral salvo los de la reconstrucción, y esos siguen en rojo con los mutantes 2 y 3 del criterio b (TestReconstruccionDeJurisprudencia, con sus 249 casos; TestGrabacionesDerivadas; TestEjecucionDeLaMedida, con sus 499 votos). Repetidos sobre la cabeza, en el clon y restaurados: evals/jurisprudencia/juez/clases.yaml con decide:false en afirma_lo_no_leido -> ocho subpruebas de TestUmbralesDeJurisprudencia y TestEvalsDelRepositorio/conjunto-jurisprudencia en rojo; segundosDelJuezPorModo a 9000 (umbrales.go:27) y, en la misma ejecución, la concurrencia de jurisprudencia a 1 en el trabajo evals (.github/workflows/evals.yml:188) -> TestUmbralesDeJurisprudencia, con 901-s-del-juez-en-el-modo-orden, y TestDefinicionDelJob en rojo, con 47 857 s frente a los 352 minutos del tope donde hoy son 12 577 s; medida.json con sin_marcar 1 en la copia y en la evidencia -> TestMedidaVersionada y TestEjecucionSinMedir en rojo. Los diez umbrales que deciden van con decide:true en `umbrales` y su incumplimiento es motivo y veredicto en fallo (umbrales.go, sin cambios en el rango; leído en la ronda 1). afirma_que_existe lleva decide:false y no cuenta como umbral que solo se publica: FR-021 dice que no es un requisito con umbral y el ADR 0037 no deja decidir a una clase sin casos etiquetados."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Convergencia: mi veredicto anterior no tenía motivos; el motivo [k] del juez B está corregido en sus dos partes, con el supuesto de T002 reescrito, y la corrección no rompe nada: las dos tandas de make ci en verde en el clon y los mutantes en rojo.",
+    "No he ejecutado `make ci` de una vez, sino sus doce requisitos en dos órdenes en primer plano sobre el clon, para no pasar del tiempo de una orden; las dos terminan con 0.",
+    "cierre.md §3 da 10 745 sentencias cubiertas en el global del perfil de integración; en el clon salen 10 744, y restar las dos de la rama retirada a la cifra de T008 daría 10 747. La diferencia está fuera de internal/evals, cuyo recuento coincide (3 787 de 3 878), cambia de una ejecución a otra y cierre.md ya dice que no se ha buscado de qué paquete es; el umbral global es 70 %.",
+    "El informe de un sondeo con un `command` que no es un texto no tiene un caso propio: es la regla genérica, y su línea de error la fija el caso sondeo-sin-sesiones. Ningún emisor lo produce.",
+    "El guard de ordenPartidaDeCita.verbo() sigue sin test (medida.go:1471-1473, 66,7 %), como los otros tres bloques nuevos de medida.go que cierre.md §3 nombra; ningún umbral depende de ellos.",
+    "FR-065: las reglas del conjunto reconocen las cuatro evals por la forma de lo que esperan y no por sus valores; una eval con otro número pasa make ci y falla su serie en el job. Es la edición de un fichero versionado y queda bajo el umbral de materialidad.",
+    "Que el juez vote los 249 casos reconstruidos en Go como votó los de la validación (research S1), las series de las cuatro evals nuevas, las nueve sesiones a la vez y el efecto de v0.1 sobre el CAPTCHA no los mide el run: los miden la medida con la etiqueta evals-medir-juez (SC-014) y el cierre, y los lee la persona.",
+    "En specs/020-h25-el-juez-de/ y en evidencias/adr-0037-jurisprudencia/ hay un directorio .claude/.cc-writes/ vacío, que no es del hito y que git no ve; el de specs/ ya estaba al empezar esta sesión.",
+    "En esta sesión no se ha abierto ninguna sesión con modelo ni el job de evals; las salidas del applet cita se midieron con `go run ./cmd/kitlegal` en el clon, con la caché en el directorio temporal."
+  ]
+}

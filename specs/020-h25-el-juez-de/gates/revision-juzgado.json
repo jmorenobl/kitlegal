@@ -1,0 +1,32 @@
+{
+  "rondas": [
+    {
+      "ronda": 1,
+      "ciclo": 1,
+      "sha": "062c399e3d17da384857d35627f121d0edd6de22",
+      "juez_a": "aprobado",
+      "juez_b": "rechazado"
+    },
+    {
+      "ronda": 2,
+      "ciclo": 1,
+      "sha": "4a127c52e1b54be790a4dc8bd3a130df05a71b83",
+      "juez_a": "aprobado",
+      "juez_b": "aprobado"
+    },
+    {
+      "ronda": 3,
+      "ciclo": 2,
+      "sha": "0dc549c4c1fe2732a6fca638ddff583bb14d05e6",
+      "juez_a": "rechazado",
+      "juez_b": "rechazado"
+    },
+    {
+      "ronda": 4,
+      "ciclo": 2,
+      "sha": "660391c2d3131aa4f437ba70a679a67fe296d862",
+      "juez_a": "aprobado",
+      "juez_b": "aprobado"
+    }
+  ]
+}

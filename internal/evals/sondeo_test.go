@@ -282,12 +282,13 @@ func casosDelJuezDelSondeo() []casoDelJuezDelSondeo {
 			marcadas: 1, juzgadas: 9, votos: 11,
 		},
 		{
-			// El voto de una no llega a darse: no está entre las juzgadas, y la
-			// que tiene sí cuenta sobre las otras ocho.
+			// El voto de una no llega a darse, porque el tope corta sus dos
+			// peticiones: no está entre las juzgadas, y la que tiene sí cuenta
+			// sobre las otras ocho.
 			nombre: "una-sin-juzgar", grabados: unaSinJuzgarEnElSondeo,
-			conSi: 1, juzgadas: 8, votos: 9,
+			conSi: 1, juzgadas: 8, votos: 10,
 			sinJuzgar: []RespuestaSinJuzgar{
-				{Sesion: sesionSintetica(2, modeloSonnet5, 1), Motivo: motivoDelTopeDelVotoUno},
+				{Sesion: sesionSintetica(2, modeloSonnet5, 1), Motivo: motivoDelTopeDosVecesUno},
 			},
 		},
 	}
@@ -338,15 +339,15 @@ func marcadaEnElSondeo(t *testing.T, sesion string) votosDeUnaRespuesta {
 }
 
 // unaSinJuzgarEnElSondeo son los votos grabados de dos respuestas del sondeo:
-// el de una agota su tope y no llega a darse, y el de la otra dice sí en
-// cuenta_su_proceso.
+// el de una agota su tope en sus dos peticiones y no llega a darse, y el de la
+// otra dice sí en cuenta_su_proceso.
 func unaSinJuzgarEnElSondeo(t *testing.T) []votosDeUnaRespuesta {
 	t.Helper()
 
 	return []votosDeUnaRespuesta{
 		{
 			sesion: sesionSintetica(2, modeloSonnet5, 1), parrafo: parrafoLentoDeOrden,
-			votos: []grabacion{{err: errTopeDelVoto}},
+			votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
 		},
 		conSiEnElSondeo(t, sesionSintetica(3, modeloSonnet5, 2), parrafoDelProcesoDos),
 	}
@@ -878,7 +879,7 @@ func casosDeLaSalidaConElJuez() []casoDeLaSalidaConElJuez {
 			lineas: []string{
 				tituloDelJuezEsperado, ningunaMarcadaDeOcho, unaConSiDeOcho, medidaQueCorresponde,
 				"Respuestas sin juzgar:",
-				"- 02-sintetica-claude-sonnet-5-01: voto 1: tope de 35 s agotado",
+				"- 02-sintetica-claude-sonnet-5-01: voto 1: tope de 35 s agotado dos veces",
 			},
 		},
 	}

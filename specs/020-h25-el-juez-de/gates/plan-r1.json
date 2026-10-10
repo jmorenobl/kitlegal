@@ -1,0 +1,108 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check» tiene un ítem por principio (I a IX) y por regla de dependencia (R1 a R6, las seis de docs/ROADMAP.md §2). Es veraz en lo que he podido contrastar: `go list -deps ./cmd/kitlegal` no enlaza `internal/evals` (0 líneas); `internal/evals` ya importa `internal/app`, `internal/cache` e `internal/graph` y no `database/sql`; `app.AppletCita()` no tiene dependencias (internal/app/cita.go:45) y `app.Main` devuelve el código sin terminar el proceso (internal/app/main.go:149). La única desviación, «Aceptación e2e: no aplica» frente al principio III, está en Complexity Tracking con su motivo y su alternativa rechazada."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: go.mod:8-17 lleva las diez directas de hoy y el plan no añade ninguna (research V2). `encoding/json/v2` y `go.yaml.in/yaml/v3` ya se usan en `internal/evals` e `internal/skills`; el hito no los introduce."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo va en ficheros que ya existen de `internal/evals` (juez.go, informe.go, medida.go, conjunto.go, doc.go). Ni `net/http`, ni SQLite, ni `os.Exit`, ni escritura en stdout: la orden `cita` se repite con `app.Main` contra un búfer, como hoy hace `repetirLasInvocaciones` (internal/evals/medida.go:908-931), y la entrada estándar se da por `Registro.LeerDe` (internal/app/registro.go:143). `internal/core` no cambia."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "El binario y sus códigos no cambian (FR-096). `internal/evals` devuelve `error` con el caso o el fichero delante: el caso que no se resuelve nombra informe, sesión y lo quitado (contracts/medida-y-casos.md §7, con su ejemplo), como hoy hace `reconstructor.resolver` (medida.go:542-560). Ningún `panic` previsto."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "plan.md «Aceptación e2e: no aplica», con el motivo (el hito no toca el binario ni el applet `cita`) y la tabla de tests por historia. «Tests nuevos» (TestTextoQuitado, TestReconstruccionDeJurisprudencia, TestPreguntasDelSondeo), «Tests existentes que cambian» (once grupos, todos localizados hoy en su fichero: medida_test.go:259, 628, 892, 1277, 1979, 2323; informe_test.go:3842, 4353; sesion_test.go:694; juez_test.go:280, 1032; ejecucion_test.go:102; definicion_test.go:182; conjunto_test.go:751, 1748, 3357), fixtures («nada cambia en testdata/ ni en schemas/»; lo sintético, en el temporal del test) y los controles mecánicos. Ninguna tarea `[aceptacion]` ni `[datos]`."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Las seis piezas del Summary son las siete entregas del hito y los FR del spec. No hay ADR nuevo, ni cambios en el applet `cita`, `schemas/`, `evidencias/`, la constitución, `scripts/workflow/`, las seis evals de H23, `boe-legislacion` ni `legal-core` (FR-005, FR-096). `doc.go` y los comentarios de `evals.yml` cambian solo donde el hito los deja falsos: internal/evals/doc.go:158 dice hoy «en jurisprudencia, que no tiene juez ni objetivo, son cuatro» y evals.yml:194-195, «sin juez y de una en una, es de 20 341 s»."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún `//nolint`, `t.Skip`, TODO ni error silenciado previsto. «Ninguno se desactiva ni se salta. Ninguno se retira sin el que lo sustituye.» Las obligaciones para tasks.md prohíben cumplir un umbral de FR-020, FR-022 o FR-023 rebajándolo, dejándolo en `decide: false` o sacando respuestas o casos de su total (FR-026)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research.md D1 a D20, cada una con su alternativa rechazada y el porqué: repetir `cita` en proceso y no con el binario compilado (D4), una regla de argumentos propia de `cita` que no cambia los textos con los que se midió el juez de `boe-legislacion` (D5), el informe de un sondeo reconocido por su clave `sondeo` y no por su ruta (D8; la clave está en los dos informes), la matriz de `medida` derivada y no escrita en el test (D12), reglas del conjunto por clase y sin valores (D13)."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "He contrastado la tabla V contra el árbol y coincide en fichero y línea (V1 a V24: go.mod, esquemas.go:143-172 sin KnownFields, ejecucion.go:84-106, sesion.go:162-179 y 619-699, umbrales.go:192-278, juez.go:287-327 frente a guiones/juez.py, medida.go:433-436 y 884-948, casos.py y preguntas.py, definicion_test.go:143-147 y 551-622, conjunto.go:308-350 y 744-835, guardian-diff.sh:74-102, evals.yml:176-184 y 372-381, SOURCES.md:44). Ejecutado y visto terminar en esta sesión: `go build` de la cabeza al temporal; `cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json`, `cita preparar --texto` y `cita cotejar` por la entrada estándar, con código 0 y los valores que dicen M7 y el quickstart, sin que se cree el directorio de `KITLEGAL_CACHE_DIR`; `cita cotejar` con la ficha sola y sin el apartado 2.º por la entrada, y con `--documento` de varias líneas, los tres con 0, y sin documento con 2, que es por lo que la regla quita las órdenes `cotejar`; las dos órdenes `sed` del contrato dan el fragmento byte a byte y preguntas de 2 496 y 423 bytes; `git apply --check` admite el diff de `SKILL.md`, con 9 añadidas y 7 quitadas sobre 195 líneas; con `jq` y `grep`, 249 casos (125 y 124; 127 derivados, 45, 41 y 41; 138, 39 y 72 por informe; 37 con `frase`), las 61 órdenes `cita` del informe de H23 todas con código 0, las 8 de 35 y 6 de 18 respuestas con CAPTCHA en las mismas sesiones de la traza y las seis con el equivalente; `shasum` de la rúbrica y de los casos, que son las huellas de `medida.json`; y `git diff --stat bf4befd HEAD -- evals/jurisprudencia/`, vacío (V20). Lo que no se puede comprobar en local figura como supuesto (S1 a S9: el tope de 360 minutos, `fail-fast`, el `sed` fuera de macOS, el voto real). No he ejecutado `go test` ni `make ci`, ni he repetido el prototipo de M2 ni M4: lo digo en observaciones."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "quickstart.md dice qué vale hoy (el escenario 0 y las tres órdenes del binario del 3) y lo he ejecutado: las tres salidas son las esperadas, incluida la huella `4886e0c8…ee27` del fragmento en `url` y la dirección `…/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN`. Los demás escenarios nombran tests que existen o que el plan fija en su fichero, rutas reales y cifras que he rehecho (197 líneas, 2 líneas con CAPTCHA, +9 −7, 12 577 s y 15 505 s). Lo que dejan está declarado: `bin/kitlegal` y `coverage*.out`, que `.gitignore` ignora (líneas 2 y 6), y un directorio temporal para la caché. El 10 es del workflow y el 11, de una persona, y no son tareas."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguna fuente ni grabación nuevas (research D19, V24): el CENDOJ no se consulta y `docs/SOURCES.md` no cambia. El fragmento y la ficha llegan a las evals (h) e (i) con una orden desde `evidencias/adr-0036/`, que ya está versionado, y las cuatro copias del juez, con `cp` desde la evidencia de la validación; los bytes los fijan TestPreguntasConElFragmento, TestPreguntasDelSondeo y TestCopiasDelJuez. Los valores de las casillas de la eval (g) son los que devuelve el binario, que he visto: «Nº Resolución» 241/2013 y «Fecha resolución» 09/05/2013. Nada va a `data/`."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea exige a una persona ni mide o publica en la plataforma: «Obligaciones para tasks.md» prohíbe la red, las sesiones con modelo, `make evals`, `make evals-sondeo`, `make evals-medir-juez`, los tests con la etiqueta `evals` y los guiones de Python de la evidencia (FR-095). El job de cierre lo lanza el workflow, y la medida con la etiqueta `evals-medir-juez` y la lectura de las respuestas son de después del run (SC-014)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Cálculo rehecho. Nada de lo que entrega el hito crece con meses de uso: el applet `cita` no abre la caché ni el grafo (lo he visto: el directorio de la caché no llega a crearse) y el job y la medida parten de las evals y los casos del repositorio. La respuesta de la skill: las mismas órdenes por pregunta que v0 (un `preparar` por sentencia sin documento, un `cotejar` por documento, un `preparar` con texto por materia); medido sobre el sondeo, de 768 a 2 695 bytes y 1 604 de media en 18 respuestas; la línea y la consulta, unos 360 bytes por sentencia, se apagan con el documento cotejado, y C1 quita una frase que hoy se repite sin información en 14 de 53 respuestas. `umbrales`: 12 elementos fijos (4 por modo, 2 de la medida y 2 de duración del juez, contados sobre `umbralesDelInforme`), unos 3,8 KB con el ejemplo de 325 bytes. `juez`: nada sin votos afirmativos; como mucho 60 respuestas × 6 votos, por debajo de 0,5 MB con cualquiera de las dos cifras por voto, una vez por job. Motivos: unos 374 bytes por respuesta marcada, como mucho 30 por modo, y dejan de darse en el primer job sin marcadas. La medida impresa: 715 bytes la versionada, una por lanzamiento. Cada contrato da la forma y un ejemplo de su salida."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad» lleva cada mecanismo a su FR y no hay paquete, fichero Go, ejecutable, opción ni objetivo del Makefile nuevos. El juez, los umbrales, la medida y sus guiones se usan sin cambiar: he comprobado que ni `umbrales.go`, ni `ejecucion.go`, ni `juez.go`, ni los guiones nombran ninguna skill. Lo que se escribe es lo que el código de hoy no hace y un FR pide: `sentencia` (FR-013), `quitado.texto` (FR-043; hoy el lector lo pierde), el informe de un sondeo (FR-042), las órdenes `cita` con su entrada y su código (FR-041; hoy el registro solo lleva `boe` y `graph` y parte la orden por blancos), las reglas con las diez (FR-065) y la matriz de `medida` (FR-071, FR-103). El error de un recorte que no se puede hacer es la regla que ya hay —el caso no se resuelve y se nombra (FR-044)—, sin caso propio."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Cotejada con el spec: los seis umbrales de FR-101 y los cuatro de FR-024 tienen fila `evals:jurisprudencia:<nombre>`, uno por modo donde el requisito es por modo, y los nombres son los que compone el código (`<clase>:<modelo>:<modo>`, `medida_del_juez:<clase>:defectos_sin_marcar` y `:correctos_marcados`, `duracion_del_juez:<modo>`), todos con `decide: true` en `umbrales.go`; `afirma_que_existe`, que solo se publica, no tiene fila. SC-002 a SC-011 y SC-013 tienen fila `ci:` con un test que existe o que el plan crea en ese fichero, y `ci:Makefile:skills-check` ejecuta TestSkillsDelRepositorio, que falla con 300 líneas (internal/skills/sincronia.go). Recorrido: una respuesta marcada, 901 s de votos, una cita sin documento o una respuesta sin activar ponen `cumple: false` en un umbral que decide, el veredicto en `fallo` y el trabajo en rojo, que ve `medir_cierre`; una medida que no corresponde la ve `verificar` (TestMedidaVersionada) y además el job, sin abrir sesiones; una copia distinta, un tope que no cubre su peor caso —12 577 s y 15 505 s, rehechos con las constantes de `definicion.go`, bajo 21 120 s y 16 140 s; de una en una, 47 857 s y 60 305 s—, un caso sin resolver o una pregunta distinta de la de `preguntas.json` los ve `verificar`. SC-012 es `make ci` entero, y SC-014 y SC-015 no se miden ni en `make ci` ni en el cierre."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[o] La fila «SC-001 (sin juzgar)» da `ci:internal/evals/informe_test.go:TestInformeConElJuez` para un umbral que se mide en el cierre: lo que sale en rojo es el veredicto del job, por un motivo de la ejecución y no por un elemento de `umbrales`, y el test es quien lo ve fallar. Es la misma fila que aprobó el plan de H24 y el código es común a las dos skills; no llega a motivo.",
+    "[o] SC-015 lleva una cifra (ninguna de las 6 afirmaciones falsas de `CONTRIBUTING.md`) y no tiene fila: su control es la lectura de la revisión final, que no es ni `make ci` ni el cierre, y el spec excluye un test que ate ese texto a la definición del job (FR-093).",
+    "[i] No he ejecutado `go test` ni `make ci`. No he repetido el prototipo de M2 (249 de 249 resueltos en Go) ni M4 (cuatro tests en rojo con la carpeta del juez sola): extraer una copia de la cabeza al temporal pedía una aprobación que no se dio. Lo que sí he visto sostiene los dos: cada forma de orden `cita` del informe de H23 repetida a mano termina con 0, y con seis evals, juez y una sesión a la vez el peor caso es de 29 041 s, sobre los 21 120 s del tope.",
+    "[i] S1 queda como supuesto y es el que más pesa: el sobre de cada orden repetida lleva la `fecha_consulta` de la repetición, así que el mensaje del voto no es byte a byte el de la validación ni hay fichero versionado con el que compararlo. Lo mide la persona con la etiqueta `evals-medir-juez` antes de fusionar (SC-014).",
+    "[n] FR-050 pide que el resultado de la medida de una skill no cambie el de la otra y descansa en el `fail-fast: false` que ya lleva el trabajo `medida` (evals.yml:374); TestDefinicionDelJob no lee esa clave y el plan no lo añade. El hito no la toca.",
+    "[h] Los ficheros de las evals nuevas (08, 09 y 10) comparten número con otras preguntas del sondeo (`08-doctrina-por-materia`, `09-doctrina-con-el-fallo-delante`, `10-resumen-con-el-fallo-delante`). No cambia nada de lo que se resuelve: un caso de un sondeo busca su pregunta por id en `preguntas.json` y un caso se identifica por informe y sesión. Puede confundir a quien lea las dos listas.",
+    "[m] El spec estima 430 KB como máximo para los votos del informe y el plan, unos 180 KB. Las dos cifras están acotadas por las 60 respuestas juzgadas y ninguna cambia el diseño.",
+    "[j] research D15 dice que las evals (h) e (i) se componen con `cp`, `sed` y `printf`, y contracts/evals-jurisprudencia.md §2 enseña solo las dos órdenes `sed`. Los bytes los fija el test de FR-110. En esta máquina he visto lo que avisa M12: un `cat` dejó un salto de línea de más.",
+    "[j] El escenario 10 del quickstart espera «0 de 30» en los dos modos; el juez del spec ya anotó que una sesión que muere por un error de la API sale del total, que entonces sería 29 con el mismo veredicto.",
+    "[n] D12 hace que el test espere en `medida` la concurrencia que cada skill tiene en `evals`; FR-071 pide cuatro, y con la definición del repositorio es lo mismo."
+  ]
+}

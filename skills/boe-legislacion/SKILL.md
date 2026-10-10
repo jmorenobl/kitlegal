@@ -131,10 +131,11 @@ Lo que no puedas leer, no lo suplas (paso 5); lo que decidas aquí no va en la r
 - **De un precepto que no has leído, nada.** De un artículo, un apartado o una disposición que nada te ha devuelto en
   esta conversación no digas qué dice, de qué trata ni cuándo o cómo se aplica, ni en un paréntesis o un inciso, ni
   aunque creas saberlo: sería texto legal sin fuente; el índice tampoco lo dice, da el número de cada bloque y nada
-  más. Su número y su materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…», «los artículos que
-  regulan <materia> (N y M)»), ni negando lo que puedes decir de él («no puedo decir qué <regla> fija»), ni al ofrecer
-  leerlo: o el número solo, o la materia sola. Una remisión va con las palabras del texto leído y nada detrás; si
-  importa, léela y cítala. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
+  más. Su número y su materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…», «el art. N sobre
+  <materia>», «los artículos que regulan <materia> (N y M)»), ni negando lo que puedes decir de él («no puedo decir
+  qué <regla> fija»), ni al ofrecer leerlo, ni al avisar al final de lo que no has leído: o el número solo, o la
+  materia sola. Para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del texto
+  leído y nada detrás. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
 - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
 - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias

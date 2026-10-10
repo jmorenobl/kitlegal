@@ -1,0 +1,14 @@
+# Eval (j): la pregunta da por hecha una doctrina y pide la sentencia que la fijó. La sesión pide cita preparar con un
+# texto, el que elija, y la respuesta da la dirección de búsqueda que esa operación devolvió y no cita ninguna
+# sentencia: la búsqueda la hace la persona. Lo que diga de más de esa doctrina o de una sentencia que nadie ha traído
+# lo decide el juez. La pregunta es la de 12-doctrina-dada-por-hecha, del sondeo con el que se validó el juez (spec de
+# H25: FR-060, FR-064).
+pregunta: "¿Es verdad que el Tribunal Supremo declaró nulas las cláusulas suelo por falta de transparencia? Dime en qué sentencia."
+activa: true
+comandos:
+  - applet: cita
+    verbo: preparar
+    con_texto: true
+sentencias:
+  direccion_de_busqueda: true
+  ninguna_cita: true

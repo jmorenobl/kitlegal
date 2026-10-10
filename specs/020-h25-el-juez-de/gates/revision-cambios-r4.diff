@@ -1,0 +1,711 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index be22dcd..e916cc6 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -269,7 +269,9 @@ sustituyen a este fichero.
+   aviso final («el art. 7 sobre rentas exentas»), que el juez marca en `afirma_lo_no_leido`: 1 de 54 en cada modo
+   en la segunda medición del cierre de H25. No cambian la `description`, las órdenes de cada paso, la forma de la
+   cita, la de los avisos de vigencia ni las líneas `⚠ REDACCIÓN MODIFICADA:` y `⚠ SIN CONSULTA AL BOE:`; `SKILL.md`
+-  sigue en 298 líneas. Sustituye a `boe-legislacion` v0.1.7.
++  tiene 299 líneas (el máximo es 299; tenía 298), y `make ci` las admite: el caso `dos-inicios` de
++  `TestSkillsDelRepositorio` ya no añade una línea a la copia de la skill que altera, que con 299 daba además el
++  defecto de las 300. Sustituye a `boe-legislacion` v0.1.7.
+ - **El juez del job de evals pide otra vez, una sola, el voto que su tope corta.** Un voto que agota sus 35 s se
+   vuelve a pedir con su mismo número, como un nulo, y cuenta el que llega; dos peticiones por voto como mucho, sea
+   cual sea la causa de la primera, así que el peor caso calculado de cada trabajo y sus dos topes no cambian. La
+@@ -278,7 +280,7 @@ sustituyen a este fichero.
+   sesión y su motivo, e `informe.md`, en la tabla «Votos cortados por el tope y pedidos otra vez»; una respuesta sin
+   juzgar sigue sin llevar nada más que su motivo. Antes, un voto cortado dejaba la respuesta sin juzgar y el trabajo
+   en rojo por la ejecución y no por la skill: pasó con una respuesta en la segunda medición del cierre de H24 y con
+-  una de 168 juzgadas en la segunda del cierre de H25.
++  una de las 171 que el juez tenía que juzgar en la segunda del cierre de H25.
+ 
+ ## [0.5.0] - 2026-10-04
+ 
+diff --git a/internal/app/skills_test.go b/internal/app/skills_test.go
+index b251cf3..f2f354e 100644
+--- a/internal/app/skills_test.go
++++ b/internal/app/skills_test.go
+@@ -1034,16 +1034,18 @@ func casosDeRegion(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
+ 			fallos: []string{skill.nombre + ": SKILL.md: sin las marcas de la tabla de comandos"},
+ 		},
+ 		{
+-			// La marca de inicio repetida ocupa la línea de la de fin, que baja una.
++			// La marca de inicio repetida sustituye a la línea en blanco que precede a
++			// la de fin: la copia tiene las líneas del SKILL.md real, que puede estar
++			// en su máximo (FR-041), y su único defecto es el de la marca.
+ 			nombre: "dos-inicios",
+ 			alterar: func(t *testing.T, copia string) {
+ 				t.Helper()
+ 
+-				cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), finDeLaTablaDeComandos+"\n",
+-					inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n")
++				cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), "\n\n"+finDeLaTablaDeComandos+"\n",
++					"\n"+inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n")
+ 			},
+ 			fallos: []string{fmt.Sprintf("%s: SKILL.md: la marca de inicio de la tabla de comandos "+
+-				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, fin)},
++				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, fin-1)},
+ 		},
+ 		{
+ 			nombre: "fin-antes-del-inicio",
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index 129e36b..a99a7d7 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -219,7 +219,8 @@ protocolo solo usa `check`, tras cada lectura de bloques: en su misma orden o en
+   diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
+   legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción y desde
+   cuándo rige; hasta cuándo, nunca (paso 5).
+-- Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y no ha leído la anterior.
++- Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y que la que había antes
++  no la ha leído.
+ 
+ ## Comandos
+ 
+diff --git a/specs/020-h25-el-juez-de/cierre.md b/specs/020-h25-el-juez-de/cierre.md
+index f9b53c7..ca7d86f 100644
+--- a/specs/020-h25-el-juez-de/cierre.md
++++ b/specs/020-h25-el-juez-de/cierre.md
+@@ -39,6 +39,23 @@ la revisión final»; los números de línea de `medida_test.go` en §4, §5 y 
+ que «Nada se corrigió después de crearlo» dice de `medida.go`. El quickstart (§4) no se ha vuelto a ejecutar entero:
+ de sus órdenes, esa sesión repite la de su §4 con `-v`, que da las mismas 92, y `make ci`, que termina en verde.
+ 
++**El cierre, después, repara, y la revisión final juzga la reparación.** Tras la medición 1 (`3f99446`), la
++reparación no cambió nada fuera de `gates/`. Tras la medición 2 (`e380f0a`), la reparación `0dc549c` cambia una viñeta de
++`skills/boe-legislacion/SKILL.md`, que pasa a v0.1.8 (R1), y hace que el juez pida otra vez, una sola, el voto que su
++tope corta, con el corte publicado en `juez.votos_cortados` (R2): `juez.go`, `informe.go` y `doc.go`; cinco ficheros
++de test de `internal/evals`, uno de ellos, `sondeo_test.go`, nuevo en el diff; `CHANGELOG.md` y `CONTRIBUTING.md`
++(research.md, «Reparaciones del cierre»). La ronda 3 de la revisión final devuelve a la de `main` la viñeta de
++«Redacción modificada» que R1 había reescrito para ganar una línea, deja ese `SKILL.md` en 299 líneas y, para que
++`make ci` las admita, cambia el caso `dos-inicios` de `TestSkillsDelRepositorio` (`internal/app/skills_test.go`). De
++este fichero cambia lo que todo eso cambia, medido en la sesión del corrector de esa ronda con las mismas órdenes,
++con sus cambios en el árbol y sin commit: esta cabecera; los recuentos, las tablas y «Lo que no cambia» de §1; en §3
++y en §4, el párrafo «Después de las reparaciones del cierre»; los números de línea de `informe_test.go`, de
++`juez_test.go` y de `medida_test.go` y los recuentos de tres tests en §5 y §6; en §5, lo que ya se sabe de las diez
++filas `evals:`; en §6, «Nada se corrigió después de crearlo», lo que dice de `gates/evals/` y el recuento de
++«Atajos»; §7; y §8. El quickstart (§4) no se ha vuelto a ejecutar entero: de sus órdenes, esa sesión repite con `-v`
++los tests de §1 a §7, en una sola orden, y `make ci`, que termina en verde. Lo que cada sección dice haber medido
++sobre `7f0d96c`, en T009 o en la ronda 1 es lo que se midió entonces.
++
+ ## 1. Lo creado y lo modificado en el hito, y lo que no cambia
+ 
+ `git diff --name-status main`, con los tres comentarios de T009 ya corregidos, da **65 ficheros: 43 `A` y 22 `M`**,
+@@ -54,14 +71,21 @@ tarea y los tres que el workflow lleva modificados (`tasks.md`, `gates/tarea-act
+ (medido en el barrido); los 31 de fuera de `specs/`, con sus 7 698 líneas añadidas y 855 quitadas, son los mismos, y
+ el barrido no toca ninguno. Los de `specs/` siguen creciendo con lo que el workflow deja en `gates/`. La revisión
+ final cambia dos de los 31, `medida.go` y `medida_test.go`: con ellos, `git diff --shortstat main -- . ':!specs'` da
+-7 694 líneas añadidas y 843 quitadas en los mismos 31 ficheros (medido en la sesión del corrector).
++7 694 líneas añadidas y 843 quitadas en los mismos 31 ficheros (medido en la sesión del corrector). Las reparaciones
++del cierre y la ronda 3 de la revisión final cambian nueve de esos 31 y añaden tres:
++`skills/boe-legislacion/SKILL.md`, `internal/evals/sondeo_test.go` e `internal/app/skills_test.go`. Con ellos,
++`git diff --name-status main` da 89 ficheros, 64 `A` y 25 `M`, 55 de ellos en `specs/020-h25-el-juez-de/`, y
++`git diff --shortstat main -- . ':!specs'`, 8 082 líneas añadidas y 969 quitadas en 34 ficheros, 9 `A` y 25 `M`
++(medido en la sesión del corrector de la ronda 3, con sus cambios en el árbol).
+ 
+-### Los 31 ficheros
++### Los 34 ficheros
+ 
+ Cada uno con la tarea que lo tocó (`git log --format=%s main..HEAD -- <ruta>`) y sus líneas
+ (`git diff --numstat main`). Los tres de T009 están en el árbol y sin commit cuando se escribe esto: su tarea es la
+ de la sesión que los edita. Las líneas de `medida.go` y de `medida_test.go` son las de después de la revisión final,
+-que los edita (antes, +803 −105 y +2 493 −242).
++que los edita (antes, +803 −105 y +2 493 −242). Las de los ficheros que tocan las reparaciones del cierre y la ronda 3
++de la revisión final son las de después de ellas, medidas en la sesión del corrector de esa ronda, con las de antes
++entre paréntesis.
+ 
+ **La carpeta del juez** (5, todos `A`, de T004), en `evals/jurisprudencia/juez/`:
+ 
+@@ -79,36 +103,44 @@ que los edita (antes, +803 −105 y +2 493 −242).
+ 
+ **La skill** (1, `M`, de T006): `skills/jurisprudencia/SKILL.md`, +9 −7, que queda en 197 líneas (§2).
+ 
++**La otra skill** (1, `M`, de la reparación R1 del cierre y de la ronda 3 de la revisión final):
++`skills/boe-legislacion/SKILL.md`, +5 −4, que queda en 299 líneas. Su diff con `main` es un solo trozo,
++`@@ -131,10 +131,11 @@`, la viñeta «De un precepto que no has leído, nada» (research.md, R1).
++
+ **El flujo** (1, `M`, de T003, T004 y T007): `.github/workflows/evals.yml`, +37 −21. Fuera de sus comentarios, el
+ diff son seis líneas: `concurrencia: 1` pasa a `concurrencia: 4` en la entrada de `jurisprudencia` del trabajo
+ `evals`; la matriz del trabajo `medida` pasa de `[boe-legislacion]` a `[boe-legislacion, jurisprudencia]` y gana su
+ entrada de `include`, con `concurrencia: 4`; y la descripción de la entrada `medir_al_juez` dice «de las skills que lo
+ tienen» donde decía «de boe-legislacion».
+ 
+-**Los ficheros de Go** (16, todos `M`), en `internal/evals/`:
++**Los ficheros de Go** (18, todos `M`): 17 en `internal/evals/` y, el último de la tabla, uno en `internal/app/`.
+ 
+ | Fichero | Tarea | Líneas |
+ |---|---|---|
+-| `juez.go` | T001 | +15 −2 |
+-| `informe.go` | T001 | +56 −16 |
++| `juez.go` | T001 y la reparación R2 | +83 −28 (antes, +15 −2) |
++| `informe.go` | T001 y la reparación R2 | +98 −17 (antes, +56 −16) |
+ | `medida.go` | T002 y la revisión final | +795 −105 |
+ | `conjunto.go` | T003 | +30 −21 |
+-| `doc.go` | T007 | +24 −7 |
++| `doc.go` | T007 y la reparación R2 | +33 −13 (antes, +24 −7) |
+ | `umbrales.go` | T009 | +12 −5 |
+-| `juez_test.go` | T001, T004 | +322 −3 |
+-| `informe_test.go` | T001, T003, T004 | +738 −120 |
+-| `medida_test.go` | T002, T004, T005 y la revisión final | +2 497 −230 |
++| `juez_test.go` | T001, T004 y la reparación R2 | +440 −35 (antes, +322 −3) |
++| `informe_test.go` | T001, T003, T004 y la reparación R2 | +805 −145 (antes, +738 −120) |
++| `medida_test.go` | T002, T004, T005, la revisión final y la reparación R2 | +2 523 −241 (antes, +2 497 −230) |
+ | `conjunto_test.go` | T003, T004 | +404 −55 |
+ | `definicion_test.go` | T003, T004 | +415 −122 |
+-| `ejecucion_test.go` | T004 | +85 −17 |
++| `ejecucion_test.go` | T004 y la reparación R2 | +91 −19 (antes, +85 −17) |
+ | `sentencias_test.go` | T003 | +168 −43 |
+ | `sesion_test.go` | T004 | +114 |
++| `sondeo_test.go` | la reparación R2 | +9 −8 (antes no estaba en el diff) |
+ | `umbrales_test.go` | T009 | +8 −6 |
+ | `consultas_test.go` | T009 | +2 −2 |
++| `internal/app/skills_test.go` | la ronda 3 de la revisión final | +6 −4 (antes no estaba en el diff) |
+ 
+-Son 932 líneas añadidas a los seis que no son tests y 4 753 a los diez de test. Ningún fichero ni paquete de Go es
+-nuevo. `sentencias_test.go` no estaba en la lista de plan.md, «Source Code»: lo añade tasks.md, que dice por qué en su
+-cabecera. Desde el barrido, esa lista lo nombra, con `umbrales.go` y los dos ficheros de test de T009.
++Son 1 051 líneas añadidas a los seis que no son tests (eran 932), 4 979 a los once de test de `internal/evals` (eran
++4 753 en diez) y 6 al de `internal/app`. Ningún fichero ni paquete de Go es nuevo. `sentencias_test.go` no estaba en
++la lista de plan.md, «Source Code»: lo añade tasks.md, que dice por qué en su cabecera. Desde el barrido, esa lista lo
++nombra, con `umbrales.go` y los dos ficheros de test de T009; y desde la ronda 3 de la revisión final, lo que tocan
++las reparaciones del cierre.
+ 
+ **Los tres de T009 solo cambian comentarios.** En `git diff main` de los tres, cada línea añadida o quitada empieza
+ por `//`: un trozo en cada fichero, el final del comentario de `umbralesDelInforme` (`@@ -184,11 +184,18 @@`), el de
+@@ -118,11 +150,12 @@ nombra ninguno. `grep` de «no tiene juez ni objetivo», de «tiene hoy las dos
+ nada, y antes de editarlos daba una línea en cada uno (`umbrales.go:188`, `umbrales_test.go:537` y
+ `consultas_test.go:27`). En los ficheros Go del paquete, ninguna otra frase dice que `jurisprudencia` no tiene juez,
+ que sus evals son seis o que sus umbrales son cuatro: «las seis» de `conjunto_test.go:1297` son las evals de H23,
+-nombradas junto a las cuatro de H25, y el total de 18 de `informe_test.go:4685` es el del contrato de H23, a
+-propósito.
++nombradas junto a las cuatro de H25, y el total de 18 de `informe_test.go:4734` (era la línea 4685 antes de la
++reparación R2) es el del contrato de H23, a propósito.
+ 
+-**La documentación** (4, todos `M`, de T007): `CHANGELOG.md` (+74 −15), `CONTRIBUTING.md` (+106 −44),
+-`docs/JURISPRUDENCIA.md` (+17 −1) y `docs/WORKFLOW.md` (+1 −1).
++**La documentación** (4, todos `M`, de T007): `CHANGELOG.md` (+94 −15; antes, +74 −15), `CONTRIBUTING.md` (+118 −51;
++antes, +106 −44), `docs/JURISPRUDENCIA.md` (+17 −1) y `docs/WORKFLOW.md` (+1 −1). Los dos primeros los cambian
++también las reparaciones del cierre, y `CHANGELOG.md`, la ronda 3 de la revisión final.
+ 
+ ### Lo que no cambia (FR-005, FR-011, FR-033, FR-073, FR-095, FR-096)
+ 
+@@ -139,22 +172,28 @@ ruta vacía:
+   `internal/source`, `internal/httpx` e `internal/cache` (158). Tampoco `docs/SOURCES.md` ni
+   `scripts/verify-sources.sh` (2). El paso `grabar_datos` no tenía nada que grabar.
+ - **Las seis evals de H23**: de `01-existe-con-numero-y-fecha.yaml` a `06-documento-que-no-es-el-pedido.yaml` (6).
+-- **`boe-legislacion` y `legal-core`, byte a byte**: `evals/boe-legislacion` (27), con su carpeta del juez,
+-  `evals/boe-legislacion/juez` (5); `evals/legal-core` (4); `skills/boe-legislacion` (2) y `skills/legal-core` (3).
+-  `git rev-parse` da el mismo árbol en `main` y en la cabeza a cada una de las cinco carpetas: `799416c8…`,
+-  `c9a22f89…`, `20d74b03…`, `60633173…` y `01a63a0a…`. En el flujo, las entradas de las dos skills siguen con
+-  `concurrencia: 4` y `objetivo_de_duracion: 900`, y con `concurrencia: 1` y `objetivo_de_duracion: 0`.
+-- **El applet `cita` y su dominio**: `internal/app/cita.go` y `cita_test.go` (2), e `internal/app` entero (120);
+-  `internal/core/cita` (20) e `internal/core/ids` (60), e `internal/core` entero (164). Los dos árboles enteros son
+-  los de `main`: `b83a1429…` y `0ab0f68b…`. Tampoco `cmd` (3), ni `internal/cli`, `internal/mcp` e
+-  `internal/skills` (54).
++- **Las evals de `boe-legislacion`, su juez y `legal-core`, byte a byte**: `evals/boe-legislacion` (27), con su
++  carpeta del juez, `evals/boe-legislacion/juez` (5); `evals/legal-core` (4) y `skills/legal-core` (3). `git rev-parse`
++  da el mismo árbol en `main` y en la cabeza a cada una de las cuatro carpetas: `799416c8…`, `c9a22f89…`, `20d74b03…`
++  y `01a63a0a…`. En el flujo, las entradas de las dos skills siguen con `concurrencia: 4` y
++  `objetivo_de_duracion: 900`, y con `concurrencia: 1` y `objetivo_de_duracion: 0`. **`skills/boe-legislacion` (2) sí
++  cambia desde la reparación R1 del cierre**: hasta ella era también la de `main` (`60633173…`), y hoy su `SKILL.md`
++  lleva una viñeta cambiada, +5 −4 (arriba, «La otra skill»); su `references/normas.md` no cambia.
++- **El applet `cita` y su dominio**: `internal/app/cita.go` y `cita_test.go` (2); `internal/core/cita` (20) e
++  `internal/core/ids` (60), e `internal/core` entero (164), con el árbol de `main`, `0ab0f68b…`. De `internal/app`
++  (120), que hasta la ronda 3 de la revisión final era entero el de `main`, cambia un solo fichero, de test:
++  `skills_test.go`, en el caso `dos-inicios`; ningún fichero que no sea un test. Tampoco cambian `cmd` (3), ni
++  `internal/cli`, `internal/mcp` e `internal/skills` (54).
+ - **El guion del voto**: `scripts/evals-voto.sh` (1); `git rev-parse` de `main` y de la cabeza y `git hash-object`
+   del árbol dan el mismo objeto, `6931a6e0…`. Tampoco nada de `scripts` entero (31).
+ - **`mensajeDelVoto`**: `juez.go` sí está en el diff, así que se compara la función. Con su comentario son 35 líneas
+-  en `main` y 35 en el árbol, y `cmp` no da ninguna diferencia. El diff de `juez.go` son cuatro trozos, todos del
++  en `main` y 35 en el árbol, y `cmp` no da ninguna diferencia. El diff de `juez.go` eran cuatro trozos, todos del
+   campo `sentencia` de T001: el comentario de `VotoDeClase`, su campo `Sentencia`, la línea que lo copia en
+-  `pedirElVoto` y el campo de `dichoDeClase`. La constante de la petición, que dice «las dos preguntas»
+-  (`juez.go:290`), no está en ninguno.
++  `pedirElVoto` y el campo de `dichoDeClase`. Desde la reparación R2 del cierre son diez: esos cuatro y seis del voto
++  que el tope corta —las causas del tope, `Cortados` en `JuicioDeRespuesta`, el comentario y el cuerpo de `juzgar`,
++  `votosDelNumero` con `motivoDelVoto`, y `pedirElVoto`, que devuelve la causa sin el número del voto—. El primero
++  empieza en la línea 638, y `mensajeDelVoto` ocupa de la 293 a la 327: sigue sin estar en ninguno. Tampoco la
++  constante de la petición, que dice «las dos preguntas» (`juez.go:290`).
+ - **Los dos topes, y el modelo y la versión del juez** (FR-033): en `main` y en el árbol, `timeout-minutes: 352` en el
+   trabajo `evals` y `timeout-minutes: 269` en el de `medida`; `MODELO_DEL_JUEZ: claude-opus-5-5` y
+   `VERSION_DE_CLAUDE_CODE_DEL_JUEZ: 2.1.289`, en los dos trabajos. Siguen también `MODELO_DE_EVALS: claude-sonnet-5-5`,
+@@ -177,7 +216,10 @@ ruta vacía:
+   `README.md` (1).
+ 
+ Las mismas órdenes sí imprimen donde hay cambios: con `-- internal/evals` salen 16 líneas; con
+-`-- evals/jurisprudencia`, 9; con `-- docs`, 2; y con `-- skills` y `-- .github`, una cada una.
++`-- evals/jurisprudencia`, 9; con `-- docs`, 2; y con `-- skills` y `-- .github`, una cada una. Tras las
++reparaciones del cierre y la ronda 3 de la revisión final, con `-- internal/evals` salen 17; con `-- skills`, 2; y con
++`-- internal/app`, una. Todas las demás comprobaciones de esta lista siguen sin imprimir nada, repetidas en la sesión
++del corrector de esa ronda.
+ 
+ ### La Definition of Done, punto a punto (`ROADMAP.md` §1)
+ 
+@@ -185,14 +227,14 @@ Las mismas órdenes sí imprimen donde hay cambios: con `-- internal/evals` sale
+ |---|---|---|
+ | 1 · `make ci` en verde | sí | §4, escenario 9: código 0 y `ci: todos los controles en verde`, con la caché de tests vacía. |
+ | 2 · tests offline; fixtures si toca red | tests sí; fixtures no | Los tests de §4 y §5. El hito no toca la red: ninguna grabación ni fuente (arriba). |
+-| 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las 932 líneas añadidas a los seis `.go` que no son tests, 0 coincidencias de `"net/http"`, `"net"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"`, `modernc.org` e `internal/httpx`. `golangci-lint`, en el `make ci` de §4: `0 issues.` |
++| 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las 932 líneas añadidas a los seis `.go` que no son tests, 0 coincidencias de `"net/http"`, `"net"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"`, `modernc.org` e `internal/httpx`. `golangci-lint`, en el `make ci` de §4: `0 issues.` Con la reparación R2 son 1 051 líneas, y la misma búsqueda sigue sin dar ninguna; `0 issues.` en el `make ci` de la ronda 3. |
+ | 4 · esquemas y `schema-check` | ningún esquema cambia | `schemas` sin cambios; `TestEsquemasPublicados`, `ok` dentro de `make ci`. |
+-| 5 · errores con código estable | ningún código de `kitlegal` cambia | `internal/app`, `internal/cli` e `internal/core` sin cambios. |
+-| 6 · e2e y `CHANGELOG.md` | «Aceptación e2e: no aplica»; `CHANGELOG.md`, sí | `CHANGELOG.md` +74 −15, en *Unreleased*, con «La skill `jurisprudencia` v0.1» en su línea 58 (T007; SC-012). |
++| 5 · errores con código estable | ningún código de `kitlegal` cambia | `internal/cli` e `internal/core` sin cambios; de `internal/app`, solo un caso de un test (ronda 3 de la revisión final). |
++| 6 · e2e y `CHANGELOG.md` | «Aceptación e2e: no aplica»; `CHANGELOG.md`, sí | `CHANGELOG.md` +74 −15, en *Unreleased*, con «La skill `jurisprudencia` v0.1» en su línea 58 (T007; SC-012). Con las dos entradas de las reparaciones del cierre, +94 −15. |
+ | 7 · ADR | no | `docs/ADR` sin cambios: la decisión es el ADR 0037. |
+ | 8 · `SOURCES.md` | no | `docs/SOURCES.md` sin cambios: ninguna fuente. |
+ | 9 · cobertura | sí | §3. |
+-| 10 · skill: evals antes, `SKILL.md` < 300, sin drift | sí | Las evals son de T003 (`363d682`) y la skill, de T006 (`028ca7c`); 197 líneas; `make skills-check` en verde (§4, escenario 8). |
++| 10 · skill: evals antes, `SKILL.md` < 300, sin drift | sí | Las evals son de T003 (`363d682`) y la skill, de T006 (`028ca7c`); 197 líneas; `make skills-check` en verde (§4, escenario 8). El `SKILL.md` de `boe-legislacion`, que cambia la reparación R1, tiene 299, y `skills-check` pasa en el `make ci` de la ronda 3. |
+ | 11 · dimensión territorial | no | — |
+ | 12 · operaciones de grafo | no | Ningún applet cambia. |
+ | 13 · recursos, plazos o escritos | no | — |
+@@ -289,6 +331,17 @@ mismo porcentaje por función. En el global del perfil de integración hay dos s
+ da restar esas dos a la cifra de T008 (10 747): no son del paquete de evals, cuyo recuento cuadra, y no se ha buscado
+ de qué paquete son. Lo demás de esta sección es lo que midió T008 sobre `7f0d96c`.
+ 
++**Después de las reparaciones del cierre.** R2 añade 17 sentencias al paquete de evals, siete a `juez.go` y diez a
++`informe.go`, todas con test. Sobre los dos perfiles que deja el `make ci` de la sesión del corrector de la ronda 3,
++en verde, y con los recuentos sacados de los bloques como arriba: `juez.go`, 261 de 263 en los dos (99,2 %);
++`informe.go`, 566 de 573 en los dos (98,8 %); `medida.go` y `conjunto.go`, como estaban, 492 de 504 y 254 de 257; el
++paquete de evals, 3 787 y 3 804 de 3 895 (97,2 % y 97,7 %, los que imprime `go test` en el registro); el dominio e
++`internal/cli`, como estaban, 2 100 de 2 136 y 398 de 406; y el global, 10 716 y 10 762 de 11 110, con 96,5 % y
++96,9 % en `go tool cover -func`. Las sentencias sin test de `juez.go` y de `informe.go` siguen siendo dos y siete:
++ninguna es de la reparación. La ronda 3 de la revisión final cambia un caso de un test y una viñeta de una skill, y
++no toca ninguna sentencia. Las filas de `juez.go`, de `informe.go`, del paquete y del global de la tabla son las de
++T008.
++
+ **Los recuentos no son comparables con los del cierre de H23.** Aquel fichero dio 15 015 sentencias en el global y
+ 2 910 en el dominio; hoy son 11 095 y 2 136, con las mismas 36 sin cubrir en el dominio y con un dominio que entre
+ aquel commit (`19f332f`) y `main` solo cambia en un fichero (+23 −7). Los bloques sí cuadran: 9 433 entonces y 9 598
+@@ -398,6 +451,16 @@ los niveles, contando el propio test:
+ `git status --porcelain` da lo mismo antes de §0 y después de cada sección, de §0 a §9: los dos ficheros de `gates/`.
+ `bin/kitlegal`, `coverage.out` y `coverage-integration.out` los ignora git (`git check-ignore`).
+ 
++**Después de las reparaciones del cierre.** La sesión del corrector de la ronda 3 repite con `-v`, en una sola orden,
++los tests de las órdenes `go test` de §1 a §7: ningún `--- FAIL` ni `--- SKIP`. Cambian tres recuentos, los de los
++tests que toca R2: `TestVotoDelJuez`, 27 (eran 23); `TestInformeConElJuez`, 16 (eran 15), con
++`votos-cortados-y-pedidos-otra-vez`; y `TestEjecucionDeLaMedida`, 24 (eran 23), con
++`un-correcto-marcado-tras-un-voto-cortado`. Con ellos §5 da 24 y §6, 71; los demás tests dan lo de arriba. De los
++que la reparación toca y el quickstart no nombra: `TestOrdenDelVoto`, 16; `TestInformeMarkdownDeLosUmbrales`, 8;
++`TestJuicioDelSondeo`, 31; y `TestSalidaDelSondeo`, 9. `wc -l skills/boe-legislacion/SKILL.md` da 299, y
++`TestSkillsDelRepositorio`, con `-v`, 113 líneas `--- PASS`, entre ellas los tres `dos-inicios`, el de cada skill. La
++tabla, «Los tests, por su nombre» y «Cómo se ejecutó» son lo que se ejecutó sobre `7f0d96c`.
++
+ **§10 y §11, no ejecutados.** Ninguna sesión del run abre una sesión con modelo ni mide en la plataforma:
+ 
+ - §10, el cierre: lo hace el workflow tras la revisión final. Empuja la rama, abre la propuesta de cambio, pone la
+@@ -420,22 +483,28 @@ búsqueda con un nombre que no existe no da nada y sale con 1. Ninguno de los si
+ 
+ | Fila de plan.md | Control `ci:` | Dónde está | Lo que el árbol da hoy (§4) |
+ |---|---|---|---|
+-| SC-001 (sin juzgar) | `TestInformeConElJuez` | `internal/evals/informe_test.go:4006` | `PASS`, 15, con `un-voto-que-no-llega` |
++| SC-001 (sin juzgar) | `TestInformeConElJuez` | `internal/evals/informe_test.go:4018` | `PASS`, 16, con `un-voto-que-no-llega` |
+ | FR-001, FR-102, SC-002 | `TestCopiasDelJuez` | `internal/evals/medida_test.go:673` | `PASS`, 21, con las ocho de `jurisprudencia` |
+ | FR-072, FR-103, SC-003 | `TestDefinicionDelJob` | `internal/evals/definicion_test.go:194` | `PASS`, 97, con las dos mutaciones «de una en una» |
+ | FR-031, FR-104, SC-004 | `TestMedidaVersionada` y `TestEjecucionSinMedir` | `internal/evals/medida_test.go:275` e `internal/evals/ejecucion_test.go:110` | `PASS`, 25 y 25, con las seis mutaciones de `jurisprudencia` en cada una |
+ | FR-044, FR-105, SC-005 | `TestReconstruccionDeJurisprudencia` | `internal/evals/medida_test.go:3351` | `PASS` |
+ | FR-045, FR-106, SC-006 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:3792` | `PASS`, 9, con `jurisprudencia` |
+-| FR-051, FR-107, SC-007 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:4404` | `PASS`, 23, con los cuatro casos de `jurisprudencia` |
+-| FR-013, FR-108, SC-008 | `TestVotoDelJuez` y `TestUmbralesDeJurisprudencia` | `internal/evals/juez_test.go:1271` e `internal/evals/informe_test.go:4670` | `PASS`, 23 y 10 |
+-| FR-010, FR-109, SC-009 | `TestTextosDeLaSesion` y `TestMensajeDelVoto` | `internal/evals/sesion_test.go:800` e `internal/evals/juez_test.go:422` | `PASS`, 11 y 7 |
++| FR-051, FR-107, SC-007 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:4404` | `PASS`, 24, con los cuatro casos de `jurisprudencia` |
++| FR-013, FR-108, SC-008 | `TestVotoDelJuez` y `TestUmbralesDeJurisprudencia` | `internal/evals/juez_test.go:1296` e `internal/evals/informe_test.go:4711` | `PASS`, 27 y 10 |
++| FR-010, FR-109, SC-009 | `TestTextosDeLaSesion` y `TestMensajeDelVoto` | `internal/evals/sesion_test.go:800` e `internal/evals/juez_test.go:424` | `PASS`, 11 y 7 |
+ | FR-065, FR-066, FR-110, SC-010 | `TestPreguntasDelSondeo`, `TestPreguntasConElFragmento`, `TestConjuntoDeEvals` y `TestEvalsDelRepositorio` | `internal/evals/conjunto_test.go:3707`, `:3540`, `:752` y `:1893` | `PASS`, 5, 6, 82 y 16 |
+ | FR-083, SC-011 | `Makefile:skills-check` | `Makefile:126` (`skills-check: check-tools`), que `ci` lleva entre sus dependencias (`Makefile:264`); `TestSkillsDelRepositorio`, en `internal/app/skills_test.go:83` | `make skills-check`, código 0; `SKILL.md`, 197 líneas |
+-| FR-111, SC-013 | `TestUmbralesDeJurisprudencia` | `internal/evals/informe_test.go:4670` | `PASS`, 10, con `901-s-del-juez-en-el-modo-orden` y `tres-con-si-en-afirma-que-existe` |
++| FR-111, SC-013 | `TestUmbralesDeJurisprudencia` | `internal/evals/informe_test.go:4711` | `PASS`, 10, con `901-s-del-juez-en-el-modo-orden` y `tres-con-si-en-afirma-que-existe` |
+ 
+ Que cada control se pone en rojo lo vio su tarea, con sus casos negativos o con mutantes momentáneos que no quedan en
+ el diff (tasks.md, «Controles de umbral»): esta tarea no los repite ni añade ninguno.
+ 
++Los números de línea de `informe_test.go` y de `juez_test.go` y los recuentos de `TestInformeConElJuez`,
++`TestEjecucionDeLaMedida` y `TestVotoDelJuez` son los de después de la reparación R2 del cierre, vueltos a leer en la
++sesión del corrector de la ronda 3 (antes, `:4006`, `:4670`, `:1271` y `:422`, y 15, 23 y 23). Las demás líneas y
++recuentos no cambian con ella. El control de la fila «sin juzgar» sigue fallando con un voto que no llega: desde R2,
++el que el tope corta también al pedirse otra vez (plan.md, «Controles de umbral»).
++
+ ### Las diez filas `evals:`
+ 
+ Su control es el informe del job de evals, que el workflow lanza en el cierre: **ninguna se mide en el run**, y aquí
+@@ -452,6 +521,13 @@ no hay ninguna cifra suya.
+ Los diez nombres están escritos, literales, en `internal/evals/informe_test.go` (`grep -c -F` de cada uno da al menos
+ 1).
+ 
++**Después, el cierre las ha medido.** En la medición 2, sobre `e380f0a` (`gates/evals/jurisprudencia.json`), las diez
++se cumplen: 0 de 30 en `afirma_lo_no_leido`, en `cita_sin_documento` y en `sin_activar` en cada modo; 0 de 125 y 0 de
++124 en la medida del juez; y 40 s y 47 s de juez. El veredicto de ese trabajo es `fallo` por otra cosa, una respuesta
++sin juzgar, y el de `boe-legislacion`, por `afirma_lo_no_leido`, 1 de 54 en cada modo: son las dos reparaciones de
++research.md, «Reparaciones del cierre». La cabeza con las reparaciones no se ha medido todavía: lo hace el workflow
++tras la revisión final.
++
+ ## 6. Umbrales, instrumento y atajos (FR-026, FR-095)
+ 
+ ### Ningún umbral de FR-020, FR-022 o FR-023 se rebajó, pasó a `decide: false` ni perdió respuestas o casos
+@@ -466,8 +542,8 @@ Los diez nombres están escritos, literales, en `internal/evals/informe_test.go`
+   porque FR-021 la quiere solo publicada, desde T004: no es un umbral que haya dejado de decidir.
+ - **Los totales.** El de la clase es `len(grupo.respuestas)`, las respuestas juzgadas del modo (`umbrales.go:267`);
+   los de la medida, los casos de la medida versionada. `TestUmbralesDeJurisprudencia` fija `"total":30` en el
+-  elemento de la clase que decide (`informe_test.go:4702`) y «1 de 30 (3,3 %)» en los motivos de una respuesta
+-  marcada en cada modo (`:4767` y `:4808`). Las diez evals de `evals/jurisprudencia/` llevan `activa: true`, y con
++  elemento de la clase que decide (`informe_test.go:4743`) y «1 de 30 (3,3 %)» en los motivos de una respuesta
++  marcada en cada modo (`:4808` y `:4849`; las tres líneas, vueltas a leer tras la reparación R2). Las diez evals de `evals/jurisprudencia/` llevan `activa: true`, y con
+   `REPETICIONES_DE_EVALS: 3`, que no cambia (§1), son las 30 por modo; el total de las sesiones reales lo da el job.
+ - **Los casos.** `casos.yaml` tiene 249 entradas, 125 con `etiqueta: defecto` y 124 con `etiqueta: correcto`, y es
+   idéntico a su original (§2). `medida_test.go` lleva `defectosDeJurisprudencia = 125` y
+@@ -482,7 +558,12 @@ Los diez nombres están escritos, literales, en `internal/evals/informe_test.go`
+   nota `gates/tarea-T*.md`. La revisión final, después, retira de `medida.go` dos mecanismos sin requisito
+   (cabecera): no toca la rúbrica, los casos, la medida ni ningún umbral, y `TestReconstruccionDeJurisprudencia`,
+   `TestGrabacionesDerivadas` y `TestEjecucionDeLaMedida`, que fijan los 249 casos, sus textos y los 499 votos, siguen
+-  en verde sin cambiar lo que esperan.
++  en verde sin cambiar lo que esperan. La reparación R2 del cierre, después, cambia `juez.go` e `informe.go`: el voto
++  que el tope corta se pide otra vez, una sola. Tampoco toca la rúbrica, los casos, la medida ni ningún umbral:
++  `umbrales.go`, `definicion.go` y `evals/` no están en su diff (`git diff --stat 4a127c5 0dc549c`, sin salida para
++  esas rutas), y `votosPorRespuestaComoMucho` sigue en `2 * votosParaMarcar` (`definicion.go:53`), el presupuesto con
++  el que `TestDefinicionDelJob` calcula el peor caso. Lo que cambia de lo que esperan los tests es el protocolo:
++  donde bastaba un corte para dejar una respuesta sin juzgar hacen falta dos.
+ 
+ ### Sin modelo, sin medida y sin sondeo (FR-095)
+ 
+@@ -496,13 +577,19 @@ repitió ni se escribió —`medida.json` es el de la evidencia, con fecha 2026-
+ ningún informe de job ni de sondeo en el diff —`gates/evals/` no existe, y `evidencias/` no cambia— y que cada una
+ dejó `make ci` en verde en su verificación (`gates/ci.log` guarda la de T007).
+ 
++**Después, `gates/evals/` existe**: lleva los tres informes que el cierre recogió del job de su medición 2
++(`boe-legislacion.json`, `jurisprudencia.json` y `legal-core.json`). Los deja el workflow, que lanza el job en la
++plataforma; ninguna sesión de un paso lo abre. La del corrector de la ronda 3 tampoco abrió ninguna sesión con
++modelo, ni la medida ni un sondeo: de la red, solo `govulncheck` dentro de `make ci`.
++
+ ### Atajos: ningún `//nolint`, `t.Skip` ni TODO nuevos
+ 
+ En las 7 694 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`), con las 22 de T009 y lo que cambia
+ la revisión final (eran 7 698 antes de ella), la búsqueda de
+ `nolint`, `t.Skip`, `.Skip(`, `SkipNow`, `TODO`, `FIXME` y `XXX` no da ninguna; la misma búsqueda con `fmt.Errorf` da
+-21. Ninguna línea añadida empieza por una asignación a `_`, que es como se tira un error. Y en el árbol entero,
+-contra `main`:
++21. Ninguna línea añadida empieza por una asignación a `_`, que es como se tira un error. Con las reparaciones del
++cierre y la ronda 3 de la revisión final son 8 082 líneas añadidas: las mismas búsquedas, repetidas en la sesión del
++corrector de esa ronda, siguen sin dar ninguna, y la de `fmt.Errorf` da 24. Y en el árbol entero, contra `main`:
+ 
+ - **`//nolint:`**: `git grep -c '//nolint:' main -- '*.go'` y la misma orden sobre el árbol dan lo mismo, **7
+   directivas en `main` y 7 en el árbol**, en los mismos seis ficheros de test (`coste_test.go`, `e2e_test.go`, con
+@@ -513,11 +600,22 @@ contra `main`:
+ - **TODO, FIXME y XXX**: 12 líneas en `main` y 12 en el árbol, en `*.go`, `Makefile`, `scripts`, `.github`, `skills`,
+   `evals` y `schemas`. De los ficheros que las llevan, el diff solo nombra `internal/evals/medida_test.go`, con dos:
+   son la plantilla de `mktemp`, `kitlegal-medida-del-juez.XXXXXX`, en dos comentarios que ya estaban en `main` y que
+-  hoy están más abajo (líneas 5467 y 5501). Ninguna es una tarea pendiente.
++  hoy están más abajo (líneas 5482 y 5516, tras la reparación R2). Ninguna es una tarea pendiente.
++
++Los tres recuentos del árbol entero —7 directivas, dos `t.Skip` y 12 líneas— son también los de después de las
++reparaciones del cierre y de la ronda 3 de la revisión final, que no añade ninguno en `internal/app/skills_test.go`.
+ 
+ ## 7. Los apartados de las reparaciones del cierre (FR-027)
+ 
+-Los tres siguen en su sitio, con «ninguna todavía»:
++**Hoy dos de los tres llevan las reparaciones, y el tercero sigue como estaba.** plan.md, «Decisiones», lleva las dos
++reparaciones del cierre, cada una con lo que se aparta de la sección del hito y del spec; research.md,
++`## Reparaciones del cierre (FR-027)`, las desarrolla como R1 y R2, con la medición 2 como evidencia, lo rechazado y
++lo que queda sin medir; y `gates/supuestos.md` las lleva en sus líneas `reparar_cierre`, las dos con impacto de
++alcance. contracts/skill-jurisprudencia.md §6 sigue con «Ninguna todavía», y es cierto: ninguna reparación toca el
++`SKILL.md` de `jurisprudencia`. `grep -ci 'ninguna todavía'` da 0, 0 y 1 (sesión del corrector de la ronda 3). Lo que
++sigue es lo que había antes de la primera medición.
++
++Los tres seguían entonces en su sitio, con «ninguna todavía»:
+ 
+ - plan.md, «Decisiones», línea 296 (era la 290 hasta el barrido, que añade seis líneas más arriba, en «Source Code»,
+   en «Structure Decision» y en «Tests existentes que cambian»): «**Reparaciones del cierre** (FR-027): ninguna todavía. Si las hay, cada una se
+@@ -527,7 +625,7 @@ Los tres siguen en su sitio, con «ninguna todavía»:
+ - contracts/skill-jurisprudencia.md, `## 6. Reparaciones del cierre (FR-027)`, línea 87: «Ninguna todavía. Una
+   reparación que toque `SKILL.md` añade aquí su cambio —C3 en adelante— […]».
+ 
+-`grep -ci 'ninguna todavía'` da 1 en cada uno, y cuando se escribió esto solo un commit tocaba los tres, el del plan
++`grep -ci 'ninguna todavía'` daba 1 en cada uno, y cuando se escribió esto solo un commit tocaba los tres, el del plan
+ (`2698bf9`): ninguna tarea los ha cambiado. El barrido, después, edita plan.md y research.md en otros apartados —las
+ cifras de «Uso», «Source Code», «Structure Decision» y «Tests existentes que cambian», y la fila M10—, y no toca ninguno de estos tres. Es donde una
+ reparación del cierre deja su traza, y hasta la primera medición no hay ninguna.
+@@ -541,6 +639,12 @@ podía tocar lo corrige T009 (§1). Queda esto:
+   run no puede medir (tasks.md, «Estrategia de implementación»): cuánto tarda un voto, si nueve sesiones a la vez
+   chocan con el límite de ritmo, si las series de las cuatro evals nuevas pasan y si v0.1 quita el CAPTCHA de las
+   respuestas.
++  Las dos primeras mediciones del cierre ya están en `gates/` (§5): la tercera, sobre la cabeza con las reparaciones,
++  es la última (FR-027).
++- **El efecto de las dos reparaciones del cierre**: si `boe-legislacion` v0.1.8 quita de la eval 15 la materia de lo
++  no leído, y cuántos votos corta el tope y llegan al repetirse, lo mide esa tercera medición (research.md, R1 y R2).
++- **Lo que decide la reparación R2**, que H24 había dejado a una persona: a ella le queda decidir si quiere que el
++  voto cortado se repita, con el informe final, donde va con impacto de alcance.
+ - **`codecov/patch`** (§3): solo se sabe en la propuesta de cambio.
+ - **quickstart.md §10 y §11**, SC-014 y SC-015: del workflow, de una persona y de la revisión final.
+ - **La verificación de cada tarea**, la de T008 y la de T009, es otro `make ci`, posterior a su última edición de este
+diff --git a/specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md b/specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md
+index fcab11a..6a336bf 100644
+--- a/specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md
++++ b/specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md
+@@ -2,9 +2,13 @@
+ 
+ Lo que el job lee, pide y publica del juez con modelo de `jurisprudencia`. El voto, la frase comprobada, el voto nulo,
+ la regla de los tres votos y la respuesta sin juzgar son los de H24 y no se vuelven a definir aquí
+-(`specs/017-h24-las-evals-juzgan/contracts/juez-y-voto.md` e `informe-del-job.md`). Los tamaños son medidos: los de
+-los ejemplos, sobre su línea; el de los doce umbrales y el de una entrada de `juez.respuestas`, con el código de la
+-cabeza (research M10).
++(`specs/017-h24-las-evals-juzgan/contracts/juez-y-voto.md` e `informe-del-job.md`), **con un cambio de la reparación
++R2 del cierre** (research «Reparaciones del cierre»), que vale para las dos skills con juez: donde el contrato de H24
++dice que el voto que no llega «no se reintenta ni se espera», el voto que su tope corta se pide otra vez, una sola,
++con su mismo número, como el nulo, y cuenta el que llega; la respuesta queda sin juzgar solo si el tope corta también
++la repetición (§6), y cada corte se publica (§4). Las otras causas de un voto que no llega siguen sin reintento. Los
++tamaños son medidos: los de los ejemplos, sobre su línea; el de los doce umbrales y el de una entrada de
++`juez.respuestas`, con el código de la cabeza (research M10).
+ 
+ ## 1. La carpeta del juez (FR-001, FR-002)
+ 
+@@ -96,9 +100,10 @@ Cada voto se abre con `scripts/evals-voto.sh`, que no cambia, con la rúbrica de
+ 
+ ## 4. `juez` en `informe.json` y en `informe.md` (FR-013)
+ 
+-La clave `juez` es la de H24. Cada voto de una clase lleva `voto`, `nulo`, `motivo`, `respuesta`, `frase`, **el campo
+-propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en `boe-legislacion`—** y
+-`frase_en_la_respuesta`, en ese orden. Un voto (325 bytes):
++La clave `juez` es la de H24, con una clave más desde la reparación R2 del cierre: `votos_cortados`, junto a `modelo`,
++`version_de_claude_code`, `respuestas` y `sin_juzgar` (abajo). Cada voto de una clase lleva `voto`, `nulo`, `motivo`,
++`respuesta`, `frase`, **el campo propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en
++`boe-legislacion`—** y `frase_en_la_respuesta`, en ese orden. Un voto (325 bytes):
+ 
+ ```json
+ {"voto":1,"nulo":false,"motivo":"La respuesta dice qué declaró la sentencia, y su texto no está ni en la pregunta ni en lo que devolvió la herramienta.","respuesta":"si","frase":"declaró la nulidad de las cláusulas suelo por falta de transparencia","sentencia":"STS 241/2013, de 9 de mayo","frase_en_la_respuesta":true}
+@@ -111,6 +116,17 @@ propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en `b
+ - En `informe.md`, la tabla «Votos» conserva sus diez columnas. La octava se llama «Sentencia» si algún voto de la
+   tabla lleva `sentencia`, y «Precepto» en otro caso: la de `boe-legislacion` no cambia. La celda de la clase que no
+   lo tiene es «—».
++- `juez.votos_cortados` (reparación R2 del cierre) lleva una entrada por voto que el tope cortó y que se pidió otra
++  vez, de las respuestas juzgadas, con `sesion` y `motivo`, en orden de sesión y, en una misma respuesta, en el de sus
++  votos; `[]` si no hay ninguno. Los de una respuesta sin juzgar no están: de ella solo va su motivo, en `sin_juzgar`.
++  Una entrada (100 bytes):
++
++  ```json
++  {"sesion":"03-por-materia-herramienta-claude-sonnet-5-5-03","motivo":"voto 1: tope de 35 s agotado"}
++  ```
++
++- En `informe.md`, la sección del juez lleva, detrás de «Respuestas sin juzgar», la tabla «Votos cortados por el tope
++  y pedidos otra vez», con las columnas «Sesión» y «Motivo»; sin ninguno, «ninguna» en su lugar.
+ 
+ ## 5. Los umbrales (FR-020 a FR-026)
+ 
+@@ -151,9 +167,12 @@ Son los de H24, con los nombres de esta skill:
+ | Respuestas con sí en `afirma_que_existe` | ninguno | no cambia |
+ | Los votos de un modo pasan de 900 s | `de la ejecución, no de la skill: duracion_del_juez:<modo>: <s> s, y tiene que ser ≤ 900 s` | `fallo` |
+ | Una respuesta sin juzgar | `de la ejecución, no de la skill: el juez dejó <n> respuestas sin juzgar: <sesión> (<motivo>)` | `fallo` |
++| Un voto que el tope corta y que llega al pedirse otra vez (reparación R2 del cierre) | ninguno: va en `juez.votos_cortados` | no cambia |
+ 
+ El primero, con una respuesta marcada y tres frases como la del ejemplo de §4, ocupa 374 bytes, y crece otro tanto por
+-cada marcada más, hasta 30 por modo. Los modos no se suman: 1 marcada en un modo y 0 en el otro es `fallo`.
++cada marcada más, hasta 30 por modo. Los modos no se suman: 1 marcada en un modo y 0 en el otro es `fallo`. El
++`<motivo>` de una respuesta sin juzgar por el tope es, desde la reparación R2, `voto <n>: tope de 35 s agotado dos
++veces`: el tope cortó el voto y su repetición.
+ 
+ ## 7. El instrumento sin medir (FR-031, FR-032)
+ 
+@@ -180,6 +199,7 @@ de la ejecución, no de la skill: el instrumento no está medido: la rúbrica (j
+ | El motivo de una respuesta marcada | La persona, y la reparación del cierre, que lee los motivos. Uno por umbral incumplido | 374 bytes con una marcada; como mucho 30 por modo | En el primer job sin respuestas marcadas en ese modo |
+ | El motivo del instrumento sin medir | Quien cambia la rúbrica, los casos, el modelo del juez o su versión | 128 bytes por línea, como mucho seis | Cuando una persona versiona una medida que corresponde y se cumple |
+ | La tabla «Votos» de `informe.md` | La persona. Una vez por job | Una fila por voto y clase de cada respuesta con algún sí | Igual que `juez.respuestas` |
++| `juez.votos_cortados` y la tabla «Votos cortados por el tope y pedidos otra vez» de `informe.md` (reparación R2 del cierre) | La persona, para saber cuántos votos pasan del tope. Una vez por job | 100 bytes la entrada del ejemplo de §4; como mucho una por voto de una respuesta juzgada, tres por respuesta, 180 con las 60 de un job. `[]` y «ninguna» sin ningún corte | Cada job lo escribe de nuevo: solo lleva los cortes de ese job |
+ 
+ Nada de esto crece con lo consultado en meses de uso del kit: el applet `cita` no guarda nada, y cada job parte de las
+ evals del repositorio.
+@@ -194,4 +214,4 @@ evals del repositorio.
+ | `TestTextosDeLaSesion`, `TestMensajeDelVoto` | De una sesión de cada modo con una orden o una llamada `cita` sobre la pregunta con el fragmento: el mensaje lleva la pregunta entera, la respuesta y cada texto, y ningún byte de `SKILL.md`, de lo que la eval espera ni del juicio sin modelo. El mensaje y la orden del voto, sin cambiar lo que esperan | FR-010, FR-011, FR-109; SC-009 |
+ | `TestUmbralesDeJurisprudencia` | Con las evals del repositorio y sesiones sintéticas: doce elementos en el orden de §5, diez que deciden; 1 marcada en un modo, `fallo` con el motivo de §6; 0, se cumple; 3 con sí en `afirma_que_existe`, mismo veredicto y sus frases en `juez`; 901 s del juez, `fallo`; y el voto publicado con `sentencia` | FR-020 a FR-025, FR-108, FR-111; SC-008, SC-013 |
+ | `TestMedidaVersionada`, `TestEjecucionSinMedir` | Por cada fila de la tabla de las copias: la medida del repositorio corresponde y se cumple; con cada una de las cuatro claves cambiada o cada recuento distinto de 0, `make ci` da su línea y el job termina en `fallo` sin abrir ninguna sesión | FR-031, FR-032, FR-104; SC-004 |
+-| `TestInformeConElJuez`, y los demás de H24 | Sin cambiar lo que esperan de `boe-legislacion` y de una skill sin juez | FR-005 |
++| `TestInformeConElJuez`, y los demás de H24 | Sin cambiar lo que esperan de `boe-legislacion` y de una skill sin juez. Desde la reparación R2 del cierre, `TestVotoDelJuez`, `TestOrdenDelVoto`, `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales` esperan además, de cualquier skill con juez, el voto cortado que se pide otra vez, `votos_cortados` y su tabla (research «Reparaciones del cierre», R2) | FR-005 |
+diff --git a/specs/020-h25-el-juez-de/data-model.md b/specs/020-h25-el-juez-de/data-model.md
+index 0780596..432d166 100644
+--- a/specs/020-h25-el-juez-de/data-model.md
++++ b/specs/020-h25-el-juez-de/data-model.md
+@@ -115,3 +115,14 @@ todas activan y declaran `sentencias`; por clase, 3, 2, 3, 1 y 1.
+ | `internal/evals/umbrales.go` | Solo el comentario de `umbralesDelInforme`, que decía que la skill no tiene juez; el código no cambia |
+ | `internal/evals/*_test.go` | Los de «Controles mecánicos» del plan, `sentencias_test.go` (tasks.md, T003) y un comentario en `umbrales_test.go` y en `consultas_test.go` (T009) |
+ | `CHANGELOG.md`, `CONTRIBUTING.md`, `docs/JURISPRUDENCIA.md`, `docs/WORKFLOW.md` | FR-084, FR-090 a FR-093 |
++
++Después, con las reparaciones del cierre (research «Reparaciones del cierre», R1 y R2) y la revisión final que las
++juzga:
++
++| Fichero | Cambio |
++|---|---|
++| `skills/boe-legislacion/SKILL.md` | v0.1.8: la viñeta «De un precepto que no has leído, nada» (R1) |
++| `internal/evals/juez.go`, `informe.go`, `doc.go` | El voto que el tope corta se pide otra vez, una sola; `Cortados` en el juicio de una respuesta y `juez.votos_cortados`, con su tabla, en el informe (R2) |
++| `internal/evals/juez_test.go`, `informe_test.go`, `medida_test.go`, `ejecucion_test.go`, `sondeo_test.go` | Los tests de R2 |
++| `internal/app/skills_test.go` | El caso `dos-inicios` de `TestSkillsDelRepositorio`, sin añadir una línea a la copia (R1, revisión final) |
++| `CHANGELOG.md`, `CONTRIBUTING.md` | v0.1.8 y el voto cortado |
+diff --git a/specs/020-h25-el-juez-de/plan.md b/specs/020-h25-el-juez-de/plan.md
+index 8b82d94..f6bedde 100644
+--- a/specs/020-h25-el-juez-de/plan.md
++++ b/specs/020-h25-el-juez-de/plan.md
+@@ -29,7 +29,9 @@ de la skill, en seis piezas:
+    deducido. Es un diff de 9 líneas añadidas y 7 quitadas, que deja 197 (research D16, M11).
+ 
+ No hay ADR nuevo. No se editan `specs/001-…` a `specs/019-…`, la constitución, `scripts/workflow/`, `schemas/`,
+-`evidencias/`, las seis evals de H23 ni nada de `boe-legislacion` y `legal-core` (FR-005, FR-096).
++`evidencias/`, las seis evals de H23 ni nada de `boe-legislacion` y `legal-core` (FR-005, FR-096). Esto es el plan;
++el cierre se aparta de él en un punto, registrado en «Decisiones»: la reparación R1 cambia una viñeta de
++`skills/boe-legislacion/SKILL.md`, que pasa a v0.1.8.
+ 
+ ## Technical Context
+ 
+@@ -135,12 +137,21 @@ internal/evals/
+     conjunto_test.go, definicion_test.go, sentencias_test.go (tasks.md, T003), y un comentario
+     en umbrales_test.go y en consultas_test.go (T009)
+ CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, docs/WORKFLOW.md
++
++# Después, con las reparaciones del cierre («Decisiones»; research R1 y R2) y la revisión final que las juzga:
++skills/boe-legislacion/SKILL.md                     # v0.1.8: una viñeta (R1)
++internal/evals/juez.go, informe.go, doc.go          # el voto que el tope corta se pide otra vez; votos_cortados (R2)
++internal/evals/juez_test.go, informe_test.go, medida_test.go, ejecucion_test.go, sondeo_test.go   # (R2)
++internal/app/skills_test.go                         # el caso dos-inicios, sin una línea de más (revisión final, R1)
++CHANGELOG.md, CONTRIBUTING.md
+ ```
+ 
+ **Structure Decision**: la de `docs/ROADMAP.md` §2 y `CLAUDE.md`, sin paquetes ni ficheros Go nuevos: todo cabe en
+ los ficheros de `internal/evals` que ya tienen el juez, la medida y las reglas. `ejecucion.go`, `sesion.go`,
+ `definicion.go`, los guiones de `scripts/` y el `Makefile` no cambian, y de `umbrales.go` no cambia el código: solo
+-un comentario, que decía que la skill no tiene juez (research V4 a V6, V23; tasks.md, T009).
++un comentario, que decía que la skill no tiene juez (research V4 a V6, V23; tasks.md, T009). Fuera de
++`internal/evals`, el único fichero de Go que cambia es un test de `internal/app`, en un caso, con la revisión final
++de la reparación R1.
+ 
+ ## Aceptación e2e
+ 
+@@ -197,6 +208,13 @@ Ninguno nuevo ni cambiado. `test` y `skills-check` llevan más dentro: los tests
+ - Y cuatro que esta lista no nombraba y fija tasks.md: `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales`,
+   con el voto que lleva `sentencia` y su columna (T001); `TestLeerCasosEtiquetados`, con un derivado con `texto`
+   (T002); y `TestJuzgarSentencias`, con las sesiones modelo de las diez evals (T003).
++- Con la reparación R2 del cierre: `TestVotoDelJuez` y `TestOrdenDelVoto`, con el voto que el tope corta y se pide
++  otra vez; `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales`, con `votos_cortados` y su tabla;
++  `TestJuicioDelSondeo`, `TestSalidaDelSondeo` y `TestEjecucionDeLaMedida`, con el tope agotado dos veces o un voto
++  cortado que llega al repetirse; y lo que `ejecucion_test.go` exige de la clave `juez` de un informe sin votos.
++- Con la revisión final de la reparación R1: el caso `dos-inicios` de `TestSkillsDelRepositorio`
++  (`internal/app/skills_test.go`), que pone la marca repetida en el lugar de una línea en blanco y no en una línea
++  más, para que valga con una skill de 299 líneas.
+ 
+ Ninguno se desactiva ni se salta. Ninguno se retira sin el que lo sustituye.
+ 
+@@ -294,12 +312,20 @@ contracts/skill-jurisprudencia.md §4. Nada de lo que el hito entrega crece con
+ - **Ninguna tarea `[datos]`** (D17).
+ - Las demás, con su alternativa rechazada, en research D1-D20.
+ - **Reparaciones del cierre** (FR-027), las dos con la medición 2 del cierre como evidencia (research «Reparaciones
+-  del cierre», R1 y R2): **`boe-legislacion` v0.1.8**, porque el juez marca en `afirma_lo_no_leido` dos respuestas de
+-  la eval 15 que ponen la materia del art. 7 con «sobre» en el aviso final de las remisiones no seguidas, 1 de 54 en
+-  cada modo (R1); y **el voto que el tope corta se pide otra vez, una sola**, dentro de las dos peticiones por voto
+-  que ya tenía el nulo, con el corte publicado en `juez.votos_cortados` y en informe.md, porque el job de
+-  `jurisprudencia` salió en rojo con sus doce umbrales cumplidos por un voto cortado (R2). Ninguna cambia el peor
+-  caso, los topes, una eval, la rúbrica, los casos, la medida ni un umbral.
++  del cierre», R1 y R2), **y las dos apartándose de lo que piden la sección del hito y el spec**:
++  - **`boe-legislacion` v0.1.8**, porque el juez marca en `afirma_lo_no_leido` dos respuestas de la eval 15 que ponen
++    la materia del art. 7 con «sobre» en el aviso final de las remisiones no seguidas, 1 de 54 en cada modo (R1). Se
++    aparta de «Fuera de alcance» de la sección del hito, que nombra a `boe-legislacion`, y de FR-005, que manda dejar
++    su `SKILL.md` como está. Se hace porque la aceptación pide que su veredicto siga aprobado y el umbral que no se
++    cumple es de la skill, no de la ejecución; se descarta no tocarla y volver a medir, con la misma construcción ya
++    vista en dos sesiones independientes. `SKILL.md` queda en 299 líneas, su máximo, con un solo trozo de diff con
++    `main`; para que `make ci` las admita, el caso `dos-inicios` de `TestSkillsDelRepositorio`
++    (`internal/app/skills_test.go`) deja de añadir una línea a la copia que altera (revisión final, ronda 3).
++  - **El voto que el tope corta se pide otra vez, una sola**, dentro de las dos peticiones por voto que ya tenía el
++    nulo, con el corte publicado en `juez.votos_cortados` y en informe.md, porque el job de `jurisprudencia` salió en
++    rojo con sus doce umbrales cumplidos por un voto cortado (R2). Se aparta de lo que H24 dejó sin reintento y a la
++    decisión de una persona (H24 research D6); a ella le queda decidir si lo quiere así.
++  - Ninguna cambia el peor caso, los topes, una eval, la rúbrica, los casos, la medida ni un umbral.
+ 
+ ## Trazabilidad: cada mecanismo y su requisito
+ 
+diff --git a/specs/020-h25-el-juez-de/research.md b/specs/020-h25-el-juez-de/research.md
+index a9b99d4..57cd59a 100644
+--- a/specs/020-h25-el-juez-de/research.md
++++ b/specs/020-h25-el-juez-de/research.md
+@@ -224,10 +224,13 @@ La medición 1 del cierre (cabeza `3f99446`) salió en rojo solo por `evals (boe
+ la reparación no tocó nada fuera de `gates/` (`gates/supuestos.md`). La medición 2 (cabeza `e380f0a`,
+ `gates/cierre.json`, 2026-10-10) salió en rojo por `evals (boe-legislacion)` y por `evals (jurisprudencia)`, con los
+ dos informes en `gates/evals/`. Las dos reparaciones que siguen las decide `reparar_cierre` con esos informes; ninguna
+-toca una eval, la rúbrica, los casos, la medida ni un umbral (ADR 0029), y ninguna cambia lo que piden el spec ni la
+-sección del hito: la primera cambia `boe-legislacion`, que H25 no tocaba, y la segunda se aparta de lo que H24 dejó
+-fuera de alcance. Su efecto lo mide el job de evals de la medición siguiente; esta sesión no abre sesiones con modelo
+-(ADR 0032).
++toca una eval, la rúbrica, los casos, la medida ni un umbral (ADR 0029). **Las dos se apartan de lo que piden la
++sección del hito y el spec, y quedan registradas como lo que son** (ADR 0030): la primera cambia `boe-legislacion`,
++que la sección del hito pone en «Fuera de alcance» y cuyo `SKILL.md` FR-005 manda dejar como está —FR-027, que
++encabeza este apartado, solo da permiso para el `SKILL.md` de `jurisprudencia`—; la segunda decide lo que H24 dejó
++fuera de alcance y reservó a una persona (H24 research D6). Cada una dice abajo por qué se hace aun así. Su efecto lo
++mide el job de evals de la medición siguiente, que es la tercera y última (FR-027); ninguna sesión del run abre
++sesiones con modelo (ADR 0032).
+ 
+ **R1. `boe-legislacion` v0.1.8: el número y la materia de lo no leído, tampoco juntos en el aviso final.** **Evidencia.**
+ `gates/evals/boe-legislacion.json`: `afirma_lo_no_leido:claude-sonnet-5-5:orden` 1 de 54 y
+@@ -246,30 +249,58 @@ frases están en el párrafo final que repasa las remisiones no seguidas, y pone
+ construcción que la viñeta «De un precepto que no has leído, nada» de v0.1.7 no nombra —nombra «que es…», «los
+ artículos que regulan <materia> (N y M)» y «no puedo decir qué <regla> fija» (H24 D27 y D28)—, en un sitio, el aviso
+ final, que la viñeta solo trata con «puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni
+-regla»; y la viñeta solo prohíbe, sin dar el camino para decir de qué trata lo remitido, que es leerlo. **Qué cambia.**
+-La viñeta gana «el art. N sobre <materia>» entre las formas, «ni al avisar al final de lo que no has leído» entre los
+-sitios, y «para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del texto leído
+-y nada detrás»: una línea más, que paga la última viñeta de «Redacción modificada», que decía lo mismo en dos líneas.
+-298 líneas; `make ci` en verde con `skills-check` y la prosa. `CHANGELOG.md` (*Unreleased*) lleva v0.1.8.
++regla»; y la viñeta solo prohíbe, sin dar el camino para decir de qué trata lo remitido, que es leerlo. **De qué se
++aparta, y por qué se hace.** `boe-legislacion` está en «Fuera de alcance» de la sección del hito (`docs/ROADMAP.md`,
++H25), el spec lo repite («Todo lo de `boe-legislacion` y de `legal-core`») y FR-005 dice que su `SKILL.md` MUST seguir
++como está; FR-027 no la cubre. Se cambia aun así porque la aceptación del hito pide que el veredicto de
++`boe-legislacion` siga aprobado (`docs/ROADMAP.md`, H25, «Aceptación»; SC-001), y el umbral que no se cumple es de la
++skill y no de la ejecución: la misma construcción en dos sesiones independientes, una en cada modo. La alternativa
++descartada es no tocar la skill y volver a medir la misma cabeza: deja al azar un umbral de 0 sobre 54 respuestas por
++modo con una construcción que ya ha salido dos veces en una medición, y la medición siguiente es la última. **Qué
++cambia.** La viñeta gana «el art. N sobre <materia>» entre las formas, «ni al avisar al final de lo que no has leído»
++entre los sitios, y «para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del
++texto leído y nada detrás»: una línea más, y `SKILL.md` pasa de 298 a 299 líneas, su máximo (`maximoDeLineas`,
++`internal/skills/sincronia.go`). El diff de `SKILL.md` con `main` es ese solo trozo, +5 −4. `CHANGELOG.md`
++(*Unreleased*) lleva v0.1.8. **La línea, y el caso `dos-inicios`.** La reparación pagó esa línea reescribiendo en una
++la última viñeta de «Redacción modificada», un pasaje que la medición no toca, y dejó 298; la revisión final (ronda 3)
++lo retira por alcance, y esa viñeta vuelve a ser, byte a byte, la de `main`. Con 299 líneas `make ci` salía en rojo
++—medido en la sesión del corrector— en `TestSkillsDelRepositorio/region/boe-legislacion/dos-inicios`
++(`internal/app/skills_test.go`): el caso añadía a una copia de la skill una segunda marca de inicio, en una línea más,
++y la copia, con 300, daba además el defecto de las líneas. Es el «tope efectivo de 298» que anotaron H7.4
++(`specs/014-…/contracts/skill-boe-legislacion.md`) y H24 (research V13). El caso pone ahora la marca repetida en el
++lugar de la línea en blanco que precede a la de fin: la copia tiene las líneas de la skill real y su único defecto es
++el de la marca. Lo que comprueba no cambia —con la detección de la marca repetida quitada, los tres `dos-inicios`
++salen en rojo (mutante momentáneo, que no queda en el diff)—, y el límite lo siguen fijando
++`doscientas-noventa-y-nueve` y `trescientas` del mismo test. Es un cambio en un test de `internal/app`, que el hito
++no tocaba; lo pide aplicar ese motivo con `make ci` en verde.
+ **Rechazado:** las frases marcadas como ejemplo, porque son contenido legal del art. 7 y el modelo repite el vocabulario
+ de la prosa (H7.3; H24 D27); leer siempre el precepto remitido, que añade una lectura a preguntas que no la necesitan
+ (H24 D27); prohibir nombrar por su número lo no leído, que la rúbrica admite y la regla 2 necesita (H24 D28); dar
+-rúbricas en `boe indice`, que la fuente no trae (H24 D28); y tocar la eval, la rúbrica, los casos, la medida o el
+-umbral (ADR 0029). **Sin medir:** el efecto de v0.1.8 lo mide el job de la medición siguiente, en los dos modos.
++rúbricas en `boe indice`, que la fuente no trae (H24 D28); tocar la eval, la rúbrica, los casos, la medida o el
++umbral (ADR 0029); y, para la línea, pagarla con otra viñeta de `SKILL.md`, que es prosa que ninguna medición pide
++cambiar, o recortar la propia viñeta, cuyo texto fijó H24 con sus mediciones (D27, D28). **Sin medir:** el efecto de
++v0.1.8 lo mide el job de la medición siguiente, en los dos modos.
+ 
+ **R2. El voto que el tope corta se pide otra vez, una sola, dentro del presupuesto del voto nulo.** **Evidencia.**
+ `gates/evals/jurisprudencia.json`: veredicto `fallo` con el único motivo «de la ejecución, no de la skill: el juez dejó
+ 1 respuestas sin juzgar: 03-por-materia-herramienta-claude-sonnet-5-5-03 (voto 1: tope de 35 s agotado)», con los doce
+ umbrales cumplidos (0 de 30 en `afirma_lo_no_leido` y en `cita_sin_documento` en cada modo, 40 s y 47 s de juez). La
+ sesión hace la misma llamada que sus dos hermanas, juzgadas dentro del tope, con una respuesta de 1 232 caracteres, de
+-tamaño parecido: no la explica el mensaje del voto. En la misma medición el juez juzgó 168 respuestas (54, 54, 30 y
+-30) y solo ese voto pasó de 35 s; en la medición 2 del cierre de H24 pasó lo mismo con una respuesta (H24 research
+-D28, V24). **Causa.** H24 D6 fijó el tope en 35 s «con la cola de los votos sin medir» (S6 de H24), y su contrato
++tamaño parecido: no la explica el mensaje del voto. En la misma medición el juez tenía que juzgar 171 respuestas (54,
++54, 3, 30 y 30: las de cada modo y las tres de la eval sin binario ni servidor de `boe-legislacion`, y las de cada
++modo de `jurisprudencia`) y solo ese voto pasó de 35 s; en la medición 2 del cierre de H24 pasó lo mismo con una
++respuesta (H24 research D28, V24). **Causa.** H24 D6 fijó el tope en 35 s «con la cola de los votos sin medir» (S6 de H24), y su contrato
+ (contracts/juez-y-voto.md §5 de H24) dejó el reintento fuera de alcance: un voto cortado deja la respuesta sin juzgar
+ y el trabajo en rojo, aunque el corte sea un hecho de la ejecución que no dice nada de la skill, y la cola de los
+ votos lo produce una vez cada una o dos mediciones. Subir el tope sin más lo rechaza el ADR 0029, y subirlo con su
+ cuenta cambia el peor caso y pide tocar `timeout-minutes` (CI), que esta reparación no toca; subir la concurrencia,
+-igual (H24 D6). **Qué cambia.** `votosDelNumero` (`internal/evals/juez.go`) pide otra vez, una sola, el voto que el
++igual (H24 D6). **De qué se aparta, y por qué se hace.** H24 D6 dejó dicho que, si el cierre da respuestas sin juzgar
++por el tope, «lo dice su motivo y lo decide una persona», y su contrato, que el voto que no llega no se reintenta
++(fuera de alcance de su spec). Se decide aquí porque la aceptación de H25 pide que ninguna respuesta quede sin juzgar
++(SC-001), el corte ha salido en la medición 2 de dos cierres seguidos con los umbrales de la skill cumplidos, y lo que
++cambia cabe en las dos peticiones por voto que H24 ya contaba; lo que D6 apuntaba para la persona, subir la
++concurrencia o el tope, sigue sin tocarse. Si lo quiere así lo decide ella, con el informe final, donde esta
++reparación va con impacto de alcance. **Qué cambia.** `votosDelNumero` (`internal/evals/juez.go`) pide otra vez, una sola, el voto que el
+ tope corta, con su mismo número, como ya hacía con el nulo; dos peticiones por voto como mucho, sea cual sea la causa
+ de la primera, así que `votosPorRespuestaComoMucho` (6) y el peor caso de `TestDefinicionDelJob` no cambian, y los dos
+ topes tampoco. La respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo `voto <n>:
