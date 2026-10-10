@@ -1008,6 +1008,10 @@ func TestLeerCasosEtiquetados(t *testing.T) {
 // llevar espacios y va sin blancos en los extremos, salvo el de --documento,
 // que va tal cual, con sus saltos de línea. --json va una sola vez, al final,
 // lo llevara o no, y no gana --offline: el applet no pide nada a la red.
+//
+// Cada orden va a su regla, como en la reconstrucción (repetirLasInvocaciones):
+// la de boe o de graph, a argumentosDeLaInvocacion, y la del applet cita, a
+// partirLaOrdenDeCita.
 func TestArgumentosDeLaInvocacion(t *testing.T) {
 	t.Parallel()
 
@@ -1015,11 +1019,13 @@ func TestArgumentosDeLaInvocacion(t *testing.T) {
 	// lleva la orden de una llamada del informe.
 	const dosLineasDeLaFicha = "Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144\nId Cendoj: 28079110012023101073"
 
-	casos := []struct {
+	type invocacionConSusArgumentos struct {
 		nombre     string
 		invocacion invocacionDelInforme
 		argumentos []string
-	}{
+	}
+
+	deBoeYDeGraph := []invocacionConSusArgumentos{
 		{
 			nombre:     "orden",
 			invocacion: invocacionDelInforme{Orden: "boe articulo BOE-A-2015-10565 a21 --json"},
@@ -1055,6 +1061,9 @@ func TestArgumentosDeLaInvocacion(t *testing.T) {
 			invocacion: invocacionDelInforme{Llamada: true},
 			argumentos: []string{"--offline"},
 		},
+	}
+
+	deCita := []invocacionConSusArgumentos{
 		{
 			nombre:     "cita-con-un-valor-con-espacios",
 			invocacion: invocacionDelInforme{Orden: "cita cotejar --roj STS 1088/2023 --json"},
@@ -1118,11 +1127,19 @@ func TestArgumentosDeLaInvocacion(t *testing.T) {
 		},
 	}
 
-	for _, caso := range casos {
+	for _, caso := range deBoeYDeGraph {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, caso.argumentos, argumentosDeLaInvocacion(caso.invocacion))
+		})
+	}
+
+	for _, caso := range deCita {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.argumentos, partirLaOrdenDeCita(caso.invocacion.Orden).argumentos())
 		})
 	}
 }
@@ -2082,8 +2099,8 @@ func contenidoDelInformeDeCita(t *testing.T, fragmento textosDelFragmento) strin
 // jurisprudencia, con la forma del informe de un sondeo de la validación del
 // juez y con claves que la reconstrucción no lee. Sus invocaciones llevan lo
 // que da texto —la orden de Bash que empieza por «kitlegal »— y lo que no: la
-// de otra herramienta, la orden de Bash que no empieza así y la que es de otra
-// herramienta aunque su entrada lleve una orden, que ni siquiera es un texto.
+// de otra herramienta, también la que lleva en su entrada una orden así, y la
+// orden de Bash que no empieza así.
 func contenidoDelInformeDelSondeo(t *testing.T, fragmento textosDelFragmento) string {
 	t.Helper()
 
@@ -2116,7 +2133,6 @@ func contenidoDelInformeDelSondeo(t *testing.T, fragmento textosDelFragmento) st
 				bash("cd /tmp && "+prepararEnElSondeo, "no empieza por kitlegal"),
 				bash("kitlegal", "tampoco: es kitlegal sin nada detrás"),
 				deLaHerramienta("Read", objetoJSON{"command": prepararEnElSondeo}, "no es de Bash"),
-				deLaHerramienta("Otra", objetoJSON{"command": []string{"kitlegal ", "cita"}}, "ni es un texto"),
 				bash(cotejarEnElSondeo+fragmento.ficha+finDelDocumento, "cotejar sin texto pegado en la pregunta")),
 			sesion(sesionDelSondeoSinInvocaciones, "07-resumen-de-una-conocida"),
 			sesion(sesionDelSondeoSinSuPregunta, "08-no-esta-entre-las-preguntas"),

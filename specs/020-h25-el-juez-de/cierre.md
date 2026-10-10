@@ -26,6 +26,19 @@ con las mismas órdenes y con los tres ficheros ya editados: esta cabecera; la l
 §8, sin su primer punto. **La cobertura (§3), el quickstart (§4) y los controles de §5 son los que midió T008 sobre
 `7f0d96c`, y T009 no los ha vuelto a medir.**
 
+**La revisión final, después, retira dos mecanismos de `internal/evals/medida.go`**, sobre `062c399`, que es el
+barrido (ronda 1, proporcionalidad). El primero, la lectura de una invocación de un sondeo cuya entrada lleva en
+`command` algo que no es un texto: la clave vuelve a ser un texto, y el informe que lleve otra cosa no se lee, con la
+regla que ya hay. El segundo, la rama de `argumentosDeLaInvocacion` que repartía las órdenes del applet `cita`, que
+`repetirLasInvocaciones` ya reparte: la función vuelve a ser, byte a byte, la de `main`. En `medida_test.go` se va la
+invocación que sostenía el primero, y `TestArgumentosDeLaInvocacion` da cada orden a su regla —las de `cita`, a
+`partirLaOrdenDeCita`— sin cambiar lo que ningún caso espera. Los tests que fijan los 249 casos y sus textos siguen
+en verde sin cambiar lo que esperan. De este fichero cambia lo que eso cambia, medido en la sesión del corrector con
+las mismas órdenes: esta cabecera; los recuentos de §1; en §3, los cuatro números de línea y el párrafo «Después de
+la revisión final»; los números de línea de `medida_test.go` en §4, §5 y §6; y, en §6, el recuento de «Atajos» y lo
+que «Nada se corrigió después de crearlo» dice de `medida.go`. El quickstart (§4) no se ha vuelto a ejecutar entero:
+de sus órdenes, esa sesión repite la de su §4 con `-v`, que da las mismas 92, y `make ci`, que termina en verde.
+
 ## 1. Lo creado y lo modificado en el hito, y lo que no cambia
 
 `git diff --name-status main`, con los tres comentarios de T009 ya corregidos, da **65 ficheros: 43 `A` y 22 `M`**,
@@ -39,13 +52,16 @@ tarea y los tres que el workflow lleva modificados (`tasks.md`, `gates/tarea-act
 `gates/tareas-intentos.json`). Son las cifras de cuando T009 escribió esto. Con su commit (`adf90b7`), que versiona
 `gates/converge-hecho`, la misma orden da 66 ficheros, 44 `A` y 22 `M`, 35 de ellos en `specs/020-h25-el-juez-de/`
 (medido en el barrido); los 31 de fuera de `specs/`, con sus 7 698 líneas añadidas y 855 quitadas, son los mismos, y
-el barrido no toca ninguno. Los de `specs/` siguen creciendo con lo que el workflow deja en `gates/`.
+el barrido no toca ninguno. Los de `specs/` siguen creciendo con lo que el workflow deja en `gates/`. La revisión
+final cambia dos de los 31, `medida.go` y `medida_test.go`: con ellos, `git diff --shortstat main -- . ':!specs'` da
+7 694 líneas añadidas y 843 quitadas en los mismos 31 ficheros (medido en la sesión del corrector).
 
 ### Los 31 ficheros
 
 Cada uno con la tarea que lo tocó (`git log --format=%s main..HEAD -- <ruta>`) y sus líneas
 (`git diff --numstat main`). Los tres de T009 están en el árbol y sin commit cuando se escribe esto: su tarea es la
-de la sesión que los edita.
+de la sesión que los edita. Las líneas de `medida.go` y de `medida_test.go` son las de después de la revisión final,
+que los edita (antes, +803 −105 y +2 493 −242).
 
 **La carpeta del juez** (5, todos `A`, de T004), en `evals/jurisprudencia/juez/`:
 
@@ -75,13 +91,13 @@ tienen» donde decía «de boe-legislacion».
 |---|---|---|
 | `juez.go` | T001 | +15 −2 |
 | `informe.go` | T001 | +56 −16 |
-| `medida.go` | T002 | +803 −105 |
+| `medida.go` | T002 y la revisión final | +795 −105 |
 | `conjunto.go` | T003 | +30 −21 |
 | `doc.go` | T007 | +24 −7 |
 | `umbrales.go` | T009 | +12 −5 |
 | `juez_test.go` | T001, T004 | +322 −3 |
 | `informe_test.go` | T001, T003, T004 | +738 −120 |
-| `medida_test.go` | T002, T004, T005 | +2 493 −242 |
+| `medida_test.go` | T002, T004, T005 y la revisión final | +2 497 −230 |
 | `conjunto_test.go` | T003, T004 | +404 −55 |
 | `definicion_test.go` | T003, T004 | +415 −122 |
 | `ejecucion_test.go` | T004 | +85 −17 |
@@ -90,7 +106,7 @@ tienen» donde decía «de boe-legislacion».
 | `umbrales_test.go` | T009 | +8 −6 |
 | `consultas_test.go` | T009 | +2 −2 |
 
-Son 940 líneas añadidas a los seis que no son tests y 4 749 a los diez de test. Ningún fichero ni paquete de Go es
+Son 932 líneas añadidas a los seis que no son tests y 4 753 a los diez de test. Ningún fichero ni paquete de Go es
 nuevo. `sentencias_test.go` no estaba en la lista de plan.md, «Source Code»: lo añade tasks.md, que dice por qué en su
 cabecera. Desde el barrido, esa lista lo nombra, con `umbrales.go` y los dos ficheros de test de T009.
 
@@ -169,7 +185,7 @@ Las mismas órdenes sí imprimen donde hay cambios: con `-- internal/evals` sale
 |---|---|---|
 | 1 · `make ci` en verde | sí | §4, escenario 9: código 0 y `ci: todos los controles en verde`, con la caché de tests vacía. |
 | 2 · tests offline; fixtures si toca red | tests sí; fixtures no | Los tests de §4 y §5. El hito no toca la red: ninguna grabación ni fuente (arriba). |
-| 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las 940 líneas añadidas a los seis `.go` que no son tests, 0 coincidencias de `"net/http"`, `"net"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"`, `modernc.org` e `internal/httpx`. `golangci-lint`, en el `make ci` de §4: `0 issues.` |
+| 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las 932 líneas añadidas a los seis `.go` que no son tests, 0 coincidencias de `"net/http"`, `"net"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"`, `modernc.org` e `internal/httpx`. `golangci-lint`, en el `make ci` de §4: `0 issues.` |
 | 4 · esquemas y `schema-check` | ningún esquema cambia | `schemas` sin cambios; `TestEsquemasPublicados`, `ok` dentro de `make ci`. |
 | 5 · errores con código estable | ningún código de `kitlegal` cambia | `internal/app`, `internal/cli` e `internal/core` sin cambios. |
 | 6 · e2e y `CHANGELOG.md` | «Aceptación e2e: no aplica»; `CHANGELOG.md`, sí | `CHANGELOG.md` +74 −15, en *Unreleased*, con «La skill `jurisprudencia` v0.1» en su línea 58 (T007; SC-012). |
@@ -254,14 +270,24 @@ imprime `go test` en el registro de `make ci` (97,2 % y 97,7 %).
 en los dos perfiles, en 18 de sus 209 funciones. Veinte están en líneas que ya eran de `main` (`git blame`), y
 cuatro, en líneas de T002, todas de `medida.go`:
 
-- `:884` (`leerInforme`, 93,3 %): el informe versionado no es JSON.
-- `:958` (`preguntaDelSondeo`, 92,9 %): las evals de hoy de la skill no se pueden leer.
-- `:1259` (`registroDeLaSesion`, 80,0 %): un applet no se puede registrar.
-- `:1481` (`verbo`, 66,7 %): una orden sin verbo.
+- `:883` (`leerInforme`, 93,3 %): el informe versionado no es JSON.
+- `:957` (`preguntaDelSondeo`, 92,9 %): las evals de hoy de la skill no se pueden leer.
+- `:1258` (`registroDeLaSesion`, 80,0 %): un applet no se puede registrar.
+- `:1472` (`verbo`, 66,7 %): una orden sin verbo.
 
 Las dos primeras son ficheros versionados que no se pueden leer, que plan.md, «Trazabilidad», último párrafo, deja a
 la regla que ya hay. A las otras dos no llega ningún test, tampoco los que reconstruyen los casos del repositorio.
 Ninguna tiene un test, y la tarea no pide añadirlo: ningún umbral depende de ellas.
+
+**Después de la revisión final.** La corrección quita dos sentencias de `medida.go`, las de la rama retirada de
+`argumentosDeLaInvocacion`, que tenían test. Sobre los dos perfiles que deja el `make ci` de la sesión del corrector,
+en verde, y con los recuentos sacados de los bloques como arriba: `medida.go`, 492 de 504 en los dos (97,6 %); el
+paquete de evals, 3 770 y 3 787 de 3 878 (97,2 % y 97,7 %); y el global, 10 699 y 10 745 de 11 093, con 96,5 % y
+96,9 % en `go tool cover -func`. En las tres, la unión da lo que el perfil de integración. Los bloques sin test de
+`medida.go` siguen siendo doce, y los cuatro de T002 son los de arriba, con el número de línea que tienen hoy y el
+mismo porcentaje por función. En el global del perfil de integración hay dos sentencias cubiertas menos de las que
+da restar esas dos a la cifra de T008 (10 747): no son del paquete de evals, cuyo recuento cuadra, y no se ha buscado
+de qué paquete son. Lo demás de esta sección es lo que midió T008 sobre `7f0d96c`.
 
 **Los recuentos no son comparables con los del cierre de H23.** Aquel fichero dio 15 015 sentencias en el global y
 2 910 en el dominio; hoy son 11 095 y 2 136, con las mismas 36 sin cubrir en el dominio y con un dominio que entre
@@ -333,10 +359,10 @@ los niveles, contando el propio test:
   `legal-core`) y `TestEvalsDelRepositorio` (16, entre ellas `conjunto-jurisprudencia`).
 - §4, 92: `TestArgumentosDeLaInvocacion` (19), `TestTextoQuitado` (23), `TestResolverCasos` (40),
   `TestGrabacionesDerivadas` (9, con `boe-legislacion` y `jurisprudencia`) y `TestReconstruccionDeJurisprudencia`
-  (1, sin subpruebas), que fija los 249 con 138, 39 y 72 por informe (`medida_test.go:3248` y `:3249`).
+  (1, sin subpruebas), que fija los 249 con 138, 39 y 72 por informe (`medida_test.go:3264` y `:3265`).
 - §5, 23: `TestEjecucionDeLaMedida`, con `jurisprudencia-los-249-bien`, `jurisprudencia-un-defecto-sin-marcar`,
   `jurisprudencia-un-correcto-marcado` y `jurisprudencia-un-caso-que-no-se-resuelve`; los 499 votos son la constante
-  `votosDeJurisprudencia` (`medida_test.go:4218`).
+  `votosDeJurisprudencia` (`medida_test.go:4234`).
 - §6, 66: `TestVotoDelJuez` (23), `TestMensajeDelVoto` (7, con una sesión de `jurisprudencia` de cada modo),
   `TestTextosDeLaSesion` (11, con `cita-cotejar-por-orden` y `cita-cotejar-por-llamada`), `TestInformeConElJuez`
   (15, con `con-sentencia`, `un-voto-que-no-llega` y `dos-sin-juzgar`) y `TestUmbralesDeJurisprudencia` (10:
@@ -398,9 +424,9 @@ búsqueda con un nombre que no existe no da nada y sale con 1. Ninguno de los si
 | FR-001, FR-102, SC-002 | `TestCopiasDelJuez` | `internal/evals/medida_test.go:673` | `PASS`, 21, con las ocho de `jurisprudencia` |
 | FR-072, FR-103, SC-003 | `TestDefinicionDelJob` | `internal/evals/definicion_test.go:194` | `PASS`, 97, con las dos mutaciones «de una en una» |
 | FR-031, FR-104, SC-004 | `TestMedidaVersionada` y `TestEjecucionSinMedir` | `internal/evals/medida_test.go:275` e `internal/evals/ejecucion_test.go:110` | `PASS`, 25 y 25, con las seis mutaciones de `jurisprudencia` en cada una |
-| FR-044, FR-105, SC-005 | `TestReconstruccionDeJurisprudencia` | `internal/evals/medida_test.go:3335` | `PASS` |
-| FR-045, FR-106, SC-006 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:3776` | `PASS`, 9, con `jurisprudencia` |
-| FR-051, FR-107, SC-007 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:4388` | `PASS`, 23, con los cuatro casos de `jurisprudencia` |
+| FR-044, FR-105, SC-005 | `TestReconstruccionDeJurisprudencia` | `internal/evals/medida_test.go:3351` | `PASS` |
+| FR-045, FR-106, SC-006 | `TestGrabacionesDerivadas` | `internal/evals/medida_test.go:3792` | `PASS`, 9, con `jurisprudencia` |
+| FR-051, FR-107, SC-007 | `TestEjecucionDeLaMedida` | `internal/evals/medida_test.go:4404` | `PASS`, 23, con los cuatro casos de `jurisprudencia` |
 | FR-013, FR-108, SC-008 | `TestVotoDelJuez` y `TestUmbralesDeJurisprudencia` | `internal/evals/juez_test.go:1271` e `internal/evals/informe_test.go:4670` | `PASS`, 23 y 10 |
 | FR-010, FR-109, SC-009 | `TestTextosDeLaSesion` y `TestMensajeDelVoto` | `internal/evals/sesion_test.go:800` e `internal/evals/juez_test.go:422` | `PASS`, 11 y 7 |
 | FR-065, FR-066, FR-110, SC-010 | `TestPreguntasDelSondeo`, `TestPreguntasConElFragmento`, `TestConjuntoDeEvals` y `TestEvalsDelRepositorio` | `internal/evals/conjunto_test.go:3707`, `:3540`, `:752` y `:1893` | `PASS`, 5, 6, 82 y 16 |
@@ -453,7 +479,10 @@ Los diez nombres están escritos, literales, en `internal/evals/informe_test.go`
   T004; `juez.go` e `informe.go`, T001; `medida.go`, T002; `conjunto.go`, T003; y `SKILL.md`, T006. `evals.yml` lo
   tocan T003, T004 y T007, esta última solo en comentarios (§1), y `umbrales.go`, T009, solo en un comentario. Las
   nueve tareas van por su primer intento (`gates/tareas-intentos.json`), la cuarentena está vacía y no hay ninguna
-  nota `gates/tarea-T*.md`.
+  nota `gates/tarea-T*.md`. La revisión final, después, retira de `medida.go` dos mecanismos sin requisito
+  (cabecera): no toca la rúbrica, los casos, la medida ni ningún umbral, y `TestReconstruccionDeJurisprudencia`,
+  `TestGrabacionesDerivadas` y `TestEjecucionDeLaMedida`, que fijan los 249 casos, sus textos y los 499 votos, siguen
+  en verde sin cambiar lo que esperan.
 
 ### Sin modelo, sin medida y sin sondeo (FR-095)
 
@@ -469,7 +498,8 @@ dejó `make ci` en verde en su verificación (`gates/ci.log` guarda la de T007).
 
 ### Atajos: ningún `//nolint`, `t.Skip` ni TODO nuevos
 
-En las 7 698 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`), con las 22 de T009, la búsqueda de
+En las 7 694 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`), con las 22 de T009 y lo que cambia
+la revisión final (eran 7 698 antes de ella), la búsqueda de
 `nolint`, `t.Skip`, `.Skip(`, `SkipNow`, `TODO`, `FIXME` y `XXX` no da ninguna; la misma búsqueda con `fmt.Errorf` da
 21. Ninguna línea añadida empieza por una asignación a `_`, que es como se tira un error. Y en el árbol entero,
 contra `main`:
@@ -483,7 +513,7 @@ contra `main`:
 - **TODO, FIXME y XXX**: 12 líneas en `main` y 12 en el árbol, en `*.go`, `Makefile`, `scripts`, `.github`, `skills`,
   `evals` y `schemas`. De los ficheros que las llevan, el diff solo nombra `internal/evals/medida_test.go`, con dos:
   son la plantilla de `mktemp`, `kitlegal-medida-del-juez.XXXXXX`, en dos comentarios que ya estaban en `main` y que
-  hoy están más abajo (líneas 5451 y 5485). Ninguna es una tarea pendiente.
+  hoy están más abajo (líneas 5467 y 5501). Ninguna es una tarea pendiente.
 
 ## 7. Los apartados de las reparaciones del cierre (FR-027)
 

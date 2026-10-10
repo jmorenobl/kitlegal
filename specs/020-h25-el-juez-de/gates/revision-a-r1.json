@@ -1,0 +1,82 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza (guardián global con los 11 ficheros del barrido, 062c399) y termina con «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». Reproducido en esta sesión sobre un clon de 062c399 fuera del repositorio (`make ci`, en primer plano): código 0, «0 issues.» del lint, `ok` en internal/evals con 97,2 % y 97,7 % de cobertura en las dos pasadas, «No vulnerabilities found.», «no leaks found» y «ci: todos los controles en verde»; el clon queda limpio después. En el repositorio, `git status --short` solo da gates/revision-cambios.md y gates/revision-ciclo.json, que deja el workflow para esta ronda. La rama parte de la cabeza de main (merge-base ece5df8)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo está en internal/evals (juez.go, informe.go, medida.go, conjunto.go) y entra con tests offline y sin modelo. Dieciocho mutantes en el clon, todos en rojo y con la subprueba que los nombra: (1) clases.yaml con decide:false y (2) con umbral 0.5 -> TestUmbralesDeJurisprudencia y TestEvalsDelRepositorio; (3) medida.json con marcados:1 en la evidencia y en la copia -> TestMedidaVersionada, TestEjecucionSinMedir; (4) segundosDelJuezPorModo a 9000 (umbrales.go:27) -> TestUmbralesDeJurisprudencia/901-s-del-juez-en-el-modo-orden; (5) concurrencia 1 en evals, (6) en medida y (7) medida sin jurisprudencia -> TestDefinicionDelJob, con 47857 s y 60305 s; (8) nueve evals -> TestEvalsDelRepositorio/conjunto-jurisprudencia; (9) sin copiar Sentencia (juez.go:967) -> TestVotoDelJuez, TestInformeConElJuez; (10) sin comparar el código (medida.go:1344) -> TestResolverCasos/jurisprudencia/orden-con-otro-codigo; (11) cotejar sin documento en el job (medida.go:1299) y (12) en el sondeo (medida.go:1022) -> TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas; (13) un byte de más en la ficha de la eval 09 -> TestPreguntasDelSondeo, TestPreguntasConElFragmento; (14) la ficha sin su salto final (medida.go:1001) -> TestResolverCasos/jurisprudencia/informe-de-un-sondeo; (15) sin exigir la dirección (conjunto.go:805) -> TestConjuntoDeEvals/jurisprudencia/07-sin-la-direccion; (16) la columna siempre «Precepto» (informe.go:1936) -> TestInformeMarkdownDeLosUmbrales/con-los-votos-de-un-juez-con-sentencia; (17) --documento recortado (medida.go:1472) -> TestArgumentosDeLaInvocacion/cita-con-el-documento-tal-cual; (18) el recorte del fallo sin normalizar (medida.go:1731) -> TestTextoQuitado/sin-el-fallo. Suite de aceptación: el plan dice «Aceptación e2e: no aplica» con su desviación en Complexity Tracking (plan.md:147 y :385), porque el hito no cambia el binario; las suites congeladas de hitos anteriores no están en el diff (ni internal/app ni specs/001 a 019) y pasan en el make ci reproducido."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las 7 698 líneas añadidas fuera de specs/ (git diff main...HEAD) no hay ninguna con net/http, net, os.Exit, fmt.Print, os.Stdout, os.Stderr, panic(, database/sql ni internal/httpx. medida.go solo gana path, regexp, unicode y unicode/utf8 (medida.go:14-22). La salida de cada orden repetida va a un búfer y la de error a io.Discard (medida.go:1322-1325). golangci-lint con depguard y forbidigo: «0 issues.» en gates/ci.log y en el make ci reproducido, que incluye el test de arquitectura (paquete internal, ok)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El hito no cambia ningún applet ni ningún esquema: el diff no nombra internal/app, internal/core, internal/cli, cmd ni schemas. TestEsquemasPublicados (schema-check) pasa en el make ci reproducido. Medido en proceso con app.Main sobre el clon: `cita preparar` y `cita cotejar` dan el sobre con ok, fuente, url, fecha_consulta, hash y data, y TestReconstruccionDeJurisprudencia exige el sobre ok:true de cada orden cita repetida (medida_test.go:3383-3391)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. Lo que los artefactos dicen del binario se cumple, medido en proceso con app.Main sobre el clon (ejecutar el binario compilado pedía una aprobación que esta sesión no tiene): `cita preparar --resolucion 241/2013 --fecha 2013-05-09 --json` termina con 0, con la dirección indexAN.jsp y las casillas «Nº Resolución» 241/2013 y «Fecha resolución» 09/05/2013; `cita cotejar --json` con el fragmento, 0 y la huella 4886e0c8…ee27 de quickstart; con un texto sin ficha, 2 y el sobre de la clase argumentos. En internal/evals los errores nuevos son fmt.Errorf con el caso, el informe o la orden delante (medida.go:708, :780, :872, :1343-1345, :1691, :1719-1741), sin panic: los índices de partirLaOrdenDeCita, banderaDelTrozo, loQueQueda y primeraLinea están acotados (medida.go:1430-1476, :1713-1763), y la aserción de tipo del sondeo va con su segundo valor (medida.go:1017)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased) registra jurisprudencia v0.1 con sus dos cambios y el juez, sus clases, los doce umbrales, las cuatro evals, las cuatro sesiones a la vez y la medida de las dos skills (FR-084, FR-090). No hay ADR nuevo ni fuente tocada: docs/ADR y docs/SOURCES.md no están en el diff. docs/JURISPRUDENCIA.md:228-248, docs/WORKFLOW.md:21 y CONTRIBUTING.md cumplen FR-091 a FR-093: en CONTRIBUTING.md no queda ninguna de las seis afirmaciones falsas (búsqueda de «20 341», «seis evals», «no tiene juez hasta», «de una en una», «son cuatro», «(18)»; lo que queda es de legal-core o de la lista de expresiones, líneas 692 y 952). Cifras contrastadas con el árbol y con lo ejecutado: 12 577 s y 15 505 s, y 47 857 s y 60 305 s de una en una (salida de TestDefinicionDelJob con los mutantes); 249 casos con 138, 39 y 72 y 45, 41 y 41 (medida_test.go:3248-3252); 499 y 683 votos; 120 sesiones y 30 respuestas juzgadas por modo (plan del job, medido); SKILL.md con 197 líneas y +9 −7; 8 de 35 y 6 de 18 respuestas con CAPTCHA y 6 con el equivalente (contadas con jq sobre el informe de H23 y el sondeo). Artefactos: los bytes de los ejemplos de los contratos son los medidos (439, 325, 324, 128, 201, 283, 624 y 483); el mensaje del voto de los 249 casos da 2 958 de media y 7 024 el mayor, y la pregunta de la eval 08, 2 496 (arnés temporal en el clon); las referencias de línea de cierre.md (medida_test.go:86-87, :3248-3249, :4218; definicion_test.go:1047-1048, :1858, :1874; informe_test.go:4702, :4767, :4808; juez.go:290; umbrales.go:26-27, :267, :279-280) son las del árbol. El README no afirma nada que H25 deje falso (README.md:261-300)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición de red nueva: internal/httpx no está en el diff, la reconstrucción repite las órdenes del applet cita en proceso (medida.go:1257, :1319-1328), que no alcanza la red por construcción, y el applet boe sigue sobre la reproducción de un directorio vacío (medida.go:1249). El CENDOJ no se consulta: las evals 08 y 09 llevan el fragmento y su ficha, ya versionados en evidencias/adr-0036/, byte a byte (TestPreguntasConElFragmento), y evidencias/, testdata/ y docs/SOURCES.md no cambian, así que no hay datos externos que no vengan de lo ya grabado. Sin secretos (gitleaks: «no leaks found») y sin NIF de persona. La skill v0.1 sigue sin sortear el CAPTCHA y deja de anunciarlo a la persona (skills/jurisprudencia/SKILL.md:18-25). La medida del juez y el sondeo no los lanza el run: la condición del trabajo medida no cambia (.github/workflows/evals.yml:386)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas fuera de specs/ no hay nolint, t.Skip, .Skip(, SkipNow, TODO, FIXME ni XXX, ni ninguna asignación a _ que tire un error. Ningún fixture cambia: testdata/ y evidencias/ no están en el diff, y las cuatro copias del juez son idénticas a su original (cmp sin salida en las cuatro; TestCopiasDelJuez con ocho subpruebas de jurisprudencia). Los tests que cambian lo hacen porque el spec sustituye lo que fijaban (seis evals, cuatro umbrales, una a la vez), cada uno con el control que lo reemplaza; ninguno se retira. Las nueve tareas van por su primer intento y la cuarentena está vacía (gates/tareas-intentos.json, gates/cuarentena.json)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ son 31 ficheros, todos trazados a un requisito (plan.md, «Trazabilidad»): la carpeta del juez, cuatro evals, SKILL.md, evals.yml, seis .go y diez _test.go de internal/evals y cuatro documentos. No cambian el applet cita, schemas/, la constitución, scripts/, las seis evals de H23, boe-legislacion, legal-core ni los specs anteriores (FR-005, FR-096). SKILL.md difiere del de main solo en los dos pasajes del contrato: aplicado al revés contracts/skill-jurisprudencia-v0.1.diff sobre la cabeza, el fichero queda idéntico al de main (git apply --reverse, y diff vacío). mensajeDelVoto y scripts/evals-voto.sh no cambian (FR-011). Los supuestos de gates/supuestos.md son lecturas conservadoras: 34 de impacto interno sobre casos que el contrato no decía, y el de alcance de T007, que reescribe las dos entradas de H23 de Unreleased en lugar de contradecirlas, sigue el precedente de la 0.3.2 y no añade comportamiento."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El binario no cambia y el applet cita no lee caché ni grafo, así que nada crece con lo acumulado: TestReconstruccionDeJurisprudencia exige que el directorio de la caché siga sin existir (medida_test.go:3366). Medido en proceso sobre el clon: `cita preparar` da 570 bytes por número y fecha, 435 por texto, 470 por ROJ y 474 por ECLI; `cita cotejar`, 559; el sobre de fallo, 355. Invocaciones por pregunta que pide SKILL.md, las de v0: un preparar por sentencia sin documento y un cotejar por documento. Señales: la línea ⚠ SENTENCIA NO COMPROBADA y su consulta salen mientras la sentencia no esté delante y las sustituye la cita con el documento cotejado; el equivalente deducido solo sale junto a una referencia sin documento; v0.1 quita el anuncio del CAPTCHA. Del job: `umbrales` son 12 elementos fijos, 3 767 bytes (medidos 3 827 con encoding/json v1, que escribe «<=» con un escape de 6 bytes; descontados sus 5 bytes de más por elemento, la cifra de los artefactos; de 249 a 388 cada uno); `juez.respuestas` está acotado por las 60 respuestas juzgadas y no lleva nada sin un voto afirmativo; el motivo de una respuesta marcada deja de darse en el primer job sin marcadas; la medida impresa son 624 bytes por lanzamiento. SKILL.md, 197 líneas, una vez por conversación."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las 22 filas de plan.md, «Controles de umbral», tienen su control en el código y cada uno se ha visto en rojo por encima de su umbral. Filas evals: afirma_lo_no_leido toma decide y umbral de clases.yaml (umbrales.go:279-280) y con una respuesta marcada da motivo y veredicto fallo (TestUmbralesDeJurisprudencia/una-marcada-en-el-modo-orden, informe_test.go:4760-4776); con decide:false o umbral 0.5 en clases.yaml, make ci falla (mutantes 1 y 2). medida_del_juez: Decide:true con umbral 0 (umbrales.go:355-370) y, con un recuento distinto de 0 en la medida versionada, TestMedidaVersionada y TestEjecucionSinMedir fallan (mutante 3). duracion_del_juez: 900 s y Decide:true (umbrales.go:27, :385-391), con 901 s en fallo (mutante 4). cita_sin_documento y sin_activar deciden con 0 (umbrales.go:297-328) y siguen con sus casos entre los doce. Un umbral que decide y no se cumple es motivo de la raíz y pone el veredicto en fallo (umbrales.go:443-460, :551-562). Filas ci: TestCopiasDelJuez, TestDefinicionDelJob (mutantes 5 a 7), TestMedidaVersionada, TestEjecucionSinMedir, TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas, TestEjecucionDeLaMedida (499 votos, medida_test.go:4218), TestVotoDelJuez, TestTextosDeLaSesion, TestMensajeDelVoto, TestPreguntasDelSondeo, TestPreguntasConElFragmento, TestConjuntoDeEvals, TestEvalsDelRepositorio y skills-check, cuyo límite es lineas <= 299 (internal/skills/sincronia.go:27, :362); los diecisiete están en su ruta con `^func`. `umbrales` lleva exactamente doce y diez deciden (informe_test.go:4901-4904). afirma_que_existe va con decide:false y no se cuenta como umbral que solo se publica: FR-021 dice que no es un requisito con umbral, la entrada del hito deja fuera de alcance que decida y el ADR 0037 no deja decidir a una clase sin casos etiquetados."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "FR-065: las reglas del conjunto reconocen las cuatro evals por la forma de lo que esperan y no por sus valores (conjunto.go:802-808; research D13 y supuesto del barrido): una eval (g) con otro número en «Nº Resolución» pasa make ci y falla su serie en el job; es la edición de un fichero versionado y queda bajo el umbral de materialidad.",
+    "La reconstrucción toma solo la salida estándar de la orden repetida (research D6) donde guiones/casos.py tomaba la de error si la estándar venía vacía: medido, con --json el sobre de fallo va a la salida estándar, y las 61 órdenes cita del informe de H23 terminan con 0, así que ningún texto de los 249 casos cambia por ello.",
+    "No hay ningún fichero versionado con los 249 mensajes de la validación: que el juez vote lo reconstruido en Go como votó lo de casos.py (research S1) solo lo dice la medida que lanza la persona con la etiqueta evals-medir-juez antes de fusionar (SC-014); conviene que el informe final lo destaque.",
+    "Las series de las cuatro evals nuevas en el modo herramienta, las nueve sesiones a la vez contra el límite de ritmo y el efecto de v0.1 sobre el CAPTCHA no se han medido en el run (research S2, S4 y S5): los mide el cierre y los lee la persona.",
+    "Cuatro bloques nuevos de medida.go no tienen test (cierre.md §3: el informe que no es JSON, las evals de hoy ilegibles, un applet que no se registra y una orden cita sin verbo): son ficheros versionados que no se pueden leer o estados sin vía real, y ningún umbral depende de ellos.",
+    "cierre.md §3 y §4 son las medidas de T008 sobre 7f0d96c, y T009 y el barrido no las repitieron; reproducido aquí make ci sobre la cabeza, con la misma cobertura de internal/evals (97,2 % y 97,7 %).",
+    "El supuesto de alcance de T007 reescribe en CHANGELOG.md las dos entradas de H23 de Unreleased como v0.1 y con juez, en lugar de añadir otras: es coherente con que ninguna release llevó la v0, y la persona lo ve en el informe final.",
+    "En esta sesión no se ha ejecutado el binario compilado (pedía aprobación): las salidas y los códigos del applet cita se midieron en proceso con app.Main, con un test temporal en el clon que no queda en ningún sitio del repositorio; tampoco se ha abierto ninguna sesión con modelo ni el job de evals."
+  ]
+}

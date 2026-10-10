@@ -499,13 +499,12 @@ type sesionDeUnSondeo struct {
 }
 
 // invocacionDeUnSondeo es lo que se lee de cada invocación de una sesión de un
-// sondeo: su herramienta, la orden de su entrada y lo que devolvió. La orden de
-// Bash es un texto; la entrada de otra herramienta puede llevar en esa clave
-// otra cosa, que no es una orden y se lee sin que el informe deje de serlo.
+// sondeo: su herramienta, la orden de su entrada, que es un texto, y lo que
+// devolvió.
 type invocacionDeUnSondeo struct {
 	Herramienta string `json:"herramienta"`
 	Entrada     struct {
-		Command any `json:"command"`
+		Command string `json:"command"`
 	} `json:"entrada"`
 	Salida string `json:"salida"`
 }
@@ -1014,8 +1013,8 @@ func textosDelSondeo(invocaciones []invocacionDeUnSondeo, queda string) []textoR
 	textos := make([]textoReconstruido, 0, len(invocaciones))
 
 	for _, invocacion := range invocaciones {
-		orden, esUnTexto := invocacion.Entrada.Command.(string)
-		if invocacion.Herramienta != herramientaDeLasOrdenes || !esUnTexto || !strings.HasPrefix(orden, principioDeUnaOrden) {
+		orden := invocacion.Entrada.Command
+		if invocacion.Herramienta != herramientaDeLasOrdenes || !strings.HasPrefix(orden, principioDeUnaOrden) {
 			continue
 		}
 
@@ -1354,15 +1353,7 @@ func (t textoReconstruido) conElCodigoDelInforme(delInforme *int) error {
 // por <applet>_<verbo>, el applet y el verbo por separado y, detrás de sus
 // argumentos, --json, para que su texto sea el sobre, como el de una orden; y,
 // detrás de todo, --offline, para que nada llegue a la red.
-//
-// Los de una orden del applet cita no salen de sus palabras, sino de su propia
-// regla (partirLaOrdenDeCita), y no llevan --offline: el applet no pide nada a
-// la red (research D5 de H25).
 func argumentosDeLaInvocacion(invocacion invocacionDelInforme) []string {
-	if esUnaOrdenDeCita(invocacion.Orden) {
-		return partirLaOrdenDeCita(invocacion.Orden).argumentos()
-	}
-
 	palabras := strings.Fields(invocacion.Orden)
 
 	if invocacion.Llamada && len(palabras) > 0 {
@@ -1487,7 +1478,8 @@ func (o ordenPartidaDeCita) verbo() string {
 // argumentos son los argumentos con los que se repite la orden: el applet, el
 // verbo y la referencia; cada bandera, con sus guiones, y detrás su valor, si
 // lo tiene, entero; y --json, una sola vez y al final, para que su texto sea el
-// sobre.
+// sobre. No llevan --offline: el applet no pide nada a la red (research D5 de
+// H25).
 func (o ordenPartidaDeCita) argumentos() []string {
 	argumentos := slices.Clone(o.cabeza)
 
