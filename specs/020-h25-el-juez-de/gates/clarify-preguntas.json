@@ -1,0 +1,46 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Casos límite y manejo de fallos · alcance de `jurisprudencia` v0.1",
+      "pregunta": "Si el job de cierre sale en rojo por lo que dice una respuesta de `jurisprudencia` —una respuesta marcada en `afirma_lo_no_leido` que no parece un error del juez, o una serie de las evals (g) a (j) que no pasa sus comprobaciones sin modelo—, ¿puede la reparación del cierre cambiar `SKILL.md` fuera de los dos pasajes de FR-081 y FR-082?",
+      "por_que_importa": "FR-083 pide que las diferencias de `SKILL.md` con el de `main` estén solo en esos dos pasajes, y `docs/WORKFLOW.md` dice que la reparación del cierre puede corregir la skill con las frases de una respuesta marcada. El spec dice qué pasa con una marca que parece errónea (FR-026: queda en el informe final) y no con una acertada ni con una serie que no pasa. Las cuatro preguntas nuevas no las ha medido el job en ninguno de los dos modos; la entrada del hito dice que el sondeo con la skill las respondió sin defecto en sus doce sesiones. De la respuesta depende qué puede tocar la reparación, qué comprueban los jueces de la revisión final contra FR-083 y qué llega al informe final.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Sí. La reparación del cierre puede cambiar otros pasajes de `SKILL.md`, cada cambio trazado a las respuestas que lo provocan, como pide FR-080 de las dos frases. FR-083 pasa a exigir que solo cambien los dos pasajes en la implementación y que todo cambio posterior venga de una reparación del cierre con su traza. `jurisprudencia` v0.1 puede salir con más de dos frases corregidas, y `CHANGELOG.md` las registra."
+        },
+        {
+          "id": "B",
+          "texto": "Solo dentro de los dos pasajes. La reparación del cierre puede volver a redactar los pasajes de FR-081 y FR-082, y nada más de `SKILL.md`. FR-083 se queda como está. Si con eso el cierre sigue en rojo, el rojo llega al informe final con las respuestas y sus frases, y la persona decide."
+        },
+        {
+          "id": "C",
+          "texto": "No. `SKILL.md` no cambia después de la implementación. FR-083 se queda como está y el spec añade que un rojo del cierre por lo que dice una respuesta no se repara cambiando la skill: llega al informe final con las respuestas y sus frases, y la persona decide. La reparación del cierre sigue pudiendo cambiar código y tests."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    },
+    {
+      "id": "Q2",
+      "categoria": "Alcance funcional · documentación (marcador [NEEDS CLARIFICATION] de FR-093)",
+      "pregunta": "¿Entra en el hito corregir lo que `CONTRIBUTING.md` dice hoy del job de evals y deja de ser cierto con H25: que `jurisprudencia` no tiene juez hasta H25, sus seis evals y la regla de exactamente seis, su concurrencia de una en una y su peor caso de 20 341 s, los cuatro elementos de sus `umbrales` y que la medida del juez es solo de `boe-legislacion`?",
+      "por_que_importa": "La Entrega 7 nombra `CHANGELOG.md`, `docs/JURISPRUDENCIA.md` y una fila de `docs/WORKFLOW.md`, y no `CONTRIBUTING.md`; ningún test de `make ci` ata ese texto a la definición del job. De la respuesta depende si FR-093 es un requisito con su tarea y su ruta declarada, o una viñeta de «Fuera de alcance», y qué dice `CONTRIBUTING.md` del job cuando el hito esté en `main`. En H23, `CONTRIBUTING.md` no estaba en el requisito de documentación del spec (H23 FR 070) y sí en la tarea de documentación del hito (T011).",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Entra entero. FR-093 pasa a ser un requisito: `CONTRIBUTING.md` deja de decir cada una de esas cosas y dice lo que vale con H25 (el juez de `jurisprudencia` y sus dos clases, las diez evals y su regla, cuatro sesiones a la vez en los dos trabajos y sus peores casos, los doce elementos de `umbrales` y la medida de las dos skills). Lo comprueba la revisión final por lectura contra el árbol; añade una ruta a las tareas y texto que ningún test ata."
+        },
+        {
+          "id": "B",
+          "texto": "Entra solo lo que nombra a H25. FR-093 pasa a ser un requisito acotado: `CONTRIBUTING.md` deja de decir que `jurisprudencia` no tiene juez hasta H25 y que ningún control decide el resumen de lo no leído. Las cifras del job (seis evals, de una en una, 20 341 s, cuatro elementos, la medida solo de `boe-legislacion`) se quedan como están y se anotan como pendiente en el informe final."
+        },
+        {
+          "id": "C",
+          "texto": "No entra. FR-093 se retira y `CONTRIBUTING.md` pasa a «Fuera de alcance» como lo que el hito no especifica; el run no lo toca. Queda anotado como supuesto de alcance en el informe final, y hasta que una persona lo corrija fuera del run, `CONTRIBUTING.md` describe el job como lo dejó H23."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    }
+  ]
+}
