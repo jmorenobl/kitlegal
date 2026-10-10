@@ -62,7 +62,7 @@ dossier() {
 # Un trabajo cuyo registro no trae un informe legible no deja fichero: el informe final
 # lo dice. Nunca para el run: las tasas son información para la persona, no un gate.
 recoger_evals() {
-  local e="$d/gates/evals" fila nombre skill link run job destino
+  local e="$d/gates/evals" fila nombre skill link run job destino ajenas
   rm -rf "$e"; mkdir -p "$e"
   jq -c '.checks[] | select(.workflow == "evals" and (.bucket == "pass" or .bucket == "fail"))' "$d/gates/cierre.json" |
   while IFS= read -r fila; do
@@ -78,9 +78,20 @@ recoger_evals() {
     # marca delante la hora no se quitaba y el informe dejaba de ser JSON (H21: el de
     # boe-legislacion en dos modos, 821 kB, quedó fuera del informe final).
     gh run view "$run" --job "$job" --log 2>/dev/null | cut -f3- | sed $'s/^\xef\xbb\xbf//' | sed -E 's/^[0-9-]+T[0-9:.]+Z //' \
-      | awk '$0 == "--- inicio de informe.json ---" {p = 1; next} $0 == "--- fin de informe.json ---" {p = 0} p' > "$destino" || true
+      | awk '$0 == "--- inicio de informe.json ---" {p = 1; next} $0 == "--- fin de informe.json ---" {p = 0} p' > "$destino.bruto" || true
+    # Entre las dos marcas puede caer una línea que no es del informe. El registro junta la salida
+    # estándar y la de error del paso, que el runner lee por separado, y cuando el trabajo falla el
+    # «make: *** [Makefile:…: evals] Error 1» de la salida de error queda en un punto cualquiera de
+    # lo que la estándar aún no había entregado (H25, medición 1: cayó dentro del informe de
+    # boe-legislacion, que dejó de ser JSON, y la reparación del cierre trabajó sin él). El informe
+    # lo escribe el job con sangría: cada línea suya empieza por un espacio o por una llave, y la
+    # que no, es de otra salida. Se descarta y se dice cuántas.
+    ajenas=$(grep -c -v '^[ {}]' "$destino.bruto" || true)
+    grep '^[ {}]' "$destino.bruto" > "$destino" || true
+    rm -f "$destino.bruto"
     if jq -e '.skill and (.tasas | type == "array")' "$destino" >/dev/null 2>&1; then
       echo "evals: informe de $skill en $destino" >&2
+      [ "${ajenas:-0}" -eq 0 ] || echo "evals: el registro de $nombre traía dentro del informe líneas de otra salida, descartadas: $ajenas" >&2
     else
       rm -f "$destino"; echo "evals: el registro de $nombre no trae un informe.json legible" >&2
     fi
