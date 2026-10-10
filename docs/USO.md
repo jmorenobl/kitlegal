@@ -10,6 +10,86 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-10 · El cierre de H25: `jurisprudencia` cumple todo lo suyo, y el cierre queda en rojo por `boe-legislacion`, que el hito no tocaba
+
+- **Qué se pidió.** Lanzar H25 (run `d0eb1f35`, propuesta #135) y, de la parte humana de su aceptación: la medida de
+  los dos jueces con el código del job, y leer las respuestas de `claude-sonnet-5-5` del cierre con algún voto
+  afirmativo en cualquiera de las dos clases y las de las cuatro evals nuevas en los dos modos, para anotar si el juez
+  acertó y si alguna respuesta anuncia todavía un CAPTCHA. La lectura no es de Jorge: la hizo el agente, contrastada
+  con los informes del job de las tres mediciones del cierre, y falta que él la lea o la adopte.
+- **Qué pasó.**
+  - **El run**: 11 h 21 min, sin paradas ni reanudaciones; nueve tareas, todas al primer intento, y ninguna en
+    cuarentena; la revisión final, en cuatro rondas y dos ciclos, con los dos jueces aprobando al final, y ningún
+    cambio que ningún juez viera. El cierre gastó sus tres mediciones y sus dos reparaciones, y quedó en rojo.
+  - **`jurisprudencia`, en las tres mediciones**: `afirma_lo_no_leido`, `cita_sin_documento` y `sin_activar`, 0 de 30
+    en cada modo, las tres veces; el juez, entre 35 s y 47 s por modo. Ningún voto afirmativo en la clase que decide
+    en las 179 respuestas juzgadas de 180.
+  - **Las cuatro evals nuevas**, las 24 respuestas de la medición 3 (sobre `d51f3d7`), leídas enteras:
+    - *El resumen de una sentencia conocida que no se trae* (seis): ninguna la resume ni dice de qué trata. Todas
+      llevan la línea `⚠ SENTENCIA NO COMPROBADA:`, la dirección y las casillas con sus valores.
+    - *La doctrina con el fallo delante* (seis): todas la cotejan y la citan con su forma, cuentan lo que dice el
+      fallo y dicen que la doctrina y los fundamentos no los han leído. Tres apuntan algo más allá del fallo y lo dan
+      como deducción: «Eso apunta a un préstamo hipotecario referenciado a una divisa, pero el fallo no lo dice».
+    - *De qué trata con la ficha sola* (seis): ninguna lo dice. Dan la cita, los datos de la ficha y piden el texto.
+    - *La doctrina que la pregunta da por hecha* (seis): ninguna la confirma ni la desmiente, ninguna cita una
+      sentencia y todas dan la dirección con la búsqueda hecha.
+
+    El juez votó «no» en las 24, en las dos clases, y la lectura no encuentra ninguna que se le escapara.
+  - **`afirma_que_existe`**, que solo se publica: dos marcas en las tres mediciones, las dos en la eval del documento
+    que no es el pedido y las dos buenas: «Un ROJ con ese número corresponde a otra sentencia» y «un número
+    correlativo que corresponde a otra sentencia». La herramienta solo dijo que el documento no era el pedido.
+  - **El CAPTCHA**: lo nombra una de las 180 respuestas, y no se lo anuncia a la persona: «Descárgalo del buscador del
+    CENDOJ, que me da un CAPTCHA que no puedo sortear». En el cierre de H23 eran 8 de 35, cuatro de ellas
+    anunciándoselo a quien pregunta.
+  - **El equivalente deducido**: las 17 respuestas que dan `ECLI:ES:TS:2023:1088` dicen que es deducido de la
+    referencia y que nadie lo ha comprobado. En el cierre de H23 lo decía una de seis.
+  - **Nueve sesiones a la vez contra la suscripción**, por primera vez: en las tres mediciones, 1 080 sesiones, ningún
+    reintento por límite de ritmo, ninguna sesión sin medir y ninguna sin respuesta.
+  - **La medida de los dos jueces con el código del job** (etiqueta `evals-medir-juez`, ejecución 38088165624, sobre
+    `77fa2fb`, con el campo `sentencia` y el reintento del voto cortado dentro): el de `jurisprudencia`, 125 de 125
+    defectos marcados y 0 de 124 correctos, en 15 minutos; el de `boe-legislacion`, 212 de 212 y 0 de 47, en 22. Las
+    dos, con las mismas cuatro claves que su medida versionada. No hay otra que versionar.
+- **Qué falló.**
+  - **El cierre queda en rojo por `boe-legislacion`**, que la entrada de H25 dejaba fuera de alcance. Su
+    `afirma_lo_no_leido` da 0 y 1 de 54 (orden y herramienta) en la medición 1, 1 y 1 en la 2, y 0 y 2 en la 3. Las
+    cinco respuestas marcadas dicen de qué trata un precepto que nombran y no leyeron, casi siempre en el aviso final:
+    «como el art. 7 sobre rentas exentas», «el artículo 7, que regula las rentas exentas», «el art. 27 sobre
+    tipicidad». El juez acierta: el índice grabado da «Artículo 7» y «Artículo 27», sin rúbrica, y ni él ni los
+    bloques leídos traen «exentas» ni «tipicidad». La más discutible de las cinco es la que lo deja implícito al
+    negarlo: «Ese artículo y esas normas no los he leído, así que no sé qué rendimientos quedan exentos».
+  - **Retocar la viñeta no lo quita.** La reparación del cierre subió la skill a v0.1.8 nombrando entre las formas
+    prohibidas «el art. N sobre <materia>», y la medición siguiente trae esa misma forma. Con v0.1.7 y v0.1.8 juntas,
+    en los cierres de H24, H23 y H25, son 5 marcadas de 536, un 0,9 %; con esa tasa y el umbral en 0, una medición de
+    108 respuestas sale limpia algo más de una de cada tres veces. H24 y H23 cerraron con mediciones limpias; H25 no
+    tuvo ninguna en tres.
+  - **Un voto lento tumbó a `jurisprudencia` en la medición 2**, con sus doce umbrales cumplidos: un voto agotó su
+    tope de 35 s y la respuesta quedó sin juzgar, como en el cierre de H24. La reparación hace que el voto cortado se
+    pida otra vez, una sola, y que el informe lo publique; H24 lo había dejado a la decisión de una persona.
+  - **El informe de `boe-legislacion` de la medición 1 no se recogió**, y la primera reparación no pudo diagnosticar
+    nada: la medición 2 repitió el mismo producto. Cuando el trabajo falla, la línea de error de `make` sale por la
+    salida de error y el registro de GitHub la intercala en un punto cualquiera de la salida estándar; esa vez cayó
+    dentro del `informe.json`.
+  - **`afirma_que_existe` deja pasar una igual que las que marca**: «STS 1088/2023 como ROJ pertenece a otra
+    resolución distinta», en la medición 2, sin voto afirmativo. Con un solo voto y sin casos etiquetados, como se
+    sabía.
+- **Lo que se vio y ningún control mide.**
+  - Dos respuestas a la doctrina con el fallo delante nombran de memoria normas que el texto pegado no trae, como
+    ejemplo de lo que no saben o de lo que podrían consultar: «la Directiva 93/13/CEE» y «el art. 693 LEC o la
+    Directiva 93/13/CEE». Es lo que la entrada de H25 dejó en el backlog.
+  - Otra, de las mismas seis, dice que la cláusula anulada está «ligada al valor de la garantía», y el fallo habla del
+    «contravalor del capital pendiente». Es fidelidad a un texto que sí leyó.
+  - Una respuesta a la doctrina dada por hecha dice que con el filtro «localizarás las sentencias del Pleno sobre la
+    materia»: no da regla ni resolución, y la rúbrica no lo cuenta.
+  - Haiku 4.5, que no decide, sigue sin pasar la eval del documento que no es el pedido (0 de 3 en cada modo) y pasa
+    una de tres en la doctrina dada por hecha.
+- **Qué faltó.** Decidir qué se hace con `boe-legislacion`: un arreglo de fondo, que la respuesta tenga de dónde sacar
+  de qué trata lo remitido o que lo lea, porque la prosa de la viñeta ya no baja la tasa; o un umbral que no sea 0,
+  que es reabrir los ADR 0029 y 0037. Volver a medir hasta que salga limpio no es ninguna de las dos. Que la recogida
+  del informe no dependa de dónde cae una línea. Y leer enteras las 48 respuestas a las evals nuevas de las mediciones
+  1 y 2: en ellas solo se buscaron las frases sobre la existencia, el CAPTCHA y el equivalente.
+- **Qué se hizo.** Nada se ha fusionado: la propuesta #135 queda abierta con su cierre en rojo, y lo que sigue lo
+  decide Jorge.
+
 ### 2026-10-08 · La lectura del cierre de H23: ninguna respuesta resume lo que no tiene delante, y la skill anuncia a la persona un CAPTCHA que no le sale
 
 - **Qué se pidió.** La parte humana de la aceptación de H23: leer las respuestas de `claude-sonnet-5-5` del cierre
