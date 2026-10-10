@@ -903,9 +903,12 @@ si el repetido lleva también un `si` sin su frase, en esa clase no cuenta como 
 una clase que decide solo con tres votos que dicen sí con su frase.** Los votos se piden por orden, y se deja de
 votar en cuanto ninguna clase que decide sigue con todos sus votos en sí: con un no en el primero se pide un voto;
 con «sí, sí y no», tres, y la respuesta no queda marcada y se publica con sus dos frases. En una clase que solo se
-publica cuenta el primer voto. Un voto que **no llega a darse** —agota su tope, su sesión termina con error, o su
-salida no es JSON o no tiene la forma del esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto
-(`voto 2: tope de 35 s agotado`); no se reintenta, y un límite de uso de la cuenta es uno de esos errores.
+publica cuenta el primer voto. **Un voto que agota su tope se pide otra vez, una sola**, como un nulo, con su mismo
+número: cuenta el que llega, y el corte se publica aparte (`votos_cortados`). Dos peticiones por voto como mucho,
+sea cual sea la causa de la primera: el presupuesto del peor caso no cambia. Un voto que **no llega a darse** —agota
+su tope también en esa repetición, su sesión termina con error, o su salida no es JSON o no tiene la forma del
+esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto (`voto 2: tope de 35 s agotado dos
+veces`); nada más se reintenta ni se espera, y un límite de uso de la cuenta es uno de esos errores.
 
 Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
 ejecución —hoy `boe-legislacion`, `jurisprudencia` y `legal-core`, la matriz del flujo—, cada uno con su informe y
@@ -969,8 +972,9 @@ de las tres tandas —la del modo orden, con la prueba de red— y `C` su concur
 sesiones a 4: 14 357 s). Con una skill que tiene juez se le suma el de su juez,
 `60 s + (⌈R₁ × 6 / C⌉ + ⌈R₂ × 6 / C⌉ + ⌈R₃ × 6 / C⌉) × (35 s + 5 s)`: 60 s de instalar su Claude Code, `R₁`, `R₂`
 y `R₃` las respuestas de cada grupo que juzga, 6 los votos que como mucho pide una respuesta —tres, cada uno con su
-repetición por nulo— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas a 4: 81, 81
-y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, con su juez y cuatro a la
+repetición por nulo o por el tope— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas
+a 4: 81, 81 y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, con su juez y
+cuatro a la
 vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
 orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
 3 660 s—; de una en una serían 47 857 s, que el tope no cubre. Es un cálculo, no una medida de lo que tarda. El
@@ -1187,13 +1191,14 @@ Cómo se lee el informe:
   de la respuesta, en su orden y también los nulos, cada uno con `voto` (1 a 3), `nulo`, lo que dio el juez (`motivo`,
   `respuesta`, `frase` y, si el esquema de la clase lo tiene, su campo propio: `precepto` en `afirma_lo_no_leido` de
   `boe-legislacion`, y `sentencia` —de qué sentencia o de qué jurisprudencia habla la frase— en la de
-  `jurisprudencia`; ningún voto lleva los dos) y `frase_en_la_respuesta`; y `sin_juzgar`, una entrada por respuesta
-  sin juzgar, con su `sesion` y su `motivo`. `marcada` es, en una clase que decide, la de la regla de los tres votos,
-  y en una que solo se publica, que su primer voto dice sí con su frase. Ahí están también las respuestas de la eval
-  sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da en la sección «Juez», detrás de
-  «Umbrales»: el modelo y la versión, la tabla de los votos —cuya octava columna, la del campo propio, se llama
-  «Sentencia» si algún voto lleva `sentencia`, y «Precepto» en otro caso— y la de las respuestas sin juzgar, o «La
-  skill no tiene juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
+  `jurisprudencia`; ningún voto lleva los dos) y `frase_en_la_respuesta`; `sin_juzgar`, una entrada por respuesta
+  sin juzgar, con su `sesion` y su `motivo`; y `votos_cortados`, una entrada por voto que el tope cortó y se pidió
+  otra vez, de las respuestas juzgadas, con su `sesion` y el `motivo` del corte. `marcada` es, en una clase que
+  decide, la de la regla de los tres votos, y en una que solo se publica, que su primer voto dice sí con su frase. Ahí
+  están también las respuestas de la eval sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da
+  en la sección «Juez», detrás de «Umbrales»: el modelo y la versión, la tabla de los votos —cuya octava columna, la
+  del campo propio, se llama «Sentencia» si algún voto lleva `sentencia`, y «Precepto» en otro caso—, la de las
+  respuestas sin juzgar y la de los votos cortados por el tope y pedidos otra vez, o «La skill no tiene juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
   `expresiones_prohibidas_por_modelo` de la raíz, `expresiones_prohibidas` de cada sesión, la sección «Expresiones
   prohibidas por modelo» y la columna «Expresiones prohibidas» de «Sesiones».
 - **Las sesiones sin medir**: una sesión que un límite de la cuenta no dejó terminar no es una eval fallida. El informe

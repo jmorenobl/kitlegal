@@ -638,12 +638,16 @@ const votosParaMarcar = 3
 // H24; FR-007): con el número del voto delante dan el motivo de la respuesta
 // sin juzgar. Las tres últimas llevan detrás un texto, en una línea y cortado a
 // caracteresDeLaCausa caracteres; la de la salida, además, el código del
-// proceso.
+// proceso. causaDelTope es la del voto que el tope corta, que se pide otra vez
+// (votosDelNumero) y que con su número da el motivo de un voto cortado; la
+// respuesta queda sin juzgar solo si el tope corta también la repetición, con
+// causaDelTopeRepetido (research «Reparaciones del cierre» de H25).
 const (
-	causaDelTope    = "tope de 35 s agotado"
-	causaDeLaSesion = "la sesión del juez terminó con error: "
-	causaDeLaSalida = "la salida no es JSON (código %d): %s"
-	causaDeLaForma  = "la respuesta no tiene la forma del esquema: "
+	causaDelTope         = "tope de 35 s agotado"
+	causaDelTopeRepetido = causaDelTope + " dos veces"
+	causaDeLaSesion      = "la sesión del juez terminó con error: "
+	causaDeLaSalida      = "la salida no es JSON (código %d): %s"
+	causaDeLaForma       = "la respuesta no tiene la forma del esquema: "
 
 	caracteresDeLaCausa = 300
 )
@@ -726,6 +730,13 @@ type JuicioDeRespuesta struct {
 	// Clases tiene una entrada por clase del juez, en el orden de clases.yaml.
 	Clases []JuicioDeClase
 
+	// Cortados son los motivos de los votos que el tope cortó y que se pidieron
+	// otra vez, en su orden, cada uno con el número de su voto («voto 1: tope de
+	// 35 s agotado»); vacío si ninguno (research «Reparaciones del cierre» de
+	// H25). El voto que llegó tras cada uno va en Clases como los demás, con ese
+	// mismo número.
+	Cortados []string
+
 	// SinJuzgar es el motivo de la respuesta de la que un voto no llegó a darse,
 	// que nombra ese voto; vacío si la respuesta se juzgó. Una respuesta sin
 	// juzgar no queda marcada en ninguna clase, y conserva los votos que sí
@@ -774,11 +785,14 @@ func nuevaVotacion(juez *Juez, votante Votante) (*votacion, error) {
 //     sí;
 //   - una clase que solo se publica cuenta con el primer voto, y con ninguno
 //     más;
+//   - un voto que el tope corta se pide otra vez, una sola, como un nulo
+//     (research «Reparaciones del cierre» de H25);
 //   - y si un voto no llega a darse, la respuesta queda sin juzgar, con el
 //     motivo de ese voto y sin marcar en ninguna clase (FR-007).
 //
-// De un voto nulo cuenta su repetición (votosDelNumero). El juicio lleva, por
-// clase, todos los votos que se dieron.
+// De un voto nulo o cortado cuenta su repetición (votosDelNumero). El juicio
+// lleva, por clase, todos los votos que se dieron, y aparte los motivos de los
+// cortados.
 func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRespuesta {
 	mensaje := mensajeDelVoto(pregunta, respuesta, textos)
 
@@ -794,7 +808,11 @@ func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRe
 	}
 
 	for numero := 1; numero <= votosParaMarcar; numero++ {
-		dados, motivo := v.votosDelNumero(numero, mensaje, respuesta)
+		dados, cortado, motivo := v.votosDelNumero(numero, mensaje, respuesta)
+
+		if cortado != "" {
+			juicio.Cortados = append(juicio.Cortados, cortado)
+		}
 
 		for _, voto := range dados {
 			for posicion := range juicio.Clases {
@@ -914,27 +932,51 @@ func (j JuicioDeRespuesta) sinJuzgar(motivo string) JuicioDeRespuesta {
 	return j
 }
 
-// votosDelNumero pide el voto con ese número y, si es nulo, otro, una sola vez
-// (contracts/juez-y-voto.md §7 de H24; FR-006). Devuelve los que se dieron, en
-// su orden: el último es el que cuenta, en todas las clases, también si vuelve
-// a ser nulo, y entonces su sí sin frase no cuenta como sí. Si alguno no llega
-// a darse, devuelve además su motivo, y ninguno cuenta.
-func (v *votacion) votosDelNumero(numero int, mensaje, respuesta string) ([][]VotoDeClase, string) {
-	voto, motivo := v.pedirElVoto(numero, mensaje, respuesta)
-	if motivo != "" {
-		return nil, motivo
+// votosDelNumero pide el voto con ese número y, si es nulo o si el tope lo
+// corta, otro, una sola vez (contracts/juez-y-voto.md §7 de H24; FR-006;
+// research «Reparaciones del cierre» de H25). Devuelve los que se dieron, en su
+// orden: el último es el que cuenta, en todas las clases, también si vuelve a
+// ser nulo, y entonces su sí sin frase no cuenta como sí. Devuelve además el
+// motivo del voto que el tope cortó y se volvió a pedir, si lo hubo, con su
+// número; y, si alguno no llega a darse, su motivo, y ninguno cuenta: el del
+// voto que el tope corta por segunda vez lo dice. Dos peticiones por número
+// como mucho, sea cual sea la causa de la primera: es el presupuesto de
+// votosPorRespuestaComoMucho.
+func (v *votacion) votosDelNumero(numero int, mensaje, respuesta string) ([][]VotoDeClase, string, string) {
+	voto, causa := v.pedirElVoto(numero, mensaje, respuesta)
+
+	var dados [][]VotoDeClase
+
+	cortado := ""
+
+	switch {
+	case causa == causaDelTope:
+		cortado = motivoDelVoto(numero, causa)
+	case causa != "":
+		return nil, "", motivoDelVoto(numero, causa)
+	case !esNulo(voto):
+		return [][]VotoDeClase{voto}, "", ""
+	default:
+		dados = [][]VotoDeClase{voto}
 	}
 
-	if !esNulo(voto) {
-		return [][]VotoDeClase{voto}, ""
+	repetido, causa := v.pedirElVoto(numero, mensaje, respuesta)
+
+	switch {
+	case causa == causaDelTope && cortado != "":
+		return dados, cortado, motivoDelVoto(numero, causaDelTopeRepetido)
+	case causa != "":
+		return dados, cortado, motivoDelVoto(numero, causa)
 	}
 
-	repetido, motivo := v.pedirElVoto(numero, mensaje, respuesta)
-	if motivo != "" {
-		return [][]VotoDeClase{voto}, motivo
-	}
+	return append(dados, repetido), cortado, ""
+}
 
-	return [][]VotoDeClase{voto, repetido}, ""
+// motivoDelVoto es el motivo de un voto que no llega a darse, o que el tope
+// corta: su causa con el número del voto delante (contracts/juez-y-voto.md §5
+// de H24).
+func motivoDelVoto(numero int, causa string) string {
+	return fmt.Sprintf("voto %d: %s", numero, causa)
 }
 
 // esNulo dice si el voto es nulo. Lo dicen igual sus votos de todas las clases.
@@ -945,11 +987,11 @@ func esNulo(voto []VotoDeClase) bool {
 // pedirElVoto pide un voto al votante y lo lee: lo que dice de cada clase del
 // juez, en su orden, con si su frase está en la respuesta y, en todas, si el
 // voto es nulo, que es que en alguna dice sí sin que su frase esté. Si el voto
-// no llega a darse, devuelve su motivo, que lo nombra por su número.
+// no llega a darse, devuelve su causa, sin número: lo pone quien lo pidió.
 func (v *votacion) pedirElVoto(numero int, mensaje, respuesta string) ([]VotoDeClase, string) {
 	dichos, causa := v.leerElVoto(v.votante(mensaje))
 	if causa != "" {
-		return nil, fmt.Sprintf("voto %d: %s", numero, causa)
+		return nil, causa
 	}
 
 	voto := make([]VotoDeClase, len(v.clases))

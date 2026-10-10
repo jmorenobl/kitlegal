@@ -220,5 +220,72 @@ etiqueta son las de hoy (FR-050).
 
 ## Reparaciones del cierre (FR-027)
 
-Ninguna todavía. Si una medición del cierre da pie a un cambio de `SKILL.md` fuera de los dos pasajes, la decisión se
-anota aquí, con la medición como evidencia, las respuestas por su sesión y sus frases, y el pasaje que lleva a ellas.
+La medición 1 del cierre (cabeza `3f99446`) salió en rojo solo por `evals (boe-legislacion)` y sin informe recogido;
+la reparación no tocó nada fuera de `gates/` (`gates/supuestos.md`). La medición 2 (cabeza `e380f0a`,
+`gates/cierre.json`, 2026-10-10) salió en rojo por `evals (boe-legislacion)` y por `evals (jurisprudencia)`, con los
+dos informes en `gates/evals/`. Las dos reparaciones que siguen las decide `reparar_cierre` con esos informes; ninguna
+toca una eval, la rúbrica, los casos, la medida ni un umbral (ADR 0029), y ninguna cambia lo que piden el spec ni la
+sección del hito: la primera cambia `boe-legislacion`, que H25 no tocaba, y la segunda se aparta de lo que H24 dejó
+fuera de alcance. Su efecto lo mide el job de evals de la medición siguiente; esta sesión no abre sesiones con modelo
+(ADR 0032).
+
+**R1. `boe-legislacion` v0.1.8: el número y la materia de lo no leído, tampoco juntos en el aviso final.** **Evidencia.**
+`gates/evals/boe-legislacion.json`: `afirma_lo_no_leido:claude-sonnet-5-5:orden` 1 de 54 y
+`afirma_lo_no_leido:claude-sonnet-5-5:herramienta` 1 de 54, frente al umbral 0 (H24 FR 020), las dos en la eval 15,
+`15-irpf-rendimientos-por-materia.yaml`, con tres votos unánimes y la frase en la respuesta:
+`15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02`, «Algunos supuestos de los apartados 1 y 2 remiten a otros
+preceptos, como el art. 7 sobre rentas exentas», y `15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03`,
+«el artículo remite a otros preceptos, como el art. 7 sobre rentas exentas y la disposición adicional decimoctava».
+Las dos sesiones leyeron solo el bloque `a17` de `BOE-A-2006-20764` tras su índice, cuya entrada del art. 7 es
+`{"id":"a7","titulo":"Artículo 7"}` sin rúbrica (`testdata/evals/boe.legislacion-consolidada/…_texto_indice.json`), y
+el texto del art. 17 remite «al artículo 7 de esta Ley» sin decir de qué trata: la materia no sale de ninguna lectura,
+y es la forma b de contracts/skill-boe-legislacion.md §1 de H24, la misma frase que el informe de H22 dio al caso
+etiquetado como defecto de `evals/boe-legislacion/juez/casos.yaml`. Las otras cuatro respuestas de la eval 15 pasan;
+en el cierre de H24 las seis pasaron, con «sin perjuicio del art. 7» y «No he leído ese artículo». **Causa.** Las dos
+frases están en el párrafo final que repasa las remisiones no seguidas, y ponen la materia con «sobre», una
+construcción que la viñeta «De un precepto que no has leído, nada» de v0.1.7 no nombra —nombra «que es…», «los
+artículos que regulan <materia> (N y M)» y «no puedo decir qué <regla> fija» (H24 D27 y D28)—, en un sitio, el aviso
+final, que la viñeta solo trata con «puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni
+regla»; y la viñeta solo prohíbe, sin dar el camino para decir de qué trata lo remitido, que es leerlo. **Qué cambia.**
+La viñeta gana «el art. N sobre <materia>» entre las formas, «ni al avisar al final de lo que no has leído» entre los
+sitios, y «para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del texto leído
+y nada detrás»: una línea más, que paga la última viñeta de «Redacción modificada», que decía lo mismo en dos líneas.
+298 líneas; `make ci` en verde con `skills-check` y la prosa. `CHANGELOG.md` (*Unreleased*) lleva v0.1.8.
+**Rechazado:** las frases marcadas como ejemplo, porque son contenido legal del art. 7 y el modelo repite el vocabulario
+de la prosa (H7.3; H24 D27); leer siempre el precepto remitido, que añade una lectura a preguntas que no la necesitan
+(H24 D27); prohibir nombrar por su número lo no leído, que la rúbrica admite y la regla 2 necesita (H24 D28); dar
+rúbricas en `boe indice`, que la fuente no trae (H24 D28); y tocar la eval, la rúbrica, los casos, la medida o el
+umbral (ADR 0029). **Sin medir:** el efecto de v0.1.8 lo mide el job de la medición siguiente, en los dos modos.
+
+**R2. El voto que el tope corta se pide otra vez, una sola, dentro del presupuesto del voto nulo.** **Evidencia.**
+`gates/evals/jurisprudencia.json`: veredicto `fallo` con el único motivo «de la ejecución, no de la skill: el juez dejó
+1 respuestas sin juzgar: 03-por-materia-herramienta-claude-sonnet-5-5-03 (voto 1: tope de 35 s agotado)», con los doce
+umbrales cumplidos (0 de 30 en `afirma_lo_no_leido` y en `cita_sin_documento` en cada modo, 40 s y 47 s de juez). La
+sesión hace la misma llamada que sus dos hermanas, juzgadas dentro del tope, con una respuesta de 1 232 caracteres, de
+tamaño parecido: no la explica el mensaje del voto. En la misma medición el juez juzgó 168 respuestas (54, 54, 30 y
+30) y solo ese voto pasó de 35 s; en la medición 2 del cierre de H24 pasó lo mismo con una respuesta (H24 research
+D28, V24). **Causa.** H24 D6 fijó el tope en 35 s «con la cola de los votos sin medir» (S6 de H24), y su contrato
+(contracts/juez-y-voto.md §5 de H24) dejó el reintento fuera de alcance: un voto cortado deja la respuesta sin juzgar
+y el trabajo en rojo, aunque el corte sea un hecho de la ejecución que no dice nada de la skill, y la cola de los
+votos lo produce una vez cada una o dos mediciones. Subir el tope sin más lo rechaza el ADR 0029, y subirlo con su
+cuenta cambia el peor caso y pide tocar `timeout-minutes` (CI), que esta reparación no toca; subir la concurrencia,
+igual (H24 D6). **Qué cambia.** `votosDelNumero` (`internal/evals/juez.go`) pide otra vez, una sola, el voto que el
+tope corta, con su mismo número, como ya hacía con el nulo; dos peticiones por voto como mucho, sea cual sea la causa
+de la primera, así que `votosPorRespuestaComoMucho` (6) y el peor caso de `TestDefinicionDelJob` no cambian, y los dos
+topes tampoco. La respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo `voto <n>:
+tope de 35 s agotado dos veces` (`causaDelTopeRepetido`); las otras tres causas siguen sin reintento. El corte se
+publica: `JuicioDeRespuesta.Cortados`, `juez.votos_cortados` de informe.json —una entrada por voto cortado de una
+respuesta juzgada, con `sesion` y `motivo`, en orden de sesión; `[]` sin ninguno; una respuesta sin juzgar sigue sin
+llevar nada más que su motivo— y la tabla «Votos cortados por el tope y pedidos otra vez» de informe.md. Lo fijan
+`TestVotoDelJuez` (el cortado que se pide otra vez, con su número; el cortado en el segundo voto; la repetición nula
+que no se repite; el tope agotado dos veces; el cortado cuya repetición no es JSON), `TestOrdenDelVoto/tope` (las dos
+peticiones cortadas con el sustituto de claude, los dos procesos terminados), `TestInformeConElJuez`
+(`votos-cortados-y-pedidos-otra-vez`, y que una respuesta sin juzgar no va en `votos_cortados`),
+`TestInformeMarkdownDeLosUmbrales`, `TestJuicioDelSondeo` y `TestEjecucionDeLaMedida`
+(`un-correcto-marcado-tras-un-voto-cortado`). Documentado en `CONTRIBUTING.md`, `internal/evals/doc.go` y
+`CHANGELOG.md`; contracts/juez-y-voto.md §5, §7 y §8 e informe-del-job.md §3 de H24 quedan como registro de H24 y esta
+sección dice lo que cambia de ellos. **Rechazado:** subir el tope o la concurrencia (arriba); reintentar también la
+sesión con error, la salida que no es JSON o la forma, porque llevan un resultado del proceso, un límite de uso entre
+ellos, que repetir en el acto no cambia (H24 §5); repetir sin publicar el corte, porque lo medido se ve (ADR 0029 y
+0030); y medir la cola de los votos, que no se puede medir en una sesión de un paso (ADR 0032) y que el job no
+registra por voto. **Sin medir:** cuántos cortes da la medición siguiente lo dice `juez.votos_cortados` de su informe.

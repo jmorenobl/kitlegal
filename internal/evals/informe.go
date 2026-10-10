@@ -133,9 +133,14 @@ var (
 	encabezadosDeTasas        = []string{
 		"Eval", "Modelo", "Modo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
 	}
-	encabezadosDeUmbrales  = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
-	encabezadosDeSinJuzgar = []string{"Sesión", "Motivo"}
+	encabezadosDeUmbrales      = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
+	encabezadosDeSinJuzgar     = []string{"Sesión", "Motivo"}
+	encabezadosDeVotosCortados = []string{"Sesión", "Motivo"}
 )
+
+// etiquetaDeVotosCortados es la de la tabla de informe.md con los votos que el
+// tope cortó y que se pidieron otra vez.
+const etiquetaDeVotosCortados = "Votos cortados por el tope y pedidos otra vez"
 
 // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
 // \r o \n, los tres finales de línea de CommonMark— se sustituye por un espacio.
@@ -403,6 +408,13 @@ type JuezInformado struct {
 	// Respuestas, aunque un voto anterior dijera sí: no es una respuesta
 	// juzgada.
 	SinJuzgar []RespuestaSinJuzgar `json:"sin_juzgar"`
+
+	// VotosCortados son los votos que el tope cortó y que se pidieron otra vez,
+	// de las respuestas juzgadas, en orden de sesión y, en una misma respuesta,
+	// en el de sus votos; [] en informe.json si no hay ninguno (research
+	// «Reparaciones del cierre» de H25). Los de una respuesta sin juzgar no
+	// están: de ella solo va su motivo.
+	VotosCortados []VotoCortado `json:"votos_cortados"`
 }
 
 // RespuestaConVotos es una respuesta juzgada con algún voto afirmativo: su
@@ -418,6 +430,14 @@ type RespuestaConVotos struct {
 // el motivo del voto que no llegó a darse, que lo nombra por su número (FR-007
 // de H24).
 type RespuestaSinJuzgar struct {
+	Sesion string `json:"sesion"`
+	Motivo string `json:"motivo"`
+}
+
+// VotoCortado es un voto que el tope cortó y que se pidió otra vez: la sesión
+// de su respuesta y el motivo del corte, que nombra el voto por su número
+// («voto 1: tope de 35 s agotado»).
+type VotoCortado struct {
 	Sesion string `json:"sesion"`
 	Motivo string `json:"motivo"`
 }
@@ -604,6 +624,15 @@ func (j *juicioDelJuez) informado(modelo, version string) *JuezInformado {
 	for _, respuesta := range j.sinJuzgar() {
 		informado.SinJuzgar = append(informado.SinJuzgar,
 			RespuestaSinJuzgar{Sesion: respuesta.sesion, Motivo: respuesta.juicio.SinJuzgar})
+	}
+
+	conVotosCortados := j.respuestasQue(func(respuesta respuestaDelJuez) bool {
+		return respuesta.juicio.SinJuzgar == "" && len(respuesta.juicio.Cortados) > 0
+	})
+	for _, respuesta := range conVotosCortados {
+		for _, cortado := range respuesta.juicio.Cortados {
+			informado.VotosCortados = append(informado.VotosCortados, VotoCortado{Sesion: respuesta.sesion, Motivo: cortado})
+		}
 	}
 
 	return informado
@@ -1922,6 +1951,7 @@ func (d *documento) juez(juez *JuezInformado) {
 	d.parrafo("Versión de Claude Code: " + juez.VersionDeClaudeCode)
 	d.tablaConEtiqueta("Votos", encabezadosDeVotos(juez.Respuestas), filasDeVotos(juez.Respuestas))
 	d.tablaConEtiqueta("Respuestas sin juzgar", encabezadosDeSinJuzgar, filasDeSinJuzgar(juez.SinJuzgar))
+	d.tablaConEtiqueta(etiquetaDeVotosCortados, encabezadosDeVotosCortados, filasDeVotosCortados(juez.VotosCortados))
 }
 
 // encabezadosDeVotos son los encabezados de la tabla de los votos del juez
@@ -1995,6 +2025,17 @@ func filasDeSinJuzgar(sinJuzgar []RespuestaSinJuzgar) [][]string {
 	filas := make([][]string, 0, len(sinJuzgar))
 	for _, respuesta := range sinJuzgar {
 		filas = append(filas, []string{respuesta.Sesion, respuesta.Motivo})
+	}
+
+	return filas
+}
+
+// filasDeVotosCortados son las filas de la tabla de los votos que el tope cortó
+// y que se pidieron otra vez.
+func filasDeVotosCortados(cortados []VotoCortado) [][]string {
+	filas := make([][]string, 0, len(cortados))
+	for _, voto := range cortados {
+		filas = append(filas, []string{voto.Sesion, voto.Motivo})
 	}
 
 	return filas

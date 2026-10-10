@@ -111,12 +111,15 @@
 //     Claude Code sin herramientas, con la rúbrica como instrucciones, el esquema
 //     como forma de la respuesta y un tope de 35 s. Comprueba sin modelo que la
 //     frase que cita un sí está en la respuesta (fraseEsta); un sí sin su frase
-//     hace nulo el voto, que se repite una vez; y una clase que decide marca la
-//     respuesta solo con tres votos que dicen sí con su frase: se piden por
-//     orden, y se deja de votar en cuanto ninguna clase que decide sigue con
-//     todos los suyos en sí. En una que solo se publica cuenta el primero. Un
-//     voto que no llega a darse deja la respuesta sin juzgar. Los votos no
-//     cambian el juicio sin modelo de la sesión (FR-001 a FR-014 de H24);
+//     hace nulo el voto, que se repite una vez, y un voto que el tope corta se
+//     pide otra vez, también una sola (research «Reparaciones del cierre» de
+//     H25); y una clase que decide marca la respuesta solo con tres votos que
+//     dicen sí con su frase: se piden por orden, y se deja de votar en cuanto
+//     ninguna clase que decide sigue con todos los suyos en sí. En una que solo
+//     se publica cuenta el primero. Un voto que no llega a darse —el tope corta
+//     también su repetición, o su sesión, su salida o su forma fallan— deja la
+//     respuesta sin juzgar. Los votos no cambian el juicio sin modelo de la
+//     sesión (FR-001 a FR-014 de H24);
 //   - la medida del juez (medida.go). comprobarLaMedida dice, sin modelo, si la
 //     medida versionada corresponde a la rúbrica, a los casos, al modelo del juez
 //     y a la versión de Claude Code de sus votos, y si se cumple, con ningún

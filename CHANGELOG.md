@@ -261,6 +261,24 @@ sustituyen a este fichero.
     resumiera una sentencia que no había leído no lo decidía ningún control; su trabajo iba de una en una, con seis
     evals —72 sesiones, 36 en cada modo—, cuatro umbrales, `sin_activar` y `cita_sin_documento` de cada modo, y un
     peor caso calculado de 20 341 s.
+- **`boe-legislacion` v0.1.8: el número de un precepto no leído no va con su materia tampoco al avisar de lo que no
+  ha leído.** De un precepto al que remite el texto leído y que la respuesta no ha leído, no dice de qué trata
+  tampoco con «sobre <materia>» ni en el aviso final de las remisiones que no ha seguido: o el número solo, o la
+  materia sola; y para decir de qué trata lo remitido, lo lee y lo cita. Antes, v0.1.7 nombraba las construcciones
+  «que es…», «los artículos que regulan…» y «no puedo decir qué…», y la respuesta ponía la materia con «sobre» en el
+  aviso final («el art. 7 sobre rentas exentas»), que el juez marca en `afirma_lo_no_leido`: 1 de 54 en cada modo
+  en la segunda medición del cierre de H25. No cambian la `description`, las órdenes de cada paso, la forma de la
+  cita, la de los avisos de vigencia ni las líneas `⚠ REDACCIÓN MODIFICADA:` y `⚠ SIN CONSULTA AL BOE:`; `SKILL.md`
+  sigue en 298 líneas. Sustituye a `boe-legislacion` v0.1.7.
+- **El juez del job de evals pide otra vez, una sola, el voto que su tope corta.** Un voto que agota sus 35 s se
+  vuelve a pedir con su mismo número, como un nulo, y cuenta el que llega; dos peticiones por voto como mucho, sea
+  cual sea la causa de la primera, así que el peor caso calculado de cada trabajo y sus dos topes no cambian. La
+  respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo
+  `voto <n>: tope de 35 s agotado dos veces`. `informe.json` publica cada corte en `juez.votos_cortados`, con su
+  sesión y su motivo, e `informe.md`, en la tabla «Votos cortados por el tope y pedidos otra vez»; una respuesta sin
+  juzgar sigue sin llevar nada más que su motivo. Antes, un voto cortado dejaba la respuesta sin juzgar y el trabajo
+  en rojo por la ejecución y no por la skill: pasó con una respuesta en la segunda medición del cierre de H24 y con
+  una de 168 juzgadas en la segunda del cierre de H25.
 
 ## [0.5.0] - 2026-10-04
 

@@ -1246,10 +1246,15 @@ func votosDelMarkdown(t *testing.T) ([]votosDeUnaRespuesta, string) {
 		},
 		{sesion: conUnNulo, parrafo: parrafoDeLosArticulos23Y25, votos: []grabacion{marca(fraseQueNoEsta), queNo}},
 		{
+			// Su primer voto lo corta el tope y se pide otra vez: el que llega
+			// es el que se publica, con su número, y el corte va en su tabla.
 			sesion: conProceso, parrafo: parrafoDelProcesoUno,
-			votos: []grabacion{votoDeLasDosClases(t, afirmaQueNo(), cuentaQueSi(parrafoDelProcesoUno))},
+			votos: []grabacion{
+				{err: errTopeDelVoto},
+				votoDeLasDosClases(t, afirmaQueNo(), cuentaQueSi(parrafoDelProcesoUno)),
+			},
 		},
-		{sesion: sinJuzgar, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}}},
+		{sesion: sinJuzgar, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}}},
 	}
 
 	// Las filas de un voto: la de afirma_lo_no_leido cuando dice sí, con su
@@ -1290,7 +1295,9 @@ func votosDelMarkdown(t *testing.T) ([]votosDeUnaRespuesta, string) {
 				"sí", "—", "Cuenta que hizo una comprobación y lo que encontró.", "sí",
 			}) +
 		"\n\nRespuestas sin juzgar:\n\n" +
-		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{sinJuzgar, "voto 1: tope de 35 s agotado"})
+		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{sinJuzgar, "voto 1: tope de 35 s agotado dos veces"}) +
+		"\n\nVotos cortados por el tope y pedidos otra vez:\n\n" +
+		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{conProceso, "voto 1: tope de 35 s agotado"})
 
 	return grabados, seccion
 }
@@ -1344,7 +1351,7 @@ func votosDelMarkdownConSentencia(t *testing.T) ([]votosDeUnaRespuesta, string) 
 				"La respuesta no dice nada de lo que declara la sentencia.", "no",
 			},
 			noDeExiste("1"), noDeExiste("2"), noDeExiste("3")) +
-		"\n\nRespuestas sin juzgar: ninguna"
+		"\n\nRespuestas sin juzgar: ninguna\n\nVotos cortados por el tope y pedidos otra vez: ninguna"
 
 	return grabados, seccion
 }
@@ -3275,7 +3282,7 @@ const (
 	seccionSinJuez = "La skill no tiene juez."
 
 	seccionDelJuezSinVotos = "Modelo: claude-opus-5-5\n\nVersión de Claude Code: 2.1.289\n\n" +
-		"Votos: ninguna\n\nRespuestas sin juzgar: ninguna"
+		"Votos: ninguna\n\nRespuestas sin juzgar: ninguna\n\nVotos cortados por el tope y pedidos otra vez: ninguna"
 )
 
 // exigirLaFormaDelJuez exige lo que todo informe cumple de su juez
@@ -3296,13 +3303,16 @@ func exigirLaFormaDelJuez(t *testing.T, leido informeLeido) {
 	}
 
 	var listas struct {
-		Respuestas jsontext.Value `json:"respuestas"`
-		SinJuzgar  jsontext.Value `json:"sin_juzgar"`
+		Respuestas    jsontext.Value `json:"respuestas"`
+		SinJuzgar     jsontext.Value `json:"sin_juzgar"`
+		VotosCortados jsontext.Value `json:"votos_cortados"`
 	}
 
 	require.NoError(t, json.Unmarshal(leido.crudo.Juez, &listas))
 	assert.True(t, strings.HasPrefix(compacto(t, listas.Respuestas), "["), "juez.respuestas es una lista, nunca null")
 	assert.True(t, strings.HasPrefix(compacto(t, listas.SinJuzgar), "["), "juez.sin_juzgar es una lista, nunca null")
+	assert.True(t, strings.HasPrefix(compacto(t, listas.VotosCortados), "["),
+		"juez.votos_cortados es una lista, nunca null")
 
 	exigirLineas(t, seccion, "Modelo: "+leido.informe.Juez.Modelo,
 		"Versión de Claude Code: "+leido.informe.Juez.VersionDeClaudeCode)
@@ -3824,10 +3834,12 @@ type casoDelInformeConElJuez struct {
 	comoSinVotos bool
 
 	// respuestas son las entradas de juez.respuestas del informe, en su orden,
-	// y sinJuzgar, las de juez.sin_juzgar; sin ninguna, su lista va vacía. De
-	// una ejecución sin juez no se miran: su juez es null.
-	respuestas []RespuestaConVotos
-	sinJuzgar  []RespuestaSinJuzgar
+	// sinJuzgar, las de juez.sin_juzgar, y votosCortados, las de
+	// juez.votos_cortados; sin ninguna, su lista va vacía. De una ejecución sin
+	// juez no se miran: su juez es null.
+	respuestas    []RespuestaConVotos
+	sinJuzgar     []RespuestaSinJuzgar
+	votosCortados []VotoCortado
 
 	// escrita es, si no está vacía, la primera entrada de juez.respuestas tal
 	// como tiene que estar escrita en informe.json.
@@ -4166,10 +4178,11 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
 			},
 		},
 		{
-			// El primer voto dice sí en las dos clases y el segundo no llega: la
-			// respuesta no cuenta en ninguna de las dos medidas, y sí en su total.
-			// Va en sin_juzgar, y no en respuestas, aunque su primer voto dijera
-			// sí.
+			// El primer voto dice sí en las dos clases y el segundo lo corta el
+			// tope dos veces, así que no llega: la respuesta no cuenta en ninguna
+			// de las dos medidas, y sí en su total. Va en sin_juzgar, y no en
+			// respuestas, aunque su primer voto dijera sí, ni en votos_cortados,
+			// aunque el corte se pidiera otra vez: de ella solo va su motivo.
 			nombre:    "un-voto-que-no-llega",
 			ejecucion: conJuez,
 			grabados: []votosDeUnaRespuesta{{
@@ -4177,15 +4190,16 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
 				votos: []grabacion{
 					votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueSi(parrafoDelProcesoUno)),
 					{err: errTopeDelVoto},
+					{err: errTopeDelVoto},
 				},
 			}},
 			umbrales: umbralesConJuez(modeloSonnet55, deLasSesiones, enOrden(6, 0), enHerramienta(6, 0)),
 			motivos: []string{
 				"de la ejecución, no de la skill: el juez dejó 1 respuestas sin juzgar: " +
-					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 2: tope de 35 s agotado)",
+					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 2: tope de 35 s agotado dos veces)",
 			},
 			veredicto: VeredictoFallo,
-			sinJuzgar: []RespuestaSinJuzgar{{Sesion: deHerramienta, Motivo: "voto 2: tope de 35 s agotado"}},
+			sinJuzgar: []RespuestaSinJuzgar{{Sesion: deHerramienta, Motivo: "voto 2: tope de 35 s agotado dos veces"}},
 		},
 		{
 			// Dos sin juzgar: la del modo orden se vota antes y su sesión es
@@ -4193,17 +4207,41 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
 			nombre:    "dos-sin-juzgar",
 			ejecucion: conJuez,
 			grabados: []votosDeUnaRespuesta{
-				{sesion: otraDeOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}}},
-				{sesion: deHerramienta, parrafo: parrafoLentoDeHerramienta, votos: []grabacion{{err: errTopeDelVoto}}},
+				{
+					sesion: otraDeOrden, parrafo: parrafoLentoDeOrden,
+					votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
+				},
+				{
+					sesion: deHerramienta, parrafo: parrafoLentoDeHerramienta,
+					votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
+				},
 			},
 			umbrales: umbralesConJuez(modeloSonnet55, deLasSesiones, enOrden(6, 0), enHerramienta(6, 0)),
 			motivos: []string{
 				"de la ejecución, no de la skill: el juez dejó 2 respuestas sin juzgar: " +
-					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado), " +
-					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado)",
+					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado dos veces), " +
+					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado dos veces)",
 			},
 			veredicto: VeredictoFallo,
 			sinJuzgar: []RespuestaSinJuzgar{
+				{Sesion: deHerramienta, Motivo: "voto 1: tope de 35 s agotado dos veces"},
+				{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado dos veces"},
+			},
+		},
+		{
+			// El tope corta un voto de cada una y la repetición llega: las dos se
+			// juzgan, el veredicto no cambia, y los cortes van en votos_cortados
+			// en orden de sesión, sin que ninguna de las dos vaya en sin_juzgar
+			// ni, con sus votos en no, en respuestas.
+			nombre:    "votos-cortados-y-pedidos-otra-vez",
+			ejecucion: conJuez,
+			grabados: []votosDeUnaRespuesta{
+				{sesion: otraDeOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}, queNo}},
+				{sesion: deHerramienta, parrafo: parrafoLentoDeHerramienta, votos: []grabacion{{err: errTopeDelVoto}, queNo}},
+			},
+			umbrales:  umbralesConJuez(modeloSonnet55, deLasSesiones, enOrden(6, 0), enHerramienta(6, 0)),
+			veredicto: VeredictoAprobado,
+			votosCortados: []VotoCortado{
 				{Sesion: deHerramienta, Motivo: "voto 1: tope de 35 s agotado"},
 				{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado"},
 			},
@@ -4253,7 +4291,8 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
 		},
 		{
 			// Una marcada, las sesiones de modeloHaiku45 sin medir, una respuesta
-			// sin juzgar cuyo voto agota 901 s, y 901 s de sesiones.
+			// sin juzgar cuyas dos peticiones del voto agotan 901 s entre las dos,
+			// y 901 s de sesiones.
 			nombre: "los-motivos-en-su-orden",
 			ejecucion: conCambios(enUnModo, func(e *ejecucionConUmbrales) {
 				e.sinMedir, e.duracion, e.objetivo = modeloHaiku45, 901, 900
@@ -4261,8 +4300,9 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
 			grabados: []votosDeUnaRespuesta{
 				{sesion: deOrden, parrafo: parrafoDeLosArticulos22Y24, votos: tresSies},
 				{
-					sesion: otraDeOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}},
-					tarda: 901 * time.Second,
+					sesion: otraDeOrden, parrafo: parrafoLentoDeOrden,
+					votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
+					tarda: 901 * time.Second / 2,
 				},
 			},
 			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{umbralDeDuracion(ModoOrden, 901, 900, false)},
@@ -4272,13 +4312,13 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
 					"01-sintetica-claude-sonnet-5-5-01: " + frasesDel22Y24,
 				motivoEsperadoDelLimite(sesionesSinMedirDe(modeloHaiku45, 1)...),
 				"de la ejecución, no de la skill: el juez dejó 1 respuestas sin juzgar: " +
-					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado)",
+					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado dos veces)",
 				"de la ejecución, no de la skill: duracion_de_las_sesiones:orden: 901 s, y tiene que ser ≤ 900 s",
 				"de la ejecución, no de la skill: duracion_del_juez:orden: 901 s, y tiene que ser ≤ 900 s",
 			},
 			veredicto:  VeredictoFallo,
 			respuestas: []RespuestaConVotos{respuestaPublicada(deOrden, true, false, deTresSies...)},
-			sinJuzgar:  []RespuestaSinJuzgar{{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado"}},
+			sinJuzgar:  []RespuestaSinJuzgar{{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado dos veces"}},
 		},
 		{
 			// Sin juez, ni un umbral ni un voto, tenga o no con qué votar
@@ -4438,6 +4478,7 @@ func exigirElJuezDelCaso(t *testing.T, leido informeLeido, caso casoDelInformeCo
 		VersionDeClaudeCode: versionDelJuezDelInforme,
 		Respuestas:          append([]RespuestaConVotos{}, caso.respuestas...),
 		SinJuzgar:           append([]RespuestaSinJuzgar{}, caso.sinJuzgar...),
+		VotosCortados:       append([]VotoCortado{}, caso.votosCortados...),
 	}
 	assert.Equal(t, esperado, leido.informe.Juez)
 
@@ -4915,6 +4956,7 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
 		VersionDeClaudeCode: versionDelJuezDelInforme,
 		Respuestas:          append([]RespuestaConVotos{}, caso.respuestas...),
 		SinJuzgar:           []RespuestaSinJuzgar{},
+		VotosCortados:       []VotoCortado{},
 	}, leido.informe.Juez)
 
 	if caso.escrita != "" {

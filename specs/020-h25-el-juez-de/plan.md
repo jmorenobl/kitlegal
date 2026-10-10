@@ -234,7 +234,7 @@ cuatro que siguen (FR-024), que SC-001 cuenta— y, como pide el ADR 0029, una f
 | FR-024, SC-001 (cita sin documento, modo herramienta) | ídem | ídem | `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:herramienta` |
 | FR-024, SC-001 (sin activar, modo orden) | 0 respuestas sin la skill activada | el de hoy, que sigue | `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:orden` |
 | FR-024, SC-001 (sin activar, modo herramienta) | ídem | ídem | `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:herramienta` |
-| SC-001 (sin juzgar) | 0 respuestas sin juzgar | con alguna, motivo de la ejecución y `fallo` en el job, como en H24; el test lo ve fallar con un voto que no llega | `ci:internal/evals/informe_test.go:TestInformeConElJuez` |
+| SC-001 (sin juzgar) | 0 respuestas sin juzgar | con alguna, motivo de la ejecución y `fallo` en el job, como en H24; el test lo ve fallar con un voto que no llega. Desde la reparación R2 del cierre, el voto que el tope corta se pide otra vez, una sola, y no llega si lo corta también | `ci:internal/evals/informe_test.go:TestInformeConElJuez` |
 | FR-001, FR-102, SC-002 | 4 de 4 copias idénticas | comparación byte a byte de la fila de la skill; con un byte cambiado o sin una, el defecto que la nombra | `ci:internal/evals/medida_test.go:TestCopiasDelJuez` |
 | FR-072, FR-103, SC-003 | cada `timeout-minutes` cubre su peor caso (12 577 s bajo 352 min y 15 505 s bajo 269); 2 de 2 mutaciones «de una en una» en rojo | la definición del repositorio y las sintéticas, con las evals y los casos del repositorio | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob` |
 | FR-031, FR-104, SC-004 | la medida del repositorio corresponde, con 0 y 0; 6 de 6 mutaciones en rojo, en `make ci` y en el job | la comprobación sobre el repositorio y sobre copias cambiadas; el recorrido del job con quien abre sesiones contado | `ci:internal/evals/medida_test.go:TestMedidaVersionada`, `ci:internal/evals/ejecucion_test.go:TestEjecucionSinMedir` |
@@ -293,8 +293,13 @@ contracts/skill-jurisprudencia.md §4. Nada de lo que el hito entrega crece con 
   (D15).
 - **Ninguna tarea `[datos]`** (D17).
 - Las demás, con su alternativa rechazada, en research D1-D20.
-- **Reparaciones del cierre** (FR-027): ninguna todavía. Si las hay, cada una se anota aquí y en research.md, con la
-  medición como evidencia.
+- **Reparaciones del cierre** (FR-027), las dos con la medición 2 del cierre como evidencia (research «Reparaciones
+  del cierre», R1 y R2): **`boe-legislacion` v0.1.8**, porque el juez marca en `afirma_lo_no_leido` dos respuestas de
+  la eval 15 que ponen la materia del art. 7 con «sobre» en el aviso final de las remisiones no seguidas, 1 de 54 en
+  cada modo (R1); y **el voto que el tope corta se pide otra vez, una sola**, dentro de las dos peticiones por voto
+  que ya tenía el nulo, con el corte publicado en `juez.votos_cortados` y en informe.md, porque el job de
+  `jurisprudencia` salió en rojo con sus doce umbrales cumplidos por un voto cortado (R2). Ninguna cambia el peor
+  caso, los topes, una eval, la rúbrica, los casos, la medida ni un umbral.
 
 ## Trazabilidad: cada mecanismo y su requisito
 

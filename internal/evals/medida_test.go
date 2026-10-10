@@ -4748,7 +4748,8 @@ const (
 	// repetición aunque su frase de la clase de los casos sí esté.
 	nuloPorLaOtraClase
 
-	// noLlega es el que agota su tope y no llega a darse.
+	// noLlega es el que agota su tope: se pide otra vez, y si también la agota
+	// la repetición, no llega a darse.
 	noLlega
 )
 
@@ -5070,8 +5071,12 @@ func esUnCorrectoDerivadoPorTexto(caso CasoEtiquetado, frases []string) bool {
 //     del nulo, que también está en la respuesta; tres votos más;
 //   - un defecto sin marcar por un voto nulo que vuelve a serlo: su sí no
 //     cuenta, y su única frase es la del voto que dijo sí con ella;
-//   - y un voto que no llega, con un correcto marcado en otra parte: un error
-//     con el caso sin juzgar y su motivo, y ninguna medida.
+//   - un correcto marcado tras un voto que el tope corta, que se pide otra vez
+//     (research «Reparaciones del cierre» de H25): sus tres frases son las de
+//     los votos que llegaron; tres votos más;
+//   - y un voto que no llega, porque el tope corta sus dos peticiones, con un
+//     correcto marcado en otra parte: un error con el caso sin juzgar y su
+//     motivo, que dice que fueron dos, y ninguna medida.
 //
 // Y con los de jurisprudencia (contracts/medida-y-casos.md §9 de H25; FR-051,
 // FR-107; SC-007), cuyos votos llevan sentencia:
@@ -5106,9 +5111,9 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
 	}
 	sinJuzgar := casoCambiado{
 		que: "un defecto que no es un derivado", es: esUnDefectoSinDerivar,
-		votos: []votoDeLaMedida{diceQueSi, noLlega},
+		votos: []votoDeLaMedida{diceQueSi, noLlega, noLlega},
 		linea: func(caso CasoEtiquetado, _ []string) string {
-			return nombreDelCaso(caso) + ": " + quedaSinJuzgar + motivoDelTopeDelVotoDos
+			return nombreDelCaso(caso) + ": " + quedaSinJuzgar + motivoDelTopeDosVecesDos
 		},
 	}
 	marcadoSinNombrar := marcado
@@ -5116,6 +5121,9 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
 
 	marcadoTrasUnNulo := marcado
 	marcadoTrasUnNulo.votos = []votoDeLaMedida{nuloPorLaOtraClase, diceQueSi, diceQueSi, diceQueSi}
+
+	marcadoTrasUnCorte := marcado
+	marcadoTrasUnCorte.votos = []votoDeLaMedida{noLlega, diceQueSi, diceQueSi, diceQueSi}
 
 	sinMarcarPorUnNulo := casoCambiado{
 		que: "un defecto derivado con tres frases", es: esUnDefectoDerivado,
@@ -5165,9 +5173,16 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
 			sinMarcar: 1,
 		},
 		{
+			nombre: "un-correcto-marcado-tras-un-voto-cortado", deLaSkill: deBoeLegislacion,
+			cambiados: []casoCambiado{marcadoTrasUnCorte},
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 3,
+			marcados: 1,
+		},
+		{
+			// El tope corta las dos peticiones del segundo voto del defecto.
 			nombre: "un-voto-que-no-llega", deLaSkill: deBoeLegislacion,
 			cambiados: []casoCambiado{marcadoSinNombrar, sinJuzgar},
-			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2 - 1,
+			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2,
 			sinMedida: true,
 		},
 		{

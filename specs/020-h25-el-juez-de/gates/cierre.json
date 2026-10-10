@@ -1,79 +1,71 @@
 {
-  "sha": "3f99446cc043b1409ff929f3b91ec6ffb032652a",
+  "sha": "e380f0a377d00f615a5adf53c1385ed4bad464f1",
   "verde": false,
-  "fecha": "2026-10-10T18:26:36Z",
-  "ronda": 1,
-  "reparaciones": 0,
+  "fecha": "2026-10-10T19:15:24Z",
+  "ronda": 2,
+  "reparaciones": 1,
   "checks": [
     {
-      "bucket": "skipping",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073994576/job/114277232932",
-      "name": "evals (${{ matrix.skill }})",
-      "startedAt": "2026-10-10T18:00:53Z",
-      "state": "SKIPPED",
+      "bucket": "fail",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077358779/job/114287193201",
+      "name": "evals (jurisprudencia)",
+      "startedAt": "2026-10-10T18:50:42Z",
+      "state": "FAILURE",
       "workflow": "evals"
     },
     {
       "bucket": "fail",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073990323/job/114277201002",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077358779/job/114287193185",
       "name": "evals (boe-legislacion)",
-      "startedAt": "2026-10-10T18:00:46Z",
+      "startedAt": "2026-10-10T18:50:41Z",
       "state": "FAILURE",
       "workflow": "evals"
     },
     {
       "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073990323/job/114277200985",
-      "name": "evals (jurisprudencia)",
-      "startedAt": "2026-10-10T18:00:46Z",
-      "state": "SUCCESS",
-      "workflow": "evals"
-    },
-    {
-      "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073990323/job/114277201044",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077358779/job/114287193171",
       "name": "evals (legal-core)",
-      "startedAt": "2026-10-10T18:00:46Z",
+      "startedAt": "2026-10-10T18:50:41Z",
       "state": "SUCCESS",
       "workflow": "evals"
     },
     {
       "bucket": "skipping",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073994576/job/114277073864",
-      "name": "cambios",
-      "startedAt": "2026-10-10T18:00:09Z",
-      "state": "SKIPPED",
-      "workflow": "evals"
-    },
-    {
-      "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073990323/job/114277048833",
-      "name": "tanda",
-      "startedAt": "2026-10-10T18:00:04Z",
-      "state": "SUCCESS",
-      "workflow": "evals"
-    },
-    {
-      "bucket": "skipping",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073994576/job/114277042074",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077358779/job/114287041829",
       "name": "medida del juez (${{ matrix.skill }})",
-      "startedAt": "2026-10-10T18:00:00Z",
+      "startedAt": "2026-10-10T18:49:57Z",
       "state": "SKIPPED",
       "workflow": "evals"
     },
     {
       "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073990327/job/114277027260",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077358779/job/114287021870",
+      "name": "tanda",
+      "startedAt": "2026-10-10T18:49:53Z",
+      "state": "SUCCESS",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "skipping",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077358779/job/114287022682",
+      "name": "cambios",
+      "startedAt": "2026-10-10T18:49:51Z",
+      "state": "SKIPPED",
+      "workflow": "evals"
+    },
+    {
+      "bucket": "pass",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077355727/job/114287012449",
       "name": "ci",
-      "startedAt": "2026-10-10T17:59:57Z",
+      "startedAt": "2026-10-10T18:49:50Z",
       "state": "SUCCESS",
       "workflow": "ci"
     },
     {
       "bucket": "pass",
-      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38073990327/job/114277027389",
+      "link": "https://github.com/jmorenobl/kitlegal/actions/runs/38077355727/job/114287012112",
       "name": "snapshot",
-      "startedAt": "2026-10-10T17:59:57Z",
+      "startedAt": "2026-10-10T18:49:50Z",
       "state": "SUCCESS",
       "workflow": "ci"
     }

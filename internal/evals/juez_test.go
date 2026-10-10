@@ -53,6 +53,8 @@ const (
 	claseCuentaSuProceso     = "cuenta_su_proceso"
 	motivoDelTopeDelVotoUno  = "voto 1: tope de 35 s agotado"
 	motivoDelTopeDelVotoDos  = "voto 2: tope de 35 s agotado"
+	motivoDelTopeDosVecesUno = motivoDelTopeDelVotoUno + " dos veces"
+	motivoDelTopeDosVecesDos = motivoDelTopeDelVotoDos + " dos veces"
 	prefijoDeSesionConError  = "voto 1: la sesión del juez terminó con error: "
 	prefijoDeSalidaSinForma  = "voto 1: la respuesta no tiene la forma del esquema: "
 	limiteDeUsoDeLaSesion    = "You've hit your limit · resets 3am (Europe/Madrid)"
@@ -1020,37 +1022,44 @@ func probarElGuionQueNoExiste(t *testing.T) {
 // H24; research D6 y V7 de H24; FR-007), con un tope y un margen de prueba y el
 // sustituto de claude que espera sin terminar: al agotarse el tope, y no pasado
 // el margen, el votante termina el proceso, que no queda vivo, y devuelve el
-// error del tope, con el que la respuesta queda sin juzgar. Si el proceso había
-// dejado sus salidas abiertas en otro, que lo sobrevive, las cierra pasado el
-// margen y no espera a que ese otro termine.
+// error del tope, con el que el voto se pide otra vez, una sola; cortada
+// también la repetición, la respuesta queda sin juzgar, y lo dice su motivo
+// (research «Reparaciones del cierre» de H25). Si el proceso había dejado sus
+// salidas abiertas en otro, que lo sobrevive, las cierra pasado el margen y no
+// espera a que ese otro termine.
 func probarElTopeDelVoto(t *testing.T) {
 	t.Parallel()
 
 	espera := strconv.Itoa(int(esperaSinTerminar.Seconds()))
 
+	// Las dos peticiones del voto, cortadas las dos.
+	const peticiones = 2
+
 	casos := []struct {
 		nombre   string
 		gobierno map[string]string
 
-		// minimo es lo que tarda el voto como poco: el tope si basta terminar el
-		// proceso, y el tope más el margen si hay que cerrar sus salidas.
+		// minimo es lo que tardan las dos peticiones como poco: el tope cada una
+		// si basta terminar el proceso, y el tope más el margen si hay que cerrar
+		// sus salidas.
 		minimo time.Duration
 
-		// maximo es lo que el voto no llega a tardar: el tope más el margen si
-		// basta terminar el proceso, que es al agotarse el tope y no pasado el
-		// margen, y lo que espera el otro proceso si hay que cerrar sus salidas.
+		// maximo es lo que las dos peticiones no llegan a tardar: el tope más el
+		// margen cada una si basta terminar el proceso, que es al agotarse el
+		// tope y no pasado el margen, y lo que espera el otro proceso si hay que
+		// cerrar sus salidas.
 		maximo time.Duration
 	}{
 		{
 			nombre:   "el-proceso-no-termina",
 			gobierno: map[string]string{esperaDelClaudeDelJuez: espera},
-			minimo:   topeDelVotoDePrueba,
-			maximo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
+			minimo:   peticiones * topeDelVotoDePrueba,
+			maximo:   peticiones * (topeDelVotoDePrueba + margenDelVotoDePrueba),
 		},
 		{
 			nombre:   "deja-sus-salidas-abiertas",
 			gobierno: map[string]string{esperaDelClaudeDelJuez: espera, hijoDelClaudeDelJuez: espera},
-			minimo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
+			minimo:   peticiones * (topeDelVotoDePrueba + margenDelVotoDePrueba),
 			maximo:   esperaSinTerminar,
 		},
 	}
@@ -1071,28 +1080,36 @@ func probarElTopeDelVoto(t *testing.T) {
 			juicio, pedidos := juzgarConElVotante(t, votar)
 			transcurrido := time.Since(inicio)
 
-			require.Len(t, pedidos, 1)
-			require.ErrorIs(t, pedidos[0].err, errTopeDelVoto)
-			assert.Equal(t, motivoDelTopeDelVotoUno, juicio.SinJuzgar)
+			require.Len(t, pedidos, peticiones)
+			for _, pedido := range pedidos {
+				require.ErrorIs(t, pedido.err, errTopeDelVoto)
+			}
+
+			assert.Equal(t, []string{motivoDelTopeDelVotoUno}, juicio.Cortados)
+			assert.Equal(t, motivoDelTopeDosVecesUno, juicio.SinJuzgar)
 			assert.GreaterOrEqual(t, transcurrido, caso.minimo)
 			assert.Less(t, transcurrido, caso.maximo, "el votante corta el voto a su tiempo, y no se limita a esperarlo")
 
 			votos := claude.votos(t)
-			require.Len(t, votos, 1)
-			assert.True(t, procesoTerminado(votos[0].pid), "el proceso del voto no queda vivo")
+			require.Len(t, votos, peticiones)
+			for _, voto := range votos {
+				assert.True(t, procesoTerminado(voto.pid), "el proceso del voto no queda vivo")
+			}
 		})
 	}
 }
 
 // probarElTopeDeVerdad fija el tope de un voto y su margen, 35 s y 5 s
 // (contracts/juez-y-voto.md §4 de H24; research D6 de H24), y que el motivo del
-// voto que lo agota dice ese tope y no otro.
+// voto que lo agota dice ese tope y no otro, también el del voto que lo agota
+// dos veces.
 func probarElTopeDeVerdad(t *testing.T) {
 	t.Parallel()
 
 	assert.Equal(t, 35*time.Second, topeDelVoto)
 	assert.Equal(t, 5*time.Second, margenDelVoto)
 	assert.Contains(t, causaDelTope, fmt.Sprintf("tope de %d s ", int(topeDelVoto.Seconds())))
+	assert.Equal(t, causaDelTope+" dos veces", causaDelTopeRepetido)
 }
 
 // probarElVotoInterrumpido fija que el contexto de cada voto deriva del que el
@@ -1234,6 +1251,10 @@ type casoDeVoto struct {
 	// cuentaMarcada dice si la respuesta cuenta en la clase que solo se publica.
 	cuentaMarcada bool
 
+	// cortados son los motivos de los votos que el tope cortó y se pidieron
+	// otra vez, en su orden; nil si ninguno.
+	cortados []string
+
 	// sinJuzgar es el motivo de la respuesta sin juzgar; vacío si se juzgó.
 	sinJuzgar string
 }
@@ -1252,11 +1273,15 @@ type casoDeVoto struct {
 //     que cuenta en todas las clases, también si vuelve a ser nulo;
 //   - un sí con una frase que solo difiere de la respuesta en blancos y énfasis
 //     vale;
+//   - un voto que el tope corta se pide otra vez, exactamente una, con su mismo
+//     número, y el juicio lleva el motivo del corte aparte de los votos; la
+//     repetición que es nula no se repite, y la de un nulo que el tope corta
+//     no se vuelve a pedir (research «Reparaciones del cierre» de H25);
 //   - y un voto que no llega a darse deja la respuesta sin juzgar y sin marcar,
-//     con el motivo que nombra el voto: el tope agotado, la sesión que terminó
-//     con error, la salida que no es JSON, con el código del proceso, y la
-//     respuesta sin la forma del esquema. Su texto va en una línea y cortado a
-//     300 caracteres.
+//     con el motivo que nombra el voto: el tope agotado dos veces, la sesión
+//     que terminó con error, la salida que no es JSON, con el código del
+//     proceso, y la respuesta sin la forma del esquema. Su texto va en una
+//     línea y cortado a 300 caracteres.
 //
 // Y fija el campo propio de la clase que decide en jurisprudencia
 // (contracts/juez-de-jurisprudencia.md §3 y §9 de H25; data-model §2 de H25;
@@ -1312,7 +1337,8 @@ func TestVotoDelJuez(t *testing.T) {
 }
 
 // exigirElVoto juzga respuestaJuzgada con las grabaciones del caso y exige sus
-// votos pedidos, los votos de cada clase, sus marcas y su motivo sin juzgar.
+// votos pedidos, los votos de cada clase, sus marcas, sus votos cortados y su
+// motivo sin juzgar.
 func exigirElVoto(t *testing.T, caso casoDeVoto) {
 	t.Helper()
 
@@ -1324,13 +1350,14 @@ func exigirElVoto(t *testing.T, caso casoDeVoto) {
 			{Clase: claseAfirmaLoNoLeido, Votos: caso.afirma},
 			{Clase: claseCuentaSuProceso, Marcada: caso.cuentaMarcada, Votos: caso.cuenta},
 		},
+		Cortados:  caso.cortados,
 		SinJuzgar: caso.sinJuzgar,
 	}, juicio)
 }
 
 // casosDeVotosQueSeDan son los casos de TestVotoDelJuez cuyos votos llegan a
-// darse: el que vale, el nulo con su repetición y el que solo difiere en
-// blancos y énfasis.
+// darse: el que vale, el nulo con su repetición, el que solo difiere en
+// blancos y énfasis y el que el tope corta y se pide otra vez.
 func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
 	t.Helper()
 
@@ -1338,8 +1365,50 @@ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
 	juicioConElProceso := juicioGrabado(t, map[string]dicho{
 		claseAfirmaLoNoLeido: afirmaQueNo(), claseCuentaSuProceso: cuentaQueSi(fraseDelProceso),
 	})
+	cortado := grabacion{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)}
 
 	return []casoDeVoto{
+		{
+			nombre:      "el voto que el tope corta se pide otra vez, con su mismo número",
+			grabaciones: []grabacion{cortado, sinMarcas},
+			pedidos:     2,
+			afirma:      []VotoDeClase{afirmaQueNo().voto(1, false, false)},
+			cuenta:      []VotoDeClase{cuentaQueNo().voto(1, false, false)},
+			cortados:    []string{motivoDelTopeDelVotoUno},
+		},
+		{
+			nombre: "el cortado en el segundo voto, que se pide otra vez y cuenta",
+			grabaciones: []grabacion{
+				votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueNo()),
+				cortado,
+				votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueNo()),
+				sinMarcas,
+			},
+			pedidos: 4,
+			afirma: []VotoDeClase{
+				afirmaQueSi(fraseDelArticulo22).voto(1, false, true),
+				afirmaQueSi(fraseDelArticulo22).voto(2, false, true),
+				afirmaQueNo().voto(3, false, false),
+			},
+			cuenta: []VotoDeClase{
+				cuentaQueNo().voto(1, false, false),
+				cuentaQueNo().voto(2, false, false),
+				cuentaQueNo().voto(3, false, false),
+			},
+			cortados: []string{motivoDelTopeDelVotoDos},
+		},
+		{
+			nombre: "la repetición del cortado que es nula no se repite ni cuenta como sí",
+			grabaciones: []grabacion{
+				cortado,
+				votoDeLasDosClases(t, afirmaQueSi(fraseQueNoEsta), cuentaQueSi(fraseDelProceso)),
+			},
+			pedidos:       2,
+			afirma:        []VotoDeClase{afirmaQueSi(fraseQueNoEsta).voto(1, true, false)},
+			cuenta:        []VotoDeClase{cuentaQueSi(fraseDelProceso).voto(1, true, true)},
+			cuentaMarcada: true,
+			cortados:      []string{motivoDelTopeDelVotoUno},
+		},
 		{
 			nombre: "un sí con su frase vale",
 			grabaciones: []grabacion{
@@ -1450,7 +1519,9 @@ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
 
 // casosDeVotosQueNoLlegan son los casos de TestVotoDelJuez de un voto que no
 // llega a darse: los cuatro motivos, en el primer voto, en el segundo y en la
-// repetición de un nulo, con su texto en una línea y cortado.
+// repetición de un nulo, con su texto en una línea y cortado. El tope deja la
+// respuesta sin juzgar cuando corta las dos peticiones de un voto, o la
+// repetición de un nulo, que no se vuelve a pedir.
 func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 	t.Helper()
 
@@ -1473,10 +1544,14 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 
 	return []casoDeVoto{
 		{
-			nombre:      "el tope agotado",
-			grabaciones: []grabacion{{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)}},
-			pedidos:     1,
-			sinJuzgar:   motivoDelTopeDelVotoUno,
+			nombre: "el tope agotado dos veces",
+			grabaciones: []grabacion{
+				{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)},
+				{err: fmt.Errorf("la repetición del voto: %w", errTopeDelVoto)},
+			},
+			pedidos:   2,
+			cortados:  []string{motivoDelTopeDelVotoUno},
+			sinJuzgar: motivoDelTopeDosVecesUno,
 		},
 		{
 			nombre: "la sesión que termina con error, con su código",
@@ -1536,11 +1611,22 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
 		},
 		{
 			nombre:      "en el segundo voto, sin juzgar y no sin marcar",
-			grabaciones: []grabacion{conElArticulo22, {err: errTopeDelVoto}},
-			pedidos:     2,
+			grabaciones: []grabacion{conElArticulo22, {err: errTopeDelVoto}, {err: errTopeDelVoto}},
+			pedidos:     3,
 			afirma:      []VotoDeClase{afirmaQueSi(fraseDelArticulo22).voto(1, false, true)},
 			cuenta:      []VotoDeClase{cuentaQueSi(fraseDelProceso).voto(1, false, true)},
-			sinJuzgar:   motivoDelTopeDelVotoDos,
+			cortados:    []string{motivoDelTopeDelVotoDos},
+			sinJuzgar:   motivoDelTopeDosVecesDos,
+		},
+		{
+			nombre: "el cortado cuya repetición no es JSON, sin juzgar por la repetición",
+			grabaciones: []grabacion{
+				{err: errTopeDelVoto},
+				{err: errorDeProceso{codigo: 127, texto: "exit status 127: claude: command not found"}},
+			},
+			pedidos:   2,
+			cortados:  []string{motivoDelTopeDelVotoUno},
+			sinJuzgar: "voto 1: la salida no es JSON (código 127): exit status 127: claude: command not found",
 		},
 		{
 			nombre: "en la repetición de un nulo, con el número de su voto",

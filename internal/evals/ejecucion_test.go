@@ -250,11 +250,14 @@ func exigirNadaMedido(t *testing.T, leido informeLeido, ejecucion EjecucionDelJo
 		VersionDeClaudeCode: ejecucion.VersionDelJuez,
 		Respuestas:          []RespuestaConVotos{},
 		SinJuzgar:           []RespuestaSinJuzgar{},
+		VotosCortados:       []VotoCortado{},
 	}, leido.informe.Juez)
 	assert.Equal(t, `{"modelo":`+cadenaJSON(t, ejecucion.ModeloDelJuez)+`,"version_de_claude_code":`+
-		cadenaJSON(t, ejecucion.VersionDelJuez)+`,"respuestas":[],"sin_juzgar":[]}`, compacto(t, leido.crudo.Juez))
+		cadenaJSON(t, ejecucion.VersionDelJuez)+`,"respuestas":[],"sin_juzgar":[],"votos_cortados":[]}`,
+		compacto(t, leido.crudo.Juez))
 	assert.Equal(t, "Modelo: "+ejecucion.ModeloDelJuez+"\n\nVersión de Claude Code: "+ejecucion.VersionDelJuez+
-		"\n\nVotos: ninguna\n\nRespuestas sin juzgar: ninguna", seccionDelInforme(t, leido.md, "Juez"))
+		"\n\nVotos: ninguna\n\nRespuestas sin juzgar: ninguna\n\nVotos cortados por el tope y pedidos otra vez: ninguna",
+		seccionDelInforme(t, leido.md, "Juez"))
 
 	var raiz map[string]jsontext.Value
 
@@ -312,6 +315,7 @@ func probarElJobConElInstrumentoMedido(t *testing.T, medido juezMedido, modelo, 
 
 	assert.Equal(t, &JuezInformado{
 		Modelo: modelo, VersionDeClaudeCode: version, Respuestas: []RespuestaConVotos{}, SinJuzgar: []RespuestaSinJuzgar{},
+		VotosCortados: []VotoCortado{},
 	}, leido.informe.Juez)
 
 	pedidos := job.votante.pedidos()
