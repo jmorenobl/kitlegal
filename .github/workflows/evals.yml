@@ -353,10 +353,16 @@ jobs:
       # CLAUDE_DEL_JUEZ ejecutable antes de la primera sesión, y los votos se abren con scripts/evals-voto.sh, con el
       # directorio de ese claude delante en su PATH (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2;
       # contracts/juez-y-voto.md §4).
+      #
+      # La salida de error va con la estándar (2>&1). El runner lee cada una por su tubería y las junta en el registro
+      # según le llegan: si el guion termina en fallo, la línea con la que make lo dice por la de error quedaba en un
+      # punto cualquiera del informe.json, que la estándar aún no había terminado de entregar, y el cierre de un hito no
+      # podía recogerlo (H25, medición 1: scripts/workflow/cierre.sh; TestRecogerLasEvalsDelCierre). Por una sola
+      # tubería, las líneas llegan en el orden en que se escriben.
       - name: Ejecutar las evals
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: make evals SKILL="$SKILL_EVALUADA"
+        run: make evals SKILL="$SKILL_EVALUADA" 2>&1
 
   # La medida del juez (ADR 0037; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §3): vota los casos
   # etiquetados de la skill e imprime medida.json, que versiona una persona. Solo corre con la etiqueta evals-medir-juez
@@ -411,7 +417,9 @@ jobs:
           "$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" --version
           echo "CLAUDE_DEL_JUEZ=$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" >> "$GITHUB_ENV"
 
+      # Con la salida de error por la misma tubería que la estándar, como el paso que ejecuta las evals y por lo mismo:
+      # la medida.json que imprime, y que versiona una persona, sale entera entre sus dos marcas.
       - name: Ejecutar la medida del juez
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-        run: make evals-medir-juez SKILL="$SKILL_EVALUADA"
+        run: make evals-medir-juez SKILL="$SKILL_EVALUADA" 2>&1
