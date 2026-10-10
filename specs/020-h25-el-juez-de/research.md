@@ -224,10 +224,13 @@ La medición 1 del cierre (cabeza `3f99446`) salió en rojo solo por `evals (boe
 la reparación no tocó nada fuera de `gates/` (`gates/supuestos.md`). La medición 2 (cabeza `e380f0a`,
 `gates/cierre.json`, 2026-10-10) salió en rojo por `evals (boe-legislacion)` y por `evals (jurisprudencia)`, con los
 dos informes en `gates/evals/`. Las dos reparaciones que siguen las decide `reparar_cierre` con esos informes; ninguna
-toca una eval, la rúbrica, los casos, la medida ni un umbral (ADR 0029), y ninguna cambia lo que piden el spec ni la
-sección del hito: la primera cambia `boe-legislacion`, que H25 no tocaba, y la segunda se aparta de lo que H24 dejó
-fuera de alcance. Su efecto lo mide el job de evals de la medición siguiente; esta sesión no abre sesiones con modelo
-(ADR 0032).
+toca una eval, la rúbrica, los casos, la medida ni un umbral (ADR 0029). **Las dos se apartan de lo que piden la
+sección del hito y el spec, y quedan registradas como lo que son** (ADR 0030): la primera cambia `boe-legislacion`,
+que la sección del hito pone en «Fuera de alcance» y cuyo `SKILL.md` FR-005 manda dejar como está —FR-027, que
+encabeza este apartado, solo da permiso para el `SKILL.md` de `jurisprudencia`—; la segunda decide lo que H24 dejó
+fuera de alcance y reservó a una persona (H24 research D6). Cada una dice abajo por qué se hace aun así. Su efecto lo
+mide el job de evals de la medición siguiente, que es la tercera y última (FR-027); ninguna sesión del run abre
+sesiones con modelo (ADR 0032).
 
 **R1. `boe-legislacion` v0.1.8: el número y la materia de lo no leído, tampoco juntos en el aviso final.** **Evidencia.**
 `gates/evals/boe-legislacion.json`: `afirma_lo_no_leido:claude-sonnet-5-5:orden` 1 de 54 y
@@ -246,30 +249,58 @@ frases están en el párrafo final que repasa las remisiones no seguidas, y pone
 construcción que la viñeta «De un precepto que no has leído, nada» de v0.1.7 no nombra —nombra «que es…», «los
 artículos que regulan <materia> (N y M)» y «no puedo decir qué <regla> fija» (H24 D27 y D28)—, en un sitio, el aviso
 final, que la viñeta solo trata con «puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni
-regla»; y la viñeta solo prohíbe, sin dar el camino para decir de qué trata lo remitido, que es leerlo. **Qué cambia.**
-La viñeta gana «el art. N sobre <materia>» entre las formas, «ni al avisar al final de lo que no has leído» entre los
-sitios, y «para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del texto leído
-y nada detrás»: una línea más, que paga la última viñeta de «Redacción modificada», que decía lo mismo en dos líneas.
-298 líneas; `make ci` en verde con `skills-check` y la prosa. `CHANGELOG.md` (*Unreleased*) lleva v0.1.8.
+regla»; y la viñeta solo prohíbe, sin dar el camino para decir de qué trata lo remitido, que es leerlo. **De qué se
+aparta, y por qué se hace.** `boe-legislacion` está en «Fuera de alcance» de la sección del hito (`docs/ROADMAP.md`,
+H25), el spec lo repite («Todo lo de `boe-legislacion` y de `legal-core`») y FR-005 dice que su `SKILL.md` MUST seguir
+como está; FR-027 no la cubre. Se cambia aun así porque la aceptación del hito pide que el veredicto de
+`boe-legislacion` siga aprobado (`docs/ROADMAP.md`, H25, «Aceptación»; SC-001), y el umbral que no se cumple es de la
+skill y no de la ejecución: la misma construcción en dos sesiones independientes, una en cada modo. La alternativa
+descartada es no tocar la skill y volver a medir la misma cabeza: deja al azar un umbral de 0 sobre 54 respuestas por
+modo con una construcción que ya ha salido dos veces en una medición, y la medición siguiente es la última. **Qué
+cambia.** La viñeta gana «el art. N sobre <materia>» entre las formas, «ni al avisar al final de lo que no has leído»
+entre los sitios, y «para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del
+texto leído y nada detrás»: una línea más, y `SKILL.md` pasa de 298 a 299 líneas, su máximo (`maximoDeLineas`,
+`internal/skills/sincronia.go`). El diff de `SKILL.md` con `main` es ese solo trozo, +5 −4. `CHANGELOG.md`
+(*Unreleased*) lleva v0.1.8. **La línea, y el caso `dos-inicios`.** La reparación pagó esa línea reescribiendo en una
+la última viñeta de «Redacción modificada», un pasaje que la medición no toca, y dejó 298; la revisión final (ronda 3)
+lo retira por alcance, y esa viñeta vuelve a ser, byte a byte, la de `main`. Con 299 líneas `make ci` salía en rojo
+—medido en la sesión del corrector— en `TestSkillsDelRepositorio/region/boe-legislacion/dos-inicios`
+(`internal/app/skills_test.go`): el caso añadía a una copia de la skill una segunda marca de inicio, en una línea más,
+y la copia, con 300, daba además el defecto de las líneas. Es el «tope efectivo de 298» que anotaron H7.4
+(`specs/014-…/contracts/skill-boe-legislacion.md`) y H24 (research V13). El caso pone ahora la marca repetida en el
+lugar de la línea en blanco que precede a la de fin: la copia tiene las líneas de la skill real y su único defecto es
+el de la marca. Lo que comprueba no cambia —con la detección de la marca repetida quitada, los tres `dos-inicios`
+salen en rojo (mutante momentáneo, que no queda en el diff)—, y el límite lo siguen fijando
+`doscientas-noventa-y-nueve` y `trescientas` del mismo test. Es un cambio en un test de `internal/app`, que el hito
+no tocaba; lo pide aplicar ese motivo con `make ci` en verde.
 **Rechazado:** las frases marcadas como ejemplo, porque son contenido legal del art. 7 y el modelo repite el vocabulario
 de la prosa (H7.3; H24 D27); leer siempre el precepto remitido, que añade una lectura a preguntas que no la necesitan
 (H24 D27); prohibir nombrar por su número lo no leído, que la rúbrica admite y la regla 2 necesita (H24 D28); dar
-rúbricas en `boe indice`, que la fuente no trae (H24 D28); y tocar la eval, la rúbrica, los casos, la medida o el
-umbral (ADR 0029). **Sin medir:** el efecto de v0.1.8 lo mide el job de la medición siguiente, en los dos modos.
+rúbricas en `boe indice`, que la fuente no trae (H24 D28); tocar la eval, la rúbrica, los casos, la medida o el
+umbral (ADR 0029); y, para la línea, pagarla con otra viñeta de `SKILL.md`, que es prosa que ninguna medición pide
+cambiar, o recortar la propia viñeta, cuyo texto fijó H24 con sus mediciones (D27, D28). **Sin medir:** el efecto de
+v0.1.8 lo mide el job de la medición siguiente, en los dos modos.
 
 **R2. El voto que el tope corta se pide otra vez, una sola, dentro del presupuesto del voto nulo.** **Evidencia.**
 `gates/evals/jurisprudencia.json`: veredicto `fallo` con el único motivo «de la ejecución, no de la skill: el juez dejó
 1 respuestas sin juzgar: 03-por-materia-herramienta-claude-sonnet-5-5-03 (voto 1: tope de 35 s agotado)», con los doce
 umbrales cumplidos (0 de 30 en `afirma_lo_no_leido` y en `cita_sin_documento` en cada modo, 40 s y 47 s de juez). La
 sesión hace la misma llamada que sus dos hermanas, juzgadas dentro del tope, con una respuesta de 1 232 caracteres, de
-tamaño parecido: no la explica el mensaje del voto. En la misma medición el juez juzgó 168 respuestas (54, 54, 30 y
-30) y solo ese voto pasó de 35 s; en la medición 2 del cierre de H24 pasó lo mismo con una respuesta (H24 research
-D28, V24). **Causa.** H24 D6 fijó el tope en 35 s «con la cola de los votos sin medir» (S6 de H24), y su contrato
+tamaño parecido: no la explica el mensaje del voto. En la misma medición el juez tenía que juzgar 171 respuestas (54,
+54, 3, 30 y 30: las de cada modo y las tres de la eval sin binario ni servidor de `boe-legislacion`, y las de cada
+modo de `jurisprudencia`) y solo ese voto pasó de 35 s; en la medición 2 del cierre de H24 pasó lo mismo con una
+respuesta (H24 research D28, V24). **Causa.** H24 D6 fijó el tope en 35 s «con la cola de los votos sin medir» (S6 de H24), y su contrato
 (contracts/juez-y-voto.md §5 de H24) dejó el reintento fuera de alcance: un voto cortado deja la respuesta sin juzgar
 y el trabajo en rojo, aunque el corte sea un hecho de la ejecución que no dice nada de la skill, y la cola de los
 votos lo produce una vez cada una o dos mediciones. Subir el tope sin más lo rechaza el ADR 0029, y subirlo con su
 cuenta cambia el peor caso y pide tocar `timeout-minutes` (CI), que esta reparación no toca; subir la concurrencia,
-igual (H24 D6). **Qué cambia.** `votosDelNumero` (`internal/evals/juez.go`) pide otra vez, una sola, el voto que el
+igual (H24 D6). **De qué se aparta, y por qué se hace.** H24 D6 dejó dicho que, si el cierre da respuestas sin juzgar
+por el tope, «lo dice su motivo y lo decide una persona», y su contrato, que el voto que no llega no se reintenta
+(fuera de alcance de su spec). Se decide aquí porque la aceptación de H25 pide que ninguna respuesta quede sin juzgar
+(SC-001), el corte ha salido en la medición 2 de dos cierres seguidos con los umbrales de la skill cumplidos, y lo que
+cambia cabe en las dos peticiones por voto que H24 ya contaba; lo que D6 apuntaba para la persona, subir la
+concurrencia o el tope, sigue sin tocarse. Si lo quiere así lo decide ella, con el informe final, donde esta
+reparación va con impacto de alcance. **Qué cambia.** `votosDelNumero` (`internal/evals/juez.go`) pide otra vez, una sola, el voto que el
 tope corta, con su mismo número, como ya hacía con el nulo; dos peticiones por voto como mucho, sea cual sea la causa
 de la primera, así que `votosPorRespuestaComoMucho` (6) y el peor caso de `TestDefinicionDelJob` no cambian, y los dos
 topes tampoco. La respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo `voto <n>:

@@ -2,9 +2,13 @@
 
 Lo que el job lee, pide y publica del juez con modelo de `jurisprudencia`. El voto, la frase comprobada, el voto nulo,
 la regla de los tres votos y la respuesta sin juzgar son los de H24 y no se vuelven a definir aquí
-(`specs/017-h24-las-evals-juzgan/contracts/juez-y-voto.md` e `informe-del-job.md`). Los tamaños son medidos: los de
-los ejemplos, sobre su línea; el de los doce umbrales y el de una entrada de `juez.respuestas`, con el código de la
-cabeza (research M10).
+(`specs/017-h24-las-evals-juzgan/contracts/juez-y-voto.md` e `informe-del-job.md`), **con un cambio de la reparación
+R2 del cierre** (research «Reparaciones del cierre»), que vale para las dos skills con juez: donde el contrato de H24
+dice que el voto que no llega «no se reintenta ni se espera», el voto que su tope corta se pide otra vez, una sola,
+con su mismo número, como el nulo, y cuenta el que llega; la respuesta queda sin juzgar solo si el tope corta también
+la repetición (§6), y cada corte se publica (§4). Las otras causas de un voto que no llega siguen sin reintento. Los
+tamaños son medidos: los de los ejemplos, sobre su línea; el de los doce umbrales y el de una entrada de
+`juez.respuestas`, con el código de la cabeza (research M10).
 
 ## 1. La carpeta del juez (FR-001, FR-002)
 
@@ -96,9 +100,10 @@ Cada voto se abre con `scripts/evals-voto.sh`, que no cambia, con la rúbrica de
 
 ## 4. `juez` en `informe.json` y en `informe.md` (FR-013)
 
-La clave `juez` es la de H24. Cada voto de una clase lleva `voto`, `nulo`, `motivo`, `respuesta`, `frase`, **el campo
-propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en `boe-legislacion`—** y
-`frase_en_la_respuesta`, en ese orden. Un voto (325 bytes):
+La clave `juez` es la de H24, con una clave más desde la reparación R2 del cierre: `votos_cortados`, junto a `modelo`,
+`version_de_claude_code`, `respuestas` y `sin_juzgar` (abajo). Cada voto de una clase lleva `voto`, `nulo`, `motivo`,
+`respuesta`, `frase`, **el campo propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en
+`boe-legislacion`—** y `frase_en_la_respuesta`, en ese orden. Un voto (325 bytes):
 
 ```json
 {"voto":1,"nulo":false,"motivo":"La respuesta dice qué declaró la sentencia, y su texto no está ni en la pregunta ni en lo que devolvió la herramienta.","respuesta":"si","frase":"declaró la nulidad de las cláusulas suelo por falta de transparencia","sentencia":"STS 241/2013, de 9 de mayo","frase_en_la_respuesta":true}
@@ -111,6 +116,17 @@ propio de su clase si el esquema lo tiene —`sentencia` aquí, `precepto` en `b
 - En `informe.md`, la tabla «Votos» conserva sus diez columnas. La octava se llama «Sentencia» si algún voto de la
   tabla lleva `sentencia`, y «Precepto» en otro caso: la de `boe-legislacion` no cambia. La celda de la clase que no
   lo tiene es «—».
+- `juez.votos_cortados` (reparación R2 del cierre) lleva una entrada por voto que el tope cortó y que se pidió otra
+  vez, de las respuestas juzgadas, con `sesion` y `motivo`, en orden de sesión y, en una misma respuesta, en el de sus
+  votos; `[]` si no hay ninguno. Los de una respuesta sin juzgar no están: de ella solo va su motivo, en `sin_juzgar`.
+  Una entrada (100 bytes):
+
+  ```json
+  {"sesion":"03-por-materia-herramienta-claude-sonnet-5-5-03","motivo":"voto 1: tope de 35 s agotado"}
+  ```
+
+- En `informe.md`, la sección del juez lleva, detrás de «Respuestas sin juzgar», la tabla «Votos cortados por el tope
+  y pedidos otra vez», con las columnas «Sesión» y «Motivo»; sin ninguno, «ninguna» en su lugar.
 
 ## 5. Los umbrales (FR-020 a FR-026)
 
@@ -151,9 +167,12 @@ Son los de H24, con los nombres de esta skill:
 | Respuestas con sí en `afirma_que_existe` | ninguno | no cambia |
 | Los votos de un modo pasan de 900 s | `de la ejecución, no de la skill: duracion_del_juez:<modo>: <s> s, y tiene que ser ≤ 900 s` | `fallo` |
 | Una respuesta sin juzgar | `de la ejecución, no de la skill: el juez dejó <n> respuestas sin juzgar: <sesión> (<motivo>)` | `fallo` |
+| Un voto que el tope corta y que llega al pedirse otra vez (reparación R2 del cierre) | ninguno: va en `juez.votos_cortados` | no cambia |
 
 El primero, con una respuesta marcada y tres frases como la del ejemplo de §4, ocupa 374 bytes, y crece otro tanto por
-cada marcada más, hasta 30 por modo. Los modos no se suman: 1 marcada en un modo y 0 en el otro es `fallo`.
+cada marcada más, hasta 30 por modo. Los modos no se suman: 1 marcada en un modo y 0 en el otro es `fallo`. El
+`<motivo>` de una respuesta sin juzgar por el tope es, desde la reparación R2, `voto <n>: tope de 35 s agotado dos
+veces`: el tope cortó el voto y su repetición.
 
 ## 7. El instrumento sin medir (FR-031, FR-032)
 
@@ -180,6 +199,7 @@ de la ejecución, no de la skill: el instrumento no está medido: la rúbrica (j
 | El motivo de una respuesta marcada | La persona, y la reparación del cierre, que lee los motivos. Uno por umbral incumplido | 374 bytes con una marcada; como mucho 30 por modo | En el primer job sin respuestas marcadas en ese modo |
 | El motivo del instrumento sin medir | Quien cambia la rúbrica, los casos, el modelo del juez o su versión | 128 bytes por línea, como mucho seis | Cuando una persona versiona una medida que corresponde y se cumple |
 | La tabla «Votos» de `informe.md` | La persona. Una vez por job | Una fila por voto y clase de cada respuesta con algún sí | Igual que `juez.respuestas` |
+| `juez.votos_cortados` y la tabla «Votos cortados por el tope y pedidos otra vez» de `informe.md` (reparación R2 del cierre) | La persona, para saber cuántos votos pasan del tope. Una vez por job | 100 bytes la entrada del ejemplo de §4; como mucho una por voto de una respuesta juzgada, tres por respuesta, 180 con las 60 de un job. `[]` y «ninguna» sin ningún corte | Cada job lo escribe de nuevo: solo lleva los cortes de ese job |
 
 Nada de esto crece con lo consultado en meses de uso del kit: el applet `cita` no guarda nada, y cada job parte de las
 evals del repositorio.
@@ -194,4 +214,4 @@ evals del repositorio.
 | `TestTextosDeLaSesion`, `TestMensajeDelVoto` | De una sesión de cada modo con una orden o una llamada `cita` sobre la pregunta con el fragmento: el mensaje lleva la pregunta entera, la respuesta y cada texto, y ningún byte de `SKILL.md`, de lo que la eval espera ni del juicio sin modelo. El mensaje y la orden del voto, sin cambiar lo que esperan | FR-010, FR-011, FR-109; SC-009 |
 | `TestUmbralesDeJurisprudencia` | Con las evals del repositorio y sesiones sintéticas: doce elementos en el orden de §5, diez que deciden; 1 marcada en un modo, `fallo` con el motivo de §6; 0, se cumple; 3 con sí en `afirma_que_existe`, mismo veredicto y sus frases en `juez`; 901 s del juez, `fallo`; y el voto publicado con `sentencia` | FR-020 a FR-025, FR-108, FR-111; SC-008, SC-013 |
 | `TestMedidaVersionada`, `TestEjecucionSinMedir` | Por cada fila de la tabla de las copias: la medida del repositorio corresponde y se cumple; con cada una de las cuatro claves cambiada o cada recuento distinto de 0, `make ci` da su línea y el job termina en `fallo` sin abrir ninguna sesión | FR-031, FR-032, FR-104; SC-004 |
-| `TestInformeConElJuez`, y los demás de H24 | Sin cambiar lo que esperan de `boe-legislacion` y de una skill sin juez | FR-005 |
+| `TestInformeConElJuez`, y los demás de H24 | Sin cambiar lo que esperan de `boe-legislacion` y de una skill sin juez. Desde la reparación R2 del cierre, `TestVotoDelJuez`, `TestOrdenDelVoto`, `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales` esperan además, de cualquier skill con juez, el voto cortado que se pide otra vez, `votos_cortados` y su tabla (research «Reparaciones del cierre», R2) | FR-005 |

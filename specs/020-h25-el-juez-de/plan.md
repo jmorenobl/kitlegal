@@ -29,7 +29,9 @@ de la skill, en seis piezas:
    deducido. Es un diff de 9 líneas añadidas y 7 quitadas, que deja 197 (research D16, M11).
 
 No hay ADR nuevo. No se editan `specs/001-…` a `specs/019-…`, la constitución, `scripts/workflow/`, `schemas/`,
-`evidencias/`, las seis evals de H23 ni nada de `boe-legislacion` y `legal-core` (FR-005, FR-096).
+`evidencias/`, las seis evals de H23 ni nada de `boe-legislacion` y `legal-core` (FR-005, FR-096). Esto es el plan;
+el cierre se aparta de él en un punto, registrado en «Decisiones»: la reparación R1 cambia una viñeta de
+`skills/boe-legislacion/SKILL.md`, que pasa a v0.1.8.
 
 ## Technical Context
 
@@ -135,12 +137,21 @@ internal/evals/
     conjunto_test.go, definicion_test.go, sentencias_test.go (tasks.md, T003), y un comentario
     en umbrales_test.go y en consultas_test.go (T009)
 CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, docs/WORKFLOW.md
+
+# Después, con las reparaciones del cierre («Decisiones»; research R1 y R2) y la revisión final que las juzga:
+skills/boe-legislacion/SKILL.md                     # v0.1.8: una viñeta (R1)
+internal/evals/juez.go, informe.go, doc.go          # el voto que el tope corta se pide otra vez; votos_cortados (R2)
+internal/evals/juez_test.go, informe_test.go, medida_test.go, ejecucion_test.go, sondeo_test.go   # (R2)
+internal/app/skills_test.go                         # el caso dos-inicios, sin una línea de más (revisión final, R1)
+CHANGELOG.md, CONTRIBUTING.md
 ```
 
 **Structure Decision**: la de `docs/ROADMAP.md` §2 y `CLAUDE.md`, sin paquetes ni ficheros Go nuevos: todo cabe en
 los ficheros de `internal/evals` que ya tienen el juez, la medida y las reglas. `ejecucion.go`, `sesion.go`,
 `definicion.go`, los guiones de `scripts/` y el `Makefile` no cambian, y de `umbrales.go` no cambia el código: solo
-un comentario, que decía que la skill no tiene juez (research V4 a V6, V23; tasks.md, T009).
+un comentario, que decía que la skill no tiene juez (research V4 a V6, V23; tasks.md, T009). Fuera de
+`internal/evals`, el único fichero de Go que cambia es un test de `internal/app`, en un caso, con la revisión final
+de la reparación R1.
 
 ## Aceptación e2e
 
@@ -197,6 +208,13 @@ Ninguno nuevo ni cambiado. `test` y `skills-check` llevan más dentro: los tests
 - Y cuatro que esta lista no nombraba y fija tasks.md: `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales`,
   con el voto que lleva `sentencia` y su columna (T001); `TestLeerCasosEtiquetados`, con un derivado con `texto`
   (T002); y `TestJuzgarSentencias`, con las sesiones modelo de las diez evals (T003).
+- Con la reparación R2 del cierre: `TestVotoDelJuez` y `TestOrdenDelVoto`, con el voto que el tope corta y se pide
+  otra vez; `TestInformeConElJuez` y `TestInformeMarkdownDeLosUmbrales`, con `votos_cortados` y su tabla;
+  `TestJuicioDelSondeo`, `TestSalidaDelSondeo` y `TestEjecucionDeLaMedida`, con el tope agotado dos veces o un voto
+  cortado que llega al repetirse; y lo que `ejecucion_test.go` exige de la clave `juez` de un informe sin votos.
+- Con la revisión final de la reparación R1: el caso `dos-inicios` de `TestSkillsDelRepositorio`
+  (`internal/app/skills_test.go`), que pone la marca repetida en el lugar de una línea en blanco y no en una línea
+  más, para que valga con una skill de 299 líneas.
 
 Ninguno se desactiva ni se salta. Ninguno se retira sin el que lo sustituye.
 
@@ -294,12 +312,20 @@ contracts/skill-jurisprudencia.md §4. Nada de lo que el hito entrega crece con 
 - **Ninguna tarea `[datos]`** (D17).
 - Las demás, con su alternativa rechazada, en research D1-D20.
 - **Reparaciones del cierre** (FR-027), las dos con la medición 2 del cierre como evidencia (research «Reparaciones
-  del cierre», R1 y R2): **`boe-legislacion` v0.1.8**, porque el juez marca en `afirma_lo_no_leido` dos respuestas de
-  la eval 15 que ponen la materia del art. 7 con «sobre» en el aviso final de las remisiones no seguidas, 1 de 54 en
-  cada modo (R1); y **el voto que el tope corta se pide otra vez, una sola**, dentro de las dos peticiones por voto
-  que ya tenía el nulo, con el corte publicado en `juez.votos_cortados` y en informe.md, porque el job de
-  `jurisprudencia` salió en rojo con sus doce umbrales cumplidos por un voto cortado (R2). Ninguna cambia el peor
-  caso, los topes, una eval, la rúbrica, los casos, la medida ni un umbral.
+  del cierre», R1 y R2), **y las dos apartándose de lo que piden la sección del hito y el spec**:
+  - **`boe-legislacion` v0.1.8**, porque el juez marca en `afirma_lo_no_leido` dos respuestas de la eval 15 que ponen
+    la materia del art. 7 con «sobre» en el aviso final de las remisiones no seguidas, 1 de 54 en cada modo (R1). Se
+    aparta de «Fuera de alcance» de la sección del hito, que nombra a `boe-legislacion`, y de FR-005, que manda dejar
+    su `SKILL.md` como está. Se hace porque la aceptación pide que su veredicto siga aprobado y el umbral que no se
+    cumple es de la skill, no de la ejecución; se descarta no tocarla y volver a medir, con la misma construcción ya
+    vista en dos sesiones independientes. `SKILL.md` queda en 299 líneas, su máximo, con un solo trozo de diff con
+    `main`; para que `make ci` las admita, el caso `dos-inicios` de `TestSkillsDelRepositorio`
+    (`internal/app/skills_test.go`) deja de añadir una línea a la copia que altera (revisión final, ronda 3).
+  - **El voto que el tope corta se pide otra vez, una sola**, dentro de las dos peticiones por voto que ya tenía el
+    nulo, con el corte publicado en `juez.votos_cortados` y en informe.md, porque el job de `jurisprudencia` salió en
+    rojo con sus doce umbrales cumplidos por un voto cortado (R2). Se aparta de lo que H24 dejó sin reintento y a la
+    decisión de una persona (H24 research D6); a ella le queda decidir si lo quiere así.
+  - Ninguna cambia el peor caso, los topes, una eval, la rúbrica, los casos, la medida ni un umbral.
 
 ## Trazabilidad: cada mecanismo y su requisito
 

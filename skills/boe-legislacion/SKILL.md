@@ -219,7 +219,8 @@ protocolo solo usa `check`, tras cada lectura de bloques: en su misma orden o en
   diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
   legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción y desde
   cuándo rige; hasta cuándo, nunca (paso 5).
-- Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y no ha leído la anterior.
+- Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y que la que había antes
+  no la ha leído.
 
 ## Comandos
 

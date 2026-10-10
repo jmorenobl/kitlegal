@@ -1,8 +1,13 @@
 {
-  "ciclo": 1,
-  "desde_ronda": 1,
-  "motivo": "revisión final del hito",
-  "desde": null,
-  "commits": [],
-  "cerrado": true
+  "ciclo": 2,
+  "desde_ronda": 3,
+  "motivo": "cambios fuera de gates/ posteriores al último veredicto",
+  "desde": "4a127c52e1b54be790a4dc8bd3a130df05a71b83",
+  "commits": [
+    {
+      "sha": "0dc549c4c1fe2732a6fca638ddff583bb14d05e6",
+      "asunto": "fix(H25): cierre en la plataforma"
+    }
+  ],
+  "cerrado": false
 }

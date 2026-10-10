@@ -269,7 +269,9 @@ sustituyen a este fichero.
   aviso final («el art. 7 sobre rentas exentas»), que el juez marca en `afirma_lo_no_leido`: 1 de 54 en cada modo
   en la segunda medición del cierre de H25. No cambian la `description`, las órdenes de cada paso, la forma de la
   cita, la de los avisos de vigencia ni las líneas `⚠ REDACCIÓN MODIFICADA:` y `⚠ SIN CONSULTA AL BOE:`; `SKILL.md`
-  sigue en 298 líneas. Sustituye a `boe-legislacion` v0.1.7.
+  tiene 299 líneas (el máximo es 299; tenía 298), y `make ci` las admite: el caso `dos-inicios` de
+  `TestSkillsDelRepositorio` ya no añade una línea a la copia de la skill que altera, que con 299 daba además el
+  defecto de las 300. Sustituye a `boe-legislacion` v0.1.7.
 - **El juez del job de evals pide otra vez, una sola, el voto que su tope corta.** Un voto que agota sus 35 s se
   vuelve a pedir con su mismo número, como un nulo, y cuenta el que llega; dos peticiones por voto como mucho, sea
   cual sea la causa de la primera, así que el peor caso calculado de cada trabajo y sus dos topes no cambian. La
@@ -278,7 +280,7 @@ sustituyen a este fichero.
   sesión y su motivo, e `informe.md`, en la tabla «Votos cortados por el tope y pedidos otra vez»; una respuesta sin
   juzgar sigue sin llevar nada más que su motivo. Antes, un voto cortado dejaba la respuesta sin juzgar y el trabajo
   en rojo por la ejecución y no por la skill: pasó con una respuesta en la segunda medición del cierre de H24 y con
-  una de 168 juzgadas en la segunda del cierre de H25.
+  una de las 171 que el juez tenía que juzgar en la segunda del cierre de H25.
 
 ## [0.5.0] - 2026-10-04
 

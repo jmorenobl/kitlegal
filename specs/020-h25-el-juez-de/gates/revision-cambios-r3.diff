@@ -1,0 +1,1139 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 9fc3a1e..be22dcd 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -261,6 +261,24 @@ sustituyen a este fichero.
+     resumiera una sentencia que no había leído no lo decidía ningún control; su trabajo iba de una en una, con seis
+     evals —72 sesiones, 36 en cada modo—, cuatro umbrales, `sin_activar` y `cita_sin_documento` de cada modo, y un
+     peor caso calculado de 20 341 s.
++- **`boe-legislacion` v0.1.8: el número de un precepto no leído no va con su materia tampoco al avisar de lo que no
++  ha leído.** De un precepto al que remite el texto leído y que la respuesta no ha leído, no dice de qué trata
++  tampoco con «sobre <materia>» ni en el aviso final de las remisiones que no ha seguido: o el número solo, o la
++  materia sola; y para decir de qué trata lo remitido, lo lee y lo cita. Antes, v0.1.7 nombraba las construcciones
++  «que es…», «los artículos que regulan…» y «no puedo decir qué…», y la respuesta ponía la materia con «sobre» en el
++  aviso final («el art. 7 sobre rentas exentas»), que el juez marca en `afirma_lo_no_leido`: 1 de 54 en cada modo
++  en la segunda medición del cierre de H25. No cambian la `description`, las órdenes de cada paso, la forma de la
++  cita, la de los avisos de vigencia ni las líneas `⚠ REDACCIÓN MODIFICADA:` y `⚠ SIN CONSULTA AL BOE:`; `SKILL.md`
++  sigue en 298 líneas. Sustituye a `boe-legislacion` v0.1.7.
++- **El juez del job de evals pide otra vez, una sola, el voto que su tope corta.** Un voto que agota sus 35 s se
++  vuelve a pedir con su mismo número, como un nulo, y cuenta el que llega; dos peticiones por voto como mucho, sea
++  cual sea la causa de la primera, así que el peor caso calculado de cada trabajo y sus dos topes no cambian. La
++  respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo
++  `voto <n>: tope de 35 s agotado dos veces`. `informe.json` publica cada corte en `juez.votos_cortados`, con su
++  sesión y su motivo, e `informe.md`, en la tabla «Votos cortados por el tope y pedidos otra vez»; una respuesta sin
++  juzgar sigue sin llevar nada más que su motivo. Antes, un voto cortado dejaba la respuesta sin juzgar y el trabajo
++  en rojo por la ejecución y no por la skill: pasó con una respuesta en la segunda medición del cierre de H24 y con
++  una de 168 juzgadas en la segunda del cierre de H25.
+ 
+ ## [0.5.0] - 2026-10-04
+ 
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 97eca7f..6662637 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -903,9 +903,12 @@ si el repetido lleva también un `si` sin su frase, en esa clase no cuenta como
+ una clase que decide solo con tres votos que dicen sí con su frase.** Los votos se piden por orden, y se deja de
+ votar en cuanto ninguna clase que decide sigue con todos sus votos en sí: con un no en el primero se pide un voto;
+ con «sí, sí y no», tres, y la respuesta no queda marcada y se publica con sus dos frases. En una clase que solo se
+-publica cuenta el primer voto. Un voto que **no llega a darse** —agota su tope, su sesión termina con error, o su
+-salida no es JSON o no tiene la forma del esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto
+-(`voto 2: tope de 35 s agotado`); no se reintenta, y un límite de uso de la cuenta es uno de esos errores.
++publica cuenta el primer voto. **Un voto que agota su tope se pide otra vez, una sola**, como un nulo, con su mismo
++número: cuenta el que llega, y el corte se publica aparte (`votos_cortados`). Dos peticiones por voto como mucho,
++sea cual sea la causa de la primera: el presupuesto del peor caso no cambia. Un voto que **no llega a darse** —agota
++su tope también en esa repetición, su sesión termina con error, o su salida no es JSON o no tiene la forma del
++esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto (`voto 2: tope de 35 s agotado dos
++veces`); nada más se reintenta ni se espera, y un límite de uso de la cuenta es uno de esos errores.
+ 
+ Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
+ ejecución —hoy `boe-legislacion`, `jurisprudencia` y `legal-core`, la matriz del flujo—, cada uno con su informe y
+@@ -969,8 +972,9 @@ de las tres tandas —la del modo orden, con la prueba de red— y `C` su concur
+ sesiones a 4: 14 357 s). Con una skill que tiene juez se le suma el de su juez,
+ `60 s + (⌈R₁ × 6 / C⌉ + ⌈R₂ × 6 / C⌉ + ⌈R₃ × 6 / C⌉) × (35 s + 5 s)`: 60 s de instalar su Claude Code, `R₁`, `R₂`
+ y `R₃` las respuestas de cada grupo que juzga, 6 los votos que como mucho pide una respuesta —tres, cada uno con su
+-repetición por nulo— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas a 4: 81, 81
+-y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, con su juez y cuatro a la
++repetición por nulo o por el tope— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas
++a 4: 81, 81 y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, con su juez y
++cuatro a la
+ vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
+ orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
+ 3 660 s—; de una en una serían 47 857 s, que el tope no cubre. Es un cálculo, no una medida de lo que tarda. El
+@@ -1187,13 +1191,14 @@ Cómo se lee el informe:
+   de la respuesta, en su orden y también los nulos, cada uno con `voto` (1 a 3), `nulo`, lo que dio el juez (`motivo`,
+   `respuesta`, `frase` y, si el esquema de la clase lo tiene, su campo propio: `precepto` en `afirma_lo_no_leido` de
+   `boe-legislacion`, y `sentencia` —de qué sentencia o de qué jurisprudencia habla la frase— en la de
+-  `jurisprudencia`; ningún voto lleva los dos) y `frase_en_la_respuesta`; y `sin_juzgar`, una entrada por respuesta
+-  sin juzgar, con su `sesion` y su `motivo`. `marcada` es, en una clase que decide, la de la regla de los tres votos,
+-  y en una que solo se publica, que su primer voto dice sí con su frase. Ahí están también las respuestas de la eval
+-  sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da en la sección «Juez», detrás de
+-  «Umbrales»: el modelo y la versión, la tabla de los votos —cuya octava columna, la del campo propio, se llama
+-  «Sentencia» si algún voto lleva `sentencia`, y «Precepto» en otro caso— y la de las respuestas sin juzgar, o «La
+-  skill no tiene juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
++  `jurisprudencia`; ningún voto lleva los dos) y `frase_en_la_respuesta`; `sin_juzgar`, una entrada por respuesta
++  sin juzgar, con su `sesion` y su `motivo`; y `votos_cortados`, una entrada por voto que el tope cortó y se pidió
++  otra vez, de las respuestas juzgadas, con su `sesion` y el `motivo` del corte. `marcada` es, en una clase que
++  decide, la de la regla de los tres votos, y en una que solo se publica, que su primer voto dice sí con su frase. Ahí
++  están también las respuestas de la eval sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da
++  en la sección «Juez», detrás de «Umbrales»: el modelo y la versión, la tabla de los votos —cuya octava columna, la
++  del campo propio, se llama «Sentencia» si algún voto lleva `sentencia`, y «Precepto» en otro caso—, la de las
++  respuestas sin juzgar y la de los votos cortados por el tope y pedidos otra vez, o «La skill no tiene juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
+   `expresiones_prohibidas_por_modelo` de la raíz, `expresiones_prohibidas` de cada sesión, la sección «Expresiones
+   prohibidas por modelo» y la columna «Expresiones prohibidas» de «Sesiones».
+ - **Las sesiones sin medir**: una sesión que un límite de la cuenta no dejó terminar no es una eval fallida. El informe
+diff --git a/internal/evals/doc.go b/internal/evals/doc.go
+index 87b6cfa..2daf8ec 100644
+--- a/internal/evals/doc.go
++++ b/internal/evals/doc.go
+@@ -111,12 +111,15 @@
+ //     Claude Code sin herramientas, con la rúbrica como instrucciones, el esquema
+ //     como forma de la respuesta y un tope de 35 s. Comprueba sin modelo que la
+ //     frase que cita un sí está en la respuesta (fraseEsta); un sí sin su frase
+-//     hace nulo el voto, que se repite una vez; y una clase que decide marca la
+-//     respuesta solo con tres votos que dicen sí con su frase: se piden por
+-//     orden, y se deja de votar en cuanto ninguna clase que decide sigue con
+-//     todos los suyos en sí. En una que solo se publica cuenta el primero. Un
+-//     voto que no llega a darse deja la respuesta sin juzgar. Los votos no
+-//     cambian el juicio sin modelo de la sesión (FR-001 a FR-014 de H24);
++//     hace nulo el voto, que se repite una vez, y un voto que el tope corta se
++//     pide otra vez, también una sola (research «Reparaciones del cierre» de
++//     H25); y una clase que decide marca la respuesta solo con tres votos que
++//     dicen sí con su frase: se piden por orden, y se deja de votar en cuanto
++//     ninguna clase que decide sigue con todos los suyos en sí. En una que solo
++//     se publica cuenta el primero. Un voto que no llega a darse —el tope corta
++//     también su repetición, o su sesión, su salida o su forma fallan— deja la
++//     respuesta sin juzgar. Los votos no cambian el juicio sin modelo de la
++//     sesión (FR-001 a FR-014 de H24);
+ //   - la medida del juez (medida.go). comprobarLaMedida dice, sin modelo, si la
+ //     medida versionada corresponde a la rúbrica, a los casos, al modelo del juez
+ //     y a la versión de Claude Code de sus votos, y si se cumple, con ningún
+diff --git a/internal/evals/ejecucion_test.go b/internal/evals/ejecucion_test.go
+index 2690ed7..9b2c88a 100644
+--- a/internal/evals/ejecucion_test.go
++++ b/internal/evals/ejecucion_test.go
+@@ -250,11 +250,14 @@ func exigirNadaMedido(t *testing.T, leido informeLeido, ejecucion EjecucionDelJo
+ 		VersionDeClaudeCode: ejecucion.VersionDelJuez,
+ 		Respuestas:          []RespuestaConVotos{},
+ 		SinJuzgar:           []RespuestaSinJuzgar{},
++		VotosCortados:       []VotoCortado{},
+ 	}, leido.informe.Juez)
+ 	assert.Equal(t, `{"modelo":`+cadenaJSON(t, ejecucion.ModeloDelJuez)+`,"version_de_claude_code":`+
+-		cadenaJSON(t, ejecucion.VersionDelJuez)+`,"respuestas":[],"sin_juzgar":[]}`, compacto(t, leido.crudo.Juez))
++		cadenaJSON(t, ejecucion.VersionDelJuez)+`,"respuestas":[],"sin_juzgar":[],"votos_cortados":[]}`,
++		compacto(t, leido.crudo.Juez))
+ 	assert.Equal(t, "Modelo: "+ejecucion.ModeloDelJuez+"\n\nVersión de Claude Code: "+ejecucion.VersionDelJuez+
+-		"\n\nVotos: ninguna\n\nRespuestas sin juzgar: ninguna", seccionDelInforme(t, leido.md, "Juez"))
++		"\n\nVotos: ninguna\n\nRespuestas sin juzgar: ninguna\n\nVotos cortados por el tope y pedidos otra vez: ninguna",
++		seccionDelInforme(t, leido.md, "Juez"))
+ 
+ 	var raiz map[string]jsontext.Value
+ 
+@@ -312,6 +315,7 @@ func probarElJobConElInstrumentoMedido(t *testing.T, medido juezMedido, modelo,
+ 
+ 	assert.Equal(t, &JuezInformado{
+ 		Modelo: modelo, VersionDeClaudeCode: version, Respuestas: []RespuestaConVotos{}, SinJuzgar: []RespuestaSinJuzgar{},
++		VotosCortados: []VotoCortado{},
+ 	}, leido.informe.Juez)
+ 
+ 	pedidos := job.votante.pedidos()
+diff --git a/internal/evals/informe.go b/internal/evals/informe.go
+index d819701..60519b4 100644
+--- a/internal/evals/informe.go
++++ b/internal/evals/informe.go
+@@ -133,10 +133,15 @@ var (
+ 	encabezadosDeTasas        = []string{
+ 		"Eval", "Modelo", "Modo", "Decide", "Planificada", "Formas exigidas", "Tasa", "Resultado",
+ 	}
+-	encabezadosDeUmbrales  = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
+-	encabezadosDeSinJuzgar = []string{"Sesión", "Motivo"}
++	encabezadosDeUmbrales      = []string{"Umbral", "Medida", "Condición", "Cumple", "Hace fallar el veredicto"}
++	encabezadosDeSinJuzgar     = []string{"Sesión", "Motivo"}
++	encabezadosDeVotosCortados = []string{"Sesión", "Motivo"}
+ )
+ 
++// etiquetaDeVotosCortados es la de la tabla de informe.md con los votos que el
++// tope cortó y que se pidieron otra vez.
++const etiquetaDeVotosCortados = "Votos cortados por el tope y pedidos otra vez"
++
+ // enUnaLinea deja un texto en su línea de informe.md: cada salto de línea —\r\n,
+ // \r o \n, los tres finales de línea de CommonMark— se sustituye por un espacio.
+ // \r\n va antes que \r para que cuente como un solo salto.
+@@ -403,6 +408,13 @@ type JuezInformado struct {
+ 	// Respuestas, aunque un voto anterior dijera sí: no es una respuesta
+ 	// juzgada.
+ 	SinJuzgar []RespuestaSinJuzgar `json:"sin_juzgar"`
++
++	// VotosCortados son los votos que el tope cortó y que se pidieron otra vez,
++	// de las respuestas juzgadas, en orden de sesión y, en una misma respuesta,
++	// en el de sus votos; [] en informe.json si no hay ninguno (research
++	// «Reparaciones del cierre» de H25). Los de una respuesta sin juzgar no
++	// están: de ella solo va su motivo.
++	VotosCortados []VotoCortado `json:"votos_cortados"`
+ }
+ 
+ // RespuestaConVotos es una respuesta juzgada con algún voto afirmativo: su
+@@ -422,6 +434,14 @@ type RespuestaSinJuzgar struct {
+ 	Motivo string `json:"motivo"`
+ }
+ 
++// VotoCortado es un voto que el tope cortó y que se pidió otra vez: la sesión
++// de su respuesta y el motivo del corte, que nombra el voto por su número
++// («voto 1: tope de 35 s agotado»).
++type VotoCortado struct {
++	Sesion string `json:"sesion"`
++	Motivo string `json:"motivo"`
++}
++
+ // respuestasMedidas son las respuestas del modelo que decide de una ejecución
+ // con lo que el informe mide de ellas en sus umbrales
+ // (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23; FR-060 a
+@@ -606,6 +626,15 @@ func (j *juicioDelJuez) informado(modelo, version string) *JuezInformado {
+ 			RespuestaSinJuzgar{Sesion: respuesta.sesion, Motivo: respuesta.juicio.SinJuzgar})
+ 	}
+ 
++	conVotosCortados := j.respuestasQue(func(respuesta respuestaDelJuez) bool {
++		return respuesta.juicio.SinJuzgar == "" && len(respuesta.juicio.Cortados) > 0
++	})
++	for _, respuesta := range conVotosCortados {
++		for _, cortado := range respuesta.juicio.Cortados {
++			informado.VotosCortados = append(informado.VotosCortados, VotoCortado{Sesion: respuesta.sesion, Motivo: cortado})
++		}
++	}
++
+ 	return informado
+ }
+ 
+@@ -1922,6 +1951,7 @@ func (d *documento) juez(juez *JuezInformado) {
+ 	d.parrafo("Versión de Claude Code: " + juez.VersionDeClaudeCode)
+ 	d.tablaConEtiqueta("Votos", encabezadosDeVotos(juez.Respuestas), filasDeVotos(juez.Respuestas))
+ 	d.tablaConEtiqueta("Respuestas sin juzgar", encabezadosDeSinJuzgar, filasDeSinJuzgar(juez.SinJuzgar))
++	d.tablaConEtiqueta(etiquetaDeVotosCortados, encabezadosDeVotosCortados, filasDeVotosCortados(juez.VotosCortados))
+ }
+ 
+ // encabezadosDeVotos son los encabezados de la tabla de los votos del juez
+@@ -2000,6 +2030,17 @@ func filasDeSinJuzgar(sinJuzgar []RespuestaSinJuzgar) [][]string {
+ 	return filas
+ }
+ 
++// filasDeVotosCortados son las filas de la tabla de los votos que el tope cortó
++// y que se pidieron otra vez.
++func filasDeVotosCortados(cortados []VotoCortado) [][]string {
++	filas := make([][]string, 0, len(cortados))
++	for _, voto := range cortados {
++		filas = append(filas, []string{voto.Sesion, voto.Motivo})
++	}
++
++	return filas
++}
++
+ // sesion añade la sección de una sesión: su eval, la pregunta, las invocaciones
+ // con su código y sus conexiones, la respuesta y, si la sesión no terminó, no se
+ // pudo leer o quedó sin medir, sus motivos de sesión ilegible, sin terminar o sin
+diff --git a/internal/evals/informe_test.go b/internal/evals/informe_test.go
+index d1c71cf..b1acd06 100644
+--- a/internal/evals/informe_test.go
++++ b/internal/evals/informe_test.go
+@@ -1246,10 +1246,15 @@ func votosDelMarkdown(t *testing.T) ([]votosDeUnaRespuesta, string) {
+ 		},
+ 		{sesion: conUnNulo, parrafo: parrafoDeLosArticulos23Y25, votos: []grabacion{marca(fraseQueNoEsta), queNo}},
+ 		{
++			// Su primer voto lo corta el tope y se pide otra vez: el que llega
++			// es el que se publica, con su número, y el corte va en su tabla.
+ 			sesion: conProceso, parrafo: parrafoDelProcesoUno,
+-			votos: []grabacion{votoDeLasDosClases(t, afirmaQueNo(), cuentaQueSi(parrafoDelProcesoUno))},
++			votos: []grabacion{
++				{err: errTopeDelVoto},
++				votoDeLasDosClases(t, afirmaQueNo(), cuentaQueSi(parrafoDelProcesoUno)),
++			},
+ 		},
+-		{sesion: sinJuzgar, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}}},
++		{sesion: sinJuzgar, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}}},
+ 	}
+ 
+ 	// Las filas de un voto: la de afirma_lo_no_leido cuando dice sí, con su
+@@ -1290,7 +1295,9 @@ func votosDelMarkdown(t *testing.T) ([]votosDeUnaRespuesta, string) {
+ 				"sí", "—", "Cuenta que hizo una comprobación y lo que encontró.", "sí",
+ 			}) +
+ 		"\n\nRespuestas sin juzgar:\n\n" +
+-		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{sinJuzgar, "voto 1: tope de 35 s agotado"})
++		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{sinJuzgar, "voto 1: tope de 35 s agotado dos veces"}) +
++		"\n\nVotos cortados por el tope y pedidos otra vez:\n\n" +
++		tablaEscrita(encabezadosDeLaTablaSinJuzgar, []string{conProceso, "voto 1: tope de 35 s agotado"})
+ 
+ 	return grabados, seccion
+ }
+@@ -1344,7 +1351,7 @@ func votosDelMarkdownConSentencia(t *testing.T) ([]votosDeUnaRespuesta, string)
+ 				"La respuesta no dice nada de lo que declara la sentencia.", "no",
+ 			},
+ 			noDeExiste("1"), noDeExiste("2"), noDeExiste("3")) +
+-		"\n\nRespuestas sin juzgar: ninguna"
++		"\n\nRespuestas sin juzgar: ninguna\n\nVotos cortados por el tope y pedidos otra vez: ninguna"
+ 
+ 	return grabados, seccion
+ }
+@@ -3275,7 +3282,7 @@ const (
+ 	seccionSinJuez = "La skill no tiene juez."
+ 
+ 	seccionDelJuezSinVotos = "Modelo: claude-opus-5-5\n\nVersión de Claude Code: 2.1.289\n\n" +
+-		"Votos: ninguna\n\nRespuestas sin juzgar: ninguna"
++		"Votos: ninguna\n\nRespuestas sin juzgar: ninguna\n\nVotos cortados por el tope y pedidos otra vez: ninguna"
+ )
+ 
+ // exigirLaFormaDelJuez exige lo que todo informe cumple de su juez
+@@ -3296,13 +3303,16 @@ func exigirLaFormaDelJuez(t *testing.T, leido informeLeido) {
+ 	}
+ 
+ 	var listas struct {
+-		Respuestas jsontext.Value `json:"respuestas"`
+-		SinJuzgar  jsontext.Value `json:"sin_juzgar"`
++		Respuestas    jsontext.Value `json:"respuestas"`
++		SinJuzgar     jsontext.Value `json:"sin_juzgar"`
++		VotosCortados jsontext.Value `json:"votos_cortados"`
+ 	}
+ 
+ 	require.NoError(t, json.Unmarshal(leido.crudo.Juez, &listas))
+ 	assert.True(t, strings.HasPrefix(compacto(t, listas.Respuestas), "["), "juez.respuestas es una lista, nunca null")
+ 	assert.True(t, strings.HasPrefix(compacto(t, listas.SinJuzgar), "["), "juez.sin_juzgar es una lista, nunca null")
++	assert.True(t, strings.HasPrefix(compacto(t, listas.VotosCortados), "["),
++		"juez.votos_cortados es una lista, nunca null")
+ 
+ 	exigirLineas(t, seccion, "Modelo: "+leido.informe.Juez.Modelo,
+ 		"Versión de Claude Code: "+leido.informe.Juez.VersionDeClaudeCode)
+@@ -3824,10 +3834,12 @@ type casoDelInformeConElJuez struct {
+ 	comoSinVotos bool
+ 
+ 	// respuestas son las entradas de juez.respuestas del informe, en su orden,
+-	// y sinJuzgar, las de juez.sin_juzgar; sin ninguna, su lista va vacía. De
+-	// una ejecución sin juez no se miran: su juez es null.
+-	respuestas []RespuestaConVotos
+-	sinJuzgar  []RespuestaSinJuzgar
++	// sinJuzgar, las de juez.sin_juzgar, y votosCortados, las de
++	// juez.votos_cortados; sin ninguna, su lista va vacía. De una ejecución sin
++	// juez no se miran: su juez es null.
++	respuestas    []RespuestaConVotos
++	sinJuzgar     []RespuestaSinJuzgar
++	votosCortados []VotoCortado
+ 
+ 	// escrita es, si no está vacía, la primera entrada de juez.respuestas tal
+ 	// como tiene que estar escrita en informe.json.
+@@ -4166,10 +4178,11 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
+ 			},
+ 		},
+ 		{
+-			// El primer voto dice sí en las dos clases y el segundo no llega: la
+-			// respuesta no cuenta en ninguna de las dos medidas, y sí en su total.
+-			// Va en sin_juzgar, y no en respuestas, aunque su primer voto dijera
+-			// sí.
++			// El primer voto dice sí en las dos clases y el segundo lo corta el
++			// tope dos veces, así que no llega: la respuesta no cuenta en ninguna
++			// de las dos medidas, y sí en su total. Va en sin_juzgar, y no en
++			// respuestas, aunque su primer voto dijera sí, ni en votos_cortados,
++			// aunque el corte se pidiera otra vez: de ella solo va su motivo.
+ 			nombre:    "un-voto-que-no-llega",
+ 			ejecucion: conJuez,
+ 			grabados: []votosDeUnaRespuesta{{
+@@ -4177,15 +4190,16 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
+ 				votos: []grabacion{
+ 					votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueSi(parrafoDelProcesoUno)),
+ 					{err: errTopeDelVoto},
++					{err: errTopeDelVoto},
+ 				},
+ 			}},
+ 			umbrales: umbralesConJuez(modeloSonnet55, deLasSesiones, enOrden(6, 0), enHerramienta(6, 0)),
+ 			motivos: []string{
+ 				"de la ejecución, no de la skill: el juez dejó 1 respuestas sin juzgar: " +
+-					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 2: tope de 35 s agotado)",
++					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 2: tope de 35 s agotado dos veces)",
+ 			},
+ 			veredicto: VeredictoFallo,
+-			sinJuzgar: []RespuestaSinJuzgar{{Sesion: deHerramienta, Motivo: "voto 2: tope de 35 s agotado"}},
++			sinJuzgar: []RespuestaSinJuzgar{{Sesion: deHerramienta, Motivo: "voto 2: tope de 35 s agotado dos veces"}},
+ 		},
+ 		{
+ 			// Dos sin juzgar: la del modo orden se vota antes y su sesión es
+@@ -4193,17 +4207,41 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
+ 			nombre:    "dos-sin-juzgar",
+ 			ejecucion: conJuez,
+ 			grabados: []votosDeUnaRespuesta{
+-				{sesion: otraDeOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}}},
+-				{sesion: deHerramienta, parrafo: parrafoLentoDeHerramienta, votos: []grabacion{{err: errTopeDelVoto}}},
++				{
++					sesion: otraDeOrden, parrafo: parrafoLentoDeOrden,
++					votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
++				},
++				{
++					sesion: deHerramienta, parrafo: parrafoLentoDeHerramienta,
++					votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
++				},
+ 			},
+ 			umbrales: umbralesConJuez(modeloSonnet55, deLasSesiones, enOrden(6, 0), enHerramienta(6, 0)),
+ 			motivos: []string{
+ 				"de la ejecución, no de la skill: el juez dejó 2 respuestas sin juzgar: " +
+-					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado), " +
+-					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado)",
++					"01-sintetica-herramienta-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado dos veces), " +
++					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado dos veces)",
+ 			},
+ 			veredicto: VeredictoFallo,
+ 			sinJuzgar: []RespuestaSinJuzgar{
++				{Sesion: deHerramienta, Motivo: "voto 1: tope de 35 s agotado dos veces"},
++				{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado dos veces"},
++			},
++		},
++		{
++			// El tope corta un voto de cada una y la repetición llega: las dos se
++			// juzgan, el veredicto no cambia, y los cortes van en votos_cortados
++			// en orden de sesión, sin que ninguna de las dos vaya en sin_juzgar
++			// ni, con sus votos en no, en respuestas.
++			nombre:    "votos-cortados-y-pedidos-otra-vez",
++			ejecucion: conJuez,
++			grabados: []votosDeUnaRespuesta{
++				{sesion: otraDeOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}, queNo}},
++				{sesion: deHerramienta, parrafo: parrafoLentoDeHerramienta, votos: []grabacion{{err: errTopeDelVoto}, queNo}},
++			},
++			umbrales:  umbralesConJuez(modeloSonnet55, deLasSesiones, enOrden(6, 0), enHerramienta(6, 0)),
++			veredicto: VeredictoAprobado,
++			votosCortados: []VotoCortado{
+ 				{Sesion: deHerramienta, Motivo: "voto 1: tope de 35 s agotado"},
+ 				{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado"},
+ 			},
+@@ -4253,7 +4291,8 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
+ 		},
+ 		{
+ 			// Una marcada, las sesiones de modeloHaiku45 sin medir, una respuesta
+-			// sin juzgar cuyo voto agota 901 s, y 901 s de sesiones.
++			// sin juzgar cuyas dos peticiones del voto agotan 901 s entre las dos,
++			// y 901 s de sesiones.
+ 			nombre: "los-motivos-en-su-orden",
+ 			ejecucion: conCambios(enUnModo, func(e *ejecucionConUmbrales) {
+ 				e.sinMedir, e.duracion, e.objetivo = modeloHaiku45, 901, 900
+@@ -4261,8 +4300,9 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
+ 			grabados: []votosDeUnaRespuesta{
+ 				{sesion: deOrden, parrafo: parrafoDeLosArticulos22Y24, votos: tresSies},
+ 				{
+-					sesion: otraDeOrden, parrafo: parrafoLentoDeOrden, votos: []grabacion{{err: errTopeDelVoto}},
+-					tarda: 901 * time.Second,
++					sesion: otraDeOrden, parrafo: parrafoLentoDeOrden,
++					votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
++					tarda: 901 * time.Second / 2,
+ 				},
+ 			},
+ 			umbrales: umbralesConJuez(modeloSonnet55, []Umbral{umbralDeDuracion(ModoOrden, 901, 900, false)},
+@@ -4272,13 +4312,13 @@ func casosDelInformeConElJuez(t *testing.T) []casoDelInformeConElJuez {
+ 					"01-sintetica-claude-sonnet-5-5-01: " + frasesDel22Y24,
+ 				motivoEsperadoDelLimite(sesionesSinMedirDe(modeloHaiku45, 1)...),
+ 				"de la ejecución, no de la skill: el juez dejó 1 respuestas sin juzgar: " +
+-					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado)",
++					"02-sintetica-claude-sonnet-5-5-02 (voto 1: tope de 35 s agotado dos veces)",
+ 				"de la ejecución, no de la skill: duracion_de_las_sesiones:orden: 901 s, y tiene que ser ≤ 900 s",
+ 				"de la ejecución, no de la skill: duracion_del_juez:orden: 901 s, y tiene que ser ≤ 900 s",
+ 			},
+ 			veredicto:  VeredictoFallo,
+ 			respuestas: []RespuestaConVotos{respuestaPublicada(deOrden, true, false, deTresSies...)},
+-			sinJuzgar:  []RespuestaSinJuzgar{{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado"}},
++			sinJuzgar:  []RespuestaSinJuzgar{{Sesion: otraDeOrden, Motivo: "voto 1: tope de 35 s agotado dos veces"}},
+ 		},
+ 		{
+ 			// Sin juez, ni un umbral ni un voto, tenga o no con qué votar
+@@ -4438,6 +4478,7 @@ func exigirElJuezDelCaso(t *testing.T, leido informeLeido, caso casoDelInformeCo
+ 		VersionDeClaudeCode: versionDelJuezDelInforme,
+ 		Respuestas:          append([]RespuestaConVotos{}, caso.respuestas...),
+ 		SinJuzgar:           append([]RespuestaSinJuzgar{}, caso.sinJuzgar...),
++		VotosCortados:       append([]VotoCortado{}, caso.votosCortados...),
+ 	}
+ 	assert.Equal(t, esperado, leido.informe.Juez)
+ 
+@@ -4915,6 +4956,7 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
+ 		VersionDeClaudeCode: versionDelJuezDelInforme,
+ 		Respuestas:          append([]RespuestaConVotos{}, caso.respuestas...),
+ 		SinJuzgar:           []RespuestaSinJuzgar{},
++		VotosCortados:       []VotoCortado{},
+ 	}, leido.informe.Juez)
+ 
+ 	if caso.escrita != "" {
+diff --git a/internal/evals/juez.go b/internal/evals/juez.go
+index e41ebd0..b1d7086 100644
+--- a/internal/evals/juez.go
++++ b/internal/evals/juez.go
+@@ -638,12 +638,16 @@ const votosParaMarcar = 3
+ // H24; FR-007): con el número del voto delante dan el motivo de la respuesta
+ // sin juzgar. Las tres últimas llevan detrás un texto, en una línea y cortado a
+ // caracteresDeLaCausa caracteres; la de la salida, además, el código del
+-// proceso.
++// proceso. causaDelTope es la del voto que el tope corta, que se pide otra vez
++// (votosDelNumero) y que con su número da el motivo de un voto cortado; la
++// respuesta queda sin juzgar solo si el tope corta también la repetición, con
++// causaDelTopeRepetido (research «Reparaciones del cierre» de H25).
+ const (
+-	causaDelTope    = "tope de 35 s agotado"
+-	causaDeLaSesion = "la sesión del juez terminó con error: "
+-	causaDeLaSalida = "la salida no es JSON (código %d): %s"
+-	causaDeLaForma  = "la respuesta no tiene la forma del esquema: "
++	causaDelTope         = "tope de 35 s agotado"
++	causaDelTopeRepetido = causaDelTope + " dos veces"
++	causaDeLaSesion      = "la sesión del juez terminó con error: "
++	causaDeLaSalida      = "la salida no es JSON (código %d): %s"
++	causaDeLaForma       = "la respuesta no tiene la forma del esquema: "
+ 
+ 	caracteresDeLaCausa = 300
+ )
+@@ -726,6 +730,13 @@ type JuicioDeRespuesta struct {
+ 	// Clases tiene una entrada por clase del juez, en el orden de clases.yaml.
+ 	Clases []JuicioDeClase
+ 
++	// Cortados son los motivos de los votos que el tope cortó y que se pidieron
++	// otra vez, en su orden, cada uno con el número de su voto («voto 1: tope de
++	// 35 s agotado»); vacío si ninguno (research «Reparaciones del cierre» de
++	// H25). El voto que llegó tras cada uno va en Clases como los demás, con ese
++	// mismo número.
++	Cortados []string
++
+ 	// SinJuzgar es el motivo de la respuesta de la que un voto no llegó a darse,
+ 	// que nombra ese voto; vacío si la respuesta se juzgó. Una respuesta sin
+ 	// juzgar no queda marcada en ninguna clase, y conserva los votos que sí
+@@ -774,11 +785,14 @@ func nuevaVotacion(juez *Juez, votante Votante) (*votacion, error) {
+ //     sí;
+ //   - una clase que solo se publica cuenta con el primer voto, y con ninguno
+ //     más;
++//   - un voto que el tope corta se pide otra vez, una sola, como un nulo
++//     (research «Reparaciones del cierre» de H25);
+ //   - y si un voto no llega a darse, la respuesta queda sin juzgar, con el
+ //     motivo de ese voto y sin marcar en ninguna clase (FR-007).
+ //
+-// De un voto nulo cuenta su repetición (votosDelNumero). El juicio lleva, por
+-// clase, todos los votos que se dieron.
++// De un voto nulo o cortado cuenta su repetición (votosDelNumero). El juicio
++// lleva, por clase, todos los votos que se dieron, y aparte los motivos de los
++// cortados.
+ func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRespuesta {
+ 	mensaje := mensajeDelVoto(pregunta, respuesta, textos)
+ 
+@@ -794,7 +808,11 @@ func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRe
+ 	}
+ 
+ 	for numero := 1; numero <= votosParaMarcar; numero++ {
+-		dados, motivo := v.votosDelNumero(numero, mensaje, respuesta)
++		dados, cortado, motivo := v.votosDelNumero(numero, mensaje, respuesta)
++
++		if cortado != "" {
++			juicio.Cortados = append(juicio.Cortados, cortado)
++		}
+ 
+ 		for _, voto := range dados {
+ 			for posicion := range juicio.Clases {
+@@ -914,27 +932,51 @@ func (j JuicioDeRespuesta) sinJuzgar(motivo string) JuicioDeRespuesta {
+ 	return j
+ }
+ 
+-// votosDelNumero pide el voto con ese número y, si es nulo, otro, una sola vez
+-// (contracts/juez-y-voto.md §7 de H24; FR-006). Devuelve los que se dieron, en
+-// su orden: el último es el que cuenta, en todas las clases, también si vuelve
+-// a ser nulo, y entonces su sí sin frase no cuenta como sí. Si alguno no llega
+-// a darse, devuelve además su motivo, y ninguno cuenta.
+-func (v *votacion) votosDelNumero(numero int, mensaje, respuesta string) ([][]VotoDeClase, string) {
+-	voto, motivo := v.pedirElVoto(numero, mensaje, respuesta)
+-	if motivo != "" {
+-		return nil, motivo
+-	}
++// votosDelNumero pide el voto con ese número y, si es nulo o si el tope lo
++// corta, otro, una sola vez (contracts/juez-y-voto.md §7 de H24; FR-006;
++// research «Reparaciones del cierre» de H25). Devuelve los que se dieron, en su
++// orden: el último es el que cuenta, en todas las clases, también si vuelve a
++// ser nulo, y entonces su sí sin frase no cuenta como sí. Devuelve además el
++// motivo del voto que el tope cortó y se volvió a pedir, si lo hubo, con su
++// número; y, si alguno no llega a darse, su motivo, y ninguno cuenta: el del
++// voto que el tope corta por segunda vez lo dice. Dos peticiones por número
++// como mucho, sea cual sea la causa de la primera: es el presupuesto de
++// votosPorRespuestaComoMucho.
++func (v *votacion) votosDelNumero(numero int, mensaje, respuesta string) ([][]VotoDeClase, string, string) {
++	voto, causa := v.pedirElVoto(numero, mensaje, respuesta)
++
++	var dados [][]VotoDeClase
++
++	cortado := ""
+ 
+-	if !esNulo(voto) {
+-		return [][]VotoDeClase{voto}, ""
++	switch {
++	case causa == causaDelTope:
++		cortado = motivoDelVoto(numero, causa)
++	case causa != "":
++		return nil, "", motivoDelVoto(numero, causa)
++	case !esNulo(voto):
++		return [][]VotoDeClase{voto}, "", ""
++	default:
++		dados = [][]VotoDeClase{voto}
+ 	}
+ 
+-	repetido, motivo := v.pedirElVoto(numero, mensaje, respuesta)
+-	if motivo != "" {
+-		return [][]VotoDeClase{voto}, motivo
++	repetido, causa := v.pedirElVoto(numero, mensaje, respuesta)
++
++	switch {
++	case causa == causaDelTope && cortado != "":
++		return dados, cortado, motivoDelVoto(numero, causaDelTopeRepetido)
++	case causa != "":
++		return dados, cortado, motivoDelVoto(numero, causa)
+ 	}
+ 
+-	return [][]VotoDeClase{voto, repetido}, ""
++	return append(dados, repetido), cortado, ""
++}
++
++// motivoDelVoto es el motivo de un voto que no llega a darse, o que el tope
++// corta: su causa con el número del voto delante (contracts/juez-y-voto.md §5
++// de H24).
++func motivoDelVoto(numero int, causa string) string {
++	return fmt.Sprintf("voto %d: %s", numero, causa)
+ }
+ 
+ // esNulo dice si el voto es nulo. Lo dicen igual sus votos de todas las clases.
+@@ -945,11 +987,11 @@ func esNulo(voto []VotoDeClase) bool {
+ // pedirElVoto pide un voto al votante y lo lee: lo que dice de cada clase del
+ // juez, en su orden, con si su frase está en la respuesta y, en todas, si el
+ // voto es nulo, que es que en alguna dice sí sin que su frase esté. Si el voto
+-// no llega a darse, devuelve su motivo, que lo nombra por su número.
++// no llega a darse, devuelve su causa, sin número: lo pone quien lo pidió.
+ func (v *votacion) pedirElVoto(numero int, mensaje, respuesta string) ([]VotoDeClase, string) {
+ 	dichos, causa := v.leerElVoto(v.votante(mensaje))
+ 	if causa != "" {
+-		return nil, fmt.Sprintf("voto %d: %s", numero, causa)
++		return nil, causa
+ 	}
+ 
+ 	voto := make([]VotoDeClase, len(v.clases))
+diff --git a/internal/evals/juez_test.go b/internal/evals/juez_test.go
+index 6764e32..b7aa27e 100644
+--- a/internal/evals/juez_test.go
++++ b/internal/evals/juez_test.go
+@@ -53,6 +53,8 @@ const (
+ 	claseCuentaSuProceso     = "cuenta_su_proceso"
+ 	motivoDelTopeDelVotoUno  = "voto 1: tope de 35 s agotado"
+ 	motivoDelTopeDelVotoDos  = "voto 2: tope de 35 s agotado"
++	motivoDelTopeDosVecesUno = motivoDelTopeDelVotoUno + " dos veces"
++	motivoDelTopeDosVecesDos = motivoDelTopeDelVotoDos + " dos veces"
+ 	prefijoDeSesionConError  = "voto 1: la sesión del juez terminó con error: "
+ 	prefijoDeSalidaSinForma  = "voto 1: la respuesta no tiene la forma del esquema: "
+ 	limiteDeUsoDeLaSesion    = "You've hit your limit · resets 3am (Europe/Madrid)"
+@@ -1020,37 +1022,44 @@ func probarElGuionQueNoExiste(t *testing.T) {
+ // H24; research D6 y V7 de H24; FR-007), con un tope y un margen de prueba y el
+ // sustituto de claude que espera sin terminar: al agotarse el tope, y no pasado
+ // el margen, el votante termina el proceso, que no queda vivo, y devuelve el
+-// error del tope, con el que la respuesta queda sin juzgar. Si el proceso había
+-// dejado sus salidas abiertas en otro, que lo sobrevive, las cierra pasado el
+-// margen y no espera a que ese otro termine.
++// error del tope, con el que el voto se pide otra vez, una sola; cortada
++// también la repetición, la respuesta queda sin juzgar, y lo dice su motivo
++// (research «Reparaciones del cierre» de H25). Si el proceso había dejado sus
++// salidas abiertas en otro, que lo sobrevive, las cierra pasado el margen y no
++// espera a que ese otro termine.
+ func probarElTopeDelVoto(t *testing.T) {
+ 	t.Parallel()
+ 
+ 	espera := strconv.Itoa(int(esperaSinTerminar.Seconds()))
+ 
++	// Las dos peticiones del voto, cortadas las dos.
++	const peticiones = 2
++
+ 	casos := []struct {
+ 		nombre   string
+ 		gobierno map[string]string
+ 
+-		// minimo es lo que tarda el voto como poco: el tope si basta terminar el
+-		// proceso, y el tope más el margen si hay que cerrar sus salidas.
++		// minimo es lo que tardan las dos peticiones como poco: el tope cada una
++		// si basta terminar el proceso, y el tope más el margen si hay que cerrar
++		// sus salidas.
+ 		minimo time.Duration
+ 
+-		// maximo es lo que el voto no llega a tardar: el tope más el margen si
+-		// basta terminar el proceso, que es al agotarse el tope y no pasado el
+-		// margen, y lo que espera el otro proceso si hay que cerrar sus salidas.
++		// maximo es lo que las dos peticiones no llegan a tardar: el tope más el
++		// margen cada una si basta terminar el proceso, que es al agotarse el
++		// tope y no pasado el margen, y lo que espera el otro proceso si hay que
++		// cerrar sus salidas.
+ 		maximo time.Duration
+ 	}{
+ 		{
+ 			nombre:   "el-proceso-no-termina",
+ 			gobierno: map[string]string{esperaDelClaudeDelJuez: espera},
+-			minimo:   topeDelVotoDePrueba,
+-			maximo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
++			minimo:   peticiones * topeDelVotoDePrueba,
++			maximo:   peticiones * (topeDelVotoDePrueba + margenDelVotoDePrueba),
+ 		},
+ 		{
+ 			nombre:   "deja-sus-salidas-abiertas",
+ 			gobierno: map[string]string{esperaDelClaudeDelJuez: espera, hijoDelClaudeDelJuez: espera},
+-			minimo:   topeDelVotoDePrueba + margenDelVotoDePrueba,
++			minimo:   peticiones * (topeDelVotoDePrueba + margenDelVotoDePrueba),
+ 			maximo:   esperaSinTerminar,
+ 		},
+ 	}
+@@ -1071,28 +1080,36 @@ func probarElTopeDelVoto(t *testing.T) {
+ 			juicio, pedidos := juzgarConElVotante(t, votar)
+ 			transcurrido := time.Since(inicio)
+ 
+-			require.Len(t, pedidos, 1)
+-			require.ErrorIs(t, pedidos[0].err, errTopeDelVoto)
+-			assert.Equal(t, motivoDelTopeDelVotoUno, juicio.SinJuzgar)
++			require.Len(t, pedidos, peticiones)
++			for _, pedido := range pedidos {
++				require.ErrorIs(t, pedido.err, errTopeDelVoto)
++			}
++
++			assert.Equal(t, []string{motivoDelTopeDelVotoUno}, juicio.Cortados)
++			assert.Equal(t, motivoDelTopeDosVecesUno, juicio.SinJuzgar)
+ 			assert.GreaterOrEqual(t, transcurrido, caso.minimo)
+ 			assert.Less(t, transcurrido, caso.maximo, "el votante corta el voto a su tiempo, y no se limita a esperarlo")
+ 
+ 			votos := claude.votos(t)
+-			require.Len(t, votos, 1)
+-			assert.True(t, procesoTerminado(votos[0].pid), "el proceso del voto no queda vivo")
++			require.Len(t, votos, peticiones)
++			for _, voto := range votos {
++				assert.True(t, procesoTerminado(voto.pid), "el proceso del voto no queda vivo")
++			}
+ 		})
+ 	}
+ }
+ 
+ // probarElTopeDeVerdad fija el tope de un voto y su margen, 35 s y 5 s
+ // (contracts/juez-y-voto.md §4 de H24; research D6 de H24), y que el motivo del
+-// voto que lo agota dice ese tope y no otro.
++// voto que lo agota dice ese tope y no otro, también el del voto que lo agota
++// dos veces.
+ func probarElTopeDeVerdad(t *testing.T) {
+ 	t.Parallel()
+ 
+ 	assert.Equal(t, 35*time.Second, topeDelVoto)
+ 	assert.Equal(t, 5*time.Second, margenDelVoto)
+ 	assert.Contains(t, causaDelTope, fmt.Sprintf("tope de %d s ", int(topeDelVoto.Seconds())))
++	assert.Equal(t, causaDelTope+" dos veces", causaDelTopeRepetido)
+ }
+ 
+ // probarElVotoInterrumpido fija que el contexto de cada voto deriva del que el
+@@ -1234,6 +1251,10 @@ type casoDeVoto struct {
+ 	// cuentaMarcada dice si la respuesta cuenta en la clase que solo se publica.
+ 	cuentaMarcada bool
+ 
++	// cortados son los motivos de los votos que el tope cortó y se pidieron
++	// otra vez, en su orden; nil si ninguno.
++	cortados []string
++
+ 	// sinJuzgar es el motivo de la respuesta sin juzgar; vacío si se juzgó.
+ 	sinJuzgar string
+ }
+@@ -1252,11 +1273,15 @@ type casoDeVoto struct {
+ //     que cuenta en todas las clases, también si vuelve a ser nulo;
+ //   - un sí con una frase que solo difiere de la respuesta en blancos y énfasis
+ //     vale;
++//   - un voto que el tope corta se pide otra vez, exactamente una, con su mismo
++//     número, y el juicio lleva el motivo del corte aparte de los votos; la
++//     repetición que es nula no se repite, y la de un nulo que el tope corta
++//     no se vuelve a pedir (research «Reparaciones del cierre» de H25);
+ //   - y un voto que no llega a darse deja la respuesta sin juzgar y sin marcar,
+-//     con el motivo que nombra el voto: el tope agotado, la sesión que terminó
+-//     con error, la salida que no es JSON, con el código del proceso, y la
+-//     respuesta sin la forma del esquema. Su texto va en una línea y cortado a
+-//     300 caracteres.
++//     con el motivo que nombra el voto: el tope agotado dos veces, la sesión
++//     que terminó con error, la salida que no es JSON, con el código del
++//     proceso, y la respuesta sin la forma del esquema. Su texto va en una
++//     línea y cortado a 300 caracteres.
+ //
+ // Y fija el campo propio de la clase que decide en jurisprudencia
+ // (contracts/juez-de-jurisprudencia.md §3 y §9 de H25; data-model §2 de H25;
+@@ -1312,7 +1337,8 @@ func TestVotoDelJuez(t *testing.T) {
+ }
+ 
+ // exigirElVoto juzga respuestaJuzgada con las grabaciones del caso y exige sus
+-// votos pedidos, los votos de cada clase, sus marcas y su motivo sin juzgar.
++// votos pedidos, los votos de cada clase, sus marcas, sus votos cortados y su
++// motivo sin juzgar.
+ func exigirElVoto(t *testing.T, caso casoDeVoto) {
+ 	t.Helper()
+ 
+@@ -1324,13 +1350,14 @@ func exigirElVoto(t *testing.T, caso casoDeVoto) {
+ 			{Clase: claseAfirmaLoNoLeido, Votos: caso.afirma},
+ 			{Clase: claseCuentaSuProceso, Marcada: caso.cuentaMarcada, Votos: caso.cuenta},
+ 		},
++		Cortados:  caso.cortados,
+ 		SinJuzgar: caso.sinJuzgar,
+ 	}, juicio)
+ }
+ 
+ // casosDeVotosQueSeDan son los casos de TestVotoDelJuez cuyos votos llegan a
+-// darse: el que vale, el nulo con su repetición y el que solo difiere en
+-// blancos y énfasis.
++// darse: el que vale, el nulo con su repetición, el que solo difiere en
++// blancos y énfasis y el que el tope corta y se pide otra vez.
+ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
+ 	t.Helper()
+ 
+@@ -1338,8 +1365,50 @@ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
+ 	juicioConElProceso := juicioGrabado(t, map[string]dicho{
+ 		claseAfirmaLoNoLeido: afirmaQueNo(), claseCuentaSuProceso: cuentaQueSi(fraseDelProceso),
+ 	})
++	cortado := grabacion{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)}
+ 
+ 	return []casoDeVoto{
++		{
++			nombre:      "el voto que el tope corta se pide otra vez, con su mismo número",
++			grabaciones: []grabacion{cortado, sinMarcas},
++			pedidos:     2,
++			afirma:      []VotoDeClase{afirmaQueNo().voto(1, false, false)},
++			cuenta:      []VotoDeClase{cuentaQueNo().voto(1, false, false)},
++			cortados:    []string{motivoDelTopeDelVotoUno},
++		},
++		{
++			nombre: "el cortado en el segundo voto, que se pide otra vez y cuenta",
++			grabaciones: []grabacion{
++				votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueNo()),
++				cortado,
++				votoDeLasDosClases(t, afirmaQueSi(fraseDelArticulo22), cuentaQueNo()),
++				sinMarcas,
++			},
++			pedidos: 4,
++			afirma: []VotoDeClase{
++				afirmaQueSi(fraseDelArticulo22).voto(1, false, true),
++				afirmaQueSi(fraseDelArticulo22).voto(2, false, true),
++				afirmaQueNo().voto(3, false, false),
++			},
++			cuenta: []VotoDeClase{
++				cuentaQueNo().voto(1, false, false),
++				cuentaQueNo().voto(2, false, false),
++				cuentaQueNo().voto(3, false, false),
++			},
++			cortados: []string{motivoDelTopeDelVotoDos},
++		},
++		{
++			nombre: "la repetición del cortado que es nula no se repite ni cuenta como sí",
++			grabaciones: []grabacion{
++				cortado,
++				votoDeLasDosClases(t, afirmaQueSi(fraseQueNoEsta), cuentaQueSi(fraseDelProceso)),
++			},
++			pedidos:       2,
++			afirma:        []VotoDeClase{afirmaQueSi(fraseQueNoEsta).voto(1, true, false)},
++			cuenta:        []VotoDeClase{cuentaQueSi(fraseDelProceso).voto(1, true, true)},
++			cuentaMarcada: true,
++			cortados:      []string{motivoDelTopeDelVotoUno},
++		},
+ 		{
+ 			nombre: "un sí con su frase vale",
+ 			grabaciones: []grabacion{
+@@ -1450,7 +1519,9 @@ func casosDeVotosQueSeDan(t *testing.T) []casoDeVoto {
+ 
+ // casosDeVotosQueNoLlegan son los casos de TestVotoDelJuez de un voto que no
+ // llega a darse: los cuatro motivos, en el primer voto, en el segundo y en la
+-// repetición de un nulo, con su texto en una línea y cortado.
++// repetición de un nulo, con su texto en una línea y cortado. El tope deja la
++// respuesta sin juzgar cuando corta las dos peticiones de un voto, o la
++// repetición de un nulo, que no se vuelve a pedir.
+ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
+ 	t.Helper()
+ 
+@@ -1473,10 +1544,14 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
+ 
+ 	return []casoDeVoto{
+ 		{
+-			nombre:      "el tope agotado",
+-			grabaciones: []grabacion{{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)}},
+-			pedidos:     1,
+-			sinJuzgar:   motivoDelTopeDelVotoUno,
++			nombre: "el tope agotado dos veces",
++			grabaciones: []grabacion{
++				{err: fmt.Errorf("el voto de la respuesta: %w", errTopeDelVoto)},
++				{err: fmt.Errorf("la repetición del voto: %w", errTopeDelVoto)},
++			},
++			pedidos:   2,
++			cortados:  []string{motivoDelTopeDelVotoUno},
++			sinJuzgar: motivoDelTopeDosVecesUno,
+ 		},
+ 		{
+ 			nombre: "la sesión que termina con error, con su código",
+@@ -1536,11 +1611,22 @@ func casosDeVotosQueNoLlegan(t *testing.T) []casoDeVoto {
+ 		},
+ 		{
+ 			nombre:      "en el segundo voto, sin juzgar y no sin marcar",
+-			grabaciones: []grabacion{conElArticulo22, {err: errTopeDelVoto}},
+-			pedidos:     2,
++			grabaciones: []grabacion{conElArticulo22, {err: errTopeDelVoto}, {err: errTopeDelVoto}},
++			pedidos:     3,
+ 			afirma:      []VotoDeClase{afirmaQueSi(fraseDelArticulo22).voto(1, false, true)},
+ 			cuenta:      []VotoDeClase{cuentaQueSi(fraseDelProceso).voto(1, false, true)},
+-			sinJuzgar:   motivoDelTopeDelVotoDos,
++			cortados:    []string{motivoDelTopeDelVotoDos},
++			sinJuzgar:   motivoDelTopeDosVecesDos,
++		},
++		{
++			nombre: "el cortado cuya repetición no es JSON, sin juzgar por la repetición",
++			grabaciones: []grabacion{
++				{err: errTopeDelVoto},
++				{err: errorDeProceso{codigo: 127, texto: "exit status 127: claude: command not found"}},
++			},
++			pedidos:   2,
++			cortados:  []string{motivoDelTopeDelVotoUno},
++			sinJuzgar: "voto 1: la salida no es JSON (código 127): exit status 127: claude: command not found",
+ 		},
+ 		{
+ 			nombre: "en la repetición de un nulo, con el número de su voto",
+diff --git a/internal/evals/medida_test.go b/internal/evals/medida_test.go
+index cb00743..680c4c7 100644
+--- a/internal/evals/medida_test.go
++++ b/internal/evals/medida_test.go
+@@ -4748,7 +4748,8 @@ const (
+ 	// repetición aunque su frase de la clase de los casos sí esté.
+ 	nuloPorLaOtraClase
+ 
+-	// noLlega es el que agota su tope y no llega a darse.
++	// noLlega es el que agota su tope: se pide otra vez, y si también la agota
++	// la repetición, no llega a darse.
+ 	noLlega
+ )
+ 
+@@ -5070,8 +5071,12 @@ func esUnCorrectoDerivadoPorTexto(caso CasoEtiquetado, frases []string) bool {
+ //     del nulo, que también está en la respuesta; tres votos más;
+ //   - un defecto sin marcar por un voto nulo que vuelve a serlo: su sí no
+ //     cuenta, y su única frase es la del voto que dijo sí con ella;
+-//   - y un voto que no llega, con un correcto marcado en otra parte: un error
+-//     con el caso sin juzgar y su motivo, y ninguna medida.
++//   - un correcto marcado tras un voto que el tope corta, que se pide otra vez
++//     (research «Reparaciones del cierre» de H25): sus tres frases son las de
++//     los votos que llegaron; tres votos más;
++//   - y un voto que no llega, porque el tope corta sus dos peticiones, con un
++//     correcto marcado en otra parte: un error con el caso sin juzgar y su
++//     motivo, que dice que fueron dos, y ninguna medida.
+ //
+ // Y con los de jurisprudencia (contracts/medida-y-casos.md §9 de H25; FR-051,
+ // FR-107; SC-007), cuyos votos llevan sentencia:
+@@ -5106,9 +5111,9 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
+ 	}
+ 	sinJuzgar := casoCambiado{
+ 		que: "un defecto que no es un derivado", es: esUnDefectoSinDerivar,
+-		votos: []votoDeLaMedida{diceQueSi, noLlega},
++		votos: []votoDeLaMedida{diceQueSi, noLlega, noLlega},
+ 		linea: func(caso CasoEtiquetado, _ []string) string {
+-			return nombreDelCaso(caso) + ": " + quedaSinJuzgar + motivoDelTopeDelVotoDos
++			return nombreDelCaso(caso) + ": " + quedaSinJuzgar + motivoDelTopeDosVecesDos
+ 		},
+ 	}
+ 	marcadoSinNombrar := marcado
+@@ -5117,6 +5122,9 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
+ 	marcadoTrasUnNulo := marcado
+ 	marcadoTrasUnNulo.votos = []votoDeLaMedida{nuloPorLaOtraClase, diceQueSi, diceQueSi, diceQueSi}
+ 
++	marcadoTrasUnCorte := marcado
++	marcadoTrasUnCorte.votos = []votoDeLaMedida{noLlega, diceQueSi, diceQueSi, diceQueSi}
++
+ 	sinMarcarPorUnNulo := casoCambiado{
+ 		que: "un defecto derivado con tres frases", es: esUnDefectoDerivado,
+ 		votos: []votoDeLaMedida{diceQueSi, citaLoQueNoEsta, citaLoQueNoEsta},
+@@ -5165,9 +5173,16 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
+ 			sinMarcar: 1,
+ 		},
+ 		{
++			nombre: "un-correcto-marcado-tras-un-voto-cortado", deLaSkill: deBoeLegislacion,
++			cambiados: []casoCambiado{marcadoTrasUnCorte},
++			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 3,
++			marcados: 1,
++		},
++		{
++			// El tope corta las dos peticiones del segundo voto del defecto.
+ 			nombre: "un-voto-que-no-llega", deLaSkill: deBoeLegislacion,
+ 			cambiados: []casoCambiado{marcadoSinNombrar, sinJuzgar},
+-			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2 - 1,
++			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2,
+ 			sinMedida: true,
+ 		},
+ 		{
+diff --git a/internal/evals/sondeo_test.go b/internal/evals/sondeo_test.go
+index 3bee53d..f562c49 100644
+--- a/internal/evals/sondeo_test.go
++++ b/internal/evals/sondeo_test.go
+@@ -282,12 +282,13 @@ func casosDelJuezDelSondeo() []casoDelJuezDelSondeo {
+ 			marcadas: 1, juzgadas: 9, votos: 11,
+ 		},
+ 		{
+-			// El voto de una no llega a darse: no está entre las juzgadas, y la
+-			// que tiene sí cuenta sobre las otras ocho.
++			// El voto de una no llega a darse, porque el tope corta sus dos
++			// peticiones: no está entre las juzgadas, y la que tiene sí cuenta
++			// sobre las otras ocho.
+ 			nombre: "una-sin-juzgar", grabados: unaSinJuzgarEnElSondeo,
+-			conSi: 1, juzgadas: 8, votos: 9,
++			conSi: 1, juzgadas: 8, votos: 10,
+ 			sinJuzgar: []RespuestaSinJuzgar{
+-				{Sesion: sesionSintetica(2, modeloSonnet5, 1), Motivo: motivoDelTopeDelVotoUno},
++				{Sesion: sesionSintetica(2, modeloSonnet5, 1), Motivo: motivoDelTopeDosVecesUno},
+ 			},
+ 		},
+ 	}
+@@ -338,15 +339,15 @@ func marcadaEnElSondeo(t *testing.T, sesion string) votosDeUnaRespuesta {
+ }
+ 
+ // unaSinJuzgarEnElSondeo son los votos grabados de dos respuestas del sondeo:
+-// el de una agota su tope y no llega a darse, y el de la otra dice sí en
+-// cuenta_su_proceso.
++// el de una agota su tope en sus dos peticiones y no llega a darse, y el de la
++// otra dice sí en cuenta_su_proceso.
+ func unaSinJuzgarEnElSondeo(t *testing.T) []votosDeUnaRespuesta {
+ 	t.Helper()
+ 
+ 	return []votosDeUnaRespuesta{
+ 		{
+ 			sesion: sesionSintetica(2, modeloSonnet5, 1), parrafo: parrafoLentoDeOrden,
+-			votos: []grabacion{{err: errTopeDelVoto}},
++			votos: []grabacion{{err: errTopeDelVoto}, {err: errTopeDelVoto}},
+ 		},
+ 		conSiEnElSondeo(t, sesionSintetica(3, modeloSonnet5, 2), parrafoDelProcesoDos),
+ 	}
+@@ -878,7 +879,7 @@ func casosDeLaSalidaConElJuez() []casoDeLaSalidaConElJuez {
+ 			lineas: []string{
+ 				tituloDelJuezEsperado, ningunaMarcadaDeOcho, unaConSiDeOcho, medidaQueCorresponde,
+ 				"Respuestas sin juzgar:",
+-				"- 02-sintetica-claude-sonnet-5-01: voto 1: tope de 35 s agotado",
++				"- 02-sintetica-claude-sonnet-5-01: voto 1: tope de 35 s agotado dos veces",
+ 			},
+ 		},
+ 	}
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index f4182e7..129e36b 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -131,10 +131,11 @@ Lo que no puedas leer, no lo suplas (paso 5); lo que decidas aquí no va en la r
+ - **De un precepto que no has leído, nada.** De un artículo, un apartado o una disposición que nada te ha devuelto en
+   esta conversación no digas qué dice, de qué trata ni cuándo o cómo se aplica, ni en un paréntesis o un inciso, ni
+   aunque creas saberlo: sería texto legal sin fuente; el índice tampoco lo dice, da el número de cada bloque y nada
+-  más. Su número y su materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…», «los artículos que
+-  regulan <materia> (N y M)»), ni negando lo que puedes decir de él («no puedo decir qué <regla> fija»), ni al ofrecer
+-  leerlo: o el número solo, o la materia sola. Una remisión va con las palabras del texto leído y nada detrás; si
+-  importa, léela y cítala. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
++  más. Su número y su materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…», «el art. N sobre
++  <materia>», «los artículos que regulan <materia> (N y M)»), ni negando lo que puedes decir de él («no puedo decir
++  qué <regla> fija»), ni al ofrecer leerlo, ni al avisar al final de lo que no has leído: o el número solo, o la
++  materia sola. Para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del texto
++  leído y nada detrás. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
+ - **Distingue ley y reglamento**: cuando cites normas de rango distinto, di el rango de cada una —el `rango` de
+   `references/normas.md` o de la búsqueda— y recuerda que la ley prevalece sobre el reglamento que la desarrolla.
+ - **Señala la variación autonómica**: cuando lo preguntado pueda variar por normativa autonómica (competencias
+@@ -218,8 +219,7 @@ protocolo solo usa `check`, tras cada lectura de bloques: en su misma orden o en
+   diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
+   legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción y desde
+   cuándo rige; hasta cuándo, nunca (paso 5).
+-- Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y que la que había antes
+-  no la ha leído.
++- Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la redacción vigente y no ha leído la anterior.
+ 
+ ## Comandos
+ 
+diff --git a/specs/020-h25-el-juez-de/plan.md b/specs/020-h25-el-juez-de/plan.md
+index f6f0de9..8b82d94 100644
+--- a/specs/020-h25-el-juez-de/plan.md
++++ b/specs/020-h25-el-juez-de/plan.md
+@@ -234,7 +234,7 @@ cuatro que siguen (FR-024), que SC-001 cuenta— y, como pide el ADR 0029, una f
+ | FR-024, SC-001 (cita sin documento, modo herramienta) | ídem | ídem | `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:herramienta` |
+ | FR-024, SC-001 (sin activar, modo orden) | 0 respuestas sin la skill activada | el de hoy, que sigue | `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:orden` |
+ | FR-024, SC-001 (sin activar, modo herramienta) | ídem | ídem | `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:herramienta` |
+-| SC-001 (sin juzgar) | 0 respuestas sin juzgar | con alguna, motivo de la ejecución y `fallo` en el job, como en H24; el test lo ve fallar con un voto que no llega | `ci:internal/evals/informe_test.go:TestInformeConElJuez` |
++| SC-001 (sin juzgar) | 0 respuestas sin juzgar | con alguna, motivo de la ejecución y `fallo` en el job, como en H24; el test lo ve fallar con un voto que no llega. Desde la reparación R2 del cierre, el voto que el tope corta se pide otra vez, una sola, y no llega si lo corta también | `ci:internal/evals/informe_test.go:TestInformeConElJuez` |
+ | FR-001, FR-102, SC-002 | 4 de 4 copias idénticas | comparación byte a byte de la fila de la skill; con un byte cambiado o sin una, el defecto que la nombra | `ci:internal/evals/medida_test.go:TestCopiasDelJuez` |
+ | FR-072, FR-103, SC-003 | cada `timeout-minutes` cubre su peor caso (12 577 s bajo 352 min y 15 505 s bajo 269); 2 de 2 mutaciones «de una en una» en rojo | la definición del repositorio y las sintéticas, con las evals y los casos del repositorio | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob` |
+ | FR-031, FR-104, SC-004 | la medida del repositorio corresponde, con 0 y 0; 6 de 6 mutaciones en rojo, en `make ci` y en el job | la comprobación sobre el repositorio y sobre copias cambiadas; el recorrido del job con quien abre sesiones contado | `ci:internal/evals/medida_test.go:TestMedidaVersionada`, `ci:internal/evals/ejecucion_test.go:TestEjecucionSinMedir` |
+@@ -293,8 +293,13 @@ contracts/skill-jurisprudencia.md §4. Nada de lo que el hito entrega crece con
+   (D15).
+ - **Ninguna tarea `[datos]`** (D17).
+ - Las demás, con su alternativa rechazada, en research D1-D20.
+-- **Reparaciones del cierre** (FR-027): ninguna todavía. Si las hay, cada una se anota aquí y en research.md, con la
+-  medición como evidencia.
++- **Reparaciones del cierre** (FR-027), las dos con la medición 2 del cierre como evidencia (research «Reparaciones
++  del cierre», R1 y R2): **`boe-legislacion` v0.1.8**, porque el juez marca en `afirma_lo_no_leido` dos respuestas de
++  la eval 15 que ponen la materia del art. 7 con «sobre» en el aviso final de las remisiones no seguidas, 1 de 54 en
++  cada modo (R1); y **el voto que el tope corta se pide otra vez, una sola**, dentro de las dos peticiones por voto
++  que ya tenía el nulo, con el corte publicado en `juez.votos_cortados` y en informe.md, porque el job de
++  `jurisprudencia` salió en rojo con sus doce umbrales cumplidos por un voto cortado (R2). Ninguna cambia el peor
++  caso, los topes, una eval, la rúbrica, los casos, la medida ni un umbral.
+ 
+ ## Trazabilidad: cada mecanismo y su requisito
+ 
+diff --git a/specs/020-h25-el-juez-de/research.md b/specs/020-h25-el-juez-de/research.md
+index fcc2bd4..a9b99d4 100644
+--- a/specs/020-h25-el-juez-de/research.md
++++ b/specs/020-h25-el-juez-de/research.md
+@@ -220,5 +220,72 @@ etiqueta son las de hoy (FR-050).
+ 
+ ## Reparaciones del cierre (FR-027)
+ 
+-Ninguna todavía. Si una medición del cierre da pie a un cambio de `SKILL.md` fuera de los dos pasajes, la decisión se
+-anota aquí, con la medición como evidencia, las respuestas por su sesión y sus frases, y el pasaje que lleva a ellas.
++La medición 1 del cierre (cabeza `3f99446`) salió en rojo solo por `evals (boe-legislacion)` y sin informe recogido;
++la reparación no tocó nada fuera de `gates/` (`gates/supuestos.md`). La medición 2 (cabeza `e380f0a`,
++`gates/cierre.json`, 2026-10-10) salió en rojo por `evals (boe-legislacion)` y por `evals (jurisprudencia)`, con los
++dos informes en `gates/evals/`. Las dos reparaciones que siguen las decide `reparar_cierre` con esos informes; ninguna
++toca una eval, la rúbrica, los casos, la medida ni un umbral (ADR 0029), y ninguna cambia lo que piden el spec ni la
++sección del hito: la primera cambia `boe-legislacion`, que H25 no tocaba, y la segunda se aparta de lo que H24 dejó
++fuera de alcance. Su efecto lo mide el job de evals de la medición siguiente; esta sesión no abre sesiones con modelo
++(ADR 0032).
++
++**R1. `boe-legislacion` v0.1.8: el número y la materia de lo no leído, tampoco juntos en el aviso final.** **Evidencia.**
++`gates/evals/boe-legislacion.json`: `afirma_lo_no_leido:claude-sonnet-5-5:orden` 1 de 54 y
++`afirma_lo_no_leido:claude-sonnet-5-5:herramienta` 1 de 54, frente al umbral 0 (H24 FR 020), las dos en la eval 15,
++`15-irpf-rendimientos-por-materia.yaml`, con tres votos unánimes y la frase en la respuesta:
++`15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02`, «Algunos supuestos de los apartados 1 y 2 remiten a otros
++preceptos, como el art. 7 sobre rentas exentas», y `15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03`,
++«el artículo remite a otros preceptos, como el art. 7 sobre rentas exentas y la disposición adicional decimoctava».
++Las dos sesiones leyeron solo el bloque `a17` de `BOE-A-2006-20764` tras su índice, cuya entrada del art. 7 es
++`{"id":"a7","titulo":"Artículo 7"}` sin rúbrica (`testdata/evals/boe.legislacion-consolidada/…_texto_indice.json`), y
++el texto del art. 17 remite «al artículo 7 de esta Ley» sin decir de qué trata: la materia no sale de ninguna lectura,
++y es la forma b de contracts/skill-boe-legislacion.md §1 de H24, la misma frase que el informe de H22 dio al caso
++etiquetado como defecto de `evals/boe-legislacion/juez/casos.yaml`. Las otras cuatro respuestas de la eval 15 pasan;
++en el cierre de H24 las seis pasaron, con «sin perjuicio del art. 7» y «No he leído ese artículo». **Causa.** Las dos
++frases están en el párrafo final que repasa las remisiones no seguidas, y ponen la materia con «sobre», una
++construcción que la viñeta «De un precepto que no has leído, nada» de v0.1.7 no nombra —nombra «que es…», «los
++artículos que regulan <materia> (N y M)» y «no puedo decir qué <regla> fija» (H24 D27 y D28)—, en un sitio, el aviso
++final, que la viñeta solo trata con «puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni
++regla»; y la viñeta solo prohíbe, sin dar el camino para decir de qué trata lo remitido, que es leerlo. **Qué cambia.**
++La viñeta gana «el art. N sobre <materia>» entre las formas, «ni al avisar al final de lo que no has leído» entre los
++sitios, y «para decir de qué trata lo remitido, léelo y cítalo; si no, la remisión va con las palabras del texto leído
++y nada detrás»: una línea más, que paga la última viñeta de «Redacción modificada», que decía lo mismo en dos líneas.
++298 líneas; `make ci` en verde con `skills-check` y la prosa. `CHANGELOG.md` (*Unreleased*) lleva v0.1.8.
++**Rechazado:** las frases marcadas como ejemplo, porque son contenido legal del art. 7 y el modelo repite el vocabulario
++de la prosa (H7.3; H24 D27); leer siempre el precepto remitido, que añade una lectura a preguntas que no la necesitan
++(H24 D27); prohibir nombrar por su número lo no leído, que la rúbrica admite y la regla 2 necesita (H24 D28); dar
++rúbricas en `boe indice`, que la fuente no trae (H24 D28); y tocar la eval, la rúbrica, los casos, la medida o el
++umbral (ADR 0029). **Sin medir:** el efecto de v0.1.8 lo mide el job de la medición siguiente, en los dos modos.
++
++**R2. El voto que el tope corta se pide otra vez, una sola, dentro del presupuesto del voto nulo.** **Evidencia.**
++`gates/evals/jurisprudencia.json`: veredicto `fallo` con el único motivo «de la ejecución, no de la skill: el juez dejó
++1 respuestas sin juzgar: 03-por-materia-herramienta-claude-sonnet-5-5-03 (voto 1: tope de 35 s agotado)», con los doce
++umbrales cumplidos (0 de 30 en `afirma_lo_no_leido` y en `cita_sin_documento` en cada modo, 40 s y 47 s de juez). La
++sesión hace la misma llamada que sus dos hermanas, juzgadas dentro del tope, con una respuesta de 1 232 caracteres, de
++tamaño parecido: no la explica el mensaje del voto. En la misma medición el juez juzgó 168 respuestas (54, 54, 30 y
++30) y solo ese voto pasó de 35 s; en la medición 2 del cierre de H24 pasó lo mismo con una respuesta (H24 research
++D28, V24). **Causa.** H24 D6 fijó el tope en 35 s «con la cola de los votos sin medir» (S6 de H24), y su contrato
++(contracts/juez-y-voto.md §5 de H24) dejó el reintento fuera de alcance: un voto cortado deja la respuesta sin juzgar
++y el trabajo en rojo, aunque el corte sea un hecho de la ejecución que no dice nada de la skill, y la cola de los
++votos lo produce una vez cada una o dos mediciones. Subir el tope sin más lo rechaza el ADR 0029, y subirlo con su
++cuenta cambia el peor caso y pide tocar `timeout-minutes` (CI), que esta reparación no toca; subir la concurrencia,
++igual (H24 D6). **Qué cambia.** `votosDelNumero` (`internal/evals/juez.go`) pide otra vez, una sola, el voto que el
++tope corta, con su mismo número, como ya hacía con el nulo; dos peticiones por voto como mucho, sea cual sea la causa
++de la primera, así que `votosPorRespuestaComoMucho` (6) y el peor caso de `TestDefinicionDelJob` no cambian, y los dos
++topes tampoco. La respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo `voto <n>:
++tope de 35 s agotado dos veces` (`causaDelTopeRepetido`); las otras tres causas siguen sin reintento. El corte se
++publica: `JuicioDeRespuesta.Cortados`, `juez.votos_cortados` de informe.json —una entrada por voto cortado de una
++respuesta juzgada, con `sesion` y `motivo`, en orden de sesión; `[]` sin ninguno; una respuesta sin juzgar sigue sin
++llevar nada más que su motivo— y la tabla «Votos cortados por el tope y pedidos otra vez» de informe.md. Lo fijan
++`TestVotoDelJuez` (el cortado que se pide otra vez, con su número; el cortado en el segundo voto; la repetición nula
++que no se repite; el tope agotado dos veces; el cortado cuya repetición no es JSON), `TestOrdenDelVoto/tope` (las dos
++peticiones cortadas con el sustituto de claude, los dos procesos terminados), `TestInformeConElJuez`
++(`votos-cortados-y-pedidos-otra-vez`, y que una respuesta sin juzgar no va en `votos_cortados`),
++`TestInformeMarkdownDeLosUmbrales`, `TestJuicioDelSondeo` y `TestEjecucionDeLaMedida`
++(`un-correcto-marcado-tras-un-voto-cortado`). Documentado en `CONTRIBUTING.md`, `internal/evals/doc.go` y
++`CHANGELOG.md`; contracts/juez-y-voto.md §5, §7 y §8 e informe-del-job.md §3 de H24 quedan como registro de H24 y esta
++sección dice lo que cambia de ellos. **Rechazado:** subir el tope o la concurrencia (arriba); reintentar también la
++sesión con error, la salida que no es JSON o la forma, porque llevan un resultado del proceso, un límite de uso entre
++ellos, que repetir en el acto no cambia (H24 §5); repetir sin publicar el corte, porque lo medido se ve (ADR 0029 y
++0030); y medir la cola de los votos, que no se puede medir en una sesión de un paso (ADR 0032) y que el job no
++registra por voto. **Sin medir:** cuántos cortes da la medición siguiente lo dice `juez.votos_cortados` de su informe.

@@ -115,3 +115,14 @@ todas activan y declaran `sentencias`; por clase, 3, 2, 3, 1 y 1.
 | `internal/evals/umbrales.go` | Solo el comentario de `umbralesDelInforme`, que decía que la skill no tiene juez; el código no cambia |
 | `internal/evals/*_test.go` | Los de «Controles mecánicos» del plan, `sentencias_test.go` (tasks.md, T003) y un comentario en `umbrales_test.go` y en `consultas_test.go` (T009) |
 | `CHANGELOG.md`, `CONTRIBUTING.md`, `docs/JURISPRUDENCIA.md`, `docs/WORKFLOW.md` | FR-084, FR-090 a FR-093 |
+
+Después, con las reparaciones del cierre (research «Reparaciones del cierre», R1 y R2) y la revisión final que las
+juzga:
+
+| Fichero | Cambio |
+|---|---|
+| `skills/boe-legislacion/SKILL.md` | v0.1.8: la viñeta «De un precepto que no has leído, nada» (R1) |
+| `internal/evals/juez.go`, `informe.go`, `doc.go` | El voto que el tope corta se pide otra vez, una sola; `Cortados` en el juicio de una respuesta y `juez.votos_cortados`, con su tabla, en el informe (R2) |
+| `internal/evals/juez_test.go`, `informe_test.go`, `medida_test.go`, `ejecucion_test.go`, `sondeo_test.go` | Los tests de R2 |
+| `internal/app/skills_test.go` | El caso `dos-inicios` de `TestSkillsDelRepositorio`, sin añadir una línea a la copia (R1, revisión final) |
+| `CHANGELOG.md`, `CONTRIBUTING.md` | v0.1.8 y el voto cortado |

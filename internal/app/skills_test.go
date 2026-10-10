@@ -1034,16 +1034,18 @@ func casosDeRegion(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 			fallos: []string{skill.nombre + ": SKILL.md: sin las marcas de la tabla de comandos"},
 		},
 		{
-			// La marca de inicio repetida ocupa la línea de la de fin, que baja una.
+			// La marca de inicio repetida sustituye a la línea en blanco que precede a
+			// la de fin: la copia tiene las líneas del SKILL.md real, que puede estar
+			// en su máximo (FR-041), y su único defecto es el de la marca.
 			nombre: "dos-inicios",
 			alterar: func(t *testing.T, copia string) {
 				t.Helper()
 
-				cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), finDeLaTablaDeComandos+"\n",
-					inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n")
+				cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), "\n\n"+finDeLaTablaDeComandos+"\n",
+					"\n"+inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n")
 			},
 			fallos: []string{fmt.Sprintf("%s: SKILL.md: la marca de inicio de la tabla de comandos "+
-				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, fin)},
+				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, fin-1)},
 		},
 		{
 			nombre: "fin-antes-del-inicio",
