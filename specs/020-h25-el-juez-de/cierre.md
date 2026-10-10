@@ -14,21 +14,35 @@ las diez filas `evals:`; §6, «Sin modelo»; §8).
 **T008 no toca código ni añade ningún test.** Las cifras de cobertura quedan sobre sus umbrales (§3), y la tarea solo
 pide tests si alguna queda debajo. Sus únicos cambios son este fichero, dos líneas en `gates/supuestos.md` y su marca
 en tasks.md. Las siete partes cuadran con lo que la tarea pide comprobar, y las veinticinco órdenes de quickstart.md
-§0 a §9 dan lo esperado (§4). Queda una cosa que el hito deja falsa y que esta tarea no puede tocar: un comentario de
-`internal/evals/umbrales.go` (§8).
+§0 a §9 dan lo esperado (§4). T008 dejó anotada una cosa que el hito dejaba falsa y que no podía tocar: un comentario
+de `internal/evals/umbrales.go`.
+
+**T009, después, corrige ese comentario y otros dos**, sobre `a8c553f`, que es T008: el de `umbralesDelInforme` en
+`internal/evals/umbrales.go`, el de `TestUmbralesConJuezYConSentencias` en `internal/evals/umbrales_test.go` y el de
+`TestConsultasNecesarias` en `internal/evals/consultas_test.go`. Solo cambian líneas de comentario: ni código, ni
+tests, ni lo que ningún test espera (§1 y §6). De este fichero, T009 cambia lo que eso cambia, medido en su sesión
+con las mismas órdenes y con los tres ficheros ya editados: esta cabecera; la lista y los recuentos de §1; lo que §5 y
+§6 decían de que `umbrales.go` no cambiaba, con sus números de línea vueltos a leer; el recuento de «Atajos» (§6); y
+§8, sin su primer punto. **La cobertura (§3), el quickstart (§4) y los controles de §5 son los que midió T008 sobre
+`7f0d96c`, y T009 no los ha vuelto a medir.**
 
 ## 1. Lo creado y lo modificado en el hito, y lo que no cambia
 
-`git diff --name-status main`, antes de escribir este fichero, da **61 ficheros: 42 `A` y 19 `M`**, ninguna `D` ni
-`R` (`git diff --shortstat main`: 10 999 líneas añadidas y 842 quitadas). 33 están en `specs/020-h25-el-juez-de/`,
-todos `A`; este `cierre.md` será el 34. Los otros 28 son 9 `A` y 19 `M` (7 676 líneas añadidas y 842 quitadas).
-`git ls-files --others --exclude-standard` no da ningún fichero sin seguimiento, y `git status --porcelain`, los dos
-ficheros de `gates/` que el workflow lleva modificados (`tarea-actual.json` y `tareas-intentos.json`).
+`git diff --name-status main`, con los tres comentarios de T009 ya corregidos, da **65 ficheros: 43 `A` y 22 `M`**,
+ninguna `D` ni `R`. 34 están en `specs/020-h25-el-juez-de/`, todos `A`, con este `cierre.md`. Los otros 31 son 9 `A` y
+22 `M` (`git diff --shortstat main -- . ':!specs'`: 7 698 líneas añadidas y 855 quitadas): los 28 que midió T008
+antes de escribir este fichero (7 676 y 842) y los tres de T009 (22 y 13). El total con `specs/` no se da: cambia con
+este mismo fichero; T008 midió 10 999 líneas añadidas y 842 quitadas en 61 ficheros, antes de escribirlo.
+`git ls-files --others --exclude-standard` da un fichero sin seguimiento, `gates/converge-hecho`, que deja el
+workflow, y `git status --porcelain`, antes de editar este fichero en T009, da además los tres ficheros de Go de la
+tarea y los tres que el workflow lleva modificados (`tasks.md`, `gates/tarea-actual.json` y
+`gates/tareas-intentos.json`).
 
-### Los 28 ficheros
+### Los 31 ficheros
 
 Cada uno con la tarea que lo tocó (`git log --format=%s main..HEAD -- <ruta>`) y sus líneas
-(`git diff --numstat main`).
+(`git diff --numstat main`). Los tres de T009 están en el árbol y sin commit cuando se escribe esto: su tarea es la
+de la sesión que los edita.
 
 **La carpeta del juez** (5, todos `A`, de T004), en `evals/jurisprudencia/juez/`:
 
@@ -52,7 +66,7 @@ diff son seis líneas: `concurrencia: 1` pasa a `concurrencia: 4` en la entrada 
 entrada de `include`, con `concurrencia: 4`; y la descripción de la entrada `medir_al_juez` dice «de las skills que lo
 tienen» donde decía «de boe-legislacion».
 
-**Los ficheros de Go** (13, todos `M`), en `internal/evals/`:
+**Los ficheros de Go** (16, todos `M`), en `internal/evals/`:
 
 | Fichero | Tarea | Líneas |
 |---|---|---|
@@ -61,6 +75,7 @@ tienen» donde decía «de boe-legislacion».
 | `medida.go` | T002 | +803 −105 |
 | `conjunto.go` | T003 | +30 −21 |
 | `doc.go` | T007 | +24 −7 |
+| `umbrales.go` | T009 | +12 −5 |
 | `juez_test.go` | T001, T004 | +322 −3 |
 | `informe_test.go` | T001, T003, T004 | +738 −120 |
 | `medida_test.go` | T002, T004, T005 | +2 493 −242 |
@@ -69,10 +84,23 @@ tienen» donde decía «de boe-legislacion».
 | `ejecucion_test.go` | T004 | +85 −17 |
 | `sentencias_test.go` | T003 | +168 −43 |
 | `sesion_test.go` | T004 | +114 |
+| `umbrales_test.go` | T009 | +8 −6 |
+| `consultas_test.go` | T009 | +2 −2 |
 
-Son 928 líneas añadidas a los cinco que no son tests y 4 739 a los ocho de test. Ningún fichero ni paquete de Go es
+Son 940 líneas añadidas a los seis que no son tests y 4 749 a los diez de test. Ningún fichero ni paquete de Go es
 nuevo. `sentencias_test.go` no está en la lista de plan.md, «Source Code»: lo añade tasks.md, que dice por qué en su
 cabecera.
+
+**Los tres de T009 solo cambian comentarios.** En `git diff main` de los tres, cada línea añadida o quitada empieza
+por `//`: un trozo en cada fichero, el final del comentario de `umbralesDelInforme` (`@@ -184,11 +184,18 @@`), el de
+`TestUmbralesConJuezYConSentencias` (`@@ -533,12 +533,14 @@`) y el de `TestConsultasNecesarias`
+(`@@ -24,8 +24,8 @@`). Ni una constante, ni una firma, ni un caso, ni un nombre de test. `gofmt -l` de los tres no
+nombra ninguno. `grep` de «no tiene juez ni objetivo», de «tiene hoy las dos» y de «las seis evals» en ellos no da
+nada, y antes de editarlos daba una línea en cada uno (`umbrales.go:188`, `umbrales_test.go:537` y
+`consultas_test.go:27`). En los ficheros Go del paquete, ninguna otra frase dice que `jurisprudencia` no tiene juez,
+que sus evals son seis o que sus umbrales son cuatro: «las seis» de `conjunto_test.go:1297` son las evals de H23,
+nombradas junto a las cuatro de H25, y el total de 18 de `informe_test.go:4685` es el del contrato de H23, a
+propósito.
 
 **La documentación** (4, todos `M`, de T007): `CHANGELOG.md` (+74 −15), `CONTRIBUTING.md` (+106 −44),
 `docs/JURISPRUDENCIA.md` (+17 −1) y `docs/WORKFLOW.md` (+1 −1).
@@ -116,8 +144,9 @@ ruta vacía:
   `main..HEAD`, no nombra ningún commit: solo cambian de número de línea.
 - **El límite de ritmo** (FR-073): `reintentos_por_limite_de_ritmo` está en `juzgar.go`, que no está en el diff, y en
   `informe.go`, que sí. En lo añadido y lo quitado fuera de `specs/`, ninguna línea nombra el límite de ritmo.
-  `ejecucion.go`, `sesion.go`, `plan.go`, `umbrales.go`, `definicion.go`, `sentencias.go`, `formato.go` y `juzgar.go`
-  (8) no cambian. Las nueve sesiones a la vez no se han medido: las mide el cierre.
+  `ejecucion.go`, `sesion.go`, `plan.go`, `definicion.go`, `sentencias.go`, `formato.go` y `juzgar.go` (7) no
+  cambian. `umbrales.go` sí está en el diff desde T009, y solo en un comentario (arriba, y §6). Las nueve sesiones a
+  la vez no se han medido: las mide el cierre.
 - **Ningún ADR**: `docs/ADR` (37), con el mismo árbol, `6ec9525b…`. De `docs/`, el diff solo nombra
   `docs/JURISPRUDENCIA.md` y `docs/WORKFLOW.md`.
 - **La constitución**: `.specify/memory/constitution.md` (1), y `.specify` entero (45), con el mismo árbol,
@@ -128,7 +157,7 @@ ruta vacía:
   `Makefile` (13); `.github` sin `evals.yml` (6); `.golangci.yml`, `codecov.yml` y `.goreleaser.yaml` (3); y
   `README.md` (1).
 
-Las mismas órdenes sí imprimen donde hay cambios: con `-- internal/evals` salen 13 líneas; con
+Las mismas órdenes sí imprimen donde hay cambios: con `-- internal/evals` salen 16 líneas; con
 `-- evals/jurisprudencia`, 9; con `-- docs`, 2; y con `-- skills` y `-- .github`, una cada una.
 
 ### La Definition of Done, punto a punto (`ROADMAP.md` §1)
@@ -137,7 +166,7 @@ Las mismas órdenes sí imprimen donde hay cambios: con `-- internal/evals` sale
 |---|---|---|
 | 1 · `make ci` en verde | sí | §4, escenario 9: código 0 y `ci: todos los controles en verde`, con la caché de tests vacía. |
 | 2 · tests offline; fixtures si toca red | tests sí; fixtures no | Los tests de §4 y §5. El hito no toca la red: ninguna grabación ni fuente (arriba). |
-| 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las 928 líneas añadidas a los cinco `.go` que no son tests, 0 coincidencias de `"net/http"`, `"net"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"`, `modernc.org` e `internal/httpx`. `golangci-lint`: `0 issues.` |
+| 3 · sin `net/http`, `os.Exit`, `fmt.Print*` fuera de lo autorizado | sí | En las 940 líneas añadidas a los seis `.go` que no son tests, 0 coincidencias de `"net/http"`, `"net"`, `os.Exit`, `fmt.Print`, `os.Stdout`, `os.Stderr`, `panic(`, `"database/sql"`, `modernc.org` e `internal/httpx`. `golangci-lint`, en el `make ci` de §4: `0 issues.` |
 | 4 · esquemas y `schema-check` | ningún esquema cambia | `schemas` sin cambios; `TestEsquemasPublicados`, `ok` dentro de `make ci`. |
 | 5 · errores con código estable | ningún código de `kitlegal` cambia | `internal/app`, `internal/cli` e `internal/core` sin cambios. |
 | 6 · e2e y `CHANGELOG.md` | «Aceptación e2e: no aplica»; `CHANGELOG.md`, sí | `CHANGELOG.md` +74 −15, en *Unreleased*, con «La skill `jurisprudencia` v0.1» en su línea 58 (T007; SC-012). |
@@ -385,7 +414,7 @@ no hay ninguna cifra suya.
 
 | Filas | Control | Lo que se ve en el árbol |
 |---|---|---|
-| FR-020, SC-001 (dos modos) | `evals:jurisprudencia:afirma_lo_no_leido:claude-sonnet-5-5:<modo>` | La clase, con `decide: true` y `umbral: 0`, en `clases.yaml`; el umbral lo construye `umbralesDeLasClases` (`internal/evals/umbrales.go`), que no cambia (§6) |
+| FR-020, SC-001 (dos modos) | `evals:jurisprudencia:afirma_lo_no_leido:claude-sonnet-5-5:<modo>` | La clase, con `decide: true` y `umbral: 0`, en `clases.yaml`; el umbral lo construye `umbralesDeLasClases` (`internal/evals/umbrales.go`), cuyo código no cambia (§6) |
 | FR-022, SC-001 (defectos y correctos) | `evals:jurisprudencia:medida_del_juez:afirma_lo_no_leido:<recuento>` | `umbralesDeLaMedida`, con `umbralDeLaMedidaDelJuez = 0` y `Decide: true`, sobre la medida versionada: 0 de 125 y 0 de 124 (§2) |
 | FR-023, SC-001 (dos modos) | `evals:jurisprudencia:duracion_del_juez:<modo>` | `umbralesDeLaDuracion`, con `segundosDelJuezPorModo = 900` y `Decide: true` |
 | FR-024, SC-001 (cita sin documento, dos modos) | `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:<modo>` | El de H23, que sigue: `umbralDeCitaSinDocumento`, sin cambios |
@@ -398,12 +427,15 @@ Los diez nombres están escritos, literales, en `internal/evals/informe_test.go`
 
 ### Ningún umbral de FR-020, FR-022 o FR-023 se rebajó, pasó a `decide: false` ni perdió respuestas o casos
 
-- **Los valores y `decide`.** `internal/evals/umbrales.go` no está en el diff: `umbralDeLaMedidaDelJuez = 0` y
-  `segundosDelJuezPorModo = 900` son los de `main` (líneas 26 y 27), con `Decide: true` escrito en los dos umbrales de
-  la medida y en el de la duración (líneas 354, 362 y 383). El de cada clase toma `Umbral` y `Decide` de `clases.yaml`
-  (líneas 272 y 273), que lleva `afirma_lo_no_leido` con `decide: true` y `umbral: 0`. `afirma_que_existe` lleva
-  `decide: false` porque FR-021 la quiere solo publicada, desde T004: no es un umbral que haya dejado de decidir.
-- **Los totales.** El de la clase es `len(grupo.respuestas)`, las respuestas juzgadas del modo (`umbrales.go:260`);
+- **Los valores y `decide`.** `internal/evals/umbrales.go` está en el diff desde T009, y solo en un comentario: su
+  diff con `main` es un trozo, `@@ -184,11 +184,18 @@`, de doce líneas añadidas y cinco quitadas que empiezan todas
+  por `//`, el final del comentario de `umbralesDelInforme` (§1). Los valores, `Decide` y los totales son los de
+  `main`, siete líneas más abajo los que van detrás de ese comentario: `umbralDeLaMedidaDelJuez = 0` y
+  `segundosDelJuezPorModo = 900` (líneas 26 y 27), con `Decide: true` escrito en los dos umbrales de la medida y en el
+  de la duración (líneas 361, 369 y 390). El de cada clase toma `Umbral` y `Decide` de `clases.yaml` (líneas 279 y
+  280), que lleva `afirma_lo_no_leido` con `decide: true` y `umbral: 0`. `afirma_que_existe` lleva `decide: false`
+  porque FR-021 la quiere solo publicada, desde T004: no es un umbral que haya dejado de decidir.
+- **Los totales.** El de la clase es `len(grupo.respuestas)`, las respuestas juzgadas del modo (`umbrales.go:267`);
   los de la medida, los casos de la medida versionada. `TestUmbralesDeJurisprudencia` fija `"total":30` en el
   elemento de la clase que decide (`informe_test.go:4702`) y «1 de 30 (3,3 %)» en los motivos de una respuesta
   marcada en cada modo (`:4767` y `:4808`). Las diez evals de `evals/jurisprudencia/` llevan `activa: true`, y con
@@ -416,8 +448,9 @@ Los diez nombres están escritos, literales, en `internal/evals/informe_test.go`
   del juez, el de T004.
 - **Nada se corrigió después de crearlo.** Cada pieza del instrumento la toca una sola tarea: la carpeta del juez,
   T004; `juez.go` e `informe.go`, T001; `medida.go`, T002; `conjunto.go`, T003; y `SKILL.md`, T006. `evals.yml` lo
-  tocan T003, T004 y T007, esta última solo en comentarios (§1). Las ocho tareas van por su primer intento
-  (`gates/tareas-intentos.json`), la cuarentena está vacía y no hay ninguna nota `gates/tarea-T*.md`.
+  tocan T003, T004 y T007, esta última solo en comentarios (§1), y `umbrales.go`, T009, solo en un comentario. Las
+  nueve tareas van por su primer intento (`gates/tareas-intentos.json`), la cuarentena está vacía y no hay ninguna
+  nota `gates/tarea-T*.md`.
 
 ### Sin modelo, sin medida y sin sondeo (FR-095)
 
@@ -433,9 +466,10 @@ dejó `make ci` en verde en su verificación (`gates/ci.log` guarda la de T007).
 
 ### Atajos: ningún `//nolint`, `t.Skip` ni TODO nuevos
 
-En las 7 676 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`), la búsqueda de `nolint`, `t.Skip`,
-`.Skip(`, `SkipNow`, `TODO`, `FIXME` y `XXX` no da ninguna; la misma búsqueda con `fmt.Errorf` da 21. Ninguna línea
-añadida empieza por una asignación a `_`, que es como se tira un error. Y en el árbol entero, contra `main`:
+En las 7 698 líneas añadidas fuera de `specs/` (`git diff main -- . ':!specs'`), con las 22 de T009, la búsqueda de
+`nolint`, `t.Skip`, `.Skip(`, `SkipNow`, `TODO`, `FIXME` y `XXX` no da ninguna; la misma búsqueda con `fmt.Errorf` da
+21. Ninguna línea añadida empieza por una asignación a `_`, que es como se tira un error. Y en el árbol entero,
+contra `main`:
 
 - **`//nolint:`**: `git grep -c '//nolint:' main -- '*.go'` y la misma orden sobre el árbol dan lo mismo, **7
   directivas en `main` y 7 en el árbol**, en los mismos seis ficheros de test (`coste_test.go`, `e2e_test.go`, con
@@ -462,21 +496,16 @@ Los tres siguen en su sitio, con «ninguna todavía»:
 `grep -ci 'ninguna todavía'` da 1 en cada uno, y solo un commit toca los tres, el del plan (`2698bf9`): ninguna tarea
 los ha cambiado. Es donde una reparación del cierre deja su traza, y hasta la primera medición no hay ninguna.
 
-## 8. Lo que queda fuera del run, y lo que esta tarea ha visto y no puede tocar
+## 8. Lo que queda fuera del run
 
-- **Un comentario que el hito deja falso.** El de `umbralesDelInforme`, en `internal/evals/umbrales.go`, líneas 187 a
-  191, sigue diciendo: «Con el plan del job y las evals de jurisprudencia, que no tiene juez ni objetivo, son cuatro
-  y los cuatro deciden». Con la carpeta del juez de T004 la skill tiene juez y sus umbrales son doce, diez que
-  deciden, como fija `TestUmbralesDeJurisprudencia`. Es solo el comentario: el código de ese fichero no cambia ni
-  hace falta que cambie, y por eso plan.md lo da por no tocado y no está entre las rutas de T007 ni de T008. Esta
-  tarea no lo toca. De los ficheros de `internal/evals` que el hito no cambia y de los guiones `scripts/evals*.sh`,
-  es la única frase que dice que la skill no tiene juez (`grep` de `jurisprudencia` en todos ellos). Queda en
-  `gates/supuestos.md`, para la revisión final.
+El comentario de `internal/evals/umbrales.go` que T008 anotó aquí, y en `gates/supuestos.md`, como algo que veía y no
+podía tocar lo corrige T009 (§1). Queda esto:
+
 - **Las diez filas `evals:`** (§5) y SC-001: las mide el job de cierre que lanza el workflow. Con ellas, lo que el
   run no puede medir (tasks.md, «Estrategia de implementación»): cuánto tarda un voto, si nueve sesiones a la vez
   chocan con el límite de ritmo, si las series de las cuatro evals nuevas pasan y si v0.1 quita el CAPTCHA de las
   respuestas.
 - **`codecov/patch`** (§3): solo se sabe en la propuesta de cambio.
 - **quickstart.md §10 y §11**, SC-014 y SC-015: del workflow, de una persona y de la revisión final.
-- **La verificación de esta tarea** es otro `make ci`, posterior a la última edición de este fichero: su resultado no
-  está aquí.
+- **La verificación de cada tarea**, la de T008 y la de T009, es otro `make ci`, posterior a su última edición de este
+  fichero: su resultado no está aquí.
