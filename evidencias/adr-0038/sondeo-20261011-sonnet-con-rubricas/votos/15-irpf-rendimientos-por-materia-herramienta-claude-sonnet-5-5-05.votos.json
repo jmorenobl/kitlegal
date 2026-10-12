@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del texto devuelto del art. 17. Las menciones al art. 7 (rentas exentas) y a la disposición adicional decimoctava repiten remisiones del propio texto o rúbricas que están en el índice, y los «otros artículos» no se nombran por número.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que el texto está vigente, qué norma lo modificó y que no hay avisos de derogación ni de desactualización, lo cual es derecho y no relato de proceso. No nombra herramientas ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

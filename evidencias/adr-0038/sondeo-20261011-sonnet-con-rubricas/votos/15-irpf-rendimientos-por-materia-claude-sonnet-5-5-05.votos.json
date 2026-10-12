@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone es del artículo 17, cuyo texto devolvió la herramienta. De los arts. 7, 18 y 19 solo da las rúbricas que figuran en el índice y dice que no los ha leído; el aviso final sobre impuesto cedido y territorios forales es genérico y no expone la regla de ningún precepto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas, ni nombra herramientas, ni anuncia pasos. Solo da fechas de vigencia, dice que no hay avisos sobre el artículo y que no ha leído otros preceptos, lo que no cuenta como proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

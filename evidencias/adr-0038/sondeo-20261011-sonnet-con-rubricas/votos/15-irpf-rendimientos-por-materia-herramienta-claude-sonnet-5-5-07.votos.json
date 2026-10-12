@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17, cuyo texto devolvió la herramienta. Las menciones al art. 7 y a la disposición adicional decimoctava repiten remisiones de ese texto, y la etiqueta del art. 19 figura en el índice.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia y desde cuándo rige la redacción, lo que es derecho, y ofrece otra consulta. No cuenta comprobaciones hechas, ni herramientas, ni anuncia que pasa a responder.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

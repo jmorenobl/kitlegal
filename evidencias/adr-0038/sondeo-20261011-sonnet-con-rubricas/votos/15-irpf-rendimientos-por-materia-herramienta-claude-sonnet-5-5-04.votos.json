@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo el contenido expuesto procede del art. 17, que sí fue devuelto. Las menciones al art. 7 y al art. 19 solo usan las rúbricas que figuran en el índice, y la disposición adicional decimoctava se cita como remisión ya presente en el texto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones ni nombra herramientas. Decir que el bloque no trae avisos de vigencia y desde cuándo rige la redacción es derecho, no proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

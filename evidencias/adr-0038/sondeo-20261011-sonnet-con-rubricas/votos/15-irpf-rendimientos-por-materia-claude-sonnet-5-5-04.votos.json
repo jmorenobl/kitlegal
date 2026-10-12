@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del texto devuelto del artículo 17; el art. 7 y la disposición adicional decimoctava solo se citan como remisiones ya presentes en ese texto, y la etiqueta del art. 19 es su rúbrica en el índice devuelto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas, ni nombra herramientas, ni anuncia pasos; las fechas de vigencia y la ausencia de avisos son derecho, no proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

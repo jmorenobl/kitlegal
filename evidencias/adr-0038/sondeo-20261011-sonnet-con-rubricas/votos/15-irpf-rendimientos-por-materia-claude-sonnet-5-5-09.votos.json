@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone sale del art. 17 devuelto; los arts. 7, 18, 19 y 20 solo se identifican por las rúbricas que figuran en el índice, y dice expresamente que no los ha leído. El aviso final sobre comunidades autónomas y territorios forales no expone el contenido de ningún precepto concreto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta el resultado de ninguna comprobación ni nombra herramientas u órdenes; solo da la vigencia, dice que no hay avisos y declara qué artículos no ha leído, lo cual no cuenta.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

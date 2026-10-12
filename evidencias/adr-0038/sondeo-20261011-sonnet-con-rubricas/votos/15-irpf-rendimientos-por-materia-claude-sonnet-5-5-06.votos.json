@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17, cuyo texto devolvió la herramienta. Del art. 7 y de la disposición adicional decimoctava solo repite remisiones del texto, y del art. 19 da la rúbrica que figura en el índice y dice que no lo ha leído.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta da la fecha de vigencia y la norma modificadora, dice que no hay avisos de vigencia y que no ha leído el art. 19, todo ello excluido por la rúbrica. No cuenta el resultado de ninguna comprobación ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

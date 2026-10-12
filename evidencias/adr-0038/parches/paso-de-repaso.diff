@@ -1,0 +1,36 @@
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index f4182e7..edb5877 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -27,7 +27,7 @@ el asesoramiento de un profesional.
+ 
+ ## Protocolo
+ 
+-Sigue los cinco pasos en orden. Cada operación se pide de una de dos formas, que devuelven el mismo sobre —`fuente`,
++Sigue los seis pasos en orden. Cada operación se pide de una de dos formas, que devuelven el mismo sobre —`fuente`,
+ `url`, `fecha_consulta` y `hash` junto a `data`, sin los que no hay cita—:
+ 
+ - **Con su herramienta**, si entre las tuyas hay una con su nombre —`boe_articulo`, `graph_check`…—, solo o detrás del
+@@ -149,6 +149,22 @@ Lo que no puedas leer, no lo suplas (paso 5); lo que decidas aquí no va en la r
+   `<identificador>, bloque <id>]`, con la palabra `bloque` y nada entre el id y el corchete de cierre. Si dentro de los
+   corchetes va además la forma legible, va delante del identificador.
+ 
++### 6. Repasar antes de responder
++
++Antes de escribir la respuesta, repásala en tu razonamiento, sin que el repaso deje rastro en ella. Haz la lista de cada
++artículo, apartado o disposición que la respuesta va a nombrar, por su número o por su nombre, y de cada regla, plazo,
++requisito o excepción que va a dar, y hazte de cada uno esta pregunta: ¿está su texto en lo que devolvió `kitlegal boe`
++en esta conversación?
++
++- **Sí**: lo que dices de él sale de ese texto y lleva su cita.
++- **No, y hace falta para responder**: léelo ahora (paso 3) y cítalo.
++- **No, y no hace falta**: quita de la respuesta todo lo que diga de él —de qué trata, qué regula, qué fija, a qué se
++  aplica—. Queda su número solo, con las palabras del texto leído que remite a él, o la materia sola, sin número. Una
++  regla que no está en ningún texto leído se quita entera.
++
++Que algo sea cierto, o que lo sepas, no cambia la respuesta a la pregunta: solo cuenta si su texto está entre lo
++devuelto. La respuesta que das es la que queda tras el repaso.
++
+ ## Cómo se cita
+ 
+ Cada cita lleva la forma legible de la norma y del bloque y, entre corchetes, el identificador de la norma y el id del

@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone es del art. 17, cuyo texto devolvió la herramienta. Del art. 7 solo da la rúbrica que figura en el índice, y de la disposición adicional decimoctava solo repite la remisión del propio texto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia, da la fecha de vigencia y admite que no ha leído el art. 7. No cuenta comprobaciones hechas ni nombra herramientas.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]
