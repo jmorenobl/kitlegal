@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -48,6 +49,12 @@ echo rama-del-test
 
 	directorioDelHitoDelCierre = "specs/000-hito-del-test"
 	skillDelCierre             = "boe-legislacion"
+
+	// lineaDeOtraSalida es la que make escribe en su salida de error cuando el
+	// guion de las evals termina en fallo, y avisoDeLasDescartadas, lo que el
+	// cierre dice de las que encuentra dentro del informe, delante de su número.
+	lineaDeOtraSalida     = "make: *** [Makefile:135: evals] Error 1"
+	avisoDeLasDescartadas = "líneas de otra salida, descartadas: "
 )
 
 // TestRecogerLasEvalsDelCierre ejerce `scripts/workflow/cierre.sh evals`, el
@@ -60,6 +67,12 @@ echo rama-del-test
 // JSON, con la marca de orden de bytes delante de la hora. El guion no quitaba
 // la marca, la hora se quedaba dentro del informe, que dejaba de ser JSON, y el
 // informe final salió sin los umbrales de la skill, que el trabajo cumplía.
+//
+// Y por el de H25: el trabajo de boe-legislacion falló, y la línea con la que
+// make lo dice en su salida de error quedó en el registro dentro del informe,
+// que el runner aún no había terminado de entregar por la salida estándar. Lo
+// recogido no era JSON, el cierre no dejó fichero y la reparación trabajó sin
+// las respuestas ni los umbrales de la medición.
 //
 // Necesita jq, que es con lo que el guion lee y valida: donde no está, el caso
 // se salta diciéndolo; la CI lo tiene.
@@ -82,10 +95,17 @@ func TestRecogerLasEvalsDelCierre(t *testing.T) {
 		// marcas son las líneas del informe, contadas desde 0, que empiezan un
 		// trozo del registro; -1 es la primera línea del registro.
 		marcas []int
+		// ajenas son las líneas del informe, contadas desde 0, delante de las
+		// que el registro trae una línea de otra salida; -1 la pone antes de la
+		// marca de inicio.
+		ajenas []int
 		// roto deja el informe sin su última línea: lo que se recoge no es JSON.
 		roto    bool
 		recoge  bool
 		deError string
+		// descartadas es el número de líneas de otra salida que el guion dice
+		// haber quitado del informe, o vacío si no dice nada de ellas.
+		descartadas string
 	}{
 		{
 			nombre: "un solo trozo", marcas: []int{-1},
@@ -103,6 +123,19 @@ func TestRecogerLasEvalsDelCierre(t *testing.T) {
 			nombre: "el informe no es legible", marcas: []int{-1}, roto: true,
 			recoge: false, deError: "no trae un informe.json legible",
 		},
+		{
+			nombre: "una línea de otra salida cae antes del informe", marcas: []int{-1}, ajenas: []int{-1},
+			recoge: true, deError: "evals: informe de " + skillDelCierre,
+		},
+		{
+			nombre: "una línea de otra salida cae dentro del informe", marcas: []int{-1}, ajenas: []int{6},
+			recoge: true, deError: "evals: informe de " + skillDelCierre, descartadas: "1",
+		},
+		{
+			nombre: "dos líneas de otra salida caen dentro del informe, una al empezar un trozo",
+			marcas: []int{-1, 6}, ajenas: []int{0, 6},
+			recoge: true, deError: "evals: informe de " + skillDelCierre, descartadas: "2",
+		},
 	}
 
 	for _, caso := range casos {
@@ -119,12 +152,19 @@ func TestRecogerLasEvalsDelCierre(t *testing.T) {
 				lineas = lineas[:len(lineas)-1]
 			}
 
-			raiz := arbolDelCierre(t, registroDelTrabajo(lineas, caso.marcas))
+			raiz := arbolDelCierre(t, registroDelTrabajo(lineas, caso.marcas, caso.ajenas))
 
 			codigo, deError := ejecutarElCierre(t, raiz)
 
 			assert.Equalf(t, 0, codigo, "recoger los informes nunca para el run; salida de error:\n%s", deError)
 			assert.Contains(t, deError, caso.deError, "lo que el guion dice del informe")
+
+			if caso.descartadas == "" {
+				assert.NotContains(t, deError, avisoDeLasDescartadas, "sin líneas de otra salida dentro, el guion no dice nada de ellas")
+			} else {
+				assert.Contains(t, deError, avisoDeLasDescartadas+caso.descartadas+"\n",
+					"el guion dice cuántas líneas de otra salida quitó del informe")
+			}
 
 			arbol, err := os.OpenRoot(raiz)
 			require.NoError(t, err)
@@ -139,16 +179,49 @@ func TestRecogerLasEvalsDelCierre(t *testing.T) {
 			}
 
 			require.NoError(t, err, "el informe queda en gates/evals/<skill>.json")
-			assert.JSONEq(t, string(escrito), string(recogido), "lo recogido es el informe que el trabajo imprimió, sin horas ni marcas")
+			assert.JSONEq(t, string(escrito), string(recogido),
+				"lo recogido es el informe que el trabajo imprimió, sin horas, marcas ni líneas de otra salida")
 		})
 	}
+}
+
+// TestSalidasDeLosPasosQueImprimen fija que los dos pasos del flujo de evals
+// que imprimen en el registro un fichero entre dos marcas —el informe del job,
+// que recoge el cierre de un hito, y la medida del juez, que versiona una
+// persona— llevan su salida de error por la misma tubería que la estándar.
+//
+// El runner lee las dos por separado y las junta en el registro según le
+// llegan. Sin el 2>&1, cuando el guion termina en fallo, la línea con la que
+// make lo dice queda en un punto cualquiera de lo que la salida estándar aún
+// no había entregado: en la medición 1 del cierre de H25, dentro del informe.
+func TestSalidasDeLosPasosQueImprimen(t *testing.T) {
+	t.Parallel()
+
+	const esperado = `make evals SKILL="$SKILL_EVALUADA" 2>&1` + "\n" +
+		`make evals-medir-juez SKILL="$SKILL_EVALUADA" 2>&1`
+
+	flujo, err := leerFichero(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+
+	var ordenes []string
+
+	for linea := range strings.Lines(string(flujo)) {
+		if orden, es := strings.CutPrefix(strings.TrimSpace(linea), "run: "); es && strings.HasPrefix(orden, "make evals") {
+			ordenes = append(ordenes, orden)
+		}
+	}
+
+	assert.Equal(t, esperado, strings.Join(ordenes, "\n"),
+		"los pasos que ejecutan las evals y la medida del juez, en su orden, con las dos salidas por una tubería")
 }
 
 // registroDelTrabajo escribe el registro que `gh run view --log` da de un
 // trabajo de evals: cada línea con el trabajo, el paso y la hora delante, y el
 // informe entre sus dos marcas de texto. Las líneas de marcas llevan además la
-// marca de orden de bytes delante de la hora, como la primera de cada trozo.
-func registroDelTrabajo(informe []string, marcas []int) string {
+// marca de orden de bytes delante de la hora, como la primera de cada trozo, y
+// delante de cada línea de ajenas va una de otra salida: si esa línea empieza un
+// trozo, la marca de orden de bytes la lleva la de otra salida.
+func registroDelTrabajo(informe []string, marcas, ajenas []int) string {
 	const (
 		prefijo = "evals (" + skillDelCierre + ")\tEjecutar las evals\t"
 		hora    = "2026-10-02T05:37:37.6558296Z "
@@ -159,20 +232,36 @@ func registroDelTrabajo(informe []string, marcas []int) string {
 	linea := func(indice int, texto string) {
 		registro.WriteString(prefijo)
 
-		for _, marca := range marcas {
-			if marca == indice {
-				registro.WriteString(marcaDeOrdenDeBytes)
-			}
+		if slices.Contains(marcas, indice) {
+			registro.WriteString(marcaDeOrdenDeBytes)
 		}
 
 		registro.WriteString(hora + texto + "\n")
 	}
 
+	// conLaAjena escribe la línea del informe del índice dado y, si el caso lo
+	// pide, una de otra salida delante, que es entonces la que empieza el trozo.
+	conLaAjena := func(indice int, texto string) {
+		if !slices.Contains(ajenas, indice) {
+			linea(indice, texto)
+
+			return
+		}
+
+		linea(indice, lineaDeOtraSalida)
+		linea(-2, texto)
+	}
+
 	linea(-1, "##[group]Run make evals")
+
+	if slices.Contains(ajenas, -1) {
+		linea(-2, lineaDeOtraSalida)
+	}
+
 	linea(-2, "--- inicio de informe.json ---")
 
 	for indice, texto := range informe {
-		linea(indice, texto)
+		conLaAjena(indice, texto)
 	}
 
 	linea(-2, "--- fin de informe.json ---")
