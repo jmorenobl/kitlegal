@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17, cuyo texto devolvió la herramienta. Del artículo 7 solo da la rúbrica que figura en el índice, y de los límites reglamentarios y de otras normas solo avisa de que existen, sin nombrar precepto ni regla.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta dice que no hay avisos de vigencia y que no ha leído ciertos artículos, y ambas cosas están excluidas. No anuncia pasos, no nombra herramientas ni cuenta el resultado de otras comprobaciones.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

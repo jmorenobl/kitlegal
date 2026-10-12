@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que expone la respuesta procede del artículo 17 devuelto por la herramienta; las menciones al artículo 7 y a la disposición adicional decimoctava repiten remisiones del propio texto sin añadir contenido, y la vigencia consta en los metadatos y notas.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no relata comprobaciones, herramientas ni pasos del asistente; solo expone el contenido, la vigencia y un aviso de carácter informativo.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

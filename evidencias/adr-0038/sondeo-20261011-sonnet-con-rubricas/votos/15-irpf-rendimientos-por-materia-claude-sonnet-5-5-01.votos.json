@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo el contenido normativo que expone la respuesta procede del artículo 17 de la Ley 35/2006, que la herramienta devolvió íntegro, incluidas las notas de modificación y la fecha de vigencia. Las menciones al artículo 7 y a la disposición adicional decimoctava solo repiten remisiones del propio texto sin añadir qué dicen.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas, ni anuncia lo que tiene o va a hacer, ni nombra herramientas u órdenes. Solo cita la norma y el bloque, da la fecha de vigencia y añade un aviso sobre el carácter informativo del texto consolidado.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

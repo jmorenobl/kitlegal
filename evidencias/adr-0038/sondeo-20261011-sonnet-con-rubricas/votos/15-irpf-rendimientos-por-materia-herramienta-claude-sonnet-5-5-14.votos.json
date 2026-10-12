@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone sale del artículo 17, que sí fue devuelto. De los arts. 7, 19 y 20 solo da las rúbricas que figuran en el índice, y de la disposición adicional decimoctava repite la remisión del propio texto; declara que no ha leído los arts. 19 y 20.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia, da fechas de vigencia y avisa de que no ha leído los arts. 19 y 20, todo ello excluido por la rúbrica. No cuenta comprobaciones realizadas ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

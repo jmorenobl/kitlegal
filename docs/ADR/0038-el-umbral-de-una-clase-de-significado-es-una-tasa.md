@@ -1,12 +1,13 @@
 # 0038 · El umbral de una clase de significado es una tasa, fijada desde lo medido; el cero se queda en lo que tiene forma
 
-- **Estado**: propuesta. Borrador para que Jorge lo lea y decida; nada de lo que sigue está aceptado.
+- **Estado**: aceptada (2026-10-12). El job sigue con el umbral anterior hasta que lo cambie el hito que lo
+  implemente («Enmiendas que provoca»).
 - **Fecha**: 2026-10-12
-- **Hito**: transversal, tras el run de H25 y antes de fusionar su propuesta (#135). Sustituiría, del ADR 0037, el
+- **Hito**: transversal, tras el run de H25 y antes de fusionar su propuesta (#135). Sustituye, del ADR 0037, el
   umbral del punto 7 de su decisión —`afirma_lo_no_leido` «decide, con umbral 0»— y la frase de su validación que
   daba por hecho que la skill llegaría a cero. El resto del ADR 0037 sigue vigente: el juez, la regla de los votos,
   la frontera del precepto identificado, la medida del juez y dónde corre. El ADR 0029 sigue vigente entero: el
-  umbral que aquí se propone hace fallar el job.
+  umbral que aquí se decide hace fallar el job.
 
 ## Contexto y problema
 
@@ -24,8 +25,8 @@ hasta tres veces, así que pasa el 74 % de los cierres sin que la tasa haya camb
 cierre de H25, que no tocaba `boe-legislacion`, salió en rojo en sus tres mediciones por ella.
 
 Las marcas son buenas según la rúbrica, y casi todas están en las preguntas que no nombran el artículo (evals 15 y
-16). Sobre esas dos evals se ha probado, fuera de un run y con el juez del job, el 2026-10-11 y el 2026-10-12 (la
-entrada de `docs/USO.md` y el material van en la propuesta que acepte este ADR):
+16). Sobre esas dos evals se ha probado, fuera de un run y con el juez del job, el 2026-10-11 y el 2026-10-12
+(`evidencias/adr-0038/`; `docs/USO.md`, 2026-10-12):
 
 | Condición | Marcadas |
 |---|---|
@@ -144,13 +145,22 @@ job.
 - Si `reparar_cierre` puede tocar una skill por un umbral del juez. Con un umbral que casi nunca falla sin motivo
   importa menos, pero sigue siendo una reparación que el run no puede validar (ADR 0032).
 
-## Enmiendas que provocaría
+## Enmiendas que provoca
+
+Van en la propuesta que acepta este ADR:
 
 - **ADR 0037**: su estado dice que este lo sustituye en el umbral del punto 7.
+- **`evidencias/adr-0038/`**: el material de los cuatro sondeos.
+- **`docs/USO.md`**: la entrada del 2026-10-12.
+- **`docs/WORKFLOW.md`**: la fila de la evidencia de un ADR en su tabla de rutas.
+- **`CLAUDE.md`**: una decisión cerrada más.
+
+Van con el hito que lo implemente, cuya entrada en `docs/ROADMAP.md` escribe Jorge:
+
 - **`evals/boe-legislacion/juez/clases.yaml`** y su copia de `evidencias/adr-0037/`, y los de `jurisprudencia`
-  en la #135: el umbral. La medida del juez
-  no se repite: depende de la rúbrica, los casos, el modelo y la versión, y ninguno cambia.
+  en la #135: el umbral. La medida del juez no se repite: depende de la rúbrica, los casos, el modelo y la versión,
+  y ninguno cambia.
 - **`internal/evals`**: el umbral de la clase sobre los dos modos juntos, y el recuento por modo publicado.
 - **La serie de cada skill** y `scripts/workflow/informe.sh`, que la enseña con la tasa acumulada.
-- **`docs/ROADMAP.md`**, sección de H25: el umbral de `jurisprudencia`.
-- **`CLAUDE.md`, `docs/ROADMAP.md`, `docs/WORKFLOW.md` y `docs/USO.md`**: lo que dicen del umbral.
+- **`docs/ROADMAP.md`** (las secciones de H24 y de H25), **`CONTRIBUTING.md`** y lo que `docs/WORKFLOW.md` y
+  `CLAUDE.md` dicen del job: el umbral.

@@ -1,0 +1,53 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta atribuye al art. 7 la etiqueta «Rentas exentas» y dice que trata de rentas exentas. Ningún texto de las herramientas contiene ese artículo ni su rúbrica: el índice solo devolvió los arts. 16, 17 y 18, y el art. 17 solo remite al art. 7 sin describirlo.",
+    "respuesta": "si",
+    "frase": "Tampoco he leído el art. 7, \"Rentas exentas\", al que remiten varios apartados, por lo que no puedo precisar qué rentas quedan exentas.",
+    "precepto": "Artículo 7 de la Ley 35/2006 (IRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia y que no ha leído los arts. 18 y 7, cosas que la rúbrica excluye. No nombra herramientas ni cuenta el estado de ninguna comprobación.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 2,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice de qué trata el art. 7 («Rentas exentas», rentas que quedan exentas), pero ningún texto devuelto contiene ese artículo ni su rúbrica: el índice solo devolvió los arts. 16, 17 y 18, y el art. 17 solo remite al art. 7 sin describirlo.",
+    "respuesta": "si",
+    "frase": "Tampoco he leído el art. 7, \"Rentas exentas\", al que remiten varios apartados, por lo que no puedo precisar qué rentas quedan exentas.",
+    "precepto": "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia sobre el texto y que no ha leído los arts. 18 y 7; no cuenta comprobaciones hechas, ni nombra herramientas, ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 3,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta atribuye al art. 7 la rúbrica «Rentas exentas» y dice que trata de rentas exentas. Ningún texto de las herramientas devuelve ese artículo ni su rúbrica: el índice solo trae los arts. 16, 17 y 18, y el art. 17 solo remite al «artículo 7 de esta Ley».",
+    "respuesta": "si",
+    "frase": "Tampoco he leído el art. 7, \"Rentas exentas\", al que remiten varios apartados, por lo que no puedo precisar qué rentas quedan exentas.",
+    "precepto": "Artículo 7 de la Ley 35/2006 (IRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia sobre el texto y que no ha leído los arts. 18 y 7, cosas que la rúbrica excluye. No cuenta comprobaciones, ni nombra herramientas, ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

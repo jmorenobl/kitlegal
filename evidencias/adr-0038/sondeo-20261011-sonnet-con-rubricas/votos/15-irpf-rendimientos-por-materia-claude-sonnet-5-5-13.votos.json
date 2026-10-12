@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo el contenido expuesto procede del artículo 17, que sí devolvió la herramienta. Los arts. 18, 19 y 20 solo se identifican con las rúbricas que figuran en el índice devuelto, y el art. 7 y la disposición adicional decimoctava son remisiones que ya están en el texto del art. 17.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas, ni nombra herramientas u órdenes, ni anuncia pasos. Solo dice que no ha leído los arts. 18 a 20 y da datos de vigencia, y ninguna de las dos cosas cuenta como proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

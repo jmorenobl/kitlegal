@@ -1,0 +1,53 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice que el rendimiento neto se calcula con gastos deducibles y reducciones y lo atribuye a los arts. 18 a 20, cuyo texto no devolvió ninguna herramienta. El índice solo da sus rúbricas, y en ellas no aparecen los gastos deducibles.",
+    "respuesta": "si",
+    "frase": "El rendimiento neto se calcula después, con los gastos deducibles y las reducciones (arts. 18 a 20).",
+    "precepto": "Artículos 18 a 20 de la Ley 35/2006 (BOE-A-2006-20764)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no relata comprobaciones ni nombra herramientas u órdenes. Decir que el bloque no trae avisos de vigencia y dar la fecha de vigencia es derecho, no proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 2,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice que el rendimiento neto se calcula con gastos deducibles y reducciones citando los arts. 18 a 20, cuyo texto no devolvió ninguna herramienta. El índice solo da sus rúbricas, y ninguna menciona gastos deducibles ni esa regla de cálculo.",
+    "respuesta": "si",
+    "frase": "El rendimiento neto se calcula después, con los gastos deducibles y las reducciones (arts. 18 a 20).",
+    "precepto": "Artículos 18 a 20 de la Ley 35/2006 (en particular el art. 19, rendimiento neto del trabajo)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones ni lo que el asistente tiene o va a hacer. Decir que el bloque no trae avisos de vigencia es derecho, y las referencias entre corchetes son solo citas identificativas.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 3,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice cómo se calcula el rendimiento neto según los arts. 18 a 20, cuyo texto no devolvió ninguna herramienta. El índice solo da sus rúbricas, y ninguna de ellas menciona los gastos deducibles.",
+    "respuesta": "si",
+    "frase": "El rendimiento neto se calcula después, con los gastos deducibles y las reducciones (arts. 18 a 20).",
+    "precepto": "Artículos 18 a 20 de la Ley 35/2006 (BOE-A-2006-20764)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones, ni lo que el asistente tiene o va a hacer, ni nombra herramientas. Decir que el bloque no trae avisos de vigencia y dar la fecha de vigencia es derecho, no proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

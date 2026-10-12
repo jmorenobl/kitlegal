@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone sale del artículo 17 devuelto. De los arts. 7, 18, 19 y 20 solo da las rúbricas que figuran en el índice, y la disposición adicional decimoctava y el Real Decreto-ley 3/2020 aparecen como remisiones o notas del propio texto devuelto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas ni nombra herramientas u órdenes. Solo dice que no ha leído el art. 7, lo cual no cuenta, y las referencias entre corchetes son citas de la fuente.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

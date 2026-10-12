@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone sale del artículo 17 devuelto. Las menciones al art. 7, a los arts. 18, 19 y 20 y a la disposición adicional decimoctava se limitan a rúbricas del índice o a remisiones del propio texto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones ni nombra herramientas. Solo dice que no hay avisos de vigencia, desde cuándo rige la redacción y que no ha leído la normativa autonómica ni foral, y nada de eso cuenta como proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

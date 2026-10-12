@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone sale del artículo 17, que sí devolvió la herramienta. De los arts. 18 a 20 solo da las rúbricas que figuran en el índice, y las menciones al art. 7 y a la disposición adicional decimoctava repiten remisiones del propio texto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia, que no ha leído los arts. 18 a 20 y cita el identificador de la norma. No cuenta el resultado de ninguna comprobación ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

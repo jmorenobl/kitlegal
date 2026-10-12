@@ -1,0 +1,53 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta atribuye a los arts. 18 y 19 la materia de los gastos deducibles. Ninguna herramienta devolvió el texto de esos artículos, y sus rúbricas en el índice solo hablan de porcentajes de reducción y de rendimiento neto.",
+    "respuesta": "si",
+    "frase": "Para el rendimiento neto del trabajo, las reducciones y los gastos deducibles hay que leer los arts. 18 y 19, \"Porcentajes de reducción aplicables a determinados rendimientos del trabajo\" y \"Rendimiento neto del trabajo\", que no he leído.",
+    "precepto": "Arts. 18 y 19 de la Ley 35/2006 (LIRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta expone el contenido del art. 17 y su vigencia, y solo dice que no ha leído los arts. 18 y 19, lo que no cuenta como proceso. No nombra herramientas ni cuenta el estado de ninguna comprobación.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 2,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "El texto del art. 17 sí fue devuelto y las rúbricas de los arts. 18 y 19 están en el índice. Pero la respuesta añade que esos artículos tratan de los «gastos deducibles», etiqueta que no figura en sus rúbricas ni en ningún texto devuelto sobre ellos.",
+    "respuesta": "si",
+    "frase": "Para el rendimiento neto del trabajo, las reducciones y los gastos deducibles hay que leer los arts. 18 y 19",
+    "precepto": "Arts. 18 y 19 de la Ley 35/2006 (LIRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas, ni nombra herramientas, ni anuncia pasos. Solo da la vigencia y dice que no ha leído los arts. 18 y 19, lo que no cuenta.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 3,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice que los arts. 18 y 19 tratan de los gastos deducibles. De esos artículos solo se devolvió la rúbrica en el índice («Porcentajes de reducción…» y «Rendimiento neto del trabajo»), que no menciona gastos deducibles, y su texto no está en ninguna herramienta.",
+    "respuesta": "si",
+    "frase": "Para el rendimiento neto del trabajo, las reducciones y los gastos deducibles hay que leer los arts. 18 y 19",
+    "precepto": "Arts. 18 y 19 de la Ley 35/2006 (BOE-A-2006-20764)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo expone el contenido del art. 17, su vigencia y la norma modificadora, y avisa de que no ha leído los arts. 18 y 19. No cuenta comprobaciones ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]
