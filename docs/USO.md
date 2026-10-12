@@ -10,6 +10,53 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-12 · Cuatro sondeos sobre las preguntas por materia: ni más material, ni un repaso, ni Opus llevan a cero, y el umbral pasa a ser una tasa
+
+- **Qué se pidió.** Saber qué hacer con `boe-legislacion` tras el cierre en rojo de H25 (#135): si hay un arreglo
+  de la skill que lleve `afirma_lo_no_leido` a cero, y si el defecto es de Sonnet, que es el modelo que decide. Los
+  sondeos los lanzó el agente a petición de Jorge, fuera de un run, con `make evals-sondeo` y el juez del job.
+- **Qué pasó.** Cuatro sondeos sobre las evals que preguntan por materia, con 15 repeticiones por modo
+  (`evidencias/adr-0038/`):
+
+  | Condición | Evals | Marcadas |
+  |---|---|---|
+  | `claude-sonnet-5-5`, skill de `main` | 15 | 4 de 30 |
+  | `claude-sonnet-5-5`, con la rúbrica de cada artículo en el índice | 15 | 6 de 30 |
+  | `claude-opus-5-5`, skill de `main` | 15 y 16 | 3 de 60 |
+  | `claude-sonnet-5-5`, con un paso de repaso antes de responder | 15 y 16 | 2 de 60 |
+
+  - **La rúbrica en el índice sirve para lo que la tiene y da más de qué hablar.** De las 19 respuestas que dicen
+    de qué trata el art. 7, 17 lo sacan del índice y el juez las acepta. Pero 16 orientan hacia los arts. 18 a 20,
+    que sin rúbricas no nombraba ninguna, y cuatro añaden de memoria «gastos deducibles».
+  - **Opus también falla.** Sus tres marcas: «el texto remite en varios puntos al artículo 7 de la Ley, que no he
+    consultado», detrás de «no dice si un rendimiento está exento»; «un capítulo con más principios de la potestad
+    sancionadora (artículos 26 a 31), que no he leído», con un índice que da «CAPÍTULO III» sin su título; y una
+    regla sin número, «Las leyes autonómicas y las ordenanzas locales pueden tipificar infracciones dentro de sus
+    competencias», que no está en nada de lo leído.
+  - **Con el repaso, las dos marcas son de las más leves**: «El texto leído no dice qué contiene ese artículo, así
+    que no puedo precisar qué parte de esas rentas queda exenta» y «por ejemplo las exenciones del art. 7».
+- **Qué falló.**
+  - **Ninguna condición se acerca a cero**, y con 30 o 60 respuestas no se puede ordenar una frente a otra.
+  - **No se sabe si el repaso ocurrió.** El transcript dice si hay un bloque de razonamiento justo antes de la
+    respuesta —28 de 60 sesiones; sin el paso, 7 de 30—, pero no guarda su texto.
+  - **Una propuesta descartada antes de medirla**: que el binario sacara del borrador de la respuesta los artículos
+    nombrados y los comparase con los bloques leídos. No ve lo dicho sin una forma reconocible —la regla sin
+    número de Opus— y no distingue una remisión de una glosa: es la lista de expresiones con otro nombre.
+- **Lo que se vio y ningún control mide.**
+  - La regla sin número de Opus puede venir de la propia skill, que pide señalar la variación autonómica. Sin
+    comprobar.
+  - En el modo orden, las sesiones del sondeo filtran el índice con `python3`, que el runner del job no tiene.
+  - El cierre de un hito mide hasta tres veces: con una tasa del 0,9 % y el umbral en 0, pasa el 74 % de los
+    cierres sin que la tasa cambie.
+- **Qué faltó.** La línea de base sin la skill, con las mismas preguntas y el mismo modelo. Leer las respuestas que
+  el juez no marcó en el sondeo con Opus, donde juez y juzgado son el mismo modelo. Y el sondeo sin rúbricas del
+  2026-10-11 no conserva sus votos, solo el recuento.
+- **Qué se hizo.** ADR 0038: el umbral de una clase que juzga el juez es una tasa fijada desde lo medido, que solo
+  se estrecha, y el cero se queda en lo que comprueba un guion. `boe-legislacion`, como mucho 3 marcadas de 108;
+  `jurisprudencia`, como mucho 1 de 60; y una serie versionada con una fila por cierre. Jorge lo acepta el
+  2026-10-12, con los números que pidió al agente que eligiera. El job sigue con el umbral anterior hasta que lo
+  cambie su hito, y la #135 se mide de nuevo entonces. La #137, que recoge el informe de evals aunque el trabajo
+  falle, está fusionada.
 ### 2026-10-10 · El cierre de H25: `jurisprudencia` cumple todo lo suyo, y el cierre queda en rojo por `boe-legislacion`, que el hito no tocaba
 
 - **Qué se pidió.** Lanzar H25 (run `d0eb1f35`, propuesta #135) y, de la parte humana de su aceptación: la medida de

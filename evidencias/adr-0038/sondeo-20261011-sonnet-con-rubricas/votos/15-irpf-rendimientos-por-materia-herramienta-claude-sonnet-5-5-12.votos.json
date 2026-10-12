@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17, que sí devolvió la herramienta. Los arts. 7, 42 y 43 solo se mencionan con etiquetas que figuran en el índice, y la respuesta dice que no los ha leído.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas ni nombra herramientas, y no anuncia pasos. Solo dice que no ha leído otros artículos, lo cual no cuenta, y las referencias entre corchetes son citas de la norma.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

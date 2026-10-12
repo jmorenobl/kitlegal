@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17 de la Ley 35/2006, cuyo texto devolvió la herramienta. Las menciones al art. 7, al art. 51 del Estatuto de los Trabajadores y a la disposición adicional decimoctava repiten remisiones del propio texto, y la frase final solo avisa de que el rendimiento neto se regula en otros artículos sin nombrarlos ni dar la regla.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas, no anuncia pasos ni nombra herramientas. Decir que el bloque no trae avisos de vigencia y desde cuándo rige la redacción es derecho, no proceso.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

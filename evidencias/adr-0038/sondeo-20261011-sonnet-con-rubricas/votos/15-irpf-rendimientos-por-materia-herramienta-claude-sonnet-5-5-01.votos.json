@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17, que sí fue devuelto. La etiqueta del artículo 7 como «rentas exentas» está en la rúbrica del índice, y la disposición adicional decimoctava solo se cita como remisión ya presente en el texto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo indica que no hay avisos de vigencia sobre el texto y que la normativa foral no está en la consulta, que son supuestos excluidos. No narra comprobaciones, no nombra herramientas ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

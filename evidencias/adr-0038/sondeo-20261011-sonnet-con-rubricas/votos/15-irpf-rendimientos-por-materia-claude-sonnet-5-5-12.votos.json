@@ -1,0 +1,53 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "El texto devuelto del art. 17 solo dice «sin perjuicio de lo dispuesto en el artículo 7 de esta Ley». La respuesta cambia esa remisión por una descripción del art. 7 (rentas exentas), cuyo texto no devolvió ninguna herramienta.",
+    "respuesta": "si",
+    "frase": "Esto es así sin perjuicio de las rentas exentas del art. 7.",
+    "precepto": "Artículo 7 de la Ley 35/2006 (LIRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia y que no ha leído el art. 19, y ambas cosas están excluidas. No cuenta comprobaciones hechas, ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 2,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "El texto devuelto del art. 17 solo dice «sin perjuicio de lo dispuesto en el artículo 7 de esta Ley». La respuesta cambia esa remisión por una descripción de lo remitido (rentas exentas), y ninguna herramienta devolvió el texto ni la rúbrica del art. 7.",
+    "respuesta": "si",
+    "frase": "Esto es así sin perjuicio de las rentas exentas del art. 7.",
+    "precepto": "Artículo 7 de la Ley 35/2006 (LIRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia, que no ha leído el art. 19 y da citas con identificadores. No cuenta comprobaciones hechas, ni nombra herramientas, ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 3,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice que el art. 7 trata de las «rentas exentas». El texto devuelto del art. 17 solo remite a «lo dispuesto en el artículo 7 de esta Ley», y ninguna herramienta devolvió el art. 7 ni esa etiqueta.",
+    "respuesta": "si",
+    "frase": "Esto es así sin perjuicio de las rentas exentas del art. 7.",
+    "precepto": "Artículo 7 de la Ley 35/2006 (LIRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que el bloque no trae avisos de vigencia y que no ha leído el art. 19, y ambas cosas quedan excluidas. No cuenta comprobaciones ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

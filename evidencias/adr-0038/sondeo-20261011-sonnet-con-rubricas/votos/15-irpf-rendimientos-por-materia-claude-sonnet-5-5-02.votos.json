@@ -1,0 +1,53 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice de qué tratan los arts. 18, 19 y 20, cuyo texto no devolvió ninguna herramienta. El índice solo da sus rúbricas (reducciones y rendimiento neto), y la etiqueta «gastos deducibles» no figura en ninguna de ellas.",
+    "respuesta": "si",
+    "frase": "Los arts. 18, 19 y 20 de la misma ley regulan las reducciones, los gastos deducibles y el rendimiento neto.",
+    "precepto": "Artículos 18, 19 y 20 de la Ley 35/2006 (en particular, la atribución de «gastos deducibles»)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo da la vigencia, dice que no hay avisos de derogación ni de desactualización y que no ha leído los arts. 18 a 20. No cuenta comprobaciones ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 2,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice de qué tratan los arts. 18, 19 y 20, cuyo texto no devolvió ninguna herramienta. El índice solo da sus rúbricas (porcentajes de reducción, rendimiento neto, reducción por obtención de rendimientos), y la etiqueta «gastos deducibles» no aparece en ellas.",
+    "respuesta": "si",
+    "frase": "Los arts. 18, 19 y 20 de la misma ley regulan las reducciones, los gastos deducibles y el rendimiento neto.",
+    "precepto": "Artículos 18, 19 y 20 de la Ley 35/2006 (en particular el art. 19, al que se atribuyen los gastos deducibles)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo da la fecha de vigencia y la norma modificadora, dice que no hay avisos de derogación y que no ha leído los arts. 18 a 20. No cuenta comprobaciones, ni nombra herramientas, ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 3,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice de qué tratan los arts. 18, 19 y 20, cuyo texto no devolvió ninguna herramienta. El índice solo da sus rúbricas (porcentajes de reducción, rendimiento neto, reducción por obtención de rendimientos), y la etiqueta «gastos deducibles» no aparece en ellas.",
+    "respuesta": "si",
+    "frase": "Los arts. 18, 19 y 20 de la misma ley regulan las reducciones, los gastos deducibles y el rendimiento neto.",
+    "precepto": "Artículos 18, 19 y 20 de la Ley 35/2006 (en particular, la atribución de «gastos deducibles»)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo da la vigencia, dice que no hay avisos de derogación ni desactualización y advierte de que no ha leído otros artículos. No cuenta comprobaciones hechas ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

@@ -1,0 +1,812 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "9b3c39537ebf7e3ac82364c7c06b2c31666a779a2b2f810462323ddf00a4602e",
+      "bytes": 3831,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "validación del ADR 0038"
+    },
+    {
+      "fichero": "parches/arnes-del-sondeo.diff",
+      "sha256": "a96d626139dd1d69bdcccfa6639f733a15a90866d4f70e875e3471a8a66b99b8",
+      "bytes": 4366,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/indice-con-rubricas.diff",
+      "sha256": "8d3448107c51c855e0ddc3c1daeb9be9dd4f456b677fc3e37fffd742f75e5a2e",
+      "bytes": 43791,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/paso-de-repaso.diff",
+      "sha256": "1ee07361921a0cc13f1dae4f8ae29302fddb791f96d250048d49b7768d5b76ea",
+      "bytes": 2213,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/votos-del-sondeo-20261011.py",
+      "sha256": "3151c12d9b2ed417c708e85159dcae54013b36616d0d3bb48edc3b963276771a",
+      "bytes": 1833,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/salida.txt",
+      "sha256": "d24a7ac5e395834ccaa145199e5597a5d5c1200b97c8d523a8409dd48a7f28b9",
+      "bytes": 1007,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/salida.txt",
+      "sha256": "290bea2a651b1d50b26fcc7fbca23ddd3df538888baf59494424c6ecab090095",
+      "bytes": 1007,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01.txt",
+      "sha256": "d0240be80113923e14161fbc481cfae97fd6a1f752acf662ef258b622658f522",
+      "bytes": 5135,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02.txt",
+      "sha256": "52f743d3fb6eff310813fb075b91058c45807f361e4ad686011b53de2012295f",
+      "bytes": 4468,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03.txt",
+      "sha256": "2f364c93ac959ba77fa4bc9a99d8f4cb1adf8e283f05892fcd536299408e3f98",
+      "bytes": 4823,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-04.txt",
+      "sha256": "31876b5e3ed8749812590b7a7321ccd82032a3bf36e617d74206a16374a23f2f",
+      "bytes": 4669,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-05.txt",
+      "sha256": "07dbc4039f2ed174dcdc10eed802146be6ba7232f490156631e20b913df1d4ae",
+      "bytes": 5266,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-06.txt",
+      "sha256": "103170858682092834bc1f0b12c2921be5e9a3d931a170404e0ac84124a74dc3",
+      "bytes": 4216,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-07.txt",
+      "sha256": "eb2fedf8bd51f17df7fdc0fac25dd0b6345480d31d1761f5faf950bfb5add6fd",
+      "bytes": 4824,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-08.txt",
+      "sha256": "efae403d602ba490072b31c10801b9c268ba46627011df749a3d7ba817be5851",
+      "bytes": 4998,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-09.txt",
+      "sha256": "5969250c06c94bd746f912954178bda8d5ac03f83dd44678ef63527d4a5b776a",
+      "bytes": 5404,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-10.txt",
+      "sha256": "4924fdd71470c2286c96ce8638fb1a5bb275ba2ca85c8aaeb6f91504fa365029",
+      "bytes": 4279,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-11.txt",
+      "sha256": "a84cc2df264997a098659862e80054e16c2274fe58ff8eb70b58550f13f90a1e",
+      "bytes": 4750,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-12.txt",
+      "sha256": "f5ce2037839b0ad0580cf9ffef609ca836fdc87f3544ff2a78001e2b2e91bec1",
+      "bytes": 4831,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-13.txt",
+      "sha256": "a892eac6d79bb589256061d47ab8f5241b84f9fa8cf917284b579df3f3f135f7",
+      "bytes": 4451,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-14.txt",
+      "sha256": "7739aaddc275f7aa44dbc2dcdb4a16a705256fa404b9c352411aafd2aa9d5192",
+      "bytes": 4999,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-15.txt",
+      "sha256": "8dc63e1c4723b5eaec973a16c41ebbbc0756d7ae38dedbf0b796ca32ad65860a",
+      "bytes": 4590,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01.txt",
+      "sha256": "e01e1fdb2ab083b1c8c42e8bcdd173d0264566201fdabc789d15f5fa76d439eb",
+      "bytes": 4936,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02.txt",
+      "sha256": "fcf139b6d846df6e041a174d09ec7963a3ce8da49928e47257d1e8fe63fca6a7",
+      "bytes": 4422,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03.txt",
+      "sha256": "e86d93e467d5fc7182709ffa45c251a4151512ca85dabe3d164ee64b31451fdb",
+      "bytes": 4308,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-04.txt",
+      "sha256": "19052b5d5d72484306752ed1e9ef28e4dbe1811a3b20c2372f38505ebc7d877f",
+      "bytes": 4888,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-05.txt",
+      "sha256": "0c541bc04b5a238bb39c52e239f1fbe0626edc2e25240aa589ac8bd50e661bce",
+      "bytes": 5237,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-06.txt",
+      "sha256": "1cdfe9cb63803df044797e1fa46c8a3fad5a535fd266fd19c0afce881685b50b",
+      "bytes": 5556,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-07.txt",
+      "sha256": "3e44cb50d18ba862468f1944c18b6ee93e89a7bdb896022196b9bb89d3c4aed0",
+      "bytes": 4477,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-08.txt",
+      "sha256": "c04b68f4a9ac6c284086fe81f2b527397e7895cd8c242c589868061811677492",
+      "bytes": 4359,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-09.txt",
+      "sha256": "c1c6e11a89800f410c35080d4204667c094712f3c2fbe718a1875d8eb219ef6b",
+      "bytes": 4835,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-10.txt",
+      "sha256": "a80c90dcddf3de3299a8d933b418d9da4a85e0ff802c65936af94f80dd154f17",
+      "bytes": 4993,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-11.txt",
+      "sha256": "3a31abe7a1738fe9097321c7ec37e8d092be2b7ac99cc9477b3a1877543c74b3",
+      "bytes": 4642,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-12.txt",
+      "sha256": "725541d2dde5a3b63bdbacf1f43b28ba08e5ce1d23588776452ae6a5b9d5e7c8",
+      "bytes": 5019,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-13.txt",
+      "sha256": "badec8de82b1b5772d8ccfe62098c1c34386c7820249807344445de4e3b94f1a",
+      "bytes": 5144,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-14.txt",
+      "sha256": "e667dccae82364e0de552274c4e831f2699882f67367a50fd1d864b1954fba73",
+      "bytes": 4515,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-15.txt",
+      "sha256": "337e96462150362540f91995ffadacec6308af28a15697e0cc6344a6565efe6e",
+      "bytes": 4352,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01.votos.json",
+      "sha256": "f44eb93dcd5f269ceca41146d5e6f79554a3c0749f48199168526f3082c66e5e",
+      "bytes": 833,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02.votos.json",
+      "sha256": "11617604134010911909c81c8c6686f4398a23b3a8abf66cbf32dc5912b2bac6",
+      "bytes": 2794,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03.votos.json",
+      "sha256": "cb6ab249c1dc024e65d65dd6e03ce06420b8e33c97e47eb8ec657c8d39f5fb87",
+      "bytes": 727,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-04.votos.json",
+      "sha256": "2e4fa5784d88207b67ad40e30eb2f4ec66ceb5e866078ebcce566993121dec1f",
+      "bytes": 663,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-05.votos.json",
+      "sha256": "b164bf011d1300c1e7f13e96c5fdf268e929dd6f2c37f9b924d101d5c74d4f8b",
+      "bytes": 784,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-06.votos.json",
+      "sha256": "12410c05d00c5293a431d7055c931c21ce9c36f9c0fae153a6aeef1cb934197d",
+      "bytes": 766,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-07.votos.json",
+      "sha256": "596811e1d4829b95d2e404e66833e385230ba812be2ed061a89380886555c9bf",
+      "bytes": 2671,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-08.votos.json",
+      "sha256": "d88af481ad93d7fb98b24cfb26e3bdfd8694ecf0d5a9f9d6f15b3f2bc5fa6509",
+      "bytes": 789,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-09.votos.json",
+      "sha256": "eb5864d1e1dd2bbfe569273b62bde7668f17e130aaaccb913f371acc4c6e3ba5",
+      "bytes": 763,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-10.votos.json",
+      "sha256": "51847cb9c3cf73e10fbca87bcaf24181617d96d45a7a9c8c55d3a198aba66e35",
+      "bytes": 668,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-11.votos.json",
+      "sha256": "c75667e5a8222279a1f93cee9adca3231cf779b95822e8b9ad9c95755b812b06",
+      "bytes": 719,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-12.votos.json",
+      "sha256": "9be314aa09b2129764553e4184f3e6fa30b4105263c5c4892badb865aeb1d61e",
+      "bytes": 2320,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-13.votos.json",
+      "sha256": "0bedf058ad5242d8821a4ffcbabf2c5d89eb2b2720a827647d6da9a7502afd36",
+      "bytes": 759,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-14.votos.json",
+      "sha256": "221faa67ac9fa89372038d8d671863627f90c8722abfd93ff1abef947bdcc183",
+      "bytes": 2697,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-15.votos.json",
+      "sha256": "6f041c944db05b928a94493ec3b25f3a93eafd5bc24012152988d8a8d74b56fc",
+      "bytes": 2798,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01.votos.json",
+      "sha256": "1457f65ce6badbdf284f3f14d060d730dfe7d1ff56e89a37521f6f3816a060ac",
+      "bytes": 728,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02.votos.json",
+      "sha256": "596c8cfbb06cffa2eaa372c4b99d4047774f887ecd28aff0f366b67ff80444ab",
+      "bytes": 767,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03.votos.json",
+      "sha256": "b7128d614058c570c5c9c8527dc75c888158d6fc0e667801ba8722e8676b2ec9",
+      "bytes": 686,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-04.votos.json",
+      "sha256": "7159165338379893d7fb25f1a15e255770d460177958f5fc83d9bf831e046f9e",
+      "bytes": 668,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-05.votos.json",
+      "sha256": "75a06c751080843653fdaa73004127df1bbe7d907862cbcc7265d127b3a519b8",
+      "bytes": 756,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-06.votos.json",
+      "sha256": "ca8935f4834e2ef760b941b2d8070943bd1d8d1fb89de949cd8a1a0dd7272713",
+      "bytes": 825,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-07.votos.json",
+      "sha256": "62d7c41db8286fdf0980fdd4c2493097ba2852067a3b1fd89a06546f971ab544",
+      "bytes": 711,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-08.votos.json",
+      "sha256": "c3dfb08188d581fbce293aed903132e66e144a341860ed002d80df8ad12a822a",
+      "bytes": 653,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-09.votos.json",
+      "sha256": "29cd2ee44de97ee4991241d0d43c742e110c8bac8b970bce9de00ae960b9a78b",
+      "bytes": 2563,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-10.votos.json",
+      "sha256": "91df069714fa55312b8869bed69ffb902554d1ce08338b0b302a16e891c97816",
+      "bytes": 728,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-11.votos.json",
+      "sha256": "672c5920355685caf995a05e05ec2186d7dea0542b08f361d22bd62285e9b6d2",
+      "bytes": 702,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-12.votos.json",
+      "sha256": "8f74d11c449a1102345d79cd7135ce5c868ace95bc3603daea40afd7c9c6749c",
+      "bytes": 678,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-13.votos.json",
+      "sha256": "6f0b03475bdb2ffee58fac0617842c30ba5f99acecad8858b291874ca25d71bd",
+      "bytes": 685,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-14.votos.json",
+      "sha256": "4d5cb273e80b2abdecd38580ae14719518b049c605aeed06ee3d4a9d972fcba1",
+      "bytes": 759,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet-con-rubricas/votos/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-15.votos.json",
+      "sha256": "3495ced4c5879ce3689158615b95d990d78cc3608b6dac083eeba1258fb32012",
+      "bytes": 609,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la rúbrica de cada artículo en el índice"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01.txt",
+      "sha256": "aae0114fd31244c1ccc2cf4463eaeb8de5ac6762610c75389bf364c63ab95419",
+      "bytes": 4601,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02.txt",
+      "sha256": "a5695361ba842fd1be03f68f1107062d5db93bb1375e69716b3905cbde526d0e",
+      "bytes": 4429,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03.txt",
+      "sha256": "bd438238eecd964d8e86629628ae15bce5826346d076bc880c8697ff21493317",
+      "bytes": 4462,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-04.txt",
+      "sha256": "54611c1cc4e762975120d6d0087220fe1c47c36234e4d962587d49163bd9654d",
+      "bytes": 5015,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-05.txt",
+      "sha256": "e6362602739ec096d2517a0f17a46bf472544f0b213b18959ab33d10e734e6ce",
+      "bytes": 4582,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-06.txt",
+      "sha256": "7386996908c1cc59fe5cb44ca5af1b5a954be13bc895f200c2e226c60ae0e2b3",
+      "bytes": 4363,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-07.txt",
+      "sha256": "5accd7987ec372ed8b1caf6343af4e91eadb443bbf7d1ace77498f48f4016d84",
+      "bytes": 4543,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-08.txt",
+      "sha256": "31e3c34918e79f51a19b97fbd3339b1b40b316f4d8ba4154ed185382ba5dabfd",
+      "bytes": 4829,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-09.txt",
+      "sha256": "57be9b3afabcbd0264dbf0604760b931bfb14cea00c7b3b796c6ebf7132af651",
+      "bytes": 5024,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-10.txt",
+      "sha256": "6ef8c9d19d051e9d87a0d7efeb51db7bc978f533148c960099ad2abfeebb9471",
+      "bytes": 4728,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-11.txt",
+      "sha256": "a249cea1b2aaddcce546e5e393723546ed1afdeef37e9a3773850c3b938be2fc",
+      "bytes": 4766,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-12.txt",
+      "sha256": "6af03d277c453f426d46bbaeb81d4604246a1a51bccb03b99d76726c07e385db",
+      "bytes": 5321,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-13.txt",
+      "sha256": "b22cb22e69aa19b3942a9d05b53f540837f577776cb8ee3b142b3df13b628579",
+      "bytes": 5326,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-14.txt",
+      "sha256": "83dc35f976fa5b7d8d0e6dccfe37098935d19cff5d02cfafc6c22e123cabc413",
+      "bytes": 4589,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-claude-sonnet-5-5-15.txt",
+      "sha256": "a3d78f3d8719dfcc0f13f3139ba988f76fb4fadc4e50468de27515f69d52ad2e",
+      "bytes": 4836,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01.txt",
+      "sha256": "9208a2c2747b27ce8212e84c68148b5ab52514bd182c578290af4e6a27b1f32c",
+      "bytes": 4330,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02.txt",
+      "sha256": "924c4d9e89f19e573b4f54d9165d405fab29835b2f1299f857fa15fedeaafceb",
+      "bytes": 5078,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03.txt",
+      "sha256": "4116761eadde60099cdfb97bfdd659a1978b1fb1dd3ab190fd08739e23bd8940",
+      "bytes": 4390,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-04.txt",
+      "sha256": "64e96f91de73de314da22e2b3588219888513dcbd1ea640346f31eae7c2513a9",
+      "bytes": 4899,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-05.txt",
+      "sha256": "7d8e79578e5b2b3f68cdb7c84765e1823b7bf3f746c9488d7d3c24b3ea8e797f",
+      "bytes": 4866,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-06.txt",
+      "sha256": "f0e863e6a7143b3a2b6204804d2e9c833edc8cd4fb429ca0b8583f18888d6ad5",
+      "bytes": 4844,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-07.txt",
+      "sha256": "e2efd7dc7a69a4e763ec249c3af4ccb39581cdae1be5c643d60ba8ea2d0a4fff",
+      "bytes": 5586,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-08.txt",
+      "sha256": "43cf971daa5c80e7bf6d382e99014b436ec3c16d14494caa9f5475ec5c2dd5ae",
+      "bytes": 4762,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-09.txt",
+      "sha256": "ae5f1da99daa07d408e9db29b215ed3b393ca8c5afc2a32a932f558f886a5a48",
+      "bytes": 4721,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-10.txt",
+      "sha256": "e53e0f53d2a75d465ca77824b8b9f8e1e3b2e3285e375c7c718cbcd071751873",
+      "bytes": 5094,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-11.txt",
+      "sha256": "19ad1c4a126aafd38247afe0e03cf0be17d46a6e3c84cb582c379c99b76ec768",
+      "bytes": 4899,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-12.txt",
+      "sha256": "a4588ec7f89b53196898df1d26ab65347ca6106dbd317c16926fe88e70d1f39b",
+      "bytes": 4684,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-13.txt",
+      "sha256": "42bb2d9cd9235e0a1338879e43ba4e562c4b32e5a2075d57c9ad8067734f2293",
+      "bytes": 4896,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-14.txt",
+      "sha256": "975b3751c7b710f9e7ed83c90eab25404ed79ce16665fb1f1060febb648fd675",
+      "bytes": 4675,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261011-sonnet/respuestas/15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-15.txt",
+      "sha256": "f4e9625fda63c25f0c1f57ded7f872772baa9841f6e240bc389b17cf909a88b2",
+      "bytes": 4719,
+      "fecha": "2026-10-11",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-11 con `claude-sonnet-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261012-opus/salida.txt",
+      "sha256": "b65017d955f53b32a0bbeaabe3e298b289849b9a98c728069c805c8cb89e9747",
+      "bytes": 1180,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-12 con `claude-opus-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261012-opus/votos.json",
+      "sha256": "272c94e242db9a4d11f1c37a213627e123e56ade221e0632250bfef17850b9e7",
+      "bytes": 322583,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-12 con `claude-opus-5-5` y la skill de `main`"
+    },
+    {
+      "fichero": "sondeo-20261012-sonnet-con-repaso/salida.txt",
+      "sha256": "1302c340988056f6353a27f61a8e678eba25072f13bc7beb2c4208a84fdbf794",
+      "bytes": 1188,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-12 con `claude-sonnet-5-5` y el paso de repaso"
+    },
+    {
+      "fichero": "sondeo-20261012-sonnet-con-repaso/votos.json",
+      "sha256": "ca59d49161beb25421af22940a736f5def71495a3b0f133116a1e16c9ccb2ad3",
+      "bytes": 284515,
+      "fecha": "2026-10-12",
+      "versionado": "sí",
+      "origen": "sondeo del 2026-10-12 con `claude-sonnet-5-5` y el paso de repaso"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que expone procede del artículo 17 devuelto por la herramienta. Del art. 7 solo da su rúbrica, que figura en el índice, y de la disposición adicional decimoctava solo repite la remisión del propio texto.",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones, ni nombra herramientas, ni anuncia pasos. Solo dice que no ha leído el art. 7, lo cual no cuenta.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

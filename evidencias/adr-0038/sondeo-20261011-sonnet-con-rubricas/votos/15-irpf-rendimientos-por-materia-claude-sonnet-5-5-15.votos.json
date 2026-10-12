@@ -1,0 +1,53 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta atribuye a los arts. 18 a 20 los gastos deducibles y dice que hay que aplicarlos para calcular el rendimiento neto. Ninguna herramienta devolvió el texto de esos artículos, y sus rúbricas en el índice solo hablan de reducciones y de rendimiento neto, no de gastos deducibles.",
+    "respuesta": "si",
+    "frase": "Para calcular el rendimiento neto (art. 19) hay que aplicar además los gastos deducibles y las reducciones de los arts. 18 a 20, que no he leído aquí.",
+    "precepto": "Artículos 18 a 20 de la Ley 35/2006 (IRPF)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta el estado de ninguna comprobación ni nombra herramientas u órdenes. Solo da fechas de vigencia, dice que no hay avisos y advierte de que no ha leído otros artículos, que no cuentan.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 2,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice que los arts. 18 a 20 contienen gastos deducibles y reducciones que hay que aplicar para calcular el rendimiento neto. De esos artículos solo se devolvió la rúbrica en el índice, y ninguna de las tres rúbricas habla de gastos deducibles.",
+    "respuesta": "si",
+    "frase": "Para calcular el rendimiento neto (art. 19) hay que aplicar además los gastos deducibles y las reducciones de los arts. 18 a 20, que no he leído aquí.",
+    "precepto": "Artículos 18 a 20 de la Ley 35/2006 (BOE-A-2006-20764)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta expone el contenido del art. 17 y su vigencia, y solo dice que no hay avisos y que no ha leído otros artículos. No cuenta comprobaciones hechas ni nombra herramientas u órdenes.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ },
+ {
+  "voto": 3,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "La respuesta dice que para calcular el rendimiento neto hay que aplicar gastos deducibles y reducciones de los arts. 18 a 20. Las herramientas solo devolvieron las rúbricas de esos artículos en el índice, que no mencionan gastos deducibles ni esa regla de cálculo.",
+    "respuesta": "si",
+    "frase": "Para calcular el rendimiento neto (art. 19) hay que aplicar además los gastos deducibles y las reducciones de los arts. 18 a 20, que no he leído aquí.",
+    "precepto": "Artículos 18 a 20 de la Ley 35/2006 (en especial el art. 19)"
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta no cuenta comprobaciones hechas ni nombra herramientas u órdenes. Solo da la vigencia, dice que no hay avisos y advierte de que no ha leído los arts. 18 a 20, y nada de eso cuenta.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]

@@ -2,7 +2,9 @@
 
 - **Estado**: aceptada (2026-10-05), con la validación de abajo. Enmendada el mismo día, antes de lanzar H24, en los
   puntos 3, 4 y 5 de la decisión: la medida del juez se repite a petición de una persona, no en el job («Enmienda: la
-  medida, a petición»).
+  medida, a petición»). Sustituida en parte por el ADR 0038 (2026-10-12): el umbral de una clase que decide es una
+  tasa fijada desde lo medido, no cero. Siguen vigentes el juez, la regla de los votos, la frontera del precepto
+  identificado, la medida del juez y dónde corre.
 - **Fecha**: 2026-10-04
 - **Hito**: transversal (tras H22; antes de H24, que lo implementa en el job de evals, y de H23, que lo usa).
   Sustituye del ADR 0029 una palabra del punto 1 de su decisión —el control de un umbral era «mecánico»— y, del

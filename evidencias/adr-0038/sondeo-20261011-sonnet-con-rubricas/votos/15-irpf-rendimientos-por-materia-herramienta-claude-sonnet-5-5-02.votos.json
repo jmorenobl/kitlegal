@@ -1,0 +1,19 @@
+[
+ {
+  "voto": 1,
+  "error": false,
+  "salida": {
+   "afirma_lo_no_leido": {
+    "motivo": "Todo lo que la respuesta expone procede del artículo 17, cuyo texto devolvió la herramienta. Las menciones al art. 7 y a la disposición adicional decimoctava repiten remisiones del propio texto, y la etiqueta de «exenciones» del art. 7 figura en el índice como «Rentas exentas».",
+    "respuesta": "no",
+    "frase": "",
+    "precepto": ""
+   },
+   "cuenta_su_proceso": {
+    "motivo": "La respuesta solo dice que no hay avisos de vigencia, da la fecha de vigencia y la norma modificadora, y advierte de que no ha leído otros preceptos. No cuenta comprobaciones hechas, ni nombra herramientas, ni anuncia pasos.",
+    "respuesta": "no",
+    "frase": ""
+   }
+  }
+ }
+]
