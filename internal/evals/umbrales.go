@@ -29,11 +29,11 @@ const (
 
 // Lo que lleva cada umbral del informe (contrato informe-del-job §1 de H7.3;
 // contracts/informe-del-job.md §2 de H7.4 y de H24; data-model §1;
-// contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10 de H21). Cada uno
-// se mide sobre las sesiones de un solo modo: el de las respuestas de un modelo
-// se nombra con lo que mide seguido del modelo y del modo, y el de la duración,
-// con el modo; su descripción los nombra, primero el modelo y después el modo; y
-// la única comparación es «<=», que informe.md escribe «≤».
+// contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10 de H21). El de
+// las respuestas de un modelo en un modo se nombra con lo que mide seguido del
+// modelo y del modo, y el de la duración, con el modo; su descripción los
+// nombra, primero el modelo y después el modo; y la única comparación es «<=»,
+// que informe.md escribe «≤».
 //
 // Desde H24, lo que mide un umbral de las respuestas puede ser una clase del
 // juez, y entonces se nombra con ella; los dos de la medida del juez no son de
@@ -44,6 +44,11 @@ const (
 // Desde H23, el de las respuestas con una cita de sentencia sin documento
 // cotejado o con un ECLI sin origen se nombra con su prefijo, como el de las
 // que no activaron la skill (contracts/evals-jurisprudencia.md §4 de H23).
+//
+// Desde H26 (contracts/umbrales-del-informe.md §2 de H26), no todos se miden
+// sobre las sesiones de un solo modo: el umbral conjunto de una clase del juez
+// que decide junta las respuestas de todos los modos, se nombra con la clase y
+// el modelo, sin modo, y su descripción lo dice.
 const (
 	prefijoDelUmbralSinActivar          = "sin_activar:"
 	prefijoDelUmbralDeCitaSinDocumento  = "cita_sin_documento:"
@@ -64,6 +69,8 @@ const (
 		"sobre sus respuestas juzgadas en las evals que activan la skill"
 	descripcionDeLaClaseQueSePublica = "Respuestas de %s en el modo %s con sí en %s en el primer voto del juez, " +
 		"sobre sus respuestas juzgadas en las evals que activan la skill"
+	descripcionDelUmbralConjunto = "Respuestas de %s, con todos los modos juntos, que el juez marca en %s con sus " +
+		"tres votos, sobre sus respuestas juzgadas en las evals que activan la skill"
 	descripcionDeLosDefectosSinMarcar = "Casos etiquetados como defecto que el juez no marca en %s, sobre los casos " +
 		"etiquetados como defecto de su medida versionada"
 	descripcionDeLosCorrectosMarcados = "Casos etiquetados como correctos que el juez marca en %s, sobre los casos " +
@@ -80,12 +87,14 @@ const (
 // Textos fijos de los umbrales en informe.md y en los motivos (contrato
 // informe-del-job §2 y §4 de H7.3; contracts/informe-del-job.md §4 de H24): la
 // celda de uno que no decide; lo que sigue a la medida y a la condición de uno
-// que no se cumple; y, en el de una clase del juez, cómo nombra a cada respuesta
-// marcada —su sesión y, entre comillas, las frases de los votos que la marcan—
-// y qué separa una de otra. El de cita_sin_documento nombra igual a cada
-// respuesta que cuenta —su sesión y cada ECLI que la hace contar, con su
-// condición entre paréntesis—, con los mismos separadores
-// (contracts/evals-jurisprudencia.md §4 de H23; research D21 de H23).
+// que no se cumple; y, en el del conjunto de una clase del juez, cómo nombra a
+// cada respuesta marcada —su sesión, con su modo entre paréntesis, y, entre
+// comillas, las frases de los votos que la marcan— y qué separa una de otra
+// (contracts/umbrales-del-informe.md §4 de H26; research D4 de H26). El de
+// cita_sin_documento nombra igual a cada respuesta que cuenta —su sesión y cada
+// ECLI que la hace contar, con su condición entre paréntesis—, con los mismos
+// separadores (contracts/evals-jurisprudencia.md §4 de H23; research D21 de
+// H23).
 const (
 	soloSePublica      = "no: solo se publica"
 	motivoDeUnUmbral   = "umbral %s: %s, y tiene que ser %s"
@@ -96,6 +105,7 @@ const (
 	comillaQueAbre         = "«"
 	comillaQueCierra       = "»"
 
+	sesionConSuModo    = "%s (modo %s)"
 	ecliConSuCondicion = "%s (%s)"
 )
 
@@ -109,27 +119,31 @@ type Umbral struct {
 	// <modo> orden u herramienta (data-model §10 de H21); y, con juez,
 	// <clase>:<modelo>:<modo>, medida_del_juez:<clase>:defectos_sin_marcar,
 	// medida_del_juez:<clase>:correctos_marcados y duracion_del_juez:<modo>
-	// (contracts/informe-del-job.md §2 de H24); y, con alguna eval que declara
-	// sentencias, cita_sin_documento:<modelo>:<modo>
+	// (contracts/informe-del-job.md §2 de H24) y, de cada clase que decide, su
+	// umbral conjunto, <clase>:<modelo>, sin modo
+	// (contracts/umbrales-del-informe.md §2 de H26); y, con alguna eval que
+	// declara sentencias, cita_sin_documento:<modelo>:<modo>
 	// (contracts/evals-jurisprudencia.md §4 de H23).
 	Nombre string `json:"nombre"`
 
-	// Descripcion dice en una línea qué se mide, en qué modo y sobre qué
-	// respuestas.
+	// Descripcion dice en una línea qué se mide, en qué modo —o con todos los
+	// modos juntos— y sobre qué respuestas.
 	Descripcion string `json:"descripcion"`
 
 	// Medida es lo medido: en las sesiones de su modo, las respuestas sin la
 	// skill activada, las que el juez marca en una clase, las que llevan una
 	// cita sin documento cotejado o un ECLI sin origen, o los segundos de su
-	// tanda o de sus votos; y, en la medida versionada del juez, los casos que
-	// no dan lo que dice su etiqueta.
+	// tanda o de sus votos; en el umbral conjunto de una clase, las que el juez
+	// marca en ella en las sesiones de todos los modos; y, en la medida
+	// versionada del juez, los casos que no dan lo que dice su etiqueta.
 	Medida float64 `json:"medida"`
 
 	// Total, solo en los de las respuestas y en los de la medida del juez, es
 	// aquello sobre lo que se mide: las respuestas medidas del modelo en ese
-	// modo en las evals que activan la skill, o los casos con esa etiqueta. Con
-	// él, lo que se compara es la proporción Medida/Total, 0 si Total es 0. Sin
-	// él, la propia Medida.
+	// modo en las evals que activan la skill —en el umbral conjunto de una
+	// clase, las de todos los modos—, o los casos con esa etiqueta. Con él, lo
+	// que se compara es la proporción Medida/Total, 0 si Total es 0. Sin él, la
+	// propia Medida.
 	Total *int `json:"total,omitzero"`
 
 	// Comparacion es siempre «<=» en este hito, y Umbral, el valor con el que se
@@ -156,12 +170,13 @@ type Umbral struct {
 // esas respuestas, nil si la skill no tiene umbrales de ellas.
 //
 // Desde H21 (contracts/evals-en-dos-modos.md §5.1 de H21; data-model §10;
-// research.md D19; FR-043 a FR-045), cada umbral es de un modo del plan y lo
-// nombra: los de las respuestas van por modo, los del modo orden delante, y
-// detrás de ellos, el de la duración de cada modo, en su orden, que mide los
-// segundos de la tanda de ese modo frente al mismo objetivo. Ninguno suma las
-// medidas de dos modos ni cuenta las sesiones o la tanda de las evals sin
-// binario ni servidor.
+// research.md D19; FR-043 a FR-045), los de las respuestas y los de la duración
+// son de un modo del plan y lo nombran: los de las respuestas van por modo, los
+// del modo orden delante, y detrás de ellos, el de la duración de cada modo, en
+// su orden, que mide los segundos de la tanda de ese modo frente al mismo
+// objetivo. Ninguno cuenta las sesiones o la tanda de las evals sin binario ni
+// servidor, y ninguno de un modo suma las medidas de otro: las de dos modos
+// solo las junta, desde H26, el umbral conjunto de una clase del juez.
 //
 // Desde H24 (contracts/informe-del-job.md §2 y §6 de H24; FR-030 a FR-034),
 // ninguno mide las expresiones de la lista —salen
@@ -171,14 +186,12 @@ type Umbral struct {
 //
 //   - por cada modo, el de las respuestas sin la skill activada y el de cada
 //     clase del juez, sobre las mismas respuestas (respuestasMedidas.umbrales);
+//   - desde H26, el umbral conjunto de cada clase que decide
+//     (umbralesConjuntos);
 //   - los dos de la medida versionada del juez de cada clase que decide
 //     (umbralesDeLaMedida);
 //   - los de la duración de las sesiones, como hasta ahora;
 //   - y, por cada modo, el de la duración de sus votos (umbralesDeLaDuracion).
-//
-// Con el plan del job, los dos modos, y el juez y el objetivo de
-// boe-legislacion son doce, y diez deciden: todos menos el de la clase que solo
-// se publica en cada modo.
 //
 // Desde H23 (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23;
 // FR-060 a FR-063 de H23), los de las respuestas de cada modo son tres cosas,
@@ -190,15 +203,31 @@ type Umbral struct {
 // sentencias siguen siendo ninguno.
 //
 // Desde H25 (contracts/juez-de-jurisprudencia.md §5 de H25; FR-020 a FR-026 de
-// H25), jurisprudencia tiene juez y sigue sin objetivo, y con el plan del job
-// sus umbrales son doce, de los que deciden diez: de cada modo, sin_activar,
-// afirma_lo_no_leido, afirma_que_existe y cita_sin_documento; los dos de la
-// medida versionada; y duracion_del_juez de cada modo, sin
-// duracion_de_las_sesiones. No decide afirma_que_existe, que solo se publica,
-// en ninguno de los dos modos.
+// H25), jurisprudencia tiene juez y sigue sin objetivo: lleva, de cada modo,
+// sin_activar, afirma_lo_no_leido, afirma_que_existe y cita_sin_documento; los
+// dos de la medida versionada; y duracion_del_juez de cada modo, sin
+// duracion_de_las_sesiones.
+//
+// Desde H26 (contracts/umbrales-del-informe.md §1 a §3 de H26; data-model §3
+// de H26; research D1 y D2 de H26; FR-001, FR-002, FR-005, FR-010 a FR-012 de
+// H26), lo que decide de una clase del juez es su umbral conjunto, que junta
+// las respuestas de todos los modos y va detrás de los umbrales de las
+// respuestas de todos ellos y delante de los dos de la medida; el de la clase
+// en un modo es un recuento, que se publica sin decidir, también el de la que
+// decide. Con el plan del job, los dos modos, los umbrales de cada una de las
+// dos skills con juez son trece, de los que deciden nueve. En boe-legislacion,
+// con su objetivo: de cada modo, sin_activar y los recuentos de
+// afirma_lo_no_leido y de cuenta_su_proceso; el conjunto de afirma_lo_no_leido;
+// los dos de la medida; y duracion_de_las_sesiones y duracion_del_juez de cada
+// modo. En jurisprudencia, sin objetivo: de cada modo, sin_activar, los
+// recuentos de afirma_lo_no_leido y de afirma_que_existe y cita_sin_documento;
+// el conjunto de afirma_lo_no_leido; los dos de la medida; y duracion_del_juez
+// de cada modo. No deciden los cuatro recuentos: los de las dos clases del juez
+// en los dos modos.
 func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()
+	umbrales = append(umbrales, delJuez.umbralesConjuntos()...)
 
 	if delJuez != nil {
 		umbrales = append(umbrales, delJuez.umbralesDeLaMedida()...)
@@ -227,12 +256,12 @@ func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umb
 // respuestas del modelo que decide en ese modo (contracts/informe-del-job.md §2
 // de H24; FR-030, FR-031, FR-034; contracts/evals-jurisprudencia.md §4 de H23;
 // FR-060, FR-062 de H23), en este orden: el de las que no activaron la skill,
-// que decide con 0; con juez, el de cada una de sus clases
-// (umbralesDeLasClases); y, con alguna eval que declara sentencias, el de las
-// que llevan una cita sin documento cotejado o un ECLI sin origen, que decide
-// con 0. Todos tienen como total las respuestas del modo, las medidas del
-// modelo en las evals que activan la skill. Ninguno cuenta las respuestas de
-// las evals sin binario ni servidor (FR-013 de H24). Ninguno, si la skill no
+// que decide con 0; con juez, el recuento de cada una de sus clases, que no
+// decide (umbralesDeLasClases); y, con alguna eval que declara sentencias, el
+// de las que llevan una cita sin documento cotejado o un ECLI sin origen, que
+// decide con 0. Todos tienen como total las respuestas del modo, las medidas
+// del modelo en las evals que activan la skill. Ninguno cuenta las respuestas
+// de las evals sin binario ni servidor (FR-013 de H24). Ninguno, si la skill no
 // tiene umbrales de sus respuestas.
 func (r *respuestasMedidas) umbrales() []Umbral {
 	var umbrales []Umbral
@@ -250,12 +279,18 @@ func (r *respuestasMedidas) umbrales() []Umbral {
 }
 
 // umbralesDeLasClases son, por cada clase del juez en el orden de clases.yaml,
-// el umbral de las respuestas del grupo de un modo que el juez deja marcadas en
-// ella —con sus tres votos, si la clase decide, y con el primero, si solo se
-// publica—, con el umbral y el decide de la clase
-// (contracts/informe-del-job.md §2 de H24; FR-030, FR-031). Su total son las
-// respuestas del grupo: la respuesta sin juzgar sigue en él y no está en
-// ninguna medida. Ninguno si la skill no tiene juez.
+// el recuento de las respuestas del grupo de un modo que el juez deja marcadas
+// en ella —con sus tres votos, si la clase decide, y con el primero, si solo se
+// publica—, con el umbral de la clase (contracts/informe-del-job.md §2 de H24;
+// FR-030, FR-031). Su total son las respuestas del grupo: la respuesta sin
+// juzgar sigue en él y no está en ninguna medida. Ninguno si la skill no tiene
+// juez.
+//
+// Desde H26 (contracts/umbrales-del-informe.md §3 de H26; research D2 de H26;
+// FR-010, FR-011 de H26) ninguno decide: el de una clase que solo se publica,
+// como hasta ahora, y el de una que decide, porque lo que decide de ella es su
+// umbral conjunto (umbralesConjuntos). Su cumple sigue siendo la comparación
+// del contrato, con el mismo umbral que el conjunto, y solo informa.
 func (j *juicioDelJuez) umbralesDeLasClases(grupo grupoJuzgado) []Umbral {
 	if j == nil {
 		return nil
@@ -277,18 +312,72 @@ func (j *juicioDelJuez) umbralesDeLasClases(grupo grupoJuzgado) []Umbral {
 			Medida:      float64(len(grupo.marcadasEn(posicion))),
 			Total:       &total,
 			Umbral:      clase.Umbral,
-			Decide:      clase.Decide,
+			Decide:      false,
 		}))
 	}
 
 	return umbrales
 }
 
-// nombreDelUmbralDeClase es el nombre del umbral de las respuestas de un modelo
-// en un modo que el juez deja marcadas en una clase: la clase seguida del
-// modelo y del modo.
+// umbralesConjuntos son, por cada clase del juez que decide y en el orden de
+// clases.yaml, su umbral conjunto, ya comparado
+// (contracts/umbrales-del-informe.md §2 de H26; data-model §3 de H26; research
+// D1 de H26; FR-001 a FR-003 de H26): las respuestas de todos los modos del
+// plan que el juez deja marcadas en ella con sus tres votos, sobre las
+// respuestas de todos ellos, con el umbral de la clase, que así es una tasa
+// sobre los modos juntos, y decidiendo. Su medida y su total son la suma de los
+// de los recuentos por modo de la clase (umbralesDeLasClases), sobre los mismos
+// grupos, y con un plan de un solo modo, los de ese modo: no cuenta las
+// respuestas de las evals sin binario ni servidor ni las de un modelo
+// informativo, y la respuesta sin juzgar sigue en su total y fuera de su
+// medida. Una clase que solo se publica no tiene ninguno. Ninguno si la skill
+// no tiene juez.
+func (j *juicioDelJuez) umbralesConjuntos() []Umbral {
+	if j == nil {
+		return nil
+	}
+
+	var umbrales []Umbral
+
+	for posicion, clase := range j.clases {
+		if !clase.Decide {
+			continue
+		}
+
+		marcadas, total := 0, 0
+
+		for _, grupo := range j.deLosModos() {
+			marcadas += len(grupo.marcadasEn(posicion))
+			total += len(grupo.respuestas)
+		}
+
+		umbrales = append(umbrales, compararUmbral(Umbral{
+			Nombre:      nombreDelUmbralConjunto(clase.Nombre, j.modelo),
+			Descripcion: fmt.Sprintf(descripcionDelUmbralConjunto, j.modelo, clase.Nombre),
+			Medida:      float64(marcadas),
+			Total:       &total,
+			Umbral:      clase.Umbral,
+			Decide:      true,
+		}))
+	}
+
+	return umbrales
+}
+
+// nombreDelUmbralConjunto es el nombre del umbral conjunto de una clase del
+// juez que decide, el de las respuestas de un modelo en todos los modos que el
+// juez deja marcadas en ella: la clase seguida del modelo, sin modo
+// (contracts/umbrales-del-informe.md §2 de H26; research D3 de H26).
+func nombreDelUmbralConjunto(clase, modelo string) string {
+	return clase + separadorDelModoDelUmbral + modelo
+}
+
+// nombreDelUmbralDeClase es el nombre del recuento de las respuestas de un
+// modelo en un modo que el juez deja marcadas en una clase: el del umbral
+// conjunto de la clase (nombreDelUmbralConjunto) seguido del modo, que es la
+// clase seguida del modelo y del modo.
 func nombreDelUmbralDeClase(clase, modelo string, modo Modo) string {
-	return clase + separadorDelModoDelUmbral + modelo + separadorDelModoDelUmbral + string(modo)
+	return nombreDelUmbralConjunto(clase, modelo) + separadorDelModoDelUmbral + string(modo)
 }
 
 // umbralDeSinActivar es el umbral de las respuestas sin la skill activada de un
@@ -429,14 +518,18 @@ func (u Umbral) valor() float64 {
 // se cumplen, en su orden, sin los de la duración, que son de la ejecución
 // (motivosDeLaDuracionDeLasSesiones): «umbral <nombre>: <medida>, y tiene que ser
 // <condición>», con la medida y la condición como en informe.md (contrato
-// informe-del-job §2.1 de H7.3; FR-003). El nombre lleva el modo del umbral, y
-// con él lo nombra el motivo (contracts/evals-en-dos-modos.md §5.2 de H21;
-// FR-044).
+// informe-del-job §2.1 de H7.3; FR-003). El nombre lleva el modo del umbral, si
+// es de uno, y con él lo nombra el motivo (contracts/evals-en-dos-modos.md §5.2
+// de H21; FR-044).
 //
-// El de una clase del juez nombra además, detrás de dos puntos, cada respuesta
-// que el juez dejó marcada en ella, por su sesión y con sus tres frases
-// (marcadasDelUmbral; contracts/informe-del-job.md §4 de H24; FR-035); y el de
-// cita_sin_documento, cada respuesta que cuenta, por su sesión y con sus ECLI
+// El del umbral conjunto de una clase del juez, cuyo nombre no lleva modo,
+// nombra además, detrás de dos puntos, cada respuesta que el juez dejó marcada
+// en ella en cualquiera de los modos, por su sesión, con su modo entre
+// paréntesis y con sus tres frases (marcadasDelUmbral;
+// contracts/informe-del-job.md §4 de H24; FR-035 de H24;
+// contracts/umbrales-del-informe.md §4 de H26; FR-004 de H26). El recuento de
+// la clase en un modo no decide, y no da ninguno. Y el de cita_sin_documento
+// nombra cada respuesta que cuenta, por su sesión y con sus ECLI
 // (sinDocumentoDelUmbral; contracts/evals-jurisprudencia.md §4 de H23; research
 // D21 de H23). respuestas es lo que se mide de las respuestas de la ejecución,
 // nil si la skill no tiene umbrales de ellas.
@@ -460,11 +553,11 @@ func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas) []st
 }
 
 // nombradasEn nombra las respuestas que cuentan en el umbral con ese nombre,
-// como las lleva su motivo: las que el juez dejó marcadas, si es el de una de
-// sus clases en un modo (marcadasDelUmbral), o las que llevan una cita sin
-// documento cotejado o un ECLI sin origen, si es el de cita_sin_documento de un
-// modo (sinDocumentoDelUmbral). Vacío con cualquier otro umbral, y si la skill
-// no tiene umbrales de sus respuestas.
+// como las lleva su motivo: las que el juez dejó marcadas en todos los modos,
+// si es el conjunto de una de sus clases (marcadasDelUmbral), o las que llevan
+// una cita sin documento cotejado o un ECLI sin origen, si es el de
+// cita_sin_documento de un modo (sinDocumentoDelUmbral). Vacío con cualquier
+// otro umbral, y si la skill no tiene umbrales de sus respuestas.
 func (r *respuestasMedidas) nombradasEn(nombre string) string {
 	if marcadas := r.juez().marcadasDelUmbral(nombre); marcadas != "" {
 		return marcadas
@@ -506,37 +599,41 @@ func (r *respuestasMedidas) sinDocumentoDelUmbral(nombre string) string {
 }
 
 // marcadasDelUmbral nombra las respuestas que el juez dejó marcadas en la clase
-// y el modo del umbral con ese nombre, como las lleva su motivo
-// (contracts/informe-del-job.md §4 de H24): de cada una, «<sesión>: «<frase 1>»
-// · «<frase 2>» · «<frase 3>»», con las frases de los votos que la marcan, y
-// unas de otras separadas por «; », en orden de sesión. Vacío si el umbral no
-// es el de una clase del juez en un modo, si ninguna respuesta quedó marcada o
-// si la skill no tiene juez.
+// del umbral conjunto con ese nombre, como las lleva su motivo
+// (contracts/informe-del-job.md §4 de H24; contracts/umbrales-del-informe.md §4
+// de H26; research D4 de H26; FR-004 de H26): las de todos los modos, las del
+// modo orden delante y, dentro de un modo, en orden de sesión; de cada una,
+// «<sesión> (modo <modo>): «<frase 1>» · «<frase 2>» · «<frase 3>»», con las
+// frases de los votos que la marcan, y unas de otras separadas por «; ». El
+// modo va escrito porque el nombre de la sesión solo lo deja ver en el modo
+// herramienta. Vacío si el umbral no es el conjunto de una clase del juez
+// —tampoco con el recuento de una clase en un modo, que no decide ni da
+// motivo—, si ninguna respuesta quedó marcada o si la skill no tiene juez.
 func (j *juicioDelJuez) marcadasDelUmbral(nombre string) string {
 	if j == nil {
 		return ""
 	}
 
-	for _, grupo := range j.deLosModos() {
-		for posicion, clase := range j.clases {
-			if nombreDelUmbralDeClase(clase.Nombre, j.modelo, grupo.modo) != nombre {
-				continue
-			}
+	for posicion, clase := range j.clases {
+		if nombreDelUmbralConjunto(clase.Nombre, j.modelo) != nombre {
+			continue
+		}
 
-			marcadas := grupo.marcadasEn(posicion)
-			nombradas := make([]string, 0, len(marcadas))
+		var nombradas []string
 
-			for _, respuesta := range marcadas {
+		for _, grupo := range j.deLosModos() {
+			for _, respuesta := range grupo.marcadasEn(posicion) {
 				frases := respuesta.juicio.Clases[posicion].frasesQueCuentan()
 				for deLaFrase, frase := range frases {
 					frases[deLaFrase] = comillaQueAbre + frase + comillaQueCierra
 				}
 
-				nombradas = append(nombradas, respuesta.sesion+": "+strings.Join(frases, separadorDeLasFrases))
+				nombradas = append(nombradas, fmt.Sprintf(sesionConSuModo, respuesta.sesion, grupo.modo)+": "+
+					strings.Join(frases, separadorDeLasFrases))
 			}
-
-			return strings.Join(nombradas, separadorDeLasMarcadas)
 		}
+
+		return strings.Join(nombradas, separadorDeLasMarcadas)
 	}
 
 	return ""

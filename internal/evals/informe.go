@@ -455,7 +455,8 @@ type respuestasMedidas struct {
 	// grupos son los de respuestasQueSeJuzgan: uno por modo del plan, el del
 	// modo orden delante, y detrás el de las evals sin binario ni servidor, que
 	// no es de ningún modo. Las de un modo son el total de todos los umbrales de
-	// ese modo.
+	// ese modo, y las de todos los modos juntas, el del umbral conjunto de cada
+	// clase del juez que decide.
 	grupos []grupoJuzgado
 
 	// delJuez es lo que el juez de la skill deja de ellas, nil si no lo tiene.
@@ -759,13 +760,16 @@ type RedDelInforme struct {
 //     D20 de H23), sin que eso cambie el juicio de ninguna sesión: una sin
 //     terminar sigue sin pasar en su serie;
 //  4. con ellas, compone los umbrales (umbralesDelInforme): por cada modo, el
-//     de las respuestas sin la skill activada del modelo que decide, los del
-//     juez, si la skill lo tiene, y el de las que llevan una cita sin documento
-//     cotejado o un ECLI sin origen, si alguna eval declara sentencias; y los
-//     de la duración de cada modo si hay objetivo (contrato informe-del-job §1
-//     de H7.3; contracts/informe-del-job.md §2 de H7.4 y de H24;
-//     contracts/evals-en-dos-modos.md §5.1 de H21;
-//     contracts/evals-jurisprudencia.md §4 de H23);
+//     de las respuestas sin la skill activada del modelo que decide, el
+//     recuento de cada clase del juez, si la skill lo tiene, y el de las que
+//     llevan una cita sin documento cotejado o un ECLI sin origen, si alguna
+//     eval declara sentencias; con juez, el umbral conjunto de cada clase que
+//     decide, con las respuestas de todos los modos, y los de su medida y de
+//     sus votos; y los de la duración de cada modo si hay objetivo (contrato
+//     informe-del-job §1 de H7.3; contracts/informe-del-job.md §2 de H7.4 y de
+//     H24; contracts/evals-en-dos-modos.md §5.1 de H21;
+//     contracts/evals-jurisprudencia.md §4 de H23;
+//     contracts/umbrales-del-informe.md §1 de H26);
 //  5. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
@@ -785,10 +789,12 @@ type RedDelInforme struct {
 // (modoDeLaSesion): la del modo herramienta, con sus llamadas, y la de una eval
 // sin binario ni servidor, sin ninguno. Una serie es de un modo, y la que decide
 // y no llega al umbral en uno pone el veredicto en fallo aunque la de la misma
-// eval pase en el otro; las medidas de un modo no se suman a las del otro; y las
+// eval pase en el otro; las medidas de un modo no se suman a las del otro, salvo,
+// desde H26, en el umbral conjunto de una clase del juez que decide; y las
 // sesiones de una eval sin binario ni servidor forman su serie, que decide, y no
 // entran en ningún recuento ni en ningún umbral. El modo lo nombran el modelo de
-// la serie (modeloDeLaSerie) y el nombre del umbral, y con ellos los motivos.
+// la serie (modeloDeLaSerie) y el nombre del umbral que es de un modo, y con
+// ellos los motivos.
 //
 // Desde H24 (contracts/informe-del-job.md §2, §6 y §7 de H24; research D13 y
 // D14; FR-034, FR-062, FR-070), el informe no lleva nada de la lista de
@@ -818,6 +824,17 @@ type RedDelInforme struct {
 // juzgar. Las de las evals sin binario ni servidor no cuentan en ningún umbral
 // ni en ninguna duración, y una marca suya no da ningún motivo. Con una skill
 // sin juez, el votante no se llama (FR-037).
+//
+// Desde H26 (contracts/umbrales-del-informe.md §1 a §4 y §6 de H26; research
+// D1, D2 y D4 de H26; FR-001 a FR-005, FR-010 a FR-012, FR-030), lo que decide
+// de una clase del juez es su umbral conjunto, <clase>:<modelo>: las respuestas
+// marcadas de todos los modos sobre las juzgadas de todos ellos, con el umbral
+// de la clase, que es así una tasa sobre los modos juntos. El recuento de la
+// clase en cada modo se sigue publicando, con ese mismo umbral, y no decide ni
+// da motivo; y el motivo del conjunto nombra cada respuesta marcada con el modo
+// de su sesión, las del modo orden delante. La respuesta sin juzgar sigue en el
+// total de su modo y en el del conjunto, fuera de toda medida, y da su motivo
+// de la ejecución también con el conjunto cumplido.
 //
 // Lo que el juez deja a la vista va en la clave juez de informe.json, detrás de
 // los umbrales, y en la sección «Juez» de informe.md
@@ -1570,8 +1587,10 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 //
 // Desde H21 (contracts/evals-en-dos-modos.md §5 de H21; research.md D19; FR-043,
 // FR-047), hay un grupo por modo del plan, el del modo orden delante, y cada
-// uno lleva solo las respuestas de las series de su modo: las de un modo no se
-// suman a las del otro, y son el total de sus umbrales.
+// uno lleva solo las respuestas de las series de su modo, que son el total de
+// los umbrales de ese modo. Las de un modo solo se suman a las del otro, desde
+// H26, en el umbral conjunto de cada clase del juez que decide, cuyo total son
+// las de todos los modos (umbralesConjuntos).
 //
 // Desde H24 (contracts/informe-del-job.md §1 de H24; FR-012, FR-013), son además
 // las que juzga el juez, y detrás de los grupos de los modos va uno más, sin
@@ -1676,10 +1695,13 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // pasa de una serie que sí llega al umbral no da ningún motivo: eso es lo que el
 // umbral absorbe (ADR 0016); y una serie sin medir ni pasa ni falla (FR-042 de
 // H7.3). Los de una serie nombran su modelo, y los de un umbral, su nombre: con
-// ellos nombran su modo (contracts/evals-en-dos-modos.md §5.2 de H21; FR-044).
-// El de un umbral de las respuestas nombra además las que cuentan en él
-// (motivosDeLosUmbrales): respuestas es lo que se mide de ellas, nil si la
-// skill no tiene esos umbrales.
+// ellos nombran su modo (contracts/evals-en-dos-modos.md §5.2 de H21; FR-044),
+// salvo el del umbral conjunto de una clase del juez, que no es de un modo y lo
+// escribe detrás de cada respuesta que nombra
+// (contracts/umbrales-del-informe.md §4 de H26; FR-004 de H26). El de un umbral
+// de las respuestas nombra además las que cuentan en él (motivosDeLosUmbrales):
+// respuestas es lo que se mide de ellas, nil si la skill no tiene esos
+// umbrales.
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas,
