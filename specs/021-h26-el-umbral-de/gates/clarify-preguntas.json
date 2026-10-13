@@ -1,0 +1,42 @@
+{
+  "preguntas": [
+    {
+      "id": "Q1",
+      "categoria": "Casos límite: cómo se escribe el motivo del umbral conjunto",
+      "pregunta": "Cuando el umbral conjunto no se cumple pero su porcentaje, escrito con un decimal, coincide con el de la condición (3 marcadas de 107 respuestas juzgadas en `boe-legislacion`, 2,804 %, frente a 0.028; 1 de 58 en `jurisprudencia`, 1,724 %, frente a 0.017), ¿cómo escriben el motivo y la tabla «Umbrales» de `informe.md` la medida y la condición?",
+      "por_que_importa": "FR-003 compara sin redondear y FR-004 y FR-005 escriben la medida y la condición con un decimal, como todo umbral con `total`. Una sesión del modelo que decide que no termina no entra en el `total` de su modo y su serie puede pasar con 2 de 3 (leído en `internal/evals/informe.go`, sin ejecutar ningún test), de modo que un informe puede llegar a 107 o a 58 respuestas juzgadas sin otro motivo de fallo; ahí el veredicto es `fallo` y el motivo se leería «3 de 107 (2,8 %), y tiene que ser ≤ 2,8 %». El spec da los casos de 104 y de 108 y no dice nada de este. La respuesta fija el texto que comprueban los tests del motivo (FR-072, FR-073) y lo que lee la persona en el informe.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "Como todo umbral con `total`: medida y condición con un decimal, sin ningún texto más. En ese caso el motivo y la fila de `informe.md` muestran el mismo porcentaje a los dos lados con `cumple: false`; el `cumple` y los campos de `informe.json` dicen el resultado. No cambia cómo se escribe ningún umbral."
+        },
+        {
+          "id": "B",
+          "texto": "El motivo del umbral conjunto añade, además de la medida y la condición con un decimal, cuántas marcadas admite ese `total` (por ejemplo, «como mucho 2 de 107»). Es un texto nuevo, solo en el motivo de un umbral conjunto; la tabla «Umbrales» de `informe.md` no cambia."
+        },
+        {
+          "id": "C",
+          "texto": "La medida y la condición de un umbral de una clase del juez se escriben con los decimales que hagan falta para distinguirlas, en el motivo y en `informe.md`. Cambia la forma escrita de esos umbrales respecto a los demás del informe, y deja de coincidir con la que escribe el informe final del workflow (`scripts/workflow/informe.sh`, que el hito no toca y escribe un decimal)."
+        }
+      ],
+      "respuesta_corta_permitida": true
+    },
+    {
+      "id": "Q2",
+      "categoria": "Alcance: qué textos sobre el umbral corrige el hito",
+      "pregunta": "¿Corrige el hito el comentario de `.github/workflows/evals.yml` que dice que el informe de `jurisprudencia` lleva, por modo, `afirma_lo_no_leido`, «que decide», y «doce umbrales, diez que deciden»?",
+      "por_que_importa": "Con el hito, ese comentario deja de ser cierto: son trece, deciden nueve y `afirma_lo_no_leido` por modo solo se publica (FR-012). El fichero no está entre los cinco documentos de la Entrega 4; FR-055 limita las correcciones a cuatro ficheros «y para nada más», y FR-062 dice que el hito no cambia «la definición del job», sin decir si eso incluye sus comentarios. La respuesta decide si alguna tarea declara ese fichero, si el diff del hito lleva algo bajo `.github/` —que el guardián de diff, en su modo global, trata como configuración de verificación que ningún reparador ni corrector cambia— y si la lectura de SC-013 lo alcanza.",
+      "opciones": [
+        {
+          "id": "A",
+          "texto": "No se toca. El comentario sigue diciendo doce umbrales con diez que deciden y que `afirma_lo_no_leido` decide por modo; el diff del hito no lleva nada bajo `.github/`, SC-013 se queda en los cinco documentos de la Entrega 4, y la corrección queda para un cambio fuera del hito, anotada en «Fuera de alcance»."
+        },
+        {
+          "id": "B",
+          "texto": "Se corrigen solo esas líneas de comentario, en una tarea que declara el fichero, sin cambiar ninguna clave, valor ni paso del job. El diff del hito lleva un fichero de la configuración de verificación, FR-055 y FR-062 pasan a nombrarlo como excepción, y SC-013 lo cuenta entre los textos que la revisión final lee contra el árbol."
+        }
+      ],
+      "respuesta_corta_permitida": false
+    }
+  ]
+}
