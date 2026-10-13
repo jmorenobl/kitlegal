@@ -1,7 +1,8 @@
 # 0038 · El umbral de una clase de significado es una tasa, fijada desde lo medido; el cero se queda en lo que tiene forma
 
 - **Estado**: aceptada (2026-10-12). El job sigue con el umbral anterior hasta que lo cambie el hito que lo
-  implemente («Enmiendas que provoca»).
+  implemente («Enmiendas que provoca»). Enmendada el 2026-10-13 en el orden y en el reparto del trabajo, sin
+  cambiar la decisión («Enmienda: el orden y el reparto»).
 - **Fecha**: 2026-10-12
 - **Hito**: transversal, tras el run de H25 y antes de fusionar su propuesta (#135). Sustituye, del ADR 0037, el
   umbral del punto 7 de su decisión —`afirma_lo_no_leido` «decide, con umbral 0»— y la frase de su validación que
@@ -164,3 +165,17 @@ Van con el hito que lo implemente, cuya entrada en `docs/ROADMAP.md` escribe Jor
 - **La serie de cada skill** y `scripts/workflow/informe.sh`, que la enseña con la tasa acumulada.
 - **`docs/ROADMAP.md`** (las secciones de H24 y de H25), **`CONTRIBUTING.md`** y lo que `docs/WORKFLOW.md` y
   `CLAUDE.md` dicen del job: el umbral.
+
+## Enmienda: el orden y el reparto, al escribir la entrada de H26 (2026-10-13)
+
+Hecha al preparar el hito que implementa este ADR, y decidida por Jorge. No cambia la decisión.
+
+- **H25 se fusionó antes que el cambio del job**, y no después como decía «Validación». Los dos tocan
+  `internal/evals/umbrales.go`, `informe.go` y sus tests, y casarlos a mano en la #135 habría quedado fuera de toda
+  revisión. Antes de fusionar se midió de nuevo la cabeza con `main` dentro (`76b89e7`): 0 de 60 en `jurisprudencia`
+  y 2 de 108 en `boe-legislacion`, sin ninguna respuesta sin juzgar. La primera medición con el umbral aplicado por
+  el job es el cierre de H26.
+- **`clases.yaml` no tiene copia en `evidencias/`**: los cuatro ficheros que se copian son la rúbrica, el esquema,
+  los casos y la medida. «Enmiendas que provoca» nombraba una copia que no existe.
+- **La serie y la tasa acumulada no van en el hito.** Las escribe y las enseña `scripts/workflow/`, que un hito no
+  toca: van en una propuesta de proceso aparte. H26 lleva el umbral conjunto, el recuento por modo y los valores.
