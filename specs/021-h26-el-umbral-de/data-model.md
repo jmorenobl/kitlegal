@@ -77,7 +77,7 @@ Nada exportado cambia: `Umbral` conserva sus campos y sus claves.
 | `nombreDelUmbralConjunto` (nueva) | `<clase>:<modelo>`; `nombreDelUmbralDeClase` le añade el modo | FR-001 |
 | La descripción del conjunto (constante nueva) | El texto de contracts §2 | FR-001 |
 | `umbralesDeLasClases` | `Decide: false` | FR-010 |
-| `marcadasDelUmbral` | Casa el nombre del conjunto y nombra las marcadas de todos los modos, cada una con ` (modo <modo>)` | FR-004 |
+| `marcadasDelUmbral` | Casa el nombre del conjunto y nombra las marcadas de todos los modos, cada una con ` (modo <modo>)`, de la constante nueva `sesionConSuModo` | FR-004 |
 
 ## 5. Lo que cambia en los tests
 
@@ -85,6 +85,10 @@ Nada exportado cambia: `Umbral` conserva sus campos y sus claves.
 |---|---|
 | `ejecucionConUmbrales.clasesDelJuez` (campo nuevo del arnés) | El contenido de `clases.yaml` de la carpeta del juez de la ejecución sintética; vacío, la constante de hoy, con `umbral: 0`. Como `medidaDelJuez` |
 | Los ayudantes que escriben a mano los umbrales esperados (`umbralesConJuez`, `umbralesDeUnModo`, `umbralesDeJurisprudencia`, `umbralesDeLasClasesDeJurisprudencia`) | El recuento por modo con `Decide: false` y el umbral de la clase; el conjunto, en su sitio |
+| `umbralConjunto` y `umbralConjuntoDeJurisprudencia` (ayudantes nuevos) | El conjunto esperado, escrito a mano: el de la ejecución sintética, con las medidas de los modos dados, y el de `jurisprudencia`, sobre 60 |
+| `exigirLosDoceDelContrato` y el caso `las-doce-filas-de-los-dos-modos` | Pasan a llamarse `exigirLosTreceDelContrato` y `las-trece-filas-de-los-dos-modos`, con los trece |
+| `escribirElJuezDelInforme` | Gana el argumento de la declaración de clases, por el que el campo del arnés llega a la carpeta del juez |
+| `parrafoDeLosArticulos29Y30`, `parrafoDeLosArticulos32Y33` y `parrafoDeLaDevolucion` (constantes nuevas) | Los párrafos, cada uno con sus tres frases, de las respuestas que se marcan de más: el votante de votos grabados reconoce cada respuesta por el suyo |
 
 ## 6. El registro de los mutantes
 

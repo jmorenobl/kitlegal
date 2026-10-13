@@ -12,10 +12,11 @@ Go. El 6 crea un worktree en `$TMPDIR`, con su registro en `.git/worktrees/`, y 
 trabajo, el índice ni el historial. El 8 deja `coverage.out` y `coverage-integration.out`, que git ignora
 (`.gitignore`: `/coverage.*`).
 
-**Lo que vale ya hoy**, antes de implementar nada: el escenario 0, la orden de test del 5 y las órdenes de `jq` del 9
-sobre los informes de un cierre anterior. Hoy `TestUmbralConjunto` no existe —su orden responde `[no tests to run]`—,
-`git apply --reverse --check` del 1 dice que el parche no casa, y las búsquedas del 7 dan las líneas que el hito
-corrige. Los nombres de los tests y de sus casos los fija el plan.
+**Lo que valía ya antes de implementar nada**, en `869eaf8`: el escenario 0, la orden de test del 5 y las órdenes de
+`jq` del 9 sobre los informes de un cierre anterior. Entonces `TestUmbralConjunto` no existía —su orden respondía
+`[no tests to run]`—, `git apply --reverse --check` del 1 decía que el parche no casaba, y las búsquedas del 7 daban
+las líneas que el hito corrige. Sobre la cabeza del hito, cada escenario da lo que su «Esperado» dice. Los nombres de
+los tests y de sus casos los fija el plan.
 
 **Con `rtk` delante**, la salida de `go test` y la de `git diff` llegan resumidas («`ok`» es `Go test: N passed`):
 `rtk proxy <orden>` da la original.
@@ -162,9 +163,9 @@ git diff -U0 main -- CHANGELOG.md | grep '^@@'
 
 Esperado:
 
-1. Sin salida: ninguna de las frases de hoy que el hito deja falsas (hoy son 11 líneas).
-2. Sin salida: tampoco en *Unreleased* (hoy son 8).
-3. Un número mayor que 0 en cada uno de los tres: nombran el umbral conjunto (hoy, 0 en los tres).
+1. Sin salida: ninguna de las frases de antes que el hito deja falsas (en `main`, `869eaf8`, son 11 líneas).
+2. Sin salida: tampoco en *Unreleased* (en `main` son 8).
+3. Un número mayor que 0 en cada uno de los tres: nombran el umbral conjunto (en `main`, 0 en los tres).
 4. Los cinco ficheros.
 5. Todas las cabeceras, con su primer número —la línea de `main`— por debajo de 285, la de `## [0.5.0]`: las versiones
    publicadas no cambian.

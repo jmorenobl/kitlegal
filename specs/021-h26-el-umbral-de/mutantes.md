@@ -12,6 +12,11 @@ Es un registro del run: nada lo lee en `make ci`.
 | 1, un solo modo | rojo, 7 casos; por el veredicto, `3-y-0` y `2-y-1` | rojo, 10 casos; por el veredicto, `una-marcada-en-el-modo-orden` | código 1 |
 | 2, sin decidir | rojo, 7 casos; por el veredicto, `4-y-0`, `2-y-2` y `104-con-3` | rojo, 10 casos; por el veredicto, `dos-marcadas-en-el-modo-orden` y `una-marcada-en-cada-modo` | código 1 |
 
+Los 10 casos de `TestUmbralesDeJurisprudencia` son los de su tabla. El test tiene un subtest más,
+`el-elemento-del-contrato`, que no está en ninguna de las dos listas de abajo: compara los ejemplos del contrato con
+los ayudantes del test, sin escribir ningún informe, y no pasa por el código mutado (nota del barrido, leída en
+`internal/evals/informe_test.go`; el escenario no se ha repetido).
+
 ## Dónde y sobre qué
 
 - Cabeza: `8ae24050d733516ba366a5a9c7014cf6d40ee1f4` (`feat(H26): T002`). Go 1.27.2, `darwin/arm64`.

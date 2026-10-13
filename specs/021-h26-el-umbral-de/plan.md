@@ -75,7 +75,7 @@ justificada está en Complexity Tracking.*
 | II · Nada sin cita ni fuente | Es lo que mide el umbral que el hito pone a decidir: que la respuesta no afirme lo que no leyó. Ningún sobre ni ninguna cita cambian. La regla «nunca inventar contenido legal» sigue en las skills, que no se tocan |
 | III · Tests primero y offline | «Aceptación e2e: no aplica» (abajo, con el motivo). Cada pieza entra con sus tests en `make ci`, offline y sin modelo. La aceptación es el job de cierre (SC-001) |
 | IV · Hexagonal y errores tipados | Ningún paquete del binario, ningún error tipado y ningún código de salida de `kitlegal` cambian. El job sigue saliendo en rojo con el veredicto `fallo`, y el sondeo, con 0 |
-| V · Simplicidad y dependencias | Ninguna dependencia nueva. Un método y dos constantes nuevas en un fichero que ya existe, y una rama que deja de usarse, retirada. Cada mecanismo se traza a un FR («Trazabilidad») |
+| V · Simplicidad y dependencias | Ninguna dependencia nueva. Un método, una función y dos constantes nuevas (`umbralesConjuntos`, `nombreDelUmbralConjunto`, `descripcionDelUmbralConjunto` y `sesionConSuModo`) en un fichero que ya existe, y una rama que deja de usarse, retirada. Cada mecanismo se traza a un FR («Trazabilidad») |
 | VI · Un binario, convenciones de agente | El binario, sus banderas, `--describe` y las tablas de comandos de las skills no cambian |
 | VII · Grafo y privacidad | Nada del grafo cambia. Los tests usan directorios temporales |
 | VIII · Skills primero | No entrega ni cambia ninguna skill: protege las tres, haciendo que el verde y el rojo de sus evals vuelvan a decir algo. `SKILL.md`, `references/` y evals, sin tocar (FR-036) |
@@ -165,7 +165,8 @@ Sus siete casos, sobre la ejecución sintética «como el cierre» en dos modos 
 modo— con la `clases.yaml` de `boe-legislacion` leída del repositorio (research D6, D7): `3-y-0`, `0-y-3`, `2-y-1`,
 `4-y-0`, `2-y-2`, `104-con-2` y `104-con-3`. Cada uno exige los trece elementos de `umbrales` con sus valores escritos
 a mano, los motivos de la raíz y el veredicto; y `0-y-3`, además, que el conjunto y el recuento del modo herramienta se
-escriban como los dos ejemplos de `boe-legislacion` de contracts/umbrales-del-informe.md §2 y §3, tal cual.
+escriban como los dos ejemplos de `boe-legislacion` de contracts/umbrales-del-informe.md §2 y §3, tal cual. `3-y-0`
+compara lo mismo, con el recuento del modo orden: el ejemplo de §3 con `orden` donde lleva `herramienta`.
 
 ### Tests existentes que cambian
 
@@ -269,9 +270,10 @@ meses de uso —cientos de normas y miles de bloques—: cada job parte de las e
   primer job en que las marcadas caben en la tasa; el de un recuento por modo, que no decide, cuando caben las de ese
   modo.
 - **El motivo del conjunto** (la persona y la reparación del cierre, que no cambia por él ninguna skill; como mucho uno
-  por skill y por job): 90 bytes de cabecera y unos 440 por respuesta marcada, con las frases del último cierre. Los
-  más cortos que pueden darse llevan 4 respuestas en `boe-legislacion`, 1,9 KB, y 2 en `jurisprudencia`, 1 KB. Como
-  mucho, las juzgadas: 108 y 60. Deja de darse en el primer job en que el conjunto se cumple; no se acumula.
+  por skill y por job): 90 bytes de cabecera y unos 440 por respuesta marcada, con las frases del último cierre. Con
+  las 108 y las 60 respuestas juzgadas, los más cortos que pueden darse llevan 4 respuestas en `boe-legislacion`,
+  1,9 KB, y 2 en `jurisprudencia`, 1 KB; con menos juzgadas pueden llevar menos: 3, de 107 o de 104, y 1, de 58.
+  Como mucho, las juzgadas: 108 y 60. Deja de darse en el primer job en que el conjunto se cumple; no se acumula.
 - **La fila de `informe.md`** (la persona): una más, 85 bytes.
 - **Las líneas del sondeo** (quien lo lanza, una vez por sondeo): una por clase, como hoy. No cambian.
 - **El `umbral` de `clases.yaml`** (el job y `make ci`, una vez por ejecución; la persona que lo estrecha): un número
