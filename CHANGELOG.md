@@ -126,7 +126,8 @@ sustituyen a este fichero.
   - **El juez y sus dos clases.** Una skill tiene juez si sus evals tienen la carpeta `juez`
     (`evals/boe-legislacion/juez/`; `legal-core` no la tiene): `clases.yaml` declara las clases, contra el esquema
     nuevo `schemas/juez-clases.yaml.json`, y `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json` son copias,
-    byte a byte, de la evidencia del ADR 0037. `afirma_lo_no_leido` **decide** con 0: la respuesta expone una regla
+    byte a byte, de la evidencia del ADR 0037. `afirma_lo_no_leido` **decide**, con la tasa de su `clases.yaml` sobre
+    las respuestas de los dos modos juntas, 0.028 (ADR 0038; abajo): la respuesta expone una regla
     que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
     trata un precepto que nombra y no leyó. `cuenta_su_proceso` **solo se publica**. Cada voto es una sesión nueva de
     Claude Code sin herramientas (`scripts/evals-voto.sh`), que recibe los textos que devolvieron las herramientas de
@@ -137,13 +138,14 @@ sustituyen a este fichero.
     publica cuenta el primer voto. Un voto que no llega a darse —agota sus 35 s, su sesión termina con error, o su
     salida no es JSON o no tiene la forma del esquema— deja la respuesta **sin juzgar**, y con alguna el veredicto es
     `fallo` por la ejecución, no por la skill. El juicio sin modelo de cada sesión no cambia con los votos.
-  - **Umbrales nuevos, y dos que salen.** `umbrales` gana `afirma_lo_no_leido:<modelo>:<modo>` (0, decide) y
-    `cuenta_su_proceso:<modelo>:<modo>` (se publica) sobre las respuestas del modelo que decide en cada modo;
+  - **Umbrales nuevos, y dos que salen.** `umbrales` gana `afirma_lo_no_leido:<modelo>:<modo>` y
+    `cuenta_su_proceso:<modelo>:<modo>` (se publican) sobre las respuestas del modelo que decide en cada modo;
+    `afirma_lo_no_leido:<modelo>` (0.028, decide), sobre las de los dos modos juntas;
     `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` (0 de 212) y
     `medida_del_juez:afirma_lo_no_leido:correctos_marcados` (0 de 47), con los recuentos de la medida versionada; y
     `duracion_del_juez:<modo>` (≤ 900 s de votos). **Salen** `expresiones_prohibidas:<modelo>:<modo>`, de todos los
     modelos, y `redaccion_no_leida:<modelo>:<modo>`. Siguen `sin_activar:<modelo>:<modo>` y
-    `duracion_de_las_sesiones:<modo>`. `boe-legislacion` publica doce, diez de ellos decidiendo, y `legal-core`, `[]`.
+    `duracion_de_las_sesiones:<modo>`. `boe-legislacion` publica trece, nueve de ellos decidiendo, y `legal-core`, `[]`.
   - **La clave `juez` del informe.** `informe.json` gana `juez`, detrás de `umbrales` y `null` en una skill sin juez:
     el modelo y la versión de Claude Code del juez, `respuestas` —cada respuesta con algún voto afirmativo, con todos
     sus votos, sus frases y si quedó marcada— y `sin_juzgar`, con el motivo de cada una. `informe.md` gana la sección
@@ -211,8 +213,9 @@ sustituyen a este fichero.
     `--json` no da ninguno. Lo tiene la skill con alguna eval que declara `sentencias`, junto a
     `sin_activar:<modelo>:<modo>`, que hasta ahora solo existía con juez. Su motivo nombra cada respuesta que
     cuenta, por su sesión y con sus ECLI, cada uno con `(cita sin documento cotejado)` o `(sin origen)`.
-  - **El juez de `jurisprudencia` y sus dos clases** (`evals/jurisprudencia/juez/`). `afirma_lo_no_leido` **decide**
-    con 0: la respuesta dice qué dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
+  - **El juez de `jurisprudencia` y sus dos clases** (`evals/jurisprudencia/juez/`). `afirma_lo_no_leido` **decide**,
+    con la tasa de su `clases.yaml` sobre las respuestas de los dos modos juntas, 0.017 (ADR 0038; abajo): la
+    respuesta dice qué dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
     jurisprudencia sobre una materia, cuando eso no está ni en la pregunta ni en lo que devolvieron sus
     herramientas; cuenta también decir, con una parte de la sentencia delante, lo que dice otra que no lo está.
     `afirma_que_existe` **solo se publica**: la respuesta dice que una sentencia que nombra existe, o que no existe,
@@ -221,15 +224,17 @@ sustituyen a este fichero.
     `sentencia` —de qué sentencia o de qué jurisprudencia habla la frase— donde el de `boe-legislacion` lleva
     `precepto`, y el informe lo publica con el voto: en `informe.md`, la octava columna de la tabla «Votos» se llama
     entonces «Sentencia».
-  - **Doce umbrales, diez de ellos decidiendo.** Por cada modo, con los del modo orden delante,
-    `sin_activar:<modelo>:<modo>`, `afirma_lo_no_leido:<modelo>:<modo>` (0, decide),
+  - **Trece umbrales, nueve de ellos decidiendo.** Por cada modo, con los del modo orden delante,
+    `sin_activar:<modelo>:<modo>`, `afirma_lo_no_leido:<modelo>:<modo>` (se publica),
     `afirma_que_existe:<modelo>:<modo>` (se publica) y `cita_sin_documento:<modelo>:<modo>`, sobre las 30
-    respuestas del modelo que decide en ese modo; después,
+    respuestas del modelo que decide en ese modo; después, `afirma_lo_no_leido:<modelo>` (0.017, decide), sobre las
+    60 de los dos modos juntas;
     `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` (0 de 125) y
     `medida_del_juez:afirma_lo_no_leido:correctos_marcados` (0 de 124), con los recuentos de la medida versionada;
     y `duracion_del_juez:<modo>` (≤ 900 s de votos). No lleva `duracion_de_las_sesiones:<modo>`: la skill sigue sin
-    objetivo de duración de las sesiones. Una respuesta marcada en `afirma_lo_no_leido` en un modo da `fallo`, con
-    un motivo que la nombra por su sesión, con las frases de sus tres votos. Los doce de `boe-legislacion` y el `[]`
+    objetivo de duración de las sesiones. Una respuesta marcada en `afirma_lo_no_leido`, de las 60, no da `fallo`, y
+    dos sí, estén en el modo que estén, con un motivo que nombra cada una por su sesión, con su modo y con las
+    frases de sus tres votos. Los trece de `boe-legislacion` y el `[]`
     de `legal-core` no cambian.
   - **Diez evals.** A las seis de H23 se suman cuatro, con preguntas ante las que una respuesta puede decir de una
     sentencia lo que no ha leído: el resumen de una sentencia conocida que nadie ha traído
@@ -281,6 +286,21 @@ sustituyen a este fichero.
   juzgar sigue sin llevar nada más que su motivo. Antes, un voto cortado dejaba la respuesta sin juzgar y el trabajo
   en rojo por la ejecución y no por la skill: pasó con una respuesta en la segunda medición del cierre de H24 y con
   una de las 171 que el juez tenía que juzgar en la segunda del cierre de H25.
+- **En el job de evals, `afirma_lo_no_leido` decide con una tasa sobre las respuestas de los dos modos juntas** (ADR
+  0038). Lo que decide de la clase, en el informe de una skill con juez, es un umbral nuevo y sin modo,
+  `afirma_lo_no_leido:<modelo>`: las respuestas del modelo que decide que el juez marca con sus tres votos, sobre las
+  de los dos modos juntas, con el `umbral` de la clase en su `clases.yaml`. **En `boe-legislacion` es 0.028, como
+  mucho 3 marcadas de 108, y en `jurisprudencia`, 0.017, como mucho 1 de 60.** No depende de cómo se reparten las
+  marcadas entre los modos.
+  - **El recuento de cada modo se sigue publicando.** `afirma_lo_no_leido:<modelo>:<modo>` lleva el mismo `umbral`
+    que el conjunto y `decide: false`: su `cumple` solo informa, y no da ningún motivo.
+  - **Trece umbrales, nueve de ellos decidiendo, en cada una de las dos skills.** `umbrales` pasa de doce elementos
+    con diez que deciden a trece con nueve: el conjunto va detrás de los de las respuestas de los dos modos y delante
+    de los dos de la medida.
+  - **El motivo es el del conjunto.** Nombra cada respuesta marcada de los dos modos, las del modo orden delante, por
+    su sesión, con su modo y con las frases de sus tres votos:
+    `umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: <sesión> (modo <modo>): «<frase 1>» · «<frase 2>» · «<frase 3>»`,
+    y `; <sesión> (modo <modo>): …` por cada otra.
 
 ## [0.5.0] - 2026-10-04
 

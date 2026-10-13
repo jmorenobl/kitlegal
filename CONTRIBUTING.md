@@ -721,11 +721,13 @@ no por sentencias. `legal-core` no la tiene. Los cinco ficheros de la carpeta:
 | `casos.yaml` | Los casos etiquetados con los que se mide al juez: respuestas de informes versionados, cada una con su etiqueta, `defecto` o `correcto` |
 | `medida.json` | La medida versionada: lo que dio votar esos casos, y con qué rúbrica, qué casos, qué modelo y qué versión de Claude Code ([Job de evals](#job-de-evals)) |
 
-En `boe-legislacion` las clases son dos. `afirma_lo_no_leido` **decide**, con umbral 0: la respuesta expone una regla
-que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
+En `boe-legislacion` las clases son dos. `afirma_lo_no_leido` **decide**, con la tasa de su `clases.yaml` sobre las
+respuestas de los dos modos juntas (ADR 0038), 0.028, que son como mucho 3 marcadas de 108: la respuesta expone una
+regla que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
 trata un precepto que nombra y no leyó; avisar de lo que la respuesta no cubre sin nombrar ningún precepto no cuenta.
-`cuenta_su_proceso` **solo se publica**. En `jurisprudencia` son otras dos. `afirma_lo_no_leido` **decide**, con
-umbral 0: la respuesta dice qué dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
+`cuenta_su_proceso` **solo se publica**. En `jurisprudencia` son otras dos. `afirma_lo_no_leido` **decide**, con la
+tasa de la suya, también sobre los dos modos juntos, 0.017, que es como mucho 1 marcada de 60: la respuesta dice qué
+dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
 jurisprudencia sobre una materia, cuando eso no está ni en la pregunta ni en los textos que devolvieron sus
 herramientas; cuenta también decir, con una parte de la sentencia delante, lo que dice otra que no lo está, y no
 cuenta dar los datos de una ficha que sí está, repetir la referencia como la dio la persona ni decir lo que no se ha
@@ -1102,10 +1104,11 @@ Cómo se lee el informe:
   no llega al umbral —`<eval> con <modelo>: pasan 1 de 3, y el umbral es 2`, seguido de los motivos de sus sesiones
   que no pasan—, una serie planificada con más o menos sesiones de las que pide el plan, una sesión ilegible, un
   fichero mal formado del directorio de evals —una eval, la lista de expresiones o un fichero de la carpeta del
-  juez—, una petición llegada a la red o un umbral que decide y no se cumple. El de una clase del juez nombra detrás
-  cada respuesta marcada, por su sesión y con las frases de sus tres votos:
-  `umbral afirma_lo_no_leido:claude-sonnet-5-5:herramienta: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %: <sesión>: «<frase 1>» · «<frase 2>» · «<frase 3>»`,
-  y `; <sesión>: …` por cada otra. Los que
+  juez—, una petición llegada a la red o un umbral que decide y no se cumple. El del conjunto de una clase del juez
+  nombra detrás cada respuesta marcada de todos los modos, las del modo orden delante, por su sesión, con su modo y
+  con las frases de sus tres votos:
+  `umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: <sesión> (modo <modo>): «<frase 1>» · «<frase 2>» · «<frase 3>»`,
+  y `; <sesión> (modo <modo>): …` por cada otra. Los que
   dependen del modo lo nombran, en el `<modelo>` de la serie —`claude-sonnet-5-5 (herramienta)` en el modo
   herramienta, el id solo en el modo orden y en la eval sin binario ni servidor— o en el nombre del umbral. Una serie
   que decide y no llega al umbral en un modo da `fallo` aunque pase en el otro. Detrás van, con el
@@ -1133,22 +1136,27 @@ Cómo se lee el informe:
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
   o de la propia `medida`, y se puede rehacer con los otros campos. Los de las respuestas existen solo si la skill
   tiene juez o si alguna de sus evals declara `sentencias`, y los de un modo se miden sobre las sesiones de ese modo,
-  sin sumar las del otro. **En `boe-legislacion` son doce, diez de ellos decidiendo**, en este orden; en
-  `jurisprudencia`, otros doce, más abajo; y `legal-core` no tiene ninguno, `[]`:
+  sin sumar las del otro: todos menos el conjunto de una clase del juez que decide, que suma las de los dos modos
+  (ADR 0038). **En `boe-legislacion` son trece, nueve de ellos decidiendo**, en este orden; en
+  `jurisprudencia`, otros trece, más abajo; y `legal-core` no tiene ninguno, `[]`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
   | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (54) | `0` | sí |
-  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0` | sí |
+  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.028` | no |
   | `cuenta_su_proceso:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
+  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (108) | `0.028` | sí |
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (212) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (47) | `0` | sí |
   | `duracion_de_las_sesiones:<modo>` | Segundos de la tanda de ese modo | — | `900`, el objetivo del job | sí |
   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
 
-  Primero van los tres del modo orden y los tres del modo herramienta; después, los dos de la medida; y al final,
+  Primero van los tres del modo orden y los tres del modo herramienta; después, el conjunto de cada clase que
+  decide; después, los dos de la medida; y al final,
   los de la duración de las sesiones y los de la del juez, cada pareja con el modo orden delante. Los de una clase
-  salen de `clases.yaml` —su nombre, su `umbral` y su `decide`—, y los dos de la medida, de cada clase que decide.
+  salen de `clases.yaml` —su nombre y su `umbral`, que es el mismo en el recuento de cada modo y en el conjunto—, y
+  su `decide` ya no es el del recuento por modo, que no decide nunca: dice si la clase tiene conjunto, que es el que
+  decide. Los dos de la medida salen de cada clase que decide.
   **Salen `expresiones_prohibidas:<modelo>:<modo>`, de todos los modelos, y `redaccion_no_leida:<modelo>:<modo>`**:
   `umbrales` no los lleva. Una respuesta sin juzgar sigue en el `total` y no está en ninguna `medida`: el veredicto
   ya es `fallo` por su motivo. Las sesiones de la eval sin binario ni servidor, su tanda y los votos de sus
@@ -1157,24 +1165,27 @@ Cómo se lee el informe:
   `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
   `ninguno`.
 
-  **En `jurisprudencia` son también doce, y deciden diez**, en este orden. Tiene juez y no tiene objetivo de
+  **En `jurisprudencia` son también trece, y deciden nueve**, en este orden. Tiene juez y no tiene objetivo de
   duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la duración de sus votos,
   y ninguno de `duracion_de_las_sesiones`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
   | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (30) | `0` | sí |
-  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0` | sí |
+  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.017` | no |
   | `afirma_que_existe:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
   | `cita_sin_documento:<modelo>:<modo>` | Las que llevan una cita de sentencia cuyo ECLI no leyó ningún `cita cotejar` de su sesión, o un ECLI, fuera de una cita y fuera de una línea que empieza por `⚠`, que no está en ningún sobre de su sesión —terminara como terminara— ni en la pregunta de su eval | Las mismas | `0` | sí |
+  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (60) | `0.017` | sí |
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (125) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (124) | `0` | sí |
   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
 
-  Primero van los cuatro del modo orden y los cuatro del modo herramienta; después, los dos de la medida; y al final,
-  los dos de la duración del juez, con el modo orden delante. El único que no decide es `afirma_que_existe`, en cada
-  modo. Una respuesta marcada en `afirma_lo_no_leido` en un modo da `fallo` aunque en el otro no haya ninguna, con el
-  motivo de toda clase que decide (arriba), sobre sus 30 respuestas.
+  Primero van los cuatro del modo orden y los cuatro del modo herramienta; después, el conjunto de
+  `afirma_lo_no_leido`; después, los dos de la medida; y al final,
+  los dos de la duración del juez, con el modo orden delante. No deciden `afirma_que_existe` ni el recuento por modo
+  de `afirma_lo_no_leido`: cuatro de los trece. Una respuesta marcada en `afirma_lo_no_leido` no da `fallo` por sí
+  sola —1 de 60 cabe en la tasa—, y dos sí, estén en el modo que estén, con el
+  motivo del conjunto de toda clase que decide (arriba), sobre sus 60 respuestas.
 
   `cita_sin_documento` es un hecho de la sesión y se mide sin modelo, con lo que «Formato común de eval» dice que se
   reconoce en un texto y que cuenta como salida de una operación: un ECLI no llega a una respuesta más que desde un
