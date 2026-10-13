@@ -677,6 +677,103 @@ const (
 	argumentosDelIndice = `{"norma":"BOE-A-2015-10565"}`
 )
 
+// Lo que piden y devuelven las herramientas de las sesiones de jurisprudencia
+// de TestTextosDeLaSesion y de TestMensajeDelVoto, las de la pregunta con el
+// fragmento pegado (contracts/juez-de-jurisprudencia.md §2 de H25; FR-010): la
+// orden que coteja el documento, que lo lleva en un «<<», entre su principio y
+// su final; y la consulta de un ROJ sin sus siglas, que falla, como orden y como
+// llamada, con el sobre de fallo que da el binario y lo que Bash devuelve de
+// una orden que termina con 2.
+const (
+	principioDelCotejoPorOrden = "kitlegal cita cotejar --json <<'DOCUMENTO'\n"
+	finalDelCotejoPorOrden     = "DOCUMENTO"
+	llamadaDelCotejo           = herramientaDeCotejar + " --documento="
+
+	ordenDelROJSinSiglas      = "kitlegal cita preparar --roj 3144/2023 --json"
+	argumentosDelROJSinSiglas = `{"roj":"3144/2023"}`
+	llamadaDelROJSinSiglas    = herramientaDePreparar + " --roj=3144/2023"
+	dataDelROJSinSiglas       = `{"clase":"argumentos","mensaje":"el ROJ \"3144/2023\" no es válido: no lleva ningún ` +
+		`espacio y la forma <siglas> <número>/<año> separa con uno las siglas del número"}`
+	codigoDeLaOrdenQueFalla = "Exit code 2\n"
+
+	// cotejoDelFragmento es el golden del applet cita con el sobre del cotejo del
+	// fragmento sin ninguna referencia, relativo al directorio de este paquete.
+	cotejoDelFragmento = "../app/testdata/cita/cotejar-sin-referencia.json"
+)
+
+// sesionDeCita es la sesión sintética de jurisprudencia de un modo sobre la
+// pregunta con el fragmento pegado: lo que va en su transcript entre el init y
+// el result, y los textos de las herramientas que deja, escritos a mano.
+type sesionDeCita struct {
+	transcript string
+	textos     []Texto
+}
+
+// sesionDeCitaEn da esa sesión en el modo dado, con ese documento: activa la
+// skill, lee su SKILL.md, que es el dado, coteja el documento y pide la consulta
+// de un ROJ sin sus siglas, que falla. En el modo orden son dos órdenes de Bash,
+// la primera con el documento en un «<<»; en el modo herramienta, dos llamadas
+// al servidor, la primera con el documento en sus argumentos. Sus textos son
+// los de esas dos, en su orden: el del cotejo, con su sobre, y el de la consulta
+// que falla, con lo que devolvió. Ni la activación ni la lectura de SKILL.md dan
+// ninguno.
+func sesionDeCitaEn(t *testing.T, modo Modo, documento, skillMD string) sesionDeCita {
+	t.Helper()
+
+	sobreDelCotejo := string(contenidoDelFichero(t, cotejoDelFragmento))
+	sobreDelFallo := sobreDeCita(false, dataDelROJSinSiglas)
+
+	deLaSkill := mensajeDeLlamadas(t,
+		usoDeHerramienta{id: "toolu_01", nombre: herramientaSkill, entrada: `{"skill":"` + skillDeJurisprudencia + `"}`},
+		usoDeHerramienta{
+			id: "toolu_02", nombre: "Read",
+			entrada: `{"file_path":"/tmp/trabajo/.claude/skills/` + skillDeJurisprudencia + `/SKILL.md"}`,
+		},
+	) + mensajeDeResultados(t,
+		resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, "Launching skill: "+skillDeJurisprudencia)},
+		resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, skillMD)},
+	)
+
+	if modo == ModoHerramienta {
+		return sesionDeCita{
+			transcript: deLaSkill +
+				mensajeDeLlamadas(t, usoDeHerramienta{
+					id: "toolu_03", nombre: "mcp__kitlegal__" + herramientaDeCotejar,
+					entrada: `{"documento":` + cadenaJSON(t, documento) + `}`,
+				}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_03", contenido: contenidoDeTextos(t, sobreDelCotejo)}) +
+				mensajeDeLlamadas(t, usoDeHerramienta{
+					id: "toolu_04", nombre: "mcp__kitlegal__" + herramientaDePreparar, entrada: argumentosDelROJSinSiglas,
+				}) +
+				mensajeDeResultados(t, resultadoDeHerramienta{
+					id: "toolu_04", contenido: contenidoDeTextos(t, sobreDelFallo), conError: true,
+				}),
+			textos: []Texto{
+				{Orden: llamadaDelCotejo + documento, Salida: sobreDelCotejo},
+				{Orden: llamadaDelROJSinSiglas, Salida: sobreDelFallo},
+			},
+		}
+	}
+
+	ordenDelCotejo := principioDelCotejoPorOrden + documento + finalDelCotejoPorOrden
+
+	return sesionDeCita{
+		transcript: deLaSkill +
+			mensajeDeLlamadas(t, usoDeHerramienta{id: "toolu_03", nombre: "Bash", entrada: entradaDeBash(t, ordenDelCotejo)}) +
+			mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_03", contenido: cadenaJSON(t, sobreDelCotejo)}) +
+			mensajeDeLlamadas(t, usoDeHerramienta{
+				id: "toolu_04", nombre: "Bash", entrada: entradaDeBash(t, ordenDelROJSinSiglas),
+			}) +
+			mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_04", contenido: cadenaJSON(t, codigoDeLaOrdenQueFalla+sobreDelFallo), conError: true,
+			}),
+		textos: []Texto{
+			{Orden: ordenDelCotejo, Salida: sobreDelCotejo},
+			{Orden: ordenDelROJSinSiglas, Salida: codigoDeLaOrdenQueFalla + sobreDelFallo},
+		},
+	}
+}
+
 // TestTextosDeLaSesion fija los textos de las herramientas que LeerSesion deja
 // en Sesion.Textos (contracts/juez-y-voto.md §2 y §9 de H24; data-model §2 de
 // H24; research D2 de H24; FR-001, FR-107), sobre transcripts que el propio test
@@ -691,16 +788,31 @@ const (
 // la salida vacía; y no dan texto Skill, Read, otra herramienta, una que no es
 // del registro ni el Bash que no nombra kitlegal en su orden —tampoco el que no
 // trae ninguna—, digan lo que digan su entrada y su resultado.
+//
+// Desde H25 (contracts/juez-de-jurisprudencia.md §2 y §9 de H25; research V5 de
+// H25; FR-010, FR-109; SC-009), lo fija también con una sesión de jurisprudencia
+// de cada modo sobre la pregunta con el fragmento pegado (sesionDeCitaEn): la
+// orden kitlegal cita cotejar da su texto con la orden tal cual, también el
+// documento que lleva en su «<<», y la llamada a cita_cotejar, con la orden que
+// el informe publica de ella, que lleva el documento entero; detrás va el de la
+// consulta que falla, con lo que devolvió; y ni la activación de la skill ni la
+// lectura de su SKILL.md dan ninguno.
 func TestTextosDeLaSesion(t *testing.T) {
 	t.Parallel()
 
 	const (
 		errorDeBash = "Exit code 127\n/bin/bash: line 1: kitlegal: command not found"
 		skillMD     = "---\nname: boe-legislacion\n---\n\nConsulta el BOE con kitlegal boe articulo."
+
+		skillMDDeJurisprudencia = "---\nname: jurisprudencia\n---\n\nCoteja el documento con kitlegal cita cotejar."
 	)
 
 	skill := usoDeHerramienta{id: "toolu_01", nombre: herramientaSkill, entrada: activacionDeLaSkill}
 	skillLanzada := resultadoDeHerramienta{id: "toolu_01", contenido: `"Launching skill: boe-legislacion"`}
+
+	fragmento := string(contenidoDelFichero(t, fragmentoDelRepositorio))
+	citaPorOrden := sesionDeCitaEn(t, ModoOrden, fragmento, skillMDDeJurisprudencia)
+	citaPorLlamada := sesionDeCitaEn(t, ModoHerramienta, fragmento, skillMDDeJurisprudencia)
 
 	casos := []struct {
 		nombre     string
@@ -807,6 +919,8 @@ func TestTextosDeLaSesion(t *testing.T) {
 				),
 			textos: []Texto{{Orden: ordenDelIndice}, {Orden: "boe_articulo BOE-A-2015-10565 a21"}},
 		},
+		{nombre: "cita-cotejar-por-orden", transcript: citaPorOrden.transcript, textos: citaPorOrden.textos},
+		{nombre: "cita-cotejar-por-llamada", transcript: citaPorLlamada.transcript, textos: citaPorLlamada.textos},
 		{nombre: "sin-textos"},
 	}
 

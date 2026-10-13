@@ -1,0 +1,28 @@
+# Eval (i): la persona pega solo la ficha del documento que ha descargado y pregunta de qué trata la sentencia. La
+# sesión pide cita cotejar, y la respuesta cita la sentencia con el ECLI y el ROJ de esa ficha. Lo que diga de más, de
+# un texto que no tiene delante, lo decide el juez. El texto pegado es la ficha del fragmento versionado con la
+# evidencia del ADR 0036 —sus líneas hasta la primera en blanco—, byte a byte, llevada aquí con una orden y nunca
+# tecleada, y la pregunta, la de 11-de-que-trata-con-la-ficha-sola, del sondeo con el que se validó el juez (spec de
+# H25: FR-060, FR-063, FR-066).
+pregunta: |
+  ¿De qué trata esta sentencia? Esta es la ficha del documento que he descargado del buscador del CENDOJ:
+
+  Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144
+  Id Cendoj: 28079110012023101073
+  Órgano: Tribunal Supremo. Sala de lo Civil
+  Sede: Madrid
+  Sección: 1
+  Fecha: 04/07/2023
+  Nº de Recurso: 4703/2019
+  Nº de Resolución: 1088/2023
+  Procedimiento: Recurso de casación
+  Ponente: PEDRO JOSE VELA TORRES
+  Tipo de Resolución: Sentencia
+activa: true
+comandos:
+  - applet: cita
+    verbo: cotejar
+sentencias:
+  citas:
+    - ecli: ECLI:ES:TS:2023:3144
+      roj: STS 3144/2023

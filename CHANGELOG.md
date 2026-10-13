@@ -55,7 +55,7 @@ sustituyen a este fichero.
   el texto en `documento`, y sin él, o con él vacío, es un error de la clase `argumentos`.
 - **Esquema publicado de los dos verbos**: `schemas/cita.json`, el que emiten `kitlegal cita preparar --describe` y
   `kitlegal cita cotejar --describe`, que `make schema-check` compara como los demás.
-- **La skill `jurisprudencia` v0: ninguna sentencia citada de memoria.** Se activa cuando la pregunta nombra, pide,
+- **La skill `jurisprudencia` v0.1: ninguna sentencia citada de memoria.** Se activa cuando la pregunta nombra, pide,
   cita o resume una sentencia o un auto, pregunta si existe, pide jurisprudencia sobre una materia o trae el texto o
   el PDF de una resolución. Va empotrada en el binario con las otras dos, y `kitlegal skills install` la instala.
   - **Una sentencia solo se cita con su documento en la conversación** —pegado o adjunto— y su ficha cotejada con
@@ -67,15 +67,30 @@ sustituyen a este fichero.
     dirección del buscador y cada casilla con su valor. Una cita escrita como «STS 1088/2023, de 4 de julio» se
     prepara como número de resolución con su fecha; sin fecha no se prepara, tampoco como ROJ, y se pide la fecha.
     No dice que la sentencia existe ni que no existe: nadie lo ha comprobado.
+  - **No le anuncia un CAPTCHA a la persona.** El buscador del CENDOJ cierra el paso con un CAPTCHA a los
+    programas, y por eso kitlegal no lo consulta; a la persona, con su navegador, no le sale. La respuesta no le
+    dice que le saldrá uno ni le pide que resuelva ninguno.
+  - **El equivalente deducido se da como deducido.** Si la respuesta nombra el ROJ o el ECLI que `cita preparar`
+    deduce de la referencia (`equivalente`), lo dice como lo que es: deducido de ella, sin que nadie lo haya
+    comprobado, y no como un dato de la sentencia.
   - **Si el documento traído no es el pedido**, lo dice con lo que difiere y no lo cita como si lo fuera.
   - **Ante una pregunta por materia**, da la dirección de la búsqueda por texto, y no cita ninguna sentencia de
     memoria: sigue con las que traiga la persona.
   - **Una sentencia del Tribunal Constitucional** la declara no cubierta, con la dirección del buscador del
     tribunal, sin citarla.
   - **No resume ni caracteriza una sentencia cuyo texto no está en la conversación**: con la ficha sola da la cita y
-    sus datos. Es una regla de la skill que ningún control del job decide: `jurisprudencia` no tiene juez.
+    sus datos. En el job de evals lo decide el juez con modelo de la skill, con `afirma_lo_no_leido` (abajo, en
+    «Cambiado»).
   - Pide cada operación con su herramienta, si el agente la tiene, y si no, con su orden, siempre con `--json`. Sin
-    herramienta y sin binario no cita ninguna sentencia. `SKILL.md` tiene 195 líneas y no lleva `references/`.
+    herramienta y sin binario no cita ninguna sentencia. `SKILL.md` tiene 197 líneas y no lleva `references/`.
+  - **Sustituye a la v0 de H23, que no llegó a publicarse**, y solo cambia de ella dos pasajes de `SKILL.md`. Su
+    párrafo inicial decía que «el buscador pide un CAPTCHA a los programas, y no se sortea», sin decir a quién
+    afecta, y 8 de las 35 respuestas del modelo que decide en el cierre de H23 nombraban un CAPTCHA, algunas para
+    anunciárselo a la persona o pedirle que lo resolviera. Y dejaba nombrar el equivalente junto a la referencia sin
+    decir qué es: de las 6 respuestas de ese cierre que lo daban, solo 1 decía que es deducido. La `description`, el
+    protocolo, la forma de la cita, la de la línea `⚠ SENTENCIA NO COMPROBADA:`, las reglas y la tabla de comandos
+    no cambian. Que las respuestas dejen de hacerlo no lo mide ningún control del job: lo lee una persona en las
+    del cierre.
 
 ### Cambiado
 
@@ -141,8 +156,9 @@ sustituyen a este fichero.
     alguna de las cuatro copias difiere de la evidencia (`TestCopiasDelJuez`). El job lo comprueba antes de abrir
     ninguna sesión: con el instrumento sin medir no abre ninguna, ni de evals ni del juez, y su informe sale en
     `fallo` con `umbrales` vacío. Una ejecución normal no vota ningún caso etiquetado.
-  - **`make evals-medir-juez SKILL=<skill>`**, fuera de `make ci`, repite la medida: vota los 259 casos e imprime
-    `medida.json` entre dos marcas, sin escribirla en el repositorio. La lanza una persona, con la etiqueta
+  - **`make evals-medir-juez SKILL=<skill>`**, fuera de `make ci`, repite la medida: vota los casos etiquetados de
+    la skill —259 en `boe-legislacion`— e imprime `medida.json` entre dos marcas, sin escribirla en el repositorio.
+    La lanza una persona, con la etiqueta
     `evals-medir-juez` en una propuesta de cambio o con la entrada `medir_al_juez` del flujo lanzado a mano —el
     trabajo nuevo `medida del juez (<skill>)`, con un tope de 269 minutos—, y es ella quien versiona la medida, en el
     mismo cambio que toca la rúbrica, los casos, el modelo del juez o su versión.
@@ -170,8 +186,9 @@ sustituyen a este fichero.
   bandera propia como bandera —`kitlegal cita preparar [<ecli>] [--roj <roj>] [--resolucion <resolucion>] …`—; sin
   ella las habría escrito como argumentos de posición. Las tablas de `boe-legislacion` y de `legal-core`, cuyos
   verbos no tienen banderas propias, no cambian.
-- **El job de evals mide `jurisprudencia`, y `cita_sin_documento` decide.** Lo que juzga de sus respuestas tiene
-  forma o es un hecho de la sesión, y se comprueba sin modelo: `jurisprudencia` no tiene juez.
+- **El job de evals mide `jurisprudencia`: `cita_sin_documento` decide sin modelo, y `afirma_lo_no_leido`, con su
+  juez.** Lo que tiene forma o es un hecho de la sesión se comprueba sin modelo; que la respuesta resuma o
+  caracterice una sentencia que no tenía delante lo juzga el juez con modelo de la skill (ADR 0037).
   - **El formato común de eval gana `sentencias`** (`schemas/eval.yaml.json`): lo que la respuesta debe llevar, y lo
     que no, de las sentencias, con al menos una de sus claves. `citas`, las parejas de `ecli` y `roj` que debe citar
     con la forma fija; `ninguna_cita`, que no cite ninguna; `sin_cita_del_roj`, los ROJ con los que no puede citar;
@@ -194,14 +211,76 @@ sustituyen a este fichero.
     `--json` no da ninguno. Lo tiene la skill con alguna eval que declara `sentencias`, junto a
     `sin_activar:<modelo>:<modo>`, que hasta ahora solo existía con juez. Su motivo nombra cada respuesta que
     cuenta, por su sesión y con sus ECLI, cada uno con `(cita sin documento cotejado)` o `(sin origen)`.
-  - **El trabajo `evals (jurisprudencia)`**, el tercero de la matriz del flujo `evals`, con las seis evals de
-    `evals/jurisprudencia/`: de una en una, sin objetivo de duración, sin juez y sin prueba de red. Abre 72
-    sesiones, 36 en cada modo, y su informe lleva cuatro umbrales, los cuatro decidiendo: `sin_activar` y
-    `cita_sin_documento` del modo orden, y los dos del modo herramienta. Los doce de `boe-legislacion` y el `[]` de
-    `legal-core` no cambian, ni el tope de 352 minutos, que cubre su peor caso calculado, 20 341 s.
-  - **`make ci`** valida las seis evals y las reglas de su conjunto (`TestEvalsDelRepositorio`), y
-    `TestPreguntasConElFragmento` exige que las dos que traen un documento lo lleven byte a byte: es el fragmento
-    de `evidencias/adr-0036/`, que nadie escribe a mano.
+  - **El juez de `jurisprudencia` y sus dos clases** (`evals/jurisprudencia/juez/`). `afirma_lo_no_leido` **decide**
+    con 0: la respuesta dice qué dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
+    jurisprudencia sobre una materia, cuando eso no está ni en la pregunta ni en lo que devolvieron sus
+    herramientas; cuenta también decir, con una parte de la sentencia delante, lo que dice otra que no lo está.
+    `afirma_que_existe` **solo se publica**: la respuesta dice que una sentencia que nombra existe, o que no existe,
+    sin su documento en la pregunta. La rúbrica, el esquema de la respuesta, los casos y la medida son copias, byte
+    a byte, de `evidencias/adr-0037-jurisprudencia/` (`TestCopiasDelJuez`). El voto de `afirma_lo_no_leido` lleva
+    `sentencia` —de qué sentencia o de qué jurisprudencia habla la frase— donde el de `boe-legislacion` lleva
+    `precepto`, y el informe lo publica con el voto: en `informe.md`, la octava columna de la tabla «Votos» se llama
+    entonces «Sentencia».
+  - **Doce umbrales, diez de ellos decidiendo.** Por cada modo, con los del modo orden delante,
+    `sin_activar:<modelo>:<modo>`, `afirma_lo_no_leido:<modelo>:<modo>` (0, decide),
+    `afirma_que_existe:<modelo>:<modo>` (se publica) y `cita_sin_documento:<modelo>:<modo>`, sobre las 30
+    respuestas del modelo que decide en ese modo; después,
+    `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` (0 de 125) y
+    `medida_del_juez:afirma_lo_no_leido:correctos_marcados` (0 de 124), con los recuentos de la medida versionada;
+    y `duracion_del_juez:<modo>` (≤ 900 s de votos). No lleva `duracion_de_las_sesiones:<modo>`: la skill sigue sin
+    objetivo de duración de las sesiones. Una respuesta marcada en `afirma_lo_no_leido` en un modo da `fallo`, con
+    un motivo que la nombra por su sesión, con las frases de sus tres votos. Los doce de `boe-legislacion` y el `[]`
+    de `legal-core` no cambian.
+  - **Diez evals.** A las seis de H23 se suman cuatro, con preguntas ante las que una respuesta puede decir de una
+    sentencia lo que no ha leído: el resumen de una sentencia conocida que nadie ha traído
+    (`07-resumen-de-una-conocida.yaml`), la doctrina y los fundamentos con solo la ficha y el fallo delante
+    (`08-doctrina-con-el-fallo-delante.yaml`), de qué trata con la ficha sola
+    (`09-de-que-trata-con-la-ficha-sola.yaml`) y una doctrina que la pregunta da por hecha
+    (`10-doctrina-dada-por-hecha.yaml`). Sin modelo esperan lo que tiene forma —la línea y la consulta preparada, la
+    cita del documento cotejado o la dirección de búsqueda—; lo que la respuesta diga de más lo decide el juez.
+  - **El trabajo `evals (jurisprudencia)`**, el tercero de la matriz del flujo `evals`: cuatro sesiones a la vez,
+    como `boe-legislacion`, sin objetivo de duración y sin prueba de red. Abre 120 sesiones, 60 en cada modo, y su
+    juez juzga 60 respuestas, 30 por modo. El tope de 352 minutos no cambia, y cubre su peor caso calculado,
+    12 577 s.
+  - **La etiqueta `evals-medir-juez` mide a las dos skills con juez.** Con ella, o con la entrada `medir_al_juez`
+    del flujo lanzado a mano, corren `medida del juez (boe-legislacion)` y `medida del juez (jurisprudencia)`, sin
+    selector por skill y cada uno con su resultado. La de `jurisprudencia` vota sus 249 casos, cuatro a la vez —499
+    votos si se cumple—, y el tope de 269 minutos, que no cambia, cubre su peor caso calculado, 15 505 s. Sus casos
+    salen de tres informes versionados, el del job del cierre de H23 y los de los dos sondeos de la validación del
+    juez, y la medida los reconstruye sin red y sin modelo: lee el informe de un sondeo, con sus preguntas; repite
+    en proceso las órdenes del applet `cita`; y resuelve los derivados que quitan de la pregunta una parte del texto
+    pegado, `documento`, `fallo` o `apartado-2`.
+  - **`make ci`** valida las diez evals y las reglas de su conjunto (`TestEvalsDelRepositorio`).
+    `TestPreguntasDelSondeo` exige que las cuatro preguntas nuevas sean, byte a byte, las del sondeo con el que se
+    validó el juez, y `TestPreguntasConElFragmento`, que las tres que traen el documento lo lleven byte a byte, y la
+    de la ficha sola, su ficha: es el fragmento de `evidencias/adr-0036/`, que nadie escribe a mano. Comprueba
+    además, sin modelo, que la medida versionada del juez de `jurisprudencia` corresponde y se cumple
+    (`TestMedidaVersionada`), que sus 249 casos se reconstruyen (`TestReconstruccionDeJurisprudencia`) y que los dos
+    topes cubren sus peores casos (`TestDefinicionDelJob`).
+  - **Sustituye a lo que dejó H23, que no llegó a publicarse**: `jurisprudencia` no tenía juez, y que una respuesta
+    resumiera una sentencia que no había leído no lo decidía ningún control; su trabajo iba de una en una, con seis
+    evals —72 sesiones, 36 en cada modo—, cuatro umbrales, `sin_activar` y `cita_sin_documento` de cada modo, y un
+    peor caso calculado de 20 341 s.
+- **`boe-legislacion` v0.1.8: el número de un precepto no leído no va con su materia tampoco al avisar de lo que no
+  ha leído.** De un precepto al que remite el texto leído y que la respuesta no ha leído, no dice de qué trata
+  tampoco con «sobre <materia>» ni en el aviso final de las remisiones que no ha seguido: o el número solo, o la
+  materia sola; y para decir de qué trata lo remitido, lo lee y lo cita. Antes, v0.1.7 nombraba las construcciones
+  «que es…», «los artículos que regulan…» y «no puedo decir qué…», y la respuesta ponía la materia con «sobre» en el
+  aviso final («el art. 7 sobre rentas exentas»), que el juez marca en `afirma_lo_no_leido`: 1 de 54 en cada modo
+  en la segunda medición del cierre de H25. No cambian la `description`, las órdenes de cada paso, la forma de la
+  cita, la de los avisos de vigencia ni las líneas `⚠ REDACCIÓN MODIFICADA:` y `⚠ SIN CONSULTA AL BOE:`; `SKILL.md`
+  tiene 299 líneas (el máximo es 299; tenía 298), y `make ci` las admite: el caso `dos-inicios` de
+  `TestSkillsDelRepositorio` ya no añade una línea a la copia de la skill que altera, que con 299 daba además el
+  defecto de las 300. Sustituye a `boe-legislacion` v0.1.7.
+- **El juez del job de evals pide otra vez, una sola, el voto que su tope corta.** Un voto que agota sus 35 s se
+  vuelve a pedir con su mismo número, como un nulo, y cuenta el que llega; dos peticiones por voto como mucho, sea
+  cual sea la causa de la primera, así que el peor caso calculado de cada trabajo y sus dos topes no cambian. La
+  respuesta queda sin juzgar solo si el tope corta también la repetición, con el motivo
+  `voto <n>: tope de 35 s agotado dos veces`. `informe.json` publica cada corte en `juez.votos_cortados`, con su
+  sesión y su motivo, e `informe.md`, en la tabla «Votos cortados por el tope y pedidos otra vez»; una respuesta sin
+  juzgar sigue sin llevar nada más que su motivo. Antes, un voto cortado dejaba la respuesta sin juzgar y el trabajo
+  en rojo por la ejecución y no por la skill: pasó con una respuesta en la segunda medición del cierre de H24 y con
+  una de las 171 que el juez tenía que juzgar en la segunda del cierre de H25.
 
 ## [0.5.0] - 2026-10-04
 

@@ -47,6 +47,16 @@ const (
 	// argumentosDeLaBusqueda son los de la llamada a cita_preparar con ese texto.
 	argumentosDeLaBusqueda = `{"texto":"` + textoDeLaBusqueda + `"}`
 
+	// textoDeOtraBusqueda es el de la búsqueda de la eval 10, «cláusula suelo
+	// transparencia», y direccionDeOtraBusqueda, la que cita preparar da para él
+	// (research M7 de H25).
+	textoDeOtraBusqueda     = "cl\xc3\xa1usula suelo transparencia"
+	direccionDeOtraBusqueda = "https://www.poderjudicial.es/search/sentencias/cl%C3%A1usula%20suelo%20transparencia/1/AN"
+
+	// citaSinDocumento es una cita con su forma de una sentencia que nadie ha
+	// traído a la conversación.
+	citaSinDocumento = "[ECLI:ES:TS:2013:9999, ROJ: STS 9999/2013]"
+
 	// Las dos herramientas del applet cita.
 	herramientaDePreparar = "cita_preparar"
 	herramientaDeCotejar  = "cita_cotejar"
@@ -126,7 +136,11 @@ type juicioDeSentencias struct {
 // (contracts/evals-jurisprudencia.md §2; FR-051, FR-087): cada fila de su
 // tabla, con una sesión que la cumple y otra que no y el motivo de la que no; y
 // los dos comandos de cita, pedidos como orden y como herramienta, con su
-// --roj en sus dos escrituras y su --texto con valor.
+// --roj en sus dos escrituras y su --texto con valor. Desde H25
+// (contracts/evals-jurisprudencia.md §1 de H25; FR-061 a FR-064; US5,
+// escenarios 3 a 5), las diez evals del repositorio, cada una con la sesión que
+// la pasa en los dos modos, y, de las cuatro nuevas, las sesiones que no pasan,
+// con su motivo.
 func TestJuzgarSentencias(t *testing.T) {
 	t.Parallel()
 
@@ -136,7 +150,7 @@ func TestJuzgarSentencias(t *testing.T) {
 		juiciosDeLaLinea(),
 		juiciosDeLasDireccionesYLasCasillas(),
 		juiciosDeLaDireccionDeBusqueda(t),
-		juiciosDeLasSeisEvals(t),
+		juiciosDeLasDiezEvals(t),
 	)
 
 	for _, caso := range casos {
@@ -705,20 +719,26 @@ type operacionDeCita struct {
 	sobre       string
 }
 
-// sesionModelo es la sesión de quien sigue la skill ante una de las seis evals
+// sesionModelo es la sesión de quien sigue la skill ante una de las diez evals
 // del repositorio: su respuesta y, en su orden, las operaciones que pide.
 type sesionModelo struct {
 	respuesta   string
 	operaciones []operacionDeCita
 }
 
-// sesionesModeloDeLasSeisEvals son, en el orden de las seis evals de
+// sesionesModeloDeLasDiezEvals son, en el orden de las diez evals de
 // evalsDeJurisprudencia, las sesiones que las pasan en los dos modos
-// (contracts/evals-jurisprudencia.md §5 de H23). Los sobres son los golden del
-// applet cita o, de la consulta que ningún golden tiene, uno con su forma: el
-// del cotejo de la 04 lleva en su ficha el ECLI que la respuesta cita, y la
-// respuesta de la 05 repite el ECLI de su pregunta.
-func sesionesModeloDeLasSeisEvals(t *testing.T) []sesionModelo {
+// (contracts/evals-jurisprudencia.md §5 de H23 y §1 de H25). Los sobres son los
+// golden del applet cita o, de la consulta que ningún golden tiene, uno con su
+// forma: el del cotejo de la 04 lleva en su ficha el ECLI que la respuesta
+// cita, y la respuesta de la 05 repite el ECLI de su pregunta. Las de las
+// cuatro de H25: la 07 pide cita preparar con el número y la fecha de su
+// pregunta y responde con la línea, la dirección, las dos casillas con su
+// valor y ninguna cita; la 08 y la 09 piden cita cotejar y citan la sentencia
+// de la ficha con su forma, sin decir nada de lo que no traen; y la 10 pide
+// cita preparar con un texto y responde con la dirección de búsqueda que le
+// devolvió y ninguna cita.
+func sesionesModeloDeLasDiezEvals(t *testing.T) []sesionModelo {
 	t.Helper()
 
 	const (
@@ -728,6 +748,14 @@ func sesionesModeloDeLasSeisEvals(t *testing.T) []sesionModelo {
 		respuesta01 = lineaNoComprobada + "\n\n" + consulta + "- " + casillaDeResolucion + ": 1088/2023\n"
 		respuesta02 = marcaDeLosAvisos + " SENTENCIA NO COMPROBADA: STS 9999/2023, de 1 de enero\n\n" + consulta +
 			"- " + casillaDeResolucion + ": 9999/2023\n"
+		respuesta07 = marcaDeLosAvisos + " SENTENCIA NO COMPROBADA: STS 241/2013, de 9 de mayo\n\n" +
+			"Sin su documento no puedo resumirla. " + consulta + "- " + casillaDeResolucion + ": 241/2013\n"
+		respuesta08 = "Es la STS 1088/2023, de 4 de julio " + citaDelFragmento + ". El texto que traes lleva su ficha y " +
+			"su fallo, y no sus fundamentos: de ellos no puedo decirte nada sin el documento entero."
+		respuesta09 = "Es la STS 1088/2023, de 4 de julio " + citaDelFragmento + ". La ficha no dice de qu\xc3\xa9 trata: " +
+			"trae el texto de la sentencia y te lo digo."
+		respuesta10 = "No puedo confirmarlo sin la sentencia delante. Busca en " + direccionDeOtraBusqueda +
+			" y trae el documento de la que encuentres."
 		respuesta03 = "No puedo decirte qu\xc3\xa9 dice la jurisprudencia sin sus documentos. Busca en " +
 			direccionDeLaBusqueda + " y trae el documento que quieras citar."
 		respuesta04 = "Es la STS 1088/2023, de 4 de julio " + citaDelFragmento + "."
@@ -745,11 +773,21 @@ func sesionesModeloDeLasSeisEvals(t *testing.T) []sesionModelo {
 		return string(contenidoDelFichero(t, "../app/testdata/cita/"+nombre+".json"))
 	}
 
-	// La consulta de la 02 es la del golden de la 01 con otro número y otra
-	// fecha.
+	// La consulta de la 02 y la de la 07 son la del golden de la 01 con otro
+	// número y otra fecha.
 	deLaResolucion := golden("preparar-resolucion")
 	deOtraResolucion := strings.NewReplacer("1088/2023", "9999/2023", "2023-07-04", "2023-01-01",
 		"04/07/2023", "01/01/2023").Replace(deLaResolucion)
+	deLaConocida := strings.NewReplacer("1088/2023", "241/2013", "2023-07-04", "2013-05-09",
+		"04/07/2023", "09/05/2013").Replace(deLaResolucion)
+
+	// El cotejo de la 08 y el de la 09 leen la misma ficha que el de la 04.
+	delCotejo := operacionDeCita{
+		orden:       []string{"cotejar"},
+		herramienta: herramientaDeCotejar,
+		argumentos:  documento + "}",
+		sobre:       golden("cotejar-sin-referencia"),
+	}
 
 	return []sesionModelo{
 		{
@@ -779,15 +817,7 @@ func sesionesModeloDeLasSeisEvals(t *testing.T) []sesionModelo {
 				sobre:       sobreDeCita(true, dataDeLaBusqueda),
 			}},
 		},
-		{
-			respuesta: respuesta04,
-			operaciones: []operacionDeCita{{
-				orden:       []string{"cotejar"},
-				herramienta: herramientaDeCotejar,
-				argumentos:  documento + "}",
-				sobre:       golden("cotejar-sin-referencia"),
-			}},
-		},
+		{respuesta: respuesta04, operaciones: []operacionDeCita{delCotejo}},
 		{respuesta: respuesta05},
 		{
 			respuesta: respuesta06,
@@ -806,47 +836,83 @@ func sesionesModeloDeLasSeisEvals(t *testing.T) []sesionModelo {
 				},
 			},
 		},
+		{
+			respuesta: respuesta07 + fmt.Sprintf(porFecha, "09/05/2013"),
+			operaciones: []operacionDeCita{{
+				orden:       []string{"preparar", "--resolucion", "241/2013", "--fecha", "2013-05-09"},
+				herramienta: herramientaDePreparar,
+				argumentos:  `{"resolucion":"241/2013","fecha":"2013-05-09"}`,
+				sobre:       deLaConocida,
+			}},
+		},
+		{respuesta: respuesta08, operaciones: []operacionDeCita{delCotejo}},
+		{respuesta: respuesta09, operaciones: []operacionDeCita{delCotejo}},
+		{
+			respuesta: respuesta10,
+			operaciones: []operacionDeCita{{
+				orden:       []string{"preparar", "--texto", textoDeOtraBusqueda},
+				herramienta: herramientaDePreparar,
+				argumentos:  `{"texto":"` + textoDeOtraBusqueda + `"}`,
+				sobre: sobreDeCita(true, `{"texto":"`+textoDeOtraBusqueda+`","direccion":"`+direccionDeOtraBusqueda+
+					`","casillas":[]}`),
+			}},
+		},
 	}
 }
 
-// juiciosDeLasSeisEvals son los de las seis evals del repositorio, leídas de su
-// carpeta, cada una con la sesión de sesionesModeloDeLasSeisEvals, que la pasa
-// en cada modo, y, de la más completa, la respuesta que no lleva nada, con sus
-// motivos en el orden de la tabla.
-func juiciosDeLasSeisEvals(t *testing.T) []juicioDeSentencias {
+// sesionDelModelo es la sesión sintética de una sesión modelo en ese modo: con
+// una orden por operación en el modo orden y con una llamada por operación en
+// el modo herramienta, y, en los dos, con el sobre de cada una entre sus
+// textos.
+func sesionDelModelo(t *testing.T, modelo sesionModelo, modo Modo) Sesion {
+	t.Helper()
+
+	var (
+		invocaciones []Invocacion
+		llamadas     []Llamada
+		salidas      []string
+	)
+
+	for _, operacion := range modelo.operaciones {
+		invocaciones = append(invocaciones, ordenDeCita(t, 0, operacion.orden...))
+		llamadas = append(llamadas, llamadaCorrecta(operacion.herramienta, operacion.argumentos))
+		salidas = append(salidas, operacion.sobre)
+	}
+
+	if modo == ModoHerramienta {
+		return conTextos(sesionDeJurisprudenciaConLlamadas(t, modelo.respuesta, llamadas...), salidas...)
+	}
+
+	return conTextos(sesionDeJurisprudencia(modelo.respuesta, invocaciones...), salidas...)
+}
+
+// juiciosDeLasDiezEvals son los de las diez evals del repositorio, leídas de su
+// carpeta, cada una con la sesión de sesionesModeloDeLasDiezEvals, que la pasa
+// en cada modo; de la más completa, la respuesta que no lleva nada, con sus
+// motivos en el orden de la tabla; y, de las cuatro de H25, las sesiones que no
+// pasan (juiciosQueNoPasanDeLasEvalsDeH25).
+func juiciosDeLasDiezEvals(t *testing.T) []juicioDeSentencias {
 	t.Helper()
 
 	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
 	require.NoError(t, err)
 	require.Empty(t, conjunto.MalFormados)
-	require.Len(t, conjunto.Evals, 6, "%s tiene las seis evals", evalsDeJurisprudencia)
 
-	modelos := sesionesModeloDeLasSeisEvals(t)
+	modelos := sesionesModeloDeLasDiezEvals(t)
+	require.Len(t, conjunto.Evals, len(modelos), "hay una sesi\xc3\xb3n modelo por eval de %s", evalsDeJurisprudencia)
+
 	casos := make([]juicioDeSentencias, 0, 2*len(modelos)+1)
 
 	for posicion, modelo := range modelos {
 		eval := conjunto.Evals[posicion]
 
-		var (
-			invocaciones []Invocacion
-			llamadas     []Llamada
-			salidas      []string
-		)
-
-		for _, operacion := range modelo.operaciones {
-			invocaciones = append(invocaciones, ordenDeCita(t, 0, operacion.orden...))
-			llamadas = append(llamadas, llamadaCorrecta(operacion.herramienta, operacion.argumentos))
-			salidas = append(salidas, operacion.sobre)
-		}
-
 		casos = append(casos,
 			juicioDeSentencias{
-				nombre: eval.Fichero + "-por-orden", eval: eval,
-				sesion: conTextos(sesionDeJurisprudencia(modelo.respuesta, invocaciones...), salidas...),
+				nombre: eval.Fichero + "-por-orden", eval: eval, sesion: sesionDelModelo(t, modelo, ModoOrden),
 			},
 			juicioDeSentencias{
 				nombre: eval.Fichero + "-por-herramienta", eval: eval, modo: ModoHerramienta,
-				sesion: conTextos(sesionDeJurisprudenciaConLlamadas(t, modelo.respuesta, llamadas...), salidas...),
+				sesion: sesionDelModelo(t, modelo, ModoHerramienta),
 			},
 		)
 	}
@@ -854,7 +920,7 @@ func juiciosDeLasSeisEvals(t *testing.T) []juicioDeSentencias {
 	// La eval 06 espera la línea, la dirección, la casilla y ninguna cita con
 	// el ROJ: la respuesta que cita con él y no lleva nada más da cada motivo,
 	// los de los comandos delante y los demás en el orden de la tabla.
-	return append(casos, juicioDeSentencias{
+	casos = append(casos, juicioDeSentencias{
 		nombre:   "06-sin-nada-de-lo-esperado",
 		eval:     conjunto.Evals[5],
 		sesion:   sesionDeJurisprudencia("Es la sentencia [ECLI:ES:TS:2023:1088, ROJ: STS 1088/2023]."),
@@ -868,6 +934,65 @@ func juiciosDeLasSeisEvals(t *testing.T) []juicioDeSentencias {
 			"falta la casilla " + casillaDeROJ,
 		},
 	})
+
+	return append(casos, juiciosQueNoPasanDeLasEvalsDeH25(t, conjunto.Evals, modelos)...)
+}
+
+// juiciosQueNoPasanDeLasEvalsDeH25 son los de las sesiones que no pasan las
+// cuatro evals de H25, cada una la sesión modelo de su eval con una sola cosa
+// de menos o de más, y su motivo (US5 de H25, escenarios 3 a 5): la de la 07
+// sin la línea y con una cita; la de la 08 sin cita cotejar y la de la 09 sin
+// la cita; y la de la 10 sin la dirección de búsqueda y con una cita. evals y
+// modelos son las diez evals y sus sesiones modelo, en el mismo orden.
+func juiciosQueNoPasanDeLasEvalsDeH25(t *testing.T, evals []Eval, modelos []sesionModelo) []juicioDeSentencias {
+	t.Helper()
+
+	const (
+		faltaLaCita  = "falta la cita de sentencia " + citaDelFragmento
+		conUnaCita   = "la respuesta cita una sentencia: " + citaSinDocumento
+		citaDeSobra  = "\n\nEs la STS 241/2013, de 9 de mayo " + citaSinDocumento + "."
+		faltaLaLinea = "falta la l\xc3\xadnea " + marcaDeLosAvisos + " SENTENCIA NO COMPROBADA:"
+	)
+
+	// juicio es el de la eval de ese fichero con su sesión modelo cambiada, en
+	// el modo orden.
+	juicio := func(nombre, fichero string, cambiar func(modelo *sesionModelo), motivos ...string) juicioDeSentencias {
+		posicion := slices.IndexFunc(evals, func(eval Eval) bool { return eval.Fichero == fichero })
+		require.GreaterOrEqual(t, posicion, 0, "%s es una de las evals de %s", fichero, evalsDeJurisprudencia)
+
+		modelo := modelos[posicion]
+		cambiar(&modelo)
+
+		return juicioDeSentencias{
+			nombre: nombre, eval: evals[posicion], sesion: sesionDelModelo(t, modelo, ModoOrden), motivos: motivos,
+		}
+	}
+
+	// enLaRespuesta cambia en la respuesta un fragmento por otro.
+	enLaRespuesta := func(antes, despues string) func(modelo *sesionModelo) {
+		return func(modelo *sesionModelo) { modelo.respuesta = strings.Replace(modelo.respuesta, antes, despues, 1) }
+	}
+
+	// alFinal añade un texto al final de la respuesta.
+	alFinal := func(texto string) func(modelo *sesionModelo) {
+		return func(modelo *sesionModelo) { modelo.respuesta += texto }
+	}
+
+	sinCotejar := juicio("08-sin-cita-cotejar", jurisprudenciaDoctrina,
+		func(modelo *sesionModelo) { modelo.operaciones = nil }, "comando ausente: cita cotejar")
+	sinCotejar.ausentes = []string{"cita cotejar"}
+
+	return []juicioDeSentencias{
+		juicio("07-sin-la-linea", jurisprudenciaConocida,
+			enLaRespuesta(marcaDeLosAvisos+" SENTENCIA NO COMPROBADA:", "Sentencia sin comprobar:"), faltaLaLinea),
+		juicio("07-con-una-cita", jurisprudenciaConocida, alFinal(citaDeSobra), conUnaCita),
+		sinCotejar,
+		juicio("09-sin-la-cita", jurisprudenciaFicha, enLaRespuesta(" "+citaDelFragmento, ""), faltaLaCita),
+		juicio("10-sin-la-direccion-de-busqueda", jurisprudenciaDadaPorHecha,
+			enLaRespuesta(direccionDeOtraBusqueda, "el buscador del CENDOJ"),
+			"falta la direcci\xc3\xb3n de b\xc3\xbasqueda "+direccionDeOtraBusqueda),
+		juicio("10-con-una-cita", jurisprudenciaDadaPorHecha, alFinal(citaDeSobra), conUnaCita),
+	}
 }
 
 // TestJuzgarSinSentencias fija que el juicio de una eval que no declara

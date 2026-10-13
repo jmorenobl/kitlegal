@@ -1,0 +1,1547 @@
+# Casos etiquetados de la clase afirma_lo_no_leido de jurisprudencia (ADR 0037; validación del 2026-10-09).
+# Cada caso es la respuesta de una sesión de un informe versionado: el del job de evals del cierre de H23, o el de
+# uno de los dos sondeos de esta carpeta. Nada está escrito a mano: la respuesta se lee del informe, y los textos de
+# sus herramientas se reconstruyen repitiendo sus órdenes o se leen del informe del sondeo (guiones/casos.py).
+# Un caso con `quitado` es un derivado: la misma respuesta con esa parte del texto pegado fuera de la pregunta
+# —`documento`, todo, y con él las órdenes cotejar; `fallo`, desde «F A L L O»; `apartado-2`, el 2.º del fallo—.
+# Procedencias: `lectura` es la del 2026-10-09, hecha por el agente antes del primer voto y adoptada por Jorge;
+# `derivado`, por construcción, con la regla sin modelo de guiones/casos.py que dice `regla`.
+# `frase` es la que tiene cerca de la raya una respuesta leída como correcta.
+clase: afirma_lo_no_leido
+casos:
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-herramienta-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-herramienta-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-herramienta-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 01-existe-con-numero-y-fecha-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-herramienta-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-herramienta-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-herramienta-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 02-resumen-sin-documento-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "las del Tribunal Supremo, que fijan doctrina"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-herramienta-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-herramienta-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-herramienta-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 03-por-materia-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Los habituales en esta materia son la normativa de consumidores y usuarios y la de condiciones generales de la contratación"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-haiku-4-5-20251001-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Solo he leído el fallo. El resto del documento aparece como `[…]` y no lo he leído"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Solo he podido leer el encabezamiento y el fallo"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "solo he leído el fallo. El resto aparece como `[…]`, así que no he leído los fundamentos"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-claude-sonnet-5-5-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-haiku-4-5-20251001-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Solo he leído el encabezamiento y el fallo"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Solo he leído el encabezamiento y el fallo"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 04-documento-pegado-herramienta-claude-sonnet-5-5-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-herramienta-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-herramienta-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-herramienta-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 05-tribunal-constitucional-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Relacionarla con normativa (Ley 34/1988 de Contratación de Crédito al Consumo, etc.)"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El documento está completo y bien descargado del CENDOJ"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-haiku-4-5-20251001-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "La herramienta da como ECLI equivalente ECLI:ES:TS:2023:1088"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El equivalente en ECLI de ese ROJ sería ECLI:ES:TS:2023:1088"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "el ECLI equivalente sería ECLI:ES:TS:2023:1088"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-claude-sonnet-5-5-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-haiku-4-5-20251001-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: correcto
+    procedencia: derivado
+    regla: solo-daba-la-ficha
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "La consulta también da el ECLI equivalente, ECLI:ES:TS:2023:1088"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El equivalente ECLI de ese ROJ sería ECLI:ES:TS:2023:1088"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Su ECLI equivalente sería ECLI:ES:TS:2023:1088"
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: specs/019-h23-skill-jurisprudencia-ninguna/gates/evals/jurisprudencia.json
+    sesion: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 07-resumen-de-una-conocida-con-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 07-resumen-de-una-conocida-con-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 07-resumen-de-una-conocida-con-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 08-doctrina-por-materia-con-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "el artículo 693 de la Ley de Enjuiciamiento Civil, el artículo 24 de la Ley 5/2019 de contratos de crédito inmobiliario y el artículo 129 bis de la Ley Hipotecaria"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 08-doctrina-por-materia-con-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Son el art. 693 de la LEC y el art. 24 de la Ley 5/2019, de contratos de crédito inmobiliario"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 08-doctrina-por-materia-con-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "El Tribunal Supremo aplica en esta materia la jurisprudencia del TJUE"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "aunque la mención al «contravalor» podría apuntarlo. No puedo afirmarlo sin los fundamentos"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-con-skill-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-con-skill-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-con-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-con-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-con-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-con-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-con-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-con-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 12-doctrina-dada-por-hecha-con-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Tampoco he comprobado la premisa de tu pregunta, que las cláusulas suelo se declararon nulas por falta de transparencia"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 12-doctrina-dada-por-hecha-con-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-con-skill.json
+    sesion: 12-doctrina-dada-por-hecha-con-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Lo que sí puedo decir es que el Tribunal Supremo se ha pronunciado sobre las cláusulas suelo"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 01-existe-con-numero-y-fecha-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "un número cercano a 1000 a principios de julio es razonable para la Sala Primera"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 01-existe-con-numero-y-fecha-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "un número cercano a 1088 es coherente con la numeración de la Sala Primera a principios de julio"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 01-existe-con-numero-y-fecha-sin-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "un número cercano a 1088 encaja con el ritmo de sentencias de la Sala Primera a mitad de año"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 02-resumen-sin-documento-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "el 1 de enero es inhábil, y el Tribunal Supremo no dicta ni firma sentencias ese día"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 02-resumen-sin-documento-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Un \"9999\" es poco verosímil, porque ninguna sala llega a ese volumen"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 03-por-materia-sin-skill-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 03-por-materia-sin-skill-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 03-por-materia-sin-skill-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "Parece apuntar a un préstamo multidivisa, pero eso no consta en lo que has pegado y no lo afirmaría sin ver los fundamentos"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "de la consumidora contra la SAP Barcelona"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 04-documento-pegado-sin-skill-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 05-tribunal-constitucional-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 06-documento-que-no-es-el-pedido-sin-skill-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 07-resumen-de-una-conocida-sin-skill-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 07-resumen-de-una-conocida-sin-skill-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 07-resumen-de-una-conocida-sin-skill-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 08-doctrina-por-materia-sin-skill-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 08-doctrina-por-materia-sin-skill-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 08-doctrina-por-materia-sin-skill-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "la referencia al \"contravalor\" del capital sugiere un préstamo multidivisa"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "esa redacción sugiere un préstamo hipotecario multidivisa"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "apunta a un préstamo en divisa (multidivisa), pero es una inferencia mía"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 09-doctrina-con-el-fallo-delante-sin-skill-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "sugiere un préstamo multidivisa, pero es una deducción mía a partir de la redacción de la cláusula"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-01
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-01
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "La cláusula anulada parece vinculada a un préstamo con garantía de valor o multidivisa"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-02
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-02
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "sugiere un préstamo en divisa (multidivisa), pero es una inferencia mía; el fallo no lo dice"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-03
+    quitado: {texto: fallo}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 10-resumen-con-el-fallo-delante-sin-skill-03
+    quitado: {texto: apartado-2}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: cuenta-el-fallo
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-sin-skill-01
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "magistrado que ha redactado muchas sentencias de derecho de consumidores, contratación bancaria, responsabilidad civil y derecho de sociedades"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-sin-skill-01
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-sin-skill-02
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "magistrado que suele ponerse al frente de asuntos de contratación, consumidores, propiedad intelectual, competencia desleal y responsabilidad civil"
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-sin-skill-02
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-sin-skill-03
+    grupo: medida
+    etiqueta: correcto
+    procedencia: lectura
+    frase: "por lo que la materia es de derecho privado: contratos, consumidores, responsabilidad civil, societario, propiedad intelectual, etc."
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 11-de-que-trata-con-la-ficha-sola-sin-skill-03
+    quitado: {texto: documento}
+    grupo: medida
+    etiqueta: defecto
+    procedencia: derivado
+    regla: da-la-ficha
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 12-doctrina-dada-por-hecha-sin-skill-01
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 12-doctrina-dada-por-hecha-sin-skill-02
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura
+  - informe: evidencias/adr-0037-jurisprudencia/sondeo-sin-skill.json
+    sesion: 12-doctrina-dada-por-hecha-sin-skill-03
+    grupo: medida
+    etiqueta: defecto
+    procedencia: lectura

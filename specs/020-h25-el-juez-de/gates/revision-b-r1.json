@@ -1,0 +1,91 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0»; su cabecera «guardián de diff ok ((global), 11 ficheros)» corresponde al último commit, 062c399 (git show --stat: 11 ficheros), que es la cabeza. Reproducido en esta sesión: `make -C <copia de git archive HEAD> ci` en el directorio temporal termina con «ci: todos los controles en verde» (lint 0 issues, tests con -race, govulncheck sin vulnerabilidades que afecten, schema-check, skills-check, goreleaser check, gitleaks, go mod verify y tidy -diff). `git status --porcelain` del árbol solo lista gates/revision-cambios.md y gates/revision-ciclo.json, que escribe el workflow."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Sin suite de aceptación congelada: plan.md «Aceptación e2e: no aplica», con motivo (el binario y el applet cita no cambian; cmd/kitlegal no enlaza internal/evals) y precedente H24. 22 mutantes en una copia fuera del repositorio, cada uno restaurado y la copia comparada con la cabeza sin diferencias: clases.yaml decide:false y umbral 0.5 (TestEvalsDelRepositorio y TestUmbralesDeJurisprudencia en rojo); medida.json sin_marcar 1 y modelo_del_juez cambiado, en la copia y en la evidencia a la vez (TestMedidaVersionada y TestEjecucionSinMedir); evals.yml concurrencia 1 en evals, 1 en medida y sin jurisprudencia en la matriz de medida (TestDefinicionDelJob, 3 de 3); un byte en juez/rubrica.md (TestCopiasDelJuez); medida.go: textosDelSondeo sin quitar cotejar, repetirLasInvocaciones repitiendo cotejar sin documento, conElCodigoDelInforme sin comparar, loQueQueda sin quitar el apartado 2.º, entrada estándar nunca, textosDelSondeo sin mirar la herramienta, partirLaOrdenDeCita sin cortes, sinElTexto perdiendo el pegado y sin el control de las dos formas (TestResolverCasos, TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas, TestTextoQuitado, TestArgumentosDeLaInvocacion, TestEjecucionDeLaMedida, según el mutante); informe.go encabezadosDeVotos siempre «Precepto» (TestInformeMarkdownDeLosUmbrales); juez.go sin copiar sentencia (TestVotoDelJuez, TestInformeConElJuez, TestUmbralesDeJurisprudencia); conjunto.go tamaño 11 y «número y fecha» sin dirección (TestConjuntoDeEvals, TestEvalsDelRepositorio); un byte del fragmento en la eval 08 (TestPreguntasDelSondeo, TestPreguntasConElFragmento); umbrales.go segundosDelJuezPorModo 1000 (seis tests, entre ellos TestUmbralesDeJurisprudencia, informe_test.go:4825). Ninguno pasa en vacío. Los tests leen los informes y la evidencia y escriben solo en t.TempDir(); TestReconstruccionDeJurisprudencia exige que KITLEGAL_CACHE_DIR siga sin existir."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas fuera de specs/ no hay net/http, net, os.Exit, fmt.Print*, os.Stdout ni os.Stderr (grep sobre git diff main...HEAD); medida.go importa path, regexp, unicode y unicode/utf8 (diff, líneas 9-18) y la salida de cada orden repetida va a un bytes.Buffer con io.Discard como error (medida.go, repetir). internal/evals ya importaba internal/app desde H24; internal/core, internal/httpx, internal/cli y cmd/ no cambian (git diff --name-status main vacío en esas rutas). El test de arquitectura (internal/arch_test.go, R2 y el de cita sin red) pasa dentro del make ci reproducido."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet cambia: internal/app, internal/core y schemas/ son los de main (git log main..HEAD -- schemas vacío; cierre.md §1 con los árboles). TestEsquemasPublicados en verde en gates/ci.log:78-79 y en el make ci reproducido. El informe del job no tiene esquema en schemas/; el voto con sentencia se valida contra evals/jurisprudencia/juez/esquema.json, copia byte a byte de la evidencia (TestCopiasDelJuez, TestVotoDelJuez)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. Cada vía nueva de medida.go devuelve un error que nombra el caso o el fichero: informeSinLaSesion (medida.go:427), informeQueNoEsDelJob (:524), las preguntas que no se pueden leer o no tienen el id (:605-626), el fragmento sin línea en blanco (:673), la orden con otro código o sin código (:853-855), sinElTexto y loQueQueda (:1105, :1133, :1141, :1155). Ningún panic nuevo; el guard de verbo() (:1480) evita el índice fuera de rango con una orden «cita --json» sin verbo. Un caso que no se resuelve hace fallar la medida sin votar (TestEjecucionDeLaMedida/jurisprudencia-un-caso-que-no-se-resuelve)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased): jurisprudencia v0.1 con el CAPTCHA y el equivalente, el juez y sus dos clases, los doce umbrales, las diez evals, el trabajo a cuatro y la etiqueta evals-medir-juez para las dos skills (diff, líneas 18-43 y 83-132). Sin ADR nuevo (la decisión es el ADR 0037) y docs/SOURCES.md sin tocar. SC-015 leído contra el árbol: en CONTRIBUTING.md no queda «no tiene juez hasta H25», «exactamente seis», «de una en una», «20 341 s», «cuatro elementos» ni la medida solo de boe-legislacion; sus cifras son las del producto: 10 evals (ls evals/jurisprudencia), 12 577 s y 15 505 s bajo 352 y 269 minutos (definicion_test.go:1858, :1874, :1047-1048), 30 respuestas por modo, 0 de 125 y 0 de 124 (medida.json), «Sentencia» como octava columna (informe.go encabezadosDeVotos), y lo que dice de afirma_lo_no_leido coincide con rubrica.md:11-29. docs/JURISPRUDENCIA.md «Lo que H25 deja hecho» coincide con la rúbrica (:17) y con clases.yaml. docs/WORKFLOW.md nombra evidencias/adr-0037-jurisprudencia/ y sus cuatro ficheros. SKILL.md tiene 197 líneas (wc -l) y grep -c CAPTCHA da 2, como dicen spec, tasks y CHANGELOG."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP nueva: la reconstrucción repite órdenes del applet cita en proceso (app.AppletCita(), sin dependencias; medida.go:1253-1258) y lee ficheros versionados con os.DirFS desde la raíz (medida.go:535, :603, :663). Ninguna grabación nueva ni fila de docs/SOURCES.md; evidencias/ y testdata/ con el mismo árbol que main. Sin secretos (gitleaks sin hallazgos en el make ci reproducido) y sin NIF: el texto pegado de las evals 08 y 09 es el fragmento de evidencias/adr-0036/, anonimizado por el CENDOJ y ya versionado en las evals 04 y 06 desde H23. El CENDOJ no se consulta; SKILL.md v0.1 sigue sin sortear el CAPTCHA (SKILL.md:18-21)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas del diff fuera de specs/ no hay nolint, t.Skip, .Skip(, SkipNow, TODO, FIXME, XXX ni asignaciones a _ (grep sobre git diff main...HEAD -- . ':!specs'). Ningún fixture ni golden cambia (git log main..HEAD -- testdata schemas evidencias vacío). Las cuatro copias de la carpeta del juez son idénticas a la evidencia (TestCopiasDelJuez en verde en la copia; cierre.md §2 con cmp). Ningún umbral de FR-020, FR-022 ni FR-023 se rebajó: clases.yaml con umbral 0 y decide:true, segundosDelJuezPorModo 900 y umbralDeLaMedidaDelJuez 0 en umbrales.go, que solo cambia en un comentario. gates/cuarentena.json vacío y las nueve tareas en su primer intento."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Fuera de specs/ el diff toca lo que el spec nombra: la carpeta del juez, cuatro evals, SKILL.md en sus dos pasajes (diff de 9 y 7 líneas, idéntico al contrato aplicado), evals.yml en tres valores y una descripción más comentarios, seis ficheros de Go de internal/evals —uno, umbrales.go, solo en un comentario— y sus tests, y cuatro documentos. Nada en boe-legislacion, legal-core, el applet cita, schemas/, evidencias/, scripts/workflow/, la constitución ni los specs anteriores. Los supuestos de gates/supuestos.md son lecturas conservadoras: cada entrada no especificada «no se resuelve» con error (T002), las mutaciones por fila (T004), los textos por caso fijados (T005); el único [alcance], reescribir las dos entradas Unreleased de H23 como v0.1 «que no llegó a publicarse», es coherente con FR-084 y FR-090 en la misma sección y con el precedente de la 0.3.2, y evita un Unreleased que se contradiga."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "De fuera adentro, ninguna salida crece con lo consultado en meses de uso: el applet cita no cambia, no pide red y no escribe en la caché ni en el grafo (TestReconstruccionDeJurisprudencia exige que KITLEGAL_CACHE_DIR siga sin existir), así que la respuesta de la skill depende de la pregunta y no de lo acumulado; los doce umbrales son fijos (3 767 bytes medidos en el barrido) y se miden de nuevo en cada job; juez.respuestas está acotado por las 60 respuestas juzgadas y solo lleva las que tienen algún sí; cada motivo deja de darse cuando cesa su causa; la medida impresa es una por lanzamiento. Las órdenes por pregunta de SKILL.md v0.1 son las de v0 (un cita preparar o cotejar por sentencia o documento). En make ci, la reconstrucción de los 249 casos tarda 2,3 s (cierre.md §4) y no deja nada en disco."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": false,
+      "evidencia": "Dos mecanismos sin requisito que los exija. (1) invocacionDeUnSondeo.Entrada.Command es `any` (medida.go:508) y textosDelSondeo hace la aserción de tipo `esUnTexto` (medida.go:1017-1018) solo para que un informe de sondeo cuya invocación lleve en `command` algo que no es un texto se siga leyendo; ningún emisor lo produce (en sondeo-con-skill.json y sondeo-sin-skill.json, 36 invocaciones, Bash y Skill, 0 con command que no sea texto; Bash lo fija como string y ninguna herramienta de un sondeo lleva command), y un informe versionado escrito por otra cosa que el binario no pasa el umbral de materialidad: la regla que ya hay —el informe no se lee, con un error que lo nombra— es la que plan.md «Trazabilidad», último párrafo, promete para estas entradas. Lo sostiene solo gates/supuestos.md T002 y la invocación «Otra» de medida_test.go:2119. (2) La rama `if esUnaOrdenDeCita(...)` de argumentosDeLaInvocacion (medida.go:1361-1364) no se alcanza en producción: repetirLasInvocaciones ya despacha las órdenes cita antes de llamarla (medida.go:1292-1299) y las parte con partirLaOrdenDeCita; la rama existe para que TestArgumentosDeLaInvocacion (medida_test.go:1125, :1165) llame a una sola función: dos despachos para la misma decisión. Lo demás se traza: Quitado con texto (FR-043), el informe de un sondeo y preguntas.json (FR-042), las órdenes cita con entrada estándar y código (FR-041), conValor de una bandera (la regla de contracts §4 exige decir qué es una bandera sin valor, y --offline o --no-graph son banderas reales), el nil de codigo (evita una desreferencia), Sentencia y la columna (FR-013), las reglas con las diez (FR-065), la matriz derivada (FR-071)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los diez umbrales que deciden en el cierre tienen control con decide:true y se ponen en rojo por encima: afirma_lo_no_leido por modo con umbral 0 de clases.yaml y 1 marcada → fallo con la sesión y sus tres frases (TestUmbralesDeJurisprudencia/una-marcada-en-el-modo-orden; mutantes decide:false y umbral 0.5 en rojo); medida_del_juez defectos_sin_marcar y correctos_marcados con 0 (umbralDeLaMedidaDelJuez, Decide:true) y make ci en rojo con sin_marcar 1 o el modelo cambiado (TestMedidaVersionada, TestEjecucionSinMedir); duracion_del_juez por modo ≤ 900 con 901 s → fallo (informe_test.go:4818-4826) y el literal 900 fijado por seis tests (mutante 1000); cita_sin_documento y sin_activar sobre 30 (casos una-sin-documento, dos-sin-documento, una-sin-activar). Los de make ci: 4 de 4 copias (TestCopiasDelJuez), topes 352 y 269 frente a 12 577 s y 15 505 s con 3 de 3 mutaciones en rojo (TestDefinicionDelJob), 249 casos y 0 cotejar en los 45 (TestReconstruccionDeJurisprudencia), derivaciones (TestGrabacionesDerivadas), 499 votos y 0/125 y 0/124 (TestEjecucionDeLaMedida), sentencia en el voto y en el informe, el mensaje byte a byte, las cuatro preguntas y las reglas con 10 (mutantes 9 y 11), SKILL.md < 300 (skills-check). afirma_que_existe no es un umbral numérico del spec (FR-021: «No es un requisito con umbral») y decidir está fuera de alcance: a observaciones."
+    }
+  ],
+  "motivos": [
+    "[k] Retirar los dos mecanismos sin requisito de internal/evals/medida.go y sus tests. (1) En invocacionDeUnSondeo (medida.go:504-511) declarar `Command string` en lugar de `any`, y en textosDelSondeo (medida.go:1017-1018) quitar la aserción de tipo `esUnTexto`, dejando la condición en `invocacion.Herramienta != herramientaDeLasOrdenes || !strings.HasPrefix(invocacion.Entrada.Command, principioDeUnaOrden)`: un informe con un command que no es texto deja de leerse con el error que ya da leerInformeDeUnSondeo («el informe %s no es un informe de un sondeo: …»), que es la regla genérica que plan.md «Trazabilidad», último párrafo, promete para una entrada sin vía real. Quitar la invocación `deLaHerramienta(\"Otra\", objetoJSON{\"command\": []string{…}}, \"ni es un texto\")` de medida_test.go:2119 y, del comentario de contenidoDelInformeDelSondeo (medida_test.go:2082-2086), la frase «y la que es de otra herramienta aunque su entrada lleve una orden, que ni siquiera es un texto»; reescribir el comentario del tipo (medida.go:500-503), que dice que «la entrada de otra herramienta puede llevar en esa clave otra cosa ... y se lee sin que el informe deje de serlo»; y la línea 14 de gates/supuestos.md (T002, «no es un texto → no es una orden y no da texto; el informe se sigue leyendo») pasa a decir que un command que no es texto es un informe que no se lee, por la regla genérica. (2) Dejar un solo despacho de las órdenes cita: quitar la rama `if esUnaOrdenDeCita(invocacion.Orden) { return partirLaOrdenDeCita(invocacion.Orden).argumentos() }` de argumentosDeLaInvocacion (medida.go:1362-1364) y las tres líneas de su comentario que la anuncian (medida.go:1358-1360), porque repetirLasInvocaciones (medida.go:1292-1299) ya despacha toda orden cita a partirLaOrdenDeCita antes de llamarla y la rama no se alcanza en producción; en TestArgumentosDeLaInvocacion (la aserción de medida_test.go:1125) obtener los argumentos esperados de los casos cuya orden es del applet cita con `partirLaOrdenDeCita(caso.invocacion.Orden).argumentos()` y los de boe y graph con argumentosDeLaInvocacion, sin cambiar lo que cada caso espera (textoDeLaInvocacion, medida_test.go:1162-1168, solo recibe órdenes de boe y graph y no cambia). Comprobar con dos mutantes que no quedan en el diff —textosDelSondeo sin mirar la herramienta, y partirLaOrdenDeCita con FindAllStringIndex(orden, 0)— que TestResolverCasos y TestArgumentosDeLaInvocacion siguen en rojo, y dejar make ci en verde."
+  ],
+  "observaciones": [
+    "afirma_que_existe:<modelo>:<modo> lleva decide:false. No es motivo: FR-021 dice que «no es un requisito con umbral», FR-004 que MUST NOT decidir porque no tiene casos etiquetados propios, y ADR 0037 solo deja decidir a una clase medida; es el mismo trato que cuenta_su_proceso en H24. Promoverla pide casos etiquetados y una medida, fuera de un run.",
+    "El guard de ordenPartidaDeCita.verbo() (medida.go:1480-1482) no tiene test (cierre.md §3 lo da al 66,7 %): protege una vía real, una orden «cita --json» sin verbo en un informe del job, que sin él daría un índice fuera de rango. Un caso en TestArgumentosDeLaInvocacion o TestResolverCasos lo fijaría.",
+    "El control de un derivado con las dos formas de quitado (medida.go:704-709; medida_test.go:2510-2511 y :2553-2557) existe para un casos.yaml que solo una persona puede escribir así; se queda porque fija lo que data-model §3 declara («una de las dos formas») y la alternativa no es la regla genérica sino leer el caso mal en silencio. Vale lo mismo para el error de codigo: null (medida.go:853), que evita una desreferencia.",
+    "principioDeUnaBandera (medida.go:898) partiría un valor de --documento que lleve una línea que empieza por «--» y una minúscula; ningún documento del CENDOJ la lleva y es la misma regla de guiones/casos.py de la validación. Fuera del umbral de materialidad.",
+    "El supuesto [alcance] de T007 reescribe las dos entradas Unreleased de H23 («que no llegó a publicarse») en lugar de añadir una entrada que las contradiga; es coherente con FR-084 y FR-090 y con lo que hizo la 0.3.2, y deja un Unreleased sin afirmaciones contrarias entre sí.",
+    "El texto pegado de las evals 08 y 09 nombra a «D.ª Inocencia» y al ponente: son el fragmento de evidencias/adr-0036/, anonimizado por el CENDOJ y versionado en las evals 04 y 06 desde H23; sin NIF ni dato nuevo.",
+    "gates/ci.log es la verificación del barrido (062c399, 11 ficheros), la cabeza; T008 y T009 no cambian código de producto. make ci se ha reproducido en una copia de git archive HEAD con el mismo resultado.",
+    "El literal 900 de duracion_del_juez vive en umbrales.go (H24) y lo fijan seis tests; con 1000, TestUmbralesDeJurisprudencia, TestInformeConElJuez, TestInformeMarkdownDeLosUmbrales, TestUmbralesDelInforme, TestInformeEnDosModos y TestInformeConSesionesSinMedir salen en rojo.",
+    "S1 del research (que el juez vote los casos reconstruidos en Go como votó los de la validación) y S2 (nueve sesiones a la vez contra el límite de ritmo) no los mide el run: SC-014 y el cierre, como dice el spec."
+  ]
+}

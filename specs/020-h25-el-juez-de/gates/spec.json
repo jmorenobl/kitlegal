@@ -1,0 +1,75 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La tabla de trazabilidad de «Criterios del hito, literales» lleva las siete Entregas a sus requisitos: la carpeta y las clases (FR-001 a FR-005), el juez sobre las sesiones y los textos de `cita` (FR-010 a FR-013, FR-041), los casos y la medida (FR-040 a FR-051), los umbrales (FR-020 a FR-026), las cuatro evals y la v0.1 (FR-060 a FR-066, FR-080 a FR-084) y la documentación (FR-090 a FR-092); el trabajo del job del Alcance está en FR-070 a FR-073 y «Dentro del run», en FR-095 y FR-096. Lo único que no está en la sección del hito son FR-027 y FR-093, que salen de las dos respuestas de clarify y de pasos del workflow que el hito no deja cambiar: comprobado en esta sesión que `docs/ADR/0030-lo-que-cambia-el-cierre-vuelve-a-la-revision.md` (línea 70) rechaza «Prohibir a `reparar_cierre` que toque la skill o el código» y que el paso `barrido` de `.specify/workflows/hito/workflow.yml` (línea 755) nombra `CONTRIBUTING.md`. No especifica caso a caso estados por debajo del umbral: FR-001, FR-031 y FR-044 son los controles que pide el hito (una copia distinta, una medida que no corresponde, un caso que no se resuelve), y los «Edge Cases» son estados a los que llega el job (una orden `cita` que falla, sí-sí-no, un voto que no llega, el límite de ritmo)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» lleva las nueve viñetas literales del hito (comprobado sin modelo en esta sesión: las nueve están tal cual en la sección «#### H25 ·» de `docs/ROADMAP.md`) y trece de lo que el hito no especifica: otra clase o `cuenta_su_proceso` en esta skill, juzgar al modelo informativo, un control automático del CAPTCHA o del equivalente, más evals o cambiar las seis de H23, el formato de eval, un objetivo de duración de las sesiones, un selector por skill, los topes u otra concurrencia, el sondeo, la orden y el mensaje del voto, que el job o el run escriban o lancen la medida, meter en los casos una marca dada por errónea, un test que ate `CONTRIBUTING.md` al job, y editar hitos anteriores, un ADR nuevo o la release."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "Las dos respuestas de `gates/clarify-respuestas.json` están en «Clarifications» (Session 2026-10-10), cada una con `(auto: criterio a; fuente: …)`, su impacto `alcance` y las opciones rechazadas. Q1 (opción A) está en FR-027 con sus cuatro condiciones —cuándo, qué, con qué traza y quién lo juzga— y el tope de tres mediciones y dos reparaciones, y en la redacción de FR-083 («hasta la primera medición del cierre, las diferencias de `SKILL.md` con el de `main` están solo en los dos pasajes…; toda diferencia posterior viene de una reparación del cierre con la traza de FR-027»). Q2 (opción A) está en FR-093 con sus seis puntos, en SC-015 y en la viñeta de «Fuera de alcance» sobre el test que ataría el texto al job. Ninguna de las dos se declara conservadora (`conservadora: false`), así que no hay nada dudoso que tuvieran que dejar fuera; las dos dicen por qué no lo son, con fuentes que existen en el repositorio."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«Criterios del hito, literales» transcribe las 7 viñetas de la Entrega, las 12 de los Controles y la Aceptación: comprobado sin modelo en esta sesión, los 20 fragmentos están tal cual en la sección de H25 de `docs/ROADMAP.md`. Cada Control tiene su requisito, uno por viñeta (FR-100 a FR-110 y FR-112, más FR-111 con la prueba de que los controles del informe fallan), y su criterio con condición y umbral (SC-002 a SC-013). La Aceptación del job está en SC-001, con sus seis condiciones, el veredicto de las tres skills y `red`; la parte humana, en SC-014. Las siete historias suman 31 escenarios en forma Dado/Cuando/Entonces."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "ADR 0037: el juez es `claude-opus-5-5`, distinto del que decide, con tres votos unánimes y la frase comprobada sin modelo («Se queda», FR-011, FR-033); solo decide la clase medida contra casos etiquetados (FR-002, FR-004: `afirma_que_existe` solo se publica); la medida no se repite en una ejecución normal ni en el run (FR-030, FR-032, FR-095), y ninguna respuesta se juzga con una lista de palabras («Fuera de alcance», el control del CAPTCHA). ADR 0036: no se consulta el CENDOJ y el applet `cita` no cambia (FR-096). ADR 0031 y 0016: el modelo que decide, las repeticiones y la regla por serie no cambian («Fuera de alcance»). ADR 0032: ninguna sesión del run abre el juez (FR-095). ADR 0019 y principio VIII: `SKILL.md` por debajo de 300 líneas y sin drift (FR-083). ADR 0020: la release la decide una persona («Fuera de alcance»). FR-027 no reabre nada: es lo que los ADR 0029 y 0030 deciden para una reparación del cierre, con más límites."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Las 26 marcas de `checklists/requirements.md` se sostienen. No queda ningún `[NEEDS CLARIFICATION]` (0 en `spec.md`). Hay 31 escenarios Dado/Cuando/Entonces, como dice el ítem. «Fuera de alcance» tiene las nueve viñetas literales. Los 30 fragmentos del ítem d salen de partir el hito —7 de la Entrega, 12 de los Controles, la Aceptación y 10 de su «Fuera de alcance» partido por punto y coma— y los 30 están en `spec.md`, recontado en esta sesión. El ítem c cita FR-027, FR-083 y FR-093, y el ítem j, FR-020, FR-022, FR-023, FR-001, FR-045, FR-065, FR-072, FR-083, FR-101 y FR-111, que dicen lo que el ítem afirma. `gates/spec-precheck.txt` está vacío: ningún defecto mecánico."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "El spec dice qué recibe el juez, qué umbrales deciden, cómo se resuelve cada origen de caso y qué espera cada eval; no fija paquetes, tipos ni funciones nuevas. Los nombres técnicos que usa (`TestCopiasDelJuez`, `TestDefinicionDelJob`, `mensajeDelVoto`, `scripts/evals-voto.sh`, `guiones/casos.py`, `preguntas.json`, `evals-medir-juez`) los pone la sección del hito o ya existen en el árbol (comprobado: `internal/evals/medida_test.go:628`, `internal/evals/definicion_test.go:182`, `internal/evals/juez.go:302`). La última viñeta de Assumptions deja al plan los nombres de los ficheros de las cuatro evals, cómo conoce la reconstrucción el applet `cita`, las claves del voto en el informe, cómo se graban los votos de los tests y el texto de las dos frases de `SKILL.md`."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "De cada requisito sale un test que lo distingue, y las cifras cuadran con el árbol, recontadas en esta sesión. `evidencias/adr-0037-jurisprudencia/casos.yaml`: 249 casos, 125 `defecto` y 124 `correcto`, 122 de lectura y 127 derivados, 45/41/41 por lo quitado, 138/39/72 por informe y 102/11/14 por regla (FR-040, FR-044). Los peores casos de FR-072, con las fórmulas de `CONTRIBUTING.md`: 485 + (16 + 15) × 272 + 60 + 90 × 40 = 12 577 s, y 545 + 374 × 40 = 15 505 s, bajo 352 y 269 minutos; de una en una, 47 857 s y 60 305 s. 499 votos = 3 × 125 + 124 (FR-051). Doce umbrales, diez que deciden: por modo, `sin_activar`, las dos clases, `cita_sin_documento` y `duracion_del_juez`, más los dos de la medida (FR-024). Las reglas de FR-041 a FR-043 son las de `guiones/casos.py`: `cotejar` por la entrada estándar se repite con el texto pegado, un código distinto del informe deja el caso sin resolver, y sin el documento salen las órdenes `cotejar` en los dos modos. Lo que esperan las cuatro evals (FR-061 a FR-064) se dice con claves que ya usan las evals (a) a (d): `no_comprobada`, `direcciones`, `casillas`, `direccion_de_busqueda`, `ninguna_cita` y `citas`. Los dos pasajes de FR-081 y FR-082 se localizan sin duda: `SKILL.md` nombra el CAPTCHA una sola vez (línea 19) y el equivalente, en una viñeta del paso 2 (línea 76). FR-083 y FR-027 no se contradicen: FR-083 acota en su propio texto cuándo vale la excepción de FR-027. No encuentro ninguna contradicción entre requisitos ni un hueco que pase el umbral de materialidad."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro» recorre las nueve salidas del hito desde quien las consume. Cálculo de la que lee la persona, la respuesta de `jurisprudencia` v0.1 (paso 2 de `SKILL.md`; FR-081, FR-082): una respuesta por pregunta y una petición de `cita preparar` por sentencia que no está delante; por cada una, la línea (unos 60 bytes), la consulta (unos 300) y, si se nombra, el equivalente (unos 100): 3 sentencias × 460 bytes ≈ 1,4 KB. No crece con el uso: el applet `cita` no lee ni escribe la caché ni el grafo, así que al cabo de un mes y de miles de bloques consultados la misma pregunta da lo mismo. Recorrido de las señales: la línea `⚠ SENTENCIA NO COMPROBADA:` y su consulta dejan de darse en la consulta siguiente si la persona trae el documento y se coteja, y las sustituye la cita; el equivalente deducido solo sale junto a una referencia sin documento. Las salidas del job están acotadas por las evals y no por lo acumulado: `umbrales`, 12 × unos 300 bytes ≈ 3,6 KB (FR-024); los votos, como mucho 60 respuestas × 6 votos × 1,2 KB ≈ 430 KB, y ninguno si no hay voto afirmativo (FR-012, FR-013); el motivo de `fallo`, alrededor de 1 KB por respuesta marcada y como mucho 30 por modo, que deja de darse en el primer job sin marcadas (FR-025); y «el instrumento no está medido», una línea que deja de darse cuando una persona versiona una medida que corresponde (FR-031, FR-032)."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral que se mide sin persona nombra la comprobación que sale en rojo. En el cierre: `afirma_lo_no_leido:<modelo>:<modo>` ≤ 0 (FR-020: «con una respuesta marcada, el veredicto es `fallo` y el job de evals de `jurisprudencia` sale en rojo»); los dos de la medida del juez ≤ 0 (FR-022: «con un recuento distinto de 0, `make ci` falla (FR-031) y el job termina con `fallo` sin abrir ninguna sesión (FR-032)»); `duracion_del_juez:<modo>` ≤ 900 s (FR-023: «por encima de 900 s, el veredicto es `fallo`… y el job sale en rojo»); y SC-001 enumera cada rojo del job, también el de una respuesta sin juzgar y el de `cita_sin_documento` y `sin_activar`. En `make ci`: las 4 copias idénticas (FR-001, SC-002: `TestCopiasDelJuez`); los topes de 352 y 269 minutos sobre 12 577 s y 15 505 s (FR-072, SC-003: `TestDefinicionDelJob`); las diez evals (FR-065, SC-010: las reglas del conjunto); las 300 líneas (FR-083, SC-011: `skills-check`); los 249 casos resueltos y los 127 derivados (FR-044, FR-045, SC-005, SC-006: los tests de la reconstrucción y el control de derivaciones); y los doce elementos de `umbrales`, diez que deciden (FR-024, SC-013: los tests del informe de FR-111, con 1, con 0 y con 901 s). FR-101 fija las seis filas de «Controles de umbral» del plan. `afirma_que_existe` no es un umbral: el hito lo deja con `decide: false` y que decida está en su «Fuera de alcance» (FR-021). SC-014 lo mide una persona, y SC-015 lo lee la revisión final, no `make ci` ni el cierre."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[j] SC-001 pide `red` vacío y su «Control» no nombra qué sale en rojo si no lo está. No pasa el umbral: el hito no toca esa comprobación, que ya existe (`internal/evals/informe.go` añade un motivo por cada petición llegada a la red, y con un motivo el veredicto es `fallo`), y H23 FR 054 sigue valiendo.",
+    "[h] FR-093, punto 4, dice «en su orden (FR-024)» y FR-024 no da ningún orden. No pasa el umbral: el orden lo fija código que ya es genérico (`umbralesDelInforme`, en `internal/evals/umbrales.go`: por modo, `sin_activar`, las clases y `cita_sin_documento`; después la medida y la duración del juez).",
+    "[f] El ítem «Requirements are testable and unambiguous» dice que cada FR lleva «Comprobable», un Control o remite a FR-100–FR-112; FR-003, FR-004, FR-012, FR-026, FR-030, FR-033, FR-073, FR-091, FR-092, FR-095 y FR-096 no llevan esa etiqueta. Cada uno se comprueba igual (por `TestCopiasDelJuez`, por FR-111, por `TestDefinicionDelJob` o por lectura en la revisión final), así que la marca se sostiene.",
+    "[b] `docs/USO.md` (2026-10-08) anota que el job saca del denominador, sin listarla como sesión sin medir, la sesión que muere por un error de la API. FR-012 hereda esa definición («que terminaron con una respuesta a la pregunta»), de modo que el `total` de un modo puede ser 29 y no 30 en el cierre; el hito no pide cambiarlo y el spec no lo lista en «Fuera de alcance».",
+    "[c] Las dos respuestas de clarify tienen impacto `alcance` y no son la lectura conservadora: FR-027 deja que la reparación del cierre cambie `SKILL.md` fuera de los dos pasajes, y FR-093 mete `CONTRIBUTING.md` en el hito. Las fuentes que citan existen y dicen lo citado (ADR 0030, opción 6; `docs/WORKFLOW.md`, líneas 116 y 126; paso `barrido` del workflow). La persona las verá entre los supuestos de impacto `alcance` del informe final.",
+    "No he ejecutado `kitlegal cita preparar --resolucion 241/2013 --fecha 2013-05-09` en esta sesión (la orden pedía aprobación): que las casillas de la eval (g) valgan «241/2013» y «09/05/2013» (FR-061) lo afirma Assumptions y no lo he medido; es coherente con las evals (a) y (b), que llevan 04/07/2023 y 01/01/2023 con la misma forma. Tampoco he ejecutado `make ci` ni ningún test: `TestDefinicionDelJob` no ha recalculado aquí los peores casos, que he rehecho a mano."
+  ],
+  "entrada": []
+}

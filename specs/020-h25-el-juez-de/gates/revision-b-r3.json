@@ -1,0 +1,91 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza 0dc549c: su cabecera «guardián de diff ok ((global), 22 ficheros)» corresponde a los 22 ficheros de ese commit (git show --stat HEAD) y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con «0 issues.» del lint. Reproducido en esta sesión con `make -C /tmp/claude-501/h25r3b ci` en primer plano sobre una copia del árbol (rsync sin .git; fuera de gates/ el árbol es la cabeza): internal/evals ok con 97,2 % y 97,7 % en las dos pasadas, test-tiempos ok, «No vulnerabilities found.», TestEsquemasPublicados ok, skills-check ok, goreleaser «1 configuration file(s) validated», «no leaks found», «all modules verified», `go mod tidy -diff` sin salida y la línea final «ci: todos los controles en verde». `git status --short` del repositorio solo da gates/base-global-pendiente (D), gates/cierre-reparaciones, gates/revision-cambios.md, gates/revision-ciclo.json y gates/supuestos.md (M) y gates/revision-cambios-r3.diff (??), lo que el workflow deja para esta ronda; nada fuera de gates/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango cambia juez.go (votosDelNumero :945-973, motivoDelVoto, causaDelTopeRepetido :647, Cortados en JuicioDeRespuesta) e informe.go (VotosCortados, informado :629-636, filasDeVotosCortados) y lo fijan tests offline en la copia: los siete que nombra research R2 (TestVotoDelJuez, TestOrdenDelVoto, TestInformeConElJuez, TestInformeMarkdownDeLosUmbrales, TestJuicioDelSondeo, TestSalidaDelSondeo, TestEjecucionDeLaMedida) en verde en 18,4 s, con los casos nuevos (juez_test.go:1383-1423 y :1544-1554, :1611-1630; informe_test.go:4238-4256; medida_test.go:5175-5180) y TestOrdenDelVoto/tope en 5,13 s y 11,34 s, dentro de sus cotas de dos peticiones (4 a 10 s y 10 a 30 s). Cuatro mutantes, cada uno en su copia bajo /tmp/claude-501 y nunca en el repositorio: (1) el voto cortado no se vuelve a pedir (`case causa == causaDelTope && false`) → 15 subpruebas en rojo: seis de TestVotoDelJuez, cuatro de TestInformeConElJuez, dos de TestEjecucionDeLaMedida, una de TestJuicioDelSondeo y las dos de TestOrdenDelVoto/tope; (2) informado publica también los cortes de una respuesta sin juzgar → TestInformeConElJuez (un-voto-que-no-llega, dos-sin-juzgar, los-motivos-en-su-orden) y TestInformeMarkdownDeLosUmbrales/con-los-votos-del-juez en rojo; (3) causaDelTopeRepetido sin «dos veces» → diez subpruebas en rojo en seis tests, con TestOrdenDelVoto/tope-y-margen-de-verdad; (4) se repite también la sesión que termina con error → TestVotoDelJuez (la sesión que termina con error; el texto del motivo) y TestOrdenDelVoto/proceso-que-termina-con-error/con-la-salida-de-la-sesion en rojo. Nada más del paquete cambia en el rango (definicion.go, umbrales.go, medida.go intactos; diff de la ronda idéntico a `git diff 4a127c5..HEAD` fuera de gates/, cmp). Sin suite de aceptación congelada (plan.md «Aceptación e2e: no aplica», con motivo); las de hitos anteriores pasan en el make ci reproducido."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "En revision-cambios-r3.diff (1 140 líneas, idéntico al rango) ninguna línea añadida lleva net/http, net, os.Exit, fmt.Print*, os.Stdout ni os.Stderr, y ningún bloque de imports cambia (la única coincidencia de una cadena con comillas al principio de línea es el mensaje de una aserción en informe_test.go:3309). juez.go sigue leyendo el voto de un proceso cuyo contexto y tope ya tenía (pedirElVoto, leerElVoto :1062-1064). internal/app, internal/core, internal/cli, internal/httpx, internal/mcp, cmd, schemas y data no están en el rango (`git diff --stat` vacío). Lint «0 issues.» en gates/ci.log y make ci reproducido en verde, con el test de arquitectura."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet ni esquema cambia en el rango (internal/app, internal/core, cmd y schemas con `git diff --stat 4a127c5..HEAD` vacío); TestEsquemasPublicados en verde en gates/ci.log y en el make ci reproducido. Lo que el rango añade a informe.json (`juez.votos_cortados`, siempre lista: exigirLaFormaDelJuez, informe_test.go:3303-3313) no es la salida de un applet."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. En juzgar (juez.go:796-839) `dados[len(dados)-1]` solo se evalúa con motivo vacío, y votosDelNumero (:945-973) devuelve entonces al menos un voto en todas sus ramas (primer voto válido; nulo y repetición; cortado y repetición que llega); con causa distinta del tope o con el tope repetido devuelve motivo y la respuesta queda sin juzgar sin desreferenciar nada. leerElVoto da la causa del tope por errors.Is (:1063) y la comparación `causa == causaDelTope` es con esa misma constante. Las otras tres causas siguen sin reintento (mutante 4 en rojo)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "Lo demás se sostiene: CHANGELOG.md:264-282 (Unreleased) lleva `boe-legislacion` v0.1.8 y el voto que el tope corta pedido otra vez, con lo que sí verifico —SKILL.md en 298 líneas (wc), la description y las líneas ⚠ sin cambios (diff del rango: solo :131-138 y :222), 1 de 54 en cada modo en gates/evals/boe-legislacion.json, una sin juzgar en gates/evals/jurisprudencia.json, `votos_cortados` y la tabla «Votos cortados por el tope y pedidos otra vez» fijados por los tests, peor caso y topes sin cambiar (definicion.go:53, definicion_test.go:1969, evals.yml fuera del rango)—; CONTRIBUTING.md:903-910, :972-976 y :1191-1201 y internal/evals/doc.go:111-123 dicen lo mismo; plan.md:237 y :296-302 y research.md:221-291 registran R1 y R2 con la medición como evidencia; sin ADR nuevo (ninguna decisión de un ADR se invierte: ADR 0037 §2 sigue cierto, ver observaciones) y sin fuente tocada. Pero una afirmación de la documentación no la sostiene el artefacto que la mide: CHANGELOG.md:281 dice que el voto cortado pasó «con una de 168 juzgadas» y research.md:265, que «el juez juzgó 168 respuestas (54, 54, 30 y 30)», y en esa medición juzgó 171: las tres respuestas de `21-sin-binario-ni-servidor` de `boe-legislacion` están en `juez.respuestas` de gates/evals/boe-legislacion.json con sus votos (sesiones -01, -02 y -03), como pide FR-013 de H24, y CONTRIBUTING.md:975 cuenta esas 3 entre las respuestas que el juez juzga («54, 54 y 3 respuestas»)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca internal/httpx, testdata/, evidencias/, evals/ ni docs/SOURCES.md (`git diff --stat` vacío) y no añade ninguna petición: la repetición de un voto es otra sesión del mismo votante sin herramientas, dentro del presupuesto de dos peticiones por voto que ya tenía el nulo. Sin secretos («no leaks found» en la copia) y sin NIF de persona. El CENDOJ no se consulta. Ni la medida del juez ni un sondeo se han lanzado en esta sesión, y nada del rango los lanza."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En revision-cambios-r3.diff no hay nolint, t.Skip, SkipNow, TODO, FIXME, XXX ni ninguna línea añadida que empiece por `_ =` (grep). Ningún fixture, golden, eval, rúbrica, caso ni medida cambia (evals/, evidencias/, testdata/ fuera del rango); los tests cambiados pasan a pedir dos cortes donde antes bastaba uno, que es lo que el código nuevo exige, y los mutantes del criterio b los ven en rojo. gates/cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente la reparación del cierre, y cada una de sus dos decisiones se aparta de algo y está registrada como pide la regla: R1 cambia `boe-legislacion`, que el hito no tocaba, con la medición 2 como evidencia (gates/evals/boe-legislacion.json: 1 de 54 en cada modo, eval 15, frases «el art. 7 sobre rentas exentas» con tres votos y la frase en la respuesta), en research.md R1 (:232-258), plan.md «Decisiones» (:296-302) y gates/supuestos.md:41 con impacto [skill]; es la lectura mínima (una forma y un sitio más en la viñeta de :131-138, pagados con una viñeta de :222 que dice lo mismo en una línea; 298 líneas) y sus alternativas rechazadas están. R2 se aparta de lo que H24 dejó fuera de alcance (contracts/juez-y-voto.md:120-123 de H24: «No se reintenta ni se espera (fuera de alcance del spec)»), con gates/evals/jurisprudencia.json como evidencia (veredicto fallo con el único motivo de una sin juzgar por «voto 1: tope de 35 s agotado» y los doce umbrales cumplidos), en research.md R2 (:260-291), plan.md «Decisiones» y gates/supuestos.md:42 con impacto [interno]; es la mejor solución a la vista de esa medición: dentro del presupuesto de dos peticiones por voto (votosPorRespuestaComoMucho = 6, definicion.go:53), sin tocar el tope, la concurrencia, el peor caso ni `timeout-minutes` (ADR 0029), con el corte publicado (ADR 0030). No toca la eval, la rúbrica, los casos, la medida ni un umbral. El juez A no dejó motivos en la ronda 2: nada que comprobar de sus correcciones."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada del rango cambia una salida del binario (criterio d). Lo que crece es informe.json del job: `juez.votos_cortados` lleva una entrada por voto cortado de una respuesta juzgada, acotada por 3 votos × las respuestas juzgadas de la ejecución (171 hoy), nunca por lo acumulado; `[]` si no hay ninguno. Las órdenes por pregunta de las dos SKILL.md no cambian (jurisprudencia/SKILL.md fuera del rango; en boe-legislacion solo cambian dos viñetas de prosa). La señal nueva se da solo cuando hay un corte y se mide con cada ejecución."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo del rango se traza a R2 y a la medición que lo motivó: la repetición del voto cortado y causaDelTopeRepetido (juez.go:647, :945-973) son el único cambio de comportamiento, en la misma función y con la misma estructura de dos peticiones que ya tenía el nulo, sin bucle ni tercera petición posible; motivoDelVoto sustituye el formato que pedirElVoto componía y se usa en tres sitios; JuicioDeRespuesta.Cortados, VotoCortado, `votos_cortados` y su tabla (informe.go) son la publicación del corte que research R2 justifica con los ADR 0029 y 0030 («lo medido se ve»), y una respuesta sin juzgar no lo duplica. Los casos de test nuevos cubren cada rama (cortado y repetición que llega; cortado en el segundo voto; repetición nula del cortado; tope dos veces; repetición que no es JSON) y nada más. R1 es dos viñetas de prosa. Lo que sobra es trivial (observaciones)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún umbral ni control cambia en el rango (umbrales.go, clases.yaml, evals.yml, definicion.go y los tests de umbrales fuera de él): los doce de jurisprudencia y los de boe-legislacion siguen con decide:true en `umbrales` de los informes del cierre, y su incumplimiento pone el veredicto en fallo (gates/evals/boe-legislacion.json: `afirma_lo_no_leido` 1 de 54 → fallo con su motivo). La repetición del voto cortado entra en `duracion_del_juez` (≤ 900 s por modo, decide) y en el peor caso de TestDefinicionDelJob, que ya contaba 6 votos de 40 s por respuesta y no cambia (CONTRIBUTING.md:972-976). La fila SC-001 (sin juzgar) de plan.md:237 sigue con su control, TestInformeConElJuez, que con un voto que no llega da fallo (un-voto-que-no-llega, dos-sin-juzgar) y que el mutante 1 pone en rojo."
+    }
+  ],
+  "motivos": [
+    "[f] El CHANGELOG y research R2 dan una cifra de la medición que su informe contradice: CHANGELOG.md:281 dice que el voto cortado pasó «con una de 168 juzgadas en la segunda del cierre de H25» y research.md:265, «el juez juzgó 168 respuestas (54, 54, 30 y 30)», y en esa medición juzgó 171: las tres respuestas de `21-sin-binario-ni-servidor` de `boe-legislacion` están juzgadas, con sus votos, en `juez.respuestas` de gates/evals/boe-legislacion.json (sesiones -01, -02 y -03), como pide FR-013 de H24, y CONTRIBUTING.md:975 las cuenta («54, 54 y 3 respuestas»). Cambiar «168» por «171» en CHANGELOG.md:281 y en research.md:265, con el reparto «(54, 54, 3, 30 y 30)». No toca código ni umbrales."
+  ],
+  "observaciones": [
+    "ADR 0037 §2 dice que «un voto que no llega a darse, por un límite de uso o por el tope de tiempo, deja la respuesta sin juzgar»: sigue cierto con R2 (el que el tope corta dos veces no llega), y la repetición es el mismo mecanismo que el ADR da al voto nulo; lo que R2 cambia es el «no se reintenta» del contrato de H24 (contracts/juez-y-voto.md:120-123), que research R2 deja como registro. No se invierte una decisión de un ADR; si se quiere que el ADR nombre la repetición por el tope, es una enmienda fuera del run.",
+    "informe.go:149-151: encabezadosDeVotosCortados es idéntica a encabezadosDeSinJuzgar («Sesión», «Motivo») y el test usa una sola constante para las dos tablas; una variable de más, sin efecto.",
+    "CONTRIBUTING.md:977-978 queda con una línea de tres palabras («cuatro a la») y :1201 pasa de 120 caracteres: cosmético; make ci no tiene linter de Markdown.",
+    "El sondeo local imprime las respuestas sin juzgar (sondeo.go:645-669) y no los votos cortados; nada lo pide, y el sondeo no es un veredicto.",
+    "gates/evals/jurisprudencia.json lleva `juez.votos_cortados: null` porque lo escribió el código anterior a R2; la medición siguiente lo dará como `[]` o con sus cortes.",
+    "El efecto de v0.1.8 sobre la eval 15 y cuántos cortes da la repetición no se miden en esta sesión (ADR 0032): los mide el job de la medición siguiente, como dice research R1 y R2 («Sin medir»).",
+    "docs/USO.md:113 («Un voto lento basta para tumbar el job») es la bitácora de H24 y cuenta lo que pasó entonces; R2 es su respuesta y la bitácora no queda falsa.",
+    "El guard de ordenPartidaDeCita.verbo() (medida.go:1470-1473) sigue sin test, como en las rondas 1 y 2; no es de este rango.",
+    "En esta sesión no se ha abierto ninguna sesión con modelo ni el job de evals; el make ci, los tests y los cuatro mutantes corrieron en primer plano sobre copias bajo /tmp/claude-501 (h25r3b y h25m1 a h25m4), que no son repositorios y quedan allí sin tocar el árbol."
+  ]
+}

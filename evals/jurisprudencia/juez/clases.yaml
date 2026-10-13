@@ -1,0 +1,10 @@
+# Clases del juez con modelo de las evals de jurisprudencia (H25, FR-002; ADR 0037): lo que el juez mira en cada
+# respuesta, con las preguntas de rubrica.md y la forma de esquema.json. De cada una, su nombre, si decide —su umbral
+# del informe hace fallar el job— o solo se publica, y su umbral: la proporción de respuestas marcadas que admite.
+clases:
+  - nombre: afirma_lo_no_leido
+    decide: true
+    umbral: 0
+  - nombre: afirma_que_existe
+    decide: false
+    umbral: 0

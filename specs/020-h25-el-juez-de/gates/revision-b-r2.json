@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza: su cabecera «guardián de diff ok ((global), 14 ficheros)» corresponde a 4a127c5 (git show --stat: 14 ficheros) y termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». Reproducido en esta sesión sobre una copia de git archive HEAD en el directorio temporal, con `make -C <copia> ci` en primer plano: código 0, «0 issues.» del lint, internal/evals ok con 97,2 % y 97,7 % en las dos pasadas, «No vulnerabilities found.», «no leaks found», `go mod tidy -diff` sin salida y «ci: todos los controles en verde» (ronda 2). `git status --porcelain` del repositorio solo da gates/base-global-pendiente (D), gates/revision-cambios.md (M) y gates/revision-cambios-r2.diff (??), que deja el workflow para esta ronda; nada fuera de gates/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "La corrección cambia dos tests sin cambiar lo que ningún caso espera: TestArgumentosDeLaInvocacion (medida_test.go:1015-1145) reparte sus casos en deBoeYDeGraph, comparados con argumentosDeLaInvocacion, y deCita, comparados con partirLaOrdenDeCita(orden).argumentos(), con los mismos `argumentos:` esperados (el diff de la ronda solo toca el tipo local, los dos bucles y los comentarios); contenidoDelInformeDelSondeo pierde la invocación «Otra» (medida_test.go:2135-2136). En la copia: los siete tests de la reconstrucción (TestResolverCasos, TestArgumentosDeLaInvocacion, TestTextoQuitado, TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas, TestEjecucionDeLaMedida, TestLeerCasosEtiquetados) en verde en 6,0 s, y los cinco de cierre.md §4 con -v dan 92 `--- PASS`, como dice el fichero. Los dos mutantes que pedía el motivo, en la copia y restaurados después (diff de medida.go y medida_test.go con la cabeza: idénticos): textosDelSondeo sin mirar la herramienta (medida.go:1017 sin `invocacion.Herramienta != herramientaDeLasOrdenes`) → TestResolverCasos en rojo; partirLaOrdenDeCita con FindAllStringIndex(orden, 0) (medida.go:1426) → TestArgumentosDeLaInvocacion en rojo en sus nueve casos de cita con banderas y TestResolverCasos en rojo en ordenes-de-cita, orden-sin-codigo, lo-reconstruido-se-recuerda y derivados-del-job. Una sonda temporal en la copia, borrada después, confirma la regla genérica que sustituye al mecanismo retirado: un informe de sondeo con `command` que es una lista no se lee, con «el informe sondeo.json no es un informe de un sondeo: json: cannot unmarshal JSON array into Go string within \"/sesiones/0/invocaciones/0/entrada/command\"». Sin suite de aceptación congelada (plan.md «Aceptación e2e: no aplica», con motivo); lo demás de la ronda 1 (22 mutantes) sigue valiendo: nada fuera de medida.go y medida_test.go cambió en el rango."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango 062c399..HEAD fuera de gates/ son tres ficheros (medida.go, medida_test.go, cierre.md; revision-cambios-r2.diff idéntico a `git diff 062c399..HEAD -- . ':!…/gates'`) y en sus líneas añadidas no hay net/http, net, os.Exit, fmt.Print*, os.Stdout ni os.Stderr; el bloque de imports de medida.go no cambia. internal/core, internal/httpx, internal/cli y cmd/ siguen sin cambios respecto de main. Lint «0 issues.» y el test de arquitectura (paquete internal, ok) dentro del make ci reproducido."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet ni esquema cambia en el rango ni en el hito: `git log main..HEAD -- testdata schemas evidencias` vacío; internal/app e internal/core son los de main. TestEsquemasPublicados en verde en gates/ci.log:78-79 y en el make ci reproducido. TestReconstruccionDeJurisprudencia, que exige el sobre ok:true de cada orden cita repetida, sigue en verde tras la corrección."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia. La corrección no añade vías: `Command string` (medida.go:507) hace que un command que no es texto termine en el error de leerInformeDeUnSondeo (medida.go:905), que nombra el fichero y la ruta JSON (sonda en la copia); textosDelSondeo (medida.go:1016-1018) ya no hace aserción de tipo y no puede desreferenciar nada; argumentosDeLaInvocacion (medida.go:1356-1365) es byte a byte la de main (diff de la función extraída con awk de las dos versiones: idénticas). El guard de verbo() (medida.go:1470-1473) sigue evitando el índice fuera de rango."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Lo que la corrección añade a cierre.md se sostiene en el árbol y en lo medido: `git diff --shortstat main -- . ':!specs'` da 31 ficheros, 7 694 añadidas y 843 quitadas; `--numstat` da +795 −105 en medida.go y +2 497 −230 en medida_test.go; 932 y 4 753 son las sumas de su tabla; las líneas :883, :957, :1258 y :1472 de medida.go son leerInforme, preguntaDelSondeo, registroDeLaSesion y verbo, y las :3264, :3265, :3351, :3792, :4234, :4404, 5467 y 5501 de medida_test.go, los 249 y su reparto, TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas, votosDeJurisprudencia = 499, TestEjecucionDeLaMedida y los dos comentarios XXXXXX. La cobertura del párrafo «Después de la revisión final», recalculada sobre los dos perfiles del make ci de la copia: medida.go 492 de 504 (97,6 %) y 12 bloques sin cubrir en los dos; evals 3 770 y 3 787 de 3 878 (97,2 % y 97,7 %); global 10 699 y 10 745 de 11 093, y `go tool cover -func` da 96,5 % y 96,9 %. gates/supuestos.md:14 dice ya lo que pedía el motivo (un command que no es texto es un informe que no se lee, por la regla genérica, con las 36 invocaciones de los dos sondeos contadas). CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, docs/WORKFLOW.md y SKILL.md no cambian en el rango: vale la lectura de la ronda 1."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca internal/httpx, evidencias/, testdata/ ni docs/SOURCES.md y no añade ninguna petición: la reconstrucción sigue repitiendo las órdenes cita en proceso con app.Main (medida.go:1318-1327) y leyendo ficheros versionados con os.DirFS (medida.go:861). Sin secretos (gitleaks «no leaks found» en la copia) y sin NIF: el único dato de persona del hito sigue siendo el fragmento anonimizado del CENDOJ ya versionado desde H23. El CENDOJ no se consulta."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En revision-cambios-r2.diff las cuatro coincidencias de nolint|t.Skip|SkipNow|TODO|FIXME|XXX están en la prosa de cierre.md (líneas 289, 294, 298 y 300 del diff: el título «Atajos», la lista de marcas buscadas y la plantilla de mktemp), ninguna en Go; ninguna línea añadida empieza por `_ =`. Ningún fixture, golden ni copia del juez cambia (git log main..HEAD -- testdata schemas evidencias vacío). Ningún umbral se tocó: umbrales.go y clases.yaml no están en el rango. gates/cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente la corrección del motivo [k] de la ronda 1 y nada más: en medida.go, `Command string` y su comentario (:501-510), la condición de textosDelSondeo sin aserción (:1016-1018), la rama y las tres líneas de comentario quitadas de argumentosDeLaInvocacion y su frase de --offline llevada al comentario de argumentos() (:1478-1482); en medida_test.go, el reparto de TestArgumentosDeLaInvocacion y la invocación «Otra» fuera con su comentario; cierre.md con lo que eso cambia; y la línea 14 de gates/supuestos.md. No toca la skill, las evals, la carpeta del juez, umbrales.go, ningún applet ni ningún spec anterior. El juez A no dejó motivos: nada que comprobar de sus correcciones."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada del rango cambia una salida que consuma una skill o una persona: el applet cita sigue sin tocarse, sin red y sin escribir en caché ni grafo (TestReconstruccionDeJurisprudencia exige que KITLEGAL_CACHE_DIR siga sin existir, en verde en la copia); los doce umbrales, el `juez` del informe y la medida impresa son los de la ronda 1 (umbrales.go, informe.go y juez.go no están en el rango). Las órdenes por pregunta de SKILL.md v0.1 siguen siendo las de v0."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Los dos mecanismos sin requisito de la ronda 1 están retirados: (1) invocacionDeUnSondeo.Entrada.Command es `string` (medida.go:507) y textosDelSondeo no hace ninguna aserción de tipo (medida.go:1016-1017); el único emisor que existe (Bash, command como texto en las 36 invocaciones de los dos sondeos) sigue leyéndose y lo que no lo es cae en la regla genérica de plan.md «Trazabilidad», último párrafo (sonda en la copia); en el paquete no queda `esUnTexto`, `Command any`, «Otra» ni «ni es un texto» (grep sobre internal/evals/*.go). (2) argumentosDeLaInvocacion es byte a byte la de main y el único despacho de las órdenes cita es repetirLasInvocaciones (medida.go:1291-1297); el test las lleva a partirLaOrdenDeCita, que es la regla que las trata (FR-041). Lo que la corrección añade es mínimo: un tipo local del test para compartir la forma de los casos entre los dos bucles. El resto de los mecanismos del hito se traza como en la ronda 1 (Quitado con texto, FR-043; informe de sondeo y preguntas.json, FR-042; órdenes cita con entrada estándar y código, FR-041; Sentencia y su columna, FR-013; reglas con las diez, FR-065; matriz derivada, FR-071)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún umbral ni control cambia en el rango (umbrales.go, clases.yaml, evals.yml, informe.go y los tests de umbrales no están en él), y los diez que deciden en el cierre y las filas `ci:` de plan.md «Controles de umbral» tienen su control en el código tal como se vio en rojo en la ronda 1: afirma_lo_no_leido por modo con umbral 0 (TestUmbralesDeJurisprudencia/una-marcada-en-el-modo-orden), medida_del_juez con 0 (TestMedidaVersionada, TestEjecucionSinMedir), duracion_del_juez ≤ 900 con 901 → fallo, cita_sin_documento y sin_activar sobre 30; 4 de 4 copias, topes 352 y 269 frente a 12 577 s y 15 505 s, 249 casos y 0 cotejar en los 45, 499 votos y 0/125 y 0/124. Los tests de las filas de la reconstrucción (TestReconstruccionDeJurisprudencia, TestGrabacionesDerivadas, TestEjecucionDeLaMedida) siguen en verde tras la corrección, en la copia y en el make ci reproducido. afirma_que_existe con decide:false no es un umbral del spec (FR-021): a observaciones."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "El guard de ordenPartidaDeCita.verbo() (medida.go:1470-1473) sigue sin test (cierre.md §3 lo da al 66,7 %, confirmado: medida.go conserva 12 bloques sin cubrir en los dos perfiles de la copia): protege una vía real, una orden «cita --json» sin verbo en un informe del job. Un caso en TestArgumentosDeLaInvocacion o TestResolverCasos lo fijaría; no es de este rango.",
+    "afirma_que_existe:<modelo>:<modo> lleva decide:false por FR-004 y FR-021 (ADR 0037 solo deja decidir a una clase medida); promoverla pide casos etiquetados y una medida, fuera de un run. Mismo trato que cuenta_su_proceso en H24.",
+    "cierre.md §3 da el global en 96,5 % y 96,9 % con `go tool cover -func`, que es lo que da la orden; la suma de sentencias de los perfiles (10 699 de 11 093) redondea a 96,4 % en el de unidad. Es el método, no una cifra falsa.",
+    "El párrafo «Después de la revisión final» de cierre.md dice que el quickstart no se volvió a ejecutar entero y que hay dos sentencias cubiertas de diferencia en el global del perfil de integración cuyo paquete no se buscó: está dicho tal cual, y las cifras que sí da coinciden con las medidas aquí.",
+    "El control de un derivado con las dos formas de quitado (medida.go, loQueQueda) y el error de codigo: null siguen como en la ronda 1: fijan lo que data-model §3 declara y evitan leer un caso mal en silencio; no son motivo.",
+    "principioDeUnaBandera (medida.go:1383) partiría un valor de --documento con una línea que empiece por «--» y una minúscula; ningún documento del CENDOJ la lleva y es la misma regla de guiones/casos.py de la validación. Fuera del umbral de materialidad.",
+    "S1 del research (que el juez vote los casos reconstruidos en Go como votó los de la validación) y S2 (nueve sesiones a la vez contra el límite de ritmo) no los mide el run: SC-014 y el cierre, como dice el spec.",
+    "En esta sesión no se ha abierto ninguna sesión con modelo ni el job de evals; todo lo ejecutado (tests, mutantes, sonda, make ci y el recuento de cobertura) corrió en primer plano sobre la copia de git archive HEAD en el directorio temporal, que no es un repositorio y queda allí sin tocar el árbol."
+  ]
+}

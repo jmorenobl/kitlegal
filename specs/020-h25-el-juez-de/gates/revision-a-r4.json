@@ -1,0 +1,84 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza, 660391c: su guardián dice «(global), 21 ficheros», los 21 de ese commit (git show --stat HEAD), y termina con «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con «0 issues.» del lint. Reproducido en esta sesión sobre un clon de 660391c en el directorio temporal, en primer plano y en dos tandas que suman los doce requisitos del objetivo ci (Makefile:264-266): `make fmt-check lint test`, código 0, con «0 issues.», `ok` en internal/app (96,4 %) y en internal/evals (97,2 %); y `make test-integration test-tiempos vuln schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check`, código 0, con `ok` en internal/evals (97,7 %), «No vulnerabilities found.», `ok` en TestEsquemasPublicados y en los tres paquetes de skills-check, «1 configuration file(s) validated», «no leaks found», «all modules verified» y `go mod tidy -diff` sin salida. El clon queda limpio después (git status --porcelain sin salida). En el repositorio, `git status --porcelain` solo da ficheros de gates/ que deja el workflow para esta ronda (base-global-pendiente, revision-cambios.md y revision-cambios-r4.diff) y el veredicto del otro juez."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El único Go del rango es el caso `dos-inicios` de TestSkillsDelRepositorio (internal/app/skills_test.go:1036-1049, +6 −4). Tres mutantes sobre el clon, cada uno restaurado después: (1) el fichero de test de 0dc549c con la skill de 299 líneas -> TestSkillsDelRepositorio/region/boe-legislacion/dos-inicios en rojo, con dos defectos donde espera uno («SKILL.md tiene 300 líneas (máximo 299)» y el de la marca): el caso antiguo no admitía una skill en su máximo, y el cambio hace falta para aplicar el motivo 1 de la ronda 3; (2) la detección de la marca de inicio repetida quitada (`len(inicios) > 2` en internal/skills/comandos.go:796) -> los tres `dos-inicios` en rojo, el de boe-legislacion, el de legal-core y el de jurisprudencia: el caso sigue detectando lo que dice; (3) una línea más en skills/boe-legislacion/SKILL.md (300) -> `make skills-check` con código 2 y «boe-legislacion: SKILL.md tiene 300 líneas (máximo 299)» en TestSkillsDelRepositorio/skills. La línea que el caso espera, `fin-1`, sale del SKILL.md real (skills_test.go:1021-1022 y :1048), y el texto que sustituye tiene que estar en la copia (cambiarFicheroDeLaCopia, :1718-1724). Con `-v`, TestSkillsDelRepositorio da 113 líneas `--- PASS` y ningún FAIL ni SKIP, con `doscientas-noventa-y-nueve` y `trescientas` en verde para las tres skills (casosDeLineas, :756-768). Los siete tests que tocó la reparación R2, con `-v`: 27, 16, 24, 16, 8, 31 y 9, sin FAIL ni SKIP, con `un-voto-que-no-llega`, `votos-cortados-y-pedidos-otra-vez` y `el tope agotado dos veces`; internal/evals no está en el rango. Suite de aceptación: plan.md:158 dice que no aplica, porque el hito no cambia el binario; skills_test.go no está en ningún gates/aceptacion-congelada.json (specs/009, 010, 011, 015 y 019), y las suites de esos hitos pasan en las dos tandas."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango añade seis líneas de Go, todas en un test, sin ninguna importación (gates/revision-cambios-r4.diff, internal/app/skills_test.go). En las líneas añadidas de `git diff main HEAD -- . ':!specs'` no hay ninguna con \"net/http\", \"net\", os.Exit, fmt.Print, os.Stdout, os.Stderr, panic(, \"database/sql\", modernc.org ni internal/httpx (búsqueda de esta sesión: 0). golangci-lint, con depguard y forbidigo: «0 issues.» en gates/ci.log y en el clon; el test de arquitectura (paquete internal) pasa en las dos tandas."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet ni ningún esquema: `git diff --stat 0dc549c HEAD` no da nada para internal/core, internal/cli, internal/mcp, cmd, schemas ni data, y de internal/app solo cambia skills_test.go. Con el código del clon, `go run ./cmd/kitlegal skills list --json` da el sobre con sus seis claves (ok, fuente kitlegal.skills, url, fecha_consulta, hash y data). TestEsquemasPublicados pasa en el schema-check reproducido, y skills-check, con la skill empotrada, también."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal cambia: el rango no lleva ningún fichero de Go que no sea un test. La reparación R2 (el voto que el tope corta dos veces deja la respuesta sin juzgar y el veredicto en fallo; las otras tres causas, sin reintento) la juzgué en la ronda 3 con mutantes, e internal/evals no está en este rango; sus tests siguen en verde en el clon (TestVotoDelJuez, 27; TestInformeConElJuez, 16, con `un-voto-que-no-llega`)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Los cuatro motivos de la ronda 3 están corregidos, y lo que dicen los textos lo he contrastado con la cabeza. Motivo 1: `git diff main HEAD -- skills/boe-legislacion/SKILL.md` es un solo trozo, `@@ -131,10 +131,11 @@`, +5 −4, así que la viñeta de «Redacción modificada» (SKILL.md:222-223) es la de main; 299 líneas (wc -l); CHANGELOG.md:271-274, research.md:260-275 y gates/supuestos.md:41 dicen 299, «tenía 298» y por qué cambia el caso `dos-inicios`, que es lo que da el mutante 1 del criterio b. Motivo 2: research.md:227-233, :252-259 y :297-303, plan.md:33 y :314-328 y gates/supuestos.md:41-42 dicen de qué se aparta cada reparación —R1, de «Fuera de alcance» de la sección del hito y de FR-005; R2, de lo que H24 dejó a una persona (specs/017-h24-las-evals-juzgan/research.md:107)— y por qué se hace; las dos líneas llevan [alcance], y «no la nombra» y «ninguna cambia lo que piden» ya no están en ningún fichero del hito. Motivo 3: cierre.md lleva el párrafo de la reparación (:42-57) y sus cifras nuevas son las de la cabeza: 34 ficheros fuera de specs/, 9 A y 25 M, con 8 082 líneas añadidas y 969 quitadas (git diff --shortstat y --name-status main HEAD); el numstat de cada fichero de su tabla (juez.go +83 −28, informe.go +98 −17, doc.go +33 −13, juez_test.go +440 −35, informe_test.go +805 −145, medida_test.go +2 523 −241, ejecucion_test.go +91 −19, sondeo_test.go +9 −8, skills_test.go +6 −4, CHANGELOG.md +94 −15, CONTRIBUTING.md +118 −51); 1 051 y 4 979 líneas; diez trozos en juez.go, el primero en la línea 638; los mismos árboles en main y en la cabeza para evals/boe-legislacion, su carpeta juez, evals/legal-core, skills/legal-core, internal/core y scripts (git rev-parse), y otro para skills/boe-legislacion con sus references iguales; la cobertura de §3, contada sobre los dos perfiles del clon con un arnés de un solo uso fuera del repositorio: juez.go 261 de 263, informe.go 566 de 573, medida.go 492 de 504, conjunto.go 254 de 257, el paquete 3 787 y 3 804 de 3 895, el dominio 2 100 de 2 136, internal/cli 398 de 406 y el global 10 716 y 10 762 de 11 110; los números de línea (informe_test.go:4018 y :4711, juez_test.go:1296 y :424, medida_test.go:4404, :5482 y :5516); los recuentos 27, 16 y 24, con §5 en 24 y §6 en 71; `ninguna todavía` 0, 0 y 1; 24 `fmt.Errorf` y ningún atajo en lo añadido, y 7 `//nolint:` en main y en la cabeza. contracts/juez-de-jurisprudencia.md dice lo que R2 cambia (:3-11, :103-106, :119-129, :170, :173-175, :202 y :217): la entrada del ejemplo tiene 100 bytes (contados), y la clave, la etiqueta de la tabla y sus columnas son las de informe.go:137-143, :398-417 y :1953-1954. Motivo del juez B: CHANGELOG.md:283 y research.md:289-291 dicen 171, y en gates/evals/ los totales son 54 y 54 en boe-legislacion y 30 y 30 en jurisprudencia, con las tres sesiones de `21-sin-binario-ni-servidor` en `juez.respuestas`: 54 + 54 + 3 + 30 + 30. Las referencias que cita research.md existen: el «tope efectivo» de 298 está en specs/014-h7-4-boe-legislacion-sin/contracts/skill-boe-legislacion.md:219 y en specs/017-h24-las-evals-juzgan/research.md:29 (V13). No hay ADR nuevo ni fuente tocada."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición de red nueva: internal/httpx, testdata, evidencias y docs no están en el rango (`git diff --stat 0dc549c HEAD`, sin salida para esas rutas). Sin secretos (gitleaks: «no leaks found» en el clon) y sin NIF de persona. El CENDOJ no se consulta. En esta sesión no se ha abierto ninguna sesión con modelo, ni el job, ni la medida ni un sondeo; de la red, solo govulncheck dentro de la segunda tanda."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En las líneas añadidas del rango no hay nolint, t.Skip, .Skip(, SkipNow, TODO, FIXME ni XXX, ni una asignación a _ que tire un error; la misma búsqueda sobre todo lo añadido fuera de specs/ desde main da 0. El cambio de `dos-inicios` no ajusta un test para tapar un defecto: no se desactiva, sigue exigiendo el fallo exacto de la marca repetida con sus dos líneas, sale en rojo sin la detección (mutante 2) y deja de depender de cuántas líneas tiene la skill; el límite lo siguen fijando `doscientas-noventa-y-nueve` y `trescientas` (skills_test.go:756-768) y el mutante 3. Ningún fixture cambia: testdata/, evidencias/, evals/ y schemas/ no están en el rango, ni la configuración de lint, de cobertura o de CI."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es la aplicación de los cuatro motivos de la ronda 3 (ocho ficheros fuera de gates/). Lo único que ningún motivo pedía con esas palabras es el cambio de `dos-inicios` en internal/app/skills_test.go, un test que el hito no tocaba: sin él el motivo 1 no se puede aplicar con `make ci` en verde (mutante 1), y las otras salidas son lo que ese motivo retira —la viñeta de «Redacción modificada» reescrita— o cambiar prosa de SKILL.md que ninguna medición pide. Es un cambio de +6 −4 que no relaja lo que el caso comprueba (mutante 2) y está registrado como decisión en research.md:264-275, plan.md:215-217 y :321-323, CHANGELOG.md:272-274 y gates/supuestos.md:44, con impacto de alcance. La viñeta que R1 reescribió sin evidencia vuelve a ser la de main. Las dos reparaciones del cierre quedan registradas como lo que son, con la medición 2 como evidencia y [alcance] en gates/supuestos.md:41-42. Las tres líneas `corrector_revision` de gates/supuestos.md (:44-46) son lecturas conservadoras: retirar lo dudoso, decir de qué se aparta cada reparación y poner los textos al día con lo medido."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El binario no cambia en el rango. skills/boe-legislacion/SKILL.md tiene 24 574 bytes y 299 líneas (main: 24 462 y 298; wc sobre `git show main:` y sobre la cabeza): 112 bytes más, que se cargan una vez por activación y no crecen con el uso. No pide ninguna invocación más por pregunta: su único trozo de diff con main es la viñeta de :131-138, prosa, y las órdenes de cada paso no cambian. Del job, `juez.votos_cortados` lleva como mucho una entrada de unos 100 bytes por voto de una respuesta juzgada, tres por respuesta y 180 con las 60 de un job, y `[]` sin ninguno (contracts/juez-de-jurisprudencia.md:202); cada job lo escribe de nuevo y nada se acumula entre ejecuciones. El rango no añade ninguna señal."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún umbral ni su control: umbrales.go, definicion.go, evals/ y .github no están en él. El único umbral que roza es el de las líneas de SKILL.md, y su control sigue saliendo en rojo: `maximoDeLineas = 299` (internal/skills/sincronia.go:27 y :362), dentro de `make ci` por skills-check (Makefile:126-127) y por `make test`; con 300 líneas en la skill, `make skills-check` termina con 2 (mutante 3), y los casos `doscientas-noventa-y-nueve` y `trescientas` pasan con la skill en 299 justas. Antes del rango el tope real era 298 por el caso `dos-inicios` (mutante 1); ahora es el que dice el código. Los umbrales del job siguen decidiendo: en gates/evals/boe-legislacion.json, `afirma_lo_no_leido` lleva medida 1 de 54, `cumple` falso y `decide` verdadero en los dos modos, y veredicto fallo; en gates/evals/jurisprudencia.json, los doce con `cumple` verdadero, diez con `decide`, y veredicto fallo por una respuesta sin juzgar. Los controles de «Controles de umbral» de plan.md no cambian desde la ronda 3, en la que los comprobé con mutantes, y pasan en las dos tandas (TestInformeConElJuez con `un-voto-que-no-llega`, TestDefinicionDelJob, TestUmbralesDeJurisprudencia)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Convergencia: mis tres motivos de la ronda 3 y el del juez B están corregidos, y el rango (660391c) no trae ningún motivo nuevo. No he leído el veredicto del juez B de esta ronda.",
+    "Una premisa de mi motivo 1 de la ronda 3 era falsa: dije que con 299 líneas `skills-check` seguiría en verde, y no lo comprobé. Con 299 y el caso `dos-inicios` de entonces, TestSkillsDelRepositorio sale en rojo (mutante 1 de esta ronda). El corrector lo midió, y por eso el rango cambia ese caso.",
+    "cierre.md:76-78 da 89 ficheros en `git diff --name-status main`, 64 A y 25 M, 55 de ellos en specs/020: es lo que midió el corrector con sus cambios en el árbol, y lo dice. En la cabeza son 92, 67 A y 25 M, y 58: los tres de más son los que el workflow añadió a gates/ con el commit (revision-a-r3.json, revision-b-r3.json y revision-cambios-r3.diff). Fuera de specs/ son 34, como dice.",
+    "skills/boe-legislacion/SKILL.md queda en su máximo, 299 líneas: el próximo cambio que le añada una tiene que quitar otra.",
+    "CHANGELOG.md:121, en la entrada de `boe-legislacion` v0.1.7 de *Unreleased*, dice que SKILL.md «sigue en 298 líneas»: es lo que tenía v0.1.7, y la entrada de v0.1.8 de la misma sección dice 299 y «tenía 298».",
+    "El efecto de v0.1.8 sobre la eval 15 y el del reintento del voto cortado no los mide nadie hasta la medición siguiente, la tercera y última del cierre (spec FR-027). En esta sesión no se ha abierto ninguna sesión con modelo.",
+    "R2 decide lo que H24 reservó a una persona; ahora va con impacto de alcance, donde ella lo lee. Le queda decidir si lo quiere así y si el ADR 0037 y docs/ROADMAP.md deben decir que el voto cortado se repite una vez.",
+    "Sigue como en la ronda 3: el corte de un voto se publica en el informe del job y no en la salida del sondeo ni en la de la medida del juez; y gates/cierre.log trae dos veces la cola del mismo registro, cosa de scripts/workflow, que el hito no toca.",
+    "No he ejecutado `make ci` de una vez, sino sus doce requisitos en dos órdenes en primer plano sobre el clon; las dos terminan con 0. El quickstart no lo he vuelto a ejecutar entero: de cierre.md he contrastado las cifras que cambia el rango.",
+    "El clon, los registros y el arnés de la cobertura de esta sesión quedan en el directorio temporal (h25-juez-a-r4 y h25-juez-a-r4-*), fuera del repositorio; el clon está limpio, sin ningún mutante."
+  ]
+}

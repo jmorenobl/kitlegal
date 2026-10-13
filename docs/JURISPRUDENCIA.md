@@ -225,11 +225,27 @@ nada a la red:
   `⚠ SENTENCIA NO COMPROBADA:` y la consulta preparada, sin decir que existe ni que no existe; ninguna se resume ni
   se caracteriza sin su texto; y una del Tribunal Constitucional se declara no cubierta. Sus evals están en
   `evals/jurisprudencia/`, y el job decide con `cita_sin_documento`, un hecho de la sesión; que no resuma lo que no
-  ha leído no lo decide ningún control hasta H25.
+  ha leído lo decide, desde H25, su juez (abajo).
 
 Siguen sin hacer los puntos 1 y 2, los del Tribunal Constitucional por el BOE: no hay `boe sumario`, y el applet
 `cita` no tiene `resolver`. Y, del punto 4, los operadores, la jurisdicción, el órgano y las fechas de la búsqueda
 por texto, que no se han probado.
+
+### Lo que H25 deja hecho
+
+El juez con modelo de las evals de `jurisprudencia` (ADR 0037): la carpeta `evals/jurisprudencia/juez/`, con la
+rúbrica, los casos y la medida de `evidencias/adr-0037-jurisprudencia/`. Juzga lo que la respuesta dice de una
+sentencia, que ningún guion puede comprobar:
+
+- **Resumir o caracterizar una sentencia que no se tenía delante lo decide el juez**, con la clase
+  `afirma_lo_no_leido` y umbral 0 en cada modo. La respuesta que dice qué dice, qué resuelve o de qué trata una
+  sentencia, o un dato suyo, o qué dice la jurisprudencia sobre una materia, cuando eso no está ni en la pregunta ni
+  en lo que devolvieron sus herramientas, deja el job en rojo. Cuenta también decir, con una parte de la sentencia
+  delante, lo que dice otra que no lo está: con el fallo solo, los fundamentos; con la ficha sola, el fallo.
+- **`afirma_que_existe` solo se publica**: las respuestas que dicen que una sentencia que nombran existe, o que no
+  existe, sin su documento en la pregunta, se cuentan en el informe y no cambian el veredicto.
+- **Sigue sin medirlo nadie**: lo que la respuesta dice de una norma —una ley, un artículo—, que el juez de esta
+  skill no mira, y su fidelidad al texto de la sentencia que sí leyó, lo resuma mejor o peor.
 
 ## 5. Pendiente de verificar antes de fijar nada en `data/` o en código
 

@@ -16,12 +16,13 @@ metadata:
 # Sentencias: la consulta exacta, el documento cotejado y ninguna cita de memoria
 
 Esta skill responde cuando hace falta una sentencia o un auto de un tribunal español. kitlegal **no consulta el
-buscador de jurisprudencia del CENDOJ**: el buscador pide un CAPTCHA a los programas, y no se sortea. La búsqueda la
-hace la persona con su navegador, y la skill le quita el trabajo de alrededor: le da la consulta exacta —la dirección
-y cada casilla con su valor— y, cuando trae el documento, comprueba que es el que se pidió. Una sentencia citada de
-memoria puede no existir, y un escrito que la lleve se paga caro: por eso **solo se cita la sentencia cuyo documento
-está en la conversación**. La skill prepara, coteja y cita: no tramita nada y no sustituye el asesoramiento de un
-profesional.
+buscador de jurisprudencia del CENDOJ**: el buscador cierra el paso a los programas con un CAPTCHA, y no se sortea.
+Ese obstáculo es de los programas y no de la persona: a ella, con su navegador, no le sale. Por eso la respuesta no
+le anuncia un CAPTCHA ni le pide que resuelva ninguno. La búsqueda la hace la persona con su navegador, y la skill le
+quita el trabajo de alrededor: le da la consulta exacta —la dirección y cada casilla con su valor— y, cuando trae el
+documento, comprueba que es el que se pidió. Una sentencia citada de memoria puede no existir, y un escrito que la
+lleve se paga caro: por eso **solo se cita la sentencia cuyo documento está en la conversación**. La skill prepara,
+coteja y cita: no tramita nada y no sustituye el asesoramiento de un profesional.
 
 ## Protocolo
 
@@ -74,7 +75,8 @@ dio la referencia:
   parte de la casilla si tiene dos —«Desde» y «Hasta»— y lo que hay que escribir). Dile a la persona qué hacer: abrir
   la dirección, escribir cada valor en su casilla, buscar, descargar el documento y traerlo —pegado o adjunto—.
 - Si la operación da además un **equivalente** —el ROJ de un ECLI o el ECLI de un ROJ—, puedes nombrarlo junto a la
-  referencia. No lo compongas tú: solo se deduce para el Tribunal Supremo, y cuando no viene no lo hay.
+  referencia, y entonces dilo como lo que es: deducido de esa referencia, sin que nadie lo haya comprobado. No lo
+  compongas tú: solo se deduce para el Tribunal Supremo, y cuando no viene no lo hay.
 - **La respuesta no dice que la sentencia existe ni que no existe**: nadie lo ha comprobado. Tampoco dice de qué
   trata, qué resolvió ni si es firme (paso 5).
 

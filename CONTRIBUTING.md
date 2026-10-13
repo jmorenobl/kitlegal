@@ -622,14 +622,23 @@ menos tres evals: una positiva que resuelve un municipio del territorio configur
 resuelve uno de una comunidad sin configuración y declara no configurados el boletín autonómico y el provincial, al
 menos una de no activación, y citas o territorio en toda positiva. En esos dos conjuntos, **exactamente una eval sin
 binario ni servidor**, que no cuenta como positiva (hoy, `21-sin-binario-ni-servidor.yaml` en `boe-legislacion` y
-`04-sin-binario-ni-servidor.yaml` en `legal-core`). Para `jurisprudencia` (`ReglasDeJurisprudencia`), exactamente seis
-evals, que activan todas la skill y declaran todas `sentencias`: dos con la línea `⚠ SENTENCIA NO COMPROBADA:`,
-ninguna cita y las casillas «Nº Resolución» y «Fecha resolución», con `cita preparar`; una con la dirección de
-búsqueda y ninguna cita, con `cita preparar` con texto; una con una cita, con `cita cotejar`; una sin comandos, con
-una dirección y ninguna cita; y una con la línea, un ROJ con el que no se cita, y `cita cotejar` y `cita preparar`
-con ese ROJ. No tiene eval sin binario ni servidor. Las dos que traen un documento llevan en su pregunta, byte a
-byte, el fragmento de `evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt`, copiado del fichero con una orden y
-nunca escrito a mano: `TestPreguntasConElFragmento` falla si la pregunta, tal como se lee, no lo contiene. El
+`04-sin-binario-ni-servidor.yaml` en `legal-core`). Para `jurisprudencia` (`ReglasDeJurisprudencia`), exactamente diez
+evals, que activan todas la skill y declaran todas `sentencias`: tres con la línea `⚠ SENTENCIA NO COMPROBADA:`,
+ninguna cita, una dirección y las casillas «Nº Resolución» y «Fecha resolución», con `cita preparar`; dos con la
+dirección de búsqueda y ninguna cita, con `cita preparar` con texto; tres con una cita, con `cita cotejar`; una sin
+comandos, con una dirección y ninguna cita; y una con la línea, un ROJ con el que no se cita, y `cita cotejar` y
+`cita preparar` con ese ROJ. No tiene eval sin binario ni servidor. Cuatro de las diez llegaron con H25, con
+preguntas ante las que una respuesta puede decir de una sentencia lo que no ha leído, y cada una espera sin modelo
+lo de su clase: `07-resumen-de-una-conocida.yaml`, la línea, la dirección del buscador, las dos casillas con su
+valor y ninguna cita, con `cita preparar`; `08-doctrina-con-el-fallo-delante.yaml` y
+`09-de-que-trata-con-la-ficha-sola.yaml`, la cita con el ECLI y el ROJ de la ficha, con `cita cotejar`; y
+`10-doctrina-dada-por-hecha.yaml`, la dirección de búsqueda y ninguna cita, con `cita preparar` con texto. Lo que la
+respuesta diga de más lo decide el juez (abajo). Sus cuatro preguntas son, byte a byte, las del sondeo con el que
+se validó ese juez, las de `evidencias/adr-0037-jurisprudencia/preguntas.json`: `TestPreguntasDelSondeo` falla si
+una difiere. Las tres que traen el documento —la `04`, la `06` y la `08`— llevan en su pregunta, byte a byte, el
+fragmento de `evidencias/adr-0036/ecli-es-ts-2023-3144-fragmento.txt`, y la `09`, su ficha —sus líneas hasta la
+primera en blanco— y nada más de él, copiados del fichero con una orden y nunca escritos a mano:
+`TestPreguntasConElFragmento` falla si la pregunta, tal como se lee, no los contiene. El
 directorio de cada `grafo_previo` tiene que existir, y su
 preparación, en temporales, deja en el grafo un
 `BloqueVersion` por comando sin ninguna falta; después, leyendo como la sesión cada bloque de los `comandos` de la eval,
@@ -699,12 +708,10 @@ misma norma y los mismos bloques (`ordenes-para-powershell`).
 **El juez con modelo** de una skill es la carpeta `evals/<skill>/juez/` (ADR 0037). Juzga lo que ningún guion puede
 comprobar, el significado de una respuesta; lo que tiene forma o es un hecho de la sesión —citas, avisos, formas
 fijas, órdenes, activación, red, duración— se sigue comprobando sin modelo y no pasa por él. Una skill sin esa
-carpeta no tiene juez: ni votos, ni umbrales del juez, ni comprobación de la medida. Hoy solo la tiene
-`boe-legislacion`. **`jurisprudencia` no tiene juez hasta H25**: una clase solo decide con el juez medido contra
-respuestas reales de la skill, que no existen hasta el cierre de H23, y la rúbrica de `evidencias/adr-0037/`
-pregunta por preceptos y por los textos del BOE. Hasta entonces, de sus respuestas decide lo que tiene forma o es un
-hecho de la sesión; que no resuma una sentencia que no ha leído no lo decide ningún control. Los cinco ficheros de la
-carpeta:
+carpeta no tiene juez: ni votos, ni umbrales del juez, ni comprobación de la medida. Hoy la tienen
+`boe-legislacion` y, desde H25, `jurisprudencia`, cada una con su rúbrica: una clase solo decide con el juez medido
+contra respuestas reales de la skill, y la de `evidencias/adr-0037/` pregunta por preceptos y por los textos del BOE,
+no por sentencias. `legal-core` no la tiene. Los cinco ficheros de la carpeta:
 
 | Fichero | Qué es |
 |---|---|
@@ -717,9 +724,17 @@ carpeta:
 En `boe-legislacion` las clases son dos. `afirma_lo_no_leido` **decide**, con umbral 0: la respuesta expone una regla
 que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
 trata un precepto que nombra y no leyó; avisar de lo que la respuesta no cubre sin nombrar ningún precepto no cuenta.
-`cuenta_su_proceso` **solo se publica**. `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json` son copias, byte
-a byte, de los de `evidencias/adr-0037/`, y no se editan en la carpeta: `TestCopiasDelJuez` falla en `make ci`
-nombrando cada una que difiere o falta. Un fichero de la carpeta que falta, que no se puede leer o que no tiene su
+`cuenta_su_proceso` **solo se publica**. En `jurisprudencia` son otras dos. `afirma_lo_no_leido` **decide**, con
+umbral 0: la respuesta dice qué dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
+jurisprudencia sobre una materia, cuando eso no está ni en la pregunta ni en los textos que devolvieron sus
+herramientas; cuenta también decir, con una parte de la sentencia delante, lo que dice otra que no lo está, y no
+cuenta dar los datos de una ficha que sí está, repetir la referencia como la dio la persona ni decir lo que no se ha
+comprobado. `afirma_que_existe` **solo se publica**: la respuesta dice que una sentencia que nombra existe, o que no
+existe, sin su documento en la pregunta. `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json` son copias, byte
+a byte, de los de la evidencia de la validación de cada juez —`evidencias/adr-0037/` en `boe-legislacion` y
+`evidencias/adr-0037-jurisprudencia/` en `jurisprudencia`—, y no se editan en la carpeta: `TestCopiasDelJuez` falla
+en `make ci` nombrando cada una que difiere o falta. Un fichero de la carpeta que falta, que no se puede leer o que
+no tiene su
 forma —`clases.yaml` que no cumple su esquema o repite un nombre, o un `esquema.json` cuyas propiedades no son
 exactamente las clases declaradas— es un fichero mal formado, con el nombre `juez/<fichero>`, y una entrada `juez`
 que no es un directorio, también: `make ci` falla nombrándolo (`TestEvalsDelRepositorio`, subprueba `formato`), y el
@@ -860,8 +875,9 @@ Una ejecución normal no mide al juez: no vota ningún caso etiquetado.
 
 **Qué respuestas se juzgan.** Las del modelo que decide, terminadas, legibles y medidas, en tres grupos que se votan
 uno detrás de otro: las de cada modo cuya eval activa la skill, de las series que pide el plan —las mismas que
-forman el `total` de `sin_activar:<modelo>:<modo>`, 54 por modo con las evals de `boe-legislacion`—, y las de la eval
-sin binario ni servidor (3), que se juzgan y se publican, pero no cuentan en ningún umbral ni dan ningún motivo. No
+forman el `total` de `sin_activar:<modelo>:<modo>`, 54 por modo con las evals de `boe-legislacion` y 30 con las de
+`jurisprudencia`—, y las de la eval sin binario ni servidor (3 en `boe-legislacion`; `jurisprudencia` no la tiene),
+que se juzgan y se publican, pero no cuentan en ningún umbral ni dan ningún motivo. No
 se juzgan las de un modelo informativo, la sesión de la prueba de red, ni las sesiones sin medir, sin terminar o
 ilegibles.
 
@@ -887,9 +903,12 @@ si el repetido lleva también un `si` sin su frase, en esa clase no cuenta como 
 una clase que decide solo con tres votos que dicen sí con su frase.** Los votos se piden por orden, y se deja de
 votar en cuanto ninguna clase que decide sigue con todos sus votos en sí: con un no en el primero se pide un voto;
 con «sí, sí y no», tres, y la respuesta no queda marcada y se publica con sus dos frases. En una clase que solo se
-publica cuenta el primer voto. Un voto que **no llega a darse** —agota su tope, su sesión termina con error, o su
-salida no es JSON o no tiene la forma del esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto
-(`voto 2: tope de 35 s agotado`); no se reintenta, y un límite de uso de la cuenta es uno de esos errores.
+publica cuenta el primer voto. **Un voto que agota su tope se pide otra vez, una sola**, como un nulo, con su mismo
+número: cuenta el que llega, y el corte se publica aparte (`votos_cortados`). Dos peticiones por voto como mucho,
+sea cual sea la causa de la primera: el presupuesto del peor caso no cambia. Un voto que **no llega a darse** —agota
+su tope también en esa repetición, su sesión termina con error, o su salida no es JSON o no tiene la forma del
+esquema— deja la respuesta **sin juzgar**, con un motivo que nombra el voto (`voto 2: tope de 35 s agotado dos
+veces`); nada más se reintenta ni se espera, y un límite de uso de la cuenta es uno de esos errores.
 
 Lo ejecuta el job de evals, el flujo `evals` (`.github/workflows/evals.yml`), con un trabajo por skill en la misma
 ejecución —hoy `boe-legislacion`, `jurisprudencia` y `legal-core`, la matriz del flujo—, cada uno con su informe y
@@ -919,7 +938,7 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` |
 | `REPETICIONES_DE_EVALS` | `3` |
 | `UMBRAL_DE_EVALS` | `2` |
-| `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion`; `1` en `jurisprudencia` y en `legal-core` |
+| `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion` y en `jurisprudencia`; `1` en `legal-core` |
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `jurisprudencia` y en `legal-core` |
 | `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
 | `MODELO_DEL_JUEZ` | `claude-opus-5-5` |
@@ -939,8 +958,10 @@ Con las veintiuna evals de `boe-legislacion`, su trabajo abre 198 sesiones, cuat
 de `claude-sonnet-5-5` sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001`
 sobre las doce que deciden—, otras 96 en el modo herramienta y 6 de la eval sin binario ni servidor, tres con cada
 modelo; y su juez juzga 111 respuestas: 54, 54 y 3. El de `legal-core`, con cuatro evals, abre 42: 18, 18 y 6. El de
-`jurisprudencia`, con seis, abre 72, de una en una: 36 en cada modo y ninguna más, porque no tiene eval sin binario
-ni servidor; no lleva juez, prueba de red ni grabaciones.
+`jurisprudencia`, con diez, abre 120, cuatro a la vez: 60 en cada modo —30 de cada modelo, porque las diez deciden—
+y ninguna más, porque no tiene eval sin binario ni servidor; su juez juzga 60 respuestas, 30 por modo; no lleva
+prueba de red ni grabaciones, y sigue sin objetivo de duración de las sesiones, porque no hay medida con esa
+concurrencia de la que sacar una cifra.
 **Hay dos topes** (`timeout-minutes`), el de cada trabajo `evals (<skill>)`, 352 minutos, y el del trabajo
 `medida del juez (<skill>)`, 269. Cortan un cuelgue; ninguno es el control de la duración, que es un umbral del
 informe, porque un trabajo cancelado no escribe informe. El primero cubre el peor caso de cada skill. El de sus
@@ -951,12 +972,16 @@ de las tres tandas —la del modo orden, con la prueba de red— y `C` su concur
 sesiones a 4: 14 357 s). Con una skill que tiene juez se le suma el de su juez,
 `60 s + (⌈R₁ × 6 / C⌉ + ⌈R₂ × 6 / C⌉ + ⌈R₃ × 6 / C⌉) × (35 s + 5 s)`: 60 s de instalar su Claude Code, `R₁`, `R₂`
 y `R₃` las respuestas de cada grupo que juzga, 6 los votos que como mucho pide una respuesta —tres, cada uno con su
-repetición por nulo— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas a 4: 81, 81
-y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, sin juez y de una en una,
-es de 20 341 s, 339,0 minutos: 37, 36 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo orden
-aunque su trabajo no la lleve; es un cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida:
-`485 s + 60 s + ⌈259 × 6 / 4⌉ × 40 s`, 16 105 s, 268,4 minutos, con sus 259 casos. `TestDefinicionDelJob` comprueba
-en `make ci` la
+repetición por nulo o por el tope— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas
+a 4: 81, 81 y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, con su juez y
+cuatro a la
+vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
+orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
+3 660 s—; de una en una serían 47 857 s, que el tope no cubre. Es un cálculo, no una medida de lo que tarda. El
+segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
+casos etiquetados: en `boe-legislacion`, con 259 a 4, 16 105 s, 268,4 minutos; en `jurisprudencia`, con 249 a 4,
+15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes cambió con H25.
+`TestDefinicionDelJob` comprueba en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
 cada skill depende de `tanda` y solo corre con `medir=si`; su nombre, el grupo de `concurrency` y
@@ -964,7 +989,9 @@ cada skill depende de `tanda` y solo corre con `medir=si`; su nombre, el grupo d
 `MODELO_DEL_JUEZ` está, tiene la forma de un id completo y no es `MODELO_DE_EVALS`; que
 `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` está, con la forma `<n>.<n>.<n>`, y que el paso de instalación instala con ella el
 Claude Code del juez en su prefijo y no el de las sesiones; que el trabajo `medida` repite ese modelo y esa versión,
-tiene exactamente su condición y no depende de ningún otro; que ni `tanda` ni `evals` nombran `evals-medir-juez` y
+tiene exactamente su condición y no depende de ningún otro, y que su matriz lleva las skills de la de `evals` que
+tienen carpeta de juez, en su orden y cada una con la concurrencia de su trabajo `evals` —hoy `boe-legislacion` y
+`jurisprudencia`, a cuatro—; que ni `tanda` ni `evals` nombran `evals-medir-juez` y
 `tanda` no admite el despacho con `medir_al_juez`; que esa entrada está, con `false` por omisión; y que los dos
 topes cubren su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval o un caso nuevos
 que dejan un peor caso por encima de su tope la hacen fallar. Prueba también, con consultas sintéticas y sin red,
@@ -1005,7 +1032,8 @@ posterior obliga a repetirlas.
 **La medida del juez.** Un juez solo decide si está medido contra casos etiquetados (ADR 0037). La medida versionada
 es `evals/<skill>/juez/medida.json`. Dice lo que dio votar los casos de `casos.yaml` —`defectos.casos` y
 `defectos.sin_marcar`, `correctos.casos` y `correctos.marcados`: en `boe-legislacion`, 0 defectos sin marcar de 212 y
-0 correctos marcados de 47— y **con qué se midió, en sus cuatro claves**: `rubrica.sha256` y `casos.sha256`, las
+0 correctos marcados de 47; en `jurisprudencia`, 0 de 125 y 0 de 124— y **con qué se midió, en sus cuatro
+claves**: `rubrica.sha256` y `casos.sha256`, las
 huellas de `rubrica.md` y de `casos.yaml`; `modelo_del_juez`; y `version_de_claude_code`. Corresponde si las cuatro
 son las de lo que hay y su `clase` es la que decide, y se cumple si los dos recuentos son 0. Lo comprueba, sin modelo,
 la misma función en tres sitios:
@@ -1027,21 +1055,46 @@ formas y ninguna más:
 | Por etiqueta | Poniendo la etiqueta `evals-medir-juez` en la propuesta de cambio |
 | Manual | Desde la plataforma, con la entrada `medir_al_juez` del flujo lanzado a mano |
 
-Las dos lanzan el trabajo `medida del juez (<skill>)` del flujo `evals` y no los de las evals: la etiqueta
-`evals-medir-juez` no es una de las de `tanda`, y el despacho con `medir_al_juez` no la corre. La etiqueta `evals`,
+Las dos lanzan los trabajos `medida del juez (<skill>)` del flujo `evals`, uno por cada skill con juez —hoy
+`medida del juez (boe-legislacion)` y `medida del juez (jurisprudencia)`—, y no los de las evals: no hay selector por
+skill, corren los dos y cada uno termina con su resultado. La etiqueta `evals-medir-juez` no es una de las de
+`tanda`, y el despacho con `medir_al_juez` no la corre. La etiqueta `evals`,
 la apertura de una propuesta y el despacho sin esa entrada no lanzan la medida. El trabajo instala el Claude Code del
 juez y ejecuta `make evals-medir-juez SKILL=<skill>` —`scripts/evals-medir-juez.sh`, que llama a `TestMedidaDelJuez`
 (etiqueta `evals`), fuera de `make ci`—: reconstruye en proceso, sin red y sin modelo, los textos que devolvieron las
 herramientas en cada caso, desde su informe versionado y las grabaciones; vota cada caso con la regla de arriba,
-cuatro a la vez —tres votos por cada defecto que se marca y uno por cada correcto que no: 683 con los 259 casos de
-hoy si la medida se cumple—; e **imprime `medida.json` entre las marcas `--- inicio de medida.json ---` y
+cuatro a la vez —tres votos por cada defecto que se marca y uno por cada correcto que no: si la medida se cumple,
+683 con los 259 casos de `boe-legislacion` y 499 con los 249 de `jurisprudencia`—; e **imprime `medida.json` entre
+las marcas `--- inicio de medida.json ---` y
 `--- fin de medida.json ---`**, con las huellas de lo que ha leído y el modelo y la versión que ha recibido, no los de
 la medida versionada. No abre ninguna sesión de evals ni escribe nada en el repositorio. Termina en rojo si un
 defecto no queda marcado o un correcto queda marcado —imprime la medida, con sus recuentos, y una línea por caso— y
 si algún caso queda sin juzgar, sin imprimir entonces ninguna medida. **La versiona la persona que la lanzó**, en
-`evidencias/adr-0037/medida.json` y en su copia de la carpeta del juez, en la misma propuesta que cambia la rúbrica,
-los casos, el modelo del juez o su versión. Una medida que no se cumple no se versiona: si alguien lo hace, `make ci`
+el `medida.json` de la evidencia de ese juez —`evidencias/adr-0037/` o `evidencias/adr-0037-jurisprudencia/`— y en
+su copia de la carpeta del juez, en la misma propuesta que cambia la rúbrica, los casos, el modelo del juez o su
+versión. Una medida que no se cumple no se versiona: si alguien lo hace, `make ci`
 falla. Ningún paso del workflow `hito` la lanza ni la escribe: un run solo pone la etiqueta `evals`.
+
+**Los casos de `jurisprudencia` se reconstruyen de otro modo que los de `boe-legislacion`**, con lo mismo: sin red,
+sin modelo y sin escribir nada a mano. Son 249, de tres informes: 138 del job del cierre de H23 y 39 y 72 de los dos
+sondeos de la validación, `sondeo-con-skill.json` y `sondeo-sin-skill.json` de
+`evidencias/adr-0037-jurisprudencia/`. Lo que tienen de distinto:
+
+- **El informe de un sondeo**, el que lleva la clave `sondeo`. La pregunta de una sesión suya sale de
+  `preguntas.json`, que está junto a él: la de la eval que nombra, o su plantilla con el fragmento o su ficha en su
+  sitio. Sus textos no repiten ninguna orden: son las órdenes de `kitlegal` de la sesión y las salidas que el propio
+  informe guarda. Una sesión del sondeo sin la skill no tiene ninguno.
+- **Las órdenes del applet `cita`** de un informe del job se repiten en proceso, como las de `boe` y `graph`, con sus
+  argumentos y, en un `cotejar` sin `--documento`, con el texto pegado en la pregunta por la entrada estándar. Si una
+  termina con un código distinto del que le da el informe, el caso no se resuelve.
+- **El derivado que quita texto de la pregunta.** Un derivado de `boe-legislacion` quita un bloque de los textos de
+  las herramientas (`quitado`, con `norma` y `bloque`); uno de `jurisprudencia` lleva `quitado.texto` y quita una
+  parte del texto pegado en la pregunta: `documento`, todo él; `fallo`, desde la línea `F A L L O`; o `apartado-2`,
+  el párrafo que empieza por `2.º-`. Son 127: 45, 41 y 41. Sin el documento, ninguna orden `cotejar` da texto.
+
+Un caso que no se puede resolver es un error que lo nombra, y la medida falla sin votar
+(`TestReconstruccionDeJurisprudencia` resuelve los 249 en `make ci`, y `TestGrabacionesDerivadas`, de
+`internal/evals`, exige que cada derivado solo se diferencie de su sesión en lo quitado).
 
 Cómo se lee el informe:
 
@@ -1081,7 +1134,7 @@ Cómo se lee el informe:
   o de la propia `medida`, y se puede rehacer con los otros campos. Los de las respuestas existen solo si la skill
   tiene juez o si alguna de sus evals declara `sentencias`, y los de un modo se miden sobre las sesiones de ese modo,
   sin sumar las del otro. **En `boe-legislacion` son doce, diez de ellos decidiendo**, en este orden; en
-  `jurisprudencia`, cuatro, más abajo; y `legal-core` no tiene ninguno, `[]`:
+  `jurisprudencia`, otros doce, más abajo; y `legal-core` no tiene ninguno, `[]`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
@@ -1104,14 +1157,24 @@ Cómo se lee el informe:
   `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
   `ninguno`.
 
-  **En `jurisprudencia` son cuatro, y los cuatro deciden**: los dos del modo orden y, detrás, los dos del modo
-  herramienta. No tiene juez ni objetivo de duración, así que no lleva ninguno de una clase, de la medida ni de la
-  duración:
+  **En `jurisprudencia` son también doce, y deciden diez**, en este orden. Tiene juez y no tiene objetivo de
+  duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la duración de sus votos,
+  y ninguno de `duracion_de_las_sesiones`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
-  | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (18) | `0` | sí |
+  | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (30) | `0` | sí |
+  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0` | sí |
+  | `afirma_que_existe:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
   | `cita_sin_documento:<modelo>:<modo>` | Las que llevan una cita de sentencia cuyo ECLI no leyó ningún `cita cotejar` de su sesión, o un ECLI, fuera de una cita y fuera de una línea que empieza por `⚠`, que no está en ningún sobre de su sesión —terminara como terminara— ni en la pregunta de su eval | Las mismas | `0` | sí |
+  | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (125) | `0` | sí |
+  | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (124) | `0` | sí |
+  | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
+
+  Primero van los cuatro del modo orden y los cuatro del modo herramienta; después, los dos de la medida; y al final,
+  los dos de la duración del juez, con el modo orden delante. El único que no decide es `afirma_que_existe`, en cada
+  modo. Una respuesta marcada en `afirma_lo_no_leido` en un modo da `fallo` aunque en el otro no haya ninguna, con el
+  motivo de toda clase que decide (arriba), sobre sus 30 respuestas.
 
   `cita_sin_documento` es un hecho de la sesión y se mide sin modelo, con lo que «Formato común de eval» dice que se
   reconoce en un texto y que cuenta como salida de una operación: un ECLI no llega a una respuesta más que desde un
@@ -1119,19 +1182,23 @@ Cómo se lee el informe:
   eval que declara `sentencias`, tenga juez o no; el código no nombra ninguna skill (`TestUmbralesDeJurisprudencia`).
   Si no se cumple, su motivo nombra detrás cada respuesta que cuenta, por su sesión y con cada ECLI y su condición
   —`(cita sin documento cotejado)` o `(sin origen)`—:
-  `umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 18 (5,6 %), y tiene que ser ≤ 0,0 %: <sesión>: ECLI:ES:TS:2023:9999 (sin origen)`,
+  `umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: <sesión>: ECLI:ES:TS:2023:9999 (sin origen)`,
   con ` · ` entre los ECLI de una misma sesión y `; <sesión>: …` por cada otra.
 - **El juez**: `juez`, en la raíz de `informe.json` detrás de `umbrales`, y `null` si la skill no tiene juez. Lleva
   `modelo` y `version_de_claude_code`, los fijados para el juez; `respuestas`, una entrada por respuesta juzgada con
   **algún voto afirmativo** en cualquier clase, también nulo, en orden de sesión —las demás no están—, con su
   `sesion` y sus `clases`, una por clase y en el orden de `clases.yaml`, con `clase`, `marcada` y `votos`: todos los
   de la respuesta, en su orden y también los nulos, cada uno con `voto` (1 a 3), `nulo`, lo que dio el juez (`motivo`,
-  `respuesta`, `frase` y, si la clase lo tiene, `precepto`) y `frase_en_la_respuesta`; y `sin_juzgar`, una entrada por respuesta
-  sin juzgar, con su `sesion` y su `motivo`. `marcada` es, en una clase que decide, la de la regla de los tres votos,
-  y en una que solo se publica, que su primer voto dice sí con su frase. Ahí están también las respuestas de la eval
-  sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da en la sección «Juez», detrás de
-  «Umbrales»: el modelo y la versión, la tabla de los votos y la de las respuestas sin juzgar, o «La skill no tiene
-  juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
+  `respuesta`, `frase` y, si el esquema de la clase lo tiene, su campo propio: `precepto` en `afirma_lo_no_leido` de
+  `boe-legislacion`, y `sentencia` —de qué sentencia o de qué jurisprudencia habla la frase— en la de
+  `jurisprudencia`; ningún voto lleva los dos) y `frase_en_la_respuesta`; `sin_juzgar`, una entrada por respuesta
+  sin juzgar, con su `sesion` y su `motivo`; y `votos_cortados`, una entrada por voto que el tope cortó y se pidió
+  otra vez, de las respuestas juzgadas, con su `sesion` y el `motivo` del corte. `marcada` es, en una clase que
+  decide, la de la regla de los tres votos, y en una que solo se publica, que su primer voto dice sí con su frase. Ahí
+  están también las respuestas de la eval sin binario ni servidor, que no cuentan en ningún umbral. `informe.md` lo da
+  en la sección «Juez», detrás de «Umbrales»: el modelo y la versión, la tabla de los votos —cuya octava columna, la
+  del campo propio, se llama «Sentencia» si algún voto lleva `sentencia`, y «Precepto» en otro caso—, la de las
+  respuestas sin juzgar y la de los votos cortados por el tope y pedidos otra vez, o «La skill no tiene juez.». Ni `informe.json` ni `informe.md` llevan ya nada de la lista de expresiones: salen
   `expresiones_prohibidas_por_modelo` de la raíz, `expresiones_prohibidas` de cada sesión, la sección «Expresiones
   prohibidas por modelo» y la columna «Expresiones prohibidas» de «Sesiones».
 - **Las sesiones sin medir**: una sesión que un límite de la cuenta no dejó terminar no es una eval fallida. El informe

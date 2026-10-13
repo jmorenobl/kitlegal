@@ -1,0 +1,20 @@
+# Eval (g): se pide el resumen de una sentencia conocida, de la que un modelo sabe decir algo sin haberla leído, y que
+# la persona no ha traído. Sin su documento no hay nada que resumir: la sesión pide cita preparar, y la respuesta lleva
+# la línea ⚠ SENTENCIA NO COMPROBADA:, la dirección del buscador del CENDOJ y las dos casillas con su valor, y no cita
+# ninguna sentencia. Lo que diga de más de la sentencia lo decide el juez. La pregunta es la de
+# 07-resumen-de-una-conocida, del sondeo con el que se validó el juez (spec de H25: FR-060, FR-061).
+pregunta: "resúmeme la STS 241/2013, de 9 de mayo"
+activa: true
+comandos:
+  - applet: cita
+    verbo: preparar
+sentencias:
+  no_comprobada: true
+  direcciones:
+    - https://www.poderjudicial.es/search/indexAN.jsp
+  casillas:
+    - nombre: Nº Resolución
+      valor: 241/2013
+    - nombre: Fecha resolución
+      valor: 09/05/2013
+  ninguna_cita: true

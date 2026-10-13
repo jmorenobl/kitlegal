@@ -533,12 +533,14 @@ func TestUmbralQueSoloSePublica(t *testing.T) {
 
 // TestUmbralesConJuezYConSentencias fija los umbrales de las respuestas de una
 // skill que tiene juez y alguna eval que declara sentencias
-// (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23), con
-// respuestas escritas aquí: ninguna skill del repositorio tiene hoy las dos
-// cosas. Por cada modo, y en este orden, el de las respuestas sin activar, el
-// de cada clase del juez y el de las que llevan una cita sin documento cotejado
-// o un ECLI sin origen, los tres sobre las mismas respuestas; las de las evals
-// sin binario ni servidor no cuentan en ninguno; y el motivo de cada uno que
+// (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23). Desde
+// H25, jurisprudencia tiene las dos cosas, y sus doce umbrales los fija
+// TestUmbralesDeJurisprudencia con las evals del repositorio; este fija, con
+// respuestas escritas aquí, el orden de los de cada modo y sus motivos. Por
+// cada modo, y en este orden, el de las respuestas sin activar, el de cada
+// clase del juez y el de las que llevan una cita sin documento cotejado o un
+// ECLI sin origen, los tres sobre las mismas respuestas; las de las evals sin
+// binario ni servidor no cuentan en ninguno; y el motivo de cada uno que
 // decide y no se cumple nombra, si las tiene, las respuestas que cuentan en él.
 func TestUmbralesConJuezYConSentencias(t *testing.T) {
 	t.Parallel()

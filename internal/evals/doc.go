@@ -111,12 +111,15 @@
 //     Claude Code sin herramientas, con la rúbrica como instrucciones, el esquema
 //     como forma de la respuesta y un tope de 35 s. Comprueba sin modelo que la
 //     frase que cita un sí está en la respuesta (fraseEsta); un sí sin su frase
-//     hace nulo el voto, que se repite una vez; y una clase que decide marca la
-//     respuesta solo con tres votos que dicen sí con su frase: se piden por
-//     orden, y se deja de votar en cuanto ninguna clase que decide sigue con
-//     todos los suyos en sí. En una que solo se publica cuenta el primero. Un
-//     voto que no llega a darse deja la respuesta sin juzgar. Los votos no
-//     cambian el juicio sin modelo de la sesión (FR-001 a FR-014 de H24);
+//     hace nulo el voto, que se repite una vez, y un voto que el tope corta se
+//     pide otra vez, también una sola (research «Reparaciones del cierre» de
+//     H25); y una clase que decide marca la respuesta solo con tres votos que
+//     dicen sí con su frase: se piden por orden, y se deja de votar en cuanto
+//     ninguna clase que decide sigue con todos los suyos en sí. En una que solo
+//     se publica cuenta el primero. Un voto que no llega a darse —el tope corta
+//     también su repetición, o su sesión, su salida o su forma fallan— deja la
+//     respuesta sin juzgar. Los votos no cambian el juicio sin modelo de la
+//     sesión (FR-001 a FR-014 de H24);
 //   - la medida del juez (medida.go). comprobarLaMedida dice, sin modelo, si la
 //     medida versionada corresponde a la rúbrica, a los casos, al modelo del juez
 //     y a la versión de Claude Code de sus votos, y si se cumple, con ningún
@@ -129,7 +132,18 @@
 //     medida de lo que hay, o falla con los casos que no dan lo que dice su
 //     etiqueta o que quedan sin juzgar. No abre ninguna sesión de evals ni
 //     escribe en el repositorio: la versiona una persona (FR-040 a FR-054 de
-//     H24);
+//     H24). La reconstrucción sabe, desde H25, lo que piden los casos de
+//     jurisprudencia. El informe de un caso es el de un job o el de un sondeo,
+//     el que lleva la clave sondeo: la pregunta de una sesión suya sale de
+//     preguntas.json, que está junto a él, y sus textos son las órdenes de
+//     kitlegal y las salidas que el propio informe guarda, sin repetir ninguna.
+//     En el de un job, una orden del applet cita se repite con sus argumentos
+//     y, si es cotejar sin --documento, con lo que queda del texto pegado en la
+//     pregunta por la entrada estándar; si termina con otro código que el que
+//     le da el informe, el caso no se resuelve. Y un caso derivado quita un
+//     bloque de una norma, de los textos, o un texto —documento, fallo o
+//     apartado-2—, la parte del texto pegado que sale de su pregunta: sin el
+//     documento, ninguna orden cotejar da texto (FR-040 a FR-045 de H25);
 //   - el recorrido del job (ejecucion.go), ejecutarElJob, va del plan al
 //     informe: con una skill que tiene juez comprueba antes de nada su medida, y
 //     si no corresponde o no se cumple escribe el informe del instrumento sin
@@ -146,8 +160,9 @@
 //     las de la eval sin binario ni servidor, que no entran en ningún umbral—, y
 //     sus umbrales son, por cada modo, sin_activar y el de cada clase del juez
 //     —en boe-legislacion, afirma_lo_no_leido, que decide, y cuenta_su_proceso,
-//     que solo se publica—; los dos de la medida versionada de cada clase que
-//     decide, medida_del_juez:<clase>:defectos_sin_marcar y
+//     que solo se publica; en jurisprudencia, afirma_lo_no_leido, que decide, y
+//     afirma_que_existe, que solo se publica—; los dos de la medida versionada
+//     de cada clase que decide, medida_del_juez:<clase>:defectos_sin_marcar y
 //     medida_del_juez:<clase>:correctos_marcados; y, por cada modo,
 //     duracion_de_las_sesiones, si el job da un objetivo, y duracion_del_juez.
 //     Hacen fallar el veredicto todos menos el de la clase que solo se publica.
@@ -155,16 +170,21 @@
 //     umbrales de cada modo llevan además cita_sin_documento, las respuestas
 //     con una cita sin documento cotejado o con un ECLI sin origen, que decide
 //     con 0 y cuyo motivo nombra cada respuesta que cuenta, por su sesión y
-//     con sus ECLI: en jurisprudencia, que no tiene juez ni objetivo, son
-//     cuatro, sin_activar y cita_sin_documento del modo orden y los dos del
-//     modo herramienta. Una skill sin juez ni sentencias no tiene ninguno.
+//     con sus ECLI. En jurisprudencia, que desde H25 tiene juez y sigue sin
+//     objetivo, son doce, y deciden diez: de cada modo, el del modo orden
+//     delante, sin_activar, afirma_lo_no_leido, afirma_que_existe y
+//     cita_sin_documento; los dos de la medida versionada, sobre sus 125
+//     defectos y sus 124 correctos; y duracion_del_juez de cada modo, sin
+//     duracion_de_las_sesiones. Una skill sin juez ni sentencias no tiene
+//     ninguno.
 //     Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta
 //     con algún voto afirmativo y las que quedaron sin juzgar, que ponen el
 //     veredicto en fallo por la ejecución, no por la skill (FR-001 a FR-008,
 //     FR-033 y FR-051 de H7.3; FR-040 a FR-045 de H7.4; FR-043 a FR-048 de H21;
-//     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23);
+//     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23;
+//     FR-020 a FR-025 de H25);
 //   - leerDefinicionDelJob lee la definición del job, .github/workflows/evals.yml:
 //     con ella la comprueba TestDefinicionDelJob en make ci —también el modelo
 //     del juez y la versión de Claude Code de sus votos, fijados aparte de los de
