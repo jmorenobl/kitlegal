@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-14
+
 ### Añadido
 
 - **`kitlegal cita preparar` y `kitlegal cita cotejar`: el applet `cita`, para las sentencias** (ADR 0036). kitlegal
