@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» (lint con 0 issues, test -race -shuffle y test-integration en verde con evals al 97,2 % y 97,7 %, govulncheck sin llamadas afectadas, schema-check y skills-check con TestEvalsDelRepositorio, goreleaser check, gitleaks sin fugas, go mod verify y tidy sin diff). No ejecuté make ci (no se permite en el árbol): reproduje en un clon de la rama fuera del repositorio `go test -count=1 -race ./internal/evals/`, que dio 1906 pasados y 0 fallos. `main` es ancestro de HEAD y el árbol solo lleva sin seguimiento los dos ficheros gates/revision-*.json del propio workflow."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Hay tests sin red ni modelo para todo lo nuevo: TestUmbralConjunto (internal/evals/umbrales_test.go:655, los siete casos de FR-072 con la clases.yaml real de boe-legislacion y valores escritos a mano), TestUmbralesDeJurisprudencia (informe_test.go:4780, casos una-marcada-en-el-modo-orden, dos-marcadas-en-el-modo-orden y una-marcada-en-cada-modo), TestInformeConElJuez (un-voto-que-no-llega fija FR-075 y cuenta-su-proceso-con-tres fija FR-076), TestUmbralesDelInforme, TestInformeMarkdownDeLosUmbrales y TestEvalsDelRepositorio (conjunto_test.go:1899, los dos literales 0.028 y 0.017 con igualdad exacta). Los probé con mutantes en un clon fuera del repositorio, cada uno revertido después: (1) el conjunto sobre un solo modo (`range j.deLosModos()[:1]`) deja 19 subtests en rojo entre TestUmbralConjunto y TestUmbralesDeJurisprudencia; (2) `Decide: false` en el conjunto, 19 en rojo; (3) el recuento por modo con `Decide: clase.Decide`, 51 en rojo en cuatro tests; (4) conjunto también para la clase que solo se publica, 50 en rojo; (5) el total del conjunto con el grupo de la eval sin binario ni servidor, 5 en rojo; (6) el motivo sin el modo de cada respuesta, 12 en rojo; (9) umbral 0.02 en la clases.yaml de jurisprudencia, TestEvalsDelRepositorio/conjunto-jurisprudencia en rojo. specs/021-h26-el-umbral-de/mutantes.md (4 de 4) coincide con lo que reproduje. No hay suite de aceptación congelada: no existe gates/aceptacion-congelada.json y el plan declara «Aceptación e2e: no aplica» con el mismo motivo y precedente que H24 y H25 (el binario no enlaza internal/evals). Ningún fixture ni testdata/ cambia en el diff."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Las líneas añadidas a ficheros .go no contienen net/http, os.Exit, fmt.Print*, panic(, nolint, t.Skip, TODO ni asignaciones a `_` (búsqueda sobre `git diff main...HEAD -U0 -- '*.go'`, sin resultados). El código nuevo solo usa fmt y strings, que umbrales.go ya importaba; go.mod y go.sum no cambian. Lo único que cambia fuera de specs/ es internal/evals (6 ficheros), dos clases.yaml y cinco documentos."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No cambia ningún applet ni su salida: el binario no enlaza internal/evals y schemas/ no se toca (`git diff --name-status main...HEAD` fuera de specs/ solo da CHANGELOG, CLAUDE, CONTRIBUTING, docs/JURISPRUDENCIA, docs/WORKFLOW, las dos clases.yaml y seis ficheros de internal/evals). El informe del job sigue el contrato de umbrales del ADR 0029: TestUmbralConjunto llama a exigirLosTreceDelContrato y a exigirLosInvariantesDeLosUmbrales sobre el informe.json escrito con EscribirInforme, y exigirElUmbralEscrito compara con los ejemplos de contracts/umbrales-del-informe.md (que coinciden carácter a carácter con las constantes del test, contrato línea 72 y 78) valores y orden de claves. make schema-check está dentro de gates/ci.log en verde."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida de kitlegal ni ningún error tipado cambian. El contrato que el hito promete se cumple en el código: un umbral conjunto que no se cumple pone Decide:true y Cumple:false (umbrales.go:354-361), motivosDeLosUmbrales (umbrales.go:527) da su motivo y el veredicto pasa a `fallo`; los mutantes 2 y 3 lo prueban en rojo. El sondeo sigue sin umbral ni veredicto (sondeo.go sin cambios; TestSalidaDelSondeo, TestJuicioDelSondeo y TestSondear siguen en verde sin cambiar lo que esperan). Ningún panic nuevo."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased) lleva la entrada nueva (líneas 289-303: umbral conjunto con 0.028 y 0.017, recuento por modo con decide:false, de doce a trece elementos con nueve que deciden, forma del motivo) y corrige las entradas de H24 y H25 que decían umbral 0 por modo (líneas 129, 141-143, 216, 228-236); todos los hunks quedan por encima de la cabecera [0.5.0] (versiones publicadas intactas). Leí los diffs de CONTRIBUTING.md (líneas 724-731, 1104-1112, 1136-1190), docs/JURISPRUDENCIA.md (238-246), docs/WORKFLOW.md (125) y CLAUDE.md (21 y 74) contra el árbol: las cifras (13 elementos, 9 que deciden, 108 y 60, 0.028 y 0.017, orden del conjunto delante de la medida) coinciden con umbrales.go, umbrales_test.go y las dos clases.yaml; la búsqueda de «doce umbrales», «diez de ellos», «umbral 0 en cada modo» y «sigue con el umbral 0» en esos documentos y en el Unreleased no encuentra ninguna afirmación que el hito deje falsa. No hay ADR nuevo y no hace falta (la decisión es el ADR 0038) y no se toca ninguna fuente. docs/ROADMAP.md, los ADR, docs/USO.md, README y la web quedan sin tocar, como pide FR-055."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El hito no hace ninguna petición ni toca internal/httpx, docs/SOURCES.md ni credenciales, y no hay datos externos: los dos valores salen del ADR 0038 y llegan con contracts/clases-yaml.diff (cierre.md §5 los compara byte a byte). El diff no incluye NIF ni datos personales. Ninguna sesión del run abrió el juez ni una sesión de evals (cierre.md §5; el diff no toca job_test.go ni nada con la etiqueta evals)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No hay //nolint, t.Skip, TODO ni errores silenciados en las líneas añadidas. Ningún umbral se cumplió cambiando su valor, dejándolo en decide:false ni sacando respuestas de su total: el conjunto suma las medidas y los totales de los mismos grupos que los recuentos (umbrales.go:347-352), la única línea con Decide:false nueva es el recuento por modo, que es lo que FR-010 pide, y la rúbrica, los casos y la medida son los de main (cierre.md §5). Ningún fixture, testdata ni esquema se ha retocado. Cuarentena vacía y las cinco tareas por su primer intento (gates/cuarentena.json, gates/tareas-intentos.json)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ es exactamente lo que FR-001 a FR-055 piden: umbrales.go (umbralesConjuntos, nombreDelUmbralConjunto, motivo con el modo, recuento sin decidir), comentarios de doc.go e informe.go que el cambio dejaría falsos, los dos valores de clases.yaml con su frase de cabecera, los tests y los cinco documentos. No toca skills/, evals/ salvo las dos clases.yaml, schemas/, evidencias/, testdata/, .github/, scripts/, .specify/, el binario fuera de internal/evals, ni docs/ROADMAP.md ni ADR. Los 16 supuestos de gates/supuestos.md son [interno], de nombres de tests, ayudantes y de cómo se aplicó cada mutante sin `sed -i`, y son lecturas conservadoras coherentes con el spec. El comentario falso de .github/workflows/evals.yml (líneas 152-154) lo deja el hito sin tocar a sabiendas, por FR-062 y la clarificación de la sesión 2026-10-13; va a observaciones."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna skill ni persona consume estas salidas por invocación: son el informe.json del job de evals (una vez por medición), la tabla «Umbrales» de informe.md y la salida del sondeo, que no cambia. Tamaño fijo, no crece con lo consultado en meses de uso: 13 elementos por skill (uno más) y el elemento nuevo mide 335 bytes (medí la línea 72 de contracts/umbrales-del-informe.md: 336 con el salto de línea, igual que la cifra del plan). El motivo del conjunto lleva solo las respuestas marcadas del job, acotado por las 108 y las 60 respuestas juzgadas, y deja de darse en el primer job en que el conjunto se cumple; no se acumula. Las señales caducan solas: cada job mide de nuevo desde las evals del repositorio. No medí los bytes del informe completo con una ejecución real (ningún test de make ci lo hace y el job no se puede abrir en esta sesión); me apoyo en el contrato y en el elemento medido."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El código de producción es lo mínimo que cumple el spec: una función (umbralesConjuntos, umbrales.go:335-365, FR-001, FR-002, FR-003), una función de nombre (nombreDelUmbralConjunto, FR-001, que además evita repetir la concatenación en nombreDelUmbralDeClase y marcadasDelUmbral), tres constantes (descripcionDelUmbralConjunto, FR-001; sesionConSuModo, FR-004; nada más) y `Decide:false` en umbralesDeLasClases (FR-010, FR-011). La rama de marcadasDelUmbral que nombraba las marcadas de un recuento por modo, que ya ningún umbral que decide alcanza, se retira (umbrales.go:612-640). Ningún tipo, campo, paquete, función exportada, opción ni reintento nuevo, y ningún estado que no pase el umbral de materialidad tiene rama propia (una clases.yaml mal formada sigue la regla que ya había). Las 751 líneas de tests añadidas se trazan a FR-072 a FR-078 (siete casos del conjunto, tres de jurisprudencia, comparación con los ejemplos del contrato, recuento por modo sin decidir, respuesta sin juzgar, clase que solo se publica, valores de los datos); no encontré un test de un caso límite sin FR."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los umbrales nuevos son los dos conjuntos de afirma_lo_no_leido, con Decide:true (umbrales.go:360): `Cumple` sale de compararUmbral (valor() <= Umbral en float64, sin redondeos, umbrales.go:497-511) y un `Cumple:false` con Decide:true produce el motivo y el veredicto `fallo` (umbrales.go:527-545), que hace fallar el trabajo del job (contrato del ADR 0029, sin cambios). Las filas de «Controles de umbral» del plan son nueve por skill con el nombre exacto que el informe final busca (`select(.nombre == $n)` en scripts/workflow/informe.sh:264) y el cierre.md §4 las cotejó con el contrato byte a byte; el recuento por modo no tiene fila porque no decide. Los controles ci: existen en sus rutas (grep de las seis funciones de test en internal/evals). Compruebo con mutantes que el control falla por encima del umbral: el 1 (un solo modo) y el 2 (decide en falso) ponen en rojo TestUmbralConjunto y TestUmbralesDeJurisprudencia, que es lo que pide FR-078; y el 9 (otro valor en clases.yaml) pone en rojo TestEvalsDelRepositorio. Aritmética de borde comprobada a mano contra compararUmbral: 3/108=0,02778 y 2/104=0,01923 cumplen 0.028; 4/108 y 3/104=0,02885 no; 1/60=0,01667 cumple 0.017 y 2/60 no."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "El comentario de .github/workflows/evals.yml (líneas 152-154: «doce umbrales, diez que deciden» y afirma_lo_no_leido «que decide» por modo) queda falso tras el hito; es deliberado (spec «Fuera de alcance», clarificación del 2026-10-13, FR-062) y está en cierre.md §6, pero no figura en gates/supuestos.md, de donde el informe final saca lo que lee Jorge: convendría una línea [proceso] allí para que llegue a la persona.",
+    "TestInformeMarkdownDeLosUmbrales comprueba las filas de informe.md con el umbral 0 de los tests; el «≤ 2,8 %» de boe-legislacion con la tasa real solo está en los motivos de TestUmbralConjunto, y el «≤ 1,7 %» de jurisprudencia sí está en la fila de informe.md (exigirLosUmbralesDeJurisprudencia). Es el mismo camino de código (medidaEscrita y condicionEscrita), así que no es un hueco.",
+    "El caso en que el porcentaje escrito coincide con la condición y no se cumple (3 de 107, 1 de 58) está en el spec (clarificación Q1) y no tiene test propio; sale de la misma comparación sin redondear y no lo exige FR-072 ni FR-073.",
+    "TestUmbralesDeJurisprudencia/el-elemento-del-contrato no pasa por el código mutado (lo dice mutantes.md); lo cubren los otros diez casos de la tabla.",
+    "La H25 de CLAUDE.md sigue diciendo «que el job no aplica hasta H26»: es historia del cierre de H25 y sigue siendo cierta; la viñeta de H26 y la frase del siguiente hito las deja el spec para la persona.",
+    "Mientras revisaba apareció gates/revision-a.json del otro juez; no lo leí, para conservar la independencia del veredicto.",
+    "No ejecuté make ci ni el job de evals (no se puede en esta sesión); las evidencias de a y de b salen de gates/ci.log, de las pruebas en el clon fuera del repositorio (todas revertidas) y de la lectura del diff. Las cuentas de tests pasados y fallidos son las que da el resumen de RTK, no las líneas `--- FAIL` crudas."
+  ]
+}

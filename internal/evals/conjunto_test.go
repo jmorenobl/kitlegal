@@ -1879,17 +1879,23 @@ const (
 // las cuatro que llevan una pregunta del sondeo de la validación de su juez
 // (contracts/evals-jurisprudencia.md §3 de H25; FR-065; SC-010), y su carpeta
 // tiene juez, que declara sus dos clases, afirma_lo_no_leido, que decide, y
-// afirma_que_existe, que solo se publica, las dos con umbral 0
-// (contracts/juez-de-jurisprudencia.md §1 de H25; FR-002). Desde
+// afirma_que_existe, que solo se publica (contracts/juez-de-jurisprudencia.md
+// §1 de H25; FR-002). Desde
 // H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
 // da ningún fichero mal formado: la de boe-legislacion declara sus dos clases,
-// afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, las
-// dos con umbral 0, y legal-core no tiene juez (contracts/juez-y-voto.md §1 de
-// H24; FR-020, FR-021); y la lista deja de compararse con respuestas, con los
+// afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, y
+// legal-core no tiene juez (contracts/juez-y-voto.md §1 de H24; FR-020,
+// FR-021); y la lista deja de compararse con respuestas, con los
 // bloques grabados y con las formas de la skill, porque ya no juzga ninguna
 // respuesta: del calibrado de H7.4 quedan sus tres totales, como premisa de
-// TestJuzgarSinLaLista (FR-071 de H24). Lee las carpetas enteras, así que ningún
-// fichero de eval se nombra aquí.
+// TestJuzgarSinLaLista (FR-071 de H24). Desde H26, la clase que decide lleva en
+// cada declaración el umbral del ADR 0038, una tasa sobre las respuestas de
+// todos los modos juntas —0.028 en boe-legislacion y 0.017 en jurisprudencia—,
+// y la que solo se publica sigue con 0: los dos valores van aquí escritos a
+// mano y se comparan con igualdad exacta, de modo que otro en cualquiera de las
+// dos declaraciones no pasa (contracts/clases-yaml.diff de H26; data-model §1
+// de H26; research D9 de H26; FR-020, FR-022, FR-077; SC-007). Lee las carpetas
+// enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1919,10 +1925,12 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			directorioDeEvals, strings.Join(malFormados, "\n"))
 
 		// La carpeta del juez se lee con las evals: boe-legislacion declara sus
-		// dos clases y legal-core no tiene juez (FR-020 y FR-021 de H24).
+		// dos clases y legal-core no tiene juez (FR-020 y FR-021 de H24). La que
+		// decide lleva el umbral del ADR 0038, como mucho 3 marcadas de 108, y la
+		// que solo se publica, 0 (FR-020 y FR-022 de H26).
 		require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez", evalsDelRepositorio)
 		assert.Equal(t, []ClaseDelJuez{
-			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0},
+			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.028},
 			{Nombre: "cuenta_su_proceso", Decide: false, Umbral: 0},
 		}, conjunto.Juez.Clases)
 
@@ -1957,12 +1965,13 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		require.NoError(t, err)
 
 		// Desde H25 tiene juez: su carpeta se lee con sus evals y declara sus dos
-		// clases, la que decide y la que solo se publica, las dos con umbral 0, y
-		// no cuenta_su_proceso (contracts/juez-de-jurisprudencia.md §1 de H25;
-		// FR-002).
+		// clases, la que decide y la que solo se publica, y no cuenta_su_proceso
+		// (contracts/juez-de-jurisprudencia.md §1 de H25; FR-002). La que decide
+		// lleva el umbral del ADR 0038, como mucho 1 marcada de 60, y la que solo
+		// se publica, 0 (FR-020 y FR-022 de H26).
 		require.NotNil(t, deJurisprudencia.Juez, "%s tiene la carpeta del juez", evalsDeJurisprudencia)
 		assert.Equal(t, []ClaseDelJuez{
-			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0},
+			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.017},
 			{Nombre: "afirma_que_existe", Decide: false, Umbral: 0},
 		}, deJurisprudencia.Juez.Clases)
 

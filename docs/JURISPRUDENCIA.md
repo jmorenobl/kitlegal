@@ -238,10 +238,11 @@ rúbrica, los casos y la medida de `evidencias/adr-0037-jurisprudencia/`. Juzga 
 sentencia, que ningún guion puede comprobar:
 
 - **Resumir o caracterizar una sentencia que no se tenía delante lo decide el juez**, con la clase
-  `afirma_lo_no_leido` y umbral 0 en cada modo. La respuesta que dice qué dice, qué resuelve o de qué trata una
-  sentencia, o un dato suyo, o qué dice la jurisprudencia sobre una materia, cuando eso no está ni en la pregunta ni
-  en lo que devolvieron sus herramientas, deja el job en rojo. Cuenta también decir, con una parte de la sentencia
-  delante, lo que dice otra que no lo está: con el fallo solo, los fundamentos; con la ficha sola, el fallo.
+  `afirma_lo_no_leido` y, desde H26, una tasa sobre los dos modos juntos (ADR 0038). La respuesta que dice qué dice,
+  qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la jurisprudencia sobre una materia, cuando
+  eso no está ni en la pregunta ni en lo que devolvieron sus herramientas, queda marcada: el job admite como mucho 1
+  marcada de las 60 respuestas, y con 2 sale en rojo. Cuenta también decir, con una parte de la sentencia delante, lo
+  que dice otra que no lo está: con el fallo solo, los fundamentos; con la ficha sola, el fallo.
 - **`afirma_que_existe` solo se publica**: las respuestas que dicen que una sentencia que nombran existe, o que no
   existe, sin su documento en la pregunta, se cuentan en el informe y no cambian el veredicto.
 - **Sigue sin medirlo nadie**: lo que la respuesta dice de una norma —una ley, un artículo—, que el juez de esta

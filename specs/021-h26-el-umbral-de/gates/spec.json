@@ -1,0 +1,77 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La tabla de trazabilidad de «Criterios del hito, literales» lleva cada parte del hito a sus requisitos, y el recorrido lo confirma. Entrega 1 (umbral conjunto): FR-001 a FR-005. Entrega 2 (recuento por modo): FR-010 a FR-012. Entrega 3 (valores): FR-020 a FR-022. Entrega 4 (documentos): FR-050 a FR-055. «Lo que sigue igual»: FR-030 a FR-036. «El sondeo»: FR-040. Los diez Controles: FR-070 a FR-079, uno a uno (FR-072 lleva los cinco repartos y el caso de 104; FR-073, los de jurisprudencia; FR-078, los dos mutantes). Aceptación: SC-001, SC-011 y SC-012. Nada va más allá del hito: lo que el spec añade por su cuenta —la posición del umbral conjunto en `umbrales` (FR-005) y el orden de las respuestas en el motivo (FR-004)— hace falta para escribir una lista ordenada y un motivo, y está en Assumptions con su razón. Los casos límite son derivaciones de FR-001 a FR-010 o estados alcanzables por una sesión que no termina (leído en `internal/evals/informe.go`, `respuestasQueSeJuzgan`); ninguno describe ficheros manipulados desde fuera, y un `clases.yaml` con otro valor se resuelve con un test de `make ci` (FR-022), sin especificar declaraciones mal formadas."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«## Fuera de alcance» lleva las seis viñetas del hito, literales, y once de lo no especificado: un umbral conjunto para lo que no es una clase del juez, otro umbral para el recuento por modo, líneas nuevas en el sondeo, el contrato de `umbrales` y `scripts/workflow/informe.sh`, el esquema de `clases.yaml`, la tasa acumulada en el informe, la frontera de la rúbrica, la viñeta de H26 de `CLAUDE.md`, `README.md`, `docs/USO.md`, la web y `docs/ROADMAP.md`, un test que ate los documentos al código, editar artefactos de hitos anteriores o un ADR nuevo, y el comentario de `.github/workflows/evals.yml`. Buscado en esta sesión con grep qué ficheros fuera de `specs/` y `evidencias/` nombran `afirma_lo_no_leido`: los que no son código de `internal/evals`, datos del juez ni los cinco documentos de la Entrega 4 (`.github/workflows/evals.yml`, `docs/ROADMAP.md`, `docs/USO.md`, los ADR) están todos en la lista."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "`gates/clarify-respuestas.json` trae dos respuestas, las dos con `impacto` (`alcance`). Q1, opción A, no conservadora: está en «Clarifications» con su marca `(auto: criterio a; fuente: …)` y en el caso límite «El porcentaje escrito coincide con la condición y no se cumple», con los mismos ejemplos («3 de 107 (2,8 %), y tiene que ser ≤ 2,8 %», «1 de 58 (1,7 %)»), y no añade ningún requisito, como dice la respuesta; FR-003, FR-004 y FR-005 no cambian. Q2, opción A, conservadora: está en «Clarifications» con `(auto: conservadora; criterio d; …)` y en la última viñeta de «Fuera de alcance», como pendiente para la persona, con sus datos (doce y diez frente a trece y nueve); deja fuera exactamente lo dudoso, el comentario de `.github/workflows/evals.yml` (leídas sus líneas 152 a 154 en esta sesión: dicen «doce umbrales, diez que deciden»), y FR-055, FR-062 y SC-013 no ganan ninguna excepción: FR-055 sigue en «esos cuatro ficheros» y SC-013, en los cinco documentos."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«Criterios del hito, literales» transcribe la Entrega, los diez Controles y la Aceptación. Comparados en esta sesión con `grep -cF` cinco fragmentos largos contra `docs/ROADMAP.md` y `spec.md` —Entrega 1, el control de los tests de `boe-legislacion`, el del mutante, el final de la Aceptación y la tercera viñeta de «Fuera de alcance»—: cada uno aparece una vez en cada fichero; el resto, leído a la par, coincide. Son medibles: SC-001 recoge la Aceptación con sus valores (`decide: true`, `umbral` 0.028 y 0.017, `cumple: true`, veredicto aprobado, `red` vacío); SC-002 a SC-010, SC-013 y SC-014, los Controles, con recuentos (7 de 7, 3 de 3, 4 de 4, 13 y 9 elementos); SC-011, el informe final; SC-012, la parte humana. Los quince escenarios de US1 a US6 van en Dado/Cuando/Entonces, y `gates/spec-precheck.txt` está vacío."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "El umbral es el del ADR 0038 tal como lo cierra `CLAUDE.md`: 0.028 en `boe-legislacion` y 0.017 en `jurisprudencia`, sobre los dos modos juntos (FR-001, FR-020), y solo lo estrecha una persona (US3, FR-061). El cero de lo que tiene forma se queda: `sin_activar` y `cita_sin_documento` por modo y los dos de la medida del juez (FR-031 a FR-033). El juez, su regla, su rúbrica, sus casos, su medida, su modelo y su versión no cambian (FR-035), y la medida no se repite (FR-021; comprobado que `medida.json` de las dos skills solo lleva las huellas de `rubrica.md` y `casos.yaml`, no la de `clases.yaml`). Ninguna sesión del run abre el juez, un sondeo ni la medida (FR-060; ADR 0032). El modelo que decide, las repeticiones y la regla por serie no se tocan («Se queda»; «Fuera de alcance»). La serie y la tasa acumulada quedan para `scripts/workflow/`, como dice la decisión cerrada, y el hito no toca `scripts/workflow/`, la constitución ni la definición del job (FR-062). Ninguna respuesta se juzga con una lista de palabras y el binario no cambia fuera de `internal/evals`."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Las 26 marcas de `checklists/requirements.md` se sostienen en el spec. Comprobadas: «15 escenarios» (5 + 3 + 2 + 3 + 1 + 1 en US1 a US6); «21 fragmentos» (4 + 10 + 1 + 6); «las seis viñetas literales del hito» en «Fuera de alcance»; «No queda ninguna marca [NEEDS CLARIFICATION]» (precheck vacío); SC-001 a SC-011, SC-013 y SC-014 llevan **Control** y SC-012 se declara humano; el ítem j cita FR-001, FR-012, FR-022, FR-031 a FR-034, FR-071 y FR-078, que dicen lo que el ítem afirma; el ítem i remite a «Uso, de fuera adentro», cuyas cifras se han vuelto a medir aquí (abajo, criterio i); el ítem c se cumplió con el paso de clarify, cuyas dos respuestas están en «Clarifications». La glosa de «Requirements are testable» es algo más amplia que el texto (ver observaciones); la marca es cierta."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "El spec fija el contrato de lo que leen el job, el informe final y una persona —nombre, `medida`, `total`, `umbral`, `decide`, posición y contenido del motivo— y deja al plan lo demás, y lo dice: «El texto exacto lo fija el plan» (Assumptions, FR-004), el texto de la `descripcion`, los nombres de los tests nuevos y cómo se aplican los mutantes (última viñeta de Assumptions). Los nombres de funciones de `internal/evals/umbrales.go` aparecen solo como fuente de una clarificación, no como requisito. «Coma flotante de doble precisión y sin redondeos» (FR-003) es el contrato del ADR 0029, no una elección del spec. Los ficheros que nombra (`clases.yaml`, `informe.json`, `informe.md`, `internal/evals`) los fija el hito, y los tres tests citados existen (`TestCopiasDelJuez`, `TestDefinicionDelJob` y `TestEvalsDelRepositorio`, encontrados con grep)."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "De cada requisito sale un test que lo distingue, sin contradicciones. Las cuentas se han rehecho aquí: 3/108 = 0,0278 ≤ 0,028 y 4/108 = 0,0370; 2/104 = 0,0192 y 3/104 = 0,0288; 1/60 = 0,0167 ≤ 0,017 y 2/60 = 0,0333; 3/54 = 0,0556 y 1/30 = 0,0333, que pasan de su proporción por modo; 3/107 = 0,02804 y 1/58 = 0,01724, que no cumplen y se escriben «2,8 %» y «1,7 %». Ninguna queda cerca del límite de la coma flotante. Trece y nueve salen de contar (FR-012): en `boe-legislacion`, 6 por modo + 1 conjunto + 2 de la medida + 2 + 2 de duraciones, y deciden 2 + 1 + 2 + 4; en `jurisprudencia`, 8 + 1 + 2 + 2, y deciden 2 + 2 + 1 + 2 + 2; coincide con las nueve filas por skill de FR-071 y con los doce y diez de hoy (`specs/020-h25-el-juez-de/gates/evals/*.json`, leídos con jq). FR-004 fija el contenido y el orden del motivo, y su ejemplo casa con la forma de hoy (`motivoDeUnUmbral`, `condicionEscrita`). Los estados límite que el spec implica están definidos: total 0, respuesta sin juzgar en el total y fuera de la medida (FR-002), eval sin binario ni servidor fuera, instrumento sin medir, skill sin juez. FR-035 («sin cambiar lo que esperan») no choca con FR-012: `TestDefinicionDelJob` y `TestCopiasDelJuez` no comprueban ni el valor del umbral ni cuántos elementos lleva `umbrales` (grep sobre `definicion_test.go` y `medida_test.go`), y el `Umbral: 0` que sí cambia está en `TestEvalsDelRepositorio`, como dice Assumptions. FR-036 («ninguna eval») y FR-020 (`evals/<skill>/juez/clases.yaml`) no se contradicen: la carpeta del juez no es una eval. No se ha ejecutado ningún test ni `make ci`."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "(1) Quién: ninguna skill pide ninguna salida del hito —buscado `umbral`, `afirma_lo_no_leido` y `evals` en los tres `SKILL.md`, sin resultados—, así que son 0 invocaciones por pregunta; las consumen el job (una vez), el informe final (una vez por medición del cierre) y la persona, y lo que gana cada skill es lo que dice el hito: no cambia, y su verde y su rojo vuelven a decir algo. (2) Tamaño, medido aquí con jq sobre los informes del último cierre versionado: 12 elementos de entre 238 y 388 bytes, 3 482 bytes en `boe-legislacion` y 3 757 en `jurisprudencia`; con uno más, 13 × unos 300 bytes ≈ 3,8 KB y 4,1 KB por skill y por job, una vez. El motivo de hoy mide 953 bytes con 2 respuestas, unos 0,5 KB por respuesta marcada: como mucho uno por skill y por job, acotado por las respuestas juzgadas (108 y 60) y no por el uso. Nada de esto crece con meses de uso del kit: cada job parte de las evals del repositorio. Las líneas del sondeo, una por clase, no cambian (FR-040; `internal/evals/sondeo.go`, `claseQueDecideDelSondeo`). (3) Pertinencia: cada job mide de nuevo; el `cumple: false` del conjunto y su motivo dejan de darse en el primer job en que las marcadas caben en la tasa, y el de un recuento por modo, cuando caben las de ese modo; nada se acumula de un job a otro (tabla de «Uso, de fuera adentro», filas 1 y 2)."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral que se mide sin persona nombra la comprobación que sale en rojo. Tasa de la clase (FR-001, FR-003; 0.028 y 0.017), medida en el job de evals: «si la proporción pasa del umbral, el veredicto es `fallo` y el job de evals de esa skill sale en rojo» (FR-004), con la prueba por mutantes de FR-078. Trece elementos y nueve que deciden (FR-012, SC-009), en `make ci`: «un test de `make ci` falla con otro número de elementos o con otro `decide`». Valores de `clases.yaml` (FR-020, FR-022, SC-007): «con un valor distinto en cualquiera de las dos, `make ci` falla». `sin_activar` y `cita_sin_documento` con 0 (FR-031, FR-032), la medida del juez con 0 (FR-033: `make ci` y el job sin abrir sesiones) y las duraciones con 900 s (FR-034): el job en rojo. SC-001 enumera cada vía por la que el job de cierre sale en rojo; SC-002 a SC-006 y SC-014 nombran el test de `make ci` que falla; SC-010, `make ci`; SC-011, el informe final, que lo decide sin modelo (coincide con `estado_control` de `scripts/workflow/informe.sh`, leído y no ejecutado: solo da «ok» a un umbral publicado, cumplido y con `decide: true`). El recuento por modo lleva un `umbral` y no es un requisito con umbral: el hito lo deja publicado a propósito («pasa a `decide: false`: se publica y no cambia el veredicto») y el spec lo dice (FR-010), sin fila en «Controles de umbral» (FR-071). SC-013 lo juzga la revisión final por lectura, y SC-012, una persona: no se miden en `make ci` ni en el cierre."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Entrega 1 del hito dice «en el job y en el sondeo, un umbral por cada clase» y su Alcance, que la salida del sondeo va «como hoy, sin umbral ni veredicto». El spec toma el Alcance (FR-040, «Fuera de alcance», Assumptions «El sondeo no cambia su salida»). No es una contradicción de entrada: la Entrega es el titular y el Alcance, su detalle. Si Jorge quería un umbral en la salida del sondeo, es corregir la entrada.",
+    "Caso límite «El porcentaje escrito coincide con la condición y no se cumple»: a 58 respuestas en `jurisprudencia` se llega con dos sesiones sin terminar, no con una (1 de 59 = 0,01695 cumple).",
+    "«Uso, de fuera adentro», fila del motivo: «el más corto que puede darse lleva 4 respuestas en `boe-legislacion`» solo vale con 108 juzgadas; con 107 o menos, el motivo puede llevar 3 (el propio caso límite de 3 de 107).",
+    "Checklist, «Requirements are testable»: la glosa dice que cada FR lleva un Control, «Comprobable» o una remisión; FR-060 no lleva ninguno (es una regla del run que garantiza el sandbox, ADR 0032) y FR-051 a FR-054 lo toman de FR-055.",
+    "Caso límite «Un plan con un solo modo»: el job fija los dos modos (`internal/evals/definicion.go`); la línea repite FR-001 y no añade ningún requisito.",
+    "Para la propuesta de proceso, fuera del hito: `resumen_umbrales` de `scripts/workflow/informe.sh` (leído, no ejecutado) contará en cada informe final cuatro elementos por skill como «sin cumplir o solo publicados», y su tabla dará «✗ NO» a un recuento por modo que pase de su proporción sin decidir.",
+    "Para el plan: la fila de «Controles de umbral» del conjunto tiene que escribir el id completo del modelo (`evals:<skill>:afirma_lo_no_leido:claude-sonnet-5-5`), porque `estado_control` casa el nombre exacto.",
+    "En esta sesión no se ha ejecutado ningún test ni `make ci`: lo comprobado es por lectura, grep y jq sobre el árbol."
+  ],
+  "entrada": []
+}

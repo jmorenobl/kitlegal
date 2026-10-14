@@ -1,0 +1,105 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md, «Constitution Check»: una fila por principio (I a IX) y una por regla de dependencia (R1 a R6, las seis de docs/ROADMAP.md §2). Es veraz contra el árbol: internal/evals/umbrales.go solo importa fmt, strconv y strings (líneas 3-7); el binario no enlaza internal/evals (grep de `kitlegal/internal/evals\"`: solo internal/skills/normas_test.go); la única desviación, «Aceptación e2e: no aplica», está en Complexity Tracking con su motivo y con los precedentes que cita, que existen (specs/017-h24-las-evals-juzgan/plan.md:164 y specs/020-h25-el-juez-de/plan.md:158)."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva. Rehecho con un prototipo propio del cambio de D1 a D5 (unas 45 líneas en umbrales.go, sobre una copia del árbol en el directorio temporal): compila con los imports de hoy y los tests solo usan testify, que está en la lista fijada."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Todo el código cabe en internal/evals/umbrales.go, con comentarios en doc.go e informe.go; ningún paquete, fichero Go ni import nuevo. Ni net/http, ni SQLite, ni os.Exit, ni escritura en stdout: los elementos y el motivo van al informe por el camino de hoy (informe.go:1442 y 1713)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Ningún error tipado ni código de salida de `kitlegal` cambia: el hito no toca el binario (FR-062). El job sigue fallando por el veredicto `fallo`, que sale de que haya algún motivo (motivosDelInforme, informe.go:1683-1724), y el sondeo no compone umbrales (sondeo.go:395-419 junta los grupos y cuenta marcadasEn; no llama a umbralesDelInforme)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "«Aceptación e2e: no aplica», con motivo y fila en Complexity Tracking. El plan nombra el test nuevo (TestUmbralConjunto, con sus siete casos), los ocho que cambian, los que no cambian, los puntos de entrada con etiqueta `evals` y los fixtures (ninguno: grep de afirma_lo_no_leido en internal/evals/testdata, vacío). Rehecho con el prototipo: con el código solo y `umbral: 0` quedan en rojo exactamente las 7 funciones que dice research M2, con 51 subtests; con los dos valores aplicados, esas 7 y TestEvalsDelRepositorio (`formato` y `conjunto-jurisprudencia`), 8, como dice M3. Los casos que D10 reutiliza existen: `un-voto-que-no-llega` (informe_test.go:4186), `cuenta-su-proceso-con-tres` (4160), `tres-con-si-en-afirma-que-existe` (4821), `la-sin-binario-ni-servidor-marcada` (4252) y el subtest `legal-core` de TestInformeEnDosModos (1588)."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada pieza se traza a un FR del spec (tabla «Trazabilidad»). El plan no toca skills/, evals de ninguna skill, schemas/, evidencias/, testdata/, .github/, scripts/, .specify/, docs/ROADMAP.md ni ningún ADR; los documentos son los cinco de la Entrega 4 (FR-050 a FR-055) y el comentario de .github/workflows/evals.yml (líneas 152-154, comprobadas) queda fuera, como fijó la clarificación del spec. No añade umbral ni línea al sondeo (FR-040)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos (Technical Context, Constraints; «Tests existentes que cambian»: ninguno se desactiva ni se retira sin el que lo sustituye). Los mutantes nunca están en el árbol (D11). Las obligaciones para tasks.md recogen FR-061: ningún umbral se cumple cambiando su valor, su `decide`, su total, la rúbrica, los casos o la medida."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research.md D1 a D20, cada una con su alternativa rechazada y el porqué. Las que deciden el diseño son las de mayor calidad: el conjunto como suma de los recuentos por modo sobre los mismos grupos (D1), que no puede contar la eval sin binario ni servidor (gruposDeLosModos, informe.go:559-569); la rama del motivo por modo, que ya ningún umbral que decide alcanza, retirada (D4); la comparación sin tolerancia (D19), que deja `cumple` rehacible con los otros campos: rehecho con jq, los diez cocientes de M12 dan lo mismo que en el plan."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión contra el árbol: V2 a V8 (umbrales.go, informe.go, sondeo.go), V9 (schemas/juez-clases.yaml.json: number, de 0 a 1), V10 (ninguna de las dos carpetas de evidencias tiene clases.yaml), V11 (scripts/workflow/informe.sh, estado_control: `select(.nombre == $n)`, y solo «ok» con decide y cumple; comun.sh, controles_de_celda), V12 (guardian-diff.sh: protege testdata/, schemas/ y evidencias/, no evals/; grabar-datos.sh comprobar sale con 0 sin manifiestos), V13, V14, V15 (12 elementos y 10 que deciden; 3 482 y 3 757 bytes), V16 (953 bytes), V17, V18 (Makefile 86-87, 122-127, 264), V19 (comoElJob: 10 que deciden y 8 informativas, 54 respuestas por modo), V20, V21 (cada línea citada de los cinco documentos) y V22. Medido con un prototipo propio sobre una copia en el directorio temporal: M1 (ok, 26,7 s), M2 y M3 (7 y 8 funciones en rojo), M6 con una marcada en jurisprudencia (conjunto «1 de 60», cumple; recuento del modo orden con 0.017, cumple false y decide false; veredicto aprobado y ningún motivo; 13 elementos), M9 con el mutante de un solo modo en jurisprudencia (pasa a fallo: «1 de 30 (3,3 %), y tiene que ser ≤ 1,7 %», con la respuesta y «(modo orden)»), M10 (cada sustitución cambia una sola línea, dentro de umbralesConjuntos), M12, M14, M15 (`git apply --check` del diff pasa sobre el árbol de hoy) y M16 (la guarda calla con el mutante aplicado). No ejecutado por mí: `git worktree add` y `remove` (M13; escriben en .git y usé una copia), los casos sintéticos de 108 y de 104 respuestas de boe-legislacion (M4, M5) y `make ci`. Lo que el plan no pudo comprobar figura como S1 a S5."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Ejecutado sobre el árbol de hoy o sobre el prototipo: escenario 1 (el diff del contrato casa con el árbol y, aplicado, deja 0.028, 0, 0.017 y 0; TestEsquemasPublicados, ok); escenario 5 (los siete tests que no cambian, ok con el código y los valores del prototipo; los dos `git diff --name-only main`, sin salida hoy; .specify/feature.json está ignorado); escenario 6 (las dos sustituciones de sed y la guarda `git diff --no-index --quiet`, sobre un umbralesConjuntos escrito como fija el plan; `go -C` compila y ejecuta los dos mutantes); escenario 7 (11 líneas, 8 líneas, 0 en los tres ficheros y `## [0.5.0]` en la línea 285, como dice); escenario 9 (las órdenes de jq sobre los informes del cierre de H25: «aprobado 12 10 0 0 0»). Los nombres de test de los escenarios 3 a 5 existen. Lo que deja cada escenario está declarado: nada, el worktree de `$TMPDIR` que se retira, y los dos coverage.* que git ignora."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "Ninguno: ni fuente, ni manifiesto, ni TestGrabar*. Los dos valores están en el repositorio (docs/ROADMAP.md, H26, «Los valores»; ADR 0038) y llegan a los ficheros con contracts/clases-yaml.diff, no de memoria. La etiqueta `[datos]` la pide FR-020 y su comprobación no tiene nada que comprobar (grabar-datos.sh, acción comprobar). Nada se deriva a data/."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea para una persona ni en la plataforma: los escenarios 9 y 10 del quickstart no son tareas; el run no lanza el sondeo, la medida del juez ni ningún test con etiqueta `evals` (obligaciones para tasks.md; FR-060); el job de cierre lo lanza el workflow. `git` y `sed`, que usa la tarea de los mutantes, están permitidos en .claude/settings.json."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Ninguna skill pide estas salidas (0 invocaciones por pregunta: ningún SKILL.md nombra el informe del job) y nada crece con lo consultado: cada job parte de las evals del repositorio. Cálculo rehecho: los cuatro ejemplos del contrato miden 335, 334, 342 y 342 bytes; la fila de informe.md, 85; la cabecera del motivo, 90 y 89; el modo añade 13 o 19 bytes por respuesta. Desde los 12 elementos del cierre de H25 (3 482 y 3 757 bytes), los 13 con todo en 0 me dan 3 818 y 4 098 bytes, unos 3,8 y 4,1 KB como dice el plan. El motivo está acotado por las juzgadas (108 y 60, unos 48 KB y 26 KB en el peor caso, la misma cota que los dos motivos por modo de hoy), como mucho uno por skill y por job, y no se acumula. Cada señal dice cuándo se apaga: el `cumple: false` del conjunto, en el primer job en que las marcadas caben en la tasa; el del recuento por modo, cuando caben las de ese modo."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Un método, una función de nombre y una constante en un fichero que ya existe, un campo en el arnés de los tests, un test nuevo y un registro (mutantes.md): cada uno con su FR en «Trazabilidad» (FR-001 a FR-005, FR-010, FR-072, FR-078). Sin tipo, campo exportado, paquete, opción ni clave nueva. FR-075 y FR-076 se cubren con casos que ya existen (D10) y el sondeo no gana test (D16). Ningún mecanismo atiende a un estado por debajo del umbral de materialidad: el plan lo dice de la clases.yaml ilegible y del plan sin modos, y el caso de 3 de 107 se midió y no se prueba."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Cotejado con el spec: 18 filas `evals:`, nueve por skill, como pide FR-071, y ninguna del recuento por modo. Los nombres de los que ya decidían coinciden con los del informe de H25 (jq sobre specs/020-h25-el-juez-de/gates/evals/*.json: sin_activar, cita_sin_documento, los dos de la medida y las duraciones, todos con decide true). El nuevo lo publica el prototipo como `afirma_lo_no_leido:claude-sonnet-5-5` con decide true, y el informe final lo busca por nombre exacto, así que no lo confunde con el recuento por modo. Recorrido rehecho: por encima de la tasa, cumple false, motivo en la raíz, veredicto fallo, trabajo en rojo, y lo ve medir_cierre. Filas `ci:`: cada función existe en el fichero que nombra (TestUmbralConjunto es la nueva) y los tres objetivos del Makefile existen; los controles cubren cada forma que promete el requisito (los 7 casos de FR-072, los 3 de FR-073, las dos skills). Que el control falla por encima del umbral lo vi con el mutante de un solo modo: el caso que espera aprobado da fallo. Sin fila, con razón: FR-010 (no decide), SC-012 (persona) y SC-013 (lectura de la revisión final, FR-055)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "contracts/documentos.md, fila de CONTRIBUTING.md 1149-1151: solo dice qué hacer con el orden; en esas mismas líneas está «Los de una clase salen de `clases.yaml` —su nombre, su `umbral` y su `decide`—», que deja de ser cierto del recuento por modo (su `decide` pasa a ser siempre false). El rango está en el contrato y el texto lo escribe la tarea, pero «nada más» puede dejarla tal cual: es de lo que SC-013 mira en la revisión final.",
+    "quickstart.md, escenario 7, orden 1: busca la cadena «umbral 0 en cada modo» y espera que no salga nada, y contracts/documentos.md pide que CLAUDE.md:21 diga que `afirma_lo_no_leido` «decidía así hasta H26». Si la tarea conserva la frase en pasado con esas palabras, la orden da una línea; hay redacción que cumple las dos cosas.",
+    "El informe final (scripts/workflow/informe.sh, resumen_umbrales) cuenta juntos los umbrales sin cumplir y los que solo se publican: con el recuento por modo sin decidir, su línea de resumen nombrará cuatro por skill en cada cierre, y hoy nombra dos. No es del plan: `scripts/workflow/` queda fuera de un hito (FR-062); va con la propuesta de proceso de la serie de cierres.",
+    "Fila de FR-078 y SC-008 en «Controles de umbral»: el informe final la dará por comprobada con que los dos tests existan y `make ci` esté en verde; que cada mutante hace fallar un test solo lo ven la tarea de los mutantes y la revisión final, como dice el spec.",
+    "research.md D12 rechaza «los valores primero» porque obliga a escribir dos veces lo que esperan los tests de jurisprudencia; con el orden elegido también se escriben dos veces (en el paso 1, con «≤ 0,0 %», y en el paso 2, con «≤ 1,7 %» y el veredicto cambiado). La otra razón, no dejar a mitad un job que decide por modo con la tasa, basta para el orden.",
+    "Cifras que no cambian el diseño: con todo en 0, los trece elementos me dan 3 818 y 4 098 bytes, y el plan dice 3 822 y 4 099; y el Constitution Check (principio V) habla de «un método y dos constantes», mientras data-model §4 lista un método, una función y una constante.",
+    "No he ejecutado `git worktree add` ni `git worktree remove` (escriben en .git, y este paso solo escribe el veredicto), ni los casos sintéticos de 108 y de 104 respuestas de boe-legislacion, ni `make ci`: de M4, M5 y M13 tengo lo que dice research.md, la aritmética rehecha con jq y el mismo código probado con las 60 respuestas de jurisprudencia."
+  ]
+}

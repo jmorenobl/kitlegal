@@ -1,6 +1,8 @@
 package evals
 
 import (
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -75,6 +77,10 @@ type ejecucionConUmbrales struct {
 	// medidaDelJuez es el contenido de la medida de la carpeta juez; vacío, el
 	// de medidaDelJuezDelInforme, que se cumple.
 	medidaDelJuez string
+
+	// clasesDelJuez es el contenido de clases.yaml de la carpeta juez; vacío, el
+	// de clasesDelJuezDelInforme, con el umbral 0.
+	clasesDelJuez string
 
 	// conTextos dice que el transcript de cada sesión del modo orden lleva la
 	// orden con la que lee el bloque y lo que devolvió, que son los textos de
@@ -220,17 +226,28 @@ const (
 // fallo.
 //
 // Con el juez (contracts/informe-del-job.md §1, §2 y §9 de H24; FR-030 a
-// FR-034, FR-037, FR-044), una skill que lo tiene lleva además los suyos, y con
-// el plan del job y el objetivo son los doce del contrato, en su orden, diez de
-// ellos decidiendo: detrás del de las respuestas sin activar de cada modo, el
-// de cada clase del juez sobre esas mismas respuestas; detrás de los de los dos
-// modos, los dos de la medida versionada del juez, con sus recuentos y sus
-// totales, que no se cumplen si la medida no se cumple; y detrás de los de la
-// duración de las sesiones, el de la duración del juez de cada modo. Aquí el
-// juez dice no a todo —lo que hace con sus votos lo fija TestInformeConElJuez—
-// y se le pide un voto por respuesta medida de las evals que activan la skill:
-// ninguno de las sin medir, de las sin terminar, de la eval de no activación ni
-// de una skill sin juez, y tres más por la eval sin binario ni servidor.
+// FR-034, FR-037, FR-044), una skill que lo tiene lleva además los suyos:
+// detrás del de las respuestas sin activar de cada modo, el de cada clase del
+// juez sobre esas mismas respuestas; detrás de los de los dos modos, los dos de
+// la medida versionada del juez, con sus recuentos y sus totales, que no se
+// cumplen si la medida no se cumple; y detrás de los de la duración de las
+// sesiones, el de la duración del juez de cada modo. Aquí el juez dice no a
+// todo —lo que hace con sus votos lo fija TestInformeConElJuez— y se le pide
+// un voto por respuesta medida de las evals que activan la skill: ninguno de
+// las sin medir, de las sin terminar, de la eval de no activación ni de una
+// skill sin juez, y tres más por la eval sin binario ni servidor.
+//
+// Desde H26 (contracts/umbrales-del-informe.md §1, §2 y §6 de H26; data-model
+// §3 de H26; FR-002, FR-005, FR-010, FR-012, FR-031, FR-033, FR-034), el de una
+// clase del juez en un modo es un recuento que no decide, y la clase que decide
+// tiene además su umbral conjunto, sin modo en su nombre, detrás de los de las
+// respuestas de todos los modos y delante de los dos de la medida: su medida y
+// su total son la suma de los de sus recuentos por modo y, con un plan de un
+// solo modo, los de ese modo. Con el plan del job y el objetivo son los trece
+// del contrato, en su orden, nueve de ellos decidiendo. Lo que ya decidía sigue
+// dando su fallo entre ellos: una respuesta sin activar, 901 s de una tanda y
+// la medida del juez sin cumplirse; y las respuestas de la eval sin binario ni
+// servidor siguen fuera de toda medida, también de la del conjunto.
 func TestUmbralesDelInforme(t *testing.T) {
 	t.Parallel()
 
@@ -348,11 +365,13 @@ func TestUmbralesDelInforme(t *testing.T) {
 		{
 			// La medida versionada del juez no se cumple: sus dos umbrales llevan
 			// los recuentos y los totales de la medida, sin votar ningún caso, y
-			// cada uno pone el veredicto en fallo (FR-032, FR-044).
+			// cada uno pone el veredicto en fallo (FR-032, FR-044), detrás del
+			// conjunto, que se cumple.
 			nombre:    "la-medida-del-juez-sin-cumplirse",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) { e.medidaDelJuez = medidaDelJuezSinCumplirse }),
 			umbrales: slices.Concat(
 				umbralesDeUnModo(modeloSonnet55, enOrden(6, 0)),
+				[]Umbral{umbralConjunto(modeloSonnet55, enOrden(6, 0))},
 				umbralesDeLaMedidaDelJuez(1, 20, 2, 5),
 				[]Umbral{umbralDeLaDuracionDelJuez(ModoOrden, 0)}),
 			motivos: []string{
@@ -389,7 +408,8 @@ func TestUmbralesDelInforme(t *testing.T) {
 			veredicto: VeredictoFallo,
 		},
 		{
-			// Las medidas de un modo no se suman a las del otro (FR-043 de H21).
+			// Las respuestas sin activar de un modo no se suman a las del otro
+			// (FR-043 de H21).
 			nombre:    "sin-activar-solo-en-orden",
 			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) { e.sinActivar = 1 }),
 			umbrales:  umbralesConJuez(modeloSonnet55, nil, enOrden(54, 1), enHerramienta(54, 0)),
@@ -445,12 +465,13 @@ func TestUmbralesDelInforme(t *testing.T) {
 				umbralDeDuracion(ModoHerramienta, 900, 900, true),
 			}, enOrden(6, 0), enHerramienta(6, 0)),
 			veredicto: VeredictoAprobado,
-			exigir:    exigirLosDoceDelContrato,
+			exigir:    exigirLosTreceDelContrato,
 		},
 		{
 			// Las sesiones de la eval sin binario ni servidor no son de ningún modo:
 			// ni la que no activa la skill cuenta en una medida, ni las seis en un
-			// total, ni los 5000 s de su tanda en una duración (FR-047 de H21).
+			// total —tampoco en el del conjunto, que es 108—, ni los 5000 s de su
+			// tanda en una duración (FR-047 de H21; FR-002 de H26).
 			nombre: "la-sin-binario-ni-servidor-fuera-de-toda-medida",
 			ejecucion: conCambios(enDosModos, func(e *ejecucionConUmbrales) {
 				e.conLaSinBinarioNiServidor, e.sinBinarioAlteradas = true, 1
@@ -534,7 +555,7 @@ func TestUmbralQueSoloSePublica(t *testing.T) {
 // TestUmbralesConJuezYConSentencias fija los umbrales de las respuestas de una
 // skill que tiene juez y alguna eval que declara sentencias
 // (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23). Desde
-// H25, jurisprudencia tiene las dos cosas, y sus doce umbrales los fija
+// H25, jurisprudencia tiene las dos cosas, y sus umbrales los fija
 // TestUmbralesDeJurisprudencia con las evals del repositorio; este fija, con
 // respuestas escritas aquí, el orden de los de cada modo y sus motivos. Por
 // cada modo, y en este orden, el de las respuestas sin activar, el de cada
@@ -542,6 +563,13 @@ func TestUmbralQueSoloSePublica(t *testing.T) {
 // ECLI sin origen, los tres sobre las mismas respuestas; las de las evals sin
 // binario ni servidor no cuentan en ninguno; y el motivo de cada uno que
 // decide y no se cumple nombra, si las tiene, las respuestas que cuentan en él.
+//
+// Desde H26 (contracts/umbrales-del-informe.md §1 de H26; FR-005, FR-010), el
+// de la clase que decide no decide en ningún modo, y su umbral conjunto, con
+// las respuestas de los dos modos y ninguna de las evals sin binario ni
+// servidor, va detrás de cita_sin_documento del último modo y delante de los
+// dos de la medida, que aquí es una sin casos, y de la duración de los votos de
+// cada modo.
 func TestUmbralesConJuezYConSentencias(t *testing.T) {
 	t.Parallel()
 
@@ -571,13 +599,18 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 		conSentencias: true,
 	}
 
-	umbrales := respuestas.umbrales()
+	umbrales := umbralesDelInforme(InformeAEscribir{}, respuestas)
 
 	assert.Equal(t, slices.Concat(
 		umbralesDeUnModo(modeloSonnet55, enOrden(3, 1)),
 		[]Umbral{umbralCitaSinDocumento(modeloSonnet55, ModoOrden, 1, 3, false)},
 		umbralesDeUnModo(modeloSonnet55, enHerramienta(1, 0)),
-		[]Umbral{umbralCitaSinDocumento(modeloSonnet55, ModoHerramienta, 0, 1, true)},
+		[]Umbral{
+			umbralCitaSinDocumento(modeloSonnet55, ModoHerramienta, 0, 1, true),
+			umbralConjunto(modeloSonnet55, enOrden(3, 1), enHerramienta(1, 0)),
+		},
+		umbralesDeLaMedidaDelJuez(0, 0, 0, 0),
+		[]Umbral{umbralDeLaDuracionDelJuez(ModoOrden, 0), umbralDeLaDuracionDelJuez(ModoHerramienta, 0)},
 	), umbrales)
 
 	assert.Equal(t, []string{
@@ -585,6 +618,310 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 		"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: " +
 			"01-a-02: ECLI:ES:TS:2023:9999 (sin origen)",
 	}, motivosDeLosUmbrales(umbrales, respuestas))
+}
+
+// TestUmbralConjunto fija lo que el umbral conjunto de la clase del juez que
+// decide hace con la tasa de su declaración (contracts/umbrales-del-informe.md
+// §1 a §4 de H26; data-model §1, §3 y §5 de H26; research D6 y D7 de H26;
+// FR-001 a FR-005, FR-010, FR-072, FR-074; SC-002, SC-004), con la ejecución
+// sintética «como el cierre» en dos modos —18 evals que activan la skill, 54
+// respuestas del modelo que decide por modo, y el objetivo de duración del
+// job—, escrita con EscribirInforme en t.TempDir(), y un votante de votos
+// grabados que marca con tres síes las respuestas del caso. La carpeta del juez
+// de esa ejecución lleva la clases.yaml de evals/boe-legislacion/juez, leída
+// del repositorio: el umbral con el que el informe compara es el dato que leerá
+// el job y no una copia, y lo que el test espera de él va escrito a mano
+// —0.028, «≤ 2,8 %», 3 de 108—, de modo que otro valor en el repositorio no
+// pasa.
+//
+//   - Con 3 marcadas de 108, el conjunto se cumple se repartan como se
+//     repartan entre los modos —3 y 0, 0 y 3, 2 y 1—: el veredicto es aprobado
+//     y no hay ningún motivo. El recuento del modo con las tres lleva 3 de 54,
+//     no se cumple y no decide.
+//   - Con 4, las cuatro en un modo o dos en cada uno, no se cumple: el
+//     veredicto es fallo con un solo motivo, el del conjunto, que nombra las
+//     cuatro respuestas, las del modo orden delante, cada una con su modo y
+//     con sus tres frases.
+//   - Con cuatro sesiones del modelo que decide que el tope cortó tras su
+//     respuesta, una por serie y dos por modo, en series informativas, quedan
+//     104 respuestas juzgadas sin ningún otro motivo de fallo: con 2 marcadas
+//     el conjunto se cumple, y con 3, que de 108 lo cumplían, no.
+//
+// En todos, umbrales son los trece del contrato, en su orden, con el umbral
+// 0.028 en el conjunto y en los dos recuentos por modo, y deciden nueve. Y con
+// las tres en un modo, su recuento y el conjunto están escritos en informe.json
+// como los dos ejemplos de boe-legislacion del contrato: tal cual en 0-y-3, que
+// es el informe de esos ejemplos.
+func TestUmbralConjunto(t *testing.T) {
+	t.Parallel()
+
+	comoElCierre := ejecucionConUmbrales{
+		queDeciden: 10, informativas: 8, conHaiku: true, dosModos: true,
+		duracion: 500, duracionEnHerramienta: 600, objetivo: 900,
+		clasesDelJuez: string(contenidoDelFichero(t, filepath.Join(evalsDelRepositorio, clasesEnElJuez))),
+	}
+
+	for _, caso := range casosDelUmbralConjunto() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElUmbralConjunto(t, comoElCierre, caso)
+		})
+	}
+}
+
+// Los otros dos párrafos con preceptos que TestUmbralConjunto antepone a las
+// respuestas que marca, con parrafoDeLosArticulos22Y24 y
+// parrafoDeLosArticulos23Y25: cada uno distinto de los demás, con las tres
+// frases suyas que citan sus votos y esas tres como las escribe el motivo de la
+// respuesta que marcan.
+const (
+	parrafoDeLosArticulos29Y30 = "El artículo 29 obliga a cumplir los plazos, y el artículo 30, a contarlos por días."
+	fraseDelArticulo29         = "El artículo 29 obliga a cumplir los plazos"
+	fraseDeLosArticulos29Y30   = "obliga a cumplir los plazos, y el artículo 30"
+	fraseDelArticulo30         = "el artículo 30, a contarlos por días"
+	frasesDel29Y30             = "«" + fraseDelArticulo29 + "» · «" + fraseDeLosArticulos29Y30 + "» · «" + fraseDelArticulo30 + "»"
+
+	parrafoDeLosArticulos32Y33 = "El artículo 32 permite ampliar los plazos, y el artículo 33, tramitar con urgencia."
+	fraseDelArticulo32         = "El artículo 32 permite ampliar los plazos"
+	fraseDeLosArticulos32Y33   = "permite ampliar los plazos, y el artículo 33"
+	fraseDelArticulo33         = "el artículo 33, tramitar con urgencia"
+	frasesDel32Y33             = "«" + fraseDelArticulo32 + "» · «" + fraseDeLosArticulos32Y33 + "» · «" + fraseDelArticulo33 + "»"
+)
+
+// Los dos ejemplos de boe-legislacion de contracts/umbrales-del-informe.md §2 y
+// §3 de H26, tal cual: el umbral conjunto con 3 marcadas de 108, que se cumple
+// y decide, y el recuento del modo herramienta de ese mismo informe, con las
+// tres, que no se cumple y no decide.
+const (
+	conjuntoDelContrato = `{"nombre":"afirma_lo_no_leido:claude-sonnet-5-5","descripcion":"Respuestas de ` +
+		`claude-sonnet-5-5, con todos los modos juntos, que el juez marca en afirma_lo_no_leido con sus tres votos, ` +
+		`sobre sus respuestas juzgadas en las evals que activan la skill","medida":3,"total":108,"comparacion":"<=",` +
+		`"umbral":0.028,"cumple":true,"decide":true}`
+
+	recuentoDelContrato = `{"nombre":"afirma_lo_no_leido:claude-sonnet-5-5:herramienta","descripcion":"Respuestas de ` +
+		`claude-sonnet-5-5 en el modo herramienta que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus ` +
+		`respuestas juzgadas en las evals que activan la skill","medida":3,"total":54,"comparacion":"<=","umbral":0.028,` +
+		`"cumple":false,"decide":false}`
+)
+
+// casoDelUmbralConjunto es un caso de TestUmbralConjunto: las respuestas que el
+// juez marca en cada modo, si cuatro sesiones quedan sin terminar y lo que el
+// informe tiene que decir, escrito a mano.
+type casoDelUmbralConjunto struct {
+	nombre string
+
+	// enOrden y enHerramienta son cuántas respuestas de cada modo llevan tres
+	// votos que dicen sí en afirma_lo_no_leido: la primera sesión del modelo que
+	// decide de otras tantas evals, desde la primera.
+	enOrden, enHerramienta int
+
+	// conCortadas dice que el tope cortó tras su respuesta las cuatro sesiones
+	// de sesionesCortadasDelUmbralConjunto.
+	conCortadas bool
+
+	// porModo son las respuestas juzgadas de cada modo; ordenCumple,
+	// herramientaCumple y conjuntoCumple, si cumplen la tasa el recuento de
+	// afirma_lo_no_leido de cada modo y su umbral conjunto; motivos, los de la
+	// raíz; y veredicto, el del informe.
+	porModo                                        int
+	ordenCumple, herramientaCumple, conjuntoCumple bool
+	motivos                                        []string
+	veredicto                                      Veredicto
+
+	// exigir, si no es nil, exige lo que el caso fija además de sus umbrales, sus
+	// motivos y su veredicto.
+	exigir func(t *testing.T, leido informeLeido)
+}
+
+// casosDelUmbralConjunto son los de TestUmbralConjunto. Lo que cumple cada
+// elemento es lo de contracts/umbrales-del-informe.md §2 de H26: 3 de 108 y 2 de
+// 104 caben en el 2,8 %, y 4 de 108 y 3 de 104, no; y en un modo, 1 de 54 y 1 de
+// 52 caben, y 2 de 54 y 2 de 52, no.
+func casosDelUmbralConjunto() []casoDelUmbralConjunto {
+	return []casoDelUmbralConjunto{
+		{
+			nombre: "3-y-0", enOrden: 3,
+			porModo: 54, ordenCumple: false, herramientaCumple: true, conjuntoCumple: true,
+			veredicto: VeredictoAprobado,
+			exigir:    exigirElRecuentoConLasTres(ModoOrden),
+		},
+		{
+			nombre: "0-y-3", enHerramienta: 3,
+			porModo: 54, ordenCumple: true, herramientaCumple: false, conjuntoCumple: true,
+			veredicto: VeredictoAprobado,
+			exigir:    exigirElRecuentoConLasTres(ModoHerramienta),
+		},
+		{
+			nombre: "2-y-1", enOrden: 2, enHerramienta: 1,
+			porModo: 54, ordenCumple: false, herramientaCumple: true, conjuntoCumple: true,
+			veredicto: VeredictoAprobado,
+		},
+		{
+			nombre: "4-y-0", enOrden: 4,
+			porModo: 54, ordenCumple: false, herramientaCumple: true, conjuntoCumple: false,
+			motivos: []string{
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: " +
+					"01-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel22Y24 +
+					"; 02-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel23Y25 +
+					"; 03-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel29Y30 +
+					"; 04-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel32Y33,
+			},
+			veredicto: VeredictoFallo,
+		},
+		{
+			nombre: "2-y-2", enOrden: 2, enHerramienta: 2,
+			porModo: 54, ordenCumple: false, herramientaCumple: false, conjuntoCumple: false,
+			motivos: []string{
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: " +
+					"01-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel22Y24 +
+					"; 02-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel23Y25 +
+					"; 01-sintetica-herramienta-claude-sonnet-5-5-01 (modo herramienta): " + frasesDel29Y30 +
+					"; 02-sintetica-herramienta-claude-sonnet-5-5-01 (modo herramienta): " + frasesDel32Y33,
+			},
+			veredicto: VeredictoFallo,
+		},
+		{
+			nombre: "104-con-2", enOrden: 1, enHerramienta: 1, conCortadas: true,
+			porModo: 52, ordenCumple: true, herramientaCumple: true, conjuntoCumple: true,
+			veredicto: VeredictoAprobado,
+		},
+		{
+			nombre: "104-con-3", enOrden: 2, enHerramienta: 1, conCortadas: true,
+			porModo: 52, ordenCumple: false, herramientaCumple: true, conjuntoCumple: false,
+			motivos: []string{
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 3 de 104 (2,9 %), y tiene que ser ≤ 2,8 %: " +
+					"01-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel22Y24 +
+					"; 02-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel23Y25 +
+					"; 01-sintetica-herramienta-claude-sonnet-5-5-01 (modo herramienta): " + frasesDel29Y30,
+			},
+			veredicto: VeredictoFallo,
+		},
+	}
+}
+
+// umbrales son los trece del informe del caso, en el orden de
+// contracts/umbrales-del-informe.md §1 de H26, con sus valores escritos a mano:
+// los de umbralesConJuez con las marcadas y las respuestas juzgadas de cada
+// modo, que dan al conjunto la suma de unas y la de otras, y con las dos
+// tandas en su objetivo; y en los tres de afirma_lo_no_leido —el 2, el 5 y el 7
+// de los trece—, la tasa de la declaración de boe-legislacion, 0.028, y si la
+// cumple cada uno.
+func (c casoDelUmbralConjunto) umbrales() []Umbral {
+	trece := umbralesConJuez(modeloSonnet55,
+		[]Umbral{umbralDeDuracion(ModoOrden, 500, 900, true), umbralDeDuracion(ModoHerramienta, 600, 900, true)},
+		medidasDeUnModo{modo: ModoOrden, respuestas: c.porModo, marcadas: c.enOrden},
+		medidasDeUnModo{modo: ModoHerramienta, respuestas: c.porModo, marcadas: c.enHerramienta})
+
+	for posicion, cumple := range map[int]bool{1: c.ordenCumple, 4: c.herramientaCumple, 6: c.conjuntoCumple} {
+		trece[posicion].Umbral, trece[posicion].Cumple = 0.028, cumple
+	}
+
+	return trece
+}
+
+// grabados son los votos grabados de las respuestas que el caso marca: de cada
+// una, tres que dicen sí en afirma_lo_no_leido, cada uno con una de las tres
+// frases del párrafo que el test le antepone. La primera marcada del modo orden
+// lleva el de los artículos 22 y 24, y las siguientes, las del modo herramienta
+// detrás de las del modo orden, los de los 23 y 25, los 29 y 30 y los 32 y 33.
+// Van con las del modo herramienta delante y en orden inverso al de sus
+// sesiones: el motivo las nombra en el orden de los modos y de las sesiones, no
+// en el de sus votos.
+func (c casoDelUmbralConjunto) grabados(t *testing.T) []votosDeUnaRespuesta {
+	t.Helper()
+
+	marcas := []struct {
+		parrafo string
+		frases  []string
+	}{
+		{parrafoDeLosArticulos22Y24, []string{fraseDelArticulo22, fraseDeLosDosArticulos, fraseDelArticulo24}},
+		{parrafoDeLosArticulos23Y25, []string{fraseDelArticulo23, fraseDeLosArticulos23Y25, fraseDelArticulo25}},
+		{parrafoDeLosArticulos29Y30, []string{fraseDelArticulo29, fraseDeLosArticulos29Y30, fraseDelArticulo30}},
+		{parrafoDeLosArticulos32Y33, []string{fraseDelArticulo32, fraseDeLosArticulos32Y33, fraseDelArticulo33}},
+	}
+
+	marcadas := c.enOrden + c.enHerramienta
+	require.LessOrEqual(t, marcadas, len(marcas), "hay un párrafo por respuesta que se marca")
+
+	grabados := make([]votosDeUnaRespuesta, 0, marcadas)
+
+	for posicion, marca := range marcas[:marcadas] {
+		sesion := sesionSinteticaEn(ModoOrden, posicion+1, modeloSonnet55, 1)
+		if posicion >= c.enOrden {
+			sesion = sesionSinteticaEn(ModoHerramienta, posicion-c.enOrden+1, modeloSonnet55, 1)
+		}
+
+		votos := make([]grabacion, 0, len(marca.frases))
+		for _, frase := range marca.frases {
+			votos = append(votos, votoDeLasDosClases(t, afirmaQueSi(frase), cuentaQueNo()))
+		}
+
+		grabados = append(grabados, votosDeUnaRespuesta{sesion: sesion, parrafo: marca.parrafo, votos: votos})
+	}
+
+	slices.Reverse(grabados)
+
+	return grabados
+}
+
+// sesionesCortadasDelUmbralConjunto son las cuatro sesiones del modelo que
+// decide que el tope corta tras su respuesta en los casos de 104 respuestas
+// juzgadas de TestUmbralConjunto (research D7 de H26): la tercera de cuatro
+// series informativas, una por serie y dos por modo. No cuentan como respuesta
+// medida, y su serie, que sigue llegando al umbral con las otras dos, no da
+// ningún motivo.
+func sesionesCortadasDelUmbralConjunto() []string {
+	return []string{
+		sesionSinteticaEn(ModoOrden, 11, modeloSonnet55, 3),
+		sesionSinteticaEn(ModoOrden, 12, modeloSonnet55, 3),
+		sesionSinteticaEn(ModoHerramienta, 13, modeloSonnet55, 3),
+		sesionSinteticaEn(ModoHerramienta, 14, modeloSonnet55, 3),
+	}
+}
+
+// exigirElUmbralConjunto arma la ejecución en un directorio temporal del test,
+// corta las sesiones del caso, antepone a cada respuesta que el caso marca su
+// párrafo y escribe su informe con el votante de sus votos: exige sus trece
+// umbrales, con los nombres, las descripciones y los nueve que deciden del
+// contrato, sus motivos y su veredicto.
+func exigirElUmbralConjunto(t *testing.T, ejecucion ejecucionConUmbrales, caso casoDelUmbralConjunto) {
+	t.Helper()
+
+	copia := armarEjecucionConUmbrales(t, ejecucion)
+
+	if caso.conCortadas {
+		for _, sesion := range sesionesCortadasDelUmbralConjunto() {
+			cortarTrasLaRespuesta(t, filepath.Join(copia, "sesiones", sesion))
+		}
+	}
+
+	leido := escribirLaCopiaConVotos(t, copia, ejecucion, nuevoVotanteDelInforme(t, caso.grabados(t)...))
+
+	exigirUmbrales(t, leido, caso.umbrales())
+	exigirLosTreceDelContrato(t, leido)
+	exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
+	assert.Equal(t, caso.veredicto, leido.informe.Veredicto)
+
+	if caso.exigir != nil {
+		caso.exigir(t, leido)
+	}
+}
+
+// exigirElRecuentoConLasTres da lo que exigen además los casos 3-y-0 y 0-y-3 de
+// TestUmbralConjunto (FR-074; SC-004), con las tres respuestas marcadas en el
+// modo dado: su recuento está escrito en informe.json con 3 de 54, cumple false
+// y decide false, que es el ejemplo de contracts/umbrales-del-informe.md §3 de
+// H26 con ese modo donde lleva el modo herramienta —en 0-y-3, tal cual—; y el
+// conjunto, como el ejemplo de §2, tal cual, con 3 de 108, cumplido y
+// decidiendo. El veredicto aprobado y la falta de motivos los exige el caso.
+func exigirElRecuentoConLasTres(modo Modo) func(t *testing.T, leido informeLeido) {
+	return func(t *testing.T, leido informeLeido) {
+		t.Helper()
+
+		exigirElUmbralEscrito(t, leido, strings.ReplaceAll(recuentoDelContrato, string(ModoHerramienta), string(modo)))
+		exigirElUmbralEscrito(t, leido, conjuntoDelContrato)
+	}
 }
 
 // conCambios es la ejecución dada con lo que cambie cambiar.
@@ -638,10 +975,11 @@ func enHerramienta(respuestas, sinActivar int) medidasDeUnModo {
 }
 
 // umbralesConJuez son los umbrales del informe de una skill con juez, en el
-// orden de contracts/informe-del-job.md §2 de H24: los de las respuestas de
-// cada modo (umbralesDeUnModo); los dos de la medida del juez, con los
-// recuentos de medidaDelJuezDelInforme, 0 de 212 y 0 de 47; los de la duración
-// de las sesiones dados; y, por cada modo, el de la duración del juez.
+// orden de contracts/umbrales-del-informe.md §1 de H26: los de las respuestas
+// de cada modo (umbralesDeUnModo); el conjunto de afirma_lo_no_leido, con las
+// de todos los modos dados (umbralConjunto); los dos de la medida del juez, con
+// los recuentos de medidaDelJuezDelInforme, 0 de 212 y 0 de 47; los de la
+// duración de las sesiones dados; y, por cada modo, el de la duración del juez.
 func umbralesConJuez(modelo string, deLaDuracion []Umbral, porModo ...medidasDeUnModo) []Umbral {
 	var umbrales []Umbral
 
@@ -649,6 +987,7 @@ func umbralesConJuez(modelo string, deLaDuracion []Umbral, porModo ...medidasDeU
 		umbrales = append(umbrales, umbralesDeUnModo(modelo, medidas)...)
 	}
 
+	umbrales = append(umbrales, umbralConjunto(modelo, porModo...))
 	umbrales = append(umbrales, umbralesDeLaMedidaDelJuez(0, 212, 0, 47)...)
 	umbrales = append(umbrales, deLaDuracion...)
 
@@ -659,11 +998,39 @@ func umbralesConJuez(modelo string, deLaDuracion []Umbral, porModo ...medidasDeU
 	return umbrales
 }
 
+// umbralConjunto es el umbral conjunto de afirma_lo_no_leido, la clase que
+// decide, tal como lo fija contracts/umbrales-del-informe.md §2 de H26, con sus
+// valores escritos a mano: sin modo en su nombre, con la suma de las marcadas y
+// la de las respuestas de los modos dados —con uno solo, las de ese modo—, y
+// decidiendo con el 0 de la declaración de clases de los tests del informe.
+func umbralConjunto(modelo string, porModo ...medidasDeUnModo) Umbral {
+	marcadas, respuestas := 0, 0
+
+	for _, medidas := range porModo {
+		marcadas += medidas.marcadas
+		respuestas += medidas.respuestas
+	}
+
+	return Umbral{
+		Nombre: "afirma_lo_no_leido:" + modelo,
+		Descripcion: "Respuestas de " + modelo + ", con todos los modos juntos, que el juez marca en " +
+			"afirma_lo_no_leido con sus tres votos, sobre sus respuestas juzgadas en las evals que activan la skill",
+		Medida:      float64(marcadas),
+		Total:       &respuestas,
+		Comparacion: "<=",
+		Umbral:      0,
+		Cumple:      marcadas == 0,
+		Decide:      true,
+	}
+}
+
 // umbralesDeUnModo son los tres umbrales de las respuestas del modelo que
-// decide en un modo, tal como los fija contracts/informe-del-job.md §2 de H24,
-// con sus valores escritos a mano: el de las respuestas sin activar; el de
-// afirma_lo_no_leido, que decide con 0; y el de cuenta_su_proceso, que lleva 0
-// y solo se publica. Los tres, sobre las mismas respuestas, y cada uno cumplido
+// decide en un modo, tal como los fijan contracts/informe-del-job.md §2 de H24
+// y contracts/umbrales-del-informe.md §3 de H26, con sus valores escritos a
+// mano: el de las respuestas sin activar, que decide; y los recuentos de las
+// dos clases del juez, que llevan 0 y ninguno decide —el de afirma_lo_no_leido,
+// porque quien decide es su umbral conjunto, y el de cuenta_su_proceso, porque
+// solo se publica—. Los tres, sobre las mismas respuestas, y cada uno cumplido
 // si su medida es 0.
 func umbralesDeUnModo(modelo string, medidas medidasDeUnModo) []Umbral {
 	deLasEvals := "sobre sus respuestas juzgadas en las evals que activan la skill"
@@ -681,7 +1048,7 @@ func umbralesDeUnModo(modelo string, medidas medidasDeUnModo) []Umbral {
 			Comparacion: "<=",
 			Umbral:      0,
 			Cumple:      medidas.marcadas == 0,
-			Decide:      true,
+			Decide:      false,
 		},
 		{
 			Nombre:      "cuenta_su_proceso:" + modelo + ":" + string(medidas.modo),
@@ -764,12 +1131,15 @@ func votosDeUnJuezQueDiceNo(ejecucion ejecucionConUmbrales, umbrales []Umbral) i
 	return votos
 }
 
-// exigirLosDoceDelContrato exige, del caso 900-s-en-los-dos-modos, los doce
-// elementos de umbrales de contracts/informe-del-job.md §2 de H24, en su orden,
-// cada uno con su nombre, su descripción y su decide, escritos a mano: diez
-// deciden, todos comparan con «<=» y ninguno es de los dos que salieron con la
-// lista de expresiones (FR-030 a FR-034).
-func exigirLosDoceDelContrato(t *testing.T, leido informeLeido) {
+// exigirLosTreceDelContrato exige, del caso 900-s-en-los-dos-modos y de cada
+// uno de TestUmbralConjunto, los trece elementos de umbrales de boe-legislacion
+// de contracts/umbrales-del-informe.md §1 de H26, en su orden, cada uno con su
+// nombre, su descripción y su decide, escritos a mano: deciden nueve —el
+// recuento de afirma_lo_no_leido de cada modo no, y su umbral conjunto, detrás
+// de los de los dos modos, sí—, todos comparan con «<=» y ninguno es de los dos
+// que salieron con la lista de expresiones (FR-030 a FR-034 de H24; FR-005,
+// FR-010 y FR-012 de H26).
+func exigirLosTreceDelContrato(t *testing.T, leido informeLeido) {
 	t.Helper()
 
 	type elemento struct {
@@ -780,6 +1150,7 @@ func exigirLosDoceDelContrato(t *testing.T, leido informeLeido) {
 	const (
 		deOrden       = "Respuestas de claude-sonnet-5-5 en el modo orden "
 		deHerramienta = "Respuestas de claude-sonnet-5-5 en el modo herramienta "
+		deLosModos    = "Respuestas de claude-sonnet-5-5, con todos los modos juntos, "
 		sinActivar    = "sin la skill activada, sobre sus respuestas medidas en las evals que la activan"
 		deLasEvals    = ", sobre sus respuestas juzgadas en las evals que activan la skill"
 		queMarca      = "que el juez marca en afirma_lo_no_leido con sus tres votos" + deLasEvals
@@ -790,11 +1161,12 @@ func exigirLosDoceDelContrato(t *testing.T, leido informeLeido) {
 
 	esperados := []elemento{
 		{"sin_activar:claude-sonnet-5-5:orden", deOrden + sinActivar, true},
-		{"afirma_lo_no_leido:claude-sonnet-5-5:orden", deOrden + queMarca, true},
+		{"afirma_lo_no_leido:claude-sonnet-5-5:orden", deOrden + queMarca, false},
 		{"cuenta_su_proceso:claude-sonnet-5-5:orden", deOrden + conSi, false},
 		{"sin_activar:claude-sonnet-5-5:herramienta", deHerramienta + sinActivar, true},
-		{"afirma_lo_no_leido:claude-sonnet-5-5:herramienta", deHerramienta + queMarca, true},
+		{"afirma_lo_no_leido:claude-sonnet-5-5:herramienta", deHerramienta + queMarca, false},
 		{"cuenta_su_proceso:claude-sonnet-5-5:herramienta", deHerramienta + conSi, false},
+		{"afirma_lo_no_leido:claude-sonnet-5-5", deLosModos + queMarca, true},
 		{
 			"medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar",
 			"Casos etiquetados como defecto que el juez no marca en afirma_lo_no_leido, sobre los casos etiquetados como " +
@@ -833,8 +1205,8 @@ func exigirLosDoceDelContrato(t *testing.T, leido informeLeido) {
 		}
 	}
 
-	assert.Equal(t, esperados, publicados, "los doce, en su orden")
-	assert.Equal(t, 10, deciden, "diez de los doce deciden")
+	assert.Equal(t, esperados, publicados, "los trece, en su orden")
+	assert.Equal(t, 9, deciden, "nueve de los trece deciden")
 }
 
 // exigirLaSinBinarioNiServidorSinContar exige, del caso
@@ -1056,6 +1428,31 @@ func umbralEscrito(t *testing.T, umbral Umbral) string {
 		umbral.Decide)
 }
 
+// exigirElUmbralEscrito exige que el umbral que nombra el ejemplo esté escrito
+// en informe.json como él, que es un elemento de un contrato en una línea: con
+// sus mismos valores y, lo que JSONEq no mira, con sus claves en el mismo orden.
+func exigirElUmbralEscrito(t *testing.T, leido informeLeido, ejemplo string) {
+	t.Helper()
+
+	var delEjemplo Umbral
+
+	require.NoError(t, json.Unmarshal([]byte(ejemplo), &delEjemplo))
+
+	var escritos []jsontext.Value
+
+	require.NoError(t, json.Unmarshal(leido.crudo.Umbrales, &escritos))
+	require.Len(t, escritos, len(leido.informe.Umbrales))
+
+	posicion := slices.IndexFunc(leido.informe.Umbrales, func(umbral Umbral) bool {
+		return umbral.Nombre == delEjemplo.Nombre
+	})
+	require.GreaterOrEqual(t, posicion, 0, "el informe tiene el umbral %s", delEjemplo.Nombre)
+
+	assert.JSONEq(t, ejemplo, string(escritos[posicion]))
+	assert.Equal(t, compacto(t, jsontext.Value(ejemplo)), compacto(t, escritos[posicion]),
+		"las claves de %s van en el orden del contrato", delEjemplo.Nombre)
+}
+
 // exigirLosInvariantesDeLosUmbrales exige, en cualquier informe, lo que el
 // informe final comprueba sin modelo de sus umbrales (contrato de umbrales del
 // ADR 0029; FR-001; US2-4): cada nombre con su forma y sin repetir; rehacer la
@@ -1159,7 +1556,7 @@ func armarEjecucionConUmbrales(t *testing.T, ejecucion ejecucionConUmbrales) str
 	require.NoError(t, os.Mkdir(evals, 0o750))
 
 	if !ejecucion.sinJuez {
-		escribirElJuezDelInforme(t, evals, ejecucion.medidaDelJuez)
+		escribirElJuezDelInforme(t, evals, ejecucion.clasesDelJuez, ejecucion.medidaDelJuez)
 	}
 
 	if !ejecucion.sinLista {

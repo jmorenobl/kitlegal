@@ -158,25 +158,40 @@
 //     el otro. Con una skill que tiene juez juzga antes las respuestas del modelo
 //     que decide —las de cada modo en las evals que activan la skill y, aparte,
 //     las de la eval sin binario ni servidor, que no entran en ningún umbral—, y
-//     sus umbrales son, por cada modo, sin_activar y el de cada clase del juez
-//     —en boe-legislacion, afirma_lo_no_leido, que decide, y cuenta_su_proceso,
-//     que solo se publica; en jurisprudencia, afirma_lo_no_leido, que decide, y
-//     afirma_que_existe, que solo se publica—; los dos de la medida versionada
-//     de cada clase que decide, medida_del_juez:<clase>:defectos_sin_marcar y
+//     sus umbrales son, por cada modo, sin_activar y el recuento de cada clase
+//     del juez, <clase>:<modelo>:<modo> —en boe-legislacion, afirma_lo_no_leido
+//     y cuenta_su_proceso; en jurisprudencia, afirma_lo_no_leido y
+//     afirma_que_existe—; desde H26, el umbral conjunto de cada clase que
+//     decide, <clase>:<modelo>, sin modo —en las dos skills,
+//     afirma_lo_no_leido—, que junta las respuestas de todos los modos y cuyo
+//     umbral, el de la clase en clases.yaml, es una tasa sobre todas ellas; los
+//     dos de la medida versionada de cada clase que decide,
+//     medida_del_juez:<clase>:defectos_sin_marcar y
 //     medida_del_juez:<clase>:correctos_marcados; y, por cada modo,
 //     duracion_de_las_sesiones, si el job da un objetivo, y duracion_del_juez.
-//     Hacen fallar el veredicto todos menos el de la clase que solo se publica.
+//     Hacen fallar el veredicto todos menos los recuentos de las clases del
+//     juez en cada modo, que solo se publican, con el umbral de su clase: de
+//     una clase que decide, lo que decide es su conjunto, cuyo motivo nombra
+//     cada respuesta marcada, por su sesión, con su modo y con sus frases; y la
+//     que solo se publica no tiene conjunto. Fuera de él, las medidas de un
+//     modo no se suman a las del otro.
 //     Con una skill cuyas evals declaran sentencias, tenga juez o no, los
 //     umbrales de cada modo llevan además cita_sin_documento, las respuestas
 //     con una cita sin documento cotejado o con un ECLI sin origen, que decide
 //     con 0 y cuyo motivo nombra cada respuesta que cuenta, por su sesión y
-//     con sus ECLI. En jurisprudencia, que desde H25 tiene juez y sigue sin
-//     objetivo, son doce, y deciden diez: de cada modo, el del modo orden
-//     delante, sin_activar, afirma_lo_no_leido, afirma_que_existe y
-//     cita_sin_documento; los dos de la medida versionada, sobre sus 125
+//     con sus ECLI. Con el plan del job, los dos modos, cada una de las dos
+//     skills con juez lleva trece, de los que deciden nueve. En
+//     boe-legislacion, con su objetivo: de cada modo, el del modo orden
+//     delante, sin_activar y los recuentos de afirma_lo_no_leido y de
+//     cuenta_su_proceso; el conjunto de afirma_lo_no_leido; los dos de la
+//     medida versionada; y duracion_de_las_sesiones y duracion_del_juez de cada
+//     modo. En jurisprudencia, que desde H25 tiene juez y sigue sin objetivo:
+//     de cada modo, sin_activar, los recuentos de afirma_lo_no_leido y de
+//     afirma_que_existe y cita_sin_documento; el conjunto de
+//     afirma_lo_no_leido; los dos de la medida versionada, sobre sus 125
 //     defectos y sus 124 correctos; y duracion_del_juez de cada modo, sin
-//     duracion_de_las_sesiones. Una skill sin juez ni sentencias no tiene
-//     ninguno.
+//     duracion_de_las_sesiones. En las dos, no deciden los cuatro recuentos.
+//     Una skill sin juez ni sentencias no tiene ninguno.
 //     Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta
@@ -184,7 +199,7 @@
 //     veredicto en fallo por la ejecución, no por la skill (FR-001 a FR-008,
 //     FR-033 y FR-051 de H7.3; FR-040 a FR-045 de H7.4; FR-043 a FR-048 de H21;
 //     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23;
-//     FR-020 a FR-025 de H25);
+//     FR-020 a FR-025 de H25; FR-001 a FR-005 y FR-010 a FR-012 de H26);
 //   - leerDefinicionDelJob lee la definición del job, .github/workflows/evals.yml:
 //     con ella la comprueba TestDefinicionDelJob en make ci —también el modelo
 //     del juez y la versión de Claude Code de sus votos, fijados aparte de los de

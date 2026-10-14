@@ -1,0 +1,35 @@
+diff --git a/evals/boe-legislacion/juez/clases.yaml b/evals/boe-legislacion/juez/clases.yaml
+--- a/evals/boe-legislacion/juez/clases.yaml
++++ b/evals/boe-legislacion/juez/clases.yaml
+@@ -1,11 +1,12 @@
+ # Clases del juez con modelo de las evals de boe-legislacion (H24, FR-020 y FR-021; ADR 0037): lo que el juez mira en
+ # cada respuesta, con las preguntas de rubrica.md y la forma de esquema.json. De cada una, su nombre, si decide —su
+ # umbral del informe hace fallar el job— o solo se publica, y su umbral: la proporción de respuestas marcadas que
+-# admite.
++# admite. El de la clase que decide lo fija el ADR 0038 sobre las respuestas de todos los modos juntas, y solo lo
++# estrecha una persona, con las cifras de la serie de cierres: aquí, como mucho 3 marcadas de 108 (H26, FR-020).
+ clases:
+   - nombre: afirma_lo_no_leido
+     decide: true
+-    umbral: 0
++    umbral: 0.028
+   - nombre: cuenta_su_proceso
+     decide: false
+     umbral: 0
+diff --git a/evals/jurisprudencia/juez/clases.yaml b/evals/jurisprudencia/juez/clases.yaml
+--- a/evals/jurisprudencia/juez/clases.yaml
++++ b/evals/jurisprudencia/juez/clases.yaml
+@@ -1,10 +1,12 @@
+ # Clases del juez con modelo de las evals de jurisprudencia (H25, FR-002; ADR 0037): lo que el juez mira en cada
+ # respuesta, con las preguntas de rubrica.md y la forma de esquema.json. De cada una, su nombre, si decide —su umbral
+ # del informe hace fallar el job— o solo se publica, y su umbral: la proporción de respuestas marcadas que admite.
++# El de la clase que decide lo fija el ADR 0038 sobre las respuestas de todos los modos juntas, y solo lo estrecha una
++# persona, con las cifras de la serie de cierres: aquí, como mucho 1 marcada de 60 (H26, FR-020).
+ clases:
+   - nombre: afirma_lo_no_leido
+     decide: true
+-    umbral: 0
++    umbral: 0.017
+   - nombre: afirma_que_existe
+     decide: false
+     umbral: 0

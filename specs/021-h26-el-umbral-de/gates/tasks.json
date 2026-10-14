@@ -1,0 +1,74 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "analisis_critico",
+      "cumple": true,
+      "evidencia": "gates/analyze.md, «Hallazgos»: «Ningún hallazgo CRITICAL ni HIGH», y sus métricas: CRITICAL 0, HIGH 0, MEDIUM 1 (I1), LOW 5 (I2, C1, U1, A1, V1). gates/tasks-precheck.txt tiene 0 bytes: ningún defecto mecánico. No existían gates/tasks.json, gates/tasks-pendiente.md ni gates/tasks-correccion-r*.diff: es la primera ronda. He contrastado I1, I2, C1 y A1 con el árbol y ninguno sube de severidad; van en observaciones."
+    },
+    {
+      "id": "b",
+      "criterio": "trazabilidad",
+      "cumple": true,
+      "evidencia": "Las cinco tareas cierran su línea con sus FR y SC. La tabla «Requisitos → tareas» de tasks.md cubre los 38 FR del spec (FR-001 a 005, 010 a 012, 020 a 022, 030 a 036, 040, 050 a 055, 060 a 062 y 070 a 079, contados contra spec.md) y los 14 SC; SC-001 y SC-011 remiten al cierre del workflow, con T001 y T002 construyendo sus controles, y SC-012 a la persona. Las 31 filas de plan.md, «Controles de umbral» (18 `evals:`, nueve por skill como pide FR-071, y 13 de `make ci`), están en las 23 de tasks.md (las `evals:` agrupadas por modo), cada una con su tarea y el test que la ve fallar: los dos umbrales conjuntos en T001, T002 y T003, con `4-y-0`, `2-y-2`, `104-con-3`, `dos-marcadas-en-el-modo-orden` y `una-marcada-en-cada-modo` dando `fallo` y con los dos mutantes de FR-078; el test de los datos, visto en rojo entre los pasos 2 y 3 de T002. Comprobado en el árbol con grep: los diez tests ya existentes de las filas `ci:` están en el fichero que dice el plan (`TestUmbralesDelInforme` en umbrales_test.go:234; `TestInformeEnDosModos`, `TestInformeConElJuez` y `TestUmbralesDeJurisprudencia` en informe_test.go:1494, 4018 y 4711; `TestEvalsDelRepositorio` en conjunto_test.go:1893; `TestMedidaVersionada` y `TestCopiasDelJuez` en medida_test.go:275 y 673; `TestEjecucionSinMedir` en ejecucion_test.go:110; `TestDefinicionDelJob` en definicion_test.go:194; `TestSalidaDelSondeo` en sondeo_test.go:715) y `TestUmbralConjunto` es el nuevo de T002; los 24 subtests existentes que las tareas nombran están donde dicen (8 en umbrales_test.go, 14 en informe_test.go, `formato` y `conjunto-jurisprudencia` en conjunto_test.go); `schema-check`, `skills-check` y `ci` son objetivos del Makefile (líneas 122, 126 y 264); y los doce nombres de umbral de cada skill en specs/020-h25-el-juez-de/gates/evals/ son los de contracts/umbrales-del-informe.md §1 sin el conjunto, con `claude-sonnet-5-5`."
+    },
+    {
+      "id": "c",
+      "criterio": "rebanadas_verdes",
+      "cumple": true,
+      "evidencia": "T001 y T002 traen test e implementación en el mismo diff; T003 (los mutantes, en una copia fuera del árbol), T004 (documentos) y T005 (cierre) son excepciones declaradas en la cabecera con su verificación, como en H24 y H25. La tabla de dependencias va de T001 a T005 sin ninguna hacia delante. Leído en el árbol, sin ejecutar ningún test: lo que T001 manda cambiar existe como lo describe (internal/evals/umbrales.go: `umbralesDelInforme` en 199, `umbralesDeLasClases` en 259 con `Decide: clase.Decide`, `marcadasDelUmbral` en 515 recorriendo `j.deLosModos()`, y `motivosDeLosUmbrales` en 443, que ya omite todo umbral con `Decide` falso, de modo que el recuento por modo no da motivo sin más código); fuera de umbrales_test.go e informe_test.go ningún `_test.go` del paquete usa `umbralesConJuez`, `umbralesDeUnModo`, `exigirLosDoceDelContrato`, `nombreDelUmbralDeClase` ni `marcadasDelUmbral`, ni compara un umbral de clase (solo ejecucion_test.go:310, que filtra `medida_del_juez:`), y `sondeo.go` no llama a ninguno: es coherente con research M2, las siete funciones que T001 pone a la forma nueva. Para T002: `TestEvalsDelRepositorio` compara hoy `Umbral: 0` en `formato` y en `conjunto-jurisprudencia` (conjunto_test.go:1925 y 1965), así que los valores solos lo dejan en rojo y van con él; `git apply --check` de contracts/clases-yaml.diff sale con 0 sobre el árbol; las dos `clases.yaml` llevan hoy `umbral: 0` en sus cuatro clases; `medida.json` de las dos carpetas solo lleva las huellas de la rúbrica y de los casos (medida.go:229 y 233), no la de `clases.yaml`; y schemas/juez-clases.yaml.json admite un número entre 0 y 1. Para T005: `make ci` deja `coverage.out` y `coverage-integration.out` (Makefile:87 y 91). No he ejecutado `make ci`, ningún test ni el prototipo de research."
+    },
+    {
+      "id": "d",
+      "criterio": "rutas_declaradas",
+      "cumple": true,
+      "evidencia": "He pasado a cada línea la expresión del extractor de scripts/workflow/tarea.sh. Tras «Rutas:» salen solo ficheros concretos: T001, internal/evals/umbrales.go, informe.go y doc.go; T002, las dos `evals/<skill>/juez/clases.yaml` e internal/evals/umbrales_test.go, informe_test.go y conjunto_test.go; T003, specs/021-h26-el-umbral-de/mutantes.md; T004, CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, docs/WORKFLOW.md y CLAUDE.md; T005, specs/021-h26-el-umbral-de/cierre.md e internal/evals/umbrales.go. Lo demás que extrae son nombres sin directorio (`umbrales.go`, `clases.yaml`, `_test.go`, `plan.md`…) y documentos del feature, que no son ficheros del repositorio. Los tests que T001 cambia viven en umbrales_test.go e informe_test.go (las siete funciones y sus ayudantes `umbralesDeJurisprudencia` y `umbralesDeLasClasesDeJurisprudencia`, informe_test.go:5062 y 5093), que el guardián admite por su `.go` declarado (scripts/workflow/guardian-diff.sh, `${r%.go}_test.go`). Ninguna ruta genérica ni directorio."
+    },
+    {
+      "id": "e",
+      "criterio": "datos_separados",
+      "cumple": true,
+      "evidencia": "Ninguna tarea toca testdata/ ni schemas/: el precheck no da ninguna línea, internal/evals/testdata no tiene ningún fichero con umbrales de clase y el esquema de la declaración no cambia. T002 lleva `[datos]` porque lo piden la entrada (docs/ROADMAP.md:672, «tareas `[datos]`») y FR-020, y lleva con los dos valores los tests sin los que `make ci` no queda en verde; la etiqueta no cambia lo que el workflow hace con ella: sin manifiesto, `grabar-datos.sh comprobar` sale con 0 y `grabar` no graba nada (líneas 80 a 93 y la guarda de `manifiestos` vacíos), y el guardián sigue limitando el diff a las rutas declaradas. No hay dato externo (plan.md, «Datos externos»): 0.028 y 0.017 están en docs/ROADMAP.md:668 y 672 y en el ADR 0038 (línea 75), y llegan a los ficheros con `git apply` del diff versionado en contracts/, sin teclear ningún número."
+    },
+    {
+      "id": "f",
+      "criterio": "dod",
+      "cumple": true,
+      "evidencia": "tasks.md, «Definition of Done → tareas», recorre los 13 puntos de docs/ROADMAP.md §1 (líneas 24 a 36): `make ci` por tarea y en T005; tests offline en T001 y T002; `CHANGELOG.md` (*Unreleased*) en T004 (FR-050, FR-079); cobertura en T005, con los dos perfiles de `make ci`; sin ADR, porque la decisión es el ADR 0038, ya aceptado; sin fila de `docs/SOURCES.md`, porque no se toca ninguna fuente; ningún esquema ni fixture cambia, con `schema-check` ejecutado en T002 y constatado en T005; y los puntos 5, 10, 11, 12 y 13 no aplican: ni el binario, ni un applet, ni una skill cambian."
+    },
+    {
+      "id": "g",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "Comprobado sin modelo sobre checklists/requirements.md y spec.md: 26 ítems marcados y ninguno sin marcar; 0 marcas NEEDS CLARIFICATION en spec.md; 15 escenarios «Dado» (5, 3, 2, 3, 1 y 1 por historia), como dice la marca; «Clarifications» lleva las dos respuestas del paso de clarify; los 14 SC existen; los casos límite que enumera la marca están en «Edge Cases»; y «Fuera de alcance» lleva las seis viñetas del hito. La transcripción de la Entrega (4), los Controles (10), la Aceptación y «Fuera de alcance» la he leído junto a docs/ROADMAP.md, líneas 668 a 694, y tres fragmentos largos (la Aceptación, el control de los mutantes y la viñeta de la serie de cierres) los he buscado como cadena fija: están una vez en cada fichero. No he hecho el diff mecánico de los 21."
+    },
+    {
+      "id": "h",
+      "criterio": "aceptacion_primero",
+      "cumple": true,
+      "evidencia": "plan.md, «Aceptación e2e: no aplica» (líneas 133 a 149), con su fila en Complexity Tracking y los precedentes de H24 y H25; tasks.md no lleva tarea `[aceptacion]` y el precheck lo admite. La justificación se sostiene en el árbol: `go list -deps ./cmd/...`, ejecutado en esta sesión, no da ninguna dependencia de `internal/evals`, así que ningún binario lo enlaza y no hay comportamiento de `kitlegal` que un guion describa; cambiarlo fuera de ese paquete está fuera de alcance (FR-062). Los 15 escenarios del spec tienen su test en `make ci` (US1.1 a US1.4 y US2.1 y US2.2 en T002; US2.3 y US4.1 a US4.3 en T001; US3.1 y US3.2 en T002; US5.1 en los tests del sondeo, que no cambian), los mide el cierre (US1.5, SC-001) o se leen (US6.1, SC-013)."
+    },
+    {
+      "id": "i",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide nada a una persona, publica la rama, abre la propuesta ni mide CI o evals remotas: lo dicen la batería («Sin red ni modelo», «Sin personas a mitad») y T005, que deja quickstart.md §9 al workflow y §10 para después del run; el precheck no da ninguna línea de plataforma, de persona ni de grabación. Lo que ejecutan las tareas es local y en primer plano: `go test`, `git apply`, `grep`, `make ci` y, en T003, un worktree en el directorio temporal que la propia tarea retira. Ninguna abre una sesión con modelo ni lanza el sondeo o la medida del juez (FR-060)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "analyze.md, I1 (MEDIUM), sigue sin aplicar: SC-013 pide en `CLAUDE.md` «0 afirmaciones […] de que el job no aplica todavía el ADR 0038», sin cualificar, y la viñeta de H25 (CLAUDE.md:23) dice «que el job no aplica hasta H26», que T004 y contracts/documentos.md mandan no tocar. FR-054 sí cualifica («donde lo dice como algo que vale hoy») y la frase sigue siendo cierta de aquel cierre, así que no cambia lo que se construye; conviene que la revisión final lea SC-013 a través de FR-054, o cualificar SC-013 con las mismas palabras.",
+    "T005 se declara «sin código de producto» y lista internal/evals/umbrales.go en «Rutas» solo para que el guardián admita umbrales_test.go si falta cobertura (analyze.md, I2): con esa ruta el guardián aceptaría también un cambio en el código. Bastaría declarar internal/evals/umbrales_test.go. Además, `cierre.md` no está en la estructura de documentación de plan.md, que sí nombra `mutantes.md`; tasks.md lo dice en su cabecera.",
+    "T002 lleva `[datos]` sin tocar testdata/ ni schemas/ y con tests dentro. No es la mezcla que veta la rúbrica (esa regla es de las tareas que tocan esos dos directorios), la etiqueta viene de la entrada del hito y una tarea solo con los dos números no puede dejar `make ci` en verde, porque `TestEvalsDelRepositorio` fija hoy `Umbral: 0`. Quien revise los datos tiene el diff aislado en contracts/clases-yaml.diff y la orden `git apply --reverse --check` de quickstart.md §1.",
+    "El escenario US5.1 del spec da un caso con números (9 respuestas juzgadas y 1 marcada, «1 de 9 (11,1 %)») que ningún test del sondeo lleva tal cual: sondeo_test.go fija la línea con 0 de 9, 0 de 8, 0 de 0 y 1 de 1. El spec nombra como control los tests que ya hay (FR-040, SC-014) y `sondeo.go` no llama al código que cambia, así que no hay vía por la que su salida cambie.",
+    "El caso límite de 3 de 107 y 1 de 58 (porcentaje escrito igual al de la condición, con `cumple` falso) no tiene caso en T001 ni en T002 (analyze.md, C1). La clarificación dice que no añade ningún requisito; research M5 dice haberlo visto en el prototipo, y `104-con-3` ejerce la misma ruta de escritura.",
+    "T001 hace que `exigirLosDoceDelContrato` exija trece elementos y no dice nada de su nombre; y los trece que escribe a mano llevan el `umbral: 0` de la constante de los tests, no el 0.028 de contracts §1, que llega con `TestUmbralConjunto` en T002. No afecta a ningún veredicto.",
+    "checklists/requirements.md, «Requirements are testable and unambiguous», dice que cada FR lleva un **Control**, «Comprobable» o remite a FR-070 a FR-079. FR-060 no lleva ninguno de los tres (lo garantiza el sandbox del ADR 0032 y lo constata T005), y FR-051 a FR-054 lo llevan solo por la frase que los remite a SC-013. La marca es cierta en lo que afirma del conjunto; su justificación generaliza de más.",
+    "T001 concentra el código, los comentarios de tres ficheros y siete funciones de test (analyze.md, U1): es la tarea con más riesgo de cuarentena, y de ella dependen las otras cuatro. Partirla dejaría `make ci` en rojo entre tareas (research M2, D12).",
+    "T003 depende de que T001 escriba `umbralesConjuntos` con su vuelta `range j.deLosModos() {` y su `Decide: true,` para que casen las dos sustituciones de quickstart.md §6; T001 lo dice y T003 lleva la guarda «NO SE HA APLICADO» y el ajuste al mutante de contracts §8. He comprobado por lectura que cada mutante cambia el veredicto de los casos que T003 exige (mutante 1: 3 de 54 y 2 de 54 pasan de 0.028, y 1 de 30, de 0.017; mutante 2: ningún conjunto decide).",
+    "Queda falso a sabiendas, por decisión registrada en el spec (Clarifications y «Fuera de alcance»; analyze.md, A1), el comentario de .github/workflows/evals.yml que dice «doce umbrales, diez que deciden»: ninguna tarea lo declara y va al informe final como pendiente para la persona.",
+    "Del juez del plan, y sigue valiendo: el resumen de umbrales de scripts/workflow/informe.sh cuenta juntos los que no se cumplen y los que solo se publican, y con el recuento por modo sin decidir nombrará cuatro por skill en cada cierre. `scripts/workflow/` queda fuera de un hito (FR-062).",
+    "Lo que no he medido: `make ci`, ningún test, el lint, `govulncheck`, el prototipo de research (tablas M, que ya no existe), los dos mutantes, `git worktree add` y `git worktree remove` (escriben en .git, y este paso solo escribe el veredicto) ni `precheck.sh tasks`, del que he leído su salida versionada, de 0 bytes. De M2 a M6, M9, M10, M13, M15 y M16 tengo lo que dice research.md, la lectura del código de hoy y la aritmética rehecha a mano (3/108 = 0,0278; 4/108 = 0,0370; 2/104 = 0,0192; 3/104 = 0,0288; 1/60 = 0,0167; 2/60 = 0,0333; 3/54 = 0,0556; 1/30 = 0,0333). En el repositorio solo he escrito este fichero."
+  ]
+}
