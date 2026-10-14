@@ -6,7 +6,7 @@
 #   scripts/workflow/cierre.sh publicar <hito>         # empuja la rama y abre la propuesta si no existe
 #   scripts/workflow/cierre.sh medir <hito> <max>      # CI y evals sobre la cabeza → JSON {verde, ronda, reparar, …}
 #   scripts/workflow/cierre.sh reparado <hito>         # tras reparar_cierre: verifica, commitea y cuenta la reparación → JSON
-#   scripts/workflow/cierre.sh evals <hito>            # solo recoge los informes de evals de la última medición
+#   scripts/workflow/cierre.sh evals <hito>            # solo recoge los informes de evals de la última medición y su fila de la serie
 #
 # Una medición vale solo para el producto que midió (ADR 0030). `medir` la repite en
 # cada vuelta del bucle, salvo en un caso: si desde la última nada ha cambiado fuera
@@ -23,7 +23,11 @@
 # gates/evals/<skill>.json: el job lo imprime entero en su registro entre las marcas
 # «--- inicio de informe.json ---» y «--- fin de informe.json ---» (scripts/evals.sh),
 # y de ahí lo copia este paso, sin modelo. El informe final saca de esos ficheros la
-# tasa de cada eval (ADR 0028). `evals` hace solo esa recogida, sin empujar ni poner
+# tasa de cada eval (ADR 0028). Con cada informe, si la skill tiene juez, anota la
+# fila de la medición en gates/serie.jsonl, la serie de cierres del ADR 0038
+# (scripts/workflow/serie.sh): cuentan todas las mediciones completas del cierre, no
+# solo la última, y una fila que no casa con los umbrales de su informe detiene el
+# cierre con un dossier. `evals` hace solo esa recogida y esa fila, sin empujar ni poner
 # etiquetas, sobre las comprobaciones que ya están en gates/cierre.json: sirve para un
 # run que midió con un workflow anterior.
 #
@@ -62,7 +66,7 @@ dossier() {
 # Un trabajo cuyo registro no trae un informe legible no deja fichero: el informe final
 # lo dice. Nunca para el run: las tasas son información para la persona, no un gate.
 recoger_evals() {
-  local e="$d/gates/evals" fila nombre skill link run job destino ajenas
+  local e="$d/gates/evals" fila nombre skill link run job
   rm -rf "$e"; mkdir -p "$e"
   jq -c '.checks[] | select(.workflow == "evals" and (.bucket == "pass" or .bucket == "fail"))' "$d/gates/cierre.json" |
   while IFS= read -r fila; do
@@ -71,38 +75,45 @@ recoger_evals() {
     run=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/([0-9]+)/job/[0-9]+.*#\1#p')
     job=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/[0-9]+/job/([0-9]+).*#\1#p')
     [ -n "$skill" ] && [ -n "$run" ] && [ -n "$job" ] || continue
-    destino="$e/$skill.json"
-    # gh run view --log antepone trabajo, paso y hora a cada línea: se quitan con cut y sed.
-    # GitHub guarda el registro en trozos y cada uno empieza por la marca de orden de bytes
-    # (EF BB BF), que queda delante de la hora: un informe largo cruza un trozo, y con la
-    # marca delante la hora no se quitaba y el informe dejaba de ser JSON (H21: el de
-    # boe-legislacion en dos modos, 821 kB, quedó fuera del informe final).
-    gh run view "$run" --job "$job" --log 2>/dev/null | cut -f3- | sed $'s/^\xef\xbb\xbf//' | sed -E 's/^[0-9-]+T[0-9:.]+Z //' \
-      | awk '$0 == "--- inicio de informe.json ---" {p = 1; next} $0 == "--- fin de informe.json ---" {p = 0} p' > "$destino.bruto" || true
-    # Entre las dos marcas puede caer una línea que no es del informe. El registro junta la salida
-    # estándar y la de error del paso, que el runner lee por separado, y cuando el trabajo falla el
-    # «make: *** [Makefile:…: evals] Error 1» de la salida de error queda en un punto cualquiera de
-    # lo que la estándar aún no había entregado (H25, medición 1: cayó dentro del informe de
-    # boe-legislacion, que dejó de ser JSON, y la reparación del cierre trabajó sin él). El informe
-    # lo escribe el job con sangría: cada línea suya empieza por un espacio o por una llave, y la
-    # que no, es de otra salida. Se descarta y se dice cuántas.
-    ajenas=$(grep -c -v '^[ {}]' "$destino.bruto" || true)
-    grep '^[ {}]' "$destino.bruto" > "$destino" || true
-    rm -f "$destino.bruto"
-    if jq -e '.skill and (.tasas | type == "array")' "$destino" >/dev/null 2>&1; then
-      echo "evals: informe de $skill en $destino" >&2
-      [ "${ajenas:-0}" -eq 0 ] || echo "evals: el registro de $nombre traía dentro del informe líneas de otra salida, descartadas: $ajenas" >&2
-    else
-      rm -f "$destino"; echo "evals: el registro de $nombre no trae un informe.json legible" >&2
-    fi
+    informe_del_trabajo "$run" "$job" "$e/$skill.json" "$nombre" "$skill" </dev/null || true
   done
+}
+
+# Añade a gates/serie.jsonl, por cada trabajo de evals de gates/cierre.json cuya skill
+# tiene juez en el commit medido, la fila de esta medición (ADR 0038, punto 6;
+# scripts/workflow/serie.sh): también si la medición está incompleta o el trabajo no
+# dejó informe, que la fila lo dice y no cuenta. Recoger otra vez la misma medición
+# sustituye su fila. Sale con 1 si una fila no casa con los umbrales de su informe:
+# entonces el recuento de la serie no es el del job, y no se escribe.
+anotar_serie() {
+  local fila nombre skill link run job sha ronda fecha propuesta p nueva informe
+  sha=$(jq -r .sha "$d/gates/cierre.json"); ronda=$(jq -r .ronda "$d/gates/cierre.json"); fecha=$(jq -r '.fecha // ""' "$d/gates/cierre.json")
+  propuesta=$(gh pr view "$rama" --json number --jq .number 2>/dev/null </dev/null || true)
+  printf '%s' "$propuesta" | grep -qE '^[0-9]+$' || propuesta=null
+  while IFS= read -r fila; do
+    nombre=$(jq -r .name <<<"$fila"); link=$(jq -r .link <<<"$fila")
+    skill=$(printf '%s' "$nombre" | sed -nE 's/^evals \(([a-z0-9-]+)\)$/\1/p')
+    run=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/([0-9]+)/job/[0-9]+.*#\1#p')
+    job=$(printf '%s' "$link" | sed -nE 's#.*/actions/runs/[0-9]+/job/([0-9]+).*#\1#p')
+    [ -n "$skill" ] && [ -n "$run" ] && [ -n "$job" ] || continue
+    git cat-file -e "$sha:evals/$skill/juez/clases.yaml" 2>/dev/null || continue
+    p=$(jq -nc --arg h "$hito" --argjson m "$ronda" --arg f "$(jq -r --arg f "$fecha" '.startedAt // $f' <<<"$fila")" \
+      --arg c "$sha" --argjson pr "$propuesta" --argjson e "$run" --argjson t "$job" \
+      '{hito: $h, medicion: $m, fecha: $f, commit: $c, propuesta: $pr, ejecucion: $e, trabajo: $t}')
+    informe="$d/gates/evals/$skill.json"; [ -f "$informe" ] || informe=""
+    nueva=$(scripts/workflow/serie.sh fila "$skill" "$p" "$informe") || return 1
+    scripts/workflow/serie.sh anotar "$d/gates/serie.jsonl" "$nueva" || return 1
+    echo "evals: fila de $skill en $d/gates/serie.jsonl ($(jq -r 'if .cuenta then "cuenta" else "no cuenta: " + .no_cuenta_porque end' <<<"$nueva"))" >&2
+  done < <(jq -c '.checks[] | select(.workflow == "evals" and (.bucket == "pass" or .bucket == "fail"))' "$d/gates/cierre.json")
 }
 
 case "$sub" in
   evals)
     [ -f "$d/gates/cierre.json" ] || { echo "evals: no hay gates/cierre.json; el cierre no ha medido" >&2; exit 1; }
     command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 || { echo "evals: gh no tiene sesión" >&2; exit 1; }
-    recoger_evals; exit 0;;
+    recoger_evals
+    anotar_serie || exit 1
+    exit 0;;
   iniciar)
     rm -f "$d/gates/cierre-rondas" "$d/gates/cierre-reparaciones" "$d/gates/cierre.json"
     echo "cierre: mediciones y reparaciones a cero"; exit 0;;
@@ -182,6 +193,7 @@ case "$sub" in
       { echo "== $link"; gh run view "$run" --log-failed 2>&1 | cut -f3- | tail -150; } >> "$d/gates/cierre.log"
     done
     recoger_evals
+    anotar_serie || dossier "serie de cierres" "La fila de la serie de cierres de una skill no casa con los umbrales de su informe (scripts/workflow/serie.sh fila; la salida de error del paso dice cuál y en qué). El recuento de la serie no es el del job: hay que arreglar serie.sh antes de seguir."
     jq -n --arg sha "$sha" --argjson verde "$verde" --argjson rojos "$rojos" --argjson n "$n" --argjson max "$max" \
       '{sha:$sha, verde:$verde, ronda:$n, reutilizada:false, reparar:(($verde | not) and $n < $max), rojos:[$rojos[].name]}';;
 

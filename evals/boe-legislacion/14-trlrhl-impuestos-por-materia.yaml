@@ -5,6 +5,7 @@
 pregunta: "¿Qué impuestos pueden exigir los ayuntamientos según el texto refundido de la Ley reguladora de las Haciendas Locales?"
 activa: true
 informativa: true
+por_materia: true
 comandos:
   - applet: boe
     norma: BOE-A-2004-4214

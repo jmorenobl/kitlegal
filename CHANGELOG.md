@@ -12,6 +12,21 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **La serie de cierres de las skills con juez y su tasa acumulada** (ADR 0038, punto 6; workflow `hito` 2.6.0). Cada
+  medición del cierre de un hito añade a `specs/<hito>/gates/serie.jsonl`, por cada skill con juez, una fila con las
+  respuestas que el juez marca y el total, por modo y por clase de pregunta, con la skill como estaba, el modelo que
+  decide y la huella del juez; su formato es el esquema nuevo `schemas/serie-de-cierres.json`. Cuentan todas las
+  mediciones completas del cierre, y ninguna de fuera de él. El informe final de un hito enseña la serie y la tasa
+  acumulada de la skill como está y, con 500 respuestas o más, el umbral que da la regla del ADR, sin decidir nada;
+  `scripts/workflow/serie.sh mostrar` la enseña fuera de un run. La semilla, las mediciones de cierre de H24 a H26,
+  está en `evidencias/adr-0038/serie-previa.jsonl`: hoy, 4 de 216 en `boe-legislacion` y 0 de 180 en
+  `jurisprudencia`, las dos por debajo de 500.
+- **`por_materia` en el formato de eval** (`schemas/eval.yaml.json`): con `true`, la pregunta no identifica el
+  precepto ni la sentencia y la busca por su materia. Lo llevan las evals 13 a 17 de `boe-legislacion` y la 03 y la
+  10 de `jurisprudencia`, y el job lo pone en cada sesión de su `informe.json`.
+
 ## [0.6.0] - 2026-10-14
 
 ### Añadido

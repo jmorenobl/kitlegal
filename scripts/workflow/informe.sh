@@ -19,6 +19,8 @@
 #      (expresiones_prohibidas_por_modelo: con alguna, total y porcentaje por modelo) y
 #      sus `umbrales` (ADR 0029): los que deciden y no se cumplen, marcados; los que solo
 #      se publican, dentro o por encima de su umbral, sin la marca de un incumplido;
+#      y la serie de cierres de cada skill con juez, con su tasa acumulada (ADR 0038,
+#      punto 6; scripts/workflow/serie.sh mostrar);
 #   4. lo que la constitución (capa 3) reserva a la persona: fuentes, anomalías,
 #      adaptadores nuevos, fixtures y esquemas nuevos o modificados (nombrados),
 #      grabaciones y evidencias;
@@ -182,6 +184,22 @@ seccion_evals() {
   done
   echo "Cada celda: sesiones que pasan de las abiertas; ✗, una serie que decide y no llega al umbral. Una eval informativa publica su tasa sin decidir el veredicto (ADR 0016). La regla por serie no hace cumplir un umbral agregado sobre todas las respuestas: eso solo lo hace un umbral del job que lo hace fallar (ADR 0029)."
   echo
+}
+
+# Serie de cierres de cada skill con juez (ADR 0038, punto 6), con las filas que el
+# cierre de este hito ha añadido en gates/serie.jsonl: una fila por medición y, debajo,
+# la tasa acumulada con la skill como está y, con 500 respuestas o más, el escalón de
+# la regla 3. Lo escribe scripts/workflow/serie.sh mostrar, el mismo código que enseña
+# la serie fuera de un run. Solo enseña: no decide nada ni propone subir un umbral.
+seccion_serie() {
+  local errores
+  ls evals/*/juez/clases.yaml >/dev/null 2>&1 || return 0
+  errores=$(mktemp)
+  if ! scripts/workflow/serie.sh mostrar 2>"$errores"; then
+    echo "La serie de cierres no se pudo enseñar (\`scripts/workflow/serie.sh mostrar\`): $(tail -1 "$errores")."
+    echo
+  fi
+  rm -f "$errores"
 }
 
 # Umbrales del informe del job (contrato del ADR 0029). Cada elemento de `umbrales` es
@@ -405,6 +423,7 @@ informe() {
   echo "## 3. Evals sobre la cabeza"
   echo
   seccion_evals
+  seccion_serie
 
   echo "## 4. Revisión que la constitución reserva a la persona"
   echo

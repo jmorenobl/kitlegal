@@ -164,3 +164,37 @@ controles_de_umbral() { # $1 = plan.md
 controles_de_celda() {
   printf '%s\n' "$1" | grep -oE '(ci:[A-Za-z0-9_./-]+(:[A-Za-z0-9_-]+)?|evals:[a-z0-9-]+:[A-Za-z0-9_.:-]+)' | sed -E 's/[.:]+$//' || true
 }
+
+# Extrae a $3 el informe.json que el trabajo $2 de la ejecución $1 del flujo `evals`
+# imprimió en su registro, entre las marcas «--- inicio de informe.json ---» y «--- fin
+# de informe.json ---» (scripts/evals.sh), y dice en la salida de error si recogió el
+# informe de la skill $5 o si el registro del trabajo $4 no lo trae. Sale con 0 si el
+# informe es legible y lo deja en $3; si no, lo borra y sale con 1. Lo usan el cierre
+# (cierre.sh) y la reconstrucción de la serie de cierres (serie.sh semilla).
+informe_del_trabajo() { # $1 = ejecución, $2 = trabajo, $3 = destino, $4 = nombre del trabajo, $5 = skill
+  local ajenas
+  # gh run view --log antepone trabajo, paso y hora a cada línea: se quitan con cut y sed.
+  # GitHub guarda el registro en trozos y cada uno empieza por la marca de orden de bytes
+  # (EF BB BF), que queda delante de la hora: un informe largo cruza un trozo, y con la
+  # marca delante la hora no se quitaba y el informe dejaba de ser JSON (H21: el de
+  # boe-legislacion en dos modos, 821 kB, quedó fuera del informe final).
+  gh run view "$1" --job "$2" --log 2>/dev/null | cut -f3- | sed $'s/^\xef\xbb\xbf//' | sed -E 's/^[0-9-]+T[0-9:.]+Z //' \
+    | awk '$0 == "--- inicio de informe.json ---" {p = 1; next} $0 == "--- fin de informe.json ---" {p = 0} p' > "$3.bruto" || true
+  # Entre las dos marcas puede caer una línea que no es del informe. El registro junta la salida
+  # estándar y la de error del paso, que el runner lee por separado, y cuando el trabajo falla el
+  # «make: *** [Makefile:…: evals] Error 1» de la salida de error queda en un punto cualquiera de
+  # lo que la estándar aún no había entregado (H25, medición 1: cayó dentro del informe de
+  # boe-legislacion, que dejó de ser JSON, y la reparación del cierre trabajó sin él). El informe
+  # lo escribe el job con sangría: cada línea suya empieza por un espacio o por una llave, y la
+  # que no, es de otra salida. Se descarta y se dice cuántas.
+  ajenas=$(grep -c -v '^[ {}]' "$3.bruto" || true)
+  grep '^[ {}]' "$3.bruto" > "$3" || true
+  rm -f "$3.bruto"
+  if jq -e '.skill and (.tasas | type == "array")' "$3" >/dev/null 2>&1; then
+    echo "evals: informe de $5 en $3" >&2
+    [ "${ajenas:-0}" -eq 0 ] || echo "evals: el registro de $4 traía dentro del informe líneas de otra salida, descartadas: $ajenas" >&2
+    return 0
+  fi
+  rm -f "$3"; echo "evals: el registro de $4 no trae un informe.json legible" >&2
+  return 1
+}

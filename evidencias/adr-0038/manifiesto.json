@@ -2,9 +2,9 @@
   "ficheros": [
     {
       "fichero": "LEEME.md",
-      "sha256": "9b3c39537ebf7e3ac82364c7c06b2c31666a779a2b2f810462323ddf00a4602e",
-      "bytes": 3831,
-      "fecha": "2026-10-12",
+      "sha256": "cc7aaac3dd87aae57c2704bfa45f17e58a32bb4d6e8ce1b013be6520aa2849c1",
+      "bytes": 6687,
+      "fecha": "2026-10-14",
       "versionado": "sí",
       "origen": "validación del ADR 0038"
     },
@@ -807,6 +807,22 @@
       "fecha": "2026-10-12",
       "versionado": "sí",
       "origen": "sondeo del 2026-10-12 con `claude-sonnet-5-5` y el paso de repaso"
+    },
+    {
+      "fichero": "serie-previa-fuentes.tsv",
+      "sha256": "2ac645a5cf3943810e67f038fefcbc31cee7fd3af2fbe533145225f9944785b2",
+      "bytes": 1046,
+      "fecha": "2026-10-14",
+      "versionado": "sí",
+      "origen": "las mediciones de cierre anteriores a la serie, de gates/cierre.json, del flujo evals y del registro de cada run"
+    },
+    {
+      "fichero": "serie-previa.jsonl",
+      "sha256": "e2e8beab901e3c7aabebea8e48b43599b0c1b1b17b3420fa7168602480d56164",
+      "bytes": 13914,
+      "fecha": "2026-10-14",
+      "versionado": "sí",
+      "origen": "scripts/workflow/serie.sh semilla serie-previa-fuentes.tsv, desde los registros de GitHub Actions"
     }
   ]
 }

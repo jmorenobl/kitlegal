@@ -44,6 +44,15 @@ type Eval struct {
 	// exigir (H5.1). Solo la ejecuta el modelo que decide.
 	Informativa bool `yaml:"informativa"`
 
+	// PorMateria dice que la pregunta no identifica lo que pregunta —ni el precepto
+	// ni la sentencia— y lo busca por su materia: la clase de pregunta con la que
+	// la serie de cierres reparte las respuestas marcadas por el juez (ADR 0038,
+	// punto 6). Falso por omisión, que es el caso normal: la pregunta nombra el
+	// precepto o la sentencia. Solo lo admite una eval que activa la skill y que
+	// no es sin binario ni servidor. No es lo mismo que Informativa: una eval
+	// informativa puede nombrar el precepto.
+	PorMateria bool `yaml:"por_materia"`
+
 	// GrafoPrevio es lo que el grafo de la sesión tiene que haber registrado
 	// antes de que empiece: las grabaciones con las que se prepara y los comandos
 	// de bloque que lo llenan. Vacío si la eval no lo lleva; solo lo admite una

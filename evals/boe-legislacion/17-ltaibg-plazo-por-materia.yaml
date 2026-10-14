@@ -5,6 +5,7 @@
 pregunta: "¿En qué plazo hay que resolver una solicitud de acceso a la información pública según la Ley 19/2013?"
 activa: true
 informativa: true
+por_materia: true
 comandos:
   - applet: boe
     norma: BOE-A-2013-12887

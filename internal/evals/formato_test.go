@@ -795,6 +795,50 @@ func TestLeerEval(t *testing.T) {
 			documento: preguntaDelArticulo21 + "activa: true\nsin_binario_ni_servidor: false\n",
 			error:     nombreDeEval + ": sin_binario_ni_servidor, línea 3: value must be true",
 		},
+		{
+			// Desde la serie de cierres (ADR 0038, punto 6), la clase de pregunta:
+			// una pregunta por materia lo declara, con informativa o sin ella.
+			nombre:    "por-materia",
+			documento: preguntaDelArticulo21 + "activa: true\npor_materia: true\n" + comandoDelArticulo21 + citaDelArticulo21,
+			leida: Eval{
+				Fichero:    nombreDeEval,
+				Pregunta:   "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:     true,
+				PorMateria: true,
+				Comandos:   comandoDelArticulo21Leido,
+				Citas:      citaDelArticulo21Leida,
+			},
+		},
+		{
+			// Con false es el caso normal, el de la eval que no lo escribe.
+			nombre:    "por-materia-falso",
+			documento: preguntaDelArticulo21 + "activa: true\npor_materia: false\n" + comandoDelArticulo21 + citaDelArticulo21,
+			leida: Eval{
+				Fichero:  nombreDeEval,
+				Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+				Activa:   true,
+				Comandos: comandoDelArticulo21Leido,
+				Citas:    citaDelArticulo21Leida,
+			},
+		},
+		{
+			nombre:     "por-materia-no-booleano",
+			documento:  positivaDelArticulo21 + "por_materia: si\n",
+			fragmentos: []string{"por_materia"},
+		},
+		{
+			// Una eval de no activación no tiene respuestas que repartir.
+			nombre:    "no-activa-por-materia",
+			documento: evalDeLaReceta + "por_materia: true\n",
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			// Las respuestas de una eval sin binario ni servidor no son de ningún
+			// modo y no cuentan en la serie.
+			nombre:    "sin-binario-ni-servidor-con-por-materia",
+			documento: evalSinBinarioDeBoeLegislacion + "por_materia: true\n",
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
 	}
 
 	for _, caso := range casos {
@@ -1309,6 +1353,7 @@ func probarLaRamaSinBinarioNiServidor(t *testing.T) {
 		"territorio":  map[string]any{"comunidad": "Comunidad de Madrid"},
 		"informativa": true,
 		"reproduce":   "boe-fiscal",
+		"por_materia": true,
 	}
 
 	for clave, valor := range excluidas {

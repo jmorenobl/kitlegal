@@ -608,8 +608,9 @@ juez con modelo (las dos, abajo). Todas las evals siguen el formato común de ev
 | `redacciones_modificadas` | no; solo si `activa` es `true`, prohibido si es `false` | Las líneas `⚠ REDACCIÓN MODIFICADA:` que debe llevar la respuesta, cada una con su `norma`, su `bloque` y sus dos fechas de vigencia `AAAAMMDD`: `fecha_vigencia`, la de la redacción superada, y `fecha_vigencia_reciente`, la de la que cita; al menos una |
 | `no_se_activan` | no | Las skills que la sesión no debe activar, por su nombre y sin repetir (`boe-legislacion` en las de `legal-core`); al menos una |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
+| `por_materia` | no; solo si `activa` es `true` y la eval no es `sin_binario_ni_servidor` | Con `true`, la pregunta no identifica lo que pregunta —ni el precepto ni la sentencia— y lo busca por su materia. Falso por omisión: el caso normal es nombrar el precepto o la sentencia. Es la clase de pregunta con la que la serie de cierres reparte las respuestas que marca el juez (ADR 0038, punto 6), y el job la pone en cada sesión de su `informe.json`. No se deduce de `informativa` ni del nombre del fichero: una eval informativa puede nombrar el precepto |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
-| `sin_binario_ni_servidor` | no; solo `true`, y solo si `activa` es `true` | La sesión de la eval tiene la skill y nada más: ni `kitlegal` en el `PATH` ni el servidor MCP declarado. La respuesta debe llevar la línea `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa misma línea, y ninguna cita. Una eval que la lleva no lleva `comandos`, `citas`, `territorio`, `sentencias`, `avisos`, `hallazgos`, `prohibidos`, `grafo_previo`, `redacciones_modificadas`, `informativa` ni `reproduce`, aunque `activa` sea `true`; sí puede llevar `no_se_activan` |
+| `sin_binario_ni_servidor` | no; solo `true`, y solo si `activa` es `true` | La sesión de la eval tiene la skill y nada más: ni `kitlegal` en el `PATH` ni el servidor MCP declarado. La respuesta debe llevar la línea `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa misma línea, y ninguna cita. Una eval que la lleva no lleva `comandos`, `citas`, `territorio`, `sentencias`, `avisos`, `hallazgos`, `prohibidos`, `grafo_previo`, `redacciones_modificadas`, `informativa`, `reproduce` ni `por_materia`, aunque `activa` sea `true`; sí puede llevar `no_se_activan` |
 
 Cada fichero de eval de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra
 `schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre,
@@ -1131,6 +1132,9 @@ Cómo se lee el informe:
   decide— se ejecuta y se publica con la columna «Decide» en `no`: no llegar al umbral no da ningún motivo, así que su
   tasa se mira, pero no bloquea. Lo que no depende de la tasa cuenta en cualquier serie: una sesión que falta, una
   ilegible, una sin medir o una petición llegada a la red hacen fallar el veredicto igual.
+- **La clase de pregunta**: cada elemento de `evals` de `informe.json` lleva `por_materia`, el de su eval, también
+  con `false`. Con él, y con `juez.respuestas`, la serie de cierres reparte por modo y por clase de pregunta las
+  respuestas que marca el juez sin leer las evals (ADR 0038, punto 6; `docs/WORKFLOW.md`, «La serie de cierres»).
 - **Los umbrales**: `umbrales`, siempre en la raíz de `informe.json`, con el contrato del ADR 0029 —`nombre`,
   `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)

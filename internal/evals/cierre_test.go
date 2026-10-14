@@ -2,6 +2,9 @@ package evals
 
 import (
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
+	"fmt"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -31,20 +34,16 @@ const (
 	// devuelve como el de un trabajo.
 	variableDelRegistro = "KITLEGAL_TEST_REGISTRO_DEL_TRABAJO"
 
-	// ghDelCierre es el gh que el cierre encuentra en el test: tiene sesión y, al
-	// pedirle el registro de un trabajo, da el del caso. No toca la red.
+	// ghDelCierre es el gh que el cierre encuentra en el test: tiene sesión, al
+	// pedirle el registro de un trabajo da el del caso y la propuesta de la rama
+	// es la 140. No toca la red.
 	ghDelCierre = `#!/bin/sh
 case "$1 $2" in
   "auth status") exit 0;;
   "run view") cat "$` + variableDelRegistro + `";;
+  "pr view") echo 140;;
   *) echo "gh sustituto: orden inesperada: $*" >&2; exit 1;;
 esac
-`
-
-	// gitDelCierre responde a la única orden de git que el cierre ejecuta antes
-	// de recoger los informes: la rama actual.
-	gitDelCierre = `#!/bin/sh
-echo rama-del-test
 `
 
 	directorioDelHitoDelCierre = "specs/000-hito-del-test"
@@ -152,7 +151,7 @@ func TestRecogerLasEvalsDelCierre(t *testing.T) {
 				lineas = lineas[:len(lineas)-1]
 			}
 
-			raiz := arbolDelCierre(t, registroDelTrabajo(lineas, caso.marcas, caso.ajenas))
+			raiz := arbolDelCierre(t, registroDelTrabajo(lineas, caso.marcas, caso.ajenas), nil)
 
 			codigo, deError := ejecutarElCierre(t, raiz)
 
@@ -271,10 +270,12 @@ func registroDelTrabajo(informe []string, marcas, ajenas []int) string {
 }
 
 // arbolDelCierre deja en un temporal lo que el cierre necesita para recoger los
-// informes de un hito: sus dos guiones, el directorio del hito con una medición
-// en la que el trabajo de evals de la skill terminó, los sustitutos de gh y de
-// git y el registro que gh devuelve. Da la raíz del árbol.
-func arbolDelCierre(t *testing.T, registro string) string {
+// informes de un hito: un repositorio de git en la rama del hito, con sus tres
+// guiones —el cierre, el común y el de la serie, que anota la fila de cada skill
+// con juez— y los ficheros commiteados dados; y, fuera del commit, el directorio
+// del hito con una medición en la que el trabajo de evals de la skill terminó, el
+// sustituto de gh y el registro que gh devuelve. Da la raíz del árbol.
+func arbolDelCierre(t *testing.T, registro string, commiteados map[string]string) string {
 	t.Helper()
 
 	directorio := t.TempDir()
@@ -288,19 +289,21 @@ func arbolDelCierre(t *testing.T, registro string) string {
 		require.NoError(t, raiz.MkdirAll(d, 0o750))
 	}
 
-	guiones, err := os.OpenRoot(guionesDelWorkflow)
-	require.NoError(t, err)
+	copiarGuiones(t, raiz, guionDelCierre, comunDelWorkflow, guionDeLaSerie)
 
-	defer func() { require.NoError(t, guiones.Close()) }()
+	ficheros := map[string]string{".specify/feature.json": `{"feature_directory": "` + directorioDelHitoDelCierre + `"}`}
+	maps.Copy(ficheros, commiteados)
 
-	for _, nombre := range []string{guionDelCierre, comunDelWorkflow} {
-		guion, err := guiones.ReadFile(nombre)
-		require.NoError(t, err)
-		require.NoError(t, escribirEjecutable(raiz, "scripts/workflow/"+nombre, string(guion)))
+	for nombre, contenido := range ficheros {
+		require.NoError(t, raiz.MkdirAll(filepath.Dir(nombre), 0o750))
+		require.NoError(t, raiz.WriteFile(nombre, []byte(contenido), 0o600))
 	}
 
+	ejecutarGit(t, directorio, "init", "-q", "-b", "rama-del-test")
+	ejecutarGit(t, directorio, "add", "-A")
+	ejecutarGit(t, directorio, "commit", "-q", "-m", "el hito del test")
+
 	require.NoError(t, escribirEjecutable(raiz, "bin/gh", ghDelCierre))
-	require.NoError(t, escribirEjecutable(raiz, "bin/git", gitDelCierre))
 
 	medicion, err := json.Marshal(map[string]any{"checks": []any{map[string]any{
 		"workflow": "evals",
@@ -311,9 +314,8 @@ func arbolDelCierre(t *testing.T, registro string) string {
 	require.NoError(t, err)
 
 	for nombre, contenido := range map[string]string{
-		".specify/feature.json":                           `{"feature_directory": "` + directorioDelHitoDelCierre + `"}`,
 		directorioDelHitoDelCierre + "/gates/cierre.json": string(medicion),
-		"registro.log":                                    registro,
+		"registro.log": registro,
 	} {
 		require.NoError(t, raiz.WriteFile(nombre, []byte(contenido), 0o600))
 	}
@@ -330,7 +332,7 @@ func ejecutarElCierre(t *testing.T, raiz string) (codigo int, deError string) {
 	// argumentos son literales: no hay entrada externa en la orden.
 	//nolint:gosec // el guion lo escribe el test en su temporal y los argumentos son literales; no hay entrada externa.
 	orden := exec.CommandContext(t.Context(), filepath.Join(raiz, "scripts", "workflow", guionDelCierre), "evals", "H0")
-	orden.Env = sobreLaBase(os.Environ(), []string{
+	orden.Env = sobreLaBase(entornoDeGitDelTest(), []string{
 		"PATH=" + filepath.Join(raiz, "bin") + string(os.PathListSeparator) + os.Getenv("PATH"),
 		variableDelRegistro + "=" + filepath.Join(raiz, "registro.log"),
 	})
@@ -349,4 +351,107 @@ func ejecutarElCierre(t *testing.T, raiz string) (codigo int, deError string) {
 	}
 
 	return 0, errores.String()
+}
+
+// TestSerieDelCierre ejerce lo que `cierre.sh evals` añade a la serie de cierres
+// (ADR 0038, punto 6) al recoger los informes de cada medición de un cierre de
+// tres, con el informe de la skill con juez en el registro de su trabajo:
+//
+//   - las tres mediciones dan tres filas en gates/serie.jsonl, cada una con su
+//     medición, su ejecución, su trabajo, su fecha y la propuesta de la rama:
+//     cuentan todas, no solo la que pasó;
+//   - la segunda, con una respuesta medida sin juzgar, se registra y no cuenta;
+//   - recoger otra vez la tercera sustituye su fila, sin duplicarla;
+//   - y una cuarta cuya fila no casa con los umbrales de su informe sale con 1,
+//     lo dice y deja la serie como estaba.
+func TestSerieDelCierre(t *testing.T) {
+	t.Parallel()
+
+	if _, err := exec.LookPath("jq"); err != nil {
+		t.Skip("el guion del cierre lee con jq, que no está en el PATH")
+	}
+
+	raiz := arbolDelCierre(t, "", ficherosDeLaSerie(umbralDeBoe))
+	commit := ejecutarGit(t, raiz, "rev-parse", "HEAD")
+	serie := filepath.Join(raiz, directorioDelHitoDelCierre, "gates", "serie.jsonl")
+
+	completo := func() Informe {
+		informe := informeDeLaSerie(commit, sesionesDeCierre(), true)
+		informe.Tasas = []TasaDelInforme{}
+
+		return informe
+	}
+
+	sinJuzgar := completo()
+	sinJuzgar.Juez.SinJuzgar = []RespuestaSinJuzgar{{Sesion: sesionesDeCierre()[0].nombre(0), Motivo: "voto 3: tope agotado"}}
+
+	noCasa := completo()
+	noCasa.Umbrales[0].Medida++
+
+	medir := func(ronda int, informe Informe) (int, string) {
+		t.Helper()
+
+		medicion, err := json.Marshal(map[string]any{
+			"sha": commit, "ronda": ronda, "fecha": "2026-10-13T13:00:00Z",
+			"checks": []any{map[string]any{
+				"workflow":  "evals",
+				"bucket":    "fail",
+				"name":      "evals (" + skillDelCierre + ")",
+				"link":      fmt.Sprintf("https://github.com/jmorenobl/kitlegal/actions/runs/%d/job/%d", 10+ronda, 20+ronda),
+				"startedAt": fmt.Sprintf("2026-10-1%dT12:33:08Z", ronda),
+			}},
+		})
+		require.NoError(t, err)
+
+		escrito, err := json.MarshalIndent(informe, "", "  ")
+		require.NoError(t, err)
+
+		for nombre, contenido := range map[string]string{
+			filepath.Join(directorioDelHitoDelCierre, "gates", "cierre.json"): string(medicion),
+			"registro.log": registroDelTrabajo(strings.Split(string(escrito), "\n"), []int{-1}, nil),
+		} {
+			require.NoError(t, os.WriteFile(filepath.Join(raiz, nombre), []byte(contenido), 0o600))
+		}
+
+		return ejecutarElCierre(t, raiz)
+	}
+
+	for ronda, informe := range []Informe{completo(), sinJuzgar, completo(), completo()} {
+		ronda = min(ronda+1, 3)
+
+		codigo, deError := medir(ronda, informe)
+		require.Equalf(t, 0, codigo, "la medición %d se recoge: %s", ronda, deError)
+		assert.Contains(t, deError, "evals: fila de "+skillDelCierre+" en ")
+	}
+
+	escrita, err := leerFichero(serie)
+	require.NoError(t, err)
+
+	lineas := strings.Split(strings.TrimSuffix(string(escrita), "\n"), "\n")
+	require.Len(t, lineas, 3, "una fila por medición, y la que se recoge otra vez se sustituye")
+
+	for n, linea := range lineas {
+		validarContraElEsquemaDeLaSerie(t, []byte(linea))
+
+		var fila filaDeLaSerie
+
+		require.NoError(t, jsonv2.Unmarshal([]byte(linea), &fila))
+
+		propuesta := 140
+		assert.Equal(t, procedenciaDeLaFila{
+			Hito: "H0", Medicion: n + 1, Fecha: fmt.Sprintf("2026-10-1%dT12:33:08Z", n+1), Commit: commit,
+			Propuesta: &propuesta, Ejecucion: 11 + n, Trabajo: 21 + n,
+		}, fila.Procedencia)
+		assert.Equal(t, n != 1, fila.Cuenta, "la medición %d cuenta salvo la incompleta", n+1)
+		require.Len(t, fila.Clases, 1)
+		assert.Equal(t, 6, fila.Clases[0].Total, "cada medición registra lo medido")
+	}
+
+	codigo, deError := medir(4, noCasa)
+	assert.Equal(t, 1, codigo, "una fila que no casa con su informe para el cierre")
+	assert.Contains(t, deError, "no casa con los umbrales de su informe")
+
+	despues, err := leerFichero(serie)
+	require.NoError(t, err)
+	assert.Equal(t, string(escrita), string(despues), "la serie queda como estaba")
 }

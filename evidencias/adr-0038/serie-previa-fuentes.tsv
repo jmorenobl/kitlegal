@@ -1,0 +1,16 @@
+# Mediciones de cierre anteriores a la serie de cierres (ADR 0038, punto 6), juzgadas con el juez de hoy, de las que
+# scripts/workflow/serie.sh semilla saca evidencias/adr-0038/serie-previa.jsonl. Una por trabajo de evals de una skill
+# con juez: hito, medición dentro de su cierre, propuesta de cambio, ejecución y trabajo de GitHub Actions, y skill,
+# separados por tabuladores. Cómo se eligieron, y las que no están, en LEEME.md.
+H24	1	121	37394360637	112046914636	boe-legislacion
+H24	2	121	37400993299	112068066671	boe-legislacion
+H24	3	121	37406586514	112085595991	boe-legislacion
+H23	1	126	37661635788	112930858412	boe-legislacion
+H25	1	135	38073990323	114277201002	boe-legislacion
+H25	1	135	38073990323	114277200985	jurisprudencia
+H25	2	135	38077358779	114287193185	boe-legislacion
+H25	2	135	38077358779	114287193201	jurisprudencia
+H25	3	135	38086437788	114313941454	boe-legislacion
+H25	3	135	38086437788	114313941489	jurisprudencia
+H26	1	140	38397987554	115298432961	boe-legislacion
+H26	1	140	38397987554	115298432968	jurisprudencia
