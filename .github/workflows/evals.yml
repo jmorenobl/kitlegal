@@ -149,9 +149,13 @@ jobs:
   # (specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §2 y §5; contracts/informe-del-job.md §1 a §5).
   # Desde H23, jurisprudencia es la tercera skill de la matriz, y sus umbrales cita_sin_documento y sin_activar de cada
   # modo se miden sin modelo (specs/019-h23-skill-jurisprudencia-ninguna/contracts/evals-jurisprudencia.md §4 y §6).
-  # Desde H25 tiene juez, y su informe lleva además, por modo, los de sus dos clases —afirma_lo_no_leido, que decide, y
-  # afirma_que_existe, que solo se publica— y el de la duración de sus votos, y los dos de su medida: doce umbrales,
-  # diez que deciden (specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md §5; contracts/job-de-evals.md §1).
+  # Desde H25 tiene juez, y su informe lleva además, por modo, los de sus dos clases —afirma_lo_no_leido y
+  # afirma_que_existe— y el de la duración de sus votos, y los dos de su medida
+  # (specs/020-h25-el-juez-de/contracts/juez-de-jurisprudencia.md §5; contracts/job-de-evals.md §1).
+  # Desde H26 (ADR 0038), afirma_lo_no_leido no decide por modo: su recuento de cada modo solo se publica, y decide un
+  # umbral más, el de las respuestas de los dos modos juntas, con la tasa de la clase en clases.yaml; igual en
+  # boe-legislacion. Cada una de las dos skills con juez lleva trece umbrales, nueve que deciden
+  # (specs/021-h26-el-umbral-de/contracts/umbrales-del-informe.md §1 y §2).
   evals:
     # El nombre por el que el cierre lee el informe de cada skill, evals (<skill>): con claves nuevas en la matriz, el
     # nombre por omisión llevaría también sus valores (FR-034 de H7.3; research.md D12 de H7.3).
