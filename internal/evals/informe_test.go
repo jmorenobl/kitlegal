@@ -6,7 +6,9 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -1787,6 +1789,315 @@ func exigirLasLineasDelPrograma(t *testing.T, guion, principio, final string, li
 		assert.True(t, slices.Contains(delPrograma, linea),
 			"el programa jq de %s que empieza por %q ya no tiene la línea %q", guionDelInformeFinal, principio, linea)
 	}
+}
+
+// Lo que TestInformeFinalDeLosUmbrales escribe en su árbol temporal para que
+// guionDelInformeFinal lo lea.
+const (
+	// directorioDelHitoDelInformeFinal es el del hito, y hitoDelInformeFinal,
+	// su sección en docs/ROADMAP.md.
+	directorioDelHitoDelInformeFinal = "specs/000-hito-del-test"
+	hitoDelInformeFinal              = "#### H0 · Hito del test\n"
+
+	// lineaDeLosUmbralesDelJob es el principio de la línea de la sección 1 que
+	// resume los umbrales de cada skill, y finalDeLosUmbralesDelJob, su final.
+	lineaDeLosUmbralesDelJob = "- **Umbrales del job**: "
+	finalDeLosUmbralesDelJob = " (sección 3)."
+
+	// cabeceraDeLosUmbralesDelJob es la línea que abre la tabla de los umbrales
+	// de una skill en la sección 3.
+	cabeceraDeLosUmbralesDelJob = "Umbrales que publica el job (ADR 0029):"
+
+	// tasaDeBoeLegislacion es la de afirma_lo_no_leido de boe-legislacion en su
+	// declaración de clases (ADR 0038): como mucho 3 marcadas de 108.
+	tasaDeBoeLegislacion = 0.028
+)
+
+// TestInformeFinalDeLosUmbrales ejecuta guionDelInformeFinal con --solo-ver
+// sobre un árbol temporal con los informes del job de las tres skills, escritos
+// con el tipo Informe, y fija cómo enseña sus umbrales (ADR 0029 y 0038):
+//
+//   - como en el cierre de H26, con los trece umbrales de boe-legislacion y de
+//     jurisprudencia, nueve que deciden y se cumplen, y legal-core sin ninguno:
+//     la sección 1 no cuenta como sin cumplir los que solo se publican, sino
+//     aparte, con los que pasan de su umbral —en boe-legislacion, el recuento de
+//     afirma_lo_no_leido del modo herramienta, 2 de 54, y los dos de
+//     cuenta_su_proceso—; y en la tabla de la sección 3 ninguno de ellos lleva ✗,
+//     sino «dentro» o «por encima»;
+//   - y con el umbral conjunto de afirma_lo_no_leido de boe-legislacion sin
+//     cumplir, que decide: la sección 1 lo cuenta como sin cumplir, en negrita, y
+//     la tabla le pone ✗ **NO**.
+func TestInformeFinalDeLosUmbrales(t *testing.T) {
+	t.Parallel()
+
+	porEncima := []string{
+		"`cuenta_su_proceso:claude-sonnet-5-5:orden`",
+		"`afirma_lo_no_leido:claude-sonnet-5-5:herramienta`",
+		"`cuenta_su_proceso:claude-sonnet-5-5:herramienta`",
+	}
+	publicadosDeBoeLegislacion := " y 4 solo se publican (3 por encima de su umbral: " + strings.Join(porEncima, ", ") + ")"
+
+	t.Run("como-en-el-cierre-de-h26", func(t *testing.T) {
+		t.Parallel()
+
+		conJuez := []Informe{
+			informeDelJobConUmbrales("boe-legislacion", VeredictoAprobado, umbralesDeBoeLegislacionComoEnH26(2)),
+			informeDelJobConUmbrales("jurisprudencia", VeredictoAprobado, umbralesDeJurisprudencia(nil)),
+		}
+
+		leido := informeFinalConLosDelJob(t,
+			append(conJuez, informeDelJobConUmbrales(skillSinUmbrales, VeredictoAprobado, nil))...)
+
+		assert.Equal(t,
+			"boe-legislacion: 13 umbrales, los 9 que deciden se cumplen"+publicadosDeBoeLegislacion+"; "+
+				"jurisprudencia: 13 umbrales, los 9 que deciden se cumplen y 4 solo se publican, todos dentro de su umbral; "+
+				skillSinUmbrales+": sin umbrales",
+			leido.resumen)
+
+		assert.Equal(t, cumpleDeBoeLegislacion(nil), leido.cumple["boe-legislacion"])
+
+		for _, informe := range conJuez {
+			require.Len(t, leido.cumple[informe.Skill], len(informe.Umbrales),
+				"la tabla de %s tiene una fila por umbral", informe.Skill)
+
+			for _, umbral := range informe.Umbrales {
+				if umbral.Decide {
+					continue
+				}
+
+				assert.Contains(t, []string{"dentro", "por encima"}, leido.cumple[informe.Skill][umbral.Nombre],
+					"%s de %s solo se publica: está dentro o por encima de su umbral, sin ✗", umbral.Nombre, informe.Skill)
+			}
+		}
+	})
+
+	t.Run("un-umbral-que-decide-sin-cumplir", func(t *testing.T) {
+		t.Parallel()
+
+		leido := informeFinalConLosDelJob(t,
+			informeDelJobConUmbrales("boe-legislacion", VeredictoFallo, umbralesDeBoeLegislacionComoEnH26(4)))
+
+		assert.Equal(t,
+			"boe-legislacion: 13 umbrales, **1 de los 9 que deciden sin cumplir** (`afirma_lo_no_leido:claude-sonnet-5-5`)"+
+				publicadosDeBoeLegislacion,
+			leido.resumen)
+
+		assert.Equal(t, cumpleDeBoeLegislacion(map[string]string{"afirma_lo_no_leido:claude-sonnet-5-5": "✗ **NO**"}),
+			leido.cumple["boe-legislacion"])
+	})
+}
+
+// umbralesDeBoeLegislacionComoEnH26 son los trece umbrales del informe de
+// boe-legislacion del cierre de H26, en su orden y con sus medidas —54
+// respuestas por modo; en cuenta_su_proceso, 1 con sí en el modo orden y 2 en el
+// modo herramienta; 522 s y 511 s de sesiones y 99 s y 112 s de juez—, con las
+// marcadas dadas en afirma_lo_no_leido en el modo herramienta y ninguna en el
+// modo orden, y la tasa de la clase en sus tres umbrales: el de cada modo, que
+// solo se publica, y el conjunto, que decide.
+func umbralesDeBoeLegislacionComoEnH26(marcadasEnHerramienta int) []Umbral {
+	umbrales := umbralesConJuez(modeloSonnet55,
+		[]Umbral{umbralDeDuracion(ModoOrden, 522, 900, true), umbralDeDuracion(ModoHerramienta, 511, 900, true)},
+		medidasDeUnModo{modo: ModoOrden, respuestas: 54, conSi: 1, segundosDelJuez: 99},
+		medidasDeUnModo{
+			modo: ModoHerramienta, respuestas: 54, marcadas: marcadasEnHerramienta, conSi: 2, segundosDelJuez: 112,
+		})
+
+	for posicion, umbral := range umbrales {
+		if strings.HasPrefix(umbral.Nombre, "afirma_lo_no_leido:") {
+			umbrales[posicion].Umbral = tasaDeBoeLegislacion
+			umbrales[posicion].Cumple = umbral.Medida/float64(*umbral.Total) <= tasaDeBoeLegislacion
+		}
+	}
+
+	return umbrales
+}
+
+// cumpleDeBoeLegislacion es la columna «Cumple» de la tabla de los umbrales de
+// boe-legislacion con los de umbralesDeBoeLegislacionComoEnH26(2), por nombre,
+// con lo que cambie cambiado: «sí» en los que deciden y «dentro» o «por encima»
+// en los que solo se publican.
+func cumpleDeBoeLegislacion(cambiar map[string]string) map[string]string {
+	cumple := map[string]string{
+		"sin_activar:claude-sonnet-5-5:orden":                    "sí",
+		"afirma_lo_no_leido:claude-sonnet-5-5:orden":             "dentro",
+		"cuenta_su_proceso:claude-sonnet-5-5:orden":              "por encima",
+		"sin_activar:claude-sonnet-5-5:herramienta":              "sí",
+		"afirma_lo_no_leido:claude-sonnet-5-5:herramienta":       "por encima",
+		"cuenta_su_proceso:claude-sonnet-5-5:herramienta":        "por encima",
+		"afirma_lo_no_leido:claude-sonnet-5-5":                   "sí",
+		"medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar": "sí",
+		"medida_del_juez:afirma_lo_no_leido:correctos_marcados":  "sí",
+		"duracion_de_las_sesiones:" + string(ModoOrden):          "sí",
+		"duracion_de_las_sesiones:" + string(ModoHerramienta):    "sí",
+		"duracion_del_juez:" + string(ModoOrden):                 "sí",
+		"duracion_del_juez:" + string(ModoHerramienta):           "sí",
+	}
+
+	maps.Copy(cumple, cambiar)
+
+	return cumple
+}
+
+// informeDelJobConUmbrales es el informe del job de una skill sin tasas, con el
+// veredicto y los umbrales dados: lo único de él que cuenta para la sección 1 y
+// para la tabla de los umbrales de la sección 3 del informe final.
+func informeDelJobConUmbrales(skill string, veredicto Veredicto, umbrales []Umbral) Informe {
+	return Informe{
+		Skill:           skill,
+		ModeloQueDecide: modeloSonnet55,
+		Repeticiones:    repeticionesConUmbrales,
+		Umbral:          umbralConUmbrales,
+		Commit:          commitEvaluado,
+		Veredicto:       veredicto,
+		Umbrales:        umbrales,
+	}
+}
+
+// informeFinalLeido es lo que TestInformeFinalDeLosUmbrales lee del informe
+// final: el resumen de los umbrales de la sección 1 y, por skill y por nombre,
+// la columna «Cumple» de la tabla de sus umbrales en la sección 3.
+type informeFinalLeido struct {
+	resumen string
+	cumple  map[string]map[string]string
+}
+
+// informeFinalConLosDelJob escribe en un árbol temporal guionDelInformeFinal y
+// el común, un docs/ROADMAP.md con la sección del hito, el directorio del hito
+// con su spec.md, su plan.md y su tasks.md vacíos y, en gates/evals, el informe
+// del job de cada skill; lo hace repositorio de git con un commit en main;
+// ejecuta el guion con --solo-ver, que no cambia nada; y lee lo que escribe.
+func informeFinalConLosDelJob(t *testing.T, informes ...Informe) informeFinalLeido {
+	t.Helper()
+
+	directorio := t.TempDir()
+
+	raiz, err := os.OpenRoot(directorio)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	gates := directorioDelHitoDelInformeFinal + "/gates"
+
+	for _, d := range []string{"scripts/workflow", ".specify", "docs", gates + "/evals"} {
+		require.NoError(t, raiz.MkdirAll(d, 0o750))
+	}
+
+	guiones, err := os.OpenRoot(guionesDelWorkflow)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, guiones.Close()) }()
+
+	for _, nombre := range []string{filepath.Base(guionDelInformeFinal), comunDelWorkflow} {
+		guion, err := guiones.ReadFile(nombre)
+		require.NoError(t, err)
+		require.NoError(t, escribirEjecutable(raiz, "scripts/workflow/"+nombre, string(guion)))
+	}
+
+	ficheros := map[string]string{
+		".specify/feature.json":                        `{"feature_directory": "` + directorioDelHitoDelInformeFinal + `"}`,
+		"docs/ROADMAP.md":                              hitoDelInformeFinal,
+		directorioDelHitoDelInformeFinal + "/spec.md":  "",
+		directorioDelHitoDelInformeFinal + "/plan.md":  "",
+		directorioDelHitoDelInformeFinal + "/tasks.md": "",
+	}
+
+	for _, informe := range informes {
+		escrito, err := json.Marshal(informe)
+		require.NoError(t, err)
+
+		ficheros[gates+"/evals/"+informe.Skill+".json"] = string(escrito)
+	}
+
+	for nombre, contenido := range ficheros {
+		require.NoError(t, raiz.WriteFile(nombre, []byte(contenido), 0o600))
+	}
+
+	entorno := entornoDeGitDelTest()
+
+	for _, orden := range []*exec.Cmd{
+		exec.CommandContext(t.Context(), "git", "init", "-q", "-b", "main"),
+		exec.CommandContext(t.Context(), "git", "add", "-A"),
+		exec.CommandContext(t.Context(), "git", "commit", "-q", "-m", "el hito del test"),
+	} {
+		orden.Dir, orden.Env = directorio, entorno
+
+		salida, err := orden.CombinedOutput()
+		require.NoErrorf(t, err, "%v: %s", orden.Args, salida)
+	}
+
+	// El guion es la copia que el test acaba de escribir en su temporal y los
+	// argumentos son literales: no hay entrada externa en la orden.
+	//nolint:gosec // el guion lo escribe el test en su temporal y los argumentos son literales; no hay entrada externa.
+	orden := exec.CommandContext(t.Context(),
+		filepath.Join(directorio, "scripts", "workflow", filepath.Base(guionDelInformeFinal)), "H0", "--solo-ver")
+	orden.Env = entorno
+
+	var salida, errores strings.Builder
+
+	orden.Stdout, orden.Stderr = &salida, &errores
+
+	require.NoErrorf(t, orden.Run(), "el guion escribe el informe final: %s", errores.String())
+
+	return leerElInformeFinal(t, salida.String())
+}
+
+// entornoDeGitDelTest es el del proceso sin ninguna variable de git —con la de
+// un gancho, git trabajaría en el repositorio del proyecto—, sin la
+// configuración global ni la del sistema y con un nombre y un correo fijos para
+// el commit.
+func entornoDeGitDelTest() []string {
+	entorno := slices.DeleteFunc(os.Environ(), func(variable string) bool { return strings.HasPrefix(variable, "GIT_") })
+
+	return append(entorno,
+		"GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
+		"GIT_AUTHOR_NAME=kitlegal", "GIT_AUTHOR_EMAIL=test@kitlegal.invalid",
+		"GIT_COMMITTER_NAME=kitlegal", "GIT_COMMITTER_EMAIL=test@kitlegal.invalid")
+}
+
+// leerElInformeFinal lee del informe final la línea de la sección 1 con los
+// umbrales del job, sin su principio ni su final, y, de la sección 3, la
+// columna «Cumple» de la tabla de los umbrales de cada skill: la que sigue a su
+// cabecera, hasta la línea en blanco.
+func leerElInformeFinal(t *testing.T, informe string) informeFinalLeido {
+	t.Helper()
+
+	leido := informeFinalLeido{cumple: map[string]map[string]string{}}
+
+	var skill string
+
+	enLaTabla := false
+
+	for linea := range strings.Lines(informe) {
+		linea = strings.TrimSuffix(linea, "\n")
+
+		if resumen, esta := strings.CutPrefix(linea, lineaDeLosUmbralesDelJob); esta {
+			require.Empty(t, leido.resumen, "el informe final tiene una sola línea con los umbrales del job")
+
+			leido.resumen, esta = strings.CutSuffix(resumen, finalDeLosUmbralesDelJob)
+			require.True(t, esta, "la línea de los umbrales del job termina en %q: %q", finalDeLosUmbralesDelJob, linea)
+		}
+
+		if delInforme, _, esta := strings.Cut(linea, "**: "); esta && strings.HasPrefix(delInforme, "**") {
+			skill = strings.TrimPrefix(delInforme, "**")
+		}
+
+		switch {
+		case linea == cabeceraDeLosUmbralesDelJob:
+			enLaTabla = true
+			leido.cumple[skill] = map[string]string{}
+		case linea == "":
+			if len(leido.cumple[skill]) > 0 {
+				enLaTabla = false
+			}
+		case enLaTabla && strings.HasPrefix(linea, "| `"):
+			celdas := strings.Split(strings.Trim(linea, "| "), " | ")
+			require.Lenf(t, celdas, 5, "la fila de un umbral tiene cinco celdas: %q", linea)
+
+			leido.cumple[skill][strings.Trim(celdas[0], "`")] = celdas[3]
+		}
+	}
+
+	return leido
 }
 
 // exigirElInformeDeLaSkillSinUmbrales escribe el informe de legal-core con sus

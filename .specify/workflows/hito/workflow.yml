@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.5.2"
+  version: "2.5.3"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
