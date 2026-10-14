@@ -17,7 +17,8 @@
 #      que recoge scripts/workflow/cierre.sh), con las nuevas, las cambiadas y las
 #      informativas marcadas; y debajo, los recuentos que publica el job
 #      (expresiones_prohibidas_por_modelo: con alguna, total y porcentaje por modelo) y
-#      sus `umbrales` (ADR 0029), con los que no se cumplen o solo se publican marcados;
+#      sus `umbrales` (ADR 0029): los que deciden y no se cumplen, marcados; los que solo
+#      se publican, dentro o por encima de su umbral, sin la marca de un incumplido;
 #   4. lo que la constitución (capa 3) reserva a la persona: fuentes, anomalías,
 #      adaptadores nuevos, fixtures y esquemas nuevos o modificados (nombrados),
 #      grabaciones y evidencias;
@@ -189,7 +190,9 @@ seccion_evals() {
 # `umbral` es una proporción; sin él, la propia medida. La comparación se rehace aquí,
 # en coma flotante como la hace el job, para señalar un `cumple` que no casa con la
 # medida. `decide` dice si incumplirlo pone el veredicto del job en fallo: un umbral
-# que solo se publica no es un control.
+# que solo se publica no es un control, y que pase de su umbral no es un incumplimiento
+# (desde el ADR 0038, el recuento de una clase del juez en cada modo se publica y decide
+# el de los dos modos juntos): se dice si está dentro o por encima, sin ✗.
 jq_umbral='
   def pct($a; $b): if $b > 0 then (($a * 1000 / $b) | round) as $p | "\($p / 10 | floor),\($p % 10) %" else "—" end;
   def valor: if (.total // null) != null then (if .total > 0 then .medida / .total else 0 end) else .medida end;
@@ -198,6 +201,8 @@ jq_umbral='
   def condicion: ((.comparacion as $o | {"<=": "≤", "<": "<", ">=": "≥", ">": ">"}[$o]) // .comparacion) + " "
     + (if (.total // null) != null then ((.umbral * 1000) | round) as $p | "\($p / 10 | floor),\($p % 10) %" else (.umbral | tostring) end);
   def medida_txt: if (.total // null) != null then "\(.medida) de \(.total) (\(pct(.medida; .total)))" else (.medida | tostring) end;
+  def fuera: if .comparacion == "<=" or .comparacion == "<" then "por encima" elif .comparacion == ">=" or .comparacion == ">" then "por debajo" else "fuera" end;
+  def nombres: map("`" + .nombre + "`") | join(", ");
 '
 
 # Recuentos y umbrales de una skill, bajo su tabla de tasas (sección 3).
@@ -218,7 +223,7 @@ recuentos_y_umbrales() { # $1 = gates/evals/<skill>.json
          "| Umbral | Medida | Condición | Cumple | Hace fallar el job |", "|---|---|---|---|---|",
          (.umbrales[] | cumple_calculado as $c
            | "| `\(.nombre)` | \(medida_txt) | \(condicion) | "
-             + (if .cumple then "sí" else "✗ **NO**" end)
+             + (if .decide then (if .cumple then "sí" else "✗ **NO**" end) elif .cumple then "dentro" else fuera end)
              + (if $c != null and $c != .cumple then " (INCOHERENTE: la medida da \(if $c then "sí" else "no" end))" else "" end)
              + " | " + (if .decide then "sí" else "no: solo se publica, no es un control" end) + " |"),
          "",
@@ -227,17 +232,31 @@ recuentos_y_umbrales() { # $1 = gates/evals/<skill>.json
        end)' "$1"
 }
 
-# Una línea por skill con sus umbrales, para la sección 1.
+# Una línea por skill con sus umbrales, para la sección 1: «sin cumplir» son solo los que
+# deciden; los que solo se publican se cuentan aparte, con los que pasan de su umbral.
 resumen_umbrales() {
   ls "$g"/evals/*.json >/dev/null 2>&1 || return 0
   jq -rs "$jq_umbral"'map(
       .skill + ": "
       + (if has("umbrales") | not then "el job no publica umbrales"
          elif (.umbrales | length) == 0 then "sin umbrales"
-         else ([.umbrales[] | select((.cumple | not) or (.decide | not))]) as $mal
-           | "\(.umbrales | length) umbrales"
-             + (if ($mal | length) == 0 then ", todos cumplen y hacen fallar el job"
-                else ", **\($mal | length) sin cumplir o solo publicados** (" + ($mal | map("`" + .nombre + "`") | join(", ")) + ")" end)
+         else [.umbrales[] | select(.decide)] as $deciden
+           | [.umbrales[] | select(.decide | not)] as $publicados
+           | [$deciden[] | select(.cumple | not)] as $mal
+           | [$publicados[] | select(.cumple | not)] as $fuera
+           | "\(.umbrales | length) umbrales, "
+             + (if ($deciden | length) == 0 then "ninguno decide"
+                elif ($mal | length) > 0 then
+                  (if ($deciden | length) == 1 then "**el que decide, sin cumplir**"
+                   else "**\($mal | length) de los \($deciden | length) que deciden sin cumplir**" end) + " (" + ($mal | nombres) + ")"
+                elif ($deciden | length) == 1 then "el que decide se cumple"
+                else "los \($deciden | length) que deciden se cumplen" end)
+             + (if ($publicados | length) == 0 then ""
+                else " y \($publicados | length) solo se publica" + (if ($publicados | length) > 1 then "n" else "" end)
+                  + (if ($fuera | length) > 0 then " (" + ($fuera | group_by(fuera) | map("\(length) \(.[0] | fuera) de su umbral: " + nombres) | join("; ")) + ")"
+                     elif ($publicados | length) == 1 then ", dentro de su umbral"
+                     else ", todos dentro de su umbral" end)
+                end)
          end)
       + (if ((.expresiones_prohibidas_por_modelo // []) | length > 0) and ((has("umbrales") | not) or (.umbrales | length) == 0)
          then "; publica recuentos que ningún control hace cumplir (expresiones prohibidas: " + ([.expresiones_prohibidas_por_modelo[] | "\(.con_alguna)/\(.respuestas) `\(.modelo)`"] | join(", ")) + ")"
