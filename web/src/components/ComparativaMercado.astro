@@ -1,0 +1,249 @@
+---
+// Comparativa de mercado: kitlegal vs bases de datos tradicionales vs IA genérica sin verificar.
+// Sigue la sobriedad editorial y tipográfica de kitlegal (Newsreader, Inter, JetBrains Mono).
+import Icono from "./Icono.astro";
+
+interface FilaComparativa {
+  criterio: string;
+  detalle: string;
+  kitlegal: {
+    destacado: string;
+    subtexto: string;
+    tipo: "exito" | "neutral";
+  };
+  tradicional: {
+    destacado: string;
+    subtexto: string;
+    tipo: "neutral" | "aviso" | "alerta";
+  };
+  iaGenerica: {
+    destacado: string;
+    subtexto: string;
+    tipo: "neutral" | "aviso" | "alerta";
+  };
+}
+
+const filas: FilaComparativa[] = [
+  {
+    criterio: "Coste y licencia",
+    detalle: "Modelo de acceso y permanencia",
+    kitlegal: {
+      destacado: "0 € · Software Libre (EUPL-1.2)",
+      subtexto: "Sin cuotas mensuales, sin pago por usuario y de código auditable.",
+      tipo: "exito",
+    },
+    tradicional: {
+      destacado: "1.200 € – 3.500 € / año",
+      subtexto: "Por licencia individual en plataforma propietaria cerrada.",
+      tipo: "aviso",
+    },
+    iaGenerica: {
+      destacado: "~20 $ / mes por usuario",
+      subtexto: "Suscripción a servicios cloud generalistas sin garantía legal.",
+      tipo: "neutral",
+    },
+  },
+  {
+    criterio: "Control de vigencia",
+    detalle: "Detección de derogaciones y reformas",
+    kitlegal: {
+      destacado: "Aviso previo oficial en el BOE",
+      subtexto: "Lee metadatos oficiales y avisa si una norma está derogada antes de citar.",
+      tipo: "exito",
+    },
+    tradicional: {
+      destacado: "Señalizado en plataforma",
+      subtexto: "Avisos manuales en el visor web propio de la editorial.",
+      tipo: "neutral",
+    },
+    iaGenerica: {
+      destacado: "❌ Sin verificación previa",
+      subtexto: "Tiende a citar normas derogadas (como la Ley 30/1992) con apariencia de certeza.",
+      tipo: "alerta",
+    },
+  },
+  {
+    criterio: "Cotejo y cita literal",
+    detalle: "Fidelidad textual de los artículos",
+    kitlegal: {
+      destacado: "Texto consolidado + huella SHA-256",
+      subtexto: "Identificador del BOE, bloque exacto, fecha de consulta y huella digital.",
+      tipo: "exito",
+    },
+    tradicional: {
+      destacado: "Cita documental estándar",
+      subtexto: "Texto legal tradicional formateado sin trazabilidad criptográfica.",
+      tipo: "neutral",
+    },
+    iaGenerica: {
+      destacado: "❌ Parafraseo no contrastado",
+      subtexto: "Artículos inventados, citas erróneas o mezcla de redacciones históricas.",
+      tipo: "alerta",
+    },
+  },
+  {
+    criterio: "Integración con tu IA",
+    detalle: "Conexión con asistentes y flujos de trabajo",
+    kitlegal: {
+      destacado: "Nativa (MCP, Claude, Antigravity)",
+      subtexto: "Funciona directamente en tu app de escritorio de Claude y en la terminal.",
+      tipo: "exito",
+    },
+    tradicional: {
+      destacado: "❌ Ninguna integración",
+      subtexto: "Jardín vallado cerrado: solo accesible desde su propio navegador web.",
+      tipo: "alerta",
+    },
+    iaGenerica: {
+      destacado: "Nativa en su chat",
+      subtexto: "Integrada en la conversación, pero razonando de memoria sin base de datos.",
+      tipo: "neutral",
+    },
+  },
+  {
+    criterio: "Privacidad del despacho",
+    detalle: "Confidencialidad de asuntos y clientes",
+    kitlegal: {
+      destacado: "100 % Local en tu equipo",
+      subtexto: "Sin cuentas, sin servidores intermedios de kitlegal y sin telemetría de uso.",
+      tipo: "exito",
+    },
+    tradicional: {
+      destacado: "Cuenta comercial obligatoria",
+      subtexto: "Registro nominativo individual y registro de consultas en su servidor.",
+      tipo: "neutral",
+    },
+    iaGenerica: {
+      destacado: "Cloud del proveedor",
+      subtexto: "Las consultas se transmiten y almacenan en centros de datos de terceros.",
+      tipo: "aviso",
+    },
+  },
+  {
+    criterio: "Territorio y municipios",
+    detalle: "Competencias locales y boletines",
+    kitlegal: {
+      destacado: "8.132 municipios del INE",
+      subtexto: "Localiza provincia, comunidad, DIR3 del ayuntamiento y régimen foral.",
+      tipo: "exito",
+    },
+    tradicional: {
+      destacado: "Búsqueda documental estándar",
+      subtexto: "Filtros territoriales clásicos basados en tesauros autonómicos.",
+      tipo: "neutral",
+    },
+    iaGenerica: {
+      destacado: "❌ Inconsistente",
+      subtexto: "Confunde atribuciones de plenos municipales o inventa boletines provinciales.",
+      tipo: "alerta",
+    },
+  },
+];
+---
+
+<section id="comparativa" aria-labelledby="titulo-comparativa" class="border-t border-linea bg-lienzo py-24 md:py-32">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
+    <div class="mb-16 max-w-3xl">
+      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
+        Alternativas en el mercado
+      </p>
+      <h2 id="titulo-comparativa" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+        kitlegal frente a las bases de datos de pago y a la IA genérica
+      </h2>
+      <p class="leading-relaxed text-tenue">
+        Los juristas y despachos se debaten hoy entre dos extremos ineficientes: pagar miles de euros al año por licencias de bases de datos cerradas que no se conectan a sus asistentes, o arriesgarse a usar modelos de IA en la nube que inventan preceptos y citan leyes derogadas. kitlegal une lo mejor de ambos mundos: inteligencia artificial con la ley vigente del BOE delante.
+      </p>
+    </div>
+
+    <!-- Tabla comparativa responsive -->
+    <div class="overflow-x-auto rounded-xl border border-linea bg-white shadow-sm">
+      <table class="w-full min-w-[760px] border-collapse text-left">
+        <thead>
+          <tr class="border-b border-linea bg-panel/60">
+            <th class="w-1/4 p-5 font-mono text-xs font-semibold uppercase text-tenue">
+              Criterio
+            </th>
+            <th class="w-1/3 border-x-2 border-agente bg-panel-2/70 p-5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-serif text-lg font-bold text-tinta">kitlegal</span>
+                <span class="rounded-sm border border-vigente-borde bg-vigente-fondo px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-vigente-tinta">
+                  Software Libre
+                </span>
+              </div>
+              <p class="mt-1 font-mono text-xs text-agente font-medium">
+                Motor abierto de certeza jurídica
+              </p>
+            </th>
+            <th class="w-1/4 p-5">
+              <span class="font-serif text-base font-semibold text-tinta">Bases clásicas</span>
+              <p class="mt-1 font-mono text-[11px] text-tenue">
+                Aranzadi, Lefebvre, vLex
+              </p>
+            </th>
+            <th class="w-1/4 p-5">
+              <span class="font-serif text-base font-semibold text-tinta">IA genérica a pelo</span>
+              <p class="mt-1 font-mono text-[11px] text-tenue">
+                ChatGPT, Claude o Copilot sin tools
+              </p>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-linea">
+          {
+            filas.map((fila) => (
+              <tr class="transition-colors hover:bg-papel/70">
+                <td class="p-5">
+                  <p class="font-sans text-sm font-semibold text-tinta">{fila.criterio}</p>
+                  <p class="font-mono text-xs text-tenue mt-0.5">{fila.detalle}</p>
+                </td>
+                <td class="border-x-2 border-agente bg-panel/30 p-5">
+                  <p class="flex items-center gap-1.5 font-sans text-sm font-bold text-tinta">
+                    <Icono nombre="check" class="size-4 text-vigente" />
+                    <span>{fila.kitlegal.destacado}</span>
+                  </p>
+                  <p class="mt-1 text-xs leading-relaxed text-tenue">{fila.kitlegal.subtexto}</p>
+                </td>
+                <td class="p-5">
+                  <p class:list={[
+                    "font-sans text-sm font-medium",
+                    fila.tradicional.tipo === "aviso" ? "text-derogada-tinta" : "text-tinta"
+                  ]}>
+                    {fila.tradicional.destacado}
+                  </p>
+                  <p class="mt-1 text-xs leading-relaxed text-tenue">{fila.tradicional.subtexto}</p>
+                </td>
+                <td class="p-5">
+                  <p class:list={[
+                    "font-sans text-sm font-medium",
+                    fila.iaGenerica.tipo === "alerta" ? "text-derogada-tinta" : "text-tinta"
+                  ]}>
+                    {fila.iaGenerica.destacado}
+                  </p>
+                  <p class="mt-1 text-xs leading-relaxed text-tenue">{fila.iaGenerica.subtexto}</p>
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Garantía deontológica -->
+    <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+      <div class="flex items-start gap-3.5 rounded-lg border border-linea bg-white p-5 shadow-xs">
+        <Icono nombre="gavel" class="mt-0.5 size-5 text-sello" />
+        <div class="text-xs leading-relaxed text-tenue">
+          <strong class="font-sans font-semibold text-tinta">Riesgo colegial y judicial de la IA no verificada:</strong>
+          Los colegios de la abogacía y los tribunales ya sancionan la inclusión en escritos de artículos inexistentes o jurisprudencia inventada generada por IA. kitlegal elimina de raíz ese riesgo con una arquitectura estricta: si una norma no se puede leer y comprobar en el texto oficial, el asistente no la cita.
+        </div>
+      </div>
+      <div class="flex items-start gap-3.5 rounded-lg border border-linea bg-white p-5 shadow-xs">
+        <Icono nombre="shield" class="mt-0.5 size-5 text-agente" />
+        <div class="text-xs leading-relaxed text-tenue">
+          <strong class="font-sans font-semibold text-tinta">El secreto profesional está a salvo:</strong>
+          kitlegal es un programa que corre en tu máquina (CLI y servidor MCP local). No es un SaaS corporativo intermediando en tus asuntos: se conecta directamente a la API de datos abiertos del BOE y almacena las normas consultadas únicamente en tu disco local.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

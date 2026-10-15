@@ -1,13 +1,15 @@
 ---
 // La portada de una audiencia: las secciones de la maqueta de Stitch con los
 // datos de audiencias.ts, las citas de citas.yaml y las cifras de data/.
-import { type Audiencia, audiencias, type Tono } from "../data/audiencias";
+import { type Audiencia, type Tono } from "../data/audiencias";
 import { rutaDeConsulta } from "../data/consultas";
 import { fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { CORREO, REPOSITORIO } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
 import Ilustracion from "./Ilustracion.astro";
+import ComparativaMercado from "./ComparativaMercado.astro";
+import SinergiaVentanilla from "./SinergiaVentanilla.astro";
 
 interface Props {
   audiencia: Audiencia;
@@ -52,38 +54,26 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
    <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
     <div class="text-center lg:text-left">
-    <p class="mb-8 inline-flex items-center gap-2 rounded-md border border-linea bg-white px-3.5 py-1.5 shadow-xs">
-      <span class="font-mono text-estampa font-semibold uppercase text-tinta">
-        {audiencia.insignia}
-      </span>
-    </p>
-
-    <nav aria-label="Audiencia" class="mb-8 flex justify-center lg:justify-start">
-      <ul class="grid w-full max-w-md grid-cols-2 gap-1 rounded-lg border border-linea/80 bg-panel p-1 sm:inline-flex sm:w-auto sm:max-w-none">
-        {
-          audiencias.map(({ ruta, nombre: texto, icono: nombre }) => {
-            const actual = ruta === audiencia.ruta;
-            return (
-              <li class="flex">
-                <a
-                  href={ruta}
-                  aria-current={actual ? "page" : undefined}
-                  class:list={[
-                    "flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-center text-xs transition-colors sm:px-5 sm:text-sm",
-                    actual
-                      ? "bg-noche font-semibold text-white shadow-xs"
-                      : "font-medium text-tenue hover:text-tinta",
-                  ]}
-                >
-                  <Icono nombre={nombre} class:list={["size-4", actual && "text-sello"]} />
-                  {texto}
-                </a>
-              </li>
-            );
-          })
-        }
-      </ul>
-    </nav>
+    <div class="mb-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
+      <div class="inline-flex items-center gap-2 rounded-full border border-linea bg-white px-3.5 py-1.5 shadow-xs">
+        <span class="flex size-2 rounded-full bg-sello animate-pulse"></span>
+        <span class="font-mono text-estampa font-semibold uppercase text-tinta">
+          Para juristas y despachos en España
+        </span>
+        <span class="text-linea-2">·</span>
+        <span class="font-mono text-estampa font-medium text-tenue">
+          Software libre EUPL-1.2
+        </span>
+      </div>
+      <a
+        href="#accion-civica"
+        class="group inline-flex items-center gap-1.5 rounded-full border border-agente/30 bg-panel px-3.5 py-1.5 text-xs font-medium text-agente shadow-xs transition-colors hover:bg-panel-2 hover:text-tinta"
+      >
+        <Icono nombre="diversity-3" class="size-3.5 text-agente" />
+        <span>¿Ciudadanía o prensa? Conoce Ventanilla Legal</span>
+        <Icono nombre="arrow-forward" class="size-3 transition-transform group-hover:translate-x-0.5" />
+      </a>
+    </div>
 
     <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-4xl leading-[1.15] font-semibold tracking-tight text-tinta sm:text-5xl lg:mx-0 lg:text-[2.75rem]">
       {audiencia.h1}
@@ -265,6 +255,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   </div>
 </section>
 
+<ComparativaMercado />
+
 <section id="pilares" aria-labelledby="titulo-pilares" class="border-y border-linea bg-panel/50 py-24 md:py-32">
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
@@ -334,6 +326,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
   </div>
 </section>
+
+<SinergiaVentanilla />
 
 <section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-panel/40 py-24 md:py-32">
   <div class="mx-auto max-w-5xl px-4 sm:px-10">
