@@ -43,6 +43,13 @@ sustituyen a este fichero.
   modelo de `workflow.yml`. En H26 el supervisor bajó todos los roles a Sonnet por el límite de uso y el informe
   final no lo dijo.
 
+### Corregido
+
+- **Cada hito del roadmap se puede lanzar** (workflow `hito` 2.7.1). La entrada de H23.1 se fusionó sin añadir
+  `H23.1` a la lista cerrada del input `hito` de `workflow.yml`, y `scripts/hito.sh H23.1` acabó antes de crear el
+  run. Entra en la lista, y `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow` (`internal/workflow`) hace fallar
+  `make ci` cuando una sección `#### H<n> ·` o `#### H<n>.<m> ·` de `docs/ROADMAP.md` no está en ella.
+
 ## [0.6.0] - 2026-10-14
 
 ### Añadido

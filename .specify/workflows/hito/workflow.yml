@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.7.0"
+  version: "2.7.1"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
@@ -27,7 +27,7 @@ inputs:
     # decisiones ya tomadas (ADR 0013, ADR 0014), que es lo que el proyecto evita.
     # Siguen siendo una lista cerrada, que es lo que protege la interpolación en
     # los pasos shell: ninguno lleva un metacarácter.
-    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H5.2","H6","H6.1","H6.2","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H24","H25","H26","H27","H28","H29","H30"]
+    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H5.2","H6","H6.1","H6.2","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H23.1","H24","H25","H26","H27","H28","H29","H30"]
   # ---- modelo y esfuerzo por rol: "<modelo>" o "<modelo>@<esfuerzo>" ----
   # (Haiku 4.5 no admite esfuerzo: solo sin sufijo.)
   # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado
