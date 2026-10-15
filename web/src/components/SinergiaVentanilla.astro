@@ -1,0 +1,150 @@
+---
+// Bloque de sinergia: Ventanilla Legal como el portal cívico y de fiscalización (ciudadanía, AMPAs y periodistas)
+// impulsado por la infraestructura técnica de kitlegal.es.
+import Icono from "./Icono.astro";
+---
+
+<section id="accion-civica" aria-labelledby="titulo-civica" class="border-t border-linea bg-gradient-to-b from-panel/30 via-white to-panel/20 py-24 md:py-32">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
+    <div class="mb-16 max-w-3xl">
+      <div class="mb-3 inline-flex items-center gap-2 rounded-md border border-linea bg-white px-3.5 py-1.5 shadow-xs">
+        <span class="font-mono text-estampa font-semibold uppercase text-sello-tinta">
+          Proyecto cívico impulsado por kitlegal
+        </span>
+      </div>
+      <h2 id="titulo-civica" class="text-balance font-serif text-3xl font-semibold text-tinta md:text-4xl">
+        De la infraestructura técnica al impacto social: Ventanilla Legal
+      </h2>
+      <p class="mt-4 leading-relaxed text-tenue">
+        <strong>kitlegal</strong> proporciona el motor determinista de verificación del BOE para tu asistente de IA. <strong><a href="https://ventanillalegal.es" target="_blank" rel="noopener" class="font-semibold text-agente underline hover:text-tinta">Ventanilla Legal</a></strong> es la iniciativa cívica que traslada ese rigor a la sociedad civil, las familias y los profesionales de la información que necesitan actuar de inmediato frente al colapso burocrático.
+      </p>
+    </div>
+
+    <!-- Dos columnas: Ciudadanía/AMPAs y Periodistas de Investigación -->
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+      
+      <!-- Tarjeta 1: Ciudadanía, AMPAs y Colectivos Vecinales -->
+      <article class="flex flex-col justify-between rounded-xl border-2 border-linea bg-white p-7 shadow-sm transition-all hover:border-linea-2 sm:p-9">
+        <div>
+          <div class="flex items-center justify-between gap-4 border-b border-linea pb-5">
+            <div class="flex items-center gap-3">
+              <span class="flex size-11 items-center justify-center rounded-lg bg-panel text-agente">
+                <Icono nombre="diversity-3" class="size-6" />
+              </span>
+              <div>
+                <span class="font-mono text-estampa font-bold uppercase tracking-wider text-sello-tinta">
+                  Autodefensa ciudadana
+                </span>
+                <h3 class="font-serif text-xl font-semibold text-tinta">
+                  Para familias, AMPAs y asociaciones vecinales
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-5 text-sm leading-relaxed text-tenue">
+            Transforma la queja informal que el ayuntamiento o la consejería archivan en un cajón en un <strong>expediente administrativo formal y vinculante</strong> con asiento oficial en el registro electrónico y código seguro de verificación (CSV).
+          </p>
+
+          <ul class="mt-6 space-y-3.5 text-xs leading-relaxed text-tenue">
+            <li class="flex items-start gap-2.5">
+              <Icono nombre="check" class="mt-0.5 size-4 text-vigente shrink-0" />
+              <span>
+                <strong class="text-tinta">Calefacción y obras en colegios públicos:</strong> Modelos fundados en el RD 486/1997 sobre condiciones ambientales en las aulas y el art. 25 de la Ley 7/1985 (LBRL) de competencias municipales.
+              </span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <Icono nombre="check" class="mt-0.5 size-4 text-vigente shrink-0" />
+              <span>
+                <strong class="text-tinta">Freno al silencio administrativo:</strong> Solicitudes formales de certificado de actos presuntos y cómputo matemático de días hábiles bajo la Ley 39/2015 (LPACAP).
+              </span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <Icono nombre="check" class="mt-0.5 size-4 text-vigente shrink-0" />
+              <span>
+                <strong class="text-tinta">Barreras arquitectónicas y vía pública:</strong> Exigencia formal de accesibilidad universal, rebajes de aceras y reparación urgente de calzadas.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-8 border-t border-linea pt-5 font-mono text-xs text-tenue">
+          <span class="font-semibold text-tinta">Método táctico:</span> Instancia vinculante con CSV → Fiscalización → Defensor del Pueblo
+        </div>
+      </article>
+
+      <!-- Tarjeta 2: Periodistas de Investigación y Medios de Comunicación -->
+      <article class="flex flex-col justify-between rounded-xl border-2 border-linea bg-white p-7 shadow-sm transition-all hover:border-linea-2 sm:p-9">
+        <div>
+          <div class="flex items-center justify-between gap-4 border-b border-linea pb-5">
+            <div class="flex items-center gap-3">
+              <span class="flex size-11 items-center justify-center rounded-lg bg-panel text-sello-tinta">
+                <Icono nombre="newspaper" class="size-6" />
+              </span>
+              <div>
+                <span class="font-mono text-estampa font-bold uppercase tracking-wider text-agente">
+                  Fiscalización y prensa
+                </span>
+                <h3 class="font-serif text-xl font-semibold text-tinta">
+                  Para periodistas de investigación y medios
+                </h3>
+              </div>
+            </div>
+          </div>
+
+          <p class="mt-5 text-sm leading-relaxed text-tenue">
+            Convierte la consulta periodística ignorada o la llamada de prensa sin respuesta en un <strong>requerimiento legal con plazos tasados por ley</strong>, activando las garantías y sanciones de la normativa de transparencia y contratación pública.
+          </p>
+
+          <ul class="mt-6 space-y-3.5 text-xs leading-relaxed text-tenue">
+            <li class="flex items-start gap-2.5">
+              <Icono nombre="check" class="mt-0.5 size-4 text-vigente shrink-0" />
+              <span>
+                <strong class="text-tinta">Solicitudes bajo la Ley 19/2013 de Transparencia:</strong> Peticiones de información pública redactadas con precisión jurídica y cómputo riguroso del plazo máximo de un mes para responder.
+              </span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <Icono nombre="check" class="mt-0.5 size-4 text-vigente shrink-0" />
+              <span>
+                <strong class="text-tinta">Contratos menores y expedientes de gasto:</strong> Acceso a facturas, partes de trabajo y pliegos técnicos de licitaciones municipales y autonómicas (art. 118 y concordantes de la Ley 9/2017 LCSP).
+              </span>
+            </li>
+            <li class="flex items-start gap-2.5">
+              <Icono nombre="check" class="mt-0.5 size-4 text-vigente shrink-0" />
+              <span>
+                <strong class="text-tinta">Recurso ante el Consejo de Transparencia (CTBG):</strong> Fundamentación inmediata frente al silencio o la inadmisión arbitraria de solicitudes de información.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="mt-8 border-t border-linea pt-5 font-mono text-xs text-tenue">
+          <span class="font-semibold text-tinta">Garantía legal:</span> De la llamada ignorada al asiento registral vinculante
+        </div>
+      </article>
+
+    </div>
+
+    <!-- Banner de llamada a la acción hacia Ventanilla Legal -->
+    <div class="mt-10 flex flex-col items-center justify-between gap-6 rounded-xl border border-linea bg-white p-7 shadow-sm sm:flex-row sm:p-8">
+      <div class="max-w-2xl">
+        <p class="font-serif text-lg font-semibold text-tinta">
+          ¿No necesitas integrar IA en tu despacho, sino tramitar una reclamación o solicitud pública ya?
+        </p>
+        <p class="mt-1 text-sm leading-relaxed text-tenue">
+          En Ventanilla Legal encontrarás los modelos descargables listos para registrar con Cl@ve o certificado FNMT y la guía paso a paso, con citas contrastadas por kitlegal.es.
+        </p>
+      </div>
+      <a
+        href="https://ventanillalegal.es"
+        target="_blank"
+        rel="noopener"
+        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-sm bg-noche px-6 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2"
+      >
+        <span>Visitar ventanillalegal.es</span>
+        <Icono nombre="open-in-new" class="size-4 text-sello" />
+      </a>
+    </div>
+
+  </div>
+</section>

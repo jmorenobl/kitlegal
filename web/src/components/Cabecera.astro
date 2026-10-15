@@ -13,7 +13,9 @@ const version = versionPublicada();
 
 const secciones = [
   { texto: "Cómo funciona", destino: `${inicio}#diferencia` },
+  { texto: "Comparativa", destino: `${inicio}#comparativa` },
   { texto: "Garantías", destino: `${inicio}#pilares` },
+  { texto: "Acción cívica y prensa", destino: `${inicio}#accion-civica` },
   { texto: "Ejemplos", destino: `${inicio}#casos` },
   { texto: "Consultas", destino: "/consultas/" },
   { texto: "Instalar", destino: "/instalar/" },
@@ -34,7 +36,7 @@ const secciones = [
         <span class="rounded-sm bg-panel-2 px-2 py-0.5 font-mono text-estampa font-semibold text-tinta">{version}</span>
       </a>
     </div>
-    <nav aria-label="Secciones" class="hidden items-center gap-8 md:flex">
+    <nav aria-label="Secciones" class="hidden items-center gap-5 lg:gap-7 md:flex">
       {
         secciones.map(({ texto, destino }) => (
           <a href={destino} class="text-sm font-medium text-tenue transition-colors hover:text-tinta">

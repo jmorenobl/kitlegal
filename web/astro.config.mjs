@@ -10,8 +10,9 @@ export default defineConfig({
   // /ruta/: la URL canónica lleva siempre la barra final.
   trailingSlash: "always",
   // La portada de la ciudadanía fue /ciudadania/ hasta que pasó a ser la del
-  // sitio (ADR 0034): la dirección antigua lleva a la nueva.
-  redirects: { "/ciudadania": "/" },
+  // sitio (ADR 0034), y /despachos/ se unifica en la portada principal /:
+  // las direcciones antiguas llevan a la nueva.
+  redirects: { "/ciudadania": "/", "/despachos": "/" },
   build: {
     format: "directory",
     // Ninguna hoja de estilos en línea: la política de seguridad de contenido

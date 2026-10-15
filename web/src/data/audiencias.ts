@@ -196,23 +196,23 @@ export const ciudadania: Audiencia = {
 };
 
 export const despachos: Audiencia = {
-  ruta: "/despachos/",
-  nombre: "Para despachos y abogados",
+  ruta: "/",
+  nombre: "Para despachos y juristas",
   icono: "balance",
-  titulo: "IA para abogados: cada cita, comprobada en el BOE | kitlegal",
+  titulo: "IA para juristas: cada cita, comprobada en el BOE | kitlegal",
   descripcion:
-    "No cambies de IA: kitlegal hace que la app de Claude que ya usas cite el texto consolidado del BOE, con el artículo exacto y su vigencia. Gratis, sin cuotas.",
+    "No cambies de IA: kitlegal hace que tu asistente cite el texto consolidado del BOE, con el artículo exacto y su vigencia. Software libre y sin cuotas.",
   imagen: "despachos",
   ilustracion: {
     nombre: "portada-despachos",
     alt: "Un escritorio de despacho con un portátil, un libro abierto con un marcapáginas ámbar y una lámpara.",
     foco: "object-[78%_50%]",
   },
-  insignia: "Para despachos en España · Software libre y gratuito",
+  insignia: "Para juristas y despachos en España · Software libre y gratuito",
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma ni otra suscripción: kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
-  secundario: { texto: "Cuéntanos qué necesita tu despacho", destino: "#contacto", icono: "mail" },
+  secundario: { texto: "Ver comparativa de mercado", destino: "#comparativa", icono: "balance" },
   metricas: [
     {
       etiqueta: "Nada sin cita",
@@ -344,5 +344,5 @@ export const despachos: Audiencia = {
   },
 };
 
-// Las audiencias en el orden en que se ofrecen: la portada del sitio, primero.
-export const audiencias = [ciudadania, despachos];
+// La audiencia principal de la web de kitlegal: despachos, juristas y agentes.
+export const audiencias = [despachos];
