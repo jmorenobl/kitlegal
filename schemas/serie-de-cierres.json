@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kitlegal.es/schemas/serie-de-cierres.json",
+  "title": "specs/<hito>/gates/serie.jsonl y evidencias/adr-0038/serie-previa.jsonl, una fila por línea",
+  "description": "Lo que una medición del cierre de un hito deja de una skill con juez (ADR 0038, punto 6): marcadas y total por modo y por clase de pregunta, con la skill como estaba, el modelo que decide y la huella del juez. La escribe scripts/workflow/serie.sh fila.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "skill", "procedencia", "arbol_de_la_skill", "modelo_que_decide", "juez", "por_materia_de", "evals_por_materia",
+    "sin_juzgar", "sesiones_sin_medir", "cuenta", "no_cuenta_porque", "clases"
+  ],
+  "properties": {
+    "skill": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "procedencia": {
+      "description": "De dónde sale la fila: la medición del cierre, el commit que midió el job y el trabajo de GitHub Actions cuyo registro trae el informe.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hito", "medicion", "fecha", "commit", "propuesta", "ejecucion", "trabajo"],
+      "properties": {
+        "hito": { "type": "string", "pattern": "^H[0-9]+(\\.[0-9]+)?$" },
+        "medicion": { "type": "integer", "minimum": 1, "description": "El número de la medición dentro del cierre del hito." },
+        "fecha": {
+          "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "description": "Cuándo empezó el trabajo de evals."
+        },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "propuesta": {
+          "type": ["integer", "null"], "minimum": 1,
+          "description": "La propuesta de cambio del hito: refs/pull/<propuesta>/head conserva el commit cuando la fusión lo aplasta."
+        },
+        "ejecucion": { "type": "integer", "minimum": 1 },
+        "trabajo": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "arbol_de_la_skill": {
+      "type": "string", "pattern": "^[0-9a-f]{40}$",
+      "description": "El árbol de skills/<skill> en el commit medido: la skill como estaba."
+    },
+    "modelo_que_decide": { "type": ["string", "null"], "minLength": 1 },
+    "juez": {
+      "description": "La huella del juez: su modelo, la versión de Claude Code de sus votos y la sha256 de su rúbrica y de sus casos en el commit medido.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["modelo", "version_de_claude_code", "rubrica_sha256", "casos_sha256"],
+          "properties": {
+            "modelo": { "type": "string", "minLength": 1 },
+            "version_de_claude_code": { "type": "string", "minLength": 1 },
+            "rubrica_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "casos_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+          }
+        }
+      ]
+    },
+    "por_materia_de": {
+      "enum": ["informe", "yaml", null],
+      "description": "De dónde sale la clase de pregunta de cada eval: «informe», del campo por_materia de cada sesión del informe; «yaml», de los ficheros de las evals al escribir la fila, porque el informe es anterior a ese campo."
+    },
+    "evals_por_materia": {
+      "type": "array", "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[0-9]{2}-[a-z0-9-]+\\.yaml$" },
+      "description": "Las evals que se contaron como pregunta por materia."
+    },
+    "sin_juzgar": { "type": ["integer", "null"], "minimum": 0, "description": "Respuestas medidas que el juez dejó sin juzgar." },
+    "sesiones_sin_medir": { "type": ["integer", "null"], "minimum": 0, "description": "Sesiones del modelo que decide sin medir." },
+    "cuenta": { "type": "boolean", "description": "Si la medición entra en la tasa acumulada: completa y con el juez." },
+    "no_cuenta_porque": { "type": ["string", "null"], "minLength": 1 },
+    "clases": {
+      "description": "Por cada clase del juez que decide, las respuestas marcadas con sus tres votos y el total, y las cuatro celdas de modo y clase de pregunta.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["clase", "marcadas", "total", "celdas"],
+        "properties": {
+          "clase": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "marcadas": { "type": "integer", "minimum": 0 },
+          "total": { "type": "integer", "minimum": 0 },
+          "celdas": {
+            "type": "array", "minItems": 4, "maxItems": 4,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["modo", "por_materia", "marcadas", "total"],
+              "properties": {
+                "modo": { "enum": ["orden", "herramienta"] },
+                "por_materia": { "type": "boolean" },
+                "marcadas": { "type": "integer", "minimum": 0 },
+                "total": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "if": { "properties": { "cuenta": { "const": true } } },
+  "then": {
+    "properties": {
+      "modelo_que_decide": { "type": "string" },
+      "juez": { "type": "object" },
+      "por_materia_de": { "enum": ["informe", "yaml"] },
+      "sin_juzgar": { "const": 0 },
+      "sesiones_sin_medir": { "const": 0 },
+      "no_cuenta_porque": { "type": "null" },
+      "clases": { "minItems": 1 }
+    }
+  },
+  "else": {
+    "properties": { "no_cuenta_porque": { "type": "string" } }
+  }
+}

@@ -6,6 +6,7 @@ import (
 	"encoding/json/v2"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -942,6 +943,33 @@ func TestHallazgosDelResultadoEnJSON(t *testing.T) {
 			require.NoError(t, json.Unmarshal(codificado, &crudo))
 			assert.Equal(t, caso.encontrados, string(crudo.Encontrados))
 			assert.Equal(t, caso.ausentes, string(crudo.Ausentes))
+		})
+	}
+}
+
+// TestPorMateriaDelResultadoEnJSON fija que el resultado de una sesión lleva la
+// clase de pregunta de su eval en por_materia, siempre escrito, codificado como
+// lo codifica EscribirInforme: la serie de cierres reparte con él las
+// respuestas sin leer las evals (ADR 0038, punto 6). Que pase o no la sesión no
+// lo cambia.
+func TestPorMateriaDelResultadoEnJSON(t *testing.T) {
+	t.Parallel()
+
+	for _, porMateria := range []bool{false, true} {
+		t.Run(strconv.FormatBool(porMateria), func(t *testing.T) {
+			t.Parallel()
+
+			eval := evalDelArticulo21()
+			eval.PorMateria = porMateria
+
+			codificado, err := json.Marshal(Juzgar(eval, sesionQuePasa(t), skillDeLasSesiones))
+			require.NoError(t, err)
+
+			var crudo map[string]jsontext.Value
+
+			require.NoError(t, json.Unmarshal(codificado, &crudo))
+			require.Contains(t, crudo, "por_materia", "la clave se escribe también con false")
+			assert.Equal(t, strconv.FormatBool(porMateria), string(crudo["por_materia"]))
 		})
 	}
 }

@@ -1214,6 +1214,7 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 
 	if errDeEval == nil {
 		juzgada.resultado.Activa = eval.Activa
+		juzgada.resultado.PorMateria = eval.PorMateria
 	}
 
 	if juzgada.leida {

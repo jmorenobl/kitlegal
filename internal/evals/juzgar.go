@@ -118,6 +118,12 @@ type ResultadoDeEval struct {
 	Activa   bool `json:"activa"`
 	Activada bool `json:"activada"`
 
+	// PorMateria es el de la eval: si su pregunta no identifica lo que pregunta y
+	// lo busca por su materia (Eval.PorMateria). Con él, la serie de cierres
+	// reparte las respuestas por clase de pregunta sin leer las evals (ADR 0038,
+	// punto 6). Falso en la sesión cuya eval no se pudo leer.
+	PorMateria bool `json:"por_materia"`
+
 	// ComandosEjecutados y ComandosAusentes reparten los comandos esperados, en
 	// el orden de la eval, entre los que satisface alguna invocación de la sesión
 	// y los que no (data-model §6.1), cada uno con su texto: bloque <applet>
@@ -415,6 +421,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 		Eval:                       eval.Fichero,
 		Modo:                       modo,
 		Activa:                     eval.Activa,
+		PorMateria:                 eval.PorMateria,
 		Activada:                   sesion.Activada(skill),
 		Respuesta:                  sesion.Respuesta,
 		CodigoDeLaSesion:           &codigo,

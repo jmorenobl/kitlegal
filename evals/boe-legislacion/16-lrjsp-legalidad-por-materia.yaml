@@ -5,6 +5,7 @@
 pregunta: "¿Qué dice la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?"
 activa: true
 informativa: true
+por_materia: true
 comandos:
   - applet: boe
     norma: BOE-A-2015-10566

@@ -55,3 +55,43 @@ Por eval, el del 2026-10-12 con Opus da 1 de 30 en la 15 y 2 de 30 en la 16, y e
   reproduce el job.
 - **Con 30 o 60 respuestas por condición no se puede ordenar una condición frente a otra.** Lo que los cuatro dicen
   juntos es que ninguna se acerca a cero.
+
+## La semilla de la serie de cierres
+
+`serie-previa.jsonl` son las filas de la serie de cierres (ADR 0038, punto 6; `docs/WORKFLOW.md`, «La serie de
+cierres») de las mediciones de cierre anteriores al workflow 2.6.0, el primero que la escribe. La produjo, el
+2026-10-14 y fuera de cualquier run, `scripts/workflow/serie.sh semilla serie-previa-fuentes.tsv`, que lee el informe
+de cada trabajo en su registro de GitHub Actions como lo lee el cierre y cruza cada fila con los umbrales de ese
+informe. Los registros caducan a los 90 días: pasado ese plazo, la semilla no se puede volver a producir, y lo que
+queda es este fichero. `make ci` comprueba que cada fila tiene la forma de `schemas/serie-de-cierres.json` y que la
+semilla tiene, en su orden, una fila por cada línea de `serie-previa-fuentes.tsv`.
+
+Entran las mediciones de cierre juzgadas con el juez de hoy —`claude-opus-5-5`, Claude Code 2.1.289 y las mismas
+sha256 de `rubrica.md` y `casos.yaml` que su `medida.json`, comprobado en cada commit medido—, también las de una
+versión anterior de la skill. Se identificaron por el `gates/cierre.json` de cada hito, que guarda la última, por las
+ejecuciones del flujo `evals` de la rama de cada propuesta y por el registro de cada run del workflow, que nombra la
+cabeza de cada medición:
+
+| Medición | Commit | Ejecución | `boe-legislacion` | `jurisprudencia` |
+|---|---|---|---|---|
+| H24-1 | `a5bda45` | 37394360637 | 1 de 108 | — |
+| H24-2 | `b0a7a9c` | 37400993299 | 3 de 108; no cuenta: 1 respuesta sin juzgar | — |
+| H24-3 | `3107ae2` | 37406586514 | 0 de 108 | — |
+| H23-1 | `bf4befd` | 37661635788 | 0 de 104 | sin juez: no entra |
+| H25-1 | `3f99446` | 38073990323 | 1 de 108 | 0 de 60 |
+| H25-2 | `e380f0a` | 38077358779 | 2 de 108 | 0 de 60; no cuenta: 1 respuesta sin juzgar |
+| H25-3 | `d51f3d7` | 38086437788 | 2 de 108 | 0 de 60 |
+| H26-1 | `b29fe6c` | 38397987554 | 2 de 108 | 0 de 60 |
+
+En H23, 4 sesiones del modo herramienta de `boe-legislacion` no terminaron: el total es 104 y la medición está
+completa, porque ninguna quedó sin medir ni sin juzgar. La clase de pregunta de cada eval sale de los ficheros de la
+eval al producir la semilla (`por_materia_de: yaml`): los informes son anteriores al campo `por_materia`.
+
+No entran:
+
+- **Lo medido fuera de un cierre**: la medición de la cabeza de la #135 sobre `76b89e7` (ejecución 38320818242), que
+  se pidió antes de fusionarla, y las tandas de las propuestas #142 y #143. La serie solo la escribe el cierre.
+- **Las ejecuciones gemelas** de cada medición (37394369137, 37412855639, 37661646056, 38073994576, 38088165624 y
+  38397999572), con los trabajos de evals sin ejecutar: no midieron nada.
+- **`jurisprudencia` en H23**, que aún no tenía juez, y `legal-core`, que no lo tiene.
+- **Los informes de H7.4, H21 y H22**, anteriores al juez del job.

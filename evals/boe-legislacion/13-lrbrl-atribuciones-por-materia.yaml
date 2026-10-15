@@ -5,6 +5,7 @@
 pregunta: "¿Qué atribuciones tiene el Pleno del ayuntamiento según la Ley reguladora de las Bases del Régimen Local?"
 activa: true
 informativa: true
+por_materia: true
 comandos:
   - applet: boe
     norma: BOE-A-1985-5392

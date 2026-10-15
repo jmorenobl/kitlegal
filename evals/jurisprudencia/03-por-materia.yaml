@@ -3,6 +3,7 @@
 # FR-050).
 pregunta: "¿qué dice la jurisprudencia sobre la cláusula suelo?"
 activa: true
+por_materia: true
 comandos:
   - applet: cita
     verbo: preparar
