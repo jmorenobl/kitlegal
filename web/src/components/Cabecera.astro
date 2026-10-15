@@ -13,50 +13,60 @@ const version = versionPublicada();
 
 const secciones = [
   { texto: "Cómo funciona", destino: `${inicio}#diferencia` },
+  { texto: "Comparativa", destino: `${inicio}#comparativa` },
   { texto: "Garantías", destino: `${inicio}#pilares` },
-  { texto: "Ejemplos", destino: `${inicio}#casos` },
+  { texto: "Portal cívico", destino: `${inicio}#accion-civica` },
   { texto: "Consultas", destino: "/consultas/" },
-  { texto: "Instalar", destino: "/instalar/" },
 ];
 ---
 
 <header class="fixed inset-x-0 top-0 z-50 border-b border-linea/60 bg-lienzo/90 backdrop-blur-md">
   <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-10">
-    <div class="flex items-center gap-4">
-      <a href="/" aria-label="kitlegal, inicio">
+    <div class="flex items-center gap-3">
+      <a href="/" aria-label="kitlegal, inicio" class="transition-opacity hover:opacity-90">
         <Logo />
       </a>
       <a
         href={`${REPOSITORIO}/releases/tag/${version}`}
-        class="hidden border-l border-linea pl-3 sm:block"
-        title="Última versión publicada"
+        class="hidden items-center sm:inline-flex ml-1"
+        title={`Última versión publicada: ${version}`}
       >
-        <span class="rounded-sm bg-panel-2 px-2 py-0.5 font-mono text-estampa font-semibold text-tinta">{version}</span>
+        <span class="rounded-full border border-linea/80 bg-panel px-2.5 py-0.5 font-mono text-estampa font-semibold text-tinta">
+          {version}
+        </span>
       </a>
     </div>
-    <nav aria-label="Secciones" class="hidden items-center gap-8 md:flex">
+
+    <nav aria-label="Secciones" class="hidden items-center gap-1.5 md:flex">
       {
         secciones.map(({ texto, destino }) => (
-          <a href={destino} class="text-sm font-medium text-tenue transition-colors hover:text-tinta">
+          <a
+            href={destino}
+            class="rounded-md px-3.5 py-2 text-sm font-medium text-tenue transition-all hover:bg-panel hover:text-tinta"
+          >
             {texto}
           </a>
         ))
       }
     </nav>
-    <div class="flex items-center gap-4">
+
+    <div class="flex items-center gap-3">
       <a
         href={REPOSITORIO}
-        class="hidden items-center gap-1.5 text-sm font-medium text-tenue transition-colors hover:text-tinta sm:inline-flex"
+        class="hidden items-center gap-2 rounded-md border border-linea bg-white px-3 py-1.5 text-xs font-semibold text-tinta shadow-xs transition-all hover:border-linea-2 hover:bg-papel sm:inline-flex"
+        title="Código fuente en GitHub"
       >
-        <Icono nombre="code" class="size-[18px]" />
-        GitHub
+        <svg class="size-4 shrink-0 fill-current text-tinta" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+        </svg>
+        <span>GitHub</span>
       </a>
       <a
         href="/instalar/"
-        class="inline-flex items-center gap-2 rounded-sm bg-noche px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-noche-2"
+        class="inline-flex items-center gap-2 rounded-md bg-noche px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-noche-2"
       >
         <Icono nombre="download" class="size-4 text-sello" />
-        Instalar
+        <span>Instalar</span>
       </a>
     </div>
   </div>

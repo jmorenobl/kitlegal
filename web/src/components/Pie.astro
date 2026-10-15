@@ -1,5 +1,4 @@
 ---
-import { audiencias } from "../data/audiencias";
 import { CORREO, LICENCIA, REPOSITORIO } from "../lib/proyecto";
 import Icono from "./Icono.astro";
 import Logo from "./Logo.astro";
@@ -8,7 +7,8 @@ const columnas = [
   {
     titulo: "kitlegal",
     enlaces: [
-      ...audiencias.map(({ nombre, ruta }) => ({ texto: nombre, destino: ruta })),
+      { texto: "Para juristas y despachos", destino: "/" },
+      { texto: "Ventanilla Legal (portal cívico y prensa)", destino: "https://ventanillalegal.es" },
       { texto: "Consultas con su cita", destino: "/consultas/" },
       { texto: "Instalar", destino: "/instalar/" },
       { texto: CORREO, destino: `mailto:${CORREO}` },
