@@ -110,9 +110,17 @@ tipo = found['type']
 texto = render(found['prompt'] if tipo == 'prompt' else found['run'], item)
 if '{{' in texto:
     salir(f'el paso {paso} interpola salidas de otros pasos; no se puede lanzar suelto')
+# El modelo del paso lleva detrás su `#<paso>:<rol>` (scripts/claude-modelo.sh), con el que
+# la sesión se apunta en gates/modelos.jsonl. Un modelo pedido a mano conserva ese sufijo.
+plantilla = render(str(found.get('model', '')), item)
+sufijo = plantilla[plantilla.index('#'):] if '#' in plantilla else ''
+a_mano = bool(modelo)
 if not modelo:
-    modelo = render(str(found.get('model', '')), item) or 'opus'
+    modelo = plantilla or 'opus'
+elif '#' not in modelo:
+    modelo += sufijo
 print(f"TIPO={shlex.quote(tipo)}")
+print(f"A_MANO={'1' if a_mano else ''}")
 print(f"TEXTO={shlex.quote(texto)}")
 print(f"MODELO={shlex.quote(modelo)}")
 PYEOF
@@ -124,4 +132,8 @@ if [ "$TIPO" = shell ]; then
   exec sh -c "$TEXTO"
 fi
 echo "→ paso $paso · hito $hito · modelo $MODELO" >&2
+# La sesión se apunta como lanzada a mano, y con el modelo pedido a mano si se dio uno
+# (scripts/workflow/modelos.sh): el informe final dice qué pasos no corrieron con el
+# modelo de su rol y por qué.
+export KITLEGAL_SESION_ORIGEN=paso.sh KITLEGAL_MODELO_A_MANO="$A_MANO"
 exec scripts/claude-modelo.sh -p "$TEXTO" --model "$MODELO" --permission-mode acceptEdits ${SPECKIT_INTEGRATION_CLAUDE_EXTRA_ARGS:-}

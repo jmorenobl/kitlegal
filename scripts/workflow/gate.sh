@@ -23,7 +23,11 @@
 # revisión final cada cambio es un commit: leer apunta en gates/revision-juzgado.json
 # la cabeza que juzgó cada ronda, y scripts/workflow/revision.sh cambios da a los
 # jueces de la ronda siguiente el rango desde ella, lo haya cambiado el corrector o
-# una reparación del cierre (ADR 0030).
+# una reparación del cierre (ADR 0030). Cada ronda lleva también el modelo con el que
+# corrió de verdad cada juez (scripts/workflow/modelos.sh juez), tomado de la última
+# sesión de su paso registrada después de la lectura anterior, y, si su ciclo es un
+# rejuicio del hito entero (revision.sh rejuzgar), su motivo: el informe final dice con
+# qué modelo juzgó cada asiento (ADR 0033).
 #
 # La revisión final va por ciclos (ADR 0030): el primero juzga el hito; cada uno de
 # los siguientes, lo que cambió fuera de gates/ después del último veredicto (una
@@ -116,8 +120,18 @@ case "$accion" in
       # commit qué ronda lo vio (ADR 0030).
       j="$g/revision-juzgado.json"
       [ -f "$j" ] || echo '{"rondas":[]}' > "$j"
+      scripts/workflow/modelos.sh resolver || echo "gate: no se ha podido resolver el modelo real de las sesiones (scripts/workflow/modelos.sh resolver)" >&2
+      desde_leido=$(jq -r '[.rondas[] | .leido // empty] | last // ""' "$j")
+      sin_registro='{"sesion":null,"pedido":null,"real":null,"sin_modelo_real":"no se ha podido leer el registro de las sesiones"}'
+      ma_json=$(scripts/workflow/modelos.sh juez revision_juez_a "$desde_leido") || ma_json="$sin_registro"
+      mb_json=$(scripts/workflow/modelos.sh juez revision_juez_b "$desde_leido") || mb_json="$sin_registro"
       jq --argjson n "$n" --argjson c "$ciclo" --arg sha "$(git rev-parse HEAD)" --arg va "$va" --arg vb "$vb" \
-        '.rondas = ([.rondas[] | select(.ronda != $n)] + [{ronda:$n, ciclo:$c, sha:$sha, juez_a:$va, juez_b:$vb}])' "$j" > "$j.tmp" && mv "$j.tmp" "$j"
+        --arg leido "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --argjson ma "$ma_json" --argjson mb "$mb_json" \
+        --argjson ciclo "[$(cat "$g/revision-ciclo.json" 2>/dev/null || echo '{}')]" \
+        '.rondas = ([.rondas[] | select(.ronda != $n)] + [{ronda:$n, ciclo:$c, sha:$sha, juez_a:$va, juez_b:$vb, leido:$leido,
+            modelos:{a:$ma, b:$mb}} + (if ($ciclo[0].entero // false) then {entero:true, motivo:$ciclo[0].motivo} else {} end)])' \
+        "$j" > "$j.tmp" && mv "$j.tmp" "$j" \
+        || echo "gate: no se ha podido apuntar la ronda $n en $j: la ronda siguiente no sabrá qué cabeza juzgó" >&2
       # aprobado: los dos aprueban. Si no, la unión de sus motivos va al corrector: el
       # desacuerdo entre jueces mide a los jueces, no al código (ADR 0007).
       estado=corregir; [ "$va" = aprobado ] && [ "$vb" = aprobado ] && estado=aprobado
@@ -175,8 +189,10 @@ case "$accion" in
       fi
       # Los jueces dejan sus veredictos sin commitear; se versionan aquí con su historial,
       # la cabeza que juzgó cada ronda, el ciclo y el rango que recibieron.
-      git add -A -- "$g/revision-*" "$rondas"
-      git diff --cached --quiet -- "$g/revision-*" "$rondas" || git commit -q -m "docs($hito): veredictos de la revisión final" -- "$g/revision-*" "$rondas"
+      # Con ellos va el registro de las sesiones, que dice con qué modelo juzgó cada uno.
+      registro=""; [ ! -f "$g/modelos.jsonl" ] || registro="$g/modelos.jsonl"
+      git add -A -- "$g/revision-*" "$rondas" $registro
+      git diff --cached --quiet -- "$g/revision-*" "$rondas" $registro || git commit -q -m "docs($hito): veredictos de la revisión final" -- "$g/revision-*" "$rondas" $registro
       echo "$mensaje"
       exit 0
     fi

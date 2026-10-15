@@ -6,7 +6,11 @@
 #
 # Se construye sin modelo, desde los artefactos y los gates del run, en el orden en que
 # la persona tiene que leerlo (ADR 0028): primero lo que puede cambiar su decisión.
-#   1. estado: make ci local, CI y evals remotos sobre la cabeza, revisión final;
+#   1. estado: make ci local, CI y evals remotos sobre la cabeza, revisión final con el
+#      modelo con el que juzgó cada asiento y, si se volvió a juzgar el hito entero
+#      (revision.sh rejuzgar), ese rejuicio con su motivo y los veredictos que sustituye;
+#      y las sesiones que no corrieron con el modelo que workflow.yml da a su rol, con su
+#      causa (ADR 0033; scripts/workflow/modelos.sh): en un run sano, ninguna;
 #   2. supuestos por impacto: cada escritor etiqueta su línea de gates/supuestos.md
 #      ([comportamiento], [alcance], [skill], [interno], [proceso]) y clarify da el
 #      impacto de cada respuesta; se listan enteros los que cambian lo observable, el
@@ -29,8 +33,9 @@
 #      y su control de umbral (la sección «Controles de umbral» de plan.md): «tareas
 #      hechas» no es «comprobado por su control» (ADR 0029);
 #   7. commits posteriores a la primera ronda de la revisión final, cada uno con la
-#      ronda que lo vio y su veredicto, y aparte los que cambian algo fuera de gates/ y
-#      ningún juez vio (ADR 0030): en un run sano esa lista está vacía;
+#      ronda que lo vio y su veredicto (y el rejuicio del hito entero que lo vio, si lo
+#      hubo), y aparte los que cambian algo fuera de gates/ y ningún juez vio (ADR 0030):
+#      en un run sano esa lista está vacía;
 #   8. cómo comprobarlo y duración del run.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
@@ -50,6 +55,60 @@ estado_tarea() { # X, cuarentena o pendiente
 }
 
 veredicto() { [ -f "$1" ] && jq -r .veredicto "$1" || echo "sin veredicto"; }
+
+# El registro de las sesiones con el modelo real resuelto: el propio registro, que se
+# actualiza, o, con --solo-ver, una copia temporal, para no tocar nada.
+modelos_resueltos=""
+resolver_modelos() {
+  local r
+  r="$g/modelos.jsonl"; [ -f "$r" ] || return 0
+  if [ "$solo_ver" = --solo-ver ]; then
+    modelos_resueltos=$(mktemp); scripts/workflow/modelos.sh resolver "$modelos_resueltos" || cp "$r" "$modelos_resueltos"
+  else
+    scripts/workflow/modelos.sh resolver || echo "informe: no se ha podido resolver el modelo real de las sesiones" >&2
+    modelos_resueltos="$r"
+  fi
+}
+
+# El modelo con el que juzgó un asiento en la última ronda (revision-juzgado.json).
+modelo_del_asiento() { # $1 = a|b
+  jq -r --arg x "$1" '[.rondas[]] | last | .modelos[$x] // null
+    | if . == null then "modelo sin registrar"
+      elif .real == null then "modelo desconocido: " + .sin_modelo_real
+      else "con " + (.real | keys | map("`" + . + "`") | join(" y ")) end' "$g/revision-juzgado.json" 2>/dev/null || echo "modelo sin registrar"
+}
+
+# Los rejuicios del hito entero (revision.sh rejuzgar), uno por línea, con los veredictos que
+# sustituyen; y el que está abierto sin veredicto todavía.
+rejuicios() {
+  local c motivo desde sust
+  for c in $(jq -r '[.rondas[] | select(.entero) | .ciclo] | unique[]' "$g/revision-juzgado.json" 2>/dev/null); do
+    motivo=$(jq -r --argjson c "$c" '[.rondas[] | select(.ciclo == $c)][0].motivo' "$g/revision-juzgado.json")
+    desde=$(jq -r --argjson c "$c" '[.rondas[] | select(.ciclo == $c)][0].ronda' "$g/revision-juzgado.json")
+    sust=$(for f in "$g"/revision-a-sustituido-c"$c".json "$g"/revision-b-sustituido-c"$c".json "$g"/revision-pendiente-sustituido-c"$c".md; do
+             [ -f "$f" ] || continue
+             if [ "${f%.json}" != "$f" ]; then printf '`%s` (%s), ' "$(basename "$f")" "$(jq -r '.veredicto // "?"' "$f")"
+             else printf '`%s`, ' "$(basename "$f")"; fi
+           done)
+    printf -- '- **Rejuicio del hito entero** (ciclo %s, desde la ronda %s): %s. Sustituye a los veredictos anteriores: %slos de las rondas 1 a %s (`revision-{a,b}-r<n>.json`).\n' \
+      "$c" "$desde" "$motivo" "$sust" "$((desde - 1))"
+  done
+  if [ "$(jq -r '(.entero // false) and ((.cerrado // false) | not)' "$g/revision-ciclo.json" 2>/dev/null)" = true ] \
+     && [ -z "$(jq -r --argjson c "$(jq '.ciclo' "$g/revision-ciclo.json")" '.rondas[] | select(.ciclo == $c) | .ronda' "$g/revision-juzgado.json" 2>/dev/null)" ]; then
+    printf -- '- **Rejuicio del hito entero abierto** (ciclo %s), sin veredicto todavía: %s.\n' "$(jq -r .ciclo "$g/revision-ciclo.json")" "$(jq -r .motivo "$g/revision-ciclo.json")"
+  fi
+}
+
+# Sesiones que no corrieron con el modelo que workflow.yml da a su rol, o de las que no se
+# sabe con cuál, una por línea con su causa (scripts/workflow/modelos.sh distintos).
+sesiones_con_otro_modelo() {
+  [ -n "$modelos_resueltos" ] || return 0
+  scripts/workflow/modelos.sh distintos "$modelos_resueltos" | jq -r '.[]
+    | "  - `\(.paso // "sin paso")` (\(.inicio)): "
+      + (if .real == null then "modelo real desconocido" else "corrió con " + (.real | to_entries | map("`" + .key + "` (\(.value) respuestas)") | join(" y ")) end)
+      + (if .asignado != null then "; `workflow.yml` da `" + .asignado + "` a `" + .rol + "`" else "" end)
+      + ". " + (.causa[0:1] | ascii_upcase) + .causa[1:] + "."'
+}
 
 # Supuestos de gates/supuestos.md y de clarify, clasificados por impacto, en JSON:
 # [{impacto, autor, texto}]. El impacto de una línea es su etiqueta inicial; sin
@@ -364,6 +423,17 @@ commits_posteriores() {
   done
 }
 
+# El rejuicio del hito entero que vio el commit $1, si es otra ronda que la $2: la primera
+# ronda de un ciclo `entero` cuya cabeza lo contiene. Un rejuicio juzga el hito entero, así
+# que da por vistos todos los commits hasta su cabeza.
+rejuicio_que_lo_vio() { # $1 = commit, $2 = ronda que lo vio primero
+  local r sha va vb
+  while read -r r sha va vb; do
+    [ -n "$r" ] && [ "$r" != "$2" ] || continue
+    if git merge-base --is-ancestor "$1" "$sha" 2>/dev/null; then printf '; y el rejuicio del hito entero en la ronda %s (juez A: %s; juez B: %s)' "$r" "$va" "$vb"; return; fi
+  done < <(jq -r '[.rondas[] | select(.entero)] | group_by(.ciclo)[] | .[0] | "\(.ronda) \(.sha) \(.juez_a) \(.juez_b)"' "$g/revision-juzgado.json" 2>/dev/null)
+}
+
 # Commits que cambian algo fuera de gates/ sin que ningún juez los viera, y cambios sin
 # commitear fuera de gates/: una línea por cada uno. Vacío en un run sano (ADR 0030).
 sin_juez() {
@@ -376,6 +446,7 @@ sin_juez() {
 }
 
 ci_local=$(tail -n 1 "$g/ci.log" 2>/dev/null | sed -n 's/^kitlegal-verificacion exit=//p' || true) # ci.log no se versiona
+resolver_modelos
 
 informe() {
   echo "# Informe del hito $hito · $titulo"
@@ -404,7 +475,16 @@ informe() {
   [ -z "$um" ] || echo "- **Umbrales del job**: $um (sección 3)."
   local ciclos nsj
   ciclos=$(jq '[.rondas[].ciclo] | unique | length' "$g/revision-juzgado.json" 2>/dev/null || echo 1)
-  echo "- **Revisión final**: juez A $(veredicto "$g/revision-a.json"), juez B $(veredicto "$g/revision-b.json"), $(n=$(cat "$g/revision-rondas" 2>/dev/null || echo 0); [ "$n" = 1 ] && echo "1 ronda" || echo "$n rondas")$( [ "${ciclos:-1}" -gt 1 ] && echo " en $ciclos ciclos (el primero juzga el hito; cada uno de los siguientes, lo que cambió después del último veredicto)")."
+  echo "- **Revisión final**: juez A $(veredicto "$g/revision-a.json") ($(modelo_del_asiento a)), juez B $(veredicto "$g/revision-b.json") ($(modelo_del_asiento b)), $(n=$(cat "$g/revision-rondas" 2>/dev/null || echo 0); [ "$n" = 1 ] && echo "1 ronda" || echo "$n rondas")$( [ "${ciclos:-1}" -gt 1 ] && echo " en $ciclos ciclos (el primero juzga el hito; cada uno de los siguientes, lo que cambió después del último veredicto, o el hito entero si es un rejuicio)")."
+  rejuicios
+  local otros nses
+  if [ -z "$modelos_resueltos" ]; then
+    echo "- **Sesiones con otro modelo que el de su rol**: sin registro de sesiones (\`gates/modelos.jsonl\`: run anterior al workflow 2.7.0); no se puede comprobar."
+  else
+    otros=$(sesiones_con_otro_modelo); nses=$(grep -c . "$modelos_resueltos" || true)
+    if [ -z "$otros" ]; then echo "- **Sesiones con otro modelo que el de su rol**: ninguna ($nses sesiones registradas, todas con el modelo que \`workflow.yml\` da a su rol)."
+    else echo "- **Sesiones con otro modelo que el de su rol, o sin saber cuál: $(printf '%s\n' "$otros" | grep -c .)** de $nses (ADR 0033):"; printf '%s\n' "$otros"; fi
+  fi
   nsj=$(sin_juez | grep -c . || true)
   if [ "$nsj" -eq 0 ]; then echo "- **Cambios que ningún juez vio**: ninguno."
   else echo "- **Cambios que ningún juez vio: $nsj** (sección 7). El producto que se fusionaría no lo ha juzgado entero ningún juez."; fi
@@ -506,7 +586,7 @@ informe() {
       case "$r" in
         g) echo "- \`$hc\` $asunto: solo registros de \`gates/\`.";;
         -) echo "- \`$hc\` $asunto: **ningún juez lo vio**.";;
-        *) echo "- \`$hc\` $asunto: lo vio la ronda $r (juez A: $va; juez B: $vb). Toca $(fuera_de_gates_en "$h" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g').";;
+        *) echo "- \`$hc\` $asunto: lo vio la ronda $r (juez A: $va; juez B: $vb)$(rejuicio_que_lo_vio "$h" "$r"). Toca $(fuera_de_gates_en "$h" | sed "s#^$d/##" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g').";;
       esac
     done
   fi
@@ -535,7 +615,7 @@ informe() {
   fi
 }
 
-if [ "$solo_ver" = --solo-ver ]; then informe; exit 0; fi
+if [ "$solo_ver" = --solo-ver ]; then informe; [ -z "$modelos_resueltos" ] || rm -f "$modelos_resueltos"; exit 0; fi
 
 informe > "$g/informe-final.md"
 git add -A -- "$d"

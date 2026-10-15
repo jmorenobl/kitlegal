@@ -131,8 +131,9 @@ sys.exit(1)
 PYEOF
 }
 
-# claude-opus-5-5@xhigh → opus · fable@xhigh → fable · claude-haiku-4-5 → haiku
-familia() { printf '%s' "$1" | sed -E 's/@.*$//; s/^claude-//; s/-[0-9].*$//'; }
+# claude-opus-5-5@xhigh → opus · fable@xhigh → fable · claude-haiku-4-5 → haiku. El modelo
+# de un paso lleva detrás su `#<paso>:<rol>` (scripts/claude-modelo.sh), que no cuenta.
+familia() { printf '%s' "$1" | sed -E 's/[@#].*$//; s/^claude-//; s/-[0-9].*$//'; }
 sustituto() { printf '%s' "$fallback" | tr ',' '\n' | awk -F= -v f="$1" '$1 == f {print $2}' | head -1; }
 
 # Imprime, una por línea, las parejas "--input" / "modelo_<rol>=<nuevo>[@esfuerzo]"
@@ -248,6 +249,10 @@ supervisar() {
           extra=()
           while IFS= read -r l; do extra+=("$l"); done < <(inputs_fallback "$run" "$fam" "$nuevo")
           log "límite de uso en '$paso' ($detalle): $fam → $nuevo en los roles afectados; espera ${espera_limite}s y reanuda"
+          # Cada sesión lo apunta con su modelo (scripts/workflow/modelos.sh), y el informe
+          # final dice qué pasos corrieron con un repuesto y por qué (ADR 0033).
+          KITLEGAL_MODELO_REPUESTO="${KITLEGAL_MODELO_REPUESTO:+$KITLEGAL_MODELO_REPUESTO; }$fam → $nuevo (límite de uso en $(nombre_paso "$paso"), $(date -u +%Y-%m-%dT%H:%MZ))"
+          export KITLEGAL_MODELO_REPUESTO
           sleep "$espera_limite"
           set -- ${extra[@]+"${extra[@]}"}
         fi;;
@@ -324,6 +329,23 @@ comprobar_entorno() {
     || { log "la política de las sesiones del run no deniega lo que debe (scripts/workflow/politica-paso.sh prueba)"; exit 1; }
 }
 
+# Al reanudar, el run conserva los modelos de su inputs.json, también el repuesto que el
+# supervisor aplicó por un límite de uso: se avisa de cada rol que no tendrá el modelo que
+# le da workflow.yml (ADR 0033). No cambia nada; restaurarlo es pasar modelo_<rol>=<valor>.
+avisar_modelos_del_run() { # $1 = run, $2… = key=value del --resume
+  local run="$1" rol val def kv distintos=""
+  shift
+  [ -f "$runs/$run/inputs.json" ] || return 0
+  for rol in $(jq -r '.inputs // {} | keys[] | select(startswith("modelo_"))' "$runs/$run/inputs.json"); do
+    val=$(jq -r --arg r "$rol" '.inputs[$r]' "$runs/$run/inputs.json")
+    for kv in "$@"; do case "$kv" in "$rol="*) val="${kv#*=}";; esac; done
+    def=$(awk -v rol="$rol" '$0 ~ "^  " rol ":[[:space:]]*$" {d = 1; next} d && /^  [a-z_]+:/ {exit}
+      d && /^    default:/ {v = $0; sub(/^    default:[[:space:]]*/, "", v); gsub(/"/, "", v); print v; exit}' .specify/workflows/hito/workflow.yml)
+    [ -z "$def" ] || [ "$val" = "$def" ] || distintos="$distintos $rol=$val (workflow.yml: $def)"
+  done
+  [ -z "$distintos" ] || log "el run reanuda con modelos que no son los de workflow.yml:$distintos; para restaurarlos, pásalos al --resume como modelo_<rol>=<valor>"
+}
+
 # ---------------------------------------------------------------- entrada
 case "${1:-}" in
   --clasificar)
@@ -335,6 +357,7 @@ case "${1:-}" in
     comprobar_credenciales
     comprobar_entorno
     tomar_candado
+    avisar_modelos_del_run "$run_id" "$@"
     supervisar "$run_id" ${args[@]+"${args[@]}"}; exit $?;;
 esac
 

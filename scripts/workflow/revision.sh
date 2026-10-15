@@ -3,6 +3,7 @@
 #
 #   scripts/workflow/revision.sh pendiente <hito>   # al empezar cada vuelta del bucle → JSON {revisar, …}
 #   scripts/workflow/revision.sh cambios <hito>     # al preparar a los jueces: qué juzga esta ronda
+#   scripts/workflow/revision.sh rejuzgar <hito> "<motivo>"   # a mano: volver a juzgar el hito entero
 #
 # El cierre puede cambiar el producto: desde el ADR 0029 un umbral del job de evals
 # decide, y `reparar_cierre` toca código, la skill o los artefactos para ponerlo en
@@ -26,12 +27,32 @@
 # y sus ficheros— y el diff de ese rango fuera de gates/ en
 # gates/revision-cambios-r<n>.diff. Lo lee cada juez para su regla de convergencia, y
 # el corrector de la revisión. Nunca para el run.
+#
+# rejuzgar abre, con el ciclo anterior cerrado, un ciclo `entero` que vuelve a juzgar el
+# hito entero, sin veredicto anterior, por el motivo que da la persona. En H26 los dos
+# asientos de la revisión final los juzgó Sonnet porque el supervisor había bajado de
+# modelo por el límite de uso; para repetirla con los modelos del workflow, `cambios` daba
+# un rango vacío desde el último veredicto y cada juez leía como suyo el del otro modelo, y
+# hubo que hacerlo desde un clon. Lo que rejuzgar hace:
+#   · se niega con un run vivo, con un ciclo abierto (pendiente ya lo continúa) y sin ningún
+#     veredicto (eso es la revisión normal);
+#   · aparta revision-a.json, revision-b.json y revision-pendiente.md, para que la regla de
+#     CONVERGENCIA de los jueces, que se aplica si su veredicto existe, no se aplique. No se
+#     pierde ninguno: si no hay ya una copia idéntica revision-<a|b>-r<n>.json, se archiva
+#     como revision-<a|b>-sustituido-c<ciclo>.json (y revision-pendiente-sustituido-c<ciclo>.md),
+#     que el informe final enseña como sustituidos;
+#   · abre el ciclo en revision-ciclo.json con entero: true, el motivo y desde: null, y lo
+#     anota como supuesto.
+# Después se juzga como cualquier ciclo abierto: reanudando el run (pendiente lo continúa,
+# con los modelos de su inputs.json, y la medición del cierre se reutiliza si el producto no
+# cambia) o, con un run ya completado, que spec-kit no reanuda, con scripts/paso.sh
+# revision_juez_a|b, leer_revision, cerrar_revision e informe_final (docs/WORKFLOW.md).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 . scripts/workflow/comun.sh
 
-sub="${1:?uso: revision.sh pendiente|cambios <hito>}"
-hito="${2:?uso: revision.sh pendiente|cambios <hito>}"
+sub="${1:?uso: revision.sh pendiente|cambios|rejuzgar <hito> [motivo]}"
+hito="${2:?uso: revision.sh pendiente|cambios|rejuzgar <hito> [motivo]}"
 d=$(feature_dir); g="$d/gates"; mkdir -p "$g"
 f_ciclo="$g/revision-ciclo.json"
 rondas_hechas=$(cat "$g/revision-rondas" 2>/dev/null || echo 0)
@@ -49,7 +70,51 @@ paso_de() {
   esac
 }
 
+# El ciclo que sigue al último conocido: el del fichero o, en un run anterior al workflow
+# 2.3.0, el de las rondas ya juzgadas (todas del primer ciclo).
+ciclo_siguiente() {
+  local c
+  c=$( { jq -r '.ciclo // 0' "$f_ciclo" 2>/dev/null || echo 0; rondas_juzgadas "$hito" | cut -d' ' -f2; } | sort -n | tail -1)
+  echo $((c + 1))
+}
+
 case "$sub" in
+  rejuzgar)
+    motivo="${3:-}"
+    [ -n "$motivo" ] || { echo "uso: revision.sh rejuzgar <hito> \"<motivo>\": el motivo va al informe final" >&2; exit 2; }
+    scripts/workflow/sesion-unica.sh comprobar
+    if [ -f "$f_ciclo" ] && [ "$(jq -r '.cerrado // false' "$f_ciclo")" != true ]; then
+      echo "rejuzgar: el ciclo $(jq -r '.ciclo' "$f_ciclo") de la revisión final sigue abierto ($f_ciclo): no se abre otro; reanuda el run o lanza los jueces con scripts/paso.sh, que lo continúan" >&2
+      exit 1
+    fi
+    if [ -z "$(rondas_juzgadas "$hito")" ]; then
+      echo "rejuzgar: la revisión final de $hito no tiene ningún veredicto todavía; no hay nada que volver a juzgar (la primera revisión ya juzga el hito entero)" >&2
+      exit 1
+    fi
+    ciclo=$(ciclo_siguiente)
+    apartados=""
+    for f in "$g/revision-a.json" "$g/revision-b.json" "$g/revision-pendiente.md"; do
+      [ -f "$f" ] || continue
+      base=$(basename "$f"); copia=""
+      case "$base" in
+        revision-pendiente.md) destino="$g/revision-pendiente-sustituido-c$ciclo.md";;
+        *) destino="$g/${base%.json}-sustituido-c$ciclo.json"
+           for r in "$g/${base%.json}"-r*.json; do
+             [ -f "$r" ] && cmp -s "$f" "$r" && { copia="$r"; break; }
+           done;;
+      esac
+      if [ -n "$copia" ]; then
+        rm -f "$f"; apartados="$apartados, $base (ya archivado como $(basename "$copia"))"
+      else
+        mv "$f" "$destino"; apartados="$apartados, $base → $(basename "$destino")"
+      fi
+    done
+    jq -n --argjson c "$ciclo" --argjson desde_ronda "$((rondas_hechas + 1))" --arg motivo "$motivo" \
+      '{ciclo:$c, desde_ronda:$desde_ronda, motivo:$motivo, entero:true, desde:null, commits:[], cerrado:false}' > "$f_ciclo"
+    anotar_supuesto "La revisión final abre el ciclo $ciclo, desde la ronda $((rondas_hechas + 1)), para volver a juzgar el hito entero sin veredicto anterior (revision.sh rejuzgar). Motivo: $motivo. Veredictos apartados:${apartados#,}$([ -n "$apartados" ] || echo " ninguno")."
+    echo "rejuzgar: ciclo $ciclo abierto para juzgar el hito entero desde la ronda $((rondas_hechas + 1)); veredictos apartados:${apartados#,}$([ -n "$apartados" ] || echo " ninguno")" >&2
+    jq -c '{ciclo, desde_ronda, motivo, entero}' "$f_ciclo";;
+
   pendiente)
     retomado=$(scripts/workflow/global.sh retomar "$hito")
     if [ -f "$f_ciclo" ] && [ "$(jq -r '.cerrado // false' "$f_ciclo")" != true ]; then
@@ -57,10 +122,7 @@ case "$sub" in
       exit 0
     fi
     ult=$(ultimo_juzgado "$hito")
-    # El ciclo nuevo sigue al último conocido: el del fichero o, en un run anterior al
-    # workflow 2.3.0, el de las rondas ya juzgadas (todas del primer ciclo).
-    ciclo=$( { jq -r '.ciclo // 0' "$f_ciclo" 2>/dev/null || echo 0; rondas_juzgadas "$hito" | cut -d' ' -f2; } | sort -n | tail -1)
-    ciclo=$((ciclo + 1))
+    ciclo=$(ciclo_siguiente)
     if [ -z "$ult" ]; then
       motivo="revisión final del hito"; commits='[]'
     else
@@ -85,11 +147,22 @@ case "$sub" in
     ciclo=$(jq -r '.ciclo // 1' "$f_ciclo" 2>/dev/null || echo 1)
     motivo=$(jq -r '.motivo // "revisión final del hito"' "$f_ciclo" 2>/dev/null || echo "revisión final del hito")
     ult=$(rondas_juzgadas "$hito" | tail -1)
+    # La primera ronda de un ciclo `entero` (revision.sh rejuzgar) no tiene veredicto
+    # anterior: los de los ciclos anteriores están apartados. Sus rondas siguientes, si el
+    # corrector cambió algo, vuelven al rango desde la última ronda del ciclo.
+    entero_sin_ronda=""
+    if [ "$(jq -r '.entero // false' "$f_ciclo" 2>/dev/null)" = true ] \
+       && [ "$(printf '%s\n' "$ult" | cut -d' ' -f1)" -lt "$(jq -r '.desde_ronda' "$f_ciclo")" ] 2>/dev/null; then
+      entero_sin_ronda=1; ult=""
+    fi
     sucio=$(fuera_de_gates_sin_commitear)
     {
       printf '# Qué juzga la ronda %s de la revisión final\n\n' "$n"
       printf 'Ciclo %s: %s. Lo escribe `scripts/workflow/revision.sh cambios` sin modelo, al preparar a los jueces (ADR 0030).\n\n' "$ciclo" "$motivo"
-      if [ -z "$ult" ]; then
+      if [ -n "$entero_sin_ronda" ]; then
+        printf 'Rejuicio del hito entero: este ciclo lo abrió `scripts/workflow/revision.sh rejuzgar` para volver a juzgar el hito desde cero. Su motivo: %s.\n\n' "${motivo%.}"
+        printf 'No hay ningún veredicto anterior tuyo: los de los ciclos anteriores están apartados y no cuentan para tu regla de CONVERGENCIA. Juzgas el hito entero, `git diff main...HEAD`.\n'
+      elif [ -z "$ult" ]; then
         printf 'Primera ronda: no hay ningún veredicto anterior. Juzgas el hito entero, `git diff main...HEAD`.\n'
       else
         set -- $ult # ronda ciclo sha juez_a juez_b
@@ -115,7 +188,7 @@ case "$sub" in
         printf '\nAviso: el árbol tiene cambios sin commitear fuera de `gates/` que no entran en el rango: %s.\n' "$(printf '%s\n' "$sucio" | sed 's/.*/`&`/' | paste -sd ',' - | sed 's/,/, /g')"
       fi
     } > "$salida"
-    echo "revisión: la ronda $n juzga $( [ -z "$ult" ] && echo "el hito entero" || echo "el rango desde $(printf '%s' "$ult" | cut -d' ' -f3 | cut -c1-7)" ) ($salida)" >&2;;
+    echo "revisión: la ronda $n juzga $( [ -z "$ult" ] && echo "el hito entero$([ -z "$entero_sin_ronda" ] || echo ", en un rejuicio")" || echo "el rango desde $(printf '%s' "$ult" | cut -d' ' -f3 | cut -c1-7)" ) ($salida)" >&2;;
 
   *) echo "subcomando desconocido: $sub" >&2; exit 2;;
 esac

@@ -2,10 +2,10 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.6.0"
+  version: "2.7.0"
   author: "kitlegal"
   integration: "claude"
-  description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
+  description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
 
 requires:
   speckit_version: ">=1.0.0"
@@ -39,6 +39,10 @@ inputs:
   # modelo resuelve un alias lo decide la versión de Claude Code de quien lanza, y
   # con el id el modelo de un rol solo cambia con un diff de este fichero. Los
   # alias siguen en la lista para sobrescribir un run (KITLEGAL_MODELO_<ROL>).
+  # Cada paso con modelo pone detrás de él `#<su id>:<su input>`: spec-kit no le dice
+  # al ejecutable qué paso es, y scripts/claude-modelo.sh lo quita antes de abrir la
+  # sesión y lo apunta con el modelo real en gates/modelos.jsonl, que el informe final
+  # compara con el de cada rol (scripts/workflow/modelos.sh).
   modelo_decision:
     type: string
     default: "claude-opus-5-5@xhigh"
@@ -115,7 +119,7 @@ steps:
   # ================================================================ specify
   - id: specify
     command: speckit.specify
-    model: "{{ inputs.modelo_redaccion }}"
+    model: "{{ inputs.modelo_redaccion }}#specify:modelo_redaccion"
     input:
       args: |
         Hito {{ inputs.hito }} · {{ steps.extraer_hito.output.data.titulo }}.
@@ -140,7 +144,7 @@ steps:
   # ================================================================ clarify: pregunta un proceso, responde otro, nadie escala
   - id: clarify_preguntas
     command: speckit.clarify
-    model: "{{ inputs.modelo_redaccion }}"
+    model: "{{ inputs.modelo_redaccion }}#clarify_preguntas:modelo_redaccion"
     input:
       args: |
         MODO AUTÓNOMO, FASE 1 (solo preguntas). Ejecuta el escaneo de ambigüedad y cobertura y genera la cola priorizada de preguntas (máximo 5) exactamente como en modo interactivo, PERO:
@@ -168,7 +172,7 @@ steps:
     steps:
       - id: resolver_clarify
         type: prompt
-        model: "{{ inputs.modelo_decision }}"
+        model: "{{ inputs.modelo_decision }}#resolver_clarify:modelo_decision"
         timeout: 3600
         prompt: |
           Eres un proceso independiente con contexto limpio: no has visto la sesión que formuló las preguntas, no debes buscar su razonamiento y decides únicamente con documentos. Nadie va a revisar tu decisión antes del informe final: tiene que ser la mejor posible y quedar explicada.
@@ -204,7 +208,7 @@ steps:
     then:
       - id: clarify_integrar
         command: speckit.clarify
-        model: "{{ inputs.modelo_analisis }}"
+        model: "{{ inputs.modelo_analisis }}#clarify_integrar:modelo_analisis"
         input:
           args: |
             MODO AUTÓNOMO, FASE 2 (integración). No generes preguntas nuevas ni esperes respuesta. Las preguntas están en <feature_dir>/gates/clarify-preguntas.json y las respuestas ya decididas en <feature_dir>/gates/clarify-respuestas.json (localiza <feature_dir> en .specify/feature.json). Trata cada par como una pregunta ya aceptada por el usuario y aplica tus reglas de integración incremental:
@@ -240,7 +244,7 @@ steps:
 
       - id: juez_spec
         type: prompt
-        model: "{{ inputs.modelo_juez }}"
+        model: "{{ inputs.modelo_juez }}#juez_spec:modelo_juez"
         timeout: 3600
         prompt: |
           Eres el JUEZ DE ENTRADA del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica la sección «Criterio de decisión autónoma» y la sección «Gates» de .specify/memory/constitution.md, con su umbral de materialidad, su criterio de uso, sus umbrales que se cumplen y su regla de convergencia (ADR 0028 y 0029).
@@ -285,7 +289,7 @@ steps:
         then:
           - id: corrector_spec
             type: prompt
-            model: "{{ inputs.modelo_redaccion }}"
+            model: "{{ inputs.modelo_redaccion }}#corrector_spec:modelo_redaccion"
             timeout: 3600
             prompt: |
               Eres el CORRECTOR del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el spec; tú aplicas sus motivos, no los discutes.
@@ -304,7 +308,7 @@ steps:
   # ================================================================ plan
   - id: plan
     command: speckit.plan
-    model: "{{ inputs.modelo_decision }}"
+    model: "{{ inputs.modelo_decision }}#plan:modelo_decision"
     input:
       args: |
         MODO AUTÓNOMO: no preguntes ni esperes respuesta; resuelve dudas técnicas con la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md y déjalas documentadas en research.md (decisión, alternativas, por qué).
@@ -348,7 +352,7 @@ steps:
 
       - id: juez_plan
         type: prompt
-        model: "{{ inputs.modelo_juez }}"
+        model: "{{ inputs.modelo_juez }}#juez_plan:modelo_juez"
         timeout: 3600
         prompt: |
           Eres el JUEZ del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md, con su umbral de materialidad, su criterio de uso, la proporcionalidad, los umbrales que se cumplen y la regla de convergencia (ADR 0028 y 0029).
@@ -390,7 +394,7 @@ steps:
         then:
           - id: corrector_plan
             type: prompt
-            model: "{{ inputs.modelo_decision }}"
+            model: "{{ inputs.modelo_decision }}#corrector_plan:modelo_decision"
             timeout: 3600
             prompt: |
               Eres el CORRECTOR del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el plan; tú aplicas sus motivos, no los discutes.
@@ -419,7 +423,7 @@ steps:
   # ================================================================ tasks + analyze
   - id: tasks
     command: speckit.tasks
-    model: "{{ inputs.modelo_redaccion }}"
+    model: "{{ inputs.modelo_redaccion }}#tasks:modelo_redaccion"
     input:
       args: |
         MODO AUTÓNOMO: no preguntes. Genera tasks.md siguiendo docs/ROADMAP.md §6 (ritual por hito) con estas reglas, porque las tareas se ejecutarán y verificarán UNA A UNA por un proceso automático con un guardián de diff y sin ninguna persona hasta el informe final (ADR 0018):
@@ -438,7 +442,7 @@ steps:
 
   - id: analyze
     command: speckit.analyze
-    model: "{{ inputs.modelo_analisis }}"
+    model: "{{ inputs.modelo_analisis }}#analyze:modelo_analisis"
     input:
       args: |
         MODO AUTÓNOMO: no preguntes ni ofrezcas remediaciones para después. Además de mostrar el informe, escríbelo íntegro en <feature_dir>/gates/analyze.md (localiza <feature_dir> con .specify/feature.json).
@@ -466,7 +470,7 @@ steps:
 
       - id: juez_tasks
         type: prompt
-        model: "{{ inputs.modelo_juez }}"
+        model: "{{ inputs.modelo_juez }}#juez_tasks:modelo_juez"
         timeout: 3600
         prompt: |
           Eres el JUEZ de consistencia (spec ↔ plan ↔ tasks) del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md.
@@ -501,7 +505,7 @@ steps:
         then:
           - id: corrector_tasks
             type: prompt
-            model: "{{ inputs.modelo_redaccion }}"
+            model: "{{ inputs.modelo_redaccion }}#corrector_tasks:modelo_redaccion"
             timeout: 3600
             prompt: |
               Eres el CORRECTOR de artefactos del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado la consistencia spec/plan/tasks; tú aplicas sus motivos, no los discutes.
@@ -547,7 +551,7 @@ steps:
         then:
           - id: converge
             command: speckit.converge
-            model: "{{ inputs.modelo_juez }}"
+            model: "{{ inputs.modelo_juez }}#converge:modelo_juez"
             input:
               args: |
                 MODO AUTÓNOMO: no preguntes. Compara el código con spec.md, plan.md y tasks.md y añade a tasks.md, con el formato "- [ ] Tnnn … rutas" (ids correlativos, [datos] si toca testdata/ o schemas/), solo el trabajo que falte para cumplir el spec y la Definition of Done (docs/ROADMAP.md §1). Nada fuera del spec. Las tareas de <feature_dir>/gates/cuarentena.json no se tocan ni se duplican: su trabajo está en cuarentena por una causa que su nota explica. Ninguna tarea nueva publica, mide la plataforma remota ni depende de una persona. Es un paso de lectura: no ejecutes `make ci` (su última salida está en <feature_dir>/gates/ci.log), no uses `gh` ni `git push`, no lances subagentes ni esperas programadas; lee el código y los artefactos y escribe las tareas que falten.
@@ -579,7 +583,7 @@ steps:
                   - &implementar_tarea
                     id: implementar_tarea
                     command: speckit.implement
-                    model: "{{ inputs.modelo_implementacion }}"
+                    model: "{{ inputs.modelo_implementacion }}#implementar_tarea:modelo_implementacion"
                     input:
                       args: |
                         MODO AUTÓNOMO. Ejecuta ÚNICAMENTE la tarea {{ steps.siguiente_tarea.output.data.id }} de tasks.md (intento {{ steps.siguiente_tarea.output.data.intento }} de 3; al tercero sin verde entra en cuarentena):
@@ -594,7 +598,7 @@ steps:
                 else:
                   - <<: *implementar_tarea
                     id: implementar_tarea_escalada
-                    model: "{{ inputs.modelo_escalada }}"
+                    model: "{{ inputs.modelo_escalada }}#implementar_tarea_escalada:modelo_escalada"
 
           - id: verificar
             type: shell
@@ -624,7 +628,7 @@ steps:
                 then:
                   - id: reparar
                     type: prompt
-                    model: "{{ inputs.modelo_escalada }}"
+                    model: "{{ inputs.modelo_escalada }}#reparar:modelo_escalada"
                     timeout: 3600
                     prompt: |
                       La verificación determinista falla tras la tarea {{ steps.siguiente_tarea.output.data.id }} ({{ steps.siguiente_tarea.output.data.texto }}) del hito {{ inputs.hito }} de kitlegal. Salida del verificador (final del log; el completo está en <feature_dir>/gates/ci.log, con <feature_dir> en .specify/feature.json):
@@ -723,7 +727,7 @@ steps:
             run: "scripts/workflow/global.sh base"
           - id: reparar_hito
             type: prompt
-            model: "{{ inputs.modelo_escalada }}"
+            model: "{{ inputs.modelo_escalada }}#reparar_hito:modelo_escalada"
             timeout: 3600
             prompt: |
               `make ci` falla en el hito {{ inputs.hito }} de kitlegal, con la suite de aceptación congelada ya activada en internal/app/testdata/script/. Final del log en <feature_dir>/gates/ci.log (localiza <feature_dir> en .specify/feature.json).
@@ -746,7 +750,7 @@ steps:
 
   - id: barrido
     type: prompt
-    model: "{{ inputs.modelo_redaccion }}"
+    model: "{{ inputs.modelo_redaccion }}#barrido:modelo_redaccion"
     timeout: 3600
     prompt: |
       Eres el paso de BARRIDO GLOBAL del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo, antes de la revisión final. El código ya está terminado y `make ci` refleja su estado; tu trabajo es que TODO lo que se afirma sobre él sea verdad, de una vez y no ronda a ronda.
@@ -841,7 +845,7 @@ steps:
                   EOF
                   )
                   jq -n --arg ma "{{ inputs.modelo_revisor }}" --arg mb "{{ inputs.modelo_adversario }}" --arg pa "$papel_a" --arg pb "$papel_b" \
-                    '{jueces:[{id:"a", modelo:$ma, fichero:"revision-a.json", papel:$pa}, {id:"b", modelo:$mb, fichero:"revision-b.json", papel:$pb}]}'
+                    '{jueces:[{id:"a", modelo:$ma, rol:"modelo_revisor", fichero:"revision-a.json", papel:$pa}, {id:"b", modelo:$mb, rol:"modelo_adversario", fichero:"revision-b.json", papel:$pb}]}'
 
               - id: revision_jueces
                 type: fan-out
@@ -850,7 +854,7 @@ steps:
                 step:
                   id: revision_juez
                   type: prompt
-                  model: "{{ item.modelo }}"
+                  model: "{{ item.modelo }}#revision_juez_{{ item.id }}:{{ item.rol }}"
                   timeout: 3600
                   prompt: |
                     {{ item.papel }}
@@ -895,7 +899,7 @@ steps:
 
                   - id: corrector_revision
                     type: prompt
-                    model: "{{ inputs.modelo_implementacion }}"
+                    model: "{{ inputs.modelo_implementacion }}#corrector_revision:modelo_implementacion"
                     timeout: 3600
                     prompt: |
                       Eres el CORRECTOR de la revisión final del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Al menos uno de los dos jueces independientes ha rechazado el hito; tú aplicas la UNIÓN de los motivos de ambos, no los discutes, y que un juez aprobara no exime de ningún motivo del otro.
@@ -939,7 +943,7 @@ steps:
 
           - id: reparar_cierre
             type: prompt
-            model: "{{ inputs.modelo_escalada }}"
+            model: "{{ inputs.modelo_escalada }}#reparar_cierre:modelo_escalada"
             timeout: 3600
             prompt: |
               La medición de cierre del hito {{ inputs.hito }} de kitlegal sale en rojo sobre la cabeza de la rama: CI o evals remotas. Lee .specify/feature.json para localizar <feature_dir>; el estado de cada comprobación está en <feature_dir>/gates/cierre.json, el final del log de cada ejecución en rojo en <feature_dir>/gates/cierre.log y el informe de cada job de evals, con sus `umbrales`, en <feature_dir>/gates/evals/<skill>.json.
