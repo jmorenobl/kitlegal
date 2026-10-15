@@ -10,6 +10,44 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-15 · Ocho tandas fuera de un cierre: `jurisprudencia` da por buena una sentencia sin cotejarla, y `boe-legislacion` v0.1.8 marca más que la v0.1.7
+
+- **Qué se pidió.** Leer el rojo de las evals de la #145 (`revision.sh rejuzgar` y el modelo real de cada sesión),
+  que no tocaba nada de lo que corren las sesiones: ni `skills/`, ni `evals/`, ni el binario, y las sesiones de
+  evals no pasan por `scripts/claude-modelo.sh`. El agente sacó los informes de las ocho tandas medibles desde el
+  2026-10-10 (cierres de H25 y H26, la medición de la #135 sobre `76b89e7` y las propuestas #142 a #145) para ver
+  si era ruido.
+- **Qué pasó.**
+  - **`jurisprudencia`, eval 06** (se pide el ROJ STS 1088/2023 y el documento es el ROJ STS 3144/2023, cuyo
+    número de resolución es 1088/2023): 6 de las 48 respuestas de `claude-sonnet-5-5` no ejecutan `cita cotejar`
+    y dicen que el documento es la sentencia pedida; 4 en el modo orden y 2 en herramienta, repartidas en cinco
+    tandas. En las evals cuyo documento sí es el pedido (04, 08 y 09) cotejan las 144 de 144. La eval solo cayó en
+    la #145, cuando dos fallos coincidieron en una serie: la regla de 2 de 3 (ADR 0016) aprobaba las demás, y
+    `cita_sin_documento` no lo mide, porque estas respuestas no citan con la forma fija.
+  - **`boe-legislacion`, `afirma_lo_no_leido`**, sumando todas las mediciones de cada versión de la skill, de
+    cierre o no:
+
+    | Versión | Mediciones | Marcadas |
+    |---|---|---|
+    | v0.1.7 (`6063317`) | H24-3, H23-1, H25-1 y H25-2 | 3 de 428 (0,7 %) |
+    | v0.1.8 (`eed129f`) | H25-3, `76b89e7`, H26-1 y las #142 a #145 | 13 de 756 (1,7 %) |
+
+    La serie de cierres (#144), que solo cuenta cierres, da lo mismo: 4 de 216 con la v0.1.8. Con un 1,7 %, el
+    umbral de 3 de 108 da rojo sin motivo una medición de cada ocho; la #145 dio 4 de 108, todas en preguntas
+    por materia (evals 13, 15 y 16).
+- **Qué falló.** El defecto de la eval 06 estaba en la v0.6.0 publicada y ningún control lo veía. Lo que lo hace
+  plausible: el número de resolución del documento coincide con el ROJ pedido, y la respuesta compara a ojo en
+  lugar de cotejar.
+- **Lo que se vio y ningún control mide.** La diferencia entre la v0.1.7 y la v0.1.8 no es concluyente con estas
+  muestras, pero va en el mismo sentido que la serie. La v0.1.8 salió de una reparación del cierre de H25, hecha a
+  ciegas, que no bajó las marcas.
+- **Qué se hizo.** La #145 se fusionó con las evals en rojo, con la causa en un comentario. Entra en el roadmap
+  H23.1, antes de H9: la skill coteja antes de decir nada de un documento, y un umbral sin modelo con 0 lo hace
+  cumplir. La entrada de H9 dice que una reparación del cierre no toca `boe-legislacion` ni `jurisprudencia`.
+  Mejorar `boe-legislacion` sigue siendo trabajo aparte (ADR 0038, punto 8), empezando por un sondeo que compare
+  la v0.1.7 y la v0.1.8 en las evals por materia, que decide Jorge. Ninguna de estas tandas entra en la serie de
+  cierres.
+
 ### 2026-10-12 · Cuatro sondeos sobre las preguntas por materia: ni más material, ni un repaso, ni Opus llevan a cero, y el umbral pasa a ser una tasa
 
 - **Qué se pidió.** Saber qué hacer con `boe-legislacion` tras el cierre en rojo de H25 (#135): si hay un arreglo
