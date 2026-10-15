@@ -9,6 +9,13 @@
 #   --model fable@xhigh   →  --model fable --effort xhigh
 #   --model opus          →  --model opus               (esfuerzo por defecto)
 #
+# Detrás puede ir `#<paso>:<rol>`, que cada paso prompt de workflow.yml pone a su
+# modelo: spec-kit no le dice al ejecutable qué paso es, y los dos jueces de la
+# revisión final corren a la vez en el mismo fan-out. Se quita antes de llamar a
+# Claude Code y se apunta con la sesión (abajo):
+#
+#   --model claude-opus-5-5@xhigh#juez_spec:modelo_juez  →  --model claude-opus-5-5 --effort xhigh
+#
 # Es además la única puerta por la que el workflow y scripts/paso.sh abren una
 # sesión con modelo, así que aquí se pone lo que esa sesión no puede hacer
 # (ADR 0032; al final del fichero).
@@ -18,10 +25,11 @@
 # (argumento de -p) se copia sin interpretarlo.
 set -euo pipefail
 
-patron='^(fable|opus|sonnet|haiku|claude-[a-z0-9-]+)(@(low|medium|high|xhigh|max))?$'
+patron='^(fable|opus|sonnet|haiku|claude-[a-z0-9-]+)(@(low|medium|high|xhigh|max))?(#([a-z0-9_]+):(modelo_[a-z]+))?$'
 
 args=()
 ajustes_de_quien_llama=""
+modelo=""; esfuerzo=""; paso=""; rol=""; sesion=""; reanuda=""
 while [ $# -gt 0 ]; do
   case "$1" in
     -p|--print)
@@ -31,12 +39,20 @@ while [ $# -gt 0 ]; do
     --model)
       [ $# -ge 2 ] || { echo "claude-modelo: --model sin valor" >&2; exit 2; }
       if [[ ! "$2" =~ $patron ]]; then
-        echo "claude-modelo: modelo inválido '$2' (formato: <modelo>[@low|medium|high|xhigh|max])" >&2
+        echo "claude-modelo: modelo inválido '$2' (formato: <modelo>[@low|medium|high|xhigh|max][#<paso>:<rol>])" >&2
         exit 2
       fi
-      args+=(--model "${BASH_REMATCH[1]}")
-      if [ -n "${BASH_REMATCH[3]}" ]; then args+=(--effort "${BASH_REMATCH[3]}"); fi
+      modelo="${BASH_REMATCH[1]}"; esfuerzo="${BASH_REMATCH[3]}"; paso="${BASH_REMATCH[5]}"; rol="${BASH_REMATCH[6]}"
+      args+=(--model "$modelo")
+      if [ -n "$esfuerzo" ]; then args+=(--effort "$esfuerzo"); fi
       shift 2
+      ;;
+    --session-id)
+      [ $# -ge 2 ] || { echo "claude-modelo: --session-id sin valor" >&2; exit 2; }
+      sesion="$2"; args+=("$1" "$2"); shift 2
+      ;;
+    -r|--resume|-c|--continue)
+      reanuda=1; args+=("$1"); shift
       ;;
     --settings)
       # Claude Code solo atiende un --settings, el último: el de quien llama se guarda y
@@ -139,6 +155,27 @@ ajustes="$(jq -cn --argjson base "$base" --arg home "$HOME" --arg secretos "${KI
   | ($base * $paso)
   | .permissions.deny = (($base.permissions.deny // []) + $paso.permissions.deny)')" \
   || { echo "claude-modelo: no se han podido componer los ajustes de la sesión (¿--settings con un JSON que no vale?)" >&2; exit 2; }
+
+# El modelo con el que corre de verdad cada sesión (ADR 0033; scripts/workflow/modelos.sh).
+# La sesión lleva un id que se le fija aquí, y con él se apunta en gates/modelos.jsonl del
+# hito antes de abrirla; el modelo real lo saca después scripts/workflow/modelos.sh resolver
+# del transcript que Claude Code escribe con ese id. Se registra antes del `exec` porque el
+# wrapper tiene que terminar en él: spec-kit mata con SIGKILL lo que lanzó cuando vence el
+# plazo de un paso, y una sesión hija de este proceso quedaría viva. El registro no cambia ni
+# la salida ni el código de salida de la sesión: si no se puede escribir, se dice en la
+# salida de error y la sesión se abre igual.
+if [ -n "$modelo" ]; then
+  if [ -z "$sesion" ] && [ -z "$reanuda" ]; then
+    sesion=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n' \
+      | sed -E 's/^(.{8})(.{4}).(.{3})(.)(.{3})(.{12})$/\1-\2-4\3-\4\5-\6/' \
+      | awk '{ v = substr($0, 20, 1); sub(/^./, substr("89ab", index("0123456789abcdef", v) % 4 + 1, 1), v)
+               print substr($0, 1, 19) v substr($0, 21) }')
+    args+=(--session-id "$sesion")
+  fi
+  if ! error=$("$raiz/scripts/workflow/modelos.sh" registrar "$sesion" "$paso" "$rol" "$modelo" "$esfuerzo" 2>&1 >/dev/null); then
+    echo "claude-modelo: no se ha podido registrar la sesión en gates/modelos.jsonl (${error:-sin detalle}); la sesión se abre igual" >&2
+  fi
+fi
 
 export KITLEGAL_PASO_DE_WORKFLOW=1
 export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1

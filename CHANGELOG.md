@@ -26,6 +26,22 @@ sustituyen a este fichero.
 - **`por_materia` en el formato de eval** (`schemas/eval.yaml.json`): con `true`, la pregunta no identifica el
   precepto ni la sentencia y la busca por su materia. Lo llevan las evals 13 a 17 de `boe-legislacion` y la 03 y la
   10 de `jurisprudencia`, y el job lo pone en cada sesión de su `informe.json`.
+- **Volver a juzgar el hito entero: `scripts/workflow/revision.sh rejuzgar <hito> "<motivo>"`** (workflow `hito`
+  2.7.0). Con el ciclo de la revisión final cerrado, abre otro que juzga el hito entero sin veredicto anterior, en el
+  propio repositorio: aparta los veredictos vigentes para que los jueces no los lean como suyos y archiva como
+  `revision-<a|b>-sustituido-c<ciclo>.json` los que no tienen ya su copia por ronda, sin perder ninguno. Se juzga
+  reanudando el run o, con el run ya completado, con `scripts/paso.sh`. El informe final cuenta el rejuicio con su
+  motivo y los veredictos que sustituye. En H26 hizo falta un clon para repetir con Opus y Fable la revisión que había
+  juzgado Sonnet.
+- **El modelo con el que corrió de verdad cada sesión** (ADR 0033; workflow `hito` 2.7.0). `scripts/claude-modelo.sh`
+  apunta cada sesión con modelo en `gates/modelos.jsonl` del hito, con su paso, su rol, el modelo pedido y, si lo
+  hubo, el repuesto del supervisor por el límite de uso; `scripts/workflow/modelos.sh` saca el modelo real del
+  transcript de Claude Code y, si no puede, lo dice. Cada ronda de `gates/revision-juzgado.json` lleva el modelo de
+  cada juez, y la sección 1 del informe final dice con qué modelo juzgó cada asiento y nombra cada sesión que no
+  corrió con el modelo que `workflow.yml` da a su rol, con su causa; en un run sano, ninguna. Cada `model:` de
+  `workflow.yml` lleva detrás `#<paso>:<rol>`, y `scripts/hito.sh --resume` avisa de los roles que no tienen el
+  modelo de `workflow.yml`. En H26 el supervisor bajó todos los roles a Sonnet por el límite de uso y el informe
+  final no lo dijo.
 
 ## [0.6.0] - 2026-10-14
 
