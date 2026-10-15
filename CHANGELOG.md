@@ -43,6 +43,18 @@ sustituyen a este fichero.
   modelo de `workflow.yml`. En H26 el supervisor bajó todos los roles a Sonnet por el límite de uso y el informe
   final no lo dijo.
 
+### Cambiado
+
+- **Las sesiones de un paso arrancan sin plugins ni MCP y leen lo que buscan** (workflow `hito` 2.8.0). En H25 el
+  75 % del coste del run fue contexto en caché y el 25 %, salida; las sesiones llevaron entre 400 000 y 660 000
+  tokens, y de ellos 60 000 a 70 000 eran fijos en cada una, antes de leer nada. `scripts/claude-modelo.sh` pone
+  `enabledPlugins` en `false` para cada plugin activado en los ajustes de usuario o en los del proyecto y pasa
+  `--strict-mcp-config`, de modo que ningún plugin ni servidor MCP carga sus skills y herramientas en el contexto de
+  la sesión; ningún paso los usa. Y la línea «SESIÓN DE UN PASO» de los 22 pasos con modelo (21 prompts: el 22.º, la
+  tarea escalada, reutiliza el de la tarea) añade que cada línea leída se vuelve a pagar en cada turno que le queda a
+  la sesión, y pide buscar con `grep -n` y leer solo la parte necesaria con `Read` y `offset` y `limit`. No cambia lo
+  que un paso puede hacer ni lo que mide un gate.
+
 ## [0.6.0] - 2026-10-14
 
 ### Añadido

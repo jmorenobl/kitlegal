@@ -104,6 +104,13 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #     al fondo cuando vence su plazo.
 #   · El `claude` de su PATH, y del de todo lo que ejecute, es el de
 #     scripts/workflow/sin-modelo/, que no abre ninguna sesión y dice por qué.
+#   · Ni plugins ni servidores MCP: los plugins que los ajustes de usuario o los del
+#     proyecto tienen activados llegan apagados (`enabledPlugins`), y `--strict-mcp-config`
+#     deja fuera los servidores de .mcp.json y de la configuración del usuario. Las skills,
+#     las herramientas y las instrucciones de cada uno entran en el contexto de la sesión
+#     y se vuelven a pagar en cada turno que le queda (una sesión de H25 llevaba 60–70 k
+#     tokens fijos antes de leer nada), y ningún paso usa ninguno: ni el `kitlegal@synced`
+#     ni el MCP `gsc` de la web tienen nada que hacer en un paso.
 #   · No lee .claude/settings.local.json: los permisos y los directorios adicionales
 #     de la sesión interactiva de quien lanza el run no llegan a las del run.
 raiz="$(cd "$(dirname "$0")/.." && pwd -P)"
@@ -128,7 +135,20 @@ esac
 # dependencia por lo que había en la caché del equipo y no por la que el plan quería.
 gopath="$(go env GOPATH 2>/dev/null || true)"; gopath="${gopath%%:*}"
 gosumdb=""; [ -n "$gopath" ] && gosumdb="$gopath/pkg/sumdb"
-ajustes="$(jq -cn --argjson base "$base" --arg home "$HOME" --arg secretos "${KITLEGAL_SECRETOS:-}" \
+# Los plugins activados en los dos ajustes que la sesión lee (`--setting-sources user,project`):
+# los del usuario —el directorio de Claude Code, que CLAUDE_CONFIG_DIR puede cambiar— y los
+# del proyecto. Cada uno va a los ajustes del paso con `false`, que gana a ambos.
+de_ajustes=()
+for f in "$raiz/.claude/settings.json" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"; do
+  if [ -f "$f" ]; then de_ajustes+=("$f"); fi
+done
+plugins='{}'
+if [ ${#de_ajustes[@]} -gt 0 ]; then
+  plugins="$(jq -cn '[inputs | (.enabledPlugins // {}) | to_entries[] | select(.value == true) | {(.key): false}] | add // {}' \
+    "${de_ajustes[@]}")" \
+    || { echo "claude-modelo: no se han podido leer los plugins activados en los ajustes de usuario y de proyecto" >&2; exit 2; }
+fi
+ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home "$HOME" --arg secretos "${KITLEGAL_SECRETOS:-}" \
   --arg gocache "$(go env GOCACHE 2>/dev/null || true)" --arg gomodcache "$(go env GOMODCACHE 2>/dev/null || true)" \
   --arg gotelemetria "$(go env GOTELEMETRYDIR 2>/dev/null || true)" --arg gosumdb "$gosumdb" \
   --arg golangci "${GOLANGCI_LINT_CACHE:-$caches/golangci-lint}" --arg temporal "${temporal%/}" '
@@ -150,7 +170,8 @@ ajustes="$(jq -cn --argjson base "$base" --arg home "$HOME" --arg secretos "${KI
           allowLocalBinding: true
         }
       },
-      permissions: {deny: ($vedados | map("Read(/" + . + "/**)"))}
+      permissions: {deny: ($vedados | map("Read(/" + . + "/**)"))},
+      enabledPlugins: $plugins
     } as $paso
   | ($base * $paso)
   | .permissions.deny = (($base.permissions.deny // []) + $paso.permissions.deny)')" \
@@ -181,4 +202,4 @@ export KITLEGAL_PASO_DE_WORKFLOW=1
 export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
 export PATH="$raiz/scripts/workflow/sin-modelo:$PATH"
 
-exec "$claude" ${args[@]+"${args[@]}"} --setting-sources user,project --settings "$ajustes"
+exec "$claude" ${args[@]+"${args[@]}"} --strict-mcp-config --setting-sources user,project --settings "$ajustes"
