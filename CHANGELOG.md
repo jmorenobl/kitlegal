@@ -76,6 +76,12 @@ sustituyen a este fichero.
   `H23.1` a la lista cerrada del input `hito` de `workflow.yml`, y `scripts/hito.sh H23.1` acabó antes de crear el
   run. Entra en la lista, y `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow` (`internal/workflow`) hace fallar
   `make ci` cuando una sección `#### H<n> ·` o `#### H<n>.<m> ·` de `docs/ROADMAP.md` no está en ella.
+- **La sesión de `specify` se apunta en el registro de su hito** (workflow `hito` 2.8.2). `specify` se abre antes de
+  que exista el directorio del hito, y `.specify/feature.json`, que no se versiona, seguía apuntando al del run
+  anterior: en H23.1 su línea fue a `specs/021-h26-el-umbral-de/gates/modelos.jsonl` y entró en la rama del hito; en
+  un clon sin `feature.json`, la sesión no se apuntaba. Ahora `extraer_hito` borra el `feature.json` heredado, el
+  wrapper apunta en `.specify/sesiones-sin-feature.jsonl` las sesiones que se abren mientras no hay feature, y el
+  paso nuevo `recoger_sesiones`, tras `specify`, las lleva al registro del hito.
 - **`jurisprudencia` v0.1.1: con un documento delante, coteja su ficha antes de decir nada de él.** El cotejo es lo
   primero que hace con un documento que está en la conversación, sea su texto pegado o un PDF leído: su ficha va a
   `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él, y nada del documento —ni que es la sentencia

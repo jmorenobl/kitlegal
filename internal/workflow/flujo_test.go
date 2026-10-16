@@ -120,6 +120,29 @@ func comprobarElModeloDelPaso(t *testing.T, paso pasoDelWorkflow) {
 	assert.Equal(t, m[1], m[3], "el rol del sufijo del paso %s es el input de su modelo", paso.ID)
 }
 
+// TestLaSesionDeSpecifyLaRecogeElPasoSiguiente: el primer paso del run,
+// extraer_hito, olvida el feature del run anterior, y el que sigue a specify,
+// recoger_sesiones, lleva su sesión al registro del hito
+// (TestLaSesionDeSpecifyVaAlRegistroDeSuHito).
+func TestLaSesionDeSpecifyLaRecogeElPasoSiguiente(t *testing.T) {
+	t.Parallel()
+
+	var flujo struct {
+		Steps []pasoDelWorkflow `yaml:"steps"`
+	}
+
+	require.NoError(t, yaml.Unmarshal([]byte(leerDelRepositorio(t, rutaDelWorkflow)), &flujo))
+	require.GreaterOrEqual(t, len(flujo.Steps), 3)
+
+	assert.Equal(t, "extraer_hito", flujo.Steps[0].ID, "extraer_hito es el primer paso")
+	assert.Contains(t, flujo.Steps[0].Run, "scripts/workflow/modelos.sh empezar\n")
+
+	assert.Equal(t, "specify", flujo.Steps[1].ID, "specify es el segundo paso")
+	assert.Equal(t, "recoger_sesiones", flujo.Steps[2].ID, "recoger_sesiones sigue a specify")
+	assert.Equal(t, "shell", flujo.Steps[2].Tipo)
+	assert.Equal(t, "scripts/workflow/modelos.sh recoger", flujo.Steps[2].Run)
+}
+
 // encabezadoDeHito es el de la sección de un hito en docs/ROADMAP.md, con el
 // hito capturado: «#### H23.1 · …».
 var encabezadoDeHito = regexp.MustCompile(`(?m)^#### (H[0-9]+(?:\.[0-9]+)?) ·`)

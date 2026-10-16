@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # El modelo con el que corrió de verdad cada sesión con modelo del workflow `hito`.
 #
+#   scripts/workflow/modelos.sh empezar            # extraer_hito, el primer paso de un run: olvida el
+#                                                  #   feature del run anterior
 #   scripts/workflow/modelos.sh registrar <sesion> <paso> <rol> <pedido> <esfuerzo>
 #                                                  # scripts/claude-modelo.sh, antes de abrir la sesión
+#   scripts/workflow/modelos.sh recoger            # recoger_sesiones, tras specify: lleva al hito las
+#                                                  #   sesiones apuntadas antes de que existiera
 #   scripts/workflow/modelos.sh resolver [fichero] # rellena el modelo real de cada sesión registrada
 #                                                  #   (en el registro o, con fichero, en una copia)
 #   scripts/workflow/modelos.sh juez <paso> [desde] # → JSON {sesion, pedido, real, sin_modelo_real} de la
@@ -39,14 +43,28 @@
 # respuesta del modelo, `real` queda null y `sin_modelo_real` dice por qué: nunca se
 # deduce.
 #
+# La sesión de specify se abre antes de que exista el directorio del hito: es ella
+# quien lo crea y escribe .specify/feature.json. Ese fichero no se versiona y, entre
+# un run y el siguiente, sigue apuntando al feature anterior; en H23.1 la línea de
+# specify fue a parar al registro de H26 y entró en la rama del hito. Por eso
+# extraer_hito, el primer paso de un run, lo borra con `empezar`; mientras no hay
+# feature.json, el registro es .specify/sesiones-sin-feature.jsonl (sin versionar),
+# y recoger_sesiones, el paso que sigue a specify, lleva esas líneas al registro
+# del hito. Un clon sin feature.json tampoco pierde la sesión.
+#
 # Nada de esto lee credenciales, abre sesiones ni escribe fuera del repositorio
-# (ADR 0032): lee el transcript de la propia sesión y escribe en gates/.
+# (ADR 0032): lee el transcript de la propia sesión y escribe en gates/ y en .specify/.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 . scripts/workflow/comun.sh
 
-sub="${1:?uso: modelos.sh registrar|resolver|juez|asignado|distintos …}"
-registro() { printf '%s/gates/modelos.jsonl\n' "$(feature_dir)"; }
+sub="${1:?uso: modelos.sh empezar|registrar|recoger|resolver|juez|asignado|distintos …}"
+feature=.specify/feature.json
+sin_feature=.specify/sesiones-sin-feature.jsonl
+registro() {
+  if [ -f "$feature" ]; then printf '%s/gates/modelos.jsonl\n' "$(feature_dir)"
+  else printf '%s\n' "$sin_feature"; fi
+}
 
 # El modelo que workflow.yml da a un rol (input modelo_<rol>), sin el esfuerzo.
 asignado() { # $1 = rol
@@ -73,6 +91,15 @@ del_transcript() { # $1 = sesion
 }
 
 case "$sub" in
+  empezar)
+    rm -f -- "$feature" "$sin_feature";;
+
+  recoger)
+    [ -f "$feature" ] || { echo "modelos.sh recoger: no hay $feature: specify no ha creado el directorio del hito" >&2; exit 1; }
+    [ -f "$sin_feature" ] || exit 0
+    r=$(registro); [ -d "$(dirname "$r")" ] || mkdir -p "$(dirname "$r")"
+    cat "$sin_feature" >> "$r"; rm -f -- "$sin_feature";;
+
   registrar)
     sesion="${2-}"; paso="${3-}"; rol="${4-}"; pedido="${5:?uso: modelos.sh registrar <sesion> <paso> <rol> <pedido> <esfuerzo>}"; esfuerzo="${6-}"
     r=$(registro); [ -d "$(dirname "$r")" ] || mkdir -p "$(dirname "$r")"

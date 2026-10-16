@@ -5,6 +5,10 @@
 # switch features, so it is per-checkout state rather than something to share.
 feature.json
 
+# Las sesiones del workflow `hito` abiertas antes de que exista el directorio del
+# hito (scripts/workflow/modelos.sh): recoger_sesiones las lleva a su registro.
+sesiones-sin-feature.jsonl
+
 # Per-machine extension config overrides.
 extensions/*/local-config.yml
 

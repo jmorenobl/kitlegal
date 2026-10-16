@@ -242,13 +242,14 @@ func deref(valor *string) string {
 }
 
 // TestElRegistroNoCambiaLaSesion: si el wrapper no puede escribir el registro
-// —aquí, sin .specify/feature.json—, la sesión se abre igual, con su código de
-// salida y su salida estándar, y el wrapper solo lo dice en la de error.
+// —aquí, con un feature.json cuyo directorio es un fichero—, la sesión se abre
+// igual, con su código de salida y su salida estándar, y el wrapper solo lo
+// dice en la de error.
 func TestElRegistroNoCambiaLaSesion(t *testing.T) {
 	t.Parallel()
 
 	a := nuevoArbol(t)
-	require.NoError(t, a.raiz.Remove(".specify/feature.json"))
+	a.escribir(".specify/feature.json", `{"feature_directory": "`+ficheroDelProducto+`"}`)
 
 	salida, argumentos := a.abrirSesion(sesionDelTest{
 		modelo: modeloDelJuezA + "@xhigh#juez_spec:modelo_juez", modelos: modeloDelJuezA, salida: "3",
@@ -259,6 +260,90 @@ func TestElRegistroNoCambiaLaSesion(t *testing.T) {
 	assert.True(t, strings.HasSuffix(salida.errores, erroresDelSustituto), "y después, la salida de error de la sesión")
 	assert.Equal(t, modeloDelJuezA, valorDe(argumentos, "--model"))
 	assert.True(t, a.noExiste(registroDelHito))
+	assert.True(t, a.noExiste(registroSinFeature), "un feature.json que no vale no lleva la sesión al registro provisional")
+}
+
+const (
+	// registroSinFeature es donde se apuntan las sesiones mientras no hay
+	// .specify/feature.json: la de specify, que crea el directorio del hito.
+	registroSinFeature = ".specify/sesiones-sin-feature.jsonl"
+
+	// registroDelAnterior es el registro del hito del run anterior, al que
+	// apunta el feature.json que el run hereda.
+	registroDelAnterior = "specs/999-h99-el-anterior/gates/modelos.jsonl"
+)
+
+// TestLaSesionDeSpecifyVaAlRegistroDeSuHito: .specify/feature.json no se
+// versiona y, cuando empieza un run, apunta aún al feature del anterior; en
+// H23.1 la línea de specify fue al registro de H26 y entró en la rama del hito.
+// extraer_hito lo borra (`modelos.sh empezar`), la sesión de specify se apunta
+// en el registro provisional sin tocar el del hito anterior, y
+// recoger_sesiones (`modelos.sh recoger`), una vez specify ha escrito el
+// feature.json del hito nuevo, la lleva al registro del hito, donde `resolver`
+// le pone su modelo real.
+func TestLaSesionDeSpecifyVaAlRegistroDeSuHito(t *testing.T) {
+	t.Parallel()
+
+	a := nuevoArbol(t)
+	anterior := `{"sesion":"del-anterior","paso":"converge","pedido":"` + modeloDelJuezA + `"}` + "\n"
+	a.escribir(registroDelAnterior, anterior)
+	a.escribir(".specify/feature.json", `{"feature_directory": "specs/999-h99-el-anterior"}`)
+
+	a.debeSalirBien(nil, guionDeLosModelos, "empezar")
+	assert.True(t, a.noExiste(".specify/feature.json"), "empezar olvida el feature del run anterior")
+
+	_, argumentos := a.abrirSesion(sesionDelTest{
+		modelo: modeloDelJuezA + "@high#specify:modelo_redaccion", modelos: modeloDelJuezA,
+	})
+	assert.Equal(t, anterior, a.leer(registroDelAnterior), "el registro del hito anterior no cambia")
+	assert.True(t, a.existe(registroSinFeature), "sin feature.json, la sesión va al registro provisional")
+
+	// specify crea el directorio del hito y escribe su feature.json.
+	a.escribir(".specify/feature.json", `{"feature_directory": "`+directorioDelHito+`"}`)
+	a.debeSalirBien(nil, guionDeLosModelos, "recoger")
+	assert.True(t, a.noExiste(registroSinFeature), "recoger vacía el registro provisional")
+
+	a.abrirSesion(sesionDelTest{modelo: modeloDeSonnet + "#clarify_preguntas:modelo_redaccion", modelos: modeloDeSonnet})
+	a.debeSalirBien(nil, guionDeLosModelos, "resolver")
+
+	registradas := a.registradas()
+	require.Len(t, registradas, 2)
+	assert.Equal(t, valorDe(argumentos, "--session-id"), deref(registradas[0].Sesion))
+	assert.Equal(t, "specify", deref(registradas[0].Paso), "la sesión de specify es la primera del registro del hito")
+	assert.Equal(t, map[string]int{modeloDelJuezA: 1}, registradas[0].Real)
+	assert.Equal(t, "clarify_preguntas", deref(registradas[1].Paso))
+	assert.Equal(t, anterior, a.leer(registroDelAnterior), "ni recoger ni resolver tocan el registro del hito anterior")
+}
+
+// TestRecogerSinLoQueEspera: sin sesiones provisionales, recoger no cambia el
+// registro del hito; y sin feature.json —specify no ha creado el directorio
+// del hito—, falla con un motivo y deja las provisionales donde estaban.
+func TestRecogerSinLoQueEspera(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sin sesiones provisionales", func(t *testing.T) {
+		t.Parallel()
+
+		a := nuevoArbol(t)
+		a.escribir(registroDelHito, `{"sesion":"una","paso":"plan","pedido":"`+modeloDelJuezA+`"}`+"\n")
+		antes := a.leer(registroDelHito)
+
+		a.debeSalirBien(nil, guionDeLosModelos, "recoger")
+		assert.Equal(t, antes, a.leer(registroDelHito))
+	})
+
+	t.Run("sin feature.json", func(t *testing.T) {
+		t.Parallel()
+
+		a := nuevoArbol(t)
+		a.debeSalirBien(nil, guionDeLosModelos, "empezar")
+		a.abrirSesion(sesionDelTest{modelo: modeloDelJuezA + "#specify:modelo_redaccion", modelos: modeloDelJuezA})
+
+		salida := a.ejecutar(nil, guionDeLosModelos, "recoger")
+		assert.NotEqual(t, 0, salida.codigo)
+		assert.Contains(t, salida.errores, "specify no ha creado el directorio del hito")
+		assert.True(t, a.existe(registroSinFeature), "la sesión sigue en el registro provisional")
+	})
 }
 
 // TestUnTranscriptQueYaNoEstaNoDeshaceLoResuelto: Claude Code borra los
