@@ -69,6 +69,11 @@ sustituyen a este fichero.
   tarea escalada, reutiliza el de la tarea) añade que cada línea leída se vuelve a pagar en cada turno que le queda a
   la sesión, y pide buscar con `grep -n` y leer solo la parte necesaria con `Read` y `offset` y `limit`. No cambia lo
   que un paso puede hacer ni lo que mide un gate.
+- **Las sesiones de un paso arrancan también sin las skills de la cuenta de claude.ai** (workflow `hito` 2.8.2). Tras
+  la 2.8.0 seguían entrando en cada sesión las 14 skills `anthropic-skills:*` de la cuenta, que no son plugins: el
+  contexto fijo bajó a 48 000–66 000 tokens, pero el reparto del coste no mejoró (78 % contexto, 22 % salida, en
+  H23.1). `scripts/claude-modelo.sh` pone `syncClaudeAiSkills: false` en los ajustes de la sesión, que las bloquea y
+  las oculta solo en esa invocación, sin mover las ya sincronizadas: con Claude Code 2.1.301, de 41 skills a 27.
 
 ### Corregido
 

@@ -62,11 +62,18 @@ func TestLaSesionDeUnPasoArrancaSinPluginsNiMCP(t *testing.T) {
 			assert.Contains(t, argumentos, "--strict-mcp-config", "solo los servidores MCP que se le den, y no se le da ninguno")
 
 			var ajustes struct {
-				EnabledPlugins map[string]bool `json:"enabledPlugins"`
+				EnabledPlugins     map[string]bool `json:"enabledPlugins"`
+				SyncClaudeAiSkills *bool           `json:"syncClaudeAiSkills"`
 			}
 
 			require.NoError(t, json.Unmarshal([]byte(valorDe(argumentos, "--settings")), &ajustes))
 			assert.Equal(t, caso.apagados, ajustes.EnabledPlugins)
+
+			// Las skills de la cuenta de claude.ai (anthropic-skills:*) no las
+			// apaga enabledPlugins; con false en --settings, Claude Code no las
+			// carga en esa invocación y no mueve las sincronizadas.
+			require.NotNil(t, ajustes.SyncClaudeAiSkills, "los ajustes de la sesión dicen si sincroniza las skills de la cuenta")
+			assert.False(t, *ajustes.SyncClaudeAiSkills, "la sesión arranca sin las skills de la cuenta")
 		})
 	}
 }
