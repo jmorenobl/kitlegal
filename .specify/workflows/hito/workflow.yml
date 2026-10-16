@@ -2,7 +2,7 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.8.1"
+  version: "2.8.2"
   author: "kitlegal"
   integration: "claude"
   description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
@@ -109,6 +109,9 @@ steps:
       h_re=$(printf '%s' "$h" | sed 's/\./\\./g')
       sec=$(awk -v h="$h_re" 'BEGIN{p=0} $0 ~ ("^#### " h " · "){p=1; print; next} p && /^(#{2,4} |---)/{exit} p{print}' docs/ROADMAP.md)
       [ -n "$sec" ] || { echo "hito $h no encontrado en docs/ROADMAP.md" >&2; exit 1; }
+      # .specify/feature.json apunta aún al feature del run anterior: sin él, la
+      # sesión de specify se apunta aparte y recoger_sesiones la lleva al hito.
+      scripts/workflow/modelos.sh empezar
       titulo=$(printf '%s\n' "$sec" | head -1 | sed -E 's/^#### [A-Z0-9.]+ · //')
       palabras=$(printf '%s' "$titulo" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT 2>/dev/null | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -d- -f1-3)
       # El punto no llega al nombre de la rama ni al del directorio: h5.1 → h5-1.
@@ -140,6 +143,13 @@ steps:
 
         {{ steps.extraer_hito.output.data.texto }}
         SESIÓN DE UN PASO (constitución, «Reglas del modo desatendido»; ADR 0032). Todo lo que ejecutes va en primer plano y esperas a que termine: nada en segundo plano. No abres sesiones con modelo (`claude`, `make evals`, `make evals-sondeo`, `TestSondeo`) ni lees o usas credenciales. Tus órdenes corren en un sandbox: solo escriben en el repositorio y en el directorio temporal, que es `$TMPDIR` y no `/tmp`, y no tienen más red que la de las herramientas de Go. Y no citas como evidencia nada que no hayas ejecutado y visto terminar en esta sesión o que no esté en el repositorio: lo que no hayas podido medir, lo dices tal cual. Cada línea que lees se queda en el contexto y se vuelve a pagar en cada turno que le queda a la sesión: busca con grep -n y lee la parte que necesitas (Read con offset y limit), no un fichero entero que no vas a usar entero.
+
+  # La sesión de specify se apuntó antes de que existiera el directorio del hito
+  # (scripts/workflow/modelos.sh): su línea pasa ahora al registro del hito.
+  - id: recoger_sesiones
+    type: shell
+    timeout: 30
+    run: "scripts/workflow/modelos.sh recoger"
 
   # ================================================================ clarify: pregunta un proceso, responde otro, nadie escala
   - id: clarify_preguntas
