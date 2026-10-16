@@ -97,7 +97,7 @@ func nuevoArbol(t *testing.T) *arbol {
 
 	a.escribir(rutaDelWorkflow, flujo)
 	a.escribir(".specify/feature.json", `{"feature_directory": "`+directorioDelHito+`"}`)
-	a.escribir(".gitignore", ".config-claude/\n.specify/feature.json\n")
+	a.escribir(".gitignore", ".config-claude/\n.specify/feature.json\n.specify/sesiones-sin-feature.jsonl\n")
 	a.escribir("docs/ROADMAP.md", roadmapDelTest)
 
 	for _, artefacto := range []string{"spec.md", "plan.md", "tasks.md"} {

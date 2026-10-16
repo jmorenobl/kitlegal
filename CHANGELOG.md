@@ -69,6 +69,11 @@ sustituyen a este fichero.
   tarea escalada, reutiliza el de la tarea) añade que cada línea leída se vuelve a pagar en cada turno que le queda a
   la sesión, y pide buscar con `grep -n` y leer solo la parte necesaria con `Read` y `offset` y `limit`. No cambia lo
   que un paso puede hacer ni lo que mide un gate.
+- **Las sesiones de un paso arrancan también sin las skills de la cuenta de claude.ai** (workflow `hito` 2.8.2). Tras
+  la 2.8.0 seguían entrando en cada sesión las 14 skills `anthropic-skills:*` de la cuenta, que no son plugins: el
+  contexto fijo bajó a 48 000–66 000 tokens, pero el reparto del coste no mejoró (78 % contexto, 22 % salida, en
+  H23.1). `scripts/claude-modelo.sh` pone `syncClaudeAiSkills: false` en los ajustes de la sesión, que las bloquea y
+  las oculta solo en esa invocación, sin mover las ya sincronizadas: con Claude Code 2.1.301, de 41 skills a 27.
 
 ### Corregido
 
@@ -76,6 +81,12 @@ sustituyen a este fichero.
   `H23.1` a la lista cerrada del input `hito` de `workflow.yml`, y `scripts/hito.sh H23.1` acabó antes de crear el
   run. Entra en la lista, y `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow` (`internal/workflow`) hace fallar
   `make ci` cuando una sección `#### H<n> ·` o `#### H<n>.<m> ·` de `docs/ROADMAP.md` no está en ella.
+- **La sesión de `specify` se apunta en el registro de su hito** (workflow `hito` 2.8.2). `specify` se abre antes de
+  que exista el directorio del hito, y `.specify/feature.json`, que no se versiona, seguía apuntando al del run
+  anterior: en H23.1 su línea fue a `specs/021-h26-el-umbral-de/gates/modelos.jsonl` y entró en la rama del hito; en
+  un clon sin `feature.json`, la sesión no se apuntaba. Ahora `extraer_hito` borra el `feature.json` heredado, el
+  wrapper apunta en `.specify/sesiones-sin-feature.jsonl` las sesiones que se abren mientras no hay feature, y el
+  paso nuevo `recoger_sesiones`, tras `specify`, las lleva al registro del hito.
 - **`jurisprudencia` v0.1.1: con un documento delante, coteja su ficha antes de decir nada de él.** El cotejo es lo
   primero que hace con un documento que está en la conversación, sea su texto pegado o un PDF leído: su ficha va a
   `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él, y nada del documento —ni que es la sentencia
