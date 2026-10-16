@@ -1,17 +1,18 @@
 {
-  "id": "T002",
-  "texto": "T002 [US1] Los dos mutantes del umbral, aplicados uno cada vez en una copia de la cabeza fuera del árbol, y su registro (quickstart.md §4; contracts/umbral-documento-sin-cotejar.md §6; research D12, M8; plan.md, paso 2). Es la prueba de que el control de FR-001 falla por encima de su umbral (ADR 0029), sobre el código y los tests que deja T001: no cambia ninguna línea de código ni de test, ni nada bajo `internal/`. Con un worktree de la cabeza en el directorio temporal, que es `$TMPDIR`, y las órdenes de quickstart.md §4 en primer plano y en su orden: **mutante 1**, en `sinCotejar`, `if !respuesta.cotejo {` pasa a contar solo si ninguna sesión del modo cotejó; **mutante 2**, en `umbralDeDocumentoSinCotejar`, `Decide: true,` pasa a `Decide: false,`. Tras cada sustitución, la guarda de §4 confirma que el fichero de la copia ha cambiado; si dice que el mutante no se ha aplicado, se ajusta la sustitución al código —el mutante es el de contracts §6— y el registro lleva la orden usada. Con cada uno se ejecuta en la copia `TestUmbralesDeJurisprudencia`, que tiene que terminar en rojo, y se restaura el fichero antes del siguiente. specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md recoge, por mutante: la línea que cambia, antes y después; la orden ejecutada; y los subtests que fallan, copiados de la salida leída con `rtk proxy`. Con el mutante 1 tienen que estar entre ellos `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y `una-sin-activar-y-sin-cotejar`, que esperan 1 de 12 y reciben 0; y con el mutante 2, los catorce casos de la tabla: 2 de 2 mutantes con algún caso en rojo (SC-006). Termina con el worktree retirado (`git worktree remove --force`) y `git status --short` igual que antes de empezar, salvo el directorio del feature: ningún mutante ha estado en el árbol. Si con un mutante no falla ningún caso, el control no basta y la tarea no se marca: lo deja escrito en su nota y amplía esta línea con el `_test.go` del caso que falta, que el intento siguiente relee. **Verificación**: lo anterior y `make ci`. — FR-001, FR-062, FR-064; SC-006. Rutas: specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md",
+  "id": "T003",
+  "texto": "T003 [US2] Los pasos 1 y 3 del «Protocolo» de `jurisprudencia`, y nada más de la skill (contracts/skill-jurisprudencia.md §1 a §3; research D13, V15, V16; plan.md, paso 3). **Paso 1** («Qué sentencias hacen falta, y cuáles están delante»): su última viñeta (hoy `SKILL.md:48`) dice que con un documento en la conversación lo primero es el paso 3, antes de decir nada de él; las del Tribunal Constitucional siguen yendo por el paso 7. **Paso 3** («Con el documento delante: cotejar su ficha»), al principio, antes de cómo se pasa la ficha (hoy `:83-89`), tres instrucciones: (a) el cotejo es lo primero que se hace con un documento que está en la conversación —texto pegado o PDF leído—: su ficha va a `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él (FR-020); (b) nada del documento antes del cotejo: ni que es la sentencia pedida, ni que coincide con ella, ni de qué trata (FR-021); (c) si es o no la pedida lo dice `es_la_pedida`, lo que devuelve la operación, y nunca una comparación hecha a ojo entre el documento y la referencia, con el caso en que falla: 1088/2023 es el número de resolución del documento del ROJ STS 3144/2023, y el ROJ STS 1088/2023 es el de otra sentencia (FR-022). Lo que el paso 3 ya dice sigue igual y en su sitio —la ficha y nada más, de `Roj:` a `Tipo de Resolución:`; la referencia en la forma en que se pidió; la orden con la ficha por la entrada estándar o en `--documento`; el PDF; lo que devuelve; qué hacer si no es la pedida; `correspondencia`; el código 2—; si para decir (c) hace falta mover la frase que dice que devuelve `es_la_pedida`, se mueve sin cambiar lo que dice. No cambian: el frontmatter, con la misma `description`, sin campo de versión; el título, la entrada y la introducción del «Protocolo» (líneas 1 a 38); el paso 2; los pasos 4 a 7; «Comandos», con su tabla generada, y «Reglas» (FR-023, FR-024). Ningún bloque de código nuevo con una orden que no esté ya en la skill, y ninguna herramienta fuera de `cita_preparar` y `cita_cotejar`. Ningún otro fichero de la skill ni de las otras dos cambia, y ninguna eval (FR-032, FR-034). **Verificación**: quickstart.md §5 —menos de 300 líneas; las tres órdenes `cmp` sin salida; el diff, solo en los pasos 1 y 3—, `make skills-check` y `make ci`. — FR-020, FR-021, FR-022, FR-023, FR-024, FR-032, FR-034; SC-007. Rutas: skills/jurisprudencia/SKILL.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "33876081c05f1cb418a98ebf088930f682827916",
+  "base": "6a0292fce9617490fd3fe22d0801d3842ea2ef93",
   "rutas": [
-    "_test.go",
-    "contracts/umbral-documento-sin-cotejar.md",
-    "internal/",
+    "1088/2023",
+    "3144/2023",
+    "SKILL.md",
+    "contracts/skill-jurisprudencia.md",
     "plan.md",
     "quickstart.md",
-    "specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md"
+    "skills/jurisprudencia/SKILL.md"
   ],
   "cierre": false,
   "converger": false,
