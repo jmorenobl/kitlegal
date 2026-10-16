@@ -224,8 +224,9 @@ nada a la red:
   `STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]`; la que no está delante lleva la línea
   `⚠ SENTENCIA NO COMPROBADA:` y la consulta preparada, sin decir que existe ni que no existe; ninguna se resume ni
   se caracteriza sin su texto; y una del Tribunal Constitucional se declara no cubierta. Sus evals están en
-  `evals/jurisprudencia/`, y el job decide con `cita_sin_documento`, un hecho de la sesión; que no resuma lo que no
-  ha leído lo decide, desde H25, su juez (abajo).
+  `evals/jurisprudencia/`, y el job decide con dos hechos de la sesión: `cita_sin_documento` y, desde H23.1,
+  `documento_sin_cotejar`, que con un documento delante la sesión lo cotejó; que no resuma lo que no ha leído lo
+  decide, desde H25, su juez (abajo).
 
 Siguen sin hacer los puntos 1 y 2, los del Tribunal Constitucional por el BOE: no hay `boe sumario`, y el applet
 `cita` no tiene `resolver`. Y, del punto 4, los operadores, la jurisdicción, el órgano y las fechas de la búsqueda

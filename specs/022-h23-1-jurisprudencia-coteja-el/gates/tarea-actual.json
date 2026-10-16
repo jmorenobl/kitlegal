@@ -1,18 +1,20 @@
 {
-  "id": "T003",
-  "texto": "T003 [US2] Los pasos 1 y 3 del «Protocolo» de `jurisprudencia`, y nada más de la skill (contracts/skill-jurisprudencia.md §1 a §3; research D13, V15, V16; plan.md, paso 3). **Paso 1** («Qué sentencias hacen falta, y cuáles están delante»): su última viñeta (hoy `SKILL.md:48`) dice que con un documento en la conversación lo primero es el paso 3, antes de decir nada de él; las del Tribunal Constitucional siguen yendo por el paso 7. **Paso 3** («Con el documento delante: cotejar su ficha»), al principio, antes de cómo se pasa la ficha (hoy `:83-89`), tres instrucciones: (a) el cotejo es lo primero que se hace con un documento que está en la conversación —texto pegado o PDF leído—: su ficha va a `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él (FR-020); (b) nada del documento antes del cotejo: ni que es la sentencia pedida, ni que coincide con ella, ni de qué trata (FR-021); (c) si es o no la pedida lo dice `es_la_pedida`, lo que devuelve la operación, y nunca una comparación hecha a ojo entre el documento y la referencia, con el caso en que falla: 1088/2023 es el número de resolución del documento del ROJ STS 3144/2023, y el ROJ STS 1088/2023 es el de otra sentencia (FR-022). Lo que el paso 3 ya dice sigue igual y en su sitio —la ficha y nada más, de `Roj:` a `Tipo de Resolución:`; la referencia en la forma en que se pidió; la orden con la ficha por la entrada estándar o en `--documento`; el PDF; lo que devuelve; qué hacer si no es la pedida; `correspondencia`; el código 2—; si para decir (c) hace falta mover la frase que dice que devuelve `es_la_pedida`, se mueve sin cambiar lo que dice. No cambian: el frontmatter, con la misma `description`, sin campo de versión; el título, la entrada y la introducción del «Protocolo» (líneas 1 a 38); el paso 2; los pasos 4 a 7; «Comandos», con su tabla generada, y «Reglas» (FR-023, FR-024). Ningún bloque de código nuevo con una orden que no esté ya en la skill, y ninguna herramienta fuera de `cita_preparar` y `cita_cotejar`. Ningún otro fichero de la skill ni de las otras dos cambia, y ninguna eval (FR-032, FR-034). **Verificación**: quickstart.md §5 —menos de 300 líneas; las tres órdenes `cmp` sin salida; el diff, solo en los pasos 1 y 3—, `make skills-check` y `make ci`. — FR-020, FR-021, FR-022, FR-023, FR-024, FR-032, FR-034; SC-007. Rutas: skills/jurisprudencia/SKILL.md",
+  "id": "T004",
+  "texto": "T004 [US4] Lo que los cuatro documentos dicen del umbral y de la skill, con contracts/documentos.md, cada cifra, fichero, test y umbral sacados del árbol (research D15, V22, V23; plan.md, paso 4). **`CHANGELOG.md`**, dentro de `## [Unreleased]` y en ninguna versión publicada (FR-040, FR-065): en «Añadido», el umbral `documento_sin_cotejar:<modelo>:<modo>` —qué cuenta, sobre qué (12 por modo hoy), con 0 y decide, su motivo con cada sesión; `jurisprudencia` de trece elementos, nueve que deciden, a quince, once que deciden; `boe-legislacion` sigue con trece y `legal-core` con `[]`—; y en «Corregido», `jurisprudencia` v0.1.1, que sustituye a la v0.1, con las cifras del defecto (6 de 48 respuestas de `claude-sonnet-5-5` en la eval 06, 4 en el modo orden y 2 en el herramienta, según la bitácora de uso del 2026-10-15) y lo que no cambia, con las líneas de `SKILL.md` que deja T003. **`CONTRIBUTING.md`**, «Job de evals» (FR-041): «otros trece» pasa a quince; «son también trece, y deciden nueve» pasa a quince y once; la tabla de `jurisprudencia` gana la fila de `documento_sin_cotejar:<modelo>:<modo>` detrás de la de `cita_sin_documento:<modelo>:<modo>`; «los cuatro del modo orden y los cuatro del modo herramienta» y «cuatro de los trece» pasan a los cinco y los cinco y a cuatro de los quince; y un párrafo nuevo, detrás del de `cita_sin_documento`, con lo de contracts/documentos.md: un hecho de la sesión, medido sin modelo con las invocaciones de su traza y sus llamadas, con el criterio del comando esperado; toda skill con una eval que pide el cotejo, sin que el código nombre ninguna (`TestUmbralesDeJurisprudencia`, `TestEvalsDelRepositorio`); y su motivo. No cambian la frase de que existen solo con juez o con `sentencias`, lo de `boe-legislacion` y `legal-core`, ni el párrafo de `cita_sin_documento`. **`docs/JURISPRUDENCIA.md`** (FR-042): donde dice que el job decide con `cita_sin_documento`, dice que decide con dos hechos de la sesión, `cita_sin_documento` y `documento_sin_cotejar`. **`CLAUDE.md`** (FR-043): la enumeración de lo que comprueba un guion con umbral 0 nombra también el cotejo del documento (`documento_sin_cotejar`); la viñeta de H23.1 y la frase del siguiente hito no se tocan. **`WORKFLOW.md`** se lee y no cambia: ninguna frase dice cuántos umbrales lleva `jurisprudencia` (FR-044). Ninguna otra frase se reescribe (FR-045). **Verificación**: quickstart.md §6, orden a orden y con lo esperado de cada una; y `make ci`. — FR-040, FR-041, FR-042, FR-043, FR-044, FR-045, FR-065; SC-008. Rutas: CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, CLAUDE.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "6a0292fce9617490fd3fe22d0801d3842ea2ef93",
+  "base": "fe808db8c761a6feddb80e4341e5f1316211c6f3",
   "rutas": [
-    "1088/2023",
-    "3144/2023",
+    "CHANGELOG.md",
+    "CLAUDE.md",
+    "CONTRIBUTING.md",
     "SKILL.md",
-    "contracts/skill-jurisprudencia.md",
+    "WORKFLOW.md",
+    "contracts/documentos.md",
+    "docs/JURISPRUDENCIA.md",
     "plan.md",
-    "quickstart.md",
-    "skills/jurisprudencia/SKILL.md"
+    "quickstart.md"
   ],
   "cierre": false,
   "converger": false,
