@@ -42,6 +42,21 @@ sustituyen a este fichero.
   `workflow.yml` lleva detrás `#<paso>:<rol>`, y `scripts/hito.sh --resume` avisa de los roles que no tienen el
   modelo de `workflow.yml`. En H26 el supervisor bajó todos los roles a Sonnet por el límite de uso y el informe
   final no lo dijo.
+- **El umbral `documento_sin_cotejar:<modelo>:<modo>`: con un documento delante, la sesión lo coteja.** Cuenta las
+  sesiones de una eval que pide `cita cotejar` sin ningún `cita cotejar` que consultara y terminara bien, ni como
+  orden ni como llamada a `cita_cotejar`, cada una una vez como mucho, por lo que hizo ella. Una eval pide el cotejo
+  si activa la skill y espera algún `cita cotejar` en `comandos`, con `roj` o sin él; lo dicen sus comandos, sin
+  ninguna lista de evals ni de skills. Se mide sobre las respuestas medidas del modelo que decide en ese modo, las del
+  `total` de `sin_activar`, de las evals que piden el cotejo: hoy, la 04, la 06, la 08 y la 09 de `jurisprudencia`,
+  12 respuestas por modo. Es un hecho de la sesión y se mide sin modelo, con el criterio con el que el juicio da por
+  ejecutado un comando esperado, sin mirar los argumentos del cotejo ni lo que devolvió. Con `"<="` 0, y decide; si
+  no se cumple, su motivo nombra cada sesión que cuenta:
+  `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`, y
+  `; <sesión>` por cada otra. Por cada modo va detrás de `cita_sin_documento:<modelo>:<modo>`, y `umbrales` de
+  `jurisprudencia` pasa de trece elementos, nueve que deciden, a quince, once que deciden; `boe-legislacion`, ninguna
+  de cuyas evals pide el cotejo, sigue con trece, y `legal-core`, con `[]`. Hasta ahora, una respuesta que daba el
+  documento por la sentencia pedida sin cotejarlo no la contaba ningún umbral: `cita_sin_documento` no la mide si no
+  cita con la forma fija.
 
 ### Cambiado
 
@@ -61,6 +76,19 @@ sustituyen a este fichero.
   `H23.1` a la lista cerrada del input `hito` de `workflow.yml`, y `scripts/hito.sh H23.1` acabó antes de crear el
   run. Entra en la lista, y `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow` (`internal/workflow`) hace fallar
   `make ci` cuando una sección `#### H<n> ·` o `#### H<n>.<m> ·` de `docs/ROADMAP.md` no está en ella.
+- **`jurisprudencia` v0.1.1: con un documento delante, coteja su ficha antes de decir nada de él.** El cotejo es lo
+  primero que hace con un documento que está en la conversación, sea su texto pegado o un PDF leído: su ficha va a
+  `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él, y nada del documento —ni que es la sentencia
+  pedida, ni que coincide con ella, ni de qué trata— va antes. Si es o no la pedida lo dice `es_la_pedida`, lo que
+  devuelve la operación, y nunca una comparación a ojo entre el documento y la referencia, que falla cuando el número
+  de resolución del documento es el ROJ pedido: 1088/2023 es el número de resolución del documento del
+  ROJ STS 3144/2023, y el ROJ STS 1088/2023 es el de otra sentencia. Antes, en la eval 06 (se pide el
+  ROJ STS 1088/2023 y el documento es el ROJ STS 3144/2023), 6 de las 48 respuestas de `claude-sonnet-5-5` de las
+  ocho tandas medibles desde el 2026-10-10 no ejecutaron `cita cotejar` y dieron el documento por la sentencia
+  pedida, 4 en el modo orden y 2 en el modo herramienta (`docs/USO.md`, 2026-10-15); lo mide desde ahora
+  `documento_sin_cotejar` (arriba). Cambian solo los pasos 1 y 3 del «Protocolo»: no cambian la `description`, la
+  tabla de comandos, los pasos 2 y 4 a 7 ni las reglas, y `SKILL.md` pasa de 197 líneas a 207. Sustituye a
+  `jurisprudencia` v0.1.
 
 ## [0.6.0] - 2026-10-14
 

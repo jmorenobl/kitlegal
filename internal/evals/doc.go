@@ -179,19 +179,24 @@
 //     umbrales de cada modo llevan además cita_sin_documento, las respuestas
 //     con una cita sin documento cotejado o con un ECLI sin origen, que decide
 //     con 0 y cuyo motivo nombra cada respuesta que cuenta, por su sesión y
-//     con sus ECLI. Con el plan del job, los dos modos, cada una de las dos
-//     skills con juez lleva trece, de los que deciden nueve. En
-//     boe-legislacion, con su objetivo: de cada modo, el del modo orden
-//     delante, sin_activar y los recuentos de afirma_lo_no_leido y de
-//     cuenta_su_proceso; el conjunto de afirma_lo_no_leido; los dos de la
-//     medida versionada; y duracion_de_las_sesiones y duracion_del_juez de cada
-//     modo. En jurisprudencia, que desde H25 tiene juez y sigue sin objetivo:
-//     de cada modo, sin_activar, los recuentos de afirma_lo_no_leido y de
-//     afirma_que_existe y cita_sin_documento; el conjunto de
-//     afirma_lo_no_leido; los dos de la medida versionada, sobre sus 125
-//     defectos y sus 124 correctos; y duracion_del_juez de cada modo, sin
-//     duracion_de_las_sesiones. En las dos, no deciden los cuatro recuentos.
-//     Una skill sin juez ni sentencias no tiene ninguno.
+//     con sus ECLI. Desde H23.1, si alguna de sus evals pide el cotejo —activa
+//     la skill y espera algún cita cotejar—, detrás va documento_sin_cotejar,
+//     las respuestas de esas evals cuya sesión no ejecutó ningún cita cotejar
+//     que consultara y terminara bien, sobre las de esas evals, que decide con
+//     0 y cuyo motivo nombra cada sesión que cuenta. Con el plan del job, los
+//     dos modos, boe-legislacion lleva trece, de los que deciden nueve, y
+//     jurisprudencia, quince, de los que deciden once. En boe-legislacion, con
+//     su objetivo: de cada modo, el del modo orden delante, sin_activar y los
+//     recuentos de afirma_lo_no_leido y de cuenta_su_proceso; el conjunto de
+//     afirma_lo_no_leido; los dos de la medida versionada; y
+//     duracion_de_las_sesiones y duracion_del_juez de cada modo. En
+//     jurisprudencia, que desde H25 tiene juez y sigue sin objetivo: de cada
+//     modo, sin_activar, los recuentos de afirma_lo_no_leido y de
+//     afirma_que_existe, cita_sin_documento y documento_sin_cotejar; el
+//     conjunto de afirma_lo_no_leido; los dos de la medida versionada, sobre
+//     sus 125 defectos y sus 124 correctos; y duracion_del_juez de cada modo,
+//     sin duracion_de_las_sesiones. En las dos, no deciden los cuatro
+//     recuentos. Una skill sin juez ni sentencias no tiene ninguno.
 //     Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta
@@ -199,7 +204,8 @@
 //     veredicto en fallo por la ejecución, no por la skill (FR-001 a FR-008,
 //     FR-033 y FR-051 de H7.3; FR-040 a FR-045 de H7.4; FR-043 a FR-048 de H21;
 //     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23;
-//     FR-020 a FR-025 de H25; FR-001 a FR-005 y FR-010 a FR-012 de H26);
+//     FR-020 a FR-025 de H25; FR-001 a FR-005 y FR-010 a FR-012 de H26;
+//     FR-001 a FR-007 de H23.1);
 //   - leerDefinicionDelJob lee la definición del job, .github/workflows/evals.yml:
 //     con ella la comprueba TestDefinicionDelJob en make ci —también el modelo
 //     del juez y la versión de Claude Code de sus votos, fijados aparte de los de

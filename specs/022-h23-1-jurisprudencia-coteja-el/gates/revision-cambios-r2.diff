@@ -1,0 +1,675 @@
+diff --git a/internal/evals/informe_test.go b/internal/evals/informe_test.go
+index 5ca6b99..61c4fc2 100644
+--- a/internal/evals/informe_test.go
++++ b/internal/evals/informe_test.go
+@@ -4957,12 +4957,12 @@ func exigirQueSinVotanteNoHayInforme(t *testing.T) {
+ // Lo que TestUmbralesDeJurisprudencia escribe en las trazas de sus sesiones
+ // sintéticas del modo orden: la línea con la que claude crea el proceso de una
+ // orden, con su número, y ese proceso, que ejecuta el binario con los
+-// argumentos de la orden y termina con 0.
++// argumentos de la orden y termina con su código.
+ const (
+ 	creacionDeUnaOrden = "clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, " +
+ 		"child_tidptr=0x7f3a9c2f5a10) = %d\n"
+ 	trazaDeUnaOrden = `execve("/usr/local/bin/kitlegal", [%s], 0x7ffd8f13a6c0 /* 25 vars */) = 0` + "\n" +
+-		"+++ exited with 0 +++\n"
++		"+++ exited with %d +++\n"
+ 
+ 	// primerProcesoDeLaSesion es el número del primer proceso que crea claude.
+ 	primerProcesoDeLaSesion = 2000
+@@ -5007,14 +5007,16 @@ type casoDeUmbralesDeJurisprudencia struct {
+ 	nombre string
+ 
+ 	// sinCotejo son las sesiones que se escriben de nuevo sin su cotejo
+-	// (escribirSinElCotejo), antes que cualquier otro cambio; prefijos, lo que se
+-	// antepone a la respuesta de cada sesión, por su nombre; sinActivar, la
+-	// sesión a la que se le quita la activación; y sinMedir, la que queda sin
+-	// medir por el mensaje del límite de uso.
+-	sinCotejo  []string
+-	prefijos   map[string]string
+-	sinActivar string
+-	sinMedir   string
++	// (escribirSinElCotejo), y cotejoFallido, las que se escriben de nuevo con su
++	// cotejo fallido (escribirConElCotejoFallido), antes que cualquier otro
++	// cambio; prefijos, lo que se antepone a la respuesta de cada sesión, por su
++	// nombre; sinActivar, la sesión a la que se le quita la activación; y
++	// sinMedir, la que queda sin medir por el mensaje del límite de uso.
++	sinCotejo     []string
++	cotejoFallido []string
++	prefijos      map[string]string
++	sinActivar    string
++	sinMedir      string
+ 
+ 	// grabados son los votos grabados de algunas respuestas: a cada una se le
+ 	// antepone su párrafo, y de las demás el votante dice no en las dos clases.
+@@ -5084,12 +5086,14 @@ const (
+ //     de las evals que piden el cotejo cotejan, las del modo orden por la orden
+ //     de su traza y las del modo herramienta por su llamada a cita_cotejar, y
+ //     ninguna cuenta en documento_sin_cotejar;
+-//   - con una sesión de la 06 sin su cotejo, en un modo, y las otras once de ese
+-//     modo cotejando, documento_sin_cotejar de ese modo mide 1 de 12, no se
+-//     cumple y el veredicto es fallo, con un motivo que nombra el umbral, su
+-//     medida, su condición y la sesión; la misma sesión del modelo informativo
+-//     no cuenta, y las 18 sesiones de cada modo de las evals que no piden el
+-//     cotejo, que no cotejan, no están en su total;
++//   - con una sesión de la 06 sin su cotejo, o con su único cita cotejar
++//     fallido —el sobre de fallo de una ficha que no se reconoce y, en el modo
++//     orden, el código 2—, en un modo, y las otras once de ese modo cotejando,
++//     documento_sin_cotejar de ese modo mide 1 de 12, no se cumple y el
++//     veredicto es fallo, con un motivo que nombra el umbral, su medida, su
++//     condición y la sesión; la misma sesión del modelo informativo no cuenta,
++//     y las 18 sesiones de cada modo de las evals que no piden el cotejo, que
++//     no cotejan, no están en su total;
+ //   - una sesión sin activar y sin cotejo cuenta en sin_activar y en
+ //     documento_sin_cotejar, cada uno con su motivo; y una sin medir y sin
+ //     cotejo no está en el total de ningún umbral de su modo —ni en el
+@@ -5450,6 +5454,32 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
+ 			},
+ 			votos: votosSinMarcar,
+ 		},
++		{
++			// Una sesión de la 06 cuyo único cita cotejar no termina bien —devuelve
++			// el sobre de fallo de una ficha que no se reconoce y su proceso termina
++			// con 2— no cotejó: cuenta como la que no lo ejecutó (FR-002 de H23.1;
++			// «Edge Cases»).
++			nombre:        "una-con-el-cotejo-fallido-en-el-modo-orden",
++			cotejoFallido: []string{sinCotejoEnOrden},
++			porModo:       map[Modo]medidasDeJurisprudencia{ModoOrden: {sinCotejar: 1}},
++			motivos: []string{
++				"umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
++					"06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01",
++			},
++			votos: votosSinMarcar,
++		},
++		{
++			// La del modo herramienta, cuya llamada a cita_cotejar trae ese sobre de
++			// fallo como resultado.
++			nombre:        "una-con-el-cotejo-fallido-en-el-modo-herramienta",
++			cotejoFallido: []string{sinCotejoEnHerramienta},
++			porModo:       map[Modo]medidasDeJurisprudencia{ModoHerramienta: {sinCotejar: 1}},
++			motivos: []string{
++				"umbral documento_sin_cotejar:claude-sonnet-5-5:herramienta: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
++					"06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01",
++			},
++			votos: votosSinMarcar,
++		},
+ 		{
+ 			// Sin cotejo y sin activar, cuenta en los dos umbrales, cada uno con su
+ 			// motivo, en el orden de los umbrales (FR-030 de H23.1; US3, escenario
+@@ -5483,15 +5513,12 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
+ 	}
+ }
+ 
+-// exigirLosUmbralesDeJurisprudencia arma las sesiones del plan del job, hace
+-// los cambios del caso —primero, escribir de nuevo sin su cotejo las sesiones
+-// que lo piden, que desharía los demás—, antepone a cada respuesta con votos
+-// grabados su párrafo y escribe el informe con el votante de esos votos: exige
+-// sus quince umbrales, once de ellos decidiendo, sus motivos y su veredicto, que
+-// es fallo si hay algún motivo; lo que publica del juez; que se pida cada voto
+-// de cada respuesta medida del modelo que decide, con su mensaje, y ninguno más;
+-// y la fila de cada umbral en informe.md.
+-func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisprudencia) {
++// armarLasSesionesDelCaso arma las sesiones del plan del job y hace los
++// cambios del caso —primero, escribir de nuevo sin su cotejo o con su cotejo
++// fallido las sesiones que lo piden, que desharía los demás—, y antepone a cada
++// respuesta con votos grabados su párrafo. Devuelve el directorio de las
++// sesiones.
++func armarLasSesionesDelCaso(t *testing.T, caso casoDeUmbralesDeJurisprudencia) string {
+ 	t.Helper()
+ 
+ 	sesiones := armarSesionesDeJurisprudencia(t)
+@@ -5500,6 +5527,10 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
+ 		escribirSinElCotejo(t, sesiones, sesion)
+ 	}
+ 
++	for _, sesion := range caso.cotejoFallido {
++		escribirConElCotejoFallido(t, sesiones, sesion)
++	}
++
+ 	for sesion, prefijo := range caso.prefijos {
+ 		anteponerALaRespuesta(t, filepath.Join(sesiones, sesion), prefijo)
+ 	}
+@@ -5517,6 +5548,20 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
+ 		anteponerALaRespuesta(t, filepath.Join(sesiones, grabado.sesion), grabado.parrafo+"\n\n")
+ 	}
+ 
++	return sesiones
++}
++
++// exigirLosUmbralesDeJurisprudencia arma las sesiones del caso
++// (armarLasSesionesDelCaso) y escribe el informe con el votante de sus votos
++// grabados: exige sus quince umbrales, once de ellos decidiendo, sus motivos y
++// su veredicto, que es fallo si hay algún motivo; lo que publica del juez; que
++// se pida cada voto de cada respuesta medida del modelo que decide, con su
++// mensaje, y ninguno más; y la fila de cada umbral en informe.md.
++func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisprudencia) {
++	t.Helper()
++
++	sesiones := armarLasSesionesDelCaso(t, caso)
++
+ 	votante := nuevoVotanteDelInforme(t, caso.grabados...)
+ 	votante.queNo = votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo()).salida
+ 
+@@ -5846,15 +5891,49 @@ func armarSesionesDeJurisprudencia(t *testing.T) string {
+ 	return sesiones
+ }
+ 
+-// escribirSinElCotejo borra del directorio de sesiones la del plan del job con
++// sobreDelCotejoFallido es el sobre de fallo de un cita cotejar con una ficha
++// que no se reconoce: clase argumentos, la del código 2.
++var sobreDelCotejoFallido = sobreDeCita(false,
++	`{"clase":"argumentos","mensaje":"la ficha no es reconocible: falta el dato «Roj»"}`)
++
++// escribirSinElCotejo escribe de nuevo la sesión del plan del job con ese
++// nombre sin su operación cotejar (escribirConOtroCotejo): ni la orden en su
++// traza, en el modo orden, ni la llamada a cita_cotejar en su transcript, en el
++// modo herramienta (research D9 de H23.1).
++func escribirSinElCotejo(t *testing.T, sesiones, nombre string) {
++	t.Helper()
++
++	escribirConOtroCotejo(t, sesiones, nombre, func(operaciones []operacionDeCita, cotejo int) []operacionDeCita {
++		return slices.Delete(operaciones, cotejo, cotejo+1)
++	})
++}
++
++// escribirConElCotejoFallido escribe de nuevo la sesión del plan del job con
++// ese nombre con su operación cotejar fallida (escribirConOtroCotejo): la
++// misma orden o la misma llamada, que devuelve sobreDelCotejoFallido —en el modo
++// herramienta, un resultado que es un error— y cuyo proceso, en el modo orden,
++// termina con 2 (FR-002 de H23.1).
++func escribirConElCotejoFallido(t *testing.T, sesiones, nombre string) {
++	t.Helper()
++
++	escribirConOtroCotejo(t, sesiones, nombre, func(operaciones []operacionDeCita, cotejo int) []operacionDeCita {
++		operaciones[cotejo].sobre = sobreDelCotejoFallido
++		operaciones[cotejo].codigo = 2
++
++		return operaciones
++	})
++}
++
++// escribirConOtroCotejo borra del directorio de sesiones la del plan del job con
+ // ese nombre y la escribe de nuevo con escribirSesionDeJurisprudencia y la
+-// sesión modelo de su eval sin su operación cotejar: ni la orden en su traza, en
+-// el modo orden, ni la llamada a cita_cotejar en su transcript, en el modo
+-// herramienta (research D9 de H23.1). Las demás operaciones siguen, en su
+-// orden, y la del modelo informativo lleva delante parrafoDelInformativo, como
+-// en armarSesionesDeJurisprudencia. Deshace cualquier otro cambio de la sesión:
++// sesión modelo de su eval con las operaciones que da cambiar, que recibe una
++// copia de las suyas y la posición de la única cotejar. La del modelo
++// informativo lleva delante parrafoDelInformativo, como en
++// armarSesionesDeJurisprudencia. Deshace cualquier otro cambio de la sesión:
+ // va antes que ellos.
+-func escribirSinElCotejo(t *testing.T, sesiones, nombre string) {
++func escribirConOtroCotejo(
++	t *testing.T, sesiones, nombre string, cambiar func(operaciones []operacionDeCita, cotejo int) []operacionDeCita,
++) {
+ 	t.Helper()
+ 
+ 	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
+@@ -5871,12 +5950,14 @@ func escribirSinElCotejo(t *testing.T, sesiones, nombre string) {
+ 	deLaEval := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
+ 
+ 	deLaSesion := sesionesModeloDeLasDiezEvals(t)[deLaEval]
+-	conCotejo := len(deLaSesion.operaciones)
+ 
+-	deLaSesion.operaciones = slices.DeleteFunc(slices.Clone(deLaSesion.operaciones), func(operacion operacionDeCita) bool {
+-		return operacion.orden[0] == verboCotejar
+-	})
+-	require.Len(t, deLaSesion.operaciones, conCotejo-1, "la sesión modelo de %s coteja una vez", planificada.Fichero)
++	esCotejo := func(operacion operacionDeCita) bool { return operacion.orden[0] == verboCotejar }
++	cotejo := slices.IndexFunc(deLaSesion.operaciones, esCotejo)
++	require.GreaterOrEqual(t, cotejo, 0, "la sesión modelo de %s coteja", planificada.Fichero)
++	require.False(t, slices.ContainsFunc(deLaSesion.operaciones[cotejo+1:], esCotejo),
++		"la sesión modelo de %s coteja una vez", planificada.Fichero)
++
++	deLaSesion.operaciones = cambiar(slices.Clone(deLaSesion.operaciones), cotejo)
+ 
+ 	if planificada.Modelo != modeloSonnet55 {
+ 		deLaSesion.respuesta = parrafoDelInformativo + "\n\n" + deLaSesion.respuesta
+@@ -5938,7 +6019,8 @@ func escribirSesionDeJurisprudencia(
+ 		}) + mensajeDeResultados(t, resultadoDeHerramienta{id: uso, contenido: cadenaJSON(t, operacion.sobre)})
+ 
+ 		deClaude += fmt.Sprintf(creacionDeUnaOrden, proceso)
+-		escribirEnLaCopia(t, traza, "t."+strconv.Itoa(proceso), fmt.Sprintf(trazaDeUnaOrden, argvDeStrace(argv)))
++		escribirEnLaCopia(t, traza, "t."+strconv.Itoa(proceso),
++			fmt.Sprintf(trazaDeUnaOrden, argvDeStrace(argv), operacion.codigo))
+ 	}
+ 
+ 	respuesta := cadenaJSON(t, deLaSesion.respuesta)
+diff --git a/internal/evals/sentencias_test.go b/internal/evals/sentencias_test.go
+index 0635d03..675c2a7 100644
+--- a/internal/evals/sentencias_test.go
++++ b/internal/evals/sentencias_test.go
+@@ -710,13 +710,14 @@ func juiciosDeLaDireccionDeBusqueda(t *testing.T) []juicioDeSentencias {
+ 
+ // operacionDeCita es una operación del applet cita en una sesión sintética:
+ // los tokens de su orden detrás de kitlegal cita, sin --json; la herramienta y
+-// los argumentos de su llamada; y el sobre que devuelve, el mismo por las dos
+-// vías.
++// los argumentos de su llamada; el sobre que devuelve, el mismo por las dos
++// vías; y el código con el que termina su orden, 0 si no se da.
+ type operacionDeCita struct {
+ 	orden       []string
+ 	herramienta string
+ 	argumentos  string
+ 	sobre       string
++	codigo      int
+ }
+ 
+ // sesionModelo es la sesión de quien sigue la skill ante una de las diez evals
+diff --git a/specs/021-h26-el-umbral-de/gates/modelos.jsonl b/specs/021-h26-el-umbral-de/gates/modelos.jsonl
+deleted file mode 100644
+index 2419825..0000000
+--- a/specs/021-h26-el-umbral-de/gates/modelos.jsonl
++++ /dev/null
+@@ -1 +0,0 @@
+-{"sesion":"9a311b12-b60a-463d-89be-d5ca61b11bb4","paso":"specify","rol":"modelo_redaccion","pedido":"claude-opus-5-5","esfuerzo":"high","origen":"workflow","a_mano":false,"repuesto":null,"inicio":"2026-10-16T06:54:25Z","real":null,"sin_modelo_real":"sin resolver"}
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/cierre.md b/specs/022-h23-1-jurisprudencia-coteja-el/cierre.md
+index d3d82f2..76044ed 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/cierre.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/cierre.md
+@@ -18,12 +18,14 @@ y su marca en tasks.md.
+ **Un hallazgo para la persona y la revisión final** (§1, «Lo que no cambia», último punto): el diff del hito añade
+ `specs/021-h26-el-umbral-de/gates/modelos.jsonl`, un fichero del directorio de H26. No lo escribió ninguna tarea: lo
+ trae el commit `92b434a` («docs(H23.1): spec, clarificaciones y plan del hito») y es una línea del paso `specify` del
+-workflow. T005 no lo retira (`gates/supuestos.md`).
++workflow. T005 no lo retiró (`gates/supuestos.md`); lo retiró la revisión final, que llevó su línea al registro de
++H23.1 (§7).
+ 
+ ## 1. Lo creado y lo modificado en el hito, y lo que no cambia
+ 
+ `git diff --name-status main` da **43 ficheros: 33 `A` y 10 `M`**, ninguna `D` ni `R`. De los 33 `A`, 32 están en
+-`specs/022-h23-1-jurisprudencia-coteja-el/` y uno en `specs/021-h26-el-umbral-de/` (abajo). Este `cierre.md` no está
++`specs/022-h23-1-jurisprudencia-coteja-el/` y uno en `specs/021-h26-el-umbral-de/` (abajo), que la revisión final
++retiró después (§7, con lo que cambió entonces). Este `cierre.md` no está
+ entre ellos, porque no tiene seguimiento hasta el commit de la tarea. Los 10 `M` son todo lo que el hito cambia fuera de
+ `specs/` (`git diff --shortstat main -- . ':!specs'`: 10 ficheros, 663 líneas añadidas y 138 quitadas). El hito no
+ crea ningún fichero fuera de `specs/`. `git status --short` da, antes de §2, los tres ficheros de `gates/` que el
+@@ -83,8 +85,9 @@ comentarios.
+   es el spec, el plan ni un informe de H26, que son lo que FR-045 protege, y FR-052 no nombra `specs/`. Pero es un
+   fichero de otro hito en el diff, y esta tarea pide constatar que no hay ninguno: no se puede. T005 no lo retira,
+   porque su ruta no está entre las declaradas y el guardián de diff solo admite el directorio del feature; la causa
+-  está en el paso `specify` del workflow, que no se toca dentro de un hito. Lo decide la persona: quitarlo de la
+-  propuesta de cambio, o dejarlo y corregir el workflow fuera del hito.
++  está en el paso `specify` del workflow, que no se toca dentro de un hito. La revisión final aplicó la lectura
++  conservadora: lo retiró del diff y llevó su línea, la primera, a `gates/modelos.jsonl` de H23.1 (§7). La causa del
++  workflow sigue fuera del hito.
+ 
+ ### La Definition of Done, punto a punto (`ROADMAP.md` §1)
+ 
+@@ -329,7 +332,8 @@ en su verificación (`gates/ci.log` guarda la de T004).
+ - **Las once filas `evals:`** (§4), SC-001 y SC-009: las mide el job de cierre que lanza el workflow, y las lee el
+   informe final. Qué dará ese job con la skill v0.1.1 no se puede medir en el run (tasks.md, «Estrategia de
+   implementación»).
+-- **`specs/021-h26-el-umbral-de/gates/modelos.jsonl`** (§1): lo decide la persona.
++- **Que el paso `specify` escriba su registro en el directorio del hito anterior** (§1): la revisión final retiró el
++  fichero del diff (§7), pero la causa está en `scripts/workflow/` y se corrige fuera del hito.
+ - **El comentario de `.github/workflows/evals.yml:157`**, que sigue diciendo «trece umbrales, nueve que deciden»: lo
+   corrige una persona, fuera del hito (quickstart.md §9).
+ - **La viñeta de H23.1 de `CLAUDE.md`** y la frase del siguiente hito: al fusionar, una persona (quickstart.md §9).
+@@ -337,3 +341,37 @@ en su verificación (`gates/ci.log` guarda la de T004).
+ - **quickstart.md §8 y §9**, y SC-010: del workflow y de una persona.
+ - **La verificación de la tarea** es otro `make ci`, posterior a la última edición de este fichero: su resultado no
+   está aquí.
++
++## 7. La revisión final, ronda 1
++
++Los dos jueces rechazaron el hito sobre `daa6867`. El corrector aplicó la unión de sus motivos; lo que sigue se
++ejecutó en su sesión, o está en el repositorio. Las cifras de §1 a §6 son las de T005 sobre `ff27b7d` y no se
++rehacen: esta sección dice lo que cambió después.
++
++- **Un cotejo que termina mal no es un cotejo** (motivo [b] de los dos jueces). Con `cotejaUnDocumento` contando
++  cualquier `cita cotejar` por su applet y su verbo, sin pasar por `satisface`, `go test ./internal/evals/` pasaba
++  entero. `TestUmbralesDeJurisprudencia` lleva ahora dos casos más,
++  `una-con-el-cotejo-fallido-en-el-modo-orden` y `una-con-el-cotejo-fallido-en-el-modo-herramienta`: el único
++  `cita cotejar` de la sesión de la 06 devuelve el sobre de fallo de una ficha que no se reconoce y, en el modo orden,
++  termina con 2; la sesión cuenta, 1 de 12, `fallo`, con el motivo que la nombra. El arnés gana
++  `escribirConElCotejoFallido`, que comparte con `escribirSinElCotejo` la reescritura de la sesión
++  (`escribirConOtroCotejo`), y la operación sintética, el código con el que termina su orden (`operacionDeCita.codigo`,
++  en `internal/evals/sentencias_test.go`). Con el bucle nuevo, `gocyclo` dio 14 (> 13) a
++  `exigirLosUmbralesDeJurisprudencia`: la preparación de las sesiones del caso pasó, tal cual, a
++  `armarLasSesionesDelCaso`. Ningún código de producción cambia. `go test -count=1 -v -run
++  '^TestUmbralesDeJurisprudencia$' ./internal/evals/`: `ok`, diecisiete subtests en `PASS` (los dieciséis de la tabla
++  y `el-elemento-del-contrato`). Con ese mutante caen los dos casos nuevos y ninguno más; con el mutante 1, cinco; con
++  el 2, los dieciséis (`mutantes.md`, «La revisión final»).
++- **El registro de H26 sale del diff** (motivo [i] del juez A; lectura conservadora, `gates/supuestos.md`). Se borró
++  `specs/021-h26-el-umbral-de/gates/modelos.jsonl`, que no existe en `main`, y su línea —sesión `9a311b12…`, paso
++  `specify`, `2026-10-16T06:54:25Z`— es ahora la primera de `gates/modelos.jsonl` de H23.1. Contra `main`, el árbol
++  de trabajo ya no da ningún fichero de `specs/` fuera del directorio del feature
++  (`git diff --name-status main -- specs ':(exclude)specs/022-h23-1-jurisprudencia-coteja-el'`, vacío); el borrado lo
++  commitea el workflow.
++- **Fuera de `specs/`**, `git diff --name-status main -- . ':!specs'` da once ficheros, todos `M`: los diez de §1 y
++  `internal/evals/sentencias_test.go` (+3 −2). `internal/evals/informe_test.go` pasa a +362 −74.
++- **Los artefactos del feature** que contaban los casos o los mutantes dicen lo nuevo: plan.md, research.md (D2 y
++  D8), quickstart.md (§1 y §4), contracts/umbral-documento-sin-cotejar.md (§5 a §7) y `mutantes.md`.
++- **`make ci`**, en primer plano, con todos estos cambios: «ci: todos los controles en verde». Después solo cambió
++  este fichero y `mutantes.md`, que no lee ningún control, y los tres mutantes se repitieron sobre el código final,
++  con el mismo resultado. La verificación del workflow es otro `make ci`, que no está aquí.
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/contracts/skill-jurisprudencia.md b/specs/022-h23-1-jurisprudencia-coteja-el/contracts/skill-jurisprudencia.md
+index d953f35..2458607 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/contracts/skill-jurisprudencia.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/contracts/skill-jurisprudencia.md
+@@ -52,7 +52,7 @@ cambiar ninguna (FR-024).
+ 
+ ## 3. La forma
+ 
+-- Menos de 300 líneas: hoy 197; con §1, unas diez más. **Control**: `TestSkillsDelRepositorio` en `make skills-check`
++- Menos de 300 líneas: 197 en `main`; con §1, 207. **Control**: `TestSkillsDelRepositorio` en `make skills-check`
+   falla con 300 (FR-023).
+ - La tabla de comandos es la que regenera `make skills-sync`, sin cambios, y ninguna herramienta nueva: solo
+   `cita_preparar` y `cita_cotejar`. **Control**: `TestSkillsDelRepositorio` y `TestOrdenesDeLasSkillsEmpotradas`, en
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/contracts/umbral-documento-sin-cotejar.md b/specs/022-h23-1-jurisprudencia-coteja-el/contracts/umbral-documento-sin-cotejar.md
+index 49138b7..112db41 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/contracts/umbral-documento-sin-cotejar.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/contracts/umbral-documento-sin-cotejar.md
+@@ -95,13 +95,16 @@ umbrales con sus valores escritos a mano, los once que deciden, los motivos de l
+ | `ninguna-cuenta` (ya existe) | Nada: las 12 de cada modo cotejan, por la traza en el modo orden y por la llamada a `cita_cotejar` en el herramienta | 0 de 12 en los dos modos, `cumple: true` | Ninguno | `aprobado` | FR-002, FR-062; SC-002, SC-003 |
+ | `una-sin-cotejar-en-el-modo-orden` (nuevo) | La 06, `claude-sonnet-5-5`, modo orden, 01, sin su cotejo; y la misma de `claude-haiku-4-5-20251001` | Modo orden: 1 de 12, `cumple: false` | El de §3 | `fallo` | FR-001, FR-003, FR-004, FR-062; SC-002, SC-004 (Haiku) |
+ | `una-sin-cotejar-en-el-modo-herramienta` (nuevo) | La 06, `claude-sonnet-5-5`, modo herramienta, 01, sin su llamada a `cita_cotejar` | Modo herramienta: 1 de 12, `cumple: false` | «umbral documento_sin_cotejar:claude-sonnet-5-5:herramienta: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: 06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01» | `fallo` | FR-001, FR-003, FR-062; SC-002 |
++| `una-con-el-cotejo-fallido-en-el-modo-orden` (nuevo, de la revisión final) | La 06, `claude-sonnet-5-5`, modo orden, 01, con su `cita cotejar`, que devuelve el sobre de fallo de una ficha que no se reconoce y termina con 2 | Modo orden: 1 de 12, `cumple: false` | El de §3 | `fallo` | FR-002, FR-003; «Edge Cases» |
++| `una-con-el-cotejo-fallido-en-el-modo-herramienta` (nuevo, de la revisión final) | La 06, `claude-sonnet-5-5`, modo herramienta, 01, con su llamada a `cita_cotejar`, cuyo resultado es ese sobre de fallo | Modo herramienta: 1 de 12, `cumple: false` | El del modo herramienta, que nombra la misma sesión que `una-sin-cotejar-en-el-modo-herramienta` | `fallo` | FR-002, FR-003; «Edge Cases» |
+ | `una-sin-activar-y-sin-cotejar` (nuevo) | La 06, `claude-sonnet-5-5`, modo orden, 02, sin su cotejo y sin la activación | Modo orden: 1 de 12; y `sin_activar` del modo orden, 1 de 30 | El de `sin_activar` y el de `documento_sin_cotejar`, que nombra la 02 | `fallo` | FR-001, FR-030; US3, escenario 3 |
+ | `una-sin-medir-y-sin-cotejar` (nuevo) | La 06, `claude-sonnet-5-5`, modo herramienta, 01, sin su cotejo y sin medir por el límite de uso | Modo herramienta: 0 de 11, `cumple: true`; los demás umbrales de ese modo, sobre 29; el conjunto, sobre 59 | Solo el de la ejecución, que la nombra | `fallo` | FR-005, FR-062; SC-004 |
+ 
+ En todos, `total` es 12 —u 11 con la sesión sin medir— y no 30: las 18 sesiones por modo de las evals que no piden el
+ cotejo, que no cotejan, no están ni en el `total` ni en la `medida` (FR-062, SC-004). En los tres casos «sin
+-cotejar», las otras once sesiones del modo cotejan: es lo que distingue «cada sesión» de «ninguna sesión con cotejo»
+-(FR-064).
++cotejar» y en los dos del cotejo fallido, las otras once sesiones del modo cotejan: es lo que distingue «cada sesión» de
++«ninguna sesión con cotejo» (FR-064). Los dos del cotejo fallido distinguen, además, un `cita cotejar` que consultó y
++terminó bien de uno que solo es del applet y del verbo (FR-002).
+ 
+ Los diez casos de antes siguen dando lo mismo, ahora con los quince elementos y los dos nuevos a 0 de 12; y
+ `TestInformeFinalDeLosUmbrales/como-en-el-cierre-de-h26` sigue esperando trece (research D11).
+@@ -110,14 +113,16 @@ En `TestEvalsDelRepositorio/piden-el-cotejo` (`internal/evals/conjunto_test.go`)
+ repositorio: piden el cotejo la 04, la 06, la 08 y la 09 de `jurisprudencia`, y ninguna de `boe-legislacion` ni de
+ `legal-core` (FR-001, FR-007).
+ 
+-## 6. Los dos mutantes
++## 6. Los mutantes
+ 
+-Cada uno cambia una sola línea, en una copia fuera del árbol (quickstart §4; research D12, M8):
++Cada uno cambia una sola línea, en una copia fuera del árbol (quickstart §4; research D12, M8). Los dos primeros son
++los de FR-064; el tercero lo añadió la revisión final:
+ 
+ | Mutante | Línea | Casos que fallan |
+ |---|---|---|
+-| 1 · «ninguna sesión con cotejo» en lugar de «cada sesión» | en `sinCotejar`, `if !respuesta.cotejo {` pasa a `if !slices.ContainsFunc(g.queLePidenElCotejo(), func(otra respuestaDelJuez) bool { return otra.cotejo }) {` | `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y `una-sin-activar-y-sin-cotejar`: esperan 1 de 12 y dan 0 |
+-| 2 · `decide` en falso | en `umbralDeDocumentoSinCotejar`, `Decide: true,` pasa a `Decide: false,` | Los catorce casos de la tabla: los dos elementos ya no son los esperados, deciden nueve y no once, y `una-sin-cotejar-en-el-modo-orden` y `una-sin-cotejar-en-el-modo-herramienta` dan `aprobado` |
++| 1 · «ninguna sesión con cotejo» en lugar de «cada sesión» | en `sinCotejar`, `if !respuesta.cotejo {` pasa a `if !slices.ContainsFunc(g.queLePidenElCotejo(), func(otra respuestaDelJuez) bool { return otra.cotejo }) {` | `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-activar-y-sin-cotejar` y los dos del cotejo fallido: esperan 1 de 12 y dan 0 |
++| 2 · `decide` en falso | en `umbralDeDocumentoSinCotejar`, `Decide: true,` pasa a `Decide: false,` | Los dieciséis casos de la tabla: los dos elementos ya no son los esperados, deciden nueve y no once, y los cuatro casos en que solo cuenta `documento_sin_cotejar` dan `aprobado` |
++| 3 · cualquier `cita cotejar` cuenta como cotejo | en `cotejaUnDocumento`, `return satisface(juzgada.Invocacion, comandoDelCotejo)` pasa a `return juzgada.Invocacion.Applet == appletDeLaCita && juzgada.Invocacion.Verbo == verboCotejar` | Los dos del cotejo fallido: esperan 1 de 12 y dan 0 |
+ 
+ La tarea que los aplica deja lo que ve en `specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md`, y ningún mutante queda
+ en el árbol.
+@@ -132,4 +137,4 @@ miles de bloques consultados en meses—: cada job parte de las evals del reposi
+ | Los dos elementos en `informe.json` | El job, una vez, que decide con ellos; el informe final, una vez por medición del cierre (SC-009); la persona | 366 bytes el del modo orden y 378 el del herramienta, con 0 de 12; los quince, unos 4,8 KB, frente a 4 100 bytes de los trece del cierre de H26 (research M9, M13). Fijo: depende de los modos y de las evals | El `cumple: false` de un modo, en el primer job en que todas sus sesiones cotejan |
+ | El motivo | La persona y la reparación del cierre (FR-050); como mucho dos por job | 151 bytes con una sesión; como mucho 723 y 873 | En el primer job en que el umbral se cumple. No se acumula de un job a otro |
+ | La fila de `informe.md` | La persona | 92 a 99 bytes | Cada job la escribe de nuevo |
+-| `mutantes.md` | La revisión final, una vez | Dos mutantes, con su línea y sus casos | No da señales |
++| `mutantes.md` | La revisión final, una vez | Tres mutantes, con su línea y sus casos | No da señales |
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md b/specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md
+index 78980b5..03994b2 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md
+@@ -5,6 +5,8 @@ Lo escribe la tarea T002 (FR-064, SC-006; research D12, M8). Los dos mutantes so
+ [quickstart](./quickstart.md). Es un registro del run: nada lo lee en `make ci`.
+ 
+ **Resultado: 2 de 2.** Cada mutante deja en rojo `TestUmbralesDeJurisprudencia`, con los casos que fija el contrato.
++La revisión final añadió un tercero, que T002 no tenía, y los dos casos que lo matan (abajo, «La revisión final»): con
++ellos, **3 de 3**.
+ 
+ | Mutante | Casos en rojo | Por el veredicto (`fallo` → `aprobado`) | `go test` |
+ |---|---|---|---|
+@@ -157,3 +159,70 @@ git status --short
+ `git status --short`, igual antes de crear la copia y después de retirarla: las tres líneas
+ ` M specs/022-h23-1-jurisprudencia-coteja-el/gates/{modelos.jsonl,tarea-actual.json,tareas-intentos.json}`, que son
+ del workflow. Ningún mutante ha estado en el árbol.
++
++## La revisión final: el mutante 3, y los dos de antes con dieciséis casos
++
++Los dos jueces de la revisión final encontraron un mutante que sobrevivía a todo `go test ./internal/evals/`: contar
++como cotejo cualquier `cita cotejar`, terminara como terminara. Ningún caso tenía una sesión cuyo único `cita cotejar`
++no terminase bien, que FR-002 y los «Edge Cases» del spec cuentan como sesión sin cotejo. El corrector añadió dos casos
++a `casosDeLosUmbralesDeJurisprudencia`, `una-con-el-cotejo-fallido-en-el-modo-orden` y
++`una-con-el-cotejo-fallido-en-el-modo-herramienta`: la sesión de la 06 del modelo que decide conserva su `cita
++cotejar`, que devuelve el sobre de fallo de una ficha que no se reconoce (clase `argumentos`) y, en el modo orden,
++termina con 2 (`escribirConElCotejoFallido`). Cada uno espera `documento_sin_cotejar` de su modo con 1 de 12,
++`cumple: false`, veredicto `fallo` y el motivo con el nombre de la sesión.
++
++**Dónde.** Sobre la cabeza `daa6867` con los cambios del corrector sin commitear, Go 1.27.2, `darwin/arm64`. Esta vez
++no hubo copia: el sandbox de la sesión rechazó la copia de seguridad del fichero con `cp` a `$TMPDIR`, y cada
++mutante se aplicó en el árbol con una sola edición de una línea y se deshizo con la edición inversa. Tras los tres,
++`git diff --stat -- internal/evals/informe.go internal/evals/umbrales.go` no da nada: el código de producción es el de
++la cabeza. La orden de test es la del quickstart, `go test -count=1 -v -run '^TestUmbralesDeJurisprudencia$'
++./internal/evals/`, con su salida filtrada por `--- FAIL`, `^ok` y `^FAIL`.
++
++**Sin mutar**: `ok`, y los diecisiete subtests en `PASS`, los dieciséis de la tabla y `el-elemento-del-contrato`.
++
++### Mutante 3: cualquier `cita cotejar` cuenta como cotejo
++
++`internal/evals/informe.go`, línea 1435, en `cotejaUnDocumento`:
++
++```diff
++< 		return satisface(juzgada.Invocacion, comandoDelCotejo)
++---
++> 		return juzgada.Invocacion.Applet == appletDeLaCita && juzgada.Invocacion.Verbo == verboCotejar
++```
++
++```text
++--- FAIL: TestUmbralesDeJurisprudencia (0.00s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-herramienta (0.68s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-orden (0.74s)
++FAIL
++FAIL	github.com/jmorenobl/kitlegal/internal/evals	1.876s
++FAIL
++```
++
++Los dos casos nuevos, y ninguno más: sin ellos, el mutante pasaba. Tras pasar la preparación de las sesiones del caso
++a `armarLasSesionesDelCaso` (por `gocyclo`), los tres mutantes se repitieron sobre el código final, con el mismo
++resultado: el 3, los mismos dos en rojo (1.999s); el 1, los mismos cinco; y el 2, dieciséis subtests en rojo. Sin
++mutar, diecisiete en `PASS`.
++
++### Mutante 1, con los dieciséis casos
++
++```text
++--- FAIL: TestUmbralesDeJurisprudencia (0.00s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-herramienta (0.77s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-sin-cotejar-en-el-modo-herramienta (0.70s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-sin-cotejar-en-el-modo-orden (0.72s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-sin-activar-y-sin-cotejar (0.74s)
++    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-orden (0.76s)
++FAIL
++FAIL	github.com/jmorenobl/kitlegal/internal/evals	1.937s
++FAIL
++```
++
++Cinco: los tres de T002 y los dos nuevos, en los que once sesiones del modo cotejan y una no.
++
++### Mutante 2, con los dieciséis casos
++
++`go test` da `FAIL` con los dieciséis `nombre:` de la tabla en rojo, del primero al último, y
++`el-elemento-del-contrato` en verde (1.871s). En una segunda ejecución, `actual  : "aprobado"` sale en cuatro:
++`una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y los dos del cotejo fallido, los casos
++cuyo único motivo es el de `documento_sin_cotejar`.
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/plan.md b/specs/022-h23-1-jurisprudencia-coteja-el/plan.md
+index c72bb3e..60d943a 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/plan.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/plan.md
+@@ -27,7 +27,7 @@ En la eval 06, 6 de 48 respuestas de `claude-sonnet-5-5` dan por buena una sente
+ 3. **Los documentos**: `CHANGELOG.md` (*Unreleased*), `CONTRIBUTING.md`, `docs/JURISPRUDENCIA.md` y `CLAUDE.md`
+    ([contracts/documentos.md](./contracts/documentos.md)); `docs/WORKFLOW.md` no dice nada que el hito deje falso.
+ 
+-El cambio de código son unas 165 líneas de producción en dos ficheros que ya existen, `informe.go` y `umbrales.go`, sin
++El cambio de código son 268 líneas añadidas y 49 quitadas, con sus comentarios, en dos ficheros que ya existen, `informe.go` y `umbrales.go`, sin
+ tipo exportado, paquete ni dependencia nuevos, y los comentarios que el cambio deja incompletos. Un prototipo lo
+ confirma: con él, los quince elementos y once que deciden; 1 sesión sin cotejo de 12 da `fallo` con su motivo en cada
+ modo; la sesión sin medir y la de Haiku quedan fuera; los dos mutantes hacen fallar los casos; y el resto de
+@@ -67,7 +67,8 @@ decide por job.
+ cambian; `internal/evals/sondeo.go` y `scripts/evals-sondeo.sh` no se tocan (FR-032, FR-033).
+ 
+ **Scale/Scope**: 12 respuestas por modo en el `total` del umbral; 15 elementos de `umbrales` en `jurisprudencia`;
+-4 casos nuevos de un test y 1 subtest nuevo de otro; `SKILL.md`, de 197 líneas a unas 207.
++6 casos nuevos de un test (4 de T001 y 2 de la revisión final) y 1 subtest nuevo de otro; `SKILL.md`, de 197 líneas
++a 207.
+ 
+ ## Constitution Check
+ 
+@@ -127,7 +128,7 @@ internal/evals/
+ ├── umbrales.go              # umbralDeDocumentoSinCotejar, su nombre y sus constantes; su sitio en umbrales();
+ │                            # sinCotejarDelUmbral en nombradasEn; comentarios
+ ├── doc.go                   # lo que dice de los umbrales de cada skill (comentario)
+-├── informe_test.go          # TestUmbralesDeJurisprudencia: cuatro casos y su arnés; TestInformeFinalDeLosUmbrales
++├── informe_test.go          # TestUmbralesDeJurisprudencia: seis casos y su arnés; TestInformeFinalDeLosUmbrales
+ └── conjunto_test.go         # TestEvalsDelRepositorio/piden-el-cotejo
+ skills/jurisprudencia/SKILL.md     # pasos 1 y 3
+ CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, CLAUDE.md
+@@ -149,7 +150,7 @@ sin modelo:
+ 
+ | Historia | Tests | Requisitos |
+ |---|---|---|
+-| US1 | `TestUmbralesDeJurisprudencia` (casos `ninguna-cuenta`, `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-medir-y-sin-cotejar`), `TestEvalsDelRepositorio/piden-el-cotejo` | FR-001 a FR-005, FR-062, FR-064; SC-002 a SC-004, SC-006 |
++| US1 | `TestUmbralesDeJurisprudencia` (casos `ninguna-cuenta`, `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-con-el-cotejo-fallido-en-el-modo-orden`, `una-con-el-cotejo-fallido-en-el-modo-herramienta`, `una-sin-medir-y-sin-cotejar`), `TestEvalsDelRepositorio/piden-el-cotejo` | FR-001 a FR-005, FR-062, FR-064; SC-002 a SC-004, SC-006 |
+ | US2 | `make skills-check` (`TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas`); el resto lo leen la revisión final y el job | FR-020 a FR-024; SC-007 |
+ | US3 | `TestUmbralesDeJurisprudencia` (los quince, once que deciden; `una-sin-activar-y-sin-cotejar`), `TestUmbralesDelInforme`, `TestInformeEnDosModos`, `TestUmbralesConJuezYConSentencias`, `TestInformeConElJuez`, `TestInformeFinalDeLosUmbrales`, los del juicio y las series, `TestCopiasDelJuez`, `TestDefinicionDelJob`, `schema-check` y los del sondeo, sin cambiar lo que esperan | FR-006, FR-007, FR-030 a FR-034, FR-063; SC-005 |
+ | US4 | Ninguno: lo comprueba la revisión final por lectura (FR-045) | FR-040 a FR-045; SC-008 |
+@@ -168,7 +169,7 @@ Ninguna función de test nueva (research D8). Casos y subtests nuevos, en tests
+ 
+ | Test | Fichero | Qué añade | Cubre |
+ |---|---|---|---|
+-| `TestUmbralesDeJurisprudencia` | `internal/evals/informe_test.go` | Cuatro casos: `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar` (contracts/umbral-documento-sin-cotejar.md §5) | FR-001 a FR-005, FR-030, FR-062, FR-064; SC-002, SC-004, SC-006; US3, escenario 3 |
++| `TestUmbralesDeJurisprudencia` | `internal/evals/informe_test.go` | Seis casos: `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar` (contracts/umbral-documento-sin-cotejar.md §5), y `una-con-el-cotejo-fallido-en-el-modo-orden` y `una-con-el-cotejo-fallido-en-el-modo-herramienta`, de la revisión final: el único `cita cotejar` de la sesión termina mal y la sesión cuenta (FR-002; research D2) | FR-001 a FR-005, FR-030, FR-062, FR-064; SC-002, SC-004, SC-006; US3, escenario 3 |
+ | `TestEvalsDelRepositorio` | `internal/evals/conjunto_test.go` | El subtest `piden-el-cotejo`: con las evals del repositorio, piden el cotejo la 04, la 06, la 08 y la 09 de `jurisprudencia`, y ninguna de `boe-legislacion` ni de `legal-core` | FR-001, FR-007, FR-063; SC-005 |
+ 
+ ### Tests existentes que cambian
+@@ -267,7 +268,7 @@ de nuevo.
+   723 en el modo orden y 873 en el herramienta, con las 12 (research M10, M12). Deja de darse en el primer job en que el
+   umbral se cumple.
+ - **La fila de `informe.md`** (la persona): una más por modo, 92 a 99 bytes (research M11).
+-- **`SKILL.md`** (el agente que activa la skill, una vez por conversación): unas diez líneas más, por debajo de 300.
++- **`SKILL.md`** (el agente que activa la skill, una vez por conversación): diez líneas más, 207, por debajo de 300.
+   No da señales.
+ - **`mutantes.md`** (la revisión final, una vez) y **los documentos** (quien contribuye o lee un informe): no crecen
+   ni dan señales.
+@@ -303,7 +304,7 @@ de nuevo.
+ | Su llamada en `respuestasMedidas.umbrales`, detrás de `cita_sin_documento` | FR-001, FR-006 (el orden) |
+ | `sinCotejarDelUmbral` y su llamada en `nombradasEn` | FR-003 |
+ | Los comentarios de `doc.go`, `informe.go` y `umbrales.go` que dicen cuántos umbrales hay y cuáles | FR-006: el hito los deja falsos (research V21) |
+-| Los cuatro casos de `TestUmbralesDeJurisprudencia` y su arnés | FR-062, FR-064; SC-002 a SC-004, SC-006; US3, escenario 3 |
++| Los seis casos de `TestUmbralesDeJurisprudencia` y su arnés | FR-002, FR-062, FR-064; SC-002 a SC-004, SC-006; US3, escenario 3 |
+ | Quince y once en `TestUmbralesDeJurisprudencia` | FR-006, FR-063; SC-005 |
+ | `umbralesDeJurisprudenciaComoEnH26` | FR-030: `TestInformeFinalDeLosUmbrales` no cambia lo que espera (research D11) |
+ | `TestEvalsDelRepositorio/piden-el-cotejo` | FR-001, FR-007, FR-063; SC-005 |
+@@ -314,7 +315,8 @@ de nuevo.
+ Nada del diseño atiende a un estado que no pasa el umbral de materialidad: una skill con una eval que pide el cotejo y
+ sin juez ni `sentencias` no la entrega ningún emisor (research D4); el falso de `invocacionesDe` no lo alcanza una
+ sesión leída (research D3); y los casos límite del criterio de cotejo —código 2, `--dry-run`, cotejo sin `--roj`, varios
+-cotejos— son los del juicio, que ya prueban sus tests (research D2, D8).
++cotejos— son los del juicio, que ya prueban sus tests, y que el umbral use ese criterio lo fijan los dos casos del
++cotejo fallido, uno por modo (research D2, D8).
+ 
+ ## Datos externos
+ 
+@@ -326,7 +328,7 @@ repositorio.
+ 
+ 1. **El umbral** (`internal/evals/informe.go`, `umbrales.go` y `doc.go`, con `informe_test.go` y `conjunto_test.go`):
+    la medida, el elemento, su motivo, los comentarios que deja incompletos, los quince en
+-   `TestUmbralesDeJurisprudencia` con sus cuatro casos nuevos, `umbralesDeJurisprudenciaComoEnH26` y `piden-el-cotejo`.
++   `TestUmbralesDeJurisprudencia` con sus casos nuevos, `umbralesDeJurisprudenciaComoEnH26` y `piden-el-cotejo`.
+    Es una sola tarea porque el código cambia la forma de `umbrales` y los tests que la esperan tienen que cambiar con
+    él para dejar `make ci` en verde (research M2).
+ 2. **Los mutantes**: el escenario 4 del quickstart sobre la cabeza, y su registro en
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/quickstart.md b/specs/022-h23-1-jurisprudencia-coteja-el/quickstart.md
+index 36a1c15..4d2dc3f 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/quickstart.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/quickstart.md
+@@ -37,11 +37,12 @@ Esperado: Go 1.27; y la lista de lo que haya sin commitear, que el escenario 4 t
+ go test -count=1 -v -run '^TestUmbralesDeJurisprudencia$' ./internal/evals/
+ ```
+ 
+-Esperado: `ok` y quince subtests en `PASS`: los diez casos de antes, `el-elemento-del-contrato` y los cuatro nuevos de
++Esperado: `ok` y diecisiete subtests en `PASS`: los diez casos de antes, `el-elemento-del-contrato` y los seis nuevos de
+ contracts §5 —`una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`,
++`una-con-el-cotejo-fallido-en-el-modo-orden`, `una-con-el-cotejo-fallido-en-el-modo-herramienta`,
+ `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar`—. Cada caso exige los quince umbrales de contracts §1
+ con sus valores escritos a mano, once que deciden; los dos `documento_sin_cotejar` sobre 12 respuestas por modo (11 con
+-la sesión sin medir); y, con una sesión sin cotejo, `fallo` con el motivo de contracts §3.
++la sesión sin medir); y, con una sesión sin cotejo o con su cotejo fallido, `fallo` con el motivo de contracts §3.
+ 
+ ## 2. Las evals que piden el cotejo y la forma de la skill (US1, US2, US3)
+ 
+@@ -109,9 +110,10 @@ Esperado:
+   con su `if !respuesta.cotejo {`; `umbralDeDocumentoSinCotejar` con su `Decide: true,`), y la sustitución se ajusta a
+   él: el mutante es el de contracts §6.
+ - Las dos órdenes de `go test` terminan en `FAIL`, que aquí es lo que se busca (research M8):
+-  - con el **mutante 1**, fallan `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y
+-    `una-sin-activar-y-sin-cotejar`, que esperan 1 de 12 y reciben 0;
+-  - con el **mutante 2**, fallan los catorce casos de la tabla.
++  - con el **mutante 1**, fallan `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`,
++    `una-sin-activar-y-sin-cotejar` y los dos del cotejo fallido, que esperan 1 de 12 y reciben 0;
++  - con el **mutante 2**, fallan los dieciséis casos de la tabla.
++- El mutante 3 de contracts §6, el de la revisión final, deja en rojo los dos casos del cotejo fallido (`mutantes.md`).
+ - `git status --short`, lo mismo que en el escenario 0: ningún mutante ha estado en el árbol.
+ 
+ Si `$copia` quedó de una ejecución interrumpida, `git worktree remove --force "$copia"` la retira. La tarea del run que
+@@ -139,7 +141,7 @@ git diff main -- skills/jurisprudencia/SKILL.md
+ 
+ Esperado:
+ 
+-1. Menos de 300 líneas (hoy, 197).
++1. Menos de 300 líneas: 207 sobre la cabeza del hito (197 en `main`).
+ 2. Las tres órdenes `cmp`, sin salida: no cambian el frontmatter, el título, la entrada y la introducción del
+    «Protocolo» (líneas 1 a 38), el paso 2, ni los pasos 4 a 7, «Comandos» y «Reglas» (FR-023, FR-024).
+ 3. El diff, solo en el paso 1 y en el paso 3, con lo de contracts/skill-jurisprudencia.md §1: el cotejo es lo primero,
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/research.md b/specs/022-h23-1-jurisprudencia-coteja-el/research.md
+index 3a58f40..ef5375c 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/research.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/research.md
+@@ -102,8 +102,10 @@ ni servidor quedan fuera por la misma regla que en los demás umbrales (FR-005,
+ **Por qué.** Es literalmente lo que pide FR-002: «el mismo criterio con el que el juicio de la sesión da hoy por
+ ejecutado un comando esperado de `cita`, sin mirar sus argumentos». Con la orden, código 0 y sin `--dry-run`,
+ `--describe` ni la ayuda; con la herramienta, un resultado que no es un error (V4). Los casos límite del spec —código 2,
+-`--dry-run`, un cotejo sin `--roj`, varios cotejos— salen de ese criterio, que ya prueban los tests del juicio; ninguno
+-lleva un test propio en este hito.
++`--dry-run`, un cotejo sin `--roj`, varios cotejos— salen de ese criterio, que ya prueban los tests del juicio. Que el
++umbral lo use, y no solo el applet y el verbo, lo fijan dos casos del umbral, añadidos en la revisión final: el único
++`cita cotejar` de la sesión termina mal, con el código 2 en el modo orden y con un resultado que es un error en el modo
++herramienta, y la sesión cuenta (D8; `mutantes.md`, mutante 3).
+ 
+ **Alternativas rechazadas.**
+ - *Los ECLI que leyó un `cita cotejar` en sus sobres* (`ExtraerECLICotejados`): depende de `--json` y de leer la
+@@ -180,7 +182,9 @@ nombre: no hace falta escribirlo detrás de cada una, como hace el conjunto de u
+ **Decisión.** Los casos de FR-062 son cuatro casos nuevos de `TestUmbralesDeJurisprudencia`, con las evals y la
+ carpeta del juez del repositorio: `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`,
+ `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar`; y `ninguna-cuenta`, que ya existe, pasa a exigir 0 de
+-12 en los dos modos. La premisa de FR-007 con las evals reales es un subtest nuevo de `TestEvalsDelRepositorio`,
++12 en los dos modos. La revisión final añadió dos más, `una-con-el-cotejo-fallido-en-el-modo-orden` y
++`una-con-el-cotejo-fallido-en-el-modo-herramienta`, para la parte de FR-002 que ninguno de los cuatro probaba: que no
++cuenta como cotejo un `cita cotejar` que no terminó bien (D2). La premisa de FR-007 con las evals reales es un subtest nuevo de `TestEvalsDelRepositorio`,
+ `piden-el-cotejo`, que ejecuta `make skills-check`.
+ 
+ **Por qué.** El arnés de `TestUmbralesDeJurisprudencia` ya escribe el informe del plan del job con las sesiones del
+@@ -192,7 +196,8 @@ cotejo distinguen «cada sesión» de «ninguna sesión con cotejo» (FR-064; M8
+ **Alternativas rechazadas.** *Una función de test nueva con respuestas escritas a mano*, como
+ `TestUmbralesConJuezYConSentencias`: no pasaría por `respuestasQueSeJuzgan`, y no probaría que la sesión sin medir y
+ la de Haiku quedan fuera (FR-005, FR-062). *Un caso para cada caso límite del criterio de cotejo* (código 2,
+-`--dry-run`, sin `--roj`): ese criterio es el del juicio, que ya lo prueban sus tests (D2).
++`--dry-run`, sin `--roj`): ese criterio es el del juicio, que ya lo prueban sus tests (D2); al umbral le basta un caso
++por modo con un cotejo que no termina bien, que distingue usar ese criterio de no usarlo.
+ 
+ ### D9. Cómo se escribe una sesión sin cotejo
+ 
+diff --git a/specs/022-h23-1-jurisprudencia-coteja-el/spec.md b/specs/022-h23-1-jurisprudencia-coteja-el/spec.md
+index d343932..1fb5ee4 100644
+--- a/specs/022-h23-1-jurisprudencia-coteja-el/spec.md
++++ b/specs/022-h23-1-jurisprudencia-coteja-el/spec.md
+@@ -269,7 +269,7 @@ Cada salida del hito, desde quien la consume (criterio de uso, ADR 0028). Lo que
+ | La salida de `cita cotejar` (`ficha`, `correspondencia`, `pedida`, `es_la_pedida`, `hallazgos`), que no cambia (FR-020 a FR-022) | La skill, en su paso del cotejo: una vez por documento delante, antes de decir nada de él. Con un documento por pregunta, una vez; con varios, una por documento. Con `es_la_pedida` decide si cita el documento o prepara la consulta de la pedida (paso 2). | Un sobre por documento: el de la ficha de la eval 06 con `--roj "STS 1088/2023"`, que lleva su hallazgo, mide 949 bytes (medido en esta sesión con `go run ./cmd/kitlegal cita cotejar … --json --no-graph`). Con un documento por pregunta, ~1 KB; con *n* documentos, *n* × ~1 KB. Lo que se pasa es la ficha y no el texto (lo dice ya el paso 3). No depende del uso del kit: lo acota el número de documentos de la pregunta. | Una por documento y pregunta. No se acumula: un documento nuevo es un cotejo nuevo. |
+ | Los dos `documento_sin_cotejar:<modelo>:<modo>` de `umbrales`, en `informe.json` y en la tabla «Umbrales» de `informe.md` (FR-001, FR-006) | El job, una vez, que decide con ellos el veredicto. El informe final del workflow, una vez por medición del cierre, que los lee sin modelo (SC-009). Y la persona que lee el informe. | 2 elementos más en `jurisprudencia`. Los 13 de hoy miden entre 249 y 387 bytes, 4 108 en total, en el último cierre versionado (`specs/021-h26-el-umbral-de/gates/evals/jurisprudencia.json`, medido con `jq`). Con estos dos, unos 4,8 KB. Fijo: depende de los modos y de las evals, no del uso. | Cada job los mide de nuevo. El `cumple: false` deja de darse en el primer job en que todas las sesiones del modo cotejan. |
+ | El motivo de `fallo` de `documento_sin_cotejar` (FR-003) | La persona, y la reparación del cierre (FR-050). Uno por modo con alguna sesión sin cotejo: como mucho dos por job. | El umbral, su medida y su condición, unos 90 bytes, y el nombre de cada sesión que cuenta, de unos 55 bytes («06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01»). Acotado por las 12 sesiones del modo: como mucho unos 0,8 KB. | Deja de darse en el primer job en que el umbral se cumple. No se acumula de un job a otro. |
+-| `SKILL.md` de `jurisprudencia` (FR-020 a FR-024) | El agente que activa la skill, una vez por conversación. | Menos de 300 líneas (hoy, 197). | No da señales. |
++| `SKILL.md` de `jurisprudencia` (FR-020 a FR-024) | El agente que activa la skill, una vez por conversación. | Menos de 300 líneas (197 en `main`; 207 con el hito). | No da señales. |
+ | Los documentos (FR-040 a FR-045) | Quien contribuye o lee un informe del job. | Una fila de tabla, unas frases y una entrada de *Unreleased*; no crecen con el uso. | No dan señales. |
+ 
+ ## Fuera de alcance

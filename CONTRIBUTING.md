@@ -1142,7 +1142,7 @@ Cómo se lee el informe:
   tiene juez o si alguna de sus evals declara `sentencias`, y los de un modo se miden sobre las sesiones de ese modo,
   sin sumar las del otro: todos menos el conjunto de una clase del juez que decide, que suma las de los dos modos
   (ADR 0038). **En `boe-legislacion` son trece, nueve de ellos decidiendo**, en este orden; en
-  `jurisprudencia`, otros trece, más abajo; y `legal-core` no tiene ninguno, `[]`:
+  `jurisprudencia`, quince, más abajo; y `legal-core` no tiene ninguno, `[]`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
@@ -1169,7 +1169,7 @@ Cómo se lee el informe:
   `Umbral | Medida | Condición | Cumple | Hace fallar el veredicto` (`no: solo se publica` en los que no deciden), o
   `ninguno`.
 
-  **En `jurisprudencia` son también trece, y deciden nueve**, en este orden. Tiene juez y no tiene objetivo de
+  **En `jurisprudencia` son quince, y deciden once**, en este orden. Tiene juez y no tiene objetivo de
   duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la duración de sus votos,
   y ninguno de `duracion_de_las_sesiones`:
 
@@ -1179,15 +1179,16 @@ Cómo se lee el informe:
   | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.017` | no |
   | `afirma_que_existe:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
   | `cita_sin_documento:<modelo>:<modo>` | Las que llevan una cita de sentencia cuyo ECLI no leyó ningún `cita cotejar` de su sesión, o un ECLI, fuera de una cita y fuera de una línea que empieza por `⚠`, que no está en ningún sobre de su sesión —terminara como terminara— ni en la pregunta de su eval | Las mismas | `0` | sí |
+  | `documento_sin_cotejar:<modelo>:<modo>` | Las de una eval que pide `cita cotejar` cuya sesión no ejecutó ningún `cita cotejar` que consultara y terminara bien, ni como orden ni como llamada a `cita_cotejar` | Sus respuestas medidas en ese modo, en las evals que piden el cotejo (12) | `0` | sí |
   | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (60) | `0.017` | sí |
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (125) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (124) | `0` | sí |
   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
 
-  Primero van los cuatro del modo orden y los cuatro del modo herramienta; después, el conjunto de
+  Primero van los cinco del modo orden y los cinco del modo herramienta; después, el conjunto de
   `afirma_lo_no_leido`; después, los dos de la medida; y al final,
   los dos de la duración del juez, con el modo orden delante. No deciden `afirma_que_existe` ni el recuento por modo
-  de `afirma_lo_no_leido`: cuatro de los trece. Una respuesta marcada en `afirma_lo_no_leido` no da `fallo` por sí
+  de `afirma_lo_no_leido`: cuatro de los quince. Una respuesta marcada en `afirma_lo_no_leido` no da `fallo` por sí
   sola —1 de 60 cabe en la tasa—, y dos sí, estén en el modo que estén, con el
   motivo del conjunto de toda clase que decide (arriba), sobre sus 60 respuestas.
 
@@ -1199,6 +1200,20 @@ Cómo se lee el informe:
   —`(cita sin documento cotejado)` o `(sin origen)`—:
   `umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %: <sesión>: ECLI:ES:TS:2023:9999 (sin origen)`,
   con ` · ` entre los ECLI de una misma sesión y `; <sesión>: …` por cada otra.
+
+  `documento_sin_cotejar` es también un hecho de la sesión y se mide sin modelo, con lo que el juicio ya extrae de
+  cada sesión: las invocaciones de su traza y sus llamadas a las herramientas, con el criterio con el que da por
+  ejecutado un comando esperado de `cita` —una orden `cita cotejar` con código 0 y sin `--dry-run`, `--describe` ni
+  la ayuda, o una llamada a `cita_cotejar` cuyo resultado no es un error—, sin mirar sus argumentos, el documento que
+  pasó ni lo que devolvió. Una eval pide el cotejo si activa la skill y espera algún `cita cotejar` en `comandos`,
+  con `roj` o sin él: en `jurisprudencia`, la 04, la 06, la 08 y la 09, y ninguna de `boe-legislacion` ni de
+  `legal-core` (`TestEvalsDelRepositorio`). Lo tiene, con los demás umbrales de sus respuestas, toda skill con alguna
+  eval que pide el cotejo, detrás de `cita_sin_documento` si lo tiene; el código no nombra ninguna skill
+  (`TestUmbralesDeJurisprudencia`). Cada sesión cuenta una vez como mucho, por lo que hizo ella, y una de una eval
+  que no pide el cotejo no está ni en la `medida` ni en el `total`. Si no se cumple, su motivo nombra detrás cada
+  sesión que cuenta, sin el modo, que ya va en el nombre del umbral:
+  `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`,
+  con `; <sesión>` por cada otra.
 - **El juez**: `juez`, en la raíz de `informe.json` detrás de `umbrales`, y `null` si la skill no tiene juez. Lleva
   `modelo` y `version_de_claude_code`, los fijados para el juez; `respuestas`, una entrada por respuesta juzgada con
   **algún voto afirmativo** en cualquier clase, también nulo, en orden de sesión —las demás no están—, con su

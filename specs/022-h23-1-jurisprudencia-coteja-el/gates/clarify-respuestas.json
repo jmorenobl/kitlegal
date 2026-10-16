@@ -1,0 +1,14 @@
+{
+  "respuestas": [
+    {
+      "id": "Q1",
+      "opcion": "A",
+      "respuesta": "El sondeo no cambia: FR-033 se queda tal cual. El hito no entrega nada para que `make evals-sondeo` cuente las sesiones sin cotejo ni para que mida el modo herramienta, y el run no toca `internal/evals/sondeo.go` ni `scripts/evals-sondeo.sh`. SC-010 sigue siendo una medida humana, fuera del run y sin control en él, y el spec no fija su procedimiento. El spec lo anota en «Fuera de alcance» y como pendiente para la persona en el informe final: hoy `make evals-sondeo` mide solo el modo orden, juzga sin lo que el job lee de la traza y no dice qué sesiones ejecutaron `cita cotejar`, así que el «0 de 30» de la Aceptación no se puede leer en su salida. Tras el hito ya hay, sin tocar el sondeo, una vía para contarlo: la misma con la que se midió la línea base (6 de 48, sacado de los informes del job de ocho tandas, `docs/USO.md`, 2026-10-15). El motivo de `documento_sin_cotejar` nombra cada sesión sin cotejo de cada modo (FR-003), y cada job da 3 sesiones de la eval 06 por modo. Cómo mide la persona lo decide ella. Si quiere que lo dé el sondeo, es un cambio fuera de este hito o una entrada corregida.",
+      "criterio": "d",
+      "fuente": "docs/ROADMAP.md, H23.1: la Entrega tiene tres partes y ninguna es el sondeo; el Alcance cubre el umbral, la skill, lo que sigue igual y el cierre; la Aceptación pone el sondeo «fuera del run porque es humano». Constitución, «Gates», «Umbrales que se cumplen»: «Un umbral que solo mide una persona […] no es motivo del hito». Constitución, «Criterio de decisión autónoma», puntos 2 y 4. CLAUDE.md y ADR 0032: el sondeo lo lanza una persona, nunca un paso del workflow. CONTRIBUTING.md, «Sondeo local», y scripts/evals-sondeo.sh: mide solo el modo orden, juzga sin la traza y borra su temporal al terminar. docs/USO.md, 2026-10-15: la línea base salió de los informes del job, no del sondeo.",
+      "alternativa_rechazada": "Se rechazan B y C. Las dos añaden al hito una entrega que su sección no pide, para servir a una medida que solo hace una persona y que la constitución excluye como motivo del hito. Ninguna podría probarse de verdad dentro del run, que no abre sesiones con modelo (ADR 0032; FR-051): solo con sesiones sintéticas. B tampoco da las 30 sesiones de SC-010, porque se queda en el modo orden, y obligaría a reescribir SC-010 para que encajara con el cambio. C amplía el alcance hasta meter el servidor MCP en el sondeo, con su plan, sus tests, su guion y su documentación. CONTRIBUTING.md («Sondeo local») dice hoy que el modo herramienta es cosa del job, y el objeto del hito es la skill y un umbral del job. Ante una duda de alcance, la lectura conservadora es no implementarlo (constitución, «Criterio de decisión autónoma», punto 4).",
+      "conservadora": true,
+      "impacto": "alcance"
+    }
+  ]
+}

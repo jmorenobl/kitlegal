@@ -45,7 +45,8 @@ Donde un paso dice que una orden termina con un código, con la herramienta el r
   `Tipo de Resolución:`.
 - **No está delante** la que la persona nombra sin traerla, ni la que tú recuerdas o crees conocer, ni la que otro
   documento menciona de pasada: las que cita el texto de una sentencia son texto de ese documento.
-- La que no está delante va por el paso 2; la que sí, por el paso 3. Las del Tribunal Constitucional, por el paso 7.
+- La que no está delante va por el paso 2. Con un documento en la conversación, **lo primero es el paso 3**, antes de
+  decir nada de él. Las del Tribunal Constitucional, por el paso 7.
 
 ### 2. La sentencia que no está delante: la línea y la consulta preparada
 
@@ -81,6 +82,15 @@ dio la referencia:
   trata, qué resolvió ni si es firme (paso 5).
 
 ### 3. Con el documento delante: cotejar su ficha
+
+- **El cotejo es lo primero** que se hace con un documento que está en la conversación, sea su texto pegado o un PDF
+  que has leído: su ficha va a `cita_cotejar`, o a su orden, como se dice debajo, antes de escribir ninguna frase
+  sobre él.
+- **Nada del documento antes del cotejo**: ni que es la sentencia pedida, ni que coincide con ella, ni de qué trata.
+- **Si es o no la pedida lo dice `es_la_pedida`**, lo que devuelve la operación, y nunca una comparación hecha a ojo
+  entre el documento y la referencia, que falla cuando el número de resolución del documento es el ROJ pedido:
+  1088/2023 es el número de resolución del documento del ROJ STS 3144/2023, y el ROJ STS 1088/2023 es el de otra
+  sentencia.
 
 Pasa a `cita_cotejar`, en `documento`, **la ficha y nada más**: sus líneas tal como están en el documento, desde la
 de `Roj:` hasta la de `Tipo de Resolución:`, con las que haya entre ellas. La operación solo lee la ficha: el resto

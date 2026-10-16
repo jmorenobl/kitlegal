@@ -467,6 +467,12 @@ type respuestasMedidas struct {
 	// ello, cada respuesta de un modo lleva los ECLI por los que cuenta en
 	// cita_sin_documento, y el umbral se publica.
 	conSentencias bool
+
+	// conCotejo dice si alguna eval de la skill pide el cotejo (pideElCotejo):
+	// con ello, cada respuesta de un modo lleva si su eval lo pide y si su
+	// sesión cotejó un documento, y el umbral documento_sin_cotejar de cada modo
+	// se publica (data-model §3 de H23.1; FR-001 de H23.1).
+	conCotejo bool
 }
 
 // juez es lo que el juez de la skill deja de las respuestas: nil si la skill no
@@ -543,6 +549,13 @@ type respuestaDelJuez struct {
 	// (CitaSinDocumento): ninguno si no cuenta, o si ninguna eval de la skill
 	// declara sentencias y no se mide.
 	sinDocumento []ECLISinDocumento
+
+	// pideElCotejo dice si su eval pide el cotejo (pideElCotejo), y cotejo, si
+	// su sesión cotejó un documento (cotejaUnDocumento): los dos falsos si
+	// ninguna eval de la skill pide el cotejo y no se miden, o en una respuesta
+	// de las evals sin binario ni servidor, que no cuenta en ningún umbral
+	// (medirLosCotejos; data-model §3 de H23.1).
+	pideElCotejo, cotejo bool
 
 	// juicio es el del juez: el de la regla de los votos.
 	juicio JuicioDeRespuesta
@@ -667,6 +680,38 @@ func (g grupoJuzgado) sinDocumento() []respuestaDelJuez {
 	return cuentan
 }
 
+// queLePidenElCotejo son las respuestas del grupo cuya eval pide el cotejo, en
+// orden de sesión: el total de documento_sin_cotejar de su modo (data-model §3
+// de H23.1; FR-001 de H23.1).
+func (g grupoJuzgado) queLePidenElCotejo() []respuestaDelJuez {
+	var piden []respuestaDelJuez
+
+	for _, respuesta := range g.respuestas {
+		if respuesta.pideElCotejo {
+			piden = append(piden, respuesta)
+		}
+	}
+
+	return piden
+}
+
+// sinCotejar son, de las respuestas del grupo cuya eval pide el cotejo, las de
+// una sesión que no cotejó ningún documento, en orden de sesión: la medida de
+// documento_sin_cotejar de su modo y las que nombra su motivo (data-model §3 de
+// H23.1; FR-001 de H23.1). Cada sesión cuenta por lo que hizo ella, una vez
+// como mucho, haya cotejado o no otra del modo.
+func (g grupoJuzgado) sinCotejar() []respuestaDelJuez {
+	var sinCotejar []respuestaDelJuez
+
+	for _, respuesta := range g.queLePidenElCotejo() {
+		if !respuesta.cotejo {
+			sinCotejar = append(sinCotejar, respuesta)
+		}
+	}
+
+	return sinCotejar
+}
+
 // marcadasEn son las respuestas del grupo que el juez dejó marcadas en la clase
 // que ocupa esa posición entre las suyas, en orden de sesión: con sus tres
 // votos, si la clase decide, y con el primero, si solo se publica
@@ -761,15 +806,18 @@ type RedDelInforme struct {
 //     terminar sigue sin pasar en su serie;
 //  4. con ellas, compone los umbrales (umbralesDelInforme): por cada modo, el
 //     de las respuestas sin la skill activada del modelo que decide, el
-//     recuento de cada clase del juez, si la skill lo tiene, y el de las que
+//     recuento de cada clase del juez, si la skill lo tiene, el de las que
 //     llevan una cita sin documento cotejado o un ECLI sin origen, si alguna
-//     eval declara sentencias; con juez, el umbral conjunto de cada clase que
-//     decide, con las respuestas de todos los modos, y los de su medida y de
-//     sus votos; y los de la duración de cada modo si hay objetivo (contrato
-//     informe-del-job §1 de H7.3; contracts/informe-del-job.md §2 de H7.4 y de
-//     H24; contracts/evals-en-dos-modos.md §5.1 de H21;
+//     eval declara sentencias, y el de las de las evals que piden el cotejo
+//     cuya sesión no cotejó ningún documento, si alguna eval lo pide; con juez,
+//     el umbral conjunto de cada clase que decide, con las respuestas de todos
+//     los modos, y los de su medida y de sus votos; y los de la duración de
+//     cada modo si hay objetivo (contrato informe-del-job §1 de H7.3;
+//     contracts/informe-del-job.md §2 de H7.4 y de H24;
+//     contracts/evals-en-dos-modos.md §5.1 de H21;
 //     contracts/evals-jurisprudencia.md §4 de H23;
-//     contracts/umbrales-del-informe.md §1 de H26);
+//     contracts/umbrales-del-informe.md §1 de H26;
+//     contracts/umbral-documento-sin-cotejar.md §1 de H23.1);
 //  5. los motivos de la raíz van en el orden de data-model §10.3: por serie
 //     planificada, las sesiones que faltan y, si decide y no llega al umbral, su
 //     tasa seguida de los motivos de sus sesiones que no pasan; los de cada
@@ -1318,9 +1366,12 @@ func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
 //
 // Los grupos son los de respuestasQueSeJuzgan, los mismos con juez y sin él.
 // Con sentencias, cada respuesta de un modo lleva los ECLI por los que cuenta
-// en cita_sin_documento (medirLasCitasSinDocumento); con juez, cada respuesta
-// lleva además su juicio (juzgar). Lo uno no cambia lo otro, y ninguno de los
-// dos, el juicio de una sesión ni la tasa de una serie.
+// en cita_sin_documento (medirLasCitasSinDocumento); desde H23.1, con alguna
+// eval que pide el cotejo, si su eval lo pide y si su sesión cotejó un
+// documento (medirLosCotejos; data-model §3 de H23.1; research D1 y D4 de
+// H23.1), sin que eso cambie cuándo hay umbrales de las respuestas; con juez,
+// cada respuesta lleva además su juicio (juzgar). Ninguna medida cambia otra, y
+// ninguna, el juicio de una sesión ni la tasa de una serie.
 func medirLasRespuestas(
 	e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada, juez *juezDelInforme,
 ) *respuestasMedidas {
@@ -1333,15 +1384,82 @@ func medirLasRespuestas(
 		modelo:        e.ModeloQueDecide,
 		grupos:        respuestasQueSeJuzgan(e, sesiones, series),
 		conSentencias: conSentencias,
+		conCotejo:     slices.ContainsFunc(evals, pideElCotejo),
 	}
 
 	if conSentencias {
 		respuestas.medirLasCitasSinDocumento(sesiones)
 	}
 
+	if respuestas.conCotejo {
+		respuestas.medirLosCotejos(evals, sesiones)
+	}
+
 	respuestas.delJuez = juez.juzgar(e, sesiones, respuestas.grupos)
 
 	return respuestas
+}
+
+// pideElCotejo dice si la eval pide el cotejo (data-model §1 de H23.1; research
+// D5 de H23.1; FR-001 de H23.1): activa la skill y espera algún cita cotejar,
+// lleve o no ROJ. Lo dicen sus comandos, sin ninguna lista de evals ni de
+// skills.
+func pideElCotejo(eval Eval) bool {
+	return eval.Activa &&
+		esperaElComandoDeCita(eval, func(comando ComandoEsperado) bool { return comando.Verbo == verboCotejar })
+}
+
+// comandoDelCotejo es el comando esperado cita cotejar sin ROJ: lo satisface
+// cualquier cita cotejar que consultó y terminó bien, con cualquier argumento
+// (data-model §2 de H23.1; research D2 de H23.1).
+var comandoDelCotejo = ComandoEsperado{Applet: appletDeLaCita, Verbo: verboCotejar}
+
+// cotejaUnDocumento dice si la sesión cotejó un documento (data-model §2 de
+// H23.1; FR-002 de H23.1): si alguna de sus invocaciones, las de su traza y las
+// de sus llamadas a las herramientas del servidor (invocacionesDe), satisface
+// comandoDelCotejo con el criterio con el que el juicio da por ejecutado un
+// comando esperado (satisface): una orden cita cotejar con código 0 y sin
+// --dry-run, --describe ni la ayuda, o una llamada a cita_cotejar cuyo
+// resultado no es un error. No mira sus argumentos, el documento que pasó, lo
+// que devolvió ni lo que la respuesta dijo después. invocacionesDe anota sus
+// motivos en un resultado de usar y tirar, y su segundo valor no se mira: falso
+// solo si el registro de herramientas no se puede construir, y una sesión
+// leída no llega ahí; si llegara, sus llamadas no contarían y la sesión
+// contaría como sin cotejo (research D3 de H23.1).
+func cotejaUnDocumento(sesion Sesion) bool {
+	var deUsarYTirar ResultadoDeEval
+
+	invocaciones, _ := deUsarYTirar.invocacionesDe(sesion)
+
+	return slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
+		return satisface(juzgada.Invocacion, comandoDelCotejo)
+	})
+}
+
+// medirLosCotejos deja en cada respuesta de los grupos de los modos si su eval
+// pide el cotejo, con la eval de su sesión, y si su sesión cotejó un documento
+// (data-model §3 de H23.1; research D1 de H23.1; FR-001, FR-002 y FR-005 de
+// H23.1). Son las respuestas del total de sin_activar de cada modo: ninguna
+// sesión sin medir, cortada por el tope, de un modelo informativo o de una eval
+// que no activa la skill está en ellas. Las de las evals sin binario ni
+// servidor no cuentan en ningún umbral, y no se miden.
+func (r *respuestasMedidas) medirLosCotejos(evals []Eval, sesiones []sesionJuzgada) {
+	for deGrupo := range r.grupos {
+		grupo := &r.grupos[deGrupo]
+		if grupo.modo == "" {
+			continue
+		}
+
+		for deRespuesta := range grupo.respuestas {
+			respuesta := &grupo.respuestas[deRespuesta]
+			juzgada := sesiones[respuesta.posicion]
+
+			respuesta.pideElCotejo = slices.ContainsFunc(evals, func(eval Eval) bool {
+				return eval.Fichero == juzgada.resultado.Eval && pideElCotejo(eval)
+			})
+			respuesta.cotejo = cotejaUnDocumento(juzgada.sesion)
+		}
+	}
 }
 
 // medirLasCitasSinDocumento deja en cada respuesta de los grupos de los modos
@@ -1601,7 +1719,8 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 //
 // Desde H23 (contracts/evals-jurisprudencia.md §4 de H23; research D20), son
 // también, sin juez, las de una skill con alguna eval que declara sentencias,
-// todavía sin los ECLI por los que cuentan (medirLasRespuestas).
+// todavía sin los ECLI por los que cuentan (medirLasRespuestas). Y desde H23.1,
+// sin lo que se mide de su cotejo (medirLosCotejos).
 func respuestasQueSeJuzgan(e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada) []grupoJuzgado {
 	modos := e.plan(nil).modos()
 
