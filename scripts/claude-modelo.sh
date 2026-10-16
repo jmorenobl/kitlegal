@@ -137,7 +137,10 @@ gopath="$(go env GOPATH 2>/dev/null || true)"; gopath="${gopath%%:*}"
 gosumdb=""; [ -n "$gopath" ] && gosumdb="$gopath/pkg/sumdb"
 # Los plugins activados en los dos ajustes que la sesión lee (`--setting-sources user,project`):
 # los del usuario —el directorio de Claude Code, que CLAUDE_CONFIG_DIR puede cambiar— y los
-# del proyecto. Cada uno va a los ajustes del paso con `false`, que gana a ambos.
+# del proyecto. Cada uno va a los ajustes del paso con `false`, que gana a ambos. Las skills
+# de la cuenta de claude.ai (anthropic-skills:*) no son plugins: las apaga
+# `syncClaudeAiSkills: false`, que en --settings las bloquea y las oculta solo en esta
+# invocación, sin mover las ya sincronizadas.
 de_ajustes=()
 for f in "$raiz/.claude/settings.json" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"; do
   if [ -f "$f" ]; then de_ajustes+=("$f"); fi
@@ -171,7 +174,8 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
         }
       },
       permissions: {deny: ($vedados | map("Read(/" + . + "/**)"))},
-      enabledPlugins: $plugins
+      enabledPlugins: $plugins,
+      syncClaudeAiSkills: false
     } as $paso
   | ($base * $paso)
   | .permissions.deny = (($base.permissions.deny // []) + $paso.permissions.deny)')" \
