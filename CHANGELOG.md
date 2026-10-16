@@ -55,6 +55,13 @@ sustituyen a este fichero.
   la sesión, y pide buscar con `grep -n` y leer solo la parte necesaria con `Read` y `offset` y `limit`. No cambia lo
   que un paso puede hacer ni lo que mide un gate.
 
+### Corregido
+
+- **Cada hito del roadmap se puede lanzar** (workflow `hito` 2.8.1). La entrada de H23.1 se fusionó sin añadir
+  `H23.1` a la lista cerrada del input `hito` de `workflow.yml`, y `scripts/hito.sh H23.1` acabó antes de crear el
+  run. Entra en la lista, y `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow` (`internal/workflow`) hace fallar
+  `make ci` cuando una sección `#### H<n> ·` o `#### H<n>.<m> ·` de `docs/ROADMAP.md` no está en ella.
+
 ## [0.6.0] - 2026-10-14
 
 ### Añadido
