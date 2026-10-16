@@ -710,13 +710,14 @@ func juiciosDeLaDireccionDeBusqueda(t *testing.T) []juicioDeSentencias {
 
 // operacionDeCita es una operación del applet cita en una sesión sintética:
 // los tokens de su orden detrás de kitlegal cita, sin --json; la herramienta y
-// los argumentos de su llamada; y el sobre que devuelve, el mismo por las dos
-// vías.
+// los argumentos de su llamada; el sobre que devuelve, el mismo por las dos
+// vías; y el código con el que termina su orden, 0 si no se da.
 type operacionDeCita struct {
 	orden       []string
 	herramienta string
 	argumentos  string
 	sobre       string
+	codigo      int
 }
 
 // sesionModelo es la sesión de quien sigue la skill ante una de las diez evals

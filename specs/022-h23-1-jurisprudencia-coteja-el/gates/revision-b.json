@@ -1,0 +1,91 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log está en rojo, pero por `TestLlamadasSimultaneas` (internal/app/mcp_test.go:578: world.db «bloqueada por otra invocación y la espera de 5s se agotó») en `test-integration`, un paquete que el hito no toca; el log se cortó ahí y no llegó a schema-check, skills-check ni los demás objetivos. Reproducido en esta sesión sobre una copia de la cabeza daa6867 fuera del repositorio (`git archive` a /tmp/claude-501/juezb-copia y -copia2): `make fmt-check lint` (0 issues), `make test` (25 paquetes ok, evals 97,3 %), `make test-integration` (25 ok, internal/app 82 s en verde), `make test-tiempos` (ok), `make schema-check skills-check goreleaser-check secrets mod-verify mod-tidy-check vuln` (todos exit 0, «No vulnerabilities found»). El rango juzgado (3387608..daa6867) está commiteado; lo suelto en el árbol son cambios del barrido en artefactos del feature que gates/revision-cambios.md declara fuera del rango (observación)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": false,
+      "evidencia": "Los cuatro casos nuevos de `TestUmbralesDeJurisprudencia` (internal/evals/informe_test.go:5268-5330) y `piden-el-cotejo` (conjunto_test.go:1985-2025) comparan listas y motivos escritos a mano (`exigirUmbrales`, umbrales_test.go:1404, `assert.Equal` sobre los quince en su orden). Mutantes en la copia: M1 oficial (informe.go:707, «ninguna sesión con cotejo») → 3 subtests en rojo; M2 oficial (umbrales.go:481, `Decide: false`) → 14 en rojo; MA («cualquier invocación cuenta como cotejo») → 3 en rojo; MH (motivo sin sesiones) → 3 en rojo. Pero MD sobrevive: con `cotejaUnDocumento` (informe.go:1429-1438) devolviendo `Applet == cita && Verbo == cotejar` sin pasar por `satisface`, `TestUmbralesDeJurisprudencia` y `TestJuzgar*` siguen en verde: ningún test del umbral ejercita un `cita cotejar` que no consultó o no terminó con 0 (FR-002, «Edge Cases» del spec). Cobertura de las funciones nuevas en el perfil de `make test`: 100 % (go tool cover -func). Sin suite de aceptación congelada en este hito (plan, «Aceptación e2e: no aplica»); testdata/, schemas/ y evidencias/ sin cambios (`git diff main...HEAD --stat` vacío)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El diff de Go no añade ningún import (informe.go y umbrales.go ya usaban fmt, slices y strings); ningún net/http, os.Exit ni fmt.Print*: el elemento y el motivo van al informe (umbrales.go:472-485, :650-667). `golangci-lint run` con depguard y forbidigo en la copia: 0 issues. `cmd/kitlegal` no enlaza internal/evals; las reglas R1-R6 no se tocan."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia: el diff de código es solo internal/evals (instrumento de las evals, que el binario no enlaza) y skills/jurisprudencia/SKILL.md. `make schema-check` (TestEsquemasPublicados) en verde en la copia; `TestOrdenesDeLasSkillsEmpotradas` y `TestSkillsDelRepositorio` en verde con la tabla de comandos sin cambios."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni error tipado de kitlegal cambia. En las rutas nuevas no hay panic alcanzable: `deUsarYTirar` es un `ResultadoDeEval` cero sobre el que `invocacionesDe` solo anexa motivos (juzgar.go:493-516); `sesiones[respuesta.posicion]` (informe.go:1455) indexa como `medirLasCitasSinDocumento`; `Total` con 0 lo resuelve `compararUmbral` (contrato ADR 0029). El job sale en rojo con veredicto `fallo` por el motivo de `motivosDeLosUmbrales` (umbrales.go:594-620), como los demás que deciden."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md: «Añadido» (l.42-56) con el umbral, su motivo y 13/9→15/11, y «Corregido» (l.76-88) con jurisprudencia v0.1.1, 6 de 48 (4 orden, 2 herramienta) y 197→207 líneas, los dos dentro de `## [Unreleased]` (l.13) y antes de `## [0.6.0]` (l.93). Cifras cotejadas con el árbol: SKILL.md tiene 207 líneas (197 en main); docs/USO.md:22-23 da 6 de 48, 4 y 2; las evals 04, 06, 08 y 09 piden cotejar (grep en evals/jurisprudencia); 12 = 4 × 3. CONTRIBUTING.md:1144-1145, :1169, :1179 (fila nueva, total 12, umbral 0, decide sí), :1185-1189 (cinco y cinco; cuatro de los quince) y :1201-1214 (párrafo del criterio y del motivo) consistentes con umbrales.go:81-83 y contracts §2-§3. docs/JURISPRUDENCIA.md:224-226 y CLAUDE.md:67 nombran `documento_sin_cotejar`. docs/WORKFLOW.md solo enumera los nueve de boe-legislacion (l.139), que siguen ciertos. Sin ADR nuevo (ADR 0038, «cero donde hay forma») ni fuente (docs/SOURCES.md intacto)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ningún cambio en internal/httpx ni petición de red: los tests escriben sesiones sintéticas en t.TempDir() (informe_test.go:5856-5886) y leen las evals del repositorio; ningún fixture grabado (`git diff main...HEAD --stat -- testdata evidencias data` vacío; plan «Datos externos: ninguno»). Sin secretos ni datos personales en el diff (gitleaks en la copia, exit 0). La skill sigue sin consultar el CENDOJ: solo añade que el cotejo del documento que trae la persona va primero (SKILL.md:48-49, :86-94)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep de `nolint`, `t.Skip`, `TODO`, `FIXME` y `_ =` sobre el diff: nada salvo `invocaciones, _ := deUsarYTirar.invocacionesDe(sesion)` (informe.go:1432), cuyo falso solo ocurre si el registro de herramientas no se construye y entonces la sesión cuenta como sin cotejo —lectura conservadora documentada en research D3 (research.md:114-122) y en el comentario de la función—. Ningún test retirado ni desactivado: `TestInformeFinalDeLosUmbrales/como-en-el-cierre-de-h26` sigue esperando lo mismo con `umbralesDeJurisprudenciaComoEnH26` (informe_test.go:5691-5699). Ningún fixture ni umbral ajustado: los valores esperados son 1 de 12 y `fallo`."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "`git diff main...HEAD --stat`: internal/evals/{conjunto_test,doc,informe,informe_test,umbrales}.go, skills/jurisprudencia/SKILL.md, CHANGELOG.md, CLAUDE.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md y specs/022-…; nada en sondeo.go, scripts/, .github/, schemas/, testdata/, evidencias/, boe-legislacion ni legal-core (FR-032 a FR-034, FR-052). El SKILL.md cambia solo el paso 1 (l.48-49) y el paso 3 (l.86-94). T005 (daa6867) tocó solo cierre.md, tasks.md y gates/. El único supuesto de gates/supuestos.md en el rango ([alcance] T005, la línea de specs/021/gates/modelos.jsonl que escribió el paso `specify`) es una lectura conservadora coherente con FR-045 (no es spec, plan ni informe de H26) y queda en observaciones."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Lo que consume una skill o una persona no crece con lo acumulado: (1) la salida de `cita cotejar` no cambia y la skill la pide una vez por documento delante, antes de hablar de él (SKILL.md:86-88); (2) `umbrales` de jurisprudencia pasa de 13 a 15 elementos fijos por job (dependen de los modos y de las evals, no del uso): el ejemplo del contrato mide 366 bytes y el test lo fija tal cual (informe_test.go:5164-5172); (3) el motivo solo aparece cuando el umbral no se cumple, como mucho uno por modo, acotado por los 12 nombres de sesión del modo (umbrales.go:650-667), y deja de darse en el primer job en que todas cotejan; (4) SKILL.md, 207 líneas, se lee una vez por conversación. Ninguna señal se repite sin información nueva ni caduca mal."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a un FR y a un estado alcanzable: `pideElCotejo` (informe.go:1407) → FR-001 y Key Entities (activa + comandos); `comandoDelCotejo` y `cotejaUnDocumento` (:1420-1438) → FR-002; `pideElCotejo`/`cotejo` en respuestaDelJuez y `conCotejo` en respuestasMedidas (:470-475, :553-559) → FR-001/FR-007 (publicar solo con alguna eval que lo pide); `queLePidenElCotejo`/`sinCotejar` (:686-714) → total y medida; `umbralDeDocumentoSinCotejar`, su nombre y sus tres constantes (umbrales.go:23, :63, :81, :472-492) → FR-001/FR-004; su sitio en `umbrales()` (:310-312) → FR-006; `sinCotejarDelUmbral` en `nombradasEn` (:632-667) → FR-003. En los tests, `escribirSinElCotejo`, `sinMedir` y `umbralDocumentoSinCotejar` → FR-062 (los cinco casos exigidos) y `umbralesDeJurisprudenciaComoEnH26` → FR-030. Ningún paquete, tipo exportado, opción, reintento ni rama para un estado sin emisor (el falso de `invocacionesDe` no se trata aparte, research D3). Dos pequeñeces sin FR que no llegan a mecanismo, en observaciones."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los dos `documento_sin_cotejar:<modelo>:<modo>` se publican con `decide: true` y `umbral` 0 (umbrales.go:472-485) y entran en `motivosDeLosUmbrales`, que pone el veredicto en `fallo` (contrato ADR 0029): en la copia, M1 deja en rojo `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y `una-sin-activar-y-sin-cotejar` (esperan 1 de 12 y `fallo`), y M2 los catorce casos (9 que deciden en lugar de 11). Las once filas `evals:` de plan.md:218-228 nombran exactamente los umbrales que deciden del contrato §1 (dos nuevos, sin_activar y cita_sin_documento por modo, afirma_lo_no_leido:claude-sonnet-5-5, los dos de la medida y duracion_del_juez por modo), y los cuatro recuentos que no deciden no tienen fila. Cada control `ci:` existe en su ruta como `^func <Test>(`: informe_test.go:5124, :1516, :267, :4367; conjunto_test.go:1899; umbrales_test.go:251, :573; juzgar_test.go:293; medida_test.go:275, :673; definicion_test.go:194; sondeo_test.go:715; y los objetivos skills-check, schema-check y ci del Makefile. Ningún umbral se cumplió cambiándolo: los trece de antes conservan nombre, valor y `decide` (informe_test.go:5651-5689)."
+    }
+  ],
+  "motivos": [
+    "[b] FR-002 y el comentario de `cotejaUnDocumento` (internal/evals/informe.go:1429-1438) prometen que solo cuenta como cotejo un `cita cotejar` que consultó y terminó con 0 —sin `--dry-run`, `--describe` ni la ayuda; con la herramienta, un resultado que no es error—, y ningún test del umbral lo protege: en una copia de la cabeza fuera del repositorio, con `cotejaUnDocumento` devolviendo `juzgada.Invocacion.Applet == appletDeLaCita && juzgada.Invocacion.Verbo == verboCotejar` en lugar de `satisface(juzgada.Invocacion, comandoDelCotejo)` (mutante MD), `go test -count=1 -run '^TestUmbralesDeJurisprudencia$|^TestJuzgar' ./internal/evals/` sigue en verde. Es un estado real de un job —la sesión cuya única `cita cotejar` termina con 2 por una ficha incompleta, o va con `--dry-run`— que el spec («Edge Cases», FR-002) y la skill dan por sesión sin cotejo, y es justo la clase de sesión que el hito existe para hacer fallar. Añadir en internal/evals/informe_test.go, a `casosDeLosUmbralesDeJurisprudencia` junto a `una-sin-cotejar-en-el-modo-orden`, un caso en que la sesión de la 06 del modo orden se escribe con su `cita cotejar` que no consulta o no termina con 0 (lo más simple: la misma orden con `--dry-run` en sus argumentos, que `consultoConExito` descarta; o con un sobre de fallo que dé código distinto de 0), sin quitarle las demás operaciones, y espera `documento_sin_cotejar:claude-sonnet-5-5:orden` con `medida` 1 de 12, `cumple: false`, veredicto `fallo` y el motivo que nombra esa sesión; comprobar en una copia que el caso cae con el mutante MD y queda en verde con la cabeza, y anotarlo, si se quiere, en specs/022-h23-1-jurisprudencia-coteja-el/mutantes.md. No cambia código de producción, alcance ni ningún umbral."
+  ],
+  "observaciones": [
+    "gates/ci.log está en rojo por `TestLlamadasSimultaneas` (internal/app/mcp_test.go:578: world.db bloqueada y espera de 5 s agotada) en `test-integration` con `-race`: un test de un paquete que el hito no toca, que pasó en la copia (82 s) y que cae bajo carga —el barrido corrió mientras había otras sesiones—; conviene tratarlo fuera del hito como los otros flaky conocidos (busy_timeout de SQLite frente a carga de la máquina).",
+    "El árbol lleva sin commitear, fuera de gates/, los cambios del barrido en spec.md:269, plan.md:30, :70 y :270, quickstart.md:142 y contracts/skill-jurisprudencia.md:55 (cifras: «hoy 197» → «197 en main; 207 con el hito», «unas 165 líneas» → «268 añadidas y 49 quitadas»), que son correctas contra el árbol; gates/aparcado-1.patch tiene 0 bytes, así que el apartado del barrido no los recogió. gates/revision-cambios.md los declara fuera del rango; el `cerrar` global debería commitearlos y no perderlos.",
+    "specs/021-h26-el-umbral-de/gates/modelos.jsonl gana la línea del paso `specify` de este hito (sesión 9a311b12…, 2026-10-16T06:54:25Z), y specs/022-…/gates/modelos.jsonl no tiene ninguna línea de `specify`: el registro quedó en el directorio del hito anterior porque feature.json aún apuntaba a él. Es del workflow (`scripts/workflow/`), que un hito no toca; está en gates/supuestos.md como [alcance]. Moverla, no borrarla, es lo que conserva el registro.",
+    ".github/workflows/evals.yml:157 sigue diciendo que «cada una de las dos skills con juez lleva trece umbrales, nueve que deciden»: falso para jurisprudencia desde este hito. El spec lo deja a sabiendas fuera (FR-052: nada bajo .github/) y como pendiente para la persona; se corrige en un cambio fuera del hito.",
+    "Mutante MC: `pideElCotejo` sin `eval.Activa &&` (informe.go:1408) sobrevive a todos los tests, porque ninguna eval del repositorio con `activa: false` pide `cita cotejar`. No hay emisor hoy y la condición viene de Key Entities del spec; si alguna vez una eval negativa pidiera cotejar, convendría un caso.",
+    "`medirLosCotejos` (informe.go:1446-1464) calcula `cotejaUnDocumento` también para las 18 respuestas por modo cuya eval no pide el cotejo, y ese valor nunca se lee; bastaría calcularlo bajo `if respuesta.pideElCotejo`. Sin efecto observable: solo trabajo de más sobre las trazas.",
+    "FR-001 dice «siempre que la skill tenga alguna eval que … pida el cotejo, sin ningún caso por skill», y el código lo publica solo dentro de los umbrales de las respuestas, que existen con juez o con alguna eval que declara `sentencias` (`medirLasRespuestas`, informe.go:1378-1381; research D4; supuesto [interno] del barrido). Una skill con una eval que pida `cita cotejar` y sin juez ni `sentencias` no la entrega hoy ningún emisor; cuando llegue, el umbral no aparecería sin tocar esa condición.",
+    "spec.md:269 («Uso») mide el sobre de `cita cotejar` de la eval 06 en 949 bytes y plan.md:259 (research V20) en 937: dos medidas del mismo sobre en sesiones distintas; ninguna cifra llega a la documentación del producto.",
+    "Los cinco mutantes propios además de los dos oficiales: MA («cualquier invocación cuenta») y MH (motivo sin sesiones) mueren con 3 subtests cada uno; MD y MC sobreviven (arriba); el orden de los quince lo fija `assert.Equal` sobre la lista entera (umbrales_test.go:1404), así que otro orden en `umbrales()` también caería."
+  ]
+}

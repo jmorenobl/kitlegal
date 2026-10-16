@@ -27,7 +27,7 @@ En la eval 06, 6 de 48 respuestas de `claude-sonnet-5-5` dan por buena una sente
 3. **Los documentos**: `CHANGELOG.md` (*Unreleased*), `CONTRIBUTING.md`, `docs/JURISPRUDENCIA.md` y `CLAUDE.md`
    ([contracts/documentos.md](./contracts/documentos.md)); `docs/WORKFLOW.md` no dice nada que el hito deje falso.
 
-El cambio de código son unas 165 líneas de producción en dos ficheros que ya existen, `informe.go` y `umbrales.go`, sin
+El cambio de código son 268 líneas añadidas y 49 quitadas, con sus comentarios, en dos ficheros que ya existen, `informe.go` y `umbrales.go`, sin
 tipo exportado, paquete ni dependencia nuevos, y los comentarios que el cambio deja incompletos. Un prototipo lo
 confirma: con él, los quince elementos y once que deciden; 1 sesión sin cotejo de 12 da `fallo` con su motivo en cada
 modo; la sesión sin medir y la de Haiku quedan fuera; los dos mutantes hacen fallar los casos; y el resto de
@@ -67,7 +67,8 @@ decide por job.
 cambian; `internal/evals/sondeo.go` y `scripts/evals-sondeo.sh` no se tocan (FR-032, FR-033).
 
 **Scale/Scope**: 12 respuestas por modo en el `total` del umbral; 15 elementos de `umbrales` en `jurisprudencia`;
-4 casos nuevos de un test y 1 subtest nuevo de otro; `SKILL.md`, de 197 líneas a unas 207.
+6 casos nuevos de un test (4 de T001 y 2 de la revisión final) y 1 subtest nuevo de otro; `SKILL.md`, de 197 líneas
+a 207.
 
 ## Constitution Check
 
@@ -127,7 +128,7 @@ internal/evals/
 ├── umbrales.go              # umbralDeDocumentoSinCotejar, su nombre y sus constantes; su sitio en umbrales();
 │                            # sinCotejarDelUmbral en nombradasEn; comentarios
 ├── doc.go                   # lo que dice de los umbrales de cada skill (comentario)
-├── informe_test.go          # TestUmbralesDeJurisprudencia: cuatro casos y su arnés; TestInformeFinalDeLosUmbrales
+├── informe_test.go          # TestUmbralesDeJurisprudencia: seis casos y su arnés; TestInformeFinalDeLosUmbrales
 └── conjunto_test.go         # TestEvalsDelRepositorio/piden-el-cotejo
 skills/jurisprudencia/SKILL.md     # pasos 1 y 3
 CHANGELOG.md, CONTRIBUTING.md, docs/JURISPRUDENCIA.md, CLAUDE.md
@@ -149,7 +150,7 @@ sin modelo:
 
 | Historia | Tests | Requisitos |
 |---|---|---|
-| US1 | `TestUmbralesDeJurisprudencia` (casos `ninguna-cuenta`, `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-medir-y-sin-cotejar`), `TestEvalsDelRepositorio/piden-el-cotejo` | FR-001 a FR-005, FR-062, FR-064; SC-002 a SC-004, SC-006 |
+| US1 | `TestUmbralesDeJurisprudencia` (casos `ninguna-cuenta`, `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-con-el-cotejo-fallido-en-el-modo-orden`, `una-con-el-cotejo-fallido-en-el-modo-herramienta`, `una-sin-medir-y-sin-cotejar`), `TestEvalsDelRepositorio/piden-el-cotejo` | FR-001 a FR-005, FR-062, FR-064; SC-002 a SC-004, SC-006 |
 | US2 | `make skills-check` (`TestSkillsDelRepositorio`, `TestOrdenesDeLasSkillsEmpotradas`); el resto lo leen la revisión final y el job | FR-020 a FR-024; SC-007 |
 | US3 | `TestUmbralesDeJurisprudencia` (los quince, once que deciden; `una-sin-activar-y-sin-cotejar`), `TestUmbralesDelInforme`, `TestInformeEnDosModos`, `TestUmbralesConJuezYConSentencias`, `TestInformeConElJuez`, `TestInformeFinalDeLosUmbrales`, los del juicio y las series, `TestCopiasDelJuez`, `TestDefinicionDelJob`, `schema-check` y los del sondeo, sin cambiar lo que esperan | FR-006, FR-007, FR-030 a FR-034, FR-063; SC-005 |
 | US4 | Ninguno: lo comprueba la revisión final por lectura (FR-045) | FR-040 a FR-045; SC-008 |
@@ -168,7 +169,7 @@ Ninguna función de test nueva (research D8). Casos y subtests nuevos, en tests 
 
 | Test | Fichero | Qué añade | Cubre |
 |---|---|---|---|
-| `TestUmbralesDeJurisprudencia` | `internal/evals/informe_test.go` | Cuatro casos: `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar` (contracts/umbral-documento-sin-cotejar.md §5) | FR-001 a FR-005, FR-030, FR-062, FR-064; SC-002, SC-004, SC-006; US3, escenario 3 |
+| `TestUmbralesDeJurisprudencia` | `internal/evals/informe_test.go` | Seis casos: `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`, `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar` (contracts/umbral-documento-sin-cotejar.md §5), y `una-con-el-cotejo-fallido-en-el-modo-orden` y `una-con-el-cotejo-fallido-en-el-modo-herramienta`, de la revisión final: el único `cita cotejar` de la sesión termina mal y la sesión cuenta (FR-002; research D2) | FR-001 a FR-005, FR-030, FR-062, FR-064; SC-002, SC-004, SC-006; US3, escenario 3 |
 | `TestEvalsDelRepositorio` | `internal/evals/conjunto_test.go` | El subtest `piden-el-cotejo`: con las evals del repositorio, piden el cotejo la 04, la 06, la 08 y la 09 de `jurisprudencia`, y ninguna de `boe-legislacion` ni de `legal-core` | FR-001, FR-007, FR-063; SC-005 |
 
 ### Tests existentes que cambian
@@ -267,7 +268,7 @@ de nuevo.
   723 en el modo orden y 873 en el herramienta, con las 12 (research M10, M12). Deja de darse en el primer job en que el
   umbral se cumple.
 - **La fila de `informe.md`** (la persona): una más por modo, 92 a 99 bytes (research M11).
-- **`SKILL.md`** (el agente que activa la skill, una vez por conversación): unas diez líneas más, por debajo de 300.
+- **`SKILL.md`** (el agente que activa la skill, una vez por conversación): diez líneas más, 207, por debajo de 300.
   No da señales.
 - **`mutantes.md`** (la revisión final, una vez) y **los documentos** (quien contribuye o lee un informe): no crecen
   ni dan señales.
@@ -303,7 +304,7 @@ de nuevo.
 | Su llamada en `respuestasMedidas.umbrales`, detrás de `cita_sin_documento` | FR-001, FR-006 (el orden) |
 | `sinCotejarDelUmbral` y su llamada en `nombradasEn` | FR-003 |
 | Los comentarios de `doc.go`, `informe.go` y `umbrales.go` que dicen cuántos umbrales hay y cuáles | FR-006: el hito los deja falsos (research V21) |
-| Los cuatro casos de `TestUmbralesDeJurisprudencia` y su arnés | FR-062, FR-064; SC-002 a SC-004, SC-006; US3, escenario 3 |
+| Los seis casos de `TestUmbralesDeJurisprudencia` y su arnés | FR-002, FR-062, FR-064; SC-002 a SC-004, SC-006; US3, escenario 3 |
 | Quince y once en `TestUmbralesDeJurisprudencia` | FR-006, FR-063; SC-005 |
 | `umbralesDeJurisprudenciaComoEnH26` | FR-030: `TestInformeFinalDeLosUmbrales` no cambia lo que espera (research D11) |
 | `TestEvalsDelRepositorio/piden-el-cotejo` | FR-001, FR-007, FR-063; SC-005 |
@@ -314,7 +315,8 @@ de nuevo.
 Nada del diseño atiende a un estado que no pasa el umbral de materialidad: una skill con una eval que pide el cotejo y
 sin juez ni `sentencias` no la entrega ningún emisor (research D4); el falso de `invocacionesDe` no lo alcanza una
 sesión leída (research D3); y los casos límite del criterio de cotejo —código 2, `--dry-run`, cotejo sin `--roj`, varios
-cotejos— son los del juicio, que ya prueban sus tests (research D2, D8).
+cotejos— son los del juicio, que ya prueban sus tests, y que el umbral use ese criterio lo fijan los dos casos del
+cotejo fallido, uno por modo (research D2, D8).
 
 ## Datos externos
 
@@ -326,7 +328,7 @@ repositorio.
 
 1. **El umbral** (`internal/evals/informe.go`, `umbrales.go` y `doc.go`, con `informe_test.go` y `conjunto_test.go`):
    la medida, el elemento, su motivo, los comentarios que deja incompletos, los quince en
-   `TestUmbralesDeJurisprudencia` con sus cuatro casos nuevos, `umbralesDeJurisprudenciaComoEnH26` y `piden-el-cotejo`.
+   `TestUmbralesDeJurisprudencia` con sus casos nuevos, `umbralesDeJurisprudenciaComoEnH26` y `piden-el-cotejo`.
    Es una sola tarea porque el código cambia la forma de `umbrales` y los tests que la esperan tienen que cambiar con
    él para dejar `make ci` en verde (research M2).
 2. **Los mutantes**: el escenario 4 del quickstart sobre la cabeza, y su registro en

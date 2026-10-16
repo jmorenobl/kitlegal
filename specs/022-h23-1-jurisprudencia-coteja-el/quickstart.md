@@ -37,11 +37,12 @@ Esperado: Go 1.27; y la lista de lo que haya sin commitear, que el escenario 4 t
 go test -count=1 -v -run '^TestUmbralesDeJurisprudencia$' ./internal/evals/
 ```
 
-Esperado: `ok` y quince subtests en `PASS`: los diez casos de antes, `el-elemento-del-contrato` y los cuatro nuevos de
+Esperado: `ok` y diecisiete subtests en `PASS`: los diez casos de antes, `el-elemento-del-contrato` y los seis nuevos de
 contracts §5 —`una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`,
+`una-con-el-cotejo-fallido-en-el-modo-orden`, `una-con-el-cotejo-fallido-en-el-modo-herramienta`,
 `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar`—. Cada caso exige los quince umbrales de contracts §1
 con sus valores escritos a mano, once que deciden; los dos `documento_sin_cotejar` sobre 12 respuestas por modo (11 con
-la sesión sin medir); y, con una sesión sin cotejo, `fallo` con el motivo de contracts §3.
+la sesión sin medir); y, con una sesión sin cotejo o con su cotejo fallido, `fallo` con el motivo de contracts §3.
 
 ## 2. Las evals que piden el cotejo y la forma de la skill (US1, US2, US3)
 
@@ -109,9 +110,10 @@ Esperado:
   con su `if !respuesta.cotejo {`; `umbralDeDocumentoSinCotejar` con su `Decide: true,`), y la sustitución se ajusta a
   él: el mutante es el de contracts §6.
 - Las dos órdenes de `go test` terminan en `FAIL`, que aquí es lo que se busca (research M8):
-  - con el **mutante 1**, fallan `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y
-    `una-sin-activar-y-sin-cotejar`, que esperan 1 de 12 y reciben 0;
-  - con el **mutante 2**, fallan los catorce casos de la tabla.
+  - con el **mutante 1**, fallan `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`,
+    `una-sin-activar-y-sin-cotejar` y los dos del cotejo fallido, que esperan 1 de 12 y reciben 0;
+  - con el **mutante 2**, fallan los dieciséis casos de la tabla.
+- El mutante 3 de contracts §6, el de la revisión final, deja en rojo los dos casos del cotejo fallido (`mutantes.md`).
 - `git status --short`, lo mismo que en el escenario 0: ningún mutante ha estado en el árbol.
 
 Si `$copia` quedó de una ejecución interrumpida, `git worktree remove --force "$copia"` la retira. La tarea del run que
@@ -139,7 +141,7 @@ git diff main -- skills/jurisprudencia/SKILL.md
 
 Esperado:
 
-1. Menos de 300 líneas (hoy, 197).
+1. Menos de 300 líneas: 207 sobre la cabeza del hito (197 en `main`).
 2. Las tres órdenes `cmp`, sin salida: no cambian el frontmatter, el título, la entrada y la introducción del
    «Protocolo» (líneas 1 a 38), el paso 2, ni los pasos 4 a 7, «Comandos» y «Reglas» (FR-023, FR-024).
 3. El diff, solo en el paso 1 y en el paso 3, con lo de contracts/skill-jurisprudencia.md §1: el cotejo es lo primero,

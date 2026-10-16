@@ -52,7 +52,7 @@ cambiar ninguna (FR-024).
 
 ## 3. La forma
 
-- Menos de 300 líneas: hoy 197; con §1, unas diez más. **Control**: `TestSkillsDelRepositorio` en `make skills-check`
+- Menos de 300 líneas: 197 en `main`; con §1, 207. **Control**: `TestSkillsDelRepositorio` en `make skills-check`
   falla con 300 (FR-023).
 - La tabla de comandos es la que regenera `make skills-sync`, sin cambios, y ninguna herramienta nueva: solo
   `cita_preparar` y `cita_cotejar`. **Control**: `TestSkillsDelRepositorio` y `TestOrdenesDeLasSkillsEmpotradas`, en

@@ -5,6 +5,8 @@ Lo escribe la tarea T002 (FR-064, SC-006; research D12, M8). Los dos mutantes so
 [quickstart](./quickstart.md). Es un registro del run: nada lo lee en `make ci`.
 
 **Resultado: 2 de 2.** Cada mutante deja en rojo `TestUmbralesDeJurisprudencia`, con los casos que fija el contrato.
+La revisión final añadió un tercero, que T002 no tenía, y los dos casos que lo matan (abajo, «La revisión final»): con
+ellos, **3 de 3**.
 
 | Mutante | Casos en rojo | Por el veredicto (`fallo` → `aprobado`) | `go test` |
 |---|---|---|---|
@@ -157,3 +159,70 @@ git status --short
 `git status --short`, igual antes de crear la copia y después de retirarla: las tres líneas
 ` M specs/022-h23-1-jurisprudencia-coteja-el/gates/{modelos.jsonl,tarea-actual.json,tareas-intentos.json}`, que son
 del workflow. Ningún mutante ha estado en el árbol.
+
+## La revisión final: el mutante 3, y los dos de antes con dieciséis casos
+
+Los dos jueces de la revisión final encontraron un mutante que sobrevivía a todo `go test ./internal/evals/`: contar
+como cotejo cualquier `cita cotejar`, terminara como terminara. Ningún caso tenía una sesión cuyo único `cita cotejar`
+no terminase bien, que FR-002 y los «Edge Cases» del spec cuentan como sesión sin cotejo. El corrector añadió dos casos
+a `casosDeLosUmbralesDeJurisprudencia`, `una-con-el-cotejo-fallido-en-el-modo-orden` y
+`una-con-el-cotejo-fallido-en-el-modo-herramienta`: la sesión de la 06 del modelo que decide conserva su `cita
+cotejar`, que devuelve el sobre de fallo de una ficha que no se reconoce (clase `argumentos`) y, en el modo orden,
+termina con 2 (`escribirConElCotejoFallido`). Cada uno espera `documento_sin_cotejar` de su modo con 1 de 12,
+`cumple: false`, veredicto `fallo` y el motivo con el nombre de la sesión.
+
+**Dónde.** Sobre la cabeza `daa6867` con los cambios del corrector sin commitear, Go 1.27.2, `darwin/arm64`. Esta vez
+no hubo copia: el sandbox de la sesión rechazó la copia de seguridad del fichero con `cp` a `$TMPDIR`, y cada
+mutante se aplicó en el árbol con una sola edición de una línea y se deshizo con la edición inversa. Tras los tres,
+`git diff --stat -- internal/evals/informe.go internal/evals/umbrales.go` no da nada: el código de producción es el de
+la cabeza. La orden de test es la del quickstart, `go test -count=1 -v -run '^TestUmbralesDeJurisprudencia$'
+./internal/evals/`, con su salida filtrada por `--- FAIL`, `^ok` y `^FAIL`.
+
+**Sin mutar**: `ok`, y los diecisiete subtests en `PASS`, los dieciséis de la tabla y `el-elemento-del-contrato`.
+
+### Mutante 3: cualquier `cita cotejar` cuenta como cotejo
+
+`internal/evals/informe.go`, línea 1435, en `cotejaUnDocumento`:
+
+```diff
+< 		return satisface(juzgada.Invocacion, comandoDelCotejo)
+---
+> 		return juzgada.Invocacion.Applet == appletDeLaCita && juzgada.Invocacion.Verbo == verboCotejar
+```
+
+```text
+--- FAIL: TestUmbralesDeJurisprudencia (0.00s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-herramienta (0.68s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-orden (0.74s)
+FAIL
+FAIL	github.com/jmorenobl/kitlegal/internal/evals	1.876s
+FAIL
+```
+
+Los dos casos nuevos, y ninguno más: sin ellos, el mutante pasaba. Tras pasar la preparación de las sesiones del caso
+a `armarLasSesionesDelCaso` (por `gocyclo`), los tres mutantes se repitieron sobre el código final, con el mismo
+resultado: el 3, los mismos dos en rojo (1.999s); el 1, los mismos cinco; y el 2, dieciséis subtests en rojo. Sin
+mutar, diecisiete en `PASS`.
+
+### Mutante 1, con los dieciséis casos
+
+```text
+--- FAIL: TestUmbralesDeJurisprudencia (0.00s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-herramienta (0.77s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-sin-cotejar-en-el-modo-herramienta (0.70s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-sin-cotejar-en-el-modo-orden (0.72s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-sin-activar-y-sin-cotejar (0.74s)
+    --- FAIL: TestUmbralesDeJurisprudencia/una-con-el-cotejo-fallido-en-el-modo-orden (0.76s)
+FAIL
+FAIL	github.com/jmorenobl/kitlegal/internal/evals	1.937s
+FAIL
+```
+
+Cinco: los tres de T002 y los dos nuevos, en los que once sesiones del modo cotejan y una no.
+
+### Mutante 2, con los dieciséis casos
+
+`go test` da `FAIL` con los dieciséis `nombre:` de la tabla en rojo, del primero al último, y
+`el-elemento-del-contrato` en verde (1.871s). En una segunda ejecución, `actual  : "aprobado"` sale en cuatro:
+`una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta` y los dos del cotejo fallido, los casos
+cuyo único motivo es el de `documento_sin_cotejar`.

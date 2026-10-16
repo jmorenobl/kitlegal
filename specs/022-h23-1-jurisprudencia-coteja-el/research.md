@@ -102,8 +102,10 @@ ni servidor quedan fuera por la misma regla que en los demás umbrales (FR-005, 
 **Por qué.** Es literalmente lo que pide FR-002: «el mismo criterio con el que el juicio de la sesión da hoy por
 ejecutado un comando esperado de `cita`, sin mirar sus argumentos». Con la orden, código 0 y sin `--dry-run`,
 `--describe` ni la ayuda; con la herramienta, un resultado que no es un error (V4). Los casos límite del spec —código 2,
-`--dry-run`, un cotejo sin `--roj`, varios cotejos— salen de ese criterio, que ya prueban los tests del juicio; ninguno
-lleva un test propio en este hito.
+`--dry-run`, un cotejo sin `--roj`, varios cotejos— salen de ese criterio, que ya prueban los tests del juicio. Que el
+umbral lo use, y no solo el applet y el verbo, lo fijan dos casos del umbral, añadidos en la revisión final: el único
+`cita cotejar` de la sesión termina mal, con el código 2 en el modo orden y con un resultado que es un error en el modo
+herramienta, y la sesión cuenta (D8; `mutantes.md`, mutante 3).
 
 **Alternativas rechazadas.**
 - *Los ECLI que leyó un `cita cotejar` en sus sobres* (`ExtraerECLICotejados`): depende de `--json` y de leer la
@@ -180,7 +182,9 @@ nombre: no hace falta escribirlo detrás de cada una, como hace el conjunto de u
 **Decisión.** Los casos de FR-062 son cuatro casos nuevos de `TestUmbralesDeJurisprudencia`, con las evals y la
 carpeta del juez del repositorio: `una-sin-cotejar-en-el-modo-orden`, `una-sin-cotejar-en-el-modo-herramienta`,
 `una-sin-activar-y-sin-cotejar` y `una-sin-medir-y-sin-cotejar`; y `ninguna-cuenta`, que ya existe, pasa a exigir 0 de
-12 en los dos modos. La premisa de FR-007 con las evals reales es un subtest nuevo de `TestEvalsDelRepositorio`,
+12 en los dos modos. La revisión final añadió dos más, `una-con-el-cotejo-fallido-en-el-modo-orden` y
+`una-con-el-cotejo-fallido-en-el-modo-herramienta`, para la parte de FR-002 que ninguno de los cuatro probaba: que no
+cuenta como cotejo un `cita cotejar` que no terminó bien (D2). La premisa de FR-007 con las evals reales es un subtest nuevo de `TestEvalsDelRepositorio`,
 `piden-el-cotejo`, que ejecuta `make skills-check`.
 
 **Por qué.** El arnés de `TestUmbralesDeJurisprudencia` ya escribe el informe del plan del job con las sesiones del
@@ -192,7 +196,8 @@ cotejo distinguen «cada sesión» de «ninguna sesión con cotejo» (FR-064; M8
 **Alternativas rechazadas.** *Una función de test nueva con respuestas escritas a mano*, como
 `TestUmbralesConJuezYConSentencias`: no pasaría por `respuestasQueSeJuzgan`, y no probaría que la sesión sin medir y
 la de Haiku quedan fuera (FR-005, FR-062). *Un caso para cada caso límite del criterio de cotejo* (código 2,
-`--dry-run`, sin `--roj`): ese criterio es el del juicio, que ya lo prueban sus tests (D2).
+`--dry-run`, sin `--roj`): ese criterio es el del juicio, que ya lo prueban sus tests (D2); al umbral le basta un caso
+por modo con un cotejo que no termina bien, que distingue usar ese criterio de no usarlo.
 
 ### D9. Cómo se escribe una sesión sin cotejo
 

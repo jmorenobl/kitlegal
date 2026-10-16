@@ -4957,12 +4957,12 @@ func exigirQueSinVotanteNoHayInforme(t *testing.T) {
 // Lo que TestUmbralesDeJurisprudencia escribe en las trazas de sus sesiones
 // sintéticas del modo orden: la línea con la que claude crea el proceso de una
 // orden, con su número, y ese proceso, que ejecuta el binario con los
-// argumentos de la orden y termina con 0.
+// argumentos de la orden y termina con su código.
 const (
 	creacionDeUnaOrden = "clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, " +
 		"child_tidptr=0x7f3a9c2f5a10) = %d\n"
 	trazaDeUnaOrden = `execve("/usr/local/bin/kitlegal", [%s], 0x7ffd8f13a6c0 /* 25 vars */) = 0` + "\n" +
-		"+++ exited with 0 +++\n"
+		"+++ exited with %d +++\n"
 
 	// primerProcesoDeLaSesion es el número del primer proceso que crea claude.
 	primerProcesoDeLaSesion = 2000
@@ -5007,14 +5007,16 @@ type casoDeUmbralesDeJurisprudencia struct {
 	nombre string
 
 	// sinCotejo son las sesiones que se escriben de nuevo sin su cotejo
-	// (escribirSinElCotejo), antes que cualquier otro cambio; prefijos, lo que se
-	// antepone a la respuesta de cada sesión, por su nombre; sinActivar, la
-	// sesión a la que se le quita la activación; y sinMedir, la que queda sin
-	// medir por el mensaje del límite de uso.
-	sinCotejo  []string
-	prefijos   map[string]string
-	sinActivar string
-	sinMedir   string
+	// (escribirSinElCotejo), y cotejoFallido, las que se escriben de nuevo con su
+	// cotejo fallido (escribirConElCotejoFallido), antes que cualquier otro
+	// cambio; prefijos, lo que se antepone a la respuesta de cada sesión, por su
+	// nombre; sinActivar, la sesión a la que se le quita la activación; y
+	// sinMedir, la que queda sin medir por el mensaje del límite de uso.
+	sinCotejo     []string
+	cotejoFallido []string
+	prefijos      map[string]string
+	sinActivar    string
+	sinMedir      string
 
 	// grabados son los votos grabados de algunas respuestas: a cada una se le
 	// antepone su párrafo, y de las demás el votante dice no en las dos clases.
@@ -5084,12 +5086,14 @@ const (
 //     de las evals que piden el cotejo cotejan, las del modo orden por la orden
 //     de su traza y las del modo herramienta por su llamada a cita_cotejar, y
 //     ninguna cuenta en documento_sin_cotejar;
-//   - con una sesión de la 06 sin su cotejo, en un modo, y las otras once de ese
-//     modo cotejando, documento_sin_cotejar de ese modo mide 1 de 12, no se
-//     cumple y el veredicto es fallo, con un motivo que nombra el umbral, su
-//     medida, su condición y la sesión; la misma sesión del modelo informativo
-//     no cuenta, y las 18 sesiones de cada modo de las evals que no piden el
-//     cotejo, que no cotejan, no están en su total;
+//   - con una sesión de la 06 sin su cotejo, o con su único cita cotejar
+//     fallido —el sobre de fallo de una ficha que no se reconoce y, en el modo
+//     orden, el código 2—, en un modo, y las otras once de ese modo cotejando,
+//     documento_sin_cotejar de ese modo mide 1 de 12, no se cumple y el
+//     veredicto es fallo, con un motivo que nombra el umbral, su medida, su
+//     condición y la sesión; la misma sesión del modelo informativo no cuenta,
+//     y las 18 sesiones de cada modo de las evals que no piden el cotejo, que
+//     no cotejan, no están en su total;
 //   - una sesión sin activar y sin cotejo cuenta en sin_activar y en
 //     documento_sin_cotejar, cada uno con su motivo; y una sin medir y sin
 //     cotejo no está en el total de ningún umbral de su modo —ni en el
@@ -5451,6 +5455,32 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
 			votos: votosSinMarcar,
 		},
 		{
+			// Una sesión de la 06 cuyo único cita cotejar no termina bien —devuelve
+			// el sobre de fallo de una ficha que no se reconoce y su proceso termina
+			// con 2— no cotejó: cuenta como la que no lo ejecutó (FR-002 de H23.1;
+			// «Edge Cases»).
+			nombre:        "una-con-el-cotejo-fallido-en-el-modo-orden",
+			cotejoFallido: []string{sinCotejoEnOrden},
+			porModo:       map[Modo]medidasDeJurisprudencia{ModoOrden: {sinCotejar: 1}},
+			motivos: []string{
+				"umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
+					"06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01",
+			},
+			votos: votosSinMarcar,
+		},
+		{
+			// La del modo herramienta, cuya llamada a cita_cotejar trae ese sobre de
+			// fallo como resultado.
+			nombre:        "una-con-el-cotejo-fallido-en-el-modo-herramienta",
+			cotejoFallido: []string{sinCotejoEnHerramienta},
+			porModo:       map[Modo]medidasDeJurisprudencia{ModoHerramienta: {sinCotejar: 1}},
+			motivos: []string{
+				"umbral documento_sin_cotejar:claude-sonnet-5-5:herramienta: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
+					"06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01",
+			},
+			votos: votosSinMarcar,
+		},
+		{
 			// Sin cotejo y sin activar, cuenta en los dos umbrales, cada uno con su
 			// motivo, en el orden de los umbrales (FR-030 de H23.1; US3, escenario
 			// 3).
@@ -5483,21 +5513,22 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
 	}
 }
 
-// exigirLosUmbralesDeJurisprudencia arma las sesiones del plan del job, hace
-// los cambios del caso —primero, escribir de nuevo sin su cotejo las sesiones
-// que lo piden, que desharía los demás—, antepone a cada respuesta con votos
-// grabados su párrafo y escribe el informe con el votante de esos votos: exige
-// sus quince umbrales, once de ellos decidiendo, sus motivos y su veredicto, que
-// es fallo si hay algún motivo; lo que publica del juez; que se pida cada voto
-// de cada respuesta medida del modelo que decide, con su mensaje, y ninguno más;
-// y la fila de cada umbral en informe.md.
-func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisprudencia) {
+// armarLasSesionesDelCaso arma las sesiones del plan del job y hace los
+// cambios del caso —primero, escribir de nuevo sin su cotejo o con su cotejo
+// fallido las sesiones que lo piden, que desharía los demás—, y antepone a cada
+// respuesta con votos grabados su párrafo. Devuelve el directorio de las
+// sesiones.
+func armarLasSesionesDelCaso(t *testing.T, caso casoDeUmbralesDeJurisprudencia) string {
 	t.Helper()
 
 	sesiones := armarSesionesDeJurisprudencia(t)
 
 	for _, sesion := range caso.sinCotejo {
 		escribirSinElCotejo(t, sesiones, sesion)
+	}
+
+	for _, sesion := range caso.cotejoFallido {
+		escribirConElCotejoFallido(t, sesiones, sesion)
 	}
 
 	for sesion, prefijo := range caso.prefijos {
@@ -5516,6 +5547,20 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
 	for _, grabado := range caso.grabados {
 		anteponerALaRespuesta(t, filepath.Join(sesiones, grabado.sesion), grabado.parrafo+"\n\n")
 	}
+
+	return sesiones
+}
+
+// exigirLosUmbralesDeJurisprudencia arma las sesiones del caso
+// (armarLasSesionesDelCaso) y escribe el informe con el votante de sus votos
+// grabados: exige sus quince umbrales, once de ellos decidiendo, sus motivos y
+// su veredicto, que es fallo si hay algún motivo; lo que publica del juez; que
+// se pida cada voto de cada respuesta medida del modelo que decide, con su
+// mensaje, y ninguno más; y la fila de cada umbral en informe.md.
+func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisprudencia) {
+	t.Helper()
+
+	sesiones := armarLasSesionesDelCaso(t, caso)
 
 	votante := nuevoVotanteDelInforme(t, caso.grabados...)
 	votante.queNo = votoConSentencia(t, afirmaConSentenciaQueNo(), existeQueNo()).salida
@@ -5846,15 +5891,49 @@ func armarSesionesDeJurisprudencia(t *testing.T) string {
 	return sesiones
 }
 
-// escribirSinElCotejo borra del directorio de sesiones la del plan del job con
-// ese nombre y la escribe de nuevo con escribirSesionDeJurisprudencia y la
-// sesión modelo de su eval sin su operación cotejar: ni la orden en su traza, en
-// el modo orden, ni la llamada a cita_cotejar en su transcript, en el modo
-// herramienta (research D9 de H23.1). Las demás operaciones siguen, en su
-// orden, y la del modelo informativo lleva delante parrafoDelInformativo, como
-// en armarSesionesDeJurisprudencia. Deshace cualquier otro cambio de la sesión:
-// va antes que ellos.
+// sobreDelCotejoFallido es el sobre de fallo de un cita cotejar con una ficha
+// que no se reconoce: clase argumentos, la del código 2.
+var sobreDelCotejoFallido = sobreDeCita(false,
+	`{"clase":"argumentos","mensaje":"la ficha no es reconocible: falta el dato «Roj»"}`)
+
+// escribirSinElCotejo escribe de nuevo la sesión del plan del job con ese
+// nombre sin su operación cotejar (escribirConOtroCotejo): ni la orden en su
+// traza, en el modo orden, ni la llamada a cita_cotejar en su transcript, en el
+// modo herramienta (research D9 de H23.1).
 func escribirSinElCotejo(t *testing.T, sesiones, nombre string) {
+	t.Helper()
+
+	escribirConOtroCotejo(t, sesiones, nombre, func(operaciones []operacionDeCita, cotejo int) []operacionDeCita {
+		return slices.Delete(operaciones, cotejo, cotejo+1)
+	})
+}
+
+// escribirConElCotejoFallido escribe de nuevo la sesión del plan del job con
+// ese nombre con su operación cotejar fallida (escribirConOtroCotejo): la
+// misma orden o la misma llamada, que devuelve sobreDelCotejoFallido —en el modo
+// herramienta, un resultado que es un error— y cuyo proceso, en el modo orden,
+// termina con 2 (FR-002 de H23.1).
+func escribirConElCotejoFallido(t *testing.T, sesiones, nombre string) {
+	t.Helper()
+
+	escribirConOtroCotejo(t, sesiones, nombre, func(operaciones []operacionDeCita, cotejo int) []operacionDeCita {
+		operaciones[cotejo].sobre = sobreDelCotejoFallido
+		operaciones[cotejo].codigo = 2
+
+		return operaciones
+	})
+}
+
+// escribirConOtroCotejo borra del directorio de sesiones la del plan del job con
+// ese nombre y la escribe de nuevo con escribirSesionDeJurisprudencia y la
+// sesión modelo de su eval con las operaciones que da cambiar, que recibe una
+// copia de las suyas y la posición de la única cotejar. La del modelo
+// informativo lleva delante parrafoDelInformativo, como en
+// armarSesionesDeJurisprudencia. Deshace cualquier otro cambio de la sesión:
+// va antes que ellos.
+func escribirConOtroCotejo(
+	t *testing.T, sesiones, nombre string, cambiar func(operaciones []operacionDeCita, cotejo int) []operacionDeCita,
+) {
 	t.Helper()
 
 	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
@@ -5871,12 +5950,14 @@ func escribirSinElCotejo(t *testing.T, sesiones, nombre string) {
 	deLaEval := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
 
 	deLaSesion := sesionesModeloDeLasDiezEvals(t)[deLaEval]
-	conCotejo := len(deLaSesion.operaciones)
 
-	deLaSesion.operaciones = slices.DeleteFunc(slices.Clone(deLaSesion.operaciones), func(operacion operacionDeCita) bool {
-		return operacion.orden[0] == verboCotejar
-	})
-	require.Len(t, deLaSesion.operaciones, conCotejo-1, "la sesión modelo de %s coteja una vez", planificada.Fichero)
+	esCotejo := func(operacion operacionDeCita) bool { return operacion.orden[0] == verboCotejar }
+	cotejo := slices.IndexFunc(deLaSesion.operaciones, esCotejo)
+	require.GreaterOrEqual(t, cotejo, 0, "la sesión modelo de %s coteja", planificada.Fichero)
+	require.False(t, slices.ContainsFunc(deLaSesion.operaciones[cotejo+1:], esCotejo),
+		"la sesión modelo de %s coteja una vez", planificada.Fichero)
+
+	deLaSesion.operaciones = cambiar(slices.Clone(deLaSesion.operaciones), cotejo)
 
 	if planificada.Modelo != modeloSonnet55 {
 		deLaSesion.respuesta = parrafoDelInformativo + "\n\n" + deLaSesion.respuesta
@@ -5938,7 +6019,8 @@ func escribirSesionDeJurisprudencia(
 		}) + mensajeDeResultados(t, resultadoDeHerramienta{id: uso, contenido: cadenaJSON(t, operacion.sobre)})
 
 		deClaude += fmt.Sprintf(creacionDeUnaOrden, proceso)
-		escribirEnLaCopia(t, traza, "t."+strconv.Itoa(proceso), fmt.Sprintf(trazaDeUnaOrden, argvDeStrace(argv)))
+		escribirEnLaCopia(t, traza, "t."+strconv.Itoa(proceso),
+			fmt.Sprintf(trazaDeUnaOrden, argvDeStrace(argv), operacion.codigo))
 	}
 
 	respuesta := cadenaJSON(t, deLaSesion.respuesta)

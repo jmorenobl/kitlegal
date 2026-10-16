@@ -18,12 +18,14 @@ y su marca en tasks.md.
 **Un hallazgo para la persona y la revisión final** (§1, «Lo que no cambia», último punto): el diff del hito añade
 `specs/021-h26-el-umbral-de/gates/modelos.jsonl`, un fichero del directorio de H26. No lo escribió ninguna tarea: lo
 trae el commit `92b434a` («docs(H23.1): spec, clarificaciones y plan del hito») y es una línea del paso `specify` del
-workflow. T005 no lo retira (`gates/supuestos.md`).
+workflow. T005 no lo retiró (`gates/supuestos.md`); lo retiró la revisión final, que llevó su línea al registro de
+H23.1 (§7).
 
 ## 1. Lo creado y lo modificado en el hito, y lo que no cambia
 
 `git diff --name-status main` da **43 ficheros: 33 `A` y 10 `M`**, ninguna `D` ni `R`. De los 33 `A`, 32 están en
-`specs/022-h23-1-jurisprudencia-coteja-el/` y uno en `specs/021-h26-el-umbral-de/` (abajo). Este `cierre.md` no está
+`specs/022-h23-1-jurisprudencia-coteja-el/` y uno en `specs/021-h26-el-umbral-de/` (abajo), que la revisión final
+retiró después (§7, con lo que cambió entonces). Este `cierre.md` no está
 entre ellos, porque no tiene seguimiento hasta el commit de la tarea. Los 10 `M` son todo lo que el hito cambia fuera de
 `specs/` (`git diff --shortstat main -- . ':!specs'`: 10 ficheros, 663 líneas añadidas y 138 quitadas). El hito no
 crea ningún fichero fuera de `specs/`. `git status --short` da, antes de §2, los tres ficheros de `gates/` que el
@@ -83,8 +85,9 @@ comentarios.
   es el spec, el plan ni un informe de H26, que son lo que FR-045 protege, y FR-052 no nombra `specs/`. Pero es un
   fichero de otro hito en el diff, y esta tarea pide constatar que no hay ninguno: no se puede. T005 no lo retira,
   porque su ruta no está entre las declaradas y el guardián de diff solo admite el directorio del feature; la causa
-  está en el paso `specify` del workflow, que no se toca dentro de un hito. Lo decide la persona: quitarlo de la
-  propuesta de cambio, o dejarlo y corregir el workflow fuera del hito.
+  está en el paso `specify` del workflow, que no se toca dentro de un hito. La revisión final aplicó la lectura
+  conservadora: lo retiró del diff y llevó su línea, la primera, a `gates/modelos.jsonl` de H23.1 (§7). La causa del
+  workflow sigue fuera del hito.
 
 ### La Definition of Done, punto a punto (`ROADMAP.md` §1)
 
@@ -329,7 +332,8 @@ en su verificación (`gates/ci.log` guarda la de T004).
 - **Las once filas `evals:`** (§4), SC-001 y SC-009: las mide el job de cierre que lanza el workflow, y las lee el
   informe final. Qué dará ese job con la skill v0.1.1 no se puede medir en el run (tasks.md, «Estrategia de
   implementación»).
-- **`specs/021-h26-el-umbral-de/gates/modelos.jsonl`** (§1): lo decide la persona.
+- **Que el paso `specify` escriba su registro en el directorio del hito anterior** (§1): la revisión final retiró el
+  fichero del diff (§7), pero la causa está en `scripts/workflow/` y se corrige fuera del hito.
 - **El comentario de `.github/workflows/evals.yml:157`**, que sigue diciendo «trece umbrales, nueve que deciden»: lo
   corrige una persona, fuera del hito (quickstart.md §9).
 - **La viñeta de H23.1 de `CLAUDE.md`** y la frase del siguiente hito: al fusionar, una persona (quickstart.md §9).
@@ -337,3 +341,37 @@ en su verificación (`gates/ci.log` guarda la de T004).
 - **quickstart.md §8 y §9**, y SC-010: del workflow y de una persona.
 - **La verificación de la tarea** es otro `make ci`, posterior a la última edición de este fichero: su resultado no
   está aquí.
+
+## 7. La revisión final, ronda 1
+
+Los dos jueces rechazaron el hito sobre `daa6867`. El corrector aplicó la unión de sus motivos; lo que sigue se
+ejecutó en su sesión, o está en el repositorio. Las cifras de §1 a §6 son las de T005 sobre `ff27b7d` y no se
+rehacen: esta sección dice lo que cambió después.
+
+- **Un cotejo que termina mal no es un cotejo** (motivo [b] de los dos jueces). Con `cotejaUnDocumento` contando
+  cualquier `cita cotejar` por su applet y su verbo, sin pasar por `satisface`, `go test ./internal/evals/` pasaba
+  entero. `TestUmbralesDeJurisprudencia` lleva ahora dos casos más,
+  `una-con-el-cotejo-fallido-en-el-modo-orden` y `una-con-el-cotejo-fallido-en-el-modo-herramienta`: el único
+  `cita cotejar` de la sesión de la 06 devuelve el sobre de fallo de una ficha que no se reconoce y, en el modo orden,
+  termina con 2; la sesión cuenta, 1 de 12, `fallo`, con el motivo que la nombra. El arnés gana
+  `escribirConElCotejoFallido`, que comparte con `escribirSinElCotejo` la reescritura de la sesión
+  (`escribirConOtroCotejo`), y la operación sintética, el código con el que termina su orden (`operacionDeCita.codigo`,
+  en `internal/evals/sentencias_test.go`). Con el bucle nuevo, `gocyclo` dio 14 (> 13) a
+  `exigirLosUmbralesDeJurisprudencia`: la preparación de las sesiones del caso pasó, tal cual, a
+  `armarLasSesionesDelCaso`. Ningún código de producción cambia. `go test -count=1 -v -run
+  '^TestUmbralesDeJurisprudencia$' ./internal/evals/`: `ok`, diecisiete subtests en `PASS` (los dieciséis de la tabla
+  y `el-elemento-del-contrato`). Con ese mutante caen los dos casos nuevos y ninguno más; con el mutante 1, cinco; con
+  el 2, los dieciséis (`mutantes.md`, «La revisión final»).
+- **El registro de H26 sale del diff** (motivo [i] del juez A; lectura conservadora, `gates/supuestos.md`). Se borró
+  `specs/021-h26-el-umbral-de/gates/modelos.jsonl`, que no existe en `main`, y su línea —sesión `9a311b12…`, paso
+  `specify`, `2026-10-16T06:54:25Z`— es ahora la primera de `gates/modelos.jsonl` de H23.1. Contra `main`, el árbol
+  de trabajo ya no da ningún fichero de `specs/` fuera del directorio del feature
+  (`git diff --name-status main -- specs ':(exclude)specs/022-h23-1-jurisprudencia-coteja-el'`, vacío); el borrado lo
+  commitea el workflow.
+- **Fuera de `specs/`**, `git diff --name-status main -- . ':!specs'` da once ficheros, todos `M`: los diez de §1 y
+  `internal/evals/sentencias_test.go` (+3 −2). `internal/evals/informe_test.go` pasa a +362 −74.
+- **Los artefactos del feature** que contaban los casos o los mutantes dicen lo nuevo: plan.md, research.md (D2 y
+  D8), quickstart.md (§1 y §4), contracts/umbral-documento-sin-cotejar.md (§5 a §7) y `mutantes.md`.
+- **`make ci`**, en primer plano, con todos estos cambios: «ci: todos los controles en verde». Después solo cambió
+  este fichero y `mutantes.md`, que no lee ningún control, y los tres mutantes se repitieron sobre el código final,
+  con el mismo resultado. La verificación del workflow es otro `make ci`, que no está aquí.
