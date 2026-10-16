@@ -10,6 +10,25 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-16 · La medida de SC-010 de H23.1: 0 de 30 sesiones de la eval 06 sin cotejar
+
+- **Qué se pidió.** La Aceptación de H23.1 pedía, antes de fusionar, 15 repeticiones de la eval 06 por modo con
+  `claude-sonnet-5-5` y 0 de 30 sin cotejar, frente a 6 de 48 de partida (entrada del 2026-10-15). La #151 se fusionó
+  sin hacerla, porque `make evals-sondeo` no lee la traza, no dice qué sesiones ejecutaron `cita cotejar` y no mide
+  el modo herramienta. Jorge decidió medirlo con el job, el mismo instrumento que decide, y no con un sondeo
+  cambiado: un segundo instrumento que mide lo mismo de otra manera podría discrepar del primero.
+- **Cómo.** Otro despacho o la etiqueta sobre el mismo commit no miden, porque `tanda` los salta. Por eso el agente
+  relanzó cuatro veces solo el trabajo `evals (jurisprudencia)` de la ejecución del cierre (38902031599, intentos 2
+  a 5, de uno en uno para poder parar al primer fallo y cuidar la cuota), con `jurisprudencia` v0.1.1 sobre
+  `60e8678`. Cada intento da 3 sesiones de la eval 06 por modo.
+- **Qué pasó.** Las cinco ejecuciones —el cierre y los cuatro relanzamientos— salieron aprobadas.
+  `documento_sin_cotejar` dio 0 de 12 en cada modo en todas: 0 de 120 sesiones de las evals que piden el cotejo
+  (04, 06, 08 y 09), y de ellas **0 de 30 en la eval 06** (15 por modo). La 06 llegó a su umbral en todas las
+  series, y la única de sus sesiones que no pasó (intento 2, modo orden) sí había cotejado. Con la tasa de partida
+  (12,5 %), 0 de 30 sale por azar el 1,8 % de las veces; con el cierre solo (0 de 6), el 45 %.
+- **Qué queda.** SC-010 se cumple. La v0.6.1, con `jurisprudencia` v0.1.1, tiene ya su evidencia; la etiqueta la
+  decide Jorge (ADR 0020).
+
 ### 2026-10-15 · Ocho tandas fuera de un cierre: `jurisprudencia` da por buena una sentencia sin cotejarla, y `boe-legislacion` v0.1.8 marca más que la v0.1.7
 
 - **Qué se pidió.** Leer el rojo de las evals de la #145 (`revision.sh rejuzgar` y el modelo real de cada sesión),
