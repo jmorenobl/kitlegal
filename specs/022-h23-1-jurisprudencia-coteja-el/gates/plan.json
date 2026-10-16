@@ -1,0 +1,105 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio (I-IX) y por regla R1-R6. Lo que dice es cierto: el binario no enlaza internal/evals (`go list -deps ./cmd/kitlegal | grep -c 'kitlegal/internal/evals$'` da 0 en esta sesión); el recuento de V (3 campos, 4 métodos, 4 funciones, 3 constantes y 1 variable, todo sin exportar) cuadra con el diff del prototipo ($TMPDIR/h231-proto, +94 en informe.go y +71/−7 en umbrales.go). La desviación del principio III («Aceptación e2e: no aplica») está justificada en Complexity Tracking, con los precedentes H24 a H26."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "No hay dependencias nuevas. El prototipo solo usa fmt, slices y strings, que los dos ficheros ya importan (V2), y compila sin tocar ningún import. Los tests siguen con testify."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Todo queda en internal/evals, que el binario no enlaza, sin net/http, SQLite, os.Exit ni escritura en stdout: el elemento y el motivo van al informe, como los demás (tabla R1-R6). Las reglas de dependencia las vigila golangci-lint, y su versión fijada da «0 issues.» sobre el paquete del prototipo, ejecutado en esta sesión."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "Ningún error ni código de salida de kitlegal cambia. El job sigue saliendo en rojo con el veredicto `fallo` a través de motivosDeLosUmbrales (umbrales.go:536-553), como todo umbral que decide."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "El plan da «Aceptación e2e: no aplica» con su motivo (D14, V14, V17). Nombra los cuatro casos nuevos de TestUmbralesDeJurisprudencia y el subtest TestEvalsDelRepositorio/piden-el-cotejo, los dos tests que cambian y por qué (M2, M4), los que no cambian, los puntos de entrada con la etiqueta evals, que no se ejecutan, y que no hay fixtures (sesiones sintéticas en t.TempDir). Comprobado en esta sesión: en el prototipo pasan los 15 subtests de TestUmbralesDeJurisprudencia."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Los ficheros que toca son internal/evals/{informe,umbrales,doc}.go con sus tests, skills/jurisprudencia/SKILL.md (pasos 1 y 3) y los cuatro documentos de FR-040 a FR-043. docs/WORKFLOW.md no cambia (FR-044, V22). No toca sondeo.go, scripts/, .github/, evals, schemas, evidencias ni testdata (FR-032 a FR-034, FR-052). Los comentarios de internal/evals cambian porque el hito los deja falsos (V21)."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No prevé ningún nolint, t.Skip ni TODO. El único valor descartado es el bool de invocacionesDe (D3), y su falso es inalcanzable: LeerSesion llama a verbosDeLasHerramientas antes de leer nada (sesion.go:265-274), y cualquier fallo de lectura deja la sesión ilegible (informe.go:1182-1209), fuera de los grupos (informe.go:1627). Comprobado en el código."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "D1 a D16 dan cada una su alternativa rechazada con el porqué. Las de más peso: anotar el cotejo en el juicio (lo prohíbe FR-031, y además lo usa el sondeo, FR-033); leer comandos_ejecutados (depende del ROJ); ExtraerECLICotejados (exige --json); ampliar la condición de medirLasRespuestas (añadiría sin_activar a una skill que hoy no lo tiene); poner el caso del cierre de H26 en 15 (dejaría de ser el de H26)."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Lo comprobado en esta sesión cuadra con el plan. V3: satisface/consultoConExito (juzgar.go:968-1003), pideLaCita (sentencias.go:489-493) y formaDelComando (formato.go:304-321). V5 y V6: invocacionesDe (juzgar.go:493-516), OnceValues (:622) y respuestasQueSeJuzgan (informe.go:1605-1643). V8: umbrales.go:266-279 y 536-599. V9: las evals 04, 06, 08 y 09 piden cotejar, y ninguna de boe-legislacion ni legal-core. V12: informe.sh:346-369. V20: el golden mide 937 bytes. Los nombres y totales de los trece umbrales coinciden con el informe del cierre de H26 (4 100 bytes). M3, M6, M7 y M8, repetidos sobre el prototipo: 15 PASS, paquete con -race en verde (57 s), lint con 0 issues; con los mutantes aplicados por -overlay, fallan 3 casos con el 1 y 14 con el 2. S1 a S4 están declarados como supuestos."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "El escenario 6 sobre main da lo que dice: las líneas 1145, 1172, 1187 y 1190 y 0 apariciones de documento_sin_cotejar. Los rangos del 5 están comprobados: cabecera de 38 líneas, paso 2 en las líneas 50-82 y del paso 4 al final en 114-197. Las sustituciones sed del 4, ejecutadas tal cual sobre el prototipo, cambian una línea cada una y los casos fallan como dice el Esperado. Las consultas jq del 8 usan claves que existen en el informe de H26 (juez.sin_juzgar, red). Los efectos colaterales están declarados: el worktree en $TMPDIR, que se retira, y coverage.* del 7."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "No hay datos externos (D16). No se graba nada, no hay ninguna tarea [datos] y no cambia ningún fichero de data/, testdata/, schemas/ ni evidencias/. Las cifras de partida (6 de 48) vienen de docs/USO.md, que está en el repositorio."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea necesita a una persona, publica o mide en la plataforma, ni abre sesiones con modelo («Obligaciones para tasks.md»). El sondeo de SC-010 (quickstart §9) y el job (§8) no son tareas. El cierre en la plataforma lo hace el workflow."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "He rehecho el cálculo. La skill hace 1 cotejo por documento de la pregunta: un sobre de 937 bytes (golden), unos n × 1 KB con n documentos, y no crece con el uso. Del job salen 2 elementos de 366 bytes (printf|wc -c); los quince suman unos 4,8 KB frente a 4 100. El motivo mide 151 bytes con 1 sesión y como mucho 101+600+22=723 (orden) y 107+744+22=873 (herramienta), con nombres de 40/53/53/54 y 52/65/65/66 bytes contados aquí. Ninguna skill lee umbrales. Cada señal se apaga en el primer job en que todas las sesiones del modo cotejan, y nada se acumula de un job a otro."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "La tabla «Trazabilidad» lleva cada mecanismo a su FR: pideElCotejo a FR-001, cotejaUnDocumento y comandoDelCotejo a FR-002, los campos y medirLosCotejos a FR-001/002/005, queLePidenElCotejo y sinCotejar a FR-001, el umbral y sus constantes a FR-001/004/006, sinCotejarDelUmbral a FR-003, piden-el-cotejo a FR-007/FR-063 (TestUmbralesDelInforme usa evals sintéticas) y umbralesDeJurisprudenciaComoEnH26 a FR-030. No hay tipo ni función exportada nuevos, ni casos para estados por debajo del umbral de materialidad: los casos límite del criterio de cotejo los cubren ya los tests del juicio (D2)."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Hay once filas evals:jurisprudencia: las dos de documento_sin_cotejar, una por modo, y las nueve que ya decidían, con nombres idénticos a los del informe de H26 y ninguna para un umbral que no decide (FR-061). Hay filas ci: para FR-005/FR-062/SC-002 a SC-004, FR-006 y FR-063 (SC-005), FR-007, FR-064 (SC-006), FR-023 (SC-007), FR-030 a FR-033 y FR-060; todos esos tests y objetivos del Makefile existen y casan con el patrón de informe.sh. El recorrido, rehecho: con 1 sin cotejo de 12, cumple pasa a false y decide sigue en true; motivosDeLosUmbrales da el motivo, el veredicto es `fallo`, el job sale en rojo, medir_cierre lo cuenta y estado_control da «no|…». En make ci, los mutantes 1 y 2 (repetidos aquí) ponen TestUmbralesDeJurisprudencia en rojo."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "research V16 sitúa el rechazo de las 300 líneas en `TestSkillsDelRepositorio` (`internal/skills/sincronia_test.go:497-503`), pero ese rango es un caso de `TestRegenerarYComparar`. `TestSkillsDelRepositorio` está en `internal/app/skills_test.go:83` y aplica el mismo comparador (`maximoDeLineas = 299`, `internal/skills/sincronia.go:27,362`): el control de FR-023 funciona igual.",
+    "research V20 y el plan dan 673 bytes para el `data` del golden; sin el salto de línea final de `jq -c`, son 672. No cambia nada.",
+    "SC-001 incluye «ninguna respuesta sin juzgar», «`legal-core` aprobado» y «`red` vacío», y no tienen fila propia en «Controles de umbral». Sus controles ya existen y ponen el job en rojo: el veredicto del informe y la definición del job, que el hito no toca. FR-061 fija las filas, y H26 se aprobó igual.",
+    "El prototipo del plan sigue en `$TMPDIR/h231-proto`, fuera del repositorio; ninguna tarea lo usa (research, cabecera).",
+    "quickstart §6.3 espera un recuento de líneas mayor que 1, y lo da solo si el umbral y la v0.1.1 van en líneas distintas. El contrato los pone en secciones distintas («Añadido» y «Corregido»), así que se cumple.",
+    "El comentario de `.github/workflows/evals.yml:157` («trece umbrales, nueve que deciden») queda falso para `jurisprudencia`. El spec lo deja fuera del hito como pendiente para la persona (FR-052), y el plan lo recoge en quickstart §9.",
+    "Verificado en esta sesión sobre el prototipo, sin tocar sus ficheros (los mutantes, con `go test -overlay` en un directorio temporal ya borrado): con el mutante 1 fallan `una-sin-activar-y-sin-cotejar`, `una-sin-cotejar-en-el-modo-orden` y `una-sin-cotejar-en-el-modo-herramienta`; con el 2, los catorce casos de la tabla."
+  ]
+}
