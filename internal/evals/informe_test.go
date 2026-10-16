@@ -1817,8 +1817,9 @@ const (
 // sobre un árbol temporal con los informes del job de las tres skills, escritos
 // con el tipo Informe, y fija cómo enseña sus umbrales (ADR 0029 y 0038):
 //
-//   - como en el cierre de H26, con los trece umbrales de boe-legislacion y de
-//     jurisprudencia, nueve que deciden y se cumplen, y legal-core sin ninguno:
+//   - como en el cierre de H26, con los trece umbrales que llevaban entonces
+//     boe-legislacion y jurisprudencia —antes de documento_sin_cotejar, que
+//     llega en H23.1—, nueve que deciden y se cumplen, y legal-core sin ninguno:
 //     la sección 1 no cuenta como sin cumplir los que solo se publican, sino
 //     aparte, con los que pasan de su umbral —en boe-legislacion, el recuento de
 //     afirma_lo_no_leido del modo herramienta, 2 de 54, y los dos de
@@ -1842,7 +1843,7 @@ func TestInformeFinalDeLosUmbrales(t *testing.T) {
 
 		conJuez := []Informe{
 			informeDelJobConUmbrales("boe-legislacion", VeredictoAprobado, umbralesDeBoeLegislacionComoEnH26(2)),
-			informeDelJobConUmbrales("jurisprudencia", VeredictoAprobado, umbralesDeJurisprudencia(nil)),
+			informeDelJobConUmbrales("jurisprudencia", VeredictoAprobado, umbralesDeJurisprudenciaComoEnH26()),
 		}
 
 		leido := informeFinalConLosDelJob(t,
@@ -4970,16 +4971,27 @@ const (
 	// en un modo con las evals del repositorio: diez evals, tres veces (FR-012 de
 	// H25).
 	respuestasDeJurisprudenciaPorModo = 30
+
+	// respuestasQuePidenElCotejoPorModo son, de ellas, las de las evals que piden
+	// el cotejo —la 04, la 06, la 08 y la 09—, tres veces: el total de
+	// documento_sin_cotejar de cada modo (contracts/umbral-documento-sin-cotejar.md
+	// §2 de H23.1; FR-001, FR-062 de H23.1; SC-004).
+	respuestasQuePidenElCotejoPorModo = 12
 )
 
 // medidasDeJurisprudencia son las medidas de los umbrales de un modo del informe
 // de jurisprudencia: las respuestas del modelo que decide que no activaron la
 // skill, las que el juez marca en afirma_lo_no_leido, las que tienen sí en
-// afirma_que_existe y las que llevan una cita sin documento cotejado o un ECLI
-// sin origen; y los segundos de los votos de las respuestas del modo.
+// afirma_que_existe, las que llevan una cita sin documento cotejado o un ECLI
+// sin origen y, de las de las evals que piden el cotejo, las de una sesión que
+// no cotejó ningún documento; y los segundos de los votos de las respuestas del
+// modo. sinMedir son las sesiones del modo que quedaron sin medir, todas de una
+// eval que pide el cotejo: no están en el total de ningún umbral del modo, ni
+// en el del conjunto.
 type medidasDeJurisprudencia struct {
-	sinActivar, marcadas, conSi, sinDocumento int
-	segundosDelJuez                           int
+	sinActivar, marcadas, conSi, sinDocumento, sinCotejar int
+	segundosDelJuez                                       int
+	sinMedir                                              int
 }
 
 // votoDeJurisprudencia es un voto de una respuesta como lo publica el informe
@@ -4994,10 +5006,15 @@ type votoDeJurisprudencia struct {
 type casoDeUmbralesDeJurisprudencia struct {
 	nombre string
 
-	// prefijos es lo que se antepone a la respuesta de cada sesión, por su
-	// nombre, y sinActivar, la sesión a la que se le quita la activación.
+	// sinCotejo son las sesiones que se escriben de nuevo sin su cotejo
+	// (escribirSinElCotejo), antes que cualquier otro cambio; prefijos, lo que se
+	// antepone a la respuesta de cada sesión, por su nombre; sinActivar, la
+	// sesión a la que se le quita la activación; y sinMedir, la que queda sin
+	// medir por el mensaje del límite de uso.
+	sinCotejo  []string
 	prefijos   map[string]string
 	sinActivar string
+	sinMedir   string
 
 	// grabados son los votos grabados de algunas respuestas: a cada una se le
 	// antepone su párrafo, y de las demás el votante dice no en las dos clases.
@@ -5043,24 +5060,40 @@ const (
 // una skill con juez cuyas evals declaran sentencias y que no tiene objetivo de
 // duración (contracts/juez-de-jurisprudencia.md §2, §4 a §6 y §9 de H25;
 // data-model §7 de H25; research V6 de H25; FR-012, FR-013, FR-020 a FR-025,
-// FR-108, FR-111; SC-008, SC-013; y contracts/evals-jurisprudencia.md §4 de H23),
-// con las evals y la carpeta del juez del repositorio, las sesiones sintéticas
-// de armarSesionesDeJurisprudencia, las del plan del job, que pasan todas, y un
+// FR-108, FR-111; SC-008, SC-013; contracts/evals-jurisprudencia.md §4 de H23;
+// y contracts/umbral-documento-sin-cotejar.md §1 a §5 de H23.1; FR-001 a FR-006,
+// FR-030, FR-062 de H23.1; SC-002 a SC-004 de H23.1), con las evals y la carpeta
+// del juez del repositorio, las sesiones sintéticas de
+// armarSesionesDeJurisprudencia, las del plan del job, que pasan todas, y un
 // votante de salidas grabadas que cuenta sus llamadas:
 //
-//   - umbrales son exactamente trece, en el orden de
-//     contracts/umbrales-del-informe.md §1 de H26: de cada modo, el del modo
-//     orden delante, sin_activar, afirma_lo_no_leido, afirma_que_existe y
-//     cita_sin_documento, sobre las 30 respuestas del modelo que decide en ese
-//     modo; el umbral conjunto de afirma_lo_no_leido, sin modo en su nombre,
-//     sobre las 60 de los dos modos; los dos de la medida versionada del juez,
-//     con 0 de 125 y 0 de 124; y duracion_del_juez de cada modo. Deciden nueve:
-//     todos menos los recuentos de las dos clases del juez de cada modo.
-//     Ninguno es de la duración de las sesiones, porque la skill no tiene
-//     objetivo;
-//   - con ninguna respuesta que cuente, los trece se cumplen y el veredicto es
+//   - umbrales son exactamente quince, en el orden de
+//     contracts/umbral-documento-sin-cotejar.md §1 de H23.1: de cada modo, el
+//     del modo orden delante, sin_activar, afirma_lo_no_leido,
+//     afirma_que_existe y cita_sin_documento, sobre las 30 respuestas del
+//     modelo que decide en ese modo, y documento_sin_cotejar, sobre las 12 de
+//     ellas de las evals que piden el cotejo; el umbral conjunto de
+//     afirma_lo_no_leido, sin modo en su nombre, sobre las 60 de los dos modos;
+//     los dos de la medida versionada del juez, con 0 de 125 y 0 de 124; y
+//     duracion_del_juez de cada modo. Deciden once: todos menos los recuentos
+//     de las dos clases del juez de cada modo. Ninguno es de la duración de las
+//     sesiones, porque la skill no tiene objetivo;
+//   - con ninguna respuesta que cuente, los quince se cumplen y el veredicto es
 //     aprobado: la cita de la eval 04 lleva el ECLI que leyó su cita cotejar, y
-//     el ECLI de la respuesta de la 05 está en su pregunta;
+//     el ECLI de la respuesta de la 05 está en su pregunta; y las 24 sesiones
+//     de las evals que piden el cotejo cotejan, las del modo orden por la orden
+//     de su traza y las del modo herramienta por su llamada a cita_cotejar, y
+//     ninguna cuenta en documento_sin_cotejar;
+//   - con una sesión de la 06 sin su cotejo, en un modo, y las otras once de ese
+//     modo cotejando, documento_sin_cotejar de ese modo mide 1 de 12, no se
+//     cumple y el veredicto es fallo, con un motivo que nombra el umbral, su
+//     medida, su condición y la sesión; la misma sesión del modelo informativo
+//     no cuenta, y las 18 sesiones de cada modo de las evals que no piden el
+//     cotejo, que no cotejan, no están en su total;
+//   - una sesión sin activar y sin cotejo cuenta en sin_activar y en
+//     documento_sin_cotejar, cada uno con su motivo; y una sin medir y sin
+//     cotejo no está en el total de ningún umbral de su modo —ni en el
+//     conjunto— ni en ninguna medida, y da solo el motivo de la ejecución;
 //   - con una respuesta marcada en afirma_lo_no_leido en un modo y ninguna en el
 //     otro, y la tasa de la declaración de la clase, 0.017, que llevan su
 //     conjunto y sus dos recuentos, el conjunto se cumple con 1 de 60 y el
@@ -5084,7 +5117,7 @@ const (
 //     60 votos si ninguna se marca, y dos más por cada una que el primer voto
 //     marca, cada uno con el mensaje de su pregunta, su respuesta y sus textos;
 //   - y los casos de cita_sin_documento y de sin_activar siguen dando su fallo,
-//     ahora entre los trece: con una que cuenta en un modo y ninguna en el otro,
+//     ahora entre los quince: con una que cuenta en un modo y ninguna en el otro,
 //     con un motivo que nombra cada sesión, en su orden y separadas por «; », con
 //     cada ECLI y su condición, separados por « · »; la respuesta de un modelo
 //     informativo no cuenta.
@@ -5129,7 +5162,7 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 			`sobre sus respuestas juzgadas en las evals que activan la skill","medida":1,"total":60,"comparacion":"<=",` +
 			`"umbral":0.017,"cumple":true,"decide":true}`
 
-		conjunto := umbralEscrito(t, umbralConjuntoDeJurisprudencia(1))
+		conjunto := umbralEscrito(t, umbralConjuntoDeJurisprudencia(1, 2*respuestasDeJurisprudenciaPorModo))
 
 		assert.JSONEq(t, conjuntoDelJuez, conjunto)
 		assert.Equal(t, compacto(t, jsontext.Value(conjuntoDelJuez)), conjunto)
@@ -5139,10 +5172,24 @@ func TestUmbralesDeJurisprudencia(t *testing.T) {
 			`sus respuestas juzgadas en las evals que activan la skill","medida":1,"total":30,"comparacion":"<=",` +
 			`"umbral":0.017,"cumple":false,"decide":false}`
 
-		recuento := umbralEscrito(t, umbralesDeLasClasesDeJurisprudencia(ModoHerramienta, 1, 0)[0])
+		recuento := umbralEscrito(t, umbralesDeLasClasesDeJurisprudencia(ModoHerramienta, 1, 0,
+			respuestasDeJurisprudenciaPorModo)[0])
 
 		assert.JSONEq(t, recuentoDelJuez, recuento)
 		assert.Equal(t, compacto(t, jsontext.Value(recuentoDelJuez)), recuento)
+
+		// Y el de documento_sin_cotejar del modo orden con todas sus sesiones
+		// cotejando, el ejemplo de contracts/umbral-documento-sin-cotejar.md §2 de
+		// H23.1, tal cual y con sus claves en el orden del contrato.
+		const sinCotejarDelContrato = `{"nombre":"documento_sin_cotejar:claude-sonnet-5-5:orden","descripcion":` +
+			`"Respuestas de claude-sonnet-5-5 en el modo orden cuya sesión no ejecutó ningún cita cotejar que ` +
+			`consultara y terminara bien, sobre sus respuestas medidas en las evals que activan la skill y piden ` +
+			`cita cotejar","medida":0,"total":12,"comparacion":"<=","umbral":0,"cumple":true,"decide":true}`
+
+		sinCotejar := umbralEscrito(t, umbralDocumentoSinCotejar(modeloSonnet55, ModoOrden, 0,
+			respuestasQuePidenElCotejoPorModo, true))
+
+		assert.Equal(t, compacto(t, jsontext.Value(sinCotejarDelContrato)), sinCotejar)
 	})
 }
 
@@ -5153,6 +5200,7 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
 	const (
 		eval01 = "01-existe-con-numero-y-fecha.yaml"
 		eval04 = "04-documento-pegado.yaml"
+		eval06 = "06-documento-que-no-es-el-pedido.yaml"
 		eval07 = "07-resumen-de-una-conocida.yaml"
 		eval10 = "10-doctrina-dada-por-hecha.yaml"
 
@@ -5217,8 +5265,22 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
 	conSiDos := sesion(eval07, modeloSonnet55, ModoHerramienta, 3)
 	conSiTres := sesion(eval10, modeloSonnet55, ModoHerramienta, 1)
 
+	// Las sesiones de la 06 que se escriben sin su cotejo: su respuesta no lleva
+	// ningún ECLI ni ninguna cita, y sin él no cuenta en cita_sin_documento; y su
+	// serie pasa con las otras dos (research D9 de H23.1).
+	sinCotejoEnOrden := sesion(eval06, modeloSonnet55, ModoOrden, 1)
+	otraSinCotejoEnOrden := sesion(eval06, modeloSonnet55, ModoOrden, 2)
+	sinCotejoEnHerramienta := sesion(eval06, modeloSonnet55, ModoHerramienta, 1)
+
 	return []casoDeUmbralesDeJurisprudencia{
-		{nombre: "ninguna-cuenta", votos: votosSinMarcar},
+		{
+			// Las 24 sesiones de las evals que piden el cotejo cotejan, por la
+			// orden de su traza en el modo orden y por su llamada a cita_cotejar
+			// en el modo herramienta: documento_sin_cotejar mide 0 de 12 en los dos
+			// (SC-003 de H23.1).
+			nombre: "ninguna-cuenta",
+			votos:  votosSinMarcar,
+		},
 		{
 			// Con la tasa de la declaración de la clase, una marcada de las 60
 			// respuestas de los dos modos cabe en el conjunto: se cumple, y el
@@ -5277,8 +5339,8 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
 			// Con sí en la clase que solo se publica basta el primer voto: no se
 			// pide ninguno más, y el veredicto no cambia. Su recuento del modo
 			// herramienta no se cumple y no decide, y la clase no tiene ningún
-			// umbral sin modo: la lista de los trece es exacta (FR-011 y FR-076
-			// de H26).
+			// umbral sin modo: la lista de los quince es exacta (FR-011 y
+			// FR-076 de H26).
 			nombre: "tres-con-si-en-afirma-que-existe",
 			grabados: []votosDeUnaRespuesta{
 				{sesion: conSiTres, parrafo: parrafoDeLaQueExisteTres, votos: []grabacion{existe(parrafoDeLaQueExisteTres)}},
@@ -5362,20 +5424,81 @@ func casosDeLosUmbralesDeJurisprudencia(t *testing.T) []casoDeUmbralesDeJurispru
 			motivos:    []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %"},
 			votos:      votosSinMarcar,
 		},
+		{
+			// Una sesión de la 06 sin su cotejo, con las otras once del modo
+			// cotejando: cuenta ella sola, 1 de 12, y no 1 de 30: las 18 de las
+			// evals que no piden el cotejo no están en el total. La misma del
+			// modelo informativo no cuenta (FR-001, FR-003, FR-004 y FR-062 de
+			// H23.1; SC-002 y SC-004).
+			nombre:    "una-sin-cotejar-en-el-modo-orden",
+			sinCotejo: []string{sinCotejoEnOrden, sesion(eval06, modeloHaiku45, ModoOrden, 1)},
+			porModo:   map[Modo]medidasDeJurisprudencia{ModoOrden: {sinCotejar: 1}},
+			motivos: []string{
+				"umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
+					"06-documento-que-no-es-el-pedido-claude-sonnet-5-5-01",
+			},
+			votos: votosSinMarcar,
+		},
+		{
+			// La del modo herramienta, sin su llamada a cita_cotejar.
+			nombre:    "una-sin-cotejar-en-el-modo-herramienta",
+			sinCotejo: []string{sinCotejoEnHerramienta},
+			porModo:   map[Modo]medidasDeJurisprudencia{ModoHerramienta: {sinCotejar: 1}},
+			motivos: []string{
+				"umbral documento_sin_cotejar:claude-sonnet-5-5:herramienta: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
+					"06-documento-que-no-es-el-pedido-herramienta-claude-sonnet-5-5-01",
+			},
+			votos: votosSinMarcar,
+		},
+		{
+			// Sin cotejo y sin activar, cuenta en los dos umbrales, cada uno con su
+			// motivo, en el orden de los umbrales (FR-030 de H23.1; US3, escenario
+			// 3).
+			nombre:     "una-sin-activar-y-sin-cotejar",
+			sinCotejo:  []string{otraSinCotejoEnOrden},
+			sinActivar: otraSinCotejoEnOrden,
+			porModo:    map[Modo]medidasDeJurisprudencia{ModoOrden: {sinActivar: 1, sinCotejar: 1}},
+			motivos: []string{
+				"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %",
+				"umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
+					"06-documento-que-no-es-el-pedido-claude-sonnet-5-5-02",
+			},
+			votos: votosSinMarcar,
+		},
+		{
+			// Sin cotejo y sin medir por el límite de uso: no está en el total de
+			// ningún umbral de su modo, 0 de 11 en documento_sin_cotejar y 29 en
+			// los demás, ni en el del conjunto, 59; no se vota; y el único motivo
+			// es el de la ejecución, que la nombra (FR-005 y FR-062 de H23.1;
+			// SC-004).
+			nombre:    "una-sin-medir-y-sin-cotejar",
+			sinCotejo: []string{sinCotejoEnHerramienta},
+			sinMedir:  sinCotejoEnHerramienta,
+			porModo:   map[Modo]medidasDeJurisprudencia{ModoHerramienta: {sinMedir: 1}},
+			motivos: []string{motivoEsperadoDelLimite(SesionSinMedir{
+				Sesion: sinCotejoEnHerramienta, Eval: eval06, Modelo: modeloSonnet55, Motivo: sinMedirPorElMensaje,
+			})},
+			votos: votosSinMarcar - 1,
+		},
 	}
 }
 
 // exigirLosUmbralesDeJurisprudencia arma las sesiones del plan del job, hace
-// los cambios del caso, antepone a cada respuesta con votos grabados su párrafo
-// y escribe el informe con el votante de esos votos: exige sus trece umbrales,
-// nueve de ellos decidiendo, sus motivos y su veredicto, que es fallo si hay
-// algún motivo; lo que publica del juez; que se pida cada voto de cada respuesta
-// del modelo que decide, con su mensaje, y ninguno más; y la fila de cada umbral
-// en informe.md.
+// los cambios del caso —primero, escribir de nuevo sin su cotejo las sesiones
+// que lo piden, que desharía los demás—, antepone a cada respuesta con votos
+// grabados su párrafo y escribe el informe con el votante de esos votos: exige
+// sus quince umbrales, once de ellos decidiendo, sus motivos y su veredicto, que
+// es fallo si hay algún motivo; lo que publica del juez; que se pida cada voto
+// de cada respuesta medida del modelo que decide, con su mensaje, y ninguno más;
+// y la fila de cada umbral en informe.md.
 func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisprudencia) {
 	t.Helper()
 
 	sesiones := armarSesionesDeJurisprudencia(t)
+
+	for _, sesion := range caso.sinCotejo {
+		escribirSinElCotejo(t, sesiones, sesion)
+	}
 
 	for sesion, prefijo := range caso.prefijos {
 		anteponerALaRespuesta(t, filepath.Join(sesiones, sesion), prefijo)
@@ -5383,6 +5506,11 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
 
 	if caso.sinActivar != "" {
 		quitarLaActivacion(t, filepath.Join(sesiones, caso.sinActivar))
+	}
+
+	if caso.sinMedir != "" {
+		cambiarElFinalDeLaSesion(t, filepath.Join(sesiones, caso.sinMedir), 1,
+			mensajeResultConError(t, textoDelLimiteDeSesion))
 	}
 
 	for _, grabado := range caso.grabados {
@@ -5398,10 +5526,10 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
 	exigirLosInvariantesDeLosUmbrales(t, leido)
 	exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
 
-	require.Len(t, leido.informe.Umbrales, 13, "los trece de contracts/umbrales-del-informe.md §1 de H26")
+	require.Len(t, leido.informe.Umbrales, 15, "los quince de contracts/umbral-documento-sin-cotejar.md §1 de H23.1")
 
 	deciden := slices.DeleteFunc(slices.Clone(leido.informe.Umbrales), func(umbral Umbral) bool { return !umbral.Decide })
-	assert.Len(t, deciden, 9, "deciden todos menos los recuentos de las dos clases del juez de cada modo")
+	assert.Len(t, deciden, 11, "deciden todos menos los recuentos de las dos clases del juez de cada modo")
 
 	if len(caso.motivos) == 0 {
 		assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
@@ -5425,8 +5553,8 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
 	pedidos := votante.pedidos()
 
 	assert.Len(t, pedidos, caso.votos)
-	assert.Equal(t, mensajesDeLosVotosDeJurisprudencia(t, sesiones, caso.grabados), pedidos,
-		"se pide cada voto de cada respuesta del modelo que decide, con su mensaje, y ninguno más")
+	assert.Equal(t, mensajesDeLosVotosDeJurisprudencia(t, sesiones, caso.grabados, caso.sinMedir), pedidos,
+		"se pide cada voto de cada respuesta medida del modelo que decide, con su mensaje, y ninguno más")
 
 	for _, pedido := range pedidos {
 		assert.NotContains(t, pedido, parrafoDelInformativo, "no se juzga ninguna respuesta del modelo informativo")
@@ -5461,8 +5589,11 @@ func exigirLosUmbralesDeJurisprudencia(t *testing.T, caso casoDeUmbralesDeJurisp
 // modelo que decide —las diez evals activan la skill—, tantos como votos
 // grabados tenga, o uno si no tiene ninguno, cada uno con la pregunta de su eval
 // entera, su respuesta y sus textos, leídos de su directorio. No hay ninguno de
-// modeloHaiku45, que no decide.
-func mensajesDeLosVotosDeJurisprudencia(t *testing.T, sesiones string, grabados []votosDeUnaRespuesta) []string {
+// modeloHaiku45, que no decide, ni de la sesión sinMedir, si no es vacía, que
+// no se mide y no se vota (research D10 de H23.1).
+func mensajesDeLosVotosDeJurisprudencia(
+	t *testing.T, sesiones string, grabados []votosDeUnaRespuesta, sinMedir string,
+) []string {
 	t.Helper()
 
 	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
@@ -5471,7 +5602,7 @@ func mensajesDeLosVotosDeJurisprudencia(t *testing.T, sesiones string, grabados 
 	var mensajes []string
 
 	for _, planificada := range planDeJurisprudencia(conjunto.Evals).Sesiones() {
-		if planificada.Modelo != modeloSonnet55 {
+		if planificada.Modelo != modeloSonnet55 || planificada.Nombre == sinMedir {
 			continue
 		}
 
@@ -5516,33 +5647,38 @@ func respuestaDeJurisprudenciaPublicada(
 	return RespuestaConVotos{Sesion: sesion, Clases: []JuicioDeClase{afirma, existe}}
 }
 
-// umbralesDeJurisprudencia son los trece umbrales del informe de jurisprudencia
-// con las evals y el juez del repositorio, en el orden de
-// contracts/umbrales-del-informe.md §1 de H26, con las medidas dadas por modo
-// —0 en lo que no se da— y cada uno cumplido si su medida no pasa de su umbral:
-// de cada modo, sin_activar, los recuentos de las dos clases del juez y
-// cita_sin_documento; el conjunto de afirma_lo_no_leido, con las marcadas de
-// los dos modos; los dos de la medida versionada del juez, con 0 de 125 y 0 de
-// 124; y, de cada modo, el de la duración de sus votos.
+// umbralesDeJurisprudencia son los quince umbrales del informe de
+// jurisprudencia con las evals y el juez del repositorio, en el orden de
+// contracts/umbral-documento-sin-cotejar.md §1 de H23.1, con las medidas dadas
+// por modo —0 en lo que no se da— y cada uno cumplido si su medida no pasa de
+// su umbral: de cada modo, sin_activar, los recuentos de las dos clases del
+// juez y cita_sin_documento, sobre sus 30 respuestas, y documento_sin_cotejar,
+// sobre las 12 de las evals que piden el cotejo, cada total sin las sesiones
+// sin medir del modo; el conjunto de afirma_lo_no_leido, con las marcadas y
+// las respuestas de los dos modos; los dos de la medida versionada del juez,
+// con 0 de 125 y 0 de 124; y, de cada modo, el de la duración de sus votos.
 func umbralesDeJurisprudencia(porModo map[Modo]medidasDeJurisprudencia) []Umbral {
 	var umbrales []Umbral
 
 	modos := []Modo{ModoOrden, ModoHerramienta}
-	marcadas := 0
+	marcadas, respuestas := 0, 0
 
 	for _, modo := range modos {
 		medidas := porModo[modo]
+		delModo := respuestasDeJurisprudenciaPorModo - medidas.sinMedir
 		marcadas += medidas.marcadas
+		respuestas += delModo
 
 		umbrales = append(umbrales,
-			umbralSinActivar(modeloSonnet55, modo, medidas.sinActivar, respuestasDeJurisprudenciaPorModo, medidas.sinActivar == 0))
-		umbrales = append(umbrales, umbralesDeLasClasesDeJurisprudencia(modo, medidas.marcadas, medidas.conSi)...)
+			umbralSinActivar(modeloSonnet55, modo, medidas.sinActivar, delModo, medidas.sinActivar == 0))
+		umbrales = append(umbrales, umbralesDeLasClasesDeJurisprudencia(modo, medidas.marcadas, medidas.conSi, delModo)...)
 		umbrales = append(umbrales,
-			umbralCitaSinDocumento(modeloSonnet55, modo, medidas.sinDocumento, respuestasDeJurisprudenciaPorModo,
-				medidas.sinDocumento == 0))
+			umbralCitaSinDocumento(modeloSonnet55, modo, medidas.sinDocumento, delModo, medidas.sinDocumento == 0),
+			umbralDocumentoSinCotejar(modeloSonnet55, modo, medidas.sinCotejar,
+				respuestasQuePidenElCotejoPorModo-medidas.sinMedir, medidas.sinCotejar == 0))
 	}
 
-	umbrales = append(umbrales, umbralConjuntoDeJurisprudencia(marcadas))
+	umbrales = append(umbrales, umbralConjuntoDeJurisprudencia(marcadas, respuestas))
 	umbrales = append(umbrales, umbralesDeLaMedidaDelJuez(0, defectosDeJurisprudencia, 0, correctosDeJurisprudencia)...)
 
 	for _, modo := range modos {
@@ -5552,16 +5688,25 @@ func umbralesDeJurisprudencia(porModo map[Modo]medidasDeJurisprudencia) []Umbral
 	return umbrales
 }
 
+// umbralesDeJurisprudenciaComoEnH26 son los trece umbrales del informe de
+// jurisprudencia del cierre de H26, anterior a documento_sin_cotejar: los de
+// umbralesDeJurisprudencia sin medidas, sin los dos de documento_sin_cotejar
+// (research D11 de H23.1).
+func umbralesDeJurisprudenciaComoEnH26() []Umbral {
+	return slices.DeleteFunc(umbralesDeJurisprudencia(nil), func(umbral Umbral) bool {
+		return strings.HasPrefix(umbral.Nombre, "documento_sin_cotejar:")
+	})
+}
+
 // umbralConjuntoDeJurisprudencia es el umbral conjunto de afirma_lo_no_leido
 // del informe de jurisprudencia, tal como lo fija
 // contracts/umbrales-del-informe.md §2 de H26, con sus valores escritos a mano:
 // sin modo en su nombre, con las marcadas dadas, que son las de los dos modos,
-// sobre las 60 respuestas del modelo que decide, y decidiendo con la tasa de la
-// declaración de la clase, 0.017 (FR-020 de H26): se cumple con una marcada de
-// las 60, como mucho.
-func umbralConjuntoDeJurisprudencia(marcadas int) Umbral {
-	respuestas := 2 * respuestasDeJurisprudenciaPorModo
-
+// sobre las respuestas dadas del modelo que decide, las de los dos modos —60,
+// o 59 con una sesión sin medir—, y decidiendo con la tasa de la declaración de
+// la clase, 0.017 (FR-020 de H26): con 59 o 60 respuestas, se cumple con una
+// marcada, como mucho.
+func umbralConjuntoDeJurisprudencia(marcadas, respuestas int) Umbral {
 	return Umbral{
 		Nombre: "afirma_lo_no_leido:" + modeloSonnet55,
 		Descripcion: "Respuestas de " + modeloSonnet55 + ", con todos los modos juntos, que el juez marca en " +
@@ -5582,13 +5727,14 @@ func umbralConjuntoDeJurisprudencia(marcadas int) Umbral {
 // el de afirma_lo_no_leido lleva la tasa de su declaración, 0.017, la misma que
 // su umbral conjunto, y el de afirma_que_existe, 0; y ninguno decide —el
 // primero, porque quien decide es ese conjunto, y el segundo, porque solo se
-// publica—. Los dos, sobre las mismas respuestas, y cada uno cumplido si su
-// medida es 0: una sola marcada de las 30 de un modo ya pasa del 1,7 %.
-func umbralesDeLasClasesDeJurisprudencia(modo Modo, marcadas, conSi int) []Umbral {
+// publica—. Los dos, sobre las respuestas dadas del modo —30, o 29 con una
+// sesión sin medir—, y cada uno cumplido si su medida es 0: una sola marcada de
+// las 29 o las 30 de un modo ya pasa del 1,7 %.
+func umbralesDeLasClasesDeJurisprudencia(modo Modo, marcadas, conSi, respuestas int) []Umbral {
 	deLasEvals := "sobre sus respuestas juzgadas en las evals que activan la skill"
 	delModo := "Respuestas de " + modeloSonnet55 + " en el modo " + string(modo)
 
-	afirma, existe := respuestasDeJurisprudenciaPorModo, respuestasDeJurisprudenciaPorModo
+	afirma, existe := respuestas, respuestas
 
 	return []Umbral{
 		{
@@ -5625,6 +5771,26 @@ func umbralCitaSinDocumento(modelo string, modo Modo, sinDocumento, respuestas i
 			"documento cotejado o con un ECLI que no viene de una operación ni de la pregunta, sobre sus respuestas " +
 			"medidas en las evals que activan la skill",
 		Medida:      float64(sinDocumento),
+		Total:       &respuestas,
+		Comparacion: "<=",
+		Umbral:      0,
+		Cumple:      cumple,
+		Decide:      true,
+	}
+}
+
+// umbralDocumentoSinCotejar es el umbral de las respuestas del modelo que
+// decide en un modo, de las evals que piden el cotejo, cuya sesión no cotejó
+// ningún documento, tal como lo fija contracts/umbral-documento-sin-cotejar.md
+// §2 de H23.1, con sus valores escritos a mano: 0 y decidiendo (FR-001, FR-004
+// de H23.1).
+func umbralDocumentoSinCotejar(modelo string, modo Modo, sinCotejar, respuestas int, cumple bool) Umbral {
+	return Umbral{
+		Nombre: "documento_sin_cotejar:" + modelo + ":" + string(modo),
+		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " cuya sesión no ejecutó ningún " +
+			"cita cotejar que consultara y terminara bien, sobre sus respuestas medidas en las evals que activan la " +
+			"skill y piden cita cotejar",
+		Medida:      float64(sinCotejar),
 		Total:       &respuestas,
 		Comparacion: "<=",
 		Umbral:      0,
@@ -5678,6 +5844,46 @@ func armarSesionesDeJurisprudencia(t *testing.T) string {
 	}
 
 	return sesiones
+}
+
+// escribirSinElCotejo borra del directorio de sesiones la del plan del job con
+// ese nombre y la escribe de nuevo con escribirSesionDeJurisprudencia y la
+// sesión modelo de su eval sin su operación cotejar: ni la orden en su traza, en
+// el modo orden, ni la llamada a cita_cotejar en su transcript, en el modo
+// herramienta (research D9 de H23.1). Las demás operaciones siguen, en su
+// orden, y la del modelo informativo lleva delante parrafoDelInformativo, como
+// en armarSesionesDeJurisprudencia. Deshace cualquier otro cambio de la sesión:
+// va antes que ellos.
+func escribirSinElCotejo(t *testing.T, sesiones, nombre string) {
+	t.Helper()
+
+	conjunto, err := LeerConjunto(evalsDeJurisprudencia)
+	require.NoError(t, err)
+
+	planificadas := planDeJurisprudencia(conjunto.Evals).Sesiones()
+
+	delPlan := slices.IndexFunc(planificadas, func(planificada SesionPlanificada) bool {
+		return planificada.Nombre == nombre
+	})
+	require.GreaterOrEqual(t, delPlan, 0, "%s es una sesión del plan del job", nombre)
+
+	planificada := planificadas[delPlan]
+	deLaEval := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
+
+	deLaSesion := sesionesModeloDeLasDiezEvals(t)[deLaEval]
+	conCotejo := len(deLaSesion.operaciones)
+
+	deLaSesion.operaciones = slices.DeleteFunc(slices.Clone(deLaSesion.operaciones), func(operacion operacionDeCita) bool {
+		return operacion.orden[0] == verboCotejar
+	})
+	require.Len(t, deLaSesion.operaciones, conCotejo-1, "la sesión modelo de %s coteja una vez", planificada.Fichero)
+
+	if planificada.Modelo != modeloSonnet55 {
+		deLaSesion.respuesta = parrafoDelInformativo + "\n\n" + deLaSesion.respuesta
+	}
+
+	require.NoError(t, os.RemoveAll(filepath.Join(sesiones, nombre)))
+	escribirSesionDeJurisprudencia(t, sesiones, planificada, conjunto.Evals[deLaEval].Pregunta, deLaSesion)
 }
 
 // escribirSesionDeJurisprudencia escribe en el directorio de sesiones la sesión

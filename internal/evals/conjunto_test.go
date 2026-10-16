@@ -1985,6 +1985,46 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			"las evals de %s no necesitan ninguna respuesta grabada", evalsDeJurisprudencia)
 	})
 
+	t.Run("piden-el-cotejo", func(t *testing.T) {
+		t.Parallel()
+
+		// Piden el cotejo las evals que activan la skill y esperan algún cita
+		// cotejar, lleve o no ROJ, y lo dicen sus comandos: en jurisprudencia, la
+		// 04, la 06, la 08 y la 09; en boe-legislacion y en legal-core, ninguna, y
+		// sus umbrales no llevan documento_sin_cotejar (FR-001, FR-007 y FR-063 de
+		// H23.1; SC-005).
+		carpetas := []struct {
+			carpeta string
+			piden   []string
+		}{
+			{carpeta: evalsDelRepositorio},
+			{carpeta: evalsDeLegalCore},
+			{
+				carpeta: evalsDeJurisprudencia,
+				piden: []string{
+					"04-documento-pegado.yaml", "06-documento-que-no-es-el-pedido.yaml",
+					"08-doctrina-con-el-fallo-delante.yaml", "09-de-que-trata-con-la-ficha-sola.yaml",
+				},
+			},
+		}
+
+		for _, deLaCarpeta := range carpetas {
+			leido, err := LeerConjunto(deLaCarpeta.carpeta)
+			require.NoError(t, err)
+			require.NotEmpty(t, leido.Evals, "%s tiene evals bien formadas", deLaCarpeta.carpeta)
+
+			var piden []string
+
+			for _, eval := range leido.Evals {
+				if pideElCotejo(eval) {
+					piden = append(piden, eval.Fichero)
+				}
+			}
+
+			assert.Equal(t, deLaCarpeta.piden, piden, "las evals de %s que piden el cotejo", deLaCarpeta.carpeta)
+		}
+	})
+
 	t.Run("normas-conocidas", func(t *testing.T) {
 		t.Parallel()
 
