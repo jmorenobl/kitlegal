@@ -1110,8 +1110,8 @@ func lineasDeLaSalida(lineas ...string) string {
 const valorDeLaSuscripcion = "de-la-base"
 
 // Las skills del repositorio que los tests del sondeo piden: las dos de la
-// matriz del job, con 4 y 1 sesiones a la vez (contracts/ejecucion-del-job.md
-// §7 de H7.3).
+// matriz del job, con 4 y, desde antes de H9, 2 sesiones a la vez
+// (contracts/ejecucion-del-job.md §7 de H7.3).
 const (
 	skillQueSondea     = "boe-legislacion"
 	otraSkillQueSondea = "legal-core"
@@ -1249,7 +1249,7 @@ func casosDeLosArgumentos() []casoDeComprobarElSondeo {
 				s.Argumentos.Skill, s.Argumentos.Evals = otraSkillQueSondea, "03,01"
 			},
 			pedidas:      []string{"03-no-activa-receta-de-cocina.yaml", "01-territorio-municipio-cubierto.yaml"},
-			concurrencia: 1,
+			concurrencia: 2,
 		},
 		{
 			nombre:       "concurrencia-pedida",
