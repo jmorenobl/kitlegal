@@ -93,7 +93,6 @@ Los pendientes de **estructura del repositorio** (dónde van los fixtures, los t
 
 - Identificadores BOE de la tabla de leyes vertebrales (algunos están de memoria; comprobar con `kitlegal boe buscar`).
 - Endpoints actuales de BDNS (swagger) y nombres de los feeds Atom de PLACSP (y qué llega agregado desde plataformas autonómicas).
-- Formato, licencia y actualización de la relación de municipios del INE, del inventario DIR3 y de los festivos locales publicados por la Comunidad de Madrid.
 - Términos de uso de PETETE (DGT), DYCTEA (TEAC) y del buscador HJ del TC.
 
 ## Convenciones de idioma
