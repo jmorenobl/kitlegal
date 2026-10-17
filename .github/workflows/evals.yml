@@ -181,8 +181,10 @@ jobs:
         # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
         # de H7.3; research.md D12 de H7.3). jurisprudencia va desde H25 a cuatro a la vez, como boe-legislacion: de
         # una en una, con sus diez evals y su juez, el tope del trabajo no cubre su peor caso. Sigue sin objetivo, como
-        # legal-core: no hay medida con esa concurrencia de la que sacar una cifra. Los tres trabajos corren a la vez
-        # contra la misma suscripción, con nueve sesiones entre los tres, que no se han medido
+        # legal-core: no hay medida con esa concurrencia de la que sacar una cifra. legal-core va a dos a la vez desde
+        # antes de H9: con las cinco evals de plazos que entran en H9, de una en una su peor caso es de 28 501 s, que el
+        # tope no cubre, y a dos, de 14 629 s (entrada de H9 en docs/ROADMAP.md). Los tres trabajos corren a la vez
+        # contra la misma suscripción, con diez sesiones entre los tres, que no se han medido
         # (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1, §3 y §5; FR-070 de H25).
         include:
           - skill: boe-legislacion
@@ -192,7 +194,7 @@ jobs:
             concurrencia: 4
             objetivo_de_duracion: 0
           - skill: legal-core
-            concurrencia: 1
+            concurrencia: 2
             objetivo_de_duracion: 0
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
@@ -203,7 +205,7 @@ jobs:
     # 60 s de instalar su Claude Code y 167 tandas de votos de 40 s, el tope de un voto y su margen. Las tandas son, por
     # grupo, los 6 votos que como mucho pide cada respuesta, a 4 respuestas a la vez: 81, 81 y 5, con las 54, 54 y 3
     # respuestas que juzga (FR-092 de H24; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). Cabe en las 6
-    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, no cambia. El de jurisprudencia,
+    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, es hoy de 6 469 s, 107,8 minutos, a dos a la vez (22 tandas de 272 s), y con las cinco evals de H9, de 14 629 s, 243,8 minutos (52 tandas). El de jurisprudencia,
     # con su juez y a cuatro a la vez, es de 12 577 s, 209,6 minutos, y cabe en el mismo tope, que no cambia: 31 tandas
     # de sesiones de 272 s —16 y 15, con las 60 sesiones de sus diez evals en cada modo y la de la prueba de red, que el
     # cálculo cuenta en el modo orden aunque su trabajo no la lleve— y, de su juez, los 60 s de instalar su Claude Code y
