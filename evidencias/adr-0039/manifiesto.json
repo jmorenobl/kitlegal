@@ -1,0 +1,76 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "8a0cdbf4767fa16b30b8cecd950f987dc6df078b3aaa768f91f1ed6720891ff8",
+      "bytes": 4165,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "cotejo del ADR 0039"
+    },
+    {
+      "fichero": "festivos_locales_historicos.json",
+      "sha256": "487134ae6884cd4f3c220ab60e9c0f9d1cf62401acbd23cc059d0c55f72189d7",
+      "bytes": 2182422,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "descargado del catálogo CKAN de datos.comunidad.madrid por una persona, con su navegador"
+    },
+    {
+      "fichero": "bocm/BOCM-20241213-23.xml",
+      "sha256": "dcfb5063f61dc1579cdd0ebba7d5bb604b5e1e2695d30a8ff7f8ad49688c7510",
+      "bytes": 11700,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    },
+    {
+      "fichero": "bocm/BOCM-20241227-32.xml",
+      "sha256": "b864d3a9bda060c4cd76445a0199fa67c497f82aeff11a38c46615b8ef32c393",
+      "bytes": 3686,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    },
+    {
+      "fichero": "bocm/BOCM-20250203-16.xml",
+      "sha256": "e4e98596888892188c7aadb53cd479dad718bf425b6072d9541fb118406b1c4b",
+      "bytes": 3689,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    },
+    {
+      "fichero": "bocm/BOCM-20250217-24.xml",
+      "sha256": "0381f6a92ea8ce88d2511bb2788be52b59e4fe25f435ebedaf305708e0281e9f",
+      "bytes": 3579,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    },
+    {
+      "fichero": "bocm/BOCM-20251212-34.xml",
+      "sha256": "1fddf0eba38de4b77d313189855985ea103327cf81e50e73108ef82e9bca7500",
+      "bytes": 11733,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    },
+    {
+      "fichero": "bocm/BOCM-20251229-19.xml",
+      "sha256": "1c5a084983c7fbd62ae93640bd7577b633fef919b1b0f99dc2326c9fe7ab3e5c",
+      "bytes": 3952,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    },
+    {
+      "fichero": "bocm/BOCM-20260108-18.xml",
+      "sha256": "a9b3d05dec537b237dbe0c57028258efb63feaacee7093e4392c0adb906c7fb8",
+      "bytes": 3797,
+      "fecha": "2026-10-17",
+      "versionado": "sí",
+      "origen": "pedido al BOCM en una sesión interactiva, a 10 s entre peticiones"
+    }
+  ]
+}
