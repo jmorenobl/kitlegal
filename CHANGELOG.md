@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-17
+
 ### Añadido
 
 - **La serie de cierres de las skills con juez y su tasa acumulada** (ADR 0038, punto 6; workflow `hito` 2.6.0). Cada
