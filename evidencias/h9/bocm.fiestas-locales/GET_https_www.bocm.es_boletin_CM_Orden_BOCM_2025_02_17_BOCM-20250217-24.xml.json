@@ -1,0 +1,60 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:36:20Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/17/BOCM-20250217-24.xml",
+    "cabeceras": {
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Access-Control-Allow-Credentials": [
+        "false"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Cache-Control": [
+        "no-cache, must-revalidate"
+      ],
+      "Connection": [
+        "keep-alive"
+      ],
+      "Content-Length": [
+        "3579"
+      ],
+      "Content-Type": [
+        "text/xml;charset=UTF-8"
+      ],
+      "Cross-Origin-Resource-Policy": [
+        "same-origin"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:36:20 GMT"
+      ],
+      "Expires": [
+        "Sun, 19 Nov 1978 05:00:00 GMT"
+      ],
+      "Link": [
+        "<https://www.bocm.es/bocm-20250217-24>; rel=\"canonical\""
+      ],
+      "Set-Cookie": [
+        "srv_id=94342fea5f4b2e10ac182d2961a1225c; expires=Sun, 18-Oct-26 09:36:19 GMT; max-age=3600; domain=caching.labs.local",
+        "TS017d34da=01f499b138a08741481226a2f8c02956dc0f1b9764002cd6b16052834ca8072d51a13a5647af12a9af41fbdf1d2fec5e3b3cf12e33; Path=/; Secure; HttpOnly; SameSite=Strict;",
+        "TS01927816=01f499b138a08741481226a2f8c02956dc0f1b9764002cd6b16052834ca8072d51a13a5647af12a9af41fbdf1d2fec5e3b3cf12e33; path=/; domain=caching.labs.local; Secure; HttpOnly; SameSite=Strict;"
+      ],
+      "X-Content-Type-Options": [
+        "nosniff"
+      ],
+      "X-Drupal-Cache": [
+        "MISS"
+      ]
+    },
+    "cuerpo": "<documento>\n  <metadatos>\n    <identificador>BOCM-20250217-24</identificador>\n    <origen_legislativo>Comunidad de Madrid</origen_legislativo>\n    <departamento>CONSEJERÍA DE ECONOMÍA, HACIENDA Y EMPLEO</departamento>\n    <rango>RESOLUCIÓN</rango>\n    <fecha_publicacion>2025/02/17</fecha_publicacion>\n    <fecha_disposicion>2025/02/04</fecha_disposicion>\n    <titulo>Fiestas laborales\n– Resolución de 4 de febrero de 2025, de la Dirección General de Trabajo, por la que se modifica parcialmente la Resolución de 3 de diciembre de 2024, de la Dirección General de Trabajo, por la que se declaran las fiestas laborales de ámbito local en la Comunidad de Madrid para el año 2025</titulo>\n    <diario codigo=\"BOCM\">Boletín Oficial de la Comunidad de Madrid</diario>\n    <pagina_inicial>5</pagina_inicial>\n    <pagina_final>5</pagina_final>\n    <diario_numero>40</diario_numero>\n    <seccion>I.  COMUNIDAD DE MADRID</seccion>\n    <url_html>https://www.bocm.es/bocm-20250217-24</url_html>\n    <url_xml>https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/17/BOCM-20250217-24.xml</url_xml>\n    <url_json_ld>https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/17/BOCM-20250217-24.json</url_json_ld>\n    <url_pdf>https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/17/BOCM-20250217-24.PDF</url_pdf>\n    <url_epub>https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/17/BOCM-20250217-24.epub</url_epub>\n  </metadatos>\n  <analisis>\n    <seccion>I. COMUNIDAD DE MADRID</seccion>\n    <apartado>C) Otras Disposiciones</apartado>\n    <organismo>CONSEJERÍA DE ECONOMÍA, HACIENDA Y EMPLEO</organismo>\n    <tipo_disposicion>RESOLUCIÓN</tipo_disposicion>\n  </analisis>\n  <texto>I. COMUNIDAD DE MADRID\nC) Otras Disposiciones\nCONSEJERÍA DE ECONOMÍA, HACIENDA Y EMPLEO\n24RESOLUCIÓN de 4 de febrero de 2025, de la Dirección General de Trabajo, por la que se modifica parcialmente la Resolución de 3 de diciembre de 2024, de la Dirección General de Trabajo, por la que se declaran las fiestas laborales de ámbito local en la Comunidad de Madrid para el año 2025.\nEl BOLETÍN OFICIAL DE LA COMUNIDAD DE MADRID de 13 de diciembre de 2024 publicó la Resolución de la Dirección General de Trabajo de 3 de diciembre de 2024, por la que se declaraban las fiestas laborales de ámbito local en la Comunidad de Madrid para el año 2025.\nCon posterioridad a dicha publicación, el Ayuntamiento de Daganzo de Arriba ha aportado a esta Dirección General de Trabajo un certificado del Pleno, celebrado el 22 de enero de 2025, por el que se modifican los días declarados como fiestas laborales en su municipio para el año 2025.\nPor tanto, vista la documentación aportada por el citado Ayuntamiento y en ejecución de las competencias atribuidas por el Real Decreto 932/1995, de 9 de junio, en relación con el artículo 46 del Real Decreto 2001/1983, de 28 de julio, sobre regulación de la jornada de trabajo, jornadas especiales y descansos y por el Decreto 230/2023, de 6 de septiembre, por el que se establece la estructura orgánica de la Consejería de Economía, Hacienda y Empleo, esta Dirección General de Trabajo,\nACUERDA\nModificar la Resolución de la Dirección General de Trabajo de 3 de diciembre de 2024, por la que se declaran las fiestas laborales de ámbito local en la Comunidad de Madrid para el año 2025 y establecer para los municipios que se relacionan las siguientes fiestas laborales:\n.\tDaganzo de Arriba: 13 de junio y 8 de septiembre.\nEn Madrid, a 4 de febrero de 2025..La Directora General de Trabajo, Silvia Marina Parra Rudilla.\n(03/1.782/25)</texto>\n</documento>"
+  }
+}

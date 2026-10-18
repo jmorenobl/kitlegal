@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:35:36Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-11722/metadatos",
+    "cabeceras": {
+      "Accept": [
+        "application/json"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "107"
+      ],
+      "Content-Length": [
+        "1459"
+      ],
+      "Content-Type": [
+        "application/json"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:33:49 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "{\n    \"status\": {\n        \"code\": \"200\",\n        \"text\": \"ok\"\n    },\n    \"data\": [\n        {\n            \"fecha_actualizacion\": \"20261001T071852Z\",\n            \"identificador\": \"BOE-A-2015-11722\",\n            \"ambito\": {\n                \"codigo\": \"1\",\n                \"texto\": \"Estatal\"\n            },\n            \"departamento\": {\n                \"codigo\": \"7320\",\n                \"texto\": \"Ministerio del Interior\"\n            },\n            \"rango\": {\n                \"codigo\": \"1310\",\n                \"texto\": \"Real Decreto Legislativo\"\n            },\n            \"fecha_disposicion\": \"20151030\",\n            \"numero_oficial\": \"6\\/2015\",\n            \"titulo\": \"Real Decreto Legislativo 6\\/2015, de 30 de octubre, por el que se aprueba el texto refundido de la Ley sobre Tr\\u00e1fico, Circulaci\\u00f3n de Veh\\u00edculos a Motor y Seguridad Vial.\",\n            \"diario\": \"Bolet\\u00edn Oficial del Estado\",\n            \"fecha_publicacion\": \"20151031\",\n            \"diario_numero\": \"261\",\n            \"fecha_vigencia\": \"20160131\",\n            \"estatus_derogacion\": \"N\",\n            \"estatus_anulacion\": \"N\",\n            \"vigencia_agotada\": \"N\",\n            \"estado_consolidacion\": {\n                \"codigo\": \"3\",\n                \"texto\": \"Finalizado\"\n            },\n            \"url_eli\": \"https:\\/\\/www.boe.es\\/eli\\/es\\/rdlg\\/2015\\/10\\/30\\/6\",\n            \"url_html_consolidada\": \"https:\\/\\/www.boe.es\\/buscar\\/act.php?id=BOE-A-2015-11722\"\n        }\n    ]\n}"
+  }
+}

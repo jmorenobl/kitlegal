@@ -1,0 +1,100 @@
+{
+  "ficheros": [
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2024_12_13_BOCM-20241213-23.xml.json",
+      "sha256": "e2f31a12df9fd7ab47c3f11d9d94f1f3f2e0bb5f15d33f69504c893d697113ec",
+      "bytes": 13737,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2024_12_27_BOCM-20241227-32.xml.json",
+      "sha256": "ef2b9bb7ad690926a0ea5f126319dfe7f5a46b824f2336a8d8a28a9e610816c7",
+      "bytes": 5418,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2025_02_03_BOCM-20250203-16.xml.json",
+      "sha256": "1b29736feac7d66917710ac31d3e1225cbc6ef13818a14f7d58ad10a02d3c8a0",
+      "bytes": 5419,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2025_02_17_BOCM-20250217-24.xml.json",
+      "sha256": "a93b56b7056362d157c157767f7b86f7d418cc4b70d56c87157c2e420aa1a82c",
+      "bytes": 5305,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2025_12_12_BOCM-20251212-34.xml.json",
+      "sha256": "a7a47c390abedbf04a808b9aee8a4c3489e42f8f3732e8b6de0f483b2b749b7a",
+      "bytes": 13770,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2025_12_29_BOCM-20251229-19.xml.json",
+      "sha256": "3ae55208cf7bcdbf8f0e5755be98d8ca589180f4454a024797f5c63f29a441b5",
+      "bytes": 5694,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_boletin_CM_Orden_BOCM_2026_01_08_BOCM-20260108-18.xml.json",
+      "sha256": "428c666b4d1eb75ac665b5428cbb4b04f099ec50e76bf4a0c5e1b474b1cedf9b",
+      "bytes": 5533,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "bocm.fiestas-locales/GET_https_www.bocm.es_robots.txt.json",
+      "sha256": "925afc38c5f3855732da11ae17f0ae01840fc1f93da8ee18975fb99606478a71",
+      "bytes": 127358,
+      "fuente": "bocm.fiestas-locales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.fiestas-laborales/GET_https_www.boe.es_diario_boe_txt.php_q_id_BOE-A-2024-21316.json",
+      "sha256": "ed1c37ff315d4c0ee856d91f1c145c2d93b9445d5eaa4ac2c2fb77ba3a3f6e01",
+      "bytes": 125807,
+      "fuente": "boe.fiestas-laborales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.fiestas-laborales/GET_https_www.boe.es_diario_boe_txt.php_q_id_BOE-A-2025-21667.json",
+      "sha256": "257e14d881d18cecb33552821bc1532ed04715e9dd490d51296a390a380092b6",
+      "bytes": 124222,
+      "fuente": "boe.fiestas-laborales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.fiestas-laborales/GET_https_www.boe.es_diario_boe_txt.php_q_id_BOE-A-2026-21254.json",
+      "sha256": "74d7e1c73079ede3536af00bd55067ef219ade78820165bf16a5306af26eef96",
+      "bytes": 86268,
+      "fuente": "boe.fiestas-laborales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    },
+    {
+      "fichero": "boe.fiestas-laborales/GET_https_www.boe.es_robots.txt.json",
+      "sha256": "b4fb8f220a49afdf453290da1b0d0447b86b02d7b1d6e88b2bd4d43bcafc6290",
+      "bytes": 509465,
+      "fuente": "boe.fiestas-laborales",
+      "fecha": "2026-10-18",
+      "versionado": "sí"
+    }
+  ]
+}

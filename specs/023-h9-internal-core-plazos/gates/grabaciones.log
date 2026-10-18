@@ -62,3 +62,9 @@ FAIL
 FAIL
 FAIL	github.com/jmorenobl/kitlegal/internal/evals	16.349s
 FAIL
+== grabación de boe.legislacion-consolidada (internal/evals), intento 1
+ok  	github.com/jmorenobl/kitlegal/internal/evals	19.562s
+== grabación de bocm.fiestas-locales (internal/source/bocm), intento 1
+ok  	github.com/jmorenobl/kitlegal/internal/source/bocm	70.654s
+== grabación de boe.fiestas-laborales (internal/source/boe/fiestas), intento 1
+ok  	github.com/jmorenobl/kitlegal/internal/source/boe/fiestas	3.400s

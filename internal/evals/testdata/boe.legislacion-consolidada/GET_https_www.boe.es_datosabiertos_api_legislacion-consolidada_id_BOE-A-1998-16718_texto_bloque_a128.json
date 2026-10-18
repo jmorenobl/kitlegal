@@ -1,6 +1,6 @@
 {
   "formato": 1,
-  "grabado_en": "2026-10-18T08:27:41Z",
+  "grabado_en": "2026-10-18T08:35:28Z",
   "peticion": {
     "metodo": "GET",
     "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1998-16718/texto/bloque/a128",
@@ -32,16 +32,13 @@
         "Content-Length,Content-Range"
       ],
       "Age": [
-        "76"
-      ],
-      "Content-Length": [
-        "3322"
+        "0"
       ],
       "Content-Type": [
         "application/xml"
       ],
       "Date": [
-        "Sun, 18 Oct 2026 08:26:25 GMT"
+        "Sun, 18 Oct 2026 08:35:29 GMT"
       ],
       "Strict-Transport-Security": [
         "max-age=31536000"

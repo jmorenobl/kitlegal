@@ -1,6 +1,6 @@
 {
   "formato": 1,
-  "grabado_en": "2026-10-18T08:27:42Z",
+  "grabado_en": "2026-10-18T08:35:29Z",
   "peticion": {
     "metodo": "GET",
     "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1985-12666/texto/bloque/acientoochentaydos",
@@ -32,7 +32,7 @@
         "Content-Length,Content-Range"
       ],
       "Age": [
-        "76"
+        "0"
       ],
       "Content-Length": [
         "3043"
@@ -41,7 +41,7 @@
         "application/xml"
       ],
       "Date": [
-        "Sun, 18 Oct 2026 08:26:26 GMT"
+        "Sun, 18 Oct 2026 08:35:30 GMT"
       ],
       "Strict-Transport-Security": [
         "max-age=31536000"

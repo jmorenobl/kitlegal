@@ -1,6 +1,6 @@
 {
   "formato": 1,
-  "grabado_en": "2026-10-18T08:27:38Z",
+  "grabado_en": "2026-10-18T08:35:25Z",
   "peticion": {
     "metodo": "GET",
     "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a124",
@@ -34,14 +34,11 @@
       "Age": [
         "0"
       ],
-      "Content-Length": [
-        "1243"
-      ],
       "Content-Type": [
         "application/xml"
       ],
       "Date": [
-        "Sun, 18 Oct 2026 08:27:40 GMT"
+        "Sun, 18 Oct 2026 08:35:26 GMT"
       ],
       "Strict-Transport-Security": [
         "max-age=31536000"

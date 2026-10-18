@@ -1,6 +1,6 @@
 {
   "formato": 1,
-  "grabado_en": "2026-10-18T08:27:46Z",
+  "grabado_en": "2026-10-18T08:35:33Z",
   "peticion": {
     "metodo": "GET",
     "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a97",
@@ -32,7 +32,7 @@
         "Content-Length,Content-Range"
       ],
       "Age": [
-        "76"
+        "0"
       ],
       "Content-Length": [
         "948"
@@ -41,7 +41,7 @@
         "application/xml"
       ],
       "Date": [
-        "Sun, 18 Oct 2026 08:26:31 GMT"
+        "Sun, 18 Oct 2026 08:35:35 GMT"
       ],
       "Strict-Transport-Security": [
         "max-age=31536000"

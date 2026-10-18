@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:35:38Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-11722/texto/bloque/a1",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:35:36 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a1\" tipo=\"precepto\" titulo=\"Artículo 1\">\n      <version id_norma=\"BOE-A-2015-11722\" fecha_publicacion=\"20151031\" fecha_vigencia=\"20160131\">\n        <p class=\"articulo\">Artículo 1. Objeto.</p>\n        <p class=\"parrafo\">1. Esta ley tiene por objeto regular el tráfico, la circulación de vehículos a motor y la seguridad vial.</p>\n        <p class=\"parrafo\">2. A tal efecto regula:</p>\n        <p class=\"parrafo_2\">a) El ejercicio de las competencias que, de acuerdo con la Constitución Española y los estatutos de autonomía, corresponden en tales materias a la Administración General del Estado y a las comunidades autónomas que hayan recibido el traspaso de funciones y servicios en esta materia, así como la determinación de las que corresponden en todo caso a las entidades locales.</p>\n        <p class=\"parrafo\">b) Las normas de circulación para los vehículos, así como las que por razón de seguridad vial rigen para la circulación de peatones y animales por las vías de utilización general, estableciéndose a tal efecto los derechos y obligaciones de los usuarios de dichas vías.</p>\n        <p class=\"parrafo\">c) Los elementos de seguridad activa y pasiva y su régimen de utilización, así como las condiciones técnicas de los vehículos y de las actividades industriales que afectan de manera directa a la seguridad vial.</p>\n        <p class=\"parrafo\">d) Los criterios de señalización de las vías de utilización general.</p>\n        <p class=\"parrafo\">e) Las autorizaciones que, para garantizar la seguridad y fluidez de la circulación, otorga la Administración con carácter previo a la realización de actividades relacionadas con la circulación de vehículos, especialmente a motor, así como las medidas cautelares que adopte con el mismo fin.</p>\n        <p class=\"parrafo\">f) Las infracciones derivadas del incumplimiento de las normas establecidas y las sanciones aplicables a las mismas, así como el procedimiento sancionador en esta materia.</p>\n      </version>\n      <version id_norma=\"BOE-A-2021-21006\" fecha_publicacion=\"20211221\" fecha_vigencia=\"20220321\">\n        <p class=\"articulo\">Artículo 1. Objeto.</p>\n        <p class=\"parrafo\">1. Esta Ley tiene por objeto regular el tráfico, la circulación de todos los vehículos y la seguridad vial.</p>\n        <blockquote caduca=\"20220321\" class=\"soloTexto\">\n          <p class=\"parrafo\">Téngase en cuenta que esta actualización del apartado 1, establecida por el art. único.1 de la Ley 18/2021, de 20 de diciembre, <a class=\"refPost\">Ref. BOE-A-2021-21006#au</a>, entra en vigor el 21 de marzo de 2022, según determina su disposición final cuarta.</p>\n          <p class=\"cita_con_pleca\">Redacción anterior:</p>\n          <p class=\"parrafo\">\"1. Esta ley tiene por objeto regular el tráfico, la circulación de vehículos a motor y la seguridad vial.\"</p>\n        </blockquote>\n        <p class=\"parrafo\">2. A tal efecto regula:</p>\n        <p class=\"parrafo_2\">a) El ejercicio de las competencias que, de acuerdo con la Constitución Española y los estatutos de autonomía, corresponden en tales materias a la Administración General del Estado y a las comunidades autónomas que hayan recibido el traspaso de funciones y servicios en esta materia, así como la determinación de las que corresponden en todo caso a las entidades locales.</p>\n        <p class=\"parrafo\">b) Las normas de circulación para los vehículos, así como las que por razón de seguridad vial rigen para la circulación de peatones y animales por las vías de utilización general, estableciéndose a tal efecto los derechos y obligaciones de los usuarios de dichas vías.</p>\n        <p class=\"parrafo\">c) Los elementos de seguridad activa y pasiva y su régimen de utilización, así como las condiciones técnicas de los vehículos y de las actividades industriales que afectan de manera directa a la seguridad vial.</p>\n        <p class=\"parrafo\">d) Los criterios de señalización de las vías de utilización general.</p>\n        <p class=\"parrafo\">e) Las autorizaciones que, para garantizar la seguridad y fluidez de la circulación, otorga la Administración con carácter previo a la realización de actividades relacionadas con la circulación de vehículos, especialmente a motor, así como las medidas cautelares que adopte con el mismo fin.</p>\n        <p class=\"parrafo\">f) Las infracciones derivadas del incumplimiento de las normas establecidas y las sanciones aplicables a las mismas, así como el procedimiento sancionador en esta materia.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica el apartado 1, con efectos de 21 de marzo de 2022, por el art. único.1 de la Ley 18/2021, de 20 de diciembre. <a class=\"refPost\">Ref. BOE-A-2021-21006#au</a></p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
