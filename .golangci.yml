@@ -304,6 +304,11 @@ linters:
         - administrativo
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # «Calcular», el único verbo del applet plazos y la función del dominio
+        # que da el plazo, plazos.Calcular, cuyos nombres fijan el contrato del
+        # applet §1 y la tarea T004 de H9 (FR-001, plan.md paso 3); misspell lo
+        # lee como «calculator».
+        - calcular
         # «Capitulo», el tipo que TipoDesdeID, en internal/source/boe/ids.go,
         # infiere de ids como ci1 o cv3, y valor del enumerado tipo de las
         # entradas del índice que fija el modelo de datos de H4 (FR-040,
