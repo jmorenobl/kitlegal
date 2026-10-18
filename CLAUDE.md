@@ -45,6 +45,10 @@ El `Makefile` es la única superficie de invocación; `make help` lista los obje
 - Tests unitarios offline contra fixtures grabados en `testdata/<fuente>/`. Graba el paso `grabar_datos` del workflow, sin modelo, con `KITLEGAL_RECORD=1` y solo fuentes con fila revisada en `docs/SOURCES.md` de `main` (ADR 0018); de los tests, solo `scripts/verify-sources.sh` (CI nightly) toca la red.
 - `scripts/skills-sync.sh` regenera `skills/*/references/*.md` desde `data/*.yaml` y los symlinks de `scripts/`.
 
+## Explorar el código con CodeGraph
+
+Si hay un índice (`.codegraph/`, local y fuera de git; se crea con `codegraph init`), úsalo antes de recorrer el código con grep y lecturas: `codegraph_explore` (o `codegraph explore "<pregunta>"` desde la terminal y en subagentes) para «cómo funciona X» y los flujos entre applets, kernel y `internal/`; `codegraph callers`, `callees` e `impact <símbolo>` antes de cambiar una firma o un contrato (`Applet`, `Resultado`, `Procedencia`); `codegraph affected <ficheros>` para saber qué tests correr. No sustituye a leer el fichero que vas a editar ni a `docs/`, `data/` y `specs/`, que son YAML y Markdown. `codegraph.json` deja fuera `.agents/skills/` y rebaja `specs/`, `evidencias/`, `scripts/`, `testdata/` y `refs/` en el ranking.
+
 ## Decisiones ya tomadas (no reabrir)
 
 - **Skills primero**: cada hito entrega o mejora una skill medible con evals, o protege las existentes. Solo va a Go lo que exige determinismo o verificabilidad (fuentes, parseo, caché, fechas y plazos, ids, hashes, grafo); una herramienta que ninguna skill usa no se construye. Se planifica de fuera adentro (skill → herramientas) y se implementa de dentro afuera.
