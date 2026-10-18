@@ -304,6 +304,11 @@ linters:
         - administrativo
         # Plural español de «argumento»; misspell lo lee como «arguments».
         - argumentos
+        # «Brunete», el municipio del escenario 3 de US3 de H9 —«no comunicado»
+        # en la resolución principal de 2026 y con sus fiestas en la corrección—,
+        # que nombran los tests de internal/source/bocm (FR-021, research D30);
+        # misspell lo lee como «brunette».
+        - brunete
         # «Calcular», el único verbo del applet plazos y la función del dominio
         # que da el plazo, plazos.Calcular, cuyos nombres fijan el contrato del
         # applet §1 y la tarea T004 de H9 (FR-001, plan.md paso 3); misspell lo
