@@ -12,6 +12,18 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **Las sesiones de un paso cargan CodeGraph** (workflow `hito` 2.9.0). Si el repositorio tiene el índice de CodeGraph
+  (`.codegraph/codegraph.db`) y el equipo su programa, `scripts/claude-modelo.sh` le da a cada sesión del run ese
+  servidor MCP y ninguno más, con la regla `mcp__codegraph__*` en sus permisos. Como un servidor MCP no pasa por el
+  sandbox (ADR 0032), arranca atado a la raíz del repositorio y sin red: sin telemetría, sin comprobar versiones y sin
+  descargas. Sin índice o sin programa, la sesión se abre como antes. Lo comprueba
+  `TestLaSesionDeUnPasoCargaCodeGraph`.
+- **Una propuesta que solo toca `internal/workflow/` no lanza las evals.** El trabajo `cambios` de
+  `.github/workflows/evals.yml` medía las tres skills al abrir cualquier propuesta que tocara `internal/`, también los
+  tests de los guiones del workflow, que el binario no importa. Ahora los deja fuera.
+
 ## [0.6.1] - 2026-10-17
 
 ### Añadido

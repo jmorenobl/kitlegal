@@ -66,13 +66,17 @@ jobs:
           # código del binario que las skills invocan desde el PATH: cmd/, internal/ (applets, dominio, kernel,
           # composición, red, caché, disco y el arnés del job) y skills.go, lo que el binario empotra. Y el fichero del
           # job y los dos guiones que lo ejecutan, el del job y el que abre cada sesión (H7.3, research.md D12). Una
-          # ruta que no se puede leer detiene el paso, y no lo deja en «no».
+          # ruta que no se puede leer detiene el paso, y no lo deja en «no». internal/workflow/ no: solo tiene los
+          # tests de los guiones del workflow hito, que el binario no importa, y una propuesta del workflow no cambia
+          # lo que las evals miden (workflow 2.9.0). Va delante porque en un case gana el primer patrón que casa.
           cambiados=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${NUMERO}/files" --jq '.[].filename')
           echo "ficheros cambiados:"
           printf '%s\n' "$cambiados"
           coincide=no
           while IFS= read -r fichero; do
             case "$fichero" in
+              internal/workflow/*)
+                ;;
               skills/* | evals/* | data/* | cmd/* | internal/* | skills.go | \
               scripts/evals.sh | scripts/evals-sesion.sh | .github/workflows/evals.yml | schemas/eval.yaml.json | Makefile)
                 echo "toca lo que las evals miden: $fichero"

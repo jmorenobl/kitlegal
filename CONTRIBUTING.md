@@ -1003,7 +1003,7 @@ cómo decide `tanda` (subpruebas `segundo-disparo` y `estado-de-la-tanda`). Las 
 | Lanzamiento | Sobre qué rama | Cómo |
 |---|---|---|
 | Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, el código del binario que las skills invocan (`cmd/`, `internal/` —también `internal/graph/`— y `skills.go`), `scripts/evals.sh`, `scripts/evals-sesion.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
+| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, el código del binario que las skills invocan (`cmd/`, `internal/` —también `internal/graph/`, y no `internal/workflow/`, que solo tiene los tests de los guiones del workflow— y `skills.go`), `scripts/evals.sh`, `scripts/evals-sesion.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
 | Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
 
 No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del

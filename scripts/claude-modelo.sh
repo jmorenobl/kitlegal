@@ -104,13 +104,21 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #     al fondo cuando vence su plazo.
 #   · El `claude` de su PATH, y del de todo lo que ejecute, es el de
 #     scripts/workflow/sin-modelo/, que no abre ninguna sesión y dice por qué.
-#   · Ni plugins ni servidores MCP: los plugins que los ajustes de usuario o los del
-#     proyecto tienen activados llegan apagados (`enabledPlugins`), y `--strict-mcp-config`
-#     deja fuera los servidores de .mcp.json y de la configuración del usuario. Las skills,
-#     las herramientas y las instrucciones de cada uno entran en el contexto de la sesión
-#     y se vuelven a pagar en cada turno que le queda (una sesión de H25 llevaba 60–70 k
-#     tokens fijos antes de leer nada), y ningún paso usa ninguno: ni el `kitlegal@synced`
-#     ni el MCP `gsc` de la web tienen nada que hacer en un paso.
+#   · Ni plugins ni servidores MCP, salvo CodeGraph: los plugins que los ajustes de usuario
+#     o los del proyecto tienen activados llegan apagados (`enabledPlugins`), y
+#     `--strict-mcp-config` deja fuera los servidores de .mcp.json y de la configuración del
+#     usuario. Las skills, las herramientas y las instrucciones de cada uno entran en el
+#     contexto de la sesión y se vuelven a pagar en cada turno que le queda (una sesión de
+#     H25 llevaba 60–70 k tokens fijos antes de leer nada), y ni el `kitlegal@synced` ni el
+#     MCP `gsc` de la web tienen nada que hacer en un paso.
+#   · CodeGraph sí, si el repositorio tiene su índice (.codegraph/codegraph.db) y el equipo
+#     su programa: es el único servidor de --mcp-config. Cuesta una herramienta y unos 10 KB
+#     de instrucciones, y ahorra lecturas enteras de ficheros para saber cómo se llaman las
+#     piezas (CLAUDE.md, «Explorar el código con CodeGraph»). Un servidor MCP no pasa por el
+#     sandbox, así que se le quita aquí la red que tendría: sin telemetría, sin comprobar
+#     versiones y sin descargar nada (DO_NOT_TRACK y sus tres variables). Lee solo dentro de
+#     la raíz que se le da con --path, también a través de un enlace simbólico, y escribe en
+#     .codegraph/, que git ignora.
 #   · No lee .claude/settings.local.json: los permisos y los directorios adicionales
 #     de la sesión interactiva de quien lanza el run no llegan a las del run.
 raiz="$(cd "$(dirname "$0")/.." && pwd -P)"
@@ -181,6 +189,16 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
   | .permissions.deny = (($base.permissions.deny // []) + $paso.permissions.deny)')" \
   || { echo "claude-modelo: no se han podido componer los ajustes de la sesión (¿--settings con un JSON que no vale?)" >&2; exit 2; }
 
+# CodeGraph, si hay índice y programa (arriba). KITLEGAL_CODEGRAPH_BIN lo cambia en los tests.
+mcp=()
+if [ -f "$raiz/.codegraph/codegraph.db" ] \
+  && codegraph="$(command -v "${KITLEGAL_CODEGRAPH_BIN:-codegraph}" 2>/dev/null)" && [ -n "$codegraph" ]; then
+  mcp=(--mcp-config "$(jq -cn --arg orden "$codegraph" --arg raiz "$raiz" '{mcpServers: {codegraph: {
+    command: $orden, args: ["serve", "--mcp", "--path", $raiz],
+    env: {DO_NOT_TRACK: "1", CODEGRAPH_TELEMETRY: "0", CODEGRAPH_NO_UPDATE_CHECK: "1", CODEGRAPH_NO_DOWNLOAD: "1"}}}}')")
+  ajustes="$(jq -c '.permissions.allow = ((.permissions.allow // []) + ["mcp__codegraph__*"])' <<<"$ajustes")"
+fi
+
 # El modelo con el que corre de verdad cada sesión (ADR 0033; scripts/workflow/modelos.sh).
 # La sesión lleva un id que se le fija aquí, y con él se apunta en gates/modelos.jsonl del
 # hito antes de abrirla; el modelo real lo saca después scripts/workflow/modelos.sh resolver
@@ -206,4 +224,4 @@ export KITLEGAL_PASO_DE_WORKFLOW=1
 export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
 export PATH="$raiz/scripts/workflow/sin-modelo:$PATH"
 
-exec "$claude" ${args[@]+"${args[@]}"} --strict-mcp-config --setting-sources user,project --settings "$ajustes"
+exec "$claude" ${args[@]+"${args[@]}"} --strict-mcp-config ${mcp[@]+"${mcp[@]}"} --setting-sources user,project --settings "$ajustes"
