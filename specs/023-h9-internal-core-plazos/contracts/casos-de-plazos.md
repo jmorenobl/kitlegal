@@ -5,9 +5,11 @@ Cada caso, con la fecha esperada calculada a mano y su razonamiento, independien
 por su nombre y los ficheros empotrados; los casos 19 y 20 son de cobertura por materia y los comprueba el mismo test
 contra `data/cobertura.yaml`. Los días de la semana, de `cal` (research V25); los festivos locales, del BOCM grabado
 (research V9); los nacionales, de las resoluciones del BOE (research S3). Los guiones de aceptación usan solo los casos
-1, 2, 3, 15, 17 y 18 (research D27). Dieciocho fechas y dos coberturas: al menos once, como pide SC-005.
+1, 2, 3, 15, 17 y 18 (research D27). Diecinueve fechas y dos coberturas: al menos once, como pide SC-005. El caso 21
+lo añadió la revisión final del hito (`gates/supuestos.md`, «corrector_revision»).
 
-Abreviaturas: L = Leganés (`28074`), M = Madrid (`28079`), T = Tordesillas (`47165`), B = Brunete, V = El Vellón.
+Abreviaturas: L = Leganés (`28074`), M = Madrid (`28079`), T = Tordesillas (`47165`), B = Brunete, V = El Vellón,
+A = Vielha e Mijaran (`25243`), en el territorio de Arán.
 
 | # | Caso | Llamada | Fecha | Avisos | Razonamiento |
 |---|---|---|---|---|---|
@@ -31,6 +33,7 @@ Abreviaturas: L = Leganés (`28074`), M = Madrid (`28079`), T = Tordesillas (`47
 | 18 | Mes que cruza a 2027 sin festivo decisivo | `reposicion 2026-12-14 L L` | 2027-01-14 | `faltan-festivos-locales` | Un mes: jueves 14 de enero de 2027, que no es fiesta nacional ni de Madrid; Leganés no tiene locales de 2027: avisa (US2.2) |
 | 19 | Eval (c), cobertura | — | — | — | La aplicación de los tributos y su revisión las regula aparte la DA 1ª.2.a LPAC y las rige la LGT (`BOE-A-2003-23186`, art. 97): `data/cobertura.yaml` lleva la entrada con esa norma |
 | 20 | Eval (d), cobertura | — | — | — | Los sancionadores de tráfico y seguridad vial los regula aparte la DA 1ª.2.c LPAC y los rige el texto refundido de Tráfico (art. 1): `data/cobertura.yaml` lleva la entrada con el identificador que da la búsqueda grabada |
+| 21 | Fiesta sustituida en una parte | `reposicion 2025-11-26 A A` | 2025-12-26 | `faltan-festivos-locales`, `festivo-de-una-parte` | Un mes: viernes 26 de diciembre de 2025, fiesta de Cataluña que la nota 2 de `BOE-A-2024-21316` sustituye en el territorio de Arán por el 17 de junio: no es fiesta de toda la comunidad y cuenta como hábil (FR-011), con el aviso de una parte. En Arán es el último día; en el resto de Cataluña la fecha real sería el lunes 29, y la del aviso es la más temprana. kitlegal no tiene los locales de Cataluña |
 
 Los casos 1 y 4 comparten la fecha y prueban cosas distintas: el 1, la prórroga con un solo municipio; el 4, el art.
 30.6. Con los casos 4 y 5 cae el mutante de un solo municipio sea cual sea el que deje, y con el 3, el de agosto

@@ -28,7 +28,8 @@ que el BOE consolida—, sitúa **cualquier municipio de España** en su territo
 recurrir** una resolución o cuándo vence un plazo administrativo, con la fecha calculada por kitlegal con los
 festivos nacionales, autonómicos y locales que cuentan. Lleva los nacionales y autonómicos de 2025 a 2027, y los
 locales solo de la Comunidad de Madrid, de 2025 y 2026; fuera de ellos, la respuesta te avisa de que la fecha puede
-ser anterior a la real. Y si el
+ser anterior a la real. Un festivo autonómico de solo una parte de la comunidad —una isla de Canarias, el territorio
+de Arán— lo cuenta como hábil y te lo avisa: la fecha es la más temprana posible. Y si el
 asunto lo regula la ley aparte —una liquidación de Hacienda, una multa de tráfico, la Seguridad Social,
 extranjería—, te lo dice, con la norma que lo rige o con el precepto de la Ley 39/2015 que lo deja fuera, en lugar
 de calcularle el plazo del procedimiento común. Por ejemplo:

@@ -108,7 +108,7 @@ type casoDePlazo struct {
 	conLaPrincipalSola bool
 }
 
-// casosDePlazos son los dieciocho casos con fecha de la tabla, cada uno con su
+// casosDePlazos son los diecinueve casos con fecha de la tabla, cada uno con su
 // número (FR-002 a FR-011, FR-024, FR-026, FR-082; SC-005). Su razonamiento
 // está en la tabla.
 func casosDePlazos() []casoDePlazo {
@@ -193,6 +193,11 @@ func casosDePlazos() []casoDePlazo {
 			nombre: "18-mes-que-cruza-a-2027", orden: []string{"reposicion", "2026-12-14", "Leganés", "Leganés"},
 			fecha: "2027-01-14", avisos: []string{faltanLocalesDeLaTabla},
 		},
+		{
+			nombre: "21-fiesta-sustituida-en-una-parte",
+			orden:  []string{"reposicion", "2025-11-26", "Vielha e Mijaran", "Vielha e Mijaran"},
+			fecha:  "2025-12-26", avisos: []string{faltanLocalesDeLaTabla, deUnaParteDeLaTabla},
+		},
 	}
 }
 
@@ -228,7 +233,7 @@ func casosDeCobertura() []casoDeCobertura {
 }
 
 // TestCasosDePlazos comprueba la tabla de contracts/casos-de-plazos.md de H9,
-// un subtest por caso (FR-082, SC-005): los dieciocho con fecha llaman al
+// un subtest por caso (FR-082, SC-005): los diecinueve con fecha llaman al
 // applet como lo llama la skill, con los municipios por su nombre y los
 // ficheros del binario, y comparan la fecha y los códigos de aviso; el 8 lo
 // compone con los festivos locales que deriva internal/source/bocm de la

@@ -115,10 +115,13 @@ func TestLeerResolucion(t *testing.T) {
 	t.Run("cada-año-grabado", func(t *testing.T) {
 		t.Parallel()
 
-		// Las notas que no son una relación de fiestas de una parte: la de Arán,
-		// que sustituye una fiesta por otra, en los tres años, y la de 2025 sobre
-		// la fiesta recuperable de la Comunitat Valenciana.
-		notasFuera := map[int][]int{2025: {2, 3}, 2026: {2}, 2027: {2}}
+		// Las citas que no limitan una fiesta a una parte, solo en 2025: la de la
+		// fiesta recuperable de Cataluña, en la nota 2, y la de la Comunitat
+		// Valenciana, la nota 3.
+		notasFuera := map[int][]int{2025: {2, 3}, 2026: {}, 2027: {}}
+		// La fiesta que la nota 2, la de Cataluña, sustituye cada año en el
+		// territorio de Arán por el 17 de junio.
+		sustituida := map[int]string{2025: "2025-12-26", 2026: "2026-12-26", 2027: "2027-03-29"}
 
 		for _, anio := range []int{2025, 2026, 2027} {
 			resolucion := resolucionGrabada(t, anio)
@@ -130,13 +133,29 @@ func TestLeerResolucion(t *testing.T) {
 
 			// La nota 1, la de Canarias, da cada año una fiesta por isla o grupo
 			// de islas: siete, entre ellas la de Gran Canaria, el 8 de
-			// septiembre (FR-025).
+			// septiembre; y la 2, la de Cataluña, dos (FR-025).
 			canarias := columnaDe(t, resolucion, "Canarias")
 			assert.Equal(t, []int{1}, resolucion.Cabecera[canarias].Notas, "%d", anio)
-			assert.Len(t, resolucion.Partes, 7, "%d", anio)
+			assert.Len(t, resolucion.Partes, 9, "%d", anio)
 			assert.Contains(t, resolucion.Partes, FiestaDeUnaParte{
 				Fecha: fmt.Sprintf("%d-09-08", anio), Parte: "Gran Canaria", Columna: canarias, Nota: 1,
 			}, "%d", anio)
+
+			// La sustitución de la nota 2: la fiesta sustituida deja de ser de
+			// toda Cataluña y queda como del resto de ella, y el 17 de junio,
+			// como del territorio de Arán (FR-011).
+			cataluna := columnaDe(t, resolucion, "Cataluña")
+			assert.Equal(t, []int{2}, resolucion.Cabecera[cataluna].Notas, "%d", anio)
+			assert.Equal(t, []FiestaDeUnaParte{
+				{Fecha: sustituida[anio], Parte: "la comunidad salvo el territorio de Arán", Columna: cataluna, Nota: 2},
+				{Fecha: fmt.Sprintf("%d-06-17", anio), Parte: "el territorio de Arán", Columna: cataluna, Nota: 2},
+			}, resolucion.Partes[7:], "%d", anio)
+
+			fila := slices.IndexFunc(resolucion.Filas, func(f Fila) bool { return f.Fecha == sustituida[anio] })
+			require.GreaterOrEqual(t, fila, 0, "%d: la fila de la fiesta sustituida se lee", anio)
+			assert.Empty(t, resolucion.Filas[fila].Ambitos[cataluna], "%d: no es fiesta de toda Cataluña", anio)
+			assert.Contains(t, resolucion.Filas[fila].Ambitos, plazos.AmbitoAutonomico,
+				"%d: sigue siéndolo de otra comunidad", anio)
 		}
 	})
 
@@ -170,6 +189,8 @@ func TestLeerResolucion(t *testing.T) {
 	t.Run("documento-que-no-se-lee", probarDocumentoQueNoSeLee)
 	t.Run("fila-fuera", probarFilaFuera)
 	t.Run("nota-fuera", probarNotaFuera)
+	t.Run("cita-fuera", probarCitaFuera)
+	t.Run("sustitucion", probarSustitucion)
 }
 
 // Los párrafos que siguen a la tabla en las tres resoluciones grabadas: la
@@ -375,16 +396,22 @@ func probarFilaFuera(t *testing.T) {
 	}
 }
 
-// probarNotaFuera fija cada nota que no se lee sin interpretarla: queda fuera
-// entera, con su número y su motivo, y no da ninguna fiesta de una parte
-// (FR-025; ADR 0039, punto 3).
+// parrafoDeNota es un párrafo de las notas aclaratorias.
+func parrafoDeNota(texto string) string { return "<p>" + texto + "</p>" }
+
+// notaDeCanariasCon es la nota 1, de Canarias, con una sola cita.
+func notaDeCanariasCon(cita string) string {
+	return parrafoDeNota("1. En la Comunidad Autónoma de Canarias, dispone que: «" + cita + "».")
+}
+
+// probarNotaFuera fija cada nota, o cita de una nota, que no se lee sin
+// interpretarla: queda fuera con el número de la nota y su motivo, y no da
+// ninguna fiesta de una parte ni cambia la tabla (FR-025; ADR 0039, punto 3).
 func probarNotaFuera(t *testing.T) {
 	t.Parallel()
 
-	nota := func(texto string) string { return "<p>" + texto + "</p>" }
-	dispone := func(cita string) string {
-		return nota("1. En la Comunidad Autónoma de Canarias, dispone que: «" + cita + "».")
-	}
+	leida, err := LeerResolucion(basica().documento())
+	require.NoError(t, err)
 
 	casos := []struct {
 		nombre   string
@@ -392,20 +419,28 @@ func probarNotaFuera(t *testing.T) {
 		notas    string
 		motivo   string
 	}{
-		{"sustitucion", nil, dispone("En el territorio de El Hierro, la fiesta del día 26 de diciembre queda sustituida " +
-			"por la de 17 de junio, miércoles"), "relación"},
 		{
-			"sin-parte", nil, dispone("Con carácter recuperable se establece la siguiente fiesta: 24 de junio, San Juan"),
+			"sustitucion-de-un-dia-sin-fiesta", nil, notaDeCanariasCon("En el territorio de El Hierro, la fiesta del día 26 de " +
+				"diciembre queda sustituida por la de 17 de junio, miércoles"), "no marca como fiesta de Canarias",
+		},
+		{
+			"sustitucion-de-una-fiesta-nacional", nil, notaDeCanariasCon("En el territorio de El Hierro, la fiesta del día 6 de " +
+				"enero (Epifanía del Señor) queda sustituida por la de 17 de junio"), "no marca como fiesta de Canarias",
+		},
+		{
+			"sustitucion-con-un-dia-que-no-existe", nil, notaDeCanariasCon("En el territorio de El Hierro, la fiesta del día 30 de " +
+				"mayo queda sustituida por la de 31 de junio"), "no da dos días de 2026",
+		},
+		{
+			"sin-parte", nil, notaDeCanariasCon("Con carácter recuperable se establece la siguiente fiesta: 24 de junio, San Juan"),
 			"fiesta de una parte",
 		},
-		{"dia-que-no-existe", nil, dispone("Serán, además: en El Hierro: el 31 de septiembre, festividad"), "día de 2026"},
-		{"mes-que-no-es-un-mes", nil, dispone("Serán, además: en El Hierro: el 3 de brumario"), "día de 2026"},
-		{"sin-cita", nil, nota("1. En la Comunidad Autónoma de Canarias rige su decreto."), "comillas"},
-		{"cita-sin-cerrar", nil, nota("1. Dispone que: «Serán, además: en El Hierro: el 24 de septiembre."), "comillas"},
+		{"dia-que-no-existe", nil, notaDeCanariasCon("Serán, además: en El Hierro: el 31 de septiembre, festividad"), "día de 2026"},
+		{"mes-que-no-es-un-mes", nil, notaDeCanariasCon("Serán, además: en El Hierro: el 3 de brumario"), "día de 2026"},
+		{"sin-cita", nil, parrafoDeNota("1. En la Comunidad Autónoma de Canarias rige su decreto."), "comillas"},
+		{"cita-sin-cerrar", nil, parrafoDeNota("1. Dispone que: «Serán, además: en El Hierro: el 24 de septiembre."), "comillas"},
 		{"nadie-la-llama", []string{"Aragón", "Canarias"}, notaDeCanarias, "ninguna comunidad"},
 		{"la-llaman-dos", []string{"Aragón (1)", "Canarias (1)"}, notaDeCanarias, "2 comunidades"},
-		{"una-cita-que-no-se-lee", nil, notaDeCanarias + nota("Asimismo, dispone que: «De las trece fiestas habrá "+
-			"una, a escoger entre el 6 de enero y el 26 de diciembre, que tendrá el carácter de recuperable»."), "relación"},
 	}
 
 	for _, caso := range casos {
@@ -426,6 +461,58 @@ func probarNotaFuera(t *testing.T) {
 			assert.Equal(t, 1, resolucion.NotasSinLeer[0].Numero)
 			assert.Contains(t, resolucion.NotasSinLeer[0].Motivo, caso.motivo)
 			assert.Empty(t, resolucion.Partes)
+			assert.Equal(t, leida.Filas, resolucion.Filas, "la nota que queda fuera no cambia la tabla")
 		})
 	}
+}
+
+// probarCitaFuera fija que una cita que no se lee queda fuera sola: las otras
+// citas de su nota se leen, porque cada una es una disposición distinta.
+func probarCitaFuera(t *testing.T) {
+	t.Parallel()
+
+	s := basica()
+	s.tras = leyendaGrabada + parrafoDeLasNotas + notaDeCanarias + parrafoDeNota("Asimismo, dispone que: «De las trece "+
+		"fiestas habrá una, a escoger entre el 6 de enero y el 26 de diciembre, que tendrá el carácter de recuperable».")
+
+	resolucion, err := LeerResolucion(s.documento())
+	require.NoError(t, err)
+
+	require.Len(t, resolucion.NotasSinLeer, 1)
+	assert.Equal(t, 1, resolucion.NotasSinLeer[0].Numero)
+	assert.Contains(t, resolucion.NotasSinLeer[0].Motivo, "«De las trece fiestas")
+	assert.Equal(t, []FiestaDeUnaParte{
+		{Fecha: "2026-09-24", Parte: "El Hierro", Columna: 1, Nota: 1},
+		{Fecha: "2026-02-02", Parte: "Tenerife", Columna: 1, Nota: 1},
+	}, resolucion.Partes, "la relación de la misma nota se lee")
+}
+
+// probarSustitucion lee una sustitución en una parte con la forma de la nota de
+// Arán de las tres resoluciones grabadas: la fiesta sustituida deja de ser de
+// toda la comunidad que llama a la nota y queda como fiesta del resto de ella,
+// y la que la sustituye, como fiesta de la parte (FR-011, FR-025).
+func probarSustitucion(t *testing.T) {
+	t.Parallel()
+
+	s := basica()
+	s.cabecera = []string{"Aragón", "Cataluña (1)"}
+	s.filas = [][]string{{"Diciembre", "", ""}, {"26 San Esteban.", "***", "***"}}
+	s.tras = leyendaGrabada + parrafoDeLasNotas + parrafoDeNota("1. En la Comunidad Autónoma de Cataluña, la Orden EMT/66/2025 "+
+		"dispone que: «En el territorio de Arán, la fiesta del día 26 de diciembre (Sant Esteve) queda sustituida por "+
+		"la de 17 de junio (Fiesta de Arán), miércoles».")
+
+	resolucion, err := LeerResolucion(s.documento())
+	require.NoError(t, err)
+
+	autonomico := plazos.AmbitoAutonomico
+
+	assert.Equal(t, Resolucion{
+		Anio:     2026,
+		Cabecera: []Columna{{Nombre: "Aragón"}, {Nombre: "Cataluña", Notas: []int{1}}},
+		Filas:    []Fila{{Fecha: "2026-12-26", Texto: "26 San Esteban.", Ambitos: []plazos.Ambito{autonomico, ""}}},
+		Partes: []FiestaDeUnaParte{
+			{Fecha: "2026-12-26", Parte: "la comunidad salvo el territorio de Arán", Columna: 1, Nota: 1},
+			{Fecha: "2026-06-17", Parte: "el territorio de Arán", Columna: 1, Nota: 1},
+		},
+	}, resolucion)
 }

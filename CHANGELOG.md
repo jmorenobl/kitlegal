@@ -52,7 +52,11 @@ sustituyen a este fichero.
   esa fecha en `source`, y el test falla si el fichero no es lo que sale de las grabaciones.
   `data/festivos/nacionales-y-autonomicos.yaml` sale de las resoluciones anuales de fiestas laborales del BOE (fuente
   `boe.fiestas-laborales`; `TestFestivosNacionalesDerivados`, en `internal/source/boe/fiestas`): los nacionales y los
-  de cada comunidad de 2025, 2026 y 2027 (`BOE-A-2024-21316`, `BOE-A-2025-21667` y `BOE-A-2026-21254`).
+  de cada comunidad de 2025, 2026 y 2027 (`BOE-A-2024-21316`, `BOE-A-2025-21667` y `BOE-A-2026-21254`). Una
+  fiesta que la resolución limita a una parte de la comunidad lleva esa `parte` y no hace inhábil el día, que se
+  cuenta como hábil con el aviso de una parte: las de cada isla de Canarias y, en Cataluña, la que se sustituye en el
+  territorio de Arán (el 26 de diciembre de 2025 y de 2026 y el 29 de marzo de 2027, de «la comunidad salvo el
+  territorio de Arán») y la que la sustituye allí, el 17 de junio.
   `data/festivos/locales/13.yaml` sale de las del BOCM (fuente `bocm.fiestas-locales`; `TestFestivosLocalesDerivados`,
   en `internal/source/bocm`): los de los 179 municipios de la Comunidad de Madrid en 2025 y 2026, cada uno con sus
   festivos o, si no los tiene, con el motivo en `faltas` —hoy, uno cuya línea del boletín no se lee—, donde van

@@ -229,7 +229,9 @@ se aplica si la compacta no da ninguno, y no casa con ninguna de las entidades d
 Por cada resolución, cada fila del anexo da una fecha del año de la resolución y, por cada columna marcada, la
 comunidad con su ámbito: `nacional` con «*» o «**», `autonomico` con «***» (lo grabado contradijo a S1, que los daba al
 revés; T007, `gates/supuestos.md`). Una nota que limita la fiesta a una parte
-de una comunidad da la fila con `parte` y sin efecto en el cómputo (FR-011, FR-025). Las columnas se cruzan con las 19
+de una comunidad da la fila con `parte` y sin efecto en el cómputo (FR-011, FR-025); las notas se leen cita a cita, y
+una sustitución en una parte, como la de Arán, da dos filas con `parte`: la sustituida, del resto de la comunidad, y
+la que la sustituye (revisión final, `gates/supuestos.md`; contracts/datos-de-plazos.md §1.1). Las columnas se cruzan con las 19
 comunidades de `data/territorio/comunidades/` con la regla compacta de D13 (S2) y, como S2 no se cumplió con lo grabado,
 con las dos reglas genéricas que la siguen, sin lista de alias (T007, `gates/supuestos.md`). Una fila que no se lee sin
 interpretarla queda fuera, como en el BOCM. El test comprueba que las 19 tienen festivos cada año (FR-020: todas las

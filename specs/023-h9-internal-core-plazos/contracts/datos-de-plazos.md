@@ -33,6 +33,13 @@ festivos:
 - `ambito`: `nacional` («*» o «**») o `autonomico` («***»), los códigos de la leyenda de las tres resoluciones
   grabadas (research S1 corregido con lo grabado en T007, `gates/supuestos.md`). `parte`, solo si la resolución limita la fiesta a una parte
   de la comunidad (FR-025); esa fila no hace inhábil el día (FR-011).
+- Las notas se leen cita a cita, y la que no se lee sin interpretarla queda fuera sola. Una relación de fiestas de una
+  parte («en <parte>: el <día> de <mes>») da una fila con esa `parte` por fiesta. Una sustitución en una parte («En
+  <parte>, la fiesta del día <día> de <mes> (…) queda sustituida por la de <día> de <mes> (…)»), como la del territorio
+  de Arán de las tres resoluciones, da dos: la fiesta sustituida sale de la fila de toda la comunidad y queda con
+  `parte` «la comunidad salvo <parte>», y la que la sustituye, con `parte` «<parte>»; ninguna de las dos hace inhábil
+  el día en toda la comunidad, y la fecha es la más temprana (revisión final, `gates/supuestos.md`). Si la tabla no
+  marca la sustituida como fiesta de la comunidad («***»), la cita queda fuera.
 - Lo que comprueba la derivación: las 19 comunidades tienen festivos cada año, porque FR-020 pide los de todas las que
   trae cada resolución y una columna que no se lee no puede quedar sin rastro.
 

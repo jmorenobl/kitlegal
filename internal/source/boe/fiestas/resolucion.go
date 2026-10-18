@@ -19,10 +19,11 @@ import (
 // gates/supuestos.md): una tabla con una fila por fecha y una columna por
 // comunidad o ciudad autónoma, cuyas celdas llevan el código de la leyenda que
 // sigue a la tabla —«*» y «**», fiestas nacionales; «***», fiestas de la
-// comunidad autónoma—, y unas notas aclaratorias, de las que solo se leen las
-// que dan fiestas de una parte de la comunidad que las llama (FR-025). La fila
-// o la nota que no se lee sin interpretarla queda fuera, y se dice por qué
-// (ADR 0039, punto 3).
+// comunidad autónoma—, y unas notas aclaratorias, de cuyas citas solo se leen
+// las que limitan fiestas a una parte de la comunidad que las llama: una
+// relación de fiestas de una parte o una sustitución en una parte (FR-011,
+// FR-025). La fila, la nota o la cita que no se lee sin interpretarla queda
+// fuera, y se dice por qué (ADR 0039, punto 3).
 type Resolucion struct {
 	// Anio es el del título del anexo, «Año <aaaa>».
 	Anio int
@@ -30,12 +31,12 @@ type Resolucion struct {
 	Cabecera []Columna
 	// Filas son las filas leídas, una por fecha y en el orden de la tabla.
 	Filas []Fila
-	// Partes son las fiestas que las notas leídas limitan a una parte de la
+	// Partes son las fiestas que las citas leídas limitan a una parte de la
 	// comunidad que las llama, en el orden de las notas.
 	Partes []FiestaDeUnaParte
 	// FilasSinLeer son las filas que quedan fuera.
 	FilasSinLeer []FilaSinLeer
-	// NotasSinLeer son las notas que quedan fuera.
+	// NotasSinLeer son las notas, o las citas de una nota, que quedan fuera.
 	NotasSinLeer []NotaSinLeer
 }
 
@@ -57,7 +58,8 @@ type Fila struct {
 	// Texto es el de su primera celda, como «12 Fiesta Nacional de España.».
 	Texto string
 	// Ambitos son, uno por comunidad de la cabecera y en su orden, el ámbito de
-	// su código, o vacío si su celda no lleva ninguno.
+	// su código, o vacío si su celda no lleva ninguno o si una nota sustituye
+	// esa fiesta en una parte de la comunidad: entonces va en Partes.
 	Ambitos []plazos.Ambito
 }
 
@@ -80,7 +82,8 @@ type FilaSinLeer struct {
 	Motivo string
 }
 
-// NotaSinLeer es una nota que queda fuera entera: su número y el motivo.
+// NotaSinLeer es una nota que queda fuera entera, o una cita suya que queda
+// fuera sola: el número de la nota y el motivo, que en una cita la nombra.
 type NotaSinLeer struct {
 	Numero int
 	Motivo string
@@ -120,7 +123,17 @@ var (
 	// fiestaDeUnaParte es una entrada de la relación de una cita: «en <parte>:
 	// el <día> de <mes>», con lo que la describe detrás de una coma.
 	fiestaDeUnaParte = regexp.MustCompile(`^en (.+?): el ([0-9]{1,2}) de (\pL+)(?:,\s.+)?\.?$`)
+	// sustitucionEnUnaParte es una cita que, en una parte de la comunidad,
+	// sustituye una de sus fiestas por otra: «En <parte>, la fiesta del día
+	// <día> de <mes> (<nombre>) queda sustituida por la de <día> de <mes>
+	// (<nombre>)», con lo que la describe detrás de una coma.
+	sustitucionEnUnaParte = regexp.MustCompile(`^En (.+?), la fiesta del día ([0-9]{1,2}) de (\pL+)(?: \([^()]*\))? ` +
+		`queda sustituida por la de ([0-9]{1,2}) de (\pL+)(?: \([^()]*\))?(?:,\s.+)?\.?$`)
 )
+
+// restoDeLaComunidad precede a la parte de una sustitución en la de la fiesta
+// sustituida, que sigue siéndolo en el resto de la comunidad.
+const restoDeLaComunidad = "la comunidad salvo "
 
 // leyendaConocida es la leyenda de los códigos de las tres resoluciones
 // grabadas, con el ámbito de cada código (FR-020). Una resolución cuya leyenda
@@ -145,12 +158,13 @@ var nombresDeLosMeses = []string{
 // documento del diario tal como lo graba grabar_datos
 // (https://www.boe.es/diario_boe/txt.php?id=<id>): el año del título del anexo;
 // la cabecera de la tabla, con las llamadas a las notas; cada fila, con el
-// ámbito que la leyenda da al código de cada celda; y, de cada nota cuya cita
-// es una relación de fiestas de una parte, esas fiestas. Lo que no tiene la
-// forma de una resolución —sin texto, sin título del anexo, sin una tabla con
-// cabecera y cuerpo, sin la leyenda conocida, con otra cosa tras la tabla— es
-// un error: no hay nada que leer. La fila o la nota que no se lee sin
-// interpretarla queda fuera, con su motivo (ADR 0039, punto 3).
+// ámbito que la leyenda da al código de cada celda; y, de cada cita de una nota
+// que es una relación de fiestas de una parte o una sustitución en una parte,
+// esas fiestas. Lo que no tiene la forma de una resolución —sin texto, sin
+// título del anexo, sin una tabla con cabecera y cuerpo, sin la leyenda
+// conocida, con otra cosa tras la tabla— es un error: no hay nada que leer. La
+// fila, la nota o la cita que no se lee sin interpretarla queda fuera, con su
+// motivo (ADR 0039, punto 3).
 func LeerResolucion(contenido []byte) (Resolucion, error) {
 	texto, err := leerElTexto(contenido)
 	if err != nil {
@@ -558,24 +572,31 @@ func (r *Resolucion) dejarFuera(texto, motivo string) {
 	r.FilasSinLeer = append(r.FilasSinLeer, FilaSinLeer{Texto: texto, Motivo: motivo})
 }
 
-// leerNotas lee de cada nota las fiestas de una parte, o la deja fuera entera.
+// leerNotas lee las citas de cada nota, una a una: la que limita fiestas a una
+// parte de la comunidad da esas fiestas, y la que no se lee sin interpretarla
+// queda fuera sola, porque cada cita es una disposición distinta. La nota que
+// no es de una comunidad o que no transcribe sus citas queda fuera entera.
 func (r *Resolucion) leerNotas(notas []nota) {
 	for _, leida := range notas {
-		partes, motivo := r.partesDeLaNota(leida)
+		columna, citas, motivo := r.citasDeLaNota(leida)
 		if motivo != "" {
 			r.NotasSinLeer = append(r.NotasSinLeer, NotaSinLeer{Numero: leida.numero, Motivo: motivo})
 
 			continue
 		}
 
-		r.Partes = append(r.Partes, partes...)
+		for _, cita := range citas {
+			if motivo := r.leerCita(cita, columna, leida.numero); motivo != "" {
+				r.NotasSinLeer = append(r.NotasSinLeer, NotaSinLeer{Numero: leida.numero, Motivo: motivo})
+			}
+		}
 	}
 }
 
-// partesDeLaNota son las fiestas de una parte de una nota a la que llama una
-// sola comunidad y cuyas citas son todas relaciones de fiestas de una parte, o
-// el motivo por el que la nota no se lee.
-func (r *Resolucion) partesDeLaNota(leida nota) ([]FiestaDeUnaParte, string) {
+// citasDeLaNota son la posición de la única comunidad de la cabecera que llama
+// a una nota y las citas que la nota transcribe de su disposición, o el motivo
+// por el que la nota no se lee.
+func (r *Resolucion) citasDeLaNota(leida nota) (int, []string, string) {
 	var llaman []int
 
 	for indice, columna := range r.Cabecera {
@@ -586,29 +607,72 @@ func (r *Resolucion) partesDeLaNota(leida nota) ([]FiestaDeUnaParte, string) {
 
 	switch len(llaman) {
 	case 0:
-		return nil, "ninguna comunidad de la cabecera la llama"
+		return 0, nil, "ninguna comunidad de la cabecera la llama"
 	case 1:
 	default:
-		return nil, fmt.Sprintf("la llaman %d comunidades de la cabecera, y es de una", len(llaman))
+		return 0, nil, fmt.Sprintf("la llaman %d comunidades de la cabecera, y es de una", len(llaman))
 	}
 
 	citas := citaDeLaNota.FindAllStringSubmatch(leida.texto, -1)
 	if len(citas) == 0 || strings.Count(leida.texto, "«") != len(citas) || strings.Count(leida.texto, "»") != len(citas) {
-		return nil, "no transcribe la disposición de la comunidad entre comillas que se cierran"
+		return 0, nil, "no transcribe la disposición de la comunidad entre comillas que se cierran"
 	}
 
-	var partes []FiestaDeUnaParte
-
+	textos := make([]string, 0, len(citas))
 	for _, cita := range citas {
-		deLaCita, motivo := r.relacionDePartes(cita[1], llaman[0], leida.numero)
-		if motivo != "" {
-			return nil, motivo
-		}
-
-		partes = append(partes, deLaCita...)
+		textos = append(textos, cita[1])
 	}
 
-	return partes, ""
+	return llaman[0], textos, ""
+}
+
+// leerCita lee una cita de una nota que llama la comunidad de una columna, si
+// es una sustitución en una parte o una relación de fiestas de una parte, o da
+// el motivo por el que no se lee.
+func (r *Resolucion) leerCita(cita string, columna, numero int) string {
+	if sustitucion := sustitucionEnUnaParte.FindStringSubmatch(cita); sustitucion != nil {
+		return r.sustituir(cita, sustitucion, columna, numero)
+	}
+
+	partes, motivo := r.relacionDePartes(cita, columna, numero)
+	if motivo != "" {
+		return motivo
+	}
+
+	r.Partes = append(r.Partes, partes...)
+
+	return ""
+}
+
+// sustituir aplica una sustitución en una parte (FR-011, FR-025): la fiesta
+// sustituida deja de ser de toda la comunidad y queda como fiesta del resto de
+// ella, y la que la sustituye, como fiesta de la parte; ninguna de las dos hace
+// inhábil el día en toda la comunidad. Solo se aplica si la tabla marca la
+// sustituida como fiesta de la comunidad en su columna; si no, o si un día no
+// existe en el año, da el motivo.
+func (r *Resolucion) sustituir(cita string, sustitucion []string, columna, numero int) string {
+	sustituida, existe := fechaDelTexto(r.Anio, sustitucion[2], sustitucion[3])
+	nueva, existeNueva := fechaDelTexto(r.Anio, sustitucion[4], sustitucion[5])
+
+	if !existe || !existeNueva {
+		return fmt.Sprintf("«%s» no da dos días de %d", cita, r.Anio)
+	}
+
+	fila := slices.IndexFunc(r.Filas, func(f Fila) bool {
+		return f.Fecha == sustituida && f.Ambitos[columna] == plazos.AmbitoAutonomico
+	})
+	if fila < 0 {
+		return fmt.Sprintf("«%s» sustituye el %s, que la tabla no marca como fiesta de %s", cita, sustituida,
+			r.Cabecera[columna].Nombre)
+	}
+
+	parte := sustitucion[1]
+	r.Filas[fila].Ambitos[columna] = ""
+	r.Partes = append(r.Partes,
+		FiestaDeUnaParte{Fecha: sustituida, Parte: restoDeLaComunidad + parte, Columna: columna, Nota: numero},
+		FiestaDeUnaParte{Fecha: nueva, Parte: parte, Columna: columna, Nota: numero})
+
+	return ""
 }
 
 // relacionDePartes lee una cita que, tras sus primeros dos puntos, es una
@@ -628,10 +692,8 @@ func (r *Resolucion) relacionDePartes(cita string, columna, numero int) ([]Fiest
 			return nil, fmt.Sprintf("«%s» no es una fiesta de una parte, «en <parte>: el <día> de <mes>»", entrada)
 		}
 
-		mes, esMes := mesDe(fiesta[3])
-		fecha, existe := fechaDe(r.Anio, mes, numeroDe(fiesta[2]))
-
-		if !esMes || !existe {
+		fecha, existe := fechaDelTexto(r.Anio, fiesta[2], fiesta[3])
+		if !existe {
 			return nil, fmt.Sprintf("«%s» no da un día de %d", entrada, r.Anio)
 		}
 
@@ -656,6 +718,17 @@ func fechaDe(anio int, mes time.Month, dia int) (string, bool) {
 	}
 
 	return fecha.Format(time.DateOnly), true
+}
+
+// fechaDelTexto es, como AAAA-MM-DD, el día de un año que una cita escribe con
+// sus cifras y el nombre de su mes, si existe.
+func fechaDelTexto(anio int, dia, mes string) (string, bool) {
+	delMes, esMes := mesDe(mes)
+	if !esMes {
+		return "", false
+	}
+
+	return fechaDe(anio, delMes, numeroDe(dia))
 }
 
 // numeroDe es el valor de unas cifras ASCII, las que casan las expresiones de
