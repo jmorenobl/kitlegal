@@ -16,6 +16,7 @@ import (
 
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cache"
+	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 	"github.com/jmorenobl/kitlegal/internal/skills"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
@@ -37,9 +38,9 @@ const (
 	// de la Ley sobre Tráfico (contracts/datos-de-plazos.md §4.1 de H9).
 	entradasMinimasDelManifiestoDeH9 = 7
 
-	// grabacionDeRobots es el único nombre de fichero que comparten los
-	// conjuntos de grabaciones de H4 y de H5: la grabación de robots.txt, que la
-	// reproducción no usa (data-model §7.3).
+	// grabacionDeRobots es el único nombre de fichero que comparten, dos a dos,
+	// los conjuntos de grabaciones de H4, de H5 y de H9: la grabación de
+	// robots.txt, que la reproducción no usa (data-model §7.3).
 	grabacionDeRobots = "GET_https_www.boe.es_robots.txt.json"
 )
 
@@ -256,27 +257,36 @@ func TestManifiestoDeGrabaciones(t *testing.T) {
 	}
 }
 
-// TestGrabacionesSinSolape comprueba que los conjuntos de grabaciones de H4 y de
-// H5 solo comparten el nombre de la grabación de robots.txt (contrato
-// evals-y-grabaciones §3.4; data-model §7.3). Cualquier otro nombre común haría
-// que, en la unión que copia Preparar, la grabación de H5 sustituyera sin avisar
-// a la de H4, que es de H4 y que H5 solo lee.
+// TestGrabacionesSinSolape comprueba que la unión son los conjuntos de
+// grabaciones de H4, de H5 y de H9, en ese orden, y que, dos a dos, solo
+// comparten el nombre de la grabación de robots.txt (contrato
+// evals-y-grabaciones §3.4; data-model §7.3; research D15 de H9). Cualquier
+// otro nombre común haría que, en la unión que copia Preparar, la grabación de
+// un conjunto sustituyera sin avisar a la de uno anterior, que es de su hito y
+// que los siguientes solo leen.
 func TestGrabacionesSinSolape(t *testing.T) {
 	t.Parallel()
 
-	deH4 := nombresDeLasGrabaciones(t, GrabacionesDeH4)
-	deH5 := nombresDeLasGrabaciones(t, GrabacionesDeH5)
+	conjuntos := UnionDeGrabaciones()
+	require.Equal(t, []string{GrabacionesDeH4, GrabacionesDeH5, GrabacionesDeH9}, conjuntos,
+		"la unión son los conjuntos de H4, H5 y H9, cada uno encima del anterior")
 
-	var comunes []string
+	for posicion, anterior := range conjuntos {
+		delAnterior := nombresDeLasGrabaciones(t, anterior)
 
-	for _, nombre := range deH5 {
-		if slices.Contains(deH4, nombre) {
-			comunes = append(comunes, nombre)
+		for _, posterior := range conjuntos[posicion+1:] {
+			var comunes []string
+
+			for _, nombre := range nombresDeLasGrabaciones(t, posterior) {
+				if slices.Contains(delAnterior, nombre) {
+					comunes = append(comunes, nombre)
+				}
+			}
+
+			assert.Equal(t, []string{grabacionDeRobots}, comunes,
+				"los conjuntos de grabaciones %s y %s solo coinciden en %s", anterior, posterior, grabacionDeRobots)
 		}
 	}
-
-	assert.Equal(t, []string{grabacionDeRobots}, comunes,
-		"los conjuntos de grabaciones %s y %s solo coinciden en %s", GrabacionesDeH4, GrabacionesDeH5, grabacionDeRobots)
 }
 
 // TestDirectorioDeLosGrafosPrevios fija dónde están los conjuntos de grabaciones
@@ -743,4 +753,507 @@ func nombresDeLasGrabaciones(t *testing.T, conjunto string) []string {
 	}
 
 	return nombres
+}
+
+// Lo que TestPreceptosDeLosPlazos lee del repositorio (contracts/datos-de-plazos.md
+// §4.2 de H9), relativo al directorio de este paquete, que es donde go test
+// ejecuta sus tests (research.md V46).
+const (
+	// tiposDelRepositorio es data/plazos.yaml, los tipos de plazo.
+	tiposDelRepositorio = "../../data/plazos.yaml"
+
+	// coberturaDelRepositorio es data/cobertura.yaml, la cobertura por materia.
+	coberturaDelRepositorio = "../../data/cobertura.yaml"
+)
+
+// identificadorDelTextoRefundidoDeTrafico es el del texto refundido de la Ley
+// sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial, que la
+// tabla de las palabras clave necesita para leer su art. 1: el que resuelve la
+// búsqueda grabada de su entrada del manifiesto de H9 (research S5 de H9).
+// data/cobertura.yaml no lo toma de aquí: TestPreceptosDeLosPlazos le exige el
+// que resuelve esa búsqueda.
+const identificadorDelTextoRefundidoDeTrafico = "BOE-A-2015-11722"
+
+// palabrasDeUnPrecepto son las palabras clave de un precepto del cómputo o de
+// la cobertura: las que tiene que llevar el texto grabado de su bloque.
+type palabrasDeUnPrecepto struct {
+	// precepto lo nombra en los defectos, como «art. 30 LPAC».
+	precepto string
+
+	// norma y bloque son los del bloque que lo contiene.
+	norma, bloque string
+
+	// palabras son las que lleva su texto, tal cual.
+	palabras []string
+}
+
+// palabrasClaveDeLosPreceptos es la tabla de contracts/datos-de-plazos.md §4.2
+// de H9, con lo que lo grabado corrigió de lo que el plan recordaba (research
+// S4 de H9): el art. 30 LPAC dice de los días que «éstos son hábiles», y el
+// art. 182.1 LOPJ no enumera el 24 y el 31 de diciembre. Devuelve una tabla
+// nueva en cada llamada.
+func palabrasClaveDeLosPreceptos() []palabrasDeUnPrecepto {
+	const (
+		lpac   = "BOE-A-2015-10565"
+		ljca   = "BOE-A-1998-16718"
+		lopj   = "BOE-A-1985-12666"
+		ltaibg = "BOE-A-2013-12887"
+	)
+
+	return []palabrasDeUnPrecepto{
+		{precepto: "art. 30 LPAC", norma: lpac, bloque: "a30", palabras: []string{
+			"sábados", "domingos", "éstos son hábiles", "mismo día", "último día del mes", "prorrogado",
+		}},
+		{precepto: "art. 21 LPAC", norma: lpac, bloque: "a21", palabras: []string{"entrada en el registro"}},
+		{precepto: "art. 24 LPAC", norma: lpac, bloque: "a24", palabras: []string{"vencimiento del plazo máximo"}},
+		{precepto: "DA 1ª LPAC", norma: lpac, bloque: "daprimera", palabras: []string{
+			"aplicación de los tributos", "Seguridad Social", "tráfico y seguridad vial", "extranjería y asilo",
+		}},
+		{precepto: "art. 112 LPAC", norma: lpac, bloque: "a112", palabras: []string{
+			"recurso de alzada", "reclamaciones económico-administrativas",
+		}},
+		{precepto: "art. 128 LJCA", norma: ljca, bloque: "a128", palabras: []string{"agosto"}},
+		{precepto: "art. 182 LOPJ", norma: lopj, bloque: "acientoochentaydos", palabras: []string{
+			"sábados y domingos", "fiesta nacional", "festivos a efectos laborales",
+		}},
+		{precepto: "art. 183 LOPJ", norma: lopj, bloque: "acientoochentaytres", palabras: []string{
+			"24 de diciembre", "6 de enero",
+		}},
+		{precepto: "art. 185 LOPJ", norma: lopj, bloque: "acientoochentaycinco", palabras: []string{
+			"Código Civil", "prorrogado",
+		}},
+		{precepto: "art. 5 CC", norma: "BOE-A-1889-4763", bloque: "art5", palabras: []string{"de fecha a fecha"}},
+		{precepto: "art. 97 LGT", norma: "BOE-A-2003-23186", bloque: "a97", palabras: []string{
+			"aplicación de los tributos",
+		}},
+		{
+			precepto: "art. 1 del texto refundido de Tráfico", norma: identificadorDelTextoRefundidoDeTrafico,
+			bloque: "a1", palabras: []string{"sancion"},
+		},
+		{precepto: "art. 24 LTAIBG", norma: ltaibg, bloque: "a24", palabras: []string{
+			"un mes", "Consejo de Transparencia y Buen Gobierno",
+		}},
+	}
+}
+
+// TestPreceptosDeLosPlazos comprueba sin red los preceptos de data/plazos.yaml
+// y de data/cobertura.yaml contra lo grabado del BOE (contracts/datos-de-plazos.md
+// §4.2 de H9; FR-008, FR-010, FR-030, FR-031; research D16 de H9), con
+// verificarPreceptos: cada bloque está grabado, cada precepto que fija la
+// duración de un tipo la dice en palabras en su apartado, cada norma de la
+// cobertura es la que resuelve su búsqueda grabada y el texto de cada precepto
+// de la tabla lleva sus palabras clave. Los subtests rompen copias temporales de
+// los dos ficheros o de la tabla y exigen que la verificación falle nombrando
+// el precepto y lo que falta: una duración que el texto no dice, un bloque sin
+// grabar, una palabra que el texto no lleva y una norma que ninguna búsqueda
+// grabada resuelve.
+func TestPreceptosDeLosPlazos(t *testing.T) {
+	t.Parallel()
+
+	require.NoError(t, verificarPreceptos(t, tiposDelRepositorio, coberturaDelRepositorio, palabrasClaveDeLosPreceptos()),
+		"los preceptos de %s y de %s contra lo grabado", tiposDelRepositorio, coberturaDelRepositorio)
+
+	tipos := string(contenidoDelFichero(t, tiposDelRepositorio))
+	cobertura := string(contenidoDelFichero(t, coberturaDelRepositorio))
+
+	conOtraPalabra := palabrasClaveDeLosPreceptos()
+	posicion := slices.IndexFunc(conOtraPalabra, func(fila palabrasDeUnPrecepto) bool { return fila.bloque == "a128" })
+	require.GreaterOrEqual(t, posicion, 0, "la tabla tiene el art. 128 LJCA")
+	conOtraPalabra[posicion].palabras = []string{"septiembre"}
+
+	const reposicion = "codigo: reposicion\n    nombre: recurso potestativo de reposición\n    computo: lpac\n" +
+		"    duracion: {cantidad: "
+
+	casos := []struct {
+		nombre    string
+		tipos     string
+		cobertura string
+		tabla     []palabrasDeUnPrecepto
+		defecto   string
+	}{
+		{
+			nombre:    "duracion-que-el-texto-no-dice",
+			tipos:     sustituida(t, tipos, reposicion+"1,", reposicion+"2,"),
+			cobertura: cobertura,
+			tabla:     palabrasClaveDeLosPreceptos(),
+			defecto: "reposicion: BOE-A-2015-10565 a124, apartado 124.1: " +
+				"el párrafo del apartado no lleva «dos meses»",
+		},
+		{
+			nombre:    "bloque-sin-grabar",
+			tipos:     sustituida(t, tipos, "bloque: a128,", "bloque: a129,"),
+			cobertura: cobertura,
+			tabla:     palabrasClaveDeLosPreceptos(),
+			defecto: "contencioso: BOE-A-1998-16718 a129 no está grabado: " +
+				"«boe articulo BOE-A-1998-16718 a129» terminó con código ",
+		},
+		{
+			nombre:    "palabra-que-el-texto-no-lleva",
+			tipos:     tipos,
+			cobertura: cobertura,
+			tabla:     conOtraPalabra,
+			defecto:   "art. 128 LJCA (BOE-A-1998-16718 a128): el texto grabado no lleva «septiembre»",
+		},
+		{
+			nombre: "norma-sin-busqueda",
+			tipos:  tipos,
+			cobertura: sustituida(t, cobertura, "identificador: "+identificadorDelTextoRefundidoDeTrafico,
+				"identificador: "+identificadorSinBusqueda),
+			tabla: palabrasClaveDeLosPreceptos(),
+			defecto: "procedimientos sancionadores en materia de tráfico y seguridad vial: " + identificadorSinBusqueda +
+				": ninguna entrada del manifiesto de H9 lo resuelve",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			copias := t.TempDir()
+			copiaDeLosTipos := filepath.Join(copias, "plazos.yaml")
+			copiaDeLaCobertura := filepath.Join(copias, "cobertura.yaml")
+
+			require.NoError(t, escribirFichero(copiaDeLosTipos, []byte(caso.tipos)))
+			require.NoError(t, escribirFichero(copiaDeLaCobertura, []byte(caso.cobertura)))
+
+			require.ErrorContains(t, verificarPreceptos(t, copiaDeLosTipos, copiaDeLaCobertura, caso.tabla), caso.defecto)
+		})
+	}
+}
+
+// lecturaDeUnPrecepto es un bloque que nombran data/plazos.yaml,
+// data/cobertura.yaml o la tabla de las palabras clave: quién lo nombra —el
+// código del tipo, el procedimiento o el precepto de la tabla—, su norma, su
+// bloque y su apartado y, si fija la duración del tipo, esa duración.
+type lecturaDeUnPrecepto struct {
+	quien, norma, bloque, apartado string
+	duracion                       *plazos.Duracion
+}
+
+// verificarPreceptos comprueba sin red los tipos de rutaDeLosTipos y la
+// cobertura de rutaDeLaCobertura contra lo grabado, con la tabla de las
+// palabras clave (contracts/datos-de-plazos.md §4.2 de H9), y devuelve los
+// defectos unidos:
+//
+//  1. lee los tipos con plazos.LeerTipos y la cobertura con
+//     skills.LeerCobertura, y devuelve su error tal cual;
+//  2. prepara una caché desde UnionDeGrabaciones con boe articulo de cada
+//     bloque que nombran los dos ficheros y la tabla, y lee de ella el texto de
+//     cada uno (leerLosBloques): cada bloque sin grabar es un defecto por cada
+//     tipo, procedimiento o fila que lo nombra;
+//  3. en cada precepto que fija la duración de un tipo, el párrafo de su
+//     apartado la lleva en palabras (comprobarLaDuracion);
+//  4. cada norma de la cobertura la resuelve una sola entrada del manifiesto de
+//     H9 (verificarLasNormasDeLaCobertura);
+//  5. el texto de cada fila de la tabla lleva cada una de sus palabras
+//     (comprobarLasPalabras).
+//
+// Lo que impide verificar, un fichero que no se lee o una caché que no se
+// prepara, hace fallar el test.
+func verificarPreceptos(t *testing.T, rutaDeLosTipos, rutaDeLaCobertura string, tabla []palabrasDeUnPrecepto) error {
+	t.Helper()
+
+	tipos, err := plazos.LeerTipos(contenidoDelFichero(t, rutaDeLosTipos))
+	if err != nil {
+		return err
+	}
+
+	cobertura, err := skills.LeerCobertura(contenidoDelFichero(t, rutaDeLaCobertura))
+	if err != nil {
+		return err
+	}
+
+	lecturas := slices.Concat(lecturasDeLosTipos(tipos), lecturasDeLaCobertura(cobertura), lecturasDeLaTabla(tabla))
+	textos, defectos := leerLosBloques(t, lecturas)
+
+	for _, lectura := range lecturas {
+		texto, leido := textos[claveDelBloque(lectura.norma, lectura.bloque)]
+		if leido && lectura.duracion != nil {
+			if err := comprobarLaDuracion(lectura, texto); err != nil {
+				defectos = append(defectos, err)
+			}
+		}
+	}
+
+	defectos = append(defectos, verificarLasNormasDeLaCobertura(t, cobertura)...)
+
+	for _, fila := range tabla {
+		if texto, leido := textos[claveDelBloque(fila.norma, fila.bloque)]; leido {
+			defectos = append(defectos, comprobarLasPalabras(fila, texto)...)
+		}
+	}
+
+	return errors.Join(defectos...)
+}
+
+// lecturasDeLosTipos son los preceptos de cada tipo, en el orden del fichero:
+// los de preceptos, con la duración del tipo en el que la fija, y los de sus
+// unidades, en el orden de plazos.Unidades.
+func lecturasDeLosTipos(tipos []plazos.Tipo) []lecturaDeUnPrecepto {
+	var lecturas []lecturaDeUnPrecepto
+
+	for _, tipo := range tipos {
+		for _, precepto := range tipo.Preceptos {
+			lectura := lecturaDeUnPrecepto{
+				quien: tipo.Codigo, norma: precepto.Norma, bloque: precepto.Bloque, apartado: precepto.Apartado,
+			}
+			if precepto.Fija == plazos.FijaDuracion {
+				lectura.duracion = tipo.Duracion
+			}
+
+			lecturas = append(lecturas, lectura)
+		}
+
+		for _, unidad := range plazos.Unidades() {
+			if precepto, esta := tipo.Unidades[unidad]; esta {
+				lecturas = append(lecturas, lecturaDeUnPrecepto{
+					quien: tipo.Codigo, norma: precepto.Norma, bloque: precepto.Bloque, apartado: precepto.Apartado,
+				})
+			}
+		}
+	}
+
+	return lecturas
+}
+
+// lecturasDeLaCobertura son, de cada entrada de la cobertura en su orden, el
+// precepto de la LPAC que la regula aparte y, si la lleva, el precepto
+// aplicable de la norma que la rige.
+func lecturasDeLaCobertura(cobertura skills.Cobertura) []lecturaDeUnPrecepto {
+	var lecturas []lecturaDeUnPrecepto
+
+	for _, regulado := range cobertura.ReguladosAparte {
+		lecturas = append(lecturas, lecturaDeUnPrecepto{
+			quien: regulado.Procedimiento, norma: regulado.Precepto.Norma, bloque: regulado.Precepto.Bloque,
+			apartado: regulado.Precepto.Apartado,
+		})
+
+		if norma := regulado.Norma; norma != nil {
+			lecturas = append(lecturas, lecturaDeUnPrecepto{
+				quien: regulado.Procedimiento, norma: norma.Identificador, bloque: norma.Aplicable.Bloque,
+				apartado: norma.Aplicable.Apartado,
+			})
+		}
+	}
+
+	return lecturas
+}
+
+// lecturasDeLaTabla son los bloques de las filas de la tabla de las palabras
+// clave, cada uno nombrado por su precepto.
+func lecturasDeLaTabla(tabla []palabrasDeUnPrecepto) []lecturaDeUnPrecepto {
+	lecturas := make([]lecturaDeUnPrecepto, 0, len(tabla))
+	for _, fila := range tabla {
+		lecturas = append(lecturas, lecturaDeUnPrecepto{quien: fila.precepto, norma: fila.norma, bloque: fila.bloque})
+	}
+
+	return lecturas
+}
+
+// consultaDelBloque es la invocación de boe articulo con la norma y el bloque.
+func consultaDelBloque(norma, bloque string) Consulta {
+	return Consulta{Applet: appletDeLasNormas, Verbo: verboArticulo, Argumentos: []string{norma, bloque}}
+}
+
+// claveDelBloque identifica el bloque de una norma entre los leídos: la orden
+// que lo lee.
+func claveDelBloque(norma, bloque string) string {
+	return ordenDe(consultaDelBloque(norma, bloque))
+}
+
+// leerLosBloques prepara con Preparar una caché desde UnionDeGrabaciones con
+// boe articulo de cada bloque de las lecturas, sin repetir y en su orden, y
+// lee de ella el texto de cada uno que está grabado, por su claveDelBloque.
+// Cada bloque que no lo está es un defecto por cada lectura que lo nombra, con
+// la falta de Preparar, que dice la orden, su código y lo que no estaba grabado.
+func leerLosBloques(t *testing.T, lecturas []lecturaDeUnPrecepto) (map[string]string, []error) {
+	t.Helper()
+
+	var consultas []Consulta
+
+	for _, lectura := range lecturas {
+		clave := claveDelBloque(lectura.norma, lectura.bloque)
+		if !slices.ContainsFunc(consultas, func(consulta Consulta) bool { return ordenDe(consulta) == clave }) {
+			consultas = append(consultas, consultaDelBloque(lectura.norma, lectura.bloque))
+		}
+	}
+
+	dirCache := t.TempDir()
+
+	faltas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+	require.NoError(t, err, "la caché de los preceptos se prepara desde %s", strings.Join(UnionDeGrabaciones(), " y "))
+
+	sinGrabar := make(map[string]Falta, len(faltas))
+	for _, falta := range faltas {
+		sinGrabar[ordenDe(falta.Consulta)] = falta
+	}
+
+	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	textos := make(map[string]string, len(consultas))
+
+	for _, consulta := range consultas {
+		if _, falta := sinGrabar[ordenDe(consulta)]; !falta {
+			textos[ordenDe(consulta)] = textoDelBloque(t, registro, consulta)
+		}
+	}
+
+	var defectos []error
+
+	for _, lectura := range lecturas {
+		if falta, esta := sinGrabar[claveDelBloque(lectura.norma, lectura.bloque)]; esta {
+			defectos = append(defectos, fmt.Errorf("%s: %s %s no está grabado: %s",
+				lectura.quien, lectura.norma, lectura.bloque, falta))
+		}
+	}
+
+	return textos, defectos
+}
+
+// textoDelBloque lee con app.Main, --json y --offline el bloque de la consulta
+// de la caché del registro, que ya lo tiene, y devuelve su texto. Un código
+// distinto de 0, una salida que no se lee o un texto vacío hacen fallar el test.
+func textoDelBloque(t *testing.T, registro *app.Registro, consulta Consulta) string {
+	t.Helper()
+
+	var salida, errores bytes.Buffer
+
+	argv := slices.Concat([]string{programaDeLasConsultas, consulta.Applet, consulta.Verbo}, consulta.Argumentos,
+		[]string{"--json", "--offline"})
+	codigo := app.Main(argv, registro, &salida, &errores,
+		sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+	require.Zero(t, codigo, "«%s» se lee de la caché preparada: %s", ordenDe(consulta), errores.String())
+
+	var sobre struct {
+		Data boe.Articulo `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre), "la salida de «%s»", ordenDe(consulta))
+	require.NotEmpty(t, sobre.Data.Texto, "«%s» da el texto del bloque", ordenDe(consulta))
+
+	return sobre.Data.Texto
+}
+
+// duracionEnPalabras es la duración de un tipo como la escribe la norma: «un
+// mes» con 1 mes y «dos meses» con 2 (contracts/datos-de-plazos.md §4.2 de H9,
+// punto 2). Ninguna otra tiene forma fijada.
+func duracionEnPalabras(duracion plazos.Duracion) (string, bool) {
+	if duracion.Unidad != plazos.UnidadMeses {
+		return "", false
+	}
+
+	switch duracion.Cantidad {
+	case 1:
+		return "un mes", true
+	case 2:
+		return "dos meses", true
+	default:
+		return "", false
+	}
+}
+
+// parrafoDelApartado es el párrafo del texto de un bloque que es el de un
+// apartado (punto 2): con un número tras el punto, como «124.1», la línea que
+// empieza por ese número y un punto, «1.»; sin él, como «97», el bloque entero.
+// Si ninguna línea empieza así, no hay párrafo.
+func parrafoDelApartado(texto, apartado string) (string, bool) {
+	_, numero, conNumero := strings.Cut(apartado, ".")
+	if !conNumero {
+		return texto, true
+	}
+
+	for linea := range strings.Lines(texto) {
+		if strings.HasPrefix(linea, numero+".") {
+			return linea, true
+		}
+	}
+
+	return "", false
+}
+
+// comprobarLaDuracion exige que el párrafo del apartado de la lectura lleve en
+// palabras la duración que fija. El defecto nombra el tipo, la norma, el
+// bloque, el apartado y la duración en palabras que falta.
+func comprobarLaDuracion(lectura lecturaDeUnPrecepto, texto string) error {
+	precepto := fmt.Sprintf("%s: %s %s, apartado %s", lectura.quien, lectura.norma, lectura.bloque, lectura.apartado)
+
+	palabras, conForma := duracionEnPalabras(*lectura.duracion)
+	if !conForma {
+		return fmt.Errorf("%s: la duración de %d %s no tiene forma en palabras fijada", precepto,
+			lectura.duracion.Cantidad, lectura.duracion.Unidad)
+	}
+
+	parrafo, esta := parrafoDelApartado(texto, lectura.apartado)
+	if !esta {
+		return fmt.Errorf("%s: ninguna línea del texto grabado es la del apartado", precepto)
+	}
+
+	if !strings.Contains(parrafo, palabras) {
+		return fmt.Errorf("%s: el párrafo del apartado no lleva «%s»", precepto, palabras)
+	}
+
+	return nil
+}
+
+// comprobarLasPalabras da un defecto por cada palabra de la fila que el texto
+// grabado de su bloque no lleva, tal cual, con el precepto, la norma y el
+// bloque.
+func comprobarLasPalabras(fila palabrasDeUnPrecepto, texto string) []error {
+	var defectos []error
+
+	for _, palabra := range fila.palabras {
+		if !strings.Contains(texto, palabra) {
+			defectos = append(defectos, fmt.Errorf("%s (%s %s): el texto grabado no lleva «%s»",
+				fila.precepto, fila.norma, fila.bloque, palabra))
+		}
+	}
+
+	return defectos
+}
+
+// verificarLasNormasDeLaCobertura resuelve cada entrada del manifiesto de H9
+// con su búsqueda grabada, como TestIdentificadoresDeLasNormas, y exige a cada
+// norma de la cobertura exactamente una entrada que la resuelva (punto 3;
+// FR-031): su identificador sale de lo grabado y no de memoria (research S5 de
+// H9). Una entrada que no se resuelve es un defecto, y uno cada norma que
+// ninguna o más de una resuelven, con su procedimiento.
+func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) []error {
+	t.Helper()
+
+	manifiesto, err := LeerManifiesto(contenidoDelFichero(t, rutaDelManifiestoJuntoA(GrabacionesDeH9)))
+	require.NoError(t, err)
+
+	registro := registroDeLaReproduccion(t, copiaDeLaUnionDeGrabaciones(t))
+	resueltas := make(map[string]int, len(manifiesto.Normas))
+
+	var defectos []error
+
+	for indice, entrada := range manifiesto.Normas {
+		resuelta, err := resolverEntrada(registro, indice, entrada)
+		if err != nil {
+			defectos = append(defectos, err)
+
+			continue
+		}
+
+		resueltas[resuelta.resultado.Identificador]++
+	}
+
+	for _, regulado := range cobertura.ReguladosAparte {
+		if regulado.Norma == nil {
+			continue
+		}
+
+		switch entradas := resueltas[regulado.Norma.Identificador]; entradas {
+		case 1:
+		case 0:
+			defectos = append(defectos, fmt.Errorf("%s: %s: ninguna entrada del manifiesto de H9 lo resuelve",
+				regulado.Procedimiento, regulado.Norma.Identificador))
+		default:
+			defectos = append(defectos, fmt.Errorf("%s: %s: lo resuelven %d entradas del manifiesto de H9, "+
+				"y tiene que ser una sola", regulado.Procedimiento, regulado.Norma.Identificador, entradas))
+		}
+	}
+
+	return defectos
 }

@@ -380,15 +380,29 @@ func casosDelContencioso() []casoDeComputo {
 			fecha:    "2031-10-31",
 		},
 		{
-			nombre:   "art. 182.1: el 24 de diciembre es inhábil y la prórroga salta la Navidad",
+			// El art. 182.1 LOPJ grabado no enumera el 24 ni el 31 de diciembre
+			// entre los inhábiles (research S4 de H9): el plazo acaba en ellos.
+			nombre:   "art. 182.1: el 24 de diciembre no es inhábil",
 			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-24", Municipios: los(villaPrimera)},
+			fecha:    "2031-12-24",
+			avisos:   []string{AvisoDiasDelArt183},
+		},
+		{
+			nombre:   "art. 182.1: el 31 de diciembre no es inhábil",
+			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-31", Municipios: los(villaPrimera)},
+			fecha:    "2031-12-31",
+			avisos:   []string{AvisoDiasDelArt183},
+		},
+		{
+			nombre:   "art. 185.2: la prórroga salta la Navidad",
+			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-25", Municipios: los(villaPrimera)},
 			fecha:    "2031-12-26",
 			festivos: []FestivoSaltado{festivoNacional("2031-12-25", "PRUEBA-N-2031")},
 			avisos:   []string{AvisoDiasDelArt183},
 		},
 		{
-			nombre:   "art. 182.1: el 31 de diciembre es inhábil y la prórroga cambia de año",
-			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-31", Municipios: los(villaPrimera)},
+			nombre:   "art. 185.2: la prórroga cambia de año",
+			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-11-01", Municipios: los(villaPrimera)},
 			fecha:    "2032-01-02",
 			festivos: []FestivoSaltado{festivoNacional("2032-01-01", "PRUEBA-N-2032")},
 			avisos:   []string{AvisoFaltanLocales, AvisoDiasDelArt183},
@@ -543,7 +557,7 @@ func casosDeAvisos() []casoDeAvisos {
 		casoDeAvisos{
 			nombre:   "el art. 183 solo avisa en el contencioso",
 			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2031-10-24", Municipios: los(villaPrimera)},
-			fecha:    "2031-12-26",
+			fecha:    "2031-12-24",
 			avisos: []Aviso{{Codigo: AvisoDiasDelArt183, Texto: "⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días " +
 				"del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones " +
 				"judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los " +
@@ -848,21 +862,52 @@ func comprobarElUltimoDia(t *testing.T, calendario *Calendario, tipos []Tipo) {
 		"el día siguiente del silencio": {
 			Tipo: TipoSilencio, Inicio: "9999-12-30", Duracion: "1", Unidad: "dias-naturales", Municipios: dos,
 		},
-		"el contencioso":              {Tipo: TipoContencioso, Inicio: "9999-11-15", Municipios: los(villaPrimera)},
-		"la prórroga del contencioso": {Tipo: TipoContencioso, Inicio: "9999-10-31", Municipios: los(villaPrimera)},
+		"el contencioso": {Tipo: TipoContencioso, Inicio: "9999-11-15", Municipios: los(villaPrimera)},
 	} {
 		t.Run(nombre, func(t *testing.T) {
 			t.Parallel()
 
-			plazo, err := Calcular(calendario, tipos, peticion)
-			require.Error(t, err)
-			assert.Equal(t, Plazo{}, plazo)
-			comprobarClaseArgumentos(t, err)
-			assert.Contains(t, err.Error(), "9999-12-31")
-			assert.Contains(t, err.Error(), peticion.Inicio)
-			assert.NoError(t, ComprobarPeticion(tipos, peticion))
+			comprobarQuePasaDelUltimoDia(t, calendario, tipos, peticion)
 		})
 	}
+
+	// El 31 de diciembre de 9999 es viernes, y el art. 182.1 LOPJ grabado no lo
+	// hace inhábil (research S4 de H9): la prórroga del contencioso solo pasa de
+	// él si es festivo en la sede.
+	t.Run("la prórroga del contencioso", func(t *testing.T) {
+		t.Parallel()
+
+		conElUltimoDiaFestivo, err := CargarCalendario([]byte(nacionalesDelUltimoDia), nil)
+		require.NoError(t, err)
+
+		comprobarQuePasaDelUltimoDia(t, conElUltimoDiaFestivo, tipos,
+			Peticion{Tipo: TipoContencioso, Inicio: "9999-10-31", Municipios: los(villaPrimera)})
+	})
+}
+
+// nacionalesDelUltimoDia es un fichero de festivos nacionales sintético con el
+// 31 de diciembre de 9999 festivo en la comunidad 71.
+const nacionalesDelUltimoDia = `# generado a mano para los tests del cómputo
+fuente: prueba.fiestas
+anios:
+  - {anio: 9999, disposicion: PRUEBA-N-9999}
+festivos:
+  - {fecha: "9999-12-31", ambito: nacional, comunidades: ["71"], source: PRUEBA-N-9999}
+`
+
+// comprobarQuePasaDelUltimoDia exige que la petición, que la comprobación
+// previa admite, no dé ningún plazo y sí un error de argumentos que nombra el
+// 31 de diciembre de 9999 y su inicio.
+func comprobarQuePasaDelUltimoDia(t *testing.T, calendario *Calendario, tipos []Tipo, peticion Peticion) {
+	t.Helper()
+
+	plazo, err := Calcular(calendario, tipos, peticion)
+	require.Error(t, err)
+	assert.Equal(t, Plazo{}, plazo)
+	comprobarClaseArgumentos(t, err)
+	assert.Contains(t, err.Error(), "9999-12-31")
+	assert.Contains(t, err.Error(), peticion.Inicio)
+	assert.NoError(t, ComprobarPeticion(tipos, peticion))
 }
 
 // TestComprobarPeticion comprueba que, de los municipios, la comprobación previa

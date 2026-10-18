@@ -66,7 +66,9 @@ func (c calculo) lpac(inicio time.Time, duracion Duracion) (computo, bool) {
 // pasa por agosto, que no corre (art. 128.2 LJCA), hasta el mismo día del mes
 // siguiente; y con el último día inhábil del art. 182.1 LOPJ prorrogado al
 // primer hábil (art. 185.2). Los días del 24 de diciembre al 6 de enero se
-// cuentan.
+// cuentan, y ninguno es inhábil por serlo: el art. 182.1 grabado, en la
+// redacción de la LO 14/2022, ya no enumera el 24 ni el 31 de diciembre
+// (research S4).
 func (c calculo) contencioso(inicio time.Time, meses int) (computo, bool) {
 	partida := inicio
 	if inicio.Month() == time.August || inicio.AddDate(0, 0, 1).Month() == time.August {
@@ -85,15 +87,11 @@ func (c calculo) contencioso(inicio time.Time, meses int) (computo, bool) {
 	return c.prorrogar(vencimiento)
 }
 
-// inhabil dice si un día es inhábil en el cómputo del plazo: en la LPAC, el
-// sábado, el domingo y los festivos de alguno de los municipios (arts. 30.2 y
-// 30.6); en el contencioso, además, el 24 y el 31 de diciembre (art. 182.1
-// LOPJ), con los festivos de la sede.
+// inhabil dice si un día es inhábil en el cómputo del plazo: el sábado, el
+// domingo y los festivos de alguno de los municipios, en la LPAC (arts. 30.2 y
+// 30.6), y los mismos de la sede en el contencioso, que son los que enumera el
+// art. 182.1 LOPJ grabado.
 func (c calculo) inhabil(dia time.Time) bool {
-	if c.tipo.Computo == ComputoContencioso && dia.Month() == time.December && (dia.Day() == 24 || dia.Day() == 31) {
-		return true
-	}
-
 	return c.calendario.Inhabil(dia, c.delCalendario)
 }
 

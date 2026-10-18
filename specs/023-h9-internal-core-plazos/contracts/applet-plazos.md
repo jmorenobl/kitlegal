@@ -50,8 +50,10 @@ día siguiente al vencimiento (research D8).
 **Contencioso** (`computo: contencioso`; research D9). Un municipio, el de la sede. Si `inicio` o el día siguiente es
 de agosto, el cómputo parte del 31 de agosto. Dos meses de fecha a fecha; si entre el día siguiente al punto de partida
 y ese vencimiento cae algún día de agosto, el vencimiento pasa al mismo día del mes siguiente (o al último de ese mes).
-Si el último día es sábado, domingo, 24 o 31 de diciembre, fiesta nacional o festivo de la comunidad o de la localidad
-de la sede, se prorroga al primer día que no lo es. Los días del 24 de diciembre al 6 de enero se cuentan.
+Si el último día es sábado, domingo, fiesta nacional o festivo de la comunidad o de la localidad de la sede, los
+inhábiles que enumera el art. 182.1 LOPJ grabado, se prorroga al primer día que no lo es. Los días del 24 de diciembre
+al 6 de enero se cuentan, y el 24 y el 31 de diciembre no son inhábiles por serlo: el art. 182.1 grabado, en la
+redacción de la LO 14/2022, ya no los enumera (research S4; T005, `gates/supuestos.md`).
 
 **Festivos saltados** (`festivos`): en días hábiles, los festivos del tramo que no se contaron; en días naturales y en
 meses, los de la prórroga. Nunca un sábado o un domingo, que no son festivos. Solo los hay de los años cargados.

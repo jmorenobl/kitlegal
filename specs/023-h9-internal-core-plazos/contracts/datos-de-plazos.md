@@ -200,13 +200,13 @@ proceso y comprueba:
 
 | Precepto | Bloque | Palabras clave |
 |---|---|---|
-| art. 30 LPAC | `BOE-A-2015-10565` `a30` | «sábados», «domingos», «días hábiles», «mismo día», «último día del mes», «prorrogado» |
+| art. 30 LPAC | `BOE-A-2015-10565` `a30` | «sábados», «domingos», «éstos son hábiles», «mismo día», «último día del mes», «prorrogado» |
 | art. 21 LPAC | `a21` | «entrada en el registro» |
 | art. 24 LPAC | `a24` | «vencimiento del plazo máximo» |
 | DA 1ª LPAC | `daprimera` | «aplicación de los tributos», «Seguridad Social», «tráfico y seguridad vial», «extranjería y asilo» |
 | art. 112 LPAC | `a112` | «recurso de alzada», «reclamaciones económico-administrativas» |
 | art. 128 LJCA | `BOE-A-1998-16718` `a128` | «agosto» |
-| art. 182 LOPJ | `BOE-A-1985-12666` `acientoochentaydos` | «sábados y domingos», «24 y 31 de diciembre», «fiesta nacional», «festivos a efectos laborales» |
+| art. 182 LOPJ | `BOE-A-1985-12666` `acientoochentaydos` | «sábados y domingos», «fiesta nacional», «festivos a efectos laborales» |
 | art. 183 LOPJ | `acientoochentaytres` | «24 de diciembre», «6 de enero» |
 | art. 185 LOPJ | `acientoochentaycinco` | «Código Civil», «prorrogado» |
 | art. 5 CC | `BOE-A-1889-4763` `art5` | «de fecha a fecha» |
@@ -216,3 +216,8 @@ proceso y comprueba:
 
 Una palabra que falta hace fallar el test nombrando el precepto y la palabra: lo que el plan recuerda del texto (research
 S4) lo confirma o lo rechaza lo grabado, y el código se ajusta a lo grabado.
+
+Lo grabado rechazó dos palabras de la tabla que escribió el plan (T005; `gates/supuestos.md`): el art. 30 LPAC no dice
+«días hábiles», sino que, señalados por días, «éstos son hábiles» (30.2); y el art. 182.1 LOPJ, en la redacción de la
+LO 14/2022, no enumera «24 y 31 de diciembre» entre los inhábiles, así que el cómputo del contencioso no los trata como
+tales (los días del 24 de diciembre al 6 de enero los declara inhábiles el art. 183, que se cuentan y avisan).

@@ -163,9 +163,10 @@ ya no ha resuelto en plazo. Rechazada: dar el propio vencimiento, en el que la A
   agosto, el vencimiento pasa al mismo día del mes siguiente (o al último de ese mes): agosto entero no corre y el plazo
   se alarga en él. Es la fecha más temprana de las lecturas posibles; la otra lectura de una notificación de agosto
   (empezar a contar el 1 de septiembre como día de notificación) da un día más tarde.
-- **Último día** (art. 182.1 LOPJ): inhábil si es sábado, domingo, 24 o 31 de diciembre, fiesta nacional o festivo a
-  efectos laborales de la comunidad o de la localidad de la sede del juzgado; se prorroga al primer día hábil
-  siguiente con esos mismos inhábiles (art. 185.2 LOPJ).
+- **Último día** (art. 182.1 LOPJ): inhábil si es sábado, domingo, fiesta nacional o festivo a efectos laborales de la
+  comunidad o de la localidad de la sede del juzgado; se prorroga al primer día hábil siguiente con esos mismos
+  inhábiles (art. 185.2 LOPJ). El 24 y el 31 de diciembre no: el art. 182.1 grabado, en la redacción de la LO
+  14/2022, ya no los enumera (S4; corregido con lo grabado en T005, `gates/supuestos.md`).
 - **Días del 24 de diciembre al 6 de enero** (art. 183 LOPJ): se cuentan; si el tramo pasa por alguno, aviso
   `dias-del-art-183-lopj`. Lo mismo vale para un último día que cae en agosto tras una prórroga: solo los inhábiles del
   182.1 lo mueven, y es la fecha más temprana.
