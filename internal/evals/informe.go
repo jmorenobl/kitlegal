@@ -446,8 +446,9 @@ type VotoCortado struct {
 // con lo que el informe mide de ellas en sus umbrales
 // (contracts/evals-jurisprudencia.md §4 de H23; research D20 de H23; FR-060 a
 // FR-063 de H23): nil si la skill no tiene umbrales de sus respuestas. Los tiene
-// si tiene juez o si alguna de sus evals declara sentencias, sin ningún caso
-// por skill: lo dicen su carpeta juez y sus evals.
+// si tiene juez o si alguna de sus evals declara sentencias —desde H9, también
+// plazo o no_cubierto (contracts/evals-legal-core.md §3 de H9; research D20 de
+// H9)—, sin ningún caso por skill: lo dicen su carpeta juez y sus evals.
 type respuestasMedidas struct {
 	// modelo es el que decide: el de las respuestas.
 	modelo string
@@ -473,6 +474,14 @@ type respuestasMedidas struct {
 	// sesión cotejó un documento, y el umbral documento_sin_cotejar de cada modo
 	// se publica (data-model §3 de H23.1; FR-001 de H23.1).
 	conCotejo bool
+
+	// conPlazo dice si alguna eval de la skill es de plazo, y conCobertura, si
+	// alguna es de cobertura: con cualquiera de los dos, cada respuesta de un
+	// modo lleva si su eval es de plazo o de cobertura y si cuenta en el umbral
+	// de las suyas; con el primero, el umbral plazo_sin_fecha de cada modo se
+	// publica, y con el segundo, cobertura_sin_declarar (data-model §3 de H9;
+	// FR-053, FR-054 de H9).
+	conPlazo, conCobertura bool
 }
 
 // juez es lo que el juez de la skill deja de las respuestas: nil si la skill no
@@ -556,6 +565,16 @@ type respuestaDelJuez struct {
 	// de las evals sin binario ni servidor, que no cuenta en ningún umbral
 	// (medirLosCotejos; data-model §3 de H23.1).
 	pideElCotejo, cotejo bool
+
+	// dePlazo dice si su eval es de plazo, y sinFecha, si además su respuesta no
+	// lleva la línea del plazo con la fecha esperada; deCobertura, si su eval es
+	// de cobertura, y sinDeclarar, si además su respuesta no lleva la
+	// declaración de no cubierto con la norma esperada o lleva una línea del
+	// plazo. Todos falsos si ninguna eval de la skill es de plazo ni de
+	// cobertura y no se miden, o en una respuesta de las evals sin binario ni
+	// servidor, que no cuenta en ningún umbral (medirLosPlazos; data-model §3 de
+	// H9).
+	dePlazo, sinFecha, deCobertura, sinDeclarar bool
 
 	// juicio es el del juez: el de la regla de los votos.
 	juicio JuicioDeRespuesta
@@ -710,6 +729,52 @@ func (g grupoJuzgado) sinCotejar() []respuestaDelJuez {
 	}
 
 	return sinCotejar
+}
+
+// deLasEvalsDePlazo son las respuestas del grupo cuya eval es de plazo, en orden
+// de sesión: el total de plazo_sin_fecha de su modo (data-model §3 de H9;
+// FR-053 de H9).
+func (g grupoJuzgado) deLasEvalsDePlazo() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.dePlazo })
+}
+
+// sinLaFecha son, de las respuestas del grupo cuya eval es de plazo, las que no
+// llevan la línea del plazo con la fecha esperada, en orden de sesión: la medida
+// de plazo_sin_fecha de su modo y las que nombra su motivo. Cada sesión cuenta
+// una vez como mucho, y sus avisos no cuentan (FR-053, FR-055 de H9).
+func (g grupoJuzgado) sinLaFecha() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.sinFecha })
+}
+
+// deLasEvalsDeCobertura son las respuestas del grupo cuya eval es de cobertura,
+// en orden de sesión: el total de cobertura_sin_declarar de su modo
+// (data-model §3 de H9; FR-054 de H9).
+func (g grupoJuzgado) deLasEvalsDeCobertura() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.deCobertura })
+}
+
+// sinLaDeclaracion son, de las respuestas del grupo cuya eval es de cobertura,
+// las que no llevan la declaración de no cubierto con la norma esperada o
+// llevan una línea del plazo, en orden de sesión: la medida de
+// cobertura_sin_declarar de su modo y las que nombra su motivo. Cada sesión
+// cuenta una vez como mucho, le falte lo uno, le sobre lo otro o las dos cosas
+// (FR-054, FR-055 de H9).
+func (g grupoJuzgado) sinLaDeclaracion() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.sinDeclarar })
+}
+
+// respuestasQue son las respuestas del grupo que cumplen la condición, en orden
+// de sesión.
+func (g grupoJuzgado) respuestasQue(cumple func(respuesta respuestaDelJuez) bool) []respuestaDelJuez {
+	var respuestas []respuestaDelJuez
+
+	for _, respuesta := range g.respuestas {
+		if cumple(respuesta) {
+			respuestas = append(respuestas, respuesta)
+		}
+	}
+
+	return respuestas
 }
 
 // marcadasEn son las respuestas del grupo que el juez dejó marcadas en la clase
@@ -1372,11 +1437,20 @@ func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
 // H23.1), sin que eso cambie cuándo hay umbrales de las respuestas; con juez,
 // cada respuesta lleva además su juicio (juzgar). Ninguna medida cambia otra, y
 // ninguna, el juicio de una sesión ni la tasa de una serie.
+//
+// Desde H9 (contracts/evals-legal-core.md §3 de H9; data-model §3 de H9;
+// research D20 de H9; FR-053 a FR-055 de H9), una skill sin juez ni sentencias
+// también tiene umbrales de sus respuestas si alguna de sus evals es de plazo o
+// de cobertura, y entonces cada respuesta de un modo lleva si su eval lo es y si
+// cuenta en su umbral (medirLosPlazos).
 func medirLasRespuestas(
 	e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada, juez *juezDelInforme,
 ) *respuestasMedidas {
 	conSentencias := slices.ContainsFunc(evals, func(eval Eval) bool { return eval.Sentencias.declaradas() })
-	if juez == nil && !conSentencias {
+	conPlazo := slices.ContainsFunc(evals, Eval.esDePlazo)
+	conCobertura := slices.ContainsFunc(evals, Eval.esDeCobertura)
+
+	if juez == nil && !conSentencias && !conPlazo && !conCobertura {
 		return nil
 	}
 
@@ -1385,6 +1459,8 @@ func medirLasRespuestas(
 		grupos:        respuestasQueSeJuzgan(e, sesiones, series),
 		conSentencias: conSentencias,
 		conCotejo:     slices.ContainsFunc(evals, pideElCotejo),
+		conPlazo:      conPlazo,
+		conCobertura:  conCobertura,
 	}
 
 	if conSentencias {
@@ -1393,6 +1469,10 @@ func medirLasRespuestas(
 
 	if respuestas.conCotejo {
 		respuestas.medirLosCotejos(evals, sesiones)
+	}
+
+	if conPlazo || conCobertura {
+		respuestas.medirLosPlazos(evals, sesiones)
 	}
 
 	respuestas.delJuez = juez.juzgar(e, sesiones, respuestas.grupos)
@@ -1458,6 +1538,44 @@ func (r *respuestasMedidas) medirLosCotejos(evals []Eval, sesiones []sesionJuzga
 				return eval.Fichero == juzgada.resultado.Eval && pideElCotejo(eval)
 			})
 			respuesta.cotejo = cotejaUnDocumento(juzgada.sesion)
+		}
+	}
+}
+
+// medirLosPlazos deja en cada respuesta de los grupos de los modos si su eval es
+// de plazo o de cobertura, con la eval de su sesión, y si cuenta en el umbral de
+// las suyas, con lo que el juicio sin modelo de su sesión leyó de su respuesta
+// (juzgarElPlazo): la de plazo, si no lleva la línea del plazo con la fecha
+// esperada; y la de cobertura, si no lleva la declaración de no cubierto con la
+// norma esperada o lleva una línea del plazo de la fecha que sea
+// (contracts/evals-legal-core.md §3 de H9; data-model §3 de H9; FR-053 a FR-055
+// de H9). Una fecha suelta en el texto no es una línea del plazo, y los avisos
+// del plazo no cuentan aquí, sino en la serie (FR-057 de H9). Son las respuestas
+// del total de sin_activar de cada modo: ninguna sesión sin medir, cortada por
+// el tope, de un modelo informativo o de una eval que no activa la skill está
+// en ellas. Las de las evals sin binario ni servidor no cuentan en ningún
+// umbral, y no se miden.
+func (r *respuestasMedidas) medirLosPlazos(evals []Eval, sesiones []sesionJuzgada) {
+	for deGrupo := range r.grupos {
+		grupo := &r.grupos[deGrupo]
+		if grupo.modo == "" {
+			continue
+		}
+
+		for deRespuesta := range grupo.respuestas {
+			respuesta := &grupo.respuestas[deRespuesta]
+			resultado := sesiones[respuesta.posicion].resultado
+
+			respuesta.dePlazo = slices.ContainsFunc(evals, func(eval Eval) bool {
+				return eval.Fichero == resultado.Eval && eval.esDePlazo()
+			})
+			respuesta.deCobertura = slices.ContainsFunc(evals, func(eval Eval) bool {
+				return eval.Fichero == resultado.Eval && eval.esDeCobertura()
+			})
+
+			respuesta.sinFecha = respuesta.dePlazo && !resultado.PlazoEncontrado
+			respuesta.sinDeclarar = respuesta.deCobertura &&
+				(!resultado.NoCubiertoDeclarado || len(resultado.LineasDelPlazo) > 0)
 		}
 	}
 }
@@ -1719,8 +1837,10 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 //
 // Desde H23 (contracts/evals-jurisprudencia.md §4 de H23; research D20), son
 // también, sin juez, las de una skill con alguna eval que declara sentencias,
-// todavía sin los ECLI por los que cuentan (medirLasRespuestas). Y desde H23.1,
-// sin lo que se mide de su cotejo (medirLosCotejos).
+// todavía sin los ECLI por los que cuentan (medirLasRespuestas). Desde H23.1,
+// sin lo que se mide de su cotejo (medirLosCotejos); y desde H9, son también las
+// de una skill con alguna eval de plazo o de cobertura, sin lo que se mide de
+// su plazo y de su cobertura (medirLosPlazos).
 func respuestasQueSeJuzgan(e InformeAEscribir, sesiones []sesionJuzgada, series []serieJuzgada) []grupoJuzgado {
 	modos := e.plan(nil).modos()
 
