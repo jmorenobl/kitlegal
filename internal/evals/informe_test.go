@@ -2106,10 +2106,11 @@ func leerElInformeFinal(t *testing.T, informe string) informeFinalLeido {
 // duración que le da la definición del job, sin ninguna sesión, y exige que la
 // skill siga sin umbrales (FR-045 de H21; FR-037 de H24): no tiene juez ni
 // objetivo, y umbrales es [],
-// también con las duraciones de sus tandas; y que sus series sean las de sus tres
+// también con las duraciones de sus tandas; y que sus series sean las de sus
 // evals de modo en cada modo, con los dos modelos, y las de su eval sin binario
-// ni servidor, una sola vez, con las del modelo que decide decidiendo: 14, en el
-// orden del contrato.
+// ni servidor, una sola vez, con las del modelo que decide decidiendo, en el
+// orden del contrato: desde H9, las de sus ocho evals de modo, 34
+// (contracts/evals-legal-core.md §5 de H9; FR-050).
 func exigirElInformeDeLaSkillSinUmbrales(t *testing.T) {
 	t.Helper()
 
@@ -2161,7 +2162,9 @@ func exigirElInformeDeLaSkillSinUmbrales(t *testing.T) {
 
 	deModo := []string{
 		"01-territorio-municipio-cubierto.yaml", "02-territorio-municipio-no-cubierto.yaml",
-		"03-no-activa-receta-de-cocina.yaml",
+		"03-no-activa-receta-de-cocina.yaml", "05-plazo-reposicion-leganes.yaml",
+		"06-plazo-reposicion-tordesillas.yaml", "07-cobertura-liquidacion-tributaria.yaml",
+		"08-cobertura-multa-de-trafico.yaml", "09-plazo-contencioso-agosto.yaml",
 	}
 
 	var esperadas []serie

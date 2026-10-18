@@ -1,0 +1,27 @@
+# Eval de plazo (b): el mismo recurso de reposición en un municipio de una comunidad sin festivos locales cargados. La
+# respuesta tiene que situar el municipio con el applet territorio, calcular el plazo con plazos calcular, leer el
+# art. 124 de la LPAC, dar la fecha en la línea ⚠ PLAZO: con su cita y trasladar en su forma fija el aviso de los
+# festivos locales que faltan (FR-026, FR-050, FR-051; contracts/evals-legal-core.md §5).
+pregunta: "Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Tordesillas y vivo en Tordesillas, ¿hasta cuándo puedo presentar el recurso de reposición?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Tordesillas
+  - applet: plazos
+    verbo: calcular
+    tipo: reposicion
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a124
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a124
+plazo:
+  fecha: "2026-10-09"
+  avisos: [faltan-festivos-locales]
+  razonamiento: >-
+    Un mes (art. 124.1 LPAC) contado desde el día siguiente al de la notificación (art. 30.4): vence el mismo día del
+    mes siguiente, el viernes 9 de octubre de 2026, que no es fiesta nacional ni de Castilla y León. kitlegal no tiene
+    los festivos locales de Tordesillas: la fecha es la más temprana posible, y plazos lo avisa con
+    faltan-festivos-locales (FR-026).

@@ -29,7 +29,8 @@
           { "$ref": "#/$defs/comando-territorio" },
           { "$ref": "#/$defs/comando-comprobacion" },
           { "$ref": "#/$defs/comando-preparar" },
-          { "$ref": "#/$defs/comando-cotejar" }
+          { "$ref": "#/$defs/comando-cotejar" },
+          { "$ref": "#/$defs/comando-calcular" }
         ]
       }
     },
@@ -109,8 +110,25 @@
         },
         "direccion_de_busqueda": { "const": true }
       }
+    },
+    "plazo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fecha", "avisos", "razonamiento"],
+      "properties": {
+        "fecha": { "$ref": "#/$defs/dia" },
+        "avisos": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/codigo-de-aviso-del-plazo" } },
+        "razonamiento": { "type": "string", "minLength": 1 }
+      }
+    },
+    "no_cubierto": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["norma"],
+      "properties": { "norma": { "$ref": "#/$defs/norma" } }
     }
   },
+  "not": { "required": ["plazo", "no_cubierto"] },
   "if": { "required": ["activa"], "properties": { "activa": { "const": true } } },
   "then": {
     "if": { "required": ["sin_binario_ni_servidor"] },
@@ -121,15 +139,15 @@
           { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["hallazgos"] },
           { "required": ["redacciones_modificadas"] }, { "required": ["territorio"] },
           { "required": ["informativa"] }, { "required": ["reproduce"] }, { "required": ["sentencias"] },
-          { "required": ["por_materia"] }
+          { "required": ["por_materia"] }, { "required": ["plazo"] }, { "required": ["no_cubierto"] }
         ]
       }
     },
     "else": {
-      "if": { "required": ["sentencias"] },
+      "if": { "anyOf": [{ "required": ["sentencias"] }, { "required": ["no_cubierto"] }] },
       "else": {
         "required": ["comandos"],
-        "anyOf": [{ "required": ["citas"] }, { "required": ["territorio"] }]
+        "anyOf": [{ "required": ["citas"] }, { "required": ["territorio"] }, { "required": ["plazo"] }]
       }
     }
   },
@@ -139,12 +157,19 @@
         { "required": ["comandos"] }, { "required": ["prohibidos"] }, { "required": ["grafo_previo"] },
         { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["hallazgos"] },
         { "required": ["redacciones_modificadas"] }, { "required": ["territorio"] },
-        { "required": ["sin_binario_ni_servidor"] }, { "required": ["sentencias"] }, { "required": ["por_materia"] }
+        { "required": ["sin_binario_ni_servidor"] }, { "required": ["sentencias"] }, { "required": ["por_materia"] },
+        { "required": ["plazo"] }, { "required": ["no_cubierto"] }
       ]
     }
   },
   "$defs": {
     "codigo-de-aviso": { "enum": ["consolidacion-no-finalizada", "derogada", "vigencia-agotada"] },
+    "codigo-de-aviso-del-plazo": {
+      "enum": [
+        "faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj",
+        "festivo-de-una-parte"
+      ]
+    },
     "clase-de-hallazgo": { "enum": ["version-obsoleta"] },
     "aspecto-de-cobertura": {
       "enum": [
@@ -232,6 +257,16 @@
         "roj": { "$ref": "#/$defs/roj" }
       }
     },
+    "comando-calcular": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applet", "verbo", "tipo"],
+      "properties": {
+        "applet": { "$ref": "#/$defs/applet" },
+        "verbo": { "const": "calcular" },
+        "tipo": { "type": "string", "minLength": 1 }
+      }
+    },
     "comando-prohibido": {
       "type": "object",
       "additionalProperties": false,
@@ -261,6 +296,7 @@
         "fecha_vigencia_reciente": { "$ref": "#/$defs/fecha" }
       }
     },
-    "fecha": { "type": "string", "pattern": "^[0-9]{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$" }
+    "fecha": { "type": "string", "pattern": "^[0-9]{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$" },
+    "dia": { "type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$" }
   }
 }

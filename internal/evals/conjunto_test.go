@@ -1043,13 +1043,17 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 
 // Las evals sintéticas del conjunto de legal-core de probarReglasDeLegalCore: la
 // del municipio cubierto, la del no cubierto y la de no activación (contrato de
-// evals §4 de H6) y, desde H21, la eval sin binario ni servidor
-// (contracts/evals-en-dos-modos.md §1 de H21); y las que los casos le añaden.
+// evals §4 de H6), desde H21, la eval sin binario ni servidor
+// (contracts/evals-en-dos-modos.md §1 de H21) y, desde H9, la de plazo y la de
+// cobertura (contracts/evals-legal-core.md §4 de H9); y las que los casos le
+// añaden.
 const (
 	legalCoreCubierto       = "01-territorio-municipio-cubierto.yaml"
 	legalCoreNoCubierto     = "02-territorio-municipio-no-cubierto.yaml"
 	legalCoreNoActivacion   = "03-no-activa-receta-de-cocina.yaml"
 	legalCoreSinBinario     = "04-sin-binario-ni-servidor.yaml"
+	legalCoreDePlazo        = "05-plazo-reposicion-leganes.yaml"
+	legalCoreDeCobertura    = "07-cobertura-liquidacion-tributaria.yaml"
 	legalCoreSinVerificable = "05-territorio-sin-esperado.yaml"
 	legalCoreConCitas       = "05-articulo-21-con-citas.yaml"
 	legalCoreOtraSinBinario = "05-sin-binario-ni-servidor-otra.yaml"
@@ -1059,8 +1063,10 @@ const (
 // reglas de legal-core: una eval activa que resuelve un municipio del
 // territorio configurado y espera su boletín, otra que resuelve uno de una
 // comunidad sin configuración y espera no configurado cada aspecto de boletín,
-// una de no activación y la eval sin binario ni servidor, activa y sin nada que
-// consultar ni que esperar.
+// una de no activación, la eval sin binario ni servidor, activa y sin nada que
+// consultar ni que esperar, y, desde H9, una de plazo que solo espera el plazo y
+// una de cobertura que solo espera la declaración de no cubierto, sin comandos
+// ni citas: las dos tienen un esperado verificable.
 func conjuntoDeLegalCore() []Eval {
 	return []Eval{
 		{
@@ -1091,6 +1097,8 @@ func conjuntoDeLegalCore() []Eval {
 			NoSeActivan:          []string{"boe-legislacion"},
 			SinBinarioNiServidor: true,
 		},
+		evalDePlazoSintetica(),
+		evalDeCoberturaSintetica(),
 	}
 }
 
@@ -1104,6 +1112,13 @@ func conjuntoDeLegalCore() []Eval {
 // esperado verificable: sin una de las cuatro incumple solo la regla de esa eval,
 // sin dos incumple también el tamaño, y con dos evals sin binario ni servidor,
 // solo la regla nueva (contracts/evals-en-dos-modos.md §1 de H21; FR-046).
+//
+// Desde H9, el conjunto lleva además una eval de plazo y una de cobertura, que
+// solo esperan el plazo y la declaración de no cubierto y tienen con ellos un
+// esperado verificable; sin una de las dos incumple solo la regla de la
+// cobertura por materia, que va detrás de la del esperado verificable, y su
+// mensaje nombra las que hay de cada clase; y sin cuatro, también el tamaño
+// (contracts/evals-legal-core.md §4 de H9; FR-051, FR-088).
 func probarReglasDeLegalCore(t *testing.T) {
 	t.Parallel()
 
@@ -1171,16 +1186,34 @@ func probarReglasDeLegalCore(t *testing.T) {
 			dice:     []string{"hay 2 evals sin binario ni servidor"},
 		},
 		{
-			// Con dos evals menos, el conjunto ya no llega a las tres del mínimo, y el
-			// defecto del tamaño va el primero, delante de los de las dos evals que
+			nombre:    "sin-la-de-cobertura",
+			modificar: sinLaEval(legalCoreDeCobertura),
+			reglas:    []string{"cobertura por materia"},
+			ficheros:  []string{legalCoreDePlazo},
+			dice:      []string{"de cobertura, ning\xc3\xban fichero"},
+		},
+		{
+			nombre:    "sin-la-de-plazo",
+			modificar: sinLaEval(legalCoreDePlazo),
+			reglas:    []string{"cobertura por materia"},
+			ficheros:  []string{legalCoreDeCobertura},
+			dice:      []string{"de plazo, ning\xc3\xban fichero"},
+		},
+		{
+			// Con cuatro evals menos, el conjunto ya no llega a las tres del mínimo,
+			// y el defecto del tamaño va el primero, delante de los de las evals que
 			// faltan.
 			nombre: "tama\xc3\xb1o",
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
 
-				return sinLaEval(legalCoreSinBinario)(t, sinLaEval(legalCoreNoActivacion)(t, evals))
+				for _, fichero := range []string{legalCoreSinBinario, legalCoreNoActivacion, legalCoreDePlazo, legalCoreDeCobertura} {
+					evals = sinLaEval(fichero)(t, evals)
+				}
+
+				return evals
 			},
-			reglas: []string{"tama\xc3\xb1o", "no activaci\xc3\xb3n", "sin binario ni servidor"},
+			reglas: []string{"tama\xc3\xb1o", "no activaci\xc3\xb3n", "cobertura por materia", "sin binario ni servidor"},
 			dice:   []string{"hay 0 evals sin binario ni servidor"},
 		},
 		{
@@ -1281,7 +1314,8 @@ func probarReglasDeLegalCore(t *testing.T) {
 		}}
 
 		assert.Equal(t, []string{
-			"tamaño", "cubierto", "no cubierto", "no activación", "esperado verificable", "sin binario ni servidor",
+			"tamaño", "cubierto", "no cubierto", "no activación", "esperado verificable", "cobertura por materia",
+			"sin binario ni servidor",
 		}, reglasIncumplidas(ComprobarConjunto(sinEsperado, nil, ReglasDeLegalCore())))
 	})
 
@@ -1838,6 +1872,11 @@ const (
 	// las reglas de su juego (contracts/evals-jurisprudencia.md §5 de H23 y §3 de
 	// H25).
 	evalsDeJurisprudencia = "../../evals/jurisprudencia"
+
+	// evalsDeLegalCoreV1 son las de evals/legal-core/ desde H9: las cuatro de
+	// antes, las tres de plazo y las dos de cobertura (contracts/evals-legal-core.md
+	// §5 de H9; FR-050).
+	evalsDeLegalCoreV1 = 9
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -1894,8 +1933,12 @@ const (
 // y la que solo se publica sigue con 0: los dos valores van aquí escritos a
 // mano y se comparan con igualdad exacta, de modo que otro en cualquiera de las
 // dos declaraciones no pasa (contracts/clases-yaml.diff de H26; data-model §1
-// de H26; research D9 de H26; FR-020, FR-022, FR-077; SC-007). Lee las carpetas
-// enteras, así que ningún fichero de eval se nombra aquí.
+// de H26; research D9 de H26; FR-020, FR-022, FR-077; SC-007). Desde H9, las de
+// evals/legal-core/ son nueve, bien formadas, cumplen además la regla de la
+// cobertura por materia, y la unión de grabaciones sirve sin red lo que leen del
+// BOE, como las de boe-legislacion (contracts/evals-legal-core.md §4 y §5 de H9;
+// FR-050, FR-052, FR-088). Lee las carpetas enteras, así que ningún fichero de
+// eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1956,6 +1999,33 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		defectosDeLegalCore := ComprobarConjunto(deLegalCore.Evals, normasConocidasDe(normas), ReglasDeLegalCore())
 		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
 			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
+
+		// Las nueve de legal-core v1, bien formadas (FR-050 de H9), y lo que
+		// leen del BOE sus sesiones, servido sin red por la unión de grabaciones
+		// (FR-052 de H9).
+		assert.Empty(t, deLegalCore.MalFormados, "cada fichero de %s es una eval bien formada", evalsDeLegalCore)
+
+		ficheros := make([]string, 0, len(deLegalCore.Evals))
+		for _, eval := range deLegalCore.Evals {
+			ficheros = append(ficheros, eval.Fichero)
+		}
+
+		assert.Len(t, ficheros, evalsDeLegalCoreV1, "%s tiene las nueve evals de legal-core v1", evalsDeLegalCore)
+
+		consultas := ConsultasNecesarias(deLegalCore.Evals)
+		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDeLegalCore)
+
+		dirCache := t.TempDir()
+
+		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+		require.NoError(t, err)
+		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
+			evalsDeLegalCore, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+
+		comprobadas, err := ComprobarSinRed(dirCache, consultas)
+		require.NoError(t, err)
+		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
+			evalsDeLegalCore, presentarFaltas(comprobadas))
 	})
 
 	t.Run("conjunto-jurisprudencia", func(t *testing.T) {

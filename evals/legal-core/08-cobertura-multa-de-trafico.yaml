@@ -1,0 +1,12 @@
+# Eval de cobertura (d): un recurso contra una multa de tráfico de la Dirección General de Tráfico, de un procedimiento
+# sancionador de tráfico y seguridad vial, que la DA 1ª.2.c de la LPAC deja fuera del procedimiento común. La respuesta
+# tiene que declarar en la línea ⚠ NO CUBIERTO: que se rige por el texto refundido de la Ley sobre Tráfico, con el
+# identificador que lleva data/cobertura.yaml, sin calcular ningún plazo ni dar la línea ⚠ PLAZO: (FR-050, FR-051,
+# FR-057, FR-088; research D26; contracts/evals-legal-core.md §5).
+pregunta: "Vivo en Leganés y el 9 de septiembre de 2026 me notificaron una multa de tráfico de la Dirección General de Tráfico. ¿Hasta cuándo puedo recurrirla?"
+activa: true
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  norma: BOE-A-2015-11722

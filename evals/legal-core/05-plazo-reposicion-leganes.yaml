@@ -1,0 +1,28 @@
+# Eval de plazo (a): el recurso de reposición contra una resolución del ayuntamiento del municipio de referencia, del
+# territorio configurado, con el interesado en el mismo municipio. La respuesta tiene que situar el municipio con el
+# applet territorio, calcular el plazo con plazos calcular, leer el art. 124 de la LPAC y dar la fecha en la línea
+# ⚠ PLAZO: con su cita; con esta entrada, plazos no da ningún aviso (FR-050, FR-051; contracts/evals-legal-core.md §5).
+pregunta: "Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Leganés y vivo en Leganés, ¿hasta cuándo puedo presentar el recurso de reposición?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Leganés
+  - applet: plazos
+    verbo: calcular
+    tipo: reposicion
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a124
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a124
+plazo:
+  fecha: "2026-10-13"
+  avisos: []
+  razonamiento: >-
+    Un mes (art. 124.1 LPAC) contado desde el día siguiente al de la notificación (art. 30.4): vence el mismo día del
+    mes siguiente, el viernes 9 de octubre de 2026, fiesta local de Leganés (BOCM-20251212-34). El último día inhábil
+    se prorroga al primer día hábil siguiente (art. 30.5): el 10 y el 11 son sábado y domingo, y el 12 es fiesta
+    nacional (BOE-A-2025-21667), así que el plazo vence el martes 13 de octubre de 2026. Los festivos saltados son el
+    9, local de Leganés, y el 12, nacional.

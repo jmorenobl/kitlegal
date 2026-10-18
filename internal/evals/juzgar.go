@@ -166,6 +166,21 @@ type ResultadoDeEval struct {
 	RedaccionesEncontradas []string `json:"redacciones_modificadas_encontradas"`
 	RedaccionesAusentes    []string `json:"redacciones_modificadas_ausentes"`
 
+	// PlazoEncontrado dice, en una eval de plazo, si la respuesta lleva una línea
+	// del plazo en su forma fija con la fecha esperada, y AvisosDelPlazoAusentes
+	// son los códigos de los avisos esperados, en el orden de la eval, cuya forma
+	// fija no lleva (ExtraerAvisosDelPlazo). NoCubiertoDeclarado dice, en una de
+	// cobertura, si lleva la declaración de no cubierto en su forma fija con la
+	// norma esperada (ExtraerNoCubierto). Y LineasDelPlazo son, en las dos, las
+	// fechas de las líneas del plazo en su forma fija de la respuesta, en su orden
+	// y con sus repeticiones (ExtraerLineasDelPlazo). Falsos y vacías en las demás
+	// evals, que no los juzgan (contracts/evals-legal-core.md §2 de H9;
+	// data-model §3 de H9; FR-048, FR-051).
+	PlazoEncontrado        bool     `json:"plazo_encontrado"`
+	AvisosDelPlazoAusentes []string `json:"avisos_del_plazo_ausentes"`
+	NoCubiertoDeclarado    bool     `json:"no_cubierto_declarado"`
+	LineasDelPlazo         []string `json:"lineas_del_plazo"`
+
 	// TerritorioEncontrado y TerritorioAusente reparten los elementos del
 	// territorio esperado, en el orden de la eval —comunidad, provincia, cada
 	// boletín y cada aspecto de cobertura— y con sus repeticiones, entre los que la
@@ -255,6 +270,12 @@ type ResultadoDeEval struct {
 	// cada dirección, cada casilla y cada valor que faltan; y la dirección de
 	// búsqueda que ninguna orden devolvió o que falta. El resultado no tiene
 	// otra clave para ellos (contracts/evals-jurisprudencia.md §2 de H23).
+	//
+	// Desde H9, entre los de las redacciones modificadas y los del territorio van
+	// los de lo que una eval de plazo o de cobertura espera: el plazo ausente y
+	// cada aviso del plazo ausente, o la declaración de no cubierto ausente y cada
+	// línea del plazo en un asunto no cubierto (contracts/evals-legal-core.md §2
+	// de H9).
 	Motivos []string `json:"motivos"`
 
 	// Pasa dice si la sesión terminó, la activación coincide, no se activó
@@ -268,7 +289,9 @@ type ResultadoDeEval struct {
 	// sesión sin kitlegal en el PATH que ejecuta una orden suya ni, en una eval
 	// sin binario ni servidor, la respuesta sin la línea con su dirección o con
 	// alguna cita. Desde H23, tampoco la que no cumple algo de lo que su eval
-	// espera de las sentencias.
+	// espera de las sentencias. Desde H9, tampoco la de una eval de plazo sin la
+	// línea con su fecha o sin un aviso esperado, ni la de una de cobertura sin la
+	// declaración con su norma o con una línea del plazo.
 	Pasa bool `json:"pasa"`
 }
 
@@ -414,6 +437,14 @@ func modoSinServidor(eval Eval) Modo {
 // verbo con el ROJ y el texto que el comando pida, sea una orden o una llamada
 // (pideLaCita). Una eval sin sentencias y sin comandos de cita se juzga como
 // antes (contracts/evals-jurisprudencia.md §2 de H23; FR-051, FR-052).
+//
+// Desde H9, juzga además lo que una eval de plazo o de cobertura espera de la
+// respuesta (juzgarElPlazo), con sus motivos detrás de los de las redacciones
+// modificadas, y lo cuenta en lo esperado (cumpleLoEsperado); y el comando
+// calcular lo satisface la invocación de plazos calcular con su tipo, sea una
+// orden o una llamada (pideElPlazo). Una eval que no es de plazo ni de
+// cobertura se juzga como antes (contracts/evals-legal-core.md §2 de H9;
+// FR-048, FR-051, FR-057).
 func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -451,6 +482,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 	resultado.HallazgosEncontrados, resultado.HallazgosAusentes = resultado.repartirFormas(eval.Hallazgos,
 		ExtraerHallazgos(sesion.Respuesta), motivoDeHallazgoAusente)
 	resultado.repartirRedacciones(eval.RedaccionesModificadas, ExtraerRedaccionesModificadas(sesion.Respuesta))
+	resultado.juzgarElPlazo(eval, sesion.Respuesta)
 	resultado.repartirTerritorio(eval.Territorio, ExtraerTerritorio(sesion.Respuesta, eval.Territorio))
 	sentenciasComoSeEsperan := resultado.juzgarLasSentencias(eval.Sentencias, sesion)
 	sinConsultaComoSeEspera := resultado.juzgarLaRespuestaSinConsulta(eval, sesion.Respuesta, citas)
@@ -460,7 +492,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 	}
 
 	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && conLasLlamadas && ordenesSinKitlegal == 0 &&
-		sentenciasComoSeEsperan && sinConsultaComoSeEspera && resultado.cumpleLoEsperado()
+		sentenciasComoSeEsperan && sinConsultaComoSeEspera && resultado.cumpleLoEsperado(eval)
 
 	return resultado
 }
@@ -647,13 +679,14 @@ var verbosDeLasHerramientas = sync.OnceValues(func() (map[string]cli.Verbo, erro
 // cumpleLoEsperado dice si la activación coincide con la esperada, no falta
 // ningún comando, ninguna cita, ningún aviso, ningún hallazgo, ninguna redacción
 // modificada ni ningún elemento del territorio esperados y no se ejecutó ningún
-// comando prohibido.
-func (r *ResultadoDeEval) cumpleLoEsperado() bool {
+// comando prohibido; y, desde H9, si la respuesta cumple lo que la eval espera del
+// plazo (cumpleElPlazo; contracts/evals-legal-core.md §2 de H9).
+func (r *ResultadoDeEval) cumpleLoEsperado(eval Eval) bool {
 	return r.Activa == r.Activada &&
 		len(r.ComandosAusentes) == 0 && len(r.ComandosProhibidosEjecutados) == 0 &&
 		len(r.CitasAusentes) == 0 && len(r.AvisosAusentes) == 0 &&
 		len(r.HallazgosAusentes) == 0 && len(r.RedaccionesAusentes) == 0 &&
-		len(r.TerritorioAusente) == 0
+		len(r.TerritorioAusente) == 0 && r.cumpleElPlazo(eval)
 }
 
 // exigirElModeloPedido deja de pasar, con su motivo, la sesión que declara un
@@ -964,7 +997,9 @@ func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
 // comprobación, ser check (contrato evals-y-skill §2 de H7) y, si el comando
 // lleva norma, con esa norma (contrato evals-y-skill §2 de H7.1); y en los dos
 // de cita, ser de su verbo con el ROJ y el texto que el comando pida
-// (pideLaCita; contracts/evals-jurisprudencia.md §2 de H23).
+// (pideLaCita; contracts/evals-jurisprudencia.md §2 de H23); y en el comando
+// calcular, ser calcular con su tipo (pideElPlazo; contracts/evals-legal-core.md
+// §1 de H9).
 func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 	if !consultoConExito(invocacion) || invocacion.Applet != comando.Applet {
 		return false
@@ -985,6 +1020,8 @@ func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 		satisfecho = compruebaLaMemoria(invocacion, comando.Norma)
 	case formaPreparar, formaCotejar:
 		satisfecho = pideLaCita(invocacion, comando)
+	case formaCalcular:
+		satisfecho = pideElPlazo(invocacion, comando)
 	}
 
 	return satisfecho
@@ -1096,9 +1133,10 @@ func ordenDeLaInvocacion(invocacion Invocacion) string {
 // <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
 // la búsqueda; <applet> resolver <municipio> en el comando de territorio; y
 // <applet> check en la comprobación (contrato evals-y-skill §1 de H7), seguido de
-// su norma si la lleva (contrato evals-y-skill §2 de H7.1); y, en los dos de
-// cita, el de textoDelComandoDeCita (contracts/evals-jurisprudencia.md §2 de
-// H23).
+// su norma si la lleva (contrato evals-y-skill §2 de H7.1); en los dos de cita,
+// el de textoDelComandoDeCita (contracts/evals-jurisprudencia.md §2 de H23); y
+// <applet> calcular <tipo> en el comando calcular (contracts/evals-legal-core.md
+// §1 de H9).
 func textoDelComando(comando ComandoEsperado) string {
 	var partes []string
 
@@ -1118,6 +1156,8 @@ func textoDelComando(comando ComandoEsperado) string {
 		}
 	case formaPreparar, formaCotejar:
 		return textoDelComandoDeCita(comando)
+	case formaCalcular:
+		partes = []string{comando.Applet, comando.Verbo, comando.Tipo}
 	}
 
 	return strings.Join(partes, " ")

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.yaml.in/yaml/v3"
 
+	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 	"github.com/jmorenobl/kitlegal/internal/skills"
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
@@ -324,11 +325,12 @@ func TestLeerEval(t *testing.T) {
 			error:     nombreDeEval + ": línea 1: missing property 'activa'",
 		},
 		{
-			// Sin citas ni territorio fallan las dos ramas del anyOf del esperado
-			// verificable, y el defecto es una hoja de cada una.
+			// Sin citas, territorio ni, desde H9, plazo fallan las tres ramas del
+			// anyOf del esperado verificable, y el defecto es una hoja de cada una.
 			nombre:    "positiva-sin-esperado-verificable",
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21,
 			error: nombreDeEval + ": línea 1: missing property 'citas'\n" +
+				"línea 1: missing property 'plazo'\n" +
 				"línea 1: missing property 'territorio'",
 		},
 		{
@@ -878,7 +880,8 @@ func TestLeerEval(t *testing.T) {
 // evals-y-skill §1 de H7); tampoco, desde H7.1, la comprobación que lleva la
 // norma que consulta (contrato evals-y-skill §1 de H7.1), ni, desde H23, los dos
 // comandos de cita, que tienen cada uno la suya (contracts/evals-jurisprudencia.md
-// §1 de H23).
+// §1 de H23), ni, desde H9, el comando calcular, con su tipo
+// (contracts/evals-legal-core.md §1 de H9).
 func TestFormaDelComando(t *testing.T) {
 	t.Parallel()
 
@@ -939,6 +942,11 @@ func TestFormaDelComando(t *testing.T) {
 			nombre:  "cotejar",
 			comando: "  - applet: cita\n    verbo: cotejar\n    roj: STS 1088/2023\n",
 			forma:   formaCotejar,
+		},
+		{
+			nombre:  "calcular",
+			comando: strings.TrimPrefix(comandoDelCalculo, "comandos:\n"),
+			forma:   formaCalcular,
 		},
 	}
 
@@ -1062,12 +1070,14 @@ func TestFormatoDeSentencias(t *testing.T) {
 			documento: activa,
 			error: nombreDeEval + ": l\xc3\xadnea 1: missing property 'citas'\n" +
 				"l\xc3\xadnea 1: missing property 'comandos'\n" +
+				"l\xc3\xadnea 1: missing property 'plazo'\n" +
 				"l\xc3\xadnea 1: missing property 'territorio'",
 		},
 		{
 			nombre:    "sin-sentencias-y-con-un-comando-de-cita",
 			documento: activa + preparar,
 			error: nombreDeEval + ": l\xc3\xadnea 1: missing property 'citas'\n" +
+				"l\xc3\xadnea 1: missing property 'plazo'\n" +
 				"l\xc3\xadnea 1: missing property 'territorio'",
 		},
 		{
@@ -1223,6 +1233,355 @@ func TestFormatoDeSentencias(t *testing.T) {
 			}
 		}
 	})
+}
+
+// Trozos de las evals sintéticas de TestFormatoDePlazos y TestFormaDelComando,
+// cada uno con sus líneas completas: la pregunta de un plazo, su comando
+// calcular, su plazo esperado sin avisos, la declaración de no cubierto con la
+// Ley General Tributaria y plazos calcular prohibido (contracts/evals-legal-core.md
+// §1 y §5 de H9).
+const (
+	preguntaDelPlazo  = "pregunta: \"\xc2\xbfHasta cu\xc3\xa1ndo puedo presentar el recurso de reposici\xc3\xb3n?\"\n"
+	comandoDelCalculo = "comandos:\n" +
+		"  - applet: plazos\n" +
+		"    verbo: calcular\n" +
+		"    tipo: reposicion\n"
+	plazoSinAvisos = "plazo:\n" +
+		"  fecha: \"2026-10-13\"\n" +
+		"  avisos: []\n" +
+		"  razonamiento: Un mes desde el d\xc3\xada siguiente, prorrogado al primer d\xc3\xada h\xc3\xa1bil.\n"
+	noCubiertoPorLaLGT = "no_cubierto:\n" +
+		"  norma: BOE-A-2003-23186\n"
+	prohibidoElCalculo = "prohibidos:\n" +
+		"  - applet: plazos\n" +
+		"    verbo: calcular\n"
+)
+
+// TestFormatoDePlazos fija lo que H9 da al formato de eval
+// (contracts/evals-legal-core.md §1; data-model §3 de H9; FR-051): plazo, con su
+// fecha, sus avisos y su razonamiento, no_cubierto, con su norma, y el comando
+// calcular, con su tipo, se leen enteros; con plazo, una eval puede no llevar
+// citas, y con no_cubierto, ni comandos ni citas. Se rechazan: plazo o
+// no_cubierto en una eval que no activa la skill o que es sin binario ni
+// servidor, los dos juntos, plazo sin comandos, una fecha que no es AAAA-MM-DD,
+// unos avisos repetidos o que no son de plazos, plazo sin avisos o sin
+// razonamiento, o con un razonamiento vacío o con otra clave, una norma que no es
+// BOE-A-… o que falta, y un comando calcular sin tipo, con el tipo vacío o con
+// una norma: cada documento es el bien formado con solo ese defecto. Y el
+// enumerado de plazo.avisos del esquema publicado es exactamente
+// plazos.CodigosDeAviso, comprobado como ComprobarCodigosDeAviso comprueba el de
+// avisos (ComprobarCodigosDeAvisoDelPlazo); las evals de boe-legislacion y de
+// jurisprudencia se leen sin plazo, sin no_cubierto y sin ningún tipo.
+func TestFormatoDePlazos(t *testing.T) {
+	t.Parallel()
+
+	const (
+		preguntaLeida = "\xc2\xbfHasta cu\xc3\xa1ndo puedo presentar el recurso de reposici\xc3\xb3n?"
+		activa        = preguntaDelPlazo + "activa: true\n"
+		razonamiento  = "Un mes desde el d\xc3\xada siguiente, prorrogado al primer d\xc3\xada h\xc3\xa1bil."
+		lgt           = "BOE-A-2003-23186"
+
+		fechaDelEsquema = "'^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'"
+		normaDelEsquema = "'^BOE-A-[0-9]{4}-[0-9]{1,9}$'"
+	)
+
+	// conPlazo es el documento que activa la skill con el comando calcular y esas
+	// líneas bajo plazo, que es su línea 7.
+	conPlazo := func(lineas string) string { return activa + comandoDelCalculo + "plazo:\n" + lineas }
+
+	calculo := ComandoEsperado{Applet: "plazos", Verbo: "calcular", Tipo: "reposicion"}
+
+	casos := []struct {
+		nombre     string
+		documento  string
+		leida      Eval
+		error      string
+		fragmentos []string
+	}{
+		{
+			nombre: "plazo-con-sus-claves",
+			documento: "# Eval de plazo: lo que espera de la sesi\xc3\xb3n y de su respuesta.\n" + activa +
+				comandoDelCalculo + "  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a124\n" +
+				"citas:\n  - norma: BOE-A-2015-10565\n    bloque: a124\n" +
+				"plazo:\n  fecha: \"2026-10-09\"\n  avisos: [faltan-festivos-locales, dias-del-art-183-lopj]\n" +
+				"  razonamiento: >-\n    Un mes desde el d\xc3\xada siguiente,\n    prorrogado al primer d\xc3\xada h\xc3\xa1bil.\n",
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Comandos: []ComandoEsperado{calculo, {Applet: "boe", Norma: "BOE-A-2015-10565", Bloque: "a124"}},
+				Citas:    []CitaEsperada{{Norma: "BOE-A-2015-10565", Bloque: "a124"}},
+				Plazo: PlazoEsperado{
+					Fecha:        "2026-10-09",
+					Avisos:       []string{"faltan-festivos-locales", "dias-del-art-183-lopj"},
+					Razonamiento: razonamiento,
+				},
+			},
+		},
+		{
+			// Con plazo, la eval puede no llevar citas: el plazo es lo que espera.
+			nombre:    "plazo-sin-citas-ni-avisos",
+			documento: activa + comandoDelCalculo + plazoSinAvisos,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Comandos: []ComandoEsperado{calculo},
+				Plazo:    PlazoEsperado{Fecha: "2026-10-13", Avisos: []string{}, Razonamiento: razonamiento},
+			},
+		},
+		{
+			// Con no_cubierto, la eval puede no llevar comandos ni citas.
+			nombre:    "no-cubierto-sin-comandos",
+			documento: activa + prohibidoElCalculo + noCubiertoPorLaLGT,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
+				NoCubierto: NoCubiertoEsperado{Norma: lgt},
+			},
+		},
+		{
+			nombre:    "plazo-sin-comandos",
+			documento: activa + plazoSinAvisos,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: missing property 'comandos'",
+		},
+		{
+			nombre:    "plazo-y-no-cubierto",
+			documento: activa + comandoDelCalculo + plazoSinAvisos + noCubiertoPorLaLGT,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "plazo-en-una-eval-que-no-activa-la-skill",
+			documento: preguntaDelPlazo + "activa: false\n" + plazoSinAvisos,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "no-cubierto-en-una-eval-que-no-activa-la-skill",
+			documento: preguntaDelPlazo + "activa: false\n" + noCubiertoPorLaLGT,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "plazo-en-una-eval-sin-binario-ni-servidor",
+			documento: activa + sinBinarioNiServidor + plazoSinAvisos,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "no-cubierto-en-una-eval-sin-binario-ni-servidor",
+			documento: activa + sinBinarioNiServidor + noCubiertoPorLaLGT,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "fecha-sin-guiones",
+			documento: conPlazo("  fecha: \"20261013\"\n  avisos: []\n  razonamiento: " + razonamiento + "\n"),
+			error: nombreDeEval + ": plazo/fecha, l\xc3\xadnea 8: '20261013' does not match pattern " +
+				fechaDelEsquema,
+		},
+		{
+			nombre:    "fecha-con-el-mes-13",
+			documento: conPlazo("  fecha: \"2026-13-09\"\n  avisos: []\n  razonamiento: " + razonamiento + "\n"),
+			error: nombreDeEval + ": plazo/fecha, l\xc3\xadnea 8: '2026-13-09' does not match pattern " +
+				fechaDelEsquema,
+		},
+		{
+			nombre: "avisos-repetidos",
+			documento: conPlazo("  fecha: \"2026-10-09\"\n  avisos: [faltan-festivos-locales, faltan-festivos-locales]\n" +
+				"  razonamiento: " + razonamiento + "\n"),
+			fragmentos: []string{"plazo/avisos, l\xc3\xadnea 9: "},
+		},
+		{
+			// derogada es un código de aviso de vigencia del BOE, de la clave
+			// avisos, y no de plazos.
+			nombre:     "aviso-de-vigencia",
+			documento:  conPlazo("  fecha: \"2026-10-09\"\n  avisos: [derogada]\n  razonamiento: " + razonamiento + "\n"),
+			fragmentos: []string{"plazo/avisos/0, l\xc3\xadnea 9: "},
+		},
+		{
+			nombre:    "sin-avisos",
+			documento: conPlazo("  fecha: \"2026-10-13\"\n  razonamiento: " + razonamiento + "\n"),
+			error:     nombreDeEval + ": plazo, l\xc3\xadnea 8: missing property 'avisos'",
+		},
+		{
+			nombre:    "sin-razonamiento",
+			documento: conPlazo("  fecha: \"2026-10-13\"\n  avisos: []\n"),
+			error:     nombreDeEval + ": plazo, l\xc3\xadnea 8: missing property 'razonamiento'",
+		},
+		{
+			nombre:    "razonamiento-vacio",
+			documento: conPlazo("  fecha: \"2026-10-13\"\n  avisos: []\n  razonamiento: \"\"\n"),
+			error:     nombreDeEval + ": plazo/razonamiento, l\xc3\xadnea 10: minLength: got 0, want 1",
+		},
+		{
+			nombre: "plazo-con-otra-clave",
+			documento: conPlazo("  fecha: \"2026-10-13\"\n  avisos: []\n  razonamiento: " + razonamiento + "\n" +
+				"  tipo: reposicion\n"),
+			error: nombreDeEval + ": plazo, l\xc3\xadnea 8: additional properties 'tipo' not allowed",
+		},
+		{
+			nombre:    "no-cubierto-sin-su-forma",
+			documento: activa + "no_cubierto:\n  norma: LGT\n",
+			error:     nombreDeEval + ": no_cubierto/norma, l\xc3\xadnea 4: 'LGT' does not match pattern " + normaDelEsquema,
+		},
+		{
+			nombre:    "no-cubierto-vacio",
+			documento: activa + "no_cubierto: {}\n",
+			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 3: missing property 'norma'",
+		},
+		{
+			nombre:     "calcular-sin-tipo",
+			documento:  activa + "comandos:\n  - applet: plazos\n    verbo: calcular\n" + plazoSinAvisos,
+			fragmentos: []string{"comandos/0, l\xc3\xadnea 4: missing property 'tipo'"},
+		},
+		{
+			nombre:     "calcular-con-el-tipo-vacio",
+			documento:  activa + "comandos:\n  - applet: plazos\n    verbo: calcular\n    tipo: \"\"\n" + plazoSinAvisos,
+			fragmentos: []string{"comandos/0/tipo, l\xc3\xadnea 6: minLength: got 0, want 1"},
+		},
+		{
+			nombre:     "calcular-con-una-norma",
+			documento:  activa + comandoDelCalculo + "    norma: BOE-A-2015-10565\n" + plazoSinAvisos,
+			fragmentos: []string{"comandos/0, l\xc3\xadnea 4: additional properties 'norma' not allowed"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			leida, err := LeerEval(nombreDeEval, []byte(caso.documento))
+			if caso.error == "" && len(caso.fragmentos) == 0 {
+				require.NoError(t, err)
+				assert.Equal(t, caso.leida, leida)
+
+				return
+			}
+
+			require.Error(t, err)
+			assert.Zero(t, leida, "una eval mal formada no se entrega a medias")
+
+			if caso.error != "" {
+				require.EqualError(t, err, caso.error)
+			}
+
+			for _, fragmento := range caso.fragmentos {
+				assert.ErrorContains(t, err, fragmento)
+			}
+		})
+	}
+
+	t.Run("enumerado-de-los-avisos", probarElEnumeradoDeLosAvisosDelPlazo)
+
+	t.Run("las-evals-de-las-otras-skills", func(t *testing.T) {
+		t.Parallel()
+
+		for _, dir := range []string{evalsDelRepositorio, evalsDeJurisprudencia} {
+			conjunto, err := LeerConjunto(dir)
+			require.NoError(t, err)
+			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
+			require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
+
+			for _, eval := range conjunto.Evals {
+				assert.Zero(t, eval.Plazo, "%s de %s se lee sin plazo", eval.Fichero, dir)
+				assert.Zero(t, eval.NoCubierto, "%s de %s se lee sin no_cubierto", eval.Fichero, dir)
+
+				for posicion, comando := range eval.Comandos {
+					assert.Empty(t, comando.Tipo, "el comando %d de %s de %s se lee sin tipo", posicion, eval.Fichero, dir)
+					assert.NotEqual(t, formaCalcular, formaDelComando(comando),
+						"el comando %d de %s de %s conserva su forma", posicion, eval.Fichero, dir)
+				}
+			}
+		}
+	})
+}
+
+// probarElEnumeradoDeLosAvisosDelPlazo fija ComprobarCodigosDeAvisoDelPlazo: el
+// esquema publicado enumera en plazo.avisos exactamente plazos.CodigosDeAviso; y
+// sobre esquemas sintéticos compilados con skills.CompilarEsquema, con el
+// enumerado de los cuatro detrás de un $ref no hay error; sin
+// festivo-de-una-parte, el error lo nombra; con derogada de más, el error la
+// nombra; y sin la propiedad plazo, uno por código en el orden de
+// plazos.CodigosDeAviso.
+func probarElEnumeradoDeLosAvisosDelPlazo(t *testing.T) {
+	t.Parallel()
+
+	publicado, err := esquemaDeEval()
+	require.NoError(t, err)
+	require.NoError(t, ComprobarCodigosDeAvisoDelPlazo(publicado),
+		"el esquema publicado %s admite en plazo.avisos exactamente los c\xc3\xb3digos de aviso de plazos", rutaDelEsquemaDeEval)
+
+	// conEnumerado es un esquema con plazo.avisos y ese enumerado detrás de un
+	// $ref, como en el esquema publicado.
+	conEnumerado := func(enumerado string) string {
+		return `{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "plazo": {
+      "type": "object",
+      "properties": {
+        "avisos": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/codigo-de-aviso-del-plazo" } }
+      }
+    }
+  },
+  "$defs": { "codigo-de-aviso-del-plazo": { "enum": [` + enumerado + `] } }
+}`
+	}
+
+	const losCuatro = `"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj"` +
+		`, "festivo-de-una-parte"`
+
+	casos := []struct {
+		nombre  string
+		esquema string
+
+		// error es el error exacto; vacío, no hay error.
+		error string
+	}{
+		{nombre: "exacto", esquema: conEnumerado(losCuatro)},
+		{
+			nombre: "falta-un-codigo",
+			esquema: conEnumerado(`"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", ` +
+				`"dias-del-art-183-lopj"`),
+			error: "el esquema de eval no enumera el c\xc3\xb3digo de aviso festivo-de-una-parte en plazo.avisos",
+		},
+		{
+			nombre:  "sobra-un-codigo",
+			esquema: conEnumerado(losCuatro + `, "derogada"`),
+			error: "el esquema de eval enumera en plazo.avisos el c\xc3\xb3digo derogada, que no es un c\xc3\xb3digo " +
+				"de aviso de plazos",
+		},
+		{
+			nombre: "sin-plazo",
+			esquema: `{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": { "pregunta": { "type": "string", "minLength": 1 } }
+}`,
+			error: "el esquema de eval no enumera el c\xc3\xb3digo de aviso faltan-festivos-nacionales-y-autonomicos " +
+				"en plazo.avisos\n" +
+				"el esquema de eval no enumera el c\xc3\xb3digo de aviso faltan-festivos-locales en plazo.avisos\n" +
+				"el esquema de eval no enumera el c\xc3\xb3digo de aviso dias-del-art-183-lopj en plazo.avisos\n" +
+				"el esquema de eval no enumera el c\xc3\xb3digo de aviso festivo-de-una-parte en plazo.avisos",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			esquema, err := skills.CompilarEsquema([]byte(caso.esquema))
+			require.NoError(t, err)
+
+			err = ComprobarCodigosDeAvisoDelPlazo(esquema)
+			if caso.error == "" {
+				assert.NoError(t, err)
+
+				return
+			}
+
+			assert.EqualError(t, err, caso.error)
+		})
+	}
+
+	assert.Equal(t, []string{
+		"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj",
+		"festivo-de-una-parte",
+	}, plazos.CodigosDeAviso(), "premisa: los cuatro c\xc3\xb3digos de los esquemas sint\xc3\xa9ticos son los de plazos")
 }
 
 // TestEsquemaDeEval comprueba que el esquema publicado del formato común de eval
