@@ -49,8 +49,11 @@ Dos filas nuevas en la tabla de generadores de `internal/skills/referencias.go`:
 | `references/cobertura_por_materia.md` | `data/cobertura.yaml`, con `skills.LeerCobertura` y `schemas/cobertura.yaml.json` | Cobertura por materia | Procedimiento · Lo regula aparte · Norma que lo rige |
 
 Cada una con la cabecera `<!-- generado desde data/<fichero>, no editar -->`. Una fila por tipo (el genérico, una por
-unidad) y una por entrada: nueve y nueve, unos 2 kB cada una. «Precepto» y «Lo regula aparte» como `art. 124.1 LPAC
-(BOE-A-2015-10565, bloque a124)`; «Norma que lo rige», el nombre y el identificador, o «—» si la entrada no la trae.
+unidad) y una por entrada: nueve y nueve, unos 2 kB cada una. «Precepto» y «Lo regula aparte» como `art. 124.1
+(BOE-A-2015-10565, bloque a124)` o `DA 1ª.2.a (BOE-A-2015-10565, bloque daprimera)`, sin la abreviatura de la norma,
+que `data/plazos.yaml` y `data/cobertura.yaml` no llevan: la nombra su identificador (T013, `gates/supuestos.md`);
+varios preceptos, separados por «; »; «Norma que lo rige», el nombre y el identificador, o «—» si la entrada no la
+trae.
 Ninguna lleva texto de ninguna norma.
 
 ## 5. Uso, de fuera adentro

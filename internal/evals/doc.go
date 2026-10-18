@@ -183,9 +183,18 @@
 //     la skill y espera algún cita cotejar—, detrás va documento_sin_cotejar,
 //     las respuestas de esas evals cuya sesión no ejecutó ningún cita cotejar
 //     que consultara y terminara bien, sobre las de esas evals, que decide con
-//     0 y cuyo motivo nombra cada sesión que cuenta. Con el plan del job, los
-//     dos modos, boe-legislacion lleva trece, de los que deciden nueve, y
-//     jurisprudencia, quince, de los que deciden once. En boe-legislacion, con
+//     0 y cuyo motivo nombra cada sesión que cuenta. Desde H9, con alguna eval
+//     de plazo, detrás va plazo_sin_fecha, las respuestas de esas evals sin la
+//     línea ⚠ PLAZO: con la fecha esperada, y con alguna de cobertura,
+//     cobertura_sin_declarar, las de esas evals sin la línea ⚠ NO CUBIERTO:
+//     con la norma esperada o con una línea ⚠ PLAZO:, cada uno sobre las de
+//     sus evals, que deciden con 0 y cuyo motivo nombra cada sesión que
+//     cuenta; con ellas, la skill tiene también sin_activar, aunque no tenga
+//     juez ni sentencias. Con el plan del job, los dos modos, boe-legislacion
+//     lleva trece, de los que deciden nueve; jurisprudencia, quince, de los
+//     que deciden once; y legal-core, seis, que deciden los seis: de cada
+//     modo, sin_activar, plazo_sin_fecha y cobertura_sin_declarar. En
+//     boe-legislacion, con
 //     su objetivo: de cada modo, el del modo orden delante, sin_activar y los
 //     recuentos de afirma_lo_no_leido y de cuenta_su_proceso; el conjunto de
 //     afirma_lo_no_leido; los dos de la medida versionada; y
@@ -196,7 +205,8 @@
 //     conjunto de afirma_lo_no_leido; los dos de la medida versionada, sobre
 //     sus 125 defectos y sus 124 correctos; y duracion_del_juez de cada modo,
 //     sin duracion_de_las_sesiones. En las dos, no deciden los cuatro
-//     recuentos. Una skill sin juez ni sentencias no tiene ninguno.
+//     recuentos. Una skill sin juez, sentencias ni evals de plazo o de
+//     cobertura no tiene ninguno.
 //     Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta
@@ -205,7 +215,7 @@
 //     FR-033 y FR-051 de H7.3; FR-040 a FR-045 de H7.4; FR-043 a FR-048 de H21;
 //     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23;
 //     FR-020 a FR-025 de H25; FR-001 a FR-005 y FR-010 a FR-012 de H26;
-//     FR-001 a FR-007 de H23.1);
+//     FR-001 a FR-007 de H23.1; FR-053 a FR-056 de H9);
 //   - leerDefinicionDelJob lee la definición del job, .github/workflows/evals.yml:
 //     con ella la comprueba TestDefinicionDelJob en make ci —también el modelo
 //     del juez y la versión de Claude Code de sus votos, fijados aparte de los de

@@ -26,7 +26,7 @@ func rutaDeLocales(comunidad string) string {
 type Ambito string
 
 // Los tres ámbitos de un festivo (data-model §1). El fichero nacional lleva
-// los dos primeros: nacional («***» o «**» en la resolución) y autonómico («*»).
+// los dos primeros: nacional («*» o «**» en la resolución) y autonómico («***»).
 const (
 	AmbitoNacional   Ambito = "nacional"
 	AmbitoAutonomico Ambito = "autonomico"

@@ -62,8 +62,10 @@ datos) y `sin-festivos-locales` (comunidad sin fichero local).
 
 ### Disposición
 
-`{id, anio, url}`, del manifiesto; ordenadas por fecha de publicación (la del id). Cuerpo, de `httpx.Replay` sobre
-`evidencias/h9/`.
+`{id, anio, url}`, cada una un elemento de `disposiciones` en el manifiesto de su paquete,
+`{"fuente": "<fuente>", "disposiciones": [...]}` (`<paquete>/testdata/grabaciones.json`; T002, `gates/supuestos.md`);
+ordenadas por fecha de publicación (la del id) y, con la misma fecha, en el orden del manifiesto. Cuerpo, de
+`httpx.Replay` sobre `evidencias/h9/`.
 
 ### Línea del BOCM
 

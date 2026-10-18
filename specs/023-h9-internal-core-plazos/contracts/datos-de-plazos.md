@@ -146,7 +146,7 @@ Lo lee `skills.LeerCobertura`, con `schemas/cobertura.yaml.json` y el lector de 
 regulados_aparte:
   - procedimiento: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.a"}
-    norma: {identificador: BOE-A-2003-23186, nombre: Ley 58/2003, General Tributaria, aplicable: {bloque: a97, apartado: "97"}}
+    norma: {identificador: BOE-A-2003-23186, nombre: "Ley 58/2003, General Tributaria", aplicable: {bloque: a97, apartado: "97"}}
   - procedimiento: gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo
     precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: "DA 1ª.2.b"}
   - procedimiento: procedimientos sancionadores en materia tributaria y aduanera
@@ -155,7 +155,7 @@ regulados_aparte:
     precepto: {…, apartado: "DA 1ª.2.c"}
   - procedimiento: procedimientos sancionadores en materia de tráfico y seguridad vial
     precepto: {…, apartado: "DA 1ª.2.c"}
-    norma: {identificador: <el que da la búsqueda grabada>, nombre: texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial, aplicable: {bloque: a1, apartado: "1"}}
+    norma: {identificador: BOE-A-2015-11722, nombre: "texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial", aplicable: {bloque: a1, apartado: "1"}}
   - procedimiento: procedimientos sancionadores en materia de extranjería
     precepto: {…, apartado: "DA 1ª.2.c"}
   - procedimiento: actuaciones y procedimientos en materia de extranjería y asilo
@@ -167,7 +167,9 @@ regulados_aparte:
 ```
 
 Una entrada sin `norma` no la toma de ningún otro sitio (FR-031): la declaración nombra el precepto de la LPAC. El
-bloque `a1` del texto refundido de Tráfico es el único de este contrato que no sale de un índice grabado (research S8).
+bloque `a1` del texto refundido de Tráfico era el único de este contrato que no salía de un índice grabado (research
+S8); `grabar_datos` grabó después su índice, y `a1` está en él. El identificador `BOE-A-2015-11722` es el que resuelve
+la búsqueda grabada de su entrada del manifiesto (T005, `gates/supuestos.md`).
 
 ## 4. Lo que se graba y cómo se comprueba (FR-027, FR-030, FR-031, FR-052; research D15, D16)
 
@@ -184,7 +186,8 @@ Los dos primeros escriben en `$KITLEGAL_EVIDENCIAS` (`evidencias/h9/`); el terce
 
 Cada id de bloque es el que da el índice grabado de su norma (research V20, V29), no uno compuesto con la forma de otra:
 la LOPJ escribe sus artículos con palabras («Artículo ciento ochenta y dos») y el Código Civil como `art<n>`. El índice
-del texto refundido de Tráfico no está grabado: su `a1` es un supuesto (research S8).
+del texto refundido de Tráfico no estaba grabado al escribir el plan y su `a1` era un supuesto (research S8); lo
+grabado lo confirma.
 
 ### 4.2 `TestPreceptosDeLosPlazos` (`internal/evals`)
 

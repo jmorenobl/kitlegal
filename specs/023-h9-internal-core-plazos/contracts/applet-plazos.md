@@ -62,7 +62,8 @@ meses, los de la prórroga. Nunca un sábado o un domingo, que no son festivos. 
 
 `fuente` `kitlegal.plazos`; `url` `kitlegal:applet/plazos`; `fecha_consulta`, la del reloj del kernel; `hash`, el de
 `data`. Con la misma entrada y el mismo binario, `data` y `hash` son iguales, con `--offline` y sin él. Ninguna
-operación de grafo, ninguna petición, ninguna escritura en la caché ni en el grafo.
+operación de grafo, ninguna petición, ninguna escritura en la caché ni en el grafo. Los sobres de error con 2 y 3 de
+§6 llevan la misma `fuente` y la misma `url` (T001, `gates/supuestos.md`).
 
 ## 4. `data` con el código 0 (FR-001)
 
@@ -73,7 +74,7 @@ operación de grafo, ninguna petición, ninguna escritura en la caché ni en el 
 | `preceptos` | lista de `{norma, bloque, apartado}` | sí, uno o más | el que fija el plazo; en `contencioso`, también el 128.2 LJCA |
 | `municipios` | lista de `{codigo_ine, nombre}` | sí | los que cuentan, una vez cada uno, en el orden dado, como los da `territorio resolver` |
 | `festivos` | lista de `{fecha, ambito, municipio?, source}` | sí, puede ir vacía | los saltados, en orden de fecha; `ambito` es `nacional`, `autonomico` o `local`; `municipio` (código INE) solo en los locales |
-| `avisos` | lista de `{codigo, texto}` | sí, puede ir vacía | §5, en el orden de los códigos de §5 y, dentro de uno, de fecha y de municipio |
+| `avisos` | lista de `{codigo, texto}` | sí, puede ir vacía | §5, en el orden de los códigos de §5 y, dentro de uno, de fecha y de municipio; los de festivos locales, por el primer año que le falta a cada municipio y, con el mismo, en el orden dado (T004, `gates/supuestos.md`) |
 | `cobertura` | lista de `{ambito, municipio?, desde, hasta, disposicion?, falta?}` | sí, una o más | por ámbito (`nacional-y-autonomico`, o `local` de cada municipio) y por tramo de años del tramo del plazo: `disposicion` es la última aplicada de ese año; `falta`, por qué no hay festivos (`sin-cargar`, `sin-festivos-locales`, `no-comunicado`, `linea-sin-leer`, `sin-linea`) |
 
 Son las claves que enumera FR-001 y ninguna más: ni la fecha de inicio, ni la duración, ni el cómputo, que quien llama
@@ -95,16 +96,20 @@ una línea con la forma fija `⚠ <ETIQUETA>:` (la de `internal/evals`, research
 
 | Código | Etiqueta | Texto |
 |---|---|---|
-| `faltan-festivos-nacionales-y-autonomicos` | `FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS` | `⚠ FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS: kitlegal no tiene los de <años>; la fecha se ha calculado sin ellos y puede ser anterior a la real. Los que tiene llegan a <año> (<disposición>).` |
-| `faltan-festivos-locales` | `FALTAN FESTIVOS LOCALES` | `⚠ FALTAN FESTIVOS LOCALES: kitlegal no tiene los de <municipio> (<código INE>) de <años><motivo>; la fecha se ha calculado sin ellos y puede ser anterior a la real.` y, si la comunidad tiene festivos locales cargados, ` Los de <comunidad> llegan a <año> (<disposición>).` |
+| `faltan-festivos-nacionales-y-autonomicos` | `FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS` | `⚠ FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS: kitlegal no tiene los <años>; la fecha se ha calculado sin ellos y puede ser anterior a la real. Los que tiene llegan a <año> (<disposición>).` |
+| `faltan-festivos-locales` | `FALTAN FESTIVOS LOCALES` | `⚠ FALTAN FESTIVOS LOCALES: kitlegal no tiene los de <municipio> (<código INE>) <años><motivo>; la fecha se ha calculado sin ellos y puede ser anterior a la real.` y, si la comunidad tiene festivos locales cargados, ` Los de <comunidad> llegan a <año> (<disposición>).` |
 | `dias-del-art-183-lopj` | `DÍAS DEL ART. 183 LOPJ` | `⚠ DÍAS DEL ART. 183 LOPJ: el plazo pasa por días del 24 de diciembre al 6 de enero, que el art. 183 LOPJ declara inhábiles para las actuaciones judiciales; se han contado, salvo los inhábiles del art. 182.1 LOPJ, porque el art. 128.2 LJCA no los excluye del plazo para interponer el recurso. La fecha es la más temprana posible.` |
 | `festivo-de-una-parte` | `FESTIVO DE UNA PARTE` | `⚠ FESTIVO DE UNA PARTE: el <fecha> es fiesta solo en <parte> (<comunidad>), según <source>; kitlegal no sabe si <municipio> está ahí y lo ha contado como hábil. La fecha es la más temprana posible.` |
 
-`<años>` es un año («2027»), un tramo («de 2028 a 2030») o «anteriores a 2025»; `<motivo>`, vacío con `sin-cargar`, y
+`<años>` lleva su preposición: un año («de 2027»), un tramo («de 2028 a 2030») o, antes del primer año cargado del
+ámbito, «anteriores a 2025»; varios tramos, cada uno con su motivo, van unidos por « ni » (T004, `gates/supuestos.md`).
+`<motivo>`, vacío con `sin-cargar`, y
 con los demás: «: no tiene festivos locales de <comunidad>» (`sin-festivos-locales`), «: el boletín los da como no
 comunicados por el ayuntamiento» (`no-comunicado`), «: su línea del boletín no se lee sin interpretarla»
 (`linea-sin-leer`) y «: el boletín no trae su línea» (`sin-linea`). Un aviso de cobertura por ámbito y municipio con
-todos sus años; uno de una parte por cada festivo de una parte del tramo. Ninguno nombra una entidad menor (FR-024).
+todos sus años; uno de una parte por cada festivo de una parte del tramo y municipio que el cómputo contó como hábil
+—uno en sábado, en domingo o en un día inhábil por otra causa no avisa (T004)—. Ninguno nombra una entidad menor
+(FR-024).
 
 ## 6. Errores (FR-012; ADR 0023)
 
@@ -118,7 +123,8 @@ Con `ok` falso, `data` es `{clase, mensaje}`. En este orden; el mensaje nombra l
 | `--unidad` falta con `--duracion`, no es del vocabulario, o se da a otro tipo | 2 | `argumentos` |
 | no son dos municipios en un plazo de la LPAC, o uno en `contencioso` | 2 | `argumentos` |
 | un municipio que `territorio resolver` daría con 2: el mensaje de `territorio` de cada uno, tras «municipio «<pedido>»: », separados por « \| » (con candidatos, los da todos como `territorio`) | 2 | `argumentos` |
-| todo lo demás vale y algún municipio no está en la relación | 3 | `no-encontrado` |
+| todo lo demás vale y algún municipio no está en la relación: el mensaje de `territorio` de cada uno que falta, con la misma forma | 3 | `no-encontrado` |
+| con los municipios resueltos, el plazo acabaría después del 9999-12-31, por la duración, por el inicio o por la prórroga: el mensaje nombra el tipo, el inicio y la duración (T004, `gates/supuestos.md`) | 2 | `argumentos` |
 | `data/festivos/`, `data/plazos.yaml` o `data/territorio/` del binario no cargan | 1 | `inesperado` |
 
 Nunca 4, 5 ni 6.
