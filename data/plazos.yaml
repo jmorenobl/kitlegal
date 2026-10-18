@@ -1,0 +1,50 @@
+# Tipos de plazo de `kitlegal plazos calcular`: su cómputo, la duración que fijan y los preceptos que los fundan, cada
+# uno con lo que fija. Lo lee plazos.LeerTipos, el binario y el generador de references/recursos_y_plazos.md.
+# Sin texto de ninguna norma: cada precepto se nombra por su identificador, su bloque y su apartado, y
+# TestPreceptosDeLosPlazos (internal/evals) comprueba contra lo grabado del BOE que cada bloque existe, que el apartado
+# que fija la duración la dice en palabras y que cada precepto lleva sus palabras clave.
+tipos:
+  - codigo: alzada
+    nombre: recurso de alzada
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    preceptos:
+      - {norma: BOE-A-2015-10565, bloque: a122, apartado: "122.1", fija: duracion}
+  - codigo: reposicion
+    nombre: recurso potestativo de reposición
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    preceptos:
+      - {norma: BOE-A-2015-10565, bloque: a124, apartado: "124.1", fija: duracion}
+  - codigo: contencioso
+    nombre: recurso contencioso-administrativo
+    computo: contencioso
+    duracion: {cantidad: 2, unidad: meses}
+    preceptos:
+      - {norma: BOE-A-1998-16718, bloque: a46, apartado: "46.1", fija: duracion}
+      - {norma: BOE-A-1998-16718, bloque: a128, apartado: "128.2", fija: agosto}
+  - codigo: acceso-resolver
+    nombre: plazo para resolver una solicitud de acceso a la información pública
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    preceptos:
+      - {norma: BOE-A-2013-12887, bloque: a20, apartado: "20.1", fija: duracion}
+  - codigo: acceso-reclamar
+    nombre: reclamación contra la resolución de una solicitud de acceso
+    computo: lpac
+    duracion: {cantidad: 1, unidad: meses}
+    preceptos:
+      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion}
+  - codigo: silencio
+    nombre: día en que se produce el silencio administrativo
+    computo: lpac
+    preceptos:
+      - {norma: BOE-A-2015-10565, bloque: a21, apartado: "21.3", fija: inicio}
+      - {norma: BOE-A-2015-10565, bloque: a24, apartado: "24.4", fija: silencio}
+  - codigo: generico
+    nombre: plazo genérico
+    computo: lpac
+    unidades:
+      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
+      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
+      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo}

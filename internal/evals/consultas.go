@@ -76,8 +76,10 @@ type Consulta struct {
 //     territorio no pide nada por red ni usa la caché y no hay nada que grabar
 //     (data-model §6.3 de H6; FR-043); la comprobación, tampoco, porque lee el
 //     grafo de la sesión, no la caché ni la red (contrato evals-y-skill §1 de
-//     H7); y los dos de cita, tampoco, porque el applet cita no consulta
-//     ninguna fuente (contracts/evals-jurisprudencia.md §2 de H23; FR-054);
+//     H7); los dos de cita, tampoco, porque el applet cita no consulta
+//     ninguna fuente (contracts/evals-jurisprudencia.md §2 de H23; FR-054); y
+//     el comando calcular, tampoco, porque el applet plazos no consulta nada
+//     (contracts/evals-legal-core.md §1 de H9);
 //  2. por cada norma de sus comandos y de sus citas, sin repetir: indice <norma>
 //     y metadatos <norma>;
 //  3. por cada cita esperada: articulo <norma> <bloque>.
@@ -107,6 +109,9 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
 			case formaPreparar, formaCotejar:
 				// El applet cita no consulta nada: prepara una consulta y coteja
 				// el texto que recibe, sin red ni caché. No hay nada que grabar.
+			case formaCalcular:
+				// El applet plazos calcula con los festivos y los tipos que viajan
+				// dentro del binario, sin red ni caché: tampoco hay nada que grabar.
 			}
 		}
 

@@ -1,0 +1,13 @@
+{
+  "ciclo": 2,
+  "desde_ronda": 4,
+  "motivo": "cambios fuera de gates/ posteriores al último veredicto",
+  "desde": "0c9101ae54d90015274b8d003f3b4a33516ff4b3",
+  "commits": [
+    {
+      "sha": "e3d6426d99e3fe3c532260f2445e44164cc55031",
+      "asunto": "fix(H9): cierre en la plataforma"
+    }
+  ],
+  "cerrado": true
+}

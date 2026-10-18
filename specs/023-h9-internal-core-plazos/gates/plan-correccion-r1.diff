@@ -1,0 +1,489 @@
+diff antes/contracts/SKILL-legal-core.prototipo.md ahora/contracts/SKILL-legal-core.prototipo.md
+--- antes/contracts/SKILL-legal-core.prototipo.md	2026-10-18 06:15:58
++++ ahora/contracts/SKILL-legal-core.prototipo.md	2026-10-18 06:26:04
+@@ -27,9 +27,10 @@
+ 
+ ## Protocolo
+ 
+-Del 1 al 4 siempre; el 5 y el 6 cuando la pregunta va más allá del territorio; del 7 al 11 cuando pregunta por un plazo
+-o un recurso. Cada operación se pide de una de dos formas, que devuelven el mismo sobre, con `fuente`, `url`,
+-`fecha_consulta` y `hash` junto a `data`:
++Una pregunta de territorio sigue del 1 al 4, y el 5 y el 6 si va más allá del territorio. Una pregunta de plazos o de
++recursos empieza por el 7, que decide si hay plazo que calcular antes de preguntar nada; solo si lo hay, el 8 resuelve
++los municipios que cuentan con los pasos 1 a 4, y siguen del 9 al 11. Cada operación se pide de una de dos formas,
++que devuelven el mismo sobre, con `fuente`, `url`, `fecha_consulta` y `hash` junto a `data`:
+ 
+ - **Con la herramienta** de su fila en «Comandos», si entre las tuyas hay una con ese nombre, solo o detrás del prefijo
+   que le ponga tu agente, como `mcp__kitlegal__territorio_resolver`. Si la tienes, úsala siempre.
+@@ -96,25 +97,27 @@
+   las referencias, que no llevan el texto de ninguna norma.
+ - El identificador de una norma que no está en las referencias también se resuelve con `boe-legislacion`.
+ 
+-### 7. Situar el asunto de un plazo
++### 7. Decidir si hay plazo que calcular
+ 
+-- Averigua qué acto o qué solicitud es, qué administración lo dictó o lo recibe, y la fecha de inicio: la de la
+-  notificación o la publicación; en el silencio, la del acuerdo de iniciación o la de entrada de la solicitud en el
+-  registro. Si falta la fecha, **pregúntala**: `plazos` no la deduce y tú tampoco.
+-- Los municipios que cuentan: en un plazo administrativo, **el del interesado y el de la sede del órgano** (pueden ser
+-  el mismo); en el recurso contencioso-administrativo, **el de la sede del juzgado**. Resuélvelos con el paso 2. Si la
+-  persona no los ha dado, pregúntalos; nunca supongas el de quien usa el kit.
+-- Antes de preguntar nada más, mira el paso 8: lo que no cubre kitlegal no necesita municipios ni fechas.
++Averigua qué acto o qué solicitud es y qué administración lo dictó o lo recibe, y mira estos dos casos **antes de
++preguntar nada más**, tampoco el municipio ni la fecha: ninguno los necesita, porque no se les calcula nada.
+ 
+-### 8. Comprobar la cobertura por materia
++- **Lo que la ley regula aparte.** Busca la materia del asunto en `references/cobertura_por_materia.md`. Si cae en una
++  de sus entradas —tributos, Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería,
++  extranjería y asilo, una impugnación que sustituye a la alzada, una reclamación económico-administrativa—, declara que
++  no está cubierto con la línea de «Cómo se presenta un plazo», con la norma que lo rige si la entrada la trae y, si no,
++  con el precepto de la LPAC que lo excluye; no nombres ninguna norma que no venga de la entrada. **No pidas `plazos
++  calcular`** y no des ni la línea del plazo ni ninguna fecha: el plazo del común no es el suyo.
++- **Acto presunto**: no hay fecha. Cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, leídos con `boe-legislacion`, y
++  no pidas ningún plazo.
+ 
+-Antes de pedir ningún plazo, busca la materia del asunto en `references/cobertura_por_materia.md`. Si cae en una de sus
+-entradas —tributos, Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería, extranjería y
+-asilo, una impugnación que sustituye a la alzada, una reclamación económico-administrativa—:
++### 8. Situar el plazo
+ 
+-- declara que no está cubierto con la línea de «Cómo se presenta un plazo», con la norma que lo rige si la entrada la
+-  trae y, si no, con el precepto de la LPAC que lo excluye; no nombres ninguna norma que no venga de la entrada;
+-- **no pidas `plazos calcular`** y no des ni la línea del plazo ni ninguna fecha: el plazo del común no es el suyo.
++- La fecha de inicio: la de la notificación o la publicación; en el silencio, la del acuerdo de iniciación o la de
++  entrada de la solicitud en el registro. Si falta, **pregúntala**: `plazos` no la deduce y tú tampoco.
++- Los municipios que cuentan: en un plazo administrativo, **el del interesado y el de la sede del órgano** (pueden ser
++  el mismo); en el recurso contencioso-administrativo, **el de la sede del juzgado**. Tómalos y resuélvelos con los
++  pasos 1 a 4: si la persona no los ha dado, pregúntalos; nunca supongas el de quien usa el kit.
+ 
+ ### 9. Pedir el plazo a `plazos`
+ 
+@@ -125,8 +128,6 @@
+ - **Silencio**: el plazo máximo para resolver lo fija la norma del procedimiento; léela con `boe-legislacion` y pásalo
+   con `--duracion` y `--unidad`. Solo si no fija ninguno, los tres meses del art. 21.3 LPAC, y dilo citándolo.
+   `plazos` no dice si el silencio es estimatorio o desestimatorio: eso lo dice la norma, no la fecha.
+-- **Acto presunto**: no hay fecha. Cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, leídos con `boe-legislacion`, y
+-  no pidas ningún plazo.
+ - **Reclamación del art. 24.2 LTAIBG**: señala como variación autonómica ante quién se reclama, el Consejo de
+   Transparencia y Buen Gobierno o el órgano que la comunidad haya designado (art. 24.6).
+ - Con el código 2 o 3, como en el paso 4: los candidatos de un municipio van en `data.mensaje` tras el municipio
+@@ -209,7 +210,7 @@
+ 
+ | Orden | Herramienta | Qué hace | Qué devuelve en `data` |
+ |---|---|---|---|
+-| `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <duracion>] [--unidad <unidad>]` | `plazos_calcular` | Devuelve la fecha en que vence un plazo, con el precepto que lo fija, los festivos que saltó, los avisos de lo que le falta y hasta dónde llegan sus festivos. No consulta nada. | objeto con `fecha`, `tipo`, `inicio`, `duracion`, `computo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura` |
++| `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <duracion>] [--unidad <unidad>]` | `plazos_calcular` | Devuelve la fecha en que vence un plazo, con el precepto que lo fija, los festivos que saltó, los avisos de lo que le falta y hasta dónde llegan sus festivos. No consulta nada. | objeto con `fecha`, `tipo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura` |
+ 
+ La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
+ 
+diff antes/contracts/applet-plazos.md ahora/contracts/applet-plazos.md
+--- antes/contracts/applet-plazos.md	2026-10-18 06:15:58
++++ ahora/contracts/applet-plazos.md	2026-10-18 06:20:46
+@@ -68,23 +68,23 @@
+ |---|---|---|---|
+ | `fecha` | cadena `AAAA-MM-DD` | sí | la que se da |
+ | `tipo` | cadena | sí | el pedido |
+-| `inicio` | cadena `AAAA-MM-DD` | sí | la dada |
+-| `duracion` | `{cantidad, unidad}` | sí | la del tipo, o la dada en `silencio` y `generico` |
+-| `computo` | `lpac` o `contencioso` | sí | |
+ | `preceptos` | lista de `{norma, bloque, apartado}` | sí, uno o más | el que fija el plazo; en `contencioso`, también el 128.2 LJCA |
+ | `municipios` | lista de `{codigo_ine, nombre}` | sí | los que cuentan, una vez cada uno, en el orden dado, como los da `territorio resolver` |
+ | `festivos` | lista de `{fecha, ambito, municipio?, source}` | sí, puede ir vacía | los saltados, en orden de fecha; `ambito` es `nacional`, `autonomico` o `local`; `municipio` (código INE) solo en los locales |
+ | `avisos` | lista de `{codigo, texto}` | sí, puede ir vacía | §5, en el orden de los códigos de §5 y, dentro de uno, de fecha y de municipio |
+ | `cobertura` | lista de `{ambito, municipio?, desde, hasta, disposicion?, falta?}` | sí, una o más | por ámbito (`nacional-y-autonomico`, o `local` de cada municipio) y por tramo de años del tramo del plazo: `disposicion` es la última aplicada de ese año; `falta`, por qué no hay festivos (`sin-cargar`, `sin-festivos-locales`, `no-comunicado`, `linea-sin-leer`, `sin-linea`) |
+ 
+-Ejemplo, el caso (a), con `--json` (854 bytes; research M1):
++Son las claves que enumera FR-001 y ninguna más: ni la fecha de inicio, ni la duración, ni el cómputo, que quien llama
++ya tiene o lee en `references/recursos_y_plazos.md` (research D5).
+ 
++Ejemplo, el caso (a), con `--json` (772 bytes con el `hash` entero; research M1):
++
+ ```json
+-{"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"2026-10-18T09:00:00+02:00","hash":"sha256:…","data":{"fecha":"2026-10-13","tipo":"reposicion","inicio":"2026-09-09","duracion":{"cantidad":1,"unidad":"meses"},"computo":"lpac","preceptos":[{"norma":"BOE-A-2015-10565","bloque":"a124","apartado":"124.1"}],"municipios":[{"codigo_ine":"28074","nombre":"Leganés"}],"festivos":[{"fecha":"2026-10-09","ambito":"local","municipio":"28074","source":"BOCM-20251212-34"},{"fecha":"2026-10-12","ambito":"nacional","source":"BOE-A-2025-21667"}],"avisos":[],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28074","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
++{"ok":true,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"2026-10-18T09:00:00+02:00","hash":"sha256:…","data":{"fecha":"2026-10-13","tipo":"reposicion","preceptos":[{"norma":"BOE-A-2015-10565","bloque":"a124","apartado":"124.1"}],"municipios":[{"codigo_ine":"28074","nombre":"Leganés"}],"festivos":[{"fecha":"2026-10-09","ambito":"local","municipio":"28074","source":"BOCM-20251212-34"},{"fecha":"2026-10-12","ambito":"nacional","source":"BOE-A-2025-21667"}],"avisos":[],"cobertura":[{"ambito":"nacional-y-autonomico","desde":2026,"hasta":2026,"disposicion":"BOE-A-2025-21667"},{"ambito":"local","municipio":"28074","desde":2026,"hasta":2026,"disposicion":"BOCM-20260108-18"}]}}
+ ```
+ 
+ El caso (b), Tordesillas, lleva `"festivos":[]`, un aviso y `{"ambito":"local","municipio":"47165","desde":2026,
+-"hasta":2026,"falta":"sin-festivos-locales"}` (940 bytes; M2).
++"hasta":2026,"falta":"sin-festivos-locales"}` (858 bytes; M2).
+ 
+ ## 5. Avisos (FR-010, FR-011, FR-026, FR-048)
+ 
+@@ -126,20 +126,20 @@
+ `kitlegal plazos calcular <tipo> <inicio> <municipios> --describe` emite el esquema con `entrada` y `salida`; su forma
+ canónica es `internal/app/testdata/plazos/describe.json`, y la salida, la parte `plazos calcular` de
+ `schemas/plazo.json` («Salida del verbo calcular del applet plazos. Generado desde --describe con make schema-check; no
+-editar.»). Los enumerados de `tipo`, `duracion.unidad`, `computo`, `festivos[].ambito`, `avisos[].codigo`,
+-`cobertura[].ambito` y `cobertura[].falta` van en las etiquetas de los tipos de salida, y un test exige que digan lo
++editar.»). Los enumerados de `tipo`, `festivos[].ambito`, `avisos[].codigo`, `cobertura[].ambito` y
++`cobertura[].falta` van en las etiquetas de los tipos de salida, y un test exige que digan lo
+ mismo que los vocabularios del dominio, como `TestTerritorioResuelto`.
+ 
+ ## 8. Uso, de fuera adentro
+ 
+ | Quién | Cuántas veces | Qué escribe | Qué recibe | Cuándo deja de darse cada señal |
+ |---|---|---|---|---|
+-| `legal-core`, paso 9 | una por plazo que pide la pregunta: casi siempre una; dos si pide la reposición y el contencioso | la orden o la llamada: menos de 100 bytes | 0,85 a 1 KB en un plazo de un mes (M1, M2). Cada festivo saltado, unos 90 bytes; cada aviso, unos 250; cada entrada de `cobertura`, unos 100 | Cada llamada calcula de nuevo con lo que lleva el binario. Un aviso solo con lo que lo causa en el tramo de esa llamada: es información de esa fecha, no un recordatorio. El de los locales de 2027 de la Comunidad de Madrid deja de darse con la release que lleve el BOCM de 2027; el de una comunidad sin festivos locales, cuando entren los de su boletín (backlog «territorios»); el de los nacionales y autonómicos, cuando el tramo no sale de los años cargados; el de una parte, cuando el tramo no pasa por ese día; el del art. 183, cuando no pasa por el 24 de diciembre al 6 de enero |
++| `legal-core`, paso 9 | una por plazo que pide la pregunta: casi siempre una; dos si pide la reposición y el contencioso | la orden o la llamada: menos de 100 bytes | 0,77 a 0,86 KB en un plazo de un mes (M1, M2). Cada festivo saltado, unos 90 bytes; cada aviso, unos 250; cada entrada de `cobertura`, unos 100 | Cada llamada calcula de nuevo con lo que lleva el binario. Un aviso solo con lo que lo causa en el tramo de esa llamada: es información de esa fecha, no un recordatorio. El de los locales de 2027 de la Comunidad de Madrid deja de darse con la release que lleve el BOCM de 2027; el de una comunidad sin festivos locales, cuando entren los de su boletín (backlog «territorios»); el de los nacionales y autonómicos, cuando el tramo no sale de los años cargados; el de una parte, cuando el tramo no pasa por ese día; el del art. 183, cuando no pasa por el 24 de diciembre al 6 de enero |
+ | el agente, al conectar | una vez por conexión | — | el esquema de `plazos_calcular`: 531 bytes su `entrada` sin las globales (M3) | — |
+ 
+ **Peor caso, con meses de uso o sin ellos.** `plazos` no guarda nada ni lee la caché ni el grafo: tras cientos de
+ normas y miles de bloques consultados, la llamada siguiente devuelve lo mismo que la primera. Lo que puede crecer es la
+-duración pedida, y está acotado: festivos solo de 2025 a 2027, como mucho 12 nacionales y autonómicos más 2 locales por
+-municipio y año (art. 37.2 del Estatuto de los Trabajadores), 48 en total con dos municipios, unos 4,3 KB; avisos, uno
++duración pedida, y está acotado: festivos solo de 2025 a 2027; como estimación, no como control, unos 12 nacionales y
++autonómicos más 2 locales por municipio y año, 48 en total con dos municipios, unos 4,3 KB; avisos, uno
+ por ámbito y municipio y uno por festivo de una parte de los años cargados, unos 8 KB en una comunidad con un festivo
+ por isla; `cobertura`, como mucho cinco tramos por ámbito, 1,5 KB. Menos de 15 KB por llamada.
+diff antes/contracts/datos-de-plazos.md ahora/contracts/datos-de-plazos.md
+--- antes/contracts/datos-de-plazos.md	2026-10-18 06:15:58
++++ ahora/contracts/datos-de-plazos.md	2026-10-18 06:21:22
+@@ -8,9 +8,10 @@
+ 
+ Dos ficheros, cada uno con una primera línea de comentario de fichero generado
+ (`# generado desde evidencias/h9/<fuente>/ por <Test> (<paquete>), no editar`), sus claves en este orden y sus listas
+-ordenadas como se dice. Los escribe `plazos.EscribirFestivos…` en su forma canónica; los lee
+-`plazos.CargarCalendario`, con un lector estricto (`KnownFields`), que rechaza un fichero que no cumple lo de aquí como
+-defecto `inesperado` (1).
++ordenadas como se dice. Los escribe `plazos.EscribirFestivos…` en su forma canónica y los lee
++`plazos.CargarCalendario`. Lo que llevan lo garantiza la derivación, que el test de FR-083 compara byte a byte con lo
++grabado; un fichero empotrado que no se puede leer sigue la regla genérica, defecto `inesperado` (1), sin regla de carga
++propia.
+ 
+ ### 1.1 `data/festivos/nacionales-y-autonomicos.yaml`
+ 
+@@ -31,8 +32,8 @@
+   que la resolución la marca con ese ámbito; ordenadas por fecha, ámbito y parte. `source` es la resolución de su año.
+ - `ambito`: `nacional` («***» o «**») o `autonomico` («*»). `parte`, solo si la resolución limita la fiesta a una parte
+   de la comunidad (FR-025); esa fila no hace inhábil el día (FR-011).
+-- Invariantes que comprueba la derivación: las 19 comunidades tienen festivos cada año y ninguna más de doce (art. 37.2
+-  del Estatuto de los Trabajadores).
++- Lo que comprueba la derivación: las 19 comunidades tienen festivos cada año, porque FR-020 pide los de todas las que
++  trae cada resolución y una columna que no se lee no puede quedar sin rastro.
+ 
+ ### 1.2 `data/festivos/locales/13.yaml`
+ 
+@@ -52,7 +53,7 @@
+ ```
+ 
+ - `festivos`: una fila por fecha y municipio (código INE), ordenadas por fecha y municipio; `source` es la última
+-  disposición del año que fija la línea del municipio. Ningún municipio tiene más de dos en un año.
++  disposición del año que fija la línea del municipio.
+ - `faltas`: por año, cada municipio de la comunidad sin festivos (`no-comunicado`, `linea-sin-leer`, `sin-linea`) y
+   cada línea que no casa con un único municipio (`sin-municipio`, con `linea`, el nombre tal como lo escribe el
+   boletín); ordenadas por año, municipio y línea. `source`, la disposición de la línea, o la última del año con
+@@ -164,7 +165,8 @@
+     precepto: {norma: BOE-A-2015-10565, bloque: a112, apartado: "112.4"}
+ ```
+ 
+-Una entrada sin `norma` no la toma de ningún otro sitio (FR-031): la declaración nombra el precepto de la LPAC.
++Una entrada sin `norma` no la toma de ningún otro sitio (FR-031): la declaración nombra el precepto de la LPAC. El
++bloque `a1` del texto refundido de Tráfico es el único de este contrato que no sale de un índice grabado (research S8).
+ 
+ ## 4. Lo que se graba y cómo se comprueba (FR-027, FR-030, FR-031, FR-052; research D15, D16)
+ 
+@@ -174,11 +176,15 @@
+ |---|---|---|---|
+ | `internal/source/boe/fiestas/testdata/grabaciones.json` | `boe.fiestas-laborales` | `https://www.boe.es/diario_boe/txt.php?id=<id>` de `BOE-A-2024-21316` (2025), `BOE-A-2025-21667` (2026) y `BOE-A-2026-21254` (2027), a 1 s | `TestGrabarFiestasLaborales` |
+ | `internal/source/bocm/testdata/grabaciones.json` | `bocm.fiestas-locales` | `https://www.bocm.es/boletin/CM_Orden_BOCM/AAAA/MM/DD/<id>.xml` de las siete disposiciones de FR-020, con su año, a 10 s | `TestGrabarFiestasLocales` |
+-| `internal/evals/testdata/grabaciones.json` | `boe.legislacion-consolidada` | con la forma del de H5 (`busqueda`, `titulo_empieza_por`, `bloques`, `para`): LPAC (`a24`, `a30`, `a112`, `a122`, `a124`, `daprimera`), LJCA (`a46`, `a128`), LOPJ (`a182`, `a183`, `a185`), LTAIBG (`a24`), LGT (`a97`), Código Civil (`a5`) y el texto refundido de Tráfico (`a1`, con su búsqueda) | `TestGrabarEvals` |
++| `internal/evals/testdata/grabaciones.json` | `boe.legislacion-consolidada` | con la forma del de H5 (`busqueda`, `titulo_empieza_por`, `bloques`, `para`): LPAC (`a24`, `a30`, `a112`, `a122`, `a124`, `daprimera`), LJCA (`a46`, `a128`), LOPJ (`acientoochentaydos`, `acientoochentaytres`, `acientoochentaycinco`), LTAIBG (`a24`), LGT (`a97`), Código Civil (`art5`) y el texto refundido de Tráfico (`a1`, con su búsqueda) | `TestGrabarEvals` |
+ 
+ Los dos primeros escriben en `$KITLEGAL_EVIDENCIAS` (`evidencias/h9/`); el tercero, en
+ `internal/evals/testdata/boe.legislacion-consolidada/`, solo lo que no está ya en H4 ni en H5.
+ 
++Cada id de bloque es el que da el índice grabado de su norma (research V20, V29), no uno compuesto con la forma de otra:
++la LOPJ escribe sus artículos con palabras («Artículo ciento ochenta y dos») y el Código Civil como `art<n>`. El índice
++del texto refundido de Tráfico no está grabado: su `a1` es un supuesto (research S8).
++
+ ### 4.2 `TestPreceptosDeLosPlazos` (`internal/evals`)
+ 
+ Con la caché preparada desde `UnionDeGrabaciones()` —H4, H5 y la raíz nueva—, lee cada bloque con `boe articulo` en
+@@ -200,10 +206,10 @@
+ | DA 1ª LPAC | `daprimera` | «aplicación de los tributos», «Seguridad Social», «tráfico y seguridad vial», «extranjería y asilo» |
+ | art. 112 LPAC | `a112` | «recurso de alzada», «reclamaciones económico-administrativas» |
+ | art. 128 LJCA | `BOE-A-1998-16718` `a128` | «agosto» |
+-| art. 182 LOPJ | `BOE-A-1985-12666` `a182` | «sábados y domingos», «24 y 31 de diciembre», «fiesta nacional», «festivos a efectos laborales» |
+-| art. 183 LOPJ | `a183` | «24 de diciembre», «6 de enero» |
+-| art. 185 LOPJ | `a185` | «Código Civil», «prorrogado» |
+-| art. 5 CC | `BOE-A-1889-4763` `a5` | «de fecha a fecha» |
++| art. 182 LOPJ | `BOE-A-1985-12666` `acientoochentaydos` | «sábados y domingos», «24 y 31 de diciembre», «fiesta nacional», «festivos a efectos laborales» |
++| art. 183 LOPJ | `acientoochentaytres` | «24 de diciembre», «6 de enero» |
++| art. 185 LOPJ | `acientoochentaycinco` | «Código Civil», «prorrogado» |
++| art. 5 CC | `BOE-A-1889-4763` `art5` | «de fecha a fecha» |
+ | art. 97 LGT | `BOE-A-2003-23186` `a97` | «aplicación de los tributos» |
+ | art. 1 del texto refundido de Tráfico | `a1` | «sancion» |
+ | art. 24 LTAIBG | `BOE-A-2013-12887` `a24` | «un mes», «Consejo de Transparencia y Buen Gobierno» |
+diff antes/contracts/skill-legal-core.md ahora/contracts/skill-legal-core.md
+--- antes/contracts/skill-legal-core.md	2026-10-18 06:15:58
++++ ahora/contracts/skill-legal-core.md	2026-10-18 06:24:36
+@@ -1,6 +1,6 @@
+ # Contrato de `legal-core` v1
+ 
+-Qué lleva `skills/legal-core/SKILL.md` y por qué (FR-040 a FR-048). El borrador, de 247 líneas y 15,8 kB, con su
++Qué lleva `skills/legal-core/SKILL.md` y por qué (FR-040 a FR-048). El borrador, de 248 líneas y 15,9 kB, con su
+ tabla de comandos regenerada en el prototipo (research V13), es contracts/SKILL-legal-core.prototipo.md; la tarea de
+ la skill parte de él y regenera la tabla y las referencias con `make skills-sync`. Decisión: research D21.
+ 
+@@ -19,17 +19,18 @@
+ 
+ | Paso | Qué hace | Requisito |
+ |---|---|---|
+-| 7 | Sitúa el asunto: acto, administración, fecha de inicio (la pregunta si falta) y los municipios que cuentan, resueltos con `territorio`; los pregunta si faltan, nunca el de quien usa el kit | FR-040.1 |
+-| 8 | Comprueba la cobertura por materia con `references/cobertura_por_materia.md` **antes de pedir ningún plazo**; si el asunto está, lo declara en su forma fija y no pide `plazos` | FR-040.2, FR-042 |
+-| 9 | Pide el plazo a `plazos` con la fecha de la persona; silencio con la duración de la norma del procedimiento o los tres meses del art. 21.3; acto presunto sin fecha; variación autonómica del art. 24.6 LTAIBG | FR-040.3, FR-043, FR-044 |
++| 7 | Con el acto y la administración, decide si hay plazo que calcular **antes de preguntar nada más**: comprueba la cobertura por materia con `references/cobertura_por_materia.md` y, si el asunto está, lo declara en su forma fija y no pide `plazos`; ante un acto presunto, cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, sin fecha. En los dos casos no pregunta ni municipios ni fecha | FR-040.1, FR-042, FR-043 |
++| 8 | Sitúa el plazo: la fecha de inicio (la pregunta si falta) y los municipios que cuentan, resueltos con `territorio` por los pasos 1 a 4; los pregunta si faltan, nunca el de quien usa el kit | FR-040.2 |
++| 9 | Pide el plazo a `plazos` con la fecha de la persona; silencio con la duración de la norma del procedimiento o los tres meses del art. 21.3; variación autonómica del art. 24.6 LTAIBG | FR-040.3, FR-044 |
+ | 10 | Lee con `boe-legislacion` (`boe articulo`) cada precepto de `data.preceptos` antes de citarlo | FR-040.4 |
+ | 11 | Responde con la línea del plazo, los festivos de `data.festivos` y la línea de cada aviso; la disposición, solo con el aviso de cobertura que la trae | FR-041 |
+ 
+-El paso 7 manda mirar el 8 antes de preguntar más: un asunto que la ley regula aparte no necesita municipios ni fecha,
+-porque no se le calcula nada. Así se cumple el orden de FR-040 en todo asunto al que se le pide un plazo —territorio
+-antes que `plazos`, cobertura antes que `plazos`, `plazos` antes que el precepto— y la pregunta de SC-003 sin
+-municipio («¿qué plazo tengo para recurrir una liquidación de la Agencia Tributaria?») se responde con la declaración,
+-sin preguntar dónde vive la persona. Las reglas de v0 siguen; la 7 gana «ninguna fecha ni ningún plazo» (FR-047), y
++Una pregunta de plazos o de recursos empieza por el paso 7, y los pasos 1 a 4 solo los recorren las preguntas de
++territorio y el paso 8, para los municipios de un plazo que sí se calcula. Es el orden de FR-040 —cobertura antes que
++los municipios y que `plazos`, territorio antes que `plazos`, `plazos` antes que el precepto—: un asunto que la ley
++regula aparte, o un acto presunto, no necesita municipios ni fecha, porque no se le calcula nada, y la pregunta de
++SC-003 sin municipio («¿qué plazo tengo para recurrir una liquidación de la Agencia Tributaria?») se responde con la
++declaración, sin preguntar dónde vive la persona. Las reglas de v0 siguen; la 7 gana «ninguna fecha ni ningún plazo» (FR-047), y
+ entran la 8 (ninguna fecha que no dé `plazos`) y la 9 (lo que la ley regula aparte no recibe el plazo del común).
+ 
+ ## 3. Las formas fijas (FR-048)
+@@ -56,8 +57,8 @@
+ 
+ | Salida | Quién la pide y cuántas veces | Tamaño | Señales |
+ |---|---|---|---|
+-| `SKILL.md` | el agente, una vez por conversación en que se activa | 247 líneas, 15,8 kB (en `main`, 190 y 12,4 kB) | ninguna |
+-| `recursos_y_plazos.md` y `cobertura_por_materia.md` | la skill, una vez por conversación con una pregunta de plazos: la de cobertura en el paso 8 y la de tipos en el 9 | unos 2 kB cada una; fijas, no dependen del uso | ninguna: cambian con `data/` |
++| `SKILL.md` | el agente, una vez por conversación en que se activa | 248 líneas, 15,9 kB (en `main`, 190 y 12,4 kB) | ninguna |
++| `recursos_y_plazos.md` y `cobertura_por_materia.md` | la skill, una vez por conversación con una pregunta de plazos: la de cobertura en el paso 7 y la de tipos en el 9 | unos 2 kB cada una; fijas, no dependen del uso | ninguna: cambian con `data/` |
+ | La respuesta | la persona, una por pregunta | una línea del plazo o una declaración, y una línea por aviso | una por respuesta; no se acumulan |
+ 
+ Por pregunta de plazo, la skill hace: una `territorio resolver` por municipio que cuenta (uno o dos), una
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-18 06:15:58
++++ ahora/data-model.md	2026-10-18 06:20:53
+@@ -15,9 +15,9 @@
+ | nacionales | por año cargado (2025 a 2027): la disposición y las filas `{fecha, ambito, comunidades, parte?, source}` |
+ | locales | por comunidad con fichero (hoy `13`): por año cargado, sus disposiciones, los festivos por municipio `{fecha, source}` y las faltas por municipio `{motivo, source}` |
+ 
+-Reglas al cargar (defecto `inesperado`, código 1, si no se cumplen): claves conocidas; fechas `AAAA-MM-DD` del año de
+-su fila; `ambito` y `motivo` de su vocabulario; cada fila con `source`; ningún municipio con festivos y falta el mismo
+-año; como mucho dos festivos locales por municipio y año.
++`CargarCalendario` recibe los bytes de los dos ficheros y los lee; lo que no se puede leer es un defecto `inesperado`
++(código 1), la regla genérica, sin regla de carga propia: lo que llevan lo garantiza la derivación, que el test de
++FR-083 compara byte a byte con lo grabado.
+ 
+ Consultas: `inhabil(día, municipios, cómputo)`; `festivosDe(día, municipios)` con su ámbito, municipio y `source`;
+ `cobertura(años, municipios)`; `partesDe(día, comunidad)`.
+@@ -39,7 +39,7 @@
+ 
+ ### Plazo (el `data` de `calcular`)
+ 
+-`fecha`, `tipo`, `inicio`, `duracion`, `computo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura`
++`fecha`, `tipo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura`: lo que enumera FR-001
+ (contracts/applet-plazos.md §4).
+ 
+ - **Festivo saltado**: `fecha`, `ambito` (`nacional`, `autonomico`, `local`), `municipio` solo si es local, `source`.
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-18 06:15:58
++++ ahora/plan.md	2026-10-18 06:24:21
+@@ -17,8 +17,9 @@
+ leído y la razón de cada día que la movió; y si el asunto lo regula la ley aparte, una declaración en lugar del plazo
+ del común. Lo entregan seis piezas:
+ 
+-1. **`legal-core` v1** (contracts/skill-legal-core.md; borrador de 247 líneas en
+-   contracts/SKILL-legal-core.prototipo.md): cinco pasos nuevos —situar, cobertura, plazo, precepto, respuesta— y tres
++1. **`legal-core` v1** (contracts/skill-legal-core.md; borrador de 248 líneas en
++   contracts/SKILL-legal-core.prototipo.md): cinco pasos nuevos —cobertura antes de preguntar nada, situar, plazo,
++   precepto, respuesta— y tres
+    formas fijas, `⚠ PLAZO:`, `⚠ NO CUBIERTO:` y la línea de cada aviso; dos referencias generadas.
+ 2. **El applet `plazos`** (contracts/applet-plazos.md), con `calcular` y su herramienta `plazos_calcular`: el art. 30
+    LPAC con los dos municipios del art. 30.6, y el contencioso con agosto, el art. 182.1 LOPJ y el aviso del 183. Su
+@@ -93,7 +94,7 @@
+ | V · Simplicidad y dependencias | Ninguna dependencia nueva. Cada mecanismo, con su requisito («Trazabilidad»). Rechazados: tres tipos genéricos, banderas por papel de municipio, una tabla de alias de nombres, el fichero CKAN como tabla de códigos, fragmentos de texto legal en `data/`, un esquema para `data/festivos/` y otro para `data/plazos.yaml`, `testing/quick` (research D2, D3, D13, D16, D17, D22, D25). |
+ | VI · Un binario, convenciones de agente | Un applet más en el multicall, con las ocho banderas globales heredadas; la herramienta y la fila de la tabla salen de `--describe` (research V13). |
+ | VII · Grafo y privacidad | `plazos` no emite operaciones de grafo ni abre `world.db` (FR-013); los municipios del asunto los da quien llama y no se guardan en ningún sitio. |
+-| VIII · Skills primero | El hito mejora `legal-core`, medida por cinco evals nuevas y dos umbrales; solo va al binario lo que exige determinismo, las fechas. `SKILL.md`, 247 líneas, sin `scripts/`, con cada operación como orden y como herramienta. |
++| VIII · Skills primero | El hito mejora `legal-core`, medida por cinco evals nuevas y dos umbrales; solo va al binario lo que exige determinismo, las fechas. `SKILL.md`, 248 líneas, sin `scripts/`, con cada operación como orden y como herramienta. |
+ | IX · Genericidad territorial | Ningún municipio con trato propio en código, `data/` ni la skill (FR-073): los festivos locales se configuran por comunidad (`data/festivos/locales/<comunidad>.yaml`) y el cruce de nombres es una regla para todos (research D13). Matriz territorial en e2e: Leganés, con festivos locales, y Tordesillas, sin ellos, con la cobertura en `data` (FR-085). Fuera de la Comunidad de Madrid, o en 2027, `cobertura` y un aviso dicen qué falta, nunca que no hay festivos (FR-026). |
+ 
+ ### Reglas de dependencia (`docs/ROADMAP.md` §2, constitución IV)
+@@ -115,7 +116,7 @@
+ ```text
+ specs/023-h9-internal-core-plazos/
+ ├── plan.md                         # este fichero
+-├── research.md                     # V1-V28, M1-M5, S1-S7, D1-D30
++├── research.md                     # V1-V29, M1-M5, S1-S8, D1-D30
+ ├── data-model.md                   # calendario, tipos, petición, plazo, derivación, evals, umbrales
+ ├── quickstart.md                   # §0-§13; §14, el cierre; §15, la persona; §16, limpieza
+ ├── contracts/
+@@ -211,11 +212,11 @@
+ | Test | Fichero | Cubre |
+ |---|---|---|
+ | `TestLeerTipos` | `internal/core/plazos/tipos_test.go` | FR-008, FR-030 (los siete y sus reglas) |
+-| `TestCargarCalendario`, `TestEscribirFestivos` | `calendario_test.go`, `festivos_test.go` | FR-020 a FR-026 (lectura estricta, invariantes, forma canónica) |
++| `TestCargarCalendario`, `TestEscribirFestivos` | `calendario_test.go`, `festivos_test.go` | FR-020 a FR-026: la forma canónica que escribe `EscribirFestivos` y su lectura, ida y vuelta, y las consultas del calendario; ninguna regla de carga propia (contracts/datos-de-plazos.md §1) |
+ | `TestCalcular` | `calcular_test.go` | FR-002 a FR-012, con calendarios sintéticos: cada regla del cómputo, cada aviso, cada fila de errores y su orden |
+ | `TestPropiedadesDelComputo` | `propiedades_test.go` | FR-081, SC-004: las tres propiedades sobre la rejilla de research D22 |
+ | `TestAvisosDePlazos` | `avisos_test.go` | FR-048: códigos, etiquetas y textos; las etiquetas de `internal/evals` son las del dominio |
+-| `TestLeerResolucion`, `TestFestivosNacionalesDerivados` | `internal/source/boe/fiestas/*_test.go` | FR-020, FR-025, FR-083: la derivación igual a `data/festivos/nacionales-y-autonomicos.yaml`, cada fila con `source`, las 19 comunidades con 12 como mucho |
++| `TestLeerResolucion`, `TestFestivosNacionalesDerivados` | `internal/source/boe/fiestas/*_test.go` | FR-020, FR-025, FR-083: la derivación igual a `data/festivos/nacionales-y-autonomicos.yaml`, cada fila con `source`, las 19 comunidades con festivos cada año |
+ | `TestLeerDisposicion`, `TestCruceConElTerritorio`, `TestFestivosLocalesDerivados`, `TestCotejoConElCatalogo` | `internal/source/bocm/*_test.go` | FR-021 a FR-024, FR-083, FR-084, SC-006, SC-007: las erratas de research V8, los nombres de V7, la derivación igual a `data/festivos/locales/13.yaml`, 179 de 179, cada línea, y las diez diferencias del `LEEME.md` |
+ | `TestAppletPlazos` | `internal/app/plazos_test.go` | FR-001, FR-013: los golden de `testdata/plazos/` contra `schemas/plazo.json`, ninguna operación de grafo, el mismo `data` y `hash` con `--offline`, el golden de `--describe` (FR-085), los enumerados de la salida iguales a los del dominio |
+ | `TestFestivoDeUnaParte` | `internal/app/plazos_test.go` | FR-011, FR-025 |
+@@ -306,7 +307,8 @@
+ contracts/skill-legal-core.md §5.
+ 
+ - **El resultado de `plazos calcular`** (la skill, paso 9; una invocación por plazo, casi siempre una por pregunta): la
+-  skill escribe menos de 100 bytes y recibe 854 bytes en el caso (a) y 940 en el (b) (research M1, M2); cada festivo
++  skill escribe menos de 100 bytes y recibe 772 bytes en el caso (a) y 858 en el (b) (research M1, M2), con las claves
++  de FR-001 y ninguna más; cada festivo
+   saltado, unos 90 bytes; cada aviso, unos 250; cada tramo de `cobertura`, unos 100. Acotado sea cual sea la
+   duración: menos de 15 KB en el peor caso (contracts/applet-plazos.md §8).
+ - **Las señales** (avisos y `cobertura`): cada una solo si el tramo de esa llamada pasa por lo que la causa: es
+@@ -315,7 +317,7 @@
+   la de una parte, cuando el tramo no pasa por ese día; la del art. 183, cuando no pasa por el 24 de diciembre al 6 de
+   enero. Hasta qué disposición llegan los datos lo lleva el aviso de cobertura, y la skill no lo dice sin él (FR-041).
+ - **Las referencias** (la skill, una vez por conversación de plazos): unos 2 kB cada una, fijas.
+-- **`SKILL.md`** (el agente, una vez por conversación): 247 líneas, 15,8 kB.
++- **`SKILL.md`** (el agente, una vez por conversación): 248 líneas, 15,9 kB.
+ - **Los umbrales** (el job, el informe final, la persona; una vez por job): seis elementos de unos 300 bytes en
+   `legal-core`; un motivo, menos de 0,6 KB.
+ 
+@@ -396,7 +398,10 @@
+ 
+ Ningún fichero de `data/festivos/` se escribe a mano. `data/plazos.yaml` y `data/cobertura.yaml` los fija este plan
+ desde el spec, como `data/normas.yaml`, y los comprueba lo grabado; el identificador del texto refundido de Tráfico
+-sale de la búsqueda grabada (research S5). El fichero CKAN y el `LEEME.md` de `evidencias/adr-0039/` solo los lee el
++sale de la búsqueda grabada (research S5). Cada id de bloque del manifiesto de preceptos es el del índice grabado de su
++norma —en la LOPJ, `acientoochentaydos`, `acientoochentaytres` y `acientoochentaycinco`; en el Código Civil, `art5`
++(research V20, V29)—, salvo el `a1` del texto refundido de Tráfico, cuyo índice no está grabado: si no existe,
++`TestGrabarEvals` falla y el run se detiene con el dossier de `grabar_datos` (research S8). El fichero CKAN y el `LEEME.md` de `evidencias/adr-0039/` solo los lee el
+ cotejo; ninguna tarea los cambia. Ninguna fuente sin fila revisada entra: no la hay en este hito.
+ 
+ ## Orden de implementación (de dentro afuera)
+@@ -465,8 +470,9 @@
+   está en Complexity Tracking o en `gates/supuestos.md`, con su requisito.
+ - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos.
+ - h · Mejor alternativa: cada decisión con la rechazada (D1-D30).
+-- i · Afirmaciones verificadas: V1-V28 con fichero, orden, sonda o prototipo; M1-M5 medidas; S1-S7 como supuestos, con
+-  lo que pasa si no se cumplen.
++- i · Afirmaciones verificadas: V1-V29 con fichero, orden, sonda o prototipo —cada id de bloque del manifiesto de
++  preceptos, contra el índice grabado de su norma (V20, V29)—; M1-M5 medidas; S1-S8 como supuestos, con lo que pasa si
++  no se cumplen.
+ - j · Quickstart ejecutable: órdenes, rutas, banderas y datos reales; todo bajo `$T`, borrado al final; el 14 es del
+   workflow y el 15 de una persona.
+ - k · Datos externos: tres fuentes revisadas, tres manifiestos, tres `TestGrabar*`, lo derivado por código.
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-18 06:15:58
++++ ahora/research.md	2026-10-18 06:24:39
+@@ -33,8 +33,8 @@
+ | V17 | El fallo por un nombre de varios municipios de `territorio` es `{clase: argumentos, mensaje}` con los candidatos en el mensaje, «<código INE> <nombre> (<provincia>)» separados por «; » | `internal/core/territorio/errores.go:67-83`; `internal/app/testdata/script/territorio-matriz.txtar:125-132` |
+ | V18 | La forma fija de un aviso es `⚠ <ETIQUETA>:` con la tolerancia de `patronDeEtiqueta`; la cita es `[…, BOE-A-…, bloque <id>]` (`formaDeCita`) | `internal/evals/avisos.go:16-93`; `citas.go:8-44` |
+ | V19 | `medirLasRespuestas` da umbrales de las respuestas solo con juez o con sentencias; por modo, en este orden: `sin_activar`, las clases, `cita_sin_documento`, `documento_sin_cotejar`; el motivo de uno que decide es `umbral <nombre>: <medida>, y tiene que ser <condición>` seguido de las sesiones que cuentan separadas por «; » | `internal/evals/informe.go:1360-1401`; `umbrales.go:116-128, 284-316, 583-622` |
+-| V20 | Los ids de bloque del índice grabado de la LPAC: `a20`, `a21`, `a30`, `a112`, `a121`, `a122`, `a123`, `a124` y `daprimera` (la disposición adicional primera); todos válidos para `boe.ValidarBloque` | `jq` sobre `internal/source/boe/testdata/…/id_BOE-A-2015-10565_texto_indice.json`; `internal/source/boe/ids.go:68-80` |
+-| V21 | Grabado ya: índice y metadatos de la LJCA (`BOE-A-1998-16718`), la LOPJ (`BOE-A-1985-12666`), la LGT (`BOE-A-2003-23186`) y el Código Civil (`BOE-A-1889-4763`); el art. 20 de la LTAIBG (`BOE-A-2013-12887`, `a20`); y de la LPAC, `a21` y `a1`, `a22`, `a23` | `ls testdata/evals/boe.legislacion-consolidada/` e `internal/source/boe/testdata/boe.legislacion-consolidada/` |
++| V20 | Los ids de bloque del índice grabado de la LPAC: `a20`, `a21`, `a24`, `a30`, `a112`, `a121`, `a122`, `a123`, `a124` y `daprimera` (la disposición adicional primera); todos válidos para `boe.ValidarBloque` | `jq` y `grep -o` sobre `internal/source/boe/testdata/…/id_BOE-A-2015-10565_texto_indice.json`; `internal/source/boe/ids.go:68-80` |
++| V21 | Grabado ya: índice y metadatos de la LJCA (`BOE-A-1998-16718`), la LOPJ (`BOE-A-1985-12666`), la LGT (`BOE-A-2003-23186`) y el Código Civil (`BOE-A-1889-4763`); el art. 20 de la LTAIBG (`BOE-A-2013-12887`, `a20`); y de la LPAC, `a21` y `a1`, `a22`, `a23`. Los ids de bloque que el plan pide de esas normas, en V29 | `ls testdata/evals/boe.legislacion-consolidada/` e `internal/source/boe/testdata/boe.legislacion-consolidada/` |
+ | V22 | `description` de una skill: 1 024 caracteres como mucho; la de `legal-core` v0 tiene unos 855 | `internal/skills/frontmatter.go:53, 438`; `wc -m` |
+ | V23 | `testing/quick` está congelado («frozen and is not accepting new features») y usa `math/rand` | `go doc testing/quick` (go1.27.2) |
+ | V24 | El esquema de eval tiene una forma por comando (`oneOf`), `prohibidos` admite cualquier `{applet, verbo}`, y su `fecha` es `AAAAMMDD` | `jq` sobre `schemas/eval.yaml.json` |
+@@ -42,14 +42,15 @@
+ | V26 | Los esquemas publicados se llaman como su entidad (`municipio.json`, `cita.json`), con la tabla `ficherosDeEsquemas` | `internal/app/esquemas_test.go:42-69` |
+ | V27 | El módulo de YAML del repositorio es `go.yaml.in/yaml/v3` v3.0.5, la ruta mantenida de `yaml.v3` que fija la constitución; lo usan ya `internal/core/territorio` (`KnownFields`) e `internal/skills` | `go.mod:15`; `git grep '"go.yaml.in/yaml/v3"'` |
+ | V28 | Los documentos que hoy dicen de `legal-core` lo que el hito deja falso: `CONTRIBUTING.md` 85 (lista de applets), 382 (esquemas), 471 (verbo con su herramienta), 600-630 (formato y reglas del conjunto), 944 (concurrencia `1`), 963 (cuatro evals, 42 sesiones), 1145 (`umbrales` vacío) y 1210; `README.md` 24-37; `docs/WORKFLOW.md` no nombra `legal-core` | `grep -n` |
++| V29 | **Los ids de bloque de los índices grabados de las otras normas del manifiesto de preceptos**: en la LOPJ, los arts. 182, 183 y 185 son `acientoochentaydos`, `acientoochentaytres` y `acientoochentaycinco` («Artículo ciento ochenta y dos», «… tres», «… cinco»; actualizados el 2022-12-23, el 2022-12-23 y el 1985-07-02), y no hay ningún `a182`, `a183` ni `a185`; en el Código Civil, el art. 5 es `art5` («Art 5», 1974-07-09), y no hay ningún `a5`; en la LJCA, `a46` y `a128`; en la LTAIBG, `a20` y `a24`; en la LGT, `a97`. Todos con la forma de `boe.ValidarBloque` | `grep -o` y `grep -c` sobre `testdata/evals/boe.legislacion-consolidada/GET_…_id_<norma>_texto_indice.json` de `BOE-A-1985-12666`, `BOE-A-1889-4763`, `BOE-A-1998-16718`, `BOE-A-2013-12887` y `BOE-A-2003-23186`; `internal/source/boe/ids.go:80-82` |
+ 
+ ## M · Medido
+ 
+ | Id | Qué | Valor |
+ |---|---|---|
+-| M1 | Sobre del caso (a), con `--json`, como lo fija contracts/applet-plazos.md §4 | 854 bytes (fichero de ejemplo en `$TMPDIR`, `wc -c`) |
+-| M2 | Sobre del caso (b), con un aviso | 940 bytes |
+-| M3 | `--describe` de `plazos calcular` en el prototipo, en una línea; su `entrada` sola | 4 252 y 531 bytes |
++| M1 | Sobre del caso (a), con `--json`, como lo fija contracts/applet-plazos.md §4, con el `hash` de 64 cifras y el salto de línea final | 772 bytes (`wc -c` sobre el ejemplo de §4 con el `hash` entero; el mismo método da los 854 del sobre con las tres claves que §4 ya no lleva) |
++| M2 | Sobre del caso (b), con un aviso, igual | 858 bytes (940 con las tres claves) |
++| M3 | `--describe` de `plazos calcular` en el prototipo, en una línea; su `entrada` sola | 4 252 y 531 bytes. El entero se midió con la salida del prototipo, anterior a quitar de §4 tres claves, y no se ha vuelto a medir; la `entrada`, la única cifra que usa contracts/applet-plazos.md §8, no cambia |
+ | M4 | `SKILL.md` de `legal-core` en `main`; con la tabla de `plazos` regenerada | 190 y 196 líneas |
+ | M5 | Peor caso del trabajo de `legal-core` con nueve evals, a dos sesiones | 14 629 s (V15), dentro de los 352 minutos (21 120 s) |
+ 
+@@ -63,10 +64,11 @@
+ | S1 | **Formato de la resolución del BOE** (`/diario_boe/txt.php?id=…`): el anexo es una tabla con una fila por fecha y una columna por comunidad o ciudad autónoma, con la marca «***» (fiesta nacional no sustituible), «**» (nacional respecto de la que no se ejerció la sustitución) o «*» (de comunidad autónoma), y notas que limitan alguna fiesta a una parte de la comunidad. No se ha podido leer: no está grabada y la sesión no tiene red | La tarea del analizador lo escribe contra la grabación que deja `grabar_datos` antes que ella (D15). La semántica de D14 no cambia: ámbito por la marca, parte por la nota; si una marca o una nota no se pudiera leer sin interpretarla, ese festivo queda fuera, como en el BOCM (ADR 0039, punto 3) |
+ | S2 | Los nombres de las comunidades de la tabla del BOE casan, plegados y con la regla compacta de D13, con los de `data/territorio/comunidades/` | El test de derivación falla nombrando la columna; la regla de cruce es la misma de D13 y no admite una lista de alias |
+ | S3 | **Festivos decisivos de los casos que no salen del BOCM**: 12 de octubre de 2026, 25 de diciembre de 2026 y 1 de enero de 2027 (nacionales no sustituibles), 6 de enero de 2027 (Epifanía, nacional en Madrid), 1 de enero de 2025; y ningún festivo autonómico de Madrid ni de Castilla y León en los días que deciden cada caso (contracts/casos-de-plazos.md). Se eligieron los tramos para que solo decidan estos días, los fines de semana y los locales leídos del BOCM (V9) | El caso falla en `make ci`. La tarea de la tabla se escribe después de derivar `data/festivos/` y lee de ahí el festivo; si lo grabado contradice un razonamiento, corrige el razonamiento y la fecha con lo grabado y lo anota en `gates/supuestos.md`. Los guiones de aceptación, que se congelan antes, solo usan casos cuyo día decisivo es el 9 o el 12 de octubre de 2026, el 14 de enero de 2027, el 15 de septiembre o el 28 de diciembre de 2026 y el 1 al 3 de enero de 2025 (D27) |
+-| S4 | **Texto vigente de los preceptos** de LPAC (arts. 21.3, 24.1, 24.4, 30, 112.2, 112.4, 122.1, 124.1, DA 1ª.2), LJCA (46.1, 128.2), LOPJ (182.1 con «los días 24 y 31 de diciembre», 183 con los días del 24 de diciembre al 6 de enero, 185), LTAIBG (20.1, 24.2, 24.6), LGT (97), Código Civil (5.1) y texto refundido de Tráfico (1), tal como se recuerdan, sin leerlos en esta sesión | Lo comprueba el test de D16 contra lo grabado, por apartado y con sus palabras clave. Si el art. 182.1 grabado no enumera el 24 y el 31 de diciembre, el cómputo no los trata como inhábiles y la tarea lo anota; si una duración no está en su apartado, el test falla y el tipo se corrige con lo grabado |
++| S4 | **Texto vigente de los preceptos** de LPAC (arts. 21.3, 24.1, 24.4, 30, 112.2, 112.4, 122.1, 124.1, DA 1ª.2), LJCA (46.1, 128.2), LOPJ (182.1 con «los días 24 y 31 de diciembre», 183 con los días del 24 de diciembre al 6 de enero, 185), LTAIBG (20.1, 24.2, 24.6), LGT (97), Código Civil (5.1) y texto refundido de Tráfico (1), tal como se recuerdan, sin leerlos en esta sesión. Los ids de sus bloques no se recuerdan: salen de los índices grabados (V20, V29), salvo el de Tráfico (S8) | Lo comprueba el test de D16 contra lo grabado, por apartado y con sus palabras clave. Si el art. 182.1 grabado no enumera el 24 y el 31 de diciembre, el cómputo no los trata como inhábiles y la tarea lo anota; si una duración no está en su apartado, el test falla y el tipo se corrige con lo grabado |
+ | S5 | El identificador del texto refundido de la Ley sobre Tráfico es `BOE-A-2015-11722` | No se escribe de memoria: lo resuelve la búsqueda del manifiesto (D15), como los de `data/normas.yaml`, y `data/cobertura.yaml` lleva el que da lo grabado |
+ | S6 | Lo que harán las sesiones del modelo que decide con `legal-core` v1: que se active con las preguntas de plazos, que escriba las formas fijas y que no pida `plazos calcular` en las de cobertura | Lo mide el job de evals del cierre (SC-001); un rojo de lo que entrega el hito se repara (FR-071) |
+ | S7 | Lint del código nuevo (`golangci-lint` con `gocyclo`, `dupl`, `gosec`, `misspell`…) | Lo ve `make ci` en cada tarea; ningún `//nolint` (constitución, criterio 1) |
++| S8 | El art. 1 del texto refundido de Tráfico es el bloque `a1` de su índice consolidado, la forma de la LPAC, del mismo año (V20, V21), y no la de la LOPJ o el Código Civil (V29). Su índice no está grabado y la sesión no tiene red | `TestGrabarEvals`, en el paso `grabar_datos` tras la tarea `[datos]` del paso 2, pide un bloque que no existe y falla las dos veces; `grabar-datos.sh` deja el dossier «dependencia externa inaccesible» y detiene el run hasta que una persona corrija el id en el manifiesto (`data/cobertura.yaml` llega después, en el paso 4, con el que quede). Ningún otro bloque depende de él |
+ 
+ ## D · Decisiones
+ 
+@@ -114,8 +116,10 @@
+ 
+ ### D5 · Lo que devuelve
+ 
+-Contracts/applet-plazos.md §4: `fecha`, `tipo`, `inicio`, `duracion` (solo si el tipo la tiene), `computo`,
+-`preceptos`, `municipios`, `festivos` (los saltados), `avisos` y `cobertura`. `cobertura` va siempre y es la
++Contracts/applet-plazos.md §4: `fecha`, `tipo`, `preceptos`, `municipios`, `festivos` (los saltados), `avisos` y
++`cobertura`, lo que enumera FR-001 y nada más. Rechazadas: devolver la fecha de inicio, la duración y el cómputo, que
++quien llama ya tiene o lee en `references/recursos_y_plazos.md` y que ningún requisito pide, como `comunidad` (D29).
++`cobertura` va siempre y es la
+ declaración de principio IX: por ámbito y por tramos de años, hasta qué disposición llegan los datos o qué falta; cada
+ tramo de años cargado es un año (cada año tiene su disposición) y cada hueco es un tramo, así que una llamada lleva como
+ mucho cinco entradas por ámbito sea cual sea la duración. Rechazada: una entrada por año del tramo, que crece con la
+@@ -225,9 +229,9 @@
+ comunidad con su ámbito: `nacional` con «***» o «**», `autonomico` con «*». Una nota que limita la fiesta a una parte
+ de una comunidad da la fila con `parte` y sin efecto en el cómputo (FR-011, FR-025). Las columnas se cruzan con las 19
+ comunidades de `data/territorio/comunidades/` con la regla compacta de D13 (S2). Una fila que no se lee sin
+-interpretarla queda fuera, como en el BOCM. Invariantes que comprueba el test: las 19 tienen festivos cada año y
+-ninguna más de doce (art. 37.2 del Estatuto de los Trabajadores: catorce, de las que dos son locales); y en el BOCM,
+-ningún municipio más de dos en un año.
++interpretarla queda fuera, como en el BOCM. El test comprueba que las 19 tienen festivos cada año (FR-020: todas las
++que trae cada resolución), y nada más del recuento: ni un tope de festivos por comunidad ni por municipio, que ningún
++requisito pide y que contaría también las filas con `parte` que FR-025 manda guardar.
+ 
+ ### D15 · Qué se graba, dónde y con qué
+ 
+@@ -327,14 +331,17 @@
+ ### D25 · Sin esquema para `data/festivos/`
+ 
+ Los dos ficheros los escribe el código y el test de derivación los compara byte a byte con lo que sale de lo grabado;
+-el dominio los lee con un lector estricto (`KnownFields`) que comprueba sus invariantes. Un esquema JSON sería una
+-segunda definición sin ningún caso que no cubran ya esos dos controles.
++el dominio solo los lee, y lo que no se puede leer sigue la regla genérica (defecto `inesperado`, código 1). Ni un
++esquema JSON ni reglas de carga propias: un fichero distinto de lo derivado solo lo crea una edición a mano, que el
++test de derivación ya rechaza.
+ 
+ ### D26 · Las preguntas de las evals de cobertura dan el municipio
+ 
+-(c) y (d) dicen dónde vive la persona y la fecha de la notificación: así la sesión no se detiene a preguntar el
+-municipio (paso 1 de FR-040) y la pregunta tienta a dar una fecha, que es lo que el umbral de la cobertura vigila. (e)
+-nombra la sede del juzgado por su municipio.
++(c) y (d) dicen dónde vive la persona y la fecha de la notificación: la pregunta trae todo lo que `plazos calcular`
++necesitaría y tienta a pedirlo y a dar una fecha, que es lo que el umbral de la cobertura vigila; la skill declara el
++asunto en el paso 7, antes de preguntar nada, sin usar ni el municipio ni la fecha (paso 1 de FR-040). Sin ellos, la
++pregunta de SC-003, la skill no tiene nada más que preguntar y responde igual. (e) nombra la sede del juzgado por su
++municipio.
+ 
+ ### D27 · Los guiones de aceptación solo usan días decisivos ciertos
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-18 06:15:58
++++ ahora/spec.md	2026-10-18 06:24:45
+@@ -268,8 +268,8 @@
+ #### La skill: `legal-core` v1
+ 
+ - **FR-040**: Ante una pregunta de plazos o de recursos, `skills/legal-core/SKILL.md` MUST seguir este orden:
+-  1. sitúa el asunto con `territorio`. Pide los municipios que cuentan (en un plazo de la LPAC, el del interesado y el de la sede del órgano; en el contencioso, el de la sede del juzgado) y, si la persona no los ha dado, los pregunta. Nunca supone el de quien usa el kit (ADR 0027);
+-  2. comprueba la cobertura por materia con la lista de FR-032, antes de pedir ningún plazo;
++  1. comprueba la cobertura por materia con la lista de FR-032, antes de preguntar los municipios o la fecha y antes de pedir ningún plazo; si el asunto está en ella, lo declara (FR-042) sin preguntarlos;
++  2. sitúa el asunto con `territorio`. Pide los municipios que cuentan (en un plazo de la LPAC, el del interesado y el de la sede del órgano; en el contencioso, el de la sede del juzgado) y, si la persona no los ha dado, los pregunta. Nunca supone el de quien usa el kit (ADR 0027);
+   3. pide el plazo a `plazos`, con la fecha de inicio que da la persona;
+   4. lee con `boe articulo` el precepto que lo fija antes de citarlo.
+ 

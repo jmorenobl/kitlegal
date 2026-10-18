@@ -1,0 +1,128 @@
+# generado desde evidencias/h9/boe.fiestas-laborales/ por TestFestivosNacionalesDerivados (internal/source/boe/fiestas), no editar
+fuente: boe.fiestas-laborales
+anios:
+  - {anio: 2025, disposicion: BOE-A-2024-21316}
+  - {anio: 2026, disposicion: BOE-A-2025-21667}
+  - {anio: 2027, disposicion: BOE-A-2026-21254}
+festivos:
+  - {fecha: "2025-01-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-01-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-02-03", ambito: autonomico, comunidades: ["05"], parte: Tenerife, source: BOE-A-2024-21316}
+  - {fecha: "2025-02-28", ambito: autonomico, comunidades: ["01"], source: BOE-A-2024-21316}
+  - {fecha: "2025-03-01", ambito: autonomico, comunidades: ["04"], source: BOE-A-2024-21316}
+  - {fecha: "2025-03-19", ambito: nacional, comunidades: ["10", "14"], source: BOE-A-2024-21316}
+  - {fecha: "2025-03-31", ambito: autonomico, comunidades: ["19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-04-17", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-04-18", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-04-21", ambito: autonomico, comunidades: ["09", "10", "15", "16", "17"], source: BOE-A-2024-21316}
+  - {fecha: "2025-04-23", ambito: autonomico, comunidades: ["02", "07"], source: BOE-A-2024-21316}
+  - {fecha: "2025-05-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-05-02", ambito: autonomico, comunidades: ["13"], source: BOE-A-2024-21316}
+  - {fecha: "2025-05-17", ambito: autonomico, comunidades: ["12"], source: BOE-A-2024-21316}
+  - {fecha: "2025-05-30", ambito: autonomico, comunidades: ["05"], source: BOE-A-2024-21316}
+  - {fecha: "2025-05-31", ambito: autonomico, comunidades: ["08"], source: BOE-A-2024-21316}
+  - {fecha: "2025-06-06", ambito: autonomico, comunidades: ["18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-06-09", ambito: autonomico, comunidades: ["14", "17"], source: BOE-A-2024-21316}
+  - {fecha: "2025-06-17", ambito: autonomico, comunidades: ["09"], parte: el territorio de Arán, source: BOE-A-2024-21316}
+  - {fecha: "2025-06-19", ambito: autonomico, comunidades: ["08"], source: BOE-A-2024-21316}
+  - {fecha: "2025-06-24", ambito: autonomico, comunidades: ["09", "10"], source: BOE-A-2024-21316}
+  - {fecha: "2025-07-05", ambito: autonomico, comunidades: ["05"], parte: El Hierro, source: BOE-A-2024-21316}
+  - {fecha: "2025-07-25", ambito: nacional, comunidades: ["12", "13", "15", "16"], source: BOE-A-2024-21316}
+  - {fecha: "2025-07-28", ambito: autonomico, comunidades: ["06"], source: BOE-A-2024-21316}
+  - {fecha: "2025-08-05", ambito: autonomico, comunidades: ["18"], source: BOE-A-2024-21316}
+  - {fecha: "2025-08-05", ambito: autonomico, comunidades: ["05"], parte: La Palma, source: BOE-A-2024-21316}
+  - {fecha: "2025-08-15", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-09-08", ambito: autonomico, comunidades: ["03", "11"], source: BOE-A-2024-21316}
+  - {fecha: "2025-09-08", ambito: autonomico, comunidades: ["05"], parte: Gran Canaria, source: BOE-A-2024-21316}
+  - {fecha: "2025-09-11", ambito: autonomico, comunidades: ["09"], source: BOE-A-2024-21316}
+  - {fecha: "2025-09-15", ambito: autonomico, comunidades: ["06"], source: BOE-A-2024-21316}
+  - {fecha: "2025-09-15", ambito: autonomico, comunidades: ["05"], parte: Lanzarote y La Graciosa, source: BOE-A-2024-21316}
+  - {fecha: "2025-09-19", ambito: autonomico, comunidades: ["05"], parte: Fuerteventura, source: BOE-A-2024-21316}
+  - {fecha: "2025-10-06", ambito: autonomico, comunidades: ["05"], parte: La Gomera, source: BOE-A-2024-21316}
+  - {fecha: "2025-10-09", ambito: autonomico, comunidades: ["10"], source: BOE-A-2024-21316}
+  - {fecha: "2025-10-13", ambito: nacional, comunidades: ["01", "02", "03", "07", "11"], source: BOE-A-2024-21316}
+  - {fecha: "2025-11-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-12-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-12-08", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-12-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+  - {fecha: "2025-12-26", ambito: autonomico, comunidades: ["04"], source: BOE-A-2024-21316}
+  - {fecha: "2025-12-26", ambito: autonomico, comunidades: ["09"], parte: la comunidad salvo el territorio de Arán, source: BOE-A-2024-21316}
+  - {fecha: "2026-01-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-01-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-02-02", ambito: autonomico, comunidades: ["05"], parte: Tenerife, source: BOE-A-2025-21667}
+  - {fecha: "2026-02-28", ambito: autonomico, comunidades: ["01"], source: BOE-A-2025-21667}
+  - {fecha: "2026-03-02", ambito: autonomico, comunidades: ["04"], source: BOE-A-2025-21667}
+  - {fecha: "2026-03-19", ambito: nacional, comunidades: ["10", "12", "14", "15", "16"], source: BOE-A-2025-21667}
+  - {fecha: "2026-03-20", ambito: autonomico, comunidades: ["19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-04-02", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-04-03", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-04-06", ambito: autonomico, comunidades: ["04", "08", "09", "10", "15", "16", "17"], source: BOE-A-2025-21667}
+  - {fecha: "2026-04-23", ambito: autonomico, comunidades: ["02", "07"], source: BOE-A-2025-21667}
+  - {fecha: "2026-05-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-05-02", ambito: autonomico, comunidades: ["13"], source: BOE-A-2025-21667}
+  - {fecha: "2026-05-27", ambito: autonomico, comunidades: ["18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-05-30", ambito: autonomico, comunidades: ["05"], source: BOE-A-2025-21667}
+  - {fecha: "2026-06-04", ambito: autonomico, comunidades: ["08"], source: BOE-A-2025-21667}
+  - {fecha: "2026-06-09", ambito: autonomico, comunidades: ["14", "17"], source: BOE-A-2025-21667}
+  - {fecha: "2026-06-17", ambito: autonomico, comunidades: ["09"], parte: el territorio de Arán, source: BOE-A-2025-21667}
+  - {fecha: "2026-06-24", ambito: autonomico, comunidades: ["09", "10", "12"], source: BOE-A-2025-21667}
+  - {fecha: "2026-07-25", ambito: nacional, comunidades: ["12", "16"], source: BOE-A-2025-21667}
+  - {fecha: "2026-07-28", ambito: autonomico, comunidades: ["06"], source: BOE-A-2025-21667}
+  - {fecha: "2026-08-05", ambito: autonomico, comunidades: ["18"], source: BOE-A-2025-21667}
+  - {fecha: "2026-08-05", ambito: autonomico, comunidades: ["05"], parte: La Palma, source: BOE-A-2025-21667}
+  - {fecha: "2026-08-15", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-09-02", ambito: autonomico, comunidades: ["18"], source: BOE-A-2025-21667}
+  - {fecha: "2026-09-08", ambito: autonomico, comunidades: ["03", "11"], source: BOE-A-2025-21667}
+  - {fecha: "2026-09-08", ambito: autonomico, comunidades: ["05"], parte: Gran Canaria, source: BOE-A-2025-21667}
+  - {fecha: "2026-09-11", ambito: autonomico, comunidades: ["09"], source: BOE-A-2025-21667}
+  - {fecha: "2026-09-15", ambito: autonomico, comunidades: ["06"], source: BOE-A-2025-21667}
+  - {fecha: "2026-09-15", ambito: autonomico, comunidades: ["05"], parte: Lanzarote y La Graciosa, source: BOE-A-2025-21667}
+  - {fecha: "2026-09-18", ambito: autonomico, comunidades: ["05"], parte: Fuerteventura, source: BOE-A-2025-21667}
+  - {fecha: "2026-09-24", ambito: autonomico, comunidades: ["05"], parte: El Hierro, source: BOE-A-2025-21667}
+  - {fecha: "2026-10-05", ambito: autonomico, comunidades: ["05"], parte: La Gomera, source: BOE-A-2025-21667}
+  - {fecha: "2026-10-09", ambito: autonomico, comunidades: ["10"], source: BOE-A-2025-21667}
+  - {fecha: "2026-10-12", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-11-02", ambito: nacional, comunidades: ["01", "02", "03", "05", "07", "08", "11", "13", "15"], source: BOE-A-2025-21667}
+  - {fecha: "2026-12-07", ambito: nacional, comunidades: ["01", "02", "03", "06", "07", "11", "13", "14", "17", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-12-08", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-12-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+  - {fecha: "2026-12-26", ambito: autonomico, comunidades: ["04"], source: BOE-A-2025-21667}
+  - {fecha: "2026-12-26", ambito: autonomico, comunidades: ["09"], parte: la comunidad salvo el territorio de Arán, source: BOE-A-2025-21667}
+  - {fecha: "2027-01-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-01-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-02-02", ambito: autonomico, comunidades: ["05"], parte: Tenerife, source: BOE-A-2026-21254}
+  - {fecha: "2027-03-01", ambito: autonomico, comunidades: ["01", "04"], source: BOE-A-2026-21254}
+  - {fecha: "2027-03-10", ambito: autonomico, comunidades: ["19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-03-19", ambito: nacional, comunidades: ["10", "12", "13", "14", "15"], source: BOE-A-2026-21254}
+  - {fecha: "2027-03-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-03-26", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-03-29", ambito: autonomico, comunidades: ["04", "10", "15", "16", "17"], source: BOE-A-2026-21254}
+  - {fecha: "2027-03-29", ambito: autonomico, comunidades: ["09"], parte: la comunidad salvo el territorio de Arán, source: BOE-A-2026-21254}
+  - {fecha: "2027-04-23", ambito: autonomico, comunidades: ["02", "07"], source: BOE-A-2026-21254}
+  - {fecha: "2027-05-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-05-17", ambito: autonomico, comunidades: ["12", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-05-27", ambito: autonomico, comunidades: ["08"], source: BOE-A-2026-21254}
+  - {fecha: "2027-05-31", ambito: autonomico, comunidades: ["08"], source: BOE-A-2026-21254}
+  - {fecha: "2027-06-09", ambito: autonomico, comunidades: ["14", "17"], source: BOE-A-2026-21254}
+  - {fecha: "2027-06-17", ambito: autonomico, comunidades: ["09"], parte: el territorio de Arán, source: BOE-A-2026-21254}
+  - {fecha: "2027-06-24", ambito: autonomico, comunidades: ["09"], source: BOE-A-2026-21254}
+  - {fecha: "2027-07-28", ambito: autonomico, comunidades: ["06"], source: BOE-A-2026-21254}
+  - {fecha: "2027-08-05", ambito: autonomico, comunidades: ["18"], source: BOE-A-2026-21254}
+  - {fecha: "2027-08-05", ambito: autonomico, comunidades: ["05"], parte: La Palma, source: BOE-A-2026-21254}
+  - {fecha: "2027-08-16", ambito: nacional, comunidades: ["01", "02", "03", "05", "07", "13"], source: BOE-A-2026-21254}
+  - {fecha: "2027-09-08", ambito: autonomico, comunidades: ["03", "11"], source: BOE-A-2026-21254}
+  - {fecha: "2027-09-08", ambito: autonomico, comunidades: ["05"], parte: Gran Canaria, source: BOE-A-2026-21254}
+  - {fecha: "2027-09-11", ambito: autonomico, comunidades: ["09"], source: BOE-A-2026-21254}
+  - {fecha: "2027-09-15", ambito: autonomico, comunidades: ["06"], source: BOE-A-2026-21254}
+  - {fecha: "2027-09-15", ambito: autonomico, comunidades: ["05"], parte: Lanzarote y La Graciosa, source: BOE-A-2026-21254}
+  - {fecha: "2027-09-17", ambito: autonomico, comunidades: ["05"], parte: Fuerteventura, source: BOE-A-2026-21254}
+  - {fecha: "2027-09-24", ambito: autonomico, comunidades: ["05"], parte: El Hierro, source: BOE-A-2026-21254}
+  - {fecha: "2027-10-04", ambito: autonomico, comunidades: ["05"], parte: La Gomera, source: BOE-A-2026-21254}
+  - {fecha: "2027-10-07", ambito: autonomico, comunidades: ["16"], source: BOE-A-2026-21254}
+  - {fecha: "2027-10-09", ambito: autonomico, comunidades: ["10"], source: BOE-A-2026-21254}
+  - {fecha: "2027-10-11", ambito: autonomico, comunidades: ["11"], source: BOE-A-2026-21254}
+  - {fecha: "2027-10-12", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-11-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-12-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-12-08", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+  - {fecha: "2027-12-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}

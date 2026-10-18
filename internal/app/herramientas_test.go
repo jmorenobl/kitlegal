@@ -121,8 +121,9 @@ func verbosConHerramienta(t *testing.T, registro *app.Registro) map[string]verbo
 // con el servidor arrancado en proceso y el cliente de prueba de cada
 // especificación, sobre los applets del registro de producción y sobre un
 // registro local que lleva además los de ejemplo (FR-004): el conjunto
-// anunciado es el de los verbos del registro menos los excluidos —doce y
-// quince, con cita_cotejar y cita_preparar desde H23 (H23 FR-030)—; cada
+// anunciado es el de los verbos del registro menos los excluidos —trece y
+// dieciséis, con cita_cotejar y cita_preparar desde H23 (H23 FR-030) y
+// plazos_calcular desde H9 (H9 FR-001)—; cada
 // nombre, cada descripción y cada par de esquemas es el de
 // `--describe` de su verbo, el de entrada sin las ocho banderas globales; los
 // nombres que da app.NombresDeHerramientas son los anunciados; cada
@@ -142,8 +143,8 @@ func TestHerramientasDelServidor(t *testing.T) {
 		conLosDeEjemplo bool
 		herramientas    int
 	}{
-		{nombre: "con los applets de producción", herramientas: 12},
-		{nombre: "con los de producción y los de ejemplo", conLosDeEjemplo: true, herramientas: 15},
+		{nombre: "con los applets de producción", herramientas: 13},
+		{nombre: "con los de producción y los de ejemplo", conLosDeEjemplo: true, herramientas: 16},
 	}
 
 	especificaciones := []struct {

@@ -1011,10 +1011,12 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // jurisprudencia, con sus diez evals a cuatro a la vez y con su juez, es de
 // 12 577 s —61 sesiones en el modo orden, con la prueba de red, que se cuenta
 // aunque su trabajo no la lleve, y 60 en el modo herramienta, y las 30
-// respuestas que su juez juzga en cada modo—: queda entre el de boe-legislacion
-// y el de legal-core. El tope de la definición del job cubre los tres; con 351
-// minutos, 21 060 s, ya no cubre el de boe-legislacion; con 209, que son
-// 12 540 s, tampoco el de jurisprudencia; y con 107, 6 420 s, ninguno.
+// respuestas que su juez juzga en cada modo—. Desde H9, el de legal-core, con
+// sus nueve evals, es de 14 629 s y queda entre el de boe-legislacion y el de
+// jurisprudencia (FR-050 de H9). El tope de la definición del job cubre los
+// tres; con 351 minutos, 21 060 s, ya no cubre el de boe-legislacion; con 209,
+// que son 12 540 s, ninguno, ni el de legal-core ni el de jurisprudencia; y con
+// 107, 6 420 s, tampoco.
 //
 // Y las tres mutaciones de contracts/job-de-evals.md §4 de H25, con los topes
 // del repositorio, 352 y 269 minutos, que cubren el peor caso de cada trabajo
@@ -1116,7 +1118,7 @@ func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
 		{
 			nombre:  "por-debajo-del-de-jurisprudencia",
 			cambios: conElTope(209),
-			fallos:  []string{sinElDeJuris + deBoe, sinElDeJuris + deJuris},
+			fallos:  []string{sinElDeJuris + deBoe, sinElDeJuris + deJuris, sinElDeJuris + deLegal},
 		},
 		{
 			nombre:  "por-debajo-de-los-tres",
@@ -1870,7 +1872,8 @@ const (
 		terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89 + \xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89)" +
 		terminosDeUnVoto
 
-	peorCasoDeLegalCore = "6469 s = 485 s + (\xe2\x8c\x8819 / 2\xe2\x8c\x89 + \xe2\x8c\x8818 / 2\xe2\x8c\x89 + " +
+	// El de legal-core, el de FR-050 de H9: sus nueve evals a dos a la vez.
+	peorCasoDeLegalCore = "14629 s = 485 s + (\xe2\x8c\x8849 / 2\xe2\x8c\x89 + \xe2\x8c\x8848 / 2\xe2\x8c\x89 + " +
 		"\xe2\x8c\x886 / 2\xe2\x8c\x89)" + terminosDeUnaTanda
 
 	// El de la medida del juez de jurisprudencia, con sus 249 casos etiquetados
@@ -1887,9 +1890,9 @@ const (
 // FR-083 de H21): una tanda por cada grupo de sesiones —las del modo orden con
 // la prueba de red, las del modo herramienta y las de las evals sin binario ni
 // servidor— y no por la suma de todas. Con las evals del repositorio y la
-// definición del job, las sesiones son 14 357 s en boe-legislacion y, desde
-// antes de H9, a dos a la vez, 6469 s en legal-core, que cuenta la prueba de red
-// aunque su trabajo no la lleve.
+// definición del job, las sesiones son 14 357 s en boe-legislacion y, a dos a la
+// vez, en legal-core, que cuenta la prueba de red aunque su trabajo no la lleve,
+// 6469 s antes de H9 y, desde H9, con sus nueve evals, 14 629 s (FR-050 de H9).
 //
 // Desde H24 (contracts/job-de-evals.md §4 de H24; research D6 y S3 de H24;
 // FR-092 de H24; SC-012 de H24), el de una skill con juez suma los 60 s de
@@ -1910,7 +1913,8 @@ const (
 // 90 tandas de votos de 40 s, 12 577 s, que el tope del trabajo cubre sin
 // cambiar. Y el de la medida de su juez, con sus 249 casos etiquetados a cuatro
 // a la vez, es de 15 505 s, que cubre el tope del trabajo medida. Los de
-// boe-legislacion y legal-core no cambian.
+// boe-legislacion y legal-core no cambian. Desde H9, el de legal-core es el de
+// sus nueve evals, que el tope del trabajo cubre sin cambiar (FR-050, FR-058).
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -1945,8 +1949,8 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		},
 		{
 			skill:    "legal-core",
-			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{19, 18, 6}, Concurrencia: 2},
-			duracion: 6469 * time.Second,
+			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{49, 48, 6}, Concurrencia: 2},
+			duracion: 14629 * time.Second,
 			texto:    peorCasoDeLegalCore,
 		},
 	}

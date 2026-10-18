@@ -1,0 +1,55 @@
+# plazos calcular da la fecha de un plazo con lo que lleva el binario. El
+# recurso de reposición contra un acto notificado el 9 de septiembre de 2026, con
+# Leganés como municipio del interesado y de la sede del órgano, vence el 13 de
+# octubre de 2026: un mes de fecha a fecha da el viernes 9 de octubre, fiesta
+# local de Leganés; el 10 y el 11 son sábado y domingo, y el 12 es fiesta
+# nacional. data nombra el art. 124.1 LPAC, Leganés una sola vez y los dos
+# festivos que la prórroga saltó, cada uno con su source, y ningún aviso. Con
+# --offline, el mismo sobre salvo fecha_consulta: el mismo data y el mismo hash.
+# El contencioso contra un acto notificado el 15 de junio de 2026, con la sede
+# del juzgado en Madrid, vence el 15 de septiembre: agosto no corre. Y el del 27
+# de octubre vence el lunes 28 de diciembre, con el aviso del art. 183 LOPJ
+# porque el tramo pasa por los días del 24 de diciembre al 6 de enero.
+#
+# Cubre: US1.1, US5.1, US5.2 · FR-001, FR-002, FR-003, FR-005, FR-006, FR-010,
+# FR-013 · SC-009.
+#
+# Los casos son el 1, el 3 y el 15 de contracts/casos-de-plazos.md, cuyo día
+# decisivo es cierto antes de derivar los festivos (research D27). El sobre y
+# data son los de contracts/applet-plazos.md §3 y §4, con las claves en el orden
+# de su ejemplo; la cobertura del caso 1 no se mira aquí, salvo que es la última
+# clave. Del hash solo se afirma que es el mismo con --offline y sin él, y de
+# fecha_consulta, nada: la pone el reloj del kernel, así que las dos salidas se
+# comparan sin ella.
+
+# Precondición: el binario registra el applet plazos (FR-001).
+exec kitlegal --help
+stdout '^\s+plazos\s'
+
+# --- El recurso de reposición en Leganés (US1.1; FR-001 a FR-003, FR-005, FR-006) ---
+exec kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés --json
+stdout '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos","fecha_consulta":"[^"]*","hash":"[^"]*","data":\{'
+stdout '"data":\{"fecha":"2026-10-13","tipo":"reposicion","preceptos":\[\{"norma":"BOE-A-2015-10565","bloque":"a124","apartado":"124\.1"\}\],"municipios":\[\{"codigo_ine":"28074","nombre":"Leganés"\}\],"festivos":\[\{"fecha":"2026-10-09","ambito":"local","municipio":"28074","source":"BOCM-20251212-34"\},\{"fecha":"2026-10-12","ambito":"nacional","source":"BOE-A-2025-21667"\}\],"avisos":\[\],"cobertura":\[\{.*\}\]\}\}$'
+cp stdout caso-a.json
+
+# Con --offline, el mismo sobre salvo fecha_consulta: el mismo data y el mismo
+# hash (FR-013, SC-009).
+exec kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés --offline --json
+cp stdout caso-a-offline.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' caso-a.json
+cp stdout caso-a.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' caso-a-offline.json
+cmp stdout caso-a.sin-fecha
+
+# --- El contencioso que pasa por agosto (US5.1; FR-010) ---
+exec kitlegal plazos calcular contencioso 2026-06-15 Madrid --json
+stdout '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"fecha":"2026-09-15","tipo":"contencioso","preceptos":\['
+stdout '\{"norma":"BOE-A-1998-16718","bloque":"a46","apartado":"46\.1"\}'
+stdout '\{"norma":"BOE-A-1998-16718","bloque":"a128","apartado":"128\.2"\}'
+
+# --- El contencioso que pasa por los días del art. 183 LOPJ (US5.2; FR-010) ---
+exec kitlegal plazos calcular contencioso 2026-10-27 Madrid --json
+stdout '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"fecha":"2026-12-28","tipo":"contencioso",'
+stdout '\{"codigo":"dias-del-art-183-lopj","texto":"'

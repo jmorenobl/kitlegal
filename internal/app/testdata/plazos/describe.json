@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DatosError": {
+      "properties": {
+        "clase": {
+          "type": "string",
+          "enum": [
+            "argumentos",
+            "no-encontrado",
+            "fuente-no-disponible",
+            "limite-o-tos",
+            "identidad-humana",
+            "conflicto",
+            "inesperado"
+          ]
+        },
+        "mensaje": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "clase",
+        "mensaje"
+      ]
+    },
+    "plazos.Aviso": {
+      "properties": {
+        "codigo": {
+          "type": "string",
+          "enum": [
+            "faltan-festivos-nacionales-y-autonomicos",
+            "faltan-festivos-locales",
+            "dias-del-art-183-lopj",
+            "festivo-de-una-parte"
+          ]
+        },
+        "texto": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "codigo",
+        "texto"
+      ]
+    },
+    "plazos.FestivoSaltado": {
+      "properties": {
+        "fecha": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "ambito": {
+          "type": "string",
+          "enum": [
+            "nacional",
+            "autonomico",
+            "local"
+          ]
+        },
+        "municipio": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "fecha",
+        "ambito",
+        "source"
+      ]
+    },
+    "plazos.MunicipioDelPlazo": {
+      "properties": {
+        "codigo_ine": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "codigo_ine",
+        "nombre"
+      ]
+    },
+    "plazos.Plazo": {
+      "properties": {
+        "fecha": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "tipo": {
+          "type": "string",
+          "enum": [
+            "alzada",
+            "reposicion",
+            "contencioso",
+            "acceso-resolver",
+            "acceso-reclamar",
+            "silencio",
+            "generico"
+          ]
+        },
+        "preceptos": {
+          "items": {
+            "$ref": "#/$defs/plazos.PreceptoDelPlazo"
+          },
+          "type": "array",
+          "minItems": 1
+        },
+        "municipios": {
+          "items": {
+            "$ref": "#/$defs/plazos.MunicipioDelPlazo"
+          },
+          "type": "array",
+          "minItems": 1
+        },
+        "festivos": {
+          "items": {
+            "$ref": "#/$defs/plazos.FestivoSaltado"
+          },
+          "type": "array"
+        },
+        "avisos": {
+          "items": {
+            "$ref": "#/$defs/plazos.Aviso"
+          },
+          "type": "array"
+        },
+        "cobertura": {
+          "items": {
+            "$ref": "#/$defs/plazos.TramoDeCobertura"
+          },
+          "type": "array",
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "fecha",
+        "tipo",
+        "preceptos",
+        "municipios",
+        "festivos",
+        "avisos",
+        "cobertura"
+      ]
+    },
+    "plazos.PreceptoDelPlazo": {
+      "properties": {
+        "norma": {
+          "type": "string",
+          "pattern": "^BOE-A-[0-9]{4}-[0-9]+$"
+        },
+        "bloque": {
+          "type": "string",
+          "minLength": 1
+        },
+        "apartado": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "norma",
+        "bloque",
+        "apartado"
+      ]
+    },
+    "plazos.TramoDeCobertura": {
+      "properties": {
+        "ambito": {
+          "type": "string",
+          "enum": [
+            "nacional-y-autonomico",
+            "local"
+          ]
+        },
+        "municipio": {
+          "type": "string",
+          "pattern": "^[0-9]{5}$"
+        },
+        "desde": {
+          "type": "integer"
+        },
+        "hasta": {
+          "type": "integer"
+        },
+        "disposicion": {
+          "type": "string"
+        },
+        "falta": {
+          "type": "string",
+          "enum": [
+            "sin-cargar",
+            "sin-festivos-locales",
+            "no-comunicado",
+            "linea-sin-leer",
+            "sin-linea"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "ambito",
+        "desde",
+        "hasta"
+      ]
+    }
+  },
+  "properties": {
+    "entrada": {
+      "properties": {
+        "tipo": {
+          "type": "string"
+        },
+        "inicio": {
+          "type": "string"
+        },
+        "municipios": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "duracion": {
+          "type": "string"
+        },
+        "unidad": {
+          "type": "string"
+        },
+        "json": {
+          "type": "boolean"
+        },
+        "timeout": {
+          "type": "string"
+        },
+        "offline": {
+          "type": "boolean"
+        },
+        "dry-run": {
+          "type": "boolean"
+        },
+        "describe": {
+          "type": "boolean"
+        },
+        "no-graph": {
+          "type": "boolean"
+        },
+        "asunto": {
+          "type": "string"
+        },
+        "verbose": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "tipo",
+        "inicio",
+        "municipios"
+      ],
+      "x-banderas": [
+        "duracion",
+        "unidad"
+      ]
+    },
+    "salida": {
+      "if": {
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/plazos.Plazo"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/DatosError"
+          }
+        }
+      },
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "fuente": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "format": "uri"
+        },
+        "fecha_consulta": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "data": true
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "ok",
+        "fuente",
+        "url",
+        "fecha_consulta",
+        "hash",
+        "data"
+      ]
+    }
+  },
+  "title": "plazos calcular",
+  "description": "Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno genérico— desde la fecha de inicio que se da, con los preceptos que lo fijan, los festivos saltados, los avisos y la cobertura de los festivos."
+}

@@ -1,0 +1,619 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0d33099..34d8170 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -52,7 +52,11 @@ sustituyen a este fichero.
+   esa fecha en `source`, y el test falla si el fichero no es lo que sale de las grabaciones.
+   `data/festivos/nacionales-y-autonomicos.yaml` sale de las resoluciones anuales de fiestas laborales del BOE (fuente
+   `boe.fiestas-laborales`; `TestFestivosNacionalesDerivados`, en `internal/source/boe/fiestas`): los nacionales y los
+-  de cada comunidad de 2025, 2026 y 2027 (`BOE-A-2024-21316`, `BOE-A-2025-21667` y `BOE-A-2026-21254`).
++  de cada comunidad de 2025, 2026 y 2027 (`BOE-A-2024-21316`, `BOE-A-2025-21667` y `BOE-A-2026-21254`). Una
++  fiesta que la resolución limita a una parte de la comunidad lleva esa `parte` y no hace inhábil el día, que se
++  cuenta como hábil con el aviso de una parte: las de cada isla de Canarias y, en Cataluña, la que se sustituye en el
++  territorio de Arán (el 26 de diciembre de 2025 y de 2026 y el 29 de marzo de 2027, de «la comunidad salvo el
++  territorio de Arán») y la que la sustituye allí, el 17 de junio.
+   `data/festivos/locales/13.yaml` sale de las del BOCM (fuente `bocm.fiestas-locales`; `TestFestivosLocalesDerivados`,
+   en `internal/source/bocm`): los de los 179 municipios de la Comunidad de Madrid en 2025 y 2026, cada uno con sus
+   festivos o, si no los tiene, con el motivo en `faltas` —hoy, uno cuya línea del boletín no se lee—, donde van
+diff --git a/README.md b/README.md
+index b5b18fb..9d70266 100644
+--- a/README.md
++++ b/README.md
+@@ -28,7 +28,8 @@ que el BOE consolida—, sitúa **cualquier municipio de España** en su territo
+ recurrir** una resolución o cuándo vence un plazo administrativo, con la fecha calculada por kitlegal con los
+ festivos nacionales, autonómicos y locales que cuentan. Lleva los nacionales y autonómicos de 2025 a 2027, y los
+ locales solo de la Comunidad de Madrid, de 2025 y 2026; fuera de ellos, la respuesta te avisa de que la fecha puede
+-ser anterior a la real. Y si el
++ser anterior a la real. Un festivo autonómico de solo una parte de la comunidad —una isla de Canarias, el territorio
++de Arán— lo cuenta como hábil y te lo avisa: la fecha es la más temprana posible. Y si el
+ asunto lo regula la ley aparte —una liquidación de Hacienda, una multa de tráfico, la Seguridad Social,
+ extranjería—, te lo dice, con la norma que lo rige o con el precepto de la Ley 39/2015 que lo deja fuera, en lugar
+ de calcularle el plazo del procedimiento común. Por ejemplo:
+diff --git a/data/festivos/nacionales-y-autonomicos.yaml b/data/festivos/nacionales-y-autonomicos.yaml
+index ad2d6ef..ef7605c 100644
+--- a/data/festivos/nacionales-y-autonomicos.yaml
++++ b/data/festivos/nacionales-y-autonomicos.yaml
+@@ -23,6 +23,7 @@ festivos:
+   - {fecha: "2025-05-31", ambito: autonomico, comunidades: ["08"], source: BOE-A-2024-21316}
+   - {fecha: "2025-06-06", ambito: autonomico, comunidades: ["18", "19"], source: BOE-A-2024-21316}
+   - {fecha: "2025-06-09", ambito: autonomico, comunidades: ["14", "17"], source: BOE-A-2024-21316}
++  - {fecha: "2025-06-17", ambito: autonomico, comunidades: ["09"], parte: el territorio de Arán, source: BOE-A-2024-21316}
+   - {fecha: "2025-06-19", ambito: autonomico, comunidades: ["08"], source: BOE-A-2024-21316}
+   - {fecha: "2025-06-24", ambito: autonomico, comunidades: ["09", "10"], source: BOE-A-2024-21316}
+   - {fecha: "2025-07-05", ambito: autonomico, comunidades: ["05"], parte: El Hierro, source: BOE-A-2024-21316}
+@@ -44,7 +45,8 @@ festivos:
+   - {fecha: "2025-12-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+   - {fecha: "2025-12-08", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+   - {fecha: "2025-12-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2024-21316}
+-  - {fecha: "2025-12-26", ambito: autonomico, comunidades: ["04", "09"], source: BOE-A-2024-21316}
++  - {fecha: "2025-12-26", ambito: autonomico, comunidades: ["04"], source: BOE-A-2024-21316}
++  - {fecha: "2025-12-26", ambito: autonomico, comunidades: ["09"], parte: la comunidad salvo el territorio de Arán, source: BOE-A-2024-21316}
+   - {fecha: "2026-01-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+   - {fecha: "2026-01-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+   - {fecha: "2026-02-02", ambito: autonomico, comunidades: ["05"], parte: Tenerife, source: BOE-A-2025-21667}
+@@ -62,6 +64,7 @@ festivos:
+   - {fecha: "2026-05-30", ambito: autonomico, comunidades: ["05"], source: BOE-A-2025-21667}
+   - {fecha: "2026-06-04", ambito: autonomico, comunidades: ["08"], source: BOE-A-2025-21667}
+   - {fecha: "2026-06-09", ambito: autonomico, comunidades: ["14", "17"], source: BOE-A-2025-21667}
++  - {fecha: "2026-06-17", ambito: autonomico, comunidades: ["09"], parte: el territorio de Arán, source: BOE-A-2025-21667}
+   - {fecha: "2026-06-24", ambito: autonomico, comunidades: ["09", "10", "12"], source: BOE-A-2025-21667}
+   - {fecha: "2026-07-25", ambito: nacional, comunidades: ["12", "16"], source: BOE-A-2025-21667}
+   - {fecha: "2026-07-28", ambito: autonomico, comunidades: ["06"], source: BOE-A-2025-21667}
+@@ -83,7 +86,8 @@ festivos:
+   - {fecha: "2026-12-07", ambito: nacional, comunidades: ["01", "02", "03", "06", "07", "11", "13", "14", "17", "19"], source: BOE-A-2025-21667}
+   - {fecha: "2026-12-08", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+   - {fecha: "2026-12-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2025-21667}
+-  - {fecha: "2026-12-26", ambito: autonomico, comunidades: ["04", "09"], source: BOE-A-2025-21667}
++  - {fecha: "2026-12-26", ambito: autonomico, comunidades: ["04"], source: BOE-A-2025-21667}
++  - {fecha: "2026-12-26", ambito: autonomico, comunidades: ["09"], parte: la comunidad salvo el territorio de Arán, source: BOE-A-2025-21667}
+   - {fecha: "2027-01-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+   - {fecha: "2027-01-06", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+   - {fecha: "2027-02-02", ambito: autonomico, comunidades: ["05"], parte: Tenerife, source: BOE-A-2026-21254}
+@@ -92,13 +96,15 @@ festivos:
+   - {fecha: "2027-03-19", ambito: nacional, comunidades: ["10", "12", "13", "14", "15"], source: BOE-A-2026-21254}
+   - {fecha: "2027-03-25", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+   - {fecha: "2027-03-26", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+-  - {fecha: "2027-03-29", ambito: autonomico, comunidades: ["04", "09", "10", "15", "16", "17"], source: BOE-A-2026-21254}
++  - {fecha: "2027-03-29", ambito: autonomico, comunidades: ["04", "10", "15", "16", "17"], source: BOE-A-2026-21254}
++  - {fecha: "2027-03-29", ambito: autonomico, comunidades: ["09"], parte: la comunidad salvo el territorio de Arán, source: BOE-A-2026-21254}
+   - {fecha: "2027-04-23", ambito: autonomico, comunidades: ["02", "07"], source: BOE-A-2026-21254}
+   - {fecha: "2027-05-01", ambito: nacional, comunidades: ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"], source: BOE-A-2026-21254}
+   - {fecha: "2027-05-17", ambito: autonomico, comunidades: ["12", "18", "19"], source: BOE-A-2026-21254}
+   - {fecha: "2027-05-27", ambito: autonomico, comunidades: ["08"], source: BOE-A-2026-21254}
+   - {fecha: "2027-05-31", ambito: autonomico, comunidades: ["08"], source: BOE-A-2026-21254}
+   - {fecha: "2027-06-09", ambito: autonomico, comunidades: ["14", "17"], source: BOE-A-2026-21254}
++  - {fecha: "2027-06-17", ambito: autonomico, comunidades: ["09"], parte: el territorio de Arán, source: BOE-A-2026-21254}
+   - {fecha: "2027-06-24", ambito: autonomico, comunidades: ["09"], source: BOE-A-2026-21254}
+   - {fecha: "2027-07-28", ambito: autonomico, comunidades: ["06"], source: BOE-A-2026-21254}
+   - {fecha: "2027-08-05", ambito: autonomico, comunidades: ["18"], source: BOE-A-2026-21254}
+diff --git a/internal/app/plazos_casos_test.go b/internal/app/plazos_casos_test.go
+index 6f05ad9..95d3644 100644
+--- a/internal/app/plazos_casos_test.go
++++ b/internal/app/plazos_casos_test.go
+@@ -108,7 +108,7 @@ type casoDePlazo struct {
+ 	conLaPrincipalSola bool
+ }
+ 
+-// casosDePlazos son los dieciocho casos con fecha de la tabla, cada uno con su
++// casosDePlazos son los diecinueve casos con fecha de la tabla, cada uno con su
+ // número (FR-002 a FR-011, FR-024, FR-026, FR-082; SC-005). Su razonamiento
+ // está en la tabla.
+ func casosDePlazos() []casoDePlazo {
+@@ -193,6 +193,11 @@ func casosDePlazos() []casoDePlazo {
+ 			nombre: "18-mes-que-cruza-a-2027", orden: []string{"reposicion", "2026-12-14", "Leganés", "Leganés"},
+ 			fecha: "2027-01-14", avisos: []string{faltanLocalesDeLaTabla},
+ 		},
++		{
++			nombre: "21-fiesta-sustituida-en-una-parte",
++			orden:  []string{"reposicion", "2025-11-26", "Vielha e Mijaran", "Vielha e Mijaran"},
++			fecha:  "2025-12-26", avisos: []string{faltanLocalesDeLaTabla, deUnaParteDeLaTabla},
++		},
+ 	}
+ }
+ 
+@@ -228,7 +233,7 @@ func casosDeCobertura() []casoDeCobertura {
+ }
+ 
+ // TestCasosDePlazos comprueba la tabla de contracts/casos-de-plazos.md de H9,
+-// un subtest por caso (FR-082, SC-005): los dieciocho con fecha llaman al
++// un subtest por caso (FR-082, SC-005): los diecinueve con fecha llaman al
+ // applet como lo llama la skill, con los municipios por su nombre y los
+ // ficheros del binario, y comparan la fecha y los códigos de aviso; el 8 lo
+ // compone con los festivos locales que deriva internal/source/bocm de la
+diff --git a/internal/source/boe/fiestas/resolucion.go b/internal/source/boe/fiestas/resolucion.go
+index 5733000..bbb0f91 100644
+--- a/internal/source/boe/fiestas/resolucion.go
++++ b/internal/source/boe/fiestas/resolucion.go
+@@ -19,10 +19,11 @@ import (
+ // gates/supuestos.md): una tabla con una fila por fecha y una columna por
+ // comunidad o ciudad autónoma, cuyas celdas llevan el código de la leyenda que
+ // sigue a la tabla —«*» y «**», fiestas nacionales; «***», fiestas de la
+-// comunidad autónoma—, y unas notas aclaratorias, de las que solo se leen las
+-// que dan fiestas de una parte de la comunidad que las llama (FR-025). La fila
+-// o la nota que no se lee sin interpretarla queda fuera, y se dice por qué
+-// (ADR 0039, punto 3).
++// comunidad autónoma—, y unas notas aclaratorias, de cuyas citas solo se leen
++// las que limitan fiestas a una parte de la comunidad que las llama: una
++// relación de fiestas de una parte o una sustitución en una parte (FR-011,
++// FR-025). La fila, la nota o la cita que no se lee sin interpretarla queda
++// fuera, y se dice por qué (ADR 0039, punto 3).
+ type Resolucion struct {
+ 	// Anio es el del título del anexo, «Año <aaaa>».
+ 	Anio int
+@@ -30,12 +31,12 @@ type Resolucion struct {
+ 	Cabecera []Columna
+ 	// Filas son las filas leídas, una por fecha y en el orden de la tabla.
+ 	Filas []Fila
+-	// Partes son las fiestas que las notas leídas limitan a una parte de la
++	// Partes son las fiestas que las citas leídas limitan a una parte de la
+ 	// comunidad que las llama, en el orden de las notas.
+ 	Partes []FiestaDeUnaParte
+ 	// FilasSinLeer son las filas que quedan fuera.
+ 	FilasSinLeer []FilaSinLeer
+-	// NotasSinLeer son las notas que quedan fuera.
++	// NotasSinLeer son las notas, o las citas de una nota, que quedan fuera.
+ 	NotasSinLeer []NotaSinLeer
+ }
+ 
+@@ -57,7 +58,8 @@ type Fila struct {
+ 	// Texto es el de su primera celda, como «12 Fiesta Nacional de España.».
+ 	Texto string
+ 	// Ambitos son, uno por comunidad de la cabecera y en su orden, el ámbito de
+-	// su código, o vacío si su celda no lleva ninguno.
++	// su código, o vacío si su celda no lleva ninguno o si una nota sustituye
++	// esa fiesta en una parte de la comunidad: entonces va en Partes.
+ 	Ambitos []plazos.Ambito
+ }
+ 
+@@ -80,7 +82,8 @@ type FilaSinLeer struct {
+ 	Motivo string
+ }
+ 
+-// NotaSinLeer es una nota que queda fuera entera: su número y el motivo.
++// NotaSinLeer es una nota que queda fuera entera, o una cita suya que queda
++// fuera sola: el número de la nota y el motivo, que en una cita la nombra.
+ type NotaSinLeer struct {
+ 	Numero int
+ 	Motivo string
+@@ -120,8 +123,18 @@ var (
+ 	// fiestaDeUnaParte es una entrada de la relación de una cita: «en <parte>:
+ 	// el <día> de <mes>», con lo que la describe detrás de una coma.
+ 	fiestaDeUnaParte = regexp.MustCompile(`^en (.+?): el ([0-9]{1,2}) de (\pL+)(?:,\s.+)?\.?$`)
++	// sustitucionEnUnaParte es una cita que, en una parte de la comunidad,
++	// sustituye una de sus fiestas por otra: «En <parte>, la fiesta del día
++	// <día> de <mes> (<nombre>) queda sustituida por la de <día> de <mes>
++	// (<nombre>)», con lo que la describe detrás de una coma.
++	sustitucionEnUnaParte = regexp.MustCompile(`^En (.+?), la fiesta del día ([0-9]{1,2}) de (\pL+)(?: \([^()]*\))? ` +
++		`queda sustituida por la de ([0-9]{1,2}) de (\pL+)(?: \([^()]*\))?(?:,\s.+)?\.?$`)
+ )
+ 
++// restoDeLaComunidad precede a la parte de una sustitución en la de la fiesta
++// sustituida, que sigue siéndolo en el resto de la comunidad.
++const restoDeLaComunidad = "la comunidad salvo "
++
+ // leyendaConocida es la leyenda de los códigos de las tres resoluciones
+ // grabadas, con el ámbito de cada código (FR-020). Una resolución cuya leyenda
+ // no es exactamente esta no se lee: un código con otro significado daría a sus
+@@ -145,12 +158,13 @@ var nombresDeLosMeses = []string{
+ // documento del diario tal como lo graba grabar_datos
+ // (https://www.boe.es/diario_boe/txt.php?id=<id>): el año del título del anexo;
+ // la cabecera de la tabla, con las llamadas a las notas; cada fila, con el
+-// ámbito que la leyenda da al código de cada celda; y, de cada nota cuya cita
+-// es una relación de fiestas de una parte, esas fiestas. Lo que no tiene la
+-// forma de una resolución —sin texto, sin título del anexo, sin una tabla con
+-// cabecera y cuerpo, sin la leyenda conocida, con otra cosa tras la tabla— es
+-// un error: no hay nada que leer. La fila o la nota que no se lee sin
+-// interpretarla queda fuera, con su motivo (ADR 0039, punto 3).
++// ámbito que la leyenda da al código de cada celda; y, de cada cita de una nota
++// que es una relación de fiestas de una parte o una sustitución en una parte,
++// esas fiestas. Lo que no tiene la forma de una resolución —sin texto, sin
++// título del anexo, sin una tabla con cabecera y cuerpo, sin la leyenda
++// conocida, con otra cosa tras la tabla— es un error: no hay nada que leer. La
++// fila, la nota o la cita que no se lee sin interpretarla queda fuera, con su
++// motivo (ADR 0039, punto 3).
+ func LeerResolucion(contenido []byte) (Resolucion, error) {
+ 	texto, err := leerElTexto(contenido)
+ 	if err != nil {
+@@ -558,24 +572,31 @@ func (r *Resolucion) dejarFuera(texto, motivo string) {
+ 	r.FilasSinLeer = append(r.FilasSinLeer, FilaSinLeer{Texto: texto, Motivo: motivo})
+ }
+ 
+-// leerNotas lee de cada nota las fiestas de una parte, o la deja fuera entera.
++// leerNotas lee las citas de cada nota, una a una: la que limita fiestas a una
++// parte de la comunidad da esas fiestas, y la que no se lee sin interpretarla
++// queda fuera sola, porque cada cita es una disposición distinta. La nota que
++// no es de una comunidad o que no transcribe sus citas queda fuera entera.
+ func (r *Resolucion) leerNotas(notas []nota) {
+ 	for _, leida := range notas {
+-		partes, motivo := r.partesDeLaNota(leida)
++		columna, citas, motivo := r.citasDeLaNota(leida)
+ 		if motivo != "" {
+ 			r.NotasSinLeer = append(r.NotasSinLeer, NotaSinLeer{Numero: leida.numero, Motivo: motivo})
+ 
+ 			continue
+ 		}
+ 
+-		r.Partes = append(r.Partes, partes...)
++		for _, cita := range citas {
++			if motivo := r.leerCita(cita, columna, leida.numero); motivo != "" {
++				r.NotasSinLeer = append(r.NotasSinLeer, NotaSinLeer{Numero: leida.numero, Motivo: motivo})
++			}
++		}
+ 	}
+ }
+ 
+-// partesDeLaNota son las fiestas de una parte de una nota a la que llama una
+-// sola comunidad y cuyas citas son todas relaciones de fiestas de una parte, o
+-// el motivo por el que la nota no se lee.
+-func (r *Resolucion) partesDeLaNota(leida nota) ([]FiestaDeUnaParte, string) {
++// citasDeLaNota son la posición de la única comunidad de la cabecera que llama
++// a una nota y las citas que la nota transcribe de su disposición, o el motivo
++// por el que la nota no se lee.
++func (r *Resolucion) citasDeLaNota(leida nota) (int, []string, string) {
+ 	var llaman []int
+ 
+ 	for indice, columna := range r.Cabecera {
+@@ -586,29 +607,72 @@ func (r *Resolucion) partesDeLaNota(leida nota) ([]FiestaDeUnaParte, string) {
+ 
+ 	switch len(llaman) {
+ 	case 0:
+-		return nil, "ninguna comunidad de la cabecera la llama"
++		return 0, nil, "ninguna comunidad de la cabecera la llama"
+ 	case 1:
+ 	default:
+-		return nil, fmt.Sprintf("la llaman %d comunidades de la cabecera, y es de una", len(llaman))
++		return 0, nil, fmt.Sprintf("la llaman %d comunidades de la cabecera, y es de una", len(llaman))
+ 	}
+ 
+ 	citas := citaDeLaNota.FindAllStringSubmatch(leida.texto, -1)
+ 	if len(citas) == 0 || strings.Count(leida.texto, "«") != len(citas) || strings.Count(leida.texto, "»") != len(citas) {
+-		return nil, "no transcribe la disposición de la comunidad entre comillas que se cierran"
++		return 0, nil, "no transcribe la disposición de la comunidad entre comillas que se cierran"
+ 	}
+ 
+-	var partes []FiestaDeUnaParte
+-
++	textos := make([]string, 0, len(citas))
+ 	for _, cita := range citas {
+-		deLaCita, motivo := r.relacionDePartes(cita[1], llaman[0], leida.numero)
+-		if motivo != "" {
+-			return nil, motivo
+-		}
++		textos = append(textos, cita[1])
++	}
+ 
+-		partes = append(partes, deLaCita...)
++	return llaman[0], textos, ""
++}
++
++// leerCita lee una cita de una nota que llama la comunidad de una columna, si
++// es una sustitución en una parte o una relación de fiestas de una parte, o da
++// el motivo por el que no se lee.
++func (r *Resolucion) leerCita(cita string, columna, numero int) string {
++	if sustitucion := sustitucionEnUnaParte.FindStringSubmatch(cita); sustitucion != nil {
++		return r.sustituir(cita, sustitucion, columna, numero)
+ 	}
+ 
+-	return partes, ""
++	partes, motivo := r.relacionDePartes(cita, columna, numero)
++	if motivo != "" {
++		return motivo
++	}
++
++	r.Partes = append(r.Partes, partes...)
++
++	return ""
++}
++
++// sustituir aplica una sustitución en una parte (FR-011, FR-025): la fiesta
++// sustituida deja de ser de toda la comunidad y queda como fiesta del resto de
++// ella, y la que la sustituye, como fiesta de la parte; ninguna de las dos hace
++// inhábil el día en toda la comunidad. Solo se aplica si la tabla marca la
++// sustituida como fiesta de la comunidad en su columna; si no, o si un día no
++// existe en el año, da el motivo.
++func (r *Resolucion) sustituir(cita string, sustitucion []string, columna, numero int) string {
++	sustituida, existe := fechaDelTexto(r.Anio, sustitucion[2], sustitucion[3])
++	nueva, existeNueva := fechaDelTexto(r.Anio, sustitucion[4], sustitucion[5])
++
++	if !existe || !existeNueva {
++		return fmt.Sprintf("«%s» no da dos días de %d", cita, r.Anio)
++	}
++
++	fila := slices.IndexFunc(r.Filas, func(f Fila) bool {
++		return f.Fecha == sustituida && f.Ambitos[columna] == plazos.AmbitoAutonomico
++	})
++	if fila < 0 {
++		return fmt.Sprintf("«%s» sustituye el %s, que la tabla no marca como fiesta de %s", cita, sustituida,
++			r.Cabecera[columna].Nombre)
++	}
++
++	parte := sustitucion[1]
++	r.Filas[fila].Ambitos[columna] = ""
++	r.Partes = append(r.Partes,
++		FiestaDeUnaParte{Fecha: sustituida, Parte: restoDeLaComunidad + parte, Columna: columna, Nota: numero},
++		FiestaDeUnaParte{Fecha: nueva, Parte: parte, Columna: columna, Nota: numero})
++
++	return ""
+ }
+ 
+ // relacionDePartes lee una cita que, tras sus primeros dos puntos, es una
+@@ -628,10 +692,8 @@ func (r *Resolucion) relacionDePartes(cita string, columna, numero int) ([]Fiest
+ 			return nil, fmt.Sprintf("«%s» no es una fiesta de una parte, «en <parte>: el <día> de <mes>»", entrada)
+ 		}
+ 
+-		mes, esMes := mesDe(fiesta[3])
+-		fecha, existe := fechaDe(r.Anio, mes, numeroDe(fiesta[2]))
+-
+-		if !esMes || !existe {
++		fecha, existe := fechaDelTexto(r.Anio, fiesta[2], fiesta[3])
++		if !existe {
+ 			return nil, fmt.Sprintf("«%s» no da un día de %d", entrada, r.Anio)
+ 		}
+ 
+@@ -658,6 +720,17 @@ func fechaDe(anio int, mes time.Month, dia int) (string, bool) {
+ 	return fecha.Format(time.DateOnly), true
+ }
+ 
++// fechaDelTexto es, como AAAA-MM-DD, el día de un año que una cita escribe con
++// sus cifras y el nombre de su mes, si existe.
++func fechaDelTexto(anio int, dia, mes string) (string, bool) {
++	delMes, esMes := mesDe(mes)
++	if !esMes {
++		return "", false
++	}
++
++	return fechaDe(anio, delMes, numeroDe(dia))
++}
++
+ // numeroDe es el valor de unas cifras ASCII, las que casan las expresiones de
+ // este fichero, que son como mucho cuatro.
+ func numeroDe(cifras string) int {
+diff --git a/internal/source/boe/fiestas/resolucion_test.go b/internal/source/boe/fiestas/resolucion_test.go
+index e9dc293..61f112f 100644
+--- a/internal/source/boe/fiestas/resolucion_test.go
++++ b/internal/source/boe/fiestas/resolucion_test.go
+@@ -115,10 +115,13 @@ func TestLeerResolucion(t *testing.T) {
+ 	t.Run("cada-año-grabado", func(t *testing.T) {
+ 		t.Parallel()
+ 
+-		// Las notas que no son una relación de fiestas de una parte: la de Arán,
+-		// que sustituye una fiesta por otra, en los tres años, y la de 2025 sobre
+-		// la fiesta recuperable de la Comunitat Valenciana.
+-		notasFuera := map[int][]int{2025: {2, 3}, 2026: {2}, 2027: {2}}
++		// Las citas que no limitan una fiesta a una parte, solo en 2025: la de la
++		// fiesta recuperable de Cataluña, en la nota 2, y la de la Comunitat
++		// Valenciana, la nota 3.
++		notasFuera := map[int][]int{2025: {2, 3}, 2026: {}, 2027: {}}
++		// La fiesta que la nota 2, la de Cataluña, sustituye cada año en el
++		// territorio de Arán por el 17 de junio.
++		sustituida := map[int]string{2025: "2025-12-26", 2026: "2026-12-26", 2027: "2027-03-29"}
+ 
+ 		for _, anio := range []int{2025, 2026, 2027} {
+ 			resolucion := resolucionGrabada(t, anio)
+@@ -130,13 +133,29 @@ func TestLeerResolucion(t *testing.T) {
+ 
+ 			// La nota 1, la de Canarias, da cada año una fiesta por isla o grupo
+ 			// de islas: siete, entre ellas la de Gran Canaria, el 8 de
+-			// septiembre (FR-025).
++			// septiembre; y la 2, la de Cataluña, dos (FR-025).
+ 			canarias := columnaDe(t, resolucion, "Canarias")
+ 			assert.Equal(t, []int{1}, resolucion.Cabecera[canarias].Notas, "%d", anio)
+-			assert.Len(t, resolucion.Partes, 7, "%d", anio)
++			assert.Len(t, resolucion.Partes, 9, "%d", anio)
+ 			assert.Contains(t, resolucion.Partes, FiestaDeUnaParte{
+ 				Fecha: fmt.Sprintf("%d-09-08", anio), Parte: "Gran Canaria", Columna: canarias, Nota: 1,
+ 			}, "%d", anio)
++
++			// La sustitución de la nota 2: la fiesta sustituida deja de ser de
++			// toda Cataluña y queda como del resto de ella, y el 17 de junio,
++			// como del territorio de Arán (FR-011).
++			cataluna := columnaDe(t, resolucion, "Cataluña")
++			assert.Equal(t, []int{2}, resolucion.Cabecera[cataluna].Notas, "%d", anio)
++			assert.Equal(t, []FiestaDeUnaParte{
++				{Fecha: sustituida[anio], Parte: "la comunidad salvo el territorio de Arán", Columna: cataluna, Nota: 2},
++				{Fecha: fmt.Sprintf("%d-06-17", anio), Parte: "el territorio de Arán", Columna: cataluna, Nota: 2},
++			}, resolucion.Partes[7:], "%d", anio)
++
++			fila := slices.IndexFunc(resolucion.Filas, func(f Fila) bool { return f.Fecha == sustituida[anio] })
++			require.GreaterOrEqual(t, fila, 0, "%d: la fila de la fiesta sustituida se lee", anio)
++			assert.Empty(t, resolucion.Filas[fila].Ambitos[cataluna], "%d: no es fiesta de toda Cataluña", anio)
++			assert.Contains(t, resolucion.Filas[fila].Ambitos, plazos.AmbitoAutonomico,
++				"%d: sigue siéndolo de otra comunidad", anio)
+ 		}
+ 	})
+ 
+@@ -170,6 +189,8 @@ func TestLeerResolucion(t *testing.T) {
+ 	t.Run("documento-que-no-se-lee", probarDocumentoQueNoSeLee)
+ 	t.Run("fila-fuera", probarFilaFuera)
+ 	t.Run("nota-fuera", probarNotaFuera)
++	t.Run("cita-fuera", probarCitaFuera)
++	t.Run("sustitucion", probarSustitucion)
+ }
+ 
+ // Los párrafos que siguen a la tabla en las tres resoluciones grabadas: la
+@@ -375,16 +396,22 @@ func probarFilaFuera(t *testing.T) {
+ 	}
+ }
+ 
+-// probarNotaFuera fija cada nota que no se lee sin interpretarla: queda fuera
+-// entera, con su número y su motivo, y no da ninguna fiesta de una parte
+-// (FR-025; ADR 0039, punto 3).
++// parrafoDeNota es un párrafo de las notas aclaratorias.
++func parrafoDeNota(texto string) string { return "<p>" + texto + "</p>" }
++
++// notaDeCanariasCon es la nota 1, de Canarias, con una sola cita.
++func notaDeCanariasCon(cita string) string {
++	return parrafoDeNota("1. En la Comunidad Autónoma de Canarias, dispone que: «" + cita + "».")
++}
++
++// probarNotaFuera fija cada nota, o cita de una nota, que no se lee sin
++// interpretarla: queda fuera con el número de la nota y su motivo, y no da
++// ninguna fiesta de una parte ni cambia la tabla (FR-025; ADR 0039, punto 3).
+ func probarNotaFuera(t *testing.T) {
+ 	t.Parallel()
+ 
+-	nota := func(texto string) string { return "<p>" + texto + "</p>" }
+-	dispone := func(cita string) string {
+-		return nota("1. En la Comunidad Autónoma de Canarias, dispone que: «" + cita + "».")
+-	}
++	leida, err := LeerResolucion(basica().documento())
++	require.NoError(t, err)
+ 
+ 	casos := []struct {
+ 		nombre   string
+@@ -392,20 +419,28 @@ func probarNotaFuera(t *testing.T) {
+ 		notas    string
+ 		motivo   string
+ 	}{
+-		{"sustitucion", nil, dispone("En el territorio de El Hierro, la fiesta del día 26 de diciembre queda sustituida " +
+-			"por la de 17 de junio, miércoles"), "relación"},
+ 		{
+-			"sin-parte", nil, dispone("Con carácter recuperable se establece la siguiente fiesta: 24 de junio, San Juan"),
++			"sustitucion-de-un-dia-sin-fiesta", nil, notaDeCanariasCon("En el territorio de El Hierro, la fiesta del día 26 de " +
++				"diciembre queda sustituida por la de 17 de junio, miércoles"), "no marca como fiesta de Canarias",
++		},
++		{
++			"sustitucion-de-una-fiesta-nacional", nil, notaDeCanariasCon("En el territorio de El Hierro, la fiesta del día 6 de " +
++				"enero (Epifanía del Señor) queda sustituida por la de 17 de junio"), "no marca como fiesta de Canarias",
++		},
++		{
++			"sustitucion-con-un-dia-que-no-existe", nil, notaDeCanariasCon("En el territorio de El Hierro, la fiesta del día 30 de " +
++				"mayo queda sustituida por la de 31 de junio"), "no da dos días de 2026",
++		},
++		{
++			"sin-parte", nil, notaDeCanariasCon("Con carácter recuperable se establece la siguiente fiesta: 24 de junio, San Juan"),
+ 			"fiesta de una parte",
+ 		},
+-		{"dia-que-no-existe", nil, dispone("Serán, además: en El Hierro: el 31 de septiembre, festividad"), "día de 2026"},
+-		{"mes-que-no-es-un-mes", nil, dispone("Serán, además: en El Hierro: el 3 de brumario"), "día de 2026"},
+-		{"sin-cita", nil, nota("1. En la Comunidad Autónoma de Canarias rige su decreto."), "comillas"},
+-		{"cita-sin-cerrar", nil, nota("1. Dispone que: «Serán, además: en El Hierro: el 24 de septiembre."), "comillas"},
++		{"dia-que-no-existe", nil, notaDeCanariasCon("Serán, además: en El Hierro: el 31 de septiembre, festividad"), "día de 2026"},
++		{"mes-que-no-es-un-mes", nil, notaDeCanariasCon("Serán, además: en El Hierro: el 3 de brumario"), "día de 2026"},
++		{"sin-cita", nil, parrafoDeNota("1. En la Comunidad Autónoma de Canarias rige su decreto."), "comillas"},
++		{"cita-sin-cerrar", nil, parrafoDeNota("1. Dispone que: «Serán, además: en El Hierro: el 24 de septiembre."), "comillas"},
+ 		{"nadie-la-llama", []string{"Aragón", "Canarias"}, notaDeCanarias, "ninguna comunidad"},
+ 		{"la-llaman-dos", []string{"Aragón (1)", "Canarias (1)"}, notaDeCanarias, "2 comunidades"},
+-		{"una-cita-que-no-se-lee", nil, notaDeCanarias + nota("Asimismo, dispone que: «De las trece fiestas habrá "+
+-			"una, a escoger entre el 6 de enero y el 26 de diciembre, que tendrá el carácter de recuperable»."), "relación"},
+ 	}
+ 
+ 	for _, caso := range casos {
+@@ -426,6 +461,58 @@ func probarNotaFuera(t *testing.T) {
+ 			assert.Equal(t, 1, resolucion.NotasSinLeer[0].Numero)
+ 			assert.Contains(t, resolucion.NotasSinLeer[0].Motivo, caso.motivo)
+ 			assert.Empty(t, resolucion.Partes)
++			assert.Equal(t, leida.Filas, resolucion.Filas, "la nota que queda fuera no cambia la tabla")
+ 		})
+ 	}
+ }
++
++// probarCitaFuera fija que una cita que no se lee queda fuera sola: las otras
++// citas de su nota se leen, porque cada una es una disposición distinta.
++func probarCitaFuera(t *testing.T) {
++	t.Parallel()
++
++	s := basica()
++	s.tras = leyendaGrabada + parrafoDeLasNotas + notaDeCanarias + parrafoDeNota("Asimismo, dispone que: «De las trece "+
++		"fiestas habrá una, a escoger entre el 6 de enero y el 26 de diciembre, que tendrá el carácter de recuperable».")
++
++	resolucion, err := LeerResolucion(s.documento())
++	require.NoError(t, err)
++
++	require.Len(t, resolucion.NotasSinLeer, 1)
++	assert.Equal(t, 1, resolucion.NotasSinLeer[0].Numero)
++	assert.Contains(t, resolucion.NotasSinLeer[0].Motivo, "«De las trece fiestas")
++	assert.Equal(t, []FiestaDeUnaParte{
++		{Fecha: "2026-09-24", Parte: "El Hierro", Columna: 1, Nota: 1},
++		{Fecha: "2026-02-02", Parte: "Tenerife", Columna: 1, Nota: 1},
++	}, resolucion.Partes, "la relación de la misma nota se lee")
++}
++
++// probarSustitucion lee una sustitución en una parte con la forma de la nota de
++// Arán de las tres resoluciones grabadas: la fiesta sustituida deja de ser de
++// toda la comunidad que llama a la nota y queda como fiesta del resto de ella,
++// y la que la sustituye, como fiesta de la parte (FR-011, FR-025).
++func probarSustitucion(t *testing.T) {
++	t.Parallel()
++
++	s := basica()
++	s.cabecera = []string{"Aragón", "Cataluña (1)"}
++	s.filas = [][]string{{"Diciembre", "", ""}, {"26 San Esteban.", "***", "***"}}
++	s.tras = leyendaGrabada + parrafoDeLasNotas + parrafoDeNota("1. En la Comunidad Autónoma de Cataluña, la Orden EMT/66/2025 "+
++		"dispone que: «En el territorio de Arán, la fiesta del día 26 de diciembre (Sant Esteve) queda sustituida por "+
++		"la de 17 de junio (Fiesta de Arán), miércoles».")
++
++	resolucion, err := LeerResolucion(s.documento())
++	require.NoError(t, err)
++
++	autonomico := plazos.AmbitoAutonomico
++
++	assert.Equal(t, Resolucion{
++		Anio:     2026,
++		Cabecera: []Columna{{Nombre: "Aragón"}, {Nombre: "Cataluña", Notas: []int{1}}},
++		Filas:    []Fila{{Fecha: "2026-12-26", Texto: "26 San Esteban.", Ambitos: []plazos.Ambito{autonomico, ""}}},
++		Partes: []FiestaDeUnaParte{
++			{Fecha: "2026-12-26", Parte: "la comunidad salvo el territorio de Arán", Columna: 1, Nota: 1},
++			{Fecha: "2026-06-17", Parte: "el territorio de Arán", Columna: 1, Nota: 1},
++		},
++	}, resolucion)
++}
+diff --git a/specs/023-h9-internal-core-plazos/contracts/casos-de-plazos.md b/specs/023-h9-internal-core-plazos/contracts/casos-de-plazos.md
+index a398e4e..e39ad31 100644
+--- a/specs/023-h9-internal-core-plazos/contracts/casos-de-plazos.md
++++ b/specs/023-h9-internal-core-plazos/contracts/casos-de-plazos.md
+@@ -5,9 +5,11 @@ Cada caso, con la fecha esperada calculada a mano y su razonamiento, independien
+ por su nombre y los ficheros empotrados; los casos 19 y 20 son de cobertura por materia y los comprueba el mismo test
+ contra `data/cobertura.yaml`. Los días de la semana, de `cal` (research V25); los festivos locales, del BOCM grabado
+ (research V9); los nacionales, de las resoluciones del BOE (research S3). Los guiones de aceptación usan solo los casos
+-1, 2, 3, 15, 17 y 18 (research D27). Dieciocho fechas y dos coberturas: al menos once, como pide SC-005.
++1, 2, 3, 15, 17 y 18 (research D27). Diecinueve fechas y dos coberturas: al menos once, como pide SC-005. El caso 21
++lo añadió la revisión final del hito (`gates/supuestos.md`, «corrector_revision»).
+ 
+-Abreviaturas: L = Leganés (`28074`), M = Madrid (`28079`), T = Tordesillas (`47165`), B = Brunete, V = El Vellón.
++Abreviaturas: L = Leganés (`28074`), M = Madrid (`28079`), T = Tordesillas (`47165`), B = Brunete, V = El Vellón,
++A = Vielha e Mijaran (`25243`), en el territorio de Arán.
+ 
+ | # | Caso | Llamada | Fecha | Avisos | Razonamiento |
+ |---|---|---|---|---|---|
+@@ -31,6 +33,7 @@ Abreviaturas: L = Leganés (`28074`), M = Madrid (`28079`), T = Tordesillas (`47
+ | 18 | Mes que cruza a 2027 sin festivo decisivo | `reposicion 2026-12-14 L L` | 2027-01-14 | `faltan-festivos-locales` | Un mes: jueves 14 de enero de 2027, que no es fiesta nacional ni de Madrid; Leganés no tiene locales de 2027: avisa (US2.2) |
+ | 19 | Eval (c), cobertura | — | — | — | La aplicación de los tributos y su revisión las regula aparte la DA 1ª.2.a LPAC y las rige la LGT (`BOE-A-2003-23186`, art. 97): `data/cobertura.yaml` lleva la entrada con esa norma |
+ | 20 | Eval (d), cobertura | — | — | — | Los sancionadores de tráfico y seguridad vial los regula aparte la DA 1ª.2.c LPAC y los rige el texto refundido de Tráfico (art. 1): `data/cobertura.yaml` lleva la entrada con el identificador que da la búsqueda grabada |
++| 21 | Fiesta sustituida en una parte | `reposicion 2025-11-26 A A` | 2025-12-26 | `faltan-festivos-locales`, `festivo-de-una-parte` | Un mes: viernes 26 de diciembre de 2025, fiesta de Cataluña que la nota 2 de `BOE-A-2024-21316` sustituye en el territorio de Arán por el 17 de junio: no es fiesta de toda la comunidad y cuenta como hábil (FR-011), con el aviso de una parte. En Arán es el último día; en el resto de Cataluña la fecha real sería el lunes 29, y la del aviso es la más temprana. kitlegal no tiene los locales de Cataluña |
+ 
+ Los casos 1 y 4 comparten la fecha y prueban cosas distintas: el 1, la prórroga con un solo municipio; el 4, el art.
+ 30.6. Con los casos 4 y 5 cae el mutante de un solo municipio sea cual sea el que deje, y con el 3, el de agosto
+diff --git a/specs/023-h9-internal-core-plazos/contracts/datos-de-plazos.md b/specs/023-h9-internal-core-plazos/contracts/datos-de-plazos.md
+index fe0fd81..3721605 100644
+--- a/specs/023-h9-internal-core-plazos/contracts/datos-de-plazos.md
++++ b/specs/023-h9-internal-core-plazos/contracts/datos-de-plazos.md
+@@ -33,6 +33,13 @@ festivos:
+ - `ambito`: `nacional` («*» o «**») o `autonomico` («***»), los códigos de la leyenda de las tres resoluciones
+   grabadas (research S1 corregido con lo grabado en T007, `gates/supuestos.md`). `parte`, solo si la resolución limita la fiesta a una parte
+   de la comunidad (FR-025); esa fila no hace inhábil el día (FR-011).
++- Las notas se leen cita a cita, y la que no se lee sin interpretarla queda fuera sola. Una relación de fiestas de una
++  parte («en <parte>: el <día> de <mes>») da una fila con esa `parte` por fiesta. Una sustitución en una parte («En
++  <parte>, la fiesta del día <día> de <mes> (…) queda sustituida por la de <día> de <mes> (…)»), como la del territorio
++  de Arán de las tres resoluciones, da dos: la fiesta sustituida sale de la fila de toda la comunidad y queda con
++  `parte` «la comunidad salvo <parte>», y la que la sustituye, con `parte` «<parte>»; ninguna de las dos hace inhábil
++  el día en toda la comunidad, y la fecha es la más temprana (revisión final, `gates/supuestos.md`). Si la tabla no
++  marca la sustituida como fiesta de la comunidad («***»), la cita queda fuera.
+ - Lo que comprueba la derivación: las 19 comunidades tienen festivos cada año, porque FR-020 pide los de todas las que
+   trae cada resolución y una columna que no se lee no puede quedar sin rastro.
+ 
+diff --git a/specs/023-h9-internal-core-plazos/research.md b/specs/023-h9-internal-core-plazos/research.md
+index 6df06c9..305066f 100644
+--- a/specs/023-h9-internal-core-plazos/research.md
++++ b/specs/023-h9-internal-core-plazos/research.md
+@@ -229,7 +229,9 @@ se aplica si la compacta no da ninguno, y no casa con ninguna de las entidades d
+ Por cada resolución, cada fila del anexo da una fecha del año de la resolución y, por cada columna marcada, la
+ comunidad con su ámbito: `nacional` con «*» o «**», `autonomico` con «***» (lo grabado contradijo a S1, que los daba al
+ revés; T007, `gates/supuestos.md`). Una nota que limita la fiesta a una parte
+-de una comunidad da la fila con `parte` y sin efecto en el cómputo (FR-011, FR-025). Las columnas se cruzan con las 19
++de una comunidad da la fila con `parte` y sin efecto en el cómputo (FR-011, FR-025); las notas se leen cita a cita, y
++una sustitución en una parte, como la de Arán, da dos filas con `parte`: la sustituida, del resto de la comunidad, y
++la que la sustituye (revisión final, `gates/supuestos.md`; contracts/datos-de-plazos.md §1.1). Las columnas se cruzan con las 19
+ comunidades de `data/territorio/comunidades/` con la regla compacta de D13 (S2) y, como S2 no se cumplió con lo grabado,
+ con las dos reglas genéricas que la siguen, sin lista de alias (T007, `gates/supuestos.md`). Una fila que no se lee sin
+ interpretarla queda fuera, como en el BOCM. El test comprueba que las 19 tienen festivos cada año (FR-020: todas las

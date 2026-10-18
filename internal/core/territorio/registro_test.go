@@ -117,3 +117,85 @@ func TestRegistro(t *testing.T) {
 		assert.Equal(t, fecha(t, fechaDeLaRelacion), registro.FechaDeLaRelacion())
 	})
 }
+
+// TestMunicipiosDe fija los municipios de una comunidad que el registro da a
+// los adaptadores de los boletines (FR-022, research.md D13): solo los de esa
+// comunidad, en orden de código INE, cada uno con su nombre oficial y las
+// formas plegadas por las que lo alcanza una consulta. Dos municipios que se
+// llaman igual en dos comunidades no se mezclan.
+func TestMunicipiosDe(t *testing.T) {
+	t.Parallel()
+
+	// «Castro, El», de la 03 y con el artículo pospuesto, tiene en la 01 un
+	// municipio que se llama igual.
+	ficheros := ficherosSinteticos()
+	ficheros.Municipios.Municipios["28993"] = FilaDeMunicipio{
+		DC: "8", Nombre: "Castro, El", Provincia: "28", Comunidad: "01",
+	}
+	registro := cargar(t, ficheros)
+
+	castro := []string{"castro el", "el castro"}
+	casos := map[string][]MunicipioConFormas{
+		"01": {
+			{Codigo: codigoINE(t, "28991"), Nombre: "Villaprueba", Formas: []string{"villaprueba"}},
+			{
+				Codigo: codigoINE(t, "28992"), Nombre: "Rozas de Prueba, Las",
+				Formas: []string{"rozas de prueba las", "las rozas de prueba"},
+			},
+			{Codigo: codigoINE(t, "28993"), Nombre: "Castro, El", Formas: castro},
+		},
+		"02": {
+			{
+				Codigo: codigoINE(t, "31991"), Nombre: "Iruñeta/Pamploneta",
+				Formas: []string{"iruneta pamploneta", "iruneta", "pamploneta"},
+			},
+		},
+		"03": {
+			{Codigo: codigoINE(t, "05991"), Nombre: "Villanueva", Formas: []string{"villanueva"}},
+			{Codigo: codigoINE(t, "05992"), Nombre: "Castro, El", Formas: castro},
+			{Codigo: codigoINE(t, "47991"), Nombre: "Villanueva", Formas: []string{"villanueva"}},
+			{Codigo: codigoINE(t, "47992"), Nombre: "Peñíscola del Río", Formas: []string{"peniscola del rio"}},
+			{Codigo: codigoINE(t, "47993"), Nombre: "El Castro", Formas: []string{"el castro"}},
+		},
+	}
+
+	t.Run("los de cada comunidad", func(t *testing.T) {
+		t.Parallel()
+
+		for comunidad, municipios := range casos {
+			assert.Equal(t, municipios, registro.MunicipiosDe(comunidad), "municipios de la comunidad %s", comunidad)
+		}
+	})
+
+	t.Run("comunidad que no está", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, registro.MunicipiosDe("04"))
+		assert.Empty(t, registro.MunicipiosDe(""))
+	})
+
+	t.Run("el registro no cambia", func(t *testing.T) {
+		t.Parallel()
+
+		// Lo que haga quien los recibe con los municipios y sus formas no
+		// llega al registro, que se usa desde varias goroutines a la vez.
+		recibidos := registro.MunicipiosDe("01")
+		recibidos[0].Nombre = "Cambiado"
+		recibidos[1].Formas[0] = "cambiada"
+
+		assert.Equal(t, casos["01"], registro.MunicipiosDe("01"))
+	})
+}
+
+// TestComunidades fija las comunidades que el registro da a los adaptadores de
+// los boletines (research.md D14, S2): cada una con su código, su nombre y el
+// source de su fichero, en orden de código y no de nombre.
+func TestComunidades(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, []Comunidad{
+		{Codigo: "01", Nombre: "Comunidad Uniprovincial", Source: fuenteDeLosNombres},
+		{Codigo: "02", Nombre: "Comunidad Foral", Source: fuenteDeLosNombres},
+		{Codigo: "03", Nombre: "Comunidad Pluriprovincial", Source: fuenteDeLosNombres},
+	}, cargarSintetico(t).Comunidades())
+}

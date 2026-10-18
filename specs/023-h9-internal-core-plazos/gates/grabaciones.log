@@ -1,0 +1,70 @@
+== grabación de boe.legislacion-consolidada (internal/evals), intento 1
+--- FAIL: TestGrabarEvals (16.07s)
+    grabacion_test.go:114: raíz de grabación ../../testdata/evals
+    grabacion_test.go:116: entrada 1 ("Ley 39/2015,"): BOE-A-2015-10565 «Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.»
+    grabacion_test.go:116: entrada 2 ("Ley 9/2017,"): BOE-A-2017-12902 «Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público, por la que se transponen al ordenamiento jurídico español las Directivas del Parlamento Europeo y del Consejo 2014/23/UE y 2014/24/UE, de 26 de febrero de 2014.»
+    grabacion_test.go:116: entrada 3 ("Ley 7/1985,"): BOE-A-1985-5392 «Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local»
+    grabacion_test.go:116: entrada 4 ("Ley 58/2003,"): BOE-A-2003-23186 «Ley 58/2003, de 17 de diciembre, General Tributaria.»
+    grabacion_test.go:116: entrada 5 ("Real Decreto Legislativo 2/2004,"): BOE-A-2004-4214 «Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales.»
+    grabacion_test.go:116: entrada 6 ("Ley 35/2006,"): BOE-A-2006-20764 «Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio.»
+    grabacion_test.go:116: entrada 7 ("Ley 40/2015,"): BOE-A-2015-10566 «Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público.»
+    grabacion_test.go:116: entrada 8 ("Ley 19/2013,"): BOE-A-2013-12887 «Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno.»
+    grabacion_test.go:116: entrada 9 ("Constitución Española"): BOE-A-1978-31229 «Constitución Española.»
+    grabacion_test.go:116: entrada 10 ("Real Decreto Legislativo 2/2015,"): BOE-A-2015-11430 «Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores.»
+    grabacion_test.go:116: entrada 11 ("Ley 30/1992,"): BOE-A-1992-26318 «Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.»
+    grabacion_test.go:116: entrada 12 ("Ley Orgánica 6/1985,"): BOE-A-1985-12666 «Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial.»
+    grabacion_test.go:116: entrada 13 ("Ley Orgánica 3/2018,"): BOE-A-2018-16673 «Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales.»
+    grabacion_test.go:116: entrada 14 ("Ley 29/1998,"): BOE-A-1998-16718 «Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa.»
+    grabacion_test.go:116: entrada 15 ("Ley 1/2000,"): BOE-A-2000-323 «Ley 1/2000, de 7 de enero, de Enjuiciamiento Civil.»
+    grabacion_test.go:116: entrada 16 ("Ley 38/2003,"): BOE-A-2003-20977 «Ley 38/2003, de 17 de noviembre, General de Subvenciones.»
+    grabacion_test.go:116: entrada 17 ("Ley 47/2003,"): BOE-A-2003-21614 «Ley 47/2003, de 26 de noviembre, General Presupuestaria.»
+    grabacion_test.go:116: entrada 18 ("Real Decreto de 24 de julio de 1889"): BOE-A-1889-4763 «Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil.»
+    grabacion_test.go:114: raíz de grabación testdata
+    grabacion_test.go:116: entrada 1 ("Ley 39/2015,"): BOE-A-2015-10565 «Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.»
+    grabacion_test.go:116: entrada 2 ("Ley 29/1998,"): BOE-A-1998-16718 «Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa.»
+    grabacion_test.go:116: entrada 3 ("Ley Orgánica 6/1985,"): BOE-A-1985-12666 «Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial.»
+    grabacion_test.go:116: entrada 4 ("Ley 19/2013,"): BOE-A-2013-12887 «Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno.»
+    grabacion_test.go:116: entrada 5 ("Ley 58/2003,"): BOE-A-2003-23186 «Ley 58/2003, de 17 de diciembre, General Tributaria.»
+    grabacion_test.go:116: entrada 6 ("Real Decreto de 24 de julio de 1889"): BOE-A-1889-4763 «Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil.»
+    grabacion_test.go:116: entrada 7 ("Real Decreto Legislativo 6/2015,"): 0 resultados de «boe buscar texto refundido tráfico circulación vehículos motor seguridad vial» tienen un título que empieza por el prefijo, y tiene que ser uno solo; títulos: []
+FAIL
+FAIL	github.com/jmorenobl/kitlegal/internal/evals	16.611s
+FAIL
+== grabación de boe.legislacion-consolidada (internal/evals), intento 2
+--- FAIL: TestGrabarEvals (15.98s)
+    grabacion_test.go:114: raíz de grabación ../../testdata/evals
+    grabacion_test.go:116: entrada 1 ("Ley 39/2015,"): BOE-A-2015-10565 «Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.»
+    grabacion_test.go:116: entrada 2 ("Ley 9/2017,"): BOE-A-2017-12902 «Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público, por la que se transponen al ordenamiento jurídico español las Directivas del Parlamento Europeo y del Consejo 2014/23/UE y 2014/24/UE, de 26 de febrero de 2014.»
+    grabacion_test.go:116: entrada 3 ("Ley 7/1985,"): BOE-A-1985-5392 «Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local»
+    grabacion_test.go:116: entrada 4 ("Ley 58/2003,"): BOE-A-2003-23186 «Ley 58/2003, de 17 de diciembre, General Tributaria.»
+    grabacion_test.go:116: entrada 5 ("Real Decreto Legislativo 2/2004,"): BOE-A-2004-4214 «Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales.»
+    grabacion_test.go:116: entrada 6 ("Ley 35/2006,"): BOE-A-2006-20764 «Ley 35/2006, de 28 de noviembre, del Impuesto sobre la Renta de las Personas Físicas y de modificación parcial de las leyes de los Impuestos sobre Sociedades, sobre la Renta de no Residentes y sobre el Patrimonio.»
+    grabacion_test.go:116: entrada 7 ("Ley 40/2015,"): BOE-A-2015-10566 «Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público.»
+    grabacion_test.go:116: entrada 8 ("Ley 19/2013,"): BOE-A-2013-12887 «Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno.»
+    grabacion_test.go:116: entrada 9 ("Constitución Española"): BOE-A-1978-31229 «Constitución Española.»
+    grabacion_test.go:116: entrada 10 ("Real Decreto Legislativo 2/2015,"): BOE-A-2015-11430 «Real Decreto Legislativo 2/2015, de 23 de octubre, por el que se aprueba el texto refundido de la Ley del Estatuto de los Trabajadores.»
+    grabacion_test.go:116: entrada 11 ("Ley 30/1992,"): BOE-A-1992-26318 «Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.»
+    grabacion_test.go:116: entrada 12 ("Ley Orgánica 6/1985,"): BOE-A-1985-12666 «Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial.»
+    grabacion_test.go:116: entrada 13 ("Ley Orgánica 3/2018,"): BOE-A-2018-16673 «Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales.»
+    grabacion_test.go:116: entrada 14 ("Ley 29/1998,"): BOE-A-1998-16718 «Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa.»
+    grabacion_test.go:116: entrada 15 ("Ley 1/2000,"): BOE-A-2000-323 «Ley 1/2000, de 7 de enero, de Enjuiciamiento Civil.»
+    grabacion_test.go:116: entrada 16 ("Ley 38/2003,"): BOE-A-2003-20977 «Ley 38/2003, de 17 de noviembre, General de Subvenciones.»
+    grabacion_test.go:116: entrada 17 ("Ley 47/2003,"): BOE-A-2003-21614 «Ley 47/2003, de 26 de noviembre, General Presupuestaria.»
+    grabacion_test.go:116: entrada 18 ("Real Decreto de 24 de julio de 1889"): BOE-A-1889-4763 «Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil.»
+    grabacion_test.go:114: raíz de grabación testdata
+    grabacion_test.go:116: entrada 1 ("Ley 39/2015,"): BOE-A-2015-10565 «Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas.»
+    grabacion_test.go:116: entrada 2 ("Ley 29/1998,"): BOE-A-1998-16718 «Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa.»
+    grabacion_test.go:116: entrada 3 ("Ley Orgánica 6/1985,"): BOE-A-1985-12666 «Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial.»
+    grabacion_test.go:116: entrada 4 ("Ley 19/2013,"): BOE-A-2013-12887 «Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno.»
+    grabacion_test.go:116: entrada 5 ("Ley 58/2003,"): BOE-A-2003-23186 «Ley 58/2003, de 17 de diciembre, General Tributaria.»
+    grabacion_test.go:116: entrada 6 ("Real Decreto de 24 de julio de 1889"): BOE-A-1889-4763 «Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil.»
+    grabacion_test.go:116: entrada 7 ("Real Decreto Legislativo 6/2015,"): 0 resultados de «boe buscar texto refundido tráfico circulación vehículos motor seguridad vial» tienen un título que empieza por el prefijo, y tiene que ser uno solo; títulos: []
+FAIL
+FAIL	github.com/jmorenobl/kitlegal/internal/evals	16.349s
+FAIL
+== grabación de boe.legislacion-consolidada (internal/evals), intento 1
+ok  	github.com/jmorenobl/kitlegal/internal/evals	19.562s
+== grabación de bocm.fiestas-locales (internal/source/bocm), intento 1
+ok  	github.com/jmorenobl/kitlegal/internal/source/bocm	70.654s
+== grabación de boe.fiestas-laborales (internal/source/boe/fiestas), intento 1
+ok  	github.com/jmorenobl/kitlegal/internal/source/boe/fiestas	3.400s

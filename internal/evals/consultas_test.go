@@ -27,6 +27,11 @@ import (
 // texto o sin nada más: el applet no consulta ninguna fuente, y las evals de
 // jurisprudencia no necesitan ninguna respuesta grabada
 // (contracts/evals-jurisprudencia.md §2 de H23; FR-054).
+//
+// Desde H9, tampoco genera ninguna el comando calcular, plazos calcular: el
+// applet no consulta nada, y la eval de plazo solo necesita las consultas del
+// bloque que lee y cita; ni la eval de cobertura, que no espera comandos ni citas
+// (contracts/evals-legal-core.md §1 de H9).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
@@ -43,6 +48,8 @@ func TestConsultasNecesarias(t *testing.T) {
 		deSoloTerritorio        = "04-territorio-municipio-cubierto.yaml"
 		deTerritorioYArticulo21 = "05-territorio-y-articulo-21.yaml"
 		deConsultaRepetida      = "06-lpac-articulo-21-redaccion-cambiada.yaml"
+		deUnPlazo               = "07-plazo-reposicion-leganes.yaml"
+		deUnaCobertura          = "08-cobertura-liquidacion-tributaria.yaml"
 	)
 
 	// Una eval con las tres formas de comando, dos normas —la LPAC, de un comando
@@ -131,6 +138,30 @@ func TestConsultasNecesarias(t *testing.T) {
 	normaDeConsultaRepetida := Origen{Eval: deConsultaRepetida, Punto: PuntoNormaDeLaEval}
 	citaDeConsultaRepetida := Origen{Eval: deConsultaRepetida, Punto: PuntoCitaEsperada}
 
+	// Una eval de plazo, que resuelve el municipio, calcula el plazo y lee y cita
+	// el art. 124, y una de cobertura, sin comandos ni citas y con plazos calcular
+	// prohibido.
+	dePlazo := Eval{
+		Fichero:  deUnPlazo,
+		Pregunta: "¿Hasta cuándo puedo presentar el recurso de reposición contra una resolución de Leganés?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{
+			resolver, {Applet: "plazos", Verbo: "calcular", Tipo: "reposicion"}, {Applet: "boe", Norma: lpac, Bloque: "a124"},
+		},
+		Citas: []CitaEsperada{{Norma: lpac, Bloque: "a124"}},
+		Plazo: PlazoEsperado{Fecha: "2026-10-13", Avisos: []string{}, Razonamiento: "Un mes desde el día siguiente."},
+	}
+	deCobertura := Eval{
+		Fichero:    deUnaCobertura,
+		Pregunta:   "¿Hasta cuándo puedo recurrir una liquidación de la Agencia Tributaria?",
+		Activa:     true,
+		Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
+		NoCubierto: NoCubiertoEsperado{Norma: "BOE-A-2003-23186"},
+	}
+	comandoDelPlazo := Origen{Eval: deUnPlazo, Punto: PuntoComandoEsperado}
+	normaDelPlazo := Origen{Eval: deUnPlazo, Punto: PuntoNormaDeLaEval}
+	citaDelPlazo := Origen{Eval: deUnPlazo, Punto: PuntoCitaEsperada}
+
 	casos := []struct {
 		nombre    string
 		conjunto  []Eval
@@ -211,6 +242,18 @@ func TestConsultasNecesarias(t *testing.T) {
 		{
 			nombre:   "cita-sin-consultas",
 			conjunto: conjuntoDeJurisprudencia(),
+		},
+		{
+			nombre:   "calcular-sin-consultas",
+			conjunto: []Eval{dePlazo, deCobertura},
+			esperadas: []Consulta{
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a124"},
+					Origenes: []Origen{comandoDelPlazo, citaDelPlazo},
+				},
+				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDelPlazo}},
+				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDelPlazo}},
+			},
 		},
 		{
 			nombre: "sin-evals",

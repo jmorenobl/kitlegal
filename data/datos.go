@@ -1,5 +1,7 @@
 // Package data lleva dentro del binario los ficheros congelados de data/ que
-// se leen en ejecución: los de data/territorio/ (FR-056; research.md D2).
+// se leen en ejecución: los de data/territorio/ (FR-056; research.md D2) y,
+// desde H9, data/plazos.yaml y los de data/festivos/ (H9 FR-001, FR-028;
+// research.md D1 y D12 de H9).
 //
 // Las directivas //go:embed viven aquí, junto a los ficheros, porque un patrón
 // no puede subir de directorio: un paquete de internal/ no los alcanzaría. Cada
@@ -61,23 +63,60 @@ const (
 // un fichero <código>.yaml es un error que la nombra, no algo que se descarta
 // en silencio. Cada llamada devuelve un mapa nuevo.
 func Comunidades() (map[string][]byte, error) {
-	return comunidadesDe(comunidades)
+	return porComunidad(comunidades, carpetaDeComunidades)
 }
 
-// comunidadesDe es el recorrido de Comunidades sobre un sistema de ficheros
-// cualquiera, para que sus tres ramas de error —el subárbol que no se lista, la
-// entrada que no es un fichero <código>.yaml y el fichero que no se lee— se
-// puedan ejercer sin tocar el embebido.
-func comunidadesDe(arbol fs.FS) (map[string][]byte, error) {
-	entradas, err := fs.ReadDir(arbol, carpetaDeComunidades)
+// Plazos es data/plazos.yaml, los tipos de plazo de plazos calcular con su
+// cómputo, su duración y los preceptos que los fundan.
+//
+//go:embed plazos.yaml
+var Plazos []byte
+
+// FestivosNacionales es data/festivos/nacionales-y-autonomicos.yaml, los
+// festivos nacionales y autonómicos de las resoluciones del BOE.
+//
+//go:embed festivos/nacionales-y-autonomicos.yaml
+var FestivosNacionales []byte
+
+// festivosLocales es el subárbol data/festivos/locales/, con un fichero por
+// comunidad cuyos festivos locales se han derivado de su boletín. Se embebe por
+// patrón y no fichero a fichero, como las comunidades, porque no hay un número
+// fijo: los festivos locales llegan comunidad a comunidad, con su boletín
+// (principio IX), y la que no tiene fichero es la que no tiene festivos
+// locales cargados. Un patrón que no casa con ninguno sigue siendo un error de
+// compilación.
+//
+//go:embed festivos/locales/*.yaml
+var festivosLocales embed.FS
+
+// carpetaDeFestivosLocales es dónde está ese subárbol dentro de lo embebido;
+// cada uno de sus ficheros se llama como el de su comunidad en
+// territorio/comunidades/.
+const carpetaDeFestivosLocales = "festivos/locales"
+
+// FestivosLocales devuelve el contenido de cada fichero de
+// data/festivos/locales/, indexado por el código de la comunidad que le da
+// nombre, como Comunidades: el de festivos/locales/13.yaml va en "13". Cada
+// llamada devuelve un mapa nuevo.
+func FestivosLocales() (map[string][]byte, error) {
+	return porComunidad(festivosLocales, carpetaDeFestivosLocales)
+}
+
+// porComunidad es el recorrido de una carpeta con un fichero <código>.yaml por
+// comunidad sobre un sistema de ficheros cualquiera, para que sus tres ramas de
+// error —la carpeta que no se lista, la entrada que no es un fichero
+// <código>.yaml y el fichero que no se lee— se puedan ejercer sin tocar el
+// embebido.
+func porComunidad(arbol fs.FS, carpeta string) (map[string][]byte, error) {
+	entradas, err := fs.ReadDir(arbol, carpeta)
 	if err != nil {
-		return nil, fmt.Errorf("no se puede listar data/%s: %w", carpetaDeComunidades, err)
+		return nil, fmt.Errorf("no se puede listar data/%s: %w", carpeta, err)
 	}
 
 	ficheros := make(map[string][]byte, len(entradas))
 
 	for _, entrada := range entradas {
-		ruta := path.Join(carpetaDeComunidades, entrada.Name())
+		ruta := path.Join(carpeta, entrada.Name())
 
 		codigo, conExtension := strings.CutSuffix(entrada.Name(), extensionDeComunidad)
 		if entrada.IsDir() || !conExtension {

@@ -1,0 +1,56 @@
+# plazos calcular no deja nada en el equipo ni pide los festivos a ninguna
+# fuente: con la caché y el grafo del mundo ya con contenido, el directorio de
+# la caché tiene las mismas entradas, con los mismos bytes, antes y después del
+# verbo, como orden y como herramienta. Entre las órdenes hay una que termina
+# con 0, una que falla, una con --offline --no-graph y una con --dry-run; y una
+# llamada a plazos_calcular con resultado.
+#
+# Cubre: US1.1 · FR-013, FR-028 · SC-009.
+#
+# La caché y el grafo los deja con contenido una lectura de boe articulo sobre
+# la reproducción, con el reloj T0, como en h23-cita-sin-efectos.txtar. arbol es
+# la orden de contracts/arnes-e2e.md §4 de H19: una línea por entrada del
+# directorio, y de cada fichero, sus permisos y la huella de su contenido; un
+# fichero nuevo, uno que falta y uno que cambia dan otro listado. Los proxies de
+# cada guion están cerrados: una petición a la red haría fallar la orden. Lo que
+# el guion escribe —los listados y lo que deja la orden mcp— queda en su
+# directorio de trabajo, fuera del de la caché.
+
+# Precondición: el binario registra el applet plazos (FR-001).
+exec kitlegal --help
+stdout '^\s+plazos\s'
+
+# --- La caché y el grafo, con contenido, y su listado ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --json
+stdout '^\{"ok":true,'
+arbol cache
+stdout '^f cache\.db [0-7]{3} [0-9a-f]{64}$'
+stdout '^f world\.db [0-7]{3} [0-9a-f]{64}$'
+cp stdout antes.txt
+
+# --- El verbo, como orden (FR-013, FR-028) ---
+exec kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés --json
+stdout '^\{"ok":true,'
+
+# Una que falla.
+exec sh -c 'kitlegal plazos calcular inventado 2026-09-09 Leganés Leganés --json; test $? -eq 2'
+
+# Una con --offline --no-graph, que no cambian nada: el applet no usa ni la
+# red ni el grafo.
+exec kitlegal plazos calcular contencioso 2026-06-15 Madrid --offline --no-graph --json
+stdout '^\{"ok":true,'
+
+# Y una con --dry-run, que no ejecuta nada.
+exec kitlegal plazos calcular reposicion 2026-09-09 Tordesillas Tordesillas --dry-run --json
+
+# --- El verbo, como herramienta (FR-013) ---
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 plazos_calcular resultado$'
+stdout '^salida 0$'
+
+# --- Ni la caché ni el grafo han cambiado (FR-013, FR-028, SC-009) ---
+arbol cache
+cmp stdout antes.txt
+
+-- llamadas.txt --
+plazos_calcular {"tipo":"reposicion","inicio":"2026-09-09","municipios":["Leganés","Leganés"]}

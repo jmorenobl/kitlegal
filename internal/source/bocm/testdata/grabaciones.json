@@ -1,0 +1,12 @@
+{
+  "fuente": "bocm.fiestas-locales",
+  "disposiciones": [
+    {"id": "BOCM-20241213-23", "anio": 2025, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/12/13/BOCM-20241213-23.xml"},
+    {"id": "BOCM-20241227-32", "anio": 2025, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/12/27/BOCM-20241227-32.xml"},
+    {"id": "BOCM-20250203-16", "anio": 2025, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/03/BOCM-20250203-16.xml"},
+    {"id": "BOCM-20250217-24", "anio": 2025, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/02/17/BOCM-20250217-24.xml"},
+    {"id": "BOCM-20251212-34", "anio": 2026, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/12/BOCM-20251212-34.xml"},
+    {"id": "BOCM-20251229-19", "anio": 2026, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2025/12/29/BOCM-20251229-19.xml"},
+    {"id": "BOCM-20260108-18", "anio": 2026, "url": "https://www.bocm.es/boletin/CM_Orden_BOCM/2026/01/08/BOCM-20260108-18.xml"}
+  ]
+}

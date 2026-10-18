@@ -1,0 +1,33 @@
+# Eval de plazo (e): el recurso contencioso-administrativo contra la desestimación de un recurso de reposición, ante
+# los juzgados con sede en Madrid, cuyo plazo pasa por agosto. La respuesta tiene que situar la sede del juzgado con el
+# applet territorio, calcular el plazo con plazos calcular, leer los arts. 46 y 128 de la LJCA y dar la fecha en la
+# línea ⚠ PLAZO: con su cita; el tramo no pasa por los días del art. 183 LOPJ y plazos no da ningún aviso (FR-050,
+# FR-051; contracts/evals-legal-core.md §5).
+pregunta: "El 15 de junio de 2026 el Ayuntamiento de Leganés me notificó la desestimación de mi recurso de reposición. Quiero interponer recurso contencioso-administrativo ante los juzgados de lo contencioso-administrativo de Madrid. ¿Hasta qué día puedo hacerlo?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Madrid
+  - applet: plazos
+    verbo: calcular
+    tipo: contencioso
+  - applet: boe
+    norma: BOE-A-1998-16718
+    bloque: a46
+  - applet: boe
+    norma: BOE-A-1998-16718
+    bloque: a128
+citas:
+  - norma: BOE-A-1998-16718
+    bloque: a46
+  - norma: BOE-A-1998-16718
+    bloque: a128
+plazo:
+  fecha: "2026-09-15"
+  avisos: []
+  razonamiento: >-
+    Dos meses (art. 46.1 LJCA) contados desde el día siguiente al de la notificación: de fecha a fecha darían el 15 de
+    agosto de 2026. El tramo pasa por agosto, que no corre para interponer el recurso (art. 128.2 LJCA), así que el
+    vencimiento pasa al mismo día del mes siguiente, el martes 15 de septiembre de 2026, que no es inhábil del art.
+    182.1 LOPJ en Madrid. Contado agosto, el plazo vencería el lunes 17 de agosto.

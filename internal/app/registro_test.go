@@ -228,15 +228,16 @@ func TestRegistroRechaza(t *testing.T) {
 }
 
 // TestRegistroDeProduccion comprueba lo que el binario distribuido registra desde
-// H23: boe, cita, graph, mcp, skills y territorio, y nada más, el almacén del
+// H9: boe, cita, graph, mcp, plazos, skills y territorio, y nada más, el almacén del
 // grafo del mundo al que el kernel entrega y la entrada estándar del proceso
 // como entrada de las órdenes. Los applets de ejemplo no se registran nunca
 // aquí, así que `kitlegal echo hola` sobre el binario que se publica termina como
 // cualquier otro nombre desconocido (FR-001, FR-009,
 // contracts/registro-y-describe.md §3 de H1). Construirlo no pide nada ni abre
 // nada: el cliente y la caché de boe se componen en cada invocación (contrato
-// puerto-y-applet §4 y §5 de H4), territorio recibe los ficheros que viajan en el
-// binario (contrato del applet territorio §7), skills lee lo empotrado la
+// puerto-y-applet §4 y §5 de H4), territorio y plazos reciben los ficheros que
+// viajan en el binario (contrato del applet territorio §7; contracts/applet-plazos.md
+// §3 de H9), skills lee lo empotrado la
 // primera vez que se ejecuta uno de sus verbos (contracts/applet-skills.md §1 de
 // H19), graph y el almacén resuelven la ruta de world.db en cada invocación
 // (contracts/applet-graph.md §1; contracts/almacen-world-db.md §1 de H7), mcp
@@ -250,8 +251,8 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.NoError(t, err, "el registro de producción es válido")
 	require.NotNil(t, registro)
 
-	assert.Equal(t, []string{"boe", "cita", "graph", "mcp", "skills", "territorio"}, registro.Nombres(),
-		"el binario distribuido registra exactamente boe, cita, graph, mcp, skills y territorio")
+	assert.Equal(t, []string{"boe", "cita", "graph", "mcp", "plazos", "skills", "territorio"}, registro.Nombres(),
+		"el binario distribuido registra exactamente boe, cita, graph, mcp, plazos, skills y territorio")
 
 	applet, existe := registro.Buscar("cita")
 	require.True(t, existe)
@@ -294,8 +295,29 @@ func TestRegistroDeProduccion(t *testing.T) {
 	require.Len(t, applet.Verbos(), 1, "con su único verbo (contrato del applet territorio §1)")
 	assert.Equal(t, "resolver", applet.Verbos()[0].Nombre)
 
+	applet, existe = registro.Buscar("plazos")
+	require.True(t, existe)
+	assert.Equal(t, []string{"calcular"}, nombresDeLosVerbos(applet),
+		"con su único verbo (contracts/applet-plazos.md §1 de H9)")
+
 	_, existe = registro.Buscar("echo")
 	assert.False(t, existe, "el applet de ejemplo no se registra en el binario distribuido")
+
+	t.Run("plazos-sobre-los-ficheros-embebidos", func(t *testing.T) {
+		t.Parallel()
+
+		// Un plazo solo lo calcula el applet después de analizar sus fuentes: si
+		// las de producción no cargaran, el fallo sería el defecto de
+		// composición, código 1 y firmado por el kernel, y no el 0 firmado por
+		// plazos (contracts/applet-plazos.md §3 y §6 de H9).
+		res := invocar(t, registro, "kitlegal", "plazos", "calcular", "reposicion", "2026-09-09", "Leganés", "Leganés",
+			"--json")
+
+		require.Equal(t, 0, res.codigo, res.errores)
+
+		sobre := sobreDelJSON(t, res.salida)
+		assert.Equal(t, "kitlegal.plazos", sobre["fuente"], "el plazo lo firma el applet, no el kernel")
+	})
 
 	t.Run("territorio-sobre-los-ficheros-embebidos", func(t *testing.T) {
 		t.Parallel()

@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log: «guardián de diff ok», golangci-lint «0 issues», los dos go test en verde (internal/core/plazos 99,3 %, internal/app 96,0 %, internal/evals 97,3 %), govulncheck sin vulnerabilidades, TestEsquemasPublicados y los tests del repositorio en verde, goreleaser check, gitleaks «no leaks found», go mod verify/tidy, «ci: todos los controles en verde», exit=0. git status al abrir la ronda: solo gates/modelos.jsonl (M) y gates/revision-cambios.md y gates/revision-ciclo.json (??), que escribe la propia preparación de la revisión; nada fuera de gates/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada: gates/aceptacion-congelada.json fija los cinco guiones en 6e6235d; `git diff --stat 6e6235d HEAD -- specs/023-h9-internal-core-plazos/aceptacion internal/app/testdata/script/` no toca ningún plazos-*.txtar de aceptacion/, y `git diff --no-index` entre aceptacion/*.txtar e internal/app/testdata/script/h9-plazos-*.txtar da 0 líneas; activada en 7269397 y en verde (TestEntregaDelHito/h9-plazos-codigos y /h9-plazos-cobertura pasan en la copia limpia). Los tests detectan la regresión: en una copia bajo $TMPDIR (git clone de HEAD) apliqué seis mutantes distintos de los ocho de T014 y cada uno deja algún test en rojo: calcular.go:115 contencioso con dos municipios → TestCasosDePlazos/03-eval-e y h9-plazos-codigos.txtar:80; umbrales.go:34 umbralDeRespuestasSinDeclarar=1 → TestUmbralesDeLegalCore (todos los casos, Umbral 1≠0); calendario.go:347 sin `fila.parte == \"\"` → TestFestivoDeUnaParte (2025-02-04≠2025-02-03 y sin aviso); informe.go:1577 sinDeclarar sin `len(LineasDelPlazo) > 0` → TestUmbralesDeLegalCore/dos-de-cobertura-con-la-linea-del-plazo (1 de 6 en vez de 2 de 6); avisos.go:212 sin avisos de locales → TestCasosDePlazos/02,07,17,18 y h9-plazos-cobertura.txtar:30; evals/plazos.go:88 línea del plazo sin exigir cita → TestJuzgarPlazos/lineas-del-plazo/sin-cita y /cita-en-otra-linea. Además mutantes.md registra los ocho de FR-089 (más 3a y 3b) con el test que cae y «Refuerzos: Ninguno». Los property tests recorren la rejilla entera y exigen 0 contraejemplos (propiedades_test.go:170-174); la tabla tiene 20 casos con fecha y avisos (plazos_casos_test.go:114-228); grep del diff .go sin t.Skip, nolint, TODO ni `_ =`."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "internal/core/plazos importa solo bytes/errors/fmt/maps/slices/strconv/strings/time, go.yaml.in/yaml/v3 e internal/core/schema (tipos.go:3-11, calendario.go:3-10, errores.go:3-9): R1 respetada. net/http solo en internal/httpx: los dos adaptadores piden con httpx.Cliente.Pedir (internal/source/bocm/derivar.go:171, internal/source/boe/fiestas/derivar.go:92). internal/arch_test.go:707-717 añade internal/core/plazos a paquetesSinRed y app/plazos.go a ficherosSinRed. El grep del diff .go por os.Exit, fmt.Print*, net/http y \"net\" solo encuentra el nombre del subtest de arch_test.go. internal/app/plazos.go devuelve schema.Resultado y no escribe nada (R5)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "internal/app/plazos.go:30 fija la procedencia (kitlegal.plazos, kitlegal:applet/plazos) en éxito y fallo (plazos.go:179,184); el kernel pone fecha_consulta y hash, comprobado en vivo con `go run ./cmd/kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés --json` (sobre completo, fecha 2026-10-13, dos festivos con source) y en los sobres de error con exit 2 y 3. compruebaGoldenDePlazos (internal/app/plazos_test.go:282,303) valida cada salida real con exigirSalidaPublicada contra la salida publicada de schemas/plazo.json, exige el golden byte a byte salvo fecha_consulta y que --offline no cambie data ni hash; compruebaEnumeradosDePlazos (plazos_test.go:401-415) iguala los enumerados del esquema con los vocabularios del dominio; TestEsquemasPublicados compara --describe con schemas/plazo.json (ci.log). Los guiones congelados afirman el sobre en éxito y en error (plazos-codigos.txtar)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "errorDeArgumentos declara ClaseArgumentos (internal/core/plazos/errores.go:18-35) y errorDeMunicipios su clase 2 o 3 (internal/app/plazos.go:247-261); el orden de FR-012 está en Ejecutar (plazos.go:165-177: ComprobarPeticion antes de resolver municipios) y resolverMunicipios da 2 antes que 3 (plazos.go:221-225); un fichero de data/ que no carga sale sin clase, inesperado (plazos.go:83-94). Comprobado en vivo: Leganés/Leganés → 0; `generico 9999-12-01 Leganés Leganés --duracion 2 --unidad meses` → exit 2 con mensaje del 9999-12-31; el mismo con «Inexistente» → exit 3 no-encontrado, como dice el CHANGELOG. plazos-codigos.txtar cubre las 18 filas de códigos. No hay panic en ruta de usuario: los índices de computo.go y avisos.go van guardados (tramos[len-1] solo con hueco; disposiciones[len-1] tras comprobar len>0 en bocm/derivar.go:230-264); el único índice sin guarda (fiestas/resolucion.go:231) está en la derivación de tests, no en el binario."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md [Unreleased] «Añadido» (+106 líneas, 24aaf80) registra el applet y su herramienta, data/festivos/ con sus dos fuentes y su cobertura (locales solo de la Comunidad de Madrid, 2025 y 2026; nacionales 2025-2027), los tipos y la lista de cobertura por materia, legal-core v1, las cinco evals y los dos umbrales (qué cuentan, sobre qué sesiones, ≤ 0, deciden) y que `umbrales` de legal-core deja de estar vacío; ninguna versión publicada cambia (diff solo añade). Cada afirmación contrastada con el árbol: trece herramientas (internal/app/herramientas_test.go:146), tests nombrados existen (TestFestivosNacionalesDerivados, TestFestivosLocalesDerivados, TestCotejoConElCatalogo, TestPreceptosDeLosPlazos, TestJuzgarPlazos, TestUmbralesDeLegalCore, TestCoberturaDelRepositorio), bandera -actualizar-festivos (derivar_test.go:28 de los dos adaptadores), x-banderas en schemas/plazo.json, faltas de 13.yaml (un linea-sin-leer y tres sin-municipio, 13.yaml:720-728), orden del 3 frente al 9999 comprobado en vivo. CONTRIBUTING.md corrige applets, esquemas, herramientas, formato de eval, reglas del conjunto, concurrencia 2, 102 sesiones, 14 629 s (=definicion_test.go:1876) y los seis umbrales; README dice lo que hace la skill sin prometer release; docs/WORKFLOW.md no nombra legal-core ni plazos y el hito no lo toca. docs/SOURCES.md ya tenía en main las filas boe.fiestas-laborales y bocm.fiestas-locales (líneas 73-74); ningún ADR cambia (ADR 0039 venía de main). El barrido alineó contracts/research con lo que hace el producto (supuestos.md:77)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Toda red va por internal/httpx y solo GET: bocm/derivar.go:33 metodoDeLaLectura=GET y :171 cliente.Pedir; fiestas/derivar.go:92 ídem con metodoDeLaLectura de resolucion.go:101. Ritmo de la fila de docs/SOURCES.md: bocm/grabacion_test.go:47 intervaloEntrePeticiones=10s (Crawl-delay 10) y fiestas/grabacion_test.go:72 al ritmo de boe. Los datos externos salen solo de lo grabado: `git log -- evidencias/h9 internal/*/testdata` da únicamente 4c383e4 (grabar_datos) y los commits de T002 (manifiestos); evidencias/h9/manifiesto.json lleva sha256 y bytes de cada fichero; data/festivos/ se escribe desde lo grabado (cabecera «generado desde evidencias/h9/… no editar») y sus 115 filas nacionales y 712 locales llevan source, igual que las 8 faltas. Sin secretos ni NIF: gitleaks limpio; los municipios van por código INE. `plazos` no pide nada en ejecución (arch_test sin red; h9-plazos-sin-efectos.txtar compara el árbol de la caché antes y después)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep del diff .go: ningún nolint, t.Skip, TODO/FIXME ni `_ =`; los únicos ajustes de lint son tres entradas de misspell en .golangci.yml ignore-rules (brunete, calcular, vell), cada una con su motivo, la vía que admite el repositorio. Ningún fixture retocado para pasar: `git log -- internal/app/testdata/plazos schemas/*.json data/festivos data/plazos.yaml data/cobertura.yaml` solo muestra los commits de las tareas que los crean (T005, T007, T008, T009, T011) y los golden los exige byte a byte el test que los regenera; los tests de control (plazos_casos_test, calcular_test, propiedades_test, derivar_test, informe_test) no cambian después de T012, y mutantes.md:420 «Refuerzos: Ninguno». cuarentena.json: solo T015 (documentación), cuyo entregable escribió el barrido y está contrastado (criterio f)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Lo que entregan las tareas no excede el spec: un applet con un verbo y siete tipos (data/plazos.yaml), cuatro avisos, data/festivos/ de las diez disposiciones de FR-020, nueve entradas de cobertura (FR-031), cinco evals (05-09) y dos umbrales; lo nuevo de territorio (FormaCompacta, MunicipiosDe, Comunidades) lo declara T006 para el cruce de FR-022. .github/workflows/evals.yml, skills/boe-legislacion, skills/jurisprudencia y sus evals no están en el diff (FR-058, FR-070). Cada supuesto de gates/supuestos.md es una lectura conservadora coherente: notas del BOE que no son una relación de una parte quedan fuera enteras (T007), la norma de una entrada solo si el plan la cita de lo grabado (corrector_spec), el aviso de una parte solo cuando el día se contó como hábil (T004), el 24 y 31 de diciembre dejan de ser inhábiles porque el texto grabado del art. 182.1 LOPJ no los enumera (T005). La única diferencia fuera del spec es el commit f266c12 (workflow 2.9.1) que la persona incorporó para reanudar el run, registrado en supuestos.md:78 como [alcance]: va a observaciones porque un corrector sin persona no debe retirarlo."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido con el binario de HEAD (`go run ./cmd/kitlegal`): el sobre del caso (a) con --json ocupa 772 bytes; el de Agaete con dos avisos y cobertura con falta, unos 1,3 KB; el de un contencioso con un festivo saltado, unos 0,8 KB. Nada crece con lo acumulado: plazos lee solo lo empotrado (internal/app/registro.go:330-346 FuentesDePlazos), no toca caché ni grafo (h9-plazos-sin-efectos.txtar compara el árbol de la caché antes y después; compruebaPlazosSinGrafo exige res.Grafo cero), y la misma entrada da el mismo data y hash tras meses de uso. Cada señal se acota a la pregunta: los avisos solo si el tramo pasa por lo que falta (avisos.go:186-200; el caso (a) sale con avisos:[] y Tordesillas con uno), el de una parte solo en días del tramo contados como hábiles (avisos.go:239-255), y «hasta qué disposición llegan los datos» va en cobertura por tramos de años del plazo (como mucho unos pocos por ámbito) y la skill solo lo dice junto a un aviso de cobertura (SKILL.md:146). Invocaciones por pregunta de plazo: territorio resolver por municipio que cuenta (1-2), un plazos calcular y la lectura del precepto con boe articulo (SKILL.md pasos 8-10); en una de cobertura, ninguna llamada a plazos. SKILL.md: 248 líneas, leídas una vez por conversación; referencias generadas de unas 2 KB, fijas."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a un requisito: Calendario/Inhabil/FestivosDe/PartesDe → FR-003, FR-006, FR-011; Cobertura y tramosDe → FR-001, FR-026; AlcanceNacional/AlcanceLocal → los textos de aviso de contracts §5 (supuestos.md:25); los cuatro avisos → FR-010, FR-011, FR-026, FR-048; ComprobarPeticion además de Calcular → el orden de códigos de FR-012 en el applet (supuestos.md:36); el límite del 9999-12-31 (computo.go:7, errores.go:109) → la forma AAAA-MM-DD de FR-001/§4 con una entrada que cualquier persona puede dar (supuestos.md:33); las dos vocabularios de Falta → FR-022 (vocabulario cerrado para los 179 municipios, con sin-linea por si un municipio no tiene línea); FilasSinLeer/NotasSinLeer y la leyenda exacta en fiestas/resolucion.go → ADR 0039 punto 3 y FR-020 (ningún festivo con ámbito equivocado); las tres reglas de cruce de la cabecera (fiestas/derivar.go:204-208) → FR-020 con los nombres reales de lo grabado, sin alias (supuestos.md:48); FormaCompacta/MunicipiosDe/Comunidades → FR-022 con un solo lector de data/territorio/. El corrector del plan ya retiró lo que no se trazaba (inicio/duracion/computo en data, reglas de carga propias: supuestos.md:16,18). Ningún tipo exportado sin uso: los de salida.go son el data del verbo; los de festivos.go, los ficheros que escribe la derivación. No encuentro mecanismo para un estado que no pase el umbral de materialidad."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Las seis filas evals: de legal-core del plan tienen su control en código con decide:true y comparación ≤ 0: umbralDePlazoSinFecha y umbralDeCoberturaSinDeclarar (internal/evals/umbrales.go:559-600, Umbral 0, Decide true, compararUmbral) y sin_activar como en las otras skills; TestUmbralesDeLasTresSkills (informe_test.go:6584-6590) fija los seis nombres, totales 21/9/6 y Decide; TestUmbralesDeLegalCore (informe_test.go:6364-6489) cubre los siete casos de FR-087 y exige veredicto fallo con el motivo que nombra la sesión. Comprobado con mutantes en la copia: umbral relajado a 1 → rojo; medida sin la línea sobrante → rojo; T014 añade «ninguna sesión pasa» y Decide falso → rojo (mutantes.md:18-21). Las filas ci: tienen su test en su ruta y en verde (ci.log): TestDefinicionDelJob con el peor caso 14 629 s (definicion_test.go:1876,1952), TestPropiedadesDelComputo con 0 contraejemplos (propiedades_test.go:170-174), TestCasosDePlazos con 20 casos, TestFestivoDeUnaParte, TestFestivosNacionalesDerivados y TestFestivosLocalesDerivados (byte a byte, 179 municipios, source), TestCotejoConElCatalogo (exactamente las diez diferencias, cotejo_test.go:76-172), TestPreceptosDeLosPlazos con sus cuatro casos negativos (grabaciones_test.go:867-906), TestEvalsDelRepositorio y TestFormatoDePlazos, TestArquitectura sin red, TestAppletPlazos y los guiones, TestHerramientasDelServidor 13/16, skills-check. SC-010: SKILL.md 248 < 300 y referencias regeneradas (skills-check en ci.log)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[i][f] El diff main...HEAD lleva el commit f266c12 (workflow hito 2.9.1: .specify/workflows/hito/workflow.yml, scripts/claude-modelo.sh, scripts/workflow/marcas.sh y verificar.sh, internal/workflow/*_test.go, una línea de CLAUDE.md y de docs/HISTORIAL.md, docs/WORKFLOW.md y 6 líneas de CHANGELOG), que FR-063 excluye del hito; main (63e9ae9) no lo tiene. Lo incorporó la persona para reanudar el run y lo registra supuestos.md:78. No es motivo: un corrector sin persona que lo retirase dejaría al run sin el arreglo que necesita. Lo resuelve la persona fusionando antes la propuesta del workflow 2.9.1 en main, con lo que la fusión de este hito no lo arrastra.",
+    "[f] T015 (documentación) sigue en cuarentena y con [ ] en tasks.md:247, pero los entregables de FR-060 a FR-062 están en el árbol: los escribió el paso barrido (24aaf80) a partir de gates/cuarentena/T015.patch, tras contrastarlos con el binario (supuestos.md:75). El informe final debería decir que la documentación salió del barrido y no de T015. gates/tarea-T015.md, que supuestos.md:74 y la cuarentena nombran como la causa, no existe en el árbol: la causa de los tres intentos fallidos no está registrada.",
+    "[h] gates/cuarentena/T001.patch (vacío), T002.patch y T003.patch quedan del primer tramo del run (el DAG bloqueado por .cc-writes antes del 2.9.1), aunque T001-T003 están hechas y cuarentena.json solo lista T015. Son artefactos del proceso, no del producto.",
+    "[e] internal/source/boe/fiestas/resolucion.go:221,231 indexa abiertos[len-1] y raiz.hijos[0] sin guardar un documento cuyo primer símbolo cierre un elemento; solo se alcanza con una grabación que no sea la página del BOE y solo en la derivación de los tests, nunca en el binario: regla genérica, no motivo.",
+    "[k] calcular.go:124-135 comprueba la fecha de inicio dos veces (escritaAAAAMMDD y time.Parse) para dar dos mensajes distintos; las dos formas las fija contracts/applet-plazos.md §6 y las ejercita el guion congelado plazos-codigos.txtar, así que queda; es el único duplicado funcional que vi.",
+    "El sandbox de la sesión no deja ejecutar el binario construido en $TMPDIR (pide aprobación), así que las medidas de uso y de códigos de salida se tomaron con `go run ./cmd/kitlegal` sobre HEAD, la misma fuente que el binario; los tests con mutantes corrieron en un clon de HEAD bajo $TMPDIR con `go -C`, sin tocar el árbol."
+  ]
+}

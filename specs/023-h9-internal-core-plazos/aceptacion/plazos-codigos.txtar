@@ -1,0 +1,105 @@
+# plazos calcular sale con los códigos de la tabla del ADR 0023. Cada defecto de
+# argumentos de contracts/applet-plazos.md §6 termina con 2, ok falso y la clase
+# argumentos: un tipo que no existe; una fecha que no es un día del calendario y
+# otra que no se escribe AAAA-MM-DD; la duración que falta en generico, que no es
+# entera, que es 0 o que se da a un tipo que la fija; la unidad que falta con la
+# duración, que no es del vocabulario o que se da a un tipo que la fija; uno y
+# tres municipios en un plazo de la LPAC, y dos en el contencioso. Un municipio
+# que territorio resolver daría con 2, Arroyomolinos, sale con 2 y los dos
+# candidatos tras el municipio pedido; uno que no está en la relación, con 3 y
+# la clase no-encontrado. Y el orden: con un tipo que no existe y un municipio
+# que no está en la relación, 2; con un municipio que no está en la relación y
+# otro que daría el 2 en territorio, también 2.
+#
+# Cubre: FR-007, FR-010, FR-012.
+#
+# Los municipios van por su nombre. Arroyomolinos es el de 10023 (Cáceres) y el
+# de 28015 (Madrid) en data/territorio/municipios.yaml, que es como los da
+# territorio-matriz.txtar. Del mensaje de un error solo se mira lo de
+# Arroyomolinos que fija FR-012: el municipio pedido y sus candidatos como los
+# da territorio. Cada orden escribe su sobre con --json, y el código exacto lo
+# comprueba test dentro de sh.
+
+# Precondición: el binario registra el applet plazos (FR-001).
+exec kitlegal --help
+stdout '^\s+plazos\s'
+
+# --- El tipo (FR-012) ---
+exec sh -c 'kitlegal plazos calcular inventado 2026-09-09 Leganés Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+# --- La fecha de inicio (FR-012) ---
+exec sh -c 'kitlegal plazos calcular reposicion 2026-02-30 Leganés Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular reposicion 09/09/2026 Leganés Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+# --- La duración (FR-012) ---
+exec sh -c 'kitlegal plazos calcular generico 2026-09-09 Leganés Leganés --unidad dias-habiles --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular generico 2026-09-09 Leganés Leganés --duracion 1.5 --unidad dias-habiles --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular generico 2026-09-09 Leganés Leganés --duracion 0 --unidad dias-habiles --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés --duracion 2 --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+# --- La unidad (FR-012) ---
+exec sh -c 'kitlegal plazos calcular silencio 2026-09-09 Leganés Leganés --duracion 3 --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular generico 2026-09-09 Leganés Leganés --duracion 3 --unidad semanas --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés --unidad meses --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+# --- El número de municipios (FR-007, FR-010, FR-012) ---
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Leganés Leganés Madrid --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+exec sh -c 'kitlegal plazos calcular contencioso 2026-06-15 Madrid Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+# --- Un municipio de varios: Arroyomolinos, con sus candidatos (FR-012) ---
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Arroyomolinos Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":".*municipio «Arroyomolinos»: .*10023 Arroyomolinos \(Cáceres\).*28015 Arroyomolinos \(Madrid\)'
+
+# --- Un municipio que no está en la relación (FR-012) ---
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Inexistente Leganés --json; test $? -eq 3'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"no-encontrado","mensaje":'
+
+# --- El orden de los defectos (FR-012) ---
+#
+# El tipo se decide antes que los municipios: 2, no 3.
+exec sh -c 'kitlegal plazos calcular inventado 2026-09-09 Inexistente Leganés --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'
+
+# El 3 solo sale si todo lo demás vale: con un municipio que daría el 2 en
+# territorio, 2, aunque el otro no esté en la relación y vaya antes.
+exec sh -c 'kitlegal plazos calcular reposicion 2026-09-09 Inexistente Arroyomolinos --json; test $? -eq 2'
+stdout '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"clase":"argumentos","mensaje":'

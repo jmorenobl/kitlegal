@@ -320,8 +320,9 @@ func TestUmbralesDelInforme(t *testing.T) {
 		},
 		{
 			// Sin juez, ni la respuesta sin activar es un umbral, aunque la carpeta
-			// tenga lista; y sin objetivo, tampoco ninguna duración: como en
-			// legal-core (FR-037 de H24).
+			// tenga lista; y sin objetivo, tampoco ninguna duración (FR-037 de
+			// H24). Las evals sintéticas no declaran sentencias, plazo ni
+			// no_cubierto, que darían umbrales de las respuestas sin juez.
 			nombre: "sin-juez-ni-objetivo",
 			ejecucion: conCambios(minima, func(e *ejecucionConUmbrales) {
 				e.sinJuez, e.conExpresiones, e.sinActivar, e.duracion = true, 1, 1, 2000

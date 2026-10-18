@@ -100,7 +100,8 @@ type Eval struct {
 	// más: ni kitlegal en el PATH ni el servidor declarado, así que la respuesta
 	// no puede consultar nada. Solo lo admite una eval que activa la skill, sin
 	// comandos, prohibidos, grafo previo, citas, avisos, hallazgos, redacciones
-	// modificadas, territorio, informativa ni reproduce: decide siempre y se mide
+	// modificadas, territorio, informativa ni reproduce, ni, desde H9, plazo ni
+	// no_cubierto: decide siempre y se mide
 	// una vez por modelo, fuera de los dos modos (data-model §7 y
 	// contracts/evals-en-dos-modos.md §1 de H21; FR-046).
 	SinBinarioNiServidor bool `yaml:"sin_binario_ni_servidor"`
@@ -111,6 +112,57 @@ type Eval struct {
 	// binario ni servidor, y con él puede no llevar comandos, citas ni territorio
 	// (contracts/evals-jurisprudencia.md §1 de H23; FR-052).
 	Sentencias SentenciasEsperadas `yaml:"sentencias"`
+
+	// Plazo es el plazo que la respuesta tiene que dar en su forma fija, con los
+	// avisos de plazos que tiene que trasladar; vacío si la eval no lo espera. La
+	// eval que lo lleva es una eval de plazo. Solo lo admite una eval que activa la
+	// skill y que no es sin binario ni servidor, nunca con NoCubierto, y con él
+	// puede no llevar citas (contracts/evals-legal-core.md §1 de H9; FR-051).
+	Plazo PlazoEsperado `yaml:"plazo"`
+
+	// NoCubierto es la declaración de no cubierto que la respuesta tiene que
+	// llevar en su forma fija; vacía si la eval no la espera. La eval que la lleva
+	// es una eval de cobertura. La admite la misma eval que Plazo, nunca con él, y
+	// con ella puede no llevar comandos ni citas (contracts/evals-legal-core.md §1
+	// de H9; FR-051).
+	NoCubierto NoCubiertoEsperado `yaml:"no_cubierto"`
+}
+
+// esDePlazo dice si la eval es una eval de plazo: si espera un plazo, que su
+// esquema no admite sin fecha.
+func (e Eval) esDePlazo() bool {
+	return e.Plazo.Fecha != ""
+}
+
+// esDeCobertura dice si la eval es una eval de cobertura: si espera una
+// declaración de no cubierto, que su esquema no admite sin norma.
+func (e Eval) esDeCobertura() bool {
+	return e.NoCubierto.Norma != ""
+}
+
+// PlazoEsperado es lo que una eval de plazo espera de la respuesta
+// (contracts/evals-legal-core.md §1 de H9; data-model §3 de H9).
+type PlazoEsperado struct {
+	// Fecha es el último día del plazo, AAAA-MM-DD, calculado a mano: la que
+	// tiene que llevar la línea ⚠ PLAZO: de la respuesta.
+	Fecha string `yaml:"fecha"`
+
+	// Avisos son los códigos de plazos.CodigosDeAviso que da plazos con la
+	// entrada de la eval, en el orden del fichero y sin repetir: la respuesta
+	// tiene que llevar la forma fija de cada uno. Vacío si no da ninguno.
+	Avisos []string `yaml:"avisos"`
+
+	// Razonamiento es el cálculo a mano de la fecha, independiente del código.
+	// Ningún juicio lo lee.
+	Razonamiento string `yaml:"razonamiento"`
+}
+
+// NoCubiertoEsperado es lo que una eval de cobertura espera de la respuesta
+// (contracts/evals-legal-core.md §1 de H9; data-model §3 de H9).
+type NoCubiertoEsperado struct {
+	// Norma es el identificador de la norma que rige el procedimiento, BOE-A-…,
+	// que tiene que llevar la línea ⚠ NO CUBIERTO: de la respuesta.
+	Norma string `yaml:"norma"`
 }
 
 // SentenciasEsperadas es lo que una eval espera de la respuesta sobre las
@@ -177,15 +229,16 @@ type CasillaEsperada struct {
 }
 
 // ComandoEsperado es un comando que la sesión tiene que ejecutar, en una de las
-// siete formas excluyentes de data-model §6.1 de H5 y de H6, del contrato
-// evals-y-skill §1 de H7 y de contracts/evals-jurisprudencia.md §1 de H23, que
-// decide formaDelComando: bloque (Applet, Norma y Bloque, sin Verbo), consulta
-// de norma (Applet, Verbo indice, metadatos o analisis, y Norma), búsqueda
-// (Applet, Verbo buscar y Terminos), territorio (Applet, Verbo resolver y
-// Municipio), comprobación (Applet y Verbo check, y desde H7.1 Norma opcional;
-// contrato evals-y-skill §1 de H7.1) o, desde H23, preparar (Applet y Verbo
-// preparar, con ROJ y ConTexto opcionales) y cotejar (Applet y Verbo cotejar,
-// con ROJ opcional). Lo que su forma no lleva queda vacío.
+// ocho formas excluyentes de data-model §6.1 de H5 y de H6, del contrato
+// evals-y-skill §1 de H7, de contracts/evals-jurisprudencia.md §1 de H23 y de
+// contracts/evals-legal-core.md §1 de H9, que decide formaDelComando: bloque
+// (Applet, Norma y Bloque, sin Verbo), consulta de norma (Applet, Verbo indice,
+// metadatos o analisis, y Norma), búsqueda (Applet, Verbo buscar y Terminos),
+// territorio (Applet, Verbo resolver y Municipio), comprobación (Applet y Verbo
+// check, y desde H7.1 Norma opcional; contrato evals-y-skill §1 de H7.1), desde
+// H23, preparar (Applet y Verbo preparar, con ROJ y ConTexto opcionales) y
+// cotejar (Applet y Verbo cotejar, con ROJ opcional) o, desde H9, calcular
+// (Applet, Verbo calcular y Tipo). Lo que su forma no lleva queda vacío.
 type ComandoEsperado struct {
 	// Applet es el applet que se invoca, como boe, territorio o graph.
 	Applet string `yaml:"applet"`
@@ -217,6 +270,10 @@ type ComandoEsperado struct {
 	// ConTexto dice que un comando de preparar tiene que recibir --texto con
 	// algún valor: es una búsqueda por texto, del texto que sea.
 	ConTexto bool `yaml:"con_texto"`
+
+	// Tipo es el tipo de plazo que un comando calcular tiene que pedir, como
+	// reposicion o contencioso.
+	Tipo string `yaml:"tipo"`
 }
 
 // verboResolver es el verbo de un comando de territorio, el único del applet
@@ -233,6 +290,10 @@ const (
 	verboPreparar = "preparar"
 	verboCotejar  = "cotejar"
 )
+
+// verboCalcular es el verbo de un comando calcular, el de plazos calcular
+// (contracts/evals-legal-core.md §1 de H9).
+const verboCalcular = "calcular"
 
 // ComandoProhibido es un comando que ninguna invocación de la sesión puede
 // ejecutar: un verbo de un applet, con cualquier argumento (contrato
@@ -259,12 +320,12 @@ type GrafoPrevio struct {
 	Comandos []ComandoEsperado `yaml:"comandos"`
 }
 
-// formaDeComando es una de las siete formas de un comando esperado.
+// formaDeComando es una de las ocho formas de un comando esperado.
 type formaDeComando int
 
-// Las siete formas de un comando esperado (data-model §6.1 de H5 y de H6;
+// Las ocho formas de un comando esperado (data-model §6.1 de H5 y de H6;
 // contrato evals-y-skill §1 de H7; contracts/evals-jurisprudencia.md §1 de
-// H23).
+// H23; contracts/evals-legal-core.md §1 de H9).
 const (
 	// formaConsultaDeNorma es la de una consulta de norma: el verbo con la norma.
 	formaConsultaDeNorma formaDeComando = iota
@@ -290,15 +351,20 @@ const (
 	// formaCotejar es la de un comando que coteja el documento de una
 	// sentencia: cotejar, con el ROJ que recibe o sin él.
 	formaCotejar
+
+	// formaCalcular es la de un comando que calcula un plazo: calcular, con el
+	// tipo que pide.
+	formaCalcular
 )
 
 // formaDelComando es la forma del comando esperado, que decide su verbo, el que
-// distingue las siete de data-model §6.1, del contrato evals-y-skill §1 de H7 y
-// de contracts/evals-jurisprudencia.md §1 de H23: sin verbo, la forma bloque;
-// buscar, la búsqueda; resolver, el comando de territorio; check, la
-// comprobación; preparar y cotejar, los dos de cita; y cualquier otro, la
-// consulta de norma, porque el esquema de eval solo admite en esa forma los
-// verbos de su enumerado.
+// distingue las ocho de data-model §6.1, del contrato evals-y-skill §1 de H7,
+// de contracts/evals-jurisprudencia.md §1 de H23 y de
+// contracts/evals-legal-core.md §1 de H9: sin verbo, la forma bloque; buscar,
+// la búsqueda; resolver, el comando de territorio; check, la comprobación;
+// preparar y cotejar, los dos de cita; calcular, el de un plazo; y cualquier
+// otro, la consulta de norma, porque el esquema de eval solo admite en esa
+// forma los verbos de su enumerado.
 // Es el único sitio que decide la variante: la consumen el juicio, el texto del
 // comando y las consultas necesarias (research D21 de H6).
 func formaDelComando(comando ComandoEsperado) formaDeComando {
@@ -315,6 +381,8 @@ func formaDelComando(comando ComandoEsperado) formaDeComando {
 		return formaPreparar
 	case verboCotejar:
 		return formaCotejar
+	case verboCalcular:
+		return formaCalcular
 	default:
 		return formaConsultaDeNorma
 	}

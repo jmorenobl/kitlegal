@@ -13,12 +13,12 @@ import (
 
 // appletsDelBinario es la lista de applets que enumera el kernel ante una
 // invocación que no resuelve ninguno: la evidencia observable de que el binario
-// que se publica registra boe, cita, graph, mcp, skills y territorio, y solo esos,
-// desde H23 (FR-001, contracts/registro-y-describe.md §3 de H1; contrato del
-// applet territorio §7; contracts/applet-skills.md §1 de H19;
+// que se publica registra boe, cita, graph, mcp, plazos, skills y territorio, y
+// solo esos, desde H9 (FR-001, contracts/registro-y-describe.md §3 de H1; contrato
+// del applet territorio §7; contracts/applet-skills.md §1 de H19;
 // contracts/applet-graph.md §1 de H7; contracts/servidor-mcp.md §1 de H21;
-// contracts/applet-cita.md §1 de H23).
-const appletsDelBinario = "applets disponibles: boe, cita, graph, mcp, skills, territorio"
+// contracts/applet-cita.md §1 de H23; contracts/applet-plazos.md §1 de H9).
+const appletsDelBinario = "applets disponibles: boe, cita, graph, mcp, plazos, skills, territorio"
 
 // TestPuntoDeEntrada ejerce el contrato observable del binario distribuido con la
 // **misma composición que main()** —app.Arrancar con el registro de producción y
@@ -30,13 +30,13 @@ const appletsDelBinario = "applets disponibles: boe, cita, graph, mcp, skills, t
 // salida de error vacía y el código 0 (D16), y también el código 2 de cualquier
 // otra invocación: lo que cambia es el mensaje. Un nombre que no es ningún
 // applet lo resuelve el despacho, que **nombra lo desconocido** y enumera lo
-// disponible —boe, cita, graph, mcp, skills y territorio, en este binario—
+// disponible —boe, cita, graph, mcp, plazos, skills y territorio, en este binario—
 // (FR-006, contracts/registro-y-describe.md §2 y §3); lo que sobra tras
 // «version», que no admite argumentos ni banderas, se nombra en el mensaje en
-// lugar de descartarse (FR-027); y boe, cita, graph, mcp, skills y territorio sin
-// verbo se corrigen igual, porque ninguno declara verbo por omisión (FR-001,
-// FR-050; contracts/applet-skills.md §1 de H19; contracts/servidor-mcp.md §1 de
-// H21; H23 FR-001).
+// lugar de descartarse (FR-027); y boe, cita, graph, mcp, plazos, skills y
+// territorio sin verbo se corrigen igual, porque ninguno declara verbo por omisión
+// (FR-001, FR-050; contracts/applet-skills.md §1 de H19; contracts/servidor-mcp.md
+// §1 de H21; H23 FR-001; H9 FR-001).
 // Ningún caso ejecuta un verbo, así que nada de esta tabla pide nada, abre la
 // caché o world.db, examina el disco ni lee de la entrada estándar.
 //
@@ -154,6 +154,14 @@ func TestPuntoDeEntrada(t *testing.T) {
 			nombre:  "territorio sin verbo termina con 2 y enumera su verbo",
 			argv:    []string{"kitlegal", "territorio"},
 			errores: []string{`"territorio"`, "verbos de territorio: resolver"},
+			codigo:  2,
+		},
+		{
+			// plazos tampoco declara verbo por omisión: nombrar calcular es
+			// obligatorio (contracts/applet-plazos.md §1 de H9).
+			nombre:  "plazos sin verbo termina con 2 y enumera su verbo",
+			argv:    []string{"kitlegal", "plazos"},
+			errores: []string{`"plazos"`, "verbos de plazos: calcular"},
 			codigo:  2,
 		},
 	}

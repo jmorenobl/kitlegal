@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kitlegal.es/schemas/cobertura.yaml.json",
+  "title": "data/cobertura.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["regulados_aparte"],
+  "properties": {
+    "regulados_aparte": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/regulado" }
+    }
+  },
+  "$defs": {
+    "regulado": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["procedimiento", "precepto"],
+      "properties": {
+        "procedimiento": { "type": "string", "minLength": 1 },
+        "precepto": { "$ref": "#/$defs/precepto" },
+        "norma": { "$ref": "#/$defs/norma" }
+      }
+    },
+    "precepto": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["norma", "bloque", "apartado"],
+      "properties": {
+        "norma": { "$ref": "#/$defs/identificador" },
+        "bloque": { "$ref": "#/$defs/bloque" },
+        "apartado": { "type": "string", "minLength": 1 }
+      }
+    },
+    "norma": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identificador", "nombre", "aplicable"],
+      "properties": {
+        "identificador": { "$ref": "#/$defs/identificador" },
+        "nombre": { "type": "string", "minLength": 1 },
+        "aplicable": { "$ref": "#/$defs/aplicable" }
+      }
+    },
+    "aplicable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bloque", "apartado"],
+      "properties": {
+        "bloque": { "$ref": "#/$defs/bloque" },
+        "apartado": { "type": "string", "minLength": 1 }
+      }
+    },
+    "identificador": { "type": "string", "pattern": "^BOE-A-[0-9]{4}-[0-9]{1,9}$" },
+    "bloque": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$" }
+  }
+}

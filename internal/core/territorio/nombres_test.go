@@ -160,6 +160,80 @@ func TestFormasDelNombre(t *testing.T) {
 	}
 }
 
+// TestFormaCompacta fija la forma con la que se cruzan los nombres que escribe
+// un boletín con los de la relación (research.md D13, D14, V7): el pliegue sin
+// los artículos «el», «la», «los» y «las», sin «de» ni «del» y sin blancos. Dos
+// maneras de escribir un nombre que solo difieren en eso dan la misma forma, y
+// lo demás del nombre se queda: ni una palabra que empieza como una de las que
+// se quitan pierde nada ni un nombre se iguala con otro más corto.
+func TestFormaCompacta(t *testing.T) {
+	t.Parallel()
+
+	t.Run("lo que quita", func(t *testing.T) {
+		t.Parallel()
+
+		casos := map[string]string{
+			"Villaprueba":            "villaprueba",
+			"Rozas de Prueba, Las":   "rozasprueba",
+			"Castro, El":             "castro",
+			"Peñíscola del Río":      "peniscolario",
+			"Los Molinos de la Vega": "molinosvega",
+			"Iruñeta/Pamploneta":     "irunetapamploneta",
+			"  DE  la, Las · LOS el": "",
+			"":                       "",
+		}
+
+		for nombre, compacta := range casos {
+			assert.Equal(t, compacta, FormaCompacta(nombre), "forma compacta de %q", nombre)
+		}
+	})
+
+	t.Run("solo palabras enteras", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, "lasartedelicias", FormaCompacta("Lasarte de Delicias, El"))
+		assert.Equal(t, "elchelosar", FormaCompacta("Elche del Losar"))
+	})
+
+	t.Run("nombres escritos de dos maneras", func(t *testing.T) {
+		t.Parallel()
+
+		pares := [][2]string{
+			{"Talamanca del Jarama", "Talamanca de Jarama"},
+			{"Moraleja de En medio", "Moraleja de Enmedio"},
+			{"Las Rozas de Prueba", "Rozas de Prueba, Las"},
+			{"EL CASTRO", "Castro, El"},
+		}
+
+		for _, par := range pares {
+			assert.Equal(t, FormaCompacta(par[0]), FormaCompacta(par[1]), "%q y %q", par[0], par[1])
+		}
+	})
+
+	t.Run("lo que no iguala", func(t *testing.T) {
+		t.Parallel()
+
+		pares := [][2]string{
+			{"Braojos de la Sierra", "Braojos"},
+			{"Villanueva de la Prueba", "Villanueva"},
+		}
+
+		for _, par := range pares {
+			assert.NotEqual(t, FormaCompacta(par[0]), FormaCompacta(par[1]), "%q y %q", par[0], par[1])
+		}
+	})
+
+	t.Run("sobre lo plegado", func(t *testing.T) {
+		t.Parallel()
+
+		// Los adaptadores la aplican a las formas ya plegadas del registro: da
+		// lo mismo que sobre el nombre sin plegar.
+		for _, fila := range ficherosSinteticos().Municipios.Municipios {
+			assert.Equal(t, FormaCompacta(fila.Nombre), FormaCompacta(Plegar(fila.Nombre)), "nombre %q", fila.Nombre)
+		}
+	})
+}
+
 // TestPlegarEsIdempotente exige que plegar lo plegado no lo cambie, de modo
 // que la entrada de quien pregunta y las formas del índice se comparan en el
 // mismo espacio por muchas veces que se pliegue una u otra. Se comprueba runa

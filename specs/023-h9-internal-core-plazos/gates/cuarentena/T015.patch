@@ -1,0 +1,172 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 0d2d208..48d4df5 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -12,6 +12,112 @@ sustituyen a este fichero.
+ 
+ ## [Unreleased]
+ 
++### Añadido
++
++- **`kitlegal plazos calcular`: el applet `plazos`, el último día de un plazo.**
++  `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <n>] [--unidad <unidad>]` da la fecha en que
++  acaba un plazo, calculada por el binario y no por el modelo. `inicio` es `AAAA-MM-DD`, la de la notificación o la
++  publicación y, en `silencio`, la del acuerdo de iniciación o la de entrada de la solicitud; `plazos` no la deduce.
++  Los municipios van por su nombre o su código INE, como en `territorio resolver`: en un plazo de la LPAC, dos, el del
++  interesado y el de la sede del órgano, que pueden ser el mismo (art. 30.6), y en `contencioso`, uno, el de la sede
++  del juzgado. Los siete tipos, con el precepto que fija cada uno, son los de `data/plazos.yaml`: `alzada` (art. 122.1
++  LPAC), `reposicion` (art. 124.1 LPAC), `contencioso` (arts. 46.1 y 128.2 LJCA), `acceso-resolver` (art. 20.1
++  LTAIBG), `acceso-reclamar` (art. 24.2 LTAIBG), `silencio` (arts. 21.3 y 24.4 LPAC) y `generico` (art. 30.2 y 30.4
++  LPAC); los dos últimos, y solo ellos, piden siempre `--duracion`, un entero positivo, y `--unidad` (`meses`,
++  `dias-habiles` o `dias-naturales`).
++  - **El cómputo.** En la LPAC es inhábil el sábado, el domingo y el festivo nacional, autonómico o local de alguno
++    de los municipios que cuentan, y se cuenta desde el día siguiente al de `inicio`; en `silencio`, la fecha es el día
++    siguiente al vencimiento del plazo máximo. En `contencioso`, dos meses de fecha a fecha en los que agosto no corre
++    (art. 128.2 LJCA) y, si el último día es inhábil según el art. 182.1 LOPJ, el primero que no lo es.
++  - **`data`** lleva `fecha`, el `tipo` pedido, los `preceptos` que lo fijan, los `municipios` que cuentan, los
++    `festivos` saltados —cada uno con su `ambito` y la disposición que lo fija, en `source`—, los `avisos` y la
++    `cobertura` de los festivos de cada ámbito y tramo de años. Cada aviso es una línea con forma fija, en `texto`:
++    `⚠ FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS:` y `⚠ FALTAN FESTIVOS LOCALES:`, cuando el plazo pasa por un año o un
++    municipio sin festivos cargados, y la fecha, calculada sin ellos, puede ser anterior a la real;
++    `⚠ DÍAS DEL ART. 183 LOPJ:`, cuando un
++    contencioso pasa por los días del 24 de diciembre al 6 de enero; y `⚠ FESTIVO DE UNA PARTE:`, con un festivo
++    autonómico de solo una parte de la comunidad, que se cuenta como hábil.
++  - **Su sobre** lleva `fuente` `kitlegal.plazos` y `url` `kitlegal:applet/plazos`. No pide nada a ninguna fuente ni
++    escribe en la caché o en el grafo del mundo, así que `--offline` y `--no-graph` no cambian nada.
++  - **Códigos.** `0`; `2`, `argumentos`, con un tipo desconocido, un `inicio` que no es un día `AAAA-MM-DD`, una
++    `--duracion` o una `--unidad` que faltan, sobran o no valen, un número de municipios que no es el del tipo, un
++    municipio que `territorio resolver` daría con `2` o un plazo que acaba después del 31 de diciembre de 9999; `3`,
++    `no-encontrado`, si todo lo demás vale y algún municipio no está en la relación; y `1` si los datos que lleva el
++    binario no cargan. Nunca `4`, `5` ni `6`.
++- **La herramienta `plazos_calcular`** en `kitlegal mcp serve`, que pasa a anunciar trece. Sale del registro, como las
++  demás, con sus argumentos por su nombre: `tipo`, `inicio`, `municipios` (una lista), `duracion` y `unidad`.
++- **Esquema publicado del verbo**: `schemas/plazo.json`, el que emite `kitlegal plazos calcular --describe`, que
++  `make schema-check` compara como los demás.
++- **`data/festivos/`, los festivos que el binario lleva dentro, sacados del boletín que los declara** (ADR 0039).
++  Ninguno se escribe a mano: los deriva un test desde lo grabado de cada fuente, cada fila con la disposición que fija
++  esa fecha en `source`, y el test falla si el fichero no es lo que sale de las grabaciones.
++  `data/festivos/nacionales-y-autonomicos.yaml` sale de las resoluciones anuales de fiestas laborales del BOE (fuente
++  `boe.fiestas-laborales`; `TestFestivosNacionalesDerivados`, en `internal/source/boe/fiestas`): los nacionales y los
++  de cada comunidad de 2025, 2026 y 2027 (`BOE-A-2024-21316`, `BOE-A-2025-21667` y `BOE-A-2026-21254`).
++  `data/festivos/locales/13.yaml` sale de las del BOCM (fuente `bocm.fiestas-locales`; `TestFestivosLocalesDerivados`,
++  en `internal/source/bocm`): los de los 179 municipios de la Comunidad de Madrid en 2025 y 2026, cada uno con sus
++  festivos o, si el boletín no los da, con el motivo. **Los locales son
++  solo de la Comunidad de Madrid, y solo de esos dos años**: un plazo que pasa por un municipio de otra comunidad, o
++  por un año sin festivos cargados, lleva su aviso. `TestCotejoConElCatalogo` coteja los locales de 2025 con el
++  conjunto del catálogo de datos abiertos de la Comunidad, que se conserva en `evidencias/adr-0039/` y no es fuente.
++- **Los tipos y la cobertura por materia**: `data/plazos.yaml`, con los siete tipos, su cómputo, su duración y el
++  precepto que la fija, y `data/cobertura.yaml`, contra el esquema nuevo `schemas/cobertura.yaml.json`, con las nueve
++  entradas de lo que la ley regula aparte (DA 1ª.2 y art. 112 LPAC): tributos, Seguridad Social, los sancionadores
++  tributarios, sociales, de tráfico y de extranjería, extranjería y asilo, la impugnación que sustituye a la alzada y
++  las reclamaciones económico-administrativas, con la norma que rige el procedimiento en la de tributos (la Ley
++  58/2003, General Tributaria) y en la de tráfico (su texto refundido, `BOE-A-2015-11722`).
++  `TestPreceptosDeLosPlazos` comprueba cada precepto contra lo grabado del BOE.
++- **La skill `legal-core` v1: hasta qué día se puede recurrir, y cuándo un asunto lo regula la ley aparte.** Se activa
++  también con las preguntas de plazos y de recursos. Antes de preguntar nada, mira si la materia está en
++  `references/cobertura_por_materia.md`: si lo está, lo declara con la línea
++  `⚠ NO CUBIERTO: <procedimiento> se rige por <norma> (<identificador>), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto de la LPAC>).`
++  —o, sin norma en la entrada, con el precepto de la LPAC que lo excluye— y no pide ningún plazo ni da ninguna fecha.
++  Si no, pregunta la fecha de inicio y los municipios que cuentan si faltan, resuelve cada municipio con `territorio`,
++  pide el plazo a `plazos calcular`, lee con `boe-legislacion` cada precepto de `data.preceptos` y da la fecha en la
++  línea `⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]`, con los festivos que
++  la movieron y cada aviso con su `texto`, tal cual, sin calcular ni corregir ninguna fecha. Lleva dos referencias
++  nuevas, generadas: `references/recursos_y_plazos.md`, desde `data/plazos.yaml`, y
++  `references/cobertura_por_materia.md`, desde `data/cobertura.yaml`.
++- **`plazo`, `no_cubierto` y `calcular` en el formato de eval** (`schemas/eval.yaml.json`). `plazo` —`fecha`
++  `AAAA-MM-DD`, `avisos`, los códigos de aviso de `plazos` sin repetir, y `razonamiento`, el cálculo a mano, que
++  ningún juicio lee— hace de la eval una eval de plazo: su respuesta tiene que llevar la línea `⚠ PLAZO:` con esa
++  fecha y una cita en la misma línea, y la forma fija de cada aviso. `no_cubierto` —`norma`, un `BOE-A-…`— la hace una
++  eval de cobertura: su respuesta tiene que llevar la línea `⚠ NO CUBIERTO:` con esa norma y ninguna línea del plazo.
++  Las dos solo van en una eval que activa la skill y no es sin binario ni servidor, nunca juntas, y con ellas la eval
++  puede no llevar citas; con `no_cubierto`, tampoco comandos. El comando `calcular` (`applet` `plazos`, `verbo`
++  `calcular` y `tipo`) lo cumple una orden `plazos calcular` de ese tipo que termina con `0`, sin `--dry-run`,
++  `--describe` ni la ayuda, o una llamada a `plazos_calcular` con ese `tipo` cuyo resultado no es un error, y no pide
++  ninguna respuesta grabada; en `prohibidos`, cuenta la orden y la llamada. Lo juzga el informe sin modelo, con los motivos `plazo ausente: <fecha>`,
++  `aviso del plazo ausente: <código>`, `declaración de no cubierto ausente: <norma>` y
++  `línea del plazo en un asunto no cubierto: <fecha>` (`TestJuzgarPlazos`). El conjunto de `legal-core` admite `plazo`
++  o `no_cubierto` como lo esperado de una eval activa y exige al menos una eval de plazo y una de cobertura (la regla
++  «cobertura por materia»).
++- **Cinco evals de `legal-core`**, las primeras que llaman a `plazos`: `05-plazo-reposicion-leganes.yaml`, la
++  reposición contra una resolución del Ayuntamiento de Leganés notificada el 9 de septiembre de 2026, que acaba el
++  2026-10-13; `06-plazo-reposicion-tordesillas.yaml`, la misma en Tordesillas, sin festivos locales cargados, el
++  2026-10-09 con el aviso de los festivos locales que faltan; `07-cobertura-liquidacion-tributaria.yaml` y
++  `08-cobertura-multa-de-trafico.yaml`, una liquidación de la Agencia Tributaria y una multa de la Dirección General
++  de Tráfico, que esperan la declaración de no cubierto con la Ley General Tributaria (`BOE-A-2003-23186`) y con el
++  texto refundido de Tráfico (`BOE-A-2015-11722`), y en las que `plazos calcular` es un prohibido; y
++  `09-plazo-contencioso-agosto.yaml`, el contencioso contra la desestimación de una reposición notificada el 15 de
++  junio de 2026, en el que agosto no corre: el 2026-09-15. Con las nueve, el trabajo de `legal-core` del job de evals
++  abre 102 sesiones, dos a la vez: 48 en cada modo y 6 de la eval sin binario ni servidor.
++- **Los umbrales `plazo_sin_fecha:<modelo>:<modo>` y `cobertura_sin_declarar:<modelo>:<modo>`.** El primero cuenta las
++  respuestas de una eval de plazo sin la línea `⚠ PLAZO:` con la fecha esperada —los avisos no entran—, y el segundo,
++  las de una eval de cobertura sin la línea `⚠ NO CUBIERTO:` con la norma esperada o con una línea `⚠ PLAZO:` de
++  cualquier fecha, cada sesión una vez como mucho. Se miden sobre las respuestas medidas del modelo que decide en ese
++  modo, las del `total` de `sin_activar`, de las evals de su clase —hoy, 9 respuestas por modo en las de plazo y 6 en
++  las de cobertura—, sin las sesiones sin medir, las de un modelo informativo ni las de la eval sin binario ni
++  servidor. Son hechos de la respuesta y se miden sin modelo. Con `"<="` 0, y deciden; si no se cumple, su motivo
++  nombra cada sesión que cuenta: `umbral plazo_sin_fecha:claude-sonnet-5-5:orden: 1 de 9 (11,1 %), y tiene que ser
++  ≤ 0,0 %: <sesión>`, y `; <sesión>` por cada otra. Por cada modo van detrás de `documento_sin_cotejar` si la skill lo
++  tiene. El primero lo tiene toda skill con alguna eval de plazo, y el segundo, toda skill con alguna de cobertura, sin
++  que el código nombre ninguna; con ellas, la skill tiene también `sin_activar`, aunque no tenga juez ni sentencias.
++  **`umbrales` de `legal-core` deja de estar vacío**: pasa de `[]` a seis, que deciden los seis, `sin_activar`,
++  `plazo_sin_fecha` y `cobertura_sin_declarar` del modo orden y los mismos del modo herramienta, sobre 21, 9 y 6
++  respuestas (`TestUmbralesDeLegalCore`). `boe-legislacion` sigue con trece, nueve que deciden, y `jurisprudencia`,
++  con quince, once que deciden.
++
+ ### Cambiado
+ 
+ - **Las marcas de escritura vacías de Claude Code no llegan a `make ci`** (workflow `hito` 2.9.1). Claude Code deja
+diff --git a/README.md b/README.md
+index feaf4d4..60ff246 100644
+--- a/README.md
++++ b/README.md
+@@ -24,7 +24,13 @@ Web del proyecto: **[kitlegal.es](https://kitlegal.es)**.
+ Hay tres skills. La tercera, `jurisprudencia`, es la de las sentencias, y tiene su apartado:
+ [¿Y las sentencias?](#y-las-sentencias). Con las otras dos, `boe-legislacion` y `legal-core`, tu agente responde sobre
+ **cualquier norma consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas autonómicas
+-que el BOE consolida— y sitúa **cualquier municipio de España** en su territorio. Por ejemplo:
++que el BOE consolida—, sitúa **cualquier municipio de España** en su territorio y te dice **hasta qué día puedes
++recurrir** una resolución o cuándo vence un plazo administrativo, con la fecha calculada por kitlegal con los
++festivos nacionales, autonómicos y locales que cuentan. Los festivos locales que lleva son los de la Comunidad de
++Madrid de 2025 y 2026; fuera de ellos, la respuesta te avisa de que la fecha puede ser anterior a la real. Y si el
++asunto lo regula la ley aparte —una liquidación de Hacienda, una multa de tráfico, la Seguridad Social,
++extranjería—, te lo dice, con la norma que lo rige o con el precepto de la Ley 39/2015 que lo deja fuera, en lugar
++de calcularle el plazo del procedimiento común. Por ejemplo:
+ 
+ - «¿Qué dice el artículo 21 de la Ley 39/2015?»
+ - «¿Cuál es el límite de un contrato menor en la Ley de Contratos del Sector Público?»
+@@ -34,6 +40,8 @@ que el BOE consolida— y sitúa **cualquier municipio de España** en su territ
+ - «¿Cuántos días de vacaciones fija el Estatuto de los Trabajadores?»
+ - «¿En qué plazo tiene que resolver la Administración una solicitud de acceso a información pública?»
+ - «¿Qué comunidad, provincia y boletines oficiales corresponden a mi ayuntamiento?»
++- «Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Leganés y vivo en Leganés, ¿hasta
++  cuándo puedo presentar el recurso de reposición?»
+ - «Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?»
+ 
+ Tu agente responde citando la norma y el artículo tal como los publica el BOE, siempre con la misma forma:
+@@ -200,8 +208,9 @@ Si el agente no encuentra `kitlegal`, escribe en su lugar la ruta completa del p
+ 
+ Las skills consultan con órdenes de `kitlegal`, que tu agente ejecuta en una terminal. `kitlegal mcp serve` les da
+ otra vía: un servidor MCP que ofrece cada consulta como una herramienta —buscar una norma, leer su índice, uno o
+-varios artículos, sus metadatos y su análisis, situar un municipio, repasar lo ya consultado, preparar la consulta de
+-una sentencia y cotejar el documento que traes—, con el mismo resultado que su orden: el texto con su fuente, su
++varios artículos, sus metadatos y su análisis, situar un municipio, calcular el último día de un plazo, repasar lo ya
++consultado, preparar la consulta de una sentencia y cotejar el documento que traes—, con el mismo resultado que su
++orden: el texto con su fuente, su
+ dirección, su fecha de consulta y su huella. Las skills usan la herramienta siempre que tu agente la tiene, y la orden
+ cuando no.
+ 
+@@ -304,11 +313,10 @@ reutilización. La decisión, en
+ kitlegal se construye por hitos, en el orden en que cada cosa empieza a ser útil. Sin fechas: cada hito se publica
+ cuando funciona y está medido. Lo que hay hoy es la base sobre la que se apoya todo lo demás.
+ 
+-**Pronto: citas verificadas y plazos.** Que tu agente resuelva una cita en lenguaje natural («el artículo de la LPAC
++**Pronto: citas verificadas.** Que tu agente resuelva una cita en lenguaje natural («el artículo de la LPAC
+ sobre el silencio administrativo») al texto vigente con su dirección oficial, o al que estaba vigente en la fecha que
+-importa —la de los hechos, la del acto—; que revise las citas de un escrito entero, o de la respuesta de otro
+-asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado; y que calcule plazos
+-administrativos con los festivos nacionales, autonómicos y locales del municipio.
++importa —la de los hechos, la del acto—; y que revise las citas de un escrito entero, o de la respuesta de otro
++asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado.
+ 
+ **Después: actuar ante la Administración.** Llevar un asunto, propio o de un cliente: seguir los expedientes (qué se
+ pidió, a quién, cuándo, qué plazo corre) y preparar escritos fundamentados —una solicitud de acceso a información

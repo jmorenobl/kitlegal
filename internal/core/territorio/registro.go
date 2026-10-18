@@ -66,6 +66,75 @@ type comunidadRegistrada struct {
 	autonomico, provincial *Boletin
 }
 
+// MunicipioConFormas es un municipio del registro con las formas de su nombre,
+// lo que necesita quien cruza con la relación los nombres que escribe otra
+// fuente, como un boletín (research.md D13).
+type MunicipioConFormas struct {
+	// Codigo es su código INE.
+	Codigo ids.CodigoINE
+	// Nombre es el oficial, tal como lo escribe la relación.
+	Nombre string
+	// Formas son las formas conocidas de su nombre, plegadas y sin repetir:
+	// las mismas por las que lo alcanza una consulta (formasDelNombre).
+	Formas []string
+}
+
+// MunicipiosDe son los municipios de una comunidad o ciudad autónoma, dada por
+// sus dos cifras, en orden de código INE y cada uno con sus formas: ninguno si
+// el registro no la tiene (FR-022). Cada llamada los da nuevos, de modo que
+// quien los recibe puede cambiarlos sin tocar el registro.
+//
+// No es parte de la carga, que paga cada invocación del binario: mira el
+// registro entero en cada llamada, y es para las derivaciones de los festivos.
+func (r *Registro) MunicipiosDe(comunidad string) []MunicipioConFormas {
+	var codigos []string
+
+	for codigo, municipio := range r.porCodigo {
+		if municipio.provincia.comunidad.codigo == comunidad {
+			codigos = append(codigos, codigo)
+		}
+	}
+
+	slices.Sort(codigos)
+
+	municipios := make([]MunicipioConFormas, 0, len(codigos))
+	for _, codigo := range codigos {
+		municipio := r.porCodigo[codigo]
+		municipios = append(municipios, MunicipioConFormas{
+			Codigo: municipio.codigo,
+			Nombre: municipio.nombre,
+			Formas: formasDelNombre(municipio.nombre),
+		})
+	}
+
+	return municipios
+}
+
+// Comunidades son las comunidades y ciudades autónomas del registro, cada una
+// con su código, su nombre y el source de su fichero, en orden de código: las
+// de sus municipios, que en la relación son todas (research.md D14, S2).
+//
+// Como MunicipiosDe, mira el registro entero y no es parte de la carga.
+func (r *Registro) Comunidades() []Comunidad {
+	porCodigo := map[string]*comunidadRegistrada{}
+	for _, municipio := range r.porCodigo {
+		comunidad := municipio.provincia.comunidad
+		porCodigo[comunidad.codigo] = comunidad
+	}
+
+	comunidades := make([]Comunidad, 0, len(porCodigo))
+	for _, codigo := range slices.Sorted(maps.Keys(porCodigo)) {
+		comunidad := porCodigo[codigo]
+		comunidades = append(comunidades, Comunidad{
+			Codigo: comunidad.codigo,
+			Nombre: comunidad.nombre,
+			Source: comunidad.origen.source,
+		})
+	}
+
+	return comunidades
+}
+
 // FechaDeLaRelacion es la fecha de la relación de municipios, a medianoche
 // UTC. Es la de toda respuesta que no llega a un territorio —un nombre o un
 // código que no está en la relación, un nombre que lleva a varios municipios,

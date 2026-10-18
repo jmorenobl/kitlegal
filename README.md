@@ -24,7 +24,15 @@ Web del proyecto: **[kitlegal.es](https://kitlegal.es)**.
 Hay tres skills. La tercera, `jurisprudencia`, es la de las sentencias, y tiene su apartado:
 [¿Y las sentencias?](#y-las-sentencias). Con las otras dos, `boe-legislacion` y `legal-core`, tu agente responde sobre
 **cualquier norma consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas autonómicas
-que el BOE consolida— y sitúa **cualquier municipio de España** en su territorio. Por ejemplo:
+que el BOE consolida—, sitúa **cualquier municipio de España** en su territorio y te dice **hasta qué día puedes
+recurrir** una resolución o cuándo vence un plazo administrativo, con la fecha calculada por kitlegal con los
+festivos nacionales, autonómicos y locales que cuentan. Lleva los nacionales y autonómicos de 2025 a 2027, y los
+locales solo de la Comunidad de Madrid, de 2025 y 2026; fuera de ellos, la respuesta te avisa de que la fecha puede
+ser anterior a la real. Un festivo autonómico de solo una parte de la comunidad —una isla de Canarias, el territorio
+de Arán— lo cuenta como hábil y te lo avisa: la fecha es la más temprana posible. Y si el
+asunto lo regula la ley aparte —una liquidación de Hacienda, una multa de tráfico, la Seguridad Social,
+extranjería—, te lo dice, con la norma que lo rige o con el precepto de la Ley 39/2015 que lo deja fuera, en lugar
+de calcularle el plazo del procedimiento común. Por ejemplo:
 
 - «¿Qué dice el artículo 21 de la Ley 39/2015?»
 - «¿Cuál es el límite de un contrato menor en la Ley de Contratos del Sector Público?»
@@ -34,6 +42,8 @@ que el BOE consolida— y sitúa **cualquier municipio de España** en su territ
 - «¿Cuántos días de vacaciones fija el Estatuto de los Trabajadores?»
 - «¿En qué plazo tiene que resolver la Administración una solicitud de acceso a información pública?»
 - «¿Qué comunidad, provincia y boletines oficiales corresponden a mi ayuntamiento?»
+- «Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Leganés y vivo en Leganés, ¿hasta
+  cuándo puedo presentar el recurso de reposición?»
 - «Ya te pregunté hace tiempo por el artículo 21 de la Ley 39/2015. ¿Qué dice ahora?»
 
 Tu agente responde citando la norma y el artículo tal como los publica el BOE, siempre con la misma forma:
@@ -200,10 +210,10 @@ Si el agente no encuentra `kitlegal`, escribe en su lugar la ruta completa del p
 
 Las skills consultan con órdenes de `kitlegal`, que tu agente ejecuta en una terminal. `kitlegal mcp serve` les da
 otra vía: un servidor MCP que ofrece cada consulta como una herramienta —buscar una norma, leer su índice, uno o
-varios artículos, sus metadatos y su análisis, situar un municipio, repasar lo ya consultado, preparar la consulta de
-una sentencia y cotejar el documento que traes—, con el mismo resultado que su orden: el texto con su fuente, su
-dirección, su fecha de consulta y su huella. Las skills usan la herramienta siempre que tu agente la tiene, y la orden
-cuando no.
+varios artículos, sus metadatos y su análisis, situar un municipio, calcular el último día de un plazo, repasar lo ya
+consultado, preparar la consulta de una sentencia y cotejar el documento que traes—, con el mismo resultado que su
+orden: el texto con su fuente, su dirección, su fecha de consulta y su huella. Las skills usan la herramienta siempre
+que tu agente la tiene, y la orden cuando no.
 
 El servidor corre en tu equipo: lo arranca tu agente y habla con él por la entrada y la salida estándar, sin abrir
 ningún puerto. En la app de escritorio de Claude lo trae el plugin de
@@ -304,11 +314,10 @@ reutilización. La decisión, en
 kitlegal se construye por hitos, en el orden en que cada cosa empieza a ser útil. Sin fechas: cada hito se publica
 cuando funciona y está medido. Lo que hay hoy es la base sobre la que se apoya todo lo demás.
 
-**Pronto: citas verificadas y plazos.** Que tu agente resuelva una cita en lenguaje natural («el artículo de la LPAC
+**Pronto: citas verificadas.** Que tu agente resuelva una cita en lenguaje natural («el artículo de la LPAC
 sobre el silencio administrativo») al texto vigente con su dirección oficial, o al que estaba vigente en la fecha que
-importa —la de los hechos, la del acto—; que revise las citas de un escrito entero, o de la respuesta de otro
-asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado; y que calcule plazos
-administrativos con los festivos nacionales, autonómicos y locales del municipio.
+importa —la de los hechos, la del acto—; y que revise las citas de un escrito entero, o de la respuesta de otro
+asistente, y diga cuáles no existen, cuáles son de una norma derogada y cuáles han cambiado.
 
 **Después: actuar ante la Administración.** Llevar un asunto, propio o de un cliente: seguir los expedientes (qué se
 pidió, a quién, cuándo, qué plazo corre) y preparar escritos fundamentados —una solicitud de acceso a información

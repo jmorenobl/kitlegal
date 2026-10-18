@@ -1,0 +1,66 @@
+# plazos calcular llega como herramienta sin tocar el servidor: mcp serve
+# anuncia plazos_calcular, de solo lectura como las demás. Una llamada con el
+# tipo reposicion, el inicio 2026-09-09 y los municipios Leganés y Leganés da un
+# resultado cuyo sobre es el de la orden con los mismos argumentos, byte a byte
+# salvo fecha_consulta. Una con un tipo que no existe da el error argumentos, y
+# la llamada siguiente del mismo proceso da su resultado, que es también el de
+# su orden.
+#
+# Cubre: US1.1 · FR-001, FR-085.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3 de H21: mcp-<n>.json es el sobre de la llamada n,
+# con su salto de línea, comparable con la salida de la orden. Los argumentos de
+# la herramienta son los de contracts/applet-plazos.md §1: tipo, inicio y la
+# lista municipios. Cuántas herramientas anuncia el servidor no se mira aquí. El
+# kernel fecha cada sobre de plazos con su reloj, también en el binario T0: por
+# eso la orden y la llamada se comparan sin fecha_consulta.
+
+# Precondición: el binario registra el applet plazos (FR-001).
+exec kitlegal --help
+stdout '^\s+plazos\s'
+
+# --- El servidor la anuncia (FR-001) ---
+mcp anuncio.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 herramientas '
+stdout '^salida 0$'
+grep '^plazos_calcular lectura=true$' mcp-1.txt
+
+# --- Las tres llamadas, en un mismo proceso (FR-001, FR-085) ---
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 plazos_calcular resultado$'
+stdout '^2 plazos_calcular error argumentos$'
+stdout '^3 plazos_calcular resultado$'
+stdout '^salida 0$'
+
+grep '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",' mcp-1.json
+grep '"data":\{"fecha":"2026-10-13","tipo":"reposicion",' mcp-1.json
+
+# Un tipo que no existe: el error de argumentos, con su clase. Tras él, la
+# llamada 3 ha dado su resultado: el servidor sigue.
+grep '^\{"ok":false,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",' mcp-2.json
+grep '"data":\{"clase":"argumentos",' mcp-2.json
+
+grep '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",' mcp-3.json
+
+# --- Cada llamada con resultado da el sobre de su orden (FR-001) ---
+exec $KITLEGAL_T0_BIN plazos calcular reposicion 2026-09-09 Leganés Leganés --json
+cp stdout orden-1.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-1.json
+cp stdout orden-1.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-1.json
+cmp stdout orden-1.sin-fecha
+
+exec $KITLEGAL_T0_BIN plazos calcular contencioso 2026-06-15 Madrid --json
+cp stdout orden-3.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-3.json
+cp stdout orden-3.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-3.json
+cmp stdout orden-3.sin-fecha
+
+-- anuncio.txt --
+herramientas
+-- llamadas.txt --
+plazos_calcular {"tipo":"reposicion","inicio":"2026-09-09","municipios":["Leganés","Leganés"]}
+plazos_calcular {"tipo":"inventado","inicio":"2026-09-09","municipios":["Leganés","Leganés"]}
+plazos_calcular {"tipo":"contencioso","inicio":"2026-06-15","municipios":["Madrid"]}

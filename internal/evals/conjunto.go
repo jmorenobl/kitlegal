@@ -289,8 +289,10 @@ func ReglasDeBoeLegislacion() []ReglaDelConjunto {
 const reglaSinBinarioNiServidor = "sin binario ni servidor"
 
 // ReglasDeLegalCore son las reglas del conjunto de evals de legal-core del
-// contrato de evals §3 de H6, en el orden de su tabla, y, detrás, la de la eval
-// sin binario ni servidor de H21. Cada llamada devuelve un juego nuevo.
+// contrato de evals §3 de H6, en el orden de su tabla, con la de la cobertura
+// por materia de H9 detrás de la del esperado verificable
+// (contracts/evals-legal-core.md §4 de H9), y, detrás, la de la eval sin binario
+// ni servidor de H21. Cada llamada devuelve un juego nuevo.
 func ReglasDeLegalCore() []ReglaDelConjunto {
 	return []ReglaDelConjunto{
 		{nombre: "tamaño", incumplimiento: incumplimientoDelMinimoDeLegalCore},
@@ -298,6 +300,7 @@ func ReglasDeLegalCore() []ReglaDelConjunto {
 		{nombre: "no cubierto", incumplimiento: incumplimientoDelMunicipioNoCubierto},
 		{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
 		{nombre: "esperado verificable", incumplimiento: incumplimientoDelEsperadoVerificable},
+		{nombre: "cobertura por materia", incumplimiento: incumplimientoDeLaCoberturaPorMateria},
 		{nombre: reglaSinBinarioNiServidor, incumplimiento: incumplimientoDeSinBinarioNiServidor},
 	}
 }
@@ -716,15 +719,17 @@ func incumplimientoDelMunicipioNoCubierto(conjunto *conjuntoAComprobar) string {
 		strings.Join(aspectosNoConfigurados(), ", "), conjunto.ficheros(conjunto.sobreUnMunicipio))
 }
 
-// incumplimientoDelEsperadoVerificable: toda eval activa declara citas o
-// territorio en lo esperado, salvo la eval sin binario ni servidor, cuyo formato
-// no admite ni las unas ni el otro: lo que su respuesta tiene que llevar lo fija
-// su juicio. Nombra las que no.
+// incumplimientoDelEsperadoVerificable: toda eval activa declara citas,
+// territorio o, desde H9, un plazo o una declaración de no cubierto en lo
+// esperado (contracts/evals-legal-core.md §4 de H9), salvo la eval sin binario
+// ni servidor, cuyo formato no admite ninguno: lo que su respuesta tiene que
+// llevar lo fija su juicio. Nombra las que no.
 func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
 	var sinVerificable []int
 
 	for posicion, eval := range conjunto.evals {
-		if eval.Activa && !eval.SinBinarioNiServidor && len(eval.Citas) == 0 && len(eval.Territorio.elementos()) == 0 {
+		if eval.Activa && !eval.SinBinarioNiServidor && len(eval.Citas) == 0 && len(eval.Territorio.elementos()) == 0 &&
+			!eval.esDePlazo() && !eval.esDeCobertura() {
 			sinVerificable = append(sinVerificable, posicion)
 		}
 	}
@@ -733,7 +738,23 @@ func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
 		return ""
 	}
 
-	return "evals activas sin citas ni territorio en lo esperado: " + conjunto.ficheros(sinVerificable)
+	return "evals activas sin citas, territorio, plazo ni no_cubierto en lo esperado: " + conjunto.ficheros(sinVerificable)
+}
+
+// incumplimientoDeLaCoberturaPorMateria: al menos una eval de plazo, la que
+// espera un plazo, y una de cobertura, la que espera una declaración de no
+// cubierto (contracts/evals-legal-core.md §4 de H9; FR-088). Nombra las que hay
+// de cada clase.
+func incumplimientoDeLaCoberturaPorMateria(conjunto *conjuntoAComprobar) string {
+	dePlazo := conjunto.posicionesDeLasQue(Eval.esDePlazo)
+	deCobertura := conjunto.posicionesDeLasQue(Eval.esDeCobertura)
+
+	if len(dePlazo) > 0 && len(deCobertura) > 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("el conjunto lleva al menos una eval de plazo (plazo) y una de cobertura (no_cubierto); "+
+		"de plazo, %s; de cobertura, %s", conjunto.ficheros(dePlazo), conjunto.ficheros(deCobertura))
 }
 
 // incumplimientoDeSinBinarioNiServidor: exactamente una eval con

@@ -62,6 +62,41 @@ func Plegar(nombre string) string {
 	return plegado.String()
 }
 
+// FormaCompacta es la forma en la que se cruzan con la relación los nombres que
+// escribe un boletín (research.md D13, D14): el pliegue de Plegar sin los
+// artículos «el», «la», «los» y «las», sin «de» ni «del» y sin los blancos que
+// separan las palabras. Iguala dos maneras de escribir un nombre que solo
+// difieren en eso —«Talamanca del Jarama» y «Talamanca de Jarama», «Moraleja
+// de En medio» y «Moraleja de Enmedio»—, sin ninguna lista de alias ni ningún
+// municipio con trato propio. Solo quita palabras enteras: «Delicias» sigue
+// empezando por «del».
+//
+// Es la única definición en el árbol de la regla con la que se cruzan con el
+// territorio los festivos del BOE y del BOCM. Da lo mismo sobre un nombre que
+// sobre su pliegue.
+func FormaCompacta(nombre string) string {
+	var compacta strings.Builder
+
+	for palabra := range strings.FieldsSeq(Plegar(nombre)) {
+		if !esPalabraDeEnlace(palabra) {
+			compacta.WriteString(palabra)
+		}
+	}
+
+	return compacta.String()
+}
+
+// esPalabraDeEnlace dice si una palabra plegada es de las que la forma
+// compacta quita.
+func esPalabraDeEnlace(palabra string) bool {
+	switch palabra {
+	case "de", "del", "la", "las", "los", "el":
+		return true
+	default:
+		return false
+	}
+}
+
 // letraBase es la tabla del pliegue: devuelve la letra base de una minúscula
 // con diacrítico de las lenguas de España, o la propia letra si no lo lleva o
 // si la tabla no la cubre.

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:35:28Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1998-16718/texto/bloque/a128",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:35:29 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a128\" tipo=\"precepto\" titulo=\"Artículo 128\">\n      <version id_norma=\"BOE-A-1998-16718\" fecha_publicacion=\"19980714\" fecha_vigencia=\"19981214\">\n        <p class=\"articulo\">Artículo 128.</p>\n        <p class=\"parrafo\">1. Los plazos son improrrogables y una vez transcurridos se tendrá por caducado el derecho y por perdido el trámite que hubiere dejado de utilizarse. No obstante, se admitirá el escrito que proceda, y producirá sus efectos legales, si se presentare dentro del día en que se notifique el auto, salvo cuando se trate de plazos para preparar o interponer recursos.</p>\n        <p class=\"parrafo\">2. Durante el mes de agosto no correrá el plazo para interponer el recurso contencioso-administrativo ni ningún otro plazo de los previstos en esta Ley salvo para el procedimiento para la protección de los derechos fundamentales en el que el mes de agosto tendrá carácter de hábil.</p>\n        <p class=\"parrafo\">3. En casos de urgencia, o cuando las circunstancias del caso lo hagan necesario, las partes podrán solicitar al órgano jurisdiccional que habilite los días inhábiles en el procedimiento para la protección de los derechos fundamentales o en el incidente de suspensión o de adopción de otras medidas cautelares. El Juez o Tribunal oirá a las demás partes y resolverá por auto en el plazo de tres días, acordando en todo caso la habilitación cuando su denegación pudiera causar perjuicios irreversibles.</p>\n      </version>\n      <version id_norma=\"BOE-A-2009-17493\" fecha_publicacion=\"20091104\" fecha_vigencia=\"20100504\">\n        <p class=\"articulo\">Artículo 128.</p>\n        <p class=\"parrafo\">1. Los plazos son improrrogables, y una vez transcurridos el Secretario judicial correspondiente tendrá por caducado el derecho y por perdido el trámite que hubiere dejado de utilizarse. No obstante, se admitirá el escrito que proceda, y producirá sus efectos legales, si se presentare dentro del día en que se notifique la resolución, salvo cuando se trate de plazos para preparar o interponer recursos.</p>\n        <p class=\"parrafo\">2. Durante el mes de agosto no correrá el plazo para interponer el recurso contencioso-administrativo ni ningún otro plazo de los previstos en esta Ley salvo para el procedimiento para la protección de los derechos fundamentales en el que el mes de agosto tendrá carácter de hábil.</p>\n        <p class=\"parrafo\">3. En casos de urgencia, o cuando las circunstancias del caso lo hagan necesario, las partes podrán solicitar al órgano jurisdiccional que habilite los días inhábiles en el procedimiento para la protección de los derechos fundamentales o en el incidente de suspensión o de adopción de otras medidas cautelares. El Juez o Tribunal oirá a las demás partes y resolverá por auto en el plazo de tres días, acordando en todo caso la habilitación cuando su denegación pudiera causar perjuicios irreversibles.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica el apartado 1 por el art. 14.61 de la Ley 13/2009, de 3 de noviembre. <a class=\"refPost\">Ref. BOE-A-2009-17493</a>.</p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

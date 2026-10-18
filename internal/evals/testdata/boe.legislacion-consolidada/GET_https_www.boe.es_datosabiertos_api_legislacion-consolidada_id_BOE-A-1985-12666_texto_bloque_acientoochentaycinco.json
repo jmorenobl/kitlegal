@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:35:31Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1985-12666/texto/bloque/acientoochentaycinco",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "738"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:35:32 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"acientoochentaycinco\" tipo=\"precepto\" titulo=\"Artículo ciento ochenta y cinco\">\n      <version id_norma=\"BOE-A-1985-12666\" fecha_publicacion=\"19850702\" fecha_vigencia=\"19850703\">\n        <p class=\"articulo\">Artículo 185.</p>\n        <p class=\"parrafo\">1. Los plazos procesales se computarán con arreglo a lo dispuesto en el Código Civil. En los señalados por días quedarán excluidos los inhábiles.</p>\n        <p class=\"parrafo\">2. Si el último día de plazo fuere inhábil, se entenderá prorrogado al primer día hábil siguiente.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

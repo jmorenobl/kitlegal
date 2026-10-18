@@ -82,7 +82,7 @@ estables del proyecto:
 
 ```console
 $ ./bin/kitlegal inventado
-argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, cita, graph, mcp, skills, territorio; la versión, con «kitlegal version»
+argumentos inválidos: "inventado" no es ningún applet de kitlegal; applets disponibles: boe, cita, graph, mcp, plazos, skills, territorio; la versión, con «kitlegal version»
 $ echo $?
 2
 ```
@@ -380,8 +380,8 @@ cualquier hito. Al etiquetar, la sección *Unreleased* de `CHANGELOG.md` se cier
 `make schema-check` regenera en memoria, desde `--describe` de cada verbo que registra el binario
 distribuido, los esquemas publicados en `schemas/` —hoy `norma.json` y `bloque.json`, los de `boe`,
 `municipio.json`, el de `territorio`, `instalacion.json`, el de `skills`, `grafo.json`, el de `graph`,
-`servidor.json`, el de `mcp`, y `cita.json`, el de `cita`— y los compara con los ficheros versionados sin escribir
-nada. Si falla, nombra el
+`servidor.json`, el de `mcp`, `cita.json`, el de `cita`, y `plazo.json`, el de `plazos`— y los compara con los
+ficheros versionados sin escribir nada. Si falla, nombra el
 fichero y el verbo: la salida
 de ese verbo ha cambiado y el contrato publicado no. Eso es un cambio de contrato, así que los ficheros se
 regeneran a propósito, con la bandera del mismo test, y el diff se revisa en la propuesta de cambio:
@@ -391,10 +391,11 @@ go test -count=1 -run '^TestEsquemasPublicados$' ./internal/app/ -args -actualiz
 ```
 
 La `entrada` del documento de `--describe` de un verbo con banderas propias lleva la anotación `x-banderas`, con sus
-nombres en su orden —hoy la llevan `cita preparar`, `cita cotejar` y los tres verbos de `skills`, y ningún otro—. No
-es del vocabulario de JSON Schema y un validador la ignora: quien la lee es la tabla de comandos de las skills
-([Skills y evals](#skills-y-evals)), que sin ella no distingue una bandera de un argumento de posición opcional. Va
-en los esquemas publicados de esos verbos, `cita.json` e `instalacion.json`, y no en el esquema de entrada de
+nombres en su orden —hoy la llevan `cita preparar`, `cita cotejar`, `plazos calcular` y los tres verbos de `skills`, y
+ningún otro—. No es del vocabulario de JSON Schema y un validador la ignora: quien la lee es la tabla de comandos de
+las skills ([Skills y evals](#skills-y-evals)), que sin ella no distingue una bandera de un argumento de posición
+opcional. Va en los esquemas publicados de esos verbos, `cita.json`, `plazo.json` e `instalacion.json`, y no en el
+esquema de entrada de
 ninguna herramienta.
 
 `make verify-sources` es el **único control que pide algo a una fuente real**: ejecuta
@@ -467,8 +468,8 @@ eventos y el mensaje de cada llamada que falla van a la salida de error.
   instala en el equipo y no consulta nada, y los de `mcp`, que es el propio servidor. Su nombre es
   `<applet>_<verbo>`; su descripción, la del verbo; y sus dos esquemas, la `entrada` y la `salida` de `--describe`
   de ese verbo (`cli.EsquemasDeHerramienta`), la de entrada sin las ocho banderas globales y sin la anotación
-  `x-banderas`. Con el registro de producción son doce, las de `boe`, `cita`, `graph` y `territorio`; las dos de
-  `cita`, `cita_preparar` y `cita_cotejar`, llegaron así en H23. **Un verbo nuevo nace con su herramienta**, sin
+  `x-banderas`. Con el registro de producción son trece, las de `boe`, `cita`, `graph`, `plazos` y `territorio`; las
+  dos de `cita`, `cita_preparar` y `cita_cotejar`, llegaron así en H23, y `plazos_calcular`, en H9. **Un verbo nuevo nace con su herramienta**, sin
   tocar nada del servidor; lo que se regenera es la tabla de comandos de la skill que lo use (`make skills-sync`),
   que nombra cada operación como orden y como herramienta.
 - **Una llamada es la orden de su verbo.** `cli.LineaDeLlamada` convierte los argumentos de la llamada en la línea de
@@ -537,7 +538,9 @@ las que anuncia el servidor (`TestOrdenesDeLasSkillsEmpotradas`), que la línea 
 reconoce (`TestEvalsDelRepositorio`, subprueba `linea-sin-consulta`), la
 tabla de normas contra `schemas/normas.yaml.json`,
 que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa de `data/jerarquia.yaml` contra
-`schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, y el
+`schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, la
+cobertura por materia de `data/cobertura.yaml` contra `schemas/cobertura.yaml.json` (`TestCoberturaDelRepositorio`),
+los preceptos de `data/plazos.yaml` y de `data/cobertura.yaml` contra lo grabado del BOE (`TestPreceptosDeLosPlazos`), y el
 formato y el conjunto de las evals, que lo que necesitan está grabado y que el grafo previo que nombran se prepara.
 Una norma nueva, o una eval que consulta algo que no está grabado, llega con su grabación, que hace una persona con
 `scripts/grabar-evals.sh`: ningún control ni flujo graba respuestas.
@@ -586,6 +589,12 @@ cierto. Añadir un territorio es rellenar `boletines` en el
 fichero de su comunidad, `data/territorio/comunidades/<código>.yaml`, sin tocar código ni skills. Los ficheros viajan
 dentro del binario, así que un cambio en ellos llega a `territorio resolver` al volver a construirlo.
 
+**Los festivos tampoco se regeneran con `make skills-sync`, ni se escriben a mano** (ADR 0039): `data/festivos/` lo
+escriben sus tests de derivación desde lo grabado del boletín que los declara, `TestFestivosNacionalesDerivados`
+(`internal/source/boe/fiestas`) y `TestFestivosLocalesDerivados` (`internal/source/bocm`), con la bandera
+`-actualizar-festivos`; sin ella, dentro de `make ci`, fallan si el fichero no es lo que sale de las grabaciones. Las
+graba el paso `grabar_datos` del workflow con sus manifiestos, y viajan dentro del binario, como los de territorio.
+
 ### Formato común de eval
 
 Las evals de una skill se escriben **antes** que la skill o que el cambio que la mejora (ritual, paso 1), en su propio
@@ -597,10 +606,12 @@ juez con modelo (las dos, abajo). Todas las evals siguen el formato común de ev
 |---|---|---|
 | `pregunta` | sí | La pregunta con la que se abre la sesión; no vacía |
 | `activa` | sí | Si la pregunta debe activar la skill |
-| `comandos` | sí si `activa` es `true` y no hay `sentencias`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, con su orden o con su herramienta, cada una en una de siete formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`), una comprobación (`applet`, `verbo` `check` y, si se quiere, `norma`) o una de las dos de `cita`: preparar (`applet`, `verbo` `preparar` y, opcionales, `roj` y `con_texto: true`) y cotejar (`applet`, `verbo` `cotejar` y, opcional, `roj`) |
-| `citas` | sí si `activa` es `true` y no hay `territorio` ni `sentencias`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
-| `territorio` | sí si `activa` es `true` y no hay `citas` ni `sentencias`; prohibido si es `false` | Lo que la respuesta debe declarar del territorio que devuelve `territorio resolver`, con al menos una de estas claves: `comunidad`, `provincia`, los códigos de `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet (`boletin_autonomico: no-configurado`…) |
+| `comandos` | sí si `activa` es `true` y no hay `sentencias` ni `no_cubierto`; prohibido si es `false` | Las consultas que la sesión debe hacer con éxito, con su orden o con su herramienta, cada una en una de ocho formas: un bloque (`applet`, `norma`, `bloque`), una consulta de norma (`applet`, `verbo` —`indice`, `metadatos` o `analisis`—, `norma`), una búsqueda (`applet`, `verbo` `buscar`, `terminos`), un municipio (`applet`, `verbo` `resolver`, `municipio`), una comprobación (`applet`, `verbo` `check` y, si se quiere, `norma`), una de las dos de `cita` —preparar (`applet`, `verbo` `preparar` y, opcionales, `roj` y `con_texto: true`) y cotejar (`applet`, `verbo` `cotejar` y, opcional, `roj`)— o un plazo (`applet`, `verbo` `calcular`, `tipo`), que no pide ninguna respuesta grabada porque `plazos` no consulta ninguna fuente |
+| `citas` | sí si `activa` es `true` y no hay `territorio`, `plazo`, `sentencias` ni `no_cubierto`; prohibido si es `false` | Cada `norma` y `bloque` que la respuesta debe citar |
+| `territorio` | sí si `activa` es `true` y no hay `citas`, `plazo`, `sentencias` ni `no_cubierto`; prohibido si es `false` | Lo que la respuesta debe declarar del territorio que devuelve `territorio resolver`, con al menos una de estas claves: `comunidad`, `provincia`, los códigos de `boletines` y los aspectos de `cobertura` en la forma `<aspecto>: <valor>` del vocabulario del applet (`boletin_autonomico: no-configurado`…) |
 | `sentencias` | no; solo si `activa` es `true`, prohibido si es `false` | Lo que la respuesta debe llevar, y lo que no, de las sentencias, con al menos una de estas claves: `citas`, las parejas de `ecli` y `roj` que debe citar; `ninguna_cita` (solo `true`, y no junto a `citas`); `sin_cita_del_roj`, los ROJ con los que no puede citar; `no_comprobada` (solo `true`), la línea `⚠ SENTENCIA NO COMPROBADA:`; `direcciones` y `casillas` —cada una con `nombre` y `valor`—, que debe llevar tal cual; y `direccion_de_busqueda` (solo `true`), la dirección que devolvió en la sesión un `cita preparar` con texto. Con ella, la eval puede no llevar `comandos`, `citas` ni `territorio` |
+| `plazo` | no; solo si `activa` es `true` y la eval no es `sin_binario_ni_servidor`, nunca junto a `no_cubierto`; prohibido si es `false` | Hace de la eval una eval de plazo: `fecha`, el último día `AAAA-MM-DD`, que la respuesta debe dar en la línea `⚠ PLAZO:`; `avisos`, los códigos de aviso de `plazos` (`faltan-festivos-nacionales-y-autonomicos`, `faltan-festivos-locales`, `dias-del-art-183-lopj`, `festivo-de-una-parte`), sin repetir, cuya forma fija debe llevar; y `razonamiento`, el cálculo a mano, que ningún juicio lee. Con él, la eval puede no llevar `citas` ni `territorio` |
+| `no_cubierto` | no; solo si `activa` es `true` y la eval no es `sin_binario_ni_servidor`, nunca junto a `plazo`; prohibido si es `false` | Hace de la eval una eval de cobertura: `norma`, un `BOE-A-…`, que la respuesta debe nombrar en la línea `⚠ NO CUBIERTO:`, sin ninguna línea `⚠ PLAZO:`. Con él, la eval puede no llevar `comandos`, `citas` ni `territorio` |
 | `avisos` | no; solo si `activa` es `true`, prohibido si es `false` | Los códigos de aviso de vigencia del binario (`consolidacion-no-finalizada`, `derogada`, `vigencia-agotada`) cuya forma fija —`⚠`, la etiqueta del aviso y dos puntos— debe llevar la respuesta |
 | `hallazgos` | no; solo si `activa` es `true`, prohibido si es `false` | Las clases de hallazgo de `graph check` cuya forma fija —`⚠`, la etiqueta que da el binario y dos puntos— debe llevar la respuesta; hoy solo `version-obsoleta` (`⚠ REDACCIÓN MODIFICADA:`), la única que el binario etiqueta |
 | `prohibidos` | no; solo si `activa` es `true`, prohibido si es `false` | Los `applet` y `verbo` que la sesión no puede invocar (`graph` `show`…); al menos uno |
@@ -610,18 +621,19 @@ juez con modelo (las dos, abajo). Todas las evals siguen el formato común de ev
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `por_materia` | no; solo si `activa` es `true` y la eval no es `sin_binario_ni_servidor` | Con `true`, la pregunta no identifica lo que pregunta —ni el precepto ni la sentencia— y lo busca por su materia. Falso por omisión: el caso normal es nombrar el precepto o la sentencia. Es la clase de pregunta con la que la serie de cierres reparte las respuestas que marca el juez (ADR 0038, punto 6), y el job la pone en cada sesión de su `informe.json`. No se deduce de `informativa` ni del nombre del fichero: una eval informativa puede nombrar el precepto |
 | `reproduce` | no | La skill cuyo uso documentado reproduce la eval (p. ej. `boe-fiscal`) |
-| `sin_binario_ni_servidor` | no; solo `true`, y solo si `activa` es `true` | La sesión de la eval tiene la skill y nada más: ni `kitlegal` en el `PATH` ni el servidor MCP declarado. La respuesta debe llevar la línea `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa misma línea, y ninguna cita. Una eval que la lleva no lleva `comandos`, `citas`, `territorio`, `sentencias`, `avisos`, `hallazgos`, `prohibidos`, `grafo_previo`, `redacciones_modificadas`, `informativa`, `reproduce` ni `por_materia`, aunque `activa` sea `true`; sí puede llevar `no_se_activan` |
+| `sin_binario_ni_servidor` | no; solo `true`, y solo si `activa` es `true` | La sesión de la eval tiene la skill y nada más: ni `kitlegal` en el `PATH` ni el servidor MCP declarado. La respuesta debe llevar la línea `⚠ SIN CONSULTA AL BOE:` con `https://kitlegal.es/instalar/` en esa misma línea, y ninguna cita. Una eval que la lleva no lleva `comandos`, `citas`, `territorio`, `sentencias`, `avisos`, `hallazgos`, `prohibidos`, `grafo_previo`, `redacciones_modificadas`, `informativa`, `reproduce`, `por_materia`, `plazo` ni `no_cubierto`, aunque `activa` sea `true`; sí puede llevar `no_se_activan` |
 
 Cada fichero de eval de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra
 `schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre,
 ni la lista de expresiones, ni la carpeta `juez`, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
-eval positiva sin citas, territorio ni sentencias, una de no activación con comandos o una sin binario ni servidor con alguna de
+eval positiva sin citas, territorio, plazo, sentencias ni `no_cubierto`, una de no activación con comandos o una sin binario ni servidor con alguna de
 las claves que no lleva fallan nombrando el fichero; ninguna se salta. Para `boe-legislacion`, `make ci` exige además
 las reglas de su conjunto: exactamente diez positivas que deciden, de materias distintas, al menos una de no
 activación y al menos una informativa, y ninguna informativa de no activación, entre otras. Para `legal-core`, al
 menos tres evals: una positiva que resuelve un municipio del territorio configurado y declara sus boletines, otra que
 resuelve uno de una comunidad sin configuración y declara no configurados el boletín autonómico y el provincial, al
-menos una de no activación, y citas o territorio en toda positiva. En esos dos conjuntos, **exactamente una eval sin
+menos una de no activación, citas, territorio, `plazo` o `no_cubierto` en toda positiva y, desde H9, al menos una eval
+de plazo y una de cobertura (la regla «cobertura por materia»). En esos dos conjuntos, **exactamente una eval sin
 binario ni servidor**, que no cuenta como positiva (hoy, `21-sin-binario-ni-servidor.yaml` en `boe-legislacion` y
 `04-sin-binario-ni-servidor.yaml` en `legal-core`). Para `jurisprudencia` (`ReglasDeJurisprudencia`), exactamente diez
 evals, que activan todas la skill y declaran todas `sentencias`: tres con la línea `⚠ SENTENCIA NO COMPROBADA:`,
@@ -941,7 +953,7 @@ el secreto de repositorio `CLAUDE_CODE_OAUTH_TOKEN`, el token de la suscripción
 | `MODELOS_INFORMATIVOS_DE_EVALS` | `claude-haiku-4-5-20251001` |
 | `REPETICIONES_DE_EVALS` | `3` |
 | `UMBRAL_DE_EVALS` | `2` |
-| `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion` y en `jurisprudencia`; `1` en `legal-core` |
+| `CONCURRENCIA_DE_EVALS` | `4` en `boe-legislacion` y en `jurisprudencia`; `2` en `legal-core` |
 | `OBJETIVO_DE_DURACION_DE_EVALS` | `900` en `boe-legislacion`; `0` en `jurisprudencia` y en `legal-core` |
 | `VERSION_DE_CLAUDE_CODE` | `2.1.284` |
 | `MODELO_DEL_JUEZ` | `claude-opus-5-5` |
@@ -960,7 +972,8 @@ sesión; con una sin juez no las mira.
 Con las veintiuna evals de `boe-legislacion`, su trabajo abre 198 sesiones, cuatro a la vez: 96 en el modo orden —36
 de `claude-sonnet-5-5` sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001`
 sobre las doce que deciden—, otras 96 en el modo herramienta y 6 de la eval sin binario ni servidor, tres con cada
-modelo; y su juez juzga 111 respuestas: 54, 54 y 3. El de `legal-core`, con cuatro evals, abre 42: 18, 18 y 6. El de
+modelo; y su juez juzga 111 respuestas: 54, 54 y 3. El de `legal-core`, con nueve evals, abre 102, dos a la vez: 48 en
+cada modo y 6 de la eval sin binario ni servidor. El de
 `jurisprudencia`, con diez, abre 120, cuatro a la vez: 60 en cada modo —30 de cada modelo, porque las diez deciden—
 y ninguna más, porque no tiene eval sin binario ni servidor; su juez juzga 60 respuestas, 30 por modo; no lleva
 prueba de red ni grabaciones, y sigue sin objetivo de duración de las sesiones, porque no hay medida con esa
@@ -980,8 +993,9 @@ a 4: 81, 81 y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El
 cuatro a la
 vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
 orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
-3 660 s—; de una en una serían 47 857 s, que el tope no cubre. Es un cálculo, no una medida de lo que tarda. El
-segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
+3 660 s—; de una en una serían 47 857 s, que el tope no cubre. El de `legal-core`, sin juez y dos a la vez, es de
+14 629 s, 243,8 minutos: 49, 48 y 6 sesiones, 52 tandas; de una en una serían 28 501 s, que el tope no cubre. Es un
+cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
 casos etiquetados: en `boe-legislacion`, con 259 a 4, 16 105 s, 268,4 minutos; en `jurisprudencia`, con 249 a 4,
 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes cambió con H25.
 `TestDefinicionDelJob` comprueba en `make ci` la
@@ -1139,10 +1153,10 @@ Cómo se lee el informe:
   `descripcion`, `medida`, `total` (solo si se compara una proporción), `comparacion` (`"<="`), `umbral`, `cumple` y
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
   o de la propia `medida`, y se puede rehacer con los otros campos. Los de las respuestas existen solo si la skill
-  tiene juez o si alguna de sus evals declara `sentencias`, y los de un modo se miden sobre las sesiones de ese modo,
-  sin sumar las del otro: todos menos el conjunto de una clase del juez que decide, que suma las de los dos modos
-  (ADR 0038). **En `boe-legislacion` son trece, nueve de ellos decidiendo**, en este orden; en
-  `jurisprudencia`, quince, más abajo; y `legal-core` no tiene ninguno, `[]`:
+  tiene juez, si alguna de sus evals declara `sentencias` o, desde H9, si alguna es de plazo o de cobertura, y los de
+  un modo se miden sobre las sesiones de ese modo, sin sumar las del otro: todos menos el conjunto de una clase del
+  juez que decide, que suma las de los dos modos (ADR 0038). **En `boe-legislacion` son trece, nueve de ellos
+  decidiendo**, en este orden; en `jurisprudencia`, quince, y en `legal-core`, seis, más abajo:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
@@ -1214,6 +1228,23 @@ Cómo se lee el informe:
   sesión que cuenta, sin el modo, que ya va en el nombre del umbral:
   `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`,
   con `; <sesión>` por cada otra.
+
+  **En `legal-core` son seis, y deciden los seis** (`TestUmbralesDeLegalCore`), desde H9: no tiene juez ni objetivo
+  de duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura. Por cada modo, el orden
+  y luego el de la herramienta:
+
+  | `nombre` | `medida` | `total` | `umbral` | `decide` |
+  |---|---|---|---|---|
+  | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (21) | `0` | sí |
+  | `plazo_sin_fecha:<modelo>:<modo>` | Las de una eval de plazo sin la línea `⚠ PLAZO:` con la fecha esperada; los avisos no entran | Sus respuestas medidas en ese modo, en las evals de plazo (9) | `0` | sí |
+  | `cobertura_sin_declarar:<modelo>:<modo>` | Las de una eval de cobertura sin la línea `⚠ NO CUBIERTO:` con la norma esperada, o con una línea `⚠ PLAZO:` de cualquier fecha | Sus respuestas medidas en ese modo, en las evals de cobertura (6) | `0` | sí |
+
+  Los dos últimos son hechos de la respuesta y se miden sin modelo, con lo que el juicio ya leyó de ella; cada sesión
+  cuenta una vez como mucho, y una de una eval que no es de su clase no está ni en la `medida` ni en el `total`. Lo
+  tiene toda skill con alguna eval de plazo, el primero, o de cobertura, el segundo, detrás de `documento_sin_cotejar`
+  si lo tiene; el código no nombra ninguna skill. Si no se cumplen, su motivo nombra cada sesión que cuenta, como el
+  de `documento_sin_cotejar`:
+  `umbral plazo_sin_fecha:claude-sonnet-5-5:orden: 1 de 9 (11,1 %), y tiene que ser ≤ 0,0 %: <sesión>`.
 - **El juez**: `juez`, en la raíz de `informe.json` detrás de `umbrales`, y `null` si la skill no tiene juez. Lleva
   `modelo` y `version_de_claude_code`, los fijados para el juez; `respuestas`, una entrada por respuesta juzgada con
   **algún voto afirmativo** en cualquier clase, también nulo, en orden de sesión —las demás no están—, con su
