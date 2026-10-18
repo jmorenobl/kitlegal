@@ -1,0 +1,4 @@
+{
+  "exclude": [".agents/skills/"],
+  "deprioritize": ["specs/", "evidencias/", "scripts/", "testdata/", "refs/"]
+}
