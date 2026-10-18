@@ -165,7 +165,8 @@ go test -count=1 -run '^(TestPropiedadesDelComputo|TestCalcular)$' -v ./internal
 go test -count=1 -cover ./internal/core/plazos/
 ```
 
-Todos `--- PASS`, con un subtest por cada uno de los veinte casos de contracts/casos-de-plazos.md; la cobertura de
+Todos `--- PASS`, con un subtest por cada uno de los 21 casos de contracts/casos-de-plazos.md (19 con fecha y
+2 de cobertura); la cobertura de
 `internal/core/plazos`, al menos el 85 %.
 
 ## 12. Las evals y los umbrales con sesiones sintéticas (FR-050 a FR-057, FR-087; SC-011, SC-012)

@@ -74,9 +74,9 @@ líneas; `.github/workflows/evals.yml`, `skills/boe-legislacion/`, `skills/juris
 
 **Scale/Scope**: 1 verbo, 1 herramienta (13 en producción, 16 con las de ejemplo), 7 tipos, unos 250 festivos
 nacionales y autonómicos y unos 720 locales, 9 entradas de cobertura, 5 evals (de 42 a 102 sesiones del trabajo de
-`legal-core`: 48, 48 y 6, más la prueba de red), 6 umbrales en `legal-core`, 5 guiones de aceptación, 20 casos en la
-tabla; y lo que la entrega rompe sin tocarlo y hay que alinear: 6 tests de Go y 4 guiones (research V11, V15), más
-los que el hito amplía a propósito («Tests y guiones existentes que cambian»).
+`legal-core`: 48, 48 y 6, más la prueba de red), 6 umbrales en `legal-core`, 5 guiones de aceptación, 21 casos en la
+tabla (19 con fecha y 2 de cobertura); y lo que la entrega rompe sin tocarlo y hay que alinear: 6 tests de Go y 4
+guiones (research V11, V15), más los que el hito amplía a propósito («Tests y guiones existentes que cambian»).
 
 ## Constitution Check
 
@@ -220,7 +220,7 @@ abajo, dos esquemas publicados más (`plazo.json`, `cobertura.yaml.json`) y dos 
 | `TestLeerDisposicion`, `TestCruceConElTerritorio`, `TestFestivosLocalesDerivados`, `TestCotejoConElCatalogo` | `internal/source/bocm/*_test.go` | FR-021 a FR-024, FR-083, FR-084, SC-006, SC-007: las erratas de research V8, los nombres de V7, la derivación igual a `data/festivos/locales/13.yaml`, 179 de 179, cada línea, y las diez diferencias del `LEEME.md` |
 | `TestAppletPlazos` | `internal/app/plazos_test.go` | FR-001, FR-013: los golden de `testdata/plazos/` contra `schemas/plazo.json`, ninguna operación de grafo, el mismo `data` y `hash` con `--offline`, el golden de `--describe` (FR-085), los enumerados de la salida iguales a los del dominio |
 | `TestFestivoDeUnaParte` | `internal/app/plazos_test.go` | FR-011, FR-025 |
-| `TestCasosDePlazos` | `internal/app/plazos_casos_test.go` | FR-082, SC-005: los veinte casos de contracts/casos-de-plazos.md |
+| `TestCasosDePlazos` | `internal/app/plazos_casos_test.go` | FR-082, SC-005: los 21 casos de contracts/casos-de-plazos.md (19 con fecha y 2 de cobertura; el 21 lo añadió la revisión final) |
 | `TestPreceptosDeLosPlazos` | `internal/evals/grabaciones_test.go` | FR-010, FR-030, FR-031: contracts/datos-de-plazos.md §4.2 |
 | `TestFormatoDePlazos`, `TestJuzgarPlazos` | `internal/evals/formato_test.go`, `plazos_test.go` | FR-048, FR-051, FR-057: claves, esquema, enumerado atado a `plazos.CodigosDeAviso`, formas fijas, motivos, el comando `calcular`, `prohibidos` con orden y con herramienta |
 | `TestUmbralesDeLegalCore` | `internal/evals/informe_test.go` | FR-053 a FR-055, FR-087, SC-012: los siete casos de FR-087 con sesiones sintéticas |
@@ -282,7 +282,7 @@ de `legal-core` que deciden desde este hito y los de `boe-legislacion` y `jurisp
 | FR-055, FR-087, SC-012 | 1 sesión que cuenta → `fallo`; 0 → se cumple; los siete casos de FR-087, 7 de 7 | sesiones sintéticas, por respuesta y por informe | `ci:internal/evals/informe_test.go:TestUmbralesDeLegalCore` |
 | FR-056, SC-011 | 6 elementos en `legal-core`, los 6 con `decide: true`; 13 con 9 en `boe-legislacion`; 15 con 11 en `jurisprudencia`; en su orden | el informe con las evals del repositorio y el plan del job | `ci:internal/evals/informe_test.go:TestUmbralesDeLasTresSkills` |
 | FR-081, SC-004 | 0 contraejemplos de las tres propiedades sobre la rejilla | el recorrido entero de la rejilla | `ci:internal/core/plazos/propiedades_test.go:TestPropiedadesDelComputo` |
-| FR-082, SC-005 | 20 casos, 0 diferencias de fecha o de avisos | la tabla | `ci:internal/app/plazos_casos_test.go:TestCasosDePlazos` |
+| FR-082, SC-005 | 21 casos (19 con fecha y 2 de cobertura), 0 diferencias de fecha o de avisos | la tabla | `ci:internal/app/plazos_casos_test.go:TestCasosDePlazos` |
 | FR-011 | el festivo de una parte cuenta como hábil y avisa: 0 diferencias | el primer festivo con parte de lo grabado | `ci:internal/app/plazos_test.go:TestFestivoDeUnaParte` |
 | FR-020, FR-083, SC-006 (nacionales y autonómicos) | 0 bytes de diferencia con lo derivado; 0 filas sin `source`; 19 de 19 comunidades con festivos cada año | la derivación desde `evidencias/h9/` | `ci:internal/source/boe/fiestas/derivar_test.go:TestFestivosNacionalesDerivados` |
 | FR-021, FR-022, FR-083, SC-006 (locales) | 0 bytes de diferencia; 0 filas sin `source`; 179 de 179 municipios con festivos o falta en 2025 y en 2026; 0 líneas sin festivos ni falta | la derivación desde `evidencias/h9/` y `data/territorio/` | `ci:internal/source/bocm/derivar_test.go:TestFestivosLocalesDerivados` |

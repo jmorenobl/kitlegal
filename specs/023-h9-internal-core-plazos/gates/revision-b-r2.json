@@ -1,0 +1,88 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log (ignorado por git, .gitignore:25) tiene la hora exacta del commit de la corrección (2026-10-18 20:07:29) y abre con «guardián de diff ok ((global), 21 ficheros)», los 21 del commit 9243c55; termina en «ci: todos los controles en verde», exit=0, con internal/app 96,0 %. Reproducido en un clon de 9243c55 bajo $TMPDIR: go test -count=1 de internal/source/boe/fiestas, internal/core/plazos, internal/app, internal/skills e internal/source/bocm, 1678 tests en verde en 7 paquetes; TestArquitectura 8/8; golangci-lint sobre fiestas y app, «0 issues». Árbol al abrir la ronda: solo gates/ (modelos.jsonl M, revision-cambios.md M, base-global-pendiente D, revision-cambios-r2.diff ??), que escribe la preparación de la revisión; nada fuera de gates/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "La corrección no toca ningún guion: el stat de 9243c55 no lleva aceptacion/ ni testdata/script/, así que la suite congelada en 6e6235d sigue intacta y en verde (TestEntregaDelHito dentro de internal/app en el clon). Los tests nuevos detectan lo que dicen: en el clon, el mutante M1 (sustituir sin vaciar r.Filas[fila].Ambitos[columna], resolucion.go:670) deja en rojo TestFestivosNacionalesDerivados/data-festivos con el diff de las tres filas de Cataluña; el M2 (la forma fija con «sustituída», resolucion.go:131) deja en rojo TestLeerResolucion/sustitucion (Partes nil y la cita en NotasSinLeer «no es una relación de fiestas de una parte»), /cada-año-grabado, los tres subtests de /nota-fuera de sustitución y TestFestivosNacionalesDerivados. probarSustitucion (resolucion_test.go:536-560) exige la Resolucion entera por igualdad, cada-año-grabado fija por igualdad los números de las citas fuera (2025: 2 y 3; 2026 y 2027: ninguna), Partes[7:] con las dos filas de Arán y la columna de Cataluña vacía en la fila sustituida (:133-153), probarNotaFuera exige además que la nota fuera no cambia la tabla (:506) y probarCitaFuera que las otras citas de la nota se leen (:513-530). El caso 21 de TestCasosDePlazos (plazos_casos_test.go:106-110) tiene fecha y avisos calculados a mano en contracts/casos-de-plazos.md. Sin t.Skip, nolint, TODO ni `_ =` en el diff .go (el `_ = fila` solo existió en mi mutante)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El diff de la corrección en Go toca solo internal/source/boe/fiestas/resolucion.go y su test, y plazos_casos_test.go: ningún import nuevo (slices y fmt ya estaban), ningún net/http, os.Exit ni fmt.Print*; el adaptador sigue fuera del binario (go list -deps ./cmd/kitlegal no lo incluye, como en la ronda 1) y TestArquitectura pasa en el clon. internal/core/plazos no cambia."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Nada del sobre ni del esquema cambia (schemas/ no está en el commit). Comprobado en vivo con el binario del clon: `plazos calcular reposicion 2025-11-26 \"Vielha e Mijaran\" \"Vielha e Mijaran\" --json` da el sobre completo (fuente kitlegal.plazos, url kitlegal:applet/plazos, fecha_consulta, hash) con data.fecha 2025-12-26, festivos [], dos avisos con codigo y texto, y cobertura; TestAppletPlazos sigue validando cada salida contra la publicada de schemas/plazo.json (en verde en el clon)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "La corrección no toca rutas de usuario del binario: sustituir (resolucion.go:653-676) está en la derivación de los tests; sus dos guardas (dos días que existen, :657; fila marcada «***» en la columna, :661-667) devuelven motivo y dejan la tabla intacta, y f.Ambitos[columna] es seguro porque cada Fila nace con len(Cabecera) ámbitos (:545). Códigos de salida en vivo sin cambio: Leganés caso (a) → 0 con fecha 2026-10-13 y avisos []."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": false,
+      "evidencia": "CHANGELOG.md:56-59 (Unreleased) y README.md:31-32 dicen lo que hace el binario: la fiesta de una parte cuenta como hábil con aviso, en Canarias y en Arán, y la fecha es la más temprana; comprobado en vivo (Vielha 2025-12-26 con el aviso; 2026-06-17 hábil con el aviso; Barcelona el 2026-02-02 sin aviso de Arán; Palma 2025-12-29 con el 26 inhábil). contracts/datos-de-plazos.md §1.1, research.md:232-234 y gates/supuestos.md:49 y :79 registran la decisión y su impacto. Pero la corrección añadió el caso 21 a la tabla y al test y dejó plan.md:77 («20 casos en la…»), plan.md:223 («los veinte casos de contracts/casos-de-plazos.md»), la fila FR-082/SC-005 de «Controles de umbral» (plan.md:285, «20 casos, 0 diferencias») y quickstart.md:168 («un subtest por cada uno de los veinte casos») con el recuento anterior: TestCasosDePlazos tiene 21 subtests (19 con fecha y 2 de cobertura; contracts/casos-de-plazos.md:8-9 y plazos_casos_test.go:111). Motivo 1."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna grabación nueva: evidencias/ e internal/*/testdata no están en el commit; data/festivos/nacionales-y-autonomicos.yaml se regeneró por código desde lo grabado (TestFestivosNacionalesDerivados compara byte a byte y pasa en el clon; con M1 falla nombrando «se regenera con -actualizar-festivos, nunca a mano»), y las seis filas nuevas de Arán llevan source la resolución de su año. Sin red en la corrección, sin secretos ni NIF; los municipios siguen por código INE."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Diff de la corrección sin nolint, t.Skip, TODO ni error descartado. Ningún fixture retocado: el YAML lo exige la derivación byte a byte; los casos que se quitaron de probarNotaFuera («sustitucion» con motivo «relación» y «una-cita-que-no-se-lee») cambian porque cambió la regla —la sustitución ya se lee y una cita queda fuera sola— y los sustituyen tres casos negativos de sustitución, probarCitaFuera y probarSustitucion, con lo grabado fijado en cada-año-grabado. Lint en verde sin entradas nuevas en .golangci.yml."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango 24aaf80..9243c55 es exactamente la corrección del motivo del juez A: leer la sustitución de la nota de Arán por su forma fija (FR-011, FR-025), leer las notas cita a cita (necesario porque la nota 2 de 2025 lleva la sustitución y la fiesta recuperable en la misma nota), regenerar el YAML, el caso 21, y los textos. Es la lectura conservadora del spec: ningún día que la resolución no hace inhábil en toda la comunidad cuenta como inhábil y la fecha es la más temprana, con aviso; resolver Arán a sus municipios exigiría comarcas en territorio, fuera del spec. supuestos.md:49 reescrito y :79 registra la corrección con su impacto. El cherry-pick f266c12 (workflow 2.9.1) sigue en el diff respecto a main, como en la ronda 1 (observación)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en el binario del clon: el caso 21 con --json ocupa unos 1,35 KB (dos avisos y dos filas de cobertura); el caso (a) de Leganés no cambia. Lo nuevo añade como mucho dos avisos por año a un municipio de Cataluña cuyo tramo pase por el día sustituido o por el 17 de junio, y ninguno fuera de ese tramo (Barcelona 2026-02-02 → 2026-03-02 solo con el de locales); nada se acumula con el uso: plazos sigue leyendo solo lo empotrado. El aviso lee bien con la parte nueva: «el 2025-12-26 es fiesta solo en la comunidad salvo el territorio de Arán (Cataluña), según BOE-A-2024-21316; … La fecha es la más temprana posible»."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo nuevo se traza: sustitucionEnUnaParte y sustituir → FR-011/FR-025 con la nota de Arán de las tres resoluciones; restoDeLaComunidad → la parte de la fiesta sustituida, que sigue siéndolo fuera de Arán; citasDeLaNota/leerCita (cita a cita) → la nota 2 de 2025, que mezcla la sustitución con la fiesta recuperable; fechaDelTexto → quita la duplicación de mesDe+fechaDe que ya había; las dos guardas de sustituir → ADR 0039 punto 3 (lo que no se lee queda fuera con motivo) y evitan un índice -1; parrafoDeNota/notaDeCanariasCon → helpers que ya existían como cierres. Ningún tipo exportado nuevo, ninguna opción, ningún reintento. Lo único que no añade información es que «sustitucion-de-un-dia-sin-fiesta» y «sustitucion-de-una-fiesta-nacional» recorren la misma rama (fila < 0): observación, no motivo."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún umbral cambia. Los controles de la fila FR-020/FR-083/SC-006 (TestFestivosNacionalesDerivados: 0 bytes de diferencia, 0 filas sin source, 19 de 19 comunidades) y FR-082/SC-005 (TestCasosDePlazos: 0 diferencias) salen en rojo con los mutantes M1 y M2 en el clon; la fila FR-011 (TestFestivoDeUnaParte) sigue tomando el primer festivo con parte de lo grabado y pasa. Los umbrales de evals (plazo_sin_fecha, cobertura_sin_declarar, sin_activar) no están en el rango."
+    }
+  ],
+  "motivos": [
+    "[f] La corrección añadió el caso 21 (plazos_casos_test.go:106-110; contracts/casos-de-plazos.md:8-9 y :36) y dejó los artefactos del plan con el recuento anterior: TestCasosDePlazos tiene 21 subtests (19 con fecha y 2 de cobertura), y plan.md:77 dice «20 casos en la…», plan.md:223 «los veinte casos de contracts/casos-de-plazos.md», la fila FR-082/SC-005 de «Controles de umbral» (plan.md:285) «20 casos, 0 diferencias de fecha o de avisos» y quickstart.md:168 «un subtest por cada uno de los veinte casos». Qué cambiar: en esas cuatro líneas, 21 casos (19 con fecha y 2 de cobertura), señalando en plan.md:223 o :285 que el 21 lo añadió la revisión final, como ya dice contracts/casos-de-plazos.md:8-9. tasks.md:208 (T010, «veinte casos») y cierre.md:233 («los 20 casos») describen lo que hicieron T010 y el cierre en su momento y no se tocan."
+  ],
+  "observaciones": [
+    "[k] probarNotaFuera (resolucion_test.go:470-482): «sustitucion-de-un-dia-sin-fiesta» y «sustitucion-de-una-fiesta-nacional» recorren la misma rama de sustituir (fila < 0, resolucion.go:664) con dos entradas distintas; no se traza a ningún FR que exija los dos, pero cuesta una línea y ambas entradas puede traerlas una resolución futura.",
+    "[j] Para un municipio de Cataluña fuera de Arán (Barcelona), el 26 de diciembre de 2025 y 2026 y el 29 de marzo de 2027 cuentan ahora como hábiles con el aviso de una parte: la fecha que da (2025-12-26) es anterior a la real (2025-12-29), que es lo que FR-011 manda y el aviso dice. Darle a cada municipio su fecha exacta exigiría que territorio conociera las comarcas (los nueve municipios de Arán), fuera del spec de H9.",
+    "[i][f] Sigue en el diff respecto a main el cherry-pick f266c12 (workflow 2.9.1), registrado en supuestos.md:78, como en la ronda 1: lo resuelve la persona fusionando antes la propuesta del workflow; un corrector sin persona no debe retirarlo.",
+    "[f] T015 sigue en cuarentena ([ ] en tasks.md:247) con su documentación aplicada por el barrido (supuestos.md:75), como en la ronda 1; el informe final debería decirlo.",
+    "[a] gates/ci.log no está versionado (.gitignore:25) y su hora coincide con la del commit 9243c55; en esta sesión reproduje en el clon los tests de los cinco paquetes implicados, TestArquitectura y golangci-lint de fiestas y app, no `make ci` entero.",
+    "El sandbox de la sesión no deja usar sed -i ni perl -i sobre el clon: los mutantes M1 y M2 se aplicaron con la herramienta de edición sobre el clon bajo $TMPDIR y se restauraron con git checkout; las medidas de uso y de códigos se tomaron con `go run ./cmd/kitlegal` desde el clon, nunca sobre el árbol."
+  ]
+}
