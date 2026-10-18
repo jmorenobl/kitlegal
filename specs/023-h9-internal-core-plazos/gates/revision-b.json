@@ -1,90 +1,88 @@
 {
-  "veredicto": "rechazado",
+  "veredicto": "aprobado",
   "criterios": [
     {
       "id": "a",
       "criterio": "dod_ci",
       "cumple": true,
-      "evidencia": "gates/ci.log (ignorado por git) tiene como hora de modificación 2026-10-19 00:29:35, un segundo antes del commit e3d6426 (00:29:36); abre con «guardián de diff ok ((global), 16 ficheros)», los 16 de `git show --stat e3d6426`; golangci-lint «0 issues.»; govulncheck «Your code is affected by 0 vulnerabilities»; gitleaks «no leaks found»; `go mod tidy -diff` sin salida; termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». Reproducido en esta sesión en un clon de e3d6426 bajo $TMPDIR (kitlegal-juezb-r4b): `go test -count=1` de internal/evals, internal/skills, internal (TestArquitectura) e internal/app, los cuatro `ok`, y la orden exacta de `make skills-check` (Makefile:127, los siete tests del repositorio en internal/app, internal/skills e internal/evals), `ok` en los tres paquetes. El rango 0c9101a..HEAD no toca ningún .go: fuera de gates/ son CHANGELOG.md, skills/legal-core/SKILL.md, contracts/skill-legal-core.md, quickstart.md y research.md (71 líneas añadidas, 14 quitadas). Árbol al abrir la ronda: solo gates/ (modelos.jsonl, revision-cambios.md, revision-ciclo.json y supuestos.md M; base-global-pendiente D; cierre-reparaciones y revision-cambios-r4.diff ??), que escribe la preparación de la revisión; nada fuera de gates/, y esta sesión no ha escrito nada en el árbol salvo este fichero."
+      "evidencia": "gates/ci.log (ignorado por git, .gitignore:25) tiene como hora de modificación 2026-10-19 00:54:04, la misma del commit a172b3f (00:54:04 +0200); abre con «guardián de diff ok ((global), 15 ficheros)», los 15 de `git show --stat a172b3f` (research.md y catorce de gates/); golangci-lint «0 issues.» (:9); govulncheck «Your code is affected by 0 vulnerabilities» (:81); goreleaser check sobre .goreleaser.yaml (:92-93); gitleaks «no leaks found» (:98); `go mod tidy -diff` sin salida; 61 líneas `ok` de paquetes y ninguna FAIL ni panic; termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0». El rango e3d6426..HEAD fuera de gates/ es solo research.md (+3/-1, `git diff --stat`): ningún .go, ninguna skill, ningún dato. Árbol al abrir la ronda: solo gates/ (modelos.jsonl y revision-cambios.md M; base-global-pendiente D; revision-cambios-r5.diff ??), que escribe la preparación de la revisión; esta sesión no ha escrito nada en el árbol salvo este fichero. En un clon de a172b3f bajo $TMPDIR (kitlegal-juezb-r5) el binario compila y corre con `go run ./cmd/kitlegal`."
     },
     {
       "id": "b",
       "criterio": "dod_tests",
       "cumple": true,
-      "evidencia": "El rango no toca tests, guiones, testdata/ ni evals/*.yaml (stat de e3d6426): la suite congelada sigue como la juzgaron las rondas 1 a 3 (sin commits sobre specs/…/aceptacion ni sobre internal/app/testdata/script/h9-plazos-*.txtar desde 7269397) y TestEntregaDelHito corre dentro de internal/app, `ok` en el clon. Lo que el rango cambia es texto de la skill, que el binario empotra e instala: internal/skills (sincronía, menos de 300 líneas: SKILL.md tiene 266) e internal/app (instalación y e2e) en `ok` con el texto nuevo. El diagnóstico de D31 lo comprobé con una sonda en el clon (zz_juezb_r4_sonda_test.go, fuera del repositorio) sobre ExtraerLineasDelPlazo y formaDeCita tal como están en la cabeza: la línea nueva de SKILL.md:187 con fecha real da una línea del plazo con las citas a46 y a128; «[…, bloques a46 y a128]» (sesiones herramienta 01 y 03) no da ni línea ni cita; «[…, bloque a46; art. 128.2, BOE-A-1998-16718, bloque a128]» (herramienta 02) da la línea con solo a128; la plantilla con <AAAA-MM-DD> no da línea. Cinco subtests en PASS, exactamente lo que el informe del job registra de cada sesión (citas_encontradas y plazo_encontrado)."
+      "evidencia": "El rango no toca tests, guiones, testdata/, evals/*.yaml ni la skill (stat de a172b3f: solo research.md fuera de gates/): la suite congelada y los tests siguen como los juzgaron las rondas 1 a 4 (sin commits sobre specs/…/aceptacion ni sobre internal/app/testdata/script/h9-plazos-*.txtar desde 7269397), y gates/ci.log de esta cabeza los lleva en verde (61 paquetes `ok`, entre ellos internal/app con TestEntregaDelHito, internal/evals e internal/skills). Nada que un test pudiera detectar cambia en cuatro líneas de Markdown de specs/."
     },
     {
       "id": "c",
       "criterio": "dod_reglas",
       "cumple": true,
-      "evidencia": "Ningún fichero Go en el rango. TestArquitectura (paquete internal) `ok` en el clon; golangci-lint «0 issues.» en gates/ci.log sobre esta cabeza."
+      "evidencia": "Ningún fichero Go en el rango. golangci-lint «0 issues.» y el paquete internal (TestArquitectura) `ok` en gates/ci.log sobre esta cabeza."
     },
     {
       "id": "d",
       "criterio": "dod_sobre",
       "cumple": true,
-      "evidencia": "Sin cambios en el applet ni en schemas/. En vivo desde el clon con `go run ./cmd/kitlegal`: `plazos calcular contencioso 2026-06-15 Madrid --json` da ok:true, fecha 2026-09-15, preceptos a46 y a128 y 0 avisos; con Leganés, la misma fecha y los mismos preceptos; `silencio 2026-06-15 Leganés Leganés --duracion 3 --unidad meses` da a21 y a24. TestAppletPlazos (golden contra schemas/plazo.json) dentro de internal/app, `ok`."
+      "evidencia": "Sin cambios en el applet ni en schemas/. En vivo desde el clon de a172b3f con `go run ./cmd/kitlegal`: `plazos calcular contencioso 2026-06-15 Madrid --json --offline` da ok:true, fuente kitlegal.plazos, fecha 2026-09-15, preceptos BOE-A-1998-16718 a46 (46.1) y a128 (128.2) y avisos vacíos; con Leganés, la misma fecha y los mismos preceptos. TestAppletPlazos (golden contra schemas/plazo.json) dentro de internal/app, `ok` en gates/ci.log."
     },
     {
       "id": "e",
       "criterio": "dod_errores",
       "cumple": true,
-      "evidencia": "Sin cambios en rutas de usuario ni en códigos; lo juzgado en las rondas 1 a 3 sigue (h9-plazos-codigos en PASS dentro de internal/app en el clon). El informe del job enseña el contrato en uso: las dos llamadas de Haiku con el tipo «contencioso-administrativo» salieron con código 2 (argumentos) y la sesión siguió con «contencioso» y código 0."
+      "evidencia": "Sin cambios en rutas de usuario ni en códigos (h9-plazos-codigos dentro de internal/app, `ok` en gates/ci.log). El informe del job enseña el contrato en uso, y es justo lo que la corrección registra: en gates/evals/legal-core.json las dos sesiones de Haiku del modo herramienta de la eval 09 llamaron a `plazos_calcular contencioso-administrativo 2026-06-15 Leganés` con código 2 y repitieron con `contencioso` y código 0."
     },
     {
       "id": "f",
       "criterio": "dod_docs",
-      "cumple": false,
-      "evidencia": "La reparación está registrada como decisión con su evidencia en research.md D31 (:374-408) y en gates/supuestos.md:80 (línea reparar_cierre, con lo que cambia y lo que no), y CHANGELOG.md:74-86, contracts/skill-legal-core.md (filas 7, 9 y 11 y §3) y quickstart.md:190-192 dicen lo mismo que SKILL.md:100-116, :126-134, :147-150 y :173-191; `grep -c '^⚠ '` da 8, como promete el quickstart. Pero una cifra de D31 no la sostiene la medición que cita: research.md:381 dice que el applet «dio en las ocho sesiones que lo pidieron el 2026-09-15», y en gates/evals/legal-core.json `plazos calcular contencioso` lo ejecutaron siete sesiones de la eval 09 —Sonnet orden 01 y 02, Sonnet herramienta 01, 02 y 03, Haiku herramienta 01 y 02—, con nueve llamadas (las dos de Haiku fallaron antes con el tipo «contencioso-administrativo», código 2); Sonnet orden 03 y las cuatro restantes de Haiku no lo pidieron. Lo demás que D31 afirma de la medición sí casa con el informe: 1 de 9 (orden) y 2 de 9 (herramienta) en plazo_sin_fecha, las tres de la eval 09; 1 de 3 y 0 de 3 con el umbral 2; las tres formas de corchetes de las sesiones herramienta; la sesión orden 01 con «plazos calcular contencioso 2026-06-15 Madrid --json» sin territorio resolver; la sesión orden 03 sin ninguna invocación, preguntando la materia y diciendo que el art. 46.1 LJCA «lo cuenta de forma especial en agosto»."
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 4 está corregido y la cifra nueva la sostiene la medición: research.md:381-383 dice ahora «siete sesiones que lo pidieron … (nueve llamadas: las dos sesiones de Haiku del modo herramienta lo pidieron antes con el tipo `contencioso-administrativo`, que sale con 2, y lo repitieron con `contencioso`)», y en gates/evals/legal-core.json las sesiones de 09-plazo-contencioso-agosto con `plazos calcular contencioso` en comandos_ejecutados son siete —Sonnet orden 01 y 02, Sonnet herramienta 01, 02 y 03, Haiku herramienta 01 y 02— con nueve invocaciones (2+2+1+1+1+1+1), las dos de Haiku con código 2 y después 0; Sonnet orden 03 y las otras cuatro de Haiku no lo pidieron. Lo que D31 afirma del applet («dio … el 2026-09-15 con a46 y a128») lo da el binario del clon con Madrid y con Leganés, y las tres sesiones con línea del plazo en el informe llevan «2026-09-15» en lineas_del_plazo. No queda otra copia del recuento: `grep -rn 'ocho sesiones|las ocho|8 sesiones'` en specs/023 y CHANGELOG.md solo da recuentos de otras cosas (evals, banderas globales). Lo demás de D31 (:385-410), gates/supuestos.md:80, CHANGELOG.md, contracts/skill-legal-core.md, quickstart.md y SKILL.md no cambian desde la ronda 4, donde casaban con la medición y entre sí."
     },
     {
       "id": "g",
       "criterio": "frontera_humana",
       "cumple": true,
-      "evidencia": "El rango no toca Go, internal/httpx, evidencias/, testdata/ ni data/; ninguna grabación nueva; sin secretos ni NIF en gates/revision-cambios-r4.diff; gitleaks «no leaks found» en gates/ci.log. La skill sigue resolviendo municipios por `territorio` (código INE) y no pide a `plazos` nada con identidad."
+      "evidencia": "El rango no toca Go, internal/httpx, evidencias/, testdata/ ni data/; ninguna grabación nueva; gates/revision-cambios-r5.diff son 4 líneas de Markdown sin secretos ni NIF; gitleaks «no leaks found» en gates/ci.log de esta cabeza. El applet corre en el clon con --offline."
     },
     {
       "id": "h",
       "criterio": "sin_atajos",
       "cumple": true,
-      "evidencia": "gates/revision-cambios-r4.diff: 85 líneas de Markdown; ningún nolint, t.Skip, TODO, error descartado ni fixture tocado. El umbral en rojo no se arregló en lo que mide: ni 09-plazo-contencioso-agosto.yaml, ni formaDeCita (internal/evals/citas.go:16-17), ni los umbrales ni el job cambian (stat del rango; D31 lo registra como rechazado y por qué: ADR 0029 y el contrato de cita de boe-legislacion). La corrección va a la skill, que es de donde salen las tres causas."
+      "evidencia": "gates/revision-cambios-r5.diff: ningún nolint, t.Skip, TODO, error descartado ni fixture tocado. La corrección cambia el recuento de la medición por el que el informe del job sostiene, sin tocar la medición, la eval, formaDeCita ni los umbrales."
     },
     {
       "id": "i",
       "criterio": "alcance",
       "cumple": true,
-      "evidencia": "Tres causas en la medición, tres cambios en la skill y nada más: el paso 11 y «Cómo se presenta un plazo» (una cita por precepto de data.preceptos, cada una en sus corchetes, con el ejemplo del contencioso y qué no es cita), el paso 7 (la materia que la conversación no dice no se pregunta ni detiene la respuesta: se calcula y se avisa) y el paso 9 (a `plazos` solo municipios resueltos por `territorio` en la conversación). Los tres son lecturas de FR-040.1, FR-040.2 y FR-041/FR-048 (spec.md:270-289) más estrictas que las de 0c9101a, no cambios de decisión; las alternativas rechazadas (ampliar formaDeCita, preguntar siempre la materia, que `plazos` exija el código INE) están en D31 con su motivo, y cada una habría tocado la eval, la gramática de D2 o la aceptación congelada. El supuesto de gates/supuestos.md:80 es coherente con el spec. El cherry-pick f266c12 (workflow 2.9.1) sigue en main..HEAD, registrado en supuestos.md:78 (observación, como en las rondas 1 a 3)."
+      "evidencia": "El rango hace exactamente lo que pedía el motivo de la ronda 4 («ocho» por «siete», con las nueve llamadas y el porqué) y nada más (`git diff --stat e3d6426..HEAD` fuera de gates/: research.md, +3/-1). gates/supuestos.md gana solo la línea [proceso] de apertura del ciclo 2 (:81), escrita por el workflow. El cherry-pick f266c12 (workflow 2.9.1) sigue en main..HEAD, registrado en supuestos.md:78, como en las rondas 1 a 4."
     },
     {
       "id": "j",
       "criterio": "uso",
       "cumple": true,
-      "evidencia": "El binario no cambia y plazos sigue sin caché ni grafo: nada crece con los meses de uso. Lo que el rango añade a la salida de la skill es acotado por la pregunta: una cita por precepto de data.preceptos en la línea del plazo, y ningún tipo de data/plazos.yaml tiene más de dos (contencioso a46 y a128, silencio a21 y a24; los demás uno), unos 50 bytes por cita. Invocaciones por pregunta de plazo que pide la SKILL.md: territorio resolver por municipio que cuenta (uno o dos), plazos calcular una vez, boe articulo por precepto (uno o dos; boe-legislacion añade su graph check): de cuatro a siete, igual que antes del rango, que solo hace condición la de territorio que la eval 09 ya exigía (comandos:). El aviso nuevo del paso 7 («la fecha no vale si el asunto es de los que la ley regula aparte») solo se da cuando la conversación no dice la materia, no se repite por consulta."
+      "evidencia": "El rango no toca el binario, la skill ni ninguna salida que consuma una skill o una persona: research.md es un artefacto del hito que no se empotra ni se instala. Lo medido en las rondas 3 y 4 sigue: plazos sin caché ni grafo (nada crece con los meses de uso), una cita por precepto de data.preceptos (como mucho dos) en la línea del plazo, de cuatro a siete invocaciones por pregunta de plazo."
     },
     {
       "id": "k",
       "criterio": "proporcionalidad",
       "cumple": true,
-      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, rama, opción, reintento ni test; solo texto de la skill y sus artefactos. La octava línea `⚠` de SKILL.md:187 es el ejemplo de la forma con dos preceptos, que el contrato §3 (contracts/skill-legal-core.md:38-40) declara forma fija y que las tres sesiones herramienta demuestran necesario; la regla de SKILL.md:190-191 dice qué no es cita con las dos formas que fallaron, nada más. Lo juzgado en las rondas 1 a 3 no cambia; la duplicación observada entonces en probarNotaFuera sigue como observación."
+      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, rama, opción, reintento ni test; cuatro líneas de un documento de decisión. Lo juzgado en las rondas 1 a 4 no cambia; la duplicación observada entonces en probarNotaFuera sigue como observación."
     },
     {
       "id": "l",
       "criterio": "umbrales_que_se_cumplen",
       "cumple": true,
-      "evidencia": "Ningún umbral cambia en el rango. La medición del cierre enseña el control en acción, que es más que un mutante: gates/evals/legal-core.json lleva en `umbrales` plazo_sin_fecha:claude-sonnet-5-5:orden (medida 1, total 9, umbral 0, cumple false, decide true) y :herramienta (2 de 9, cumple false, decide true), y el informe sale con veredicto «fallo», motivos con las dos líneas de umbral y la regla 2 de 3 de la eval 09, y `make evals` con Error 1 (gates/cierre.log:150); el trabajo evals (legal-core) en FAILURE en gates/cierre.json. Los demás controles de «Controles de umbral» de plan.md (TestCasosDePlazos, TestUmbralesDeLegalCore, TestUmbralesDeLasTresSkills, TestPropiedadesDelComputo, las derivaciones de fiestas y bocm) no están en el rango y siguen en verde en el clon (internal/evals e internal/app `ok`; los demás, en gates/ci.log de esta cabeza)."
+      "evidencia": "Ningún umbral cambia en el rango. gates/evals/legal-core.json sigue llevando en `umbrales` plazo_sin_fecha:claude-sonnet-5-5:orden (1 de 9) y :herramienta (2 de 9) con umbral 0, cumple false y decide true, y el veredicto del informe en «fallo», que es el control en acción sobre la medición de 3f14e3a. Los demás controles de «Controles de umbral» de plan.md (TestCasosDePlazos, TestUmbralesDeLegalCore, TestUmbralesDeLasTresSkills, TestPropiedadesDelComputo, las derivaciones de fiestas y bocm) no están en el rango y siguen `ok` en gates/ci.log de esta cabeza; su caída con mutantes se comprobó en las rondas 1 y 2 sobre el mismo código."
     }
   ],
-  "motivos": [
-    "[f] specs/023-h9-internal-core-plazos/research.md:381 (D31): «el applet, que dio en las ocho sesiones que lo pidieron el 2026-09-15 con `a46` y `a128` en `data.preceptos`» no casa con gates/evals/legal-core.json: `plazos calcular contencioso` lo ejecutaron siete sesiones de la eval 09 —Sonnet orden 01 y 02, Sonnet herramienta 01, 02 y 03, Haiku herramienta 01 y 02 (comandos_ejecutados)—, con nueve llamadas, porque las dos de Haiku fallaron antes con el tipo «contencioso-administrativo» (código 2) y repitieron con «contencioso» y Leganés; Sonnet orden 03 y las otras cuatro de Haiku no lo pidieron. Cambiar «ocho» por «siete» en esa línea (y, si se quiere, decir que fueron nueve llamadas), sin tocar nada más de D31: lo que concluye —2026-09-15 con a46 y a128 en todas, ninguna causa en la eval ni en el applet— sí lo sostiene el binario (comprobado en el clon con Madrid y con Leganés)."
-  ],
+  "motivos": [],
   "observaciones": [
-    "[f] contracts/SKILL-legal-core.prototipo.md:102 («Averigua qué acto o qué solicitud es…») y :142 («con su tipo y su cita») conservan la redacción anterior al rango: es el borrador del plan (ba65b1c, nunca actualizado; plan.md:128 y tasks.md:237 lo llaman «el borrador»), un registro de su momento como tasks.md:208, no documentación del producto. Igual tasks.md:237 («siete líneas que empiezan por ⚠», lo que verificó T013); hoy son ocho y quickstart.md:190-192 lo dice.",
-    "[f] docs/ROADMAP.md:728 y FR-041 (spec.md:277) dicen «con su tipo y su cita», en singular; la skill lee ahora «una cita por cada precepto de data.preceptos», que es lo mismo para un tipo con dos preceptos y no contradice ninguno de los dos.",
-    "[l] El efecto de la reparación sobre el modelo no está medido: esta sesión no abre sesiones con modelo (ADR 0032) y D31 lo dice (:407-408). La sonda del clon demuestra que la forma que la skill enseña sí la lee el juicio sin modelo, no que Sonnet vaya a escribirla; si la medición siguiente vuelve a salir en rojo por la misma causa, será otra reparación del cierre, no un defecto de esta.",
-    "[j] Las dos sesiones de Haiku en el modo herramienta pasaron a plazos Leganés (el municipio de la persona) y no Madrid (la sede del juzgado), aunque el paso 8 ya lo dice; el modelo informativo no decide y la fecha coincide, pero es la clase de desvío que el paso 9 nuevo no cubre (exige resolver, no elegir bien el municipio).",
-    "[i][f] Sigue en main..HEAD el cherry-pick f266c12 (workflow 2.9.1), registrado en supuestos.md:78, como en las rondas 1 a 3: lo resuelve la persona fusionando antes la propuesta del workflow; un corrector sin persona no debe retirarlo.",
-    "[f] T015 sigue en cuarentena ([ ] en tasks.md:247) con su documentación aplicada por el barrido (supuestos.md:75), como en las rondas anteriores; el informe final debería decirlo.",
-    "[k] probarNotaFuera (internal/source/boe/fiestas/resolucion_test.go): dos entradas por la misma rama de sustituir, sin FR que exija las dos; sin cambio en el rango, como en la ronda 3.",
-    "[a] En esta sesión no se ejecutó `make ci` entero (lo prohíbe el paso): se reprodujeron en el clon `go test` de internal/evals, internal/skills, internal e internal/app y la orden de `make skills-check`; lint, govulncheck, gitleaks, goreleaser check y `go mod tidy -diff` se toman de gates/ci.log, cuya hora es la de esta cabeza. El sandbox no deja ejecutar el binario construido: las salidas se tomaron con `go run ./cmd/kitlegal` desde el clon; nada se escribió en el árbol salvo este veredicto."
+    "[l] El efecto de la reparación del cierre (e3d6426) sobre el modelo sigue sin medir: lo mide el workflow sobre la cabeza tras esta revisión (research D31:409-410); si vuelve a salir en rojo por la misma causa será otra reparación del cierre, no un defecto de este rango.",
+    "[f] contracts/SKILL-legal-core.prototipo.md (:102 y :142) y tasks.md:237 («siete líneas que empiezan por ⚠») conservan la redacción anterior a e3d6426: son el borrador del plan y el registro de T013 en su momento, no documentación del producto; quickstart.md:190-192 dice ocho.",
+    "[f] docs/ROADMAP.md:728 y FR-041 (spec.md:277) dicen «con su tipo y su cita», en singular; la skill lee «una cita por cada precepto de data.preceptos», que es lo mismo para un tipo con dos preceptos y no contradice ninguno de los dos.",
+    "[j] Las dos sesiones de Haiku del modo herramienta pasaron a plazos Leganés y no Madrid (la sede del juzgado); el modelo informativo no decide, la fecha coincide y el paso 9 exige resolver, no elegir bien el municipio.",
+    "[i][f] Sigue en main..HEAD el cherry-pick f266c12 (workflow 2.9.1), registrado en supuestos.md:78: lo resuelve la persona fusionando antes la propuesta del workflow; un corrector sin persona no debe retirarlo.",
+    "[f] T015 sigue en cuarentena ([ ] en tasks.md:247) con su documentación aplicada por el barrido (supuestos.md:75); el informe final debería decirlo.",
+    "[k] probarNotaFuera (internal/source/boe/fiestas/resolucion_test.go): dos entradas por la misma rama de sustituir, sin FR que exija las dos; sin cambio desde la ronda 3.",
+    "[a] En esta sesión no se ejecutó `make ci` entero (lo prohíbe el paso) ni `go test` en el clon: el rango no toca ningún .go ni ninguna skill y gates/ci.log, con la hora y los 15 ficheros de a172b3f, lo lleva entero en verde; en el clon solo se ejecutó el applet con `go run` para comprobar lo que D31 afirma de él. El clon queda en $TMPDIR/kitlegal-juezb-r5; nada se escribió en el árbol salvo este veredicto."
   ]
 }

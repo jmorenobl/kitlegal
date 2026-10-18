@@ -1,0 +1,15 @@
+diff --git a/specs/023-h9-internal-core-plazos/research.md b/specs/023-h9-internal-core-plazos/research.md
+index 894d8a2..6e77007 100644
+--- a/specs/023-h9-internal-core-plazos/research.md
++++ b/specs/023-h9-internal-core-plazos/research.md
+@@ -378,7 +378,9 @@ La medición del cierre sobre `3f14e3a` (job de evals `39168409746`, trabajo `ev
+ los dos umbrales `plazo_sin_fecha:claude-sonnet-5-5`: 1 de 9 en el modo orden y 2 de 9 en el modo herramienta, las tres
+ respuestas de `09-plazo-contencioso-agosto`, que además pasó 1 de 3 en orden y 0 de 3 en herramienta con el umbral 2.
+ Lo que el job dejó (`gates/evals/legal-core.json`) enseña tres causas, todas de la skill, ninguna de la eval ni del
+-applet, que dio en las ocho sesiones que lo pidieron el 2026-09-15 con `a46` y `a128` en `data.preceptos`:
++applet, que dio en las siete sesiones que lo pidieron el 2026-09-15 con `a46` y `a128` en `data.preceptos` (nueve
++llamadas: las dos sesiones de Haiku del modo herramienta lo pidieron antes con el tipo `contencioso-administrativo`,
++que sale con 2, y lo repitieron con `contencioso`):
+ 
+ - **Los dos preceptos en unos mismos corchetes.** Las tres sesiones del modo herramienta pusieron la cita del
+   contencioso como `[Ley 29/1998 (LJCA), art. 46.1 y 128.2, BOE-A-1998-16718, bloques a46 y a128]` (dos veces) o
