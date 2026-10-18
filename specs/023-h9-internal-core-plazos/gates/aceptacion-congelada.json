@@ -6,6 +6,11 @@
     "specs/023-h9-internal-core-plazos/aceptacion/plazos-cobertura.txtar": "85e83ba672ef4336ad8be3da5774bb37a417006b27c4be1957755ab3a693aa0e",
     "specs/023-h9-internal-core-plazos/aceptacion/plazos-codigos.txtar": "ea5e48484bcd3f54cd8ff57db3458bcdc185eebd46e2d78ff0b7758126bef8f4",
     "specs/023-h9-internal-core-plazos/aceptacion/plazos-herramienta.txtar": "b15c497bed6b6c8e95d896c19e3db637bd3bffb441ccf01b0a5deecb71c52873",
-    "specs/023-h9-internal-core-plazos/aceptacion/plazos-sin-efectos.txtar": "efa3857e0ef8fa4098625e29f2a5f6ee621f7288a1c8627355ff5ecc4c8b133d"
+    "specs/023-h9-internal-core-plazos/aceptacion/plazos-sin-efectos.txtar": "efa3857e0ef8fa4098625e29f2a5f6ee621f7288a1c8627355ff5ecc4c8b133d",
+    "internal/app/testdata/script/h9-plazos-calcular.txtar": "d1d2d1e85384f75612c19f26714114e284ccd868f9b85494c0158d7739f68b62",
+    "internal/app/testdata/script/h9-plazos-cobertura.txtar": "85e83ba672ef4336ad8be3da5774bb37a417006b27c4be1957755ab3a693aa0e",
+    "internal/app/testdata/script/h9-plazos-codigos.txtar": "ea5e48484bcd3f54cd8ff57db3458bcdc185eebd46e2d78ff0b7758126bef8f4",
+    "internal/app/testdata/script/h9-plazos-herramienta.txtar": "b15c497bed6b6c8e95d896c19e3db637bd3bffb441ccf01b0a5deecb71c52873",
+    "internal/app/testdata/script/h9-plazos-sin-efectos.txtar": "efa3857e0ef8fa4098625e29f2a5f6ee621f7288a1c8627355ff5ecc4c8b133d"
   }
 }

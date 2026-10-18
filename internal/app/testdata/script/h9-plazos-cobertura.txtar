@@ -1,0 +1,48 @@
+# La fecha avisa de los festivos que le faltan y nunca los da por inexistentes.
+# En Tordesillas, de una comunidad sin festivos locales cargados, el recurso de
+# reposición contra un acto notificado el 9 de septiembre de 2026 vence el 9 de
+# octubre, con un aviso de los festivos locales que nombra Tordesillas y 2026, y
+# data dice en cobertura por qué faltan; ninguna frase dice que Tordesillas no
+# tenga festivos. En Leganés, un plazo cuyo tramo entra en 2027 vence el 14 de
+# enero de 2027 con los festivos nacionales y autonómicos de 2027 y un aviso de
+# los locales de Leganés de 2027. Y un plazo cuyo tramo pasa por 2024 avisa de
+# que faltan los nacionales y autonómicos y los locales.
+#
+# Cubre: US2.1, US2.2, US2.3 · FR-026, FR-085.
+#
+# Los casos son el 2, el 18 y el 17 de contracts/casos-de-plazos.md, cuyo día
+# decisivo es cierto antes de derivar los festivos (research D27): el 9 de
+# octubre de 2026 no es fiesta nacional ni de Castilla y León, el 14 de enero de
+# 2027 no es fiesta nacional ni de la Comunidad de Madrid, y el 1 de enero de
+# 2025 es fiesta nacional. Los códigos de aviso y las claves de cobertura son los
+# de contracts/applet-plazos.md §4 y §5; del texto de un aviso solo se mira el
+# municipio y el año que nombra, y en el del caso 17, que puede nombrar los años
+# como «anteriores a 2025», ninguno.
+
+# Precondición: el binario registra el applet plazos (FR-001).
+exec kitlegal --help
+stdout '^\s+plazos\s'
+
+# --- Un municipio sin festivos locales: Tordesillas (US2.1; FR-026, FR-085) ---
+exec kitlegal plazos calcular reposicion 2026-09-09 Tordesillas Tordesillas --json
+stdout '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"fecha":"2026-10-09","tipo":"reposicion",'
+stdout '\{"codigo":"faltan-festivos-locales","texto":"[^"]*Tordesillas[^"]*"\}'
+stdout '\{"codigo":"faltan-festivos-locales","texto":"[^"]*\b2026\b[^"]*"\}'
+! stdout 'Tordesillas no tiene festivos'
+stdout '\{"ambito":"local","municipio":"47165","desde":2026,"hasta":2026,"falta":"sin-festivos-locales"\}'
+
+# --- Leganés, con el tramo en 2027 (US2.2; FR-026) ---
+exec kitlegal plazos calcular reposicion 2026-12-14 Leganés Leganés --json
+stdout '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"fecha":"2027-01-14","tipo":"reposicion",'
+stdout '\{"codigo":"faltan-festivos-locales","texto":"[^"]*Leganés[^"]*"\}'
+stdout '\{"codigo":"faltan-festivos-locales","texto":"[^"]*\b2027\b[^"]*"\}'
+! stdout '"codigo":"faltan-festivos-nacionales-y-autonomicos"'
+
+# --- Leganés, con el tramo en 2024 (US2.3; FR-026) ---
+exec kitlegal plazos calcular generico 2024-12-30 Leganés Leganés --duracion 3 --unidad dias-habiles --json
+stdout '^\{"ok":true,"fuente":"kitlegal\.plazos","url":"kitlegal:applet/plazos",'
+stdout '"data":\{"fecha":"2025-01-03","tipo":"generico",'
+stdout '\{"codigo":"faltan-festivos-nacionales-y-autonomicos","texto":"'
+stdout '\{"codigo":"faltan-festivos-locales","texto":"'
