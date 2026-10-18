@@ -114,8 +114,9 @@ func main() {
 // binario (contracts/arnes-e2e.md §2 de H21)—, skills con las mismas
 // dependencias del sistema que el binario distribuido —la versión de este
 // binario, lo empotrado y el creador de enlaces de internal/disco, salvo que la
-// construcción eligiera el que falla— y territorio con los mismos ficheros
-// embebidos, que no dependen del entorno (contrato del applet territorio §7);
+// construcción eligiera el que falla— y territorio y plazos con los mismos ficheros
+// embebidos, que no dependen del entorno (contrato del applet territorio §7;
+// contracts/applet-plazos.md §3 de H9);
 // boe y graph, con el reloj del sistema salvo que la construcción fijara el
 // suyo. Construirlo no pide nada ni abre nada. Un registro que no se construye —también el de una construcción con un
 // enlazador o un reloj que no elige nada— es un defecto de quien escribió un
@@ -149,11 +150,17 @@ func registroDeE2E(version string) (*app.Registro, error) {
 		return nil, err
 	}
 
+	dePlazos, err := app.FuentesDePlazos()
+	if err != nil {
+		return nil, err
+	}
+
 	applets := []app.Applet{
 		app.AppletBoe(deBoe),
 		app.AppletCita(),
 		app.AppletGrafo(delGrafo),
 		app.AppletMCP(app.DependenciasDeMCPDelSistema(version)),
+		app.AppletPlazos(dePlazos),
 		app.AppletSkills(skills),
 		app.AppletTerritorio(fuentes),
 	}

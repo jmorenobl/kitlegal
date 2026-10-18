@@ -142,8 +142,8 @@ func TestArquitectura(t *testing.T) {
 		})
 	})
 
-	t.Run("sin red · instalacion, disco, cita, ids, el paquete raíz y los ficheros de los applets skills y cita y del aviso "+
-		"no alcanzan net, net/http ni internal/httpx", func(t *testing.T) {
+	t.Run("sin red · instalacion, disco, cita, ids, plazos, el paquete raíz y los ficheros de los applets skills, cita y "+
+		"plazos y del aviso no alcanzan net, net/http ni internal/httpx", func(t *testing.T) {
 		t.Parallel()
 
 		compruebaSinRed(t, grafo)
@@ -643,7 +643,9 @@ func compruebaAdaptadorDelGrafo(t *testing.T, g grafo) {
 // Desde H23 es también la del applet cita, que no consulta el CENDOJ de
 // ninguna forma: sus dos dominios —la cita y los identificadores de una
 // sentencia— son orígenes, y su fichero de internal/app, uno de los vigilados
-// (H23 FR-002, FR-084, SC-005; research.md D27 de H23).
+// (H23 FR-002, FR-084, SC-005; research.md D27 de H23). Y desde H9, la del
+// applet plazos, que no pide los festivos en ejecución: su dominio es origen, y
+// su fichero de internal/app, otro de los vigilados (H9 FR-013, FR-028).
 //
 // Lo que no ve es una llamada de esos ficheros a otro fichero de internal/app,
 // paquete que sí importa internal/httpx para componer boe: un análisis de
@@ -678,21 +680,21 @@ func compruebaSinRed(t *testing.T, g grafo) {
 
 	for _, origen := range origenes {
 		for _, violada := range g.alcanza(origen, denegados, nil) {
-			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El applet skills, el aviso y el applet cita no "+
-				"abren ninguna conexión: el dominio de la instalación, el adaptador del disco, lo empotrado, el "+
-				"dominio de la cita y los identificadores no dependen de la red, que solo se usa a través de "+
-				"internal/httpx desde los adaptadores de fuente (H19 FR-016, FR-072, FR-076, SC-022; research.md "+
-				"D32; H23 FR-002, FR-084).",
+			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El applet skills, el aviso y los applets cita y "+
+				"plazos no abren ninguna conexión: el dominio de la instalación, el adaptador del disco, lo "+
+				"empotrado, el dominio de la cita, los identificadores y el dominio de los plazos no dependen de "+
+				"la red, que solo se usa a través de internal/httpx desde los adaptadores de fuente (H19 FR-016, "+
+				"FR-072, FR-076, SC-022; research.md D32; H23 FR-002, FR-084; H9 FR-013, FR-028).",
 				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
 		}
 	}
 
 	for _, fichero := range ficherosSinRed {
 		for _, violada := range violacionesDelFichero(t, g, fichero, denegados) {
-			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El fichero es del applet skills, del aviso o del "+
-				"applet cita, que no abren ninguna conexión: solo importa su dominio, el adaptador del disco, lo "+
-				"empotrado y lo que no llega a la red (H19 FR-016, FR-072, FR-076, SC-022; research.md D32; H23 "+
-				"FR-002, FR-084).",
+			t.Errorf("sin red · %s importa %q (lo prohíbe %q). El fichero es del applet skills, del aviso o de "+
+				"los applets cita o plazos, que no abren ninguna conexión: solo importa su dominio, el adaptador "+
+				"del disco, lo empotrado y lo que no llega a la red (H19 FR-016, FR-072, FR-076, SC-022; "+
+				"research.md D32; H23 FR-002, FR-084; H9 FR-013, FR-028).",
 				strings.Join(violada.cadena, " → "), violada.importacion, violada.denegado)
 		}
 	}
@@ -700,20 +702,22 @@ func compruebaSinRed(t *testing.T, g grafo) {
 
 // paquetesSinRed son, relativos al módulo, las raíces de los paquetes que no
 // alcanzan la red, además del paquete raíz: el dominio de la instalación y el
-// adaptador del disco, de H19, y el dominio de la cita y el de los
+// adaptador del disco, de H19, el dominio de la cita y el de los
 // identificadores, de H23, que es todo lo que el applet cita tiene debajo
-// (research.md D27 de H23).
+// (research.md D27 de H23), y el dominio de los plazos, de H9 (H9 FR-013).
 var paquetesSinRed = []string{
 	"internal/core/instalacion", "internal/disco",
 	"internal/core/cita", "internal/core/ids",
+	"internal/core/plazos",
 }
 
 // ficherosSinRed son, relativos a internal/, los ficheros de producción de
 // internal/app que componen el applet skills —el applet y la lectura de lo
 // empotrado—, el avisador de versión que llama el kernel y, desde H23, el
-// applet cita. La garantía sin red no puede ser del paquete, que importa
-// internal/httpx para componer boe: es de lo que importa cada uno de ellos.
-var ficherosSinRed = []string{"app/instalacion.go", "app/empotradas.go", "app/aviso.go", "app/cita.go"}
+// applet cita, y desde H9, el applet plazos. La garantía sin red no puede ser
+// del paquete, que importa internal/httpx para componer boe: es de lo que
+// importa cada uno de ellos.
+var ficherosSinRed = []string{"app/instalacion.go", "app/empotradas.go", "app/aviso.go", "app/cita.go", "app/plazos.go"}
 
 // violacionesDelFichero son las importaciones prohibidas del fichero: cada una
 // que prohíbe una denegación, con el fichero como cadena, y cada una que

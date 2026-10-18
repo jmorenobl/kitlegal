@@ -57,7 +57,8 @@ type ficheroDeEsquemas struct {
 // igual que los de boe, y no como el applet (contrato del applet territorio §6;
 // research.md D25; research.md D16 de H19; contracts/applet-graph.md §6 de H7;
 // research.md D11 de H21). El de cita también, y su entidad se llama como el
-// applet: la cita de una sentencia (research.md D11 de H23).
+// applet: la cita de una sentencia (research.md D11 de H23). Y el de plazos, el
+// plazo calculado (research.md V26 de H9).
 var ficherosDeEsquemas = []ficheroDeEsquemas{
 	{applet: "boe", nombre: "norma.json", entidad: "norma", verbos: []string{"analisis", "buscar", "indice", "metadatos"}},
 	{applet: "boe", nombre: "bloque.json", entidad: "bloque", verbos: []string{"articulo", "articulos"}},
@@ -66,6 +67,7 @@ var ficherosDeEsquemas = []ficheroDeEsquemas{
 	{applet: "graph", nombre: "grafo.json", entidad: "grafo", verbos: []string{"check", "show", "stats"}},
 	{applet: "mcp", nombre: "servidor.json", entidad: "servidor", verbos: []string{"serve"}},
 	{applet: "cita", nombre: "cita.json", entidad: "cita", verbos: []string{"cotejar", "preparar"}},
+	{applet: "plazos", nombre: "plazo.json", entidad: "plazo", verbos: []string{"calcular"}},
 }
 
 // TestEsquemasPublicados es lo que vigila make schema-check (FR-110, SC-006;
@@ -142,6 +144,8 @@ func TestEsquemasPublicados(t *testing.T) {
 			"servidor.json": "Salida del verbo serve del applet mcp." +
 				" Generado desde --describe con make schema-check; no editar.",
 			"cita.json": "Salidas de los verbos cotejar y preparar del applet cita." +
+				" Generado desde --describe con make schema-check; no editar.",
+			"plazo.json": "Salida del verbo calcular del applet plazos." +
 				" Generado desde --describe con make schema-check; no editar.",
 		}
 
@@ -626,6 +630,7 @@ var contratosDeLosApplets = map[string]func() []verboDelContrato{
 	"cita":       verbosDelContratoDeCita,
 	"graph":      verbosDelContratoDeGrafo,
 	"mcp":        verbosDelContratoDeMCP,
+	"plazos":     verbosDelContratoDePlazos,
 	"skills":     verbosDelContratoDeSkills,
 	"territorio": verbosDelContratoDeTerritorio,
 }

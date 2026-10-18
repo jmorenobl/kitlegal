@@ -230,8 +230,9 @@ func validarVerbos(applet string, verbos []Verbo) error {
 // tiene ninguna (H23 FR-001), el applet graph con las del sistema
 // (DependenciasDelGrafoDelSistema), el applet mcp con las del
 // sistema (DependenciasDeMCPDelSistema), el applet skills con las del sistema
-// (DependenciasDeSkillsDelSistema) y el applet territorio con los ficheros que
-// viajan en el binario (FuentesEmbebidas); como almacén al que el kernel
+// (DependenciasDeSkillsDelSistema), el applet territorio con los ficheros que
+// viajan en el binario (FuentesEmbebidas) y el applet plazos con los suyos, que
+// también viajan en él (FuentesDePlazos; H9 FR-001); como almacén al que el kernel
 // entrega lo que observa cada invocación, el grafo del mundo en world.db, junto
 // a la caché y con su misma regla de ubicación (graph.Nuevo sin opciones;
 // FR-001, FR-030); y, como entrada de las órdenes, la entrada estándar del
@@ -265,6 +266,11 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 		return nil, err
 	}
 
+	dePlazos, err := FuentesDePlazos()
+	if err != nil {
+		return nil, err
+	}
+
 	var registro Registro
 
 	skills := DependenciasDeSkillsDelSistema(version)
@@ -274,6 +280,7 @@ func RegistroDeProduccion(version string) (*Registro, error) {
 		AppletCita(),
 		AppletGrafo(DependenciasDelGrafoDelSistema()),
 		AppletMCP(DependenciasDeMCPDelSistema(version)),
+		AppletPlazos(dePlazos),
 		AppletSkills(skills),
 		AppletTerritorio(fuentes),
 	}
@@ -309,5 +316,32 @@ func FuentesEmbebidas() (territorio.Fuentes, error) {
 		DIR3:        data.DIR3,
 		Estado:      data.Estado,
 		Comunidades: comunidades,
+	}, nil
+}
+
+// FuentesDePlazos son los ficheros que viajan en el binario en la forma en que
+// los recibe AppletPlazos: los de data/territorio/ (FuentesEmbebidas),
+// data/plazos.yaml y los de data/festivos/, tal como están escritos. Son las que
+// componen la raíz de producción y el binario de e2e: no dependen del entorno ni
+// del directorio de trabajo, y ningún applet pide los festivos en ejecución (H9
+// FR-028; research.md D1 de H9). Leerlas no analiza nada —eso lo hace el applet
+// la primera vez que se ejecuta su verbo—, y un subárbol que no se puede leer es
+// un defecto de composición, que el error nombra.
+func FuentesDePlazos() (FicherosDePlazos, error) {
+	deTerritorio, err := FuentesEmbebidas()
+	if err != nil {
+		return FicherosDePlazos{}, err
+	}
+
+	locales, err := data.FestivosLocales()
+	if err != nil {
+		return FicherosDePlazos{}, fmt.Errorf("app: los festivos locales del binario no se pueden leer: %w", err)
+	}
+
+	return FicherosDePlazos{
+		Territorio: deTerritorio,
+		Tipos:      data.Plazos,
+		Nacionales: data.FestivosNacionales,
+		Locales:    locales,
 	}, nil
 }
