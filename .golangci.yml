@@ -421,6 +421,13 @@ linters:
         # H3 §3 obliga a nombrar en el mensaje—; misspell lo lee como
         # «versions». El singular lleva tilde y no casa (H3 S2, D15).
         - versiones
+        # «El Vellón», el municipio del caso de la entidad menor de la tabla de
+        # casos de plazos de H9 —la fiesta de El Espartal, entidad de El Vellón,
+        # cuenta como hábil—, que TestCasosDePlazos, en
+        # internal/app/plazos_casos_test.go, pide por su nombre como la skill
+        # (FR-024, FR-082, research D23 y D30); misspell corta la palabra en la
+        # «ó» y lee «Vell» como «Well».
+        - vell
     nolintlint:
       require-explanation: true
       require-specific: true

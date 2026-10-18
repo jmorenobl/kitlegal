@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.yaml.in/yaml/v3"
 
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/plazos"
@@ -643,4 +645,108 @@ func compruebaAnalisisUnicoDePlazos(t *testing.T) {
 	assert.Equal(t, conLaFechaDeLosGolden(t, primera.salida), conLaFechaDeLosGolden(t, segunda.salida),
 		"la segunda responde con lo analizado en la primera")
 	assert.Contains(t, primera.salida, `"fecha":"2026-10-13"`, "la primera salta los festivos de Leganés")
+}
+
+// TestFestivoDeUnaParte comprueba con los ficheros del binario que un festivo
+// que la resolución del BOE limita a una parte de una comunidad cuenta como
+// hábil y lleva su aviso (H9 FR-011; contracts/casos-de-plazos.md, «Festivo de
+// una parte»; research.md S1 de H9): toma el primero que cae en día laborable y
+// un municipio de su comunidad sin fiesta local ese día, y un plazo genérico de
+// un día hábil desde la víspera vence ese mismo día, con el aviso
+// festivo-de-una-parte que nombra el día y la parte. Si lo empotrado no trae
+// ninguno, falla: el hito lo da por hecho.
+func TestFestivoDeUnaParte(t *testing.T) {
+	t.Parallel()
+
+	fuentes := fuentesDePlazos(t)
+	festivo, comunidad := primerFestivoDeUnaParte(t, fuentes.Nacionales)
+	municipio := municipioSinFiestaLocal(t, fuentes, comunidad, festivo.Fecha)
+
+	dia, err := time.Parse(time.DateOnly, festivo.Fecha)
+	require.NoError(t, err)
+
+	vispera := dia.AddDate(0, 0, -1).Format(time.DateOnly)
+
+	plazo := plazoDeLaSalida(t, ordenDePlazos(t, registroDePlazos(t, fuentes),
+		"generico", vispera, municipio, municipio, "--duracion", "1", "--unidad", "dias-habiles"))
+
+	assert.Equal(t, festivo.Fecha, plazo.Fecha, "el festivo de %s cuenta como hábil en %s", festivo.Parte, municipio)
+
+	conElDiaYLaParte := "el " + festivo.Fecha + " es fiesta solo en " + festivo.Parte + " ("
+	assert.True(t, slices.ContainsFunc(plazo.Avisos, func(aviso avisoDeLaTabla) bool {
+		return aviso.Codigo == deUnaParteDeLaTabla && strings.Contains(aviso.Texto, conElDiaYLaParte)
+	}), "ningún aviso %s dice «%s…»: %v", deUnaParteDeLaTabla, conElDiaYLaParte, plazo.Avisos)
+}
+
+// primerFestivoDeUnaParte es, en el orden del fichero, el primer festivo de
+// data/festivos/nacionales-y-autonomicos.yaml limitado a una parte de una
+// comunidad que cae en día laborable para ella —de lunes a viernes y sin un
+// festivo de toda la comunidad ese día—, con esa comunidad.
+func primerFestivoDeUnaParte(t *testing.T, nacionales []byte) (plazos.FestivoNacional, string) {
+	t.Helper()
+
+	var fichero plazos.FestivosNacionales
+	require.NoError(t, yaml.Unmarshal(nacionales, &fichero))
+
+	for _, festivo := range fichero.Festivos {
+		if festivo.Parte == "" || len(festivo.Comunidades) == 0 {
+			continue
+		}
+
+		dia, err := time.Parse(time.DateOnly, festivo.Fecha)
+		require.NoError(t, err)
+
+		if semana := dia.Weekday(); semana == time.Saturday || semana == time.Sunday {
+			continue
+		}
+
+		comunidad := festivo.Comunidades[0]
+		if !festivoDeToda(fichero.Festivos, festivo.Fecha, comunidad) {
+			return festivo, comunidad
+		}
+	}
+
+	require.FailNow(t, "lo empotrado no trae ningún festivo de una parte en día laborable: el hito lo da por hecho (S1)")
+
+	return plazos.FestivoNacional{}, ""
+}
+
+// festivoDeToda dice si una fecha es festivo de toda una comunidad.
+func festivoDeToda(festivos []plazos.FestivoNacional, fecha, comunidad string) bool {
+	return slices.ContainsFunc(festivos, func(festivo plazos.FestivoNacional) bool {
+		return festivo.Fecha == fecha && festivo.Parte == "" && slices.Contains(festivo.Comunidades, comunidad)
+	})
+}
+
+// municipioSinFiestaLocal es el código INE del primer municipio de la
+// comunidad, en el orden de Registro.MunicipiosDe, que no tiene fiesta local
+// esa fecha en los festivos locales del binario, si la comunidad los tiene.
+func municipioSinFiestaLocal(t *testing.T, fuentes FicherosDePlazos, comunidad, fecha string) string {
+	t.Helper()
+
+	registro, err := territorio.Cargar(fuentes.Territorio)
+	require.NoError(t, err)
+
+	municipios := registro.MunicipiosDe(comunidad)
+	require.NotEmpty(t, municipios, "data/territorio/ tiene municipios de la comunidad %s", comunidad)
+
+	var locales plazos.FestivosLocales
+	if contenido, hay := fuentes.Locales[comunidad]; hay {
+		require.NoError(t, yaml.Unmarshal(contenido, &locales))
+	}
+
+	for _, municipio := range municipios {
+		codigo := municipio.Codigo.String()
+
+		if !slices.ContainsFunc(locales.Festivos, func(festivo plazos.FestivoLocal) bool {
+			return festivo.Fecha == fecha && festivo.Municipio == codigo
+		}) {
+			return codigo
+		}
+	}
+
+	require.FailNow(t, "todos los municipios de la comunidad tienen fiesta local ese día",
+		"la comunidad %s, el %s", comunidad, fecha)
+
+	return ""
 }
