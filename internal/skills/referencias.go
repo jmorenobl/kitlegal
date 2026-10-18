@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"cmp"
 	"slices"
+	"strconv"
 	"strings"
+
+	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 )
 
 // Lo que forma una celda de la tabla de una referencia generada (contrato
@@ -17,7 +20,23 @@ const (
 	// prefijoDelIdentificador precede al año en el identificador
 	// BOE-A-<año>-<número> de una norma.
 	prefijoDelIdentificador = "BOE-A-"
+
+	// separadorDePreceptos separa los preceptos de un tipo de plazo dentro de su
+	// celda.
+	separadorDePreceptos = "; "
+
+	// sinNorma es la celda de la norma que rige un procedimiento regulado aparte
+	// cuando la entrada no la trae.
+	sinNorma = "—"
 )
+
+// nombresDeLasUnidades da el nombre de cada unidad de plazos.Unidades, en
+// singular y en plural, para la duración que fija un tipo de plazo.
+var nombresDeLasUnidades = map[plazos.Unidad][2]string{
+	plazos.UnidadMeses:         {"mes", "meses"},
+	plazos.UnidadDiasHabiles:   {"día hábil", "días hábiles"},
+	plazos.UnidadDiasNaturales: {"día natural", "días naturales"},
+}
 
 // tituloDeLasReglas es el título de la sección de las reglas de interpretación,
 // detrás de la tabla de niveles de la referencia de la jerarquía.
@@ -84,6 +103,24 @@ var (
 		encabezados: []string{"Nivel", "Boletín", "Tipos de norma, de mayor a menor rango"},
 		cuerpo:      cuerpoDeLaJerarquia,
 	}
+
+	// generadorDeLosRecursosYPlazos da references/recursos_y_plazos.md: los tipos
+	// de plazo de data/plazos.yaml.
+	generadorDeLosRecursosYPlazos = generadorDeReferencia{
+		datos:       "plazos.yaml",
+		titulo:      "Recursos y plazos",
+		encabezados: []string{"Tipo", "Código", "Duración", "Cómputo", "Precepto"},
+		cuerpo:      cuerpoDeLosRecursosYPlazos,
+	}
+
+	// generadorDeLaCobertura da references/cobertura_por_materia.md: los
+	// procedimientos que la ley regula aparte de data/cobertura.yaml.
+	generadorDeLaCobertura = generadorDeReferencia{
+		datos:       "cobertura.yaml",
+		titulo:      "Cobertura por materia",
+		encabezados: []string{"Procedimiento", "Lo regula aparte", "Norma que lo rige"},
+		cuerpo:      cuerpoDeLaCobertura,
+	}
 )
 
 // columnasDeUnaNorma son los encabezados de las referencias de normas: título,
@@ -95,9 +132,11 @@ var columnasDeUnaNorma = []string{"Norma", "Abreviatura", "Identificador", "Rang
 // que declara kitlegal-referencias y el de references/<nombre>.md. Una referencia
 // sin fila no tiene generador, y dos pueden salir del mismo YAML de datos.
 var generadoresDeReferencias = map[string]generadorDeReferencia{
-	"normas":              generadorDeLasNormas,
-	"leyes_vertebrales":   generadorDeLasLeyesVertebrales,
-	"jerarquia_normativa": generadorDeLaJerarquia,
+	"normas":                generadorDeLasNormas,
+	"leyes_vertebrales":     generadorDeLasLeyesVertebrales,
+	"jerarquia_normativa":   generadorDeLaJerarquia,
+	"recursos_y_plazos":     generadorDeLosRecursosYPlazos,
+	"cobertura_por_materia": generadorDeLaCobertura,
 }
 
 // cabecera es la primera línea de la referencia: la marca de fichero generado
@@ -178,6 +217,34 @@ func RenderizarJerarquia(jerarquia Jerarquia) []byte {
 	return generadorDeLaJerarquia.componer(seccionesDeLaJerarquia(jerarquia))
 }
 
+// RenderizarRecursosYPlazos da references/recursos_y_plazos.md desde los tipos
+// de plazo de data/plazos.yaml (contrato de la skill legal-core §4 de H9;
+// FR-032): la cabecera de fichero generado que nombra data/plazos.yaml, el título
+// y una tabla con una fila por tipo —su nombre, su código, su duración, su
+// cómputo y sus preceptos— y, en el que lleva unidades, el genérico, una por
+// unidad, en el orden de plazos.Unidades y con el precepto que da su cómputo.
+//
+// La duración que fija un tipo va con el nombre de su unidad en singular o en
+// plural; la del que no la fija dice que la recibe, en la unidad de su fila o con
+// la suya. Los preceptos van separados por «; », cada uno con citaDelPrecepto, y
+// ninguna celda lleva texto de ninguna norma. Los tipos van en el orden en que
+// llegan, que es el del fichero, y no cambian.
+func RenderizarRecursosYPlazos(tipos []plazos.Tipo) []byte {
+	return generadorDeLosRecursosYPlazos.componer(filasDeLosTipos(tipos))
+}
+
+// RenderizarCobertura da references/cobertura_por_materia.md desde la cobertura
+// por materia de data/cobertura.yaml (contrato de la skill legal-core §4 de H9;
+// FR-031, FR-032): la cabecera de fichero generado que nombra
+// data/cobertura.yaml, el título y una tabla con una fila por procedimiento que
+// la ley regula aparte —el procedimiento, el precepto de la LPAC que lo dice,
+// con citaDelPrecepto, y la norma que lo rige, con su nombre y su identificador,
+// o «—» si la entrada no la trae—, sin texto de ninguna norma. Las entradas van
+// en el orden en que llegan, que es el del documento, y no cambian.
+func RenderizarCobertura(cobertura Cobertura) []byte {
+	return generadorDeLaCobertura.componer(filasDeLaCobertura(cobertura))
+}
+
 // cuerpoDeLasNormas son las filas de todas las normas del contenido de
 // data/normas.yaml.
 func cuerpoDeLasNormas(datos []byte) ([]byte, error) {
@@ -209,6 +276,134 @@ func cuerpoDeLaJerarquia(datos []byte) ([]byte, error) {
 	}
 
 	return seccionesDeLaJerarquia(jerarquia), nil
+}
+
+// cuerpoDeLosRecursosYPlazos son las filas de los tipos del contenido de
+// data/plazos.yaml, leído con plazos.LeerTipos.
+func cuerpoDeLosRecursosYPlazos(datos []byte) ([]byte, error) {
+	tipos, err := plazos.LeerTipos(datos)
+	if err != nil {
+		return nil, err
+	}
+
+	return filasDeLosTipos(tipos), nil
+}
+
+// cuerpoDeLaCobertura son las filas de las entradas del contenido de
+// data/cobertura.yaml, leído con LeerCobertura.
+func cuerpoDeLaCobertura(datos []byte) ([]byte, error) {
+	cobertura, err := LeerCobertura(datos)
+	if err != nil {
+		return nil, err
+	}
+
+	return filasDeLaCobertura(cobertura), nil
+}
+
+// filasDeLosTipos es una fila por tipo y, en el que lleva unidades, una por
+// unidad, en el orden de plazos.Unidades: el mapa de unidades no tiene orden.
+func filasDeLosTipos(tipos []plazos.Tipo) []byte {
+	var filas bytes.Buffer
+
+	for _, tipo := range tipos {
+		if len(tipo.Unidades) == 0 {
+			filas.WriteString(filaDelTipo(tipo, duracionDelTipo(tipo, ""), tipo.Preceptos))
+
+			continue
+		}
+
+		for _, unidad := range plazos.Unidades() {
+			precepto, tiene := tipo.Unidades[unidad]
+			if !tiene {
+				continue
+			}
+
+			filas.WriteString(filaDelTipo(tipo, duracionDelTipo(tipo, unidad),
+				append(slices.Clone(tipo.Preceptos), precepto)))
+		}
+	}
+
+	return filas.Bytes()
+}
+
+// filaDelTipo es la fila de un tipo con su duración y sus preceptos.
+func filaDelTipo(tipo plazos.Tipo, duracion string, preceptos []plazos.Precepto) string {
+	citas := make([]string, 0, len(preceptos))
+	for _, precepto := range preceptos {
+		citas = append(citas, citaDelPrecepto(precepto.Norma, precepto.Bloque, precepto.Apartado))
+	}
+
+	return filaDeLaTabla([]string{
+		escapeDeCelda.Replace(tipo.Nombre),
+		"`" + escapeDeCelda.Replace(tipo.Codigo) + "`",
+		duracion,
+		"`" + escapeDeCelda.Replace(string(tipo.Computo)) + "`",
+		strings.Join(citas, separadorDePreceptos),
+	})
+}
+
+// duracionDelTipo es la celda de la duración de un tipo: la que fija, con el
+// nombre de su unidad; o, si no la fija, la que recibe, en la unidad dada —la de
+// una fila del genérico— o con la suya.
+func duracionDelTipo(tipo plazos.Tipo, unidad plazos.Unidad) string {
+	switch {
+	case tipo.Duracion != nil:
+		return duracionEnPalabras(*tipo.Duracion)
+	case unidad != "":
+		return "la que recibe, en `" + escapeDeCelda.Replace(string(unidad)) + "`"
+	default:
+		return "la que recibe, con su unidad"
+	}
+}
+
+// duracionEnPalabras es la cantidad con el nombre de su unidad, en singular si
+// es 1 y en plural si no. Una unidad sin nombre en nombresDeLasUnidades va tal
+// cual: LeerTipos no la deja pasar, y TestRenderizarRecursosYPlazos exige un
+// nombre para cada unidad de plazos.Unidades.
+func duracionEnPalabras(duracion plazos.Duracion) string {
+	nombre := escapeDeCelda.Replace(string(duracion.Unidad))
+
+	if nombres, tiene := nombresDeLasUnidades[duracion.Unidad]; tiene {
+		nombre = nombres[1]
+		if duracion.Cantidad == 1 {
+			nombre = nombres[0]
+		}
+	}
+
+	return strconv.Itoa(duracion.Cantidad) + " " + nombre
+}
+
+// filasDeLaCobertura es una fila por entrada de la cobertura, en su orden.
+func filasDeLaCobertura(cobertura Cobertura) []byte {
+	var filas bytes.Buffer
+
+	for _, entrada := range cobertura.ReguladosAparte {
+		norma := sinNorma
+		if entrada.Norma != nil {
+			norma = escapeDeCelda.Replace(entrada.Norma.Nombre + " (" + entrada.Norma.Identificador + ")")
+		}
+
+		filas.WriteString(filaDeLaTabla([]string{
+			escapeDeCelda.Replace(entrada.Procedimiento),
+			citaDelPrecepto(entrada.Precepto.Norma, entrada.Precepto.Bloque, entrada.Precepto.Apartado),
+			norma,
+		}))
+	}
+
+	return filas.Bytes()
+}
+
+// citaDelPrecepto es la celda de un apartado de una norma consolidada del BOE,
+// como «art. 124.1 (BOE-A-2015-10565, bloque a124)»: el apartado, la norma por su
+// identificador y el bloque de su índice, sin texto de la norma. «art.» va solo
+// delante del apartado de un artículo, que empieza por una cifra; el de una
+// disposición, como «DA 1ª.2.a», ya dice qué es.
+func citaDelPrecepto(norma, bloque, apartado string) string {
+	if strings.IndexAny(apartado, "0123456789") == 0 {
+		apartado = "art. " + apartado
+	}
+
+	return escapeDeCelda.Replace(apartado + " (" + norma + ", bloque " + bloque + ")")
 }
 
 // vertebrales son las normas marcadas vertebral, en su orden y en una copia.
