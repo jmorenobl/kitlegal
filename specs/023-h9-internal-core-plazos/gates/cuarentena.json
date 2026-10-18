@@ -1,5 +1,13 @@
 {
-  "tareas": {},
+  "tareas": {
+    "T015": {
+      "motivo": "3 intentos sin quedar en verde",
+      "intentos": 3,
+      "parche": "specs/023-h9-internal-core-plazos/gates/cuarentena/T015.patch",
+      "base": "17610ebb93e2945cb6c926d27ab5be7de7c4ad1f",
+      "fecha": "2026-10-18T16:07:08Z"
+    }
+  },
   "consecutivas": 0,
   "bloqueado": false
 }
