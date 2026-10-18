@@ -48,6 +48,8 @@ if [ -f Makefile ] && grep -qE '^ci:' Makefile; then cmd="make ci"
 elif [ -f go.mod ]; then cmd="go build ./... && go vet ./... && go test -race ./..."
 else echo "sin Makefile ni go.mod todavía: nada que verificar" >> "$log"; cerrar 0; fi
 
+# Las marcas de escritura vacías de Claude Code no son del árbol que se mide (marcas.sh).
+scripts/workflow/marcas.sh </dev/null
 echo "== $cmd" >> "$log"
 sh -c "$cmd" >> "$log" 2>&1
 cerrar $?

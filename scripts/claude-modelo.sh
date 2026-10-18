@@ -121,6 +121,9 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #     .codegraph/, que git ignora.
 #   · No lee .claude/settings.local.json: los permisos y los directorios adicionales
 #     de la sesión interactiva de quien lanza el run no llegan a las del run.
+#   · Sin marcas de escritura vacías en el árbol: scripts/workflow/marcas.sh retira las
+#     `.claude/.cc-writes/` que Claude Code deja al escribir, al abrir la sesión y tras cada
+#     herramienta (gancho PostToolUse), antes de que un `make ci` de la sesión las encuentre.
 raiz="$(cd "$(dirname "$0")/.." && pwd -P)"
 claude="$(command -v "${KITLEGAL_CLAUDE_BIN:-claude}")" \
   || { echo "claude-modelo: no encuentro '${KITLEGAL_CLAUDE_BIN:-claude}' en el PATH" >&2; exit 2; }
@@ -162,7 +165,8 @@ fi
 ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home "$HOME" --arg secretos "${KITLEGAL_SECRETOS:-}" \
   --arg gocache "$(go env GOCACHE 2>/dev/null || true)" --arg gomodcache "$(go env GOMODCACHE 2>/dev/null || true)" \
   --arg gotelemetria "$(go env GOTELEMETRYDIR 2>/dev/null || true)" --arg gosumdb "$gosumdb" \
-  --arg golangci "${GOLANGCI_LINT_CACHE:-$caches/golangci-lint}" --arg temporal "${temporal%/}" '
+  --arg golangci "${GOLANGCI_LINT_CACHE:-$caches/golangci-lint}" --arg temporal "${temporal%/}" \
+  --arg marcas "$raiz/scripts/workflow/marcas.sh" '
   ([$home + "/.config/kitlegal", $home + "/.config/gh", $home + "/.ssh"]
     + ($secretos | split(":") | map(select(startswith("/"))))) as $vedados
   | {
@@ -183,10 +187,12 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
       },
       permissions: {deny: ($vedados | map("Read(/" + . + "/**)"))},
       enabledPlugins: $plugins,
-      syncClaudeAiSkills: false
+      syncClaudeAiSkills: false,
+      hooks: {PostToolUse: [{matcher: "*", hooks: [{type: "command", command: ($marcas | @sh)}]}]}
     } as $paso
   | ($base * $paso)
-  | .permissions.deny = (($base.permissions.deny // []) + $paso.permissions.deny)')" \
+  | .permissions.deny = (($base.permissions.deny // []) + $paso.permissions.deny)
+  | .hooks.PostToolUse = (($base.hooks.PostToolUse // []) + $paso.hooks.PostToolUse)')" \
   || { echo "claude-modelo: no se han podido componer los ajustes de la sesión (¿--settings con un JSON que no vale?)" >&2; exit 2; }
 
 # CodeGraph, si hay índice y programa (arriba). KITLEGAL_CODEGRAPH_BIN lo cambia en los tests.
@@ -219,6 +225,10 @@ if [ -n "$modelo" ]; then
     echo "claude-modelo: no se ha podido registrar la sesión en gates/modelos.jsonl (${error:-sin detalle}); la sesión se abre igual" >&2
   fi
 fi
+
+# Las marcas que dejaron sesiones anteriores, también las interactivas, fuera antes de abrir
+# esta; las que deje ella las retira el gancho PostToolUse de sus ajustes.
+"$raiz/scripts/workflow/marcas.sh" </dev/null
 
 export KITLEGAL_PASO_DE_WORKFLOW=1
 export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
