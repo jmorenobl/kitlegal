@@ -227,9 +227,11 @@ se aplica si la compacta no da ninguno, y no casa con ninguna de las entidades d
 ### D14 · La derivación del BOE
 
 Por cada resolución, cada fila del anexo da una fecha del año de la resolución y, por cada columna marcada, la
-comunidad con su ámbito: `nacional` con «***» o «**», `autonomico` con «*». Una nota que limita la fiesta a una parte
+comunidad con su ámbito: `nacional` con «*» o «**», `autonomico` con «***» (lo grabado contradijo a S1, que los daba al
+revés; T007, `gates/supuestos.md`). Una nota que limita la fiesta a una parte
 de una comunidad da la fila con `parte` y sin efecto en el cómputo (FR-011, FR-025). Las columnas se cruzan con las 19
-comunidades de `data/territorio/comunidades/` con la regla compacta de D13 (S2). Una fila que no se lee sin
+comunidades de `data/territorio/comunidades/` con la regla compacta de D13 (S2) y, como S2 no se cumplió con lo grabado,
+con las dos reglas genéricas que la siguen, sin lista de alias (T007, `gates/supuestos.md`). Una fila que no se lee sin
 interpretarla queda fuera, como en el BOCM. El test comprueba que las 19 tienen festivos cada año (FR-020: todas las
 que trae cada resolución), y nada más del recuento: ni un tope de festivos por comunidad ni por municipio, que ningún
 requisito pide y que contaría también las filas con `parte` que FR-025 manda guardar.

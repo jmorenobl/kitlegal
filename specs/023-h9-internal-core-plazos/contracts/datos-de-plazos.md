@@ -30,7 +30,8 @@ festivos:
 
 - Una fila por fecha, ámbito y parte, con las comunidades (códigos de `data/territorio/comunidades/`, ordenados) en las
   que la resolución la marca con ese ámbito; ordenadas por fecha, ámbito y parte. `source` es la resolución de su año.
-- `ambito`: `nacional` («***» o «**») o `autonomico` («*»). `parte`, solo si la resolución limita la fiesta a una parte
+- `ambito`: `nacional` («*» o «**») o `autonomico` («***»), los códigos de la leyenda de las tres resoluciones
+  grabadas (research S1 corregido con lo grabado en T007, `gates/supuestos.md`). `parte`, solo si la resolución limita la fiesta a una parte
   de la comunidad (FR-025); esa fila no hace inhábil el día (FR-011).
 - Lo que comprueba la derivación: las 19 comunidades tienen festivos cada año, porque FR-020 pide los de todas las que
   trae cada resolución y una columna que no se lee no puede quedar sin rastro.
