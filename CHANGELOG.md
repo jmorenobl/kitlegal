@@ -14,6 +14,12 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **Las marcas de escritura vacías de Claude Code no llegan a `make ci`** (workflow `hito` 2.9.1). Claude Code deja
+  un `<directorio>/.claude/.cc-writes/` vacío donde escribe; git no lo ve, pero los tests que leen un directorio de
+  grabaciones sí, y en H9 uno que dejó el paso `plan` en las grabaciones de `boe` puso `make ci` en rojo y mandó tres
+  tareas a cuarentena. `scripts/workflow/marcas.sh` retira las vacías, con su `.claude/` si se queda vacío, y nada con
+  contenido: `scripts/claude-modelo.sh` lo ejecuta al abrir cada sesión de un paso y como gancho `PostToolUse` tras
+  cada herramienta, y `scripts/workflow/verificar.sh` antes de medir.
 - **Las sesiones de un paso cargan CodeGraph** (workflow `hito` 2.9.0). Si el repositorio tiene el índice de CodeGraph
   (`.codegraph/codegraph.db`) y el equipo su programa, `scripts/claude-modelo.sh` le da a cada sesión del run ese
   servidor MCP y ninguno más, con la regla `mcp__codegraph__*` en sus permisos. Como un servidor MCP no pasa por el
