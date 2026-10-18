@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:27:46Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2003-23186/texto/bloque/a97",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "76"
+      ],
+      "Content-Length": [
+        "948"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:26:31 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a97\" tipo=\"precepto\" titulo=\"Artículo 97\">\n      <version id_norma=\"BOE-A-2003-23186\" fecha_publicacion=\"20031218\" fecha_vigencia=\"20040701\">\n        <p class=\"articulo\">Artículo 97. Regulación de las actuaciones y procedimientos tributarios.</p>\n        <p class=\"parrafo\">Las actuaciones y procedimientos de aplicación de los tributos se regularán:</p>\n        <p class=\"parrafo_2\">a) Por las normas especiales establecidas en este título y la normativa reglamentaria dictada en su desarrollo, así como por las normas procedimentales recogidas en otras leyes tributarias y en su normativa reglamentaria de desarrollo.</p>\n        <p class=\"parrafo\">b) Supletoriamente, por las disposiciones generales sobre los procedimientos administrativos.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

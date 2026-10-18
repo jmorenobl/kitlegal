@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:27:45Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2013-12887/texto/bloque/a24",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "76"
+      ],
+      "Content-Length": [
+        "2590"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:26:29 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a24\" tipo=\"precepto\" titulo=\"Artículo 24\">\n      <version id_norma=\"BOE-A-2013-12887\" fecha_publicacion=\"20131210\" fecha_vigencia=\"20141210\">\n        <p class=\"articulo\">Artículo 24. Reclamación ante el Consejo de Transparencia y Buen Gobierno.</p>\n        <p class=\"parrafo\">1. Frente a toda resolución expresa o presunta en materia de acceso podrá interponerse una reclamación ante el Consejo de Transparencia y Buen Gobierno, con carácter potestativo y previo a su impugnación en vía contencioso-administrativa.</p>\n        <p class=\"parrafo\">2. La reclamación se interpondrá en el plazo de un mes a contar desde el día siguiente al de la notificación del acto impugnado o desde el día siguiente a aquel en que se produzcan los efectos del silencio administrativo.</p>\n        <p class=\"parrafo\">3. La tramitación de la reclamación se ajustará a lo dispuesto en materia de recursos en la Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común.</p>\n        <p class=\"parrafo\">Cuando la denegación del acceso a la información se fundamente en la protección de derechos o intereses de terceros se otorgará, previamente a la resolución de la reclamación, trámite de audiencia a las personas que pudieran resultar afectadas para que aleguen lo que a su derecho convenga.</p>\n        <p class=\"parrafo\">4. El plazo máximo para resolver y notificar la resolución será de tres meses, transcurrido el cual, la reclamación se entenderá desestimada.</p>\n        <p class=\"parrafo\">5. Las resoluciones del Consejo de Transparencia y Buen Gobierno se publicarán, previa disociación de los datos de carácter personal que contuvieran, por medios electrónicos y en los términos en que se establezca reglamentariamente, una vez se hayan notificado a los interesados.</p>\n        <p class=\"parrafo\">El Presidente del Consejo de Transparencia y Buen Gobierno comunicará al Defensor del Pueblo las resoluciones que dicte en aplicación de este artículo.</p>\n        <p class=\"parrafo\">6. La competencia para conocer de dichas reclamaciones corresponderá al Consejo de Transparencia y Buen Gobierno, salvo en aquellos supuestos en que las Comunidades Autónomas atribuyan dicha competencia a un órgano específico, de acuerdo con lo establecido en la disposición adicional cuarta de esta Ley.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

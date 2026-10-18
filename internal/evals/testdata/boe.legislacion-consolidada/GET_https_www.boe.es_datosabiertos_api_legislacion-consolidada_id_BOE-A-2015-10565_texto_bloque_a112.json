@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:27:36Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10565/texto/bloque/a112",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "2671"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:27:38 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a112\" tipo=\"precepto\" titulo=\"Artículo 112\">\n      <version id_norma=\"BOE-A-2015-10565\" fecha_publicacion=\"20151002\" fecha_vigencia=\"20161002\">\n        <p class=\"articulo\">Artículo 112. Objeto y clases.</p>\n        <p class=\"parrafo\">1. Contra las resoluciones y los actos de trámite, si estos últimos deciden directa o indirectamente el fondo del asunto, determinan la imposibilidad de continuar el procedimiento, producen indefensión o perjuicio irreparable a derechos e intereses legítimos, podrán interponerse por los interesados los recursos de alzada y potestativo de reposición, que cabrá fundar en cualquiera de los motivos de nulidad o anulabilidad previstos en los artículos 47 y 48 de esta Ley.</p>\n        <p class=\"parrafo\">La oposición a los restantes actos de trámite podrá alegarse por los interesados para su consideración en la resolución que ponga fin al procedimiento.</p>\n        <p class=\"parrafo\">2. Las leyes podrán sustituir el recurso de alzada, en supuestos o ámbitos sectoriales determinados, y cuando la especificidad de la materia así lo justifique, por otros procedimientos de impugnación, reclamación, conciliación, mediación y arbitraje, ante órganos colegiados o Comisiones específicas no sometidas a instrucciones jerárquicas, con respeto a los principios, garantías y plazos que la presente Ley reconoce a las personas y a los interesados en todo procedimiento administrativo.</p>\n        <p class=\"parrafo\">En las mismas condiciones, el recurso de reposición podrá ser sustituido por los procedimientos a que se refiere el párrafo anterior, respetando su carácter potestativo para el interesado.</p>\n        <p class=\"parrafo\">La aplicación de estos procedimientos en el ámbito de la Administración Local no podrá suponer el desconocimiento de las facultades resolutorias reconocidas a los órganos representativos electos establecidos por la Ley.</p>\n        <p class=\"parrafo\">3. Contra las disposiciones administrativas de carácter general no cabrá recurso en vía administrativa.</p>\n        <p class=\"parrafo\">Los recursos contra un acto administrativo que se funden únicamente en la nulidad de alguna disposición administrativa de carácter general podrán interponerse directamente ante el órgano que dictó dicha disposición.</p>\n        <p class=\"parrafo\">4. Las reclamaciones económico-administrativas se ajustarán a los procedimientos establecidos por su legislación específica.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

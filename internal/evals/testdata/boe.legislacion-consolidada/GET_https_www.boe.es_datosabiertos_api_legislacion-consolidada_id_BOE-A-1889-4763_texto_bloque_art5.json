@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:27:47Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1889-4763/texto/bloque/art5",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "76"
+      ],
+      "Content-Length": [
+        "1447"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:26:31 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"art5\" tipo=\"precepto\" titulo=\"Art 5\">\n      <version id_norma=\"BOE-A-1889-4763\" fecha_publicacion=\"18890725\" fecha_vigencia=\"18890816\">\n        <p class=\"articulo\">Artículo 5.</p>\n        <p class=\"parrafo\">Las Leyes sólo se derogan por otras Leyes posteriores, y no prevalecerá contra su observancia el desuso, ni la costumbre o la práctica en contrario.</p>\n      </version>\n      <version id_norma=\"BOE-A-1974-1083\" fecha_publicacion=\"19740709\" fecha_vigencia=\"19740729\">\n        <p class=\"articulo\">Artículo 5.</p>\n        <p class=\"parrafo\">1. Siempre que no se establezca otra cosa, en los plazos señalados por días, a contar de uno determinado, quedará éste excluido del cómputo, el cual deberá empezar en el día siguiente; y si los plazos estuviesen fijados por meses o años, se computarán de fecha a fecha. Cuando en el mes del vencimiento no hubiera día equivalente al inicial del cómputo, se entenderá que el plazo expira el último del mes.</p>\n        <p class=\"parrafo\">2. En el cómputo civil de los plazos no se excluyen los días inhábiles.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica por el Decreto 1836/1974, de 31 de mayo. <a class=\"refPost\">Ref. BOE-A-1974-1083</a>.</p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-18T08:27:40Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1998-16718/texto/bloque/a46",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "112"
+      ],
+      "Content-Length": [
+        "2426"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 18 Oct 2026 08:25:48 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a46\" tipo=\"precepto\" titulo=\"Artículo 46\">\n      <version id_norma=\"BOE-A-1998-16718\" fecha_publicacion=\"19980714\" fecha_vigencia=\"19981214\">\n        <p class=\"articulo\">Artículo 46.</p>\n        <p class=\"parrafo\">1. El plazo para interponer el recurso contencioso-administrativo será de dos meses contados desde el día siguiente al de la publicación de la disposición impugnada o al de la notificación o publicación del acto que ponga fin a la vía administrativa, si fuera expreso. Si no lo fuera, el plazo será de seis meses y se contará, para el solicitante y otros posibles interesados, a partir del día siguiente a aquél en que, de acuerdo con su normativa específica, se produzca el acto presunto.</p>\n        <p class=\"parrafo\">2. En los supuestos previstos en el artículo 29, los dos meses se contarán a partir del día siguiente al vencimiento de los plazos señalados en dicho artículo.</p>\n        <p class=\"parrafo\">3. Si el recurso contencioso-administrativo se dirigiera contra una actuación en vía de hecho, el plazo para interponer el recurso será de diez días a contar desde el día siguiente a la terminación del plazo establecido en el artículo 30. Si no hubiere requerimiento, el plazo será de veinte días desde el día en que se inició la actuación administrativa en vía de hecho.</p>\n        <p class=\"parrafo\">4. El plazo para interponer el recurso contencioso-administrativo se contará desde el día siguiente a aquel en que se notifique la resolución expresa del recurso potestativo de reposición o en que éste deba entenderse presuntamente desestimado.</p>\n        <p class=\"parrafo\">5. El plazo para interponer recurso de lesividad será de dos meses a contar desde el día siguiente a la fecha de la declaración de lesividad.</p>\n        <p class=\"parrafo\">6. En los litigios entre Administraciones, el plazo para interponer recurso contencioso-administrativo será de dos meses, salvo que por Ley se establezca otra cosa. Cuando hubiera precedido el requerimiento regulado en los tres primeros apartados del artículo 44, el plazo se contará desde el día siguiente a aquel en que se reciba la comunicación del acuerdo expreso o se entienda presuntamente rechazado.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

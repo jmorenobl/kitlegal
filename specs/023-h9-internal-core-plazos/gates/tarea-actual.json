@@ -30,7 +30,7 @@
     "plan.md",
     "testdata/grabaciones.json"
   ],
-  "cierre": false,
+  "cierre": true,
   "converger": false,
   "nota": "884082b2d04b6cc749bedb50d0a08ad0734a04afd904f6de5985cd09f229f750"
 }
