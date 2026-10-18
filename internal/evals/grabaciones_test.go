@@ -23,13 +23,19 @@ import (
 // Lo que estos tests leen del repositorio (contrato evals-y-grabaciones §3.1 y
 // §3.4).
 const (
-	// nombreDelManifiestoDelRepositorio es el nombre del manifiesto de
-	// grabación real, en el directorio que contiene GrabacionesDeH5.
+	// nombreDelManifiestoDelRepositorio es el nombre de cada manifiesto de
+	// grabación real, en el directorio que contiene su conjunto:
+	// GrabacionesDeH5 y GrabacionesDeH9.
 	nombreDelManifiestoDelRepositorio = "grabaciones.json"
 
 	// entradasMinimasDelManifiesto son las diez normas de H5: el manifiesto real
 	// tiene al menos una entrada por cada una (plan.md, obligación 12).
 	entradasMinimasDelManifiesto = 10
+
+	// entradasMinimasDelManifiestoDeH9 son las siete normas de los preceptos de
+	// plazos: LPAC, LJCA, LOPJ, LTAIBG, LGT, Código Civil y el texto refundido
+	// de la Ley sobre Tráfico (contracts/datos-de-plazos.md §4.1 de H9).
+	entradasMinimasDelManifiestoDeH9 = 7
 
 	// grabacionDeRobots es el único nombre de fichero que comparten los
 	// conjuntos de grabaciones de H4 y de H5: la grabación de robots.txt, que la
@@ -215,19 +221,39 @@ func TestManifiestoDeGrabaciones(t *testing.T) {
 		})
 	}
 
-	t.Run("repositorio", func(t *testing.T) {
-		t.Parallel()
+	// Los dos manifiestos reales, cada uno junto a su conjunto: el de H5 y el de
+	// H9, que graba grabar_datos (research D15 de H9).
+	repositorio := []struct {
+		nombre   string
+		conjunto string
+		minimo   int
+		normas   string
+	}{
+		{nombre: "repositorio", conjunto: GrabacionesDeH5, minimo: entradasMinimasDelManifiesto, normas: "H5"},
+		{
+			nombre:   "repositorio-h9",
+			conjunto: GrabacionesDeH9,
+			minimo:   entradasMinimasDelManifiestoDeH9,
+			normas:   "los preceptos de plazos de H9",
+		},
+	}
 
-		ruta := rutaDelManifiestoDelRepositorio()
+	for _, manifiesto := range repositorio {
+		t.Run(manifiesto.nombre, func(t *testing.T) {
+			t.Parallel()
 
-		contenido, err := os.ReadFile(filepath.Clean(ruta))
-		require.NoError(t, err, "el manifiesto de grabación del repositorio no se puede leer")
+			ruta := rutaDelManifiestoJuntoA(manifiesto.conjunto)
 
-		leido, err := LeerManifiesto(contenido)
-		require.NoError(t, err, "el manifiesto de grabación del repositorio, %s", ruta)
-		assert.GreaterOrEqual(t, len(leido.Normas), entradasMinimasDelManifiesto,
-			"el manifiesto de grabación del repositorio, %s, tiene una entrada por cada norma de H5", ruta)
-	})
+			contenido, err := os.ReadFile(filepath.Clean(ruta))
+			require.NoError(t, err, "el manifiesto de grabación del repositorio %s no se puede leer", ruta)
+
+			leido, err := LeerManifiesto(contenido)
+			require.NoError(t, err, "el manifiesto de grabación del repositorio, %s", ruta)
+			assert.GreaterOrEqual(t, len(leido.Normas), manifiesto.minimo,
+				"el manifiesto de grabación del repositorio, %s, tiene una entrada por cada norma de %s",
+				ruta, manifiesto.normas)
+		})
+	}
 }
 
 // TestGrabacionesSinSolape comprueba que los conjuntos de grabaciones de H4 y de
@@ -278,10 +304,10 @@ func TestDirectorioDeLosGrafosPrevios(t *testing.T) {
 	}
 }
 
-// rutaDelManifiestoDelRepositorio es la del manifiesto de grabación real, junto
-// al conjunto de grabaciones de H5 que llena.
-func rutaDelManifiestoDelRepositorio() string {
-	return filepath.Join(filepath.Dir(GrabacionesDeH5), nombreDelManifiestoDelRepositorio)
+// rutaDelManifiestoJuntoA es la del manifiesto de grabación real que llena el
+// conjunto de grabaciones: está en el directorio que contiene el conjunto.
+func rutaDelManifiestoJuntoA(conjunto string) string {
+	return filepath.Join(filepath.Dir(conjunto), nombreDelManifiestoDelRepositorio)
 }
 
 // Lo que TestIdentificadoresDeLasNormas lee del repositorio y escribe en sus
@@ -327,7 +353,7 @@ func TestIdentificadoresDeLasNormas(t *testing.T) {
 	t.Parallel()
 
 	reproduccion := copiaDeLaUnionDeGrabaciones(t)
-	rutaDelManifiesto := rutaDelManifiestoDelRepositorio()
+	rutaDelManifiesto := rutaDelManifiestoJuntoA(GrabacionesDeH5)
 
 	normas, err := verificarIdentificadores(t, reproduccion, rutaDelManifiesto, tablaDeNormasDelRepositorio)
 	require.NoError(t, err, "los identificadores de %s contra las búsquedas grabadas del manifiesto %s",

@@ -20,67 +20,84 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
-// Lo que fija la grabación de H5 (contrato evals-y-grabaciones §3.2; research.md
-// D11).
-const (
-	// ficheroDelManifiestoDeH5 es el nombre del manifiesto de grabación en la
-	// raíz de grabación de H5, junto al directorio de la fuente que llena la
-	// grabación (contrato §3.1).
-	ficheroDelManifiestoDeH5 = "grabaciones.json"
+// valorQueGraba es el único valor de la variable de grabación que la enciende
+// en internal/httpx (contrato evals-y-grabaciones §3.2 de H5; research.md D11
+// de H5).
+const valorQueGraba = "1"
 
-	// valorQueGraba es el único valor de la variable de grabación que la
-	// enciende en internal/httpx.
-	valorQueGraba = "1"
-)
+// conjuntosQueSeGraban son los conjuntos que llena TestGrabarEvals, en el orden
+// en que los graba: el de H5 y el de H9 (research D15 de H9). La raíz de
+// grabación de cada uno es el directorio que lo contiene, donde está también su
+// manifiesto: httpx escribe bajo ella <fuente>/, así que lo grabado queda
+// exactamente donde lo leen Preparar y los tests del paquete (research.md V46
+// de H5).
+func conjuntosQueSeGraban() []string {
+	return []string{GrabacionesDeH5, GrabacionesDeH9}
+}
 
 // TestGrabarEvals graba contra la fuente real las respuestas que necesitan las
-// evals de las skills y la verificación de data/normas.yaml, según el manifiesto
-// de grabación de H5, ejecutando en proceso el applet boe (contrato
-// evals-y-grabaciones §3.2; FR-023, FR-074; research.md D11):
+// evals de las skills y la verificación de data/normas.yaml, de
+// data/plazos.yaml y de data/cobertura.yaml, según los dos manifiestos de
+// grabación —el de H5 y el de H9—, ejecutando en proceso el applet boe
+// (contrato evals-y-grabaciones §3.2 de H5; FR-023, FR-074 de H5; FR-030,
+// FR-031, FR-052 de H9; research.md D11 de H5 y D15 de H9):
 //
 //  1. cada consulta se sirve primero, en una caché temporal, desde las
 //     grabaciones de H4 y de H5 con Preparar, y solo lo que da una falta se
 //     graba: solo se pide a la fuente lo que no está grabado en ninguno de los
-//     dos conjuntos;
+//     dos conjuntos. Lo de H5 ya está grabado, así que solo escribe en la raíz
+//     de H9;
 //  2. por cada entrada del manifiesto, boe buscar con su búsqueda y la elección
 //     del único resultado cuyo título empieza por su prefijo; después, de esa
 //     norma, boe metadatos, boe indice y boe articulo por cada bloque, todas con
 //     --json. Un código distinto de 0 falla nombrando la entrada y la orden;
 //  3. cada identificador resuelto y su título quedan en el registro del test,
-//     de donde la persona los copia a data/normas.yaml y a las evals.
+//     de donde la persona los copia a data/normas.yaml y a las evals, y de
+//     donde la tarea de data/cobertura.yaml toma el del texto refundido de la
+//     Ley sobre Tráfico, que ningún fichero escribe de memoria (research S5 de
+//     H9).
 //
-// Toca la red. Solo lo ejecuta scripts/grabar-evals.sh, que pone la etiqueta
-// grabacion y la variable de grabación, a mano y en la pausa de la tarea [datos]
-// del manifiesto (contrato §3.3): sin la variable, o con un manifiesto que
-// LeerManifiesto rechaza, falla antes de pedir nada.
+// Toca la red. Solo lo ejecutan scripts/grabar-evals.sh, a mano y en la pausa
+// de la tarea [datos] del manifiesto de H5 (contrato §3.3), y el paso
+// grabar_datos del workflow (scripts/workflow/grabar-datos.sh), sin modelo,
+// tras el commit de la tarea del manifiesto de H9; los dos ponen la etiqueta
+// grabacion y la variable de grabación. Sin la variable, o con un manifiesto
+// que LeerManifiesto rechaza, falla antes de pedir nada.
 func TestGrabarEvals(t *testing.T) {
 	if valor := os.Getenv(httpx.VariableGrabacion); valor != valorQueGraba {
 		t.Fatalf("TestGrabarEvals pide a la fuente real y graba lo que responde: solo se ejecuta con %s=%s, "+
-			"desde scripts/grabar-evals.sh (la variable vale %q)", httpx.VariableGrabacion, valorQueGraba, valor)
+			"desde scripts/grabar-evals.sh o scripts/workflow/grabar-datos.sh (la variable vale %q)",
+			httpx.VariableGrabacion, valorQueGraba, valor)
 	}
 
-	// La raíz de grabación es el directorio que contiene GrabacionesDeH5, que es
-	// testdata/evals/ de la raíz del repositorio relativa a este paquete: httpx
-	// escribe bajo ella <fuente>/, así que lo grabado queda exactamente donde lo
-	// leen Preparar y los tests del paquete (research.md V46).
-	raiz := filepath.Dir(GrabacionesDeH5)
-	rutaDelManifiesto := filepath.Join(raiz, ficheroDelManifiestoDeH5)
+	// Los dos manifiestos se leen, y el cliente de cada raíz se construye, antes
+	// de pedir nada: un manifiesto que no se lee no graba nada. Un cliente por
+	// raíz, porque la raíz de grabación es del cliente, y un solo Ritmo para
+	// los dos: el ritmo por sitio es de cada cliente, y uno por raíz empezaría
+	// sin esperar su turno respecto del otro.
+	ritmo := httpx.NuevoRitmo(boe.IntervaloEntrePeticiones)
 
-	contenido, err := leerFichero(rutaDelManifiesto)
-	require.NoErrorf(t, err, "el manifiesto de grabación %s no se puede leer", rutaDelManifiesto)
+	pendientes := make([]raizQueSeGraba, 0, len(conjuntosQueSeGraban()))
 
-	manifiesto, err := LeerManifiesto(contenido)
-	require.NoErrorf(t, err, "el manifiesto de grabación %s", rutaDelManifiesto)
+	for _, conjunto := range conjuntosQueSeGraban() {
+		raiz := filepath.Dir(conjunto)
+		rutaDelManifiesto := rutaDelManifiestoJuntoA(conjunto)
 
-	// Un solo cliente para todas las invocaciones: el ritmo por sitio y el
-	// robots.txt ya consultado son de cada cliente, y uno por invocación
-	// empezaría cada una sin esperar su turno respecto de la anterior.
-	cliente, err := httpx.New(
-		httpx.ConFuente(boe.NombreDeLaFuente),
-		httpx.ConRaizDeGrabacion(raiz),
-		httpx.ConIntervalo(boe.IntervaloEntrePeticiones),
-	)
-	require.NoError(t, err)
+		contenido, err := leerFichero(rutaDelManifiesto)
+		require.NoErrorf(t, err, "el manifiesto de grabación %s no se puede leer", rutaDelManifiesto)
+
+		manifiesto, err := LeerManifiesto(contenido)
+		require.NoErrorf(t, err, "el manifiesto de grabación %s", rutaDelManifiesto)
+
+		cliente, err := httpx.New(
+			httpx.ConFuente(boe.NombreDeLaFuente),
+			httpx.ConRaizDeGrabacion(raiz),
+			httpx.ConRitmo(ritmo),
+		)
+		require.NoError(t, err)
+
+		pendientes = append(pendientes, raizQueSeGraba{raiz: raiz, manifiesto: manifiesto, cliente: cliente})
+	}
 
 	// httpx.New lee la variable de grabación una sola vez, al construir el
 	// cliente, y la grabación queda fija en su cadena. httpx.Replay, en cambio,
@@ -88,35 +105,30 @@ func TestGrabarEvals(t *testing.T) {
 	// construye para cada consulta: con ella encendida, ninguna consulta se
 	// sembraría desde las grabaciones de H4, todas se pedirían a la fuente y lo
 	// que H4 ya grabó se volvería a grabar en H5 con el mismo nombre (contrato
-	// §3.2, paso 1, y §3.4). Por eso, ya construido el cliente que graba, se
-	// apaga para el resto del test; t.Setenv exige que el test no sea paralelo.
+	// §3.2, paso 1, y §3.4). Por eso, ya construido el cliente de cada raíz, que
+	// es el que graba, se apaga para el resto del test; t.Setenv exige que el
+	// test no sea paralelo.
 	t.Setenv(httpx.VariableGrabacion, "")
 
-	grabacion := nuevaGrabacionDeEvals(t, cliente)
+	for _, pendiente := range pendientes {
+		t.Logf("raíz de grabación %s", pendiente.raiz)
 
-	for indice, entrada := range manifiesto.Normas {
-		nombre := nombrarEntrada(indice, entrada)
-
-		norma := grabacion.resolver(t, nombre, entrada)
-		t.Logf("%s: %s «%s»", nombre, norma.Identificador, norma.Titulo)
-
-		consultas := []Consulta{
-			consultaDeBoe(verboMetadatos, norma.Identificador),
-			consultaDeBoe(verboIndice, norma.Identificador),
-		}
-		for _, bloque := range entrada.Bloques {
-			consultas = append(consultas, consultaDeBoe(verboArticulo, norma.Identificador, bloque))
-		}
-
-		for _, consulta := range consultas {
-			grabacion.pedir(t, nombre, consulta)
-		}
+		nuevaGrabacionDeEvals(t, pendiente.cliente).grabarNormas(t, pendiente.manifiesto)
 	}
 }
 
-// grabacionDeEvals es lo que comparten las invocaciones de TestGrabarEvals: la
-// caché temporal, que Preparar siembra desde las grabaciones de H4 y de H5, y
-// el registro con el applet boe sobre el cliente que graba y esa misma caché.
+// raizQueSeGraba es una raíz de grabación lista para grabar: su manifiesto, ya
+// leído, y el cliente que escribe bajo ella.
+type raizQueSeGraba struct {
+	raiz       string
+	manifiesto Manifiesto
+	cliente    *httpx.Cliente
+}
+
+// grabacionDeEvals es lo que comparten las invocaciones de una raíz de
+// TestGrabarEvals: la caché temporal, que Preparar siembra desde las
+// grabaciones de H4 y de H5, y el registro con el applet boe sobre el cliente
+// que graba y esa misma caché.
 type grabacionDeEvals struct {
 	dirCache string
 	registro *app.Registro
@@ -138,6 +150,32 @@ func nuevaGrabacionDeEvals(t *testing.T, cliente *httpx.Cliente) grabacionDeEval
 	})))
 
 	return grabacionDeEvals{dirCache: dirCache, registro: &registro}
+}
+
+// grabarNormas pasa por las entradas del manifiesto en su orden y, por cada
+// una, resuelve la norma y pide sus metadatos, su índice y cada bloque (punto 2
+// de TestGrabarEvals).
+func (g grabacionDeEvals) grabarNormas(t *testing.T, manifiesto Manifiesto) {
+	t.Helper()
+
+	for indice, entrada := range manifiesto.Normas {
+		nombre := nombrarEntrada(indice, entrada)
+
+		norma := g.resolver(t, nombre, entrada)
+		t.Logf("%s: %s «%s»", nombre, norma.Identificador, norma.Titulo)
+
+		consultas := []Consulta{
+			consultaDeBoe(verboMetadatos, norma.Identificador),
+			consultaDeBoe(verboIndice, norma.Identificador),
+		}
+		for _, bloque := range entrada.Bloques {
+			consultas = append(consultas, consultaDeBoe(verboArticulo, norma.Identificador, bloque))
+		}
+
+		for _, consulta := range consultas {
+			g.pedir(t, nombre, consulta)
+		}
+	}
 }
 
 // resolver busca la norma de la entrada con boe buscar y devuelve el único

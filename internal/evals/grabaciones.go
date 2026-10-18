@@ -21,6 +21,16 @@ const (
 	// GrabacionesDeH5 son las que graba una persona con TestGrabarEvals en la
 	// pausa de la tarea del manifiesto.
 	GrabacionesDeH5 = "../../testdata/evals/" + boe.NombreDeLaFuente
+
+	// GrabacionesDeH9 son las que graba el paso grabar_datos del workflow con
+	// TestGrabarEvals desde el segundo manifiesto, el de testdata/ de este
+	// paquete: los preceptos que verifican data/plazos.yaml y
+	// data/cobertura.yaml y lo que leen del BOE las sesiones de las evals de
+	// legal-core v1 (contracts/datos-de-plazos.md §4.1 de H9; research D15 de
+	// H9). Es la única raíz de este paquete en la que grabar_datos escribe:
+	// solo graba manifiestos <paquete>/testdata/grabaciones.json, y el de H5,
+	// en testdata/evals/, no lo es (research V2 y V3 de H9).
+	GrabacionesDeH9 = "testdata/" + boe.NombreDeLaFuente
 )
 
 // GrafosPrevios es el directorio de los conjuntos de grabaciones derivadas con
@@ -53,7 +63,9 @@ func UnionDeGrabaciones() []string {
 	return []string{GrabacionesDeH4, GrabacionesDeH5}
 }
 
-// Manifiesto es el manifiesto de grabación de H5 (data-model §7.2).
+// Manifiesto es un manifiesto de grabación de normas consolidadas del BOE
+// (data-model §7.2 de H5): el de H5, junto a GrabacionesDeH5, y el de H9, junto
+// a GrabacionesDeH9, tienen la misma forma y los lee el mismo lector.
 type Manifiesto struct {
 	// Fuente es la fuente de lo que se graba, boe.NombreDeLaFuente.
 	Fuente string `json:"fuente"`
