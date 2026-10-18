@@ -1,0 +1,2024 @@
+diff --git a/internal/core/plazos/calendario.go b/internal/core/plazos/calendario.go
+new file mode 100644
+index 0000000..815a715
+--- /dev/null
++++ b/internal/core/plazos/calendario.go
+@@ -0,0 +1,539 @@
++package plazos
++
++import (
++	"cmp"
++	"errors"
++	"fmt"
++	"maps"
++	"slices"
++	"time"
++)
++
++// Las rutas de data/festivos/, relativas a la raíz del repositorio, las que
++// nombran los defectos de carga.
++const (
++	rutaDeLosNacionales   = "data/festivos/nacionales-y-autonomicos.yaml"
++	carpetaDeLosLocales   = "data/festivos/locales/"
++	extensionDeLosLocales = ".yaml"
++)
++
++// rutaDeLocales es la ruta del fichero de festivos locales de una comunidad.
++func rutaDeLocales(comunidad string) string {
++	return carpetaDeLosLocales + comunidad + extensionDeLosLocales
++}
++
++// Ambito es el de un festivo.
++type Ambito string
++
++// Los tres ámbitos de un festivo (data-model §1). El fichero nacional lleva
++// los dos primeros: nacional («***» o «**» en la resolución) y autonómico («*»).
++const (
++	AmbitoNacional   Ambito = "nacional"
++	AmbitoAutonomico Ambito = "autonomico"
++	AmbitoLocal      Ambito = "local"
++)
++
++// Ambitos es el vocabulario cerrado de ámbitos de un festivo, del más amplio
++// al más estrecho. Devuelve una lista nueva en cada llamada.
++func Ambitos() []Ambito {
++	return []Ambito{AmbitoNacional, AmbitoAutonomico, AmbitoLocal}
++}
++
++// AmbitoDeCobertura es el de un tramo de la cobertura.
++type AmbitoDeCobertura string
++
++// Los dos ámbitos de la cobertura: los festivos de las resoluciones del BOE y
++// los locales de un municipio.
++const (
++	CoberturaNacionalYAutonomica AmbitoDeCobertura = "nacional-y-autonomico"
++	CoberturaLocal               AmbitoDeCobertura = "local"
++)
++
++// AmbitosDeCobertura es el vocabulario cerrado de ámbitos de la cobertura.
++// Devuelve una lista nueva en cada llamada.
++func AmbitosDeCobertura() []AmbitoDeCobertura {
++	return []AmbitoDeCobertura{CoberturaNacionalYAutonomica, CoberturaLocal}
++}
++
++// Falta es el motivo por el que no hay festivos (FR-022).
++type Falta string
++
++// Los motivos de falta. Los tres de un municipio y el de una línea los escribe
++// la derivación en el fichero local; los dos primeros no salen de un fichero:
++// un año sin datos y una comunidad sin fichero local.
++const (
++	FaltaSinCargar          Falta = "sin-cargar"
++	FaltaSinFestivosLocales Falta = "sin-festivos-locales"
++	FaltaNoComunicado       Falta = "no-comunicado"
++	FaltaLineaSinLeer       Falta = "linea-sin-leer"
++	FaltaSinLinea           Falta = "sin-linea"
++	FaltaSinMunicipio       Falta = "sin-municipio"
++)
++
++// FaltasDeCobertura es el vocabulario cerrado de las faltas de un tramo de la
++// cobertura. Devuelve una lista nueva en cada llamada.
++func FaltasDeCobertura() []Falta {
++	return []Falta{FaltaSinCargar, FaltaSinFestivosLocales, FaltaNoComunicado, FaltaLineaSinLeer, FaltaSinLinea}
++}
++
++// MotivosDeFalta es el vocabulario cerrado de los motivos de falta del fichero
++// local: los tres de un municipio y FaltaSinMunicipio, el de una línea que no
++// casa con un único municipio. Devuelve una lista nueva en cada llamada.
++func MotivosDeFalta() []Falta {
++	return []Falta{FaltaNoComunicado, FaltaLineaSinLeer, FaltaSinLinea, FaltaSinMunicipio}
++}
++
++// Municipio es un municipio ya resuelto por territorio, como lo recibe el
++// dominio (data-model §1, petición): el calendario usa su código INE y el de
++// su comunidad.
++type Municipio struct {
++	// CodigoINE son sus cinco cifras.
++	CodigoINE string
++	// Nombre es el oficial.
++	Nombre string
++	// Comunidad es el código de su comunidad, el de data/territorio/comunidades/.
++	Comunidad string
++}
++
++// Festivo es un festivo que hace inhábil un día para unos municipios.
++type Festivo struct {
++	Ambito Ambito
++	// Municipio es el código INE del municipio, solo en uno local.
++	Municipio string
++	// Source es la disposición que lo fija.
++	Source string
++}
++
++// FestivoDeUnaParte es un festivo que la resolución limita a una parte de la
++// comunidad: no hace inhábil el día (FR-011).
++type FestivoDeUnaParte struct {
++	Ambito Ambito
++	// Parte es la que nombra la resolución.
++	Parte string
++	// Source es la resolución.
++	Source string
++}
++
++// Tramo es un tramo de años de la cobertura de un ámbito: un año cargado, con
++// la disposición hasta la que llegan sus datos o la falta de festivos del
++// municipio, o un hueco de años seguidos sin datos, con su falta.
++type Tramo struct {
++	Ambito AmbitoDeCobertura
++	// Municipio es el código INE, solo en uno local.
++	Municipio   string
++	Desde       int
++	Hasta       int
++	Disposicion string
++	Falta       Falta
++}
++
++// Alcance es hasta dónde llegan los festivos cargados de un ámbito: el primer y
++// el último año cargados y la última disposición del último.
++type Alcance struct {
++	Desde       int
++	Hasta       int
++	Disposicion string
++}
++
++// fecha es un día del calendario, la clave de los festivos.
++type fecha struct {
++	anio int
++	mes  time.Month
++	dia  int
++}
++
++// fechaDe es el día de un instante, en su zona.
++func fechaDe(instante time.Time) fecha {
++	anio, mes, dia := instante.Date()
++
++	return fecha{anio: anio, mes: mes, dia: dia}
++}
++
++// Calendario son los festivos de data/festivos/, ya leídos. Solo lo construye
++// CargarCalendario y no cambia después: puede usarse desde varias goroutines a
++// la vez.
++type Calendario struct {
++	// anios lleva de cada año cargado a su resolución.
++	anios map[int]string
++	// nacionales lleva de cada día a sus filas de la resolución.
++	nacionales map[fecha][]filaNacional
++	// locales lleva del código de cada comunidad con fichero a sus festivos.
++	locales map[string]*calendarioLocal
++}
++
++// filaNacional es una fila del fichero nacional.
++type filaNacional struct {
++	ambito      Ambito
++	comunidades []string
++	parte       string
++	source      string
++}
++
++// deAlguna dice si la fila es de la comunidad de alguno de los municipios.
++func (f filaNacional) deAlguna(municipios []Municipio) bool {
++	return slices.ContainsFunc(municipios, func(m Municipio) bool { return slices.Contains(f.comunidades, m.Comunidad) })
++}
++
++// calendarioLocal son los festivos locales de una comunidad.
++type calendarioLocal struct {
++	// disposiciones lleva de cada año cargado a la última de sus disposiciones.
++	disposiciones map[int]string
++	// festivos lleva de cada día al source de cada municipio con fiesta.
++	festivos map[fecha]map[string]string
++	// faltas lleva de cada año al motivo de cada municipio sin festivos.
++	faltas map[int]map[string]Falta
++}
++
++// CargarCalendario lee los dos ficheros de data/festivos/: el nacional y, por
++// el código de su comunidad, los locales (contracts/datos-de-plazos.md §1.1 y
++// §1.2). Un fichero que no se puede leer —vacío, con una clave que no declara,
++// una fecha que no es AAAA-MM-DD o un ámbito o un motivo de falta fuera de su
++// vocabulario— no da calendario: el error dice todos, cada uno con su fichero,
++// y no lleva clase de usuario. No hay más reglas de carga: lo que llevan los
++// ficheros lo garantiza la derivación (research D25).
++func CargarCalendario(nacionales []byte, locales map[string][]byte) (*Calendario, error) {
++	c := &carga{calendario: &Calendario{
++		anios:      map[int]string{},
++		nacionales: map[fecha][]filaNacional{},
++		locales:    make(map[string]*calendarioLocal, len(locales)),
++	}}
++
++	if fichero, err := leerNacionales(nacionales); err != nil {
++		c.defectos = append(c.defectos, err)
++	} else {
++		c.nacional(fichero)
++	}
++
++	for _, comunidad := range slices.Sorted(maps.Keys(locales)) {
++		if fichero, err := leerLocales(comunidad, locales[comunidad]); err != nil {
++			c.defectos = append(c.defectos, err)
++		} else {
++			c.local(comunidad, fichero)
++		}
++	}
++
++	if err := errors.Join(c.defectos...); err != nil {
++		return nil, err
++	}
++
++	return c.calendario, nil
++}
++
++// leerNacionales lee data/festivos/nacionales-y-autonomicos.yaml.
++func leerNacionales(contenido []byte) (FestivosNacionales, error) {
++	var fichero FestivosNacionales
++	err := decodificar(rutaDeLosNacionales, contenido, &fichero)
++
++	return fichero, err
++}
++
++// leerLocales lee data/festivos/locales/<comunidad>.yaml.
++func leerLocales(comunidad string, contenido []byte) (FestivosLocales, error) {
++	var fichero FestivosLocales
++	err := decodificar(rutaDeLocales(comunidad), contenido, &fichero)
++
++	return fichero, err
++}
++
++// carga construye el calendario con los ficheros ya decodificados y acumula
++// los datos que no se pueden leer.
++type carga struct {
++	calendario *Calendario
++	defectos   []error
++}
++
++// defecto anota un dato de un fichero que no se puede leer.
++func (c *carga) defecto(fichero, formato string, argumentos ...any) {
++	c.defectos = append(c.defectos, &defectoDeDatos{fichero: fichero, motivo: fmt.Sprintf(formato, argumentos...)})
++}
++
++// fecha lee una fecha AAAA-MM-DD de un fichero.
++func (c *carga) fecha(fichero, texto string) (fecha, bool) {
++	dia, err := time.Parse(time.DateOnly, texto)
++	if err != nil {
++		c.defecto(fichero, "la fecha %q no es una fecha AAAA-MM-DD", texto)
++
++		return fecha{}, false
++	}
++
++	return fechaDe(dia), true
++}
++
++// nacional carga el fichero nacional.
++func (c *carga) nacional(fichero FestivosNacionales) {
++	for _, anio := range fichero.Anios {
++		c.calendario.anios[anio.Anio] = anio.Disposicion
++	}
++
++	for _, festivo := range fichero.Festivos {
++		if festivo.Ambito != AmbitoNacional && festivo.Ambito != AmbitoAutonomico {
++			c.defecto(rutaDeLosNacionales, "el ámbito %q no es %s ni %s", festivo.Ambito, AmbitoNacional, AmbitoAutonomico)
++		}
++
++		dia, leida := c.fecha(rutaDeLosNacionales, festivo.Fecha)
++		if !leida {
++			continue
++		}
++
++		c.calendario.nacionales[dia] = append(c.calendario.nacionales[dia], filaNacional{
++			ambito:      festivo.Ambito,
++			comunidades: slices.Clone(festivo.Comunidades),
++			parte:       festivo.Parte,
++			source:      festivo.Source,
++		})
++	}
++}
++
++// local carga el fichero local de una comunidad.
++func (c *carga) local(comunidad string, fichero FestivosLocales) {
++	ruta := rutaDeLocales(comunidad)
++	local := &calendarioLocal{
++		disposiciones: make(map[int]string, len(fichero.Anios)),
++		festivos:      map[fecha]map[string]string{},
++		faltas:        map[int]map[string]Falta{},
++	}
++
++	for _, anio := range fichero.Anios {
++		var ultima string
++		if len(anio.Disposiciones) > 0 {
++			ultima = anio.Disposiciones[len(anio.Disposiciones)-1]
++		}
++
++		local.disposiciones[anio.Anio] = ultima
++	}
++
++	for _, festivo := range fichero.Festivos {
++		if dia, leida := c.fecha(ruta, festivo.Fecha); leida {
++			if local.festivos[dia] == nil {
++				local.festivos[dia] = map[string]string{}
++			}
++
++			local.festivos[dia][festivo.Municipio] = festivo.Source
++		}
++	}
++
++	for _, falta := range fichero.Faltas {
++		if !slices.Contains(MotivosDeFalta(), falta.Motivo) {
++			c.defecto(ruta, "el motivo de falta %q no es %s", falta.Motivo, enumeracion(MotivosDeFalta()))
++		}
++
++		if falta.Municipio == "" {
++			continue
++		}
++
++		if local.faltas[falta.Anio] == nil {
++			local.faltas[falta.Anio] = map[string]Falta{}
++		}
++
++		local.faltas[falta.Anio][falta.Municipio] = falta.Motivo
++	}
++
++	c.calendario.locales[comunidad] = local
++}
++
++// Inhabil dice si un día es inhábil para unos municipios: si es sábado o
++// domingo, festivo nacional o autonómico de toda la comunidad de alguno de
++// ellos, o festivo local de alguno (arts. 30.2 y 30.6 LPAC; FR-003). Un festivo
++// de una parte de la comunidad no lo hace inhábil (FR-011), y un año sin
++// festivos cargados solo tiene sus sábados y sus domingos.
++func (c *Calendario) Inhabil(dia time.Time, municipios []Municipio) bool {
++	if semana := dia.Weekday(); semana == time.Saturday || semana == time.Sunday {
++		return true
++	}
++
++	clave := fechaDe(dia)
++
++	for _, fila := range c.nacionales[clave] {
++		if fila.parte == "" && fila.deAlguna(municipios) {
++			return true
++		}
++	}
++
++	return slices.ContainsFunc(municipios, func(municipio Municipio) bool {
++		_, festivo := c.festivoLocal(clave, municipio)
++
++		return festivo
++	})
++}
++
++// festivoLocal da el source del festivo local de un municipio en un día, si lo
++// tiene.
++func (c *Calendario) festivoLocal(clave fecha, municipio Municipio) (string, bool) {
++	local := c.locales[municipio.Comunidad]
++	if local == nil {
++		return "", false
++	}
++
++	source, festivo := local.festivos[clave][municipio.CodigoINE]
++
++	return source, festivo
++}
++
++// FestivosDe son los festivos que hacen inhábil un día para unos municipios,
++// cada uno una vez, con su ámbito, su municipio si es local y su source: del
++// más amplio al más estrecho y, los locales, por municipio. Un sábado o un
++// domingo no son festivos.
++func (c *Calendario) FestivosDe(dia time.Time, municipios []Municipio) []Festivo {
++	clave := fechaDe(dia)
++
++	var festivos []Festivo
++
++	for _, fila := range c.nacionales[clave] {
++		if fila.parte == "" && fila.deAlguna(municipios) {
++			festivos = append(festivos, Festivo{Ambito: fila.ambito, Source: fila.source})
++		}
++	}
++
++	for _, municipio := range municipios {
++		if source, festivo := c.festivoLocal(clave, municipio); festivo {
++			festivos = append(festivos, Festivo{Ambito: AmbitoLocal, Municipio: municipio.CodigoINE, Source: source})
++		}
++	}
++
++	ambitos := Ambitos()
++
++	slices.SortFunc(festivos, func(a, b Festivo) int {
++		return cmp.Or(
++			cmp.Compare(slices.Index(ambitos, a.Ambito), slices.Index(ambitos, b.Ambito)),
++			cmp.Compare(a.Municipio, b.Municipio),
++			cmp.Compare(a.Source, b.Source),
++		)
++	})
++
++	return slices.Compact(festivos)
++}
++
++// PartesDe son los festivos de un día que la resolución limita a una parte de
++// una comunidad, por parte (FR-011, FR-025).
++func (c *Calendario) PartesDe(dia time.Time, comunidad string) []FestivoDeUnaParte {
++	var partes []FestivoDeUnaParte
++
++	for _, fila := range c.nacionales[fechaDe(dia)] {
++		if fila.parte != "" && slices.Contains(fila.comunidades, comunidad) {
++			partes = append(partes, FestivoDeUnaParte{Ambito: fila.ambito, Parte: fila.parte, Source: fila.source})
++		}
++	}
++
++	slices.SortFunc(partes, func(a, b FestivoDeUnaParte) int {
++		return cmp.Or(cmp.Compare(a.Parte, b.Parte), cmp.Compare(a.Ambito, b.Ambito), cmp.Compare(a.Source, b.Source))
++	})
++
++	return slices.Compact(partes)
++}
++
++// Cobertura es lo que cubren los datos de los años de desde a hasta, ambos
++// incluidos, para unos municipios: primero el ámbito nacional y autonómico y
++// después el local de cada municipio, una vez cada uno y en el orden dado. Cada
++// ámbito va por tramos: uno por año cargado, con la disposición hasta la que
++// llegan sus datos o, en uno local, la falta de festivos del municipio; y uno
++// por hueco de años seguidos sin datos, con FaltaSinCargar o, en una comunidad
++// sin fichero local, FaltaSinFestivosLocales (FR-026; research D5). Con desde
++// mayor que hasta no hay ningún tramo.
++func (c *Calendario) Cobertura(desde, hasta int, municipios []Municipio) []Tramo {
++	if desde > hasta {
++		return nil
++	}
++
++	tramos := tramosDe(Tramo{Ambito: CoberturaNacionalYAutonomica}, desde, hasta, c.anioNacional)
++	vistos := make(map[string]bool, len(municipios))
++
++	for _, municipio := range municipios {
++		if vistos[municipio.CodigoINE] {
++			continue
++		}
++
++		vistos[municipio.CodigoINE] = true
++
++		tramos = append(tramos, tramosDe(Tramo{Ambito: CoberturaLocal, Municipio: municipio.CodigoINE}, desde, hasta,
++			func(anio int) (string, Falta, bool) { return c.anioLocal(municipio, anio) })...)
++	}
++
++	return tramos
++}
++
++// anioNacional es la cobertura nacional y autonómica de un año: su resolución
++// si está cargado.
++func (c *Calendario) anioNacional(anio int) (disposicion string, falta Falta, cargado bool) {
++	disposicion, cargado = c.anios[anio]
++	if !cargado {
++		return "", FaltaSinCargar, false
++	}
++
++	return disposicion, "", true
++}
++
++// anioLocal es la cobertura local de un municipio en un año: la última
++// disposición del año si está cargado y el municipio no tiene falta, o su falta.
++func (c *Calendario) anioLocal(municipio Municipio, anio int) (disposicion string, falta Falta, cargado bool) {
++	local := c.locales[municipio.Comunidad]
++	if local == nil {
++		return "", FaltaSinFestivosLocales, false
++	}
++
++	disposicion, cargado = local.disposiciones[anio]
++	if !cargado {
++		return "", FaltaSinCargar, false
++	}
++
++	if falta, tiene := local.faltas[anio][municipio.CodigoINE]; tiene {
++		return "", falta, true
++	}
++
++	return disposicion, "", true
++}
++
++// tramosDe parte los años de desde a hasta en los tramos de un ámbito: cada
++// año cargado es un tramo, y los años seguidos sin cargar con la misma falta,
++// otro.
++func tramosDe(base Tramo, desde, hasta int, deUnAnio func(int) (string, Falta, bool)) []Tramo {
++	var tramos []Tramo
++
++	hueco := false
++
++	for anio := desde; anio <= hasta; anio++ {
++		disposicion, falta, cargado := deUnAnio(anio)
++
++		if !cargado && hueco && tramos[len(tramos)-1].Falta == falta {
++			tramos[len(tramos)-1].Hasta = anio
++
++			continue
++		}
++
++		tramo := base
++		tramo.Desde, tramo.Hasta, tramo.Disposicion, tramo.Falta = anio, anio, disposicion, falta
++		tramos = append(tramos, tramo)
++		hueco = !cargado
++	}
++
++	return tramos
++}
++
++// AlcanceNacional es hasta dónde llegan los festivos nacionales y
++// autonómicos cargados; sin ningún año cargado, nada.
++func (c *Calendario) AlcanceNacional() (Alcance, bool) {
++	return alcanceDe(c.anios)
++}
++
++// AlcanceLocal es hasta dónde llegan los festivos locales cargados de una
++// comunidad; sin fichero local o sin ningún año cargado, nada.
++func (c *Calendario) AlcanceLocal(comunidad string) (Alcance, bool) {
++	local := c.locales[comunidad]
++	if local == nil {
++		return Alcance{}, false
++	}
++
++	return alcanceDe(local.disposiciones)
++}
++
++// alcanceDe es el alcance de los años cargados de un ámbito, cada uno con la
++// disposición hasta la que llegan sus datos.
++func alcanceDe(disposiciones map[int]string) (Alcance, bool) {
++	if len(disposiciones) == 0 {
++		return Alcance{}, false
++	}
++
++	anios := slices.Sorted(maps.Keys(disposiciones))
++	hasta := anios[len(anios)-1]
++
++	return Alcance{Desde: anios[0], Hasta: hasta, Disposicion: disposiciones[hasta]}, true
++}
+diff --git a/internal/core/plazos/calendario_test.go b/internal/core/plazos/calendario_test.go
+new file mode 100644
+index 0000000..ea91bd3
+--- /dev/null
++++ b/internal/core/plazos/calendario_test.go
+@@ -0,0 +1,358 @@
++package plazos
++
++import (
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++
++	"github.com/jmorenobl/kitlegal/internal/core/schema"
++)
++
++// El calendario sintético de los tests del dominio. Todo es inventado a
++// propósito —las comunidades 71 y 72, sus municipios, los años 2031 y 2032, las
++// disposiciones—, para que ningún test pase porque el dominio tenga escrito un
++// dato real: los ficheros reales los comprueban los tests de derivación y los
++// del applet.
++//
++// La comunidad 71 tiene fichero local y la 72 no. El 1 de enero de 2031 es
++// fiesta nacional en las dos; el 19 de marzo, nacional en la 71 y autonómica en
++// la 72; el 2 de mayo, autonómica en la 71; el 24 de junio, autonómica en la 72
++// y en una parte de ella, la Isla Sintética, a la vez, y el 25 de junio solo en
++// esa parte. Los locales: el 15 de mayo en 71001 y 71002, cada uno de su
++// disposición, y el 8 de septiembre de 2032 en 71001. Las faltas: 71003 no
++// comunicado y 71004 con la línea sin leer en 2031, 71002 sin línea en 2032, y
++// una línea, Aldea Sintética, sin municipio.
++const (
++	nacionalesSinteticos = `# generado a mano para los tests del dominio
++fuente: prueba.fiestas
++anios:
++  - {anio: 2031, disposicion: PRUEBA-2030-1}
++  - {anio: 2032, disposicion: PRUEBA-2031-1}
++festivos:
++  - {fecha: "2031-01-01", ambito: nacional, comunidades: ["71", "72"], source: PRUEBA-2030-1}
++  - {fecha: "2031-03-19", ambito: nacional, comunidades: ["71"], source: PRUEBA-2030-1}
++  - {fecha: "2031-03-19", ambito: autonomico, comunidades: ["72"], source: PRUEBA-2030-1}
++  - {fecha: "2031-05-02", ambito: autonomico, comunidades: ["71"], source: PRUEBA-2030-1}
++  - {fecha: "2031-06-24", ambito: autonomico, comunidades: ["72"], source: PRUEBA-2030-1}
++  - {fecha: "2031-06-24", ambito: autonomico, comunidades: ["72"], parte: Isla Sintética, source: PRUEBA-2030-1}
++  - {fecha: "2031-06-25", ambito: autonomico, comunidades: ["72"], parte: Isla Sintética, source: PRUEBA-2030-1}
++  - {fecha: "2032-01-01", ambito: nacional, comunidades: ["71", "72"], source: PRUEBA-2031-1}
++`
++	localesSinteticos = `# generado a mano para los tests del dominio
++fuente: prueba.fiestas-locales
++comunidad: "71"
++anios:
++  - {anio: 2031, disposiciones: [PRUEBA-L-1, PRUEBA-L-2]}
++  - {anio: 2032, disposiciones: [PRUEBA-L-3]}
++festivos:
++  - {fecha: "2031-05-15", municipio: "71001", source: PRUEBA-L-1}
++  - {fecha: "2031-05-15", municipio: "71002", source: PRUEBA-L-2}
++  - {fecha: "2032-09-08", municipio: "71001", source: PRUEBA-L-3}
++faltas:
++  - {anio: 2031, municipio: "71003", motivo: no-comunicado, source: PRUEBA-L-1}
++  - {anio: 2031, municipio: "71004", motivo: linea-sin-leer, source: PRUEBA-L-2}
++  - {anio: 2031, linea: Aldea Sintética, motivo: sin-municipio, source: PRUEBA-L-1}
++  - {anio: 2032, municipio: "71002", motivo: sin-linea, source: PRUEBA-L-3}
++`
++)
++
++// Los municipios sintéticos, ya resueltos como los recibe el dominio.
++var (
++	conFestivos    = Municipio{CodigoINE: "71001", Nombre: "Villa Primera", Comunidad: "71"}
++	sinLineaEn2032 = Municipio{CodigoINE: "71002", Nombre: "Villa Segunda", Comunidad: "71"}
++	noComunicado   = Municipio{CodigoINE: "71003", Nombre: "Villa Tercera", Comunidad: "71"}
++	lineaSinLeer   = Municipio{CodigoINE: "71004", Nombre: "Villa Cuarta", Comunidad: "71"}
++	sinLocales     = Municipio{CodigoINE: "72001", Nombre: "Puerto Sintético", Comunidad: "72"}
++	deOtraParte    = Municipio{CodigoINE: "99001", Nombre: "Lugar Ajeno", Comunidad: "99"}
++)
++
++// dia es una fecha AAAA-MM-DD de un test.
++func dia(t *testing.T, fecha string) time.Time {
++	t.Helper()
++
++	analizada, err := time.Parse(time.DateOnly, fecha)
++	require.NoError(t, err)
++
++	return analizada
++}
++
++// calendarioSintetico carga el calendario sintético.
++func calendarioSintetico(t *testing.T) *Calendario {
++	t.Helper()
++
++	calendario, err := CargarCalendario([]byte(nacionalesSinteticos), map[string][]byte{"71": []byte(localesSinteticos)})
++	require.NoError(t, err)
++
++	return calendario
++}
++
++// TestCargarCalendario carga el calendario sintético y comprueba cada consulta,
++// desde varias goroutines a la vez, y que lo que no se puede leer es un error
++// sin clase de usuario (FR-003, FR-011, FR-020, FR-022, FR-025, FR-026).
++func TestCargarCalendario(t *testing.T) {
++	t.Parallel()
++
++	calendario := calendarioSintetico(t)
++
++	t.Run("inhábil", func(t *testing.T) {
++		t.Parallel()
++		comprobarInhabiles(t, calendario)
++	})
++	t.Run("festivos de un día", func(t *testing.T) {
++		t.Parallel()
++		comprobarFestivosDeUnDia(t, calendario)
++	})
++	t.Run("partes de un día", func(t *testing.T) {
++		t.Parallel()
++		comprobarPartes(t, calendario)
++	})
++	t.Run("cobertura", func(t *testing.T) {
++		t.Parallel()
++		comprobarCobertura(t, calendario)
++	})
++	t.Run("alcance", func(t *testing.T) {
++		t.Parallel()
++		comprobarAlcance(t, calendario)
++	})
++	t.Run("vocabularios", func(t *testing.T) {
++		t.Parallel()
++		comprobarVocabularios(t)
++	})
++	t.Run("lo que no se puede leer", func(t *testing.T) {
++		t.Parallel()
++		comprobarLoQueNoSeLee(t)
++	})
++}
++
++// comprobarInhabiles comprueba Inhabil: sábado, domingo, nacional o autonómico
++// sin parte de la comunidad de alguno de los municipios, o local de alguno.
++func comprobarInhabiles(t *testing.T, calendario *Calendario) {
++	t.Helper()
++
++	casos := []struct {
++		nombre     string
++		fecha      string
++		municipios []Municipio
++		inhabil    bool
++	}{
++		{"sábado", "2031-01-04", nil, true},
++		{"domingo", "2031-01-05", []Municipio{conFestivos}, true},
++		{"martes sin fiesta", "2031-01-07", []Municipio{conFestivos, sinLocales}, false},
++		{"nacional en la 71", "2031-01-01", []Municipio{conFestivos}, true},
++		{"nacional en la 72", "2031-01-01", []Municipio{sinLocales}, true},
++		{"nacional en una y autonómico en otra", "2031-03-19", []Municipio{sinLocales}, true},
++		{"autonómico de la 71", "2031-05-02", []Municipio{conFestivos}, true},
++		{"autonómico de la 71 en la 72", "2031-05-02", []Municipio{sinLocales}, false},
++		{"autonómico de la comunidad de uno de los dos", "2031-05-02", []Municipio{sinLocales, noComunicado}, true},
++		{"de una parte y de toda la comunidad", "2031-06-24", []Municipio{sinLocales}, true},
++		{"solo de una parte", "2031-06-25", []Municipio{sinLocales}, false},
++		{"local del municipio", "2031-05-15", []Municipio{conFestivos}, true},
++		{"local de otro municipio", "2031-05-15", []Municipio{noComunicado}, false},
++		{"local de uno de los dos", "2031-05-15", []Municipio{noComunicado, sinLineaEn2032}, true},
++		{"local del segundo año", "2032-09-08", []Municipio{conFestivos}, true},
++		{"comunidad sin festivos cargados", "2031-01-01", []Municipio{deOtraParte}, false},
++		{"año sin cargar", "2033-01-03", []Municipio{conFestivos}, false},
++	}
++
++	for _, caso := range casos {
++		assert.Equal(t, caso.inhabil, calendario.Inhabil(dia(t, caso.fecha), caso.municipios), caso.nombre)
++	}
++}
++
++// comprobarFestivosDeUnDia comprueba FestivosDe: los que hacen inhábil el día
++// para los municipios, cada uno una vez, con su ámbito, su municipio si es
++// local y su source, nacionales antes que autonómicos y locales por municipio.
++func comprobarFestivosDeUnDia(t *testing.T, calendario *Calendario) {
++	t.Helper()
++
++	nacional2031 := Festivo{Ambito: AmbitoNacional, Source: "PRUEBA-2030-1"}
++
++	casos := []struct {
++		nombre     string
++		fecha      string
++		municipios []Municipio
++		festivos   []Festivo
++	}{
++		{"uno para las dos comunidades", "2031-01-01", []Municipio{conFestivos, sinLocales}, []Festivo{nacional2031}},
++		{
++			"nacional en una y autonómico en otra", "2031-03-19",
++			[]Municipio{sinLocales, conFestivos},
++			[]Festivo{nacional2031, {Ambito: AmbitoAutonomico, Source: "PRUEBA-2030-1"}},
++		},
++		{"solo el de su comunidad", "2031-03-19", []Municipio{sinLocales}, []Festivo{{Ambito: AmbitoAutonomico, Source: "PRUEBA-2030-1"}}},
++		{
++			"locales por municipio", "2031-05-15",
++			[]Municipio{sinLineaEn2032, conFestivos, conFestivos},
++			[]Festivo{
++				{Ambito: AmbitoLocal, Municipio: "71001", Source: "PRUEBA-L-1"},
++				{Ambito: AmbitoLocal, Municipio: "71002", Source: "PRUEBA-L-2"},
++			},
++		},
++		{"el de toda la comunidad y no el de la parte", "2031-06-24", []Municipio{sinLocales}, []Festivo{{Ambito: AmbitoAutonomico, Source: "PRUEBA-2030-1"}}},
++		{"ninguno por una parte", "2031-06-25", []Municipio{sinLocales}, nil},
++		{"ninguno en sábado", "2031-01-04", []Municipio{conFestivos}, nil},
++	}
++
++	for _, caso := range casos {
++		assert.Equal(t, caso.festivos, calendario.FestivosDe(dia(t, caso.fecha), caso.municipios), caso.nombre)
++	}
++}
++
++// comprobarPartes comprueba PartesDe: los festivos de una parte de la
++// comunidad, que no hacen inhábil el día (FR-011, FR-025).
++func comprobarPartes(t *testing.T, calendario *Calendario) {
++	t.Helper()
++
++	isla := []FestivoDeUnaParte{{Ambito: AmbitoAutonomico, Parte: "Isla Sintética", Source: "PRUEBA-2030-1"}}
++
++	assert.Equal(t, isla, calendario.PartesDe(dia(t, "2031-06-24"), "72"))
++	assert.Equal(t, isla, calendario.PartesDe(dia(t, "2031-06-25"), "72"))
++	assert.Empty(t, calendario.PartesDe(dia(t, "2031-06-25"), "71"), "la parte es de otra comunidad")
++	assert.Empty(t, calendario.PartesDe(dia(t, "2031-05-02"), "71"), "un festivo de toda la comunidad no es de una parte")
++	assert.Empty(t, calendario.PartesDe(dia(t, "2033-06-24"), "72"), "año sin cargar")
++}
++
++// comprobarCobertura comprueba Cobertura: por ámbito y por tramos de años, un
++// tramo por año cargado, con su disposición o su falta, y uno por hueco; los
++// municipios una vez cada uno, en el orden dado (FR-022, FR-026).
++func comprobarCobertura(t *testing.T, calendario *Calendario) {
++	t.Helper()
++
++	nacional := []Tramo{
++		{Ambito: CoberturaNacionalYAutonomica, Desde: 2029, Hasta: 2030, Falta: FaltaSinCargar},
++		{Ambito: CoberturaNacionalYAutonomica, Desde: 2031, Hasta: 2031, Disposicion: "PRUEBA-2030-1"},
++		{Ambito: CoberturaNacionalYAutonomica, Desde: 2032, Hasta: 2032, Disposicion: "PRUEBA-2031-1"},
++		{Ambito: CoberturaNacionalYAutonomica, Desde: 2033, Hasta: 2034, Falta: FaltaSinCargar},
++	}
++
++	local := func(municipio string, en2031, en2032 Tramo) []Tramo {
++		en2031.Ambito, en2031.Municipio, en2031.Desde, en2031.Hasta = CoberturaLocal, municipio, 2031, 2031
++		en2032.Ambito, en2032.Municipio, en2032.Desde, en2032.Hasta = CoberturaLocal, municipio, 2032, 2032
++
++		return []Tramo{
++			{Ambito: CoberturaLocal, Municipio: municipio, Desde: 2029, Hasta: 2030, Falta: FaltaSinCargar},
++			en2031, en2032,
++			{Ambito: CoberturaLocal, Municipio: municipio, Desde: 2033, Hasta: 2034, Falta: FaltaSinCargar},
++		}
++	}
++
++	hasta2031, hasta2032 := Tramo{Disposicion: "PRUEBA-L-2"}, Tramo{Disposicion: "PRUEBA-L-3"}
++
++	var esperada []Tramo
++	esperada = append(esperada, nacional...)
++	esperada = append(esperada, local("71003", Tramo{Falta: FaltaNoComunicado}, hasta2032)...)
++	esperada = append(esperada, local("71001", hasta2031, hasta2032)...)
++	esperada = append(esperada, local("71004", Tramo{Falta: FaltaLineaSinLeer}, hasta2032)...)
++	esperada = append(esperada, local("71002", hasta2031, Tramo{Falta: FaltaSinLinea})...)
++	esperada = append(esperada, Tramo{Ambito: CoberturaLocal, Municipio: "72001", Desde: 2029, Hasta: 2034, Falta: FaltaSinFestivosLocales})
++
++	municipios := []Municipio{noComunicado, conFestivos, lineaSinLeer, noComunicado, sinLineaEn2032, sinLocales}
++	assert.Equal(t, esperada, calendario.Cobertura(2029, 2034, municipios))
++
++	assert.Equal(t, []Tramo{
++		{Ambito: CoberturaNacionalYAutonomica, Desde: 2032, Hasta: 2032, Disposicion: "PRUEBA-2031-1"},
++		{Ambito: CoberturaLocal, Municipio: "72001", Desde: 2032, Hasta: 2032, Falta: FaltaSinFestivosLocales},
++	}, calendario.Cobertura(2032, 2032, []Municipio{sinLocales}), "un solo año")
++
++	assert.Empty(t, calendario.Cobertura(2032, 2031, municipios), "sin años no hay tramos")
++}
++
++// comprobarAlcance comprueba hasta dónde llegan los festivos cargados de cada
++// ámbito: el primer y el último año y la última disposición del último.
++func comprobarAlcance(t *testing.T, calendario *Calendario) {
++	t.Helper()
++
++	nacional, cargado := calendario.AlcanceNacional()
++	assert.True(t, cargado)
++	assert.Equal(t, Alcance{Desde: 2031, Hasta: 2032, Disposicion: "PRUEBA-2031-1"}, nacional)
++
++	local, cargado := calendario.AlcanceLocal("71")
++	assert.True(t, cargado)
++	assert.Equal(t, Alcance{Desde: 2031, Hasta: 2032, Disposicion: "PRUEBA-L-3"}, local)
++
++	local, cargado = calendario.AlcanceLocal("72")
++	assert.False(t, cargado, "la comunidad 72 no tiene fichero local")
++	assert.Equal(t, Alcance{}, local)
++
++	vacio, err := CargarCalendario([]byte("fuente: prueba.fiestas\nanios: []\nfestivos: []\n"), nil)
++	require.NoError(t, err)
++
++	nacional, cargado = vacio.AlcanceNacional()
++	assert.False(t, cargado, "sin años cargados")
++	assert.Equal(t, Alcance{}, nacional)
++}
++
++// comprobarVocabularios comprueba los vocabularios cerrados de ámbitos y de
++// faltas, cada uno en una lista nueva en cada llamada.
++func comprobarVocabularios(t *testing.T) {
++	t.Helper()
++
++	assert.Equal(t, []Ambito{"nacional", "autonomico", "local"}, Ambitos())
++	assert.Equal(t, []AmbitoDeCobertura{"nacional-y-autonomico", "local"}, AmbitosDeCobertura())
++	assert.Equal(t, []Falta{"sin-cargar", "sin-festivos-locales", "no-comunicado", "linea-sin-leer", "sin-linea"},
++		FaltasDeCobertura())
++	assert.Equal(t, []Falta{"no-comunicado", "linea-sin-leer", "sin-linea", "sin-municipio"}, MotivosDeFalta())
++
++	ambitos := Ambitos()
++	ambitos[0] = "otro"
++	assert.Equal(t, AmbitoNacional, Ambitos()[0], "cada llamada da una lista nueva")
++}
++
++// comprobarLoQueNoSeLee comprueba que un fichero que no se puede leer no da
++// calendario y da un error que nombra el fichero y no lleva clase de usuario:
++// el kernel lo da como inesperado (research D25).
++func comprobarLoQueNoSeLee(t *testing.T) {
++	t.Helper()
++
++	const rutaNacional = "data/festivos/nacionales-y-autonomicos.yaml: "
++
++	const rutaLocal = "data/festivos/locales/71.yaml: "
++
++	casos := []struct {
++		nombre     string
++		nacionales string
++		locales    string
++		ruta       string
++		motivo     string
++	}{
++		{"nacionales vacío", "", localesSinteticos, rutaNacional, "está vacío"},
++		{"nacionales que no son YAML", "festivos: [", localesSinteticos, rutaNacional, "no se puede leer"},
++		{"clave que no declara", nacionalesSinteticos + "notas: ninguna\n", localesSinteticos, rutaNacional, "no se puede leer"},
++		{
++			"fecha que no es AAAA-MM-DD",
++			strings.Replace(nacionalesSinteticos, `"2031-05-02"`, `"2031-02-30"`, 1), localesSinteticos,
++			rutaNacional, `la fecha "2031-02-30" no es una fecha AAAA-MM-DD`,
++		},
++		{
++			"ámbito fuera del vocabulario",
++			strings.Replace(nacionalesSinteticos, "ambito: autonomico", "ambito: regional", 1), localesSinteticos,
++			rutaNacional, `el ámbito "regional" no es nacional ni autonomico`,
++		},
++		{"locales vacío", nacionalesSinteticos, "\n", rutaLocal, "está vacío"},
++		{
++			"fecha local que no se lee",
++			nacionalesSinteticos, strings.Replace(localesSinteticos, `"2032-09-08"`, `"8 de septiembre"`, 1),
++			rutaLocal, `la fecha "8 de septiembre" no es una fecha AAAA-MM-DD`,
++		},
++		{
++			"motivo de falta que no es del fichero",
++			nacionalesSinteticos, strings.Replace(localesSinteticos, "motivo: sin-linea", "motivo: sin-cargar", 1),
++			rutaLocal, `el motivo de falta "sin-cargar" no es no-comunicado, linea-sin-leer, sin-linea ni sin-municipio`,
++		},
++	}
++
++	for _, caso := range casos {
++		require.NotEqual(t, nacionalesSinteticos+localesSinteticos, caso.nacionales+caso.locales, caso.nombre)
++
++		calendario, err := CargarCalendario([]byte(caso.nacionales), map[string][]byte{"71": []byte(caso.locales)})
++		require.Error(t, err, caso.nombre)
++		assert.Nil(t, calendario, caso.nombre)
++		assert.Contains(t, err.Error(), caso.ruta+caso.motivo, caso.nombre)
++
++		var conClase schema.ConClase
++		assert.NotErrorAs(t, err, &conClase, caso.nombre)
++	}
++}
+diff --git a/internal/core/plazos/doc.go b/internal/core/plazos/doc.go
+new file mode 100644
+index 0000000..b879b64
+--- /dev/null
++++ b/internal/core/plazos/doc.go
+@@ -0,0 +1,35 @@
++// Package plazos calcula la fecha en que vence un plazo administrativo o
++// procesal, con los festivos de los municipios que cuentan y la declaración de
++// hasta dónde llegan los datos (FR-001 a FR-012, FR-020 a FR-026, data-model
++// §1).
++//
++// El paquete no lee ficheros: recibe los de data/plazos.yaml y data/festivos/
++// ya leídos, como bytes, y quien los empaqueta es otro (research D1). LeerTipos
++// lee los siete tipos de plazo de FR-008, cada uno con su cómputo, su duración
++// cuando la fija y los preceptos que la fundan. CargarCalendario lee los
++// festivos nacionales y autonómicos de las resoluciones del BOE y los locales
++// de los boletines de cada comunidad, y construye el Calendario, que responde
++// sin volver a leer nada: si un día es inhábil para unos municipios, qué
++// festivos lo hacen inhábil, qué festivos de una parte de la comunidad caen en
++// él y qué cubren los datos en unos años. EscribirFestivosNacionales y
++// EscribirFestivosLocales escriben los dos ficheros de data/festivos/ en su
++// forma canónica, la que la derivación compara byte a byte con lo grabado
++// (contracts/datos-de-plazos.md §1).
++//
++// Lo que garantiza:
++//
++//   - Los tipos son los siete de FR-008 y ninguno más, y cada uno lleva lo que
++//     el resultado nombra: data/plazos.yaml no tiene otro lector ni esquema, así
++//     que LeerTipos es su única definición (research D17).
++//   - Un festivo de una parte de la comunidad no hace inhábil el día en toda
++//     ella: el calendario lo da aparte, para que se avise (FR-011, FR-025).
++//   - La cobertura nunca da por inexistentes los festivos que no tiene: dice,
++//     por ámbito y por tramos de años, hasta qué disposición llegan los datos o
++//     por qué faltan, de un vocabulario cerrado (FR-022, FR-026).
++//   - Un fichero de data/festivos/ o data/plazos.yaml que no se puede leer es
++//     un error que nombra el fichero y no lleva clase de usuario: el kernel lo da
++//     como inesperado, código 1. Los de data/festivos/ no tienen reglas de carga
++//     propias; lo que llevan lo garantiza la derivación (research D25).
++//   - El Calendario no cambia después de cargarse y puede usarse desde varias
++//     goroutines a la vez.
++package plazos
+diff --git a/internal/core/plazos/festivos.go b/internal/core/plazos/festivos.go
+new file mode 100644
+index 0000000..87a3e7e
+--- /dev/null
++++ b/internal/core/plazos/festivos.go
+@@ -0,0 +1,217 @@
++package plazos
++
++import (
++	"bytes"
++	"cmp"
++	"slices"
++
++	"go.yaml.in/yaml/v3"
++)
++
++// FestivosNacionales es data/festivos/nacionales-y-autonomicos.yaml, los
++// festivos de las resoluciones del BOE (contracts/datos-de-plazos.md §1.1).
++type FestivosNacionales struct {
++	// Fuente es la de las resoluciones, boe.fiestas-laborales.
++	Fuente string `yaml:"fuente"`
++	// Anios son los años cargados, cada uno con su resolución.
++	Anios []AnioNacional `yaml:"anios"`
++	// Festivos son las filas: una por fecha, ámbito y parte.
++	Festivos []FestivoNacional `yaml:"festivos"`
++}
++
++// AnioNacional es un año cargado y la resolución que da sus festivos.
++type AnioNacional struct {
++	Anio        int    `yaml:"anio"`
++	Disposicion string `yaml:"disposicion"`
++}
++
++// FestivoNacional es una fecha que la resolución de su año marca con un ámbito
++// en unas comunidades, en toda ellas o, con Parte, solo en una parte.
++type FestivoNacional struct {
++	// Fecha es AAAA-MM-DD.
++	Fecha string `yaml:"fecha"`
++	// Ambito es nacional o autonomico.
++	Ambito Ambito `yaml:"ambito"`
++	// Comunidades son los códigos de las comunidades en que la resolución la
++	// marca con ese ámbito.
++	Comunidades []string `yaml:"comunidades"`
++	// Parte es la parte de la comunidad a la que la resolución limita la
++	// fiesta, o vacía si es de toda ella (FR-025).
++	Parte string `yaml:"parte,omitempty"`
++	// Source es la resolución de su año.
++	Source string `yaml:"source"`
++}
++
++// FestivosLocales es data/festivos/locales/<comunidad>.yaml, los festivos
++// locales de los municipios de una comunidad de las disposiciones de su
++// boletín (contracts/datos-de-plazos.md §1.2).
++type FestivosLocales struct {
++	// Fuente es la de las disposiciones, como bocm.fiestas-locales.
++	Fuente string `yaml:"fuente"`
++	// Comunidad es el código de la comunidad, el que da nombre al fichero.
++	Comunidad string `yaml:"comunidad"`
++	// Anios son los años cargados, cada uno con sus disposiciones.
++	Anios []AnioLocal `yaml:"anios"`
++	// Festivos son las filas: una por fecha y municipio.
++	Festivos []FestivoLocal `yaml:"festivos"`
++	// Faltas son, por año, los municipios sin festivos y las líneas que no
++	// casan con un municipio (FR-022).
++	Faltas []FaltaLocal `yaml:"faltas"`
++}
++
++// AnioLocal es un año cargado y sus disposiciones, en el orden en que se
++// publicaron: la última es hasta donde llegan los datos del año.
++type AnioLocal struct {
++	Anio          int      `yaml:"anio"`
++	Disposiciones []string `yaml:"disposiciones"`
++}
++
++// FestivoLocal es una fecha que es fiesta local de un municipio.
++type FestivoLocal struct {
++	// Fecha es AAAA-MM-DD.
++	Fecha string `yaml:"fecha"`
++	// Municipio es su código INE.
++	Municipio string `yaml:"municipio"`
++	// Source es la última disposición del año que fija la línea del municipio.
++	Source string `yaml:"source"`
++}
++
++// FaltaLocal es, en un año, un municipio sin festivos o una línea del boletín
++// que no casa con un único municipio, y su motivo, uno de MotivosDeFalta.
++type FaltaLocal struct {
++	Anio int `yaml:"anio"`
++	// Municipio es el código INE del municipio sin festivos, o vacío en una
++	// línea sin municipio.
++	Municipio string `yaml:"municipio,omitempty"`
++	// Linea es el nombre tal como lo escribe el boletín, solo con
++	// FaltaSinMunicipio.
++	Linea  string `yaml:"linea,omitempty"`
++	Motivo Falta  `yaml:"motivo"`
++	// Source es la disposición de la línea, o la última del año con
++	// FaltaSinLinea.
++	Source string `yaml:"source"`
++}
++
++// Cabecera es lo que nombra la línea de fichero generado: el directorio de lo
++// grabado del que sale el fichero y el test que lo deriva, con su paquete.
++type Cabecera struct {
++	// Desde es el directorio de lo grabado, como evidencias/h9/boe.fiestas-laborales/.
++	Desde string
++	// Test es el test de derivación que escribe el fichero.
++	Test string
++	// Paquete es el del test, como internal/source/boe/fiestas.
++	Paquete string
++}
++
++// linea es la primera línea del fichero, un comentario de fichero generado.
++func (c Cabecera) linea() string {
++	return "# generado desde " + c.Desde + " por " + c.Test + " (" + c.Paquete + "), no editar\n"
++}
++
++// EscribirFestivosNacionales escribe data/festivos/nacionales-y-autonomicos.yaml
++// en su forma canónica: la línea de fichero generado, las claves en el orden
++// del contrato, una fila por línea, los años por año, las filas por fecha,
++// ámbito —nacional antes que autonómico— y parte —sin parte antes—, y las
++// comunidades de cada fila ordenadas. No cambia lo que recibe.
++func EscribirFestivosNacionales(fichero FestivosNacionales, cabecera Cabecera) ([]byte, error) {
++	canonico := FestivosNacionales{
++		Fuente:   fichero.Fuente,
++		Anios:    slices.Clone(fichero.Anios),
++		Festivos: make([]FestivoNacional, 0, len(fichero.Festivos)),
++	}
++
++	slices.SortStableFunc(canonico.Anios, func(a, b AnioNacional) int { return cmp.Compare(a.Anio, b.Anio) })
++
++	for _, festivo := range fichero.Festivos {
++		festivo.Comunidades = slices.Sorted(slices.Values(festivo.Comunidades))
++		canonico.Festivos = append(canonico.Festivos, festivo)
++	}
++
++	ambitos := Ambitos()
++
++	slices.SortStableFunc(canonico.Festivos, func(a, b FestivoNacional) int {
++		return cmp.Or(
++			cmp.Compare(a.Fecha, b.Fecha),
++			cmp.Compare(slices.Index(ambitos, a.Ambito), slices.Index(ambitos, b.Ambito)),
++			cmp.Compare(a.Parte, b.Parte),
++		)
++	})
++
++	return escribir(canonico, cabecera)
++}
++
++// EscribirFestivosLocales escribe data/festivos/locales/<comunidad>.yaml en su
++// forma canónica: la línea de fichero generado, las claves en el orden del
++// contrato, una fila por línea, los años por año con sus disposiciones en el
++// orden dado, los festivos por fecha y municipio, y las faltas por año,
++// municipio y línea, las de un municipio antes que las de una línea. No cambia
++// lo que recibe.
++func EscribirFestivosLocales(fichero FestivosLocales, cabecera Cabecera) ([]byte, error) {
++	canonico := FestivosLocales{
++		Fuente:    fichero.Fuente,
++		Comunidad: fichero.Comunidad,
++		Anios:     slices.Clone(fichero.Anios),
++		Festivos:  slices.Clone(fichero.Festivos),
++		Faltas:    slices.Clone(fichero.Faltas),
++	}
++
++	slices.SortStableFunc(canonico.Anios, func(a, b AnioLocal) int { return cmp.Compare(a.Anio, b.Anio) })
++	slices.SortStableFunc(canonico.Festivos, func(a, b FestivoLocal) int {
++		return cmp.Or(cmp.Compare(a.Fecha, b.Fecha), cmp.Compare(a.Municipio, b.Municipio))
++	})
++	slices.SortStableFunc(canonico.Faltas, func(a, b FaltaLocal) int {
++		return cmp.Or(cmp.Compare(a.Anio, b.Anio), vaciosAlFinal(a.Municipio, b.Municipio), cmp.Compare(a.Linea, b.Linea))
++	})
++
++	return escribir(canonico, cabecera)
++}
++
++// vaciosAlFinal compara dos textos con el vacío después de cualquier otro.
++func vaciosAlFinal(a, b string) int {
++	switch {
++	case a == b:
++		return 0
++	case a == "":
++		return 1
++	case b == "":
++		return -1
++	default:
++		return cmp.Compare(a, b)
++	}
++}
++
++// escribir codifica un fichero de data/festivos/ tras su línea de fichero
++// generado, con sangría de dos espacios y cada elemento de sus listas en una
++// línea, en estilo de flujo. Sin listas de más de una línea, el fichero se lee
++// y se compara por filas.
++func escribir(fichero any, cabecera Cabecera) ([]byte, error) {
++	var raiz yaml.Node
++	if err := raiz.Encode(fichero); err != nil {
++		return nil, err
++	}
++
++	for indice := 1; indice < len(raiz.Content); indice += 2 {
++		if lista := raiz.Content[indice]; lista.Kind == yaml.SequenceNode {
++			for _, fila := range lista.Content {
++				fila.Style = yaml.FlowStyle
++			}
++		}
++	}
++
++	var salida bytes.Buffer
++
++	salida.WriteString(cabecera.linea())
++
++	codificador := yaml.NewEncoder(&salida)
++	codificador.SetIndent(2)
++
++	if err := codificador.Encode(&raiz); err != nil {
++		return nil, err
++	}
++
++	if err := codificador.Close(); err != nil {
++		return nil, err
++	}
++
++	return salida.Bytes(), nil
++}
+diff --git a/internal/core/plazos/festivos_test.go b/internal/core/plazos/festivos_test.go
+new file mode 100644
+index 0000000..4afe496
+--- /dev/null
++++ b/internal/core/plazos/festivos_test.go
+@@ -0,0 +1,187 @@
++package plazos
++
++import (
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++)
++
++// Los ficheros sintéticos de la escritura, con sus filas y sus comunidades
++// desordenadas a propósito: el orden lo pone la escritura canónica.
++func nacionalesDesordenados() FestivosNacionales {
++	return FestivosNacionales{
++		Fuente: "prueba.fiestas",
++		Anios: []AnioNacional{
++			{Anio: 2032, Disposicion: "PRUEBA-2031-1"},
++			{Anio: 2031, Disposicion: "PRUEBA-2030-1"},
++		},
++		Festivos: []FestivoNacional{
++			{Fecha: "2032-01-01", Ambito: AmbitoNacional, Comunidades: []string{"72", "71"}, Source: "PRUEBA-2031-1"},
++			{Fecha: "2031-06-24", Ambito: AmbitoAutonomico, Comunidades: []string{"72"}, Parte: "Isla Sintética", Source: "PRUEBA-2030-1"},
++			{Fecha: "2031-03-19", Ambito: AmbitoAutonomico, Comunidades: []string{"72"}, Source: "PRUEBA-2030-1"},
++			{Fecha: "2031-06-24", Ambito: AmbitoAutonomico, Comunidades: []string{"73", "72"}, Source: "PRUEBA-2030-1"},
++			{Fecha: "2031-03-19", Ambito: AmbitoNacional, Comunidades: []string{"73", "71"}, Source: "PRUEBA-2030-1"},
++			{Fecha: "2031-06-24", Ambito: AmbitoAutonomico, Comunidades: []string{"71"}, Parte: "Comarca Sintética", Source: "PRUEBA-2030-1"},
++		},
++	}
++}
++
++func localesDesordenados() FestivosLocales {
++	return FestivosLocales{
++		Fuente:    "prueba.fiestas-locales",
++		Comunidad: "71",
++		Anios: []AnioLocal{
++			{Anio: 2032, Disposiciones: []string{"PRUEBA-L-3"}},
++			{Anio: 2031, Disposiciones: []string{"PRUEBA-L-2", "PRUEBA-L-1"}},
++		},
++		Festivos: []FestivoLocal{
++			{Fecha: "2032-09-08", Municipio: "71001", Source: "PRUEBA-L-3"},
++			{Fecha: "2031-05-15", Municipio: "71002", Source: "PRUEBA-L-2"},
++			{Fecha: "2031-05-15", Municipio: "71001", Source: "PRUEBA-L-1"},
++		},
++		Faltas: []FaltaLocal{
++			{Anio: 2032, Municipio: "71002", Motivo: FaltaSinLinea, Source: "PRUEBA-L-3"},
++			{Anio: 2031, Linea: "Aldea Sintética", Motivo: FaltaSinMunicipio, Source: "PRUEBA-L-1"},
++			{Anio: 2031, Municipio: "71004", Motivo: FaltaLineaSinLeer, Source: "PRUEBA-L-2"},
++			{Anio: 2031, Linea: "Aldea Antigua", Motivo: FaltaSinMunicipio, Source: "PRUEBA-L-2"},
++			{Anio: 2031, Municipio: "71003", Motivo: FaltaNoComunicado, Source: "PRUEBA-L-1"},
++		},
++	}
++}
++
++// Lo que escribe la forma canónica de los dos ficheros sintéticos: la línea de
++// fichero generado, las claves en el orden de contracts/datos-de-plazos.md §1 y
++// las listas ordenadas —los años por año; los nacionales por fecha, ámbito
++// (nacional antes que autonómico) y parte (sin parte antes); los locales por
++// fecha y municipio; las faltas por año, municipio y línea, las de un
++// municipio antes que las de una línea—. Las disposiciones de un año quedan en
++// el orden dado, que es el de su publicación.
++const (
++	nacionalesCanonicos = `# generado desde evidencias/prueba/prueba.fiestas/ por TestDePrueba (internal/source/prueba), no editar
++fuente: prueba.fiestas
++anios:
++  - {anio: 2031, disposicion: PRUEBA-2030-1}
++  - {anio: 2032, disposicion: PRUEBA-2031-1}
++festivos:
++  - {fecha: "2031-03-19", ambito: nacional, comunidades: ["71", "73"], source: PRUEBA-2030-1}
++  - {fecha: "2031-03-19", ambito: autonomico, comunidades: ["72"], source: PRUEBA-2030-1}
++  - {fecha: "2031-06-24", ambito: autonomico, comunidades: ["72", "73"], source: PRUEBA-2030-1}
++  - {fecha: "2031-06-24", ambito: autonomico, comunidades: ["71"], parte: Comarca Sintética, source: PRUEBA-2030-1}
++  - {fecha: "2031-06-24", ambito: autonomico, comunidades: ["72"], parte: Isla Sintética, source: PRUEBA-2030-1}
++  - {fecha: "2032-01-01", ambito: nacional, comunidades: ["71", "72"], source: PRUEBA-2031-1}
++`
++	localesCanonicos = `# generado desde evidencias/prueba/prueba.fiestas-locales/ por TestDePruebaLocal (internal/source/pruebalocal), no editar
++fuente: prueba.fiestas-locales
++comunidad: "71"
++anios:
++  - {anio: 2031, disposiciones: [PRUEBA-L-2, PRUEBA-L-1]}
++  - {anio: 2032, disposiciones: [PRUEBA-L-3]}
++festivos:
++  - {fecha: "2031-05-15", municipio: "71001", source: PRUEBA-L-1}
++  - {fecha: "2031-05-15", municipio: "71002", source: PRUEBA-L-2}
++  - {fecha: "2032-09-08", municipio: "71001", source: PRUEBA-L-3}
++faltas:
++  - {anio: 2031, municipio: "71003", motivo: no-comunicado, source: PRUEBA-L-1}
++  - {anio: 2031, municipio: "71004", motivo: linea-sin-leer, source: PRUEBA-L-2}
++  - {anio: 2031, linea: Aldea Antigua, motivo: sin-municipio, source: PRUEBA-L-2}
++  - {anio: 2031, linea: Aldea Sintética, motivo: sin-municipio, source: PRUEBA-L-1}
++  - {anio: 2032, municipio: "71002", motivo: sin-linea, source: PRUEBA-L-3}
++`
++)
++
++var (
++	cabeceraNacional = Cabecera{
++		Desde: "evidencias/prueba/prueba.fiestas/", Test: "TestDePrueba", Paquete: "internal/source/prueba",
++	}
++	cabeceraLocal = Cabecera{
++		Desde: "evidencias/prueba/prueba.fiestas-locales/", Test: "TestDePruebaLocal", Paquete: "internal/source/pruebalocal",
++	}
++)
++
++// TestEscribirFestivos comprueba la forma canónica de los dos ficheros de
++// data/festivos/: su línea de fichero generado, el orden de sus claves y de sus
++// filas, que no toca lo que recibe, y la ida y vuelta: lo escrito se carga y se
++// vuelve a escribir igual byte a byte (FR-020, FR-022, FR-025;
++// contracts/datos-de-plazos.md §1).
++func TestEscribirFestivos(t *testing.T) {
++	t.Parallel()
++
++	t.Run("nacionales y autonómicos", func(t *testing.T) {
++		t.Parallel()
++
++		fichero := nacionalesDesordenados()
++
++		escrito, err := EscribirFestivosNacionales(fichero, cabeceraNacional)
++		require.NoError(t, err)
++		assert.Equal(t, nacionalesCanonicos, string(escrito))
++		assert.Equal(t, nacionalesDesordenados(), fichero, "la escritura no reordena lo que recibe")
++
++		leido, err := leerNacionales(escrito)
++		require.NoError(t, err)
++
++		reescrito, err := EscribirFestivosNacionales(leido, cabeceraNacional)
++		require.NoError(t, err)
++		assert.Equal(t, string(escrito), string(reescrito))
++	})
++
++	t.Run("locales", func(t *testing.T) {
++		t.Parallel()
++
++		fichero := localesDesordenados()
++
++		escrito, err := EscribirFestivosLocales(fichero, cabeceraLocal)
++		require.NoError(t, err)
++		assert.Equal(t, localesCanonicos, string(escrito))
++		assert.Equal(t, localesDesordenados(), fichero, "la escritura no reordena lo que recibe")
++
++		leido, err := leerLocales("71", escrito)
++		require.NoError(t, err)
++
++		reescrito, err := EscribirFestivosLocales(leido, cabeceraLocal)
++		require.NoError(t, err)
++		assert.Equal(t, string(escrito), string(reescrito))
++	})
++
++	t.Run("sin filas", func(t *testing.T) {
++		t.Parallel()
++
++		escrito, err := EscribirFestivosLocales(FestivosLocales{Fuente: "prueba.fiestas-locales", Comunidad: "72"}, cabeceraLocal)
++		require.NoError(t, err)
++		assert.Equal(t, "# generado desde evidencias/prueba/prueba.fiestas-locales/ por TestDePruebaLocal "+
++			"(internal/source/pruebalocal), no editar\n"+
++			"fuente: prueba.fiestas-locales\ncomunidad: \"72\"\nanios: []\nfestivos: []\nfaltas: []\n", string(escrito))
++
++		leido, err := leerLocales("72", escrito)
++		require.NoError(t, err)
++
++		reescrito, err := EscribirFestivosLocales(leido, cabeceraLocal)
++		require.NoError(t, err)
++		assert.Equal(t, string(escrito), string(reescrito))
++	})
++
++	t.Run("lo escrito se carga", func(t *testing.T) {
++		t.Parallel()
++
++		nacionales, err := EscribirFestivosNacionales(nacionalesDesordenados(), cabeceraNacional)
++		require.NoError(t, err)
++
++		locales, err := EscribirFestivosLocales(localesDesordenados(), cabeceraLocal)
++		require.NoError(t, err)
++
++		calendario, err := CargarCalendario(nacionales, map[string][]byte{"71": locales})
++		require.NoError(t, err)
++
++		assert.True(t, calendario.Inhabil(dia(t, "2031-03-19"), []Municipio{conFestivos}))
++		assert.True(t, calendario.Inhabil(dia(t, "2031-05-15"), []Municipio{conFestivos}))
++		assert.False(t, calendario.Inhabil(dia(t, "2031-06-24"), []Municipio{conFestivos}), "solo en una comarca de la 71")
++		assert.Equal(t, []FestivoDeUnaParte{{Ambito: AmbitoAutonomico, Parte: "Comarca Sintética", Source: "PRUEBA-2030-1"}},
++			calendario.PartesDe(dia(t, "2031-06-24"), "71"))
++		assert.Equal(t, []Tramo{
++			{Ambito: CoberturaNacionalYAutonomica, Desde: 2031, Hasta: 2031, Disposicion: "PRUEBA-2030-1"},
++			{Ambito: CoberturaLocal, Municipio: "71001", Desde: 2031, Hasta: 2031, Disposicion: "PRUEBA-L-1"},
++			{Ambito: CoberturaLocal, Municipio: "71003", Desde: 2031, Hasta: 2031, Falta: FaltaNoComunicado},
++		}, calendario.Cobertura(2031, 2031, []Municipio{conFestivos, noComunicado}),
++			"la disposición de un año es la última de las suyas, en el orden en que se dan")
++	})
++}
+diff --git a/internal/core/plazos/tipos.go b/internal/core/plazos/tipos.go
+new file mode 100644
+index 0000000..4b9dc08
+--- /dev/null
++++ b/internal/core/plazos/tipos.go
+@@ -0,0 +1,340 @@
++package plazos
++
++import (
++	"bytes"
++	"errors"
++	"fmt"
++	"maps"
++	"slices"
++
++	"go.yaml.in/yaml/v3"
++)
++
++// rutaDeLosTipos es la del fichero de los tipos, relativa a la raíz del
++// repositorio, la que nombran sus defectos.
++const rutaDeLosTipos = "data/plazos.yaml"
++
++// Los siete códigos de tipo de FR-008 (contracts/datos-de-plazos.md §2).
++const (
++	TipoAlzada         = "alzada"
++	TipoReposicion     = "reposicion"
++	TipoContencioso    = "contencioso"
++	TipoAccesoResolver = "acceso-resolver"
++	TipoAccesoReclamar = "acceso-reclamar"
++	TipoSilencio       = "silencio"
++	TipoGenerico       = "generico"
++)
++
++// CodigosDeTipo son los siete códigos de tipo, en el orden del contrato.
++// Devuelve una lista nueva en cada llamada.
++func CodigosDeTipo() []string {
++	return []string{
++		TipoAlzada, TipoReposicion, TipoContencioso, TipoAccesoResolver, TipoAccesoReclamar, TipoSilencio, TipoGenerico,
++	}
++}
++
++// fijaSuDuracion dice si un tipo fija su duración: todos menos el silencio y
++// el genérico, que la reciben con su unidad (research D3).
++func fijaSuDuracion(codigo string) bool {
++	return codigo != TipoSilencio && codigo != TipoGenerico
++}
++
++// Computo es la regla con que se cuenta un plazo.
++type Computo string
++
++// Los dos cómputos: el de la LPAC (art. 30) y el del recurso
++// contencioso-administrativo (arts. 46 y 128 LJCA, 182 a 185 LOPJ).
++const (
++	ComputoLPAC        Computo = "lpac"
++	ComputoContencioso Computo = "contencioso"
++)
++
++// Computos es el vocabulario de cómputos. Devuelve una lista nueva en cada
++// llamada.
++func Computos() []Computo {
++	return []Computo{ComputoLPAC, ComputoContencioso}
++}
++
++// Unidad es la unidad en que se expresa una duración.
++type Unidad string
++
++// Las tres unidades de una duración (art. 30 LPAC).
++const (
++	UnidadMeses         Unidad = "meses"
++	UnidadDiasHabiles   Unidad = "dias-habiles"
++	UnidadDiasNaturales Unidad = "dias-naturales"
++)
++
++// Unidades es el vocabulario de unidades. Devuelve una lista nueva en cada
++// llamada.
++func Unidades() []Unidad {
++	return []Unidad{UnidadMeses, UnidadDiasHabiles, UnidadDiasNaturales}
++}
++
++// FijaDuracion es lo que fija el precepto que da la duración de un tipo.
++const FijaDuracion = "duracion"
++
++// Tipo es un tipo de plazo de data/plazos.yaml (data-model §1).
++type Tipo struct {
++	// Codigo es uno de CodigosDeTipo.
++	Codigo string `yaml:"codigo"`
++	// Nombre es el que lo describe.
++	Nombre string `yaml:"nombre"`
++	// Computo es la regla con que se cuenta.
++	Computo Computo `yaml:"computo"`
++	// Duracion es la que fija el tipo, o nil si la recibe con su unidad.
++	Duracion *Duracion `yaml:"duracion"`
++	// Preceptos son los que lo fundan, cada uno con lo que fija.
++	Preceptos []Precepto `yaml:"preceptos"`
++	// Unidades lleva, solo en el genérico, de cada unidad al precepto que da su
++	// cómputo.
++	Unidades map[Unidad]Precepto `yaml:"unidades"`
++}
++
++// Duracion es la duración que fija un tipo.
++type Duracion struct {
++	// Cantidad es un entero de 1 o más.
++	Cantidad int `yaml:"cantidad"`
++	// Unidad es una de Unidades.
++	Unidad Unidad `yaml:"unidad"`
++}
++
++// Precepto es un apartado de una norma consolidada del BOE y lo que fija.
++type Precepto struct {
++	// Norma es el identificador BOE-A-… de la norma.
++	Norma string `yaml:"norma"`
++	// Bloque es el id del bloque en el índice consolidado de la norma.
++	Bloque string `yaml:"bloque"`
++	// Apartado es el que se cita, como «122.1».
++	Apartado string `yaml:"apartado"`
++	// Fija es lo que fija el precepto en el tipo: su duración (FijaDuracion),
++	// su inicio, su cómputo…
++	Fija string `yaml:"fija"`
++}
++
++// ficheroDeTipos es data/plazos.yaml.
++type ficheroDeTipos struct {
++	Tipos []Tipo `yaml:"tipos"`
++}
++
++// LeerTipos lee data/plazos.yaml (contracts/datos-de-plazos.md §2). Exige los
++// siete códigos de CodigosDeTipo y ninguno más, cada uno una vez, con su nombre
++// y un cómputo de Computos; una duración de 1 o más en una de Unidades en los
++// cinco tipos que la fijan y en ningún otro, y en cada uno de ellos un precepto
++// que fija la duración; las tres unidades, cada una con su precepto, en el
++// genérico y en ningún otro; y que cada tipo nombre algún precepto, cada uno
++// con su norma, su bloque, su apartado y lo que fija.
++//
++// Los tipos se devuelven en el orden del fichero. Con cualquier defecto no hay
++// tipos: el error los dice todos, cada uno con su tipo, y no lleva clase de
++// usuario; el kernel lo da como inesperado.
++func LeerTipos(contenido []byte) ([]Tipo, error) {
++	var fichero ficheroDeTipos
++	if err := decodificar(rutaDeLosTipos, contenido, &fichero); err != nil {
++		return nil, err
++	}
++
++	var c comprobacionDeTipos
++
++	c.comprobar(fichero.Tipos)
++
++	if err := errors.Join(c.defectos...); err != nil {
++		return nil, err
++	}
++
++	return fichero.Tipos, nil
++}
++
++// comprobacionDeTipos acumula los defectos de los tipos, en el orden del
++// fichero y, al final, los códigos que faltan.
++type comprobacionDeTipos struct {
++	defectos []error
++}
++
++// defecto anota un defecto de data/plazos.yaml.
++func (c *comprobacionDeTipos) defecto(formato string, argumentos ...any) {
++	c.defectos = append(c.defectos, &defectoDeDatos{fichero: rutaDeLosTipos, motivo: fmt.Sprintf(formato, argumentos...)})
++}
++
++// comprobar comprueba cada tipo y que estén los siete, cada uno una vez.
++func (c *comprobacionDeTipos) comprobar(tipos []Tipo) {
++	codigos := CodigosDeTipo()
++	vistos := make(map[string]bool, len(tipos))
++
++	for indice, tipo := range tipos {
++		switch {
++		case tipo.Codigo == "":
++			c.defecto("el tipo %d no tiene código", indice+1)
++		case !slices.Contains(codigos, tipo.Codigo):
++			c.defecto("el tipo %q no es uno de los siete", tipo.Codigo)
++		case vistos[tipo.Codigo]:
++			c.defecto("el tipo %q está repetido", tipo.Codigo)
++		}
++
++		vistos[tipo.Codigo] = true
++
++		c.tipo(tipo)
++	}
++
++	for _, codigo := range codigos {
++		if !vistos[codigo] {
++			c.defecto("falta el tipo %q", codigo)
++		}
++	}
++}
++
++// tipo comprueba el nombre, el cómputo, la duración, las unidades y los
++// preceptos de un tipo.
++func (c *comprobacionDeTipos) tipo(tipo Tipo) {
++	if tipo.Nombre == "" {
++		c.defecto("el tipo %q no tiene nombre", tipo.Codigo)
++	}
++
++	if !slices.Contains(Computos(), tipo.Computo) {
++		c.defecto("el cómputo %q del tipo %q no es %s ni %s", tipo.Computo, tipo.Codigo, ComputoLPAC, ComputoContencioso)
++	}
++
++	c.duracion(tipo)
++	c.unidades(tipo)
++
++	if len(tipo.Preceptos) == 0 && len(tipo.Unidades) == 0 {
++		c.defecto("el tipo %q no nombra ningún precepto", tipo.Codigo)
++	}
++
++	for indice, precepto := range tipo.Preceptos {
++		c.precepto(fmt.Sprintf("el precepto %d del tipo %q", indice+1, tipo.Codigo), precepto)
++	}
++}
++
++// duracion comprueba que el tipo lleva duración si y solo si la fija, y que la
++// que lleva es válida y la fija uno de sus preceptos.
++func (c *comprobacionDeTipos) duracion(tipo Tipo) {
++	duracion := tipo.Duracion
++
++	switch {
++	case duracion == nil && fijaSuDuracion(tipo.Codigo):
++		c.defecto("el tipo %q fija su duración y no la lleva", tipo.Codigo)
++
++		return
++	case duracion == nil:
++		return
++	case !fijaSuDuracion(tipo.Codigo):
++		c.defecto("el tipo %q no fija su duración y lleva una", tipo.Codigo)
++	}
++
++	if duracion.Cantidad < 1 {
++		c.defecto("la duración del tipo %q no es un entero de 1 o más", tipo.Codigo)
++	}
++
++	if !slices.Contains(Unidades(), duracion.Unidad) {
++		c.defecto("la unidad %q del tipo %q no es %s", duracion.Unidad, tipo.Codigo, enumeracion(Unidades()))
++	}
++
++	fijada := slices.ContainsFunc(tipo.Preceptos, func(p Precepto) bool { return p.Fija == FijaDuracion })
++	if !fijada {
++		c.defecto("ningún precepto del tipo %q fija su duración", tipo.Codigo)
++	}
++}
++
++// unidades comprueba que solo el genérico lleva unidades, y que lleva las
++// tres, cada una con su precepto, y ninguna más.
++func (c *comprobacionDeTipos) unidades(tipo Tipo) {
++	if tipo.Codigo != TipoGenerico {
++		if tipo.Unidades != nil {
++			c.defecto("el tipo %q lleva unidades, que solo lleva %s", tipo.Codigo, TipoGenerico)
++		}
++
++		return
++	}
++
++	if tipo.Unidades == nil {
++		c.defecto("el tipo %q no lleva unidades", tipo.Codigo)
++
++		return
++	}
++
++	for _, unidad := range Unidades() {
++		precepto, esta := tipo.Unidades[unidad]
++		if !esta {
++			c.defecto("el tipo %q no lleva la unidad %q", tipo.Codigo, unidad)
++
++			continue
++		}
++
++		c.precepto(fmt.Sprintf("el precepto de la unidad %q del tipo %q", unidad, tipo.Codigo), precepto)
++	}
++
++	for _, unidad := range slices.Sorted(maps.Keys(tipo.Unidades)) {
++		if !slices.Contains(Unidades(), unidad) {
++			c.defecto("el tipo %q lleva la unidad %q, que no es %s", tipo.Codigo, unidad, enumeracion(Unidades()))
++		}
++	}
++}
++
++// precepto comprueba que un precepto lleva sus cuatro datos.
++func (c *comprobacionDeTipos) precepto(quien string, precepto Precepto) {
++	for _, dato := range []struct{ nombre, valor string }{
++		{"norma", precepto.Norma},
++		{"bloque", precepto.Bloque},
++		{"apartado", precepto.Apartado},
++		{"fija", precepto.Fija},
++	} {
++		if dato.valor == "" {
++			c.defecto("%s no tiene %s", quien, dato.nombre)
++		}
++	}
++}
++
++// defectoDeDatos es un defecto de un fichero de data/ empotrado: uno que no se
++// lee o un dato que no vale. No declara ninguna clase a propósito —el kernel lo
++// trata como inesperado, código 1—: un fichero empotrado que no se lee es un
++// defecto del binario y no algo que quien pregunta pueda corregir.
++type defectoDeDatos struct {
++	// fichero es la ruta del fichero, relativa a la raíz del repositorio.
++	fichero string
++	// motivo dice qué falla y nombra el dato.
++	motivo string
++}
++
++// Error nombra el fichero y el defecto, como «data/plazos.yaml: falta el tipo
++// "silencio"».
++func (d *defectoDeDatos) Error() string {
++	return d.fichero + ": " + d.motivo
++}
++
++// decodificar lee un fichero YAML en su tipo. Una clave que el tipo no declara
++// es un defecto, no algo que se descarta en silencio, y la clave repetida la
++// rechaza el propio lector.
++func decodificar(ruta string, contenido []byte, destino any) error {
++	if len(bytes.TrimSpace(contenido)) == 0 {
++		return &defectoDeDatos{fichero: ruta, motivo: "está vacío"}
++	}
++
++	lector := yaml.NewDecoder(bytes.NewReader(contenido))
++	lector.KnownFields(true)
++
++	if err := lector.Decode(destino); err != nil {
++		return &defectoDeDatos{fichero: ruta, motivo: "no se puede leer: " + err.Error()}
++	}
++
++	return nil
++}
++
++// enumeracion escribe un vocabulario como «a, b ni c».
++func enumeracion[T ~string](valores []T) string {
++	var texto string
++
++	for indice, valor := range valores {
++		switch {
++		case indice == 0:
++		case indice == len(valores)-1:
++			texto += " ni "
++		default:
++			texto += ", "
++		}
++
++		texto += string(valor)
++	}
++
++	return texto
++}
+diff --git a/internal/core/plazos/tipos_test.go b/internal/core/plazos/tipos_test.go
+new file mode 100644
+index 0000000..6594060
+--- /dev/null
++++ b/internal/core/plazos/tipos_test.go
+@@ -0,0 +1,306 @@
++package plazos
++
++import (
++	"strings"
++	"testing"
++
++	"github.com/stretchr/testify/assert"
++	"github.com/stretchr/testify/require"
++
++	"github.com/jmorenobl/kitlegal/internal/core/schema"
++)
++
++// plazosDelContrato es data/plazos.yaml tal como lo fija contracts/datos-de-plazos.md
++// §2. Es una copia a propósito: el test del dominio no abre ficheros (R1), y el
++// del repositorio lo comprueba contra lo grabado del BOE otro test
++// (TestPreceptosDeLosPlazos).
++const plazosDelContrato = `tipos:
++  - codigo: alzada
++    nombre: recurso de alzada
++    computo: lpac
++    duracion: {cantidad: 1, unidad: meses}
++    preceptos:
++      - {norma: BOE-A-2015-10565, bloque: a122, apartado: "122.1", fija: duracion}
++  - codigo: reposicion
++    nombre: recurso potestativo de reposición
++    computo: lpac
++    duracion: {cantidad: 1, unidad: meses}
++    preceptos:
++      - {norma: BOE-A-2015-10565, bloque: a124, apartado: "124.1", fija: duracion}
++  - codigo: contencioso
++    nombre: recurso contencioso-administrativo
++    computo: contencioso
++    duracion: {cantidad: 2, unidad: meses}
++    preceptos:
++      - {norma: BOE-A-1998-16718, bloque: a46, apartado: "46.1", fija: duracion}
++      - {norma: BOE-A-1998-16718, bloque: a128, apartado: "128.2", fija: agosto}
++  - codigo: acceso-resolver
++    nombre: plazo para resolver una solicitud de acceso a la información pública
++    computo: lpac
++    duracion: {cantidad: 1, unidad: meses}
++    preceptos:
++      - {norma: BOE-A-2013-12887, bloque: a20, apartado: "20.1", fija: duracion}
++  - codigo: acceso-reclamar
++    nombre: reclamación contra la resolución de una solicitud de acceso
++    computo: lpac
++    duracion: {cantidad: 1, unidad: meses}
++    preceptos:
++      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion}
++  - codigo: silencio
++    nombre: día en que se produce el silencio administrativo
++    computo: lpac
++    preceptos:
++      - {norma: BOE-A-2015-10565, bloque: a21, apartado: "21.3", fija: inicio}
++      - {norma: BOE-A-2015-10565, bloque: a24, apartado: "24.4", fija: silencio}
++  - codigo: generico
++    nombre: plazo genérico
++    computo: lpac
++    unidades:
++      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
++      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
++      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo}
++`
++
++// TestLeerTipos lee los siete tipos del contrato y rechaza el fichero en cada
++// una de las reglas de LeerTipos, con un error que nombra el fichero y lo que
++// falla y que no lleva clase de usuario: el kernel lo da como inesperado
++// (FR-008, FR-030).
++func TestLeerTipos(t *testing.T) {
++	t.Parallel()
++
++	t.Run("los siete del contrato", func(t *testing.T) {
++		t.Parallel()
++
++		tipos, err := LeerTipos([]byte(plazosDelContrato))
++		require.NoError(t, err)
++
++		codigos := make([]string, 0, len(tipos))
++		for _, tipo := range tipos {
++			codigos = append(codigos, tipo.Codigo)
++		}
++
++		assert.Equal(t, CodigosDeTipo(), codigos, "los siete, en el orden del fichero, que es el del contrato")
++
++		assert.Equal(t, Tipo{
++			Codigo:   "contencioso",
++			Nombre:   "recurso contencioso-administrativo",
++			Computo:  ComputoContencioso,
++			Duracion: &Duracion{Cantidad: 2, Unidad: UnidadMeses},
++			Preceptos: []Precepto{
++				{Norma: "BOE-A-1998-16718", Bloque: "a46", Apartado: "46.1", Fija: FijaDuracion},
++				{Norma: "BOE-A-1998-16718", Bloque: "a128", Apartado: "128.2", Fija: "agosto"},
++			},
++		}, tipos[2])
++
++		assert.Nil(t, tipos[5].Duracion, "el silencio no fija su duración")
++		assert.Nil(t, tipos[5].Unidades)
++		assert.Equal(t, map[Unidad]Precepto{
++			UnidadDiasHabiles:   {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.2", Fija: "computo"},
++			UnidadDiasNaturales: {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.2", Fija: "computo"},
++			UnidadMeses:         {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.4", Fija: "computo"},
++		}, tipos[6].Unidades)
++		assert.Empty(t, tipos[6].Preceptos)
++	})
++
++	t.Run("los vocabularios", func(t *testing.T) {
++		t.Parallel()
++
++		assert.Equal(t, []string{
++			"alzada", "reposicion", "contencioso", "acceso-resolver", "acceso-reclamar", "silencio", "generico",
++		}, CodigosDeTipo())
++		assert.Equal(t, []Computo{"lpac", "contencioso"}, Computos())
++		assert.Equal(t, []Unidad{"meses", "dias-habiles", "dias-naturales"}, Unidades())
++
++		codigos := CodigosDeTipo()
++		codigos[0] = "otro"
++		assert.Equal(t, "alzada", CodigosDeTipo()[0], "cada llamada da una lista nueva")
++	})
++
++	for _, caso := range variantesQueSeRechazan() {
++		t.Run(caso.nombre, func(t *testing.T) {
++			t.Parallel()
++
++			contenido := caso.contenido
++			if caso.cambio != nil {
++				contenido = caso.cambio.aplicar(t, plazosDelContrato)
++			}
++
++			tipos, err := LeerTipos([]byte(contenido))
++			require.Error(t, err)
++			assert.Nil(t, tipos)
++			assert.Contains(t, err.Error(), "data/plazos.yaml: ")
++			assert.Contains(t, err.Error(), caso.motivo)
++
++			var conClase schema.ConClase
++			assert.NotErrorAs(t, err, &conClase, "un fichero empotrado que no se lee es un defecto inesperado (código 1)")
++		})
++	}
++}
++
++// cambioDeTexto sustituye la primera aparición de un fragmento del fichero.
++type cambioDeTexto struct {
++	de, a string
++}
++
++// aplicar devuelve el fichero con el cambio, y falla si el fragmento no está:
++// una variante que no cambia nada pasaría sin probar su regla.
++func (c *cambioDeTexto) aplicar(t *testing.T, fichero string) string {
++	t.Helper()
++
++	require.Contains(t, fichero, c.de, "la variante no cambia nada")
++
++	return strings.Replace(fichero, c.de, c.a, 1)
++}
++
++// varianteDeTipos es un fichero que LeerTipos rechaza: el del contrato con un
++// cambio, o un contenido entero, y el motivo que debe nombrar el error.
++type varianteDeTipos struct {
++	nombre    string
++	cambio    *cambioDeTexto
++	contenido string
++	motivo    string
++}
++
++// variantesQueSeRechazan son las variantes del fichero del contrato, una por
++// cada regla de LeerTipos.
++func variantesQueSeRechazan() []varianteDeTipos {
++	const bloqueDeReclamar = `  - codigo: acceso-reclamar
++    nombre: reclamación contra la resolución de una solicitud de acceso
++    computo: lpac
++    duracion: {cantidad: 1, unidad: meses}
++    preceptos:
++      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion}
++`
++
++	const unidadesDeGenerico = `    unidades:
++      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
++      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
++      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo}
++`
++
++	return []varianteDeTipos{
++		{nombre: "vacío", contenido: " \n", motivo: "está vacío"},
++		{nombre: "no es YAML", contenido: "tipos: [", motivo: "no se puede leer"},
++		{nombre: "tipos no es una lista", contenido: "tipos: 7\n", motivo: "no se puede leer"},
++		{
++			nombre: "clave que el fichero no declara",
++			cambio: &cambioDeTexto{de: "    computo: contencioso\n", a: "    computo: contencioso\n    plazo: 2\n"},
++			motivo: "no se puede leer",
++		},
++		{
++			nombre: "falta un código",
++			cambio: &cambioDeTexto{de: bloqueDeReclamar},
++			motivo: `falta el tipo "acceso-reclamar"`,
++		},
++		{
++			nombre: "un código de más",
++			cambio: &cambioDeTexto{de: bloqueDeReclamar, a: bloqueDeReclamar + strings.ReplaceAll(
++				bloqueDeReclamar, "codigo: acceso-reclamar", "codigo: revision")},
++			motivo: `el tipo "revision" no es uno de los siete`,
++		},
++		{
++			nombre: "un código repetido",
++			cambio: &cambioDeTexto{de: "codigo: reposicion", a: "codigo: alzada"},
++			motivo: `el tipo "alzada" está repetido`,
++		},
++		{
++			nombre: "sin código",
++			cambio: &cambioDeTexto{de: "codigo: reposicion", a: `codigo: ""`},
++			motivo: "el tipo 2 no tiene código",
++		},
++		{
++			nombre: "sin nombre",
++			cambio: &cambioDeTexto{de: "nombre: recurso de alzada", a: `nombre: ""`},
++			motivo: `el tipo "alzada" no tiene nombre`,
++		},
++		{
++			nombre: "cómputo desconocido",
++			cambio: &cambioDeTexto{de: "computo: contencioso", a: "computo: civil"},
++			motivo: `el cómputo "civil" del tipo "contencioso" no es lpac ni contencioso`,
++		},
++		{
++			nombre: "un tipo que fija su duración sin ella",
++			cambio: &cambioDeTexto{de: "    computo: lpac\n    duracion: {cantidad: 1, unidad: meses}\n", a: "    computo: lpac\n"},
++			motivo: `el tipo "alzada" fija su duración y no la lleva`,
++		},
++		{
++			nombre: "duración en un tipo que no la fija",
++			cambio: &cambioDeTexto{
++				de: "    nombre: día en que se produce el silencio administrativo\n    computo: lpac\n",
++				a:  "    nombre: día en que se produce el silencio administrativo\n    computo: lpac\n    duracion: {cantidad: 3, unidad: meses}\n",
++			},
++			motivo: `el tipo "silencio" no fija su duración y lleva una`,
++		},
++		{
++			nombre: "cantidad cero",
++			cambio: &cambioDeTexto{de: "cantidad: 2", a: "cantidad: 0"},
++			motivo: `la duración del tipo "contencioso" no es un entero de 1 o más`,
++		},
++		{
++			nombre: "unidad de la duración desconocida",
++			cambio: &cambioDeTexto{de: "cantidad: 2, unidad: meses", a: "cantidad: 2, unidad: semanas"},
++			motivo: `la unidad "semanas" del tipo "contencioso" no es meses, dias-habiles ni dias-naturales`,
++		},
++		{
++			nombre: "sin fija: duracion",
++			cambio: &cambioDeTexto{de: `apartado: "122.1", fija: duracion`, a: `apartado: "122.1", fija: agosto`},
++			motivo: `ningún precepto del tipo "alzada" fija su duración`,
++		},
++		{
++			nombre: "unidades fuera de generico",
++			cambio: &cambioDeTexto{
++				de: "    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a122,",
++				a: "    unidades:\n      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo}\n" +
++					"    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a122,",
++			},
++			motivo: `el tipo "alzada" lleva unidades, que solo lleva generico`,
++		},
++		{
++			nombre: "generico sin unidades",
++			cambio: &cambioDeTexto{de: unidadesDeGenerico},
++			motivo: `el tipo "generico" no lleva unidades`,
++		},
++		{
++			nombre: "generico con las unidades vacías",
++			cambio: &cambioDeTexto{de: unidadesDeGenerico, a: "    unidades: {}\n"},
++			motivo: `el tipo "generico" no lleva la unidad "dias-habiles"`,
++		},
++		{
++			nombre: "generico sin una de las tres unidades",
++			cambio: &cambioDeTexto{
++				de: "      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo}\n",
++			},
++			motivo: `el tipo "generico" no lleva la unidad "meses"`,
++		},
++		{
++			nombre: "generico con una unidad desconocida",
++			cambio: &cambioDeTexto{
++				de: "      meses: {norma",
++				a:  "      semanas: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo}\n      meses: {norma",
++			},
++			motivo: `el tipo "generico" lleva la unidad "semanas", que no es meses, dias-habiles ni dias-naturales`,
++		},
++		{
++			nombre: "un precepto sin bloque",
++			cambio: &cambioDeTexto{de: "bloque: a124,", a: `bloque: "",`},
++			motivo: `el precepto 1 del tipo "reposicion" no tiene bloque`,
++		},
++		{
++			nombre: "un precepto de una unidad sin norma",
++			cambio: &cambioDeTexto{
++				de: "dias-naturales: {norma: BOE-A-2015-10565,",
++				a:  `dias-naturales: {norma: "",`,
++			},
++			motivo: `el precepto de la unidad "dias-naturales" del tipo "generico" no tiene norma`,
++		},
++		{
++			nombre: "un tipo sin precepto",
++			cambio: &cambioDeTexto{
++				de: "    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a21, apartado: \"21.3\", fija: inicio}\n" +
++					"      - {norma: BOE-A-2015-10565, bloque: a24, apartado: \"24.4\", fija: silencio}\n",
++				a: "    preceptos: []\n",
++			},
++			motivo: `el tipo "silencio" no nombra ningún precepto`,
++		},
++	}
++}
