@@ -371,3 +371,38 @@ la sabe la skill por `municipios` y `territorio`; añadirla es una clave que nin
 El de la entidad menor es un plazo de El Vellón cuyo último día es el 9 de octubre de 2026, fiesta de El Espartal y no
 de El Vellón: cuenta como hábil. El de Brunete usa la derivación con solo `BOCM-20251212-34` para 2026: Brunete queda
 `no-comunicado` y el 14 de septiembre, que es su fiesta según la corrección, cuenta como hábil y avisa.
+
+### D31 · Reparación del cierre: la línea del plazo con varios preceptos, la materia que no se dice y los municipios
+
+La medición del cierre sobre `3f14e3a` (job de evals `39168409746`, trabajo `evals (legal-core)`) salió en rojo por
+los dos umbrales `plazo_sin_fecha:claude-sonnet-5-5`: 1 de 9 en el modo orden y 2 de 9 en el modo herramienta, las tres
+respuestas de `09-plazo-contencioso-agosto`, que además pasó 1 de 3 en orden y 0 de 3 en herramienta con el umbral 2.
+Lo que el job dejó (`gates/evals/legal-core.json`) enseña tres causas, todas de la skill, ninguna de la eval ni del
+applet, que dio en las ocho sesiones que lo pidieron el 2026-09-15 con `a46` y `a128` en `data.preceptos`:
+
+- **Los dos preceptos en unos mismos corchetes.** Las tres sesiones del modo herramienta pusieron la cita del
+  contencioso como `[Ley 29/1998 (LJCA), art. 46.1 y 128.2, BOE-A-1998-16718, bloques a46 y a128]` (dos veces) o
+  `[…, bloque a46; art. 128.2, BOE-A-1998-16718, bloque a128]`: `formaDeCita` solo lee los corchetes que terminan en
+  `<identificador>, bloque <id>]`, así que las dos primeras no llevan ninguna cita —la línea `⚠ PLAZO:` no cuenta sin
+  cita en su línea— y la tercera solo la de `a128`. La plantilla de «Cómo se presenta un plazo» enseñaba una sola cita
+  y el paso 11 decía «con su tipo y su cita»; con dos preceptos, el modelo las fundió. La skill dice ahora que cada
+  precepto de `data.preceptos` va en sus propios corchetes, en la misma línea, y enseña la línea del contencioso con
+  las dos citas. **Rechazada**: ampliar `formaDeCita` para leer «bloques a46 y a128»: la forma es la del contrato de
+  `boe-legislacion` §3 («una cita por bloque»), un umbral en rojo no se arregla en lo que mide (ADR 0029) y el binario
+  no interpreta la redacción de una respuesta.
+- **La materia que la conversación no dice.** La sesión 03 del modo orden no consultó nada y se detuvo a preguntar la
+  materia, leyendo el «averigua» del paso 7 como permiso para preguntarla, y afirmó de memoria que el art. 46.1 LJCA
+  «cuenta de forma especial en agosto». FR-040.1 ordena comprobar la cobertura antes de preguntar municipios o fecha,
+  no preguntar la materia, y la historia (e) y la eval 09 no la dan y esperan el plazo. El paso 7 dice ahora que, sin
+  materia en la conversación, el asunto no cae en ninguna entrada: no se pregunta ni se detiene la respuesta, se sigue
+  con el 8 y se avisa al responder de que la fecha no vale para lo que la ley regula aparte, con la referencia.
+  **Rechazada**: preguntarla siempre; dejaría sin fecha la pregunta de (e) tal como la hace quien la trae.
+- **Madrid sin resolver.** La sesión 01 del modo orden pasó «Madrid» a `plazos calcular` sin `territorio resolver`,
+  porque `plazos` acepta un nombre; el paso 8 ya mandaba resolverlos por los pasos 1 a 4, pero nada lo hacía
+  condición de la llamada. El paso 9 dice ahora que a `plazos` solo llegan municipios que `territorio` resolvió en la
+  conversación. **Rechazada**: que `plazos` rechace un nombre y exija el código INE; cambiaría la gramática de D2 y la
+  aceptación congelada, y el paso 8 ya es el que da el territorio.
+
+Contracts/skill-legal-core.md (filas 7, 9 y 11 y §3), quickstart §13 (ocho líneas `⚠`) y el CHANGELOG lo dicen igual.
+Ni `09-plazo-contencioso-agosto.yaml`, ni `formaDeCita`, ni los umbrales cambian; el efecto lo mide el job en la
+medición siguiente, y esta sesión no lo ha medido.

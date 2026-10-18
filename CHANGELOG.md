@@ -76,10 +76,12 @@ sustituyen a este fichero.
   `references/cobertura_por_materia.md`: si lo está, lo declara con la línea
   `⚠ NO CUBIERTO: <procedimiento> se rige por <norma> (<identificador>), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto de la LPAC>).`
   —o, sin norma en la entrada, con el precepto de la LPAC que lo excluye— y no pide ningún plazo ni da ninguna fecha.
-  Si no, pregunta la fecha de inicio y los municipios que cuentan si faltan, resuelve cada municipio con `territorio`,
-  pide el plazo a `plazos calcular`, lee con `boe-legislacion` cada precepto de `data.preceptos` y da la fecha en la
-  línea `⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]`, con los festivos que
-  la movieron y cada aviso con su `texto`, tal cual, sin calcular ni corregir ninguna fecha. Lleva dos referencias
+  Si no, pregunta la fecha de inicio y los municipios que cuentan si faltan (la materia que la conversación no dice no
+  se pregunta: se calcula y se avisa), resuelve cada municipio con `territorio` antes de pasárselo a `plazos`, pide el
+  plazo a `plazos calcular`, lee con `boe-legislacion` cada precepto de `data.preceptos` y da la fecha en la línea
+  `⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]`, con una cita por cada
+  precepto de `data.preceptos` en sus propios corchetes, con los festivos que la movieron y cada aviso con su `texto`,
+  tal cual, sin calcular ni corregir ninguna fecha. Lleva dos referencias
   nuevas, generadas: `references/recursos_y_plazos.md`, desde `data/plazos.yaml`, y
   `references/cobertura_por_materia.md`, desde `data/cobertura.yaml`.
 - **`plazo`, `no_cubierto` y `calcular` en el formato de eval** (`schemas/eval.yaml.json`). `plazo` —`fecha`

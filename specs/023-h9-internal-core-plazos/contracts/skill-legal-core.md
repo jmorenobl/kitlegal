@@ -19,11 +19,11 @@ Los pasos 1 a 6 son los de v0, más cortos. Los nuevos:
 
 | Paso | Qué hace | Requisito |
 |---|---|---|
-| 7 | Con el acto y la administración, decide si hay plazo que calcular **antes de preguntar nada más**: comprueba la cobertura por materia con `references/cobertura_por_materia.md` y, si el asunto está, lo declara en su forma fija y no pide `plazos`; ante un acto presunto, cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, sin fecha. En los dos casos no pregunta ni municipios ni fecha | FR-040.1, FR-042, FR-043 |
+| 7 | Con el acto y la administración, decide si hay plazo que calcular **antes de preguntar nada más**: comprueba la cobertura por materia con `references/cobertura_por_materia.md` y, si el asunto está, lo declara en su forma fija y no pide `plazos`; ante un acto presunto, cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, sin fecha. En los dos casos no pregunta ni municipios ni fecha. Si la conversación no dice la materia, el asunto no está en la lista: no la pregunta ni se detiene por ella, sigue con el 8 y, al responder, avisa de que la fecha no vale para lo que la ley regula aparte | FR-040.1, FR-042, FR-043 |
 | 8 | Sitúa el plazo: la fecha de inicio (la pregunta si falta) y los municipios que cuentan, resueltos con `territorio` por los pasos 1 a 4; los pregunta si faltan, nunca el de quien usa el kit | FR-040.2 |
-| 9 | Pide el plazo a `plazos` con la fecha de la persona; silencio con la duración de la norma del procedimiento o los tres meses del art. 21.3; variación autonómica del art. 24.6 LTAIBG | FR-040.3, FR-044 |
+| 9 | Pide el plazo a `plazos` con la fecha de la persona y solo con municipios que `territorio` resolvió en la conversación (paso 8), aunque `plazos` acepte un nombre sin resolver; silencio con la duración de la norma del procedimiento o los tres meses del art. 21.3; variación autonómica del art. 24.6 LTAIBG | FR-040.3, FR-044 |
 | 10 | Lee con `boe-legislacion` (`boe articulo`) cada precepto de `data.preceptos` antes de citarlo | FR-040.4 |
-| 11 | Responde con la línea del plazo, los festivos de `data.festivos` y la línea de cada aviso; la disposición, solo con el aviso de cobertura que la trae | FR-041 |
+| 11 | Responde con la línea del plazo, con una cita por cada precepto de `data.preceptos`, cada una en sus propios corchetes y todas en esa línea, los festivos de `data.festivos` y la línea de cada aviso; la disposición, solo con el aviso de cobertura que la trae | FR-041 |
 
 Una pregunta de plazos o de recursos empieza por el paso 7, y los pasos 1 a 4 solo los recorren las preguntas de
 territorio y el paso 8, para los municipios de un plazo que sí se calcula. Es el orden de FR-040 —cobertura antes que
@@ -35,7 +35,8 @@ entran la 8 (ninguna fecha que no dé `plazos`) y la 9 (lo que la ley regula apa
 
 ## 3. Las formas fijas (FR-048)
 
-En `SKILL.md`, tal cual, en bloques `text` (sección «Cómo se presenta un plazo»): la línea `⚠ PLAZO:`, las dos de
+En `SKILL.md`, tal cual, en bloques `text` (sección «Cómo se presenta un plazo»): la línea `⚠ PLAZO:` —la plantilla y
+su forma con los dos preceptos del contencioso, una cita por precepto en sus propios corchetes—, las dos de
 `⚠ NO CUBIERTO:` y la cabeza de los cuatro avisos. Las comprueba el juicio sin modelo de contracts/evals-legal-core.md
 §2; el texto de cada aviso lo da `data.avisos[].texto` (contracts/applet-plazos.md §5).
 

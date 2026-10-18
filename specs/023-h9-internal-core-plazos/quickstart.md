@@ -188,7 +188,8 @@ grep -c '^⚠ ' skills/legal-core/SKILL.md
 ```
 
 `skills-check` sin diferencias; menos de 300 líneas; cada referencia con `<!-- generado desde data/…, no editar -->`; y
-`7`: las líneas `⚠ PLAZO:`, las dos `⚠ NO CUBIERTO:` y las cabezas de los cuatro avisos, en sus bloques `text`. La de
+`8`: las dos líneas `⚠ PLAZO:` (la plantilla y la forma con los dos preceptos del contencioso), las dos `⚠ NO CUBIERTO:`
+y las cabezas de los cuatro avisos, en sus bloques `text`. La de
 `⚠ SIN CONSULTA AL BOE:` va sangrada dentro de la regla 7, como en v0.
 
 ## 14. El cierre (lo hace el workflow, tras la revisión final; SC-001, SC-002)

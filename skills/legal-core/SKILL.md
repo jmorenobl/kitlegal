@@ -99,8 +99,9 @@ INE> --json`.
 
 ### 7. Decidir si hay plazo que calcular
 
-Averigua qué acto o qué solicitud es y qué administración lo dictó o lo recibe, y mira estos dos casos **antes de
-preguntar nada más**, tampoco el municipio ni la fecha: ninguno los necesita, porque no se les calcula nada.
+Con lo que la conversación ya dice del acto o de la solicitud, de la administración que lo dictó o lo recibe y de su
+materia, mira estos dos casos **antes de preguntar nada**, tampoco el municipio ni la fecha: ninguno los necesita,
+porque no se les calcula nada.
 
 - **Lo que la ley regula aparte.** Busca la materia del asunto en `references/cobertura_por_materia.md`. Si cae en una
   de sus entradas —tributos, Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería,
@@ -108,6 +109,9 @@ preguntar nada más**, tampoco el municipio ni la fecha: ninguno los necesita, p
   no está cubierto con la línea de «Cómo se presenta un plazo», con la norma que lo rige si la entrada la trae y, si no,
   con el precepto de la LPAC que lo excluye; no nombres ninguna norma que no venga de la entrada. **No pidas `plazos
   calcular`** y no des ni la línea del plazo ni ninguna fecha: el plazo del común no es el suyo.
+  Si la conversación no dice la materia, el asunto no cae en ninguna entrada: **no la preguntes ni detengas la
+  respuesta por ella**. Sigue con el 8 y, al responder, di que la fecha no vale si el asunto es de los que la ley regula
+  aparte, nombrándolos con la referencia y sin ninguna norma que no venga de ella.
 - **Acto presunto**: no hay fecha. Cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, leídos con `boe-legislacion`, y
   no pidas ningún plazo.
 
@@ -125,6 +129,9 @@ Elige el tipo en `references/recursos_y_plazos.md` y llama a `plazos_calcular` o
 <tipo> <inicio> <municipios>... --json`, con los municipios en su orden (interesado y sede del órgano, o sede del
 juzgado).
 
+- **Solo municipios que `territorio` haya resuelto en esta conversación** (paso 8), cada uno como lo dio la persona.
+  `plazos` acepta un nombre, pero sin el paso 8 la respuesta no tiene el territorio ni la cobertura de ese municipio:
+  no se lo pases sin resolver.
 - **Silencio**: el plazo máximo para resolver lo fija la norma del procedimiento; léela con `boe-legislacion` y pásalo
   con `--duracion` y `--unidad`. Solo si no fija ninguno, los tres meses del art. 21.3 LPAC, y dilo citándolo.
   `plazos` no dice si el silencio es estimatorio o desestimatorio: eso lo dice la norma, no la fecha.
@@ -139,8 +146,8 @@ Lee con `boe-legislacion` cada precepto de `data.preceptos` antes de citarlo, y 
 
 ### 11. Responder con el plazo
 
-- Da la fecha de `data.fecha` en la línea del plazo, con su tipo y su cita, y ninguna otra fecha de vencimiento. **No
-  calcules ni corrijas ninguna fecha**, tampoco para «comprobarla».
+- Da la fecha de `data.fecha` en la línea del plazo, con su tipo y una cita por cada precepto de `data.preceptos`, y
+  ninguna otra fecha de vencimiento. **No calcules ni corrijas ninguna fecha**, tampoco para «comprobarla».
 - Di qué festivos movieron la fecha, con `data.festivos`: su fecha, su ámbito y, si es local, su municipio.
 - Traslada cada aviso de `data.avisos` con su línea `texto`, tal cual.
 - Hasta qué disposición llegan los festivos lo dice ya el aviso de cobertura que lo trae; sin aviso, no lo copies.
@@ -166,11 +173,22 @@ su `codigo` y su `nombre` exactos.
 ## Cómo se presenta un plazo
 
 La línea del plazo, con la fecha de `data.fecha` tal cual, el tipo como lo nombra `references/recursos_y_plazos.md` y la
-cita del precepto que lo fija, leído en el paso 10:
+cita de cada precepto de `data.preceptos`, leído en el paso 10:
 
 ```text
 ⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]
 ```
+
+Cada precepto va en sus propios corchetes, uno detrás de otro en esa misma línea: lo que hace cita es que los corchetes
+terminen en `<identificador>, bloque <bloque>]`, con un solo bloque. Con los dos preceptos del recurso
+contencioso-administrativo:
+
+```text
+⚠ PLAZO: <AAAA-MM-DD> — recurso contencioso-administrativo [art. 46.1 de la LJCA, BOE-A-1998-16718, bloque a46] [art. 128.2 de la LJCA, BOE-A-1998-16718, bloque a128]
+```
+
+Dos bloques en unos mismos corchetes —«bloques a46 y a128», o «bloque a46; …, bloque a128»— no son una cita de ninguno
+de los dos.
 
 La declaración de que el asunto no está cubierto, con el procedimiento como lo nombra
 `references/cobertura_por_materia.md`; la primera si la entrada trae la norma que lo rige, la segunda si no:
