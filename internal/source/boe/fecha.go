@@ -31,15 +31,16 @@ const (
 )
 
 // articuloEnUnaFecha resuelve articulo <norma> <bloque> --fecha <fecha>, los
-// tres ya validados: dentro de invocar, las versiones del bloque con
-// versionesDeLaLecturaFechada y, entre ellas, la del día pedido con
-// elegirLaVersion. El resultado lleva la dirección del bloque en éxito, en
+// tres ya validados, con el día de la fecha que leyó ValidarFecha: dentro de
+// invocar, las versiones del bloque con versionesDeLaLecturaFechada y, entre
+// ellas, la del día pedido con elegirLaVersion. El resultado lleva la dirección del bloque en éxito, en
 // ensayo, en los fallos del bloque y en los dos de la elección, y la de los
 // metadatos en los suyos, como la lectura sin fecha (FR-007); en éxito y en los
 // fallos de la elección, la fecha de consulta de las versiones. Solo en éxito
 // observa algo del mundo, lo de observadoDeLaLecturaFechada (FR-030); bajo
 // ensayo, en un fallo y en los dos 3 de la elección, nada.
 func (f *Fuente) articuloEnUnaFecha(ctx context.Context, ec schema.Contexto, norma, bloque, fecha string,
+	dia time.Time,
 ) (schema.Resultado, error) {
 	direccion := direccionDelBloque(norma, bloque)
 
@@ -53,7 +54,7 @@ func (f *Fuente) articuloEnUnaFecha(ctx context.Context, ec schema.Contexto, nor
 			return resultadoDeLaConsulta(direccion, versiones), nil
 		}
 
-		articulo, err := elegirLaVersion(norma, bloque, fecha, versiones)
+		articulo, err := elegirLaVersion(norma, bloque, fecha, dia, versiones)
 		if err != nil {
 			return resultadoDelError(err), err
 		}
@@ -104,7 +105,8 @@ func componerLasVersiones(leido bloqueLeido, metadatos Metadatos) versionesDelBl
 }
 
 // elegirLaVersion compone el data de la lectura fechada con la versión del
-// bloque que regía el día pedido, ya validado (data-model.md §3; research.md D4):
+// bloque que regía el día pedido, dia, el de la fecha ya validada, que es la que
+// nombran los dos 3 y la fecha pedida (data-model.md §3; research.md D4):
 //
 //  1. si el bloque no tiene versiones, o alguna no tiene una fecha_vigencia que
 //     sea un día AAAAMMDD, no se puede situar ninguna: 3 con el mensaje de
@@ -120,17 +122,10 @@ func componerLasVersiones(leido bloqueLeido, metadatos Metadatos) versionesDelBl
 // versiones, y ninguno lleva texto (research.md D7). El artículo de la elegida lo
 // compone componerArticulo, como la lectura sin fecha el de la última: con los
 // avisos y el ELI de la norma hoy, los guardados con las versiones (FR-011).
-func elegirLaVersion(norma, bloque, fecha string, guardadas consultaResuelta[versionesDelBloque],
+func elegirLaVersion(norma, bloque, fecha string, dia time.Time, guardadas consultaResuelta[versionesDelBloque],
 ) (ArticuloFechado, error) {
 	direccion := direccionDelBloque(norma, bloque)
 	versiones := guardadas.datos.Versiones
-
-	dia, err := time.Parse(time.DateOnly, fecha)
-	if err != nil {
-		// ValidarFecha ya la aceptó: no es un fallo de quien invoca.
-		return ArticuloFechado{}, errorInesperado(direccion, guardadas.fechaConsulta, err,
-			fmt.Sprintf("la fecha %q, ya validada, no se puede leer", fecha))
-	}
 
 	vigencias, situable := vigenciasDeLasVersiones(versiones)
 	if !situable {

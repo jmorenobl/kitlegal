@@ -78,21 +78,23 @@ func ValidarBloque(bloque string) error {
 }
 
 // ValidarFecha comprueba que la fecha de --fecha sea un día AAAA-MM-DD, con sus
-// ceros, que existe en el calendario. Lo decide time.Parse con time.DateOnly y
-// nada más: ya rechaza toda otra forma —sin ceros, sin guiones, con hora, con
-// espacios— y todo día que no existe, como el 30 de febrero o el 29 de un año
-// que no es bisiesto (research D3, M5). Fuera de esa forma devuelve un *Error de
-// clase «argumentos» que nombra el valor recibido y la forma esperada, sin
-// dirección, instante ni causa, antes de abrir la caché y de construir ninguna
-// petición (FR-005, contrato articulo-fecha §3). El error de time.Parse no va
-// como causa: lo que dice ya lo dice el mensaje, que nombra el valor y la forma.
-func ValidarFecha(fecha string) error {
-	if _, err := time.Parse(time.DateOnly, fecha); err != nil {
-		return errorDeArgumentos("", time.Time{}, nil, fmt.Sprintf(
+// ceros, que existe en el calendario, y devuelve ese día, el que compara la
+// elección de la versión. Lo decide time.Parse con time.DateOnly y nada más: ya
+// rechaza toda otra forma —sin ceros, sin guiones, con hora, con espacios— y
+// todo día que no existe, como el 30 de febrero o el 29 de un año que no es
+// bisiesto (research D3, M5). Fuera de esa forma devuelve un *Error de clase
+// «argumentos» que nombra el valor recibido y la forma esperada, sin dirección,
+// instante ni causa, antes de abrir la caché y de construir ninguna petición
+// (FR-005, contrato articulo-fecha §3). El error de time.Parse no va como causa:
+// lo que dice ya lo dice el mensaje, que nombra el valor y la forma.
+func ValidarFecha(fecha string) (time.Time, error) {
+	dia, err := time.Parse(time.DateOnly, fecha)
+	if err != nil {
+		return time.Time{}, errorDeArgumentos("", time.Time{}, nil, fmt.Sprintf(
 			"la fecha %q no es un día AAAA-MM-DD del calendario, como 2019-06-01", fecha))
 	}
 
-	return nil
+	return dia, nil
 }
 
 // esBloqueValido aplica ^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$ sobre los bytes del

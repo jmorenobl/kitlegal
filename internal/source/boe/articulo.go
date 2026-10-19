@@ -49,11 +49,12 @@ func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta Cons
 	}
 
 	if consulta.Fecha != nil {
-		if err := ValidarFecha(*consulta.Fecha); err != nil {
+		dia, err := ValidarFecha(*consulta.Fecha)
+		if err != nil {
 			return schema.Resultado{}, err
 		}
 
-		return f.articuloEnUnaFecha(ctx, ec, consulta.Norma, consulta.Bloque, *consulta.Fecha)
+		return f.articuloEnUnaFecha(ctx, ec, consulta.Norma, consulta.Bloque, *consulta.Fecha, dia)
 	}
 
 	direccion := direccionDelBloque(consulta.Norma, consulta.Bloque)

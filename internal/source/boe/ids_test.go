@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -160,7 +161,7 @@ func TestValidarBloque(t *testing.T) {
 
 // TestValidarFecha fija la forma de --fecha: un día AAAA-MM-DD, con sus ceros,
 // que existe en el calendario, lo que time.Parse(time.DateOnly, …) acepta y nada
-// más. Lo demás —el día que no existe, el 29 de febrero de un año que no es
+// más, y que devuelve ese día. Lo demás —el día que no existe, el 29 de febrero de un año que no es
 // bisiesto, los ceros que faltan, otro separador, la hora, el espacio delante,
 // la cadena vacía y el mes trece— es «argumentos», con el mensaje del contrato
 // articulo-fecha §3 (FR-005; research D3, M5).
@@ -192,9 +193,10 @@ func TestValidarFecha(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			err := boe.ValidarFecha(caso.fecha)
+			dia, err := boe.ValidarFecha(caso.fecha)
 			if caso.valida {
 				require.NoError(t, err)
+				assert.Equal(t, caso.fecha, dia.Format(time.DateOnly))
 
 				return
 			}

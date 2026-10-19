@@ -103,7 +103,8 @@ lectura, las líneas del código que el hito escribe o toca y que ningún test d
   prueba `TestValidarFecha` directamente y, por el binario, `fecha-codigos.txtar` (FR-005), pero ningún test de
   `internal/source/boe` llama a la fuente con una fecha mal escrita.
 - `internal/source/boe/fecha.go:131-133` — el error `inesperado` de una fecha que `ValidarFecha` ya aceptó y
-  `time.Parse` no lee: un estado sin vía real, que cubre la regla genérica (tasks.md, «Proporcionalidad»).
+  `time.Parse` no lee: un estado sin vía real. La revisión final lo retiró (`gates/supuestos.md`, «corrector_revision»):
+  `ValidarFecha` devuelve el día que lee y `elegirLaVersion` lo recibe, sin volver a leer la fecha.
 - `internal/evals/informe.go:1723` — en `llevaLasLineasFechadas`, la rama de una eval que espera la redacción a una
   fecha **sin** redacción posterior (`esperada.Posterior == nil`). El formato la admite, pero ninguna eval del
   repositorio (la 22 lleva `posterior:` y la 23 `vigente_desde:`) ni ninguna sesión sintética la ejercita.
