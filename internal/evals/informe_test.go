@@ -1898,13 +1898,19 @@ func TestInformeFinalDeLosUmbrales(t *testing.T) {
 // modo orden, y la tasa de la clase en sus tres umbrales: el de cada modo, que
 // solo se publica, y el conjunto, que decide.
 func umbralesDeBoeLegislacionComoEnH26(marcadasEnHerramienta int) []Umbral {
-	umbrales := umbralesConJuez(modeloSonnet55,
+	return conLaTasaDeBoeLegislacion(umbralesConJuez(modeloSonnet55,
 		[]Umbral{umbralDeDuracion(ModoOrden, 522, 900, true), umbralDeDuracion(ModoHerramienta, 511, 900, true)},
 		medidasDeUnModo{modo: ModoOrden, respuestas: 54, conSi: 1, segundosDelJuez: 99},
 		medidasDeUnModo{
 			modo: ModoHerramienta, respuestas: 54, marcadas: marcadasEnHerramienta, conSi: 2, segundosDelJuez: 112,
-		})
+		}))
+}
 
+// conLaTasaDeBoeLegislacion son los umbrales dados con la tasa de
+// afirma_lo_no_leido de boe-legislacion en sus tres umbrales —el de cada modo,
+// que solo se publica, y el conjunto, que decide—, cada uno cumplido si la
+// proporción de sus marcadas sobre su total no pasa de ella.
+func conLaTasaDeBoeLegislacion(umbrales []Umbral) []Umbral {
 	for posicion, umbral := range umbrales {
 		if strings.HasPrefix(umbral.Nombre, "afirma_lo_no_leido:") {
 			umbrales[posicion].Umbral = tasaDeBoeLegislacion
@@ -6124,9 +6130,20 @@ func informeDeJurisprudencia(t *testing.T, sesiones string, votante *votanteDelI
 // dadas de la skill, con sus evals del repositorio, el plan del job
 // (planDeJurisprudencia), el objetivo de duración dado —con tandas de 950 s y
 // 1000 s— y ese votante, que solo vota si la skill tiene juez, y lo lee
-// (leerElInformeDeLaSkill).
+// (informeDelPlanDelJobConTandas).
 func informeDelPlanDelJob(
 	t *testing.T, skill, evals, sesiones string, objetivo int, votante *votanteDelInforme,
+) informeLeido {
+	t.Helper()
+
+	return informeDelPlanDelJobConTandas(t, skill, evals, sesiones, objetivo,
+		map[Modo]int{ModoOrden: 950, ModoHerramienta: 1000}, votante)
+}
+
+// informeDelPlanDelJobConTandas es informeDelPlanDelJob con los segundos dados
+// de la tanda de cada modo, y lo lee (leerElInformeDeLaSkill).
+func informeDelPlanDelJobConTandas(
+	t *testing.T, skill, evals, sesiones string, objetivo int, tandas map[Modo]int, votante *votanteDelInforme,
 ) informeLeido {
 	t.Helper()
 
@@ -6146,7 +6163,7 @@ func informeDelPlanDelJob(
 		Commit:                commitEvaluado,
 		SinPython:             filepath.Join(casosDeInforme, ficheroSinPython),
 		DuracionDeLasSesiones: 2000,
-		DuracionDeLosModos:    map[Modo]int{ModoOrden: 950, ModoHerramienta: 1000},
+		DuracionDeLosModos:    tandas,
 		ObjetivoDeDuracion:    objetivo,
 	}
 	votante.darA(&entradas)
@@ -6519,7 +6536,25 @@ func exigirLosUmbralesDeLegalCore(t *testing.T, caso casoDeUmbralesDeLegalCore) 
 		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
 	}
 
-	for nombre, motivos := range caso.noPasan {
+	exigirLasQueNoPasan(t, leido, caso.noPasan)
+
+	// Cada umbral tiene su fila en informe.md, con su medida, su condición, si
+	// se cumple y que hace fallar el veredicto.
+	deLosUmbrales := seccionDelInforme(t, leido.md, "Umbrales")
+
+	for _, umbral := range leido.informe.Umbrales {
+		exigirLineas(t, deLosUmbrales, filaDeTabla("`"+umbral.Nombre+"`", umbral.medidaEscrita(), "≤ 0,0 %",
+			siONo(umbral.Cumple), "sí"))
+	}
+}
+
+// exigirLasQueNoPasan exige, de cada sesión dada por su nombre, que no cumpla lo
+// esperado, con esos motivos, y que cuente en su serie, que pasa con las otras
+// dos.
+func exigirLasQueNoPasan(t *testing.T, leido informeLeido, noPasan map[string][]string) {
+	t.Helper()
+
+	for nombre, motivos := range noPasan {
 		resultado := resultadoDeLaSesion(t, leido.informe, nombre)
 		assert.False(t, resultado.Pasa, "%s no cumple lo esperado", nombre)
 		assert.Equal(t, motivos, resultado.Motivos, "los motivos de %s", nombre)
@@ -6532,15 +6567,6 @@ func exigirLosUmbralesDeLegalCore(t *testing.T, caso casoDeUmbralesDeLegalCore) 
 		assert.Equal(t, repeticionesConUmbrales-1, leido.informe.Tasas[deSuSerie].Pasan,
 			"%s cuenta en su serie, que pasa con las otras dos", nombre)
 	}
-
-	// Cada umbral tiene su fila en informe.md, con su medida, su condición, si
-	// se cumple y que hace fallar el veredicto.
-	deLosUmbrales := seccionDelInforme(t, leido.md, "Umbrales")
-
-	for _, umbral := range leido.informe.Umbrales {
-		exigirLineas(t, deLosUmbrales, filaDeTabla("`"+umbral.Nombre+"`", umbral.medidaEscrita(), "≤ 0,0 %",
-			siONo(umbral.Cumple), "sí"))
-	}
 }
 
 // TestUmbralesDeLasTresSkills fija los umbrales de las tres skills con sus
@@ -6549,11 +6575,19 @@ func exigirLosUmbralesDeLegalCore(t *testing.T, caso casoDeUmbralesDeLegalCore) 
 // SC-011): legal-core, con las sesiones de armarSesionesDeLegalCore, lleva
 // exactamente sin_activar, plazo_sin_fecha y cobertura_sin_declarar del modo
 // orden y los mismos del modo herramienta, los seis decidiendo, sobre 21, 9 y 6
-// respuestas; y boe-legislacion y jurisprudencia, sin sesiones, siguen con los
-// trece y los quince de antes, nueve y once que deciden, en su orden y sin
-// cambiar ninguno: lo que no sale de las respuestas —el nombre, la descripción,
-// la comparación, el umbral y si decide— es el de umbralesDeBoeLegislacionComoEnH26
-// y el de umbralesDeJurisprudencia.
+// respuestas; y jurisprudencia, sin sesiones, sigue con los quince de antes,
+// once que deciden, en su orden y sin cambiar ninguno: lo que no sale de las
+// respuestas —el nombre, la descripción, la comparación, el umbral y si
+// decide— es el de umbralesDeJurisprudencia.
+//
+// Desde H20 (contracts/evals-redaccion-fechada.md §3 y §4 de H20; FR-056,
+// FR-058 de H20; SC-009 de H20), boe-legislacion, con las sesiones de
+// armarSesionesDeBoeLegislacion, lleva los quince de umbralesDeBoeLegislacion,
+// en su orden, once que deciden: los trece de antes, con
+// redaccion_sin_fechar de cada modo detrás de su cuenta_su_proceso; y, con sus
+// veintitrés evals, sin_activar cuenta sobre 60 respuestas por modo,
+// afirma_lo_no_leido:<modelo>, sobre 120, con la tasa de clases.yaml, y
+// redaccion_sin_fechar, sobre las 6 de las dos evals con fecha de cada modo.
 func TestUmbralesDeLasTresSkills(t *testing.T) {
 	t.Parallel()
 
@@ -6594,9 +6628,35 @@ func TestUmbralesDeLasTresSkills(t *testing.T) {
 		skill, evals string
 		umbrales     []Umbral
 		deciden      int
+
+		// sesiones arma las sesiones del informe, y totales son los de algunos
+		// de sus umbrales, por su nombre.
+		sesiones func(t *testing.T) string
+		totales  map[string]int
 	}{
-		{skill: skillDeLasSesiones, evals: evalsDelRepositorio, umbrales: umbralesDeBoeLegislacionComoEnH26(0), deciden: 9},
-		{skill: skillDeJurisprudencia, evals: evalsDeJurisprudencia, umbrales: umbralesDeJurisprudencia(nil), deciden: 11},
+		{
+			skill: skillDeLasSesiones, evals: evalsDelRepositorio, umbrales: umbralesDeBoeLegislacion(), deciden: 11,
+			sesiones: func(t *testing.T) string {
+				t.Helper()
+
+				return armarSesionesDeBoeLegislacion(t, casoDeUmbralesDeBoeLegislacion{})
+			},
+			totales: map[string]int{
+				"sin_activar:claude-sonnet-5-5:orden":                respuestasDeBoeLegislacionPorModo,
+				"redaccion_sin_fechar:claude-sonnet-5-5:orden":       respuestasConFechaPorModo,
+				"sin_activar:claude-sonnet-5-5:herramienta":          respuestasDeBoeLegislacionPorModo,
+				"redaccion_sin_fechar:claude-sonnet-5-5:herramienta": respuestasConFechaPorModo,
+				"afirma_lo_no_leido:claude-sonnet-5-5":               2 * respuestasDeBoeLegislacionPorModo,
+			},
+		},
+		{
+			skill: skillDeJurisprudencia, evals: evalsDeJurisprudencia, umbrales: umbralesDeJurisprudencia(nil), deciden: 11,
+			sesiones: func(t *testing.T) string {
+				t.Helper()
+
+				return t.TempDir()
+			},
+		},
 	}
 
 	for _, deLaSkill := range conJuez {
@@ -6606,8 +6666,8 @@ func TestUmbralesDeLasTresSkills(t *testing.T) {
 			ajustes, esta := delJob.PorSkill[deLaSkill.skill]
 			require.True(t, esta, "la definición del job tiene los ajustes de %s", deLaSkill.skill)
 
-			leido := informeDelPlanDelJob(t, deLaSkill.skill, deLaSkill.evals, t.TempDir(), ajustes.ObjetivoDeDuracion,
-				nuevoVotanteDelInforme(t))
+			leido := informeDelPlanDelJob(t, deLaSkill.skill, deLaSkill.evals, deLaSkill.sesiones(t),
+				ajustes.ObjetivoDeDuracion, nuevoVotanteDelInforme(t))
 
 			assert.Equal(t, formaDeLosUmbrales(deLaSkill.umbrales), formaDeLosUmbrales(leido.informe.Umbrales))
 
@@ -6615,6 +6675,13 @@ func TestUmbralesDeLasTresSkills(t *testing.T) {
 				return !umbral.Decide
 			})
 			assert.Len(t, deciden, deLaSkill.deciden)
+
+			for nombre, total := range deLaSkill.totales {
+				deLaLista := slices.IndexFunc(leido.informe.Umbrales, func(umbral Umbral) bool { return umbral.Nombre == nombre })
+				require.GreaterOrEqual(t, deLaLista, 0, "el informe tiene el umbral %s", nombre)
+				require.NotNil(t, leido.informe.Umbrales[deLaLista].Total, "%s lleva total", nombre)
+				assert.Equal(t, total, *leido.informe.Umbrales[deLaLista].Total, "el total de %s", nombre)
+			}
 		})
 	}
 }
@@ -6706,10 +6773,10 @@ func umbralCoberturaSinDeclarar(modelo string, modo Modo, sinDeclarar, respuesta
 	}
 }
 
-// modeloDeLegalCore es la sesión de quien sigue la skill ante una eval de
-// legal-core del repositorio: si la activa, su respuesta y, en su orden, las
-// consultas que hace.
-type modeloDeLegalCore struct {
+// modeloDeUnaEval es la sesión de quien sigue la skill ante una eval del
+// repositorio: si la activa, su respuesta y, en su orden, las consultas que
+// hace.
+type modeloDeUnaEval struct {
 	activa    bool
 	respuesta string
 	consultas []consultaSintetica
@@ -6724,7 +6791,7 @@ type modeloDeLegalCore struct {
 // sitúan el municipio, calculan el plazo, leen sus preceptos y responden con la
 // línea del plazo y la de cada aviso esperado; y las de cobertura no consultan
 // nada y responden con la declaración de no cubierto.
-func modelosDeLegalCore() map[string]modeloDeLegalCore {
+func modelosDeLegalCore() map[string]modeloDeUnaEval {
 	const (
 		leganes     = "Leganés"
 		tordesillas = "Tordesillas"
@@ -6733,7 +6800,7 @@ func modelosDeLegalCore() map[string]modeloDeLegalCore {
 		notificada  = "2026-09-09"
 	)
 
-	return map[string]modeloDeLegalCore{
+	return map[string]modeloDeUnaEval{
 		evalDeTerritorio: {
 			activa:    true,
 			respuesta: "Leganés es de la Comunidad de Madrid y de la provincia de Madrid; su boletín es el BOCM.",
@@ -6825,8 +6892,7 @@ func sobreDeLegalCore(applet string) string {
 // —las ocho de modo, tres veces, con los dos modelos y en los dos modos, y la
 // sin binario ni servidor, tres veces con cada modelo—, cada una la de
 // modelosDeLegalCore para su eval o, si las respuestas dadas la nombran, con la
-// suya, y devuelve el directorio (escribirSesionSinteticaDelPlan). El plan es el
-// del job, el mismo que el de jurisprudencia (planDeJurisprudencia).
+// suya, y devuelve el directorio (escribirLasSesionesDelPlan).
 func armarSesionesDeLegalCore(t *testing.T, respuestas map[string]string) string {
 	t.Helper()
 
@@ -6838,31 +6904,643 @@ func armarSesionesDeLegalCore(t *testing.T, respuestas map[string]string) string
 	modelos := modelosDeLegalCore()
 	require.Len(t, conjunto.Evals, len(modelos), "hay una sesión modelo por eval de %s", evalsDeLegalCore)
 
+	return escribirLasSesionesDelPlan(t, skillDeLegalCore, conjunto.Evals, modelos,
+		func(planificada SesionPlanificada, modelo modeloDeUnaEval) modeloDeUnaEval {
+			if respuesta, cambiada := respuestas[planificada.Nombre]; cambiada {
+				modelo.respuesta = respuesta
+			}
+
+			return modelo
+		}, slices.Collect(maps.Keys(respuestas))...)
+}
+
+// escribirLasSesionesDelPlan escribe en un directorio temporal del test las
+// sesiones que el plan del job pide con las evals dadas de la skill —las de
+// modo, tres veces, con los dos modelos y en los dos modos, salvo las
+// informativas, solo con el que decide, y la sin binario ni servidor, tres
+// veces con cada modelo—, cada una la sesión modelo de su eval tal como la deja
+// cambiar, y devuelve el directorio (escribirSesionSinteticaDelPlan). El plan es
+// el del job, el mismo que el de jurisprudencia (planDeJurisprudencia). Cada
+// nombre de cambiadas tiene que ser el de una sesión del plan.
+func escribirLasSesionesDelPlan(
+	t *testing.T, skill string, evals []Eval, modelos map[string]modeloDeUnaEval,
+	cambiar func(planificada SesionPlanificada, modelo modeloDeUnaEval) modeloDeUnaEval, cambiadas ...string,
+) string {
+	t.Helper()
+
 	sesiones := t.TempDir()
 
-	for _, planificada := range planDeJurisprudencia(conjunto.Evals).Sesiones() {
-		deLaEval := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
+	for _, planificada := range planDeJurisprudencia(evals).Sesiones() {
+		deLaEval := slices.IndexFunc(evals, func(eval Eval) bool { return eval.Fichero == planificada.Fichero })
 
 		modelo, esta := modelos[planificada.Fichero]
 		require.True(t, esta, "hay una sesión modelo de %s", planificada.Fichero)
 
-		respuesta, cambiada := respuestas[planificada.Nombre]
-		if !cambiada {
-			respuesta = modelo.respuesta
-		}
+		modelo = cambiar(planificada, modelo)
 
-		skill := ""
+		activada := ""
 		if modelo.activa {
-			skill = skillDeLegalCore
+			activada = skill
 		}
 
-		escribirSesionSinteticaDelPlan(t, sesiones, planificada, conjunto.Evals[deLaEval].Pregunta, skill, respuesta,
+		escribirSesionSinteticaDelPlan(t, sesiones, planificada, evals[deLaEval].Pregunta, activada, modelo.respuesta,
 			modelo.consultas)
 	}
 
-	for nombre := range respuestas {
+	for _, nombre := range cambiadas {
 		require.DirExists(t, filepath.Join(sesiones, nombre), "%s es una sesión del plan del job", nombre)
 	}
 
 	return sesiones
+}
+
+// Lo que TestUmbralesDeBoeLegislacion sabe de las respuestas del modelo que
+// decide en un modo con las evals de boe-legislacion del repositorio y el plan
+// del job, tres veces cada eval (contracts/evals-redaccion-fechada.md §3 de
+// H20; FR-055, FR-058 de H20): las de sus veinte evals de modo que activan la
+// skill, el total de sin_activar y de los recuentos de las dos clases del juez;
+// y las de sus dos evals con fecha, el de redaccion_sin_fechar.
+const (
+	respuestasDeBoeLegislacionPorModo = 60
+	respuestasConFechaPorModo         = 6
+)
+
+// Las dos evals con fecha de boe-legislacion del repositorio, la (a) y la (b) de
+// contracts/evals-redaccion-fechada.md §1.3 de H20, y el día que pide cada una.
+const (
+	evalDelContratoMenorEn2019 = "22-lcsp-contrato-menor-en-2019.yaml"
+	evalDelArticulo21En2016    = "23-lpac-articulo-21-en-2016.yaml"
+
+	diaDelContratoMenor = "2019-06-01"
+	diaDelArticulo21    = "2016-06-01"
+)
+
+// Lo que TestUmbralesDeBoeLegislacion fija del informe de boe-legislacion,
+// escrito a mano: el objetivo de duración de la definición del job y los
+// segundos de la tanda de cada modo, por debajo de él; y el motivo de una sesión
+// de la (a) que no leyó su bloque en su día.
+const (
+	objetivoDeBoeLegislacion           = 900
+	tandaDeBoeLegislacionEnOrden       = 522
+	tandaDeBoeLegislacionEnHerramienta = 511
+
+	sinLeerElContratoMenorEnSuDia = "comando ausente: bloque boe BOE-A-2017-12902 a1-30 2019-06-01"
+)
+
+// medidasConFecha son las de un modo del informe de boe-legislacion que cambian
+// los casos de TestUmbralesDeBoeLegislacion: las respuestas del modelo que
+// decide que cuentan en redaccion_sin_fechar, y las sesiones que quedaron sin
+// medir, todas de una eval con fecha, que no están en el total de ningún umbral
+// de las respuestas de su modo ni en el del conjunto.
+type medidasConFecha struct {
+	sinFechar, sinMedir int
+}
+
+// casoDeUmbralesDeBoeLegislacion es un caso de TestUmbralesDeBoeLegislacion: lo
+// que cambia en las sesiones del plan del job y lo que el informe tiene que
+// decir.
+type casoDeUmbralesDeBoeLegislacion struct {
+	nombre string
+
+	// respuestas son las que se dan a algunas sesiones, por su nombre, en lugar
+	// de la de su sesión modelo; consultas, las que hacen algunas en lugar de
+	// las suyas; y sinMedir, la sesión que queda sin medir por el mensaje del
+	// límite de uso.
+	respuestas map[string]string
+	consultas  map[string][]consultaSintetica
+	sinMedir   string
+
+	// porModo son las medidas de cada modo, 0 en lo que no se da; motivos, los
+	// de la raíz; y noPasan, los de las sesiones que no cumplen lo esperado, por
+	// su nombre: cada una cuenta en su serie, que pasa con las otras dos.
+	porModo map[Modo]medidasConFecha
+	motivos []string
+	noPasan map[string][]string
+}
+
+// TestUmbralesDeBoeLegislacion fija los umbrales del informe de boe-legislacion
+// con sus evals con fecha (contracts/evals-redaccion-fechada.md §3 y §4 de H20;
+// data-model §7.4 de H20; research D14 de H20; FR-054 a FR-058 y FR-089 de H20;
+// SC-001, SC-009 y SC-010 de H20), con las evals y la carpeta del juez del
+// repositorio, el objetivo de duración de la definición del job, un juez que
+// dice no a todo y las sesiones sintéticas de armarSesionesDeBoeLegislacion,
+// las del plan del job, que pasan todas:
+//
+//   - umbrales son exactamente quince, en el orden de
+//     contracts/evals-redaccion-fechada.md §3 de H20: de cada modo, el del modo
+//     orden delante, sin_activar y los recuentos de afirma_lo_no_leido y de
+//     cuenta_su_proceso, sobre las 60 respuestas del modelo que decide en ese
+//     modo, y redaccion_sin_fechar, sobre las 6 de ellas de las dos evals con
+//     fecha; el conjunto de afirma_lo_no_leido, sobre las 120 de los dos modos,
+//     con la tasa de clases.yaml; los dos de la medida versionada del juez; y
+//     la duración de las sesiones y la de los votos del juez de cada modo.
+//     Deciden once: todos menos los cuatro recuentos de las clases del juez;
+//   - con la (a) leída en su día, como orden y como boe_articulo con fecha, y
+//     su respuesta con la redacción a fecha y la de hoy que espera, y la (b)
+//     leída en su día, que termina con 3, y su respuesta con la línea sin
+//     redacción vigente que espera, los quince se cumplen y el veredicto es
+//     aprobado, sin motivos;
+//   - una sesión de una eval con fecha que no lee su bloque en su día —sin
+//     --fecha o con otro día— o cuya respuesta no lleva las líneas que espera
+//     su eval —sin la redacción a fecha, o con otro día o con otra vigencia; sin
+//     la de hoy, o con otra vigencia o con otra norma; con la redacción a fecha
+//     en lugar de la línea sin redacción vigente— cuenta, una vez, en
+//     redaccion_sin_fechar de su modo, que no se cumple, y el veredicto es
+//     fallo, con un motivo que nombra el umbral, su medida, su condición y cada
+//     sesión que cuenta, en orden de sesión; la línea de otro bloque no cuenta;
+//   - una de una eval sin fecha no entra en su total, lea lo que lea y lleve lo
+//     que lleve;
+//   - una sin medir no está en el total de ningún umbral de su modo, ni en el
+//     del conjunto, ni en ninguna medida, y da solo el motivo de la ejecución;
+//   - y las de Haiku, el modelo informativo, no entran en ninguno.
+func TestUmbralesDeBoeLegislacion(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeLosUmbralesDeBoeLegislacion() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirLosUmbralesDeBoeLegislacion(t, caso)
+		})
+	}
+
+	t.Run("el-elemento-del-contrato", func(t *testing.T) {
+		t.Parallel()
+
+		// El elemento de contracts/evals-redaccion-fechada.md §3 de H20, tal cual:
+		// lo que los casos comparan con el informe, con sus claves en el orden del
+		// contrato del ADR 0029.
+		const elemento = `{"nombre":"redaccion_sin_fechar:claude-sonnet-5-5:orden","descripcion":"Respuestas de ` +
+			`claude-sonnet-5-5 en el modo orden cuya sesión no leyó con boe articulo el bloque de la eval en su ` +
+			`fecha, o sin las líneas ⚠ REDACCIÓN A FECHA:, ⚠ REDACCIÓN DE HOY: y ⚠ SIN REDACCIÓN VIGENTE: que la ` +
+			`eval espera, sobre sus respuestas medidas en las evals que esperan una redacción fechada","medida":0,` +
+			`"total":6,"comparacion":"<=","umbral":0,"cumple":true,"decide":true}`
+
+		assert.Equal(t, compacto(t, jsontext.Value(elemento)),
+			umbralEscrito(t, umbralRedaccionSinFechar(modeloSonnet55, ModoOrden, 0, respuestasConFechaPorModo)))
+	})
+}
+
+// casosDeLosUmbralesDeBoeLegislacion son los de TestUmbralesDeBoeLegislacion,
+// los casos 1 a 8 de contracts/evals-redaccion-fechada.md §4 de H20.
+func casosDeLosUmbralesDeBoeLegislacion() []casoDeUmbralesDeBoeLegislacion {
+	// Las líneas con las que los casos cambian las respuestas de las evals con
+	// fecha: la redacción a fecha de la (a) con otro día y con la vigencia de la
+	// de hoy; la de hoy con otra vigencia y con la norma de otra redacción; y, en
+	// la (b), la redacción a fecha del art. 21 en lugar de la línea sin redacción
+	// vigente, y la de otro artículo de la misma norma.
+	const (
+		aFechaConOtroDia = "⚠ REDACCIÓN A FECHA: " + citaDelArticulo118 + ": se cita la redacción vigente el " +
+			"2019-06-02, la de fecha de vigencia 20180309."
+		aFechaConOtraVigencia = "⚠ REDACCIÓN A FECHA: " + citaDelArticulo118 + ": se cita la redacción vigente el " +
+			"2019-06-01, la de fecha de vigencia 20200206."
+		deHoyConOtraVigencia = "⚠ REDACCIÓN DE HOY: " + citaDelArticulo118 + ": hoy la redacción es otra, la de " +
+			"BOE-A-2020-1651, con fecha de vigencia 20200205."
+		deHoyConOtraNorma = "⚠ REDACCIÓN DE HOY: " + citaDelArticulo118 + ": hoy la redacción es otra, la de " +
+			"BOE-A-2020-1652, con fecha de vigencia 20200206."
+		aFechaEnLaB = "⚠ REDACCIÓN A FECHA: art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]: se cita la " +
+			"redacción vigente el 2016-06-01, la de fecha de vigencia 20161002."
+		aFechaDeOtroBloque = "⚠ REDACCIÓN A FECHA: art. 24 de la Ley 39/2015 [BOE-A-2015-10565, bloque a24]: se " +
+			"cita la redacción vigente el 2016-06-01, la de fecha de vigencia 20161002."
+
+		// soloLaCita es la respuesta de la (a) con su cita y sin ninguna línea
+		// fechada.
+		soloLaCita = "Lo dice el " + citaDelArticulo118 + "."
+	)
+
+	sesion := func(eval, modelo string, modo Modo, numero int) string {
+		return nombreDeSesion(eval, modelo, modo, numero, false)
+	}
+
+	aEnOrden := func(numero int) string { return sesion(evalDelContratoMenorEn2019, modeloSonnet55, ModoOrden, numero) }
+	aEnHerramienta := func(numero int) string {
+		return sesion(evalDelContratoMenorEn2019, modeloSonnet55, ModoHerramienta, numero)
+	}
+	bEnOrden := sesion(evalDelArticulo21En2016, modeloSonnet55, ModoOrden, 1)
+	bEnHerramienta := sesion(evalDelArticulo21En2016, modeloSonnet55, ModoHerramienta, 1)
+	delArticulo21 := sesion(ficheroDeLaEval01, modeloSonnet55, ModoOrden, 1)
+	aDeHaiku := sesion(evalDelContratoMenorEn2019, modeloHaiku45, ModoOrden, 1)
+
+	sinLaFecha := []consultaSintetica{leerElArticulo(normaDeLaLCSP, bloqueDelArticulo118)}
+	conOtroDia := []consultaSintetica{
+		leerElArticuloEnUnDia(normaDeLaLCSP, bloqueDelArticulo118, "2019-06-02", sobreDeLegalCore("boe"), 0),
+	}
+
+	unaEnOrden := func(nombre string) string {
+		return "umbral redaccion_sin_fechar:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %: " + nombre
+	}
+	unaEnHerramienta := func(nombre string) string {
+		return "umbral redaccion_sin_fechar:claude-sonnet-5-5:herramienta: 1 de 6 (16,7 %), y tiene que ser " +
+			"≤ 0,0 %: " + nombre
+	}
+
+	return []casoDeUmbralesDeBoeLegislacion{
+		{
+			// Caso 1: la (a) leída sin --fecha, con las dos líneas, cuenta: 1 de 6 en
+			// el modo orden, con su fallo y el motivo que nombra la sesión, que no
+			// cumple su comando y cuenta en su serie.
+			nombre:    "lee-sin-la-fecha",
+			consultas: map[string][]consultaSintetica{aEnOrden(1): sinLaFecha},
+			porModo:   map[Modo]medidasConFecha{ModoOrden: {sinFechar: 1}},
+			motivos:   []string{unaEnOrden(aEnOrden(1))},
+			noPasan:   map[string][]string{aEnOrden(1): {sinLeerElContratoMenorEnSuDia}},
+		},
+		{
+			// Caso 1: leída en otro día, también.
+			nombre:    "lee-otra-fecha",
+			consultas: map[string][]consultaSintetica{aEnOrden(1): conOtroDia},
+			porModo:   map[Modo]medidasConFecha{ModoOrden: {sinFechar: 1}},
+			motivos:   []string{unaEnOrden(aEnOrden(1))},
+			noPasan:   map[string][]string{aEnOrden(1): {sinLeerElContratoMenorEnSuDia}},
+		},
+		{
+			// Caso 2: las sesiones modelo, la (a) leída en su día como orden y como
+			// boe_articulo con fecha y con las dos líneas: 0 de 6 en los dos modos.
+			nombre: "lee-con-la-fecha",
+		},
+		{
+			// Caso 3: leída en su día y sin la redacción a fecha.
+			nombre:     "sin-la-linea",
+			respuestas: map[string]string{aEnOrden(2): lineaDeLaRedaccionDeHoy},
+			porModo:    map[Modo]medidasConFecha{ModoOrden: {sinFechar: 1}},
+			motivos:    []string{unaEnOrden(aEnOrden(2))},
+		},
+		{
+			// Caso 3: con la redacción a fecha de otro día o con otra vigencia: 2 de
+			// 6 en el modo herramienta, y el motivo las nombra en orden de sesión.
+			nombre: "con-otra-fecha",
+			respuestas: map[string]string{
+				aEnHerramienta(1): aFechaConOtroDia + "\n\n" + lineaDeLaRedaccionDeHoy,
+				aEnHerramienta(3): aFechaConOtraVigencia + "\n\n" + lineaDeLaRedaccionDeHoy,
+			},
+			porModo: map[Modo]medidasConFecha{ModoHerramienta: {sinFechar: 2}},
+			motivos: []string{
+				"umbral redaccion_sin_fechar:claude-sonnet-5-5:herramienta: 2 de 6 (33,3 %), y tiene que ser " +
+					"≤ 0,0 %: " + aEnHerramienta(1) + "; " + aEnHerramienta(3),
+			},
+		},
+		{
+			// Caso 4: con la redacción a fecha y sin la de hoy.
+			nombre:     "sin-la-de-hoy",
+			respuestas: map[string]string{aEnOrden(3): lineaDeLaRedaccionAFecha},
+			porModo:    map[Modo]medidasConFecha{ModoOrden: {sinFechar: 1}},
+			motivos:    []string{unaEnOrden(aEnOrden(3))},
+		},
+		{
+			// Caso 4: con la de hoy de otra vigencia.
+			nombre:     "la-de-hoy-con-otra-fecha",
+			respuestas: map[string]string{aEnHerramienta(2): lineaDeLaRedaccionAFecha + "\n\n" + deHoyConOtraVigencia},
+			porModo:    map[Modo]medidasConFecha{ModoHerramienta: {sinFechar: 1}},
+			motivos:    []string{unaEnHerramienta(aEnHerramienta(2))},
+		},
+		{
+			// Caso 4: con la de hoy de otra norma.
+			nombre:     "la-de-hoy-con-otra-norma",
+			respuestas: map[string]string{aEnOrden(1): lineaDeLaRedaccionAFecha + "\n\n" + deHoyConOtraNorma},
+			porModo:    map[Modo]medidasConFecha{ModoOrden: {sinFechar: 1}},
+			motivos:    []string{unaEnOrden(aEnOrden(1))},
+		},
+		{
+			// Caso 5: la (b) con la línea sin redacción vigente que espera no cuenta,
+			// aunque lleve la redacción a fecha de otro bloque, que no es la suya.
+			nombre:     "sin-redaccion-vigente",
+			respuestas: map[string]string{bEnHerramienta: lineaSinRedaccionVigente + "\n\n" + aFechaDeOtroBloque},
+		},
+		{
+			// Caso 5: con la redacción a fecha en lugar de la línea sin redacción
+			// vigente, cuenta.
+			nombre:     "redaccion-a-fecha-en-la-b",
+			respuestas: map[string]string{bEnOrden: aFechaEnLaB},
+			porModo:    map[Modo]medidasConFecha{ModoOrden: {sinFechar: 1}},
+			motivos:    []string{unaEnOrden(bEnOrden)},
+		},
+		{
+			// Caso 6: la 01, sin redaccion_fechada, que lee su bloque en un día y no
+			// lleva ninguna línea, no entra en el total, que sigue en 6; no cumple su
+			// comando, sin fecha, y cuenta en su serie.
+			nombre: "una-eval-sin-fecha",
+			consultas: map[string][]consultaSintetica{delArticulo21: {
+				leerElArticuloEnUnDia(normaDelArticulo21, bloqueDelArticulo21, diaDelArticulo21, sobreDeNoEncontrado,
+					codigoNoEncontrado),
+			}},
+			noPasan: map[string][]string{delArticulo21: {"comando ausente: bloque boe BOE-A-2015-10565 a21"}},
+		},
+		{
+			// Caso 7: la (a) leída sin --fecha y sin medir por el límite de uso: no
+			// está en el total de ningún umbral de su modo, 59 en sin_activar y en
+			// los recuentos del juez, 119 en el conjunto y 5 en
+			// redaccion_sin_fechar, ni en ninguna medida; el único motivo es el de la
+			// ejecución, que la nombra.
+			nombre:    "sin-medir",
+			consultas: map[string][]consultaSintetica{aEnOrden(2): sinLaFecha},
+			sinMedir:  aEnOrden(2),
+			porModo:   map[Modo]medidasConFecha{ModoOrden: {sinMedir: 1}},
+			motivos: []string{motivoEsperadoDelLimite(SesionSinMedir{
+				Sesion: aEnOrden(2), Eval: evalDelContratoMenorEn2019, Modelo: modeloSonnet55, Motivo: sinMedirPorElMensaje,
+			})},
+		},
+		{
+			// Caso 8: la (a) de Haiku, leída sin --fecha y sin ninguna línea, no
+			// cumple lo esperado y no entra en ningún umbral.
+			nombre:     "de-haiku",
+			respuestas: map[string]string{aDeHaiku: soloLaCita},
+			consultas:  map[string][]consultaSintetica{aDeHaiku: sinLaFecha},
+			noPasan:    map[string][]string{aDeHaiku: {sinLeerElContratoMenorEnSuDia}},
+		},
+	}
+}
+
+// exigirLosUmbralesDeBoeLegislacion arma las sesiones del plan del job con los
+// cambios del caso, escribe el informe y exige sus quince umbrales, once de
+// ellos decidiendo, sus motivos y su veredicto, que es fallo si hay algún
+// motivo; los motivos de cada sesión que no pasa, que cuenta en su serie; y la
+// fila de cada umbral en informe.md.
+func exigirLosUmbralesDeBoeLegislacion(t *testing.T, caso casoDeUmbralesDeBoeLegislacion) {
+	t.Helper()
+
+	sesiones := armarSesionesDeBoeLegislacion(t, caso)
+
+	if caso.sinMedir != "" {
+		cambiarElFinalDeLaSesion(t, filepath.Join(sesiones, caso.sinMedir), 1,
+			mensajeResultConError(t, textoDelLimiteDeSesion))
+	}
+
+	leido := informeDeBoeLegislacion(t, sesiones)
+
+	exigirUmbrales(t, leido, umbralesDeBoeLegislacionSobre(caso.porModo))
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
+
+	require.Len(t, leido.informe.Umbrales, 15, "los quince de contracts/evals-redaccion-fechada.md §3 de H20")
+
+	deciden := slices.DeleteFunc(slices.Clone(leido.informe.Umbrales), func(umbral Umbral) bool { return !umbral.Decide })
+	assert.Len(t, deciden, 11, "deciden todos menos los recuentos de las dos clases del juez de cada modo")
+
+	if len(caso.motivos) == 0 {
+		assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+	} else {
+		assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+	}
+
+	exigirLasQueNoPasan(t, leido, caso.noPasan)
+
+	// Cada umbral tiene su fila en informe.md, con su medida, su condición, si
+	// se cumple y si hace fallar el veredicto: la de la clase que decide, en su
+	// conjunto y en sus dos recuentos, es la tasa de su declaración.
+	deLosUmbrales := seccionDelInforme(t, leido.md, "Umbrales")
+
+	for _, umbral := range leido.informe.Umbrales {
+		condicion, decide := "≤ 0,0 %", "sí"
+
+		switch {
+		case umbral.Total == nil:
+			condicion = "≤ 900"
+		case strings.HasPrefix(umbral.Nombre, claseAfirmaLoNoLeido+":"):
+			condicion = "≤ 2,8 %"
+		}
+
+		if !umbral.Decide {
+			decide = "no: solo se publica"
+		}
+
+		exigirLineas(t, deLosUmbrales, filaDeTabla("`"+umbral.Nombre+"`", umbral.medidaEscrita(), condicion,
+			siONo(umbral.Cumple), decide))
+	}
+}
+
+// informeDeBoeLegislacion escribe el informe de las sesiones dadas de
+// boe-legislacion con sus evals y la carpeta de su juez del repositorio, el plan
+// del job, el objetivo de duración de su definición, con las tandas de cada modo
+// por debajo de él, y un juez que dice no a todo, y lo lee
+// (informeDelPlanDelJobConTandas).
+func informeDeBoeLegislacion(t *testing.T, sesiones string) informeLeido {
+	t.Helper()
+
+	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+	require.Equal(t, objetivoDeBoeLegislacion, delJob.PorSkill[skillDeLasSesiones].ObjetivoDeDuracion,
+		"premisa: el objetivo de duración de %s en la definición del job", skillDeLasSesiones)
+
+	return informeDelPlanDelJobConTandas(t, skillDeLasSesiones, evalsDelRepositorio, sesiones, objetivoDeBoeLegislacion,
+		map[Modo]int{ModoOrden: tandaDeBoeLegislacionEnOrden, ModoHerramienta: tandaDeBoeLegislacionEnHerramienta},
+		nuevoVotanteDelInforme(t))
+}
+
+// umbralesDeBoeLegislacion son los quince umbrales del informe de
+// boe-legislacion de contracts/evals-redaccion-fechada.md §3 de H20: los trece
+// de umbralesDeBoeLegislacionComoEnH26, sin marcadas, con redaccion_sin_fechar
+// de cada modo detrás de su cuenta_su_proceso, sobre las 6 respuestas de las
+// dos evals con fecha y sin ninguna que cuente.
+func umbralesDeBoeLegislacion() []Umbral {
+	return conLaRedaccionSinFechar(umbralesDeBoeLegislacionComoEnH26(0), func(modo Modo) Umbral {
+		return umbralRedaccionSinFechar(modeloSonnet55, modo, 0, respuestasConFechaPorModo)
+	})
+}
+
+// umbralesDeBoeLegislacionSobre son los quince umbrales del informe de
+// boe-legislacion con las evals y el juez del repositorio, las sesiones del plan
+// del job y un juez que dice no a todo, en el orden de
+// contracts/evals-redaccion-fechada.md §3 de H20, con las medidas dadas de cada
+// modo —0 en lo que no se da— y cada uno cumplido si su medida no pasa de su
+// umbral: de cada modo, sin_activar y los recuentos de las dos clases del juez,
+// sin ninguna marcada, sobre sus 60 respuestas, y redaccion_sin_fechar, sobre
+// las 6 de las evals con fecha, cada total sin las sesiones sin medir del modo;
+// el conjunto de afirma_lo_no_leido, sobre las respuestas de los dos modos, con
+// la tasa de clases.yaml; los dos de la medida versionada del juez, con 0 de
+// 212 y 0 de 47; la duración de las sesiones de cada modo, la de su tanda,
+// dentro del objetivo; y la de los votos del juez de cada modo, 0 s.
+func umbralesDeBoeLegislacionSobre(porModo map[Modo]medidasConFecha) []Umbral {
+	modos := []Modo{ModoOrden, ModoHerramienta}
+	deLosModos := make([]medidasDeUnModo, 0, len(modos))
+
+	for _, modo := range modos {
+		deLosModos = append(deLosModos,
+			medidasDeUnModo{modo: modo, respuestas: respuestasDeBoeLegislacionPorModo - porModo[modo].sinMedir})
+	}
+
+	umbrales := conLaTasaDeBoeLegislacion(umbralesConJuez(modeloSonnet55, []Umbral{
+		umbralDeDuracion(ModoOrden, tandaDeBoeLegislacionEnOrden, objetivoDeBoeLegislacion, true),
+		umbralDeDuracion(ModoHerramienta, tandaDeBoeLegislacionEnHerramienta, objetivoDeBoeLegislacion, true),
+	}, deLosModos...))
+
+	return conLaRedaccionSinFechar(umbrales, func(modo Modo) Umbral {
+		medidas := porModo[modo]
+
+		return umbralRedaccionSinFechar(modeloSonnet55, modo, medidas.sinFechar,
+			respuestasConFechaPorModo-medidas.sinMedir)
+	})
+}
+
+// conLaRedaccionSinFechar son los umbrales dados con el de redaccion_sin_fechar
+// de cada modo que da delModo detrás del recuento de cuenta_su_proceso de ese
+// modo, que es donde lo pone contracts/evals-redaccion-fechada.md §3 de H20.
+func conLaRedaccionSinFechar(umbrales []Umbral, delModo func(modo Modo) Umbral) []Umbral {
+	conElSuyo := make([]Umbral, 0, len(umbrales)+2)
+
+	for _, umbral := range umbrales {
+		conElSuyo = append(conElSuyo, umbral)
+
+		for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+			if umbral.Nombre == "cuenta_su_proceso:"+modeloSonnet55+":"+string(modo) {
+				conElSuyo = append(conElSuyo, delModo(modo))
+			}
+		}
+	}
+
+	return conElSuyo
+}
+
+// umbralRedaccionSinFechar es el umbral de las respuestas del modelo que decide
+// en un modo, de las evals que esperan una redacción fechada, cuya sesión no
+// leyó el bloque en su fecha o sin las líneas que la eval espera, tal como lo
+// fija contracts/evals-redaccion-fechada.md §3 de H20, con sus valores escritos
+// a mano: 0 y decidiendo (FR-054, FR-055 de H20).
+func umbralRedaccionSinFechar(modelo string, modo Modo, sinFechar, respuestas int) Umbral {
+	return Umbral{
+		Nombre: "redaccion_sin_fechar:" + modelo + ":" + string(modo),
+		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " cuya sesión no leyó con boe " +
+			"articulo el bloque de la eval en su fecha, o sin las líneas ⚠ REDACCIÓN A FECHA:, ⚠ REDACCIÓN DE HOY: y " +
+			"⚠ SIN REDACCIÓN VIGENTE: que la eval espera, sobre sus respuestas medidas en las evals que esperan una " +
+			"redacción fechada",
+		Medida:      float64(sinFechar),
+		Total:       &respuestas,
+		Comparacion: "<=",
+		Umbral:      0,
+		Cumple:      sinFechar == 0,
+		Decide:      true,
+	}
+}
+
+// armarSesionesDeBoeLegislacion escribe en un directorio temporal del test las
+// sesiones que el plan del job pide con las evals de boe-legislacion del
+// repositorio —las de modo, tres veces, con los dos modelos y en los dos modos,
+// salvo las informativas, solo con el que decide, y la sin binario ni servidor,
+// tres veces con cada modelo—, cada una la de modelosDeBoeLegislacion para su
+// eval o, si el caso la nombra, con su respuesta o sus consultas, y devuelve el
+// directorio (escribirLasSesionesDelPlan).
+func armarSesionesDeBoeLegislacion(t *testing.T, caso casoDeUmbralesDeBoeLegislacion) string {
+	t.Helper()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+	require.Empty(t, conjunto.MalFormados)
+	require.NotNil(t, conjunto.Juez, "%s tiene juez", skillDeLasSesiones)
+
+	return escribirLasSesionesDelPlan(t, skillDeLasSesiones, conjunto.Evals, modelosDeBoeLegislacion(t, conjunto.Evals),
+		func(planificada SesionPlanificada, modelo modeloDeUnaEval) modeloDeUnaEval {
+			if respuesta, cambiada := caso.respuestas[planificada.Nombre]; cambiada {
+				modelo.respuesta = respuesta
+			}
+
+			if consultas, cambiadas := caso.consultas[planificada.Nombre]; cambiadas {
+				modelo.consultas = consultas
+			}
+
+			return modelo
+		}, slices.Concat(slices.Collect(maps.Keys(caso.respuestas)), slices.Collect(maps.Keys(caso.consultas)))...)
+}
+
+// modelosDeBoeLegislacion son, por el fichero de cada eval de boe-legislacion
+// dada, las sesiones que la pasan en los dos modos —la de la eval sin binario
+// ni servidor, sin ninguno—: las de las dos evals con fecha, escritas a mano,
+// leen su bloque en su día —la (b), con la lectura que termina con 3, porque ese
+// día el bloque no tenía redacción vigente— y responden con las líneas que
+// espera su eval, que llevan su cita; y las demás, las de modeloDeLaEval.
+func modelosDeBoeLegislacion(t *testing.T, evals []Eval) map[string]modeloDeUnaEval {
+	t.Helper()
+
+	modelos := map[string]modeloDeUnaEval{
+		evalDelContratoMenorEn2019: {
+			activa:    true,
+			respuesta: lineaDeLaRedaccionAFecha + "\n\n" + lineaDeLaRedaccionDeHoy,
+			consultas: []consultaSintetica{leerElArticuloEnUnDia(normaDeLaLCSP, bloqueDelArticulo118, diaDelContratoMenor,
+				sobreDeLegalCore("boe"), 0)},
+		},
+		evalDelArticulo21En2016: {
+			activa:    true,
+			respuesta: lineaSinRedaccionVigente,
+			consultas: []consultaSintetica{leerElArticuloEnUnDia(normaDelArticulo21, bloqueDelArticulo21, diaDelArticulo21,
+				sobreDeNoEncontrado, codigoNoEncontrado)},
+		},
+	}
+
+	for _, eval := range evals {
+		if _, escrita := modelos[eval.Fichero]; !escrita {
+			modelos[eval.Fichero] = modeloDeLaEval(t, eval)
+		}
+	}
+
+	require.Len(t, modelos, len(evals), "hay una sesión modelo por eval de %s", evalsDelRepositorio)
+
+	return modelos
+}
+
+// modeloDeLaEval es la sesión de quien sigue la skill ante una eval de
+// boe-legislacion sin fecha: la de no activación responde sin la skill; la sin
+// binario ni servidor, con la línea ⚠ SIN CONSULTA AL BOE: y su dirección; y
+// las demás activan la skill, ejecutan sus comandos —leen sus bloques y, si lo
+// esperan, comprueban la norma con graph check— y responden con sus citas. Las
+// informativas, que no deciden, no llevan sus avisos ni sus hallazgos.
+func modeloDeLaEval(t *testing.T, eval Eval) modeloDeUnaEval {
+	t.Helper()
+
+	require.Nil(t, eval.RedaccionFechada, "la sesión modelo de %s, que espera una redacción fechada, se escribe a mano",
+		eval.Fichero)
+
+	switch {
+	case eval.SinBinarioNiServidor:
+		return modeloDeUnaEval{
+			activa:    true,
+			respuesta: "⚠ SIN CONSULTA AL BOE: no tengo kitlegal ni su servidor; instálalo desde " + direccionParaInstalar,
+		}
+	case !eval.Activa:
+		return modeloDeUnaEval{respuesta: "Esto no depende de ninguna norma."}
+	}
+
+	modelo := modeloDeUnaEval{activa: true}
+
+	for _, comando := range eval.Comandos {
+		require.Empty(t, comando.Fecha, "la sesión modelo de %s, que lee en una fecha, se escribe a mano", eval.Fichero)
+
+		switch formaDelComando(comando) {
+		case formaBloque:
+			modelo.consultas = append(modelo.consultas, leerElArticulo(comando.Norma, comando.Bloque))
+		case formaComprobacion:
+			modelo.consultas = append(modelo.consultas, comprobarLaNorma(comando.Norma))
+		default:
+			require.Failf(t, "comando sin consulta sintética", "%s espera %s", eval.Fichero, textoDelComando(comando))
+		}
+	}
+
+	citas := make([]string, 0, len(eval.Citas))
+	for _, cita := range eval.Citas {
+		citas = append(citas, "["+cita.Norma+", bloque "+cita.Bloque+"]")
+	}
+
+	modelo.respuesta = "Lo dice " + strings.Join(citas, " y ") + "."
+
+	return modelo
+}
+
+// leerElArticuloEnUnDia es la consulta boe articulo del bloque de la norma con
+// --fecha en ese día, como orden y como boe_articulo con fecha, que devuelve el
+// sobre dado y cuya orden termina con ese código.
+func leerElArticuloEnUnDia(norma, bloque, dia, sobre string, codigo int) consultaSintetica {
+	return consultaSintetica{
+		orden:       []string{"boe", "articulo", norma, bloque, "--fecha", dia},
+		herramienta: "boe_articulo",
+		argumentos:  `{"norma":"` + norma + `","bloque":"` + bloque + `","fecha":"` + dia + `"}`,
+		sobre:       sobre,
+		codigo:      codigo,
+	}
+}
+
+// comprobarLaNorma es la consulta graph check de la norma.
+func comprobarLaNorma(norma string) consultaSintetica {
+	return consultaSintetica{
+		orden:       []string{"graph", "check", norma},
+		herramienta: "graph_check",
+		argumentos:  `{"norma":"` + norma + `"}`,
+		sobre:       sobreDeLegalCore("graph"),
+	}
 }

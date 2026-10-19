@@ -1017,7 +1017,8 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // respuestas que su juez juzga en cada modo—. Desde H9, el de legal-core, con
 // sus nueve evals, es de 14 629 s y queda entre el de boe-legislacion y el de
 // jurisprudencia (FR-050 de H9). Desde antes de H20, boe-legislacion va a cinco
-// a la vez y el suyo es de 17 329 s (entrada de H20 en docs/ROADMAP.md). El tope
+// a la vez y, desde H20, con sus veintitrés evals, el suyo es de 18 977 s
+// (research D16 y S1 de H20). El tope
 // de la definición del job cubre los tres; con 288 minutos, 17 280 s, ya no
 // cubre el de boe-legislacion; con 209,
 // que son 12 540 s, ninguno, ni el de legal-core ni el de jurisprudencia; y con
@@ -1871,9 +1872,11 @@ const (
 	terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
 	terminosDeUnVoto   = " \xc3\x97 (35 s + 5 s)"
 
-	peorCasoDeBoeLegislacion = "17329 s = 485 s + (\xe2\x8c\x8897 / 5\xe2\x8c\x89 + \xe2\x8c\x8896 / 5\xe2\x8c\x89 + " +
-		"\xe2\x8c\x886 / 5\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8854 \xc3\x97 6 / 5\xe2\x8c\x89 + " +
-		"\xe2\x8c\x8854 \xc3\x97 6 / 5\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89)" + terminosDeUnVoto
+	// El de boe-legislacion, el de research S1 de H20: sus veintitrés evals a
+	// cinco a la vez y las 60 respuestas que su juez juzga en cada modo.
+	peorCasoDeBoeLegislacion = "18977 s = 485 s + (\xe2\x8c\x88109 / 5\xe2\x8c\x89 + \xe2\x8c\x88108 / 5\xe2\x8c\x89 + " +
+		"\xe2\x8c\x886 / 5\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8860 \xc3\x97 6 / 5\xe2\x8c\x89 + " +
+		"\xe2\x8c\x8860 \xc3\x97 6 / 5\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89)" + terminosDeUnVoto
 
 	// El de jurisprudencia, el de contracts/job-de-evals.md §3 de H25: sus diez
 	// evals a cuatro a la vez y las 30 respuestas que su juez juzga en cada modo.
@@ -1930,6 +1933,11 @@ const (
 // a la vez, es de 15 505 s, que cubre el tope del trabajo medida. Los de
 // boe-legislacion y legal-core no cambian. Desde H9, el de legal-core es el de
 // sus nueve evals, que el tope del trabajo cubre sin cambiar (FR-050, FR-058).
+//
+// Desde H20 (research D16 y S1 de H20; FR-050, FR-059 de H20), el de
+// boe-legislacion es el de sus veintitrés evals, con las dos con fecha: 109, 108
+// y 6 sesiones y 60, 60 y 3 respuestas del modelo que decide, 18 977 s, que el
+// tope del trabajo cubre sin cambiar la concurrencia, el objetivo ni el tope.
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -1945,11 +1953,11 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		{
 			skill: "boe-legislacion",
 			peor: peorCasoDelTrabajo{
-				SesionesPorGrupo: []int{97, 96, 6},
+				SesionesPorGrupo: []int{109, 108, 6},
 				Concurrencia:     5,
-				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{54, 54, 3}, Concurrencia: 5},
+				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{60, 60, 3}, Concurrencia: 5},
 			},
-			duracion: 17329 * time.Second,
+			duracion: 18977 * time.Second,
 			texto:    peorCasoDeBoeLegislacion,
 		},
 		{

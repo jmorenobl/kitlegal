@@ -285,9 +285,11 @@ func probarLaPruebaDeRedEnDosModos(t *testing.T) {
 // probarElPlanDelRepositorio fija, con las evals del repositorio y los modelos y
 // las repeticiones de la definición del job, las series y las sesiones de cada
 // tanda del plan de cada skill, las de la tabla de contracts/evals-en-dos-modos.md
-// §2.1: 96, 96 y 6 sesiones en boe-legislacion y, desde H9, con las nueve evals
-// de legal-core, 48, 48 y 6 en legal-core (contracts/evals-legal-core.md §5 de
-// H9; FR-050), y una más en el modo orden con la prueba de red.
+// §2.1: desde H20, con las veintitrés evals de boe-legislacion, 36, 36 y 2 series
+// y 108, 108 y 6 sesiones (research D16 de H20; FR-059 de H20) y, desde H9, con
+// las nueve evals de legal-core, 48, 48 y 6 en legal-core
+// (contracts/evals-legal-core.md §5 de H9; FR-050), y una más en el modo orden
+// con la prueba de red.
 func probarElPlanDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -301,8 +303,8 @@ func probarElPlanDelRepositorio(t *testing.T) {
 	}{
 		{
 			skill:    "boe-legislacion",
-			series:   map[Modo]int{ModoOrden: 32, ModoHerramienta: 32, "": 2},
-			sesiones: map[Modo]int{ModoOrden: 96, ModoHerramienta: 96, "": 6},
+			series:   map[Modo]int{ModoOrden: 36, ModoHerramienta: 36, "": 2},
+			sesiones: map[Modo]int{ModoOrden: 108, ModoHerramienta: 108, "": 6},
 		},
 		{
 			skill:    "legal-core",
