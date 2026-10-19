@@ -7,6 +7,12 @@
     "specs/024-h20-boe-articulo-fecha/aceptacion/fecha-herramienta.txtar": "2d53cc9f41f0fe5f6a7460e1b7b2f69ace3ff4e68649b9256b175ce8be8f5d7f",
     "specs/024-h20-boe-articulo-fecha/aceptacion/fecha-main.txtar": "4a4129b30b9ff7130d89af6847f999d0ea6b549fec52d9f5ec7cd1de0709d897",
     "specs/024-h20-boe-articulo-fecha/aceptacion/fecha-offline.txtar": "705d7c9e5258348747d4a64624ea7985991bf6aed935a49ec445921152d96a0b",
-    "specs/024-h20-boe-articulo-fecha/aceptacion/fecha-version.txtar": "2e6c13de4760adfe8023ae6120280119c797115be10a2a09a1419316357e96ec"
+    "specs/024-h20-boe-articulo-fecha/aceptacion/fecha-version.txtar": "2e6c13de4760adfe8023ae6120280119c797115be10a2a09a1419316357e96ec",
+    "internal/app/testdata/script/h20-fecha-codigos.txtar": "0e34e7f4e0a4794f92120f2e65c6b299035226af57cc713fa4612f3c8aec41fc",
+    "internal/app/testdata/script/h20-fecha-grafo.txtar": "2c1d9ab15137255e087788b68751ed7abf6b77e8fe23fef539993ff7bda8c97e",
+    "internal/app/testdata/script/h20-fecha-herramienta.txtar": "2d53cc9f41f0fe5f6a7460e1b7b2f69ace3ff4e68649b9256b175ce8be8f5d7f",
+    "internal/app/testdata/script/h20-fecha-main.txtar": "4a4129b30b9ff7130d89af6847f999d0ea6b549fec52d9f5ec7cd1de0709d897",
+    "internal/app/testdata/script/h20-fecha-offline.txtar": "705d7c9e5258348747d4a64624ea7985991bf6aed935a49ec445921152d96a0b",
+    "internal/app/testdata/script/h20-fecha-version.txtar": "2e6c13de4760adfe8023ae6120280119c797115be10a2a09a1419316357e96ec"
   }
 }

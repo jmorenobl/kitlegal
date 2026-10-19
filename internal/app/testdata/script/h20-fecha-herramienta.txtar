@@ -1,0 +1,72 @@
+# La lectura fechada llega a la herramienta boe_articulo con su parámetro
+# fecha, sin tocar el servidor: mcp serve anuncia boe_articulo; una llamada con
+# la norma BOE-A-2017-12902, el bloque a1-30 y la fecha 2019-06-01 da un
+# resultado cuyo sobre es el de la orden con --fecha 2019-06-01 --json, byte a
+# byte salvo fecha_consulta; una con la norma BOE-A-2015-10565, el bloque a21 y
+# la fecha 2016-06-01 da el error no-encontrado de una fecha anterior a la
+# primera vigencia del bloque, con el 20161002 en su mensaje; y la llamada
+# siguiente del mismo proceso da su resultado, que es también el de su orden.
+#
+# Cubre: US1.1, US2.1 · FR-001, FR-084.
+#
+# La orden mcp, las líneas que escribe y los ficheros que deja son los de
+# contracts/arnes-e2e.md §3 de H21: mcp-<n>.json es el sobre de la llamada n,
+# con su salto de línea, comparable con la salida de la orden. Que el parámetro
+# fecha del esquema de entrada de boe_articulo sea el de --describe lo compara
+# el control de conformidad del servidor (TestHerramientasDelServidor), no este
+# guion; aquí, cuántas herramientas anuncia tampoco se mira. Todo va con el
+# reloj T0 sobre lo grabado de H4 en reproduccion/, y la orden y la llamada se
+# comparan sin fecha_consulta, como en h9-plazos-herramienta.txtar.
+
+# Precondición: boe articulo admite --fecha (FR-001).
+exec kitlegal boe articulo --help
+stdout '--fecha'
+
+# --- El servidor anuncia boe_articulo (FR-001) ---
+mcp anuncio.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 herramientas '
+stdout '^salida 0$'
+grep '^boe_articulo lectura=true$' mcp-1.txt
+
+# --- Las tres llamadas, en un mismo proceso (FR-001, FR-084) ---
+mcp llamadas.txt $KITLEGAL_T0_BIN mcp serve
+stdout '^1 boe_articulo resultado$'
+stdout '^2 boe_articulo error no-encontrado$'
+stdout '^3 boe_articulo resultado$'
+stdout '^salida 0$'
+
+grep '^\{"ok":true,' mcp-1.json
+grep '"fecha_pedida":"2019-06-01"' mcp-1.json
+
+# Una fecha anterior a la primera vigencia del bloque: el error no-encontrado,
+# sin texto y con la fecha de vigencia de la primera redacción. Tras él, la
+# llamada 3 ha dado su resultado: el servidor sigue.
+grep '^\{"ok":false,' mcp-2.json
+grep '"data":\{"clase":"no-encontrado",' mcp-2.json
+grep '"mensaje":"([^"\\]|\\.)*20161002' mcp-2.json
+! grep '"texto"' mcp-2.json
+
+grep '^\{"ok":true,' mcp-3.json
+grep '"fecha_pedida":"2005-06-15"' mcp-3.json
+
+# --- Cada llamada con resultado da el sobre de su orden (FR-001, FR-084) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2017-12902 a1-30 --fecha 2019-06-01 --json
+cp stdout orden-1.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-1.json
+cp stdout orden-1.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-1.json
+cmp stdout orden-1.sin-fecha
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json
+cp stdout orden-3.json
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' orden-3.json
+cp stdout orden-3.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' mcp-3.json
+cmp stdout orden-3.sin-fecha
+
+-- anuncio.txt --
+herramientas
+-- llamadas.txt --
+boe_articulo {"norma":"BOE-A-2017-12902","bloque":"a1-30","fecha":"2019-06-01"}
+boe_articulo {"norma":"BOE-A-2015-10565","bloque":"a21","fecha":"2016-06-01"}
+boe_articulo {"norma":"BOE-A-1985-5392","bloque":"a22","fecha":"2005-06-15"}
