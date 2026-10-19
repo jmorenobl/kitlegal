@@ -13,8 +13,9 @@
 # normal no mide al juez, y la lista de expresiones ya no juzga ninguna respuesta (contracts/informe-del-job.md §6).
 #
 # Desde H25 (specs/020-h25-el-juez-de/contracts/job-de-evals.md), jurisprudencia tiene juez: su trabajo evals va a cuatro
-# sesiones a la vez, como el de boe-legislacion, y la skill entra en la matriz del trabajo medida, de modo que la
-# etiqueta evals-medir-juez y la entrada medir_al_juez miden al juez de las dos, sin selector por skill.
+# sesiones a la vez, como iba el de boe-legislacion, y la skill entra en la matriz del trabajo medida, de modo que la
+# etiqueta evals-medir-juez y la entrada medir_al_juez miden al juez de las dos, sin selector por skill. Desde antes de
+# H20, boe-legislacion va a cinco, en los dos trabajos.
 name: evals
 
 on:
@@ -183,16 +184,20 @@ jobs:
         skill: [boe-legislacion, jurisprudencia, legal-core]
         # Cuántas sesiones abre a la vez el trabajo de cada skill y el objetivo de duración de sus sesiones, en
         # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
-        # de H7.3; research.md D12 de H7.3). jurisprudencia va desde H25 a cuatro a la vez, como boe-legislacion: de
-        # una en una, con sus diez evals y su juez, el tope del trabajo no cubre su peor caso. Sigue sin objetivo, como
+        # de H7.3; research.md D12 de H7.3). boe-legislacion va a cinco a la vez desde antes de H20: a cuatro, con sus
+        # veintiuna evals, su peor caso es de 21 097 s, 351,6 minutos, y no deja sitio a ninguna eval más; con las de la
+        # pregunta fechada que entran en H20, sería de 23 449 s con dos, que el tope no cubre, y a cinco es de 18 977 s,
+        # con hasta cuatro evals nuevas por debajo del tope (entrada de H20 en docs/ROADMAP.md). Su objetivo de duración
+        # sigue en 900 s: no hay medida a cinco que lo cambie. jurisprudencia va desde H25 a cuatro a la vez: de una en
+        # una, con sus diez evals y su juez, el tope del trabajo no cubre su peor caso. Sigue sin objetivo, como
         # legal-core: no hay medida con esa concurrencia de la que sacar una cifra. legal-core va a dos a la vez desde
         # antes de H9: con las cinco evals de plazos que entran en H9, de una en una su peor caso es de 28 501 s, que el
         # tope no cubre, y a dos, de 14 629 s (entrada de H9 en docs/ROADMAP.md). Los tres trabajos corren a la vez
-        # contra la misma suscripción, con diez sesiones entre los tres, que no se han medido
+        # contra la misma suscripción, con once sesiones entre los tres, que no se han medido
         # (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1, §3 y §5; FR-070 de H25).
         include:
           - skill: boe-legislacion
-            concurrencia: 4
+            concurrencia: 5
             objetivo_de_duracion: 900
           - skill: jurisprudencia
             concurrencia: 4
@@ -203,12 +208,14 @@ jobs:
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
     # cada skill, que TestDefinicionDelJob recalcula con las evals del repositorio (FR-035 y FR-052 de H7.3; research.md
-    # D13 de H7.3). 352 minutos: el peor caso de boe-legislacion es de 21 097 s, 351,6 minutos. Son los 14 357 s de sus
-    # sesiones, con sus 21 evals en tres tandas —las del modo orden, las del modo herramienta y las de la eval sin
-    # binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md D20), más lo que añade su juez:
-    # 60 s de instalar su Claude Code y 167 tandas de votos de 40 s, el tope de un voto y su margen. Las tandas son, por
-    # grupo, los 6 votos que como mucho pide cada respuesta, a 4 respuestas a la vez: 81, 81 y 5, con las 54, 54 y 3
-    # respuestas que juzga (FR-092 de H24; specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). Cabe en las 6
+    # D13 de H7.3). 352 minutos: el peor caso de boe-legislacion, a cinco a la vez desde antes de H20, es de 17 329 s,
+    # 288,8 minutos. Son los 11 909 s de sus sesiones, con sus 21 evals en tres tandas —las del modo orden, las del modo
+    # herramienta y las de la eval sin binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md
+    # D20), 42 tandas de 272 s, más lo que añade su juez: 60 s de instalar su Claude Code y 134 tandas de votos de 40 s,
+    # el tope de un voto y su margen. Las tandas son, por grupo, los 6 votos que como mucho pide cada respuesta, a 5
+    # respuestas a la vez: 65, 65 y 4, con las 54, 54 y 3 respuestas que juzga (FR-092 de H24;
+    # specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). A cuatro, como iba hasta H20, era de 21 097 s,
+    # 351,6 minutos, sin sitio para ninguna eval más. Cabe en las 6
     # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, es hoy de 6 469 s, 107,8 minutos, a dos a la vez (22 tandas de 272 s), y con las cinco evals de H9, de 14 629 s, 243,8 minutos (52 tandas). El de jurisprudencia,
     # con su juez y a cuatro a la vez, es de 12 577 s, 209,6 minutos, y cabe en el mismo tope, que no cambia: 31 tandas
     # de sesiones de 272 s —16 y 15, con las 60 sesiones de sus diez evals en cada modo y la de la prueba de red, que el
@@ -391,8 +398,9 @@ jobs:
   # cierre por el nombre del trabajo y cuyo tope es otro. Repite el modelo del juez y la versión de Claude Code de sus
   # votos del trabajo evals, y TestDefinicionDelJob exige en make ci que coincidan. Su tope cubre el peor caso de la
   # medida de cada skill de su matriz, que ese test recalcula con los casos del repositorio. El de boe-legislacion:
-  # 16 105 s, 268,4 minutos, con los 485 s de fuera de los votos, los 60 s de instalar el Claude Code del juez y 389
-  # tandas de 40 s, las de los 6 votos que como mucho pide cada uno de sus 259 casos, a 4 a la vez. El de jurisprudencia,
+  # 12 985 s, 216,4 minutos, con los 485 s de fuera de los votos, los 60 s de instalar el Claude Code del juez y 311
+  # tandas de 40 s, las de los 6 votos que como mucho pide cada uno de sus 259 casos, a 5 a la vez desde antes de H20;
+  # a 4 eran 16 105 s, 268,4 minutos, los que fijaron el tope, que no cambia. El de jurisprudencia,
   # que está en la matriz desde H25: 15 505 s, 258,4 minutos, con 374 tandas, las de sus 249 casos; de uno en uno serían
   # 60 305 s, que el tope no cubre. Con la etiqueta o con la entrada corren los dos trabajos de la matriz, sin selector
   # por skill y cada uno con su resultado (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1 a §3; FR-050, FR-071 y
@@ -406,7 +414,7 @@ jobs:
         skill: [boe-legislacion, jurisprudencia]
         include:
           - skill: boe-legislacion
-            concurrencia: 4
+            concurrencia: 5
           - skill: jurisprudencia
             concurrencia: 4
     runs-on: ubuntu-24.04

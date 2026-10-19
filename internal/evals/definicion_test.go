@@ -145,7 +145,7 @@ var skillsDelTrabajo = []string{"boe-legislacion", "jurisprudencia", "legal-core
 // antes de H9: con sus cinco evals de plazos, de una en una el tope tampoco
 // cubriría su peor caso (entrada de H9 en docs/ROADMAP.md).
 var ajustesDelTrabajo = map[string]AjustesDeSkill{
-	"boe-legislacion": {Concurrencia: 4, ObjetivoDeDuracion: 900},
+	"boe-legislacion": {Concurrencia: 5, ObjetivoDeDuracion: 900},
 	"jurisprudencia":  {Concurrencia: 4, ObjetivoDeDuracion: 0},
 	"legal-core":      {Concurrencia: 2, ObjetivoDeDuracion: 0},
 }
@@ -851,7 +851,7 @@ const trabajoDeLaMedidaDelContrato = `  medida:
         skill: [boe-legislacion, jurisprudencia]
         include:
           - skill: boe-legislacion
-            concurrencia: 4
+            concurrencia: 5
           - skill: jurisprudencia
             concurrencia: 4
     runs-on: ubuntu-24.04
@@ -870,14 +870,17 @@ const trabajoDeLaMedidaDelContrato = `  medida:
 // H24). Con las evals de evalsSinteticas, cada skill tiene 7 sesiones en el modo
 // orden —la eval con el modelo que decide y con el de Haiku, tres veces con cada
 // uno, y la prueba de red— y 6 en el modo herramienta, así que el peor caso de
-// sus sesiones es de 1573 s en boe-legislacion y en jurisprudencia, que van a
-// cuatro a la vez (⌈7 / 4⌉ + ⌈6 / 4⌉ = 4 tandas), y de 2389 s en legal-core, que
-// va de dos en dos (⌈7 / 2⌉ + ⌈6 / 2⌉ = 7 tandas). boe-legislacion y, desde H25, jurisprudencia
+// sus sesiones es de 1573 s en boe-legislacion, que va a cinco a la vez desde
+// antes de H20, y en jurisprudencia, que va a cuatro (⌈7 / 5⌉ + ⌈6 / 5⌉ =
+// ⌈7 / 4⌉ + ⌈6 / 4⌉ = 4 tandas), y de 2389 s en legal-core, que va de dos en dos
+// (⌈7 / 2⌉ + ⌈6 / 2⌉ = 7 tandas). boe-legislacion y, desde H25, jurisprudencia
 // tienen además juez, que juzga las 3 respuestas del modelo que decide en cada
-// modo: 60 s de instalar su Claude Code y (⌈3 × 6 / 4⌉ + ⌈3 × 6 / 4⌉) × 40 s de
-// sus votos, 2033 s en total cada una. 120 minutos cubren los tres. Y el de la
-// medida de cada una, con sus 7 casos etiquetados, es de 485 + 60 +
-// ⌈7 × 6 / 4⌉ × 40 = 985 s, que cubren los 17 minutos de su trabajo.
+// modo: 60 s de instalar su Claude Code y, de sus votos, (⌈3 × 6 / 5⌉ +
+// ⌈3 × 6 / 5⌉) × 40 s en boe-legislacion, 1953 s en total, y (⌈3 × 6 / 4⌉ +
+// ⌈3 × 6 / 4⌉) × 40 s en jurisprudencia, 2033 s. 120 minutos cubren los tres. Y
+// el de la medida de cada una, con sus 7 casos etiquetados, es de 485 + 60 +
+// ⌈7 × 6 / 5⌉ × 40 = 905 s en boe-legislacion y 485 + 60 + ⌈7 × 6 / 4⌉ × 40 =
+// 985 s en jurisprudencia, que cubren los 17 minutos de su trabajo.
 const definicionDelContrato = `name: evals
 on:
   workflow_dispatch:
@@ -901,7 +904,7 @@ const trabajoDeEvalsDelContrato = `  evals:
         skill: [boe-legislacion, jurisprudencia, legal-core]
         include:
           - skill: boe-legislacion
-            concurrencia: 4
+            concurrencia: 5
             objetivo_de_duracion: 900
           - skill: jurisprudencia
             concurrencia: 4
@@ -1013,8 +1016,10 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // aunque su trabajo no la lleve, y 60 en el modo herramienta, y las 30
 // respuestas que su juez juzga en cada modo—. Desde H9, el de legal-core, con
 // sus nueve evals, es de 14 629 s y queda entre el de boe-legislacion y el de
-// jurisprudencia (FR-050 de H9). El tope de la definición del job cubre los
-// tres; con 351 minutos, 21 060 s, ya no cubre el de boe-legislacion; con 209,
+// jurisprudencia (FR-050 de H9). Desde antes de H20, boe-legislacion va a cinco
+// a la vez y el suyo es de 17 329 s (entrada de H20 en docs/ROADMAP.md). El tope
+// de la definición del job cubre los tres; con 288 minutos, 17 280 s, ya no
+// cubre el de boe-legislacion; con 209,
 // que son 12 540 s, ninguno, ni el de legal-core ni el de jurisprudencia; y con
 // 107, 6 420 s, tampoco.
 //
@@ -1037,7 +1042,7 @@ func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
 		enMinutos       = "timeout-minutes: "
 		topeDeEvals     = "jobs.evals.timeout-minutes: vale "
 		alMenosElPeorDe = ", y lo esperado es al menos el peor caso de "
-		sinElDeBoe      = topeDeEvals + "351 (21060 s)" + alMenosElPeorDe
+		sinElDeBoe      = topeDeEvals + "288 (17280 s)" + alMenosElPeorDe
 		sinElDeJuris    = topeDeEvals + "209 (12540 s)" + alMenosElPeorDe
 		sinNinguno      = topeDeEvals + "107 (6420 s)" + alMenosElPeorDe
 		deBoe           = "boe-legislacion, " + peorCasoDeBoeLegislacion
@@ -1112,7 +1117,7 @@ func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
 		{nombre: "el-del-repositorio", cambios: conElTope(topeDelRepositorio)},
 		{
 			nombre:  "por-debajo-del-de-boe-legislacion",
-			cambios: conElTope(351),
+			cambios: conElTope(288),
 			fallos:  []string{sinElDeBoe + deBoe},
 		},
 		{
@@ -1260,7 +1265,12 @@ func definicionesSinteticasDeLaMedida() []definicionSintetica {
 		entradaDelFlujo  = "on.workflow_dispatch.inputs.medir_al_juez"
 		topeDeLaMedida   = "jobs.medida.timeout-minutes: "
 		concurrenciaDe4  = "            concurrencia: 4\n"
+		concurrenciaDe5  = "            concurrencia: 5\n"
 		peorCasoDeMedida = "985 s = 485 s + 60 s + (\xe2\x8c\x887 \xc3\x97 6 / 4\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
+
+		// El de la medida de boe-legislacion, que va a cinco a la vez desde antes
+		// de H20.
+		peorCasoDeMedidaDeBoe = "905 s = 485 s + 60 s + (\xe2\x8c\x887 \xc3\x97 6 / 5\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
 
 		// La matriz del trabajo medida de la definición del contrato, la entrada
 		// de include de jurisprudencia y la clave de una entrada de su include.
@@ -1356,22 +1366,24 @@ func definicionesSinteticasDeLaMedida() []definicionSintetica {
 			fallos:  []string{entradaDelFlujo + `.default: vale "false"` + yLoEsperadoEs + "false"},
 		},
 		{
-			// 16 minutos son 960 s, y el peor caso de la medida de cada una de las
-			// dos skills, 985 s: los cubren los 17 de la definición del contrato.
+			// 15 minutos son 900 s, y el peor caso de la medida de boe-legislacion,
+			// 905 s, y el de jurisprudencia, 985 s: los cubren los 17 de la
+			// definición del contrato.
 			nombre:  "tope-de-la-medida-por-debajo-de-su-peor-caso",
-			cambios: []cambioDeLaDefinicion{{"timeout-minutes: 17", "timeout-minutes: 16"}},
+			cambios: []cambioDeLaDefinicion{{"timeout-minutes: 17", "timeout-minutes: 15"}},
 			fallos: []string{
-				topeDeLaMedida + "vale 16 (960 s)" + yLoEsperadoEs + "al menos el peor caso de boe-legislacion, " + peorCasoDeMedida,
-				topeDeLaMedida + "vale 16 (960 s)" + yLoEsperadoEs + "al menos el peor caso de jurisprudencia, " + peorCasoDeMedida,
+				topeDeLaMedida + "vale 15 (900 s)" + yLoEsperadoEs + "al menos el peor caso de boe-legislacion, " +
+					peorCasoDeMedidaDeBoe,
+				topeDeLaMedida + "vale 15 (900 s)" + yLoEsperadoEs + "al menos el peor caso de jurisprudencia, " + peorCasoDeMedida,
 			},
 		},
 		{
 			// La entrada sin su concurrencia da la línea de su include y, sin
 			// tandas que contar, la de su peor caso.
 			nombre:  "medida-sin-la-concurrencia-de-su-skill",
-			cambios: []cambioDeLaDefinicion{enLaMedida(concurrenciaDe4, "")},
+			cambios: []cambioDeLaDefinicion{enLaMedida(concurrenciaDe5, "")},
 			fallos: []string{
-				includeDeLaMedida + "boe-legislacion: vale {concurrencia: 0}" + yLoEsperadoEs + "{concurrencia: 4}",
+				includeDeLaMedida + "boe-legislacion: vale {concurrencia: 0}" + yLoEsperadoEs + "{concurrencia: 5}",
 				topeDeLaMedida + "el peor caso de boe-legislacion no se puede obtener: la concurrencia " +
 					"de boe-legislacion es 0 y tiene que ser un entero mayor o igual que 1",
 			},
@@ -1454,13 +1466,16 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		concurrenciaEnv  = "      CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}\n"
 		objetivoEnv      = "OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}"
 		repeticionesEnv  = "REPETICIONES_DE_EVALS: 3"
-		ajustesDeBoe     = "{concurrencia: 4, objetivo_de_duracion: 900}"
+		ajustesDeBoe     = "{concurrencia: 5, objetivo_de_duracion: 900}"
 		ajustesDeJuris   = "{concurrencia: 4, objetivo_de_duracion: 0}"
 		ajustesDeLegal   = "{concurrencia: 2, objetivo_de_duracion: 0}"
 		peorCasoDeLegal  = "2389 s = 485 s + (\xe2\x8c\x887 / 2\xe2\x8c\x89 + \xe2\x8c\x886 / 2\xe2\x8c\x89) \xc3\x97 (22 s + 240 s + 10 s)"
 		peorCasoConJuez  = "2033 s = 485 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
 			"\xc3\x97 (22 s + 240 s + 10 s) + 60 s + (\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
 			"\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
+		peorCasoDeBoe = "1953 s = 485 s + (\xe2\x8c\x887 / 5\xe2\x8c\x89 + \xe2\x8c\x886 / 5\xe2\x8c\x89) " +
+			"\xc3\x97 (22 s + 240 s + 10 s) + 60 s + (\xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89 + " +
+			"\xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
 		alMenosElPeorDe  = ", y lo esperado es al menos el peor caso de "
 		esperadoDelGrupo = `"evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"`
 		pruebaDeRed      = "  github.event.label.name == 'evals-prueba-de-red' ||\n"
@@ -1595,7 +1610,7 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		},
 		{
 			nombre:  "otra-concurrencia",
-			cambios: []cambioDeLaDefinicion{{"concurrencia: 4", "concurrencia: 2"}},
+			cambios: []cambioDeLaDefinicion{{"concurrencia: 5", "concurrencia: 2"}},
 			fallos: []string{includeDeSkill + "boe-legislacion: vale " +
 				"{concurrencia: 2, objetivo_de_duracion: 900}, y lo esperado es " + ajustesDeBoe},
 		},
@@ -1674,21 +1689,21 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 			nombre:  "tope-por-debajo-de-los-tres",
 			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 26"}},
 			fallos: []string{
-				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoConJuez,
+				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoDeBoe,
 				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
 				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
 			},
 		},
 		{
-			// 33 minutos son 1980 s, uno menos que el peor caso de boe-legislacion
-			// y el de jurisprudencia con su juez: cubrirían el de sus sesiones
-			// solas, 1573 s, y no cubren el que cuenta sus votos.
+			// 32 minutos son 1920 s, menos que el peor caso de boe-legislacion con
+			// su juez, 1953 s, y que el de jurisprudencia, 2033 s: cubrirían el de
+			// sus sesiones solas, 1573 s, y no cubren el que cuenta sus votos.
 			nombre:  "tope-por-debajo-del-de-la-skill-con-juez",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 33"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 32"}},
 			fallos: []string{
-				topeDeEvals + "vale 33 (1980 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoConJuez,
-				topeDeEvals + "vale 33 (1980 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
-				topeDeEvals + "vale 33 (1980 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
+				topeDeEvals + "vale 32 (1920 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoDeBoe,
+				topeDeEvals + "vale 32 (1920 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
+				topeDeEvals + "vale 32 (1920 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
 			},
 		},
 		{
@@ -1856,9 +1871,9 @@ const (
 	terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
 	terminosDeUnVoto   = " \xc3\x97 (35 s + 5 s)"
 
-	peorCasoDeBoeLegislacion = "21097 s = 485 s + (\xe2\x8c\x8897 / 4\xe2\x8c\x89 + \xe2\x8c\x8896 / 4\xe2\x8c\x89 + " +
-		"\xe2\x8c\x886 / 4\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
-		"\xe2\x8c\x8854 \xc3\x97 6 / 4\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89)" + terminosDeUnVoto
+	peorCasoDeBoeLegislacion = "17329 s = 485 s + (\xe2\x8c\x8897 / 5\xe2\x8c\x89 + \xe2\x8c\x8896 / 5\xe2\x8c\x89 + " +
+		"\xe2\x8c\x886 / 5\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8854 \xc3\x97 6 / 5\xe2\x8c\x89 + " +
+		"\xe2\x8c\x8854 \xc3\x97 6 / 5\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89)" + terminosDeUnVoto
 
 	// El de jurisprudencia, el de contracts/job-de-evals.md §3 de H25: sus diez
 	// evals a cuatro a la vez y las 30 respuestas que su juez juzga en cada modo.
@@ -1931,10 +1946,10 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 			skill: "boe-legislacion",
 			peor: peorCasoDelTrabajo{
 				SesionesPorGrupo: []int{97, 96, 6},
-				Concurrencia:     4,
-				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{54, 54, 3}, Concurrencia: 4},
+				Concurrencia:     5,
+				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{54, 54, 3}, Concurrencia: 5},
 			},
-			duracion: 21097 * time.Second,
+			duracion: 17329 * time.Second,
 			texto:    peorCasoDeBoeLegislacion,
 		},
 		{
@@ -1998,9 +2013,9 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 	}{
 		{
 			skill:    "boe-legislacion",
-			peor:     peorCasoDeLaMedida{Casos: 259, Concurrencia: 4},
-			duracion: 16105 * time.Second,
-			texto:    "16105 s = 485 s + 60 s + (\xe2\x8c\x88259 \xc3\x97 6 / 4\xe2\x8c\x89)" + terminosDeUnVoto,
+			peor:     peorCasoDeLaMedida{Casos: 259, Concurrencia: 5},
+			duracion: 12985 * time.Second,
+			texto:    "12985 s = 485 s + 60 s + (\xe2\x8c\x88259 \xc3\x97 6 / 5\xe2\x8c\x89)" + terminosDeUnVoto,
 		},
 		{
 			skill:    "jurisprudencia",
