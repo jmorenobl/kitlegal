@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-19
+
 ### Añadido
 
 - **`kitlegal plazos calcular`: el applet `plazos`, el último día de un plazo.**
