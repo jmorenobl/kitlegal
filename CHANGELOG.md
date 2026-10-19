@@ -14,6 +14,9 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;
+  H27 y H28 ya estaban en la lista cerrada de `workflow.yml` y H9.1 no, así que `scripts/hito.sh H9.1` no habría
+  creado el run. Lo comprueba `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow`.
 - **La app de escritorio de Claude en Windows pasa a soportada.** Probada el 2026-10-18 en Windows 10 con la v0.6.1:
   el plugin llegó desde la cuenta y `boe-legislacion` respondió con las herramientas del servidor (`docs/USO.md`).
   README, `/instalar/` y el pie de la web dejan de dar Windows por «sin probar» y nombran lo que falta: instalar desde
