@@ -1986,8 +1986,10 @@ const (
 // §4 de H20; FR-053); y las de boe-legislacion son veintitrés, con las dos con
 // fecha, bien formadas, con las reglas de su conjunto y con su caché preparada
 // y comprobada sin red (contracts/evals-redaccion-fechada.md §1.3 y §1.4 de
-// H20; FR-050 a FR-053). Lee las carpetas enteras, así que ningún fichero de
-// eval se nombra aquí.
+// H20; FR-050 a FR-053); y el SKILL.md de boe-legislacion lleva, en sus
+// bloques de código text, la forma fija de cada una de las tres líneas de una
+// redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048). Lee
+// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2224,6 +2226,14 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		assert.NoError(t, ComprobarFormasDeHallazgo(string(skill)),
 			"%s enseña la forma fija de cada clase de hallazgo etiquetada por el binario", skillDelRepositorio)
+	})
+
+	t.Run("formas-de-la-redaccion-fechada", func(t *testing.T) {
+		t.Parallel()
+
+		defectos := defectosDeLasFormasFechadas(string(contenidoDelFichero(t, skillDelRepositorio)))
+		assert.Empty(t, defectos, "%s enseña en un bloque text la forma fija de cada línea de una redacción fechada:\n%s",
+			skillDelRepositorio, strings.Join(defectos, "\n"))
 	})
 
 	t.Run("cobertura-del-esquema", func(t *testing.T) {
@@ -2602,6 +2612,27 @@ func bloquesDeTexto(markdown string) []string {
 	}
 
 	return bloques
+}
+
+// defectosDeLasFormasFechadas da los defectos de un SKILL.md respecto de las
+// tres formas fijas de una redacción fechada (contracts/skill-boe-legislacion.md
+// §1 de H20; FR-048), o nil si no tiene ninguno: uno por cada forma de
+// formasFechadas, en su orden, que ningún bloque de código text lleva con la
+// gramática con la que se juzga la respuesta (expresionesFechadas). Como la de
+// los hallazgos, la comprobación es de la etiqueta: decirla con otras palabras,
+// o en la prosa y no en un bloque text, no la enseña.
+func defectosDeLasFormasFechadas(markdown string) []string {
+	bloques := bloquesDeTexto(markdown)
+
+	var defectos []string
+
+	for _, forma := range formasFechadas {
+		if !slices.ContainsFunc(bloques, expresionesFechadas()[forma].MatchString) {
+			defectos = append(defectos, "ningún bloque text de SKILL.md lleva la forma fija "+formaEscrita(string(forma)))
+		}
+	}
+
+	return defectos
 }
 
 // probarProsaDeLaSkill es la subprueba prosa-de-la-skill de
