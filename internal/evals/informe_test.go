@@ -7544,3 +7544,64 @@ func comprobarLaNorma(norma string) consultaSintetica {
 		sobre:       sobreDeLegalCore("graph"),
 	}
 }
+
+// TestLineasFechadasSinRedaccionPosterior fija lo que llevaLasLineasFechadas
+// dice de una respuesta cuando la eval espera la redacción a una fecha sin
+// redacción posterior (contracts/evals-redaccion-fechada.md §2 de H20; FR-052 y
+// FR-054 de H20), que el formato admite y ninguna eval del repositorio usa: la
+// del art. 22 de la Ley 7/1985 el 2019-06-01, posterior a su última vigencia,
+// cuya lectura da la redacción de hoy y ninguna posterior (FR-013 y FR-081 de
+// H20). Con las formas fijas de «Redacción en una fecha» de la skill, la
+// respuesta con la línea de la redacción a fecha del bloque, con ese día y esa
+// vigencia, lleva las líneas que la eval espera, también con la de hoy de otro
+// bloque; con la de hoy del mismo bloque, con la línea sin redacción vigente en
+// lugar de la de la redacción a fecha o sin ninguna línea fechada, no las lleva,
+// y cuenta en redaccion_sin_fechar.
+func TestLineasFechadasSinRedaccionPosterior(t *testing.T) {
+	t.Parallel()
+
+	esperada := RedaccionFechadaEsperada{
+		Norma: normaDeLaLRBRL, Bloque: "a22", Fecha: "2019-06-01", FechaVigencia: "20151031",
+	}
+
+	// El cuerpo de todas las respuestas cita el bloque fuera de las líneas
+	// fechadas; la redacción de hoy es una que la lectura de ese día no da.
+	const (
+		elArticulo22 = "art. 22 de la Ley 7/1985 [BOE-A-1985-5392, bloque a22]"
+		elArticulo21 = "art. 21 de la Ley 7/1985 [BOE-A-1985-5392, bloque a21]"
+		cuerpo       = "Se cita la redacción del " + elArticulo22 + " vigente el 2019-06-01."
+		otraDeHoy    = ": hoy la redacción es otra, la de BOE-A-2020-1651, con fecha de vigencia 20200206."
+
+		aFecha = "⚠ REDACCIÓN A FECHA: " + elArticulo22 + ": se cita la redacción vigente el 2019-06-01, la de " +
+			"fecha de vigencia 20151031."
+		deHoyDelBloque      = "⚠ REDACCIÓN DE HOY: " + elArticulo22 + otraDeHoy
+		deHoyDeOtroBloque   = "⚠ REDACCIÓN DE HOY: " + elArticulo21 + otraDeHoy
+		sinRedaccionVigente = "⚠ SIN REDACCIÓN VIGENTE: " + elArticulo22 + ": el 2019-06-01 no tenía redacción " +
+			"vigente; la tiene desde el 20151031, la fecha de vigencia de su primera redacción."
+	)
+
+	casos := []struct {
+		nombre string
+		lineas []string
+		lleva  bool
+	}{
+		{nombre: "la-redaccion-a-fecha", lineas: []string{aFecha}, lleva: true},
+		{nombre: "con-la-de-hoy-del-bloque", lineas: []string{aFecha, deHoyDelBloque}},
+		{nombre: "con-la-de-hoy-de-otro-bloque", lineas: []string{aFecha, deHoyDeOtroBloque}, lleva: true},
+		{nombre: "sin-redaccion-vigente", lineas: []string{sinRedaccionVigente}},
+		{nombre: "sin-lineas-fechadas"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			respuesta := strings.Join(append([]string{cuerpo}, caso.lineas...), "\n\n")
+
+			// Cada línea del caso es una línea fechada, también la de otro bloque:
+			// si no lo fuera, el caso no diría nada de llevaLasLineasFechadas.
+			require.Len(t, ExtraerRedaccionesFechadas(respuesta), len(caso.lineas))
+			assert.Equal(t, caso.lleva, llevaLasLineasFechadas(respuesta, esperada))
+		})
+	}
+}
