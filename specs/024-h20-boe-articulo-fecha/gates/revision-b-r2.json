@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log es de la cabeza corregida 95f4949: su hora de modificación (2026-10-19 21:02:03 +0200) es la del commit, el guardián cuenta 18 ficheros (los 18 del commit) y internal/source/boe sube a 99,3 % (99,1 % en la ronda 1, lo que cuadra con la rama retirada); golangci-lint «0 issues.», todos los paquetes ok, «ci: todos los controles en verde», exit=0. Reproducido en un clon fuera del repositorio (/var/folders/…/T/juezb-r2/repo en 95f4949): gofmt -l vacío, go vet ./... limpio, golangci-lint sobre internal/source/boe/... con 0 issues, go test -race internal/source/boe ok (99,3 %) e internal/app ok con TestEntregaDelHito (los seis h20-fecha-* en PASS), TestSalidaDeBoeContraSchemas y TestLecturaFechadaEnElGrafo. Árbol de trabajo: solo gates/modelos.jsonl, gates/revision-cambios.md, gates/revision-cambios-r2.diff y gates/base-global-pendiente, que escribe el propio workflow."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango 5e3c689..95f4949 solo toca un test, ids_test.go:196-199: TestValidarFecha comprueba además que el día devuelto formatea de vuelta a la fecha válida (assert.Equal sobre dia.Format(time.DateOnly)), una aserción real sobre lo nuevo. Lo que detectan, probado con dos mutantes en el clon, uno cada vez y restaurados (git status limpio): (1) el día desplazado un año al entrar en articuloEnUnaFecha (articulo.go:57, dia.AddDate(1, 0, 0)) → TestArticuloEnUnaFecha en rojo en cinco subtests (entre_publicación_y_vigencia, anterior_a_la_primera_vigencia, US1, la_víspera…, el_día_que_entra_en_vigor); (2) la comparación estricta vigencia.Before(dia) en fecha.go:139 → el subtest el_día_que_entra_en_vigor en rojo. Cobertura por función en el clon: fecha.go al 100 % en sus cinco funciones (elegirLaVersion pasa de 95,2 % a 100 %) y ValidarFecha 100 %. La suite congelada sigue activada e intacta: git diff --name-only 5e3c689 95f4949 no lista ningún .txtar, fixture, esquema ni dato (solo articulo.go, fecha.go, ids.go, ids_test.go, cierre.md, tasks.md y gates/); los guiones solo los tocan 8bdd3b9 (T001) y a4176fa (activación), cuyas huellas sha256 coinciden con gates/aceptacion-congelada.json según mi ronda 1; en esta sesión el sandbox denegó shasum y openssl. Los seis h20-fecha-* en PASS en el clon."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no añade ninguna importación: fecha.go conserva fmt (Sprintf en 133 y 146) y time (43, 125, 177-185), ids.go igual; ninguna línea nueva con net/http, os.Exit ni fmt.Print*. go vet ./... limpio en el clon y golangci-lint con 0 issues (depguard, forbidigo). La red sigue solo en internal/httpx por resolverElBloque; las reglas de dependencia no cambian (el rango vive entero en internal/source/boe)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no cambia la salida: fecha_pedida sigue siendo la cadena pedida (fecha.go:157) y los dos 3 nombran esa misma cadena (fecha.go:133, 146). En el clon, TestSalidaDeBoeContraSchemas (cuatro salidas fechadas reales contra el esquema que emite el binario) y el guion h20-fecha-version.txtar (sobre y campos nuevos byte a byte) en PASS; schemas/bloque.json sin tocar en el rango."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "ValidarFecha conserva el errorDeArgumentos con el mismo mensaje y devuelve time.Time{} con él (ids.go:90-99); articulo() lo devuelve antes de abrir la caché (articulo.go:52-55); los dos errorDeNoEncontrado de la elección siguen con sus mensajes (fecha.go:131-133, 144-146). Ningún panic nuevo: dia viaja por valor y elegirLaVersion indexa versiones solo tras vigenciasDeLasVersiones. h20-fecha-codigos.txtar (los 2 y 3, «! exists cache») y h20-fecha-offline.txtar (4) en PASS en el clon."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "tasks.md T004 da ya la firma nueva, ValidarFecha(fecha string) (time.Time, error), y dice que la elección compara el día devuelto sin volver a leer la fecha; cierre.md:105-107 anota que la revisión final retiró la rama y remite al supuesto; gates/supuestos.md:21 registra la corrección ([interno] corrector_revision, [k]). Ningún otro artefacto afirma la firma antigua: grep de ValidarFecha en specs/024-*, docs, CHANGELOG.md, CONTRIBUTING.md, README.md y skills no encuentra «error» como retorno; research D3, plan.md:86 y data-model.md:12 siguen siendo ciertos. CHANGELOG.md no cambia en el rango y lo que dice (TestValidarFecha, el 2 de la fecha) sigue ocurriendo. Sin ADR ni docs/SOURCES.md, porque ni la decisión ni la fuente cambian."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca ninguna petición ni grabación: git diff --name-only 5e3c689 95f4949 no lista internal/httpx, testdata, internal/source/boe/testdata, evidencias ni docs/SOURCES.md; la lectura fechada sigue pidiendo los dos mismos GET por resolverElBloque. Sin secretos ni datos de persona en las 63 líneas del diff."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En revision-cambios-r2.diff no hay nolint, t.Skip, TODO/FIXME ni «_ =»; la rama retirada no se sustituye por un error silenciado: time.Parse corre una sola vez, en ValidarFecha, y su error se devuelve (ids.go:92-96). gates/cuarentena.json sigue con tareas {} y consecutivas 0. Ningún fixture, golden ni guion congelado cambia en el rango."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente la corrección del único motivo de la ronda 1 ([k]) y sus registros: cuatro ficheros Go de internal/source/boe, la línea de T004 en tasks.md, el apunte de cierre.md y la fila de gates/supuestos.md; nada más fuera de gates/. El supuesto es una lectura coherente con el spec: FechaPedida y los dos 3 siguen dando la cadena tal cual, y no se añade comportamiento. Los veinte supuestos anteriores siguen como en la ronda 1."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ni un byte de ninguna salida (fecha_pedida, redaccion_posterior y los 3 iguales; h20-fecha-version y h20-fecha-codigos en PASS en el clon) ni el número de invocaciones que pide la SKILL.md, que no se toca. Vale la medida de la ronda 1: unos 5 564 bytes por lectura fechada del a22 frente a 5 446 sin fecha, una lectura por bloque sin graph check, señales con información nueva cada vez y nada que crezca con lo acumulado."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El motivo de la ronda 1 está corregido: la rama de fecha.go que volvía a leer la fecha con time.Parse y devolvía errorInesperado ya no existe; ValidarFecha devuelve el día que lee (ids.go:90-99), articulo() lo pasa (articulo.go:52-57) y elegirLaVersion lo recibe como dia (fecha.go:125) y lo compara (fecha.go:139). elegirLaVersion está al 100 % en el clon y fecha.go entero al 100 %. El parámetro nuevo se traza a FR-002 y FR-005 (el día que se compara es el validado); no hay tipo, función ni rama nueva, y el único test añadido es una aserción dentro de TestValidarFecha, no un caso límite nuevo. Lo demás sigue trazado como en la ronda 1 (versiones del lector FR-002/FR-010, los dos 3 FR-003/FR-004, ArticuloFechado FR-010/FR-012, entrada de versiones FR-020 a FR-022, SoloLoNuevo FR-030/FR-031, formas y umbral FR-041, FR-043, FR-054)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca internal/evals ni ningún control de umbral: vale la ronda 1 (redaccion_sin_fechar:<modelo>:<modo> con Umbral 0, <= y Decide true en umbrales.go:659-672, motivo por sesión, el mutante «decide en falso» deja TestUmbralesDeLasTresSkills y TestUmbralesDeBoeLegislacion en rojo; el peor caso del job en TestDefinicionDelJob; skills-check para las 300 líneas y las tres formas; maximoDeEvals 23). gates/ci.log en verde sobre la cabeza corregida con esos controles dentro."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "FR-002 dice «la de mayor fecha_vigencia que no es posterior» y fecha.go:137-141 elige la última, en el orden del bloque, cuya vigencia no es posterior; coinciden mientras el BOE liste las versiones por orden de vigencia, como en los 22 ficheros grabados comprobados en la ronda 1. Sin emisor observado que las desordene, no pasa el umbral de materialidad.",
+    "cierre.md:105 conserva el puntero fecha.go:131-133 de la cabeza 0176fd0 sobre la que midió; en 95f4949 esas líneas son vigenciasDeLasVersiones y el 3 de FR-004. El párrafo dice que la revisión final retiró la rama, así que como registro es coherente, pero el puntero ya no resuelve sobre la cabeza.",
+    "SKILL.md: la description pierde «régimen jurídico del sector público» entre las materias; LRJSP sigue entre las abreviaturas. sin_activar:<modelo>:<modo> del cierre mide si las evals 07 y 16 siguen activando la skill (FR-047).",
+    "internal/source/boe/articulo.go tiene tres líneas de más de 120 caracteres (42, 82, 208), anteriores al rango; .golangci.yml no activa lll y el linter da 0 issues. El comentario de fecha.go:33 quedó largo al reajustar el párrafo: cosmético.",
+    "El sandbox de esta sesión denegó shasum y openssl, así que la integridad de la suite congelada se sostiene en el rango de git (ningún .txtar cambia desde 5e3c689) y en las huellas que comprobé en la ronda 1; la orden con cd delante de git y las variables en rutas también se denegaron, por eso el clon va por git -C y go -C con rutas literales.",
+    "Queda el clon de esta revisión en /var/folders/05/gdfs24vn2d9bw8gl3v6dk_z80000gn/T/juezb-r2 (más boe.cov) si el borrado al cerrar lo deniega el sandbox, como pasó con los restos de la ronda 1."
+  ]
+}

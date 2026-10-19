@@ -1,0 +1,182 @@
+diff --git a/internal/source/boe/articulo.go b/internal/source/boe/articulo.go
+index 1e5475c..8614331 100644
+--- a/internal/source/boe/articulo.go
++++ b/internal/source/boe/articulo.go
+@@ -49,11 +49,12 @@ func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta Cons
+ 	}
+ 
+ 	if consulta.Fecha != nil {
+-		if err := ValidarFecha(*consulta.Fecha); err != nil {
++		dia, err := ValidarFecha(*consulta.Fecha)
++		if err != nil {
+ 			return schema.Resultado{}, err
+ 		}
+ 
+-		return f.articuloEnUnaFecha(ctx, ec, consulta.Norma, consulta.Bloque, *consulta.Fecha)
++		return f.articuloEnUnaFecha(ctx, ec, consulta.Norma, consulta.Bloque, *consulta.Fecha, dia)
+ 	}
+ 
+ 	direccion := direccionDelBloque(consulta.Norma, consulta.Bloque)
+diff --git a/internal/source/boe/fecha.go b/internal/source/boe/fecha.go
+index 5cb1534..cfe95b5 100644
+--- a/internal/source/boe/fecha.go
++++ b/internal/source/boe/fecha.go
+@@ -31,15 +31,16 @@ const (
+ )
+ 
+ // articuloEnUnaFecha resuelve articulo <norma> <bloque> --fecha <fecha>, los
+-// tres ya validados: dentro de invocar, las versiones del bloque con
+-// versionesDeLaLecturaFechada y, entre ellas, la del día pedido con
+-// elegirLaVersion. El resultado lleva la dirección del bloque en éxito, en
++// tres ya validados, con el día de la fecha que leyó ValidarFecha: dentro de
++// invocar, las versiones del bloque con versionesDeLaLecturaFechada y, entre
++// ellas, la del día pedido con elegirLaVersion. El resultado lleva la dirección del bloque en éxito, en
+ // ensayo, en los fallos del bloque y en los dos de la elección, y la de los
+ // metadatos en los suyos, como la lectura sin fecha (FR-007); en éxito y en los
+ // fallos de la elección, la fecha de consulta de las versiones. Solo en éxito
+ // observa algo del mundo, lo de observadoDeLaLecturaFechada (FR-030); bajo
+ // ensayo, en un fallo y en los dos 3 de la elección, nada.
+ func (f *Fuente) articuloEnUnaFecha(ctx context.Context, ec schema.Contexto, norma, bloque, fecha string,
++	dia time.Time,
+ ) (schema.Resultado, error) {
+ 	direccion := direccionDelBloque(norma, bloque)
+ 
+@@ -53,7 +54,7 @@ func (f *Fuente) articuloEnUnaFecha(ctx context.Context, ec schema.Contexto, nor
+ 			return resultadoDeLaConsulta(direccion, versiones), nil
+ 		}
+ 
+-		articulo, err := elegirLaVersion(norma, bloque, fecha, versiones)
++		articulo, err := elegirLaVersion(norma, bloque, fecha, dia, versiones)
+ 		if err != nil {
+ 			return resultadoDelError(err), err
+ 		}
+@@ -104,7 +105,8 @@ func componerLasVersiones(leido bloqueLeido, metadatos Metadatos) versionesDelBl
+ }
+ 
+ // elegirLaVersion compone el data de la lectura fechada con la versión del
+-// bloque que regía el día pedido, ya validado (data-model.md §3; research.md D4):
++// bloque que regía el día pedido, dia, el de la fecha ya validada, que es la que
++// nombran los dos 3 y la fecha pedida (data-model.md §3; research.md D4):
+ //
+ //  1. si el bloque no tiene versiones, o alguna no tiene una fecha_vigencia que
+ //     sea un día AAAAMMDD, no se puede situar ninguna: 3 con el mensaje de
+@@ -120,18 +122,11 @@ func componerLasVersiones(leido bloqueLeido, metadatos Metadatos) versionesDelBl
+ // versiones, y ninguno lleva texto (research.md D7). El artículo de la elegida lo
+ // compone componerArticulo, como la lectura sin fecha el de la última: con los
+ // avisos y el ELI de la norma hoy, los guardados con las versiones (FR-011).
+-func elegirLaVersion(norma, bloque, fecha string, guardadas consultaResuelta[versionesDelBloque],
++func elegirLaVersion(norma, bloque, fecha string, dia time.Time, guardadas consultaResuelta[versionesDelBloque],
+ ) (ArticuloFechado, error) {
+ 	direccion := direccionDelBloque(norma, bloque)
+ 	versiones := guardadas.datos.Versiones
+ 
+-	dia, err := time.Parse(time.DateOnly, fecha)
+-	if err != nil {
+-		// ValidarFecha ya la aceptó: no es un fallo de quien invoca.
+-		return ArticuloFechado{}, errorInesperado(direccion, guardadas.fechaConsulta, err,
+-			fmt.Sprintf("la fecha %q, ya validada, no se puede leer", fecha))
+-	}
+-
+ 	vigencias, situable := vigenciasDeLasVersiones(versiones)
+ 	if !situable {
+ 		return ArticuloFechado{}, errorDeNoEncontrado(direccion, guardadas.fechaConsulta, nil,
+diff --git a/internal/source/boe/ids.go b/internal/source/boe/ids.go
+index 221ec20..984292a 100644
+--- a/internal/source/boe/ids.go
++++ b/internal/source/boe/ids.go
+@@ -78,21 +78,23 @@ func ValidarBloque(bloque string) error {
+ }
+ 
+ // ValidarFecha comprueba que la fecha de --fecha sea un día AAAA-MM-DD, con sus
+-// ceros, que existe en el calendario. Lo decide time.Parse con time.DateOnly y
+-// nada más: ya rechaza toda otra forma —sin ceros, sin guiones, con hora, con
+-// espacios— y todo día que no existe, como el 30 de febrero o el 29 de un año
+-// que no es bisiesto (research D3, M5). Fuera de esa forma devuelve un *Error de
+-// clase «argumentos» que nombra el valor recibido y la forma esperada, sin
+-// dirección, instante ni causa, antes de abrir la caché y de construir ninguna
+-// petición (FR-005, contrato articulo-fecha §3). El error de time.Parse no va
+-// como causa: lo que dice ya lo dice el mensaje, que nombra el valor y la forma.
+-func ValidarFecha(fecha string) error {
+-	if _, err := time.Parse(time.DateOnly, fecha); err != nil {
+-		return errorDeArgumentos("", time.Time{}, nil, fmt.Sprintf(
++// ceros, que existe en el calendario, y devuelve ese día, el que compara la
++// elección de la versión. Lo decide time.Parse con time.DateOnly y nada más: ya
++// rechaza toda otra forma —sin ceros, sin guiones, con hora, con espacios— y
++// todo día que no existe, como el 30 de febrero o el 29 de un año que no es
++// bisiesto (research D3, M5). Fuera de esa forma devuelve un *Error de clase
++// «argumentos» que nombra el valor recibido y la forma esperada, sin dirección,
++// instante ni causa, antes de abrir la caché y de construir ninguna petición
++// (FR-005, contrato articulo-fecha §3). El error de time.Parse no va como causa:
++// lo que dice ya lo dice el mensaje, que nombra el valor y la forma.
++func ValidarFecha(fecha string) (time.Time, error) {
++	dia, err := time.Parse(time.DateOnly, fecha)
++	if err != nil {
++		return time.Time{}, errorDeArgumentos("", time.Time{}, nil, fmt.Sprintf(
+ 			"la fecha %q no es un día AAAA-MM-DD del calendario, como 2019-06-01", fecha))
+ 	}
+ 
+-	return nil
++	return dia, nil
+ }
+ 
+ // esBloqueValido aplica ^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$ sobre los bytes del
+diff --git a/internal/source/boe/ids_test.go b/internal/source/boe/ids_test.go
+index 6ce3e42..8d9fe5c 100644
+--- a/internal/source/boe/ids_test.go
++++ b/internal/source/boe/ids_test.go
+@@ -9,6 +9,7 @@ import (
+ 	"slices"
+ 	"strings"
+ 	"testing"
++	"time"
+ 
+ 	"github.com/stretchr/testify/assert"
+ 	"github.com/stretchr/testify/require"
+@@ -160,7 +161,7 @@ func TestValidarBloque(t *testing.T) {
+ 
+ // TestValidarFecha fija la forma de --fecha: un día AAAA-MM-DD, con sus ceros,
+ // que existe en el calendario, lo que time.Parse(time.DateOnly, …) acepta y nada
+-// más. Lo demás —el día que no existe, el 29 de febrero de un año que no es
++// más, y que devuelve ese día. Lo demás —el día que no existe, el 29 de febrero de un año que no es
+ // bisiesto, los ceros que faltan, otro separador, la hora, el espacio delante,
+ // la cadena vacía y el mes trece— es «argumentos», con el mensaje del contrato
+ // articulo-fecha §3 (FR-005; research D3, M5).
+@@ -192,9 +193,10 @@ func TestValidarFecha(t *testing.T) {
+ 		t.Run(caso.nombre, func(t *testing.T) {
+ 			t.Parallel()
+ 
+-			err := boe.ValidarFecha(caso.fecha)
++			dia, err := boe.ValidarFecha(caso.fecha)
+ 			if caso.valida {
+ 				require.NoError(t, err)
++				assert.Equal(t, caso.fecha, dia.Format(time.DateOnly))
+ 
+ 				return
+ 			}
+diff --git a/specs/024-h20-boe-articulo-fecha/cierre.md b/specs/024-h20-boe-articulo-fecha/cierre.md
+index aa3fd3f..0501702 100644
+--- a/specs/024-h20-boe-articulo-fecha/cierre.md
++++ b/specs/024-h20-boe-articulo-fecha/cierre.md
+@@ -103,7 +103,8 @@ lectura, las líneas del código que el hito escribe o toca y que ningún test d
+   prueba `TestValidarFecha` directamente y, por el binario, `fecha-codigos.txtar` (FR-005), pero ningún test de
+   `internal/source/boe` llama a la fuente con una fecha mal escrita.
+ - `internal/source/boe/fecha.go:131-133` — el error `inesperado` de una fecha que `ValidarFecha` ya aceptó y
+-  `time.Parse` no lee: un estado sin vía real, que cubre la regla genérica (tasks.md, «Proporcionalidad»).
++  `time.Parse` no lee: un estado sin vía real. La revisión final lo retiró (`gates/supuestos.md`, «corrector_revision»):
++  `ValidarFecha` devuelve el día que lee y `elegirLaVersion` lo recibe, sin volver a leer la fecha.
+ - `internal/evals/informe.go:1723` — en `llevaLasLineasFechadas`, la rama de una eval que espera la redacción a una
+   fecha **sin** redacción posterior (`esperada.Posterior == nil`). El formato la admite, pero ninguna eval del
+   repositorio (la 22 lleva `posterior:` y la 23 `vigente_desde:`) ni ninguna sesión sintética la ejercita.
+diff --git a/specs/024-h20-boe-articulo-fecha/tasks.md b/specs/024-h20-boe-articulo-fecha/tasks.md
+index 117d786..52847ef 100644
+--- a/specs/024-h20-boe-articulo-fecha/tasks.md
++++ b/specs/024-h20-boe-articulo-fecha/tasks.md
+@@ -187,7 +187,7 @@ vigente en esa fecha, o el 3 con la primera fecha de vigencia; sin `--fecha`, na
+ 
+ - [X] T003 [US1] El lector del bloque guarda todas sus versiones (plan.md paso 3; data-model §2; research D4, M1). `bloqueLeido` gana `versiones []versionLeida`, en el orden de la respuesta del BOE, cada una con los mismos campos que hoy da la última —`fecha_publicacion` (la `fecha_version` de la salida), `fecha_vigencia`, `id_norma` y su texto normalizado igual que hoy— (`internal/source/boe/bloque.go`); lo que el lector da hoy para la última no cambia, ni la entrada de hoy, ni la salida sin fecha (FR-012). **Tests**: `TestLeerBloque` (`internal/source/boe/bloque_test.go`) gana las versiones de los tres bloques de research M1 sobre lo grabado de H4 —nueve en el `a22` de `BOE-A-1985-5392`, con sus fechas de publicación y de vigencia y sus normas escritas a mano en el test, y las del `a1-30` de `BOE-A-2017-12902` y del `a21` de `BOE-A-2015-10565`— y la lista vacía de una respuesta sin versiones construida en el test; lo que esperaba hoy, igual. **Verificación**: `go test -count=1 -run '^(TestLeerBloque|TestGolden|TestArticulo)$' ./internal/source/boe/` `ok`, con los trece golden de hoy sin cambiar; `make ci` en verde — FR-002, FR-010, FR-012. Rutas: internal/source/boe/bloque.go
+ 
+-- [X] T004 [US1] `ValidarFecha` (plan.md paso 4; contracts/articulo-fecha.md §3, primera fila; research D3, M5). En `internal/source/boe/ids.go`, junto a `ValidarNorma` y `ValidarBloque`: `ValidarFecha(fecha string) error` acepta solo un día `AAAA-MM-DD` que existe en el calendario, con `time.Parse(time.DateOnly, …)` y nada más, y su fallo es `errorDeArgumentos` con el mensaje `la fecha "<valor>" no es un día AAAA-MM-DD del calendario, como 2019-06-01`. **Tests**: `TestValidarFecha` (nuevo, `internal/source/boe/ids_test.go`), las formas de research M5: válidas `2019-06-01`, `2016-02-29`, `1985-04-22` y `9999-12-31`; inválidas `2019-02-30`, `2015-02-29`, `2019-6-1`, `2019-06-1`, `20190601`, `2019/06/01`, `2019-06-01T00:00:00`, ` 2019-06-01`, la cadena vacía y `2019-13-01`, cada una con su clase (`cli.Clasificar`: `argumentos`), su código (`cli.CodigoSalida`: 2) y su mensaje. **Verificación**: con el mutante «la cadena vacía aceptada», `TestValidarFecha` falla (revertido); `make ci` en verde — FR-005. Rutas: internal/source/boe/ids.go
++- [X] T004 [US1] `ValidarFecha` (plan.md paso 4; contracts/articulo-fecha.md §3, primera fila; research D3, M5). En `internal/source/boe/ids.go`, junto a `ValidarNorma` y `ValidarBloque`: `ValidarFecha(fecha string) (time.Time, error)` acepta solo un día `AAAA-MM-DD` que existe en el calendario, con `time.Parse(time.DateOnly, …)` y nada más, devuelve el día leído, que la elección de la versión compara sin volver a leer la fecha (revisión final), y su fallo es `errorDeArgumentos` con el mensaje `la fecha "<valor>" no es un día AAAA-MM-DD del calendario, como 2019-06-01`. **Tests**: `TestValidarFecha` (nuevo, `internal/source/boe/ids_test.go`), las formas de research M5: válidas `2019-06-01`, `2016-02-29`, `1985-04-22` y `9999-12-31`; inválidas `2019-02-30`, `2015-02-29`, `2019-6-1`, `2019-06-1`, `20190601`, `2019/06/01`, `2019-06-01T00:00:00`, ` 2019-06-01`, la cadena vacía y `2019-13-01`, cada una con su clase (`cli.Clasificar`: `argumentos`), su código (`cli.CodigoSalida`: 2) y su mensaje. **Verificación**: con el mutante «la cadena vacía aceptada», `TestValidarFecha` falla (revertido); `make ci` en verde — FR-005. Rutas: internal/source/boe/ids.go
+ 
+ - [X] T005 [US1] La lectura fechada en el adaptador del BOE: la consulta, la elección, sus dos mensajes de 3, la salida y su entrada de caché (plan.md paso 4; contracts/articulo-fecha.md §2, §3, §4 y §5; data-model §1 a §5 y §8; research D1, D2, D4 a D8). **Consulta** (`internal/source/boe/consultas.go`): `ConsultaArticulo` gana `Fecha *string`; `nil` es la lectura de hoy, por el mismo camino de código que hoy (FR-012). **Rama fechada** (`internal/source/boe/articulo.go`): con `Fecha`, tras `ValidarNorma` y `ValidarBloque` y antes de abrir la caché o pedir nada, `ValidarFecha` (orden norma, bloque, fecha: con las tres mal, el 2 de la norma); después, `fecha.go`. **`internal/source/boe/fecha.go`** (nuevo): la lectura fechada pide los mismos dos recursos que la de hoy, el bloque y los metadatos de su norma, con el `Pedidor` de la invocación (FR-006); la elección de research D4 —bloque sin versiones o con alguna sin `fecha_vigencia` AAAAMMDD: 3 con `el BOE no da la fecha de vigencia de cada redacción del bloque <bloque> de <norma>: no se puede saber cuál tenía el <AAAA-MM-DD>`, sea cual sea la fecha (FR-004); si no, la última, en el orden del bloque, cuya `fecha_vigencia` no es posterior a la pedida, comparadas como días del calendario y nunca por `fecha_publicacion`; ninguna: 3 con `el bloque <bloque> de <norma> no tenía redacción vigente el <AAAA-MM-DD>: su primera redacción tiene fecha de vigencia <AAAAMMDD>`; la redacción posterior, la última del bloque cuando no es la elegida—; los dos 3 con `errorDeNoEncontrado`, la dirección del bloque y el instante de la consulta, y ninguno con texto (research D7). **Salida** (`internal/source/boe/datos.go`): `ArticuloFechado`, `Articulo` embebido con los datos de la versión elegida como la nota [5] los da para la última, más `FechaPedida` (`fecha_pedida`, `omitempty`) y `RedaccionPosterior *RedaccionPosterior` (`redaccion_posterior`, `omitempty`), y `RedaccionPosterior{FechaVigencia, NormaModificadora}` con los nombres y la forma AAAAMMDD de los campos del artículo (research D5, D6); los avisos, los de la norma hoy, los mismos de la lectura sin fecha (FR-011). **Caché** (`internal/source/boe/entradas.go`): `versionesDelBloque` y `claveDeLasVersiones` (`boe.legislacion-consolidada|1|versiones|<dirección del bloque>`), con la vigencia de 7 días del artículo, el título, el tipo, todas las versiones, los avisos y el ELI; se escribe solo con el bloque y sus metadatos obtenidos e interpretados y antes de elegir; la lectura fechada se sirve solo de ella y nunca lee ni escribe la entrada de hoy (`articuloDelBloque`), que no cambia de forma, clave ni contenido; con `--offline` y sin ella, 4 con el verbo `versiones` y su clave (FR-020, FR-021, FR-022). **`internal/source/boe/doc.go`**: el párrafo del comentario de paquete sobre `articulo` con `--fecha`, que `refs/boe.py` no tiene (contracts/documentos.md, último apartado); la tabla de notas no cambia. Esta tarea no emite nada al grafo con la lectura fechada (T007). **Tests**: `TestArticuloEnUnaFecha` (nuevo, `internal/source/boe/fecha_test.go`), una tabla con los siete casos de contracts/articulo-fecha.md §2 sobre lo grabado de H4, cada uno con su código, su clase, `fecha_version`, `fecha_vigencia`, `norma_modificadora`, `hash_texto`, `fecha_pedida`, su redacción posterior o su ausencia y su mensaje escritos a mano, la huella de cada texto igual a la de su texto, y `titulo`, `tipo`, `avisos`, `url` y `url_eli` los de la lectura sin fecha; el del 2019-06-01 del `a22`, con el `texto` y el `hash_texto` del golden de hoy de ese bloque (FR-013); un bloque sin versiones y otro con una versión sin `fecha_vigencia`, construidos en el test, con fechas anteriores, intermedias y posteriores a las versiones con fecha: 3 con el mensaje de FR-004 y sin texto; y lo grabado sintético de avisos de H4 leído con `--fecha`, con los avisos de la lectura sin fecha (FR-011); `TestArticuloEnUnaFechaYLaCache` (nuevo, ídem): con solo la entrada de hoy, la fechada con `--offline` sale con 4; tras una fechada de una versión que no es la de hoy, la entrada de hoy igual byte a byte y la sin fecha con `--offline` igual; la fechada con `--offline` y su entrada, el mismo `data`, el mismo `hash` y la misma fecha de consulta que la que la guardó, también con otra fecha del mismo bloque (FR-020 a FR-022, FR-087; SC-007); `TestFallosNoSeGuardan` (`internal/source/boe/fuente_test.go`) gana los tres casos de plan.md («Por los fallos de la fuente con fecha») con `ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21, Fecha}` el 2019-06-01 sobre lo sintético de H4 y sin fichero nuevo —`bloque-ilegible` (4), `metadatos-caidos` (4) y el 429 de los metadatos tras obtener el bloque (5)—, cada uno con la misma clase, el mismo código y el mismo mensaje que su consulta sin `Fecha` en un banco nuevo con el mismo `Pedidor`, el sobre sin datos con la dirección y el instante de la petición que falla, las mismas peticiones repetidas, nada guardado y, con `--offline`, el 4 de la entrada de las versiones ausente (`falloSinEntradaDeLasVersiones`); los cuatro casos de hoy, iguales (FR-007, FR-082); `TestClaveDeEntrada` y `TestEntradaIdaYVuelta` (`entradas_test.go`) ganan la clave y la ida y vuelta de la entrada de las versiones, y `TestDocAnotaElPorte` (`doc_test.go`) sigue en verde con el párrafo. **Verificación**: con cada mutante de FR-090 de la elección —la versión elegida por `fecha_publicacion`, siempre la última, y con una fecha anterior al bloque la primera versión—, `TestArticuloEnUnaFecha` falla (revertidos); quickstart.md §2 `ok`, con `TestGolden` y sus trece casos sin cambiar; `make ci` en verde — FR-001, FR-002, FR-003, FR-004, FR-006, FR-007, FR-010, FR-011, FR-012, FR-013, FR-020, FR-021, FR-022, FR-081, FR-082, FR-087; SC-004, SC-007. Rutas: internal/source/boe/consultas.go, internal/source/boe/articulo.go, internal/source/boe/fecha.go, internal/source/boe/datos.go, internal/source/boe/entradas.go, internal/source/boe/doc.go, internal/source/boe/fuente_test.go
+ 
