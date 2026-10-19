@@ -1291,13 +1291,7 @@ func TestFormatoDePlazos(t *testing.T) {
 
 	calculo := ComandoEsperado{Applet: "plazos", Verbo: "calcular", Tipo: "reposicion"}
 
-	casos := []struct {
-		nombre     string
-		documento  string
-		leida      Eval
-		error      string
-		fragmentos []string
-	}{
+	probarLasLecturasDeEval(t, []casoDeLecturaDeEval{
 		{
 			nombre: "plazo-con-sus-claves",
 			documento: "# Eval de plazo: lo que espera de la sesi\xc3\xb3n y de su respuesta.\n" + activa +
@@ -1437,7 +1431,48 @@ func TestFormatoDePlazos(t *testing.T) {
 			documento:  activa + comandoDelCalculo + "    norma: BOE-A-2015-10565\n" + plazoSinAvisos,
 			fragmentos: []string{"comandos/0, l\xc3\xadnea 4: additional properties 'norma' not allowed"},
 		},
-	}
+	})
+
+	t.Run("enumerado-de-los-avisos", probarElEnumeradoDeLosAvisosDelPlazo)
+
+	t.Run("las-evals-de-las-otras-skills", func(t *testing.T) {
+		t.Parallel()
+
+		for _, dir := range []string{evalsDelRepositorio, evalsDeJurisprudencia} {
+			conjunto, err := LeerConjunto(dir)
+			require.NoError(t, err)
+			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
+			require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
+
+			for _, eval := range conjunto.Evals {
+				assert.Zero(t, eval.Plazo, "%s de %s se lee sin plazo", eval.Fichero, dir)
+				assert.Zero(t, eval.NoCubierto, "%s de %s se lee sin no_cubierto", eval.Fichero, dir)
+
+				for posicion, comando := range eval.Comandos {
+					assert.Empty(t, comando.Tipo, "el comando %d de %s de %s se lee sin tipo", posicion, eval.Fichero, dir)
+					assert.NotEqual(t, formaCalcular, formaDelComando(comando),
+						"el comando %d de %s de %s conserva su forma", posicion, eval.Fichero, dir)
+				}
+			}
+		}
+	})
+}
+
+// casoDeLecturaDeEval es un documento de eval y lo que LeerEval tiene que dar de
+// él: sin error ni fragmentos, la eval leída; con ellos, la eval vacía y un error
+// que es el error dado o que contiene cada fragmento.
+type casoDeLecturaDeEval struct {
+	nombre     string
+	documento  string
+	leida      Eval
+	error      string
+	fragmentos []string
+}
+
+// probarLasLecturasDeEval lee con LeerEval el documento de cada caso, en su
+// subtest, y lo compara con lo que el caso exige.
+func probarLasLecturasDeEval(t *testing.T, casos []casoDeLecturaDeEval) {
+	t.Helper()
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
@@ -1463,30 +1498,6 @@ func TestFormatoDePlazos(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("enumerado-de-los-avisos", probarElEnumeradoDeLosAvisosDelPlazo)
-
-	t.Run("las-evals-de-las-otras-skills", func(t *testing.T) {
-		t.Parallel()
-
-		for _, dir := range []string{evalsDelRepositorio, evalsDeJurisprudencia} {
-			conjunto, err := LeerConjunto(dir)
-			require.NoError(t, err)
-			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
-			require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
-
-			for _, eval := range conjunto.Evals {
-				assert.Zero(t, eval.Plazo, "%s de %s se lee sin plazo", eval.Fichero, dir)
-				assert.Zero(t, eval.NoCubierto, "%s de %s se lee sin no_cubierto", eval.Fichero, dir)
-
-				for posicion, comando := range eval.Comandos {
-					assert.Empty(t, comando.Tipo, "el comando %d de %s de %s se lee sin tipo", posicion, eval.Fichero, dir)
-					assert.NotEqual(t, formaCalcular, formaDelComando(comando),
-						"el comando %d de %s de %s conserva su forma", posicion, eval.Fichero, dir)
-				}
-			}
-		}
-	})
 }
 
 // probarElEnumeradoDeLosAvisosDelPlazo fija ComprobarCodigosDeAvisoDelPlazo: el
@@ -1582,6 +1593,231 @@ func probarElEnumeradoDeLosAvisosDelPlazo(t *testing.T) {
 		"faltan-festivos-nacionales-y-autonomicos", "faltan-festivos-locales", "dias-del-art-183-lopj",
 		"festivo-de-una-parte",
 	}, plazos.CodigosDeAviso(), "premisa: los cuatro c\xc3\xb3digos de los esquemas sint\xc3\xa9ticos son los de plazos")
+}
+
+// Trozos de las evals sintéticas de TestFormatoDeLasRedaccionesFechadas, cada
+// uno con sus líneas completas: la pregunta de la eval (a) de H20, su comando de
+// bloque con fecha, su cita y el principio de su redaccion_fechada, con la norma,
+// el bloque y la fecha (contracts/evals-redaccion-fechada.md §1.3 de H20).
+const (
+	preguntaConFecha = "pregunta: \"¿qué exigía el artículo 118 de la LCSP el 1 de junio de 2019?\"\n"
+	comandoConFecha  = "comandos:\n" +
+		"  - applet: boe\n" +
+		"    norma: BOE-A-2017-12902\n" +
+		"    bloque: a1-30\n" +
+		"    fecha: \"2019-06-01\"\n"
+	citaDelBloqueConFecha = "citas:\n" +
+		"  - norma: BOE-A-2017-12902\n" +
+		"    bloque: a1-30\n"
+	redaccionFechadaDel118 = "redaccion_fechada:\n" +
+		"  norma: BOE-A-2017-12902\n" +
+		"  bloque: a1-30\n" +
+		"  fecha: \"2019-06-01\"\n"
+)
+
+// TestFormatoDeLasRedaccionesFechadas fija lo que H20 da al formato de eval
+// (contracts/evals-redaccion-fechada.md §1.1 y §1.2; data-model §7.1 y §7.2;
+// research D11; FR-051, FR-052): fecha en un comando de bloque de comandos, y
+// redaccion_fechada, con su norma, su bloque y su fecha y, o fecha_vigencia con
+// posterior o sin ella, o vigente_desde, se leen enteros. Se rechazan:
+// fecha_vigencia con vigente_desde, ninguna de las dos, posterior sin
+// fecha_vigencia o sin su norma modificadora, una fecha que no es AAAA-MM-DD en
+// el comando o en lo esperado, una fecha de vigencia que no es AAAAMMDD, fecha en
+// un comando de otra forma o en un comando de grafo_previo, y redaccion_fechada
+// en una eval que no activa la skill o que es sin binario ni servidor, sin su
+// fecha o con otra clave: cada documento es el bien formado con solo ese
+// defecto.
+func TestFormatoDeLasRedaccionesFechadas(t *testing.T) {
+	t.Parallel()
+
+	const (
+		preguntaLeida = "¿qué exigía el artículo 118 de la LCSP el 1 de junio de 2019?"
+		activa        = preguntaConFecha + "activa: true\n"
+
+		diaDelEsquema   = "'^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'"
+		fechaDelEsquema = "'^[0-9]{4}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])$'"
+
+		// enLaRedaccionFechada es el principio de un defecto de redaccion_fechada,
+		// con la línea de su primera clave.
+		enLaRedaccionFechada = "redaccion_fechada, línea 12: "
+	)
+
+	// conRedaccion es el documento de la eval (a) con esas líneas bajo
+	// redaccion_fechada, detrás de su fecha, que es la línea 14.
+	conRedaccion := func(lineas string) string {
+		return activa + comandoConFecha + citaDelBloqueConFecha + redaccionFechadaDel118 + lineas
+	}
+
+	// leida es la eval (a) leída con esa redacción fechada esperada.
+	leida := func(redaccion RedaccionFechadaEsperada) Eval {
+		return Eval{
+			Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+			Comandos: []ComandoEsperado{{
+				Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118, Fecha: "2019-06-01",
+			}},
+			Citas:            []CitaEsperada{{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}},
+			RedaccionFechada: &redaccion,
+		}
+	}
+
+	delArticulo118 := RedaccionFechadaEsperada{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118, Fecha: "2019-06-01"}
+
+	probarLasLecturasDeEval(t, []casoDeLecturaDeEval{
+		{
+			// La eval (a): la redacción citada y la de hoy.
+			nombre: "con-la-redaccion-posterior",
+			documento: conRedaccion("  fecha_vigencia: \"20180309\"\n  posterior:\n    fecha_vigencia: \"20200206\"\n" +
+				"    norma_modificadora: BOE-A-2020-1651\n"),
+			leida: leida(cambiadaLaRedaccion(delArticulo118, func(r *RedaccionFechadaEsperada) {
+				r.FechaVigencia = fechaDeLaRedaccionOriginal
+				r.Posterior = &RedaccionPosteriorEsperada{
+					FechaVigencia: fechaDelArticulo118Vigente, NormaModificadora: "BOE-A-2020-1651",
+				}
+			})),
+		},
+		{
+			// La redacción citada es la de hoy: no hay posterior.
+			nombre:    "sin-redaccion-posterior",
+			documento: conRedaccion("  fecha_vigencia: \"20200206\"\n"),
+			leida: leida(cambiadaLaRedaccion(delArticulo118, func(r *RedaccionFechadaEsperada) {
+				r.FechaVigencia = fechaDelArticulo118Vigente
+			})),
+		},
+		{
+			// La forma de la eval (b): ese día el bloque no tenía redacción vigente.
+			nombre:    "sin-redaccion-vigente",
+			documento: conRedaccion("  vigente_desde: \"20180309\"\n"),
+			leida: leida(cambiadaLaRedaccion(delArticulo118, func(r *RedaccionFechadaEsperada) {
+				r.VigenteDesde = fechaDeLaRedaccionOriginal
+			})),
+		},
+		{
+			// Sin redaccion_fechada, el comando con fecha se lee igual.
+			nombre:    "comando-con-fecha-sin-redaccion-fechada",
+			documento: activa + comandoConFecha + citaDelBloqueConFecha,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Comandos: []ComandoEsperado{{
+					Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118, Fecha: "2019-06-01",
+				}},
+				Citas: []CitaEsperada{{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}},
+			},
+		},
+		{
+			// Cada rama del oneOf falla por su not: la primera, por vigente_desde,
+			// y la segunda, por fecha_vigencia.
+			nombre:    "fecha-vigencia-con-vigente-desde",
+			documento: conRedaccion("  fecha_vigencia: \"20180309\"\n  vigente_desde: \"20180309\"\n"),
+			error: nombreDeEval + ": " + enLaRedaccionFechada + "'not' failed\n" +
+				enLaRedaccionFechada + "'not' failed",
+		},
+		{
+			nombre:    "sin-fecha-vigencia-ni-vigente-desde",
+			documento: conRedaccion(""),
+			error: nombreDeEval + ": " + enLaRedaccionFechada + "missing property 'fecha_vigencia'\n" +
+				enLaRedaccionFechada + "missing property 'vigente_desde'",
+		},
+		{
+			// La segunda rama falla también por posterior.
+			nombre: "posterior-sin-fecha-vigencia",
+			documento: conRedaccion("  posterior:\n    fecha_vigencia: \"20200206\"\n" +
+				"    norma_modificadora: BOE-A-2020-1651\n"),
+			error: nombreDeEval + ": " + enLaRedaccionFechada + "'not' failed\n" +
+				enLaRedaccionFechada + "missing property 'fecha_vigencia'\n" +
+				enLaRedaccionFechada + "missing property 'vigente_desde'",
+		},
+		{
+			nombre: "posterior-con-vigente-desde",
+			documento: conRedaccion("  vigente_desde: \"20180309\"\n  posterior:\n    fecha_vigencia: \"20200206\"\n" +
+				"    norma_modificadora: BOE-A-2020-1651\n"),
+			error: nombreDeEval + ": " + enLaRedaccionFechada + "'not' failed\n" +
+				enLaRedaccionFechada + "'not' failed\n" +
+				enLaRedaccionFechada + "missing property 'fecha_vigencia'",
+		},
+		{
+			nombre:    "posterior-sin-su-norma",
+			documento: conRedaccion("  fecha_vigencia: \"20180309\"\n  posterior:\n    fecha_vigencia: \"20200206\"\n"),
+			error:     nombreDeEval + ": redaccion_fechada/posterior, línea 17: missing property 'norma_modificadora'",
+		},
+		{
+			nombre: "posterior-con-otra-norma",
+			documento: conRedaccion("  fecha_vigencia: \"20180309\"\n  posterior:\n    fecha_vigencia: \"20200206\"\n" +
+				"    norma_modificadora: Ley 9/2017\n"),
+			error: nombreDeEval + ": redaccion_fechada/posterior/norma_modificadora, línea 18: " +
+				"'Ley 9/2017' does not match pattern '^BOE-A-[0-9]{4}-[0-9]{1,9}$'",
+		},
+		{
+			nombre: "fecha-del-comando-sin-guiones",
+			documento: activa + "comandos:\n  - applet: boe\n    norma: BOE-A-2017-12902\n    bloque: a1-30\n" +
+				"    fecha: \"20190601\"\n" + citaDelBloqueConFecha,
+			fragmentos: []string{"comandos/0/fecha, línea 7: '20190601' does not match pattern " + diaDelEsquema},
+		},
+		{
+			nombre: "fecha-del-comando-sin-ceros",
+			documento: activa + "comandos:\n  - applet: boe\n    norma: BOE-A-2017-12902\n    bloque: a1-30\n" +
+				"    fecha: \"2019-6-1\"\n" + citaDelBloqueConFecha,
+			fragmentos: []string{"comandos/0/fecha, línea 7: '2019-6-1' does not match pattern " + diaDelEsquema},
+		},
+		{
+			nombre: "fecha-esperada-sin-guiones",
+			documento: activa + comandoConFecha + citaDelBloqueConFecha + "redaccion_fechada:\n" +
+				"  norma: BOE-A-2017-12902\n  bloque: a1-30\n  fecha: \"20190601\"\n  fecha_vigencia: \"20180309\"\n",
+			error: nombreDeEval + ": redaccion_fechada/fecha, línea 14: '20190601' does not match pattern " +
+				diaDelEsquema,
+		},
+		{
+			nombre:    "fecha-de-vigencia-con-guiones",
+			documento: conRedaccion("  vigente_desde: \"2018-03-09\"\n"),
+			fragmentos: []string{
+				"redaccion_fechada/vigente_desde, línea 15: '2018-03-09' does not match pattern " + fechaDelEsquema,
+			},
+		},
+		{
+			nombre: "fecha-en-un-comando-de-otra-forma",
+			documento: activa + "comandos:\n  - applet: boe\n    verbo: indice\n    norma: BOE-A-2017-12902\n" +
+				"    fecha: \"2019-06-01\"\n" + citaDelBloqueConFecha,
+			fragmentos: []string{"comandos/0, línea 4: additional properties 'fecha' not allowed"},
+		},
+		{
+			nombre: "fecha-en-el-grafo-previo",
+			documento: activa + "grafo_previo:\n  grabaciones: lcsp-redaccion-cambiada\n  comandos:\n" +
+				"    - applet: boe\n      norma: BOE-A-2017-12902\n      bloque: a1-30\n      fecha: \"2019-06-01\"\n" +
+				comandoConFecha + citaDelBloqueConFecha,
+			error: nombreDeEval + ": grafo_previo/comandos/0, línea 6: additional properties 'fecha' not allowed",
+		},
+		{
+			nombre:    "en-una-eval-que-no-activa-la-skill",
+			documento: preguntaConFecha + "activa: false\n" + redaccionFechadaDel118 + "  fecha_vigencia: \"20180309\"\n",
+			error:     nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre: "en-una-eval-sin-binario-ni-servidor",
+			documento: activa + sinBinarioNiServidor + redaccionFechadaDel118 +
+				"  fecha_vigencia: \"20180309\"\n",
+			error: nombreDeEval + ": línea 1: 'not' failed",
+		},
+		{
+			nombre: "sin-la-fecha",
+			documento: activa + comandoConFecha + citaDelBloqueConFecha + "redaccion_fechada:\n" +
+				"  norma: BOE-A-2017-12902\n  bloque: a1-30\n  fecha_vigencia: \"20180309\"\n",
+			error: nombreDeEval + ": " + enLaRedaccionFechada + "missing property 'fecha'",
+		},
+		{
+			nombre:    "con-otra-clave",
+			documento: conRedaccion("  fecha_vigencia: \"20180309\"\n  avisos: [derogada]\n"),
+			error:     nombreDeEval + ": " + enLaRedaccionFechada + "additional properties 'avisos' not allowed",
+		},
+	})
+}
+
+// cambiadaLaRedaccion es una copia de la redacción fechada esperada con los
+// cambios aplicados.
+func cambiadaLaRedaccion(
+	redaccion RedaccionFechadaEsperada, cambiar func(*RedaccionFechadaEsperada),
+) RedaccionFechadaEsperada {
+	cambiar(&redaccion)
+
+	return redaccion
 }
 
 // TestEsquemaDeEval comprueba que el esquema publicado del formato común de eval
@@ -2164,8 +2400,9 @@ func evalPositiva(comando, cita map[string]any) map[string]any {
 // boe.ValidarNorma y boe.ValidarBloque sobre los casos límite de data-model
 // (cabecera; control 10 del plan). En eval.yaml.json lo comprueba en cada sitio
 // del formato donde va el valor —el comando de bloque, el de consulta de norma,
-// desde H7.1 el de comprobación, la cita y, desde H7.4, la redacción
-// modificada—, con una eval que solo puede fallar por ese valor: la misma eval con
+// desde H7.1 el de comprobación, la cita, desde H7.4, la redacción modificada y,
+// desde H20, la redacción fechada y la norma modificadora de su posterior—, con
+// una eval que solo puede fallar por ese valor: la misma eval con
 // un valor válido se lee sin error. En normas.yaml.json lo comprueba en el único
 // sitio donde va una norma, el nombre de cada entrada de normas, con una tabla
 // que solo puede fallar por ese nombre, y exige que cada rechazo sea el defecto
@@ -2190,6 +2427,15 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 			documento["redacciones_modificadas"] = []any{map[string]any{
 				"norma": norma, "bloque": bloque, "fecha_vigencia": "20180309", "fecha_vigencia_reciente": "20200206",
 			}}
+
+			return documento
+		}
+		conRedaccionFechada := func(norma, bloque, modificadora string) map[string]any {
+			documento := evalPositiva(comandoDeBloque(normaValida, bloqueValido), cita(normaValida, bloqueValido))
+			documento["redaccion_fechada"] = map[string]any{
+				"norma": norma, "bloque": bloque, "fecha": "2019-06-01", "fecha_vigencia": "20180309",
+				"posterior": map[string]any{"fecha_vigencia": "20200206", "norma_modificadora": modificadora},
+			}
 
 			return documento
 		}
@@ -2224,6 +2470,12 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 					{nombre: "redacción modificada", documento: func(valor string) map[string]any {
 						return conRedaccionModificada(valor, bloqueValido)
 					}},
+					{nombre: "redacción fechada", documento: func(valor string) map[string]any {
+						return conRedaccionFechada(valor, bloqueValido, normaValida)
+					}},
+					{nombre: "norma modificadora de la redacción posterior", documento: func(valor string) map[string]any {
+						return conRedaccionFechada(normaValida, bloqueValido, valor)
+					}},
 				},
 			},
 			{
@@ -2240,6 +2492,9 @@ func TestGramaticasCoincidenConBoe(t *testing.T) {
 					}},
 					{nombre: "redacción modificada", documento: func(valor string) map[string]any {
 						return conRedaccionModificada(normaValida, valor)
+					}},
+					{nombre: "redacción fechada", documento: func(valor string) map[string]any {
+						return conRedaccionFechada(normaValida, valor, normaValida)
 					}},
 				},
 			},

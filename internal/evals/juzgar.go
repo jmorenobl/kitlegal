@@ -26,9 +26,20 @@ const (
 	codigoLimiteOTos         = 5
 )
 
+// codigoNoEncontrado es el código estable de lo pedido que no existe, 3. Con
+// --fecha es la respuesta del binario sobre ese día —el bloque no tenía
+// redacción vigente—, no un fallo de la fuente, así que una lectura con fecha
+// que termina con él cumple su comando (contracts/evals-redaccion-fechada.md
+// §1.1 de H20; research D12; FR-051).
+const codigoNoEncontrado = 3
+
 // verboArticulos es el otro verbo, junto a articulo, con el que se lee un bloque
 // esperado: pide varios bloques de una norma (data-model §6.1).
 const verboArticulos = "articulos"
+
+// banderaDeLaFecha es la bandera de articulo con la que se pide la redacción de
+// un día, sin sus guiones (H20 FR-001).
+const banderaDeLaFecha = "fecha"
 
 // Principio de los motivos por los que una eval no pasa (data-model §10.2). El de
 // la sesión sin terminar lo fija el contrato job-de-evals §5; los de un comando,
@@ -989,9 +1000,11 @@ func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
 }
 
 // satisface dice si la invocación satisface el comando esperado (data-model
-// §6.1 de H5 y de H6): tiene que consultar, terminar con código 0 y ser del mismo
-// applet; y, según la forma del comando, en la forma bloque, leer ese bloque de
-// esa norma; en la consulta de norma, ser el mismo verbo con esa norma; en la
+// §6.1 de H5 y de H6): tiene que consultar, terminar con un código que el
+// comando admite (consultoComoPide) y ser del mismo applet; y, según la forma
+// del comando, en la forma bloque, leer ese bloque de esa norma en su fecha o,
+// sin ella, en la de hoy (leeElBloque); en la consulta de norma, ser el mismo
+// verbo con esa norma; en la
 // búsqueda, ser buscar con cada término como palabra de sus argumentos; en el
 // comando de territorio, ser resolver con el municipio como argumento; y en la
 // comprobación, ser check (contrato evals-y-skill §2 de H7) y, si el comando
@@ -1001,7 +1014,7 @@ func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
 // calcular, ser calcular con su tipo (pideElPlazo; contracts/evals-legal-core.md
 // §1 de H9).
 func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
-	if !consultoConExito(invocacion) || invocacion.Applet != comando.Applet {
+	if !consultoComoPide(invocacion, comando) || invocacion.Applet != comando.Applet {
 		return false
 	}
 
@@ -1009,7 +1022,7 @@ func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
 
 	switch formaDelComando(comando) {
 	case formaBloque:
-		satisfecho = leeElBloque(invocacion, comando.Norma, comando.Bloque)
+		satisfecho = leeElBloque(invocacion, comando)
 	case formaConsultaDeNorma:
 		satisfecho = invocacion.Verbo == comando.Verbo && esDeLaNorma(invocacion, comando.Norma)
 	case formaBusqueda:
@@ -1033,24 +1046,103 @@ func compruebaLaMemoria(invocacion Invocacion, norma string) bool {
 	return invocacion.Verbo == verboCheck && (norma == "" || esDeLaNorma(invocacion, norma))
 }
 
-// consultoConExito dice si la invocación consultó y terminó con código 0: ni
-// --describe ni --dry-run, que no leen nada, ni la que quedó sin código.
-func consultoConExito(invocacion Invocacion) bool {
-	return invocacion.Consulta && invocacion.Codigo != nil && *invocacion.Codigo == 0
+// consultoComoPide dice si la invocación consultó y terminó con un código que
+// el comando admite: ni --describe ni --dry-run, que no leen nada, ni la que
+// quedó sin código. Todo comando admite el 0, y el de bloque con fecha, también
+// el 3 (codigoNoEncontrado).
+func consultoComoPide(invocacion Invocacion, comando ComandoEsperado) bool {
+	if !invocacion.Consulta || invocacion.Codigo == nil {
+		return false
+	}
+
+	switch *invocacion.Codigo {
+	case 0:
+		return true
+	case codigoNoEncontrado:
+		return comando.Fecha != ""
+	default:
+		return false
+	}
 }
 
-// leeElBloque dice si la invocación es articulo o articulos de la norma con el
-// bloque entre los que pide.
-func leeElBloque(invocacion Invocacion, norma, bloque string) bool {
-	return (invocacion.Verbo == verboArticulo || invocacion.Verbo == verboArticulos) &&
-		esDeLaNorma(invocacion, norma) && slices.Contains(invocacion.Argumentos[1:], bloque)
+// leeElBloque dice si la invocación lee el bloque de la norma del comando de
+// bloque (contracts/evals-redaccion-fechada.md §1.1 de H20; research D12;
+// FR-051), con sus argumentos leídos por lecturaDeLosArgumentos: con fecha,
+// articulo con la norma, el bloque y --fecha con ese día; sin ella, articulo o
+// articulos con la norma y el bloque entre los que pide, sin --fecha.
+func leeElBloque(invocacion Invocacion, comando ComandoEsperado) bool {
+	lectura := lecturaDeLosArgumentos(invocacion.Argumentos)
+
+	if len(lectura.dePosicion) == 0 || lectura.dePosicion[0] != comando.Norma ||
+		!slices.Contains(lectura.dePosicion[1:], comando.Bloque) {
+		return false
+	}
+
+	if comando.Fecha != "" {
+		return invocacion.Verbo == verboArticulo && lectura.conFecha && lectura.fecha == comando.Fecha
+	}
+
+	return (invocacion.Verbo == verboArticulo || invocacion.Verbo == verboArticulos) && !lectura.conFecha
+}
+
+// lecturaDeUnBloque son los argumentos de una invocación de articulo o de
+// articulos, leídos por lecturaDeLosArgumentos.
+type lecturaDeUnBloque struct {
+	// dePosicion son los argumentos de posición, en su orden: la norma y sus
+	// bloques.
+	dePosicion []string
+
+	// fecha es el valor de --fecha, y conFecha dice si la lleva.
+	fecha    string
+	conFecha bool
+}
+
+// lecturaDeLosArgumentos separa de los argumentos de una invocación de articulo
+// o de articulos la bandera --fecha —con su valor en el argumento siguiente o
+// pegado con «=», en cualquier sitio, también tras el terminador— de los de
+// posición; si va más de una vez, vale la última, como para el binario. El
+// terminador, el primer «--» suelto, no es un argumento de posición: el binario
+// lo quita, y una llamada a una herramienta ya llega sin él
+// (argumentosDeLaLlamada). Los dos verbos no tienen otra bandera propia, e
+// InterpretarInvocacion ya quitó las globales.
+func lecturaDeLosArgumentos(argumentos []string) lecturaDeUnBloque {
+	var lectura lecturaDeUnBloque
+
+	terminado := false
+
+	for posicion := 0; posicion < len(argumentos); posicion++ {
+		argumento := argumentos[posicion]
+
+		if argumento == terminadorDeLaLlamada && !terminado {
+			terminado = true
+
+			continue
+		}
+
+		escrita, valor, conIgual := strings.Cut(argumento, "=")
+		if escrita != prefijoDeBandera+banderaDeLaFecha {
+			lectura.dePosicion = append(lectura.dePosicion, argumento)
+
+			continue
+		}
+
+		if !conIgual && posicion+1 < len(argumentos) {
+			posicion++
+			valor = argumentos[posicion]
+		}
+
+		lectura.fecha, lectura.conFecha = valor, true
+	}
+
+	return lectura
 }
 
 // esDeLaNorma dice si la norma es el primer argumento de la invocación. Los
-// verbos de una norma y los de sus bloques la reciben siempre en primer lugar y no
-// tienen banderas propias (internal/app/boe.go), como graph check, que la recibe
-// delante de sus bloques (internal/app/grafo.go), e InterpretarInvocacion ya quitó
-// las globales.
+// verbos de una norma la reciben siempre en primer lugar y no tienen banderas
+// propias (internal/app/boe.go), como graph check, que la recibe delante de sus
+// bloques (internal/app/grafo.go), e InterpretarInvocacion ya quitó las
+// globales. Los de sus bloques, que desde H20 tienen --fecha, los lee
+// lecturaDeLosArgumentos.
 func esDeLaNorma(invocacion Invocacion, norma string) bool {
 	return len(invocacion.Argumentos) > 0 && invocacion.Argumentos[0] == norma
 }
@@ -1129,8 +1221,9 @@ func ordenDeLaInvocacion(invocacion Invocacion) string {
 
 // textoDelComando es el comando esperado con el texto con el que lo presentan el
 // informe y los motivos (contrato job-de-evals §5), según su forma: bloque
-// <applet> <norma> <bloque> en la forma bloque, que satisfacen dos verbos;
-// <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
+// <applet> <norma> <bloque> en la forma bloque, que satisfacen dos verbos, con
+// su fecha detrás si la lleva (contracts/evals-redaccion-fechada.md §1.1 de
+// H20); <applet> <verbo> <norma> en la consulta de norma; <applet> buscar <términos…> en
 // la búsqueda; <applet> resolver <municipio> en el comando de territorio; y
 // <applet> check en la comprobación (contrato evals-y-skill §1 de H7), seguido de
 // su norma si la lleva (contrato evals-y-skill §2 de H7.1); en los dos de cita,
@@ -1143,6 +1236,9 @@ func textoDelComando(comando ComandoEsperado) string {
 	switch formaDelComando(comando) {
 	case formaBloque:
 		partes = []string{"bloque", comando.Applet, comando.Norma, comando.Bloque}
+		if comando.Fecha != "" {
+			partes = append(partes, comando.Fecha)
+		}
 	case formaConsultaDeNorma:
 		partes = []string{comando.Applet, comando.Verbo, comando.Norma}
 	case formaBusqueda:
