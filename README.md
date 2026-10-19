@@ -65,8 +65,9 @@ autonómico y su boletín provincial no están configurados, en lugar de inventa
 
 ## Instalar sin terminal
 
-Es la instalación oficial de kitlegal, y está probada en la **app de escritorio de Claude en macOS**. En Windows los
-pasos son los mismos y nadie los ha probado ([Otras instalaciones, sin probar](#otras-instalaciones-sin-probar)).
+Es la instalación oficial de kitlegal, y está probada en la **app de escritorio de Claude en macOS y en Windows**
+(Windows 10, con el plugin ya en la cuenta; lo que falta por probar en Windows está en
+[Otras instalaciones, sin probar](#otras-instalaciones-sin-probar)).
 
 Es una sola pieza, el plugin de kitlegal, y no hay que descargar nada:
 
@@ -166,9 +167,13 @@ Así se haría en cada uno de estos, y nadie lo ha probado: lo que sigue sale de
 documentación de cada programa. Si lo intentas, cuéntanos si te funciona o qué falla, en
 [las incidencias](https://github.com/jmorenobl/kitlegal/issues) o en `info@kitlegal.es`.
 
-- **El plugin en Windows**: los dos pasos de [Instalar sin terminal](#instalar-sin-terminal), en la app de
-  escritorio de Claude para Windows. El plugin lleva ya el programa para Windows, que funciona en un Windows de
-  prueba; lo que nadie ha probado es instalarlo en la app.
+- **Instalar el plugin desde cero en Windows**: los dos pasos de [Instalar sin terminal](#instalar-sin-terminal), en
+  la app de escritorio de Claude para Windows. El plugin funciona en esa app (probado en Windows 10, con el plugin
+  llegado desde la cuenta); lo que nadie ha probado es añadir el marketplace o subir el zip en Windows, qué dicen
+  SmartScreen o el antivirus de un equipo de empresa, que pueden bloquear el programa porque no lleva firma de
+  Windows, y Windows 11.
+- **Claude Code en Windows**, con el programa instalado con Scoop. La orden con la que las skills leen y comprueban
+  un artículo usa `&&`, que Windows PowerShell 5.1 no tiene.
 
 - **La app de escritorio de ChatGPT y Codex**, con el programa instalado
   ([Instalar con la terminal](#instalar-con-la-terminal)). Codex lee las skills de `.agents/skills/` cuando abres el

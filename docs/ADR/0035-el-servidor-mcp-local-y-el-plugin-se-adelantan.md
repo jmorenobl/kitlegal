@@ -251,6 +251,16 @@ Lo que cambia con ello:
 Siguen sin probar la instalación en Windows, el plugin con la extensión dentro en Windows, y la actualización de una
 extensión instalada suelta.
 
+## Prueba en Windows (2026-10-18)
+
+Jorge abrió la app de escritorio de Claude en un Windows 10 con su cuenta, con la v0.6.1. El plugin llegó sincronizado
+desde la cuenta, con la extensión dentro; en una conversación de chat, `boe-legislacion` se cargó y respondió con las
+herramientas del servidor, el `kitlegal.exe` de la extensión (`docs/USO.md`, entrada del 2026-10-18). Con ello, la
+app de escritorio de Claude en Windows pasa a soportada, como en macOS: la regla de este ADR es que lo probado pasa a
+soportado. Siguen sin probar instalar desde cero en Windows (añadir el marketplace o subir el zip), SmartScreen y el
+antivirus o la política de un equipo de empresa, con un `kitlegal.exe` sin firma de Windows, y Windows 11. El
+pendiente 4 queda resuelto en lo que pedía, que la app cargue en Windows el servidor del `.mcpb`.
+
 ## Pendiente de verificar (pasa a la aceptación humana de H22)
 
 1. Un `.mcpb` y un zip descargados de verdad con un navegador, en un Mac distinto del que compiló el binario. Si

@@ -14,6 +14,11 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **La app de escritorio de Claude en Windows pasa a soportada.** Probada el 2026-10-18 en Windows 10 con la v0.6.1:
+  el plugin llegó desde la cuenta y `boe-legislacion` respondió con las herramientas del servidor (`docs/USO.md`).
+  README, `/instalar/` y el pie de la web dejan de dar Windows por «sin probar» y nombran lo que falta: instalar desde
+  cero en Windows, SmartScreen y el antivirus de un equipo de empresa, Windows 11 y Claude Code en Windows. No cambia
+  el binario ni las skills.
 - **Un intento de una tarea que corta el límite de uso no cuenta para su cuarentena** (workflow `hito` 2.9.2). En H9,
   los tres intentos de T015 chocaron con el límite de uso de la cuenta sin que el modelo llegara a responder, y la
   tarea entró en cuarentena sin haber fallado. Ahora, cuando el límite corta `implementar_tarea`,
