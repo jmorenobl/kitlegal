@@ -21,11 +21,12 @@ import (
 
 // Las formas esperadas que el mensaje de «argumentos» nombra para cada entrada
 // fuera de su gramática (data-model.md §5, contrato errores-y-codigos §2, filas
-// 2 y 3).
+// 2 y 3; la fecha, contrato articulo-fecha §3, primera fila).
 const (
 	formaDeLaNorma = "BOE-A-<año>-<número>"
 	formaDelBloque = "de 1 a 64 caracteres, el primero letra o dígito ASCII y los demás letras, " +
 		"dígitos, guiones o puntos"
+	formaDeLaFecha = "un día AAAA-MM-DD del calendario"
 )
 
 // TestValidarNorma fija la gramática de la norma, ^BOE-A-[0-9]{4}-[0-9]{1,9}$,
@@ -153,6 +154,54 @@ func TestValidarBloque(t *testing.T) {
 			}
 
 			compruebaArgumentosInvalidos(t, err, caso.bloque, formaDelBloque)
+		})
+	}
+}
+
+// TestValidarFecha fija la forma de --fecha: un día AAAA-MM-DD, con sus ceros,
+// que existe en el calendario, lo que time.Parse(time.DateOnly, …) acepta y nada
+// más. Lo demás —el día que no existe, el 29 de febrero de un año que no es
+// bisiesto, los ceros que faltan, otro separador, la hora, el espacio delante,
+// la cadena vacía y el mes trece— es «argumentos», con el mensaje del contrato
+// articulo-fecha §3 (FR-005; research D3, M5).
+func TestValidarFecha(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+		fecha  string
+		valida bool
+	}{
+		{nombre: "un día cualquiera", fecha: "2019-06-01", valida: true},
+		{nombre: "29 de febrero de un año bisiesto", fecha: "2016-02-29", valida: true},
+		{nombre: "un día del siglo pasado", fecha: "1985-04-22", valida: true},
+		{nombre: "el último día que admite", fecha: "9999-12-31", valida: true},
+		{nombre: "día que no existe", fecha: "2019-02-30"},
+		{nombre: "29 de febrero de un año que no es bisiesto", fecha: "2015-02-29"},
+		{nombre: "mes y día sin ceros", fecha: "2019-6-1"},
+		{nombre: "día sin cero", fecha: "2019-06-1"},
+		{nombre: "sin guiones", fecha: "20190601"},
+		{nombre: "con barras", fecha: "2019/06/01"},
+		{nombre: "con hora", fecha: "2019-06-01T00:00:00"},
+		{nombre: "espacio delante", fecha: " 2019-06-01"},
+		{nombre: "vacía", fecha: ""},
+		{nombre: "mes trece", fecha: "2019-13-01"},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			err := boe.ValidarFecha(caso.fecha)
+			if caso.valida {
+				require.NoError(t, err)
+
+				return
+			}
+
+			compruebaArgumentosInvalidos(t, err, caso.fecha, formaDeLaFecha)
+			assert.Equal(t, fmt.Sprintf("la fecha %q no es un día AAAA-MM-DD del calendario, como 2019-06-01",
+				caso.fecha), err.Error())
 		})
 	}
 }

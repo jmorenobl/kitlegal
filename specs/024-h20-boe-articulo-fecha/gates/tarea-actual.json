@@ -1,14 +1,15 @@
 {
-  "id": "T003",
-  "texto": "T003 [US1] El lector del bloque guarda todas sus versiones (plan.md paso 3; data-model §2; research D4, M1). `bloqueLeido` gana `versiones []versionLeida`, en el orden de la respuesta del BOE, cada una con los mismos campos que hoy da la última —`fecha_publicacion` (la `fecha_version` de la salida), `fecha_vigencia`, `id_norma` y su texto normalizado igual que hoy— (`internal/source/boe/bloque.go`); lo que el lector da hoy para la última no cambia, ni la entrada de hoy, ni la salida sin fecha (FR-012). **Tests**: `TestLeerBloque` (`internal/source/boe/bloque_test.go`) gana las versiones de los tres bloques de research M1 sobre lo grabado de H4 —nueve en el `a22` de `BOE-A-1985-5392`, con sus fechas de publicación y de vigencia y sus normas escritas a mano en el test, y las del `a1-30` de `BOE-A-2017-12902` y del `a21` de `BOE-A-2015-10565`— y la lista vacía de una respuesta sin versiones construida en el test; lo que esperaba hoy, igual. **Verificación**: `go test -count=1 -run '^(TestLeerBloque|TestGolden|TestArticulo)$' ./internal/source/boe/` `ok`, con los trece golden de hoy sin cambiar; `make ci` en verde — FR-002, FR-010, FR-012. Rutas: internal/source/boe/bloque.go",
+  "id": "T004",
+  "texto": "T004 [US1] `ValidarFecha` (plan.md paso 4; contracts/articulo-fecha.md §3, primera fila; research D3, M5). En `internal/source/boe/ids.go`, junto a `ValidarNorma` y `ValidarBloque`: `ValidarFecha(fecha string) error` acepta solo un día `AAAA-MM-DD` que existe en el calendario, con `time.Parse(time.DateOnly, …)` y nada más, y su fallo es `errorDeArgumentos` con el mensaje `la fecha \"<valor>\" no es un día AAAA-MM-DD del calendario, como 2019-06-01`. **Tests**: `TestValidarFecha` (nuevo, `internal/source/boe/ids_test.go`), las formas de research M5: válidas `2019-06-01`, `2016-02-29`, `1985-04-22` y `9999-12-31`; inválidas `2019-02-30`, `2015-02-29`, `2019-6-1`, `2019-06-1`, `20190601`, `2019/06/01`, `2019-06-01T00:00:00`, ` 2019-06-01`, la cadena vacía y `2019-13-01`, cada una con su clase (`cli.Clasificar`: `argumentos`), su código (`cli.CodigoSalida`: 2) y su mensaje. **Verificación**: con el mutante «la cadena vacía aceptada», `TestValidarFecha` falla (revertido); `make ci` en verde — FR-005. Rutas: internal/source/boe/ids.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "ab24dcc45b811abe17f2c1af578e3e243b4fc834",
+  "base": "35554c63fddd026b13079f4dfc9b2a4bbf4ac772",
   "rutas": [
-    "internal/source/boe/",
-    "internal/source/boe/bloque.go",
-    "internal/source/boe/bloque_test.go",
+    "2019/06/01",
+    "contracts/articulo-fecha.md",
+    "internal/source/boe/ids.go",
+    "internal/source/boe/ids_test.go",
     "plan.md"
   ],
   "cierre": false,
