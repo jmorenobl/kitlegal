@@ -1,0 +1,109 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "plan.md «Constitution Check»: una fila por principio I-IX y por regla R1-R6, con su forma de cumplirla; Complexity Tracking vacío y sin desviaciones. Lo que dice se sostiene en el código: la lectura fechada pide por el Pedidor de la invocación (R2), la entrada nueva va por core.Cache (R3), aplicar.go solo lee un bool del Consolidado (R6), los 3 nuevos usan errorDeNoEncontrado y la fecha errorDeArgumentos (internal/source/boe/errores.go:137,145). La fila V se queda corta al enumerar lo exportado (ver observaciones), sin que eso cambie el diseño."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Technical Context y research V2: solo dependencias de la lista fijada (kong, invopop/jsonschema v0.14.0, santhosh-tekuri/jsonschema, go-sdk, modernc sqlite, go-internal, testify, yaml.v3) y time del estándar; ninguna nueva."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "Project Structure y tabla R1-R6: core/schema, core y core/grafo solo ganan un campo bool y su copia; la elección va al adaptador (D1); internal/graph lee SoloLoNuevo de grafo.Consolidado sin importar source/* (comprobado: aplicarConsolidado y tablaDelGrafo.aplicar en internal/graph/aplicar.go:274-293 y :380-406); ningún os.Exit, net/http, SQLite ni escritura a stdout nuevos; la salida legible es la tabla de render (internal/render/tabla.go:44,115, aplanado por rutas)."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "data-model §8 y contracts/articulo-fecha.md §3: fecha mal escrita → errorDeArgumentos, 2, antes de abrir nada (ValidarFecha tras ValidarNorma y ValidarBloque, como articulo.go:37-44); fecha anterior a la primera vigencia y bloque no situable → errorDeNoEncontrado, 3, con mensajes que se distinguen entre sí y del 3 de un bloque que no está en la norma; --offline sin la entrada → 4; la fila de FR-004 elegida y razonada contra 4 y 1 (research D7)."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": false,
+      "evidencia": "Nombra los seis guiones congelados con su historia y sus requisitos, los diez tests nuevos, los que cambian, ningún fixture nuevo y las tareas [datos]. Pero FR-007 («la fuente que no responde o limita el ritmo» con --fecha da lo mismo que sin ella) y FR-082 (e2e de los códigos de FR-007) quedan sin ningún test nombrado para la lectura fechada con la fuente caída, con el límite de ritmo o con los metadatos caídos: fecha-codigos.txtar cubre solo el 2 de norma o bloque mal formados, el 3 de a9999 y --dry-run, y la fila «FR-005, FR-007» de Controles de umbral apunta solo a TestValidarFecha y a ese guion."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": false,
+      "evidencia": "Nada del plan está fuera del spec (articulos, analisis, el diff entre versiones, la derogación en la fecha, otras skills, .github/ y evals.yml, fuera). Pero deja fuera lo que FR-061 pide: contracts/documentos.md y las «Obligaciones para tasks.md» dicen que docs/WORKFLOW.md no cambia, y docs/WORKFLOW.md:139 dice «en `boe-legislacion` deciden nueve» con la lista de los que deciden, que con FR-054 y FR-056 pasan a once."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Constraints y obligaciones: ningún //nolint, t.Skip, test desactivado, TODO ni error silenciado; los tests que cambian lo hacen con el dato nuevo de una lista, sin perder lo que comprobaban; ningún umbral se cumple cambiando su valor, su decide o su total (FR-071)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research D1-D22, cada una con su alternativa rechazada y el porqué: la elección en el adaptador y no en core; *string frente a string (el 2 de la fecha vacía); time.Parse frente a una expresión regular o al lector de plazos; ArticuloFechado embebido frente a tocar Articulo (cambiaría articulos, FR-070); una entrada por bloque con todas las versiones frente a una por fecha (no serviría la segunda lectura de FR-045 ni la caché de las evals); SoloLoNuevo frente a emitir sin marca, a excluir la arista de Lecturas o a una relación nueva (D9, que comprobé: partidaSinFila elige la redacción vista por last_seen de las versiones enlazadas, aplicar.go:348-369, y una refusión la cambiaría); el umbral en el informe frente a sumarlo a la serie."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": false,
+      "evidencia": "Comprobé en esta sesión: V12 (invopop reflect.go:508-516 y :1061-1071, el struct embebido sin etiqueta se hereda); V17-V19 (aplicar.go y comprobar.go:170-323); V23-V24 (juzgar.go:571-600, :1003-1056: hoy satisface exige código 0 y una llamada con bandera lleva --<bandera>=<valor> delante de la norma); V29 (conjunto.go:222-234, máximo 21); V35 (frontmatter.go:53 y :438, runas; la description del prototipo tiene 1 023 caracteres y la de main 1 018); la precondición stdout '--fecha' (go-internal v1.16.0 testscript/cmd.go:662-676); M4 (jq sobre las 31 grabaciones de texto/bloque de las tres raíces: 51 versiones, todas con fecha_vigencia AAAAMMDD; solo a9999, 404, sin versiones; las tres de lo grabado con los valores del golden); M6 (worktree desacoplado en /tmp/claude con el prototipo y la fila de main: los siete tests de make skills-check en verde, retirado después); S1 recalculado: 485 + (22+22+2)×272 + 60 + (72+72+4)×40 = 18 977 s. Pero research D21 y contracts/documentos.md afirman de docs/WORKFLOW.md «No nombra … el número de sus umbrales (comprobado con grep en esta sesión)», y docs/WORKFLOW.md:139 nombra que en boe-legislacion «deciden nueve» y cuáles."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "Ejecuté en esta sesión §3 (TestEntregaDelMontador en verde; los de internal/graph aún sin tests, como dice), §4 (TestEntregaDelHito/^h20- sin tests hoy, como dice) y la orden de §5 (go run … --describe: $defs DatosError, boe.Articulo y boe.Aviso, sin fecha), con el árbol igual después (git status: solo specs/024-…). §7 declara su efecto (la entrada en .git/worktrees, retirada con git worktree remove) y no deja mutantes en el árbol; §9 y §10 no son tareas."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "«Datos externos» y research D22: ninguno; lo grabado de H4 tiene los tres bloques con todas sus versiones (comprobado con jq: a22 nueve, a1-30 dos, a21 una) y la caché de las evals los une con H5 y H9 (internal/evals/grabaciones.go:64-66); la fuente boe.legislacion-consolidada tiene fila revisada (docs/SOURCES.md:42); nada se escribe a mano en data/ ni en testdata/."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea pide a una persona ni publica o mide en la plataforma: los mutantes en un árbol aparte bajo $TMPDIR, el job de evals lo lanza el workflow tras la revisión final, y SC-003 queda para después del run (quickstart §9, §10; obligaciones de tasks.md)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Rehecho: el sobre fechado del a1-30 son 2 226 B de data (1 688 de texto, 119 de los dos campos nuevos) más ~290 del sobre, ~2,5 KB; por pregunta, una lectura fechada por bloque, dos con un año o un mes, y como mucho una sin fecha con su graph check: < 8 KB por bloque, y el mayor de las evals (a17 de BOE-A-2006-20764, 37,5 KB con cuatro versiones) da el texto de una sola. Ninguna lectura consulta lo acumulado, así que con cientos de normas y miles de bloques leídos hace semanas el tamaño es el mismo. El 3 de FR-003, ~250 B; las líneas A, B y C, una cada una y solo con fecha; la entrada de versiones, una por bloque leído con fecha (3,8-37,6 KB), que ninguna skill lee y no da señales; la BloqueVersion fechada no es redacción vista, así que nunca da version-obsoleta ni fuente-caducada; el umbral, dos elementos de ~450 B y un motivo < 0,5 KB que deja de darse en el primer job sin sesiones que cuenten. Cada señal tiene su condición de apagado (redaccion_posterior desde la última vigencia)."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "«Trazabilidad»: cada mecanismo con su FR (Fecha *string → FR-001/FR-005; versiones y elección → FR-002 a FR-004, FR-013; ArticuloFechado → FR-010/FR-012; la entrada de versiones → FR-020 a FR-022 y FR-053; SoloLoNuevo → FR-030/FR-031, con la vía real de D9; fechadas.go, el umbral y su caso en nombradasPorSuSesion → FR-041/FR-043/FR-054/FR-055; --fecha 9999-12-31 en ConsultasNecesarias → FR-053; los tests de FR-004 los pide el propio requisito). Ningún mecanismo para un estado bajo el umbral: la vigencia ilegible cae en la misma condición que la ausente, sin caso ni test; la entrada manipulada a mano es la regla genérica."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Recorrí cada fila: los dos redaccion_sin_fechar:claude-sonnet-5-5:<modo> con decide true (FR-054); los nueve que ya decidían en boe-legislacion, los once de jurisprudencia y los seis de legal-core, cotejados con specs/023-h9-internal-core-plazos/gates/evals/*.json (jq); ninguno con decide false (FR-088); y una fila ci: por cada umbral de make ci (SC-004 a SC-011, FR-050 con TestDefinicionDelJob, FR-048 con skills-check, FR-053 con el subtest grabado de TestEvalsDelRepositorio, FR-090/SC-008 con los tests que ven cada mutante). Con una sesión que cuenta, el umbral 1 de 6 pone el veredicto en fallo y el trabajo en rojo, que cuenta medir_cierre; en make ci lo hace TestUmbralesDeBoeLegislacion, y el mutante del decide lo ve fallar. red, sin juzgar y sin medir los hace cumplir el veredicto del job de hoy, configuración que el hito no toca."
+    }
+  ],
+  "motivos": [
+    "[f][i] FR-061 y SC-012 piden corregir docs/WORKFLOW.md donde lo que dice de los umbrales de boe-legislacion quede falso o incompleto, y el plan lo deja fuera con una afirmación que no se sostiene: research D21 y contracts/documentos.md («No nombra `boe articulo`, el formato de las evals de `boe-legislacion` ni el número de sus umbrales (comprobado con `grep` en esta sesión): no cambia») y la obligación de tasks.md («comprueba `docs/WORKFLOW.md` sin cambiarlo»). docs/WORKFLOW.md:139 dice «en `boe-legislacion` deciden nueve: por cada modo, `sin_activar:<modelo>:<modo>`, `duracion_de_las_sesiones:<modo>` y `duracion_del_juez:<modo>`; `afirma_lo_no_leido:<modelo>`…; y los dos de la medida versionada del juez». Vía: el hito añade `redaccion_sin_fechar:<modelo>:<modo>` con `decide: true` en los dos modos (FR-054, FR-056); diferencia: el documento que lee la persona queda falso (deciden once), y SC-012 exige 0 afirmaciones falsas. Cambiar: en contracts/documentos.md, una sección `docs/WORKFLOW.md` con ese pasaje (once, y por cada modo también `redaccion_sin_fechar:<modelo>:<modo>`, sin reescribir lo demás, FR-062); en research D21, lo mismo; y en las obligaciones de tasks.md, que la tarea de los documentos declara y cambia docs/WORKFLOW.md.",
+    "[e] FR-007 exige que con --fecha «la fuente que no responde o limita el ritmo» dé lo mismo que la lectura sin fecha, y FR-082 pide comprobar los códigos de FR-007; el plan solo cubre de FR-007 el 2 de norma o bloque mal formados, el 3 de a9999 y --dry-run (fecha-codigos.txtar), y ningún test ni guion nombrado ejercita una lectura fechada con la fuente caída (4), con el límite de ritmo (5) o con los metadatos caídos tras obtener el bloque. Vía: el BOE responde con un fallo o con 429, o cae la petición de metadatos, en una lectura fechada real; diferencia: si la entrada `versiones` (D8: se escribe «tras pedir el bloque y sus metadatos») quedara escrita antes del fallo, o el fallo se tradujera por otro camino, la lectura sale con otro código, o una fechada posterior con --offline sale con 0 y sin avisos en lugar de 4, lo que H4 prohíbe para la lectura sin fecha (TestFallosNoSeGuardan, internal/source/boe/fuente_test.go:822-880). Cambiar: añadir casos con `ConsultaArticulo{…, Fecha}` a TestFallosNoSeGuardan (o a TestArticuloEnUnaFecha) con `testdata/sintetico/metadatos-caidos/` y `bloque-ilegible/` y con respuestas de fuente caída y de límite de ritmo construidas en el test, como las de FR-004, que comprueben el mismo código y la misma clase que sin --fecha y que la entrada de las versiones no queda escrita (la fechada con --offline después sale con 4); nombrarlos en «Tests nuevos» o en «Tests y guiones existentes que cambian», en «Trazabilidad» y en la fila «FR-005, FR-007» de «Controles de umbral»."
+  ],
+  "observaciones": [
+    "D5: con ArticuloFechado, la definición de la salida de `boe articulo` en --describe pasa de `boe.Articulo` a `boe.ArticuloFechado` (y gana `boe.RedaccionPosterior`); FR-012 dice que --describe cambia «solo por la bandera nueva y los campos nuevos». Ningún consumidor lee el nombre de la definición (la tabla de la skill lee las propiedades; el esquema de la herramienta es autocontenido), así que no hay diferencia para una persona o una skill, pero conviene que el plan registre esa lectura de FR-012 para que no la vuelva a abrir la revisión final.",
+    "D4 y data-model §3 eligen «la última, en el orden del bloque, cuya fecha de vigencia no es posterior», y FR-002 dice «la de mayor fecha_vigencia que no es posterior». Coinciden en lo grabado: las 31 respuestas de texto/bloque tienen las versiones en orden creciente de fecha_vigencia y de fecha_publicacion (comprobado con jq), y la nota [5] ya da por hecho ese orden; escribir la regla como en FR-002 (la de mayor fecha de vigencia, y en un empate la última) cuesta lo mismo y quita la duda.",
+    "ValidarFecha se exporta «como ValidarNorma», pero ValidarNorma y ValidarBloque se exportan porque los usan internal/app/grafo.go:228 e internal/evals/grabaciones.go:175; el plan no da a ValidarFecha ningún llamador fuera del paquete.",
+    "La fila V del Constitution Check enumera como superficie exportada nueva un tipo, una función y dos campos; también entran RedaccionPosterior, Consolidado.SoloLoNuevo, ComandoEsperado.Fecha, Eval.RedaccionFechada, RedaccionFechadaEsperada, LineaFechada y ExtraerRedaccionesFechadas, que «Trazabilidad» sí traza.",
+    "fecha-herramienta.txtar se describe como «mcp serve anuncia boe_articulo»; FR-084 pide que anuncie el parámetro `fecha`. La primera tarea escribe la suite desde el spec, pero la fila del plan podría decirlo.",
+    "Otros tests leen las evals del repositorio y pueden notar las dos nuevas sin que el plan los nombre (TestJuzgarSinLaLista y TestJuzgarLasEvalsSinHallazgos en juzgar_test.go, umbrales_test.go:1296, sondeo_test.go:1031, consulta_repetida_test.go:38, preparar_test.go:594): la tarea de las evals debería revisarlos antes de declarar sus rutas.",
+    "La eval 19 («Hace tiempo te pregunté qué exige el artículo 118 … ¿Qué dice ahora?») tiene que seguir leyéndose sin fecha con la regla nueva del hecho sin día; lo mide su serie en el job (S2), no el plan.",
+    "README.md:322-325 («Pronto: citas verificadas … o al que estaba vigente en la fecha que importa») sigue siendo de H8 —resolver una cita en lenguaje natural—, como dice contracts/documentos.md; la frase nueva de «Qué sabe hacer tu agente» no debería contradecirla."
+  ]
+}

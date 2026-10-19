@@ -1,0 +1,84 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "La tabla de «Criterios del hito, literales» lleva cada pieza del hito a sus FR. Entrega (1): FR-001 a FR-007, FR-010 a FR-014, FR-020 a FR-022 y FR-030 a FR-032. Entrega (2): FR-051 y FR-052. Entrega (3): FR-040 a FR-049. Entrega (4): FR-050 y FR-053 a FR-059. Entrega (5): FR-060 a FR-063. «Lo que no cambia» y «El cierre»: FR-070 y FR-071. Controles: FR-080 a FR-091. Aceptación: SC-001 a SC-003. «Al cerrar»: FR-092. El año o el mes sin día, que el hito deja al plan, lo cierra FR-045 (Q4) dentro de las dos salidas que admite el hito («pidiendo el día, o con la fecha que la pregunta da a entender diciéndolo»). Ningún requisito sale del hito, y lo manipulado desde fuera remite a la regla genérica («Edge Cases», último punto)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«Fuera de alcance» transcribe literales los siete puntos del hito y añade lo que el hito no especifica: un verbo o una salida con todas las versiones; usar la lectura fechada tras un `version-obsoleta`; `--fecha` en `legal-core`, `plazos` o `jurisprudencia`; más evals y cualquier cambio de `evals.yml`; una fila nueva de `docs/SOURCES.md` o grabaciones nuevas; las `instructions` del servidor MCP; la viñeta de `CLAUDE.md`; un ADR nuevo y la release. No hay `pkg/` en el repositorio (ls), así que tampoco hay API pública que quede sin declarar."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": false,
+      "evidencia": "Q1 está en FR-004 y en los Edge Cases. Q3, en FR-041 y en los Edge Cases («sin que el binario mire el reloj»). Q4, en FR-045 y en los Edge Cases. Q2, en FR-054 y en FR-089, que gana el caso de la eval (a) sin la línea de la posterior. Pero SC-010 sigue contando «sus ocho casos de sesiones sintéticas y el de los elementos de `umbrales`: 9 de 9», que son los de FR-089 antes de Q2: hoy FR-089 enumera nueve casos, separados por punto y coma, y el test de `umbrales`. Las cuatro respuestas llevan `conservadora: false`, así que no hay lectura conservadora que acotar."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "Los ocho Controles y la Aceptación están literales, y cada Control tiene su FR medible: el golden de FR-081 (seis casos con versión, código y fechas; SC-004, 0 diferencias); los e2e de FR-082 a FR-084; el golden de `--describe` de FR-085; el grafo en FR-086 (SC-006); la caché en FR-087 (SC-007); «Controles de umbral» en FR-088; los tests sintéticos en FR-089; los mutantes en FR-090 (SC-008, 5 de 5); el CHANGELOG y el job en FR-091. La Aceptación está en SC-001: el umbral nuevo con 0 de 6 por modo, `afirma_lo_no_leido` con como mucho 3 de 120, `sin_activar` con 0 de 60, las series con sus citas y sus avisos, la medida del juez, los 900 s, ninguna respuesta «sin juzgar», el veredicto aprobado y `red` vacío. También en SC-002 y en SC-003, que es humano y queda fuera del run. US1 a US5 van en Dado/Cuando/Entonces."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "Se mantienen el sobre y el contrato de resultados («Se queda»; 2 en FR-005, 3 en FR-003, 4 en FR-020). FR-006 pide el mismo recurso y la misma fila de `docs/SOURCES.md`, sin grabaciones. En el grafo, la `Procedencia` va como `source`, el contrato `Applet` no cambia y ningún texto sale del grafo (FR-030, FR-031). `references/` sigue generada y `SKILL.md` por debajo de 300 líneas (FR-048). Lo que comprueba un guion va sin modelo y con 0 (FR-054, ADR 0038). La tasa del juez sigue en 0,028 (FR-058): con 120 respuestas admite 3, porque 0,028 × 120 = 3,36. El modelo, las repeticiones y la regla de 2 de 3 no cambian («Se queda»). No hay sesiones de evals dentro del run (FR-072) y `evals.yml` no se toca (FR-059)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": false,
+      "evidencia": "«Requirements are testable and unambiguous» está marcado, pero quedan los huecos y las contradicciones de los motivos de h: FR-049; US1.2 frente a FR-054; FR-040 frente a FR-046; SC-010 frente a FR-089. La nota de «Success criteria are measurable» da a SC-010 «su cifra», y esa cifra no cuadra con FR-089. Las demás marcas son ciertas: no queda ningún marcador NEEDS CLARIFICATION (grep: 0), las secciones obligatorias están y cada Edge Case remite a su FR."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "El spec deja al plan los nombres de los campos nuevos (FR-010), la forma del mensaje de FR-003, la fila de FR-004, cómo se guarda (FR-022) y cómo se emite (FR-030, FR-031) la lectura fechada, las claves de las evals (FR-051, FR-052), el nombre y el orden del umbral (FR-054, FR-056) y el texto de las formas fijas (FR-048). Los nombres de código que cita existen (grep en esta sesión: `articuloDelBloque` en `internal/source/boe/articulo.go:234`, `Consolidado.Lecturas` en `internal/core/grafo/lecturas.go:31`, `TestDefinicionDelJob` en `internal/evals/definicion_test.go:196`, `GrabacionesDeH4/H5/H9` en `internal/evals/grabaciones.go`), y los nombra el hito o el contrato."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": false,
+      "evidencia": "Las fechas del golden de FR-081 y de las evals cuadran con lo grabado (grep en esta sesión). El `a22` trae nueve versiones; la de 20080430, de `BOE-A-2007-18874`, se publicó el 20071031. El `a1-30` trae 20180309 (`BOE-A-2017-12902`) y 20200206 (`BOE-A-2020-1651`). El `a21` se publicó el 20151002 y está vigente desde el 20161002. Las cifras de `umbrales` del cierre de H9 también cuadran (jq): 13 elementos con 9 que deciden, 6 con 6 y 15 con 11. Quedan cuatro defectos: FR-049 manda restringir a la lectura sin fecha una regla que sigue siendo cierta con la fechada; US1.2 y FR-054 piden cosas distintas en la línea de la posterior; FR-040 y FR-046 dan dos lecturas a una pregunta que sitúa la fecha por un hecho sin dar el día; y SC-010 cuenta ocho casos donde FR-089 enumera nueve."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": false,
+      "evidencia": "La tabla «Uso, de fuera adentro» traza cada salida. La lectura fechada va al paso de FR-040, con su tamaño: el texto de una versión, unos 0,8 KB y unos 100 B; la respuesta grabada del `a17`, con todas sus versiones, son 38 353 B (ls). El 3 de FR-003 va a la línea de FR-043. El `BloqueVersion` no da señales (FR-031). El umbral ocupa menos de 0,5 KB por motivo y se apaga en el primer job en que ninguna sesión cuenta. Pero la primera fila dice «una vez por bloque que necesita la respuesta», y la tercera, «una vez por respuesta y bloque leído con fecha», y FR-045 (Q4), con un año o un mes sin día, hace dos lecturas fechadas del bloque y pone la línea de cada una."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral tiene su comprobación: FR-048, menos de 300 líneas, con `make skills-check`. FR-050, 352 minutos, con `TestDefinicionDelJob` y su subtest «tope-con-las-evals-del-repositorio». FR-047, `sin_activar` con 0, que decide. FR-054, 0 por modo: «el veredicto es `fallo` y el job de evals de `boe-legislacion` sale en rojo». FR-056 y SC-009, 15 y 11, con un test de `make ci`. FR-058, como mucho 3 de 120, con `afirma_lo_no_leido:<modelo>`, que decide. FR-059, 900 s, con `duracion_de_las_sesiones` y `duracion_del_juez`, que deciden. SC-001, con el job en rojo por cada condición. SC-004 a SC-007 y SC-011, con el golden, los e2e, los tests y `make skills-check` en `make ci`. SC-008, SC-010 y SC-012 no los mide `make ci` ni el cierre, sino una tarea o una lectura: quedan fuera de j."
+    }
+  ],
+  "motivos": [
+    "[h] FR-049 cuenta entre lo que «deja de ser cierto con la lectura fechada» «que ninguna lectura trae el fin de una redacción», y manda corregirlo «para que valga para la lectura sin fecha». Con la lectura fechada sigue siendo cierto. FR-010 da de la redacción posterior la fecha de vigencia de la redacción de hoy, y esa fecha es el fin de la citada solo si no hay versiones entre medias. Con lo grabado: el art. 22 de la LRBRL el 2005-06-15 (FR-081) cita la de 20040101 y da como posterior la de 20151031 (`BOE-A-2015-11723`), pero la de 20040101 la sustituyó la de 20070701 (`BOE-A-2007-10701`), y después vinieron 20080430 y 20080627. Vía: cualquier pregunta con fecha sobre un bloque de tres o más versiones en que la citada no es la penúltima, como el caso de 2005 del golden de FR-081. Diferencia: con el `SKILL.md` que pide FR-049, «Hasta cuándo, nunca» (paso 5) solo vale sin fecha, y la respuesta puede decir que la redacción de 2004 rigió hasta el 31 de octubre de 2015; con la regla para las dos lecturas, no da ningún fin. Qué cambiar: quitar de FR-049 «y que ninguna lectura trae el fin de una redacción», y decir en FR-041 que la respuesta no da hasta cuándo rigió la redacción citada ni presenta la fecha de vigencia de la posterior como su fin, porque puede haber versiones entre las dos.",
+    "[h] El escenario 2 de US1 pide en la línea de la redacción posterior «20200206 y el Real Decreto-ley 3/2020». FR-041 y FR-054 piden la norma modificadora «tal como la da el binario», es decir, `BOE-A-2020-1651`: lo dicen US1.1 y lo grabado del `a1-30` (`id_norma=\"BOE-A-2020-1651\"`). El binario no da la forma legible, y lo grabado no tiene los metadatos de `BOE-A-2020-1651`: ningún fichero de los conjuntos de `GrabacionesDeH4/H5/H9` lleva ese identificador en el nombre (ls). Leerla en la sesión pediría red (FR-053), y escribirla sería escribirla de memoria. Vía: las sesiones de la eval (a); el guion de FR-054 y el test de US1.2 salen de los dos textos. Diferencia: una línea con «Real Decreto-ley 3/2020» y sin el identificador pasa US1.2 y cuenta en FR-054, y el job sale en rojo; una con `BOE-A-2020-1651` y sin el nombre, al revés. Qué cambiar: alinear US1.2 con FR-041 y FR-054, de modo que la línea lleve `20200206` y `BOE-A-2020-1651` tal como los da el binario. SC-003, que es humano, queda como lo escribe el hito.",
+    "[h] FR-040 trata «cuando se dictó la resolución» como una pregunta con fecha, que se lee con `--fecha`. FR-046 manda leer sin `--fecha` cuando la pregunta no tiene fecha. Y FR-045 solo resuelve el año o el mes sin día. Una pregunta que sitúa el momento por un hecho que ni ella ni la conversación fechan («¿qué exigía el art. 118 de la LCSP cuando se adjudicó mi contrato?») cae en los dos. Vía: la pregunta de una persona. Diferencia: con FR-046, la respuesta cita la redacción de hoy, sin ninguna línea de FR-041; con FR-040, no hay fecha que darle al binario. Lectura conservadora, con lo que el hito ya admite («pidiendo el día»): si ni la pregunta ni la conversación dan la fecha del hecho, la skill pide el día y no lee ni cita ninguna redacción como la de ese momento. Decirlo en FR-040, o junto a FR-045, y acotar FR-046 a las preguntas que no nombran otro momento que hoy.",
+    "[c][h] SC-010 cuenta «sus ocho casos de sesiones sintéticas y el de los elementos de `umbrales`: 9 de 9». FR-089, tras Q2 («FR-089 gana un caso sintético»), enumera nueve casos de sesiones sintéticas y el test de `umbrales`: diez. Corregir SC-010 a «sus nueve casos de sesiones sintéticas y el de los elementos de `umbrales`: 10 de 10».",
+    "[i] La primera fila de «Uso, de fuera adentro» dice «una vez por bloque que necesita la respuesta», y la tercera, «una vez por respuesta y bloque leído con fecha». Pero FR-045 (Q4), con un año o un mes sin día, hace dos lecturas fechadas del bloque y pone en la respuesta la línea de FR-041 o de FR-043 de cada una. Cálculo por bloque: 2 lecturas fechadas × (texto de una versión + unos 0,9 KB de objeto, sobre y campos nuevos), y una lectura sin fecha más si la respuesta dice qué dice hoy (FR-042). Son hasta 3 salidas por bloque, cada una del tamaño de una versión; la respuesta grabada más grande, el `a17` de `BOE-A-2006-20764` con todas sus versiones, son 38 353 B. La respuesta lleva hasta dos líneas por bloque, y nada crece con lo acumulado. Qué cambiar: añadir a esas dos filas el caso de FR-045, con su recuento.",
+    "[f] En `checklists/requirements.md`, desmarcar «Requirements are testable and unambiguous» hasta resolver los motivos de h, y corregir la nota de «Success criteria are measurable», que da a SC-010 una cifra que no cuadra con FR-089."
+  ],
+  "observaciones": [
+    "FR-004 deja al plan la fila del fallo de un bloque sin versiones o con una versión sin `fecha_vigencia`, y el spec no dice qué responde la skill ante él. FR-043 solo cubre el 3 de FR-003, y con la regla 2 la skill diría «no está en la norma» o «la fuente no estaba disponible», según la fila. Lo grabado no tiene ninguna versión sin fecha de vigencia; el plan tendría que fijar esa respuesta junto con la fila.",
+    "El paso 3 de `skills/boe-legislacion/SKILL.md` dice «Lee cada bloque una sola vez por pregunta: una segunda lectura del mismo bloque apagaría su línea», y FR-042 y FR-045 leen un bloque más de una vez. La cláusula general de FR-049 lo cubre, porque la razón deja de ser cierta con la lectura fechada (FR-031), pero su lista de ejemplos no lo nombra.",
+    "La `description` de `boe-legislacion` tiene hoy unos 1 018 caracteres (medido con wc -m), y `internal/skills/frontmatter.go` (`maximoDeLaDescripcion`, 1024) la limita en `make ci`. Para que gane las preguntas con fecha (FR-047) hay que reescribirla, no añadirle texto; lo verá el plan.",
+    "SC-008 y SC-010 dan como control «en `make ci`», pero el recuento de los mutantes y de los casos cubiertos lo comprueban la tarea de FR-090 y la revisión, leyendo. No es un umbral que mida `make ci`.",
+    "El comentario de `.github/workflows/evals.yml` (línea 162) dice que cada skill con juez lleva «trece umbrales, nueve que deciden». Ya no vale para `jurisprudencia` (15 y 11), no valdrá para `boe-legislacion`, y FR-059 prohíbe tocar el fichero. Es solo un comentario.",
+    "En FR-022, «con su fecha de consulta» no dice si es la guardada o la de la invocación; se sigue la convención de `--offline` de H3.",
+    "FR-045 compara las dos lecturas por `fecha_vigencia` y `norma_modificadora`. Dos versiones con las dos iguales no se distinguirían, pero ninguna respuesta grabada las tiene.",
+    "Las entradas de «Clarifications» llevan «(auto: …)» al final y no como prefijo, como en los specs anteriores."
+  ],
+  "entrada": []
+}
