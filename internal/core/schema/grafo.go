@@ -14,6 +14,12 @@ type Observado struct {
 	// Vigencia es la que la fuente declara para la consulta. Cero significa
 	// que no la declara (FR-065).
 	Vigencia time.Duration
+	// SoloLoNuevo dice que lo observado se añade al grafo solo donde no está:
+	// un nodo, una arista o un texto que el grafo ya guarda queda como estaba.
+	// Es lo que observa una lectura fechada, que no es una lectura del bloque
+	// y no cambia lo que se sabe de lo que ya se vio (H20 FR-031; research.md
+	// D9). Falso, lo observado se fusiona con lo guardado, como siempre.
+	SoloLoNuevo bool
 	// Operaciones son lo observado, en el orden en que el applet las declara.
 	Operaciones []Operacion
 }

@@ -39,6 +39,9 @@ type Lote struct {
 	// Vigencia es la de Observado. Cero significa que la fuente no la declara
 	// (FR-065).
 	Vigencia time.Duration
+	// SoloLoNuevo es el de Observado: con él, el grafo guarda solo lo que no
+	// tiene y deja como está lo que ya tiene (H20 FR-031).
+	SoloLoNuevo bool
 	// Operaciones son las de Observado, en su orden.
 	Operaciones []schema.Operacion
 }

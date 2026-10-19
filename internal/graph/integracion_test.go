@@ -170,6 +170,23 @@ func loteDeLaRedaccion(url, fecha, fechaDeVigencia, cuerpo string) core.Lote {
 	)
 }
 
+// loteDeLaLecturaFechada es el de boe articulo a21 --fecha con la fecha de
+// consulta dada que elige la redacción de esa fecha de vigencia y ese cuerpo, con
+// la forma que emite boe (H20 contracts/articulo-fecha.md §6): la BloqueVersion
+// y su texto, sin la norma, sin el bloque y sin ninguna arista, y con
+// SoloLoNuevo.
+func loteDeLaLecturaFechada(fecha, fechaDeVigencia, cuerpo string) core.Lote {
+	lote := loteDelBOE(urlDelBloque, fecha,
+		schema.Nodo{ID: laVersion(fechaDeVigencia, cuerpo), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: fechaDeVigencia, grafo.DatoHashTexto: huellaDe(cuerpo),
+		}},
+		schema.Texto{Huella: huellaDe(cuerpo), Cuerpo: cuerpo},
+	)
+	lote.SoloLoNuevo = true
+
+	return lote
+}
+
 // laVersion es el id de la BloqueVersion del bloque a21 de esa fecha de
 // vigencia y ese cuerpo, con la forma que emite boe.
 func laVersion(fechaDeVigencia, cuerpo string) string {
@@ -1520,6 +1537,111 @@ func TestIntegracionGrafoDeH7(t *testing.T) {
 	}}, versionesObsoletasEn(t, directorio), "la lectura de C supera a la de B")
 
 	compruebaEsquemaCreado(t, directorio)
+}
+
+// TestIntegracionLecturaFechada fija H20 FR-031 y SC-006 por la API pública
+// (research.md D9; contracts/articulo-fecha.md §6): el lote de una lectura
+// fechada no es una lectura. En un world.db con fila de lecturas del bloque y en
+// el de H7, sin ella, con fuente-caducada y, donde hay fila, version-obsoleta
+// entre sus hallazgos, la fila de lecturas y lo que da graph check son los
+// mismos tras el lote, sea la versión elegida una nueva o una que ya estaba
+// guardada —la que vio la última lectura o la anterior—; y la siguiente lectura
+// sin fecha deja la fila y da el graph check que dejaría y daría sin el lote.
+func TestIntegracionLecturaFechada(t *testing.T) {
+	t.Parallel()
+
+	const (
+		// Las fechas de consulta de las lecturas de A y de B, que caducan antes
+		// de ahora, y las de la lectura fechada y la lectura sin fecha que la
+		// sigue, que no.
+		fechaDeA       = "2026-09-01T12:00:00Z"
+		fechaDeB       = "2026-09-02T12:00:00Z"
+		fechaDeLaFecha = "2026-09-29T12:00:00Z"
+		fechaSiguiente = "2026-09-30T12:00:00Z"
+		// ahora es el instante de graph check.
+		ahora = "2026-10-01T00:00:00Z"
+
+		// cuerpo2020 es el de una redacción intermedia que ninguna lectura vio.
+		cuerpo2020 = "Texto del bloque a21 en su versi\xc3\xb3n de 2020"
+	)
+
+	leidaA := loteDeLaRedaccion(urlDelBloque, fechaDeA, "20161002", cuerpo2016)
+	leidaB := loteDeLaRedaccion(urlDelBloque, fechaDeB, "20250101", cuerpo2025)
+	siguiente := loteDeLaRedaccion(urlDelBloque, fechaSiguiente, "20250101", cuerpo2025)
+
+	mundos := []struct {
+		nombre string
+		// preparar deja el mundo en un directorio vacío.
+		preparar func(t *testing.T, directorio string)
+		// obsoletas son las version-obsoleta que da graph check en él: la de A,
+		// superada por B, si el bloque tiene fila, y ninguna si no la tiene.
+		obsoletas int
+	}{
+		{"con fila de lecturas del bloque", func(t *testing.T, directorio string) {
+			t.Helper()
+			grafoEntregado(t, directorio, leidaA, leidaB)
+		}, 1},
+		{"sin fila de lecturas, el mundo de H7", func(t *testing.T, directorio string) {
+			t.Helper()
+			comoLoDejabaH7(t, grafoEntregado(t, directorio, leidaA, leidaB))
+		}, 0},
+	}
+
+	fechadas := []struct {
+		nombre string
+		lote   core.Lote
+	}{
+		{"de una versión nueva", loteDeLaLecturaFechada(fechaDeLaFecha, "20200101", cuerpo2020)},
+		{"de la versión que vio la última lectura", loteDeLaLecturaFechada(fechaDeLaFecha, "20250101", cuerpo2025)},
+		{"de la versión anterior", loteDeLaLecturaFechada(fechaDeLaFecha, "20161002", cuerpo2016)},
+	}
+
+	for _, mundo := range mundos {
+		for _, fechada := range fechadas {
+			t.Run(mundo.nombre+", "+fechada.nombre, func(t *testing.T) {
+				t.Parallel()
+
+				sinElLote, conElLote := t.TempDir(), t.TempDir()
+				mundo.preparar(t, sinElLote)
+				mundo.preparar(t, conElLote)
+
+				antes := leerElGrafo(t, conElLote)
+				comprobacion := comprobacionEn(t, antes, ahora)
+				require.Equal(t, mundo.obsoletas, comprobacion.VersionObsoleta, "premisa: las version-obsoleta del mundo")
+				require.Equal(t, 3, comprobacion.FuenteCaducada,
+					"premisa: la norma, el bloque y su redacción vista caducaron antes de ahora")
+
+				entregar(t, conElLote, fechada.lote)
+
+				tras := leerElGrafo(t, conElLote)
+				assert.Equal(t, antes.instantanea.Lecturas, tras.instantanea.Lecturas, "la fila de lecturas no cambia")
+				assert.Equal(t, comprobacion, comprobacionEn(t, tras, ahora), "graph check da lo mismo que antes del lote")
+
+				entregar(t, sinElLote, siguiente)
+				entregar(t, conElLote, siguiente)
+
+				sinElLoteTras, conElLoteTras := leerElGrafo(t, sinElLote), leerElGrafo(t, conElLote)
+				assert.Equal(t, sinElLoteTras.instantanea.Lecturas, conElLoteTras.instantanea.Lecturas,
+					"la siguiente lectura sin fecha deja la fila que dejaría sin el lote")
+				assert.Equal(t, comprobacionEn(t, sinElLoteTras, ahora), comprobacionEn(t, conElLoteTras, ahora),
+					"la siguiente lectura sin fecha da el graph check que daría sin el lote")
+			})
+		}
+	}
+}
+
+// comprobacionEn es lo que da graph check sobre lo leído de un grafo en el
+// instante dado, en RFC 3339.
+func comprobacionEn(t *testing.T, grafoLeido leido, instante string) grafo.Comprobacion {
+	t.Helper()
+
+	ahora, err := time.Parse(time.RFC3339, instante)
+	require.NoError(t, err)
+
+	comprobacion, err := grafo.Comprobar(grafoLeido.instantanea, grafo.Ambito{}, ahora)
+	require.NoError(t, err)
+
+	return comprobacion
 }
 
 // comoLoDejabaH7 devuelve el world.db de la ruta a lo que dejaba H7: sin la

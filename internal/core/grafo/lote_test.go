@@ -340,6 +340,9 @@ func probarLotesConsolidados(t *testing.T) {
 				consolidado.Aristas[i].Vigencia = 0
 			}
 		}},
+		{"solo lo nuevo", func(lote *core.Lote) { lote.SoloLoNuevo = true }, func(consolidado *grafo.Consolidado) {
+			consolidado.SoloLoNuevo = true
+		}},
 	}
 
 	for _, caso := range casos {

@@ -143,6 +143,7 @@ func TestEntregaDelMontador(t *testing.T) {
 		{"el lote lleva la procedencia del sobre presentado", compruebaLoteConLaProcedenciaDelSobre},
 		{"el lote lleva la fecha del reloj cuando la puso el montador", compruebaLoteFechadoPorElReloj},
 		{"LoteDe escribe la fecha como el sobre", compruebaLoteDeEscribeLaFechaComoElSobre},
+		{"el lote lleva SoloLoNuevo del Observado", compruebaLoteConSoloLoNuevo},
 		{"se entrega después de presentar, en las tres formas", compruebaEntregaDespuesDePresentar},
 		{"se entrega con el contexto recibido", compruebaEntregaConElContextoRecibido},
 		{"sin operaciones no se entrega nada", compruebaSinOperacionesNoEntrega},
@@ -265,6 +266,36 @@ func compruebaLoteDeEscribeLaFechaComoElSobre(t *testing.T) {
 			Vigencia:      observadoDePrueba().Vigencia,
 			Operaciones:   observadoDePrueba().Operaciones,
 		}, lote, "fecha %s", fecha)
+	}
+}
+
+// compruebaLoteConSoloLoNuevo exige que el lote que se entrega lleve el
+// SoloLoNuevo del Observado, con él y sin él, y nada más distinto que él: lo
+// observado de una lectura fechada se añade al grafo solo donde no está, y el
+// de cualquier otra consulta entra como hoy (H20 FR-030, FR-031; research.md D9).
+func compruebaLoteConSoloLoNuevo(t *testing.T) {
+	t.Helper()
+
+	for _, soloLoNuevo := range []bool{false, true} {
+		resultado := resultadoQueObserva(procedenciaDelApplet)
+		resultado.Grafo.SoloLoNuevo = soloLoNuevo
+		almacen := &almacenEspia{}
+
+		codigo := emitirConGrafo(t.Context(), &presentadorConJSON{}, true, almacen, resultado, nil)
+
+		require.Equal(t, 0, codigo)
+		require.Len(t, almacen.lotes, 1, "una invocación entrega un solo lote")
+
+		lote := almacen.lotes[0]
+		assert.Equal(t, soloLoNuevo, lote.SoloLoNuevo, "el lote lleva el SoloLoNuevo del Observado")
+		assert.Equal(t, core.Lote{
+			Fuente:        procedenciaDelApplet.Fuente,
+			URL:           procedenciaDelApplet.URL,
+			FechaConsulta: lote.FechaConsulta,
+			Vigencia:      observadoDePrueba().Vigencia,
+			SoloLoNuevo:   soloLoNuevo,
+			Operaciones:   observadoDePrueba().Operaciones,
+		}, lote, "SoloLoNuevo %t no cambia nada más del lote", soloLoNuevo)
 	}
 }
 
