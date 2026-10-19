@@ -1,6 +1,6 @@
 # 0040 · Lo que queda de la fase 1 se ordena por el trabajo de un despacho, y la fase 3 conserva su sitio
 
-- **Estado**: propuesta (2026-10-19)
+- **Estado**: aceptada (2026-10-19)
 - **Fecha**: 2026-10-19
 - **Hito**: ninguno; reordena `docs/ROADMAP.md` detrás de H9. Da número a tres candidatos —H9.1, H27 y H28— y
   completa el ADR 0013 (el orden por tiempo hasta el uso) con una regla para que la fase 3 no se quede detrás del
