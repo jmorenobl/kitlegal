@@ -44,6 +44,7 @@ var guionesDelArbol = []string{
 	"scripts/workflow/modelos.sh",
 	"scripts/workflow/revision.sh",
 	"scripts/workflow/sesion-unica.sh",
+	"scripts/workflow/tarea.sh",
 }
 
 // arbol es un repositorio de git en un directorio temporal con las copias de

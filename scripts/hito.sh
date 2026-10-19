@@ -241,6 +241,10 @@ supervisar() {
     fi
     case "$clase" in
       limite)
+        # El intento de una tarea que corta el límite no cuenta para su cuarentena.
+        case "$(nombre_paso "$paso")" in
+          implementar_tarea|implementar_tarea_escalada|reparar) scripts/workflow/tarea.sh sin-modelo || true;;
+        esac
         fam=$(familia "$detalle"); nuevo=$(sustituto "$fam")
         if [ -z "$nuevo" ]; then
           log "límite de uso en '$paso' con $detalle y sin repuesto para '$fam': espera ${espera_sin_repuesto}s y reanuda con los mismos modelos"
