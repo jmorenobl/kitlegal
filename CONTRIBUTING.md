@@ -969,7 +969,7 @@ deja en `CLAUDE_DEL_JUEZ`, y los votos encuentran el suyo porque su `PATH` lleva
 que tiene juez, `scripts/evals.sh` exige las dos variables y un `CLAUDE_DEL_JUEZ` ejecutable antes de la primera
 sesión; con una sin juez no las mira.
 
-Con las veintiuna evals de `boe-legislacion`, su trabajo abre 198 sesiones, cuatro a la vez: 96 en el modo orden —36
+Con las veintiuna evals de `boe-legislacion`, su trabajo abre 198 sesiones, cinco a la vez desde antes de H20: 96 en el modo orden —36
 de `claude-sonnet-5-5` sobre las doce que deciden, 24 sobre las ocho informativas y 36 de `claude-haiku-4-5-20251001`
 sobre las doce que deciden—, otras 96 en el modo herramienta y 6 de la eval sin binario ni servidor, tres con cada
 modelo; y su juez juzga 111 respuestas: 54, 54 y 3. El de `legal-core`, con nueve evals, abre 102, dos a la vez: 48 en
@@ -985,19 +985,22 @@ sesiones —todas las de su plan, con la de la prueba de red, llegando a su tope
 más la preparación de cada una, la del runner y el informe— es
 `485 s + (⌈N₁ / C⌉ + ⌈N₂ / C⌉ + ⌈N₃ / C⌉) × (22 s + 240 s + 10 s)`, con `N₁`, `N₂` y `N₃` las sesiones de cada una
 de las tres tandas —la del modo orden, con la prueba de red— y `C` su concurrencia (en `boe-legislacion`, 97, 96 y 6
-sesiones a 4: 14 357 s). Con una skill que tiene juez se le suma el de su juez,
+sesiones a 5: 11 909 s). Con una skill que tiene juez se le suma el de su juez,
 `60 s + (⌈R₁ × 6 / C⌉ + ⌈R₂ × 6 / C⌉ + ⌈R₃ × 6 / C⌉) × (35 s + 5 s)`: 60 s de instalar su Claude Code, `R₁`, `R₂`
 y `R₃` las respuestas de cada grupo que juzga, 6 los votos que como mucho pide una respuesta —tres, cada uno con su
 repetición por nulo o por el tope— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 54, 54 y 3 respuestas
-a 4: 81, 81 y 5 tandas de votos, 6 740 s; en total, 21 097 s, 351,6 minutos). El de `jurisprudencia`, con su juez y
+a 5: 65, 65 y 4 tandas de votos, 5 420 s; en total, 17 329 s, 288,8 minutos; a 4, como iba hasta H20, eran 21 097 s,
+351,6 minutos, sin sitio para ninguna eval más, y con dos evals nuevas serían 23 449 s, que el tope no cubre; a 5 caben
+hasta cuatro). El de `jurisprudencia`, con su juez y
 cuatro a la
 vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
 orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
 3 660 s—; de una en una serían 47 857 s, que el tope no cubre. El de `legal-core`, sin juez y dos a la vez, es de
 14 629 s, 243,8 minutos: 49, 48 y 6 sesiones, 52 tandas; de una en una serían 28 501 s, que el tope no cubre. Es un
 cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
-casos etiquetados: en `boe-legislacion`, con 259 a 4, 16 105 s, 268,4 minutos; en `jurisprudencia`, con 249 a 4,
-15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes cambió con H25.
+casos etiquetados: en `boe-legislacion`, con 259 a 5, 12 985 s, 216,4 minutos (a 4 eran 16 105 s, 268,4 minutos); en
+`jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes
+cambió con H25 ni con el paso de `boe-legislacion` a cinco.
 `TestDefinicionDelJob` comprueba en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
@@ -1007,8 +1010,8 @@ cada skill depende de `tanda` y solo corre con `medir=si`; su nombre, el grupo d
 `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` está, con la forma `<n>.<n>.<n>`, y que el paso de instalación instala con ella el
 Claude Code del juez en su prefijo y no el de las sesiones; que el trabajo `medida` repite ese modelo y esa versión,
 tiene exactamente su condición y no depende de ningún otro, y que su matriz lleva las skills de la de `evals` que
-tienen carpeta de juez, en su orden y cada una con la concurrencia de su trabajo `evals` —hoy `boe-legislacion` y
-`jurisprudencia`, a cuatro—; que ni `tanda` ni `evals` nombran `evals-medir-juez` y
+tienen carpeta de juez, en su orden y cada una con la concurrencia de su trabajo `evals` —hoy `boe-legislacion`, a
+cinco, y `jurisprudencia`, a cuatro—; que ni `tanda` ni `evals` nombran `evals-medir-juez` y
 `tanda` no admite el despacho con `medir_al_juez`; que esa entrada está, con `false` por omisión; y que los dos
 topes cubren su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval o un caso nuevos
 que dejan un peor caso por encima de su tope la hacen fallar. Prueba también, con consultas sintéticas y sin red,

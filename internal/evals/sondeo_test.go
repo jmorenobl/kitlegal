@@ -1110,8 +1110,8 @@ func lineasDeLaSalida(lineas ...string) string {
 const valorDeLaSuscripcion = "de-la-base"
 
 // Las skills del repositorio que los tests del sondeo piden: las dos de la
-// matriz del job, con 4 y, desde antes de H9, 2 sesiones a la vez
-// (contracts/ejecucion-del-job.md §7 de H7.3).
+// matriz del job, con 5, desde antes de H20, y 2, desde antes de H9, sesiones a
+// la vez (contracts/ejecucion-del-job.md §7 de H7.3).
 const (
 	skillQueSondea     = "boe-legislacion"
 	otraSkillQueSondea = "legal-core"
@@ -1241,7 +1241,7 @@ func casosDeLosArgumentos() []casoDeComprobarElSondeo {
 			nombre:       "concurrencia-del-job-en-" + skillQueSondea,
 			ajustar:      func(*testing.T, *SondeoAEjecutar) {},
 			pedidas:      []string{"14-trlrhl-impuestos-por-materia.yaml", "03-lrbrl-atribuciones-del-pleno.yaml"},
-			concurrencia: 4,
+			concurrencia: 5,
 		},
 		{
 			nombre: "concurrencia-del-job-en-" + otraSkillQueSondea,
