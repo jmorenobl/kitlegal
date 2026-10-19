@@ -14,7 +14,8 @@ kitlegal boe articulo <norma> <bloque> [--fecha AAAA-MM-DD] [banderas globales]
 - **Herramienta**: `boe_articulo` con `norma`, `bloque` y el parámetro opcional `fecha` (string). Lo genera el
   registro desde el verbo, sin código del servidor (research V14); la llamada es la orden
   `boe articulo --fecha=<fecha> -- <norma> <bloque> --json …` y devuelve su mismo sobre (FR-001, FR-084).
-- **`--describe`**: la entrada gana la propiedad `fecha` (string, con la ayuda de la bandera) y `x-banderas: ["fecha"]`;
+- **`--describe`**: la entrada gana la propiedad `fecha` (`{"type": "string"}`, como el kernel refleja todo argumento: su ayuda
+  llega a `--help`, no al esquema) y `x-banderas: ["fecha"]`;
   la salida, en la rama de `ok: true`, apunta a `boe.ArticuloFechado`, que lleva las doce propiedades de hoy, obligatorias
   como hoy, y `fecha_pedida` y `redaccion_posterior`, opcionales, más la definición `boe.RedaccionPosterior`. El
   `--describe` de `articulos` y los de los demás verbos no cambian (FR-012, FR-070, FR-085). El golden es

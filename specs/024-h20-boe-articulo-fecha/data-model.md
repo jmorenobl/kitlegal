@@ -124,7 +124,7 @@ es una lectura (FR-031).
 | `Posterior` | `posterior` | `{fecha_vigencia: AAAAMMDD, norma_modificadora: BOE-A-…}` | solo con `fecha_vigencia` |
 | `VigenteDesde` | `vigente_desde` | AAAAMMDD | excluye `fecha_vigencia` y `posterior` |
 
-Una eval es **con fecha** si lleva `redaccion_fechada` (`Eval.esConRedaccionFechada`). El esquema la prohíbe en una eval
+Una eval es **con fecha** si lleva `redaccion_fechada` (`esperaUnaRedaccionFechada`, `internal/evals/informe.go`). El esquema la prohíbe en una eval
 con `activa: false` y en la eval sin binario ni servidor (FR-052). `normasEsperadas` no la mira: la norma de
 `posterior` es un dato de la respuesta, no una norma que la eval lea.
 

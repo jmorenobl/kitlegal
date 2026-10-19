@@ -27,12 +27,14 @@ sustituyen a este fichero.
     `--describe`, los lleva.
   - **Códigos.** `2`, `argumentos`, con una fecha que no es un día `AAAA-MM-DD` del calendario; y `3`,
     `no-encontrado`, sin texto, con una fecha anterior a la primera vigencia del bloque, cuyo mensaje nombra la fecha
-    de vigencia de su primera redacción, y, con otro mensaje y sea cual sea el día, si alguna versión del bloque no
-    trae su fecha de vigencia. Lo comprueban `TestArticuloEnUnaFecha` y `TestArticuloEnUnaFechaYLaCache`.
+    de vigencia de su primera redacción, y, con otro mensaje y sea cual sea el día, si el bloque no trae versiones o
+    alguna no trae su fecha de vigencia como un día `AAAAMMDD`. Lo comprueban `TestValidarFecha` y
+    `TestArticuloEnUnaFecha`, y la caché, `TestArticuloEnUnaFechaYLaCache`.
 - **Una lectura fechada no cuenta como lectura del bloque en `graph check`.** `boe articulo --fecha` entrega al grafo
   del mundo solo la `BloqueVersion` de la versión elegida y su texto —ni la norma, ni el bloque, ni ninguna arista—, y
   solo lo que el grafo no guarda ya: no cambia lo que `world.db` sabía ni lo que `graph check` dice de lo leído sin
-  fecha. Lo comprueba `TestObservadoDeBoe`.
+  fecha. Lo que emite lo comprueba `TestObservadoDeBoe`, y lo que queda en `world.db` y en `graph check`,
+  `TestApplySoloLoNuevo`, `TestIntegracionLecturaFechada` y `TestLecturaFechadaEnElGrafo`.
 - **`boe-legislacion` v0.2: la redacción de una fecha.** Con una pregunta con fecha —un día, un año o un mes, o un
   hecho cuyo día dan la pregunta o la conversación—, la skill lee cada bloque con `--fecha`, o con `boe_articulo` y
   `fecha`, sin `graph check`, y cita la redacción vigente ese día con una línea de forma fija: `⚠ REDACCIÓN A FECHA:`,

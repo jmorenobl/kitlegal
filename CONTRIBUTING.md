@@ -424,7 +424,8 @@ con el applet `graph` —`show`, `stats` y `check`, que no escriben nada—, y l
   `territorio resolver`, con los ids naturales (ELI, `ine:<código>`, DIR3) y los tipos y relaciones de
   `internal/core/grafo/vocabulario.go`. `boe articulo --fecha` emite solo la `BloqueVersion` de la versión elegida y
   su texto, con `SoloLoNuevo`, que los añade solo donde el grafo no los guarda ya: no es una lectura del bloque, y ni
-  lo que `world.db` sabía ni lo que dice `graph check` cambian (`TestObservadoDeBoe`).
+  lo que `world.db` sabía ni lo que dice `graph check` cambian (`TestObservadoDeBoe`, `TestApplySoloLoNuevo`,
+  `TestLecturaFechadaEnElGrafo`).
 - **La lógica es dominio**, `internal/core/grafo`: la validación del lote —con el rechazo de un documento de
   identidad en un nodo `Persona`—, la fusión de observaciones, las reglas de `check` y sus explicaciones, sin E/S y
   dentro del umbral de cobertura de `internal/core/**`. **El almacén es un adaptador**, `internal/graph`: SQLite con
