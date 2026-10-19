@@ -217,7 +217,8 @@ func TestTablaDeComandosCoincideConLaGramatica(t *testing.T) {
 			nombre:     "obligatorio-presentado-como-opcional",
 			verbo:      "articulo",
 			argumentos: []string{"bloque"},
-			orden:      "kitlegal boe articulo <norma> [<bloque>]",
+			// Desde H20, la fila de articulo escribe además su bandera --fecha.
+			orden: "kitlegal boe articulo <norma> [<bloque>] [--fecha <fecha>]",
 		},
 		{
 			nombre:     "obligatorio-y-lista-presentados-como-opcionales",

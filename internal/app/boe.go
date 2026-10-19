@@ -111,7 +111,9 @@ func (a appletBoe) Verbos() []Verbo {
 			Nombre:      "articulo",
 			Descripcion: "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia.",
 			Argumentos:  func() Argumentos { return &argumentosDeArticulo{dependencias: a.dependencias} },
-			Salida:      boe.Articulo{},
+			// Con --fecha, la lectura fechada; sin ella, Articulo, sin sus dos
+			// campos opcionales (H20 FR-010, FR-012; research.md D5).
+			Salida: boe.ArticuloFechado{},
 		},
 		{
 			Nombre:      "articulos",
@@ -182,10 +184,14 @@ func (a *argumentosDeUnaNorma) Ejecutar(
 }
 
 // argumentosDeArticulo son los de articulo: la norma y el bloque (contrato
-// verbos-y-salidas §3).
+// verbos-y-salidas §3) y, con --fecha, el día cuya redacción se pide (H20
+// FR-001). Fecha es un puntero: sin la bandera es nil y la lectura es la de
+// hoy, y --fecha "" llega como cadena vacía, que la fuente rechaza con 2
+// (FR-005, FR-012; research.md D2).
 type argumentosDeArticulo struct {
-	Norma  string `arg:"" name:"norma" help:"Identificador de la norma en el BOE: BOE-A-<año>-<número>."`
-	Bloque string `arg:"" name:"bloque" help:"Identificador del bloque en el índice de la norma: a21, da-3…"`
+	Norma  string  `arg:"" name:"norma" help:"Identificador de la norma en el BOE: BOE-A-<año>-<número>."`
+	Bloque string  `arg:"" name:"bloque" help:"Identificador del bloque en el índice de la norma: a21, da-3…"`
+	Fecha  *string `placeholder:"AAAA-MM-DD" help:"Día cuya redacción del bloque se quiere, la que regía ese día, en lugar de la vigente."`
 
 	dependencias DependenciasDeBoe
 }
@@ -193,7 +199,8 @@ type argumentosDeArticulo struct {
 func (a *argumentosDeArticulo) Ejecutar(
 	ctx context.Context, ec schema.Contexto, registrador *slog.Logger,
 ) (schema.Resultado, error) {
-	return consultarBoe(ctx, ec, registrador, a.dependencias, boe.ConsultaArticulo{Norma: a.Norma, Bloque: a.Bloque})
+	return consultarBoe(ctx, ec, registrador, a.dependencias,
+		boe.ConsultaArticulo{Norma: a.Norma, Bloque: a.Bloque, Fecha: a.Fecha})
 }
 
 // argumentosDeArticulos son los de articulos: la norma y uno o más bloques, en
