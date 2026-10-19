@@ -6,6 +6,7 @@
 #   scripts/workflow/tarea.sh fallo              # anota en gates/tarea-Tnnn.md por qué el intento sigue en rojo
 #   scripts/workflow/tarea.sh estado             # ¿se commitea esta iteración? → JSON
 #   scripts/workflow/tarea.sh commit <hito>      # commit feat(<hito>): Tnnn
+#   scripts/workflow/tarea.sh sin-modelo         # el intento en curso lo cortó el límite de uso: no cuenta
 #
 # Ninguno de estos pasos detiene el run por una tarea que no sale: tras tres
 # intentos (o dos iteraciones de cierre que no commitean) la tarea entra en
@@ -23,6 +24,9 @@ mkdir -p "$d/gates"
 intentos="$d/gates/tareas-intentos.json"; [ -f "$intentos" ] || echo '{}' > "$intentos"
 cuarentena="$d/gates/cuarentena.json"; [ -f "$cuarentena" ] || echo '{"tareas":{}, "consecutivas":0}' > "$cuarentena"
 actual="$d/gates/tarea-actual.json"
+# El id de la tarea cuyo intento cortó el límite de uso, para que `siguiente` no lo
+# cuente (lo escribe `sin-modelo`, que llama scripts/hito.sh).
+sin_modelo="$d/gates/intento-sin-modelo"
 max_intentos=3
 max_cierres=2
 max_consecutivas=3
@@ -86,7 +90,7 @@ sin_tarea() { # $1: converger (true|false)
   jq -n --argjson c "$1" '{id:"", texto:"", intento:0, datos:false, aceptacion:false, base:"", rutas:[], cierre:false, converger:$c, nota:"-"}' | tee "$actual"
 }
 
-case "${1:?uso: tarea.sh siguiente <hito> | redelimitada | fallo | estado | commit <hito>}" in
+case "${1:?uso: tarea.sh siguiente <hito> | redelimitada | fallo | estado | commit <hito> | sin-modelo}" in
   siguiente)
     # Reanudar tras un DAG bloqueado es la decisión de seguir: el contador vuelve a cero.
     if jq -e '.bloqueado == true' "$cuarentena" >/dev/null; then
@@ -127,7 +131,16 @@ case "${1:?uso: tarea.sh siguiente <hito> | redelimitada | fallo | estado | comm
         exit 0
       fi
       id=$(printf '%s' "$linea" | grep -oE 'T[0-9]+' | head -1)
-      n=$(contar "$id")
+      # Un intento que cortó el límite de uso no es un intento de la tarea: en H9, los
+      # tres de T015 chocaron con él y la tarea entró en cuarentena sin haber fallado.
+      # El que se repite lleva su número; lo acota el presupuesto de tiempo del run.
+      n=0
+      if [ -f "$sin_modelo" ] && [ "$(cat "$sin_modelo")" = "$id" ]; then
+        n=$(jq -r --arg k "$id" '.[$k] // 0' "$intentos")
+        if [ "$n" -ge 1 ]; then anotar_supuesto "Intento $n de $id cortado por el límite de uso: se repite y no cuenta para la cuarentena."; fi
+      fi
+      rm -f "$sin_modelo"
+      [ "$n" -ge 1 ] || n=$(contar "$id")
       if [ "$n" -gt "$max_intentos" ]; then
         poner_en_cuarentena "$id" "$max_intentos intentos sin quedar en verde"
         continue
@@ -186,6 +199,14 @@ case "${1:?uso: tarea.sh siguiente <hito> | redelimitada | fallo | estado | comm
     git diff --cached --quiet && { echo "tarea $id: nada que commitear"; exit 0; }
     git commit -q -m "feat($hito): $id" -m "$(jq -r .texto "$actual")"
     git log --oneline -1;;
+
+  sin-modelo)
+    # Lo llama el supervisor cuando el límite de uso corta una sesión del intento en
+    # curso (implementar o reparar): sin tarea en curso no hay nada que descontar.
+    id=$(jq -r '.id // ""' "$actual" 2>/dev/null || true)
+    [ -n "$id" ] || exit 0
+    printf '%s\n' "$id" > "$sin_modelo"
+    echo "tarea $id: el límite de uso cortó el intento $(jq -r .intento "$actual"); el siguiente lo repite sin contarlo" >&2;;
 
   *) echo "subcomando desconocido: $1" >&2; exit 2;;
 esac

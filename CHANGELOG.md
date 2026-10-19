@@ -12,6 +12,16 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **Un intento de una tarea que corta el límite de uso no cuenta para su cuarentena** (workflow `hito` 2.9.2). En H9,
+  los tres intentos de T015 chocaron con el límite de uso de la cuenta sin que el modelo llegara a responder, y la
+  tarea entró en cuarentena sin haber fallado. Ahora, cuando el límite corta `implementar_tarea`,
+  `implementar_tarea_escalada` o `reparar`, `scripts/hito.sh` llama a `scripts/workflow/tarea.sh sin-modelo`, y el
+  intento siguiente de esa tarea lleva el mismo número, no la acerca a la cuarentena y queda anotado en
+  `gates/supuestos.md`. Lo acota el presupuesto de tiempo del run, como los demás límites. Lo comprueba
+  `TestUnIntentoCortadoPorElLimiteNoCuenta`.
+
 ## [0.7.0] - 2026-10-19
 
 ### Añadido
