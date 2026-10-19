@@ -1937,8 +1937,11 @@ const (
 // evals/legal-core/ son nueve, bien formadas, cumplen además la regla de la
 // cobertura por materia, y la unión de grabaciones sirve sin red lo que leen del
 // BOE, como las de boe-legislacion (contracts/evals-legal-core.md §4 y §5 de H9;
-// FR-050, FR-052, FR-088). Lee las carpetas enteras, así que ningún fichero de
-// eval se nombra aquí.
+// FR-050, FR-052, FR-088). Desde H20, las consultas de las dos carpetas llevan,
+// junto a cada bloque, su lectura con --fecha 9999-12-31, y la caché se prepara
+// y se comprueba sin red también con ellas (contracts/evals-redaccion-fechada.md
+// §4 de H20; FR-053). Lee las carpetas enteras, así que ningún fichero de eval
+// se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2014,6 +2017,9 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		consultas := ConsultasNecesarias(deLegalCore.Evals)
 		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDeLegalCore)
+
+		// Desde H20, cada bloque con su lectura con --fecha 9999-12-31 (FR-053).
+		exigeLecturasFechadas(t, consultas, evalsDeLegalCore)
 
 		dirCache := t.TempDir()
 
@@ -2116,6 +2122,11 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		consultas := ConsultasNecesarias(conjunto.Evals)
 		require.NotEmpty(t, consultas, "las evals de %s necesitan alguna consulta", evalsDelRepositorio)
+
+		// Desde H20, la caché preparada sirve también la lectura con --fecha
+		// 9999-12-31 de cada bloque, y la unión de grabaciones la sirve sin red
+		// (contracts/evals-redaccion-fechada.md §4 de H20; FR-053).
+		exigeLecturasFechadas(t, consultas, evalsDelRepositorio)
 
 		dirCache := t.TempDir()
 
@@ -3894,4 +3905,36 @@ func presentarFaltas(faltas []Falta) string {
 	}
 
 	return strings.Join(textos, "\n")
+}
+
+// exigeLecturasFechadas exige que las consultas de las evals de la carpeta lean
+// algún bloque y que cada lectura de un bloque sin fecha vaya acompañada de la
+// misma con --fecha 9999-12-31: así, preparar y comprobar sin red su caché es
+// también prepararla y comprobarla para la lectura fechada de cada bloque
+// (contracts/evals-redaccion-fechada.md §4 de H20; research D18; FR-053).
+func exigeLecturasFechadas(t *testing.T, consultas []Consulta, carpeta string) {
+	t.Helper()
+
+	esLecturaDe := func(consulta Consulta, argumentos []string) bool {
+		return consulta.Applet == "boe" && consulta.Verbo == "articulo" && slices.Equal(consulta.Argumentos, argumentos)
+	}
+
+	var bloques, sinLaFechada []string
+
+	for _, consulta := range consultas {
+		if consulta.Applet != "boe" || consulta.Verbo != "articulo" || slices.Contains(consulta.Argumentos, "--fecha") {
+			continue
+		}
+
+		bloque := strings.Join(consulta.Argumentos, " ")
+		bloques = append(bloques, bloque)
+
+		fechada := slices.Concat(consulta.Argumentos, []string{"--fecha", "9999-12-31"})
+		if !slices.ContainsFunc(consultas, func(otra Consulta) bool { return esLecturaDe(otra, fechada) }) {
+			sinLaFechada = append(sinLaFechada, bloque)
+		}
+	}
+
+	require.NotEmpty(t, bloques, "las evals de %s leen algún bloque sin fecha", carpeta)
+	assert.Empty(t, sinLaFechada, "bloques de las evals de %s sin su lectura con --fecha 9999-12-31", carpeta)
 }

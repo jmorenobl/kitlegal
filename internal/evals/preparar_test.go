@@ -927,7 +927,8 @@ func contenidoDeLaSesion(t *testing.T, sesion, fichero string) string {
 
 // exigeCacheDeTodasLasEvals exige que la caché de la sesión sirva sin red las
 // consultas necesarias de todas las evals del directorio, entre ellas el bloque
-// del art. 21, que solo necesita la eval con la que no se juzga la sesión.
+// del art. 21, que solo necesita la eval con la que no se juzga la sesión, y,
+// desde H20, su lectura con --fecha 9999-12-31 (research D18 de H20; FR-053).
 func exigeCacheDeTodasLasEvals(t *testing.T, evals, dirCache string) {
 	t.Helper()
 
@@ -935,10 +936,14 @@ func exigeCacheDeTodasLasEvals(t *testing.T, evals, dirCache string) {
 	require.NoError(t, err)
 
 	consultas := ConsultasNecesarias(conjunto.Evals)
-	require.True(t, slices.ContainsFunc(consultas, func(consulta Consulta) bool {
-		return consulta.Applet == "boe" && consulta.Verbo == "articulo" &&
-			slices.Equal(consulta.Argumentos, []string{"BOE-A-2015-10565", "a21"})
-	}), "las consultas de todas las evals incluyen el bloque del art. 21")
+	for _, argumentos := range [][]string{
+		{"BOE-A-2015-10565", "a21"},
+		{"BOE-A-2015-10565", "a21", "--fecha", "9999-12-31"},
+	} {
+		require.True(t, slices.ContainsFunc(consultas, func(consulta Consulta) bool {
+			return consulta.Applet == "boe" && consulta.Verbo == "articulo" && slices.Equal(consulta.Argumentos, argumentos)
+		}), "las consultas de todas las evals incluyen boe articulo %s", strings.Join(argumentos, " "))
+	}
 
 	comprobadas, err := ComprobarSinRed(dirCache, consultas)
 	require.NoError(t, err)
