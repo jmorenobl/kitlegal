@@ -826,7 +826,10 @@ func TestEnsayoDeLosSeisVerbos(t *testing.T) {
 // texto del bloque obtenido—, y repetir la consulta vuelve a entregar al cliente
 // las mismas peticiones, en su orden, y falla igual con el instante de la nueva
 // petición: nada de lo que falló se escribió, ni la consulta ni los metadatos de
-// los que dependía, y con --offline no hay ninguna entrada que servir.
+// los que dependía, y con --offline no hay ninguna entrada que servir. Con
+// --fecha, el bloque ilegible, los metadatos caídos y el 429 de los metadatos
+// tras obtener el bloque fallan como la misma consulta sin fecha, y no dejan la
+// entrada de las versiones (FR-007, FR-082).
 func TestFallosNoSeGuardan(t *testing.T) {
 	t.Parallel()
 
@@ -842,6 +845,10 @@ func TestFallosNoSeGuardan(t *testing.T) {
 		clase     schema.Clase
 		// sinEntrada es el fallo de la consulta con --offline.
 		sinEntrada falloDeLaConsulta
+		// sinFecha es, en una lectura fechada, la misma consulta sin --fecha,
+		// cuyo fallo tiene que tener la misma clase, el mismo código y el mismo
+		// mensaje (FR-007); nula en las demás.
+		sinFecha core.Consulta
 	}{
 		{
 			nombre:     "bloque-inexistente",
@@ -879,11 +886,50 @@ func TestFallosNoSeGuardan(t *testing.T) {
 			clase:      schema.ClaseFuenteNoDisponible,
 			sinEntrada: falloSinEntradaDelArticulo(direccionDelArticulo21),
 		},
+		// Los de la lectura fechada, sobre lo sintético de H4: la entrada de las
+		// versiones solo se escribe con el bloque y sus metadatos obtenidos e
+		// interpretados (FR-007, FR-082; research.md D8). El 503 y el 429 van sobre
+		// los metadatos: solo entonces hay algo obtenido que una escritura
+		// prematura guardaría.
+		{
+			nombre:     "bloque-ilegible-con-fecha",
+			pedidor:    reproduce(sinteticoDelBloqueIlegible),
+			consulta:   articulo21EnUnaFecha(),
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelArticulo21)},
+			direccion:  direccionDelArticulo21,
+			clase:      schema.ClaseFuenteNoDisponible,
+			sinEntrada: falloSinEntradaDeLasVersiones(direccionDelArticulo21),
+			sinFecha:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+		},
+		{
+			nombre:     "metadatos-caidos-con-fecha",
+			pedidor:    reproduce(sinteticoDeLosMetadatosCaidos),
+			consulta:   articulo21EnUnaFecha(),
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente)},
+			direccion:  metadatosVigente,
+			clase:      schema.ClaseFuenteNoDisponible,
+			sinEntrada: falloSinEntradaDeLasVersiones(direccionDelArticulo21),
+			sinFecha:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+		},
+		{
+			nombre:     "429-de-los-metadatos-con-fecha",
+			pedidor:    salvoEn(metadatosVigente, reproduce(sinteticoDelLimite)),
+			consulta:   articulo21EnUnaFecha(),
+			pedidas:    []httpx.Peticion{peticionDelBloque(direccionDelArticulo21), peticionDeLosMetadatos(metadatosVigente)},
+			direccion:  metadatosVigente,
+			clase:      schema.ClaseLimiteOTos,
+			sinEntrada: falloSinEntradaDeLasVersiones(direccionDelArticulo21),
+			sinFecha:   ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21},
+		},
 	}
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
+
+			if caso.sinFecha != nil {
+				compruebaElMismoFallo(t, caso.pedidor, caso.consulta, caso.sinFecha)
+			}
 
 			banco := nuevoBanco(t, caso.pedidor)
 			pedidas := make([]httpx.Peticion, 0, 2*len(caso.pedidas))
@@ -910,6 +956,32 @@ func TestFallosNoSeGuardan(t *testing.T) {
 			}
 		})
 	}
+}
+
+// articulo21EnUnaFecha es la lectura fechada del art. 21 de la Ley 39/2015 el
+// 2019-06-01, la de los fallos de la fuente con fecha.
+func articulo21EnUnaFecha() ConsultaArticulo {
+	fecha := "2019-06-01"
+
+	return ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21, Fecha: &fecha}
+}
+
+// compruebaElMismoFallo resuelve las dos consultas, cada una en un banco nuevo
+// con el Pedidor que construye pedidor, y exige que fallen con la misma clase, el
+// mismo código y el mismo mensaje.
+func compruebaElMismoFallo(t *testing.T, pedidor func(*testing.T, *relojDePrueba) *pedidorDePrueba,
+	consulta, otra core.Consulta,
+) {
+	t.Helper()
+
+	_, err := nuevoBanco(t, pedidor).resuelve(t, schema.Contexto{}, consulta)
+	require.Error(t, err)
+	_, errDeLaOtra := nuevoBanco(t, pedidor).resuelve(t, schema.Contexto{}, otra)
+	require.Error(t, errDeLaOtra)
+
+	assert.Equal(t, cli.Clasificar(errDeLaOtra), cli.Clasificar(err))
+	assert.Equal(t, cli.CodigoSalida(errDeLaOtra), cli.CodigoSalida(err))
+	assert.Equal(t, errDeLaOtra.Error(), err.Error())
 }
 
 // consultaDeUnVerbo es la consulta de uno de los seis verbos con la que se fijan

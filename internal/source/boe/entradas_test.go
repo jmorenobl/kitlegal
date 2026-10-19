@@ -71,6 +71,11 @@ func TestClaveDeEntrada(t *testing.T) {
 				clave:    claveDelAnalisis(normaDeLasEntradas).String(),
 				esperada: "boe.legislacion-consolidada|1|analisis|" + apiDeLasEntradas + "/id/BOE-A-2015-10565/analisis",
 			},
+			{
+				nombre:   "las versiones de un bloque, con la dirección del bloque",
+				clave:    claveDeLasVersiones(normaDeLasEntradas, "a21").String(),
+				esperada: "boe.legislacion-consolidada|1|versiones|" + apiDeLasEntradas + "/id/BOE-A-2015-10565/texto/bloque/a21",
+			},
 		}
 
 		for _, forma := range formas {
@@ -101,8 +106,8 @@ func TestClaveDeEntrada(t *testing.T) {
 			if assert.Len(t, segmentos, 4, "los segmentos de la clave de %s", consulta.nombre) {
 				assert.Equal(t, NombreDeLaFuente, segmentos[0], "la fuente de la clave de %s", consulta.nombre)
 				assert.Equal(t, "1", segmentos[1], "la versión de la clave de %s", consulta.nombre)
-				assert.Contains(t, []string{"buscar", "indice", "metadatos", "articulo", "analisis"}, segmentos[2],
-					"el verbo de la clave de %s", consulta.nombre)
+				assert.Contains(t, []string{"buscar", "indice", "metadatos", "articulo", "analisis", "versiones"},
+					segmentos[2], "el verbo de la clave de %s", consulta.nombre)
 				assert.True(t, strings.HasPrefix(segmentos[3], apiDeLasEntradas),
 					"la dirección de la clave de %s es de la API: %q", consulta.nombre, segmentos[3])
 			}
@@ -174,7 +179,7 @@ type claveDeUnaConsulta struct {
 // construyen consultas distintas —con palabras, con otras mayúsculas, con
 // operadores y con el separador de la clave—, el índice, los metadatos y el
 // análisis de tres normas, y bloques que solo se distinguen en un carácter o en
-// la norma.
+// la norma, cada uno con su entrada de hoy y la de sus versiones.
 func clavesDeConsultasDistintas(t *testing.T) []claveDeUnaConsulta {
 	t.Helper()
 
@@ -208,10 +213,18 @@ func clavesDeConsultasDistintas(t *testing.T) []claveDeUnaConsulta {
 		{norma: otraNormaDeLasEntradas, bloque: "a21"},
 		{norma: "BOE-A-2015-1", bloque: "a21"},
 	} {
-		consultas = append(consultas, claveDeUnaConsulta{
-			nombre: "articulo " + pedido.norma + " " + pedido.bloque,
-			clave:  claveDelArticulo(pedido.norma, pedido.bloque).String(),
-		})
+		// La entrada de las versiones del bloque, la de la lectura fechada, no
+		// tiene la clave de la de hoy del mismo bloque (FR-020, FR-021).
+		consultas = append(consultas,
+			claveDeUnaConsulta{
+				nombre: "articulo " + pedido.norma + " " + pedido.bloque,
+				clave:  claveDelArticulo(pedido.norma, pedido.bloque).String(),
+			},
+			claveDeUnaConsulta{
+				nombre: "articulo --fecha " + pedido.norma + " " + pedido.bloque,
+				clave:  claveDeLasVersiones(pedido.norma, pedido.bloque).String(),
+			},
+		)
 	}
 
 	return consultas
@@ -327,6 +340,25 @@ func TestEntradaIdaYVuelta(t *testing.T) {
 					Norma: normaDeLasEntradas, Bloque: "a21", Titulo: "Artículo 21", Tipo: tipoArticulo,
 					FechaVersion: "20151002", Texto: textoDelBloque, HashTexto: huellaDelTexto(textoDelBloque),
 					Avisos: []Aviso{}, URL: direccionPublicaDelBloque(normaDeLasEntradas, "a21"),
+				})
+			}},
+			{nombre: "las versiones de un bloque, con una sin fecha_vigencia y un texto que JSON escapa", comprobar: func(t *testing.T) {
+				t.Helper()
+
+				compruebaIdaYVuelta(t, claveDeLasVersiones(normaDeLasEntradas, "a21"), fecha, texto, versionesDelBloque{
+					Titulo: "Artículo 21", Tipo: tipoArticulo,
+					Versiones: []versionGuardada{
+						{FechaVersion: "20151002", FechaVigencia: "20161002", NormaModificadora: normaDeLasEntradas, Texto: "Primera."},
+						{FechaVersion: fechaOriginal, Texto: "Segunda: <La norma> & \"su texto\" \\   € 𝄞."},
+					},
+					Avisos: metadatosGuardados().Avisos,
+					URLELI: "https://www.boe.es/eli/es/l/2015/10/01/39",
+				})
+			}},
+			{nombre: "las versiones de un bloque sin versiones ni avisos", comprobar: func(t *testing.T) {
+				t.Helper()
+				compruebaIdaYVuelta(t, claveDeLasVersiones(normaDeLasEntradas, "pr"), fecha, texto, versionesDelBloque{
+					Titulo: "Preámbulo", Tipo: "preambulo", Versiones: []versionGuardada{}, Avisos: []Aviso{},
 				})
 			}},
 			{nombre: "analisis, con una lista vacía", comprobar: func(t *testing.T) {

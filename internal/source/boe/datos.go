@@ -57,6 +57,36 @@ type Articulo struct {
 	URLELI string `json:"url_eli"`
 }
 
+// ArticuloFechado es el data de articulo con --fecha (H20; data-model.md §4;
+// research.md D5): el Articulo de la versión elegida, con sus doce campos tal
+// como la nota [5] los da de la última —fecha_version, fecha_vigencia,
+// norma_modificadora, texto y hash_texto de esa versión, y título, tipo y url del
+// bloque— y los avisos y el ELI de la norma hoy, los de la lectura sin fecha
+// (FR-010, FR-011); y además el día pedido y, si la elegida no es la última, la
+// redacción posterior. Sus dos campos propios son los únicos de este fichero con
+// omitempty: la lectura sin fecha devuelve Articulo y no los lleva, y sin
+// redacción posterior no hay nada que diga que la hay (FR-010, FR-012).
+type ArticuloFechado struct {
+	Articulo
+	// FechaPedida es el día de --fecha tal como se pidió, AAAA-MM-DD (research.md
+	// D6).
+	FechaPedida string `json:"fecha_pedida,omitempty"`
+	// RedaccionPosterior es la última versión del bloque cuando no es la
+	// elegida; nula si lo es (FR-013).
+	RedaccionPosterior *RedaccionPosterior `json:"redaccion_posterior,omitempty"`
+}
+
+// RedaccionPosterior es la última versión de un bloque leído con --fecha que no
+// es la elegida: su fecha_vigencia y su norma_modificadora, con los nombres y la
+// forma AAAAMMDD de esos campos del artículo, de la misma respuesta (research.md
+// D6). No dice hasta cuándo rigió la elegida: entre las dos puede haber otras.
+type RedaccionPosterior struct {
+	// FechaVigencia es la fecha_vigencia de la última versión.
+	FechaVigencia string `json:"fecha_vigencia"`
+	// NormaModificadora es el id_norma de la última versión.
+	NormaModificadora string `json:"norma_modificadora"`
+}
+
 // Aviso es un aviso de vigencia: el código de la condición que lo produce y su
 // frase literal, la misma en articulo, en cada elemento de articulos y en
 // metadatos (FR-012, FR-050, data-model.md §2.2). Los compone avisosDe.
