@@ -24,6 +24,9 @@ const (
 	// la Ley 30/1992: la ruta de su url_eli desde el segmento eli.
 	eliDeLaLey39 = "eli/es/l/2015/10/01/39"
 	eliDeLaLey30 = "eli/es/l/1992/11/26/30"
+	// eliDeLaLrbrl es el id de la Norma de la Ley 7/1985, el de su url_eli en
+	// sus grabaciones.
+	eliDeLaLrbrl = "eli/es/l/1985/04/02/7"
 	// huellaDelArticulo21 es el hash_texto del artículo 21 de la Ley 39/2015 en
 	// sus grabaciones, el mismo que fijan los guiones de aceptación del hito.
 	huellaDelArticulo21 = "sha256:98d3b9d4686a3155f48641841df7023e2c17a693fcd0e11d6beef2615abcec7c"
@@ -46,6 +49,9 @@ const (
 //     segmento, con url_eli vacío o que no se puede analizar, el artículo no
 //     emite nada, ni con ningún id alternativo, y su data no cambia;
 //   - ningún nodo lleva el cuerpo del bloque, que solo viaja en su Texto;
+//   - articulo con --fecha emite solo la BloqueVersion de la versión elegida y
+//     su texto, con SoloLoNuevo, y nada sin ELI, bajo ensayo ni en el 3 de la
+//     elección (H20 FR-030, FR-031; contracts/articulo-fecha.md §6);
 //   - y buscar, indice, metadatos y analisis no emiten nada.
 func TestObservadoDeBoe(t *testing.T) {
 	t.Parallel()
@@ -56,6 +62,15 @@ func TestObservadoDeBoe(t *testing.T) {
 	}{
 		{nombre: "articulo", probar: probarObservadoDeArticulo},
 		{nombre: "articulos-con-un-bloque-repetido", probar: probarObservadoDeArticulos},
+		{nombre: "articulo-con-fecha", probar: probarObservadoDeLaLecturaFechada},
+	}
+
+	for _, caso := range casosDeLaLecturaFechadaQueNoObserva() {
+		t.Run("articulo-con-fecha-"+caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			probarLaLecturaFechadaQueNoObserva(t, caso)
+		})
 	}
 
 	for _, subtest := range subtests {
@@ -151,6 +166,112 @@ func probarObservadoDeArticulos(t *testing.T) {
 	assert.Len(t, resultado.Grafo.Operaciones, 12, "seis operaciones por cada uno de los dos bloques distintos")
 	assert.Equal(t, datos, resultado.Datos)
 	compruebaSinElCuerpo(t, resultado.Grafo)
+}
+
+// probarObservadoDeLaLecturaFechada fija lo que observa articulo BOE-A-1985-5392
+// a22 --fecha 2005-06-15 sobre sus grabaciones (contracts/articulo-fecha.md §6;
+// research.md D9): solo la BloqueVersion de la versión elegida, la de
+// fecha_vigencia 20040101, con el id y los datos con que la emite la lectura sin
+// fecha, y su texto, con la vigencia de siete días y SoloLoNuevo —ni la Norma, ni
+// el Bloque, ni ninguna arista—; y lo mismo servido de la entrada de las
+// versiones con --offline.
+func probarObservadoDeLaLecturaFechada(t *testing.T) {
+	t.Helper()
+
+	const (
+		huella  = "sha256:ce4210549efa0b8a103e99ccfd4137f6b66a5f300f661a94e2d2545b08847183"
+		version = eliDeLaLrbrl + "#a22@20040101:" + huella
+	)
+
+	banco := nuevoBanco(t, reproduce(carpetaDeLasGrabaciones))
+	fecha := "2005-06-15"
+	consulta := ConsultaArticulo{Norma: normaDeLaLrbrl, Bloque: bloqueDelArticulo22DeLaLrbrl, Fecha: &fecha}
+
+	for _, ec := range []schema.Contexto{{}, {Offline: true}} {
+		resultado, err := banco.resuelve(t, ec, consulta)
+		require.NoError(t, err, "con %+v", ec)
+
+		fechado, esFechado := resultado.Datos.(ArticuloFechado)
+		require.Truef(t, esFechado, "el data de la lectura fechada es de tipo %T", resultado.Datos)
+		require.Equal(t, huella, fechado.HashTexto, "premisa: la versión elegida es la de 20040101")
+
+		esperado := schema.Observado{
+			Vigencia:    604_800 * time.Second,
+			SoloLoNuevo: true,
+			Operaciones: []schema.Operacion{
+				schema.Nodo{ID: version, Tipo: "BloqueVersion", Datos: map[string]any{
+					"fecha_vigencia":     "20040101",
+					"fecha_version":      "20031217",
+					"norma_modificadora": "BOE-A-2003-23103",
+					"hash_texto":         huella,
+				}},
+				schema.Texto{Huella: huella, Cuerpo: fechado.Texto},
+			},
+		}
+
+		assert.Equal(t, esperado, resultado.Grafo, "con %+v", ec)
+		compruebaSinElCuerpo(t, resultado.Grafo)
+	}
+}
+
+// casoDeLaLecturaFechadaQueNoObserva es una lectura fechada de BOE-A-1985-5392
+// a22 que no observa nada: el pedidor de su banco, el día pedido, el contexto y
+// si sale con 0.
+type casoDeLaLecturaFechadaQueNoObserva struct {
+	nombre  string
+	pedidor func(*testing.T, *relojDePrueba) *pedidorDePrueba
+	fecha   string
+	ec      schema.Contexto
+	sale    bool
+}
+
+// casosDeLaLecturaFechadaQueNoObserva son las lecturas fechadas que no emiten
+// nada (contracts/articulo-fecha.md §6): la de unos metadatos sin url_eli, la que
+// solo describe sus peticiones bajo --dry-run y la del 3 de un día anterior a la
+// primera vigencia del bloque.
+func casosDeLaLecturaFechadaQueNoObserva() []casoDeLaLecturaFechadaQueNoObserva {
+	sinELI := `{"data": {"url_eli": ""}}`
+
+	return []casoDeLaLecturaFechadaQueNoObserva{
+		{
+			nombre: "sin-eli", pedidor: salvoEn(metadatosDeLaLrbrl, respondeConElCuerpo(sinELI)),
+			fecha: "2005-06-15", sale: true,
+		},
+		{
+			nombre: "bajo-ensayo", pedidor: reproduce(carpetaDeLasGrabaciones),
+			fecha: "2005-06-15", ec: schema.Contexto{DryRun: true}, sale: true,
+		},
+		{nombre: "sin-redaccion-vigente", pedidor: reproduce(carpetaDeLasGrabaciones), fecha: "1985-04-22"},
+	}
+}
+
+// probarLaLecturaFechadaQueNoObserva resuelve la lectura fechada del caso y
+// exige que no observe nada, con la premisa de que sale como dice el caso: con
+// 0 y, bajo ensayo, con sus peticiones descritas; si no, con su fallo.
+func probarLaLecturaFechadaQueNoObserva(t *testing.T, caso casoDeLaLecturaFechadaQueNoObserva) {
+	t.Helper()
+
+	banco := nuevoBanco(t, caso.pedidor)
+	fecha := caso.fecha
+
+	resultado, err := banco.resuelve(t, caso.ec,
+		ConsultaArticulo{Norma: normaDeLaLrbrl, Bloque: bloqueDelArticulo22DeLaLrbrl, Fecha: &fecha})
+
+	switch {
+	case !caso.sale:
+		require.Error(t, err, "premisa: la lectura fechada falla")
+	case caso.ec.DryRun:
+		require.NoError(t, err)
+		require.NotEmpty(t, resultado.Ensayo, "premisa: bajo --dry-run, sin entradas, solo describe sus peticiones")
+	default:
+		require.NoError(t, err)
+
+		fechado, esFechado := resultado.Datos.(ArticuloFechado)
+		require.Truef(t, esFechado, "el data de la lectura fechada es de tipo %T", resultado.Datos)
+		require.Empty(t, fechado.URLELI, "premisa: los metadatos no dan url_eli")
+	}
+
+	assert.Equal(t, schema.Observado{}, resultado.Grafo, "la lectura fechada no emite ninguna operación")
 }
 
 // casoDelELI es un url_eli de los metadatos de la Ley 39/2015 y el id de la

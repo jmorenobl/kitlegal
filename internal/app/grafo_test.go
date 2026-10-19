@@ -2061,9 +2061,12 @@ func bancoConLaHora(t *testing.T, carpeta string, instante time.Time) *bancoDeBo
 // TestLaSalidaDeBoeNoCambiaConElGrafo fija SC-003, SC-004, FR-031, FR-034 y
 // FR-042 por el kernel en proceso: para cada respuesta grabada de boe articulo
 // —las de H4, también la del bloque que la fuente no tiene, y las de H5 y
-// H5.1—, con --json y sin ella, la salida estándar y el código son los mismos
-// byte a byte con --no-graph que sin ella; y con --no-graph y con --dry-run,
-// world.db y sus auxiliares quedan con la misma huella o siguen sin existir.
+// H5.1— y para las lecturas fechadas de H20 sobre lo grabado de H4 —la de una
+// redacción intermedia, la de la última y el 3 de un día sin redacción vigente
+// (H20 FR-032)—, con --json y sin ella, la salida estándar y el código son los
+// mismos byte a byte con --no-graph que sin ella; y con --no-graph y con
+// --dry-run, world.db y sus auxiliares quedan con la misma huella o siguen sin
+// existir.
 // Cada invocación sale de un banco nuevo, con su caché vacía y la hora de la
 // reproducción fijada, de modo que todas piden lo mismo a la fuente y fechan
 // igual su sobre; y el almacén vive en un directorio temporal. La salida de
@@ -2091,11 +2094,44 @@ func TestLaSalidaDeBoeNoCambiaConElGrafo(t *testing.T) {
 				t.Run(strings.Join(slices.Concat([]string{grabaciones.nombre}, argumentos), "/"), func(t *testing.T) {
 					t.Parallel()
 
-					banco, directorio := compruebaLaMismaSalida(t, grabaciones.carpeta, grabado, argumentos)
-					compruebaQueElEnsayoNoEntrega(t, banco, directorio, grabado, argumentos)
+					seLee := grabado.estado == 200
+					banco, directorio := compruebaLaMismaSalida(t, grabaciones.carpeta, seLee, argumentos)
+					compruebaQueElEnsayoNoEntrega(t, banco, directorio, seLee, argumentos)
 				})
 			}
 		}
+	}
+
+	for _, fechada := range lecturasFechadasDeH4() {
+		for _, banderas := range [][]string{{"--json"}, nil} {
+			argumentos := slices.Concat(fechada.argumentos, banderas)
+
+			t.Run(strings.Join(slices.Concat([]string{"h4"}, argumentos), "/"), func(t *testing.T) {
+				t.Parallel()
+
+				banco, directorio := compruebaLaMismaSalida(t, grabacionesDeBoe, fechada.seLee, argumentos)
+				compruebaQueElEnsayoNoEntrega(t, banco, directorio, fechada.seLee, argumentos)
+			})
+		}
+	}
+}
+
+// lecturaFechadaDeH4 son los argumentos de una lectura fechada de boe articulo
+// sobre lo grabado de H4 y si sale con 0.
+type lecturaFechadaDeH4 struct {
+	argumentos []string
+	seLee      bool
+}
+
+// lecturasFechadasDeH4 son las de TestLaSalidaDeBoeNoCambiaConElGrafo
+// (contracts/articulo-fecha.md §2): el art. 22 de la Ley 7/1985 el 2005-06-15,
+// una redacción intermedia, y el 2019-06-01, la última; y el art. 21 de la Ley
+// 39/2015 el 2016-06-01, publicado y sin redacción vigente, que sale con 3.
+func lecturasFechadasDeH4() []lecturaFechadaDeH4 {
+	return []lecturaFechadaDeH4{
+		{argumentos: []string{"articulo", normaDeLaLrbrl, "a22", "--fecha", "2005-06-15"}, seLee: true},
+		{argumentos: []string{"articulo", normaDeLaLrbrl, "a22", "--fecha", "2019-06-01"}, seLee: true},
+		{argumentos: []string{"articulo", normaDeBoe, "a21", "--fecha", "2016-06-01"}},
 	}
 }
 
@@ -2103,12 +2139,12 @@ func TestLaSalidaDeBoeNoCambiaConElGrafo(t *testing.T) {
 // sobre un banco nuevo de la carpeta y con la entrega al world.db de un mismo
 // directorio temporal: con --no-graph y el directorio vacío, que sigue vacío;
 // sin ella, con la misma salida estándar y el mismo código, sin ningún aviso de
-// la entrega y, si el bloque se sirvió con 200, con lo observado en world.db; y
-// otra vez con --no-graph, con lo mismo y sin cambiar un byte del directorio.
-// Devuelve el banco de la invocación que entregó, cuya caché guarda ya lo que
-// leyó, y el directorio.
+// la entrega y, si la lectura se lee —sale con 0—, con lo observado en
+// world.db; y otra vez con --no-graph, con lo mismo y sin cambiar un byte del
+// directorio. Devuelve el banco de la invocación que entregó, cuya caché guarda
+// ya lo que leyó, y el directorio.
 func compruebaLaMismaSalida(
-	t *testing.T, carpeta string, grabado bloqueGrabado, argumentos []string,
+	t *testing.T, carpeta string, seLee bool, argumentos []string,
 ) (*bancoDeBoe, string) {
 	t.Helper()
 
@@ -2128,11 +2164,11 @@ func compruebaLaMismaSalida(
 	compruebaLaMismaSalidaYElMismoCodigo(t, descartado, entregado)
 	assert.NotContains(t, entregado.errores, avisoDeEntregaFallida, "la entrega no deja ningún aviso")
 
-	if grabado.estado == 200 {
+	if seLee {
 		require.Equal(t, 0, entregado.codigo, entregado.errores)
 		require.FileExists(t, filepath.Join(directorio, "world.db"), "premisa: lo observado llega al grafo")
 	} else {
-		require.NotEqual(t, 0, entregado.codigo, "premisa: el bloque que la fuente no tiene no se lee")
+		require.NotEqual(t, 0, entregado.codigo, "premisa: la lectura no se lee, como el bloque que la fuente no tiene")
 	}
 
 	poblado := huellasDelDirectorio(t, directorio)
@@ -2154,12 +2190,13 @@ func compruebaLaMismaSalidaYElMismoCodigo(t *testing.T, una, otra invocacionDePr
 
 // compruebaQueElEnsayoNoEntrega invoca boe con los argumentos y --dry-run sobre
 // el banco que ya leyó el bloque, con la entrega al world.db del directorio y
-// con la de un directorio vacío: ninguno cambia. Si el bloque se sirvió con 200,
-// su artículo está en la caché del banco y el ensayo lo sirve de su entrada, sin
-// pedir nada ni describir ninguna petición: el applet devuelve lo que observa y
-// es el kernel el que no lo entrega (FR-034).
+// con la de un directorio vacío: ninguno cambia. Si la lectura se lee —sale con
+// 0—, lo que leyó está en la caché del banco —el artículo o, con --fecha, las
+// versiones del bloque— y el ensayo lo sirve de su entrada, sin pedir nada ni
+// describir ninguna petición: el applet devuelve lo que observa y es el kernel
+// el que no lo entrega (FR-034; H20 FR-032).
 func compruebaQueElEnsayoNoEntrega(
-	t *testing.T, banco *bancoDeBoe, directorio string, grabado bloqueGrabado, argumentos []string,
+	t *testing.T, banco *bancoDeBoe, directorio string, seLee bool, argumentos []string,
 ) {
 	t.Helper()
 
@@ -2173,13 +2210,259 @@ func compruebaQueElEnsayoNoEntrega(
 		assert.Equal(t, antes, huellasDelDirectorio(t, destino),
 			"con --dry-run, world.db y sus auxiliares no cambian o siguen sin existir")
 
-		if grabado.estado == 200 {
+		if seLee {
 			require.Equal(t, 0, res.codigo, res.errores)
 			assert.Len(t, banco.eventos.pedidas(t), pedidas, "premisa: el ensayo sirve el artículo de su entrada")
 			assert.NotContains(t, res.errores, prefijoDeEnsayo+"se habr\xc3\xada pedido",
 				"premisa: el ensayo no describe ninguna petición")
 		}
 	}
+}
+
+// Lo de TestLecturaFechadaEnElGrafo, sobre lo grabado de H4: la Ley 7/1985, el
+// Bloque de su art. 22 y las dos BloqueVersion de ese bloque que observan sus
+// lecturas fechadas, la que regía el 2005-06-15 —la de fecha_vigencia
+// 20040101— y la última, la que rige el 2019-06-01 y la que lee la lectura sin
+// fecha, con sus ids escritos enteros (contracts/articulo-fecha.md §6).
+const (
+	normaDeLaLrbrl         = "BOE-A-1985-5392"
+	bloqueDelA22DeLaLrbrl  = "eli/es/l/1985/04/02/7#a22"
+	versionDelA22En2005    = bloqueDelA22DeLaLrbrl + "@20040101:sha256:ce4210549efa0b8a103e99ccfd4137f6b66a5f300f661a94e2d2545b08847183"
+	ultimaVersionDelA22    = bloqueDelA22DeLaLrbrl + "@20151031:sha256:2a29d264c6a3749916785fdd84c817b6b0d83925e78048380f3903d469aab4ea"
+	vigenciaDelA22En2005   = "20040101"
+	vigenciaDeLaUltimaA22  = "20151031"
+	fechaDeLaVersionDe2005 = "2005-06-15"
+)
+
+// casoDeLaLecturaFechada es una lectura fechada del art. 22 de la Ley 7/1985
+// sobre un mundo: la lectura sin fecha que lo deja, el día pedido, la
+// BloqueVersion elegida y su fecha_vigencia, si el bloque tiene fila de
+// lecturas y lo que la lectura fechada crea en el grafo.
+type casoDeLaLecturaFechada struct {
+	nombre   string
+	previa   []string
+	fecha    string
+	version  string
+	vigencia string
+	conFila  bool
+	creados  []string
+}
+
+// casosDeLaLecturaFechada son los de TestLecturaFechadaEnElGrafo: la versión
+// del 2005-06-15, que el mundo no guarda, en uno con la fila de lecturas del
+// bloque y en otro sin ella —el de una lectura de otra norma—, donde entra con
+// su texto; y la del 2019-06-01, la última, que ya guardó la lectura sin fecha
+// del bloque, y no crea nada.
+func casosDeLaLecturaFechada() []casoDeLaLecturaFechada {
+	delA22 := []string{"articulo", normaDeLaLrbrl, "a22", "--json"}
+	nueva := []string{claseDeNodo(grafo.TipoBloqueVersion), claseDeTexto}
+
+	return []casoDeLaLecturaFechada{
+		{
+			nombre: "con la fila de lecturas del bloque, una versión nueva", previa: delA22,
+			fecha: fechaDeLaVersionDe2005, version: versionDelA22En2005, vigencia: vigenciaDelA22En2005,
+			conFila: true, creados: nueva,
+		},
+		{
+			nombre: "con la fila de lecturas del bloque, la versión que ya guardó la lectura sin fecha", previa: delA22,
+			fecha: "2019-06-01", version: ultimaVersionDelA22, vigencia: vigenciaDeLaUltimaA22, conFila: true,
+		},
+		{
+			nombre: "sin fila de lecturas del bloque, una versión nueva",
+			previa: []string{"articulo", normaDeBoe, "a21", "--json"},
+			fecha:  fechaDeLaVersionDe2005, version: versionDelA22En2005, vigencia: vigenciaDelA22En2005,
+			creados: nueva,
+		},
+	}
+}
+
+// TestLecturaFechadaEnElGrafo fija H20 FR-030, FR-031, FR-032 y SC-006 por el
+// kernel en proceso, con el applet boe sobre lo grabado de H4, el registro y la
+// entrega al world.db de un directorio temporal (contracts/articulo-fecha.md §6;
+// research.md D9, D10): sobre un mundo que ha leído sin fecha el art. 22 de la
+// Ley 7/1985 —con su fila de lecturas— o solo otra norma —sin fila del bloque—,
+// boe articulo con --fecha que sale con 0
+//
+//   - con --no-graph y con --dry-run no cambia world.db ni sus auxiliares;
+//   - crea, con la procedencia del sobre, la BloqueVersion elegida y su texto si
+//     el mundo no los guarda, y nada más, y si ya los guarda no cambia nada de
+//     ellos ni de lo demás, aunque su sobre sea posterior;
+//   - deja la fila de lecturas y lo que da graph check, del bloque y de todo,
+//     como estaban;
+//   - entregada otra vez, no cambia nada;
+//   - y la siguiente lectura sin fecha del bloque deja la fila y da el graph
+//     check que dejaría y daría en el mismo mundo sin la lectura fechada.
+//
+// Cada mundo se prepara dos veces, uno para la lectura fechada y otro sin ella,
+// con las horas de la reproducción en el orden de las lecturas: la previa, la
+// fechada y la siguiente. graph check se pide en un instante en que todas las
+// consultas han caducado, de modo que sus hallazgos de fuente-caducada llevan la
+// procedencia de lo guardado y cambiarían si la lectura fechada la cambiara.
+func TestLecturaFechadaEnElGrafo(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeLaLecturaFechada() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			conLaFechada, sinLaFechada := t.TempDir(), t.TempDir()
+
+			for _, directorio := range []string{conLaFechada, sinLaFechada} {
+				leerSinFechaConLaHora(t, directorio, horaTemprana, caso.previa...)
+			}
+
+			antes := comprobadoDelGrafo(t, conLaFechada)
+			compruebaLaFilaDelBloque(t, antes, caso.conFila)
+
+			fechada := []string{"articulo", normaDeLaLrbrl, "a22", "--fecha", caso.fecha, "--json"}
+			banco := bancoConLaHora(t, grabacionesDeBoe, horaTardia)
+			compruebaQueLaFechadaNoEntregaSinGrafo(t, banco, conLaFechada, fechada)
+
+			registro := registroConLaEntrega(t, conLaFechada, AppletBoe(banco.dependencias))
+			res := invocarBoeEntregando(t, registro, fechada...)
+			sobre := procedenciaDelSobre(t, res.salida)
+			require.Equal(t, horaTardia.Format(time.RFC3339Nano), sobre.FechaConsulta,
+				"premisa: el sobre lleva la hora de la reproducción")
+			require.Equal(t, caso.vigencia, datosDelSobre(t, sobreDelJSON(t, res.salida))["fecha_vigencia"],
+				"premisa: la versión elegida es la del caso")
+
+			tras := comprobadoDelGrafo(t, conLaFechada)
+			cambios := cambiosDeLaInvocacion(t, caso.nombre, antes.estado, tras.estado, sobre)
+			assert.ElementsMatch(t, caso.creados, cambios.creados, "lo que crea la lectura fechada")
+			assert.Empty(t, cambios.procedencias, "la lectura fechada no cambia la última observación de nada")
+			assert.Empty(t, cambios.primeras, "la lectura fechada no cambia la primera observación de nada")
+			compruebaLaVersionElegida(t, caso, antes, tras, sobre)
+			compruebaLoMismoQueAntes(t, antes, tras, "tras la lectura fechada")
+
+			otraVez := invocarBoeEntregando(t, registro, fechada...)
+			require.Equal(t, res.salida, otraVez.salida, "premisa: la misma lectura fechada, con el mismo sobre")
+			assert.Equal(t, tras.estado, estadoDelGrafo(t, conLaFechada), "entregada otra vez, no cambia nada")
+
+			for _, directorio := range []string{conLaFechada, sinLaFechada} {
+				leerSinFechaConLaHora(t, directorio, horaUltima, "articulo", normaDeLaLrbrl, "a22", "--json")
+			}
+
+			compruebaLoMismoQueAntes(t, comprobadoDelGrafo(t, sinLaFechada), comprobadoDelGrafo(t, conLaFechada),
+				"la siguiente lectura sin fecha, con la lectura fechada y sin ella")
+		})
+	}
+}
+
+// comprobado es lo que se compara del world.db de un directorio: todo lo que
+// guarda, su fila de lecturas y lo que dan graph check del art. 22 de la Ley
+// 7/1985 y graph check de todo, con --json.
+type comprobado struct {
+	estado    map[string]guardado
+	lecturas  []grafo.LecturasDeBloque
+	delBloque invocacionDePrueba
+	deTodo    invocacionDePrueba
+	hallazgos int
+}
+
+// comprobadoDelGrafo lee el world.db del directorio por la API pública de
+// internal/graph y le pide graph check con el reloj fijo en instanteDelGrafo,
+// posterior a la caducidad de cada consulta del test, y la firma del applet;
+// los dos check salen con 0 y sin nada en la salida de error.
+func comprobadoDelGrafo(t *testing.T, directorio string) comprobado {
+	t.Helper()
+
+	check := func(argumentos ...string) invocacionDePrueba {
+		res := invocar(t, registroDelGrafo(t, nuevoReloj(t, instanteDelGrafo).ahora, directorio),
+			argvDelGrafo(slices.Concat([]string{"check"}, argumentos, []string{"--json"})...)...)
+		require.Equal(t, 0, res.codigo, res.errores)
+		require.Empty(t, res.errores)
+
+		return res
+	}
+
+	var hallazgos struct {
+		Hallazgos []json.RawMessage `json:"hallazgos"`
+	}
+
+	deTodo := check()
+	require.NoError(t, json.Unmarshal([]byte(datosFirmados(t, deTodo, instanteDelGrafo)), &hallazgos))
+
+	return comprobado{
+		estado:    estadoDelGrafo(t, directorio),
+		lecturas:  instantaneaDelGrafo(t, directorio).Lecturas,
+		delBloque: check(normaDeLaLrbrl, "a22"),
+		deTodo:    deTodo,
+		hallazgos: len(hallazgos.Hallazgos),
+	}
+}
+
+// compruebaLoMismoQueAntes exige que dos lecturas del grafo tengan la misma fila
+// de lecturas y den el mismo graph check, byte a byte, del bloque y de todo; la
+// premisa, que graph check de todo tiene hallazgos que comparar.
+func compruebaLoMismoQueAntes(t *testing.T, antes, despues comprobado, cuando string) {
+	t.Helper()
+
+	require.Positive(t, antes.hallazgos, "premisa: graph check tiene hallazgos que comparar")
+	assert.Equal(t, antes.lecturas, despues.lecturas, "%s: la misma fila de lecturas", cuando)
+	assert.Equal(t, antes.delBloque, despues.delBloque, "%s: el mismo graph check del bloque", cuando)
+	assert.Equal(t, antes.deTodo, despues.deTodo, "%s: el mismo graph check de todo", cuando)
+}
+
+// compruebaLaFilaDelBloque es la premisa del mundo: el Bloque del art. 22 de la
+// Ley 7/1985 tiene fila de lecturas si el caso lo dice, y si no, no la tiene.
+func compruebaLaFilaDelBloque(t *testing.T, mundo comprobado, conFila bool) {
+	t.Helper()
+
+	tiene := slices.ContainsFunc(mundo.lecturas, func(fila grafo.LecturasDeBloque) bool {
+		return fila.Bloque == bloqueDelA22DeLaLrbrl
+	})
+	require.Equal(t, conFila, tiene, "premisa: la fila de lecturas del bloque en el mundo")
+	require.NotEmpty(t, mundo.lecturas, "premisa: el mundo tiene alguna lectura")
+}
+
+// compruebaLaVersionElegida exige que, tras la lectura fechada, el grafo guarde
+// la BloqueVersion elegida: con la procedencia del sobre si la lectura la crea,
+// y como estaba si ya la guardaba.
+func compruebaLaVersionElegida(t *testing.T, caso casoDeLaLecturaFechada, antes, tras comprobado,
+	sobre grafo.Procedencia,
+) {
+	t.Helper()
+
+	clave := "nodo\x00" + caso.version
+
+	version, esta := tras.estado[clave]
+	require.True(t, esta, "la BloqueVersion %q está en el grafo", caso.version)
+	assert.Equal(t, claseDeNodo(grafo.TipoBloqueVersion), version.clase)
+
+	if previa, estaba := antes.estado[clave]; estaba {
+		assert.Equal(t, previa, version, "la BloqueVersion que ya estaba queda como estaba")
+
+		return
+	}
+
+	assert.Equal(t, sobre, version.procedencia, "la BloqueVersion entra con la procedencia del sobre")
+}
+
+// leerSinFechaConLaHora invoca boe con los argumentos sobre un banco nuevo de lo
+// grabado de H4 con esa hora y la entrega al world.db del directorio, y exige
+// que salga con 0 y que lo observado llegue al grafo.
+func leerSinFechaConLaHora(t *testing.T, directorio string, hora time.Time, argumentos ...string) {
+	t.Helper()
+
+	banco := bancoConLaHora(t, grabacionesDeBoe, hora)
+	invocarBoeEntregando(t, registroConLaEntrega(t, directorio, AppletBoe(banco.dependencias)), argumentos...)
+}
+
+// compruebaQueLaFechadaNoEntregaSinGrafo invoca la lectura fechada con
+// --no-graph sobre el banco, con la entrega al world.db del directorio, que no
+// cambia; y con --dry-run, con lo que guardó la caché del banco servido de su
+// entrada, sin cambiar el directorio ni uno vacío (FR-032).
+func compruebaQueLaFechadaNoEntregaSinGrafo(t *testing.T, banco *bancoDeBoe, directorio string, fechada []string) {
+	t.Helper()
+
+	antes := huellasDelDirectorio(t, directorio)
+
+	res := invocar(t, registroConLaEntrega(t, directorio, AppletBoe(banco.dependencias)),
+		argvDeBoe(slices.Concat(fechada, []string{"--no-graph"})...)...)
+	require.Equal(t, 0, res.codigo, res.errores)
+	assert.Equal(t, antes, huellasDelDirectorio(t, directorio), "con --no-graph, world.db y sus auxiliares no cambian")
+
+	compruebaQueElEnsayoNoEntrega(t, banco, directorio, true, fechada)
 }
 
 // claseDeTexto es la de un texto en el estado del grafo; la de un nodo lleva su

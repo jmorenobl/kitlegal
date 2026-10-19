@@ -58,21 +58,63 @@ func operacionesDelArticulo(articulo Articulo) []schema.Operacion {
 		return nil
 	}
 
-	bloque := norma + "#" + articulo.Bloque
-	version := bloque + "@" + articulo.FechaVigencia + ":" + articulo.HashTexto
+	bloque := idDelBloque(norma, articulo)
+	version := nodoDeLaVersion(norma, articulo)
 
 	return []schema.Operacion{
 		schema.Nodo{ID: norma, Tipo: grafo.TipoNorma, Datos: map[string]any{grafo.DatoIdentificador: articulo.Norma}},
 		schema.Nodo{ID: bloque, Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: articulo.Bloque}},
-		schema.Nodo{ID: version, Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+		version,
+		schema.Arista{Origen: norma, Relacion: grafo.RelacionTieneParte, Destino: bloque},
+		schema.Arista{Origen: bloque, Relacion: grafo.RelacionTieneVersion, Destino: version.ID},
+		schema.Texto{Huella: articulo.HashTexto, Cuerpo: articulo.Texto},
+	}
+}
+
+// observadoDeLaLecturaFechada es lo que observa del mundo la lectura fechada de
+// articulo que sale con 0 (H20; contracts/articulo-fecha.md §6; research.md D9):
+// la BloqueVersion de la versión elegida, con nodoDeLaVersion, y su texto, con
+// la vigencia de la consulta de un artículo, vigenciaLarga, y nada más —ni la
+// Norma, ni el Bloque, ni ninguna arista—. Sin eli:has_version no es una lectura
+// del bloque, y SoloLoNuevo pide a la entrega que deje como está lo que world.db
+// ya guarda, de modo que ni la fila de lecturas ni graph check cambian (FR-030,
+// FR-031). Sin ELI no observa nada, como la lectura sin fecha (FR-040).
+func observadoDeLaLecturaFechada(articulo Articulo) schema.Observado {
+	norma, conELI := eliDeLaNorma(articulo.URLELI)
+	if !conELI {
+		return schema.Observado{}
+	}
+
+	return schema.Observado{
+		Vigencia:    vigenciaLarga,
+		SoloLoNuevo: true,
+		Operaciones: []schema.Operacion{
+			nodoDeLaVersion(norma, articulo),
+			schema.Texto{Huella: articulo.HashTexto, Cuerpo: articulo.Texto},
+		},
+	}
+}
+
+// idDelBloque es el id del Bloque de un artículo de la norma con ese ELI,
+// <eli>#<bloque> (FR-040).
+func idDelBloque(norma string, articulo Articulo) string {
+	return norma + "#" + articulo.Bloque
+}
+
+// nodoDeLaVersion es el nodo BloqueVersion de un artículo de la norma con ese
+// ELI: su id, <eli>#<bloque>@<fecha_vigencia>:<hash_texto>, y como datos sus dos
+// fechas, la norma modificadora y la huella tal como las lleva el artículo
+// (FR-040). Lo emiten igual la lectura sin fecha y la fechada.
+func nodoDeLaVersion(norma string, articulo Articulo) schema.Nodo {
+	return schema.Nodo{
+		ID:   idDelBloque(norma, articulo) + "@" + articulo.FechaVigencia + ":" + articulo.HashTexto,
+		Tipo: grafo.TipoBloqueVersion,
+		Datos: map[string]any{
 			grafo.DatoFechaVigencia:     articulo.FechaVigencia,
 			grafo.DatoFechaVersion:      articulo.FechaVersion,
 			grafo.DatoNormaModificadora: articulo.NormaModificadora,
 			grafo.DatoHashTexto:         articulo.HashTexto,
-		}},
-		schema.Arista{Origen: norma, Relacion: grafo.RelacionTieneParte, Destino: bloque},
-		schema.Arista{Origen: bloque, Relacion: grafo.RelacionTieneVersion, Destino: version},
-		schema.Texto{Huella: articulo.HashTexto, Cuerpo: articulo.Texto},
+		},
 	}
 }
 

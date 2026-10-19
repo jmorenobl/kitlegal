@@ -36,8 +36,9 @@ const (
 // elegirLaVersion. El resultado lleva la dirección del bloque en éxito, en
 // ensayo, en los fallos del bloque y en los dos de la elección, y la de los
 // metadatos en los suyos, como la lectura sin fecha (FR-007); en éxito y en los
-// fallos de la elección, la fecha de consulta de las versiones. No emite nada al
-// grafo.
+// fallos de la elección, la fecha de consulta de las versiones. Solo en éxito
+// observa algo del mundo, lo de observadoDeLaLecturaFechada (FR-030); bajo
+// ensayo, en un fallo y en los dos 3 de la elección, nada.
 func (f *Fuente) articuloEnUnaFecha(ctx context.Context, ec schema.Contexto, norma, bloque, fecha string,
 ) (schema.Resultado, error) {
 	direccion := direccionDelBloque(norma, bloque)
@@ -57,8 +58,11 @@ func (f *Fuente) articuloEnUnaFecha(ctx context.Context, ec schema.Contexto, nor
 			return resultadoDelError(err), err
 		}
 
-		return resultadoDeLaConsulta(direccion,
-			consultaResuelta[ArticuloFechado]{datos: articulo, fechaConsulta: versiones.fechaConsulta}), nil
+		resultado := resultadoDeLaConsulta(direccion,
+			consultaResuelta[ArticuloFechado]{datos: articulo, fechaConsulta: versiones.fechaConsulta})
+		resultado.Grafo = observadoDeLaLecturaFechada(articulo.Articulo)
+
+		return resultado, nil
 	})
 }
 
