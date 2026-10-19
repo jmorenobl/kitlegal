@@ -20,15 +20,16 @@ const (
 	atributoTitulo = "titulo"
 	atributoTipo   = "tipo"
 	// atributoFechaDePublicacion, atributoFechaDeVigencia y
-	// atributoNormaModificadora son los de la versión vigente (116-118).
+	// atributoNormaModificadora son los de cada versión, que de la vigente lee
+	// refs/boe.py (116-118).
 	atributoFechaDePublicacion = "fecha_publicacion"
 	atributoFechaDeVigencia    = "fecha_vigencia"
 	atributoNormaModificadora  = "id_norma"
 )
 
-// fechaOriginal es la fecha de la versión vigente cuando la última versión no
-// trae fecha_publicacion o el bloque no tiene versiones: un valor que refs/boe.py
-// da (líneas 112 y 116), no el marcador de campo ausente (FR-011, FR-016).
+// fechaOriginal es la fecha de una versión que no trae fecha_publicacion, y la
+// de la vigente cuando el bloque no tiene versiones: un valor que refs/boe.py da
+// (líneas 112 y 116), no el marcador de campo ausente (FR-011, FR-016).
 const fechaOriginal = "original"
 
 // espacioEnBlancoDeXML es el espacio en blanco de XML 1.0 §2.3 (producción S),
@@ -66,6 +67,21 @@ type bloqueLeido struct {
 	// texto es el de la última versión, o el de todo el bloque si no tiene
 	// versiones, con sus líneas normalizadas.
 	texto string
+	// versiones son todas las del bloque, en el orden de la respuesta; vacía si
+	// no tiene ninguna (H20, data-model.md §2).
+	versiones []versionLeida
+}
+
+// versionLeida es una versión del bloque con lo mismo que bloqueLeido da de la
+// última: fechaVersion es fecha_publicacion si el atributo está, aunque venga
+// vacío, y fechaOriginal si falta; fechaVigencia y normaModificadora son
+// fecha_vigencia e id_norma, vacíos si faltan; y texto es el suyo, con su cola
+// y sus líneas normalizadas (research.md D4).
+type versionLeida struct {
+	fechaVersion      string
+	fechaVigencia     string
+	normaModificadora string
+	texto             string
 }
 
 // leerBloque lee el cuerpo XML de la respuesta de un bloque con el mismo
@@ -90,7 +106,9 @@ type bloqueLeido struct {
 //     la que salen la fecha —fecha_publicacion si el atributo está, aunque venga
 //     vacío, y fechaOriginal si falta—, fecha_vigencia e id_norma (116-118). Sin
 //     versiones, la fecha es fechaOriginal y lo demás va vacío (110-112). El valor
-//     de cada atributo es el de atributosDeLaEtiqueta.
+//     de cada atributo es el de atributosDeLaEtiqueta. Cada versión, en el orden
+//     del documento, se lee igual que la vigente, con su texto (H20,
+//     data-model.md §2).
 //   - X7: el texto es el de ET.tostring con method="text" (línea 134): todo el
 //     CharData y el CDATA del elemento y de sus descendientes, en orden, más su
 //     cola, el texto que sigue a su cierre hasta la etiqueta siguiente
@@ -151,9 +169,10 @@ func entradaSinTraducir(_ string, entrada io.Reader) (io.Reader, error) {
 // recorridoDelBloque es el estado de leerBloque mientras visita las fichas del
 // decodificador en el orden del documento. No construye el árbol: guarda lo
 // único que xml_bloque_to_text usa de él —los atributos del bloque y de su
-// última versión, y el texto de los dos con su cola—, y la cola de un elemento
-// termina en la primera etiqueta, de apertura o de cierre, que llega tras su
-// cierre, como el _flush del TreeBuilder (ElementTree.py 1439-1449).
+// última versión, y el texto de los dos con su cola—, lo mismo de cada versión
+// anterior, y la cola de un elemento termina en la primera etiqueta, de apertura
+// o de cierre, que llega tras su cierre, como el _flush del TreeBuilder
+// (ElementTree.py 1439-1449).
 type recorridoDelBloque struct {
 	// profundidad es el número de elementos abiertos: la de un elemento, antes
 	// de abrirlo, es el número de sus antecesores.
@@ -172,13 +191,19 @@ type recorridoDelBloque struct {
 	colaDelBloque      bool
 	textoDelBloque     strings.Builder
 
-	// Lo mismo de la última versión de primer nivel abierta hasta ahora, que al
-	// abrirse otra se sustituye.
-	hayVersiones         bool
-	versionAbierta       bool
-	atributosDeLaVersion []xml.Attr
-	colaDeLaVersion      bool
-	textoDeLaVersion     strings.Builder
+	// versiones son las de primer nivel abiertas hasta ahora, en el orden del
+	// documento; versionAbierta dice si la última aún no se ha cerrado, y
+	// colaDeLaVersion, si el texto que llega es su cola.
+	versiones       []*versionDelRecorrido
+	versionAbierta  bool
+	colaDeLaVersion bool
+}
+
+// versionDelRecorrido es una versión de primer nivel del bloque durante el
+// recorrido: sus atributos y su texto con su cola.
+type versionDelRecorrido struct {
+	atributos []xml.Attr
+	texto     strings.Builder
 }
 
 // visitar pasa una ficha por el recorrido. crudo es la ficha tal como viene en
@@ -204,8 +229,8 @@ func (r *recorridoDelBloque) visitar(token xml.Token, crudo []byte) error {
 // abrir es la etiqueta de apertura de un elemento: cualquiera termina la cola
 // que estuviera en curso (X7); a profundidad cero, es la raíz, y no puede haber
 // dos (X3); si aún no hay bloque y se llama bloque, es el bloque (X4); y si es un
-// hijo version de primer nivel del bloque abierto, es la última versión hasta
-// ahora (X6). Los atributos de los dos se leen con atributosDeLaEtiqueta.
+// hijo version de primer nivel del bloque abierto, es una versión más, la última
+// hasta ahora (X6). Los atributos de los dos se leen con atributosDeLaEtiqueta.
 func (r *recorridoDelBloque) abrir(nombre xml.Name, etiqueta []byte) error {
 	r.colaDelBloque, r.colaDeLaVersion = false, false
 
@@ -221,9 +246,10 @@ func (r *recorridoDelBloque) abrir(nombre xml.Name, etiqueta []byte) error {
 		r.nivelDelBloque = r.profundidad
 		r.atributosDelBloque, err = atributosDeLaEtiqueta(etiqueta)
 	case r.bloqueAbierto && r.profundidad == r.nivelDelBloque+1 && sinEspacioDeNombres(nombre, elementoVersion):
-		r.hayVersiones, r.versionAbierta = true, true
-		r.atributosDeLaVersion, err = atributosDeLaEtiqueta(etiqueta)
-		r.textoDeLaVersion.Reset()
+		version := &versionDelRecorrido{}
+		version.atributos, err = atributosDeLaEtiqueta(etiqueta)
+		r.versiones = append(r.versiones, version)
+		r.versionAbierta = true
 	}
 
 	r.profundidad++
@@ -249,8 +275,8 @@ func (r *recorridoDelBloque) cerrar() {
 // juntarTexto es un tramo de CharData, o una sección CDATA, que encoding/xml
 // entrega igual (xml.go 699-715): fuera de la raíz solo puede ser espacio en
 // blanco escrito tal cual —ni CDATA ni referencias, que tampoco admite XML 1.0
-// §2.8— (X3); dentro, entra en el texto del bloque y en el de la versión si está
-// dentro de ellos o en su cola (X7).
+// §2.8— (X3); dentro, entra en el texto del bloque y en el de la última versión
+// si está dentro de ellos o en su cola (X7).
 func (r *recorridoDelBloque) juntarTexto(texto xml.CharData, crudo []byte) error {
 	if r.profundidad == 0 {
 		if len(bytes.Trim(crudo, espacioEnBlancoDeXML)) > 0 {
@@ -265,7 +291,7 @@ func (r *recorridoDelBloque) juntarTexto(texto xml.CharData, crudo []byte) error
 	}
 
 	if r.versionAbierta || r.colaDeLaVersion {
-		r.textoDeLaVersion.Write(texto)
+		r.versiones[len(r.versiones)-1].texto.Write(texto)
 	}
 
 	return nil
@@ -273,7 +299,7 @@ func (r *recorridoDelBloque) juntarTexto(texto xml.CharData, crudo []byte) error
 
 // bloque es lo leído cuando el documento termina bien formado: el error si no
 // tuvo raíz (X3) o bloque (X4), y si no, sus atributos y su texto, de la última
-// versión si la hay (X5, X6).
+// versión si la hay (X5, X6), y todas sus versiones en su orden.
 func (r *recorridoDelBloque) bloque() (bloqueLeido, error) {
 	switch {
 	case !r.hayRaiz:
@@ -291,19 +317,38 @@ func (r *recorridoDelBloque) bloque() (bloqueLeido, error) {
 		texto:        lineasNormalizadas(r.textoDelBloque.String()),
 	}
 
-	if !r.hayVersiones {
+	if len(r.versiones) == 0 {
 		return leido, nil
 	}
 
-	if fecha, esta := valorDelAtributo(r.atributosDeLaVersion, atributoFechaDePublicacion); esta {
-		leido.fechaVersion = fecha
+	leido.versiones = make([]versionLeida, 0, len(r.versiones))
+	for _, version := range r.versiones {
+		leido.versiones = append(leido.versiones, version.leida())
 	}
 
-	leido.fechaVigencia, _ = valorDelAtributo(r.atributosDeLaVersion, atributoFechaDeVigencia)
-	leido.normaModificadora, _ = valorDelAtributo(r.atributosDeLaVersion, atributoNormaModificadora)
-	leido.texto = lineasNormalizadas(r.textoDeLaVersion.String())
+	vigente := leido.versiones[len(leido.versiones)-1]
+	leido.fechaVersion = vigente.fechaVersion
+	leido.fechaVigencia = vigente.fechaVigencia
+	leido.normaModificadora = vigente.normaModificadora
+	leido.texto = vigente.texto
 
 	return leido, nil
+}
+
+// leida es lo que se lee de una versión (X6, X7 y X8): la fecha de publicación
+// si el atributo está, aunque venga vacío, y fechaOriginal si falta; la de
+// vigencia y la norma modificadora, vacías si faltan; y su texto normalizado.
+func (v *versionDelRecorrido) leida() versionLeida {
+	leida := versionLeida{fechaVersion: fechaOriginal, texto: lineasNormalizadas(v.texto.String())}
+
+	if fecha, esta := valorDelAtributo(v.atributos, atributoFechaDePublicacion); esta {
+		leida.fechaVersion = fecha
+	}
+
+	leida.fechaVigencia, _ = valorDelAtributo(v.atributos, atributoFechaDeVigencia)
+	leida.normaModificadora, _ = valorDelAtributo(v.atributos, atributoNormaModificadora)
+
+	return leida
 }
 
 // atributosDeLaEtiqueta son los atributos de una etiqueta de apertura con el
