@@ -153,7 +153,8 @@ internal/evals/
 ├── conjunto.go                        # las evals con fecha, aparte; maximoDeEvals 23 (+ conjunto_test.go)
 ├── doc.go                             # lo que dice de los umbrales de cada skill (comentario)
 ├── informe_test.go                    # TestUmbralesDeBoeLegislacion; TestUmbralesDeLasTresSkills
-└── definicion_test.go                 # el literal peorCasoDeBoeLegislacion
+├── definicion_test.go                 # el literal peorCasoDeBoeLegislacion
+└── plan_test.go                       # las series y sesiones de boe-legislacion en probarElPlanDelRepositorio
 evals/boe-legislacion/22-lcsp-contrato-menor-en-2019.yaml
 evals/boe-legislacion/23-lpac-articulo-21-en-2016.yaml
 skills/boe-legislacion/SKILL.md
@@ -245,7 +246,9 @@ Ninguno nuevo ni cambiado. `test`, `schema-check` y `skills-check` llevan más d
   `formas-de-la-redaccion-fechada`; `TestConsultasNecesarias` (`consultas_test.go`), con la lectura de cada bloque con
   `--fecha 9999-12-31`; `TestUmbralesDeLasTresSkills` (`informe_test.go`), con los quince de `boe-legislacion`;
   `TestDefinicionDelJob` (`definicion_test.go`), solo el literal `peorCasoDeBoeLegislacion` y el caso de
-  `probarElPeorCasoDelTrabajo` que lo lleva (research D16).
+  `probarElPeorCasoDelTrabajo` que lo lleva (research D16); `TestPlanEnDosModos` (`plan_test.go`, subtest
+  `del-repositorio`), solo las series y sesiones de `boe-legislacion` en `probarElPlanDelRepositorio` —de 32, 32 y 2 y
+  96, 96 y 6 a 36, 36 y 2 y 108, 108 y 6— y su comentario, con los modelos y las repeticiones del job, iguales.
 
 Ninguno se desactiva ni se salta, y ninguno pierde lo que comprobaba: cada cambio es el dato nuevo de una lista, una
 cifra o un caso más. Ningún guion de `internal/app/testdata/script/` de hoy cambia.
@@ -382,6 +385,7 @@ normas y miles de bloques—: cada lectura da un bloque, el que pide la pregunta
 | Las evals con fecha aparte y `maximoDeEvals` 23 | FR-050, FR-052, FR-080 |
 | Las evals 22 y 23 | FR-050, FR-057 |
 | El literal del peor caso en `definicion_test.go` | FR-050 |
+| Las series y sesiones de `boe-legislacion` en `plan_test.go` | FR-050, FR-059 |
 | El subtest `formas-de-la-redaccion-fechada` | FR-048 (las formas tal cual, para el guion) |
 | `SKILL.md` | FR-040 a FR-049 |
 | Los documentos | FR-060 a FR-062 |
@@ -423,7 +427,7 @@ test `TestGrabar*`, evidencia ni fichero de `data/` cambia, y el paso `grabar_da
 7. **Las evals y el umbral**: las evals 22 y 23, las reglas del conjunto, `ConsultasNecesarias`, la medida y el umbral,
    el literal del peor caso y los comentarios de `internal/evals` que dejan de ser ciertos, con
    `TestUmbralesDeBoeLegislacion` y los cambios de `TestUmbralesDeLasTresSkills`, `TestConjuntoDeEvals`,
-   `TestEvalsDelRepositorio`, `TestConsultasNecesarias` y `TestDefinicionDelJob`. Una sola tarea: añadir las evals
+   `TestEvalsDelRepositorio`, `TestConsultasNecesarias`, `TestDefinicionDelJob` y `TestPlanEnDosModos`. Una sola tarea: añadir las evals
    cambia a la vez el conjunto, la caché preparada, el peor caso y los umbrales, y los tests que los fijan tienen que
    cambiar con ellas para dejar `make ci` en verde.
 8. **La skill**: `skills/boe-legislacion/SKILL.md` desde contracts/skill-boe-legislacion.md y su prototipo, con el

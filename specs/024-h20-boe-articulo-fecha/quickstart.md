@@ -87,7 +87,7 @@ sin cambios. **Tras el hito**: con `"fecha"` en la entrada y en `x-banderas`, y 
 
 ```bash
 go test -count=1 -run '^(TestExtraerRedaccionesFechadas|TestFormatoDeLasRedaccionesFechadas|TestJuzgarLecturasFechadas)$' ./internal/evals/
-go test -count=1 -run '^(TestUmbralesDeBoeLegislacion|TestUmbralesDeLasTresSkills|TestDefinicionDelJob|TestConsultasNecesarias|TestConjuntoDeEvals)$' ./internal/evals/
+go test -count=1 -run '^(TestUmbralesDeBoeLegislacion|TestUmbralesDeLasTresSkills|TestDefinicionDelJob|TestPlanEnDosModos|TestConsultasNecesarias|TestConjuntoDeEvals)$' ./internal/evals/
 go test -count=1 -run '^TestEvalsDelRepositorio$' ./internal/evals/
 ```
 

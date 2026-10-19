@@ -230,7 +230,10 @@ dejaría de medir lo que H5 fijó.
 veintitrés evals del repositorio pasa a 18 977 s (S1); el literal `peorCasoDeBoeLegislacion` y el caso de
 `probarElPeorCasoDelTrabajo` que lo lleva cambian con él, como cambió el de `legal-core` en H9 (V32). La concurrencia
 (5), el objetivo de 900 s, el tope de 352 minutos, la definición del contrato y `.github/workflows/evals.yml` no
-cambian (FR-059). Es el control de FR-050.
+cambian (FR-059). Es el control de FR-050. Por la misma razón, `TestPlanEnDosModos` (`plan_test.go`,
+`probarElPlanDelRepositorio`), que fija con las evals del repositorio las series y sesiones del plan de cada skill,
+cambia solo las de `boe-legislacion`: de 32, 32 y 2 series y 96, 96 y 6 sesiones a 36, 36 y 2 y 108, 108 y 6, con los
+modelos y las repeticiones del job, iguales.
 
 **D17 · La skill no pide `graph check` tras una lectura fechada.** Una lectura fechada no es lectura del bloque
 (FR-031), así que `graph check` no diría nada de ella, y lo que dijera de las lecturas sin fecha no va en esa

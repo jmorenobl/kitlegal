@@ -226,7 +226,9 @@ fecha que no es positiva; `TestEvalsDelRepositorio`, con las veintitrés evals, 
 de §2, como `hallazgos-de-la-skill` con la suya—; `TestConsultasNecesarias` (`consultas_test.go`), con la lectura de
 `--fecha 9999-12-31` de cada bloque (research D18); y `TestDefinicionDelJob` (`definicion_test.go`), solo el literal
 `peorCasoDeBoeLegislacion` —18 977 s, con 109, 108 y 6 sesiones y 60, 60 y 3 respuestas— y el caso de
-`probarElPeorCasoDelTrabajo` que lo lleva (research D16).
+`probarElPeorCasoDelTrabajo` que lo lleva (research D16); y `TestPlanEnDosModos` (`plan_test.go`, subtest
+`del-repositorio`), solo las series y sesiones de `boe-legislacion` en `probarElPlanDelRepositorio` —de 32, 32 y 2 y
+96, 96 y 6 a 36, 36 y 2 y 108, 108 y 6, por modo: orden, herramienta y sin modo— y su comentario (research D16).
 
 ## 5. Los mutantes de FR-090
 
