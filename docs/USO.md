@@ -10,6 +10,32 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-19 · Lo que le falta a un despacho detrás de H9
+
+- **Qué se pidió.** Jorge pidió analizar cómo ordenar lo que queda del roadmap para que sirva antes a los despachos
+  sin que la ciudadanía pierda lo suyo, con tres carencias de partida: la doctrina, la jurisprudencia que se pueda
+  traer sin la persona y el DIR3, que solo cubre a los ayuntamientos.
+- **Qué faltó.**
+  - **Los plazos procesales.** H9 cuenta el plazo administrativo y la interposición del contencioso, pero un despacho
+    pequeño litiga sobre todo en lo civil y en lo social, con otro cómputo: arts. 130.2 y 133 LEC y art. 43.4 LRJS,
+    leídos con `kitlegal boe articulo` ese día. El art. 43.4 LRJS hace hábil agosto en una lista de modalidades
+    procesales (despido, vacaciones, conflictos colectivos, tutela de derechos fundamentales…), así que la fecha
+    depende de un dato que la pregunta a menudo no trae.
+  - **La jurisprudencia del Constitucional.** Llega entera por el BOE y la vía está verificada desde el 2026-10-02
+    (`docs/JURISPRUDENCIA.md`), pero seguía en el backlog: hoy `jurisprudencia` pide el documento también para una
+    sentencia que el binario podría leer.
+  - **La doctrina.** El buscador del BOE aloja los dictámenes del Consejo de Estado (desde 1987, con el texto
+    completo), la doctrina de la Fiscalía General del Estado y la de la Abogacía del Estado. Sin verificar todavía la
+    vía de un programa ni las condiciones de reutilización de esas bases. La doctrina sectorial (DGT, TEAC, AEPD,
+    TACRC, Consejo de Transparencia) está fuera del BOE, cada una con sus términos.
+  - **El DIR3.** Pesa menos de lo que parece: para recurrir, el órgano lo da la notificación (art. 40.2 LPAC); para
+    presentar, lo busca la persona en el registro, que es frontera humana; y PLACSP trae el DIR3 de los órganos de
+    contratación. Pesa en preguntas de competencia sin una notificación delante.
+- **Qué se hizo.** ADR 0040: detrás de H9, H20 → H9.1 (plazos procesales) → H8 → H27 (el TC por el BOE) → H28 (la
+  doctrina del BOE), y luego la fase 2; al terminarla, H12 y H13 por delante de los candidatos de despacho del
+  backlog. El DIR3 de los demás órganos y el cotejo de la doctrina académica que trae la persona quedan como
+  candidatos del backlog, con su condición de entrada.
+
 ### 2026-10-18 · La app de Claude en Windows 10 funciona con el plugin de la cuenta
 
 - **Qué se pidió.** La primera prueba de kitlegal en Windows con la app, pendiente desde H22: Jorge, en un Windows 10
