@@ -10,6 +10,23 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-18 · La app de Claude en Windows 10 funciona con el plugin de la cuenta
+
+- **Qué se pidió.** La primera prueba de kitlegal en Windows con la app, pendiente desde H22: Jorge, en un Windows 10
+  con la app de escritorio de Claude y su cuenta, con la v0.6.1, la última publicada ese día.
+- **Qué pasó.** Al entrar con la cuenta, kitlegal ya estaba instalado: el plugin llegó sincronizado desde la cuenta,
+  con el servidor dentro, sin añadir el marketplace ni descargar nada en ese equipo. En una conversación de chat,
+  Jorge invocó `boe-legislacion` con una consulta. La skill se cargó, la respuesta usó las herramientas del servidor
+  y todo funcionó. Es la primera vez que el `kitlegal.exe` de la extensión corre dentro de la app; hasta ahora solo
+  se había ejecutado en un Windows Server 2025 de GitHub Actions (entrada del 2026-10-04).
+- **Qué falta.** Instalar desde cero en Windows: añadir el marketplace en un equipo sin el plugin en la cuenta, o
+  subir `kitlegal-plugin.zip`; SmartScreen, el antivirus o la política de un equipo de empresa, que es lo que bloqueó
+  al abogado de la entrada del 2026-10-04 (`kitlegal.exe` sigue sin firma de Windows); Windows 11; y Claude Code en
+  Windows con el programa de Scoop, donde la orden de lectura y comprobación usa `&&`, que Windows PowerShell 5.1 no
+  tiene. En el chat eso no cuenta: la skill usa las herramientas, no la terminal.
+- **Qué se hizo.** La app de escritorio de Claude en Windows pasa a soportada, como en macOS. README, web, CLAUDE.md,
+  `docs/HISTORIAL.md` y el ADR 0035 lo dicen, y dejan como «sin probar» lo de «Qué falta».
+
 ### 2026-10-16 · La medida de SC-010 de H23.1: 0 de 30 sesiones de la eval 06 sin cotejar
 
 - **Qué se pidió.** La Aceptación de H23.1 pedía, antes de fusionar, 15 repeticiones de la eval 06 por modo con
