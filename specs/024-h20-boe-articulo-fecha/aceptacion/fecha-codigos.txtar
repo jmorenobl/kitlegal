@@ -1,0 +1,102 @@
+# Los códigos de la lectura fechada. Una --fecha que no es un día AAAA-MM-DD
+# del calendario —un día que no existe, otra forma o vacía— sale con 2,
+# argumentos, antes de abrir la caché o pedir nada. Con --dry-run y la caché
+# vacía, la lectura fechada sale con 0, describe las peticiones de la lectura
+# sin fecha del mismo bloque —el bloque y los metadatos de su norma— y no crea
+# la caché. Con una fecha válida, una norma mal formada, un bloque mal formado y
+# un bloque que no está en la norma dan lo mismo que sin --fecha: el mismo
+# código, el mismo sobre y el mismo mensaje. Y el 3 de una fecha anterior a la
+# primera vigencia del bloque tiene otra forma que el 3 de un bloque que no está
+# en la norma.
+#
+# Cubre: US1, US2 · FR-003, FR-005, FR-006, FR-007.
+#
+# Como en boe-codigos.txtar, el código exacto lo comprueba el intérprete de
+# órdenes, y la caché de cada guion es cache/ en su directorio de trabajo. El
+# sobre de un 2 lo fecha el kernel con su reloj, también en el binario T0: los
+# sobres se comparan con su fecha de consulta igualada por sed (research S3).
+# Del texto de un mensaje de 2 no se mira nada. Para comparar la forma de los
+# dos mensajes de 3, cada uno sustituye su id de bloque por el mismo marcador:
+# con la misma forma, los dos quedarían iguales.
+
+# Precondición: boe articulo admite --fecha (FR-001).
+exec kitlegal boe articulo --help
+stdout '--fecha'
+
+# --- Una fecha que no es un día del calendario: 2, sin abrir la caché (FR-005) ---
+! exists cache
+
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2019-02-30 --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2019-6-1 --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha "" --json; test $? -eq 2'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"argumentos","mensaje":".+"\}\}\n\z'
+
+! exists cache
+
+# --- Con --dry-run y la caché vacía: 0 y ninguna escritura (FR-006, FR-007) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2019-06-01 --dry-run --json
+stderr 'GET https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1985-5392/texto/bloque/a22$'
+stderr 'GET https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1985-5392/metadatos$'
+! exists cache
+
+# --- Una norma mal formada: lo mismo que sin --fecha (FR-007) ---
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015 a21 --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos",'
+cp stdout norma.json
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015 a21 --fecha 2019-06-01 --json; test $? -eq 2'
+cp stdout norma-fechada.json
+
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' norma.json
+cp stdout norma.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' norma-fechada.json
+cmp stdout norma.sin-fecha
+
+# --- Un bloque mal formado: lo mismo que sin --fecha (FR-007) ---
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 ../a21 --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos",'
+cp stdout bloque.json
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 ../a21 --fecha 2019-06-01 --json; test $? -eq 2'
+cp stdout bloque-fechado.json
+
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' bloque.json
+cp stdout bloque.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' bloque-fechado.json
+cmp stdout bloque.sin-fecha
+
+! exists cache
+
+# --- Un bloque que no está en la norma: el mismo 3 que sin --fecha (FR-007) ---
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a9999 --json; test $? -eq 3'
+stdout '"data":\{"clase":"no-encontrado",'
+cp stdout a9999.json
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a9999 --fecha 2019-06-01 --json; test $? -eq 3'
+cp stdout a9999-fechado.json
+
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' a9999.json
+cp stdout a9999.sin-fecha
+exec sed 's/"fecha_consulta":"[^"]*"/"fecha_consulta":""/' a9999-fechado.json
+cmp stdout a9999.sin-fecha
+
+# --- Y distinto del 3 de una fecha anterior a la primera vigencia (FR-003) ---
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --fecha 2016-06-01 --json; test $? -eq 3'
+stdout '"data":\{"clase":"no-encontrado",'
+cp stdout anterior.json
+
+exec sed -E -n 's/^.*"mensaje":"(.*)"\}\}$/\1/p' a9999-fechado.json
+stdout .
+cp stdout a9999.mensaje
+exec sed 's/a9999/<bloque>/g' a9999.mensaje
+cp stdout a9999.forma
+
+exec sed -E -n 's/^.*"mensaje":"(.*)"\}\}$/\1/p' anterior.json
+stdout .
+cp stdout anterior.mensaje
+exec sed 's/a21/<bloque>/g' anterior.mensaje
+! cmp stdout a9999.forma

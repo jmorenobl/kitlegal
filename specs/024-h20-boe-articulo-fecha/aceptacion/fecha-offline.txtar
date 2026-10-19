@@ -1,0 +1,63 @@
+# La lectura fechada y la caché. La entrada de hoy del artículo, la que deja la
+# lectura sin fecha, no sirve una lectura fechada: con --offline y solo esa
+# entrada, la fechada sale con 4, fuente-no-disponible, como la caché sin
+# entrada. Una lectura fechada no cambia la entrada de hoy: después, la lectura
+# sin fecha con --offline da byte a byte lo mismo que antes. Y lo que guarda una
+# lectura fechada sirve, sin reproducción de la que pedir, la misma lectura con
+# --offline, con el mismo data, el mismo hash y la misma fecha de consulta, y
+# también la de otra fecha del mismo bloque.
+#
+# Cubre: US1 · FR-020, FR-021, FR-022, FR-082.
+#
+# Todo va con el reloj T0 sobre lo grabado de H4 en reproduccion/, que se retira
+# antes de las últimas lecturas, como en boe-offline.txtar: con --offline, si
+# algo se pidiera, no habría nada que lo sirviera. Como en boe-codigos.txtar, el
+# código exacto lo comprueba el intérprete de órdenes. Las versiones del art. 22
+# de la LRBRL son las de contracts/articulo-fecha.md §2: el 2005-06-15, la del
+# 20040101; el 2008-04-30, la del 20080430.
+
+# Precondición: boe articulo admite --fecha (FR-001).
+exec kitlegal boe articulo --help
+stdout '--fecha'
+
+# --- La lectura sin fecha deja la entrada de hoy ---
+! exists cache
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '\A\{"ok":true,'
+! stderr .
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --offline --json
+stdout '\A\{"ok":true,'
+! stderr .
+cp stdout hoy-sin-red.json
+
+# --- La entrada de hoy no sirve la lectura fechada: 4 (FR-020) ---
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --offline --json; test $? -eq 4'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"fuente-no-disponible",'
+
+# --- La lectura fechada, sobre la reproducción ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json
+stdout '\A\{"ok":true,'
+stdout '"fecha_vigencia":"20040101"'
+! stderr .
+cp stdout fechada.json
+
+# --- La entrada de hoy no ha cambiado (FR-021) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --offline --json
+! stderr .
+cmp stdout hoy-sin-red.json
+
+# --- Sin reproducción, lo guardado sirve la lectura fechada (FR-022, FR-082) ---
+rm reproduccion
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --offline --json
+! stderr .
+cmp stdout fechada.json
+
+# Y otra fecha del mismo bloque, con su versión.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2008-04-30 --offline --json
+stdout '\A\{"ok":true,'
+stdout '"fecha_vigencia":"20080430"'
+stdout '"fecha_pedida":"2008-04-30"'
+! stderr .

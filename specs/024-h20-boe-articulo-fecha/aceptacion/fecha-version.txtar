@@ -1,0 +1,99 @@
+# La lectura fechada de boe articulo: con --fecha, la versión del bloque que
+# regía en esa fecha, la de mayor fecha_vigencia que no es posterior a la
+# pedida, elegida por fecha_vigencia y nunca por fecha_publicacion; en data, la
+# fecha pedida y, si la elegida no es la última, la redacción posterior con su
+# fecha de vigencia y su norma modificadora. El art. 118 de la LCSP el
+# 2019-06-01 es su redacción original, vigente desde el 20180309, con la
+# posterior de BOE-A-2020-1651, del 20200206, también en la salida legible. El
+# art. 22 de la LRBRL el 2005-06-15 es la de BOE-A-2003-23103, del 20040101,
+# con la posterior del 20151031; el 2019-06-01, posterior a su última vigencia,
+# es la de hoy, con el mismo texto y la misma huella del texto que sin --fecha
+# y sin redacción posterior. El art. 21 de la Ley 39/2015 el 2016-06-01, entre
+# su publicación (20151002) y su entrada en vigor, no tenía redacción vigente:
+# código 3, no-encontrado, sin texto, con un mensaje que nombra la fecha pedida
+# y la fecha de vigencia de su primera redacción, 20161002.
+#
+# Cubre: US1.1, US2.1 · FR-001, FR-002, FR-003, FR-010, FR-013 · SC-004.
+#
+# Todo va con el reloj T0 sobre lo grabado de H4 en reproduccion/. Los nombres
+# de las claves nuevas y la forma de redaccion_posterior son los de
+# contracts/articulo-fecha.md §4; de la salida legible solo se miran las filas
+# de la fecha pedida y de la redacción posterior, con la ruta aplanada de la
+# tabla mínima. Del mensaje del 3 solo se mira que nombra las dos fechas, cada
+# una por su lado: su texto lo fija el plan, no el spec. El texto y la huella
+# del texto de las dos lecturas del art. 22 se sacan de su sobre con sed y se
+# comparan con cmp. Como en boe-codigos.txtar, el código exacto lo comprueba
+# el intérprete de órdenes.
+
+# Precondición: boe articulo admite --fecha (FR-001).
+exec kitlegal boe articulo --help
+stdout '--fecha'
+
+# --- US1: el art. 118 de la LCSP el 2019-06-01 (US1.1; FR-002, FR-010) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2017-12902 a1-30 --fecha 2019-06-01 --json
+stdout '\A\{"ok":true,'
+stdout '"fecha_vigencia":"20180309"'
+stdout '"norma_modificadora":"BOE-A-2017-12902"'
+stdout '"fecha_pedida":"2019-06-01"'
+stdout '"redaccion_posterior":\{"fecha_vigencia":"20200206","norma_modificadora":"BOE-A-2020-1651"\}'
+! stderr .
+
+# La salida legible lleva también la fecha pedida y la redacción posterior
+# (FR-010).
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-2017-12902 a1-30 --fecha 2019-06-01
+stdout '^fecha_pedida +2019-06-01$'
+stdout '^redaccion_posterior\.fecha_vigencia +20200206$'
+stdout '^redaccion_posterior\.norma_modificadora +BOE-A-2020-1651$'
+! stderr .
+
+# --- El art. 22 de la LRBRL en una fecha intermedia (FR-002, FR-010) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json
+stdout '\A\{"ok":true,'
+stdout '"fecha_vigencia":"20040101"'
+stdout '"norma_modificadora":"BOE-A-2003-23103"'
+stdout '"fecha_pedida":"2005-06-15"'
+stdout '"redaccion_posterior":\{"fecha_vigencia":"20151031","norma_modificadora":"BOE-A-2015-11723"\}'
+! stderr .
+
+# --- Y en una posterior a su última vigencia: la de hoy (FR-013) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '\A\{"ok":true,'
+! stderr .
+cp stdout hoy.json
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2019-06-01 --json
+stdout '\A\{"ok":true,'
+stdout '"fecha_pedida":"2019-06-01"'
+! stdout '"redaccion_posterior"'
+! stderr .
+cp stdout fechada.json
+
+exec sed -E -n 's/^.*("hash_texto":"sha256:[0-9a-f]{64}").*$/\1/p' hoy.json
+stdout '^"hash_texto":"sha256:[0-9a-f]{64}"$'
+cp stdout hoy.huella
+exec sed -E -n 's/^.*("hash_texto":"sha256:[0-9a-f]{64}").*$/\1/p' fechada.json
+cmp stdout hoy.huella
+
+exec sed -E -n 's/^.*("texto":"([^"\\]|\\.)*").*$/\1/p' hoy.json
+stdout '^"texto":"'
+cp stdout hoy.texto
+exec sed -E -n 's/^.*("texto":"([^"\\]|\\.)*").*$/\1/p' fechada.json
+cmp stdout hoy.texto
+
+# --- US2: el art. 21 de la Ley 39/2015 el 2016-06-01 (US2.1; FR-002, FR-003) ---
+#
+# Entre su publicación y su entrada en vigor: elegida por fecha_publicacion,
+# sería la primera redacción con código 0.
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --fecha 2016-06-01 --json; test $? -eq 3'
+stdout '\A\{"ok":false,'
+stdout '"data":\{"clase":"no-encontrado","mensaje":"'
+stdout '"mensaje":"([^"\\]|\\.)*2016-06-01'
+stdout '"mensaje":"([^"\\]|\\.)*20161002'
+! stdout '"texto"'
+
+# Sin --json, el mismo código, nada en la salida estándar y el mensaje con las
+# dos fechas.
+exec sh -c '$KITLEGAL_T0_BIN boe articulo BOE-A-2015-10565 a21 --fecha 2016-06-01; test $? -eq 3'
+! stdout .
+stderr '2016-06-01'
+stderr '20161002'
