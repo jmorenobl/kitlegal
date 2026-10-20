@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-20
+
 ### Añadido
 
 - **`kitlegal boe articulo <norma> <bloque> --fecha AAAA-MM-DD`: la redacción de un bloque vigente en una fecha.**
