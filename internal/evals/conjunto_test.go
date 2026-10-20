@@ -1916,10 +1916,10 @@ const (
 	// H25).
 	evalsDeJurisprudencia = "../../evals/jurisprudencia"
 
-	// evalsDeLegalCoreV1 son las de evals/legal-core/ desde H9: las cuatro de
+	// evalsDeLegalCoreConLaDeVigencia son las de evals/legal-core/: desde H9, las cuatro de
 	// antes, las tres de plazo y las dos de cobertura (contracts/evals-legal-core.md
-	// §5 de H9; FR-050).
-	evalsDeLegalCoreV1 = 9
+	// §5 de H9; FR-050), y desde el ADR 0042, la de vigencia.
+	evalsDeLegalCoreConLaDeVigencia = 10
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -2051,7 +2051,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
 			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
 
-		// Las nueve de legal-core v1, bien formadas (FR-050 de H9), y lo que
+		// Las diez de legal-core, bien formadas (FR-050 de H9; ADR 0042), y lo que
 		// leen del BOE sus sesiones, servido sin red por la unión de grabaciones
 		// (FR-052 de H9).
 		assert.Empty(t, deLegalCore.MalFormados, "cada fichero de %s es una eval bien formada", evalsDeLegalCore)
@@ -2061,7 +2061,8 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			ficheros = append(ficheros, eval.Fichero)
 		}
 
-		assert.Len(t, ficheros, evalsDeLegalCoreV1, "%s tiene las nueve evals de legal-core v1", evalsDeLegalCore)
+		assert.Len(t, ficheros, evalsDeLegalCoreConLaDeVigencia, "%s tiene las diez evals de legal-core",
+			evalsDeLegalCore)
 
 		consultas := ConsultasNecesarias(deLegalCore.Evals)
 		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDeLegalCore)

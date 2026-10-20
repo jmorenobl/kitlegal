@@ -116,7 +116,8 @@ func (a appletPlazos) Verbos() []Verbo {
 		Nombre: "calcular",
 		Descripcion: "Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno" +
 			" genérico— desde la fecha de inicio que se da, con los preceptos que lo fijan, los festivos saltados," +
-			" los avisos y la cobertura de los festivos.",
+			" los avisos y la cobertura de los festivos. No la da si alguno de sus preceptos no regía así el día de" +
+			" inicio.",
 		Argumentos: func() Argumentos { return &argumentosDeCalcular{cargado: a.cargado} },
 		Salida:     plazos.Plazo{},
 	}}

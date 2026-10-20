@@ -1015,8 +1015,9 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // 12 577 s —61 sesiones en el modo orden, con la prueba de red, que se cuenta
 // aunque su trabajo no la lleve, y 60 en el modo herramienta, y las 30
 // respuestas que su juez juzga en cada modo—. Desde H9, el de legal-core, con
-// sus nueve evals, es de 14 629 s y queda entre el de boe-legislacion y el de
-// jurisprudencia (FR-050 de H9). Desde antes de H20, boe-legislacion va a cinco
+// sus nueve evals, era de 14 629 s y, con la de vigencia del ADR 0042, es de
+// 16 261 s; queda entre el de boe-legislacion y el de jurisprudencia (FR-050 de
+// H9). Desde antes de H20, boe-legislacion va a cinco
 // a la vez y, desde H20, con sus veintitrés evals, el suyo es de 18 977 s
 // (research D16 y S1 de H20). El tope
 // de la definición del job cubre los tres; con 288 minutos, 17 280 s, ya no
@@ -1890,8 +1891,9 @@ const (
 		terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89 + \xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89)" +
 		terminosDeUnVoto
 
-	// El de legal-core, el de FR-050 de H9: sus nueve evals a dos a la vez.
-	peorCasoDeLegalCore = "14629 s = 485 s + (\xe2\x8c\x8849 / 2\xe2\x8c\x89 + \xe2\x8c\x8848 / 2\xe2\x8c\x89 + " +
+	// El de legal-core, el de FR-050 de H9: sus diez evals, con la de vigencia
+	// del ADR 0042, a dos a la vez.
+	peorCasoDeLegalCore = "16261 s = 485 s + (\xe2\x8c\x8855 / 2\xe2\x8c\x89 + \xe2\x8c\x8854 / 2\xe2\x8c\x89 + " +
 		"\xe2\x8c\x886 / 2\xe2\x8c\x89)" + terminosDeUnaTanda
 
 	// El de la medida del juez de jurisprudencia, con sus 249 casos etiquetados
@@ -1972,8 +1974,8 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		},
 		{
 			skill:    "legal-core",
-			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{49, 48, 6}, Concurrencia: 2},
-			duracion: 14629 * time.Second,
+			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{55, 54, 6}, Concurrencia: 2},
+			duracion: 16261 * time.Second,
 			texto:    peorCasoDeLegalCore,
 		},
 	}

@@ -62,11 +62,19 @@ func ComprobarPeticion(tipos []Tipo, peticion Peticion) error {
 // los tipos de data/plazos.yaml (FR-001 a FR-012; contracts/applet-plazos.md
 // §2 y §4). No resuelve ningún municipio: los recibe resueltos. Un argumento
 // que no vale, o un plazo que acaba después del 31 de diciembre de 9999, es un
-// error de clase argumentos y no da plazo.
+// error de clase argumentos y no da plazo. Un plazo que empieza antes del día
+// desde el que rige, como lo cuenta data/plazos.yaml, alguno de sus preceptos
+// es un error de clase no encontrado que los nombra, y tampoco da plazo: un
+// plazo se rige por la redacción vigente el día en que empieza, y kitlegal no
+// tiene otra (ADR 0042).
 func Calcular(calendario *Calendario, tipos []Tipo, peticion Peticion) (Plazo, error) {
 	comprobada, err := comprobarPeticion(tipos, peticion)
 	if err != nil {
 		return Plazo{}, err
+	}
+
+	if posteriores := preceptosPosterioresAlInicio(comprobada); len(posteriores) > 0 {
+		return Plazo{}, plazoConPreceptosPosteriores(comprobada, posteriores)
 	}
 
 	plazo := nuevoCalculo(calendario, comprobada, peticion.Municipios)
@@ -106,6 +114,37 @@ func comprobarPeticion(tipos []Tipo, peticion Peticion) (peticionComprobada, err
 	}
 
 	return peticionComprobada{tipo: tipo, inicio: inicio, duracion: duracion}, nil
+}
+
+// preceptosPosterioresAlInicio son los preceptos del plazo —los del tipo, el de
+// la unidad en el genérico y los de su cómputo, en ese orden y cada apartado
+// una vez— que rigen, como los cuenta data/plazos.yaml, desde un día posterior
+// al de inicio. Los días se comparan como texto: los dos son AAAA-MM-DD.
+func preceptosPosterioresAlInicio(comprobada peticionComprobada) []Precepto {
+	inicio := comprobada.inicio.Format(time.DateOnly)
+
+	var del []Precepto
+
+	del = append(del, comprobada.tipo.Preceptos...)
+	if precepto, esta := comprobada.tipo.Unidades[comprobada.duracion.Unidad]; esta {
+		del = append(del, precepto)
+	}
+
+	del = append(del, comprobada.tipo.PreceptosDelComputo...)
+
+	var posteriores []Precepto
+
+	for _, precepto := range del {
+		if precepto.VigenteDesde <= inicio || slices.ContainsFunc(posteriores, func(visto Precepto) bool {
+			return visto.Norma == precepto.Norma && visto.Bloque == precepto.Bloque && visto.Apartado == precepto.Apartado
+		}) {
+			continue
+		}
+
+		posteriores = append(posteriores, precepto)
+	}
+
+	return posteriores
 }
 
 // municipiosDelComputo es cuántos municipios cuentan en el cómputo de un

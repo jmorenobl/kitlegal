@@ -127,6 +127,12 @@
       "required": ["norma"],
       "properties": { "norma": { "$ref": "#/$defs/norma" } }
     },
+    "plazo_sin_calcular": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["norma"],
+      "properties": { "norma": { "$ref": "#/$defs/norma" } }
+    },
     "redaccion_fechada": {
       "type": "object",
       "additionalProperties": false,
@@ -156,7 +162,12 @@
       ]
     }
   },
-  "not": { "required": ["plazo", "no_cubierto"] },
+  "not": {
+    "anyOf": [
+      { "required": ["plazo", "no_cubierto"] }, { "required": ["plazo", "plazo_sin_calcular"] },
+      { "required": ["no_cubierto", "plazo_sin_calcular"] }
+    ]
+  },
   "if": { "required": ["activa"], "properties": { "activa": { "const": true } } },
   "then": {
     "if": { "required": ["sin_binario_ni_servidor"] },
@@ -168,7 +179,7 @@
           { "required": ["redacciones_modificadas"] }, { "required": ["territorio"] },
           { "required": ["informativa"] }, { "required": ["reproduce"] }, { "required": ["sentencias"] },
           { "required": ["por_materia"] }, { "required": ["plazo"] }, { "required": ["no_cubierto"] },
-          { "required": ["redaccion_fechada"] }
+          { "required": ["plazo_sin_calcular"] }, { "required": ["redaccion_fechada"] }
         ]
       }
     },
@@ -176,7 +187,10 @@
       "if": { "anyOf": [{ "required": ["sentencias"] }, { "required": ["no_cubierto"] }] },
       "else": {
         "required": ["comandos"],
-        "anyOf": [{ "required": ["citas"] }, { "required": ["territorio"] }, { "required": ["plazo"] }]
+        "anyOf": [
+          { "required": ["citas"] }, { "required": ["territorio"] }, { "required": ["plazo"] },
+          { "required": ["plazo_sin_calcular"] }
+        ]
       }
     }
   },
@@ -187,7 +201,8 @@
         { "required": ["citas"] }, { "required": ["avisos"] }, { "required": ["hallazgos"] },
         { "required": ["redacciones_modificadas"] }, { "required": ["territorio"] },
         { "required": ["sin_binario_ni_servidor"] }, { "required": ["sentencias"] }, { "required": ["por_materia"] },
-        { "required": ["plazo"] }, { "required": ["no_cubierto"] }, { "required": ["redaccion_fechada"] }
+        { "required": ["plazo"] }, { "required": ["no_cubierto"] }, { "required": ["plazo_sin_calcular"] },
+        { "required": ["redaccion_fechada"] }
       ]
     }
   },
@@ -304,7 +319,8 @@
       "properties": {
         "applet": { "$ref": "#/$defs/applet" },
         "verbo": { "const": "calcular" },
-        "tipo": { "type": "string", "minLength": 1 }
+        "tipo": { "type": "string", "minLength": 1 },
+        "sin_calcular": { "const": true }
       }
     },
     "comando-prohibido": {

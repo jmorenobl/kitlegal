@@ -455,9 +455,11 @@ func (caso casoDeLosMunicipios) comprueba(t *testing.T) {
 // casosDeLosMunicipios son los fallos de los municipios y su orden: el de un
 // nombre de varios municipios, con los candidatos tal como los da territorio;
 // el de uno que no está en la relación, con 3; el 2 antes que el 3, aunque el
-// que daría el 3 vaya antes; los de varios, separados por « | »; y lo que
+// que daría el 3 vaya antes; los de varios, separados por « | »; lo que
 // decide el dominio antes que ningún municipio (H9 FR-007, FR-010, FR-012;
-// research D10, V17).
+// research D10, V17); y, con los municipios resueltos, el 3 de un plazo cuyos
+// preceptos no regían el día de inicio, que no decide antes que un municipio
+// que no está en la relación (ADR 0042).
 func casosDeLosMunicipios() []casoDeLosMunicipios {
 	return []casoDeLosMunicipios{
 		{
@@ -513,6 +515,49 @@ func casosDeLosMunicipios() []casoDeLosMunicipios {
 			codigo: 2, clase: schema.ClaseArgumentos,
 			mensaje: comoLoDiceElDominio(plazos.Peticion{Tipo: "reposicion", Inicio: "2026-09-09"}, 1),
 		},
+		{
+			nombre: "un-plazo-con-preceptos-que-no-regian",
+			orden:  []string{"reposicion", "2014-06-02", "Leganés", "Leganés"},
+			codigo: 3, clase: schema.ClaseNoEncontrado,
+			mensaje: comoLoCalculaElDominio(plazos.Peticion{Tipo: "reposicion", Inicio: "2014-06-02"}, "Leganés", "Leganés"),
+		},
+		{
+			nombre: "los-municipios-antes-que-los-preceptos",
+			orden:  []string{"reposicion", "2014-06-02", "Leganés", "Inexistente"},
+			codigo: 3, clase: schema.ClaseNoEncontrado,
+			mensaje: func(t *testing.T, registro *territorio.Registro) string {
+				t.Helper()
+
+				return comoLoDiceTerritorio(t, registro, "Inexistente")
+			},
+		},
+	}
+}
+
+// comoLoCalculaElDominio es el mensaje con el que el dominio rechaza la petición
+// con los municipios resueltos: el de un plazo cuyos preceptos no regían el día
+// de inicio (ADR 0042).
+func comoLoCalculaElDominio(
+	peticion plazos.Peticion, municipios ...string,
+) func(t *testing.T, registro *territorio.Registro) string {
+	return func(t *testing.T, registro *territorio.Registro) string {
+		t.Helper()
+
+		fuentes := fuentesDePlazos(t)
+
+		tipos, err := plazos.LeerTipos(fuentes.Tipos)
+		require.NoError(t, err)
+
+		calendario, err := plazos.CargarCalendario(fuentes.Nacionales, fuentes.Locales)
+		require.NoError(t, err)
+
+		peticion.Municipios, err = resolverMunicipios(registro, municipios)
+		require.NoError(t, err)
+
+		_, err = plazos.Calcular(calendario, tipos, peticion)
+		require.Error(t, err)
+
+		return err.Error()
 	}
 }
 

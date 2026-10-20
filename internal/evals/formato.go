@@ -127,6 +127,13 @@ type Eval struct {
 	// de H9; FR-051).
 	NoCubierto NoCubiertoEsperado `yaml:"no_cubierto"`
 
+	// PlazoSinCalcular es la declaración de que plazos no calcula el plazo, porque
+	// alguno de sus preceptos no regía así el día de inicio, que la respuesta
+	// tiene que llevar en su forma fija; vacía si la eval no la espera. La eval
+	// que la lleva es una eval de vigencia. La admite la misma eval que Plazo,
+	// nunca con él ni con NoCubierto, y con ella puede no llevar citas (ADR 0042).
+	PlazoSinCalcular PlazoSinCalcularEsperado `yaml:"plazo_sin_calcular"`
+
 	// RedaccionFechada es lo que la respuesta tiene que decir, en las líneas de
 	// ExtraerRedaccionesFechadas, de la redacción de un bloque en una fecha; nil
 	// si la eval no lo espera. Solo lo admite una eval que activa la skill y que
@@ -145,6 +152,13 @@ func (e Eval) esDePlazo() bool {
 // declaración de no cubierto, que su esquema no admite sin norma.
 func (e Eval) esDeCobertura() bool {
 	return e.NoCubierto.Norma != ""
+}
+
+// esDeVigencia dice si la eval es una eval de vigencia: si espera la
+// declaración de un plazo sin calcular, que su esquema no admite sin norma
+// (ADR 0042).
+func (e Eval) esDeVigencia() bool {
+	return e.PlazoSinCalcular.Norma != ""
 }
 
 // PlazoEsperado es lo que una eval de plazo espera de la respuesta
@@ -169,6 +183,15 @@ type PlazoEsperado struct {
 type NoCubiertoEsperado struct {
 	// Norma es el identificador de la norma que rige el procedimiento, BOE-A-…,
 	// que tiene que llevar la línea ⚠ NO CUBIERTO: de la respuesta.
+	Norma string `yaml:"norma"`
+}
+
+// PlazoSinCalcularEsperado es lo que una eval de vigencia espera de la
+// respuesta (ADR 0042).
+type PlazoSinCalcularEsperado struct {
+	// Norma es el identificador BOE-A-… de una norma de los preceptos que no
+	// regían el día de inicio, que tiene que llevar la línea
+	// ⚠ PLAZO SIN CALCULAR: de la respuesta.
 	Norma string `yaml:"norma"`
 }
 
@@ -283,6 +306,11 @@ type ComandoEsperado struct {
 	// Tipo es el tipo de plazo que un comando calcular tiene que pedir, como
 	// reposicion o contencioso.
 	Tipo string `yaml:"tipo"`
+
+	// SinCalcular dice que el plazo del comando calcular no se calcula, porque
+	// alguno de sus preceptos no regía así el día de inicio: la invocación
+	// termina con 3 (ADR 0042).
+	SinCalcular bool `yaml:"sin_calcular"`
 
 	// Fecha es el día, AAAA-MM-DD, con el que la forma bloque tiene que leer su
 	// bloque, con --fecha o con fecha en la herramienta; vacía en la lectura de

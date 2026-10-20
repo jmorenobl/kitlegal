@@ -34,6 +34,31 @@ func (e *errorDeArgumentos) Clase() schema.Clase {
 	return schema.ClaseArgumentos
 }
 
+// errorNoEncontrado es el plazo que kitlegal no tiene: el de una fecha de inicio
+// en la que alguno de sus preceptos no regía como lo cuenta data/plazos.yaml
+// (ADR 0042). Lo pedido, el plazo de ese día, no está en los datos del applet,
+// que es su fuente: la fila «no encontrado» del ADR 0023, como la lectura de un
+// bloque en una fecha sin redacción vigente.
+type errorNoEncontrado struct {
+	// mensaje dice el plazo, por qué no se calcula y, una por línea, cada
+	// precepto con el día desde el que rige.
+	mensaje string
+}
+
+// Un plazo que no se tiene declara su clase él mismo.
+var _ schema.ConClase = (*errorNoEncontrado)(nil)
+
+// Error devuelve el mensaje, que llega literal al sobre de fallo y a la salida
+// de error.
+func (e *errorNoEncontrado) Error() string {
+	return e.mensaje
+}
+
+// Clase es siempre no encontrado, que el kernel traduce al código 3.
+func (e *errorNoEncontrado) Clase() schema.Clase {
+	return schema.ClaseNoEncontrado
+}
+
 // argumentos construye un rechazo de argumentos con su mensaje.
 func argumentos(formato string, valores ...any) error {
 	return &errorDeArgumentos{mensaje: fmt.Sprintf(formato, valores...)}
@@ -114,6 +139,26 @@ func plazoFueraDelCalendario(peticion Peticion) error {
 
 	return argumentos("el plazo de tipo %q que empieza el %q%s acaba después del %s, el último día que se escribe "+
 		"AAAA-MM-DD", peticion.Tipo, peticion.Inicio, conDuracion, ultimoDia.Format(time.DateOnly))
+}
+
+// plazoConPreceptosPosteriores es el plazo que empieza antes del día desde el
+// que rige alguno de sus preceptos (ADR 0042): su primera línea dice el plazo,
+// su fecha de inicio y por qué no se calcula, y cada una de las siguientes, en
+// el orden dado, un precepto con su norma, su bloque, su apartado y ese día.
+func plazoConPreceptosPosteriores(comprobada peticionComprobada, posteriores []Precepto) error {
+	var mensaje strings.Builder
+
+	fmt.Fprintf(&mensaje, "el plazo de tipo %q que empieza el %s no se calcula: un plazo se rige por la redacción "+
+		"vigente el día en que empieza, y kitlegal lo cuenta con preceptos que ese día no decían lo que dicen hoy; "+
+		"qué regía lo dicen la redacción de entonces y el régimen transitorio de la norma que la cambió, y kitlegal "+
+		"no calcula con ellos:", comprobada.tipo.Codigo, comprobada.inicio.Format(time.DateOnly))
+
+	for _, precepto := range posteriores {
+		fmt.Fprintf(&mensaje, "\n%s, bloque %s, apartado %s: rige así desde el %s", precepto.Norma, precepto.Bloque,
+			precepto.Apartado, precepto.VigenteDesde)
+	}
+
+	return &errorNoEncontrado{mensaje: mensaje.String()}
 }
 
 // alternativas escribe un vocabulario como «a, b o c».

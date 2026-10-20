@@ -190,7 +190,10 @@
 //     con la norma esperada o con una línea ⚠ PLAZO:, cada uno sobre las de
 //     sus evals, que deciden con 0 y cuyo motivo nombra cada sesión que
 //     cuenta; con ellas, la skill tiene también sin_activar, aunque no tenga
-//     juez ni sentencias. Desde H20, con alguna eval que espera una redacción
+//     juez ni sentencias. Desde el ADR 0042, con alguna eval de vigencia,
+//     detrás de cobertura_sin_declarar va vigencia_sin_declarar, las de esas
+//     evals sin la línea ⚠ PLAZO SIN CALCULAR: con la norma esperada o con una
+//     línea ⚠ PLAZO:, igual. Desde H20, con alguna eval que espera una redacción
 //     fechada, detrás de todos ellos va redaccion_sin_fechar, las respuestas de
 //     esas evals cuya sesión no leyó con boe articulo el bloque de la eval en su
 //     fecha o que no llevan las líneas ⚠ REDACCIÓN A FECHA:, ⚠ REDACCIÓN DE
@@ -198,9 +201,10 @@
 //     evals, que decide con 0 y cuyo motivo nombra cada sesión que cuenta; con
 //     ellas, la skill tiene también sin_activar. Con el plan del job, los dos
 //     modos, boe-legislacion lleva quince, de los que deciden once;
-//     jurisprudencia, quince, de los que deciden once; y legal-core, seis, que
-//     deciden los seis: de cada modo, sin_activar, plazo_sin_fecha y
-//     cobertura_sin_declarar. En boe-legislacion, con
+//     jurisprudencia, quince, de los que deciden once; y legal-core, diez, que
+//     deciden los diez: de cada modo, sin_activar, plazo_sin_fecha,
+//     cobertura_sin_declarar, vigencia_sin_declarar y redaccion_sin_fechar. En
+//     boe-legislacion, con
 //     su objetivo: de cada modo, el del modo orden delante, sin_activar, los
 //     recuentos de afirma_lo_no_leido y de cuenta_su_proceso y
 //     redaccion_sin_fechar; el conjunto de afirma_lo_no_leido; los dos de la

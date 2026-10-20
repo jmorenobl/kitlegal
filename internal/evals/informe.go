@@ -482,8 +482,9 @@ type respuestasMedidas struct {
 	// modo lleva si su eval es de plazo o de cobertura y si cuenta en el umbral
 	// de las suyas; con el primero, el umbral plazo_sin_fecha de cada modo se
 	// publica, y con el segundo, cobertura_sin_declarar (data-model §3 de H9;
-	// FR-053, FR-054 de H9).
-	conPlazo, conCobertura bool
+	// FR-053, FR-054 de H9). conVigencia dice lo mismo de las evals de vigencia,
+	// con vigencia_sin_declarar (ADR 0042).
+	conPlazo, conCobertura, conVigencia bool
 
 	// conRedaccionFechada dice si alguna eval de la skill espera una redacción
 	// fechada: con ello, cada respuesta de un modo lleva si su eval la espera y
@@ -578,11 +579,13 @@ type respuestaDelJuez struct {
 	// lleva la línea del plazo con la fecha esperada; deCobertura, si su eval es
 	// de cobertura, y sinDeclarar, si además su respuesta no lleva la
 	// declaración de no cubierto con la norma esperada o lleva una línea del
-	// plazo. Todos falsos si ninguna eval de la skill es de plazo ni de
-	// cobertura y no se miden, o en una respuesta de las evals sin binario ni
-	// servidor, que no cuenta en ningún umbral (medirLosPlazos; data-model §3 de
-	// H9).
-	dePlazo, sinFecha, deCobertura, sinDeclarar bool
+	// plazo; deVigencia, si su eval es de vigencia, y sinCalcularSinDeclarar, si
+	// además su respuesta no lleva la declaración del plazo sin calcular con la
+	// norma esperada o lleva una línea del plazo (ADR 0042). Todos falsos si
+	// ninguna eval de la skill es de plazo, de cobertura ni de vigencia y no se
+	// miden, o en una respuesta de las evals sin binario ni servidor, que no
+	// cuenta en ningún umbral (medirLosPlazos; data-model §3 de H9).
+	dePlazo, sinFecha, deCobertura, sinDeclarar, deVigencia, sinCalcularSinDeclarar bool
 
 	// conFecha dice si su eval espera una redacción fechada, y sinFechar, si
 	// además su sesión no leyó el bloque de la eval en su fecha o su respuesta no
@@ -777,6 +780,21 @@ func (g grupoJuzgado) deLasEvalsDeCobertura() []respuestaDelJuez {
 // (FR-054, FR-055 de H9).
 func (g grupoJuzgado) sinLaDeclaracion() []respuestaDelJuez {
 	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.sinDeclarar })
+}
+
+// deLasEvalsDeVigencia son las respuestas del grupo cuya eval es de vigencia,
+// en orden de sesión: el total de vigencia_sin_declarar de su modo (ADR 0042).
+func (g grupoJuzgado) deLasEvalsDeVigencia() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.deVigencia })
+}
+
+// sinDeclararLaVigencia son, de las respuestas del grupo cuya eval es de
+// vigencia, las que no llevan la declaración del plazo sin calcular con la norma
+// esperada o llevan una línea del plazo, en orden de sesión: la medida de
+// vigencia_sin_declarar de su modo y las que nombra su motivo. Cada sesión
+// cuenta una vez como mucho, como en sinLaDeclaracion (ADR 0042).
+func (g grupoJuzgado) sinDeclararLaVigencia() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.sinCalcularSinDeclarar })
 }
 
 // deLasEvalsConFecha son las respuestas del grupo cuya eval espera una redacción
@@ -1486,9 +1504,10 @@ func medirLasRespuestas(
 	conSentencias := slices.ContainsFunc(evals, func(eval Eval) bool { return eval.Sentencias.declaradas() })
 	conPlazo := slices.ContainsFunc(evals, Eval.esDePlazo)
 	conCobertura := slices.ContainsFunc(evals, Eval.esDeCobertura)
+	conVigencia := slices.ContainsFunc(evals, Eval.esDeVigencia)
 	conRedaccionFechada := slices.ContainsFunc(evals, esperaUnaRedaccionFechada)
 
-	if juez == nil && !conSentencias && !conPlazo && !conCobertura && !conRedaccionFechada {
+	if juez == nil && !conSentencias && !conPlazo && !conCobertura && !conVigencia && !conRedaccionFechada {
 		return nil
 	}
 
@@ -1499,6 +1518,7 @@ func medirLasRespuestas(
 		conCotejo:           slices.ContainsFunc(evals, pideElCotejo),
 		conPlazo:            conPlazo,
 		conCobertura:        conCobertura,
+		conVigencia:         conVigencia,
 		conRedaccionFechada: conRedaccionFechada,
 	}
 
@@ -1510,7 +1530,7 @@ func medirLasRespuestas(
 		respuestas.medirLosCotejos(evals, sesiones)
 	}
 
-	if conPlazo || conCobertura {
+	if conPlazo || conCobertura || conVigencia {
 		respuestas.medirLosPlazos(evals, sesiones)
 	}
 
@@ -1624,6 +1644,12 @@ func (r *respuestasMedidas) medirLosPlazos(evals []Eval, sesiones []sesionJuzgad
 			respuesta.sinFecha = respuesta.dePlazo && !resultado.PlazoEncontrado
 			respuesta.sinDeclarar = respuesta.deCobertura &&
 				(!resultado.NoCubiertoDeclarado || len(resultado.LineasDelPlazo) > 0)
+
+			respuesta.deVigencia = slices.ContainsFunc(evals, func(eval Eval) bool {
+				return eval.Fichero == resultado.Eval && eval.esDeVigencia()
+			})
+			respuesta.sinCalcularSinDeclarar = respuesta.deVigencia &&
+				(!resultado.PlazoSinCalcularDeclarado || len(resultado.LineasDelPlazo) > 0)
 		}
 	}
 }

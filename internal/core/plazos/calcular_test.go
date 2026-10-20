@@ -1,6 +1,8 @@
 package plazos
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -184,6 +186,130 @@ func TestCalcular(t *testing.T) {
 		t.Parallel()
 		comprobarElUltimoDia(t, calendario, tipos)
 	})
+	t.Run("los preceptos que no regían el día de inicio", func(t *testing.T) {
+		t.Parallel()
+		comprobarPreceptosPosteriores(t, calendario, tipos)
+	})
+}
+
+// casoDePreceptosPosteriores es una petición cuyo inicio es anterior al día
+// desde el que rige alguno de sus preceptos, y las líneas de esos preceptos que
+// tiene que llevar el mensaje, en su orden.
+type casoDePreceptosPosteriores struct {
+	nombre   string
+	peticion Peticion
+	lineas   []string
+}
+
+// lineaDeUnPrecepto es la línea del mensaje de un precepto que no regía.
+func lineaDeUnPrecepto(norma, bloque, apartado, desde string) string {
+	return norma + ", bloque " + bloque + ", apartado " + apartado + ": rige así desde el " + desde
+}
+
+// casosDePreceptosPosteriores son los del ADR 0042 con los preceptos del
+// contrato: la LPAC antes de su entrada en vigor, el contencioso antes de la
+// redacción del art. 182.1 LOPJ de la LO 14/2022, el acceso a la información
+// con la LTAIBG ya vigente y el cómputo de la LPAC aún no, y el genérico, cuyo
+// precepto de la unidad es también del cómputo y va una sola vez.
+func casosDePreceptosPosteriores() []casoDePreceptosPosteriores {
+	const (
+		lpac = "BOE-A-2015-10565"
+		lopj = "BOE-A-1985-12666"
+	)
+
+	computoDeLaLPAC := []string{
+		lineaDeUnPrecepto(lpac, "a30", "30.2", "2016-10-02"),
+		lineaDeUnPrecepto(lpac, "a30", "30.3", "2016-10-02"),
+		lineaDeUnPrecepto(lpac, "a30", "30.4", "2016-10-02"),
+		lineaDeUnPrecepto(lpac, "a30", "30.5", "2016-10-02"),
+		lineaDeUnPrecepto(lpac, "a30", "30.6", "2016-10-02"),
+	}
+
+	return []casoDePreceptosPosteriores{
+		{
+			nombre:   "la reposición antes de la LPAC",
+			peticion: Peticion{Tipo: TipoReposicion, Inicio: "2016-10-01", Municipios: los(villaPrimera, villaPrimera)},
+			lineas:   append([]string{lineaDeUnPrecepto(lpac, "a124", "124.1", "2016-10-02")}, computoDeLaLPAC...),
+		},
+		{
+			nombre:   "el contencioso antes de la LO 14/2022",
+			peticion: Peticion{Tipo: TipoContencioso, Inicio: "2022-12-22", Municipios: los(villaPrimera)},
+			lineas: []string{
+				lineaDeUnPrecepto(lopj, "acientoochentaydos", "182.1", "2022-12-23"),
+				lineaDeUnPrecepto(lopj, "acientoochentaytres", "183", "2022-12-23"),
+			},
+		},
+		{
+			nombre: "el acceso con la LTAIBG y sin la LPAC",
+			peticion: Peticion{
+				Tipo: TipoAccesoResolver, Inicio: "2015-06-01", Municipios: los(villaPrimera, villaPrimera),
+			},
+			lineas: computoDeLaLPAC,
+		},
+		{
+			nombre: "el genérico, con el precepto de su unidad una vez",
+			peticion: Peticion{
+				Tipo: TipoGenerico, Inicio: "2010-01-15", Duracion: "2", Unidad: "meses",
+				Municipios: los(villaPrimera, villaPrimera),
+			},
+			lineas: []string{
+				lineaDeUnPrecepto(lpac, "a30", "30.4", "2016-10-02"),
+				lineaDeUnPrecepto(lpac, "a30", "30.2", "2016-10-02"),
+				lineaDeUnPrecepto(lpac, "a30", "30.3", "2016-10-02"),
+				lineaDeUnPrecepto(lpac, "a30", "30.5", "2016-10-02"),
+				lineaDeUnPrecepto(lpac, "a30", "30.6", "2016-10-02"),
+			},
+		},
+	}
+}
+
+// comprobarPreceptosPosteriores exige que cada petición de
+// casosDePreceptosPosteriores no dé plazo y dé un error de clase no encontrado
+// con el plazo, su inicio y, una por línea, las de sus preceptos, y nada más;
+// que la comprobación previa a resolver los municipios la admita, porque no es
+// un argumento que no vale; y que el día desde el que rigen sí dé plazo
+// (ADR 0042).
+func comprobarPreceptosPosteriores(t *testing.T, calendario *Calendario, tipos []Tipo) {
+	t.Helper()
+
+	for _, caso := range casosDePreceptosPosteriores() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			plazo, err := Calcular(calendario, tipos, caso.peticion)
+			require.Error(t, err)
+			assert.Equal(t, Plazo{}, plazo)
+
+			var conClase schema.ConClase
+			require.ErrorAs(t, err, &conClase)
+			assert.Equal(t, schema.ClaseNoEncontrado, conClase.Clase())
+
+			lineas := strings.Split(err.Error(), "\n")
+			assert.Equal(t, fmt.Sprintf("el plazo de tipo %q que empieza el %s no se calcula: un plazo se rige por "+
+				"la redacción vigente el día en que empieza, y kitlegal lo cuenta con preceptos que ese día no decían "+
+				"lo que dicen hoy; qué regía lo dicen la redacción de entonces y el régimen transitorio de la norma "+
+				"que la cambió, y kitlegal no calcula con ellos:", caso.peticion.Tipo, caso.peticion.Inicio), lineas[0])
+			assert.Equal(t, caso.lineas, lineas[1:])
+
+			assert.NoError(t, ComprobarPeticion(tipos, caso.peticion))
+		})
+	}
+
+	for nombre, peticion := range map[string]Peticion{
+		"la reposición el día en que entra en vigor la LPAC": {
+			Tipo: TipoReposicion, Inicio: "2016-10-02", Municipios: los(villaPrimera, villaPrimera),
+		},
+		"el contencioso el día de la LO 14/2022": {
+			Tipo: TipoContencioso, Inicio: "2022-12-23", Municipios: los(villaPrimera),
+		},
+	} {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := Calcular(calendario, tipos, peticion)
+			assert.NoError(t, err)
+		})
+	}
 }
 
 // comprobarPlazoEntero calcula el caso (a) del calendario sintético —un mes que

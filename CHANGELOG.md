@@ -99,6 +99,33 @@ sustituyen a este fichero.
   299 líneas, sale la viñeta «La etiqueta va entera…» de los avisos de vigencia, que repetía lo que dicen el párrafo
   de los avisos, «Por qué las líneas `⚠` tienen forma fija» y la regla 3, y el párrafo de entrada se reparte en una
   línea menos, con las mismas palabras. Sustituye a `boe-legislacion` v0.2.1.
+- **`kitlegal plazos calcular` no da la fecha de un plazo con preceptos que no regían el día de inicio (ADR 0042).**
+  Contaba con la duración de `data/plazos.yaml`, la de hoy, sea cual sea el inicio: `plazos calcular reposicion
+  2014-06-02 Leganés Leganés` daba el 2014-07-02 con el art. 124 de la LPAC, que en 2014 no existía, y un contencioso
+  de 2021 se contaba con los arts. 182.1 y 183 LOPJ de la LO 14/2022, que antes del 2022-12-23 decían otra cosa. Ahora
+  sale con `3` (`no-encontrado`) y sin fecha si el inicio es anterior al día desde el que rige como lo cuenta
+  `data/plazos.yaml` alguno de sus preceptos —los del tipo, el de la unidad en el genérico y los del cómputo—; la
+  primera línea del mensaje dice el plazo, su inicio y por qué no se calcula, y cada una de las siguientes, un
+  precepto con su norma, su bloque, su apartado y ese día. Va detrás de los argumentos (`2`) y de los municipios; con
+  un inicio posterior, nada cambia. `data/plazos.yaml` lleva en cada precepto `vigente_desde`, el primer día en que su
+  apartado dice lo que dice en la última redacción grabada, y una sección `computos` con los preceptos de cada cómputo
+  (los apartados 2 a 6 del art. 30 LPAC; los arts. 182.1, 183, 185.1 y 185.2 LOPJ y 5.1 del Código Civil);
+  `TestPreceptosDeLosPlazos` recalcula cada `vigente_desde` leyendo las redacciones grabadas con `boe articulo
+  --fecha`. La descripción del verbo, en `--describe`, `schemas/plazo.json` y la herramienta `plazos_calcular`, lo
+  dice. Lo comprueban `TestLeerTipos`, `TestCalcular` y `TestAppletPlazos`.
+- **`legal-core` v1.2: un plazo que `plazos` no calcula se declara sin fecha (ADR 0042).** Con el `3` de un plazo
+  cuyos preceptos no regían el día de inicio, el paso 9 no da la línea `⚠ PLAZO:` ni ninguna fecha de vencimiento, ni
+  nombra de memoria la norma que regía, y da la línea de forma fija `⚠ PLAZO SIN CALCULAR:` con el tipo, el inicio y
+  los preceptos del mensaje, con el porqué: un plazo se rige por la redacción vigente el día en que empieza, y qué
+  regía lo dicen esa redacción y el régimen transitorio de la norma que la cambió, entre los que `plazos` no elige. El
+  paso 10 deja de decir que `plazos` cuenta con la duración de la redacción de hoy: con `redaccion_posterior` en un
+  precepto de `data.preceptos`, lo que cambió es otra parte del bloque, porque `plazos` ya comprobó su apartado. La
+  eval nueva `10-plazo-reposicion-anterior-a-la-lpac.yaml`, con una notificación de 2014, espera `plazos calcular`
+  con `sin_calcular: true` —el comando que admite el `3`— y la línea con la LPAC (`plazo_sin_calcular`), y
+  `legal-core` gana el umbral sin modelo `vigencia_sin_declarar` de cada modo, con 0 y decidiendo: de ocho umbrales a
+  diez (`TestUmbralesDeLegalCore`, `TestUmbralesDeLasTresSkills`). Su trabajo del job de evals pasa de 14 629 s a
+  16 261 s de peor caso, dentro del tope de 352 minutos (`TestDefinicionDelJob`). Ningún umbral se relaja; `SKILL.md`
+  tiene 299 líneas. Sustituye a `legal-core` v1.1.
 - **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;
   H27 y H28 ya estaban en la lista cerrada de `workflow.yml` y H9.1 no, así que `scripts/hito.sh H9.1` no habría
   creado el run. Lo comprueba `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow`.
