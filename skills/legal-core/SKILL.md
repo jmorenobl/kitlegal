@@ -22,8 +22,7 @@ un plazo. Identifica el territorio con `kitlegal territorio`, calcula los plazos
 cuatro referencias: `references/leyes_vertebrales.md`, con el identificador `BOE-A-…` de cada ley vertebral;
 `references/jerarquia_normativa.md`, con qué nivel regula qué; `references/recursos_y_plazos.md`, con cada tipo de
 plazo, su duración y el precepto que la fija; y `references/cobertura_por_materia.md`, con lo que la ley regula aparte.
-No da el texto de ningún artículo: eso lo hace `boe-legislacion`. La skill identifica, calcula y orienta: no tramita
-nada y no sustituye el asesoramiento de un profesional.
+La skill identifica, calcula y orienta: no tramita nada y no sustituye el asesoramiento de un profesional.
 
 ## Protocolo
 
@@ -36,8 +35,7 @@ que devuelven el mismo sobre, con `fuente`, `url`, `fecha_consulta` y `hash` jun
   que le ponga tu agente, como `mcp__kitlegal__territorio_resolver`. Si la tienes, úsala siempre.
 - **Con la orden** `kitlegal … --json`, si no la tienes.
 
-Donde un paso dice que la orden termina con un código, con la herramienta el resultado viene marcado como error y su
-`data.clase` dice cuál («Comandos»).
+Donde un paso dice que la orden termina con un código, la herramienta da un error con su `data.clase` («Comandos»).
 
 ### 1. Identificar el territorio
 
@@ -106,9 +104,12 @@ porque no se les calcula nada.
 - **Lo que la ley regula aparte.** Busca la materia del asunto en `references/cobertura_por_materia.md`. Si cae en una
   de sus entradas —tributos, Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería,
   extranjería y asilo, una impugnación que sustituye a la alzada, una reclamación económico-administrativa—, declara que
-  no está cubierto con la línea de «Cómo se presenta un plazo», con la norma que lo rige si la entrada la trae y, si no,
-  con el precepto de la LPAC que lo excluye; no nombres ninguna norma que no venga de la entrada. **No pidas `plazos
-  calcular`** y no des ni la línea del plazo ni ninguna fecha: el plazo del común no es el suyo.
+  no está cubierto con la línea de «Cómo se presenta un plazo», que nombra solo lo que trae la entrada. **No pidas
+  `plazos calcular`** y no des ni la línea del plazo ni ninguna fecha: el plazo del común no es el suyo.
+  La línea no afirma qué dice ningún precepto: dice qué no calcula kitlegal, con lo que nombra la entrada. Por eso va
+  aunque falle una lectura, que se dice aparte como `boe-legislacion` dice cualquiera, sin lo que dice el bloque ni la
+  línea de la regla 7: con cuotas de la Seguridad Social y la lectura del bloque `daprimera` fallida, van la línea con
+  la DA 1ª.2.b y «no he podido leer el bloque daprimera de la LPAC: la fuente no estaba disponible».
   Si la conversación no dice la materia, el asunto no cae en ninguna entrada: **no la preguntes ni detengas la
   respuesta por ella**. Sigue con el 8 y, al responder, di que la fecha no vale si el asunto es de los que la ley regula
   aparte, nombrándolos con la referencia y sin ninguna norma que no venga de ella.
@@ -137,8 +138,7 @@ juzgado).
   `plazos` no dice si el silencio es estimatorio o desestimatorio: eso lo dice la norma, no la fecha.
 - **Reclamación del art. 24.2 LTAIBG**: señala como variación autonómica ante quién se reclama, el Consejo de
   Transparencia y Buen Gobierno o el órgano que la comunidad haya designado (art. 24.6).
-- Con el código 2 o 3 de un municipio, como en el paso 4: los candidatos van en `data.mensaje` tras el municipio
-  pedido.
+- Con el código 2 o 3 de un municipio, como en el paso 4, con los candidatos en `data.mensaje` tras el municipio.
 - **Con el código 3 y un `data.mensaje` que empieza por «el plazo de tipo», no hay fecha.** Un plazo se rige por la
   redacción vigente el día en que empieza, y algún precepto con que `plazos` lo cuenta no decía entonces lo que dice
   hoy (cada línea del mensaje nombra uno). Qué regía lo dicen esa redacción y el régimen transitorio de la norma que la
@@ -296,4 +296,4 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 
 8. **Ninguna fecha que no dé `plazos`.** La fecha de un plazo sale de `data.fecha`; ni la cuentes ni la retoques.
 9. **Lo que la ley regula aparte no recibe el plazo del común.** Si el asunto está en
-   `references/cobertura_por_materia.md`, se declara no cubierto y no se pide ningún plazo.
+   `references/cobertura_por_materia.md`, se declara no cubierto, falle o no una lectura, y no se pide ningún plazo.
