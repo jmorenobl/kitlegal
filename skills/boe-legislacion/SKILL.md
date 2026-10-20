@@ -291,9 +291,9 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    que falla es la lectura, la orden termina ahí, sin `kitlegal graph check`, y vale la regla 2. La línea
    `⚠ REDACCIÓN MODIFICADA:` solo va cuando `kitlegal graph check` termina con `0` y trae `version-obsoleta`.
 8. **Sin herramienta y sin binario, la respuesta lo dice.** Si no tienes la herramienta y la orden falla porque
-   `kitlegal` no está —el shell no lo encuentra, o no puedes ejecutar órdenes—, no has consultado nada: no afirmes nada
-   del contenido de la norma, tampoco de memoria ni con salvedades, y no escribas ninguna cita. La respuesta lleva esta
-   línea, con la causa en lugar del marcador y la dirección en la misma línea:
+   `kitlegal` no está —el shell no lo encuentra, o no puedes ejecutar órdenes—, no lo busques en otras carpetas ni en un
+   plugin: no has consultado nada. No afirmes nada de la norma, ni de memoria ni con salvedades, ni escribas ninguna
+   cita. Lleva esta línea, con la causa en el marcador; quien acaba de instalar suele tenerlo y sin arrancar aún:
    ```text
-   ⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/
+   ⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/
    ```

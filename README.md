@@ -76,9 +76,12 @@ Es una sola pieza, el plugin de kitlegal, y no hay que descargar nada:
    marketplace `jmorenobl/kitlegal-plugins` e instala desde él el plugin `kitlegal`. Lo que se añade desde Code no
    llega a las conversaciones de chat. El plugin lleva las skills y, dentro, el servidor con las herramientas.
 2. **Cierra la app del todo y ábrela otra vez.** Las herramientas arrancan cuando la app se abre; sin este paso
-   tardan hasta una hora en estar.
+   tardan hasta una hora en estar. No preguntes desde «Probar en chat», el botón que ofrece la app al instalar: ese
+   chat empieza antes de que arranquen.
 
-Después abre una conversación nueva y pregunta. La primera vez, Claude pide permiso para usar las herramientas.
+Después abre una conversación nueva y pregunta. La primera vez, Claude pide permiso para usar las herramientas. Si
+responde con la línea `⚠ SIN CONSULTA AL BOE:`, cierra la app y ábrela otra vez: en otro equipo de la misma cuenta, o
+si la app se abrió antes de terminar de descargar el plugin, el primer reinicio no basta (Windows 10, 2026-10-20).
 
 **El aviso rojo.** Al añadir el marketplace, la app avisa en rojo de que los plugins instalados desde tiendas no
 están controlados por Anthropic. El aviso es de la app, no de kitlegal, y sale con cualquier plugin que no venga de
@@ -114,7 +117,7 @@ con la app de escritorio abierta: la conversación usa las herramientas de tu eq
 herramienta, y lo que verás, en lugar de una respuesta de memoria, es esta línea:
 
 ```text
-⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/
+⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/
 ```
 
 ## Instalar con la terminal

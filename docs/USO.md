@@ -10,6 +10,30 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-20 · El problema del abogado, reproducido: el plugin instalado y la respuesta pide instalarlo
+
+- **Qué se pidió.** Repetir lo que le pasó al abogado: quitar el marketplace `kitlegal-plugins` en la app de Claude
+  del Mac, añadirlo otra vez, instalar el plugin y preguntar desde «Probar en chat» por el texto del art. 1 de la Ley
+  39/2015. Y lo mismo en un Windows 10 de la misma cuenta, tras cerrar y abrir la app.
+- **Qué pasó.**
+  - **Mac.** «Probar en chat» recarga el chat a las 16:47:36 y manda la pregunta; el servidor del plugin conecta a las
+    16:47:43, siete segundos tarde. El chat empezó sin las herramientas: el modelo buscó el binario en el entorno de la
+    nube, desempaquetó el `.mcpb` del plugin, vio un binario de macOS que no podía ejecutar allí y respondió
+    `⚠ SIN CONSULTA AL BOE: … Para consultarlo hace falta instalar kitlegal`. Sin citar nada de memoria.
+  - **Windows.** Quitar el marketplace en el Mac lo quitó también en el Windows, por la cuenta (16:38:57). Al cerrar y
+    abrir la app (16:50:12), el plugin se descargó 46 segundos después de arrancar (16:50:58), y su servidor no llegó
+    a conectar: ningún `Connecting to plugin:kitlegal:kitlegal` en el registro. La misma respuesta. Con un segundo
+    reinicio, kitlegal respondió con sus herramientas. El `.exe` no era el problema: el mismo equipo lo había
+    arrancado a las 16:37:58.
+- **Qué falló.** Lo que se le dice a la persona: tiene el plugin instalado y la respuesta le pide instalarlo. Y la
+  instalación: «Probar en chat» pregunta antes de que el servidor arranque, y un reinicio que llega antes de terminar
+  la descarga del plugin no basta.
+- **Qué se hizo.** La línea `⚠ SIN CONSULTA AL BOE:` de `boe-legislacion` y de `legal-core` y la regla de
+  `jurisprudencia` dicen primero qué hacer si ya se tiene kitlegal —cerrar Claude del todo, abrirlo y preguntar en un
+  chat nuevo— y no buscan el binario en otras carpetas ni en un plugin; README y `/instalar/` avisan de «Probar en
+  chat» y del segundo reinicio. El registro de la app en Windows está en
+  `%LOCALAPPDATA%\Packages\Claude_<id>\LocalCache\Local\Claude\logs\main.log`, no en `%APPDATA%\Claude\logs`.
+
 ### 2026-10-19 · Lo que le falta a un despacho detrás de H9
 
 - **Qué se pidió.** Jorge pidió analizar cómo ordenar lo que queda del roadmap para que sirva antes a los despachos

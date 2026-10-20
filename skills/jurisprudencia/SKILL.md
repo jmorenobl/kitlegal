@@ -202,6 +202,6 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    de memoria: se consulta con `boe-legislacion`.
 5. **Ninguna acción con identidad.** No presentes, firmes ni tramites nada en nombre de nadie, ni lo simules.
 6. **Sin herramienta y sin binario, ninguna cita.** Si no tienes las herramientas y la orden falla porque `kitlegal`
-   no está, no has cotejado nada: no cites ninguna sentencia. La respuesta lleva la línea del paso 2 por cada sentencia
-   que necesita y dice que no ha podido preparar la consulta: para eso hace falta instalar kitlegal,
-   https://kitlegal.es/instalar/.
+   no está, no lo busques en otras carpetas ni en un plugin: no has cotejado nada, y no cites ninguna sentencia. La
+   respuesta lleva la línea del paso 2 por cada sentencia que necesita y dice que no ha podido preparar la consulta: si
+   ya tiene kitlegal, que cierre Claude del todo, lo abra y pregunte en un chat nuevo; si no, https://kitlegal.es/instalar/.
