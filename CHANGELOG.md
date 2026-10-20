@@ -14,6 +14,17 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **H26.1 entra en el roadmap, delante de H9.1, y en la lista del input `hito`** (ADR 0043, workflow `hito` 2.9.4). En
+  los jobs de evals de la #175 y de la #178, las sesiones leyeron del BOE lo que la caché preparada no servía, y esas
+  lecturas salieron con `5`, como con el BOE caído. Una de `claude-sonnet-5-5` de `legal-core` falló al leer la DA 1ª de
+  la LPAC, grabada desde H9 pero sin servir porque ninguna eval la nombra, y puso en rojo `cobertura_sin_declarar`; en
+  `boe-legislacion`, dos artículos sin grabar dieron una de las tres marcas de `afirma_lo_no_leido`. El ADR 0043
+  clasifica cada lectura y decide que la caché sirva lo que la skill lleva a leer, derivado de `data/`; que una eval
+  pueda servir la exploración razonable con `lecturas` y hacer fallar una lectura a propósito con `sin_servir`; y qué
+  hace `legal-core` si falla la lectura del paso 10. H26.1 lo entrega, y publica además el motivo de los `1` de `boe indice`
+  en el job: llamadas a una herramienta que la sesión no tiene y, con toda probabilidad, órdenes con la salida a un
+  `python3` que el runner no tiene. `scripts/hito.sh H26.1` necesita el hito en la
+  lista cerrada de `workflow.yml`, y `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow` lo comprueba.
 - **`legal-core` v1.2.2: lo que la ley regula aparte se declara no cubierto aunque falle una lectura.** En el job de
   evals de la #175, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval
   `07-cobertura-liquidacion-tributaria.yaml` (una liquidación de la Agencia Tributaria) quiso leer la DA 1ª de la LPAC

@@ -10,6 +10,36 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-20 · Las evals leen lo que su caché no sirve
+
+- **Qué se pidió.** Revisar las lecturas fuera de lo grabado de los jobs de evals de la #175 (run 39447467111) y de la
+  #178 (run 39492300808), en las tres skills, y decidir cuáles hay que grabar y por qué vía.
+- **Qué pasó.**
+  - **`legal-core`.** Las sesiones de `claude-sonnet-5-5` leen casi solo lo que piden las evals. Las que se salieron
+    son la DA 1ª de la LPAC (eval 07, la que puso en rojo `cobertura_sin_declarar`), el art. 30 LPAC a la fecha de
+    inicio (05), el índice de la Ley sobre Tráfico (08) y los arts. 223 y 235 de la LGT (07). Las tres primeras están
+    grabadas desde H9, pero la caché de la sesión no las sirve porque ninguna eval las nombra. Todas las demás son de
+    `claude-haiku-4-5`, que no activó `legal-core` en ninguna sesión de las evals 05 a 10 de la #175: busca normas cuyo
+    identificador ya dan las referencias, aplica la alzada a una multa de tráfico y lee la Ley 30/1992 para un plazo
+    de 2014.
+  - **`boe-legislacion`.** En las preguntas por materia, `claude-sonnet-5-5` lee los artículos vecinos del que busca:
+    los arts. 26 y 27 de la Ley 40/2015 (eval 16, en 4 sesiones de las dos tandas), el 18 de la Ley 35/2006 (15) y el
+    15 del TRLRHL (14). No están grabados. En la #175, una sesión de la 16 dijo de qué trataban los arts. 26 y 27 sin
+    leerlos, y el juez la marcó: fue una de las tres marcas de `afirma_lo_no_leido`, con 3,36 de tope.
+  - **`jurisprudencia`.** Ninguna lectura fuera de lo grabado.
+  - **Aparte.** `boe indice` sale con `1` en unas diez sesiones por job de `boe-legislacion`, con los índices grandes
+    (LCSP, TRLRHL, IRPF, LRBRL). No es un defecto del binario. Unas son llamadas a la herramienta `boe_indice` en
+    sesiones del modo orden, que no la tienen: el error no trae sobre de kitlegal y el arnés lo cuenta como 1. Las
+    otras son órdenes que terminan con 1 y, repetidas, salen con 0. Lo más probable es una salida a `| python3`, que el
+    job no tiene: kitlegal no puede escribir y termina con 1 y `broken pipe`, como promete el contrato de H1. El
+    mecanismo está reproducido en local; las órdenes de las sesiones no se ven, porque el job no guarda los
+    transcripts. Descartados con pruebas: la concurrencia sobre `cache.db` y el grafo.
+- **Qué falló.** La medida: una lectura que en el uso funciona falla en la eval, y una eval con umbral 0 cae por ella.
+  Y lo contrario: sin una eval que haga fallar la lectura a propósito, nada comprueba que la respuesta aguanta.
+- **Qué se hizo.** ADR 0043 y H26.1, delante de H9.1. Grabar fuera de un hito no cabe en el ADR 0018: sin run no hay
+  tarea `[datos]` ni `grabar_datos`. H26.1 publica además el motivo de esos 1, para que no se confundan con un defecto.
+  Que Haiku casi no active `legal-core` queda como pendiente aparte.
+
 ### 2026-10-20 · El problema del abogado, reproducido: el plugin instalado y la respuesta pide instalarlo
 
 - **Qué se pidió.** Repetir lo que le pasó al abogado: quitar el marketplace `kitlegal-plugins` en la app de Claude
