@@ -104,5 +104,8 @@ Opción 4.
   azar.
 - Ninguna sesión gana red ni lee otra cosa que lo grabado: el binario de la sesión sigue siendo el publicado.
 - Grabar sigue pidiendo un hito: fuera de un run no hay tarea `[datos]` ni `grabar_datos`, y este ADR no lo cambia.
-- Siguen aparte, porque no son de grabación: que `claude-haiku-4-5` casi no active `legal-core` en el job, y el código 1
-  (defecto inesperado) de `boe indice` con los índices grandes que se ve en el job de `boe-legislacion`.
+- Sigue aparte, porque no es de grabación, que `claude-haiku-4-5` casi no active `legal-core` en el job. El código 1 de
+  `boe indice` en el job de `boe-legislacion` tampoco es de grabación ni un defecto del binario: son llamadas a una
+  herramienta que la sesión del modo orden no tiene, y órdenes con la salida a un `python3` que el runner no tiene, con
+  las que kitlegal no puede escribir y termina con 1 como promete el contrato de H1. H26.1 publica su motivo en el
+  informe, sin decidir.

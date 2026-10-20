@@ -28,12 +28,16 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
     leerlos, y el juez la marcó: fue una de las tres marcas de `afirma_lo_no_leido`, con 3,36 de tope.
   - **`jurisprudencia`.** Ninguna lectura fuera de lo grabado.
   - **Aparte.** `boe indice` sale con `1` en unas diez sesiones por job de `boe-legislacion`, con los índices grandes
-    (LCSP, TRLRHL, IRPF, LRBRL), en los dos modos, aunque la caché los tiene.
+    (LCSP, TRLRHL, IRPF, LRBRL). No es un defecto del binario. Unas son llamadas a la herramienta `boe_indice` en
+    sesiones del modo orden, que no la tienen: Claude Code responde que no existe y el arnés cuenta el error sin
+    sobre como 1. Las otras son órdenes con la salida a `| python3`, que el job no tiene: kitlegal no puede escribir y
+    termina con 1 y `broken pipe`, como promete el contrato de H1 (reproducido en local); el modelo repite la orden sin
+    filtro y sale con 0. Descartados con pruebas: la concurrencia sobre `cache.db` y el grafo.
 - **Qué falló.** La medida: una lectura que en el uso funciona falla en la eval, y una eval con umbral 0 cae por ella.
   Y lo contrario: sin una eval que haga fallar la lectura a propósito, nada comprueba que la respuesta aguanta.
 - **Qué se hizo.** ADR 0043 y H26.1, delante de H9.1. Grabar fuera de un hito no cabe en el ADR 0018: sin run no hay
-  tarea `[datos]` ni `grabar_datos`. El código 1 de `boe indice` y que Haiku casi no active `legal-core` quedan como
-  pendientes aparte.
+  tarea `[datos]` ni `grabar_datos`. H26.1 publica además el motivo de esos 1, para que no se confundan con un defecto.
+  Que Haiku casi no active `legal-core` queda como pendiente aparte.
 
 ### 2026-10-20 · El problema del abogado, reproducido: el plugin instalado y la respuesta pide instalarlo
 
