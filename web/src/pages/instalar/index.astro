@@ -3,6 +3,7 @@
 // Claude, sin terminal: el plugin, que lleva las skills y el servidor, desde su
 // marketplace. Después, la terminal para Claude Code y Linux, y lo que nadie ha
 // probado todavía (README, «Instalar sin terminal»).
+import Captura from "../../components/Captura.astro";
 import Icono from "../../components/Icono.astro";
 import Orden from "../../components/Orden.astro";
 import Prosa from "../../components/Prosa.astro";
@@ -53,22 +54,60 @@ const descarga =
     </p>
 
     <h2 id="paso1">Paso 1: añade el plugin</h2>
-    <ol class="space-y-2 [&>li]:list-decimal!">
+    <ol class="space-y-6 [&>li]:list-decimal!">
       <li>
-        En la app de Claude, en el modo de chat y no en Code, abre <strong>Customize &gt; Plugins &gt; Add</strong>. Lo
-        que se añade desde Code no llega a las conversaciones de chat.
+        En la app de Claude, en el modo de chat y no en Code, abre <strong>Personalización &gt; Plugins</strong> y pulsa
+        <strong>Agregar &gt; Agregar marketplace</strong> (con la app en inglés, <strong>Customize &gt; Plugins &gt;
+        Add</strong>). Lo que se añade desde Code no llega a las conversaciones de chat.
+        <Captura
+          nombre="1-agregar-marketplace"
+          alt="La pantalla Personalización de la app de Claude, con cuatro recuadros numerados: Personalización en la barra lateral, la pestaña Plugins, el botón Agregar y, en su menú, Agregar marketplace."
+        />
       </li>
       <li>
-        Añade el marketplace <code class="select-all">{pagina.marketplace}</code>.
+        Elige <strong>Agregar desde un repositorio</strong>.
+        <Captura
+          nombre="2-desde-un-repositorio"
+          alt="El diálogo Agregar marketplace, con dos opciones; recuadrada, Agregar desde un repositorio."
+        />
       </li>
-      <li>Instala desde él el plugin <strong>kitlegal</strong>.</li>
+      <li>
+        Escribe el marketplace <code class="select-all">{pagina.marketplace}</code> y pulsa <strong>Sincronizar</strong>.
+        <Captura
+          nombre="3-url-y-sincronizar"
+          alt="El diálogo Agregar marketplace con el aviso en rojo, el campo URL con jmorenobl/kitlegal-plugins recuadrado con el número 1 y el botón Sincronizar con el número 2."
+        />
+      </li>
+      <li>
+        Aparece el plugin <strong>Kitlegal</strong>: pulsa <strong>Agregar</strong>.
+        <Captura
+          nombre="4-agregar-kitlegal"
+          alt="La lista de plugins con Kitlegal y, recuadrado, su botón Agregar."
+        />
+      </li>
+      <li>
+        La app avisa de que el plugin incluye servidores MCP locales: pulsa <strong>Continuar</strong>.
+        <Captura
+          nombre="5-servidores-mcp-locales"
+          alt="El diálogo «Este plugin incluye servidores MCP locales», que nombra el servidor kitlegal, con el botón Continuar recuadrado."
+        />
+      </li>
+      <li>
+        Listo: kitlegal queda instalado y activado, con el interruptor en azul.
+        <Captura
+          nombre="6-instalado"
+          alt="La ficha del plugin Kitlegal instalado, con 3 skills y 1 conector; recuadrado, el interruptor activado."
+          pie="No pulses «Probar en chat» todavía: antes, el paso 2."
+        />
+      </li>
     </ol>
     <div class="space-y-3 rounded-lg border border-sello/30 bg-sello/5 p-5 text-[0.95rem]">
-      <h3 class="mt-0!">Antes de añadirlo: el aviso en rojo</h3>
+      <h3 class="mt-0!">Antes de añadirlo: los avisos en rojo</h3>
       <p>
         Al añadir el marketplace, la app avisa en rojo de que los plugins instalados desde tiendas no están controlados
-        por Anthropic. El aviso es de la app, no de kitlegal, y sale con cualquier plugin que no venga de su directorio.
-        kitlegal lleva dentro un programa que corre en tu equipo. Lo que hace de verdad:
+        por Anthropic; al instalarlo, de que incluye un servidor MCP local: el programa de kitlegal, que corre en tu
+        equipo. Los avisos son de la app, no de kitlegal, y salen con cualquier plugin que no venga de su directorio. Lo
+        que hace de verdad el programa:
       </p>
       <ul>
         <li>Lee fuentes públicas: hoy, el BOE.</li>
@@ -95,6 +134,16 @@ const descarga =
       consolidado del BOE y te responderá citando la norma y el artículo, de modo que puedas comprobarlo. Si la norma ya
       no está en vigor, te lo dirá antes de nada.
     </p>
+    <Captura
+      nombre="7-herramientas-de-kitlegal"
+      alt="Una conversación en la que Claude carga la skill boe-legislacion y usa las herramientas de kitlegal Boe indice, Boe articulo y Graph check; la lista está recuadrada."
+      pie="Mientras responde, Claude enseña lo que usa: la skill de kitlegal y sus herramientas, que leen el BOE."
+    />
+    <Captura
+      nombre="8-respuesta-con-cita"
+      alt="La respuesta de Claude con el texto del artículo 42 de la Ley 39/2015 y, recuadradas, sus dos citas con el identificador del BOE y el bloque."
+      pie="La respuesta cita la norma, su identificador en el BOE y el bloque del artículo, para que puedas comprobarlo."
+    />
 
     <h2>Si algo no sale</h2>
     <ul>
