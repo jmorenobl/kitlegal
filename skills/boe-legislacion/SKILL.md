@@ -70,13 +70,11 @@ menudo; no es exhaustiva.
   ```powershell
   kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-2015-10565 a21 --json }
   ```
-  Con herramientas, `graph_check` va con la misma `norma` y ese bloque en `bloques`. Devuelve dos sobres: el del
-  bloque, con su texto y sus avisos de vigencia, y el de `kitlegal graph check`, del que la respuesta lleva una línea
-  `⚠ REDACCIÓN MODIFICADA:` por cada entrada de clase `version-obsoleta` de su `data.hallazgos`, y nada más: vacío,
-  que es lo habitual, no da nada a la respuesta («Redacción modificada»); si termina con otro código que `0`, la regla
-  7. `kitlegal graph check` va siempre así, detrás de la lectura, en su misma orden y con su misma norma y sus mismos
-  bloques: no lo pidas nunca sin argumentos ni antes de leer, y si un bloque se ha leído sin él, pídelo a continuación
-  con esa norma y ese bloque.
+  Con herramientas, `graph_check` va con la misma `norma` y ese bloque en `bloques`. Devuelve dos sobres, el del
+  bloque, con su texto y sus avisos de vigencia, y el de `kitlegal graph check`, que da a la respuesta lo que dice
+  «Redacción modificada» o, si termina con otro código que `0`, la regla 7. Va siempre así, detrás de la lectura, en su
+  misma orden y con su misma norma y sus mismos bloques: no lo pidas nunca sin argumentos ni antes de leer, y si un
+  bloque se ha leído sin él, pídelo a continuación con esa norma y ese bloque.
 - Usa `kitlegal boe articulos` (`boe_articulos`), que los devuelve en el orden pedido, solo cuando necesites varios
   bloques a la vez y todos salgan del índice, con `kitlegal graph check` (`graph_check`) de esos mismos bloques detrás:
   `kitlegal boe articulos <norma> <bloques>... --json && kitlegal graph check <norma> <bloques>... --json`, y en PowerShell
@@ -102,11 +100,12 @@ menudo; no es exhaustiva.
 
 ### 5. Responder citando
 
-- **La respuesta empieza por lo que se pregunta.** La respuesta es todo lo que escribes después de la última orden o
-  llamada, desde su primera palabra: quien pregunta lo lee entero, y no ve las órdenes ni las llamadas ni lo que
-  devuelven. Le sirven la norma, su texto, su cita, sus avisos de vigencia y las líneas de forma fija de cada bloque
-  («Redacción en una fecha», «Redacción modificada»), y de eso está hecha: no cuentes lo que has hecho, lo que vas a
-  hacer ni lo que ha devuelto nada; tampoco lo que no ha devuelto: un `data.hallazgos` vacío no deja rastro.
+- **La respuesta empieza por lo que se pregunta y habla de la norma, no de la consulta.** La respuesta es todo lo que
+  escribes después de la última orden o llamada, desde su primera palabra: quien pregunta lo lee entero, y no ve las
+  órdenes ni las llamadas ni lo que devuelven. Le sirven la norma, su texto, su cita, sus avisos de vigencia y las
+  líneas `⚠` de cada bloque, y de eso está hecha. Escribe como quien tiene el BOE delante: «el artículo no lleva avisos
+  de vigencia», y no «la lectura no trajo avisos»; la norma, por su nombre y su identificador, sin decir de qué tabla
+  o de qué orden sale. Lo que has hecho, lo que vas a hacer y lo que ha devuelto o no una orden no le sirven.
 - **Nada de otra conversación.** No sabes qué se preguntó ni qué se respondió en otra conversación: no hables de ello,
   ni para afirmarlo, ni para confirmarlo, ni para desmentirlo. De lo leído en otras conversaciones, la respuesta solo
   lleva la línea `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae (más en «Redacción modificada»).
@@ -127,10 +126,9 @@ menudo; no es exhaustiva.
   compartidas o cedidas, desarrollo autonómico, régimen foral), dilo; y cuando corresponda a ordenanzas u otras normas
   locales, di que no están en esta fuente.
 - Traslada cada aviso de vigencia de la lectura con su forma fija («Cómo se cita», regla 3). De la vigencia del bloque,
-  la respuesta dice, con palabras de quien lee la norma, sus avisos y, de la redacción leída, qué norma la dio y desde
-  cuándo rige, sin nombrar lo que devuelve una orden ni sus campos. Hasta cuándo, nunca: ninguna lectura trae el fin de
-  una redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería texto legal sin fuente.
-  `kitlegal graph check` no dice nada de la vigencia.
+  la respuesta dice sus avisos y, de la redacción leída, qué norma la dio y desde cuándo rige. Hasta cuándo, nunca:
+  ninguna lectura trae el fin de una redacción, tampoco en una norma derogada, cuyo aviso no lleva fecha, y darlo sería
+  texto legal sin fuente. `kitlegal graph check` no dice nada de la vigencia.
 
 ## Cómo se cita
 
@@ -162,7 +160,11 @@ del binario o de una explicación: `⚠ NORMA DEROGADA:` para el aviso `derogada
 ⚠ NORMA DEROGADA: esta norma ha sido derogada.
 ```
 - La etiqueta va entera y sin cambiar ninguna palabra, con `⚠` delante y los dos puntos detrás, todo en la misma línea.
-  Decir con otras palabras que la norma está derogada no traslada el aviso.
+
+**Por qué las líneas `⚠` tienen forma fija.** Cada línea `⚠` de esta skill —un aviso, la redacción en una fecha, la
+redacción modificada— la lee un programa sin leer el resto de la respuesta, y comprueba en ella su etiqueta, su cita y
+los datos de la lectura que lleva. Lo que una línea dice solo se comprueba en ella: dicho con otras palabras, la línea
+falta. Por eso va entera, en una sola línea, con su forma y sus datos tal como los da la lectura.
 
 ## Redacción en una fecha
 
@@ -178,19 +180,22 @@ no, no cites ninguna y pide el día.
   ```text
   ⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <id>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.
   ```
-- Si la lectura da además la redacción de hoy, que es otra, va también esta, con su norma y su fecha tal como las da la
-  lectura, y nada más de ella —ni qué dice ni si rige ya, que lo dice su fecha— salvo que la leas sin fecha (paso 3);
-  de la citada, nunca hasta cuándo rigió: entre las dos puede haber otras.
+- Si el `data` de la lectura trae `redaccion_posterior`, hoy la redacción es otra, y va también esta línea, con la
+  norma y la fecha de vigencia de `redaccion_posterior`:
   ```text
   ⚠ REDACCIÓN DE HOY: <forma legible> [<identificador>, bloque <id>]: hoy la redacción es otra, la de <identificador>, con fecha de vigencia AAAAMMDD.
   ```
+  De la redacción de hoy, la lectura da su norma y su fecha, y esta línea es el único sitio de la respuesta en que van:
+  «hay otra redacción, dada por <identificador>, de <fecha>» no la sustituye, y repetido junto a ella no añade nada.
+  Qué dice, qué cambió o si rige ya no lo has leído, salvo que la leas sin fecha (paso 3). De la citada, la prosa dice
+  qué norma la dio y desde cuándo rige; hasta cuándo, nunca: entre las dos puede haber otras.
 - Si la lectura termina con `3` y su mensaje da la fecha de vigencia de la primera redacción, ese día el precepto no
   tenía redacción vigente: no cites su texto como el de entonces ni digas qué regía sin haberlo leído, y responde con
   esta línea, con la fecha del mensaje; con otro `3`, la regla 2.
   ```text
   ⚠ SIN REDACCIÓN VIGENTE: <forma legible> [<identificador>, bloque <id>]: el AAAA-MM-DD no tenía redacción vigente; la tiene desde el AAAAMMDD, la fecha de vigencia de su primera redacción.
   ```
-- Cada línea va entera, con su forma fija y en una sola línea, y solo tras una lectura con fecha.
+- Estas tres líneas salen solo de una lectura con fecha, y cada una con su forma fija («Cómo se cita»).
 
 ## Redacción modificada
 
@@ -209,18 +214,14 @@ solo usa `check`, tras cada lectura sin fecha (paso 3).
   Con dos bloques en `version-obsoleta`, dos líneas, cada una con su cita y sus fechas. Decirlo con otras palabras no
   vale, ni en lugar de la línea ni además de ella: la línea va con su forma fija y lo dice entera.
 - Una entrada de `clase` `fuente-caducada` no va en la respuesta, que cita el texto que acabas de leer.
-- **No es un aviso de vigencia.** Un aviso es un dato de la norma, que el BOE da con el bloque, y la etiqueta
-  `REDACCIÓN MODIFICADA` no es la de ninguno: una entrada de `kitlegal graph check` es un dato de kitlegal sobre otras
-  conversaciones, que quien pregunta no conoce. Por eso un bloque sin entrada de `clase` `version-obsoleta` no da nada
-  a la respuesta: ni una línea, ni una frase junto a los avisos o a la fecha de vigencia, ni una palabra al final.
-  Mencionarlo sería contar lo que devolvió una orden y hablar de otras conversaciones: la línea es todo lo que la
-  respuesta dice de ellas y de `kitlegal graph check`.
-- **La redacción superada no la has leído.** `kitlegal boe articulo` sin fecha da solo la redacción de hoy, y
-  `kitlegal graph check`, dos fechas: nada de lo que devuelven dice qué decía la redacción superada ni en qué se
-  diferencia de la vigente. La respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo: sería texto
-  legal sin fuente. Sí dice lo que da la lectura: el texto vigente con su cita, qué norma le dio esa redacción y desde
-  cuándo rige; hasta cuándo, nunca (paso 5). Si quien pregunta quiere saber qué cambió, la respuesta dice que cita la
-  redacción vigente y que la que había antes no la ha leído.
+- **No es un aviso de vigencia.** Un aviso es un dato de la norma, que el BOE da con el bloque; una entrada de
+  `kitlegal graph check` es un dato de kitlegal sobre otras conversaciones, que quien pregunta no conoce. Un bloque sin
+  entrada de `clase` `version-obsoleta` no da nada a la respuesta, ni una línea ni una frase, y con ella, la línea es
+  todo lo que la respuesta dice de esas conversaciones y de `kitlegal graph check`.
+- **La redacción superada no la has leído.** Ni la lectura sin fecha, que da solo la redacción de hoy, ni
+  `kitlegal graph check`, que da dos fechas, dicen qué decía la superada ni en qué se diferencia de la vigente: la
+  respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo, que sería texto legal sin fuente. Si quien
+  pregunta qué cambió, la respuesta dice que cita la redacción vigente y que la de antes no la ha leído.
 
 ## Comandos
 
