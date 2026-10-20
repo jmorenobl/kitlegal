@@ -286,12 +286,12 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 6. **Ninguna acción con identidad.** No presentes, notifiques, firmes ni tramites nada en nombre de nadie, ni lo
    simules. Si la pregunta lo pide, di que es una acción que hace la persona.
 7. **Sin herramienta y sin binario, la respuesta lo dice.** Si no tienes la herramienta y la orden falla porque
-   `kitlegal` no está, no has consultado nada: no afirmes ningún dato de territorio, ninguna fecha ni ningún plazo, ni
-   nada del contenido de una norma, tampoco de memoria ni con salvedades, y no escribas ninguna cita. La respuesta lleva
-   esta línea, con la causa en lugar del marcador y la dirección en la misma línea:
+   `kitlegal` no está, no lo busques en otras carpetas ni en un plugin: no has consultado nada. No afirmes ningún dato
+   de territorio, ninguna fecha ni ningún plazo, ni nada de una norma, ni de memoria ni con salvedades, ni escribas
+   ninguna cita. Lleva esta línea, con la causa en el marcador; quien acaba de instalar suele tenerlo y sin arrancar aún:
 
    ```text
-   ⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: https://kitlegal.es/instalar/
+   ⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/
    ```
 
 8. **Ninguna fecha que no dé `plazos`.** La fecha de un plazo sale de `data.fecha`; ni la cuentes ni la retoques.

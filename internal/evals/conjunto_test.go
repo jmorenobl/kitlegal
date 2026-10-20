@@ -2277,9 +2277,10 @@ const (
 
 	// lineaSinConsultaDeLasSkills es la línea que cada SKILL.md enseña para la
 	// respuesta de quien no tiene ni la herramienta ni el binario, con el
-	// marcador de la causa, carácter a carácter (contracts/skills.md §3 de H21).
-	lineaSinConsultaDeLasSkills = "⚠ SIN CONSULTA AL BOE: <causa>. Para consultarlo hace falta instalar kitlegal: " +
-		"https://kitlegal.es/instalar/"
+	// marcador de la causa, carácter a carácter (contracts/skills.md §3 de H21,
+	// con lo que se dice a quien ya tiene kitlegal desde el 2026-10-20).
+	lineaSinConsultaDeLasSkills = "⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra Claude del todo, " +
+		"ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/"
 )
 
 // skillsConLineaSinConsulta son las skills que llevan la regla, las dos que
@@ -2385,7 +2386,7 @@ func TestLineaSinConsultaDeUnaSkill(t *testing.T) {
 		{
 			nombre: "con-una-palabra-cambiada",
 			markdown: regla + enUnBloque("text", "   ",
-				strings.Replace(lineaSinConsultaDeLasSkills, "hace falta", "tienes que", 1)),
+				strings.Replace(lineaSinConsultaDeLasSkills, "un chat nuevo", "este chat", 1)),
 			defectos: []string{noLaDice},
 		},
 		{

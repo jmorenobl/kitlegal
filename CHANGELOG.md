@@ -126,6 +126,18 @@ sustituyen a este fichero.
   diez (`TestUmbralesDeLegalCore`, `TestUmbralesDeLasTresSkills`). Su trabajo del job de evals pasa de 14 629 s a
   16 261 s de peor caso, dentro del tope de 352 minutos (`TestDefinicionDelJob`). Ningún umbral se relaja; `SKILL.md`
   tiene 299 líneas. Sustituye a `legal-core` v1.1.
+- **`boe-legislacion` v0.2.3, `legal-core` v1.2.1 y `jurisprudencia` v0.1.2: sin herramientas, la respuesta dice
+  primero qué hacer si ya se tiene kitlegal.** El 2026-10-20, con el plugin recién instalado, la app de Claude en
+  macOS preguntó desde «Probar en chat» siete segundos antes de que arrancara el servidor, y en Windows la app se abrió
+  antes de terminar de descargar el plugin y su servidor no arrancó hasta el segundo reinicio (`docs/USO.md`). Las dos
+  respuestas pedían instalar kitlegal a quien ya lo tenía, y en el Mac el modelo desempaquetó el `.mcpb` del plugin
+  buscando el binario. La línea de forma fija pasa a ser `⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra
+  Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/`; la regla de
+  `jurisprudencia` lo dice igual, y las tres piden no buscar el binario en otras carpetas ni en un plugin. El juicio de
+  las evals sin binario ni servidor no cambia: el prefijo y la dirección siguen en la misma línea. README y
+  `/instalar/` avisan de que «Probar en chat» pregunta antes de que arranquen las herramientas y de que, si la
+  respuesta sigue sin consulta tras reiniciar, hace falta otro reinicio. Los `SKILL.md` no cambian de longitud (299,
+  299 y 207 líneas). Sustituye a `boe-legislacion` v0.2.2, `legal-core` v1.2 y `jurisprudencia` v0.1.1.
 - **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;
   H27 y H28 ya estaban en la lista cerrada de `workflow.yml` y H9.1 no, así que `scripts/hito.sh H9.1` no habría
   creado el run. Lo comprueba `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow`.
