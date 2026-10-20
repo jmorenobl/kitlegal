@@ -68,6 +68,17 @@ sustituyen a este fichero.
   creciente y da lo mismo, pero nada lo garantiza. La lectura sin `--fecha` sigue dando la última en ese orden.
 - **La descripción de `boe articulo` nombra `--fecha`.** La de la herramienta `boe_articulo` y la de la tabla de
   comandos de `boe-legislacion` dicen ahora que, con `--fecha AAAA-MM-DD`, devuelve la redacción vigente ese día.
+- **`boe-legislacion` v0.2.1: la redacción de hoy va solo en su línea, y la respuesta habla de la norma, no de la
+  consulta.** En el job de evals de la #170, una respuesta con fecha dijo la redacción de hoy en prosa en lugar de la
+  línea `⚠ REDACCIÓN DE HOY:`, y `redaccion_sin_fechar` salió 1 de 6. La skill sigue ahora las guías de Anthropic para
+  prompts y para skills —explicar el porqué de una regla, nombrar lo que la dispara, un ejemplo concreto, decir en
+  positivo lo que se quiere— en vez de repetir la regla con más énfasis: «Cómo se cita» explica por qué las líneas `⚠`
+  tienen forma fija (las lee un programa, y lo que dicen solo se comprueba en ellas); la línea `⚠ REDACCIÓN DE HOY:` va
+  cuando el `data` de la lectura trae `redaccion_posterior`, con su norma y su fecha, y es el único sitio de la
+  respuesta en que van, con el ejemplo en prosa que no la sustituye; y el paso 5 pide hablar de la norma y no de la
+  consulta, con un ejemplo («el artículo no lleva avisos de vigencia», no «la lectura no trajo avisos»). Lo que se
+  repetía entre el paso 3, el paso 5 y «Redacción modificada» se dice una vez. Las reglas, las líneas de forma fija y
+  los umbrales no cambian; `SKILL.md` tiene 299 líneas. Sustituye a `boe-legislacion` v0.2.
 - **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;
   H27 y H28 ya estaban en la lista cerrada de `workflow.yml` y H9.1 no, así que `scripts/hito.sh H9.1` no habría
   creado el run. Lo comprueba `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow`.
