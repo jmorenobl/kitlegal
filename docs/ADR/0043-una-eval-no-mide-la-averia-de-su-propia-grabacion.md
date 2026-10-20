@@ -1,6 +1,6 @@
 # 0043 · Una eval no mide la avería de su propia grabación, salvo que la provoque
 
-- **Estado**: propuesta
+- **Estado**: aceptada (2026-10-20)
 - **Fecha**: 2026-10-20
 - **Hito**: H26.1. No toca el punto 7 del ADR 0018: lo que se graba lo sigue grabando `grabar_datos` tras el commit
   de una tarea `[datos]`, solo de fuentes con fila revisada en `docs/SOURCES.md` de `main`. Cambia qué sirve la caché
