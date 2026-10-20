@@ -12,6 +12,24 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **`legal-core` v1.2.2: lo que la ley regula aparte se declara no cubierto aunque falle una lectura.** En el job de
+  evals de la #175, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval
+  `07-cobertura-liquidacion-tributaria.yaml` (una liquidación de la Agencia Tributaria) quiso leer la DA 1ª de la LPAC
+  (`BOE-A-2015-10565`, bloque `daprimera`), que no está grabada y salió con `5`; la respuesta dijo bien el fondo, pero
+  sin la línea `⚠ NO CUBIERTO:` («tampoco he podido citarte el precepto que lo excluye»), y
+  `cobertura_sin_declarar:claude-sonnet-5-5:herramienta` salió 1 de 6. La línea sale de la entrada de
+  `references/cobertura_por_materia.md` y no de ninguna lectura, pero el modelo la tomó por una cita del precepto que
+  no había leído. El paso 7 explica ahora por qué no depende de leer nada —no afirma qué dice ningún precepto: dice qué
+  no calcula kitlegal, con lo que nombra la entrada—, que por eso va aunque falle una lectura, y que la lectura fallida
+  se dice aparte como `boe-legislacion` dice cualquiera, sin lo que dice el bloque y sin la línea `⚠ SIN CONSULTA AL
+  BOE:` de la regla 7, con un ejemplo: cuotas de la Seguridad Social con `daprimera` sin leer. La regla 9 lo dice
+  («falle o no una lectura»). Para no pasar de 299 líneas, el paso 7 deja de repetir qué línea va con norma y cuál sin
+  ella, que ya dice «Cómo se presenta un plazo»; la entrada deja de repetir que el texto de un artículo lo da
+  `boe-legislacion`, que dice el paso 6; y dos frases se dicen más cortas, con el mismo sentido. Ninguna eval ni ningún
+  umbral cambia. Sustituye a `legal-core` v1.2.1.
+
 ## [0.8.0] - 2026-10-20
 
 ### Añadido
