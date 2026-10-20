@@ -41,10 +41,11 @@ const (
 
 // TestArticuloEnUnaFecha fija la lectura fechada de articulo sobre lo grabado de
 // H4 (contracts/articulo-fecha.md §2 a §4; data-model.md §3 y §4; research.md D4
-// a D7): la versión elegida es la última, en el orden del bloque, cuya
-// fecha_vigencia no es posterior al día pedido, y nunca por fecha_publicacion;
-// antes de la primera vigencia, 3 con el mensaje de FR-003; la redacción
-// posterior es la última del bloque si no es la elegida; data lleva los doce
+// a D7): la versión elegida es la de mayor fecha_vigencia que no es posterior al
+// día pedido, a igualdad la última en el orden del bloque, y nunca por
+// fecha_publicacion, también con las versiones desordenadas; antes de la menor
+// vigencia, 3 con el mensaje de FR-003; la redacción posterior es la de mayor
+// fecha_vigencia del bloque si no es la elegida; data lleva los doce
 // campos de hoy de la versión elegida, con el título, el tipo, los avisos y las
 // direcciones de la lectura sin fecha, más fecha_pedida; y la lectura pide los
 // mismos dos recursos que la de hoy (FR-006). Un bloque sin versiones, o con
@@ -250,6 +251,80 @@ func TestArticuloEnUnaFecha(t *testing.T) {
 				}
 			})
 		}
+	})
+
+	t.Run("un bloque con las versiones desordenadas", func(t *testing.T) {
+		t.Parallel()
+
+		// El BOE da las versiones en orden creciente, pero la elección no depende
+		// de ese orden (FR-002): la del 20200101 va repetida, con la de
+		// BOE-A-2019-9 después en el orden, y la última en el orden es la del
+		// 20100101, la que da la lectura sin fecha (nota [5]).
+		const bloque = `<bloque id="a21" tipo="precepto" titulo="Artículo 21">` +
+			`<version id_norma="BOE-A-2015-1" fecha_publicacion="20141231" fecha_vigencia="20150101"><p>De 2015.</p></version>` +
+			`<version id_norma="BOE-A-2019-8" fecha_publicacion="20191230" fecha_vigencia="20200101"><p>De 2020, antes.</p></version>` +
+			`<version id_norma="BOE-A-2019-9" fecha_publicacion="20191231" fecha_vigencia="20200101"><p>De 2020, después.</p></version>` +
+			`<version id_norma="BOE-A-2010-1" fecha_publicacion="20091231" fecha_vigencia="20100101"><p>De 2010.</p></version>` +
+			`</bloque>`
+
+		deMayorVigencia := &RedaccionPosterior{FechaVigencia: "20200101", NormaModificadora: "BOE-A-2019-9"}
+
+		casos := []struct {
+			fecha, vigencia, modificadora string
+			posterior                     *RedaccionPosterior
+		}{
+			{fecha: "2012-06-01", vigencia: "20100101", modificadora: "BOE-A-2010-1", posterior: deMayorVigencia},
+			{fecha: "2016-06-01", vigencia: "20150101", modificadora: "BOE-A-2015-1", posterior: deMayorVigencia},
+			{fecha: "2020-01-01", vigencia: "20200101", modificadora: "BOE-A-2019-9"},
+			{fecha: "2025-01-01", vigencia: "20200101", modificadora: "BOE-A-2019-9"},
+		}
+
+		for _, caso := range casos {
+			t.Run(caso.fecha, func(t *testing.T) {
+				t.Parallel()
+
+				banco := nuevoBanco(t, salvoEn(direccionDelArticulo21, respondeConElCuerpo(respuestaConBloque(bloque))))
+				fecha := caso.fecha
+
+				resultado, err := banco.resuelve(t, schema.Contexto{},
+					ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21, Fecha: &fecha})
+				require.NoError(t, err)
+
+				datos, esFechado := resultado.Datos.(ArticuloFechado)
+				require.Truef(t, esFechado, "el data de la lectura fechada es de tipo %T", resultado.Datos)
+				assert.Equal(t, caso.vigencia, datos.FechaVigencia)
+				assert.Equal(t, caso.modificadora, datos.NormaModificadora)
+				assert.Equal(t, caso.posterior, datos.RedaccionPosterior)
+			})
+		}
+
+		t.Run("anterior a la menor vigencia", func(t *testing.T) {
+			t.Parallel()
+
+			banco := nuevoBanco(t, salvoEn(direccionDelArticulo21, respondeConElCuerpo(respuestaConBloque(bloque))))
+			fecha := "2005-06-01"
+
+			resultado, err := banco.resuelve(t, schema.Contexto{},
+				ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21, Fecha: &fecha})
+
+			compruebaFalloDeLaConsulta(t, resultado, err, falloDeLaEleccion(direccionDelArticulo21, banco.reloj.ahora(),
+				"el bloque a21 de BOE-A-2015-10565 no tenía redacción vigente el 2005-06-01: "+
+					"su primera redacción tiene fecha de vigencia 20100101 ("+direccionDelArticulo21+")"))
+		})
+
+		t.Run("la lectura sin fecha sigue dando la última en el orden", func(t *testing.T) {
+			t.Parallel()
+
+			banco := nuevoBanco(t, salvoEn(direccionDelArticulo21, respondeConElCuerpo(respuestaConBloque(bloque))))
+
+			resultado, err := banco.resuelve(t, schema.Contexto{},
+				ConsultaArticulo{Norma: normaVigente, Bloque: bloqueDelArticulo21})
+			require.NoError(t, err)
+
+			datos, esArticulo := resultado.Datos.(Articulo)
+			require.Truef(t, esArticulo, "el data de la lectura sin fecha es de tipo %T", resultado.Datos)
+			assert.Equal(t, "BOE-A-2010-1", datos.NormaModificadora)
+		})
 	})
 
 	t.Run("los avisos son los de la norma hoy", func(t *testing.T) {

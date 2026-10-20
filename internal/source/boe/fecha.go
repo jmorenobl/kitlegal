@@ -111,12 +111,16 @@ func componerLasVersiones(leido bloqueLeido, metadatos Metadatos) versionesDelBl
 //  1. si el bloque no tiene versiones, o alguna no tiene una fecha_vigencia que
 //     sea un día AAAAMMDD, no se puede situar ninguna: 3 con el mensaje de
 //     FR-004, sea cual sea el día;
-//  2. si no, la elegida es la última, en el orden del bloque, cuya fecha_vigencia
-//     no es posterior al día pedido, comparadas como días del calendario y nunca
-//     por fecha_publicacion (FR-002); el día en que una versión entra en vigor, es
-//     esa; si no hay ninguna, 3 con el mensaje de FR-003;
-//  3. y la redacción posterior es la última versión del bloque cuando no es la
-//     elegida (FR-010, FR-013).
+//  2. si no, la elegida es la de mayor fecha_vigencia que no es posterior al día
+//     pedido, comparadas como días del calendario y nunca por fecha_publicacion
+//     (FR-002), y a igualdad, la última en el orden del bloque: el BOE da las
+//     versiones en orden creciente, pero la elección no depende de ese orden; el
+//     día en que una versión entra en vigor, es esa; si no hay ninguna, 3 con el
+//     mensaje de FR-003, que nombra la menor fecha_vigencia del bloque;
+//  3. y la redacción posterior es la de mayor fecha_vigencia del bloque, elegida
+//     igual, cuando no es la elegida (FR-010, FR-013). En un bloque en orden
+//     creciente es la última, la de la lectura sin fecha (nota [5]), que sigue
+//     dando la última en su orden.
 //
 // Los dos 3 llevan la dirección del bloque y la fecha de consulta de las
 // versiones, y ninguno lleva texto (research.md D7). El artículo de la elegida lo
@@ -133,17 +137,13 @@ func elegirLaVersion(norma, bloque, fecha string, dia time.Time, guardadas consu
 			fmt.Sprintf(motivoSinFechasDeVigencia, bloque, norma, fecha))
 	}
 
-	elegida := -1
-
-	for posicion, vigencia := range vigencias {
-		if !vigencia.After(dia) {
-			elegida = posicion
-		}
-	}
+	elegida := laDeMayorVigencia(vigencias, func(vigencia time.Time) bool { return !vigencia.After(dia) })
 
 	if elegida < 0 {
+		primera := laDeMenorVigencia(vigencias)
+
 		return ArticuloFechado{}, errorDeNoEncontrado(direccion, guardadas.fechaConsulta, nil,
-			fmt.Sprintf(motivoSinRedaccionVigente, bloque, norma, fecha, versiones[0].FechaVigencia))
+			fmt.Sprintf(motivoSinRedaccionVigente, bloque, norma, fecha, versiones[primera].FechaVigencia))
 	}
 
 	version := versiones[elegida]
@@ -160,10 +160,10 @@ func elegirLaVersion(norma, bloque, fecha string, dia time.Time, guardadas consu
 
 	fechado := ArticuloFechado{Articulo: componerArticulo(norma, bloque, leido, delDia), FechaPedida: fecha}
 
-	if ultima := versiones[len(versiones)-1]; elegida != len(versiones)-1 {
+	if posterior := laDeMayorVigencia(vigencias, func(time.Time) bool { return true }); posterior != elegida {
 		fechado.RedaccionPosterior = &RedaccionPosterior{
-			FechaVigencia:     ultima.FechaVigencia,
-			NormaModificadora: ultima.NormaModificadora,
+			FechaVigencia:     versiones[posterior].FechaVigencia,
+			NormaModificadora: versiones[posterior].NormaModificadora,
 		}
 	}
 
@@ -191,4 +191,34 @@ func vigenciasDeLasVersiones(versiones []versionGuardada) ([]time.Time, bool) {
 	}
 
 	return vigencias, true
+}
+
+// laDeMayorVigencia es la posición de la versión de mayor fecha de vigencia
+// entre las que admite cabe, y a igualdad, la última en el orden del bloque; -1
+// si no admite ninguna.
+func laDeMayorVigencia(vigencias []time.Time, cabe func(time.Time) bool) int {
+	mayor := -1
+
+	for posicion, vigencia := range vigencias {
+		if cabe(vigencia) && (mayor < 0 || !vigencia.Before(vigencias[mayor])) {
+			mayor = posicion
+		}
+	}
+
+	return mayor
+}
+
+// laDeMenorVigencia es la posición de la versión de menor fecha de vigencia, la
+// primera redacción del bloque que nombra el mensaje de FR-003; vigencias nunca
+// está vacía.
+func laDeMenorVigencia(vigencias []time.Time) int {
+	menor := 0
+
+	for posicion, vigencia := range vigencias {
+		if vigencia.Before(vigencias[menor]) {
+			menor = posicion
+		}
+	}
+
+	return menor
 }

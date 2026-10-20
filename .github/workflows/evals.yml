@@ -184,10 +184,10 @@ jobs:
         skill: [boe-legislacion, jurisprudencia, legal-core]
         # Cuántas sesiones abre a la vez el trabajo de cada skill y el objetivo de duración de sus sesiones, en
         # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
-        # de H7.3; research.md D12 de H7.3). boe-legislacion va a cinco a la vez desde antes de H20: a cuatro, con sus
-        # veintiuna evals, su peor caso es de 21 097 s, 351,6 minutos, y no deja sitio a ninguna eval más; con las de la
-        # pregunta fechada que entran en H20, sería de 23 449 s con dos, que el tope no cubre, y a cinco es de 18 977 s,
-        # con hasta cuatro evals nuevas por debajo del tope (entrada de H20 en docs/ROADMAP.md). Su objetivo de duración
+        # de H7.3; research.md D12 de H7.3). boe-legislacion va a cinco a la vez desde antes de H20: a cuatro, con las
+        # veintiuna evals de entonces, su peor caso era de 21 097 s, 351,6 minutos, sin sitio para ninguna eval más; con
+        # las veintitrés de hoy, las dos de la pregunta fechada que entraron en H20, sería de 23 449 s, que el tope no
+        # cubre, y a cinco es de 18 977 s (entrada de H20 en docs/ROADMAP.md). Su objetivo de duración
         # sigue en 900 s: no hay medida a cinco que lo cambie. jurisprudencia va desde H25 a cuatro a la vez: de una en
         # una, con sus diez evals y su juez, el tope del trabajo no cubre su peor caso. Sigue sin objetivo, como
         # legal-core: no hay medida con esa concurrencia de la que sacar una cifra. legal-core va a dos a la vez desde
@@ -208,14 +208,14 @@ jobs:
     runs-on: ubuntu-24.04
     # El tope de un cuelgue, no el control del objetivo de duración, que es un umbral del informe: cubre el peor caso de
     # cada skill, que TestDefinicionDelJob recalcula con las evals del repositorio (FR-035 y FR-052 de H7.3; research.md
-    # D13 de H7.3). 352 minutos: el peor caso de boe-legislacion, a cinco a la vez desde antes de H20, es de 17 329 s,
-    # 288,8 minutos. Son los 11 909 s de sus sesiones, con sus 21 evals en tres tandas —las del modo orden, las del modo
+    # D13 de H7.3). 352 minutos: el peor caso de boe-legislacion, a cinco a la vez desde antes de H20, es de 18 977 s,
+    # 316,3 minutos. Son los 12 997 s de sus sesiones, con sus 23 evals en tres tandas —las del modo orden, las del modo
     # herramienta y las de la eval sin binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md
-    # D20), 42 tandas de 272 s, más lo que añade su juez: 60 s de instalar su Claude Code y 134 tandas de votos de 40 s,
+    # D20), 46 tandas de 272 s, más lo que añade su juez: 60 s de instalar su Claude Code y 148 tandas de votos de 40 s,
     # el tope de un voto y su margen. Las tandas son, por grupo, los 6 votos que como mucho pide cada respuesta, a 5
-    # respuestas a la vez: 65, 65 y 4, con las 54, 54 y 3 respuestas que juzga (FR-092 de H24;
-    # specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4). A cuatro, como iba hasta H20, era de 21 097 s,
-    # 351,6 minutos, sin sitio para ninguna eval más. Cabe en las 6
+    # respuestas a la vez: 72, 72 y 4, con las 60, 60 y 3 respuestas que juzga (FR-092 de H24;
+    # specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4; research.md S1 de H20). A cuatro, como iba hasta
+    # H20, era de 21 097 s, 351,6 minutos, con las 21 evals de entonces, sin sitio para ninguna eval más. Cabe en las 6
     # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, es hoy de 6 469 s, 107,8 minutos, a dos a la vez (22 tandas de 272 s), y con las cinco evals de H9, de 14 629 s, 243,8 minutos (52 tandas). El de jurisprudencia,
     # con su juez y a cuatro a la vez, es de 12 577 s, 209,6 minutos, y cabe en el mismo tope, que no cambia: 31 tandas
     # de sesiones de 272 s —16 y 15, con las 60 sesiones de sus diez evals en cada modo y la de la prueba de red, que el
