@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"io/fs"
@@ -545,6 +546,119 @@ func TestApplyEmpates(t *testing.T) {
 
 	assert.Equal(t, esperado, aplicarEnOrden(t, gana, pierde), "la que gana llega primero")
 	assert.Equal(t, esperado, aplicarEnOrden(t, pierde, gana), "la que gana llega después")
+}
+
+// TestApplySoloLoNuevo fija la entrega de un lote con SoloLoNuevo, como el de
+// una lectura fechada (H20 FR-030, FR-031; research.md D9; data-model §6): un
+// nodo, una arista y un texto que world.db ya guarda quedan como estaban, byte a
+// byte —con su primera y su última observación, sus datos, su vigencia y su
+// procedencia—, llegue el lote después o antes de lo guardado; uno nuevo entra
+// con la procedencia del lote, como si llegara solo; la fila de lecturas no
+// cambia; y entregar el mismo lote otra vez no cambia ningún fichero. Sin
+// SoloLoNuevo, el mismo lote fusiona lo guardado, como hoy.
+func TestApplySoloLoNuevo(t *testing.T) {
+	t.Parallel()
+
+	// fechaAnterior es un instante anterior a fechaDelBloque.
+	const fechaAnterior = "2026-09-20T08:00:00Z"
+
+	guardada := unaLectura("a21", "20161002", cuerpo2016)
+	otra := unaLectura("a21", "20250101", cuerpo2025)
+	otroBloque := schema.Nodo{ID: idNorma + "#a22", Tipo: grafo.TipoBloque, Datos: map[string]any{grafo.DatoBloque: "a22"}}
+
+	// loGuardado lleva claves que world.db ya guarda: la norma y la redacción,
+	// con otros datos, la arista que une la norma con el bloque y el texto.
+	loGuardado := []schema.Operacion{
+		laNorma(map[string]any{grafo.DatoIdentificador: "BOE-A-2015-10565", "otro": true}),
+		schema.Nodo{ID: guardada.version(), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: guardada.vigencia, grafo.DatoHashTexto: huella(guardada.cuerpo), "otro": true,
+		}},
+		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: guardada.bloque()},
+		schema.Texto{Huella: huella(guardada.cuerpo), Cuerpo: guardada.cuerpo},
+	}
+	// loNuevo lleva claves que no guarda: otra redacción del bloque y su texto,
+	// y otro bloque con la arista que lo une a la norma.
+	loNuevo := []schema.Operacion{
+		schema.Nodo{ID: otra.version(), Tipo: grafo.TipoBloqueVersion, Datos: map[string]any{
+			grafo.DatoFechaVigencia: otra.vigencia, grafo.DatoHashTexto: huella(otra.cuerpo),
+		}},
+		schema.Texto{Huella: huella(otra.cuerpo), Cuerpo: otra.cuerpo},
+		otroBloque,
+		schema.Arista{Origen: idNorma, Relacion: grafo.RelacionTieneParte, Destino: otroBloque.ID},
+	}
+
+	casos := []struct {
+		nombre string
+		fecha  string
+		// fusionaElTexto dice si, sin SoloLoNuevo, el lote cambiaría el texto
+		// guardado: solo una observación más antigua le da su procedencia.
+		fusionaElTexto bool
+	}{
+		{"después de lo guardado", fechaSiguiente, false},
+		{"antes de lo guardado", fechaAnterior, true},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			directorio := t.TempDir()
+			ruta := filepath.Join(directorio, "world.db")
+			almacen := Nuevo(ConDirectorio(directorio))
+			require.NoError(t, almacen.Apply(t.Context(), guardada.entregada(fechaDelBloque)))
+
+			antes := grafoGuardado(t, ruta)
+			lecturas := lecturasGuardadas(t, ruta)
+			require.NotEmpty(t, lecturas, "premisa: el bloque tiene fila de lecturas")
+
+			lote := loteDelBOE(guardada.url(), caso.fecha, slices.Concat(loGuardado, loNuevo)...)
+			lote.SoloLoNuevo = true
+			esperado := unidos(antes, registrosDe(t, loteDelBOE(guardada.url(), caso.fecha, loNuevo...)))
+
+			require.NoError(t, almacen.Apply(t.Context(), lote))
+			assert.Equal(t, esperado, grafoGuardado(t, ruta),
+				"lo guardado queda como estaba y lo nuevo entra con la procedencia del lote")
+			assert.Equal(t, lecturas, lecturasGuardadas(t, ruta), "la fila de lecturas no cambia")
+
+			tras1 := huellasDelArbol(t, directorio)
+
+			require.NoError(t, almacen.Apply(t.Context(), lote))
+			assert.Equal(t, tras1, huellasDelArbol(t, directorio), "la entrega repetida no escribe nada")
+			assert.Equal(t, esperado, grafoGuardado(t, ruta))
+
+			lote.SoloLoNuevo = false
+			fusionado := aplicarEnOrden(t, guardada.entregada(fechaDelBloque), lote)
+
+			assert.NotEqual(t, esperado.nodos, fusionado.nodos, "premisa: sin SoloLoNuevo, los nodos se fusionan")
+			assert.NotEqual(t, esperado.aristas, fusionado.aristas, "premisa: sin SoloLoNuevo, las aristas se fusionan")
+
+			if caso.fusionaElTexto {
+				assert.NotEqual(t, esperado.textos, fusionado.textos, "premisa: sin SoloLoNuevo, el texto se fusiona")
+			}
+		})
+	}
+}
+
+// unidos son los registros de dos grafos sin ninguna clave en común, cada tabla
+// ordenada por su clave comparando bytes, como los lee grafoGuardado.
+func unidos(a, b grafoDePrueba) grafoDePrueba {
+	unido := grafoDePrueba{
+		nodos:   slices.Concat(a.nodos, b.nodos),
+		aristas: slices.Concat(a.aristas, b.aristas),
+		textos:  slices.Concat(a.textos, b.textos),
+	}
+
+	slices.SortFunc(unido.nodos, func(x, y grafo.RegistroDeNodo) int { return strings.Compare(x.ID, y.ID) })
+	slices.SortFunc(unido.aristas, func(x, y grafo.RegistroDeArista) int {
+		return cmp.Or(
+			strings.Compare(x.Origen, y.Origen),
+			strings.Compare(x.Relacion, y.Relacion),
+			strings.Compare(x.Destino, y.Destino),
+		)
+	})
+	slices.SortFunc(unido.textos, func(x, y grafo.RegistroDeTexto) int { return strings.Compare(x.Huella, y.Huella) })
+
+	return unido
 }
 
 // grafoConElBloque deja en un directorio nuevo el grafo de una consulta de boe

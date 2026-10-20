@@ -448,7 +448,9 @@ type VotoCortado struct {
 // FR-063 de H23): nil si la skill no tiene umbrales de sus respuestas. Los tiene
 // si tiene juez o si alguna de sus evals declara sentencias —desde H9, también
 // plazo o no_cubierto (contracts/evals-legal-core.md §3 de H9; research D20 de
-// H9)—, sin ningún caso por skill: lo dicen su carpeta juez y sus evals.
+// H9), y desde H20, redaccion_fechada (contracts/evals-redaccion-fechada.md §3
+// de H20; FR-055 de H20)—, sin ningún caso por skill: lo dicen su carpeta juez
+// y sus evals.
 type respuestasMedidas struct {
 	// modelo es el que decide: el de las respuestas.
 	modelo string
@@ -482,6 +484,12 @@ type respuestasMedidas struct {
 	// publica, y con el segundo, cobertura_sin_declarar (data-model §3 de H9;
 	// FR-053, FR-054 de H9).
 	conPlazo, conCobertura bool
+
+	// conRedaccionFechada dice si alguna eval de la skill espera una redacción
+	// fechada: con ello, cada respuesta de un modo lleva si su eval la espera y
+	// si cuenta en su umbral, y el umbral redaccion_sin_fechar de cada modo se
+	// publica (data-model §7.4 de H20; FR-054, FR-055 de H20).
+	conRedaccionFechada bool
 }
 
 // juez es lo que el juez de la skill deja de las respuestas: nil si la skill no
@@ -575,6 +583,14 @@ type respuestaDelJuez struct {
 	// servidor, que no cuenta en ningún umbral (medirLosPlazos; data-model §3 de
 	// H9).
 	dePlazo, sinFecha, deCobertura, sinDeclarar bool
+
+	// conFecha dice si su eval espera una redacción fechada, y sinFechar, si
+	// además su sesión no leyó el bloque de la eval en su fecha o su respuesta no
+	// lleva las líneas que la eval espera. Los dos falsos si ninguna eval de la
+	// skill espera una redacción fechada y no se miden, o en una respuesta de las
+	// evals sin binario ni servidor, que no cuenta en ningún umbral
+	// (medirLasRedaccionesFechadas; data-model §7.4 de H20).
+	conFecha, sinFechar bool
 
 	// juicio es el del juez: el de la regla de los votos.
 	juicio JuicioDeRespuesta
@@ -761,6 +777,22 @@ func (g grupoJuzgado) deLasEvalsDeCobertura() []respuestaDelJuez {
 // (FR-054, FR-055 de H9).
 func (g grupoJuzgado) sinLaDeclaracion() []respuestaDelJuez {
 	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.sinDeclarar })
+}
+
+// deLasEvalsConFecha son las respuestas del grupo cuya eval espera una redacción
+// fechada, en orden de sesión: el total de redaccion_sin_fechar de su modo
+// (data-model §7.4 de H20; FR-055 de H20).
+func (g grupoJuzgado) deLasEvalsConFecha() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.conFecha })
+}
+
+// sinFechar son, de las respuestas del grupo cuya eval espera una redacción
+// fechada, las de una sesión que no leyó el bloque de la eval en su fecha o que
+// no llevan las líneas que la eval espera, en orden de sesión: la medida de
+// redaccion_sin_fechar de su modo y las que nombra su motivo. Cada sesión cuenta
+// una vez como mucho, le falte lo uno, lo otro o las dos cosas (FR-055 de H20).
+func (g grupoJuzgado) sinFechar() []respuestaDelJuez {
+	return g.respuestasQue(func(respuesta respuestaDelJuez) bool { return respuesta.sinFechar })
 }
 
 // respuestasQue son las respuestas del grupo que cumplen la condición, en orden
@@ -1443,24 +1475,31 @@ func (e InformeAEscribir) juezDelInforme(juez *Juez) (*juezDelInforme, error) {
 // también tiene umbrales de sus respuestas si alguna de sus evals es de plazo o
 // de cobertura, y entonces cada respuesta de un modo lleva si su eval lo es y si
 // cuenta en su umbral (medirLosPlazos).
+//
+// Desde H20 (contracts/evals-redaccion-fechada.md §3 de H20; data-model §7.4 de
+// H20; research D14 de H20; FR-054, FR-055 de H20), también si alguna de sus
+// evals espera una redacción fechada, y entonces cada respuesta de un modo lleva
+// si su eval la espera y si cuenta en su umbral (medirLasRedaccionesFechadas).
 func medirLasRespuestas(
 	e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada, juez *juezDelInforme,
 ) *respuestasMedidas {
 	conSentencias := slices.ContainsFunc(evals, func(eval Eval) bool { return eval.Sentencias.declaradas() })
 	conPlazo := slices.ContainsFunc(evals, Eval.esDePlazo)
 	conCobertura := slices.ContainsFunc(evals, Eval.esDeCobertura)
+	conRedaccionFechada := slices.ContainsFunc(evals, esperaUnaRedaccionFechada)
 
-	if juez == nil && !conSentencias && !conPlazo && !conCobertura {
+	if juez == nil && !conSentencias && !conPlazo && !conCobertura && !conRedaccionFechada {
 		return nil
 	}
 
 	respuestas := &respuestasMedidas{
-		modelo:        e.ModeloQueDecide,
-		grupos:        respuestasQueSeJuzgan(e, sesiones, series),
-		conSentencias: conSentencias,
-		conCotejo:     slices.ContainsFunc(evals, pideElCotejo),
-		conPlazo:      conPlazo,
-		conCobertura:  conCobertura,
+		modelo:              e.ModeloQueDecide,
+		grupos:              respuestasQueSeJuzgan(e, sesiones, series),
+		conSentencias:       conSentencias,
+		conCotejo:           slices.ContainsFunc(evals, pideElCotejo),
+		conPlazo:            conPlazo,
+		conCobertura:        conCobertura,
+		conRedaccionFechada: conRedaccionFechada,
 	}
 
 	if conSentencias {
@@ -1473,6 +1512,10 @@ func medirLasRespuestas(
 
 	if conPlazo || conCobertura {
 		respuestas.medirLosPlazos(evals, sesiones)
+	}
+
+	if conRedaccionFechada {
+		respuestas.medirLasRedaccionesFechadas(evals, sesiones)
 	}
 
 	respuestas.delJuez = juez.juzgar(e, sesiones, respuestas.grupos)
@@ -1495,24 +1538,29 @@ func pideElCotejo(eval Eval) bool {
 var comandoDelCotejo = ComandoEsperado{Applet: appletDeLaCita, Verbo: verboCotejar}
 
 // cotejaUnDocumento dice si la sesión cotejó un documento (data-model §2 de
-// H23.1; FR-002 de H23.1): si alguna de sus invocaciones, las de su traza y las
-// de sus llamadas a las herramientas del servidor (invocacionesDe), satisface
-// comandoDelCotejo con el criterio con el que el juicio da por ejecutado un
-// comando esperado (satisface): una orden cita cotejar con código 0 y sin
-// --dry-run, --describe ni la ayuda, o una llamada a cita_cotejar cuyo
-// resultado no es un error. No mira sus argumentos, el documento que pasó, lo
-// que devolvió ni lo que la respuesta dijo después. invocacionesDe anota sus
-// motivos en un resultado de usar y tirar, y su segundo valor no se mira: falso
-// solo si el registro de herramientas no se puede construir, y una sesión
-// leída no llega ahí; si llegara, sus llamadas no contarían y la sesión
-// contaría como sin cotejo (research D3 de H23.1).
+// H23.1; FR-002 de H23.1): si ejecutó comandoDelCotejo (ejecutaElComando), una
+// orden cita cotejar con código 0 y sin --dry-run, --describe ni la ayuda, o una
+// llamada a cita_cotejar cuyo resultado no es un error. No mira sus argumentos,
+// el documento que pasó, lo que devolvió ni lo que la respuesta dijo después.
 func cotejaUnDocumento(sesion Sesion) bool {
+	return ejecutaElComando(sesion, comandoDelCotejo)
+}
+
+// ejecutaElComando dice si alguna de las invocaciones de la sesión, las de su
+// traza y las de sus llamadas a las herramientas del servidor (invocacionesDe),
+// satisface el comando con el criterio con el que el juicio da por ejecutado un
+// comando esperado (satisface). invocacionesDe anota sus motivos en un
+// resultado de usar y tirar, y su segundo valor no se mira: falso solo si el
+// registro de herramientas no se puede construir, y una sesión leída no llega
+// ahí; si llegara, sus llamadas no contarían y la sesión contaría como si no lo
+// hubiera ejecutado (research D3 de H23.1).
+func ejecutaElComando(sesion Sesion, comando ComandoEsperado) bool {
 	var deUsarYTirar ResultadoDeEval
 
 	invocaciones, _ := deUsarYTirar.invocacionesDe(sesion)
 
 	return slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
-		return satisface(juzgada.Invocacion, comandoDelCotejo)
+		return satisface(juzgada.Invocacion, comando)
 	})
 }
 
@@ -1578,6 +1626,112 @@ func (r *respuestasMedidas) medirLosPlazos(evals []Eval, sesiones []sesionJuzgad
 				(!resultado.NoCubiertoDeclarado || len(resultado.LineasDelPlazo) > 0)
 		}
 	}
+}
+
+// esperaUnaRedaccionFechada dice si la eval espera una redacción fechada: si
+// lleva redaccion_fechada (contracts/evals-redaccion-fechada.md §1.2 de H20).
+func esperaUnaRedaccionFechada(eval Eval) bool {
+	return eval.RedaccionFechada != nil
+}
+
+// medirLasRedaccionesFechadas deja en cada respuesta de los grupos de los modos
+// si su eval espera una redacción fechada, con la eval de su sesión, y si cuenta
+// en redaccion_sin_fechar: si su sesión no leyó el bloque de la eval en su fecha
+// (leeEnSuFecha) o su respuesta no lleva las líneas que la eval espera
+// (llevaLasLineasFechadas) (contracts/evals-redaccion-fechada.md §3 de H20;
+// data-model §7.4 de H20; research D14 de H20; FR-054, FR-055 de H20). No entra
+// en el juicio de la sesión: la serie sigue con sus comandos, sus citas y sus
+// avisos (FR-057 de H20). Son las respuestas del total de sin_activar de cada
+// modo: ninguna sesión sin medir, cortada por el tope, de un modelo informativo
+// o de una eval que no activa la skill está en ellas. Las de las evals sin
+// binario ni servidor no cuentan en ningún umbral, y no se miden.
+func (r *respuestasMedidas) medirLasRedaccionesFechadas(evals []Eval, sesiones []sesionJuzgada) {
+	for deGrupo := range r.grupos {
+		grupo := &r.grupos[deGrupo]
+		if grupo.modo == "" {
+			continue
+		}
+
+		for deRespuesta := range grupo.respuestas {
+			respuesta := &grupo.respuestas[deRespuesta]
+			juzgada := sesiones[respuesta.posicion]
+
+			deLaEval := slices.IndexFunc(evals, func(eval Eval) bool {
+				return eval.Fichero == juzgada.resultado.Eval && esperaUnaRedaccionFechada(eval)
+			})
+			if deLaEval < 0 {
+				continue
+			}
+
+			esperada := *evals[deLaEval].RedaccionFechada
+
+			respuesta.conFecha = true
+			respuesta.sinFechar = !leeEnSuFecha(juzgada.sesion, esperada) ||
+				!llevaLasLineasFechadas(juzgada.resultado.Respuesta, esperada)
+		}
+	}
+}
+
+// leeEnSuFecha dice si la sesión leyó el bloque de la redacción fechada en su
+// fecha: si ejecutó el comando de bloque con fecha {boe, norma, bloque, fecha}
+// (ejecutaElComando), que cumple una orden boe articulo de la norma y el bloque
+// con --fecha en ese día, o una llamada a boe_articulo con esa fecha, que
+// termina con 0 o con 3 (contracts/evals-redaccion-fechada.md §1.1 y §3 de
+// H20; research D12 de H20).
+func leeEnSuFecha(sesion Sesion, esperada RedaccionFechadaEsperada) bool {
+	return ejecutaElComando(sesion, ComandoEsperado{
+		Applet: appletDeLasNormas, Norma: esperada.Norma, Bloque: esperada.Bloque, Fecha: esperada.Fecha,
+	})
+}
+
+// llevaLasLineasFechadas dice si la respuesta lleva, de la norma y el bloque de
+// la redacción fechada, las líneas que la eval espera
+// (contracts/evals-redaccion-fechada.md §2 de H20; research D13 de H20), entre
+// las que lee ExtraerRedaccionesFechadas; las de otros bloques no cuentan. Con
+// la fecha de vigencia de la redacción vigente el día pedido: al menos una de
+// la redacción a fecha, y todas con ese día y esa vigencia; con una redacción
+// de hoy posterior, al menos una de la redacción de hoy, y todas con su norma y
+// su vigencia, y sin ella, ninguna; y ninguna sin redacción vigente. Con la
+// vigencia de la primera redacción, porque ese día no había ninguna: al menos
+// una sin redacción vigente, y todas con ese día y esa vigencia, y ninguna de
+// la redacción a fecha ni de la de hoy.
+func llevaLasLineasFechadas(respuesta string, esperada RedaccionFechadaEsperada) bool {
+	porForma := map[FormaFechada][]LineaFechada{}
+
+	for _, linea := range ExtraerRedaccionesFechadas(respuesta) {
+		if linea.Norma == esperada.Norma && linea.Bloque == esperada.Bloque {
+			porForma[linea.Forma] = append(porForma[linea.Forma], linea)
+		}
+	}
+
+	delDia := func(vigencia string) func(linea LineaFechada) bool {
+		return func(linea LineaFechada) bool {
+			return linea.Fecha == esperada.Fecha && linea.FechaVigencia == vigencia
+		}
+	}
+
+	if esperada.VigenteDesde != "" {
+		return len(porForma[RedaccionAFecha]) == 0 && len(porForma[RedaccionDeHoy]) == 0 &&
+			todasCumplen(porForma[SinRedaccionVigente], delDia(esperada.VigenteDesde))
+	}
+
+	if len(porForma[SinRedaccionVigente]) > 0 || !todasCumplen(porForma[RedaccionAFecha], delDia(esperada.FechaVigencia)) {
+		return false
+	}
+
+	if esperada.Posterior == nil {
+		return len(porForma[RedaccionDeHoy]) == 0
+	}
+
+	return todasCumplen(porForma[RedaccionDeHoy], func(linea LineaFechada) bool {
+		return linea.NormaModificadora == esperada.Posterior.NormaModificadora &&
+			linea.FechaVigencia == esperada.Posterior.FechaVigencia
+	})
+}
+
+// todasCumplen dice si hay alguna línea y todas cumplen la condición.
+func todasCumplen(lineas []LineaFechada, cumple func(linea LineaFechada) bool) bool {
+	return len(lineas) > 0 && !slices.ContainsFunc(lineas, func(linea LineaFechada) bool { return !cumple(linea) })
 }
 
 // medirLasCitasSinDocumento deja en cada respuesta de los grupos de los modos

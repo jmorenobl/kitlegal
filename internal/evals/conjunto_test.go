@@ -618,8 +618,13 @@ const (
 	normaET             = "BOE-A-0000-10"
 	normaComun          = "BOE-A-0000-11"
 	normaSinAbreviatura = "BOE-A-0000-12"
+	normaModificadora   = "BOE-A-0000-13"
 	normaDesconocida    = "BOE-A-0000-99"
 )
+
+// evalConFecha es el fichero de la eval con fecha del conjunto sintético de
+// TestConjuntoDeEvals (contracts/evals-redaccion-fechada.md §1.4 de H20).
+const evalConFecha = "15-lcsp-contrato-menor-en-2019.yaml"
 
 // conjuntoSintetico son las evals y las normas conocidas con las que
 // TestConjuntoDeEvals llama a ComprobarConjunto con las reglas de
@@ -632,9 +637,10 @@ type conjuntoSintetico struct {
 // conjuntoQueCumple devuelve, nuevo en cada llamada, un conjunto que cumple
 // todas las reglas de data-model §6.3: el de evals/boe-legislacion/ del contrato
 // de evals §2, con diez positivas de una norma cada una y dos de no activación,
-// la informativa por materia y, desde H21, la eval sin binario ni servidor
-// (contracts/evals-en-dos-modos.md §1 de H21). La 07 y la 08 citan además una
-// norma común, porque una positiva que cita dos normas cuenta como materia
+// la informativa por materia, desde H21, la eval sin binario ni servidor
+// (contracts/evals-en-dos-modos.md §1 de H21) y, desde H20, una eval con fecha
+// (contracts/evals-redaccion-fechada.md §1.4 de H20). La 07 y la 08 citan además
+// una norma común, porque una positiva que cita dos normas cuenta como materia
 // distinta si al menos una no la cita ninguna otra (spec, casos límite).
 func conjuntoQueCumple(t *testing.T) conjuntoSintetico {
 	t.Helper()
@@ -653,7 +659,7 @@ func conjuntoQueCumple(t *testing.T) conjuntoSintetico {
 	}
 
 	conjunto := conjuntoSintetico{
-		evals: make([]Eval, 0, len(positivas)+4),
+		evals: make([]Eval, 0, len(positivas)+5),
 		normas: map[string]NormaConocida{
 			normaLPAC:         {Abreviatura: "LPAC", Materias: []string{"procedimiento administrativo"}},
 			normaLCSP:         {Abreviatura: "LCSP", Materias: []string{"contratación pública"}},
@@ -695,6 +701,21 @@ func conjuntoQueCumple(t *testing.T) conjuntoSintetico {
 		Eval{
 			Fichero: "14-sin-binario-ni-servidor.yaml", Pregunta: "\xc2\xbfQu\xc3\xa9 dice el art. 53 de la Ley 39/2015?",
 			Activa: true, SinBinarioNiServidor: true,
+		},
+		// La eval con fecha: activa la skill, decide y repite la norma y el bloque
+		// de la 02, y no cuenta entre las positivas ni en la regla de materias; la
+		// norma de su redacción de hoy no es ninguna conocida, porque las normas
+		// conocidas no miran redaccion_fechada (research D15 de H20).
+		Eval{
+			Fichero:  evalConFecha,
+			Pregunta: "\xc2\xbfQu\xc3\xa9 exig\xc3\xada el expediente de un contrato menor el 1 de junio de 2019?",
+			Activa:   true,
+			Comandos: []ComandoEsperado{{Applet: "boe", Norma: normaLCSP, Bloque: "a1-30", Fecha: "2019-06-01"}},
+			Citas:    []CitaEsperada{{Norma: normaLCSP, Bloque: "a1-30"}},
+			RedaccionFechada: &RedaccionFechadaEsperada{
+				Norma: normaLCSP, Bloque: "a1-30", Fecha: "2019-06-01", FechaVigencia: "20180309",
+				Posterior: &RedaccionPosteriorEsperada{FechaVigencia: "20200206", NormaModificadora: normaModificadora},
+			},
 		},
 	)
 
@@ -748,7 +769,9 @@ func sinMateria(conjunto *conjuntoSintetico, materia string) {
 // (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde H23, el tercer
 // juego, el de jurisprudencia (contracts/evals-jurisprudencia.md §5 de H23;
 // FR-056), que desde H25 cuenta diez evals (contracts/evals-jurisprudencia.md
-// §3 de H25; FR-065).
+// §3 de H25; FR-065). Desde H20, el tamaño de boe-legislacion llega a 23, y una
+// eval con fecha se aparta como la eval sin binario ni servidor: no es positiva
+// (contracts/evals-redaccion-fechada.md §1.4 de H20; research D15 de H20).
 func TestConjuntoDeEvals(t *testing.T) {
 	t.Parallel()
 
@@ -763,10 +786,15 @@ func TestConjuntoDeEvals(t *testing.T) {
 // exactamente un defecto, con el nombre de esa regla y un mensaje que nombra los
 // ficheros y las normas implicados; y un conjunto que las incumple todas da un
 // defecto por regla, en el orden de la tabla. Desde H21, el conjunto que cumple
-// lleva la eval sin binario ni servidor sin que cuente como positiva; con 21
-// evals sigue cumpliendo y con 22 incumple el tamaño; y sin ninguna eval sin
-// binario ni servidor, o con dos, incumple solo la regla nueva
-// (contracts/evals-en-dos-modos.md §1 de H21).
+// lleva la eval sin binario ni servidor sin que cuente como positiva; y sin
+// ninguna eval sin binario ni servidor, o con dos, incumple solo la regla nueva
+// (contracts/evals-en-dos-modos.md §1 de H21). Desde H20, lleva además una eval
+// con fecha, que se aparta como la eval sin binario ni servidor: no cuenta como
+// positiva ni en la regla de materias, aunque repite la norma de la 02, y la
+// norma de su redacción de hoy no se mira; con una norma desconocida en su
+// comando o en su cita incumple solo la regla de las normas conocidas; y con 23
+// evals el conjunto sigue cumpliendo y con 24 incumple el tamaño
+// (contracts/evals-redaccion-fechada.md §1.4 de H20; research D15 de H20).
 func probarReglasDeBoeLegislacion(t *testing.T) {
 	t.Parallel()
 
@@ -776,18 +804,19 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 		"07-lrjsp-principio-de-legalidad.yaml", "08-ltaibg-plazo-de-resolucion.yaml",
 		"09-constitucion-articulo-140.yaml", "10-et-vacaciones.yaml",
 		"11-no-activa-programacion.yaml", "12-no-activa-acuerdo-entre-amigos.yaml",
-		"13-lrbrl-atribuciones-por-materia.yaml", "14-sin-binario-ni-servidor.yaml",
+		"13-lrbrl-atribuciones-por-materia.yaml", "14-sin-binario-ni-servidor.yaml", evalConFecha,
 	}
 	positivas := todos[:10]
 	informativa := todos[12]
 	sinBinario := todos[13]
-	otraSinBinario := "15-sin-binario-ni-servidor-otra.yaml"
+	otraSinBinario := "16-sin-binario-ni-servidor-otra.yaml"
 
-	// Con las siete primeras, el conjunto tiene las 21 evals del máximo; con las
-	// ocho, una más.
+	// Con las ocho primeras, el conjunto tiene las 23 evals del máximo; con las
+	// nueve, una más.
 	deMas := []string{
-		"15-no-activa-15.yaml", "16-no-activa-16.yaml", "17-no-activa-17.yaml", "18-no-activa-18.yaml",
-		"19-no-activa-19.yaml", "20-no-activa-20.yaml", "21-no-activa-21.yaml", "22-no-activa-22.yaml",
+		"16-no-activa-16.yaml", "17-no-activa-17.yaml", "18-no-activa-18.yaml", "19-no-activa-19.yaml",
+		"20-no-activa-20.yaml", "21-no-activa-21.yaml", "22-no-activa-22.yaml", "23-no-activa-23.yaml",
+		"24-no-activa-24.yaml",
 	}
 	conDeMas := func(conjunto *conjuntoSintetico, ficheros []string) {
 		for _, fichero := range ficheros {
@@ -804,10 +833,10 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion()))
 
 		conDeMas(&conjunto, deMas[:len(deMas)-1])
-		require.Len(t, conjunto.evals, 21, "el conjunto sint\xc3\xa9tico llega al m\xc3\xa1ximo de evals")
+		require.Len(t, conjunto.evals, 23, "el conjunto sint\xc3\xa9tico llega al m\xc3\xa1ximo de evals")
 
 		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion()),
-			"con 21 evals, el conjunto cumple el tama\xc3\xb1o")
+			"con 23 evals, el conjunto cumple el tama\xc3\xb1o")
 	})
 
 	casos := []struct {
@@ -827,7 +856,7 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 			},
 			regla:    "tamaño",
 			ficheros: slices.Concat(todos, deMas),
-			dice:     []string{"hay 22 evals y el conjunto lleva entre 10 y 21"},
+			dice:     []string{"hay 24 evals y el conjunto lleva entre 10 y 23"},
 		},
 		{
 			nombre: "positivas",
@@ -977,6 +1006,20 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 			normas:   []string{normaDesconocida},
 		},
 		{
+			// La eval con fecha no es positiva, pero la regla de las normas
+			// conocidas sí la mira (research D15 de H20).
+			nombre: "normas-conocidas-en-la-eval-con-fecha",
+			modificar: func(t *testing.T, conjunto *conjuntoSintetico) {
+				t.Helper()
+				conFecha := evalDe(t, conjunto.evals, evalConFecha)
+				conFecha.Comandos[0].Norma = normaDesconocida
+				conFecha.Citas[0].Norma = normaDesconocida
+			},
+			regla:    "normas conocidas",
+			ficheros: []string{evalConFecha},
+			normas:   []string{normaDesconocida},
+		},
+		{
 			nombre: "sin-binario-ni-servidor-ninguna",
 			modificar: func(t *testing.T, conjunto *conjuntoSintetico) {
 				t.Helper()
@@ -1024,7 +1067,7 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 		conjunto := conjuntoQueCumple(t)
 		conjunto.evals = nil
 
-		for numero := 1; numero <= 22; numero++ {
+		for numero := 1; numero <= 24; numero++ {
 			conjunto.evals = append(conjunto.evals, Eval{
 				Fichero:  fmt.Sprintf("%02d-positiva.yaml", numero),
 				Pregunta: "¿Qué dice esta norma?",
@@ -1937,8 +1980,16 @@ const (
 // evals/legal-core/ son nueve, bien formadas, cumplen además la regla de la
 // cobertura por materia, y la unión de grabaciones sirve sin red lo que leen del
 // BOE, como las de boe-legislacion (contracts/evals-legal-core.md §4 y §5 de H9;
-// FR-050, FR-052, FR-088). Lee las carpetas enteras, así que ningún fichero de
-// eval se nombra aquí.
+// FR-050, FR-052, FR-088). Desde H20, las consultas de las dos carpetas llevan,
+// junto a cada bloque, su lectura con --fecha 9999-12-31, y la caché se prepara
+// y se comprueba sin red también con ellas (contracts/evals-redaccion-fechada.md
+// §4 de H20; FR-053); y las de boe-legislacion son veintitrés, con las dos con
+// fecha, bien formadas, con las reglas de su conjunto y con su caché preparada
+// y comprobada sin red (contracts/evals-redaccion-fechada.md §1.3 y §1.4 de
+// H20; FR-050 a FR-053); y el SKILL.md de boe-legislacion lleva, en sus
+// bloques de código text, la forma fija de cada una de las tres líneas de una
+// redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048). Lee
+// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2014,6 +2065,9 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		consultas := ConsultasNecesarias(deLegalCore.Evals)
 		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDeLegalCore)
+
+		// Desde H20, cada bloque con su lectura con --fecha 9999-12-31 (FR-053).
+		exigeLecturasFechadas(t, consultas, evalsDeLegalCore)
 
 		dirCache := t.TempDir()
 
@@ -2117,6 +2171,11 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		consultas := ConsultasNecesarias(conjunto.Evals)
 		require.NotEmpty(t, consultas, "las evals de %s necesitan alguna consulta", evalsDelRepositorio)
 
+		// Desde H20, la caché preparada sirve también la lectura con --fecha
+		// 9999-12-31 de cada bloque, y la unión de grabaciones la sirve sin red
+		// (contracts/evals-redaccion-fechada.md §4 de H20; FR-053).
+		exigeLecturasFechadas(t, consultas, evalsDelRepositorio)
+
 		dirCache := t.TempDir()
 
 		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
@@ -2167,6 +2226,14 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		assert.NoError(t, ComprobarFormasDeHallazgo(string(skill)),
 			"%s enseña la forma fija de cada clase de hallazgo etiquetada por el binario", skillDelRepositorio)
+	})
+
+	t.Run("formas-de-la-redaccion-fechada", func(t *testing.T) {
+		t.Parallel()
+
+		defectos := defectosDeLasFormasFechadas(string(contenidoDelFichero(t, skillDelRepositorio)))
+		assert.Empty(t, defectos, "%s enseña en un bloque text la forma fija de cada línea de una redacción fechada:\n%s",
+			skillDelRepositorio, strings.Join(defectos, "\n"))
 	})
 
 	t.Run("cobertura-del-esquema", func(t *testing.T) {
@@ -2545,6 +2612,27 @@ func bloquesDeTexto(markdown string) []string {
 	}
 
 	return bloques
+}
+
+// defectosDeLasFormasFechadas da los defectos de un SKILL.md respecto de las
+// tres formas fijas de una redacción fechada (contracts/skill-boe-legislacion.md
+// §1 de H20; FR-048), o nil si no tiene ninguno: uno por cada forma de
+// formasFechadas, en su orden, que ningún bloque de código text lleva con la
+// gramática con la que se juzga la respuesta (expresionesFechadas). Como la de
+// los hallazgos, la comprobación es de la etiqueta: decirla con otras palabras,
+// o en la prosa y no en un bloque text, no la enseña.
+func defectosDeLasFormasFechadas(markdown string) []string {
+	bloques := bloquesDeTexto(markdown)
+
+	var defectos []string
+
+	for _, forma := range formasFechadas {
+		if !slices.ContainsFunc(bloques, expresionesFechadas()[forma].MatchString) {
+			defectos = append(defectos, "ningún bloque text de SKILL.md lleva la forma fija "+formaEscrita(string(forma)))
+		}
+	}
+
+	return defectos
 }
 
 // probarProsaDeLaSkill es la subprueba prosa-de-la-skill de
@@ -3894,4 +3982,36 @@ func presentarFaltas(faltas []Falta) string {
 	}
 
 	return strings.Join(textos, "\n")
+}
+
+// exigeLecturasFechadas exige que las consultas de las evals de la carpeta lean
+// algún bloque y que cada lectura de un bloque sin fecha vaya acompañada de la
+// misma con --fecha 9999-12-31: así, preparar y comprobar sin red su caché es
+// también prepararla y comprobarla para la lectura fechada de cada bloque
+// (contracts/evals-redaccion-fechada.md §4 de H20; research D18; FR-053).
+func exigeLecturasFechadas(t *testing.T, consultas []Consulta, carpeta string) {
+	t.Helper()
+
+	esLecturaDe := func(consulta Consulta, argumentos []string) bool {
+		return consulta.Applet == "boe" && consulta.Verbo == "articulo" && slices.Equal(consulta.Argumentos, argumentos)
+	}
+
+	var bloques, sinLaFechada []string
+
+	for _, consulta := range consultas {
+		if consulta.Applet != "boe" || consulta.Verbo != "articulo" || slices.Contains(consulta.Argumentos, "--fecha") {
+			continue
+		}
+
+		bloque := strings.Join(consulta.Argumentos, " ")
+		bloques = append(bloques, bloque)
+
+		fechada := slices.Concat(consulta.Argumentos, []string{"--fecha", "9999-12-31"})
+		if !slices.ContainsFunc(consultas, func(otra Consulta) bool { return esLecturaDe(otra, fechada) }) {
+			sinLaFechada = append(sinLaFechada, bloque)
+		}
+	}
+
+	require.NotEmpty(t, bloques, "las evals de %s leen algún bloque sin fecha", carpeta)
+	assert.Empty(t, sinLaFechada, "bloques de las evals de %s sin su lectura con --fecha 9999-12-31", carpeta)
 }

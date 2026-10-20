@@ -198,11 +198,17 @@ func TestObservadoCero(t *testing.T) {
 
 		// La vigencia viaja aquí y no en la Procedencia, que es lo que hace
 		// citable un sobre y comparten todos los applets (research.md D3).
-		assert.Equal(t, []string{"Vigencia", "Operaciones"}, camposDe(reflect.TypeFor[Observado]()))
+		assert.Equal(t, []string{"Vigencia", "SoloLoNuevo", "Operaciones"}, camposDe(reflect.TypeFor[Observado]()))
 
 		vigencia, existe := reflect.TypeFor[Observado]().FieldByName("Vigencia")
 		require.True(t, existe)
 		assert.Equal(t, reflect.TypeFor[time.Duration](), vigencia.Type)
+
+		// SoloLoNuevo es la marca de lo observado que el grafo añade solo donde
+		// no está, como el de una lectura fechada (H20 research.md D9).
+		soloLoNuevo, existe := reflect.TypeFor[Observado]().FieldByName("SoloLoNuevo")
+		require.True(t, existe)
+		assert.Equal(t, reflect.TypeFor[bool](), soloLoNuevo.Type)
 
 		operaciones, existe := reflect.TypeFor[Observado]().FieldByName("Operaciones")
 		require.True(t, existe)

@@ -34,6 +34,13 @@ const (
 	umbralDeRespuestasSinDeclarar = 0
 )
 
+// La proporción de las respuestas medidas del modelo que decide en las evals
+// que esperan una redacción fechada que admite el umbral de las de una sesión
+// que no leyó el bloque de la eval en su fecha o que no llevan las líneas que la
+// eval espera: ninguna (contracts/evals-redaccion-fechada.md §3 de H20; FR-054,
+// FR-055 de H20).
+const umbralDeRedaccionesSinFechar = 0
+
 // Lo que admiten los umbrales del juez que no salen de su declaración de clases
 // (contracts/informe-del-job.md §2 de H24): la proporción de los casos
 // etiquetados de su medida versionada que no dan lo que dice su etiqueta,
@@ -79,12 +86,19 @@ const (
 // como el de documento_sin_cotejar, y su descripción dice que su total son solo
 // las respuestas de esas evals (contracts/evals-legal-core.md §3 de H9; research
 // D20 de H9).
+//
+// Desde H20, el de las respuestas de las evals que esperan una redacción fechada
+// cuya sesión no leyó el bloque de la eval en su fecha o que no llevan las
+// líneas que la eval espera se nombra con su prefijo, como el de plazo_sin_fecha,
+// y su descripción dice que su total son solo las respuestas de esas evals
+// (contracts/evals-redaccion-fechada.md §3 de H20; research D14 de H20).
 const (
 	prefijoDelUmbralSinActivar             = "sin_activar:"
 	prefijoDelUmbralDeCitaSinDocumento     = "cita_sin_documento:"
 	prefijoDelUmbralDeDocumentoSinCotejar  = "documento_sin_cotejar:"
 	prefijoDelUmbralDePlazoSinFecha        = "plazo_sin_fecha:"
 	prefijoDelUmbralDeCoberturaSinDeclarar = "cobertura_sin_declarar:"
+	prefijoDelUmbralDeRedaccionSinFechar   = "redaccion_sin_fechar:"
 	prefijoDelUmbralDeLaMedidaDelJuez      = "medida_del_juez:"
 	prefijoDelUmbralDeLaDuracion           = "duracion_de_las_sesiones:"
 	prefijoDelUmbralDeLaDuracionDelJuez    = "duracion_del_juez:"
@@ -106,6 +120,10 @@ const (
 	descripcionDelUmbralDeCoberturaSinDeclarar = "Respuestas de %s en el modo %s sin la línea ⚠ NO CUBIERTO: con " +
 		"la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una " +
 		"declaración de no cubierto"
+	descripcionDelUmbralDeRedaccionSinFechar = "Respuestas de %s en el modo %s cuya sesión no leyó con boe articulo " +
+		"el bloque de la eval en su fecha, o sin las líneas ⚠ REDACCIÓN A FECHA:, ⚠ REDACCIÓN DE HOY: y ⚠ SIN " +
+		"REDACCIÓN VIGENTE: que la eval espera, sobre sus respuestas medidas en las evals que esperan una redacción " +
+		"fechada"
 	descripcionDeLaClaseQueDecide = "Respuestas de %s en el modo %s que el juez marca en %s con sus tres votos, " +
 		"sobre sus respuestas juzgadas en las evals que activan la skill"
 	descripcionDeLaClaseQueSePublica = "Respuestas de %s en el modo %s con sí en %s en el primer voto del juez, " +
@@ -138,7 +156,8 @@ const (
 // H23). Y el de documento_sin_cotejar nombra cada respuesta que cuenta por su
 // sesión y nada más, separadas igual (contracts/umbral-documento-sin-cotejar.md
 // §3 de H23.1; research D7 de H23.1), como, desde H9, los de plazo_sin_fecha y
-// cobertura_sin_declarar (contracts/evals-legal-core.md §3 de H9).
+// cobertura_sin_declarar (contracts/evals-legal-core.md §3 de H9) y, desde H20,
+// el de redaccion_sin_fechar (contracts/evals-redaccion-fechada.md §3 de H20).
 const (
 	soloSePublica      = "no: solo se publica"
 	motivoDeUnUmbral   = "umbral %s: %s, y tiene que ser %s"
@@ -298,6 +317,16 @@ type Umbral struct {
 // plazo_sin_fecha y cobertura_sin_declarar. Ninguna eval de boe-legislacion ni
 // de jurisprudencia es de plazo ni de cobertura, y sus trece y sus quince no
 // cambian.
+//
+// Desde H20 (contracts/evals-redaccion-fechada.md §3 de H20; data-model §7.4 de
+// H20; research D14 de H20; FR-054 a FR-056 de H20), una skill tiene umbrales
+// de sus respuestas también si alguna de sus evals espera una redacción
+// fechada, y los de cada modo llevan, detrás de todos los demás de ese modo,
+// redaccion_sin_fechar, que decide con 0. Con el plan del job, los de
+// boe-legislacion, la única con evals con fecha, con su objetivo, son quince,
+// de los que deciden once: los trece de antes, con redaccion_sin_fechar de cada
+// modo detrás de su cuenta_su_proceso. Los de jurisprudencia y legal-core no
+// cambian.
 func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()
@@ -340,12 +369,17 @@ func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umb
 // la línea del plazo con la fecha esperada, y con alguna de cobertura, el de las
 // de esas evals sin la declaración de no cubierto con la norma esperada o con
 // una línea del plazo, los dos decidiendo con 0 (contracts/evals-legal-core.md
-// §3 de H9; FR-053, FR-054 de H9). Todos tienen como total las respuestas del
-// modo, las medidas del modelo en las evals que activan la skill, menos
-// documento_sin_cotejar, plazo_sin_fecha y cobertura_sin_declarar, que tienen
-// solo las de las evals que piden el cotejo, las de plazo y las de cobertura.
-// Ninguno cuenta las respuestas de las evals sin binario ni servidor (FR-013 de
-// H24). Ninguno, si la skill no tiene umbrales de sus respuestas.
+// §3 de H9; FR-053, FR-054 de H9); y, desde H20, con alguna eval que espera una
+// redacción fechada, el de las de esas evals cuya sesión no leyó el bloque de la
+// eval en su fecha o que no llevan las líneas que la eval espera, que decide con
+// 0 (contracts/evals-redaccion-fechada.md §3 de H20; FR-054, FR-055 de H20).
+// Todos tienen como total las respuestas del modo, las medidas del modelo en
+// las evals que activan la skill, menos documento_sin_cotejar, plazo_sin_fecha,
+// cobertura_sin_declarar y redaccion_sin_fechar, que tienen solo las de las
+// evals que piden el cotejo, las de plazo, las de cobertura y las que esperan
+// una redacción fechada. Ninguno cuenta las respuestas de las evals sin binario
+// ni servidor (FR-013 de H24). Ninguno, si la skill no tiene umbrales de sus
+// respuestas.
 func (r *respuestasMedidas) umbrales() []Umbral {
 	var umbrales []Umbral
 
@@ -367,6 +401,10 @@ func (r *respuestasMedidas) umbrales() []Umbral {
 
 		if r.conCobertura {
 			umbrales = append(umbrales, umbralDeCoberturaSinDeclarar(r.modelo, grupo))
+		}
+
+		if r.conRedaccionFechada {
+			umbrales = append(umbrales, umbralDeRedaccionSinFechar(r.modelo, grupo))
 		}
 	}
 
@@ -607,6 +645,38 @@ func nombreDelUmbralDeCoberturaSinDeclarar(modelo string, modo Modo) string {
 	return prefijoDelUmbralDeCoberturaSinDeclarar + modelo + separadorDelModoDelUmbral + string(modo)
 }
 
+// umbralDeRedaccionSinFechar es el umbral de las respuestas de un modelo en un
+// modo de las evals que esperan una redacción fechada cuya sesión no leyó el
+// bloque de la eval en su fecha o que no llevan las líneas que la eval espera,
+// sobre esas respuestas, ya comparado (contracts/evals-redaccion-fechada.md §3
+// de H20; data-model §7.4 de H20; FR-054, FR-055 de H20): se nombra con su
+// prefijo seguido del modelo y del modo, su descripción los nombra, y decide con
+// 0. Su medida, las de sinFechar, y su total, las de deLasEvalsConFecha: cada
+// sesión cuenta una vez como mucho, aunque no lea en su fecha y le falten las
+// líneas, y una de una eval que no espera una redacción fechada no está en
+// ninguno. Es un hecho de la sesión y de la respuesta, que se comprueba sin
+// modelo (ADR 0037).
+func umbralDeRedaccionSinFechar(modelo string, delModo grupoJuzgado) Umbral {
+	conFecha := len(delModo.deLasEvalsConFecha())
+
+	return compararUmbral(Umbral{
+		Nombre:      nombreDelUmbralDeRedaccionSinFechar(modelo, delModo.modo),
+		Descripcion: fmt.Sprintf(descripcionDelUmbralDeRedaccionSinFechar, modelo, delModo.modo),
+		Medida:      float64(len(delModo.sinFechar())),
+		Total:       &conFecha,
+		Umbral:      umbralDeRedaccionesSinFechar,
+		Decide:      true,
+	})
+}
+
+// nombreDelUmbralDeRedaccionSinFechar es el nombre del umbral de las respuestas
+// de un modelo en un modo de las evals que esperan una redacción fechada cuya
+// sesión no leyó el bloque en su fecha o que no llevan las líneas esperadas: su
+// prefijo seguido del modelo y del modo.
+func nombreDelUmbralDeRedaccionSinFechar(modelo string, modo Modo) string {
+	return prefijoDelUmbralDeRedaccionSinFechar + modelo + separadorDelModoDelUmbral + string(modo)
+}
+
 // umbralesDeLaMedida son, por cada clase del juez que decide, los dos umbrales
 // de su medida versionada (contracts/informe-del-job.md §2 de H24; FR-032,
 // FR-044): los casos etiquetados como defecto que no quedaron marcados, sobre
@@ -719,7 +789,9 @@ func (u Umbral) valor() float64 {
 // sesión y sin nada más (nombradasPorSuSesion;
 // contracts/umbral-documento-sin-cotejar.md §3 de H23.1; FR-003 de H23.1), como,
 // desde H9, los de plazo_sin_fecha y cobertura_sin_declarar
-// (contracts/evals-legal-core.md §3 de H9; FR-055 de H9). respuestas es lo que
+// (contracts/evals-legal-core.md §3 de H9; FR-055 de H9) y, desde H20, el de
+// redaccion_sin_fechar (contracts/evals-redaccion-fechada.md §3 de H20; FR-055
+// de H20). respuestas es lo que
 // se mide de las respuestas de la ejecución, nil si la skill no tiene umbrales
 // de ellas.
 func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas) []string {
@@ -746,9 +818,10 @@ func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas) []st
 // si es el conjunto de una de sus clases (marcadasDelUmbral); las que llevan
 // una cita sin documento cotejado o un ECLI sin origen, si es el de
 // cita_sin_documento de un modo (sinDocumentoDelUmbral); o, si es el de
-// documento_sin_cotejar, el de plazo_sin_fecha o el de cobertura_sin_declarar
-// de un modo, las que cuentan en él (nombradasPorSuSesion). Vacío con cualquier
-// otro umbral, y si la skill no tiene umbrales de sus respuestas.
+// documento_sin_cotejar, el de plazo_sin_fecha, el de cobertura_sin_declarar o
+// el de redaccion_sin_fechar de un modo, las que cuentan en él
+// (nombradasPorSuSesion). Vacío con cualquier otro umbral, y si la skill no
+// tiene umbrales de sus respuestas.
 func (r *respuestasMedidas) nombradasEn(nombre string) string {
 	if marcadas := r.juez().marcadasDelUmbral(nombre); marcadas != "" {
 		return marcadas
@@ -769,9 +842,12 @@ func (r *respuestasMedidas) nombradasEn(nombre string) string {
 // las de una eval de plazo sin la línea del plazo con la fecha esperada, y
 // cobertura_sin_declarar, las de una eval de cobertura sin la declaración de no
 // cubierto con la norma esperada o con una línea del plazo
-// (contracts/evals-legal-core.md §3 de H9; FR-055 de H9). Cada una por su
-// sesión, sin el modo, que ya va en el nombre del umbral, separadas por «; » y
-// en orden de sesión. Vacío si el umbral no es ninguno de ellos o si ninguna
+// (contracts/evals-legal-core.md §3 de H9; FR-055 de H9); y, desde H20,
+// redaccion_sin_fechar, las de una eval que espera una redacción fechada cuya
+// sesión no leyó el bloque en su fecha o que no llevan las líneas esperadas
+// (contracts/evals-redaccion-fechada.md §3 de H20; FR-055 de H20). Cada una por
+// su sesión, sin el modo, que ya va en el nombre del umbral, separadas por «; »
+// y en orden de sesión. Vacío si el umbral no es ninguno de ellos o si ninguna
 // respuesta cuenta.
 func (r *respuestasMedidas) nombradasPorSuSesion(nombre string) string {
 	for _, grupo := range r.deLosModos() {
@@ -784,6 +860,8 @@ func (r *respuestasMedidas) nombradasPorSuSesion(nombre string) string {
 			cuentan = grupo.sinLaFecha()
 		case nombreDelUmbralDeCoberturaSinDeclarar(r.modelo, grupo.modo):
 			cuentan = grupo.sinLaDeclaracion()
+		case nombreDelUmbralDeRedaccionSinFechar(r.modelo, grupo.modo):
+			cuentan = grupo.sinFechar()
 		default:
 			continue
 		}

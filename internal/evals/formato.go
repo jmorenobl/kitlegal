@@ -126,6 +126,13 @@ type Eval struct {
 	// con ella puede no llevar comandos ni citas (contracts/evals-legal-core.md §1
 	// de H9; FR-051).
 	NoCubierto NoCubiertoEsperado `yaml:"no_cubierto"`
+
+	// RedaccionFechada es lo que la respuesta tiene que decir, en las líneas de
+	// ExtraerRedaccionesFechadas, de la redacción de un bloque en una fecha; nil
+	// si la eval no lo espera. Solo lo admite una eval que activa la skill y que
+	// no es sin binario ni servidor (contracts/evals-redaccion-fechada.md §1.2 de
+	// H20; data-model §7.2; FR-052).
+	RedaccionFechada *RedaccionFechadaEsperada `yaml:"redaccion_fechada"`
 }
 
 // esDePlazo dice si la eval es una eval de plazo: si espera un plazo, que su
@@ -232,13 +239,15 @@ type CasillaEsperada struct {
 // ocho formas excluyentes de data-model §6.1 de H5 y de H6, del contrato
 // evals-y-skill §1 de H7, de contracts/evals-jurisprudencia.md §1 de H23 y de
 // contracts/evals-legal-core.md §1 de H9, que decide formaDelComando: bloque
-// (Applet, Norma y Bloque, sin Verbo), consulta de norma (Applet, Verbo indice,
-// metadatos o analisis, y Norma), búsqueda (Applet, Verbo buscar y Terminos),
-// territorio (Applet, Verbo resolver y Municipio), comprobación (Applet y Verbo
-// check, y desde H7.1 Norma opcional; contrato evals-y-skill §1 de H7.1), desde
-// H23, preparar (Applet y Verbo preparar, con ROJ y ConTexto opcionales) y
-// cotejar (Applet y Verbo cotejar, con ROJ opcional) o, desde H9, calcular
-// (Applet, Verbo calcular y Tipo). Lo que su forma no lleva queda vacío.
+// (Applet, Norma y Bloque, sin Verbo, y desde H20 Fecha opcional;
+// contracts/evals-redaccion-fechada.md §1.1 de H20), consulta de norma (Applet,
+// Verbo indice, metadatos o analisis, y Norma), búsqueda (Applet, Verbo buscar y
+// Terminos), territorio (Applet, Verbo resolver y Municipio), comprobación
+// (Applet y Verbo check, y desde H7.1 Norma opcional; contrato evals-y-skill §1
+// de H7.1), desde H23, preparar (Applet y Verbo preparar, con ROJ y ConTexto
+// opcionales) y cotejar (Applet y Verbo cotejar, con ROJ opcional) o, desde H9,
+// calcular (Applet, Verbo calcular y Tipo). Lo que su forma no lleva queda
+// vacío.
 type ComandoEsperado struct {
 	// Applet es el applet que se invoca, como boe, territorio o graph.
 	Applet string `yaml:"applet"`
@@ -274,6 +283,12 @@ type ComandoEsperado struct {
 	// Tipo es el tipo de plazo que un comando calcular tiene que pedir, como
 	// reposicion o contencioso.
 	Tipo string `yaml:"tipo"`
+
+	// Fecha es el día, AAAA-MM-DD, con el que la forma bloque tiene que leer su
+	// bloque, con --fecha o con fecha en la herramienta; vacía en la lectura de
+	// hoy y en las demás formas (contracts/evals-redaccion-fechada.md §1.1 de
+	// H20; FR-051).
+	Fecha string `yaml:"fecha"`
 }
 
 // verboResolver es el verbo de un comando de territorio, el único del applet
@@ -418,6 +433,47 @@ type RedaccionEsperada struct {
 	// FechaVigenciaReciente es la fecha de vigencia de la redacción leída, la
 	// vigente, en la forma AAAAMMDD.
 	FechaVigenciaReciente string `yaml:"fecha_vigencia_reciente"`
+}
+
+// RedaccionFechadaEsperada es lo que una eval con fecha espera de la respuesta
+// sobre la redacción de un bloque en un día (contracts/evals-redaccion-fechada.md
+// §1.2 de H20; data-model §7.2; research D11; FR-052): la norma, el bloque y el
+// día pedido, y o bien la fecha de vigencia de la redacción vigente ese día y, si
+// hoy la redacción es otra, la de hoy, o bien, si ese día el bloque no tenía
+// redacción vigente, la fecha de vigencia de la primera. El esquema no admite
+// las dos.
+type RedaccionFechadaEsperada struct {
+	// Norma es el identificador de la norma, BOE-A-….
+	Norma string `yaml:"norma"`
+
+	// Bloque es el id del bloque.
+	Bloque string `yaml:"bloque"`
+
+	// Fecha es el día pedido, AAAA-MM-DD.
+	Fecha string `yaml:"fecha"`
+
+	// FechaVigencia es la fecha de vigencia, AAAAMMDD, de la redacción vigente
+	// el día pedido, la que se cita; vacía si ese día no había ninguna.
+	FechaVigencia string `yaml:"fecha_vigencia"`
+
+	// Posterior es la redacción de hoy cuando no es la citada; nil si la citada
+	// es la de hoy o si ese día no había ninguna.
+	Posterior *RedaccionPosteriorEsperada `yaml:"posterior"`
+
+	// VigenteDesde es la fecha de vigencia, AAAAMMDD, de la primera redacción
+	// del bloque cuando el día pedido no tenía ninguna; vacía en otro caso.
+	VigenteDesde string `yaml:"vigente_desde"`
+}
+
+// RedaccionPosteriorEsperada es la redacción de hoy de un bloque cuya redacción
+// en el día pedido es otra: su fecha de vigencia y la norma que la dio, como las
+// da el binario en redaccion_posterior (data-model §4 y §7.2 de H20).
+type RedaccionPosteriorEsperada struct {
+	// FechaVigencia es la fecha de vigencia de la redacción de hoy, AAAAMMDD.
+	FechaVigencia string `yaml:"fecha_vigencia"`
+
+	// NormaModificadora es el identificador BOE-A-… de la norma que la dio.
+	NormaModificadora string `yaml:"norma_modificadora"`
 }
 
 // TerritorioEsperado es lo que la respuesta tiene que declarar del territorio de

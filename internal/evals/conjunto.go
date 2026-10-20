@@ -221,10 +221,12 @@ type DefectoDelConjunto struct {
 
 // Lo que fijan las reglas del conjunto de evals de boe-legislacion (data-model
 // §6.3; FR-062 a FR-064). El máximo es de 21 desde H21, con la eval sin binario
-// ni servidor (contracts/evals-en-dos-modos.md §1 de H21).
+// ni servidor (contracts/evals-en-dos-modos.md §1 de H21), y de 23 desde H20,
+// con las dos evals con fecha (contracts/evals-redaccion-fechada.md §1.4 de
+// H20; research D15 de H20).
 const (
 	minimoDeEvals             = 10
-	maximoDeEvals             = 21
+	maximoDeEvals             = 23
 	positivasDelConjunto      = 10
 	preguntaDelArticulo21Eval = "¿qué dice el art. 21 de la Ley 39/2015?"
 	normaDelArticulo21        = "BOE-A-2015-10565"
@@ -389,11 +391,14 @@ type conjuntoAComprobar struct {
 
 	// positivas son las posiciones de las evals con activa: true que deciden el
 	// veredicto, es decir, las que no son informativas, sin la eval sin binario
-	// ni servidor. Las reglas que cuentan materias miran solo estas: una eval
-	// informativa no decide el veredicto, y una pregunta por materia repite
-	// además la norma de la positiva de la que sale (ADR 0016); y la eval sin
-	// binario ni servidor decide, pero no consulta ni cita ninguna norma
-	// (contracts/evals-en-dos-modos.md §1 de H21).
+	// ni servidor ni las evals con fecha. Las reglas que cuentan materias miran
+	// solo estas: una eval informativa no decide el veredicto, y una pregunta por
+	// materia repite además la norma de la positiva de la que sale (ADR 0016); la
+	// eval sin binario ni servidor decide, pero no consulta ni cita ninguna norma
+	// (contracts/evals-en-dos-modos.md §1 de H21); y una eval con fecha, la que
+	// espera una redacción fechada, decide, pero mide la lectura a una fecha de
+	// una norma que otra positiva ya cubre (contracts/evals-redaccion-fechada.md
+	// §1.4 de H20; research D15 de H20).
 	positivas []int
 
 	// sinBinarioNiServidor son las posiciones de las evals con
@@ -443,7 +448,9 @@ func nuevoConjuntoAComprobar(evals []Eval, normas map[string]NormaConocida) *con
 			continue
 		}
 
-		if eval.Informativa {
+		// Una eval con fecha se aparta como la eval sin binario ni servidor: las
+		// normas conocidas y el esquema la miran, y las demás reglas no.
+		if eval.Informativa || eval.RedaccionFechada != nil {
 			continue
 		}
 
@@ -465,7 +472,7 @@ func nuevoConjuntoAComprobar(evals []Eval, normas map[string]NormaConocida) *con
 	return conjunto
 }
 
-// incumplimientoDelTamanio: entre 10 y 21 ficheros.
+// incumplimientoDelTamanio: entre 10 y 23 ficheros.
 func incumplimientoDelTamanio(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.evals) >= minimoDeEvals && len(conjunto.evals) <= maximoDeEvals {
 		return ""
@@ -476,7 +483,8 @@ func incumplimientoDelTamanio(conjunto *conjuntoAComprobar) string {
 }
 
 // incumplimientoDePositivas: exactamente 10 con activa: true que deciden, es
-// decir, sin contar las informativas, ni la eval sin binario ni servidor.
+// decir, sin contar las informativas, ni la eval sin binario ni servidor, ni las
+// evals con fecha.
 func incumplimientoDePositivas(conjunto *conjuntoAComprobar) string {
 	if len(conjunto.positivas) == positivasDelConjunto {
 		return ""
@@ -974,7 +982,10 @@ func normasCitadas(eval Eval) []string {
 }
 
 // normasEsperadas son las normas de los comandos esperados de la eval, que la
-// búsqueda no lleva, y después las de sus citas, en su orden y sin repetir.
+// búsqueda no lleva, y después las de sus citas, en su orden y sin repetir. No
+// lee redaccion_fechada: su norma y su bloque son los de su comando y su cita, y
+// la norma que dio la redacción de hoy no se consulta ni se cita
+// (contracts/evals-redaccion-fechada.md §1.4 de H20).
 func normasEsperadas(eval Eval) []string {
 	var normas []string
 

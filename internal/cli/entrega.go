@@ -17,8 +17,8 @@ import (
 const prefijoDeEntregaFallida = "kitlegal: lo observado no ha llegado al grafo del mundo: "
 
 // LoteDe es el lote que el kernel entrega al grafo por una invocación: las
-// operaciones y la vigencia de lo observado con la procedencia del sobre que se
-// presentó. La fecha es el mismo texto que el sobre escribe en fecha_consulta
+// operaciones, la vigencia y la marca SoloLoNuevo de lo observado con la
+// procedencia del sobre que se presentó (H20 FR-030, FR-031). La fecha es el mismo texto que el sobre escribe en fecha_consulta
 // —RFC 3339 con la fracción de segundo sin ceros a la derecha—, también cuando
 // la puso el reloj del montador, porque se toma del sobre ya montado y no de
 // otra lectura del reloj (FR-021; research.md D4, D5, V2, V18).
@@ -31,6 +31,7 @@ func LoteDe(sobre schema.Sobre, observado schema.Observado) core.Lote {
 		URL:           sobre.URL,
 		FechaConsulta: sobre.FechaConsulta.Format(time.RFC3339Nano),
 		Vigencia:      observado.Vigencia,
+		SoloLoNuevo:   observado.SoloLoNuevo,
 		Operaciones:   observado.Operaciones,
 	}
 }

@@ -22,7 +22,9 @@ import (
 // argumento que cambia la respuesta—, así que dos consultas distintas nunca
 // comparten entrada y dos textos de búsqueda que construyen la misma consulta sí
 // (FR-090). La fecha y la url son las del sobre de la consulta que escribe la
-// entrada, y servirla da las dos igual, byte a byte (FR-096).
+// entrada, y servirla da las dos igual, byte a byte (FR-096). La entrada de las
+// versiones de un bloque, la de articulo con --fecha, lleva versiones en el
+// lugar del verbo (claveDeLasVersiones).
 const (
 	// versionDeLasEntradas es la versión de la forma del contenido, el 1 de la
 	// clave. Si cambia la forma de data o la del contenido, sube, y las entradas
@@ -35,6 +37,11 @@ const (
 	// (ValidarNorma y ValidarBloque) y la de búsqueda lo escribe como %7C
 	// (quoteComoPython). Cada clave se parte en sus segmentos de una sola forma.
 	separadorDeLaClave = "|"
+	// nombreDeLasVersiones es el que lleva en la clave, en lugar de un verbo, la
+	// entrada de las versiones de un bloque, la de articulo con --fecha (H20;
+	// research.md D8). No es un verbo del applet, y por eso no está en
+	// consultas.go: ningún verbo escribe ni lee con él otra entrada.
+	nombreDeLasVersiones = "versiones"
 	// motivoDeLaEntradaIlegible es el mensaje de la entrada con la clave correcta
 	// que no tiene la forma de su contenido (contrato errores-y-codigos §2,
 	// fila 20).
@@ -57,10 +64,39 @@ var (
 
 // datosDeEntrada son los data que se guardan, uno por clase de entrada
 // (data-model.md §6): los resultados de buscar, el índice, los metadatos, el
-// artículo y el análisis. articulos no tiene entrada propia: lee y escribe la de
-// articulo de cada bloque (FR-020).
+// artículo, el análisis y las versiones de un bloque. articulos no tiene entrada
+// propia: lee y escribe la de articulo de cada bloque (FR-020).
 type datosDeEntrada interface {
-	[]ResultadoDeBusqueda | Indice | Metadatos | Articulo | Analisis
+	[]ResultadoDeBusqueda | Indice | Metadatos | Articulo | Analisis | versionesDelBloque
+}
+
+// versionesDelBloque son los datos de la entrada de las versiones de un bloque,
+// la única de la que se sirve articulo con --fecha (H20; data-model.md §5;
+// research.md D8): el título y el tipo del bloque, todas sus versiones en el
+// orden de la respuesta, y los avisos y el ELI de los metadatos de su norma, que
+// se guardan con las versiones por lo mismo que la nota [2] los guarda con el
+// artículo. Con ellos se compone la lectura de cualquier fecha del bloque, así
+// que se guardan antes de elegir y con la vigencia del artículo.
+type versionesDelBloque struct {
+	// Titulo y Tipo son los atributos del bloque, los de la lectura sin fecha.
+	Titulo string `json:"titulo"`
+	Tipo   string `json:"tipo"`
+	// Versiones son todas las del bloque, en su orden; vacía, nunca nula, si no
+	// tiene ninguna.
+	Versiones []versionGuardada `json:"versiones"`
+	// Avisos y URLELI son los de los metadatos de la norma al guardar.
+	Avisos []Aviso `json:"avisos"`
+	URLELI string  `json:"url_eli"`
+}
+
+// versionGuardada es una versión del bloque en la entrada de las versiones, con
+// lo que leerBloque da de ella (versionLeida) y los nombres de esos campos en el
+// artículo.
+type versionGuardada struct {
+	FechaVersion      string `json:"fecha_version"`
+	FechaVigencia     string `json:"fecha_vigencia"`
+	NormaModificadora string `json:"norma_modificadora"`
+	Texto             string `json:"texto"`
 }
 
 // claveDeEntrada es la clave de una entrada, con el tipo de sus datos: solo la
@@ -68,7 +104,8 @@ type datosDeEntrada interface {
 // ningún verbo puede guardar ni leer bajo una clave los datos de otra.
 type claveDeEntrada[T datosDeEntrada] struct {
 	// verbo es el que da nombre a la entrada, que en la de los metadatos es
-	// metadatos también cuando la leen o la escriben articulo y articulos.
+	// metadatos también cuando la leen o la escriben articulo y articulos, y en
+	// la de las versiones de un bloque, nombreDeLasVersiones.
 	verbo string
 	// direccion es la dirección de la API del recurso, la que se pide, la que
 	// lleva el sobre y la que nombra el fallo de la entrada.
@@ -97,6 +134,14 @@ func claveDeLosMetadatos(norma string) claveDeEntrada[Metadatos] {
 // que usa articulo y la de cada bloque de articulos (FR-020).
 func claveDelArticulo(norma, bloque string) claveDeEntrada[Articulo] {
 	return claveDeEntrada[Articulo]{verbo: verboArticulo, direccion: direccionDelBloque(norma, bloque)}
+}
+
+// claveDeLasVersiones es la de las versiones de un bloque de una norma, los dos
+// ya validados: la de articulo con --fecha, con la misma dirección que la del
+// artículo y otro nombre, de modo que la lectura fechada nunca lee ni escribe la
+// entrada de hoy (FR-020, FR-021).
+func claveDeLasVersiones(norma, bloque string) claveDeEntrada[versionesDelBloque] {
+	return claveDeEntrada[versionesDelBloque]{verbo: nombreDeLasVersiones, direccion: direccionDelBloque(norma, bloque)}
 }
 
 // claveDelAnalisis es la de analisis de una norma ya validada.

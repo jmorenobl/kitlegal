@@ -39,8 +39,9 @@ func (ConsultaIndice) Verbo() string {
 	return verboIndice
 }
 
-// ConsultaArticulo es articulo <norma> <bloque>: el texto vigente de un bloque
-// con sus avisos de vigencia (FR-010).
+// ConsultaArticulo es articulo <norma> <bloque> [--fecha AAAA-MM-DD]: el texto
+// vigente de un bloque con sus avisos de vigencia (FR-010) o, con --fecha, el de
+// la redacción que regía ese día (H20, FR-001).
 type ConsultaArticulo struct {
 	// Norma es el identificador de la norma, BOE-A-<año>-<número>, que la fuente
 	// valida antes de nada.
@@ -48,6 +49,11 @@ type ConsultaArticulo struct {
 	// Bloque es el id del bloque dentro de la norma, como a21 o da3, que la
 	// fuente valida antes de nada.
 	Bloque string
+	// Fecha es el día de --fecha, AAAA-MM-DD, que la fuente valida detrás de la
+	// norma y el bloque y antes de nada. Nula, la lectura es la de hoy, por el
+	// mismo camino que sin la bandera (FR-012); una cadena, también vacía, es una
+	// lectura fechada (research.md D2).
+	Fecha *string
 }
 
 // Verbo es articulo.

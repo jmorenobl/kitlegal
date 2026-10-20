@@ -12,6 +12,53 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **`kitlegal boe articulo <norma> <bloque> --fecha AAAA-MM-DD`: la redacción de un bloque vigente en una fecha.**
+  Con `--fecha`, `articulo` da la versión del bloque que regía ese día: la de mayor fecha de vigencia que no es
+  posterior a él, comparadas como días del calendario y nunca por la fecha de publicación; el día en que una versión
+  entra en vigor, es esa. La herramienta `boe_articulo` de `kitlegal mcp serve` lo admite con el parámetro `fecha`.
+  Pide al BOE lo mismo que la lectura de hoy, el bloque y los metadatos de su norma, y guarda todas las versiones del
+  bloque en su propia entrada de la caché, sin leer ni escribir la del artículo de hoy. Sin `--fecha`, `articulo` no
+  cambia.
+  - **`data`** es el de la versión elegida —su texto, `fecha_version`, `fecha_vigencia`, `norma_modificadora` y los
+    avisos de vigencia de la norma hoy— y lleva además `fecha_pedida` y, si hoy rige otra, `redaccion_posterior`, con
+    la `fecha_vigencia` y la `norma_modificadora` de la última versión del bloque; `schemas/bloque.json`, el que emite
+    `--describe`, los lleva.
+  - **Códigos.** `2`, `argumentos`, con una fecha que no es un día `AAAA-MM-DD` del calendario; y `3`,
+    `no-encontrado`, sin texto, con una fecha anterior a la primera vigencia del bloque, cuyo mensaje nombra la fecha
+    de vigencia de su primera redacción, y, con otro mensaje y sea cual sea el día, si el bloque no trae versiones o
+    alguna no trae su fecha de vigencia como un día `AAAAMMDD`. Lo comprueban `TestValidarFecha` y
+    `TestArticuloEnUnaFecha`, y la caché, `TestArticuloEnUnaFechaYLaCache`.
+- **Una lectura fechada no cuenta como lectura del bloque en `graph check`.** `boe articulo --fecha` entrega al grafo
+  del mundo solo la `BloqueVersion` de la versión elegida y su texto —ni la norma, ni el bloque, ni ninguna arista—, y
+  solo lo que el grafo no guarda ya: no cambia lo que `world.db` sabía ni lo que `graph check` dice de lo leído sin
+  fecha. Lo que emite lo comprueba `TestObservadoDeBoe`, y lo que queda en `world.db` y en `graph check`,
+  `TestApplySoloLoNuevo`, `TestIntegracionLecturaFechada` y `TestLecturaFechadaEnElGrafo`.
+- **`boe-legislacion` v0.2: la redacción de una fecha.** Con una pregunta con fecha —un día, un año o un mes, o un
+  hecho cuyo día dan la pregunta o la conversación—, la skill lee cada bloque con `--fecha`, o con `boe_articulo` y
+  `fecha`, sin `graph check`, y cita la redacción vigente ese día con una línea de forma fija: `⚠ REDACCIÓN A FECHA:`,
+  con la fecha pedida y la de vigencia de lo citado; `⚠ REDACCIÓN DE HOY:`, si hoy la redacción es otra, con su norma
+  y su fecha de vigencia y nada de lo que dice; y `⚠ SIN REDACCIÓN VIGENTE:`, si ese día el precepto no tenía
+  redacción vigente, con la fecha de vigencia de la primera. Si un hecho sitúa el momento y nadie da su día, lo pide.
+  La `description` gana las preguntas con fecha; sin fecha en la pregunta, la skill lee como siempre y no lleva
+  ninguna de las tres líneas. `SKILL.md` tiene 298 líneas. Sustituye a `boe-legislacion` v0.1.8.
+- **Las evals con fecha de `boe-legislacion` y el umbral `redaccion_sin_fechar:<modelo>:<modo>`.** Dos evals que
+  activan la skill y deciden: `22-lcsp-contrato-menor-en-2019.yaml`, el art. 118 de la LCSP (`BOE-A-2017-12902`,
+  bloque `a1-30`) el 1 de junio de 2019, que se cita con la redacción de vigencia `20180309` y la línea de la de hoy,
+  `20200206`, de `BOE-A-2020-1651`; y `23-lpac-articulo-21-en-2016.yaml`, el art. 21 de la Ley 39/2015 el 1 de junio
+  de 2016, que no tenía redacción vigente: la tiene desde el `20161002`. El formato común de eval las admite con
+  `fecha`, opcional, en un comando de la forma bloque —con ella, solo lo cumple `articulo` con `--fecha` ese día, como
+  orden o como `boe_articulo` con `fecha`, que termina con `0` o con `3`; sin ella, solo una lectura sin fecha— y con
+  `redaccion_fechada`, las líneas que la respuesta tiene que llevar, que se comprueban sin modelo
+  (`schemas/eval.yaml.json`; `TestFormatoDeLasRedaccionesFechadas`, `TestJuzgarLecturasFechadas`). El umbral
+  `redaccion_sin_fechar:<modelo>:<modo>` cuenta, sobre las respuestas del modelo que decide en las evals con fecha
+  —6 por modo—, las que no leen el bloque de la eval en su fecha o no llevan las líneas que espera; con 0, y decide:
+  una sola pone el veredicto en `fallo` (`TestUmbralesDeBoeLegislacion`). Con las dos, `boe-legislacion` tiene
+  veintitrés evals, `sin_activar` cuenta sobre 60 respuestas por modo, `afirma_lo_no_leido:<modelo>` sobre 120 con su
+  umbral de 0,028, y `umbrales` lleva quince, once que deciden; su trabajo abre 222 sesiones y su peor caso, cinco a la
+  vez, es de 18 977 s, que su tope cubre (`TestDefinicionDelJob`).
+
 ### Cambiado
 
 - **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;

@@ -1,0 +1,115 @@
+# Una lectura fechada no es una lectura del bloque. Con el art. 22 de la LRBRL
+# leído sin fecha, la lectura fechada del 2005-06-15 entrega al grafo del mundo
+# la BloqueVersion de la versión que devuelve, la del 20040101, con la fuente
+# de su sobre, y ninguna arista: graph stats cuenta una BloqueVersion más y
+# las mismas aristas, y graph check sobre el bloque da byte a byte lo mismo que
+# antes, ni version-obsoleta ni fuente-caducada nuevos, también pasada la
+# vigencia de las consultas. Con --no-graph y con --dry-run, otra lectura
+# fechada no entrega nada: graph stats no cambia. La siguiente lectura sin fecha
+# da en graph check lo mismo que en otra caché con la misma secuencia sin las
+# lecturas fechadas; y en una caché sin nada, en la que el bloque no tiene fila
+# de lecturas, una lectura fechada seguida de una sin fecha da lo mismo que la
+# lectura sin fecha sola.
+#
+# Cubre: US4.1 · FR-030, FR-031, FR-032.
+#
+# Las lecturas y las comprobaciones van con el reloj T0 (2026-09-28T12:00:00Z),
+# cuando ninguna consulta ha caducado, y las comprobaciones repetidas con T8
+# (2026-10-06T12:00:00Z), cuando la vigencia de las consultas de T0 ya venció:
+# así se ven también los fuente-caducada (contracts/arnes-e2e.md §2 de H7). El
+# id de la BloqueVersion es el de contracts/articulo-fecha.md §6, con la huella
+# del texto de la versión del 20040101 de su §2. Las otras dos cachés son
+# directorios aparte, con su world.db, que se eligen con KITLEGAL_CACHE_DIR
+# como el arnés elige la de cada guion. La forma de data de graph stats, graph
+# check y graph show es la de contracts/applet-graph.md §3 de H7.
+
+# Precondición: boe articulo admite --fecha (FR-001).
+exec kitlegal boe articulo --help
+stdout '--fecha'
+
+# --- Antes: el bloque leído sin fecha ---
+! exists cache
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '"fecha_vigencia":"20151031"'
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '"data":\{"nodos":3,"aristas":2,"textos":1,"nodos_por_tipo":\[\{"tipo":"Bloque","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"BloqueVersion","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"Norma","fuente":"boe\.legislacion-consolidada","nodos":1\}\],"aristas_por_relacion":\[\{"relacion":"eli:has_part","fuente":"boe\.legislacion-consolidada","aristas":1\},\{"relacion":"eli:has_version","fuente":"boe\.legislacion-consolidada","aristas":1\}\]\}\}\n\z'
+
+exec $KITLEGAL_T0_BIN graph check BOE-A-1985-5392 a22 --json
+cp stdout check-antes.json
+exec $KITLEGAL_T8_BIN graph check BOE-A-1985-5392 a22 --json
+cp stdout check-antes-t8.json
+
+# --- La lectura fechada entrega su BloqueVersion y nada más (FR-030, FR-031) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json
+stdout '"fecha_vigencia":"20040101"'
+! stderr .
+
+exec $KITLEGAL_T0_BIN graph stats --json
+stdout '"data":\{"nodos":4,"aristas":2,"textos":2,"nodos_por_tipo":\[\{"tipo":"Bloque","fuente":"boe\.legislacion-consolidada","nodos":1\},\{"tipo":"BloqueVersion","fuente":"boe\.legislacion-consolidada","nodos":2\},\{"tipo":"Norma","fuente":"boe\.legislacion-consolidada","nodos":1\}\],"aristas_por_relacion":\[\{"relacion":"eli:has_part","fuente":"boe\.legislacion-consolidada","aristas":1\},\{"relacion":"eli:has_version","fuente":"boe\.legislacion-consolidada","aristas":1\}\]\}\}\n\z'
+cp stdout stats-tras.json
+
+exec $KITLEGAL_T0_BIN graph show 'eli/es/l/1985/04/02/7#a22@20040101:sha256:ce4210549efa0b8a103e99ccfd4137f6b66a5f300f661a94e2d2545b08847183' --json
+stdout '"data":\{"nodo":\{"id":"eli/es/l/1985/04/02/7#a22@20040101:sha256:ce4210549efa0b8a103e99ccfd4137f6b66a5f300f661a94e2d2545b08847183","tipo":"BloqueVersion",'
+stdout '"fuente":"boe\.legislacion-consolidada","url":"https://www\.boe\.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1985-5392/texto/bloque/a22"'
+
+# graph check, antes y pasada la vigencia, da lo mismo que antes (FR-031).
+exec $KITLEGAL_T0_BIN graph check BOE-A-1985-5392 a22 --json
+cmp stdout check-antes.json
+exec $KITLEGAL_T8_BIN graph check BOE-A-1985-5392 a22 --json
+cmp stdout check-antes-t8.json
+
+# --- Con --no-graph y con --dry-run, nada (FR-032) ---
+#
+# Otras dos fechas, cuyas versiones —la del 20080430 y la del 20070701— el
+# grafo no tiene: si se entregaran, graph stats las contaría.
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2008-04-30 --no-graph --json
+stdout '"fecha_vigencia":"20080430"'
+! stderr .
+exec $KITLEGAL_T0_BIN graph stats --json
+cmp stdout stats-tras.json
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2008-04-29 --dry-run --json
+exec $KITLEGAL_T0_BIN graph stats --json
+cmp stdout stats-tras.json
+
+# --- La siguiente lectura sin fecha (FR-031) ---
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '"fecha_vigencia":"20151031"'
+! stderr .
+exec $KITLEGAL_T0_BIN graph check BOE-A-1985-5392 a22 --json
+cp stdout check-final.json
+exec $KITLEGAL_T8_BIN graph check BOE-A-1985-5392 a22 --json
+cp stdout check-final-t8.json
+
+# --- Otra caché, la misma secuencia sin las lecturas fechadas ---
+env KITLEGAL_CACHE_DIR=$WORK/aparte
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '"fecha_vigencia":"20151031"'
+! stderr .
+exec $KITLEGAL_T0_BIN graph check BOE-A-1985-5392 a22 --json
+cp stdout check-sola.json
+exec $KITLEGAL_T8_BIN graph check BOE-A-1985-5392 a22 --json
+cp stdout check-sola-t8.json
+
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '"fecha_vigencia":"20151031"'
+! stderr .
+exec $KITLEGAL_T0_BIN graph check BOE-A-1985-5392 a22 --json
+cmp stdout check-final.json
+exec $KITLEGAL_T8_BIN graph check BOE-A-1985-5392 a22 --json
+cmp stdout check-final-t8.json
+
+# --- Una caché sin nada: el bloque no tiene fila de lecturas (FR-031) ---
+env KITLEGAL_CACHE_DIR=$WORK/sin-lecturas
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json
+stdout '"fecha_vigencia":"20040101"'
+! stderr .
+exec $KITLEGAL_T0_BIN boe articulo BOE-A-1985-5392 a22 --json
+stdout '"fecha_vigencia":"20151031"'
+! stderr .
+exec $KITLEGAL_T0_BIN graph check BOE-A-1985-5392 a22 --json
+cmp stdout check-sola.json
+exec $KITLEGAL_T8_BIN graph check BOE-A-1985-5392 a22 --json
+cmp stdout check-sola-t8.json

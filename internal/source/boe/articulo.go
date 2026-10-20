@@ -34,6 +34,11 @@ const (
 // en ensayo y en los fallos del bloque, y la de los metadatos en los suyos
 // (FR-002, FR-101); en éxito, la fecha de consulta del artículo (FR-096) y lo que
 // observa del mundo (resultadoDeLosArticulos).
+//
+// Con --fecha, detrás de la norma y el bloque y antes de abrir nada se valida
+// la fecha —con las tres mal, falla la norma— y la lectura es la fechada,
+// articuloEnUnaFecha (H20; contracts/articulo-fecha.md §1 a §5). Sin ella, la de
+// hoy, por el camino de siempre (FR-012).
 func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta ConsultaArticulo) (schema.Resultado, error) {
 	if err := ValidarNorma(consulta.Norma); err != nil {
 		return schema.Resultado{}, err
@@ -41,6 +46,15 @@ func (f *Fuente) articulo(ctx context.Context, ec schema.Contexto, consulta Cons
 
 	if err := ValidarBloque(consulta.Bloque); err != nil {
 		return schema.Resultado{}, err
+	}
+
+	if consulta.Fecha != nil {
+		dia, err := ValidarFecha(*consulta.Fecha)
+		if err != nil {
+			return schema.Resultado{}, err
+		}
+
+		return f.articuloEnUnaFecha(ctx, ec, consulta.Norma, consulta.Bloque, *consulta.Fecha, dia)
 	}
 
 	direccion := direccionDelBloque(consulta.Norma, consulta.Bloque)
@@ -208,10 +222,23 @@ func (n *normaDeLaInvocacion) resolverMetadatos(ctx context.Context, en *invocac
 }
 
 // articuloDelBloque es el artículo de un bloque de la norma de la invocación, los
-// dos ya validados, resuelto con la caché de la invocación en el orden de
-// data-model.md §7.1 (FR-013):
+// dos ya validados, resuelto con la caché de la invocación por resolverElBloque
+// con la entrada del artículo y componerArticulo (data-model.md §7.1; FR-013).
+func articuloDelBloque(ctx context.Context, en *invocacion, norma *normaDeLaInvocacion, bloque string,
+) (consultaResuelta[Articulo], error) {
+	return resolverElBloque(ctx, en, claveDelArticulo(norma.identificador, bloque), norma, bloque,
+		func(leido bloqueLeido, metadatos Metadatos) Articulo {
+			return componerArticulo(norma.identificador, bloque, leido, metadatos)
+		})
+}
+
+// resolverElBloque resuelve con la caché de la invocación lo que se compone con
+// un bloque de la norma de la invocación y los metadatos de su norma, los dos ya
+// validados, y se guarda bajo la clave: el artículo de hoy, que da
+// articuloDelBloque, y las versiones del bloque de la lectura fechada, que da
+// versionesDeLaLecturaFechada. En el orden de data-model.md §7.1 (FR-013):
 //
-//  1. la entrada vigente del artículo se sirve con su fecha, sin pedir nada ni
+//  1. la entrada vigente de la clave se sirve con su fecha, sin pedir nada ni
 //     mirar los metadatos, que ya se comprobaron al escribirla; sin ella, con
 //     --offline, «fuente no disponible» con la dirección del bloque (FR-090,
 //     FR-092, FR-096, FR-101);
@@ -219,28 +246,28 @@ func (n *normaDeLaInvocacion) resolverMetadatos(ctx context.Context, en *invocac
 //     metadatos, una petición cuyo resultado no se entregaría (FR-013, FR-014);
 //  3. los metadatos se resuelven con la norma de la invocación, que la primera
 //     vez los sirve de su entrada vigente o los pide y los escribe (FR-090) y
-//     después los da de memoria (FR-020); si fallan con el bloque obtenido, el
-//     artículo falla con su clase, su dirección y su instante, y el texto no se
+//     después los da de memoria (FR-020); si fallan con el bloque obtenido, la
+//     consulta falla con su clase, su dirección y su instante, y el texto no se
 //     emite: nunca un artículo con la vigencia sin comprobar (FR-013; contrato
 //     errores-y-codigos, fila 18);
 //  4. bajo --dry-run, las líneas de las peticiones que se habrían emitido —la del
 //     bloque y, si los metadatos no estaban en su entrada ni descritos ya en la
 //     invocación, la suya—, sin leer ni escribir nada (FR-094);
-//  5. y el artículo se compone con componerArticulo y se escribe en su entrada
-//     con la vigencia de articulo y la más antigua de las fechas de consulta del
-//     bloque y de los metadatos, que es la suya (FR-091, FR-096).
+//  5. y lo compuesto con componer se escribe en la entrada de la clave con la
+//     vigencia de articulo y la más antigua de las fechas de consulta del bloque
+//     y de los metadatos, que es la suya (FR-091, FR-096).
 //
 // Nada de lo que falla se escribe (FR-093).
-func articuloDelBloque(ctx context.Context, en *invocacion, norma *normaDeLaInvocacion, bloque string,
-) (consultaResuelta[Articulo], error) {
-	clave := claveDelArticulo(norma.identificador, bloque)
+func resolverElBloque[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T],
+	norma *normaDeLaInvocacion, bloque string, componer func(leido bloqueLeido, metadatos Metadatos) T,
+) (consultaResuelta[T], error) {
 	if guardado, resuelto, err := resolverSinPedir(ctx, en, clave); resuelto {
 		return guardado, err
 	}
 
 	delBloque, err := pedirElBloque(ctx, en, norma.identificador, bloque)
 	if err != nil {
-		return consultaResuelta[Articulo]{}, err
+		return consultaResuelta[T]{}, err
 	}
 
 	metadatos, err := norma.resolverMetadatos(ctx, en)
@@ -249,21 +276,21 @@ func articuloDelBloque(ctx context.Context, en *invocacion, norma *normaDeLaInvo
 	case err != nil && delBloque.ensayo != "":
 		// Bajo --dry-run el bloque no se obtuvo y el fallo, que solo puede ser de
 		// la caché, no tiene ninguna vigencia sin comprobar que nombrar.
-		return consultaResuelta[Articulo]{}, err
+		return consultaResuelta[T]{}, err
 	case err != nil:
-		return consultaResuelta[Articulo]{}, fmt.Errorf(motivoDelBloqueSinVigencia, bloque, err)
+		return consultaResuelta[T]{}, fmt.Errorf(motivoDelBloqueSinVigencia, bloque, err)
 	case delBloque.ensayo != "":
-		return consultaResuelta[Articulo]{ensayo: append([]string{delBloque.ensayo}, metadatos.ensayo...)}, nil
+		return consultaResuelta[T]{ensayo: append([]string{delBloque.ensayo}, metadatos.ensayo...)}, nil
 	}
 
-	articulo := componerArticulo(norma.identificador, bloque, delBloque.leido, metadatos.datos)
+	compuesto := componer(delBloque.leido, metadatos.datos)
 	fechaConsulta := laMasAntigua(delBloque.instante, metadatos.fechaConsulta)
 
-	if err := guardar(ctx, en, clave, fechaConsulta, articulo, vigenciaLarga); err != nil {
-		return consultaResuelta[Articulo]{}, err
+	if err := guardar(ctx, en, clave, fechaConsulta, compuesto, vigenciaLarga); err != nil {
+		return consultaResuelta[T]{}, err
 	}
 
-	return consultaResuelta[Articulo]{datos: articulo, fechaConsulta: fechaConsulta}, nil
+	return consultaResuelta[T]{datos: compuesto, fechaConsulta: fechaConsulta}, nil
 }
 
 // bloqueObtenido es lo que da pedirElBloque cuando no falla: lo leído del XML y

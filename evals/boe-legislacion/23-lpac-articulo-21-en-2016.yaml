@@ -1,0 +1,17 @@
+# Eval positiva con fecha: en el día que pregunta, el art. 21 de la Ley 39/2015 no tenía redacción vigente, y la
+# respuesta lo dice con su línea y su primera fecha de vigencia (H20 FR-050).
+pregunta: "¿qué decía el artículo 21 de la Ley 39/2015 el 1 de junio de 2016?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a21
+    fecha: "2016-06-01"
+citas:
+  - norma: BOE-A-2015-10565
+    bloque: a21
+redaccion_fechada:
+  norma: BOE-A-2015-10565
+  bloque: a21
+  fecha: "2016-06-01"
+  vigente_desde: "20161002"

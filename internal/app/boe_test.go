@@ -275,8 +275,11 @@ func argvDeBoe(argumentos ...string) []string {
 // construir y la dirección que cita su sobre (contrato verbos-y-salidas), más
 // las invocaciones con las que falla y la que devuelve avisos.
 type verboDelContrato struct {
-	nombre    string
-	campos    []campoDelContrato
+	nombre string
+	campos []campoDelContrato
+	// banderas son las banderas propias del verbo, las que no van por su
+	// posición: hoy solo --fecha de articulo (H20 FR-001).
+	banderas  []banderaDelContrato
 	salida    any
 	argumento []string
 	consulta  core.Consulta
@@ -293,6 +296,9 @@ type verboDelContrato struct {
 	// conAvisos es, en los verbos que devuelven avisos (FR-012), una
 	// invocación sobre el sintético avisos cuyo data lleva los tres.
 	conAvisos []string
+	// fechadas son, en articulo, las lecturas con --fecha cuyo sobre se valida
+	// contra la parte publicada del verbo (H20 FR-014).
+	fechadas []salidaDeBoe
 }
 
 // normaInexistente es la norma grabada que la fuente no tiene, y
@@ -311,6 +317,23 @@ type campoDelContrato struct {
 	nombre string
 	tipo   reflect.Type
 }
+
+// banderaDelContrato es una bandera propia del verbo, opcional y sin valor por
+// omisión: el campo, su tipo y el marcador de su valor en la ayuda.
+type banderaDelContrato struct {
+	campo    string
+	tipo     reflect.Type
+	marcador string
+}
+
+// fechaDeHoyDelA21 es una fecha en que rige la redacción de hoy del art. 21 de
+// la Ley 39/2015, que no tiene ninguna posterior, y fechaSinRedaccionDelA21 una
+// en que no tenía ninguna: publicado el 20151002, entra en vigor el 20161002
+// (H20 FR-003).
+const (
+	fechaDeHoyDelA21        = "2019-06-01"
+	fechaSinRedaccionDelA21 = "2016-06-01"
+)
 
 // verbosDelContrato son los seis verbos, en el orden del contrato.
 func verbosDelContrato() []verboDelContrato {
@@ -341,15 +364,19 @@ func verbosDelContrato() []verboDelContrato {
 			inexistente:      []string{"indice", normaInexistente},
 		},
 		{
-			nombre:           "articulo",
-			campos:           []campoDelContrato{norma, {campo: "Bloque", nombre: "bloque", tipo: texto}},
-			salida:           boe.Articulo{},
+			nombre: "articulo",
+			campos: []campoDelContrato{norma, {campo: "Bloque", nombre: "bloque", tipo: texto}},
+			banderas: []banderaDelContrato{
+				{campo: "Fecha", tipo: reflect.TypeFor[*string](), marcador: "AAAA-MM-DD"},
+			},
+			salida:           boe.ArticuloFechado{},
 			argumento:        []string{"articulo", normaDeBoe, "a21"},
 			consulta:         boe.ConsultaArticulo{Norma: normaDeBoe, Bloque: "a21"},
 			url:              direccionDelBloqueA21,
 			fueraDeGramatica: []string{"articulo", normaDeBoe, "../a21"},
 			inexistente:      []string{"articulo", normaDeBoe, "a9999"},
 			conAvisos:        []string{"articulo", normaDeBoe, "a21"},
+			fechadas:         lecturasFechadas(),
 		},
 		{
 			nombre:           "articulos",
@@ -386,14 +413,46 @@ func verbosDelContrato() []verboDelContrato {
 	}
 }
 
+// lecturasFechadas son las de articulo con --fecha cuyo sobre se valida (H20
+// FR-014): una con redacción posterior —el art. 22 de la LRBRL en la redacción
+// de 2004—, una sin ella —el art. 21 de la Ley 39/2015 en la de hoy—, con la que
+// su data no lleva redacción_posterior; la misma sobre el sintético avisos, con
+// los tres; y la de un día en que el bloque no tenía redacción, que sale con 3
+// (FR-003).
+func lecturasFechadas() []salidaDeBoe {
+	return []salidaDeBoe{
+		{
+			nombre: "exito-fechada-con-redaccion-posterior", reproduccion: grabacionesDeBoe,
+			argumentos: []string{"articulo", "BOE-A-1985-5392", "a22", "--fecha", "2005-06-15"},
+			opcionales: []string{"fecha_pedida", "redaccion_posterior"},
+		},
+		{
+			nombre: "exito-fechada-sin-redaccion-posterior", reproduccion: grabacionesDeBoe,
+			argumentos: []string{"articulo", normaDeBoe, "a21", "--fecha", fechaDeHoyDelA21},
+			opcionales: []string{"fecha_pedida"},
+		},
+		{
+			nombre: "exito-fechada-con-tres-avisos", reproduccion: sintetico("avisos"),
+			argumentos: []string{"articulo", normaDeBoe, "a21", "--fecha=" + fechaDeHoyDelA21},
+			opcionales: []string{"fecha_pedida"}, conAvisos: true,
+		},
+		{
+			nombre: "fallo-3-fechada-sin-redaccion-vigente", reproduccion: grabacionesDeBoe,
+			argumentos: []string{"articulo", normaDeBoe, "a21", "--fecha", fechaSinRedaccionDelA21}, codigo: 3,
+		},
+	}
+}
+
 // TestAppletBoe fija el applet boe tal como lo declara el contrato
 // puerto-y-applet §4 y lo que hace al ejecutarse (FR-001, US1 escenario 4):
 //
 //   - se llama boe y declara exactamente los seis verbos, en su orden y ninguno
 //     por omisión, de modo que nombrar el verbo es obligatorio;
-//   - cada verbo declara sus argumentos posicionales, todos obligatorios, y el
-//     valor cero del tipo de su data;
-//   - cada verbo construye su consulta con lo que recibe y devuelve tal cual lo
+//   - cada verbo declara sus argumentos posicionales, todos obligatorios, sus
+//     banderas propias —solo articulo, --fecha (H20 FR-001)— y el valor cero del
+//     tipo de su data;
+//   - cada verbo construye su consulta con lo que recibe —articulo, también con
+//     su --fecha— y devuelve tal cual lo
 //     que responde la fuente: el sobre que emite el kernel es el que se monta con
 //     el resultado de Fetch sobre las mismas grabaciones;
 //   - la fuente y su cliente se componen en cada invocación, que solo construye
@@ -445,6 +504,18 @@ func TestAppletBoe(t *testing.T) {
 			compruebaQueDevuelveLaFuenteTalCual(t, contrato)
 		})
 	}
+
+	t.Run("articulo con --fecha la pasa a la consulta", func(t *testing.T) {
+		t.Parallel()
+
+		fecha := fechaDeHoyDelA21
+
+		compruebaQueDevuelveLaFuenteTalCual(t, verboDelContrato{
+			argumento: []string{"articulo", normaDeBoe, "a21", "--fecha", fecha},
+			consulta:  boe.ConsultaArticulo{Norma: normaDeBoe, Bloque: "a21", Fecha: &fecha},
+			url:       direccionDelBloqueA21,
+		})
+	})
 
 	t.Run("compone la fuente en cada invocación y la caché sirve a las siguientes", func(t *testing.T) {
 		t.Parallel()
@@ -502,8 +573,9 @@ func TestAppletBoe(t *testing.T) {
 }
 
 // compruebaArgumentosDelContrato exige que el verbo declare exactamente los
-// argumentos posicionales del contrato, obligatorios, que su fábrica dé un valor
-// nuevo en cada llamada y que su data sea el valor cero del tipo del contrato.
+// argumentos posicionales del contrato, obligatorios, y sus banderas propias,
+// opcionales y con su ayuda; que su fábrica dé un valor nuevo en cada llamada y
+// que su data sea el valor cero del tipo del contrato.
 func compruebaArgumentosDelContrato(t *testing.T, verbo Verbo, contrato verboDelContrato) {
 	t.Helper()
 
@@ -516,7 +588,10 @@ func compruebaArgumentosDelContrato(t *testing.T, verbo Verbo, contrato verboDel
 	require.Equal(t, reflect.Pointer, tipo.Kind())
 	require.Equal(t, reflect.Struct, tipo.Elem().Kind())
 
-	var declarados []campoDelContrato
+	var (
+		declarados []campoDelContrato
+		banderas   []banderaDelContrato
+	)
 
 	for i := range tipo.Elem().NumField() {
 		campo := tipo.Elem().Field(i)
@@ -526,15 +601,26 @@ func compruebaArgumentosDelContrato(t *testing.T, verbo Verbo, contrato verboDel
 
 		_, porPosicion := campo.Tag.Lookup("arg")
 		_, opcional := campo.Tag.Lookup("optional")
+		_, obligatoria := campo.Tag.Lookup("required")
 		_, porOmision := campo.Tag.Lookup("default")
 
-		assert.True(t, porPosicion, "%s es un argumento que va por su posición", campo.Name)
+		if !porPosicion {
+			assert.False(t, obligatoria || porOmision, "la bandera %s es opcional y sin valor por omisión", campo.Name)
+			assert.NotEmpty(t, campo.Tag.Get("help"), "la ayuda del verbo describe la bandera %s", campo.Name)
+
+			banderas = append(banderas,
+				banderaDelContrato{campo: campo.Name, tipo: campo.Type, marcador: campo.Tag.Get("placeholder")})
+
+			continue
+		}
+
 		assert.False(t, opcional || porOmision, "%s es obligatorio y sin valor por omisión", campo.Name)
 
 		declarados = append(declarados, campoDelContrato{campo: campo.Name, nombre: campo.Tag.Get("name"), tipo: campo.Type})
 	}
 
 	assert.Equal(t, contrato.campos, declarados, "los argumentos del contrato, y ninguno más")
+	assert.Equal(t, contrato.banderas, banderas, "las banderas propias del contrato, y ninguna más")
 	assert.Equal(t, reflect.TypeOf(contrato.salida), reflect.TypeOf(verbo.Salida), "el tipo de data del contrato")
 	assert.True(t, reflect.ValueOf(verbo.Salida).IsZero(), "Salida es el valor cero de su tipo")
 }
@@ -1132,7 +1218,10 @@ func TestSinGrafoNiAsuntoNoCambianLaSalida(t *testing.T) {
 // con código 2, 3 y 4— valida contra la parte de su verbo leída de
 // schemas/norma.json o de schemas/bloque.json, y no contra lo que emite
 // --describe mientras se ejecuta el test. La validación restringe: el mismo
-// sobre con una clave de más o de menos en su data no valida.
+// sobre con una clave de más o de menos en su data no valida, salvo que la que
+// falta sea una de las dos opcionales de la lectura fechada, cuyos sobres, con
+// redacción posterior y sin ella, y el del 3 de un día sin redacción vigente,
+// también se validan (H20 FR-003, FR-010, FR-014).
 //
 // En los tres verbos que devuelven avisos (FR-012), la parte publicada enumera
 // Aviso.codigo con exactamente sus tres valores, y un sobre real con los tres
@@ -1168,7 +1257,7 @@ func TestSalidaDeBoeContraSchemas(t *testing.T) {
 					assert.Equal(t, caso.codigo == 0, sobreDelJSON(t, res.salida)["ok"],
 						"ok decide la rama del esquema contra la que se valida data")
 
-					exigirSalidaPublicada(t, esquema, res.salida)
+					exigirSalidaConOpcionales(t, esquema, res.salida, caso.opcionales)
 
 					if caso.conAvisos {
 						exigirAvisosEnumerados(t, esquema, res.salida)
@@ -1180,20 +1269,23 @@ func TestSalidaDeBoeContraSchemas(t *testing.T) {
 }
 
 // salidaDeBoe es una invocación de TestSalidaDeBoeContraSchemas: la carpeta que
-// sirve el cliente, los argumentos sin --json, el código con el que termina y si
-// su data lleva los tres avisos.
+// sirve el cliente, los argumentos sin --json, el código con el que termina, si
+// su data lleva los tres avisos y las claves que lleva su data sin que el esquema
+// las exija, las de la lectura fechada (H20 FR-010).
 type salidaDeBoe struct {
 	nombre       string
 	reproduccion string
 	argumentos   []string
 	codigo       int
 	conAvisos    bool
+	opcionales   []string
 }
 
 // salidasDeBoe son las invocaciones del verbo cuyo sobre se valida: la de éxito
 // sobre las grabaciones; las de fallo con código 2, con 3 si el verbo lo tiene y
 // con 4, esta con --offline y la caché vacía (contrato errores-y-codigos, fila
-// 5); y, si el verbo devuelve avisos, la de éxito con los tres.
+// 5); si el verbo devuelve avisos, la de éxito con los tres; y sus lecturas
+// fechadas, si las tiene.
 func salidasDeBoe(contrato verboDelContrato) []salidaDeBoe {
 	salidas := []salidaDeBoe{
 		{nombre: "exito", reproduccion: grabacionesDeBoe, argumentos: contrato.argumento},
@@ -1221,7 +1313,7 @@ func salidasDeBoe(contrato verboDelContrato) []salidaDeBoe {
 		})
 	}
 
-	return salidas
+	return append(salidas, contrato.fechadas...)
 }
 
 // ficheroPublicadoDelVerbo lee de schemas/ el fichero que publica la parte del
@@ -1276,6 +1368,15 @@ func salidaPublicada(t *testing.T, documento any, id, verbo string) *jsonschema.
 func exigirSalidaPublicada(t *testing.T, esquema *jsonschema.Schema, salida string) {
 	t.Helper()
 
+	exigirSalidaConOpcionales(t, esquema, salida, nil)
+}
+
+// exigirSalidaConOpcionales es exigirSalidaPublicada con las claves de data que
+// el esquema no exige: cada una está en el data del sobre real y el mismo sobre
+// sin ella valida; sin cualquier otra, no (H20 FR-010, FR-014).
+func exigirSalidaConOpcionales(t *testing.T, esquema *jsonschema.Schema, salida string, opcionales []string) {
+	t.Helper()
+
 	require.NoError(t, esquema.Validate(sobreValidable(t, salida)), "el sobre real valida contra su parte de schemas/")
 
 	conClaveDeMas := sobreValidable(t, salida)
@@ -1285,9 +1386,20 @@ func exigirSalidaPublicada(t *testing.T, esquema *jsonschema.Schema, salida stri
 	claves := slices.Sorted(maps.Keys(objetoDeData(t, sobreValidable(t, salida))))
 	require.NotEmpty(t, claves, "un data sin claves no permitiría comprobar que el esquema las exige")
 
+	for _, opcional := range opcionales {
+		require.Containsf(t, claves, opcional, "data lleva la clave opcional %q", opcional)
+	}
+
 	for _, clave := range claves {
 		sinLaClave := sobreValidable(t, salida)
 		delete(objetoDeData(t, sinLaClave), clave)
+
+		if slices.Contains(opcionales, clave) {
+			assert.NoErrorf(t, esquema.Validate(sinLaClave), "data sin la clave opcional %q valida", clave)
+
+			continue
+		}
+
 		assert.Errorf(t, esquema.Validate(sinLaClave), "data sin la clave %q no valida", clave)
 	}
 }

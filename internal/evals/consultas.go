@@ -17,6 +17,13 @@ const (
 	verboBuscar       = "buscar"
 )
 
+// fechaDeTodaVigencia es la fecha con la que la caché preparada lee cada bloque
+// además de sin fecha: la última que admite --fecha, posterior a toda vigencia,
+// así que la lectura sale con 0 en todo bloque grabado y deja guardada la
+// entrada de sus versiones, de la que se sirve después la lectura del bloque en
+// cualquier fecha (research D18 de H20; FR-053).
+const fechaDeTodaVigencia = "9999-12-31"
+
 // Punto es de cuál de los tres puntos de data-model §7.1 sale una consulta
 // necesaria de una eval.
 type Punto string
@@ -71,7 +78,10 @@ type Consulta struct {
 // orden:
 //
 //  1. por cada comando esperado, según su forma: la forma bloque, articulo
-//     <norma> <bloque>; la consulta de norma, <verbo> <norma>; la búsqueda,
+//     <norma> <bloque>, lleve o no fecha, y nunca con la suya, que en un bloque
+//     sin redacción vigente ese día sale con 3 y sería una falta
+//     (contracts/evals-redaccion-fechada.md §4 de H20; research D18); la
+//     consulta de norma, <verbo> <norma>; la búsqueda,
 //     buscar <terminos…>; el comando de territorio, ninguna, porque el applet
 //     territorio no pide nada por red ni usa la caché y no hay nada que grabar
 //     (data-model §6.3 de H6; FR-043); la comprobación, tampoco, porque lee el
@@ -84,6 +94,11 @@ type Consulta struct {
 //     y metadatos <norma>;
 //  3. por cada cita esperada: articulo <norma> <bloque>.
 //
+// Desde H20, cada articulo <norma> <bloque> de los puntos 1 y 3 va seguido de
+// la misma lectura con --fecha 9999-12-31, con los mismos orígenes: la caché
+// preparada sirve así el bloque en cualquier fecha (research D18 de H20;
+// FR-053).
+//
 // Ninguna invocación se repite: la que ya estaba solo suma su eval y su punto a
 // los Origenes de la primera, si no los tenía. Una eval de no activación no
 // añade nada.
@@ -95,7 +110,7 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
 		for _, esperado := range eval.Comandos {
 			switch formaDelComando(esperado) {
 			case formaBloque:
-				necesarias.anotar(comando, esperado.Applet, verboArticulo, esperado.Norma, esperado.Bloque)
+				necesarias.anotarBloque(comando, esperado.Applet, esperado.Norma, esperado.Bloque)
 			case formaConsultaDeNorma:
 				necesarias.anotar(comando, esperado.Applet, esperado.Verbo, esperado.Norma)
 			case formaBusqueda:
@@ -123,7 +138,7 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
 
 		cita := Origen{Eval: eval.Fichero, Punto: PuntoCitaEsperada}
 		for _, esperada := range eval.Citas {
-			necesarias.anotar(cita, appletDeLasNormas, verboArticulo, esperada.Norma, esperada.Bloque)
+			necesarias.anotarBloque(cita, appletDeLasNormas, esperada.Norma, esperada.Bloque)
 		}
 	}
 
@@ -156,4 +171,11 @@ func (c *consultasNecesarias) anotar(origen Origen, applet, verbo string, argume
 	if consulta := &c.consultas[posicion]; !slices.Contains(consulta.Origenes, origen) {
 		consulta.Origenes = append(consulta.Origenes, origen)
 	}
+}
+
+// anotarBloque anota la lectura del bloque de la norma sin fecha y, detrás, la
+// misma con --fecha 9999-12-31, las dos con el origen (research D18 de H20).
+func (c *consultasNecesarias) anotarBloque(origen Origen, applet, norma, bloque string) {
+	c.anotar(origen, applet, verboArticulo, norma, bloque)
+	c.anotar(origen, applet, verboArticulo, norma, bloque, "--"+banderaDeLaFecha, fechaDeTodaVigencia)
 }

@@ -1,0 +1,216 @@
+diff antes/contracts/articulo-fecha.md ahora/contracts/articulo-fecha.md
+--- antes/contracts/articulo-fecha.md	2026-10-19 13:40:14
++++ ahora/contracts/articulo-fecha.md	2026-10-19 13:46:26
+@@ -55,7 +55,7 @@
+ | Fecha anterior a la primera vigencia (FR-003) | 3 `no-encontrado` | `el bloque <bloque> de <norma> no tenía redacción vigente el <AAAA-MM-DD>: su primera redacción tiene fecha de vigencia <AAAAMMDD> (<dirección del bloque>)` |
+ | Bloque sin versiones, o con alguna sin `fecha_vigencia` (FR-004) | 3 `no-encontrado` | `el BOE no da la fecha de vigencia de cada redacción del bloque <bloque> de <norma>: no se puede saber cuál tenía el <AAAA-MM-DD> (<dirección del bloque>)` |
+ | Bloque que no está en la norma | 3, el de hoy | `la norma <norma> no tiene el bloque <bloque> (<dirección>)`, como hoy |
+-| Norma o bloque mal formados, fuente caída o con límite, metadatos caídos | los de hoy | los de hoy (FR-007) |
++| Norma o bloque mal formados, fuente caída o con límite, bloque ilegible, metadatos caídos | los de hoy | los de hoy, sin escribir la entrada de las versiones (FR-007) |
+ | `--offline` sin la entrada de las versiones | 4 `fuente-no-disponible` | el de hoy de una entrada ausente con `--offline`, con el verbo `versiones` y su clave (FR-020) |
+ 
+ Ejemplo, FR-003 (US2):
+@@ -91,7 +91,7 @@
+ | Lectura | Lee | Escribe |
+ |---|---|---|
+ | Sin `--fecha` | la entrada de hoy (`articulo`) | la entrada de hoy, como hoy |
+-| Con `--fecha` | la entrada de las versiones (`versiones`) | la entrada de las versiones, antes de elegir |
++| Con `--fecha` | la entrada de las versiones (`versiones`) | la entrada de las versiones, antes de elegir y solo con el bloque y sus metadatos obtenidos e interpretados; con un fallo de la fuente o al interpretar, nada, como hoy (FR-007) |
+ 
+ - Clave de ejemplo:
+   `boe.legislacion-consolidada|1|versiones|https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2017-12902/texto/bloque/a1-30`.
+diff antes/contracts/documentos.md ahora/contracts/documentos.md
+--- antes/contracts/documentos.md	2026-10-19 13:40:14
++++ ahora/contracts/documentos.md	2026-10-19 13:48:05
+@@ -51,8 +51,18 @@
+ 
+ ## `docs/WORKFLOW.md` (FR-061)
+ 
+-No nombra `boe articulo`, el formato de las evals de `boe-legislacion` ni el número de sus umbrales (comprobado con
+-`grep` en esta sesión): no cambia. La tarea de los documentos lo vuelve a comprobar.
++Un solo pasaje: el de `medir_cierre`, en «Cierre en la plataforma e informe final» (`docs/WORKFLOW.md:139`), que enumera los umbrales que deciden en
++`boe-legislacion`. Con FR-054 y FR-056 deja de ser cierto. `grep -n` de `boe-legislacion`, `boe articulo`,
++`sin_activar` y `duracion_de_las_sesiones` en esta sesión da solo esa línea y la 22, que nombra la carpeta
++`evals/boe-legislacion/juez/` de la evidencia del ADR 0037, que el hito no toca; las demás líneas con «umbral» hablan
++de los umbrales del workflow o de cualquier skill, que el hito no cambia.
++
++| Pasaje | Hoy dice | Pasa a decir |
++|---|---|---|
++| `medir_cierre`: los umbrales que deciden en `boe-legislacion` | «en `boe-legislacion` deciden nueve: por cada modo, `sin_activar:<modelo>:<modo>`, `duracion_de_las_sesiones:<modo>` y `duracion_del_juez:<modo>`; …» | «deciden once: por cada modo, `sin_activar:<modelo>:<modo>`, `redaccion_sin_fechar:<modelo>:<modo>` (desde H20, sobre las respuestas de las evals con fecha), `duracion_de_las_sesiones:<modo>` y `duracion_del_juez:<modo>`; …», en el orden de `umbrales` (contracts/evals-redaccion-fechada.md §3) |
++
++El resto de la frase —`afirma_lo_no_leido:<modelo>`, los dos de la medida del juez, los que solo se publican y los que
++ya no se publican— sigue siendo cierto y no se reescribe (FR-062).
+ 
+ ## `internal/source/boe/doc.go`
+ 
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-19 13:40:14
++++ ahora/data-model.md	2026-10-19 13:46:35
+@@ -76,7 +76,7 @@
+ | Datos | `versionesDelBloque`: `titulo`, `tipo`, `versiones` (cada una con `fecha_version`, `fecha_vigencia`, `norma_modificadora` y `texto`), `avisos` y `url_eli` |
+ | Fecha de consulta | la más antigua de la del bloque y la de sus metadatos, como el artículo de hoy |
+ | Vigencia | 7 días (`vigenciaLarga`), como el artículo |
+-| Quién la lee y la escribe | solo la lectura fechada; la escribe antes de elegir, tras pedir el bloque y sus metadatos |
++| Quién la lee y la escribe | solo la lectura fechada; la escribe antes de elegir, tras obtener e interpretar el bloque y sus metadatos; con un fallo de cualquiera de los dos, nada (FR-007) |
+ 
+ `versionesDelBloque` entra en la unión `datosDeEntrada`. La entrada de hoy (`claveDelArticulo`, `Articulo`) no cambia
+ de clave, de forma ni de contenido, y la lectura fechada no la lee ni la escribe (FR-020, FR-021). `versionDeLasEntradas`
+@@ -154,5 +154,5 @@
+ | `--fecha` que no es un día AAAA-MM-DD | `argumentos` | 2 | ninguna (firma el kernel) | ninguno |
+ | Fecha anterior a la primera vigencia (FR-003) | `no-encontrado` | 3 | la del bloque | la fecha de consulta de las versiones |
+ | Bloque no situable (FR-004) | `no-encontrado` | 3 | la del bloque | ídem |
+-| Norma o bloque mal formados, bloque que no está en la norma, fuente caída o con límite | los de hoy | 2, 3, 4, 5 | los de hoy | los de hoy (FR-007) |
++| Norma o bloque mal formados, bloque que no está en la norma, fuente caída o con límite, bloque ilegible, metadatos caídos | los de hoy | 2, 3, 4, 5 | los de hoy | los de hoy (FR-007); sin escribir la entrada de las versiones |
+ | `--offline` sin la entrada de las versiones | `fuente-no-disponible` | 4 | la del bloque | ninguno (FR-020) |
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-19 13:40:14
++++ ahora/plan.md	2026-10-19 13:46:23
+@@ -28,8 +28,8 @@
+    evals 22 y 23, la caché preparada que sirve cualquier fecha y `redaccion_sin_fechar:<modelo>:<modo>`, con 0 y que
+    decide: `boe-legislacion` pasa a quince umbrales, once que deciden (contracts/evals-redaccion-fechada.md).
+ 5. **`boe-legislacion` v0.2** y los documentos: la sección «Redacción en una fecha» con tres formas fijas, en 298
+-   líneas (contracts/skill-boe-legislacion.md y su prototipo); `CHANGELOG.md`, `README.md` y `CONTRIBUTING.md`
+-   (contracts/documentos.md).
++   líneas (contracts/skill-boe-legislacion.md y su prototipo); `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md` y la
++   frase de `docs/WORKFLOW.md` que cuenta los umbrales que deciden en `boe-legislacion` (contracts/documentos.md).
+ 
+ No hay ADR nuevo, ni dependencia, ni fuente, ni grabación nueva (FR-006). No cambian `boe articulos`, los demás verbos,
+ `legal-core`, `jurisprudencia`, `graph check` fuera de lo dicho, `.github/workflows/evals.yml`, el juez ni su medida
+@@ -158,6 +158,7 @@
+ evals/boe-legislacion/23-lpac-articulo-21-en-2016.yaml
+ skills/boe-legislacion/SKILL.md
+ CHANGELOG.md, README.md, CONTRIBUTING.md
++docs/WORKFLOW.md                           # la frase de medir_cierre con los umbrales que deciden en boe-legislacion
+ ```
+ 
+ **Structure Decision**: la de `docs/ROADMAP.md` §2 y `CLAUDE.md`, sin paquetes nuevos. La lectura fechada va al
+@@ -220,6 +221,19 @@
+   (`internal/source/boe/grafo_test.go`), un caso de la lectura fechada —el nodo y el texto, `SoloLoNuevo`, nada sin ELI
+   ni bajo ensayo— que no cambia los de hoy; `TestLaSalidaDeBoeNoCambiaConElGrafo` (`internal/app/grafo_test.go`), con
+   la lectura fechada.
++- **Por los fallos de la fuente con fecha** (FR-007, FR-082): `TestFallosNoSeGuardan`
++  (`internal/source/boe/fuente_test.go`) gana tres casos con `ConsultaArticulo{Norma: normaVigente, Bloque:
++  bloqueDelArticulo21, Fecha}` el `2019-06-01`, sobre lo sintético de H4 y sin fichero nuevo: `bloque-ilegible` (4),
++  `metadatos-caidos` —el bloque obtenido y los metadatos con el 503 de la fuente caída— (4) y el 429 de los metadatos
++  tras obtener el bloque, `salvoEn(metadatosVigente, reproduce(sinteticoDelLimite))` (5), como la fila 18 de
++  `TestClasesDeErrorDeBoe`. Cada uno resuelve además su consulta sin `Fecha` en un banco nuevo con el mismo Pedidor y
++  exige la misma clase (`cli.Clasificar`), el mismo código (`cli.CodigoSalida`) y el mismo mensaje; y, como los casos
++  de hoy, las dos veces el sobre sin datos con la dirección y el instante de la petición que falla, las mismas
++  peticiones repetidas —nada guardado: ni los metadatos ni la entrada de las versiones— y, con `--offline`, el 4 de la
++  entrada de las versiones ausente (`falloSinEntradaDeLasVersiones`, con el verbo `versiones` y su clave). El 503 y el
++  429 van, como en H4, por la reproducción de `httpx` y sobre los metadatos: es el único momento en que hay algo
++  obtenido que una escritura prematura de la entrada guardaría; un fallo de la primera petición no deja nada que
++  escribir. Los cuatro casos de hoy, iguales.
+ - **Por el lector**: `TestLeerBloque` (`internal/source/boe/bloque_test.go`), con las versiones de los tres bloques de
+   research M1 y la lista vacía de un bloque sin versiones; lo que esperaba hoy, igual.
+ - **Por la salida**: `TestEsquemasPublicados` (`make schema-check`) con `schemas/bloque.json` regenerado;
+@@ -246,7 +260,8 @@
+ - `schemas/bloque.json`, regenerado desde `--describe` con `-actualizar-esquemas`.
+ - `schemas/eval.yaml.json`: `comando-bloque-esperado` y `redaccion_fechada`.
+ - Ningún fichero nuevo ni cambiado en `testdata/`: las respuestas sin versiones o con una sin `fecha_vigencia` de
+-  FR-004 se construyen en el test, y lo demás sale de lo grabado de H4 y de `testdata/sintetico/avisos/`.
++  FR-004 se construyen en el test, y lo demás sale de lo grabado de H4 y de sus sintéticos `avisos/`,
++  `bloque-ilegible/`, `metadatos-caidos/` y `limite/` de `internal/source/boe/testdata/sintetico/`.
+ 
+ ### CI
+ 
+@@ -277,7 +292,7 @@
+ | FR-071, FR-088 (`legal-core` sigue como decidía) | sus seis umbrales, cumplidos; si no, queda en el informe para la persona | los de hoy, que no cambian | `evals:legal-core:sin_activar:claude-sonnet-5-5:orden`, `evals:legal-core:sin_activar:claude-sonnet-5-5:herramienta`, `evals:legal-core:plazo_sin_fecha:claude-sonnet-5-5:orden`, `evals:legal-core:plazo_sin_fecha:claude-sonnet-5-5:herramienta`, `evals:legal-core:cobertura_sin_declarar:claude-sonnet-5-5:orden`, `evals:legal-core:cobertura_sin_declarar:claude-sonnet-5-5:herramienta` |
+ | FR-002, FR-003, FR-013, FR-081, SC-004 | 7 casos con su código, su versión, sus fechas, su norma, su huella y su redacción posterior: 0 diferencias | la tabla escrita a mano contra lo grabado | `ci:internal/source/boe/fecha_test.go:TestArticuloEnUnaFecha`, `ci:internal/app/testdata/script/h20-fecha-version.txtar` |
+ | FR-004, FR-011 | 0 textos devueltos de un bloque no situable, con fechas anteriores, intermedias y posteriores; los avisos de hoy con `--fecha` | los casos construidos en el test y lo grabado sintético de avisos | `ci:internal/source/boe/fecha_test.go:TestArticuloEnUnaFecha` |
+-| FR-005, FR-007 | cada caso con su código y su mensaje, y 0 cachés creadas con una fecha mal escrita | la tabla y el guion | `ci:internal/source/boe/ids_test.go:TestValidarFecha`, `ci:internal/app/testdata/script/h20-fecha-codigos.txtar` |
++| FR-005, FR-007, FR-082 | cada caso con su código y su mensaje; con la fuente caída, con el límite de ritmo y con el bloque o los metadatos ilegibles o caídos, 0 diferencias de clase, código y mensaje con la lectura sin `--fecha` y 0 entradas de las versiones escritas (la fechada con `--offline` después, 4); 0 cachés creadas con una fecha mal escrita | la tabla, los fallos de la fuente con y sin fecha y el guion | `ci:internal/source/boe/ids_test.go:TestValidarFecha`, `ci:internal/source/boe/fuente_test.go:TestFallosNoSeGuardan`, `ci:internal/app/testdata/script/h20-fecha-codigos.txtar` |
+ | FR-012, FR-083, SC-005 | 0 bytes de diferencia con `main` sin `--fecha`, con `--json` y sin él, en éxito y en fallo; los trece golden de hoy, iguales | el guion con la salida de `main` dentro; los golden | `ci:internal/app/testdata/script/h20-fecha-main.txtar`, `ci:internal/source/boe/fuente_test.go:TestGolden` |
+ | FR-020, FR-021, FR-022, FR-082, FR-087, SC-007 | la entrada de hoy sirve la lectura fechada 0 veces y cambia en 0 bytes; con `--offline` y la entrada de las versiones, 0 diferencias de `data` y `hash` | los tests de la caché y el guion | `ci:internal/source/boe/fecha_test.go:TestArticuloEnUnaFechaYLaCache`, `ci:internal/app/testdata/script/h20-fecha-offline.txtar` |
+ | FR-030, FR-031, FR-032, FR-086, SC-006 | 0 elementos cambiados en la fila de lecturas y en `graph check`; 0 entregas con `--no-graph` o `--dry-run`; 0 cambios en la segunda entrega | los tests del grafo y el guion | `ci:internal/graph/almacen_test.go:TestApplySoloLoNuevo`, `ci:internal/graph/integracion_test.go:TestIntegracionLecturaFechada`, `ci:internal/app/grafo_test.go:TestLecturaFechadaEnElGrafo`, `ci:internal/app/testdata/script/h20-fecha-grafo.txtar` |
+@@ -353,7 +368,7 @@
+ | `bloqueLeido.versiones` y `versionLeida` | FR-002, FR-010 |
+ | La elección y sus dos mensajes de 3 (`fecha.go`) | FR-002, FR-003, FR-004, FR-013 |
+ | `ArticuloFechado`, `RedaccionPosterior` y la `Salida` de `articulo` | FR-010, FR-012, FR-014, FR-085 |
+-| `versionesDelBloque`, `claveDeLasVersiones` y su lectura y escritura | FR-020, FR-021, FR-022 |
++| `versionesDelBloque`, `claveDeLasVersiones` y su lectura y escritura, solo con el bloque y sus metadatos obtenidos e interpretados | FR-007 (un fallo no deja nada escrito, como hoy), FR-020, FR-021, FR-022 |
+ | `nodoDeLaVersion` y `observadoDeLaLecturaFechada` | FR-030, FR-031 |
+ | `Observado.SoloLoNuevo`, `Lote.SoloLoNuevo`, `Consolidado.SoloLoNuevo`, su copia en `LoteDe` y `Consolidar`, y la entrega que no toca lo guardado | FR-030, FR-031 (el nodo ya guardado: research D9) |
+ | El párrafo de `doc.go` | FR-001: el comentario de paquete, que dice qué hace cada verbo frente a `refs/boe.py`, queda incompleto sin la lectura fechada |
+@@ -396,7 +411,8 @@
+ 3. **El lector**: `bloqueLeido.versiones`, con `TestLeerBloque`, y los trece golden de hoy sin cambiar.
+ 4. **La lectura fechada en el adaptador**: `ValidarFecha`, `ConsultaArticulo.Fecha`, `fecha.go`, `datos.go`,
+    `entradas.go`, `grafo.go`, la rama de `articulo.go` y el párrafo de `doc.go`, con `TestValidarFecha`,
+-   `TestArticuloEnUnaFecha`, `TestArticuloEnUnaFechaYLaCache` y el caso de `TestObservadoDeBoe`.
++   `TestArticuloEnUnaFecha`, `TestArticuloEnUnaFechaYLaCache`, los tres casos con fecha de `TestFallosNoSeGuardan` y
++   el caso de `TestObservadoDeBoe`.
+ 5. **La orden y la herramienta**: `argumentosDeArticulo.Fecha` y la `Salida` de `articulo`; `schemas/bloque.json`
+    regenerado (`[datos]`); la tabla de `boe-legislacion` regenerada con `make skills-sync` (solo su región generada);
+    `TestLecturaFechadaEnElGrafo` y los cambios de `TestLaSalidaDeBoeNoCambiaConElGrafo` y
+@@ -424,8 +440,8 @@
+   fichero de `skills/`; la de la orden declara además `skills/boe-legislacion/SKILL.md` solo por su tabla generada;
+ - la tarea de los mutantes declara `specs/024-h20-boe-articulo-fecha/mutantes.md`, no cambia nada bajo `internal/` y
+   termina con el árbol aparte retirado;
+-- la de los documentos declara `CHANGELOG.md`, `README.md` y `CONTRIBUTING.md`, y comprueba `docs/WORKFLOW.md` sin
+-  cambiarlo;
++- la de los documentos declara `CHANGELOG.md`, `README.md`, `CONTRIBUTING.md` y `docs/WORKFLOW.md`, y en este solo
++  cambia la frase de `medir_cierre` que cuenta los umbrales que deciden en `boe-legislacion` (contracts/documentos.md);
+ - ninguna tarea ni corrección cumple un umbral cambiando su valor, dejándolo en `decide: false`, sacando sesiones de su
+   `total`, ni cambiando las evals, la rúbrica, los casos o la medida del juez (FR-071);
+ - ninguna toca `skills/legal-core/`, `skills/jurisprudencia/`, `evals/legal-core/`, `evals/jurisprudencia/`,
+@@ -454,8 +470,8 @@
+ - c · Reglas de dependencia: tabla R1-R6; ningún import nuevo.
+ - d · Errores y códigos: los dos 3 nuevos con `errorDeNoEncontrado`, la fecha con `errorDeArgumentos`; la fila de
+   FR-004, decidida y razonada (research D7).
+-- e · Tests primero: los seis guiones con su historia y sus requisitos; los tests nuevos y los que cambian; ningún
+-  fixture nuevo; las tareas `[datos]`.
++- e · Tests primero: los seis guiones con su historia y sus requisitos; los tests nuevos y los que cambian, entre ellos
++  los fallos de la fuente con fecha de FR-007 en `TestFallosNoSeGuardan`; ningún fixture nuevo; las tareas `[datos]`.
+ - f · Alcance: nada fuera del spec; `articulos`, `analisis`, el diff entre versiones, la derogación en la fecha, otras
+   skills y el workflow del job, fuera.
+ - g · Sin atajos: ningún `//nolint`, `t.Skip`, TODO ni error silenciado previstos.
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-19 13:40:14
++++ ahora/quickstart.md	2026-10-19 13:46:42
+@@ -29,13 +29,14 @@
+ ## 2. La lectura fechada en el adaptador
+ 
+ ```bash
+-go test -count=1 -run '^(TestValidarFecha|TestLeerBloque|TestArticuloEnUnaFecha|TestArticuloEnUnaFechaYLaCache|TestObservadoDeBoe|TestGolden|TestArticulo)$' ./internal/source/boe/
++go test -count=1 -run '^(TestValidarFecha|TestLeerBloque|TestArticuloEnUnaFecha|TestArticuloEnUnaFechaYLaCache|TestFallosNoSeGuardan|TestObservadoDeBoe|TestGolden|TestArticulo)$' ./internal/source/boe/
+ ```
+ 
+-**Hoy**: `ok` con los tests de hoy (`TestLeerBloque`, `TestObservadoDeBoe`, `TestGolden`, `TestArticulo`); los nuevos
+-no existen. **Tras el hito**: `ok`, con los siete casos del golden de contracts/articulo-fecha.md §2, los de FR-004 con
+-respuestas construidas en el test, el de los avisos (FR-011) y los de la caché (FR-020 a FR-022); y los golden de hoy,
+-sin cambiar ni un byte (FR-012).
++**Hoy**: `ok` con los tests de hoy (`TestLeerBloque`, `TestFallosNoSeGuardan`, `TestObservadoDeBoe`, `TestGolden`,
++`TestArticulo`); los nuevos no existen. **Tras el hito**: `ok`, con los siete casos del golden de
++contracts/articulo-fecha.md §2, los de FR-004 con respuestas construidas en el test, el de los avisos (FR-011), los de
++la caché (FR-020 a FR-022) y los tres fallos de la fuente con fecha, iguales que sin ella y sin nada guardado (FR-007);
++y los golden de hoy, sin cambiar ni un byte (FR-012).
+ 
+ ## 3. El grafo
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-19 13:40:14
++++ ahora/research.md	2026-10-19 13:46:37
+@@ -146,7 +146,8 @@
+ **D8 · La caché: una entrada nueva con las versiones del bloque.** La lectura fechada guarda, con la clave
+ `boe.legislacion-consolidada|1|versiones|<dirección del bloque>` y la vigencia de 7 días del artículo, el título, el
+ tipo, todas las versiones, los avisos y el ELI (contracts/articulo-fecha.md §5), y elige la versión desde ahí. La
+-escribe antes de elegir, de modo que la misma fecha, o cualquier otra, se sirve después con `--offline` con el mismo
++escribe solo con el bloque y sus metadatos obtenidos e interpretados —un fallo de la fuente o al interpretar no deja
++nada escrito, como hoy (FR-007; `TestFallosNoSeGuardan`)— y antes de elegir, de modo que la misma fecha, o cualquier otra, se sirve después con `--offline` con el mismo
+ `data` y la misma fecha de consulta (FR-022). No lee ni escribe la entrada de hoy (FR-020, FR-021), que no cambia de
+ forma ni de clave, ni la versión de las entradas (V6). Los avisos y el ELI se guardan con las versiones por lo mismo
+ que la nota [2] los guarda con el artículo. *Rechazadas*: una entrada por norma, bloque y fecha, que crece con cada
+@@ -259,9 +260,10 @@
+ `exec sed` (S3). Cada guion empieza por una precondición que hoy falla por su aserción: que `boe articulo --help`
+ nombre `--fecha`.
+ 
+-**D21 · Los documentos.** `CHANGELOG.md` (*Unreleased*), `README.md` y `CONTRIBUTING.md` cambian donde el hito deja
+-algo falso o incompleto (contracts/documentos.md). `docs/WORKFLOW.md` no nombra nada de lo que cambia: se comprueba y
+-no se toca. El comentario de paquete de `internal/source/boe/doc.go` gana un párrafo sobre la lectura fechada, que
++**D21 · Los documentos.** `CHANGELOG.md` (*Unreleased*), `README.md`, `CONTRIBUTING.md` y `docs/WORKFLOW.md`
++cambian donde el hito deja algo falso o incompleto (contracts/documentos.md). De `docs/WORKFLOW.md`, solo la frase de
++`medir_cierre` que enumera los umbrales que deciden en `boe-legislacion` (`docs/WORKFLOW.md:139`): pasa de nueve a once,
++con `redaccion_sin_fechar:<modelo>:<modo>` en cada modo, sin reescribir lo demás (FR-062). El comentario de paquete de `internal/source/boe/doc.go` gana un párrafo sobre la lectura fechada, que
+ `refs/boe.py` no tiene; la tabla de notas no cambia (su test la fija entrada a entrada).
+ 
+ **D22 · Ningún dato externo.** Lo grabado de H4 ya tiene los tres bloques con todas sus versiones y sus metadatos

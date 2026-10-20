@@ -1,0 +1,20 @@
+# Eval positiva con fecha: la pregunta nombra el artículo y el día, y se responde con la redacción vigente ese día,
+# con las líneas de la redacción a fecha y de la redacción de hoy (H20 FR-050).
+pregunta: "¿qué exigía el artículo 118 de la LCSP para el expediente de un contrato menor el 1 de junio de 2019?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2017-12902
+    bloque: a1-30
+    fecha: "2019-06-01"
+citas:
+  - norma: BOE-A-2017-12902
+    bloque: a1-30
+redaccion_fechada:
+  norma: BOE-A-2017-12902
+  bloque: a1-30
+  fecha: "2019-06-01"
+  fecha_vigencia: "20180309"
+  posterior:
+    fecha_vigencia: "20200206"
+    norma_modificadora: BOE-A-2020-1651

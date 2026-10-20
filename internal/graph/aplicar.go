@@ -270,22 +270,23 @@ func falloAlEscribir(ctx context.Context, ruta string, causa error) error {
 // arista se fusiona con lo guardado y se escribe solo si cambia; y al final,
 // cada fila de lecturas que cambia. Los nodos van primero para que una arista y
 // una fila de lecturas encuentren en el grafo los nodos que trae el propio
-// lote.
+// lote. Con SoloLoNuevo, lo que el grafo ya guarda no se escribe (H20 FR-031;
+// research.md D9).
 func aplicarConsolidado(ctx context.Context, tx *sql.Tx, consolidado grafo.Consolidado) error {
 	lecturas, err := lecturasQueCambian(ctx, tx, consolidado.Lecturas())
 	if err != nil {
 		return err
 	}
 
-	if err := tablaDeNodos.aplicar(ctx, tx, consolidado.Nodos); err != nil {
+	if err := tablaDeNodos.aplicar(ctx, tx, consolidado.Nodos, consolidado.SoloLoNuevo); err != nil {
 		return err
 	}
 
-	if err := tablaDeTextos.aplicar(ctx, tx, consolidado.Textos); err != nil {
+	if err := tablaDeTextos.aplicar(ctx, tx, consolidado.Textos, consolidado.SoloLoNuevo); err != nil {
 		return err
 	}
 
-	if err := tablaDeAristas.aplicar(ctx, tx, consolidado.Aristas); err != nil {
+	if err := tablaDeAristas.aplicar(ctx, tx, consolidado.Aristas, consolidado.SoloLoNuevo); err != nil {
 		return err
 	}
 
@@ -410,7 +411,14 @@ var (
 // cambia nada (FR-022, FR-023). Un tipo o un cuerpo distintos los rechaza la
 // fusión con un *grafo.Rechazo; cualquier otro fallo de la fusión se devuelve
 // tal cual y lo clasifica falloAlEscribir.
-func (t tablaDelGrafo[R]) aplicar(ctx context.Context, tx *sql.Tx, registros []R) error {
+//
+// Con soloLoNuevo, uno que estaba guardado no se escribe aunque la fusión lo
+// cambie: queda como estaba, byte a byte, con su primera y su última
+// observación, sus datos, su vigencia y su procedencia; uno que no estaba se
+// escribe tal cual, con la procedencia del lote (H20 FR-030, FR-031). La fusión
+// se hace igual, porque la marca cambia qué se escribe y no qué entra: un tipo o
+// un cuerpo distintos rechazan el lote como sin ella (FR-024).
+func (t tablaDelGrafo[R]) aplicar(ctx context.Context, tx *sql.Tx, registros []R, soloLoNuevo bool) error {
 	for _, llegado := range registros {
 		guardado, estaba, err := t.leer(ctx, tx, llegado)
 		if err != nil {
@@ -425,7 +433,7 @@ func (t tablaDelGrafo[R]) aplicar(ctx context.Context, tx *sql.Tx, registros []R
 			switch {
 			case err != nil:
 				return err
-			case fusionado == guardado:
+			case soloLoNuevo, fusionado == guardado:
 				continue
 			}
 		}

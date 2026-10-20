@@ -3624,3 +3624,242 @@ func sinElBloqueDeLaEval01(r *ResultadoDeEval) {
 	r.Motivos = []string{"comando ausente: " + textoDelComando21}
 	r.Pasa = false
 }
+
+// Lo que juzgan las sesiones de TestJuzgarLecturasFechadas: el día de la eval
+// (a) de H20 y otro, y el comando de bloque del art. 118 de la LCSP con ese día
+// con el texto con el que lo presentan el informe y los motivos, el de bloque
+// con la fecha detrás (contracts/evals-redaccion-fechada.md §1.1 de H20).
+const (
+	diaDeLaEvalConFecha     = "2019-06-01"
+	otroDia                 = "2019-06-02"
+	textoDelComandoConFecha = textoDelComando118 + " " + diaDeLaEvalConFecha
+)
+
+// TestJuzgarLecturasFechadas fija qué invocación cumple un comando de bloque con
+// fecha y cuál uno sin ella (contracts/evals-redaccion-fechada.md §1.1 de H20;
+// data-model §7.1; research D12; FR-051, FR-089). Los argumentos de articulo se
+// leen separando --fecha, con su valor detrás o pegado con «=», en cualquier
+// sitio —también tras el terminador, que no es un argumento de posición—, de los
+// de posición, la norma y sus bloques. El comando con fecha lo cumple articulo de
+// la norma y el bloque con esa fecha, como orden o como llamada a boe_articulo
+// con fecha, que termina con 0 o con 3; no lo cumplen la lectura sin fecha, la de
+// otra fecha, articulos, la de otra norma o de otro bloque, la que no consulta, la
+// que queda sin código ni la que termina con 2, 4 o 5. El comando sin fecha lo
+// cumple, como en H5, articulo o articulos de la norma con el bloque que terminan
+// con 0, y ninguna lectura que lleva --fecha. El comando que no se cumple queda
+// ausente con su motivo, con la fecha en su texto si la lleva. Y el caso 9 de
+// FR-089: el comando sin fecha de la eval 02 del repositorio no lo cumple una
+// lectura fechada de su bloque, como orden ni como herramienta, que deja su
+// motivo, y sí la lectura sin fecha.
+func TestJuzgarLecturasFechadas(t *testing.T) {
+	t.Parallel()
+
+	conFecha := evalDelArticulo118(ComandoEsperado{
+		Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118, Fecha: diaDeLaEvalConFecha,
+	})
+	sinFecha := evalDelArticulo118(ComandoEsperado{Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118})
+
+	for _, caso := range lecturasDelArticulo118(t) {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			comandos := []struct {
+				eval   Eval
+				texto  string
+				cumple bool
+			}{
+				{eval: conFecha, texto: textoDelComandoConFecha, cumple: caso.cumpleElConFecha},
+				{eval: sinFecha, texto: textoDelComando118, cumple: caso.cumpleElSinFecha},
+			}
+
+			for _, comando := range comandos {
+				resultado := juzgarEnModo(comando.eval, caso.sesion, skillDeLasSesiones, caso.modo)
+
+				if comando.cumple {
+					assert.Equal(t, []string{comando.texto}, resultado.ComandosEjecutados, "%s se cumple", comando.texto)
+					assert.Empty(t, resultado.ComandosAusentes, "%s no queda ausente", comando.texto)
+
+					continue
+				}
+
+				assert.Empty(t, resultado.ComandosEjecutados, "%s no se cumple", comando.texto)
+				assert.Equal(t, []string{comando.texto}, resultado.ComandosAusentes, "%s queda ausente", comando.texto)
+				assert.Contains(t, resultado.Motivos, "comando ausente: "+comando.texto, "con su motivo")
+			}
+		})
+	}
+
+	t.Run("caso-9-de-FR-089", probarElComandoSinFechaDeLaEval02)
+}
+
+// lecturaDelArticulo118 es una sesión que lee, o no, el art. 118 de la LCSP, en
+// su modo, y si cumple el comando con la fecha de la eval (a) y el comando sin
+// fecha.
+type lecturaDelArticulo118 struct {
+	nombre           string
+	sesion           Sesion
+	modo             Modo
+	cumpleElConFecha bool
+	cumpleElSinFecha bool
+}
+
+// lecturasDelArticulo118 son las sesiones de TestJuzgarLecturasFechadas: las de
+// la tabla de contracts/evals-redaccion-fechada.md §1.1 de H20, como orden y como
+// herramienta.
+func lecturasDelArticulo118(t *testing.T) []lecturaDelArticulo118 {
+	t.Helper()
+
+	// lee es la sesión del modo orden con la invocación de la skill de esos
+	// argumentos que termina con ese código, o sin ninguno si es nil.
+	lee := func(codigo *int, argumentos ...string) Sesion {
+		return sesionTerminada(true, respuestaConLaCita118, invocada(t, codigo, deLaSkill(argumentos...)))
+	}
+
+	// llama es la sesión del modo herramienta con esa llamada.
+	llama := func(llamada Llamada) Sesion {
+		return sesionDelModoHerramienta(t, respuestaConLaCita118, llamada)
+	}
+
+	conLaFecha := `{"norma":"BOE-A-2017-12902","bloque":"a1-30","fecha":"2019-06-01"}`
+	conOtraFecha := `{"norma":"BOE-A-2017-12902","bloque":"a1-30","fecha":"2019-06-02"}`
+
+	const norma, bloque, dia = normaDeLaLCSP, bloqueDelArticulo118, diaDeLaEvalConFecha
+
+	lecturas := []lecturaDelArticulo118{
+		{nombre: "fecha-delante", sesion: lee(codigoDeSalida(0), "articulo", "--fecha", dia, norma, bloque, "--json")},
+		{nombre: "fecha-detras", sesion: lee(codigoDeSalida(0), "articulo", norma, bloque, "--fecha", dia)},
+		{nombre: "fecha-delante-con-igual", sesion: lee(codigoDeSalida(0), "articulo", "--fecha="+dia, norma, bloque)},
+		{nombre: "fecha-detras-con-igual", sesion: lee(codigoDeSalida(0), "articulo", norma, bloque, "--fecha="+dia)},
+		{nombre: "fecha-en-medio", sesion: lee(codigoDeSalida(0), "articulo", norma, "--fecha", dia, bloque)},
+		{nombre: "fecha-y-terminador", sesion: lee(codigoDeSalida(0), "articulo", "--fecha", dia, "--", norma, bloque)},
+		{nombre: "fecha-tras-el-terminador", sesion: lee(codigoDeSalida(0), "articulo", "--", norma, bloque, "--fecha", dia)},
+		{nombre: "fecha-con-el-3", sesion: lee(codigoDeSalida(3), "articulo", norma, bloque, "--fecha", dia)},
+		{nombre: "herramienta-con-la-fecha", sesion: llama(llamadaCorrecta(herramientaDeArticulo, conLaFecha))},
+		{
+			nombre: "herramienta-con-la-fecha-y-el-3",
+			sesion: llama(llamadaFallida(herramientaDeArticulo, conLaFecha, schema.ClaseNoEncontrado)),
+		},
+	}
+
+	for posicion := range lecturas {
+		lecturas[posicion].cumpleElConFecha = true
+	}
+
+	lecturas = append(lecturas,
+		lecturaDelArticulo118{
+			nombre: "sin-fecha", sesion: lee(codigoDeSalida(0), "articulo", norma, bloque, "--json"),
+			cumpleElSinFecha: true,
+		},
+		lecturaDelArticulo118{
+			nombre: "articulos-sin-fecha", sesion: lee(codigoDeSalida(0), "articulos", norma, "da-3", bloque),
+			cumpleElSinFecha: true,
+		},
+		lecturaDelArticulo118{
+			nombre: "sin-fecha-tras-el-terminador", sesion: lee(codigoDeSalida(0), "articulo", "--", norma, bloque),
+			cumpleElSinFecha: true,
+		},
+		lecturaDelArticulo118{
+			nombre:           "herramienta-sin-la-fecha",
+			sesion:           llama(llamadaCorrecta(herramientaDeArticulo, `{"norma":"BOE-A-2017-12902","bloque":"a1-30"}`)),
+			cumpleElSinFecha: true,
+		},
+		lecturaDelArticulo118{nombre: "sin-fecha-con-el-3", sesion: lee(codigoDeSalida(3), "articulo", norma, bloque)},
+		lecturaDelArticulo118{
+			nombre: "otra-fecha", sesion: lee(codigoDeSalida(0), "articulo", norma, bloque, "--fecha", otroDia),
+		},
+		lecturaDelArticulo118{
+			nombre: "otra-fecha-con-igual", sesion: lee(codigoDeSalida(0), "articulo", norma, bloque, "--fecha="+otroDia),
+		},
+		lecturaDelArticulo118{
+			nombre: "fecha-sin-valor", sesion: lee(codigoDeSalida(0), "articulo", norma, bloque, "--fecha"),
+		},
+		lecturaDelArticulo118{
+			nombre: "articulos-con-la-fecha", sesion: lee(codigoDeSalida(0), "articulos", norma, bloque, "--fecha", dia),
+		},
+		lecturaDelArticulo118{
+			nombre: "otra-norma", sesion: lee(codigoDeSalida(0), "articulo", normaDeLasTrazas, bloque, "--fecha", dia),
+		},
+		lecturaDelArticulo118{
+			nombre: "otro-bloque", sesion: lee(codigoDeSalida(0), "articulo", norma, bloqueDeLaDA3, "--fecha", dia),
+		},
+		lecturaDelArticulo118{
+			nombre: "sin-consulta", sesion: lee(codigoDeSalida(0), "articulo", "--dry-run", norma, bloque, "--fecha", dia),
+		},
+		lecturaDelArticulo118{nombre: "sin-codigo", sesion: lee(nil, "articulo", norma, bloque, "--fecha", dia)},
+		lecturaDelArticulo118{
+			nombre: "herramienta-con-otra-fecha", sesion: llama(llamadaCorrecta(herramientaDeArticulo, conOtraFecha)),
+		},
+		lecturaDelArticulo118{
+			nombre: "herramienta-con-la-fecha-y-el-4",
+			sesion: llama(llamadaFallida(herramientaDeArticulo, conLaFecha, schema.ClaseFuenteNoDisponible)),
+		},
+	)
+
+	for _, codigo := range []int{2, 4, 5} {
+		lecturas = append(lecturas, lecturaDelArticulo118{
+			nombre: "fecha-con-el-" + strconv.Itoa(codigo),
+			sesion: lee(codigoDeSalida(codigo), "articulo", norma, bloque, "--fecha", dia),
+		})
+	}
+
+	for posicion, lectura := range lecturas {
+		lecturas[posicion].modo = ModoOrden
+		if len(lectura.sesion.Llamadas) > 0 {
+			lecturas[posicion].modo = ModoHerramienta
+		}
+	}
+
+	return lecturas
+}
+
+// probarElComandoSinFechaDeLaEval02 es el caso 9 de FR-089 de H20: la eval 02
+// de boe-legislacion, leída del repositorio, espera el bloque a1-30 de la LCSP
+// sin fecha; una sesión que lo cita y solo lo lee con fecha, como orden o como
+// herramienta, no lo cumple, y su único motivo es el comando ausente, el de
+// bloque sin fecha. La misma sesión con la lectura sin fecha pasa.
+func probarElComandoSinFechaDeLaEval02(t *testing.T) {
+	t.Parallel()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+
+	eval02 := *evalDe(t, conjunto.Evals, "02-lcsp-contrato-menor.yaml")
+	require.Equal(t, []ComandoEsperado{{Applet: "boe", Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}},
+		eval02.Comandos, "premisa: la eval 02 espera la lectura sin fecha del a1-30")
+
+	fechadas := []struct {
+		modo   Modo
+		sesion Sesion
+	}{
+		{modo: ModoOrden, sesion: sesionTerminada(true, respuestaConLaCita118, invocada(t, codigoDeSalida(0),
+			deLaSkill("articulo", normaDeLaLCSP, bloqueDelArticulo118, "--fecha", diaDeLaEvalConFecha, "--json")))},
+		{modo: ModoHerramienta, sesion: sesionDelModoHerramienta(t, respuestaConLaCita118, llamadaCorrecta(
+			herramientaDeArticulo, `{"norma":"BOE-A-2017-12902","bloque":"a1-30","fecha":"2019-06-01"}`))},
+	}
+
+	for _, fechada := range fechadas {
+		resultado := juzgarEnModo(eval02, fechada.sesion, skillDeLasSesiones, fechada.modo)
+
+		assert.False(t, resultado.Pasa, "en el modo %s, la lectura fechada no cumple la eval 02", fechada.modo)
+		assert.Equal(t, []string{"comando ausente: bloque boe BOE-A-2017-12902 a1-30"}, resultado.Motivos,
+			"en el modo %s, el único motivo es el del comando sin fecha", fechada.modo)
+	}
+
+	sinFecha := sesionTerminada(true, respuestaConLaCita118, invocada(t, codigoDeSalida(0),
+		deLaSkill("articulo", normaDeLaLCSP, bloqueDelArticulo118, "--json")))
+	resultado := juzgarEnModo(eval02, sinFecha, skillDeLasSesiones, ModoOrden)
+
+	assert.True(t, resultado.Pasa, "la lectura sin fecha cumple la eval 02: %v", resultado.Motivos)
+}
+
+// evalDelArticulo118 es una eval positiva sintética con ese comando esperado y la
+// cita del art. 118 de la LCSP.
+func evalDelArticulo118(comando ComandoEsperado) Eval {
+	return Eval{
+		Fichero:  "22-lcsp-contrato-menor-en-2019.yaml",
+		Pregunta: "¿qué exigía el artículo 118 de la LCSP para el expediente de un contrato menor el 1 de junio de 2019?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{comando},
+		Citas:    []CitaEsperada{{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}},
+	}
+}

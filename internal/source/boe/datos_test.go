@@ -31,12 +31,12 @@ type verboDescrito struct {
 }
 
 // verbosDescritos son los seis verbos con la Salida del contrato puerto-y-applet
-// §4.
+// §4; la de articulo, desde H20, ArticuloFechado (research.md D5).
 func verbosDescritos() []verboDescrito {
 	return []verboDescrito{
 		{verbo: "buscar", salida: []ResultadoDeBusqueda(nil)},
 		{verbo: "indice", salida: Indice{}},
-		{verbo: "articulo", salida: Articulo{}},
+		{verbo: "articulo", salida: ArticuloFechado{}},
 		{verbo: "articulos", salida: []Articulo(nil)},
 		{verbo: "metadatos", salida: Metadatos{}},
 		{verbo: "analisis", salida: Analisis{}},
@@ -124,20 +124,27 @@ func TestEnumeradosDeLosDatos(t *testing.T) {
 
 // TestClavesDeLosDatos fija las claves del data de cada verbo (data-model.md §2,
 // research.md D11): en el esquema que genera --describe, cada tipo de data
-// declara exactamente sus claves, todas obligatorias y en su orden, sin admitir
-// otras; y cada verbo describe exactamente los tipos de su data.
+// declara exactamente sus claves, obligatorias y en su orden todas menos las
+// opcionales de su tipo, sin admitir otras; y cada verbo describe exactamente los
+// tipos de su data. Las únicas opcionales son las dos de ArticuloFechado, que
+// lleva además las doce de Articulo, obligatorias como en la lectura sin fecha
+// (H20 FR-010, FR-012; research.md D5, D6).
 func TestClavesDeLosDatos(t *testing.T) {
 	t.Parallel()
+
+	clavesDelArticulo := []string{
+		"norma", "bloque", "titulo", "tipo", "fecha_version", "fecha_vigencia", "norma_modificadora", "texto",
+		"hash_texto", "avisos", "url", "url_eli",
+	}
 
 	clavesDe := map[string][]string{
 		"boe.ResultadoDeBusqueda": {"identificador", "titulo", "rango", "vigencia_agotada", "estado_consolidacion", "url"},
 		"boe.Indice":              {"norma", "url", "bloques"},
 		"boe.EntradaDeIndice":     {"id", "titulo", "tipo"},
-		"boe.Articulo": {
-			"norma", "bloque", "titulo", "tipo", "fecha_version", "fecha_vigencia", "norma_modificadora", "texto",
-			"hash_texto", "avisos", "url", "url_eli",
-		},
-		"boe.Aviso": {"codigo", "texto"},
+		"boe.Articulo":            clavesDelArticulo,
+		"boe.ArticuloFechado":     slices.Concat(clavesDelArticulo, []string{"fecha_pedida", "redaccion_posterior"}),
+		"boe.RedaccionPosterior":  {"fecha_vigencia", "norma_modificadora"},
+		"boe.Aviso":               {"codigo", "texto"},
 		"boe.Metadatos": {
 			"norma", "titulo", "rango", "numero_oficial", "fecha_disposicion", "fecha_publicacion", "fecha_vigencia",
 			"estatus_derogacion", "vigencia_agotada", "estado_consolidacion", "url_eli", "avisos",
@@ -150,10 +157,14 @@ func TestClavesDeLosDatos(t *testing.T) {
 		"boe.ReferenciaPosterior":   {"relacion", "norma"},
 	}
 
+	opcionalesDe := map[string][]string{
+		"boe.ArticuloFechado": {"fecha_pedida", "redaccion_posterior"},
+	}
+
 	tiposDe := map[string][]string{
 		"buscar":    {"boe.ResultadoDeBusqueda"},
 		"indice":    {"boe.Indice", "boe.EntradaDeIndice"},
-		"articulo":  {"boe.Articulo", "boe.Aviso"},
+		"articulo":  {"boe.ArticuloFechado", "boe.Aviso", "boe.RedaccionPosterior"},
 		"articulos": {"boe.Articulo", "boe.Aviso"},
 		"metadatos": {"boe.Metadatos", "boe.EstadoDeConsolidacion", "boe.Aviso"},
 		"analisis": {
@@ -179,9 +190,13 @@ func TestClavesDeLosDatos(t *testing.T) {
 				propiedades, esObjeto := esquema["properties"].(map[string]any)
 				require.Truef(t, esObjeto, "%s no declara sus propiedades", nombre)
 
+				obligatorias := slices.DeleteFunc(slices.Clone(claves), func(clave string) bool {
+					return slices.Contains(opcionalesDe[nombre], clave)
+				})
+
 				assert.ElementsMatchf(t, claves, slices.Collect(maps.Keys(propiedades)), "%s: claves", nombre)
-				assert.Equalf(t, claves, cadenasDe(t, nombre+"/required", esquema["required"]),
-					"%s: todas las claves obligatorias, en su orden", nombre)
+				assert.Equalf(t, obligatorias, cadenasDe(t, nombre+"/required", esquema["required"]),
+					"%s: todas las claves obligatorias menos las opcionales, en su orden", nombre)
 
 				adicionales, esBooleano := esquema["additionalProperties"].(bool)
 				assert.Truef(t, esBooleano && !adicionales, "%s admite claves que no declara", nombre)

@@ -12,6 +12,14 @@
 // boe.py, el requisito del spec de H4 lo dice con su motivo y la entrada de la
 // sección siguiente lo anota.
 //
+// articulo admite además --fecha, que refs/boe.py no tiene (H20): pide los mismos
+// dos recursos que sin ella, elige entre todas las versiones del bloque la que
+// regía ese día por su fecha_vigencia, nunca por su fecha de publicación, y
+// guarda las versiones en su propia entrada, sin leer ni escribir la del
+// artículo de hoy (fecha.go). Sin --fecha, articulo es el porte de siempre, y la
+// sección siguiente no cambia: anota boe.py, que solo da la última versión
+// (nota [5]).
+//
 // # Comportamientos no obvios de refs/boe.py
 //
 // refs/boe.py se leyó línea a línea antes de portar. Cada entrada anota un

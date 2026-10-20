@@ -32,11 +32,19 @@ import (
 // applet no consulta nada, y la eval de plazo solo necesita las consultas del
 // bloque que lee y cita; ni la eval de cobertura, que no espera comandos ni citas
 // (contracts/evals-legal-core.md §1 de H9).
+//
+// Desde H20, cada lectura de un bloque, la de un comando esperado o la de una
+// cita, va seguida de la misma con --fecha 9999-12-31, con los mismos orígenes:
+// la caché preparada sirve así la lectura del bloque en cualquier fecha. El
+// comando con fecha de una eval da las mismas dos lecturas que sin ella, nunca
+// la de su fecha (contracts/evals-redaccion-fechada.md §4 de H20; research D18;
+// FR-053).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
 	const (
 		lpac = "BOE-A-2015-10565"
+		lcsp = "BOE-A-2017-12902"
 
 		// otra es inventada —ninguna norma es del año 0000—: ConsultasNecesarias
 		// solo copia los identificadores.
@@ -50,7 +58,15 @@ func TestConsultasNecesarias(t *testing.T) {
 		deConsultaRepetida      = "06-lpac-articulo-21-redaccion-cambiada.yaml"
 		deUnPlazo               = "07-plazo-reposicion-leganes.yaml"
 		deUnaCobertura          = "08-cobertura-liquidacion-tributaria.yaml"
+		deContratoMenorEn2019   = "09-lcsp-contrato-menor-en-2019.yaml"
+		deArticulo21En2016      = "10-lpac-articulo-21-en-2016.yaml"
 	)
+
+	// fechada son los argumentos de la lectura del bloque con --fecha
+	// 9999-12-31, escritos a mano.
+	fechada := func(norma, bloque string) []string {
+		return []string{norma, bloque, "--fecha", "9999-12-31"}
+	}
 
 	// Una eval con las tres formas de comando, dos normas —la LPAC, de un comando
 	// y de sus citas; la otra, solo de una cita— y la cita del art. 21 dos veces,
@@ -162,6 +178,29 @@ func TestConsultasNecesarias(t *testing.T) {
 	normaDelPlazo := Origen{Eval: deUnPlazo, Punto: PuntoNormaDeLaEval}
 	citaDelPlazo := Origen{Eval: deUnPlazo, Punto: PuntoCitaEsperada}
 
+	// Dos evals con fecha, como las de H20: la de la LCSP lee y cita el bloque
+	// del comando con fecha; la de la LPAC solo lo lee, sin citas, para que sus
+	// dos lecturas salgan solo del comando. Ninguna de las dos fechas entra en
+	// una consulta: la del 2016-06-01 sale con 3, que sería una falta.
+	contratoMenorEn2019 := Eval{
+		Fichero:  deContratoMenorEn2019,
+		Pregunta: "¿qué exigía el artículo 118 de la LCSP para el expediente de un contrato menor el 1 de junio de 2019?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "boe", Norma: lcsp, Bloque: "a1-30", Fecha: "2019-06-01"}},
+		Citas:    []CitaEsperada{{Norma: lcsp, Bloque: "a1-30"}},
+	}
+	articulo21En2016 := Eval{
+		Fichero:  deArticulo21En2016,
+		Pregunta: "¿qué decía el artículo 21 de la Ley 39/2015 el 1 de junio de 2016?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "boe", Norma: lpac, Bloque: "a21", Fecha: "2016-06-01"}},
+	}
+	comandoDel2019 := Origen{Eval: deContratoMenorEn2019, Punto: PuntoComandoEsperado}
+	normaDel2019 := Origen{Eval: deContratoMenorEn2019, Punto: PuntoNormaDeLaEval}
+	citaDel2019 := Origen{Eval: deContratoMenorEn2019, Punto: PuntoCitaEsperada}
+	comandoDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoComandoEsperado}
+	normaDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoNormaDeLaEval}
+
 	casos := []struct {
 		nombre    string
 		conjunto  []Eval
@@ -176,6 +215,10 @@ func TestConsultasNecesarias(t *testing.T) {
 					Origenes: []Origen{comandoDeTresFormas, citaDeTresFormas},
 				},
 				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"),
+					Origenes: []Origen{comandoDeTresFormas, citaDeTresFormas},
+				},
+				{
 					Applet: "boe", Verbo: "indice", Argumentos: []string{lpac},
 					Origenes: []Origen{comandoDeTresFormas, normaDeTresFormas},
 				},
@@ -187,6 +230,7 @@ func TestConsultasNecesarias(t *testing.T) {
 				{Applet: "boe", Verbo: "indice", Argumentos: []string{otra}, Origenes: []Origen{normaDeTresFormas}},
 				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{otra}, Origenes: []Origen{normaDeTresFormas}},
 				{Applet: "boe", Verbo: "articulo", Argumentos: []string{otra, "a5"}, Origenes: []Origen{citaDeTresFormas}},
+				{Applet: "boe", Verbo: "articulo", Argumentos: fechada(otra, "a5"), Origenes: []Origen{citaDeTresFormas}},
 			},
 		},
 		{
@@ -197,12 +241,17 @@ func TestConsultasNecesarias(t *testing.T) {
 					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
 					Origenes: []Origen{comandoDel21, citaDel21},
 				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"),
+					Origenes: []Origen{comandoDel21, citaDel21},
+				},
 				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDel21, normaDel22}},
 				{
 					Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac},
 					Origenes: []Origen{normaDel21, comandoDel22, normaDel22},
 				},
 				{Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a22"}, Origenes: []Origen{citaDel22}},
+				{Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a22"), Origenes: []Origen{citaDel22}},
 			},
 		},
 		{
@@ -215,6 +264,10 @@ func TestConsultasNecesarias(t *testing.T) {
 			esperadas: []Consulta{
 				{
 					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
+					Origenes: []Origen{comandoDeTerritorioYArticulo21, citaDeTerritorioYArticulo21},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"),
 					Origenes: []Origen{comandoDeTerritorioYArticulo21, citaDeTerritorioYArticulo21},
 				},
 				{
@@ -235,6 +288,10 @@ func TestConsultasNecesarias(t *testing.T) {
 					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
 					Origenes: []Origen{comandoDeConsultaRepetida, citaDeConsultaRepetida},
 				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"),
+					Origenes: []Origen{comandoDeConsultaRepetida, citaDeConsultaRepetida},
+				},
 				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDeConsultaRepetida}},
 				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDeConsultaRepetida}},
 			},
@@ -251,8 +308,32 @@ func TestConsultasNecesarias(t *testing.T) {
 					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a124"},
 					Origenes: []Origen{comandoDelPlazo, citaDelPlazo},
 				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a124"),
+					Origenes: []Origen{comandoDelPlazo, citaDelPlazo},
+				},
 				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDelPlazo}},
 				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDelPlazo}},
+			},
+		},
+		{
+			nombre:   "comandos-con-fecha",
+			conjunto: []Eval{contratoMenorEn2019, articulo21En2016},
+			esperadas: []Consulta{
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lcsp, "a1-30"},
+					Origenes: []Origen{comandoDel2019, citaDel2019},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lcsp, "a1-30"),
+					Origenes: []Origen{comandoDel2019, citaDel2019},
+				},
+				{Applet: "boe", Verbo: "indice", Argumentos: []string{lcsp}, Origenes: []Origen{normaDel2019}},
+				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lcsp}, Origenes: []Origen{normaDel2019}},
+				{Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"}, Origenes: []Origen{comandoDel2016}},
+				{Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"), Origenes: []Origen{comandoDel2016}},
+				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDel2016}},
+				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDel2016}},
 			},
 		},
 		{

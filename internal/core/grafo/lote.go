@@ -64,6 +64,10 @@ type Consolidado struct {
 	Aristas []RegistroDeArista
 	// Textos son los registros de los textos, por huella.
 	Textos []RegistroDeTexto
+	// SoloLoNuevo es el del lote: con él, el adaptador escribe solo los
+	// registros que el grafo no guarda y deja como están los que guarda (H20
+	// FR-031; research.md D9).
+	SoloLoNuevo bool
 }
 
 // Consolidar valida el lote con ValidarLote y lo reduce a un registro por
@@ -129,6 +133,7 @@ func Consolidar(lote core.Lote) (Consolidado, error) {
 		Textos: slices.SortedFunc(maps.Values(textos), func(a, b RegistroDeTexto) int {
 			return strings.Compare(a.Huella, b.Huella)
 		}),
+		SoloLoNuevo: lote.SoloLoNuevo,
 	}, nil
 }
 
