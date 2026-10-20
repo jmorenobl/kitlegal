@@ -71,19 +71,20 @@ type ArticuloFechado struct {
 	// FechaPedida es el día de --fecha tal como se pidió, AAAA-MM-DD (research.md
 	// D6).
 	FechaPedida string `json:"fecha_pedida,omitempty"`
-	// RedaccionPosterior es la última versión del bloque cuando no es la
-	// elegida; nula si lo es (FR-013).
+	// RedaccionPosterior es la versión de mayor fecha_vigencia del bloque
+	// cuando no es la elegida; nula si lo es (FR-013).
 	RedaccionPosterior *RedaccionPosterior `json:"redaccion_posterior,omitempty"`
 }
 
-// RedaccionPosterior es la última versión de un bloque leído con --fecha que no
-// es la elegida: su fecha_vigencia y su norma_modificadora, con los nombres y la
+// RedaccionPosterior es la versión de mayor fecha_vigencia de un bloque leído
+// con --fecha cuando no es la elegida (la última, en un bloque en orden
+// creciente): su fecha_vigencia y su norma_modificadora, con los nombres y la
 // forma AAAAMMDD de esos campos del artículo, de la misma respuesta (research.md
 // D6). No dice hasta cuándo rigió la elegida: entre las dos puede haber otras.
 type RedaccionPosterior struct {
-	// FechaVigencia es la fecha_vigencia de la última versión.
+	// FechaVigencia es la fecha_vigencia de esa versión.
 	FechaVigencia string `json:"fecha_vigencia"`
-	// NormaModificadora es el id_norma de la última versión.
+	// NormaModificadora es el id_norma de esa versión.
 	NormaModificadora string `json:"norma_modificadora"`
 }
 

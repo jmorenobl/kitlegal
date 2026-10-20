@@ -134,7 +134,7 @@
       },
       "$id": "https://kitlegal.es/schemas/bloque.json/articulo",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
-      "description": "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia.",
+      "description": "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia; con --fecha AAAA-MM-DD, la redacción vigente ese día.",
       "properties": {
         "entrada": {
           "additionalProperties": false,

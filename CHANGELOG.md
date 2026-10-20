@@ -23,7 +23,7 @@ sustituyen a este fichero.
   cambia.
   - **`data`** es el de la versión elegida —su texto, `fecha_version`, `fecha_vigencia`, `norma_modificadora` y los
     avisos de vigencia de la norma hoy— y lleva además `fecha_pedida` y, si hoy rige otra, `redaccion_posterior`, con
-    la `fecha_vigencia` y la `norma_modificadora` de la última versión del bloque; `schemas/bloque.json`, el que emite
+    la `fecha_vigencia` y la `norma_modificadora` de la versión de mayor fecha de vigencia del bloque; `schemas/bloque.json`, el que emite
     `--describe`, los lleva.
   - **Códigos.** `2`, `argumentos`, con una fecha que no es un día `AAAA-MM-DD` del calendario; y `3`,
     `no-encontrado`, sin texto, con una fecha anterior a la primera vigencia del bloque, cuyo mensaje nombra la fecha
@@ -61,6 +61,13 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **`boe articulo --fecha` elige por la fecha de vigencia, no por el orden de las versiones.** La versión elegida es
+  la de mayor `fecha_vigencia` que no es posterior al día pedido, y a igualdad, la última en el orden del bloque; la
+  `redaccion_posterior`, la de mayor `fecha_vigencia` del bloque; y el `3` de una fecha anterior a la primera
+  vigencia nombra la menor. Hasta ahora se tomaba la última en el orden en que el BOE da las versiones, que es
+  creciente y da lo mismo, pero nada lo garantiza. La lectura sin `--fecha` sigue dando la última en ese orden.
+- **La descripción de `boe articulo` nombra `--fecha`.** La de la herramienta `boe_articulo` y la de la tabla de
+  comandos de `boe-legislacion` dicen ahora que, con `--fecha AAAA-MM-DD`, devuelve la redacción vigente ese día.
 - **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;
   H27 y H28 ya estaban en la lista cerrada de `workflow.yml` y H9.1 no, así que `scripts/hito.sh H9.1` no habría
   creado el run. Lo comprueba `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow`.

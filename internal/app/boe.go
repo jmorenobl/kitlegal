@@ -109,7 +109,7 @@ func (a appletBoe) Verbos() []Verbo {
 		},
 		{
 			Nombre:      "articulo",
-			Descripcion: "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia.",
+			Descripcion: "Devuelve el texto vigente de un bloque de una norma, con los avisos de su vigencia; con --fecha AAAA-MM-DD, la redacción vigente ese día.",
 			Argumentos:  func() Argumentos { return &argumentosDeArticulo{dependencias: a.dependencias} },
 			// Con --fecha, la lectura fechada; sin ella, Articulo, sin sus dos
 			// campos opcionales (H20 FR-010, FR-012; research.md D5).
