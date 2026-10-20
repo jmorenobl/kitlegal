@@ -641,7 +641,9 @@ de plazo y una de cobertura (la regla «cobertura por materia»). En esos dos co
 binario ni servidor**, que no cuenta como positiva (hoy, `21-sin-binario-ni-servidor.yaml` en `boe-legislacion` y
 `04-sin-binario-ni-servidor.yaml` en `legal-core`). En `boe-legislacion`, desde H20, las evals con
 `redaccion_fechada` —la 22 y la 23— se apartan de las positivas como la eval sin binario ni servidor: las miran el
-esquema y las normas conocidas, y no las diez positivas ni sus materias. Para `jurisprudencia` (`ReglasDeJurisprudencia`), exactamente diez
+esquema y las normas conocidas, y no las diez positivas ni sus materias. En `legal-core`, desde el ADR 0041, la
+llevan las de plazo —la 05, la 06 y la 09—, que leen cada precepto en la fecha de la notificación; sus reglas no miran
+las positivas, y no cambian. Para `jurisprudencia` (`ReglasDeJurisprudencia`), exactamente diez
 evals, que activan todas la skill y declaran todas `sentencias`: tres con la línea `⚠ SENTENCIA NO COMPROBADA:`,
 ninguna cita, una dirección y las casillas «Nº Resolución» y «Fecha resolución», con `cita preparar`; dos con la
 dirección de búsqueda y ninguna cita, con `cita preparar` con texto; tres con una cita, con `cita cotejar`; una sin
@@ -1253,20 +1255,21 @@ H20, si alguna lleva `redaccion_fechada`, y los de
   `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`,
   con `; <sesión>` por cada otra.
 
-  **En `legal-core` son seis, y deciden los seis** (`TestUmbralesDeLegalCore`), desde H9: no tiene juez ni objetivo
-  de duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura. Por cada modo, el orden
-  y luego el de la herramienta:
+  **En `legal-core` son ocho, y deciden los ocho** (`TestUmbralesDeLegalCore`): no tiene juez ni objetivo de
+  duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura, desde H9, y con las de plazo
+  con `redaccion_fechada`, desde el ADR 0041. Por cada modo, el orden y luego el de la herramienta:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
   | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (21) | `0` | sí |
   | `plazo_sin_fecha:<modelo>:<modo>` | Las de una eval de plazo sin la línea `⚠ PLAZO:` con la fecha esperada; los avisos no entran | Sus respuestas medidas en ese modo, en las evals de plazo (9) | `0` | sí |
   | `cobertura_sin_declarar:<modelo>:<modo>` | Las de una eval de cobertura sin la línea `⚠ NO CUBIERTO:` con la norma esperada, o con una línea `⚠ PLAZO:` de cualquier fecha | Sus respuestas medidas en ese modo, en las evals de cobertura (6) | `0` | sí |
+  | `redaccion_sin_fechar:<modelo>:<modo>` | Las de una eval con `redaccion_fechada` cuya sesión no leyó el bloque de la eval en su fecha o cuya respuesta no lleva las líneas que la eval espera, como en `boe-legislacion` | Sus respuestas medidas en ese modo, en las evals con `redaccion_fechada` (9) | `0` | sí |
 
-  Los dos últimos son hechos de la respuesta y se miden sin modelo, con lo que el juicio ya leyó de ella; cada sesión
+  Los tres últimos son hechos de la respuesta y se miden sin modelo, con lo que el juicio ya leyó de ella; cada sesión
   cuenta una vez como mucho, y una de una eval que no es de su clase no está ni en la `medida` ni en el `total`. Lo
-  tiene toda skill con alguna eval de plazo, el primero, o de cobertura, el segundo, detrás de `documento_sin_cotejar`
-  si lo tiene; el código no nombra ninguna skill. Si no se cumplen, su motivo nombra cada sesión que cuenta, como el
+  tiene toda skill con alguna eval de plazo, el primero, de cobertura, el segundo, o con `redaccion_fechada`, el
+  tercero, detrás de `documento_sin_cotejar` si lo tiene; el código no nombra ninguna skill. Si no se cumplen, su motivo nombra cada sesión que cuenta, como el
   de `documento_sin_cotejar`:
   `umbral plazo_sin_fecha:claude-sonnet-5-5:orden: 1 de 9 (11,1 %), y tiene que ser ≤ 0,0 %: <sesión>`.
 - **El juez**: `juez`, en la raíz de `informe.json` detrás de `umbrales`, y `null` si la skill no tiene juez. Lleva

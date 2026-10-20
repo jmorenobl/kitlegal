@@ -140,9 +140,18 @@ juzgado).
 - Con el código 2 o 3, como en el paso 4: los candidatos de un municipio van en `data.mensaje` tras el municipio
   pedido.
 
-### 10. Leer el precepto
+### 10. Leer el precepto en la fecha de inicio
 
-Lee con `boe-legislacion` cada precepto de `data.preceptos` antes de citarlo, y cítalo como ella cita.
+Un plazo se rige por la redacción vigente el día en que empieza, no por la de hoy, que puede ser otra. Por eso cada
+precepto de `data.preceptos`, y la norma del procedimiento que leas para el silencio, se lee con `boe-legislacion` en
+la fecha de inicio que pasaste a `plazos` (paso 8), con `boe_articulo` y `fecha` o con su orden, sin
+`kitlegal graph check` detrás, y se cita como ella cita una redacción a fecha:
+`kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`.
+
+- La respuesta lleva, por cada precepto así leído, su línea `⚠ REDACCIÓN A FECHA:` («Cómo se presenta un plazo»).
+- Si el `data` de la lectura trae `redaccion_posterior`, el precepto cambió después de ese día: va también su línea
+  `⚠ REDACCIÓN DE HOY:`. `plazos` cuenta con la duración de la redacción de hoy, y cuál de las dos rige el plazo lo
+  dice el régimen transitorio de la norma que lo cambió, que no has leído: dilo así.
 
 ### 11. Responder con el plazo
 
@@ -190,6 +199,15 @@ contencioso-administrativo:
 Dos bloques en unos mismos corchetes —«bloques a46 y a128», o «bloque a46; …, bloque a128»— no son una cita de ninguno
 de los dos.
 
+Detrás de la línea del plazo, una línea por cada precepto leído en la fecha de inicio (paso 10), con la fecha de
+inicio y la fecha de vigencia que da la lectura; y, si la lectura trae `redaccion_posterior`, también la segunda, con
+la norma y la fecha de vigencia de ese campo:
+
+```text
+⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <bloque>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.
+⚠ REDACCIÓN DE HOY: <forma legible> [<identificador>, bloque <bloque>]: hoy la redacción es otra, la de <identificador>, con fecha de vigencia AAAAMMDD.
+```
+
 La declaración de que el asunto no está cubierto, con el procedimiento como lo nombra
 `references/cobertura_por_materia.md`; la primera si la entrada trae la norma que lo rige, la segunda si no:
 
@@ -207,7 +225,9 @@ Los avisos, cada uno con el `texto` de `data.avisos`, que empieza por una de est
 ⚠ FESTIVO DE UNA PARTE: …
 ```
 
-Detrás de cada línea puedes explicarla con tus palabras; las líneas no se cambian.
+Cada línea `⚠` la lee un programa sin leer el resto de la respuesta, y comprueba en ella su etiqueta, sus fechas, sus
+normas y sus citas: lo que dice solo se comprueba en ella, y dicho con otras palabras, la línea falta. Por eso va
+entera, en una sola línea y con su forma; detrás puedes explicarla con tus palabras.
 
 ## Comandos
 
