@@ -325,12 +325,14 @@ func TestLeerEval(t *testing.T) {
 			error:     nombreDeEval + ": línea 1: missing property 'activa'",
 		},
 		{
-			// Sin citas, territorio ni, desde H9, plazo fallan las tres ramas del
-			// anyOf del esperado verificable, y el defecto es una hoja de cada una.
+			// Sin citas, territorio ni, desde H9, plazo, ni, desde el ADR 0042,
+			// plazo_sin_calcular fallan las cuatro ramas del anyOf del esperado
+			// verificable, y el defecto es una hoja de cada una.
 			nombre:    "positiva-sin-esperado-verificable",
 			documento: preguntaDelArticulo21 + "activa: true\n" + comandoDelArticulo21,
 			error: nombreDeEval + ": línea 1: missing property 'citas'\n" +
 				"línea 1: missing property 'plazo'\n" +
+				"línea 1: missing property 'plazo_sin_calcular'\n" +
 				"línea 1: missing property 'territorio'",
 		},
 		{
@@ -1071,6 +1073,7 @@ func TestFormatoDeSentencias(t *testing.T) {
 			error: nombreDeEval + ": l\xc3\xadnea 1: missing property 'citas'\n" +
 				"l\xc3\xadnea 1: missing property 'comandos'\n" +
 				"l\xc3\xadnea 1: missing property 'plazo'\n" +
+				"l\xc3\xadnea 1: missing property 'plazo_sin_calcular'\n" +
 				"l\xc3\xadnea 1: missing property 'territorio'",
 		},
 		{
@@ -1078,6 +1081,7 @@ func TestFormatoDeSentencias(t *testing.T) {
 			documento: activa + preparar,
 			error: nombreDeEval + ": l\xc3\xadnea 1: missing property 'citas'\n" +
 				"l\xc3\xadnea 1: missing property 'plazo'\n" +
+				"l\xc3\xadnea 1: missing property 'plazo_sin_calcular'\n" +
 				"l\xc3\xadnea 1: missing property 'territorio'",
 		},
 		{
@@ -1255,6 +1259,8 @@ const (
 	prohibidoElCalculo = "prohibidos:\n" +
 		"  - applet: plazos\n" +
 		"    verbo: calcular\n"
+	sinCalcularPorLaLPAC = "plazo_sin_calcular:\n" +
+		"  norma: BOE-A-2015-10565\n"
 )
 
 // TestFormatoDePlazos fija lo que H9 da al formato de eval
@@ -1329,6 +1335,53 @@ func TestFormatoDePlazos(t *testing.T) {
 				Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
 				NoCubierto: NoCubiertoEsperado{Norma: lgt},
 			},
+		},
+		{
+			// Con plazo_sin_calcular, la eval lleva comandos y puede no llevar
+			// citas, y su comando calcular, sin_calcular (ADR 0042).
+			nombre:    "plazo-sin-calcular",
+			documento: activa + comandoDelCalculo + "    sin_calcular: true\n" + sinCalcularPorLaLPAC,
+			leida: Eval{
+				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
+				Comandos:         []ComandoEsperado{{Applet: "plazos", Verbo: "calcular", Tipo: "reposicion", SinCalcular: true}},
+				PlazoSinCalcular: PlazoSinCalcularEsperado{Norma: "BOE-A-2015-10565"},
+			},
+		},
+		{
+			nombre:    "plazo-sin-calcular-sin-comandos",
+			documento: activa + sinCalcularPorLaLPAC,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: missing property 'comandos'",
+		},
+		{
+			nombre:    "plazo-y-plazo-sin-calcular",
+			documento: activa + comandoDelCalculo + plazoSinAvisos + sinCalcularPorLaLPAC,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "no-cubierto-y-plazo-sin-calcular",
+			documento: activa + comandoDelCalculo + noCubiertoPorLaLGT + sinCalcularPorLaLPAC,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "plazo-sin-calcular-en-una-eval-que-no-activa-la-skill",
+			documento: preguntaDelPlazo + "activa: false\n" + sinCalcularPorLaLPAC,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "plazo-sin-calcular-en-una-eval-sin-binario-ni-servidor",
+			documento: activa + sinBinarioNiServidor + sinCalcularPorLaLPAC,
+			error:     nombreDeEval + ": l\xc3\xadnea 1: 'not' failed",
+		},
+		{
+			nombre:    "plazo-sin-calcular-sin-su-forma",
+			documento: activa + comandoDelCalculo + "plazo_sin_calcular:\n  norma: LPAC\n",
+			error: nombreDeEval + ": plazo_sin_calcular/norma, l\xc3\xadnea 8: 'LPAC' does not match pattern " +
+				normaDelEsquema,
+		},
+		{
+			nombre:     "calcular-con-sin-calcular-falso",
+			documento:  activa + comandoDelCalculo + "    sin_calcular: false\n" + plazoSinAvisos,
+			fragmentos: []string{"comandos/0/sin_calcular, l\xc3\xadnea 7: "},
 		},
 		{
 			nombre:    "plazo-sin-comandos",
@@ -1447,6 +1500,7 @@ func TestFormatoDePlazos(t *testing.T) {
 			for _, eval := range conjunto.Evals {
 				assert.Zero(t, eval.Plazo, "%s de %s se lee sin plazo", eval.Fichero, dir)
 				assert.Zero(t, eval.NoCubierto, "%s de %s se lee sin no_cubierto", eval.Fichero, dir)
+				assert.Zero(t, eval.PlazoSinCalcular, "%s de %s se lee sin plazo_sin_calcular", eval.Fichero, dir)
 
 				for posicion, comando := range eval.Comandos {
 					assert.Empty(t, comando.Tipo, "el comando %d de %s de %s se lee sin tipo", posicion, eval.Fichero, dir)

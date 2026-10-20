@@ -182,15 +182,18 @@ type ResultadoDeEval struct {
 	// son los códigos de los avisos esperados, en el orden de la eval, cuya forma
 	// fija no lleva (ExtraerAvisosDelPlazo). NoCubiertoDeclarado dice, en una de
 	// cobertura, si lleva la declaración de no cubierto en su forma fija con la
-	// norma esperada (ExtraerNoCubierto). Y LineasDelPlazo son, en las dos, las
+	// norma esperada (ExtraerNoCubierto), y PlazoSinCalcularDeclarado, en una de
+	// vigencia, si lleva la de un plazo sin calcular con la norma esperada
+	// (ExtraerPlazoSinCalcular; ADR 0042). Y LineasDelPlazo son, en las tres, las
 	// fechas de las líneas del plazo en su forma fija de la respuesta, en su orden
 	// y con sus repeticiones (ExtraerLineasDelPlazo). Falsos y vacías en las demás
 	// evals, que no los juzgan (contracts/evals-legal-core.md §2 de H9;
 	// data-model §3 de H9; FR-048, FR-051).
-	PlazoEncontrado        bool     `json:"plazo_encontrado"`
-	AvisosDelPlazoAusentes []string `json:"avisos_del_plazo_ausentes"`
-	NoCubiertoDeclarado    bool     `json:"no_cubierto_declarado"`
-	LineasDelPlazo         []string `json:"lineas_del_plazo"`
+	PlazoEncontrado           bool     `json:"plazo_encontrado"`
+	AvisosDelPlazoAusentes    []string `json:"avisos_del_plazo_ausentes"`
+	NoCubiertoDeclarado       bool     `json:"no_cubierto_declarado"`
+	PlazoSinCalcularDeclarado bool     `json:"plazo_sin_calcular_declarado"`
+	LineasDelPlazo            []string `json:"lineas_del_plazo"`
 
 	// TerritorioEncontrado y TerritorioAusente reparten los elementos del
 	// territorio esperado, en el orden de la eval —comunidad, provincia, cada
@@ -1048,8 +1051,9 @@ func compruebaLaMemoria(invocacion Invocacion, norma string) bool {
 
 // consultoComoPide dice si la invocación consultó y terminó con un código que
 // el comando admite: ni --describe ni --dry-run, que no leen nada, ni la que
-// quedó sin código. Todo comando admite el 0, y el de bloque con fecha, también
-// el 3 (codigoNoEncontrado).
+// quedó sin código. Todo comando admite el 0, y el de bloque con fecha y,
+// desde el ADR 0042, el calcular de un plazo sin calcular, también el 3
+// (codigoNoEncontrado).
 func consultoComoPide(invocacion Invocacion, comando ComandoEsperado) bool {
 	if !invocacion.Consulta || invocacion.Codigo == nil {
 		return false
@@ -1059,7 +1063,7 @@ func consultoComoPide(invocacion Invocacion, comando ComandoEsperado) bool {
 	case 0:
 		return true
 	case codigoNoEncontrado:
-		return comando.Fecha != ""
+		return comando.Fecha != "" || comando.SinCalcular
 	default:
 		return false
 	}

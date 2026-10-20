@@ -729,7 +729,8 @@ func incumplimientoDelMunicipioNoCubierto(conjunto *conjuntoAComprobar) string {
 
 // incumplimientoDelEsperadoVerificable: toda eval activa declara citas,
 // territorio o, desde H9, un plazo o una declaración de no cubierto en lo
-// esperado (contracts/evals-legal-core.md §4 de H9), salvo la eval sin binario
+// esperado (contracts/evals-legal-core.md §4 de H9) o, desde el ADR 0042, la de
+// un plazo sin calcular, salvo la eval sin binario
 // ni servidor, cuyo formato no admite ninguno: lo que su respuesta tiene que
 // llevar lo fija su juicio. Nombra las que no.
 func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
@@ -737,7 +738,7 @@ func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
 
 	for posicion, eval := range conjunto.evals {
 		if eval.Activa && !eval.SinBinarioNiServidor && len(eval.Citas) == 0 && len(eval.Territorio.elementos()) == 0 &&
-			!eval.esDePlazo() && !eval.esDeCobertura() {
+			!eval.esDePlazo() && !eval.esDeCobertura() && !eval.esDeVigencia() {
 			sinVerificable = append(sinVerificable, posicion)
 		}
 	}
@@ -746,7 +747,8 @@ func incumplimientoDelEsperadoVerificable(conjunto *conjuntoAComprobar) string {
 		return ""
 	}
 
-	return "evals activas sin citas, territorio, plazo ni no_cubierto en lo esperado: " + conjunto.ficheros(sinVerificable)
+	return "evals activas sin citas, territorio, plazo, no_cubierto ni plazo_sin_calcular en lo esperado: " +
+		conjunto.ficheros(sinVerificable)
 }
 
 // incumplimientoDeLaCoberturaPorMateria: al menos una eval de plazo, la que

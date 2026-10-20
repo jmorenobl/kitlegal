@@ -11,7 +11,8 @@ import (
 )
 
 // plazosDelContrato es data/plazos.yaml tal como lo fija contracts/datos-de-plazos.md
-// §2. Es una copia a propósito: el test del dominio no abre ficheros (R1), y el
+// §2, con el día desde el que rige cada precepto y los preceptos de cada
+// cómputo del ADR 0042. Es una copia a propósito: el test del dominio no abre ficheros (R1), y el
 // del repositorio lo comprueba contra lo grabado del BOE otro test
 // (TestPreceptosDeLosPlazos).
 const plazosDelContrato = `tipos:
@@ -20,45 +21,60 @@ const plazosDelContrato = `tipos:
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
     preceptos:
-      - {norma: BOE-A-2015-10565, bloque: a122, apartado: "122.1", fija: duracion}
+      - {norma: BOE-A-2015-10565, bloque: a122, apartado: "122.1", fija: duracion, vigente_desde: "2016-10-02"}
   - codigo: reposicion
     nombre: recurso potestativo de reposición
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
     preceptos:
-      - {norma: BOE-A-2015-10565, bloque: a124, apartado: "124.1", fija: duracion}
+      - {norma: BOE-A-2015-10565, bloque: a124, apartado: "124.1", fija: duracion, vigente_desde: "2016-10-02"}
   - codigo: contencioso
     nombre: recurso contencioso-administrativo
     computo: contencioso
     duracion: {cantidad: 2, unidad: meses}
     preceptos:
-      - {norma: BOE-A-1998-16718, bloque: a46, apartado: "46.1", fija: duracion}
-      - {norma: BOE-A-1998-16718, bloque: a128, apartado: "128.2", fija: agosto}
+      - {norma: BOE-A-1998-16718, bloque: a46, apartado: "46.1", fija: duracion, vigente_desde: "1998-12-14"}
+      - {norma: BOE-A-1998-16718, bloque: a128, apartado: "128.2", fija: agosto, vigente_desde: "1998-12-14"}
   - codigo: acceso-resolver
     nombre: plazo para resolver una solicitud de acceso a la información pública
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
     preceptos:
-      - {norma: BOE-A-2013-12887, bloque: a20, apartado: "20.1", fija: duracion}
+      - {norma: BOE-A-2013-12887, bloque: a20, apartado: "20.1", fija: duracion, vigente_desde: "2014-12-10"}
   - codigo: acceso-reclamar
     nombre: reclamación contra la resolución de una solicitud de acceso
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
     preceptos:
-      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion}
+      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion, vigente_desde: "2014-12-10"}
   - codigo: silencio
     nombre: día en que se produce el silencio administrativo
     computo: lpac
     preceptos:
-      - {norma: BOE-A-2015-10565, bloque: a21, apartado: "21.3", fija: inicio}
-      - {norma: BOE-A-2015-10565, bloque: a24, apartado: "24.4", fija: silencio}
+      - {norma: BOE-A-2015-10565, bloque: a21, apartado: "21.3", fija: inicio, vigente_desde: "2016-10-02"}
+      - {norma: BOE-A-2015-10565, bloque: a24, apartado: "24.4", fija: silencio, vigente_desde: "2016-10-02"}
   - codigo: generico
     nombre: plazo genérico
     computo: lpac
     unidades:
-      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
-      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
-      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo}
+      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
+      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
+      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo, vigente_desde: "2016-10-02"}
+computos:
+  - codigo: lpac
+    preceptos:
+      - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: habiles, vigente_desde: "2016-10-02"}
+      - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.3", fija: inicio, vigente_desde: "2016-10-02"}
+      - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: meses, vigente_desde: "2016-10-02"}
+      - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.5", fija: prorroga, vigente_desde: "2016-10-02"}
+      - {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.6", fija: municipios, vigente_desde: "2016-10-02"}
+  - codigo: contencioso
+    preceptos:
+      - {norma: BOE-A-1985-12666, bloque: acientoochentaydos, apartado: "182.1", fija: inhabiles, vigente_desde: "2022-12-23"}
+      - {norma: BOE-A-1985-12666, bloque: acientoochentaytres, apartado: "183", fija: aviso, vigente_desde: "2022-12-23"}
+      - {norma: BOE-A-1985-12666, bloque: acientoochentaycinco, apartado: "185.1", fija: meses, vigente_desde: "1985-07-03"}
+      - {norma: BOE-A-1985-12666, bloque: acientoochentaycinco, apartado: "185.2", fija: prorroga, vigente_desde: "1985-07-03"}
+      - {norma: BOE-A-1889-4763, bloque: art5, apartado: "5.1", fija: meses, vigente_desde: "1974-07-29"}
 `
 
 // TestLeerTipos lee los siete tipos del contrato y rechaza el fichero en cada
@@ -87,17 +103,33 @@ func TestLeerTipos(t *testing.T) {
 			Computo:  ComputoContencioso,
 			Duracion: &Duracion{Cantidad: 2, Unidad: UnidadMeses},
 			Preceptos: []Precepto{
-				{Norma: "BOE-A-1998-16718", Bloque: "a46", Apartado: "46.1", Fija: FijaDuracion},
-				{Norma: "BOE-A-1998-16718", Bloque: "a128", Apartado: "128.2", Fija: "agosto"},
+				{Norma: "BOE-A-1998-16718", Bloque: "a46", Apartado: "46.1", Fija: FijaDuracion, VigenteDesde: "1998-12-14"},
+				{Norma: "BOE-A-1998-16718", Bloque: "a128", Apartado: "128.2", Fija: "agosto", VigenteDesde: "1998-12-14"},
+			},
+			PreceptosDelComputo: []Precepto{
+				{Norma: "BOE-A-1985-12666", Bloque: "acientoochentaydos", Apartado: "182.1", Fija: "inhabiles", VigenteDesde: "2022-12-23"},
+				{Norma: "BOE-A-1985-12666", Bloque: "acientoochentaytres", Apartado: "183", Fija: "aviso", VigenteDesde: "2022-12-23"},
+				{Norma: "BOE-A-1985-12666", Bloque: "acientoochentaycinco", Apartado: "185.1", Fija: "meses", VigenteDesde: "1985-07-03"},
+				{Norma: "BOE-A-1985-12666", Bloque: "acientoochentaycinco", Apartado: "185.2", Fija: "prorroga", VigenteDesde: "1985-07-03"},
+				{Norma: "BOE-A-1889-4763", Bloque: "art5", Apartado: "5.1", Fija: "meses", VigenteDesde: "1974-07-29"},
 			},
 		}, tipos[2])
 
+		for _, tipo := range tipos {
+			if tipo.Computo == ComputoLPAC {
+				assert.Len(t, tipo.PreceptosDelComputo, 5, "el tipo %q lleva los cinco apartados del art. 30 LPAC",
+					tipo.Codigo)
+			}
+		}
+
 		assert.Nil(t, tipos[5].Duracion, "el silencio no fija su duración")
 		assert.Nil(t, tipos[5].Unidades)
+		const desdeLaLPAC = "2016-10-02"
+
 		assert.Equal(t, map[Unidad]Precepto{
-			UnidadDiasHabiles:   {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.2", Fija: "computo"},
-			UnidadDiasNaturales: {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.2", Fija: "computo"},
-			UnidadMeses:         {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.4", Fija: "computo"},
+			UnidadDiasHabiles:   {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.2", Fija: "computo", VigenteDesde: desdeLaLPAC},
+			UnidadDiasNaturales: {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.2", Fija: "computo", VigenteDesde: desdeLaLPAC},
+			UnidadMeses:         {Norma: "BOE-A-2015-10565", Bloque: "a30", Apartado: "30.4", Fija: "computo", VigenteDesde: desdeLaLPAC},
 		}, tipos[6].Unidades)
 		assert.Empty(t, tipos[6].Preceptos)
 	})
@@ -169,14 +201,16 @@ func variantesQueSeRechazan() []varianteDeTipos {
     computo: lpac
     duracion: {cantidad: 1, unidad: meses}
     preceptos:
-      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion}
+      - {norma: BOE-A-2013-12887, bloque: a24, apartado: "24.2", fija: duracion, vigente_desde: "2014-12-10"}
 `
 
 	const unidadesDeGenerico = `    unidades:
-      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
-      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo}
-      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo}
+      dias-habiles: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
+      dias-naturales: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.2", fija: computo, vigente_desde: "2016-10-02"}
+      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: "30.4", fija: computo, vigente_desde: "2016-10-02"}
 `
+
+	const computoContencioso = "  - codigo: contencioso\n    preceptos:\n"
 
 	return []varianteDeTipos{
 		{nombre: "vacío", contenido: " \n", motivo: "está vacío"},
@@ -250,7 +284,8 @@ func variantesQueSeRechazan() []varianteDeTipos {
 			nombre: "unidades fuera de generico",
 			cambio: &cambioDeTexto{
 				de: "    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a122,",
-				a: "    unidades:\n      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo}\n" +
+				a: "    unidades:\n      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo, " +
+					"vigente_desde: \"2016-10-02\"}\n" +
 					"    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a122,",
 			},
 			motivo: `el tipo "alzada" lleva unidades, que solo lleva generico`,
@@ -268,7 +303,8 @@ func variantesQueSeRechazan() []varianteDeTipos {
 		{
 			nombre: "generico sin una de las tres unidades",
 			cambio: &cambioDeTexto{
-				de: "      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo}\n",
+				de: "      meses: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo, " +
+					"vigente_desde: \"2016-10-02\"}\n",
 			},
 			motivo: `el tipo "generico" no lleva la unidad "meses"`,
 		},
@@ -276,7 +312,8 @@ func variantesQueSeRechazan() []varianteDeTipos {
 			nombre: "generico con una unidad desconocida",
 			cambio: &cambioDeTexto{
 				de: "      meses: {norma",
-				a:  "      semanas: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo}\n      meses: {norma",
+				a: "      semanas: {norma: BOE-A-2015-10565, bloque: a30, apartado: \"30.4\", fija: computo, " +
+					"vigente_desde: \"2016-10-02\"}\n      meses: {norma",
 			},
 			motivo: `el tipo "generico" lleva la unidad "semanas", que no es meses, dias-habiles ni dias-naturales`,
 		},
@@ -296,11 +333,63 @@ func variantesQueSeRechazan() []varianteDeTipos {
 		{
 			nombre: "un tipo sin precepto",
 			cambio: &cambioDeTexto{
-				de: "    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a21, apartado: \"21.3\", fija: inicio}\n" +
-					"      - {norma: BOE-A-2015-10565, bloque: a24, apartado: \"24.4\", fija: silencio}\n",
+				de: "    preceptos:\n      - {norma: BOE-A-2015-10565, bloque: a21, apartado: \"21.3\", fija: inicio, " +
+					"vigente_desde: \"2016-10-02\"}\n      - {norma: BOE-A-2015-10565, bloque: a24, apartado: \"24.4\", " +
+					"fija: silencio, vigente_desde: \"2016-10-02\"}\n",
 				a: "    preceptos: []\n",
 			},
 			motivo: `el tipo "silencio" no nombra ningún precepto`,
+		},
+		{
+			nombre: "un precepto sin vigente_desde",
+			cambio: &cambioDeTexto{de: `fija: duracion, vigente_desde: "2016-10-02"}`, a: "fija: duracion}"},
+			motivo: `el precepto 1 del tipo "alzada" no tiene vigente_desde`,
+		},
+		{
+			nombre: "un vigente_desde que no es un día",
+			cambio: &cambioDeTexto{
+				de: `apartado: "128.2", fija: agosto, vigente_desde: "1998-12-14"`,
+				a:  `apartado: "128.2", fija: agosto, vigente_desde: "1998-02-30"`,
+			},
+			motivo: `el precepto 2 del tipo "contencioso" tiene un vigente_desde, "1998-02-30", que no es una fecha AAAA-MM-DD`,
+		},
+		{
+			nombre: "un vigente_desde sin sus ceros",
+			cambio: &cambioDeTexto{
+				de: `apartado: "183", fija: aviso, vigente_desde: "2022-12-23"`,
+				a:  `apartado: "183", fija: aviso, vigente_desde: "2022-12-3"`,
+			},
+			motivo: `el precepto 2 del cómputo "contencioso" tiene un vigente_desde, "2022-12-3", que no es una fecha AAAA-MM-DD`,
+		},
+		{
+			nombre: "sin la sección de los cómputos",
+			cambio: &cambioDeTexto{de: "computos:\n", a: "otros:\n"},
+			motivo: "no se puede leer",
+		},
+		{
+			nombre: "falta un cómputo",
+			cambio: &cambioDeTexto{de: computoContencioso, a: "  - codigo: civil\n    preceptos:\n"},
+			motivo: `falta el cómputo "contencioso" en computos`,
+		},
+		{
+			nombre: "un cómputo desconocido",
+			cambio: &cambioDeTexto{de: computoContencioso, a: "  - codigo: civil\n    preceptos:\n"},
+			motivo: `el cómputo "civil" de computos no es lpac ni contencioso`,
+		},
+		{
+			nombre: "un cómputo repetido",
+			cambio: &cambioDeTexto{de: computoContencioso, a: "  - codigo: lpac\n    preceptos:\n"},
+			motivo: `el cómputo "lpac" está repetido en computos`,
+		},
+		{
+			nombre: "un cómputo sin preceptos",
+			cambio: &cambioDeTexto{de: computoContencioso, a: "  - codigo: contencioso\n    preceptos: []\n  - codigo: otro\n    preceptos:\n"},
+			motivo: `el cómputo "contencioso" no nombra ningún precepto`,
+		},
+		{
+			nombre: "un precepto del cómputo sin apartado",
+			cambio: &cambioDeTexto{de: `apartado: "5.1",`, a: `apartado: "",`},
+			motivo: `el precepto 5 del cómputo "contencioso" no tiene apartado`,
 		},
 	}
 }

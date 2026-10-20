@@ -13,13 +13,15 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 )
 
-// Las etiquetas de las dos formas fijas con las que la respuesta de una eval de
-// legal-core da un plazo y declara que un asunto no está cubierto
-// (contracts/evals-legal-core.md §2 de H9; FR-048). Las de los avisos de un plazo
-// no van aquí: son las de plazos.EtiquetaDeAviso.
+// Las etiquetas de las tres formas fijas con las que la respuesta de una eval de
+// legal-core da un plazo, declara que un asunto no está cubierto
+// (contracts/evals-legal-core.md §2 de H9; FR-048) y, desde el ADR 0042, que
+// plazos no calcula un plazo. Las de los avisos de un plazo no van aquí: son las
+// de plazos.EtiquetaDeAviso.
 const (
-	etiquetaDelPlazo     = "PLAZO"
-	etiquetaDeNoCubierto = "NO CUBIERTO"
+	etiquetaDelPlazo            = "PLAZO"
+	etiquetaDeNoCubierto        = "NO CUBIERTO"
+	etiquetaDelPlazoSinCalcular = "PLAZO SIN CALCULAR"
 )
 
 // propiedadDelPlazo es la propiedad del esquema de eval con el plazo esperado, y
@@ -42,6 +44,11 @@ var (
 
 	// formaDeNoCubierto casa con la etiqueta de la declaración de no cubierto.
 	formaDeNoCubierto = formaFija(etiquetaDeNoCubierto)
+
+	// formaDelPlazoSinCalcular casa con la etiqueta de la declaración de un
+	// plazo sin calcular. La del plazo no casa con ella: tras PLAZO pide los dos
+	// puntos.
+	formaDelPlazoSinCalcular = formaFija(etiquetaDelPlazoSinCalcular)
 
 	// formaDeIdentificador casa con cada identificador BOE-A-… entero de un
 	// texto, el de la norma que rige el procedimiento o el de la LPAC.
@@ -71,6 +78,9 @@ const (
 	motivoDeAvisoDelPlazoAusente  = "aviso del plazo ausente: "
 	motivoDeNoCubiertoAusente     = "declaración de no cubierto ausente: "
 	motivoDeLineaDelPlazoSobrante = "línea del plazo en un asunto no cubierto: "
+
+	motivoDeSinCalcularAusente          = "declaración de plazo sin calcular ausente: "
+	motivoDeLineaDelPlazoSinLaRedaccion = "línea del plazo en un plazo sin calcular: "
 )
 
 // ExtraerLineasDelPlazo devuelve la fecha de cada línea del plazo de la
@@ -104,10 +114,25 @@ func ExtraerLineasDelPlazo(respuesta string) []string {
 // lleva ninguno. El identificador de otra línea no cuenta, y no lee ninguna otra
 // redacción (contracts/evals-legal-core.md §2 de H9; FR-048).
 func ExtraerNoCubierto(respuesta string) []string {
+	return identificadoresDeLasLineas(respuesta, formaDeNoCubierto)
+}
+
+// ExtraerPlazoSinCalcular devuelve cada identificador BOE-A-… de las líneas de
+// la respuesta con la forma fija de la declaración de un plazo sin calcular
+// —la marca, la etiqueta PLAZO SIN CALCULAR y los dos puntos, con la tolerancia
+// de las etiquetas de los avisos—, en el orden en que aparecen y con sus
+// repeticiones, o nil si no lleva ninguno, como ExtraerNoCubierto (ADR 0042).
+func ExtraerPlazoSinCalcular(respuesta string) []string {
+	return identificadoresDeLasLineas(respuesta, formaDelPlazoSinCalcular)
+}
+
+// identificadoresDeLasLineas son los identificadores BOE-A-… de las líneas de la
+// respuesta que casan con la forma, en su orden y con sus repeticiones.
+func identificadoresDeLasLineas(respuesta string, forma *regexp.Regexp) []string {
 	var normas []string
 
 	for linea := range strings.Lines(respuesta) {
-		if formaDeNoCubierto.MatchString(linea) {
+		if forma.MatchString(linea) {
 			normas = append(normas, formaDeIdentificador.FindAllString(linea, -1)...)
 		}
 	}
@@ -168,9 +193,11 @@ func ComprobarCodigosDeAvisoDelPlazo(esquema *jsonschema.Schema) error {
 // (ExtraerAvisosDelPlazo), con el suyo. En una de cobertura, anota si alguna
 // declaración de no cubierto lleva la norma esperada (ExtraerNoCubierto), con
 // el motivo de la declaración ausente si no, y una línea del plazo, de la fecha
-// que sea, lleva el suyo. Las demás evals no se juzgan aquí y dejan vacío todo.
+// que sea, lleva el suyo. En una de vigencia, lo mismo con la declaración de un
+// plazo sin calcular (ExtraerPlazoSinCalcular; ADR 0042). Las demás evals no se
+// juzgan aquí y dejan vacío todo.
 func (r *ResultadoDeEval) juzgarElPlazo(eval Eval, respuesta string) {
-	if !eval.esDePlazo() && !eval.esDeCobertura() {
+	if !eval.esDePlazo() && !eval.esDeCobertura() && !eval.esDeVigencia() {
 		return
 	}
 
@@ -196,15 +223,29 @@ func (r *ResultadoDeEval) juzgarElPlazo(eval Eval, respuesta string) {
 			r.Motivos = append(r.Motivos, motivoDeLineaDelPlazoSobrante+fecha)
 		}
 	}
+
+	if eval.esDeVigencia() {
+		r.PlazoSinCalcularDeclarado = slices.Contains(ExtraerPlazoSinCalcular(respuesta), eval.PlazoSinCalcular.Norma)
+		if !r.PlazoSinCalcularDeclarado {
+			r.Motivos = append(r.Motivos, motivoDeSinCalcularAusente+eval.PlazoSinCalcular.Norma)
+		}
+
+		for _, fecha := range r.LineasDelPlazo {
+			r.Motivos = append(r.Motivos, motivoDeLineaDelPlazoSinLaRedaccion+fecha)
+		}
+	}
 }
 
 // cumpleElPlazo dice si la respuesta cumple lo que la eval espera del plazo: en
 // una de plazo, la línea con la fecha esperada y cada aviso esperado; en una de
-// cobertura, la declaración con la norma esperada y ninguna línea del plazo. Una
-// eval que no es de plazo ni de cobertura lo cumple siempre.
+// cobertura, la declaración con la norma esperada y ninguna línea del plazo; y en
+// una de vigencia, la declaración del plazo sin calcular con la norma esperada y
+// ninguna línea del plazo. Una eval que no es de plazo, de cobertura ni de
+// vigencia lo cumple siempre.
 func (r *ResultadoDeEval) cumpleElPlazo(eval Eval) bool {
 	return (!eval.esDePlazo() || r.PlazoEncontrado) && len(r.AvisosDelPlazoAusentes) == 0 &&
-		(!eval.esDeCobertura() || r.NoCubiertoDeclarado && len(r.LineasDelPlazo) == 0)
+		(!eval.esDeCobertura() || r.NoCubiertoDeclarado && len(r.LineasDelPlazo) == 0) &&
+		(!eval.esDeVigencia() || r.PlazoSinCalcularDeclarado && len(r.LineasDelPlazo) == 0)
 }
 
 // pideElPlazo dice si la invocación es la de plazos calcular con el tipo del

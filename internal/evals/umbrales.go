@@ -28,10 +28,13 @@ const umbralDeRespuestasSinCotejar = 0
 // fecha esperada, y la de las de las evals de cobertura que admite el de las que
 // no llevan la declaración de no cubierto con la norma esperada o llevan una
 // línea del plazo: ninguna (contracts/evals-legal-core.md §3 de H9; FR-053,
-// FR-054 de H9).
+// FR-054 de H9). Y, desde el ADR 0042, la de las de las evals de vigencia que
+// admite el de las que no llevan la declaración del plazo sin calcular con la
+// norma esperada o llevan una línea del plazo: ninguna.
 const (
 	umbralDeRespuestasSinFecha    = 0
 	umbralDeRespuestasSinDeclarar = 0
+	umbralDeVigenciasSinDeclarar  = 0
 )
 
 // La proporción de las respuestas medidas del modelo que decide en las evals
@@ -98,6 +101,7 @@ const (
 	prefijoDelUmbralDeDocumentoSinCotejar  = "documento_sin_cotejar:"
 	prefijoDelUmbralDePlazoSinFecha        = "plazo_sin_fecha:"
 	prefijoDelUmbralDeCoberturaSinDeclarar = "cobertura_sin_declarar:"
+	prefijoDelUmbralDeVigenciaSinDeclarar  = "vigencia_sin_declarar:"
 	prefijoDelUmbralDeRedaccionSinFechar   = "redaccion_sin_fechar:"
 	prefijoDelUmbralDeLaMedidaDelJuez      = "medida_del_juez:"
 	prefijoDelUmbralDeLaDuracion           = "duracion_de_las_sesiones:"
@@ -120,6 +124,9 @@ const (
 	descripcionDelUmbralDeCoberturaSinDeclarar = "Respuestas de %s en el modo %s sin la línea ⚠ NO CUBIERTO: con " +
 		"la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan una " +
 		"declaración de no cubierto"
+	descripcionDelUmbralDeVigenciaSinDeclarar = "Respuestas de %s en el modo %s sin la línea ⚠ PLAZO SIN CALCULAR: " +
+		"con la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals que esperan un " +
+		"plazo sin calcular"
 	descripcionDelUmbralDeRedaccionSinFechar = "Respuestas de %s en el modo %s cuya sesión no leyó con boe articulo " +
 		"el bloque de la eval en su fecha, o sin las líneas ⚠ REDACCIÓN A FECHA:, ⚠ REDACCIÓN DE HOY: y ⚠ SIN " +
 		"REDACCIÓN VIGENTE: que la eval espera, sobre sus respuestas medidas en las evals que esperan una redacción " +
@@ -316,7 +323,9 @@ type Umbral struct {
 // objetivo, son seis, y deciden los seis: de cada modo, sin_activar,
 // plazo_sin_fecha y cobertura_sin_declarar. Ninguna eval de boe-legislacion ni
 // de jurisprudencia es de plazo ni de cobertura, y sus trece y sus quince no
-// cambian.
+// cambian. Desde el ADR 0042, con alguna eval de vigencia, detrás de
+// cobertura_sin_declarar va vigencia_sin_declarar, que decide con 0: los de
+// legal-core, con redaccion_sin_fechar desde el ADR 0041, son diez.
 //
 // Desde H20 (contracts/evals-redaccion-fechada.md §3 de H20; data-model §7.4 de
 // H20; research D14 de H20; FR-054 a FR-056 de H20), una skill tiene umbrales
@@ -401,6 +410,10 @@ func (r *respuestasMedidas) umbrales() []Umbral {
 
 		if r.conCobertura {
 			umbrales = append(umbrales, umbralDeCoberturaSinDeclarar(r.modelo, grupo))
+		}
+
+		if r.conVigencia {
+			umbrales = append(umbrales, umbralDeVigenciaSinDeclarar(r.modelo, grupo))
 		}
 
 		if r.conRedaccionFechada {
@@ -645,6 +658,35 @@ func nombreDelUmbralDeCoberturaSinDeclarar(modelo string, modo Modo) string {
 	return prefijoDelUmbralDeCoberturaSinDeclarar + modelo + separadorDelModoDelUmbral + string(modo)
 }
 
+// umbralDeVigenciaSinDeclarar es el umbral de las respuestas de un modelo en un
+// modo de las evals de vigencia sin la declaración del plazo sin calcular con la
+// norma esperada o con una línea del plazo, sobre esas respuestas, ya comparado
+// (ADR 0042): como umbralDeCoberturaSinDeclarar, se nombra con su prefijo
+// seguido del modelo y del modo, su descripción los nombra, y decide con 0. Su
+// medida, las de sinDeclararLaVigencia, y su total, las de
+// deLasEvalsDeVigencia. Es un hecho de la respuesta, que se comprueba sin modelo
+// (ADR 0037).
+func umbralDeVigenciaSinDeclarar(modelo string, delModo grupoJuzgado) Umbral {
+	deVigencia := len(delModo.deLasEvalsDeVigencia())
+
+	return compararUmbral(Umbral{
+		Nombre:      nombreDelUmbralDeVigenciaSinDeclarar(modelo, delModo.modo),
+		Descripcion: fmt.Sprintf(descripcionDelUmbralDeVigenciaSinDeclarar, modelo, delModo.modo),
+		Medida:      float64(len(delModo.sinDeclararLaVigencia())),
+		Total:       &deVigencia,
+		Umbral:      umbralDeVigenciasSinDeclarar,
+		Decide:      true,
+	})
+}
+
+// nombreDelUmbralDeVigenciaSinDeclarar es el nombre del umbral de las
+// respuestas de un modelo en un modo de las evals de vigencia sin la
+// declaración del plazo sin calcular con la norma esperada o con una línea del
+// plazo: su prefijo seguido del modelo y del modo.
+func nombreDelUmbralDeVigenciaSinDeclarar(modelo string, modo Modo) string {
+	return prefijoDelUmbralDeVigenciaSinDeclarar + modelo + separadorDelModoDelUmbral + string(modo)
+}
+
 // umbralDeRedaccionSinFechar es el umbral de las respuestas de un modelo en un
 // modo de las evals que esperan una redacción fechada cuya sesión no leyó el
 // bloque de la eval en su fecha o que no llevan las líneas que la eval espera,
@@ -860,6 +902,8 @@ func (r *respuestasMedidas) nombradasPorSuSesion(nombre string) string {
 			cuentan = grupo.sinLaFecha()
 		case nombreDelUmbralDeCoberturaSinDeclarar(r.modelo, grupo.modo):
 			cuentan = grupo.sinLaDeclaracion()
+		case nombreDelUmbralDeVigenciaSinDeclarar(r.modelo, grupo.modo):
+			cuentan = grupo.sinDeclararLaVigencia()
 		case nombreDelUmbralDeRedaccionSinFechar(r.modelo, grupo.modo):
 			cuentan = grupo.sinFechar()
 		default:

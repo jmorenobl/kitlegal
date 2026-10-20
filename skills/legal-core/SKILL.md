@@ -137,8 +137,13 @@ juzgado).
   `plazos` no dice si el silencio es estimatorio o desestimatorio: eso lo dice la norma, no la fecha.
 - **Reclamación del art. 24.2 LTAIBG**: señala como variación autonómica ante quién se reclama, el Consejo de
   Transparencia y Buen Gobierno o el órgano que la comunidad haya designado (art. 24.6).
-- Con el código 2 o 3, como en el paso 4: los candidatos de un municipio van en `data.mensaje` tras el municipio
+- Con el código 2 o 3 de un municipio, como en el paso 4: los candidatos van en `data.mensaje` tras el municipio
   pedido.
+- **Con el código 3 y un `data.mensaje` que empieza por «el plazo de tipo», no hay fecha.** Un plazo se rige por la
+  redacción vigente el día en que empieza, y algún precepto con que `plazos` lo cuenta no decía entonces lo que dice
+  hoy (cada línea del mensaje nombra uno). Qué regía lo dicen esa redacción y el régimen transitorio de la norma que la
+  cambió, y `plazos` no elige: tú tampoco. Da la línea `⚠ PLAZO SIN CALCULAR:` y dilo así, sin la línea del plazo, sin
+  ninguna fecha de vencimiento y sin nombrar de memoria la norma que regía; el paso 10 no se aplica.
 
 ### 10. Leer el precepto en la fecha de inicio
 
@@ -149,9 +154,10 @@ la fecha de inicio que pasaste a `plazos` (paso 8), con `boe_articulo` y `fecha`
 `kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`.
 
 - La respuesta lleva, por cada precepto así leído, su línea `⚠ REDACCIÓN A FECHA:` («Cómo se presenta un plazo»).
-- Si el `data` de la lectura trae `redaccion_posterior`, el precepto cambió después de ese día: va también su línea
-  `⚠ REDACCIÓN DE HOY:`. `plazos` cuenta con la duración de la redacción de hoy, y cuál de las dos rige el plazo lo
-  dice el régimen transitorio de la norma que lo cambió, que no has leído: dilo así.
+- Si el `data` de la lectura trae `redaccion_posterior`, el bloque cambió después: va también su línea
+  `⚠ REDACCIÓN DE HOY:`. En un precepto de `data.preceptos`, `plazos` ya comprobó que su apartado decía lo mismo ese
+  día (paso 9): lo que cambió es otra parte del bloque. En la norma del silencio, la duración que pasaste es la de ese
+  día, y si rige la de hoy lo diría el régimen transitorio de la norma que la cambió, que no has leído. Dilo así.
 
 ### 11. Responder con el plazo
 
@@ -208,6 +214,13 @@ la norma y la fecha de vigencia de ese campo:
 ⚠ REDACCIÓN DE HOY: <forma legible> [<identificador>, bloque <bloque>]: hoy la redacción es otra, la de <identificador>, con fecha de vigencia AAAAMMDD.
 ```
 
+Con el 3 de un plazo que no se calcula (paso 9), en lugar de la línea del plazo, con el tipo como lo nombra
+`references/recursos_y_plazos.md`, la fecha de inicio y cada línea del mensaje, con su norma, su bloque y su día:
+
+```text
+⚠ PLAZO SIN CALCULAR: <tipo> que empieza el <AAAA-MM-DD>: kitlegal no lo calcula, porque lo cuenta con preceptos que ese día no decían lo que dicen hoy: <identificador>, bloque <bloque>, apartado <apartado>, desde el <AAAA-MM-DD>; <…>.
+```
+
 La declaración de que el asunto no está cubierto, con el procedimiento como lo nombra
 `references/cobertura_por_materia.md`; la primera si la entrada trae la norma que lo rige, la segunda si no:
 
@@ -232,9 +245,9 @@ entera, en una sola línea y con su forma; detrás puedes explicarla con tus pal
 ## Comandos
 
 `kitlegal` se invoca desde el `PATH`, y la herramienta, por el nombre de su fila. Los dos applets responden con lo que
-lleva dentro el binario, sin consultar ninguna fuente. Códigos de salida, y entre paréntesis la `data.clase` del error de
-la herramienta: 0 correcto, 2 (`argumentos`) argumentos inválidos —también un nombre que es el de más de un municipio—,
-3 (`no-encontrado`) un municipio que no está en la relación.
+lleva dentro el binario, sin consultar ninguna fuente. Códigos, y entre paréntesis la `data.clase` del error de la
+herramienta: 0 correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un municipio—, 3
+(`no-encontrado`) un municipio que no está en la relación o un plazo con preceptos que no regían el día de inicio.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
@@ -248,7 +261,7 @@ la herramienta: 0 correcto, 2 (`argumentos`) argumentos inválidos —también u
 
 | Orden | Herramienta | Qué hace | Qué devuelve en `data` |
 |---|---|---|---|
-| `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <duracion>] [--unidad <unidad>]` | `plazos_calcular` | Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno genérico— desde la fecha de inicio que se da, con los preceptos que lo fijan, los festivos saltados, los avisos y la cobertura de los festivos. | objeto con `fecha`, `tipo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura` |
+| `kitlegal plazos calcular <tipo> <inicio> <municipios>... [--duracion <duracion>] [--unidad <unidad>]` | `plazos_calcular` | Devuelve la fecha de un plazo —un recurso, el acceso a la información pública, el silencio o uno genérico— desde la fecha de inicio que se da, con los preceptos que lo fijan, los festivos saltados, los avisos y la cobertura de los festivos. No la da si alguno de sus preceptos no regía así el día de inicio. | objeto con `fecha`, `tipo`, `preceptos`, `municipios`, `festivos`, `avisos`, `cobertura` |
 
 La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.
 

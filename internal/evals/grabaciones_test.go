@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -841,12 +843,16 @@ func palabrasClaveDeLosPreceptos() []palabrasDeUnPrecepto {
 // §4.2 de H9; FR-008, FR-010, FR-030, FR-031; research D16 de H9), con
 // verificarPreceptos: cada bloque está grabado, cada precepto que fija la
 // duración de un tipo la dice en palabras en su apartado, cada norma de la
-// cobertura es la que resuelve su búsqueda grabada y el texto de cada precepto
-// de la tabla lleva sus palabras clave. Los subtests rompen copias temporales de
-// los dos ficheros o de la tabla y exigen que la verificación falle nombrando
-// el precepto y lo que falta: una duración que el texto no dice, un bloque sin
-// grabar, una palabra que el texto no lleva y una norma que ninguna búsqueda
-// grabada resuelve.
+// cobertura es la que resuelve su búsqueda grabada, el texto de cada precepto
+// de la tabla lleva sus palabras clave y el vigente_desde de cada precepto de
+// data/plazos.yaml es el que dan sus redacciones grabadas (ADR 0042). Los
+// subtests rompen copias temporales de los dos ficheros o de la tabla y exigen
+// que la verificación falle nombrando el precepto y lo que falta: una duración
+// que el texto no dice, un bloque sin grabar, una palabra que el texto no
+// lleva, una norma que ninguna búsqueda grabada resuelve y tres vigente_desde
+// que no son los de las redacciones grabadas: el de la última redacción de un
+// bloque cuyo apartado no cambió, el de una redacción anterior del apartado y
+// uno anterior a la primera.
 func TestPreceptosDeLosPlazos(t *testing.T) {
 	t.Parallel()
 
@@ -895,6 +901,33 @@ func TestPreceptosDeLosPlazos(t *testing.T) {
 			defecto:   "art. 128 LJCA (BOE-A-1998-16718 a128): el texto grabado no lleva «septiembre»",
 		},
 		{
+			nombre: "vigencia-de-la-redaccion-y-no-del-apartado",
+			tipos: sustituida(t, tipos, `apartado: "128.2", fija: agosto, vigente_desde: "1998-12-14"`,
+				`apartado: "128.2", fija: agosto, vigente_desde: "2010-05-04"`),
+			cobertura: cobertura,
+			tabla:     palabrasClaveDeLosPreceptos(),
+			defecto: "contencioso: BOE-A-1998-16718 a128, apartado 128.2: vigente_desde es 2010-05-04, y las " +
+				"redacciones grabadas dicen el apartado así desde el 1998-12-14",
+		},
+		{
+			nombre: "vigencia-de-una-redaccion-anterior",
+			tipos: sustituida(t, tipos, `apartado: "182.1", fija: inhabiles, vigente_desde: "2022-12-23"`,
+				`apartado: "182.1", fija: inhabiles, vigente_desde: "2004-01-15"`),
+			cobertura: cobertura,
+			tabla:     palabrasClaveDeLosPreceptos(),
+			defecto: "el cómputo contencioso: BOE-A-1985-12666 acientoochentaydos, apartado 182.1: vigente_desde es " +
+				"2004-01-15, y las redacciones grabadas dicen el apartado así desde el 2022-12-23",
+		},
+		{
+			nombre: "vigencia-anterior-a-la-primera-redaccion",
+			tipos: sustituida(t, tipos, `apartado: "124.1", fija: duracion, vigente_desde: "2016-10-02"`,
+				`apartado: "124.1", fija: duracion, vigente_desde: "2015-10-02"`),
+			cobertura: cobertura,
+			tabla:     palabrasClaveDeLosPreceptos(),
+			defecto: "reposicion: BOE-A-2015-10565 a124, apartado 124.1: vigente_desde es 2015-10-02, y las " +
+				"redacciones grabadas dicen el apartado así desde el 2016-10-02",
+		},
+		{
 			nombre: "norma-sin-busqueda",
 			tipos:  tipos,
 			cobertura: sustituida(t, cobertura, "identificador: "+identificadorDelTextoRefundidoDeTrafico,
@@ -923,11 +956,14 @@ func TestPreceptosDeLosPlazos(t *testing.T) {
 
 // lecturaDeUnPrecepto es un bloque que nombran data/plazos.yaml,
 // data/cobertura.yaml o la tabla de las palabras clave: quién lo nombra —el
-// código del tipo, el procedimiento o el precepto de la tabla—, su norma, su
-// bloque y su apartado y, si fija la duración del tipo, esa duración.
+// código del tipo o del cómputo, el procedimiento o el precepto de la tabla—,
+// su norma, su bloque y su apartado; si fija la duración del tipo, esa
+// duración; y, en uno de data/plazos.yaml, el día desde el que rige como lo
+// cuenta el fichero.
 type lecturaDeUnPrecepto struct {
 	quien, norma, bloque, apartado string
 	duracion                       *plazos.Duracion
+	vigenteDesde                   string
 }
 
 // verificarPreceptos comprueba sin red los tipos de rutaDeLosTipos y la
@@ -946,7 +982,9 @@ type lecturaDeUnPrecepto struct {
 //  4. cada norma de la cobertura la resuelve una sola entrada del manifiesto de
 //     H9 (verificarLasNormasDeLaCobertura);
 //  5. el texto de cada fila de la tabla lleva cada una de sus palabras
-//     (comprobarLasPalabras).
+//     (comprobarLasPalabras);
+//  6. el vigente_desde de cada precepto de data/plazos.yaml es el que dan las
+//     redacciones grabadas de su bloque (comprobarLaVigencia; ADR 0042).
 //
 // Lo que impide verificar, un fichero que no se lee o una caché que no se
 // prepara, hace fallar el test.
@@ -964,12 +1002,18 @@ func verificarPreceptos(t *testing.T, rutaDeLosTipos, rutaDeLaCobertura string, 
 	}
 
 	lecturas := slices.Concat(lecturasDeLosTipos(tipos), lecturasDeLaCobertura(cobertura), lecturasDeLaTabla(tabla))
-	textos, defectos := leerLosBloques(t, lecturas)
+	leidos, defectos := leerLosBloques(t, lecturas)
 
 	for _, lectura := range lecturas {
-		texto, leido := textos[claveDelBloque(lectura.norma, lectura.bloque)]
-		if leido && lectura.duracion != nil {
-			if err := comprobarLaDuracion(lectura, texto); err != nil {
+		leido, conTexto := leidos[claveDelBloque(lectura.norma, lectura.bloque)]
+		if conTexto && lectura.duracion != nil {
+			if err := comprobarLaDuracion(lectura, leido.texto); err != nil {
+				defectos = append(defectos, err)
+			}
+		}
+
+		if conTexto && lectura.vigenteDesde != "" {
+			if err := comprobarLaVigencia(lectura, leido.redacciones); err != nil {
 				defectos = append(defectos, err)
 			}
 		}
@@ -978,8 +1022,8 @@ func verificarPreceptos(t *testing.T, rutaDeLosTipos, rutaDeLaCobertura string, 
 	defectos = append(defectos, verificarLasNormasDeLaCobertura(t, cobertura)...)
 
 	for _, fila := range tabla {
-		if texto, leido := textos[claveDelBloque(fila.norma, fila.bloque)]; leido {
-			defectos = append(defectos, comprobarLasPalabras(fila, texto)...)
+		if leido, conTexto := leidos[claveDelBloque(fila.norma, fila.bloque)]; conTexto {
+			defectos = append(defectos, comprobarLasPalabras(fila, leido.texto)...)
 		}
 	}
 
@@ -988,15 +1032,16 @@ func verificarPreceptos(t *testing.T, rutaDeLosTipos, rutaDeLaCobertura string, 
 
 // lecturasDeLosTipos son los preceptos de cada tipo, en el orden del fichero:
 // los de preceptos, con la duración del tipo en el que la fija, y los de sus
-// unidades, en el orden de plazos.Unidades.
+// unidades, en el orden de plazos.Unidades; y detrás, los de cada cómputo, la
+// primera vez que lo nombra un tipo. Todos llevan el día desde el que rigen.
 func lecturasDeLosTipos(tipos []plazos.Tipo) []lecturaDeUnPrecepto {
-	var lecturas []lecturaDeUnPrecepto
+	var lecturas, delComputo []lecturaDeUnPrecepto
+
+	computos := map[plazos.Computo]bool{}
 
 	for _, tipo := range tipos {
 		for _, precepto := range tipo.Preceptos {
-			lectura := lecturaDeUnPrecepto{
-				quien: tipo.Codigo, norma: precepto.Norma, bloque: precepto.Bloque, apartado: precepto.Apartado,
-			}
+			lectura := lecturaDelPrecepto(tipo.Codigo, precepto)
 			if precepto.Fija == plazos.FijaDuracion {
 				lectura.duracion = tipo.Duracion
 			}
@@ -1006,14 +1051,31 @@ func lecturasDeLosTipos(tipos []plazos.Tipo) []lecturaDeUnPrecepto {
 
 		for _, unidad := range plazos.Unidades() {
 			if precepto, esta := tipo.Unidades[unidad]; esta {
-				lecturas = append(lecturas, lecturaDeUnPrecepto{
-					quien: tipo.Codigo, norma: precepto.Norma, bloque: precepto.Bloque, apartado: precepto.Apartado,
-				})
+				lecturas = append(lecturas, lecturaDelPrecepto(tipo.Codigo, precepto))
 			}
+		}
+
+		if computos[tipo.Computo] {
+			continue
+		}
+
+		computos[tipo.Computo] = true
+
+		for _, precepto := range tipo.PreceptosDelComputo {
+			delComputo = append(delComputo, lecturaDelPrecepto("el cómputo "+string(tipo.Computo), precepto))
 		}
 	}
 
-	return lecturas
+	return slices.Concat(lecturas, delComputo)
+}
+
+// lecturaDelPrecepto es la lectura de un precepto de data/plazos.yaml, con
+// quien lo nombra y el día desde el que rige.
+func lecturaDelPrecepto(quien string, precepto plazos.Precepto) lecturaDeUnPrecepto {
+	return lecturaDeUnPrecepto{
+		quien: quien, norma: precepto.Norma, bloque: precepto.Bloque, apartado: precepto.Apartado,
+		vigenteDesde: precepto.VigenteDesde,
+	}
 }
 
 // lecturasDeLaCobertura son, de cada entrada de la cobertura en su orden, el
@@ -1061,12 +1123,37 @@ func claveDelBloque(norma, bloque string) string {
 	return ordenDe(consultaDelBloque(norma, bloque))
 }
 
+// bloqueDeUnPrecepto es lo que se lee de un bloque grabado: el texto de hoy y sus
+// redacciones, de la última a la primera.
+type bloqueDeUnPrecepto struct {
+	texto       string
+	redacciones []redaccionGrabada
+}
+
+// redaccionGrabada es una redacción de un bloque: su fecha de vigencia,
+// AAAAMMDD, y su texto.
+type redaccionGrabada struct {
+	fechaVigencia, texto string
+}
+
+// ultimoDiaDeLasRedacciones es el día con que se lee la última redacción de un
+// bloque con --fecha: el último que se escribe AAAA-MM-DD, posterior a todas.
+const ultimoDiaDeLasRedacciones = "9999-12-31"
+
+// consultaDeLasRedacciones es la invocación de boe articulo con la norma, el
+// bloque y --fecha en un día, con la que se leen sus redacciones.
+func consultaDeLasRedacciones(norma, bloque, dia string) Consulta {
+	return Consulta{Applet: appletDeLasNormas, Verbo: verboArticulo, Argumentos: []string{norma, bloque, "--fecha", dia}}
+}
+
 // leerLosBloques prepara con Preparar una caché desde UnionDeGrabaciones con
-// boe articulo de cada bloque de las lecturas, sin repetir y en su orden, y
-// lee de ella el texto de cada uno que está grabado, por su claveDelBloque.
-// Cada bloque que no lo está es un defecto por cada lectura que lo nombra, con
-// la falta de Preparar, que dice la orden, su código y lo que no estaba grabado.
-func leerLosBloques(t *testing.T, lecturas []lecturaDeUnPrecepto) (map[string]string, []error) {
+// boe articulo de cada bloque de las lecturas, sin repetir y en su orden, sin
+// fecha y con --fecha en ultimoDiaDeLasRedacciones, y lee de ella, de cada uno
+// que está grabado, el texto y las redacciones (leerLasRedacciones), por su
+// claveDelBloque. Cada bloque que no lo está es un defecto por cada lectura que
+// lo nombra, con la falta de Preparar, que dice la orden, su código y lo que no
+// estaba grabado.
+func leerLosBloques(t *testing.T, lecturas []lecturaDeUnPrecepto) (map[string]bloqueDeUnPrecepto, []error) {
 	t.Helper()
 
 	var consultas []Consulta
@@ -1074,7 +1161,8 @@ func leerLosBloques(t *testing.T, lecturas []lecturaDeUnPrecepto) (map[string]st
 	for _, lectura := range lecturas {
 		clave := claveDelBloque(lectura.norma, lectura.bloque)
 		if !slices.ContainsFunc(consultas, func(consulta Consulta) bool { return ordenDe(consulta) == clave }) {
-			consultas = append(consultas, consultaDelBloque(lectura.norma, lectura.bloque))
+			consultas = append(consultas, consultaDelBloque(lectura.norma, lectura.bloque),
+				consultaDeLasRedacciones(lectura.norma, lectura.bloque, ultimoDiaDeLasRedacciones))
 		}
 	}
 
@@ -1091,24 +1179,172 @@ func leerLosBloques(t *testing.T, lecturas []lecturaDeUnPrecepto) (map[string]st
 	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
 	require.NoError(t, err)
 
-	textos := make(map[string]string, len(consultas))
+	leidos := make(map[string]bloqueDeUnPrecepto, len(consultas))
 
-	for _, consulta := range consultas {
-		if _, falta := sinGrabar[ordenDe(consulta)]; !falta {
-			textos[ordenDe(consulta)] = textoDelBloque(t, registro, consulta)
+	for _, lectura := range lecturas {
+		clave := claveDelBloque(lectura.norma, lectura.bloque)
+		_, sinTexto := sinGrabar[clave]
+		_, sinRedacciones := sinGrabar[ordenDe(consultaDeLasRedacciones(lectura.norma, lectura.bloque,
+			ultimoDiaDeLasRedacciones))]
+
+		if _, leido := leidos[clave]; leido || sinTexto || sinRedacciones {
+			continue
+		}
+
+		leidos[clave] = bloqueDeUnPrecepto{
+			texto:       textoDelBloque(t, registro, consultaDelBloque(lectura.norma, lectura.bloque)),
+			redacciones: leerLasRedacciones(t, registro, lectura.norma, lectura.bloque),
 		}
 	}
 
 	var defectos []error
 
 	for _, lectura := range lecturas {
-		if falta, esta := sinGrabar[claveDelBloque(lectura.norma, lectura.bloque)]; esta {
-			defectos = append(defectos, fmt.Errorf("%s: %s %s no está grabado: %s",
-				lectura.quien, lectura.norma, lectura.bloque, falta))
+		for _, consulta := range []Consulta{
+			consultaDelBloque(lectura.norma, lectura.bloque),
+			consultaDeLasRedacciones(lectura.norma, lectura.bloque, ultimoDiaDeLasRedacciones),
+		} {
+			if falta, esta := sinGrabar[ordenDe(consulta)]; esta {
+				defectos = append(defectos, fmt.Errorf("%s: %s %s no está grabado: %s",
+					lectura.quien, lectura.norma, lectura.bloque, falta))
+			}
 		}
 	}
 
-	return textos, defectos
+	return leidos, defectos
+}
+
+// leerLasRedacciones lee de la caché del registro, con app.Main, --json y
+// --offline, las redacciones de un bloque, de la última a la primera: la que
+// rige en ultimoDiaDeLasRedacciones y, mientras la orden salga con 0, la que
+// regía el día anterior a la fecha de vigencia de la última leída. Es lo que
+// ve quien lee el bloque con --fecha en cualquier día: una redacción que nunca
+// rigió, porque otra entró en vigor el mismo día, no sale. Otro código que no
+// sea el 3 de un día sin redacción vigente, o una salida que no se lee, hacen
+// fallar el test.
+func leerLasRedacciones(t *testing.T, registro *app.Registro, norma, bloque string) []redaccionGrabada {
+	t.Helper()
+
+	var redacciones []redaccionGrabada
+
+	for dia := ultimoDiaDeLasRedacciones; ; {
+		var salida, errores bytes.Buffer
+
+		consulta := consultaDeLasRedacciones(norma, bloque, dia)
+		argv := slices.Concat([]string{programaDeLasConsultas, consulta.Applet, consulta.Verbo}, consulta.Argumentos,
+			[]string{"--json", "--offline"})
+		codigo := app.Main(argv, registro, &salida, &errores,
+			sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+
+		if codigo == codigoSinRedaccionVigente && len(redacciones) > 0 {
+			return redacciones
+		}
+
+		require.Zero(t, codigo, "«%s» se lee de la caché preparada: %s", ordenDe(consulta), errores.String())
+
+		var sobre struct {
+			Data boe.ArticuloFechado `json:"data"`
+		}
+		require.NoError(t, json.Unmarshal(salida.Bytes(), &sobre), "la salida de «%s»", ordenDe(consulta))
+
+		vigencia, err := time.Parse(formaDeLaFechaDeVigencia, sobre.Data.FechaVigencia)
+		require.NoError(t, err, "«%s» da una fecha de vigencia AAAAMMDD", ordenDe(consulta))
+
+		redacciones = append(redacciones, redaccionGrabada{fechaVigencia: sobre.Data.FechaVigencia, texto: sobre.Data.Texto})
+		dia = vigencia.AddDate(0, 0, -1).Format(time.DateOnly)
+	}
+}
+
+// Lo que leerLasRedacciones y comprobarLaVigencia leen de una lectura fechada:
+// el código con que sale un día sin redacción vigente y la forma de una fecha
+// de vigencia.
+const (
+	codigoSinRedaccionVigente = 3
+	formaDeLaFechaDeVigencia  = "20060102"
+)
+
+// textoDelApartado es el texto de un apartado en el de un bloque, el que se
+// compara entre redacciones: con un número tras el punto, como «128.2», desde
+// la línea que empieza por ese número y un punto, «2.», hasta la que empieza
+// por el número de otro apartado, sin ella; sin él, como «183», el bloque
+// entero. Si ninguna línea empieza así, no hay apartado. Las notas del BOE, al
+// final del bloque, van con el último apartado: una nota nueva lo cambia.
+func textoDelApartado(texto, apartado string) (string, bool) {
+	_, numero, conNumero := strings.Cut(apartado, ".")
+	if !conNumero {
+		return texto, true
+	}
+
+	var del strings.Builder
+
+	dentro := false
+
+	for linea := range strings.Lines(texto) {
+		switch {
+		case strings.HasPrefix(linea, numero+"."):
+			dentro = true
+		case dentro && formaDeUnApartado.MatchString(linea):
+			return del.String(), true
+		}
+
+		if dentro {
+			del.WriteString(linea)
+		}
+	}
+
+	return del.String(), dentro
+}
+
+// formaDeUnApartado casa con la línea con que empieza un apartado numerado: un
+// número y un punto.
+var formaDeUnApartado = regexp.MustCompile(`^[0-9]+\.`)
+
+// vigenteDesdeGrabado es el día, AAAA-MM-DD, desde el que el apartado dice lo
+// que dice en la última redacción: la fecha de vigencia de la más antigua de las
+// redacciones seguidas, desde la última hacia atrás, en las que el texto del
+// apartado es el mismo. Sin el apartado en la última, no hay día.
+func vigenteDesdeGrabado(redacciones []redaccionGrabada, apartado string) (string, bool) {
+	hoy, esta := textoDelApartado(redacciones[0].texto, apartado)
+	if !esta {
+		return "", false
+	}
+
+	desde := redacciones[0].fechaVigencia
+
+	for _, redaccion := range redacciones[1:] {
+		if texto, enEsta := textoDelApartado(redaccion.texto, apartado); !enEsta || texto != hoy {
+			break
+		}
+
+		desde = redaccion.fechaVigencia
+	}
+
+	vigencia, err := time.Parse(formaDeLaFechaDeVigencia, desde)
+	if err != nil {
+		return "", false
+	}
+
+	return vigencia.Format(time.DateOnly), true
+}
+
+// comprobarLaVigencia exige que el vigente_desde de un precepto de
+// data/plazos.yaml sea el de vigenteDesdeGrabado con las redacciones grabadas de
+// su bloque (ADR 0042). El defecto nombra quién lo nombra, la norma, el bloque,
+// el apartado, el día del fichero y el de las redacciones.
+func comprobarLaVigencia(lectura lecturaDeUnPrecepto, redacciones []redaccionGrabada) error {
+	precepto := fmt.Sprintf("%s: %s %s, apartado %s", lectura.quien, lectura.norma, lectura.bloque, lectura.apartado)
+
+	grabado, esta := vigenteDesdeGrabado(redacciones, lectura.apartado)
+	if !esta {
+		return fmt.Errorf("%s: ninguna línea de la última redacción grabada es la del apartado", precepto)
+	}
+
+	if grabado != lectura.vigenteDesde {
+		return fmt.Errorf("%s: vigente_desde es %s, y las redacciones grabadas dicen el apartado así desde el %s",
+			precepto, lectura.vigenteDesde, grabado)
+	}
+
+	return nil
 }
 
 // textoDelBloque lee con app.Main, --json y --offline el bloque de la consulta

@@ -89,6 +89,9 @@ type Tipo struct {
 	// Unidades lleva, solo en el genérico, de cada unidad al precepto que da su
 	// cómputo.
 	Unidades map[Unidad]Precepto `yaml:"unidades"`
+	// PreceptosDelComputo son los de su cómputo, los de la sección computos del
+	// fichero, que LeerTipos copia en cada tipo.
+	PreceptosDelComputo []Precepto `yaml:"-"`
 }
 
 // Duracion es la duración que fija un tipo.
@@ -110,11 +113,25 @@ type Precepto struct {
 	// Fija es lo que fija el precepto en el tipo: su duración (FijaDuracion),
 	// su inicio, su cómputo…
 	Fija string `yaml:"fija"`
+	// VigenteDesde es el primer día, AAAA-MM-DD, en que el apartado dice lo que
+	// dice en la redacción con que está escrito data/plazos.yaml: un plazo que
+	// empieza antes no se calcula con él (ADR 0042).
+	VigenteDesde string `yaml:"vigente_desde"`
+}
+
+// PreceptosDeUnComputo son los preceptos con que se cuenta cualquier plazo de
+// un cómputo, en la sección computos de data/plazos.yaml.
+type PreceptosDeUnComputo struct {
+	// Codigo es uno de Computos.
+	Codigo Computo `yaml:"codigo"`
+	// Preceptos son los del cómputo, en el orden del fichero.
+	Preceptos []Precepto `yaml:"preceptos"`
 }
 
 // ficheroDeTipos es data/plazos.yaml.
 type ficheroDeTipos struct {
-	Tipos []Tipo `yaml:"tipos"`
+	Tipos    []Tipo                 `yaml:"tipos"`
+	Computos []PreceptosDeUnComputo `yaml:"computos"`
 }
 
 // LeerTipos lee data/plazos.yaml (contracts/datos-de-plazos.md §2). Exige los
@@ -122,10 +139,13 @@ type ficheroDeTipos struct {
 // y un cómputo de Computos; una duración de 1 o más en una de Unidades en los
 // cinco tipos que la fijan y en ningún otro, y en cada uno de ellos un precepto
 // que fija la duración; las tres unidades, cada una con su precepto, en el
-// genérico y en ningún otro; y que cada tipo nombre algún precepto, cada uno
-// con su norma, su bloque, su apartado y lo que fija.
+// genérico y en ningún otro; que cada tipo nombre algún precepto; los dos
+// cómputos de Computos, cada uno una vez y con algún precepto; y que cada
+// precepto lleve su norma, su bloque, su apartado, lo que fija y el día
+// AAAA-MM-DD desde el que rige como lo cuenta el fichero.
 //
-// Los tipos se devuelven en el orden del fichero. Con cualquier defecto no hay
+// Los tipos se devuelven en el orden del fichero, cada uno con los preceptos de
+// su cómputo. Con cualquier defecto no hay
 // tipos: el error los dice todos, cada uno con su tipo, y no lleva clase de
 // usuario; el kernel lo da como inesperado.
 func LeerTipos(contenido []byte) ([]Tipo, error) {
@@ -137,9 +157,14 @@ func LeerTipos(contenido []byte) ([]Tipo, error) {
 	var c comprobacionDeTipos
 
 	c.comprobar(fichero.Tipos)
+	porComputo := c.computos(fichero.Computos)
 
 	if err := errors.Join(c.defectos...); err != nil {
 		return nil, err
+	}
+
+	for indice := range fichero.Tipos {
+		fichero.Tipos[indice].PreceptosDelComputo = porComputo[fichero.Tipos[indice].Computo]
 	}
 
 	return fichero.Tipos, nil
@@ -271,18 +296,66 @@ func (c *comprobacionDeTipos) unidades(tipo Tipo) {
 	}
 }
 
-// precepto comprueba que un precepto lleva sus cuatro datos.
+// computos comprueba que estén los dos cómputos, cada uno una vez y con algún
+// precepto, y cada precepto, y devuelve los preceptos de cada uno.
+func (c *comprobacionDeTipos) computos(computos []PreceptosDeUnComputo) map[Computo][]Precepto {
+	porComputo := make(map[Computo][]Precepto, len(computos))
+
+	for _, computo := range computos {
+		_, visto := porComputo[computo.Codigo]
+
+		switch {
+		case !slices.Contains(Computos(), computo.Codigo):
+			c.defecto("el cómputo %q de computos no es %s ni %s", computo.Codigo, ComputoLPAC, ComputoContencioso)
+		case visto:
+			c.defecto("el cómputo %q está repetido en computos", computo.Codigo)
+		case len(computo.Preceptos) == 0:
+			c.defecto("el cómputo %q no nombra ningún precepto", computo.Codigo)
+		}
+
+		porComputo[computo.Codigo] = computo.Preceptos
+
+		for indice, precepto := range computo.Preceptos {
+			c.precepto(fmt.Sprintf("el precepto %d del cómputo %q", indice+1, computo.Codigo), precepto)
+		}
+	}
+
+	for _, computo := range Computos() {
+		if _, esta := porComputo[computo]; !esta {
+			c.defecto("falta el cómputo %q en computos", computo)
+		}
+	}
+
+	return porComputo
+}
+
+// precepto comprueba que un precepto lleva sus cinco datos, y el día desde el
+// que rige como una fecha AAAA-MM-DD.
 func (c *comprobacionDeTipos) precepto(quien string, precepto Precepto) {
 	for _, dato := range []struct{ nombre, valor string }{
 		{"norma", precepto.Norma},
 		{"bloque", precepto.Bloque},
 		{"apartado", precepto.Apartado},
 		{"fija", precepto.Fija},
+		{"vigente_desde", precepto.VigenteDesde},
 	} {
 		if dato.valor == "" {
 			c.defecto("%s no tiene %s", quien, dato.nombre)
 		}
 	}
+
+	if desde := precepto.VigenteDesde; desde != "" && !esUnDia(desde) {
+		c.defecto("%s tiene un vigente_desde, %q, que no es una fecha AAAA-MM-DD", quien, desde)
+	}
+}
+
+// esUnDia dice si un texto es un día del calendario escrito AAAA-MM-DD, con sus
+// ceros: el mismo que leerInicio admite como fecha de inicio, de modo que los
+// dos se comparan como texto.
+func esUnDia(texto string) bool {
+	_, err := leerInicio(texto)
+
+	return err == nil
 }
 
 // defectoDeDatos es un defecto de un fichero de data/ empotrado: uno que no se

@@ -1,6 +1,8 @@
 # 0041 · Un plazo se lee en la redacción vigente el día en que empieza
 
-- **Estado**: aceptada (2026-10-20)
+- **Estado**: aceptada (2026-10-20). Sustituida en parte por el ADR 0042, el mismo día: del punto 3, la frase de la
+  respuesta según la cual la fecha de `plazos` cuenta con la duración de la redacción de hoy; `plazos` ya no da una
+  fecha si algún apartado con que la cuenta no regía el día de inicio.
 - **Fecha**: 2026-10-20
 - **Hito**: sin hito; un cambio puntual de `legal-core` y de sus evals de plazo, tras H20. No toca ningún applet, ni el
   contrato `Applet` (ADR 0005), ni el sobre (ADR 0006), ni el umbral de ninguna clase (ADR 0038)

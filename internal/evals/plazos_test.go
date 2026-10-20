@@ -57,6 +57,116 @@ func TestJuzgarPlazos(t *testing.T) {
 	t.Run("eval-de-plazo", probarElJuicioDeUnPlazo)
 	t.Run("eval-de-cobertura", probarElJuicioDeUnaCobertura)
 	t.Run("comando-calcular", probarElComandoCalcular)
+	t.Run("declaraciones-de-plazo-sin-calcular", probarLasDeclaracionesDePlazoSinCalcular)
+	t.Run("eval-de-vigencia", probarElJuicioDeUnaVigencia)
+}
+
+// declaracionDelPlazoSinCalcularSintetica es la declaración de un plazo sin
+// calcular con los preceptos de la LPAC (ADR 0042).
+const declaracionDelPlazoSinCalcularSintetica = "⚠ PLAZO SIN CALCULAR: recurso potestativo de reposición que " +
+	"empieza el 2014-06-02: kitlegal no lo calcula, porque lo cuenta con preceptos que ese día no decían lo que dicen " +
+	"hoy: BOE-A-2015-10565, bloque a124, apartado 124.1, desde el 2016-10-02."
+
+// probarLasDeclaracionesDePlazoSinCalcular fija ExtraerPlazoSinCalcular: cada
+// identificador BOE-A-… entero de cada línea con la forma fija ⚠ PLAZO SIN
+// CALCULAR:, en su orden, con la tolerancia de la etiqueta. El identificador de
+// otra línea no cuenta, ni el de la línea del plazo ni el de la declaración de
+// no cubierto, que tienen otra etiqueta (ADR 0042).
+func probarLasDeclaracionesDePlazoSinCalcular(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre    string
+		respuesta string
+		normas    []string
+	}{
+		{
+			nombre:    "forma-fija",
+			respuesta: "No puedo darte la fecha.\n\n" + declaracionDelPlazoSinCalcularSintetica + "\n",
+			normas:    []string{"BOE-A-2015-10565"},
+		},
+		{
+			nombre:    "con-enfasis-y-dos-normas",
+			respuesta: "**⚠️ Plazo sin calcular:** BOE-A-2015-10565, bloque a30; BOE-A-1985-12666, bloque acientoochentaydos.",
+			normas:    []string{"BOE-A-2015-10565", "BOE-A-1985-12666"},
+		},
+		{nombre: "norma-en-otra-linea", respuesta: "⚠ PLAZO SIN CALCULAR: el recurso de reposición.\n(BOE-A-2015-10565)"},
+		{nombre: "la-linea-del-plazo", respuesta: lineaDelPlazo},
+		{nombre: "la-de-no-cubierto", respuesta: declaracionSinNorma},
+		{nombre: "sin-la-marca", respuesta: "PLAZO SIN CALCULAR: BOE-A-2015-10565."},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.normas, ExtraerPlazoSinCalcular(caso.respuesta))
+		})
+	}
+}
+
+// evalDeVigenciaSintetica es una eval de vigencia de legal-core, con su comando
+// calcular de un plazo sin calcular (ADR 0042).
+func evalDeVigenciaSintetica() Eval {
+	return Eval{
+		Fichero:          "10-plazo-reposicion-anterior-a-la-lpac.yaml",
+		Pregunta:         "¿Hasta cuándo podía presentar el recurso de reposición?",
+		Activa:           true,
+		Comandos:         []ComandoEsperado{{Applet: "plazos", Verbo: "calcular", Tipo: "reposicion", SinCalcular: true}},
+		PlazoSinCalcular: PlazoSinCalcularEsperado{Norma: "BOE-A-2015-10565"},
+	}
+}
+
+// probarElJuicioDeUnaVigencia fija el juicio de una eval de vigencia con la
+// sesión cuya orden plazos calcular termina con 3: con la declaración del plazo
+// sin calcular con su norma, pasa; sin ella, o con la de otra norma, no, con el
+// motivo de la declaración ausente; y con una línea del plazo, tampoco, con su
+// motivo (ADR 0042).
+func probarElJuicioDeUnaVigencia(t *testing.T) {
+	t.Parallel()
+
+	calcula := calculaElPlazo(t, codigoDeSalida(3), "reposicion", "2014-06-02", "Leganés", "Leganés", "--json")
+	ausente := "declaración de plazo sin calcular ausente: BOE-A-2015-10565"
+
+	casos := []struct {
+		nombre    string
+		respuesta string
+		juicio    juicioDelPlazo
+		pasa      bool
+	}{
+		{
+			nombre: "con-la-declaración", respuesta: declaracionDelPlazoSinCalcularSintetica,
+			juicio: juicioDelPlazo{plazoSinCalcularDeclarado: true}, pasa: true,
+		},
+		{nombre: "sin-declaración", respuesta: "No se puede calcular.", juicio: juicioDelPlazo{motivos: []string{ausente}}},
+		{
+			nombre:    "con-la-de-otra-norma",
+			respuesta: "⚠ PLAZO SIN CALCULAR: recurso de reposición: BOE-A-1992-26318.",
+			juicio:    juicioDelPlazo{motivos: []string{ausente}},
+		},
+		{
+			nombre:    "con-una-linea-del-plazo",
+			respuesta: declaracionDelPlazoSinCalcularSintetica + "\n\n" + lineaDelPlazo,
+			juicio: juicioDelPlazo{
+				plazoSinCalcularDeclarado: true, lineas: []string{fechaDelPlazo},
+				motivos: []string{"línea del plazo en un plazo sin calcular: " + fechaDelPlazo},
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			resultado := Juzgar(evalDeVigenciaSintetica(), sesionDeLegalCore(caso.respuesta, calcula), skillDeTerritorio)
+			require.Equal(t, []string{"plazos calcular reposicion"}, resultado.ComandosEjecutados,
+				"premisa: la orden que termina con 3 satisface el comando de un plazo sin calcular")
+
+			juicio, pasa := delJuicio(resultado)
+			assert.Equal(t, caso.juicio, juicio)
+			assert.Equal(t, caso.pasa, pasa)
+		})
+	}
 }
 
 // probarLasLineasDelPlazo fija ExtraerLineasDelPlazo: la fecha de cada línea con
@@ -207,23 +317,26 @@ func sesionDeLegalCore(respuesta string, invocaciones ...Invocacion) Sesion {
 	})
 }
 
-// lo que del juicio de una eval de plazo o de cobertura miran los casos.
+// lo que del juicio de una eval de plazo, de cobertura o de vigencia miran los
+// casos.
 type juicioDelPlazo struct {
-	plazoEncontrado     bool
-	avisosAusentes      []string
-	noCubiertoDeclarado bool
-	lineas              []string
-	motivos             []string
+	plazoEncontrado           bool
+	avisosAusentes            []string
+	noCubiertoDeclarado       bool
+	plazoSinCalcularDeclarado bool
+	lineas                    []string
+	motivos                   []string
 }
 
 // delJuicio es lo que del resultado miran los casos, y si pasa.
 func delJuicio(resultado ResultadoDeEval) (juicioDelPlazo, bool) {
 	return juicioDelPlazo{
-		plazoEncontrado:     resultado.PlazoEncontrado,
-		avisosAusentes:      resultado.AvisosDelPlazoAusentes,
-		noCubiertoDeclarado: resultado.NoCubiertoDeclarado,
-		lineas:              resultado.LineasDelPlazo,
-		motivos:             resultado.Motivos,
+		plazoEncontrado:           resultado.PlazoEncontrado,
+		avisosAusentes:            resultado.AvisosDelPlazoAusentes,
+		noCubiertoDeclarado:       resultado.NoCubiertoDeclarado,
+		plazoSinCalcularDeclarado: resultado.PlazoSinCalcularDeclarado,
+		lineas:                    resultado.LineasDelPlazo,
+		motivos:                   resultado.Motivos,
 	}, resultado.Pasa
 }
 
@@ -380,7 +493,9 @@ const argumentosDeReposicion = `{"tipo":"reposicion","inicio":"2026-09-09","muni
 // en el argumento siguiente, o de un «--» suelto— que termina con 0, o la llamada
 // a plazos_calcular con ese tipo cuyo resultado no es un error. No lo satisface
 // la de otro tipo, la que termina con otro código, la que pide la ayuda,
-// --describe o --dry-run, ni la llamada con un error.
+// --describe o --dry-run, ni la llamada con un error. El de un plazo sin
+// calcular admite además la orden que termina con 3 y la llamada con el error
+// no-encontrado, y ninguna otra (ADR 0042).
 func probarElComandoCalcular(t *testing.T) {
 	t.Parallel()
 
@@ -404,12 +519,27 @@ func probarElComandoCalcular(t *testing.T) {
 	}
 
 	casos := []struct {
-		nombre    string
-		tipo      string
-		sesion    func(t *testing.T) Sesion
-		satisface bool
+		nombre      string
+		tipo        string
+		sinCalcular bool
+		sesion      func(t *testing.T) Sesion
+		satisface   bool
 	}{
 		{nombre: "orden", tipo: "reposicion", sesion: conLaOrden(0, "reposicion", "2026-09-09", leganes, leganes), satisface: true},
+		{nombre: "orden-con-el-3", tipo: "reposicion", sesion: conLaOrden(3, "reposicion", "2014-06-02", leganes, leganes)},
+		{
+			nombre: "orden-sin-calcular-con-el-3", tipo: "reposicion", sinCalcular: true,
+			sesion: conLaOrden(3, "reposicion", "2014-06-02", leganes, leganes), satisface: true,
+		},
+		{
+			nombre: "orden-sin-calcular-con-el-2", tipo: "reposicion", sinCalcular: true,
+			sesion: conLaOrden(2, "reposicion", "2014-06-02", leganes),
+		},
+		{
+			nombre: "llamada-sin-calcular-con-no-encontrado", tipo: "reposicion", sinCalcular: true,
+			sesion:    conLaLlamada(llamadaFallida("plazos_calcular", argumentosDeReposicion, schema.ClaseNoEncontrado)),
+			satisface: true,
+		},
 		{
 			nombre: "orden-con-las-banderas-delante", tipo: "silencio",
 			sesion:    conLaOrden(0, "--duracion", "3", "--unidad=meses", "silencio", "2026-07-09", leganes, leganes),
@@ -447,7 +577,7 @@ func probarElComandoCalcular(t *testing.T) {
 			}
 
 			eval := evalDePlazoSintetica()
-			eval.Comandos = []ComandoEsperado{{Applet: "plazos", Verbo: "calcular", Tipo: caso.tipo}}
+			eval.Comandos = []ComandoEsperado{{Applet: "plazos", Verbo: "calcular", Tipo: caso.tipo, SinCalcular: caso.sinCalcular}}
 			resultado := juzgarEnModo(eval, sesion, skillDeTerritorio, modo)
 			texto := "plazos calcular " + caso.tipo
 

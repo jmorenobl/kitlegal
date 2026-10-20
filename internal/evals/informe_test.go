@@ -2175,6 +2175,7 @@ func exigirElInformeDeLaSkillSinJuez(t *testing.T) {
 		"03-no-activa-receta-de-cocina.yaml", "05-plazo-reposicion-leganes.yaml",
 		"06-plazo-reposicion-tordesillas.yaml", "07-cobertura-liquidacion-tributaria.yaml",
 		"08-cobertura-multa-de-trafico.yaml", "09-plazo-contencioso-agosto.yaml",
+		"10-plazo-reposicion-anterior-a-la-lpac.yaml",
 	}
 
 	var esperadas []serie
@@ -6200,13 +6201,15 @@ func leerElInformeDeLaSkill(t *testing.T, destino string, informe Informe) infor
 // Lo que TestUmbralesDeLegalCore sabe de las respuestas del modelo que decide
 // en un modo con las evals de legal-core del repositorio y el plan del job, tres
 // veces cada eval (contracts/evals-legal-core.md §3 de H9; FR-053, FR-054 y
-// FR-056 de H9): las de sus siete evals de modo que activan la skill, el total
-// de sin_activar; las de sus tres evals de plazo, el de plazo_sin_fecha; y las
-// de sus dos evals de cobertura, el de cobertura_sin_declarar.
+// FR-056 de H9): las de sus ocho evals de modo que activan la skill, el total
+// de sin_activar; las de sus tres evals de plazo, el de plazo_sin_fecha; las de
+// sus dos evals de cobertura, el de cobertura_sin_declarar; y, desde el ADR
+// 0042, las de su eval de vigencia, el de vigencia_sin_declarar.
 const (
-	respuestasDeLegalCorePorModo = 21
+	respuestasDeLegalCorePorModo = 24
 	respuestasDePlazoPorModo     = 9
 	respuestasDeCoberturaPorModo = 6
+	respuestasDeVigenciaPorModo  = 3
 )
 
 // Las evals de legal-core del repositorio por su fichero, salvo la sin binario
@@ -6220,6 +6223,7 @@ const (
 	evalDeLaLiquidacion        = "07-cobertura-liquidacion-tributaria.yaml"
 	evalDeLaMulta              = "08-cobertura-multa-de-trafico.yaml"
 	evalDelContencioso         = "09-plazo-contencioso-agosto.yaml"
+	evalDeLaVigencia           = "10-plazo-reposicion-anterior-a-la-lpac.yaml"
 )
 
 // Las piezas de las respuestas de las sesiones modelo de legal-core que no
@@ -6247,6 +6251,13 @@ const (
 	declaracionDeLaLeyDeTrafico = "⚠ NO CUBIERTO: el procedimiento sancionador en materia de tráfico se rige por la " +
 		"Ley sobre Tráfico (BOE-A-2015-11722), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
 		"recursos (DA 1ª.2 LPAC)."
+
+	// declaracionDelPlazoSinCalcular es la de la eval de vigencia, con la norma
+	// que espera (ADR 0042).
+	declaracionDelPlazoSinCalcular = "⚠ PLAZO SIN CALCULAR: recurso potestativo de reposición que empieza el " +
+		"2014-06-02: kitlegal no lo calcula, porque lo cuenta con preceptos que ese día no decían lo que dicen hoy: " +
+		"BOE-A-2015-10565, bloque a124, apartado 124.1, desde el 2016-10-02; BOE-A-2015-10565, bloque a30, " +
+		"apartado 30.4, desde el 2016-10-02."
 )
 
 // medidasDeLegalCore son las medidas de los umbrales de un modo del informe de
@@ -6254,21 +6265,22 @@ const (
 // las de las evals de plazo sin la línea del plazo con la fecha esperada, las
 // de las evals de cobertura sin la declaración con la norma esperada o con una
 // línea del plazo y, desde el ADR 0041, las de las evals de plazo sin la lectura
-// en su fecha o sin la línea de la redacción a fecha. sinMedir son las sesiones
-// del modo que quedaron sin medir, todas de una eval de plazo: no están en el
-// total de sin_activar, ni en el de plazo_sin_fecha, ni en el de
-// redaccion_sin_fechar.
+// en su fecha o sin la línea de la redacción a fecha y, desde el ADR 0042, las
+// de la eval de vigencia sin la declaración del plazo sin calcular o con una
+// línea del plazo. sinMedir son las sesiones del modo que quedaron sin medir,
+// todas de una eval de plazo: no están en el total de sin_activar, ni en el de
+// plazo_sin_fecha, ni en el de redaccion_sin_fechar.
 type medidasDeLegalCore struct {
-	sinActivar, sinFecha, sinDeclarar, sinFechar int
-	sinMedir                                     int
+	sinActivar, sinFecha, sinDeclarar, sinFechar, sinDeclararLaVigencia int
+	sinMedir                                                            int
 }
 
 // totalesDeLegalCore son los totales de los umbrales de un modo del informe de
 // legal-core antes de quitarles las sesiones sin medir: las respuestas del
-// modelo que decide en las evals de modo que activan la skill, en las de plazo y
-// en las de cobertura.
+// modelo que decide en las evals de modo que activan la skill, en las de plazo,
+// en las de cobertura y en las de vigencia.
 type totalesDeLegalCore struct {
-	respuestas, dePlazo, deCobertura int
+	respuestas, dePlazo, deCobertura, deVigencia int
 }
 
 // casoDeUmbralesDeLegalCore es un caso de TestUmbralesDeLegalCore: lo que cambia
@@ -6301,13 +6313,18 @@ type casoDeUmbralesDeLegalCore struct {
 // US6.2), con las evals del repositorio y las sesiones sintéticas de
 // armarSesionesDeLegalCore, las del plan del job, que pasan todas:
 //
-//   - umbrales son exactamente ocho, decidiendo los ocho: de cada modo, el del
-//     modo orden delante, sin_activar, sobre las 21 respuestas del modelo que
+//   - umbrales son exactamente diez, decidiendo los diez: de cada modo, el del
+//     modo orden delante, sin_activar, sobre las 24 respuestas del modelo que
 //     decide en ese modo; plazo_sin_fecha, sobre las 9 de ellas de las evals de
-//     plazo; cobertura_sin_declarar, sobre las 6 de las de cobertura; y, desde
+//     plazo; cobertura_sin_declarar, sobre las 6 de las de cobertura; desde el
+//     ADR 0042, vigencia_sin_declarar, sobre las 3 de la de vigencia; y, desde
 //     el ADR 0041, redaccion_sin_fechar, sobre las 9 de las de plazo, que leen
 //     cada precepto en la fecha de la notificación;
-//   - con ninguna respuesta que cuente, los ocho se cumplen y el veredicto es
+//   - una de la eval de vigencia sin la declaración del plazo sin calcular con
+//     la norma esperada, o con una línea del plazo, cuenta en
+//     vigencia_sin_declarar de su modo, una vez aunque le pase lo uno y lo otro,
+//     con su fallo y su motivo (ADR 0042);
+//   - con ninguna respuesta que cuente, los diez se cumplen y el veredicto es
 //     aprobado, sin motivos: la línea del plazo con la fecha esperada no cuenta,
 //     y la declaración con la norma esperada, sin línea del plazo, tampoco;
 //   - una sesión de una eval de plazo sin la línea del plazo con la fecha
@@ -6368,12 +6385,18 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 		conOtraFecha = "⚠ PLAZO: 2026-10-09 — recurso de reposición " + citaDel124
 
 		// sinDeclarar es una respuesta de una eval de cobertura sin la
-		// declaración de no cubierto.
+		// declaración de no cubierto, y también de la de vigencia sin la del
+		// plazo sin calcular.
 		sinDeclarar = "Tienes un mes para recurrirla."
 
 		plazoAusente       = "plazo ausente: 2026-10-13"
 		declaracionAusente = "declaración de no cubierto ausente: BOE-A-2003-23186"
 		lineaSobrante      = "línea del plazo en un asunto no cubierto: 2026-10-09"
+
+		sinCalcularAusente     = "declaración de plazo sin calcular ausente: BOE-A-2015-10565"
+		lineaSinLaRedaccion    = "línea del plazo en un plazo sin calcular: 2026-10-09"
+		conLaDeOtraNorma       = "⚠ PLAZO SIN CALCULAR: recurso potestativo de reposición: BOE-A-1992-26318."
+		conLaDeclaracionYFecha = declaracionDelPlazoSinCalcular + "\n\n" + conOtraFecha
 	)
 
 	sesion := func(eval, modelo string, modo Modo, numero int) string {
@@ -6392,6 +6415,9 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 	liquidacionDeHaiku := sesion(evalDeLaLiquidacion, modeloHaiku45, ModoHerramienta, 1)
 	territorioConLaLinea := sesion(evalDeTerritorioNoCubierto, modeloSonnet55, ModoOrden, 1)
 	territorioConOtraFecha := sesion(evalDeTerritorio, modeloSonnet55, ModoHerramienta, 1)
+	vigenciaSinDeclarar := sesion(evalDeLaVigencia, modeloSonnet55, ModoOrden, 2)
+	vigenciaConOtraNorma := sesion(evalDeLaVigencia, modeloSonnet55, ModoHerramienta, 1)
+	vigenciaConLaFecha := sesion(evalDeLaVigencia, modeloSonnet55, ModoOrden, 3)
 
 	modelos := modelosDeLegalCore()
 
@@ -6472,6 +6498,40 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			},
 		},
 		{
+			// Sin la declaración del plazo sin calcular, aunque diga lo mismo con
+			// otras palabras: 1 de 3 en el modo orden (ADR 0042).
+			nombre:     "una-de-vigencia-sin-declarar",
+			respuestas: map[string]string{vigenciaSinDeclarar: sinDeclarar},
+			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinDeclararLaVigencia: 1}},
+			motivos: []string{
+				"umbral vigencia_sin_declarar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: " +
+					vigenciaSinDeclarar,
+			},
+			noPasan: map[string][]string{vigenciaSinDeclarar: {sinCalcularAusente}},
+		},
+		{
+			// La declaración con otra norma no es la esperada, y con la esperada y
+			// una línea del plazo cuenta igual: 1 de 3 en cada modo.
+			nombre: "dos-de-vigencia-con-otra-norma-o-con-la-fecha",
+			respuestas: map[string]string{
+				vigenciaConOtraNorma: conLaDeOtraNorma,
+				vigenciaConLaFecha:   conLaDeclaracionYFecha,
+			},
+			porModo: map[Modo]medidasDeLegalCore{
+				ModoOrden: {sinDeclararLaVigencia: 1}, ModoHerramienta: {sinDeclararLaVigencia: 1},
+			},
+			motivos: []string{
+				"umbral vigencia_sin_declarar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: " +
+					vigenciaConLaFecha,
+				"umbral vigencia_sin_declarar:claude-sonnet-5-5:herramienta: 1 de 3 (33,3 %), y tiene que ser " +
+					"≤ 0,0 %: " + vigenciaConOtraNorma,
+			},
+			noPasan: map[string][]string{
+				vigenciaConOtraNorma: {sinCalcularAusente},
+				vigenciaConLaFecha:   {lineaSinLaRedaccion},
+			},
+		},
+		{
 			// El aviso esperado no entra en plazo_sin_fecha: la sesión no cumple lo
 			// esperado y cuenta en su serie, que pasa con las otras dos (FR-055,
 			// FR-057).
@@ -6529,14 +6589,14 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			nombre:     "una-sin-activar",
 			sinActivar: plazoEnOrden,
 			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinActivar: 1}},
-			motivos:    []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 21 (4,8 %), y tiene que ser ≤ 0,0 %"},
+			motivos:    []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 24 (4,2 %), y tiene que ser ≤ 0,0 %"},
 			noPasan:    map[string][]string{plazoEnOrden: {motivoDeActivacion(skillDeLegalCore, true)}},
 		},
 	}
 }
 
 // exigirLosUmbralesDeLegalCore arma las sesiones del plan del job con los
-// cambios del caso, escribe el informe y exige sus ocho umbrales, sus motivos y
+// cambios del caso, escribe el informe y exige sus diez umbrales, sus motivos y
 // su veredicto, que es fallo si hay algún motivo; los motivos de cada sesión que
 // no pasa, que cuenta en su serie; y la fila de cada umbral en informe.md.
 func exigirLosUmbralesDeLegalCore(t *testing.T, caso casoDeUmbralesDeLegalCore) {
@@ -6602,9 +6662,10 @@ func exigirLasQueNoPasan(t *testing.T, leido informeLeido, noPasan map[string][]
 // evals del repositorio, el plan del job y el objetivo de duración que les da
 // su definición (contracts/evals-legal-core.md §3 de H9; FR-056, FR-087;
 // SC-011): legal-core, con las sesiones de armarSesionesDeLegalCore, lleva
-// exactamente sin_activar, plazo_sin_fecha, cobertura_sin_declarar y, desde el
-// ADR 0041, redaccion_sin_fechar del modo orden y los mismos del modo
-// herramienta, los ocho decidiendo, sobre 21, 9, 6 y 9 respuestas; y jurisprudencia, sin sesiones, sigue con los quince de antes,
+// exactamente sin_activar, plazo_sin_fecha, cobertura_sin_declarar, desde el
+// ADR 0042, vigencia_sin_declarar y, desde el ADR 0041, redaccion_sin_fechar del
+// modo orden y los mismos del modo herramienta, los diez decidiendo, sobre 24,
+// 9, 6, 3 y 9 respuestas; y jurisprudencia, sin sesiones, sigue con los quince de antes,
 // once que deciden, en su orden y sin cambiar ninguno: lo que no sale de las
 // respuestas —el nombre, la descripción, la comparación, el umbral y si
 // decide— es el de umbralesDeJurisprudencia.
@@ -6646,11 +6707,13 @@ func TestUmbralesDeLasTresSkills(t *testing.T) {
 
 		assert.Equal(t, []string{
 			"sin_activar:claude-sonnet-5-5:orden", "plazo_sin_fecha:claude-sonnet-5-5:orden",
-			"cobertura_sin_declarar:claude-sonnet-5-5:orden", "redaccion_sin_fechar:claude-sonnet-5-5:orden",
+			"cobertura_sin_declarar:claude-sonnet-5-5:orden", "vigencia_sin_declarar:claude-sonnet-5-5:orden",
+			"redaccion_sin_fechar:claude-sonnet-5-5:orden",
 			"sin_activar:claude-sonnet-5-5:herramienta", "plazo_sin_fecha:claude-sonnet-5-5:herramienta",
-			"cobertura_sin_declarar:claude-sonnet-5-5:herramienta", "redaccion_sin_fechar:claude-sonnet-5-5:herramienta",
+			"cobertura_sin_declarar:claude-sonnet-5-5:herramienta", "vigencia_sin_declarar:claude-sonnet-5-5:herramienta",
+			"redaccion_sin_fechar:claude-sonnet-5-5:herramienta",
 		}, nombres)
-		assert.Equal(t, []int{21, 9, 6, 9, 21, 9, 6, 9}, totales)
+		assert.Equal(t, []int{24, 9, 6, 3, 9, 24, 9, 6, 3, 9}, totales)
 		assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
 	})
 
@@ -6732,25 +6795,26 @@ func formaDeLosUmbrales(umbrales []Umbral) []Umbral {
 	return forma
 }
 
-// umbralesDeLegalCore son los ocho umbrales del informe de legal-core con las
+// umbralesDeLegalCore son los diez umbrales del informe de legal-core con las
 // evals del repositorio y las sesiones del plan del job
-// (umbralesDeLegalCoreSobre): sobre las 21 respuestas de cada modo, las 9 de sus
-// evals de plazo, que son también las de redaccion_sin_fechar, y las 6 de las de
-// cobertura.
+// (umbralesDeLegalCoreSobre): sobre las 24 respuestas de cada modo, las 9 de sus
+// evals de plazo, que son también las de redaccion_sin_fechar, las 6 de las de
+// cobertura y las 3 de la de vigencia.
 func umbralesDeLegalCore(porModo map[Modo]medidasDeLegalCore) []Umbral {
 	return umbralesDeLegalCoreSobre(totalesDeLegalCore{
 		respuestas: respuestasDeLegalCorePorModo, dePlazo: respuestasDePlazoPorModo,
-		deCobertura: respuestasDeCoberturaPorModo,
+		deCobertura: respuestasDeCoberturaPorModo, deVigencia: respuestasDeVigenciaPorModo,
 	}, porModo)
 }
 
-// umbralesDeLegalCoreSobre son los ocho umbrales del informe de legal-core, en el
-// orden de contracts/evals-legal-core.md §3 de H9 con redaccion_sin_fechar
-// detrás (ADR 0041), con los totales dados de cada modo y las medidas dadas —0
-// en lo que no se da—, cada uno cumplido si su medida es 0: de cada modo, el del
-// modo orden delante, sin_activar, plazo_sin_fecha, cobertura_sin_declarar y
-// redaccion_sin_fechar, los cuatro decidiendo con 0, cada total sin las sesiones
-// sin medir del modo, que son de una eval de plazo.
+// umbralesDeLegalCoreSobre son los diez umbrales del informe de legal-core, en el
+// orden de contracts/evals-legal-core.md §3 de H9 con vigencia_sin_declarar
+// detrás de cobertura_sin_declarar (ADR 0042) y redaccion_sin_fechar detrás de
+// todos (ADR 0041), con los totales dados de cada modo y las medidas dadas —0 en
+// lo que no se da—, cada uno cumplido si su medida es 0: de cada modo, el del
+// modo orden delante, sin_activar, plazo_sin_fecha, cobertura_sin_declarar,
+// vigencia_sin_declarar y redaccion_sin_fechar, los cinco decidiendo con 0, cada
+// total sin las sesiones sin medir del modo, que son de una eval de plazo.
 func umbralesDeLegalCoreSobre(totales totalesDeLegalCore, porModo map[Modo]medidasDeLegalCore) []Umbral {
 	var umbrales []Umbral
 
@@ -6762,6 +6826,7 @@ func umbralesDeLegalCoreSobre(totales totalesDeLegalCore, porModo map[Modo]medid
 				medidas.sinActivar == 0),
 			umbralPlazoSinFecha(modeloSonnet55, modo, medidas.sinFecha, totales.dePlazo-medidas.sinMedir),
 			umbralCoberturaSinDeclarar(modeloSonnet55, modo, medidas.sinDeclarar, totales.deCobertura),
+			umbralVigenciaSinDeclarar(modeloSonnet55, modo, medidas.sinDeclararLaVigencia, totales.deVigencia),
 			umbralRedaccionSinFechar(modeloSonnet55, modo, medidas.sinFechar, totales.dePlazo-medidas.sinMedir))
 	}
 
@@ -6806,6 +6871,25 @@ func umbralCoberturaSinDeclarar(modelo string, modo Modo, sinDeclarar, respuesta
 	}
 }
 
+// umbralVigenciaSinDeclarar es el umbral de las respuestas del modelo que
+// decide en un modo, de las evals de vigencia, sin la declaración del plazo sin
+// calcular con la norma esperada o con una línea del plazo, con sus valores
+// escritos a mano: 0 y decidiendo (ADR 0042).
+func umbralVigenciaSinDeclarar(modelo string, modo Modo, sinDeclarar, respuestas int) Umbral {
+	return Umbral{
+		Nombre: "vigencia_sin_declarar:" + modelo + ":" + string(modo),
+		Descripcion: "Respuestas de " + modelo + " en el modo " + string(modo) + " sin la línea ⚠ PLAZO SIN " +
+			"CALCULAR: con la norma esperada, o con una línea ⚠ PLAZO:, sobre sus respuestas medidas en las evals " +
+			"que esperan un plazo sin calcular",
+		Medida:      float64(sinDeclarar),
+		Total:       &respuestas,
+		Comparacion: "<=",
+		Umbral:      0,
+		Cumple:      sinDeclarar == 0,
+		Decide:      true,
+	}
+}
+
 // modeloDeUnaEval es la sesión de quien sigue la skill ante una eval del
 // repositorio: si la activa, su respuesta y, en su orden, las consultas que
 // hace.
@@ -6822,8 +6906,10 @@ type modeloDeUnaEval struct {
 // espera; la de no activación responde sin la skill; la sin binario ni
 // servidor, con la línea ⚠ SIN CONSULTA AL BOE: y su dirección; las de plazo
 // sitúan el municipio, calculan el plazo, leen sus preceptos y responden con la
-// línea del plazo y la de cada aviso esperado; y las de cobertura no consultan
-// nada y responden con la declaración de no cubierto.
+// línea del plazo y la de cada aviso esperado; las de cobertura no consultan
+// nada y responden con la declaración de no cubierto; y la de vigencia sitúa el
+// municipio, pide el plazo, que no se calcula, y responde con la declaración del
+// plazo sin calcular (ADR 0042).
 func modelosDeLegalCore() map[string]modeloDeUnaEval {
 	const (
 		leganes     = "Leganés"
@@ -6879,7 +6965,27 @@ func modelosDeLegalCore() map[string]modeloDeUnaEval {
 				leerElArticuloEnUnDia(ljca, "a128", "2026-06-15", sobreDeLegalCore("boe"), 0),
 			},
 		},
+		evalDeLaVigencia: {
+			activa:    true,
+			respuesta: declaracionDelPlazoSinCalcular,
+			consultas: []consultaSintetica{
+				resolverElMunicipio(leganes), plazoSinCalcular("reposicion", "2014-06-02", leganes, leganes),
+			},
+		},
 	}
+}
+
+// plazoSinCalcular es la consulta plazos calcular de un plazo con preceptos que
+// no regían el día de inicio, que termina con 3 y su sobre de fallo (ADR 0042).
+func plazoSinCalcular(tipo, inicio, delInteresado, deLaSede string) consultaSintetica {
+	consulta := calcularElPlazo(tipo, inicio, delInteresado, deLaSede)
+	consulta.sobre = `{"ok":false,"fuente":"kitlegal.plazos","url":"kitlegal:applet/plazos",` +
+		`"fecha_consulta":"2026-10-07T10:00:00Z","hash":"sha256:` + strings.Repeat("0", 64) + `",` +
+		`"data":{"clase":"no-encontrado","mensaje":"el plazo de tipo \"` + tipo + `\" que empieza el ` + inicio +
+		` no se calcula"}}`
+	consulta.codigo = 3
+
+	return consulta
 }
 
 // resolverElMunicipio es la consulta territorio resolver del municipio.
@@ -6924,7 +7030,7 @@ func sobreDeLegalCore(applet string) string {
 
 // armarSesionesDeLegalCore escribe en un directorio temporal del test las
 // sesiones que el plan del job pide con las evals de legal-core del repositorio
-// —las ocho de modo, tres veces, con los dos modelos y en los dos modos, y la
+// —las nueve de modo, tres veces, con los dos modelos y en los dos modos, y la
 // sin binario ni servidor, tres veces con cada modelo—, cada una la de
 // modelosDeLegalCore para su eval o, si las respuestas dadas la nombran, con la
 // suya, y devuelve el directorio (escribirLasSesionesDelPlan).
