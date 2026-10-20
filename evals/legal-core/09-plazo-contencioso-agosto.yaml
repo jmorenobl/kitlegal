@@ -1,8 +1,9 @@
 # Eval de plazo (e): el recurso contencioso-administrativo contra la desestimación de un recurso de reposición, ante
 # los juzgados con sede en Madrid, cuyo plazo pasa por agosto. La respuesta tiene que situar la sede del juzgado con el
-# applet territorio, calcular el plazo con plazos calcular, leer los arts. 46 y 128 de la LJCA y dar la fecha en la
-# línea ⚠ PLAZO: con su cita; el tramo no pasa por los días del art. 183 LOPJ y plazos no da ningún aviso (FR-050,
-# FR-051; contracts/evals-legal-core.md §5).
+# applet territorio, calcular el plazo con plazos calcular, leer los arts. 46 y 128 de la LJCA en la redacción vigente
+# el día de la notificación, dar la fecha en la línea ⚠ PLAZO: con su cita y decir qué redacción cita en una línea
+# ⚠ REDACCIÓN A FECHA: por precepto, de las que se comprueba la del art. 46; el tramo no pasa por los días del art. 183
+# LOPJ y plazos no da ningún aviso (FR-050, FR-051; contracts/evals-legal-core.md §5; ADR 0041).
 pregunta: "El 15 de junio de 2026 el Ayuntamiento de Leganés me notificó la desestimación de mi recurso de reposición. Quiero interponer recurso contencioso-administrativo ante los juzgados de lo contencioso-administrativo de Madrid. ¿Hasta qué día puedo hacerlo?"
 activa: true
 comandos:
@@ -15,14 +16,21 @@ comandos:
   - applet: boe
     norma: BOE-A-1998-16718
     bloque: a46
+    fecha: "2026-06-15"
   - applet: boe
     norma: BOE-A-1998-16718
     bloque: a128
+    fecha: "2026-06-15"
 citas:
   - norma: BOE-A-1998-16718
     bloque: a46
   - norma: BOE-A-1998-16718
     bloque: a128
+redaccion_fechada:
+  norma: BOE-A-1998-16718
+  bloque: a46
+  fecha: "2026-06-15"
+  fecha_vigencia: "19981214"
 plazo:
   fecha: "2026-09-15"
   avisos: []

@@ -17,11 +17,10 @@ metadata:
 
 # Consultar y citar legislación consolidada del BOE
 
-Esta skill responde preguntas sobre el contenido de normas consolidadas del Boletín Oficial del Estado —la
-Constitución, leyes, reales decretos legislativos, reales decretos y las normas autonómicas que el BOE consolida— de
-cualquier ámbito. Lo que dice de una norma sale del texto que devuelve `kitlegal boe` en la misma conversación, y cada
-afirmación sobre ese texto va con su cita. La skill consulta y cita: no tramita nada y no sustituye el asesoramiento de
-un profesional.
+Esta skill responde preguntas sobre el contenido de normas consolidadas del Boletín Oficial del Estado —la Constitución,
+leyes, reales decretos legislativos, reales decretos y las normas autonómicas que el BOE consolida— de cualquier ámbito.
+Lo que dice de una norma sale del texto que devuelve `kitlegal boe` en la misma conversación, y cada afirmación sobre
+ese texto va con su cita. La skill consulta y cita: no tramita nada y no sustituye el asesoramiento de un profesional.
 
 ## Protocolo
 
@@ -159,7 +158,6 @@ del binario o de una explicación: `⚠ NORMA DEROGADA:` para el aviso `derogada
 ```text
 ⚠ NORMA DEROGADA: esta norma ha sido derogada.
 ```
-- La etiqueta va entera y sin cambiar ninguna palabra, con `⚠` delante y los dos puntos detrás, todo en la misma línea.
 
 **Por qué las líneas `⚠` tienen forma fija.** Cada línea `⚠` de esta skill —un aviso, la redacción en una fecha, la
 redacción modificada— la lee un programa sin leer el resto de la respuesta, y comprueba en ella su etiqueta, su cita y
@@ -214,10 +212,12 @@ solo usa `check`, tras cada lectura sin fecha (paso 3).
   Con dos bloques en `version-obsoleta`, dos líneas, cada una con su cita y sus fechas. Decirlo con otras palabras no
   vale, ni en lugar de la línea ni además de ella: la línea va con su forma fija y lo dice entera.
 - Una entrada de `clase` `fuente-caducada` no va en la respuesta, que cita el texto que acabas de leer.
-- **No es un aviso de vigencia.** Un aviso es un dato de la norma, que el BOE da con el bloque; una entrada de
-  `kitlegal graph check` es un dato de kitlegal sobre otras conversaciones, que quien pregunta no conoce. Un bloque sin
-  entrada de `clase` `version-obsoleta` no da nada a la respuesta, ni una línea ni una frase, y con ella, la línea es
-  todo lo que la respuesta dice de esas conversaciones y de `kitlegal graph check`.
+- **No es un aviso de vigencia.** Un aviso es un dato de la norma, que el BOE da con el bloque, y la etiqueta
+  `REDACCIÓN MODIFICADA` no es la de ninguno: una entrada de `kitlegal graph check` es un dato de kitlegal sobre otras
+  conversaciones, que quien pregunta no conoce. Por eso un bloque sin entrada de `clase` `version-obsoleta` no da nada
+  a la respuesta: ni una línea, ni una frase junto a los avisos o a la fecha de vigencia, ni una palabra al final.
+  Mencionarlo sería contar lo que devolvió una orden y hablar de otras conversaciones: la línea es todo lo que la
+  respuesta dice de ellas y de `kitlegal graph check`.
 - **La redacción superada no la has leído.** Ni la lectura sin fecha, que da solo la redacción de hoy, ni
   `kitlegal graph check`, que da dos fechas, dicen qué decía la superada ni en qué se diferencia de la vigente: la
   respuesta no lo dice, ni lo resume, ni lo compara, aunque creas saberlo, que sería texto legal sin fuente. Si quien

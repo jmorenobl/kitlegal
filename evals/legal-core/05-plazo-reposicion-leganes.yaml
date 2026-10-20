@@ -1,7 +1,9 @@
 # Eval de plazo (a): el recurso de reposición contra una resolución del ayuntamiento del municipio de referencia, del
 # territorio configurado, con el interesado en el mismo municipio. La respuesta tiene que situar el municipio con el
-# applet territorio, calcular el plazo con plazos calcular, leer el art. 124 de la LPAC y dar la fecha en la línea
-# ⚠ PLAZO: con su cita; con esta entrada, plazos no da ningún aviso (FR-050, FR-051; contracts/evals-legal-core.md §5).
+# applet territorio, calcular el plazo con plazos calcular, leer el art. 124 de la LPAC en la redacción vigente el día
+# de la notificación, dar la fecha en la línea ⚠ PLAZO: con su cita y decir qué redacción cita en la línea
+# ⚠ REDACCIÓN A FECHA:; con esta entrada, plazos no da ningún aviso (FR-050, FR-051; contracts/evals-legal-core.md §5;
+# ADR 0041).
 pregunta: "Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Leganés y vivo en Leganés, ¿hasta cuándo puedo presentar el recurso de reposición?"
 activa: true
 comandos:
@@ -14,9 +16,15 @@ comandos:
   - applet: boe
     norma: BOE-A-2015-10565
     bloque: a124
+    fecha: "2026-09-09"
 citas:
   - norma: BOE-A-2015-10565
     bloque: a124
+redaccion_fechada:
+  norma: BOE-A-2015-10565
+  bloque: a124
+  fecha: "2026-09-09"
+  fecha_vigencia: "20161002"
 plazo:
   fecha: "2026-10-13"
   avisos: []

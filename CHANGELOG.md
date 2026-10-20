@@ -79,6 +79,26 @@ sustituyen a este fichero.
   consulta, con un ejemplo («el artículo no lleva avisos de vigencia», no «la lectura no trajo avisos»). Lo que se
   repetía entre el paso 3, el paso 5 y «Redacción modificada» se dice una vez. Las reglas, las líneas de forma fija y
   los umbrales no cambian; `SKILL.md` tiene 299 líneas. Sustituye a `boe-legislacion` v0.2.
+- **`legal-core` v1.1: un plazo se lee en la redacción vigente el día en que empieza (ADR 0041).** Las evals de plazo
+  esperaban leer el precepto sin fecha, y `boe-legislacion` v0.2 pide leer con `--fecha` cuando la pregunta da el día
+  de un hecho, como el de la notificación: en los jobs de evals de la #170 y de la #171, 1 y 3 de 6 sesiones en modo
+  herramienta leyeron el art. 124 LPAC con `--fecha`, y la eval 05 cayó en la #171. La ley ata el régimen de un recurso
+  al del acto y el de un procedimiento al de su inicio (disposición transitoria tercera de la Ley 39/2015), así que el
+  paso 10 lee cada precepto de `data.preceptos` con `--fecha` en la fecha de inicio que se pasa a `plazos`, y la
+  respuesta lleva, detrás de `⚠ PLAZO:`, su línea `⚠ REDACCIÓN A FECHA:` (y `⚠ REDACCIÓN DE HOY:` si el precepto
+  cambió después, diciendo que qué redacción rige el plazo lo dice el régimen transitorio de la norma que lo cambió).
+  «Cómo se presenta un plazo» lleva la forma de las dos líneas y explica por qué las líneas `⚠` tienen forma fija: las
+  lee un programa, y lo que dicen solo se comprueba en ellas. Las evals 05, 06 y 09 esperan la lectura en la fecha de
+  la notificación y llevan `redaccion_fechada`, así que `legal-core` gana el umbral sin modelo `redaccion_sin_fechar`
+  de cada modo, con 0 y decidiendo: de seis umbrales a ocho (`TestUmbralesDeLegalCore`,
+  `TestUmbralesDeLasTresSkills`). Ningún umbral se relaja. Sustituye a `legal-core` v1.
+- **`boe-legislacion` v0.2.2: vuelve la viñeta «No es un aviso de vigencia» de antes de la v0.2.1.** Al acortarla, la
+  v0.2.1 perdió «ni una frase junto a los avisos o a la fecha de vigencia, ni una palabra al final» y su razón, y la
+  eval 20 pasó a tener prosa del tipo «han cambiado desde la última consulta» junto a su línea
+  `⚠ REDACCIÓN MODIFICADA:` (`cuenta_su_proceso` en modo herramienta, de 2 a 4 de 60). Para devolverla sin pasar de
+  299 líneas, sale la viñeta «La etiqueta va entera…» de los avisos de vigencia, que repetía lo que dicen el párrafo
+  de los avisos, «Por qué las líneas `⚠` tienen forma fija» y la regla 3, y el párrafo de entrada se reparte en una
+  línea menos, con las mismas palabras. Sustituye a `boe-legislacion` v0.2.1.
 - **H9.1 entra en la lista del input `hito`** (workflow `hito` 2.9.3). El ADR 0040 da número a H9.1, H27 y H28;
   H27 y H28 ya estaban en la lista cerrada de `workflow.yml` y H9.1 no, así que `scripts/hito.sh H9.1` no habría
   creado el run. Lo comprueba `TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow`.
