@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-21T05:40:01Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10566/texto/bloque/a26",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "950"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Wed, 21 Oct 2026 05:40:01 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a26\" tipo=\"precepto\" titulo=\"Artículo 26\">\n      <version id_norma=\"BOE-A-2015-10566\" fecha_publicacion=\"20151002\" fecha_vigencia=\"20161002\">\n        <p class=\"articulo\">Artículo 26. Irretroactividad.</p>\n        <p class=\"parrafo\">1. Serán de aplicación las disposiciones sancionadoras vigentes en el momento de producirse los hechos que constituyan infracción administrativa.</p>\n        <p class=\"parrafo\">2. Las disposiciones sancionadoras producirán efecto retroactivo en cuanto favorezcan al presunto infractor o al infractor, tanto en lo referido a la tipificación de la infracción como a la sanción y a sus plazos de prescripción, incluso respecto de las sanciones pendientes de cumplimiento al entrar en vigor la nueva disposición.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
