@@ -157,6 +157,14 @@ type Sesion struct {
 	// recibe de ella; ninguno si ninguna devolvió nada (data-model §2 de H24;
 	// contracts/juez-y-voto.md §2 de H24).
 	Textos []Texto
+
+	// OrdenesDeBash son, de esos textos, los de las órdenes de Bash que llevan
+	// la palabra kitlegal, con su orden tal cual y su salida, en el orden de sus
+	// bloques tool_use; ninguno si no hay ninguno. Con ellos se enlaza una
+	// invocación de la traza que terminó con 1 con el uso de Bash del que salió,
+	// sin las llamadas, que no son de Bash (data-model §3; research D10;
+	// FR-025, FR-026).
+	OrdenesDeBash []Texto
 }
 
 // Texto es el texto que devolvió una herramienta de la sesión, leído del
@@ -204,6 +212,13 @@ type Llamada struct {
 	// Clase es data.clase de ese sobre con ok falso; vacía si el resultado no lo
 	// trae o si de él no se lee.
 	Clase schema.Clase
+
+	// SinSobre dice si su resultado no trae sobre de kitlegal: el transcript
+	// trae su tool_result, es un error por su is_error y ninguno de los textos de
+	// su contenido es un objeto JSON con ok, como el aviso del agente de que la
+	// herramienta no existe. El binario no corrió. Una llamada sin resultado no
+	// es una sin sobre (data-model §3; research D7; FR-023).
+	SinSobre bool
 }
 
 // ReintentoDeLaAPI es un mensaje system/api_retry del transcript: Claude Code lo
@@ -311,6 +326,7 @@ func LeerSesion(dir string) (Sesion, error) {
 		ErrorDelResultado:   errorDelResultado,
 		Llamadas:            leido.llamadas,
 		Textos:              leido.textosDeLasHerramientas(),
+		OrdenesDeBash:       leido.ordenesDeBash(),
 	}, nil
 }
 
@@ -407,6 +423,11 @@ type textoDeUso struct {
 	// deja ningún texto: la sesión se cortó antes de que la herramienta
 	// devolviera nada.
 	conResultado bool
+
+	// deBash dice si el uso es una orden de Bash, y no una llamada a una
+	// herramienta del registro: su texto es también una de las órdenes de Bash
+	// de la sesión (research D10).
+	deBash bool
 }
 
 // mensaje es lo que decide el fin de la sesión de un mensaje del transcript: su
@@ -634,12 +655,14 @@ func (t *transcriptLeido) leerLlamada(bloque bloqueDeContenido) {
 
 	t.llamadaDelUso[bloque.ID] = len(t.llamadas)
 	t.llamadas = append(t.llamadas, llamada)
-	t.anotarElTexto(bloque.ID, invocacionDeLaLlamada(llamada, t.verbos[herramienta]).orden)
+	orden := invocacionDeLaLlamada(llamada, t.verbos[herramienta]).orden
+	t.anotarElTexto(textoDeUso{Texto: Texto{Orden: orden}}, bloque.ID)
 }
 
 // leerOrdenDeBash anota el texto que dará un bloque tool_use de Bash si su
-// input.command lleva la palabra kitlegal, con la orden tal cual y todavía sin
-// salida (contracts/juez-y-voto.md §2 de H24; research D2 de H24). La palabra
+// input.command lleva la palabra kitlegal, con la orden tal cual, todavía sin
+// salida y como el de una orden de Bash (contracts/juez-y-voto.md §2 de H24;
+// research D2 de H24; research D10). La palabra
 // es la de contieneComoPalabra: la orden que la lleva dentro de otra, como
 // «mikitlegal», no la nombra.
 func (t *transcriptLeido) leerOrdenDeBash(bloque bloqueDeContenido) {
@@ -654,18 +677,18 @@ func (t *transcriptLeido) leerOrdenDeBash(bloque bloqueDeContenido) {
 		return
 	}
 
-	t.anotarElTexto(bloque.ID, entrada.Command)
+	t.anotarElTexto(textoDeUso{Texto: Texto{Orden: entrada.Command}, deBash: true}, bloque.ID)
 }
 
-// anotarElTexto anota, detrás de los ya leídos, el uso de herramienta con ese
-// id como uno que da texto, con su orden y todavía sin salida.
-func (t *transcriptLeido) anotarElTexto(uso, orden string) {
+// anotarElTexto anota, detrás de los ya leídos, el texto del uso de herramienta
+// con ese id, con su orden y todavía sin salida.
+func (t *transcriptLeido) anotarElTexto(texto textoDeUso, uso string) {
 	if t.textoDelUso == nil {
 		t.textoDelUso = map[string]int{}
 	}
 
 	t.textoDelUso[uso] = len(t.textos)
-	t.textos = append(t.textos, textoDeUso{Texto: Texto{Orden: orden}})
+	t.textos = append(t.textos, texto)
 }
 
 // anotarLaSalida deja, en el texto del uso con ese id, los textos del content
@@ -687,10 +710,23 @@ func (t *transcriptLeido) anotarLaSalida(uso string, contenido any) {
 // transcript, en el orden de sus bloques tool_use; ninguno, y no una lista
 // vacía, si no hay ninguno.
 func (t *transcriptLeido) textosDeLasHerramientas() []Texto {
+	return t.textosConResultado(func(textoDeUso) bool { return true })
+}
+
+// ordenesDeBash son, de esos textos, los de las órdenes de Bash, en el mismo
+// orden; ninguno, y no una lista vacía, si no hay ninguno (research D10).
+func (t *transcriptLeido) ordenesDeBash() []Texto {
+	return t.textosConResultado(func(texto textoDeUso) bool { return texto.deBash })
+}
+
+// textosConResultado son los textos de los usos cuyo tool_result trae el
+// transcript y que cumplen el criterio dado, en el orden de sus bloques
+// tool_use; ninguno, y no una lista vacía, si no hay ninguno.
+func (t *transcriptLeido) textosConResultado(cumple func(textoDeUso) bool) []Texto {
 	var textos []Texto
 
 	for _, texto := range t.textos {
-		if texto.conResultado {
+		if texto.conResultado && cumple(texto) {
 			textos = append(textos, texto.Texto)
 		}
 	}
@@ -703,7 +739,8 @@ func (t *transcriptLeido) textosDeLasHerramientas() []Texto {
 // es el id de una de ellas (research.md S5 de H21). La llamada queda con
 // resultado; es un error si el bloque lleva is_error verdadero o si su contenido
 // es un sobre con ok falso, y su clase es la de ese sobre (research.md D17 de
-// H21).
+// H21); y es una sin sobre si es un error por su is_error y su contenido no
+// trae ningún sobre (research D7; FR-023).
 //
 // De un mensaje user no se exige más forma que la de la API, en la que su
 // contenido es un texto o una lista de bloques: el de un turno de texto y el
@@ -741,24 +778,38 @@ func (t *transcriptLeido) leerUser(texto string) error {
 		}
 
 		conError, _ := campos["is_error"].(bool)
-		clase, conSobreDeFallo := sobreDeFallo(campos["content"])
+		sobre := leerElSobre(campos["content"])
 
 		llamada := &t.llamadas[posicion]
 		llamada.ConResultado = true
-		llamada.Error = conError || conSobreDeFallo
-		llamada.Clase = clase
+		llamada.Error = conError || sobre.deFallo
+		llamada.Clase = sobre.clase
+		llamada.SinSobre = conError && !sobre.conSobre
 	}
 
 	return nil
 }
 
-// sobreDeFallo dice si el contenido de un tool_result es un sobre con ok falso,
-// y da su data.clase, vacía si el sobre no la lleva como un texto. El sobre es
-// el primero de los textos del contenido que es un objeto JSON con ok: el
-// servidor devuelve uno por llamada, de éxito o de fallo (data-model §2 de H21).
-// Un texto que no lo es —el aviso del agente de que la herramienta no existe o
-// de que el servidor no responde— no es un sobre.
-func sobreDeFallo(contenido any) (schema.Clase, bool) {
+// sobreDelResultado es lo que se lee del sobre del contenido de un tool_result.
+type sobreDelResultado struct {
+	// conSobre dice si el contenido trae un sobre.
+	conSobre bool
+
+	// deFallo dice si ese sobre tiene ok falso.
+	deFallo bool
+
+	// clase es data.clase de ese sobre con ok falso; vacía si no la lleva como
+	// un texto o si el sobre no es de fallo.
+	clase schema.Clase
+}
+
+// leerElSobre lee el sobre del contenido de un tool_result: el primero de los
+// textos del contenido que es un objeto JSON con ok, pues el servidor devuelve
+// uno por llamada, de éxito o de fallo (data-model §2 de H21). Un texto que no
+// lo es —el aviso del agente de que la herramienta no existe o de que el
+// servidor no responde— no es un sobre, y un contenido sin ninguno no trae
+// sobre (research D7).
+func leerElSobre(contenido any) sobreDelResultado {
 	for _, texto := range textosDelContenido(contenido) {
 		var sobre struct {
 			OK   *bool `json:"ok"`
@@ -770,16 +821,16 @@ func sobreDeFallo(contenido any) (schema.Clase, bool) {
 		}
 
 		if *sobre.OK {
-			return "", false
+			return sobreDelResultado{conSobre: true}
 		}
 
 		datos, _ := sobre.Data.(map[string]any)
 		clase, _ := datos["clase"].(string)
 
-		return schema.Clase(clase), true
+		return sobreDelResultado{conSobre: true, deFallo: true, clase: schema.Clase(clase)}
 	}
 
-	return "", false
+	return sobreDelResultado{}
 }
 
 // textosDelContenido son los textos del content de un tool_result, que en la

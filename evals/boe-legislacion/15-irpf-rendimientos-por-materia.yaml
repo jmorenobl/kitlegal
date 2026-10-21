@@ -13,3 +13,7 @@ comandos:
 citas:
   - norma: BOE-A-2006-20764
     bloque: a17
+lecturas:
+  - norma: BOE-A-2006-20764
+    bloque: a18
+    motivo: "Junto al art. 17 que pide la eval: la exploración que provoca la pregunta, vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."

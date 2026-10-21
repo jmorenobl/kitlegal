@@ -76,6 +76,7 @@ const (
 	ningunaEnElInforme  = "ninguna"
 	sinLlegadasALaRed   = "ninguna petición llegó a la red de una fuente"
 	sinCodigoPorElCorte = "sin código (sesión cortada)"
+	sinCodigoSinSobre   = "sin sobre"
 	sinConexiones       = "sin conexiones"
 	sinLeer             = "sin leer"
 	vaciaEnElInforme    = "vacía"
@@ -384,6 +385,14 @@ type TasaDelInforme struct {
 	Pasan    int  `json:"pasan"`
 	SinMedir int  `json:"sin_medir"`
 	Pasa     bool `json:"pasa"`
+
+	// SesionesConLecturaSinServir es, en la serie de una eval con sin_servir,
+	// cuántas de sus sesiones leídas tienen alguna invocación en
+	// lecturas_sin_servir, también 0; nil, null en informe.json, en las de las
+	// demás evals (contracts/juicio-e-informe.md §5 de H26.1; data-model §6 de
+	// H26.1; FR-015 de H26.1). No decide: lo que decide es el umbral
+	// lectura_sin_intentar, y la serie, con la regla de siempre.
+	SesionesConLecturaSinServir *int `json:"sesiones_con_lectura_sin_servir"`
 }
 
 // JuezInformado es el juez con modelo de la skill como lo presenta el informe
@@ -1067,7 +1076,8 @@ func EscribirInforme(e InformeAEscribir) (Informe, error) {
 
 	series := repartirEnSeries(e, conjunto.Evals, sesiones)
 	respuestas := medirLasRespuestas(e, conjunto.Evals, sesiones, series, juez)
-	informe := componerInforme(e, string(sinPython), conjunto, sesiones, series, respuestas)
+	lecturas := medirLasLecturas(e, conjunto.Evals, sesiones, series)
+	informe := componerInforme(e, string(sinPython), conjunto, sesiones, series, respuestas, lecturas)
 
 	return e.escribir(informe, sesiones)
 }
@@ -1390,8 +1400,11 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		juzgada.resultado.ReintentosPorLimiteDeRitmo = juzgada.sesion.ReintentosPorLimiteDeRitmo()
 	}
 
+	// Con la eval de la sesión, vacía si no se pudo leer: sin ella, ninguna
+	// invocación consulta una lectura de sin_servir. Y con las órdenes de Bash
+	// que se leyeran de ella, con las que una que terminó con 1 lleva su motivo.
 	for _, invocacion := range juzgada.sesion.Invocaciones {
-		juzgada.resultado.informar(invocacion)
+		juzgada.resultado.informar(eval, invocacion, juzgada.sesion.OrdenesDeBash)
 	}
 
 	return juzgada
@@ -1569,18 +1582,19 @@ func cotejaUnDocumento(sesion Sesion) bool {
 // ejecutaElComando dice si alguna de las invocaciones de la sesión, las de su
 // traza y las de sus llamadas a las herramientas del servidor (invocacionesDe),
 // satisface el comando con el criterio con el que el juicio da por ejecutado un
-// comando esperado (satisface). invocacionesDe anota sus motivos en un
-// resultado de usar y tirar, y su segundo valor no se mira: falso solo si el
-// registro de herramientas no se puede construir, y una sesión leída no llega
-// ahí; si llegara, sus llamadas no contarían y la sesión contaría como si no lo
-// hubiera ejecutado (research D3 de H23.1).
+// comando esperado (satisface), sin el 4 ni el 5, que solo admite el de bloque
+// cuya lectura la eval deja sin servir (FR-016 de H26.1). invocacionesDe anota
+// sus motivos en un resultado de usar y tirar, y su segundo valor no se mira:
+// falso solo si el registro de herramientas no se puede construir, y una sesión
+// leída no llega ahí; si llegara, sus llamadas no contarían y la sesión contaría
+// como si no lo hubiera ejecutado (research D3 de H23.1).
 func ejecutaElComando(sesion Sesion, comando ComandoEsperado) bool {
 	var deUsarYTirar ResultadoDeEval
 
 	invocaciones, _ := deUsarYTirar.invocacionesDe(sesion)
 
 	return slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
-		return satisface(juzgada.Invocacion, comando)
+		return satisface(juzgada.Invocacion, comando, false)
 	})
 }
 
@@ -1851,12 +1865,14 @@ func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
 }
 
 // componerInforme reúne en el informe lo recibido, lo leído, los resultados de
-// las sesiones, sus series y lo que se mide de las respuestas del modelo que
-// decide, que es nil si la skill no tiene umbrales de sus respuestas, y decide
-// sus motivos y su veredicto.
+// las sesiones, sus series, lo que se mide de las respuestas del modelo que
+// decide, que es nil si la skill no tiene umbrales de sus respuestas, y lo que se
+// mide de las lecturas de las sesiones, para fuera_de_lo_grabado de toda skill
+// y, si alguna eval tiene un comando de bloque en su sin_servir, para
+// lectura_sin_intentar, y decide sus motivos y su veredicto.
 func componerInforme(
 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
-	respuestas *respuestasMedidas,
+	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
 ) Informe {
 	informe := cabeceraDelInforme(e, sinPython)
 
@@ -1873,7 +1889,7 @@ func componerInforme(
 		}
 	}
 
-	informe.Umbrales = umbralesDelInforme(e, respuestas)
+	informe.Umbrales = umbralesDelInforme(e, respuestas, lecturas)
 	informe.Juez = respuestas.juez().informado(e.ModeloDelJuez, e.VersionDelJuez)
 
 	for _, juzgada := range sesiones {
@@ -1887,9 +1903,11 @@ func componerInforme(
 				juzgada.sesion.VersionDeClaudeCode)
 		}
 
+		// El de cada sesión ya no lleva sus lecturas de sin_servir (FR-022 de
+		// H26.1), y cada una de las suyas terminó con 4 o 5: tiene código.
 		for _, fuera := range resultado.FueraDeLoGrabado {
 			informe.FueraDeLoGrabado = append(informe.FueraDeLoGrabado, FueraDeLoGrabadoDelInforme{
-				Sesion: resultado.Sesion, Eval: resultado.Eval, Orden: fuera.Orden, Codigo: fuera.Codigo,
+				Sesion: resultado.Sesion, Eval: resultado.Eval, Orden: fuera.Orden, Codigo: *fuera.Codigo,
 			})
 		}
 
@@ -1901,7 +1919,7 @@ func componerInforme(
 	}
 
 	informe.SesionesSinMedir = sesionesSinMedir(informe.Evals, e.SinAbrir)
-	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series, respuestas)
+	informe.Motivos = motivosDelInforme(e, informe, conjunto.Evals, sesiones, series, respuestas, lecturas)
 	informe.Veredicto = veredictoDelInforme(informe)
 
 	return informe
@@ -1986,9 +2004,35 @@ func repartirEnSeries(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 		tasa := &series[posicion].tasa
 		tasa.Pasa = tasa.SinMedir == 0 && tasa.Pasan >= e.Umbral
 		tasa.Formas = formasExigidas(evals, tasa.Eval)
+		tasa.SesionesConLecturaSinServir = sesionesConLecturaSinServir(evals, series[posicion], sesiones)
 	}
 
 	return series
+}
+
+// sesionesConLecturaSinServir es, en la serie de una eval bien formada con
+// sin_servir, cuántas de sus sesiones leídas —no las ilegibles— tienen alguna
+// invocación en lecturas_sin_servir, también 0; nil en la de una eval sin
+// sin_servir y en la de una sesión cuya eval no se pudo leer
+// (contracts/juicio-e-informe.md §5 de H26.1; data-model §6 de H26.1; FR-015 de
+// H26.1). Las sesiones que el repartidor no abrió no tienen nada que contar.
+func sesionesConLecturaSinServir(evals []Eval, serie serieJuzgada, sesiones []sesionJuzgada) *int {
+	conSinServir := slices.ContainsFunc(evals, func(eval Eval) bool {
+		return eval.Fichero == serie.clave.eval && len(eval.SinServir) > 0
+	})
+	if !conSinServir {
+		return nil
+	}
+
+	conLectura := 0
+
+	for _, posicion := range serie.sesiones {
+		if juzgada := sesiones[posicion]; !juzgada.ilegible && len(juzgada.resultado.LecturasSinServir) > 0 {
+			conLectura++
+		}
+	}
+
+	return &conLectura
 }
 
 // respuestasQueSeJuzgan reparte en grupos las respuestas medidas del modelo que
@@ -2121,10 +2165,13 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // (contracts/umbrales-del-informe.md §4 de H26; FR-004 de H26). El de un umbral
 // de las respuestas nombra además las que cuentan en él (motivosDeLosUmbrales):
 // respuestas es lo que se mide de ellas, nil si la skill no tiene esos
-// umbrales.
+// umbrales. Y, desde H26.1, el de lectura_sin_intentar, las sesiones que cuentan
+// en él: lecturas es lo que se mide de las lecturas de las sesiones, para
+// fuera_de_lo_grabado de toda skill y, si alguna eval tiene un comando de bloque
+// en su sin_servir, para lectura_sin_intentar.
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
-	respuestas *respuestasMedidas,
+	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
 ) []string {
 	var motivos []string
 
@@ -2152,7 +2199,7 @@ func motivosDelInforme(
 		motivos = append(motivos, llegada.Sesion+motivoDeLlegadaALaRed+llegada.Orden+" → "+llegada.Destino)
 	}
 
-	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales, respuestas)...)
+	motivos = append(motivos, motivosDeLosUmbrales(informe.Umbrales, respuestas, lecturas)...)
 
 	if len(informe.SesionesSinMedir) > 0 {
 		motivos = append(motivos, motivoDeLasSesionesSinMedir(informe.SesionesSinMedir))
@@ -2661,17 +2708,23 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 }
 
 // filasDeInvocaciones son las filas de la tabla de invocaciones de una sesión:
-// la orden, su código o «sin código (sesión cortada)», sus conexiones, cada una
-// con su destino y su clase, o «sin conexiones», y la marca de las que son una
-// llamada a una herramienta del servidor y no una orden de la traza
-// (contracts/evals-en-dos-modos.md §5.3 de H21).
+// la orden, su código o, sin él, «sin sobre» en la que lleva un motivo, la
+// llamada sin sobre, y «sin código (sesión cortada)» en las demás, sus
+// conexiones, cada una con su destino y su clase, o «sin conexiones», y la marca
+// de las que son una llamada a una herramienta del servidor y no una orden de la
+// traza (contracts/evals-en-dos-modos.md §5.3 de H21; contracts/juicio-e-informe.md
+// §6 de H26.1).
 func filasDeInvocaciones(invocaciones []InvocacionInformada) [][]string {
 	filas := make([][]string, 0, len(invocaciones))
 
 	for _, invocacion := range invocaciones {
 		codigo := sinCodigoPorElCorte
-		if invocacion.Codigo != nil {
+
+		switch {
+		case invocacion.Codigo != nil:
 			codigo = strconv.Itoa(*invocacion.Codigo)
+		case invocacion.Motivo != "":
+			codigo = sinCodigoSinSobre
 		}
 
 		conexiones := make([]string, 0, len(invocacion.Conexiones))

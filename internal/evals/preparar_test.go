@@ -5,6 +5,8 @@ import (
 	"cmp"
 	"encoding/json/v2"
 	"errors"
+	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -19,6 +21,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
+	"github.com/jmorenobl/kitlegal/internal/core/plazos"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 )
 
@@ -167,8 +170,9 @@ func TestPrepararYComprobar(t *testing.T) {
 }
 
 // TestPrepararDirectorioDeSesion fija PrepararSesion (contrato job-de-evals
-// §3.2 y §9; FR-074, SC-012) sobre las grabaciones de H4 y evals sintéticas de
-// la LPAC: la caché de la sesión se llena con las consultas de todas las evals y
+// §3.2 y §9; FR-074, SC-012) sobre evals sintéticas de la LPAC y, desde H26.1,
+// la unión de grabaciones, en la que están las de H4 y lo que la skill lleva a
+// leer de data/: la caché de la sesión se llena con las consultas de todas las evals y
 // la sesión recibe su eval y su pregunta, con el texto de la prueba de red si se
 // pide; una eval que no está, un fichero mal formado o una falta de lo grabado
 // no dejan ni pregunta.txt ni eval.txt, y los dos primeros tampoco preparan nada.
@@ -276,9 +280,11 @@ func TestPrepararDirectorioDeSesion(t *testing.T) {
 			dirCache := filepath.Join(sesion, "cache")
 			require.NoError(t, os.Mkdir(dirCache, 0o750))
 
+			// Desde H26.1, la caché lleva además lo que la skill lleva a leer de
+			// data/, que solo sirve la unión de grabaciones (FR-001).
 			faltas, err := PrepararSesion(SesionAPreparar{
 				Evals:       evals,
-				Grabaciones: []string{GrabacionesDeH4},
+				Grabaciones: UnionDeGrabaciones(),
 				Fichero:     caso.fichero,
 				Modelo:      cmp.Or(caso.modelo, modeloDeLaSesion),
 				Directorio:  sesion,
@@ -346,7 +352,8 @@ const (
 // TestPrepararGrafoPrevio fija la preparación del grafo previo de la sesión
 // (contrato evals-y-skill §3 de H7; research D26; FR-085) sobre un directorio
 // temporal que hace de GrafosPrevios, con una derivada sintética del art. 21 de
-// la LPAC escrita por el test, y las grabaciones de H4: si la eval de la sesión
+// la LPAC escrita por el test, y las grabaciones de H4, desde H26.1 dentro de
+// la unión de grabaciones, que sirve lo que la skill lleva a leer de data/: si la eval de la sesión
 // lleva grafo_previo, el grafo del mundo de cache/ tiene solo la versión
 // anterior y la caché sirve la grabada; sin él, no hay grafo; solo se prepara el
 // de la eval de la sesión, aunque las demás lleven uno que no se podría
@@ -431,9 +438,11 @@ func TestPrepararGrafoPrevio(t *testing.T) {
 					[]byte("Este fichero no es una base de datos SQLite.\n"), 0o600))
 			}
 
+			// Desde H26.1, como en TestPrepararDirectorioDeSesion, sobre la unión
+			// de grabaciones, que sirve lo que la skill lleva a leer de data/.
 			faltas, err := PrepararSesion(SesionAPreparar{
 				Evals:         evals,
-				Grabaciones:   []string{GrabacionesDeH4},
+				Grabaciones:   UnionDeGrabaciones(),
 				GrafosPrevios: grafosPrevios,
 				Fichero:       caso.fichero,
 				Modelo:        modeloDeLaSesion,
@@ -721,6 +730,37 @@ func TestFaltaSinOrigenesODeOtroPunto(t *testing.T) {
 	}
 }
 
+// TestLecturaDeLaEvalSinGrabar fija la falta de una lectura de la eval
+// (data-model §2 de H26.1; FR-006, FR-010): con una eval que lleva a leer un
+// bloque que no está grabado, la preparación da, sin error, una falta por cada
+// una de sus dos lecturas, que nombra la eval, la norma y el bloque de la
+// lectura y la orden que no terminó en 0.
+func TestLecturaDeLaEvalSinGrabar(t *testing.T) {
+	t.Parallel()
+
+	const norma, bloque = "BOE-A-2015-10565", "a9998"
+
+	eval := Eval{
+		Fichero:  nombreDeEval,
+		Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+		Activa:   true,
+		Lecturas: []LecturaDeLaEval{{Norma: norma, Bloque: bloque, Motivo: "Un bloque que no está grabado."}},
+	}
+
+	faltas, err := Preparar(t.TempDir(), UnionDeGrabaciones(), ConsultasNecesarias([]Eval{eval}))
+	require.NoError(t, err, "lo que no está grabado es una falta, nunca el error")
+	require.Len(t, faltas, 2, "una falta por cada lectura del bloque:\n%s", presentarFaltas(faltas))
+
+	orden := "boe articulo " + norma + " " + bloque
+	for posicion, deLaOrden := range []string{orden, orden + " --fecha 9999-12-31"} {
+		prefijo := nombreDeEval + ": la lectura " + norma + " " + bloque + " sin su bloque: «" + deLaOrden +
+			"» terminó con código "
+
+		assert.True(t, strings.HasPrefix(faltas[posicion].String(), prefijo), "la falta empieza por %q: %s", prefijo,
+			faltas[posicion].String())
+	}
+}
+
 // TestPrepararConConjuntosQueNoSeCopian fija el error de Preparar con un conjunto
 // de grabaciones que no se puede copiar por la estructura de un directorio
 // temporal del test (contrato evals-y-grabaciones §5.1): un fichero donde se
@@ -758,7 +798,9 @@ func TestPrepararConConjuntosQueNoSeCopian(t *testing.T) {
 // TestPrepararSesionSinPoderLeerOEscribir fija los errores de PrepararSesion que
 // provoca la estructura de un directorio temporal del test (contrato job-de-evals
 // §3.2): un fichero donde se espera el directorio de evals, que termina sin
-// preparar nada; y una carpeta donde va eval.txt o pregunta.txt, que termina,
+// preparar nada; desde H26.1, un data/ sin sus ficheros, que también termina sin
+// preparar nada, con el error que nombra el que no se lee (data-model §2 de
+// H26.1); y una carpeta donde va eval.txt o pregunta.txt, que termina,
 // después de preparar la caché, con el error que nombra la sesión y el fichero, y
 // sin faltas.
 func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
@@ -772,8 +814,13 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 
 		// carpeta es el fichero de la sesión que se crea antes como carpeta.
 		carpeta string
+
+		// sinDatos pasa como data/ un directorio vacío, del que no se puede leer
+		// lo que la skill lleva a leer (data-model §2 de H26.1).
+		sinDatos bool
 	}{
 		{nombre: "evals-que-son-un-fichero", evalsEnUnFichero: true},
+		{nombre: "datos-que-no-se-leen", sinDatos: true},
 		{nombre: "eval-txt-que-es-una-carpeta", carpeta: "eval.txt"},
 		{nombre: "pregunta-txt-que-es-una-carpeta", carpeta: "pregunta.txt"},
 		{nombre: "modelo-txt-que-es-una-carpeta", carpeta: "modelo.txt"},
@@ -796,9 +843,17 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 				require.NoError(t, os.Mkdir(filepath.Join(sesion, caso.carpeta), 0o750))
 			}
 
+			var datos string
+			if caso.sinDatos {
+				datos = t.TempDir()
+			}
+
+			// Desde H26.1, la caché lleva además lo que la skill lleva a leer de
+			// data/, que solo sirve la unión de grabaciones (FR-001).
 			faltas, err := PrepararSesion(SesionAPreparar{
 				Evals:       evals,
-				Grabaciones: []string{GrabacionesDeH4},
+				Grabaciones: UnionDeGrabaciones(),
+				Datos:       datos,
 				Fichero:     nombreDeEval,
 				Modelo:      modeloDeLaSesion,
 				Directorio:  sesion,
@@ -807,18 +862,23 @@ func TestPrepararSesionSinPoderLeerOEscribir(t *testing.T) {
 			require.Error(t, err)
 			assert.Nil(t, faltas)
 
-			if caso.evalsEnUnFichero {
+			switch {
+			case caso.evalsEnUnFichero:
 				require.ErrorContains(t, err, "el directorio de evals "+evals+" no se puede listar")
-
-				preparado, err := os.ReadDir(dirCache)
-				require.NoError(t, err)
-				assert.Empty(t, preparado, "sin preparar nada")
+			case caso.sinDatos:
+				require.ErrorIs(t, err, fs.ErrNotExist)
+				require.ErrorContains(t, err, "lo que la skill lleva a leer: "+filepath.Join(datos, "plazos.yaml"))
+			default:
+				require.ErrorContains(t, err, "la sesión "+sesion+": ")
+				require.ErrorContains(t, err, filepath.Join(sesion, caso.carpeta))
 
 				return
 			}
 
-			require.ErrorContains(t, err, "la sesión "+sesion+": ")
-			require.ErrorContains(t, err, filepath.Join(sesion, caso.carpeta))
+			preparado, err := os.ReadDir(dirCache)
+			require.NoError(t, err)
+			assert.Empty(t, preparado, "sin preparar nada")
+			assert.NoFileExists(t, filepath.Join(sesion, ficheroDeLaPregunta))
 		})
 	}
 }
@@ -923,6 +983,197 @@ func contenidoDeLaSesion(t *testing.T, sesion, fichero string) string {
 	require.NoError(t, err)
 
 	return string(contenido)
+}
+
+// TestLoQueLlevaALeerSinGrabar fija la falta de lo que la skill lleva a leer
+// (contracts/cache-de-la-sesion.md §3 de H26.1; data-model §2 de H26.1; FR-003;
+// SC-003): con una copia de data/ en la que un precepto de plazos.yaml nombra
+// un bloque que no está grabado, la preparación de la sesión da una falta que
+// empieza por data/plazos.yaml: lo que la skill lleva a leer y nombra la orden,
+// sin error, y la sesión no se abre: ni eval.txt, ni modelo.txt, ni
+// pregunta.txt.
+func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
+	t.Parallel()
+
+	const (
+		grabado   = "bloque: a128,"
+		sinGrabar = "bloque: a129,"
+	)
+
+	datos := t.TempDir()
+	require.NoError(t, os.CopyFS(datos, os.DirFS(datosDelRepositorio)))
+
+	tipos := filepath.Join(datos, "plazos.yaml")
+	contenido := string(contenidoDelFichero(t, tipos))
+	require.Equal(t, 1, strings.Count(contenido, grabado), "%s nombra una vez el precepto que se cambia", tipos)
+	require.NoError(t, os.WriteFile(tipos, []byte(strings.Replace(contenido, grabado, sinGrabar, 1)), 0o600))
+
+	// La norma del precepto cambiado la da el propio fichero, no este test.
+	leidos, err := plazos.LeerTipos(contenidoDelFichero(t, tipos))
+	require.NoError(t, err, "la copia sigue siendo un data/plazos.yaml bien formado")
+
+	var norma string
+
+	for _, tipo := range leidos {
+		for _, precepto := range slices.Concat(tipo.Preceptos, slices.Collect(maps.Values(tipo.Unidades)),
+			tipo.PreceptosDelComputo) {
+			if precepto.Bloque == "a129" {
+				norma = precepto.Norma
+			}
+		}
+	}
+
+	require.NotEmpty(t, norma, "la copia nombra el bloque a129")
+
+	sesion := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(sesion, directorioDeLaCache), 0o750))
+
+	faltas, err := PrepararSesion(SesionAPreparar{
+		Evals:       crearConjunto(t, []entradaDeConjunto{{nombre: nombreDeEval, contenido: contenidoDelArticulo21}}),
+		Grabaciones: UnionDeGrabaciones(),
+		Datos:       datos,
+		Fichero:     nombreDeEval,
+		Modelo:      modeloDeLaSesion,
+		Directorio:  sesion,
+	})
+	require.NoError(t, err, "lo que no está grabado es una falta, nunca el error")
+
+	orden := "boe articulo " + norma + " a129"
+	prefijo := "data/plazos.yaml: lo que la skill lleva a leer " + orden + ": «" + orden + "» terminó con código "
+
+	textos := make([]string, 0, len(faltas))
+	for _, falta := range faltas {
+		textos = append(textos, falta.String())
+	}
+
+	assert.True(t, slices.ContainsFunc(textos, func(texto string) bool { return strings.HasPrefix(texto, prefijo) }),
+		"alguna falta empieza por %q; faltas:\n%s", prefijo, strings.Join(textos, "\n"))
+
+	for _, fichero := range []string{ficheroDeLaEval, ficheroDelModelo, ficheroDeLaPregunta} {
+		assert.NoFileExists(t, filepath.Join(sesion, fichero), "la sesión no se abre")
+	}
+}
+
+// TestCacheDeLasSesiones fija lo que sirve la caché de una sesión de evals
+// (contracts/cache-de-la-sesion.md §1 de H26.1). sin-servir: desde la caché de
+// una sesión de la 07 de legal-core, la disposición adicional primera de la
+// LPAC, que lee la skill por data/cobertura.yaml y no nombra ninguna de sus
+// evals, sale con 0 sin fecha, con --fecha 2026-09-09 y con --fecha
+// 9999-12-31; y desde la de la 05, el art. 124, igual (US1, escenario 1;
+// FR-001, FR-011; SC-008). Desde la de la 11, que lleva el art. 124 en
+// sin_servir, ese bloque sale con 4 en las tres, y desde la de la 12, que lleva
+// la disposición adicional primera, esa, igual (US2, escenario 1; FR-013;
+// SC-005). lecturas: desde la caché de una sesión de la 01 de boe-legislacion,
+// los arts. 26 y 27 de la LRJSP, el 18 de la Ley del IRPF y el 15 del TRLRHL, las
+// lecturas de la 16, la 15 y la 14, salen con 0 sin fecha y con --fecha
+// 9999-12-31 (US3, escenario 1; FR-006; SC-004).
+func TestCacheDeLasSesiones(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sin-servir", probarLoQueNoSeSirve)
+	t.Run("lecturas", probarLasLecturasDeLasEvals)
+}
+
+// probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:
+// desde la caché de una sesión de la 01 de boe-legislacion, que no lleva
+// ninguna, cada bloque de las lecturas de la 14, la 15 y la 16 sale con 0 sin
+// fecha y con --fecha 9999-12-31.
+func probarLasLecturasDeLasEvals(t *testing.T) {
+	t.Parallel()
+
+	dirCache := cacheDeUnaSesion(t, evalsDelRepositorio, "01-lpac-articulo-21.yaml")
+
+	for _, bloque := range [][]string{
+		{"BOE-A-2015-10566", "a26"},
+		{"BOE-A-2015-10566", "a27"},
+		{"BOE-A-2006-20764", "a18"},
+		{"BOE-A-2004-4214", "a15"},
+	} {
+		for _, fecha := range [][]string{nil, {"--fecha", "9999-12-31"}} {
+			argumentos := slices.Concat(bloque, fecha)
+
+			codigo, errores := leerSinRedEnLaSesion(t, dirCache, argumentos...)
+			assert.Zero(t, codigo, "boe articulo %s --offline desde la caché de la sesión de la 01: %s",
+				strings.Join(argumentos, " "), errores)
+		}
+	}
+}
+
+// probarLoQueNoSeSirve es el subtest sin-servir de TestCacheDeLasSesiones: cada
+// caso es la sesión de una eval y un bloque de la LPAC, leído sin fecha y con
+// cada una de las dos fechas, con el código con el que tiene que salir.
+func probarLoQueNoSeSirve(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		evals, fichero, bloque string
+		codigo                 int
+	}{
+		{evals: evalsDeLegalCore, fichero: "07-cobertura-liquidacion-tributaria.yaml", bloque: "daprimera"},
+		{evals: evalsDeLegalCore, fichero: "05-plazo-reposicion-leganes.yaml", bloque: "a124"},
+		{evals: evalsDeLegalCore, fichero: "11-plazo-reposicion-sin-leer-el-precepto.yaml", bloque: "a124", codigo: 4},
+		{
+			evals: evalsDeLegalCore, fichero: "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml",
+			bloque: "daprimera", codigo: 4,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(strings.TrimSuffix(caso.fichero, ".yaml")+"-"+caso.bloque, func(t *testing.T) {
+			t.Parallel()
+
+			dirCache := cacheDeUnaSesion(t, caso.evals, caso.fichero)
+
+			for _, fecha := range [][]string{nil, {"--fecha", "2026-09-09"}, {"--fecha", "9999-12-31"}} {
+				argumentos := slices.Concat([]string{"BOE-A-2015-10565", caso.bloque}, fecha)
+
+				codigo, errores := leerSinRedEnLaSesion(t, dirCache, argumentos...)
+				assert.Equal(t, caso.codigo, codigo, "boe articulo %s --offline desde la caché de la sesión de %s: %s",
+					strings.Join(argumentos, " "), caso.fichero, errores)
+			}
+		})
+	}
+}
+
+// cacheDeUnaSesion prepara con PrepararSesion, sobre la unión de grabaciones y
+// el data/ del repositorio, como el job, el directorio de una sesión de la
+// eval de ese fichero de la carpeta, y devuelve su cache/. Que la sesión no se
+// prepare sin faltas hace fallar el test.
+func cacheDeUnaSesion(t *testing.T, evals, fichero string) string {
+	t.Helper()
+
+	sesion := t.TempDir()
+	dirCache := filepath.Join(sesion, directorioDeLaCache)
+	require.NoError(t, os.Mkdir(dirCache, 0o750))
+
+	faltas, err := PrepararSesion(SesionAPreparar{
+		Evals:       evals,
+		Grabaciones: UnionDeGrabaciones(),
+		Fichero:     fichero,
+		Modelo:      modeloDeLaSesion,
+		Directorio:  sesion,
+	})
+	require.NoError(t, err)
+	require.Empty(t, faltas, "la sesión de %s de %s se prepara sin faltas:\n%s", fichero, evals, presentarFaltas(faltas))
+
+	return dirCache
+}
+
+// leerSinRedEnLaSesion es la lectura boe articulo <argumentos…> --offline --json
+// desde la caché de dirCache, sobre una reproducción vacía, sin grafo: su código
+// y lo que escribió en la salida de error.
+func leerSinRedEnLaSesion(t *testing.T, dirCache string, argumentos ...string) (int, string) {
+	t.Helper()
+
+	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	var salida, errores bytes.Buffer
+
+	codigo := app.Main(slices.Concat([]string{"kitlegal", "boe", "articulo"}, argumentos, []string{"--offline", "--json"}),
+		registro, &salida, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+
+	return codigo, errores.String()
 }
 
 // exigeCacheDeTodasLasEvals exige que la caché de la sesión sirva sin red las

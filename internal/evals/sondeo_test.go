@@ -570,13 +570,14 @@ func exigirQueSoloPasaEnElSondeo(t *testing.T, informe Informe, juicio juicioDel
 // juicioSinLaTraza es el juicio del job de una sesión sin lo que sale de la
 // traza (FR-061; contracts/sondeo.md §7 de H7.3): sin los comandos ejecutados y
 // ausentes, los prohibidos ejecutados, las invocaciones, lo fuera de lo grabado,
-// las otras fallidas ni las llegadas a la red; sin los motivos de un comando
-// ausente o de un prohibido ejecutado; y, sin ellos, pasa si no le queda ningún
-// motivo, como toda sesión que se juzga.
+// las otras fallidas, las lecturas sin servir (FR-015 de H26.1) ni las llegadas
+// a la red; sin los motivos de un comando ausente o de un prohibido ejecutado;
+// y, sin ellos, pasa si no le queda ningún motivo, como toda sesión que se
+// juzga.
 func juicioSinLaTraza(resultado ResultadoDeEval) ResultadoDeEval {
 	resultado.ComandosEjecutados, resultado.ComandosAusentes, resultado.ComandosProhibidosEjecutados = nil, nil, nil
 	resultado.Invocaciones, resultado.FueraDeLoGrabado = nil, nil
-	resultado.OtrasFallidas, resultado.LlegadasALaRed = nil, nil
+	resultado.OtrasFallidas, resultado.LecturasSinServir, resultado.LlegadasALaRed = nil, nil, nil
 
 	var motivos []string
 

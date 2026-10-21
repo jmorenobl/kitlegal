@@ -1015,13 +1015,14 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // 12 577 s —61 sesiones en el modo orden, con la prueba de red, que se cuenta
 // aunque su trabajo no la lleve, y 60 en el modo herramienta, y las 30
 // respuestas que su juez juzga en cada modo—. Desde H9, el de legal-core, con
-// sus nueve evals, era de 14 629 s y, con la de vigencia del ADR 0042, es de
-// 16 261 s; queda entre el de boe-legislacion y el de jurisprudencia (FR-050 de
+// sus nueve evals, era de 14 629 s y, con la de vigencia del ADR 0042, de
+// 16 261 s, entre el de boe-legislacion y el de jurisprudencia (FR-050 de
 // H9). Desde antes de H20, boe-legislacion va a cinco
 // a la vez y, desde H20, con sus veintitrés evals, el suyo es de 18 977 s
-// (research D16 y S1 de H20). El tope
+// (research D16 y S1 de H20). Desde H26.1, con la 11 y la 12, el de legal-core
+// es de 19 525 s, el mayor de los tres (research V10 y D13 de H26.1). El tope
 // de la definición del job cubre los tres; con 288 minutos, 17 280 s, ya no
-// cubre el de boe-legislacion; con 209,
+// cubre el de boe-legislacion ni el de legal-core; con 209,
 // que son 12 540 s, ninguno, ni el de legal-core ni el de jurisprudencia; y con
 // 107, 6 420 s, tampoco.
 //
@@ -1118,9 +1119,9 @@ func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
 	casos := []definicionSintetica{
 		{nombre: "el-del-repositorio", cambios: conElTope(topeDelRepositorio)},
 		{
-			nombre:  "por-debajo-del-de-boe-legislacion",
+			nombre:  "por-debajo-del-de-boe-legislacion-y-del-de-legal-core",
 			cambios: conElTope(288),
-			fallos:  []string{sinElDeBoe + deBoe},
+			fallos:  []string{sinElDeBoe + deBoe, sinElDeBoe + deLegal},
 		},
 		{
 			nombre:  "por-debajo-del-de-jurisprudencia",
@@ -1891,9 +1892,10 @@ const (
 		terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89 + \xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89)" +
 		terminosDeUnVoto
 
-	// El de legal-core, el de FR-050 de H9: sus diez evals, con la de vigencia
-	// del ADR 0042, a dos a la vez.
-	peorCasoDeLegalCore = "16261 s = 485 s + (\xe2\x8c\x8855 / 2\xe2\x8c\x89 + \xe2\x8c\x8854 / 2\xe2\x8c\x89 + " +
+	// El de legal-core, el de FR-050 de H9: sus doce evals, con la de vigencia
+	// del ADR 0042 y la 11 y la 12 de H26.1, a dos a la vez (research V10 y D13
+	// de H26.1; FR-020).
+	peorCasoDeLegalCore = "19525 s = 485 s + (\xe2\x8c\x8867 / 2\xe2\x8c\x89 + \xe2\x8c\x8866 / 2\xe2\x8c\x89 + " +
 		"\xe2\x8c\x886 / 2\xe2\x8c\x89)" + terminosDeUnaTanda
 
 	// El de la medida del juez de jurisprudencia, con sus 249 casos etiquetados
@@ -1940,6 +1942,10 @@ const (
 // boe-legislacion es el de sus veintitrés evals, con las dos con fecha: 109, 108
 // y 6 sesiones y 60, 60 y 3 respuestas del modelo que decide, 18 977 s, que el
 // tope del trabajo cubre sin cambiar la concurrencia, el objetivo ni el tope.
+//
+// Desde H26.1 (research V10 y D13 de H26.1; FR-020; SC-009), el de legal-core
+// es el de sus doce evals, con la 11 y la 12, de modo: 67, 66 y 6 sesiones,
+// 19 525 s, el mayor de los tres, que el tope del trabajo cubre sin cambiar.
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -1974,8 +1980,8 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		},
 		{
 			skill:    "legal-core",
-			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{55, 54, 6}, Concurrencia: 2},
-			duracion: 16261 * time.Second,
+			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{67, 66, 6}, Concurrencia: 2},
+			duracion: 19525 * time.Second,
 			texto:    peorCasoDeLegalCore,
 		},
 	}

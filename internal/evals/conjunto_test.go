@@ -1918,8 +1918,10 @@ const (
 
 	// evalsDeLegalCoreConLaDeVigencia son las de evals/legal-core/: desde H9, las cuatro de
 	// antes, las tres de plazo y las dos de cobertura (contracts/evals-legal-core.md
-	// §5 de H9; FR-050), y desde el ADR 0042, la de vigencia.
-	evalsDeLegalCoreConLaDeVigencia = 10
+	// §5 de H9; FR-050), desde el ADR 0042, la de vigencia, y desde H26.1, la de
+	// plazo y la de cobertura con una lectura sin servir (FR-017, FR-018 de
+	// H26.1).
+	evalsDeLegalCoreConLaDeVigencia = 12
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -1988,8 +1990,12 @@ const (
 // y comprobada sin red (contracts/evals-redaccion-fechada.md §1.3 y §1.4 de
 // H20; FR-050 a FR-053); y el SKILL.md de boe-legislacion lleva, en sus
 // bloques de código text, la forma fija de cada una de las tres líneas de una
-// redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048). Lee
-// las carpetas enteras, así que ningún fichero de eval se nombra aquí.
+// redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048).
+// Desde H26.1, la 14, la 15 y la 16 de boe-legislacion llevan sus lecturas, y
+// ninguna otra eval lleva ninguna; sus bloques son consultas necesarias, que el
+// subtest grabado exige grabadas y servidas sin red como las demás
+// (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011). Lee las carpetas
+// enteras.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2051,9 +2057,9 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
 			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
 
-		// Las diez de legal-core, bien formadas (FR-050 de H9; ADR 0042), y lo que
-		// leen del BOE sus sesiones, servido sin red por la unión de grabaciones
-		// (FR-052 de H9).
+		// Las doce de legal-core, bien formadas (FR-050 de H9; ADR 0042; FR-017 y
+		// FR-018 de H26.1), y lo que leen del BOE sus sesiones, servido sin red por
+		// la unión de grabaciones (FR-052 de H9).
 		assert.Empty(t, deLegalCore.MalFormados, "cada fichero de %s es una eval bien formada", evalsDeLegalCore)
 
 		ficheros := make([]string, 0, len(deLegalCore.Evals))
@@ -2061,7 +2067,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			ficheros = append(ficheros, eval.Fichero)
 		}
 
-		assert.Len(t, ficheros, evalsDeLegalCoreConLaDeVigencia, "%s tiene las diez evals de legal-core",
+		assert.Len(t, ficheros, evalsDeLegalCoreConLaDeVigencia, "%s tiene las doce evals de legal-core",
 			evalsDeLegalCore)
 
 		consultas := ConsultasNecesarias(deLegalCore.Evals)
@@ -2268,6 +2274,99 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	})
 
 	t.Run("linea-sin-consulta", probarLineaSinConsulta)
+
+	t.Run("lo-que-lleva-a-leer", probarLoQueLlevaALeer)
+
+	t.Run("lecturas", probarLasLecturasDeLasEvalsDelRepositorio)
+}
+
+// probarLasLecturasDeLasEvalsDelRepositorio es el subtest lecturas de
+// TestEvalsDelRepositorio (contracts/formato-de-eval.md §3.3 de H26.1;
+// data-model §8 de H26.1; FR-011): de las evals del repositorio, llevan
+// lecturas la 14, la 15 y la 16 de boe-legislacion, cada una con sus bloques y
+// los motivos del contrato, escritos aquí a mano, y ninguna otra; que la unión
+// de grabaciones los sirve sin red lo exige el subtest grabado, porque son
+// consultas necesarias (FR-010).
+func probarLasLecturasDeLasEvalsDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	const (
+		trlrhl = "BOE-A-2004-4214"
+		lirpf  = "BOE-A-2006-20764"
+
+		motivoDeLa14 = "De la misma norma que el art. 59 que pide la eval: la exploración que provoca la pregunta, " +
+			"vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."
+		motivoDeLa15 = "Junto al art. 17 que pide la eval: la exploración que provoca la pregunta, vista en los jobs " +
+			"de la #175 y la #178 (ADR 0043, clase b)."
+	)
+
+	carpetas := []struct {
+		carpeta  string
+		lecturas map[string][]LecturaDeLaEval
+	}{
+		{
+			carpeta: evalsDelRepositorio,
+			lecturas: map[string][]LecturaDeLaEval{
+				"14-trlrhl-impuestos-por-materia.yaml":  {{Norma: trlrhl, Bloque: "a15", Motivo: motivoDeLa14}},
+				"15-irpf-rendimientos-por-materia.yaml": {{Norma: lirpf, Bloque: "a18", Motivo: motivoDeLa15}},
+				ficheroDeLaEval16: {
+					{Norma: normaDeLaLRJSP, Bloque: "a26", Motivo: motivoDeLasLecturasDeLa16},
+					{Norma: normaDeLaLRJSP, Bloque: "a27", Motivo: motivoDeLasLecturasDeLa16},
+				},
+			},
+		},
+		{carpeta: evalsDeLegalCore, lecturas: map[string][]LecturaDeLaEval{}},
+		{carpeta: evalsDeJurisprudencia, lecturas: map[string][]LecturaDeLaEval{}},
+	}
+
+	for _, deLaCarpeta := range carpetas {
+		leido, err := LeerConjunto(deLaCarpeta.carpeta)
+		require.NoError(t, err)
+		require.NotEmpty(t, leido.Evals, "%s tiene evals bien formadas", deLaCarpeta.carpeta)
+
+		lecturas := map[string][]LecturaDeLaEval{}
+
+		for _, eval := range leido.Evals {
+			if len(eval.Lecturas) > 0 {
+				lecturas[eval.Fichero] = eval.Lecturas
+			}
+		}
+
+		assert.Equal(t, deLaCarpeta.lecturas, lecturas, "las lecturas de las evals de %s", deLaCarpeta.carpeta)
+	}
+}
+
+// probarLoQueLlevaALeer es el subtest lo-que-lleva-a-leer de
+// TestEvalsDelRepositorio (contracts/cache-de-la-sesion.md §1 y §2 de H26.1;
+// FR-001, FR-002, FR-005; SC-003, SC-008, SC-011): desde la caché preparada de
+// una sesión de la primera eval de cada skill, cada bloque de data/plazos.yaml
+// y de data/cobertura.yaml, sin fecha y con --fecha 9999-12-31, y el índice y
+// los metadatos de cada norma de esos dos ficheros y de data/normas.yaml salen
+// con 0 con --offline. Los enumera loQueLlevaALeerElRepositorio, el oráculo de
+// los tests de los preceptos, no el código que prepara la caché.
+func probarLoQueLlevaALeer(t *testing.T) {
+	t.Parallel()
+
+	lecturas := loQueLlevaALeerElRepositorio(t)
+	require.NotEmpty(t, lecturas, "data/ lleva a leer algún bloque del BOE")
+
+	for _, carpeta := range []string{evalsDelRepositorio, evalsDeLegalCore, evalsDeJurisprudencia} {
+		t.Run(filepath.Base(carpeta), func(t *testing.T) {
+			t.Parallel()
+
+			conjunto, err := LeerConjunto(carpeta)
+			require.NoError(t, err)
+			require.NotEmpty(t, conjunto.Evals, "%s tiene evals bien formadas", carpeta)
+
+			fichero := conjunto.Evals[0].Fichero
+			dirCache := cacheDeUnaSesion(t, carpeta, fichero)
+
+			comprobadas, err := ComprobarSinRed(dirCache, lecturas)
+			require.NoError(t, err)
+			assert.Empty(t, comprobadas, "lo que la skill lleva a leer de data/ que la caché de una sesión de %s de %s "+
+				"no sirve sin red:\n%s", fichero, carpeta, presentarFaltas(comprobadas))
+		})
+	}
 }
 
 const (

@@ -13,3 +13,10 @@ comandos:
 citas:
   - norma: BOE-A-2015-10566
     bloque: a25
+lecturas:
+  - norma: BOE-A-2015-10566
+    bloque: a26
+    motivo: "Junto al art. 25 que pide la eval, en su mismo capítulo: la exploración que provoca la pregunta, vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."
+  - norma: BOE-A-2015-10566
+    bloque: a27
+    motivo: "Junto al art. 25 que pide la eval, en su mismo capítulo: la exploración que provoca la pregunta, vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."

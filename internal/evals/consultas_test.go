@@ -1,9 +1,18 @@
 package evals
 
 import (
+	"io/fs"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/core/plazos"
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // TestConsultasNecesarias fija ConsultasNecesarias (data-model §7.1; contrato
@@ -39,6 +48,11 @@ import (
 // comando con fecha de una eval da las mismas dos lecturas que sin ella, nunca
 // la de su fecha (contracts/evals-redaccion-fechada.md §4 de H20; research D18;
 // FR-053).
+//
+// Desde H26.1, detrás de las citas de cada eval, cada entrada de sus lecturas da
+// la lectura de su bloque sin fecha y con --fecha 9999-12-31, con el punto
+// lectura de la eval; un bloque que ya pedía otra eval suma ese origen a los
+// suyos (data-model §2 de H26.1; research D2 de H26.1; FR-006).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
@@ -60,6 +74,7 @@ func TestConsultasNecesarias(t *testing.T) {
 		deUnaCobertura          = "08-cobertura-liquidacion-tributaria.yaml"
 		deContratoMenorEn2019   = "09-lcsp-contrato-menor-en-2019.yaml"
 		deArticulo21En2016      = "10-lpac-articulo-21-en-2016.yaml"
+		deUnasLecturas          = "11-lpac-plazo-por-materia.yaml"
 	)
 
 	// fechada son los argumentos de la lectura del bloque con --fecha
@@ -201,6 +216,25 @@ func TestConsultasNecesarias(t *testing.T) {
 	comandoDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoComandoEsperado}
 	normaDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoNormaDeLaEval}
 
+	// Una eval por materia con dos lecturas, como la 16 de boe-legislacion: el
+	// art. 22 de la LPAC, que la 03 de arriba ya pide como cita, y el art. 23, que
+	// no pide nadie más.
+	conLecturas := Eval{
+		Fichero:  deUnasLecturas,
+		Pregunta: "¿Qué dice la Ley 39/2015 sobre el plazo máximo para resolver?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "boe", Norma: lpac, Bloque: "a21"}},
+		Citas:    []CitaEsperada{{Norma: lpac, Bloque: "a21"}},
+		Lecturas: []LecturaDeLaEval{
+			{Norma: lpac, Bloque: "a22", Motivo: "Junto al art. 21 que pide la eval."},
+			{Norma: lpac, Bloque: "a23", Motivo: "Junto al art. 21 que pide la eval."},
+		},
+	}
+	comandoDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoComandoEsperado}
+	normaDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoNormaDeLaEval}
+	citaDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoCitaEsperada}
+	lecturaDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoLecturaDeLaEval}
+
 	casos := []struct {
 		nombre    string
 		conjunto  []Eval
@@ -337,6 +371,42 @@ func TestConsultasNecesarias(t *testing.T) {
 			},
 		},
 		{
+			// Las lecturas van detrás de las citas de su eval, cada una sin fecha y
+			// con --fecha 9999-12-31; el art. 22, que ya pedía la 03 como cita, suma
+			// el origen de la lectura detrás del suyo, y ni el índice ni los
+			// metadatos de la norma de una lectura llevan su origen.
+			nombre:   "lecturas-de-la-eval",
+			conjunto: []Eval{articulo22, conLecturas},
+			esperadas: []Consulta{
+				{
+					Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac},
+					Origenes: []Origen{comandoDel22, normaDel22, normaDeLasLecturas},
+				},
+				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDel22, normaDeLasLecturas}},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a22"},
+					Origenes: []Origen{citaDel22, lecturaDeLasLecturas},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a22"),
+					Origenes: []Origen{citaDel22, lecturaDeLasLecturas},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
+					Origenes: []Origen{comandoDeLasLecturas, citaDeLasLecturas},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"),
+					Origenes: []Origen{comandoDeLasLecturas, citaDeLasLecturas},
+				},
+				{Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a23"}, Origenes: []Origen{lecturaDeLasLecturas}},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a23"),
+					Origenes: []Origen{lecturaDeLasLecturas},
+				},
+			},
+		},
+		{
 			nombre: "sin-evals",
 		},
 	}
@@ -348,4 +418,293 @@ func TestConsultasNecesarias(t *testing.T) {
 			assert.Equal(t, caso.esperadas, ConsultasNecesarias(caso.conjunto))
 		})
 	}
+
+	t.Run("sin-servir", probarLasConsultasSinServir)
+}
+
+// probarLasConsultasSinServir fija sinLoQueNoSeSirve (data-model §1 y §2 de H26.1;
+// contracts/cache-de-la-sesion.md §1, punto 3, de H26.1; research D3 de H26.1;
+// FR-013): de las consultas quita, en su orden, las que leen un bloque del
+// sin_servir de la eval —articulo sin fecha, con --fecha 9999-12-31 o con otra,
+// y articulos con ese bloque entre otros— y la consulta de norma que nombra, y
+// deja las de otros bloques, las de otras normas, la otra consulta de la misma
+// norma y las de otro verbo o de otro applet con la norma y el bloque entre sus
+// argumentos; con una eval sin sin_servir, las deja todas. Las consultas que
+// recibe no cambian.
+func probarLasConsultasSinServir(t *testing.T) {
+	t.Parallel()
+
+	const (
+		lpac = "BOE-A-2015-10565"
+
+		// otra es inventada —ninguna norma es del año 0000—: sinLoQueNoSeSirve
+		// solo compara los identificadores.
+		otra = "BOE-A-0000-2"
+	)
+
+	consulta := func(applet, verbo string, argumentos ...string) Consulta {
+		return Consulta{Applet: applet, Verbo: verbo, Argumentos: argumentos, Origenes: []Origen{origenDeLosTipos}}
+	}
+
+	var (
+		delBloque         = consulta("boe", "articulo", lpac, "a124")
+		otroBloque        = consulta("boe", "articulo", lpac, "a123")
+		fechada           = consulta("boe", "articulo", lpac, "a124", "--fecha", "9999-12-31")
+		otroBloqueFechado = consulta("boe", "articulo", lpac, "a123", "--fecha", "9999-12-31")
+		enOtraFecha       = consulta("boe", "articulo", lpac, "a124", "--fecha", "2026-09-09")
+		entreOtros        = consulta("boe", "articulos", lpac, "a123", "a124", "a125")
+		otrosBloques      = consulta("boe", "articulos", lpac, "a123", "a125")
+		indice            = consulta("boe", "indice", lpac)
+		metadatos         = consulta("boe", "metadatos", lpac)
+		deOtraNorma       = consulta("boe", "articulo", otra, "a124")
+		indiceDeOtraNorma = consulta("boe", "indice", otra)
+		deOtroVerbo       = consulta("boe", "buscar", lpac, "a124")
+
+		// deOtroApplet es inventada —ningún otro applet tiene el verbo articulo—:
+		// lo que la distingue de delBloque es solo el applet.
+		deOtroApplet = consulta("otro", "articulo", lpac, "a124")
+	)
+
+	todas := []Consulta{
+		delBloque, otroBloque, fechada, otroBloqueFechado, enOtraFecha, entreOtros, otrosBloques, indice, metadatos,
+		deOtraNorma, indiceDeOtraNorma, deOtroVerbo, deOtroApplet,
+	}
+
+	conSinServir := Eval{
+		Fichero:  "11-plazo-reposicion-sin-leer-el-precepto.yaml",
+		Pregunta: "¿Hasta cuándo puedo recurrir en reposición?",
+		Activa:   true,
+		SinServir: []LecturaSinServir{
+			{Norma: lpac, Bloque: "a124"},
+			{Norma: lpac, Verbo: "indice"},
+		},
+	}
+	sinSinServir := Eval{
+		Fichero:  "05-plazo-reposicion.yaml",
+		Pregunta: conSinServir.Pregunta,
+		Activa:   true,
+	}
+
+	casos := []struct {
+		nombre    string
+		eval      Eval
+		esperadas []Consulta
+	}{
+		{
+			nombre: "quita-el-bloque-y-la-consulta-de-norma",
+			eval:   conSinServir,
+			esperadas: []Consulta{
+				otroBloque, otroBloqueFechado, otrosBloques, metadatos, deOtraNorma, indiceDeOtraNorma, deOtroVerbo,
+				deOtroApplet,
+			},
+		},
+		{
+			nombre:    "sin-sin-servir-las-deja-todas",
+			eval:      sinSinServir,
+			esperadas: todas,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			recibidas := slices.Clone(todas)
+
+			assert.Equal(t, caso.esperadas, sinLoQueNoSeSirve(recibidas, caso.eval))
+			assert.Equal(t, todas, recibidas, "las consultas que recibe no cambian")
+		})
+	}
+}
+
+// Los orígenes de lo que la skill lleva a leer, escritos a mano (data-model §2
+// de H26.1).
+var (
+	origenDeLosTipos    = Origen{Eval: "data/plazos.yaml", Punto: "lo que la skill lleva a leer"}
+	origenDeLaCobertura = Origen{Eval: "data/cobertura.yaml", Punto: "lo que la skill lleva a leer"}
+	origenDeLasNormas   = Origen{Eval: "data/normas.yaml", Punto: "lo que la skill lleva a leer"}
+)
+
+// TestLecturasDeLosDatos fija lo que consultasDeLaCache lleva a leer de data/
+// (data-model §2 de H26.1; contracts/cache-de-la-sesion.md §1 de H26.1; research
+// D1 de H26.1; FR-001, FR-002): sin ninguna eval, del data/ del repositorio,
+// las mismas invocaciones que enumera el oráculo de los tests de los preceptos,
+// ninguna repetida, cada una con el fichero de data/ del que sale y el punto de
+// lo que la skill lleva a leer; detrás de las de una eval que lee uno de esos bloques,
+// con el mismo acumulador, de modo que la invocación que ya estaba suma su
+// origen; y un fichero que falta o que su lector rechaza es el error, que nombra
+// su ruta, sin consultas.
+func TestLecturasDeLosDatos(t *testing.T) {
+	t.Parallel()
+
+	t.Run("del-repositorio", probarLasLecturasDelRepositorio)
+	t.Run("detras-de-las-evals", probarLasLecturasDetrasDeLasEvals)
+	t.Run("ficheros-que-no-se-leen", probarLosDatosQueNoSeLeen)
+}
+
+// probarLasLecturasDelRepositorio es el subtest del-repositorio de
+// TestLecturasDeLosDatos.
+func probarLasLecturasDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	consultas, err := consultasDeLaCache(nil, datosDelRepositorio)
+	require.NoError(t, err)
+
+	origenes := make(map[string][]Origen, len(consultas))
+	ordenes := make([]string, 0, len(consultas))
+
+	for _, consulta := range consultas {
+		ordenes = append(ordenes, ordenDe(consulta))
+		origenes[ordenDe(consulta)] = consulta.Origenes
+
+		assert.NotEmpty(t, consulta.Origenes, "%s sale de algún fichero de data/", ordenDe(consulta))
+
+		for _, origen := range consulta.Origenes {
+			assert.Contains(t, []Origen{origenDeLosTipos, origenDeLaCobertura, origenDeLasNormas}, origen,
+				"%s sale de un fichero de data/, como lo que la skill lleva a leer", ordenDe(consulta))
+		}
+	}
+
+	esperadas := make([]string, 0, len(consultas))
+	for _, consulta := range loQueLlevaALeerElRepositorio(t) {
+		esperadas = append(esperadas, ordenDe(consulta))
+	}
+
+	assert.ElementsMatch(t, esperadas, ordenes, "las invocaciones que enumera el oráculo, cada una una vez")
+
+	// Cada bloque y cada norma, con el fichero que la nombra entre sus orígenes.
+	tipos, err := plazos.LeerTipos(contenidoDelFichero(t, tiposDelRepositorio))
+	require.NoError(t, err)
+
+	cobertura, err := skills.LeerCobertura(contenidoDelFichero(t, coberturaDelRepositorio))
+	require.NoError(t, err)
+
+	tabla, err := skills.LeerNormas(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
+	require.NoError(t, err)
+
+	nombradas := map[Origen][]lecturaDeUnPrecepto{
+		origenDeLosTipos:    lecturasDeLosTipos(tipos),
+		origenDeLaCobertura: lecturasDeLaCobertura(cobertura),
+	}
+	for _, norma := range tabla {
+		nombradas[origenDeLasNormas] = append(nombradas[origenDeLasNormas], lecturaDeUnPrecepto{norma: norma.Identificador})
+	}
+
+	for origen, lecturas := range nombradas {
+		for _, lectura := range lecturas {
+			ordenesDeLaLectura := []string{"boe indice " + lectura.norma, "boe metadatos " + lectura.norma}
+			if lectura.bloque != "" {
+				deLaLectura := "boe articulo " + lectura.norma + " " + lectura.bloque
+				ordenesDeLaLectura = append(ordenesDeLaLectura, deLaLectura, deLaLectura+" --fecha 9999-12-31")
+			}
+
+			for _, orden := range ordenesDeLaLectura {
+				assert.Contains(t, origenes[orden], origen, "%s sale, entre otros, de %s", orden, origen.Eval)
+			}
+		}
+	}
+}
+
+// probarLasLecturasDetrasDeLasEvals es el subtest detras-de-las-evals de
+// TestLecturasDeLosDatos, con una eval que espera el primer bloque que lleva a
+// leer data/.
+func probarLasLecturasDetrasDeLasEvals(t *testing.T) {
+	t.Parallel()
+
+	lecturas, err := consultasDeLaCache(nil, datosDelRepositorio)
+	require.NoError(t, err)
+	require.NotEmpty(t, lecturas)
+
+	primera := lecturas[0]
+	require.Equal(t, "articulo", primera.Verbo, "data/ empieza por la lectura de un bloque")
+	require.Len(t, primera.Argumentos, 2, "sin fecha")
+
+	eval := Eval{
+		Fichero:  "01-un-bloque-de-los-datos.yaml",
+		Comandos: []ComandoEsperado{{Applet: "boe", Norma: primera.Argumentos[0], Bloque: primera.Argumentos[1]}},
+	}
+	necesarias := ConsultasNecesarias([]Eval{eval})
+
+	consultas, err := consultasDeLaCache([]Eval{eval}, datosDelRepositorio)
+	require.NoError(t, err)
+
+	ordenes := make([]string, 0, len(consultas))
+	for _, consulta := range consultas {
+		ordenes = append(ordenes, ordenDe(consulta))
+	}
+
+	require.Len(t, consultas, len(slices.Compact(slices.Sorted(slices.Values(ordenes)))), "ninguna invocación repetida")
+
+	// Primero las de la eval, en su orden; la que ya estaba suma, detrás de los
+	// de la eval, el origen de data/.
+	for posicion, necesaria := range necesarias {
+		assert.Equal(t, ordenDe(necesaria), ordenes[posicion], "las de la eval van primero, en su orden")
+	}
+
+	assert.Equal(t, slices.Concat([]Origen{{Eval: eval.Fichero, Punto: PuntoComandoEsperado}}, primera.Origenes),
+		consultas[0].Origenes, "%s suma el origen de data/ a los de la eval", ordenDe(primera))
+
+	// Y detrás, las de data/ que la eval no tenía, cada una una vez.
+	nuevas := slices.DeleteFunc(slices.Clone(lecturas), func(lectura Consulta) bool {
+		return slices.ContainsFunc(necesarias, func(necesaria Consulta) bool { return ordenDe(necesaria) == ordenDe(lectura) })
+	})
+	assert.Len(t, consultas, len(necesarias)+len(nuevas))
+}
+
+// probarLosDatosQueNoSeLeen es el subtest ficheros-que-no-se-leen de
+// TestLecturasDeLosDatos: con una copia de los tres ficheros de data/ en la que
+// falta uno, o en la que uno es una lista y no un mapa, consultasDeLaCache da el
+// error que nombra la ruta, y ninguna consulta.
+func probarLosDatosQueNoSeLeen(t *testing.T) {
+	t.Parallel()
+
+	ficheros := []string{"plazos.yaml", "cobertura.yaml", "normas.yaml"}
+	casos := []struct {
+		sufijo string
+		falta  bool
+	}{
+		{sufijo: "-que-falta", falta: true},
+		{sufijo: "-que-se-rechaza"},
+	}
+
+	for _, fichero := range ficheros {
+		for _, caso := range casos {
+			t.Run(strings.TrimSuffix(fichero, ".yaml")+caso.sufijo, func(t *testing.T) {
+				t.Parallel()
+
+				datos := t.TempDir()
+				for _, copiado := range ficheros {
+					require.NoError(t, os.WriteFile(filepath.Join(datos, copiado),
+						contenidoDelFichero(t, filepath.Join(datosDelRepositorio, copiado)), 0o600))
+				}
+
+				ruta := filepath.Join(datos, fichero)
+				if caso.falta {
+					require.NoError(t, os.Remove(ruta))
+				} else {
+					require.NoError(t, os.WriteFile(ruta, []byte("- no es un mapa\n"), 0o600))
+				}
+
+				consultas, err := consultasDeLaCache(nil, datos)
+				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)
+				assert.Nil(t, consultas)
+			})
+		}
+	}
+}
+
+// exigeElErrorDeLosDatos exige el error de lo que la skill lleva a leer que
+// nombra la ruta: el del fichero que no se puede leer, si falta, o el del que
+// su lector rechaza.
+func exigeElErrorDeLosDatos(t *testing.T, err error, ruta string, falta bool) {
+	t.Helper()
+
+	if falta {
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		require.ErrorContains(t, err, "lo que la skill lleva a leer: "+ruta+" no se puede leer: ")
+
+		return
+	}
+
+	require.ErrorContains(t, err, "lo que la skill lleva a leer: "+ruta+": ")
 }

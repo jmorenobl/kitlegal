@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-21T05:40:02Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2015-10566/texto/bloque/a27",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "1575"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Wed, 21 Oct 2026 05:40:03 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a27\" tipo=\"precepto\" titulo=\"Artículo 27\">\n      <version id_norma=\"BOE-A-2015-10566\" fecha_publicacion=\"20151002\" fecha_vigencia=\"20161002\">\n        <p class=\"articulo\">Artículo 27. Principio de tipicidad.</p>\n        <p class=\"parrafo\">1. Sólo constituyen infracciones administrativas las vulneraciones del ordenamiento jurídico previstas como tales infracciones por una Ley, sin perjuicio de lo dispuesto para la Administración Local en el Título XI de la Ley 7/1985, de 2 de abril.</p>\n        <p class=\"parrafo\">Las infracciones administrativas se clasificarán por la Ley en leves, graves y muy graves.</p>\n        <p class=\"parrafo\">2. Únicamente por la comisión de infracciones administrativas podrán imponerse sanciones que, en todo caso, estarán delimitadas por la Ley.</p>\n        <p class=\"parrafo\">3. Las disposiciones reglamentarias de desarrollo podrán introducir especificaciones o graduaciones al cuadro de las infracciones o sanciones establecidas legalmente que, sin constituir nuevas infracciones o sanciones, ni alterar la naturaleza o límites de las que la Ley contempla, contribuyan a la más correcta identificación de las conductas o a la más precisa determinación de las sanciones correspondientes.</p>\n        <p class=\"parrafo\">4. Las normas definidoras de infracciones y sanciones no serán susceptibles de aplicación analógica.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
