@@ -1,0 +1,19 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] El esquema del formato de eval gana `lecturas` y `sin_servir`, y nada más (plan.md paso 1; contracts/formato-de-eval.md §1; data-model §1, regla 1; research D9, V8, V21). En `schemas/eval.yaml.json`: en `properties` del objeto raíz, que sigue con `additionalProperties: false`, `\"lecturas\": {\"type\": \"array\", \"minItems\": 1, \"items\": {\"$ref\": \"#/$defs/lectura\"}}` y `\"sin_servir\": {\"type\": \"array\", \"minItems\": 1, \"items\": {\"$ref\": \"#/$defs/lectura-sin-servir\"}}`; en `$defs`, `lectura` (objeto con `additionalProperties: false`, `required` `norma`, `bloque` y `motivo`; `norma` y `bloque` con `$ref` a las definiciones de norma y de bloque que ya usa el comando de bloque, y `motivo` `{\"type\": \"string\", \"pattern\": \"\\\\S\"}`) y `lectura-sin-servir` (`oneOf` de `{norma, bloque}` y `{norma, verbo}`, cada rama con `additionalProperties: false` y sus dos claves en `required`, `verbo` con `enum` `indice` y `metadatos`), tal como el contrato las escribe; si las definiciones de norma y de bloque se llaman de otro modo en el fichero, se usan las que hay y se anota en `gates/supuestos.md`. Ninguna otra regla del esquema cambia, ninguna eval los lleva todavía y ningún código cambia: el lector estricto de `LeerEval` sigue sin las claves, que llegan con su tipo en T003. **Verificación**: `TestEsquemaDeEval` y `TestEvalsDelRepositorio` en verde (cada eval del repositorio valida contra el esquema nuevo, que compila); `make ci` en verde — FR-009, FR-012; SC-001. Rutas: schemas/eval.yaml.json",
+  "intento": 1,
+  "datos": true,
+  "aceptacion": false,
+  "base": "801c435d4223ac907ae647910de8cf59a5237ab6",
+  "rutas": [
+    "contracts/formato-de-eval.md",
+    "defs/lectura",
+    "defs/lectura-sin-servir",
+    "gates/supuestos.md",
+    "plan.md",
+    "schemas/eval.yaml.json"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "401296019135dcd6ef683c4d6fdf7f865caee117fd94946e5e78bea5ff796ddb"
+}
