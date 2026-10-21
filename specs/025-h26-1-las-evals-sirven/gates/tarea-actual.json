@@ -1,16 +1,14 @@
 {
-  "id": "T011",
-  "texto": "T011 [US6] `legal-core` v1.2.3: los pasos 7 y 10 (plan.md paso 9; contracts/skill-legal-core.md §1 a §4; research D14, V9). En `skills/legal-core/SKILL.md`: el paso 7 dice, en el mismo párrafo que ya dice que la línea `⚠ NO CUBIERTO:` va aunque falle una lectura, que tras esa línea la respuesta no expone la norma que rige el procedimiento —sus plazos, sus recursos—, que nombra la línea con lo que trae `references/cobertura_por_materia.md` (FR-030); el paso 10 gana un punto: si la lectura de un precepto de `data.preceptos` en la fecha de inicio sale con 4 o 5, la línea `⚠ PLAZO:` se mantiene con la fecha de `plazos` y la cita de cada precepto de `data.preceptos`, y en lugar de su línea `⚠ REDACCIÓN A FECHA:` la respuesta dice aparte que no pudo leer esa redacción, como `boe-legislacion` dice cualquier lectura fallida, sin afirmar lo que dice el precepto (FR-029). Lo que entra se compensa reescribiendo con menos líneas los dos párrafos que ya tratan la lectura fallida —el del paso 7 y el primer punto del paso 10—, sin quitar ninguna regla ni ningún caso, ni tocar el frontmatter salvo lo que pida la versión, la tabla de comandos generada ni `references/`. **Verificación**: `wc -l skills/legal-core/SKILL.md` da 299 o menos; `make skills-check` (`TestSkillsDelRepositorio`) en verde; `make ci` en verde — FR-029, FR-030, FR-031; SC-021. Rutas: skills/legal-core/SKILL.md",
+  "id": "T012",
+  "texto": "T012 [US5] Lo que se lee de una sesión para el motivo: `Llamada.SinSobre` y `Sesion.OrdenesDeBash` (plan.md paso 5; data-model §3; research D7, D10). **`internal/evals/sesion.go`**: `Llamada.SinSobre bool`, verdadero si el transcript trae su `tool_result`, es un error (`is_error` verdadero) y ninguno de los textos de su contenido es un objeto JSON con `ok`; una llamada sin resultado, falso. `Sesion.OrdenesDeBash []Texto`: cada uso de Bash cuyo `input.command` lleva la palabra `kitlegal` y cuyo `tool_result` trae el transcript, con su orden tal cual y su salida, en el orden de sus `tool_use`, leídos de lo que ya se lee para el juez. `Sesion.Textos`, `Llamada.Error` y `Llamada.Clase` no cambian. **Tests** (`internal/evals/sesion_test.go`): casos nuevos de `TestLeerLasLlamadas` —la llamada a `boe_indice` cuyo resultado es un error con el aviso del agente de que la herramienta no existe, `SinSobre`; la de un error con un sobre de kitlegal, la que termina bien y la que no tiene resultado, no— y de `TestTextosDeLaSesion` —dos usos de Bash con `kitlegal`, uno con `| python3 -c …` y la línea de la escritura fallida en su salida, en su orden y tal cual; un uso de Bash sin `kitlegal` y uno sin `tool_result`, fuera—. **Verificación**: `TestLeerLasLlamadas` y `TestTextosDeLaSesion` en verde; `make ci` en verde — FR-023, FR-025, FR-026; SC-007. Rutas: internal/evals/sesion.go, internal/evals/sesion_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "5fbb23c29669afb5b7bf559a13efe763e1e7daa2",
+  "base": "b2cf4fcf0e3a1b24f36f26fb51a5089de13fdc86",
   "rutas": [
-    "contracts/skill-legal-core.md",
-    "plan.md",
-    "references/",
-    "references/cobertura_por_materia.md",
-    "skills/legal-core/SKILL.md"
+    "internal/evals/sesion.go",
+    "internal/evals/sesion_test.go",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
