@@ -1,0 +1,231 @@
+diff antes/contracts/juicio-e-informe.md ahora/contracts/juicio-e-informe.md
+--- antes/contracts/juicio-e-informe.md	2026-10-21 02:16:01
++++ ahora/contracts/juicio-e-informe.md	2026-10-21 02:17:42
+@@ -53,7 +53,9 @@
+ ## 4. Los umbrales nuevos
+ 
+ Detrás de los de hoy, por cada modo del plan en su orden y, en cada modo, por cada modelo del plan —el que decide y los
+-informativos en su orden—, estos dos:
++informativos en su orden—, estos dos; el segundo, solo en el informe de una skill con al menos una eval con un comando
++de bloque cuya lectura está en su `sin_servir` (hoy, `legal-core`), como `plazo_sin_fecha` solo en el de la que tiene
++evals de plazo:
+ 
+ ```json
+ {"nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
+@@ -77,18 +79,20 @@
+   `sin_servir` (hoy la 11: 3 por modelo y modo); medida, las de esas que no tienen en `lecturas_sin_servir` ninguna
+   invocación que consulte el bloque de cada uno de esos comandos, con o sin `--fecha` y termine como termine —también
+   la que el tope cortó antes de intentarla—; `decide: true` solo con el modelo que decide. La 12 no entra: no tiene
+-  comandos. Con total 0, medida 0 y se cumple (FR-033).
++  comandos. Va también con medida 0; el informe de una skill sin una eval así, como `boe-legislacion` y
++  `jurisprudencia`, no lo lleva (FR-033).
+ - **Su motivo**, si decide y no se cumple, en la forma del de `plazo_sin_fecha`:
+   `umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: 11-plazo-reposicion-sin-leer-el-precepto-claude-sonnet-5-5-02`.
+   Con él, el veredicto es `fallo` y el trabajo de `legal-core`, rojo.
+ 
+-Con el plan del job, dos modos y dos modelos (`claude-sonnet-5-5` y `claude-haiku-4-5-20251001`), son 8 por skill:
++Con el plan del job, dos modos y dos modelos (`claude-sonnet-5-5` y `claude-haiku-4-5-20251001`), son 8 en
++`legal-core` y 4, los de `fuera_de_lo_grabado`, en las otras dos:
+ 
+ | Skill | Umbrales hoy (deciden) | Con H26.1 (deciden) |
+ |---|---|---|
+ | `legal-core` | 10 (10) | 18 (12) |
+-| `boe-legislacion` | 15 (11) | 23 (13) |
+-| `jurisprudencia` | 15 (11) | 23 (13) |
++| `boe-legislacion` | 15 (11) | 19 (11) |
++| `jurisprudencia` | 15 (11) | 19 (11) |
+ 
+ ## 5. La serie
+ 
+@@ -107,7 +111,7 @@
+ | Señal | Por job | Bytes | Deja de darse |
+ |---|---|---|---|
+ | `fuera_de_lo_grabado:<modelo>:<modo>` | 4 por skill, 12 en los tres trabajos | unos 330 cada uno | en el job siguiente al que cierra el hueco (la lectura entra en `data/` o en `lecturas` y se graba, o la skill deja de pedirla); nunca se arrastra |
+-| `lectura_sin_intentar:<modelo>:<modo>` | 4 por skill, 12 en los tres | unos 365 cada uno | en el job en que las sesiones intentan la lectura, o cuando la eval deja de llevarla en `sin_servir` |
++| `lectura_sin_intentar:<modelo>:<modo>` | 4 en el de `legal-core`, ninguno en los otros dos | unos 365 cada uno | en el job en que las sesiones intentan la lectura; sale del informe cuando la skill deja de tener una eval que lleve en `sin_servir` la lectura de un comando |
+ | su motivo | como mucho uno por modo, con las sesiones de las evals con un comando en `sin_servir` (hoy, como mucho las 3 de la 11) | menos de 300 | ídem |
+ | `lecturas_sin_servir` | en cada sesión; con algo, solo las 24 de la 11 y la 12 (2 evals × 2 modelos × 2 modos × 3) | `[]` son 25; cada elemento, unos 85; de 1 a 3 por sesión | cuando la eval deja de llevar `sin_servir` |
+ | `sesiones_con_lectura_sin_servir` | en cada serie: un entero en las 8 de la 11 y la 12, `null` en las demás | unos 40 por serie | ídem |
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-21 02:16:01
++++ ahora/data-model.md	2026-10-21 02:17:30
+@@ -133,8 +133,10 @@
+ 
+ ## 7. Los umbrales nuevos (`Umbral`, `internal/evals/umbrales.go`)
+ 
+-Dos por cada modelo y cada modo del plan, detrás de todos los de hoy (research D12). Las «sesiones medidas» son las de
+-research D11.
++Por cada modelo y cada modo del plan, detrás de todos los de hoy (research D12): `fuera_de_lo_grabado` en el informe
++de toda skill, y `lectura_sin_intentar` solo en el de una skill con al menos una eval con un comando de bloque en su
++`sin_servir` (hoy, `legal-core`), como `plazo_sin_fecha` solo en el de la que tiene evals de plazo. Las «sesiones
++medidas» son las de research D11.
+ 
+ | Nombre | Medida | Total | Umbral | `decide` | Requisito |
+ |---|---|---|---|---|---|
+@@ -142,8 +144,8 @@
+ | `lectura_sin_intentar:<modelo>:<modo>` | las sesiones de esas evals que no intentaron la lectura de un comando de bloque en su `sin_servir` | las sesiones medidas de las evals con un comando de bloque en su `sin_servir` | `<=` 0 | `true` solo con el modelo que decide | FR-033 |
+ 
+ Con el plan del job: `legal-core`, de 10 umbrales a 18 (de 10 que deciden a 12); `boe-legislacion` y `jurisprudencia`,
+-de 15 a 23 (de 11 a 13). El motivo de un `lectura_sin_intentar` que no se cumple, en el veredicto, nombra sus sesiones
+-separadas por «; », como el de `plazo_sin_fecha`.
++de 15 a 19 (los 11 que deciden, sin cambiar). El motivo de un `lectura_sin_intentar` que no se cumple, en el
++veredicto, nombra sus sesiones separadas por «; », como el de `plazo_sin_fecha`.
+ 
+ ## 8. Las evals nuevas y las que cambian (`evals/`)
+ 
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-21 02:16:01
++++ ahora/plan.md	2026-10-21 02:18:25
+@@ -24,7 +24,8 @@
+ 3. **`sin_servir`** (FR-012 a FR-016): la preparación de la sesión de esa eval quita sus consultas (D3; research V3: el
+    bloque sale entonces con 4 en toda fecha), el juicio reparte la invocación que lo consulta en `lecturas_sin_servir`
+    (D6) y el comando de bloque que la eval hace fallar admite 4 y 5 (D5). Dos evals nuevas de `legal-core`, la 11 y la
+-   12 (FR-017, FR-018), y un umbral sin modelo nuevo que decide, `lectura_sin_intentar:<modelo>:<modo>` (FR-033).
++   12 (FR-017, FR-018), y un umbral sin modelo nuevo que decide, `lectura_sin_intentar:<modelo>:<modo>`, solo en el
++   informe de la skill con una eval con un comando de bloque en su `sin_servir`, hoy `legal-core` (FR-033).
+ 4. **`fuera_de_lo_grabado:<modelo>:<modo>`**, publicado con `decide: false` (FR-021, FR-022), y el **motivo de un 1 que
+    no es de kitlegal** (FR-023 a FR-028): la llamada sin sobre sale con `codigo: null` y `motivo: "sin_sobre"` (D7), y
+    la orden que no pudo escribir su salida estándar, enlazada con su uso de Bash, con `motivo: "salida_no_escrita"` y
+@@ -63,7 +64,8 @@
+ alcance»); `skills/legal-core/SKILL.md` en 299 líneas como mucho (V9).
+ 
+ **Scale/Scope**: 72 consultas de `data/` por sesión; 4 bloques de `lecturas` en 3 evals; 2 evals nuevas, 24 sesiones
+-más por job (2 × 3 × 2 × 2); 8 umbrales más por skill; un peor caso de `legal-core` de 19 525 s (V10).
++más por job (2 × 3 × 2 × 2); 8 umbrales más en `legal-core` y 4 en `boe-legislacion` y en `jurisprudencia`; un peor
++caso de `legal-core` de 19 525 s (V10).
+ 
+ ## Constitution Check
+ 
+@@ -184,7 +186,7 @@
+ | `TestJuzgarLasLecturasSinServir` | `internal/evals/juzgar_test.go` | el reparto de las filas 3 a 7, FR-016 con la fecha del comando y sin ella, las sesiones de la 11 y la 12 de los escenarios de US2, y la de la 16 sin leer sus `lecturas` | FR-007, FR-015 a FR-018; SC-004, SC-005 |
+ | `TestJuzgarElMotivoDeLasFallidas` | `internal/evals/juzgar_test.go` | la llamada sin sobre (también de una lectura de `sin_servir`), la orden con `\| python3` enlazada (también de una lectura de `sin_servir`), el 1 con otra salida, sin uso y con dos; el juicio igual que antes salvo lo publicado | FR-023, FR-024, FR-026 a FR-028; SC-007, SC-017 |
+ | `TestLineaDeLaSalidaNoEscrita` | `internal/evals/juzgar_test.go` | la salida de error de `app.Main` con una salida estándar que falla es la línea que el arnés reconoce | FR-025; SC-007 |
+-| `TestUmbralesDeLasLecturas` | `internal/evals/umbrales_test.go` | `fuera_de_lo_grabado` (US4), `lectura_sin_intentar` con su motivo y su veredicto, el del modelo informativo, total 0, y `sesiones_con_lectura_sin_servir` (US2, escenario 5) | FR-015, FR-021, FR-022, FR-033; SC-005, SC-006, SC-008, SC-013 |
++| `TestUmbralesDeLasLecturas` | `internal/evals/umbrales_test.go` | `fuera_de_lo_grabado` (US4), `lectura_sin_intentar` con su motivo y su veredicto, el del modelo informativo, su ausencia en una skill sin eval con un comando de bloque en su `sin_servir`, y `sesiones_con_lectura_sin_servir` (US2, escenario 5) | FR-015, FR-021, FR-022, FR-033; SC-005, SC-006, SC-008, SC-013 |
+ 
+ Casos nuevos en tests que existen: `TestConsultasNecesarias` (`lecturas`, punto `lectura de la eval`; FR-006),
+ `TestBaseDeLaReconstruccion` (la base sirve `daprimera`; FR-004), `TestLeerLasLlamadas` (`SinSobre`; FR-023) y
+@@ -197,7 +199,7 @@
+ (`peorCasoDeLegalCore`, de 16 261 s a 19 525 s, y el caso con el tope en 288 minutos, que también deja fuera a
+ `legal-core`; D13); los que arman sesiones de las evals de `legal-core` del repositorio y fijan sus totales
+ (`TestUmbralesDeLasTresSkills`, `TestUmbralesDeLegalCore`, `TestJuzgarPlazos`, por `informe_test.go` y `plazos_test.go`).
+-Por los 8 umbrales nuevos y los campos nuevos del informe: los que comparan la lista entera de umbrales o el JSON de una
++Por los umbrales nuevos (8 en `legal-core`, 4 en las otras dos) y los campos nuevos del informe: los que comparan la lista entera de umbrales o el JSON de una
+ sesión o de una serie (`TestUmbralesDelInforme`, `TestUmbralesDeBoeLegislacion`, `TestUmbralesDeJurisprudencia`,
+ `TestUmbralesConJuezYConSentencias`, `TestInformeEnDosModos`, `TestInformeConElJuez`, `TestInforme`) y los de la base de
+ la medida que cuentan sus consultas. Ninguno cambia lo que comprueba de lo que ya había: solo se le añade lo nuevo.
+@@ -248,8 +250,8 @@
+ | SC-014 (modo orden) | 0 respuestas sin la lectura fechada o sin sus líneas, de las 9 de las evals de redacción fechada | ídem | `evals:legal-core:redaccion_sin_fechar:claude-sonnet-5-5:orden` |
+ | SC-014 (modo herramienta) | ídem | ídem | `evals:legal-core:redaccion_sin_fechar:claude-sonnet-5-5:herramienta` |
+ | SC-019 | `afirma_lo_no_leido:claude-sonnet-5-5` de `boe-legislacion` con su tasa de `clases.yaml` (ADR 0038), sin cambiar | umbral conjunto con `decide: true` | `evals:boe-legislacion:afirma_lo_no_leido:claude-sonnet-5-5` |
+-| SC-002, FR-033 (`boe-legislacion`: los que ya decidían y el nuevo) | sus otros 12 que deciden, cumplidos | umbrales del informe con `decide: true`; los de hoy, sin cambiar | `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`, `evals:boe-legislacion:redaccion_sin_fechar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:redaccion_sin_fechar:claude-sonnet-5-5:herramienta`, `evals:boe-legislacion:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:boe-legislacion:medida_del_juez:afirma_lo_no_leido:correctos_marcados`, `evals:boe-legislacion:duracion_de_las_sesiones:orden`, `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`, `evals:boe-legislacion:duracion_del_juez:orden`, `evals:boe-legislacion:duracion_del_juez:herramienta`, `evals:boe-legislacion:lectura_sin_intentar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:lectura_sin_intentar:claude-sonnet-5-5:herramienta` |
+-| SC-020, SC-002, FR-033 (`jurisprudencia` sigue aprobado) | sus 13 que deciden, cumplidos | ídem | `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:orden`, `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:documento_sin_cotejar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:documento_sin_cotejar:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:afirma_lo_no_leido:claude-sonnet-5-5`, `evals:jurisprudencia:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:jurisprudencia:medida_del_juez:afirma_lo_no_leido:correctos_marcados`, `evals:jurisprudencia:duracion_del_juez:orden`, `evals:jurisprudencia:duracion_del_juez:herramienta`, `evals:jurisprudencia:lectura_sin_intentar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:lectura_sin_intentar:claude-sonnet-5-5:herramienta` |
++| SC-002 (`boe-legislacion`: los que ya decidían) | sus otros 10 que deciden, cumplidos | umbrales del informe con `decide: true`; los de hoy, sin cambiar | `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`, `evals:boe-legislacion:redaccion_sin_fechar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:redaccion_sin_fechar:claude-sonnet-5-5:herramienta`, `evals:boe-legislacion:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:boe-legislacion:medida_del_juez:afirma_lo_no_leido:correctos_marcados`, `evals:boe-legislacion:duracion_de_las_sesiones:orden`, `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`, `evals:boe-legislacion:duracion_del_juez:orden`, `evals:boe-legislacion:duracion_del_juez:herramienta` |
++| SC-020, SC-002 (`jurisprudencia` sigue aprobado) | sus 11 que deciden, cumplidos | ídem | `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:orden`, `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:documento_sin_cotejar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:documento_sin_cotejar:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:afirma_lo_no_leido:claude-sonnet-5-5`, `evals:jurisprudencia:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:jurisprudencia:medida_del_juez:afirma_lo_no_leido:correctos_marcados`, `evals:jurisprudencia:duracion_del_juez:orden`, `evals:jurisprudencia:duracion_del_juez:herramienta` |
+ | SC-016 | 0 peticiones en `red` del informe de `legal-core` | una llegada a la red es un motivo del informe y su veredicto, `fallo` (desde H7.3, sin cambiar) | `ci:internal/evals/informe_test.go:TestInforme` |
+ | SC-011, FR-001, FR-003, SC-003 | 0 sesiones con un bloque de `data/` en `fuera_de_lo_grabado`: cada bloque de los dos ficheros, sin fecha y con `9999-12-31`, y el índice y los metadatos de cada norma de los tres, con 0 desde la caché de una sesión de cada skill; un precepto sin grabar, 1 falta y la sesión sin abrir | la caché preparada con el `data/` del repositorio y con una copia rota | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestLoQueLlevaALeerSinGrabar` |
+ | FR-002, FR-005, SC-008 (la derivación) | 0 faltas con el `data/` y las grabaciones de hoy; sin la derivación, el mutante en rojo | ídem, y el mutante de `mutantes.md` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
+@@ -285,11 +287,14 @@
+   del plan, no por lo acumulado: con los informes del cierre de H20 (medidos en esta sesión: `boe-legislacion`, 919 KB
+   con 74 series y 222 sesiones; `legal-core`, 364 KB con 34 y 102; `jurisprudencia`, 339 KB con 40 y 120), en
+   `boe-legislacion` son 222 × 25 bytes de `"lecturas_sin_servir":[]`, 74 × 39 de `"sesiones_con_lectura_sin_servir":null`
+-  y 8 umbrales de unos 350 bytes: unos 11 KB, el 1,2 %; y en `legal-core`, con 46 series y 139 sesiones, unos 14 KB,
++  y 4 umbrales de unos 350 bytes: unos 10 KB, el 1,1 %; y en `legal-core`, con 46 series, 139 sesiones y 8 umbrales,
++  unos 14 KB,
+   con las 24 sesiones de la 11 y la 12 y de uno a tres elementos de 85 bytes en cada una. Los `motivo` y `bash`, unos
+   diez por job en `boe-legislacion`, de 75 a 240 bytes. Cada job lo calcula desde cero y ninguna señal pasa al siguiente.
+-- **El motivo de `lectura_sin_intentar`**, si no se cumple, nombra como mucho las sesiones de las evals con un comando en
+-  su `sin_servir` de ese modo (hoy, las 3 de la 11): menos de 300 bytes, en el veredicto del job y en el informe final.
++- **`lectura_sin_intentar`** va solo en el informe del job de la skill con una eval con un comando de bloque en su
++  `sin_servir` —hoy, 4 umbrales en el de `legal-core` y ninguno en los otros dos— y sale de él cuando la skill deja de
++  tener una eval así. Su motivo, si no se cumple, nombra como mucho las sesiones de esas evals de ese modo (hoy, las 3
++  de la 11): menos de 300 bytes, en el veredicto del job y en el informe final.
+ 
+ ## Decisiones
+ 
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-21 02:16:01
++++ ahora/quickstart.md	2026-10-21 02:17:53
+@@ -102,9 +102,9 @@
+   11 con `sesiones_con_lectura_sin_servir` 3, también 0 si ninguna la intenta, y `null` en la de otra eval;
+   `lectura_sin_intentar:claude-sonnet-5-5:orden` con medida 0 cuando las tres la intentan, también con la orden de
+   salida no escrita, y con medida 1, su motivo con la sesión y el veredicto `fallo` cuando una no la intenta o solo la
+-  intenta una llamada sin sobre; el del modelo informativo, con `decide: false`; con total 0 en una skill sin eval así.
+-- `TestUmbralesDeLasTresSkills`: `legal-core`, 18 umbrales y 12 que deciden; `boe-legislacion` y `jurisprudencia`, 23 y
+-  13; con el plan del job, en su orden (contracts/juicio-e-informe.md §4).
++  intenta una llamada sin sobre; el del modelo informativo, con `decide: false`; ausente en una skill sin eval así.
++- `TestUmbralesDeLasTresSkills`: `legal-core`, 18 umbrales y 12 que deciden; `boe-legislacion` y `jurisprudencia`, 19 y
++  11, sin ningún `lectura_sin_intentar`; con el plan del job, en su orden (contracts/juicio-e-informe.md §4).
+ 
+ ## 5. El tope del trabajo de `legal-core` (FR-020, SC-009)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-21 02:16:01
++++ ahora/research.md	2026-10-21 02:17:19
+@@ -246,8 +246,11 @@
+ 
+ **D12 · Dónde van los umbrales nuevos.** Detrás de todos los de hoy, por cada modo del plan en su orden y, dentro de
+ cada uno, por cada modelo del plan —el que decide delante y los informativos en su orden—:
+-`fuera_de_lo_grabado:<modelo>:<modo>` y `lectura_sin_intentar:<modelo>:<modo>`. Con el plan del job son 8 por skill:
+-`legal-core`, 18 (deciden 12); `boe-legislacion` y `jurisprudencia`, 23 (deciden 13). El motivo de un
++`fuera_de_lo_grabado:<modelo>:<modo>` y, solo en la skill con una eval con un comando de bloque en su `sin_servir`,
++`lectura_sin_intentar:<modelo>:<modo>`, como hoy `plazo_sin_fecha` solo en la que tiene evals de plazo
++(`respuestasMedidas.umbrales`, `internal/evals/umbrales.go:392-425`). Con el plan del job son 8 en `legal-core`, que
++queda con 18 (deciden 12), y 4 en `boe-legislacion` y en `jurisprudencia`, que quedan con 19 (deciden 11, los de hoy).
++El motivo de un
+ `lectura_sin_intentar` que decide y no se cumple nombra sus sesiones como el de `plazo_sin_fecha`
+ (`nombradasPorSuSesion`, `internal/evals/umbrales.go:879-923`). *Rechazada*: intercalarlos entre los de cada modo, que
+ no los separa de los que miden respuestas del modelo que decide y obliga a reordenar en cada test lo que hoy no cambia.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-21 02:16:01
++++ ahora/spec.md	2026-10-21 02:19:07
+@@ -326,16 +326,19 @@
+ 
+ **`lectura_sin_intentar:<modelo>:<modo>` (punto 4)**
+ 
+-- **FR-033**: El informe del job de cada skill publica, por cada modelo y cada modo del plan, el umbral sin modelo
+-  `lectura_sin_intentar:<modelo>:<modo>`, en la forma de `plazo_sin_fecha`: medida, las sesiones medidas de ese modelo en
+-  ese modo que no tienen en `lecturas_sin_servir` (FR-015) ninguna invocación que consulte esa lectura, con o sin
+-  `--fecha` y termine como termine, también con salida no escrita (FR-024); la llamada sin sobre no está en esa lista;
+-  total, las sesiones medidas de ese modelo y modo de las evals con un comando esperado de bloque cuya lectura está en su `sin_servir`, el conjunto de FR-016 (hoy solo la 11, con `a124`); la comparación `<=`
+-  con 0; y `decide: true` solo para el modelo que decide de las evals (ADR 0031), de modo que el que no se cumple pone el
+-  veredicto del job en fallo. Lo lleva también con medida 0 y con total 0. La 12, que no tiene comandos, no entra: el paso
++- **FR-033**: El informe del job de una skill con al menos una eval con un comando esperado de bloque cuya lectura está
++  en su `sin_servir` —el conjunto de FR-016; hoy solo `legal-core`, por la 11, con `a124`— publica, por cada modelo y
++  cada modo del plan, el umbral sin modelo `lectura_sin_intentar:<modelo>:<modo>`, en la forma de `plazo_sin_fecha`:
++  medida, las sesiones medidas de ese modelo en ese modo que no tienen en `lecturas_sin_servir` (FR-015) ninguna
++  invocación que consulte esa lectura, con o sin `--fecha` y termine como termine, también con salida no escrita
++  (FR-024); la llamada sin sobre no está en esa lista; total, las sesiones medidas de ese modelo y modo de esas evals; la
++  comparación `<=` con 0; y `decide: true` solo para el modelo que decide de las evals (ADR 0031), de modo que el que no
++  se cumple pone el veredicto del job en fallo. Lo lleva también con medida 0. El informe de una skill sin una eval así
++  no lo lleva, como hoy el de `boe-legislacion` no lleva `plazo_sin_fecha`. La 12, que no tiene comandos, no entra: el paso
+   7 de `legal-core` no obliga a leer `daprimera`. `sesiones_con_lectura_sin_servir` (FR-015) sigue publicado sin decidir,
+   y el motivo del comando ausente (FR-016) con la regla de 2 de 3 de su serie sigue como está, sin ser el control de
+-  SC-013. Criterio: un test con sesiones sintéticas que intentan la lectura y que no, un mutante que retire el umbral o no
++  SC-013. Criterio: un test con sesiones sintéticas que intentan la lectura y que no, otro que no lo encuentra en el
++  informe de `boe-legislacion` ni en el de `jurisprudencia` con el plan del job, un mutante que retire el umbral o no
+   lo deje decidir hace fallar algún test, y la sección «Controles de umbral» del plan tiene su fila.
+ 
+ **`fuera_de_lo_grabado:<modelo>:<modo>` (punto 5)**
+@@ -433,13 +436,14 @@
+   vez por job: una lista por sesión, acotada por las invocaciones de esa sesión (de una a tres lecturas en la 11 y la 12,
+   unos 150 bytes cada una), y un entero por serie de las dos evals con `sin_servir`: 2 evals × 2 modelos × 2 modos = 8
+   enteros. Cada job los recalcula desde cero: ninguna señal de un job pasa al siguiente.
+-- **`lectura_sin_intentar:<modelo>:<modo>` (FR-033)**: lo lee la persona en los umbrales del informe del job de cada
+-  skill, una vez por job, y decide su veredicto: 2 modelos × 2 modos = 4 umbrales por skill, 12 en los tres trabajos,
+-  de unos 300 bytes cada uno; si el del modelo que decide no se cumple, el motivo del veredicto, en la forma del de
+-  `plazo_sin_fecha`, nombra las sesiones que cuentan, acotadas por las de las series de las evals con un comando de
+-  bloque en su `sin_servir` (hoy, como mucho las tres de la 11 en ese modo), sin depender de lo acumulado. Cada job lo recalcula desde cero y
+-  ninguna señal pasa al siguiente. En las skills sin una eval así va con total 0. Deja de darse en el job en que las
+-  sesiones intentan la lectura, o cuando la eval deja de llevar en `sin_servir` la lectura de un comando.
++- **`lectura_sin_intentar:<modelo>:<modo>` (FR-033)**: lo lee la persona en los umbrales del informe del job de
++  `legal-core`, la única skill con una eval con un comando de bloque en su `sin_servir`, una vez por job, y decide su
++  veredicto: 2 modelos × 2 modos = 4 umbrales en ese job y ninguno en el de las demás skills, de unos 300 bytes cada
++  uno; si el del modelo que decide no se cumple, el motivo del veredicto, en la forma del de `plazo_sin_fecha`, nombra
++  las sesiones que cuentan, acotadas por las de las series de las evals con un comando de bloque en su `sin_servir`
++  (hoy, como mucho las tres de la 11 en ese modo), sin depender de lo acumulado. Cada job lo recalcula desde cero y
++  ninguna señal pasa al siguiente. Deja de darse en el job en que las sesiones intentan la lectura, o cuando la skill
++  deja de tener una eval que lleve en `sin_servir` la lectura de un comando, y entonces sale del informe.
+ - **`fuera_de_lo_grabado:<modelo>:<modo>` (FR-021)**: lo lee la persona en los umbrales del informe, una vez por job: 2
+   modelos × 2 modos = 4 umbrales por skill, unos 300 bytes cada uno, sin depender del número de sesiones. La medida de un
+   hueco deja de darse en el job siguiente al que lo cierra —la lectura entra en `data/` o en `lecturas` y se graba, o la

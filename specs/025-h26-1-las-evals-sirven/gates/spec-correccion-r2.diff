@@ -1,0 +1,95 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-10-21 01:11:26
++++ ahora/checklists/requirements.md	2026-10-21 01:12:21
+@@ -22,8 +22,9 @@
+ - [x] No [NEEDS CLARIFICATION] markers remain — las dos que dejaba el spec (FR-017 y SC-013) las cerró clarify, y su
+   respuesta queda en «Clarifications» junto a la de FR-029 y FR-030.
+ - [x] Requirements are testable and unambiguous — cada FR lleva su «Criterio:» con el test o la comprobación que lo
+-  distingue; FR-015 fija que la llamada sin sobre y la orden de salida no escrita van a `otras_fallidas` aunque
+-  consulten una lectura de `sin_servir` y no son lectura intentada (FR-023, FR-024, FR-033), y FR-016 que la invocación
++  distingue; FR-015 fija que la llamada sin sobre va a `otras_fallidas` aunque consulte una lectura de `sin_servir` y
++  no es lectura intentada (FR-023, FR-033), y que la orden de salida no escrita, que sí llegó a la lectura, va a
++  `lecturas_sin_servir` con su motivo y es lectura intentada (FR-024, FR-033); y FR-016 que la invocación
+   que satisface el comando lee el bloque en su `fecha`.
+ - [x] Success criteria are measurable — SC-011 a SC-021 nombran su umbral y la comprobación que sale en rojo; SC-013
+   la hace cumplir `lectura_sin_intentar` (FR-033).
+@@ -31,7 +32,7 @@
+   `make ci`, que son la superficie del proyecto.
+ - [x] All acceptance scenarios are defined — seis historias en Dado/Cuando/Entonces.
+ - [x] Edge cases are identified — «Edge Cases», con el requisito que fija cada uno, también la lectura de `sin_servir`
+-  en otra fecha y la que es a la vez una llamada sin sobre o una orden de salida no escrita.
++  en otra fecha y la que es a la vez una llamada sin sobre (no intentada) o una orden de salida no escrita (intentada).
+ - [x] Scope is clearly bounded — «Fuera de alcance» lleva lo del hito y lo que el spec deja fuera.
+ - [x] Dependencies and assumptions identified — «Assumptions».
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-21 01:11:26
++++ ahora/spec.md	2026-10-21 01:12:34
+@@ -205,8 +205,9 @@
+   sesiones de la eval de `sin_servir`, y sí en las demás (FR-013).
+ - Un bloque de `sin_servir` que es un comando esperado de la misma eval: la lectura intentada en la fecha del comando
+   que sale con 4 o 5 lo satisface, y la intentada solo en otra fecha o sin ella, no (FR-016).
+-- Una invocación que consulta una lectura de `sin_servir` y es una llamada sin sobre o una orden de salida no escrita:
+-  va a `otras_fallidas` con su motivo y no es una lectura intentada (FR-015, FR-023, FR-024, FR-033).
++- Una invocación que consulta una lectura de `sin_servir` y es una llamada sin sobre: va a `otras_fallidas` con su
++  motivo y no es una lectura intentada (FR-015, FR-023, FR-033); si es una orden de salida no escrita, va a
++  `lecturas_sin_servir` con su motivo y es una lectura intentada (FR-015, FR-024, FR-033).
+ - Una serie de una eval con `sin_servir` cuyas sesiones no intentan ninguna lectura de él: el informe lo enseña con 0
+   (FR-015).
+ - Una invocación con código 1 que no se puede enlazar sin ambigüedad con un uso de Bash —ninguno o más de uno cumple—:
+@@ -280,13 +281,15 @@
+ - **FR-015**: Cada invocación de una sesión —orden de la traza o llamada a una herramienta— que consulta una lectura de
+   `sin_servir` de su eval (`articulo` de esa norma con ese bloque, con o sin `--fecha`, o `articulos` con ese bloque
+   entre los que pide; o el verbo `indice` o `metadatos` de esa norma), termine como termine, va a `lecturas_sin_servir`
+-  de la sesión con su orden y su código, y no a `fuera_de_lo_grabado` ni a `otras_fallidas`; salvo la llamada sin sobre
+-  (FR-023) y la orden de salida no escrita (FR-024), que no llegaron a la lectura que la caché no sirve: van a
+-  `otras_fallidas` como dicen esos requisitos y no son una lectura intentada, ni en `sesiones_con_lectura_sin_servir`
+-  ni en FR-033. Cada serie de una eval con `sin_servir` lleva en `sesiones_con_lectura_sin_servir` cuántas de sus
+-  sesiones leídas tienen alguna en `lecturas_sin_servir`, también 0; en las series de las demás evals es `null`. Ni la
+-  lista ni el recuento deciden por sí mismos. Criterio: un test con sesiones sintéticas que intentan y que no intentan la
+-  lectura, y con una llamada sin sobre y una orden de salida no escrita que la consultan, que quedan en `otras_fallidas`.
++  de la sesión con su orden y su código, y no a `fuera_de_lo_grabado` ni a `otras_fallidas`, y es una lectura intentada;
++  también la orden de salida no escrita (FR-024), que sí llegó a la lectura y lleva ahí su `codigo: 1`, su `motivo` y su
++  `bash`. Solo la llamada sin sobre (FR-023), en la que el binario no corrió, va a `otras_fallidas` como dice ese
++  requisito y no es una lectura intentada, ni en `sesiones_con_lectura_sin_servir` ni en FR-033. Cada serie de una eval
++  con `sin_servir` lleva en `sesiones_con_lectura_sin_servir` cuántas de sus sesiones leídas tienen alguna en
++  `lecturas_sin_servir`, también 0; en las series de las demás evals es `null`. Ni la lista ni el recuento deciden por
++  sí mismos. Criterio: un test con sesiones sintéticas que intentan y que no intentan la
++  lectura, con una llamada sin sobre que la consulta, que queda en `otras_fallidas` y no cuenta como intentada, y con una
++  orden de salida no escrita que la consulta, que queda en `lecturas_sin_servir` con su motivo y cuenta como intentada.
+ - **FR-016**: Un comando esperado de bloque de una eval cuya lectura está en su `sin_servir` lo satisface, además de lo
+   que hoy lo satisface, la invocación que lee ese bloque como hoy lo pide el comando —en su `fecha`, si la lleva— y
+   termina con 4 o 5 (ADR 0043, punto 6: la lectura fallida es lo que la eval provoca): solo cambia el código admitido.
+@@ -326,8 +329,8 @@
+ - **FR-033**: El informe del job de cada skill publica, por cada modelo y cada modo del plan, el umbral sin modelo
+   `lectura_sin_intentar:<modelo>:<modo>`, en la forma de `plazo_sin_fecha`: medida, las sesiones medidas de ese modelo en
+   ese modo que no tienen en `lecturas_sin_servir` (FR-015) ninguna invocación que consulte esa lectura, con o sin
+-  `--fecha` y termine como termine —la llamada sin sobre y la orden de salida no escrita no están en esa lista—; total, las sesiones medidas de ese modelo y modo de las evals con un comando esperado
+-  de bloque cuya lectura está en su `sin_servir`, el conjunto de FR-016 (hoy solo la 11, con `a124`); la comparación `<=`
++  `--fecha` y termine como termine, también con salida no escrita (FR-024); la llamada sin sobre no está en esa lista;
++  total, las sesiones medidas de ese modelo y modo de las evals con un comando esperado de bloque cuya lectura está en su `sin_servir`, el conjunto de FR-016 (hoy solo la 11, con `a124`); la comparación `<=`
+   con 0; y `decide: true` solo para el modelo que decide de las evals (ADR 0031), de modo que el que no se cumple pone el
+   veredicto del job en fallo. Lo lleva también con medida 0 y con total 0. La 12, que no tiene comandos, no entra: el paso
+   7 de `legal-core` no obliga a leer `daprimera`. `sesiones_con_lectura_sin_servir` (FR-015) sigue publicado sin decidir,
+@@ -355,9 +358,9 @@
+   `sin_servir` (FR-015). Una llamada sin resultado sigue como hoy. Criterio: un test con una sesión sintética.
+ - **FR-024**: Una invocación de la traza que terminó con 1 porque el binario no pudo escribir su salida estándar, y que
+   se enlaza con el uso de Bash del que salió (FR-026), lleva en `otras_fallidas` `codigo: 1`,
+-  `motivo: "salida_no_escrita"` y `bash` con la orden de ese uso tal cual, también si consulta una lectura de
+-  `sin_servir` (FR-015). Criterio: un test con una orden con
+-  `| python3` cuya salida trae la línea de error del binario.
++  `motivo: "salida_no_escrita"` y `bash` con la orden de ese uso tal cual; si consulta una lectura de `sin_servir`, los
++  lleva en `lecturas_sin_servir` y no en `otras_fallidas` (FR-015). Criterio: un test con una orden con `| python3` cuya
++  salida trae la línea de error del binario.
+ - **FR-025**: La línea de error se reconoce con la misma pieza del binario que la escribe —su error, o una constante que
+   el binario y el arnés compartan, con un test que los ate—, nunca con una copia literal del mensaje ni con texto que
+   escribe el modelo; y se lee del resultado de cada uso del transcript, que ya se lee para el juez. Criterio: el mutante
+@@ -407,7 +410,7 @@
+ - **`lecturas` de una eval**: `{norma, bloque, motivo}`; la exploración razonable que provoca esa eval (clase (b)).
+ - **`sin_servir` de una eval**: `{norma, bloque}` o `{norma, verbo}`; lo que la caché de sus sesiones no sirve.
+ - **`lecturas_sin_servir` de una sesión**: las invocaciones que consultan una lectura de `sin_servir`, con orden y
+-  código, salvo la llamada sin sobre y la orden de salida no escrita.
++  código (la orden de salida no escrita, también con su `motivo` y su `bash`), salvo la llamada sin sobre.
+ - **`sesiones_con_lectura_sin_servir` de una serie**: un entero en las series de las evals con `sin_servir`; `null` en
+   las demás.
+ - **`fuera_de_lo_grabado:<modelo>:<modo>`**: un umbral publicado del informe, con medida, total y `decide: false`.
