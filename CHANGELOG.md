@@ -12,6 +12,21 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Cambiado
+
+- **El roadmap se reorganiza en base, administrativo y profesionales, con un fichero por hito** (workflow `hito`
+  2.10.0). Cada hito vive en `docs/roadmap/`, y el directorio dice su estado: `hechos/`, `en-curso/` (como mucho uno),
+  `siguientes/` (la cola, en orden por el prefijo del nombre) y `backlog/`. Reordenar es renombrar un fichero; el
+  identificador no cambia. `scripts/hito.sh` solo lanza el hito de `en-curso/`, el workflow lee la entrada de su
+  fichero, la lista del input `hito` la genera `make roadmap-sync` y `make ci` comprueba el roadmap entero
+  (`TestRoadmap`); `make roadmap` enseña el estado. `docs/ROADMAP.md` conserva las fases y las reglas. kitlegal es un componente legal general, para cualquier materia. La fase 1 es ahora
+  la base legal genérica (H29 a H38): el ADR que lo fija, las evals que solo miden lo que cambia, las skills según la
+  especificación Agent Skills, la cobertura en positivo, los puertos genéricos de fuentes (con EUR-Lex), documentos,
+  cómputo y destinatarios, y las skills que se actualizan con el binario. La fase 2 es lo administrativo sobre la base
+  (H8, H10, H11, H15, H16 y H28); la fase 3, despachos y asesorías (H9.1, H27 y las verticales); H12, H13, H14, H17 y H18
+  pasan detrás, con sus números; y las materias entran en el backlog (`docs/ROADMAP.md`, «Punto de partida y rumbo»;
+  `docs/USO.md`, 2026-10-21).
+
 ## [0.8.1] - 2026-10-21
 
 ### Añadido

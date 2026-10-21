@@ -24,9 +24,11 @@ const (
 	directorioDelHito = "specs/000-h0-hito-del-test"
 	gatesDelHito      = directorioDelHito + "/gates"
 
-	// roadmapDelTest es el docs/ROADMAP.md del árbol temporal: el informe
-	// final saca de él el título del hito.
-	roadmapDelTest = "#### H0 · Hito del test\n\nLa sección del hito.\n"
+	// ficheroDelHitoDelTest es el fichero del hito en el docs/roadmap/ del
+	// árbol temporal, y hitoDelRoadmapDelTest, su contenido: el informe final
+	// saca de él el título del hito.
+	ficheroDelHitoDelTest = "docs/roadmap/en-curso/H0-hito-del-test.md"
+	hitoDelRoadmapDelTest = "---\nid: H0\nfase: \"1\"\n---\n\n# H0 · Hito del test\n\nLa entrada del hito.\n"
 
 	// ficheroDelProducto es lo que el hito cambia fuera de gates/.
 	ficheroDelProducto = "producto.txt"
@@ -100,7 +102,7 @@ func nuevoArbol(t *testing.T) *arbol {
 	a.escribir(rutaDelWorkflow, flujo)
 	a.escribir(".specify/feature.json", `{"feature_directory": "`+directorioDelHito+`"}`)
 	a.escribir(".gitignore", ".config-claude/\n.specify/feature.json\n.specify/sesiones-sin-feature.jsonl\n")
-	a.escribir("docs/ROADMAP.md", roadmapDelTest)
+	a.escribir(ficheroDelHitoDelTest, hitoDelRoadmapDelTest)
 
 	for _, artefacto := range []string{"spec.md", "plan.md", "tasks.md"} {
 		a.escribir(directorioDelHito+"/"+artefacto, "")

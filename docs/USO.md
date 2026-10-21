@@ -10,6 +10,25 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-21 · La póliza se lee bien, pero no hay nada alrededor de la norma
+
+- **Qué se pidió.** Una familia a la que una aseguradora renovó y cobró una póliza tras el fallecimiento de la asegurada
+  quiso saber qué podía hacer.
+- **Qué pasó.** kitlegal leyó y citó bien la Ley 50/1980, de Contrato de Seguro (`BOE-A-1980-22501`): consultar normas
+  funciona igual en cualquier materia. Al usarlo, avisó de que las skills instaladas eran de la v0.7.0 y el binario de la
+  v0.8.0: `brew upgrade` actualizó el binario y dejó `~/.agents/skills` como estaba, y el aviso lo vio el agente.
+- **Qué faltó.** Todo lo que rodea a la norma: los plazos que no son administrativos (`plazos` solo cuenta los de la
+  LPAC y la interposición del contencioso), a quién reclamar (`territorio` solo da el ayuntamiento) y qué vía seguir. Y
+  nada lo dijo: la cobertura se declara respecto de la LPAC, y una pregunta de seguros no cae en ninguna de sus filas.
+  Al revisar por qué, dos cosas más: las skills no siguen la especificación Agent Skills (el cuerpo de
+  `boe-legislacion` tiene unos 24 400 caracteres y su descripción 1023 de los 1024 que admite), y cualquier cambio mide
+  las tres skills enteras en el job de evals.
+- **Qué se hizo.** El roadmap se reorganizó (`docs/ROADMAP.md`, «Punto de partida y rumbo»): la fase 1 es la base legal
+  genérica (H29 a H38), con las evals que solo miden lo que cambia (H30) y las skills que se actualizan con el binario
+  (H38); la fase 2, lo administrativo sobre la base; la fase 3, despachos y asesorías; y las materias, al backlog. Y
+  pasó a un fichero por hito, en `docs/roadmap/`, donde el directorio dice si está hecho, en curso, en la cola o en el
+  backlog, y reordenar la cola es renombrar un fichero.
+
 ### 2026-10-20 · Las evals leen lo que su caché no sirve
 
 - **Qué se pidió.** Revisar las lecturas fuera de lo grabado de los jobs de evals de la #175 (run 39447467111) y de la

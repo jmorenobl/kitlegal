@@ -200,9 +200,9 @@ case "$accion" in
     if [ "$fase" = spec ] && jq -e --argjson t "$tipos_entrada" '(.entrada // []) | length > 0 and all(.[]; (.tipo as $x | $t | index($x)) != null)' "$v" >/dev/null 2>&1; then
       {
         printf '# Informe de rechazo del spec del hito %s\n\n' "$hito"
-        printf 'El juez de entrada no puede aprobar el spec: con lo que dice la sección del hito no se pueden derivar\n'
-        printf 'tests verificables, y adivinar sería peor que devolverlo. Corrige la sección `#### %s ·` de\n' "$hito"
-        printf 'docs/ROADMAP.md respondiendo a cada pregunta y relanza el hito desde main.\n\n'
+        printf 'El juez de entrada no puede aprobar el spec: con lo que dice el fichero del hito no se pueden derivar\n'
+        printf 'tests verificables, y adivinar sería peor que devolverlo. Corrige el fichero del hito %s en\n' "$hito"
+        printf 'docs/roadmap/en-curso/ respondiendo a cada pregunta y relanza el hito desde main.\n\n'
         jq -r '.entrada[] | "## \(.tipo) · \(.requisito // "sin requisito")\n\n- **Fragmento**: \(.fragmento // "—")\n- **Por qué impide derivar un test**: \(.por_que // "—")\n- **Pregunta**: \(.pregunta // "—")\n"' "$v"
       } > "$g/informe-rechazo.md"
       echo "SPEC RECHAZADO EN LA ENTRADA: informe en $g/informe-rechazo.md" >&2

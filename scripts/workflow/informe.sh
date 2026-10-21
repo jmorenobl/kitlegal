@@ -46,7 +46,7 @@ solo_ver="${2:-}"
 d=$(feature_dir)
 g="$d/gates"
 rama=$(git branch --show-current)
-titulo=$(awk -v h="$hito" 'index($0, "#### " h " · ") == 1 {print; exit}' docs/ROADMAP.md | sed -E 's/^#### [A-Z0-9.]+ · //')
+titulo=$(titulo_del_hito "$hito")
 
 estado_tarea() { # X, cuarentena o pendiente
   if jq -e --arg id "$1" '.tareas | has($id)' "$g/cuarentena.json" >/dev/null 2>&1; then echo cuarentena
@@ -453,7 +453,7 @@ informe() {
   echo
   echo "Generado por el workflow \`hito\` el $(date -u +%Y-%m-%dT%H:%M:%SZ), sobre \`$(git rev-parse --short HEAD)\` de \`$rama\`."
   echo "Lo escribe scripts/workflow/informe.sh sin modelo, desde los artefactos de \`$d/\`. Fusionar (squash-merge) es una decisión humana:"
-  echo "si algo de lo que sigue no es lo que se quería, se corrige la sección del hito en docs/ROADMAP.md y se relanza."
+  echo "si algo de lo que sigue no es lo que se quería, se corrige el fichero del hito en docs/roadmap/en-curso/ y se relanza."
   echo
 
   echo "## 1. Estado"

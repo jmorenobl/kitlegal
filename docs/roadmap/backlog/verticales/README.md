@@ -1,0 +1,6 @@
+# Verticales
+
+Materias empaquetadas para un tipo de profesional; entran en la fase 3 en el orden de `docs/USO.md`; ADR 0012, con lo que precise H29.
+
+- Molde (H32): normas con `vertical: <nombre>` en `data/normas.yaml`, un fichero de referencia por skill de capacidad, filas de cobertura y evals en su carpeta, que H30 solo mide cuando se toca la vertical; un hito de paquete y uno por cada hueco de capacidad; lo que necesite una fuente propia (PETETE, DYCTEA, AEAT, REGCON…) entra por «fuentes» con sus condiciones revisadas. Un pack agrupa verticales para un profesional (`packs/<vertical>/pack.yaml`, distribución); una gestoría pide fiscal, laboral y mercantil.
+- Los procedimientos que la ley regula aparte del común —DA 1ª.2 LPAC: aplicación de los tributos y su revisión, Seguridad Social y desempleo, sancionadores tributario, social, de tráfico y de extranjería, extranjería y asilo; art. 112.4: reclamaciones económico-administrativas— llegan con su vertical o su materia, con sus recursos, plazos y escritos, y cada una saca los suyos de la lista de `data/` que hasta entonces los declara no cubiertos (ADR 0027).
