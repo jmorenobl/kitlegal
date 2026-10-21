@@ -1,103 +1,127 @@
 # Mutantes de H26.1
 
-Cada mutante se aplica en una copia fuera del árbol y se retira al terminar (tasks.md, «Batería de verificación por
-tarea»; quickstart.md §7). Ninguno queda en el diff.
+Cada mutante se aplica en una copia fuera del árbol, uno cada vez, y su fichero se restaura antes del siguiente
+(tasks.md, «Batería de verificación por tarea»; quickstart.md §7; research D16). Ninguno queda en el diff: esta tarea
+no cambia nada bajo `internal/` ni bajo `data/`.
 
 ```bash
 copia="$TMPDIR/h261-copia"
 git worktree add --detach "$copia" HEAD
-# … cada mutante, restaurando su fichero tras ejecutarlo …
+# … cada mutante, con su comprobación de que se aplicó y su fichero restaurado tras él …
 git worktree remove --force "$copia"
 git worktree list
 git status --short
 ```
 
-## FR-002 · Sin la derivación de `data/` (T004)
+Lo que dice cada sección «Visto en T015» se ejecutó en la sesión de T015 (2026-10-21) sobre una copia de la cabeza de
+la rama, `e3f8f58` (T014), con las órdenes de cada sección. El sandbox de la sesión no deja comprobar una orden con una
+variable antes de ejecutarla, así que `$copia` y `$f` se escribieron con la ruta entera de `$TMPDIR/h261-copia`; y la
+salida de `git diff` llega resumida, así que la línea cambiada se miró con `rtk proxy git diff --no-index -U0` (o
+`--stat`). Una sustitución sencilla se hizo con `sed -i.orig`; la de un rango de líneas (`sed '/^func …/,/^}/ s/…/'`)
+pide aprobación en el sandbox, y esa y las de más de una línea se hicieron con el editor sobre una copia `.orig` hecha
+con `cp`.
 
-`consultasDeLaCache` devuelve solo las consultas necesarias de las evals, sin lo que la skill lleva a leer de `data/`.
+## Sin mutantes
 
 ```bash
-f="$copia/internal/evals/consultas.go"
-sed -i.orig '/^func consultasDeLaCache/,/^}/ s/return necesarias.consultas, nil/return ConsultasNecesarias(conjunto), nil/' "$f"
-git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
-go -C "$copia" test -count=1 \
-  -run '^(TestEvalsDelRepositorio|TestCacheDeLasSesiones|TestLoQueLlevaALeerSinGrabar|TestBaseDeLaReconstruccion|TestLecturasDeLosDatos)$' \
-  ./internal/evals/ 2>&1 | grep -E '^\s*--- FAIL|^(ok|FAIL)'
-mv "$f.orig" "$f"
+go -C "$copia" test -count=1 -v \
+  -run '^(TestEvalsDelRepositorio|TestCacheDeLasSesiones|TestUmbralesDeLasLecturas|TestUmbralesDeLasTresSkills|TestLineaDeLaSalidaNoEscrita)$' \
+  ./internal/evals/ 2>&1 | grep -E '^--- |^(ok|FAIL)'
+go -C "$copia" test -count=1 -v -run '^TestTuberiaCerrada$' ./internal/app/ 2>&1 | grep -E '^--- |^(ok|FAIL)'
 ```
 
-Esperado: ninguna línea «NO SE HA APLICADO» (el diff es una sola línea, la 161: `return necesarias.consultas, nil` →
-`return ConsultasNecesarias(conjunto), nil`), y en `FAIL`:
+Visto en T015, antes del primer mutante: los cinco de `internal/evals` en `PASS` y `ok`, con los tres subtests de
+`TestEvalsDelRepositorio/lo-que-lleva-a-leer` (`boe-legislacion`, `legal-core`, `jurisprudencia`) y los cuatro de
+`TestCacheDeLasSesiones/sin-servir` (05, 07, 11 y 12) en `PASS`; `TestTuberiaCerrada` en `PASS` y `ok`. Tras el último,
+con todos los ficheros restaurados, `ok` en los dos paquetes con
+`-run '^(TestEvalsDelRepositorio|TestCacheDeLasSesiones|TestLoQueLlevaALeerSinGrabar|TestBaseDeLaReconstruccion|TestLecturasDeLosDatos|TestUmbralesDeLasLecturas|TestUmbralesDeLasTresSkills|TestLineaDeLaSalidaNoEscrita|TestJuzgarElMotivoDeLasFallidas)$'`
+en `./internal/evals/` y `-run '^TestTuberiaCerrada$'` en `./internal/app/`.
 
-- `TestEvalsDelRepositorio/lo-que-lleva-a-leer`, con sus tres subtests, `boe-legislacion`, `legal-core` y
-  `jurisprudencia`: la caché de su sesión no sirve los bloques ni las normas de `data/` con `--offline` (código 4);
-- `TestCacheDeLasSesiones/sin-servir/07-cobertura-liquidacion-tributaria-daprimera`: `daprimera` no la nombra ninguna
-  eval de `legal-core` (la de `a124` de la 05 sigue en verde, porque la 05 la nombra);
-- `TestBaseDeLaReconstruccion/sirve-lo-que-la-skill-lleva-a-leer`;
-- `TestLoQueLlevaALeerSinGrabar`: sin la lectura de `a129`, no hay falta que la nombre;
-- `TestLecturasDeLosDatos/detras-de-las-evals`.
+## 1 · FR-003 · Un precepto de `data/` sin grabar (T004; quickstart.md §7.a)
 
-Ejecutado en la sesión de T004 sobre la copia con el diff de la tarea aplicado, con la misma sustitución hecha con el
-editor (`sed -i` pide aprobación en el sandbox de la sesión): las líneas `--- FAIL` fueron exactamente esas. Retirado:
-`git diff --no-index --exit-code` de la copia contra `internal/evals/consultas.go` del árbol de trabajo salió con 0.
-
-## FR-003 · Un precepto de `data/` sin grabar (T004; quickstart.md §7.a)
+Cambio: en `data/plazos.yaml:29`, `bloque: a128,` → `bloque: a129,` (la única aparición).
 
 ```bash
 f="$copia/data/plazos.yaml"
 sed -i.orig 's/bloque: a128,/bloque: a129,/' "$f"
 git diff --no-index --quiet "$f.orig" "$f" && echo "LA SUSTITUCIÓN NO SE HA APLICADO"
-go -C "$copia" test -count=1 -run '^TestEvalsDelRepositorio$' ./internal/evals/ 2>&1 | grep -E 'a129|FAIL' | head -5
+go -C "$copia" test -count=1 -v -run '^TestEvalsDelRepositorio$' ./internal/evals/ 2>&1 |
+  grep -E -- '--- FAIL|^(ok|FAIL)|a129'
 mv "$f.orig" "$f"
+git diff --no-index --exit-code data/plazos.yaml "$f"
 ```
 
-Esperado: ninguna línea «NO SE HA APLICADO»; `TestEvalsDelRepositorio/lo-que-lleva-a-leer` en `FAIL` en sus tres
-subtests, porque la sesión no se prepara, con la falta
+Visto en T015: el diff contra el `.orig` salió con 1 (una línea más y una menos), sin «NO SE HA APLICADO». En `FAIL`:
 
-```text
-data/plazos.yaml: lo que la skill lleva a leer boe articulo BOE-A-1998-16718 a129: «boe articulo BOE-A-1998-16718 a129» terminó con código 1: …
-```
+- `TestEvalsDelRepositorio/lo-que-lleva-a-leer/jurisprudencia`, `…/legal-core` y `…/boe-legislacion` (y con ellos
+  `TestEvalsDelRepositorio/lo-que-lleva-a-leer`, `TestEvalsDelRepositorio` y el paquete), cada uno con
+  `Should be empty, but was [` y las dos faltas de la sesión que no se prepara:
 
-y la misma con `--fecha 9999-12-31`. Ejecutado en la sesión de T004 igual que el anterior: salieron las dos faltas, con
-«ha fallado la petición del bloque a129 de la norma BOE-A-1998-16718» detrás, y `FAIL` en `jurisprudencia` y en
-`legal-core`, los dos que enseñó la salida, cortada con `head` antes del tercero. Retirado con el `mv`.
+  ```text
+  data/plazos.yaml: lo que la skill lleva a leer boe articulo BOE-A-1998-16718 a129: «boe articulo BOE-A-1998-16718 a129» terminó con código 1: … clase=inesperado
+  ha fallado la petición del bloque a129 de la norma BOE-A-1998-16718 (https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1998-16718/texto/bloque/a129): … no hay grabación de GET https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-1998-16718/texto/bloque/a129: falta el fichero …
+  data/plazos.yaml: lo que la skill lleva a leer boe articulo BOE-A-1998-16718 a129 --fecha 9999-12-31: «boe articulo BOE-A-1998-16718 a129 --fecha 9999-12-31» terminó con código 1: … clase=inesperado
+  ```
 
-## FR-033 · `lectura_sin_intentar` con `decide: false`, y retirado (T007)
+Restaurado con el `mv`: `git diff --no-index --exit-code` contra `data/plazos.yaml` del árbol de trabajo salió con 0.
 
-Dos mutantes de `internal/evals/umbrales.go`, uno cada vez:
+Antes, en la sesión de T004, con el diff de la tarea sobre la copia: las dos faltas y `FAIL` en `jurisprudencia` y
+`legal-core`, los dos que enseñó la salida, cortada con `head` antes del tercero.
 
-- (a) en `lecturasMedidas.umbrales`, `Decide: grupo.modelo == l.modeloQueDecide,` → `Decide: false,`;
-- (b) en `umbralesDelInforme`, `return append(umbrales, lecturas.umbrales()...)` → `return umbrales`.
+## 2 · FR-002 · Sin la derivación de `data/` (T004)
+
+Cambio: en `consultasDeLaCache` (`internal/evals/consultas.go:169`), `return necesarias.consultas, nil` →
+`return ConsultasNecesarias(conjunto), nil`: la caché recibe solo las consultas necesarias de las evals, sin lo que la
+skill lleva a leer de `data/` (`anotarLosDatos` sigue ejecutándose, pero su resultado se descarta).
 
 ```bash
-f="$copia/internal/evals/umbrales.go"
+f="$copia/internal/evals/consultas.go"
 cp "$f" "$f.orig"
-# (a) o (b), con el editor
+# el cambio, con el editor, en la línea 169 (la misma línea se repite fuera de la función)
 git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
-go -C "$copia" test -count=1 -run '^(TestUmbralesDeLasLecturas|TestUmbralesDeLasTresSkills)$' ./internal/evals/ 2>&1 |
-  grep -E '^\s*--- FAIL|^(ok|FAIL)'
+go -C "$copia" test -count=1 -v \
+  -run '^(TestEvalsDelRepositorio|TestCacheDeLasSesiones|TestLoQueLlevaALeerSinGrabar|TestBaseDeLaReconstruccion|TestLecturasDeLosDatos)$' \
+  ./internal/evals/ 2>&1 | grep -E -- '--- FAIL|^(ok|FAIL)'
+go -C "$copia" test -count=1 -v -run '^TestCacheDeLasSesiones$' ./internal/evals/ 2>&1 | grep -E 'expected:|actual  :'
 mv "$f.orig" "$f"
+git diff --no-index --exit-code internal/evals/consultas.go "$f"
 ```
 
-Esperado: ninguna línea «NO SE HA APLICADO», y con cada uno, en `FAIL`, `TestUmbralesDeLasLecturas` en cinco de sus seis
-subtests: `intentan-la-lectura`, `una-no-la-intenta`, `el-informativo-no-la-intenta`, `ninguna-la-intenta` y
-`en-los-dos-modos`; `sin-una-eval-asi`, cuyo informe no lleva el umbral, sigue en verde. En `una-no-la-intenta`, con
-(a), el umbral del modelo que decide sale con `decide: false` (`exigirUmbrales`, en la lista y en informe.json), sin el
-motivo `umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %:
-01-sintetica-claude-sonnet-5-5-02` (`exigirMotivosDeLaRaiz`: `actual: []string{}`) y con el veredicto `aprobado` en
-lugar de `fallo`; con (b), la lista de umbrales sale vacía (`actual: []evals.Umbral{}` y `"[]"` en informe.json), y sin
-ese motivo. `TestUmbralesDeLasTresSkills` sigue en verde con los dos, porque ninguna eval del repositorio lleva aún
-`sin_servir`: lo pondrá en rojo T008, con la 11 (T015 lo comprueba).
+Visto en T015: el diff, `@@ -169 +169 @@ func consultasDeLaCache(…)`, solo esa línea. En `FAIL`:
 
-Ejecutado en la sesión de T007 sobre una copia (`git worktree add --detach` en `$TMPDIR`) con el diff de la tarea
-aplicado, con los dos cambios hechos con el editor: las líneas `--- FAIL` fueron exactamente esas cinco y `FAIL` del
-paquete, con cada uno. Retirados con el `mv`: `git diff --no-index --exit-code` de la copia contra
-`internal/evals/umbrales.go` del árbol de trabajo salió con 0, y `git worktree remove --force` retiró la copia.
+- `TestEvalsDelRepositorio/lo-que-lleva-a-leer/jurisprudencia`, `…/legal-core` y `…/boe-legislacion`
+  (`conjunto_test.go:2366`): `Should be empty, but was [«boe articulo BOE-A-2015-10565 a122» terminó con código 4: …
+  clase=fuente-no-disponible …`, con el mensaje `lo que la skill lleva a leer de data/ que la caché de una sesión de
+  01-existe-con-numero-y-fecha.yaml de ../../evals/jurisprudencia no sirve sin red:` (en `legal-core`,
+  `01-territorio-municipio-cubierto.yaml`; en `boe-legislacion`, `01-lpac-articulo-21.yaml`);
+- `TestCacheDeLasSesiones/sin-servir/07-cobertura-liquidacion-tributaria-daprimera` (`preparar_test.go:1131`), tres
+  veces `expected: 0`, `actual  : 4`, con el mensaje `boe articulo BOE-A-2015-10565 daprimera --offline desde la caché
+  de la sesión de 07-cobertura-liquidacion-tributaria.yaml: … clase=fuente-no-disponible` y el mismo con
+  `--fecha 2026-09-09` y con `--fecha 9999-12-31`: `daprimera` no la nombra ninguna eval de `legal-core`; la de `a124`
+  de la 05, que la 05 nombra, siguió en verde, igual que la 11 y la 12;
+- `TestBaseDeLaReconstruccion/sirve-lo-que-la-skill-lleva-a-leer` (`medida_test.go:3153`): `Should be empty, but was
+  [«boe articulo BOE-A-2015-10565 daprimera» terminó con código 4: …`, con el mensaje `la base de la medida de
+  ../../evals/boe-legislacion sirve sin red daprimera de BOE-A-2015-10565:`;
+- `TestLoQueLlevaALeerSinGrabar` (`preparar_test.go:1049`): `Should be true`, con el mensaje `alguna falta empieza por
+  "data/plazos.yaml: lo que la skill lleva a leer boe articulo BOE-A-1998-16718 a129: «boe articulo BOE-A-1998-16718
+  a129» terminó con código "; faltas:`; y tres veces en `preparar_test.go:1053`, `file "…/002/eval.txt" exists` (y
+  `modelo.txt`, `pregunta.txt`), con el mensaje `la sesión no se abre`;
+- `TestLecturasDeLosDatos/detras-de-las-evals` (`consultas_test.go:644`): `Not equal`, con el mensaje `boe articulo
+  BOE-A-2015-10565 a122 suma el origen de data/ a los de la eval`; y en `consultas_test.go:651`, sobre la lista de
+  consultas, que empieza `[{boe articulo [BOE-A-2015-10565 a122] [{01-un-bloque-de-los-datos.yaml comando esperado}]}
+  …`.
 
-## FR-013 · `sin_servir` de cualquier eval de la skill aplicado a todas, y retirado (T008)
+Restaurado con el `mv`: `git diff --no-index --exit-code` contra `internal/evals/consultas.go` del árbol de trabajo salió
+con 0.
 
-En `prepararLaCache`, la caché de la sesión de cada eval se prepara sin lo que deja sin servir cualquier eval de la
-skill, no solo la suya: `return Preparar(dirCache, s.Grabaciones, sinLoQueNoSeSirve(consultas, eval))` →
+Antes, en la sesión de T004, con el diff de la tarea sobre la copia, cuando la línea era la 161: las mismas líneas
+`--- FAIL`.
+
+## 3 · FR-013 · El `sin_servir` de cualquier eval de la skill aplicado a todas (T008)
+
+Cambio: en `prepararLaCache` (`internal/evals/preparar.go:359`), la caché de la sesión de cada eval se prepara sin lo
+que deja sin servir cualquier eval de la skill, no solo la suya:
+`return Preparar(dirCache, s.Grabaciones, sinLoQueNoSeSirve(consultas, eval))` →
 
 ```go
 todas := eval
@@ -113,50 +137,128 @@ f="$copia/internal/evals/preparar.go"
 cp "$f" "$f.orig"
 # el cambio, con el editor
 git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
-go -C "$copia" test -count=1 -run '^TestCacheDeLasSesiones$' ./internal/evals/ 2>&1 | grep -E '^\s*--- FAIL|^(ok|FAIL)'
+go -C "$copia" test -count=1 -v -run '^TestCacheDeLasSesiones$' ./internal/evals/ 2>&1 |
+  grep -E -- '--- (FAIL|PASS)|^(ok|FAIL)|Messages:|expected:|actual  :'
 mv "$f.orig" "$f"
+git diff --no-index --exit-code internal/evals/preparar.go "$f"
 ```
 
-Esperado: ninguna línea «NO SE HA APLICADO», y en `FAIL`, `TestCacheDeLasSesiones/sin-servir` con
-`05-plazo-reposicion-leganes-a124` (la 05 deja de servir `a124`, que la 11 lleva en `sin_servir`: código 4 y no 0, sin
-fecha, con `--fecha 2026-09-09` y con `--fecha 9999-12-31`) y `07-cobertura-liquidacion-tributaria-daprimera` (la 07
-deja de servir `daprimera`, que lleva la 12); los de la 11 y la 12, que esperan 4, siguen en verde.
+Visto en T015: el diff, 6 líneas más y 1 menos. En `FAIL`, `TestCacheDeLasSesiones/sin-servir` con:
 
-Ejecutado en la sesión de T008 sobre una copia (`git worktree add --detach` en `$TMPDIR`) con el diff de la tarea
-copiado encima, con el cambio hecho con el editor: `git diff --no-index --stat` dio el fichero cambiado (6 líneas más
-y 1 menos), y las líneas `--- FAIL` fueron `TestCacheDeLasSesiones`, `TestCacheDeLasSesiones/sin-servir` y esos dos
-subtests, con las tres lecturas de cada uno en 4 donde se esperaba 0 (`clase=fuente-no-disponible`). Retirado con el
-`mv`: `git diff --no-index --exit-code` de la copia contra `internal/evals/preparar.go` del árbol de trabajo salió con
-0, y `git worktree remove --force` retiró la copia.
+- `05-plazo-reposicion-leganes-a124`: la 05 deja de servir `a124`, que la 11 lleva en `sin_servir`; tres veces
+  `expected: 0`, `actual  : 4`, con el mensaje `boe articulo BOE-A-2015-10565 a124 --offline desde la caché de la sesión
+  de 05-plazo-reposicion-leganes.yaml: … clase=fuente-no-disponible`, y el mismo con `--fecha 2026-09-09` y con
+  `--fecha 9999-12-31`;
+- `07-cobertura-liquidacion-tributaria-daprimera`: la 07 deja de servir `daprimera`, que lleva la 12; las mismas tres
+  lecturas, con `daprimera` y `07-cobertura-liquidacion-tributaria.yaml`.
 
-## FR-025 · El mensaje del presentador cambiado (T013; quickstart.md §7.b)
+En `PASS`, `11-plazo-reposicion-sin-leer-el-precepto-a124` y `12-cobertura-seguridad-social-sin-leer-la-da-primera-daprimera`,
+que esperan 4, y `TestCacheDeLasSesiones/lecturas`.
 
-En `enDescriptor` (`internal/render/render.go:99`), `render: no se pudo escribir en %s` →
+Restaurado con el `mv`: `git diff --no-index --exit-code` contra `internal/evals/preparar.go` del árbol de trabajo salió
+con 0.
+
+Antes, en la sesión de T008: las mismas líneas `--- FAIL`, con las tres lecturas de cada uno en 4 donde se esperaba 0.
+
+## 4 · FR-033 · `lectura_sin_intentar` con `decide: false`, y retirado (T007)
+
+Tres mutantes de `internal/evals/umbrales.go`, uno cada vez, restaurando el fichero desde el `.orig` entre uno y otro:
+
+- (a) en `lecturasMedidas.umbrales` (línea 984), `Decide:      grupo.modelo == l.modeloQueDecide,` →
+  `Decide:      false,`;
+- (b) en `lecturasMedidas.umbrales`, retirado el `append` del umbral `lectura_sin_intentar` (líneas 976 a 985: la
+  variable `conSinServir` y el `compararUmbral` con `nombreDelUmbralDeLecturaSinIntentar`), con el de
+  `fuera_de_lo_grabado` en su sitio;
+- (c) el que apuntó T007 como (b): en `umbralesDelInforme` (línea 423), `return append(umbrales,
+  lecturas.umbrales()...)` → `return umbrales`. Desde T010, `lecturas.umbrales()` lleva también `fuera_de_lo_grabado`,
+  así que este retira los dos; (b) es el que retira solo `lectura_sin_intentar`.
+
+```bash
+f="$copia/internal/evals/umbrales.go"
+cp "$f" "$f.orig"
+# (a), (b) o (c), con el editor
+git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
+go -C "$copia" test -count=1 -v -run '^(TestUmbralesDeLasLecturas|TestUmbralesDeLasTresSkills)$' ./internal/evals/ 2>&1 |
+  grep -E -- '--- (FAIL|PASS)|^(ok|FAIL)'
+go -C "$copia" test -count=1 -v -run '^TestUmbralesDeLasLecturas$/^una-no-la-intenta$' ./internal/evals/ 2>&1 |
+  grep -E '_test.go:[0-9]+:|Messages:|expected|actual|ecide'
+go -C "$copia" test -count=1 -v -run '^TestUmbralesDeLasTresSkills$/^legal-core$' ./internal/evals/ 2>&1 |
+  grep -E '_test.go:[0-9]+:|Messages:|expected|actual|ecide|Nombre'
+cp "$f.orig" "$f"   # entre uno y otro; tras el último, mv "$f.orig" "$f"
+git diff --no-index --exit-code internal/evals/umbrales.go "$f"
+```
+
+Visto en T015, ninguno con «NO SE HA APLICADO» (diff de (a): `@@ -984 +984 @@`, esa línea; de (b): 11 líneas menos;
+de (c): 1 más y 1 menos):
+
+- Con (a), `TestUmbralesDeLasLecturas` en `FAIL` en nueve de sus diez subtests —`fuera-de-lo-grabado`,
+  `intentan-la-lectura`, `sin-binario-ni-servidor`, `ninguna-la-intenta`, `una-no-escribe-su-salida`,
+  `una-la-llama-sin-sobre`, `el-informativo-no-la-intenta`, `una-no-la-intenta` y `en-los-dos-modos`—, y
+  `sin-una-eval-asi`, cuyo informe no lleva el umbral, en `PASS`. En `una-no-la-intenta`: `umbrales_test.go:2255`, dos
+  veces, `-  Decide: (bool) true` / `+  Decide: (bool) false`; `umbrales_test.go:2262`, `expected:
+  []string{"umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %:
+  01-sintetica-claude-sonnet-5-5-02"}`, `actual  : []string{}`, con el mensaje `falta la línea "- umbral
+  lectura_sin_intentar:claude-sonnet-5-5:orden: …" en:`; y `umbrales_test.go:2263`, `expected: "fallo"`, `actual  :
+  "aprobado"`. `TestUmbralesDeLasTresSkills/legal-core` en `FAIL`, con `jurisprudencia` y `boe-legislacion` en `PASS`:
+  `informe_test.go:6874`, en la lista de umbrales y en su JSON, dos veces `-  Decide: (bool) true` /
+  `+  Decide: (bool) false`; `informe_test.go:6905`, sobre los nombres de los que deciden, con el mensaje `deciden los
+  doce del modelo que decide que no son fuera_de_lo_grabado, y los demás solo se publican`; e `informe_test.go:6909`,
+  con el mensaje `doce deciden`.
+- Con (b), `TestUmbralesDeLasLecturas` en `FAIL` en los mismos nueve y `sin-una-eval-asi` en `PASS`; y
+  `TestUmbralesDeLasTresSkills/legal-core` en `FAIL`, con `jurisprudencia` y `boe-legislacion` en `PASS`:
+  `informe_test.go:6874` echa en falta los umbrales `lectura_sin_intentar:claude-sonnet-5-5:orden`,
+  `lectura_sin_intentar:claude-haiku-4-5-20251001:orden`, `lectura_sin_intentar:claude-sonnet-5-5:herramienta` y
+  `lectura_sin_intentar:claude-haiku-4-5-20251001:herramienta`; `informe_test.go:6891`, los mismos nombres en la lista;
+  e `informe_test.go:6904`, `6908` (`dieciocho umbrales`) y `6909` (`doce deciden`).
+- Con (c), `TestUmbralesDeLasLecturas` en `FAIL` en sus diez subtests, `sin-una-eval-asi` incluido, porque se va también
+  `fuera_de_lo_grabado`; y `TestUmbralesDeLasTresSkills` en `FAIL` en sus tres subtests.
+
+`TestUmbralesDeLasTresSkills` sale en rojo, con `legal-core`, desde que T008 dio a la 11 y a la 12 su `sin_servir`: lo
+que T007 dejó para que lo comprobara T015, comprobado. Restaurado: tras (a) y (b) con `cp` desde el `.orig` y tras (c)
+con el `mv`, `git diff --no-index --exit-code` contra `internal/evals/umbrales.go` del árbol de trabajo salió con 0 las
+tres veces.
+
+Antes, en la sesión de T007, con (a) y con (c) (su (b)): cinco de los seis subtests que había entonces en `FAIL` y
+`sin-una-eval-asi` en verde; `TestUmbralesDeLasTresSkills` en verde, porque ninguna eval del repositorio llevaba aún
+`sin_servir`.
+
+## 5 · FR-025 · El mensaje del presentador cambiado (T013; quickstart.md §7.b)
+
+Cambio: en `enDescriptor` (`internal/render/render.go:99`), `render: no se pudo escribir en %s` →
 `render: no se ha podido escribir en %s`. El arnés no copia el mensaje: pide el prefijo a `render.Nuevo` con una salida
 que falla (`prefijoDeLaSalidaNoEscrita`), así que lo que hace fallar el cambio es el test del binario y no el del arnés.
 
 ```bash
 f="$copia/internal/render/render.go"
-cp "$f" "$f.orig"
-# el cambio, con el editor
+sed -i.orig 's/render: no se pudo escribir en %s/render: no se ha podido escribir en %s/' "$f"
 git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
-go -C "$copia" test -count=1 -v -run '^TestTuberiaCerrada$' ./internal/app/ 2>&1 | grep -E '^\s*--- (FAIL|PASS)|^(ok|FAIL)'
-go -C "$copia" test -count=1 -v -run '^TestLineaDeLaSalidaNoEscrita$' ./internal/evals/ 2>&1 | grep -E '^\s*--- (FAIL|PASS)|^(ok|FAIL)'
-go -C "$copia" test -count=1 -run '^TestJuzgarElMotivoDeLasFallidas$' ./internal/evals/ 2>&1 | grep -E '^\s*--- FAIL|^(ok|FAIL)'
+go -C "$copia" test -count=1 -v -run '^TestTuberiaCerrada$' ./internal/app/ 2>&1 |
+  grep -E -- '--- (FAIL|PASS)|^(ok|FAIL)|does not contain'
+go -C "$copia" test -count=1 -v -run '^TestLineaDeLaSalidaNoEscrita$' ./internal/evals/ 2>&1 | grep -E -- '--- (FAIL|PASS)|^(ok|FAIL)'
+go -C "$copia" test -count=1 -run '^TestJuzgarElMotivoDeLasFallidas$' ./internal/evals/ 2>&1 | grep -E -- '--- FAIL|^(ok|FAIL)'
 mv "$f.orig" "$f"
+git diff --no-index --exit-code internal/render/render.go "$f"
 ```
 
-Esperado: ninguna línea «NO SE HA APLICADO»; `TestTuberiaCerrada` en `FAIL`, porque la salida de error ya no contiene
-`no se pudo escribir en la salida estándar`; y `TestLineaDeLaSalidaNoEscrita` en verde, porque el prefijo cambia con el
-mensaje.
+Visto en T015: el diff, `@@ -99 +99 @@ func enDescriptor(…)`, esa línea. `TestTuberiaCerrada` en `FAIL` en seis de sus
+siete subtests —`--help`, `echo_--help`, `version`, `echo_hola_--json`, `echo_hola` y `echo_hola_--describe`—, cada
+uno con
 
-Ejecutado en la sesión de T013 sobre una copia (`git worktree add --detach` en `$TMPDIR`) con el diff de la tarea
-copiado encima, con el cambio hecho con el editor: `git diff --no-index --stat` dio el fichero cambiado (1 línea más y
-1 menos). `TestTuberiaCerrada` salió en `FAIL` en seis de sus siete subtests —`--help`, `echo_hola_--json`,
-`echo_hola`, `echo_hola_--describe`, `version` y `echo_--help`—, cada uno con
-`"render: no se ha podido escribir en la salida estándar: write /dev/stdout: broken pipe\n" does not contain "no se pudo escribir en la salida estándar"`;
-`echo_repetir_--help` siguió en `PASS`, porque esa ayuda la escribe el analizador y no el presentador
-(`mensajeDeSalidaRota`, `internal/app/tuberia_unix_test.go`). `TestLineaDeLaSalidaNoEscrita` salió en `PASS` y
-`TestJuzgarElMotivoDeLasFallidas` en `ok`. Retirado con el `mv`: `git diff --no-index --exit-code` de la copia contra
-`internal/render/render.go` del árbol de trabajo salió con 0, `git worktree remove --force` retiró la copia y
-`git worktree list` ya no la nombra; `internal/render` no cambia en el árbol.
+```text
+"render: no se ha podido escribir en la salida estándar: write /dev/stdout: broken pipe\n" does not contain "no se pudo escribir en la salida estándar"
+```
+
+(uno de ellos con la línea del registro `… applet=echo verbo=repetir … clase=inesperado` delante), y
+`echo_repetir_--help` en `PASS`, porque esa ayuda la escribe el analizador y no el presentador (`mensajeDeSalidaRota`,
+`internal/app/tuberia_unix_test.go`). `TestLineaDeLaSalidaNoEscrita` en `PASS` (`ok`) y
+`TestJuzgarElMotivoDeLasFallidas` en `ok`, porque el prefijo cambia con el mensaje. Restaurado con el `mv`:
+`git diff --no-index --exit-code` contra `internal/render/render.go` del árbol de trabajo salió con 0.
+
+Antes, en la sesión de T013, con el diff de la tarea sobre la copia: los mismos seis subtests en `FAIL`, el séptimo en
+`PASS` y el arnés en verde.
+
+## La copia, retirada
+
+Visto en T015: `git -C "$copia" status --short --ignored` no dio nada tras restaurar el último fichero;
+`git worktree remove --force "$copia"` salió con 0; `git worktree list` nombra solo el árbol de trabajo
+(`~/Projects/kitlegal e3f8f58 [025-h26-1-las-evals-sirven]`), y `$TMPDIR/h261-copia` ya no existe.
