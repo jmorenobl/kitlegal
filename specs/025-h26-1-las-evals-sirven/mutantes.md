@@ -61,3 +61,35 @@ data/plazos.yaml: lo que la skill lleva a leer boe articulo BOE-A-1998-16718 a12
 y la misma con `--fecha 9999-12-31`. Ejecutado en la sesión de T004 igual que el anterior: salieron las dos faltas, con
 «ha fallado la petición del bloque a129 de la norma BOE-A-1998-16718» detrás, y `FAIL` en `jurisprudencia` y en
 `legal-core`, los dos que enseñó la salida, cortada con `head` antes del tercero. Retirado con el `mv`.
+
+## FR-033 · `lectura_sin_intentar` con `decide: false`, y retirado (T007)
+
+Dos mutantes de `internal/evals/umbrales.go`, uno cada vez:
+
+- (a) en `lecturasMedidas.umbrales`, `Decide: grupo.modelo == l.modeloQueDecide,` → `Decide: false,`;
+- (b) en `umbralesDelInforme`, `return append(umbrales, lecturas.umbrales()...)` → `return umbrales`.
+
+```bash
+f="$copia/internal/evals/umbrales.go"
+cp "$f" "$f.orig"
+# (a) o (b), con el editor
+git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
+go -C "$copia" test -count=1 -run '^(TestUmbralesDeLasLecturas|TestUmbralesDeLasTresSkills)$' ./internal/evals/ 2>&1 |
+  grep -E '^\s*--- FAIL|^(ok|FAIL)'
+mv "$f.orig" "$f"
+```
+
+Esperado: ninguna línea «NO SE HA APLICADO», y con cada uno, en `FAIL`, `TestUmbralesDeLasLecturas` en cinco de sus seis
+subtests: `intentan-la-lectura`, `una-no-la-intenta`, `el-informativo-no-la-intenta`, `ninguna-la-intenta` y
+`en-los-dos-modos`; `sin-una-eval-asi`, cuyo informe no lleva el umbral, sigue en verde. En `una-no-la-intenta`, con
+(a), el umbral del modelo que decide sale con `decide: false` (`exigirUmbrales`, en la lista y en informe.json), sin el
+motivo `umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %:
+01-sintetica-claude-sonnet-5-5-02` (`exigirMotivosDeLaRaiz`: `actual: []string{}`) y con el veredicto `aprobado` en
+lugar de `fallo`; con (b), la lista de umbrales sale vacía (`actual: []evals.Umbral{}` y `"[]"` en informe.json), y sin
+ese motivo. `TestUmbralesDeLasTresSkills` sigue en verde con los dos, porque ninguna eval del repositorio lleva aún
+`sin_servir`: lo pondrá en rojo T008, con la 11 (T015 lo comprueba).
+
+Ejecutado en la sesión de T007 sobre una copia (`git worktree add --detach` en `$TMPDIR`) con el diff de la tarea
+aplicado, con los dos cambios hechos con el editor: las líneas `--- FAIL` fueron exactamente esas cinco y `FAIL` del
+paquete, con cada uno. Retirados con el `mv`: `git diff --no-index --exit-code` de la copia contra
+`internal/evals/umbrales.go` del árbol de trabajo salió con 0, y `git worktree remove --force` retiró la copia.

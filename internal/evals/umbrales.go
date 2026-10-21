@@ -2,6 +2,7 @@ package evals
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -43,6 +44,12 @@ const (
 // eval espera: ninguna (contracts/evals-redaccion-fechada.md §3 de H20; FR-054,
 // FR-055 de H20).
 const umbralDeRedaccionesSinFechar = 0
+
+// La proporción de las sesiones medidas de un modelo en un modo de las evals con
+// un comando de bloque cuya lectura está en su sin_servir que admite el umbral
+// de las que no intentaron esa lectura: ninguna (contracts/juicio-e-informe.md §4
+// de H26.1; FR-033 de H26.1).
+const umbralDeLecturasSinIntentar = 0
 
 // Lo que admiten los umbrales del juez que no salen de su declaración de clases
 // (contracts/informe-del-job.md §2 de H24): la proporción de los casos
@@ -95,6 +102,13 @@ const (
 // líneas que la eval espera se nombra con su prefijo, como el de plazo_sin_fecha,
 // y su descripción dice que su total son solo las respuestas de esas evals
 // (contracts/evals-redaccion-fechada.md §3 de H20; research D14 de H20).
+//
+// Desde H26.1, el de las sesiones de las evals con un comando de bloque cuya
+// lectura está en su sin_servir que no intentaron esa lectura se nombra con su
+// prefijo, el modelo y el modo, como el de plazo_sin_fecha, aunque no mide
+// respuestas sino sesiones, y de todos los modelos del plan; su descripción
+// dice que su total son las sesiones medidas de esas evals
+// (contracts/juicio-e-informe.md §4 de H26.1; research D11 y D12 de H26.1).
 const (
 	prefijoDelUmbralSinActivar             = "sin_activar:"
 	prefijoDelUmbralDeCitaSinDocumento     = "cita_sin_documento:"
@@ -103,6 +117,7 @@ const (
 	prefijoDelUmbralDeCoberturaSinDeclarar = "cobertura_sin_declarar:"
 	prefijoDelUmbralDeVigenciaSinDeclarar  = "vigencia_sin_declarar:"
 	prefijoDelUmbralDeRedaccionSinFechar   = "redaccion_sin_fechar:"
+	prefijoDelUmbralDeLecturaSinIntentar   = "lectura_sin_intentar:"
 	prefijoDelUmbralDeLaMedidaDelJuez      = "medida_del_juez:"
 	prefijoDelUmbralDeLaDuracion           = "duracion_de_las_sesiones:"
 	prefijoDelUmbralDeLaDuracionDelJuez    = "duracion_del_juez:"
@@ -131,6 +146,9 @@ const (
 		"el bloque de la eval en su fecha, o sin las líneas ⚠ REDACCIÓN A FECHA:, ⚠ REDACCIÓN DE HOY: y ⚠ SIN " +
 		"REDACCIÓN VIGENTE: que la eval espera, sobre sus respuestas medidas en las evals que esperan una redacción " +
 		"fechada"
+	descripcionDelUmbralDeLecturaSinIntentar = "Sesiones de %s en el modo %s que no intentaron la lectura que un " +
+		"comando esperado de su eval pide y su sin_servir no sirve, sobre sus sesiones medidas de las evals con un " +
+		"comando así"
 	descripcionDeLaClaseQueDecide = "Respuestas de %s en el modo %s que el juez marca en %s con sus tres votos, " +
 		"sobre sus respuestas juzgadas en las evals que activan la skill"
 	descripcionDeLaClaseQueSePublica = "Respuestas de %s en el modo %s con sí en %s en el primer voto del juez, " +
@@ -163,8 +181,10 @@ const (
 // H23). Y el de documento_sin_cotejar nombra cada respuesta que cuenta por su
 // sesión y nada más, separadas igual (contracts/umbral-documento-sin-cotejar.md
 // §3 de H23.1; research D7 de H23.1), como, desde H9, los de plazo_sin_fecha y
-// cobertura_sin_declarar (contracts/evals-legal-core.md §3 de H9) y, desde H20,
-// el de redaccion_sin_fechar (contracts/evals-redaccion-fechada.md §3 de H20).
+// cobertura_sin_declarar (contracts/evals-legal-core.md §3 de H9), desde H20,
+// el de redaccion_sin_fechar (contracts/evals-redaccion-fechada.md §3 de H20) y,
+// desde H26.1, el de lectura_sin_intentar, que nombra sesiones y no respuestas
+// (contracts/juicio-e-informe.md §4 de H26.1).
 const (
 	soloSePublica      = "no: solo se publica"
 	motivoDeUnUmbral   = "umbral %s: %s, y tiene que ser %s"
@@ -195,10 +215,13 @@ type Umbral struct {
 	// declara sentencias, cita_sin_documento:<modelo>:<modo>
 	// (contracts/evals-jurisprudencia.md §4 de H23); con alguna eval que pide
 	// el cotejo, documento_sin_cotejar:<modelo>:<modo>
-	// (contracts/umbral-documento-sin-cotejar.md §2 de H23.1); y, con alguna
+	// (contracts/umbral-documento-sin-cotejar.md §2 de H23.1); con alguna
 	// eval de plazo, plazo_sin_fecha:<modelo>:<modo>, y con alguna de
 	// cobertura, cobertura_sin_declarar:<modelo>:<modo>
-	// (contracts/evals-legal-core.md §3 de H9).
+	// (contracts/evals-legal-core.md §3 de H9); y, con alguna eval con un
+	// comando de bloque cuya lectura está en su sin_servir,
+	// lectura_sin_intentar:<modelo>:<modo> de cada modelo del plan
+	// (contracts/juicio-e-informe.md §4 de H26.1).
 	Nombre string `json:"nombre"`
 
 	// Descripcion dice en una línea qué se mide, en qué modo —o con todos los
@@ -213,17 +236,21 @@ type Umbral struct {
 	// no cubierto con la norma esperada o con una línea del plazo, o los
 	// segundos de su tanda o de sus votos; en el
 	// umbral conjunto de una clase, las que el juez marca en ella en las
-	// sesiones de todos los modos; y, en la medida versionada del juez, los
-	// casos que no dan lo que dice su etiqueta.
+	// sesiones de todos los modos; en la medida versionada del juez, los
+	// casos que no dan lo que dice su etiqueta; y en lectura_sin_intentar, las
+	// sesiones medidas del modelo en su modo que no intentaron la lectura que
+	// su eval deja sin servir.
 	Medida float64 `json:"medida"`
 
-	// Total, solo en los de las respuestas y en los de la medida del juez, es
-	// aquello sobre lo que se mide: las respuestas medidas del modelo en ese
-	// modo en las evals que activan la skill —en el umbral conjunto de una
-	// clase, las de todos los modos; en documento_sin_cotejar, solo las de las
-	// evals que piden el cotejo; en plazo_sin_fecha, solo las de las evals de
-	// plazo; y en cobertura_sin_declarar, solo las de las de cobertura—, o los
-	// casos con esa etiqueta. Con él, lo que
+	// Total, solo en los de las respuestas, en los de la medida del juez y en
+	// lectura_sin_intentar, es aquello sobre lo que se mide: las respuestas
+	// medidas del modelo en ese modo en las evals que activan la skill —en el
+	// umbral conjunto de una clase, las de todos los modos; en
+	// documento_sin_cotejar, solo las de las evals que piden el cotejo; en
+	// plazo_sin_fecha, solo las de las evals de plazo; y en
+	// cobertura_sin_declarar, solo las de las de cobertura—, los casos con esa
+	// etiqueta, o las sesiones medidas del modelo en ese modo de las evals con
+	// un comando de bloque en su sin_servir. Con él, lo que
 	// se compara es la proporción Medida/Total, 0 si Total es 0. Sin él, la
 	// propia Medida.
 	Total *int `json:"total,omitzero"`
@@ -336,7 +363,17 @@ type Umbral struct {
 // de los que deciden once: los trece de antes, con redaccion_sin_fechar de cada
 // modo detrás de su cuenta_su_proceso. Los de jurisprudencia y legal-core no
 // cambian.
-func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umbral {
+//
+// Desde H26.1 (contracts/juicio-e-informe.md §4 de H26.1; data-model §7 de
+// H26.1; research D11 y D12 de H26.1; FR-033 de H26.1), detrás de todos ellos,
+// si alguna eval de la skill tiene un comando de bloque cuya lectura está en su
+// sin_servir, va lectura_sin_intentar de cada modo del plan, en su orden, y, en
+// cada modo, de cada modelo del plan, el que decide delante y los informativos
+// en el suyo (lecturasMedidas.umbrales): mide sesiones y no respuestas, también
+// las de los modelos informativos, y decide con 0 solo el del modelo que decide.
+// lecturas es lo que se mide de esas sesiones, nil si ninguna eval tiene un
+// comando así, y entonces no va ninguno.
+func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas, lecturas *lecturasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()
 	umbrales = append(umbrales, delJuez.umbralesConjuntos()...)
@@ -361,7 +398,7 @@ func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas) []Umb
 		umbrales = append(umbrales, delJuez.umbralesDeLaDuracion()...)
 	}
 
-	return umbrales
+	return append(umbrales, lecturas.umbrales()...)
 }
 
 // umbrales son, por cada modo del plan y en su orden, los umbrales de las
@@ -719,6 +756,204 @@ func nombreDelUmbralDeRedaccionSinFechar(modelo string, modo Modo) string {
 	return prefijoDelUmbralDeRedaccionSinFechar + modelo + separadorDelModoDelUmbral + string(modo)
 }
 
+// lecturasMedidas es lo que se mide de las sesiones de las evals con un comando
+// de bloque cuya lectura está en su sin_servir, para el umbral
+// lectura_sin_intentar de cada modelo y cada modo del plan
+// (contracts/juicio-e-informe.md §4 de H26.1; data-model §7 de H26.1; research
+// D11 y D12 de H26.1; FR-033 de H26.1). No son respuestas: son sesiones, y de
+// todos los modelos del plan.
+type lecturasMedidas struct {
+	// modeloQueDecide es el único cuyo umbral decide (ADR 0031).
+	modeloQueDecide string
+
+	// grupos son uno por modo del plan, en su orden, y, dentro de cada modo, uno
+	// por modelo del plan, el que decide delante y los informativos en el suyo.
+	grupos []lecturasDeUnGrupo
+}
+
+// lecturasDeUnGrupo son, de un modelo en un modo, cuántas sesiones medidas
+// tienen las evals con un comando así y, por su nombre y en orden de sesión, las
+// de ellas que no intentaron su lectura.
+type lecturasDeUnGrupo struct {
+	modelo      string
+	modo        Modo
+	medidas     int
+	sinIntentar []string
+}
+
+// medirLasLecturas mide, de cada modelo y cada modo del plan, las sesiones de las
+// evals con un comando de bloque cuya lectura está en su sin_servir
+// (comandosSinServir) que no intentaron esa lectura (intentaLasLecturas). Las
+// sesiones que cuentan, las medidas, son las de las series que pide el plan con
+// ese modelo y ese modo que se pudieron leer y no quedaron sin medir, activen o
+// no la skill y terminen o no (research D11 de H26.1): no las de una serie que el
+// plan no pide, como la de la prueba de red, ni las de una eval sin binario ni
+// servidor, que no tiene modo. Nil si ninguna eval tiene un comando así: el
+// informe no lleva entonces el umbral (FR-033 de H26.1).
+func medirLasLecturas(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada) *lecturasMedidas {
+	sinServir := map[string][]ComandoEsperado{}
+
+	for _, eval := range evals {
+		if comandos := comandosSinServir(eval); len(comandos) > 0 {
+			sinServir[eval.Fichero] = comandos
+		}
+	}
+
+	if len(sinServir) == 0 {
+		return nil
+	}
+
+	lecturas := &lecturasMedidas{modeloQueDecide: e.ModeloQueDecide}
+	modelos := slices.Concat([]string{e.ModeloQueDecide}, e.ModelosInformativos)
+
+	for _, modo := range e.plan(nil).modos() {
+		for _, modelo := range modelos {
+			lecturas.grupos = append(lecturas.grupos, medirLasLecturasDelGrupo(modelo, modo, sinServir, sesiones, series))
+		}
+	}
+
+	return lecturas
+}
+
+// medirLasLecturasDelGrupo mide las sesiones del modelo en el modo de las series
+// que pide el plan de las evals de sinServir, que da, por el fichero de cada
+// una, sus comandos de bloque cuya lectura está en su sin_servir.
+func medirLasLecturasDelGrupo(
+	modelo string, modo Modo, sinServir map[string][]ComandoEsperado, sesiones []sesionJuzgada, series []serieJuzgada,
+) lecturasDeUnGrupo {
+	grupo := lecturasDeUnGrupo{modelo: modelo, modo: modo}
+
+	var sinIntentar []int
+
+	for _, serie := range series {
+		comandos := sinServir[serie.clave.eval]
+		if !serie.tasa.Planificada || serie.clave.modelo != modelo || serie.clave.modo != modo || len(comandos) == 0 {
+			continue
+		}
+
+		for _, posicion := range serie.sesiones {
+			juzgada := sesiones[posicion]
+			if juzgada.ilegible || juzgada.resultado.SinMedir != "" {
+				continue
+			}
+
+			grupo.medidas++
+
+			if !intentaLasLecturas(juzgada, comandos) {
+				sinIntentar = append(sinIntentar, posicion)
+			}
+		}
+	}
+
+	slices.Sort(sinIntentar)
+
+	for _, posicion := range sinIntentar {
+		grupo.sinIntentar = append(grupo.sinIntentar, sesiones[posicion].resultado.Sesion)
+	}
+
+	return grupo
+}
+
+// comandosSinServir son, en su orden, los comandos de la eval cuya lectura la
+// eval hace fallar a propósito (Eval.comandoSinServir): los de bloque cuya norma
+// y cuyo bloque son una entrada de bloque de su sin_servir. Ninguno en una eval
+// sin comandos, como la 12 de legal-core.
+func comandosSinServir(eval Eval) []ComandoEsperado {
+	var comandos []ComandoEsperado
+
+	for _, comando := range eval.Comandos {
+		if eval.comandoSinServir(comando) {
+			comandos = append(comandos, comando)
+		}
+	}
+
+	return comandos
+}
+
+// intentaLasLecturas dice si la sesión intentó la lectura de cada uno de los
+// comandos: si, por cada uno, alguna de sus invocaciones en lecturas_sin_servir
+// consulta su bloque de su norma, con --fecha o sin ella y termine como termine
+// (LecturaSinServir.consulta; FR-015, FR-033 de H26.1). Las de
+// lecturas_sin_servir se reconocen por su orden entre las invocaciones con las
+// que se juzga la sesión (invocacionesDe), de modo que la que el juicio no puso
+// en esa lista no cuenta como intentada. invocacionesDe anota sus motivos en un
+// resultado de usar y tirar, y su segundo valor no se mira: falso solo si el
+// registro de herramientas no se puede construir, y entonces el juicio tampoco
+// puso ninguna llamada en lecturas_sin_servir (research D3 de H23.1).
+func intentaLasLecturas(juzgada sesionJuzgada, comandos []ComandoEsperado) bool {
+	var deUsarYTirar ResultadoDeEval
+
+	invocaciones, _ := deUsarYTirar.invocacionesDe(juzgada.sesion)
+
+	enLasLecturasSinServir := func(invocacion invocacionJuzgada) bool {
+		return slices.ContainsFunc(juzgada.resultado.LecturasSinServir, func(lectura InvocacionFallida) bool {
+			return lectura.Orden == invocacion.orden
+		})
+	}
+
+	return !slices.ContainsFunc(comandos, func(comando ComandoEsperado) bool {
+		lectura := LecturaSinServir{Norma: comando.Norma, Bloque: comando.Bloque}
+
+		return !slices.ContainsFunc(invocaciones, func(invocacion invocacionJuzgada) bool {
+			return enLasLecturasSinServir(invocacion) && lectura.consulta(invocacion.Invocacion)
+		})
+	})
+}
+
+// umbrales son los de lectura_sin_intentar de cada grupo, en su orden, ya
+// comparados: se nombran con su prefijo seguido del modelo y del modo, su
+// descripción los nombra, su medida son las sesiones que no intentaron la
+// lectura, su total, las medidas, también con medida 0, y decide con 0 solo el
+// del modelo que decide (ADR 0031). Ninguno sin lecturas medidas. Es un hecho de
+// la sesión, que se comprueba sin modelo (ADR 0037).
+func (l *lecturasMedidas) umbrales() []Umbral {
+	if l == nil {
+		return nil
+	}
+
+	umbrales := make([]Umbral, 0, len(l.grupos))
+
+	for _, grupo := range l.grupos {
+		medidas := grupo.medidas
+
+		umbrales = append(umbrales, compararUmbral(Umbral{
+			Nombre:      nombreDelUmbralDeLecturaSinIntentar(grupo.modelo, grupo.modo),
+			Descripcion: fmt.Sprintf(descripcionDelUmbralDeLecturaSinIntentar, grupo.modelo, grupo.modo),
+			Medida:      float64(len(grupo.sinIntentar)),
+			Total:       &medidas,
+			Umbral:      umbralDeLecturasSinIntentar,
+			Decide:      grupo.modelo == l.modeloQueDecide,
+		}))
+	}
+
+	return umbrales
+}
+
+// sinIntentarEn nombra las sesiones que cuentan en el umbral lectura_sin_intentar
+// con ese nombre, como las lleva su motivo: por su nombre, en orden de sesión y
+// separadas por «; ». Vacío si el umbral no es ninguno de ellos, si ninguna
+// sesión cuenta o sin lecturas medidas.
+func (l *lecturasMedidas) sinIntentarEn(nombre string) string {
+	if l == nil {
+		return ""
+	}
+
+	for _, grupo := range l.grupos {
+		if nombreDelUmbralDeLecturaSinIntentar(grupo.modelo, grupo.modo) == nombre {
+			return strings.Join(grupo.sinIntentar, separadorDeLasMarcadas)
+		}
+	}
+
+	return ""
+}
+
+// nombreDelUmbralDeLecturaSinIntentar es el nombre del umbral de las sesiones de
+// un modelo en un modo de las evals con un comando de bloque en su sin_servir
+// que no intentaron esa lectura: su prefijo seguido del modelo y del modo.
+func nombreDelUmbralDeLecturaSinIntentar(modelo string, modo Modo) string {
+	return prefijoDelUmbralDeLecturaSinIntentar + modelo + separadorDelModoDelUmbral + string(modo)
+}
+
 // umbralesDeLaMedida son, por cada clase del juez que decide, los dos umbrales
 // de su medida versionada (contracts/informe-del-job.md §2 de H24; FR-032,
 // FR-044): los casos etiquetados como defecto que no quedaron marcados, sobre
@@ -836,7 +1071,13 @@ func (u Umbral) valor() float64 {
 // de H20). respuestas es lo que
 // se mide de las respuestas de la ejecución, nil si la skill no tiene umbrales
 // de ellas.
-func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas) []string {
+//
+// Desde H26.1, el de lectura_sin_intentar del modelo que decide nombra cada
+// sesión que cuenta, sin nada más, en orden de sesión y separadas igual
+// (lecturasMedidas.sinIntentarEn; contracts/juicio-e-informe.md §4 de H26.1;
+// FR-033 de H26.1): lecturas es lo que se mide de esas sesiones, nil si ninguna
+// eval tiene un comando de bloque en su sin_servir.
+func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas, lecturas *lecturasMedidas) []string {
 	var motivos []string
 
 	for _, umbral := range umbrales {
@@ -844,8 +1085,13 @@ func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas) []st
 			continue
 		}
 
+		nombradas := respuestas.nombradasEn(umbral.Nombre)
+		if nombradas == "" {
+			nombradas = lecturas.sinIntentarEn(umbral.Nombre)
+		}
+
 		motivo := fmt.Sprintf(motivoDeUnUmbral, umbral.Nombre, umbral.medidaEscrita(), umbral.condicionEscrita())
-		if nombradas := respuestas.nombradasEn(umbral.Nombre); nombradas != "" {
+		if nombradas != "" {
 			motivo += ": " + nombradas
 		}
 

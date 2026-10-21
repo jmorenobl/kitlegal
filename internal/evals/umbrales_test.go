@@ -545,7 +545,7 @@ func TestUmbralQueSoloSePublica(t *testing.T) {
 	umbrales := []Umbral{queDecide, publicado}
 
 	assert.Equal(t, []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 54 (1,9 %), y tiene que ser ≤ 0,0 %"},
-		motivosDeLosUmbrales(umbrales, nil))
+		motivosDeLosUmbrales(umbrales, nil, nil))
 	assert.Empty(t, motivosDeLaDuracionDeLasSesiones(umbrales))
 	assert.Equal(t, [][]string{
 		{"`sin_activar:claude-sonnet-5-5:orden`", "1 de 54 (1,9 %)", "≤ 0,0 %", "no", "sí"},
@@ -600,7 +600,7 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 		conSentencias: true,
 	}
 
-	umbrales := umbralesDelInforme(InformeAEscribir{}, respuestas)
+	umbrales := umbralesDelInforme(InformeAEscribir{}, respuestas, nil)
 
 	assert.Equal(t, slices.Concat(
 		umbralesDeUnModo(modeloSonnet55, enOrden(3, 1)),
@@ -618,7 +618,7 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 		"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %",
 		"umbral cita_sin_documento:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: " +
 			"01-a-02: ECLI:ES:TS:2023:9999 (sin origen)",
-	}, motivosDeLosUmbrales(umbrales, respuestas))
+	}, motivosDeLosUmbrales(umbrales, respuestas, nil))
 }
 
 // TestUmbralConjunto fija lo que el umbral conjunto de la clase del juez que
@@ -1988,4 +1988,373 @@ func sesionesSinMedirDe(modelo string, evals int) []SesionSinMedir {
 	}
 
 	return sinMedir
+}
+
+// Las evals de TestUmbralesDeLasLecturas, con la pregunta de la sesión del
+// art. 21 del caso aprobado, que es la de sus sesiones
+// (contracts/juicio-e-informe.md §4 y §5 de H26.1): la que pide el art. 21 con un
+// comando de bloque y lo deja en su sin_servir, con la cita del art. 22, que un
+// bloque de sin_servir no puede ser; la que deja sin servir el art. 22, que
+// ningún comando suyo pide; y la que pide y cita el art. 21 sin sin_servir. Y la
+// cita del art. 22, que se antepone a la respuesta de cada sesión de la primera.
+const (
+	evalConElComandoSinServir = "# El comando de bloque pide la lectura que la caché no sirve.\n" +
+		"pregunta: \"¿qué dice el art. 21 de la Ley 39/2015?\"\n" +
+		"activa: true\n" +
+		"comandos:\n  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a21\n" +
+		"citas:\n  - norma: BOE-A-2015-10565\n    bloque: a22\n" +
+		"sin_servir:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n"
+	evalConOtroBloqueSinServir = "# La caché no sirve un bloque que ningún comando pide.\n" +
+		"pregunta: \"¿qué dice el art. 21 de la Ley 39/2015?\"\n" +
+		"activa: true\n" +
+		"comandos:\n  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a21\n" +
+		"citas:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n" +
+		"sin_servir:\n  - norma: BOE-A-2015-10565\n    bloque: a22\n"
+	evalServida = "# El bloque se sirve.\n" +
+		"pregunta: \"¿qué dice el art. 21 de la Ley 39/2015?\"\n" +
+		"activa: true\n" +
+		"comandos:\n  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a21\n" +
+		"citas:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n"
+
+	citaDelArticulo22 = "Lo completa el art. 22 [BOE-A-2015-10565, bloque a22].\n\n"
+)
+
+// El umbral lectura_sin_intentar de las sesiones del modelo que decide en el modo
+// orden, como lo escribe informe.json, el ejemplo de
+// contracts/juicio-e-informe.md §4 de H26.1; y lo que su motivo pone delante de
+// la sesión que nombra cuando una no intenta la lectura.
+const (
+	umbralDeLecturaSinIntentarDelContrato = `{"nombre": "lectura_sin_intentar:claude-sonnet-5-5:orden",
+ "descripcion": "Sesiones de claude-sonnet-5-5 en el modo orden que no intentaron la lectura que un comando esperado de su eval pide y su sin_servir no sirve, sobre sus sesiones medidas de las evals con un comando así",
+ "medida": 0, "total": 3, "comparacion": "<=", "umbral": 0, "cumple": true, "decide": true}`
+
+	motivoDeUnaSinIntentar = "umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que " +
+		"ser ≤ 0,0 %: "
+)
+
+// ejecucionDeLasLecturas es una ejecución sintética del job para
+// TestUmbralesDeLasLecturas: la eval 01, con el contenido dado, y la 02, la del
+// art. 21 servida; tres repeticiones de cada una con el modelo que decide y con
+// el informativo, en el modo orden y, con dosModos, también en el modo
+// herramienta. Cada sesión es una copia de la del art. 21 del caso aprobado, que
+// lee el bloque; las de sinLeer, del modo orden y por su nombre, no lo leen, y
+// las de cortadas, además, las cortó el tope tras su respuesta sin la skill
+// activada.
+type ejecucionDeLasLecturas struct {
+	eval01   string
+	dosModos bool
+	sinLeer  []string
+	cortadas []string
+}
+
+// TestUmbralesDeLasLecturas fija la serie y el umbral de las lecturas que una
+// eval deja sin servir (contracts/juicio-e-informe.md §4 y §5 de H26.1;
+// data-model §6 y §7 de H26.1; research D11 y D12 de H26.1; FR-015, FR-033 de
+// H26.1; SC-005, SC-008, SC-013; US2, escenario 5), con sesiones sintéticas e
+// informe escritos en el directorio temporal del test:
+//
+//   - con una eval con un comando de bloque en su sin_servir, el informe lleva,
+//     detrás de los umbrales de hoy —ninguno en esta skill sin juez—, por cada
+//     modo del plan y, en cada uno, por cada modelo, el que decide delante,
+//     lectura_sin_intentar:<modelo>:<modo>, sobre las sesiones medidas de esa
+//     eval, también con medida 0; decide solo el del modelo que decide;
+//   - la sesión que no intenta la lectura cuenta, aunque el tope la cortara sin
+//     la skill activada, y el motivo del umbral la nombra; la del modelo
+//     informativo cuenta en el suyo, que no decide ni cambia el veredicto;
+//   - el informe de una skill sin una eval así —la que deja sin servir un
+//     bloque que ningún comando pide— no lo lleva;
+//   - y la serie de una eval con sin_servir lleva en
+//     sesiones_con_lectura_sin_servir cuántas de sus sesiones leídas tienen
+//     alguna invocación en lecturas_sin_servir, también 0, y la de otra eval,
+//     null.
+func TestUmbralesDeLasLecturas(t *testing.T) {
+	t.Parallel()
+
+	t.Run("intentan-la-lectura", probarLasQueIntentanLaLectura)
+	t.Run("una-no-la-intenta", probarUnaQueNoIntentaLaLectura)
+	t.Run("el-informativo-no-la-intenta", probarElInformativoQueNoIntentaLaLectura)
+	t.Run("ninguna-la-intenta", probarNingunaQueIntentaLaLectura)
+	t.Run("en-los-dos-modos", probarLasLecturasEnLosDosModos)
+	t.Run("sin-una-eval-asi", probarLaSkillSinUnaEvalAsi)
+}
+
+// probarLasQueIntentanLaLectura: las tres sesiones de cada modelo intentan la
+// lectura, y los dos umbrales, con medida 0 sobre 3, se cumplen; el del modelo
+// que decide, escrito como el ejemplo del contrato, y sus series con 3.
+func probarLasQueIntentanLaLectura(t *testing.T) {
+	t.Parallel()
+
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{eval01: evalConElComandoSinServir})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 0, true),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 0, false),
+	})
+	exigirElUmbralEscrito(t, leido, umbralDeLecturaSinIntentarDelContrato)
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "3", modeloHaiku45: "3",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarUnaQueNoIntentaLaLectura: la segunda sesión del modelo que decide no lee
+// el bloque, y el tope la cortó tras su respuesta sin la skill activada: no es
+// una respuesta medida, y es una sesión medida (research D11 de H26.1). Cuenta
+// en el umbral, 1 de 3, cuyo motivo la nombra, y el veredicto es fallo aunque su
+// serie, con las otras dos, pase.
+func probarUnaQueNoIntentaLaLectura(t *testing.T) {
+	t.Parallel()
+
+	sinLeer := sesionSintetica(1, modeloSonnet55, 2)
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{
+		eval01: evalConElComandoSinServir, sinLeer: []string{sinLeer}, cortadas: []string{sinLeer},
+	})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 1, true),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 0, false),
+	})
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido, motivoDeUnaSinIntentar+sinLeer)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+	resultado := resultadoDeLaSesion(t, leido.informe, sinLeer)
+	assert.False(t, resultado.SesionTerminada, "el tope cortó %s", sinLeer)
+	assert.False(t, resultado.Activada, "%s no activa la skill", sinLeer)
+	assert.Empty(t, resultado.LecturasSinServir, "%s no intenta la lectura", sinLeer)
+	assert.True(t, tasaDeLaSerie(t, leido.informe, ficheroSintetico(1), modeloSonnet55).Pasa,
+		"la serie de %s pasa con las otras dos", sinLeer)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "2", modeloHaiku45: "3",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarElInformativoQueNoIntentaLaLectura: la segunda sesión del modelo
+// informativo no lee el bloque y cuenta en su umbral, 1 de 3, que no se cumple,
+// no decide y deja el veredicto como estaba, sin ningún motivo.
+func probarElInformativoQueNoIntentaLaLectura(t *testing.T) {
+	t.Parallel()
+
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{
+		eval01: evalConElComandoSinServir, sinLeer: []string{sesionSintetica(1, modeloHaiku45, 2)},
+	})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 0, true),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 1, false),
+	})
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "3", modeloHaiku45: "2",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarNingunaQueIntentaLaLectura: ninguna sesión del modelo que decide lee el
+// bloque; las tres cuentan, el motivo del umbral las nombra en orden de sesión
+// separadas por «; », y su serie lleva 0, no null.
+func probarNingunaQueIntentaLaLectura(t *testing.T) {
+	t.Parallel()
+
+	sinLeer := []string{
+		sesionSintetica(1, modeloSonnet55, 1), sesionSintetica(1, modeloSonnet55, 2), sesionSintetica(1, modeloSonnet55, 3),
+	}
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{eval01: evalConElComandoSinServir, sinLeer: sinLeer})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 3, true),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 0, false),
+	})
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	assert.Contains(t, leido.informe.Motivos, "umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 3 de 3 (100,0 %), "+
+		"y tiene que ser ≤ 0,0 %: "+strings.Join(sinLeer, "; "))
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "0", modeloHaiku45: "3",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarLasLecturasEnLosDosModos: con los dos modos, los cuatro umbrales van por
+// modo, el del modo orden delante, y en cada modo, el del modelo que decide
+// delante del informativo; las sesiones del modo herramienta intentan la lectura
+// con su llamada a boe_articulo, y sus series también llevan 3.
+func probarLasLecturasEnLosDosModos(t *testing.T) {
+	t.Parallel()
+
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{eval01: evalConElComandoSinServir, dosModos: true})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 0, true),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 0, false),
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoHerramienta, 0, true),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoHerramienta, 0, false),
+	})
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "3", modeloHaiku45: "3",
+		modeloDeLaSerie(modeloSonnet55, ModoHerramienta): "3", modeloDeLaSerie(modeloHaiku45, ModoHerramienta): "3",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarLaSkillSinUnaEvalAsi: la eval 01 deja sin servir un bloque que ningún
+// comando suyo pide, y su comando pide uno que se sirve, así que el informe no
+// lleva ningún umbral; su serie lleva igual sus sesiones con una lectura de
+// sin_servir, ninguna, porque ninguna lee ese bloque.
+func probarLaSkillSinUnaEvalAsi(t *testing.T) {
+	t.Parallel()
+
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{eval01: evalConOtroBloqueSinServir})
+
+	exigirUmbrales(t, leido, nil)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "0", modeloHaiku45: "0",
+	})
+}
+
+// umbralDeLecturaSinIntentar es el umbral lectura_sin_intentar del modelo en el
+// modo, con las sesiones que no intentaron la lectura de las tres medidas de la
+// eval 01 de ejecucionDeLasLecturas.
+func umbralDeLecturaSinIntentar(modelo string, modo Modo, sinIntentar int, decide bool) Umbral {
+	medidas := repeticionesConUmbrales
+
+	return Umbral{
+		Nombre: "lectura_sin_intentar:" + modelo + ":" + string(modo),
+		Descripcion: "Sesiones de " + modelo + " en el modo " + string(modo) + " que no intentaron la lectura que un " +
+			"comando esperado de su eval pide y su sin_servir no sirve, sobre sus sesiones medidas de las evals con un " +
+			"comando así",
+		Medida:      float64(sinIntentar),
+		Total:       &medidas,
+		Comparacion: comparacionMenorOIgual,
+		Umbral:      0,
+		Cumple:      sinIntentar == 0,
+		Decide:      decide,
+	}
+}
+
+// exigirLasSesionesConLecturaSinServir exige, de cada serie de la eval 01 por el
+// modelo con el que la nombra el informe, sesiones_con_lectura_sin_servir tal
+// como lo escribe informe.json, y null en cada serie de la 02.
+func exigirLasSesionesConLecturaSinServir(t *testing.T, leido informeLeido, deLa01 map[string]string) {
+	t.Helper()
+
+	vistas := map[string]string{}
+
+	for _, tasa := range leido.crudo.Tasas {
+		escrito := string(tasa.SesionesConLecturaSinServir)
+
+		switch tasa.Eval {
+		case ficheroSintetico(1):
+			vistas[tasa.Modelo] = escrito
+		case ficheroSintetico(2):
+			assert.Equal(t, "null", escrito, "sesiones_con_lectura_sin_servir de la serie de %s con %s", tasa.Eval,
+				tasa.Modelo)
+		default:
+			assert.Failf(t, "serie inesperada", "el informe tiene la serie de %s con %s", tasa.Eval, tasa.Modelo)
+		}
+	}
+
+	assert.Equal(t, deLa01, vistas, "sesiones_con_lectura_sin_servir de las series de %s", ficheroSintetico(1))
+}
+
+// exigirLasFilasDeLasLecturas exige la fila de cada umbral en la tabla de los
+// umbrales de informe.md, como la de los demás: con su medida, su condición, si
+// se cumple y si decide, «no: solo se publica» en el del modelo informativo.
+func exigirLasFilasDeLasLecturas(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	deLosUmbrales := seccionDelInforme(t, leido.md, "Umbrales")
+
+	for _, umbral := range leido.informe.Umbrales {
+		decide := "sí"
+		if !umbral.Decide {
+			decide = soloSePublica
+		}
+
+		exigirLineas(t, deLosUmbrales, filaDeTabla("`"+umbral.Nombre+"`", umbral.medidaEscrita(), "≤ 0,0 %",
+			siONo(umbral.Cumple), decide))
+	}
+}
+
+// escribirEjecucionDeLasLecturas arma la ejecución en un directorio temporal del
+// test y escribe su informe con el plan del job —el modelo que decide y el
+// informativo, tres repeticiones, el umbral 2 y sus modos— y sin objetivo de
+// duración. La respuesta de cada sesión de la eval 01 lleva delante la cita del
+// art. 22, que la primera de sus evals espera.
+func escribirEjecucionDeLasLecturas(t *testing.T, ejecucion ejecucionDeLasLecturas) informeLeido {
+	t.Helper()
+
+	copia := t.TempDir()
+	evals := filepath.Join(copia, "evals")
+	require.NoError(t, os.Mkdir(evals, 0o750))
+	escribirEnLaCopia(t, evals, ficheroSintetico(1), ejecucion.eval01)
+	escribirEnLaCopia(t, evals, ficheroSintetico(2), evalServida)
+
+	modos := []Modo{ModoOrden}
+	if ejecucion.dosModos {
+		modos = append(modos, ModoHerramienta)
+	}
+
+	for _, modo := range modos {
+		for numero := 1; numero <= 2; numero++ {
+			for _, modelo := range []string{modeloSonnet55, modeloHaiku45} {
+				for vez := 1; vez <= repeticionesConUmbrales; vez++ {
+					dir := escribirSesionSinteticaEn(t, copia, modo, numero, modelo, vez, false)
+
+					if numero == 1 {
+						anteponerALaRespuesta(t, dir, citaDelArticulo22)
+					}
+				}
+			}
+		}
+	}
+
+	for _, sesion := range ejecucion.sinLeer {
+		quitarLaLectura(t, filepath.Join(copia, "sesiones", sesion))
+	}
+
+	for _, sesion := range ejecucion.cortadas {
+		dir := filepath.Join(copia, "sesiones", sesion)
+		quitarLaActivacion(t, dir)
+		cortarTrasLaRespuesta(t, dir)
+	}
+
+	return informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
+		entradas.ModeloQueDecide = modeloSonnet55
+		entradas.ModelosInformativos = []string{modeloHaiku45}
+		entradas.Repeticiones, entradas.Umbral = repeticionesConUmbrales, umbralConUmbrales
+
+		if ejecucion.dosModos {
+			entradas.Modos = modos
+		}
+	})
+}
+
+// quitarLaLectura deja la sesión del art. 21 del modo orden del directorio sin
+// la orden que lee el bloque: su traza ya no crea el proceso ni lo tiene.
+func quitarLaLectura(t *testing.T, dir string) {
+	t.Helper()
+
+	traza := filepath.Join(dir, directorioDeLaTraza)
+	deClaude := contenidoDeLaSesion(t, traza, "t.1000")
+	require.Equal(t, 1, strings.Count(deClaude, creacionDeLaLectura),
+		"la traza de claude de %s crea una sola vez el proceso que lee el bloque", dir)
+	escribirEnLaCopia(t, traza, "t.1000", strings.Replace(deClaude, creacionDeLaLectura, "", 1))
+	require.NoError(t, os.Remove(filepath.Join(traza, "t.2000")))
 }

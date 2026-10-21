@@ -115,14 +115,16 @@ type informeCrudo struct {
 	Evals                      []resultadoCrudo `json:"evals"`
 }
 
-// tasaCruda es una serie de informe.json con su modo, sus formas exigidas y sus
-// sesiones sin medir tal como están escritos.
+// tasaCruda es una serie de informe.json con su modo, sus formas exigidas, sus
+// sesiones sin medir y, desde H26.1, sus sesiones con una lectura de sin_servir
+// tal como están escritos.
 type tasaCruda struct {
-	Eval     string         `json:"eval"`
-	Modelo   string         `json:"modelo"`
-	Modo     jsontext.Value `json:"modo"`
-	Formas   jsontext.Value `json:"formas"`
-	SinMedir jsontext.Value `json:"sin_medir"`
+	Eval                        string         `json:"eval"`
+	Modelo                      string         `json:"modelo"`
+	Modo                        jsontext.Value `json:"modo"`
+	Formas                      jsontext.Value `json:"formas"`
+	SinMedir                    jsontext.Value `json:"sin_medir"`
+	SesionesConLecturaSinServir jsontext.Value `json:"sesiones_con_lectura_sin_servir"`
 }
 
 // resultadoCrudo es el resultado de una sesión de informe.json con sus comandos
@@ -3015,6 +3017,11 @@ func comprobarAprobado(t *testing.T, leido informeLeido) {
 		// modelo es el id a secas (contracts/evals-en-dos-modos.md §5 de H21).
 		assert.JSONEq(t, `"orden"`, string(tasa.Modo), "modo de %s con %s", tasa.Eval, tasa.Modelo)
 		assert.Equal(t, modeloQueDecide, tasa.Modelo)
+
+		// Ninguna eval del caso lleva sin_servir: la serie escribe null, no 0
+		// (contracts/juicio-e-informe.md §5 de H26.1; FR-015 de H26.1).
+		assert.Equal(t, "null", string(tasa.SesionesConLecturaSinServir),
+			"sesiones_con_lectura_sin_servir de %s con %s", tasa.Eval, tasa.Modelo)
 	}
 
 	exigirLineas(t, seccionDelInforme(t, leido.md, "Tasas por eval"),
