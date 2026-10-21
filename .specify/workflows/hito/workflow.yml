@@ -129,7 +129,7 @@ steps:
         Hito {{ inputs.hito }} · {{ steps.extraer_hito.output.data.titulo }}.
         Nombre corto OBLIGATORIO para la rama y el directorio: {{ steps.extraer_hito.output.data.slug }}
 
-        MODO AUTÓNOMO (ADR 0018). La sección del roadmap que sigue es la entrada de la persona: la única instrucción humana de todo el run. Nadie va a responder preguntas ni a revisar nada hasta el informe final:
+        MODO AUTÓNOMO (ADR 0018). El fichero del hito que sigue es la entrada de la persona: la única instrucción humana de todo el run. Nadie va a responder preguntas ni a revisar nada hasta el informe final:
         - No esperes respuesta. Si detectas ambigüedad que afecte al alcance, déjala como [NEEDS CLARIFICATION: pregunta concreta] (máximo 3); la cerrará un proceso posterior con contexto limpio y el criterio de la constitución. No la resuelvas tú ni presentes opciones.
         - El alcance del spec es EXACTAMENTE el fichero del hito. Lo que no esté en ella, en CLAUDE.md, en refs/ o en .specify/memory/constitution.md va a "## Fuera de alcance" (obligatoria, aunque quede vacía) y no se implementa.
         - Lee antes CLAUDE.md, docs/ROADMAP.md (§1 Definition of Done, §2 arquitectura, §3 controles, §6 ritual) y los refs/ que el hito cite.
@@ -140,7 +140,7 @@ steps:
         - Umbrales que se cumplen (criterio j del juez; ADR 0029): cada requisito o criterio de éxito con un umbral numérico que se mide sin persona, en `make ci` o en el cierre (el job de evals u otra comprobación de la plataforma), dice qué comprobación sale en rojo si la medida pasa del umbral. Publicar la medida no basta; la regla por serie del ADR 0016 no hace cumplir un umbral agregado; y hacer cumplir un umbral que pide el hito no es alcance añadido: su control nunca va a "## Fuera de alcance".
         - Antes de dar por terminado, comprueba spec.md y checklists/ contra la rúbrica del paso `juez_spec` de .specify/workflows/hito/workflow.yml y contra scripts/workflow/precheck.sh (fase spec), y corrige lo que no cumpla: cada rechazo cuesta una ronda entera.
 
-        Sección del roadmap:
+        Fichero del hito:
 
         {{ steps.extraer_hito.output.data.texto }}
         SESIÓN DE UN PASO (constitución, «Reglas del modo desatendido»; ADR 0032). Todo lo que ejecutes va en primer plano y esperas a que termine: nada en segundo plano. No abres sesiones con modelo (`claude`, `make evals`, `make evals-sondeo`, `TestSondeo`) ni lees o usas credenciales. Tus órdenes corren en un sandbox: solo escriben en el repositorio y en el directorio temporal, que es `$TMPDIR` y no `/tmp`, y no tienen más red que la de las herramientas de Go. Y no citas como evidencia nada que no hayas ejecutado y visto terminar en esta sesión o que no esté en el repositorio: lo que no hayas podido medir, lo dices tal cual. Cada línea que lees se queda en el contexto y se vuelve a pagar en cada turno que le queda a la sesión: busca con grep -n y lee la parte que necesitas (Read con offset y limit), no un fichero entero que no vas a usar entero.
@@ -151,6 +151,15 @@ steps:
     type: shell
     timeout: 30
     run: "scripts/workflow/modelos.sh recoger"
+
+  # El fichero del hito pasa de docs/roadmap/in-progress/ a done/ en el primer commit
+  # de su rama, la que acaba de crear specify: al fusionar la propuesta de cambio,
+  # main lo tiene hecho, y como es parte del producto desde el principio lo ven todas
+  # las revisiones y todas las mediciones (ADR 0030).
+  - id: hito_a_done
+    type: shell
+    timeout: 30
+    run: "scripts/workflow/hito-a-done.sh {{ inputs.hito }}"
 
   # ================================================================ clarify: pregunta un proceso, responde otro, nadie escala
   - id: clarify_preguntas

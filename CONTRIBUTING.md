@@ -109,7 +109,7 @@ rama, una propuesta de cambio y un *squash-merge* con la integración continua e
    solo su fila, con la fecha del fichero generado.
 5. **Squash-merge**. Si el hito cierra una fase, etiqueta y release ([La release](#la-release)).
 6. **El roadmap es un fichero por hito** (`docs/roadmap/README.md`): reordenar es renombrar el prefijo de un
-   fichero de `todo/`; un hito terminado pasa a `done/` en su propia propuesta de cambio, y uno nuevo
+   fichero de `todo/`; un hito pasa a `done/` en el primer commit de su rama, que hace el workflow, y uno nuevo
    entra con `make roadmap-sync`, que lo añade a la lista que admite el workflow. El detalle vive en las
    propuestas de cambio y en los ADR.
 

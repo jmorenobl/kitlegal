@@ -25,7 +25,7 @@ Cada hito de `docs/roadmap/` se implementa con una pasada del workflow `hito` de
 
 ```
 extraer_hito (el fichero del hito en docs/roadmap/in-progress/: la entrada de la persona)
-→ specify → clarify_preguntas → ronda_clarify ×3 [resolver_clarify (proceso nuevo) → check_clarify] → completar_clarify → clarify_integrar
+→ specify → hito_a_done (el fichero del hito pasa a docs/roadmap/done/ en el primer commit de la rama) → clarify_preguntas → ronda_clarify ×3 [resolver_clarify (proceso nuevo) → check_clarify] → completar_clarify → clarify_integrar
 → ronda_spec ×4 [cambios_spec → precheck_spec → juez_spec (juez de entrada) → leer_gate_spec → corrector_spec] → check_gate_spec   ← único rechazo posible antes del final
 → plan → ronda_plan ×4 [cambios → precheck → juez → leer → corrector] → check_gate_plan → commit
 → tasks → analyze → ronda_tasks ×4 [cambios → precheck → juez → leer → corrector] → check_gate_tasks → commit

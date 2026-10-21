@@ -44,8 +44,10 @@ espera, como los de `transparencia-y-fiscalizacion/`.
    el hito a la lista que admite el workflow, y `make ci` falla si la lista no es la del directorio.
 3. **A `in-progress/`** pasa en `main` cuando se decide lanzarlo: es la decisión de la persona sobre qué viene ahora (ADR
    0018), y `scripts/hito.sh H<n>` solo lanza el hito que está ahí.
-4. **A `done/`** pasa en su propia propuesta de cambio, antes de fusionarla. Mientras no pase, no cabe otro en
-   `in-progress/`.
+4. **A `done/`** lo pasa el workflow en el primer commit de la rama del hito (`scripts/workflow/hito-a-done.sh`): al
+   fusionar la propuesta de cambio, `main` lo tiene hecho y `in-progress/` queda libre. Como el movimiento va en la rama
+   desde el principio, lo ven todas las revisiones y todas las mediciones (ADR 0030). Un hito que no se lanza con el
+   workflow, como H29, se mueve a mano en su propuesta de cambio.
 
 `make ci` comprueba la forma de cada fichero, que ningún identificador tiene dos ficheros, que `in-progress/` tiene como
 mucho uno, que dos hitos de la cola no comparten posición y que cada dependencia existe y está hecha, en curso o antes
