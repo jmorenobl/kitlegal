@@ -221,16 +221,24 @@
 //     Desde H26.1, cada serie lleva sesiones_con_lectura_sin_servir: en la de
 //     una eval con sin_servir, cuántas de sus sesiones leídas tienen alguna
 //     invocación en lecturas_sin_servir, también 0, y null en las demás, sin
-//     decidir nada. Y el informe de una skill con alguna eval con un comando de
-//     bloque cuya lectura está en su sin_servir lleva, detrás de todos los
+//     decidir nada. Y el informe de toda skill lleva, detrás de todos los
 //     umbrales, por cada modo del plan y, en cada uno, por cada modelo, el que
-//     decide delante, lectura_sin_intentar:<modelo>:<modo>: las sesiones
-//     medidas de esas evals —legibles y sin medir por un límite de uso, activen
-//     o no la skill y terminen o no— que no tienen en lecturas_sin_servir
-//     ninguna invocación que consulte el bloque de cada uno de esos comandos,
-//     sobre esas sesiones, también con medida 0; decide con 0 solo el del
-//     modelo que decide, y su motivo nombra cada sesión que cuenta.
-//     Ninguno mide las expresiones de la lista: desde H24 no hay
+//     decide delante, fuera_de_lo_grabado:<modelo>:<modo>: las lecturas del
+//     fuera_de_lo_grabado de sus sesiones medidas —legibles y sin medir por un
+//     límite de uso, de cualquier eval de ese modo, activen o no la skill y
+//     terminen o no; ninguna de una eval sin binario ni servidor—, que ya no
+//     lleva las de sin_servir, sobre esas sesiones, también con medida 0; no
+//     decide nunca, y ni da motivo ni cambia el veredicto. Detrás del de cada
+//     modelo y modo, el de una skill con alguna eval con un comando de bloque
+//     cuya lectura está en su sin_servir lleva
+//     lectura_sin_intentar:<modelo>:<modo>: las sesiones medidas de esas evals
+//     que no tienen en lecturas_sin_servir ninguna invocación que consulte el
+//     bloque de cada uno de esos comandos, sobre esas sesiones, también con
+//     medida 0; decide con 0 solo el del modelo que decide, y su motivo nombra
+//     cada sesión que cuenta. Con el plan del job, los dos modos y los dos
+//     modelos, legal-core lleva dieciocho, de los que deciden doce, y
+//     boe-legislacion y jurisprudencia, diecinueve, de los que deciden los once
+//     de antes. Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta
 //     con algún voto afirmativo y las que quedaron sin juzgar, que ponen el
@@ -239,7 +247,7 @@
 //     FR-030 a FR-037 y FR-060 a FR-062 de H24; FR-060 a FR-063 de H23;
 //     FR-020 a FR-025 de H25; FR-001 a FR-005 y FR-010 a FR-012 de H26;
 //     FR-001 a FR-007 de H23.1; FR-053 a FR-056 de H9; FR-054 a FR-056 de
-//     H20; FR-015 y FR-033 de H26.1);
+//     H20; FR-015, FR-021, FR-022 y FR-033 de H26.1);
 //   - leerDefinicionDelJob lee la definición del job, .github/workflows/evals.yml:
 //     con ella la comprueba TestDefinicionDelJob en make ci —también el modelo
 //     del juez y la versión de Claude Code de sus votos, fijados aparte de los de

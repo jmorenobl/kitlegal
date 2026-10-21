@@ -353,7 +353,10 @@ func TestEjecutarElJob(t *testing.T) {
 		exigirMotivosDeLaRaiz(t, leido)
 		assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
 		assert.Nil(t, leido.informe.Juez, "una skill sin juez no tiene juez en el informe")
-		exigirUmbrales(t, leido, nil)
+		// Desde H26.1, solo el fuera_de_lo_grabado de su único modelo, sobre sus
+		// dos sesiones medidas, que lleva el informe de toda skill
+		// (contracts/juicio-e-informe.md §4 de H26.1).
+		exigirUmbrales(t, leido, []Umbral{umbralDeFueraDeLoGrabado(modeloQueDecide, ModoOrden, 0, 2)})
 		assert.Len(t, leido.informe.Evals, 2)
 	})
 

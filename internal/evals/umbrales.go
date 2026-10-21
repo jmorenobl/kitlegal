@@ -51,6 +51,12 @@ const umbralDeRedaccionesSinFechar = 0
 // de H26.1; FR-033 de H26.1).
 const umbralDeLecturasSinIntentar = 0
 
+// La proporción de las lecturas fuera de lo grabado de las sesiones medidas de
+// un modelo en un modo sobre esas sesiones con la que se compara el umbral que
+// las publica: ninguna. No decide (contracts/juicio-e-informe.md §4 de H26.1;
+// FR-021 de H26.1).
+const umbralDeLecturasFueraDeLoGrabado = 0
+
 // Lo que admiten los umbrales del juez que no salen de su declaración de clases
 // (contracts/informe-del-job.md §2 de H24): la proporción de los casos
 // etiquetados de su medida versionada que no dan lo que dice su etiqueta,
@@ -108,7 +114,11 @@ const (
 // prefijo, el modelo y el modo, como el de plazo_sin_fecha, aunque no mide
 // respuestas sino sesiones, y de todos los modelos del plan; su descripción
 // dice que su total son las sesiones medidas de esas evals
-// (contracts/juicio-e-informe.md §4 de H26.1; research D11 y D12 de H26.1).
+// (contracts/juicio-e-informe.md §4 de H26.1; research D11 y D12 de H26.1). El
+// de las lecturas fuera de lo grabado de las sesiones medidas de un modelo en un
+// modo se nombra igual, con su prefijo, el modelo y el modo, y su descripción
+// dice que no lleva las de sin_servir y que su total son esas sesiones
+// (contracts/juicio-e-informe.md §4 de H26.1; FR-021, FR-022 de H26.1).
 const (
 	prefijoDelUmbralSinActivar             = "sin_activar:"
 	prefijoDelUmbralDeCitaSinDocumento     = "cita_sin_documento:"
@@ -118,6 +128,7 @@ const (
 	prefijoDelUmbralDeVigenciaSinDeclarar  = "vigencia_sin_declarar:"
 	prefijoDelUmbralDeRedaccionSinFechar   = "redaccion_sin_fechar:"
 	prefijoDelUmbralDeLecturaSinIntentar   = "lectura_sin_intentar:"
+	prefijoDelUmbralDeFueraDeLoGrabado     = "fuera_de_lo_grabado:"
 	prefijoDelUmbralDeLaMedidaDelJuez      = "medida_del_juez:"
 	prefijoDelUmbralDeLaDuracion           = "duracion_de_las_sesiones:"
 	prefijoDelUmbralDeLaDuracionDelJuez    = "duracion_del_juez:"
@@ -149,6 +160,8 @@ const (
 	descripcionDelUmbralDeLecturaSinIntentar = "Sesiones de %s en el modo %s que no intentaron la lectura que un " +
 		"comando esperado de su eval pide y su sin_servir no sirve, sobre sus sesiones medidas de las evals con un " +
 		"comando así"
+	descripcionDelUmbralDeFueraDeLoGrabado = "Lecturas de %s en el modo %s que salieron con 4 o 5 sin estar en la " +
+		"caché, sin las de sin_servir, sobre sus sesiones medidas"
 	descripcionDeLaClaseQueDecide = "Respuestas de %s en el modo %s que el juez marca en %s con sus tres votos, " +
 		"sobre sus respuestas juzgadas en las evals que activan la skill"
 	descripcionDeLaClaseQueSePublica = "Respuestas de %s en el modo %s con sí en %s en el primer voto del juez, " +
@@ -218,10 +231,11 @@ type Umbral struct {
 	// (contracts/umbral-documento-sin-cotejar.md §2 de H23.1); con alguna
 	// eval de plazo, plazo_sin_fecha:<modelo>:<modo>, y con alguna de
 	// cobertura, cobertura_sin_declarar:<modelo>:<modo>
-	// (contracts/evals-legal-core.md §3 de H9); y, con alguna eval con un
-	// comando de bloque cuya lectura está en su sin_servir,
-	// lectura_sin_intentar:<modelo>:<modo> de cada modelo del plan
-	// (contracts/juicio-e-informe.md §4 de H26.1).
+	// (contracts/evals-legal-core.md §3 de H9); y, de cada modelo del plan,
+	// fuera_de_lo_grabado:<modelo>:<modo> y, con alguna eval con un comando de
+	// bloque cuya lectura está en su sin_servir,
+	// lectura_sin_intentar:<modelo>:<modo> (contracts/juicio-e-informe.md §4
+	// de H26.1).
 	Nombre string `json:"nombre"`
 
 	// Descripcion dice en una línea qué se mide, en qué modo —o con todos los
@@ -237,20 +251,22 @@ type Umbral struct {
 	// segundos de su tanda o de sus votos; en el
 	// umbral conjunto de una clase, las que el juez marca en ella en las
 	// sesiones de todos los modos; en la medida versionada del juez, los
-	// casos que no dan lo que dice su etiqueta; y en lectura_sin_intentar, las
+	// casos que no dan lo que dice su etiqueta; en lectura_sin_intentar, las
 	// sesiones medidas del modelo en su modo que no intentaron la lectura que
-	// su eval deja sin servir.
+	// su eval deja sin servir; y en fuera_de_lo_grabado, las lecturas del
+	// fuera_de_lo_grabado de sus sesiones medidas, sin las de sin_servir.
 	Medida float64 `json:"medida"`
 
-	// Total, solo en los de las respuestas, en los de la medida del juez y en
-	// lectura_sin_intentar, es aquello sobre lo que se mide: las respuestas
-	// medidas del modelo en ese modo en las evals que activan la skill —en el
-	// umbral conjunto de una clase, las de todos los modos; en
-	// documento_sin_cotejar, solo las de las evals que piden el cotejo; en
-	// plazo_sin_fecha, solo las de las evals de plazo; y en
+	// Total, solo en los de las respuestas, en los de la medida del juez, en
+	// lectura_sin_intentar y en fuera_de_lo_grabado, es aquello sobre lo que se
+	// mide: las respuestas medidas del modelo en ese modo en las evals que
+	// activan la skill —en el umbral conjunto de una clase, las de todos los
+	// modos; en documento_sin_cotejar, solo las de las evals que piden el
+	// cotejo; en plazo_sin_fecha, solo las de las evals de plazo; y en
 	// cobertura_sin_declarar, solo las de las de cobertura—, los casos con esa
-	// etiqueta, o las sesiones medidas del modelo en ese modo de las evals con
-	// un comando de bloque en su sin_servir. Con él, lo que
+	// etiqueta, las sesiones medidas del modelo en ese modo de las evals con un
+	// comando de bloque en su sin_servir, o las sesiones medidas del modelo en
+	// ese modo de cualquier eval. Con él, lo que
 	// se compara es la proporción Medida/Total, 0 si Total es 0. Sin él, la
 	// propia Medida.
 	Total *int `json:"total,omitzero"`
@@ -365,14 +381,20 @@ type Umbral struct {
 // cambian.
 //
 // Desde H26.1 (contracts/juicio-e-informe.md §4 de H26.1; data-model §7 de
-// H26.1; research D11 y D12 de H26.1; FR-033 de H26.1), detrás de todos ellos,
-// si alguna eval de la skill tiene un comando de bloque cuya lectura está en su
-// sin_servir, va lectura_sin_intentar de cada modo del plan, en su orden, y, en
-// cada modo, de cada modelo del plan, el que decide delante y los informativos
-// en el suyo (lecturasMedidas.umbrales): mide sesiones y no respuestas, también
-// las de los modelos informativos, y decide con 0 solo el del modelo que decide.
-// lecturas es lo que se mide de esas sesiones, nil si ninguna eval tiene un
-// comando así, y entonces no va ninguno.
+// H26.1; research D11 y D12 de H26.1; FR-021, FR-022, FR-033 de H26.1), detrás
+// de todos ellos, por cada modo del plan, en su orden, y, en cada modo, por cada
+// modelo del plan, el que decide delante y los informativos en el suyo
+// (lecturasMedidas.umbrales), va fuera_de_lo_grabado, en el informe de toda
+// skill, que publica las lecturas fuera de lo grabado de sus sesiones medidas,
+// sin las de sin_servir, y no decide nunca; y, detrás de él, si alguna eval de la
+// skill tiene un comando de bloque cuya lectura está en su sin_servir,
+// lectura_sin_intentar, que decide con 0 solo con el modelo que decide. Los dos
+// miden sesiones y no respuestas, también las de los modelos informativos.
+// lecturas es lo que se mide de esas sesiones; nil no da ninguno. Con el plan
+// del job, los dos modos y los dos modelos, son ocho en legal-core, que tiene
+// una eval así, y cuatro en boe-legislacion y en jurisprudencia: dieciocho, de
+// los que deciden doce, en la primera, y diecinueve, de los que deciden once,
+// los de antes, en las otras dos.
 func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas, lecturas *lecturasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()
@@ -756,40 +778,49 @@ func nombreDelUmbralDeRedaccionSinFechar(modelo string, modo Modo) string {
 	return prefijoDelUmbralDeRedaccionSinFechar + modelo + separadorDelModoDelUmbral + string(modo)
 }
 
-// lecturasMedidas es lo que se mide de las sesiones de las evals con un comando
-// de bloque cuya lectura está en su sin_servir, para el umbral
-// lectura_sin_intentar de cada modelo y cada modo del plan
-// (contracts/juicio-e-informe.md §4 de H26.1; data-model §7 de H26.1; research
-// D11 y D12 de H26.1; FR-033 de H26.1). No son respuestas: son sesiones, y de
-// todos los modelos del plan.
+// lecturasMedidas es lo que se mide de las lecturas de las sesiones medidas de
+// cada modelo y cada modo del plan, para sus umbrales fuera_de_lo_grabado y,
+// con alguna eval con un comando de bloque cuya lectura está en su sin_servir,
+// lectura_sin_intentar (contracts/juicio-e-informe.md §4 de H26.1; data-model §7
+// de H26.1; research D11 y D12 de H26.1; FR-021, FR-022, FR-033 de H26.1). No
+// son respuestas: son sesiones, y de todos los modelos del plan.
 type lecturasMedidas struct {
-	// modeloQueDecide es el único cuyo umbral decide (ADR 0031).
+	// modeloQueDecide es el único cuyo lectura_sin_intentar decide (ADR 0031).
 	modeloQueDecide string
+
+	// conSinServir dice si alguna eval tiene un comando así: sin ninguna, el
+	// informe no lleva lectura_sin_intentar (FR-033 de H26.1).
+	conSinServir bool
 
 	// grupos son uno por modo del plan, en su orden, y, dentro de cada modo, uno
 	// por modelo del plan, el que decide delante y los informativos en el suyo.
 	grupos []lecturasDeUnGrupo
 }
 
-// lecturasDeUnGrupo son, de un modelo en un modo, cuántas sesiones medidas
-// tienen las evals con un comando así y, por su nombre y en orden de sesión, las
-// de ellas que no intentaron su lectura.
+// lecturasDeUnGrupo son, de un modelo en un modo, cuántas sesiones medidas tiene
+// y cuántas lecturas fuera de lo grabado suman; y cuántas de esas sesiones son de
+// las evals con un comando así y, por su nombre y en orden de sesión, las de
+// ellas que no intentaron su lectura.
 type lecturasDeUnGrupo struct {
-	modelo      string
-	modo        Modo
-	medidas     int
-	sinIntentar []string
+	modelo string
+	modo   Modo
+
+	medidas          int
+	fueraDeLoGrabado int
+
+	medidasConSinServir int
+	sinIntentar         []string
 }
 
-// medirLasLecturas mide, de cada modelo y cada modo del plan, las sesiones de las
-// evals con un comando de bloque cuya lectura está en su sin_servir
-// (comandosSinServir) que no intentaron esa lectura (intentaLasLecturas). Las
-// sesiones que cuentan, las medidas, son las de las series que pide el plan con
-// ese modelo y ese modo que se pudieron leer y no quedaron sin medir, activen o
-// no la skill y terminen o no (research D11 de H26.1): no las de una serie que el
-// plan no pide, como la de la prueba de red, ni las de una eval sin binario ni
-// servidor, que no tiene modo. Nil si ninguna eval tiene un comando así: el
-// informe no lleva entonces el umbral (FR-033 de H26.1).
+// medirLasLecturas mide, de cada modelo y cada modo del plan, las lecturas fuera
+// de lo grabado de sus sesiones medidas y, de las de las evals con un comando de
+// bloque cuya lectura está en su sin_servir (comandosSinServir), las que no
+// intentaron esa lectura (intentaLasLecturas). Las sesiones que cuentan, las
+// medidas, son las de las series que pide el plan con ese modelo y ese modo que
+// se pudieron leer y no quedaron sin medir, de cualquier eval de ese modo,
+// activen o no la skill y terminen o no (research D11 de H26.1): no las de una
+// serie que el plan no pide, como la de la prueba de red, ni las de una eval sin
+// binario ni servidor, que no tiene modo (FR-021 de H26.1).
 func medirLasLecturas(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada) *lecturasMedidas {
 	sinServir := map[string][]ComandoEsperado{}
 
@@ -799,11 +830,7 @@ func medirLasLecturas(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 		}
 	}
 
-	if len(sinServir) == 0 {
-		return nil
-	}
-
-	lecturas := &lecturasMedidas{modeloQueDecide: e.ModeloQueDecide}
+	lecturas := &lecturasMedidas{modeloQueDecide: e.ModeloQueDecide, conSinServir: len(sinServir) > 0}
 	modelos := slices.Concat([]string{e.ModeloQueDecide}, e.ModelosInformativos)
 
 	for _, modo := range e.plan(nil).modos() {
@@ -816,8 +843,10 @@ func medirLasLecturas(e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada
 }
 
 // medirLasLecturasDelGrupo mide las sesiones del modelo en el modo de las series
-// que pide el plan de las evals de sinServir, que da, por el fichero de cada
-// una, sus comandos de bloque cuya lectura está en su sin_servir.
+// que pide el plan, y, de ellas, las de las evals de sinServir, que da, por el
+// fichero de cada una, sus comandos de bloque cuya lectura está en su
+// sin_servir. Lo fuera de lo grabado de cada sesión ya no lleva sus lecturas de
+// sin_servir (FR-022 de H26.1).
 func medirLasLecturasDelGrupo(
 	modelo string, modo Modo, sinServir map[string][]ComandoEsperado, sesiones []sesionJuzgada, series []serieJuzgada,
 ) lecturasDeUnGrupo {
@@ -826,10 +855,11 @@ func medirLasLecturasDelGrupo(
 	var sinIntentar []int
 
 	for _, serie := range series {
-		comandos := sinServir[serie.clave.eval]
-		if !serie.tasa.Planificada || serie.clave.modelo != modelo || serie.clave.modo != modo || len(comandos) == 0 {
+		if !serie.tasa.Planificada || serie.clave.modelo != modelo || serie.clave.modo != modo {
 			continue
 		}
+
+		comandos := sinServir[serie.clave.eval]
 
 		for _, posicion := range serie.sesiones {
 			juzgada := sesiones[posicion]
@@ -838,6 +868,13 @@ func medirLasLecturasDelGrupo(
 			}
 
 			grupo.medidas++
+			grupo.fueraDeLoGrabado += len(juzgada.resultado.FueraDeLoGrabado)
+
+			if len(comandos) == 0 {
+				continue
+			}
+
+			grupo.medidasConSinServir++
 
 			if !intentaLasLecturas(juzgada, comandos) {
 				sinIntentar = append(sinIntentar, posicion)
@@ -900,27 +937,49 @@ func intentaLasLecturas(juzgada sesionJuzgada, comandos []ComandoEsperado) bool 
 	})
 }
 
-// umbrales son los de lectura_sin_intentar de cada grupo, en su orden, ya
-// comparados: se nombran con su prefijo seguido del modelo y del modo, su
-// descripción los nombra, su medida son las sesiones que no intentaron la
-// lectura, su total, las medidas, también con medida 0, y decide con 0 solo el
-// del modelo que decide (ADR 0031). Ninguno sin lecturas medidas. Es un hecho de
-// la sesión, que se comprueba sin modelo (ADR 0037).
+// umbrales son, de cada grupo y en su orden, ya comparados y nombrados con su
+// prefijo seguido del modelo y del modo, también con medida 0, y con su
+// descripción:
+//
+//   - fuera_de_lo_grabado, cuya medida son las lecturas fuera de lo grabado de
+//     las sesiones medidas del grupo y su total, esas sesiones; no decide nunca,
+//     y su cumple solo informa (FR-021 de H26.1);
+//   - y, detrás, si alguna eval tiene un comando de bloque cuya lectura está en
+//     su sin_servir, lectura_sin_intentar, cuya medida son las sesiones de esas
+//     evals que no intentaron la lectura y su total, las medidas de esas evals;
+//     decide con 0 solo el del modelo que decide (ADR 0031; FR-033 de H26.1).
+//
+// Ninguno sin lecturas medidas. Los dos son hechos de la sesión, que se
+// comprueban sin modelo (ADR 0037).
 func (l *lecturasMedidas) umbrales() []Umbral {
 	if l == nil {
 		return nil
 	}
 
-	umbrales := make([]Umbral, 0, len(l.grupos))
+	var umbrales []Umbral
 
 	for _, grupo := range l.grupos {
 		medidas := grupo.medidas
 
 		umbrales = append(umbrales, compararUmbral(Umbral{
+			Nombre:      nombreDelUmbralDeFueraDeLoGrabado(grupo.modelo, grupo.modo),
+			Descripcion: fmt.Sprintf(descripcionDelUmbralDeFueraDeLoGrabado, grupo.modelo, grupo.modo),
+			Medida:      float64(grupo.fueraDeLoGrabado),
+			Total:       &medidas,
+			Umbral:      umbralDeLecturasFueraDeLoGrabado,
+		}))
+
+		if !l.conSinServir {
+			continue
+		}
+
+		conSinServir := grupo.medidasConSinServir
+
+		umbrales = append(umbrales, compararUmbral(Umbral{
 			Nombre:      nombreDelUmbralDeLecturaSinIntentar(grupo.modelo, grupo.modo),
 			Descripcion: fmt.Sprintf(descripcionDelUmbralDeLecturaSinIntentar, grupo.modelo, grupo.modo),
 			Medida:      float64(len(grupo.sinIntentar)),
-			Total:       &medidas,
+			Total:       &conSinServir,
 			Umbral:      umbralDeLecturasSinIntentar,
 			Decide:      grupo.modelo == l.modeloQueDecide,
 		}))
@@ -952,6 +1011,13 @@ func (l *lecturasMedidas) sinIntentarEn(nombre string) string {
 // que no intentaron esa lectura: su prefijo seguido del modelo y del modo.
 func nombreDelUmbralDeLecturaSinIntentar(modelo string, modo Modo) string {
 	return prefijoDelUmbralDeLecturaSinIntentar + modelo + separadorDelModoDelUmbral + string(modo)
+}
+
+// nombreDelUmbralDeFueraDeLoGrabado es el nombre del umbral de las lecturas
+// fuera de lo grabado de las sesiones medidas de un modelo en un modo: su prefijo
+// seguido del modelo y del modo.
+func nombreDelUmbralDeFueraDeLoGrabado(modelo string, modo Modo) string {
+	return prefijoDelUmbralDeFueraDeLoGrabado + modelo + separadorDelModoDelUmbral + string(modo)
 }
 
 // umbralesDeLaMedida son, por cada clase del juez que decide, los dos umbrales
@@ -1075,8 +1141,8 @@ func (u Umbral) valor() float64 {
 // Desde H26.1, el de lectura_sin_intentar del modelo que decide nombra cada
 // sesión que cuenta, sin nada más, en orden de sesión y separadas igual
 // (lecturasMedidas.sinIntentarEn; contracts/juicio-e-informe.md §4 de H26.1;
-// FR-033 de H26.1): lecturas es lo que se mide de esas sesiones, nil si ninguna
-// eval tiene un comando de bloque en su sin_servir.
+// FR-033 de H26.1): lecturas es lo que se mide de las lecturas de las sesiones.
+// fuera_de_lo_grabado no decide, y nunca da motivo (FR-021 de H26.1).
 func motivosDeLosUmbrales(umbrales []Umbral, respuestas *respuestasMedidas, lecturas *lecturasMedidas) []string {
 	var motivos []string
 
