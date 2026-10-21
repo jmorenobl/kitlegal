@@ -45,6 +45,7 @@ var guionesDelArbol = []string{
 	"scripts/workflow/informe.sh",
 	"scripts/workflow/marcas.sh",
 	"scripts/workflow/modelos.sh",
+	"scripts/workflow/precheck.sh",
 	"scripts/workflow/revision.sh",
 	"scripts/workflow/sesion-unica.sh",
 	"scripts/workflow/tarea.sh",

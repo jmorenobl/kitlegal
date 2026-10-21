@@ -1,6 +1,6 @@
 // Package workflow solo tiene tests: ejerce los guiones del workflow `hito`
-// —scripts/workflow/revision.sh, gate.sh, modelos.sh, informe.sh y
-// scripts/claude-modelo.sh— sobre un repositorio de git en un directorio
+// —scripts/workflow/revision.sh, gate.sh, modelos.sh, informe.sh, precheck.sh
+// y scripts/claude-modelo.sh— sobre un repositorio de git en un directorio
 // temporal, con las copias de esos guiones, la de workflow.yml y un Claude
 // Code sustituto que no abre ninguna sesión.
 //

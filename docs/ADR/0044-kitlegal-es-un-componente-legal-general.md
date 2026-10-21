@@ -6,7 +6,8 @@
   encuadre de la fase 3 (punto 7), y al ADR 0040 en el orden (puntos 1 a 4); precisa el ADR 0012 (qué es una
   vertical y qué es un pack); recoge el roadmap como directorio (workflow `hito` 2.10.0); constitución 2.14.0
   (principio II, principio X nuevo, el punto 4 del flujo de trabajo, las capas 1 y 3 y el punto 4 del criterio de
-  decisión autónoma). No cambia ningún contrato del binario.
+  decisión autónoma); workflow `hito` 2.11.0 (una fila del Constitution Check por cada principio, que comprueba
+  `precheck.sh`). No cambia ningún contrato del binario.
 
 ## Contexto y problema
 

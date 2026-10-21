@@ -2070,9 +2070,9 @@ type informeFinalLeido struct {
 }
 
 // informeFinalConLosDelJob escribe en un árbol temporal guionDelInformeFinal y
-// el común, un docs/ROADMAP.md con la sección del hito, el directorio del hito
-// con su spec.md, su plan.md y su tasks.md vacíos y, en gates/evals, el informe
-// del job de cada skill; lo hace repositorio de git con un commit en main;
+// el común, el fichero del hito en docs/roadmap/in-progress/, el directorio del
+// hito con su spec.md, su plan.md y su tasks.md vacíos y, en gates/evals, el
+// informe del job de cada skill; lo hace repositorio de git con un commit en main;
 // ejecuta el guion con --solo-ver, que no cambia nada; y lee lo que escribe.
 func informeFinalConLosDelJob(t *testing.T, informes ...Informe) informeFinalLeido {
 	t.Helper()
