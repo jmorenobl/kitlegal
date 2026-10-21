@@ -5,6 +5,8 @@ import (
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"maps"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -391,7 +393,7 @@ func TestJuzgar(t *testing.T) {
 						{Orden: "boe articulo BOE-A-2015-10565 a21 --offline --json", Codigo: codigoDeSalida(4)},
 					}
 					r.FueraDeLoGrabado = []InvocacionFallida{
-						{Orden: "boe articulo BOE-A-2015-10565 a21 --offline --json", Codigo: 4},
+						{Orden: "boe articulo BOE-A-2015-10565 a21 --offline --json", Codigo: codigoDeSalida(4)},
 					}
 					r.Motivos = []string{"comando ausente: " + textoDelComando21}
 					r.Pasa = false
@@ -492,8 +494,8 @@ func TestJuzgar(t *testing.T) {
 					InvocacionInformada{Orden: "boe articulo BOE-A-2015-10565 a9998 --offline --json", Codigo: codigoDeSalida(4)},
 				), func(r *ResultadoDeEval) {
 					r.FueraDeLoGrabado = []InvocacionFallida{
-						{Orden: "boe articulo BOE-A-2015-10565 a9998 --json", Codigo: 5},
-						{Orden: "boe articulo BOE-A-2015-10565 a9998 --offline --json", Codigo: 4},
+						{Orden: "boe articulo BOE-A-2015-10565 a9998 --json", Codigo: codigoDeSalida(5)},
+						{Orden: "boe articulo BOE-A-2015-10565 a9998 --offline --json", Codigo: codigoDeSalida(4)},
 					}
 				}),
 			}},
@@ -541,8 +543,8 @@ func TestJuzgar(t *testing.T) {
 					InvocacionInformada{Orden: "boe articulo BOE-A-2015-10565 a9999 --json", Codigo: codigoDeSalida(3)},
 				), func(r *ResultadoDeEval) {
 					r.OtrasFallidas = []InvocacionFallida{
-						{Orden: "boe articulo BOE-A-15-1 a21 --json", Codigo: 2},
-						{Orden: "boe articulo BOE-A-2015-10565 a9999 --json", Codigo: 3},
+						{Orden: "boe articulo BOE-A-15-1 a21 --json", Codigo: codigoDeSalida(2)},
+						{Orden: "boe articulo BOE-A-2015-10565 a9999 --json", Codigo: codigoDeSalida(3)},
 					}
 				}),
 			}},
@@ -1691,7 +1693,7 @@ func redNoCambiaLaEval(t *testing.T) juicio {
 					},
 				},
 			}
-			r.FueraDeLoGrabado = []InvocacionFallida{{Orden: "boe articulo BOE-A-2015-10565 a9998 --json", Codigo: 5}}
+			r.FueraDeLoGrabado = []InvocacionFallida{{Orden: "boe articulo BOE-A-2015-10565 a9998 --json", Codigo: codigoDeSalida(5)}}
 			r.LlegadasALaRed = []LlegadaALaRed{
 				{Orden: "boe articulo BOE-A-2015-10565 a9998 --json", Destino: destinoPublico},
 				{Orden: ordenDelArticulo21, Destino: destinoPublico},
@@ -1824,7 +1826,7 @@ func comprobacionAusente(t *testing.T) juicio {
 		), func(r *ResultadoDeEval) {
 			r.ComandosEjecutados = []string{textoDelComando118}
 			r.ComandosAusentes = []string{textoDeLaComprobacionDeLaNorma}
-			r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: 7}}
+			r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(7)}}
 			r.Motivos = []string{"comando ausente: " + textoDeLaComprobacionDeLaNorma}
 			r.Pasa = false
 		}),
@@ -1871,7 +1873,7 @@ func prohibidoEjecutado(t *testing.T) []juicio {
 				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(3)}, leida,
 				InvocacionInformada{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(0)},
 			), func(r *ResultadoDeEval) {
-				r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeGraphShow, Codigo: 3}}
+				r.OtrasFallidas = []InvocacionFallida{{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(3)}}
 				ejecutado(r)
 			}),
 		},
@@ -1941,7 +1943,7 @@ func otroQueElProhibido(t *testing.T) juicio {
 			InvocacionInformada{Orden: ordenDeLaComprobacionDeLaNorma, Codigo: codigoDeSalida(0)},
 			InvocacionInformada{Orden: ordenDelArticulo118, Codigo: codigoDeSalida(0)},
 		), func(r *ResultadoDeEval) {
-			r.OtrasFallidas = []InvocacionFallida{{Orden: otroApplet, Codigo: 2}}
+			r.OtrasFallidas = []InvocacionFallida{{Orden: otroApplet, Codigo: codigoDeSalida(2)}}
 		}),
 	}
 }
@@ -2610,7 +2612,7 @@ func describeYDryRunFalsos(t *testing.T) juicio {
 				{Orden: "boe " + fuera, Codigo: codigoDeSalida(4)},
 				{Orden: "boe " + lectura, Codigo: codigoDeSalida(0)},
 			}
-			r.FueraDeLoGrabado = []InvocacionFallida{{Orden: "boe " + fuera, Codigo: 4}}
+			r.FueraDeLoGrabado = []InvocacionFallida{{Orden: "boe " + fuera, Codigo: codigoDeSalida(4)}}
 		}),
 	}
 }
@@ -2869,7 +2871,7 @@ func llamadasConResultadoDeError(t *testing.T) []juicioDeModo {
 	juicios := make([]juicioDeModo, 0, len(errores))
 
 	for _, fallo := range errores {
-		fallida := []InvocacionFallida{{Orden: llamadaDelArticulo21, Codigo: fallo.codigo}}
+		fallida := []InvocacionFallida{{Orden: llamadaDelArticulo21, Codigo: codigoDeSalida(fallo.codigo)}}
 
 		juicios = append(juicios, juicioDeModo{modo: ModoHerramienta, juicio: juicio{
 			eval: evalDelArticulo21(),
@@ -2934,7 +2936,7 @@ func llamadasConElPrefijoDelAgente(t *testing.T) []juicioDeModo {
 				func(r *ResultadoDeEval) {
 					sinElBloqueDeLaEval01(r)
 
-					r.OtrasFallidas = []InvocacionFallida{{Orden: llamadaDelArticulo21, Codigo: 3}}
+					r.OtrasFallidas = []InvocacionFallida{{Orden: llamadaDelArticulo21, Codigo: codigoDeSalida(3)}}
 				}),
 		}},
 	}
@@ -2994,7 +2996,7 @@ func prohibidoPorHerramienta(t *testing.T) []juicioDeModo {
 			cambiado(resultado(llamadaInformada(llamadaDeFicha, codigoDeSalida(0))), ejecutado)),
 		conLaFicha(llamadaFallida("graph_show", laFicha, schema.ClaseNoEncontrado),
 			cambiado(resultado(llamadaInformada(llamadaDeFicha, codigoDeSalida(3))), func(r *ResultadoDeEval) {
-				r.OtrasFallidas = []InvocacionFallida{{Orden: llamadaDeFicha, Codigo: 3}}
+				r.OtrasFallidas = []InvocacionFallida{{Orden: llamadaDeFicha, Codigo: codigoDeSalida(3)}}
 				ejecutado(r)
 			})),
 		conLaFicha(Llamada{Herramienta: "graph_show", Argumentos: []byte(laFicha)},
@@ -3228,7 +3230,7 @@ func llamadasQueNoConvierten(t *testing.T) []juicioDeModo {
 				func(r *ResultadoDeEval) {
 					sinElBloqueDeLaEval01(r)
 
-					r.OtrasFallidas = []InvocacionFallida{{Orden: herramientaDeArticulo, Codigo: 2}}
+					r.OtrasFallidas = []InvocacionFallida{{Orden: herramientaDeArticulo, Codigo: codigoDeSalida(2)}}
 				}),
 		}})
 	}
@@ -3406,7 +3408,7 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 			esperado: cambiado(resultadoSinConsulta(eval, lineaSinSuDireccion), func(r *ResultadoDeEval) {
 				r.LineaSinConsulta = false
 				r.Invocaciones = []InvocacionInformada{{Orden: laOrden, Codigo: codigoDeSalida(4)}}
-				r.FueraDeLoGrabado = []InvocacionFallida{{Orden: laOrden, Codigo: 4}}
+				r.FueraDeLoGrabado = []InvocacionFallida{{Orden: laOrden, Codigo: codigoDeSalida(4)}}
 				r.Motivos = []string{principioDeOrdenSinKitlegal + laOrden, motivoDeLaLineaSinDireccion}
 				r.Pasa = false
 			}),
@@ -3861,5 +3863,516 @@ func evalDelArticulo118(comando ComandoEsperado) Eval {
 		Activa:   true,
 		Comandos: []ComandoEsperado{comando},
 		Citas:    []CitaEsperada{{Norma: normaDeLaLCSP, Bloque: bloqueDelArticulo118}},
+	}
+}
+
+// Las evals 11 y 12 de legal-core que juzgan las sesiones de
+// TestJuzgarLasLecturasSinServir, con el contenido de
+// contracts/formato-de-eval.md §3.1 y §3.2 de H26.1 y el razonamiento de la 05,
+// y la 16 de boe-legislacion del repositorio.
+const (
+	ficheroDeLaEval11 = "11-plazo-reposicion-sin-leer-el-precepto.yaml"
+	ficheroDeLaEval12 = "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml"
+	ficheroDeLaEval16 = "16-lrjsp-legalidad-por-materia.yaml"
+
+	contenidoDeLaEval11 = `pregunta: "Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Leganés y vivo en Leganés, ¿hasta cuándo puedo presentar el recurso de reposición?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Leganés
+  - applet: plazos
+    verbo: calcular
+    tipo: reposicion
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a124
+    fecha: "2026-09-09"
+sin_servir:
+  - norma: BOE-A-2015-10565
+    bloque: a124
+plazo:
+  fecha: "2026-10-13"
+  avisos: []
+  razonamiento: >-
+    Un mes (art. 124.1 LPAC) contado desde el día siguiente al de la notificación (art. 30.4): vence el mismo día del
+    mes siguiente, el viernes 9 de octubre de 2026, fiesta local de Leganés (BOCM-20251212-34). El último día inhábil
+    se prorroga al primer día hábil siguiente (art. 30.5): el 10 y el 11 son sábado y domingo, y el 12 es fiesta
+    nacional (BOE-A-2025-21667), así que el plazo vence el martes 13 de octubre de 2026. Los festivos saltados son el
+    9, local de Leganés, y el 12, nacional.
+`
+
+	contenidoDeLaEval12 = `pregunta: "Vivo en Leganés y el 9 de septiembre de 2026 me notificaron una reclamación de cuotas de la Seguridad Social. ¿Hasta cuándo puedo recurrirla?"
+activa: true
+sin_servir:
+  - norma: BOE-A-2015-10565
+    bloque: daprimera
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  norma: BOE-A-2015-10565
+`
+)
+
+// Lo que leen y responden las sesiones de TestJuzgarLasLecturasSinServir: el día
+// de la notificación; la lectura del art. 124 de la LPAC ese día, la orden que
+// la pide y el texto de su comando en la 11; los argumentos de la llamada que la
+// pide y su orden; las respuestas de la 11 y de la 12, con la línea del plazo y con la
+// declaración de no cubierto de la entrada sin norma de data/cobertura.yaml; la
+// norma de la 16 y la cita de su art. 25; y el motivo de sus dos lecturas.
+const (
+	diaDeLaNotificacion = "2026-09-09"
+
+	ordenDelArticulo124      = "boe articulo BOE-A-2015-10565 a124 --fecha 2026-09-09 --json"
+	textoDelComando124       = "bloque boe BOE-A-2015-10565 a124 2026-09-09"
+	argumentosDelArticulo124 = `{"norma":"BOE-A-2015-10565","bloque":"a124","fecha":"2026-09-09"}`
+	llamadaDelArticulo124    = "boe_articulo --fecha=2026-09-09 BOE-A-2015-10565 a124"
+
+	respuestaDeLa11 = "Hasta el martes 13 de octubre de 2026.\n\n" + lineaDelPlazo + "\n\nNo he podido leer la " +
+		"redacción del art. 124 vigente el 2026-09-09: el BOE no respondió."
+	respuestaDeLa12 = "⚠ NO CUBIERTO: la gestión recaudatoria de la Seguridad Social lo regula aparte la DA 1ª.2.b " +
+		"(BOE-A-2015-10565): kitlegal no calcula sus plazos ni sus recursos."
+
+	normaDeLaLRJSP = "BOE-A-2015-10566"
+	citaDel25      = "[Ley 40/2015, art. 25, BOE-A-2015-10566, bloque a25]"
+
+	motivoDeLasLecturasDeLa16 = "Junto al art. 25 que pide la eval, en su mismo capítulo: la exploración que " +
+		"provoca la pregunta (ADR 0043, clase b)."
+)
+
+// TestJuzgarLasLecturasSinServir fija lo que el juicio hace con lo que una eval
+// deja sin servir y con lo que lleva a leer (data-model §4 y §5 de H26.1;
+// contracts/juicio-e-informe.md §1 y §2 de H26.1; research D5 y D6 de H26.1;
+// FR-007, FR-013, FR-015 a FR-018 y FR-022 de H26.1; SC-004, SC-005):
+//
+//   - el reparto de cada invocación, por las filas 1, 3, 4, 5 y 7 de la tabla:
+//     la que consulta una lectura de sin_servir va a lecturas_sin_servir termine
+//     como termine, y no a fuera_de_lo_grabado ni a otras_fallidas, que siguen
+//     como hoy con las demás;
+//   - la 11, cuyo comando de bloque satisface la lectura en su fecha que sale con
+//     4 o 5, como orden o como llamada, y ninguna otra: ni sin fecha, ni en otra,
+//     ni con otro código; y que pasa con la línea del plazo, sin contar en
+//     plazo_sin_fecha, y no sin ella;
+//   - la 12, que pasa con la declaración de no cubierto de la LPAC, sin contar en
+//     cobertura_sin_declarar, y no con plazos calcular;
+//   - la sesión cortada, con la lectura sin código en lecturas_sin_servir y su
+//     código null;
+//   - y la 16 de boe-legislacion, que juzga igual con sus lecturas y sin ellas
+//     una sesión que no las lee.
+func TestJuzgarLasLecturasSinServir(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reparto", probarElRepartoDeLasLecturasSinServir)
+	t.Run("eval-11", probarLaEvalSinServirDelPlazo)
+	t.Run("eval-11-por-la-herramienta", probarLaEvalSinServirDelPlazoPorLaHerramienta)
+	t.Run("eval-12", probarLaEvalSinServirDeLaCobertura)
+	t.Run("sesion-cortada", probarLaSesionCortadaConLaLecturaSinServir)
+	t.Run("eval-16-con-y-sin-lecturas", probarLasLecturasDeLaEval16)
+}
+
+// evalLeida es la eval con ese contenido, leída por LeerEval con su nombre de
+// fichero: con el esquema y los cruces de lecturas y sin_servir.
+func evalLeida(t *testing.T, fichero, contenido string) Eval {
+	t.Helper()
+
+	eval, err := LeerEval(fichero, []byte(contenido))
+	require.NoError(t, err)
+
+	return eval
+}
+
+// calculaLaReposicion es la orden plazos calcular de la reposición desde el día
+// de la notificación, con Leganés de los dos municipios, que termina con 0.
+func calculaLaReposicion(t *testing.T) Invocacion {
+	t.Helper()
+
+	return calculaElPlazo(t, codigoDeSalida(0), "reposicion", diaDeLaNotificacion, "Leganés", "Leganés", "--json")
+}
+
+// deLaLPAC es la orden del applet boe con el verbo dado, la LPAC, y los demás
+// argumentos, con el código dado.
+func deLaLPAC(t *testing.T, codigo *int, verbo string, argumentos ...string) Invocacion {
+	t.Helper()
+
+	return invocada(t, codigo, slices.Concat([]string{kitlegalDelPath, "boe", verbo, normaDeLasTrazas}, argumentos))
+}
+
+// enSuUmbralSinModelo dice, de la respuesta de una sesión juzgada con una eval de
+// plazo o de cobertura, si está en el total del umbral sin modelo de las suyas
+// en su modo —plazo_sin_fecha o cobertura_sin_declarar— y si cuenta en su
+// medida, con lo que el informe mide de ella (medirLosPlazos).
+func enSuUmbralSinModelo(eval Eval, resultado ResultadoDeEval) (enElTotal, cuenta bool) {
+	medidas := respuestasMedidas{grupos: []grupoJuzgado{
+		{modo: resultado.Modo, respuestas: []respuestaDelJuez{{sesion: resultado.Sesion}}},
+	}}
+	medidas.medirLosPlazos([]Eval{eval}, []sesionJuzgada{{resultado: resultado}})
+
+	grupo := medidas.grupos[0]
+	if eval.esDeCobertura() {
+		return len(grupo.deLasEvalsDeCobertura()) == 1, len(grupo.sinLaDeclaracion()) == 1
+	}
+
+	return len(grupo.deLasEvalsDePlazo()) == 1, len(grupo.sinLaFecha()) == 1
+}
+
+// probarElRepartoDeLasLecturasSinServir fija el reparto de data-model §4 de
+// H26.1, filas 1, 3, 4, 5 y 7, con la 11 y, además del art. 124 de la LPAC, su
+// índice sin servir: la invocación que no consulta no va a ninguna lista,
+// aunque pida una lectura sin servir; la que consulta una va a
+// lecturas_sin_servir termine como termine —con 0, con 4, sin código o con 5—,
+// por articulo o por articulos con el bloque entre los que pide; y de las demás,
+// la que quedó sin código o terminó con 0 no va a ninguna, la del 4 o el 5 va a
+// fuera_de_lo_grabado —el metadatos de la misma norma o el mismo bloque de otra
+// norma, también— y la de otro código, a otras_fallidas. La sesión pasa, y cada
+// invocación está en invocaciones.
+func probarElRepartoDeLasLecturasSinServir(t *testing.T) {
+	t.Parallel()
+
+	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
+	eval.SinServir = append(eval.SinServir, LecturaSinServir{Norma: normaDeLasTrazas, Verbo: "indice"})
+
+	lecturas := []Invocacion{
+		deLaLPAC(t, codigoDeSalida(0), "articulo", "a124", "--fecha", diaDeLaNotificacion, "--describe"),
+		deLaLPAC(t, codigoDeSalida(0), "indice", "--json"),
+		deLaLPAC(t, codigoDeSalida(4), "articulos", "a123", "a124", "--json"),
+		deLaLPAC(t, nil, "articulo", "a124", "--json"),
+		deLaLPAC(t, codigoDeSalida(5), "articulo", "a124", "--fecha", diaDeLaNotificacion, "--json"),
+		deLaLPAC(t, nil, "articulo", "a125", "--json"),
+		deLaLPAC(t, codigoDeSalida(0), "articulo", "a125", "--json"),
+		deLaLPAC(t, codigoDeSalida(5), "articulo", "a30", "--json"),
+		deLaLPAC(t, codigoDeSalida(4), "metadatos", "--json"),
+		invocada(t, codigoDeSalida(4), []string{kitlegalDelPath, "boe", "articulo", normaDeLaLRJSP, "a124", "--json"}),
+		deLaLPAC(t, codigoDeSalida(2), "articulo", "a31", "--json"),
+	}
+
+	sesion := sesionDeLegalCore(respuestaDeLa11,
+		slices.Concat([]Invocacion{resuelveLeganes(t), calculaLaReposicion(t)}, lecturas)...)
+	resultado := Juzgar(eval, sesion, skillDeTerritorio)
+
+	assert.True(t, resultado.Pasa, "la sesión pasa: %v", resultado.Motivos)
+	assert.Len(t, resultado.Invocaciones, 2+len(lecturas), "cada invocación está en invocaciones")
+	assert.Equal(t, []InvocacionFallida{
+		{Orden: "boe indice BOE-A-2015-10565 --json", Codigo: codigoDeSalida(0)},
+		{Orden: "boe articulos BOE-A-2015-10565 a123 a124 --json", Codigo: codigoDeSalida(4)},
+		{Orden: "boe articulo BOE-A-2015-10565 a124 --json"},
+		{Orden: ordenDelArticulo124, Codigo: codigoDeSalida(5)},
+	}, resultado.LecturasSinServir)
+	assert.Equal(t, []InvocacionFallida{
+		{Orden: "boe articulo BOE-A-2015-10565 a30 --json", Codigo: codigoDeSalida(5)},
+		{Orden: "boe metadatos BOE-A-2015-10565 --json", Codigo: codigoDeSalida(4)},
+		{Orden: "boe articulo BOE-A-2015-10566 a124 --json", Codigo: codigoDeSalida(4)},
+	}, resultado.FueraDeLoGrabado)
+	assert.Equal(t, []InvocacionFallida{
+		{Orden: "boe articulo BOE-A-2015-10565 a31 --json", Codigo: codigoDeSalida(2)},
+	}, resultado.OtrasFallidas)
+}
+
+// probarLaEvalSinServirDelPlazo fija el juicio de la 11 en el modo orden con la
+// sesión que resuelve Leganés, pide plazos calcular reposicion y lee el art. 124
+// de una forma u otra: su comando de bloque lo satisface la lectura en su fecha
+// que sale con 4 o 5, y no la que sale con 1, la que lo lee sin --fecha o en
+// otra fecha, ni la sesión que no lo lee, que llevan el motivo del comando
+// ausente; la lectura, si la hay, está en lecturas_sin_servir con su código, y
+// nada en fuera_de_lo_grabado ni en otras_fallidas; con la línea del plazo y el
+// comando satisfecho pasa sin contar en plazo_sin_fecha, y sin la línea cuenta y
+// no pasa.
+func probarLaEvalSinServirDelPlazo(t *testing.T) {
+	t.Parallel()
+
+	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
+	ausente := "comando ausente: " + textoDelComando124
+	enSuFecha := []string{"--fecha", diaDeLaNotificacion, "--json"}
+
+	casos := []struct {
+		nombre    string
+		codigo    int
+		lectura   []string
+		respuesta string
+		lecturas  []InvocacionFallida
+		motivos   []string
+		cuenta    bool
+	}{
+		{
+			nombre: "en-su-fecha-con-el-5", codigo: 5, lectura: enSuFecha, respuesta: respuestaDeLa11,
+			lecturas: []InvocacionFallida{{Orden: ordenDelArticulo124, Codigo: codigoDeSalida(5)}},
+		},
+		{
+			nombre: "en-su-fecha-con-el-4", codigo: 4, lectura: enSuFecha, respuesta: respuestaDeLa11,
+			lecturas: []InvocacionFallida{{Orden: ordenDelArticulo124, Codigo: codigoDeSalida(4)}},
+		},
+		{
+			nombre: "en-su-fecha-con-el-1", codigo: 1, lectura: enSuFecha, respuesta: respuestaDeLa11,
+			lecturas: []InvocacionFallida{{Orden: ordenDelArticulo124, Codigo: codigoDeSalida(1)}},
+			motivos:  []string{ausente},
+		},
+		{
+			nombre: "sin-fecha", codigo: 5, lectura: []string{"--json"}, respuesta: respuestaDeLa11,
+			lecturas: []InvocacionFallida{{Orden: "boe articulo BOE-A-2015-10565 a124 --json", Codigo: codigoDeSalida(5)}},
+			motivos:  []string{ausente},
+		},
+		{
+			nombre: "en-otra-fecha", codigo: 5, lectura: []string{"--fecha", "2026-09-10", "--json"}, respuesta: respuestaDeLa11,
+			lecturas: []InvocacionFallida{
+				{Orden: "boe articulo BOE-A-2015-10565 a124 --fecha 2026-09-10 --json", Codigo: codigoDeSalida(5)},
+			},
+			motivos: []string{ausente},
+		},
+		{nombre: "sin-leerla", respuesta: respuestaDeLa11, motivos: []string{ausente}},
+		{
+			nombre: "sin-la-linea-del-plazo", codigo: 5, lectura: enSuFecha,
+			respuesta: "Hasta el 13 de octubre de 2026, un mes desde el día siguiente a la notificación.",
+			lecturas:  []InvocacionFallida{{Orden: ordenDelArticulo124, Codigo: codigoDeSalida(5)}},
+			motivos:   []string{"plazo ausente: " + fechaDelPlazo}, cuenta: true,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			invocaciones := []Invocacion{resuelveLeganes(t), calculaLaReposicion(t)}
+			if caso.lectura != nil {
+				invocaciones = append(invocaciones,
+					deLaLPAC(t, codigoDeSalida(caso.codigo), "articulo", slices.Concat([]string{"a124"}, caso.lectura)...))
+			}
+
+			resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
+
+			assert.Equal(t, caso.motivos, resultado.Motivos)
+			assert.Equal(t, caso.motivos == nil, resultado.Pasa)
+			assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
+			assert.Empty(t, resultado.FueraDeLoGrabado)
+			assert.Empty(t, resultado.OtrasFallidas)
+
+			enElTotal, cuenta := enSuUmbralSinModelo(eval, resultado)
+			require.True(t, enElTotal, "premisa: la 11 es de las del total de plazo_sin_fecha")
+			assert.Equal(t, caso.cuenta, cuenta, "cuenta en plazo_sin_fecha")
+		})
+	}
+}
+
+// probarLaEvalSinServirDelPlazoPorLaHerramienta fija el juicio de la 11 en el
+// modo herramienta: la llamada a boe_articulo del art. 124 con su fecha y un
+// sobre de la clase fuente-no-disponible o limite-o-tos satisface su comando de
+// bloque y está en lecturas_sin_servir, y la sesión pasa sin contar en
+// plazo_sin_fecha; sin fecha, con otra fecha o sin la llamada, el comando queda
+// ausente con su motivo.
+func probarLaEvalSinServirDelPlazoPorLaHerramienta(t *testing.T) {
+	t.Parallel()
+
+	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
+	ausente := []string{"comando ausente: " + textoDelComando124}
+
+	const (
+		sinFecha    = `{"norma":"BOE-A-2015-10565","bloque":"a124"}`
+		enOtraFecha = `{"norma":"BOE-A-2015-10565","bloque":"a124","fecha":"2026-09-10"}`
+	)
+
+	casos := []struct {
+		nombre   string
+		lectura  Llamada
+		lecturas []InvocacionFallida
+		motivos  []string
+	}{
+		{
+			nombre:   "en-su-fecha-con-fuente-no-disponible",
+			lectura:  llamadaFallida(herramientaDeArticulo, argumentosDelArticulo124, schema.ClaseFuenteNoDisponible),
+			lecturas: []InvocacionFallida{{Orden: llamadaDelArticulo124, Codigo: codigoDeSalida(4)}},
+		},
+		{
+			nombre:   "en-su-fecha-con-limite-o-tos",
+			lectura:  llamadaFallida(herramientaDeArticulo, argumentosDelArticulo124, schema.ClaseLimiteOTos),
+			lecturas: []InvocacionFallida{{Orden: llamadaDelArticulo124, Codigo: codigoDeSalida(5)}},
+		},
+		{
+			nombre:   "sin-fecha",
+			lectura:  llamadaFallida(herramientaDeArticulo, sinFecha, schema.ClaseFuenteNoDisponible),
+			lecturas: []InvocacionFallida{{Orden: "boe_articulo BOE-A-2015-10565 a124", Codigo: codigoDeSalida(4)}},
+			motivos:  ausente,
+		},
+		{
+			nombre:  "en-otra-fecha",
+			lectura: llamadaFallida(herramientaDeArticulo, enOtraFecha, schema.ClaseFuenteNoDisponible),
+			lecturas: []InvocacionFallida{
+				{Orden: "boe_articulo --fecha=2026-09-10 BOE-A-2015-10565 a124", Codigo: codigoDeSalida(4)},
+			},
+			motivos: ausente,
+		},
+		{nombre: "sin-leerla", motivos: ausente},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			llamadas := []Llamada{
+				llamadaCorrecta("territorio_resolver", `{"consulta":"Leganés"}`),
+				llamadaCorrecta("plazos_calcular", argumentosDeReposicion),
+			}
+			if caso.lectura.Herramienta != "" {
+				llamadas = append(llamadas, caso.lectura)
+			}
+
+			sesion := cambiada(sesionDelModoHerramienta(t, respuestaDeLa11, llamadas...),
+				func(s *Sesion) { s.SkillsActivadas = []string{skillDeTerritorio} })
+			resultado := juzgarEnModo(eval, sesion, skillDeTerritorio, ModoHerramienta)
+
+			assert.Equal(t, caso.motivos, resultado.Motivos)
+			assert.Equal(t, caso.motivos == nil, resultado.Pasa)
+			assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
+			assert.Empty(t, resultado.FueraDeLoGrabado)
+			assert.Empty(t, resultado.OtrasFallidas)
+
+			_, cuenta := enSuUmbralSinModelo(eval, resultado)
+			assert.False(t, cuenta, "no cuenta en plazo_sin_fecha")
+		})
+	}
+}
+
+// probarLaEvalSinServirDeLaCobertura fija el juicio de la 12: la sesión que
+// resuelve Leganés, intenta leer la DA 1ª, que sale con 5 y está en
+// lecturas_sin_servir, y responde con la declaración de no cubierto de la LPAC
+// y sin línea del plazo, pasa sin contar en cobertura_sin_declarar; sin la
+// declaración, cuenta y no pasa; y la que ejecuta plazos calcular no pasa, con
+// el motivo del comando prohibido.
+func probarLaEvalSinServirDeLaCobertura(t *testing.T) {
+	t.Parallel()
+
+	eval := evalLeida(t, ficheroDeLaEval12, contenidoDeLaEval12)
+	laDA := []InvocacionFallida{{Orden: "boe articulo BOE-A-2015-10565 daprimera --json", Codigo: codigoDeSalida(5)}}
+
+	casos := []struct {
+		nombre    string
+		calcula   bool
+		respuesta string
+		motivos   []string
+		cuenta    bool
+	}{
+		{nombre: "con-la-declaración", respuesta: respuestaDeLa12},
+		{
+			nombre: "sin-la-declaración", respuesta: "Tienes un mes desde la notificación.",
+			motivos: []string{"declaración de no cubierto ausente: " + normaDeLasTrazas}, cuenta: true,
+		},
+		{
+			nombre: "con-plazos-calcular", calcula: true, respuesta: respuestaDeLa12,
+			motivos: []string{"comando prohibido ejecutado: plazos calcular"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			invocaciones := []Invocacion{
+				resuelveLeganes(t), deLaLPAC(t, codigoDeSalida(5), "articulo", "daprimera", "--json"),
+			}
+			if caso.calcula {
+				invocaciones = append(invocaciones, calculaLaReposicion(t))
+			}
+
+			resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
+
+			assert.Equal(t, caso.motivos, resultado.Motivos)
+			assert.Equal(t, caso.motivos == nil, resultado.Pasa)
+			assert.Equal(t, laDA, resultado.LecturasSinServir)
+			assert.Empty(t, resultado.FueraDeLoGrabado)
+			assert.Empty(t, resultado.OtrasFallidas)
+
+			enElTotal, cuenta := enSuUmbralSinModelo(eval, resultado)
+			require.True(t, enElTotal, "premisa: la 12 es de las del total de cobertura_sin_declarar")
+			assert.Equal(t, caso.cuenta, cuenta, "cuenta en cobertura_sin_declarar")
+		})
+	}
+}
+
+// probarLaSesionCortadaConLaLecturaSinServir fija que la sesión de la 11 que el
+// tope cortó mientras leía el art. 124 en su fecha lleva esa lectura, sin
+// código, en lecturas_sin_servir, que el informe escribe con codigo null, y
+// nada en fuera_de_lo_grabado ni en otras_fallidas; la lectura sin código no
+// satisface el comando, que queda ausente. Una sesión que no consulta ninguna
+// lectura sin servir escribe lecturas_sin_servir vacía, detrás de
+// otras_fallidas.
+func probarLaSesionCortadaConLaLecturaSinServir(t *testing.T) {
+	t.Parallel()
+
+	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
+	cortada := cambiada(sesionDeLegalCore(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t),
+		deLaLPAC(t, nil, "articulo", "a124", "--fecha", diaDeLaNotificacion, "--json")), func(s *Sesion) {
+		s.Codigo, s.Fin, s.Terminada, s.Cortada = 124, "assistant", false, true
+		s.MotivoSinTerminar = "tope de 240 s agotado (código 124)"
+	})
+
+	resultado := Juzgar(eval, cortada, skillDeTerritorio)
+
+	assert.False(t, resultado.Pasa)
+	assert.Contains(t, resultado.Motivos, "comando ausente: "+textoDelComando124)
+	assert.Equal(t, []InvocacionFallida{{Orden: ordenDelArticulo124}}, resultado.LecturasSinServir)
+	assert.Empty(t, resultado.FueraDeLoGrabado)
+	assert.Empty(t, resultado.OtrasFallidas)
+
+	escrita, err := json.Marshal(resultado.LecturasSinServir)
+	require.NoError(t, err)
+	assert.JSONEq(t, `[{"orden":"`+ordenDelArticulo124+`","codigo":null}]`, string(escrita))
+
+	sinNinguna := Juzgar(eval, sesionDeLegalCore(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t)),
+		skillDeTerritorio)
+	escrito, err := json.Marshal(sinNinguna)
+	require.NoError(t, err)
+	assert.Contains(t, string(escrito), `"otras_fallidas":[],"lecturas_sin_servir":[],"llegadas_a_la_red":`,
+		"lecturas_sin_servir va vacía, detrás de otras_fallidas")
+}
+
+// probarLasLecturasDeLaEval16 fija que la 16 de boe-legislacion del repositorio
+// juzga igual una sesión que no lee a26 ni a27 con esas dos lecturas puestas en
+// el test y sin ellas (FR-007): la que lee el art. 25 y lo cita, que pasa; la
+// que no lee nada, que no; y la que lee el 25 y el 28, que sale con 4, y lo
+// cita, que pasa con el 28 fuera de lo grabado.
+func probarLasLecturasDeLaEval16(t *testing.T) {
+	t.Parallel()
+
+	contenido, err := os.ReadFile(filepath.Join(evalsDelRepositorio, ficheroDeLaEval16))
+	require.NoError(t, err)
+
+	sinLecturas := evalLeida(t, ficheroDeLaEval16, string(contenido))
+	sinLecturas.Lecturas = nil
+	conLecturas := sinLecturas
+	conLecturas.Lecturas = []LecturaDeLaEval{
+		{Norma: normaDeLaLRJSP, Bloque: "a26", Motivo: motivoDeLasLecturasDeLa16},
+		{Norma: normaDeLaLRJSP, Bloque: "a27", Motivo: motivoDeLasLecturasDeLa16},
+	}
+
+	leeElBloqueDeLaLRJSP := func(codigo int, bloque string) Invocacion {
+		return invocada(t, codigoDeSalida(codigo), deLaSkill("articulo", normaDeLaLRJSP, bloque, "--json"))
+	}
+
+	sesiones := []struct {
+		nombre string
+		sesion Sesion
+		pasa   bool
+	}{
+		{
+			nombre: "lee-el-25-y-lo-cita",
+			sesion: sesionTerminada(true, "El art. 25 lo regula "+citaDel25+".", leeElBloqueDeLaLRJSP(0, "a25")),
+			pasa:   true,
+		},
+		{nombre: "no-lee-nada", sesion: sesionTerminada(true, "No lo sé.")},
+		{
+			nombre: "lee-el-25-y-el-28",
+			sesion: sesionTerminada(true, "El art. 25 lo regula "+citaDel25+".",
+				leeElBloqueDeLaLRJSP(0, "a25"), leeElBloqueDeLaLRJSP(4, "a28")),
+			pasa: true,
+		},
+	}
+
+	for _, caso := range sesiones {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sin := Juzgar(sinLecturas, caso.sesion, skillDeLasSesiones)
+			require.Equal(t, caso.pasa, sin.Pasa, "premisa: sin lecturas, %v", sin.Motivos)
+
+			assert.Equal(t, sin, Juzgar(conLecturas, caso.sesion, skillDeLasSesiones))
+		})
 	}
 }

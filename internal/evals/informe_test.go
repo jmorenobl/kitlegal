@@ -667,7 +667,7 @@ func TestInformeConProhibidos(t *testing.T) {
 	resultado := resultadoDeLaSesion(t, leido.informe, sesionDelArticulo21)
 	assert.Equal(t, []string{textoDeGraphShow}, resultado.ComandosProhibidosEjecutados)
 	assert.Equal(t, []string{motivoDeGraphShow}, resultado.Motivos)
-	assert.Equal(t, []InvocacionFallida{{Orden: ordenDeGraphShow, Codigo: 3}}, resultado.OtrasFallidas)
+	assert.Equal(t, []InvocacionFallida{{Orden: ordenDeGraphShow, Codigo: codigoDeSalida(3)}}, resultado.OtrasFallidas)
 	assert.False(t, resultado.Pasa)
 
 	assert.Equal(t, `["graph show"]`,

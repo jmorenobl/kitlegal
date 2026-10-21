@@ -222,14 +222,22 @@ type ResultadoDeEval struct {
 
 	// FueraDeLoGrabado son las invocaciones con consulta y código 4 o 5, en su
 	// orden: también las llamadas con un error de la clase fuente-no-disponible o
-	// limite-o-tos.
+	// limite-o-tos. Desde H26.1, no las que consultan una lectura del sin_servir
+	// de su eval, que van a LecturasSinServir (FR-015, FR-022 de H26.1).
 	FueraDeLoGrabado []InvocacionFallida `json:"fuera_de_lo_grabado"`
 
 	// OtrasFallidas son las invocaciones con consulta y otro código distinto de
 	// 0, en su orden, y con ellas las llamadas con un error de otra clase; no las
 	// que quedaron sin código porque el tope cortó la sesión antes de que
-	// acabaran, ni las llamadas sin resultado.
+	// acabaran, ni las llamadas sin resultado, ni, desde H26.1, las que consultan
+	// una lectura del sin_servir de su eval.
 	OtrasFallidas []InvocacionFallida `json:"otras_fallidas"`
+
+	// LecturasSinServir son las invocaciones con consulta que consultan una
+	// lectura del sin_servir de su eval (Eval.sinServir), en su orden y terminen
+	// como terminen: con 0, con cualquier otro código o sin él (data-model §4 y
+	// §5 de H26.1; FR-015 de H26.1). Vacía en una eval sin sin_servir.
+	LecturasSinServir []InvocacionFallida `json:"lecturas_sin_servir"`
 
 	// LlegadasALaRed tienen una entrada por cada invocación y destino de sus
 	// conexiones de clase red, en su orden.
@@ -344,11 +352,16 @@ type ConexionInformada struct {
 	Clase ClaseDeConexion `json:"clase"`
 }
 
-// InvocacionFallida es una invocación con consulta que terminó con un código
-// distinto de 0, con su orden y su código.
+// InvocacionFallida es una invocación con consulta de una de las listas del
+// reparto —fuera de lo grabado, otras fallidas o lecturas sin servir—, con su
+// orden y su código (data-model §5 de H26.1).
 type InvocacionFallida struct {
-	Orden  string `json:"orden"`
-	Codigo int    `json:"codigo"`
+	Orden string `json:"orden"`
+
+	// Codigo es el de la invocación: distinto de 0 en fuera de lo grabado y en
+	// las otras fallidas, y cualquiera en las lecturas sin servir, también 0 o
+	// nil en la que quedó sin código (FR-015 de H26.1).
+	Codigo *int `json:"codigo"`
 }
 
 // LlegadaALaRed es una invocación con una conexión de clase red, con su orden y
@@ -459,6 +472,13 @@ func modoSinServidor(eval Eval) Modo {
 // orden o una llamada (pideElPlazo). Una eval que no es de plazo ni de
 // cobertura se juzga como antes (contracts/evals-legal-core.md §2 de H9;
 // FR-048, FR-051, FR-057).
+//
+// Desde H26.1, cada invocación que consulta una lectura del sin_servir de la
+// eval va a LecturasSinServir, termine como termine, y no a FueraDeLoGrabado ni
+// a OtrasFallidas (informar); y el comando de bloque cuya lectura la eval deja
+// sin servir lo satisface también la invocación que lo lee como lo pide y
+// termina con 4 o 5 (comandoSinServir). Una eval sin sin_servir se juzga como
+// antes (contracts/juicio-e-informe.md §1 y §2 de H26.1; FR-015, FR-016).
 func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -487,7 +507,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 
 	activadasSinDeber := resultado.anotarLasQueNoSeActivan(eval.NoSeActivan, sesion)
 	invocaciones, conLasLlamadas := resultado.invocacionesDe(sesion)
-	resultado.repartirComandos(eval.Comandos, invocaciones)
+	resultado.repartirComandos(eval, invocaciones)
 	resultado.anotarProhibidos(eval.Prohibidos, invocaciones)
 	ordenesSinKitlegal := resultado.anotarLasOrdenesSinKitlegal(sesion.Invocaciones)
 	resultado.repartirCitas(eval.Citas, citas)
@@ -502,7 +522,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 	sinConsultaComoSeEspera := resultado.juzgarLaRespuestaSinConsulta(eval, sesion.Respuesta, citas)
 
 	for _, invocacion := range invocaciones {
-		resultado.informarLaJuzgada(invocacion)
+		resultado.informarLaJuzgada(eval, invocacion)
 	}
 
 	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && conLasLlamadas && ordenesSinKitlegal == 0 &&
@@ -771,14 +791,17 @@ func motivoDeLaQueNoSeActiva(nombre string) string {
 	return fmt.Sprintf("se activó la skill %s, que la eval dice que no se activa", nombre)
 }
 
-// repartirComandos reparte los comandos esperados entre ejecutados y ausentes,
-// con un motivo por cada ausente.
-func (r *ResultadoDeEval) repartirComandos(comandos []ComandoEsperado, invocaciones []invocacionJuzgada) {
-	for _, comando := range comandos {
+// repartirComandos reparte los comandos esperados de la eval entre ejecutados y
+// ausentes, con un motivo por cada ausente. El de bloque cuya lectura la eval
+// deja sin servir admite además la invocación que la lee y termina con 4 o 5
+// (comandoSinServir; FR-016 de H26.1).
+func (r *ResultadoDeEval) repartirComandos(eval Eval, invocaciones []invocacionJuzgada) {
+	for _, comando := range eval.Comandos {
 		texto := textoDelComando(comando)
+		admiteLaFallida := eval.comandoSinServir(comando)
 
 		if slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
-			return satisface(juzgada.Invocacion, comando)
+			return satisface(juzgada.Invocacion, comando, admiteLaFallida)
 		}) {
 			r.ComandosEjecutados = append(r.ComandosEjecutados, texto)
 
@@ -952,20 +975,22 @@ func (r *ResultadoDeEval) repartirTerritorio(esperado, declarado TerritorioEsper
 }
 
 // informar añade la invocación a las del resultado con sus parejas de destino y
-// clase, una llegada a la red por cada destino de clase red y, si consultó y
-// terminó con un código distinto de 0, la lleva a fuera de lo grabado con 4 o 5
-// y a las otras fallidas con cualquier otro. La que no consultó (la ayuda,
-// --describe o --dry-run) o quedó sin código no va a ninguna de las dos, y
-// tampoco el proceso del servidor MCP, que no es una consulta
-// (invocacionDeLaTraza).
-func (r *ResultadoDeEval) informar(invocacion Invocacion) {
-	r.informarLaJuzgada(invocacionDeLaTraza(invocacion))
+// clase, una llegada a la red por cada destino de clase red y, si consultó, la
+// reparte por la primera fila de data-model §4 de H26.1 que la describe: si
+// consulta una lectura del sin_servir de la eval, a las lecturas sin servir,
+// termine como termine; si no, y terminó con un código distinto de 0, a fuera de
+// lo grabado con 4 o 5 y a las otras fallidas con cualquier otro. La que no
+// consultó (la ayuda, --describe o --dry-run) no va a ninguna, y tampoco el
+// proceso del servidor MCP, que no es una consulta (invocacionDeLaTraza), ni la
+// que quedó sin código o terminó con 0 sin consultar una lectura sin servir.
+func (r *ResultadoDeEval) informar(eval Eval, invocacion Invocacion) {
+	r.informarLaJuzgada(eval, invocacionDeLaTraza(invocacion))
 }
 
 // informarLaJuzgada informa de una invocación como la ve el juicio, con las
 // reglas de informar: la de la traza o la que cuenta por una llamada a una
 // herramienta, que lleva su marca.
-func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
+func (r *ResultadoDeEval) informarLaJuzgada(eval Eval, invocacion invocacionJuzgada) {
 	informada := InvocacionInformada{
 		Orden:   invocacion.orden,
 		Codigo:  copiaDelCodigo(invocacion.Codigo),
@@ -987,13 +1012,23 @@ func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
 
 	r.Invocaciones = append(r.Invocaciones, informada)
 
-	if !invocacion.Consulta || invocacion.Codigo == nil || *invocacion.Codigo == 0 {
+	if !invocacion.Consulta {
 		return
 	}
 
-	fallida := InvocacionFallida{Orden: informada.Orden, Codigo: *invocacion.Codigo}
+	fallida := InvocacionFallida{Orden: informada.Orden, Codigo: copiaDelCodigo(invocacion.Codigo)}
 
-	if fallida.Codigo == codigoFuenteNoDisponible || fallida.Codigo == codigoLimiteOTos {
+	if eval.sinServir(invocacion.Invocacion) {
+		r.LecturasSinServir = append(r.LecturasSinServir, fallida)
+
+		return
+	}
+
+	if invocacion.Codigo == nil || *invocacion.Codigo == 0 {
+		return
+	}
+
+	if *invocacion.Codigo == codigoFuenteNoDisponible || *invocacion.Codigo == codigoLimiteOTos {
 		r.FueraDeLoGrabado = append(r.FueraDeLoGrabado, fallida)
 
 		return
@@ -1015,9 +1050,11 @@ func (r *ResultadoDeEval) informarLaJuzgada(invocacion invocacionJuzgada) {
 // de cita, ser de su verbo con el ROJ y el texto que el comando pida
 // (pideLaCita; contracts/evals-jurisprudencia.md §2 de H23); y en el comando
 // calcular, ser calcular con su tipo (pideElPlazo; contracts/evals-legal-core.md
-// §1 de H9).
-func satisface(invocacion Invocacion, comando ComandoEsperado) bool {
-	if !consultoComoPide(invocacion, comando) || invocacion.Applet != comando.Applet {
+// §1 de H9). admiteLaFallida dice si el comando admite además el 4 y el 5: el de
+// bloque cuya lectura la eval deja sin servir (Eval.comandoSinServir; research
+// D5 de H26.1; FR-016 de H26.1).
+func satisface(invocacion Invocacion, comando ComandoEsperado, admiteLaFallida bool) bool {
+	if !consultoComoPide(invocacion, comando, admiteLaFallida) || invocacion.Applet != comando.Applet {
 		return false
 	}
 
@@ -1053,8 +1090,9 @@ func compruebaLaMemoria(invocacion Invocacion, norma string) bool {
 // el comando admite: ni --describe ni --dry-run, que no leen nada, ni la que
 // quedó sin código. Todo comando admite el 0, y el de bloque con fecha y,
 // desde el ADR 0042, el calcular de un plazo sin calcular, también el 3
-// (codigoNoEncontrado).
-func consultoComoPide(invocacion Invocacion, comando ComandoEsperado) bool {
+// (codigoNoEncontrado). Desde H26.1, el que admite la fallida —el de bloque cuya
+// lectura la eval deja sin servir— admite también el 4 y el 5 (FR-016 de H26.1).
+func consultoComoPide(invocacion Invocacion, comando ComandoEsperado, admiteLaFallida bool) bool {
 	if !invocacion.Consulta || invocacion.Codigo == nil {
 		return false
 	}
@@ -1064,6 +1102,8 @@ func consultoComoPide(invocacion Invocacion, comando ComandoEsperado) bool {
 		return true
 	case codigoNoEncontrado:
 		return comando.Fecha != "" || comando.SinCalcular
+	case codigoFuenteNoDisponible, codigoLimiteOTos:
+		return admiteLaFallida
 	default:
 		return false
 	}

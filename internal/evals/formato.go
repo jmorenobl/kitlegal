@@ -625,6 +625,14 @@ func (e Eval) sinServir(invocacion Invocacion) bool {
 	})
 }
 
+// comandoSinServir dice si el comando es de la forma bloque y su norma y su
+// bloque son una entrada de bloque del sin_servir de la eval: el comando cuya
+// lectura la eval hace fallar a propósito (data-model §1 de H26.1; FR-016).
+func (e Eval) comandoSinServir(comando ComandoEsperado) bool {
+	return formaDelComando(comando) == formaBloque &&
+		slices.Contains(e.SinServir, LecturaSinServir{Norma: comando.Norma, Bloque: comando.Bloque})
+}
+
 // TerritorioEsperado es lo que la respuesta tiene que declarar del territorio de
 // un municipio (contrato de evals §1.2 de H6): cada clave que la eval escribe es
 // un elemento que se busca en la respuesta por su forma fija, y lo que no escribe

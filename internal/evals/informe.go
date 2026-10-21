@@ -1390,8 +1390,10 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 		juzgada.resultado.ReintentosPorLimiteDeRitmo = juzgada.sesion.ReintentosPorLimiteDeRitmo()
 	}
 
+	// Con la eval de la sesión, vacía si no se pudo leer: sin ella, ninguna
+	// invocación consulta una lectura de sin_servir.
 	for _, invocacion := range juzgada.sesion.Invocaciones {
-		juzgada.resultado.informar(invocacion)
+		juzgada.resultado.informar(eval, invocacion)
 	}
 
 	return juzgada
@@ -1569,18 +1571,19 @@ func cotejaUnDocumento(sesion Sesion) bool {
 // ejecutaElComando dice si alguna de las invocaciones de la sesión, las de su
 // traza y las de sus llamadas a las herramientas del servidor (invocacionesDe),
 // satisface el comando con el criterio con el que el juicio da por ejecutado un
-// comando esperado (satisface). invocacionesDe anota sus motivos en un
-// resultado de usar y tirar, y su segundo valor no se mira: falso solo si el
-// registro de herramientas no se puede construir, y una sesión leída no llega
-// ahí; si llegara, sus llamadas no contarían y la sesión contaría como si no lo
-// hubiera ejecutado (research D3 de H23.1).
+// comando esperado (satisface), sin el 4 ni el 5, que solo admite el de bloque
+// cuya lectura la eval deja sin servir (FR-016 de H26.1). invocacionesDe anota
+// sus motivos en un resultado de usar y tirar, y su segundo valor no se mira:
+// falso solo si el registro de herramientas no se puede construir, y una sesión
+// leída no llega ahí; si llegara, sus llamadas no contarían y la sesión contaría
+// como si no lo hubiera ejecutado (research D3 de H23.1).
 func ejecutaElComando(sesion Sesion, comando ComandoEsperado) bool {
 	var deUsarYTirar ResultadoDeEval
 
 	invocaciones, _ := deUsarYTirar.invocacionesDe(sesion)
 
 	return slices.ContainsFunc(invocaciones, func(juzgada invocacionJuzgada) bool {
-		return satisface(juzgada.Invocacion, comando)
+		return satisface(juzgada.Invocacion, comando, false)
 	})
 }
 
@@ -1887,9 +1890,11 @@ func componerInforme(
 				juzgada.sesion.VersionDeClaudeCode)
 		}
 
+		// El de cada sesión ya no lleva sus lecturas de sin_servir (FR-022 de
+		// H26.1), y cada una de las suyas terminó con 4 o 5: tiene código.
 		for _, fuera := range resultado.FueraDeLoGrabado {
 			informe.FueraDeLoGrabado = append(informe.FueraDeLoGrabado, FueraDeLoGrabadoDelInforme{
-				Sesion: resultado.Sesion, Eval: resultado.Eval, Orden: fuera.Orden, Codigo: fuera.Codigo,
+				Sesion: resultado.Sesion, Eval: resultado.Eval, Orden: fuera.Orden, Codigo: *fuera.Codigo,
 			})
 		}
 
