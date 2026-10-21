@@ -2,6 +2,7 @@ package evals
 
 import (
 	"fmt"
+	"slices"
 	"sync"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -140,6 +141,21 @@ type Eval struct {
 	// no es sin binario ni servidor (contracts/evals-redaccion-fechada.md §1.2 de
 	// H20; data-model §7.2; FR-052).
 	RedaccionFechada *RedaccionFechadaEsperada `yaml:"redaccion_fechada"`
+
+	// Lecturas son los bloques que la caché de las sesiones de la skill sirve
+	// porque la eval los provoca, cada uno con su motivo, en el orden del
+	// fichero; vacío si la eval no los declara. No son comandos ni citas, no dan
+	// motivo ni cuentan en ningún umbral, y ninguno puede ser un comando de bloque
+	// ni una cita de la eval (ADR 0043, clase (b); contracts/formato-de-eval.md §1
+	// y §2 de H26.1; FR-006 a FR-008).
+	Lecturas []LecturaDeLaEval `yaml:"lecturas"`
+
+	// SinServir son las lecturas que la caché de las sesiones de esta eval no
+	// sirve con ninguna fecha, en el orden del fichero; vacío si la eval no las
+	// declara. Un bloque suyo puede ser un comando de bloque de la eval, que es la
+	// lectura que la eval quiere hacer fallar, pero no una de sus citas
+	// (contracts/formato-de-eval.md §1 y §2 de H26.1; FR-012 a FR-014, FR-016).
+	SinServir []LecturaSinServir `yaml:"sin_servir"`
 }
 
 // esDePlazo dice si la eval es una eval de plazo: si espera un plazo, que su
@@ -504,6 +520,79 @@ type RedaccionPosteriorEsperada struct {
 	NormaModificadora string `yaml:"norma_modificadora"`
 }
 
+// LecturaDeLaEval es un bloque de una norma consolidada del BOE que la caché de
+// las sesiones de la skill sirve porque la eval lo provoca, y por qué: no es un
+// comando ni una cita de la eval, ni da motivo, ni cuenta en ningún umbral (ADR
+// 0043, clase (b); data-model §1 de H26.1; FR-007).
+type LecturaDeLaEval struct {
+	// Norma es el identificador de la norma, BOE-A-….
+	Norma string `yaml:"norma"`
+
+	// Bloque es el id del bloque.
+	Bloque string `yaml:"bloque"`
+
+	// Motivo dice por qué la eval provoca la lectura; el esquema no lo admite
+	// vacío ni solo de blancos.
+	Motivo string `yaml:"motivo"`
+}
+
+// LecturaSinServir es lo que la caché de las sesiones de una eval no sirve con
+// ninguna fecha: un bloque de una norma, o su índice o sus metadatos
+// (data-model §1 de H26.1; FR-013). Lleva Bloque o Verbo, nunca los dos: el
+// esquema no admite otra cosa.
+type LecturaSinServir struct {
+	// Norma es el identificador de la norma, BOE-A-….
+	Norma string `yaml:"norma"`
+
+	// Bloque es el id del bloque que no se sirve; vacío en una consulta de
+	// norma.
+	Bloque string `yaml:"bloque"`
+
+	// Verbo es la consulta de norma que no se sirve, indice o metadatos; vacío
+	// en un bloque.
+	Verbo string `yaml:"verbo"`
+}
+
+// comprobarLasLecturas comprueba de Lecturas y de SinServir lo que el esquema no
+// puede, porque cruza claves de la eval (contracts/formato-de-eval.md §2 de
+// H26.1; FR-008, FR-014): ningún bloque de Lecturas es un comando de bloque de la
+// eval, con fecha o sin ella, ni una de sus citas, y ningún bloque de SinServir
+// es una de sus citas. Un bloque de SinServir sí puede ser un comando de bloque
+// (FR-016). El error, que nombra la clave y la entrada, es el del primer defecto
+// en el orden del fichero, Lecturas antes que SinServir; el de una lectura que
+// es comando y cita a la vez es el del comando.
+func (e Eval) comprobarLasLecturas() error {
+	for _, lectura := range e.Lecturas {
+		switch {
+		case e.esComandoDeBloque(lectura.Norma, lectura.Bloque):
+			return fmt.Errorf("lecturas: %s %s: ya es un comando esperado de la eval", lectura.Norma, lectura.Bloque)
+		case e.esCitaEsperada(lectura.Norma, lectura.Bloque):
+			return fmt.Errorf("lecturas: %s %s: ya es una cita esperada de la eval", lectura.Norma, lectura.Bloque)
+		}
+	}
+
+	for _, lectura := range e.SinServir {
+		if lectura.Bloque != "" && e.esCitaEsperada(lectura.Norma, lectura.Bloque) {
+			return fmt.Errorf("sin_servir: %s %s: es una cita esperada de la eval", lectura.Norma, lectura.Bloque)
+		}
+	}
+
+	return nil
+}
+
+// esComandoDeBloque dice si el bloque de la norma es el de un comando de la
+// forma bloque de la eval, con fecha o sin ella.
+func (e Eval) esComandoDeBloque(norma, bloque string) bool {
+	return slices.ContainsFunc(e.Comandos, func(comando ComandoEsperado) bool {
+		return formaDelComando(comando) == formaBloque && comando.Norma == norma && comando.Bloque == bloque
+	})
+}
+
+// esCitaEsperada dice si el bloque de la norma es una de las citas de la eval.
+func (e Eval) esCitaEsperada(norma, bloque string) bool {
+	return slices.Contains(e.Citas, CitaEsperada{Norma: norma, Bloque: bloque})
+}
+
 // TerritorioEsperado es lo que la respuesta tiene que declarar del territorio de
 // un municipio (contrato de evals §1.2 de H6): cada clave que la eval escribe es
 // un elemento que se busca en la respuesta por su forma fija, y lo que no escribe
@@ -555,7 +644,9 @@ func compilarEsquemaPublicado(ruta, de string) (*jsonschema.Schema, error) {
 
 // LeerEval lee el contenido de un fichero de eval con el lector común de
 // documentos YAML de internal/skills —una clave repetida es un defecto con sus
-// dos líneas, nunca la última que gana— y lo valida contra eval.yaml.json. Todo
+// dos líneas, nunca la última que gana— y lo valida contra eval.yaml.json y,
+// detrás, con comprobarLasLecturas, que cruza lecturas y sin_servir con los
+// comandos y las citas de la eval (contracts/formato-de-eval.md §2 de H26.1). Todo
 // error empieza por el nombre del fichero y va con una Eval vacía; la Eval leída
 // lleva ese nombre en Fichero (US4, escenario 4; contrato evals-y-grabaciones §1).
 func LeerEval(nombre string, contenido []byte) (Eval, error) {
@@ -566,6 +657,10 @@ func LeerEval(nombre string, contenido []byte) (Eval, error) {
 
 	eval, err := skills.ValidarDocumentoYAML[Eval](contenido, esquema)
 	if err != nil {
+		return Eval{}, fmt.Errorf("%s: %w", nombre, err)
+	}
+
+	if err := eval.comprobarLasLecturas(); err != nil {
 		return Eval{}, fmt.Errorf("%s: %w", nombre, err)
 	}
 

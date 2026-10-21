@@ -2,6 +2,7 @@ package evals
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -1872,6 +1873,223 @@ func cambiadaLaRedaccion(
 	cambiar(&redaccion)
 
 	return redaccion
+}
+
+// Trozos de las evals sintéticas de TestFormatoDeLecturas, cada uno con sus
+// líneas completas (contracts/formato-de-eval.md §1 y §2 de H26.1): la pregunta
+// del recurso de reposición, que activa la skill y ocupa las líneas 1 y 2; sus
+// dos comandos de bloque de la LPAC, el art. 124 en una fecha y el art. 112 sin
+// ella, y su cita, la del art. 21, que van de la línea 3 a la 13, así que la
+// clave que va detrás es la línea 14 y su primera entrada, la 15; y una lectura
+// del art. 25 de la LRJSP, que no es ni comando ni cita de la eval.
+const (
+	preguntaDeLasLecturas      = "pregunta: \"¿Hasta cuándo puedo recurrir en reposición?\"\nactiva: true\n"
+	comandosYCitaDeLasLecturas = "comandos:\n" +
+		"  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a124\n    fecha: \"2026-09-01\"\n" +
+		"  - applet: boe\n    norma: BOE-A-2015-10565\n    bloque: a112\n" +
+		"citas:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n"
+	lecturaDelArticulo25 = "  - norma: BOE-A-2015-10566\n    bloque: a25\n" +
+		"    motivo: La pregunta por la legalidad lleva al principio de la potestad sancionadora.\n"
+)
+
+// TestFormatoDeLecturas fija lo que H26.1 da al formato de eval
+// (contracts/formato-de-eval.md §1 y §2; data-model §1, reglas 1 a 3; FR-008,
+// FR-009, FR-012, FR-014; SC-004, SC-005): lecturas, con su norma, su bloque y su
+// motivo, y sin_servir, con un bloque o con una consulta de norma, se leen
+// enteros, con LeerEval y con LeerConjunto, y un bloque de sin_servir que es un
+// comando de bloque de la eval se admite (FR-016). Se rechazan, cada uno con el
+// nombre del fichero y la entrada o la ruta del esquema: una lectura sin motivo,
+// con el motivo vacío o solo de blancos; una cuyo bloque ya es un comando de
+// bloque de la eval, con fecha o sin ella, aunque no sea la primera, o una de sus
+// citas; un bloque de sin_servir que es una cita; un verbo que no es indice ni
+// metadatos; una entrada con bloque y verbo; y lecturas o sin_servir vacías: cada
+// documento es el bien formado con solo ese defecto.
+func TestFormatoDeLecturas(t *testing.T) {
+	t.Parallel()
+
+	const (
+		lpac  = "BOE-A-2015-10565"
+		lrjsp = "BOE-A-2015-10566"
+
+		motivo = "La pregunta por la legalidad lleva al principio de la potestad sancionadora."
+
+		// enLaPrimeraLectura y enLaPrimeraSinServir son el principio de un defecto
+		// de la primera entrada de cada clave, con su línea, y enElMotivo, el de
+		// un defecto del motivo de la primera lectura.
+		enLaPrimeraLectura   = "lecturas/0, línea 15: "
+		enLaPrimeraSinServir = "sin_servir/0, línea 15: "
+		enElMotivo           = "lecturas/0/motivo, línea 17: "
+
+		// patronDelMotivo es el pattern del motivo en el esquema, \S, como lo
+		// escribe el error.
+		patronDelMotivo = "'\\\\S'"
+	)
+
+	// conLas es el documento bien formado de la eval con esas líneas detrás de su
+	// cita, desde la línea 14.
+	conLas := func(lineas string) string { return preguntaDeLasLecturas + comandosYCitaDeLasLecturas + lineas }
+
+	// leidaCon es lo que se lee del documento de conLas, con esas lecturas y esas
+	// lecturas sin servir.
+	leidaCon := func(lecturas []LecturaDeLaEval, sinServir []LecturaSinServir) Eval {
+		return Eval{
+			Fichero: nombreDeEval, Pregunta: "¿Hasta cuándo puedo recurrir en reposición?", Activa: true,
+			Comandos: []ComandoEsperado{
+				{Applet: "boe", Norma: lpac, Bloque: "a124", Fecha: "2026-09-01"},
+				{Applet: "boe", Norma: lpac, Bloque: "a112"},
+			},
+			Citas:     []CitaEsperada{{Norma: lpac, Bloque: "a21"}},
+			Lecturas:  lecturas,
+			SinServir: sinServir,
+		}
+	}
+
+	casos := []casoDeLecturaDeEval{
+		{
+			nombre: "las-dos-claves",
+			documento: conLas("lecturas:\n" + lecturaDelArticulo25 +
+				"sin_servir:\n  - norma: BOE-A-2015-10565\n    bloque: a30\n" +
+				"  - norma: BOE-A-2015-10565\n    verbo: indice\n  - norma: BOE-A-2015-10566\n    verbo: metadatos\n"),
+			leida: leidaCon(
+				[]LecturaDeLaEval{{Norma: lrjsp, Bloque: "a25", Motivo: motivo}},
+				[]LecturaSinServir{
+					{Norma: lpac, Bloque: "a30"}, {Norma: lpac, Verbo: "indice"}, {Norma: lrjsp, Verbo: "metadatos"},
+				},
+			),
+		},
+		{
+			// Es lo que la eval quiere provocar: que la lectura de un comando
+			// suyo, con fecha o sin ella, no se sirva (FR-016).
+			nombre: "sin-servir-los-comandos-de-bloque",
+			documento: conLas("sin_servir:\n  - norma: BOE-A-2015-10565\n    bloque: a124\n" +
+				"  - norma: BOE-A-2015-10565\n    bloque: a112\n"),
+			leida: leidaCon(nil, []LecturaSinServir{{Norma: lpac, Bloque: "a124"}, {Norma: lpac, Bloque: "a112"}}),
+		},
+		{
+			nombre:    "lectura-sin-motivo",
+			documento: conLas("lecturas:\n  - norma: BOE-A-2015-10566\n    bloque: a25\n"),
+			error:     nombreDeEval + ": " + enLaPrimeraLectura + "missing property 'motivo'",
+		},
+		{
+			nombre:    "lectura-con-el-motivo-vacio",
+			documento: conLas("lecturas:\n  - norma: BOE-A-2015-10566\n    bloque: a25\n    motivo: \"\"\n"),
+			error:     nombreDeEval + ": " + enElMotivo + "'' does not match pattern " + patronDelMotivo,
+		},
+		{
+			nombre:    "lectura-con-el-motivo-de-blancos",
+			documento: conLas("lecturas:\n  - norma: BOE-A-2015-10566\n    bloque: a25\n    motivo: \" \\t \"\n"),
+			error:     nombreDeEval + ": " + enElMotivo + "' \\t ' does not match pattern " + patronDelMotivo,
+		},
+		{
+			nombre:    "lectura-de-un-comando-con-fecha",
+			documento: conLas("lecturas:\n  - norma: BOE-A-2015-10565\n    bloque: a124\n    motivo: " + motivo + "\n"),
+			error:     nombreDeEval + ": lecturas: BOE-A-2015-10565 a124: ya es un comando esperado de la eval",
+		},
+		{
+			nombre: "lectura-de-un-comando-sin-fecha-detras-de-otra",
+			documento: conLas("lecturas:\n" + lecturaDelArticulo25 +
+				"  - norma: BOE-A-2015-10565\n    bloque: a112\n    motivo: " + motivo + "\n"),
+			error: nombreDeEval + ": lecturas: BOE-A-2015-10565 a112: ya es un comando esperado de la eval",
+		},
+		{
+			nombre:    "lectura-de-una-cita",
+			documento: conLas("lecturas:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n    motivo: " + motivo + "\n"),
+			error:     nombreDeEval + ": lecturas: BOE-A-2015-10565 a21: ya es una cita esperada de la eval",
+		},
+		{
+			nombre:    "sin-servir-una-cita",
+			documento: conLas("sin_servir:\n  - norma: BOE-A-2015-10565\n    bloque: a21\n"),
+			error:     nombreDeEval + ": sin_servir: BOE-A-2015-10565 a21: es una cita esperada de la eval",
+		},
+		{
+			// analisis es un verbo de consulta de norma de los comandos, pero no
+			// de sin_servir.
+			nombre:     "sin-servir-con-otro-verbo",
+			documento:  conLas("sin_servir:\n  - norma: BOE-A-2015-10565\n    verbo: analisis\n"),
+			fragmentos: []string{"sin_servir/0/verbo, línea 16: value must be one of 'indice', 'metadatos'"},
+		},
+		{
+			nombre:    "sin-servir-con-bloque-y-verbo",
+			documento: conLas("sin_servir:\n  - norma: BOE-A-2015-10565\n    bloque: a30\n    verbo: indice\n"),
+			fragmentos: []string{
+				enLaPrimeraSinServir + "additional properties 'bloque' not allowed",
+				enLaPrimeraSinServir + "additional properties 'verbo' not allowed",
+			},
+		},
+		{
+			nombre:    "lecturas-vacias",
+			documento: conLas("lecturas: []\n"),
+			error:     nombreDeEval + ": lecturas, línea 14: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "sin-servir-vacio",
+			documento: conLas("sin_servir: []\n"),
+			error:     nombreDeEval + ": sin_servir, línea 14: minItems: got 0, want 1",
+		},
+	}
+
+	probarLasLecturasDeEval(t, casos)
+
+	t.Run("con-leer-conjunto", func(t *testing.T) {
+		t.Parallel()
+
+		probarLasLecturasDelConjunto(t, casos)
+	})
+}
+
+// probarLasLecturasDelConjunto escribe el documento de cada caso en un mismo
+// directorio temporal, cada uno con su número y su nombre, <nn>-<nombre>.yaml, y
+// los lee con LeerConjunto: el bien formado está entre las evals, con su nombre
+// en Fichero, y el mal formado, entre los ficheros mal formados, con el error
+// del caso, que empieza por su nombre y no por nombreDeEval.
+func probarLasLecturasDelConjunto(t *testing.T, casos []casoDeLecturaDeEval) {
+	t.Helper()
+
+	fichero := func(posicion int, caso casoDeLecturaDeEval) string {
+		return fmt.Sprintf("%02d-%s.yaml", posicion+1, caso.nombre)
+	}
+
+	entradas := make([]entradaDeConjunto, 0, len(casos))
+	for posicion, caso := range casos {
+		entradas = append(entradas, entradaDeConjunto{nombre: fichero(posicion, caso), contenido: caso.documento})
+	}
+
+	conjunto, err := LeerConjunto(crearConjunto(t, entradas))
+	require.NoError(t, err)
+
+	var bienFormadas, malFormados int
+
+	for posicion, caso := range casos {
+		nombre := fichero(posicion, caso)
+
+		if caso.error == "" && len(caso.fragmentos) == 0 {
+			bienFormadas++
+			leida := caso.leida
+			leida.Fichero = nombre
+			assert.Contains(t, conjunto.Evals, leida, "%s se lee entera", nombre)
+
+			continue
+		}
+
+		malFormados++
+		indice := slices.IndexFunc(conjunto.MalFormados, func(mal FicheroMalFormado) bool { return mal.Fichero == nombre })
+		require.NotEqual(t, -1, indice, "%s es un fichero mal formado", nombre)
+
+		errDelFichero := conjunto.MalFormados[indice].Error
+		require.Error(t, errDelFichero)
+		assert.True(t, strings.HasPrefix(errDelFichero.Error(), nombre+": "), "el error de %s empieza por su nombre", nombre)
+
+		if caso.error != "" {
+			require.EqualError(t, errDelFichero, nombre+strings.TrimPrefix(caso.error, nombreDeEval))
+		}
+
+		for _, fragmento := range caso.fragmentos {
+			require.ErrorContains(t, errDelFichero, fragmento)
+		}
+	}
+
+	assert.Len(t, conjunto.Evals, bienFormadas)
+	assert.Len(t, conjunto.MalFormados, malFormados)
 }
 
 // TestEsquemaDeEval comprueba que el esquema publicado del formato común de eval

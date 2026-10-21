@@ -1,19 +1,17 @@
 {
-  "id": "T002",
-  "texto": "T002 [datos] Las tres entradas del manifiesto de grabación de las evals, y nada más (plan.md paso 2, «Datos externos»; contracts/formato-de-eval.md §4; data-model §9; research V2, V11, D17). En `internal/evals/testdata/grabaciones.json`, al final de `normas`, las tres entradas del contrato tal cual —«régimen jurídico del sector público» con `titulo_empieza_por` `Ley 40/2015,` y `bloques` `a26` y `a27`; «impuesto renta personas físicas» con `Ley 35/2006,` y `a18`; «reguladora de las haciendas locales» con `Real Decreto Legislativo 2/2004,` y `a15`—, cada una con su `para`; `\"fuente\": \"boe.legislacion-consolidada\"` sigue igual. Ningún test ni código cambia: `TestGrabarEvals` ya sirve primero lo grabado de H4 y H5 y solo pide a la fuente lo que falta (research V11). Tras el commit, el paso `grabar_datos` del workflow graba los cuatro bloques en `internal/evals/testdata/boe.legislacion-consolidada/`; ninguna tarea los escribe a mano, toca la red ni escribe en la carpeta de la evidencia, y `docs/SOURCES.md` no cambia (D17). **Verificación**: `TestManifiestoDeGrabaciones` (su subtest del repositorio lee el manifiesto real sin error) y `TestGrabacionesSinSolape` en verde; `make ci` en verde — FR-010; SC-018. Rutas: internal/evals/testdata/grabaciones.json",
+  "id": "T003",
+  "texto": "T003 El formato de eval gana `lecturas` y `sin_servir`, con los cruces de `LeerEval` detrás del esquema (plan.md paso 3; contracts/formato-de-eval.md §1 y §2; data-model §1, reglas 1 a 3; research D9, V21). **`internal/evals/formato.go`**: `LecturaDeLaEval{Norma, Bloque, Motivo string}` (`norma`, `bloque`, `motivo`) y `LecturaSinServir{Norma, Bloque, Verbo string}` (`norma`, `bloque`, `verbo`, los dos últimos opcionales), con su comentario de documentación; `Eval` gana `Lecturas []LecturaDeLaEval` (`lecturas`) y `SinServir []LecturaSinServir` (`sin_servir`). `LeerEval`, detrás de la validación contra el esquema, rechaza como fichero mal formado, con un error que empieza por el nombre del fichero como los demás: una entrada de `lecturas` cuyo bloque —misma norma y mismo bloque— es un comando de bloque de la eval, con o sin `fecha` (`lecturas: <norma> <bloque>: ya es un comando esperado de la eval`), o una de sus `citas` (`… ya es una cita esperada de la eval`); y un bloque de `sin_servir` que es una de sus `citas` (`sin_servir: <norma> <bloque>: es una cita esperada de la eval`). Un bloque de `sin_servir` que es un comando de bloque de la misma eval se admite (FR-016). **`TestFormatoDeLecturas`** (`internal/evals/formato_test.go`), con evals sintéticas escritas en `t.TempDir()` y leídas con `LeerEval` y con `LeerConjunto`: lee una eval con `lecturas` y con `sin_servir` de las dos formas (un bloque y una consulta de norma), con sus campos; y rechaza, cada una con el nombre del fichero y la entrada (o la ruta del esquema: `/lecturas/0/motivo`, `/sin_servir/0`…), una lectura sin `motivo`, con el motivo vacío y con solo blancos; una lectura cuyo bloque ya es un comando de bloque, con `fecha` y sin ella; una cuyo bloque es una cita; un bloque de `sin_servir` que es una cita; un `verbo` que no es `indice` ni `metadatos`; una entrada con `bloque` y `verbo`; y `lecturas` o `sin_servir` vacías; y admite un bloque de `sin_servir` que es un comando de bloque. Con el lector de antes (sin los tipos), el caso que lee las dos claves sale en rojo. **Verificación**: `TestFormatoDeLecturas`, `TestLeerEval`, `TestEsquemaDeEval` y `TestEvalsDelRepositorio` en verde; `make ci` en verde — FR-008, FR-009, FR-012, FR-014; SC-004, SC-005. Rutas: internal/evals/formato.go, internal/evals/formato_test.go",
   "intento": 1,
-  "datos": true,
+  "datos": false,
   "aceptacion": false,
-  "base": "8f297cc5acd0c5ab3c3fa3ab0061ce1af914f81b",
+  "base": "f1e4bdf92e66a6639dae398879636d4e05a64199",
   "rutas": [
-    "2/2004",
-    "35/2006",
-    "40/2015",
     "contracts/formato-de-eval.md",
-    "docs/SOURCES.md",
-    "internal/evals/testdata/boe.legislacion-consolidada",
-    "internal/evals/testdata/grabaciones.json",
-    "plan.md"
+    "internal/evals/formato.go",
+    "internal/evals/formato_test.go",
+    "lecturas/0/motivo",
+    "plan.md",
+    "sin_servir/0"
   ],
   "cierre": false,
   "converger": false,
