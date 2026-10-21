@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-21
+
 ### Añadido
 
 - **La caché de cada sesión de evals sirve lo que la skill lleva a leer (ADR 0043).** La de una sesión del job, del
@@ -119,6 +121,12 @@ sustituyen a este fichero.
   del paso 7 y el que abre el paso 10, con el punto de la línea `⚠ REDACCIÓN A FECHA:`, se dicen con menos líneas, sin
   quitar ninguna regla ni ningún caso; la tabla de comandos y `references/` no cambian. Lo miden la 11 y la 12
   (arriba). Sustituye a `legal-core` v1.2.2.
+
+### Seguridad
+
+- **El binario se compila con go1.27.3.** go1.27.2 traía GO-2026-6809 (`crypto/x509`: desconfiar de los certificados
+  intermedios comprometidos), que `make vuln` encuentra en la ruta de `internal/empaquetado`; go1.27.3 la corrige
+  (#180).
 
 ## [0.8.0] - 2026-10-20
 
