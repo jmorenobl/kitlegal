@@ -2,7 +2,9 @@ package evals
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
+	"github.com/jmorenobl/kitlegal/internal/render"
 )
 
 // casosDeLeerSesion es el directorio de los casos de TestLeerSesion: cada
@@ -56,7 +59,8 @@ type ficheroIlegible struct {
 // que el tope cortó antes de su primer mensaje (contrato job-de-evals §4 y §9;
 // FR-071, FR-072). La sesión que lanza una orden kitlegal en segundo plano lleva
 // en sus textos esa orden con lo que Bash devolvió de ella, y las demás, que no
-// ejecutan ninguna, no llevan ninguno (contracts/juez-y-voto.md §2 de H24).
+// ejecutan ninguna, no llevan ninguno (contracts/juez-y-voto.md §2 de H24); y,
+// desde H26.1, la lleva también en sus órdenes de Bash (research D10).
 func TestLeerSesion(t *testing.T) {
 	t.Parallel()
 
@@ -74,6 +78,7 @@ func TestLeerSesion(t *testing.T) {
 		Orden:  "kitlegal boe buscar 'obligación de resolver'",
 		Salida: "Command running in background with ID: tarea_sintetica_01",
 	}}
+	conUnaOrdenEnSegundoPlano.OrdenesDeBash = conUnaOrdenEnSegundoPlano.Textos
 
 	casos := []struct {
 		nombre   string
@@ -280,6 +285,14 @@ const (
 // también la orden kitlegal de Bash de modo-orden, que no es una llamada; y no
 // deja ninguno la llamada sin resultado ni la de una herramienta que no es del
 // registro (contracts/juez-y-voto.md §2 de H24).
+//
+// Desde H26.1 (data-model §3; research D7; FR-023; SC-007), fija también, sobre
+// transcripts que el propio test escribe en t.TempDir(), qué llamada es una sin
+// sobre: la que tiene resultado, es un error y ninguno de los textos de su
+// contenido es un objeto JSON con ok, como la de boe_indice a la que el agente
+// responde que la herramienta no existe. No lo es la que falla con un sobre de
+// kitlegal, aunque llegue detrás de un aviso; ni la que termina bien, con sobre
+// o sin él; ni la que no tiene resultado.
 func TestLeerLasLlamadas(t *testing.T) {
 	t.Parallel()
 
@@ -304,6 +317,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 		}
 	}
 
+	// Una sesión sin llamadas solo tiene los textos de sus órdenes de Bash.
 	sinLlamadas := func(respuesta string, textos ...Texto) Sesion {
 		return Sesion{
 			Modelo:              modeloDeLasSesiones,
@@ -313,6 +327,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 			Fin:                 "result success",
 			Terminada:           true,
 			Textos:              textos,
+			OrdenesDeBash:       textos,
 		}
 	}
 
@@ -414,6 +429,103 @@ func TestLeerLasLlamadas(t *testing.T) {
 			assert.Equal(t, caso.modo, modo, "el modo lo da servidor.json, y no las llamadas de la sesión")
 		})
 	}
+
+	t.Run("sin-sobre", func(t *testing.T) {
+		t.Parallel()
+		probarLasLlamadasSinSobre(t)
+	})
+}
+
+// probarLasLlamadasSinSobre son los casos de TestLeerLasLlamadas de la llamada
+// sin sobre (data-model §3; research D7; FR-023): cada uno, una llamada a
+// boe_indice y lo que el transcript trae de su resultado.
+func probarLasLlamadasSinSobre(t *testing.T) {
+	t.Helper()
+
+	const (
+		// avisoDeHerramientaInexistente es lo que el agente devuelve, como un
+		// error, de la llamada a una herramienta que no tiene: no es un sobre.
+		avisoDeHerramientaInexistente = "<tool_use_error>Error: No such tool available: " +
+			"mcp__kitlegal__boe_indice</tool_use_error>"
+
+		sobreDeFalloDelIndice = `{"ok":false,"fuente":"boe.legislacion-consolidada","data":` +
+			`{"clase":"fuente-no-disponible","mensaje":"con --offline no se pide nada a la fuente"}}`
+	)
+
+	indice := func(conResultado, conError, sinSobre bool, clase schema.Clase) Llamada {
+		return Llamada{
+			Herramienta:  "boe_indice",
+			Argumentos:   json.RawMessage(argumentosDelIndice),
+			ConResultado: conResultado,
+			Error:        conError,
+			Clase:        clase,
+			SinSobre:     sinSobre,
+		}
+	}
+
+	uso := mensajeDeLlamadas(t,
+		usoDeHerramienta{id: "toolu_01", nombre: "mcp__kitlegal__boe_indice", entrada: argumentosDelIndice})
+
+	casos := []struct {
+		nombre    string
+		resultado string
+		llamada   Llamada
+	}{
+		{
+			nombre: "la-herramienta-no-existe",
+			resultado: mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_01", contenido: cadenaJSON(t, avisoDeHerramientaInexistente), conError: true,
+			}),
+			llamada: indice(true, true, true, ""),
+		},
+		{
+			nombre: "error-con-un-objeto-sin-ok",
+			resultado: mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_01", contenido: contenidoDeTextos(t, avisoDeHerramientaInexistente, `{"aviso":true}`), conError: true,
+			}),
+			llamada: indice(true, true, true, ""),
+		},
+		{
+			nombre: "error-con-un-sobre-de-kitlegal",
+			resultado: mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_01", contenido: contenidoDeTextos(t, sobreDeFalloDelIndice), conError: true,
+			}),
+			llamada: indice(true, true, false, schema.ClaseFuenteNoDisponible),
+		},
+		{
+			nombre: "error-con-el-sobre-tras-un-aviso",
+			resultado: mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_01", contenido: contenidoDeTextos(t, "aviso", sobreDeFalloDelIndice), conError: true,
+			}),
+			llamada: indice(true, true, false, schema.ClaseFuenteNoDisponible),
+		},
+		{
+			nombre: "termina-bien",
+			resultado: mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_01", contenido: cadenaJSON(t, sobreDelIndice),
+			}),
+			llamada: indice(true, false, false, ""),
+		},
+		{
+			nombre: "termina-bien-sin-sobre",
+			resultado: mensajeDeResultados(t, resultadoDeHerramienta{
+				id: "toolu_01", contenido: cadenaJSON(t, "aviso"),
+			}),
+			llamada: indice(true, false, false, ""),
+		},
+		{nombre: "sin-resultado", llamada: indice(false, false, false, "")},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			sesion, err := LeerSesion(escribirSesion(t, mensajeInit+uso+caso.resultado+mensajeResultCorrecto))
+
+			require.NoError(t, err)
+			assert.Equal(t, []Llamada{caso.llamada}, sesion.Llamadas)
+		})
+	}
 }
 
 // TestLeerLasLlamadasDeVariosMensajes fija, sobre transcripts que el propio test
@@ -425,7 +537,8 @@ func TestLeerLasLlamadas(t *testing.T) {
 // falso; un mensaje user sin bloques tool_result, el de un turno de texto, no
 // aporta nada; y un resultado del que no se lee ningún sobre —un texto que no
 // lo es, un bloque que no es de texto o ningún content— es un error solo por su
-// is_error, sin clase, como queda sin clase el sobre de fallo que no la lleva.
+// is_error, sin clase, como queda sin clase el sobre de fallo que no la lleva;
+// y, desde H26.1 (FR-023), es una llamada sin sobre.
 func TestLeerLasLlamadasDeVariosMensajes(t *testing.T) {
 	t.Parallel()
 
@@ -443,6 +556,12 @@ func TestLeerLasLlamadasDeVariosMensajes(t *testing.T) {
 			Error:        conError,
 			Clase:        clase,
 		}
+	}
+
+	sinSobre := func(llamada Llamada) Llamada {
+		llamada.SinSobre = true
+
+		return llamada
 	}
 
 	casos := []struct {
@@ -501,9 +620,12 @@ func TestLeerLasLlamadasDeVariosMensajes(t *testing.T) {
 					resultadoDeHerramienta{id: "toolu_03", conError: true},
 				),
 			llamadas: []Llamada{
-				articulo(argumentosDelArticulo21, true, true, ""),
-				articulo(argumentosDelArticulo24, true, true, ""),
-				{Herramienta: "territorio_resolver", Argumentos: json.RawMessage(argumentosDelMunicipio), ConResultado: true, Error: true},
+				sinSobre(articulo(argumentosDelArticulo21, true, true, "")),
+				sinSobre(articulo(argumentosDelArticulo24, true, true, "")),
+				{
+					Herramienta: "territorio_resolver", Argumentos: json.RawMessage(argumentosDelMunicipio),
+					ConResultado: true, Error: true, SinSobre: true,
+				},
 			},
 		},
 		{
@@ -657,6 +779,27 @@ func contenidoDeTextos(t *testing.T, textos ...string) string {
 	return "[" + strings.Join(bloques, ",") + "]"
 }
 
+// lineaDeLaEscrituraFallida es la línea con la que el binario declara en su
+// salida de error que no pudo escribir su salida estándar: el error que da su
+// presentador con una salida que falla como una tubería sin lector, sin ninguna
+// copia del mensaje (research D8; FR-025).
+func lineaDeLaEscrituraFallida(t *testing.T) string {
+	t.Helper()
+
+	err := render.Nuevo(salidaSinLector{}, io.Discard).Texto(sobreDelIndice)
+	require.Error(t, err, "con una salida que falla, el presentador devuelve el error de la escritura")
+
+	return err.Error()
+}
+
+// salidaSinLector es una salida cuyas escrituras fallan todas, como la de una
+// tubería cuyo lector ya no existe.
+type salidaSinLector struct{}
+
+func (salidaSinLector) Write([]byte) (int, error) {
+	return 0, errors.New("write |1: broken pipe")
+}
+
 // Lo que piden y devuelven las herramientas de los transcripts de
 // TestTextosDeLaSesion: dos órdenes kitlegal de Bash, la segunda dentro de una
 // orden compuesta y con el binario por su ruta, y los sobres que devuelven, con
@@ -797,6 +940,12 @@ func sesionDeCitaEn(t *testing.T, modo Modo, documento, skillMD string) sesionDe
 // el informe publica de ella, que lleva el documento entero; detrás va el de la
 // consulta que falla, con lo que devolvió; y ni la activación de la skill ni la
 // lectura de su SKILL.md dan ninguno.
+//
+// Desde H26.1 (data-model §3; research D10; FR-025, FR-026; SC-007), fija
+// también Sesion.OrdenesDeBash en cada caso: de esos textos, los de las órdenes
+// de Bash que nombran kitlegal, en su orden y tal cual, y no los de las
+// llamadas; entre ellas, la orden con «| python3 -c …» cuya salida trae la línea
+// con la que el binario declara que no pudo escribir su salida estándar.
 func TestTextosDeLaSesion(t *testing.T) {
 	t.Parallel()
 
@@ -814,10 +963,19 @@ func TestTextosDeLaSesion(t *testing.T) {
 	citaPorOrden := sesionDeCitaEn(t, ModoOrden, fragmento, skillMDDeJurisprudencia)
 	citaPorLlamada := sesionDeCitaEn(t, ModoHerramienta, fragmento, skillMDDeJurisprudencia)
 
+	// La orden que lee el índice con python3, que deja de leer la salida del
+	// binario antes de que termine, y lo que devuelve: el principio del sobre y
+	// la línea de la escritura fallida.
+	ordenConPython := ordenDelIndice + ` | python3 -c 'import sys; print(sys.stdin.read(40))'`
+	salidaConPython := sobreDelIndice[:40] + "\n" + lineaDeLaEscrituraFallida(t)
+
 	casos := []struct {
 		nombre     string
 		transcript string
 		textos     []Texto
+
+		// ordenes son las de Sesion.OrdenesDeBash.
+		ordenes []Texto
 	}{
 		{
 			nombre: "modo-orden-en-su-orden",
@@ -832,6 +990,10 @@ func TestTextosDeLaSesion(t *testing.T) {
 				}) +
 				mensajeDeResultados(t, resultadoDeHerramienta{id: "toolu_02", contenido: cadenaJSON(t, sobreDelIndice)}),
 			textos: []Texto{
+				{Orden: ordenDelIndice, Salida: sobreDelIndice},
+				{Orden: ordenDelArticulo, Salida: sobreDelArticulo + "\nShell cwd was reset to /tmp/trabajo"},
+			},
+			ordenes: []Texto{
 				{Orden: ordenDelIndice, Salida: sobreDelIndice},
 				{Orden: ordenDelArticulo, Salida: sobreDelArticulo + "\nShell cwd was reset to /tmp/trabajo"},
 			},
@@ -870,6 +1032,7 @@ func TestTextosDeLaSesion(t *testing.T) {
 				{Orden: ordenDelArticulo, Salida: errorDeBash},
 				{Orden: "boe_articulo BOE-A-2015-10565 a21", Salida: sobreSinFuente},
 			},
+			ordenes: []Texto{{Orden: ordenDelArticulo, Salida: errorDeBash}},
 		},
 		{
 			nombre: "ni-skill-ni-read-ni-otra-herramienta-ni-bash-sin-kitlegal",
@@ -905,7 +1068,8 @@ func TestTextosDeLaSesion(t *testing.T) {
 					usoDeHerramienta{id: "toolu_02", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)},
 					usoDeHerramienta{id: "toolu_03", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21},
 				),
-			textos: []Texto{{Orden: ordenDelIndice, Salida: sobreDelIndice}},
+			textos:  []Texto{{Orden: ordenDelIndice, Salida: sobreDelIndice}},
+			ordenes: []Texto{{Orden: ordenDelIndice, Salida: sobreDelIndice}},
 		},
 		{
 			nombre: "resultado-sin-ningun-texto",
@@ -917,10 +1081,41 @@ func TestTextosDeLaSesion(t *testing.T) {
 					resultadoDeHerramienta{id: "toolu_01", contenido: `""`},
 					resultadoDeHerramienta{id: "toolu_02"},
 				),
-			textos: []Texto{{Orden: ordenDelIndice}, {Orden: "boe_articulo BOE-A-2015-10565 a21"}},
+			textos:  []Texto{{Orden: ordenDelIndice}, {Orden: "boe_articulo BOE-A-2015-10565 a21"}},
+			ordenes: []Texto{{Orden: ordenDelIndice}},
 		},
-		{nombre: "cita-cotejar-por-orden", transcript: citaPorOrden.transcript, textos: citaPorOrden.textos},
+		{
+			nombre: "cita-cotejar-por-orden", transcript: citaPorOrden.transcript,
+			textos: citaPorOrden.textos, ordenes: citaPorOrden.textos,
+		},
 		{nombre: "cita-cotejar-por-llamada", transcript: citaPorLlamada.transcript, textos: citaPorLlamada.textos},
+		{
+			nombre: "ordenes-de-bash-con-la-escritura-fallida",
+			transcript: mensajeDeLlamadas(t,
+				usoDeHerramienta{id: "toolu_01", nombre: "Bash", entrada: entradaDeBash(t, ordenConPython)},
+				usoDeHerramienta{id: "toolu_02", nombre: "mcp__kitlegal__boe_articulo", entrada: argumentosDelArticulo21},
+				usoDeHerramienta{id: "toolu_03", nombre: "Bash", entrada: entradaDeBash(t, "ls -la /tmp/trabajo")},
+				usoDeHerramienta{id: "toolu_04", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)},
+				usoDeHerramienta{id: "toolu_05", nombre: "Bash", entrada: entradaDeBash(t, ordenDelIndice)},
+			) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_04", contenido: cadenaJSON(t, sobreDelArticulo)},
+					resultadoDeHerramienta{id: "toolu_03", contenido: cadenaJSON(t, "kitlegal\nSKILL.md")},
+				) +
+				mensajeDeResultados(t,
+					resultadoDeHerramienta{id: "toolu_02", contenido: contenidoDeTextos(t, sobreDelArticulo)},
+					resultadoDeHerramienta{id: "toolu_01", contenido: cadenaJSON(t, salidaConPython)},
+				),
+			textos: []Texto{
+				{Orden: ordenConPython, Salida: salidaConPython},
+				{Orden: "boe_articulo BOE-A-2015-10565 a21", Salida: sobreDelArticulo},
+				{Orden: ordenDelArticulo, Salida: sobreDelArticulo},
+			},
+			ordenes: []Texto{
+				{Orden: ordenConPython, Salida: salidaConPython},
+				{Orden: ordenDelArticulo, Salida: sobreDelArticulo},
+			},
+		},
 		{nombre: "sin-textos"},
 	}
 
@@ -932,6 +1127,8 @@ func TestTextosDeLaSesion(t *testing.T) {
 
 			require.NoError(t, err)
 			assert.Equal(t, caso.textos, sesion.Textos)
+			assert.Equal(t, caso.ordenes, sesion.OrdenesDeBash,
+				"las órdenes de Bash son los textos de las que nombran kitlegal, y no los de las llamadas")
 		})
 	}
 

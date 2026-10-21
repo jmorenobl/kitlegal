@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-21T05:40:04Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2004-4214/texto/bloque/a15",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "1459"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Wed, 21 Oct 2026 05:40:06 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a15\" tipo=\"precepto\" titulo=\"Artículo 15\">\n      <version id_norma=\"BOE-A-2004-4214\" fecha_publicacion=\"20040309\" fecha_vigencia=\"20040310\">\n        <p class=\"articulo\">Artículo 15. Ordenanzas fiscales.</p>\n        <p class=\"parrafo\">1. Salvo en los supuestos previstos en el artículo 59.1 de esta ley, las entidades locales deberán acordar la imposición y supresión de sus tributos propios, y aprobar las correspondientes ordenanzas fiscales reguladoras de estos.</p>\n        <p class=\"parrafo\">2. Respecto de los impuestos previstos en el artículo 59.1, los ayuntamientos que decidan hacer uso de las facultades que les confiere esta ley en orden a la fijación de los elementos necesarios para la determinación de las respectivas cuotas tributarias, deberán acordar el ejercicio de tales facultades, y aprobar las oportunas ordenanzas fiscales.</p>\n        <p class=\"parrafo\">3. Asimismo, las entidades locales ejercerán la potestad reglamentaria a que se refiere el apartado 2 del artículo 12 de esta ley, bien en las ordenanzas fiscales reguladoras de los distintos tributos locales, bien mediante la aprobación de ordenanzas fiscales específicamente reguladoras de la gestión, liquidación, inspección y recaudación de los tributos locales.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log: «ci: todos los controles en verde», lint «0 issues.», vuln sin hallazgos, fecha 2026-10-21 14:11:11, la misma que el commit de la cabeza 4c23eed (que solo toca docs y un comentario de doc.go). Reproducido en una copia del árbol en $TMPDIR (rsync sin .git): `go test -count=1 ./internal/evals/` → 2299 tests en verde (54 s); `golangci-lint run ./...` → 0 issues; `go test ./internal/` (reglas de arquitectura) y TestTuberiaCerrada, TestEsquemasPublicados, TestSkillsDelRepositorio y TestOrdenesDeLasSkillsEmpotradas de ./internal/app/ en verde. Árbol limpio salvo gates/modelos.jsonl (modificado por el workflow) y gates/revision-cambios.md y revision-ciclo.json (artefactos de esta ronda)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Cada pieza nueva tiene test offline que la detecta: TestEvalsDelRepositorio/lo-que-lleva-a-leer (conjunto_test.go:2339-2370, con el oráculo de grabaciones_test.go:1037-1157 y no el código probado), TestLoQueLlevaALeerSinGrabar (preparar_test.go:995-1055, copia de data/ con a128→a129 y la sesión sin abrir), TestCacheDeLasSesiones (preparar_test.go:1070-1136, 4 en 3 fechas desde la 11 y la 12, 0 desde la 05 y la 07; los 4 bloques de lecturas), TestFormatoDeLecturas (formato_test.go:1907-2038, 14 casos con su error), TestJuzgarLasLecturasSinServir (juzgar_test.go:3966-4441: reparto, la 11 en los dos modos con la fecha del comando, sin fecha y en otra fecha, la 12, la sesión cortada y la 16 con y sin lecturas), TestJuzgarElMotivoDeLasFallidas (juzgar_test.go:4480-4633, con exigirElMismoJuicio para FR-028), TestLineaDeLaSalidaNoEscrita (juzgar_test.go:4666-4688, app.Main con una salida que falla), TestUmbralesDeLasLecturas (umbrales_test.go:2200-2534, diez subtests con fallo del veredicto). Mutantes: los cinco de mutantes.md (ejecutados en T015 sobre e3f8f58, desde entonces solo cambiaron docs) y nueve míos en copias de $TMPDIR, todos en rojo: sin reparto a lecturas_sin_servir (juzgar.go:1097) → TestJuzgarLasLecturasSinServir y TestUmbralesDeLasLecturas; todo comando admite 4 y 5 (juzgar.go:1272 `return true`) → TestJuzgar, TestJuzgarLasLlamadas, TestJuzgarLecturasFechadas; la llamada sin sobre conserva el 1 (juzgar.go:701) → TestJuzgarElMotivoDeLasFallidas, TestUmbralesDeLasLecturas; enlace con dos usos (juzgar.go:1143 `== 0`) → TestJuzgarElMotivoDeLasFallidas; las sesiones sin medir cuentan (umbrales.go:866) → TestInformeConSesionesSinMedir, TestUmbralesDeLegalCore, TestUmbralesDelInforme y tres más; sin_servir no retira la lectura con --fecha (consultas.go:182) → TestCacheDeLasSesiones; la llamada sin sobre cuenta como intentada (umbrales.go:935) → TestUmbralesDeLasLecturas; 0 en vez de null en la serie (informe.go:2023) → TestInforme, TestUmbralesDeLasLecturas. Ningún t.Skip, nolint, TODO ni `_ =` en el diff de .go. No hay suite de aceptación congelada ni gates/aceptacion-congelada.json: plan.md «Aceptación e2e» y research D15 lo justifican (cmd/kitlegal no enlaza internal/evals; el diff no toca cmd/, internal/app, internal/cli ni internal/render); el SKILL.md empotrado lo cubren TestSkillsDelRepositorio y TestOrdenesDeLasSkillsEmpotradas, en verde en la copia."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Imports nuevos de internal/evals: internal/core/plazos y internal/skills (consultas.go:10-11) e internal/render (juzgar.go:18); .golangci.yml solo deniega render a internal/core (línea 137) y a internal/graph (línea 208); lint 0 issues en ci.log y en la copia; `go test ./internal/` (arch_test) en verde. Sin net/http, os.Exit ni fmt.Print* en el diff (grep sobre `git diff main...HEAD -- '*.go'`). La única escritura nueva es sobre io.Discard y un escritor que falla (juzgar.go:1181-1200)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet cambia su salida: el diff no toca internal/app, internal/cli ni schemas de applet; TestEsquemasPublicados en verde en la copia. schemas/eval.yaml.json gana lecturas, sin_servir y dos $defs (líneas 163-165, 357-381) y lo validan TestFormatoDeLecturas (14 casos con la ruta del error) y TestEsquemaDeEval/TestEvalsDelRepositorio contra las evals del repositorio (ci.log, skills-check en verde)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "FR-028: el código con que termina el binario no cambia (ningún fichero de cmd/, internal/app, internal/cli ni internal/render en el diff). La desreferencia `*fuera.Codigo` de informe.go:1908 solo alcanza FueraDeLoGrabado, que solo recibe invocaciones con código no nulo (juzgar.go:1103-1108: el nil retorna antes). queFaltaDesde acota con min(len, 2) (preparar.go:120). prefijoDeLaSalidaNoEscrita devuelve vacío sin pánico si el presentador no da la causa (juzgar.go:1168-1182) y TestLineaDeLaSalidaNoEscrita exige que no lo sea. Los errores de data/ que no se lee nombran la ruta y no abren la sesión (consultas.go:276-292, preparar.go:345-348)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md Unreleased (líneas 15-79 y 108-118): cuatro entradas Añadido y legal-core v1.2.3 en Cambiado. Comprobado contra el árbol: 17 bloques y 19 normas (17 parejas norma+bloque distintas en data/plazos.yaml y data/cobertura.yaml; 19 identificadores distintos en los tres ficheros) → 72 consultas; SKILL.md con 299 líneas (wc -l); 18 umbrales/12 deciden en legal-core y 19/11 en las otras dos, lo que fija TestUmbralesDeLasTresSkills; `lecturas_sin_servir: []` lo exige juzgar_test.go:4384; 19 525 s ≤ 352 min (definicion_test.go:1898, evals.yml:226). CONTRIBUTING.md documenta lecturas y sin_servir en la tabla del formato, qué sirve la caché de una sesión y los dos umbrales nuevos en las tres tablas. ADR 0043 ya aceptado en main; ninguna decisión cambia. docs/SOURCES.md no cambia (research D17: misma fuente con fila revisada, solo cuatro respuestas más). CLAUDE.md y docs/WORKFLOW.md no afirman nada de qué sirve la caché de una sesión (grep de «caché» en los dos)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna llamada de red en el diff: las cuatro respuestas nuevas de internal/evals/testdata/boe.legislacion-consolidada/ y la regrabación de robots.txt las dejó grabar_datos (gates/grabaciones.md con SHA-256; gates/grabaciones.log «ok»), de la fuente con fila revisada (docs/SOURCES.md, BOE). El diff del robots.txt grabado solo cambia fecha, Age, Content-Length, Etag y Last-Modified. Sin secretos (gitleaks en ci.log), sin NIF ni datos personales (las evals 11 y 12 llevan Leganés y una fecha de notificación). data/ y evidencias/ sin cambios (git diff --stat)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep sobre el diff de .go: 0 t.Skip, 0 nolint, 0 TODO/FIXME, 0 `_ =` nuevos. gates/cuarentena.json vacío. Fixtures: solo añadidos (tres entradas en grabaciones.json, cuatro respuestas nuevas) y la regrabación del robots.txt por grabar_datos; ningún golden retocado. Los tests existentes que cambian lo esperado (plan.md «Tests existentes que cambian lo que esperan») lo hacen por las dos evals y los umbrales nuevos, y siguen exigiendo lo de antes (p. ej. informe_test.go:6862-6960 compara la lista entera de umbrales)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ se limita a lo que nombra plan.md «Source Code»: internal/evals/*.go y sus tests, testdata de evals, schemas/eval.yaml.json, las evals 11 y 12 y las lecturas de la 14, 15 y 16 (solo `lecturas:` añadido, nada más cambia: FR-011), skills/legal-core/SKILL.md (pasos 7 y 10), CHANGELOG.md, CONTRIBUTING.md. go.mod (toolchain go1.27.3, commit 801c435, cherry-pick de la #180) es el arreglo de `make vuln` en rojo por GO-2026-6809 sobre go1.27.2, registrado en gates/tarea-T001.md: necesario para DoD §1.1 y sin más cambio que la directiva. Los supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec (p. ej. la llamada sin sobre fuera de lo intentado, la orden de salida no escrita dentro; el informe del instrumento sin medir sin umbrales; T011 sin tocar el frontmatter)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Caché de cada sesión: 72 consultas derivadas de data/ (17 bloques × 2 fechas + 19 normas × 2) más 8 de lecturas en boe-legislacion, menos 2 en la 11 y la 12; crece con data/, no con el uso, y cada sesión empieza vacía (preparar.go:335-360). Invocaciones por pregunta de las skills: sin cambio (la tabla de comandos de legal-core no cambia; el paso 10 lee los mismos preceptos). Informe del job, por job y sin acumulación entre jobs: +`\"lecturas_sin_servir\":[]` (25 B) por sesión, +`\"sesiones_con_lectura_sin_servir\":null` (39 B) por serie y 4 u 8 umbrales de ~350 B por skill; con las cifras del informe del cierre de H20 que registra plan.md «Uso» (boe-legislacion 919 KB, 222 sesiones, 74 series) son ~10 KB, el 1 %; el motivo de lectura_sin_intentar nombra como mucho las 3 sesiones de la 11 por modo (umbrales.go:1001-1016). No he medido un informe real de este hito, que solo existirá en el cierre: los tamaños por elemento salen de las formas JSON que fijan los tests (juzgar_test.go:4378-4385, umbrales_test). Las señales caducan: fuera_de_lo_grabado y lectura_sin_intentar se recalculan desde cero en cada job con las sesiones de ese job, y lectura_sin_intentar sale del informe cuando ninguna eval tiene un comando de bloque en su sin_servir (umbrales.go:962-964)."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": false,
+      "evidencia": "`lecturasDeLosDatos` (internal/evals/consultas.go:193-203) no tiene ningún llamador en el código del producto: `grep -rn lecturasDeLosDatos internal/evals/*.go` solo da su definición y tres usos en consultas_test.go (550, 614, 688). Es `consultasDeLaCache(nil, datos)` con otro nombre (anotarLasEvals(nil) no anota nada; consultas.go:161-170), así que los FR-001 y FR-002 a los que plan.md «Trazabilidad» (línea 317) la traza ya los cumple anotarLosDatos por consultasDeLaCache, y la función existe solo para que la llamen los tests. El resto de mecanismos se traza: PuntoLecturaDeLaEval y PuntoLoQueLlevaALeer a la falta de FR-003/FR-006 (preparar.go:117-126), SesionAPreparar.Datos al criterio de FR-003 (TestLoQueLlevaALeerSinGrabar), Sesion.OrdenesDeBash a FR-026, Llamada.SinSobre a FR-023, lecturasMedidas y sus dos umbrales a FR-021/FR-033, prefijoDeLaSalidaNoEscrita a FR-025, comprobarLasLecturas a FR-008/FR-014."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "lectura_sin_intentar:<modelo>:<modo> va en umbrales del informe con Decide solo para el modelo que decide (umbrales.go:979-985), compararUmbral lo marca incumplido con una sesión, su motivo nombra las sesiones (umbrales.go:1152-1156) y el veredicto es fallo (umbrales_test.go:2255-2263); mutantes de T015 (a: Decide false, b: sin el umbral, c: sin lecturas.umbrales()) y los míos (sesiones sin medir contadas; llamada sin sobre como intentada) en rojo. Cada fila `ci:` de plan.md «Controles de umbral» tiene su test en make ci y lo he visto en verde en la copia: TestEvalsDelRepositorio, TestLoQueLlevaALeerSinGrabar, TestCacheDeLasSesiones, TestBaseDeLaReconstruccion, TestFormatoDeLecturas, TestJuzgarLasLecturasSinServir, TestUmbralesDeLasLecturas, TestUmbralesDeLasTresSkills, TestJuzgarElMotivoDeLasFallidas, TestLeerLasLlamadas, TestLineaDeLaSalidaNoEscrita, TestTuberiaCerrada, TestDefinicionDelJob (19 525 s ≤ 352 min, definicion_test.go:1059 y 1898), skills-check. Los umbrales con cero sobre fuera_de_lo_grabado que el hito sí exige (SC-011 bloques de data/, SC-018 bloques de lecturas) tienen su control en make ci: la caché los sirve (TestEvalsDelRepositorio/lo-que-lleva-a-leer, TestCacheDeLasSesiones; en rojo con los mutantes 1 a 3 de T015 y con el mío de --fecha) y una falta de la preparación no abre la sesión (preparar_test.go:1049-1054). El umbral fuera_de_lo_grabado:<modelo>:<modo> se publica con decide: false por decisión del ADR 0043, punto 5 («publicado y sin decidir»), aceptado en main, y el spec lo pone fuera de alcance: no es un umbral que el hito pida cumplir, sino el recuento de todas las lecturas sin grabar, incluidas las de las clases (b) y (c) que el ADR decide no grabar."
+    }
+  ],
+  "motivos": [
+    "[k] `lecturasDeLosDatos` (internal/evals/consultas.go:193-203) no tiene ningún llamador en el código del producto: solo la llaman los tests (internal/evals/consultas_test.go:550, 614 y 688) y es exactamente `consultasDeLaCache(nil, datos)` (consultas.go:161-170: anotarLasEvals(nil) no anota nada). Retirar la función: que esos tres usos llamen a `consultasDeLaCache(nil, datosDelRepositorio)` o `consultasDeLaCache(nil, datos)` sin cambiar lo que comprueban (en probarLosDatosQueNoSeLeen queda solo consultasDeLaCache); quitar su mención en el comentario de consultasDeLaCache («las de lecturasDeLosDatos del directorio data/» → «las de anotarLosDatos») y en el de probarLosDatosQueNoSeLeen; y quitar la palabra de la fila de plan.md «Trazabilidad» (línea 317: «PuntoLoQueLlevaALeer, lecturasDeLosDatos, datosDelRepositorio») y de donde la nombren data-model.md o contracts/cache-de-la-sesion.md. No toca alcance, frontera humana, privacidad ni TOS."
+  ],
+  "observaciones": [
+    "El comentario del tope del trabajo de evals en .github/workflows/evals.yml:211-213 sigue diciendo que el mayor peor caso es el de boe-legislacion, 18 977 s, y el de legal-core, 14 629 s; desde H26.1 el de legal-core es de 19 525 s, el mayor (definicion_test.go:1898, CONTRIBUTING.md «Job de evals»). El tope de 352 minutos lo cubre, research D13 decidió no tocar .github/ y gates/supuestos.md lo registra: queda para el hito que toque la definición del job.",
+    "docs/SOURCES.md mantiene la fecha de revisión del BOE (2026-09-13) aunque grabar_datos grabó cuatro respuestas más el 2026-10-21 (research D17: misma fuente, misma fila); la verificación nocturna sigue en scripts/verify-sources.sh.",
+    "go.mod sube la directiva toolchain a go1.27.3 (801c435, cherry-pick de la #180) para que `make vuln` salga en verde (GO-2026-6809 en crypto/x509 de go1.27.2; gates/tarea-T001.md): si la #180 se fusiona en main antes que esta propuesta, el cambio desaparece del diff.",
+    "TestUmbralesDeLasLecturas no tiene ninguna sesión sin medir por límite de uso: la exclusión `SinMedir != \"\"` de medirLasLecturasDelGrupo (umbrales.go:866) solo la detectan TestInformeConSesionesSinMedir, TestUmbralesDeLegalCore, TestUmbralesDelInforme y los demás tests del informe (mi mutante los puso en rojo).",
+    "Los dos límites conocidos que el spec deja fuera de alcance y cierre.md §5 enseña: una línea ⚠ REDACCIÓN A FECHA: de memoria en la 11 pasa el juicio del job, y la exposición de la norma del procedimiento tras ⚠ NO CUBIERTO: (arts. 223 y 235 de la LGT en la 07) sigue sin medirse.",
+    "El tamaño del informe del job con los campos nuevos no se ha medido sobre un informe real de este hito (no existe hasta el cierre): los ~10 KB sobre 919 KB salen de las formas JSON de los tests y de las cifras del cierre de H20 que registra plan.md.",
+    "Llamada.SinSobre marca como «sin sobre» todo tool_result con is_error y sin ningún objeto JSON con ok en su contenido (sesion.go:788): también un error del propio servidor MCP sin sobre, si alguna vez lo hubiera; hoy el servidor devuelve siempre un sobre (research D7) y el motivo no decide nada.",
+    "La regrabación de robots.txt del BOE por grabar_datos cambia el cuerpo (Content-Length 493939 → 495022) además de las cabeceras; los tests que lo leen siguen en verde, y la diferencia de reglas, si la hay, no la he comparado línea a línea."
+  ]
+}

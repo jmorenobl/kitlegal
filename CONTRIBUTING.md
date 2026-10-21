@@ -544,8 +544,10 @@ que cada identificador está en la búsqueda grabada del BOE, la jerarquía norm
 `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, la
 cobertura por materia de `data/cobertura.yaml` contra `schemas/cobertura.yaml.json` (`TestCoberturaDelRepositorio`),
 los preceptos de `data/plazos.yaml` y de `data/cobertura.yaml` contra lo grabado del BOE (`TestPreceptosDeLosPlazos`), y el
-formato y el conjunto de las evals, que lo que necesitan está grabado y que el grafo previo que nombran se prepara.
-Una norma nueva, o una eval que consulta algo que no está grabado, llega con su grabación, que hace una persona con
+formato y el conjunto de las evals, que lo que necesitan —y, desde H26.1, lo que las skills llevan a leer de `data/`
+([Job de evals](#job-de-evals))— está grabado y que el grafo previo que nombran se prepara.
+Una norma nueva, un precepto nuevo de `data/plazos.yaml` o de `data/cobertura.yaml`, o una eval que consulta algo que
+no está grabado, llega con su grabación, que hace una persona con
 `scripts/grabar-evals.sh`: ningún control ni flujo graba respuestas.
 
 ### `make install` y los enlaces del anterior
@@ -622,6 +624,8 @@ juez con modelo (las dos, abajo). Todas las evals siguen el formato común de ev
 | `grafo_previo` | no; solo si `activa` es `true`, prohibido si es `false` | Lo que el grafo del mundo de la sesión ya ha observado al empezar: `grabaciones`, un directorio de `testdata/evals/grafo-previo/` con respuestas del BOE que se ponen encima de las grabadas, y `comandos`, los bloques (`applet`, `norma`, `bloque`) que se consultan contra ellas antes de la sesión, entregando lo observado al grafo de la sesión; la caché de la sesión se prepara después, como siempre y sin entregar nada |
 | `redacciones_modificadas` | no; solo si `activa` es `true`, prohibido si es `false` | Las líneas `⚠ REDACCIÓN MODIFICADA:` que debe llevar la respuesta, cada una con su `norma`, su `bloque` y sus dos fechas de vigencia `AAAAMMDD`: `fecha_vigencia`, la de la redacción superada, y `fecha_vigencia_reciente`, la de la que cita; al menos una |
 | `redaccion_fechada` | no; solo si `activa` es `true` y la eval no es `sin_binario_ni_servidor`; prohibido si es `false` | Lo que la respuesta debe llevar de una lectura fechada: `norma`, `bloque` y `fecha`, el día `AAAA-MM-DD` pedido, y una de dos claves. Con `fecha_vigencia`, la `AAAAMMDD` de la redacción citada, al menos una línea `⚠ REDACCIÓN A FECHA:` de esa norma y ese bloque, y todas con ese día y esa vigencia, y ninguna `⚠ SIN REDACCIÓN VIGENTE:`; con `posterior` —su `fecha_vigencia` y su `norma_modificadora`—, además al menos una `⚠ REDACCIÓN DE HOY:`, y todas con las dos, y sin él, ninguna. Con `vigente_desde`, la `AAAAMMDD` de la primera redacción, al menos una `⚠ SIN REDACCIÓN VIGENTE:`, y todas con ese día y esa vigencia, y ninguna de las otras dos. Las líneas de otro bloque no cuentan. No cambia si una sesión pasa: lo mide `redaccion_sin_fechar:<modelo>:<modo>` ([Job de evals](#job-de-evals)) |
+| `lecturas` | no | Los bloques que la pregunta provoca leer sin que la eval los pida —la exploración razonable que la provoca, como un artículo del mismo capítulo— y que la caché de las sesiones de **toda la skill** sirve, sin fecha y con `--fecha 9999-12-31` (ADR 0043): al menos uno, cada uno con `norma`, `bloque` y `motivo`, por qué la eval lo provoca, con algún carácter que no sea blanco. No son comandos ni citas: no dan motivo ni cuentan en ningún umbral, y una sesión que no los lee se juzga igual. Ninguno puede ser un comando de bloque de la eval, con `fecha` o sin ella (`lecturas: <norma> <bloque>: ya es un comando esperado de la eval`), ni una de sus `citas` (`…: ya es una cita esperada de la eval`). Cada bloque tiene que estar grabado, como el de una cita |
+| `sin_servir` | no | Lo que la caché de las sesiones de **esta eval** no sirve en ninguna fecha, aunque lo pidan otra eval, `lecturas` o `data/` (ADR 0043): al menos una entrada, cada una un bloque (`norma` y `bloque`) o una consulta de norma (`norma` y `verbo`, `indice` o `metadatos`), nunca las dos. La sesión que lo lee sale con `4` o `5`, como con el BOE caído. Un bloque suyo no puede ser una de las `citas` de la eval (`sin_servir: <norma> <bloque>: es una cita esperada de la eval`), y sí uno de sus comandos de bloque: el que la eval hace fallar a propósito, que cumple también la lectura que el comando pide, con su `fecha` si la lleva, terminada con `4` o con `5`. Con un comando así, sus sesiones cuentan en `lectura_sin_intentar:<modelo>:<modo>` ([Job de evals](#job-de-evals)) |
 | `no_se_activan` | no | Las skills que la sesión no debe activar, por su nombre y sin repetir (`boe-legislacion` en las de `legal-core`); al menos una |
 | `informativa` | no | Con `true`, la eval se ejecuta solo con el modelo que decide y su tasa se publica, pero no decide el veredicto (ADR 0016). En `boe-legislacion`, solo en una eval que activa la skill |
 | `por_materia` | no; solo si `activa` es `true` y la eval no es `sin_binario_ni_servidor` | Con `true`, la pregunta no identifica lo que pregunta —ni el precepto ni la sentencia— y lo busca por su materia. Falso por omisión: el caso normal es nombrar el precepto o la sentencia. Es la clase de pregunta con la que la serie de cierres reparte las respuestas que marca el juez (ADR 0038, punto 6), y el job la pone en cada sesión de su `informe.json`. No se deduce de `informativa` ni del nombre del fichero: una eval informativa puede nombrar el precepto |
@@ -631,8 +635,9 @@ juez con modelo (las dos, abajo). Todas las evals siguen el formato común de ev
 Cada fichero de eval de cada directorio `evals/<skill>/`, sea de la skill que sea, se valida contra
 `schemas/eval.yaml.json` dentro de `make ci`. Una entrada del directorio que no es un fichero con esa forma de nombre,
 ni la lista de expresiones, ni la carpeta `juez`, una clave desconocida o repetida, un identificador o un bloque mal escritos, una
-eval positiva sin citas, territorio, plazo, sentencias, `no_cubierto` ni `plazo_sin_calcular`, una de no activación con comandos o una sin binario ni servidor con alguna de
-las claves que no lleva fallan nombrando el fichero; ninguna se salta. Para `boe-legislacion`, `make ci` exige además
+eval positiva sin citas, territorio, plazo, sentencias, `no_cubierto` ni `plazo_sin_calcular`, una de no activación con comandos, una sin binario ni servidor con alguna de
+las claves que no lleva o una entrada de `lecturas` o de `sin_servir` mal escrita o que choca con un comando o una cita
+de la eval (arriba) fallan nombrando el fichero; ninguna se salta. Para `boe-legislacion`, `make ci` exige además
 las reglas de su conjunto: exactamente diez positivas que deciden, de materias distintas, al menos una de no
 activación y al menos una informativa, y ninguna informativa de no activación, entre otras. Para `legal-core`, al
 menos tres evals: una positiva que resuelve un municipio del territorio configurado y declara sus boletines, otra que
@@ -769,7 +774,8 @@ activa ninguna de `no_se_activan` —cada una que activa es un motivo
 `se activó la skill <nombre>, que la eval dice que no se activa`—, termina, hace con éxito cada consulta de
 `comandos` —una comprobación la cumple una invocación de ese applet con `check`, y con su `norma` si la lleva, que
 termina con `0`; un bloque con `fecha`, solo una lectura de `articulo` con `--fecha` esa fecha, que termina con `0`
-o con `3`, y uno sin ella, solo una lectura sin `--fecha`—, no invoca nada de `prohibidos` —cuenta toda invocación que consulta de ese applet y verbo, termine
+o con `3`, y uno sin ella, solo una lectura sin `--fecha`; y uno cuyo bloque está en el `sin_servir` de la eval, también
+esa lectura terminada con `4` o con `5`—, no invoca nada de `prohibidos` —cuenta toda invocación que consulta de ese applet y verbo, termine
 como termine; la ayuda, `--describe` y `--dry-run`, no— y responde citando cada `norma` y `bloque` de `citas`,
 declarando lo que espera `territorio` —la comunidad y la provincia sin distinguir mayúsculas ni tildes, el código de
 cada boletín como palabra exacta y cada aspecto de cobertura en su forma fija `<aspecto>: <valor>`—, con la forma fija
@@ -789,11 +795,14 @@ llegan al umbral ([Job de evals](#job-de-evals)).
 transcript, las llamadas a las herramientas de kitlegal —un `tool_use` cuyo nombre, o lo que sigue a su último `__`,
 es el de una herramienta del registro de producción— con su resultado (`TestLeerLasLlamadas`). Cada una se juzga como
 una invocación: el applet y el verbo de la herramienta, los argumentos que da `cli.LineaDeLlamada` y, como código,
-`0` si tiene resultado y no es un error, el de su `clase` si lo es, y ninguno si la sesión se cortó antes de recibirlo.
+`0` si tiene resultado y no es un error, el de su `clase` si lo es, y ninguno si la sesión se cortó antes de recibirlo
+o, desde H26.1, si su resultado es un error que no trae ningún sobre de kitlegal —el de una herramienta que la sesión
+no tiene—: esa es una **llamada sin sobre**, que el binario no ejecutó (`TestLeerLasLlamadas`).
 Así, `boe_articulo` con la `norma` y el `bloque` de un comando de bloque lo cumple —con otra norma, otro bloque o un
 resultado de error, no; si el comando lleva `fecha`, solo con esa `fecha`, y con un resultado o con `no-encontrado`,
 y si no la lleva, solo sin `fecha` (`TestJuzgarLecturasFechadas`)—, `graph_show` es un `prohibido` con cualquier resultado, y una llamada con
-`fuente-no-disponible` o `limite-o-tos` es una consulta fuera de lo grabado. La invocación `mcp serve` de la traza,
+`fuente-no-disponible` o `limite-o-tos` es una consulta fuera de lo grabado, salvo la que consulta una lectura del
+`sin_servir` de su eval («Las lecturas de una sesión», en [Job de evals](#job-de-evals)). La invocación `mcp serve` de la traza,
 el proceso del servidor, no es una consulta. En una sesión sin `kitlegal` en el `PATH` —la del modo herramienta y la
 de una eval sin binario ni servidor—, una orden de `kitlegal` de otro applet que `mcp` la deja sin pasar, con el
 motivo `orden de kitlegal en una sesión sin kitlegal en el PATH: <orden>` (`TestJuzgarLasLlamadas`).
@@ -876,7 +885,29 @@ Estas tandas son las del repartidor de sesiones; el trabajo `tanda` del flujo, m
 ejecución mide su commit. Cada sesión se prepara justo antes de abrirla, en su propio directorio: el de trabajo, su
 caché y su grafo —que en el modo herramienta son los que usa el servidor—, el estado de Claude Code
 (`CLAUDE_CONFIG_DIR`), con un enlace a cada skill tal como la deja `make install`, y su temporal (`TMPDIR`); ninguna
-escribe en nada de otra. La abre
+escribe en nada de otra.
+
+**Lo que sirve la caché de una sesión** (ADR 0043; `consultasDeLaCache` y `sinLoQueNoSeSirve`, en
+`internal/evals/consultas.go`) se prepara en proceso y sin red desde las grabaciones, sin repetir ninguna invocación:
+las consultas necesarias de las evals de su skill —los comandos esperados, el índice y los metadatos de las normas de
+sus comandos y citas, el bloque de cada cita y, desde H26.1, el de cada entrada de `lecturas`, cada bloque sin fecha y
+con `--fecha 9999-12-31`, que deja sus versiones y lo sirve así en cualquier fecha—; detrás, desde H26.1, **lo que la
+skill lleva a leer de `data/`**: cada bloque de `data/plazos.yaml` y de `data/cobertura.yaml`, de las dos formas, y el
+índice y los metadatos de cada norma de esos dos ficheros y de `data/normas.yaml` —hoy 17 bloques y 19 normas, 72
+consultas, las mismas en las tres skills—; y menos lo que el `sin_servir` de la eval de la sesión no sirve, aunque lo
+pidan otra eval, `lecturas` o `data/`. Lo que no se prepara, la sesión no lo tiene: su lectura sale con `4` o `5`, y
+el informe la cuenta en `fuera_de_lo_grabado` o, si es de `sin_servir`, en `lecturas_sin_servir` (abajo). Una consulta
+sin grabar es una falta, con una línea por cada origen —la eval y lo que pide, o el fichero de `data/`:
+`data/plazos.yaml: lo que la skill lleva a leer boe articulo <norma> <bloque>: «…» terminó con código N: …`—, y la
+sesión no se abre; en `make ci`, `TestEvalsDelRepositorio` sale en rojo (subpruebas `grabado` y `lo-que-lleva-a-leer`;
+`TestLoQueLlevaALeerSinGrabar` lo fija con una copia de `data/`, y `TestCacheDeLasSesiones`, lo que sirven `lecturas`
+y `sin_servir`). Cada sesión empieza con una caché nueva en su directorio y no hereda nada de otra ni de la de quien
+lanza el job. El sondeo prepara sus sesiones igual, y la base con la que la medida del juez reconstruye los textos
+sirve lo mismo, sin ningún `sin_servir` y sin las `lecturas` de las evals, que las sesiones de los informes
+versionados no tenían: toda invocación de `boe` de la sesión de un caso etiquetado que terminó con `4` o `5` sigue
+terminando así sobre la base (`TestBaseDeLaReconstruccion`).
+
+La abre
 `scripts/evals-sesion.sh` con la orden de `claude` de siempre, bajo `strace` y con la red cerrada salvo la del modelo,
 en su propio grupo de procesos, y el tope lo pone el repartidor de `internal/evals`: a los 240 s envía `TERM` al grupo
 y, 10 s después, `KILL` (la sesión queda con el código 124 o 137). Ninguna sesión se reintenta ni se abre dos veces, y
@@ -983,8 +1014,8 @@ sesión; con una sin juez no las mira.
 Con las veintitrés evals de `boe-legislacion`, su trabajo abre 222 sesiones, cinco a la vez desde antes de H20: 108 en el modo orden —42
 de `claude-sonnet-5-5` sobre las catorce que deciden, 24 sobre las ocho informativas y 42 de `claude-haiku-4-5-20251001`
 sobre las catorce que deciden—, otras 108 en el modo herramienta y 6 de la eval sin binario ni servidor, tres con cada
-modelo; y su juez juzga 123 respuestas: 60, 60 y 3. El de `legal-core`, con diez evals, abre 114, dos a la vez: 54 en
-cada modo y 6 de la eval sin binario ni servidor. El de
+modelo; y su juez juzga 123 respuestas: 60, 60 y 3. El de `legal-core`, con doce evals desde H26.1, abre 138, dos a la
+vez: 66 en cada modo y 6 de la eval sin binario ni servidor. El de
 `jurisprudencia`, con diez, abre 120, cuatro a la vez: 60 en cada modo —30 de cada modelo, porque las diez deciden—
 y ninguna más, porque no tiene eval sin binario ni servidor; su juez juzga 60 respuestas, 30 por modo; no lleva
 prueba de red ni grabaciones, y sigue sin objetivo de duración de las sesiones, porque no hay medida con esa
@@ -1006,12 +1037,14 @@ veintitrés serían 23 449 s, que el tope no cubre). El de `jurisprudencia`, con
 cuatro a la
 vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
 orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
-3 660 s—; de una en una serían 47 857 s, que el tope no cubre. El de `legal-core`, sin juez y dos a la vez, es de
-16 261 s, 271,0 minutos: 55, 54 y 6 sesiones, 58 tandas; de una en una serían 31 765 s, que el tope no cubre. Es un
+3 660 s—; de una en una serían 47 857 s, que el tope no cubre. El de `legal-core`, sin juez y dos a la vez, es desde
+H26.1 el mayor de los tres, 19 525 s, 325,4 minutos, el literal `peorCasoDeLegalCore` de `TestDefinicionDelJob`:
+67, 66 y 6 sesiones —también cuenta la de la prueba de red, que su trabajo no lleva—, 70 tandas; de una en una serían
+38 293 s, que el tope no cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Es un
 cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
 casos etiquetados: en `boe-legislacion`, con 259 a 5, 12 985 s, 216,4 minutos (a 4 eran 16 105 s, 268,4 minutos); en
 `jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes
-cambió con H25 ni con el paso de `boe-legislacion` a cinco.
+cambió con H25, con el paso de `boe-legislacion` a cinco ni con las dos evals de `legal-core` de H26.1.
 `TestDefinicionDelJob` comprueba en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
@@ -1168,11 +1201,13 @@ Cómo se lee el informe:
   `decide`—; `cumple` es la comparación en coma flotante, sin redondeos, de `medida` entre `total` (0 si `total` es 0)
   o de la propia `medida`, y se puede rehacer con los otros campos. Los de las respuestas existen solo si la skill
   tiene juez, si alguna de sus evals declara `sentencias`, desde H9, si alguna es de plazo o de cobertura o, desde
-H20, si alguna lleva `redaccion_fechada`, y los de
+H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de las sesiones, van detrás de todos:
+  `fuera_de_lo_grabado` en toda skill y `lectura_sin_intentar` si alguna eval lleva un comando de bloque en su
+  `sin_servir` (más abajo). Los de
   un modo se miden sobre las sesiones de ese modo, sin sumar las del otro: todos menos el conjunto de una clase del
-  juez que decide, que suma las de los dos modos (ADR 0038). **En `boe-legislacion` son quince, once de ellos
-  decidiendo** (`TestUmbralesDeBoeLegislacion`), en este orden; en `jurisprudencia`, quince, y en `legal-core`, seis,
-  más abajo:
+  juez que decide, que suma las de los dos modos (ADR 0038). Con el plan del job, **en `boe-legislacion` son
+  diecinueve, once de ellos decidiendo** (`TestUmbralesDeBoeLegislacion`), en este orden; en `jurisprudencia`,
+  diecinueve, y en `legal-core`, dieciocho, más abajo (`TestUmbralesDeLasTresSkills`):
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
@@ -1185,10 +1220,13 @@ H20, si alguna lleva `redaccion_fechada`, y los de
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (47) | `0` | sí |
   | `duracion_de_las_sesiones:<modo>` | Segundos de la tanda de ese modo | — | `900`, el objetivo del job | sí |
   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
+  | `fuera_de_lo_grabado:<modelo>:<modo>` | Lecturas de ese modelo en ese modo que salieron con `4` o `5` sin estar en la caché, sin las de `sin_servir` | Sus sesiones medidas en ese modo (66 del modelo que decide y 42 de `claude-haiku-4-5-20251001`) | `0` | no |
 
   Primero van los cuatro del modo orden y los cuatro del modo herramienta; después, el conjunto de cada clase que
-  decide; después, los dos de la medida; y al final,
-  los de la duración de las sesiones y los de la del juez, cada pareja con el modo orden delante. Los de una clase
+  decide; después, los dos de la medida; después,
+  los de la duración de las sesiones y los de la del juez, cada pareja con el modo orden delante; y al final, desde
+  H26.1, los cuatro de `fuera_de_lo_grabado`, los del modo orden delante y, en cada modo, el del modelo que decide
+  delante del del informativo. Los de una clase
   salen de `clases.yaml` —su nombre y su `umbral`, que es el mismo en el recuento de cada modo y en el conjunto—, y
   su `decide` ya no es el del recuento por modo, que no decide nunca: dice si la clase tiene conjunto, que es el que
   decide. Los dos de la medida salen de cada clase que decide.
@@ -1210,7 +1248,7 @@ H20, si alguna lleva `redaccion_fechada`, y los de
   `umbral redaccion_sin_fechar:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %: <sesión>`,
   con `; <sesión>` por cada otra.
 
-  **En `jurisprudencia` son quince, y deciden once**, en este orden. Tiene juez y no tiene objetivo de
+  **En `jurisprudencia` son diecinueve, y deciden once**, en este orden. Tiene juez y no tiene objetivo de
   duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la duración de sus votos,
   y ninguno de `duracion_de_las_sesiones`:
 
@@ -1225,11 +1263,13 @@ H20, si alguna lleva `redaccion_fechada`, y los de
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (125) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (124) | `0` | sí |
   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
+  | `fuera_de_lo_grabado:<modelo>:<modo>` | Lecturas de ese modelo en ese modo que salieron con `4` o `5` sin estar en la caché, sin las de `sin_servir` | Sus sesiones medidas en ese modo (30 de cada modelo) | `0` | no |
 
   Primero van los cinco del modo orden y los cinco del modo herramienta; después, el conjunto de
-  `afirma_lo_no_leido`; después, los dos de la medida; y al final,
-  los dos de la duración del juez, con el modo orden delante. No deciden `afirma_que_existe` ni el recuento por modo
-  de `afirma_lo_no_leido`: cuatro de los quince. Una respuesta marcada en `afirma_lo_no_leido` no da `fallo` por sí
+  `afirma_lo_no_leido`; después, los dos de la medida; después,
+  los dos de la duración del juez, con el modo orden delante; y al final, desde H26.1, los cuatro de
+  `fuera_de_lo_grabado`, en el orden de los de `boe-legislacion`. No deciden `afirma_que_existe`, el recuento por modo
+  de `afirma_lo_no_leido` ni `fuera_de_lo_grabado`: ocho de los diecinueve. Una respuesta marcada en `afirma_lo_no_leido` no da `fallo` por sí
   sola —1 de 60 cabe en la tasa—, y dos sí, estén en el modo que estén, con el
   motivo del conjunto de toda clase que decide (arriba), sobre sus 60 respuestas.
 
@@ -1256,25 +1296,47 @@ H20, si alguna lleva `redaccion_fechada`, y los de
   `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`,
   con `; <sesión>` por cada otra.
 
-  **En `legal-core` son diez, y deciden los diez** (`TestUmbralesDeLegalCore`): no tiene juez ni objetivo de
+  **En `legal-core` son dieciocho, y deciden doce** (`TestUmbralesDeLegalCore`): no tiene juez ni objetivo de
   duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura, desde H9, con las de plazo
-  con `redaccion_fechada`, desde el ADR 0041, y con la de vigencia, desde el ADR 0042. Por cada modo, el orden y luego
-  el de la herramienta:
+  con `redaccion_fechada`, desde el ADR 0041, y con la de vigencia, desde el ADR 0042; los de las lecturas, desde
+  H26.1. Primero, los cinco de cada modo, el orden y luego el de la herramienta; después, por cada modo, el orden
+  delante, y en cada uno por cada modelo, el que decide delante, `fuera_de_lo_grabado` y `lectura_sin_intentar`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
-  | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (24) | `0` | sí |
-  | `plazo_sin_fecha:<modelo>:<modo>` | Las de una eval de plazo sin la línea `⚠ PLAZO:` con la fecha esperada; los avisos no entran | Sus respuestas medidas en ese modo, en las evals de plazo (9) | `0` | sí |
-  | `cobertura_sin_declarar:<modelo>:<modo>` | Las de una eval de cobertura sin la línea `⚠ NO CUBIERTO:` con la norma esperada, o con una línea `⚠ PLAZO:` de cualquier fecha | Sus respuestas medidas en ese modo, en las evals de cobertura (6) | `0` | sí |
+  | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (30) | `0` | sí |
+  | `plazo_sin_fecha:<modelo>:<modo>` | Las de una eval de plazo sin la línea `⚠ PLAZO:` con la fecha esperada; los avisos no entran | Sus respuestas medidas en ese modo, en las evals de plazo (12) | `0` | sí |
+  | `cobertura_sin_declarar:<modelo>:<modo>` | Las de una eval de cobertura sin la línea `⚠ NO CUBIERTO:` con la norma esperada, o con una línea `⚠ PLAZO:` de cualquier fecha | Sus respuestas medidas en ese modo, en las evals de cobertura (9) | `0` | sí |
   | `vigencia_sin_declarar:<modelo>:<modo>` | Las de una eval de vigencia sin la línea `⚠ PLAZO SIN CALCULAR:` con la norma esperada, o con una línea `⚠ PLAZO:` de cualquier fecha | Sus respuestas medidas en ese modo, en las evals de vigencia (3) | `0` | sí |
   | `redaccion_sin_fechar:<modelo>:<modo>` | Las de una eval con `redaccion_fechada` cuya sesión no leyó el bloque de la eval en su fecha o cuya respuesta no lleva las líneas que la eval espera, como en `boe-legislacion` | Sus respuestas medidas en ese modo, en las evals con `redaccion_fechada` (9) | `0` | sí |
+  | `fuera_de_lo_grabado:<modelo>:<modo>` | Lecturas de ese modelo en ese modo que salieron con `4` o `5` sin estar en la caché, sin las de `sin_servir` | Sus sesiones medidas en ese modo (33 de cada modelo) | `0` | no |
+  | `lectura_sin_intentar:<modelo>:<modo>` | Sesiones de ese modelo en ese modo de una eval con un comando de bloque en su `sin_servir` que no intentaron esa lectura | Sus sesiones medidas en ese modo de esas evals (3, las de la 11) | `0` | sí, el del modelo que decide |
 
-  Los cuatro últimos son hechos de la respuesta y se miden sin modelo, con lo que el juicio ya leyó de ella; cada sesión
+  `plazo_sin_fecha`, `cobertura_sin_declarar`, `vigencia_sin_declarar` y `redaccion_sin_fechar` son hechos de la
+  respuesta y se miden sin modelo, con lo que el juicio ya leyó de ella; cada sesión
   cuenta una vez como mucho, y una de una eval que no es de su clase no está ni en la `medida` ni en el `total`. Lo
   tiene toda skill con alguna eval de plazo, el primero, de cobertura, el segundo, de vigencia, el tercero, o con
   `redaccion_fechada`, el cuarto, detrás de `documento_sin_cotejar` si lo tiene; el código no nombra ninguna skill. Si no se cumplen, su motivo nombra cada sesión que cuenta, como el
   de `documento_sin_cotejar`:
-  `umbral plazo_sin_fecha:claude-sonnet-5-5:orden: 1 de 9 (11,1 %), y tiene que ser ≤ 0,0 %: <sesión>`.
+  `umbral plazo_sin_fecha:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`.
+
+  **Los dos de las lecturas**, desde H26.1 (ADR 0043), son hechos de la sesión y se miden sin modelo, con el reparto
+  de sus invocaciones («Las lecturas de una sesión», abajo), sobre sus **sesiones medidas**: las de las series que
+  pide el plan con ese modelo y en ese modo, legibles y no sin medir, de cualquier eval de ese modo, active o no la
+  skill y termine o no; las de la eval sin binario ni servidor no tienen modo y no entran. Van con medida 0 también, y
+  el informe del instrumento sin medir, que no abre ninguna sesión, no los lleva. `fuera_de_lo_grabado` va en el
+  informe de toda skill y **nunca decide**: ni da motivo ni cambia el veredicto, aunque no se cumpla. Dice qué
+  lecturas pidió la skill que la caché de su sesión no servía; deja de darse cuando la lectura entra en `data/` o en
+  `lecturas` y se graba, o la skill deja de pedirla. `lectura_sin_intentar` va solo en el informe de una skill con
+  alguna eval con un comando de bloque en su `sin_servir`, detrás del `fuera_de_lo_grabado` de su modelo y modo, y el
+  código no nombra ninguna skill: hoy, solo `legal-core`, por la 11 —la 12 no tiene comandos—, y ninguno de
+  `boe-legislacion` ni de `jurisprudencia`. Una sesión cuenta si no tiene en `lecturas_sin_servir` ninguna invocación
+  que consulte el bloque de cada uno de esos comandos, con `--fecha` o sin ella y terminara como terminara: cuenta la
+  que el tope cortó antes de intentarla, y una llamada sin sobre no es una lectura intentada. Decide con 0 el del
+  modelo que decide; el del informativo se publica. Si no se cumple, su motivo nombra cada sesión que cuenta, como el
+  de `plazo_sin_fecha`:
+  `umbral lectura_sin_intentar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: <sesión>`
+  (`TestUmbralesDeLasLecturas`).
 - **El juez**: `juez`, en la raíz de `informe.json` detrás de `umbrales`, y `null` si la skill no tiene juez. Lleva
   `modelo` y `version_de_claude_code`, los fijados para el juez; `respuestas`, una entrada por respuesta juzgada con
   **algún voto afirmativo** en cualquier clase, también nulo, en orden de sesión —las demás no están—, con su
@@ -1322,6 +1384,27 @@ H20, si alguna lleva `redaccion_fechada`, y los de
   respuesta así; vacía en las demás—, y cada elemento de sus `invocaciones`, `llamada`, verdadero en las que son
   llamadas a una herramienta, cuya `orden` es entonces la herramienta seguida de sus argumentos. En `informe.md`, la
   tabla de invocaciones de cada sesión lleva la columna «Llamada».
+- **Las lecturas de una sesión**, desde H26.1 (ADR 0043): cada resultado de `evals` reparte sus invocaciones con
+  consulta, de la traza y de sus llamadas, en tres listas, en su orden y cada elemento con su `orden` y su `codigo`.
+  `lecturas_sin_servir`, en toda sesión y `[]` si no hay ninguna, lleva las que consultan una lectura del `sin_servir`
+  de su eval, terminen como terminen —con `0`, con cualquier otro código o, si el tope cortó la sesión, con
+  `"codigo": null`—; `fuera_de_lo_grabado`, las demás que salieron con `4` o `5` —también las llamadas con
+  `fuente-no-disponible` o `limite-o-tos`—, que la raíz de `informe.json` junta con su `sesion` y su `eval`; y
+  `otras_fallidas`, las demás que no terminaron con `0`. Un `1` que no es de kitlegal lleva su `motivo`: `sin_sobre`,
+  la llamada sin sobre, con `"codigo": null` también en su elemento de `invocaciones`, que va a `otras_fallidas`
+  aunque consulte una lectura de `sin_servir`, porque no llegó a ella; y `salida_no_escrita`, la invocación de la
+  traza que terminó con `1` porque su orden de Bash no pudo escribir la salida —`kitlegal … --json | python3 -c …` en
+  un runner sin Python—, con esa orden tal cual en `bash`. La enlaza el único uso de Bash cuya orden contiene como
+  palabras `kitlegal`, su applet, su verbo y cada argumento y cuya salida trae una línea que empieza por el prefijo con el que el
+  presentador del binario dice que no pudo escribir en la salida estándar, que el arnés le pide a `render.Nuevo` en
+  lugar de copiarlo (`TestLineaDeLaSalidaNoEscrita`; `TestTuberiaCerrada` fija el mensaje en el binario); sin uso que
+  lo cumpla, con dos o con otra salida de error, el `1` queda sin motivo. Ni `motivo` ni `bash` cambian si una sesión
+  pasa, sus motivos ni lo que cumple cada invocación (`TestJuzgarLasLecturasSinServir`,
+  `TestJuzgarElMotivoDeLasFallidas`). Cada elemento de `tasas` lleva `sesiones_con_lectura_sin_servir`: en la serie
+  de una eval con `sin_servir`, cuántas de sus sesiones leídas tienen algo en `lecturas_sin_servir`, también 0, y
+  `null` en las demás; no decide nada, que lo deciden `lectura_sin_intentar` y la tasa de la serie. En la tabla de
+  invocaciones de `informe.md`, la llamada sin sobre dice «sin sobre» en la columna del código, en lugar de «sin código
+  (sesión cortada)».
 
 La **prueba de red** añade al trabajo de `boe-legislacion` —`territorio` y `cita` no pueden pedir nada a la red, así
 que los de `legal-core` y `jurisprudencia` no la llevan—, con el modelo que decide y al final de la tanda del modo

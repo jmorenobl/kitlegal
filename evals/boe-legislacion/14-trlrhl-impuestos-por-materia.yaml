@@ -13,3 +13,7 @@ comandos:
 citas:
   - norma: BOE-A-2004-4214
     bloque: a59
+lecturas:
+  - norma: BOE-A-2004-4214
+    bloque: a15
+    motivo: "De la misma norma que el art. 59 que pide la eval: la exploración que provoca la pregunta, vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."

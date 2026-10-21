@@ -1,0 +1,30 @@
+# Eval de plazo (e): la pregunta de la 05 con la lectura del art. 124 de la LPAC sin servir (sin_servir), como con el
+# BOE inalcanzable. El paso 10 pide leer el precepto en la fecha de inicio: la sesión lo intenta y la lectura sale con
+# 4 o 5. La respuesta tiene que dar igual la fecha de plazos en la línea ⚠ PLAZO:, con la cita de cada precepto de
+# data.preceptos, y decir aparte que no pudo leer esa redacción (ADR 0043, punto 6; FR-017, FR-029). Sin citas ni
+# redaccion_fechada: lo que cuenta es la línea del plazo y la lectura intentada (FR-016, FR-033).
+pregunta: "Me notificaron el 9 de septiembre de 2026 una resolución del Ayuntamiento de Leganés y vivo en Leganés, ¿hasta cuándo puedo presentar el recurso de reposición?"
+activa: true
+comandos:
+  - applet: territorio
+    verbo: resolver
+    municipio: Leganés
+  - applet: plazos
+    verbo: calcular
+    tipo: reposicion
+  - applet: boe
+    norma: BOE-A-2015-10565
+    bloque: a124
+    fecha: "2026-09-09"
+sin_servir:
+  - norma: BOE-A-2015-10565
+    bloque: a124
+plazo:
+  fecha: "2026-10-13"
+  avisos: []
+  razonamiento: >-
+    Un mes (art. 124.1 LPAC) contado desde el día siguiente al de la notificación (art. 30.4): vence el mismo día del
+    mes siguiente, el viernes 9 de octubre de 2026, fiesta local de Leganés (BOCM-20251212-34). El último día inhábil
+    se prorroga al primer día hábil siguiente (art. 30.5): el 10 y el 11 son sábado y domingo, y el 12 es fiesta
+    nacional (BOE-A-2025-21667), así que el plazo vence el martes 13 de octubre de 2026. Los festivos saltados son el
+    9, local de Leganés, y el 12, nacional.

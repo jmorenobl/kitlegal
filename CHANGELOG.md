@@ -12,6 +12,74 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **La caché de cada sesión de evals sirve lo que la skill lleva a leer (ADR 0043).** La de una sesión del job, del
+  sondeo o de la base con la que la medida del juez reconstruye los textos tenía solo las consultas necesarias de las
+  evals de su skill —los comandos esperados, el índice y los metadatos de las normas de sus comandos y citas y el
+  bloque de cada cita—, y lo que el protocolo de la skill lleva a leer sin que ninguna eval lo nombre salía con `5`,
+  como con el BOE caído. Ahora se suman, con el mismo acumulador y sin repetir ninguna invocación, cada bloque de
+  `data/plazos.yaml` y de `data/cobertura.yaml`, sin fecha y con `--fecha 9999-12-31`, y el índice y los metadatos de
+  cada norma de esos dos ficheros y de `data/normas.yaml`: hoy 17 bloques y 19 normas, 72 consultas, las mismas en las
+  tres skills y todas grabadas. Una sin grabar es una falta que nombra el fichero —`data/plazos.yaml: lo que la skill
+  lleva a leer boe articulo BOE-A-1998-16718 a129: …`— y la sesión no se abre; `make ci` la da en
+  `TestEvalsDelRepositorio` (subprueba `lo-que-lleva-a-leer`) y `TestLoQueLlevaALeerSinGrabar` la fija con una copia
+  de `data/` con un bloque cambiado. La base de la medida sirve lo mismo (`TestBaseDeLaReconstruccion`), pero no las
+  `lecturas` de las evals: las sesiones de los informes versionados no las tenían, y servirlas cambiaría lo que el
+  juez lee de sus casos; `TestBaseDeLaReconstruccion` exige que toda invocación de `boe` de la sesión de un caso
+  etiquetado que terminó con `4` o `5` siga terminando así sobre la base.
+- **`lecturas` y `sin_servir` en el formato de las evals (ADR 0043).** `lecturas`, opcional, son los bloques que la
+  pregunta provoca leer sin que la eval los pida, cada uno con `norma`, `bloque` y `motivo`, que no puede estar vacío
+  ni ser solo blancos: la caché de las sesiones de toda la skill los sirve, sin fecha y con `--fecha 9999-12-31`, y no
+  son comandos ni citas, ni dan motivo ni cuentan en ningún umbral. `sin_servir`, opcional, es lo que la caché de las
+  sesiones de esa eval no sirve en ninguna fecha, aunque lo pidan otra eval, `lecturas` o `data/`: un bloque (`norma` y
+  `bloque`) o el índice o los metadatos de una norma (`norma` y `verbo`), nunca las dos cosas; la sesión que lo lee
+  sale con `4` o `5`. El esquema (`schemas/eval.yaml.json`) rechaza las entradas mal formadas, y `LeerEval`, una
+  lectura que ya es un comando de bloque o una cita de la eval y un bloque de `sin_servir` que es una de sus citas. Sí
+  puede ser un comando de bloque: el que la eval hace fallar a propósito, que cumple también la lectura que el comando
+  pide —con su `fecha`, si la lleva— terminada con `4` o con `5` (`TestFormatoDeLecturas`, `TestCacheDeLasSesiones`,
+  `TestJuzgarLasLecturasSinServir`).
+- **Las evals 11 y 12 de `legal-core` y las `lecturas` de la 14, la 15 y la 16 de `boe-legislacion`.**
+  `11-plazo-reposicion-sin-leer-el-precepto.yaml` es la pregunta de la 05 —un recurso de reposición contra una
+  resolución del Ayuntamiento de Leganés notificada el 9 de septiembre de 2026— con el art. 124 de la LPAC
+  (`BOE-A-2015-10565`, bloque `a124`) en `sin_servir`: la sesión tiene que intentar leerlo en la fecha de la
+  notificación y dar igual la línea `⚠ PLAZO:` con `2026-10-13`.
+  `12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml` es una reclamación de cuotas de la Seguridad Social con
+  la DA 1ª de la LPAC (`daprimera`) en `sin_servir`: la línea `⚠ NO CUBIERTO:` con `BOE-A-2015-10565`, sin
+  `plazos calcular`. Con ellas, `legal-core` tiene doce evals; su trabajo abre 138 sesiones —66 en cada modo y 6 de la
+  eval sin binario ni servidor— y su peor caso, dos a la vez, es de 19 525 s, que el tope de 352 minutos cubre
+  (`TestDefinicionDelJob`); `sin_activar` cuenta sobre 30 respuestas por modo, `plazo_sin_fecha` sobre 12 y
+  `cobertura_sin_declarar` sobre 9. En `boe-legislacion`, la 16 lleva en `lecturas` los arts. 26 y 27 de la LRJSP
+  (`BOE-A-2015-10566`, `a26` y `a27`), la 15 el art. 18 de la LIRPF (`BOE-A-2006-20764`, `a18`) y la 14 el art. 15 del
+  TRLRHL (`BOE-A-2004-4214`, `a15`), lecturas que los jobs de la #175 y la #178 vieron fuera de lo grabado; sus cuatro
+  bloques están grabados en `internal/evals/testdata/boe.legislacion-consolidada/`, con sus entradas en
+  `internal/evals/testdata/grabaciones.json`.
+- **Los umbrales `fuera_de_lo_grabado:<modelo>:<modo>` y `lectura_sin_intentar:<modelo>:<modo>`, y lo que el informe
+  del job dice de las lecturas.** Cada sesión de `informe.json` lleva `lecturas_sin_servir` —`[]` si no hay ninguna—,
+  cada invocación que consulta una lectura del `sin_servir` de su eval, termine como termine, con su `orden` y su
+  `codigo` (`null` si el tope la cortó); esas ya no van a `fuera_de_lo_grabado` ni a `otras_fallidas`. Cada serie de
+  `tasas` lleva `sesiones_con_lectura_sin_servir`: en la de una eval con `sin_servir`, cuántas de sus sesiones tienen
+  algo en esa lista, también 0, y `null` en las demás, sin decidir nada. Detrás de los umbrales de antes, por cada modo
+  y cada modelo, `fuera_de_lo_grabado:<modelo>:<modo>` suma las lecturas que salieron con `4` o `5` sin estar en la
+  caché, sin las de `sin_servir`, sobre las sesiones medidas de ese modelo en ese modo, y se publica con
+  `decide: false`: ni da motivo ni cambia el veredicto. `lectura_sin_intentar:<modelo>:<modo>`, solo en el informe de
+  una skill con alguna eval con un comando de bloque en su `sin_servir` —hoy `legal-core`, por la 11—, cuenta las
+  sesiones de esas evals que no intentaron esa lectura, con `--fecha` o sin ella y terminara como terminara, y decide
+  con 0 el del modelo que decide: una sola da su motivo, con la sesión, y `fallo`. Con el plan del job, `legal-core`
+  lleva dieciocho umbrales, doce que deciden, y `boe-legislacion` y `jurisprudencia`, diecinueve, los once que ya
+  decidían (`TestUmbralesDeLasLecturas`, `TestUmbralesDeLasTresSkills`).
+- **El motivo de un `1` que no es de kitlegal.** La llamada a una herramienta cuyo resultado es un error sin ningún
+  sobre de kitlegal —la de una herramienta que la sesión no tiene— sale con `"codigo": null` y
+  `"motivo": "sin_sobre"` en `invocaciones` y en `otras_fallidas`, también si consulta una lectura de `sin_servir`,
+  porque no llegó a la lectura; en la tabla de invocaciones de `informe.md`, «sin sobre» en la columna del código. La
+  invocación de la traza que terminó con `1` porque su orden de Bash no pudo escribir la salida
+  —`kitlegal … --json | python3 -c …` en un runner sin Python— se enlaza con ese uso de Bash si es el único cuya orden
+  la contiene como palabras y cuya salida trae una línea que empieza por el prefijo con el que el presentador del
+  binario dice que no pudo escribir, pedido al propio presentador y no copiado: lleva
+  `"motivo": "salida_no_escrita"` y, en `bash`, la orden tal cual. Sin enlace, el `1` queda como antes. Ni `motivo` ni `bash` cambian si una sesión pasa, sus motivos ni
+  lo que cumple cada invocación (`TestJuzgarElMotivoDeLasFallidas`, `TestLineaDeLaSalidaNoEscrita`,
+  `TestLeerLasLlamadas`, `TestTextosDeLaSesion`).
+
 ### Cambiado
 
 - **H26.1 entra en el roadmap, delante de H9.1, y en la lista del input `hito`** (ADR 0043, workflow `hito` 2.9.4). En
@@ -40,6 +108,17 @@ sustituyen a este fichero.
   ella, que ya dice «Cómo se presenta un plazo»; la entrada deja de repetir que el texto de un artículo lo da
   `boe-legislacion`, que dice el paso 6; y dos frases se dicen más cortas, con el mismo sentido. Ninguna eval ni ningún
   umbral cambia. Sustituye a `legal-core` v1.2.1.
+- **`legal-core` v1.2.3: qué hace la respuesta con una lectura fallida en los pasos 7 y 10 (ADR 0043, puntos 6 y
+  7).** El paso 10 gana un punto: si la lectura de un precepto de `data.preceptos` en la fecha de inicio sale con `4`
+  o `5`, la línea `⚠ PLAZO:` se mantiene, con la fecha de `plazos` y la cita de cada precepto de `data.preceptos`, y en
+  lugar de su línea `⚠ REDACCIÓN A FECHA:` la respuesta dice aparte que no pudo leer esa redacción, como
+  `boe-legislacion` dice cualquier lectura fallida, sin afirmar qué dice el precepto: la fecha sale de `plazos`, que no
+  consulta la red. El paso 7 dice, en el párrafo que ya decía que la línea `⚠ NO CUBIERTO:` va aunque falle una
+  lectura, que tras esa línea la respuesta no expone la norma que rige el procedimiento —sus plazos, sus recursos—,
+  que nombra la línea con lo que trae `references/cobertura_por_materia.md`. Para seguir en 299 líneas, ese párrafo
+  del paso 7 y el que abre el paso 10, con el punto de la línea `⚠ REDACCIÓN A FECHA:`, se dicen con menos líneas, sin
+  quitar ninguna regla ni ningún caso; la tabla de comandos y `references/` no cambian. Lo miden la 11 y la 12
+  (arriba). Sustituye a `legal-core` v1.2.2.
 
 ## [0.8.0] - 2026-10-20
 

@@ -101,18 +101,17 @@ Con lo que la conversación ya dice del acto o de la solicitud, de la administra
 materia, mira estos dos casos **antes de preguntar nada**, tampoco el municipio ni la fecha: ninguno los necesita,
 porque no se les calcula nada.
 
-- **Lo que la ley regula aparte.** Busca la materia del asunto en `references/cobertura_por_materia.md`. Si cae en una
-  de sus entradas —tributos, Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería,
-  extranjería y asilo, una impugnación que sustituye a la alzada, una reclamación económico-administrativa—, declara que
-  no está cubierto con la línea de «Cómo se presenta un plazo», que nombra solo lo que trae la entrada. **No pidas
-  `plazos calcular`** y no des ni la línea del plazo ni ninguna fecha: el plazo del común no es el suyo.
-  La línea no afirma qué dice ningún precepto: dice qué no calcula kitlegal, con lo que nombra la entrada. Por eso va
-  aunque falle una lectura, que se dice aparte como `boe-legislacion` dice cualquiera, sin lo que dice el bloque ni la
-  línea de la regla 7: con cuotas de la Seguridad Social y la lectura del bloque `daprimera` fallida, van la línea con
-  la DA 1ª.2.b y «no he podido leer el bloque daprimera de la LPAC: la fuente no estaba disponible».
-  Si la conversación no dice la materia, el asunto no cae en ninguna entrada: **no la preguntes ni detengas la
-  respuesta por ella**. Sigue con el 8 y, al responder, di que la fecha no vale si el asunto es de los que la ley regula
-  aparte, nombrándolos con la referencia y sin ninguna norma que no venga de ella.
+- **Lo que la ley regula aparte.** Si la materia del asunto está en `references/cobertura_por_materia.md` —tributos,
+  Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería, extranjería y asilo, una
+  impugnación que sustituye a la alzada, una reclamación económico-administrativa—, declara que no está cubierto con la
+  línea `⚠ NO CUBIERTO:`. **No pidas `plazos calcular`** ni des la línea del plazo ni ninguna fecha: el plazo del común
+  no es el suyo. Y tras la línea **no expongas la norma que rige el procedimiento** —sus plazos, sus recursos—: la
+  nombra la línea, solo con lo que trae la entrada. No afirma qué dice ningún precepto, sino qué no calcula kitlegal:
+  por eso va aunque falle una lectura, que se dice aparte como `boe-legislacion` dice cualquiera, sin lo que dice el
+  bloque ni la línea de la regla 7 (cuotas de la Seguridad Social con `daprimera` fallida: la línea con la DA 1ª.2.b y
+  «no he podido leer el bloque daprimera de la LPAC: la fuente no estaba disponible»). Si la conversación no dice la
+  materia, no cae en ninguna entrada: **no la preguntes ni detengas la respuesta por ella**; sigue con el 8 y di al
+  responder que la fecha no vale si el asunto es de los que la ley regula aparte, nombrándolos solo con la referencia.
 - **Acto presunto**: no hay fecha. Cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, leídos con `boe-legislacion`, y
   no pidas ningún plazo.
 
@@ -147,13 +146,14 @@ juzgado).
 
 ### 10. Leer el precepto en la fecha de inicio
 
-Un plazo se rige por la redacción vigente el día en que empieza, no por la de hoy, que puede ser otra. Por eso cada
-precepto de `data.preceptos`, y la norma del procedimiento que leas para el silencio, se lee con `boe-legislacion` en
-la fecha de inicio que pasaste a `plazos` (paso 8), con `boe_articulo` y `fecha` o con su orden, sin
-`kitlegal graph check` detrás, y se cita como ella cita una redacción a fecha:
-`kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`.
+Un plazo se rige por la redacción vigente el día en que empieza, no por la de hoy. Por eso cada precepto de
+`data.preceptos`, y la norma que leas para el silencio, se lee con `boe-legislacion` en la fecha de inicio que pasaste a
+`plazos` (paso 8), con `boe_articulo` y `fecha` o con `kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`
+sin `kitlegal graph check` detrás, y se cita como ella cita una redacción a fecha, con su línea `⚠ REDACCIÓN A FECHA:`.
 
-- La respuesta lleva, por cada precepto así leído, su línea `⚠ REDACCIÓN A FECHA:` («Cómo se presenta un plazo»).
+- Si esa lectura sale con 4 o 5 en un precepto de `data.preceptos`, la línea `⚠ PLAZO:` se mantiene, con la fecha de
+  `plazos` y la cita de cada precepto de `data.preceptos`; en lugar de su `⚠ REDACCIÓN A FECHA:`, di aparte que no has
+  podido leer esa redacción, como `boe-legislacion` dice cualquier lectura fallida, y no afirmes qué dice el precepto.
 - Si el `data` de la lectura trae `redaccion_posterior`, el bloque cambió después: va también su línea
   `⚠ REDACCIÓN DE HOY:`. En un precepto de `data.preceptos`, `plazos` ya comprobó que su apartado decía lo mismo ese
   día (paso 9): lo que cambió es otra parte del bloque. En la norma del silencio, la duración que pasaste es la de ese
