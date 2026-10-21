@@ -1,0 +1,551 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index fc3c58f..87ca278 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -24,7 +24,10 @@ sustituyen a este fichero.
+   tres skills y todas grabadas. Una sin grabar es una falta que nombra el fichero —`data/plazos.yaml: lo que la skill
+   lleva a leer boe articulo BOE-A-1998-16718 a129: …`— y la sesión no se abre; `make ci` la da en
+   `TestEvalsDelRepositorio` (subprueba `lo-que-lleva-a-leer`) y `TestLoQueLlevaALeerSinGrabar` la fija con una copia
+-  de `data/` con un bloque cambiado. La base de la medida sirve lo mismo (`TestBaseDeLaReconstruccion`).
++  de `data/` con un bloque cambiado. La base de la medida sirve lo mismo (`TestBaseDeLaReconstruccion`), pero no las
++  `lecturas` de las evals: las sesiones de los informes versionados no las tenían, y servirlas cambiaría lo que el
++  juez lee de sus casos; `TestBaseDeLaReconstruccion` exige que toda invocación de `boe` de la sesión de un caso
++  etiquetado que terminó con `4` o `5` siga terminando así sobre la base.
+ - **`lecturas` y `sin_servir` en el formato de las evals (ADR 0043).** `lecturas`, opcional, son los bloques que la
+   pregunta provoca leer sin que la eval los pida, cada uno con `norma`, `bloque` y `motivo`, que no puede estar vacío
+   ni ser solo blancos: la caché de las sesiones de toda la skill los sirve, sin fecha y con `--fecha 9999-12-31`, y no
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index b5004db..db4eb51 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -903,7 +903,9 @@ sesión no se abre; en `make ci`, `TestEvalsDelRepositorio` sale en rojo (subpru
+ `TestLoQueLlevaALeerSinGrabar` lo fija con una copia de `data/`, y `TestCacheDeLasSesiones`, lo que sirven `lecturas`
+ y `sin_servir`). Cada sesión empieza con una caché nueva en su directorio y no hereda nada de otra ni de la de quien
+ lanza el job. El sondeo prepara sus sesiones igual, y la base con la que la medida del juez reconstruye los textos
+-sirve lo mismo, sin ningún `sin_servir` (`TestBaseDeLaReconstruccion`).
++sirve lo mismo, sin ningún `sin_servir` y sin las `lecturas` de las evals, que las sesiones de los informes
++versionados no tenían: toda invocación de `boe` de la sesión de un caso etiquetado que terminó con `4` o `5` sigue
++terminando así sobre la base (`TestBaseDeLaReconstruccion`).
+ 
+ La abre
+ `scripts/evals-sesion.sh` con la orden de `claude` de siempre, bajo `strace` y con la red cerrada salvo la del modelo,
+diff --git a/internal/evals/consultas.go b/internal/evals/consultas.go
+index 7dbb464..45375b4 100644
+--- a/internal/evals/consultas.go
++++ b/internal/evals/consultas.go
+@@ -152,12 +152,13 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
+ }
+ 
+ // consultasDeLaCache son las consultas con las que se prepara la caché de una
+-// sesión de las evals de una skill y la base de la medida de su juez
+-// (contracts/cache-de-la-sesion.md §1, puntos 1 y 2, de H26.1; research D1 y D4
+-// de H26.1; FR-001, FR-004): las de ConsultasNecesarias de las evals y, detrás,
+-// las de lecturasDeLosDatos del directorio data/, con el mismo acumulador, de
+-// modo que una invocación que ya estaba solo suma su origen. Su error es el de
+-// lecturasDeLosDatos, y con él no hay consultas.
++// sesión de las evals de una skill y, con las evals sin sus lecturas, la base de
++// la medida de su juez (contracts/cache-de-la-sesion.md §1, puntos 1 y 2, de
++// H26.1; research D1 y D4 de H26.1; FR-001, FR-004): las de
++// ConsultasNecesarias de las evals y, detrás, las de anotarLosDatos del
++// directorio data/, con el mismo acumulador, de modo que una invocación que ya
++// estaba solo suma su origen. Su error es el de anotarLosDatos, y con él no hay
++// consultas. Con ninguna eval, son solo las de data/.
+ func consultasDeLaCache(conjunto []Eval, datos string) ([]Consulta, error) {
+ 	necesarias := consultasNecesarias{posiciones: map[string]int{}}
+ 	necesarias.anotarLasEvals(conjunto)
+@@ -188,21 +189,6 @@ func sinLoQueNoSeSirve(consultas []Consulta, eval Eval) []Consulta {
+ 	})
+ }
+ 
+-// lecturasDeLosDatos es lo que la skill lleva a leer del directorio data/
+-// (data-model §2 de H26.1; research D1 de H26.1; FR-001, FR-002), con el punto
+-// PuntoLoQueLlevaALeer y, como origen, el fichero de data/ del que sale cada
+-// consulta: ver anotarLosDatos. Su error es el de un fichero que no se lee o que
+-// su lector rechaza, y con él no hay consultas.
+-func lecturasDeLosDatos(datos string) ([]Consulta, error) {
+-	necesarias := consultasNecesarias{posiciones: map[string]int{}}
+-
+-	if err := necesarias.anotarLosDatos(datos); err != nil {
+-		return nil, err
+-	}
+-
+-	return necesarias.consultas, nil
+-}
+-
+ // consultasNecesarias acumula las consultas sin repetir ninguna invocación.
+ type consultasNecesarias struct {
+ 	consultas []Consulta
+diff --git a/internal/evals/consultas_test.go b/internal/evals/consultas_test.go
+index c8b15a3..8df4f65 100644
+--- a/internal/evals/consultas_test.go
++++ b/internal/evals/consultas_test.go
+@@ -525,12 +525,12 @@ var (
+ 	origenDeLasNormas   = Origen{Eval: "data/normas.yaml", Punto: "lo que la skill lleva a leer"}
+ )
+ 
+-// TestLecturasDeLosDatos fija lecturasDeLosDatos y consultasDeLaCache
++// TestLecturasDeLosDatos fija lo que consultasDeLaCache lleva a leer de data/
+ // (data-model §2 de H26.1; contracts/cache-de-la-sesion.md §1 de H26.1; research
+-// D1 de H26.1; FR-001, FR-002): del data/ del repositorio, las mismas
+-// invocaciones que enumera el oráculo de los tests de los preceptos, ninguna
+-// repetida, cada una con el fichero de data/ del que sale y el punto de lo que
+-// la skill lleva a leer; detrás de las de una eval que lee uno de esos bloques,
++// D1 de H26.1; FR-001, FR-002): sin ninguna eval, del data/ del repositorio,
++// las mismas invocaciones que enumera el oráculo de los tests de los preceptos,
++// ninguna repetida, cada una con el fichero de data/ del que sale y el punto de
++// lo que la skill lleva a leer; detrás de las de una eval que lee uno de esos bloques,
+ // con el mismo acumulador, de modo que la invocación que ya estaba suma su
+ // origen; y un fichero que falta o que su lector rechaza es el error, que nombra
+ // su ruta, sin consultas.
+@@ -547,7 +547,7 @@ func TestLecturasDeLosDatos(t *testing.T) {
+ func probarLasLecturasDelRepositorio(t *testing.T) {
+ 	t.Parallel()
+ 
+-	consultas, err := lecturasDeLosDatos(datosDelRepositorio)
++	consultas, err := consultasDeLaCache(nil, datosDelRepositorio)
+ 	require.NoError(t, err)
+ 
+ 	origenes := make(map[string][]Origen, len(consultas))
+@@ -611,7 +611,7 @@ func probarLasLecturasDelRepositorio(t *testing.T) {
+ func probarLasLecturasDetrasDeLasEvals(t *testing.T) {
+ 	t.Parallel()
+ 
+-	lecturas, err := lecturasDeLosDatos(datosDelRepositorio)
++	lecturas, err := consultasDeLaCache(nil, datosDelRepositorio)
+ 	require.NoError(t, err)
+ 	require.NotEmpty(t, lecturas)
+ 
+@@ -653,8 +653,8 @@ func probarLasLecturasDetrasDeLasEvals(t *testing.T) {
+ 
+ // probarLosDatosQueNoSeLeen es el subtest ficheros-que-no-se-leen de
+ // TestLecturasDeLosDatos: con una copia de los tres ficheros de data/ en la que
+-// falta uno, o en la que uno es una lista y no un mapa, lecturasDeLosDatos y
+-// consultasDeLaCache dan el error que nombra la ruta, y ninguna consulta.
++// falta uno, o en la que uno es una lista y no un mapa, consultasDeLaCache da el
++// error que nombra la ruta, y ninguna consulta.
+ func probarLosDatosQueNoSeLeen(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -685,10 +685,6 @@ func probarLosDatosQueNoSeLeen(t *testing.T) {
+ 					require.NoError(t, os.WriteFile(ruta, []byte("- no es un mapa\n"), 0o600))
+ 				}
+ 
+-				lecturas, err := lecturasDeLosDatos(datos)
+-				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)
+-				assert.Nil(t, lecturas)
+-
+ 				consultas, err := consultasDeLaCache(nil, datos)
+ 				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)
+ 				assert.Nil(t, consultas)
+diff --git a/internal/evals/informe.go b/internal/evals/informe.go
+index fd36b5c..ea3ea2f 100644
+--- a/internal/evals/informe.go
++++ b/internal/evals/informe.go
+@@ -1867,9 +1867,9 @@ func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
+ // componerInforme reúne en el informe lo recibido, lo leído, los resultados de
+ // las sesiones, sus series, lo que se mide de las respuestas del modelo que
+ // decide, que es nil si la skill no tiene umbrales de sus respuestas, y lo que se
+-// mide de las lecturas que sus evals dejan sin servir, que es nil si ninguna
+-// tiene un comando de bloque en su sin_servir, y decide sus motivos y su
+-// veredicto.
++// mide de las lecturas de las sesiones, para fuera_de_lo_grabado de toda skill
++// y, si alguna eval tiene un comando de bloque en su sin_servir, para
++// lectura_sin_intentar, y decide sus motivos y su veredicto.
+ func componerInforme(
+ 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
+ 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
+@@ -2166,8 +2166,9 @@ func agregarSinRepetir(lista []string, valor string) []string {
+ // de las respuestas nombra además las que cuentan en él (motivosDeLosUmbrales):
+ // respuestas es lo que se mide de ellas, nil si la skill no tiene esos
+ // umbrales. Y, desde H26.1, el de lectura_sin_intentar, las sesiones que cuentan
+-// en él: lecturas es lo que se mide de ellas, nil si ninguna eval tiene un
+-// comando de bloque en su sin_servir.
++// en él: lecturas es lo que se mide de las lecturas de las sesiones, para
++// fuera_de_lo_grabado de toda skill y, si alguna eval tiene un comando de bloque
++// en su sin_servir, para lectura_sin_intentar.
+ func motivosDelInforme(
+ 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
+ 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
+diff --git a/internal/evals/medida.go b/internal/evals/medida.go
+index c3e6630..8abe322 100644
+--- a/internal/evals/medida.go
++++ b/internal/evals/medida.go
+@@ -628,8 +628,8 @@ type reconstructor struct {
+ 	candado sync.Mutex
+ 
+ 	// deHoy son las evals de hoy por su fichero, y consultas, las que la base
+-	// tiene que servir, con lo que la skill lleva a leer de data/; nil hasta que
+-	// se leen.
++	// tiene que servir, sin las lecturas de las evals y con lo que la skill lleva
++	// a leer de data/; nil hasta que se leen.
+ 	deHoy     map[string]Eval
+ 	consultas []Consulta
+ 
+@@ -1053,10 +1053,13 @@ func (r *reconstructor) evalDeLaSesion(fichero string) (Eval, string, error) {
+ 
+ // leerLasEvalsDeHoy lee, la primera vez, las evals de hoy de la skill, que
+ // tienen que estar todas bien formadas, y con ellas las consultas que la base
+-// tiene que servir: las necesarias de esas evals y, desde H26.1, lo que la
+-// skill lleva a leer del data/ del repositorio, sin el sin_servir de ninguna
+-// eval (consultasDeLaCache; research D4 de H26.1; FR-004). Un data/ que no se
+-// lee es el error, y entonces no lee nada.
++// tiene que servir: las necesarias de esas evals sin sus lecturas y, desde
++// H26.1, lo que la skill lleva a leer del data/ del repositorio, sin el
++// sin_servir de ninguna eval (consultasDeLaCache; research D4 de H26.1;
++// FR-004). Las lecturas de una eval son lo que sus sesiones de los informes
++// versionados leyeron sin tenerlo, con 4 o 5: servirlas le daría al juez un
++// texto que la sesión del caso no vio. Un data/ que no se lee es el error, y
++// entonces no lee nada.
+ func (r *reconstructor) leerLasEvalsDeHoy() error {
+ 	if r.deHoy != nil {
+ 		return nil
+@@ -1067,7 +1070,7 @@ func (r *reconstructor) leerLasEvalsDeHoy() error {
+ 		return err
+ 	}
+ 
+-	consultas, err := consultasDeLaCache(evals, datosDelRepositorio)
++	consultas, err := consultasDeLaCache(sinSusLecturas(evals), datosDelRepositorio)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -1082,6 +1085,17 @@ func (r *reconstructor) leerLasEvalsDeHoy() error {
+ 	return nil
+ }
+ 
++// sinSusLecturas son copias de las evals, en su orden, sin sus lecturas. Las
++// evals que recibe no cambian.
++func sinSusLecturas(evals []Eval) []Eval {
++	sin := slices.Clone(evals)
++	for posicion := range sin {
++		sin[posicion].Lecturas = nil
++	}
++
++	return sin
++}
++
+ // evalRetirada es lo único que se lee del fichero de una eval retirada: su
+ // pregunta y su grafo previo.
+ type evalRetirada struct {
+@@ -1114,9 +1128,9 @@ func leerEvalRetirada(retiradas, fichero string) (Eval, error) {
+ }
+ 
+ // baseVigente devuelve el directorio de la base: la caché que Preparar llena
+-// con UnionDeGrabaciones y las consultas necesarias de las evals de hoy, con lo
+-// que la skill lleva a leer de data/ desde H26.1, y que sirve a todas las
+-// sesiones (contracts/medida-del-juez.md §5, paso 1, de H24).
++// con UnionDeGrabaciones y las consultas necesarias de las evals de hoy, sin sus
++// lecturas y con lo que la skill lleva a leer de data/ desde H26.1, y que sirve
++// a todas las sesiones (contracts/medida-del-juez.md §5, paso 1, de H24).
+ // Si no hay ninguna, o la que hay tiene más de vigenciaDeLaBase desde que se
+ // empezó a preparar, la retira y prepara otra. Es un error que no se pueda
+ // preparar o que lo grabado no sirva alguna de esas consultas, y entonces no
+diff --git a/internal/evals/medida_test.go b/internal/evals/medida_test.go
+index 1743d28..dc189fd 100644
+--- a/internal/evals/medida_test.go
++++ b/internal/evals/medida_test.go
+@@ -3075,7 +3075,8 @@ func TestResolverCasosSinPoderPreparar(t *testing.T) {
+ // directorio y la anterior se retira, porque lo que guarda de buscar y de
+ // metadatos caduca a los 300 s; y al retirarla no queda nada. Desde H26.1, la
+ // base de boe-legislacion sirve también lo que la skill lleva a leer de data/,
+-// que no nombra ninguna de sus evals (FR-004).
++// que no nombra ninguna de sus evals (FR-004), y la de cada skill con juez no
++// sirve nada que las sesiones de sus casos etiquetados no tuvieran.
+ func TestBaseDeLaReconstruccion(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -3116,6 +3117,69 @@ func TestBaseDeLaReconstruccion(t *testing.T) {
+ 	require.NoError(t, sintetico.retirarLaBase(), "retirarla otra vez no es un error")
+ 
+ 	t.Run("sirve-lo-que-la-skill-lleva-a-leer", probarLaBaseConLoQueLlevaALeer)
++	t.Run("sin-lo-que-no-tuvieron-sus-sesiones", probarLaBaseSinLoQueNoTuvieronSusSesiones)
++}
++
++// probarLaBaseSinLoQueNoTuvieronSusSesiones es el caso de
++// TestBaseDeLaReconstruccion con los casos etiquetados de cada skill de la tabla
++// de las copias: cada invocación de boe de la sesión de un caso que terminó con
++// 4 o 5 en su informe del job, porque la sesión no tenía lo que pedía, repetida
++// sin red sobre la base de la medida de su skill termina también con 4 o 5. Una
++// base que la sirviera le daría al juez un texto que la sesión del caso no vio,
++// como las lecturas de las evals desde H26.1 (research D4 de H26.1; FR-004). Las
++// invocaciones de un sondeo no se repiten, y su informe no da su código.
++func probarLaBaseSinLoQueNoTuvieronSusSesiones(t *testing.T) {
++	t.Parallel()
++
++	for _, pareja := range copiasDelJuez {
++		t.Run(pareja.skill(), func(t *testing.T) {
++			t.Parallel()
++
++			evals := path.Join(raizDelRepositorio, path.Dir(pareja.copias))
++
++			leidos, err := leerCasosEtiquetados([]byte(juezDe(t, evals).Casos))
++			require.NoError(t, err)
++
++			reconstructor := nuevoReconstructor(evals)
++
++			base, err := reconstructor.baseVigente()
++			require.NoError(t, err)
++
++			t.Cleanup(func() { assert.NoError(t, reconstructor.retirarLaBase()) })
++
++			registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(base))
++			require.NoError(t, err)
++
++			repetidas := map[sesionDeUnInforme]bool{}
++
++			for _, caso := range leidos.Casos {
++				clave := sesionDeUnInforme{informe: caso.Informe, sesion: caso.Sesion}
++				if repetidas[clave] {
++					continue
++				}
++
++				repetidas[clave] = true
++
++				informe, err := reconstructor.informeDelCaso(caso.Informe)
++				require.NoError(t, err)
++
++				for _, invocacion := range informe.delJob[caso.Sesion].Invocaciones {
++					argumentos := argumentosDeLaInvocacion(invocacion)
++					codigo := invocacion.Codigo
++
++					if argumentos[0] != appletQueLeeBloques || codigo == nil ||
++						(*codigo != codigoFuenteNoDisponible && *codigo != codigoLimiteOTos) {
++						continue
++					}
++
++					repetida := repetir(registro, invocacion.Orden, argumentos, nil)
++					assert.Contains(t, []int{codigoFuenteNoDisponible, codigoLimiteOTos}, repetida.codigo,
++						"%s, sesión %s: «%s» terminó con %d en la sesión y la base de la medida no la sirve",
++						caso.Informe, caso.Sesion, invocacion.Orden, *codigo)
++				}
++			}
++		})
++	}
+ }
+ 
+ // probarLaBaseConLoQueLlevaALeer es el caso de TestBaseDeLaReconstruccion con
+@@ -3747,12 +3811,7 @@ func preguntaLeidaAparteDe(t *testing.T, eval string, carpetas ...string) string
+ // Los recuentos de los casos etiquetados de la copia del repositorio (research
+ // M2 de H24; FR-024): cuántos son, cuántos de cada etiqueta y de cada
+ // procedencia, cuántos informes nombran, cuántos son de la eval que H7.2 retiró
+-// y cuántos derivados quitan su texto del de un boe articulos: los dos de la 20,
+-// que lee a1-30 y da-3 juntos, y, desde H26.1, que la base de la medida sirve
+-// las lecturas de las evals (research D2 y D4 de H26.1; FR-004, FR-006), los
+-// tres de la 14, la 15 y la 16 cuyo boe articulos junta el bloque de la cita con
+-// una de sus lecturas, que la base no servía antes y en la reconstrucción sale
+-// con 0.
++// y cuántos derivados quitan su texto del de un boe articulos.
+ const (
+ 	casosDeLaCopia         = 259
+ 	defectosDeLaCopia      = 212
+@@ -3762,7 +3821,7 @@ const (
+ 	deLaLecturaEnLaCopia   = 114
+ 	informesDeLaCopia      = 6
+ 	casosDeLaEvalRetirada  = 2
+-	derivadosDeUnArticulos = 5
++	derivadosDeUnArticulos = 2
+ )
+ 
+ // Lo que el control de derivaciones lee por su cuenta de los casos y de las
+diff --git a/specs/025-h26-1-las-evals-sirven/cierre.md b/specs/025-h26-1-las-evals-sirven/cierre.md
+index 57e4052..15bc22b 100644
+--- a/specs/025-h26-1-las-evals-sirven/cierre.md
++++ b/specs/025-h26-1-las-evals-sirven/cierre.md
+@@ -87,7 +87,7 @@ test recorre (`count` 0 en los dos perfiles), todos de una sentencia y todos ram
+ - `internal/evals/juzgar.go:1182-1184` y `:1187-1189` — en `prefijoDeLaSalidaNoEscrita`, el presentador que no da error
+   con una salida estándar que falla, o uno que no termina en la causa. Las dos dejan el prefijo vacío, y con él toda
+   invocación como antes de H26.1; `TestLineaDeLaSalidaNoEscrita` exige que, con el binario de hoy, no lo sea.
+-- `internal/evals/medida.go:1071-1073` — en `leerLasEvalsDeHoy`, el error de `consultasDeLaCache` con un `data/` que no se
++- `internal/evals/medida.go:1074-1076` — en `leerLasEvalsDeHoy`, el error de `consultasDeLaCache` con un `data/` que no se
+   lee.
+ - `internal/evals/umbrales.go:955-957` — en `lecturasMedidas.umbrales`, el receptor `nil`.
+ 
+@@ -206,7 +206,7 @@ Filas `ci:` — cada test encontrado como `^func <Test>\(` en su ruta (línea en
+ | SC-016 | `internal/evals/informe_test.go:TestInforme` (278) | sí | sí: el caso `llegada-a-la-red` con `comprobarLlegadaALaRed` (`:3282`), cuyo cuerpo es igual al de `main` (comparado con `diff`), que exige la petición en `red`, su motivo y el veredicto `fallo`; T010 solo le añadió, por caso, el umbral `fuera_de_lo_grabado` que espera |
+ | SC-011, FR-001, FR-003, SC-003 | `internal/evals/conjunto_test.go:TestEvalsDelRepositorio` (1999), `internal/evals/preparar_test.go:TestLoQueLlevaALeerSinGrabar` (995) | sí | sí, y en rojo con el mutante de §3.7.a |
+ | FR-002, FR-005, SC-008 | `TestEvalsDelRepositorio` (1999), `internal/evals/preparar_test.go:TestCacheDeLasSesiones` (1070) | sí | sí; el mutante de FR-002, en `mutantes.md` §2 (T015) |
+-| FR-004 | `internal/evals/medida_test.go:TestBaseDeLaReconstruccion` (3079) | sí | sí |
++| FR-004 | `internal/evals/medida_test.go:TestBaseDeLaReconstruccion` (3080) | sí | sí |
+ | SC-018, FR-006, FR-010, FR-011, SC-004 | `TestCacheDeLasSesiones` (1070), `TestEvalsDelRepositorio` (1999) | sí | sí |
+ | FR-013, SC-005, SC-008 | `TestCacheDeLasSesiones` (1070) | sí | sí; el mutante de FR-013, en `mutantes.md` §3 (T015) |
+ | FR-008, FR-009, FR-012, FR-014, SC-004, SC-005 | `internal/evals/formato_test.go:TestFormatoDeLecturas` (1907), `TestEvalsDelRepositorio` (1999) | sí | sí |
+diff --git a/specs/025-h26-1-las-evals-sirven/contracts/cache-de-la-sesion.md b/specs/025-h26-1-las-evals-sirven/contracts/cache-de-la-sesion.md
+index f381c93..4688894 100644
+--- a/specs/025-h26-1-las-evals-sirven/contracts/cache-de-la-sesion.md
++++ b/specs/025-h26-1-las-evals-sirven/contracts/cache-de-la-sesion.md
+@@ -13,7 +13,7 @@ en proceso y sin red, con estas consultas, en este orden y sin repetir ninguna i
+ 1. **Las necesarias de las evals de la skill** (`ConsultasNecesarias`): los comandos esperados, el `indice` y los
+    `metadatos` de las normas de sus comandos y citas, el bloque de cada cita y, desde este hito, cada bloque de sus
+    `lecturas`; cada bloque, sin fecha y con `--fecha 9999-12-31`.
+-2. **Lo que la skill lleva a leer** (`lecturasDeLosDatos(datosDelRepositorio)`): cada bloque de `data/plazos.yaml` y de
++2. **Lo que la skill lleva a leer** (`anotarLosDatos(datosDelRepositorio)`): cada bloque de `data/plazos.yaml` y de
+    `data/cobertura.yaml`, sin fecha y con `--fecha 9999-12-31`, y el `indice` y los `metadatos` de cada norma de esos
+    dos ficheros y de `data/normas.yaml`. Es lo mismo para las tres skills.
+ 3. **Menos el `sin_servir` de *E*** (`sinLoQueNoSeSirve`): las que consultan un bloque de su `sin_servir` (las dos
+@@ -24,8 +24,11 @@ Lo que no se prepara, la sesión no lo tiene: con `--offline`, 4; sin `--offline
+ La lectura de un bloque con `--fecha 9999-12-31` deja sus versiones, de las que se sirve después la del bloque en
+ cualquier fecha (research V3).
+ 
+-La base de la medida del juez (`baseVigente`) prepara 1 y 2, sin 3: es una para todas las sesiones de la skill, y solo
+-la tienen `boe-legislacion` y `jurisprudencia`, sin ninguna eval con `sin_servir` (research D4).
++La base de la medida del juez (`baseVigente`) prepara 1, sin las `lecturas`, y 2, sin 3: es una para todas las
++sesiones de la skill, y solo la tienen `boe-legislacion` y `jurisprudencia`, sin ninguna eval con `sin_servir`
++(research D4). Las `lecturas` son lo que las sesiones de los informes versionados leyeron sin tenerlo, con 4 o 5, y la
++base no las sirve: toda invocación de `boe` de la sesión de un caso etiquetado que terminó así en su informe sigue
++terminando con 4 o 5 sobre la base (`TestBaseDeLaReconstruccion`).
+ 
+ ## 2. Lo que se sirve hoy con el `data/` del repositorio
+ 
+diff --git a/specs/025-h26-1-las-evals-sirven/data-model.md b/specs/025-h26-1-las-evals-sirven/data-model.md
+index 5dfd875..54133b2 100644
+--- a/specs/025-h26-1-las-evals-sirven/data-model.md
++++ b/specs/025-h26-1-las-evals-sirven/data-model.md
+@@ -53,14 +53,15 @@ Métodos sin exportar que usan el juicio y la preparación:
+ 
+ - `ConsultasNecesarias(conjunto)` anota, detrás de las citas de cada eval, sus `lecturas` con `anotarBloque`: sin fecha y
+   con `--fecha 9999-12-31`.
+-- `lecturasDeLosDatos(dir) ([]Consulta, error)` lee `dir/plazos.yaml` con `plazos.LeerTipos`, `dir/cobertura.yaml` con
++- `anotarLosDatos(dir) error`, del acumulador, lee `dir/plazos.yaml` con `plazos.LeerTipos`, `dir/cobertura.yaml` con
+   `skills.LeerCobertura` y `dir/normas.yaml` con `skills.LeerNormas`, y anota, en este orden y sin repetir: cada bloque de
+   los tipos (sus `Preceptos`, sus `Unidades` en el orden de `plazos.Unidades()` y sus `PreceptosDelComputo`), cada
+   `Precepto` de la cobertura y el `Aplicable` de su `Norma`, todos con `anotarBloque`; y, de cada norma de esos bloques,
+   de la cobertura y de `normas.yaml`, `indice` y `metadatos`. Ningún identificador escrito en el código (FR-002). Un
+-  fichero que no se lee o que su lector rechaza es un error.
++  fichero que no se lee o que su lector rechaza es un error, y entonces no anota nada.
+ - `consultasDeLaCache(evals, dir) ([]Consulta, error)`: las de `ConsultasNecesarias(evals)` y, detrás, las de
+-  `lecturasDeLosDatos(dir)`, con el mismo acumulador: la invocación que ya estaba suma su origen.
++  `anotarLosDatos(dir)`, con el mismo acumulador: la invocación que ya estaba suma su origen.
++- `sinSusLecturas(evals) []Eval` (`medida.go`): copias de las evals sin sus `lecturas`, para la base de la medida.
+ - `sinLoQueNoSeSirve(consultas, eval) []Consulta`: las consultas menos las que `eval.sinServir` reconoce, convertida cada
+   una en la `Invocacion` que la ejecuta (applet, verbo, argumentos, `Consulta: true`).
+ - `datosDelRepositorio = "../../data"`: el `data/` del repositorio, relativo al paquete.
+@@ -70,7 +71,7 @@ Quién prepara qué (contracts/cache-de-la-sesion.md §1):
+ | Caché | Consultas | Requisitos |
+ |---|---|---|
+ | La de una sesión del job o del sondeo (`prepararLaCache`) | `sinLoQueNoSeSirve(consultasDeLaCache(evals, datosDelRepositorio), eval)` | FR-001, FR-006, FR-013 |
+-| La base de la medida del juez (`leerLasEvalsDeHoy`, `baseVigente`) | `consultasDeLaCache(evals, datosDelRepositorio)` | FR-004 |
++| La base de la medida del juez (`leerLasEvalsDeHoy`, `baseVigente`) | `consultasDeLaCache(sinSusLecturas(evals), datosDelRepositorio)`: sin las `lecturas`, que las sesiones de los informes versionados no tenían (research D4) | FR-004 |
+ 
+ `Falta.String` nombra las nuevas desde su origen (`queFaltaDesde`):
+ `<fichero de la eval>: la lectura <norma> <bloque> sin su bloque: «…» terminó con código N: …` y
+diff --git a/specs/025-h26-1-las-evals-sirven/plan.md b/specs/025-h26-1-las-evals-sirven/plan.md
+index b11bb35..f5cf62e 100644
+--- a/specs/025-h26-1-las-evals-sirven/plan.md
++++ b/specs/025-h26-1-las-evals-sirven/plan.md
+@@ -16,8 +16,8 @@ su esquema, sus evals, una grabación y el texto de `legal-core`; ningún paquet
+    evals de su skill se suman, con el mismo acumulador, cada bloque de `data/plazos.yaml` y de `data/cobertura.yaml`
+    —sin fecha y con `--fecha 9999-12-31`— y el índice y los metadatos de cada norma de esos dos ficheros y de
+    `data/normas.yaml`, leídos con `plazos.LeerTipos`, `skills.LeerCobertura` y `skills.LeerNormas` (research D1). Hoy son
+-   17 bloques y 19 normas, 72 consultas, todas grabadas (research V1). La base de la medida del juez sirve lo mismo
+-   (FR-004, D4).
++   17 bloques y 19 normas, 72 consultas, todas grabadas (research V1). La base de la medida del juez sirve lo mismo,
++   sin las `lecturas` de las evals (FR-004, D4).
+ 2. **`lecturas`** (FR-006 a FR-011): cuarto punto de las consultas necesarias (D2); el esquema y `LeerEval` validan su
+    forma y sus cruces (D9); una tarea `[datos]` añade al manifiesto de `internal/evals/testdata/` cuatro bloques que no
+    están grabados (V2), y las evals 14, 15 y 16 de `boe-legislacion` los llevan.
+@@ -126,9 +126,9 @@ evals/legal-core/12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml  # nu
+ evals/boe-legislacion/{14,15,16}-*-por-materia.yaml                      # lecturas
+ internal/evals/
+ ├── formato.go          # LecturaDeLaEval, LecturaSinServir, Eval.Lecturas/SinServir, cruces en LeerEval
+-├── consultas.go        # PuntoLecturaDeLaEval, PuntoLoQueLlevaALeer, lecturasDeLosDatos, consultasDeLaCache, sinLoQueNoSeSirve
++├── consultas.go        # PuntoLecturaDeLaEval, PuntoLoQueLlevaALeer, anotarLosDatos, consultasDeLaCache, sinLoQueNoSeSirve
+ ├── preparar.go         # prepararLaCache con consultasDeLaCache y sin_servir; queFaltaDesde
+-├── medida.go           # leerLasEvalsDeHoy con consultasDeLaCache
++├── medida.go           # leerLasEvalsDeHoy con consultasDeLaCache de las evals sin sus lecturas (sinSusLecturas)
+ ├── sesion.go           # Llamada.SinSobre, Sesion.OrdenesDeBash
+ ├── juzgar.go           # reparto, lecturas_sin_servir, motivo y bash, FR-016, prefijo de la salida no escrita
+ ├── informe.go          # sesiones_con_lectura_sin_servir, fila de la llamada sin sobre en informe.md
+@@ -189,7 +189,8 @@ las evals, V8) y `make ci`.
+ | `TestUmbralesDeLasLecturas` | `internal/evals/umbrales_test.go` | `fuera_de_lo_grabado` (US4), `lectura_sin_intentar` con su motivo y su veredicto, el del modelo informativo, su ausencia en una skill sin eval con un comando de bloque en su `sin_servir`, y `sesiones_con_lectura_sin_servir` (US2, escenario 5) | FR-015, FR-021, FR-022, FR-033; SC-005, SC-006, SC-008, SC-013 |
+ 
+ Casos nuevos en tests que existen: `TestConsultasNecesarias` (`lecturas`, punto `lectura de la eval`; FR-006),
+-`TestBaseDeLaReconstruccion` (la base sirve `daprimera`; FR-004), `TestLeerLasLlamadas` (`SinSobre`; FR-023) y
++`TestBaseDeLaReconstruccion` (la base sirve `daprimera` y no sirve lo que las sesiones de los casos etiquetados no
++tenían; FR-004), `TestLeerLasLlamadas` (`SinSobre`; FR-023) y
+ `TestTextosDeLaSesion` (`OrdenesDeBash`; FR-026).
+ 
+ ### Tests existentes que cambian lo que esperan
+@@ -255,7 +256,7 @@ medidas (research D11): las 3 de la 11 por modelo y modo.
+ | SC-016 | 0 peticiones en `red` del informe de `legal-core` | una llegada a la red es un motivo del informe y su veredicto, `fallo` (desde H7.3, sin cambiar) | `ci:internal/evals/informe_test.go:TestInforme` |
+ | SC-011, FR-001, FR-003, SC-003 | 0 sesiones con un bloque de `data/` en `fuera_de_lo_grabado`: cada bloque de los dos ficheros, sin fecha y con `9999-12-31`, y el índice y los metadatos de cada norma de los tres, con 0 desde la caché de una sesión de cada skill; un precepto sin grabar, 1 falta y la sesión sin abrir | la caché preparada con el `data/` del repositorio y con una copia rota | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestLoQueLlevaALeerSinGrabar` |
+ | FR-002, FR-005, SC-008 (la derivación) | 0 faltas con el `data/` y las grabaciones de hoy; sin la derivación, el mutante en rojo | ídem, y el mutante de `mutantes.md` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
+-| FR-004 | 0 faltas al leer desde la base de la medida una lectura de `data/` que no nombra ninguna eval | la base de `boe-legislacion` | `ci:internal/evals/medida_test.go:TestBaseDeLaReconstruccion` |
++| FR-004 | 0 faltas al leer desde la base de la medida una lectura de `data/` que no nombra ninguna eval; 0 invocaciones de `boe` de la sesión de un caso etiquetado que terminaron con 4 o 5 en su informe y la base sirve | la base de `boe-legislacion` y la de `jurisprudencia`, con sus casos | `ci:internal/evals/medida_test.go:TestBaseDeLaReconstruccion` |
+ | SC-018, FR-006, FR-010, FR-011, SC-004 | 0 sesiones de `boe-legislacion` con un bloque de `lecturas` en `fuera_de_lo_grabado`: los 4 bloques, sin fecha y con `9999-12-31`, con 0 desde la caché de otra eval de la skill; grabados | la caché preparada; la preparación de las consultas de `boe-legislacion` | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones`, `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
+ | FR-013, SC-005, SC-008 (`sin_servir`) | desde la 11, `a124` con 4 en 3 de 3 fechas, y desde la 05, con 0 en 3 de 3; ídem `daprimera` en la 12 y la 07; con `sin_servir` aplicado a todas, el test en rojo | la caché preparada de cada sesión | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
+ | FR-008, FR-009, FR-012, FR-014, SC-004, SC-005 | 0 evals mal formadas en el repositorio; cada uno de los rechazos de contracts/formato-de-eval.md §2 y del esquema, con su error | la lectura del conjunto y de cada eval | `ci:internal/evals/formato_test.go:TestFormatoDeLecturas`, `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
+@@ -314,11 +315,11 @@ copia) y D17 (la fila de la fuente no cambia). Ninguna desviación de la constit
+ | cruces de `LeerEval` (lectura ya comando o cita; `sin_servir` ya cita) | `formato.go` | FR-008, FR-014 |
+ | `LecturaSinServir.consulta`, `Eval.sinServir`, `Eval.comandoSinServir` | `formato.go` | FR-013, FR-015, FR-016 |
+ | `PuntoLecturaDeLaEval` y su anotación en `ConsultasNecesarias` | `consultas.go` | FR-006 |
+-| `PuntoLoQueLlevaALeer`, `lecturasDeLosDatos`, `datosDelRepositorio` | `consultas.go` | FR-001, FR-002 |
++| `PuntoLoQueLlevaALeer`, `anotarLosDatos`, `datosDelRepositorio` | `consultas.go` | FR-001, FR-002 |
+ | `consultasDeLaCache` | `consultas.go` | FR-001, FR-004 |
+ | `sinLoQueNoSeSirve` y su uso en `prepararLaCache` | `consultas.go`, `preparar.go` | FR-013 |
+ | `queFaltaDesde` para los dos puntos nuevos | `preparar.go` | FR-003 |
+-| `leerLasEvalsDeHoy` con `consultasDeLaCache` | `medida.go` | FR-004 |
++| `leerLasEvalsDeHoy` con `consultasDeLaCache` de las evals sin sus lecturas (`sinSusLecturas`) | `medida.go` | FR-004 |
+ | `Llamada.SinSobre` | `sesion.go` | FR-023 |
+ | `Sesion.OrdenesDeBash` | `sesion.go` | FR-026 |
+ | reparto de `informarLaJuzgada` (filas 2, 3 y 6) | `juzgar.go` | FR-015, FR-023, FR-024 |
+@@ -365,7 +366,7 @@ Ninguna tarea `[aceptacion]` (Aceptación e2e: no aplica). Cada paso deja `make
+    `grabar_datos` graba los cuatro bloques.
+ 3. **El formato** (`formato.go`): los dos tipos, los dos campos, los cruces de `LeerEval` y los métodos de §1 de
+    data-model; `TestFormatoDeLecturas`.
+-4. **La caché** (`consultas.go`, `preparar.go`, `medida.go`): el punto de `lecturas`, `lecturasDeLosDatos`,
++4. **La caché** (`consultas.go`, `preparar.go`, `medida.go`): el punto de `lecturas`, `anotarLosDatos`,
+    `consultasDeLaCache`, `sinLoQueNoSeSirve` y sus usos; `TestConsultasNecesarias`, `TestLoQueLlevaALeerSinGrabar`,
+    `TestBaseDeLaReconstruccion`, `TestEvalsDelRepositorio/lo-que-lleva-a-leer`; y la parte `lecturas` de
+    `TestCacheDeLasSesiones` con las `lecturas` de la 14, la 15 y la 16 (`evals/boe-legislacion/`), que ya están grabadas.
+diff --git a/specs/025-h26-1-las-evals-sirven/research.md b/specs/025-h26-1-las-evals-sirven/research.md
+index e56b355..1741ae0 100644
+--- a/specs/025-h26-1-las-evals-sirven/research.md
++++ b/specs/025-h26-1-las-evals-sirven/research.md
+@@ -157,9 +157,9 @@ tiene blancos.
+ ## Decisiones (D)
+ 
+ **D1 · Lo que la skill lleva a leer se deriva en `internal/evals/consultas.go` y se suma a las consultas necesarias con
+-el mismo acumulador (FR-001, FR-002).** Una función sin exportar, `lecturasDeLosDatos(dir)`, lee los tres ficheros de
+-`dir` con `plazos.LeerTipos`, `skills.LeerCobertura` y `skills.LeerNormas` y anota, con el acumulador de
+-`ConsultasNecesarias`, cada bloque sin fecha y con `--fecha 9999-12-31` y el `indice` y los `metadatos` de cada norma,
++el mismo acumulador (FR-001, FR-002).** Un método sin exportar del acumulador de `ConsultasNecesarias`,
++`anotarLosDatos(dir)`, lee los tres ficheros de `dir` con `plazos.LeerTipos`, `skills.LeerCobertura` y
++`skills.LeerNormas` y anota cada bloque sin fecha y con `--fecha 9999-12-31` y el `indice` y los `metadatos` de cada norma,
+ con un punto nuevo, `PuntoLoQueLlevaALeer`, y el fichero de `data/` como origen. `consultasDeLaCache(evals, dir)` da las
+ necesarias de las evals y, detrás, las de los datos, sin repetir ninguna invocación: la que ya estaba suma su origen.
+ `dir` es `datosDelRepositorio = "../../data"` en el job y en la medida, y una copia en el test de la falta (FR-003).
+@@ -170,8 +170,8 @@ la cobertura ni las normas: las tres lecturas tienen que salir del mismo sitio,
+ 
+ **D2 · `lecturas` es el cuarto punto de las consultas necesarias (FR-006).** `ConsultasNecesarias` anota cada entrada de
+ `lecturas` con `anotarBloque` —sin fecha y con `9999-12-31`— y un punto nuevo, `PuntoLecturaDeLaEval`. Así la caché de
+-toda sesión de la skill las sirve, `TestEvalsDelRepositorio/grabado` exige su grabación (FR-010) y la base de la medida
+-las tiene sin tocarla. *Rechazada*: una lista aparte, que habría que añadir en cada sitio que prepara.
++toda sesión de la skill las sirve y `TestEvalsDelRepositorio/grabado` exige su grabación (FR-010); la base de la medida
++no las sirve (D4). *Rechazada*: una lista aparte, que habría que añadir en cada sitio que prepara.
+ 
+ **D3 · `sin_servir` se aplica al preparar la caché de la sesión, quitando sus consultas antes de `Preparar` (FR-013).**
+ `sinLoQueNoSeSirve(consultas, eval)` quita de las de `consultasDeLaCache` cada una que consulta una lectura de
+@@ -181,12 +181,18 @@ norma. V3 muestra que, sin esas dos consultas, la caché no sirve el bloque con
+ entradas de la caché ya preparada, que pediría SQLite en `internal/evals` (R3) y conocer las claves de `internal/source/boe`;
+ y una reproducción que falle a propósito, que es la opción 2 del ADR 0043, rechazada.
+ 
+-**D4 · La medida del juez sirve lo mismo que FR-001 y las `lecturas`, sin `sin_servir` (FR-004).** `leerLasEvalsDeHoy`
+-guarda `consultasDeLaCache(evals, datosDelRepositorio)` en lugar de `ConsultasNecesarias(evals)`. La base es una por
+-skill y la comparten las sesiones de todas sus evals (V6), y solo tienen medida las skills con juez, `boe-legislacion` y
+-`jurisprudencia`, cuyas evals no llevan `sin_servir`: aplicarlo en la medida no lo alcanza ninguna vía real (umbral de
+-materialidad) y FR-004 no lo pide. *Rechazada*: una base por eval, que multiplicaría la preparación sin cambiar nada
+-que vea una persona.
++**D4 · La medida del juez sirve lo mismo que FR-001, sin las `lecturas` ni `sin_servir` (FR-004).** `leerLasEvalsDeHoy`
++guarda `consultasDeLaCache(sinSusLecturas(evals), datosDelRepositorio)` en lugar de `ConsultasNecesarias(evals)`. La
++base es una por skill y la comparten las sesiones de todas sus evals (V6), y solo tienen medida las skills con juez,
++`boe-legislacion` y `jurisprudencia`, cuyas evals no llevan `sin_servir`: aplicarlo en la medida no lo alcanza ninguna
++vía real (umbral de materialidad) y FR-004 no lo pide. Las `lecturas` tampoco, y servirlas cambia lo que la medida
++reconstruye: son lo que las sesiones de los informes versionados leyeron sin tenerlo, con 5, y con la base
++sirviéndolas 9 de los 259 casos de `boe-legislacion` —3 derivados y 6 defectos de procedencia `lectura` cuya frase
++describe el artículo que no se leyó— le darían al juez ese artículo leído con 0 (revisión final). Lo de `data/` no
++cambia ningún caso, y `TestBaseDeLaReconstruccion` lo hace cumplir para las dos skills: toda invocación de `boe` de la
++sesión de un caso etiquetado que terminó con 4 o 5 en su informe sigue terminando así sobre la base. *Rechazadas*: una
++base por eval, que multiplicaría la preparación sin cambiar nada que vea una persona; y servir las `lecturas` en la
++medida, por lo dicho.
+ 
+ **D5 · Un comando de bloque cuya lectura está en `sin_servir` admite también 4 y 5 (FR-016).** `satisface` recibe si la
+ lectura del comando está en el `sin_servir` de su eval, y `consultoComoPide` admite entonces el 4 y el 5 además del 0 y

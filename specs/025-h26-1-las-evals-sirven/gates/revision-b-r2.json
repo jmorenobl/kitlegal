@@ -1,0 +1,84 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log (sin versionar; mtime 2026-10-21 15:03:54, la hora exacta del commit 007c7fe, y «guardián de diff ok ((global), 24 ficheros)», los 24 del commit): «ci: todos los controles en verde», lint «0 issues.», todos los paquetes `ok`, `kitlegal-verificacion exit=0`. Reproducido en una copia de la cabeza en $TMPDIR (rsync sin .git): `go build ./...` ok; `go test -count=1 ./internal/evals/` ok en 42,6 s; `golangci-lint run ./...` (go tool -modfile) → 0 issues; `go test -count=1 ./internal/ ./internal/app/` (reglas de arquitectura, TestTuberiaCerrada, TestEsquemasPublicados, TestSkillsDelRepositorio…) ok. Árbol limpio salvo gates/ (modelos.jsonl, revision-cambios.md, revision-cambios-r2.diff y base-global-pendiente, que escribe el workflow)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "La corrección añade `TestBaseDeLaReconstruccion/sin-lo-que-no-tuvieron-sus-sesiones` (medida_test.go:3133-3182), que para cada skill de `copiasDelJuez` prepara `baseVigente()` y repite sin red (`argumentosDeLaInvocacion` añade `--offline`, medida.go:1388; el registro de grabaciones es un `t.TempDir()` vacío) cada invocación de `boe` de la sesión de un caso etiquetado que terminó con 4 o 5 en su informe del job, y exige 4 o 5. En verde en la copia (boe-legislacion 0,27 s, jurisprudencia 0,20 s). Mutante en una segunda copia: `consultasDeLaCache(evals, datosDelRepositorio)` en vez de `sinSusLecturas(evals)` (medida.go:1073) → el subtest falla en 15 invocaciones de 6 sesiones (H7.1 16-…-01, H7.2 16-…-03, H7.4 14-…-01 y 16-…-02, H21 15-…-01 y 16-…-02: a26/a27 de BOE-A-2015-10566, a15 de BOE-A-2004-4214, a18 de BOE-A-2006-20764), y `TestGrabacionesDerivadas/boe-legislacion/derivados` (medida_test.go:4107) da «actual: 5» frente a `derivadosDeUnArticulos = 2` (3824): la constante vuelve a ser la medida real y el test la vigila. Revertido y comprobado (`grep -c sinSusLecturas(evals)` = 1). Los tres usos de `lecturasDeLosDatos` en consultas_test.go llaman ahora a `consultasDeLaCache(nil, …)` y comprueban lo mismo (probarLasLecturasDelRepositorio, probarLasLecturasDetrasDeLasEvals, probarLosDatosQueNoSeLeen con el error que nombra la ruta). Lo demás del hito, sin cambio desde mi veredicto de la ronda 1 (sus mutantes y tests siguen valiendo: el rango no toca juzgar.go, umbrales.go, preparar.go ni formato.go). Sin suite de aceptación congelada, por lo mismo que en la ronda 1 (plan.md «Aceptación e2e», research D15)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún import (sinSusLecturas usa `slices`, ya importado en medida.go para `repetir`); sin net/http, os.Exit ni fmt.Print* en revision-cambios-r2.diff. Lint 0 issues y `go test ./internal/` (arch_test) en verde en la copia."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet, internal/app, internal/cli, internal/render ni schemas/: la salida de los applets y el esquema de las evals son los de la ronda 1 (TestEsquemasPublicados, TestFormatoDeLecturas, TestEvalsDelRepositorio en verde en ci.log y en la copia)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambio en los códigos de salida del binario. `sinSusLecturas` (medida.go:1090-1097) clona con `slices.Clone` y anula `Lecturas` solo en las copias, sin pánico posible; `leerLasEvalsDeHoy` sigue devolviendo el error de `consultasDeLaCache` (1073-1076, las líneas que cita cierre.md §… «medida.go:1074-1076», correctas) y no lee nada con él. En el test nuevo, `codigo == nil` y los applets que no son `boe` se saltan antes de desreferenciar (3168-3170)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Los dos comentarios de informe.go que el juez A señaló dicen ahora lo que hace el código: `componerInforme` (1869-1871) y `motivosDelInforme` (2168-2170), «lo que se mide de las lecturas de las sesiones, para fuera_de_lo_grabado de toda skill y, si alguna eval tiene un comando de bloque en su sin_servir, para lectura_sin_intentar», que es lo que `medirLasLecturas` devuelve siempre. CHANGELOG.md:27-30 y CONTRIBUTING.md:906-908 dicen que la base no sirve las `lecturas` y qué exige `TestBaseDeLaReconstruccion`, y es lo que el test exige (mutante en rojo). research D4 reescrito con la decisión y sus dos rechazadas, contracts/cache-de-la-sesion.md §1, data-model §2 (fila de la base con `sinSusLecturas`), plan.md (resumen, Source Code, tests, Controles de umbral, Trazabilidad, pasos) y cierre.md (líneas y fila FR-004) alineados; `lecturasDeLosDatos` ya no aparece en plan, data-model, contracts ni código. gates/supuestos.md registra la corrección como [alcance] corrector_revision con su impacto y marca sustituido el supuesto de T009. Las cifras de research D4 («9 de los 259 casos: 3 derivados y 6 defectos», «esas seis sesiones») coinciden con el mutante: 6 sesiones y 5−2 = 3 derivados."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca testdata/, data/, evidencias/ ni httpx; el test nuevo repite las órdenes con `--offline` y un directorio de grabaciones vacío, sin red. Sin secretos ni datos personales en el diff (gitleaks en ci.log)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "0 nolint, 0 t.Skip, 0 TODO, 0 `_ =` en revision-cambios-r2.diff. `derivadosDeUnArticulos` vuelve de 5 a 2 porque la medida real vuelve a ser 2 (TestGrabacionesDerivadas en verde con 2 y en rojo con «actual: 5» bajo el mutante): el ajuste de la ronda 1 queda deshecho y el test vigila el valor. cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango hace exactamente los tres motivos de la ronda 1 y nada más: retira `lecturasDeLosDatos` (el mío), deja la base de la medida sin las `lecturas` con un test que lo hace cumplir (A, motivo 1: lectura conservadora, retirar lo que FR-004 no pide, registrada en research D4 y en gates/supuestos.md con su impacto) y reescribe los dos comentarios (A, motivo 2). Ficheros tocados fuera de gates/: CHANGELOG, CONTRIBUTING, cuatro .go de internal/evals y seis artefactos del spec. Las sesiones del job y del sondeo siguen sirviendo las `lecturas` (FR-006; prepararLaCache sin cambio)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada de lo que consume una skill o una persona cambia en el rango. La base de la medida del juez pierde las 8 consultas de las `lecturas` (4 bloques × 2 fechas) y conserva las 72 de data/ y las necesarias de las evals; se prepara una vez por skill y se retira al terminar (medida.go:683). Las cifras de la ronda 1 sobre la caché de cada sesión y el informe del job siguen valiendo sin cambio."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "`lecturasDeLosDatos` está retirada (consultas.go: ya no existe; `grep -rn` sin resultado en .go, plan, data-model ni contracts). Lo nuevo se traza: `sinSusLecturas` (medida.go:1090-1097, 7 líneas, un solo llamador, leerLasEvalsDeHoy) a FR-004 por research D4 y la fila de Trazabilidad de plan.md; el subtest `sin-lo-que-no-tuvieron-sus-sesiones` a la fila FR-004 de «Controles de umbral» de plan.md, y detecta una regresión real (mutante). Ningún tipo, paquete ni opción nuevos; `TestLecturasDeLosDatos` conserva su nombre pero prueba `consultasDeLaCache(nil, …)`, que es la única vía."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "La fila FR-004 de plan.md «Controles de umbral» añade «0 invocaciones de boe de la sesión de un caso etiquetado que terminaron con 4 o 5 en su informe y la base sirve», con control `ci:TestBaseDeLaReconstruccion`: en verde en la copia y en rojo con el mutante que vuelve a servir las lecturas (15 invocaciones marcadas). Los demás controles de la tabla, sin cambio desde la ronda 1 y en verde en ci.log y en la copia; `lectura_sin_intentar` sigue con `decide: true` en umbrales.go (el rango no toca umbrales.go)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "tasks.md:185 (T004) sigue nombrando `lecturasDeLosDatos(dir) ([]Consulta, error)` como lo que la tarea entregó: es el texto histórico de la tarea, que fue cierto hasta que la corrección retiró la función; no es una afirmación sobre el producto y no la nombra ningún otro artefacto.",
+    "El subtest `sin-lo-que-no-tuvieron-sus-sesiones` prepara también la base de `jurisprudencia` (0,20 s) y hoy no comprueba nada en ella, porque ninguna invocación de sus casos etiquetados es de `boe`: es genérico sobre la tabla `copiasDelJuez` y vigilaría un caso futuro.",
+    "gates/ci.log no está versionado; su mtime (15:03:54) y los 24 ficheros del guardián coinciden con el commit 007c7fe, y lo he reproducido en la copia.",
+    "Observaciones de la ronda 1 que siguen igual: el comentario del tope del trabajo en .github/workflows/evals.yml:211-213 (legal-core 19 525 s desde H26.1; research D13 no toca .github/); la fecha de revisión del BOE en docs/SOURCES.md (research D17); go.mod con toolchain go1.27.3 (801c435, cherry-pick de la #180, que desaparece del diff si la #180 entra antes); el tamaño del informe real del job, que solo existirá en el cierre; `Llamada.SinSobre` con un error del propio servidor MCP sin sobre, que hoy no ocurre; y el cuerpo regrabado de robots.txt del BOE, sin comparar regla a regla."
+  ]
+}
