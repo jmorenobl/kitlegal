@@ -76,6 +76,7 @@ const (
 	ningunaEnElInforme  = "ninguna"
 	sinLlegadasALaRed   = "ninguna petición llegó a la red de una fuente"
 	sinCodigoPorElCorte = "sin código (sesión cortada)"
+	sinCodigoSinSobre   = "sin sobre"
 	sinConexiones       = "sin conexiones"
 	sinLeer             = "sin leer"
 	vaciaEnElInforme    = "vacía"
@@ -1400,9 +1401,10 @@ func juzgarSesion(e InformeAEscribir, evals []Eval, nombre string) sesionJuzgada
 	}
 
 	// Con la eval de la sesión, vacía si no se pudo leer: sin ella, ninguna
-	// invocación consulta una lectura de sin_servir.
+	// invocación consulta una lectura de sin_servir. Y con las órdenes de Bash
+	// que se leyeran de ella, con las que una que terminó con 1 lleva su motivo.
 	for _, invocacion := range juzgada.sesion.Invocaciones {
-		juzgada.resultado.informar(eval, invocacion)
+		juzgada.resultado.informar(eval, invocacion, juzgada.sesion.OrdenesDeBash)
 	}
 
 	return juzgada
@@ -2705,17 +2707,23 @@ func filasDeSesiones(resultados []ResultadoDeEval) [][]string {
 }
 
 // filasDeInvocaciones son las filas de la tabla de invocaciones de una sesión:
-// la orden, su código o «sin código (sesión cortada)», sus conexiones, cada una
-// con su destino y su clase, o «sin conexiones», y la marca de las que son una
-// llamada a una herramienta del servidor y no una orden de la traza
-// (contracts/evals-en-dos-modos.md §5.3 de H21).
+// la orden, su código o, sin él, «sin sobre» en la que lleva un motivo, la
+// llamada sin sobre, y «sin código (sesión cortada)» en las demás, sus
+// conexiones, cada una con su destino y su clase, o «sin conexiones», y la marca
+// de las que son una llamada a una herramienta del servidor y no una orden de la
+// traza (contracts/evals-en-dos-modos.md §5.3 de H21; contracts/juicio-e-informe.md
+// §6 de H26.1).
 func filasDeInvocaciones(invocaciones []InvocacionInformada) [][]string {
 	filas := make([][]string, 0, len(invocaciones))
 
 	for _, invocacion := range invocaciones {
 		codigo := sinCodigoPorElCorte
-		if invocacion.Codigo != nil {
+
+		switch {
+		case invocacion.Codigo != nil:
 			codigo = strconv.Itoa(*invocacion.Codigo)
+		case invocacion.Motivo != "":
+			codigo = sinCodigoSinSobre
 		}
 
 		conexiones := make([]string, 0, len(invocacion.Conexiones))

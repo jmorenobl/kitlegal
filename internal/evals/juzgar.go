@@ -1,7 +1,9 @@
 package evals
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"path"
 	"slices"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 	"github.com/jmorenobl/kitlegal/internal/core/territorio"
+	"github.com/jmorenobl/kitlegal/internal/render"
 )
 
 // Los dos códigos de salida estables con los que una invocación con consulta dice
@@ -32,6 +35,20 @@ const (
 // que termina con él cumple su comando (contracts/evals-redaccion-fechada.md
 // §1.1 de H20; research D12; FR-051).
 const codigoNoEncontrado = 3
+
+// codigoInesperado es el código estable de lo inesperado, 1: el de la orden que
+// no pudo escribir su salida estándar, como la que la filtra con un programa que
+// el runner no tiene (CLAUDE.md, «Contrato de resultados»; FR-024 de H26.1).
+const codigoInesperado = 1
+
+// Los dos motivos con los que el informe dice que el fallo de una invocación no
+// es de kitlegal, sin que decidan nada (data-model §4 y §5 de H26.1; FR-023,
+// FR-024 y FR-028 de H26.1): el de la llamada sin sobre, en la que el binario no
+// corrió, y el de la orden que corrió y no pudo escribir su salida.
+const (
+	motivoSinSobre        = "sin_sobre"
+	motivoSalidaNoEscrita = "salida_no_escrita"
+)
 
 // verboArticulos es el otro verbo, junto a articulo, con el que se lee un bloque
 // esperado: pide varios bloques de una norma (data-model §6.1).
@@ -230,13 +247,19 @@ type ResultadoDeEval struct {
 	// 0, en su orden, y con ellas las llamadas con un error de otra clase; no las
 	// que quedaron sin código porque el tope cortó la sesión antes de que
 	// acabaran, ni las llamadas sin resultado, ni, desde H26.1, las que consultan
-	// una lectura del sin_servir de su eval.
+	// una lectura del sin_servir de su eval. Desde H26.1, también la llamada sin
+	// sobre, sin código y con su motivo, consulte lo que consulte; y la que
+	// terminó con 1 sin poder escribir su salida lleva su motivo y su orden de
+	// Bash (data-model §4, filas 2 y 6, de H26.1; FR-023 y FR-024 de H26.1).
 	OtrasFallidas []InvocacionFallida `json:"otras_fallidas"`
 
 	// LecturasSinServir son las invocaciones con consulta que consultan una
 	// lectura del sin_servir de su eval (Eval.sinServir), en su orden y terminen
 	// como terminen: con 0, con cualquier otro código o sin él (data-model §4 y
-	// §5 de H26.1; FR-015 de H26.1). Vacía en una eval sin sin_servir.
+	// §5 de H26.1; FR-015 de H26.1), salvo la llamada sin sobre, que no llegó a la
+	// lectura y va a OtrasFallidas; la que terminó con 1 sin poder escribir su
+	// salida lleva su motivo y su orden de Bash (FR-024 de H26.1). Vacía en una
+	// eval sin sin_servir.
 	LecturasSinServir []InvocacionFallida `json:"lecturas_sin_servir"`
 
 	// LlegadasALaRed tienen una entrada por cada invocación y destino de sus
@@ -328,8 +351,13 @@ type InvocacionInformada struct {
 	// Codigo es el de la invocación, o nil en la que quedó sin código porque el
 	// tope cortó la sesión (data-model §9). En una llamada, 0 si su resultado no
 	// es un error, el de la clase de su error si lo es y nil si no tiene
-	// resultado.
+	// resultado o si es una llamada sin sobre (codigoDeLaLlamada).
 	Codigo *int `json:"codigo"`
+
+	// Motivo es, en una llamada sin sobre, motivoSinSobre, que dice por qué no
+	// tiene código; vacío, y fuera del informe, en las demás (data-model §5 de
+	// H26.1; FR-023 de H26.1).
+	Motivo string `json:"motivo,omitzero"`
 
 	// Conexiones tiene una entrada por pareja distinta de destino y clase de las
 	// conexiones de la invocación, en el orden en que aparece por primera vez;
@@ -354,14 +382,27 @@ type ConexionInformada struct {
 
 // InvocacionFallida es una invocación con consulta de una de las listas del
 // reparto —fuera de lo grabado, otras fallidas o lecturas sin servir—, con su
-// orden y su código (data-model §5 de H26.1).
+// orden y su código y, si su fallo no es de kitlegal, su motivo (data-model §4 y
+// §5 de H26.1).
 type InvocacionFallida struct {
 	Orden string `json:"orden"`
 
 	// Codigo es el de la invocación: distinto de 0 en fuera de lo grabado y en
-	// las otras fallidas, y cualquiera en las lecturas sin servir, también 0 o
-	// nil en la que quedó sin código (FR-015 de H26.1).
+	// las otras fallidas, salvo nil en la llamada sin sobre, y cualquiera en las
+	// lecturas sin servir, también 0 o nil en la que quedó sin código (FR-015 y
+	// FR-023 de H26.1).
 	Codigo *int `json:"codigo"`
+
+	// Motivo es motivoSinSobre en la llamada sin sobre y motivoSalidaNoEscrita en
+	// la invocación de la traza que terminó con 1 porque su orden de Bash no pudo
+	// escribir su salida (ordenDeBashSinSalida); vacío, y fuera del informe, en
+	// las demás, que quedan como antes de H26.1 (FR-023, FR-024 y FR-027 de H26.1).
+	Motivo string `json:"motivo,omitzero"`
+
+	// Bash es, con motivoSalidaNoEscrita, la orden de Bash de la que salió la
+	// invocación, tal cual; vacía, y fuera del informe, en las demás (FR-024 de
+	// H26.1).
+	Bash string `json:"bash,omitzero"`
 }
 
 // LlegadaALaRed es una invocación con una conexión de clase red, con su orden y
@@ -475,10 +516,13 @@ func modoSinServidor(eval Eval) Modo {
 //
 // Desde H26.1, cada invocación que consulta una lectura del sin_servir de la
 // eval va a LecturasSinServir, termine como termine, y no a FueraDeLoGrabado ni
-// a OtrasFallidas (informar); y el comando de bloque cuya lectura la eval deja
-// sin servir lo satisface también la invocación que lo lee como lo pide y
-// termina con 4 o 5 (comandoSinServir). Una eval sin sin_servir se juzga como
-// antes (contracts/juicio-e-informe.md §1 y §2 de H26.1; FR-015, FR-016).
+// a OtrasFallidas, salvo la llamada sin sobre; el fallo que no es de kitlegal
+// lleva su motivo, con las órdenes de Bash de la sesión (informar); y el comando
+// de bloque cuya lectura la eval deja sin servir lo satisface también la
+// invocación que lo lee como lo pide y termina con 4 o 5 (comandoSinServir). Una
+// eval sin sin_servir se juzga como antes, y ningún motivo cambia si la sesión
+// pasa (contracts/juicio-e-informe.md §1 a §3 de H26.1; FR-015, FR-016, FR-023 a
+// FR-028).
 func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -522,7 +566,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 	sinConsultaComoSeEspera := resultado.juzgarLaRespuestaSinConsulta(eval, sesion.Respuesta, citas)
 
 	for _, invocacion := range invocaciones {
-		resultado.informarLaJuzgada(eval, invocacion)
+		resultado.informarLaJuzgada(eval, invocacion, sesion.OrdenesDeBash)
 	}
 
 	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && conLasLlamadas && ordenesSinKitlegal == 0 &&
@@ -544,6 +588,10 @@ type invocacionJuzgada struct {
 
 	// llamada dice si cuenta por una llamada a una herramienta.
 	llamada bool
+
+	// sinSobre dice si es una llamada sin sobre (Llamada.SinSobre): el binario no
+	// corrió, y su código es nil (codigoDeLaLlamada; FR-023 de H26.1).
+	sinSobre bool
 }
 
 // invocacionesDe son las invocaciones con las que se juzga la sesión: las de su
@@ -613,8 +661,9 @@ func invocacionDeLaLlamada(llamada Llamada, verbo cli.Verbo) invocacionJuzgada {
 			Consulta:   true,
 			Codigo:     codigoDeLaLlamada(llamada),
 		},
-		orden:   strings.Join(slices.Concat([]string{llamada.Herramienta}, argumentos), " "),
-		llamada: true,
+		orden:    strings.Join(slices.Concat([]string{llamada.Herramienta}, argumentos), " "),
+		llamada:  true,
+		sinSobre: llamada.SinSobre,
 	}
 }
 
@@ -643,10 +692,13 @@ func argumentosDeLaLlamada(verbo cli.Verbo, argumentos []byte) []string {
 // equivalente a una llamada (data-model §2 de H21; research.md D17 de H21): 0 si
 // su resultado no es un error; el de su clase si lo es, que es 1, el de lo
 // inesperado, si la clase no se lee o no es del vocabulario; y ninguno si no
-// tiene resultado, como la invocación que el tope dejó sin código. Sale de la
-// tabla del kernel, cli.CodigoSalida, y no de otra escrita aquí.
+// tiene resultado, como la invocación que el tope dejó sin código, ni, desde
+// H26.1, si es una llamada sin sobre, en la que no hubo orden que terminara
+// (research D7 de H26.1; FR-023 de H26.1): no satisface ningún comando, como
+// antes con el 1 (FR-028 de H26.1). Sale de la tabla del kernel,
+// cli.CodigoSalida, y no de otra escrita aquí.
 func codigoDeLaLlamada(llamada Llamada) *int {
-	if !llamada.ConResultado {
+	if !llamada.ConResultado || llamada.SinSobre {
 		return nil
 	}
 
@@ -983,18 +1035,31 @@ func (r *ResultadoDeEval) repartirTerritorio(esperado, declarado TerritorioEsper
 // consultó (la ayuda, --describe o --dry-run) no va a ninguna, y tampoco el
 // proceso del servidor MCP, que no es una consulta (invocacionDeLaTraza), ni la
 // que quedó sin código o terminó con 0 sin consultar una lectura sin servir.
-func (r *ResultadoDeEval) informar(eval Eval, invocacion Invocacion) {
-	r.informarLaJuzgada(eval, invocacionDeLaTraza(invocacion))
+//
+// Desde H26.1, el fallo que no es de kitlegal lleva su motivo, sin que nada
+// decida por él (data-model §4, filas 2 y 6, de H26.1; FR-023 a FR-028 de
+// H26.1): la llamada sin sobre, antes que ninguna otra fila, va a las otras
+// fallidas sin código y con motivoSinSobre, también si consulta una lectura sin
+// servir, a la que no llegó; y la invocación de la traza que terminó con 1 y que
+// enlaza con una de las órdenes de Bash de la sesión (ordenDeBashSinSalida)
+// lleva motivoSalidaNoEscrita y esa orden en la lista a la que vaya, las otras
+// fallidas o las lecturas sin servir.
+func (r *ResultadoDeEval) informar(eval Eval, invocacion Invocacion, ordenes []Texto) {
+	r.informarLaJuzgada(eval, invocacionDeLaTraza(invocacion), ordenes)
 }
 
 // informarLaJuzgada informa de una invocación como la ve el juicio, con las
-// reglas de informar: la de la traza o la que cuenta por una llamada a una
-// herramienta, que lleva su marca.
-func (r *ResultadoDeEval) informarLaJuzgada(eval Eval, invocacion invocacionJuzgada) {
+// reglas de informar y las órdenes de Bash de su sesión: la de la traza o la que
+// cuenta por una llamada a una herramienta, que lleva su marca.
+func (r *ResultadoDeEval) informarLaJuzgada(eval Eval, invocacion invocacionJuzgada, ordenes []Texto) {
 	informada := InvocacionInformada{
 		Orden:   invocacion.orden,
 		Codigo:  copiaDelCodigo(invocacion.Codigo),
 		Llamada: invocacion.llamada,
+	}
+
+	if invocacion.sinSobre {
+		informada.Motivo = motivoSinSobre
 	}
 
 	for _, conexion := range invocacion.Conexiones {
@@ -1018,6 +1083,17 @@ func (r *ResultadoDeEval) informarLaJuzgada(eval Eval, invocacion invocacionJuzg
 
 	fallida := InvocacionFallida{Orden: informada.Orden, Codigo: copiaDelCodigo(invocacion.Codigo)}
 
+	if invocacion.sinSobre {
+		fallida.Motivo = motivoSinSobre
+		r.OtrasFallidas = append(r.OtrasFallidas, fallida)
+
+		return
+	}
+
+	if bash := ordenDeBashSinSalida(invocacion, ordenes); bash != "" {
+		fallida.Motivo, fallida.Bash = motivoSalidaNoEscrita, bash
+	}
+
 	if eval.sinServir(invocacion.Invocacion) {
 		r.LecturasSinServir = append(r.LecturasSinServir, fallida)
 
@@ -1035,6 +1111,96 @@ func (r *ResultadoDeEval) informarLaJuzgada(eval Eval, invocacion invocacionJuzg
 	}
 
 	r.OtrasFallidas = append(r.OtrasFallidas, fallida)
+}
+
+// ordenDeBashSinSalida es la orden de Bash de la que salió la invocación de la
+// traza que terminó con 1 sin poder escribir su salida, el enlace de FR-026 de
+// H26.1 (data-model §4 de H26.1): la del único de los usos de Bash de la sesión
+// cuya orden contiene como palabras el applet, el verbo y cada argumento de la
+// invocación y cuya salida trae la línea de la escritura fallida
+// (traeLaLineaDeLaSalidaNoEscrita). Vacía si la invocación es una llamada,
+// quedó sin código o terminó con otro, y si ningún uso o más de uno lo cumplen:
+// entonces queda como antes de H26.1 (FR-027 de H26.1).
+func ordenDeBashSinSalida(invocacion invocacionJuzgada, ordenes []Texto) string {
+	if invocacion.llamada || invocacion.Codigo == nil || *invocacion.Codigo != codigoInesperado {
+		return ""
+	}
+
+	palabras := slices.Concat([]string{invocacion.Applet, invocacion.Verbo}, invocacion.Argumentos)
+
+	var enlazadas []string
+
+	for _, orden := range ordenes {
+		nombraLaInvocacion := !slices.ContainsFunc(palabras, func(palabra string) bool {
+			return !contieneComoPalabra(orden.Orden, palabra)
+		})
+
+		if nombraLaInvocacion && traeLaLineaDeLaSalidaNoEscrita(orden.Salida) {
+			enlazadas = append(enlazadas, orden.Orden)
+		}
+	}
+
+	if len(enlazadas) != 1 {
+		return ""
+	}
+
+	return enlazadas[0]
+}
+
+// traeLaLineaDeLaSalidaNoEscrita dice si alguna línea de la salida de una orden
+// de Bash empieza por el prefijo de la escritura fallida, la línea que el binario
+// deja en su salida de error cuando no puede escribir la estándar (FR-025 de
+// H26.1).
+func traeLaLineaDeLaSalidaNoEscrita(salida string) bool {
+	prefijo := prefijoDeLaSalidaNoEscrita()
+	if prefijo == "" {
+		return false
+	}
+
+	for linea := range strings.Lines(salida) {
+		if strings.HasPrefix(linea, prefijo) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// prefijoDeLaSalidaNoEscrita es lo que el presentador del binario pone delante de
+// la causa cuando no puede escribir en la salida estándar: se le pide una sola vez
+// con render.Nuevo y una salida estándar que falla con una causa conocida, y se
+// toma de su error lo que va delante de esa causa, sin ninguna copia de su mensaje
+// (research D8 de H26.1; FR-025 de H26.1). El texto que se le da a escribir es
+// cualquiera que no esté vacío: el vacío no lo escribe.
+//
+// Es vacío si el presentador no da un error que termine en la causa, y entonces
+// ninguna línea es la de la escritura fallida y toda invocación queda como antes
+// de H26.1: TestLineaDeLaSalidaNoEscrita exige que no lo sea con la línea que
+// app.Main deja en la salida de error.
+var prefijoDeLaSalidaNoEscrita = sync.OnceValue(func() string {
+	err := render.Nuevo(salidaQueFalla{}, io.Discard).Texto("\n")
+	if err == nil {
+		return ""
+	}
+
+	prefijo, conLaCausa := strings.CutSuffix(err.Error(), errDeLaSalidaQueFalla.Error())
+	if !conLaCausa {
+		return ""
+	}
+
+	return prefijo
+})
+
+// errDeLaSalidaQueFalla es la causa con la que fallan todas las escrituras de
+// salidaQueFalla.
+var errDeLaSalidaQueFalla = errors.New("la salida estándar no admite escrituras")
+
+// salidaQueFalla es una salida estándar cuyas escrituras fallan todas, con la que
+// se pide al presentador del binario el error que da cuando no puede escribir.
+type salidaQueFalla struct{}
+
+func (salidaQueFalla) Write([]byte) (int, error) {
+	return 0, errDeLaSalidaQueFalla
 }
 
 // satisface dice si la invocación satisface el comando esperado (data-model

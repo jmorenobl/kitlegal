@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"bytes"
 	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
@@ -16,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/jmorenobl/kitlegal/internal/app"
+	"github.com/jmorenobl/kitlegal/internal/cache"
 	"github.com/jmorenobl/kitlegal/internal/core/schema"
 )
 
@@ -4436,4 +4438,251 @@ func probarLasLecturasDeLaEval16(t *testing.T) {
 			assert.Equal(t, sin, Juzgar(conLecturas, caso.sesion, skillDeLasSesiones))
 		})
 	}
+}
+
+// Lo que ven las sesiones de TestJuzgarElMotivoDeLasFallidas
+// (contracts/juicio-e-informe.md §1 y §3 de H26.1): la llamada a boe_indice de
+// la LPAC como la presenta el informe; la lectura del índice de la traza, como
+// la presenta el informe; la orden de Bash que la filtra con python3, que el
+// runner no tiene, y el principio de su salida; y las otras dos órdenes de Bash
+// de los casos: la del índice de otra norma, que no nombra la invocación, y otra
+// del mismo índice, que también la nombra.
+const (
+	llamadaDelIndice        = "boe_indice BOE-A-2015-10565"
+	ordenDeLaTrazaDelIndice = "boe indice BOE-A-2015-10565 --json"
+
+	bashDelIndiceConPython = ordenDelIndice +
+		` | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d['data']['bloques']))"`
+	salidaSinPython = "Exit code 127\n/bin/bash: line 1: python3: command not found\n"
+
+	bashDelIndiceDeOtraNorma = "kitlegal boe indice BOE-A-2015-10566 --json | python3 -m json.tool"
+	bashDelMismoIndice       = "kitlegal boe indice BOE-A-2015-10565 | python3 -m json.tool"
+)
+
+// TestJuzgarElMotivoDeLasFallidas fija el motivo con el que el juicio publica un
+// fallo que no es de kitlegal, sin que decida nada (data-model §4, filas 2 y 6,
+// y §5 de H26.1; contracts/juicio-e-informe.md §1, §3 y §6 de H26.1; research
+// D7, D8 y D10 de H26.1; FR-015, FR-023 a FR-028 de H26.1; SC-007):
+//
+//   - la llamada sin sobre va con codigo null y motivo sin_sobre en invocaciones
+//     y en otras_fallidas, también si consulta una lectura de sin_servir, que
+//     entonces no está en lecturas_sin_servir; y su fila de informe.md dice «sin
+//     sobre» en la columna del código;
+//   - la invocación de la traza que terminó con 1 y que enlaza un único uso de
+//     Bash cuya salida trae la línea de la escritura fallida va con codigo 1,
+//     motivo salida_no_escrita y la orden de Bash tal cual en otras_fallidas o,
+//     si consulta una lectura de sin_servir, en lecturas_sin_servir;
+//   - la de otra salida de error, sin un uso que la enlace, con dos o con otro
+//     código, como hoy;
+//   - y en todas, la sesión pasa o no, con los mismos motivos y los mismos
+//     comandos, igual que la misma sesión sin lo que se lee para el motivo
+//     (FR-028).
+func TestJuzgarElMotivoDeLasFallidas(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sin-sobre", probarElMotivoDeLaLlamadaSinSobre)
+	t.Run("salida-no-escrita", probarElMotivoDeLaSalidaNoEscrita)
+}
+
+// probarElMotivoDeLaLlamadaSinSobre fija la fila 2 del reparto con la sesión de
+// la eval 01 que pasa y, detrás, una llamada a boe_indice que el agente no tiene
+// y que le devuelve su aviso como un error: con la eval tal cual y con el índice
+// de la LPAC en su sin_servir, que la llamada consulta.
+func probarElMotivoDeLaLlamadaSinSobre(t *testing.T) {
+	t.Parallel()
+
+	indice := func(sinSobre bool) Llamada {
+		return Llamada{
+			Herramienta: "boe_indice", Argumentos: []byte(argumentosDelIndice), ConResultado: true, Error: true,
+			SinSobre: sinSobre,
+		}
+	}
+
+	casos := []struct {
+		nombre    string
+		sinServir []LecturaSinServir
+	}{
+		{nombre: "sin-sin-servir"},
+		{nombre: "con-el-indice-sin-servir", sinServir: []LecturaSinServir{{Norma: normaDeLasTrazas, Verbo: "indice"}}},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			eval := evalDelArticulo21()
+			eval.SinServir = caso.sinServir
+
+			conSobre := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Llamadas = []Llamada{indice(false)} })
+			sinSobre := cambiada(sesionQuePasa(t), func(s *Sesion) { s.Llamadas = []Llamada{indice(true)} })
+
+			if caso.sinServir != nil {
+				require.Equal(t, []InvocacionFallida{{Orden: llamadaDelIndice, Codigo: codigoDeSalida(1)}},
+					Juzgar(eval, conSobre, skillDeLasSesiones).LecturasSinServir,
+					"premisa: sin la marca, la llamada es una lectura de sin_servir")
+			}
+
+			resultado := Juzgar(eval, sinSobre, skillDeLasSesiones)
+
+			assert.Equal(t, []InvocacionInformada{
+				{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
+				{Orden: llamadaDelIndice, Motivo: "sin_sobre", Llamada: true},
+			}, resultado.Invocaciones)
+			assert.Equal(t, []InvocacionFallida{{Orden: llamadaDelIndice, Motivo: "sin_sobre"}}, resultado.OtrasFallidas)
+			assert.Empty(t, resultado.LecturasSinServir, "la llamada sin sobre no llega a la lectura")
+			assert.Empty(t, resultado.FueraDeLoGrabado)
+
+			exigirLoEscrito(t, resultado.Invocaciones[1],
+				`{"orden":"`+llamadaDelIndice+`","codigo":null,"motivo":"sin_sobre","conexiones":[],"llamada":true}`)
+			exigirLoEscrito(t, resultado.OtrasFallidas,
+				`[{"orden":"`+llamadaDelIndice+`","codigo":null,"motivo":"sin_sobre"}]`)
+			assert.Equal(t, []string{llamadaDelIndice, "sin sobre", "sin conexiones", "sí"},
+				filasDeInvocaciones(resultado.Invocaciones)[1], "su fila de informe.md dice «sin sobre»")
+
+			exigirElMismoJuicio(t, Juzgar(eval, conSobre, skillDeLasSesiones), resultado)
+		})
+	}
+}
+
+// probarElMotivoDeLaSalidaNoEscrita fija la fila 6 del reparto con la sesión de
+// la eval 01 que pasa y, delante de su lectura, la del índice de la LPAC, que
+// termina con el código del caso, con las órdenes de Bash del caso: solo la que
+// la enlaza sola y trae la línea de la escritura fallida le da el motivo, en
+// otras_fallidas o, con el índice en su sin_servir, en lecturas_sin_servir.
+func probarElMotivoDeLaSalidaNoEscrita(t *testing.T) {
+	t.Parallel()
+
+	linea := lineaDeLaEscrituraFallida(t)
+	sinPython := Texto{Orden: bashDelIndiceConPython, Salida: salidaSinPython + linea}
+	indiceSinServir := []LecturaSinServir{{Norma: normaDeLasTrazas, Verbo: "indice"}}
+
+	enlazada := []InvocacionFallida{{
+		Orden: ordenDeLaTrazaDelIndice, Codigo: codigoDeSalida(1), Motivo: "salida_no_escrita",
+		Bash: bashDelIndiceConPython,
+	}}
+	comoHoy := []InvocacionFallida{{Orden: ordenDeLaTrazaDelIndice, Codigo: codigoDeSalida(1)}}
+
+	casos := []struct {
+		nombre    string
+		codigo    int
+		sinServir []LecturaSinServir
+		ordenes   []Texto
+
+		otras, lecturas, fuera []InvocacionFallida
+
+		// escritas son las tres listas, juntas, como las escribe el informe.
+		escritas string
+	}{
+		{
+			nombre: "enlazada", codigo: 1, ordenes: []Texto{sinPython}, otras: enlazada,
+			escritas: `[{"orden":"` + ordenDeLaTrazaDelIndice + `","codigo":1,"motivo":"salida_no_escrita","bash":` +
+				cadenaJSON(t, bashDelIndiceConPython) + `}]`,
+		},
+		{
+			nombre: "enlazada-con-el-indice-sin-servir", codigo: 1, sinServir: indiceSinServir,
+			ordenes: []Texto{sinPython}, lecturas: enlazada,
+			escritas: `[{"orden":"` + ordenDeLaTrazaDelIndice + `","codigo":1,"motivo":"salida_no_escrita","bash":` +
+				cadenaJSON(t, bashDelIndiceConPython) + `}]`,
+		},
+		{
+			nombre: "con-otra-salida-de-error", codigo: 1,
+			ordenes: []Texto{{Orden: bashDelIndiceConPython, Salida: salidaSinPython}}, otras: comoHoy,
+			escritas: `[{"orden":"` + ordenDeLaTrazaDelIndice + `","codigo":1}]`,
+		},
+		{
+			nombre: "sin-uso-que-la-enlace", codigo: 1,
+			ordenes: []Texto{{Orden: bashDelIndiceDeOtraNorma, Salida: salidaSinPython + linea}}, otras: comoHoy,
+			escritas: `[{"orden":"` + ordenDeLaTrazaDelIndice + `","codigo":1}]`,
+		},
+		{
+			nombre: "con-dos-usos-que-la-enlazan", codigo: 1,
+			ordenes: []Texto{sinPython, {Orden: bashDelMismoIndice, Salida: linea}}, otras: comoHoy,
+			escritas: `[{"orden":"` + ordenDeLaTrazaDelIndice + `","codigo":1}]`,
+		},
+		{
+			nombre: "con-otro-codigo", codigo: codigoFuenteNoDisponible, ordenes: []Texto{sinPython},
+			fuera:    []InvocacionFallida{{Orden: ordenDeLaTrazaDelIndice, Codigo: codigoDeSalida(codigoFuenteNoDisponible)}},
+			escritas: `[{"orden":"` + ordenDeLaTrazaDelIndice + `","codigo":4}]`,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			eval := evalDelArticulo21()
+			eval.SinServir = caso.sinServir
+
+			sinLasOrdenes := sesionQuePasa(t,
+				invocada(t, codigoDeSalida(caso.codigo), deKitlegal("boe", "indice", normaDeLasTrazas, "--json")))
+			conLasOrdenes := cambiada(sinLasOrdenes, func(s *Sesion) { s.OrdenesDeBash = caso.ordenes })
+
+			resultado := Juzgar(eval, conLasOrdenes, skillDeLasSesiones)
+
+			assert.Equal(t, caso.otras, resultado.OtrasFallidas)
+			assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
+			assert.Equal(t, caso.fuera, resultado.FueraDeLoGrabado)
+			assert.Equal(t, InvocacionInformada{Orden: ordenDeLaTrazaDelIndice, Codigo: codigoDeSalida(caso.codigo)},
+				resultado.Invocaciones[0], "en invocaciones, como hoy")
+			exigirLoEscrito(t, slices.Concat(resultado.OtrasFallidas, resultado.LecturasSinServir,
+				resultado.FueraDeLoGrabado), caso.escritas)
+
+			exigirElMismoJuicio(t, Juzgar(eval, sinLasOrdenes, skillDeLasSesiones), resultado)
+		})
+	}
+}
+
+// exigirLoEscrito exige que el valor se escriba en JSON como lo escrito.
+func exigirLoEscrito(t *testing.T, valor any, escrito string) {
+	t.Helper()
+
+	codificado, err := json.Marshal(valor)
+	require.NoError(t, err)
+	assert.JSONEq(t, escrito, string(codificado))
+}
+
+// exigirElMismoJuicio exige que el resultado juzgue la sesión como el de la misma
+// sesión sin lo que se lee de ella para el motivo de una fallida: si pasa, por
+// qué no pasa y qué comandos esperados y prohibidos ejecuta (FR-028 de H26.1).
+func exigirElMismoJuicio(t *testing.T, sinElMotivo, conElMotivo ResultadoDeEval) {
+	t.Helper()
+
+	assert.Equal(t, sinElMotivo.Pasa, conElMotivo.Pasa, "pasa igual")
+	assert.Equal(t, sinElMotivo.Motivos, conElMotivo.Motivos, "con los mismos motivos")
+	assert.Equal(t, sinElMotivo.ComandosEjecutados, conElMotivo.ComandosEjecutados)
+	assert.Equal(t, sinElMotivo.ComandosAusentes, conElMotivo.ComandosAusentes)
+	assert.Equal(t, sinElMotivo.ComandosProhibidosEjecutados, conElMotivo.ComandosProhibidosEjecutados)
+}
+
+// TestLineaDeLaSalidaNoEscrita ata el prefijo con el que el arnés reconoce la
+// línea de la escritura fallida al binario que la escribe (research D8 de H26.1;
+// FR-025 de H26.1; SC-007): app.Main lee el índice de la LPAC de una caché
+// sembrada desde las grabaciones y, con una salida estándar que falla como una
+// tubería sin lector, termina con 1, el código de lo inesperado, y deja en su
+// salida de error una línea que empieza por el prefijo que el arnés pide al
+// presentador, sin ninguna copia de su mensaje. Si el mensaje cambia, el prefijo
+// cambia con él y este test sigue en verde: lo que exige el mensaje al binario
+// es TestTuberiaCerrada (quickstart.md §7.b de H26.1).
+func TestLineaDeLaSalidaNoEscrita(t *testing.T) {
+	t.Parallel()
+
+	dirCache := t.TempDir()
+
+	faltas, err := Preparar(dirCache, UnionDeGrabaciones(),
+		[]Consulta{{Applet: "boe", Verbo: "indice", Argumentos: []string{normaDeLasTrazas}}})
+	require.NoError(t, err)
+	require.Empty(t, faltas, "premisa: las grabaciones sirven el índice de la LPAC: %s", presentarFaltas(faltas))
+
+	registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(dirCache))
+	require.NoError(t, err)
+
+	var errores bytes.Buffer
+
+	codigo := app.Main([]string{programaDeLasConsultas, "boe", "indice", normaDeLasTrazas, "--offline", "--json"},
+		registro, salidaSinLector{}, &errores, sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion)
+
+	assert.Equal(t, 1, codigo, "la salida que no se escribe es lo inesperado: %s", errores.String())
+	require.NotEmpty(t, prefijoDeLaSalidaNoEscrita(), "el presentador da el prefijo de la escritura fallida")
+	assert.True(t, traeLaLineaDeLaSalidaNoEscrita(errores.String()),
+		"la salida de error lleva una línea que empieza por %q: %q", prefijoDeLaSalidaNoEscrita(), errores.String())
 }

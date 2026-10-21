@@ -2151,8 +2151,11 @@ const (
 // bloque —la de la eval sin binario ni servidor, sin leerlo—; las de sinLeer, del
 // modo orden y por su nombre, no lo leen, y las de cortadas, además, las cortó
 // el tope tras su respuesta sin la skill activada; las de fueraDeLaCache leen
-// además dos bloques que no están en la caché, que salen con 5; y en las de
-// sinServirConCinco, la lectura del bloque sale con 5.
+// además dos bloques que no están en la caché, que salen con 5; en las de
+// sinServirConCinco, la lectura del bloque sale con 5; las de sinSobre no leen
+// el bloque con la orden, y lo piden con una llamada sin sobre (leerSinSobre); y
+// en las de salidaNoEscrita, la lectura del bloque sale con 1 porque su orden de
+// Bash no pudo escribir su salida (leerSinEscribirLaSalida).
 type ejecucionDeLasLecturas struct {
 	eval01            string
 	la02              laEval02
@@ -2161,6 +2164,8 @@ type ejecucionDeLasLecturas struct {
 	cortadas          []string
 	fueraDeLaCache    []string
 	sinServirConCinco []string
+	sinSobre          []string
+	salidaNoEscrita   []string
 }
 
 // TestUmbralesDeLasLecturas fija la serie y los umbrales de las lecturas de las
@@ -2184,6 +2189,8 @@ type ejecucionDeLasLecturas struct {
 //   - la sesión que no intenta la lectura cuenta, aunque el tope la cortara sin
 //     la skill activada, y el motivo del umbral la nombra; la del modelo
 //     informativo cuenta en el suyo, que no decide ni cambia el veredicto;
+//   - la que solo la pide con una llamada sin sobre cuenta, y la que la intenta
+//     con una orden que no pudo escribir su salida, no (FR-023, FR-024);
 //   - el informe de una skill sin una eval así —la que deja sin servir un
 //     bloque que ningún comando pide— no lleva lectura_sin_intentar;
 //   - y la serie de una eval con sin_servir lleva en
@@ -2196,6 +2203,8 @@ func TestUmbralesDeLasLecturas(t *testing.T) {
 	t.Run("intentan-la-lectura", probarLasQueIntentanLaLectura)
 	t.Run("una-no-la-intenta", probarUnaQueNoIntentaLaLectura)
 	t.Run("el-informativo-no-la-intenta", probarElInformativoQueNoIntentaLaLectura)
+	t.Run("una-la-llama-sin-sobre", probarUnaQueLaLlamaSinSobre)
+	t.Run("una-no-escribe-su-salida", probarUnaQueNoEscribeSuSalida)
 	t.Run("ninguna-la-intenta", probarNingunaQueIntentaLaLectura)
 	t.Run("en-los-dos-modos", probarLasLecturasEnLosDosModos)
 	t.Run("sin-una-eval-asi", probarLaSkillSinUnaEvalAsi)
@@ -2288,6 +2297,77 @@ func probarElInformativoQueNoIntentaLaLectura(t *testing.T) {
 
 	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
 		modeloSonnet55: "3", modeloHaiku45: "2",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarUnaQueLaLlamaSinSobre (FR-023, FR-033 de H26.1): la segunda sesión del
+// modelo que decide no lee el bloque con la orden, y lo pide con una llamada a
+// boe_articulo que el agente no tiene y que le devuelve su aviso como un error.
+// La llamada sin sobre no llega a la lectura: está en sus otras_fallidas con
+// codigo null y motivo sin_sobre y no en sus lecturas_sin_servir, y la sesión
+// cuenta en el umbral, 1 de 3, cuyo motivo la nombra; el veredicto es fallo.
+func probarUnaQueLaLlamaSinSobre(t *testing.T) {
+	t.Parallel()
+
+	sinSobre := sesionSintetica(1, modeloSonnet55, 2)
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{
+		eval01: evalConElComandoSinServir, sinSobre: []string{sinSobre},
+	})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeFueraDeLoGrabado(modeloSonnet55, ModoOrden, 0, sesionesDeLasDosEvals),
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 1, true),
+		umbralDeFueraDeLoGrabado(modeloHaiku45, ModoOrden, 0, sesionesDeLasDosEvals),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 0, false),
+	})
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido, motivoDeUnaSinIntentar+sinSobre)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+
+	resultado := resultadoDeLaSesion(t, leido.informe, sinSobre)
+	assert.Equal(t, []InvocacionFallida{{Orden: llamadaDelArticulo21, Motivo: "sin_sobre"}}, resultado.OtrasFallidas)
+	assert.Empty(t, resultado.LecturasSinServir, "%s no llega a la lectura", sinSobre)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "2", modeloHaiku45: "3",
+	})
+	exigirLasFilasDeLasLecturas(t, leido)
+}
+
+// probarUnaQueNoEscribeSuSalida (FR-024, FR-033 de H26.1): la lectura del bloque
+// de la segunda sesión del modelo que decide sale con 1, porque su orden de Bash
+// filtra la salida con python3, que el runner no tiene, y su resultado trae la
+// línea de la escritura fallida. Llegó a la lectura: está en sus
+// lecturas_sin_servir con codigo 1, motivo salida_no_escrita y la orden de Bash
+// tal cual, y la sesión no cuenta en el umbral, 0 de 3; el veredicto es aprobado.
+func probarUnaQueNoEscribeSuSalida(t *testing.T) {
+	t.Parallel()
+
+	sinEscribir := sesionSintetica(1, modeloSonnet55, 2)
+	leido := escribirEjecucionDeLasLecturas(t, ejecucionDeLasLecturas{
+		eval01: evalConElComandoSinServir, salidaNoEscrita: []string{sinEscribir},
+	})
+
+	exigirUmbrales(t, leido, []Umbral{
+		umbralDeFueraDeLoGrabado(modeloSonnet55, ModoOrden, 0, sesionesDeLasDosEvals),
+		umbralDeLecturaSinIntentar(modeloSonnet55, ModoOrden, 0, true),
+		umbralDeFueraDeLoGrabado(modeloHaiku45, ModoOrden, 0, sesionesDeLasDosEvals),
+		umbralDeLecturaSinIntentar(modeloHaiku45, ModoOrden, 0, false),
+	})
+	exigirLosInvariantesDeLosUmbrales(t, leido)
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
+
+	resultado := resultadoDeLaSesion(t, leido.informe, sinEscribir)
+	assert.Equal(t, []InvocacionFallida{{
+		Orden: ordenDelArticulo21, Codigo: codigoDeSalida(1), Motivo: "salida_no_escrita",
+		Bash: bashDelArticulo21ConPython,
+	}}, resultado.LecturasSinServir)
+	assert.Empty(t, resultado.OtrasFallidas)
+
+	exigirLasSesionesConLecturaSinServir(t, leido, map[string]string{
+		modeloSonnet55: "3", modeloHaiku45: "3",
 	})
 	exigirLasFilasDeLasLecturas(t, leido)
 }
@@ -2635,7 +2715,8 @@ func escribirLasSesionesDeLasLecturas(t *testing.T, copia string, ejecucion ejec
 // alterarLasSesionesDeLasLecturas hace, en las sesiones del directorio que la
 // ejecución nombra, sus cambios, en este orden: quitarles la lectura; cortarlas
 // tras su respuesta sin la skill activada; añadirles dos lecturas fuera de la
-// caché; y hacer que su lectura salga con 5.
+// caché; hacer que su lectura salga con 5; cambiarles la lectura por una llamada
+// sin sobre; y hacer que su lectura salga con 1 sin escribir su salida.
 func alterarLasSesionesDeLasLecturas(t *testing.T, sesiones string, ejecucion ejecucionDeLasLecturas) {
 	t.Helper()
 
@@ -2654,6 +2735,8 @@ func alterarLasSesionesDeLasLecturas(t *testing.T, sesiones string, ejecucion ej
 		{ejecucion.cortadas, cortar},
 		{ejecucion.fueraDeLaCache, anadirLecturasFueraDeLaCache},
 		{ejecucion.sinServirConCinco, salirConCincoDeLaLectura},
+		{ejecucion.sinSobre, leerSinSobre},
+		{ejecucion.salidaNoEscrita, leerSinEscribirLaSalida},
 	}
 
 	for _, cambio := range cambios {
@@ -2703,8 +2786,88 @@ func anadirLecturasFueraDeLaCache(t *testing.T, dir string) {
 func salirConCincoDeLaLectura(t *testing.T, dir string) {
 	t.Helper()
 
+	cambiarElFinDeLaLectura(t, dir, finConCinco)
+}
+
+// cambiarElFinDeLaLectura deja la lectura del bloque de la sesión del art. 21 del
+// modo orden del directorio terminando con la última línea dada en lugar de con
+// la de 0.
+func cambiarElFinDeLaLectura(t *testing.T, dir, fin string) {
+	t.Helper()
+
 	traza := filepath.Join(dir, directorioDeLaTraza)
 	deLaLectura := contenidoDeLaSesion(t, traza, "t.2000")
 	require.True(t, strings.HasSuffix(deLaLectura, finConCero), "la lectura de %s termina con 0", dir)
-	escribirEnLaCopia(t, traza, "t.2000", strings.TrimSuffix(deLaLectura, finConCero)+finConCinco)
+	escribirEnLaCopia(t, traza, "t.2000", strings.TrimSuffix(deLaLectura, finConCero)+fin)
+}
+
+// Lo que leerSinSobre y leerSinEscribirLaSalida ponen en el transcript de una
+// sesión del art. 21 (contracts/juicio-e-informe.md §1 y §3 de H26.1): el id de
+// cada uso de herramienta; el aviso que el agente devuelve, como un error, de la
+// llamada a una herramienta que no tiene; la orden de Bash que lee el bloque con
+// kitlegal y filtra su salida con python3, que el runner no tiene; y la última
+// línea de la traza de la lectura que sale con 1.
+const (
+	usoSinSobre            = "toolu_sintetico_sin_sobre"
+	usoSinEscribirLaSalida = "toolu_sintetico_sin_escribir"
+
+	avisoDeLaHerramientaQueNoHay = "<tool_use_error>Error: No such tool available: mcp__kitlegal__boe_articulo" +
+		"</tool_use_error>"
+
+	bashDelArticulo21ConPython = "kitlegal boe articulo BOE-A-2015-10565 a21 --json | " +
+		`python3 -c "import json,sys; print(json.load(sys.stdin)['data']['texto'])"`
+
+	finConUno = "+++ exited with 1 +++\n"
+)
+
+// leerSinSobre deja la sesión del art. 21 del modo orden del directorio sin la
+// orden que lee el bloque y, en su lugar, con la llamada a boe_articulo de ese
+// bloque, que el agente no tiene y que le devuelve su aviso como un error: una
+// llamada sin sobre.
+func leerSinSobre(t *testing.T, dir string) {
+	t.Helper()
+
+	quitarLaLectura(t, dir)
+	insertarTrasLaActivacion(t, dir,
+		mensajeDeLlamadas(t, usoDeHerramienta{
+			id: usoSinSobre, nombre: "mcp__kitlegal__" + herramientaDeArticulo, entrada: argumentosDelArticulo21,
+		})+
+			mensajeDeResultados(t, resultadoDeHerramienta{
+				id: usoSinSobre, contenido: cadenaJSON(t, avisoDeLaHerramientaQueNoHay), conError: true,
+			}))
+}
+
+// leerSinEscribirLaSalida deja la lectura del bloque de la sesión del art. 21 del
+// modo orden del directorio terminando con 1 y, en su transcript, la orden de
+// Bash que la pide, cuyo resultado trae, detrás del error de python3, la línea de
+// la escritura fallida.
+func leerSinEscribirLaSalida(t *testing.T, dir string) {
+	t.Helper()
+
+	cambiarElFinDeLaLectura(t, dir, finConUno)
+	insertarTrasLaActivacion(t, dir,
+		mensajeDeLlamadas(t, usoDeHerramienta{
+			id: usoSinEscribirLaSalida, nombre: "Bash", entrada: entradaDeBash(t, bashDelArticulo21ConPython),
+		})+
+			mensajeDeResultados(t, resultadoDeHerramienta{
+				id: usoSinEscribirLaSalida, conError: true,
+				contenido: cadenaJSON(t, salidaSinPython+lineaDeLaEscrituraFallida(t)),
+			}))
+}
+
+// insertarTrasLaActivacion pone los mensajes en el transcript de la sesión del
+// directorio detrás del resultado de la carga de la skill, que es una línea suya.
+func insertarTrasLaActivacion(t *testing.T, dir, mensajes string) {
+	t.Helper()
+
+	transcript := contenidoDeLaSesion(t, dir, ficheroDelTranscript)
+
+	antes, despues, conLaCarga := strings.Cut(transcript, `"content":"Launching skill: `)
+	require.True(t, conLaCarga, "el transcript de %s carga la skill", dir)
+
+	resto, siguientes, conMas := strings.Cut(despues, "\n")
+	require.True(t, conMas, "detrás de la carga de la skill, el transcript de %s sigue", dir)
+
+	escribirEnLaCopia(t, dir, ficheroDelTranscript,
+		antes+`"content":"Launching skill: `+resto+"\n"+mensajes+siguientes)
 }

@@ -128,3 +128,35 @@ y 1 menos), y las líneas `--- FAIL` fueron `TestCacheDeLasSesiones`, `TestCache
 subtests, con las tres lecturas de cada uno en 4 donde se esperaba 0 (`clase=fuente-no-disponible`). Retirado con el
 `mv`: `git diff --no-index --exit-code` de la copia contra `internal/evals/preparar.go` del árbol de trabajo salió con
 0, y `git worktree remove --force` retiró la copia.
+
+## FR-025 · El mensaje del presentador cambiado (T013; quickstart.md §7.b)
+
+En `enDescriptor` (`internal/render/render.go:99`), `render: no se pudo escribir en %s` →
+`render: no se ha podido escribir en %s`. El arnés no copia el mensaje: pide el prefijo a `render.Nuevo` con una salida
+que falla (`prefijoDeLaSalidaNoEscrita`), así que lo que hace fallar el cambio es el test del binario y no el del arnés.
+
+```bash
+f="$copia/internal/render/render.go"
+cp "$f" "$f.orig"
+# el cambio, con el editor
+git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
+go -C "$copia" test -count=1 -v -run '^TestTuberiaCerrada$' ./internal/app/ 2>&1 | grep -E '^\s*--- (FAIL|PASS)|^(ok|FAIL)'
+go -C "$copia" test -count=1 -v -run '^TestLineaDeLaSalidaNoEscrita$' ./internal/evals/ 2>&1 | grep -E '^\s*--- (FAIL|PASS)|^(ok|FAIL)'
+go -C "$copia" test -count=1 -run '^TestJuzgarElMotivoDeLasFallidas$' ./internal/evals/ 2>&1 | grep -E '^\s*--- FAIL|^(ok|FAIL)'
+mv "$f.orig" "$f"
+```
+
+Esperado: ninguna línea «NO SE HA APLICADO»; `TestTuberiaCerrada` en `FAIL`, porque la salida de error ya no contiene
+`no se pudo escribir en la salida estándar`; y `TestLineaDeLaSalidaNoEscrita` en verde, porque el prefijo cambia con el
+mensaje.
+
+Ejecutado en la sesión de T013 sobre una copia (`git worktree add --detach` en `$TMPDIR`) con el diff de la tarea
+copiado encima, con el cambio hecho con el editor: `git diff --no-index --stat` dio el fichero cambiado (1 línea más y
+1 menos). `TestTuberiaCerrada` salió en `FAIL` en seis de sus siete subtests —`--help`, `echo_hola_--json`,
+`echo_hola`, `echo_hola_--describe`, `version` y `echo_--help`—, cada uno con
+`"render: no se ha podido escribir en la salida estándar: write /dev/stdout: broken pipe\n" does not contain "no se pudo escribir en la salida estándar"`;
+`echo_repetir_--help` siguió en `PASS`, porque esa ayuda la escribe el analizador y no el presentador
+(`mensajeDeSalidaRota`, `internal/app/tuberia_unix_test.go`). `TestLineaDeLaSalidaNoEscrita` salió en `PASS` y
+`TestJuzgarElMotivoDeLasFallidas` en `ok`. Retirado con el `mv`: `git diff --no-index --exit-code` de la copia contra
+`internal/render/render.go` del árbol de trabajo salió con 0, `git worktree remove --force` retiró la copia y
+`git worktree list` ya no la nombra; `internal/render` no cambia en el árbol.
