@@ -7,7 +7,7 @@ la persona que recibe la respuesta. Requisitos: FR-029 a FR-031; SC-012 a SC-014
 
 | Paso | Hoy (`skills/legal-core/SKILL.md`) | Con v1.2.3 | Requisito |
 |---|---|---|---|
-| 7 | la línea `⚠ NO CUBIERTO:` nombra solo lo que trae la entrada, no pide `plazos calcular` y va aunque falle una lectura, que se dice aparte (líneas 104-112) | lo mismo, y tras esa línea la respuesta **no expone la norma que rige el procedimiento** —sus plazos, sus recursos—: la nombra la línea, con lo que trae `references/cobertura_por_materia.md`, y llega con su vertical | FR-030 |
+| 7 | la línea `⚠ NO CUBIERTO:` nombra solo lo que trae la entrada, no pide `plazos calcular` y va aunque falle una lectura, que se dice aparte (líneas 104-112) | lo mismo, y tras esa línea la respuesta **no expone la norma que rige el procedimiento** —sus plazos, sus recursos—: la nombra la línea, solo con lo que trae la entrada de `references/cobertura_por_materia.md` | FR-030 |
 | 10 | cada precepto de `data.preceptos` se lee en la fecha de inicio y va su línea `⚠ REDACCIÓN A FECHA:` (líneas 148-160) | lo mismo, y **si esa lectura sale con 4 o 5**: la línea `⚠ PLAZO:` se mantiene, con la fecha de `plazos` y la cita de cada precepto de `data.preceptos`; en lugar de la línea `⚠ REDACCIÓN A FECHA:` de ese precepto, la respuesta dice aparte que no pudo leer esa redacción, como `boe-legislacion` dice cualquier lectura fallida, y no afirma lo que dice el precepto | FR-029 |
 
 Ningún otro paso, regla, referencia ni fila de la tabla de comandos cambia; ninguna herramienta nueva. Las líneas de

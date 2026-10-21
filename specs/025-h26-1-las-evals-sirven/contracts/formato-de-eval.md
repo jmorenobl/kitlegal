@@ -146,5 +146,6 @@ Tras su commit, `grabar_datos` ejecuta `TestGrabarEvals` (`//go:build grabacion`
 con `KITLEGAL_RECORD=1`, que pide con `internal/httpx` a `boe.legislacion-consolidada` (fila revisada el 2026-09-13 en
 `main`) solo los cuatro bloques —lo demás lo sirven H4 y H5— y deja las cuatro respuestas
 `GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_<norma>_texto_bloque_<bloque>.json` en
-`internal/evals/testdata/boe.legislacion-consolidada/`. No hay material de origen de ningún fichero de `data/`: nada va a
+`internal/evals/testdata/boe.legislacion-consolidada/`, junto al `robots.txt` del BOE de ese directorio, que vuelve a
+grabar porque `internal/httpx` lo pide antes de los bloques (`gates/grabaciones.md`). No hay material de origen de ningún fichero de `data/`: nada va a
 `evidencias/`.

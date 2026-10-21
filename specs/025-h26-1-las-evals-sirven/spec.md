@@ -425,7 +425,7 @@ protocolo, y las evals 11 y 12 miden en el job lo que tiene forma (la línea `�
 - **La caché derivada de `data/` (FR-001)** la pide la skill en la sesión: `legal-core` lee `daprimera` una vez por
   pregunta en el paso 7 y cada precepto de `data.preceptos` (de uno a tres) en el paso 10; `boe-legislacion` lee el
   índice de la norma de la pregunta. La prepara el arnés una vez por sesión. Tamaño: hoy 17 bloques × 2 lecturas y el
-  índice y los metadatos de unas veinte normas, del orden de 80 consultas, que crecen con `data/` y no con el uso: los
+  índice y los metadatos de 19 normas, 72 consultas, que crecen con `data/` y no con el uso: los
   meses de uso de kitlegal, sus cientos de normas y miles de bloques consultados, no están en ninguna sesión de evals,
   que arranca de cero. Con los preceptos que añada H9.1, unas decenas más. Deja de darse cuando el precepto sale de
   `data/`.

@@ -224,7 +224,7 @@
 //     decidir nada. Y el informe de toda skill lleva, detrás de todos los
 //     umbrales, por cada modo del plan y, en cada uno, por cada modelo, el que
 //     decide delante, fuera_de_lo_grabado:<modelo>:<modo>: las lecturas del
-//     fuera_de_lo_grabado de sus sesiones medidas —legibles y sin medir por un
+//     fuera_de_lo_grabado de sus sesiones medidas —legibles y no sin medir por un
 //     límite de uso, de cualquier eval de ese modo, activen o no la skill y
 //     terminen o no; ninguna de una eval sin binario ni servidor—, que ya no
 //     lleva las de sin_servir, sobre esas sesiones, también con medida 0; no

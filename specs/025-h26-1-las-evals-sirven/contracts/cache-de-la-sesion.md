@@ -30,7 +30,7 @@ la tienen `boe-legislacion` y `jurisprudencia`, sin ninguna eval con `sin_servir
 ## 2. Lo que se sirve hoy con el `data/` del repositorio
 
 17 bloques y 19 normas: 72 consultas de lo que la skill lleva a leer, todas grabadas (research V1). Las de `lecturas`
-son 8 más en las sesiones de `boe-legislacion`, cuando `grabar_datos` grabe sus cuatro bloques (research V2). Las de la
+son 8 más en las sesiones de `boe-legislacion`, con sus cuatro bloques grabados por `grabar_datos` (research V2). Las de la
 11 y la 12 de `legal-core` quitan 2 cada una de sus sesiones.
 
 ## 3. Si algo de 1 o 2 no está grabado

@@ -1393,7 +1393,7 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   aunque consulte una lectura de `sin_servir`, porque no llegó a ella; y `salida_no_escrita`, la invocación de la
   traza que terminó con `1` porque su orden de Bash no pudo escribir la salida —`kitlegal … --json | python3 -c …` en
   un runner sin Python—, con esa orden tal cual en `bash`. La enlaza el único uso de Bash cuya orden contiene como
-  palabras su applet, su verbo y cada argumento y cuya salida trae una línea que empieza por el prefijo con el que el
+  palabras `kitlegal`, su applet, su verbo y cada argumento y cuya salida trae una línea que empieza por el prefijo con el que el
   presentador del binario dice que no pudo escribir en la salida estándar, que el arnés le pide a `render.Nuevo` en
   lugar de copiarlo (`TestLineaDeLaSalidaNoEscrita`; `TestTuberiaCerrada` fija el mensaje en el binario); sin uso que
   lo cumpla, con dos o con otra salida de error, el `1` queda sin motivo. Ni `motivo` ni `bash` cambian si una sesión

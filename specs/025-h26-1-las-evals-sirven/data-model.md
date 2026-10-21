@@ -165,4 +165,5 @@ Tres entradas nuevas en `normas`, con la forma de las de hoy (`busqueda`, `titul
 búsquedas que ya grabó H5 (research V11): «régimen jurídico del sector público» / `Ley 40/2015,` / `a26`, `a27`;
 «impuesto renta personas físicas» / `Ley 35/2006,` / `a18`; «reguladora de las haciendas locales» /
 `Real Decreto Legislativo 2/2004,` / `a15` (FR-010). `grabar_datos` deja las cuatro respuestas en
-`internal/evals/testdata/boe.legislacion-consolidada/`.
+`internal/evals/testdata/boe.legislacion-consolidada/`, y con ellas vuelve a grabar el `robots.txt` del BOE de ese
+directorio, que `internal/httpx` pide antes que ellas (`gates/grabaciones.md`).
