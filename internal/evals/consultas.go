@@ -152,12 +152,13 @@ func ConsultasNecesarias(conjunto []Eval) []Consulta {
 }
 
 // consultasDeLaCache son las consultas con las que se prepara la caché de una
-// sesión de las evals de una skill y la base de la medida de su juez
-// (contracts/cache-de-la-sesion.md §1, puntos 1 y 2, de H26.1; research D1 y D4
-// de H26.1; FR-001, FR-004): las de ConsultasNecesarias de las evals y, detrás,
-// las de lecturasDeLosDatos del directorio data/, con el mismo acumulador, de
-// modo que una invocación que ya estaba solo suma su origen. Su error es el de
-// lecturasDeLosDatos, y con él no hay consultas.
+// sesión de las evals de una skill y, con las evals sin sus lecturas, la base de
+// la medida de su juez (contracts/cache-de-la-sesion.md §1, puntos 1 y 2, de
+// H26.1; research D1 y D4 de H26.1; FR-001, FR-004): las de
+// ConsultasNecesarias de las evals y, detrás, las de anotarLosDatos del
+// directorio data/, con el mismo acumulador, de modo que una invocación que ya
+// estaba solo suma su origen. Su error es el de anotarLosDatos, y con él no hay
+// consultas. Con ninguna eval, son solo las de data/.
 func consultasDeLaCache(conjunto []Eval, datos string) ([]Consulta, error) {
 	necesarias := consultasNecesarias{posiciones: map[string]int{}}
 	necesarias.anotarLasEvals(conjunto)
@@ -186,21 +187,6 @@ func sinLoQueNoSeSirve(consultas []Consulta, eval Eval) []Consulta {
 			Consulta:   true,
 		})
 	})
-}
-
-// lecturasDeLosDatos es lo que la skill lleva a leer del directorio data/
-// (data-model §2 de H26.1; research D1 de H26.1; FR-001, FR-002), con el punto
-// PuntoLoQueLlevaALeer y, como origen, el fichero de data/ del que sale cada
-// consulta: ver anotarLosDatos. Su error es el de un fichero que no se lee o que
-// su lector rechaza, y con él no hay consultas.
-func lecturasDeLosDatos(datos string) ([]Consulta, error) {
-	necesarias := consultasNecesarias{posiciones: map[string]int{}}
-
-	if err := necesarias.anotarLosDatos(datos); err != nil {
-		return nil, err
-	}
-
-	return necesarias.consultas, nil
 }
 
 // consultasNecesarias acumula las consultas sin repetir ninguna invocación.

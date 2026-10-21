@@ -157,9 +157,9 @@ tiene blancos.
 ## Decisiones (D)
 
 **D1 · Lo que la skill lleva a leer se deriva en `internal/evals/consultas.go` y se suma a las consultas necesarias con
-el mismo acumulador (FR-001, FR-002).** Una función sin exportar, `lecturasDeLosDatos(dir)`, lee los tres ficheros de
-`dir` con `plazos.LeerTipos`, `skills.LeerCobertura` y `skills.LeerNormas` y anota, con el acumulador de
-`ConsultasNecesarias`, cada bloque sin fecha y con `--fecha 9999-12-31` y el `indice` y los `metadatos` de cada norma,
+el mismo acumulador (FR-001, FR-002).** Un método sin exportar del acumulador de `ConsultasNecesarias`,
+`anotarLosDatos(dir)`, lee los tres ficheros de `dir` con `plazos.LeerTipos`, `skills.LeerCobertura` y
+`skills.LeerNormas` y anota cada bloque sin fecha y con `--fecha 9999-12-31` y el `indice` y los `metadatos` de cada norma,
 con un punto nuevo, `PuntoLoQueLlevaALeer`, y el fichero de `data/` como origen. `consultasDeLaCache(evals, dir)` da las
 necesarias de las evals y, detrás, las de los datos, sin repetir ninguna invocación: la que ya estaba suma su origen.
 `dir` es `datosDelRepositorio = "../../data"` en el job y en la medida, y una copia en el test de la falta (FR-003).
@@ -170,8 +170,8 @@ la cobertura ni las normas: las tres lecturas tienen que salir del mismo sitio, 
 
 **D2 · `lecturas` es el cuarto punto de las consultas necesarias (FR-006).** `ConsultasNecesarias` anota cada entrada de
 `lecturas` con `anotarBloque` —sin fecha y con `9999-12-31`— y un punto nuevo, `PuntoLecturaDeLaEval`. Así la caché de
-toda sesión de la skill las sirve, `TestEvalsDelRepositorio/grabado` exige su grabación (FR-010) y la base de la medida
-las tiene sin tocarla. *Rechazada*: una lista aparte, que habría que añadir en cada sitio que prepara.
+toda sesión de la skill las sirve y `TestEvalsDelRepositorio/grabado` exige su grabación (FR-010); la base de la medida
+no las sirve (D4). *Rechazada*: una lista aparte, que habría que añadir en cada sitio que prepara.
 
 **D3 · `sin_servir` se aplica al preparar la caché de la sesión, quitando sus consultas antes de `Preparar` (FR-013).**
 `sinLoQueNoSeSirve(consultas, eval)` quita de las de `consultasDeLaCache` cada una que consulta una lectura de
@@ -181,12 +181,18 @@ norma. V3 muestra que, sin esas dos consultas, la caché no sirve el bloque con 
 entradas de la caché ya preparada, que pediría SQLite en `internal/evals` (R3) y conocer las claves de `internal/source/boe`;
 y una reproducción que falle a propósito, que es la opción 2 del ADR 0043, rechazada.
 
-**D4 · La medida del juez sirve lo mismo que FR-001 y las `lecturas`, sin `sin_servir` (FR-004).** `leerLasEvalsDeHoy`
-guarda `consultasDeLaCache(evals, datosDelRepositorio)` en lugar de `ConsultasNecesarias(evals)`. La base es una por
-skill y la comparten las sesiones de todas sus evals (V6), y solo tienen medida las skills con juez, `boe-legislacion` y
-`jurisprudencia`, cuyas evals no llevan `sin_servir`: aplicarlo en la medida no lo alcanza ninguna vía real (umbral de
-materialidad) y FR-004 no lo pide. *Rechazada*: una base por eval, que multiplicaría la preparación sin cambiar nada
-que vea una persona.
+**D4 · La medida del juez sirve lo mismo que FR-001, sin las `lecturas` ni `sin_servir` (FR-004).** `leerLasEvalsDeHoy`
+guarda `consultasDeLaCache(sinSusLecturas(evals), datosDelRepositorio)` en lugar de `ConsultasNecesarias(evals)`. La
+base es una por skill y la comparten las sesiones de todas sus evals (V6), y solo tienen medida las skills con juez,
+`boe-legislacion` y `jurisprudencia`, cuyas evals no llevan `sin_servir`: aplicarlo en la medida no lo alcanza ninguna
+vía real (umbral de materialidad) y FR-004 no lo pide. Las `lecturas` tampoco, y servirlas cambia lo que la medida
+reconstruye: son lo que las sesiones de los informes versionados leyeron sin tenerlo, con 5, y con la base
+sirviéndolas 9 de los 259 casos de `boe-legislacion` —3 derivados y 6 defectos de procedencia `lectura` cuya frase
+describe el artículo que no se leyó— le darían al juez ese artículo leído con 0 (revisión final). Lo de `data/` no
+cambia ningún caso, y `TestBaseDeLaReconstruccion` lo hace cumplir para las dos skills: toda invocación de `boe` de la
+sesión de un caso etiquetado que terminó con 4 o 5 en su informe sigue terminando así sobre la base. *Rechazadas*: una
+base por eval, que multiplicaría la preparación sin cambiar nada que vea una persona; y servir las `lecturas` en la
+medida, por lo dicho.
 
 **D5 · Un comando de bloque cuya lectura está en `sin_servir` admite también 4 y 5 (FR-016).** `satisface` recibe si la
 lectura del comando está en el `sin_servir` de su eval, y `consultoComoPide` admite entonces el 4 y el 5 además del 0 y

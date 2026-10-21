@@ -1867,9 +1867,9 @@ func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
 // componerInforme reúne en el informe lo recibido, lo leído, los resultados de
 // las sesiones, sus series, lo que se mide de las respuestas del modelo que
 // decide, que es nil si la skill no tiene umbrales de sus respuestas, y lo que se
-// mide de las lecturas que sus evals dejan sin servir, que es nil si ninguna
-// tiene un comando de bloque en su sin_servir, y decide sus motivos y su
-// veredicto.
+// mide de las lecturas de las sesiones, para fuera_de_lo_grabado de toda skill
+// y, si alguna eval tiene un comando de bloque en su sin_servir, para
+// lectura_sin_intentar, y decide sus motivos y su veredicto.
 func componerInforme(
 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
@@ -2166,8 +2166,9 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // de las respuestas nombra además las que cuentan en él (motivosDeLosUmbrales):
 // respuestas es lo que se mide de ellas, nil si la skill no tiene esos
 // umbrales. Y, desde H26.1, el de lectura_sin_intentar, las sesiones que cuentan
-// en él: lecturas es lo que se mide de ellas, nil si ninguna eval tiene un
-// comando de bloque en su sin_servir.
+// en él: lecturas es lo que se mide de las lecturas de las sesiones, para
+// fuera_de_lo_grabado de toda skill y, si alguna eval tiene un comando de bloque
+// en su sin_servir, para lectura_sin_intentar.
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,

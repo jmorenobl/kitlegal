@@ -53,14 +53,15 @@ Métodos sin exportar que usan el juicio y la preparación:
 
 - `ConsultasNecesarias(conjunto)` anota, detrás de las citas de cada eval, sus `lecturas` con `anotarBloque`: sin fecha y
   con `--fecha 9999-12-31`.
-- `lecturasDeLosDatos(dir) ([]Consulta, error)` lee `dir/plazos.yaml` con `plazos.LeerTipos`, `dir/cobertura.yaml` con
+- `anotarLosDatos(dir) error`, del acumulador, lee `dir/plazos.yaml` con `plazos.LeerTipos`, `dir/cobertura.yaml` con
   `skills.LeerCobertura` y `dir/normas.yaml` con `skills.LeerNormas`, y anota, en este orden y sin repetir: cada bloque de
   los tipos (sus `Preceptos`, sus `Unidades` en el orden de `plazos.Unidades()` y sus `PreceptosDelComputo`), cada
   `Precepto` de la cobertura y el `Aplicable` de su `Norma`, todos con `anotarBloque`; y, de cada norma de esos bloques,
   de la cobertura y de `normas.yaml`, `indice` y `metadatos`. Ningún identificador escrito en el código (FR-002). Un
-  fichero que no se lee o que su lector rechaza es un error.
+  fichero que no se lee o que su lector rechaza es un error, y entonces no anota nada.
 - `consultasDeLaCache(evals, dir) ([]Consulta, error)`: las de `ConsultasNecesarias(evals)` y, detrás, las de
-  `lecturasDeLosDatos(dir)`, con el mismo acumulador: la invocación que ya estaba suma su origen.
+  `anotarLosDatos(dir)`, con el mismo acumulador: la invocación que ya estaba suma su origen.
+- `sinSusLecturas(evals) []Eval` (`medida.go`): copias de las evals sin sus `lecturas`, para la base de la medida.
 - `sinLoQueNoSeSirve(consultas, eval) []Consulta`: las consultas menos las que `eval.sinServir` reconoce, convertida cada
   una en la `Invocacion` que la ejecuta (applet, verbo, argumentos, `Consulta: true`).
 - `datosDelRepositorio = "../../data"`: el `data/` del repositorio, relativo al paquete.
@@ -70,7 +71,7 @@ Quién prepara qué (contracts/cache-de-la-sesion.md §1):
 | Caché | Consultas | Requisitos |
 |---|---|---|
 | La de una sesión del job o del sondeo (`prepararLaCache`) | `sinLoQueNoSeSirve(consultasDeLaCache(evals, datosDelRepositorio), eval)` | FR-001, FR-006, FR-013 |
-| La base de la medida del juez (`leerLasEvalsDeHoy`, `baseVigente`) | `consultasDeLaCache(evals, datosDelRepositorio)` | FR-004 |
+| La base de la medida del juez (`leerLasEvalsDeHoy`, `baseVigente`) | `consultasDeLaCache(sinSusLecturas(evals), datosDelRepositorio)`: sin las `lecturas`, que las sesiones de los informes versionados no tenían (research D4) | FR-004 |
 
 `Falta.String` nombra las nuevas desde su origen (`queFaltaDesde`):
 `<fichero de la eval>: la lectura <norma> <bloque> sin su bloque: «…» terminó con código N: …` y

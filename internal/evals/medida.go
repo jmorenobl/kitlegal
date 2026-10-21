@@ -628,8 +628,8 @@ type reconstructor struct {
 	candado sync.Mutex
 
 	// deHoy son las evals de hoy por su fichero, y consultas, las que la base
-	// tiene que servir, con lo que la skill lleva a leer de data/; nil hasta que
-	// se leen.
+	// tiene que servir, sin las lecturas de las evals y con lo que la skill lleva
+	// a leer de data/; nil hasta que se leen.
 	deHoy     map[string]Eval
 	consultas []Consulta
 
@@ -1053,10 +1053,13 @@ func (r *reconstructor) evalDeLaSesion(fichero string) (Eval, string, error) {
 
 // leerLasEvalsDeHoy lee, la primera vez, las evals de hoy de la skill, que
 // tienen que estar todas bien formadas, y con ellas las consultas que la base
-// tiene que servir: las necesarias de esas evals y, desde H26.1, lo que la
-// skill lleva a leer del data/ del repositorio, sin el sin_servir de ninguna
-// eval (consultasDeLaCache; research D4 de H26.1; FR-004). Un data/ que no se
-// lee es el error, y entonces no lee nada.
+// tiene que servir: las necesarias de esas evals sin sus lecturas y, desde
+// H26.1, lo que la skill lleva a leer del data/ del repositorio, sin el
+// sin_servir de ninguna eval (consultasDeLaCache; research D4 de H26.1;
+// FR-004). Las lecturas de una eval son lo que sus sesiones de los informes
+// versionados leyeron sin tenerlo, con 4 o 5: servirlas le daría al juez un
+// texto que la sesión del caso no vio. Un data/ que no se lee es el error, y
+// entonces no lee nada.
 func (r *reconstructor) leerLasEvalsDeHoy() error {
 	if r.deHoy != nil {
 		return nil
@@ -1067,7 +1070,7 @@ func (r *reconstructor) leerLasEvalsDeHoy() error {
 		return err
 	}
 
-	consultas, err := consultasDeLaCache(evals, datosDelRepositorio)
+	consultas, err := consultasDeLaCache(sinSusLecturas(evals), datosDelRepositorio)
 	if err != nil {
 		return err
 	}
@@ -1080,6 +1083,17 @@ func (r *reconstructor) leerLasEvalsDeHoy() error {
 	r.deHoy, r.consultas = deHoy, consultas
 
 	return nil
+}
+
+// sinSusLecturas son copias de las evals, en su orden, sin sus lecturas. Las
+// evals que recibe no cambian.
+func sinSusLecturas(evals []Eval) []Eval {
+	sin := slices.Clone(evals)
+	for posicion := range sin {
+		sin[posicion].Lecturas = nil
+	}
+
+	return sin
 }
 
 // evalRetirada es lo único que se lee del fichero de una eval retirada: su
@@ -1114,9 +1128,9 @@ func leerEvalRetirada(retiradas, fichero string) (Eval, error) {
 }
 
 // baseVigente devuelve el directorio de la base: la caché que Preparar llena
-// con UnionDeGrabaciones y las consultas necesarias de las evals de hoy, con lo
-// que la skill lleva a leer de data/ desde H26.1, y que sirve a todas las
-// sesiones (contracts/medida-del-juez.md §5, paso 1, de H24).
+// con UnionDeGrabaciones y las consultas necesarias de las evals de hoy, sin sus
+// lecturas y con lo que la skill lleva a leer de data/ desde H26.1, y que sirve
+// a todas las sesiones (contracts/medida-del-juez.md §5, paso 1, de H24).
 // Si no hay ninguna, o la que hay tiene más de vigenciaDeLaBase desde que se
 // empezó a preparar, la retira y prepara otra. Es un error que no se pueda
 // preparar o que lo grabado no sirva alguna de esas consultas, y entonces no

@@ -13,7 +13,7 @@ en proceso y sin red, con estas consultas, en este orden y sin repetir ninguna i
 1. **Las necesarias de las evals de la skill** (`ConsultasNecesarias`): los comandos esperados, el `indice` y los
    `metadatos` de las normas de sus comandos y citas, el bloque de cada cita y, desde este hito, cada bloque de sus
    `lecturas`; cada bloque, sin fecha y con `--fecha 9999-12-31`.
-2. **Lo que la skill lleva a leer** (`lecturasDeLosDatos(datosDelRepositorio)`): cada bloque de `data/plazos.yaml` y de
+2. **Lo que la skill lleva a leer** (`anotarLosDatos(datosDelRepositorio)`): cada bloque de `data/plazos.yaml` y de
    `data/cobertura.yaml`, sin fecha y con `--fecha 9999-12-31`, y el `indice` y los `metadatos` de cada norma de esos
    dos ficheros y de `data/normas.yaml`. Es lo mismo para las tres skills.
 3. **Menos el `sin_servir` de *E*** (`sinLoQueNoSeSirve`): las que consultan un bloque de su `sin_servir` (las dos
@@ -24,8 +24,11 @@ Lo que no se prepara, la sesión no lo tiene: con `--offline`, 4; sin `--offline
 La lectura de un bloque con `--fecha 9999-12-31` deja sus versiones, de las que se sirve después la del bloque en
 cualquier fecha (research V3).
 
-La base de la medida del juez (`baseVigente`) prepara 1 y 2, sin 3: es una para todas las sesiones de la skill, y solo
-la tienen `boe-legislacion` y `jurisprudencia`, sin ninguna eval con `sin_servir` (research D4).
+La base de la medida del juez (`baseVigente`) prepara 1, sin las `lecturas`, y 2, sin 3: es una para todas las
+sesiones de la skill, y solo la tienen `boe-legislacion` y `jurisprudencia`, sin ninguna eval con `sin_servir`
+(research D4). Las `lecturas` son lo que las sesiones de los informes versionados leyeron sin tenerlo, con 4 o 5, y la
+base no las sirve: toda invocación de `boe` de la sesión de un caso etiquetado que terminó así en su informe sigue
+terminando con 4 o 5 sobre la base (`TestBaseDeLaReconstruccion`).
 
 ## 2. Lo que se sirve hoy con el `data/` del repositorio
 

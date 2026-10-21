@@ -16,8 +16,8 @@ su esquema, sus evals, una grabación y el texto de `legal-core`; ningún paquet
    evals de su skill se suman, con el mismo acumulador, cada bloque de `data/plazos.yaml` y de `data/cobertura.yaml`
    —sin fecha y con `--fecha 9999-12-31`— y el índice y los metadatos de cada norma de esos dos ficheros y de
    `data/normas.yaml`, leídos con `plazos.LeerTipos`, `skills.LeerCobertura` y `skills.LeerNormas` (research D1). Hoy son
-   17 bloques y 19 normas, 72 consultas, todas grabadas (research V1). La base de la medida del juez sirve lo mismo
-   (FR-004, D4).
+   17 bloques y 19 normas, 72 consultas, todas grabadas (research V1). La base de la medida del juez sirve lo mismo,
+   sin las `lecturas` de las evals (FR-004, D4).
 2. **`lecturas`** (FR-006 a FR-011): cuarto punto de las consultas necesarias (D2); el esquema y `LeerEval` validan su
    forma y sus cruces (D9); una tarea `[datos]` añade al manifiesto de `internal/evals/testdata/` cuatro bloques que no
    están grabados (V2), y las evals 14, 15 y 16 de `boe-legislacion` los llevan.
@@ -126,9 +126,9 @@ evals/legal-core/12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml  # nu
 evals/boe-legislacion/{14,15,16}-*-por-materia.yaml                      # lecturas
 internal/evals/
 ├── formato.go          # LecturaDeLaEval, LecturaSinServir, Eval.Lecturas/SinServir, cruces en LeerEval
-├── consultas.go        # PuntoLecturaDeLaEval, PuntoLoQueLlevaALeer, lecturasDeLosDatos, consultasDeLaCache, sinLoQueNoSeSirve
+├── consultas.go        # PuntoLecturaDeLaEval, PuntoLoQueLlevaALeer, anotarLosDatos, consultasDeLaCache, sinLoQueNoSeSirve
 ├── preparar.go         # prepararLaCache con consultasDeLaCache y sin_servir; queFaltaDesde
-├── medida.go           # leerLasEvalsDeHoy con consultasDeLaCache
+├── medida.go           # leerLasEvalsDeHoy con consultasDeLaCache de las evals sin sus lecturas (sinSusLecturas)
 ├── sesion.go           # Llamada.SinSobre, Sesion.OrdenesDeBash
 ├── juzgar.go           # reparto, lecturas_sin_servir, motivo y bash, FR-016, prefijo de la salida no escrita
 ├── informe.go          # sesiones_con_lectura_sin_servir, fila de la llamada sin sobre en informe.md
@@ -189,7 +189,8 @@ las evals, V8) y `make ci`.
 | `TestUmbralesDeLasLecturas` | `internal/evals/umbrales_test.go` | `fuera_de_lo_grabado` (US4), `lectura_sin_intentar` con su motivo y su veredicto, el del modelo informativo, su ausencia en una skill sin eval con un comando de bloque en su `sin_servir`, y `sesiones_con_lectura_sin_servir` (US2, escenario 5) | FR-015, FR-021, FR-022, FR-033; SC-005, SC-006, SC-008, SC-013 |
 
 Casos nuevos en tests que existen: `TestConsultasNecesarias` (`lecturas`, punto `lectura de la eval`; FR-006),
-`TestBaseDeLaReconstruccion` (la base sirve `daprimera`; FR-004), `TestLeerLasLlamadas` (`SinSobre`; FR-023) y
+`TestBaseDeLaReconstruccion` (la base sirve `daprimera` y no sirve lo que las sesiones de los casos etiquetados no
+tenían; FR-004), `TestLeerLasLlamadas` (`SinSobre`; FR-023) y
 `TestTextosDeLaSesion` (`OrdenesDeBash`; FR-026).
 
 ### Tests existentes que cambian lo que esperan
@@ -255,7 +256,7 @@ medidas (research D11): las 3 de la 11 por modelo y modo.
 | SC-016 | 0 peticiones en `red` del informe de `legal-core` | una llegada a la red es un motivo del informe y su veredicto, `fallo` (desde H7.3, sin cambiar) | `ci:internal/evals/informe_test.go:TestInforme` |
 | SC-011, FR-001, FR-003, SC-003 | 0 sesiones con un bloque de `data/` en `fuera_de_lo_grabado`: cada bloque de los dos ficheros, sin fecha y con `9999-12-31`, y el índice y los metadatos de cada norma de los tres, con 0 desde la caché de una sesión de cada skill; un precepto sin grabar, 1 falta y la sesión sin abrir | la caché preparada con el `data/` del repositorio y con una copia rota | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestLoQueLlevaALeerSinGrabar` |
 | FR-002, FR-005, SC-008 (la derivación) | 0 faltas con el `data/` y las grabaciones de hoy; sin la derivación, el mutante en rojo | ídem, y el mutante de `mutantes.md` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
-| FR-004 | 0 faltas al leer desde la base de la medida una lectura de `data/` que no nombra ninguna eval | la base de `boe-legislacion` | `ci:internal/evals/medida_test.go:TestBaseDeLaReconstruccion` |
+| FR-004 | 0 faltas al leer desde la base de la medida una lectura de `data/` que no nombra ninguna eval; 0 invocaciones de `boe` de la sesión de un caso etiquetado que terminaron con 4 o 5 en su informe y la base sirve | la base de `boe-legislacion` y la de `jurisprudencia`, con sus casos | `ci:internal/evals/medida_test.go:TestBaseDeLaReconstruccion` |
 | SC-018, FR-006, FR-010, FR-011, SC-004 | 0 sesiones de `boe-legislacion` con un bloque de `lecturas` en `fuera_de_lo_grabado`: los 4 bloques, sin fecha y con `9999-12-31`, con 0 desde la caché de otra eval de la skill; grabados | la caché preparada; la preparación de las consultas de `boe-legislacion` | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones`, `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
 | FR-013, SC-005, SC-008 (`sin_servir`) | desde la 11, `a124` con 4 en 3 de 3 fechas, y desde la 05, con 0 en 3 de 3; ídem `daprimera` en la 12 y la 07; con `sin_servir` aplicado a todas, el test en rojo | la caché preparada de cada sesión | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
 | FR-008, FR-009, FR-012, FR-014, SC-004, SC-005 | 0 evals mal formadas en el repositorio; cada uno de los rechazos de contracts/formato-de-eval.md §2 y del esquema, con su error | la lectura del conjunto y de cada eval | `ci:internal/evals/formato_test.go:TestFormatoDeLecturas`, `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
@@ -314,11 +315,11 @@ copia) y D17 (la fila de la fuente no cambia). Ninguna desviación de la constit
 | cruces de `LeerEval` (lectura ya comando o cita; `sin_servir` ya cita) | `formato.go` | FR-008, FR-014 |
 | `LecturaSinServir.consulta`, `Eval.sinServir`, `Eval.comandoSinServir` | `formato.go` | FR-013, FR-015, FR-016 |
 | `PuntoLecturaDeLaEval` y su anotación en `ConsultasNecesarias` | `consultas.go` | FR-006 |
-| `PuntoLoQueLlevaALeer`, `lecturasDeLosDatos`, `datosDelRepositorio` | `consultas.go` | FR-001, FR-002 |
+| `PuntoLoQueLlevaALeer`, `anotarLosDatos`, `datosDelRepositorio` | `consultas.go` | FR-001, FR-002 |
 | `consultasDeLaCache` | `consultas.go` | FR-001, FR-004 |
 | `sinLoQueNoSeSirve` y su uso en `prepararLaCache` | `consultas.go`, `preparar.go` | FR-013 |
 | `queFaltaDesde` para los dos puntos nuevos | `preparar.go` | FR-003 |
-| `leerLasEvalsDeHoy` con `consultasDeLaCache` | `medida.go` | FR-004 |
+| `leerLasEvalsDeHoy` con `consultasDeLaCache` de las evals sin sus lecturas (`sinSusLecturas`) | `medida.go` | FR-004 |
 | `Llamada.SinSobre` | `sesion.go` | FR-023 |
 | `Sesion.OrdenesDeBash` | `sesion.go` | FR-026 |
 | reparto de `informarLaJuzgada` (filas 2, 3 y 6) | `juzgar.go` | FR-015, FR-023, FR-024 |
@@ -365,7 +366,7 @@ Ninguna tarea `[aceptacion]` (Aceptación e2e: no aplica). Cada paso deja `make 
    `grabar_datos` graba los cuatro bloques.
 3. **El formato** (`formato.go`): los dos tipos, los dos campos, los cruces de `LeerEval` y los métodos de §1 de
    data-model; `TestFormatoDeLecturas`.
-4. **La caché** (`consultas.go`, `preparar.go`, `medida.go`): el punto de `lecturas`, `lecturasDeLosDatos`,
+4. **La caché** (`consultas.go`, `preparar.go`, `medida.go`): el punto de `lecturas`, `anotarLosDatos`,
    `consultasDeLaCache`, `sinLoQueNoSeSirve` y sus usos; `TestConsultasNecesarias`, `TestLoQueLlevaALeerSinGrabar`,
    `TestBaseDeLaReconstruccion`, `TestEvalsDelRepositorio/lo-que-lleva-a-leer`; y la parte `lecturas` de
    `TestCacheDeLasSesiones` con las `lecturas` de la 14, la 15 y la 16 (`evals/boe-legislacion/`), que ya están grabadas.

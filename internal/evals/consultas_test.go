@@ -525,12 +525,12 @@ var (
 	origenDeLasNormas   = Origen{Eval: "data/normas.yaml", Punto: "lo que la skill lleva a leer"}
 )
 
-// TestLecturasDeLosDatos fija lecturasDeLosDatos y consultasDeLaCache
+// TestLecturasDeLosDatos fija lo que consultasDeLaCache lleva a leer de data/
 // (data-model §2 de H26.1; contracts/cache-de-la-sesion.md §1 de H26.1; research
-// D1 de H26.1; FR-001, FR-002): del data/ del repositorio, las mismas
-// invocaciones que enumera el oráculo de los tests de los preceptos, ninguna
-// repetida, cada una con el fichero de data/ del que sale y el punto de lo que
-// la skill lleva a leer; detrás de las de una eval que lee uno de esos bloques,
+// D1 de H26.1; FR-001, FR-002): sin ninguna eval, del data/ del repositorio,
+// las mismas invocaciones que enumera el oráculo de los tests de los preceptos,
+// ninguna repetida, cada una con el fichero de data/ del que sale y el punto de
+// lo que la skill lleva a leer; detrás de las de una eval que lee uno de esos bloques,
 // con el mismo acumulador, de modo que la invocación que ya estaba suma su
 // origen; y un fichero que falta o que su lector rechaza es el error, que nombra
 // su ruta, sin consultas.
@@ -547,7 +547,7 @@ func TestLecturasDeLosDatos(t *testing.T) {
 func probarLasLecturasDelRepositorio(t *testing.T) {
 	t.Parallel()
 
-	consultas, err := lecturasDeLosDatos(datosDelRepositorio)
+	consultas, err := consultasDeLaCache(nil, datosDelRepositorio)
 	require.NoError(t, err)
 
 	origenes := make(map[string][]Origen, len(consultas))
@@ -611,7 +611,7 @@ func probarLasLecturasDelRepositorio(t *testing.T) {
 func probarLasLecturasDetrasDeLasEvals(t *testing.T) {
 	t.Parallel()
 
-	lecturas, err := lecturasDeLosDatos(datosDelRepositorio)
+	lecturas, err := consultasDeLaCache(nil, datosDelRepositorio)
 	require.NoError(t, err)
 	require.NotEmpty(t, lecturas)
 
@@ -653,8 +653,8 @@ func probarLasLecturasDetrasDeLasEvals(t *testing.T) {
 
 // probarLosDatosQueNoSeLeen es el subtest ficheros-que-no-se-leen de
 // TestLecturasDeLosDatos: con una copia de los tres ficheros de data/ en la que
-// falta uno, o en la que uno es una lista y no un mapa, lecturasDeLosDatos y
-// consultasDeLaCache dan el error que nombra la ruta, y ninguna consulta.
+// falta uno, o en la que uno es una lista y no un mapa, consultasDeLaCache da el
+// error que nombra la ruta, y ninguna consulta.
 func probarLosDatosQueNoSeLeen(t *testing.T) {
 	t.Parallel()
 
@@ -684,10 +684,6 @@ func probarLosDatosQueNoSeLeen(t *testing.T) {
 				} else {
 					require.NoError(t, os.WriteFile(ruta, []byte("- no es un mapa\n"), 0o600))
 				}
-
-				lecturas, err := lecturasDeLosDatos(datos)
-				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)
-				assert.Nil(t, lecturas)
 
 				consultas, err := consultasDeLaCache(nil, datos)
 				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)

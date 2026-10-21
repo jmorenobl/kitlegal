@@ -3075,7 +3075,8 @@ func TestResolverCasosSinPoderPreparar(t *testing.T) {
 // directorio y la anterior se retira, porque lo que guarda de buscar y de
 // metadatos caduca a los 300 s; y al retirarla no queda nada. Desde H26.1, la
 // base de boe-legislacion sirve también lo que la skill lleva a leer de data/,
-// que no nombra ninguna de sus evals (FR-004).
+// que no nombra ninguna de sus evals (FR-004), y la de cada skill con juez no
+// sirve nada que las sesiones de sus casos etiquetados no tuvieran.
 func TestBaseDeLaReconstruccion(t *testing.T) {
 	t.Parallel()
 
@@ -3116,6 +3117,69 @@ func TestBaseDeLaReconstruccion(t *testing.T) {
 	require.NoError(t, sintetico.retirarLaBase(), "retirarla otra vez no es un error")
 
 	t.Run("sirve-lo-que-la-skill-lleva-a-leer", probarLaBaseConLoQueLlevaALeer)
+	t.Run("sin-lo-que-no-tuvieron-sus-sesiones", probarLaBaseSinLoQueNoTuvieronSusSesiones)
+}
+
+// probarLaBaseSinLoQueNoTuvieronSusSesiones es el caso de
+// TestBaseDeLaReconstruccion con los casos etiquetados de cada skill de la tabla
+// de las copias: cada invocación de boe de la sesión de un caso que terminó con
+// 4 o 5 en su informe del job, porque la sesión no tenía lo que pedía, repetida
+// sin red sobre la base de la medida de su skill termina también con 4 o 5. Una
+// base que la sirviera le daría al juez un texto que la sesión del caso no vio,
+// como las lecturas de las evals desde H26.1 (research D4 de H26.1; FR-004). Las
+// invocaciones de un sondeo no se repiten, y su informe no da su código.
+func probarLaBaseSinLoQueNoTuvieronSusSesiones(t *testing.T) {
+	t.Parallel()
+
+	for _, pareja := range copiasDelJuez {
+		t.Run(pareja.skill(), func(t *testing.T) {
+			t.Parallel()
+
+			evals := path.Join(raizDelRepositorio, path.Dir(pareja.copias))
+
+			leidos, err := leerCasosEtiquetados([]byte(juezDe(t, evals).Casos))
+			require.NoError(t, err)
+
+			reconstructor := nuevoReconstructor(evals)
+
+			base, err := reconstructor.baseVigente()
+			require.NoError(t, err)
+
+			t.Cleanup(func() { assert.NoError(t, reconstructor.retirarLaBase()) })
+
+			registro, err := registroDeBoe(t.TempDir(), cache.ConDirectorio(base))
+			require.NoError(t, err)
+
+			repetidas := map[sesionDeUnInforme]bool{}
+
+			for _, caso := range leidos.Casos {
+				clave := sesionDeUnInforme{informe: caso.Informe, sesion: caso.Sesion}
+				if repetidas[clave] {
+					continue
+				}
+
+				repetidas[clave] = true
+
+				informe, err := reconstructor.informeDelCaso(caso.Informe)
+				require.NoError(t, err)
+
+				for _, invocacion := range informe.delJob[caso.Sesion].Invocaciones {
+					argumentos := argumentosDeLaInvocacion(invocacion)
+					codigo := invocacion.Codigo
+
+					if argumentos[0] != appletQueLeeBloques || codigo == nil ||
+						(*codigo != codigoFuenteNoDisponible && *codigo != codigoLimiteOTos) {
+						continue
+					}
+
+					repetida := repetir(registro, invocacion.Orden, argumentos, nil)
+					assert.Contains(t, []int{codigoFuenteNoDisponible, codigoLimiteOTos}, repetida.codigo,
+						"%s, sesión %s: «%s» terminó con %d en la sesión y la base de la medida no la sirve",
+						caso.Informe, caso.Sesion, invocacion.Orden, *codigo)
+				}
+			}
+		})
+	}
 }
 
 // probarLaBaseConLoQueLlevaALeer es el caso de TestBaseDeLaReconstruccion con
@@ -3747,12 +3811,7 @@ func preguntaLeidaAparteDe(t *testing.T, eval string, carpetas ...string) string
 // Los recuentos de los casos etiquetados de la copia del repositorio (research
 // M2 de H24; FR-024): cuántos son, cuántos de cada etiqueta y de cada
 // procedencia, cuántos informes nombran, cuántos son de la eval que H7.2 retiró
-// y cuántos derivados quitan su texto del de un boe articulos: los dos de la 20,
-// que lee a1-30 y da-3 juntos, y, desde H26.1, que la base de la medida sirve
-// las lecturas de las evals (research D2 y D4 de H26.1; FR-004, FR-006), los
-// tres de la 14, la 15 y la 16 cuyo boe articulos junta el bloque de la cita con
-// una de sus lecturas, que la base no servía antes y en la reconstrucción sale
-// con 0.
+// y cuántos derivados quitan su texto del de un boe articulos.
 const (
 	casosDeLaCopia         = 259
 	defectosDeLaCopia      = 212
@@ -3762,7 +3821,7 @@ const (
 	deLaLecturaEnLaCopia   = 114
 	informesDeLaCopia      = 6
 	casosDeLaEvalRetirada  = 2
-	derivadosDeUnArticulos = 5
+	derivadosDeUnArticulos = 2
 )
 
 // Lo que el control de derivaciones lee por su cuenta de los casos y de las

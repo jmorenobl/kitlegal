@@ -24,7 +24,10 @@ sustituyen a este fichero.
   tres skills y todas grabadas. Una sin grabar es una falta que nombra el fichero —`data/plazos.yaml: lo que la skill
   lleva a leer boe articulo BOE-A-1998-16718 a129: …`— y la sesión no se abre; `make ci` la da en
   `TestEvalsDelRepositorio` (subprueba `lo-que-lleva-a-leer`) y `TestLoQueLlevaALeerSinGrabar` la fija con una copia
-  de `data/` con un bloque cambiado. La base de la medida sirve lo mismo (`TestBaseDeLaReconstruccion`).
+  de `data/` con un bloque cambiado. La base de la medida sirve lo mismo (`TestBaseDeLaReconstruccion`), pero no las
+  `lecturas` de las evals: las sesiones de los informes versionados no las tenían, y servirlas cambiaría lo que el
+  juez lee de sus casos; `TestBaseDeLaReconstruccion` exige que toda invocación de `boe` de la sesión de un caso
+  etiquetado que terminó con `4` o `5` siga terminando así sobre la base.
 - **`lecturas` y `sin_servir` en el formato de las evals (ADR 0043).** `lecturas`, opcional, son los bloques que la
   pregunta provoca leer sin que la eval los pida, cada uno con `norma`, `bloque` y `motivo`, que no puede estar vacío
   ni ser solo blancos: la caché de las sesiones de toda la skill los sirve, sin fecha y con `--fecha 9999-12-31`, y no

@@ -903,7 +903,9 @@ sesión no se abre; en `make ci`, `TestEvalsDelRepositorio` sale en rojo (subpru
 `TestLoQueLlevaALeerSinGrabar` lo fija con una copia de `data/`, y `TestCacheDeLasSesiones`, lo que sirven `lecturas`
 y `sin_servir`). Cada sesión empieza con una caché nueva en su directorio y no hereda nada de otra ni de la de quien
 lanza el job. El sondeo prepara sus sesiones igual, y la base con la que la medida del juez reconstruye los textos
-sirve lo mismo, sin ningún `sin_servir` (`TestBaseDeLaReconstruccion`).
+sirve lo mismo, sin ningún `sin_servir` y sin las `lecturas` de las evals, que las sesiones de los informes
+versionados no tenían: toda invocación de `boe` de la sesión de un caso etiquetado que terminó con `4` o `5` sigue
+terminando así sobre la base (`TestBaseDeLaReconstruccion`).
 
 La abre
 `scripts/evals-sesion.sh` con la orden de `claude` de siempre, bajo `strace` y con la red cerrada salvo la del modelo,

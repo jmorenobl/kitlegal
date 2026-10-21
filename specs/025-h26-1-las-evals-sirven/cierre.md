@@ -87,7 +87,7 @@ test recorre (`count` 0 en los dos perfiles), todos de una sentencia y todos ram
 - `internal/evals/juzgar.go:1182-1184` y `:1187-1189` — en `prefijoDeLaSalidaNoEscrita`, el presentador que no da error
   con una salida estándar que falla, o uno que no termina en la causa. Las dos dejan el prefijo vacío, y con él toda
   invocación como antes de H26.1; `TestLineaDeLaSalidaNoEscrita` exige que, con el binario de hoy, no lo sea.
-- `internal/evals/medida.go:1071-1073` — en `leerLasEvalsDeHoy`, el error de `consultasDeLaCache` con un `data/` que no se
+- `internal/evals/medida.go:1074-1076` — en `leerLasEvalsDeHoy`, el error de `consultasDeLaCache` con un `data/` que no se
   lee.
 - `internal/evals/umbrales.go:955-957` — en `lecturasMedidas.umbrales`, el receptor `nil`.
 
@@ -206,7 +206,7 @@ Filas `ci:` — cada test encontrado como `^func <Test>\(` en su ruta (línea en
 | SC-016 | `internal/evals/informe_test.go:TestInforme` (278) | sí | sí: el caso `llegada-a-la-red` con `comprobarLlegadaALaRed` (`:3282`), cuyo cuerpo es igual al de `main` (comparado con `diff`), que exige la petición en `red`, su motivo y el veredicto `fallo`; T010 solo le añadió, por caso, el umbral `fuera_de_lo_grabado` que espera |
 | SC-011, FR-001, FR-003, SC-003 | `internal/evals/conjunto_test.go:TestEvalsDelRepositorio` (1999), `internal/evals/preparar_test.go:TestLoQueLlevaALeerSinGrabar` (995) | sí | sí, y en rojo con el mutante de §3.7.a |
 | FR-002, FR-005, SC-008 | `TestEvalsDelRepositorio` (1999), `internal/evals/preparar_test.go:TestCacheDeLasSesiones` (1070) | sí | sí; el mutante de FR-002, en `mutantes.md` §2 (T015) |
-| FR-004 | `internal/evals/medida_test.go:TestBaseDeLaReconstruccion` (3079) | sí | sí |
+| FR-004 | `internal/evals/medida_test.go:TestBaseDeLaReconstruccion` (3080) | sí | sí |
 | SC-018, FR-006, FR-010, FR-011, SC-004 | `TestCacheDeLasSesiones` (1070), `TestEvalsDelRepositorio` (1999) | sí | sí |
 | FR-013, SC-005, SC-008 | `TestCacheDeLasSesiones` (1070) | sí | sí; el mutante de FR-013, en `mutantes.md` §3 (T015) |
 | FR-008, FR-009, FR-012, FR-014, SC-004, SC-005 | `internal/evals/formato_test.go:TestFormatoDeLecturas` (1907), `TestEvalsDelRepositorio` (1999) | sí | sí |
