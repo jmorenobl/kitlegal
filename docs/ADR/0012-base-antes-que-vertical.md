@@ -1,6 +1,6 @@
 # 0012 · Base antes que vertical: la primera skill es genérica y las verticales la especializan
 
-- **Estado**: aceptada
+- **Estado**: aceptada; precisada por el ADR 0044 (qué es una vertical y qué es un pack)
 - **Fecha**: 2026-09-12
 - **Hito**: transversal (cambia el alcance de H5 y H24 y añade la fase 8; la numeración no cambia)
 
@@ -12,6 +12,12 @@
 > Nota (2026-09-27): el ADR 0027 fija la frontera entre base y vertical: la base cubre el procedimiento
 > común (LPAC) y el acceso a la información (LTAIBG) en cualquier materia; lo que la ley regula aparte (DA
 > 1ª.2 LPAC, art. 112.4) lo declara no cubierto y llega con su vertical, con sus recursos, plazos y escritos.
+>
+> Nota (2026-10-22): el ADR 0044 precisa qué es una vertical. Es un paquete de materia —normas con `vertical:`,
+> un fichero de referencia por skill de capacidad, filas de cobertura y evals— sobre los motores de la base, y no una
+> skill; lo que el paquete necesita y la base no tiene es un hito de capacidad de la base, genérico. Un pack agrupa
+> verticales para un tipo de profesional y entra con la segunda vertical. La frontera del ADR 0027 la sustituye la
+> cobertura en positivo: se cubre lo declarado, y lo demás no.
 
 ## Contexto y problema
 

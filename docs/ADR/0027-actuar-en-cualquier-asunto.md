@@ -1,6 +1,9 @@
 # 0027 · Actuar en cualquier asunto: la fase 2 es genérica, con la cobertura por materia declarada y la redacción a una fecha
 
-- **Estado**: aceptada
+- **Estado**: aceptada; sustituida en parte por el ADR 0044: la frontera de la base (punto 3) pasa a ser la
+  cobertura en positivo —se cubre lo declarado, y lo demás no—, con lo que la ley regula aparte del procedimiento
+  común todavía declarado no cubierto; y la fase 3 (punto 7) pasa a ser «Transparencia y fiscalización municipal»,
+  detrás de los despachos y las asesorías. Lo demás sigue vigente.
 - **Fecha**: 2026-09-27
 - **Hito**: transversal (antes de H7). Enmienda el encuadre de las fases 2 y 3 del ADR 0013 sin cambiar su orden;
   añade H20 entre H7 y H8; amplía H8, H9, H10 y H11; constitución 2.5.0 (principios II y IX).
