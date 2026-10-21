@@ -93,3 +93,38 @@ Ejecutado en la sesión de T007 sobre una copia (`git worktree add --detach` en 
 aplicado, con los dos cambios hechos con el editor: las líneas `--- FAIL` fueron exactamente esas cinco y `FAIL` del
 paquete, con cada uno. Retirados con el `mv`: `git diff --no-index --exit-code` de la copia contra
 `internal/evals/umbrales.go` del árbol de trabajo salió con 0, y `git worktree remove --force` retiró la copia.
+
+## FR-013 · `sin_servir` de cualquier eval de la skill aplicado a todas, y retirado (T008)
+
+En `prepararLaCache`, la caché de la sesión de cada eval se prepara sin lo que deja sin servir cualquier eval de la
+skill, no solo la suya: `return Preparar(dirCache, s.Grabaciones, sinLoQueNoSeSirve(consultas, eval))` →
+
+```go
+todas := eval
+for _, otra := range evals {
+	todas.SinServir = append(slices.Clone(todas.SinServir), otra.SinServir...)
+}
+
+return Preparar(dirCache, s.Grabaciones, sinLoQueNoSeSirve(consultas, todas))
+```
+
+```bash
+f="$copia/internal/evals/preparar.go"
+cp "$f" "$f.orig"
+# el cambio, con el editor
+git diff --no-index --quiet "$f.orig" "$f" && echo "EL MUTANTE NO SE HA APLICADO"
+go -C "$copia" test -count=1 -run '^TestCacheDeLasSesiones$' ./internal/evals/ 2>&1 | grep -E '^\s*--- FAIL|^(ok|FAIL)'
+mv "$f.orig" "$f"
+```
+
+Esperado: ninguna línea «NO SE HA APLICADO», y en `FAIL`, `TestCacheDeLasSesiones/sin-servir` con
+`05-plazo-reposicion-leganes-a124` (la 05 deja de servir `a124`, que la 11 lleva en `sin_servir`: código 4 y no 0, sin
+fecha, con `--fecha 2026-09-09` y con `--fecha 9999-12-31`) y `07-cobertura-liquidacion-tributaria-daprimera` (la 07
+deja de servir `daprimera`, que lleva la 12); los de la 11 y la 12, que esperan 4, siguen en verde.
+
+Ejecutado en la sesión de T008 sobre una copia (`git worktree add --detach` en `$TMPDIR`) con el diff de la tarea
+copiado encima, con el cambio hecho con el editor: `git diff --no-index --stat` dio el fichero cambiado (6 líneas más
+y 1 menos), y las líneas `--- FAIL` fueron `TestCacheDeLasSesiones`, `TestCacheDeLasSesiones/sin-servir` y esos dos
+subtests, con las tres lecturas de cada uno en 4 donde se esperaba 0 (`clase=fuente-no-disponible`). Retirado con el
+`mv`: `git diff --no-index --exit-code` de la copia contra `internal/evals/preparar.go` del árbol de trabajo salió con
+0, y `git worktree remove --force` retiró la copia.

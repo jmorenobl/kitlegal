@@ -1029,7 +1029,10 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 // LPAC, que lee la skill por data/cobertura.yaml y no nombra ninguna de sus
 // evals, sale con 0 sin fecha, con --fecha 2026-09-09 y con --fecha
 // 9999-12-31; y desde la de la 05, el art. 124, igual (US1, escenario 1;
-// FR-001, FR-011; SC-008).
+// FR-001, FR-011; SC-008). Desde la de la 11, que lleva el art. 124 en
+// sin_servir, ese bloque sale con 4 en las tres, y desde la de la 12, que lleva
+// la disposición adicional primera, esa, igual (US2, escenario 1; FR-013;
+// SC-005).
 func TestCacheDeLasSesiones(t *testing.T) {
 	t.Parallel()
 
@@ -1048,6 +1051,11 @@ func probarLoQueNoSeSirve(t *testing.T) {
 	}{
 		{evals: evalsDeLegalCore, fichero: "07-cobertura-liquidacion-tributaria.yaml", bloque: "daprimera"},
 		{evals: evalsDeLegalCore, fichero: "05-plazo-reposicion-leganes.yaml", bloque: "a124"},
+		{evals: evalsDeLegalCore, fichero: "11-plazo-reposicion-sin-leer-el-precepto.yaml", bloque: "a124", codigo: 4},
+		{
+			evals: evalsDeLegalCore, fichero: "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml",
+			bloque: "daprimera", codigo: 4,
+		},
 	}
 
 	for _, caso := range casos {

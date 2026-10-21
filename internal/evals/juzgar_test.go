@@ -3869,7 +3869,8 @@ func evalDelArticulo118(comando ComandoEsperado) Eval {
 // Las evals 11 y 12 de legal-core que juzgan las sesiones de
 // TestJuzgarLasLecturasSinServir, con el contenido de
 // contracts/formato-de-eval.md §3.1 y §3.2 de H26.1 y el razonamiento de la 05,
-// y la 16 de boe-legislacion del repositorio.
+// que las juzgan también con su fichero del repositorio, y la 16 de
+// boe-legislacion del repositorio.
 const (
 	ficheroDeLaEval11 = "11-plazo-reposicion-sin-leer-el-precepto.yaml"
 	ficheroDeLaEval12 = "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml"
@@ -3982,6 +3983,27 @@ func evalLeida(t *testing.T, fichero, contenido string) Eval {
 	return eval
 }
 
+// evalDeUnOrigen es una eval y de dónde sale: del contrato, con el contenido de
+// este test, o del repositorio, con el de su fichero de evals/legal-core/.
+type evalDeUnOrigen struct {
+	origen string
+	eval   Eval
+}
+
+// lasDosEvals es la eval de ese fichero con el contenido del contrato y la del
+// repositorio, leídas las dos por LeerEval: cada sesión se juzga con las dos y
+// tiene que salir igual (T008 de H26.1).
+func lasDosEvals(t *testing.T, fichero, contenido string) []evalDeUnOrigen {
+	t.Helper()
+
+	delRepositorio := contenidoDelFichero(t, filepath.Join(evalsDeLegalCore, fichero))
+
+	return []evalDeUnOrigen{
+		{origen: "del-contrato", eval: evalLeida(t, fichero, contenido)},
+		{origen: "del-repositorio", eval: evalLeida(t, fichero, string(delRepositorio))},
+	}
+}
+
 // calculaLaReposicion es la orden plazos calcular de la reposición desde el día
 // de la notificación, con Leganés de los dos municipios, que termina con 0.
 func calculaLaReposicion(t *testing.T) Invocacion {
@@ -4025,12 +4047,29 @@ func enSuUmbralSinModelo(eval Eval, resultado ResultadoDeEval) (enElTotal, cuent
 // la que quedó sin código o terminó con 0 no va a ninguna, la del 4 o el 5 va a
 // fuera_de_lo_grabado —el metadatos de la misma norma o el mismo bloque de otra
 // norma, también— y la de otro código, a otras_fallidas. La sesión pasa, y cada
-// invocación está en invocaciones.
+// invocación está en invocaciones. Igual con la 11 del contrato y con la del
+// repositorio.
 func probarElRepartoDeLasLecturasSinServir(t *testing.T) {
 	t.Parallel()
 
-	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
-	eval.SinServir = append(eval.SinServir, LecturaSinServir{Norma: normaDeLasTrazas, Verbo: "indice"})
+	for _, deUnOrigen := range lasDosEvals(t, ficheroDeLaEval11, contenidoDeLaEval11) {
+		t.Run(deUnOrigen.origen, func(t *testing.T) {
+			t.Parallel()
+
+			eval := deUnOrigen.eval
+			eval.SinServir = slices.Concat(eval.SinServir,
+				[]LecturaSinServir{{Norma: normaDeLasTrazas, Verbo: "indice"}})
+
+			repartirLasLecturasSinServir(t, eval)
+		})
+	}
+}
+
+// repartirLasLecturasSinServir juzga con la eval dada, la 11 con el índice de
+// la LPAC también sin servir, la sesión del reparto de
+// probarElRepartoDeLasLecturasSinServir y comprueba cada lista.
+func repartirLasLecturasSinServir(t *testing.T, eval Eval) {
+	t.Helper()
 
 	lecturas := []Invocacion{
 		deLaLPAC(t, codigoDeSalida(0), "articulo", "a124", "--fecha", diaDeLaNotificacion, "--describe"),
@@ -4076,11 +4115,10 @@ func probarElRepartoDeLasLecturasSinServir(t *testing.T) {
 // ausente; la lectura, si la hay, está en lecturas_sin_servir con su código, y
 // nada en fuera_de_lo_grabado ni en otras_fallidas; con la línea del plazo y el
 // comando satisfecho pasa sin contar en plazo_sin_fecha, y sin la línea cuenta y
-// no pasa.
+// no pasa. Igual con la 11 del contrato y con la del repositorio.
 func probarLaEvalSinServirDelPlazo(t *testing.T) {
 	t.Parallel()
 
-	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
 	ausente := "comando ausente: " + textoDelComando124
 	enSuFecha := []string{"--fecha", diaDeLaNotificacion, "--json"}
 
@@ -4127,28 +4165,31 @@ func probarLaEvalSinServirDelPlazo(t *testing.T) {
 		},
 	}
 
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
+	for _, deUnOrigen := range lasDosEvals(t, ficheroDeLaEval11, contenidoDeLaEval11) {
+		for _, caso := range casos {
+			t.Run(caso.nombre+"-"+deUnOrigen.origen, func(t *testing.T) {
+				t.Parallel()
 
-			invocaciones := []Invocacion{resuelveLeganes(t), calculaLaReposicion(t)}
-			if caso.lectura != nil {
-				invocaciones = append(invocaciones,
-					deLaLPAC(t, codigoDeSalida(caso.codigo), "articulo", slices.Concat([]string{"a124"}, caso.lectura)...))
-			}
+				invocaciones := []Invocacion{resuelveLeganes(t), calculaLaReposicion(t)}
+				if caso.lectura != nil {
+					invocaciones = append(invocaciones,
+						deLaLPAC(t, codigoDeSalida(caso.codigo), "articulo", slices.Concat([]string{"a124"}, caso.lectura)...))
+				}
 
-			resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
+				eval := deUnOrigen.eval
+				resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
 
-			assert.Equal(t, caso.motivos, resultado.Motivos)
-			assert.Equal(t, caso.motivos == nil, resultado.Pasa)
-			assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
-			assert.Empty(t, resultado.FueraDeLoGrabado)
-			assert.Empty(t, resultado.OtrasFallidas)
+				assert.Equal(t, caso.motivos, resultado.Motivos)
+				assert.Equal(t, caso.motivos == nil, resultado.Pasa)
+				assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
+				assert.Empty(t, resultado.FueraDeLoGrabado)
+				assert.Empty(t, resultado.OtrasFallidas)
 
-			enElTotal, cuenta := enSuUmbralSinModelo(eval, resultado)
-			require.True(t, enElTotal, "premisa: la 11 es de las del total de plazo_sin_fecha")
-			assert.Equal(t, caso.cuenta, cuenta, "cuenta en plazo_sin_fecha")
-		})
+				enElTotal, cuenta := enSuUmbralSinModelo(eval, resultado)
+				require.True(t, enElTotal, "premisa: la 11 es de las del total de plazo_sin_fecha")
+				assert.Equal(t, caso.cuenta, cuenta, "cuenta en plazo_sin_fecha")
+			})
+		}
 	}
 }
 
@@ -4157,11 +4198,10 @@ func probarLaEvalSinServirDelPlazo(t *testing.T) {
 // sobre de la clase fuente-no-disponible o limite-o-tos satisface su comando de
 // bloque y está en lecturas_sin_servir, y la sesión pasa sin contar en
 // plazo_sin_fecha; sin fecha, con otra fecha o sin la llamada, el comando queda
-// ausente con su motivo.
+// ausente con su motivo. Igual con la 11 del contrato y con la del repositorio.
 func probarLaEvalSinServirDelPlazoPorLaHerramienta(t *testing.T) {
 	t.Parallel()
 
-	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
 	ausente := []string{"comando ausente: " + textoDelComando124}
 
 	const (
@@ -4202,31 +4242,34 @@ func probarLaEvalSinServirDelPlazoPorLaHerramienta(t *testing.T) {
 		{nombre: "sin-leerla", motivos: ausente},
 	}
 
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
+	for _, deUnOrigen := range lasDosEvals(t, ficheroDeLaEval11, contenidoDeLaEval11) {
+		for _, caso := range casos {
+			t.Run(caso.nombre+"-"+deUnOrigen.origen, func(t *testing.T) {
+				t.Parallel()
 
-			llamadas := []Llamada{
-				llamadaCorrecta("territorio_resolver", `{"consulta":"Leganés"}`),
-				llamadaCorrecta("plazos_calcular", argumentosDeReposicion),
-			}
-			if caso.lectura.Herramienta != "" {
-				llamadas = append(llamadas, caso.lectura)
-			}
+				llamadas := []Llamada{
+					llamadaCorrecta("territorio_resolver", `{"consulta":"Leganés"}`),
+					llamadaCorrecta("plazos_calcular", argumentosDeReposicion),
+				}
+				if caso.lectura.Herramienta != "" {
+					llamadas = append(llamadas, caso.lectura)
+				}
 
-			sesion := cambiada(sesionDelModoHerramienta(t, respuestaDeLa11, llamadas...),
-				func(s *Sesion) { s.SkillsActivadas = []string{skillDeTerritorio} })
-			resultado := juzgarEnModo(eval, sesion, skillDeTerritorio, ModoHerramienta)
+				eval := deUnOrigen.eval
+				sesion := cambiada(sesionDelModoHerramienta(t, respuestaDeLa11, llamadas...),
+					func(s *Sesion) { s.SkillsActivadas = []string{skillDeTerritorio} })
+				resultado := juzgarEnModo(eval, sesion, skillDeTerritorio, ModoHerramienta)
 
-			assert.Equal(t, caso.motivos, resultado.Motivos)
-			assert.Equal(t, caso.motivos == nil, resultado.Pasa)
-			assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
-			assert.Empty(t, resultado.FueraDeLoGrabado)
-			assert.Empty(t, resultado.OtrasFallidas)
+				assert.Equal(t, caso.motivos, resultado.Motivos)
+				assert.Equal(t, caso.motivos == nil, resultado.Pasa)
+				assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
+				assert.Empty(t, resultado.FueraDeLoGrabado)
+				assert.Empty(t, resultado.OtrasFallidas)
 
-			_, cuenta := enSuUmbralSinModelo(eval, resultado)
-			assert.False(t, cuenta, "no cuenta en plazo_sin_fecha")
-		})
+				_, cuenta := enSuUmbralSinModelo(eval, resultado)
+				assert.False(t, cuenta, "no cuenta en plazo_sin_fecha")
+			})
+		}
 	}
 }
 
@@ -4235,11 +4278,11 @@ func probarLaEvalSinServirDelPlazoPorLaHerramienta(t *testing.T) {
 // lecturas_sin_servir, y responde con la declaración de no cubierto de la LPAC
 // y sin línea del plazo, pasa sin contar en cobertura_sin_declarar; sin la
 // declaración, cuenta y no pasa; y la que ejecuta plazos calcular no pasa, con
-// el motivo del comando prohibido.
+// el motivo del comando prohibido. Igual con la 12 del contrato y con la del
+// repositorio.
 func probarLaEvalSinServirDeLaCobertura(t *testing.T) {
 	t.Parallel()
 
-	eval := evalLeida(t, ficheroDeLaEval12, contenidoDeLaEval12)
 	laDA := []InvocacionFallida{{Orden: "boe articulo BOE-A-2015-10565 daprimera --json", Codigo: codigoDeSalida(5)}}
 
 	casos := []struct {
@@ -4260,29 +4303,32 @@ func probarLaEvalSinServirDeLaCobertura(t *testing.T) {
 		},
 	}
 
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
+	for _, deUnOrigen := range lasDosEvals(t, ficheroDeLaEval12, contenidoDeLaEval12) {
+		for _, caso := range casos {
+			t.Run(caso.nombre+"-"+deUnOrigen.origen, func(t *testing.T) {
+				t.Parallel()
 
-			invocaciones := []Invocacion{
-				resuelveLeganes(t), deLaLPAC(t, codigoDeSalida(5), "articulo", "daprimera", "--json"),
-			}
-			if caso.calcula {
-				invocaciones = append(invocaciones, calculaLaReposicion(t))
-			}
+				invocaciones := []Invocacion{
+					resuelveLeganes(t), deLaLPAC(t, codigoDeSalida(5), "articulo", "daprimera", "--json"),
+				}
+				if caso.calcula {
+					invocaciones = append(invocaciones, calculaLaReposicion(t))
+				}
 
-			resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
+				eval := deUnOrigen.eval
+				resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
 
-			assert.Equal(t, caso.motivos, resultado.Motivos)
-			assert.Equal(t, caso.motivos == nil, resultado.Pasa)
-			assert.Equal(t, laDA, resultado.LecturasSinServir)
-			assert.Empty(t, resultado.FueraDeLoGrabado)
-			assert.Empty(t, resultado.OtrasFallidas)
+				assert.Equal(t, caso.motivos, resultado.Motivos)
+				assert.Equal(t, caso.motivos == nil, resultado.Pasa)
+				assert.Equal(t, laDA, resultado.LecturasSinServir)
+				assert.Empty(t, resultado.FueraDeLoGrabado)
+				assert.Empty(t, resultado.OtrasFallidas)
 
-			enElTotal, cuenta := enSuUmbralSinModelo(eval, resultado)
-			require.True(t, enElTotal, "premisa: la 12 es de las del total de cobertura_sin_declarar")
-			assert.Equal(t, caso.cuenta, cuenta, "cuenta en cobertura_sin_declarar")
-		})
+				enElTotal, cuenta := enSuUmbralSinModelo(eval, resultado)
+				require.True(t, enElTotal, "premisa: la 12 es de las del total de cobertura_sin_declarar")
+				assert.Equal(t, caso.cuenta, cuenta, "cuenta en cobertura_sin_declarar")
+			})
+		}
 	}
 }
 
@@ -4292,11 +4338,25 @@ func probarLaEvalSinServirDeLaCobertura(t *testing.T) {
 // nada en fuera_de_lo_grabado ni en otras_fallidas; la lectura sin código no
 // satisface el comando, que queda ausente. Una sesión que no consulta ninguna
 // lectura sin servir escribe lecturas_sin_servir vacía, detrás de
-// otras_fallidas.
+// otras_fallidas. Igual con la 11 del contrato y con la del repositorio.
 func probarLaSesionCortadaConLaLecturaSinServir(t *testing.T) {
 	t.Parallel()
 
-	eval := evalLeida(t, ficheroDeLaEval11, contenidoDeLaEval11)
+	for _, deUnOrigen := range lasDosEvals(t, ficheroDeLaEval11, contenidoDeLaEval11) {
+		t.Run(deUnOrigen.origen, func(t *testing.T) {
+			t.Parallel()
+
+			juzgarLaSesionCortada(t, deUnOrigen.eval)
+		})
+	}
+}
+
+// juzgarLaSesionCortada juzga con la eval dada, la 11, la sesión cortada y la
+// que no consulta ninguna lectura sin servir de
+// probarLaSesionCortadaConLaLecturaSinServir y comprueba lo que publican.
+func juzgarLaSesionCortada(t *testing.T, eval Eval) {
+	t.Helper()
+
 	cortada := cambiada(sesionDeLegalCore(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t),
 		deLaLPAC(t, nil, "articulo", "a124", "--fecha", diaDeLaNotificacion, "--json")), func(s *Sesion) {
 		s.Codigo, s.Fin, s.Terminada, s.Cortada = 124, "assistant", false, true
