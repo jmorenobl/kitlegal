@@ -3747,7 +3747,12 @@ func preguntaLeidaAparteDe(t *testing.T, eval string, carpetas ...string) string
 // Los recuentos de los casos etiquetados de la copia del repositorio (research
 // M2 de H24; FR-024): cuántos son, cuántos de cada etiqueta y de cada
 // procedencia, cuántos informes nombran, cuántos son de la eval que H7.2 retiró
-// y cuántos derivados quitan su texto del de un boe articulos.
+// y cuántos derivados quitan su texto del de un boe articulos: los dos de la 20,
+// que lee a1-30 y da-3 juntos, y, desde H26.1, que la base de la medida sirve
+// las lecturas de las evals (research D2 y D4 de H26.1; FR-004, FR-006), los
+// tres de la 14, la 15 y la 16 cuyo boe articulos junta el bloque de la cita con
+// una de sus lecturas, que la base no servía antes y en la reconstrucción sale
+// con 0.
 const (
 	casosDeLaCopia         = 259
 	defectosDeLaCopia      = 212
@@ -3757,7 +3762,7 @@ const (
 	deLaLecturaEnLaCopia   = 114
 	informesDeLaCopia      = 6
 	casosDeLaEvalRetirada  = 2
-	derivadosDeUnArticulos = 2
+	derivadosDeUnArticulos = 5
 )
 
 // Lo que el control de derivaciones lee por su cuenta de los casos y de las

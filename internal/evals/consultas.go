@@ -69,6 +69,11 @@ const (
 	// una cita esperada de la eval, porque lo citado sale de lo leído (FR-008).
 	PuntoCitaEsperada Punto = "cita esperada"
 
+	// PuntoLecturaDeLaEval es el punto 4: la consulta es la lectura del bloque de
+	// una entrada de las lecturas de la eval, que la eval provoca sin pedirla como
+	// comando ni como cita (data-model §2 de H26.1; research D2 de H26.1; FR-006).
+	PuntoLecturaDeLaEval Punto = "lectura de la eval"
+
 	// PuntoLoQueLlevaALeer no sale de ninguna eval: la consulta es la lectura de
 	// un bloque que nombra data/plazos.yaml o data/cobertura.yaml, o el índice o
 	// los metadatos de una norma de esos dos ficheros o de data/normas.yaml, que
@@ -126,16 +131,19 @@ type Consulta struct {
 //     (contracts/evals-legal-core.md §1 de H9);
 //  2. por cada norma de sus comandos y de sus citas, sin repetir: indice <norma>
 //     y metadatos <norma>;
-//  3. por cada cita esperada: articulo <norma> <bloque>.
+//  3. por cada cita esperada: articulo <norma> <bloque>;
+//  4. desde H26.1, por cada entrada de sus lecturas: articulo <norma> <bloque>,
+//     sin ninguna consulta de norma más (data-model §2 de H26.1; research D2 de
+//     H26.1; FR-006).
 //
-// Desde H20, cada articulo <norma> <bloque> de los puntos 1 y 3 va seguido de
-// la misma lectura con --fecha 9999-12-31, con los mismos orígenes: la caché
+// Desde H20, cada articulo <norma> <bloque> de los puntos 1, 3 y 4 va seguido
+// de la misma lectura con --fecha 9999-12-31, con los mismos orígenes: la caché
 // preparada sirve así el bloque en cualquier fecha (research D18 de H20;
 // FR-053).
 //
 // Ninguna invocación se repite: la que ya estaba solo suma su eval y su punto a
 // los Origenes de la primera, si no los tenía. Una eval de no activación no
-// añade nada.
+// añade nada más que sus lecturas, si las lleva.
 func ConsultasNecesarias(conjunto []Eval) []Consulta {
 	necesarias := consultasNecesarias{posiciones: map[string]int{}}
 	necesarias.anotarLasEvals(conjunto)
@@ -239,6 +247,11 @@ func (c *consultasNecesarias) anotarLasEvals(conjunto []Eval) {
 		cita := Origen{Eval: eval.Fichero, Punto: PuntoCitaEsperada}
 		for _, esperada := range eval.Citas {
 			c.anotarBloque(cita, appletDeLasNormas, esperada.Norma, esperada.Bloque)
+		}
+
+		lectura := Origen{Eval: eval.Fichero, Punto: PuntoLecturaDeLaEval}
+		for _, provocada := range eval.Lecturas {
+			c.anotarBloque(lectura, appletDeLasNormas, provocada.Norma, provocada.Bloque)
 		}
 	}
 }

@@ -80,9 +80,10 @@ type Falta struct {
 // String nombra la falta desde cada origen de su consulta, una línea por
 // origen: la eval y el comando esperado; la eval, la norma y lo que le falta, el
 // índice o los metadatos; o la eval y la cita esperada sin su bloque (FR-075).
-// Desde H26.1, el fichero de data/ y lo que la skill lleva a leer, como
-// data/plazos.yaml: lo que la skill lleva a leer boe articulo <norma> <bloque>
-// (data-model §2 de H26.1; FR-003).
+// Desde H26.1, la eval y la lectura <norma> <bloque> sin su bloque, de una
+// entrada de sus lecturas (FR-006); y el fichero de data/ y lo que la skill
+// lleva a leer, como data/plazos.yaml: lo que la skill lleva a leer boe
+// articulo <norma> <bloque> (data-model §2 de H26.1; FR-003).
 // Cada línea termina con la invocación, su código y el mensaje. Una consulta sin
 // orígenes da solo la invocación, su código y el mensaje.
 func (f Falta) String() string {
@@ -113,6 +114,12 @@ func queFaltaDesde(punto Punto, consulta Consulta) string {
 		return fmt.Sprintf("la norma %s sin %s", strings.Join(consulta.Argumentos, " "), consulta.Verbo)
 	case PuntoCitaEsperada:
 		return "la cita esperada " + strings.Join(consulta.Argumentos, " ") + " sin su bloque"
+	case PuntoLecturaDeLaEval:
+		// Por su norma y su bloque, los dos primeros argumentos: la fecha de la
+		// lectura con --fecha 9999-12-31 ya la nombra la orden de la causa.
+		lectura := consulta.Argumentos[:min(len(consulta.Argumentos), 2)]
+
+		return "la lectura " + strings.Join(lectura, " ") + " sin su bloque"
 	case PuntoGrafoPrevio:
 		return "el comando del grafo previo " + ordenDe(consulta)
 	case PuntoLoQueLlevaALeer:

@@ -48,6 +48,11 @@ import (
 // comando con fecha de una eval da las mismas dos lecturas que sin ella, nunca
 // la de su fecha (contracts/evals-redaccion-fechada.md §4 de H20; research D18;
 // FR-053).
+//
+// Desde H26.1, detrás de las citas de cada eval, cada entrada de sus lecturas da
+// la lectura de su bloque sin fecha y con --fecha 9999-12-31, con el punto
+// lectura de la eval; un bloque que ya pedía otra eval suma ese origen a los
+// suyos (data-model §2 de H26.1; research D2 de H26.1; FR-006).
 func TestConsultasNecesarias(t *testing.T) {
 	t.Parallel()
 
@@ -69,6 +74,7 @@ func TestConsultasNecesarias(t *testing.T) {
 		deUnaCobertura          = "08-cobertura-liquidacion-tributaria.yaml"
 		deContratoMenorEn2019   = "09-lcsp-contrato-menor-en-2019.yaml"
 		deArticulo21En2016      = "10-lpac-articulo-21-en-2016.yaml"
+		deUnasLecturas          = "11-lpac-plazo-por-materia.yaml"
 	)
 
 	// fechada son los argumentos de la lectura del bloque con --fecha
@@ -210,6 +216,25 @@ func TestConsultasNecesarias(t *testing.T) {
 	comandoDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoComandoEsperado}
 	normaDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoNormaDeLaEval}
 
+	// Una eval por materia con dos lecturas, como la 16 de boe-legislacion: el
+	// art. 22 de la LPAC, que la 03 de arriba ya pide como cita, y el art. 23, que
+	// no pide nadie más.
+	conLecturas := Eval{
+		Fichero:  deUnasLecturas,
+		Pregunta: "¿Qué dice la Ley 39/2015 sobre el plazo máximo para resolver?",
+		Activa:   true,
+		Comandos: []ComandoEsperado{{Applet: "boe", Norma: lpac, Bloque: "a21"}},
+		Citas:    []CitaEsperada{{Norma: lpac, Bloque: "a21"}},
+		Lecturas: []LecturaDeLaEval{
+			{Norma: lpac, Bloque: "a22", Motivo: "Junto al art. 21 que pide la eval."},
+			{Norma: lpac, Bloque: "a23", Motivo: "Junto al art. 21 que pide la eval."},
+		},
+	}
+	comandoDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoComandoEsperado}
+	normaDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoNormaDeLaEval}
+	citaDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoCitaEsperada}
+	lecturaDeLasLecturas := Origen{Eval: deUnasLecturas, Punto: PuntoLecturaDeLaEval}
+
 	casos := []struct {
 		nombre    string
 		conjunto  []Eval
@@ -343,6 +368,42 @@ func TestConsultasNecesarias(t *testing.T) {
 				{Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"), Origenes: []Origen{comandoDel2016}},
 				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDel2016}},
 				{Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac}, Origenes: []Origen{normaDel2016}},
+			},
+		},
+		{
+			// Las lecturas van detrás de las citas de su eval, cada una sin fecha y
+			// con --fecha 9999-12-31; el art. 22, que ya pedía la 03 como cita, suma
+			// el origen de la lectura detrás del suyo, y ni el índice ni los
+			// metadatos de la norma de una lectura llevan su origen.
+			nombre:   "lecturas-de-la-eval",
+			conjunto: []Eval{articulo22, conLecturas},
+			esperadas: []Consulta{
+				{
+					Applet: "boe", Verbo: "metadatos", Argumentos: []string{lpac},
+					Origenes: []Origen{comandoDel22, normaDel22, normaDeLasLecturas},
+				},
+				{Applet: "boe", Verbo: "indice", Argumentos: []string{lpac}, Origenes: []Origen{normaDel22, normaDeLasLecturas}},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a22"},
+					Origenes: []Origen{citaDel22, lecturaDeLasLecturas},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a22"),
+					Origenes: []Origen{citaDel22, lecturaDeLasLecturas},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a21"},
+					Origenes: []Origen{comandoDeLasLecturas, citaDeLasLecturas},
+				},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a21"),
+					Origenes: []Origen{comandoDeLasLecturas, citaDeLasLecturas},
+				},
+				{Applet: "boe", Verbo: "articulo", Argumentos: []string{lpac, "a23"}, Origenes: []Origen{lecturaDeLasLecturas}},
+				{
+					Applet: "boe", Verbo: "articulo", Argumentos: fechada(lpac, "a23"),
+					Origenes: []Origen{lecturaDeLasLecturas},
+				},
 			},
 		},
 		{

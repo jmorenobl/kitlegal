@@ -3939,7 +3939,7 @@ const (
 	citaDel25      = "[Ley 40/2015, art. 25, BOE-A-2015-10566, bloque a25]"
 
 	motivoDeLasLecturasDeLa16 = "Junto al art. 25 que pide la eval, en su mismo capítulo: la exploración que " +
-		"provoca la pregunta (ADR 0043, clase b)."
+		"provoca la pregunta, vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."
 )
 
 // TestJuzgarLasLecturasSinServir fija lo que el juicio hace con lo que una eval
@@ -3959,8 +3959,8 @@ const (
 //     cobertura_sin_declarar, y no con plazos calcular;
 //   - la sesión cortada, con la lectura sin código en lecturas_sin_servir y su
 //     código null;
-//   - y la 16 de boe-legislacion, que juzga igual con sus lecturas y sin ellas
-//     una sesión que no las lee.
+//   - y la 16 de boe-legislacion del repositorio, que juzga igual con sus
+//     lecturas y sin ellas una sesión que no las lee.
 func TestJuzgarLasLecturasSinServir(t *testing.T) {
 	t.Parallel()
 
@@ -4383,24 +4383,25 @@ func juzgarLaSesionCortada(t *testing.T, eval Eval) {
 		"lecturas_sin_servir va vacía, detrás de otras_fallidas")
 }
 
-// probarLasLecturasDeLaEval16 fija que la 16 de boe-legislacion del repositorio
-// juzga igual una sesión que no lee a26 ni a27 con esas dos lecturas puestas en
-// el test y sin ellas (FR-007): la que lee el art. 25 y lo cita, que pasa; la
-// que no lee nada, que no; y la que lee el 25 y el 28, que sale con 4, y lo
-// cita, que pasa con el 28 fuera de lo grabado.
+// probarLasLecturasDeLaEval16 fija que la 16 de boe-legislacion del repositorio,
+// que lleva a leer a26 y a27, juzga una sesión que no los lee igual que la misma
+// eval sin sus lecturas (US3, escenario 2; FR-007): la que lee el art. 25 y lo
+// cita, que pasa; la que no lee nada, que no; y la que lee el 25 y el 28, que
+// sale con 4, y lo cita, que pasa con el 28 fuera de lo grabado.
 func probarLasLecturasDeLaEval16(t *testing.T) {
 	t.Parallel()
 
 	contenido, err := os.ReadFile(filepath.Join(evalsDelRepositorio, ficheroDeLaEval16))
 	require.NoError(t, err)
 
-	sinLecturas := evalLeida(t, ficheroDeLaEval16, string(contenido))
-	sinLecturas.Lecturas = nil
-	conLecturas := sinLecturas
-	conLecturas.Lecturas = []LecturaDeLaEval{
+	conLecturas := evalLeida(t, ficheroDeLaEval16, string(contenido))
+	require.Equal(t, []LecturaDeLaEval{
 		{Norma: normaDeLaLRJSP, Bloque: "a26", Motivo: motivoDeLasLecturasDeLa16},
 		{Norma: normaDeLaLRJSP, Bloque: "a27", Motivo: motivoDeLasLecturasDeLa16},
-	}
+	}, conLecturas.Lecturas, "premisa: la 16 del repositorio lleva a leer a26 y a27")
+
+	sinLecturas := conLecturas
+	sinLecturas.Lecturas = nil
 
 	leeElBloqueDeLaLRJSP := func(codigo int, bloque string) Invocacion {
 		return invocada(t, codigoDeSalida(codigo), deLaSkill("articulo", normaDeLaLRJSP, bloque, "--json"))

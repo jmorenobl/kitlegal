@@ -730,6 +730,37 @@ func TestFaltaSinOrigenesODeOtroPunto(t *testing.T) {
 	}
 }
 
+// TestLecturaDeLaEvalSinGrabar fija la falta de una lectura de la eval
+// (data-model §2 de H26.1; FR-006, FR-010): con una eval que lleva a leer un
+// bloque que no está grabado, la preparación da, sin error, una falta por cada
+// una de sus dos lecturas, que nombra la eval, la norma y el bloque de la
+// lectura y la orden que no terminó en 0.
+func TestLecturaDeLaEvalSinGrabar(t *testing.T) {
+	t.Parallel()
+
+	const norma, bloque = "BOE-A-2015-10565", "a9998"
+
+	eval := Eval{
+		Fichero:  nombreDeEval,
+		Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+		Activa:   true,
+		Lecturas: []LecturaDeLaEval{{Norma: norma, Bloque: bloque, Motivo: "Un bloque que no está grabado."}},
+	}
+
+	faltas, err := Preparar(t.TempDir(), UnionDeGrabaciones(), ConsultasNecesarias([]Eval{eval}))
+	require.NoError(t, err, "lo que no está grabado es una falta, nunca el error")
+	require.Len(t, faltas, 2, "una falta por cada lectura del bloque:\n%s", presentarFaltas(faltas))
+
+	orden := "boe articulo " + norma + " " + bloque
+	for posicion, deLaOrden := range []string{orden, orden + " --fecha 9999-12-31"} {
+		prefijo := nombreDeEval + ": la lectura " + norma + " " + bloque + " sin su bloque: «" + deLaOrden +
+			"» terminó con código "
+
+		assert.True(t, strings.HasPrefix(faltas[posicion].String(), prefijo), "la falta empieza por %q: %s", prefijo,
+			faltas[posicion].String())
+	}
+}
+
 // TestPrepararConConjuntosQueNoSeCopian fija el error de Preparar con un conjunto
 // de grabaciones que no se puede copiar por la estructura de un directorio
 // temporal del test (contrato evals-y-grabaciones §5.1): un fichero donde se
@@ -1032,11 +1063,40 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 // FR-001, FR-011; SC-008). Desde la de la 11, que lleva el art. 124 en
 // sin_servir, ese bloque sale con 4 en las tres, y desde la de la 12, que lleva
 // la disposición adicional primera, esa, igual (US2, escenario 1; FR-013;
-// SC-005).
+// SC-005). lecturas: desde la caché de una sesión de la 01 de boe-legislacion,
+// los arts. 26 y 27 de la LRJSP, el 18 de la Ley del IRPF y el 15 del TRLRHL, las
+// lecturas de la 16, la 15 y la 14, salen con 0 sin fecha y con --fecha
+// 9999-12-31 (US3, escenario 1; FR-006; SC-004).
 func TestCacheDeLasSesiones(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sin-servir", probarLoQueNoSeSirve)
+	t.Run("lecturas", probarLasLecturasDeLasEvals)
+}
+
+// probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:
+// desde la caché de una sesión de la 01 de boe-legislacion, que no lleva
+// ninguna, cada bloque de las lecturas de la 14, la 15 y la 16 sale con 0 sin
+// fecha y con --fecha 9999-12-31.
+func probarLasLecturasDeLasEvals(t *testing.T) {
+	t.Parallel()
+
+	dirCache := cacheDeUnaSesion(t, evalsDelRepositorio, "01-lpac-articulo-21.yaml")
+
+	for _, bloque := range [][]string{
+		{"BOE-A-2015-10566", "a26"},
+		{"BOE-A-2015-10566", "a27"},
+		{"BOE-A-2006-20764", "a18"},
+		{"BOE-A-2004-4214", "a15"},
+	} {
+		for _, fecha := range [][]string{nil, {"--fecha", "9999-12-31"}} {
+			argumentos := slices.Concat(bloque, fecha)
+
+			codigo, errores := leerSinRedEnLaSesion(t, dirCache, argumentos...)
+			assert.Zero(t, codigo, "boe articulo %s --offline desde la caché de la sesión de la 01: %s",
+				strings.Join(argumentos, " "), errores)
+		}
+	}
 }
 
 // probarLoQueNoSeSirve es el subtest sin-servir de TestCacheDeLasSesiones: cada
