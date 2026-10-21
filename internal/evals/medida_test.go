@@ -3073,7 +3073,9 @@ func TestResolverCasosSinPoderPreparar(t *testing.T) {
 // test: la caché que llenan las consultas de las evals de hoy sirve a todas las
 // sesiones mientras no tenga más de 100 s; con más, se rehace en otro
 // directorio y la anterior se retira, porque lo que guarda de buscar y de
-// metadatos caduca a los 300 s; y al retirarla no queda nada.
+// metadatos caduca a los 300 s; y al retirarla no queda nada. Desde H26.1, la
+// base de boe-legislacion sirve también lo que la skill lleva a leer de data/,
+// que no nombra ninguna de sus evals (FR-004).
 func TestBaseDeLaReconstruccion(t *testing.T) {
 	t.Parallel()
 
@@ -3112,6 +3114,44 @@ func TestBaseDeLaReconstruccion(t *testing.T) {
 	require.NoError(t, sintetico.retirarLaBase())
 	assert.NoDirExists(t, rehecha)
 	require.NoError(t, sintetico.retirarLaBase(), "retirarla otra vez no es un error")
+
+	t.Run("sirve-lo-que-la-skill-lleva-a-leer", probarLaBaseConLoQueLlevaALeer)
+}
+
+// probarLaBaseConLoQueLlevaALeer es el caso de TestBaseDeLaReconstruccion con
+// las evals de hoy de boe-legislacion (contracts/cache-de-la-sesion.md §1 de
+// H26.1; research D4 de H26.1; FR-004): ninguna nombra la disposición adicional
+// primera de la LPAC, que la skill lee por data/cobertura.yaml, y la base de la
+// medida la sirve sin red sin fecha, con --fecha 2026-09-09 y con --fecha
+// 9999-12-31.
+func probarLaBaseConLoQueLlevaALeer(t *testing.T) {
+	t.Parallel()
+
+	const norma, bloque = "BOE-A-2015-10565", "daprimera"
+
+	for _, consulta := range ConsultasNecesarias(evalsDe(t, evalsDelRepositorio)) {
+		require.False(t, slices.Contains(consulta.Argumentos, bloque),
+			"ninguna eval de %s nombra %s: %s", evalsDelRepositorio, bloque, ordenDe(consulta))
+	}
+
+	reconstructor := nuevoReconstructor(evalsDelRepositorio)
+
+	base, err := reconstructor.baseVigente()
+	require.NoError(t, err)
+
+	t.Cleanup(func() { assert.NoError(t, reconstructor.retirarLaBase()) })
+
+	var lecturas []Consulta
+	for _, fecha := range [][]string{nil, {"--fecha", "2026-09-09"}, {"--fecha", "9999-12-31"}} {
+		lecturas = append(lecturas, Consulta{
+			Applet: "boe", Verbo: "articulo", Argumentos: slices.Concat([]string{norma, bloque}, fecha),
+		})
+	}
+
+	faltas, err := ComprobarSinRed(base, lecturas)
+	require.NoError(t, err)
+	assert.Empty(t, faltas, "la base de la medida de %s sirve sin red %s de %s:\n%s", evalsDelRepositorio, bloque, norma,
+		presentarFaltas(faltas))
 }
 
 // evalsDe son las evals del directorio, que están todas bien formadas.

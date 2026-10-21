@@ -1,9 +1,18 @@
 package evals
 
 import (
+	"io/fs"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/core/plazos"
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // TestConsultasNecesarias fija ConsultasNecesarias (data-model §7.1; contrato
@@ -348,4 +357,200 @@ func TestConsultasNecesarias(t *testing.T) {
 			assert.Equal(t, caso.esperadas, ConsultasNecesarias(caso.conjunto))
 		})
 	}
+}
+
+// Los orígenes de lo que la skill lleva a leer, escritos a mano (data-model §2
+// de H26.1).
+var (
+	origenDeLosTipos    = Origen{Eval: "data/plazos.yaml", Punto: "lo que la skill lleva a leer"}
+	origenDeLaCobertura = Origen{Eval: "data/cobertura.yaml", Punto: "lo que la skill lleva a leer"}
+	origenDeLasNormas   = Origen{Eval: "data/normas.yaml", Punto: "lo que la skill lleva a leer"}
+)
+
+// TestLecturasDeLosDatos fija lecturasDeLosDatos y consultasDeLaCache
+// (data-model §2 de H26.1; contracts/cache-de-la-sesion.md §1 de H26.1; research
+// D1 de H26.1; FR-001, FR-002): del data/ del repositorio, las mismas
+// invocaciones que enumera el oráculo de los tests de los preceptos, ninguna
+// repetida, cada una con el fichero de data/ del que sale y el punto de lo que
+// la skill lleva a leer; detrás de las de una eval que lee uno de esos bloques,
+// con el mismo acumulador, de modo que la invocación que ya estaba suma su
+// origen; y un fichero que falta o que su lector rechaza es el error, que nombra
+// su ruta, sin consultas.
+func TestLecturasDeLosDatos(t *testing.T) {
+	t.Parallel()
+
+	t.Run("del-repositorio", probarLasLecturasDelRepositorio)
+	t.Run("detras-de-las-evals", probarLasLecturasDetrasDeLasEvals)
+	t.Run("ficheros-que-no-se-leen", probarLosDatosQueNoSeLeen)
+}
+
+// probarLasLecturasDelRepositorio es el subtest del-repositorio de
+// TestLecturasDeLosDatos.
+func probarLasLecturasDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	consultas, err := lecturasDeLosDatos(datosDelRepositorio)
+	require.NoError(t, err)
+
+	origenes := make(map[string][]Origen, len(consultas))
+	ordenes := make([]string, 0, len(consultas))
+
+	for _, consulta := range consultas {
+		ordenes = append(ordenes, ordenDe(consulta))
+		origenes[ordenDe(consulta)] = consulta.Origenes
+
+		assert.NotEmpty(t, consulta.Origenes, "%s sale de algún fichero de data/", ordenDe(consulta))
+
+		for _, origen := range consulta.Origenes {
+			assert.Contains(t, []Origen{origenDeLosTipos, origenDeLaCobertura, origenDeLasNormas}, origen,
+				"%s sale de un fichero de data/, como lo que la skill lleva a leer", ordenDe(consulta))
+		}
+	}
+
+	esperadas := make([]string, 0, len(consultas))
+	for _, consulta := range loQueLlevaALeerElRepositorio(t) {
+		esperadas = append(esperadas, ordenDe(consulta))
+	}
+
+	assert.ElementsMatch(t, esperadas, ordenes, "las invocaciones que enumera el oráculo, cada una una vez")
+
+	// Cada bloque y cada norma, con el fichero que la nombra entre sus orígenes.
+	tipos, err := plazos.LeerTipos(contenidoDelFichero(t, tiposDelRepositorio))
+	require.NoError(t, err)
+
+	cobertura, err := skills.LeerCobertura(contenidoDelFichero(t, coberturaDelRepositorio))
+	require.NoError(t, err)
+
+	tabla, err := skills.LeerNormas(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
+	require.NoError(t, err)
+
+	nombradas := map[Origen][]lecturaDeUnPrecepto{
+		origenDeLosTipos:    lecturasDeLosTipos(tipos),
+		origenDeLaCobertura: lecturasDeLaCobertura(cobertura),
+	}
+	for _, norma := range tabla {
+		nombradas[origenDeLasNormas] = append(nombradas[origenDeLasNormas], lecturaDeUnPrecepto{norma: norma.Identificador})
+	}
+
+	for origen, lecturas := range nombradas {
+		for _, lectura := range lecturas {
+			ordenesDeLaLectura := []string{"boe indice " + lectura.norma, "boe metadatos " + lectura.norma}
+			if lectura.bloque != "" {
+				deLaLectura := "boe articulo " + lectura.norma + " " + lectura.bloque
+				ordenesDeLaLectura = append(ordenesDeLaLectura, deLaLectura, deLaLectura+" --fecha 9999-12-31")
+			}
+
+			for _, orden := range ordenesDeLaLectura {
+				assert.Contains(t, origenes[orden], origen, "%s sale, entre otros, de %s", orden, origen.Eval)
+			}
+		}
+	}
+}
+
+// probarLasLecturasDetrasDeLasEvals es el subtest detras-de-las-evals de
+// TestLecturasDeLosDatos, con una eval que espera el primer bloque que lleva a
+// leer data/.
+func probarLasLecturasDetrasDeLasEvals(t *testing.T) {
+	t.Parallel()
+
+	lecturas, err := lecturasDeLosDatos(datosDelRepositorio)
+	require.NoError(t, err)
+	require.NotEmpty(t, lecturas)
+
+	primera := lecturas[0]
+	require.Equal(t, "articulo", primera.Verbo, "data/ empieza por la lectura de un bloque")
+	require.Len(t, primera.Argumentos, 2, "sin fecha")
+
+	eval := Eval{
+		Fichero:  "01-un-bloque-de-los-datos.yaml",
+		Comandos: []ComandoEsperado{{Applet: "boe", Norma: primera.Argumentos[0], Bloque: primera.Argumentos[1]}},
+	}
+	necesarias := ConsultasNecesarias([]Eval{eval})
+
+	consultas, err := consultasDeLaCache([]Eval{eval}, datosDelRepositorio)
+	require.NoError(t, err)
+
+	ordenes := make([]string, 0, len(consultas))
+	for _, consulta := range consultas {
+		ordenes = append(ordenes, ordenDe(consulta))
+	}
+
+	require.Len(t, consultas, len(slices.Compact(slices.Sorted(slices.Values(ordenes)))), "ninguna invocación repetida")
+
+	// Primero las de la eval, en su orden; la que ya estaba suma, detrás de los
+	// de la eval, el origen de data/.
+	for posicion, necesaria := range necesarias {
+		assert.Equal(t, ordenDe(necesaria), ordenes[posicion], "las de la eval van primero, en su orden")
+	}
+
+	assert.Equal(t, slices.Concat([]Origen{{Eval: eval.Fichero, Punto: PuntoComandoEsperado}}, primera.Origenes),
+		consultas[0].Origenes, "%s suma el origen de data/ a los de la eval", ordenDe(primera))
+
+	// Y detrás, las de data/ que la eval no tenía, cada una una vez.
+	nuevas := slices.DeleteFunc(slices.Clone(lecturas), func(lectura Consulta) bool {
+		return slices.ContainsFunc(necesarias, func(necesaria Consulta) bool { return ordenDe(necesaria) == ordenDe(lectura) })
+	})
+	assert.Len(t, consultas, len(necesarias)+len(nuevas))
+}
+
+// probarLosDatosQueNoSeLeen es el subtest ficheros-que-no-se-leen de
+// TestLecturasDeLosDatos: con una copia de los tres ficheros de data/ en la que
+// falta uno, o en la que uno es una lista y no un mapa, lecturasDeLosDatos y
+// consultasDeLaCache dan el error que nombra la ruta, y ninguna consulta.
+func probarLosDatosQueNoSeLeen(t *testing.T) {
+	t.Parallel()
+
+	ficheros := []string{"plazos.yaml", "cobertura.yaml", "normas.yaml"}
+	casos := []struct {
+		sufijo string
+		falta  bool
+	}{
+		{sufijo: "-que-falta", falta: true},
+		{sufijo: "-que-se-rechaza"},
+	}
+
+	for _, fichero := range ficheros {
+		for _, caso := range casos {
+			t.Run(strings.TrimSuffix(fichero, ".yaml")+caso.sufijo, func(t *testing.T) {
+				t.Parallel()
+
+				datos := t.TempDir()
+				for _, copiado := range ficheros {
+					require.NoError(t, os.WriteFile(filepath.Join(datos, copiado),
+						contenidoDelFichero(t, filepath.Join(datosDelRepositorio, copiado)), 0o600))
+				}
+
+				ruta := filepath.Join(datos, fichero)
+				if caso.falta {
+					require.NoError(t, os.Remove(ruta))
+				} else {
+					require.NoError(t, os.WriteFile(ruta, []byte("- no es un mapa\n"), 0o600))
+				}
+
+				lecturas, err := lecturasDeLosDatos(datos)
+				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)
+				assert.Nil(t, lecturas)
+
+				consultas, err := consultasDeLaCache(nil, datos)
+				exigeElErrorDeLosDatos(t, err, ruta, caso.falta)
+				assert.Nil(t, consultas)
+			})
+		}
+	}
+}
+
+// exigeElErrorDeLosDatos exige el error de lo que la skill lleva a leer que
+// nombra la ruta: el del fichero que no se puede leer, si falta, o el del que
+// su lector rechaza.
+func exigeElErrorDeLosDatos(t *testing.T, err error, ruta string, falta bool) {
+	t.Helper()
+
+	if falta {
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		require.ErrorContains(t, err, "lo que la skill lleva a leer: "+ruta+" no se puede leer: ")
+
+		return
+	}
+
+	require.ErrorContains(t, err, "lo que la skill lleva a leer: "+ruta+": ")
 }

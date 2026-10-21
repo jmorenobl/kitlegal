@@ -2268,6 +2268,41 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	})
 
 	t.Run("linea-sin-consulta", probarLineaSinConsulta)
+
+	t.Run("lo-que-lleva-a-leer", probarLoQueLlevaALeer)
+}
+
+// probarLoQueLlevaALeer es el subtest lo-que-lleva-a-leer de
+// TestEvalsDelRepositorio (contracts/cache-de-la-sesion.md §1 y §2 de H26.1;
+// FR-001, FR-002, FR-005; SC-003, SC-008, SC-011): desde la caché preparada de
+// una sesión de la primera eval de cada skill, cada bloque de data/plazos.yaml
+// y de data/cobertura.yaml, sin fecha y con --fecha 9999-12-31, y el índice y
+// los metadatos de cada norma de esos dos ficheros y de data/normas.yaml salen
+// con 0 con --offline. Los enumera loQueLlevaALeerElRepositorio, el oráculo de
+// los tests de los preceptos, no el código que prepara la caché.
+func probarLoQueLlevaALeer(t *testing.T) {
+	t.Parallel()
+
+	lecturas := loQueLlevaALeerElRepositorio(t)
+	require.NotEmpty(t, lecturas, "data/ lleva a leer algún bloque del BOE")
+
+	for _, carpeta := range []string{evalsDelRepositorio, evalsDeLegalCore, evalsDeJurisprudencia} {
+		t.Run(filepath.Base(carpeta), func(t *testing.T) {
+			t.Parallel()
+
+			conjunto, err := LeerConjunto(carpeta)
+			require.NoError(t, err)
+			require.NotEmpty(t, conjunto.Evals, "%s tiene evals bien formadas", carpeta)
+
+			fichero := conjunto.Evals[0].Fichero
+			dirCache := cacheDeUnaSesion(t, carpeta, fichero)
+
+			comprobadas, err := ComprobarSinRed(dirCache, lecturas)
+			require.NoError(t, err)
+			assert.Empty(t, comprobadas, "lo que la skill lleva a leer de data/ que la caché de una sesión de %s de %s "+
+				"no sirve sin red:\n%s", fichero, carpeta, presentarFaltas(comprobadas))
+		})
+	}
 }
 
 const (

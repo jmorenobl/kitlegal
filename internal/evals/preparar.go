@@ -80,6 +80,9 @@ type Falta struct {
 // String nombra la falta desde cada origen de su consulta, una línea por
 // origen: la eval y el comando esperado; la eval, la norma y lo que le falta, el
 // índice o los metadatos; o la eval y la cita esperada sin su bloque (FR-075).
+// Desde H26.1, el fichero de data/ y lo que la skill lleva a leer, como
+// data/plazos.yaml: lo que la skill lleva a leer boe articulo <norma> <bloque>
+// (data-model §2 de H26.1; FR-003).
 // Cada línea termina con la invocación, su código y el mensaje. Una consulta sin
 // orígenes da solo la invocación, su código y el mensaje.
 func (f Falta) String() string {
@@ -112,6 +115,8 @@ func queFaltaDesde(punto Punto, consulta Consulta) string {
 		return "la cita esperada " + strings.Join(consulta.Argumentos, " ") + " sin su bloque"
 	case PuntoGrafoPrevio:
 		return "el comando del grafo previo " + ordenDe(consulta)
+	case PuntoLoQueLlevaALeer:
+		return "lo que la skill lleva a leer " + ordenDe(consulta)
 	default:
 		return fmt.Sprintf("la consulta %s del punto %q", ordenDe(consulta), punto)
 	}
@@ -212,6 +217,12 @@ type SesionAPreparar struct {
 	// dan uno temporal.
 	GrafosPrevios string
 
+	// Datos es el directorio data/ del que sale lo que la skill lleva a leer
+	// (contracts/cache-de-la-sesion.md §1 de H26.1; FR-001). Vacío, el de
+	// datosDelRepositorio, que es el del job y el del sondeo; los tests dan una
+	// copia.
+	Datos string
+
 	// Fichero es el nombre, dentro de Evals, de la eval con la que se juzga la
 	// sesión.
 	Fichero string
@@ -241,8 +252,10 @@ type SesionAPreparar struct {
 //     sus faltas o su error se devuelven tal cual, sin preparar la caché ni
 //     escribir nada más;
 //  4. prepara cache/ con Preparar y las consultas necesarias de todas las evals,
-//     no solo las de Fichero, para que ninguna eval dependa del orden; sus faltas
-//     o su error se devuelven tal cual, sin escribir nada más. Su registro no
+//     no solo las de Fichero, para que ninguna eval dependa del orden, y desde
+//     H26.1 lo que la skill lleva a leer de data/ (consultasDeLaCache); sus
+//     faltas o su error se devuelven tal cual, sin escribir nada más, y un
+//     data/ que no se lee es el error antes de preparar nada. Su registro no
 //     entrega al grafo: el de la sesión queda con lo del grafo previo;
 //  5. escribe eval.txt con Fichero, modelo.txt con Modelo y pregunta.txt con la
 //     pregunta de esa eval o, con PruebaDeRed, con la pregunta, una línea en
@@ -315,8 +328,16 @@ func leerEvalsBienFormadas(dir string) ([]Eval, error) {
 
 // prepararLaCache hace los pasos 3 y 4 de PrepararSesion en cache/ de la
 // sesión: el grafo previo de la eval, si lo lleva, y después, si no dio faltas
-// ni error, la caché con las consultas necesarias de todas las evals.
+// ni error, la caché con las consultas necesarias de todas las evals y, desde
+// H26.1, lo que la skill lleva a leer del data/ de Datos (consultasDeLaCache;
+// contracts/cache-de-la-sesion.md §1 de H26.1; FR-001). Un data/ que no se lee
+// es el error, antes de preparar nada.
 func prepararLaCache(s SesionAPreparar, evals []Eval, eval Eval) ([]Falta, error) {
+	consultas, err := consultasDeLaCache(evals, cmp.Or(s.Datos, datosDelRepositorio))
+	if err != nil {
+		return nil, err
+	}
+
 	dirCache := filepath.Join(s.Directorio, directorioDeLaCache)
 
 	if eval.GrafoPrevio.Grabaciones != "" {
@@ -326,7 +347,7 @@ func prepararLaCache(s SesionAPreparar, evals []Eval, eval Eval) ([]Falta, error
 		}
 	}
 
-	return Preparar(dirCache, s.Grabaciones, ConsultasNecesarias(evals))
+	return Preparar(dirCache, s.Grabaciones, consultas)
 }
 
 // prepararGrafoPrevio llena el grafo del mundo de dirCache, el directorio de la

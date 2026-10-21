@@ -1101,6 +1101,57 @@ func lecturasDeLaCobertura(cobertura skills.Cobertura) []lecturaDeUnPrecepto {
 	return lecturas
 }
 
+// loQueLlevaALeerElRepositorio es lo que la skill lleva a leer de data/ según
+// el oráculo de TestPreceptosDeLosPlazos, no según el código que lo prepara
+// (contracts/cache-de-la-sesion.md §1, punto 2, de H26.1; FR-001, FR-002): de
+// cada precepto de lecturasDeLosTipos y de lecturasDeLaCobertura, su bloque sin
+// fecha y con --fecha 9999-12-31; y de cada norma de esos preceptos y de cada
+// entrada de data/normas.yaml, leída con skills.LeerNormas, su índice y sus
+// metadatos. Ninguna invocación va dos veces. Un fichero que no se lee hace
+// fallar el test.
+func loQueLlevaALeerElRepositorio(t *testing.T) []Consulta {
+	t.Helper()
+
+	tipos, err := plazos.LeerTipos(contenidoDelFichero(t, tiposDelRepositorio))
+	require.NoError(t, err, "los tipos de %s", tiposDelRepositorio)
+
+	cobertura, err := skills.LeerCobertura(contenidoDelFichero(t, coberturaDelRepositorio))
+	require.NoError(t, err, "la cobertura de %s", coberturaDelRepositorio)
+
+	tabla, err := skills.LeerNormas(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
+	require.NoError(t, err, "la tabla de normas %s", tablaDeNormasDelRepositorio)
+
+	var consultas []Consulta
+
+	anotar := func(verbo string, argumentos ...string) {
+		if !slices.ContainsFunc(consultas, func(consulta Consulta) bool {
+			return consulta.Verbo == verbo && slices.Equal(consulta.Argumentos, argumentos)
+		}) {
+			consultas = append(consultas, Consulta{Applet: "boe", Verbo: verbo, Argumentos: argumentos})
+		}
+	}
+
+	var normas []string
+
+	for _, lectura := range slices.Concat(lecturasDeLosTipos(tipos), lecturasDeLaCobertura(cobertura)) {
+		anotar("articulo", lectura.norma, lectura.bloque)
+		anotar("articulo", lectura.norma, lectura.bloque, "--fecha", "9999-12-31")
+
+		normas = append(normas, lectura.norma)
+	}
+
+	for _, norma := range tabla {
+		normas = append(normas, norma.Identificador)
+	}
+
+	for _, norma := range normas {
+		anotar("indice", norma)
+		anotar("metadatos", norma)
+	}
+
+	return consultas
+}
+
 // lecturasDeLaTabla son los bloques de las filas de la tabla de las palabras
 // clave, cada uno nombrado por su precepto.
 func lecturasDeLaTabla(tabla []palabrasDeUnPrecepto) []lecturaDeUnPrecepto {
