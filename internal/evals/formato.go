@@ -553,6 +553,30 @@ type LecturaSinServir struct {
 	Verbo string `yaml:"verbo"`
 }
 
+// consulta dice si la invocación es del applet boe y consulta la lectura
+// (data-model §1 de H26.1; research D3 de H26.1): la de un bloque, articulo o
+// articulos con la norma como primer argumento de posición y el bloque entre los
+// demás, con --fecha o sin ella, leídos por lecturaDeLosArgumentos; la consulta
+// de norma, ese verbo con esa norma (esDeLaNorma).
+func (l LecturaSinServir) consulta(invocacion Invocacion) bool {
+	if invocacion.Applet != appletDeLasNormas {
+		return false
+	}
+
+	if l.Bloque == "" {
+		return invocacion.Verbo == l.Verbo && esDeLaNorma(invocacion, l.Norma)
+	}
+
+	if invocacion.Verbo != verboArticulo && invocacion.Verbo != verboArticulos {
+		return false
+	}
+
+	lectura := lecturaDeLosArgumentos(invocacion.Argumentos)
+
+	return len(lectura.dePosicion) > 0 && lectura.dePosicion[0] == l.Norma &&
+		slices.Contains(lectura.dePosicion[1:], l.Bloque)
+}
+
 // comprobarLasLecturas comprueba de Lecturas y de SinServir lo que el esquema no
 // puede, porque cruza claves de la eval (contracts/formato-de-eval.md §2 de
 // H26.1; FR-008, FR-014): ningún bloque de Lecturas es un comando de bloque de la
@@ -591,6 +615,14 @@ func (e Eval) esComandoDeBloque(norma, bloque string) bool {
 // esCitaEsperada dice si el bloque de la norma es una de las citas de la eval.
 func (e Eval) esCitaEsperada(norma, bloque string) bool {
 	return slices.Contains(e.Citas, CitaEsperada{Norma: norma, Bloque: bloque})
+}
+
+// sinServir dice si la invocación consulta alguna lectura del sin_servir de la
+// eval (data-model §1 de H26.1; FR-013).
+func (e Eval) sinServir(invocacion Invocacion) bool {
+	return slices.ContainsFunc(e.SinServir, func(lectura LecturaSinServir) bool {
+		return lectura.consulta(invocacion)
+	})
 }
 
 // TerritorioEsperado es lo que la respuesta tiene que declarar del territorio de

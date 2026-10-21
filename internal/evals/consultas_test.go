@@ -357,6 +357,103 @@ func TestConsultasNecesarias(t *testing.T) {
 			assert.Equal(t, caso.esperadas, ConsultasNecesarias(caso.conjunto))
 		})
 	}
+
+	t.Run("sin-servir", probarLasConsultasSinServir)
+}
+
+// probarLasConsultasSinServir fija sinLoQueNoSeSirve (data-model §1 y §2 de H26.1;
+// contracts/cache-de-la-sesion.md §1, punto 3, de H26.1; research D3 de H26.1;
+// FR-013): de las consultas quita, en su orden, las que leen un bloque del
+// sin_servir de la eval —articulo sin fecha, con --fecha 9999-12-31 o con otra,
+// y articulos con ese bloque entre otros— y la consulta de norma que nombra, y
+// deja las de otros bloques, las de otras normas, la otra consulta de la misma
+// norma y las de otro verbo o de otro applet con la norma y el bloque entre sus
+// argumentos; con una eval sin sin_servir, las deja todas. Las consultas que
+// recibe no cambian.
+func probarLasConsultasSinServir(t *testing.T) {
+	t.Parallel()
+
+	const (
+		lpac = "BOE-A-2015-10565"
+
+		// otra es inventada —ninguna norma es del año 0000—: sinLoQueNoSeSirve
+		// solo compara los identificadores.
+		otra = "BOE-A-0000-2"
+	)
+
+	consulta := func(applet, verbo string, argumentos ...string) Consulta {
+		return Consulta{Applet: applet, Verbo: verbo, Argumentos: argumentos, Origenes: []Origen{origenDeLosTipos}}
+	}
+
+	var (
+		delBloque         = consulta("boe", "articulo", lpac, "a124")
+		otroBloque        = consulta("boe", "articulo", lpac, "a123")
+		fechada           = consulta("boe", "articulo", lpac, "a124", "--fecha", "9999-12-31")
+		otroBloqueFechado = consulta("boe", "articulo", lpac, "a123", "--fecha", "9999-12-31")
+		enOtraFecha       = consulta("boe", "articulo", lpac, "a124", "--fecha", "2026-09-09")
+		entreOtros        = consulta("boe", "articulos", lpac, "a123", "a124", "a125")
+		otrosBloques      = consulta("boe", "articulos", lpac, "a123", "a125")
+		indice            = consulta("boe", "indice", lpac)
+		metadatos         = consulta("boe", "metadatos", lpac)
+		deOtraNorma       = consulta("boe", "articulo", otra, "a124")
+		indiceDeOtraNorma = consulta("boe", "indice", otra)
+		deOtroVerbo       = consulta("boe", "buscar", lpac, "a124")
+
+		// deOtroApplet es inventada —ningún otro applet tiene el verbo articulo—:
+		// lo que la distingue de delBloque es solo el applet.
+		deOtroApplet = consulta("otro", "articulo", lpac, "a124")
+	)
+
+	todas := []Consulta{
+		delBloque, otroBloque, fechada, otroBloqueFechado, enOtraFecha, entreOtros, otrosBloques, indice, metadatos,
+		deOtraNorma, indiceDeOtraNorma, deOtroVerbo, deOtroApplet,
+	}
+
+	conSinServir := Eval{
+		Fichero:  "11-plazo-reposicion-sin-leer-el-precepto.yaml",
+		Pregunta: "¿Hasta cuándo puedo recurrir en reposición?",
+		Activa:   true,
+		SinServir: []LecturaSinServir{
+			{Norma: lpac, Bloque: "a124"},
+			{Norma: lpac, Verbo: "indice"},
+		},
+	}
+	sinSinServir := Eval{
+		Fichero:  "05-plazo-reposicion.yaml",
+		Pregunta: conSinServir.Pregunta,
+		Activa:   true,
+	}
+
+	casos := []struct {
+		nombre    string
+		eval      Eval
+		esperadas []Consulta
+	}{
+		{
+			nombre: "quita-el-bloque-y-la-consulta-de-norma",
+			eval:   conSinServir,
+			esperadas: []Consulta{
+				otroBloque, otroBloqueFechado, otrosBloques, metadatos, deOtraNorma, indiceDeOtraNorma, deOtroVerbo,
+				deOtroApplet,
+			},
+		},
+		{
+			nombre:    "sin-sin-servir-las-deja-todas",
+			eval:      sinSinServir,
+			esperadas: todas,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			recibidas := slices.Clone(todas)
+
+			assert.Equal(t, caso.esperadas, sinLoQueNoSeSirve(recibidas, caso.eval))
+			assert.Equal(t, todas, recibidas, "las consultas que recibe no cambian")
+		})
+	}
 }
 
 // Los orígenes de lo que la skill lleva a leer, escritos a mano (data-model §2

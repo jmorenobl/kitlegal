@@ -161,6 +161,25 @@ func consultasDeLaCache(conjunto []Eval, datos string) ([]Consulta, error) {
 	return necesarias.consultas, nil
 }
 
+// sinLoQueNoSeSirve son las consultas, en su orden, menos las que consultan una
+// lectura del sin_servir de la eval (contracts/cache-de-la-sesion.md §1, punto
+// 3, de H26.1; research D3 de H26.1; FR-013): cada una, convertida en la
+// invocación que la ejecuta, se juzga con eval.sinServir, el mismo predicado con
+// el que el juicio reconoce la invocación de una sesión que la consulta. Quita
+// así las dos lecturas de un bloque, sin fecha y con --fecha 9999-12-31, y la
+// consulta de norma que nombra, aunque las pidan otra eval o data/. Las
+// consultas que recibe no cambian.
+func sinLoQueNoSeSirve(consultas []Consulta, eval Eval) []Consulta {
+	return slices.DeleteFunc(slices.Clone(consultas), func(consulta Consulta) bool {
+		return eval.sinServir(Invocacion{
+			Applet:     consulta.Applet,
+			Verbo:      consulta.Verbo,
+			Argumentos: consulta.Argumentos,
+			Consulta:   true,
+		})
+	})
+}
+
 // lecturasDeLosDatos es lo que la skill lleva a leer del directorio data/
 // (data-model §2 de H26.1; research D1 de H26.1; FR-001, FR-002), con el punto
 // PuntoLoQueLlevaALeer y, como origen, el fichero de data/ del que sale cada

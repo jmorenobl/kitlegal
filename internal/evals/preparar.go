@@ -330,8 +330,10 @@ func leerEvalsBienFormadas(dir string) ([]Eval, error) {
 // sesión: el grafo previo de la eval, si lo lleva, y después, si no dio faltas
 // ni error, la caché con las consultas necesarias de todas las evals y, desde
 // H26.1, lo que la skill lleva a leer del data/ de Datos (consultasDeLaCache;
-// contracts/cache-de-la-sesion.md §1 de H26.1; FR-001). Un data/ que no se lee
-// es el error, antes de preparar nada.
+// contracts/cache-de-la-sesion.md §1 de H26.1; FR-001), menos lo que la eval no
+// sirve (sinLoQueNoSeSirve; research D3 de H26.1; FR-013): las sesiones de las
+// demás evals lo tienen. Un data/ que no se lee es el error, antes de preparar
+// nada.
 func prepararLaCache(s SesionAPreparar, evals []Eval, eval Eval) ([]Falta, error) {
 	consultas, err := consultasDeLaCache(evals, cmp.Or(s.Datos, datosDelRepositorio))
 	if err != nil {
@@ -347,7 +349,7 @@ func prepararLaCache(s SesionAPreparar, evals []Eval, eval Eval) ([]Falta, error
 		}
 	}
 
-	return Preparar(dirCache, s.Grabaciones, consultas)
+	return Preparar(dirCache, s.Grabaciones, sinLoQueNoSeSirve(consultas, eval))
 }
 
 // prepararGrafoPrevio llena el grafo del mundo de dirCache, el directorio de la
