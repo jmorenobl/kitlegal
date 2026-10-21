@@ -14,10 +14,10 @@ titulos() { # $@ = ficheros de hito
   done
 }
 
-echo "En curso:"
-titulos docs/roadmap/en-curso/H*.md
-echo "Siguientes, en orden:"
-titulos docs/roadmap/siguientes/[0-9][0-9][0-9]-H*.md
-printf 'Hechos: %s hitos. Backlog: %s ficheros.\n' \
-  "$(find docs/roadmap/hechos -name 'H*.md' | wc -l | tr -d ' ')" \
+echo "En curso (in-progress/):"
+titulos docs/roadmap/in-progress/H*.md
+echo "Cola (todo/), en orden:"
+titulos docs/roadmap/todo/[0-9][0-9][0-9]-H*.md
+printf 'Hechos (done/): %s hitos. Backlog: %s ficheros.\n' \
+  "$(find docs/roadmap/done -name 'H*.md' | wc -l | tr -d ' ')" \
   "$(find docs/roadmap/backlog -name '*.md' ! -name README.md | wc -l | tr -d ' ')"

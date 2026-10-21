@@ -35,9 +35,9 @@ const (
 
 	// Las cuatro carpetas del roadmap: los hitos que se lanzaron, el que se
 	// implementa, la cola de los que vienen y los candidatos.
-	dirHechos     = "hechos"
-	dirEnCurso    = "en-curso"
-	dirSiguientes = "siguientes"
+	dirDone       = "done"
+	dirInProgress = "in-progress"
+	dirTodo       = "todo"
 	dirBacklog    = "backlog"
 
 	// leeme es el nombre del fichero que explica un directorio, que no es un
@@ -49,11 +49,11 @@ const (
 )
 
 var (
-	// nombreDeHito es el de un fichero de hechos/, en-curso/ o del backlog:
+	// nombreDeHito es el de un fichero de done/, in-progress/ o del backlog:
 	// el hito y un slug.
 	nombreDeHito = regexp.MustCompile(`^(H[0-9]+(?:\.[0-9]+)?)-[a-z0-9]+(?:-[a-z0-9]+)*\.md$`)
 
-	// nombreEnLaCola es el de un fichero de siguientes/: su posición, el hito
+	// nombreEnLaCola es el de un fichero de todo/: su posición, el hito
 	// y un slug.
 	nombreEnLaCola = regexp.MustCompile(`^([0-9]{3})-(H[0-9]+(?:\.[0-9]+)?)-[a-z0-9]+(?:-[a-z0-9]+)*\.md$`)
 
@@ -77,9 +77,9 @@ type cabeceraDeHito struct {
 type hitoDelRoadmap struct {
 	// ruta es la del fichero, relativa a docs/roadmap/.
 	ruta string
-	// directorio es hechos, en-curso, siguientes o backlog.
+	// directorio es done, in-progress, todo o backlog.
 	directorio string
-	// posicion es, en siguientes/, el prefijo del nombre; 0 en los demás.
+	// posicion es, en todo/, el prefijo del nombre; 0 en los demás.
 	posicion int
 	cabecera cabeceraDeHito
 }
@@ -154,13 +154,13 @@ func casosDeDefectos() []casoDeDefecto {
 
 	sano := func() fstest.MapFS {
 		return fstest.MapFS{
-			"README.md":                         {Data: []byte("# Roadmap\n")},
-			"hechos/H1-uno.md":                  hito("H1", "", "H1 · Uno"),
-			"en-curso/H2-dos.md":                hito("H2", "depende_de: [H1]\n", "H2 · Dos"),
-			"siguientes/010-H3-tres.md":         hito("H3", "depende_de: [H2]\n", "H3 · Tres"),
-			"siguientes/020-H3.1-tres-y-uno.md": hito("H3.1", "", "H3.1 · Tres y uno"),
-			"backlog/fiscal.md":                 {Data: []byte("# Fiscal\n\nUna línea.\n")},
-			"backlog/grupo/H9-nueve.md":         hito("H9", "", "H9 · Nueve"),
+			"README.md":                   {Data: []byte("# Roadmap\n")},
+			"done/H1-uno.md":              hito("H1", "", "H1 · Uno"),
+			"in-progress/H2-dos.md":       hito("H2", "depende_de: [H1]\n", "H2 · Dos"),
+			"todo/010-H3-tres.md":         hito("H3", "depende_de: [H2]\n", "H3 · Tres"),
+			"todo/020-H3.1-tres-y-uno.md": hito("H3.1", "", "H3.1 · Tres y uno"),
+			"backlog/fiscal.md":           {Data: []byte("# Fiscal\n\nUna línea.\n")},
+			"backlog/grupo/H9-nueve.md":   hito("H9", "", "H9 · Nueve"),
 		}
 	}
 
@@ -173,27 +173,27 @@ func casosDeDefectos() []casoDeDefecto {
 
 	return []casoDeDefecto{
 		{"sano", con(nil), ""},
-		{"sin-extension", con(fstest.MapFS{"siguientes/030-H4-cuatro": hito("H4", "", "H4 · Cuatro")}), "no es un fichero .md"},
-		{"fuera-de-las-carpetas", con(fstest.MapFS{"otros/H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "fuera de hechos/"},
-		{"cola-sin-posicion", con(fstest.MapFS{"siguientes/H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "no tiene la forma NNN-H<n>-slug.md"},
-		{"hecho-con-posicion", con(fstest.MapFS{"hechos/010-H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "no tiene la forma H<n>-slug.md"},
-		{"sin-cabecera", con(fstest.MapFS{"hechos/H1-uno.md": {Data: []byte("# H1 · Uno\n")}}), errSinCabecera.Error()},
-		{"campo-desconocido", con(fstest.MapFS{"hechos/H1-uno.md": hito("H1", "orden: 3\n", "H1 · Uno")}), "field orden not found"},
-		{"id-distinto", con(fstest.MapFS{"hechos/H1-uno.md": hito("H5", "", "H5 · Uno")}), "el id H5 no es el del nombre, H1"},
-		{"sin-fase", con(fstest.MapFS{"hechos/H1-uno.md": {Data: []byte("---\nid: H1\n---\n\n# H1 · Uno\n")}}), "no tiene fase"},
-		{"titulo-de-otro", con(fstest.MapFS{"hechos/H1-uno.md": hito("H1", "", "H5 · Uno")}), "no empieza por «# H1 · »"},
-		{"titulo-vacio", con(fstest.MapFS{"hechos/H1-uno.md": hito("H1", "", "H1 · ")}), "no empieza por «# H1 · »"},
-		{"repetido", con(fstest.MapFS{"siguientes/030-H1-otra-vez.md": hito("H1", "", "H1 · Otra vez")}), "el hito H1 tiene dos ficheros"},
-		{"dos-en-curso", con(fstest.MapFS{"en-curso/H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "en-curso/ tiene 2 hitos"},
-		{"posicion-repetida", con(fstest.MapFS{"siguientes/010-H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "la posición 010 la tienen dos hitos"},
-		{"dependencia-que-no-existe", con(fstest.MapFS{"siguientes/010-H3-tres.md": hito("H3", "depende_de: [H7]\n", "H3 · Tres")}), "depende de H7, que no tiene fichero"},
-		{"dependencia-posterior", con(fstest.MapFS{"siguientes/010-H3-tres.md": hito("H3", "depende_de: [H3.1]\n", "H3 · Tres")}), "depende de H3.1, que va después en la cola"},
-		{"dependencia-del-backlog", con(fstest.MapFS{"siguientes/010-H3-tres.md": hito("H3", "depende_de: [H9]\n", "H3 · Tres")}), "depende de H9, que va después en la cola"},
+		{"sin-extension", con(fstest.MapFS{"todo/030-H4-cuatro": hito("H4", "", "H4 · Cuatro")}), "no es un fichero .md"},
+		{"fuera-de-las-carpetas", con(fstest.MapFS{"otros/H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "fuera de done/"},
+		{"cola-sin-posicion", con(fstest.MapFS{"todo/H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "no tiene la forma NNN-H<n>-slug.md"},
+		{"hecho-con-posicion", con(fstest.MapFS{"done/010-H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "no tiene la forma H<n>-slug.md"},
+		{"sin-cabecera", con(fstest.MapFS{"done/H1-uno.md": {Data: []byte("# H1 · Uno\n")}}), errSinCabecera.Error()},
+		{"campo-desconocido", con(fstest.MapFS{"done/H1-uno.md": hito("H1", "orden: 3\n", "H1 · Uno")}), "field orden not found"},
+		{"id-distinto", con(fstest.MapFS{"done/H1-uno.md": hito("H5", "", "H5 · Uno")}), "el id H5 no es el del nombre, H1"},
+		{"sin-fase", con(fstest.MapFS{"done/H1-uno.md": {Data: []byte("---\nid: H1\n---\n\n# H1 · Uno\n")}}), "no tiene fase"},
+		{"titulo-de-otro", con(fstest.MapFS{"done/H1-uno.md": hito("H1", "", "H5 · Uno")}), "no empieza por «# H1 · »"},
+		{"titulo-vacio", con(fstest.MapFS{"done/H1-uno.md": hito("H1", "", "H1 · ")}), "no empieza por «# H1 · »"},
+		{"repetido", con(fstest.MapFS{"todo/030-H1-otra-vez.md": hito("H1", "", "H1 · Otra vez")}), "el hito H1 tiene dos ficheros"},
+		{"dos-en-curso", con(fstest.MapFS{"in-progress/H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "in-progress/ tiene 2 hitos"},
+		{"posicion-repetida", con(fstest.MapFS{"todo/010-H4-cuatro.md": hito("H4", "", "H4 · Cuatro")}), "la posición 010 la tienen dos hitos"},
+		{"dependencia-que-no-existe", con(fstest.MapFS{"todo/010-H3-tres.md": hito("H3", "depende_de: [H7]\n", "H3 · Tres")}), "depende de H7, que no tiene fichero"},
+		{"dependencia-posterior", con(fstest.MapFS{"todo/010-H3-tres.md": hito("H3", "depende_de: [H3.1]\n", "H3 · Tres")}), "depende de H3.1, que va después en la cola"},
+		{"dependencia-del-backlog", con(fstest.MapFS{"todo/010-H3-tres.md": hito("H3", "depende_de: [H9]\n", "H3 · Tres")}), "depende de H9, que va después en la cola"},
 	}
 }
 
 // leerRoadmap lee los ficheros de hito de un árbol de docs/roadmap/: los de
-// hechos/, en-curso/ y siguientes/, y los del backlog que llevan cabecera. Los
+// done/, in-progress/ y todo/, y los del backlog que llevan cabecera. Los
 // README.md y los demás ficheros del backlog son texto libre. Devuelve lo leído
 // y los defectos de cada fichero, con su ruta.
 func leerRoadmap(arbol fs.FS) ([]hitoDelRoadmap, []string) {
@@ -241,14 +241,14 @@ func leerFichero(arbol fs.FS, ruta string) (hitoDelRoadmap, bool, error) {
 	var id string
 
 	switch directorio {
-	case dirHechos, dirEnCurso:
+	case dirDone, dirInProgress:
 		m := nombreDeHito.FindStringSubmatch(nombre)
 		if m == nil {
 			return hitoDelRoadmap{}, false, errors.New("no tiene la forma H<n>-slug.md, sin subdirectorios")
 		}
 
 		id = m[1]
-	case dirSiguientes:
+	case dirTodo:
 		m := nombreEnLaCola.FindStringSubmatch(nombre)
 		if m == nil {
 			return hitoDelRoadmap{}, false, errors.New("no tiene la forma NNN-H<n>-slug.md, sin subdirectorios")
@@ -268,7 +268,7 @@ func leerFichero(arbol fs.FS, ruta string) (hitoDelRoadmap, bool, error) {
 
 		id = m[1]
 	default:
-		return hitoDelRoadmap{}, false, errors.New("está fuera de hechos/, en-curso/, siguientes/ y backlog/")
+		return hitoDelRoadmap{}, false, errors.New("está fuera de done/, in-progress/, todo/ y backlog/")
 	}
 
 	hito.cabecera, err = leerCabecera(contenido, id)
@@ -330,11 +330,11 @@ func defectosDeLosHitos(hitos []hitoDelRoadmap) []string {
 
 		porID[hito.cabecera.ID] = hito
 
-		if hito.directorio == dirEnCurso {
+		if hito.directorio == dirInProgress {
 			enCurso++
 		}
 
-		if hito.directorio == dirSiguientes {
+		if hito.directorio == dirTodo {
 			if otro, repetida := porPosicion[hito.posicion]; repetida {
 				defectos = append(defectos, fmt.Sprintf("la posición %03d la tienen dos hitos: %s y %s", hito.posicion, otro, hito.ruta))
 			}
@@ -344,7 +344,7 @@ func defectosDeLosHitos(hitos []hitoDelRoadmap) []string {
 	}
 
 	if enCurso > 1 {
-		defectos = append(defectos, fmt.Sprintf("en-curso/ tiene %d hitos, y como mucho tiene uno", enCurso))
+		defectos = append(defectos, fmt.Sprintf("in-progress/ tiene %d hitos, y como mucho tiene uno", enCurso))
 	}
 
 	for _, hito := range hitos {
@@ -366,8 +366,8 @@ func defectosDeLasDependencias(hito hitoDelRoadmap, porID map[string]hitoDelRoad
 		switch {
 		case !existe:
 			defectos = append(defectos, fmt.Sprintf("%s depende de %s, que no tiene fichero", hito.ruta, id))
-		case hito.directorio != dirSiguientes, dependencia.directorio == dirHechos, dependencia.directorio == dirEnCurso:
-		case dependencia.directorio != dirSiguientes || dependencia.posicion >= hito.posicion:
+		case hito.directorio != dirTodo, dependencia.directorio == dirDone, dependencia.directorio == dirInProgress:
+		case dependencia.directorio != dirTodo || dependencia.posicion >= hito.posicion:
 			defectos = append(defectos, fmt.Sprintf("%s depende de %s, que va después en la cola", hito.ruta, id))
 		}
 	}
@@ -376,8 +376,8 @@ func defectosDeLasDependencias(hito hitoDelRoadmap, porID map[string]hitoDelRoad
 }
 
 // hitosQueAdmite son los hitos que admite el input hito de workflow.yml: los de
-// hechos/, en-curso/ y siguientes/, en orden de número. Los del backlog no se
-// pueden lanzar hasta que pasan a siguientes/.
+// done/, in-progress/ y todo/, en orden de número. Los del backlog no se
+// pueden lanzar hasta que pasan a todo/.
 func hitosQueAdmite(hitos []hitoDelRoadmap) []string {
 	var ids []string
 

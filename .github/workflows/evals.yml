@@ -187,12 +187,12 @@ jobs:
         # de H7.3; research.md D12 de H7.3). boe-legislacion va a cinco a la vez desde antes de H20: a cuatro, con las
         # veintiuna evals de entonces, su peor caso era de 21 097 s, 351,6 minutos, sin sitio para ninguna eval más; con
         # las veintitrés de hoy, las dos de la pregunta fechada que entraron en H20, sería de 23 449 s, que el tope no
-        # cubre, y a cinco es de 18 977 s (entrada de H20, docs/roadmap/hechos/). Su objetivo de duración
+        # cubre, y a cinco es de 18 977 s (entrada de H20, docs/roadmap/done/). Su objetivo de duración
         # sigue en 900 s: no hay medida a cinco que lo cambie. jurisprudencia va desde H25 a cuatro a la vez: de una en
         # una, con sus diez evals y su juez, el tope del trabajo no cubre su peor caso. Sigue sin objetivo, como
         # legal-core: no hay medida con esa concurrencia de la que sacar una cifra. legal-core va a dos a la vez desde
         # antes de H9: con las cinco evals de plazos que entran en H9, de una en una su peor caso es de 28 501 s, que el
-        # tope no cubre, y a dos, de 14 629 s (entrada de H9, docs/roadmap/hechos/). Los tres trabajos corren a la vez
+        # tope no cubre, y a dos, de 14 629 s (entrada de H9, docs/roadmap/done/). Los tres trabajos corren a la vez
         # contra la misma suscripción, con once sesiones entre los tres, que no se han medido
         # (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1, §3 y §5; FR-070 de H25).
         include:

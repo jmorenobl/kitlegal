@@ -15,9 +15,9 @@ sustituyen a este fichero.
 ### Cambiado
 
 - **El roadmap se reorganiza en base, administrativo y profesionales, con un fichero por hito** (workflow `hito`
-  2.10.0). Cada hito vive en `docs/roadmap/`, y el directorio dice su estado: `hechos/`, `en-curso/` (como mucho uno),
-  `siguientes/` (la cola, en orden por el prefijo del nombre) y `backlog/`. Reordenar es renombrar un fichero; el
-  identificador no cambia. `scripts/hito.sh` solo lanza el hito de `en-curso/`, el workflow lee la entrada de su
+  2.10.0). Cada hito vive en `docs/roadmap/`, y el directorio dice su estado: `done/`, `in-progress/` (como mucho uno),
+  `todo/` (la cola, en orden por el prefijo del nombre) y `backlog/`. Reordenar es renombrar un fichero; el
+  identificador no cambia. `scripts/hito.sh` solo lanza el hito de `in-progress/`, el workflow lee la entrada de su
   fichero, la lista del input `hito` la genera `make roadmap-sync` y `make ci` comprueba el roadmap entero
   (`TestRoadmap`); `make roadmap` enseña el estado. `docs/ROADMAP.md` conserva las fases y las reglas. kitlegal es un componente legal general, para cualquier materia. La fase 1 es ahora
   la base legal genérica (H29 a H38): el ADR que lo fija, las evals que solo miden lo que cambia, las skills según la

@@ -91,7 +91,7 @@ $ echo $?
 
 ## El ritual por hito
 
-El trabajo avanza **hito a hito**, en el orden de la cola de [`docs/roadmap/siguientes/`](docs/roadmap/README.md); las fases y las reglas están en [`docs/ROADMAP.md`](docs/ROADMAP.md). Un hito es una
+El trabajo avanza **hito a hito**, en el orden de la cola de [`docs/roadmap/todo/`](docs/roadmap/README.md); las fases y las reglas están en [`docs/ROADMAP.md`](docs/ROADMAP.md). Un hito es una
 rama, una propuesta de cambio y un *squash-merge* con la integración continua en verde.
 
 1. **Rama** `hNN-nombre-corto` desde `main`. Se escriben primero las evals de la skill que el hito
@@ -109,7 +109,7 @@ rama, una propuesta de cambio y un *squash-merge* con la integración continua e
    solo su fila, con la fecha del fichero generado.
 5. **Squash-merge**. Si el hito cierra una fase, etiqueta y release ([La release](#la-release)).
 6. **El roadmap es un fichero por hito** (`docs/roadmap/README.md`): reordenar es renombrar el prefijo de un
-   fichero de `siguientes/`; un hito terminado pasa a `hechos/` en su propia propuesta de cambio, y uno nuevo
+   fichero de `todo/`; un hito terminado pasa a `done/` en su propia propuesta de cambio, y uno nuevo
    entra con `make roadmap-sync`, que lo añade a la lista que admite el workflow. El detalle vive en las
    propuestas de cambio y en los ADR.
 
@@ -118,7 +118,7 @@ el release son siempre acciones humanas.
 
 Los hitos se preparan con el workflow `hito` de spec-kit (`scripts/hito.sh H<n>`, documentado en
 [`docs/WORKFLOW.md`](docs/WORKFLOW.md)), que deja sus artefactos en `specs/NNN-hN-slug/`. La persona está en
-los extremos (ADR 0018): escribe el fichero del hito en `docs/roadmap/`, que es la entrada del run; lo mueve a `docs/roadmap/en-curso/` para lanzarlo, y lee
+los extremos (ADR 0018): escribe el fichero del hito en `docs/roadmap/`, que es la entrada del run; lo mueve a `docs/roadmap/in-progress/` para lanzarlo, y lee
 el informe final, que llega como cuerpo de la propuesta de cambio; entre medias el workflow no pausa. Los
 principios que rigen las decisiones automáticas están en
 [`.specify/memory/constitution.md`](.specify/memory/constitution.md).

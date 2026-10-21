@@ -7,7 +7,7 @@
 #   KITLEGAL_MODELO_JUEZ=fable@max KITLEGAL_MODELO_IMPLEMENTACION=sonnet@xhigh scripts/hito.sh H7
 #
 # La persona está en los extremos (ADR 0018): escribe el fichero del hito en
-# docs/roadmap/ y lo mueve a docs/roadmap/en-curso/ en main para lanzarlo, y lee
+# docs/roadmap/ y lo mueve a docs/roadmap/in-progress/ en main para lanzarlo, y lee
 # el informe final (cuerpo de la propuesta de cambio) antes de fusionar. En medio no hay ninguna pausa humana ni ninguna
 # parada que decida un modelo.
 #
@@ -222,7 +222,7 @@ supervisar() {
         avisar "Hito completado: lee el informe ($run)"; return 0;;
       rechazo)
         log "el juez de entrada rechazó el spec: informe de rechazo en $d/gates/informe-rechazo.md"
-        log "corrige el fichero del hito en docs/roadmap/en-curso/ y relanza el hito desde main"
+        log "corrige el fichero del hito en docs/roadmap/in-progress/ y relanza el hito desde main"
         avisar "Spec rechazado en la entrada ($run)"; return 4;;
       entrada)
         log "no se pudo leer la entrada del hito: $detalle"; avisar "Entrada inválida ($run)"; return 2;;
@@ -379,7 +379,7 @@ if [ "$(git branch --show-current)" != "main" ]; then
   echo "sitúate en main antes de lanzar un hito (rama actual: $(git branch --show-current))" >&2
   exit 1
 fi
-# Lanzar un hito es haberlo movido a docs/roadmap/en-curso/ en main: así main
+# Lanzar un hito es haberlo movido a docs/roadmap/in-progress/ en main: así main
 # dice cuál está en proceso (docs/roadmap/README.md). Solo se lanza ese.
 . scripts/workflow/comun.sh
 if ! fichero=$(fichero_del_hito "$hito"); then
@@ -387,8 +387,8 @@ if ! fichero=$(fichero_del_hito "$hito"); then
   exit 2
 fi
 case "$fichero" in
-  docs/roadmap/en-curso/*) ;;
-  *) echo "el hito $hito está en $fichero: para lanzarlo, muévelo antes a docs/roadmap/en-curso/ en main (docs/roadmap/README.md)" >&2
+  docs/roadmap/in-progress/*) ;;
+  *) echo "el hito $hito está en $fichero: para lanzarlo, muévelo antes a docs/roadmap/in-progress/ en main (docs/roadmap/README.md)" >&2
      exit 2;;
 esac
 comprobar_credenciales

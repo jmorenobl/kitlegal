@@ -27,7 +27,7 @@ const (
 	// ficheroDelHitoDelTest es el fichero del hito en el docs/roadmap/ del
 	// árbol temporal, y hitoDelRoadmapDelTest, su contenido: el informe final
 	// saca de él el título del hito.
-	ficheroDelHitoDelTest = "docs/roadmap/en-curso/H0-hito-del-test.md"
+	ficheroDelHitoDelTest = "docs/roadmap/in-progress/H0-hito-del-test.md"
 	hitoDelRoadmapDelTest = "---\nid: H0\nfase: \"1\"\n---\n\n# H0 · Hito del test\n\nLa entrada del hito.\n"
 
 	// ficheroDelProducto es lo que el hito cambia fuera de gates/.

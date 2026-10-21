@@ -453,7 +453,7 @@ informe() {
   echo
   echo "Generado por el workflow \`hito\` el $(date -u +%Y-%m-%dT%H:%M:%SZ), sobre \`$(git rev-parse --short HEAD)\` de \`$rama\`."
   echo "Lo escribe scripts/workflow/informe.sh sin modelo, desde los artefactos de \`$d/\`. Fusionar (squash-merge) es una decisión humana:"
-  echo "si algo de lo que sigue no es lo que se quería, se corrige el fichero del hito en docs/roadmap/en-curso/ y se relanza."
+  echo "si algo de lo que sigue no es lo que se quería, se corrige el fichero del hito en docs/roadmap/in-progress/ y se relanza."
   echo
 
   echo "## 1. Estado"

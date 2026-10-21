@@ -7,12 +7,12 @@ feature_dir() {
   jq -r .feature_directory .specify/feature.json
 }
 
-# Fichero de un hito en docs/roadmap/: en-curso/H<n>-…md, siguientes/NNN-H<n>-…md
-# o hechos/H<n>-…md (docs/roadmap/README.md). Falla si no tiene ninguno. El guion
+# Fichero de un hito en docs/roadmap/: in-progress/H<n>-…md, todo/NNN-H<n>-…md
+# o done/H<n>-…md (docs/roadmap/README.md). Falla si no tiene ninguno. El guion
 # detrás del identificador hace que H2 no case con H29 ni H9 con H9.1.
 fichero_del_hito() { # $1 = hito
   local f
-  for f in docs/roadmap/en-curso/"$1"-*.md docs/roadmap/siguientes/[0-9][0-9][0-9]-"$1"-*.md docs/roadmap/hechos/"$1"-*.md; do
+  for f in docs/roadmap/in-progress/"$1"-*.md docs/roadmap/todo/[0-9][0-9][0-9]-"$1"-*.md docs/roadmap/done/"$1"-*.md; do
     if [ -f "$f" ]; then printf '%s\n' "$f"; return 0; fi
   done
   return 1

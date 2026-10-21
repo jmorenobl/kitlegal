@@ -1897,7 +1897,7 @@ const (
 	// directorioDelHitoDelInformeFinal es el del hito; ficheroDelHitoDelInformeFinal,
 	// el de su entrada en docs/roadmap/, y hitoDelInformeFinal, esa entrada.
 	directorioDelHitoDelInformeFinal = "specs/000-hito-del-test"
-	ficheroDelHitoDelInformeFinal    = "docs/roadmap/en-curso/H0-hito-del-test.md"
+	ficheroDelHitoDelInformeFinal    = "docs/roadmap/in-progress/H0-hito-del-test.md"
 	hitoDelInformeFinal              = "---\nid: H0\nfase: \"1\"\n---\n\n# H0 · Hito del test\n"
 
 	// lineaDeLosUmbralesDelJob es el principio de la línea de la sección 1 que
@@ -2086,7 +2086,7 @@ func informeFinalConLosDelJob(t *testing.T, informes ...Informe) informeFinalLei
 
 	gates := directorioDelHitoDelInformeFinal + "/gates"
 
-	for _, d := range []string{"scripts/workflow", ".specify", "docs/roadmap/en-curso", gates + "/evals"} {
+	for _, d := range []string{"scripts/workflow", ".specify", "docs/roadmap/in-progress", gates + "/evals"} {
 		require.NoError(t, raiz.MkdirAll(d, 0o750))
 	}
 

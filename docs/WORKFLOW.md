@@ -24,7 +24,7 @@ Cada hito de `docs/roadmap/` se implementa con una pasada del workflow `hito` de
 ## Secuencia
 
 ```
-extraer_hito (el fichero del hito en docs/roadmap/en-curso/: la entrada de la persona)
+extraer_hito (el fichero del hito en docs/roadmap/in-progress/: la entrada de la persona)
 → specify → clarify_preguntas → ronda_clarify ×3 [resolver_clarify (proceso nuevo) → check_clarify] → completar_clarify → clarify_integrar
 → ronda_spec ×4 [cambios_spec → precheck_spec → juez_spec (juez de entrada) → leer_gate_spec → corrector_spec] → check_gate_spec   ← único rechazo posible antes del final
 → plan → ronda_plan ×4 [cambios → precheck → juez → leer → corrector] → check_gate_plan → commit
@@ -80,7 +80,7 @@ Sigue la sección «Gates» de la constitución: cada comprobación vive en la c
    - **Convergencia** (todos los gates): desde la segunda ronda un motivo nuevo solo cuenta si lo introdujo la corrección anterior o si es material. Para que el juez lo compruebe, `gate.sh leer` guarda una instantánea de los artefactos juzgados en el git-dir (`kitlegal-gates/<fase>-r<n>/`, fuera del historial) y `gate.sh cambios`, al empezar la ronda siguiente, deja en `gates/<fase>-correccion-r<n>.diff` exactamente lo que cambió el corrector. En la revisión final cada cambio es un commit: `gate.sh leer` apunta en `gates/revision-juzgado.json` la cabeza que juzgó cada ronda, y `preparar_jueces` (`scripts/workflow/revision.sh cambios`) escribe en `gates/revision-cambios.md` el rango desde el último veredicto —cada commit, el paso que lo hizo y sus ficheros— y su diff fuera de `gates/` en `gates/revision-cambios-r<n>.diff`. Todo ese rango es «la corrección», sea del corrector o de una reparación del cierre (ADR 0030).
 
    Lo que el juez ve y no llega a motivo va a `observaciones`: queda archivado con la ronda, no cuenta para el veredicto y no llega al corrector. El informe final lo cuenta.
-3. **Humano, en los extremos.** Antes del run, el fichero del hito en `docs/roadmap/en-curso/` y la fila revisada de `docs/SOURCES.md` en `main` para toda fuente que se vaya a grabar. Después, el informe final: fuentes, anomalías, adaptadores nuevos, fixtures y esquemas modificados, grabaciones, evidencia y supuestos, antes de fusionar.
+3. **Humano, en los extremos.** Antes del run, el fichero del hito en `docs/roadmap/in-progress/` y la fila revisada de `docs/SOURCES.md` en `main` para toda fuente que se vaya a grabar. Después, el informe final: fuentes, anomalías, adaptadores nuevos, fixtures y esquemas modificados, grabaciones, evidencia y supuestos, antes de fusionar.
 
 ## Clarificación sin sesgo y sin persona
 
@@ -200,11 +200,11 @@ Nada de esto lee credenciales, abre sesiones ni escribe fuera del repositorio (A
 
 ## Uso
 
-Un hito se lanza desde `main` con su fichero en `docs/roadmap/en-curso/` (`docs/roadmap/README.md`): `scripts/hito.sh` rechaza, con 2, un hito que está en `siguientes/`, en `hechos/` o en ningún sitio. Moverlo ahí es la decisión de lanzarlo, y lo hace la persona.
+Un hito se lanza desde `main` con su fichero en `docs/roadmap/in-progress/` (`docs/roadmap/README.md`): `scripts/hito.sh` rechaza, con 2, un hito que está en `todo/`, en `done/` o en ningún sitio. Moverlo ahí es la decisión de lanzarlo, y lo hace la persona.
 
 ```bash
-make roadmap                           # lo que está en curso y la cola de siguientes/, en orden
-scripts/hito.sh H7                     # lanza el hito de docs/roadmap/en-curso/ y lo lleva hasta el informe final
+make roadmap                           # lo que está en curso y la cola de todo/, en orden
+scripts/hito.sh H7                     # lanza el hito de docs/roadmap/in-progress/ y lo lleva hasta el informe final
 scripts/hito.sh --resume <run_id>      # tras resolver una causa mayor (el dossier dice qué hace falta)
 scripts/hito.sh --clasificar <run_id>  # qué haría el supervisor con ese run
 KITLEGAL_MODELO_FALLBACK=fable=claude-opus-5-5,opus=claude-sonnet-5-5 KITLEGAL_TIEMPO_MAXIMO=259200 scripts/hito.sh H7
@@ -289,5 +289,5 @@ Los permisos no son la garantía de lo que una sesión del run no puede hacer: e
 - El guardián extrae rutas de la línea de la tarea: tokens con `/`, con extensión conocida, ficheros de raíz sin extensión que terminan en `ignore`, `.editorconfig`, `Makefile` y `LICENSE`. Una tarea que toque muchos ficheros debe declarar directorios.
 - El supervisor reconoce el límite de uso por el texto del transcript; un error nuevo con otra redacción se clasifica como `transitorio`. Las sesiones headless se reconocen por el entrypoint `sdk-cli`, que fija `scripts/claude-modelo.sh` (para runs anteriores a esa corrección: `KITLEGAL_ENTRYPOINTS_HEADLESS=sdk-cli,claude-vscode`).
 - La batería por tarea ejecuta `make ci` completo tras cada tarea; en hitos grandes es lento pero determinista.
-- `inputs.hito` se interpola en pasos `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`. Ese `enum` no se edita a mano: desde el workflow 2.10.0 lo genera `make roadmap-sync` desde `docs/roadmap/` —los hitos de `hechos/`, `en-curso/` y `siguientes/`— y `TestRoadmap` (`internal/workflow`) falla en `make ci` si no coincide. Antes se escribía a mano y un test exigía que cada sección `#### H<n> ·` de `docs/ROADMAP.md` estuviera en él, porque la entrada de H23.1 se fusionó sin añadirlo y `scripts/hito.sh H23.1` no llegó a crear el run (workflow 2.8.1).
+- `inputs.hito` se interpola en pasos `shell`; está restringido por `enum`. No añadir inputs libres a pasos `shell`. Ese `enum` no se edita a mano: desde el workflow 2.10.0 lo genera `make roadmap-sync` desde `docs/roadmap/` —los hitos de `done/`, `in-progress/` y `todo/`— y `TestRoadmap` (`internal/workflow`) falla en `make ci` si no coincide. Antes se escribía a mano y un test exigía que cada sección `#### H<n> ·` de `docs/ROADMAP.md` estuviera en él, porque la entrada de H23.1 se fusionó sin añadirlo y `scripts/hito.sh H23.1` no llegó a crear el run (workflow 2.8.1).
 - Si `speckit init` se actualiza (`specify integration upgrade`), regenera `.claude/skills/speckit-*`; el workflow, `scripts/workflow/` y la constitución no se tocan.
