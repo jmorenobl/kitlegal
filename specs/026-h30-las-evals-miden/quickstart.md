@@ -35,8 +35,9 @@ go test -count=1 -run '^TestHuellaDeLasEvals$' -v ./internal/evals/
 ```
 
 Esperado: `PASS`. Un subtest por clase de ruta de FR-001 a FR-004; `go-mod-de-lo-comun`, `replace-en-go-mod` y
-`go-sum-de-otro-modulo` cambian las 45; `docs` no cambia ninguna; `dos-directorios` clona la cabeza dos veces en directorios temporales (`git clone` local, sin red) y
-compara las 45 huellas.
+`go-sum-de-otro-modulo` cambian las 45; `docs` no cambia ninguna; `dos-clones` clona la cabeza dos veces en directorios temporales (`git clone` local, sin red) y
+compara las 45 huellas (el subtest se llama `dos-clones` y no `dos-directorios`: `misspell` lee «directorios» como
+«directors» y la tarea no puede tocar `.golangci.yml`).
 
 ## 4. La reutilización y la decisión del job (FR-010 a FR-014, FR-016, FR-017, SC-006, SC-007)
 
