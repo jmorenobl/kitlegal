@@ -5920,7 +5920,10 @@ func umbralesDeJurisprudenciaComoEnH26() []Umbral {
 // sobre las respuestas dadas del modelo que decide, las de los dos modos —60,
 // o 59 con una sesión sin medir—, y decidiendo con la tasa de la declaración de
 // la clase, 0.017 (FR-020 de H26): con 59 o 60 respuestas, se cumple con una
-// marcada, como mucho.
+// marcada, como mucho. Desde H30, con las 59, que son menos que las 60 de su
+// plan, el límite es el de la regla de la tasa, k(59) = 1, el mismo que da la
+// proporción con 0.017, y el umbral publicado sigue siendo el de la clase
+// (contracts/informe-del-job.md §4 de H30; FR-024).
 func umbralConjuntoDeJurisprudencia(marcadas, respuestas int) Umbral {
 	return Umbral{
 		Nombre: "afirma_lo_no_leido:" + modeloSonnet55,

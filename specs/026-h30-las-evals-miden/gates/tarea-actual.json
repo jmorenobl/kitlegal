@@ -1,20 +1,30 @@
 {
-  "id": "T001",
-  "texto": "T001 Golden del informe de la suite completa, antes de tocar `informe.go` — FR-026, SC-012 (plan.md, «Orden de implementación», paso 1; contracts/informe-del-job.md §1). **`internal/evals/informe_test.go`**: `TestInformeDeLaSuiteCompletaNoCambia` compone, con los datos de prueba con que ya componen el informe los tests de este fichero (evals, sesiones sintéticas y juicio del juez en `t.TempDir()`, con todas las sesiones de un plan entero de una skill con juez, en sus dos modos), el `informe.json` y el `informe.md` de una ejecución completa con el código de hoy, y los compara byte a byte con dos constantes del test (el golden, sacado de la salida de hoy y pegado una vez; sin fichero en disco). La comparación quita antes, de la salida, el bloque `origen` del JSON y la sección «Medidas y reutilizadas» del Markdown (no existen todavía: hoy no quita nada); con cualquier otra diferencia sale en rojo diciendo la primera línea distinta. Mutante (árbol aparte): cambiar un carácter de una descripción de umbral de `umbrales.go` → rojo. Rutas: internal/evals/informe_test.go",
-  "intento": 1,
+  "id": "T002",
+  "texto": "T002 La regla de la tasa: *p*ref derivada de `clases.yaml` y el límite k(*n*) para cualquier número de respuestas medidas — FR-024, SC-010, SC-013 (data-model §9; contracts/informe-del-job.md §4; research D12). **`internal/evals/tasa.go`**: *N* de cada skill con juez (las respuestas del modelo que decide en sus dos modos que juzga una ejecución completa, del plan de la skill), *K* = el mayor entero con *K*/*N* ≤ `umbral` de su clase en `evals/<skill>/juez/clases.yaml`, *p*ref = la mayor tasa, redondeada hacia abajo a centésimas de punto porcentual, con P(Bin(*N*, *p*ref) > *K*) ≤ 0,02, y k(*n*) = el *k* más estricto con P(Bin(*n*, *p*ref) > *k*) ≤ 0,02. **`internal/evals/umbrales.go`**: el umbral `<clase>:<modelo>` de una clase que decide se cumple si `medida ≤ k(n)`, con *n* las respuestas medidas del modelo que decide en los dos modos, y publica como `umbral` el de `clases.yaml` si el mayor *m* con *m*/*n* ≤ `umbral` es k(*n*), y si no k(*n*)/*n* (contracts/informe-del-job.md §4, para que el informe final del workflow (`informe.sh`, sin cambios) no lo marque INCOHERENTE); con todas las respuestas, lo de hoy. **`internal/evals/informe.go`** (redelimitada en el intento 1, gates/tarea-T002.md): el juicio del juez lleva *N*, las respuestas que el plan de las evals del informe da a juzgar en sus modos, porque `umbrales.go` no recibe las evals y sin *N* no hay límite; nada más cambia en ese fichero. **Tests**: `internal/evals/tasa_test.go`, `TestLimiteDeLaTasa`: para cada skill con juez leída del repositorio y cada *n* de 1 a *N*, P(Bin(*n*, *p*ref) > k(*n*)) ≤ 0,02 calculada con racionales exactos (`math/big`), y k(*N*) igual al límite de hoy (3 de 120 en `boe-legislacion`, 1 de 60 en `jurisprudencia`, que el test saca de `clases.yaml` y del plan, no de una constante), con `t.Log` de *p*ref, *N* y k(*N*) de cada skill (las cifras que escribe T016); mutante en memoria, sin tocar el fichero: el `clases.yaml` de `boe-legislacion` con `umbral: 0.017` → k(120) = 2, y el test sale en rojo si no lo es; los tests del umbral conjunto de una clase en `umbrales_test.go` e `informe_test.go` con menos respuestas que las de su plan entero esperan k(*n*) (plan.md, «Tests existentes que cambian»), con un caso de 60 respuestas de `boe-legislacion` (k(60) = 2: 1 marcada cumple con `umbral` 1/30). `TestInformeDeLaSuiteCompletaNoCambia` (T001) sigue en verde sin tocar su golden. Rutas: internal/evals/tasa.go, internal/evals/umbrales.go, internal/evals/informe.go, internal/evals/informe_test.go",
+  "intento": 2,
   "datos": false,
   "aceptacion": false,
-  "base": "93370619a6e7a20f2d74eadd3692b76866d76822",
+  "base": "02ddb0f47ebea4a0f8e9e13c5e49d24a8e2ace77",
   "rutas": [
+    "1/30",
+    "clases.yaml",
     "contracts/informe-del-job.md",
-    "informe.go",
-    "informe.json",
-    "informe.md",
+    "evals/",
+    "gates/tarea-T002.md",
+    "informe.sh",
+    "informe_test.go",
+    "internal/evals/informe.go",
     "internal/evals/informe_test.go",
+    "internal/evals/tasa.go",
+    "internal/evals/tasa_test.go",
+    "internal/evals/umbrales.go",
+    "juez/clases.yaml",
+    "math/big",
     "plan.md",
-    "umbrales.go"
+    "umbrales.go",
+    "umbrales_test.go"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "b28edafd4fe7a48e9f2aff872fbe9796b989797bf8069c30aa9638f0a450f0c2"
 }

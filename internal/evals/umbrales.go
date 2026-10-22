@@ -277,7 +277,9 @@ type Umbral struct {
 	Umbral      float64 `json:"umbral"`
 
 	// Cumple es el resultado de la comparación, en coma flotante de doble
-	// precisión y sin redondeos.
+	// precisión y sin redondeos; en el umbral conjunto de una clase, desde H30,
+	// el de la regla de la tasa (compararConLaTasa), que es el mismo que da la
+	// comparación con el Umbral que publica.
 	Cumple bool `json:"cumple"`
 
 	// Decide dice si incumplirlo pone el veredicto en fallo; si no, solo se
@@ -537,6 +539,11 @@ func (j *juicioDelJuez) umbralesDeLasClases(grupo grupoJuzgado) []Umbral {
 // informativo, y la respuesta sin juzgar sigue en su total y fuera de su
 // medida. Una clase que solo se publica no tiene ninguno. Ninguno si la skill
 // no tiene juez.
+//
+// Desde H30 (contracts/informe-del-job.md §4 de H30; data-model §9; research
+// D12; FR-024), su comparación es la regla de la tasa (compararConLaTasa), con
+// el límite que se deriva del umbral de la clase y de las respuestas que el
+// plan da a juzgar en sus modos: con todas medidas, la de hoy.
 func (j *juicioDelJuez) umbralesConjuntos() []Umbral {
 	if j == nil {
 		return nil
@@ -556,17 +563,41 @@ func (j *juicioDelJuez) umbralesConjuntos() []Umbral {
 			total += len(grupo.respuestas)
 		}
 
-		umbrales = append(umbrales, compararUmbral(Umbral{
+		umbrales = append(umbrales, compararConLaTasa(Umbral{
 			Nombre:      nombreDelUmbralConjunto(clase.Nombre, j.modelo),
 			Descripcion: fmt.Sprintf(descripcionDelUmbralConjunto, j.modelo, clase.Nombre),
 			Medida:      float64(marcadas),
 			Total:       &total,
 			Umbral:      clase.Umbral,
 			Decide:      true,
-		}))
+		}, nuevoLimiteDeLaTasa(clase.Umbral, j.delPlan)))
 	}
 
 	return umbrales
+}
+
+// compararConLaTasa pone al umbral conjunto de una clase que decide su
+// comparación, «<=», y su resultado con la regla de la tasa
+// (contracts/informe-del-job.md §4 de H30; research D12; FR-024): se cumple si
+// su medida no pasa de k(n), con n su total, las respuestas medidas del modelo
+// que decide en los modos. Publica como Umbral el de la clase si con él la
+// comparación de compararUmbral da ese mismo límite —con todas las respuestas
+// del plan, siempre: es el umbral de hoy (FR-026)— y, si no, k(n)/n, con el
+// que la da: quien rehace medida/total ≤ umbral, como
+// scripts/workflow/informe.sh, llega al mismo resultado que el job. Con n = 0,
+// k(0) es 0, que es lo que da el umbral de la clase.
+func compararConLaTasa(umbral Umbral, limite limiteDeLaTasa) Umbral {
+	respuestas := *umbral.Total
+	marcadas := limite.para(respuestas)
+
+	umbral.Comparacion = comparacionMenorOIgual
+	umbral.Cumple = umbral.Medida <= float64(marcadas)
+
+	if mayorMedidaQueCumple(umbral.Umbral, respuestas) != marcadas {
+		umbral.Umbral = float64(marcadas) / float64(respuestas)
+	}
+
+	return umbral
 }
 
 // nombreDelUmbralConjunto es el nombre del umbral conjunto de una clase del

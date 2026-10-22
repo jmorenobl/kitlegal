@@ -541,6 +541,12 @@ type juicioDelJuez struct {
 	// modo del plan, el del modo orden delante, y detrás el de las evals sin
 	// binario ni servidor, que no es de ningún modo.
 	grupos []grupoJuzgado
+
+	// delPlan son las respuestas que una ejecución completa del plan da a
+	// juzgar en sus modos (respuestasQueSeJuzganEnSusModos): N de la regla de
+	// la tasa, de la que sale el límite del umbral conjunto de cada clase que
+	// decide (umbralesConjuntos; FR-024 de H30).
+	delPlan int
 }
 
 // grupoJuzgado son las respuestas del modelo que decide que se miden juntas
@@ -1551,7 +1557,7 @@ func medirLasRespuestas(
 		respuestas.medirLasRedaccionesFechadas(evals, sesiones)
 	}
 
-	respuestas.delJuez = juez.juzgar(e, sesiones, respuestas.grupos)
+	respuestas.delJuez = juez.juzgar(e, evals, sesiones, respuestas.grupos)
 
 	return respuestas
 }
@@ -1813,16 +1819,23 @@ func (r *respuestasMedidas) medirLasCitasSinDocumento(sesiones []sesionJuzgada) 
 // último: se lee antes de pedir ninguno y cuando todos han terminado, y sus
 // segundos se redondean hacia arriba, como los de una tanda de sesiones. Un
 // grupo sin respuestas no pide ningún voto ni mira el reloj.
-func (j *juezDelInforme) juzgar(e InformeAEscribir, sesiones []sesionJuzgada, grupos []grupoJuzgado) *juicioDelJuez {
+//
+// Desde H30, el juicio lleva también las respuestas que el plan de las evals
+// dadas da a juzgar en sus modos, con las que sus umbrales conjuntos sacan su
+// límite (FR-024 de H30).
+func (j *juezDelInforme) juzgar(
+	e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, grupos []grupoJuzgado,
+) *juicioDelJuez {
 	if j == nil {
 		return nil
 	}
 
 	delJuez := &juicioDelJuez{
-		modelo: e.ModeloQueDecide,
-		clases: j.votacion.clases,
-		medida: j.medida,
-		grupos: grupos,
+		modelo:  e.ModeloQueDecide,
+		clases:  j.votacion.clases,
+		medida:  j.medida,
+		grupos:  grupos,
+		delPlan: e.plan(evals).respuestasQueSeJuzganEnSusModos(),
 	}
 
 	for posicion := range delJuez.grupos {
