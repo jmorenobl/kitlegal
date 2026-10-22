@@ -1147,7 +1147,8 @@ módulo que alcanza, con sus ficheros empotrados y sus módulos externos; las ra
 tiene, su `grafo_previo`; y la carpeta `evals/<skill>/juez/` y los demás ficheros de `evals/<skill>/` que no son
 evals. Lo común a todas es `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`,
 `internal/mcp/`, `internal/evals/`, `skills.go`, el `Makefile`, `.github/workflows/evals.yml`, los cuatro
-`scripts/evals*.sh` y los esquemas de las evals, de la lista de expresiones y de las clases del juez, con los módulos
+guiones que ejecuta el job —`scripts/evals.sh`, `evals-sesion.sh`, `evals-voto.sh` y `evals-medir-juez.sh`; los del
+sondeo, no— y los esquemas de las evals, de la lista de expresiones y de las clases del juez, con los módulos
 que alcanzan. De cada ruta que la propuesta cambia —las dos de un renombrado— vale la primera regla que se aplica: una
 ruta que no mide (fuera de `skills/`, `evals/`, `data/`, `cmd/`, `internal/` —sin `internal/workflow/`, y sin los
 tests ni el `testdata/` de un paquete de algún conjunto—, `go.mod`, `go.sum`, lo común y las raíces de grabaciones)
@@ -1320,9 +1321,11 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   `fuera_de_lo_grabado` en toda skill y `lectura_sin_intentar` si alguna eval lleva un comando de bloque en su
   `sin_servir` (más abajo). Los de
   un modo se miden sobre las sesiones de ese modo, sin sumar las del otro: todos menos el conjunto de una clase del
-  juez que decide, que suma las de los dos modos (ADR 0038). Con el plan del job, **en `boe-legislacion` son
-  diecinueve, once de ellos decidiendo** (`TestUmbralesDeBoeLegislacion`), en este orden; en `jurisprudencia`,
-  diecinueve, y en `legal-core`, dieciocho, más abajo (`TestUmbralesDeLasTresSkills`):
+  juez que decide, que suma las de los dos modos (ADR 0038). Con el plan del job y la suite completa, **en
+  `boe-legislacion` son diecinueve, once de ellos decidiendo** (`TestUmbralesDeBoeLegislacion`), en este orden; en
+  `jurisprudencia`, diecinueve, y en `legal-core`, dieciocho, más abajo (`TestUmbralesDeLasTresSkills`). Con alguna
+  eval reutilizada, cada uno cuenta solo lo medido, y justo detrás de cada uno de las respuestas al que aporta alguna
+  reutilizada va su `<umbral>:reutilizadas` («Lo que mide y lo que reutiliza»):
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
@@ -1330,7 +1333,7 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.028` | no |
   | `cuenta_su_proceso:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
   | `redaccion_sin_fechar:<modelo>:<modo>` | Las de una eval con `redaccion_fechada` cuya sesión no leyó el bloque de la eval en su fecha —ningún `boe articulo` de su norma y su bloque con `--fecha` ese día, ni ninguna llamada a `boe_articulo` con esa `fecha`, que termine con `0` o con `3`— o cuya respuesta no lleva las líneas que la eval espera | Sus respuestas medidas en ese modo, en las evals con `redaccion_fechada` (6) | `0` | sí |
-  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (120) | `0.028` | sí |
+  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (120) | `0.028`; con menos respuestas medidas, k(*n*)/*n* si da otro límite (ADR 0045) | sí |
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (212) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (47) | `0` | sí |
   | `duracion_de_las_sesiones:<modo>` | Segundos de la tanda de ese modo | — | `900`, el objetivo del job | sí |
@@ -1363,9 +1366,9 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   `umbral redaccion_sin_fechar:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %: <sesión>`,
   con `; <sesión>` por cada otra.
 
-  **En `jurisprudencia` son diecinueve, y deciden once**, en este orden. Tiene juez y no tiene objetivo de
-  duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la duración de sus votos,
-  y ninguno de `duracion_de_las_sesiones`:
+  **En `jurisprudencia`, con la suite completa, son diecinueve, y deciden once**, en este orden. Tiene juez y no
+  tiene objetivo de duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la
+  duración de sus votos, y ninguno de `duracion_de_las_sesiones`:
 
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
@@ -1374,7 +1377,7 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   | `afirma_que_existe:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
   | `cita_sin_documento:<modelo>:<modo>` | Las que llevan una cita de sentencia cuyo ECLI no leyó ningún `cita cotejar` de su sesión, o un ECLI, fuera de una cita y fuera de una línea que empieza por `⚠`, que no está en ningún sobre de su sesión —terminara como terminara— ni en la pregunta de su eval | Las mismas | `0` | sí |
   | `documento_sin_cotejar:<modelo>:<modo>` | Las de una eval que pide `cita cotejar` cuya sesión no ejecutó ningún `cita cotejar` que consultara y terminara bien, ni como orden ni como llamada a `cita_cotejar` | Sus respuestas medidas en ese modo, en las evals que piden el cotejo (12) | `0` | sí |
-  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (60) | `0.017` | sí |
+  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (60) | `0.017`; con menos respuestas medidas, k(*n*)/*n* si da otro límite (ADR 0045) | sí |
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (125) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (124) | `0` | sí |
   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
@@ -1411,8 +1414,9 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`,
   con `; <sesión>` por cada otra.
 
-  **En `legal-core` son dieciocho, y deciden doce** (`TestUmbralesDeLegalCore`): no tiene juez ni objetivo de
-  duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura, desde H9, con las de plazo
+  **En `legal-core`, con la suite completa, son dieciocho, y deciden doce** (`TestUmbralesDeLegalCore`): no tiene
+  juez ni objetivo de duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura, desde
+  H9, con las de plazo
   con `redaccion_fechada`, desde el ADR 0041, y con la de vigencia, desde el ADR 0042; los de las lecturas, desde
   H26.1. Primero, los cinco de cada modo, el orden y luego el de la herramienta; después, por cada modo, el orden
   delante, y en cada uno por cada modelo, el que decide delante, `fuera_de_lo_grabado` y `lectura_sin_intentar`:

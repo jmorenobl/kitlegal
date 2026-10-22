@@ -143,8 +143,8 @@ Probabilidad de que una ejecución salga en rojo sin motivo si la tasa de la ski
 
 El peor caso con la proporción es *n* = 35 en `boe-legislacion` (25,8 %) y *n* = 58 en `jurisprudencia` (18,9 %). Con
 k(*n*), ningún *n* de 1 a *N* pasa de 1 de cada 50: es lo que comprueba `TestLimiteDeLaTasa`. El caso de 60 respuestas
-de `boe-legislacion` (1 marcada cumple, con `umbral` 1/30) lo fijan además los tests del umbral conjunto
-(`TestUmbralConjuntoConMenosRespuestas`).
+de `boe-legislacion` (con 1 y con 2 marcadas se cumple y con 3 no, con `umbral` 2/60) lo fijan además los tests del
+umbral conjunto (`TestUmbralConjuntoConMenosRespuestas`).
 
 Calculadas el 2026-10-22 con las funciones de `internal/evals` —`nuevoLimiteDeLaTasa` y su `para` de `tasa.go`,
 `compararConLaTasa` de `umbrales.go`, y `mayorMarcadasDentro` y `colaDeLaBinomial` de `tasa_test.go`, en racionales

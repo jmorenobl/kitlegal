@@ -53,10 +53,10 @@ Reglas en data-model §5. Salida en el registro del paso, una línea por eval el
 elegida legal-core/05-plazo-reposicion-leganes: conjunto: skills/legal-core/references/recursos_y_plazos.md
 ```
 
-76 bytes más el salto; con una ruta común, `elegida <skill>/<eval>: comun: internal/cli/salida.go`. Si `gh` no da los
+107 bytes más el salto; con varias rutas, separadas por `, `; con una ruta común, `elegida <skill>/<eval>: comun: internal/cli/salida.go`. Si `gh` no da los
 ficheros de la propuesta, una línea `error de la plataforma: <orden>: <salida de error>` y, después, `elegida
 <skill>/<eval>: plataforma` por cada eval (data-model §5; research D17). Con *e* evals
-elegidas y *r* rutas que eligen cada una, *e* × (40 + 50·*r*) bytes: hoy, como mucho 45 líneas; con cientos de evals,
+elegidas y *r* rutas que eligen cada una, unos *e* × (60 + 50·*r*) bytes: hoy, como mucho 45 líneas; con cientos de evals,
 crece con las elegidas y con las rutas de la propuesta, no con la historia. En el trabajo `cambios`, después,
 `elige=si` o `elige=no` en `$GITHUB_OUTPUT`. Deja de darse cuando la propuesta se fusiona: sobre `main` no hay propuesta
 y la suite completa no elige.

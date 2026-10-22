@@ -34,11 +34,13 @@ sustituyen a este fichero.
 - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de
-  cada eval —su fichero; el `SKILL.md` y las referencias de su skill y de cada skill que su `SKILL.md` nombra; el
-  fichero de `data/` del que sale cada referencia; los paquetes de Go de los applets de su tabla de comandos, con sus
-  módulos; sus grabaciones; y la carpeta del juez de la skill— y lo común a todas (`cmd/`, `internal/app/`,
+  cada eval —su fichero; el `SKILL.md` y las referencias de su skill y de cada skill que nombra el `SKILL.md` de otra
+  del conjunto; el fichero de `data/` del que sale cada referencia; los paquetes de Go de los applets de las tablas de
+  comandos de esas skills, con sus módulos; las raíces de grabaciones y, si lo tiene, su `grafo_previo`; y la carpeta del juez y los
+  demás ficheros de `evals/<skill>/` que no son evals— y lo común a todas (`cmd/`, `internal/app/`,
   `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, el
-  `Makefile`, el propio job, los cuatro `scripts/evals*.sh` y los esquemas de las evals y del juez). Elige las evals
+  `Makefile`, el propio job, los cuatro guiones que ejecuta —`scripts/evals.sh`, `evals-sesion.sh`, `evals-voto.sh`
+  y `evals-medir-juez.sh`— y los esquemas de las evals, de la lista de expresiones y del juez). Elige las evals
   cuyo conjunto toca la propuesta, y todas si toca lo común, la descripción de una skill o una ruta que mide y no es de
   ningún conjunto, si un conjunto no se puede calcular o si `gh` no da los ficheros de la propuesta; el registro dice
   cada eval elegida con su motivo y las rutas que la eligen. Cada trabajo `evals (<skill>)` decide después, en el paso

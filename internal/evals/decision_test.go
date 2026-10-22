@@ -93,7 +93,8 @@ type repositorioDeLaDecision struct {
 // eval —una huella sintética por conjunto, la que da T006 en el job—, un
 // subtest por caso. Cada uno compara el origen de la decisión de cada trabajo,
 // eval por eval, sus líneas del registro y su fichero, las lecturas de la
-// plataforma, y cuenta las sesiones del plan de cada trabajo con las que espera,
+// plataforma, cada una con el plazo de 10 minutos de la decisión, y cuenta las
+// sesiones del plan de cada trabajo con las que espera,
 // que salen del plan de las evals que espera medir: sale en rojo con una sola de
 // más.
 func TestDecisionDelJob(t *testing.T) {
@@ -422,7 +423,7 @@ func planDelJob(evals []Eval) PlanDeEvals {
 // trabajo cambios, que solo corre los trabajos si elige alguna; y la decisión
 // de cada trabajo, con su plataforma en memoria. Compara, de cada skill, el
 // origen, las líneas del registro, el fichero de la decisión, las lecturas de la
-// plataforma y las sesiones del plan.
+// plataforma con su plazo y las sesiones del plan.
 func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso casoDeLaDecision) {
 	t.Helper()
 
@@ -438,10 +439,13 @@ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso
 		sesiones := 0
 
 		if corren {
+			antes := time.Now()
 			origen, plataforma := repositorio.decidir(t, caso, calculo, skill)
+			despues := time.Now()
 
 			comprobarElOrigenDeLaDecision(t, skill, esperado, origen)
 			comprobarLasLecturas(t, skill, caso, plataforma.lecturas)
+			comprobarElPlazoDeLasLecturas(t, skill, plataforma.plazos, antes, despues)
 
 			sesiones = len(planDelJob(repositorio.evals[skill]).deLasMedidas(origen).Sesiones())
 		}
@@ -543,6 +547,24 @@ func comprobarLasLecturas(t *testing.T, skill string, caso casoDeLaDecision, lec
 		require.NotEmptyf(t, lecturas, "el trabajo de %s lee los ficheros de la propuesta", skill)
 		assert.Equalf(t, "ficheros de la propuesta 210", lecturas[0],
 			"el trabajo de %s lee primero los ficheros de la propuesta", skill)
+	}
+}
+
+// comprobarElPlazoDeLasLecturas comprueba que cada lectura de la plataforma
+// del trabajo de la skill, entre antes y después de su decisión, lleva el plazo
+// de lo que la decisión lee, plazoDeLaPlataforma desde que la decisión empieza
+// (FR-013; contracts/job-de-evals.md §2 de H30): sin él, una orden de gh que no
+// responde la corta el tiempo del paso y el trabajo no deja decisión. El
+// contexto del test no lleva plazo.
+func comprobarElPlazoDeLasLecturas(t *testing.T, skill string, plazos []time.Time, antes, despues time.Time) {
+	t.Helper()
+
+	for posicion, plazo := range plazos {
+		assert.Falsef(t, plazo.IsZero(), "la lectura %d de la plataforma del trabajo de %s lleva plazo", posicion, skill)
+		assert.Falsef(t, plazo.Before(antes.Add(plazoDeLaPlataforma)) || plazo.After(despues.Add(plazoDeLaPlataforma)),
+			"la lectura %d de la plataforma del trabajo de %s tiene de plazo %s, y es el de %s desde que empieza "+
+				"la decisión, entre %s y %s", posicion, skill, plazo, plazoDeLaPlataforma,
+			antes.Add(plazoDeLaPlataforma), despues.Add(plazoDeLaPlataforma))
 	}
 }
 

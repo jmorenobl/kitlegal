@@ -63,22 +63,26 @@ type ejecucionEnMemoria struct {
 // plataformaEnMemoria son las lecturas de la plataforma con respuestas
 // sintéticas con la forma de las de gh: las propuestas fusionadas, las
 // ejecuciones con sus trabajos y sus informes, los ficheros de cada propuesta y
-// el fallo de cada lectura que falla. Anota cada lectura, en orden.
+// el fallo de cada lectura que falla. Anota cada lectura, en orden, y el plazo
+// de su contexto, el instante cero si no lleva ninguno.
 type plataformaEnMemoria struct {
 	propuestas  []propuestaFusionada
 	ejecuciones []ejecucionEnMemoria
 	ficheros    map[int][]cambioDeLaPropuesta
 	fallos      map[string]error
 	lecturas    []string
+	plazos      []time.Time
 }
 
 // La plataforma en memoria implementa las lecturas de la plataforma.
 var _ lecturasDeLaPlataforma = (*plataformaEnMemoria)(nil)
 
-// leer anota la lectura y da su fallo, si lo tiene: con errPlazoEnCurso, el
-// del contexto en cuanto se agota.
+// leer anota la lectura y el plazo de su contexto y da su fallo, si lo tiene:
+// con errPlazoEnCurso, el del contexto en cuanto se agota.
 func (p *plataformaEnMemoria) leer(ctx context.Context, lectura string) error {
+	plazo, _ := ctx.Deadline()
 	p.lecturas = append(p.lecturas, lectura)
+	p.plazos = append(p.plazos, plazo)
 
 	fallo := p.fallos[lectura]
 	if errors.Is(fallo, errPlazoEnCurso) {

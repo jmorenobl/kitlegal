@@ -47,9 +47,10 @@ go test -count=1 -run '^(TestBusquedaDeMedidasDeMain|TestDecisionDelJob|TestOrde
 
 Esperado: `PASS`. En `TestDecisionDelJob`, `solo-el-cuerpo-de-jurisprudencia` planifica 0 sesiones de
 `boe-legislacion` y de `legal-core`, y `etiqueta-evals-sin-cambios` planifica 0 sesiones y deja las 45 reutilizadas con
-su huella; `sin-medida-de-main` planifica solo las sesiones de la eval sin resultado, con `sin_resultado_de_main`; y
-`ficheros-sin-leer` (el `gh` de los ficheros de la propuesta falla) mide todas las evals de la skill con `plataforma` y
-deja la orden y su error en `origen.error_de_la_plataforma`. En `TestBusquedaDeMedidasDeMain`, con un instante fijo,
+su huella; `solo-la-eval-sin-resultado` planifica solo las sesiones de la eval sin resultado (la 05 de `legal-core`),
+con `sin_resultado_de_main`, y `solo-el-cuerpo-de-jurisprudencia-sin-medida-de-main` mide las de `boe-legislacion` y
+`legal-core` con ese motivo; y `ficheros-de-la-propuesta-que-gh-no-da` (el `gh` de los ficheros de la propuesta falla)
+mide todas las evals de cada skill con `plataforma` y deja la orden y su error en `origen.error_de_la_plataforma`. En `TestBusquedaDeMedidasDeMain`, con un instante fijo,
 una eval que la medida más reciente reutilizó de una ejecución de hace 90 días se mide con `sin_resultado_de_main`, y
 una orden de `gh` que falla a mitad de la búsqueda la para: lo que queda se mide y la orden y su error quedan en el
 resultado.
@@ -78,9 +79,10 @@ Esperado: `PASS` y `serie.sh es el de main`.
 go test -count=1 -run '^TestLimiteDeLaTasa$' -v ./internal/evals/
 ```
 
-Esperado: `PASS`, y en el registro la tasa de referencia de cada skill con juez: `boe-legislacion` 120 respuestas,
-límite 3, tasa de referencia 0,0085; `jurisprudencia` 60, límite 1, 0,0036. El subtest `umbral-estrechado` da límite 2
-con 120 respuestas y `umbral: 0.017`.
+Esperado: `PASS`, y en el registro la tasa de referencia de cada skill con juez, un subtest por skill y clase:
+`boe-legislacion, afirma_lo_no_leido (umbral 0.028): pref = 0,85 %, N = 120, k(N) = 3` y `jurisprudencia,
+afirma_lo_no_leido (umbral 0.017): pref = 0,36 %, N = 60, k(N) = 1`. El subtest
+`estrechar-el-umbral-estrecha-el-limite` da `boe-legislacion con umbral 0.017: pref = 0,47 %, N = 120, k(N) = 2`.
 
 ## 8. La definición del job y la tanda (FR-016 a FR-021, SC-011)
 

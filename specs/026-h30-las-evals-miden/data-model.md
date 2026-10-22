@@ -25,7 +25,7 @@ leer el disco:
 
 | Campo | Contenido |
 |---|---|
-| `rutas` | Prefijos y ficheros fijos: `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, `Makefile`, `.github/workflows/evals.yml`, los cuatro `scripts/evals*.sh` de §1 y los tres esquemas de §1. Solo cuentan las rutas que miden (§1) |
+| `rutas` | Prefijos y ficheros fijos: `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, `Makefile`, `.github/workflows/evals.yml`, los cuatro guiones de `scripts/` de §1 (los que ejecuta el job, no los del sondeo) y los tres esquemas de §1. Solo cuentan las rutas que miden (§1) |
 | `paquetes` | Los del módulo cuyo directorio cae en esos prefijos, y el paquete raíz para recorrer sus importaciones |
 | `modulos` | Ruta y versión de cada módulo externo alcanzado desde `paquetes` (más `TestImports` y `XTestImports` de `internal/evals`) sin entrar en un paquete del módulo que no es de lo común (research D4, V8) |
 | `go`, `toolchain` | Los de `go.mod` |

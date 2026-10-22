@@ -137,6 +137,7 @@ código de otra forma, con lo que el quickstart describe (comprobado en `decisio
 - `ficheros-sin-leer` → `ficheros-de-la-propuesta-que-gh-no-da` (todas las evals con `plataforma` y la orden y su error
   en el `origen`).
 
+El barrido global, después de esta sesión, puso en quickstart.md §4 y §7 los nombres del código.
 `solo-el-cuerpo-de-jurisprudencia` y `etiqueta-evals-sin-cambios` se llaman como en el quickstart. En
 `TestBusquedaDeMedidasDeMain`, `medida-de-90-dias`, `procedencia-de-90-dias`, `falla-una-orden` y `plazo-agotado`, en
 `PASS`. **Lo esperado.**
@@ -162,7 +163,7 @@ tasa_test.go:88: boe-legislacion con umbral 0.017: pref = 0,47 %, N = 120, k(N) 
 
 Las tasas de referencia y los límites de quickstart.md (0,0085 con 120 y límite 3; 0,0036 con 60 y límite 1; límite 2
 con 120 y `umbral: 0.017`). El subtest del mutante se llama `estrechar-el-umbral-estrecha-el-limite`, no
-`umbral-estrechado`. **Lo esperado.**
+`umbral-estrechado` (el barrido global lo corrigió después en el quickstart). **Lo esperado.**
 
 ### 3.8 La definición del job y la tanda (§8)
 
