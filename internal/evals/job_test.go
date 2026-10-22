@@ -594,26 +594,32 @@ func votanteDelSondeo(senales context.Context, t *testing.T, guion string, juez 
 }
 
 // TestTandaDelCommit decide si la ejecución del flujo evals de -ejecucion mide
-// el commit de -commit (contracts/tanda-del-job.md §2 y §3 de H7.4; research.md
-// D15 y D16 de H7.4; FR-070 y FR-071 de H7.4): consulta con gh las ejecuciones
-// del flujo sobre el commit y los trabajos de cada anterior sin terminar, decide
-// con esperarLaDecision y, mientras alguna no ha decidido, espera de verdad
-// entre consulta y consulta; registra qué ejecuciones anteriores miró en cada
-// consulta y por qué mide o no; y añade a -salida la línea medir=si o medir=no.
-// Falla solo con un error: el de una orden de gh, que la nombra con lo que
+// el commit de -commit con el modo de -modo, completa o reutilizacion
+// (contracts/tanda-del-job.md §2 y §3 de H7.4; research.md D15 y D16 de H7.4;
+// FR-070 y FR-071 de H7.4; contracts/job-de-evals.md §2 y §4 de H30; FR-021 de
+// H30): consulta con gh las ejecuciones del flujo sobre el commit y los
+// trabajos de cada anterior sin terminar, decide con esperarLaDecision —no
+// mide si una de ellas mide con un modo igual o mayor— y, mientras alguna no ha
+// decidido, espera de verdad entre consulta y consulta; registra qué
+// ejecuciones anteriores miró en cada consulta y por qué mide o no; y añade a
+// -salida las líneas medir=si o medir=no y modo=<modo>. Falla solo con un
+// error: el de sus banderas, el de una orden de gh, que la nombra con lo que
 // escribió, o el de -salida. No abre sesiones ni escribe fuera de -salida. Solo
 // lo ejecuta el paso decidir del trabajo tanda, porque consulta la API de
 // GitHub; lo que decide lo fijan las subpruebas segundo-disparo y
-// estado-de-la-tanda de TestDefinicionDelJob, y las órdenes, lo que registra y
-// lo que escribe, TestOrdenesDeLaTanda, TestRegistroDeLaTanda y
-// TestSalidaDeLaTanda.
+// estado-de-la-tanda de TestDefinicionDelJob y TestTandaConLaSuiteCompleta, y
+// las órdenes, lo que registra y lo que escribe, TestOrdenesDeLaTanda,
+// TestRegistroDeLaTanda y TestSalidaDeLaTanda.
 func TestTandaDelCommit(t *testing.T) {
 	t.Parallel()
 
-	exigirBanderas(t, "commit", "ejecucion", "salida")
+	exigirBanderas(t, "commit", "ejecucion", "modo", "salida")
 
 	propia, err := strconv.ParseInt(*banderaEjecucion, 10, 64)
 	require.NoErrorf(t, err, "la bandera -ejecucion es el databaseId de una ejecuci\xc3\xb3n")
+
+	modo, err := modoDeLaDecision(*banderaModo)
+	require.NoError(t, err)
 
 	gh := ghDeLaTanda{entorno: os.Environ(), commit: *banderaCommit}
 
@@ -634,11 +640,11 @@ func TestTandaDelCommit(t *testing.T) {
 		return ejecuciones, nil
 	}
 
-	decision, err := esperarLaDecision(t.Context(), propia, consultar, time.Now, dormir)
+	decision, err := esperarLaDecision(t.Context(), propia, modo, consultar, time.Now, dormir)
 	require.NoError(t, err)
 
 	t.Log(motivoDeLaDecision(propia, miradas, decision))
-	require.NoError(t, escribirLaDecision(*banderaSalida, decision.mide))
+	require.NoError(t, escribirLaDecision(*banderaSalida, decision.decisionDeLaTanda))
 }
 
 // TestComprobarConsultaRepetida comprueba las dos respuestas de la consulta

@@ -1,16 +1,18 @@
 {
-  "id": "T011",
-  "texto": "T011 [US2] El golden de la matriz: lo que mide y reutiliza cada skill — FR-008, FR-019, SC-004 (contracts/eleccion-y-huella.md §3 y §5; research D16). **`internal/evals/eleccion.go`** (y **`decision.go`** si la composición lo pide): la matriz de una ejecución en texto, por skill, con las evals que mide (y su motivo) y las que reutiliza, sin sesiones, en un orden estable. **Tests**: `internal/evals/eleccion_test.go`, `TestMatrizDeLasPropuestas`: con una medida de `main` sintética con la huella de cada eval, la matriz de cada mutante de T005, de una propuesta sin nada elegido y de la suite completa, comparada byte a byte con una constante del test (el golden, sin fichero en disco); sale en rojo con cualquier diferencia. Rutas: internal/evals/eleccion.go, internal/evals/decision.go",
+  "id": "T012",
+  "texto": "T012 [US4] El modo de cada tanda — FR-018, FR-021 (data-model §10; contracts/job-de-evals.md §2, `tanda`; research D13). **`internal/evals/tanda.go`**: la tanda recibe el modo (`completa` o `reutilizacion`), escribe `medir=si|no` y `modo=<modo>`, y lee de cada ejecución anterior sin terminar sobre el mismo commit sus dos marcas («Esta ejecución mide el commit» y «Esta ejecución mide la suite completa»): no mide si una de ellas mide con un modo igual o mayor (`completa` > `reutilizacion`). **`internal/evals/job_test.go`**: `-modo` en `TestTandaDelCommit`. **Tests**: `internal/evals/tanda_test.go`, `TestTandaConLaSuiteCompleta`: una con reutilización no mide con una completa en curso; una completa sí mide con una con reutilización en curso; y los tests de la tanda que ya existen (`TestOrdenesDeLaTanda`, `TestSalidaDeLaTanda`, `TestRegistroDeLaTanda`) ganan el modo sin perder lo que comprobaban; `internal/evals/definicion_test.go`: los subtests `segundo-disparo` y `estado-de-la-tanda` de `TestDefinicionDelJob`, que usan lo que esta tarea cambia en `tanda.go` (`esperarLaDecision`, `leerLaTandaDeLaEjecucion`, `decisionDeLaTanda`, `decisionTrasLaEspera`, `ejecucionDelCommit`, `estadoDeLaTanda` y sus valores `tandaQueMide`, `tandaQueNoMide` y `tandaSinDecidir`), ganan el modo (data-model §10) sin perder lo que comprobaban, para que `make ci` compile y siga en verde en esta tarea. `go vet -tags evals ./internal/evals/` en verde. Rutas: internal/evals/tanda.go, internal/evals/job_test.go, internal/evals/definicion_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "6d164d5dd6cbcf2f01b0731b13a752da8c789d7c",
+  "base": "fba57c17074d97c4d851b1ce85673616fa77522c",
   "rutas": [
-    "contracts/eleccion-y-huella.md",
-    "decision.go",
-    "internal/evals/decision.go",
-    "internal/evals/eleccion.go",
-    "internal/evals/eleccion_test.go"
+    "contracts/job-de-evals.md",
+    "internal/evals/",
+    "internal/evals/definicion_test.go",
+    "internal/evals/job_test.go",
+    "internal/evals/tanda.go",
+    "internal/evals/tanda_test.go",
+    "tanda.go"
   ],
   "cierre": false,
   "converger": false,
