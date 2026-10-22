@@ -14,6 +14,13 @@ sustituyen a este fichero.
 
 ### Añadido
 
+- **El registro de spec-kit sigue al workflow `hito`** (`make workflow-registro`). `specify workflow list` decía que el
+  workflow iba por la 1.4.1, con la descripción de septiembre y una fuente en un directorio temporal que ya no existía:
+  spec-kit copia la cabecera de `workflow.yml` al registro al instalarlo y nada la volvía a copiar. Ahora
+  `make workflow-registro` lo reinstala desde `.specify/workflows/hito`, sin tocar `workflow.yml` y con la fuente
+  relativa, y `TestElRegistroDeSpecKitEsElDelWorkflow` falla en `make ci` si el nombre, la versión, la descripción o la
+  fuente del registro no son los de la cabecera. Lanzar un run no lo necesitaba: `specify workflow run` lee
+  `workflow.yml`.
 - **El Constitution Check del plan lleva una fila por cada principio de la constitución** (workflow `hito` 2.11.0).
   El prompt del plan pedía «un ítem por principio (I-IX)» y el juez lo comprobaba leyendo; con el principio X (ADR
   0044) se habría quedado fuera. Ahora `scripts/workflow/precheck.sh plan` saca los principios de los encabezados
