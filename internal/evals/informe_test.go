@@ -1894,10 +1894,11 @@ func exigirLasLineasDelPrograma(t *testing.T, guion, principio, final string, li
 // Lo que TestInformeFinalDeLosUmbrales escribe en su árbol temporal para que
 // guionDelInformeFinal lo lea.
 const (
-	// directorioDelHitoDelInformeFinal es el del hito, y hitoDelInformeFinal,
-	// su sección en docs/ROADMAP.md.
+	// directorioDelHitoDelInformeFinal es el del hito; ficheroDelHitoDelInformeFinal,
+	// el de su entrada en docs/roadmap/, y hitoDelInformeFinal, esa entrada.
 	directorioDelHitoDelInformeFinal = "specs/000-hito-del-test"
-	hitoDelInformeFinal              = "#### H0 · Hito del test\n"
+	ficheroDelHitoDelInformeFinal    = "docs/roadmap/in-progress/H0-hito-del-test.md"
+	hitoDelInformeFinal              = "---\nid: H0\nfase: \"1\"\n---\n\n# H0 · Hito del test\n"
 
 	// lineaDeLosUmbralesDelJob es el principio de la línea de la sección 1 que
 	// resume los umbrales de cada skill, y finalDeLosUmbralesDelJob, su final.
@@ -2069,9 +2070,9 @@ type informeFinalLeido struct {
 }
 
 // informeFinalConLosDelJob escribe en un árbol temporal guionDelInformeFinal y
-// el común, un docs/ROADMAP.md con la sección del hito, el directorio del hito
-// con su spec.md, su plan.md y su tasks.md vacíos y, en gates/evals, el informe
-// del job de cada skill; lo hace repositorio de git con un commit en main;
+// el común, el fichero del hito en docs/roadmap/in-progress/, el directorio del
+// hito con su spec.md, su plan.md y su tasks.md vacíos y, en gates/evals, el
+// informe del job de cada skill; lo hace repositorio de git con un commit en main;
 // ejecuta el guion con --solo-ver, que no cambia nada; y lee lo que escribe.
 func informeFinalConLosDelJob(t *testing.T, informes ...Informe) informeFinalLeido {
 	t.Helper()
@@ -2085,7 +2086,7 @@ func informeFinalConLosDelJob(t *testing.T, informes ...Informe) informeFinalLei
 
 	gates := directorioDelHitoDelInformeFinal + "/gates"
 
-	for _, d := range []string{"scripts/workflow", ".specify", "docs", gates + "/evals"} {
+	for _, d := range []string{"scripts/workflow", ".specify", "docs/roadmap/in-progress", gates + "/evals"} {
 		require.NoError(t, raiz.MkdirAll(d, 0o750))
 	}
 
@@ -2102,7 +2103,7 @@ func informeFinalConLosDelJob(t *testing.T, informes ...Informe) informeFinalLei
 
 	ficheros := map[string]string{
 		".specify/feature.json":                        `{"feature_directory": "` + directorioDelHitoDelInformeFinal + `"}`,
-		"docs/ROADMAP.md":                              hitoDelInformeFinal,
+		ficheroDelHitoDelInformeFinal:                  hitoDelInformeFinal,
 		directorioDelHitoDelInformeFinal + "/spec.md":  "",
 		directorioDelHitoDelInformeFinal + "/plan.md":  "",
 		directorioDelHitoDelInformeFinal + "/tasks.md": "",

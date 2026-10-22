@@ -7,6 +7,37 @@ feature_dir() {
   jq -r .feature_directory .specify/feature.json
 }
 
+# Fichero de un hito en docs/roadmap/: in-progress/H<n>-…md, todo/NNN-H<n>-…md
+# o done/H<n>-…md (docs/roadmap/README.md). Falla si no tiene ninguno. El guion
+# detrás del identificador hace que H2 no case con H29 ni H9 con H9.1.
+fichero_del_hito() { # $1 = hito
+  local f
+  for f in docs/roadmap/in-progress/"$1"-*.md docs/roadmap/todo/[0-9][0-9][0-9]-"$1"-*.md docs/roadmap/done/"$1"-*.md; do
+    if [ -f "$f" ]; then printf '%s\n' "$f"; return 0; fi
+  done
+  return 1
+}
+
+# Texto de un fichero de hito sin su cabecera YAML: desde «# H<n> · título».
+texto_del_hito() { # $1 = fichero
+  awk 'NR == 1 && $0 == "---" {cabecera = 1; next}
+    cabecera && $0 == "---" {cabecera = 0; next}
+    cabecera {next}
+    !empezado && $0 == "" {next}
+    {empezado = 1; print}' "$1"
+}
+
+# Título de un hito, la primera línea de su texto sin «# H<n> · »; vacío si el
+# hito no tiene fichero. Lo lee un solo awk, que no deja una tubería a medias.
+titulo_del_hito() { # $1 = hito
+  local f
+  f=$(fichero_del_hito "$1") || return 0
+  awk 'NR == 1 && $0 == "---" {cabecera = 1; next}
+    cabecera && $0 == "---" {cabecera = 0; next}
+    cabecera || $0 == "" {next}
+    {sub(/^# [A-Z0-9.]+ · /, ""); print; exit}' "$f"
+}
+
 # Huella SHA-256 de un fichero, con la herramienta que haya en la máquina.
 huella() {
   if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1

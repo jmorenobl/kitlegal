@@ -20,6 +20,25 @@ salida="$d/gates/$fase-precheck.txt"
 defecto() { printf '%s\n' "$*" >> "$salida"; }
 lineas_tarea() { grep -E '^[[:space:]]*- \[[ xX]\] T[0-9]+' "$d/tasks.md" || true; }
 
+# Principios de la constitución sin su fila en el Constitution Check de un plan,
+# uno por línea. Los numerales salen de los encabezados «### <numeral>.» de la
+# constitución, no de una lista en este guion: un principio nuevo pide su fila sin
+# tocarlo. Cuenta como fila del principio una de tabla cuya primera celda, sin
+# negrita ni espacios, empieza por su numeral entero y no sigue con otra letra:
+# «**I**», «I · Fuentes públicas…» o «I»; ni «II» ni «Implementación…» son el I.
+principios_sin_fila() { # $1 = plan.md
+  awk -v constitucion="$constitucion" '
+    FILENAME == constitucion && /^### [IVXLC]+\. / {n = $2; sub(/\.$/, "", n); principio[++total] = n; next}
+    FILENAME == constitucion {next}
+    /^## / {dentro = ($0 ~ /^## Constitution Check/); next}
+    dentro && /^\|/ {
+      split($0, celdas, "|"); celda = celdas[2]; gsub(/[* ]/, "", celda)
+      if (celda ~ /^[IVXLC]+([^A-Za-z]|$)/ && match(celda, /^[IVXLC]+/)) fila[substr(celda, 1, RLENGTH)] = 1
+    }
+    END {for (i = 1; i <= total; i++) if (!(principio[i] in fila)) print principio[i]}' "$constitucion" "$1"
+}
+constitucion=.specify/memory/constitution.md
+
 case "$fase" in
   spec)
     s="$d/spec.md"
@@ -49,6 +68,11 @@ case "$fase" in
     [ -f "$d/research.md" ] || defecto "falta research.md"
     [ ! -f "$d/plan.md" ] || ! grep -q "NEEDS CLARIFICATION" "$d/plan.md" || defecto "plan.md conserva NEEDS CLARIFICATION"
     [ ! -f "$d/plan.md" ] || grep -q "## Constitution Check" "$d/plan.md" || defecto "plan.md sin '## Constitution Check'"
+    [ -f "$constitucion" ] || defecto "falta $constitucion: el Constitution Check del plan no se puede comprobar"
+    if [ -f "$constitucion" ] && [ -f "$d/plan.md" ] && grep -q "## Constitution Check" "$d/plan.md"; then
+      faltan=$(principios_sin_fila "$d/plan.md" | tr '\n' ' ')
+      [ -z "$faltan" ] || defecto "Constitution Check sin fila para los principios: ${faltan}(una fila '| <numeral> · <principio> | …' por cada principio de $constitucion)"
+    fi
     [ ! -f "$d/plan.md" ] || grep -qiE 'Aceptación e2e' "$d/plan.md" \
       || defecto "plan.md no dice qué guiones de aceptación e2e describen la entrega (o 'Aceptación e2e: no aplica' con el motivo)"
     # Dónde vive el control de cada umbral (ADR 0029): lo lee el informe final sin

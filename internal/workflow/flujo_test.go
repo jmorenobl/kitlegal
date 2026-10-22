@@ -142,36 +142,3 @@ func TestLaSesionDeSpecifyLaRecogeElPasoSiguiente(t *testing.T) {
 	assert.Equal(t, "shell", flujo.Steps[2].Tipo)
 	assert.Equal(t, "scripts/workflow/modelos.sh recoger", flujo.Steps[2].Run)
 }
-
-// encabezadoDeHito es el de la sección de un hito en docs/ROADMAP.md, con el
-// hito capturado: «#### H23.1 · …».
-var encabezadoDeHito = regexp.MustCompile(`(?m)^#### (H[0-9]+(?:\.[0-9]+)?) ·`)
-
-// TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow: inputs.hito es una lista
-// cerrada, porque se interpola en pasos shell, y spec-kit rechaza antes de
-// crear el run un hito que no está en ella. La entrada de H23.1 se fusionó sin
-// añadirlo y `scripts/hito.sh H23.1` no llegó a empezar: cada hito con sección
-// en el roadmap tiene que poder lanzarse.
-func TestCadaHitoDelRoadmapEsUnaEntradaDelWorkflow(t *testing.T) {
-	t.Parallel()
-
-	var flujo struct {
-		Inputs struct {
-			Hito struct {
-				Enum []string `yaml:"enum"`
-			} `yaml:"hito"`
-		} `yaml:"inputs"`
-	}
-
-	require.NoError(t, yaml.Unmarshal([]byte(leerDelRepositorio(t, rutaDelWorkflow)), &flujo))
-
-	admitidos := flujo.Inputs.Hito.Enum
-	require.NotEmpty(t, admitidos, "el input hito de workflow.yml es una lista cerrada")
-
-	hitos := encabezadoDeHito.FindAllStringSubmatch(leerDelRepositorio(t, "docs/ROADMAP.md"), -1)
-	require.Greater(t, len(hitos), 20, "el roadmap tiene más de veinte secciones de hito")
-
-	for _, m := range hitos {
-		assert.Contains(t, admitidos, m[1], "el hito %s del roadmap está en el enum de inputs.hito de workflow.yml", m[1])
-	}
-}

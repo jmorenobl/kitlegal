@@ -1,0 +1,3 @@
+# Fiscal
+
+- **Primera: fiscal.** LGT y sus reglamentos, IRPF, IVA, IS y haciendas locales; saca de lo que la ley regula aparte la aplicación de los tributos, su revisión y las reclamaciones económico-administrativas; pide la doctrina de la DGT y del TEAC (tras revisar las condiciones de PETETE y DYCTEA; si no admiten un programa, el patrón de `jurisprudencia`: la persona trae el documento), el calendario del contribuyente y, con «territorios», las haciendas forales. ~~migración de la skill Python `boe-fiscal`~~ [enmienda 2026-10-21: `boe-fiscal` deja de ser la referencia. Cuando toque, el diseño se revisa contra una implementación fiscal previa de quien mantiene el proyecto, solo como referencia y sin copiar su código.]

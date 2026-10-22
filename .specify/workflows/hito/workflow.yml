@@ -2,10 +2,10 @@ schema_version: "1.0"
 workflow:
   id: "hito"
   name: "Hito del roadmap (SDD autónomo, persona en los extremos)"
-  version: "2.9.4"
+  version: "2.11.0"
   author: "kitlegal"
   integration: "claude"
-  description: "Implementa un hito de docs/ROADMAP.md sin ninguna persona entre la entrada y el informe final (ADR 0018). La sección del hito es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
+  description: "Implementa un hito del roadmap sin ninguna persona entre la entrada y el informe final (ADR 0018). El fichero del hito en docs/roadmap/in-progress/ es la entrada; specify, clarify (lectura conservadora), plan y tasks se juzgan con rúbrica y un corrector aparte; el único rechazo posible es el de entrada del spec. Los jueces aplican el umbral de materialidad, el criterio de uso de fuera adentro, la proporcionalidad y la convergencia entre rondas (ADR 0028), y exigen que todo umbral que se mide en make ci o en el cierre tenga un control que lo haga cumplir (ADR 0029). Implementación tarea a tarea con guardián de diff, suite de aceptación congelada, grabación determinista de datos externos y cuarentena en lugar de paradas. Barrido de artefactos; revisión final con dos jueces y cierre en la plataforma (CI y evals sobre la cabeza) en un solo bucle, de modo que todo lo que una reparación del cierre cambia fuera de gates/ lo juzgan los dos jueces antes de volver a medir (ADR 0030); informe final como cuerpo de la propuesta de cambio, con la ronda que vio cada commit posterior a la revisión, el modelo con el que corrió de verdad cada sesión frente al de su rol (ADR 0033) y, si se volvió a juzgar el hito entero (scripts/workflow/revision.sh rejuzgar), ese rejuicio con su motivo. Ninguna sesión de un paso lee credenciales, abre sesiones con modelo, deja nada en segundo plano ni escribe fuera del repositorio y del directorio temporal: lo impiden scripts/claude-modelo.sh y scripts/workflow/politica-paso.sh, y lo dice cada prompt (ADR 0032). Fusionar sigue siendo humano."
 
 requires:
   speckit_version: ">=1.0.0"
@@ -21,13 +21,15 @@ inputs:
   hito:
     type: string
     required: true
-    prompt: "Hito del roadmap a implementar (H0..H30, o un seguimiento H<n>.<m>)"
+    prompt: "Hito del roadmap a implementar: el de docs/roadmap/in-progress/ (H<n>, o un seguimiento H<n>.<m>)"
     # Los H<n>.<m> son seguimientos que endurecen un hito ya entregado sin ocupar
     # el número del siguiente: renumerar H6..H19 reescribiría registros de
     # decisiones ya tomadas (ADR 0013, ADR 0014), que es lo que el proyecto evita.
     # Siguen siendo una lista cerrada, que es lo que protege la interpolación en
-    # los pasos shell: ninguno lleva un metacarácter.
-    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H5.2","H6","H6.1","H6.2","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H9.1","H10","H11","H12","H13","H14","H15","H16","H17","H18","H19","H20","H21","H22","H23","H23.1","H24","H25","H26","H26.1","H27","H28","H29","H30"]
+    # los pasos shell: ninguno lleva un metacarácter. La lista la genera
+    # `make roadmap-sync` desde docs/roadmap/ (done/, in-progress/ y todo/),
+    # y TestRoadmap falla si no coincide: no se edita a mano.
+    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H6","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H9.1","H10","H11","H15","H16","H19","H20","H21","H22","H23","H23.1","H24","H25","H26","H26.1","H27","H28","H29","H30","H31","H32","H33","H34","H35","H36","H37","H38"]
   # ---- modelo y esfuerzo por rol: "<modelo>" o "<modelo>@<esfuerzo>" ----
   # (Haiku 4.5 no admite esfuerzo: solo sin sufijo.)
   # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado
@@ -96,7 +98,7 @@ inputs:
     prompt: "Pasos de lectura y transformación: integrar clarificaciones y analyze"
 
 steps:
-  # ================================================================ entrada: la sección del hito es lo único que escribe la persona
+  # ================================================================ entrada: el fichero del hito es lo único que escribe la persona
   - id: extraer_hito
     type: shell
     output_format: json
@@ -104,15 +106,14 @@ steps:
     run: |
       set -eu
       h="{{ inputs.hito }}"
-      # El punto de un seguimiento H<n>.<m> es literal en el patrón: sin escapar,
-      # casaría con cualquier carácter y podría extraer otro hito.
-      h_re=$(printf '%s' "$h" | sed 's/\./\\./g')
-      sec=$(awk -v h="$h_re" 'BEGIN{p=0} $0 ~ ("^#### " h " · "){p=1; print; next} p && /^(#{2,4} |---)/{exit} p{print}' docs/ROADMAP.md)
-      [ -n "$sec" ] || { echo "hito $h no encontrado en docs/ROADMAP.md" >&2; exit 1; }
+      . scripts/workflow/comun.sh
+      f=$(fichero_del_hito "$h") || { echo "hito $h sin fichero en docs/roadmap/" >&2; exit 1; }
+      sec=$(texto_del_hito "$f")
+      [ -n "$sec" ] || { echo "el fichero $f del hito $h está vacío" >&2; exit 1; }
       # .specify/feature.json apunta aún al feature del run anterior: sin él, la
       # sesión de specify se apunta aparte y recoger_sesiones la lleva al hito.
       scripts/workflow/modelos.sh empezar
-      titulo=$(printf '%s\n' "$sec" | head -1 | sed -E 's/^#### [A-Z0-9.]+ · //')
+      titulo=$(titulo_del_hito "$h")
       palabras=$(printf '%s' "$titulo" | tr '[:upper:]' '[:lower:]' | iconv -f utf-8 -t ascii//TRANSLIT 2>/dev/null | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -d- -f1-3)
       # El punto no llega al nombre de la rama ni al del directorio: h5.1 → h5-1.
       slug="$(printf '%s' "$h" | tr '[:upper:]' '[:lower:]' | tr . -)-$palabras"
@@ -128,9 +129,9 @@ steps:
         Hito {{ inputs.hito }} · {{ steps.extraer_hito.output.data.titulo }}.
         Nombre corto OBLIGATORIO para la rama y el directorio: {{ steps.extraer_hito.output.data.slug }}
 
-        MODO AUTÓNOMO (ADR 0018). La sección del roadmap que sigue es la entrada de la persona: la única instrucción humana de todo el run. Nadie va a responder preguntas ni a revisar nada hasta el informe final:
+        MODO AUTÓNOMO (ADR 0018). El fichero del hito que sigue es la entrada de la persona: la única instrucción humana de todo el run. Nadie va a responder preguntas ni a revisar nada hasta el informe final:
         - No esperes respuesta. Si detectas ambigüedad que afecte al alcance, déjala como [NEEDS CLARIFICATION: pregunta concreta] (máximo 3); la cerrará un proceso posterior con contexto limpio y el criterio de la constitución. No la resuelvas tú ni presentes opciones.
-        - El alcance del spec es EXACTAMENTE la sección del hito. Lo que no esté en ella, en CLAUDE.md, en refs/ o en .specify/memory/constitution.md va a "## Fuera de alcance" (obligatoria, aunque quede vacía) y no se implementa.
+        - El alcance del spec es EXACTAMENTE el fichero del hito. Lo que no esté en él, en CLAUDE.md, en refs/ o en .specify/memory/constitution.md va a "## Fuera de alcance" (obligatoria, aunque quede vacía) y no se implementa.
         - Lee antes CLAUDE.md, docs/ROADMAP.md (§1 Definition of Done, §2 arquitectura, §3 controles, §6 ritual) y los refs/ que el hito cite.
         - Cada requisito lleva un id estable y único en negrita (**FR-001**, **SC-001**…) y al menos un criterio comprobable; los escenarios de aceptación van en forma Dado/Cuando/Entonces; las restricciones no funcionales llevan umbral numérico. De ahí saldrán los guiones de aceptación congelados, que no se pueden escribir contra un requisito ambiguo.
         - Los criterios de aceptación del spec deben incluir literalmente los de "Aceptación" y "Controles" del hito.
@@ -139,7 +140,7 @@ steps:
         - Umbrales que se cumplen (criterio j del juez; ADR 0029): cada requisito o criterio de éxito con un umbral numérico que se mide sin persona, en `make ci` o en el cierre (el job de evals u otra comprobación de la plataforma), dice qué comprobación sale en rojo si la medida pasa del umbral. Publicar la medida no basta; la regla por serie del ADR 0016 no hace cumplir un umbral agregado; y hacer cumplir un umbral que pide el hito no es alcance añadido: su control nunca va a "## Fuera de alcance".
         - Antes de dar por terminado, comprueba spec.md y checklists/ contra la rúbrica del paso `juez_spec` de .specify/workflows/hito/workflow.yml y contra scripts/workflow/precheck.sh (fase spec), y corrige lo que no cumpla: cada rechazo cuesta una ronda entera.
 
-        Sección del roadmap:
+        Fichero del hito:
 
         {{ steps.extraer_hito.output.data.texto }}
         SESIÓN DE UN PASO (constitución, «Reglas del modo desatendido»; ADR 0032). Todo lo que ejecutes va en primer plano y esperas a que termine: nada en segundo plano. No abres sesiones con modelo (`claude`, `make evals`, `make evals-sondeo`, `TestSondeo`) ni lees o usas credenciales. Tus órdenes corren en un sandbox: solo escriben en el repositorio y en el directorio temporal, que es `$TMPDIR` y no `/tmp`, y no tienen más red que la de las herramientas de Go. Y no citas como evidencia nada que no hayas ejecutado y visto terminar en esta sesión o que no esté en el repositorio: lo que no hayas podido medir, lo dices tal cual. Cada línea que lees se queda en el contexto y se vuelve a pagar en cada turno que le queda a la sesión: busca con grep -n y lee la parte que necesitas (Read con offset y limit), no un fichero entero que no vas a usar entero.
@@ -150,6 +151,15 @@ steps:
     type: shell
     timeout: 30
     run: "scripts/workflow/modelos.sh recoger"
+
+  # El fichero del hito pasa de docs/roadmap/in-progress/ a done/ en el primer commit
+  # de su rama, la que acaba de crear specify: al fusionar la propuesta de cambio,
+  # main lo tiene hecho, y como es parte del producto desde el principio lo ven todas
+  # las revisiones y todas las mediciones (ADR 0030).
+  - id: hito_a_done
+    type: shell
+    timeout: 30
+    run: "scripts/workflow/hito-a-done.sh {{ inputs.hito }}"
 
   # ================================================================ clarify: pregunta un proceso, responde otro, nadie escala
   - id: clarify_preguntas
@@ -186,7 +196,7 @@ steps:
         timeout: 3600
         prompt: |
           Eres un proceso independiente con contexto limpio: no has visto la sesión que formuló las preguntas, no debes buscar su razonamiento y decides únicamente con documentos. Nadie va a revisar tu decisión antes del informe final: tiene que ser la mejor posible y quedar explicada.
-          1. Lee .specify/feature.json para localizar <feature_dir>. Lee <feature_dir>/gates/clarify-preguntas.json y <feature_dir>/spec.md; la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md; la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md; CLAUDE.md; y los refs/ que el hito cite. Si ya existe <feature_dir>/gates/clarify-respuestas.json, es un intento anterior incompleto: complétalo.
+          1. Lee .specify/feature.json para localizar <feature_dir>. Lee <feature_dir>/gates/clarify-preguntas.json y <feature_dir>/spec.md; el fichero del hito {{ inputs.hito }} en docs/roadmap/in-progress/; la sección «Criterio de decisión autónoma» de .specify/memory/constitution.md; CLAUDE.md; y los refs/ que el hito cite. Si ya existe <feature_dir>/gates/clarify-respuestas.json, es un intento anterior incompleto: complétalo.
           2. Para cada pregunta, en orden:
              (e) antes que nada, el umbral de materialidad de la sección «Gates» de la constitución: si el producto no puede llegar a ese estado o recibir esa entrada por una vía real (un emisor que existe o que entrega el hito, un argumento, una bandera o una variable de quien usa el kit, o un estado que crea el propio binario, incluidas sus invocaciones concurrentes y la interrupción de sus propias escrituras si el hito promete atomicidad), o si todas las opciones dan el mismo resultado observable para una persona o una skill, la respuesta es "no material: lo cubre la regla genérica (defecto `inesperado`, código 1, ADR 0023); el spec no lo especifica", con criterio "e";
              (a) si la respuesta está determinada por el hito, CLAUDE.md, refs/ o la constitución, esa es la respuesta; cita la fuente;
@@ -258,7 +268,7 @@ steps:
         timeout: 3600
         prompt: |
           Eres el JUEZ DE ENTRADA del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica la sección «Criterio de decisión autónoma» y la sección «Gates» de .specify/memory/constitution.md, con su umbral de materialidad, su criterio de uso, sus umbrales que se cumplen y su regla de convergencia (ADR 0028 y 0029).
-          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, checklists/, gates/clarify-*.json, gates/spec-precheck.txt (defectos mecánicos: cada uno es un incumplimiento) y, si existen, gates/spec-pendiente.md y gates/spec-correccion-r*.diff; la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md; CLAUDE.md; la constitución; y la SKILL.md de cada skill que consumirá lo que el hito entrega.
+          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, checklists/, gates/clarify-*.json, gates/spec-precheck.txt (defectos mecánicos: cada uno es un incumplimiento) y, si existen, gates/spec-pendiente.md y gates/spec-correccion-r*.diff; el fichero del hito {{ inputs.hito }} en docs/roadmap/in-progress/; CLAUDE.md; la constitución; y la SKILL.md de cada skill que consumirá lo que el hito entrega.
           Rúbrica (cada criterio se evalúa cumple/no cumple con evidencia citada del artefacto):
             a. alcance: el spec cubre el hito completo y nada más que el hito; tampoco especifica caso a caso estados o entradas que no pasan el umbral de materialidad;
             b. fuera_de_alcance: todo lo no especificado en hito, CLAUDE.md, refs/ o constitución está listado en "## Fuera de alcance";
@@ -278,7 +288,7 @@ steps:
             {"veredicto":"aprobado"|"rechazado","criterios":[{"id":"a","criterio":"alcance","cumple":true|false,"evidencia":"…"}],"motivos":["…"],"observaciones":["…"],"entrada":[]}
           "aprobado" solo si TODOS los criterios cumplen. Cada motivo empieza por las letras de los criterios que incumple, p. ej. "[h] …", y dice qué cambiar y dónde; los de h llevan su vía y su diferencia, los de i su cálculo, y los de j el umbral, dónde se mide y qué comprobación tendría que salir en rojo. Todo lo que un corrector pueda arreglar sin decidir por la persona va a motivos, incluidos los asuntos de alcance, frontera humana, privacidad o TOS: el corrector aplica la lectura conservadora. "observaciones" recoge, una línea cada una, lo que viste y no llega a motivo por el umbral de materialidad o por la convergencia: no cuenta para el veredicto ni llega al corrector.
           RECHAZO DE ENTRADA. Es la única forma de devolver el spec a la persona antes del informe final, y solo por estos tres tipos, cada uno demostrado con el fragmento exacto:
-            - "contradiccion": dos requisitos que no pueden cumplirse a la vez, en la propia sección del hito;
+            - "contradiccion": dos requisitos que no pueden cumplirse a la vez, en el propio fichero del hito;
             - "sin_criterio_comprobable": un requisito central del hito del que no se puede derivar ningún test ni con la lectura conservadora;
             - "objetivo_vacio": tras cerrar las ambigüedades de forma conservadora no queda nada del objetivo principal del hito (p. ej., todo lo que pide cae al otro lado de la frontera humana).
           Para cada uno añade a "entrada" {"tipo":"contradiccion|sin_criterio_comprobable|objetivo_vacio","requisito":"FR-…","fragmento":"…","por_que":"por qué impide derivar un test","pregunta":"pregunta cerrada para la persona"}. Si no hay ninguno, "entrada" es []. No uses "entrada" para nada que un corrector pueda resolver.
@@ -303,7 +313,7 @@ steps:
             timeout: 3600
             prompt: |
               Eres el CORRECTOR del spec del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo. Un juez independiente ha rechazado el spec; tú aplicas sus motivos, no los discutes.
-              Lee .specify/feature.json para localizar <feature_dir>; lee gates/spec.json (criterios con cumple=false y motivos), gates/spec-precheck.txt (defectos mecánicos), spec.md, checklists/, la sección "#### {{ inputs.hito }} ·" de docs/ROADMAP.md, CLAUDE.md y .specify/memory/constitution.md.
+              Lee .specify/feature.json para localizar <feature_dir>; lee gates/spec.json (criterios con cumple=false y motivos), gates/spec-precheck.txt (defectos mecánicos), spec.md, checklists/, el fichero del hito {{ inputs.hito }} en docs/roadmap/in-progress/, CLAUDE.md y .specify/memory/constitution.md.
               Para cada criterio incumplido y cada defecto mecánico, corrige spec.md y/o checklists/ con la mejor solución posible, sin atajos: nunca marques un ítem de checklist sin que el spec lo satisfaga. Un motivo describe un caso de un defecto: identifica la clase de error que lo causa, búscala en todo el spec y corrígela en cada aparición que pase el umbral de materialidad de la constitución («Gates»; ADR 0028), no solo en la línea citada, y en ninguna más: no añadas requisitos, casos límite ni supuestos para estados o entradas a los que el producto no puede llegar o cuyas lecturas no cambian nada que vea una persona o una skill; si el spec ya los enumera, sustitúyelos por la regla genérica (defecto `inesperado`, código 1, ADR 0023). Entre dos correcciones que resuelven el motivo, elige la que deja el spec más corto: acotar una afirmación, remitir a la regla genérica o quitar lo que nada exige antes que añadir casos.
               Un motivo de uso ([i]) se corrige desde quien consume la salida: se acota a lo que la pregunta necesita y cada señal dice cuándo deja de darse, con la opción que menos comportamiento añade dentro del objetivo del hito. Un motivo de umbral ([j]) se corrige en el requisito: dice qué comprobación sale en rojo si la medida pasa del umbral (el job de evals falla, un test de `make ci` falla) y sale de "## Fuera de alcance" lo que excluya ese control; nunca se rebaja ni se retira un umbral que pide el hito, ni se deja solo publicado o informativo, porque hacer cumplir un umbral del hito no es alcance añadido (constitución, «Criterio de decisión autónoma», punto 2; ADR 0029). Las "observaciones" del veredicto no se aplican.
               Si un motivo toca alcance, frontera humana, privacidad, términos de uso, anomalías o una decisión cerrada, aplica la lectura conservadora (lo dudoso no se implementa y va a "## Fuera de alcance"). Anota en <feature_dir>/gates/supuestos.md cada lectura conservadora y cada corrección de uso o de umbral, con una línea "- [impacto] corrector_spec: <motivo> → <lo que quedó fuera o se decidió, y por qué>", donde impacto es comportamiento (lo que ve quien usa el binario: salida, códigos, ficheros, argumentos), alcance (qué entra o queda fuera), skill (lo que una skill pide, dice o comprueba) o interno (nada observable); si caben varios, el primero de esta lista.
@@ -327,7 +337,7 @@ steps:
         - Cada escenario de quickstart.md debe poder ejecutarse tal cual: órdenes, rutas, flags y datos de prueba reales, y sin efectos colaterales en el árbol de trabajo, el índice ni el historial de git más allá de lo que el escenario declara.
         - Stack y dependencias: solo las fijadas en la constitución (§V) y en docs/ROADMAP.md §3; cualquier otra va a Complexity Tracking con justificación o no se usa.
         - Estructura: la de docs/ROADMAP.md §2 y CLAUDE.md. Reglas de dependencia entre paquetes obligatorias.
-        - Rellena el Constitution Check con un ítem por principio (I-IX) y por regla de dependencia, indicando cómo lo cumple este hito. Si un gate falla sin justificación, corrígelo en el plan.
+        - Rellena el Constitution Check con una fila de tabla por cada principio de .specify/memory/constitution.md (sus encabezados «### <numeral>.», todos), con el numeral al principio de la primera celda («| X · Genericidad por materia… | … |»), y una por regla de dependencia, indicando cómo lo cumple este hito; precheck.sh plan da como defecto el principio que no tenga su fila. Si un gate falla sin justificación, corrígelo en el plan.
         - Enumera en el plan los controles mecánicos que este hito añade o toca (objetivos de make, tests de contrato, fixtures) según la sección «Gates» de la constitución.
         - Aceptación e2e (ADR 0018): una línea "Aceptación e2e:" que diga qué guiones testscript describen la entrega del hito, uno o varios por historia de usuario, y qué FR/SC cubre cada uno; los escribirá la primera tarea en <feature_dir>/aceptacion/ y quedarán congelados. Si el hito no tiene comportamiento visible del binario, "Aceptación e2e: no aplica" con el motivo (las evals de la skill, si las hay, son entonces su aceptación).
         - Datos externos (ADR 0018): el ejecutor nunca toca la red. Todo dato de una fuente externa —respuestas que reproducen los tests o material de origen de un fichero de data/— se obtiene en el paso determinista grabar_datos del workflow, y solo de fuentes con fila en docs/SOURCES.md de main con «Revisado» fechado. Para cada una, el plan nombra el manifiesto <paquete>/testdata/grabaciones.json (con "fuente") y el test //go:build grabacion TestGrabar* que pide con internal/httpx y deja las respuestas en testdata/ del paquete y el material de origen en $KITLEGAL_EVIDENCIAS (evidencias/<hito>/). Los ficheros de data/ derivados de ese material los produce código del repositorio, de forma reproducible; nunca se escriben a mano ni de memoria. Una fuente sin fila revisada en main queda fuera de alcance (anótalo en research.md).
@@ -366,9 +376,9 @@ steps:
         timeout: 3600
         prompt: |
           Eres el JUEZ del plan del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo con contexto limpio. Solo emites veredicto: NO modifiques ningún fichero salvo el JSON del veredicto. Aplica las secciones «Criterio de decisión autónoma» y «Gates» de .specify/memory/constitution.md, con su umbral de materialidad, su criterio de uso, la proporcionalidad, los umbrales que se cumplen y la regla de convergencia (ADR 0028 y 0029).
-          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md (los que existan), gates/plan-precheck.txt (defectos mecánicos: cada uno es un incumplimiento) y, si existen, gates/plan-pendiente.md y gates/plan-correccion-r*.diff; la constitución; CLAUDE.md; docs/ROADMAP.md §2-§3 y la sección "#### {{ inputs.hito }} ·"; docs/SOURCES.md; y la SKILL.md de cada skill que consumirá lo que el hito entrega.
+          Lee .specify/feature.json para localizar <feature_dir>; lee spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md (los que existan), gates/plan-precheck.txt (defectos mecánicos: cada uno es un incumplimiento) y, si existen, gates/plan-pendiente.md y gates/plan-correccion-r*.diff; la constitución; CLAUDE.md; docs/ROADMAP.md §2-§3 y el fichero del hito {{ inputs.hito }} en docs/roadmap/in-progress/; docs/SOURCES.md; y la SKILL.md de cada skill que consumirá lo que el hito entrega.
           Rúbrica (cumple/no cumple con evidencia):
-            a. constitution_check: completo, un ítem por principio y regla de dependencia, y veraz;
+            a. constitution_check: veraz —que cada principio tenga su fila lo comprueba precheck.sh, y su defecto está en gates/plan-precheck.txt—: lo que dice de cada principio y de cada regla de dependencia es cierto para este plan, y no falta ninguna regla de dependencia;
             b. dependencias: ninguna fuera de la lista fijada sin justificación en Complexity Tracking;
             c. reglas_dependencia: la estructura propuesta respeta qué paquete importa qué (core sin adaptadores; net/http solo en httpx; SQLite solo en cache/store/graph; os.Exit solo en cli/cmd; stdout solo en render);
             d. errores_exit_codes: errores tipados que mapean a los exit codes estables;
@@ -766,7 +776,7 @@ steps:
       Eres el paso de BARRIDO GLOBAL del hito {{ inputs.hito }} de kitlegal, en un proceso nuevo, antes de la revisión final. El código ya está terminado y `make ci` refleja su estado; tu trabajo es que TODO lo que se afirma sobre él sea verdad, de una vez y no ronda a ronda.
       Lee .specify/feature.json para localizar <feature_dir>, y `git diff main...HEAD` completo. Contrasta con el código y con el binario (compílalo y ejecútalo en un directorio temporal fuera del repositorio cuando haga falta) cada afirmación de:
         1. los artefactos del hito: spec.md, plan.md, research.md, data-model.md, contracts/, quickstart.md y tasks.md;
-        2. la documentación del repositorio que el hito toca o que habla de lo que el hito cambia: README.md, CONTRIBUTING.md, CHANGELOG.md (Unreleased), docs/ (ROADMAP, SOURCES, ADR del hito, WORKFLOW si procede), skills/*/SKILL.md y los comentarios de paquete de los paquetes nuevos;
+        2. la documentación del repositorio que el hito toca o que habla de lo que el hito cambia: README.md, CONTRIBUTING.md, CHANGELOG.md (Unreleased), docs/ (ROADMAP, roadmap/, SOURCES, ADR del hito, WORKFLOW si procede), skills/*/SKILL.md y los comentarios de paquete de los paquetes nuevos;
         3. las cifras (número de normas, municipios, evals, ficheros, tiempos), los códigos de salida y los ejemplos de órdenes.
       Corrige el TEXTO para que diga lo que el producto hace (nunca el código para que haga lo que dice un texto: si un requisito del spec no se cumple, no lo tapes; déjalo como está para que los jueces lo vean y añade una línea a <feature_dir>/gates/supuestos.md, "- [impacto] barrido: <requisito> → <lo que hace el producto>", con impacto comportamiento, alcance, skill o interno, como define la constitución en «Criterio de decisión autónoma»). Busca cada clase de error en todos los ficheros, no solo el primer caso. No toques código de producto, tests, testdata/, schemas/, evidencias/, la configuración de verificación ni la suite de aceptación congelada; `references/` de las skills se regenera con `make skills-sync`, nunca a mano.
       Termina ejecutando `make ci` en primer plano; si queda en rojo por tu cambio, corrígelo. No hagas commit: lo hace el workflow tras verificar. Escribe en español. No preguntes; no esperes respuesta.
@@ -888,7 +898,7 @@ steps:
                     "aprobado" solo si TODOS cumplen. Todo motivo lo aplica un corrector sin persona: si toca alcance, frontera humana, privacidad o TOS, dilo y el corrector aplicará la lectura conservadora (retirar lo dudoso). Cada motivo empieza por las letras de los criterios que incumple, p. ej. "[e][f] …", y dice qué cambiar y dónde. "observaciones" recoge, una línea cada una, lo que viste y no llega a motivo por el umbral de materialidad o por la convergencia: no cuenta para el veredicto ni llega al corrector.
                     Revisión exhaustiva dentro del umbral: evalúa cada criterio contra todo el diff y enumera en motivos todos los incumplimientos, no solo el primero de cada criterio; cada defecto que quede para otra ronda cuesta una corrección y dos juicios más.
                     CONVERGENCIA. Si gates/{{ item.fichero }} ya existe, es tu último veredicto: léelo antes de sobrescribirlo y comprueba primero que cada motivo anterior está corregido; el que no lo esté se repite. Los motivos del otro juez en su gates/revision-*.json también se corrigieron: comprueba que las correcciones no rompieron nada. Lo que cambió desde ese veredicto es exactamente el rango de gates/revision-cambios.md, con su diff fuera de gates/ en el fichero que nombra, y todo ese rango es «la corrección», sea del corrector de la revisión o de cualquier paso posterior a tu veredicto. Un motivo NUEVO —que no estaba en el veredicto anterior— solo cuenta si lo introdujo un cambio del rango o si es material: pasa el umbral de materialidad, el criterio de uso o el de umbrales (l), o sin él el hito no cumple la Definition of Done. Cualquier otro hallazgo nuevo va a observaciones.
-                    CAMBIOS DEL CIERRE. Si el rango trae una reparación del cierre («fix({{ inputs.hito }}): cierre en la plataforma»), la hizo un paso sin juez después de que CI o las evals salieran en rojo sobre la cabeza; la medición está en gates/cierre.json, gates/cierre.log y gates/evals/*.json (con sus `umbrales`). Júzgala con la rúbrica entera, como cualquier otro cambio del hito: arreglar la medición no la exime de ningún criterio. Si se aparta de lo que piden la sección del hito, el spec o lo que decidió un hito anterior, solo cumple si es la mejor solución a la vista de esa medición y está registrada como decisión, con su evidencia, en research.md o plan.md («Decisiones») y en gates/supuestos.md con su impacto; si no, el motivo dice qué cambiar o qué registrar, y dónde. Tras esta revisión el workflow vuelve a medir la cabeza.
+                    CAMBIOS DEL CIERRE. Si el rango trae una reparación del cierre («fix({{ inputs.hito }}): cierre en la plataforma»), la hizo un paso sin juez después de que CI o las evals salieran en rojo sobre la cabeza; la medición está en gates/cierre.json, gates/cierre.log y gates/evals/*.json (con sus `umbrales`). Júzgala con la rúbrica entera, como cualquier otro cambio del hito: arreglar la medición no la exime de ningún criterio. Si se aparta de lo que piden el fichero del hito, el spec o lo que decidió un hito anterior, solo cumple si es la mejor solución a la vista de esa medición y está registrada como decisión, con su evidencia, en research.md o plan.md («Decisiones») y en gates/supuestos.md con su impacto; si no, el motivo dice qué cambiar o qué registrar, y dónde. Tras esta revisión el workflow vuelve a medir la cabeza.
                     Escribe en español. No preguntes; no esperes respuesta.
                     SESIÓN DE UN PASO (constitución, «Reglas del modo desatendido»; ADR 0032). Todo lo que ejecutes va en primer plano y esperas a que termine: nada en segundo plano. No abres sesiones con modelo (`claude`, `make evals`, `make evals-sondeo`, `TestSondeo`) ni lees o usas credenciales. Tus órdenes corren en un sandbox: solo escriben en el repositorio y en el directorio temporal, que es `$TMPDIR` y no `/tmp`, y no tienen más red que la de las herramientas de Go. Y no citas como evidencia nada que no hayas ejecutado y visto terminar en esta sesión o que no esté en el repositorio: lo que no hayas podido medir, lo dices tal cual. Cada línea que lees se queda en el contexto y se vuelve a pagar en cada turno que le queda a la sesión: busca con grep -n y lee la parte que necesitas (Read con offset y limit), no un fichero entero que no vas a usar entero.
 
@@ -958,7 +968,7 @@ steps:
             prompt: |
               La medición de cierre del hito {{ inputs.hito }} de kitlegal sale en rojo sobre la cabeza de la rama: CI o evals remotas. Lee .specify/feature.json para localizar <feature_dir>; el estado de cada comprobación está en <feature_dir>/gates/cierre.json, el final del log de cada ejecución en rojo en <feature_dir>/gates/cierre.log y el informe de cada job de evals, con sus `umbrales`, en <feature_dir>/gates/evals/<skill>.json.
               Reproduce el fallo en local si se puede sin abrir ninguna sesión con modelo (p. ej. `go test -exec 'env GOOS=linux …'` para diferencias del runner). Una eval o un umbral del job en rojo se diagnostican con lo que el job dejó —las respuestas, los comandos y los motivos de cada sesión en <feature_dir>/gates/evals/<skill>.json—, nunca repitiendo las sesiones: ni `make evals`, ni `make evals-sondeo`, ni `TestSondeo`, ni `claude`. Si el arreglo cambia lo que mide el job, lo mide el job en la medición siguiente; tú no puedes medirlo y lo dices así, sin citar un sondeo ni ninguna otra verificación que no esté en el repositorio. Arregla la causa raíz aplicando «Criterio de decisión autónoma» de .specify/memory/constitution.md. Una eval en rojo se arregla en la skill o en la herramienta, nunca en la eval; un umbral del job que no se cumple, también: nunca rebajándolo, quitándolo del veredicto ni dejándolo solo publicado (ADR 0029); una cota de tiempo que el runner no cumple se arregla midiendo lo que la cota protege, no subiéndola sin más. Nunca modifiques testdata/, schemas/, evidencias/, la configuración de lint, cobertura o CI, ni la suite de aceptación congelada.
-              Lo que cambies fuera de gates/ no se mide sin juez: antes de la medición siguiente vuelve a la revisión final, y los dos jueces lo juzgan con su rúbrica entera, como cualquier otro cambio del hito (ADR 0030). Si el arreglo se aparta de lo que piden la sección del hito, el spec o lo que decidió un hito anterior, regístralo como decisión con la evidencia de la medición en research.md o plan.md («Decisiones»), y añade una línea a <feature_dir>/gates/supuestos.md ("- [impacto] reparar_cierre: <motivo> → <decisión>", con impacto comportamiento, alcance, skill o interno, como define la constitución en «Criterio de decisión autónoma»).
+              Lo que cambies fuera de gates/ no se mide sin juez: antes de la medición siguiente vuelve a la revisión final, y los dos jueces lo juzgan con su rúbrica entera, como cualquier otro cambio del hito (ADR 0030). Si el arreglo se aparta de lo que piden el fichero del hito, el spec o lo que decidió un hito anterior, regístralo como decisión con la evidencia de la medición en research.md o plan.md («Decisiones»), y añade una línea a <feature_dir>/gates/supuestos.md ("- [impacto] reparar_cierre: <motivo> → <decisión>", con impacto comportamiento, alcance, skill o interno, como define la constitución en «Criterio de decisión autónoma»).
               Ejecuta `make ci` en primer plano hasta verde. No hagas commit ni push: el workflow commitea, lo lleva a la revisión final si cambia algo fuera de gates/, empuja y vuelve a medir. No preguntes; no esperes respuesta.
               SESIÓN DE UN PASO (constitución, «Reglas del modo desatendido»; ADR 0032). Todo lo que ejecutes va en primer plano y esperas a que termine: nada en segundo plano. No abres sesiones con modelo (`claude`, `make evals`, `make evals-sondeo`, `TestSondeo`) ni lees o usas credenciales. Tus órdenes corren en un sandbox: solo escriben en el repositorio y en el directorio temporal, que es `$TMPDIR` y no `/tmp`, y no tienen más red que la de las herramientas de Go. Y no citas como evidencia nada que no hayas ejecutado y visto terminar en esta sesión o que no esté en el repositorio: lo que no hayas podido medir, lo dices tal cual. Cada línea que lees se queda en el contexto y se vuelve a pagar en cada turno que le queda a la sesión: busca con grep -n y lee la parte que necesitas (Read con offset y limit), no un fichero entero que no vas a usar entero.
 

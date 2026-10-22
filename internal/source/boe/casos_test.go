@@ -79,7 +79,7 @@ var (
 
 // referenciasDelDiff y normasDelDiff son los seis artículos de cuatro leyes de
 // FR-116, que cumplen con holgura los cinco de tres del criterio de aceptación
-// del hito (docs/ROADMAP.md, H4).
+// del hito (docs/roadmap/done/, H4).
 const (
 	referenciasDelDiff = 6
 	normasDelDiff      = 4

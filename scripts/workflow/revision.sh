@@ -65,6 +65,7 @@ paso_de() {
     "fix($hito): make ci del hito completo"*) echo "paso \`reparar_hito\`";;
     "docs($hito): barrido"*) echo "paso \`barrido\`";;
     "docs($hito): registros del run"*) echo "pasos \`publicar\` o \`medir_cierre\` (registros del run)";;
+    "docs($hito): el hito pasa a done/"*) echo "paso \`hito_a_done\`";;
     "docs($hito): informe final"*) echo "paso \`informe_final\`";;
     *) echo "fuera de los pasos del workflow";;
   esac

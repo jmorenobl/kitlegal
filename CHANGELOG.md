@@ -12,6 +12,40 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **El Constitution Check del plan lleva una fila por cada principio de la constitución** (workflow `hito` 2.11.0).
+  El prompt del plan pedía «un ítem por principio (I-IX)» y el juez lo comprobaba leyendo; con el principio X (ADR
+  0044) se habría quedado fuera. Ahora `scripts/workflow/precheck.sh plan` saca los principios de los encabezados
+  «### <numeral>.» de la constitución y da como defecto cada uno que no tenga su fila, así que un principio nuevo la
+  pide sin tocar el guion; el juez del plan juzga solo que lo que dice cada fila es cierto. Admite las tres formas de
+  fila de los planes anteriores, y ni «II» ni una fila que empieza por una palabra, como «Implementación…», cuentan
+  como el principio I. Lo comprueba `TestElConstitutionCheckLlevaUnaFilaPorPrincipio`.
+
+### Cambiado
+
+- **kitlegal es un componente legal general, con la cobertura en positivo** (H29; ADR 0044, constitución 2.14.0). El
+  ADR fija las tres fases y el backlog de materias, sustituye al 0027 en la frontera de la base y al 0040 en el orden, y
+  precisa el 0012: una vertical es un paquete de materia sobre los motores de la base, no una skill, y un pack agrupa
+  verticales para un profesional. La constitución añade el principio X, la genericidad por materia, gemelo del IX;
+  pone la cobertura en positivo en el principio II —se cubre lo declarado, y lo demás se declara no cubierto, sin
+  plazos, órganos ni vías de memoria— y la hace lectura conservadora; y la entrada del hito pasa a ser su fichero de
+  `docs/roadmap/`. La Definition of Done §1.13 vale para cualquier materia. No cambia el binario ni las skills: las
+  alinean H32, H33, H36 y H37.
+
+- **El roadmap se reorganiza en base, administrativo y profesionales, con un fichero por hito** (workflow `hito`
+  2.10.0). Cada hito vive en `docs/roadmap/`, y el directorio dice su estado: `done/`, `in-progress/` (como mucho uno),
+  `todo/` (la cola, en orden por el prefijo del nombre) y `backlog/`. Reordenar es renombrar un fichero; el
+  identificador no cambia. `scripts/hito.sh` solo lanza el hito de `in-progress/`, el workflow lee la entrada de su
+  fichero y lo pasa a `done/` en el primer commit de la rama del hito, la lista del input `hito` la genera `make roadmap-sync` y `make ci` comprueba el roadmap entero
+  (`TestRoadmap`); `make roadmap` enseña el estado. `docs/ROADMAP.md` conserva las fases y las reglas. kitlegal es un componente legal general, para cualquier materia. La fase 1 es ahora
+  la base legal genérica (H29 a H38): el ADR que lo fija, las evals que solo miden lo que cambia, las skills según la
+  especificación Agent Skills, la cobertura en positivo, los puertos genéricos de fuentes (con EUR-Lex), documentos,
+  cómputo y destinatarios, y las skills que se actualizan con el binario. La fase 2 es lo administrativo sobre la base
+  (H8, H10, H11, H15, H16 y H28); la fase 3, despachos y asesorías (H9.1, H27 y las verticales); H12, H13, H14, H17 y H18
+  pasan detrás, con sus números; y las materias entran en el backlog (`docs/ROADMAP.md`, «Punto de partida y rumbo»;
+  `docs/USO.md`, 2026-10-21).
+
 ## [0.8.1] - 2026-10-21
 
 ### Añadido

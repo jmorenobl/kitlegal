@@ -1,6 +1,8 @@
 # 0040 · Lo que queda de la fase 1 se ordena por el trabajo de un despacho, y la fase 3 conserva su sitio
 
-- **Estado**: aceptada (2026-10-19)
+- **Estado**: aceptada (2026-10-19); sustituida en parte por el ADR 0044, que fija otro orden: la base legal
+  genérica, lo administrativo sobre la base (con H8 y H28) y los despachos y asesorías (con H9.1, H27 y las
+  verticales), y la fiscalización municipal detrás (puntos 1 a 4). Sigue vigente el punto 5.
 - **Fecha**: 2026-10-19
 - **Hito**: ninguno; reordena `docs/ROADMAP.md` detrás de H9. Da número a tres candidatos —H9.1, H27 y H28— y
   completa el ADR 0013 (el orden por tiempo hasta el uso) con una regla para que la fase 3 no se quede detrás del

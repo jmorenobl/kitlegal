@@ -143,7 +143,7 @@ var skillsDelTrabajo = []string{"boe-legislacion", "jurisprudencia", "legal-core
 // evals de una en una, el tope del trabajo no cubre su peor caso
 // (contracts/job-de-evals.md §1 y §4 de H25; FR-070). legal-core va a dos desde
 // antes de H9: con sus cinco evals de plazos, de una en una el tope tampoco
-// cubriría su peor caso (entrada de H9 en docs/ROADMAP.md).
+// cubriría su peor caso (entrada de H9, docs/roadmap/done/).
 var ajustesDelTrabajo = map[string]AjustesDeSkill{
 	"boe-legislacion": {Concurrencia: 5, ObjetivoDeDuracion: 900},
 	"jurisprudencia":  {Concurrencia: 4, ObjetivoDeDuracion: 0},

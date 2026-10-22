@@ -56,7 +56,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources evals evals-sondeo evals-medir-juez skills-sync secrets \
+	vuln schema-check skills-check verify-sources evals evals-sondeo evals-medir-juez skills-sync roadmap roadmap-sync secrets \
 	mod-verify mod-tidy-check goreleaser-check release snapshot-check plugin-check web web-dev web-citas \
 	check-web-tools check-tools hooks ci help
 
@@ -157,6 +157,14 @@ evals-medir-juez: check-tools
 ## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools
 	scripts/skills-sync.sh
+
+## roadmap: enseña el estado del roadmap desde docs/roadmap/: lo que está en curso, la cola en orden, lo hecho y el backlog
+roadmap:
+	scripts/roadmap.sh
+
+## roadmap-sync: regenera desde docs/roadmap/ la lista de hitos que admite el workflow hito y comprueba el roadmap
+roadmap-sync: check-tools
+	scripts/roadmap-sync.sh
 
 ## secrets: detección de secretos en todo el árbol
 secrets: check-tools

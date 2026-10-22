@@ -280,7 +280,7 @@ func ficherosDeLaSerie(umbral string) map[string]string {
 		"evals/" + skillDeLaSerie + "/" + evalQueNoActiva: "pregunta: \"¿cómo se hace una tortilla?\"\nactiva: false\n",
 		".github/workflows/evals.yml":                     "env:\n      MODELO_DE_EVALS: " + modeloSonnet55 + "\n",
 		".specify/feature.json":                           `{"feature_directory": "` + directorioDelHitoDelInformeFinal + `"}`,
-		"docs/ROADMAP.md":                                 hitoDelInformeFinal,
+		ficheroDelHitoDelInformeFinal:                     hitoDelInformeFinal,
 		directorioDelHitoDelInformeFinal + "/spec.md":     "",
 		directorioDelHitoDelInformeFinal + "/plan.md":     "",
 		directorioDelHitoDelInformeFinal + "/tasks.md":    "",

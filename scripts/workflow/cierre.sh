@@ -138,7 +138,7 @@ case "$sub" in
     test -z "$(git status --porcelain)" || { git status --short >&2; dossier "árbol sucio" "Quedan cambios sin commitear fuera de $d antes de publicar."; }
     git push -u origin "$rama" >&2 || dossier "dependencia externa inaccesible" "git push -u origin $rama falló."
     if url=$(gh pr view "$rama" --json url --jq .url 2>/dev/null); then echo "propuesta existente: $url"; exit 0; fi
-    titulo=$(awk -v h="$hito" 'index($0, "#### " h " · ") == 1 {print; exit}' docs/ROADMAP.md | sed -E 's/^#### [A-Z0-9.]+ · //')
+    titulo=$(titulo_del_hito "$hito")
     cuerpo="$d/gates/informe-final.md"
     if [ ! -f "$cuerpo" ]; then
       cuerpo=$(mktemp)

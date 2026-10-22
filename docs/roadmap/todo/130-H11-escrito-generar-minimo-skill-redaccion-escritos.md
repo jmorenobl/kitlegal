@@ -1,0 +1,10 @@
+---
+id: H11
+fase: "2"
+depende_de: [H8, H10]
+---
+
+# H11 · `escrito generar` (mínimo) + skill `redaccion-escritos` + `render` markdown
+
+- Tipos iniciales, genéricos ante cualquier administración (ADR 0027): solicitud de acceso a la información (LTAIBG art. 17); recurso de alzada o potestativo de reposición (LPAC arts. 112 y 121-124), según la notificación diga si el acto pone fin a la vía administrativa (art. 40.2); y alegaciones (LPAC arts. 76 y 82), con el plazo del trámite de audiencia que fije el órgano, entre diez y quince días (art. 82.2). Salida en markdown desde plantillas en `internal/docgen`; `internal/render` gana la forma markdown (Strategy), que hasta aquí nadie pedía; órgano destinatario el de la notificación, o el de `territorio` si es un ayuntamiento; el escrito se firma como interesado o como representante (art. 5 LPAC), y los datos personales van en el fichero, nunca en el grafo (principio VII); fundamentación resuelta por `cita` en la redacción vigente a la fecha del acto (H20; una cita que no se resuelve sale como `[SIN FUNDAMENTO]` y exit 3); plazo por `plazos`. Contra un acto de un procedimiento que la ley regula aparte no se genera el escrito del común: la salida lo declara no cubierto, con la norma que lo rige. Dónde presentarlo: el Registro Electrónico General de la AGE, que admite escritos dirigidos a cualquier administración (art. 16.4 LPAC), y la sede del órgano cuando conste. Un escrito generado termina siempre en fichero + URL + exit 6. Emite `Escrito` (hash del fichero) y `lb:en_asunto` al asunto.
+- Controles: test de arquitectura de que no existe ninguna llamada HTTP con método distinto de GET/HEAD en todo el módulo; golden de cada tipo de escrito ante un ayuntamiento y ante un órgano de otra administración, como interesado y como representante; golden de la declaración de cobertura ante un acto tributario (Definition of Done §1.13); evals. Fuera de alcance (backlog · profundidad): DOCX, `Afirmacion`/`fundamenta` en el grafo, `check` bloqueante y más tipos de escrito.
