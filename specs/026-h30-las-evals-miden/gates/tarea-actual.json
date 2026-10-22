@@ -1,19 +1,13 @@
 {
-  "id": "T008",
-  "texto": "T008 [US2] La plataforma: interfaz, su implementación con `gh` y el informe de un registro — FR-007, FR-010, FR-025 (contracts/job-de-evals.md §5; research D8, D15, V7). **`internal/evals/plataforma.go`**: una interfaz sin exportar con las lecturas que necesitan la elección, la búsqueda y la release —los ficheros de la propuesta (con su nombre anterior), las propuestas cerradas sobre `main` fusionadas (número, cabeza y fecha de fusión), las ejecuciones del flujo `evals` (todas, y las de un commit), los trabajos de una ejecución con sus pasos y conclusiones, y el registro de un trabajo—, implementada con las órdenes de contracts/job-de-evals.md §5, todas de lectura, con texto constante y cada valor en una variable del entorno, reutilizando la ejecución de `gh` de `tanda.go` sin duplicarla; del registro de un trabajo, quita trabajo, paso, hora y marca de orden de bytes y toma lo que hay entre `--- inicio de informe.json ---` y `--- fin de informe.json ---`, como `informe_del_trabajo` del guion común del workflow (`comun.sh`, sin cambios); un error de una orden lleva la orden y su salida de error. **Tests**: `internal/evals/plataforma_test.go`, `TestOrdenesDeLaPlataforma` (con el `gh` sustituto de la tanda: cada orden con sus argumentos y variables exactas, y el error con la orden y su salida de error) y `TestInformeDelRegistro` (un registro sintético con prefijos de trabajo, paso y hora y con marca de orden de bytes → el informe; sin marcas o con dos informes → error). Los tests de la tanda siguen en verde sin cambiar lo que esperan. Rutas: internal/evals/plataforma.go, internal/evals/tanda.go, internal/evals/sustitutos_test.go",
+  "id": "T009",
+  "texto": "T009 [US2] La búsqueda de resultados en las medidas de `main` — FR-010 a FR-013 (data-model §7 y §8; research D8, D9, D17). **`internal/evals/reutilizacion.go`**: las medidas de `main` —ejecuciones del flujo `evals` terminadas, no canceladas, sobre la cabeza de una propuesta fusionada en `main` (el `headSha` de la ejecución es la cabeza con que se fusionó), con el trabajo de la skill con la marca «El informe del trabajo está escrito» en `success`— de la más reciente a la más antigua, como mucho 10; de cada una, el informe de la skill por el registro de su trabajo (T008), y de cada eval no elegida que no tenga aún resultado, el de la primera medida con su misma huella; no se reutiliza una eval con una sesión sin medir o una respuesta sin juzgar; la procedencia de un resultado que ya era reutilizado en esa medida es la original, y una procedencia de 90 días o más antes del instante de la decisión deja la eval sin resultado (`sin_resultado_de_main`); la búsqueda para en cuanto cada eval tiene resultado; la primera orden de la plataforma que falla, o el plazo de 10 minutos agotado (con la orden en curso), la para, y lo que queda se mide con `sin_resultado_de_main` y el error en `origen.error_de_la_plataforma`. **Tests**: `internal/evals/reutilizacion_test.go`, `TestBusquedaDeMedidasDeMain`, con la plataforma en memoria y un instante fijo, un subtest por caso: una ejecución cancelada, una de un commit que no es la cabeza fusionada, una sin la marca, una de otro commit de la misma propuesta y una procedencia de 90 días o más no cuentan; la más reciente gana; la undécima no se recorre; una sesión sin medir o una respuesta sin juzgar no se reutiliza; la procedencia de una reutilizada en `main` es la original; una orden que falla y el plazo agotado paran la búsqueda, lo que queda se mide y la orden y su error quedan en el resultado. Rutas: internal/evals/reutilizacion.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "61b8b56e6894b7756c67d99e47a5eed82749a2f3",
+  "base": "1ea349b1e09ed1880f34fa61f7507388b33178de",
   "rutas": [
-    "comun.sh",
-    "contracts/job-de-evals.md",
-    "informe.json",
-    "internal/evals/plataforma.go",
-    "internal/evals/plataforma_test.go",
-    "internal/evals/sustitutos_test.go",
-    "internal/evals/tanda.go",
-    "tanda.go"
+    "internal/evals/reutilizacion.go",
+    "internal/evals/reutilizacion_test.go"
   ],
   "cierre": false,
   "converger": false,
