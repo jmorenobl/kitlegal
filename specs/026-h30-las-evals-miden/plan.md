@@ -150,7 +150,7 @@ evals` sigue llamando a `scripts/evals.sh`, que ahora exige `DECISION_DE_EVALS`.
 | Test | Fichero | Qué fija |
 |---|---|---|
 | `TestConjuntoDeCadaEval` | `internal/evals/dependencias_test.go` | Las evals del repositorio, cada una con conjunto calculable, no vacío y sus seis partes; lo que FR-001 pide para una de `legal-core` y una de `jurisprudencia`; mutante con un applet inexistente (FR-001, FR-005, SC-002) |
-| `TestEleccionDeLosMutantes` | `internal/evals/eleccion_test.go` | Los mutantes de SC-003, FR-006 y FR-007, eval por eval; el esperado sale del listado de `evals/<skill>/`, no de los conjuntos |
+| `TestEleccionDeLosMutantes` | `internal/evals/eleccion_test.go` | Los mutantes de SC-003 y de FR-002 a FR-007 (los diez de quickstart.md §2), eval por eval; el esperado sale del listado de `evals/<skill>/`, no de los conjuntos |
 | `TestMatrizDeLasPropuestas` | `internal/evals/eleccion_test.go` | Golden (constante del test) de lo que mide y reutiliza cada skill para los mutantes, una propuesta sin nada elegido y la suite completa, con una medida de `main` sintética con la huella de cada eval (FR-008, FR-019, SC-004) |
 | `TestHuellaDeLasEvals` | `internal/evals/huella_test.go` | Cada clase de ruta cambia la huella de las que elige y no la de las demás; la versión de un módulo de lo común en `go.mod`, todas; un `replace` y una línea de `go.sum` de un módulo de ningún conjunto, todas; `docs/`, ninguna; dos clones, las mismas (FR-009, SC-008) |
 | `TestOrdenesDeLaPlataforma`, `TestInformeDelRegistro` | `internal/evals/plataforma_test.go` | Las órdenes de `gh` con el sustituto; el informe sacado de un registro con prefijos y marca de orden de bytes |
@@ -172,8 +172,10 @@ evals` sigue llamando a `scripts/evals.sh`, que ahora exige `DECISION_DE_EVALS`.
   con los 900 s de la decisión; y, como hoy, una sola combinación por skill con 5, 4 y 2 (FR-016 a FR-020, SC-011).
   Sus subtests `segundo-disparo` y `estado-de-la-tanda` añaden el modo.
 - `TestConfiguracionDeLaRelease` (`release_test.go`): el conjunto de trabajos y su orden incluyen `suite-completa`.
-- Los tests que ejecutan `scripts/evals.sh` con sustitutos (`sustitutos_test.go`) dan `DECISION_DE_EVALS`, y uno nuevo
-  comprueba que sin ella sale con 1 antes de la primera sesión.
+- Hoy ningún test de `make ci` ejecuta `scripts/evals.sh` (solo `scripts/evals-sesion.sh`, en `sesiones_test.go`;
+  comprobado con `grep` al escribir tasks.md). Uno nuevo, en `sustitutos_test.go` y con el `claude` sustituto delante
+  en el `PATH`, comprueba que sin `DECISION_DE_EVALS`, o con una ruta que no es un fichero legible, sale con 1 y el
+  mensaje «evals: falta DECISION_DE_EVALS» sin que llegue ninguna sesión al sustituto.
 - Los tests del umbral conjunto de una clase en `umbrales_test.go` e `informe_test.go` con menos respuestas que las de
   su plan entero esperan el límite k(*n*) (FR-024); con todas, lo de hoy.
 

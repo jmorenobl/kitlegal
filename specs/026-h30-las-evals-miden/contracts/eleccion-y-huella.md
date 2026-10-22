@@ -103,6 +103,6 @@ recorrido, el commit, los modelos informativos (el job los fija en `evals.yml`, 
 | Garantía | Test |
 |---|---|
 | Cada eval del repositorio tiene conjunto no vacío y las seis partes; una de cada skill lleva lo que pide FR-001 y no lo que excluye; una skill con un applet inexistente da error que nombra la eval | `TestConjuntoDeCadaEval` |
-| La elección de cada mutante de SC-003, FR-006 y FR-007, eval por eval | `TestEleccionDeLosMutantes` |
+| La elección de cada mutante de SC-003 y de FR-002 a FR-007, eval por eval | `TestEleccionDeLosMutantes` |
 | La matriz de FR-019 de un conjunto fijo de propuestas, byte a byte | `TestMatrizDeLasPropuestas` |
 | Cada clase de ruta cambia la huella de las evals que elige y no la de las demás; `go.mod` de lo común cambia todas; `docs/` ninguna; dos clones en directorios distintos dan las mismas | `TestHuellaDeLasEvals` |
