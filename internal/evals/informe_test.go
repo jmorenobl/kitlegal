@@ -8067,9 +8067,10 @@ func TestLineasFechadasSinRedaccionPosterior(t *testing.T) {
 // reutilizadas», que es lo único que H30 añade al informe de la suite completa,
 // son byte a byte los fijados en informeJSONDeLaSuiteCompleta e
 // informeMDDeLaSuiteCompleta: con cualquier otra diferencia sale en rojo con la
-// primera línea distinta. Hoy no se quita nada, porque ni el uno ni la otra
-// existen todavía; los casos de lo que se quita fijan que se quita eso y nada
-// más, y los de la primera línea distinta, que se dice la primera.
+// primera línea distinta. Desde T007 de H30 los dos existen, y el test exige
+// que estén para quitarlos de verdad; los casos de lo que se quita fijan que se
+// quita eso y nada más, y los de la primera línea distinta, que se dice la
+// primera.
 func TestInformeDeLaSuiteCompletaNoCambia(t *testing.T) {
 	t.Parallel()
 
@@ -8080,6 +8081,9 @@ func TestInformeDeLaSuiteCompletaNoCambia(t *testing.T) {
 			queDeciden: 1, conHaiku: true, dosModos: true,
 			duracion: 500, duracionEnHerramienta: 600, objetivo: 900,
 		})
+
+		require.Contains(t, leido.escrito, "\n  \"origen\": {\n", "informe.json lleva el bloque origen, que se quita")
+		require.Contains(t, leido.md, "\n## Medidas y reutilizadas\n", "informe.md lleva la sección, que se quita")
 
 		exigirElTextoFijado(t, ficheroDelInformeJSON, informeJSONDeLaSuiteCompleta, sinElOrigen(leido.escrito))
 		exigirElTextoFijado(t, ficheroDelInformeMD, informeMDDeLaSuiteCompleta, sinLasMedidasYReutilizadas(leido.md))
@@ -8296,6 +8300,597 @@ func sinLasMedidasYReutilizadas(md string) string {
 	}
 
 	return strings.Join(slices.Delete(lineas, principio, final), "")
+}
+
+// Lo que TestInformeConReutilizadas da a su ejecución con una eval reutilizada:
+// la eval que reutiliza y la que mide, la procedencia de la medida de main de
+// la que viene la primera y el error de la plataforma de su caso
+// (contracts/informe-del-job.md §2 de H30).
+const (
+	evalQueSeReutiliza = "01-sintetica.yaml"
+	evalQueSeMide      = "02-sintetica.yaml"
+
+	ejecucionDeMain    = 18734029311
+	trabajoDeMain      = 53392011870
+	commitDeMain       = "0f3c2a9e8d7b6c5a4f3e2d1c0b9a8f7e6d5c4b3a"
+	propuestaDeMain    = 187
+	fechaDeMain        = "2026-10-24T09:12:03Z"
+	ordenQueFalla      = "gh run list --workflow evals.yml --branch main"
+	errorDeLaOrden     = "HTTP 502: Bad Gateway"
+	conjuntoDelInforme = "afirma_lo_no_leido:" + modeloSonnet55
+
+	// clasesConUmbralAncho son las del juez del informe con el umbral 0,2 en la
+	// clase que decide: con él, el límite de 6 respuestas medidas es uno con las
+	// 12 del plan entero y otro con solo las 6 del plan de lo medido.
+	clasesConUmbralAncho = "clases:\n" +
+		"  - nombre: afirma_lo_no_leido\n    decide: true\n    umbral: 0.2\n" +
+		"  - nombre: cuenta_su_proceso\n    decide: false\n    umbral: 0\n"
+)
+
+// ejecucionConReutilizadas son los dos informes de una ejecución sintética de
+// dos evals que deciden, con el modelo que decide y el informativo, en los dos
+// modos: completa, el de todas sus sesiones, sin decisión, que es el de la
+// suite completa; y conReutilizada, el de la misma ejecución sin las sesiones
+// de evalQueSeReutiliza, con una decisión que la reutiliza —sus aportes y sus
+// series, los de completa, con la procedencia de una medida de main— y mide
+// evalQueSeMide por las rutas de su conjunto. decision es la que recibió, ya
+// alterada por su caso.
+type ejecucionConReutilizadas struct {
+	completa, conReutilizada informeLeido
+	decision                 origenDeLasEvals
+}
+
+// casoConReutilizadas es un caso de TestInformeConReutilizadas: su ejecución,
+// lo que cambia de la decisión antes de escribir el informe con ella y lo que
+// exige de los dos informes.
+type casoConReutilizadas struct {
+	nombre    string
+	ejecucion ejecucionConUmbrales
+	alterar   func(decision *origenDeLasEvals)
+	exigir    func(t *testing.T, e ejecucionConReutilizadas)
+}
+
+// TestInformeConReutilizadas fija el informe de una ejecución con una eval
+// reutilizada (FR-011, FR-015, FR-022 a FR-024 de H30; contracts/informe-del-job.md
+// §2 a §6 de H30; data-model §8 y §9 de H30; research D9 y D10 de H30), con
+// ejecuciones sintéticas escritas con EscribirInforme en t.TempDir(): el bloque
+// origen, siempre presente, con lo medido y lo reutilizado de cada eval; los
+// campos de siempre, que solo dicen lo medido; junto a cada umbral de las
+// respuestas al que aporta la reutilizada, el suyo :reutilizadas, con la suma
+// de sus aportes, que decide como el original salvo el del conjunto de una
+// clase; los aportes de todas las evals, que suman lo medido más lo
+// reutilizado; el veredicto, en fallo con una serie reutilizada que decide y
+// no pasa o con una respuesta reutilizada sin la skill activada; el umbral en
+// tasa, con solo lo medido y el límite del plan entero; y la sección «Medidas
+// y reutilizadas» de informe.md.
+func TestInformeConReutilizadas(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosConReutilizadas() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			caso.exigir(t, escribirEjecucionConReutilizadas(t, caso.ejecucion, caso.alterar))
+		})
+	}
+
+	for _, caso := range casosDeLasLineasDelOrigen() {
+		t.Run("en-palabras-"+caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.linea, lineaDelOrigen(caso.eval, caso.conErrorDeLaPlataforma))
+		})
+	}
+}
+
+// ejecucionDeDosEvals es la ejecución de los casos de TestInformeConReutilizadas:
+// dos evals que deciden, con el modelo informativo, en los dos modos.
+func ejecucionDeDosEvals() ejecucionConUmbrales {
+	return ejecucionConUmbrales{queDeciden: 2, conHaiku: true, dosModos: true}
+}
+
+// casosConReutilizadas son los casos de TestInformeConReutilizadas.
+func casosConReutilizadas() []casoConReutilizadas {
+	sinActivar := ejecucionDeDosEvals()
+	sinActivar.sinActivar = 1
+
+	umbralAncho := ejecucionDeDosEvals()
+	umbralAncho.clasesDelJuez = clasesConUmbralAncho
+
+	return []casoConReutilizadas{
+		{nombre: "la-suite-completa", ejecucion: ejecucionDeDosEvals(), exigir: exigirLaSuiteCompleta},
+		{nombre: "una-reutilizada-que-pasa", ejecucion: ejecucionDeDosEvals(), exigir: exigirUnaReutilizadaQuePasa},
+		{
+			nombre: "una-respuesta-reutilizada-sin-activar", ejecucion: sinActivar,
+			exigir: exigirUnaRespuestaReutilizadaSinActivar,
+		},
+		{
+			nombre: "una-serie-reutilizada-en-fallo", ejecucion: ejecucionDeDosEvals(),
+			alterar: suspenderLasSeriesDelModoOrden, exigir: exigirUnaSerieReutilizadaEnFallo,
+		},
+		{
+			nombre: "el-conjunto-reutilizado-no-decide", ejecucion: ejecucionDeDosEvals(),
+			alterar: marcarTodoElConjuntoReutilizado, exigir: exigirQueElConjuntoReutilizadoNoDecida,
+		},
+		{nombre: "la-tasa-con-solo-lo-medido", ejecucion: umbralAncho, exigir: exigirLaTasaConSoloLoMedido},
+		{
+			nombre: "el-error-de-la-plataforma", ejecucion: ejecucionDeDosEvals(),
+			alterar: pararLaBusquedaPorLaPlataforma, exigir: exigirElErrorDeLaPlataforma,
+		},
+	}
+}
+
+// escribirEjecucionConReutilizadas arma la ejecución, escribe el informe de
+// todas sus sesiones y, con la decisión que reutiliza evalQueSeReutiliza
+// —alterada por el caso, si la altera—, el de la misma ejecución sin sus
+// sesiones.
+func escribirEjecucionConReutilizadas(
+	t *testing.T, ejecucion ejecucionConUmbrales, alterar func(decision *origenDeLasEvals),
+) ejecucionConReutilizadas {
+	t.Helper()
+
+	copia := armarEjecucionConUmbrales(t, ejecucion)
+	completa := informeDeLaCopia(t, copia, ejecucion.ajustar)
+
+	decision := decisionQueReutilizaLaPrimera(t, completa.informe)
+	if alterar != nil {
+		alterar(&decision)
+	}
+
+	quitarLasSesionesDeLaEval(t, copia, evalQueSeReutiliza)
+
+	conReutilizada := informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
+		ejecucion.ajustar(entradas)
+		entradas.decision = &decision
+	})
+
+	return ejecucionConReutilizadas{completa: completa, conReutilizada: conReutilizada, decision: decision}
+}
+
+// decisionQueReutilizaLaPrimera es la decisión de una ejecución con
+// reutilización de las dos evals del informe de la suite completa: la primera,
+// reutilizada de una medida de main con sus aportes y sus series de ese
+// informe; y la segunda, medida por las rutas de su conjunto.
+func decisionQueReutilizaLaPrimera(t *testing.T, completa Informe) origenDeLasEvals {
+	t.Helper()
+
+	require.NotNil(t, completa.Origen, "el informe de la suite completa lleva su origen")
+	require.Len(t, completa.Origen.Evals, 2)
+
+	var series []TasaDelInforme
+
+	for _, tasa := range completa.Tasas {
+		if tasa.Eval == evalQueSeReutiliza {
+			series = append(series, tasa)
+		}
+	}
+
+	require.Len(t, series, 4, "la eval que se reutiliza tiene una serie por modelo y modo")
+
+	reutilizada := origenDeEval{
+		Eval:   evalQueSeReutiliza,
+		Huella: sha256DeTexto("la huella de " + evalQueSeReutiliza),
+		Procedencia: &procedenciaDeLaMedida{
+			Ejecucion: ejecucionDeMain, Trabajo: trabajoDeMain, Commit: commitDeMain, Propuesta: propuestaDeMain,
+			Fecha: fechaDeMain,
+		},
+		Aportes: slices.Clone(completa.Origen.Evals[0].Aportes),
+		Tasas:   series,
+	}
+
+	medida := origenDeEval{
+		Eval: evalQueSeMide, Huella: sha256DeTexto("la huella de " + evalQueSeMide), Medida: true,
+		Motivo: motivoConjunto, Rutas: []string{"evals/" + skillDeLasSesiones + "/" + evalQueSeMide},
+	}
+
+	return origenDeLasEvals{
+		Modo: origenConReutilizacion, EvalsMedidas: 1, EvalsReutilizadas: 1, Evals: []origenDeEval{reutilizada, medida},
+	}
+}
+
+// quitarLasSesionesDeLaEval borra de la copia las sesiones de la eval, que la
+// ejecución con reutilización no abre.
+func quitarLasSesionesDeLaEval(t *testing.T, copia, eval string) {
+	t.Helper()
+
+	sesiones := filepath.Join(copia, "sesiones")
+
+	entradas, err := os.ReadDir(sesiones)
+	require.NoError(t, err)
+
+	quitadas := 0
+
+	for _, entrada := range entradas {
+		if strings.HasPrefix(entrada.Name(), strings.TrimSuffix(eval, ".yaml")+"-") {
+			require.NoError(t, os.RemoveAll(filepath.Join(sesiones, entrada.Name())))
+
+			quitadas++
+		}
+	}
+
+	require.Equal(t, 12, quitadas, "la eval tenía sus tres sesiones por modelo y modo")
+}
+
+// suspenderLasSeriesDelModoOrden deja con una sola sesión que pasa las dos
+// series del modo orden de la eval reutilizada: la del modelo que decide, que
+// decide, y la del informativo, que no.
+func suspenderLasSeriesDelModoOrden(decision *origenDeLasEvals) {
+	for posicion, tasa := range decision.Evals[0].Tasas {
+		if tasa.Modo == ModoOrden {
+			decision.Evals[0].Tasas[posicion].Pasan, decision.Evals[0].Tasas[posicion].Pasa = 1, false
+		}
+	}
+}
+
+// marcarTodoElConjuntoReutilizado da como marcadas todas las respuestas de la
+// eval reutilizada en el conjunto de la clase que decide.
+func marcarTodoElConjuntoReutilizado(decision *origenDeLasEvals) {
+	for posicion, aporte := range decision.Evals[0].Aportes {
+		if aporte.Umbral == conjuntoDelInforme {
+			decision.Evals[0].Aportes[posicion].Medida = float64(aporte.Total)
+		}
+	}
+}
+
+// pararLaBusquedaPorLaPlataforma es la decisión en la que la búsqueda en las
+// medidas de main paró por un error de la plataforma, y la eval que se mide se
+// mide por eso.
+func pararLaBusquedaPorLaPlataforma(decision *origenDeLasEvals) {
+	decision.ErrorDeLaPlataforma = &errorDeLaPlataformaEnElOrigen{Orden: ordenQueFalla, Error: errorDeLaOrden}
+	decision.Evals[1].Motivo, decision.Evals[1].Rutas = motivoSinResultadoDeMain, nil
+}
+
+// exigirLaSuiteCompleta exige el origen del informe sin decisión: el de la
+// suite completa, con las dos evals medidas por eso y sin huella, las sesiones
+// que abrió y los aportes de cada eval, que suman cada umbral de las
+// respuestas; ningún umbral :reutilizadas; y su sección de informe.md.
+func exigirLaSuiteCompleta(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	completa := e.completa.informe
+	require.NotNil(t, completa.Origen)
+
+	sesiones := 24
+	assert.Equal(t, origenDeLasEvals{
+		Modo: origenDeLaSuiteCompleta, EvalsMedidas: 2, SesionesAbiertas: &sesiones,
+		Evals: []origenDeEval{
+			{Eval: evalQueSeReutiliza, Medida: true, Motivo: motivoSuiteCompleta, Aportes: completa.Origen.Evals[0].Aportes},
+			{Eval: evalQueSeMide, Medida: true, Motivo: motivoSuiteCompleta, Aportes: completa.Origen.Evals[1].Aportes},
+		},
+	}, *completa.Origen)
+
+	for _, umbral := range umbralesDeLasRespuestas(completa) {
+		assert.Equal(t, sumaDeAportes{medida: umbral.Medida, total: *umbral.Total},
+			sumarLosAportes(completa.Origen.Evals, umbral.Nombre),
+			"los aportes de las dos evals a %s suman su medida y su total", umbral.Nombre)
+		assert.NotEqual(t, sumaDeAportes{}, sumarLosAportes(completa.Origen.Evals[:1], umbral.Nombre),
+			"la primera eval aporta a %s", umbral.Nombre)
+	}
+
+	assert.False(t, slices.ContainsFunc(completa.Umbrales, func(umbral Umbral) bool {
+		return strings.HasSuffix(umbral.Nombre, sufijoDeLasReutilizadas)
+	}), "sin reutilizadas no hay ningún umbral :reutilizadas")
+
+	assert.Contains(t, e.completa.md, "## Medidas y reutilizadas\n\nEvals medidas: 2\n\nEvals reutilizadas: 0\n\n"+
+		"Sesiones abiertas: 24\n\n- 01-sintetica.yaml: medida: suite completa\n"+
+		"- 02-sintetica.yaml: medida: suite completa\n\nSeries reutilizadas: ninguna\n\n## Tasas por eval\n")
+}
+
+// exigirUnaReutilizadaQuePasa exige el informe con la reutilizada que pasa:
+// aprobado, solo con lo medido en los campos de siempre, su origen y su
+// sección de informe.md, y cada umbral :reutilizadas junto al suyo, con la
+// suma de los aportes de la reutilizada y lo que decide.
+func exigirUnaReutilizadaQuePasa(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	assert.Equal(t, VeredictoAprobado, e.conReutilizada.informe.Veredicto)
+	assert.Empty(t, e.conReutilizada.informe.Motivos)
+
+	exigirSoloLoMedido(t, e)
+	exigirLaSumaDeLosAportes(t, e)
+
+	sinActivar := umbralDelInforme(t, e.conReutilizada.informe,
+		prefijoDelUmbralSinActivar+modeloSonnet55+":orden"+sufijoDeLasReutilizadas)
+	assert.Equal(t, "Respuestas reutilizadas de claude-sonnet-5-5 en el modo orden sin la skill activada",
+		sinActivar.Descripcion)
+
+	assert.Contains(t, e.conReutilizada.md, "## Medidas y reutilizadas\n\nEvals medidas: 1\n\nEvals reutilizadas: 1\n\n"+
+		"Sesiones abiertas: 12\n\n"+
+		"- 01-sintetica.yaml: reutilizada de la ejecución 18734029311 (propuesta #187, 0f3c2a9, 2026-10-24T09:12:03Z)\n"+
+		"- 02-sintetica.yaml: medida: rutas de su conjunto (evals/boe-legislacion/02-sintetica.yaml)\n\n"+
+		"Series reutilizadas:\n\n| Eval | Modelo | Modo | Decide | Planificada | Formas exigidas | Tasa | Resultado |\n")
+	assert.Contains(t, e.conReutilizada.md,
+		"| 01-sintetica.yaml | claude-sonnet-5-5 | orden | sí | sí | ninguna | 3 de 3 | llega al umbral |\n")
+	assert.Contains(t, e.conReutilizada.md,
+		"| 01-sintetica.yaml | claude-haiku-4-5-20251001 (herramienta) | herramienta | no | sí | ninguna | 3 de 3 | "+
+			"llega al umbral |\n\n## Tasas por eval\n")
+}
+
+// exigirUnaRespuestaReutilizadaSinActivar exige el informe con la reutilizada
+// cuya primera respuesta del modo orden no activó la skill: en fallo por el
+// umbral sin_activar :reutilizadas de ese modo, que decide, y por nada más.
+func exigirUnaRespuestaReutilizadaSinActivar(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	sinActivar := prefijoDelUmbralSinActivar + modeloSonnet55 + ":orden"
+	require.Equal(t, sumaDeAportes{medida: 1, total: 3}, sumarLosAportes(e.decision.Evals[:1], sinActivar),
+		"la respuesta sin activar es de la eval que se reutiliza")
+
+	exigirSoloLoMedido(t, e)
+	exigirLaSumaDeLosAportes(t, e)
+
+	assert.Equal(t, VeredictoFallo, e.conReutilizada.informe.Veredicto)
+	assert.Equal(t, []string{
+		"umbral " + sinActivar + sufijoDeLasReutilizadas + ": 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %",
+	}, e.conReutilizada.informe.Motivos)
+}
+
+// exigirUnaSerieReutilizadaEnFallo exige el informe con las dos series del modo
+// orden de la reutilizada sin llegar al umbral: en fallo por la del modelo que
+// decide, con su motivo, y no por la del informativo, que no decide.
+func exigirUnaSerieReutilizadaEnFallo(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	exigirSoloLoMedido(t, e)
+
+	assert.Equal(t, VeredictoFallo, e.conReutilizada.informe.Veredicto)
+	assert.Equal(t, []string{"01-sintetica.yaml con claude-sonnet-5-5, reutilizada: pasan 1 de 3, y el umbral es 2"},
+		e.conReutilizada.informe.Motivos)
+	assert.Contains(t, e.conReutilizada.md,
+		"| 01-sintetica.yaml | claude-sonnet-5-5 | orden | sí | sí | ninguna | 1 de 3 | no llega al umbral |\n")
+}
+
+// exigirQueElConjuntoReutilizadoNoDecida exige el informe con todas las
+// respuestas reutilizadas marcadas en el conjunto de la clase que decide: su
+// umbral :reutilizadas no se cumple y no decide, y el informe sigue aprobado.
+func exigirQueElConjuntoReutilizadoNoDecida(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	exigirSoloLoMedido(t, e)
+
+	conjunto := umbralDelInforme(t, e.conReutilizada.informe, conjuntoDelInforme+sufijoDeLasReutilizadas)
+	require.NotNil(t, conjunto.Total)
+	assert.Equal(t, sumaDeAportes{medida: 6, total: 6}, sumaDeAportes{medida: conjunto.Medida, total: *conjunto.Total})
+	assert.False(t, conjunto.Cumple)
+	assert.False(t, conjunto.Decide, "lo reutilizado no cuenta en el umbral en tasa (FR-024)")
+
+	assert.Equal(t, VeredictoAprobado, e.conReutilizada.informe.Veredicto)
+	assert.Empty(t, e.conReutilizada.informe.Motivos)
+}
+
+// exigirLaTasaConSoloLoMedido exige el umbral conjunto de la clase que decide
+// con el umbral 0,2: en la suite completa, sus 12 respuestas y el umbral de la
+// clase; con la reutilizada, solo las 6 medidas, comparadas con el límite que
+// sale de las 12 del plan entero, que no es el de las 6 del plan de lo medido.
+func exigirLaTasaConSoloLoMedido(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	exigirSoloLoMedido(t, e)
+	exigirLaSumaDeLosAportes(t, e)
+
+	enLaCompleta := umbralDelInforme(t, e.completa.informe, conjuntoDelInforme)
+	require.NotNil(t, enLaCompleta.Total)
+	assert.Equal(t, 12, *enLaCompleta.Total)
+	assert.InDelta(t, 0.2, enLaCompleta.Umbral, 0)
+
+	medido := umbralDelInforme(t, e.conReutilizada.informe, conjuntoDelInforme)
+	require.NotNil(t, medido.Total)
+	require.Equal(t, 6, *medido.Total, "el conjunto cuenta solo las respuestas medidas")
+
+	conElPlanEntero := compararConLaTasa(Umbral{Medida: medido.Medida, Total: medido.Total, Umbral: 0.2},
+		nuevoLimiteDeLaTasa(0.2, 12))
+	conElPlanMedido := compararConLaTasa(Umbral{Medida: medido.Medida, Total: medido.Total, Umbral: 0.2},
+		nuevoLimiteDeLaTasa(0.2, 6))
+	require.NotEqual(t, conElPlanMedido.Umbral, conElPlanEntero.Umbral, "el caso distingue los dos planes")
+
+	assert.InDelta(t, conElPlanEntero.Umbral, medido.Umbral, 0)
+	assert.Equal(t, conElPlanEntero.Cumple, medido.Cumple)
+}
+
+// exigirElErrorDeLaPlataforma exige el informe de la decisión en la que la
+// búsqueda paró por un error de la plataforma: el error en el origen de
+// informe.json y, en informe.md, en una línea antes de la lista, y la eval que
+// se mide por eso, con su motivo en palabras.
+func exigirElErrorDeLaPlataforma(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	exigirSoloLoMedido(t, e)
+
+	assert.Contains(t, e.conReutilizada.escrito, "\"error_de_la_plataforma\": {\n      \"orden\": \""+ordenQueFalla+
+		"\",\n      \"error\": \""+errorDeLaOrden+"\"\n    },")
+	assert.Contains(t, e.conReutilizada.md, "Sesiones abiertas: 12\n\n"+
+		"Error de la plataforma: `"+ordenQueFalla+"`: "+errorDeLaOrden+"\n\n"+
+		"- 01-sintetica.yaml: reutilizada de la ejecución 18734029311 (propuesta #187, 0f3c2a9, 2026-10-24T09:12:03Z)\n"+
+		"- 02-sintetica.yaml: medida: sin resultado reutilizable de `main`, la búsqueda paró por un error de la "+
+		"plataforma\n")
+}
+
+// exigirSoloLoMedido exige que los campos de siempre del informe con la
+// reutilizada digan solo lo medido —las series y las sesiones de la eval que se
+// mide, y las respuestas del juez de sus sesiones— y que su origen sea la
+// decisión, con la reutilizada tal cual, la medida con los mismos aportes que en
+// la suite completa y las sesiones que abrió.
+func exigirSoloLoMedido(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	informe := e.conReutilizada.informe
+
+	for _, tasa := range informe.Tasas {
+		assert.Equal(t, evalQueSeMide, tasa.Eval, "la serie de %s es de lo medido", tasa.Modelo)
+	}
+
+	require.Len(t, informe.Evals, 12)
+
+	for _, resultado := range informe.Evals {
+		assert.Equal(t, evalQueSeMide, resultado.Eval, "la sesión %s es de lo medido", resultado.Sesion)
+	}
+
+	assert.Empty(t, informe.SesionesSinMedir)
+
+	require.NotNil(t, informe.Origen)
+
+	esperado := e.decision
+	sesiones := 12
+	esperado.SesionesAbiertas = &sesiones
+	esperado.Evals = slices.Clone(e.decision.Evals)
+	esperado.Evals[1].Aportes = e.completa.informe.Origen.Evals[1].Aportes
+
+	assert.Equal(t, esperado, *informe.Origen)
+}
+
+// exigirLaSumaDeLosAportes exige, de cada umbral de las respuestas de la suite
+// completa, que en el informe con la reutilizada lo medido más lo reutilizado
+// sean su medida y su total; que lo reutilizado, si lo hay, esté en el umbral
+// :reutilizadas que va justo detrás del medido, con la suma de los aportes de
+// la reutilizada, el mismo umbral y lo que decide el original, salvo el del
+// conjunto de la clase, que no decide; y que sin lo reutilizado no haya
+// ninguno.
+func exigirLaSumaDeLosAportes(t *testing.T, e ejecucionConReutilizadas) {
+	t.Helper()
+
+	informe := e.conReutilizada.informe
+
+	for _, deLaCompleta := range umbralesDeLasRespuestas(e.completa.informe) {
+		nombre := deLaCompleta.Nombre
+		posicion := slices.IndexFunc(informe.Umbrales, func(umbral Umbral) bool { return umbral.Nombre == nombre })
+		require.GreaterOrEqual(t, posicion, 0, "el informe con la reutilizada tiene %s", nombre)
+
+		medido := informe.Umbrales[posicion]
+		reutilizado := sumarLosAportes(e.decision.Evals[:1], nombre)
+		total := sumaDeAportes{medida: deLaCompleta.Medida, total: *deLaCompleta.Total}
+		delMedido := sumaDeAportes{medida: medido.Medida, total: *medido.Total}
+
+		if reutilizado == (sumaDeAportes{}) {
+			assert.Equal(t, total, delMedido, nombre)
+			assert.NotContains(t, umbralesPorNombre(informe), nombre+sufijoDeLasReutilizadas)
+
+			continue
+		}
+
+		require.Less(t, posicion+1, len(informe.Umbrales))
+
+		deLasReutilizadas := informe.Umbrales[posicion+1]
+		require.Equal(t, nombre+sufijoDeLasReutilizadas, deLasReutilizadas.Nombre, "va justo detrás de %s", nombre)
+		require.NotNil(t, deLasReutilizadas.Total)
+
+		delReutilizado := sumaDeAportes{medida: deLasReutilizadas.Medida, total: *deLasReutilizadas.Total}
+		assert.Equal(t, reutilizado, delReutilizado, "%s suma los aportes de la reutilizada", deLasReutilizadas.Nombre)
+
+		juntos := sumaDeAportes{medida: delMedido.medida + delReutilizado.medida, total: delMedido.total + delReutilizado.total}
+		assert.Equal(t, total, juntos, "lo medido y lo reutilizado de %s suman lo de la suite completa", nombre)
+		assert.InDelta(t, medido.Umbral, deLasReutilizadas.Umbral, 0, deLasReutilizadas.Nombre)
+		assert.Equal(t, comparacionMenorOIgual, deLasReutilizadas.Comparacion)
+		assert.Equal(t, medido.Decide && nombre != conjuntoDelInforme, deLasReutilizadas.Decide,
+			"%s decide como el original, salvo el conjunto", deLasReutilizadas.Nombre)
+	}
+}
+
+// sumaDeAportes es la suma de la medida y del total de unos aportes a un
+// umbral.
+type sumaDeAportes struct {
+	medida float64
+	total  int
+}
+
+// sumarLosAportes suma los aportes de las evals al umbral con ese nombre.
+func sumarLosAportes(evals []origenDeEval, nombre string) sumaDeAportes {
+	var suma sumaDeAportes
+
+	for _, eval := range evals {
+		for _, aporte := range eval.Aportes {
+			if aporte.Umbral == nombre {
+				suma.medida += aporte.Medida
+				suma.total += aporte.Total
+			}
+		}
+	}
+
+	return suma
+}
+
+// umbralesDeLasRespuestas son los umbrales del informe a los que aporta cada
+// eval: los que llevan total, menos los de la medida del juez.
+func umbralesDeLasRespuestas(informe Informe) []Umbral {
+	var umbrales []Umbral
+
+	for _, umbral := range informe.Umbrales {
+		if umbral.Total != nil && !strings.HasPrefix(umbral.Nombre, prefijoDelUmbralDeLaMedidaDelJuez) {
+			umbrales = append(umbrales, umbral)
+		}
+	}
+
+	return umbrales
+}
+
+// umbralDelInforme es el umbral del informe con ese nombre, que tiene que
+// estar.
+func umbralDelInforme(t *testing.T, informe Informe, nombre string) Umbral {
+	t.Helper()
+
+	posicion := slices.IndexFunc(informe.Umbrales, func(umbral Umbral) bool { return umbral.Nombre == nombre })
+	require.GreaterOrEqual(t, posicion, 0, "el informe tiene el umbral %s", nombre)
+
+	return informe.Umbrales[posicion]
+}
+
+// umbralesPorNombre son los nombres de los umbrales del informe, en su orden.
+func umbralesPorNombre(informe Informe) []string {
+	nombres := make([]string, 0, len(informe.Umbrales))
+	for _, umbral := range informe.Umbrales {
+		nombres = append(nombres, umbral.Nombre)
+	}
+
+	return nombres
+}
+
+// casoDeLineaDelOrigen es una eval del origen, con si hubo un error de la
+// plataforma, y la línea que le da informe.md.
+type casoDeLineaDelOrigen struct {
+	nombre                 string
+	eval                   origenDeEval
+	conErrorDeLaPlataforma bool
+	linea                  string
+}
+
+// casosDeLasLineasDelOrigen son las líneas de informe.md de una eval medida con
+// cada motivo y de una reutilizada (contracts/informe-del-job.md §6 de H30).
+func casosDeLasLineasDelOrigen() []casoDeLineaDelOrigen {
+	const eval = "03-por-materia.yaml"
+
+	rutas := []string{"internal/cli/cli.go", "go.mod"}
+	medida := func(motivo motivoDeLaEleccion, rutas []string) origenDeEval {
+		return origenDeEval{Eval: eval, Medida: true, Motivo: motivo, Rutas: rutas}
+	}
+
+	return []casoDeLineaDelOrigen{
+		{nombre: "conjunto", eval: medida(motivoConjunto, rutas), linea: eval +
+			": medida: rutas de su conjunto (internal/cli/cli.go, go.mod)"},
+		{nombre: "comun", eval: medida(motivoComun, rutas), linea: eval + ": medida: común (internal/cli/cli.go, go.mod)"},
+		{nombre: "descripcion", eval: medida(motivoDescripcion, rutas[:1]), linea: eval +
+			": medida: descripción (internal/cli/cli.go)"},
+		{nombre: "sin-asignar", eval: medida(motivoSinAsignar, rutas[1:]), linea: eval + ": medida: sin asignar (go.mod)"},
+		{nombre: "sin-conjunto", eval: medida(motivoSinConjunto, rutas), linea: eval +
+			": medida: sin conjunto calculable"},
+		{nombre: "plataforma", eval: medida(motivoPlataforma, nil), linea: eval +
+			": medida: la plataforma no dio los ficheros de la propuesta"},
+		{nombre: "sin-resultado-de-main", eval: medida(motivoSinResultadoDeMain, nil), linea: eval +
+			": medida: sin resultado reutilizable de `main`"},
+		{
+			nombre:                 "sin-resultado-de-main-por-la-plataforma",
+			eval:                   medida(motivoSinResultadoDeMain, nil),
+			conErrorDeLaPlataforma: true,
+			linea: eval + ": medida: sin resultado reutilizable de `main`, la búsqueda paró por un error de " +
+				"la plataforma",
+		},
+		{nombre: "suite-completa", eval: medida(motivoSuiteCompleta, nil), linea: eval + ": medida: suite completa"},
+		{
+			nombre: "reutilizada", eval: origenDeEval{Eval: eval, Procedencia: &procedenciaDeLaMedida{
+				Ejecucion: ejecucionDeMain, Trabajo: trabajoDeMain, Commit: commitDeMain, Propuesta: propuestaDeMain,
+				Fecha: fechaDeMain,
+			}},
+			linea: eval + ": reutilizada de la ejecución 18734029311 (propuesta #187, 0f3c2a9, 2026-10-24T09:12:03Z)",
+		},
+	}
 }
 
 // informeJSONDeLaSuiteCompleta es informe.json de la ejecución de
