@@ -1,0 +1,20 @@
+{
+  "id": "T001",
+  "texto": "T001 Golden del informe de la suite completa, antes de tocar `informe.go` — FR-026, SC-012 (plan.md, «Orden de implementación», paso 1; contracts/informe-del-job.md §1). **`internal/evals/informe_test.go`**: `TestInformeDeLaSuiteCompletaNoCambia` compone, con los datos de prueba con que ya componen el informe los tests de este fichero (evals, sesiones sintéticas y juicio del juez en `t.TempDir()`, con todas las sesiones de un plan entero de una skill con juez, en sus dos modos), el `informe.json` y el `informe.md` de una ejecución completa con el código de hoy, y los compara byte a byte con dos constantes del test (el golden, sacado de la salida de hoy y pegado una vez; sin fichero en disco). La comparación quita antes, de la salida, el bloque `origen` del JSON y la sección «Medidas y reutilizadas» del Markdown (no existen todavía: hoy no quita nada); con cualquier otra diferencia sale en rojo diciendo la primera línea distinta. Mutante (árbol aparte): cambiar un carácter de una descripción de umbral de `umbrales.go` → rojo. Rutas: internal/evals/informe_test.go",
+  "intento": 1,
+  "datos": false,
+  "aceptacion": false,
+  "base": "93370619a6e7a20f2d74eadd3692b76866d76822",
+  "rutas": [
+    "contracts/informe-del-job.md",
+    "informe.go",
+    "informe.json",
+    "informe.md",
+    "internal/evals/informe_test.go",
+    "plan.md",
+    "umbrales.go"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}

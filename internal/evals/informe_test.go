@@ -83,13 +83,15 @@ const (
 
 // informeLeido es lo que EscribirInforme dejó en su destino: informe.json leído
 // como Informe y, en crudo, lo que se compara tal como está escrito, e
-// informe.md. caso es el directorio del caso, vacío si las entradas no son las de
-// un caso; y votos, los mensajes de los votos que informeDeLaCopia vio pedir al
-// votante que da a toda ejecución, que dice no a todo: uno por respuesta juzgada.
+// informe.md; y, desde H30, escrito, informe.json entero tal como está escrito.
+// caso es el directorio del caso, vacío si las entradas no son las de un caso; y
+// votos, los mensajes de los votos que informeDeLaCopia vio pedir al votante que
+// da a toda ejecución, que dice no a todo: uno por respuesta juzgada.
 type informeLeido struct {
 	caso    string
 	informe Informe
 	crudo   informeCrudo
+	escrito string
 	md      string
 	votos   []string
 }
@@ -3655,7 +3657,7 @@ func leerInformeEscrito(t *testing.T, destino string, devuelto Informe) informeL
 	require.NoError(t, err)
 	assert.JSONEq(t, string(codificado), escrito, "informe.json es el Informe que devuelve EscribirInforme")
 
-	leido := informeLeido{md: contenidoDelInforme(t, destino, "informe.md")}
+	leido := informeLeido{escrito: escrito, md: contenidoDelInforme(t, destino, "informe.md")}
 	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.informe))
 	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.crudo))
 
@@ -6345,7 +6347,7 @@ func leerElInformeDeLaSkill(t *testing.T, destino string, informe Informe) infor
 
 	// Lo que se exige es lo publicado: el informe se lee de informe.json, donde
 	// una lista vacía no es nil.
-	leido := informeLeido{md: contenidoDelInforme(t, destino, "informe.md")}
+	leido := informeLeido{escrito: escrito, md: contenidoDelInforme(t, destino, "informe.md")}
 	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.informe))
 	require.NoError(t, json.Unmarshal([]byte(escrito), &leido.crudo))
 
@@ -8050,3 +8052,1666 @@ func TestLineasFechadasSinRedaccionPosterior(t *testing.T) {
 		})
 	}
 }
+
+// TestInformeDeLaSuiteCompletaNoCambia fija el informe de una ejecución de la
+// suite completa tal como lo escribe EscribirInforme antes de H30 (FR-026 y
+// SC-012 de H30; contracts/informe-del-job.md §1 de H30): el de una skill
+// sintética con juez y una eval que decide, con todas las sesiones del plan del
+// job —sus tres repeticiones, con el modelo que decide y el informativo, en los
+// dos modos—, el juicio del juez, que dice no a todo, y las tandas y el objetivo
+// de duración del cierre, cada cosa en un directorio temporal del test. Su
+// informe.json sin el bloque origen y su informe.md sin la sección «Medidas y
+// reutilizadas», que es lo único que H30 añade al informe de la suite completa,
+// son byte a byte los fijados en informeJSONDeLaSuiteCompleta e
+// informeMDDeLaSuiteCompleta: con cualquier otra diferencia sale en rojo con la
+// primera línea distinta. Hoy no se quita nada, porque ni el uno ni la otra
+// existen todavía; los casos de lo que se quita fijan que se quita eso y nada
+// más, y los de la primera línea distinta, que se dice la primera.
+func TestInformeDeLaSuiteCompletaNoCambia(t *testing.T) {
+	t.Parallel()
+
+	t.Run("el-informe-de-la-suite-completa", func(t *testing.T) {
+		t.Parallel()
+
+		leido := escribirEjecucionConUmbrales(t, ejecucionConUmbrales{
+			queDeciden: 1, conHaiku: true, dosModos: true,
+			duracion: 500, duracionEnHerramienta: 600, objetivo: 900,
+		})
+
+		exigirElTextoFijado(t, ficheroDelInformeJSON, informeJSONDeLaSuiteCompleta, sinElOrigen(leido.escrito))
+		exigirElTextoFijado(t, ficheroDelInformeMD, informeMDDeLaSuiteCompleta, sinLasMedidasYReutilizadas(leido.md))
+	})
+
+	for _, caso := range casosDeLoQueSeQuita() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.queda, caso.quitar(caso.escrito))
+		})
+	}
+
+	for _, caso := range casosDeLaPrimeraLineaDistinta() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			numero, enLoEscrito, enLoFijado := primeraLineaDistinta(caso.escrito, caso.fijado)
+
+			assert.Equal(t, caso.numero, numero)
+			assert.Equal(t, caso.enLoEscrito, enLoEscrito)
+			assert.Equal(t, caso.enLoFijado, enLoFijado)
+		})
+	}
+}
+
+// casoDeLoQueSeQuita es un caso de lo que TestInformeDeLaSuiteCompletaNoCambia
+// quita de lo escrito antes de compararlo: de escrito, quitar deja queda.
+type casoDeLoQueSeQuita struct {
+	nombre         string
+	quitar         func(escrito string) string
+	escrito, queda string
+}
+
+// casosDeLoQueSeQuita son los de lo que se quita: el bloque origen de la raíz
+// de informe.json, esté donde esté y ocupe una línea o varias, y nada más; y la
+// sección «Medidas y reutilizadas» de informe.md, esté donde esté, y nada más.
+func casosDeLoQueSeQuita() []casoDeLoQueSeQuita {
+	const (
+		sinOrigen = "{\n  \"skill\": \"jurisprudencia\",\n  \"evals\": []\n}\n"
+		origen    = "  \"origen\": {\n    \"modo\": \"completa\",\n    \"evals\": [\n      {\n" +
+			"        \"eval\": \"01-existe-con-numero-y-fecha\"\n      }\n    ]\n  }"
+		anidado = "{\n  \"evals\": [\n    {\n      \"origen\": \"completa\"\n    }\n  ]\n}\n"
+
+		sinLaSeccion = "# Informe de evals de jurisprudencia\n\n## Veredicto\n\nVeredicto: aprobado\n\n" +
+			"## Juez\n\nModelo: claude-opus-5-5\n"
+		laSeccion = "## Medidas y reutilizadas\n\nEvals medidas: 10\n\n" +
+			"- 01-existe-con-numero-y-fecha: medida: suite completa\n"
+		laNombra = "# Informe de evals de jurisprudencia\n\n## Sesión 01\n\nMedidas y reutilizadas: ninguna\n"
+	)
+
+	return []casoDeLoQueSeQuita{
+		{nombre: "sin-origen-no-se-quita-nada", quitar: sinElOrigen, escrito: sinOrigen, queda: sinOrigen},
+		{
+			nombre: "el-origen-entre-dos-claves", quitar: sinElOrigen,
+			escrito: "{\n  \"skill\": \"jurisprudencia\",\n" + origen + ",\n  \"evals\": []\n}\n",
+			queda:   sinOrigen,
+		},
+		{
+			// Detrás de la última clave, la coma de la anterior sobra.
+			nombre: "el-origen-al-final", quitar: sinElOrigen,
+			escrito: "{\n  \"skill\": \"jurisprudencia\",\n  \"evals\": [],\n" + origen + "\n}\n",
+			queda:   sinOrigen,
+		},
+		{
+			nombre: "el-origen-en-una-linea", quitar: sinElOrigen,
+			escrito: "{\n  \"origen\": {},\n  \"skill\": \"jurisprudencia\",\n  \"evals\": []\n}\n",
+			queda:   sinOrigen,
+		},
+		{nombre: "un-origen-que-no-es-de-la-raiz-se-queda", quitar: sinElOrigen, escrito: anidado, queda: anidado},
+		{
+			nombre: "sin-la-seccion-no-se-quita-nada", quitar: sinLasMedidasYReutilizadas,
+			escrito: sinLaSeccion, queda: sinLaSeccion,
+		},
+		{
+			nombre: "la-seccion-entre-dos-secciones", quitar: sinLasMedidasYReutilizadas,
+			escrito: strings.Replace(sinLaSeccion, "## Juez", laSeccion+"\n## Juez", 1),
+			queda:   sinLaSeccion,
+		},
+		{
+			// Detrás de la última sección, la línea en blanco que la separa de la
+			// anterior sobra.
+			nombre: "la-seccion-al-final", quitar: sinLasMedidasYReutilizadas,
+			escrito: sinLaSeccion + "\n" + laSeccion,
+			queda:   sinLaSeccion,
+		},
+		{
+			nombre: "una-linea-que-la-nombra-se-queda", quitar: sinLasMedidasYReutilizadas,
+			escrito: laNombra, queda: laNombra,
+		},
+	}
+}
+
+// casoDeLaPrimeraLineaDistinta es un caso de primeraLineaDistinta: lo que da de
+// lo escrito y lo fijado.
+type casoDeLaPrimeraLineaDistinta struct {
+	nombre                  string
+	escrito, fijado         string
+	numero                  int
+	enLoEscrito, enLoFijado string
+}
+
+// casosDeLaPrimeraLineaDistinta son los de primeraLineaDistinta: ninguna si
+// son iguales, y si no, la primera, también si uno de los dos termina antes o
+// sin el salto de línea final.
+func casosDeLaPrimeraLineaDistinta() []casoDeLaPrimeraLineaDistinta {
+	const fijado = "{\n  \"skill\": \"jurisprudencia\",\n  \"veredicto\": \"aprobado\"\n}\n"
+
+	return []casoDeLaPrimeraLineaDistinta{
+		{nombre: "iguales", escrito: fijado, fijado: fijado},
+		{
+			nombre:  "una-linea-distinta",
+			escrito: strings.Replace(fijado, "aprobado", "fallo", 1), fijado: fijado,
+			numero: 3, enLoEscrito: "  \"veredicto\": \"fallo\"\n", enLoFijado: "  \"veredicto\": \"aprobado\"\n",
+		},
+		{
+			nombre:  "sin-el-salto-de-linea-final",
+			escrito: strings.TrimSuffix(fijado, "\n"), fijado: fijado,
+			numero: 4, enLoEscrito: "}", enLoFijado: "}\n",
+		},
+		{
+			nombre:  "con-una-linea-de-mas",
+			escrito: fijado + "\n", fijado: fijado,
+			numero: 5, enLoEscrito: "\n", enLoFijado: "",
+		},
+		{
+			nombre:  "con-una-linea-de-menos",
+			escrito: "{\n}\n", fijado: fijado,
+			numero: 2, enLoEscrito: "}\n", enLoFijado: "  \"skill\": \"jurisprudencia\",\n",
+		},
+	}
+}
+
+// exigirElTextoFijado exige que lo escrito en el fichero sea, byte a byte, el
+// texto fijado; si no, sale en rojo con la primera línea distinta, con lo que
+// lleva en ella cada uno.
+func exigirElTextoFijado(t *testing.T, fichero, fijado, escrito string) {
+	t.Helper()
+
+	if numero, enLoEscrito, enLoFijado := primeraLineaDistinta(escrito, fijado); numero > 0 {
+		t.Errorf("%s no es el de antes de H30 (FR-026 de H30): la línea %d es distinta\nescrita: %q\nfijada:  %q",
+			fichero, numero, enLoEscrito, enLoFijado)
+	}
+}
+
+// primeraLineaDistinta es la primera línea en que escrito y fijado no son
+// iguales, contada desde 1, con lo que lleva en ella cada uno, con su salto de
+// línea si lo tiene; 0 si son iguales. Partidos detrás de cada salto de línea,
+// todos los trozos menos el último terminan en uno y el último no lo lleva: si
+// los dos textos no son iguales, son distintos en algún trozo que tienen los dos.
+func primeraLineaDistinta(escrito, fijado string) (numero int, enLoEscrito, enLoFijado string) {
+	deLoEscrito, deLoFijado := strings.SplitAfter(escrito, "\n"), strings.SplitAfter(fijado, "\n")
+
+	for i := range min(len(deLoEscrito), len(deLoFijado)) {
+		if deLoEscrito[i] != deLoFijado[i] {
+			return i + 1, deLoEscrito[i], deLoFijado[i]
+		}
+	}
+
+	return 0, "", ""
+}
+
+// sinElOrigen es informe.json, escrito con dos espacios por nivel, sin el bloque
+// origen de su raíz (contracts/informe-del-job.md §2 de H30): de su línea, la de
+// la clave con dos espacios delante, a la que lo cierra, la primera detrás con
+// dos espacios delante —ella misma, si lo lleva en una línea—; y, si era la
+// última clave, sin la coma de la anterior. Sin él, informe.json tal cual.
+func sinElOrigen(escrito string) string {
+	const clave = `  "origen": `
+
+	lineas := strings.SplitAfter(escrito, "\n")
+
+	principio := slices.IndexFunc(lineas, func(linea string) bool { return strings.HasPrefix(linea, clave) })
+	if principio < 0 {
+		return escrito
+	}
+
+	final := principio
+	if valor := strings.TrimSpace(strings.TrimPrefix(lineas[principio], clave)); valor == "{" || valor == "[" {
+		final += 1 + slices.IndexFunc(lineas[principio+1:], func(linea string) bool {
+			return strings.HasPrefix(linea, "  ") && !strings.HasPrefix(linea, "   ")
+		})
+	}
+
+	if !strings.HasSuffix(strings.TrimSuffix(lineas[final], "\n"), ",") && principio > 0 {
+		anterior := strings.TrimSuffix(lineas[principio-1], "\n")
+		lineas[principio-1] = strings.TrimSuffix(anterior, ",") + "\n"
+	}
+
+	return strings.Join(slices.Delete(lineas, principio, final+1), "")
+}
+
+// sinLasMedidasYReutilizadas es informe.md sin la sección «Medidas y
+// reutilizadas» (contracts/informe-del-job.md §6 de H30): de su encabezado a la
+// sección siguiente, y, si es la última, también la línea en blanco que la
+// separa de la anterior. Sin ella, informe.md tal cual.
+func sinLasMedidasYReutilizadas(md string) string {
+	lineas := strings.SplitAfter(md, "\n")
+
+	principio := slices.Index(lineas, "## Medidas y reutilizadas\n")
+	if principio < 0 {
+		return md
+	}
+
+	final := len(lineas)
+	if siguiente := slices.IndexFunc(lineas[principio+1:], func(linea string) bool {
+		return strings.HasPrefix(linea, "## ")
+	}); siguiente >= 0 {
+		final = principio + 1 + siguiente
+	} else {
+		for principio > 0 && lineas[principio-1] == "\n" {
+			principio--
+		}
+	}
+
+	return strings.Join(slices.Delete(lineas, principio, final), "")
+}
+
+// informeJSONDeLaSuiteCompleta es informe.json de la ejecución de
+// TestInformeDeLaSuiteCompletaNoCambia tal como lo escribía EscribirInforme
+// antes de H30, sacado de su salida y pegado una vez: no se cambia para que el
+// test pase (FR-026 de H30; ADR 0029).
+const informeJSONDeLaSuiteCompleta = `{
+  "skill": "boe-legislacion",
+  "modelo_que_decide": "claude-sonnet-5-5",
+  "modelos_informativos": [
+    "claude-haiku-4-5-20251001"
+  ],
+  "repeticiones": 3,
+  "umbral": 2,
+  "modelos_de_sesion": [
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-5-5"
+  ],
+  "versiones_de_claude_code": [
+    "2.1.270"
+  ],
+  "commit": "0123456789abcdef0123456789abcdef01234567",
+  "sin_python": "búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print\nusuario: root\nresultado: ninguno\n",
+  "ficheros_mal_formados": [],
+  "veredicto": "aprobado",
+  "motivos": [],
+  "tasas": [
+    {
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modo": "orden",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5 (herramienta)",
+      "modo": "herramienta",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": true,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    },
+    {
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001 (herramienta)",
+      "modo": "herramienta",
+      "pregunta_ampliada": false,
+      "planificada": true,
+      "decide": false,
+      "formas": [],
+      "sesiones": 3,
+      "pasan": 3,
+      "sin_medir": 0,
+      "pasa": true,
+      "sesiones_con_lectura_sin_servir": null
+    }
+  ],
+  "umbrales": [
+    {
+      "nombre": "sin_activar:claude-sonnet-5-5:orden",
+      "descripcion": "Respuestas de claude-sonnet-5-5 en el modo orden sin la skill activada, sobre sus respuestas medidas en las evals que la activan",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "afirma_lo_no_leido:claude-sonnet-5-5:orden",
+      "descripcion": "Respuestas de claude-sonnet-5-5 en el modo orden que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus respuestas juzgadas en las evals que activan la skill",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "cuenta_su_proceso:claude-sonnet-5-5:orden",
+      "descripcion": "Respuestas de claude-sonnet-5-5 en el modo orden con sí en cuenta_su_proceso en el primer voto del juez, sobre sus respuestas juzgadas en las evals que activan la skill",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "sin_activar:claude-sonnet-5-5:herramienta",
+      "descripcion": "Respuestas de claude-sonnet-5-5 en el modo herramienta sin la skill activada, sobre sus respuestas medidas en las evals que la activan",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "afirma_lo_no_leido:claude-sonnet-5-5:herramienta",
+      "descripcion": "Respuestas de claude-sonnet-5-5 en el modo herramienta que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus respuestas juzgadas en las evals que activan la skill",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "cuenta_su_proceso:claude-sonnet-5-5:herramienta",
+      "descripcion": "Respuestas de claude-sonnet-5-5 en el modo herramienta con sí en cuenta_su_proceso en el primer voto del juez, sobre sus respuestas juzgadas en las evals que activan la skill",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "afirma_lo_no_leido:claude-sonnet-5-5",
+      "descripcion": "Respuestas de claude-sonnet-5-5, con todos los modos juntos, que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus respuestas juzgadas en las evals que activan la skill",
+      "medida": 0,
+      "total": 6,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar",
+      "descripcion": "Casos etiquetados como defecto que el juez no marca en afirma_lo_no_leido, sobre los casos etiquetados como defecto de su medida versionada",
+      "medida": 0,
+      "total": 212,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "medida_del_juez:afirma_lo_no_leido:correctos_marcados",
+      "descripcion": "Casos etiquetados como correctos que el juez marca en afirma_lo_no_leido, sobre los casos etiquetados como correctos de su medida versionada",
+      "medida": 0,
+      "total": 47,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "duracion_de_las_sesiones:orden",
+      "descripcion": "Segundos de la tanda del modo orden, desde que se prepara su primera sesión hasta que termina la última",
+      "medida": 500,
+      "comparacion": "<=",
+      "umbral": 900,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "duracion_de_las_sesiones:herramienta",
+      "descripcion": "Segundos de la tanda del modo herramienta, desde que se prepara su primera sesión hasta que termina la última",
+      "medida": 600,
+      "comparacion": "<=",
+      "umbral": 900,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "duracion_del_juez:orden",
+      "descripcion": "Segundos de los votos del juez sobre las respuestas del modo orden, desde que empieza el primero hasta que termina el último",
+      "medida": 0,
+      "comparacion": "<=",
+      "umbral": 900,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "duracion_del_juez:herramienta",
+      "descripcion": "Segundos de los votos del juez sobre las respuestas del modo herramienta, desde que empieza el primero hasta que termina el último",
+      "medida": 0,
+      "comparacion": "<=",
+      "umbral": 900,
+      "cumple": true,
+      "decide": true
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:orden",
+      "descripcion": "Lecturas de claude-sonnet-5-5 en el modo orden que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden",
+      "descripcion": "Lecturas de claude-haiku-4-5-20251001 en el modo orden que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-sonnet-5-5:herramienta",
+      "descripcion": "Lecturas de claude-sonnet-5-5 en el modo herramienta que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    },
+    {
+      "nombre": "fuera_de_lo_grabado:claude-haiku-4-5-20251001:herramienta",
+      "descripcion": "Lecturas de claude-haiku-4-5-20251001 en el modo herramienta que salieron con 4 o 5 sin estar en la caché, sin las de sin_servir, sobre sus sesiones medidas",
+      "medida": 0,
+      "total": 3,
+      "comparacion": "<=",
+      "umbral": 0,
+      "cumple": true,
+      "decide": false
+    }
+  ],
+  "juez": {
+    "modelo": "claude-opus-5-5",
+    "version_de_claude_code": "2.1.289",
+    "respuestas": [],
+    "sin_juzgar": [],
+    "votos_cortados": []
+  },
+  "duracion_de_las_sesiones": 1100,
+  "reintentos_por_limite_de_ritmo": 0,
+  "sesiones_sin_medir": [],
+  "fuera_de_lo_grabado": [],
+  "red": [],
+  "evals": [
+    {
+      "sesion": "01-sintetica-claude-haiku-4-5-20251001-01",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-claude-haiku-4-5-20251001-02",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-claude-haiku-4-5-20251001-03",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "orden",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-claude-sonnet-5-5-01",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-claude-sonnet-5-5-02",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-claude-sonnet-5-5-03",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "orden",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "boe articulo BOE-A-2015-10565 a21 --json",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-herramienta-claude-haiku-4-5-20251001-01",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-10565 a21",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-herramienta-claude-haiku-4-5-20251001-02",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-10565 a21",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-herramienta-claude-haiku-4-5-20251001-03",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-haiku-4-5-20251001",
+      "modelo_de_la_sesion": "claude-haiku-4-5-20251001",
+      "modo": "herramienta",
+      "decide": false,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-10565 a21",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-herramienta-claude-sonnet-5-5-01",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-10565 a21",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-herramienta-claude-sonnet-5-5-02",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-10565 a21",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    },
+    {
+      "sesion": "01-sintetica-herramienta-claude-sonnet-5-5-03",
+      "eval": "01-sintetica.yaml",
+      "modelo": "claude-sonnet-5-5",
+      "modelo_de_la_sesion": "claude-sonnet-5-5",
+      "modo": "herramienta",
+      "decide": true,
+      "activa": true,
+      "activada": true,
+      "por_materia": false,
+      "comandos_ejecutados": [
+        "bloque boe BOE-A-2015-10565 a21"
+      ],
+      "comandos_ausentes": [],
+      "comandos_prohibidos_ejecutados": [],
+      "citas_encontradas": [
+        "BOE-A-2015-10565 a21"
+      ],
+      "citas_ausentes": [],
+      "avisos_encontrados": [],
+      "avisos_ausentes": [],
+      "hallazgos_encontrados": [],
+      "hallazgos_ausentes": [],
+      "redacciones_modificadas_encontradas": [],
+      "redacciones_modificadas_ausentes": [],
+      "plazo_encontrado": false,
+      "avisos_del_plazo_ausentes": [],
+      "no_cubierto_declarado": false,
+      "plazo_sin_calcular_declarado": false,
+      "lineas_del_plazo": [],
+      "territorio_encontrado": [],
+      "territorio_ausente": [],
+      "linea_sin_consulta": false,
+      "citas_sin_consulta": [],
+      "invocaciones": [
+        {
+          "orden": "mcp serve",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": false
+        },
+        {
+          "orden": "boe_articulo BOE-A-2015-10565 a21",
+          "codigo": 0,
+          "conexiones": [],
+          "llamada": true
+        }
+      ],
+      "fuera_de_lo_grabado": [],
+      "otras_fallidas": [],
+      "lecturas_sin_servir": [],
+      "llegadas_a_la_red": [],
+      "respuesta": "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n[BOE-A-2015-10565, bloque a21]",
+      "codigo_de_la_sesion": 0,
+      "fin_de_la_sesion": "result success",
+      "sesion_terminada": true,
+      "reintentos_por_limite_de_ritmo": 0,
+      "sin_medir": "",
+      "motivos": [],
+      "pasa": true
+    }
+  ]
+}
+`
+
+// informeMDDeLaSuiteCompleta es informe.md de esa misma ejecución, igual que
+// informeJSONDeLaSuiteCompleta, con sus comillas invertidas fuera del literal
+// crudo, que no puede llevarlas.
+const informeMDDeLaSuiteCompleta = `# Informe de evals de boe-legislacion
+
+## Veredicto
+
+Veredicto: aprobado
+
+Motivos: ninguno
+
+## Cabecera
+
+Modelo que decide: claude-sonnet-5-5
+
+Modelos informativos: claude-haiku-4-5-20251001
+
+Repeticiones por eval: 3
+
+Umbral: 2
+
+Modelos de las sesiones: claude-haiku-4-5-20251001, claude-sonnet-5-5
+
+Versiones de Claude Code: 2.1.270
+
+Commit: 0123456789abcdef0123456789abcdef01234567
+
+Duración de las sesiones: 1100 s
+
+Reintentos por límite de ritmo: 0
+
+## Comprobación sin Python
+
+` + "```" + `text
+búsqueda: find / ( -path /proc -o -path /sys ) -prune -o ( ( -type f -perm /111 ( -iname python* -o -iname pypy* ) ) -o ( -type l ( -iname python* -o -iname pypy* ) ) -o ( ( -type f -o -type l ) ( -iname libpython* -o -iname libpypy* ) ) ) -print
+usuario: root
+resultado: ninguno
+` + "```" + `
+
+## Ficheros mal formados
+
+ninguno
+
+## Invocaciones fuera de lo grabado
+
+ninguna
+
+## Peticiones llegadas a la red
+
+ninguna petición llegó a la red de una fuente
+
+## Tasas por eval
+
+| Eval | Modelo | Modo | Decide | Planificada | Formas exigidas | Tasa | Resultado |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 01-sintetica.yaml | claude-sonnet-5-5 | orden | sí | sí | ninguna | 3 de 3 | llega al umbral |
+| 01-sintetica.yaml | claude-haiku-4-5-20251001 | orden | no | sí | ninguna | 3 de 3 | llega al umbral |
+| 01-sintetica.yaml | claude-sonnet-5-5 (herramienta) | herramienta | sí | sí | ninguna | 3 de 3 | llega al umbral |
+| 01-sintetica.yaml | claude-haiku-4-5-20251001 (herramienta) | herramienta | no | sí | ninguna | 3 de 3 | llega al umbral |
+
+## Umbrales
+
+| Umbral | Medida | Condición | Cumple | Hace fallar el veredicto |
+| --- | --- | --- | --- | --- |
+| ` + "`" + `sin_activar:claude-sonnet-5-5:orden` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | sí |
+| ` + "`" + `afirma_lo_no_leido:claude-sonnet-5-5:orden` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `cuenta_su_proceso:claude-sonnet-5-5:orden` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `sin_activar:claude-sonnet-5-5:herramienta` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | sí |
+| ` + "`" + `afirma_lo_no_leido:claude-sonnet-5-5:herramienta` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `cuenta_su_proceso:claude-sonnet-5-5:herramienta` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `afirma_lo_no_leido:claude-sonnet-5-5` + "`" + ` | 0 de 6 (0,0 %) | ≤ 0,0 % | sí | sí |
+| ` + "`" + `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` + "`" + ` | 0 de 212 (0,0 %) | ≤ 0,0 % | sí | sí |
+| ` + "`" + `medida_del_juez:afirma_lo_no_leido:correctos_marcados` + "`" + ` | 0 de 47 (0,0 %) | ≤ 0,0 % | sí | sí |
+| ` + "`" + `duracion_de_las_sesiones:orden` + "`" + ` | 500 | ≤ 900 | sí | sí |
+| ` + "`" + `duracion_de_las_sesiones:herramienta` + "`" + ` | 600 | ≤ 900 | sí | sí |
+| ` + "`" + `duracion_del_juez:orden` + "`" + ` | 0 | ≤ 900 | sí | sí |
+| ` + "`" + `duracion_del_juez:herramienta` + "`" + ` | 0 | ≤ 900 | sí | sí |
+| ` + "`" + `fuera_de_lo_grabado:claude-sonnet-5-5:orden` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `fuera_de_lo_grabado:claude-haiku-4-5-20251001:orden` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `fuera_de_lo_grabado:claude-sonnet-5-5:herramienta` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+| ` + "`" + `fuera_de_lo_grabado:claude-haiku-4-5-20251001:herramienta` + "`" + ` | 0 de 3 (0,0 %) | ≤ 0,0 % | sí | no: solo se publica |
+
+## Juez
+
+Modelo: claude-opus-5-5
+
+Versión de Claude Code: 2.1.289
+
+Votos: ninguna
+
+Respuestas sin juzgar: ninguna
+
+Votos cortados por el tope y pedidos otra vez: ninguna
+
+## Sesiones sin medir
+
+ninguna
+
+## Sesiones
+
+| Sesión | Eval | Modelo | Modo | Activa | Activada | Sesión terminada | Comandos ausentes | Comandos prohibidos ejecutados | Citas ausentes | Avisos encontrados | Avisos ausentes | Hallazgos encontrados | Hallazgos ausentes | Redacciones modificadas encontradas | Redacciones modificadas ausentes | Territorio encontrado | Territorio ausente | Reintentos por límite de ritmo | Sin medir | Resultado |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 01-sintetica-claude-haiku-4-5-20251001-01 | 01-sintetica.yaml | claude-haiku-4-5-20251001 | orden | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-claude-haiku-4-5-20251001-02 | 01-sintetica.yaml | claude-haiku-4-5-20251001 | orden | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-claude-haiku-4-5-20251001-03 | 01-sintetica.yaml | claude-haiku-4-5-20251001 | orden | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-claude-sonnet-5-5-01 | 01-sintetica.yaml | claude-sonnet-5-5 | orden | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-claude-sonnet-5-5-02 | 01-sintetica.yaml | claude-sonnet-5-5 | orden | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-claude-sonnet-5-5-03 | 01-sintetica.yaml | claude-sonnet-5-5 | orden | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-herramienta-claude-haiku-4-5-20251001-01 | 01-sintetica.yaml | claude-haiku-4-5-20251001 | herramienta | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-herramienta-claude-haiku-4-5-20251001-02 | 01-sintetica.yaml | claude-haiku-4-5-20251001 | herramienta | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-herramienta-claude-haiku-4-5-20251001-03 | 01-sintetica.yaml | claude-haiku-4-5-20251001 | herramienta | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-herramienta-claude-sonnet-5-5-01 | 01-sintetica.yaml | claude-sonnet-5-5 | herramienta | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-herramienta-claude-sonnet-5-5-02 | 01-sintetica.yaml | claude-sonnet-5-5 | herramienta | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+| 01-sintetica-herramienta-claude-sonnet-5-5-03 | 01-sintetica.yaml | claude-sonnet-5-5 | herramienta | sí | sí | sí (código 0) | ninguno | ninguno | ninguna | ninguno | ninguno | ninguno | ninguno | ninguna | ninguna | ninguno | ninguno | 0 | no | pasa |
+
+## Sesión 01-sintetica-claude-haiku-4-5-20251001-01
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-haiku-4-5-20251001
+
+Modelo de la sesión: claude-haiku-4-5-20251001
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones | no |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-claude-haiku-4-5-20251001-02
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-haiku-4-5-20251001
+
+Modelo de la sesión: claude-haiku-4-5-20251001
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones | no |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-claude-haiku-4-5-20251001-03
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-haiku-4-5-20251001
+
+Modelo de la sesión: claude-haiku-4-5-20251001
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones | no |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-claude-sonnet-5-5-01
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-sonnet-5-5
+
+Modelo de la sesión: claude-sonnet-5-5
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones | no |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-claude-sonnet-5-5-02
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-sonnet-5-5
+
+Modelo de la sesión: claude-sonnet-5-5
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones | no |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-claude-sonnet-5-5-03
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-sonnet-5-5
+
+Modelo de la sesión: claude-sonnet-5-5
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| boe articulo BOE-A-2015-10565 a21 --json | 0 | sin conexiones | no |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-herramienta-claude-haiku-4-5-20251001-01
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-haiku-4-5-20251001
+
+Modelo de la sesión: claude-haiku-4-5-20251001
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| mcp serve | 0 | sin conexiones | no |
+| boe_articulo BOE-A-2015-10565 a21 | 0 | sin conexiones | sí |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-herramienta-claude-haiku-4-5-20251001-02
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-haiku-4-5-20251001
+
+Modelo de la sesión: claude-haiku-4-5-20251001
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| mcp serve | 0 | sin conexiones | no |
+| boe_articulo BOE-A-2015-10565 a21 | 0 | sin conexiones | sí |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-herramienta-claude-haiku-4-5-20251001-03
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-haiku-4-5-20251001
+
+Modelo de la sesión: claude-haiku-4-5-20251001
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| mcp serve | 0 | sin conexiones | no |
+| boe_articulo BOE-A-2015-10565 a21 | 0 | sin conexiones | sí |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-herramienta-claude-sonnet-5-5-01
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-sonnet-5-5
+
+Modelo de la sesión: claude-sonnet-5-5
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| mcp serve | 0 | sin conexiones | no |
+| boe_articulo BOE-A-2015-10565 a21 | 0 | sin conexiones | sí |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-herramienta-claude-sonnet-5-5-02
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-sonnet-5-5
+
+Modelo de la sesión: claude-sonnet-5-5
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| mcp serve | 0 | sin conexiones | no |
+| boe_articulo BOE-A-2015-10565 a21 | 0 | sin conexiones | sí |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+
+## Sesión 01-sintetica-herramienta-claude-sonnet-5-5-03
+
+Eval: 01-sintetica.yaml
+
+Modelo pedido: claude-sonnet-5-5
+
+Modelo de la sesión: claude-sonnet-5-5
+
+Pregunta:
+
+` + "```" + `text
+¿qué dice el art. 21 de la Ley 39/2015?
+` + "```" + `
+
+Invocaciones:
+
+| Orden | Código | Conexiones | Llamada |
+| --- | --- | --- | --- |
+| mcp serve | 0 | sin conexiones | no |
+| boe_articulo BOE-A-2015-10565 a21 | 0 | sin conexiones | sí |
+
+Respuesta:
+
+` + "```" + `text
+El artículo 21 de la Ley 39/2015 regula la obligación de resolver.
+
+[BOE-A-2015-10565, bloque a21]
+` + "```" + `
+`
