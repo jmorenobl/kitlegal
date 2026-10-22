@@ -1,24 +1,20 @@
 {
-  "id": "T013",
-  "texto": "T013 [US4] El job de evals con elección, decisión y reutilización, y `scripts/evals.sh` con la decisión obligatoria — FR-010, FR-012, FR-016 a FR-020, SC-011 (y SC-016 en la cabecera del job) (contracts/job-de-evals.md §1 a §3; research D13, D17, D18). **`.github/workflows/evals.yml`**: el trabajo `cambios` con `fetch-depth: 0`, `permissions: contents: read, pull-requests: read`, `timeout-minutes: 15`, salida `elige` y el paso «Elegir las evals que la propuesta ha podido cambiar» con `TestEleccionDeLaPropuesta`; la `tanda` con `MODO_DE_EVALS`, la condición de §2 y las salidas `medir` y `modo`; en `evals (<skill>)`, `permissions: contents: read, actions: read, pull-requests: read`, `MODO_DE_EVALS`, `PROPUESTA` y `BASE_DE_LA_PROPUESTA` en el `env`, `fetch-depth: 0`, el paso «Decidir qué mide y qué reutiliza» tras instalar Go, con `GH_TOKEN` y `GH_REPO` solo en él, «Ejecutar las evals» con `DECISION_DE_EVALS`, y el último, «El informe del trabajo está escrito», con `if: ${{ !cancelled() }}`; la etiqueta `evals-completa` entre los disparadores; matriz, concurrencia (5, 4 y 2), modelos, repeticiones y tope (352 min), como hoy; la cabecera dice qué mide cada disparador y que la release exige la suite completa. **`internal/evals/definicion.go`**: lee lo nuevo (el trabajo `cambios`, el modo de la tanda, los permisos, el `fetch-depth`, el paso de la decisión y su plazo, la marca final) y el peor caso de cada trabajo suma los 900 s de la decisión (`boe-legislacion`: 19 877 s, en los 352 minutos). **`scripts/evals.sh`**: sin `DECISION_DE_EVALS`, o si no es un fichero legible, termina con 1 antes de la primera sesión con «evals: falta DECISION_DE_EVALS» (la comprobación va tras leer sus argumentos y antes de cualquier otra cosa que dependa del entorno); con ella, la pasa como `-decision` a `TestEjecucionDelJob`. **Tests**: `internal/evals/definicion_test.go`, `TestDefinicionDelJob`: el trabajo `cambios` con `TestEleccionDeLaPropuesta`; modo `completa` solo con el despacho, `evals-completa` y `evals-prueba-de-red`; la tanda solo con uno de ellos, `evals` o `elige=si`; los permisos, el `fetch-depth`, el paso de la decisión antes de «Ejecutar las evals» con `GH_TOKEN` solo en él, `DECISION_DE_EVALS` y la marca final con `!cancelled()`; una combinación por skill con 5, 4 y 2 y 11 en total (SC-011: rojo si la definición admite más); el peor caso con la decisión dentro del tope; sus subtests `segundo-disparo` y `estado-de-la-tanda` ya vienen con el modo de T012, y esta tarea solo les añade lo que lea de nuevo `definicion.go`; `internal/evals/sustitutos_test.go`: un test nuevo (hoy ningún test de `make ci` ejecuta `scripts/evals.sh`) que lo ejecuta con el `claude` sustituto delante en el `PATH` y comprueba que sin `DECISION_DE_EVALS`, y con una ruta que no es un fichero legible, sale con 1 y «evals: falta DECISION_DE_EVALS» sin que llegue ninguna sesión al sustituto; mutante (árbol aparte): sin la comprobación en el guion → rojo. **Corrección de un test ajeno que el `run` del contrato deja en rojo** (redelimitada en el intento 1, gates/tarea-T013.md): `TestSalidasDeLosPasosQueImprimen` (`internal/evals/cierre_test.go`, de H25) recoge los `run:` de `evals.yml` que empiezan por `make evals`, y el de «Ejecutar las evals» empieza ahora por `DECISION_DE_EVALS=\"$RUNNER_TEMP/decision-de-evals.json\"`; el test reconoce la orden tras las asignaciones de variables con que empieza su `run` y espera ese `run` de §2 y el de la medida del juez, en su orden, sin perder lo que comprueba (que los dos pasos que imprimen un fichero entre marcas llevan `2>&1`). Rutas: .github/workflows/evals.yml, internal/evals/definicion.go, scripts/evals.sh, internal/evals/sustitutos_test.go, internal/evals/cierre_test.go",
-  "intento": 2,
+  "id": "T014",
+  "texto": "T014 [US3] La comprobación de la suite completa de un commit — FR-025, SC-005 (data-model §11; contracts/release.md §2 y §3; research D14). **`internal/evals/suite_completa.go`**: para el commit *c*, de las ejecuciones del flujo `evals` sobre *c* (T008), terminadas y de la más reciente a la más antigua, vale la primera con `headSha` *c*, todos los trabajos `evals (<skill>)` de las skills con evals en *c* en `success`, y en el informe de cada una `origen.modo: completa`, cada eval de `evals/<skill>/` en *c* medida y ninguna reutilizada; si ninguna vale, el error con el mensaje de contracts/release.md §2 (el commit, una línea por ejecución mirada con su primer motivo o «ninguna ejecución del flujo evals sobre el commit», y cómo lanzar la suite completa sobre la etiqueta). **`internal/evals/job_test.go`**: `TestSuiteCompletaDelCommit` (`-commit`, `-etiqueta`; etiqueta `evals`). **Tests**: `internal/evals/suite_completa_test.go`, `TestComprobarLaSuiteCompleta`, con la plataforma en memoria: falla sin ejecución, con otro `headSha`, con un trabajo en `failure`, con un informe que falta, con una eval reutilizada, con modo `reutilizacion` y con una eval del commit que no está en el informe, cada uno con su motivo en el mensaje; sale bien con una completa y en verde. `go vet -tags evals ./internal/evals/` en verde. Rutas: internal/evals/suite_completa.go, internal/evals/job_test.go",
+  "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "885c040d2f5bf7a6276f90b56f31df52c00777d0",
+  "base": "d00e7afaaadec9514c4573b6389c27fb238503c2",
   "rutas": [
-    ".github/workflows/evals.yml",
-    "RUNNER_TEMP/decision-de-evals.json",
-    "contracts/job-de-evals.md",
-    "definicion.go",
-    "evals.yml",
-    "gates/tarea-T013.md",
-    "internal/evals/cierre_test.go",
-    "internal/evals/definicion.go",
-    "internal/evals/definicion_test.go",
-    "internal/evals/sustitutos_test.go",
-    "scripts/evals.sh"
+    "contracts/release.md",
+    "evals/",
+    "internal/evals/",
+    "internal/evals/job_test.go",
+    "internal/evals/suite_completa.go",
+    "internal/evals/suite_completa_test.go",
+    "origen.mod"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "344862faf48f27953a135794d889de9b0cba6cc33ab7f6912bb57fba5cbaaaa1"
+  "nota": "-"
 }

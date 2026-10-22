@@ -111,6 +111,12 @@ var (
 		"fichero de la decisión del trabajo: qué evals mide y cuáles reutiliza; vacío, las mide todas")
 )
 
+// Bandera con la que el trabajo suite-completa de la release invoca, tras -args,
+// la comprobación de la suite completa del commit etiquetado, además de -commit
+// (contracts/release.md §1 de H30): la etiqueta, la de la orden que lanza la
+// suite completa si falta.
+var banderaEtiqueta = flag.String("etiqueta", "", "etiqueta de la release, la del commit de -commit")
+
 // Banderas con las que el quickstart invoca, tras -args, la comprobación de la
 // consulta repetida (contracts/comprobacion-del-quickstart.md §1).
 var (
@@ -645,6 +651,34 @@ func TestTandaDelCommit(t *testing.T) {
 
 	t.Log(motivoDeLaDecision(propia, miradas, decision))
 	require.NoError(t, escribirLaDecision(*banderaSalida, decision.decisionDeLaTanda))
+}
+
+// TestSuiteCompletaDelCommit es la comprobación de la suite completa del commit
+// etiquetado, el paso del trabajo suite-completa de la release, del que depende
+// publicar (contracts/release.md §1 y §2 de H30; research D14 de H30; FR-025):
+// lee del checkout, que es el del commit de -commit, las evals de cada skill con
+// evals (evalsDelCommit) y, con gh, busca en las ejecuciones del flujo evals
+// sobre ese commit la más reciente de la suite completa, con el trabajo de cada
+// skill en success y ninguna eval reutilizada (comprobarLaSuiteCompleta), que
+// registra. Falla si no la hay, con el commit, una línea por ejecución mirada y
+// su motivo y la orden que lanza la suite completa sobre la etiqueta de
+// -etiqueta; y con el error de sus banderas, del checkout o de una orden de gh.
+// Solo lo ejecuta la release, porque consulta la API de GitHub; lo que decide lo
+// fija TestComprobarLaSuiteCompleta.
+func TestSuiteCompletaDelCommit(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "commit", "etiqueta")
+
+	evals, err := evalsDelCommit(os.DirFS(raizDelRepositorio))
+	require.NoError(t, err)
+
+	ejecucion, err := comprobarLaSuiteCompleta(t.Context(), ghDeLaPlataforma{entorno: os.Environ()}, *banderaCommit,
+		*banderaEtiqueta, evals)
+	require.NoError(t, err)
+
+	t.Logf("la ejecución %d del flujo evals mide la suite completa del commit %s, en verde y sin evals reutilizadas",
+		ejecucion, *banderaCommit)
 }
 
 // TestComprobarConsultaRepetida comprueba las dos respuestas de la consulta
