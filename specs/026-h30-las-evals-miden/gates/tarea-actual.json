@@ -1,16 +1,17 @@
 {
-  "id": "T015",
-  "texto": "T015 [US3] El trabajo `suite-completa` de la release, del que depende `publicar` — FR-025, SC-005 (contracts/release.md §1 y §3). **`.github/workflows/release.yml`**: el trabajo `suite-completa` de contracts/release.md §1 (`ubuntu-24.04`, `permissions: contents: read, actions: read`, `GH_TOKEN`, `GH_REPO`, `COMMIT_ETIQUETADO: ${{ github.sha }}`, `ETIQUETA`, checkout sin credenciales persistidas, `setup-go` con `go.mod` y el paso con `TestSuiteCompletaDelCommit`), y `publicar` con `needs: [suite-completa]`; `humo` y `catalogo` siguen detrás de `publicar`. **Tests**: `release_test.go`, subtest `suite-completa` de `TestConfiguracionDeLaRelease`: el trabajo existe con su paso y sus permisos, el paso pasa `${{ github.sha }}` como commit, `publicar` depende de él, y el conjunto de trabajos y su orden lo incluyen; mutantes (en memoria, sobre el YAML leído): sin el trabajo, sin la dependencia, con otro commit en el paso → rojo cada uno. Los demás subtests de `TestConfiguracionDeLaRelease` siguen en verde. Rutas: .github/workflows/release.yml, release_test.go",
+  "id": "T016",
+  "texto": "T016 [US5] El ADR 0045, lo reutilizado no cuenta en la tasa — FR-024, SC-013 (spec FR-024; data-model §9; research D12). **`docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md`**, con la cabecera de los ADR de `docs/ADR/` (estado, fecha, hito H30 y lo que no toca: el umbral de ninguna clase, el modelo que decide, los guiones del workflow): el contexto (la tasa del ADR 0038 con todas las respuestas, y lo que pasa con menos); la decisión de FR-024 (lo reutilizado no cuenta en `<clase>:<modelo>` ni en `<clase>:<modelo>:<modo>`, que se aplican a lo medido del modelo que decide con los dos modos juntos; el límite k(*n*); la serie de cierres cuenta solo lo medido y el guion de la serie del workflow (`serie.sh`) no cambia; ningún umbral sube); la derivación de *p*ref desde el `umbral` de `clases.yaml` y, como su resultado, las cifras de hoy de `boe-legislacion` y `jurisprudencia` (*N*, k(*N*), *p*ref), copiadas de la salida de `go test -count=1 -v -run '^TestLimiteDeLaTasa$' ./internal/evals/` ejecutada en esta tarea; que estrechar el `umbral` de `clases.yaml` baja *p*ref y estrecha el límite para todo *n*; la tasa acumulada de la serie de `boe-legislacion`, sacada de `serie.sh mostrar boe-legislacion` (el guion de la serie del workflow, sin cambios) ejecutado en esta tarea (no copiada del spec), por encima de *p*ref, y que subir un umbral pediría otro ADR; las alternativas rechazadas de research D12. Ninguna cifra de memoria: si la salida difiere del spec, manda la salida, y se anota en `specs/026-h30-las-evals-miden/gates/supuestos.md`. Rutas: docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md, specs/026-h30-las-evals-miden/gates/supuestos.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "e20c1f493da8a942a80817ee4c77e10fcb732c9b",
+  "base": "15a0fbf2440910ae794d581b7a19e825ccde9e5c",
   "rutas": [
-    ".github/workflows/release.yml",
-    "contracts/release.md",
-    "github.sh",
-    "go.mod",
-    "release_test.go"
+    "clases.yaml",
+    "docs/ADR/",
+    "docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md",
+    "internal/evals/",
+    "serie.sh",
+    "specs/026-h30-las-evals-miden/gates/supuestos.md"
   ],
   "cierre": false,
   "converger": false,
