@@ -185,8 +185,8 @@ exactos— desde un test de un solo uso que no se versiona; los porcentajes van 
 Van en la propuesta de cambio de H30:
 
 - **`CHANGELOG.md`**: el límite k(*n*) de este ADR, con la documentación del job.
-
-Quedan fuera de las rutas del hito, para quien acepte este ADR:
-
 - **ADR 0038**: su estado dice que este lo precisa en el número de respuestas de su regla (punto 3).
 - **`CLAUDE.md`**: la decisión cerrada «Umbral de una clase del juez», con el límite de las respuestas medidas.
+
+Las dos últimas quedaron fuera de las rutas de las tareas del run y las hizo una persona en la misma propuesta de
+cambio, antes de fusionarla.

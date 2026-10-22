@@ -2759,6 +2759,12 @@ func probarElPlazoDeLaDecision(t *testing.T) {
 			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -timeout quince -v -run '^TestDecisionDelTrabajo$'"}},
 			error:   delPaso + `tiene el plazo -timeout "quince", y tiene que ser una duraci` + "\xc3\xb3" + "n mayor que 0",
 		},
+		{
+			nombre:  "con-el-plazo-de-lo-que-lee",
+			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -timeout 10m -v -run '^TestDecisionDelTrabajo$'"}},
+			error: delPaso + "tiene el plazo -timeout 10m, y tiene que ser mayor que los 10 minutos de lo que la decisi" +
+				"\xc3\xb3" + "n lee",
+		},
 	}
 
 	for _, caso := range casos {

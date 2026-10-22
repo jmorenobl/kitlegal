@@ -259,7 +259,7 @@ jobs:
     # respuestas a la vez: 72, 72 y 4, con las 60, 60 y 3 respuestas que juzga (FR-092 de H24;
     # specs/017-h24-las-evals-juzgan/contracts/job-de-evals.md §4; research.md S1 de H20). A cuatro, como iba hasta
     # H20, era de 21 097 s, 351,6 minutos, con las 21 evals de entonces, sin sitio para ninguna eval más. Cabe en las 6
-    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, es hoy de 6 469 s, 107,8 minutos, a dos a la vez (22 tandas de 272 s), y con las cinco evals de H9, de 14 629 s, 243,8 minutos (52 tandas). El de jurisprudencia,
+    # horas de un trabajo de un runner de GitHub. El de legal-core, que no tiene juez, es hoy de 19 525 s, 325,4 minutos, a dos a la vez (70 tandas de 272 s). El de jurisprudencia,
     # con su juez y a cuatro a la vez, es de 12 577 s, 209,6 minutos, y cabe en el mismo tope, que no cambia: 31 tandas
     # de sesiones de 272 s —16 y 15, con las 60 sesiones de sus diez evals en cada modo y la de la prueba de red, que el
     # cálculo cuenta en el modo orden aunque su trabajo no la lleve— y, de su juez, los 60 s de instalar su Claude Code y

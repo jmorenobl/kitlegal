@@ -783,3 +783,13 @@ func casosDeLosFallos(t *testing.T) []casoDeLaBusqueda {
 		},
 	}
 }
+
+// TestPlazoDeLaPlataformaDelContrato fija el plazo de lo que la decisión de un
+// trabajo lee de la plataforma en los 10 minutos que dan el contrato
+// (contracts/job-de-evals.md §2 de H30) y CONTRIBUTING.md: que el -timeout del
+// paso de la decisión lo supere lo exige plazoDeLaDecision.
+func TestPlazoDeLaPlataformaDelContrato(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, 10*time.Minute, plazoDeLaPlataforma)
+}

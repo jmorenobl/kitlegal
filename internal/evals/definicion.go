@@ -454,8 +454,9 @@ func ordenDeInstalacion(pasos []pasoDelFlujo) string {
 // (contracts/job-de-evals.md §2 de H30; research D17 de H30): el valor del
 // -timeout del go test de su run, escrito tras un espacio o tras un igual. Sin
 // el paso, el trabajo no decide nada y no tiene plazo que sumar: 0. Es un error
-// un run sin -timeout, o con él sin valor, y uno cuyo valor no es una duración
-// mayor que 0, que para go test es no tener plazo.
+// un run sin -timeout, o con él sin valor, uno cuyo valor no es una duración
+// mayor que 0, que para go test es no tener plazo, y uno que no supera
+// plazoDeLaPlataforma.
 func (d DefinicionDelJob) plazoDeLaDecision() (time.Duration, error) {
 	indice := slices.IndexFunc(d.pasos, func(paso pasoDelFlujo) bool { return paso.Nombre == pasoDeLaDecision })
 	if indice < 0 {
@@ -488,6 +489,14 @@ func (d DefinicionDelJob) plazoDeLaDecision() (time.Duration, error) {
 	if err != nil || plazo <= 0 {
 		return 0, fmt.Errorf("el paso %q tiene el plazo %s %q, y tiene que ser una duración mayor que 0",
 			pasoDeLaDecision, banderaDelPlazo, valor)
+	}
+
+	// Con un plazo que no supera el de lo que la decisión lee, go test acaba en
+	// pánico antes de que el plazo de la plataforma corte la lectura, y el
+	// trabajo no deja decisión.
+	if plazo <= plazoDeLaPlataforma {
+		return 0, fmt.Errorf("el paso %q tiene el plazo %s %s, y tiene que ser mayor que los %d minutos de lo que la decisión lee",
+			pasoDeLaDecision, banderaDelPlazo, valor, int(plazoDeLaPlataforma/time.Minute))
 	}
 
 	return plazo, nil
