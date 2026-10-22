@@ -1,20 +1,16 @@
 {
-  "id": "T010",
-  "texto": "T010 [US2] La decisión de cada trabajo y de la apertura, el plan con solo lo medido y sus puntos de entrada — FR-012 a FR-014, FR-016, FR-017, FR-019, SC-006, SC-007 (data-model §5 a §8; contracts/job-de-evals.md §2 a §4; research D13, D17, D18). **`internal/evals/decision.go`**: para un trabajo de una skill, el modo (`completa`: todas medidas con `suite_completa`, sin búsqueda; `reutilizacion`: las elegidas se miden y no se buscan, FR-012, y las demás se buscan con T009 y, sin resultado, se miden con `sin_resultado_de_main`, FR-014), con los ficheros de la propuesta de T008 (si `gh` no los da, todas las de la skill medidas con `plataforma` y sin búsqueda) y las huellas de T006; escribe el fichero de la decisión (el bloque `origen` sin `sesiones_abiertas`) y, para el registro, el error de la plataforma y una línea por eval —medida con su motivo o reutilizada con su procedencia— (contracts/eleccion-y-huella.md §3); la decisión de la apertura, `elige=si|no` (FR-016: sin ninguna eval elegida, `no`; con un conjunto incalculable o sin los ficheros de la propuesta, `si`). **`internal/evals/plan.go`** y **`internal/evals/ejecucion.go`**: el plan y la ejecución abren solo las sesiones de las evals medidas de la decisión y componen el informe (T007) con las reutilizadas de la decisión. **`internal/evals/job_test.go`** (etiqueta `evals`): `TestEleccionDeLaPropuesta` (`-propuesta`, `-base`, `-salida`), `TestDecisionDelTrabajo` (`-skill`, `-modo`, `-commit`, `-propuesta`, `-base`, `-modelo-que-decide`, `-version-de-claude-code`, `-modelo-del-juez`, `-version-del-juez`, `-salida`, con plazo de 10 minutos para la plataforma) y `-decision` en `TestEjecucionDelJob`, como en contracts/job-de-evals.md §4; sin `-decision`, `TestEjecucionDelJob` lo mide todo como hoy (la obligación la pone `scripts/evals.sh` en T013). **Tests**: `internal/evals/decision_test.go`, `TestDecisionDelJob`, con la plataforma en memoria y medidas de `main` sintéticas con la huella de cada eval, un subtest por caso: `solo-el-cuerpo-de-jurisprudencia` (SC-006: 0 sesiones planificadas de `boe-legislacion` y de `legal-core`, todas sus evals reutilizadas; sin esa medida, FR-014 las mide), `etiqueta-evals-sin-cambios` (SC-007: 0 sesiones y las 45 evals reutilizadas con su huella), solo la eval sin resultado medida con su motivo (FR-014), una apertura sin elección no planifica nada (FR-016), la suite completa sin ninguna búsqueda, y los ficheros de la propuesta que `gh` no da (todas las de la skill medidas con `plataforma` y el error en `origen`). Cada subtest cuenta las sesiones del plan de cada trabajo y sale en rojo con una sola de más. `go vet -tags evals ./internal/evals/` en verde. Rutas: internal/evals/decision.go, internal/evals/plan.go, internal/evals/ejecucion.go, internal/evals/job_test.go",
+  "id": "T011",
+  "texto": "T011 [US2] El golden de la matriz: lo que mide y reutiliza cada skill — FR-008, FR-019, SC-004 (contracts/eleccion-y-huella.md §3 y §5; research D16). **`internal/evals/eleccion.go`** (y **`decision.go`** si la composición lo pide): la matriz de una ejecución en texto, por skill, con las evals que mide (y su motivo) y las que reutiliza, sin sesiones, en un orden estable. **Tests**: `internal/evals/eleccion_test.go`, `TestMatrizDeLasPropuestas`: con una medida de `main` sintética con la huella de cada eval, la matriz de cada mutante de T005, de una propuesta sin nada elegido y de la suite completa, comparada byte a byte con una constante del test (el golden, sin fichero en disco); sale en rojo con cualquier diferencia. Rutas: internal/evals/eleccion.go, internal/evals/decision.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "862f2dec9628591e881e02bc9e96ffe7d10adddd",
+  "base": "6d164d5dd6cbcf2f01b0731b13a752da8c789d7c",
   "rutas": [
     "contracts/eleccion-y-huella.md",
-    "contracts/job-de-evals.md",
-    "internal/evals/",
+    "decision.go",
     "internal/evals/decision.go",
-    "internal/evals/decision_test.go",
-    "internal/evals/ejecucion.go",
-    "internal/evals/job_test.go",
-    "internal/evals/plan.go",
-    "scripts/evals.sh"
+    "internal/evals/eleccion.go",
+    "internal/evals/eleccion_test.go"
   ],
   "cierre": false,
   "converger": false,

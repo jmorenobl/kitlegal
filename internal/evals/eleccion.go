@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -348,4 +349,47 @@ func (c calculoDeLaEleccion) todas() []int {
 	}
 
 	return indices
+}
+
+// trabajoDecidido es un trabajo evals (<skill>) de una ejecución del job
+// (FR-019 de H30): su skill y su decisión, el bloque origen sin
+// sesiones_abiertas.
+type trabajoDecidido struct {
+	skill  string
+	origen *origenDeLasEvals
+}
+
+// sinTrabajosDeEvals es la matriz de una ejecución que no corre ningún trabajo
+// de evals: la apertura de una propuesta que no elige ninguna (FR-016 de H30).
+const sinTrabajosDeEvals = "ningún trabajo de evals\n"
+
+// matrizDeLaEjecucion es la matriz de una ejecución en texto (FR-019 de H30;
+// contracts/eleccion-y-huella.md §3 y §5 de H30): por trabajo, en orden de
+// skill, la línea «evals (<skill>): medidas <m>, reutilizadas <r>» y, con dos
+// espacios delante, las del registro de su decisión (lineasDeLaDecision): el
+// error de la plataforma, si lo hubo, y una por eval en orden de fichero,
+// medida con su motivo o reutilizada con su procedencia. Sin sesiones: un
+// trabajo que lo reutiliza todo tiene su línea con medidas 0. Sin trabajos, la
+// línea sinTrabajosDeEvals.
+func matrizDeLaEjecucion(trabajos []trabajoDecidido) string {
+	if len(trabajos) == 0 {
+		return sinTrabajosDeEvals
+	}
+
+	ordenados := slices.SortedStableFunc(slices.Values(trabajos), func(uno, otro trabajoDecidido) int {
+		return strings.Compare(uno.skill, otro.skill)
+	})
+
+	var matriz strings.Builder
+
+	for _, trabajo := range ordenados {
+		matriz.WriteString("evals (" + trabajo.skill + "): medidas " + strconv.Itoa(trabajo.origen.EvalsMedidas) +
+			", reutilizadas " + strconv.Itoa(trabajo.origen.EvalsReutilizadas) + "\n")
+
+		for _, linea := range lineasDeLaDecision(trabajo.origen) {
+			matriz.WriteString("  " + linea + "\n")
+		}
+	}
+
+	return matriz.String()
 }

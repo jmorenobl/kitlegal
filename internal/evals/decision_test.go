@@ -338,19 +338,24 @@ func procedenciaDeMainDelJob() *procedenciaDeLaMedida {
 	}
 }
 
+// modo es el de la ejecución del caso: la suite completa con su disparo, y con
+// reutilización con la apertura y con la etiqueta.
+func (c casoDeLaDecision) modo() modoDelOrigen {
+	if c.disparo == disparoCompleto {
+		return origenDeLaSuiteCompleta
+	}
+
+	return origenConReutilizacion
+}
+
 // esperado es el origen que espera el caso del trabajo de la skill, de las
 // evals de su conjunto en la cabeza, en su orden: las de sus medidas, medidas
 // con su motivo y sus rutas, y las demás, reutilizadas de la medida de main con
 // sus aportes y sus series; cada una con su huella sintética, salvo sin
 // conjunto.
 func (c casoDeLaDecision) esperado(calculo calculoDeLaDecision, skill string) *origenDeLasEvals {
-	modo := origenConReutilizacion
-	if c.disparo == disparoCompleto {
-		modo = origenDeLaSuiteCompleta
-	}
-
 	origen := &origenDeLasEvals{
-		Modo: modo, SinConjunto: calculo.eleccion.sinConjunto(), ErrorDeLaPlataforma: c.plataformaFallida,
+		Modo: c.modo(), SinConjunto: calculo.eleccion.sinConjunto(), ErrorDeLaPlataforma: c.plataformaFallida,
 	}
 
 	medidas, conMedidas := c.medidas[skill]
@@ -422,19 +427,9 @@ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso
 	t.Helper()
 
 	calculo := repositorio.calculo(t, caso)
-
-	modo := origenConReutilizacion
-	if caso.disparo == disparoCompleto {
-		modo = origenDeLaSuiteCompleta
-	}
-
-	corren := true
+	corren := repositorio.corren(t, caso, calculo)
 
 	if caso.disparo == disparoDeLaApertura {
-		eleccion, _ := eleccionConLaPlataforma(t.Context(), repositorio.plataforma(t, caso, ""), propuestaDelJob,
-			calculo.eleccion)
-		corren = eleccion.eligeAlguna()
-
 		assert.Equal(t, !caso.sinTrabajos, corren, "la apertura elige=si solo si elige alguna eval")
 	}
 
@@ -443,12 +438,7 @@ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso
 		sesiones := 0
 
 		if corren {
-			plataforma := repositorio.plataforma(t, caso, skill)
-
-			origen := decidirElTrabajo(t.Context(), trabajoADecidir{
-				skill: skill, modo: modo, propuesta: propuestaDelJob, calculo: calculo, plataforma: plataforma,
-				instante: instanteDeLaBusqueda,
-			})
+			origen, plataforma := repositorio.decidir(t, caso, calculo, skill)
 
 			comprobarElOrigenDeLaDecision(t, skill, esperado, origen)
 			comprobarLasLecturas(t, skill, caso, plataforma.lecturas)
@@ -459,6 +449,39 @@ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso
 		assert.Equalf(t, caso.sesionesEsperadas(repositorio.evals[skill], esperado), sesiones,
 			"las sesiones del plan del trabajo de %s", skill)
 	}
+}
+
+// corren dice si la ejecución del caso corre los trabajos de evals: con la
+// apertura, solo si la elección del trabajo cambios, con su plataforma en
+// memoria, elige alguna eval (FR-016); con la etiqueta y con la suite
+// completa, siempre.
+func (r repositorioDeLaDecision) corren(t *testing.T, caso casoDeLaDecision, calculo calculoDeLaDecision) bool {
+	t.Helper()
+
+	if caso.disparo != disparoDeLaApertura {
+		return true
+	}
+
+	eleccion, _ := eleccionConLaPlataforma(t.Context(), r.plataforma(t, caso, ""), propuestaDelJob, calculo.eleccion)
+
+	return eleccion.eligeAlguna()
+}
+
+// decidir es la decisión del trabajo de la skill en la ejecución del caso, con
+// su plataforma en memoria, que también devuelve para ver lo que leyó.
+func (r repositorioDeLaDecision) decidir(
+	t *testing.T, caso casoDeLaDecision, calculo calculoDeLaDecision, skill string,
+) (*origenDeLasEvals, *plataformaEnMemoria) {
+	t.Helper()
+
+	plataforma := r.plataforma(t, caso, skill)
+
+	origen := decidirElTrabajo(t.Context(), trabajoADecidir{
+		skill: skill, modo: caso.modo(), propuesta: propuestaDelJob, calculo: calculo, plataforma: plataforma,
+		instante: instanteDeLaBusqueda,
+	})
+
+	return origen, plataforma
 }
 
 // comprobarElOrigenDeLaDecision compara el origen de la decisión del trabajo
