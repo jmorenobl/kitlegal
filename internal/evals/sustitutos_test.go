@@ -34,7 +34,10 @@ import (
 // anotada al empezarla y al cumplirla, duerme, se envía una señal y sale con el
 // código que le digan las variables KITLEGAL_SUSTITUTO_*. La espera de una
 // sesión con <sesión>.espera en el directorio de transcripts es la de ese
-// fichero. Con variableDeCalentar, termina con 0 sin hacer nada.
+// fichero, y la de una sesión con <sesión>.tras, que lleva una ruta, no empieza
+// hasta que esa ruta existe: así una sesión no termina antes de que otra haya
+// empezado su espera, llegue cuando llegue. Con variableDeCalentar, termina con
+// 0 sin hacer nada.
 //
 // Si no ignora TERM, quien duerme es un sh aparte, hijo de una subshell que
 // atiende TERM, lo anota y sale, y la shell, al recibirlo, sale cuando ha
@@ -89,6 +92,10 @@ if [ -f "$transcript" ]; then cat "$transcript"; fi
 espera="${KITLEGAL_SUSTITUTO_ESPERA:-0}"
 if [ -f "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.espera" ]; then
 	espera=$(cat "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.espera")
+fi
+if [ -f "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.tras" ]; then
+	tras=$(cat "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.tras")
+	while [ ! -e "$tras" ]; do sleep 0.05; done
 fi
 if [ "${KITLEGAL_SUSTITUTO_IGNORA_TERM:-no}" = si ]; then
 	trap '' TERM
@@ -330,6 +337,14 @@ func (s sustitutos) escribirEspera(t *testing.T, sesion string, segundos int) {
 	t.Helper()
 
 	require.NoError(t, os.WriteFile(filepath.Join(s.transcripts, sesion+".espera"), []byte(strconv.Itoa(segundos)), 0o600))
+}
+
+// empezarLaEsperaCuandoExista deja dicho al sustituto de claude de la sesión
+// del nombre dado que no empiece su espera hasta que exista la ruta dada.
+func (s sustitutos) empezarLaEsperaCuandoExista(t *testing.T, sesion, ruta string) {
+	t.Helper()
+
+	require.NoError(t, os.WriteFile(filepath.Join(s.transcripts, sesion+".tras"), []byte(ruta), 0o600))
 }
 
 // abiertasAlLlegar es cuántas sesiones abiertas contó el sustituto de claude al
