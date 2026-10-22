@@ -2,6 +2,7 @@ package evals
 
 import (
 	"fmt"
+	"maps"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -38,6 +39,15 @@ const (
 // de instalación del trabajo evals es el que lo nombra en su run
 // (contracts/job-de-evals.md §2 de H24).
 const paqueteDeClaudeCode = "@anthropic-ai/claude-code"
+
+// pasoDeLaDecision es el name del paso del trabajo evals que decide qué mide y
+// qué reutiliza, el que se busca por él, y banderaDelPlazo, la bandera de go
+// test con la que su run fija su plazo, que el peor caso del trabajo suma
+// (contracts/job-de-evals.md §2 de H30; research D17 de H30).
+const (
+	pasoDeLaDecision = "Decidir qué mide y qué reutiliza"
+	banderaDelPlazo  = "-timeout"
+)
 
 // Los términos que el juez con modelo añade al peor caso de un trabajo
 // (contracts/job-de-evals.md §4 de H24; research.md D6 y S3 de H24). El tope de
@@ -140,6 +150,44 @@ type DefinicionDelJob struct {
 
 	// EntradasDelDespacho son las de on.workflow_dispatch.inputs, por su nombre.
 	EntradasDelDespacho map[string]EntradaDelDespacho
+
+	// cambios es el trabajo cambios del flujo, el que elige las evals que la
+	// apertura de una propuesta ha podido cambiar, o nil si el flujo no lo tiene
+	// (contracts/job-de-evals.md §2 de H30).
+	cambios *trabajoDelFlujo
+
+	// permisos son los del permissions del trabajo evals, por ámbito, y pasos,
+	// sus pasos, en su orden, con su uses, su with y su env
+	// (contracts/job-de-evals.md §2 de H30).
+	permisos map[string]string
+	pasos    []pasoDelFlujo
+
+	// dimensionesDeLaMatriz son las claves de la matriz del trabajo evals
+	// además de skill e include, en orden: cada una multiplicaría sus
+	// combinaciones (FR-020 de H30).
+	dimensionesDeLaMatriz []string
+}
+
+// trabajoDelFlujo es lo que se lee de un trabajo del flujo sin matriz, como
+// cambios (contracts/job-de-evals.md §2 de H30): su if, su tope, sus permisos,
+// sus salidas y sus pasos.
+type trabajoDelFlujo struct {
+	Condicion     string            `yaml:"if"`
+	TopeEnMinutos int               `yaml:"timeout-minutes"`
+	Permisos      map[string]string `yaml:"permissions"`
+	Salidas       map[string]string `yaml:"outputs"`
+	Pasos         []pasoDelFlujo    `yaml:"steps"`
+}
+
+// pasoDelFlujo es lo que se lee de un paso de un trabajo además de lo de
+// PasoDelTrabajo: la acción de su uses, su with y su env, cada uno vacío si no
+// lo tiene.
+type pasoDelFlujo struct {
+	PasoDelTrabajo `yaml:",inline"`
+
+	Accion string            `yaml:"uses"`
+	Con    map[string]string `yaml:"with"`
+	Env    map[string]string `yaml:"env"`
 }
 
 // TrabajoDeLaMedida es lo que se lee del trabajo medida de la definición del
@@ -201,6 +249,10 @@ type TrabajoDeLaTanda struct {
 
 	// Pasos son los suyos, en su orden.
 	Pasos []PasoDelTrabajo
+
+	// env son las variables de su env, con su valor como texto: la del modo de
+	// la ejecución (contracts/job-de-evals.md §1 de H30).
+	env map[string]string
 }
 
 // PasoDelTrabajo es lo que se lee de un paso de un trabajo: su id, su name, su
@@ -239,6 +291,8 @@ type flujoDelJob struct {
 	} `yaml:"on"`
 
 	Trabajos struct {
+		Cambios *trabajoDelFlujo `yaml:"cambios"`
+
 		// Tanda es el trabajo de id trabajoDeLaTanda: la etiqueta no admite la
 		// constante.
 		Tanda  *clavesDeLaTanda        `yaml:"tanda"`
@@ -259,6 +313,7 @@ type clavesDeLaTanda struct {
 
 	Salidas       map[string]string `yaml:"outputs"`
 	TopeEnMinutos int               `yaml:"timeout-minutes"`
+	Env           map[string]string `yaml:"env"`
 	Pasos         []PasoDelTrabajo  `yaml:"steps"`
 }
 
@@ -275,8 +330,9 @@ type trabajoDeEvals struct {
 
 	Estrategia    estrategiaDeSkills `yaml:"strategy"`
 	TopeEnMinutos int                `yaml:"timeout-minutes"`
+	Permisos      map[string]string  `yaml:"permissions"`
 	Env           map[string]string  `yaml:"env"`
-	Pasos         []PasoDelTrabajo   `yaml:"steps"`
+	Pasos         []pasoDelFlujo     `yaml:"steps"`
 }
 
 // clavesDelTrabajoMedida son las claves del trabajo medida que lee
@@ -294,7 +350,8 @@ type clavesDelTrabajoMedida struct {
 }
 
 // estrategiaDeSkills es el strategy de un trabajo con una combinación por
-// skill: las skills de su matriz y lo que include añade a cada una.
+// skill: las skills de su matriz, lo que include añade a cada una y, por su
+// clave, las demás claves de la matriz, que no tendría que tener.
 type estrategiaDeSkills struct {
 	Matriz struct {
 		Skill   []string `yaml:"skill"`
@@ -302,6 +359,7 @@ type estrategiaDeSkills struct {
 			Skill          string `yaml:"skill"`
 			AjustesDeSkill `yaml:",inline"`
 		} `yaml:"include"`
+		Otras map[string]any `yaml:",inline"`
 	} `yaml:"matrix"`
 }
 
@@ -310,8 +368,10 @@ type estrategiaDeSkills struct {
 // repetida—, sin esquema: una definición de GitHub Actions tiene muchas claves
 // que aquí no se miran. Del trabajo evals lee además el run de su paso de
 // instalación; del flujo, el trabajo tanda, el trabajo medida y las entradas del
-// despacho, si están. Las repeticiones del env tienen que ser un entero. Todo
-// error nombra la ruta.
+// despacho, si están. Desde H30 lee también el trabajo cambios, el env de la
+// tanda, y los permisos, los pasos y las demás claves de la matriz del trabajo
+// evals (contracts/job-de-evals.md §1 a §3 de H30). Las repeticiones del env
+// tienen que ser un entero. Todo error nombra la ruta.
 func leerDefinicionDelJob(ruta string) (DefinicionDelJob, error) {
 	contenido, err := leerFichero(ruta)
 	if err != nil {
@@ -326,23 +386,27 @@ func leerDefinicionDelJob(ruta string) (DefinicionDelJob, error) {
 	trabajo := flujo.Trabajos.Evals
 
 	leida := DefinicionDelJob{
-		Nombre:              trabajo.Nombre,
-		Grupo:               trabajo.Concurrencia.Grupo,
-		CancelaLaEnCurso:    trabajo.Concurrencia.CancelaLaEnCurso,
-		ConcurrenciaDeFlujo: flujo.Concurrencia != nil,
-		TopeEnMinutos:       trabajo.TopeEnMinutos,
-		Env:                 trabajo.Env,
-		Skills:              trabajo.Estrategia.Matriz.Skill,
-		PorSkill:            map[string]AjustesDeSkill{},
-		ModeloQueDecide:     trabajo.Env[variableDelModeloQueDecide],
-		ModelosInformativos: separarLosModelos(trabajo.Env[variableDeLosModelosInformativos]),
-		ModeloDelJuez:       trabajo.Env[variableDelModeloDelJuez],
-		VersionDelJuez:      trabajo.Env[variableDeLaVersionDelJuez],
-		Dependencias:        trabajo.Dependencias,
-		Condicion:           trabajo.Condicion,
-		OrdenDeInstalacion:  ordenDeInstalacion(trabajo.Pasos),
-		Medida:              trabajoDeLaMedida(flujo.Trabajos.Medida),
-		EntradasDelDespacho: flujo.Eventos.Despacho.Entradas,
+		Nombre:                trabajo.Nombre,
+		Grupo:                 trabajo.Concurrencia.Grupo,
+		CancelaLaEnCurso:      trabajo.Concurrencia.CancelaLaEnCurso,
+		ConcurrenciaDeFlujo:   flujo.Concurrencia != nil,
+		TopeEnMinutos:         trabajo.TopeEnMinutos,
+		Env:                   trabajo.Env,
+		Skills:                trabajo.Estrategia.Matriz.Skill,
+		PorSkill:              map[string]AjustesDeSkill{},
+		ModeloQueDecide:       trabajo.Env[variableDelModeloQueDecide],
+		ModelosInformativos:   separarLosModelos(trabajo.Env[variableDeLosModelosInformativos]),
+		ModeloDelJuez:         trabajo.Env[variableDelModeloDelJuez],
+		VersionDelJuez:        trabajo.Env[variableDeLaVersionDelJuez],
+		Dependencias:          trabajo.Dependencias,
+		Condicion:             trabajo.Condicion,
+		OrdenDeInstalacion:    ordenDeInstalacion(trabajo.Pasos),
+		Medida:                trabajoDeLaMedida(flujo.Trabajos.Medida),
+		EntradasDelDespacho:   flujo.Eventos.Despacho.Entradas,
+		cambios:               flujo.Trabajos.Cambios,
+		permisos:              trabajo.Permisos,
+		pasos:                 trabajo.Pasos,
+		dimensionesDeLaMatriz: slices.Sorted(maps.Keys(trabajo.Estrategia.Matriz.Otras)),
 	}
 
 	if tanda := flujo.Trabajos.Tanda; tanda != nil {
@@ -354,6 +418,7 @@ func leerDefinicionDelJob(ruta string) (DefinicionDelJob, error) {
 			Salidas:         tanda.Salidas,
 			TopeEnMinutos:   tanda.TopeEnMinutos,
 			Pasos:           tanda.Pasos,
+			env:             tanda.Env,
 		}
 	}
 
@@ -374,7 +439,7 @@ func leerDefinicionDelJob(ruta string) (DefinicionDelJob, error) {
 
 // ordenDeInstalacion es el run del primero de los pasos que nombra
 // paqueteDeClaudeCode, o vacío si ninguno lo nombra.
-func ordenDeInstalacion(pasos []PasoDelTrabajo) string {
+func ordenDeInstalacion(pasos []pasoDelFlujo) string {
 	for _, paso := range pasos {
 		if strings.Contains(paso.Orden, paqueteDeClaudeCode) {
 			return paso.Orden
@@ -382,6 +447,50 @@ func ordenDeInstalacion(pasos []PasoDelTrabajo) string {
 	}
 
 	return ""
+}
+
+// plazoDeLaDecision es el plazo del paso de la decisión del trabajo evals, el
+// de pasoDeLaDecision, que el peor caso del trabajo suma
+// (contracts/job-de-evals.md §2 de H30; research D17 de H30): el valor del
+// -timeout del go test de su run, escrito tras un espacio o tras un igual. Sin
+// el paso, el trabajo no decide nada y no tiene plazo que sumar: 0. Es un error
+// un run sin -timeout, o con él sin valor, y uno cuyo valor no es una duración
+// mayor que 0, que para go test es no tener plazo.
+func (d DefinicionDelJob) plazoDeLaDecision() (time.Duration, error) {
+	indice := slices.IndexFunc(d.pasos, func(paso pasoDelFlujo) bool { return paso.Nombre == pasoDeLaDecision })
+	if indice < 0 {
+		return 0, nil
+	}
+
+	campos := strings.Fields(d.pasos[indice].Orden)
+
+	valor, conValor := "", false
+
+	for posicion, campo := range campos {
+		if campo == banderaDelPlazo && posicion+1 < len(campos) {
+			valor, conValor = campos[posicion+1], true
+
+			break
+		}
+
+		if despues, conIgual := strings.CutPrefix(campo, banderaDelPlazo+"="); conIgual {
+			valor, conValor = despues, true
+
+			break
+		}
+	}
+
+	if !conValor {
+		return 0, fmt.Errorf("el paso %q no fija su plazo con %s", pasoDeLaDecision, banderaDelPlazo)
+	}
+
+	plazo, err := time.ParseDuration(valor)
+	if err != nil || plazo <= 0 {
+		return 0, fmt.Errorf("el paso %q tiene el plazo %s %q, y tiene que ser una duración mayor que 0",
+			pasoDeLaDecision, banderaDelPlazo, valor)
+	}
+
+	return plazo, nil
 }
 
 // trabajoDeLaMedida es lo leído del trabajo medida, o nil si el flujo no lo
@@ -424,8 +533,13 @@ func separarLosModelos(lista string) []string {
 // Concurrencia⌉, cada una con su preparación, su tope y el margen del tope
 // (research.md D13 de H7.3; contracts/evals-en-dos-modos.md §6 de H21;
 // research.md D20 de H21). Con una skill con juez, más lo que el juez añade
-// (contracts/job-de-evals.md §4 de H24).
+// (contracts/job-de-evals.md §4 de H24). Y, desde H30, más el plazo del paso
+// de la decisión (contracts/job-de-evals.md §2 de H30).
 type peorCasoDelTrabajo struct {
+	// Decision es el plazo del paso de la decisión del trabajo, el de
+	// plazoDeLaDecision, o 0 si el trabajo no tiene ese paso.
+	Decision time.Duration
+
 	// SesionesPorGrupo son las sesiones de cada grupo del plan de la skill, en
 	// el orden en que se abren: las del modo orden con la prueba de red, las del
 	// modo herramienta y las de las evals sin binario ni servidor.
@@ -526,7 +640,7 @@ func (p peorCasoDelTrabajo) tandas() int {
 
 // Duracion es el peor caso.
 func (p peorCasoDelTrabajo) Duracion() time.Duration {
-	duracion := fueraDeLasSesiones +
+	duracion := fueraDeLasSesiones + p.Decision +
 		time.Duration(p.tandas())*(preparacionDeUnaSesion+topeDeUnaSesion+margenDelTopeDeUnaSesion)
 
 	if p.Juez != nil {
@@ -537,17 +651,23 @@ func (p peorCasoDelTrabajo) Duracion() time.Duration {
 }
 
 // String presenta el peor caso en segundos con sus términos, como
-// «14357 s = 485 s + (⌈97 / 4⌉ + ⌈96 / 4⌉ + ⌈6 / 4⌉) × (22 s + 240 s + 10 s)», y,
-// con una skill con juez, con los del juez detrás.
+// «14357 s = 485 s + (⌈97 / 4⌉ + ⌈96 / 4⌉ + ⌈6 / 4⌉) × (22 s + 240 s + 10 s)»;
+// con el plazo de la decisión, detrás de lo de fuera de las sesiones, como
+// «485 s + 900 s + (…)»; y, con una skill con juez, con los del juez detrás.
 func (p peorCasoDelTrabajo) String() string {
 	porGrupo := make([]string, 0, len(p.SesionesPorGrupo))
 	for _, sesiones := range p.SesionesPorGrupo {
 		porGrupo = append(porGrupo, fmt.Sprintf("⌈%d / %d⌉", sesiones, p.Concurrencia))
 	}
 
-	texto := fmt.Sprintf("%d s = %d s + (%s) × (%d s + %d s + %d s)", segundos(p.Duracion()),
-		segundos(fueraDeLasSesiones), strings.Join(porGrupo, " + "), segundos(preparacionDeUnaSesion),
-		segundos(topeDeUnaSesion), segundos(margenDelTopeDeUnaSesion))
+	fuera := fmt.Sprintf("%d s", segundos(fueraDeLasSesiones))
+	if p.Decision > 0 {
+		fuera += fmt.Sprintf(" + %d s", segundos(p.Decision))
+	}
+
+	texto := fmt.Sprintf("%d s = %s + (%s) × (%d s + %d s + %d s)", segundos(p.Duracion()), fuera,
+		strings.Join(porGrupo, " + "), segundos(preparacionDeUnaSesion), segundos(topeDeUnaSesion),
+		segundos(margenDelTopeDeUnaSesion))
 
 	if p.Juez != nil {
 		texto += " + " + p.Juez.String()
@@ -573,8 +693,17 @@ func segundos(duracion time.Duration) int {
 // juez añade (contracts/job-de-evals.md §4 de H24): sus respuestas son las que
 // el informe le da a juzgar (respuestasQueSeJuzgan) cuando todas las sesiones
 // terminan y se miden, y se votan con la concurrencia de la skill.
+//
+// Desde H30 lleva también el plazo del paso de la decisión, que corre antes de
+// cualquier sesión (plazoDeLaDecision; contracts/job-de-evals.md §2 de H30): un
+// plazo que no se puede obtener es un error.
 func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, error) {
 	concurrencia, err := concurrenciaDeLaSkill(d.PorSkill[skill].Concurrencia, skill)
+	if err != nil {
+		return peorCasoDelTrabajo{}, err
+	}
+
+	decision, err := d.plazoDeLaDecision()
 	if err != nil {
 		return peorCasoDelTrabajo{}, err
 	}
@@ -599,6 +728,7 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
 	sesiones := plan.Sesiones()
 
 	peor := peorCasoDelTrabajo{
+		Decision:         decision,
 		SesionesPorGrupo: contarPorGrupo(sesiones, func(SesionPlanificada) bool { return true }),
 		Concurrencia:     concurrencia,
 	}
