@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -574,4 +575,118 @@ func defectosDeLaRegeneracion(t *testing.T, datos, contenido, referencia string)
 	t.Helper()
 
 	return presentarDefectos(regenerarGamma(t, datos, contenido, referencia).Defectos())
+}
+
+// cabeceraDeUnaGenerada es la sonda independiente de DatosDeLaReferencia: la
+// primera línea de una referencia generada, que nombra el YAML de datos de
+// data/ del que sale (contrato normas-y-referencias §5).
+var cabeceraDeUnaGenerada = regexp.MustCompile(`\A<!-- generado desde (data/[^,\n]+\.yaml), no editar -->(\n|\z)`)
+
+// TestDatosDeLaReferencia fija DatosDeLaReferencia (research D11 y data-model §3
+// de H30; FR-001(c)): cada referencia generada de skills/*/references/ da el
+// YAML de data/ que nombra su cabecera, que existe, y las demás no dan ninguno;
+// y un texto sin la cabecera en su primera línea, o con una cabecera que no
+// nombra ningún fichero de data/, no da ninguno.
+func TestDatosDeLaReferencia(t *testing.T) {
+	t.Parallel()
+
+	t.Run("las-referencias-del-repositorio", comprobarDatosDeLasReferenciasDelRepositorio)
+	t.Run("textos", comprobarDatosDeTextos)
+}
+
+// comprobarDatosDeLasReferenciasDelRepositorio comprueba cada referencia de
+// skills/*/references/ contra la sonda de su cabecera.
+func comprobarDatosDeLasReferenciasDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	raiz := os.DirFS(skillsDelRepositorio)
+
+	rutas, err := fs.Glob(raiz, "*/references/*")
+	require.NoError(t, err)
+	require.NotEmpty(t, rutas)
+
+	for _, ruta := range rutas {
+		t.Run(ruta, func(t *testing.T) {
+			t.Parallel()
+
+			contenido, err := fs.ReadFile(raiz, ruta)
+			require.NoError(t, err)
+
+			datos, generada := skills.DatosDeLaReferencia(contenido)
+
+			cabecera := cabeceraDeUnaGenerada.FindSubmatch(contenido)
+			if cabecera == nil {
+				assert.False(t, generada)
+				assert.Empty(t, datos)
+
+				return
+			}
+
+			require.True(t, generada)
+			assert.Equal(t, string(cabecera[1]), datos)
+
+			fichero, err := os.Stat(filepath.Join("..", "..", filepath.FromSlash(datos)))
+			require.NoError(t, err)
+			assert.True(t, fichero.Mode().IsRegular())
+		})
+	}
+}
+
+// comprobarDatosDeTextos comprueba textos con la cabecera, sin ella, con ella
+// fuera de la primera línea y con una cabecera que no nombra ningún fichero de
+// data/.
+func comprobarDatosDeTextos(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre, contenido, datos string
+		generada                 bool
+	}{
+		{
+			nombre:    "con-cabecera",
+			contenido: "<!-- generado desde data/normas.yaml, no editar -->\n\n# Normas de referencia\n",
+			datos:     "data/normas.yaml",
+			generada:  true,
+		},
+		{
+			nombre:    "solo-la-cabecera-sin-salto-final",
+			contenido: "<!-- generado desde data/plazos.yaml, no editar -->",
+			datos:     "data/plazos.yaml",
+			generada:  true,
+		},
+		{
+			nombre:    "sin-cabecera",
+			contenido: "# Normas de referencia\n\n| Norma |\n",
+		},
+		{
+			nombre:    "vacio",
+			contenido: "",
+		},
+		{
+			nombre:    "la-cabecera-en-la-segunda-linea",
+			contenido: "\n<!-- generado desde data/normas.yaml, no editar -->\n",
+		},
+		{
+			nombre:    "la-cabecera-con-retorno-de-carro",
+			contenido: "<!-- generado desde data/normas.yaml, no editar -->\r\n",
+		},
+		{
+			nombre:    "la-cabecera-fuera-de-data",
+			contenido: "<!-- generado desde normas.yaml, no editar -->\n",
+		},
+		{
+			nombre:    "la-cabecera-sin-fichero",
+			contenido: "<!-- generado desde data/, no editar -->\n",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			datos, generada := skills.DatosDeLaReferencia([]byte(caso.contenido))
+			assert.Equal(t, caso.generada, generada)
+			assert.Equal(t, caso.datos, datos)
+		})
+	}
 }
