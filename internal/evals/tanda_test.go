@@ -12,21 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// sustitutoDeGh es el gh que TestOrdenesDeLaTanda pone en el PATH de las
-// órdenes en lugar del de verdad, que consultaría la API de GitHub: escribe sus
-// argumentos, uno por línea, y termina con 0; con GH_SUSTITUTO_FALLA, escribe
-// en sus dos salidas y termina con 4, como gh ante un error de la API.
-const sustitutoDeGh = `#!/bin/sh
-if [ -n "$GH_SUSTITUTO_FALLA" ]; then
-	printf 'lo escrito antes del error\n'
-	printf 'HTTP 403: Resource not accessible by integration\n' >&2
-	exit 4
-fi
-for argumento in "$@"; do
-	printf '%s\n' "$argumento"
-done
-`
-
 // TestOrdenesDeLaTanda fija las órdenes de gh con las que TestTandaDelCommit
 // consulta las ejecuciones del flujo sobre el commit
 // (contracts/tanda-del-job.md §2 de H7.4; research.md D16 y V12 de H7.4), con
@@ -39,15 +24,8 @@ done
 func TestOrdenesDeLaTanda(t *testing.T) {
 	t.Parallel()
 
-	bin := t.TempDir()
-
-	raiz, err := os.OpenRoot(bin)
-	require.NoError(t, err)
-	require.NoError(t, escribirEjecutable(raiz, "gh", sustitutoDeGh))
-	require.NoError(t, raiz.Close())
-
 	// El valor que el entorno de la ejecución ya tiene no es el de la orden.
-	base := sobreLaBase(os.Environ(), []string{"PATH=" + bin, "COMMIT_EVALUADO=el-del-entorno"})
+	base := sobreLaBase(os.Environ(), []string{"PATH=" + escribirElGh(t), "COMMIT_EVALUADO=el-del-entorno"})
 
 	const commit = `6ab3add $(printf inyectado) "con comillas"`
 
@@ -64,7 +42,7 @@ func TestOrdenesDeLaTanda(t *testing.T) {
 	assert.Equal(t, []string{"run", "view", "36672667544", "--json", "jobs"},
 		strings.Split(strings.TrimSuffix(string(trabajos), "\n"), "\n"))
 
-	fallido := ghDeLaTanda{entorno: sobreLaBase(base, []string{"GH_SUSTITUTO_FALLA=si"}), commit: "6ab3add"}
+	fallido := ghDeLaTanda{entorno: sobreLaBase(base, []string{variableDeGhQueFalla + "=si"}), commit: "6ab3add"}
 
 	_, err = fallido.listar(t.Context())
 	require.ErrorContains(t, err, ordenDeLasEjecuciones)

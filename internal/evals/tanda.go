@@ -1,7 +1,6 @@
 package evals
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -241,8 +240,9 @@ func leerLasEjecucionesDelCommit(lista []byte) ([]ejecucionDelCommit, error) {
 }
 
 // trabajosDeLaEjecucion es el JSON de gh run view --json jobs, con lo que lee
-// leerLaTandaDeLaEjecucion de cada trabajo: su nombre, su status y sus pasos.
-// La conclusion de un trabajo no cambia nada: saltado, fallido o cancelado, su
+// leerLaTandaDeLaEjecucion de cada trabajo —su nombre, su status y sus pasos— y,
+// para las lecturas de la plataforma, su id y su conclusion. A la tanda la
+// conclusion de un trabajo no le cambia nada: saltado, fallido o cancelado, su
 // marca no está en success.
 type trabajosDeLaEjecucion struct {
 	Jobs []trabajoDeLaEjecucion `json:"jobs"`
@@ -250,9 +250,11 @@ type trabajosDeLaEjecucion struct {
 
 // trabajoDeLaEjecucion es un trabajo de gh run view --json jobs.
 type trabajoDeLaEjecucion struct {
-	Name   string              `json:"name"`
-	Status string              `json:"status"`
-	Steps  []pasoDeLaEjecucion `json:"steps"`
+	ID         int64               `json:"databaseId"`
+	Name       string              `json:"name"`
+	Status     string              `json:"status"`
+	Conclusion string              `json:"conclusion"`
+	Steps      []pasoDeLaEjecucion `json:"steps"`
 }
 
 // pasoDeLaEjecucion es un paso de un trabajo de gh run view --json jobs.
@@ -300,35 +302,15 @@ type ghDeLaTanda struct {
 // listar da la lista de ejecuciones del flujo sobre el commit, la de
 // ordenDeLasEjecuciones: la función listar de consultarLasEjecuciones.
 func (g ghDeLaTanda) listar(ctx context.Context) ([]byte, error) {
-	orden := exec.CommandContext(ctx, "sh", "-c", ordenDeLasEjecuciones)
-
-	return g.ejecutar(orden, variableDelCommitEvaluado+"="+g.commit)
+	return ejecutarGh(exec.CommandContext(ctx, "sh", "-c", ordenDeLasEjecuciones), g.entorno,
+		variableDelCommitEvaluado+"="+g.commit)
 }
 
 // verLosTrabajos da los trabajos de la ejecución id, los de
 // ordenDeLosTrabajos: la función verLosTrabajos de consultarLasEjecuciones.
 func (g ghDeLaTanda) verLosTrabajos(ctx context.Context, id int64) ([]byte, error) {
-	orden := exec.CommandContext(ctx, "sh", "-c", ordenDeLosTrabajos)
-
-	return g.ejecutar(orden, variableDeLaEjecucionAnterior+"="+strconv.FormatInt(id, 10))
-}
-
-// ejecutar ejecuta la orden con el entorno de g y, encima, la variable dada, y
-// devuelve lo que escribió en su salida estándar. Si no termina con 0, devuelve
-// un error con la orden, la variable, cómo terminó y lo que escribió en sus dos
-// salidas.
-func (g ghDeLaTanda) ejecutar(orden *exec.Cmd, variable string) ([]byte, error) {
-	var salida, errores bytes.Buffer
-
-	orden.Env = sobreLaBase(g.entorno, []string{variable})
-	orden.Stdout = &salida
-	orden.Stderr = &errores
-
-	if err := orden.Run(); err != nil {
-		return nil, fmt.Errorf("%s, con %s: %w\n%s%s", orden, variable, err, salida.Bytes(), errores.Bytes())
-	}
-
-	return salida.Bytes(), nil
+	return ejecutarGh(exec.CommandContext(ctx, "sh", "-c", ordenDeLosTrabajos), g.entorno,
+		variableDeLaEjecucionAnterior+"="+strconv.FormatInt(id, 10))
 }
 
 // String dice lo que decidió la tanda de una ejecución, para el registro de

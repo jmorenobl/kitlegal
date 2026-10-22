@@ -838,3 +838,61 @@ func (c claudeDelJuez) terminarLosHijos(t *testing.T) {
 func procesoTerminado(pid int) bool {
 	return errors.Is(syscall.Kill(pid, 0), syscall.ESRCH)
 }
+
+// sustitutoDeGh es el gh que TestOrdenesDeLaTanda y TestOrdenesDeLaPlataforma
+// ponen en el PATH de las órdenes en lugar del de verdad, que consultaría la
+// API de GitHub. Solo usa órdenes internas de sh, porque es el único programa
+// de ese PATH:
+//   - con variableDeGhQueFalla, escribe en sus dos salidas y termina con 4, como
+//     gh ante un error de la API;
+//   - con variableDeLaRespuestaDeGh, que nombra un directorio, anota en él sus
+//     argumentos, uno por línea, en argumentosDeGh, y escribe en su salida
+//     estándar, línea a línea, lo que el test dejó en respuestaDeGh: la
+//     respuesta de gh a la orden;
+//   - sin ninguna de las dos, escribe sus argumentos, uno por línea.
+//
+// Y termina con 0.
+const sustitutoDeGh = `#!/bin/sh
+if [ -n "$GH_SUSTITUTO_FALLA" ]; then
+	printf 'lo escrito antes del error\n'
+	printf 'HTTP 403: Resource not accessible by integration\n' >&2
+	exit 4
+fi
+if [ -n "$GH_SUSTITUTO_RESPUESTA" ]; then
+	printf '%s\n' "$@" > "$GH_SUSTITUTO_RESPUESTA/` + argumentosDeGh + `"
+	while IFS= read -r linea; do
+		printf '%s\n' "$linea"
+	done < "$GH_SUSTITUTO_RESPUESTA/` + respuestaDeGh + `"
+	exit 0
+fi
+for argumento in "$@"; do
+	printf '%s\n' "$argumento"
+done
+`
+
+// Las variables que gobiernan al sustituto de gh y, en el directorio de la
+// segunda, los ficheros de sus argumentos y de su respuesta.
+const (
+	variableDeGhQueFalla      = "GH_SUSTITUTO_FALLA"
+	variableDeLaRespuestaDeGh = "GH_SUSTITUTO_RESPUESTA"
+	argumentosDeGh            = "argumentos"
+	respuestaDeGh             = "respuesta"
+)
+
+// escribirElGh escribe el sustituto de gh, ejecutable, en un directorio
+// temporal del test, a través de un os.Root, y devuelve ese directorio, que el
+// test pone como único PATH de las órdenes.
+func escribirElGh(t *testing.T) string {
+	t.Helper()
+
+	bin := t.TempDir()
+
+	raiz, err := os.OpenRoot(bin)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	require.NoError(t, escribirEjecutable(raiz, "gh", sustitutoDeGh))
+
+	return bin
+}
