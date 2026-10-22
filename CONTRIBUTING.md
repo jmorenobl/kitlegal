@@ -201,7 +201,7 @@ versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 | Dependencias saneadas (`go mod tidy -diff`) | `make mod-tidy-check` | sí |
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
-| Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
+| Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`; desde H30, con el fichero de la decisión del trabajo en `DECISION_DE_EVALS`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
 | Medida del juez con modelo de una skill: vota sus casos etiquetados e imprime `medida.json`, sin escribirla en el repositorio (`scripts/evals-medir-juez.sh`; [Job de evals](#job-de-evals), «La medida del juez») | `make evals-medir-juez` | no — sesiones con modelo y credencial, fuera de `make ci`; la lanza una persona, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez` del flujo `evals`, y ningún paso del workflow `hito` la lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm`, las dos piezas de la instalación sin terminal —la extensión de escritorio, `kitlegal.mcpb`, y el plugin de Claude, `kitlegal-plugin.zip`— y `checksums.txt`, que lista también las dos piezas e `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
@@ -343,9 +343,20 @@ comprueba lo que deja.
 ### Publicar es humano
 
 Tras fusionar, una persona empuja la etiqueta `vX.Y.Z`, y solo eso dispara el flujo `release`
-(`.github/workflows/release.yml`), con tres trabajos:
+(`.github/workflows/release.yml`), con cuatro trabajos:
 
-- **`publicar`** construye con el mismo goreleaser, que ejecuta también el paso que empaqueta; genera los SBOM con
+- **`suite-completa`**, desde H30 el primero, comprueba que el commit etiquetado tiene su suite completa de evals:
+  `TestSuiteCompletaDelCommit` (etiqueta `evals`) busca, con `gh` y solo con permisos de lectura, entre las
+  ejecuciones del flujo `evals` sobre ese commit, de la más reciente a la más antigua, una terminada con el trabajo
+  `evals (<skill>)` de cada skill con evals en el commit en verde y, en el informe de cada una, el modo `completa`, cada
+  eval de `evals/<skill>/` medida y ninguna reutilizada. Si no la hay, falla con el commit, una línea por ejecución
+  mirada con lo que le falta y la orden que lanza la suite completa sobre la etiqueta,
+  `gh workflow run evals.yml --ref <etiqueta>` ([Job de evals](#job-de-evals)); cuando esa ejecución termina en
+  verde, se vuelve a ejecutar la release. `publicar` depende de él, así que sin la suite completa no se publica la
+  release, ni el cask, ni el manifiesto del bucket, ni el catálogo. Lo comprueban en `make ci` la subprueba
+  `suite-completa` de `TestConfiguracionDeLaRelease` —el trabajo, su paso, sus permisos, el commit que pasa y la
+  dependencia de `publicar`— y `TestComprobarLaSuiteCompleta`, con la plataforma en memoria.
+- **`publicar`**, solo si `suite-completa` sale en verde, construye con el mismo goreleaser, que ejecuta también el paso que empaqueta; genera los SBOM con
   syft; firma `checksums.txt` con cosign sin clave; publica la release con `install.sh`, `kitlegal.mcpb` y
   `kitlegal-plugin.zip` adjuntos, el cask del tap `jmorenobl/homebrew-tap` y el manifiesto del bucket
   `jmorenobl/scoop-bucket`; y atesta la procedencia de los seis archivos, de `checksums.txt` y de las dos piezas:
@@ -862,7 +873,10 @@ hecho de la sesión y no un juicio de la respuesta.
 
 `make evals SKILL=<skill>` ejecuta `scripts/evals.sh` y no forma parte de `make ci`: sus sesiones usan un modelo,
 necesitan la credencial de Claude Code, cuestan y no son deterministas. Necesita Linux con `strace`, root o `sudo` y
-ningún Python accesible. Antes de la primera sesión comprueba todo eso, las variables del job —también que
+ningún Python accesible. Desde H30, lo primero que mira tras el argumento es `DECISION_DE_EVALS`, el fichero que
+escribe el paso de la decisión de su trabajo (abajo, «Lo que mide y lo que reutiliza»): sin ella, o si no es un
+fichero legible, termina con `1` con «evals: falta DECISION_DE_EVALS», y con ella abre solo las sesiones de las evals
+que esa decisión mide. Antes de la primera sesión comprueba todo eso, las variables del job —también que
 `CONCURRENCIA_DE_EVALS` es un entero mayor o igual que 1 y, con una skill que tiene juez, las tres del juez (abajo)—,
 que ninguna eval, ni la lista de expresiones, ni la carpeta del juez están mal formadas, que lo que necesitan está
 grabado, que la skill está instalada y que `kitlegal` está en el `PATH`,
@@ -1029,20 +1043,25 @@ sesiones —todas las de su plan, con la de la prueba de red, llegando a su tope
 más la preparación de cada una, la del runner y el informe— es
 `485 s + (⌈N₁ / C⌉ + ⌈N₂ / C⌉ + ⌈N₃ / C⌉) × (22 s + 240 s + 10 s)`, con `N₁`, `N₂` y `N₃` las sesiones de cada una
 de las tres tandas —la del modo orden, con la prueba de red— y `C` su concurrencia (en `boe-legislacion`, 109, 108 y
-6 sesiones a 5: 12 997 s). Con una skill que tiene juez se le suma el de su juez,
+6 sesiones a 5: 12 997 s). Desde H30 se le suman los 900 s del plazo del paso de la decisión, el `-timeout` de su
+`go test` (abajo, «Lo que mide y lo que reutiliza»), y en `TestDefinicionDelJob` la
+fórmula empieza por `485 s + 900 s`. Con una skill que tiene juez se le suma el de su juez,
 `60 s + (⌈R₁ × 6 / C⌉ + ⌈R₂ × 6 / C⌉ + ⌈R₃ × 6 / C⌉) × (35 s + 5 s)`: 60 s de instalar su Claude Code, `R₁`, `R₂`
 y `R₃` las respuestas de cada grupo que juzga, 6 los votos que como mucho pide una respuesta —tres, cada uno con su
 repetición por nulo o por el tope— y 40 s el tope de un voto y su margen (en `boe-legislacion`, 60, 60 y 3 respuestas
-a 5: 72, 72 y 4 tandas de votos, 5 980 s; en total, 18 977 s, 316,3 minutos, el literal de `TestDefinicionDelJob`; a
+a 5: 72, 72 y 4 tandas de votos, 5 980 s; en total, 18 977 s, 316,3 minutos, y desde H30, con la decisión,
+19 877 s, 331,3 minutos, el literal de `TestDefinicionDelJob`; a
 4, como iba hasta H20, eran 21 097 s, 351,6 minutos, con sus veintiuna evals, sin sitio para ninguna más, y con las
 veintitrés serían 23 449 s, que el tope no cubre). El de `jurisprudencia`, con su juez y
 cuatro a la
-vez, es de 12 577 s, 209,6 minutos: 61, 60 y 0 sesiones, porque el cálculo cuenta la de la prueba de red en el modo
+vez, era de 12 577 s, 209,6 minutos, y desde H30 es de 13 477 s, 224,6 minutos: 61, 60 y 0 sesiones, porque el cálculo
+cuenta la de la prueba de red en el modo
 orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 respuestas —45 y 45 tandas de votos,
-3 660 s—; de una en una serían 47 857 s, que el tope no cubre. El de `legal-core`, sin juez y dos a la vez, es desde
-H26.1 el mayor de los tres, 19 525 s, 325,4 minutos, el literal `peorCasoDeLegalCore` de `TestDefinicionDelJob`:
-67, 66 y 6 sesiones —también cuenta la de la prueba de red, que su trabajo no lleva—, 70 tandas; de una en una serían
-38 293 s, que el tope no cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Es un
+3 660 s—, más los 900 s de la decisión; de una en una serían 48 757 s, que el tope no cubre. El de `legal-core`, sin
+juez y dos a la vez, es desde H26.1 el mayor de los tres: 19 525 s, 325,4 minutos, y desde H30 20 425 s, 340,4 minutos,
+el literal `peorCasoDeLegalCore` de `TestDefinicionDelJob`:
+67, 66 y 6 sesiones —también cuenta la de la prueba de red, que su trabajo no lleva—, 70 tandas; de una en una el tope
+no lo cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Es un
 cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
 casos etiquetados: en `boe-legislacion`, con 259 a 5, 12 985 s, 216,4 minutos (a 4 eran 16 105 s, 268,4 minutos); en
 `jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes
@@ -1059,29 +1078,52 @@ tiene exactamente su condición y no depende de ningún otro, y que su matriz ll
 tienen carpeta de juez, en su orden y cada una con la concurrencia de su trabajo `evals` —hoy `boe-legislacion`, a
 cinco, y `jurisprudencia`, a cuatro—; que ni `tanda` ni `evals` nombran `evals-medir-juez` y
 `tanda` no admite el despacho con `medir_al_juez`; que esa entrada está, con `false` por omisión; y que los dos
-topes cubren su peor caso— y falla nombrando la clave, el valor encontrado y el esperado; una eval o un caso nuevos
-que dejan un peor caso por encima de su tope la hacen fallar. Prueba también, con consultas sintéticas y sin red,
-cómo decide `tanda` (subpruebas `segundo-disparo` y `estado-de-la-tanda`). Las evals se lanzan de tres formas:
+topes cubren su peor caso— y, desde H30, el trabajo `cambios` —que solo corre al abrir o reabrir una propuesta, con su
+tope de 15 minutos, sus permisos de lectura, el checkout con toda la historia y la orden de su paso, que da `elige`—,
+la salida `modo` de `tanda`, el `MODO_DE_EVALS` de su `env` y su segunda marca, y, en el trabajo de cada skill, sus
+permisos, el paso de la decisión con su plazo de 15 minutos y `GH_TOKEN` y `GH_REPO` solo en él (subprueba
+`plazo-de-la-decision`), el que ejecuta las evals con `DECISION_DE_EVALS`, la marca del informe escrito como último
+paso y que la matriz no abre más de 11 sesiones a la vez. Falla nombrando la clave, el valor encontrado y el
+esperado; una eval o un caso nuevos que dejan un peor caso por encima de su tope la hacen fallar. Prueba también, con
+consultas sintéticas y sin red, cómo decide `tanda` (subpruebas `segundo-disparo` y `estado-de-la-tanda`).
 
-| Lanzamiento | Sobre qué rama | Cómo |
-|---|---|---|
-| Manual | La que se elija | Desde la plataforma, con la entrada `prueba_de_red` si se quiere también la prueba de red |
-| Apertura | La de una propuesta de cambio, antes de fusionar | Al abrirla o reabrirla, si toca lo que las evals miden: `skills/`, `evals/`, `data/`, el código del binario que las skills invocan (`cmd/`, `internal/` —también `internal/graph/`, y no `internal/workflow/`, que solo tiene los tests de los guiones del workflow— y `skills.go`), `scripts/evals.sh`, `scripts/evals-sesion.sh`, `.github/workflows/evals.yml`, `schemas/eval.yaml.json` o el `Makefile` |
-| Por etiqueta | La de cualquier propuesta de cambio, antes de fusionar | Poniendo la etiqueta `evals` en su propuesta de cambio; `evals-prueba-de-red` añade la prueba de red |
+Cada disparador da a la ejecución un modo, que fija el `env` del trabajo `tanda`: **`reutilizacion`**, que mide lo
+que la propuesta ha podido cambiar y reutiliza lo demás, o **`completa`**, la suite completa, que mide todas las evals
+de cada skill y no reutiliza ninguna (abajo, «Lo que mide y lo que reutiliza»):
+
+| Disparador | Sobre qué commit | Modo | Qué mide |
+|---|---|---|---|
+| Apertura: abrir o reabrir una propuesta de cambio | Su cabeza | `reutilizacion` | El trabajo `cambios` elige las evals que la propuesta ha podido cambiar. Sin ninguna elegida no corre nada más —tampoco con una propuesta que solo toca documentación—; con alguna, mide las elegidas y lo que no tiene resultado reutilizable de `main`, y reutiliza lo demás |
+| Etiqueta `evals` | La cabeza de cualquier propuesta | `reutilizacion` | Lo mismo, aunque la propuesta no elija ninguna eval. Es la que pone el cierre del workflow `hito` |
+| Etiqueta `evals-completa` | La cabeza de cualquier propuesta | `completa` | La suite completa |
+| Manual, sin `medir_al_juez` | El de la rama o la etiqueta que se elija | `completa` | La suite completa |
+| Etiqueta `evals-prueba-de-red`, o manual con `prueba_de_red` | La cabeza de la propuesta, o el de la rama o la etiqueta | `completa` | La suite completa, con la sesión de prueba de red de la eval 01 de `boe-legislacion` |
+| Etiqueta `evals-medir-juez`, o manual con `medir_al_juez` | La cabeza de la propuesta, o el de la rama o la etiqueta | — | La medida del juez, sin evals (abajo, «La medida del juez») |
+
+**El commit de una release necesita su suite completa en verde**: el flujo `release` no publica sin una ejecución de
+este flujo en modo `completa` sobre el commit etiquetado, con el trabajo de cada skill en verde
+([Publicar es humano](#publicar-es-humano)). La lanza el despacho manual sobre ese commit: con la etiqueta empujada,
+`gh workflow run evals.yml --ref <etiqueta>`, la orden que da el mensaje de la release, que se vuelve a ejecutar
+cuando la suite termina en verde; o, antes de etiquetar, `--ref main`, si la cabeza de `main` es el commit que se va a
+etiquetar. La ejecución de una propuesta no vale: mide la cabeza de su rama, no el commit que deja la fusión.
 
 No hay ejecución programada: la semanal sobre `main`, con el modelo, la versión de Claude Code y las respuestas del
 BOE fijados, no medía ningún cambio. Tampoco reacciona a cada empujón (`synchronize`): cada ejecución abre decenas de
 sesiones con modelo y un hito empuja muchas veces, así que cada informe mide el commit que había cuando se abrió o se
 reabrió la propuesta, o cuando se puso la etiqueta. **Para volver a medir, la etiqueta**: una que ya está puesta no
-lanza nada, así que se quita y se vuelve a poner. Una propuesta que solo toca documentación no arranca el job, y es lo
-esperado. **Una sola tanda por commit y skill**: antes de los trabajos de las skills, y solo en una ejecución que
-quiere medir —el despacho, la etiqueta o la apertura que toca lo que las evals miden—, el trabajo `tanda` decide si
-esa ejecución mide el commit. No lo mide si una ejecución anterior del flujo sobre el mismo commit, sin terminar, ya
-lo mide; lo decide `TestTandaDelCommit` (etiqueta `evals`), que consulta con `gh run list` las ejecuciones del flujo
+lanza nada, así que se quita y se vuelve a poner. **Una sola tanda por commit y skill**: antes de los trabajos de las
+skills, y solo en una ejecución que quiere medir —el despacho sin `medir_al_juez`, las etiquetas `evals`,
+`evals-completa` o `evals-prueba-de-red`, o la apertura que elige alguna eval—, el trabajo `tanda` decide si esa
+ejecución mide el commit. No lo mide si una ejecución anterior del flujo sobre el mismo commit, sin terminar, ya lo
+mide con un modo igual o mayor —`completa` es mayor que `reutilizacion`—: una de la suite completa no la sustituye una
+con reutilización en curso, y una con reutilización sí la puede sustituir una de la suite completa en curso
+(`TestTandaConLaSuiteCompleta`). Lo decide `TestTandaDelCommit` (etiqueta `evals`), que recibe el modo con
+`-modo` y consulta con `gh run list` las ejecuciones del flujo
 sobre el commit y con `gh run view` los trabajos de cada una anterior sin terminar, y, mientras alguna no ha decidido,
 vuelve a consultar cada 10 s, como mucho 10 min: espera a que decidan las anteriores, nunca a su tanda. Deja
-`medir=si` o `medir=no` en la salida del trabajo y registra qué ejecuciones miró y por qué mide o no; el último paso,
-«Esta ejecución mide el commit», solo corre en la que mide, y es lo que leen las posteriores. Los trabajos
+`medir=si` o `medir=no` y `modo=<modo>` en la salida del trabajo y registra qué ejecuciones miró y por qué mide o no;
+sus dos últimos pasos son las marcas que leen las posteriores: «Esta ejecución mide el commit», que solo corre en la
+que mide, y «Esta ejecución mide la suite completa», que solo corre si además mide en modo `completa`. Los trabajos
 `evals (<skill>)` solo corren con `medir=si`, así que un segundo disparo sobre el mismo commit mientras el primero
 sigue —la apertura y la etiqueta, por ejemplo— los salta enteros: no abre ninguna sesión ni deja una comprobación roja
 o de más, y el informe es el de la tanda que mide. La etiqueta sobre un commit cuya tanda ya terminó vuelve a medir.
@@ -1094,6 +1136,77 @@ ejecución. La *Definition of Done* (punto 10) pide las evals de la skill en ver
 del que la cabeza solo difiere en el directorio del hito en `specs/`: vale la ejecución de apertura si después no
 cambia nada fuera de ese directorio y, si cambia, se repiten por etiqueta tras el último cambio, porque un cambio
 posterior obliga a repetirlas.
+
+**Lo que mide y lo que reutiliza** (H30; ADR 0045). Una ejecución con reutilización mide las evals que la propuesta
+ha podido cambiar y, de las demás, reutiliza el resultado que ya tiene `main`. **La elección** la calcula
+`TestEleccionDeLaPropuesta` (etiqueta `evals`) en el trabajo `cambios`, sobre el checkout y sin ninguna lista de rutas
+a mano, con el conjunto de dependencias de cada eval: su fichero; el `SKILL.md` y las `references/` de su skill y de
+cada skill cuyo nombre aparece en el `SKILL.md` de otra del conjunto; el fichero de `data/` de la cabecera de cada
+referencia; de cada applet de la tabla de comandos de esas skills, su fichero de `internal/app` y los paquetes del
+módulo que alcanza, con sus ficheros empotrados y sus módulos externos; las raíces de grabaciones y, si la eval lo
+tiene, su `grafo_previo`; y la carpeta `evals/<skill>/juez/` y los demás ficheros de `evals/<skill>/` que no son
+evals. Lo común a todas es `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`,
+`internal/mcp/`, `internal/evals/`, `skills.go`, el `Makefile`, `.github/workflows/evals.yml`, los cuatro
+`scripts/evals*.sh` y los esquemas de las evals, de la lista de expresiones y de las clases del juez, con los módulos
+que alcanzan. De cada ruta que la propuesta cambia —las dos de un renombrado— vale la primera regla que se aplica: una
+ruta que no mide (fuera de `skills/`, `evals/`, `data/`, `cmd/`, `internal/` —sin `internal/workflow/`, y sin los
+tests ni el `testdata/` de un paquete de algún conjunto—, `go.mod`, `go.sum`, lo común y las raíces de grabaciones)
+no elige nada; `go.mod` o `go.sum` eligen por los módulos que cambian, y todas si cambian `go`, `toolchain` o un
+módulo de lo común; una ruta de lo común las elige todas (`comun`); el `SKILL.md` de una skill cuya descripción
+cambia, todas (`descripcion`), porque la descripción decide qué skill se activa; un directorio de `skills/` o de
+`evals/` que se añade o se retira, todas (`sin_asignar`); una ruta del conjunto de alguna eval, esas (`conjunto`); y
+cualquier otra, todas (`sin_asignar`). Un conjunto que no se puede calcular las elige todas (`sin_conjunto`), y si
+`gh` no da los ficheros de la propuesta, también (`plataforma`), con la orden y su salida de error en el registro.
+El registro de `cambios` dice cada eval elegida con su motivo y las rutas que la eligen, y su salida es `elige=si` o
+`elige=no`. En `make ci`, `TestEleccionDeLosMutantes` comprueba que tocar una referencia de `legal-core` elige sus
+evals y no las de otra skill; que tocar el cuerpo de `skills/boe-legislacion/SKILL.md` elige también las de
+`legal-core` y las de `jurisprudencia`, cuyo `SKILL.md` la nombra; que tocar `internal/cli`, una descripción o una
+ruta sin asignar las elige todas; y que una propuesta que solo toca documentación no elige ninguna. El golden de la
+matriz, `TestMatrizDeLasPropuestas`, fija qué mide y qué reutiliza el trabajo de cada skill en cada uno de esos casos,
+con la etiqueta `evals` sobre una propuesta que no elige nada y con la suite completa.
+
+**La huella** de una eval es la sha256 de un texto canónico, `huella-de-eval v1`: el modelo que decide y la versión
+de Claude Code de las sesiones; el modelo del juez y su versión, si la skill lo tiene; `go` y `toolchain`; los módulos
+de su conjunto y de lo común; el resto de `go.mod` y de `go.sum`; la descripción de cada skill; y cada ruta de su
+conjunto, de lo común y sin asignar, con la sha256 de su contenido. Cualquier cambio en una de esas cosas la cambia, y
+la eval se vuelve a medir. La fija `TestHuellaDeLasEvals`.
+
+**La decisión** de cada trabajo `evals (<skill>)` la toma `TestDecisionDelTrabajo` (etiqueta `evals`) en el paso
+«Decidir qué mide y qué reutiliza», antes de abrir ninguna sesión, y es el único paso del trabajo con `GH_TOKEN`. En
+modo `completa` mide todas las evals de la skill (`suite_completa`) sin leer la plataforma. En `reutilizacion` mide
+las que la propuesta elige y, de las demás, busca en las medidas de `main`: las ejecuciones del flujo sobre la cabeza
+de una propuesta fusionada en `main`, terminadas y sin cancelar, con el trabajo de cada skill terminado y su último
+paso, «El informe del trabajo está escrito», en verde, de menos de 90 días; de la más reciente a la más antigua, como
+mucho 10. De cada una lee el informe de la skill en el registro del trabajo y toma, de cada eval sin resultado
+todavía, su entrada de `origen` con la misma huella si está completa —ninguna sesión suya sin medir ni, con juez,
+ninguna respuesta del modelo que decide sin juzgar—, y si allí ya era reutilizada, su entrada tal cual, siempre que la
+medida en que se abrieron sus sesiones tenga menos de 90 días. Para en cuanto cada eval tiene resultado, y la que no
+lo tiene se mide (`sin_resultado_de_main`). Lo que lee de la plataforma tiene un plazo de 10 minutos: la primera orden
+de `gh` que falla, o el plazo agotado, paran la búsqueda, lo que falta se mide, y la orden y su error van al registro y
+a `origen.error_de_la_plataforma`. El paso escribe el fichero de la decisión, que es el bloque `origen` del informe
+sin `sesiones_abiertas`, y una línea por eval en el registro: medida con su motivo o reutilizada con su procedencia.
+El trabajo de una skill que lo reutiliza todo corre igual, con su nombre y su informe, y abre 0 sesiones; ninguna
+ejecución abre más sesiones a la vez que antes. Lo fijan `TestDecisionDelJob` y `TestBusquedaDeMedidasDeMain`, con la
+plataforma en memoria.
+
+**El informe** de cada skill lleva el bloque `origen`: el modo, cuántas evals midió y cuántas reutilizó, cuántas
+sesiones abrió y, de cada eval, su huella y si se midió —con su motivo: `conjunto`, `comun`, `descripcion`,
+`sin_asignar`, `sin_conjunto`, `plataforma`, `sin_resultado_de_main` o `suite_completa`, y las rutas que la eligen— o
+se reutilizó —con la ejecución, el trabajo, el commit, la propuesta y la fecha de la medida de la que viene, y sus
+series—, con lo que aportan sus respuestas a cada umbral. `informe.md` lo enseña en la sección «Medidas y
+reutilizadas». Todos los campos de antes —`tasas`, `evals`, `juez`, `sesiones_sin_medir`, `umbrales`…— dicen solo lo
+medido, y de cada umbral de las respuestas al que aporta alguna eval reutilizada hay otro, `<umbral>:reutilizadas`,
+con la suma de esos aportes, que decide como el original salvo `<clase>:<modelo>:reutilizadas`, que solo da las
+marcadas y el total. Una serie que decide de una eval reutilizada que no pasa, o un umbral `:reutilizadas` que decide
+y no se cumple, ponen el veredicto en fallo. El umbral en tasa de la clase que decide, `<clase>:<modelo>`, se aplica a
+las *n* respuestas medidas del modelo que decide, con los dos modos juntos, con el límite k(*n*) del ADR 0045: el *k*
+más estricto con P(Bin(*n*, *p*ref) > *k*) ≤ 0,02, con *p*ref derivada del `umbral` de `clases.yaml` —0,85 % en
+`boe-legislacion` y 0,36 % en `jurisprudencia`—. Con todas las respuestas es el límite de antes, 3 de 120 y 1 de 60, y
+el informe publica el `umbral` de `clases.yaml`; con menos, publica k(*n*)/*n* si la proporción daría otro límite
+(con 60 respuestas de `boe-legislacion`, k(60) = 2, y publica 0,0333). Lo comprueba `TestLimiteDeLaTasa`, para cada
+*n* de 1 a todas. La fila de la serie de cierres de una ejecución con reutilización es la de lo medido, y
+`scripts/workflow/serie.sh` no cambia (`TestFilaConReutilizadas`); la suite completa da el mismo informe que antes,
+con `origen` (`TestInformeDeLaSuiteCompletaNoCambia`).
 
 **La medida del juez.** Un juez solo decide si está medido contra casos etiquetados (ADR 0037). La medida versionada
 es `evals/<skill>/juez/medida.json`. Dice lo que dio votar los casos de `casos.yaml` —`defectos.casos` y

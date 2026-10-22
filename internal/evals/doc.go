@@ -260,7 +260,88 @@
 //     tanda, consultando cada esperaEntreConsultas, como mucho
 //     esperaMaximaDeLaDecision; así un segundo disparo no abre ninguna sesión, y
 //     la etiqueta sobre un commit ya medido vuelve a medir (FR-070 y FR-071 de
-//     H7.4);
+//     H7.4). Desde H30 decide con el modo de la ejecución, completa o
+//     reutilizacion: no mide si una anterior mide el commit con un modo igual o
+//     mayor, y completa es mayor; lo lee de las dos marcas del trabajo tanda de
+//     cada una (leerLaTandaDeLaEjecucion), la de que mide el commit y la de que
+//     mide la suite completa (FR-021 de H30);
+//   - la elección de una propuesta (dependencias.go y eleccion.go; FR-001 a
+//     FR-008 de H30). calcularDependencias da, sobre el árbol de la cabeza y el
+//     grafo de paquetes de go list (leerGrafoDePaquetes), el conjunto de
+//     dependencias de cada eval: su fichero; el SKILL.md y las referencias de su
+//     skill y de cada skill cuyo nombre aparece en el SKILL.md de otra del
+//     conjunto; el fichero de data/ del que sale cada referencia
+//     (skills.DatosDeLaReferencia); de cada applet de sus tablas de comandos
+//     (skills.AppletsDeLaTabla), su fichero de internal/app y los paquetes del
+//     módulo que alcanza, con sus ficheros empotrados y sus módulos externos;
+//     las raíces de grabaciones; y la carpeta del juez y los demás ficheros de
+//     evals/<skill>/ que no son evals. loComun da lo que es de todas. Las rutas
+//     que miden y las de lo común son listas fijas en el código (rutaQueMide y
+//     esDeLoComun), sin leer el disco ni la definición del job. Con los árboles
+//     de la base y de la cabeza (leerArbolDeLaBase y leerArbolDeLaCabeza),
+//     calculoDeLaEleccion.elegir aplica a cada ruta que la propuesta cambia, las
+//     dos de un renombrado, la primera regla que vale —no mide; go.mod y go.sum,
+//     por los módulos que cambian; lo común; una descripción que cambia; un
+//     directorio de skills/ o de evals/ que está en un solo árbol; el conjunto de
+//     alguna eval; y, si no, sin asignar— y da las evals elegidas, cada una con
+//     el motivo de más prioridad y todas las rutas que la eligen. Un conjunto que
+//     no se puede calcular, o los ficheros de la propuesta que gh no da, las
+//     eligen todas (FR-005 de H30);
+//   - la huella de cada eval (huella.go; FR-009 de H30): la sha256 del texto
+//     canónico de calculoDeLaHuella.textos, con el modelo que decide y la versión
+//     de Claude Code de las sesiones, los del juez si la skill lo tiene
+//     (fijadosDeLaHuella), go y toolchain, los módulos de su conjunto y de lo
+//     común, el resto de go.mod y de go.sum (restoDeGo), la descripción de cada
+//     skill y cada ruta de su conjunto, de lo común y sin asignar con la sha256
+//     de su contenido. Cualquier cambio en una de esas cosas la cambia;
+//   - la reutilización (reutilizacion.go y plataforma.go; FR-010 a FR-013 de
+//     H30). buscarEnLasMedidasDeMain mira las medidas de main —las
+//     ejecuciones del flujo terminadas y sin cancelar sobre la cabeza de una
+//     propuesta fusionada, con el trabajo de cada skill terminado y la marca del
+//     informe escrito en verde, de menos de vidaDeUnResultado—, de la más
+//     reciente a la más antigua y como mucho medidasQueSeRecorren; lee el
+//     informe de la skill del registro de su trabajo (informeDelRegistro), y de
+//     cada eval todavía sin resultado toma su entrada de origen con la misma
+//     huella, completa y vigente (resultadoReutilizable). Para en cuanto cada una
+//     tiene resultado, en la primera lectura que falla o con plazoDeLaPlataforma
+//     agotado, y lo que falta se mide. Lee la plataforma por
+//     lecturasDeLaPlataforma: en el job, ghDeLaPlataforma, con órdenes de solo
+//     lectura de texto constante y cada valor en una variable del entorno; en
+//     los tests, una en memoria;
+//   - la decisión de cada trabajo (decision.go y origen.go; FR-012 a FR-019 y
+//     FR-022 de H30). decidirElTrabajo da, con el modo de la tanda, el origen de
+//     las evals de la skill: en completa, todas medidas, con suite_completa y sin
+//     leer la plataforma; en reutilizacion, las que elige la propuesta medidas
+//     con su motivo y sus rutas, y cada una de las demás reutilizada con su
+//     procedencia o medida con sin_resultado_de_main. Es el fichero de la
+//     decisión (escribirElFicheroDeLaDecision), que scripts/evals.sh exige en
+//     DECISION_DE_EVALS y TestEjecucionDelJob lee con -decision: ejecutarElJob
+//     abre solo las sesiones de lo medido (PlanDeEvals.deLasMedidas), y el
+//     informe lleva el bloque origen —el modo, cuántas evals midió y cuántas
+//     reutilizó, las sesiones que abrió y, de cada eval, su huella, su motivo o
+//     su procedencia y sus aportes a cada umbral de las respuestas—, la sección
+//     «Medidas y reutilizadas» de informe.md, las series de lo reutilizado y,
+//     junto a cada umbral al que aporta alguna eval reutilizada,
+//     <umbral>:reutilizadas, que decide como el original salvo
+//     <clase>:<modelo>:reutilizadas. Los campos de antes cuentan solo lo medido,
+//     y la suite completa da el informe de antes con su origen (FR-023 y FR-026
+//     de H30);
+//   - el límite de la tasa (tasa.go; ADR 0045): el umbral <clase>:<modelo> se
+//     cumple si las marcadas de las n respuestas medidas no pasan de k(n), el k
+//     más estricto con P(Bin(n, pref) > k) ≤ 0,02, con pref derivada del umbral
+//     de clases.yaml y de las respuestas que juzga la ejecución completa
+//     (nuevoLimiteDeLaTasa y limiteDeLaTasa.para), con enteros y sin redondeo; y
+//     compararConLaTasa publica el umbral de clases.yaml si la comparación con
+//     él da k(n), y si no k(n)/n. Con todas las respuestas es el umbral de antes
+//     (FR-024 de H30);
+//   - la comprobación de la release (suite_completa.go; FR-025 de H30):
+//     comprobarLaSuiteCompleta mira las ejecuciones del flujo sobre el commit
+//     etiquetado, de la más reciente a la más antigua, y vale la primera con el
+//     trabajo de cada skill con evals en el commit (evalsDelCommit) en success y,
+//     en su informe, el modo completa, cada eval medida y ninguna reutilizada; si
+//     ninguna vale, falla con el commit, el motivo de cada ejecución mirada y la
+//     orden que lanza la suite completa sobre la etiqueta, gh workflow run
+//     evals.yml --ref <etiqueta>;
 //   - el sondeo, sondear, abre con el mismo repartidor y sin traza unas evals de
 //     una skill con un solo modelo, con el binario y las skills del árbol de
 //     trabajo, y las juzga con el mismo código, sin lo que sale de la traza: no
@@ -278,10 +359,19 @@
 //
 // Los puntos de entrada que abren sesiones con modelo o consultan la plataforma
 // llevan la etiqueta de construcción evals y quedan fuera de make ci:
-// TestEjecucionDelJob, al que llama scripts/evals.sh en el job y que llama a
-// ejecutarElJob; TestTandaDelCommit, al que llama el trabajo tanda del job, que
-// consulta con gh las ejecuciones del flujo sobre el commit y deja medir=si o
-// medir=no en su salida; TestMedidaDelJuez, al que llama
+// TestEjecucionDelJob, al que llama scripts/evals.sh en el job, desde H30 con el
+// fichero de la decisión en -decision, y que llama a ejecutarElJob;
+// TestTandaDelCommit, al que llama el trabajo tanda del job con el modo de la
+// ejecución en -modo, que consulta con gh las ejecuciones del flujo sobre el
+// commit y deja medir=si o medir=no y modo=<modo> en su salida;
+// TestEleccionDeLaPropuesta, al que llama el trabajo cambios al abrir o reabrir
+// una propuesta, que calcula la elección, la registra y deja elige=si o elige=no
+// en su salida (escribirLaApertura); TestDecisionDelTrabajo, al que llama el paso
+// «Decidir qué mide y qué reutiliza» de cada trabajo evals, que escribe el
+// fichero de la decisión y registra cada eval, medida con su motivo o
+// reutilizada con su procedencia; TestSuiteCompletaDelCommit, al que llama el
+// trabajo suite-completa del flujo release, que llama a comprobarLaSuiteCompleta
+// con el commit etiquetado y su etiqueta; TestMedidaDelJuez, al que llama
 // scripts/evals-medir-juez.sh desde make evals-medir-juez, que llama a
 // medirAlJuez y escribe la medida para que el guion la imprima, y que lanza una
 // persona, con la etiqueta evals-medir-juez o la entrada medir_al_juez del flujo,
@@ -290,7 +380,14 @@
 // que el guion lo imprima sin nada más. En make ci, los tests sustituyen claude,
 // strace y go por guiones que no abren ninguna sesión, los votos del juez son
 // salidas grabadas, y la decisión de la tanda se prueba con consultas sintéticas
-// (research.md D18 de H7.3; FR-099 y FR-100 de H7.4; FR-093 de H24).
+// (research.md D18 de H7.3; FR-099 y FR-100 de H7.4; FR-093 de H24). Desde H30,
+// la elección, la huella y los conjuntos se calculan sobre el repositorio y sus
+// mutantes en memoria (TestEleccionDeLosMutantes, TestMatrizDeLasPropuestas,
+// TestHuellaDeLasEvals y TestConjuntoDeCadaEval), y la búsqueda de medidas de
+// main, la decisión de cada trabajo y la comprobación de la release, con la
+// plataforma en memoria (TestBusquedaDeMedidasDeMain, TestDecisionDelJob y
+// TestComprobarLaSuiteCompleta); el límite de la tasa lo comprueba
+// TestLimiteDeLaTasa para cada skill con juez y cada número de respuestas.
 //
 // El binario distribuido no enlaza este paquete: solo se ejecuta desde tests, y
 // TestDependenciasDelBinario falla si algún día llegara al binario (research.md

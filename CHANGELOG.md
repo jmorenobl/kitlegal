@@ -31,6 +31,65 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
+  por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
+  (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de
+  cada eval —su fichero; el `SKILL.md` y las referencias de su skill y de cada skill que su `SKILL.md` nombra; el
+  fichero de `data/` del que sale cada referencia; los paquetes de Go de los applets de su tabla de comandos, con sus
+  módulos; sus grabaciones; y la carpeta del juez de la skill— y lo común a todas (`cmd/`, `internal/app/`,
+  `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, el
+  `Makefile`, el propio job, los cuatro `scripts/evals*.sh` y los esquemas de las evals y del juez). Elige las evals
+  cuyo conjunto toca la propuesta, y todas si toca lo común, la descripción de una skill o una ruta que mide y no es de
+  ningún conjunto, si un conjunto no se puede calcular o si `gh` no da los ficheros de la propuesta; el registro dice
+  cada eval elegida con su motivo y las rutas que la eligen. Cada trabajo `evals (<skill>)` decide después, en el paso
+  nuevo «Decidir qué mide y qué reutiliza» (`TestDecisionDelTrabajo`), qué mide: las elegidas; y, de las demás,
+  reutiliza el resultado de la medida de `main` más reciente con su misma huella —la sha256 de su conjunto, de lo común,
+  de las rutas sin asignar, de la descripción de cada skill y de los modelos y las versiones de Claude Code fijados—,
+  entre las 10 más recientes y de menos de 90 días, y mide la que no lo tiene. El trabajo de una skill que lo
+  reutiliza todo corre igual, con su nombre y su informe, y abre 0 sesiones. Ninguna ejecución abre más sesiones a la
+  vez que antes (5 en `boe-legislacion`, 4 en `jurisprudencia` y 2 en `legal-core`), y las repeticiones, el umbral de 2
+  de 3, los modelos y las versiones no cambian. Qué mide cada disparador:
+  - **Abrir o reabrir una propuesta**: lo elegido y, de lo demás, lo que no tiene resultado reutilizable de `main`. Si
+    no elige ninguna eval, no corre ningún trabajo de evals.
+  - **La etiqueta `evals`**, la que pone el cierre del workflow `hito`: lo mismo, también con una propuesta que no elige
+    ninguna eval.
+  - **La etiqueta `evals-completa`** y el **despacho manual** sin `medir_al_juez`: la suite completa, todas las evals de
+    cada skill medidas y ninguna reutilizada.
+  - **La etiqueta `evals-prueba-de-red`** y el despacho con `prueba_de_red`: la suite completa, con la sesión de prueba
+    de red de la eval 01 de `boe-legislacion`.
+  - **La etiqueta `evals-medir-juez`** y el despacho con `medir_al_juez`: la medida del juez, sin evals, como hasta
+    ahora.
+
+  La tanda de un commit sigue siendo una: una ejecución no mide si otra anterior sin terminar ya lo mide con un modo
+  igual o mayor, y la suite completa es mayor que la reutilización. El informe de cada skill lleva el bloque `origen`:
+  el modo (`completa` o `reutilizacion`), cuántas evals midió y cuántas reutilizó, cuántas sesiones abrió y, de cada
+  eval, su huella y si se midió —con su motivo: `conjunto`, `comun`, `descripcion`, `sin_asignar`, `sin_conjunto`,
+  `plataforma`, `sin_resultado_de_main` o `suite_completa`— o se reutilizó, con la ejecución, el trabajo, el commit, la
+  propuesta y la fecha de la medida de la que viene; `informe.md` lo enseña en la sección «Medidas y reutilizadas».
+  Los umbrales de siempre cuentan solo lo medido, y de lo reutilizado el informe da aparte `<umbral>:reutilizadas`, que
+  decide como el original salvo `<clase>:<modelo>:reutilizadas`, que solo da las marcadas y el total. La serie de
+  cierres cuenta solo lo medido, así que `scripts/workflow/serie.sh` no cambia (`TestFilaConReutilizadas`), y la suite
+  completa da el mismo informe que antes, con `origen` (`TestInformeDeLaSuiteCompletaNoCambia`). La elección de cada
+  propuesta la fija el golden de la matriz (`TestMatrizDeLasPropuestas`), y cada peor caso del tope de 352 minutos
+  suma los 900 s del plazo de la decisión: el mayor, el de `legal-core`, es de 20 425 s, 340,4 minutos.
+- **El umbral en tasa de una clase del juez vale para cualquier número de respuestas medidas** (ADR 0045, que precisa
+  el punto 3 del 0038). `<clase>:<modelo>` decide sobre las respuestas medidas del modelo que decide, con los dos modos
+  juntos, y se cumple si sus marcadas no pasan de k(*n*): el *k* más estricto con P(Bin(*n*, *p*ref) > *k*) ≤ 0,02,
+  con la tasa de referencia *p*ref derivada del `umbral` de `clases.yaml` —hoy 0,85 % en `boe-legislacion` y 0,36 %
+  en `jurisprudencia`—. Con todas las respuestas es el límite de antes (3 de 120 y 1 de 60) y el informe publica el
+  `umbral` de `clases.yaml`; con menos, k(*n*)/*n* si la proporción de `clases.yaml` daría otro límite (con 60
+  respuestas de `boe-legislacion`, 2, y publica 0,0333). Ningún umbral sube, y estrechar el de `clases.yaml` estrecha
+  k(*n*) para todo *n*. Lo comprueba `TestLimiteDeLaTasa`, para cada skill con juez y cada *n* de 1 a todas.
+- **La release exige la suite completa de evals del commit etiquetado** (H30). El flujo `release` gana el trabajo
+  `suite-completa`, el primero, del que depende `publicar`: `TestSuiteCompletaDelCommit` busca, entre las ejecuciones
+  del flujo `evals` sobre el commit etiquetado, una de la suite completa con el trabajo de cada skill en verde, cada
+  eval de la skill en ese commit medida y ninguna reutilizada. Si no la hay, falla y no publica la release, ni el cask,
+  ni el manifiesto del bucket, ni el catálogo; su mensaje nombra el commit, lo que falta de cada ejecución mirada y la
+  orden que lanza la suite completa sobre la etiqueta, `gh workflow run evals.yml --ref <etiqueta>`, tras la que se
+  vuelve a ejecutar la release. Lo comprueban `TestConfiguracionDeLaRelease` y `TestComprobarLaSuiteCompleta`.
+- **`scripts/evals.sh` exige `DECISION_DE_EVALS`**, el fichero que escribe el paso de la decisión: sin ella, o si no
+  es un fichero legible, termina con `1` antes de la primera sesión, con «evals: falta DECISION_DE_EVALS». Con ella
+  abre solo las sesiones de las evals medidas y compone el informe con las reutilizadas.
 - **kitlegal es un componente legal general, con la cobertura en positivo** (H29; ADR 0044, constitución 2.14.0). El
   ADR fija las tres fases y el backlog de materias, sustituye al 0027 en la frontera de la base y al 0040 en el orden, y
   precisa el 0012: una vertical es un paquete de materia sobre los motores de la base, no una skill, y un pack agrupa

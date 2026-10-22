@@ -1,17 +1,19 @@
 {
-  "id": "T016",
-  "texto": "T016 [US5] El ADR 0045, lo reutilizado no cuenta en la tasa — FR-024, SC-013 (spec FR-024; data-model §9; research D12). **`docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md`**, con la cabecera de los ADR de `docs/ADR/` (estado, fecha, hito H30 y lo que no toca: el umbral de ninguna clase, el modelo que decide, los guiones del workflow): el contexto (la tasa del ADR 0038 con todas las respuestas, y lo que pasa con menos); la decisión de FR-024 (lo reutilizado no cuenta en `<clase>:<modelo>` ni en `<clase>:<modelo>:<modo>`, que se aplican a lo medido del modelo que decide con los dos modos juntos; el límite k(*n*); la serie de cierres cuenta solo lo medido y el guion de la serie del workflow (`serie.sh`) no cambia; ningún umbral sube); la derivación de *p*ref desde el `umbral` de `clases.yaml` y, como su resultado, las cifras de hoy de `boe-legislacion` y `jurisprudencia` (*N*, k(*N*), *p*ref), copiadas de la salida de `go test -count=1 -v -run '^TestLimiteDeLaTasa$' ./internal/evals/` ejecutada en esta tarea; que estrechar el `umbral` de `clases.yaml` baja *p*ref y estrecha el límite para todo *n*; la tasa acumulada de la serie de `boe-legislacion`, sacada de `serie.sh mostrar boe-legislacion` (el guion de la serie del workflow, sin cambios) ejecutado en esta tarea (no copiada del spec), por encima de *p*ref, y que subir un umbral pediría otro ADR; las alternativas rechazadas de research D12. Ninguna cifra de memoria: si la salida difiere del spec, manda la salida, y se anota en `specs/026-h30-las-evals-miden/gates/supuestos.md`. Rutas: docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md, specs/026-h30-las-evals-miden/gates/supuestos.md",
+  "id": "T017",
+  "texto": "T017 Documentación del job, de sus disparadores y de la release — SC-016 (y FR-016 a FR-018, FR-025, que describe) (`docs/ROADMAP.md` §1). **`CHANGELOG.md`**, bajo *Unreleased*: el job mide solo las evals que una propuesta ha podido cambiar y reutiliza lo demás de `main` por su huella; qué mide cada disparador (apertura, etiqueta `evals`, `evals-completa`, despacho, `evals-prueba-de-red`, `evals-medir-juez`); el informe con `origen` y los umbrales `:reutilizadas`; el límite k(*n*) del ADR 0045; la release exige la suite completa del commit etiquetado; `scripts/evals.sh` exige `DECISION_DE_EVALS`. **`docs/WORKFLOW.md`**: donde nombra la etiqueta `evals` del cierre (`medir_cierre`), qué mide con el job nuevo (las elegidas y lo que no tiene resultado reutilizable; la suite completa, con `evals-completa`). **`CONTRIBUTING.md`**: la tabla de cuándo corre el job (línea de «Por etiqueta» y las demás) con los disparadores y modos de contracts/job-de-evals.md §1, y que antes de etiquetar una release el commit necesita su suite completa en verde (`gh workflow run evals.yml --ref <etiqueta>`). **`internal/evals/doc.go`**: el paquete, con la elección, la huella, la reutilización, la decisión y la comprobación de la release. Cada test, fichero, disparador y cifra que nombran existe en el árbol (`grep -n` de cada uno). Rutas: CHANGELOG.md, docs/WORKFLOW.md, CONTRIBUTING.md, internal/evals/doc.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "15a0fbf2440910ae794d581b7a19e825ccde9e5c",
+  "base": "a6599627d8b34353fca29e0e4334bc3d803d75bb",
   "rutas": [
-    "clases.yaml",
-    "docs/ADR/",
-    "docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md",
-    "internal/evals/",
-    "serie.sh",
-    "specs/026-h30-las-evals-miden/gates/supuestos.md"
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "contracts/job-de-evals.md",
+    "docs/ROADMAP.md",
+    "docs/WORKFLOW.md",
+    "evals.yml",
+    "internal/evals/doc.go",
+    "scripts/evals.sh"
   ],
   "cierre": false,
   "converger": false,
