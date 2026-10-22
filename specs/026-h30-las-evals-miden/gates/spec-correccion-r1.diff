@@ -1,0 +1,208 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-10-22 10:16:05
++++ ahora/checklists/requirements.md	2026-10-22 10:19:52
+@@ -21,9 +21,13 @@
+ - [x] No [NEEDS CLARIFICATION] markers remain — los dos que había (FR-014 y la materia de una eval, en «Assumptions»)
+   los cerró clarify el 2026-10-22; ver «Clarifications» del spec.
+ - [x] Requirements are testable and unambiguous — cada FR lleva su «Criterio» o lo cubre un SC con su test de `make ci`;
+-  FR-014 quedó cerrado por clarify.
+-- [x] Success criteria are measurable — SC-002 a SC-012 y SC-015 nombran su cifra y el test de `make ci` que sale en
+-  rojo; SC-014, la comprobación de `cierre.sh` que detiene el cierre.
++  FR-014 quedó cerrado por clarify. Tras la primera revisión: FR-001(d) define los paquetes de un applet sin pasar por
++  la composición (el paquete raíz y sus skills solo llegan por (b); `_test.go` y `testdata/` fuera, salvo las
++  grabaciones); `go.mod` y `go.sum` entran en el conjunto, en lo común y en la huella (FR-001(d), FR-002, FR-004,
++  FR-009); y FR-024 deriva la tasa de referencia del `umbral` vigente de `clases.yaml`.
++- [x] Success criteria are measurable — SC-002 a SC-012 nombran su cifra y el test de `make ci` que sale en rojo;
++  SC-014, la comprobación de `cierre.sh` que detiene el cierre; SC-015 es una restricción del diff del hito
++  (FR-027), no una medida con umbral.
+ - [x] Success criteria are technology-agnostic (no implementation details) — se miden en `make ci`, en el informe del
+   job y en la release, que son la superficie del proyecto.
+ - [x] All acceptance scenarios are defined — cinco historias en Dado/Cuando/Entonces.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-22 10:16:05
++++ ahora/spec.md	2026-10-22 10:19:47
+@@ -33,7 +33,7 @@
+ - Q: Cuando una eval que la propuesta no elige (FR-006) no tiene ningún resultado reutilizable de una medida de `main` con su huella (eval nueva, registro caducado, informe ilegible, plataforma que no responde), ¿qué hace con ella la ejecución con reutilización (apertura de la propuesta o etiqueta `evals`)? → A: Se mide en esa misma ejecución, abriendo sesiones de su skill aunque la propuesta no toque esa skill, solo las de esa eval y con la concurrencia de hoy (FR-020); el informe dice «sin resultado reutilizable de `main`» y cuenta para el veredicto como cualquier eval medida (auto: criterio a; fuente: `docs/roadmap/done/H30-las-evals-miden-solo.md`, entrega (4) y (5), Alcance y Aceptación; FR-013, FR-016, FR-017, FR-022)
+ - Q: ¿Debe H30 definir cómo se identifica la materia de una eval y de una referencia, para que la referencia de una materia solo sea dependencia de las evals de esa materia, o basta la granularidad por skill de hoy, en la que cada eval depende de todas las referencias de sus skills? → A: Basta la granularidad por skill: H30 no define marca de materia ni punto de extensión; el formato del paquete de materia y la asignación llegan con H32 (auto: conservadora; criterio d; fuente: `docs/roadmap/done/H30-las-evals-miden-solo.md` (Objetivo, Controles); `docs/roadmap/todo/040-H32-arquitectura-de-skills-una-entrada-generica.md`; constitución, Criterio de decisión autónoma 2 y 4; principio X)
+ - Q: En el umbral en tasa de una clase del juez (ADR 0038), ¿cómo cuentan las respuestas de las evals reutilizadas en una ejecución con reutilización? → A: No cuentan: el umbral `<clase>:<modelo>` se aplica solo a las respuestas medidas, con el límite de marcadas que da la regla del ADR 0038 (punto 3) para ese número de respuestas medidas y la tasa de referencia de Q4; con todas las respuestas de la skill, el umbral de hoy, que no cambia; el informe da aparte las marcadas y el total de las reutilizadas, sin decidir (auto: criterio a; fuente: entrega (4) y (6) del hito; `scripts/workflow/serie.sh`; `docs/ADR/0038`, puntos 3 y 4; constitución, «Umbrales que se cumplen»; FR-015, FR-023, FR-024, FR-026)
+-- Q: ¿Qué tasa de referencia fija el ADR para cada skill con juez, con la que el test de SC-010 comprueba el criterio de 1/50? → A: La mayor tasa con la que el umbral vigente de la ejecución completa de cada skill cumple aún 1/50, derivada de ese umbral y de las respuestas de la ejecución completa de hoy y escrita en el ADR como cifra fija, con su derivación y redondeada hacia abajo: `boe-legislacion`, 3 marcadas de 120, ≈0,85 %; `jurisprudencia`, 1 de 60, ≈0,36 %; el ADR deja escrito que la tasa acumulada de la serie de `boe-legislacion` (18 de 1.424, el 1,26 %) está por encima, y subir el umbral pediría otro ADR (auto: criterio c; fuente: FR-024, SC-010, SC-013, FR-026; `docs/ADR/0038`, puntos 3 a 5; `evals/*/juez/clases.yaml`; `specs/*/gates/serie.jsonl`; `evidencias/adr-0038/serie-previa.jsonl`)
++- Q: ¿Qué tasa de referencia fija el ADR para cada skill con juez, con la que el test de SC-010 comprueba el criterio de 1/50? → A: La mayor tasa con la que el umbral vigente de la ejecución completa de cada skill cumple aún 1/50, derivada de ese umbral y de las respuestas de la ejecución completa y redondeada hacia abajo; el ADR escribe la derivación y, como su resultado, las cifras de hoy: `boe-legislacion`, 3 marcadas de 120, ≈0,85 %; `jurisprudencia`, 1 de 60, ≈0,36 %; si una persona estrecha el umbral, la tasa de referencia que se deriva baja con él; el ADR deja escrito que la tasa acumulada de la serie de `boe-legislacion` (18 de 1.424, el 1,26 %) está por encima, y subir el umbral pediría otro ADR (auto: criterio c; fuente: FR-024, SC-010, SC-013, FR-026; `docs/ADR/0038`, puntos 3 a 5; `evals/*/juez/clases.yaml`; `specs/*/gates/serie.jsonl`; `evidencias/adr-0038/serie-previa.jsonl`)
+ - Q: ¿Qué ejecuciones de una propuesta de cambio fusionada en `main` cuentan como medida de `main` cuyos resultados se pueden reutilizar por su huella? → A: Solo las ejecuciones sobre el commit que era la cabeza de la propuesta al fusionarla (el `head.sha` que da la plataforma de la propuesta fusionada) que cumplen además FR-010; si esa cabeza no tiene ejecución, la propuesta no aporta medida de `main` y sus evals se miden cuando las necesite otra propuesta (auto: criterio a; fuente: `docs/roadmap/done/H30-las-evals-miden-solo.md`, entrega (4); FR-010, FR-013, «Fuera de alcance»; `docs/ROADMAP.md`, §1)
+ 
+ ## User Scenarios & Testing *(mandatory)*
+@@ -75,8 +75,8 @@
+ 
+ ### User Story 2 - Lo que no cambia reutiliza el resultado de `main` por su huella (Priority: P1)
+ 
+-El resultado de cada eval se guarda con su huella. Cuando el job tiene que dar el resultado de una eval y una medida de
+-`main` tiene ya uno con la misma huella, lo reutiliza —pase o no— sin abrir sesión, y su informe lo dice. El cierre del
++El resultado de cada eval se guarda con su huella. Cuando el job tiene que dar el resultado de una eval que la propuesta
++no elige y una medida de `main` tiene ya uno con la misma huella, lo reutiliza —pase o no— sin abrir sesión, y su informe lo dice. El cierre del
+ workflow, que pone la etiqueta `evals`, obtiene así un informe completo de cada skill sin volver a medir lo que no ha
+ cambiado.
+ 
+@@ -193,24 +193,31 @@
+   en cualquier parte del fichero— y, de cada una de ellas, las que a su vez nombra; de cada una, su `SKILL.md` y sus
+   `references/`;
+   (c) los `data/*.yaml` de los que se generan esas referencias, los que dice la cabecera «generado desde» de cada una;
+-  (d) los ficheros de los paquetes Go del repositorio —también los que empotran— de los que depende (`go list -deps`)
+-  cada applet de la tabla de comandos de cada skill de la eval, sean o no de los `comandos:` que espera la eval;
++  (d) de cada applet de la tabla de comandos de cada skill de la eval, sean o no de los `comandos:` que espera la eval,
++  sus paquetes Go: los del repositorio que importa el código del applet en la composición (hoy su fichero de
++  `internal/app`) fuera de lo común (FR-002), y los que `go list -deps` da desde ellos; de cada uno, los ficheros que
++  compila y los que empotra, y la versión de cada módulo externo del que dependen, la que fijan `go.mod` y `go.sum`. Lo
++  común no entra por (d): el paquete raíz, que empotra las skills, llega a un conjunto solo por (b). Los `_test.go` y
++  `testdata/` de esos paquetes no entran en el binario: no son de ningún conjunto ni rutas que las evals miden (FR-004),
++  salvo las grabaciones de (e);
+   (e) las grabaciones que el arnés sirve a las sesiones de la eval;
+   (f) si su skill tiene juez, la carpeta del juez de su skill —rúbrica, casos, medida, clases y esquema— y, en cualquier
+   skill, los demás ficheros de `evals/<skill>/` que no son una eval.
+   *Criterio*: un test de `make ci` sobre el árbol del repositorio comprueba, para una eval de cada skill, que el conjunto
+   contiene cada una de las seis partes —para una de `legal-core`, `skills/boe-legislacion/SKILL.md`,
+-  `data/plazos.yaml` y un fichero del paquete del applet `plazos`; para una de `jurisprudencia`,
+-  `skills/boe-legislacion/SKILL.md` y un fichero del paquete del applet `cita`— y que no contiene el fichero de otra
+-  eval.
++  `data/plazos.yaml` y un fichero de `internal/core/plazos`; para una de `jurisprudencia`,
++  `skills/boe-legislacion/SKILL.md` y un fichero de `internal/core/cita`— y que no contiene el fichero de otra eval ni,
++  en el de una de `jurisprudencia`, `skills/legal-core/SKILL.md`.
+ 
+ - **FR-002**: Lo común elige todas las evals de todas las skills: el kernel y la composición del binario (hoy `cmd/` e
+   `internal/app`), `internal/cli`, la red (`internal/httpx`), la caché (`internal/cache`), el servidor MCP
+   (`internal/mcp`), el arnés de las evals (`internal/evals`, los guiones `scripts/evals*.sh` que ejecuta el job y los
+   esquemas de las evals y del juez), el job (`.github/workflows/evals.yml`, que fija el modelo que decide, los
+-  informativos, las repeticiones y las versiones de Claude Code) y lo que instala el binario y las skills en el job
+-  (`skills.go` y `Makefile`). Que un fichero común aparezca también en el conjunto de FR-001 no cambia nada: lo elige
+-  todo. *Criterio*: mutante de `make ci`: cambiar un fichero de `internal/cli` elige las 45 evals.
++  informativos, las repeticiones y las versiones de Claude Code), lo que instala el binario y las skills en el job
++  (`skills.go` y `Makefile`), la versión de Go que fija `go.mod` (`go` y `toolchain`) y la de cada módulo externo del que dependen los
++  paquetes de lo común. Que un fichero común aparezca también en el conjunto de FR-001 no cambia nada: lo elige
++  todo. *Criterio*: mutantes de `make ci`: cambiar un fichero de `internal/cli` elige las 45 evals, y cambiar en
++  `go.mod` la versión de `modernc.org/sqlite`, de la caché, también.
+ 
+ - **FR-003**: La descripción de cada skill —el campo `description` de la cabecera de su `SKILL.md`— compite con las demás
+   por la activación que mide cada eval: cambiar la de cualquier skill elige todas las evals de todas las skills. Cambiar
+@@ -219,7 +226,9 @@
+   `jurisprudencia` y ninguna más.
+ 
+ - **FR-004**: Las rutas que las evals miden son las que hoy lanzan el job al abrir una propuesta (las de «Contexto»), más
+-  las grabaciones de FR-001(e) y los guiones y esquemas del arnés de FR-002. Una ruta cambiada de ese conjunto que no
++  las grabaciones de FR-001(e), los guiones y esquemas del arnés de FR-002, y `go.mod` y `go.sum`. Un cambio de `go.mod`
++  o `go.sum` elige las evals de cuyo conjunto cambia la versión de algún módulo, y todas si cambia la de un módulo de lo
++  común o la versión de Go, o si no cambia la de ningún módulo de un conjunto ni de lo común. Una ruta cambiada de ese conjunto que no
+   está en el conjunto de ninguna eval ni en lo común —también un directorio de `skills/` o de `evals/` que se añade, se
+   retira o se renombra— es una ruta sin asignar y elige todas las evals. Una ruta cambiada fuera de ese conjunto no elige
+   ninguna. *Criterio*: mutantes de `make ci`: un paquete nuevo bajo `internal/` del que no depende ningún applet ni lo
+@@ -252,10 +261,12 @@
+ - **FR-009**: La huella de una eval es un valor que cambia si y solo si cambia algo que la elige: el modelo que decide, la
+   versión de Claude Code de las sesiones, la huella del juez si su skill lo tiene —modelo del juez, versión de Claude Code
+   de sus votos y el contenido de su rúbrica, sus casos y su medida—, el contenido de cada ruta de su conjunto (FR-001),
+-  de lo común (FR-002), de la descripción de cada skill (FR-003) y de las rutas sin asignar (FR-004). No depende del
++  de lo común (FR-002), de la descripción de cada skill (FR-003) y de las rutas sin asignar (FR-004), y las versiones de
++  Go y de los módulos externos de su conjunto y de lo común. No depende del
+   runner, de la fecha, del orden en que se recorren los ficheros ni de la ruta del directorio de trabajo.
+   *Criterio*: test de `make ci`: para cada clase de ruta de FR-001 a FR-004, cambiar su contenido cambia la huella de las
+-  evals que elige y no la de las demás; cambiar un fichero de `docs/` no cambia ninguna; calcular dos veces la huella del
++  evals que elige y no la de las demás; cambiar en `go.mod` la versión de un módulo de lo común cambia la de todas;
++  cambiar un fichero de `docs/` no cambia ninguna; calcular dos veces la huella del
+   mismo árbol desde dos directorios distintos da lo mismo.
+ 
+ #### La reutilización
+@@ -273,14 +284,17 @@
+   guarda con su huella. Si esa medida lo reutilizó a su vez, el resultado y su procedencia son los de la medida en que se
+   abrieron sus sesiones.
+ 
+-- **FR-012**: En una ejecución con reutilización (FR-016, FR-017), cada eval reutiliza el resultado de la medida de
+-  `main` más reciente con su misma huella, pase o no, sin abrir sesión, si ese resultado se puede leer y está completo:
+-  ninguna sesión de sus series quedó sin medir y, con juez, ninguna respuesta del modelo que decide quedó sin juzgar.
++- **FR-012**: En una ejecución con reutilización (FR-016, FR-017), las evals elegidas (FR-006) se miden y no se buscan.
++  Cada eval no elegida reutiliza el resultado de la medida de `main` más reciente con su misma huella, pase o no, sin
++  abrir sesión, si ese resultado se puede leer y está completo: ninguna sesión de sus series quedó sin medir y, con
++  juez, ninguna respuesta del modelo que decide quedó sin juzgar. La búsqueda recorre como mucho las 10 medidas de
++  `main` más recientes y para en cuanto cada eval no elegida tiene su resultado; lo que queda sin él se mide (FR-013).
+   *Criterio*: tests de `make ci`: con dos medidas de la misma huella se reutiliza la más reciente; una eval con una
+-  sesión sin medir en su medida se mide.
++  sesión sin medir en su medida se mide; una eval cuya huella solo está en la undécima medida más reciente se mide.
+ 
+-- **FR-013**: Una eval sin ninguna medida de `main` con su huella cuyo resultado se pueda leer y esté completo —eval
+-  nueva, huella cambiada, registro caducado o borrado, informe ilegible, plataforma que no responde— se mide.
++- **FR-013**: Una eval sin ninguna medida de `main` con su huella, entre las que recorre la búsqueda (FR-012), cuyo
++  resultado se pueda leer y esté completo —eval nueva, huella cambiada, registro caducado o borrado, informe ilegible,
++  plataforma que no responde— se mide.
+ 
+ - **FR-014**: Una eval **no elegida** por la propuesta (FR-006) que no tiene un resultado reutilizable de `main` con su
+   huella (FR-013) se mide en esa misma ejecución, con ese motivo, «sin resultado reutilizable de `main`» (FR-022): abre
+@@ -357,13 +371,17 @@
+   juntos; el límite de marcadas para *n* respuestas medidas es el *k* más estricto con P(Bin(*n*, *p*ref) > *k*) ≤ 0,02
+   (regla del ADR 0038, punto 3), que con todas las respuestas de la skill es el umbral de hoy (3 de 120 en
+   `boe-legislacion`, 1 de 60 en `jurisprudencia`); la serie de cierres cuenta solo lo medido (FR-023), así que
+-  `scripts/workflow/serie.sh` no cambia. La tasa de referencia *p*ref de cada skill es la mayor con la que el umbral
+-  vigente de su ejecución completa cumple aún 1/50, escrita en el ADR como cifra fija, con su derivación y redondeada
+-  hacia abajo (hoy ≈0,85 % en `boe-legislacion` y ≈0,36 % en `jurisprudencia`); el ADR deja dicho que la tasa acumulada
+-  de la serie de `boe-legislacion` (18 de 1.424, el 1,26 %) está por encima, y que subir un umbral pediría otro ADR.
++  `scripts/workflow/serie.sh` no cambia. La tasa de referencia *p*ref de cada skill se deriva del umbral vigente: es la
++  mayor, redondeada hacia abajo a centésimas de punto porcentual, con la que el límite de su ejecución completa —el
++  `umbral` de su clase en `evals/<skill>/juez/clases.yaml` por las respuestas que juzga la ejecución completa— cumple
++  aún 1/50. El ADR escribe esa derivación y, como su resultado, las cifras de hoy (≈0,85 % en `boe-legislacion` y
++  ≈0,36 % en `jurisprudencia`); si una persona estrecha el `umbral` de `clases.yaml` (ADR 0038, punto 4), *p*ref baja
++  con él y el límite se estrecha para todo *n*. El ADR deja dicho que la tasa acumulada de la serie de
++  `boe-legislacion` (18 de 1.424, el 1,26 %) está por encima, y que subir un umbral pediría otro ADR.
+   *Criterio*: test de `make ci` que, para cada skill con juez y cada número de respuestas medidas del modelo que decide
+   entre 1 y todas las de la skill en sus dos modos, calcula con la regla del job la probabilidad de rojo sin motivo a la
+-  tasa de referencia del ADR y sale en rojo si alguna pasa de 0,02.
++  tasa de referencia derivada del `clases.yaml` vigente y sale en rojo si alguna pasa de 0,02; y un mutante que baja el
++  `umbral` de `boe-legislacion` a 2 de 120 hace salir en rojo el test si el límite del job con 120 respuestas no es 2.
+ 
+ #### La release
+ 
+@@ -413,12 +431,15 @@
+   por ejecución, y el cierre las copia a `gates/evals/<skill>.json`. Una entrada por eval —huella de 64 caracteres,
+   ejecución, trabajo, commit de 40, propuesta y fecha—, unos 250 bytes: hoy 23, 10 y 12 entradas por skill, unos 11 KB
+   entre las tres; con cientos de evals, decenas de KB por ejecución. La marca «reutilizada» de una eval deja de darse en
+-  la ejecución en que cambia su huella o en que su medida de `main` deja de poderse leer (los registros de la plataforma
+-  caducan a los 90 días), y entonces se mide.
+-- **La búsqueda de medidas de `main` (FR-010, FR-012)**: la hace el job una vez por ejecución con reutilización; recorre
+-  las medidas de `main` legibles —la plataforma guarda sus registros 90 días— de la más reciente hacia atrás y para
+-  cuando cada eval tiene su resultado o se acaban: lee una vez el informe de cada skill de cada medida que recorre, sin
+-  depender de toda la historia.
++  la ejecución en que cambia su huella, en que su medida de `main` deja de poderse leer (los registros de la plataforma
++  caducan a los 90 días) o en que esa medida sale de las 10 más recientes (FR-012), y entonces se mide.
++- **La búsqueda de medidas de `main` (FR-010, FR-012)**: la hace el job una vez por ejecución con reutilización que deja
++  alguna eval sin elegir, solo para esas evals; recorre las medidas de `main` legibles de la más reciente hacia atrás,
++  como mucho 10, y para cuando cada una tiene su resultado: lee una vez el informe de cada skill de cada medida que
++  recorre. Con los informes de una medida de hoy (922, 349 y 534 KiB en `specs/025-h26-1-las-evals-sirven/gates/evals/`,
++  unos 1,8 MiB), el peor caso son 10 medidas × 3 informes, unos 18 MiB, y no crece con lo acumulado en la ventana de 90
++  días de la plataforma. Lo normal es una sola medida: la más reciente da resultado de cada eval (FR-011), con las
++  huellas de `main` en su cabeza. Al llegar a la cota, lo que queda sin resultado se mide.
+ - **El fallo de la release (FR-025)**: lo lee quien empuja la etiqueta, una vez por etiqueta; un mensaje de unas líneas.
+   Deja de darse cuando el commit tiene su ejecución de la suite completa en verde.
+ - **La serie de cierres (FR-023)**: el cierre escribe una fila por skill con juez y medición, como hoy; la fila solo
+@@ -452,13 +473,15 @@
+ - **SC-009**: `scripts/workflow/serie.sh fila`, sin cambios, sale con 0 sobre un informe con reutilizadas y su fila es la
+   de solo las medidas (FR-023); el test de `make ci` sale en rojo si no.
+ - **SC-010**: Con la regla del ADR (FR-024), la probabilidad de rojo sin motivo es ≤ 0,02 para cada número de respuestas
+-  medidas de 1 a todas, en cada skill con juez; el test de `make ci` sale en rojo con un solo número por encima.
++  medidas de 1 a todas, en cada skill con juez, a la tasa derivada del `clases.yaml` vigente; el test de `make ci` sale
++  en rojo con un solo número por encima, o si estrechar el `umbral` de `clases.yaml` no estrecha el límite del job.
+ - **SC-011**: Como mucho 11 sesiones a la vez entre las tres skills, y 5, 4 y 2 por skill (FR-020); el test de la
+   definición del job en `make ci` sale en rojo si la definición admite más.
+ - **SC-012**: El informe de la suite completa es el de antes del hito más los campos de FR-022 (FR-026): el test de
+   `make ci` sale en rojo con cualquier otra diferencia.
+-- **SC-013**: El ADR de FR-024 está en `docs/ADR/` con su decisión sobre el umbral en tasa, la serie y la tasa de
+-  referencia de cada skill con juez, y el test de SC-010 usa esa tasa.
++- **SC-013**: El ADR de FR-024 está en `docs/ADR/` con su decisión sobre el umbral en tasa y la serie, y con la
++  derivación de la tasa de referencia desde el `umbral` de `clases.yaml` y las cifras que da hoy para cada skill con
++  juez; el test de SC-010 usa la tasa así derivada.
+ - **SC-014**: La medición de cierre del hito corre con el job nuevo: cada skill deja su trabajo `evals (<skill>)` con su
+   informe, que dice de cada eval si se midió o se reutilizó y por qué, y el cierre escribe la fila de la serie de cada skill
+   con juez; si la fila no casa con los umbrales de su informe, el cierre se detiene (comprobación de `cierre.sh`, que ya
+@@ -511,8 +534,8 @@
+   va en su propia propuesta de cambio.
+ - Reutilizar resultados de ejecuciones que no son medidas de `main` (FR-010): de la propia propuesta, de otra sin
+   fusionar o del despacho manual sobre `main`.
+-- Ampliar las rutas que las evals miden a `go.mod`, `go.sum`, `tools/` u otras que hoy no lanzan el job, salvo las
+-  grabaciones y los guiones del arnés que nombra el hito.
++- Ampliar las rutas que las evals miden a `tools/` (sus `go.mod` no entran en el binario) u otras que hoy no lanzan el
++  job, salvo las grabaciones, los guiones del arnés, `go.mod` y `go.sum` (FR-004).
+ - Que un cambio en la descripción de una herramienta MCP de un applet que no está en la tabla de comandos de las skills de
+   una eval elija esa eval: el hito asigna los paquetes de los applets de esa tabla.
+ - Cambiar las evals, los umbrales, las clases del juez, las repeticiones, la regla de 2 de 3, los modelos, las versiones
