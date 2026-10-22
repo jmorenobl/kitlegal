@@ -59,6 +59,12 @@ type EjecucionDelJob struct {
 	// ConcurrenciaDelJuez es cuántas respuestas se votan a la vez como mucho: la
 	// concurrencia de la skill.
 	ConcurrenciaDelJuez int
+
+	// decision es la del trabajo, la del fichero de -decision: qué evals del
+	// plan se miden y, de las que reutiliza, su resultado en la medida de main
+	// de la que viene (contracts/job-de-evals.md §3 de H30; FR-012, FR-014).
+	// nil las mide todas.
+	decision *origenDeLasEvals
 }
 
 // ejecutarElJob ejecuta el job de evals de una skill, de su plan a su informe
@@ -76,6 +82,11 @@ type EjecucionDelJob struct {
 //     votante. Ningún caso etiquetado se vota aquí: los dos umbrales de la
 //     medida llevan los recuentos de la versionada;
 //  3. con una skill sin juez no comprueba ninguna medida ni necesita votante.
+//
+// Desde H30, con la decisión del trabajo abre solo las sesiones de las evals
+// que mide (PlanDeEvals.deLasMedidas) y el informe compone con ellas las que
+// reutiliza (FR-012, FR-014 y FR-022 de H30); si las reutiliza todas, no abre
+// ninguna.
 //
 // El error es el de un plan sin sentido o unas evals que no se pueden leer,
 // antes de abrir ninguna sesión; el de quien abre las sesiones, sin escribir el
@@ -97,7 +108,7 @@ func ejecutarElJob(e EjecucionDelJob) (Informe, error) {
 		}
 	}
 
-	ejecucion, err := ejecutarPorTandas(e.Plan.Sesiones(), e.AbrirLaTanda)
+	ejecucion, err := ejecutarPorTandas(e.Plan.deLasMedidas(e.decision).Sesiones(), e.AbrirLaTanda)
 	if err != nil {
 		return Informe{}, err
 	}
@@ -130,6 +141,7 @@ func (e EjecucionDelJob) informe(ejecucion ejecucionPorTandas, sinMedir []string
 		VersionDelJuez:        e.VersionDelJuez,
 		ConcurrenciaDelJuez:   e.ConcurrenciaDelJuez,
 		InstrumentoSinMedir:   sinMedir,
+		decision:              e.decision,
 	}
 }
 

@@ -94,6 +94,23 @@ var (
 			"fichero en el que se escribe la medida")
 )
 
+// Banderas con las que el job invoca, tras -args, la elección de la apertura de
+// una propuesta y la decisión de cada trabajo de evals, además de -skill,
+// -commit, -modelo-que-decide, -modelo-del-juez, -version-del-juez y -salida; y
+// -decision, con la que scripts/evals.sh pasa a la ejecución del job el fichero
+// de esa decisión (contracts/job-de-evals.md §2 a §4 de H30). -propuesta y
+// -base van vacías sin propuesta, en el despacho manual, que mide la suite
+// completa.
+var (
+	banderaModo                = flag.String("modo", "", "modo de la ejecución del job: completa o reutilizacion")
+	banderaPropuesta           = flag.String("propuesta", "", "número de la propuesta de cambio; vacío sin propuesta")
+	banderaBase                = flag.String("base", "", "commit base de la propuesta de cambio; vacío sin propuesta")
+	banderaVersionDeClaudeCode = flag.String("version-de-claude-code", "",
+		"versión de Claude Code de las sesiones, la fijada en la definición del job")
+	banderaDecision = flag.String("decision", "",
+		"fichero de la decisión del trabajo: qué evals mide y cuáles reutiliza; vacío, las mide todas")
+)
+
 // Banderas con las que el quickstart invoca, tras -args, la comprobación de la
 // consulta repetida (contracts/comprobacion-del-quickstart.md §1).
 var (
@@ -147,6 +164,13 @@ var (
 //     de sus respuestas, votadas como mucho -concurrencia a la vez, sin votar
 //     ningún caso etiquetado (FR-044 de H24).
 //
+// Desde H30, con -decision lee el fichero de la decisión de su trabajo, el que
+// escribe TestDecisionDelTrabajo, y abre solo las sesiones de las evals que la
+// decisión mide; el informe lleva las que reutiliza en su origen, en sus
+// umbrales :reutilizadas y en su veredicto (contracts/job-de-evals.md §3 y §4 de
+// H30; FR-012, FR-014). Sin -decision las mide todas, como antes: la exige
+// scripts/evals.sh.
+//
 // Falla con un error o con el veredicto fallo, nombrando sus motivos: así el job
 // sale en rojo por una serie que no pasa en un modo, por un umbral que decide y
 // no se cumple en un modo, por la duración de una tanda, por sesiones sin medir
@@ -188,6 +212,12 @@ func TestEjecucionDelJob(t *testing.T) {
 		votar = votanteDelJuez(senales, t, conjunto.Juez)
 	}
 
+	var decision *origenDeLasEvals
+	if *banderaDecision != "" {
+		decision, err = leerElFicheroDeLaDecision(*banderaDecision)
+		require.NoError(t, err)
+	}
+
 	informe, err := ejecutarElJob(EjecucionDelJob{
 		Skill: *banderaSkill,
 		Evals: evals,
@@ -224,9 +254,109 @@ func TestEjecucionDelJob(t *testing.T) {
 		ModeloDelJuez:       *banderaModeloDelJuez,
 		VersionDelJuez:      *banderaVersionDelJuez,
 		ConcurrenciaDelJuez: concurrencia,
+		decision:            decision,
 	})
 	require.NoError(t, err)
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
+}
+
+// TestEleccionDeLaPropuesta es la elección de la apertura de una propuesta, el
+// paso del trabajo cambios (contracts/job-de-evals.md §2 y §4 de H30; FR-016):
+// calcula sobre el checkout el conjunto de cada eval, lo común, el árbol de la
+// cabeza y el de la base de fusión de -base, lee con gh los ficheros de la
+// propuesta de -propuesta y elige (eleccionConLaPlataforma). Registra una línea
+// por eval elegida, con su motivo y sus rutas, y, si gh no da los ficheros, la
+// orden y su salida de error delante (contracts/eleccion-y-huella.md §3 de H30);
+// y añade a -salida elige=si si elige alguna —también todas, con un conjunto
+// incalculable o sin los ficheros— y elige=no si no elige ninguna. Falla solo
+// con un error del checkout o de -salida: el de gh no lo hace fallar, que elige
+// todas. Solo lo ejecuta el trabajo cambios, porque consulta la API de GitHub; lo
+// que decide lo fija TestDecisionDelJob.
+func TestEleccionDeLaPropuesta(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "propuesta", "base", "salida")
+
+	propuesta := numeroDeLaPropuesta(t)
+
+	calculo, err := leerElCalculoDeLaEleccion(t.Context(), raizDelRepositorio, *banderaBase)
+	require.NoError(t, err)
+
+	eleccion, _ := eleccionConLaPlataforma(t.Context(), ghDeLaPlataforma{entorno: os.Environ()}, propuesta, calculo)
+
+	for _, linea := range eleccion.lineas() {
+		t.Log(linea)
+	}
+
+	require.NoError(t, escribirLaApertura(*banderaSalida, eleccion.eligeAlguna()))
+}
+
+// TestDecisionDelTrabajo es la decisión de un trabajo de evals, el paso
+// «Decidir qué mide y qué reutiliza» (contracts/job-de-evals.md §2 y §4 de H30;
+// research D17 de H30; FR-012 a FR-014, FR-018): calcula sobre el checkout el
+// conjunto y la huella de cada eval, con los fijados de -modelo-que-decide,
+// -version-de-claude-code, -modelo-del-juez y -version-del-juez, y decide qué
+// evals de -skill mide y cuáles reutiliza en el modo de -modo
+// (decidirElTrabajo): con reutilizacion, lee con gh los ficheros de la propuesta
+// de -propuesta, elige sobre la base de fusión de -base y busca lo demás en las
+// medidas de main, con un plazo de 10 minutos para todo lo que lee de la
+// plataforma; con completa, las mide todas sin leer nada de ella, y -propuesta y
+// -base pueden ir vacías. Registra el error de la plataforma, si lo hubo, y una
+// línea por eval, medida con su motivo o reutilizada con su procedencia, y
+// escribe en -salida el fichero de la decisión, el bloque origen sin
+// sesiones_abiertas. -commit es el commit evaluado, el del checkout. Falla solo
+// con un error de sus banderas, del checkout o de -salida: un error de la
+// plataforma, o el plazo agotado, no lo hace fallar, y lo que no se pudo
+// reutilizar se mide. Solo lo ejecuta el job, porque consulta la API de GitHub;
+// lo que decide lo fija TestDecisionDelJob.
+func TestDecisionDelTrabajo(t *testing.T) {
+	t.Parallel()
+
+	instante := time.Now()
+
+	exigirBanderas(t, "skill", "modo", "commit", "modelo-que-decide", "version-de-claude-code", "modelo-del-juez",
+		"version-del-juez", "salida")
+
+	modo, err := modoDeLaDecision(*banderaModo)
+	require.NoError(t, err)
+
+	trabajo := trabajoADecidir{
+		skill: *banderaSkill, modo: modo, plataforma: ghDeLaPlataforma{entorno: os.Environ()}, instante: instante,
+	}
+
+	base := ""
+	if modo == origenConReutilizacion {
+		exigirBanderas(t, "propuesta", "base")
+
+		trabajo.propuesta = numeroDeLaPropuesta(t)
+		base = *banderaBase
+	}
+
+	trabajo.calculo, err = leerElCalculoDeLaDecision(t.Context(), raizDelRepositorio, base, fijadosDeLaHuella{
+		modeloQueDecide:   *banderaQueDecide,
+		claudeCode:        *banderaVersionDeClaudeCode,
+		modeloDelJuez:     *banderaModeloDelJuez,
+		claudeCodeDelJuez: *banderaVersionDelJuez,
+	})
+	require.NoError(t, err)
+
+	origen := decidirElTrabajo(t.Context(), trabajo)
+
+	for _, linea := range lineasDeLaDecision(origen) {
+		t.Log(linea)
+	}
+
+	require.NoError(t, escribirElFicheroDeLaDecision(*banderaSalida, origen))
+}
+
+// numeroDeLaPropuesta es el número de la propuesta de -propuesta.
+func numeroDeLaPropuesta(t *testing.T) int {
+	t.Helper()
+
+	propuesta, err := strconv.Atoi(*banderaPropuesta)
+	require.NoErrorf(t, err, "la bandera -propuesta es el número de una propuesta de cambio")
+
+	return propuesta
 }
 
 // votanteDelJuez da el votante del juez de la skill en el job y en la ejecución

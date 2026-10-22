@@ -146,6 +146,17 @@ func (p PlanDeEvals) Comprobar() error {
 	return nil
 }
 
+// deLasMedidas es el plan con solo las evals que la decisión del trabajo mide,
+// en su orden: las que reutiliza no abren ninguna sesión (FR-012 y FR-014 de
+// H30; contracts/job-de-evals.md §3 de H30). Sin decisión es el plan entero, el
+// de la suite completa, y una decisión que lo reutiliza todo deja un plan sin
+// sesiones.
+func (p PlanDeEvals) deLasMedidas(decision *origenDeLasEvals) PlanDeEvals {
+	p.Evals = decision.medidas(p.Evals)
+
+	return p
+}
+
 // modos son los modos en los que el plan abre cada eval de modo, en el orden en
 // que se abren: el modo orden y el modo herramienta, los que estén en Modos; sin
 // ninguno en Modos, solo el modo orden.

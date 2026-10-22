@@ -415,6 +415,70 @@ func TestEjecutarElJob(t *testing.T) {
 	}
 }
 
+// TestEjecutarElJobConLaDecision fija que la ejecución del job con la decisión
+// de su trabajo abre solo las sesiones de las evals que la decisión mide y
+// compone el informe con las que reutiliza (FR-012, FR-014 y FR-022 de H30;
+// contracts/job-de-evals.md §3 de H30): con la skill sintética del caso
+// aprobado, cuya segunda eval la decisión reutiliza, quien abre las sesiones
+// recibe una sola tanda, con las sesiones del plan de la primera, y deja solo
+// la suya; el informe la cuenta medida, con una sesión abierta, y la otra
+// reutilizada con su procedencia, y aprueba. Una sola sesión más en la tanda
+// la deja en rojo.
+func TestEjecutarElJobConLaDecision(t *testing.T) {
+	t.Parallel()
+
+	job := nuevoJobDePrueba(t, t.TempDir(), "", "")
+	job.ejecucion.Votar = nil
+	job.ejecucion.ConcurrenciaDelJuez = 0
+
+	require.Len(t, job.ejecucion.Plan.Evals, 2, "la skill del caso aprobado tiene dos evals")
+
+	medida, reutilizada := job.ejecucion.Plan.Evals[0], job.ejecucion.Plan.Evals[1]
+	sesion := strings.TrimSuffix(medida.Fichero, ".yaml")
+
+	job.ejecucion.decision = &origenDeLasEvals{Modo: origenConReutilizacion, Evals: []origenDeEval{
+		{
+			Eval: medida.Fichero, Huella: huellaSintetica(medida.Fichero), Medida: true, Motivo: motivoConjunto,
+			Rutas: []string{"evals/" + skillDeLasSesiones + "/" + medida.Fichero},
+		},
+		{
+			Eval: reutilizada.Fichero, Huella: huellaSintetica(reutilizada.Fichero), Procedencia: procedenciaDeMainDelJob(),
+			Tasas: []TasaDelInforme{{
+				Eval: reutilizada.Fichero, Modelo: modeloQueDecide, Modo: ModoOrden, Planificada: true, Decide: true,
+				Formas: []string{}, Sesiones: 1, Pasan: 1, Pasa: true,
+			}},
+		},
+	}}
+	job.ejecucion.AbrirLaTanda = func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+		job.tandas = append(job.tandas, tanda)
+
+		return EjecucionDeSesiones{}, os.CopyFS(filepath.Join(job.ejecucion.Sesiones, sesion),
+			os.DirFS(filepath.Join(casosDeInforme, casoAprobado, "sesiones", sesion)))
+	}
+
+	informe, err := ejecutarElJob(job.ejecucion)
+	require.NoError(t, err)
+
+	soloLaMedida := job.ejecucion.Plan
+	soloLaMedida.Evals = []Eval{medida}
+
+	require.Len(t, job.tandas, 1, "una sola tanda, la del modo orden")
+	assert.Equal(t, soloLaMedida.Sesiones(), job.tandas[0], "solo las sesiones de la eval medida")
+
+	leido := leerInformeEscrito(t, job.ejecucion.Destino, informe)
+
+	assert.Equalf(t, VeredictoAprobado, leido.informe.Veredicto, "motivos: %v", leido.informe.Motivos)
+	require.NotNil(t, leido.informe.Origen)
+	assert.Equal(t, 1, leido.informe.Origen.EvalsMedidas)
+	assert.Equal(t, 1, leido.informe.Origen.EvalsReutilizadas)
+	require.NotNil(t, leido.informe.Origen.SesionesAbiertas)
+	assert.Equal(t, 1, *leido.informe.Origen.SesionesAbiertas)
+	require.Len(t, leido.informe.Origen.Evals, 2)
+	assert.Equal(t, procedenciaDeMainDelJob(), leido.informe.Origen.Evals[1].Procedencia,
+		"la reutilizada lleva la procedencia de la decisión")
+	assert.Len(t, leido.informe.Evals, 1, "el informe juzga solo la sesión medida")
+}
+
 // TestPathDelJuez fija el PATH de los votos del juez en el job
 // (contracts/job-de-evals.md §2 de H24): el del job con el directorio del
 // Claude Code del juez delante, de modo que el claude que encuentra el guion del
