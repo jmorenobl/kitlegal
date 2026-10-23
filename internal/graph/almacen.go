@@ -15,7 +15,8 @@ import (
 //
 // Su valor cero, y un *Almacen nulo, son el almacén sin opciones, como Nuevo().
 // Varias entregas, de este proceso o de otros, pueden ir a la vez contra el
-// mismo world.db: cada una espera su turno por tramos que miran el contexto
+// mismo world.db: las de este proceso esperan en orden su turno de escritura
+// (turno.go), y las de otros, por tramos; las dos esperas miran el contexto
 // (FR-014).
 type Almacen struct {
 	// opciones son las de Nuevo, que se resuelven en cada entrega.
@@ -38,7 +39,8 @@ func Nuevo(opciones ...Opcion) *Almacen {
 //  1. valida y consolida el lote sin tocar el disco (FR-024, FR-025) y mira el
 //     contexto: con el plazo agotado no toca nada;
 //  2. resuelve la ruta de world.db en este instante (FR-001, FR-011);
-//  3. crea en su sitio lo que falte y aplica el lote en world.db (aplicar.go).
+//  3. espera el turno de escritura de esa ruta en este proceso (tomarTurno);
+//  4. crea en su sitio lo que falte y aplica el lote en world.db (aplicar.go).
 //
 // Un fallo es un *Error con su clase, y lo que deja en el disco es lo que
 // declara contracts/almacen-world-db.md §4 (FR-033; H7.1 FR-071).
@@ -56,6 +58,12 @@ func (a *Almacen) Apply(ctx context.Context, lote core.Lote) error {
 	if err != nil {
 		return err
 	}
+
+	soltar, err := tomarTurno(ctx, ruta)
+	if err != nil {
+		return err
+	}
+	defer soltar()
 
 	return aplicarEnSuSitio(ctx, ruta, consolidado)
 }

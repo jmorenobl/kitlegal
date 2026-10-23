@@ -1,6 +1,8 @@
 package httpx
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"sync"
 	"time"
@@ -121,7 +123,11 @@ func (r *decoradorDeRitmo) RoundTrip(peticion *http.Request) (*http.Response, er
 // se cancela mientras se espera, y el turno que ni siquiera cabe en el plazo que
 // quedaba, que Wait resuelve sin llegar a esperar —«it returns an error if …
 // the expected wait time exceeds the Context's Deadline» (go doc
-// golang.org/x/time/rate Limiter.WaitN)—.
+// golang.org/x/time/rate Limiter.WaitN)—. En la segunda el contexto sigue vivo,
+// pero lo que deja la operación sin turno es su plazo: la causa lleva
+// context.DeadlineExceeded, como si hubiera vencido esperando, para que quien
+// llama lo reconozca igual con errors.Is (FR-005), sin depender de lo que quedaba
+// del plazo al llegar aquí.
 func sinTurno(peticion *http.Request, causa error) *Error {
 	implicada := Peticion{Metodo: peticion.Method, URL: peticion.URL.String()}
 
@@ -130,6 +136,6 @@ func sinTurno(peticion *http.Request, causa error) *Error {
 			"la operación ha terminado esperando turno en el sitio")
 	}
 
-	return errorDeFuenteNoDisponible(implicada, 0, causa,
+	return errorDeFuenteNoDisponible(implicada, 0, errors.Join(context.DeadlineExceeded, causa),
 		"el turno en el sitio no llega dentro del plazo de la operación")
 }

@@ -171,6 +171,9 @@ func TestRitmoRespetaElContexto(t *testing.T) {
 				return context.WithTimeout(padre, time.Second)
 			},
 			mencion: "no llega dentro del plazo",
+			// El plazo es lo que deja la operación sin turno, aunque Wait lo
+			// diga antes de que venza.
+			causa: context.DeadlineExceeded,
 		},
 	}
 
