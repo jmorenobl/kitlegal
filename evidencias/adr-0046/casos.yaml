@@ -1,0 +1,1384 @@
+# Casos etiquetados del juez de las descripciones (ADR 0046): los construye guiones/casos.py desde
+# historicas.json, sin modelo, y la etiqueta la pone la construcción, antes del primer voto.
+casos:
+- id: '001'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando creas conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Actívala antes de
+    llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por
+    su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP)
+    o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '002'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: imperativo de tú
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '003'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Úsela siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '004'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: 'imperativo de tú: activar'
+  etiqueta: defecto
+  forma: Actívala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Actívala
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '005'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: subjuntivo de tú
+  etiqueta: defecto
+  forma: creas
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando creas conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa antes de
+    llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por
+    su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP)
+    o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '006'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque. Si te preguntan por una norma, puedes leerla
+    con ella.'
+- id: '007'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque. Te ayudo a encontrar el precepto y a citarlo.'
+- id: 008
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque. Con nuestras herramientas, la cita sale
+    del texto oficial.'
+- id: 009
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: posesivo de tú
+  etiqueta: defecto
+  forma: tu respuesta
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que tu respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '010'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque. Si os piden un plazo, se calcula con kitlegal.'
+- id: '011'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '012'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada
+    en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque. Por ejemplo: «¿hasta cuándo puedo recurrir?»
+    o «¿puedes decirme qué dice el artículo 21?».'
+- id: '013'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Conviene activarla siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real
+    decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del
+    acto, la de los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita.
+    Se activa antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede
+    nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT,
+    TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica
+    consolidada en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '014'
+  skill: boe-legislacion
+  origen: boe-legislacion@e1bfb77
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales…
+    Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué
+    plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de
+    los hechos—, también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, no hay cita. El agente
+    la activa antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede
+    nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT,
+    TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica
+    consolidada en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque.'
+- id: '015'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando creas
+    conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Actívala antes de llamar a boe_articulo
+    u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número y año (Ley 39/2015,
+    Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…,
+    o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con
+    kitlegal y responde citando identificador y bloque.'
+- id: '016'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: imperativo de tú
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: '017'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsela siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: 018
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: 'imperativo de tú: activar'
+  etiqueta: defecto
+  forma: Actívala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Actívala antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: 019
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: subjuntivo de tú
+  etiqueta: defecto
+  forma: creas
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando creas
+    conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar a boe_articulo
+    u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número y año (Ley 39/2015,
+    Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…,
+    o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con
+    kitlegal y responde citando identificador y bloque.'
+- id: '020'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque. Si te preguntan por una norma, puedes leerla con
+    ella.'
+- id: '021'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque. Te ayudo a encontrar el precepto y a citarlo.'
+- id: '022'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque. Con nuestras herramientas, la cita sale del texto
+    oficial.'
+- id: '023'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: posesivo de tú
+  etiqueta: defecto
+  forma: tu respuesta
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que tu respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: '024'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque. Si os piden un plazo, se calcula con kitlegal.'
+- id: '025'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: '026'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa antes de llamar
+    a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con kitlegal y responde citando identificador y bloque. Por ejemplo: «¿hasta cuándo puedo recurrir?» o
+    «¿puedes decirme qué dice el artículo 21?».'
+- id: '027'
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Conviene activarla siempre que la respuesta dependa de lo que dice una norma —qué
+    dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—,
+    también cuando el agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Se activa
+    antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: 028
+  skill: boe-legislacion
+  origen: boe-legislacion@93a7cca
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. El agente la activa antes
+    de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por
+    su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP)
+    o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee
+    el índice y los artículos con kitlegal y responde citando identificador y bloque.'
+- id: 029
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando creas
+    conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '030'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: imperativo de tú
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '031'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsela siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '032'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: subjuntivo de tú
+  etiqueta: defecto
+  forma: creas
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando creas
+    conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse por su número
+    y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por
+    su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice
+    y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '033'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque. Si te preguntan
+    por una norma, puedes leerla con ella.'
+- id: '034'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque. Te ayudo a encontrar
+    el precepto y a citarlo.'
+- id: '035'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque. Con nuestras herramientas,
+    la cita sale del texto oficial.'
+- id: '036'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: posesivo de tú
+  etiqueta: defecto
+  forma: tu respuesta
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que tu respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '037'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque. Si os piden un plazo,
+    se calcula con kitlegal.'
+- id: 038
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: 039
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo,
+    una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando el
+    agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse
+    por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL,
+    LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el
+    BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque. Por ejemplo: «¿hasta
+    cuándo puedo recurrir?» o «¿puedes decirme qué dice el artículo 21?».'
+- id: '040'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Conviene activarla siempre que la respuesta dependa de lo que dice una norma —qué
+    dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—,
+    también cuando el agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma
+    puede nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL,
+    LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada
+    en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '041'
+  skill: boe-legislacion
+  origen: boe-legislacion@ae80fb7
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… El agente la usa siempre que la respuesta dependa de lo que dice una norma —qué dice
+    un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también
+    cuando el agente crea conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede
+    nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT,
+    TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada
+    en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque.'
+- id: '042'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsala cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque.'
+- id: '043'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Úsela cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque.'
+- id: '044'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque. Si te preguntan por una norma, puedes leerla con ella.'
+- id: '045'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque. Te ayudo a encontrar el precepto y a citarlo.'
+- id: '046'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque. Con nuestras herramientas, la cita sale del texto oficial.'
+- id: '047'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque. Si os piden un plazo, se calcula con kitlegal.'
+- id: 048
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque.'
+- id: 049
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Se usa cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando
+    se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP,
+    LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal
+    o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque. Por ejemplo: «¿hasta cuándo puedo recurrir?» o «¿puedes decirme qué dice el artículo 21?».'
+- id: '050'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… Conviene activarla cuando se pregunte qué dice un artículo, una ley o un real decreto;
+    cuando se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC,
+    LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma
+    estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque.'
+- id: '051'
+  skill: boe-legislacion
+  origen: boe-legislacion@eafa386
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento
+    administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público,
+    transparencia, relaciones laborales… El agente la usa cuando se pregunte qué dice un artículo, una ley o un real decreto;
+    cuando se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC,
+    LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma
+    estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador
+    y bloque.'
+- id: '052'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Úsala cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion.'
+- id: '053'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Úsela cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion.'
+- id: '054'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion. Si te preguntan por una norma, puedes leerla con ella.'
+- id: '055'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion. Te ayudo a encontrar el precepto y a citarlo.'
+- id: '056'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion. Con nuestras herramientas, la cita sale del texto oficial.'
+- id: '057'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion. Si os piden un plazo, se calcula con kitlegal.'
+- id: 058
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion.'
+- id: 059
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion. Por ejemplo: «¿hasta cuándo puedo recurrir?» o «¿puedes decirme qué dice el artículo 21?».'
+- id: '060'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Conviene activarla cuando se pregunte hasta cuándo
+    se puede recurrir o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia
+    o boletines corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo
+    se apoya en boe-legislacion.'
+- id: '061'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). El agente la usa cuando se pregunte hasta cuándo se
+    puede recurrir o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia
+    o boletines corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo
+    se apoya en boe-legislacion.'
+- id: '062'
+  skill: legal-core
+  origen: legal-core@80a3422
+  clase: verbo que se escribe como un imperativo, con la skill de sujeto
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
+    el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+    con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo
+    y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la
+    ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes
+    vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte hasta cuándo se puede recurrir
+    o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya
+    en boe-legislacion. Lee la norma con kitlegal y responde citando identificador y bloque.'
+- id: '063'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Úsala cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.'
+- id: '064'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Úsela cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.'
+- id: '065'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.
+    Si te preguntan por una norma, puedes leerla con ella.'
+- id: '066'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.
+    Te ayudo a encontrar el precepto y a citarlo.'
+- id: '067'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.
+    Con nuestras herramientas, la cita sale del texto oficial.'
+- id: 068
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.
+    Si os piden un plazo, se calcula con kitlegal.'
+- id: 069
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.'
+- id: '070'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.
+    Por ejemplo: «¿hasta cuándo puedo recurrir?» o «¿puedes decirme qué dice el artículo 21?».'
+- id: '071'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Conviene activarla cuando se pregunte qué comunidad, provincia
+    o boletines corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen
+    foral, qué tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya
+    en boe-legislacion.'
+- id: '072'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). El agente la usa cuando se pregunte qué comunidad, provincia o
+    boletines corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen
+    foral, qué tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya
+    en boe-legislacion.'
+- id: '073'
+  skill: legal-core
+  origen: legal-core@ae80fb7
+  clase: verbo que se escribe como un imperativo, con la skill de sujeto
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento:
+    identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento
+    y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula
+    qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales
+    (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Se usa cuando se pregunte qué comunidad, provincia o boletines
+    corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué
+    tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion.
+    Lee la norma con kitlegal y responde citando identificador y bloque.'
+- id: '074'
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Úsala siempre que la
+    pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la sentencia
+    del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué dice la
+    jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando creas conocerla:
+    una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara la consulta
+    exacta para que la persona la busque con su navegador y coteja el documento que trae. Actívala antes de llamar a cita_preparar
+    o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice la skill.'
+- id: '075'
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: imperativo de tú
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Úsala siempre que la
+    pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la sentencia
+    del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué dice la
+    jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente crea conocerla:
+    una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara la consulta
+    exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar a cita_preparar
+    o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice la skill.'
+- id: '076'
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Úsela siempre que la
+    pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la sentencia
+    del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué dice la
+    jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente crea conocerla:
+    una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara la consulta
+    exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar a cita_preparar
+    o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice la skill.'
+- id: '077'
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: 'imperativo de tú: activar'
+  etiqueta: defecto
+  forma: Actívala
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Actívala antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill.'
+- id: 078
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: subjuntivo de tú
+  etiqueta: defecto
+  forma: creas
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando creas conocerla:
+    una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara la consulta
+    exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar a cita_preparar
+    o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice la skill.'
+- id: 079
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill. Si te preguntan por una norma, puedes leerla con ella.'
+- id: 080
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill. Te ayudo a encontrar el precepto y a citarlo.'
+- id: 081
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill. Con nuestras herramientas, la cita sale del texto oficial.'
+- id: 082
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: posesivo de tú
+  etiqueta: defecto
+  forma: tu pregunta
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    tu pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill.'
+- id: 083
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill. Si os piden un plazo, se calcula con kitlegal.'
+- id: 084
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill.'
+- id: 085
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill. Por ejemplo: «¿hasta cuándo puedo recurrir?» o «¿puedes decirme qué dice el artículo 21?».'
+- id: 086
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Conviene activarla
+    siempre que la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI,
+    un ROJ, «la sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una
+    materia («qué dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando
+    el agente crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ:
+    prepara la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes
+    de llamar a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que
+    sí lo dice la skill.'
+- id: 087
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. El agente la activa
+    antes de llamar a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar
+    la que sí lo dice la skill.'
+- id: 088
+  skill: jurisprudencia
+  origen: jurisprudencia@e1bfb77
+  clase: verbo que se escribe como un imperativo, con la skill de sujeto
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que
+    la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+    sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué
+    dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando el agente
+    crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
+    la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Se activa antes de llamar
+    a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice
+    la skill. Lee la norma con kitlegal y responde citando identificador y bloque.'
+- id: 089
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: leída
+  etiqueta: defecto
+  forma: Úsala
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Úsala cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md).'
+- id: 090
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: imperativo de usted
+  etiqueta: defecto
+  forma: Úsela
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Úsela cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md).'
+- id: 091
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: pronombre de tú
+  etiqueta: defecto
+  forma: te preguntan
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md). Si te preguntan por
+    una norma, puedes leerla con ella.'
+- id: 092
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: primera del singular
+  etiqueta: defecto
+  forma: Te ayudo
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md). Te ayudo a encontrar
+    el precepto y a citarlo.'
+- id: 093
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: primera del plural
+  etiqueta: defecto
+  forma: nuestras
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md). Con nuestras herramientas,
+    la cita sale del texto oficial.'
+- id: 094
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: pronombre de vosotros
+  etiqueta: defecto
+  forma: os piden
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md). Si os piden un plazo,
+    se calcula con kitlegal.'
+- id: 095
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: base en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md).'
+- id: 096
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: primera y segunda dentro de una cita
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md). Por ejemplo: «¿hasta
+    cuándo puedo recurrir?» o «¿puedes decirme qué dice el artículo 21?».'
+- id: 097
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: impersonal
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Conviene activarla cuando se pida el informe SEO,
+    el resumen semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics
+    o qué URL no está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md).'
+- id: 098
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: el agente en tercera persona
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). El agente la usa cuando se pida el informe SEO,
+    el resumen semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics
+    o qué URL no está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md).'
+- id: 099
+  skill: seo-semanal
+  origen: seo-semanal@f6e85c5
+  clase: verbo que se escribe como un imperativo, con la skill de sujeto
+  etiqueta: correcto
+  forma: ''
+  descripcion: 'Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir
+    de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Se usa cuando se pida el informe SEO, el resumen
+    semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no
+    está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md). Lee la norma con kitlegal
+    y responde citando identificador y bloque.'

@@ -1,0 +1,1 @@
+{"type":"object","additionalProperties":false,"required":["habla_en_primera_o_segunda_persona"],"properties":{"habla_en_primera_o_segunda_persona":{"type":"object","additionalProperties":false,"required":["motivo","respuesta","frase"],"properties":{"motivo":{"type":"string"},"respuesta":{"type":"string","enum":["si","no"]},"frase":{"type":"string"}}}}}
