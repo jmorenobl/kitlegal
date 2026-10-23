@@ -1,7 +1,6 @@
 package evals
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,13 +16,16 @@ import (
 
 // Lo que el trabajo tanda de la definición del job deja a las ejecuciones
 // posteriores del flujo sobre el mismo commit (contracts/tanda-del-job.md §1 y
-// §2 de H7.4; research.md D15 de H7.4): gh run view da el trabajo con su id,
-// porque no lleva name, y la marca es su último paso, que solo corre en la
-// ejecución que mide el commit. TestDefinicionDelJob exige los dos en la
-// definición.
+// §2 de H7.4; research.md D15 de H7.4; contracts/job-de-evals.md §2 de H30;
+// research D13 de H30): gh run view da el trabajo con su id, porque no lleva
+// name, y sus dos marcas son pasos de nombre fijo: la de la tanda, que solo
+// corre en la ejecución que mide el commit, y la de la suite completa, que solo
+// corre en la que lo mide en modo completa. TestDefinicionDelJob exige el
+// trabajo y la marca de la tanda en la definición.
 const (
-	trabajoDeLaTanda = "tanda"
-	marcaDeLaTanda   = "Esta ejecución mide el commit"
+	trabajoDeLaTanda       = "tanda"
+	marcaDeLaTanda         = "Esta ejecución mide el commit"
+	marcaDeLaSuiteCompleta = "Esta ejecución mide la suite completa"
 )
 
 // Los valores de gh con los que se decide la tanda: el status de una ejecución
@@ -78,26 +80,51 @@ type ejecucionDelCommit struct {
 	tanda estadoDeLaTanda
 }
 
-// estadoDeLaTanda es lo que decidió el trabajo tanda de una ejecución.
+// estadoDeLaTanda es lo que decidió el trabajo tanda de una ejecución, con el
+// modo con que mide (data-model §10 de H30).
 type estadoDeLaTanda int
 
 const (
 	// tandaSinDecidir: su trabajo tanda no está o no ha terminado.
 	tandaSinDecidir estadoDeLaTanda = iota
 
-	// tandaQueMide: su trabajo tanda terminó con la marca en success.
-	tandaQueMide
-
-	// tandaQueNoMide: su trabajo tanda terminó sin la marca en success:
-	// saltado, fallido, cancelado o con la marca saltada.
+	// tandaQueNoMide: su trabajo tanda terminó sin la marca de la tanda en
+	// success: saltado, fallido, cancelado o con la marca saltada.
 	tandaQueNoMide
+
+	// tandaQueMideConReutilizacion: su trabajo tanda terminó con la marca de la
+	// tanda en success y sin la de la suite completa en success.
+	tandaQueMideConReutilizacion
+
+	// tandaQueMideLaSuiteCompleta: su trabajo tanda terminó con las dos marcas
+	// en success.
+	tandaQueMideLaSuiteCompleta
 )
 
+// mideConUnModoAlMenos dice si la tanda mide el commit con un modo igual o
+// mayor que el dado, con completa mayor que reutilizacion (FR-021 de H30): la
+// que mide la suite completa, con cualquiera de los dos; la que mide con
+// reutilización, solo con reutilizacion; y la que no mide o no ha decidido,
+// con ninguno.
+func (e estadoDeLaTanda) mideConUnModoAlMenos(modo modoDelOrigen) bool {
+	switch e {
+	case tandaQueMideLaSuiteCompleta:
+		return true
+	case tandaQueMideConReutilizacion:
+		return modo == origenConReutilizacion
+	case tandaSinDecidir, tandaQueNoMide:
+	}
+
+	return false
+}
+
 // decisionDeLaTanda es lo que decide una ejecución con una consulta: si mide el
-// commit y, si mide, las ejecuciones anteriores sin terminar que aún no han
-// decidido, por las que vuelve a consultar.
+// commit, su modo, que es con el que lo mide, y, si mide, las ejecuciones
+// anteriores sin terminar que aún no han decidido, por las que vuelve a
+// consultar.
 type decisionDeLaTanda struct {
 	mide       bool
+	modo       modoDelOrigen
 	pendientes []int64
 }
 
@@ -118,11 +145,12 @@ func (e ejecucionDelCommit) cuentaPara(propia int64) bool {
 	return e.id < propia && !e.terminada
 }
 
-// decidirLaTanda decide si la ejecución propia mide el commit
-// (contracts/tanda-del-job.md §2 de H7.4; FR-070 de H7.4): entre las
-// ejecuciones que cuentan, con alguna que mide, no mide; si no, con alguna sin
-// decidir, mide con ellas como pendientes; y si no, mide.
-func decidirLaTanda(propia int64, ejecuciones []ejecucionDelCommit) decisionDeLaTanda {
+// decidirLaTanda decide si la ejecución propia, con su modo, mide el commit
+// (contracts/tanda-del-job.md §2 de H7.4; FR-070 de H7.4; FR-021 y data-model
+// §10 de H30): entre las ejecuciones que cuentan, con alguna que mide con un
+// modo igual o mayor, no mide; si no, con alguna sin decidir, mide con ellas
+// como pendientes; y si no, mide. La que mide con un modo menor no cuenta.
+func decidirLaTanda(propia int64, modo modoDelOrigen, ejecuciones []ejecucionDelCommit) decisionDeLaTanda {
 	var pendientes []int64
 
 	for _, ejecucion := range ejecuciones {
@@ -130,27 +158,28 @@ func decidirLaTanda(propia int64, ejecuciones []ejecucionDelCommit) decisionDeLa
 			continue
 		}
 
-		switch ejecucion.tanda {
-		case tandaQueMide:
-			return decisionDeLaTanda{mide: false}
-		case tandaSinDecidir:
+		if ejecucion.tanda.mideConUnModoAlMenos(modo) {
+			return decisionDeLaTanda{mide: false, modo: modo}
+		}
+
+		if ejecucion.tanda == tandaSinDecidir {
 			pendientes = append(pendientes, ejecucion.id)
-		case tandaQueNoMide:
 		}
 	}
 
-	return decisionDeLaTanda{mide: true, pendientes: pendientes}
+	return decisionDeLaTanda{mide: true, modo: modo, pendientes: pendientes}
 }
 
-// esperarLaDecision decide si la ejecución propia mide el commit
-// (contracts/tanda-del-job.md §2 de H7.4): consulta las ejecuciones con
-// consultar y decide con decidirLaTanda; mientras alguna anterior sin terminar
-// no ha decidido, espera esperaEntreConsultas con esperar y vuelve a consultar.
-// Pasada esperaMaximaDeLaDecision desde la primera consulta, según ahora, con
-// alguna aún sin decidir, mide y lo dice en agotada: la concurrency del trabajo
-// evals la pondría detrás de la otra. Un error de una consulta es un error que
-// la nombra, como el de una espera.
-func esperarLaDecision(ctx context.Context, propia int64,
+// esperarLaDecision decide si la ejecución propia, con el modo dado, mide el
+// commit (contracts/tanda-del-job.md §2 de H7.4; contracts/job-de-evals.md §2
+// de H30): consulta las ejecuciones con consultar y decide con decidirLaTanda;
+// mientras alguna anterior sin terminar no ha decidido, espera
+// esperaEntreConsultas con esperar y vuelve a consultar. Pasada
+// esperaMaximaDeLaDecision desde la primera consulta, según ahora, con alguna
+// aún sin decidir, mide y lo dice en agotada: la concurrency del trabajo evals
+// la pondría detrás de la otra. Un error de una consulta es un error que la
+// nombra, como el de una espera.
+func esperarLaDecision(ctx context.Context, propia int64, modo modoDelOrigen,
 	consultar func(context.Context) ([]ejecucionDelCommit, error), ahora func() time.Time,
 	esperar func(context.Context, time.Duration) error,
 ) (decisionTrasLaEspera, error) {
@@ -162,7 +191,7 @@ func esperarLaDecision(ctx context.Context, propia int64,
 			return decisionTrasLaEspera{}, fmt.Errorf("la consulta %d de las ejecuciones del commit: %w", consulta, err)
 		}
 
-		decision := decidirLaTanda(propia, ejecuciones)
+		decision := decidirLaTanda(propia, modo, ejecuciones)
 		if len(decision.pendientes) == 0 {
 			return decisionTrasLaEspera{decisionDeLaTanda: decision}, nil
 		}
@@ -241,8 +270,9 @@ func leerLasEjecucionesDelCommit(lista []byte) ([]ejecucionDelCommit, error) {
 }
 
 // trabajosDeLaEjecucion es el JSON de gh run view --json jobs, con lo que lee
-// leerLaTandaDeLaEjecucion de cada trabajo: su nombre, su status y sus pasos.
-// La conclusion de un trabajo no cambia nada: saltado, fallido o cancelado, su
+// leerLaTandaDeLaEjecucion de cada trabajo —su nombre, su status y sus pasos— y,
+// para las lecturas de la plataforma, su id y su conclusion. A la tanda la
+// conclusion de un trabajo no le cambia nada: saltado, fallido o cancelado, su
 // marca no está en success.
 type trabajosDeLaEjecucion struct {
 	Jobs []trabajoDeLaEjecucion `json:"jobs"`
@@ -250,9 +280,11 @@ type trabajosDeLaEjecucion struct {
 
 // trabajoDeLaEjecucion es un trabajo de gh run view --json jobs.
 type trabajoDeLaEjecucion struct {
-	Name   string              `json:"name"`
-	Status string              `json:"status"`
-	Steps  []pasoDeLaEjecucion `json:"steps"`
+	ID         int64               `json:"databaseId"`
+	Name       string              `json:"name"`
+	Status     string              `json:"status"`
+	Conclusion string              `json:"conclusion"`
+	Steps      []pasoDeLaEjecucion `json:"steps"`
 }
 
 // pasoDeLaEjecucion es un paso de un trabajo de gh run view --json jobs.
@@ -263,9 +295,11 @@ type pasoDeLaEjecucion struct {
 
 // leerLaTandaDeLaEjecucion lee lo que decidió la tanda de una ejecución del
 // JSON de sus trabajos, el de gh run view --json jobs
-// (contracts/tanda-del-job.md §2 de H7.4; research.md S4 de H7.4): mide si su
-// trabajo tanda terminó y su marca tiene la conclusion success; no ha decidido
-// si no tiene trabajo tanda o no ha terminado; y no mide en cualquier otro caso.
+// (contracts/tanda-del-job.md §2 de H7.4; research.md S4 de H7.4; data-model
+// §10 de H30): mide si su trabajo tanda terminó y su marca tiene la conclusion
+// success, la suite completa si también la tiene la marca de la suite completa
+// y con reutilización si no; no ha decidido si no tiene trabajo tanda o no ha
+// terminado; y no mide en cualquier otro caso.
 func leerLaTandaDeLaEjecucion(contenido []byte) (estadoDeLaTanda, error) {
 	var trabajos trabajosDeLaEjecucion
 	if err := json.Unmarshal(contenido, &trabajos); err != nil {
@@ -279,14 +313,24 @@ func leerLaTandaDeLaEjecucion(contenido []byte) (estadoDeLaTanda, error) {
 		return tandaSinDecidir, nil
 	}
 
-	marcada := slices.ContainsFunc(trabajos.Jobs[indice].Steps, func(paso pasoDeLaEjecucion) bool {
-		return paso.Name == marcaDeLaTanda && paso.Conclusion == conclusionDeExito
-	})
-	if marcada {
-		return tandaQueMide, nil
-	}
+	pasos := trabajos.Jobs[indice].Steps
 
-	return tandaQueNoMide, nil
+	switch {
+	case !conLaMarcaEnExito(pasos, marcaDeLaTanda):
+		return tandaQueNoMide, nil
+	case conLaMarcaEnExito(pasos, marcaDeLaSuiteCompleta):
+		return tandaQueMideLaSuiteCompleta, nil
+	default:
+		return tandaQueMideConReutilizacion, nil
+	}
+}
+
+// conLaMarcaEnExito dice si entre los pasos está la marca de ese nombre con la
+// conclusion success.
+func conLaMarcaEnExito(pasos []pasoDeLaEjecucion, marca string) bool {
+	return slices.ContainsFunc(pasos, func(paso pasoDeLaEjecucion) bool {
+		return paso.Name == marca && paso.Conclusion == conclusionDeExito
+	})
 }
 
 // ghDeLaTanda ejecuta las órdenes de gh de la tanda con el entorno dado —en
@@ -300,43 +344,25 @@ type ghDeLaTanda struct {
 // listar da la lista de ejecuciones del flujo sobre el commit, la de
 // ordenDeLasEjecuciones: la función listar de consultarLasEjecuciones.
 func (g ghDeLaTanda) listar(ctx context.Context) ([]byte, error) {
-	orden := exec.CommandContext(ctx, "sh", "-c", ordenDeLasEjecuciones)
-
-	return g.ejecutar(orden, variableDelCommitEvaluado+"="+g.commit)
+	return ejecutarGh(exec.CommandContext(ctx, "sh", "-c", ordenDeLasEjecuciones), g.entorno,
+		variableDelCommitEvaluado+"="+g.commit)
 }
 
 // verLosTrabajos da los trabajos de la ejecución id, los de
 // ordenDeLosTrabajos: la función verLosTrabajos de consultarLasEjecuciones.
 func (g ghDeLaTanda) verLosTrabajos(ctx context.Context, id int64) ([]byte, error) {
-	orden := exec.CommandContext(ctx, "sh", "-c", ordenDeLosTrabajos)
-
-	return g.ejecutar(orden, variableDeLaEjecucionAnterior+"="+strconv.FormatInt(id, 10))
+	return ejecutarGh(exec.CommandContext(ctx, "sh", "-c", ordenDeLosTrabajos), g.entorno,
+		variableDeLaEjecucionAnterior+"="+strconv.FormatInt(id, 10))
 }
 
-// ejecutar ejecuta la orden con el entorno de g y, encima, la variable dada, y
-// devuelve lo que escribió en su salida estándar. Si no termina con 0, devuelve
-// un error con la orden, la variable, cómo terminó y lo que escribió en sus dos
-// salidas.
-func (g ghDeLaTanda) ejecutar(orden *exec.Cmd, variable string) ([]byte, error) {
-	var salida, errores bytes.Buffer
-
-	orden.Env = sobreLaBase(g.entorno, []string{variable})
-	orden.Stdout = &salida
-	orden.Stderr = &errores
-
-	if err := orden.Run(); err != nil {
-		return nil, fmt.Errorf("%s, con %s: %w\n%s%s", orden, variable, err, salida.Bytes(), errores.Bytes())
-	}
-
-	return salida.Bytes(), nil
-}
-
-// String dice lo que decidió la tanda de una ejecución, para el registro de
-// TestTandaDelCommit.
+// String dice lo que decidió la tanda de una ejecución, con el modo con que
+// mide, para el registro de TestTandaDelCommit.
 func (e estadoDeLaTanda) String() string {
 	switch e {
-	case tandaQueMide:
-		return "su tanda mide el commit"
+	case tandaQueMideLaSuiteCompleta:
+		return "su tanda mide el commit en modo " + string(origenDeLaSuiteCompleta)
+	case tandaQueMideConReutilizacion:
+		return "su tanda mide el commit en modo " + string(origenConReutilizacion)
 	case tandaQueNoMide:
 		return "su tanda no mide el commit"
 	case tandaSinDecidir:
@@ -371,31 +397,33 @@ func registroDeLaConsulta(consulta int, propia int64, ejecuciones []ejecucionDel
 }
 
 // motivoDeLaDecision dice, para el registro de TestTandaDelCommit, por qué la
-// ejecución propia mide el commit o no, con las ejecuciones de la última
-// consulta: no mide porque lo mide la tanda de alguna anterior sin terminar,
-// que nombra; y mide porque ninguna anterior sin terminar lo mide o porque
-// pasó esperaMaximaDeLaDecision con alguna sin decidir, que nombra.
+// ejecución propia mide el commit con su modo o no, con las ejecuciones de la
+// última consulta: no mide porque lo mide con un modo igual o mayor la tanda
+// de alguna anterior sin terminar, que nombra; y mide porque ninguna anterior
+// sin terminar lo mide con un modo igual o mayor o porque pasó
+// esperaMaximaDeLaDecision con alguna sin decidir, que nombra.
 func motivoDeLaDecision(propia int64, ejecuciones []ejecucionDelCommit, decision decisionTrasLaEspera) string {
 	if !decision.mide {
 		var queMiden []int64
 
 		for _, ejecucion := range ejecuciones {
-			if ejecucion.cuentaPara(propia) && ejecucion.tanda == tandaQueMide {
+			if ejecucion.cuentaPara(propia) && ejecucion.tanda.mideConUnModoAlMenos(decision.modo) {
 				queMiden = append(queMiden, ejecucion.id)
 			}
 		}
 
-		return "no mide el commit: lo mide la tanda de estas ejecuciones anteriores sin terminar: " +
-			nombrarLasEjecuciones(queMiden)
+		return fmt.Sprintf("no mide el commit en modo %s: lo mide con un modo igual o mayor la tanda de estas "+
+			"ejecuciones anteriores sin terminar: %s", decision.modo, nombrarLasEjecuciones(queMiden))
 	}
 
 	if decision.agotada {
-		return fmt.Sprintf("mide el commit: tras %s, la tanda de estas ejecuciones anteriores sin terminar aún no "+
-			"ha decidido: %s; la concurrency del trabajo evals pone la de esta detrás de la que mida",
-			esperaMaximaDeLaDecision, nombrarLasEjecuciones(decision.pendientes))
+		return fmt.Sprintf("mide el commit en modo %s: tras %s, la tanda de estas ejecuciones anteriores sin "+
+			"terminar aún no ha decidido: %s; la concurrency del trabajo evals pone la de esta detrás de la que mida",
+			decision.modo, esperaMaximaDeLaDecision, nombrarLasEjecuciones(decision.pendientes))
 	}
 
-	return "mide el commit: ninguna ejecución anterior sin terminar lo mide"
+	return fmt.Sprintf("mide el commit en modo %s: ninguna ejecución anterior sin terminar lo mide con un modo "+
+		"igual o mayor", decision.modo)
 }
 
 // nombrarLasEjecuciones da los ids de las ejecuciones, separados por comas.
@@ -409,21 +437,24 @@ func nombrarLasEjecuciones(ids []int64) string {
 }
 
 // escribirLaDecision añade a la ruta —en TestTandaDelCommit, el GITHUB_OUTPUT
-// del paso— la línea medir=si o medir=no, detrás de lo que ya tenga y
-// creándola si no existe, como >> en el paso de una definición
-// (contracts/tanda-del-job.md §3 de H7.4). El error nombra la ruta.
-func escribirLaDecision(ruta string, mide bool) error {
-	linea := "medir=no\n"
-	if mide {
-		linea = "medir=si\n"
+// del paso— las líneas medir=si o medir=no y modo=<modo>, con el modo de la
+// decisión, detrás de lo que ya tenga y creándola si no existe, como >> en el
+// paso de una definición (contracts/tanda-del-job.md §3 de H7.4;
+// contracts/job-de-evals.md §2 de H30). El error nombra la ruta.
+func escribirLaDecision(ruta string, decision decisionDeLaTanda) error {
+	medir := "no"
+	if decision.mide {
+		medir = "si"
 	}
+
+	lineas := "medir=" + medir + "\nmodo=" + string(decision.modo) + "\n"
 
 	fichero, err := os.OpenFile(filepath.Clean(ruta), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("la decisión de la tanda no se puede escribir en %s: %w", ruta, err)
 	}
 
-	if _, err := fichero.WriteString(linea); err != nil {
+	if _, err := fichero.WriteString(lineas); err != nil {
 		return errors.Join(fmt.Errorf("la decisión de la tanda no se puede escribir en %s: %w", ruta, err),
 			fichero.Close())
 	}

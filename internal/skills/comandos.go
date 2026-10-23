@@ -29,6 +29,12 @@ const (
 	// contracts/skills-e-invocacion.md §2 de H19; FR-080).
 	programaDeLasOrdenes = "kitlegal"
 
+	// inicioDelTitulo y finDelTitulo rodean al applet en el título de su sección
+	// de la tabla, ### `kitlegal <applet>`: lo escribe RenderizarTabla y lo lee
+	// AppletsDeLaTabla.
+	inicioDelTitulo = "### `" + programaDeLasOrdenes + " "
+	finDelTitulo    = "`"
+
 	// separadorDeLaHerramienta une el applet y el verbo en el nombre de la
 	// herramienta del servidor MCP de una fila: `<applet>_<verbo>` (H21 FR-003,
 	// FR-030).
@@ -543,7 +549,7 @@ func RenderizarTabla(applets []string, descripciones []DescripcionDeVerbo) ([]by
 	var tabla bytes.Buffer
 
 	for indice, verbos := range secciones {
-		tabla.WriteString("\n### `" + programaDeLasOrdenes + " " + applets[indice] + "`\n\n" + columnasDeLaTabla + "\n")
+		tabla.WriteString("\n" + inicioDelTitulo + applets[indice] + finDelTitulo + "\n\n" + columnasDeLaTabla + "\n")
 
 		for _, verbo := range verbos {
 			if err := mismoSobreYBanderas(comun, verbo); err != nil {
@@ -759,6 +765,45 @@ func SustituirRegion(contenido, region []byte) ([]byte, error) {
 	sustituido = append(sustituido, contenido[fin.comienzo:]...)
 
 	return sustituido, nil
+}
+
+// AppletsDeLaTabla son los applets de la tabla de comandos de un SKILL.md, los
+// que titulan sus secciones, ### `kitlegal <applet>`, entre sus dos marcas
+// (data-model §2; research D11 y FR-001(d) de H30): sin repetir, en el orden de
+// la tabla, y solo los de una línea que es exactamente el título, como lo
+// escribe RenderizarTabla. Es un defecto, sin applets, que las marcas no estén
+// como las pide SustituirRegion o que entre ellas no se titule ningún applet: la
+// tabla que genera make skills-sync declara siempre alguno.
+func AppletsDeLaTabla(skillMD []byte) ([]string, error) {
+	inicios, fines := lineasDeLasMarcas(skillMD)
+
+	if err := comprobarMarcas(inicios, fines); err != nil {
+		return nil, err
+	}
+
+	var applets []string
+
+	for linea := range bytes.Lines(skillMD[inicios[0].final:fines[0].comienzo]) {
+		applet, esTitulo := appletDelTitulo(string(bytes.TrimSuffix(linea, []byte("\n"))))
+		if esTitulo && !slices.Contains(applets, applet) {
+			applets = append(applets, applet)
+		}
+	}
+
+	if len(applets) == 0 {
+		return nil, errors.New("la tabla de comandos no nombra ningún applet")
+	}
+
+	return applets, nil
+}
+
+// appletDelTitulo es el applet que titula una línea de la tabla, si la línea es
+// exactamente el título de una sección, con un applet.
+func appletDelTitulo(linea string) (string, bool) {
+	applet, conInicio := strings.CutPrefix(linea, inicioDelTitulo)
+	applet, conFin := strings.CutSuffix(applet, finDelTitulo)
+
+	return applet, conInicio && conFin && applet != ""
 }
 
 // lineasDeLasMarcas son las líneas del contenido que son la marca de inicio y

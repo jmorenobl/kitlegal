@@ -1,0 +1,496 @@
+diff antes/contracts/eleccion-y-huella.md ahora/contracts/eleccion-y-huella.md
+--- antes/contracts/eleccion-y-huella.md	2026-10-22 11:26:53
++++ ahora/contracts/eleccion-y-huella.md	2026-10-22 11:33:41
+@@ -53,7 +53,9 @@
+ elegida legal-core/05-plazo-reposicion-leganes: conjunto: skills/legal-core/references/recursos_y_plazos.md
+ ```
+ 
+-76 bytes más el salto; con una ruta común, `elegida <skill>/<eval>: comun: internal/cli/salida.go`. Con *e* evals
++76 bytes más el salto; con una ruta común, `elegida <skill>/<eval>: comun: internal/cli/salida.go`. Si `gh` no da los
++ficheros de la propuesta, una línea `error de la plataforma: <orden>: <salida de error>` y, después, `elegida
++<skill>/<eval>: plataforma` por cada eval (data-model §5; research D17). Con *e* evals
+ elegidas y *r* rutas que eligen cada una, *e* × (40 + 50·*r*) bytes: hoy, como mucho 45 líneas; con cientos de evals,
+ crece con las elegidas y con las rutas de la propuesta, no con la historia. En el trabajo `cambios`, después,
+ `elige=si` o `elige=no` en `$GITHUB_OUTPUT`. Deja de darse cuando la propuesta se fusiona: sobre `main` no hay propuesta
+diff antes/contracts/informe-del-job.md ahora/contracts/informe-del-job.md
+--- antes/contracts/informe-del-job.md	2026-10-22 11:26:53
++++ ahora/contracts/informe-del-job.md	2026-10-22 11:32:51
+@@ -53,13 +53,14 @@
+ |---|---|
+ | `modo` | `completa` o `reutilizacion` |
+ | `sin_conjunto` | la causa de FR-005 si el cálculo falló en el job; ausente si no |
++| `error_de_la_plataforma` | si una orden de `gh` de la decisión falló o se agotó el plazo de la búsqueda: `{"orden": "<la orden>", "error": "<su salida de error>"}`, o `"error": "plazo de 10 minutos agotado"` con la orden en curso; ausente si no. Con él, cada eval con `sin_resultado_de_main` se mide porque la búsqueda paró ahí, y cada una con `plataforma`, porque `gh` no dio los ficheros de la propuesta (research D17) |
+ | `evals_medidas`, `evals_reutilizadas` | cuántas; suman las evals de la skill en el commit |
+ | `sesiones_abiertas` | sesiones que abrió esta ejecución |
+ | `evals[].eval` | el mismo nombre que `eval` en `tasas`; una entrada por eval de la skill, en orden de fichero |
+ | `evals[].huella` | 64 caracteres hexadecimales; ausente solo con `sin_conjunto` |
+ | `evals[].medida` | `true` si se midió aquí |
+-| `evals[].motivo`, `evals[].rutas` | de una medida: `conjunto`, `comun`, `descripcion`, `sin_asignar`, `sin_conjunto` (con las rutas que la eligen), `sin_resultado_de_main` o `suite_completa` |
+-| `evals[].procedencia` | de una reutilizada: ejecución, trabajo, commit, propuesta y fecha de la medida en que se abrieron sus sesiones |
++| `evals[].motivo`, `evals[].rutas` | de una medida: `conjunto`, `comun`, `descripcion`, `sin_asignar`, `sin_conjunto` (con las rutas que la eligen), `plataforma` (sin rutas: la plataforma no dio los ficheros de la propuesta y se eligen todas), `sin_resultado_de_main` o `suite_completa` |
++| `evals[].procedencia` | de una reutilizada: ejecución, trabajo, commit, propuesta y fecha de la medida en que se abrieron sus sesiones, de menos de 90 días antes de la decisión (data-model §8) |
+ | `evals[].aportes` | medida y total que dan sus respuestas a cada umbral de las respuestas (todos menos duración y medida del juez), los de total mayor que 0 |
+ | `evals[].tasas` | de una reutilizada: sus series, también las de los modelos informativos, como en su medida |
+ 
+@@ -104,8 +105,10 @@
+ 
+ Una sección «Medidas y reutilizadas» con los recuentos y una línea por eval, con el motivo en palabras: «medida: rutas
+ de su conjunto (<rutas>)», «medida: común (<rutas>)», «medida: descripción (<rutas>)», «medida: sin asignar
+-(<rutas>)», «medida: sin conjunto calculable», «medida: sin resultado reutilizable de `main`» o «medida: suite
+-completa»; o «reutilizada de la ejecución <n> (propuesta #<p>, <commit corto>, <fecha>)». Las series reutilizadas van en
++(<rutas>)», «medida: sin conjunto calculable», «medida: la plataforma no dio los ficheros de la propuesta», «medida: sin
++resultado reutilizable de `main`» (con «, la búsqueda paró por un error de la plataforma» si lo hubo) o «medida: suite
++completa»; o «reutilizada de la ejecución <n> (propuesta #<p>, <commit corto>, <fecha>)». Con un error de la
++plataforma, una línea antes de la lista: «Error de la plataforma: `<orden>`: <error>». Las series reutilizadas van en
+ su propia tabla.
+ 
+ ## 7. Tamaño y vida (criterio de uso)
+@@ -116,5 +119,7 @@
+ evals de hoy, entre 30 y 140 KB en los tres informes, frente a los 1,8 MiB que ya tienen (922, 349 y 534 KiB en
+ `specs/025-h26-1-las-evals-sirven/gates/evals/`); con 300 evals, del orden de 1 MB. No crece con la historia: cada eval
+ lleva un solo resultado, con la procedencia de la medida en que se abrieron sus sesiones. La marca «reutilizada» deja
+-de darse en cuanto cambia su huella, su medida de `main` deja de poderse leer (registro de 90 días) o sale de las 10 más
+-recientes (FR-012): entonces se mide.
++de darse en cuanto cambia su huella, en cuanto esa procedencia cumple 90 días —la vida de su registro—, aunque una
++medida posterior la haya reutilizado, o en cuanto su medida de `main` sale de las 10 más recientes (FR-012): entonces
++se mide. `error_de_la_plataforma` son unas líneas, uno por informe como mucho (la búsqueda para en el primer error), y
++deja de darse en la primera ejecución en que la plataforma responde.
+diff antes/contracts/job-de-evals.md ahora/contracts/job-de-evals.md
+--- antes/contracts/job-de-evals.md	2026-10-22 11:26:53
++++ ahora/contracts/job-de-evals.md	2026-10-22 11:33:36
+@@ -31,6 +31,8 @@
+   "$PROPUESTA" -base "$BASE_DE_LA_PROPUESTA" -salida "$GITHUB_OUTPUT"`.
+ - Escribe `elige=si` o `elige=no`, y en el registro la elección con su motivo
+   ([eleccion-y-huella.md](eleccion-y-huella.md) §3). Un error del cálculo de los conjuntos elige todas (FR-005): `si`.
++  Si la orden de `gh` que da los ficheros de la propuesta falla, también elige todas, con `plataforma`: `si`, y el
++  registro dice la orden y su salida de error (research D17).
+ 
+ ### `tanda`
+ 
+@@ -58,8 +60,12 @@
+   -modelo-del-juez "$MODELO_DEL_JUEZ" -version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ" -salida
+   "$RUNNER_TEMP/decision-de-evals.json"`. Escribe el bloque `origen` sin `sesiones_abiertas`
+   ([informe-del-job.md](informe-del-job.md) §2) y, en el registro, una línea por eval: medida con su motivo o
+-  reutilizada con su procedencia. La búsqueda de medidas de `main` tiene 10 minutos; un error de la plataforma o el plazo
+-  agotado dejan sin resultado lo que falte, que se mide (FR-013).
++  reutilizada con su procedencia. Lo que lee de la plataforma —los ficheros de la propuesta y la búsqueda de medidas de
++  `main`— tiene un plazo de 10 minutos. Si `gh` no da los ficheros de la propuesta, elige todas las evals de la skill
++  con `plataforma` y no busca; en la búsqueda, la primera orden de `gh` que falla, o el plazo agotado, la para y deja
++  sin resultado lo que falte, que se mide (FR-013). En los dos casos, la orden y su salida
++  de error (o el plazo agotado, con la orden en curso) van al registro, antes de las líneas de las evals, y a
++  `origen.error_de_la_plataforma` del fichero de la decisión, que el informe copia (research D17).
+ - «Ejecutar las evals»: `DECISION_DE_EVALS="$RUNNER_TEMP/decision-de-evals.json" make evals SKILL="$SKILL_EVALUADA" 2>&1`.
+ - Paso nuevo, el último: «El informe del trabajo está escrito», con `if: ${{ !cancelled() }}`:
+   `test -s "$RUNNER_TEMP/kitlegal-evals-$SKILL_EVALUADA/informe.json"`. Es la marca que lee la búsqueda de medidas de
+@@ -105,4 +111,5 @@
+ |---|---|---|---|
+ | Elección en el registro de `cambios` | quien revisa, al abrir la propuesta | hasta 45 líneas de unos 80 bytes hoy (§3 de [eleccion-y-huella.md](eleccion-y-huella.md)) | al fusionar |
+ | Decisión en el registro de cada trabajo | quien revisa, una vez por ejecución | una línea por eval de la skill, unos 120 bytes | en cada ejecución nueva |
++| Error de la plataforma en el registro de `cambios` o de la decisión | quien revisa, en la ejecución en que falla una orden de `gh` o se agota el plazo | la orden y su salida de error, unas líneas; uno como mucho por trabajo | en la primera ejecución en que la plataforma responde |
+ | Búsqueda de medidas de `main` | el propio trabajo, una vez por ejecución con reutilización y evals sin elegir | la normal, 1 informe de la skill (como mucho 922 KiB hoy) más su registro; como mucho 10 informes por trabajo, uno por medida recorrida | para en cuanto cada eval no elegida tiene resultado |
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-22 11:26:53
++++ ahora/data-model.md	2026-10-22 11:33:33
+@@ -7,15 +7,18 @@
+ 
+ ## 1. Rutas que miden las evals (FR-004)
+ 
+-Predicado sobre una ruta relativa a la raíz, sin leer el disco:
++Predicado sobre una ruta relativa a la raíz y los directorios de las entradas paquete de los conjuntos (§3 (d)), sin
++leer el disco:
+ 
+ - miden: `skills/**`, `evals/**`, `data/**`, `cmd/**`, `internal/**`, `skills.go`, `Makefile`, `go.mod`, `go.sum`,
+   `.github/workflows/evals.yml`, `scripts/evals.sh`, `scripts/evals-sesion.sh`, `scripts/evals-voto.sh`,
+   `scripts/evals-medir-juez.sh`, `schemas/eval.yaml.json`, `schemas/expresiones-prohibidas.yaml.json`,
+   `schemas/juez-clases.yaml.json` y las raíces de grabaciones de §3(e) fuera de `internal/`
+   (`testdata/evals/boe.legislacion-consolidada/**`, `testdata/evals/grafo-previo/**`);
+-- no miden: `internal/workflow/**`, y en `cmd/` e `internal/`, `*_test.go` y `**/testdata/**`, salvo
+-  `internal/evals/**` (todo) y las raíces de grabaciones de §3(e) (research D4);
++- no miden: `internal/workflow/**`, y, del directorio de un paquete que es entrada de algún conjunto por §3 (d), sus
++  `*_test.go` y su `testdata/**`, salvo las raíces de grabaciones de §3(e) (FR-001(d); research D4). Los `_test.go` y
++  `testdata/` de un paquete de lo común son rutas de lo común (§2), y los de un paquete del módulo que no es de ningún
++  conjunto ni de lo común, rutas sin asignar (§6);
+ - cualquier otra ruta no mide.
+ 
+ ## 2. Lo común (FR-002)
+@@ -64,7 +67,9 @@
+ 
+ `Cambio{Ruta, Anterior string}` (FR-007: `Anterior` es `previous_filename`; las dos rutas cuentan).
+ 
+-`EvalElegida{Eval, Skill, Motivo, Rutas []string}`; `Eleccion{Elegidas []EvalElegida, SinConjunto string}`.
++`EvalElegida{Eval, Skill, Motivo, Rutas []string}`; `Eleccion{Elegidas []EvalElegida, SinConjunto string,
++ErrorDeLaPlataforma *ErrorDeLaPlataforma}`; `ErrorDeLaPlataforma{Orden, Error string}` (la orden de `gh` y su salida de
++error, o «plazo de 10 minutos agotado» con la orden en curso).
+ 
+ Regla, para cada ruta *r* de cada cambio (las dos de un renombrado), la primera que se aplica:
+ 
+@@ -79,9 +84,11 @@
+ 6. *r* pertenece al conjunto de alguna eval → esas evals, `conjunto`.
+ 7. Si no → todas, `sin_asignar`.
+ 
+-Si los conjuntos no se pueden calcular en el job → todas, `sin_conjunto`, y `SinConjunto` lleva la causa. El motivo de
+-una eval es el de más prioridad entre los que la eligen (`comun` > `sin_conjunto` > `sin_asignar` > `descripcion` >
+-`conjunto`, research D19); `Rutas`, todas las que la eligen, ordenadas. La elección se ordena por skill y por fichero de
++Si los conjuntos no se pueden calcular en el job → todas, `sin_conjunto`, y `SinConjunto` lleva la causa. Si `gh` no da
++los ficheros de la propuesta (la orden falla o, en la decisión de un trabajo, se agota su plazo) → todas,
++`plataforma`, sin rutas, y
++`ErrorDeLaPlataforma` lleva la orden y su error (research D17). El motivo de una eval es el de más prioridad entre los
++que la eligen (`comun` > `sin_conjunto` > `plataforma` > `sin_asignar` > `descripcion` > `conjunto`, research D19); `Rutas`, todas las que la eligen, ordenadas. La elección se ordena por skill y por fichero de
+ eval (FR-008).
+ 
+ ## 6. Huella (FR-009)
+@@ -99,18 +106,23 @@
+ 
+ Válida si: la ejecución (`gh run list`) terminó (`status: completed`) y no se canceló; su `headSha` es el `head.sha`
+ de una propuesta fusionada hacia `main` (`merged_at` no nulo); y cada trabajo `evals (<skill>)` de la ejecución terminó
+-con conclusión `success` o `failure` y su paso «El informe del trabajo está escrito» en `success`. Se ordenan por
+-`Fecha` (la `createdAt` de la ejecución) y por `Ejecucion`, de la más reciente a la más antigua; se recorren como
+-mucho 10 (FR-012).
++con conclusión `success` o `failure` y su paso «El informe del trabajo está escrito» en `success`; y su `Fecha` es
++de menos de 90 días antes de la decisión (de una medida más antigua ningún resultado es reutilizable, §8, y su registro
++ya no se lee). Se ordenan por `Fecha` (la `createdAt` de la ejecución) y por `Ejecucion`, de la más reciente a la más
++antigua; se recorren como mucho 10 (FR-012).
+ 
+ ## 8. Origen de las evals (FR-011, FR-022)
+ 
+-`OrigenDeLasEvals{Modo, SinConjunto, EvalsMedidas, EvalsReutilizadas, SesionesAbiertas, Evals []OrigenDeEval}`;
++`OrigenDeLasEvals{Modo, SinConjunto, ErrorDeLaPlataforma *ErrorDeLaPlataforma, EvalsMedidas, EvalsReutilizadas,
++SesionesAbiertas, Evals []OrigenDeEval}`;
+ `OrigenDeEval{Eval, Huella, Medida bool, Motivo, Rutas, Procedencia *Procedencia, Aportes []Aporte,
+ Tasas []TasaDelInforme}`; `Procedencia{Ejecucion, Trabajo int64, Commit string, Propuesta int, Fecha string}`;
+ `Aporte{Umbral string, Medida float64, Total int}`.
+ 
+ - `Modo`: `completa` o `reutilizacion`.
++- `ErrorDeLaPlataforma` (§5): el de la lectura de los ficheros de la propuesta, o el primero de la búsqueda de medidas
++  de `main` —una orden de `gh` que falla o el plazo de 10 minutos agotado—, que la para; ausente si no hubo. Con él,
++  las evals con `sin_resultado_de_main` son las que quedaban sin resultado al pararse.
+ - Una eval medida lleva `Motivo` (§5, `sin_resultado_de_main` o `suite_completa`) y no lleva `Procedencia` ni `Tasas`
+   (sus series están en `tasas` del informe).
+ - Una eval reutilizada lleva `Procedencia` y `Tasas`, copiadas con sus `Aportes` de la medida en que se abrieron sus
+@@ -124,7 +136,12 @@
+ **Resultado reutilizable** de la eval *X* en un informe de `main`: la entrada de *X* en `origen.evals` con la misma huella;
+ si se midió allí, sus series (`tasas` con `eval` *X*) y sus aportes, y está completo si ninguna entrada de
+ `sesiones_sin_medir` es de *X* y, con juez, ninguna de `juez.sin_juzgar` es de una sesión de *X* del modelo que decide;
+-si se reutilizó allí, su entrada tal cual.
++si se reutilizó allí, su entrada tal cual. En los dos casos solo es reutilizable si su procedencia —la propia medida si
++se midió allí, o la `procedencia` copiada si se reutilizó— tiene una `Fecha` de menos de 90 días antes de la decisión,
++la vida del registro de la plataforma (FR-012): un resultado no pasa de una medida a la siguiente más allá de la vida
++del registro en que se abrieron sus sesiones. Si no, la búsqueda sigue con la medida anterior, y sin resultado
++reutilizable la eval se mide con `sin_resultado_de_main`. La decisión recibe el instante con el que compara (en el job,
++el de su arranque; en los tests, uno fijo).
+ 
+ ## 9. Umbrales con lo reutilizado (FR-015, FR-024)
+ 
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-22 11:26:53
++++ ahora/plan.md	2026-10-22 11:36:11
+@@ -12,7 +12,8 @@
+ sus grabaciones y su juez—, elige las evals cuyo conjunto toca la propuesta (todas con lo común, una descripción o una
+ ruta sin asignar) y da a cada eval una huella, el sha256 de un texto canónico con todo lo que la elige. Cada trabajo
+ `evals (<skill>)` mide lo elegido y, para lo demás, busca en las 10 medidas de `main` más recientes un resultado con la
+-misma huella y lo reutiliza sin abrir sesión; lo que no encuentra lo mide. El informe separa lo medido (los campos de
++misma huella cuyas sesiones se abrieron hace menos de 90 días y lo reutiliza sin abrir sesión; lo que no encuentra lo
++mide, y un error de la plataforma queda escrito junto a lo que se mide por él. El informe separa lo medido (los campos de
+ hoy, que lee `serie.sh` sin cambios) de lo reutilizado (bloque `origen` y umbrales `:reutilizadas`). La etiqueta
+ `evals-completa` y el despacho miden la suite completa, la tanda por commit distingue los dos modos, la release exige la
+ suite completa del commit etiquetado, y el ADR 0045 fija el límite binomial de la tasa de una clase para cualquier
+@@ -153,8 +154,8 @@
+ | `TestMatrizDeLasPropuestas` | `internal/evals/eleccion_test.go` | Golden (constante del test) de lo que mide y reutiliza cada skill para los mutantes, una propuesta sin nada elegido y la suite completa, con una medida de `main` sintética con la huella de cada eval (FR-008, FR-019, SC-004) |
+ | `TestHuellaDeLasEvals` | `internal/evals/huella_test.go` | Cada clase de ruta cambia la huella de las que elige y no la de las demás; la versión de un módulo de lo común en `go.mod`, todas; un `replace` y una línea de `go.sum` de un módulo de ningún conjunto, todas; `docs/`, ninguna; dos clones, las mismas (FR-009, SC-008) |
+ | `TestOrdenesDeLaPlataforma`, `TestInformeDelRegistro` | `internal/evals/plataforma_test.go` | Las órdenes de `gh` con el sustituto; el informe sacado de un registro con prefijos y marca de orden de bytes |
+-| `TestBusquedaDeMedidasDeMain` | `internal/evals/reutilizacion_test.go` | Canceladas, sin fusionar, sin marca y otro commit de la propuesta no cuentan; la más reciente gana; la undécima no se recorre; sesión sin medir o respuesta sin juzgar no se reutiliza; la procedencia de una reutilizada en `main` es la original (FR-010 a FR-013) |
+-| `TestDecisionDelJob` | `internal/evals/decision_test.go` | SC-006, SC-007, FR-014 (solo la eval sin resultado, con su motivo), FR-016 (sin elección, nada), suite completa sin búsqueda |
++| `TestBusquedaDeMedidasDeMain` | `internal/evals/reutilizacion_test.go` | Canceladas, sin fusionar, sin marca, de 90 días o más y otro commit de la propuesta no cuentan; la más reciente gana; la undécima no se recorre; sesión sin medir o respuesta sin juzgar no se reutiliza; la procedencia de una reutilizada en `main` es la original, y con 90 días o más la eval se mide con `sin_resultado_de_main`; una orden de `gh` que falla o el plazo agotado paran la búsqueda, lo que queda se mide y la orden y su error quedan en el resultado (FR-010 a FR-013) |
++| `TestDecisionDelJob` | `internal/evals/decision_test.go` | SC-006, SC-007, FR-014 (solo la eval sin resultado, con su motivo), FR-016 (sin elección, nada), suite completa sin búsqueda; ficheros de la propuesta que `gh` no da: todas las evals medidas con `plataforma` y el error en `origen` (D17) |
+ | `TestInformeConReutilizadas` | `internal/evals/informe_test.go` | Veredicto con serie reutilizada en fallo y con respuesta reutilizada sin activar; `:reutilizadas`; suma de aportes = umbral; tasa solo con lo medido (FR-015, FR-022, FR-024) |
+ | `TestInformeDeLaSuiteCompletaNoCambia` | `internal/evals/informe_test.go` | El informe de la suite completa de datos de prueba, sin `origen`, byte a byte igual al fijado antes de tocar `informe.go` (FR-026, SC-012) |
+ | `TestFilaConReutilizadas` | `internal/evals/serie_test.go` | `scripts/workflow/serie.sh fila` sale con 0 y da la misma fila que con solo lo medido (FR-023, SC-009) |
+@@ -199,8 +200,8 @@
+ | FR-002 a FR-004, FR-006, FR-007, SC-003 | 0 evals de diferencia con lo esperado en cada mutante | Un subtest por mutante, eval por eval | `ci:internal/evals/eleccion_test.go:TestEleccionDeLosMutantes` |
+ | FR-008, FR-019, SC-004 | 0 bytes de diferencia con el golden | Comparación byte a byte | `ci:internal/evals/eleccion_test.go:TestMatrizDeLasPropuestas` |
+ | FR-009, SC-008 | 0 huellas cambiadas fuera de las elegidas, 0 sin cambiar entre las elegidas, 0 diferencias entre dos directorios | Un subtest por clase de ruta y los dos clones | `ci:internal/evals/huella_test.go:TestHuellaDeLasEvals` |
+-| FR-010 a FR-013 | 0 medidas inválidas usadas (cancelada, sin fusionar, sin marca, otro commit); como mucho 10 recorridas; 0 resultados incompletos reutilizados; 0 procedencias que no sean la de la medida que abrió las sesiones | Respuestas sintéticas de la plataforma | `ci:internal/evals/reutilizacion_test.go:TestBusquedaDeMedidasDeMain` |
+-| FR-014, FR-016, FR-017, SC-006, SC-007 | 0 sesiones de `boe-legislacion` y `legal-core` con solo el cuerpo de `jurisprudencia`; 0 sesiones y 45 reutilizadas con la etiqueta sin cambios; solo las sesiones de la eval sin resultado | Sesiones del plan de cada trabajo | `ci:internal/evals/decision_test.go:TestDecisionDelJob` |
++| FR-010 a FR-013 | 0 medidas inválidas usadas (cancelada, sin fusionar, sin marca, de 90 días o más, otro commit); como mucho 10 recorridas; 0 resultados incompletos reutilizados; 0 procedencias que no sean la de la medida que abrió las sesiones; 0 resultados reutilizados con procedencia de 90 días o más; 0 errores de la plataforma sin escribir | Respuestas sintéticas de la plataforma y un instante fijo | `ci:internal/evals/reutilizacion_test.go:TestBusquedaDeMedidasDeMain` |
++| FR-013, FR-014, FR-016, FR-017, SC-006, SC-007 | 0 sesiones de `boe-legislacion` y `legal-core` con solo el cuerpo de `jurisprudencia`; 0 sesiones y 45 reutilizadas con la etiqueta sin cambios; solo las sesiones de la eval sin resultado; con los ficheros de la propuesta sin leer, 0 evals de la skill sin medir y el error escrito | Sesiones del plan de cada trabajo | `ci:internal/evals/decision_test.go:TestDecisionDelJob` |
+ | FR-015, FR-022 | 1 serie reutilizada en fallo o 1 respuesta reutilizada sin activar → fallo | Informes compuestos con datos de prueba | `ci:internal/evals/informe_test.go:TestInformeConReutilizadas` |
+ | FR-023, SC-009 | `serie.sh fila` sale con 0 y 0 diferencias con la fila de solo lo medido | Ejecuta el guion de `main` | `ci:internal/evals/serie_test.go:TestFilaConReutilizadas` |
+ | FR-024, SC-010, SC-013 | P(rojo sin motivo) ≤ 0,02 para cada *n* de 1 a *N*; k(*N*) = límite de hoy; mutante 2 de 120 → k(120) = 2 | Binomial exacta con `math/big` | `ci:internal/evals/tasa_test.go:TestLimiteDeLaTasa` |
+@@ -223,7 +224,8 @@
+ | Salida | Quién, cuántas veces | Forma y ejemplo | Tamaño hoy → con cientos de evals | Cuándo deja de darse |
+ |---|---|---|---|---|
+ | Elección con su motivo (registro de `cambios` y de cada trabajo) | Quien revisa, una vez por ejecución | `elegida legal-core/05-plazo-reposicion-leganes: conjunto: skills/legal-core/references/recursos_y_plazos.md` (76 bytes) | ≤ 45 líneas de 40 + 50·*r* bytes (*r*, rutas que la eligen) → crece con las elegidas y las rutas de la propuesta | Al fusionar: sobre `main` no hay propuesta, y la suite completa no elige |
+-| Bloque `origen` del informe | Quien revisa el informe y el cierre (`gates/evals/<skill>.json`), una vez por ejecución | [contracts/informe-del-job.md](contracts/informe-del-job.md) §2: huella de 64, procedencia de ~150 bytes, aportes de ~70 | Medida: 0,7–1,7 KB; reutilizada: +1,4 KB de series. Hoy 30–140 KB entre los tres informes (que ya son 1,8 MiB) → ~1 MB con 300 evals. No crece con la historia: un resultado por eval | La marca «reutilizada» de una eval cae cuando cambia su huella, su registro caduca (90 días) o su medida sale de las 10 más recientes: entonces se mide |
++| Bloque `origen` del informe | Quien revisa el informe y el cierre (`gates/evals/<skill>.json`), una vez por ejecución | [contracts/informe-del-job.md](contracts/informe-del-job.md) §2: huella de 64, procedencia de ~150 bytes, aportes de ~70 | Medida: 0,7–1,7 KB; reutilizada: +1,4 KB de series. Hoy 30–140 KB entre los tres informes (que ya son 1,8 MiB) → ~1 MB con 300 evals. No crece con la historia: un resultado por eval | La marca «reutilizada» de una eval cae cuando cambia su huella, cuando la ejecución en que se abrieron sus sesiones (su procedencia) cumple 90 días —la vida de su registro—, aunque una medida posterior la haya reutilizado, o cuando su medida sale de las 10 más recientes: entonces se mide (data-model §8) |
++| Error de la plataforma (`origen.error_de_la_plataforma`, registro del paso de la decisión y de `cambios`) | Quien revisa, en la ejecución en que falla una orden de `gh` o se agota el plazo | La orden y su salida de error, o «plazo de 10 minutos agotado» con la orden en curso ([contracts/informe-del-job.md](contracts/informe-del-job.md) §2) | Unas líneas, uno como mucho por trabajo y ejecución: la búsqueda para en el primer error. No crece con las evals | En la primera ejecución en que la plataforma responde |
+ | Búsqueda de medidas de `main` | Cada trabajo con reutilización y evals sin elegir, una vez por ejecución | Lista de ejecuciones (≤ 200), propuestas cerradas (≤ 100), trabajos de cada ejecución mirada, y el registro del trabajo de su skill | Lo normal, 1 registro con un informe de ≤ 922 KiB; como mucho 10 por trabajo, 30 entre los tres. El tamaño del registro entero de un trabajo no se ha medido en esta sesión | Para en cuanto cada eval no elegida tiene resultado; con la cota, se mide |
+ | Fallo de la release | Quien empuja la etiqueta, una vez por etiqueta | [contracts/release.md](contracts/release.md) §2 | 3–12 líneas | Cuando el commit tiene su suite completa en verde |
+ | Fila de la serie de cierres | El cierre, una por skill con juez y medición | La de hoy (`schemas/serie-de-cierres.json`) | La de hoy: cuenta solo lo medido | Como hoy |
+@@ -234,7 +236,7 @@
+ ## Decisiones
+ 
+ Todas en [research.md](research.md), con su alternativa: D1 dónde vive; D2 conjunto por entradas; D3 `go list` y
+-`go/parser`; D4 lo común y las rutas que miden, sin tests ni `testdata/`; D5 base local y rutas de la plataforma; D6
++`go/parser`; D4 lo común y las rutas que miden, sin los tests ni `testdata/` de los paquetes de un conjunto; D5 base local y rutas de la plataforma; D6
+ huella; D7 `go.mod` y `go.sum`, por versiones y resto; D8 medidas de `main` validadas por un paso; D9 series y aportes; D10 `origen` y
+ `:reutilizadas`; D11 lecturas en `internal/skills`; D12 límite y publicación de la tasa; D13 tanda con modo; D14 release;
+ D15 plataforma en los tests; D16 golden en el test; D17 decisión acotada; D18 `DECISION_DE_EVALS` obligatoria; D19
+@@ -249,7 +251,8 @@
+ | Elección, motivos y su orden (`eleccion.go`) | FR-002 a FR-008 |
+ | Huella y su texto canónico (`huella.go`) | FR-009 |
+ | Interfaz de la plataforma y su implementación con `gh`; extracción del informe de un registro (`plataforma.go`) | FR-007, FR-010, FR-025 |
+-| Medidas de `main`, la marca «El informe del trabajo está escrito», búsqueda con cota 10 (`reutilizacion.go`, `evals.yml`) | FR-010 a FR-013 |
++| Medidas de `main`, la marca «El informe del trabajo está escrito», búsqueda con cota 10, vida de 90 días de la procedencia (`reutilizacion.go`, `evals.yml`) | FR-010 a FR-013 |
++| `origen.error_de_la_plataforma` y el motivo `plataforma`: la orden de `gh` que falla, o el plazo, escrita junto a lo que se mide por ella (`decision.go`, `eleccion.go`) | FR-007, FR-013, FR-022 (y FR-005 como lectura conservadora de una elección incalculable) |
+ | Decisión de cada trabajo y de la apertura (`decision.go`), `TestDecisionDelTrabajo`, `TestEleccionDeLaPropuesta`, trabajo `cambios` con Go | FR-012 a FR-014, FR-016, FR-017 |
+ | Bloque `origen`, aportes, umbrales `:reutilizadas`, veredicto (`origen.go`, `informe.go`, `umbrales.go`) | FR-011, FR-015, FR-022, FR-023 |
+ | Plan solo con las evals medidas; `-decision`; `DECISION_DE_EVALS` en `scripts/evals.sh` | FR-012, FR-014, FR-019 |
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-22 11:26:53
++++ ahora/quickstart.md	2026-10-22 11:35:00
+@@ -46,7 +46,12 @@
+ 
+ Esperado: `PASS`. En `TestDecisionDelJob`, `solo-el-cuerpo-de-jurisprudencia` planifica 0 sesiones de
+ `boe-legislacion` y de `legal-core`, y `etiqueta-evals-sin-cambios` planifica 0 sesiones y deja las 45 reutilizadas con
+-su huella; `sin-medida-de-main` planifica solo las sesiones de la eval sin resultado, con `sin_resultado_de_main`.
++su huella; `sin-medida-de-main` planifica solo las sesiones de la eval sin resultado, con `sin_resultado_de_main`; y
++`ficheros-sin-leer` (el `gh` de los ficheros de la propuesta falla) mide todas las evals de la skill con `plataforma` y
++deja la orden y su error en `origen.error_de_la_plataforma`. En `TestBusquedaDeMedidasDeMain`, con un instante fijo,
++una eval que la medida más reciente reutilizó de una ejecución de hace 90 días se mide con `sin_resultado_de_main`, y
++una orden de `gh` que falla a mitad de la búsqueda la para: lo que queda se mide y la orden y su error quedan en el
++resultado.
+ 
+ ## 5. El informe con lo reutilizado (FR-015, FR-022, FR-026, SC-012)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-22 11:26:53
++++ ahora/research.md	2026-10-22 11:34:55
+@@ -80,8 +80,9 @@
+   `filename` lo usa hoy el trabajo `cambios`, línea 73 de `evals.yml`) y compara la cabeza con la base de fusión.
+ - **S4.** `actions/checkout@v7` con `fetch-depth: 0` trae la historia de todas las ramas, de modo que el commit
+   `pull_request.base.sha` está en el clon (`release.yml` usa ya `fetch-depth: 0`, para otra cosa).
+-- **S5.** Los pasos de un trabajo, con su conclusión, se siguen dando en `gh run view --json jobs` cuando el registro ya
+-  ha caducado (90 días); si no, la medida deja de contar antes, que es la lectura conservadora.
++- **S5.** La plataforma conserva el registro de una ejecución 90 días desde su `createdAt`, la vida que da el spec
++  («Assumptions»): el de una medida de menos de 90 días se puede leer. Si el repositorio la acortara, la orden que lee
++  el registro fallaría y la búsqueda pararía con su error escrito (D17); nada se reutilizaría de más.
+ - **S6.** `gh workflow run evals.yml --ref <etiqueta>` despacha el flujo sobre el commit de una etiqueta.
+ - **S7.** En un evento `pull_request` (también `labeled`), `github.event.pull_request.base.sha` es el commit de la rama
+   base; y en el `push` de una etiqueta, `github.ref_name` es su nombre (solo va al mensaje de la release).
+@@ -92,8 +93,9 @@
+ (`evals.yml:73`), `gh run view --json jobs` y `gh run list --commit` (la tanda), `gh run view --job --log` (el cierre),
+ `${{ !cancelled() }}`, `$RUNNER_TEMP` y los permisos `actions: read` y `pull-requests: read` (`evals.yml`).
+ 
+-Si alguno no se cumple, el código no reutiliza (la eval se mide, FR-013) o la release falla con su mensaje: ninguno
+-puede hacer que se reutilice un resultado que no es de su huella.
++Si alguno no se cumple, el código no reutiliza (la eval se mide, FR-013, y la orden que falló queda escrita con su
++error en el registro y en el informe, D17) o la release falla con su mensaje: ninguno puede hacer que se reutilice un
++resultado que no es de su huella.
+ 
+ ## Decisiones
+ 
+@@ -151,14 +153,14 @@
+ **Alternativa rechazada (módulos).** El cierre de `go list -deps` sin cortar: como `internal/app` compone todos los
+ applets, todo módulo de un conjunto sería de lo común por construcción, y esa rama de FR-004 no podría darse nunca.
+ 
+-Las rutas que miden las evals (FR-004) son las de hoy más las que añade el spec, y en `cmd/` e `internal/` (salvo
+-`internal/workflow/`) quedan fuera los `_test.go` y `testdata/` de todos los paquetes, salvo `internal/evals/` entero
+-y las raíces de grabaciones de FR-001(e): un test o un guion de aceptación no entra en el binario ni en una sesión.
++Las rutas que miden las evals (FR-004) son las de hoy más las que añade el spec. Solo quedan fuera, por FR-001(d), los
++`_test.go` y `testdata/` de los paquetes que entran en algún conjunto por (d), salvo las raíces de grabaciones de
++FR-001(e). Los de un paquete de lo común son rutas de lo común (FR-002 nombra `cmd/`, `internal/app`, `internal/cli`…
++enteros), y los de un paquete del módulo que no es de ningún conjunto ni de lo común (p. ej. `internal/render`), rutas
++sin asignar (FR-004), con su línea `ruta` en la huella de todas
++([contracts/eleccion-y-huella.md](contracts/eleccion-y-huella.md) §4): una propuesta que solo cambia un test de
++`internal/cli` o un guion de `internal/app/testdata/script/` elige las 45.
+ 
+-**Alternativa rechazada.** Tomar los directorios de lo común enteros, con sus tests: cada hito que activa sus guiones de
+-aceptación en `internal/app/testdata/script/` mediría las 45 evals, que es justo el coste que el hito quita. El spec lo
+-dice para los paquetes de (d) («no entran en el binario»), y la misma razón vale para los de lo común.
+-
+ ### D5 · La base de la propuesta, en local; las rutas cambiadas, de la plataforma
+ 
+ **Decisión.** Las rutas cambiadas son las de `GET pulls/{n}/files` (FR-007), con `filename` y `previous_filename`. Lo
+@@ -211,10 +213,20 @@
+ hacia `main` (`gh api` de `pulls?state=closed&base=main&sort=updated&direction=desc&per_page=100`, S2); una medida de
+ `main` es una ejecución terminada, no cancelada, cuyo `headSha` es la cabeza de una fusionada (FR-010) y en la que cada
+ trabajo `evals (<skill>)` terminó en verde o en rojo con su paso nuevo «El informe del trabajo está escrito» en
+-`success` (`gh run view --json jobs`, la orden de la tanda). Se recorren de la más reciente a la más antigua por
+-`createdAt`, como mucho 10 (FR-012), y de cada una se lee solo el informe de la propia skill (la extracción de
+-`comun.sh`, V7); un registro que no se puede leer deja la medida sin aportar nada, y la eval se mide (FR-013).
++`success` (`gh run view --json jobs`, la orden de la tanda), y de menos de 90 días. Se recorren de la más reciente a la
++más antigua por `createdAt`, como mucho 10 (FR-012), y de cada una se lee solo el informe de la propia skill (la
++extracción de `comun.sh`, V7); un informe que no se puede sacar del registro deja la medida sin aportar nada, y una
++orden de `gh` que falla para la búsqueda con su error escrito (D17): en los dos casos, lo que queda se mide (FR-013).
+ 
++**Vida de un resultado.** Un resultado de `main` solo se reutiliza si la ejecución en que se abrieron sus sesiones —su
++procedencia, que una reutilizada copia tal cual (FR-011)— tiene menos de 90 días, la vida de su registro (spec, «Uso» y
++«Assumptions»; FR-012). Sin esa cota, un resultado de huella estable pasaría de cada medida a la siguiente sin límite y
++el informe citaría una procedencia cuyo registro ya no se puede abrir. La comparación es con el instante de la decisión,
++que la recibe como dato.
++
++**Alternativa rechazada (vida).** Volver a abrir el registro de la procedencia para comprobar que sigue: una lectura
++más por eval reutilizada, de hasta 922 KiB, para saber lo que la fecha ya dice.
++
+ **Alternativas.** Un trabajo central que lee los tres informes y los pasa a los de cada skill: los resultados no caben
+ con seguridad en las salidas de un trabajo y pasarlos pide `actions/upload-artifact`, que el repositorio no usa (V7).
+ Que cada trabajo lea los tres informes para validar la medida: tres veces la lectura. El paso que marca el informe
+@@ -280,6 +292,13 @@
+ completa. Una ejecución no mide si una anterior sin terminar ya mide con un modo igual o mayor (completa > reutilización)
+ (FR-021).
+ 
++**Alternativas rechazadas.** Leer el modo del informe de la ejecución anterior: la tanda decide mientras la otra
++ejecución aún no ha terminado, y el informe solo existe al final de cada trabajo `evals (<skill>)`. Leerlo del evento
++de la ejecución: las etiquetas `evals` y `evals-completa` dan el mismo evento (`pull_request`), así que el evento no lo
++distingue. Poner el modo en el nombre del paso (`Esta ejecución mide el commit (${{ … }})`): obligaría a la tanda a
++analizar el texto del nombre, cuando hoy lo compara entero con su conclusión (`marcaDeLaTanda` y `conclusionDeExito`
++de `tanda.go`); dos marcas de nombre fijo, cada una con su `if:`, se leen igual que la de hoy.
++
+ ### D14 · La release, un trabajo antes de publicar
+ 
+ **Decisión.** `release.yml` gana el trabajo `suite-completa`, del que depende `publicar` (y por él `humo` y
+@@ -288,6 +307,15 @@
+ la skill en ese commit medidas y ninguna reutilizada (FR-025). Si no la hay, falla con el commit, lo que falta de cada
+ ejecución y la orden `gh workflow run evals.yml --ref <etiqueta>` (S6).
+ 
++**Alternativas rechazadas.** Un paso dentro de `publicar`, antes de goreleaser: ese trabajo tiene `contents: write`,
++`id-token: write` y `attestations: write`, y su comentario dice que solo él los tiene (`release.yml:30-35`, leído en
++esta sesión); la comprobación, que ejecuta Go y `gh` sobre la plataforma, solo necesita leer. En un trabajo aparte
++corre con `contents: read` y `actions: read`, y que `publicar` dependa de ella es un `needs` que
++`TestConfiguracionDeLaRelease` lee (criterio de FR-025). Un disparo `workflow_run` (la release al terminar el flujo
++`evals`): la release dejaría de lanzarse con el `push` de la etiqueta, tendría que averiguar qué etiqueta corresponde a
++cada ejecución de evals, y una etiqueta empujada sin la suite completa no daría el fallo con su mensaje que pide FR-025:
++no pasaría nada.
++
+ ### D15 · La plataforma en los tests: una interfaz y un `gh` sustituto
+ 
+ **Decisión.** La lógica habla con una interfaz pequeña de la plataforma (ficheros de una propuesta, propuestas
+@@ -297,6 +325,13 @@
+ extracción del informe de un registro con prefijos y marcas de orden de bytes. No hay `testdata/` nuevo ni paso
+ `grabar_datos`: la plataforma no es una fuente de `docs/SOURCES.md`.
+ 
++**Alternativas rechazadas.** Respuestas reales grabadas de la API: pedirían un paso `grabar_datos` contra una fuente
++que no está en `docs/SOURCES.md` y que en la sesión del paso no es accesible (sin red), y los casos que importan
++(cancelada, sin fusionar, sin marca, 90 días, orden que falla) habría que fabricarlos igual. Un servidor HTTP local al
++que apunte el `gh` de verdad: pediría ejecutar `gh` en `make ci`, que no se puede en el sandbox de las sesiones del run
++(no lee su configuración, «Supuestos no verificados»), y lo que probaría de más es el propio `gh`, no la lógica del
++arnés; la interfaz en memoria y el `gh` sustituto, como en `tanda_test.go`, prueban las dos mitades por separado.
++
+ ### D16 · El golden de la matriz, en el test
+ 
+ **Decisión.** El golden de FR-019 es una constante del propio test (`TestMatrizDeLasPropuestas`), comparada byte a byte.
+@@ -305,28 +340,58 @@
+ 
+ ### D17 · La decisión de cada trabajo, acotada y sin fallar por la plataforma
+ 
+-**Decisión.** `TestDecisionDelTrabajo` corre con `-timeout 15m` y da a la búsqueda un plazo de 10 minutos; un error de
+-la plataforma o el plazo agotado no lo hacen fallar: lo que queda sin resultado se mide (FR-013). Un error del cálculo
+-del conjunto elige todas las evals y el informe lo dice (FR-005). El peor caso del tope del trabajo suma esos 15 minutos.
++**Decisión.** `TestDecisionDelTrabajo` corre con `-timeout 15m` y da a lo que lee de la plataforma —los ficheros de la
++propuesta y la búsqueda de medidas de `main`— un plazo de 10 minutos. Un error de la plataforma o el plazo agotado no lo
++hacen fallar, y nunca quedan callados: la orden y su salida de error (o «plazo de 10 minutos agotado», con la orden en
++curso) se escriben en el registro del paso, antes de las líneas de las evals, y en `origen.error_de_la_plataforma` del
++fichero de la decisión, que el informe copia y `informe.md` enseña (data-model §8; contracts/informe-del-job.md §2 y
++§6). Lo que pasa después depende de la orden:
+ 
++- si no se pueden leer los ficheros de la propuesta, se eligen todas las evals de la skill con el motivo `plataforma`,
++  sin rutas, y no se busca: es la lectura conservadora, la misma que FR-005 da a un conjunto incalculable; el trabajo
++  `cambios`, con la misma orden, da `elige=si` y escribe el error en su registro;
++- en la búsqueda, la primera orden que falla, o el plazo, la para: lo que queda sin resultado se mide con
++  `sin_resultado_de_main` (FR-013, FR-014), y con el error al lado se sabe que se mide por él.
++
++Un error del cálculo del conjunto elige todas las evals y el informe lo dice (FR-005). El peor caso del tope del trabajo
++suma esos 15 minutos.
++
++**Alternativas rechazadas.** Sin plazo propio, solo con el tope del trabajo: un `gh` colgado gastaría los 352 minutos
++del tope y no quedaría tiempo para ninguna sesión. Hacer fallar el trabajo ante un error de la plataforma: dejaría en
++rojo una propuesta cuyas evals pasan por algo ajeno a ellas, contra FR-013 («plataforma que no responde» → se mide).
++Seguir con la medida anterior cuando una orden de la búsqueda falla, en lugar de parar: con la plataforma caída fallarían
++las diez y el registro tendría diez errores para decir lo mismo; parar en el primero deja uno y mide lo que falta, que
++es lo que pasaría igualmente. Un motivo nuevo para las evals que quedan al parar la búsqueda: FR-014 les da
++`sin_resultado_de_main`, y el error escrito al lado ya dice por qué no hubo resultado.
++
+ ### D18 · `scripts/evals.sh` exige la decisión
+ 
+ **Decisión.** `DECISION_DE_EVALS` pasa a ser obligatoria en `scripts/evals.sh` (la ruta del fichero que escribe la
+-decisión), y llega a `TestEjecucionDelJob` como `-decision`. Solo el job ejecuta `make evals`; un camino sin decisión
+-sería un segundo modo que nadie usa.
++decisión), y llega a `TestEjecucionDelJob` como `-decision`.
+ 
++**Alternativa rechazada.** `DECISION_DE_EVALS` opcional, midiéndolo todo sin ella: solo el job ejecuta `make evals`, y
++un camino sin decisión sería un segundo modo que nadie usa.
++
+ ### D19 · El motivo de una eval elegida
+ 
+ **Decisión.** De cada eval elegida, `rutas` son todas las rutas cambiadas que la eligen, ordenadas, y `motivo` el de
+-más prioridad entre ellas: `comun`, `sin_conjunto` (FR-005 en el job), `sin_asignar`, `descripcion` y `conjunto`. Una
+-eval no elegida que se mide lleva `sin_resultado_de_main`; en la suite completa, `suite_completa`.
++más prioridad entre ellas: `comun`, `sin_conjunto` (FR-005 en el job), `plataforma` (sin los ficheros de la propuesta,
++D17), `sin_asignar`, `descripcion` y `conjunto`. Una eval no elegida que se mide lleva `sin_resultado_de_main`; en la
++suite completa, `suite_completa`.
+ 
++**Alternativa rechazada.** Una entrada por ruta y eval, cada una con su motivo: repetiría la eval tantas veces como
++rutas la eligen; con el motivo de más prioridad y todas sus rutas en una entrada, el registro, el informe y el golden
++tienen una línea por eval (FR-008).
++
+ ### D20 · Aceptación e2e: no aplica
+ 
+ El hito no cambia nada que vea quien usa `kitlegal`: el binario no enlaza `internal/evals`, ninguna skill ni eval
+ cambia (FR-026), y las dos funciones nuevas de `internal/skills` solo leen. Como en H24, H26 y H26.1, no hay
+ comportamiento del binario que un guion `testscript` describa; la aceptación del spec (SC-006, SC-007) son tests de
+ `make ci` sobre la decisión del job, y su medición de cierre es la del workflow (SC-014).
++
++**Alternativa rechazada.** Un guion `testscript` sobre `kitlegal`: no describiría nada de la entrega (plan, «Complexity
++Tracking»).
+ 
+ ## Datos externos
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-22 11:26:53
++++ ahora/spec.md	2026-10-22 11:35:20
+@@ -171,7 +171,7 @@
+ - Un fichero renombrado cuenta como cambio de su ruta de antes y de la de después (FR-007).
+ - Dos medidas de `main` con la misma huella y resultados distintos: se reutiliza la más reciente (FR-012).
+ - Una medida de `main` que a su vez reutilizó una eval: el resultado reutilizable es el de la medida en que se abrieron
+-  sus sesiones (FR-011).
++  sus sesiones (FR-011), mientras esa medida tenga menos de 90 días; si no, la eval se mide (FR-012).
+ - Una eval que en la medida de `main` quedó con alguna sesión sin medir o alguna respuesta sin juzgar no es reutilizable:
+   se mide (FR-012).
+ - El despacho con `prueba_de_red` o la etiqueta `evals-prueba-de-red`: suite completa y la sesión de red, como hoy
+@@ -286,15 +286,18 @@
+ 
+ - **FR-012**: En una ejecución con reutilización (FR-016, FR-017), las evals elegidas (FR-006) se miden y no se buscan.
+   Cada eval no elegida reutiliza el resultado de la medida de `main` más reciente con su misma huella, pase o no, sin
+-  abrir sesión, si ese resultado se puede leer y está completo: ninguna sesión de sus series quedó sin medir y, con
+-  juez, ninguna respuesta del modelo que decide quedó sin juzgar. La búsqueda recorre como mucho las 10 medidas de
+-  `main` más recientes y para en cuanto cada eval no elegida tiene su resultado; lo que queda sin él se mide (FR-013).
++  abrir sesión, si ese resultado se puede leer, está completo —ninguna sesión de sus series quedó sin medir y, con
++  juez, ninguna respuesta del modelo que decide quedó sin juzgar— y la ejecución en que se abrieron sus sesiones (su
++  procedencia, FR-011) tiene menos de 90 días, la vida de su registro en la plataforma. La búsqueda recorre como mucho
++  las 10 medidas de `main` más recientes y para en cuanto cada eval no elegida tiene su resultado; lo que queda sin él
++  se mide (FR-013).
+   *Criterio*: tests de `make ci`: con dos medidas de la misma huella se reutiliza la más reciente; una eval con una
+-  sesión sin medir en su medida se mide; una eval cuya huella solo está en la undécima medida más reciente se mide.
++  sesión sin medir en su medida se mide; una eval cuya huella solo está en la undécima medida más reciente se mide; una
++  eval que la medida más reciente reutilizó de una ejecución de hace 90 días o más se mide.
+ 
+ - **FR-013**: Una eval sin ninguna medida de `main` con su huella, entre las que recorre la búsqueda (FR-012), cuyo
+-  resultado se pueda leer y esté completo —eval nueva, huella cambiada, registro caducado o borrado, informe ilegible,
+-  plataforma que no responde— se mide.
++  resultado se pueda leer y esté completo y cuya procedencia tenga menos de 90 días —eval nueva, huella cambiada,
++  registro caducado o borrado, procedencia de 90 días o más, informe ilegible, plataforma que no responde— se mide.
+ 
+ - **FR-014**: Una eval **no elegida** por la propuesta (FR-006) que no tiene un resultado reutilizable de `main` con su
+   huella (FR-013) se mide en esa misma ejecución, con ese motivo, «sin resultado reutilizable de `main`» (FR-022): abre
+@@ -431,8 +434,9 @@
+   por ejecución, y el cierre las copia a `gates/evals/<skill>.json`. Una entrada por eval —huella de 64 caracteres,
+   ejecución, trabajo, commit de 40, propuesta y fecha—, unos 250 bytes: hoy 23, 10 y 12 entradas por skill, unos 11 KB
+   entre las tres; con cientos de evals, decenas de KB por ejecución. La marca «reutilizada» de una eval deja de darse en
+-  la ejecución en que cambia su huella, en que su medida de `main` deja de poderse leer (los registros de la plataforma
+-  caducan a los 90 días) o en que esa medida sale de las 10 más recientes (FR-012), y entonces se mide.
++  la ejecución en que cambia su huella, en que la ejecución en que se abrieron sus sesiones cumple 90 días —la vida de
++  su registro en la plataforma—, aunque una medida posterior la haya reutilizado, o en que su medida de `main` sale de
++  las 10 más recientes (FR-012), y entonces se mide.
+ - **La búsqueda de medidas de `main` (FR-010, FR-012)**: la hace el job una vez por ejecución con reutilización que deja
+   alguna eval sin elegir, solo para esas evals; recorre las medidas de `main` legibles de la más reciente hacia atrás,
+   como mucho 10, y para cuando cada una tiene su resultado: lee una vez el informe de cada skill de cada medida que

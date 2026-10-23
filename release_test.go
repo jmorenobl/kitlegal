@@ -565,8 +565,12 @@ type laRelease struct {
 // piezas; doce pasos en el humo, los seis nuevos con su guion entero; y el
 // trabajo catalogo, que depende del humo, no puede escribir en este
 // repositorio y publica el catálogo con PUBLISHER_TOKEN, que solo ven el paso
-// de goreleaser y ese (H22 FR-003, FR-031, FR-040 a FR-043, FR-068). Ningún
-// guion de release.yml se ejecuta aquí: se comprueba su definición.
+// de goreleaser y ese (H22 FR-003, FR-031, FR-040 a FR-043, FR-068). Y, desde
+// H30, lo que su contracts/release.md §1 y §3 dicen de release.yml: un cuarto
+// trabajo, suite-completa, el primero, que comprueba con
+// TestSuiteCompletaDelCommit la suite completa de evals del commit etiquetado,
+// y del que depende publicar, con sus mutantes en memoria (H30 FR-025, SC-005).
+// Ningún guion de release.yml se ejecuta aquí: se comprueba su definición.
 func TestConfiguracionDeLaRelease(t *testing.T) {
 	t.Parallel()
 
@@ -593,6 +597,7 @@ func TestConfiguracionDeLaRelease(t *testing.T) {
 		{"ci", probarCI},
 		{"ayuda", probarAyuda},
 		{"flujo-de-la-release", probarFlujoDeLaRelease},
+		{"suite-completa", probarSuiteCompleta},
 		{"trabajo-de-publicacion", probarTrabajoDePublicacion},
 		{"tokens-de-la-publicacion", probarTokensDeLaPublicacion},
 		{"atestacion", probarAtestacion},
@@ -1074,17 +1079,44 @@ const (
 	flujoDeLaRelease = ".github/workflows/release.yml"
 
 	// trabajoDeCI es el de make ci, cuya preparación de Go repite el trabajo
-	// snapshot; trabajoDePublicacion, trabajoDeHumo y trabajoDelCatalogo son los
-	// de release.yml, el último desde H22 (H22 FR-031).
-	trabajoDeCI          = "ci"
-	trabajoDeSnapshot    = "snapshot"
-	trabajoDePublicacion = "publicar"
-	trabajoDeHumo        = "humo"
-	trabajoDelCatalogo   = "catalogo"
+	// snapshot; trabajoDeLaSuiteCompleta, trabajoDePublicacion, trabajoDeHumo y
+	// trabajoDelCatalogo son los de release.yml, el catálogo desde H22 (H22
+	// FR-031) y la suite completa desde H30 (H30 FR-025).
+	trabajoDeCI              = "ci"
+	trabajoDeSnapshot        = "snapshot"
+	trabajoDeLaSuiteCompleta = "suite-completa"
+	trabajoDePublicacion     = "publicar"
+	trabajoDeHumo            = "humo"
+	trabajoDelCatalogo       = "catalogo"
 
 	// runnerDeLosFlujos es el de los cuatro trabajos: linux/amd64, el binario
 	// que ejecutan TestSnapshot y el humo (research.md S15).
 	runnerDeLosFlujos = "ubuntu-latest"
+
+	// runnerDeLaSuiteCompleta es el de suite-completa, el mismo que el de los
+	// trabajos de evals.yml, cuyas ejecuciones comprueba (contracts/release.md
+	// §1 de H30).
+	runnerDeLaSuiteCompleta = "ubuntu-24.04"
+
+	// variableDelRepositorio, variableDelCommitEtiquetado y
+	// variableDeLaEtiqueta son las que suite-completa añade a GH_TOKEN en su
+	// entorno: el repositorio de las ejecuciones que lee gh, el commit que
+	// comprueba y la etiqueta con la que se lanza la suite completa si no la
+	// encuentra; repositorioDelFlujo, commitDelFlujo y referenciaDelFlujo son
+	// los valores del contexto de la ejecución de los que salen (contracts/
+	// release.md §1 de H30).
+	variableDelRepositorio      = "GH_REPO"
+	variableDelCommitEtiquetado = "COMMIT_ETIQUETADO"
+	variableDeLaEtiqueta        = "ETIQUETA"
+	repositorioDelFlujo         = "github.repository"
+	commitDelFlujo              = "github.sha"
+	referenciaDelFlujo          = "github.ref_name"
+
+	// ordenDeLaSuiteCompleta es la del último paso de suite-completa:
+	// TestSuiteCompletaDelCommit, con el commit etiquetado y la etiqueta de su
+	// entorno (contracts/release.md §1 de H30; H30 FR-025).
+	ordenDeLaSuiteCompleta = `go test -tags evals -count=1 -timeout 15m -v -run '^TestSuiteCompletaDelCommit$' ./internal/evals/` +
+		` -args -commit "$` + variableDelCommitEtiquetado + `" -etiqueta "$` + variableDeLaEtiqueta + `"`
 
 	// accionDeCheckout, accionDeSetupGo, accionDeSyft, accionDeCosign y
 	// accionDeAtestacion son las acciones de los trabajos, sin su etiqueta.
@@ -1445,21 +1477,38 @@ func leerLosFlujos(t *testing.T, raiz fs.FS) map[string]*yaml.Node {
 	return flujos
 }
 
-// leerTrabajo lee de forma estricta un trabajo del flujo.
+// leerTrabajo lee de forma estricta un trabajo del flujo (trabajoLeido).
 func leerTrabajo(t *testing.T, flujo flujoDeGitHub, nombre string) trabajoDelFlujo {
 	t.Helper()
 
-	nodo, existe := flujo.Jobs[nombre]
-	require.Truef(t, existe, "%s no tiene el trabajo %s", flujo.ruta, nombre)
-
-	contenido, err := yaml.Marshal(&nodo)
+	leido, err := trabajoLeido(flujo, nombre)
 	require.NoError(t, err)
 
-	var leido trabajoDelFlujo
-	require.NoErrorf(t, decodificarEstricto(contenido, &leido),
-		"el trabajo %s de %s tiene algo que contracts/release.md §5 y §6 no fijan", nombre, flujo.ruta)
-
 	return leido
+}
+
+// trabajoLeido es el trabajo del flujo leído de forma estricta, o el error que
+// dice que el flujo no lo tiene o que tiene algo que contracts/release.md §5 y
+// §6 no fijan. No recibe t para que lo usen también las comprobaciones que los
+// mutantes ejecutan sobre un flujo cambiado (faltasDeLaSuiteCompleta).
+func trabajoLeido(flujo flujoDeGitHub, nombre string) (trabajoDelFlujo, error) {
+	nodo, existe := flujo.Jobs[nombre]
+	if !existe {
+		return trabajoDelFlujo{}, fmt.Errorf("%s no tiene el trabajo %s", flujo.ruta, nombre)
+	}
+
+	contenido, err := yaml.Marshal(&nodo)
+	if err != nil {
+		return trabajoDelFlujo{}, fmt.Errorf("el trabajo %s de %s no se puede volver a escribir: %w", nombre, flujo.ruta, err)
+	}
+
+	var leido trabajoDelFlujo
+	if err := decodificarEstricto(contenido, &leido); err != nil {
+		return trabajoDelFlujo{}, fmt.Errorf("el trabajo %s de %s tiene algo que contracts/release.md §5 y §6 no fijan: %w",
+			nombre, flujo.ruta, err)
+	}
+
+	return leido, nil
 }
 
 // secuencia es, paso a paso, lo que hace cada paso: la acción que usa, sin su
@@ -1544,7 +1593,8 @@ func ordenesDelGuion(guion string) []string {
 // probarFlujoDeLaRelease: release.yml solo se dispara al empujar una etiqueta
 // v*, con ningún otro evento (FR-110, FR-115); no da permisos a nivel de flujo,
 // de modo que cada trabajo tiene solo los que declara (FR-111); y sus trabajos
-// son tres: publicar, humo y, desde H22, catalogo (H22 FR-031, FR-068).
+// son cuatro: publicar, humo y, desde H22, catalogo (H22 FR-031, FR-068), y,
+// desde H30, suite-completa, el primero de todos (H30 FR-025).
 func probarFlujoDeLaRelease(t *testing.T, release laRelease) {
 	t.Helper()
 
@@ -1553,8 +1603,262 @@ func probarFlujoDeLaRelease(t *testing.T, release laRelease) {
 	assert.Equal(t, map[string]*eventoDelFlujo{"push": {Tags: []string{"v*"}}}, flujo.On,
 		"%s se dispara solo al empujar una etiqueta v* (FR-110)", flujo.ruta)
 	assert.Nil(t, flujo.Permissions, "%s no da permisos a nivel de flujo (contracts/release.md §6)", flujo.ruta)
-	assert.ElementsMatch(t, []string{trabajoDePublicacion, trabajoDeHumo, trabajoDelCatalogo},
-		slices.Collect(maps.Keys(flujo.Jobs)), "los trabajos de %s (H22 FR-031, FR-068)", flujo.ruta)
+	assert.ElementsMatch(t, []string{trabajoDeLaSuiteCompleta, trabajoDePublicacion, trabajoDeHumo, trabajoDelCatalogo},
+		slices.Collect(maps.Keys(flujo.Jobs)), "los trabajos de %s (H22 FR-031, FR-068; H30 FR-025)", flujo.ruta)
+}
+
+// probarSuiteCompleta: release.yml cumple lo que contracts/release.md §1 de H30
+// fija del trabajo suite-completa y de la dependencia de publicar
+// (faltasDeLaSuiteCompleta), y cada mutante de mutantesDeLaSuiteCompleta,
+// aplicado en memoria al documento leído, da exactamente su falta: sin el
+// trabajo, sin la dependencia y con otro commit, en el entorno del trabajo o en
+// el paso, la release publicaría sin la suite completa del commit etiquetado
+// (H30 FR-025, SC-005).
+func probarSuiteCompleta(t *testing.T, release laRelease) {
+	t.Helper()
+
+	assert.Empty(t, faltasDeLaSuiteCompleta(release.publicacion),
+		"%s no exige la suite completa del commit etiquetado antes de publicar (contracts/release.md §1 de H30)",
+		flujoDeLaRelease)
+
+	contenido, err := fs.ReadFile(release.raiz, flujoDeLaRelease)
+	require.NoError(t, err)
+
+	for _, mutante := range mutantesDeLaSuiteCompleta {
+		documento := &yaml.Node{}
+		require.NoError(t, yaml.Unmarshal(contenido, documento))
+		require.NotEmpty(t, documento.Content, "%s está vacío", flujoDeLaRelease)
+
+		mutante.cambiar(t, valorDeLaClave(t, documento.Content[0], "jobs"))
+
+		cambiado, err := yaml.Marshal(documento)
+		require.NoError(t, err)
+
+		mutado := flujoDeGitHub{ruta: flujoDeLaRelease}
+		require.NoErrorf(t, decodificarEstricto(cambiado, &mutado), "el mutante %q no se puede leer", mutante.nombre)
+
+		faltas := faltasDeLaSuiteCompleta(mutado)
+		if assert.Lenf(t, faltas, 1, "el mutante %q no da exactamente una falta", mutante.nombre) {
+			assert.Containsf(t, faltas[0], mutante.falta, "el mutante %q da otra falta", mutante.nombre)
+		}
+	}
+}
+
+// mutanteDeLaSuiteCompleta cambia, en los trabajos del documento de
+// release.yml, una de las cosas que contracts/release.md §1 de H30 fija; falta
+// es un fragmento de la única falta que faltasDeLaSuiteCompleta tiene que dar
+// del flujo cambiado.
+type mutanteDeLaSuiteCompleta struct {
+	nombre  string
+	cambiar func(t *testing.T, trabajos *yaml.Node)
+	falta   string
+}
+
+// otroCommit es el commit con el que los mutantes sustituyen al etiquetado: el
+// que había en la rama antes del push, que no es el que se publica.
+var otroCommit = expresion("github.event.before")
+
+// mutantesDeLaSuiteCompleta son los de contracts/release.md §3 de H30: sin el
+// trabajo, sin la dependencia de publicar y con otro commit, tanto en el
+// entorno del trabajo como en el paso que lo pasa a TestSuiteCompletaDelCommit.
+var mutantesDeLaSuiteCompleta = []mutanteDeLaSuiteCompleta{
+	{
+		nombre: "sin el trabajo",
+		cambiar: func(t *testing.T, trabajos *yaml.Node) {
+			t.Helper()
+
+			quitarLaClave(t, trabajos, trabajoDeLaSuiteCompleta)
+		},
+		falta: "no tiene el trabajo " + trabajoDeLaSuiteCompleta,
+	},
+	{
+		nombre: "sin la dependencia",
+		cambiar: func(t *testing.T, trabajos *yaml.Node) {
+			t.Helper()
+
+			quitarLaClave(t, valorDeLaClave(t, trabajos, trabajoDePublicacion), "needs")
+		},
+		falta: trabajoDePublicacion + " depende de",
+	},
+	{
+		nombre: "con otro commit en el entorno del trabajo",
+		cambiar: func(t *testing.T, trabajos *yaml.Node) {
+			t.Helper()
+
+			entorno := valorDeLaClave(t, valorDeLaClave(t, trabajos, trabajoDeLaSuiteCompleta), "env")
+			valorDeLaClave(t, entorno, variableDelCommitEtiquetado).Value = otroCommit
+		},
+		falta: variableDelCommitEtiquetado,
+	},
+	{
+		nombre: "con otro commit en el paso",
+		cambiar: func(t *testing.T, trabajos *yaml.Node) {
+			t.Helper()
+
+			pasos := valorDeLaClave(t, valorDeLaClave(t, trabajos, trabajoDeLaSuiteCompleta), "steps")
+			require.NotEmpty(t, pasos.Content, "%s no tiene pasos", trabajoDeLaSuiteCompleta)
+
+			guion := valorDeLaClave(t, pasos.Content[len(pasos.Content)-1], "run")
+			guion.Value = strings.Replace(guion.Value, `"$`+variableDelCommitEtiquetado+`"`, `"`+otroCommit+`"`, 1)
+		},
+		falta: fmt.Sprintf("el paso %d de %s", len(pasosDeLaSuiteCompleta), trabajoDeLaSuiteCompleta),
+	},
+}
+
+// permisosDeLaSuiteCompleta son los de suite-completa: leer el contenido y las
+// ejecuciones de los flujos, y nada más (contracts/release.md §1 de H30).
+var permisosDeLaSuiteCompleta = map[string]string{"contents": "read", "actions": "read"}
+
+// entornoDeLaSuiteCompleta es el de suite-completa: el token de la ejecución y
+// el repositorio para gh, el commit etiquetado y la etiqueta
+// (contracts/release.md §1 de H30).
+var entornoDeLaSuiteCompleta = map[string]string{
+	variableDeGH:                expresion(accesoDelFlujo),
+	variableDelRepositorio:      expresion(repositorioDelFlujo),
+	variableDelCommitEtiquetado: expresion(commitDelFlujo),
+	variableDeLaEtiqueta:        expresion(referenciaDelFlujo),
+}
+
+// pasosDeLaSuiteCompleta son, en orden y sin su nombre ni la etiqueta de su
+// acción, los de suite-completa: obtiene el código del commit etiquetado, del
+// que salen las evals de cada skill, sin dejar la credencial en el clon;
+// instala el Go de go.mod; y ejecuta TestSuiteCompletaDelCommit
+// (contracts/release.md §1 de H30).
+var pasosDeLaSuiteCompleta = []pasoDelFlujo{
+	{Uses: accionDeCheckout, With: map[string]string{"persist-credentials": "false"}},
+	{Uses: accionDeSetupGo, With: map[string]string{"go-version-file": "go.mod"}},
+	{Run: ordenDeLaSuiteCompleta},
+}
+
+// faltasDeLaSuiteCompleta son, una por diferencia, las del flujo con lo que
+// contracts/release.md §1 de H30 fija: publicar depende solo de suite-completa,
+// de modo que no publica nada si no sale en verde (faltasDeLaDependencia); y
+// suite-completa, el primero de la release, corre en ubuntu-24.04 sin esperar a
+// ningún trabajo, con permisosDeLaSuiteCompleta, entornoDeLaSuiteCompleta y
+// pasosDeLaSuiteCompleta (faltasDeLosPasos). Sin el trabajo, esa es su única
+// falta. Recibe el flujo y no t para que los mutantes la ejecuten sobre un flujo
+// cambiado.
+func faltasDeLaSuiteCompleta(flujo flujoDeGitHub) []string {
+	faltas := faltasDeLaDependencia(flujo)
+
+	suite, err := trabajoLeido(flujo, trabajoDeLaSuiteCompleta)
+	if err != nil {
+		return append(faltas, err.Error())
+	}
+
+	if suite.RunsOn != runnerDeLaSuiteCompleta {
+		faltas = append(faltas, fmt.Sprintf("%s corre en %q, no en %q", trabajoDeLaSuiteCompleta, suite.RunsOn,
+			runnerDeLaSuiteCompleta))
+	}
+
+	if len(suite.Needs) > 0 {
+		faltas = append(faltas, fmt.Sprintf("%s espera a %v: es el primero de la release", trabajoDeLaSuiteCompleta,
+			suite.Needs))
+	}
+
+	if !maps.Equal(suite.Permissions, permisosDeLaSuiteCompleta) {
+		faltas = append(faltas, fmt.Sprintf("los permisos de %s son %v, no %v", trabajoDeLaSuiteCompleta,
+			suite.Permissions, permisosDeLaSuiteCompleta))
+	}
+
+	variables := slices.Concat(slices.Collect(maps.Keys(suite.Env)), slices.Collect(maps.Keys(entornoDeLaSuiteCompleta)))
+	slices.Sort(variables)
+
+	for _, variable := range slices.Compact(variables) {
+		if suite.Env[variable] != entornoDeLaSuiteCompleta[variable] {
+			faltas = append(faltas, fmt.Sprintf("en el entorno de %s, %s es %q, no %q", trabajoDeLaSuiteCompleta,
+				variable, suite.Env[variable], entornoDeLaSuiteCompleta[variable]))
+		}
+	}
+
+	return append(faltas, faltasDeLosPasos(suite.Steps)...)
+}
+
+// faltasDeLaDependencia es la falta de un publicar que no depende solo de
+// suite-completa, o la de un flujo sin publicar.
+func faltasDeLaDependencia(flujo flujoDeGitHub) []string {
+	publicar, err := trabajoLeido(flujo, trabajoDePublicacion)
+	if err != nil {
+		return []string{err.Error()}
+	}
+
+	if !slices.Equal([]string{trabajoDeLaSuiteCompleta}, publicar.Needs) {
+		return []string{fmt.Sprintf("%s depende de %v, y no solo de %s: publicaría sin la suite completa del commit etiquetado",
+			trabajoDePublicacion, publicar.Needs, trabajoDeLaSuiteCompleta)}
+	}
+
+	return nil
+}
+
+// faltasDeLosPasos son las de los pasos de suite-completa con
+// pasosDeLaSuiteCompleta: su número y, uno a uno, lo que hacen, sin el nombre y
+// con cada acción fijada por su etiqueta mayor o por su versión completa
+// (research.md V36).
+func faltasDeLosPasos(pasos []pasoDelFlujo) []string {
+	if len(pasos) != len(pasosDeLaSuiteCompleta) {
+		return []string{fmt.Sprintf("%s tiene %d pasos, no %d", trabajoDeLaSuiteCompleta, len(pasos),
+			len(pasosDeLaSuiteCompleta))}
+	}
+
+	var faltas []string
+
+	for indice, paso := range pasos {
+		accion, etiqueta, _ := strings.Cut(paso.Uses, "@")
+		if paso.Uses != "" && !etiquetaDeAccion.MatchString(etiqueta) {
+			faltas = append(faltas, fmt.Sprintf("%s no va fijada por su etiqueta mayor ni por su versión completa",
+				paso.Uses))
+		}
+
+		paso.Name, paso.Uses = "", accion
+		if !mismoPaso(paso, pasosDeLaSuiteCompleta[indice]) {
+			faltas = append(faltas, fmt.Sprintf("el paso %d de %s es %+v, no %+v", indice+1, trabajoDeLaSuiteCompleta,
+				paso, pasosDeLaSuiteCompleta[indice]))
+		}
+	}
+
+	return faltas
+}
+
+// mismoPaso dice si los dos pasos hacen lo mismo: la misma acción con los mismos
+// argumentos, o el mismo guion, con el mismo entorno, shell y directorio. No
+// mira el nombre.
+func mismoPaso(uno, otro pasoDelFlujo) bool {
+	return uno.Uses == otro.Uses && maps.Equal(uno.With, otro.With) && maps.Equal(uno.Env, otro.Env) &&
+		uno.Shell == otro.Shell && uno.WorkingDirectory == otro.WorkingDirectory &&
+		strings.TrimSpace(uno.Run) == strings.TrimSpace(otro.Run)
+}
+
+// valorDeLaClave es el nodo del valor de la clave en el mapa del documento.
+func valorDeLaClave(t *testing.T, mapa *yaml.Node, clave string) *yaml.Node {
+	t.Helper()
+
+	return mapa.Content[indiceDeLaClave(t, mapa, clave)+1]
+}
+
+// quitarLaClave quita del mapa del documento la clave y su valor.
+func quitarLaClave(t *testing.T, mapa *yaml.Node, clave string) {
+	t.Helper()
+
+	indice := indiceDeLaClave(t, mapa, clave)
+	mapa.Content = slices.Delete(mapa.Content, indice, indice+2)
+}
+
+// indiceDeLaClave es la posición de la clave en el contenido del mapa del
+// documento; sin ella, el mutante no cambiaría nada y el test falla.
+func indiceDeLaClave(t *testing.T, mapa *yaml.Node, clave string) int {
+	t.Helper()
+
+	require.Equalf(t, yaml.MappingNode, mapa.Kind, "se busca la clave %s en algo que no es un mapa", clave)
+
+	for indice := 0; indice+1 < len(mapa.Content); indice += 2 {
+		if mapa.Content[indice].Value == clave {
+			return indice
+		}
+	}
+
+	require.Failf(t, "falta la clave", "el mapa no tiene la clave %s", clave)
+
+	return -1
 }
 
 // probarTrabajoDePublicacion: publicar corre en ubuntu-latest con contents,
@@ -1562,14 +1866,16 @@ func probarFlujoDeLaRelease(t *testing.T, release laRelease) {
 // obtiene el código con toda su historia sin dejar la credencial en el clon,
 // instala Go sin restaurar ninguna caché, syft y cosign, publica con el
 // goreleaser de tools/ con GITHUB_TOKEN y PUBLISHER_TOKEN en el entorno de ese
-// paso, y atesta, en ese orden (contracts/release.md §6).
+// paso, y atesta, en ese orden (contracts/release.md §6). Desde H30 espera a
+// suite-completa, y solo a él (H30 FR-025).
 func probarTrabajoDePublicacion(t *testing.T, release laRelease) {
 	t.Helper()
 
 	publicar := leerTrabajo(t, release.publicacion, trabajoDePublicacion)
 
 	assert.Equal(t, runnerDeLosFlujos, publicar.RunsOn)
-	assert.Empty(t, publicar.Needs)
+	assert.Equal(t, []string{trabajoDeLaSuiteCompleta}, publicar.Needs,
+		"%s solo publica si %s sale en verde (H30 FR-025)", trabajoDePublicacion, trabajoDeLaSuiteCompleta)
 	assert.Equal(t, map[string]string{"contents": "write", "id-token": "write", "attestations": "write"},
 		publicar.Permissions, "los permisos de %s (FR-111)", trabajoDePublicacion)
 	assert.Empty(t, publicar.Env, "%s no tiene entorno propio: cada secreto va en el paso que publica (FR-114)",

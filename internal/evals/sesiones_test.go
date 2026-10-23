@@ -1088,19 +1088,29 @@ func TestEjecutarSesionesConElContextoCancelado(t *testing.T) {
 // cierra las abiertas con la secuencia del tope, como la interrupción, y vuelve
 // con ese error y no con el de las sesiones que cierra
 // (contracts/ejecucion-del-job.md §3 de H7.3; research D7 de H7.3; FR-037): con
-// Concurrencia 2, la primera sesión duerme 5 s, la segunda 1 s y la tercera no
-// se puede crear porque su directorio ya tiene trabajo/. La segunda termina, la
-// tercera no llega a abrirse y la primera recibe TERM sin cumplir su espera;
-// ninguna posterior a la tercera se abre ni tiene directorio, no queda ningún
-// proceso en el grupo de ninguna, y el error nombra la tercera sesión.
+// Concurrencia 2, la primera sesión duerme 5 s; la segunda no duerme, pero no
+// termina hasta que la primera ha empezado su espera; y la tercera no se puede
+// crear porque su directorio ya tiene trabajo/. La segunda termina, la tercera
+// no llega a abrirse y la primera recibe TERM sin cumplir su espera; ninguna
+// posterior a la tercera se abre ni tiene directorio, no queda ningún proceso en
+// el grupo de ninguna, y el error nombra la tercera sesión.
+//
+// La tercera solo se abre cuando la segunda deja su hueco, y su fallo cierra el
+// reparto: si la segunda terminara por su cuenta, bajo la carga de make ci la
+// primera, que se abre a la vez, puede no haber llegado aún a su claude —cada
+// sesión crea su directorio, se prepara y arranca su guion antes— y el cierre la
+// encontraría sin abrir, y el test la exigiría cerrada por TERM. La segunda
+// espera por eso a la marca con la que la primera empieza su espera, con la que
+// ya atiende TERM.
 func TestEjecutarSesionesConUnError(t *testing.T) {
 	t.Parallel()
 
 	s := escribirSustitutos(t)
-	ejecucion := sesionesDelRepartidor(t, s, 2, 1, false)
+	ejecucion := sesionesDelRepartidor(t, s, 2, 0, false)
 
-	primera, tercera := ejecucion.Plan[0].Nombre, ejecucion.Plan[2].Nombre
+	primera, segunda, tercera := ejecucion.Plan[0].Nombre, ejecucion.Plan[1].Nombre, ejecucion.Plan[2].Nombre
 	s.escribirEspera(t, primera, 5)
+	s.empezarLaEsperaCuandoExista(t, segunda, s.esperaEmpezada(primera))
 	require.NoError(t, os.MkdirAll(filepath.Join(ejecucion.Sesiones, tercera, "trabajo"), 0o700))
 
 	_, err := ejecutarSesiones(t.Context().Done(), ejecucion)

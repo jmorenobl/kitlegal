@@ -143,7 +143,32 @@ var generadoresDeReferencias = map[string]generadorDeReferencia{
 // que nombra el YAML de datos del que sale (FR-031, FR-065, FR-066). La ruta es
 // texto de la marca y no una ruta del sistema, así que va siempre con barra.
 func (g generadorDeReferencia) cabecera() string {
-	return "<!-- generado desde " + carpetaDeLosDatos + "/" + g.datos + ", no editar -->"
+	return inicioDeLaCabecera + g.datos + finDeLaCabecera
+}
+
+// inicioDeLaCabecera y finDeLaCabecera rodean, en la cabecera de una referencia
+// generada, al nombre del YAML de datos dentro de data/: la escribe cabecera y
+// la lee DatosDeLaReferencia.
+const (
+	inicioDeLaCabecera = "<!-- generado desde " + carpetaDeLosDatos + "/"
+	finDeLaCabecera    = ", no editar -->"
+)
+
+// DatosDeLaReferencia es el YAML de datos del que sale una referencia generada,
+// como lo nombra su cabecera, data/<fichero> (research D11 y FR-001(c) de H30;
+// FR-031): la primera línea es exactamente la cabecera que escribe cabecera, con
+// un fichero. Sin esa cabecera la referencia no es generada, y da false.
+func DatosDeLaReferencia(referencia []byte) (string, bool) {
+	linea, _, _ := bytes.Cut(referencia, []byte("\n"))
+
+	fichero, conInicio := strings.CutPrefix(string(linea), inicioDeLaCabecera)
+	fichero, conFin := strings.CutSuffix(fichero, finDeLaCabecera)
+
+	if !conInicio || !conFin || fichero == "" {
+		return "", false
+	}
+
+	return carpetaDeLosDatos + "/" + fichero, true
 }
 
 // componer es la referencia con el cuerpo dado: la cabecera, el título, la fila

@@ -1111,3 +1111,84 @@ func TestInformeFinalDeLaSerie(t *testing.T) {
 	require.True(t, esta)
 	assert.Contains(t, tercera, mostrada, "la sección 3 enseña la serie como mostrar")
 }
+
+// TestFilaConReutilizadas ejecuta tal cual el guion de la serie del workflow
+// —scripts/workflow/serie.sh fila, en su sitio y sin copiarlo— sobre el informe
+// de una ejecución con una eval reutilizada y sobre el de la misma ejecución con
+// solo lo medido, sin la eval reutilizada ni decisión, los dos escritos con
+// EscribirInforme y copiados en t.TempDir() con el commit de la cabeza del
+// repositorio, del que el guion lee la skill y su juez (FR-023 y SC-009 de
+// H30): los dos salen con 0 y dan, byte a byte, la misma fila, que cuenta solo
+// las respuestas medidas. La reutilizada aporta una respuesta marcada en la
+// clase que decide en cada modo, que la fila no ve.
+func TestFilaConReutilizadas(t *testing.T) {
+	t.Parallel()
+
+	_, err := exec.LookPath("jq")
+	require.NoError(t, err, "el guion de la serie lee con jq")
+
+	raiz, err := filepath.Abs(filepath.Join(guionesDelWorkflow, "..", ".."))
+	require.NoError(t, err)
+
+	commit := ejecutarGit(t, raiz, "rev-parse", "HEAD")
+	ejecucion := ejecucionDeDosEvals()
+
+	copia := armarEjecucionConUmbrales(t, ejecucion)
+	completa := informeDeLaCopia(t, copia, ejecucion.ajustar)
+
+	decision := decisionQueReutilizaLaPrimera(t, completa.informe)
+	marcarUnaRespuestaReutilizadaEnCadaModo(decision.Evals[0].Aportes)
+	quitarLasSesionesDeLaEval(t, copia, evalQueSeReutiliza)
+
+	conReutilizada := informeDeLaCopia(t, copia, func(entradas *InformeAEscribir) {
+		ejecucion.ajustar(entradas)
+		entradas.decision = &decision
+	})
+	require.Contains(t, umbralesPorNombre(conReutilizada.informe), conjuntoDelInforme+sufijoDeLasReutilizadas,
+		"el informe lleva lo reutilizado")
+
+	require.NoError(t, os.Remove(filepath.Join(copia, "evals", evalQueSeReutiliza)))
+
+	soloLoMedido := informeDeLaCopia(t, copia, ejecucion.ajustar)
+
+	filas := make([]string, 0, 2)
+
+	for _, leido := range []informeLeido{conReutilizada, soloLoMedido} {
+		evaluado := `"commit": "` + commitEvaluado + `"`
+		require.Equal(t, 1, strings.Count(leido.escrito, evaluado), "el informe nombra su commit una vez")
+
+		informe := filepath.Join(t.TempDir(), ficheroDelInformeJSON)
+		require.NoError(t, os.WriteFile(informe,
+			[]byte(strings.Replace(leido.escrito, evaluado, `"commit": "`+commit+`"`, 1)), 0o600))
+
+		salida, deError, codigo := ejecutarLaSerie(t, raiz, "fila", skillDeLasSesiones, procedenciaDeLaSerie(1, commit),
+			informe)
+		require.Equalf(t, 0, codigo, "fila: %s", deError)
+
+		filas = append(filas, salida)
+	}
+
+	assert.Equal(t, filas[1], filas[0], "la fila del informe con la reutilizada es la del de solo lo medido")
+
+	var fila filaDeLaSerie
+
+	require.NoError(t, json.Unmarshal([]byte(filas[0]), &fila))
+	assert.True(t, fila.Cuenta)
+	require.Len(t, fila.Clases, 1)
+	assert.Equal(t, 0, fila.Clases[0].Marcadas)
+	assert.Equal(t, 6, fila.Clases[0].Total, "las respuestas medidas del modelo que decide en los dos modos")
+}
+
+// marcarUnaRespuestaReutilizadaEnCadaModo da como marcada una respuesta de la
+// eval reutilizada en el recuento de cada modo de la clase que decide y, con
+// ellas, dos en su conjunto.
+func marcarUnaRespuestaReutilizadaEnCadaModo(aportes []aporteDeLaEval) {
+	for posicion, aporte := range aportes {
+		switch aporte.Umbral {
+		case conjuntoDelInforme:
+			aportes[posicion].Medida = 2
+		case conjuntoDelInforme + ":" + string(ModoOrden), conjuntoDelInforme + ":" + string(ModoHerramienta):
+			aportes[posicion].Medida = 1
+		}
+	}
+}

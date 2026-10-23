@@ -2,7 +2,9 @@
 
 - **Estado**: aceptada (2026-10-12). El job sigue con el umbral anterior hasta que lo cambie el hito que lo
   implemente («Enmiendas que provoca»). Enmendada el 2026-10-13 en el orden y en el reparto del trabajo, sin
-  cambiar la decisión («Enmienda: el orden y el reparto»).
+  cambiar la decisión («Enmienda: el orden y el reparto»). Precisada por el ADR 0045 (H30) en el número de respuestas
+  de su regla (punto 3): lo reutilizado no cuenta, y el límite de las respuestas medidas sale de una tasa de
+  referencia derivada del umbral vigente, con el mismo criterio de 1 de cada 50.
 - **Fecha**: 2026-10-12
 - **Hito**: transversal, tras el run de H25 y antes de fusionar su propuesta (#135). Sustituye, del ADR 0037, el
   umbral del punto 7 de su decisión —`afirma_lo_no_leido` «decide, con umbral 0»— y la frase de su validación que

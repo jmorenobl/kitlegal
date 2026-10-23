@@ -309,6 +309,11 @@ linters:
         # que nombran los tests de internal/source/bocm (FR-021, research D30);
         # misspell lo lee como «brunette».
         - brunete
+        # «Cancelled», la conclusion de gh run list de una ejecución cancelada
+        # de GitHub Actions, que la búsqueda de medidas de main descarta y cuyos
+        # tests la escriben tal cual (FR-010 y data-model §7 de H30, T009); con
+        # locale US, misspell la lee como «canceled».
+        - cancelled
         # «Calcular», el único verbo del applet plazos y la función del dominio
         # que da el plazo, plazos.Calcular, cuyos nombres fijan el contrato del
         # applet §1 y la tarea T004 de H9 (FR-001, plan.md paso 3); misspell lo

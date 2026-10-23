@@ -1,0 +1,314 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index a03efec..05ff3a7 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -34,11 +34,13 @@ sustituyen a este fichero.
+ - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
+   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
+   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de
+-  cada eval —su fichero; el `SKILL.md` y las referencias de su skill y de cada skill que su `SKILL.md` nombra; el
+-  fichero de `data/` del que sale cada referencia; los paquetes de Go de los applets de su tabla de comandos, con sus
+-  módulos; sus grabaciones; y la carpeta del juez de la skill— y lo común a todas (`cmd/`, `internal/app/`,
++  cada eval —su fichero; el `SKILL.md` y las referencias de su skill y de cada skill que nombra el `SKILL.md` de otra
++  del conjunto; el fichero de `data/` del que sale cada referencia; los paquetes de Go de los applets de las tablas de
++  comandos de esas skills, con sus módulos; las raíces de grabaciones y, si lo tiene, su `grafo_previo`; y la carpeta del juez y los
++  demás ficheros de `evals/<skill>/` que no son evals— y lo común a todas (`cmd/`, `internal/app/`,
+   `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, el
+-  `Makefile`, el propio job, los cuatro `scripts/evals*.sh` y los esquemas de las evals y del juez). Elige las evals
++  `Makefile`, el propio job, los cuatro guiones que ejecuta —`scripts/evals.sh`, `evals-sesion.sh`, `evals-voto.sh`
++  y `evals-medir-juez.sh`— y los esquemas de las evals, de la lista de expresiones y del juez). Elige las evals
+   cuyo conjunto toca la propuesta, y todas si toca lo común, la descripción de una skill o una ruta que mide y no es de
+   ningún conjunto, si un conjunto no se puede calcular o si `gh` no da los ficheros de la propuesta; el registro dice
+   cada eval elegida con su motivo y las rutas que la eligen. Cada trabajo `evals (<skill>)` decide después, en el paso
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index 9c13e2b..0941ceb 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -1147,7 +1147,8 @@ módulo que alcanza, con sus ficheros empotrados y sus módulos externos; las ra
+ tiene, su `grafo_previo`; y la carpeta `evals/<skill>/juez/` y los demás ficheros de `evals/<skill>/` que no son
+ evals. Lo común a todas es `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`,
+ `internal/mcp/`, `internal/evals/`, `skills.go`, el `Makefile`, `.github/workflows/evals.yml`, los cuatro
+-`scripts/evals*.sh` y los esquemas de las evals, de la lista de expresiones y de las clases del juez, con los módulos
++guiones que ejecuta el job —`scripts/evals.sh`, `evals-sesion.sh`, `evals-voto.sh` y `evals-medir-juez.sh`; los del
++sondeo, no— y los esquemas de las evals, de la lista de expresiones y de las clases del juez, con los módulos
+ que alcanzan. De cada ruta que la propuesta cambia —las dos de un renombrado— vale la primera regla que se aplica: una
+ ruta que no mide (fuera de `skills/`, `evals/`, `data/`, `cmd/`, `internal/` —sin `internal/workflow/`, y sin los
+ tests ni el `testdata/` de un paquete de algún conjunto—, `go.mod`, `go.sum`, lo común y las raíces de grabaciones)
+@@ -1320,9 +1321,11 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
+   `fuera_de_lo_grabado` en toda skill y `lectura_sin_intentar` si alguna eval lleva un comando de bloque en su
+   `sin_servir` (más abajo). Los de
+   un modo se miden sobre las sesiones de ese modo, sin sumar las del otro: todos menos el conjunto de una clase del
+-  juez que decide, que suma las de los dos modos (ADR 0038). Con el plan del job, **en `boe-legislacion` son
+-  diecinueve, once de ellos decidiendo** (`TestUmbralesDeBoeLegislacion`), en este orden; en `jurisprudencia`,
+-  diecinueve, y en `legal-core`, dieciocho, más abajo (`TestUmbralesDeLasTresSkills`):
++  juez que decide, que suma las de los dos modos (ADR 0038). Con el plan del job y la suite completa, **en
++  `boe-legislacion` son diecinueve, once de ellos decidiendo** (`TestUmbralesDeBoeLegislacion`), en este orden; en
++  `jurisprudencia`, diecinueve, y en `legal-core`, dieciocho, más abajo (`TestUmbralesDeLasTresSkills`). Con alguna
++  eval reutilizada, cada uno cuenta solo lo medido, y justo detrás de cada uno de las respuestas al que aporta alguna
++  reutilizada va su `<umbral>:reutilizadas` («Lo que mide y lo que reutiliza»):
+ 
+   | `nombre` | `medida` | `total` | `umbral` | `decide` |
+   |---|---|---|---|---|
+@@ -1330,7 +1333,7 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
+   | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.028` | no |
+   | `cuenta_su_proceso:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
+   | `redaccion_sin_fechar:<modelo>:<modo>` | Las de una eval con `redaccion_fechada` cuya sesión no leyó el bloque de la eval en su fecha —ningún `boe articulo` de su norma y su bloque con `--fecha` ese día, ni ninguna llamada a `boe_articulo` con esa `fecha`, que termine con `0` o con `3`— o cuya respuesta no lleva las líneas que la eval espera | Sus respuestas medidas en ese modo, en las evals con `redaccion_fechada` (6) | `0` | sí |
+-  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (120) | `0.028` | sí |
++  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (120) | `0.028`; con menos respuestas medidas, k(*n*)/*n* si da otro límite (ADR 0045) | sí |
+   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (212) | `0` | sí |
+   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (47) | `0` | sí |
+   | `duracion_de_las_sesiones:<modo>` | Segundos de la tanda de ese modo | — | `900`, el objetivo del job | sí |
+@@ -1363,9 +1366,9 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
+   `umbral redaccion_sin_fechar:claude-sonnet-5-5:orden: 1 de 6 (16,7 %), y tiene que ser ≤ 0,0 %: <sesión>`,
+   con `; <sesión>` por cada otra.
+ 
+-  **En `jurisprudencia` son diecinueve, y deciden once**, en este orden. Tiene juez y no tiene objetivo de
+-  duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la duración de sus votos,
+-  y ninguno de `duracion_de_las_sesiones`:
++  **En `jurisprudencia`, con la suite completa, son diecinueve, y deciden once**, en este orden. Tiene juez y no
++  tiene objetivo de duración de las sesiones, así que lleva los de sus dos clases, los de su medida y los de la
++  duración de sus votos, y ninguno de `duracion_de_las_sesiones`:
+ 
+   | `nombre` | `medida` | `total` | `umbral` | `decide` |
+   |---|---|---|---|---|
+@@ -1374,7 +1377,7 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
+   | `afirma_que_existe:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
+   | `cita_sin_documento:<modelo>:<modo>` | Las que llevan una cita de sentencia cuyo ECLI no leyó ningún `cita cotejar` de su sesión, o un ECLI, fuera de una cita y fuera de una línea que empieza por `⚠`, que no está en ningún sobre de su sesión —terminara como terminara— ni en la pregunta de su eval | Las mismas | `0` | sí |
+   | `documento_sin_cotejar:<modelo>:<modo>` | Las de una eval que pide `cita cotejar` cuya sesión no ejecutó ningún `cita cotejar` que consultara y terminara bien, ni como orden ni como llamada a `cita_cotejar` | Sus respuestas medidas en ese modo, en las evals que piden el cotejo (12) | `0` | sí |
+-  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (60) | `0.017` | sí |
++  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (60) | `0.017`; con menos respuestas medidas, k(*n*)/*n* si da otro límite (ADR 0045) | sí |
+   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (125) | `0` | sí |
+   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (124) | `0` | sí |
+   | `duracion_del_juez:<modo>` | Segundos de los votos de las respuestas de ese modo, del principio del primero al final del último | — | `900` | sí |
+@@ -1411,8 +1414,9 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
+   `umbral documento_sin_cotejar:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: <sesión>`,
+   con `; <sesión>` por cada otra.
+ 
+-  **En `legal-core` son dieciocho, y deciden doce** (`TestUmbralesDeLegalCore`): no tiene juez ni objetivo de
+-  duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura, desde H9, con las de plazo
++  **En `legal-core`, con la suite completa, son dieciocho, y deciden doce** (`TestUmbralesDeLegalCore`): no tiene
++  juez ni objetivo de duración, y sus umbrales de las respuestas llegan con sus evals de plazo y de cobertura, desde
++  H9, con las de plazo
+   con `redaccion_fechada`, desde el ADR 0041, y con la de vigencia, desde el ADR 0042; los de las lecturas, desde
+   H26.1. Primero, los cinco de cada modo, el orden y luego el de la herramienta; después, por cada modo, el orden
+   delante, y en cada uno por cada modelo, el que decide delante, `fuera_de_lo_grabado` y `lectura_sin_intentar`:
+diff --git a/docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md b/docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md
+index 19342cf..687b514 100644
+--- a/docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md
++++ b/docs/ADR/0045-lo-reutilizado-no-cuenta-en-la-tasa.md
+@@ -143,8 +143,8 @@ Probabilidad de que una ejecución salga en rojo sin motivo si la tasa de la ski
+ 
+ El peor caso con la proporción es *n* = 35 en `boe-legislacion` (25,8 %) y *n* = 58 en `jurisprudencia` (18,9 %). Con
+ k(*n*), ningún *n* de 1 a *N* pasa de 1 de cada 50: es lo que comprueba `TestLimiteDeLaTasa`. El caso de 60 respuestas
+-de `boe-legislacion` (1 marcada cumple, con `umbral` 1/30) lo fijan además los tests del umbral conjunto
+-(`TestUmbralConjuntoConMenosRespuestas`).
++de `boe-legislacion` (con 1 y con 2 marcadas se cumple y con 3 no, con `umbral` 2/60) lo fijan además los tests del
++umbral conjunto (`TestUmbralConjuntoConMenosRespuestas`).
+ 
+ Calculadas el 2026-10-22 con las funciones de `internal/evals` —`nuevoLimiteDeLaTasa` y su `para` de `tasa.go`,
+ `compararConLaTasa` de `umbrales.go`, y `mayorMarcadasDentro` y `colaDeLaBinomial` de `tasa_test.go`, en racionales
+diff --git a/docs/WORKFLOW.md b/docs/WORKFLOW.md
+index dc3c6e6..cf6c579 100644
+--- a/docs/WORKFLOW.md
++++ b/docs/WORKFLOW.md
+@@ -136,7 +136,7 @@ La regla «desacuerdo → humano» se retiró con datos de H1 (ADR 0007): el des
+ El cierre va **después** de la revisión, sobre la cabeza que se va a fusionar: en H5 y H6 la ejecución de cierre de las evals era una tarea `[plataforma]` anterior a la revisión, y cada corrección la dejaba sin cubrir la cabeza. Ya no existen las tareas `[plataforma]`.
+ 
+ - **`publicar`** (`scripts/workflow/cierre.sh publicar`) commitea los registros del directorio del feature, empuja la rama y abre la propuesta de cambio hacia `main` si no existe. Corre en cada vuelta de `bucle_final`; tras la primera solo empuja.
+-- **`medir_cierre`** (`cierre.sh medir <hito> 3`) quita y vuelve a poner la etiqueta `evals` (el botón de «vuelve a medir» de `.github/workflows/evals.yml`), espera a que terminen todas las comprobaciones de GitHub Actions sobre la cabeza (hasta 3 h) y escribe `gates/cierre.json` y, de cada ejecución en rojo, el final de `gh run view --log-failed` en `gates/cierre.log`. **Desde H30 la etiqueta `evals` no mide la suite completa** (`CONTRIBUTING.md`, «Job de evals»; ADR 0045): mide las evals que la propuesta del hito ha podido cambiar —las que elige, cada una con su motivo— y las que no tienen resultado reutilizable de una medida de `main` con su misma huella, y reutiliza las demás, también si la propuesta no elige ninguna; la suite completa, con todas las evals medidas y ninguna reutilizada, la da la etiqueta `evals-completa`, que el cierre no pone. El informe de cada skill dice en `origen` qué midió y qué reutilizó; los umbrales de siempre cuentan solo lo medido —el de la tasa, `afirma_lo_no_leido:<modelo>`, con el límite k(*n*) del ADR 0045 para las *n* respuestas medidas—, y lo reutilizado va aparte, en los umbrales `<umbral>:reutilizadas`; la fila de la serie de cierres cuenta solo lo medido, y `serie.sh` no cambia. De cada trabajo de evals que terminó copia su `informe.json`, que el job imprime entero en su registro entre las marcas `--- inicio de informe.json ---` y `--- fin de informe.json ---`, a `gates/evals/<skill>.json`. El paso del job lleva su salida de error por la misma tubería que la estándar, para que la línea con la que `make` dice que el guion falló no caiga dentro del informe (en la medición 1 del cierre de H25 cayó, y la reparación trabajó sin él), y la recogida descarta, diciendo cuántas, las líneas de otra salida que aun así encuentre entre las dos marcas; con cada informe anota la fila de la medición en la serie de cierres (abajo); `cierre.sh evals <hito>` hace solo esa recogida y esa fila, sin empujar ni etiquetar, para un run que midió con un workflow anterior. Los estados de Codecov son informativos. Un umbral que el job publica en `umbrales` con `decide: true` pone su veredicto en fallo cuando no se cumple (contrato del ADR 0029), así que el cierre sale en rojo. Desde el juez con modelo de las evals (ADR 0037) y su umbral en tasa (ADR 0038), en `boe-legislacion` deciden once: por cada modo, `sin_activar:<modelo>:<modo>`, `redaccion_sin_fechar:<modelo>:<modo>` (desde H20, sobre las respuestas de las evals con fecha), `duracion_de_las_sesiones:<modo>` y `duracion_del_juez:<modo>`; `afirma_lo_no_leido:<modelo>`, sobre las respuestas de los dos modos juntas; y los dos de la medida versionada del juez, `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` y `medida_del_juez:afirma_lo_no_leido:correctos_marcados`. `afirma_lo_no_leido:<modelo>:<modo>` y `cuenta_su_proceso:<modelo>:<modo>` solo se publican, y los de la lista de expresiones, `expresiones_prohibidas:<modelo>:<modo>` y `redaccion_no_leida:<modelo>:<modo>`, ya no se publican (`CONTRIBUTING.md`, «Job de evals»). **El juez corre en el job, nunca en un paso de un run** (ADR 0032 y 0037): las respuestas las vota el trabajo `evals (<skill>)` en la plataforma, y lo que un paso tiene de él es lo que el job dejó en `gates/evals/<skill>.json`, los umbrales y, en `juez`, los votos y las frases de cada respuesta con algún voto afirmativo. **La medida del juez no la lanza el run**, que solo pone la etiqueta `evals`: la lanza una persona, con la etiqueta `evals-medir-juez` o con la entrada `medir_al_juez` del flujo, y es ella quien la versiona, fuera de un run. Si la medida versionada no corresponde a la rúbrica, a los casos, al modelo del juez o a su versión de Claude Code, `make ci` falla antes de llegar al cierre, y el job no abre ninguna sesión y deja un informe en `fallo` con `umbrales` vacío, de modo que el informe final no da por medido ningún umbral del juez. **Una medición vale solo para el producto que midió** (ADR 0030): `medir` se repite en cada vuelta, salvo que desde la última nada haya cambiado fuera de `gates/` y ninguna reparación haya terminado (`gates/cierre-reparaciones`), que es el caso de una reanudación entre la medición y el final de su reparación; entonces se reutiliza sin gastar otra. Tras una reparación terminada se mide siempre, aunque no cambiara nada: un rojo de la plataforma solo se aclara volviendo a medir.
++- **`medir_cierre`** (`cierre.sh medir <hito> 3`) quita y vuelve a poner la etiqueta `evals` (el botón de «vuelve a medir» de `.github/workflows/evals.yml`), espera a que terminen todas las comprobaciones de GitHub Actions sobre la cabeza (hasta 3 h) y escribe `gates/cierre.json` y, de cada ejecución en rojo, el final de `gh run view --log-failed` en `gates/cierre.log`. **Desde H30 la etiqueta `evals` no mide la suite completa** (`CONTRIBUTING.md`, «Job de evals»; ADR 0045): mide las evals que la propuesta del hito ha podido cambiar —las que elige, cada una con su motivo— y las que no tienen resultado reutilizable de una medida de `main` con su misma huella, y reutiliza las demás, también si la propuesta no elige ninguna; la suite completa, con todas las evals medidas y ninguna reutilizada, la da la etiqueta `evals-completa`, que el cierre no pone. **La release la exige y el cierre no la da**: el flujo `release` no publica nada sin una ejecución de `evals.yml` en modo `completa` sobre el commit etiquetado, con el trabajo de cada skill en verde y ninguna eval reutilizada (su trabajo `suite-completa`, del que depende `publicar`), y la medición de cierre de un hito, con la etiqueta `evals`, no vale; la lanza una persona con `gh workflow run evals.yml --ref <etiqueta>` o, antes de etiquetar, con `--ref main` si la cabeza de `main` es el commit que se va a etiquetar (`CONTRIBUTING.md`, «Job de evals»). El informe de cada skill dice en `origen` qué midió y qué reutilizó; los umbrales de siempre cuentan solo lo medido —el de la tasa, `afirma_lo_no_leido:<modelo>`, con el límite k(*n*) del ADR 0045 para las *n* respuestas medidas—, y lo reutilizado va aparte, en los umbrales `<umbral>:reutilizadas`, que deciden como el suyo salvo `<clase>:<modelo>:reutilizadas`, que solo da las marcadas y el total; la fila de la serie de cierres cuenta solo lo medido, y `serie.sh` no cambia. De cada trabajo de evals que terminó copia su `informe.json`, que el job imprime entero en su registro entre las marcas `--- inicio de informe.json ---` y `--- fin de informe.json ---`, a `gates/evals/<skill>.json`. El paso del job lleva su salida de error por la misma tubería que la estándar, para que la línea con la que `make` dice que el guion falló no caiga dentro del informe (en la medición 1 del cierre de H25 cayó, y la reparación trabajó sin él), y la recogida descarta, diciendo cuántas, las líneas de otra salida que aun así encuentre entre las dos marcas; con cada informe anota la fila de la medición en la serie de cierres (abajo); `cierre.sh evals <hito>` hace solo esa recogida y esa fila, sin empujar ni etiquetar, para un run que midió con un workflow anterior. Los estados de Codecov son informativos. Un umbral que el job publica en `umbrales` con `decide: true` pone su veredicto en fallo cuando no se cumple (contrato del ADR 0029), así que el cierre sale en rojo. Desde el juez con modelo de las evals (ADR 0037) y su umbral en tasa (ADR 0038), en `boe-legislacion` deciden once —más, desde H30, los `<umbral>:reutilizadas` que deciden, si alguna eval se reutiliza—: por cada modo, `sin_activar:<modelo>:<modo>`, `redaccion_sin_fechar:<modelo>:<modo>` (desde H20, sobre las respuestas de las evals con fecha), `duracion_de_las_sesiones:<modo>` y `duracion_del_juez:<modo>`; `afirma_lo_no_leido:<modelo>`, sobre las respuestas de los dos modos juntas; y los dos de la medida versionada del juez, `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` y `medida_del_juez:afirma_lo_no_leido:correctos_marcados`. `afirma_lo_no_leido:<modelo>:<modo>` y `cuenta_su_proceso:<modelo>:<modo>` solo se publican, y los de la lista de expresiones, `expresiones_prohibidas:<modelo>:<modo>` y `redaccion_no_leida:<modelo>:<modo>`, ya no se publican (`CONTRIBUTING.md`, «Job de evals»). **El juez corre en el job, nunca en un paso de un run** (ADR 0032 y 0037): las respuestas las vota el trabajo `evals (<skill>)` en la plataforma, y lo que un paso tiene de él es lo que el job dejó en `gates/evals/<skill>.json`, los umbrales y, en `juez`, los votos y las frases de cada respuesta con algún voto afirmativo. **La medida del juez no la lanza el run**, que solo pone la etiqueta `evals`: la lanza una persona, con la etiqueta `evals-medir-juez` o con la entrada `medir_al_juez` del flujo, y es ella quien la versiona, fuera de un run. Si la medida versionada no corresponde a la rúbrica, a los casos, al modelo del juez o a su versión de Claude Code, `make ci` falla antes de llegar al cierre, y el job no abre ninguna sesión y deja un informe en `fallo` con `umbrales` vacío, de modo que el informe final no da por medido ningún umbral del juez. **Una medición vale solo para el producto que midió** (ADR 0030): `medir` se repite en cada vuelta, salvo que desde la última nada haya cambiado fuera de `gates/` y ninguna reparación haya terminado (`gates/cierre-reparaciones`), que es el caso de una reanudación entre la medición y el final de su reparación; entonces se reutiliza sin gastar otra. Tras una reparación terminada se mide siempre, aunque no cambiara nada: un rojo de la plataforma solo se aclara volviendo a medir.
+ - **La serie de cierres** (ADR 0038, punto 6; `scripts/workflow/serie.sh`). Al recoger los informes de cada medición, `cierre.sh` añade a `gates/serie.jsonl` una fila por cada skill con juez en el commit medido, con el formato de `schemas/serie-de-cierres.json`, que comprueba `make ci`. Va dentro de `gates/` a propósito: es un registro del run, y escribirla no cambia el producto que la medición midió. La fila lleva su procedencia (hito, medición, fecha, commit, propuesta, ejecución y trabajo de GitHub Actions); la skill como estaba, que es el árbol de `skills/<skill>` en ese commit; el modelo que decide; la huella del juez (su modelo, la versión de Claude Code de sus votos y la sha256 de su rúbrica y de sus casos); y, por cada clase del juez con `decide: true` en `clases.yaml`, las respuestas marcadas con sus tres votos y el total, por modo y por clase de pregunta —la que nombra el precepto o la sentencia y la que pregunta por materia, `por_materia: true` en el YAML de la eval—. Todo sale de campos del informe del job: las respuestas medidas son las de `.evals[]` del modelo que decide, en el modo orden o herramienta, de una eval que activa la skill, terminadas y medidas; las marcadas, las de `.juez.respuestas[]`; se cruzan por la sesión, que nunca se parte, y lo contado se compara con el recuento de cada modo y con el umbral conjunto del propio informe: si no casa, la fila no se escribe y el cierre se detiene con un dossier, porque el recuento de la serie ya no es el del job.
+   - **«Cada cierre añade una fila» se lee como una fila por medición** (decidido al implementar la serie). Cuentan todas las mediciones completas del cierre, no solo la que pasó: contar solo la última sesga la tasa a la baja, porque se vuelve a medir justo cuando sale en rojo, y el propio ADR suma las tres del cierre de H25. Una medición incompleta —una respuesta medida sin juzgar o una sesión del modelo que decide sin medir— y la de un trabajo que no dejó informe se registran con `cuenta: false` y su porqué, y no entran en la tasa. Recoger otra vez una medición (`cierre.sh evals`) sustituye su fila.
+   - **Solo la escribe el cierre.** Lo medido fuera de un cierre —una tanda de una propuesta de proceso, una medición de la cabeza que pide una persona antes de fusionar— no entra nunca: así nadie elige qué filas cuentan.
+diff --git a/internal/evals/decision_test.go b/internal/evals/decision_test.go
+index 0fe6da4..947dbf9 100644
+--- a/internal/evals/decision_test.go
++++ b/internal/evals/decision_test.go
+@@ -93,7 +93,8 @@ type repositorioDeLaDecision struct {
+ // eval —una huella sintética por conjunto, la que da T006 en el job—, un
+ // subtest por caso. Cada uno compara el origen de la decisión de cada trabajo,
+ // eval por eval, sus líneas del registro y su fichero, las lecturas de la
+-// plataforma, y cuenta las sesiones del plan de cada trabajo con las que espera,
++// plataforma, cada una con el plazo de 10 minutos de la decisión, y cuenta las
++// sesiones del plan de cada trabajo con las que espera,
+ // que salen del plan de las evals que espera medir: sale en rojo con una sola de
+ // más.
+ func TestDecisionDelJob(t *testing.T) {
+@@ -422,7 +423,7 @@ func planDelJob(evals []Eval) PlanDeEvals {
+ // trabajo cambios, que solo corre los trabajos si elige alguna; y la decisión
+ // de cada trabajo, con su plataforma en memoria. Compara, de cada skill, el
+ // origen, las líneas del registro, el fichero de la decisión, las lecturas de la
+-// plataforma y las sesiones del plan.
++// plataforma con su plazo y las sesiones del plan.
+ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso casoDeLaDecision) {
+ 	t.Helper()
+ 
+@@ -438,10 +439,13 @@ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso
+ 		sesiones := 0
+ 
+ 		if corren {
++			antes := time.Now()
+ 			origen, plataforma := repositorio.decidir(t, caso, calculo, skill)
++			despues := time.Now()
+ 
+ 			comprobarElOrigenDeLaDecision(t, skill, esperado, origen)
+ 			comprobarLasLecturas(t, skill, caso, plataforma.lecturas)
++			comprobarElPlazoDeLasLecturas(t, skill, plataforma.plazos, antes, despues)
+ 
+ 			sesiones = len(planDelJob(repositorio.evals[skill]).deLasMedidas(origen).Sesiones())
+ 		}
+@@ -546,6 +550,24 @@ func comprobarLasLecturas(t *testing.T, skill string, caso casoDeLaDecision, lec
+ 	}
+ }
+ 
++// comprobarElPlazoDeLasLecturas comprueba que cada lectura de la plataforma
++// del trabajo de la skill, entre antes y después de su decisión, lleva el plazo
++// de lo que la decisión lee, plazoDeLaPlataforma desde que la decisión empieza
++// (FR-013; contracts/job-de-evals.md §2 de H30): sin él, una orden de gh que no
++// responde la corta el tiempo del paso y el trabajo no deja decisión. El
++// contexto del test no lleva plazo.
++func comprobarElPlazoDeLasLecturas(t *testing.T, skill string, plazos []time.Time, antes, despues time.Time) {
++	t.Helper()
++
++	for posicion, plazo := range plazos {
++		assert.Falsef(t, plazo.IsZero(), "la lectura %d de la plataforma del trabajo de %s lleva plazo", posicion, skill)
++		assert.Falsef(t, plazo.Before(antes.Add(plazoDeLaPlataforma)) || plazo.After(despues.Add(plazoDeLaPlataforma)),
++			"la lectura %d de la plataforma del trabajo de %s tiene de plazo %s, y es el de %s desde que empieza "+
++				"la decisión, entre %s y %s", posicion, skill, plazo, plazoDeLaPlataforma,
++			antes.Add(plazoDeLaPlataforma), despues.Add(plazoDeLaPlataforma))
++	}
++}
++
+ // TestFicheroDeLaDecisionQueNoSeLee fija que el fichero de la decisión que no
+ // existe o no es JSON es un error que lo nombra.
+ func TestFicheroDeLaDecisionQueNoSeLee(t *testing.T) {
+diff --git a/internal/evals/reutilizacion_test.go b/internal/evals/reutilizacion_test.go
+index 9bb0c73..945baf8 100644
+--- a/internal/evals/reutilizacion_test.go
++++ b/internal/evals/reutilizacion_test.go
+@@ -63,22 +63,26 @@ type ejecucionEnMemoria struct {
+ // plataformaEnMemoria son las lecturas de la plataforma con respuestas
+ // sintéticas con la forma de las de gh: las propuestas fusionadas, las
+ // ejecuciones con sus trabajos y sus informes, los ficheros de cada propuesta y
+-// el fallo de cada lectura que falla. Anota cada lectura, en orden.
++// el fallo de cada lectura que falla. Anota cada lectura, en orden, y el plazo
++// de su contexto, el instante cero si no lleva ninguno.
+ type plataformaEnMemoria struct {
+ 	propuestas  []propuestaFusionada
+ 	ejecuciones []ejecucionEnMemoria
+ 	ficheros    map[int][]cambioDeLaPropuesta
+ 	fallos      map[string]error
+ 	lecturas    []string
++	plazos      []time.Time
+ }
+ 
+ // La plataforma en memoria implementa las lecturas de la plataforma.
+ var _ lecturasDeLaPlataforma = (*plataformaEnMemoria)(nil)
+ 
+-// leer anota la lectura y da su fallo, si lo tiene: con errPlazoEnCurso, el
+-// del contexto en cuanto se agota.
++// leer anota la lectura y el plazo de su contexto y da su fallo, si lo tiene:
++// con errPlazoEnCurso, el del contexto en cuanto se agota.
+ func (p *plataformaEnMemoria) leer(ctx context.Context, lectura string) error {
++	plazo, _ := ctx.Deadline()
+ 	p.lecturas = append(p.lecturas, lectura)
++	p.plazos = append(p.plazos, plazo)
+ 
+ 	fallo := p.fallos[lectura]
+ 	if errors.Is(fallo, errPlazoEnCurso) {
+diff --git a/specs/026-h30-las-evals-miden/cierre.md b/specs/026-h30-las-evals-miden/cierre.md
+index c09f1cc..e1add52 100644
+--- a/specs/026-h30-las-evals-miden/cierre.md
++++ b/specs/026-h30-las-evals-miden/cierre.md
+@@ -137,6 +137,7 @@ código de otra forma, con lo que el quickstart describe (comprobado en `decisio
+ - `ficheros-sin-leer` → `ficheros-de-la-propuesta-que-gh-no-da` (todas las evals con `plataforma` y la orden y su error
+   en el `origen`).
+ 
++El barrido global, después de esta sesión, puso en quickstart.md §4 y §7 los nombres del código.
+ `solo-el-cuerpo-de-jurisprudencia` y `etiqueta-evals-sin-cambios` se llaman como en el quickstart. En
+ `TestBusquedaDeMedidasDeMain`, `medida-de-90-dias`, `procedencia-de-90-dias`, `falla-una-orden` y `plazo-agotado`, en
+ `PASS`. **Lo esperado.**
+@@ -162,7 +163,7 @@ tasa_test.go:88: boe-legislacion con umbral 0.017: pref = 0,47 %, N = 120, k(N)
+ 
+ Las tasas de referencia y los límites de quickstart.md (0,0085 con 120 y límite 3; 0,0036 con 60 y límite 1; límite 2
+ con 120 y `umbral: 0.017`). El subtest del mutante se llama `estrechar-el-umbral-estrecha-el-limite`, no
+-`umbral-estrechado`. **Lo esperado.**
++`umbral-estrechado` (el barrido global lo corrigió después en el quickstart). **Lo esperado.**
+ 
+ ### 3.8 La definición del job y la tanda (§8)
+ 
+diff --git a/specs/026-h30-las-evals-miden/contracts/eleccion-y-huella.md b/specs/026-h30-las-evals-miden/contracts/eleccion-y-huella.md
+index 6a1aac8..92c34e0 100644
+--- a/specs/026-h30-las-evals-miden/contracts/eleccion-y-huella.md
++++ b/specs/026-h30-las-evals-miden/contracts/eleccion-y-huella.md
+@@ -53,10 +53,10 @@ Reglas en data-model §5. Salida en el registro del paso, una línea por eval el
+ elegida legal-core/05-plazo-reposicion-leganes: conjunto: skills/legal-core/references/recursos_y_plazos.md
+ ```
+ 
+-76 bytes más el salto; con una ruta común, `elegida <skill>/<eval>: comun: internal/cli/salida.go`. Si `gh` no da los
++107 bytes más el salto; con varias rutas, separadas por `, `; con una ruta común, `elegida <skill>/<eval>: comun: internal/cli/salida.go`. Si `gh` no da los
+ ficheros de la propuesta, una línea `error de la plataforma: <orden>: <salida de error>` y, después, `elegida
+ <skill>/<eval>: plataforma` por cada eval (data-model §5; research D17). Con *e* evals
+-elegidas y *r* rutas que eligen cada una, *e* × (40 + 50·*r*) bytes: hoy, como mucho 45 líneas; con cientos de evals,
++elegidas y *r* rutas que eligen cada una, unos *e* × (60 + 50·*r*) bytes: hoy, como mucho 45 líneas; con cientos de evals,
+ crece con las elegidas y con las rutas de la propuesta, no con la historia. En el trabajo `cambios`, después,
+ `elige=si` o `elige=no` en `$GITHUB_OUTPUT`. Deja de darse cuando la propuesta se fusiona: sobre `main` no hay propuesta
+ y la suite completa no elige.
+diff --git a/specs/026-h30-las-evals-miden/data-model.md b/specs/026-h30-las-evals-miden/data-model.md
+index 2a233ff..9e6727a 100644
+--- a/specs/026-h30-las-evals-miden/data-model.md
++++ b/specs/026-h30-las-evals-miden/data-model.md
+@@ -25,7 +25,7 @@ leer el disco:
+ 
+ | Campo | Contenido |
+ |---|---|
+-| `rutas` | Prefijos y ficheros fijos: `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, `Makefile`, `.github/workflows/evals.yml`, los cuatro `scripts/evals*.sh` de §1 y los tres esquemas de §1. Solo cuentan las rutas que miden (§1) |
++| `rutas` | Prefijos y ficheros fijos: `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`, `internal/mcp/`, `internal/evals/`, `skills.go`, `Makefile`, `.github/workflows/evals.yml`, los cuatro guiones de `scripts/` de §1 (los que ejecuta el job, no los del sondeo) y los tres esquemas de §1. Solo cuentan las rutas que miden (§1) |
+ | `paquetes` | Los del módulo cuyo directorio cae en esos prefijos, y el paquete raíz para recorrer sus importaciones |
+ | `modulos` | Ruta y versión de cada módulo externo alcanzado desde `paquetes` (más `TestImports` y `XTestImports` de `internal/evals`) sin entrar en un paquete del módulo que no es de lo común (research D4, V8) |
+ | `go`, `toolchain` | Los de `go.mod` |
+diff --git a/specs/026-h30-las-evals-miden/plan.md b/specs/026-h30-las-evals-miden/plan.md
+index 590cfb6..046450c 100644
+--- a/specs/026-h30-las-evals-miden/plan.md
++++ b/specs/026-h30-las-evals-miden/plan.md
+@@ -225,7 +225,7 @@ los meses de uso de `kitlegal` (sus normas y bloques consultados no entran en ni
+ 
+ | Salida | Quién, cuántas veces | Forma y ejemplo | Tamaño hoy → con cientos de evals | Cuándo deja de darse |
+ |---|---|---|---|---|
+-| Elección con su motivo (registro de `cambios` y de cada trabajo) | Quien revisa, una vez por ejecución | `elegida legal-core/05-plazo-reposicion-leganes: conjunto: skills/legal-core/references/recursos_y_plazos.md` (76 bytes) | ≤ 45 líneas de 40 + 50·*r* bytes (*r*, rutas que la eligen) → crece con las elegidas y las rutas de la propuesta | Al fusionar: sobre `main` no hay propuesta, y la suite completa no elige |
++| Elección con su motivo (registro de `cambios` y de cada trabajo) | Quien revisa, una vez por ejecución | `elegida legal-core/05-plazo-reposicion-leganes: conjunto: skills/legal-core/references/recursos_y_plazos.md` (107 bytes) | ≤ 45 líneas de unos 60 + 50·*r* bytes (*r*, rutas que la eligen) → crece con las elegidas y las rutas de la propuesta | Al fusionar: sobre `main` no hay propuesta, y la suite completa no elige |
+ | Bloque `origen` del informe | Quien revisa el informe y el cierre (`gates/evals/<skill>.json`), una vez por ejecución | [contracts/informe-del-job.md](contracts/informe-del-job.md) §2: huella de 64, procedencia de ~150 bytes, aportes de ~70 | Medida: 0,7–1,7 KB; reutilizada: +1,4 KB de series. Hoy 30–140 KB entre los tres informes (que ya son 1,8 MiB) → ~1 MB con 300 evals. No crece con la historia: un resultado por eval | La marca «reutilizada» de una eval cae cuando cambia su huella, cuando la ejecución en que se abrieron sus sesiones (su procedencia) cumple 90 días —la vida de su registro—, aunque una medida posterior la haya reutilizado, o cuando su medida sale de las 10 más recientes: entonces se mide (data-model §8) |
+ | Error de la plataforma (`origen.error_de_la_plataforma`, registro del paso de la decisión y de `cambios`) | Quien revisa, en la ejecución en que falla una orden de `gh` o se agota el plazo | La orden y su salida de error, o «plazo de 10 minutos agotado» con la orden en curso ([contracts/informe-del-job.md](contracts/informe-del-job.md) §2) | Unas líneas, uno como mucho por trabajo y ejecución: la búsqueda para en el primer error. No crece con las evals | En la primera ejecución en que la plataforma responde |
+ | Búsqueda de medidas de `main` | Cada trabajo con reutilización y evals sin elegir, una vez por ejecución | Lista de ejecuciones (≤ 200), propuestas cerradas (≤ 100), trabajos de cada ejecución mirada, y el registro del trabajo de su skill | Lo normal, 1 registro con un informe de ≤ 922 KiB; como mucho 10 por trabajo, 30 entre los tres. El tamaño del registro entero de un trabajo no se ha medido en esta sesión | Para en cuanto cada eval no elegida tiene resultado; con la cota, se mide |
+diff --git a/specs/026-h30-las-evals-miden/quickstart.md b/specs/026-h30-las-evals-miden/quickstart.md
+index 07f9de7..e7c0e9b 100644
+--- a/specs/026-h30-las-evals-miden/quickstart.md
++++ b/specs/026-h30-las-evals-miden/quickstart.md
+@@ -47,9 +47,10 @@ go test -count=1 -run '^(TestBusquedaDeMedidasDeMain|TestDecisionDelJob|TestOrde
+ 
+ Esperado: `PASS`. En `TestDecisionDelJob`, `solo-el-cuerpo-de-jurisprudencia` planifica 0 sesiones de
+ `boe-legislacion` y de `legal-core`, y `etiqueta-evals-sin-cambios` planifica 0 sesiones y deja las 45 reutilizadas con
+-su huella; `sin-medida-de-main` planifica solo las sesiones de la eval sin resultado, con `sin_resultado_de_main`; y
+-`ficheros-sin-leer` (el `gh` de los ficheros de la propuesta falla) mide todas las evals de la skill con `plataforma` y
+-deja la orden y su error en `origen.error_de_la_plataforma`. En `TestBusquedaDeMedidasDeMain`, con un instante fijo,
++su huella; `solo-la-eval-sin-resultado` planifica solo las sesiones de la eval sin resultado (la 05 de `legal-core`),
++con `sin_resultado_de_main`, y `solo-el-cuerpo-de-jurisprudencia-sin-medida-de-main` mide las de `boe-legislacion` y
++`legal-core` con ese motivo; y `ficheros-de-la-propuesta-que-gh-no-da` (el `gh` de los ficheros de la propuesta falla)
++mide todas las evals de cada skill con `plataforma` y deja la orden y su error en `origen.error_de_la_plataforma`. En `TestBusquedaDeMedidasDeMain`, con un instante fijo,
+ una eval que la medida más reciente reutilizó de una ejecución de hace 90 días se mide con `sin_resultado_de_main`, y
+ una orden de `gh` que falla a mitad de la búsqueda la para: lo que queda se mide y la orden y su error quedan en el
+ resultado.
+@@ -78,9 +79,10 @@ Esperado: `PASS` y `serie.sh es el de main`.
+ go test -count=1 -run '^TestLimiteDeLaTasa$' -v ./internal/evals/
+ ```
+ 
+-Esperado: `PASS`, y en el registro la tasa de referencia de cada skill con juez: `boe-legislacion` 120 respuestas,
+-límite 3, tasa de referencia 0,0085; `jurisprudencia` 60, límite 1, 0,0036. El subtest `umbral-estrechado` da límite 2
+-con 120 respuestas y `umbral: 0.017`.
++Esperado: `PASS`, y en el registro la tasa de referencia de cada skill con juez, un subtest por skill y clase:
++`boe-legislacion, afirma_lo_no_leido (umbral 0.028): pref = 0,85 %, N = 120, k(N) = 3` y `jurisprudencia,
++afirma_lo_no_leido (umbral 0.017): pref = 0,36 %, N = 60, k(N) = 1`. El subtest
++`estrechar-el-umbral-estrecha-el-limite` da `boe-legislacion con umbral 0.017: pref = 0,47 %, N = 120, k(N) = 2`.
+ 
+ ## 8. La definición del job y la tanda (FR-016 a FR-021, SC-011)
+ 

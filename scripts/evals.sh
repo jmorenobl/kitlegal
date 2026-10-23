@@ -18,11 +18,19 @@
 # Code, sin votar ningún caso etiquetado (contracts/job-de-evals.md §2 y contracts/informe-del-job.md §5 de H24;
 # FR-043, FR-044 de H24).
 #
-#   make evals SKILL=<skill>
+# Desde H30, solo abre las sesiones de las evals que mide la decisión de su trabajo, el fichero que escribe el paso
+# «Decidir qué mide y qué reutiliza» del job, y compone el informe con las que reutiliza; sin ese fichero no abre
+# ninguna (contracts/job-de-evals.md §3 de H30; research.md D18 de H30).
+#
+#   DECISION_DE_EVALS=<fichero> make evals SKILL=<skill>
 #
 # Abre sesiones con modelo y consume la credencial de Claude Code: lo ejecuta el job de evals
 # (.github/workflows/evals.yml); ni make ci, ni los ganchos, ni ninguna tarea del workflow. Necesita root o sudo sin
 # contraseña para buscar Python en todo el sistema de ficheros.
+#
+# DECISION_DE_EVALS, obligatoria y la primera que mira, tras el argumento: la ruta del fichero de la decisión, absoluta
+# o relativa a la raíz del repositorio, que tiene que ser un fichero legible; sin ella, termina con 1 antes de mirar
+# nada más.
 #
 # Variables obligatorias, todas fijadas en la definición del job: MODELO_DE_EVALS, el modelo que decide el veredicto;
 # MODELOS_INFORMATIVOS_DE_EVALS, separados por comas, que se ejecutan y se publican como límite inferior sin decidir;
@@ -50,6 +58,15 @@ if [[ $# -ne 1 ]] || [[ ! "$1" =~ $forma_de_skill ]]; then
 fi
 
 skill="$1"
+
+# La decisión de su trabajo (contracts/job-de-evals.md §3 de H30; research.md D18 de H30): sin ella, o si su ruta no es
+# la de un fichero legible, no hay nada que abrir. Va antes de cualquier otra comprobación que mire el entorno, y su
+# ruta llega absoluta a TestEjecucionDelJob, que go test ejecuta en el directorio de su paquete.
+if [[ -z "${DECISION_DE_EVALS:-}" ]] || [[ ! -f "$DECISION_DE_EVALS" ]] || [[ ! -r "$DECISION_DE_EVALS" ]]; then
+	echo "evals: falta DECISION_DE_EVALS" >&2
+	exit 1
+fi
+decision="$(cd "$(dirname -- "$DECISION_DE_EVALS")" && pwd -P)/$(basename -- "$DECISION_DE_EVALS")"
 
 for variable in MODELO_DE_EVALS MODELOS_INFORMATIVOS_DE_EVALS REPETICIONES_DE_EVALS UMBRAL_DE_EVALS COMMIT_EVALUADO; do
 	if [[ -z "${!variable:-}" ]]; then
@@ -168,15 +185,17 @@ fi
 # las sesiones del modo herramienta, y el directorio que sale del PATH de las que no son del modo orden
 # (contracts/evals-en-dos-modos.md §2.2 de H21). Con una skill que tiene juez van además sus tres banderas, y la orden
 # no abre ninguna sesión si su medida versionada no corresponde o no se cumple: escribe el informe del instrumento sin
-# medir y falla con su veredicto (contracts/informe-del-job.md §5 de H24; FR-043 de H24).
+# medir y falla con su veredicto (contracts/informe-del-job.md §5 de H24; FR-043 de H24). Con -decision, el fichero
+# de la decisión, el plan solo lleva las sesiones de las evals que mide, y el informe, también las que reutiliza
+# (contracts/job-de-evals.md §3 y §4 de H30).
 codigo_del_informe=0
 go test -tags evals -count=1 -timeout 0 -run '^TestEjecucionDelJob$' ./internal/evals/ -args \
 	-skill "$skill" -modelo-que-decide "$MODELO_DE_EVALS" -modelos-informativos "$MODELOS_INFORMATIVOS_DE_EVALS" \
 	-repeticiones "$REPETICIONES_DE_EVALS" -umbral "$UMBRAL_DE_EVALS" -concurrencia "$CONCURRENCIA_DE_EVALS" \
 	-prueba-de-red="${PRUEBA_DE_RED:-false}" -objetivo-de-duracion "${OBJETIVO_DE_DURACION_DE_EVALS:-0}" \
 	-skills "$HOME/.claude/skills" -kitlegal "$(command -v kitlegal)" -commit "$COMMIT_EVALUADO" \
-	-sin-python "$salida/sin-python.txt" -sesiones "$salida/sesiones" -informe "$salida" "${banderas_del_juez[@]}" ||
-	codigo_del_informe=$?
+	-sin-python "$salida/sin-python.txt" -sesiones "$salida/sesiones" -informe "$salida" -decision "$decision" \
+	"${banderas_del_juez[@]}" || codigo_del_informe=$?
 
 # La carpeta se vació al empezar: un informe que falta es que el test no lo escribió en esta ejecución.
 for f in informe.md informe.json; do
