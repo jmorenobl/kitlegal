@@ -53,6 +53,21 @@ sustituyen a este fichero.
   pasan detrás, con sus números; y las materias entran en el backlog (`docs/ROADMAP.md`, «Punto de partida y rumbo»;
   `docs/USO.md`, 2026-10-21).
 
+### Corregido
+
+- **Las llamadas simultáneas del servidor MCP ya no pierden lo observado.** Cada entrega al grafo del mundo competía
+  por el bloqueo de `world.db` en SQLite, reintentando por tramos de 100 ms con una espera propia de 5 s, también
+  contra las demás entregas del mismo proceso: con muchas llamadas a la vez y la máquina cargada, alguna agotaba esa
+  espera y su observación no llegaba al grafo («lo observado no ha llegado al grafo del mundo»). Ahora las entregas de
+  un mismo proceso esperan antes, en orden y mirando su plazo, su turno de escritura de `world.db`, y la espera propia
+  solo cuenta lo que se espera a otro proceso. Lo comprueban `TestElTurnoNoCuentaEnLaEsperaPropia`,
+  `TestEntregaSinTurnoDentroDelPlazo` y `TestEntregasSimultaneasDelProceso`.
+- **Una petición sin turno dentro de su plazo dice que fue el plazo.** Cuando el turno de un sitio no cabía en el plazo
+  que le quedaba a la operación, `httpx` lo decía sin esperar, como «fuente no disponible», pero sin
+  `context.DeadlineExceeded` en la causa, que sí llevaba la misma petición si el plazo vencía esperando. Ahora la lleva
+  en los dos casos. Con la máquina cargada, `TestPedirRespetaElPlazo` salía en rojo por esa diferencia; lo fija
+  `TestRitmoRespetaElContexto`.
+
 ## [0.8.1] - 2026-10-21
 
 ### Añadido

@@ -24,7 +24,10 @@
 //   - Toda espera por un bloqueo de otra invocación va por tramos de 100 ms
 //     dentro del motor, mira el contexto entre tramo y tramo y dura como mucho
 //     5 s: el contexto terminado es «fuente-no-disponible» y la espera propia
-//     agotada, «inesperado» (FR-014).
+//     agotada, «inesperado» (FR-014). Las entregas de un mismo proceso no
+//     compiten por ese bloqueo: esperan antes, en orden, su turno de escritura
+//     de world.db, también mirando el contexto, y la espera propia solo cuenta
+//     lo que se espera a otro proceso.
 //   - Todo fallo es un *Error que declara su clase por schema.ConClase y cuyo
 //     mensaje empieza por «grafo: » y nombra world.db
 //     (contracts/almacen-world-db.md §6). Ninguna ruta termina en panic.
