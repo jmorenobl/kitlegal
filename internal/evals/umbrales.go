@@ -137,6 +137,13 @@ const (
 	sufijoDeLosDefectosSinMarcar = ":defectos_sin_marcar"
 	sufijoDeLosCorrectosMarcados = ":correctos_marcados"
 
+	// sufijoDeLasReutilizadas es el del umbral con lo que aportan las evals
+	// reutilizadas a uno de las respuestas, y sobreLoQueSeMide, lo que abre en
+	// la descripción de este lo que su total cuenta (contracts/informe-del-job.md
+	// §3 de H30; FR-015 de H30).
+	sufijoDeLasReutilizadas = ":reutilizadas"
+	sobreLoQueSeMide        = ", sobre "
+
 	descripcionDelUmbralSinActivar = "Respuestas de %s en el modo %s sin la skill activada, sobre sus respuestas " +
 		"medidas en las evals que la activan"
 	descripcionDelUmbralDeCitaSinDocumento = "Respuestas de %s en el modo %s con una cita de sentencia sin " +
@@ -277,7 +284,9 @@ type Umbral struct {
 	Umbral      float64 `json:"umbral"`
 
 	// Cumple es el resultado de la comparación, en coma flotante de doble
-	// precisión y sin redondeos.
+	// precisión y sin redondeos; en el umbral conjunto de una clase, desde H30,
+	// el de la regla de la tasa (compararConLaTasa), que es el mismo que da la
+	// comparación con el Umbral que publica.
 	Cumple bool `json:"cumple"`
 
 	// Decide dice si incumplirlo pone el veredicto en fallo; si no, solo se
@@ -395,6 +404,11 @@ type Umbral struct {
 // una eval así, y cuatro en boe-legislacion y en jurisprudencia: dieciocho, de
 // los que deciden doce, en la primera, y diecinueve, de los que deciden once,
 // los de antes, en las otras dos.
+//
+// Desde H30 (contracts/informe-del-job.md §3 y §4 de H30; data-model §9 de
+// H30; FR-015, FR-023, FR-024), todos ellos cuentan solo lo medido, y, con
+// alguna eval reutilizada en la decisión, justo detrás de cada uno de las
+// respuestas al que aporta va su umbral :reutilizadas (conLasReutilizadas).
 func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas, lecturas *lecturasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()
@@ -420,7 +434,93 @@ func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas, lectu
 		umbrales = append(umbrales, delJuez.umbralesDeLaDuracion()...)
 	}
 
-	return append(umbrales, lecturas.umbrales()...)
+	return conLasReutilizadas(append(umbrales, lecturas.umbrales()...), e.decision.reutilizadas(), delJuez)
+}
+
+// conLasReutilizadas son los umbrales del informe con, justo detrás de cada uno
+// al que aporta alguna eval reutilizada, su umbral :reutilizadas
+// (contracts/informe-del-job.md §3 de H30; data-model §9 de H30; research D10
+// de H30; FR-015): solo los de las respuestas tienen aportes. Los demás, tal
+// cual, que dicen solo lo medido (FR-023).
+func conLasReutilizadas(umbrales []Umbral, reutilizadas []origenDeEval, delJuez *juicioDelJuez) []Umbral {
+	if len(reutilizadas) == 0 {
+		return umbrales
+	}
+
+	conReutilizadas := make([]Umbral, 0, 2*len(umbrales))
+
+	for _, umbral := range umbrales {
+		conReutilizadas = append(conReutilizadas, umbral)
+
+		if deLasReutilizadas, aportan := umbralDeLasReutilizadas(umbral, reutilizadas, delJuez); aportan {
+			conReutilizadas = append(conReutilizadas, deLasReutilizadas)
+		}
+	}
+
+	return conReutilizadas
+}
+
+// umbralDeLasReutilizadas es el umbral :reutilizadas de uno de las respuestas,
+// ya comparado, si alguna de las evals reutilizadas le aporta: se nombra con el
+// suyo y el sufijo, su descripción es la suya dicha de lo reutilizado
+// (descripcionDeLasReutilizadas), su medida y su total son la suma de esos
+// aportes, su umbral es el suyo y decide si él decide, salvo el del conjunto de
+// una clase del juez que decide, que solo publica las marcadas y el total de lo
+// reutilizado: lo reutilizado no cuenta en el umbral en tasa (FR-015, FR-024).
+// Con umbral 0, cumplir el medido y el reutilizado es cumplir el de los dos
+// juntos, y el veredicto es el que daría todo medido.
+func umbralDeLasReutilizadas(umbral Umbral, reutilizadas []origenDeEval, delJuez *juicioDelJuez) (Umbral, bool) {
+	medida, total, aportan := 0.0, 0, false
+
+	for _, eval := range reutilizadas {
+		for _, aporte := range eval.Aportes {
+			if aporte.Umbral == umbral.Nombre {
+				medida += aporte.Medida
+				total += aporte.Total
+				aportan = true
+			}
+		}
+	}
+
+	if !aportan {
+		return Umbral{}, false
+	}
+
+	return compararUmbral(Umbral{
+		Nombre:      umbral.Nombre + sufijoDeLasReutilizadas,
+		Descripcion: descripcionDeLasReutilizadas(umbral.Descripcion),
+		Medida:      medida,
+		Total:       &total,
+		Umbral:      umbral.Umbral,
+		Decide:      umbral.Decide && !delJuez.esConjunto(umbral.Nombre),
+	}), true
+}
+
+// descripcionDeLasReutilizadas es la descripción del umbral :reutilizadas de
+// uno de las respuestas: la suya, con «reutilizadas» detrás de lo que cuenta,
+// su primera palabra, y sin lo que sigue a su último «, sobre», que dice sobre
+// qué se mide lo medido (contracts/informe-del-job.md §3 de H30): «Respuestas
+// reutilizadas de <modelo> en el modo <modo> sin la skill activada».
+func descripcionDeLasReutilizadas(descripcion string) string {
+	if posicion := strings.LastIndex(descripcion, sobreLoQueSeMide); posicion >= 0 {
+		descripcion = descripcion[:posicion]
+	}
+
+	loQueCuenta, resto, _ := strings.Cut(descripcion, " ")
+
+	return loQueCuenta + " reutilizadas " + resto
+}
+
+// esConjunto dice si el umbral con ese nombre es el conjunto de una clase del
+// juez que decide (umbralesConjuntos); nunca sin juez.
+func (j *juicioDelJuez) esConjunto(nombre string) bool {
+	if j == nil {
+		return false
+	}
+
+	return slices.ContainsFunc(j.clases, func(clase ClaseDelJuez) bool {
+		return clase.Decide && nombreDelUmbralConjunto(clase.Nombre, j.modelo) == nombre
+	})
 }
 
 // umbrales son, por cada modo del plan y en su orden, los umbrales de las
@@ -537,6 +637,11 @@ func (j *juicioDelJuez) umbralesDeLasClases(grupo grupoJuzgado) []Umbral {
 // informativo, y la respuesta sin juzgar sigue en su total y fuera de su
 // medida. Una clase que solo se publica no tiene ninguno. Ninguno si la skill
 // no tiene juez.
+//
+// Desde H30 (contracts/informe-del-job.md §4 de H30; data-model §9; research
+// D12; FR-024), su comparación es la regla de la tasa (compararConLaTasa), con
+// el límite que se deriva del umbral de la clase y de las respuestas que el
+// plan da a juzgar en sus modos: con todas medidas, la de hoy.
 func (j *juicioDelJuez) umbralesConjuntos() []Umbral {
 	if j == nil {
 		return nil
@@ -556,17 +661,41 @@ func (j *juicioDelJuez) umbralesConjuntos() []Umbral {
 			total += len(grupo.respuestas)
 		}
 
-		umbrales = append(umbrales, compararUmbral(Umbral{
+		umbrales = append(umbrales, compararConLaTasa(Umbral{
 			Nombre:      nombreDelUmbralConjunto(clase.Nombre, j.modelo),
 			Descripcion: fmt.Sprintf(descripcionDelUmbralConjunto, j.modelo, clase.Nombre),
 			Medida:      float64(marcadas),
 			Total:       &total,
 			Umbral:      clase.Umbral,
 			Decide:      true,
-		}))
+		}, nuevoLimiteDeLaTasa(clase.Umbral, j.delPlan)))
 	}
 
 	return umbrales
+}
+
+// compararConLaTasa pone al umbral conjunto de una clase que decide su
+// comparación, «<=», y su resultado con la regla de la tasa
+// (contracts/informe-del-job.md §4 de H30; research D12; FR-024): se cumple si
+// su medida no pasa de k(n), con n su total, las respuestas medidas del modelo
+// que decide en los modos. Publica como Umbral el de la clase si con él la
+// comparación de compararUmbral da ese mismo límite —con todas las respuestas
+// del plan, siempre: es el umbral de hoy (FR-026)— y, si no, k(n)/n, con el
+// que la da: quien rehace medida/total ≤ umbral, como
+// scripts/workflow/informe.sh, llega al mismo resultado que el job. Con n = 0,
+// k(0) es 0, que es lo que da el umbral de la clase.
+func compararConLaTasa(umbral Umbral, limite limiteDeLaTasa) Umbral {
+	respuestas := *umbral.Total
+	marcadas := limite.para(respuestas)
+
+	umbral.Comparacion = comparacionMenorOIgual
+	umbral.Cumple = umbral.Medida <= float64(marcadas)
+
+	if mayorMedidaQueCumple(umbral.Umbral, respuestas) != marcadas {
+		umbral.Umbral = float64(marcadas) / float64(respuestas)
+	}
+
+	return umbral
 }
 
 // nombreDelUmbralConjunto es el nombre del umbral conjunto de una clase del

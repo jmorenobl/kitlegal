@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con internal/evals ok (348,0 s y 253,4 s en las dos pasadas), internal/app ok e internal/httpx ok, los dos que en la ronda 1 salieron en rojo por carga; su fecha (stat: 2026-10-22T23:28:31+0200) es la del commit cc977b6 (git log: 2026-10-22T23:28:31+02:00), así que mide la cabeza. Árbol limpio fuera de gates/: git status solo da gates/base-global-pendiente (borrado), gates/modelos.jsonl, gates/revision-cambios.md y gates/revision-cambios-r2.diff; las correcciones de specs/ que la ronda 1 encontró sin commitear (quickstart.md, plan.md, contracts/eleccion-y-huella.md, cierre.md) van en cc977b6 (git diff --stat f660303..HEAD: 11 ficheros). En una copia de HEAD bajo el directorio temporal (git clone --shared), TestDecisionDelJob, TestBusquedaDeMedidasDeMain, TestUmbralConjuntoConMenosRespuestas, TestInformeConReutilizadas y TestLimiteDeLaTasa en verde con el código sin mutar."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El motivo [b] del juez A está corregido y el test detecta lo que dice: comprobarElPlazoDeLasLecturas (decision_test.go:170-180) exige, en cada caso de TestDecisionDelJob, que cada lectura de la plataforma lleve plazo y que esté entre antes+plazoDeLaPlataforma y después+plazoDeLaPlataforma, con el plazo que anota plataformaEnMemoria.leer (reutilizacion_test.go:75, 86-87). En la copia, el mutante decision.go:235 context.WithTimeout→context.WithCancel pone TestDecisionDelJob en rojo («la lectura 0 de la plataforma del trabajo de boe-legislacion lleva plazo», siete lecturas entre las tres skills), y el mutante plazoDeLaPlataforma/10 también («tiene de plazo … y es el de 10m0s desde que empieza la decisión, entre … y …»); restaurado, verde. El rango no toca ningún otro test ni código de producto (git diff --stat f660303..HEAD: solo decision_test.go y reutilizacion_test.go en Go). Los once mutantes de la ronda 1 siguen valiendo porque su código no cambió. Sin suite de aceptación congelada por diseño (plan.md «Aceptación e2e: no aplica»); ningún t.Skip nuevo."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango solo cambia Markdown y dos ficheros _test.go de internal/evals; ningún import nuevo de net/http, ningún os.Exit ni fmt.Print* (el diff de revision-cambios-r2.diff añade solo time.Now, ctx.Deadline y aserciones de testify). golangci-lint y internal/arch_test.go en verde en gates/ci.log sobre cc977b6."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet cambia en el rango ni en el hito: cmd/, internal/app, internal/cli, internal/core, internal/source, internal/render, internal/mcp y schemas/ no aparecen en git diff --stat f660303..HEAD ni en el de main...HEAD (ronda 1); TestDependenciasDelBinario (doc.go) sigue dejando internal/evals fuera del binario; schema-check en verde en gates/ci.log."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El binario no cambia de errores ni de códigos. Lo que el contrato promete de la decisión —«Lo que lee de la plataforma … tiene un plazo de 10 minutos» (contracts/job-de-evals.md:63-64; CONTRIBUTING.md:1185)— lo cumple decision.go:235 (context.WithTimeout en conReutilizacion, que cubre los ficheros de la propuesta y la búsqueda) y ahora lo fija el test; con el plazo agotado, reutilizacion.go:385-398 deja «plazo de 10 minutos agotado» con la orden en curso (subtest plazo-agotado de TestBusquedaDeMedidasDeMain, en verde en la copia). El trabajo cambios no promete ese plazo: el contrato §1 le da timeout-minutes 15 y go test -timeout 12m, que es lo que lleva evals.yml:72 y 102."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Cada frase que la ronda 1 encontró sin sostén está corregida en cc977b6 y cotejada con el código: CHANGELOG.md:38-41 y CONTRIBUTING.md:1150-1151 nombran los cuatro guiones de lo común (scripts/evals.sh, evals-sesion.sh, evals-voto.sh, evals-medir-juez.sh) y los tres esquemas, los de ficherosDeLoComun (dependencias.go:44-48), y describen el conjunto como lo calcula el código: skills por cierre (dependencias.go:131), applets de las tablas de esas skills (134), raíces de UnionDeGrabaciones y grafo_previo (804-829), carpeta del juez y demás ficheros de evals/<skill>/ (141-142); docs/WORKFLOW.md:139 dice que los <umbral>:reutilizadas deciden como el suyo salvo <clase>:<modelo>:reutilizadas, que solo publica marcadas y total (umbrales.go:472-497: Decide = umbral.Decide && !delJuez.esConjunto), y que en boe-legislacion deciden once más los :reutilizadas que decidan; las tablas de CONTRIBUTING.md:1333 y 1378 dan al umbral conjunto «0.028» y «0.017; con menos respuestas medidas, k(n)/n si da otro límite (ADR 0045)», y 1324-1326, 1369 y 1417 dicen «con la suite completa»; docs/ADR/0045:146-147 «con 1 y con 2 marcadas se cumple y con 3 no, con umbral 2/60» coincide con TestUmbralConjuntoConMenosRespuestas (umbrales_test.go:1015-1018). SC-016 (motivo del juez A): docs/WORKFLOW.md:139 dice ahora que el flujo release no publica sin una ejecución de evals.yml en modo completa sobre el commit etiquetado, con el trabajo de cada skill en verde y ninguna eval reutilizada (release.yml:36 suite-completa, :68 publicar needs: [suite-completa]; suite_completa.go:117-123 y 213-222: headSha, terminada, trabajos en success, informe de modo completa sin reutilizadas), que la medición de cierre no vale y cómo lanzarla (evals.yml:38 workflow_dispatch; CONTRIBUTING.md:1103-1108 con las dos formas de --ref). quickstart.md §4 y §7 citan los subtests reales (decision_test.go:117, 121, 129, 131, 150; tasa_test.go:85), «la 05 de legal-core» (decision_test.go:134) y las líneas exactas que escribe TestLimiteDeLaTasa -v, que reproduje en la copia («boe-legislacion, afirma_lo_no_leido (umbral 0.028): pref = 0,85 %, N = 120, k(N) = 3»; «jurisprudencia, afirma_lo_no_leido (umbral 0.017): pref = 0,36 %, N = 60, k(N) = 1»; «boe-legislacion con umbral 0.017: pref = 0,47 %, N = 120, k(N) = 2»); plan.md:228 y contracts/eleccion-y-huella.md:56 dan 107 bytes a la línea de ejemplo. docs/SOURCES.md no aplica (sin fuentes). Queda sin corregir, fuera del alcance del corrector, el comentario de .github/workflows/evals.yml:262-263 (observaciones)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca código de producto ni de red: plataforma.go, evals.yml y release.yml siguen como en la ronda 1 (solo gh api sin método, gh run list y gh run view; GH_TOKEN solo en pasos de lectura con permissions de lectura). Ningún dato externo, grabación, NIF ni secreto en revision-cambios-r2.diff; testdata/, schemas/, data/, evals/ y skills/ no cambian en el rango (git diff --stat)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En el rango no hay //nolint, t.Skip, TODO ni error silenciado: el único «_» nuevo es el bool de ctx.Deadline() en plataformaEnMemoria.leer (reutilizacion_test.go:84), que el test convierte en aserción con plazo.IsZero(). Ningún fixture ni golden cambia (git diff --stat f660303..HEAD sin testdata/ ni ficheros golden); las correcciones son de texto y de un test que se añade, no de un esperado que se ajusta."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente la corrección de los motivos de la ronda 1: CHANGELOG, CONTRIBUTING, ADR 0045, docs/WORKFLOW.md, los dos tests del plazo y los artefactos de specs/ (gates/revision-cambios.md). Nada en scripts/workflow/, .specify/, internal/workflow/ ni .github/ (FR-027; el corrector respetó guardian-diff.sh:78). Ninguna eval, umbral, clase, modelo ni concurrencia cambia (FR-026). Los supuestos de gates/supuestos.md siguen siendo los de la ronda 1, lecturas conservadoras coherentes con el spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida: la medida de la ronda 1 sigue (bloque origen con una procedencia por eval, reutilizacion.go:311-315; elección de como mucho 45 líneas de ~107 bytes; búsqueda acotada por 200 ejecuciones, 100 propuestas, 10 medidas y 90 días; la marca «reutilizada» caduca con la huella, los 90 días o al salir de las 10 medidas; el error de la plataforma solo en la ejecución en que falla). Ninguna skill consume estas salidas y ninguna crece con los meses de uso de kitlegal. plan.md:228 y contracts/eleccion-y-huella.md:56 recogen ahora el tamaño medido (107 bytes, 60 + 50·r)."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Lo único nuevo en código es el campo plazos de plataformaEnMemoria (reutilizacion_test.go:75), la anotación en leer (84-86) y comprobarElPlazoDeLasLecturas (decision_test.go:170-180), 20 líneas de test que se trazan a FR-013 y al contrato §2 («plazo de 10 minutos») y que exige el motivo [b] del juez A; no añade ningún caso nuevo a la tabla, sino una comprobación a los que ya corren. Ningún mecanismo, rama, opción ni dependencia nueva en producto; lo demás del rango es documentación que corrige afirmaciones. El balance de la ronda 1 (cada mecanismo de internal/evals trazado a FR-001 a FR-025) no cambia."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Ningún control de umbral cambia en el rango; los once mutantes de la ronda 1 sobre tasa.go, umbrales.go, reutilizacion.go, suite_completa.go, eleccion.go, dependencias.go, origen.go, huella.go, evals.yml y release.yml siguen valiendo sobre el mismo código. En la copia de HEAD, TestUmbralConjuntoConMenosRespuestas, TestInformeConReutilizadas y TestLimiteDeLaTasa en verde (k(120)=3, k(60)=1, k(120) con 0.017 = 2). El umbral afirma_lo_no_leido:<modelo> sigue con decide: true y la comparación de la tasa (umbrales.go:664-697), y los <umbral>:reutilizadas que deciden lo hacen con decide: true (umbrales.go:455, 495), así que su incumplimiento pone el veredicto del job en fallo (ADR 0029). SC-014 lo mide el cierre, no este veredicto."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Sin corregir, y registrado para una persona en gates/revision-pendiente.md: el comentario del tope de .github/workflows/evals.yml:262-263 da el peor caso de legal-core como «6 469 s, 107,8 minutos … 14 629 s, 243,8 minutos», contra los 19 525 s sin la decisión (20 425 s con ella) de las líneas 250-253 del mismo comentario, peorCasoDeLegalCore de TestDefinicionDelJob y CONTRIBUTING.md:1080. El corrector no toca .github/ (scripts/workflow/guardian-diff.sh:78 lo deshace en modo global); es texto de un comentario, no cambia el tope (352 minutos cubren 340,4) ni ninguna definición, y TestDefinicionDelJob recalcula el peor caso: lo cambia una persona en la propuesta del hito, por «El de legal-core, que no tiene juez, es hoy de 19 525 s, 325,4 minutos, a dos a la vez (70 tandas de 272 s).»",
+    "contracts/job-de-evals.md:112 sigue dando la línea de la elección en «unos 80 bytes hoy», mientras §3 de eleccion-y-huella.md, plan.md:228 y la medida de la ronda 1 dan 107; la fila remite a ese §3, así que el lector llega a la cifra buena.",
+    "El trabajo cambios no lleva el plazo de 10 minutos en Go (solo conReutilizacion lo fija, decision.go:235): lo acotan -timeout 12m de su go test y timeout-minutes 15 (evals.yml:72, 102), como dice el contrato §1. Si gh se cuelga al abrir la propuesta, cambios falla sin elige y los trabajos de evals no corren (su if exige needs.cambios.result != 'failure'); al reabrir o etiquetar se vuelve a intentar. Nada lo promete distinto; no es del rango.",
+    "internal/evals tarda 253-348 s en gates/ci.log (171-184 s antes de H30): go test ./... lleva ahora varios go list -deps y dos git clone, y los tests sensibles al tiempo de internal/app e internal/httpx tienen más probabilidad de salir en rojo bajo carga, como pasó en la ronda 1; esta vez salieron en verde.",
+    "El registro de la elección repite en cada línea las mismas rutas de lo común (37 rutas, 1 272 bytes por línea con la propuesta de este hito, según la medida del juez A): acotado por las evals y las rutas de la propuesta, y caduca al fusionar; escribirlas una vez lo reduciría sin perder información.",
+    "Tras fusionar H30, la primera release necesita una ejecución de la suite completa sobre el commit etiquetado: la medición de cierre corre en modo reutilizacion y motivoDelInforme (suite_completa.go:213) la descarta; docs/WORKFLOW.md:139 y CONTRIBUTING.md:1103-1108 lo dicen ahora.",
+    "ADR 0038 (estado) y CLAUDE.md («Umbral de una clase del juez») no nombran el ADR 0045; el supuesto [alcance] de T016 lo deja para quien acepte el ADR."
+  ]
+}

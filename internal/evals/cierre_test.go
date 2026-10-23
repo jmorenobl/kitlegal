@@ -193,10 +193,15 @@ func TestRecogerLasEvalsDelCierre(t *testing.T) {
 // llegan. Sin el 2>&1, cuando el guion termina en fallo, la línea con la que
 // make lo dice queda en un punto cualquiera de lo que la salida estándar aún
 // no había entregado: en la medición 1 del cierre de H25, dentro del informe.
+//
+// El paso que ejecuta las evals fija DECISION_DE_EVALS delante de make, en la
+// misma orden (contracts/job-de-evals.md §2, H30): el test reconoce la orden
+// tras las asignaciones de variables con que empieza su `run` y espera los dos
+// `run` enteros, en su orden.
 func TestSalidasDeLosPasosQueImprimen(t *testing.T) {
 	t.Parallel()
 
-	const esperado = `make evals SKILL="$SKILL_EVALUADA" 2>&1` + "\n" +
+	const esperado = `DECISION_DE_EVALS="$RUNNER_TEMP/decision-de-evals.json" make evals SKILL="$SKILL_EVALUADA" 2>&1` + "\n" +
 		`make evals-medir-juez SKILL="$SKILL_EVALUADA" 2>&1`
 
 	flujo, err := leerFichero(rutaDeLaDefinicionDelJob)
@@ -205,13 +210,80 @@ func TestSalidasDeLosPasosQueImprimen(t *testing.T) {
 	var ordenes []string
 
 	for linea := range strings.Lines(string(flujo)) {
-		if orden, es := strings.CutPrefix(strings.TrimSpace(linea), "run: "); es && strings.HasPrefix(orden, "make evals") {
+		orden, es := strings.CutPrefix(strings.TrimSpace(linea), "run: ")
+		if es && strings.HasPrefix(ordenTrasLasAsignaciones(orden), "make evals") {
 			ordenes = append(ordenes, orden)
 		}
 	}
 
 	assert.Equal(t, esperado, strings.Join(ordenes, "\n"),
 		"los pasos que ejecutan las evals y la medida del juez, en su orden, con las dos salidas por una tubería")
+}
+
+// TestOrdenTrasLasAsignaciones fija qué quita ordenTrasLasAsignaciones: solo
+// las palabras `NOMBRE=valor` del principio, con un nombre de variable del
+// shell; la primera palabra que no lo es empieza la orden, y lo que viene
+// detrás de ella se queda como está.
+func TestOrdenTrasLasAsignaciones(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre, orden, esperado string
+	}{
+		{"sin asignaciones", `make evals SKILL="$SKILL_EVALUADA" 2>&1`, `make evals SKILL="$SKILL_EVALUADA" 2>&1`},
+		{"una asignación", `DECISION_DE_EVALS="$RUNNER_TEMP/decision.json" make evals 2>&1`, `make evals 2>&1`},
+		{"dos asignaciones", `A=1  B=  make evals`, `make evals`},
+		{"la asignación es de make, no del entorno", `make evals SKILL=boe`, `make evals SKILL=boe`},
+		{"un nombre que no es de variable", `2>&1 make evals`, `2>&1 make evals`},
+		{"un nombre que empieza por cifra", `1A=x make evals`, `1A=x make evals`},
+		{"una sola palabra", `make`, `make`},
+		{"solo una asignación", `A=1`, `A=1`},
+		{"vacía", ``, ``},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.esperado, ordenTrasLasAsignaciones(caso.orden))
+		})
+	}
+}
+
+// ordenTrasLasAsignaciones devuelve la orden de un `run` sin las asignaciones
+// de variables de entorno con que empieza, `NOMBRE=valor` con el valor sin
+// espacios, como la de DECISION_DE_EVALS del paso que ejecuta las evals. Una
+// palabra que no es una asignación empieza la orden; lo que la sigue no se mira.
+func ordenTrasLasAsignaciones(orden string) string {
+	for {
+		palabra, resto, hay := strings.Cut(orden, " ")
+		if !hay || !esAsignacionDeVariable(palabra) {
+			return orden
+		}
+
+		orden = strings.TrimLeft(resto, " ")
+	}
+}
+
+// esAsignacionDeVariable dice si una palabra es una asignación de una variable
+// del shell: un nombre de letras ASCII, cifras y guiones bajos que no empieza
+// por cifra, seguido de un igual.
+func esAsignacionDeVariable(palabra string) bool {
+	nombre, _, hay := strings.Cut(palabra, "=")
+	if !hay || nombre == "" {
+		return false
+	}
+
+	for i, r := range nombre {
+		letra := r == '_' || ('A' <= r && r <= 'Z') || ('a' <= r && r <= 'z')
+		cifra := i > 0 && '0' <= r && r <= '9'
+
+		if !letra && !cifra {
+			return false
+		}
+	}
+
+	return true
 }
 
 // registroDelTrabajo escribe el registro que `gh run view --log` da de un

@@ -52,6 +52,10 @@ const (
 	motivoSinEvalsQueJuzgar   = "ninguna eval bien formada que juzgar"
 	motivoDeFicheroMalFormado = ": mal formado: "
 	motivoDeLlegadaALaRed     = ": petición llegada a la red: "
+
+	// motivoDeUnaSerieReutilizada es el de una serie que decide de una eval
+	// reutilizada que no pasa (contracts/informe-del-job.md §5 de H30).
+	motivoDeUnaSerieReutilizada = "%s con %s, reutilizada: pasan %d de %d, y el umbral es %d"
 )
 
 // Motivos de la raíz que no son de la skill sino de la ejecución: empiezan por
@@ -243,6 +247,14 @@ type InformeAEscribir struct {
 	// sin medir, que no lleva nada medido (contracts/informe-del-job.md §5 de
 	// H24; research D11 de H24; FR-043 de H24).
 	InstrumentoSinMedir []string
+
+	// decision es la del job sobre las evals de la skill: cuáles mide y, de las
+	// que reutiliza, su resultado en la medida de main de la que viene, con sus
+	// aportes y sus series (contracts/informe-del-job.md §2 de H30; data-model
+	// §8 de H30; FR-011, FR-022). El plan del informe es el de las medidas, y lo
+	// reutilizado va en su origen, en sus umbrales :reutilizadas y en su
+	// veredicto. nil es la ejecución de todas, la de la suite completa.
+	decision *origenDeLasEvals
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -285,6 +297,12 @@ type Informe struct {
 	// Motivos son las causas del veredicto fallo, en el orden de data-model
 	// §10.3; vacío con el veredicto aprobado, que es justo cuando no hay ninguna.
 	Motivos []string `json:"motivos"`
+
+	// Origen es lo que la ejecución midió y lo que reutilizó de cada eval de la
+	// skill, siempre presente (contracts/informe-del-job.md §2 de H30; FR-011,
+	// FR-022 de H30); null solo en un informe anterior a H30. Los demás campos
+	// dicen solo lo medido (FR-023 de H30).
+	Origen *origenDeLasEvals `json:"origen"`
 
 	// Tasas son las series —las sesiones de una eval con un modelo en un modo—
 	// con cuántas de sus sesiones pasan: primero las que el plan pide, en su
@@ -541,6 +559,12 @@ type juicioDelJuez struct {
 	// modo del plan, el del modo orden delante, y detrás el de las evals sin
 	// binario ni servidor, que no es de ningún modo.
 	grupos []grupoJuzgado
+
+	// delPlan son las respuestas que una ejecución completa del plan da a
+	// juzgar en sus modos (respuestasQueSeJuzganEnSusModos): N de la regla de
+	// la tasa, de la que sale el límite del umbral conjunto de cada clase que
+	// decide (umbralesConjuntos; FR-024 de H30).
+	delPlan int
 }
 
 // grupoJuzgado son las respuestas del modelo que decide que se miden juntas
@@ -1125,7 +1149,9 @@ func cabeceraDelInforme(e InformeAEscribir, sinPython string) Informe {
 // de las respuestas sin activar y los de la duración saldrían cumplidos sin
 // ninguna sesión—, ninguna serie, ninguna sesión, y del juez, solo su modelo y
 // la versión de Claude Code de sus votos, los fijados, sin ninguna respuesta.
-// Así quien lee el informe no da por medido ningún umbral del juez.
+// Así quien lee el informe no da por medido ningún umbral del juez. Desde H30,
+// lleva el origen recibido, sin ninguna sesión abierta ni ningún aporte medido
+// (origenSinNadaMedido).
 func informeDelInstrumentoSinMedir(e InformeAEscribir, sinPython string) Informe {
 	informe := cabeceraDelInforme(e, sinPython)
 
@@ -1134,6 +1160,7 @@ func informeDelInstrumentoSinMedir(e InformeAEscribir, sinPython string) Informe
 	}
 
 	informe.Juez = &JuezInformado{Modelo: e.ModeloDelJuez, VersionDeClaudeCode: e.VersionDelJuez}
+	informe.Origen = origenSinNadaMedido(e)
 	informe.Veredicto = veredictoDelInforme(informe)
 
 	return informe
@@ -1281,7 +1308,20 @@ type serieJuzgada struct {
 // evals bien formadas y en los modos recibidos. Sin prueba de red: esa sesión no
 // forma serie planificada, porque no pregunta lo que pregunta la eval (contrato
 // job-de-evals §6).
+//
+// Desde H30, sus evals son solo las que la decisión mide: las que reutiliza no
+// abren sesiones, y sus series no son del plan (FR-023 de H30).
 func (e InformeAEscribir) plan(evals []Eval) PlanDeEvals {
+	plan := e.planCompleto(evals)
+	plan.Evals = e.decision.medidas(evals)
+
+	return plan
+}
+
+// planCompleto es el plan de todas las evals bien formadas, también las que la
+// decisión reutiliza: el de la suite completa, del que sale N de la regla de la
+// tasa (data-model §9 de H30; FR-024 de H30).
+func (e InformeAEscribir) planCompleto(evals []Eval) PlanDeEvals {
 	return PlanDeEvals{
 		Evals:               evals,
 		ModeloQueDecide:     e.ModeloQueDecide,
@@ -1551,7 +1591,7 @@ func medirLasRespuestas(
 		respuestas.medirLasRedaccionesFechadas(evals, sesiones)
 	}
 
-	respuestas.delJuez = juez.juzgar(e, sesiones, respuestas.grupos)
+	respuestas.delJuez = juez.juzgar(e, evals, sesiones, respuestas.grupos)
 
 	return respuestas
 }
@@ -1813,16 +1853,24 @@ func (r *respuestasMedidas) medirLasCitasSinDocumento(sesiones []sesionJuzgada) 
 // último: se lee antes de pedir ninguno y cuando todos han terminado, y sus
 // segundos se redondean hacia arriba, como los de una tanda de sesiones. Un
 // grupo sin respuestas no pide ningún voto ni mira el reloj.
-func (j *juezDelInforme) juzgar(e InformeAEscribir, sesiones []sesionJuzgada, grupos []grupoJuzgado) *juicioDelJuez {
+//
+// Desde H30, el juicio lleva también las respuestas que el plan de las evals
+// dadas da a juzgar en sus modos, con las que sus umbrales conjuntos sacan su
+// límite (FR-024 de H30): las del plan completo, también las de las evals que
+// la decisión reutiliza.
+func (j *juezDelInforme) juzgar(
+	e InformeAEscribir, evals []Eval, sesiones []sesionJuzgada, grupos []grupoJuzgado,
+) *juicioDelJuez {
 	if j == nil {
 		return nil
 	}
 
 	delJuez := &juicioDelJuez{
-		modelo: e.ModeloQueDecide,
-		clases: j.votacion.clases,
-		medida: j.medida,
-		grupos: grupos,
+		modelo:  e.ModeloQueDecide,
+		clases:  j.votacion.clases,
+		medida:  j.medida,
+		grupos:  grupos,
+		delPlan: e.planCompleto(evals).respuestasQueSeJuzganEnSusModos(),
 	}
 
 	for posicion := range delJuez.grupos {
@@ -1869,12 +1917,14 @@ func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
 // decide, que es nil si la skill no tiene umbrales de sus respuestas, y lo que se
 // mide de las lecturas de las sesiones, para fuera_de_lo_grabado de toda skill
 // y, si alguna eval tiene un comando de bloque en su sin_servir, para
-// lectura_sin_intentar, y decide sus motivos y su veredicto.
+// lectura_sin_intentar, y decide sus motivos y su veredicto. Desde H30, con el
+// origen de sus evals (origenDelInforme; FR-022 de H30).
 func componerInforme(
 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
 ) Informe {
 	informe := cabeceraDelInforme(e, sinPython)
+	informe.Origen = origenDelInforme(e, conjunto.Evals, sesiones, series, respuestas)
 
 	for _, malFormado := range conjunto.MalFormados {
 		informe.FicherosMalFormados = append(informe.FicherosMalFormados,
@@ -2169,6 +2219,11 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // en él: lecturas es lo que se mide de las lecturas de las sesiones, para
 // fuera_de_lo_grabado de toda skill y, si alguna eval tiene un comando de bloque
 // en su sin_servir, para lectura_sin_intentar.
+//
+// Desde H30 (contracts/informe-del-job.md §5 de H30; FR-015 de H30), detrás de
+// los de las series van los de las series que deciden de las evals
+// reutilizadas que no pasan (motivosDeLasReutilizadas), y, entre los de los
+// umbrales, los de los :reutilizadas que deciden y no se cumplen.
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
@@ -2180,6 +2235,8 @@ func motivosDelInforme(
 	for _, serie := range series {
 		motivos = append(motivos, motivosDeLaSerie(e, serie, sesiones, escritas)...)
 	}
+
+	motivos = append(motivos, motivosDeLasReutilizadas(e)...)
 
 	for _, juzgada := range sesiones {
 		if juzgada.ilegible {
@@ -2247,6 +2304,27 @@ func motivosDeLaSerie(e InformeAEscribir, serie serieJuzgada, sesiones []sesionJ
 
 	for _, posicion := range serie.sesiones {
 		motivos = append(motivos, motivosDeLaSesion(sesiones[posicion], escritas)...)
+	}
+
+	return motivos
+}
+
+// motivosDeLasReutilizadas son los motivos de la raíz que dan las evals que la
+// decisión reutiliza (contracts/informe-del-job.md §5 de H30; FR-015 de H30):
+// por cada serie que decide de cada una, en su orden, que no pasa, su eval, su
+// modelo y su tasa con el umbral, como el de una serie medida, con
+// «reutilizada» detrás del modelo. Sus sesiones no están en el informe, y
+// ninguna da motivo.
+func motivosDeLasReutilizadas(e InformeAEscribir) []string {
+	var motivos []string
+
+	for _, reutilizada := range e.decision.reutilizadas() {
+		for _, tasa := range reutilizada.Tasas {
+			if tasa.Decide && !tasa.Pasa {
+				motivos = append(motivos, fmt.Sprintf(motivoDeUnaSerieReutilizada,
+					tasa.Eval, tasa.Modelo, tasa.Pasan, tasa.Sesiones, e.Umbral))
+			}
+		}
 	}
 
 	return motivos
@@ -2360,6 +2438,8 @@ func retirarFichero(ruta string) error {
 // (contracts/evals-en-dos-modos.md §5.3 de H21). Desde H24 no lleva la sección
 // «Expresiones prohibidas por modelo» ni la columna «Expresiones prohibidas» de
 // la tabla de las sesiones (contracts/informe-del-job.md §7 de H24; FR-062).
+// Desde H30, delante de las tasas, la sección «Medidas y reutilizadas»
+// (documento.medidasYReutilizadas; contracts/informe-del-job.md §6 de H30).
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -2401,6 +2481,8 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 
 	md.parrafo("## Peticiones llegadas a la red")
 	md.tablaOVacia(encabezadosDeRed, filasDeRed(informe.Red), sinLlegadasALaRed)
+
+	md.medidasYReutilizadas(informe.Origen)
 
 	md.parrafo("## Tasas por eval")
 	md.tablaOVacia(encabezadosDeTasas, filasDeTasas(informe.Tasas), ningunaEnElInforme)

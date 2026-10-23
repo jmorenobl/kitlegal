@@ -2,9 +2,13 @@
 # research.md D30).
 #
 # Solo lo dispara una etiqueta v* que empuja una persona: etiquetar y publicar son humanos, y ninguna tarea ni ningún
-# otro flujo lo ejecuta (FR-110, FR-115). Tres trabajos, cada uno con sus permisos y ninguno heredado del flujo:
+# otro flujo lo ejecuta (FR-110, FR-115). Cuatro trabajos, cada uno con sus permisos y ninguno heredado del flujo:
 #
-#   - `publicar` construye con el goreleaser de tools/ —el mismo módulo de herramienta que `make release`, sin
+#   - `suite-completa`, desde H30, el primero: comprueba que el commit etiquetado tiene una ejecución del job de evals
+#     de la suite completa, en verde y sin evals reutilizadas. Si no la tiene, falla con lo que falta de cada ejecución
+#     mirada y la orden que la lanza sobre la etiqueta, y no se publica nada (H30 FR-025;
+#     specs/026-h30-las-evals-miden/contracts/release.md §1 y §2).
+#   - `publicar`, solo si `suite-completa` sale en verde, construye con el goreleaser de tools/ —el mismo módulo de herramienta que `make release`, sin
 #     --snapshot—, genera los SBOM con syft, firma checksums.txt con cosign sin clave, publica la release, el cask del
 #     tap y el manifiesto del bucket, y atesta la procedencia de los seis archivos y de checksums.txt (FR-111, FR-112)
 #     y, desde H22, de la extensión de escritorio y del plugin, que el propio goreleaser empaqueta (H22 FR-003).
@@ -25,7 +29,43 @@ on:
     tags: ['v*']
 
 jobs:
+  # La suite completa de evals del commit etiquetado (H30 FR-025): TestSuiteCompletaDelCommit busca, con gh, entre las
+  # ejecuciones del flujo evals sobre ese commit, la más reciente con el trabajo de cada skill en verde y un informe de
+  # la suite completa, con cada eval de la skill en el commit medida y ninguna reutilizada. Corre en el runner de los
+  # trabajos de evals.yml y solo lee: el contenido y las ejecuciones de los flujos.
+  suite-completa:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    # gh lee el token de GH_TOKEN, el de esta ejecución con los permisos de arriba, y el repositorio de GH_REPO.
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      COMMIT_ETIQUETADO: ${{ github.sha }}
+      ETIQUETA: ${{ github.ref_name }}
+    steps:
+      # El commit etiquetado: de él salen las evals de cada skill. Como en publicar, la credencial no se queda en el
+      # clon: git no necesita el token.
+      - name: Obtener el código del commit etiquetado
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instalar Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Comprobar la suite completa de evals del commit etiquetado
+        run: >-
+          go test -tags evals -count=1 -timeout 15m -v -run '^TestSuiteCompletaDelCommit$' ./internal/evals/
+          -args -commit "$COMMIT_ETIQUETADO" -etiqueta "$ETIQUETA"
+
   publicar:
+    # Sin la suite completa del commit etiquetado en verde, no se publica nada: ni la release, ni el cask, ni el
+    # manifiesto del bucket, ni, detrás del humo, el catálogo (H30 FR-025).
+    needs: [suite-completa]
     runs-on: ubuntu-latest
     # Escribir la release, y el id-token y las atestaciones para firmar sin clave y atestar (FR-111). Solo este
     # trabajo los tiene.

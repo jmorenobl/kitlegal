@@ -3,6 +3,9 @@ package skills_test
 import (
 	"encoding/json/jsontext"
 	"fmt"
+	"io/fs"
+	"os"
+	"path"
 	"slices"
 	"strings"
 	"testing"
@@ -1111,6 +1114,146 @@ func TestSustituirRegion(t *testing.T) {
 			sustituido, err := skills.SustituirRegion([]byte(defecto.contenido), []byte(nueva))
 			require.EqualError(t, err, defecto.error)
 			assert.Nil(t, sustituido)
+		})
+	}
+}
+
+// skillsDelRepositorio es skills/, relativo al directorio de este paquete, que
+// es donde go test ejecuta sus tests.
+const skillsDelRepositorio = "../../skills"
+
+// TestAppletsDeLaTabla fija AppletsDeLaTabla (research D11 y data-model §3 de
+// H30; FR-001(d)): da los applets de la tabla de comandos de cada SKILL.md del
+// repositorio, los mismos que nombran sus órdenes; solo los de entre las dos
+// marcas, sin repetir y en el orden de la tabla; y un defecto, sin applets, sin
+// marcas, sin una de las dos o sin ningún applet entre ellas.
+func TestAppletsDeLaTabla(t *testing.T) {
+	t.Parallel()
+
+	t.Run("las-skills-del-repositorio", comprobarAppletsDeLasSkillsDelRepositorio)
+	t.Run("solo-entre-las-marcas-sin-repetir-y-en-orden", comprobarAppletsEntreLasMarcas)
+	t.Run("defectos", comprobarDefectosDeLosAppletsDeLaTabla)
+}
+
+// comprobarAppletsDeLasSkillsDelRepositorio comprueba, con el SKILL.md de cada
+// skill del repositorio, que los applets de su tabla son los que nombran sus
+// órdenes, en el orden en que aparecen y sin repetir.
+func comprobarAppletsDeLasSkillsDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	raiz := os.DirFS(skillsDelRepositorio)
+
+	rutas, err := fs.Glob(raiz, "*/SKILL.md")
+	require.NoError(t, err)
+	require.NotEmpty(t, rutas)
+
+	for _, ruta := range rutas {
+		t.Run(path.Dir(ruta), func(t *testing.T) {
+			t.Parallel()
+
+			contenido, err := fs.ReadFile(raiz, ruta)
+			require.NoError(t, err)
+
+			esperados := appletsDeLasOrdenes(t, string(contenido))
+			require.NotEmpty(t, esperados)
+
+			applets, err := skills.AppletsDeLaTabla(contenido)
+			require.NoError(t, err)
+			assert.Equal(t, esperados, applets)
+		})
+	}
+}
+
+// appletsDeLasOrdenes es la sonda independiente de AppletsDeLaTabla: los
+// applets que nombra la primera celda de cada fila de orden de la tabla de
+// comandos, `kitlegal <applet> <verbo> …`, sin repetir y en el orden de las
+// filas. No lee los títulos de las secciones, que son lo que lee la función.
+func appletsDeLasOrdenes(t *testing.T, contenido string) []string {
+	t.Helper()
+
+	_, region, ok := strings.Cut(contenido, inicioDeLaTabla+"\n")
+	require.True(t, ok, "sin la marca de inicio")
+
+	region, _, ok = strings.Cut(region, finDeLaTabla+"\n")
+	require.True(t, ok, "sin la marca de fin")
+
+	var applets []string
+
+	for linea := range strings.Lines(region) {
+		orden, esOrden := strings.CutPrefix(linea, "| `kitlegal ")
+		if !esOrden {
+			continue
+		}
+
+		applet := strings.Fields(orden)[0]
+		if !slices.Contains(applets, applet) {
+			applets = append(applets, applet)
+		}
+	}
+
+	return applets
+}
+
+// comprobarAppletsEntreLasMarcas comprueba que solo cuentan los títulos de
+// sección de entre las dos marcas, que son exactamente `kitlegal <applet>`, y
+// que un applet que se repite cuenta una vez, en su primer lugar.
+func comprobarAppletsEntreLasMarcas(t *testing.T) {
+	t.Parallel()
+
+	const contenido = "# Ejemplo\n\n### `kitlegal antes`\n\n" +
+		inicioDeLaTabla + "\n" +
+		"\n### `kitlegal plazos`\n\n| `kitlegal plazos calcular` | `plazos_calcular` | Calcula. | objeto |\n" +
+		"\n### 3. Leer con `kitlegal boe`\n" +
+		"\n #### `kitlegal sangrado`\n" +
+		"\n### `kitlegal territorio`\n" +
+		"\n### `kitlegal plazos`\n\n" +
+		finDeLaTabla + "\n" +
+		"\n### `kitlegal despues`\n"
+
+	applets, err := skills.AppletsDeLaTabla([]byte(contenido))
+	require.NoError(t, err)
+	assert.Equal(t, []string{"plazos", "territorio"}, applets)
+}
+
+// comprobarDefectosDeLosAppletsDeLaTabla comprueba los defectos de una tabla
+// sin marcas, sin una de las dos o sin ningún applet entre ellas.
+func comprobarDefectosDeLosAppletsDeLaTabla(t *testing.T) {
+	t.Parallel()
+
+	const seccion = "\n### `kitlegal boe`\n\n"
+
+	defectos := []struct {
+		nombre, contenido, error string
+	}{
+		{
+			nombre:    "sin-marcas",
+			contenido: "# Ejemplo\n" + seccion,
+			error:     "sin las marcas de la tabla de comandos",
+		},
+		{
+			nombre:    "sin-inicio",
+			contenido: seccion + finDeLaTabla + "\n",
+			error:     "sin la marca de inicio de la tabla de comandos",
+		},
+		{
+			nombre:    "sin-fin",
+			contenido: inicioDeLaTabla + "\n" + seccion,
+			error:     "sin la marca de fin de la tabla de comandos",
+		},
+		{
+			nombre:    "sin-applets-entre-las-marcas",
+			contenido: seccion + inicioDeLaTabla + "\n\n| a | b |\n\n" + finDeLaTabla + "\n" + seccion,
+			error:     "la tabla de comandos no nombra ningún applet",
+		},
+	}
+
+	for _, defecto := range defectos {
+		t.Run(defecto.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			applets, err := skills.AppletsDeLaTabla([]byte(defecto.contenido))
+			require.EqualError(t, err, defecto.error)
+			assert.Nil(t, applets)
 		})
 	}
 }

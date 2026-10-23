@@ -34,7 +34,10 @@ import (
 // anotada al empezarla y al cumplirla, duerme, se envía una señal y sale con el
 // código que le digan las variables KITLEGAL_SUSTITUTO_*. La espera de una
 // sesión con <sesión>.espera en el directorio de transcripts es la de ese
-// fichero. Con variableDeCalentar, termina con 0 sin hacer nada.
+// fichero, y la de una sesión con <sesión>.tras, que lleva una ruta, no empieza
+// hasta que esa ruta existe: así una sesión no termina antes de que otra haya
+// empezado su espera, llegue cuando llegue. Con variableDeCalentar, termina con
+// 0 sin hacer nada.
 //
 // Si no ignora TERM, quien duerme es un sh aparte, hijo de una subshell que
 // atiende TERM, lo anota y sale, y la shell, al recibirlo, sale cuando ha
@@ -89,6 +92,10 @@ if [ -f "$transcript" ]; then cat "$transcript"; fi
 espera="${KITLEGAL_SUSTITUTO_ESPERA:-0}"
 if [ -f "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.espera" ]; then
 	espera=$(cat "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.espera")
+fi
+if [ -f "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.tras" ]; then
+	tras=$(cat "$KITLEGAL_SUSTITUTO_TRANSCRIPTS/$sesion.tras")
+	while [ ! -e "$tras" ]; do sleep 0.05; done
 fi
 if [ "${KITLEGAL_SUSTITUTO_IGNORA_TERM:-no}" = si ]; then
 	trap '' TERM
@@ -330,6 +337,14 @@ func (s sustitutos) escribirEspera(t *testing.T, sesion string, segundos int) {
 	t.Helper()
 
 	require.NoError(t, os.WriteFile(filepath.Join(s.transcripts, sesion+".espera"), []byte(strconv.Itoa(segundos)), 0o600))
+}
+
+// empezarLaEsperaCuandoExista deja dicho al sustituto de claude de la sesión
+// del nombre dado que no empiece su espera hasta que exista la ruta dada.
+func (s sustitutos) empezarLaEsperaCuandoExista(t *testing.T, sesion, ruta string) {
+	t.Helper()
+
+	require.NoError(t, os.WriteFile(filepath.Join(s.transcripts, sesion+".tras"), []byte(ruta), 0o600))
 }
 
 // abiertasAlLlegar es cuántas sesiones abiertas contó el sustituto de claude al
@@ -822,4 +837,254 @@ func (c claudeDelJuez) terminarLosHijos(t *testing.T) {
 // responde ESRCH a una señal 0.
 func procesoTerminado(pid int) bool {
 	return errors.Is(syscall.Kill(pid, 0), syscall.ESRCH)
+}
+
+// sustitutoDeGh es el gh que TestOrdenesDeLaTanda y TestOrdenesDeLaPlataforma
+// ponen en el PATH de las órdenes en lugar del de verdad, que consultaría la
+// API de GitHub. Solo usa órdenes internas de sh, porque es el único programa
+// de ese PATH:
+//   - con variableDeGhQueFalla, escribe en sus dos salidas y termina con 4, como
+//     gh ante un error de la API;
+//   - con variableDeLaRespuestaDeGh, que nombra un directorio, anota en él sus
+//     argumentos, uno por línea, en argumentosDeGh, y escribe en su salida
+//     estándar, línea a línea, lo que el test dejó en respuestaDeGh: la
+//     respuesta de gh a la orden;
+//   - sin ninguna de las dos, escribe sus argumentos, uno por línea.
+//
+// Y termina con 0.
+const sustitutoDeGh = `#!/bin/sh
+if [ -n "$GH_SUSTITUTO_FALLA" ]; then
+	printf 'lo escrito antes del error\n'
+	printf 'HTTP 403: Resource not accessible by integration\n' >&2
+	exit 4
+fi
+if [ -n "$GH_SUSTITUTO_RESPUESTA" ]; then
+	printf '%s\n' "$@" > "$GH_SUSTITUTO_RESPUESTA/` + argumentosDeGh + `"
+	while IFS= read -r linea; do
+		printf '%s\n' "$linea"
+	done < "$GH_SUSTITUTO_RESPUESTA/` + respuestaDeGh + `"
+	exit 0
+fi
+for argumento in "$@"; do
+	printf '%s\n' "$argumento"
+done
+`
+
+// Las variables que gobiernan al sustituto de gh y, en el directorio de la
+// segunda, los ficheros de sus argumentos y de su respuesta.
+const (
+	variableDeGhQueFalla      = "GH_SUSTITUTO_FALLA"
+	variableDeLaRespuestaDeGh = "GH_SUSTITUTO_RESPUESTA"
+	argumentosDeGh            = "argumentos"
+	respuestaDeGh             = "respuesta"
+)
+
+// escribirElGh escribe el sustituto de gh, ejecutable, en un directorio
+// temporal del test, a través de un os.Root, y devuelve ese directorio, que el
+// test pone como único PATH de las órdenes.
+func escribirElGh(t *testing.T) string {
+	t.Helper()
+
+	bin := t.TempDir()
+
+	raiz, err := os.OpenRoot(bin)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	require.NoError(t, escribirEjecutable(raiz, "gh", sustitutoDeGh))
+
+	return bin
+}
+
+// guionDeLasEvals es scripts/evals.sh, relativo al directorio de este paquete,
+// que es donde go test ejecuta los tests.
+const guionDeLasEvals = "../../scripts/evals.sh"
+
+// variableDeLaDecisionDeEvals es la variable con la que scripts/evals.sh recibe
+// el fichero de la decisión de su trabajo, y faltaLaDecisionDeEvals, la línea
+// con la que termina sin ella (contracts/job-de-evals.md §3 de H30; research D18
+// de H30).
+const (
+	variableDeLaDecisionDeEvals = "DECISION_DE_EVALS"
+	faltaLaDecisionDeEvals      = "evals: falta " + variableDeLaDecisionDeEvals + "\n"
+)
+
+// lasDemasDelGuionDeLasEvals son las variables obligatorias de scripts/evals.sh
+// además de la decisión, con valores que pasan sus comprobaciones: las del plan
+// de sesiones, la concurrencia y el commit evaluado.
+var lasDemasDelGuionDeLasEvals = []string{
+	"MODELO_DE_EVALS=claude-sonnet-5-5",
+	"MODELOS_INFORMATIVOS_DE_EVALS=claude-haiku-4-5-20251001",
+	"REPETICIONES_DE_EVALS=3",
+	"UMBRAL_DE_EVALS=2",
+	variableDeLaConcurrencia + "=2",
+	variableDelCommitEvaluado + "=0123456789abcdef0123456789abcdef01234567",
+}
+
+// delGuionDeLasEvals son las variables que lee scripts/evals.sh: el test las
+// quita del entorno del proceso, y el guion solo ve las que le da cada caso.
+var delGuionDeLasEvals = []string{
+	variableDeLaDecisionDeEvals, "MODELO_DE_EVALS", "MODELOS_INFORMATIVOS_DE_EVALS", "REPETICIONES_DE_EVALS",
+	"UMBRAL_DE_EVALS", variableDeLaConcurrencia, variableDelCommitEvaluado, variableDelModeloDelJuez,
+	variableDeLaVersionDelJuez, variableDelClaudeDelJuez, "OBJETIVO_DE_DURACION_DE_EVALS", "PRUEBA_DE_RED",
+	"GITHUB_STEP_SUMMARY", "RUNNER_TEMP", "TMPDIR",
+}
+
+// casoDelGuionSinLaDecision es un caso de TestGuionDeLasEvalsSinLaDecision: el
+// valor de DECISION_DE_EVALS, que no está si decision da falso; si el guion
+// recibe además las demás variables obligatorias; y lo que dice en su salida de
+// error.
+type casoDelGuionSinLaDecision struct {
+	nombre      string
+	decision    func(t *testing.T) (string, bool)
+	conLasDemas bool
+	deError     string
+}
+
+// TestGuionDeLasEvalsSinLaDecision fija que scripts/evals.sh exige el fichero
+// de la decisión de su trabajo (contracts/job-de-evals.md §3 de H30; research
+// D18 de H30; FR-012): sin DECISION_DE_EVALS, con ella vacía o con una ruta que
+// no es la de un fichero legible —una en la que no hay nada, la de un
+// directorio o la de un fichero sin permiso de lectura—, termina con 1 y la
+// línea «evals: falta DECISION_DE_EVALS», con la salida estándar vacía, sin que
+// llegue ninguna sesión al claude sustituto, que va delante en el PATH, y sin
+// dejar nada en su RUNNER_TEMP. Lo comprueba tras su argumento y antes de nada
+// más que dependa del entorno: también sin las demás variables obligatorias,
+// cuya falta diría otra cosa. Y con un fichero legible sigue, y la primera
+// comprobación que no pasa es otra: sin las demás variables, la de
+// MODELO_DE_EVALS.
+func TestGuionDeLasEvalsSinLaDecision(t *testing.T) {
+	t.Parallel()
+
+	guion, err := filepath.Abs(guionDeLasEvals)
+	require.NoError(t, err)
+
+	for _, caso := range casosDelGuionSinLaDecision() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+			temporal := t.TempDir()
+
+			variables := []string{"RUNNER_TEMP=" + temporal, "TMPDIR=" + temporal}
+			if caso.conLasDemas {
+				variables = append(variables, lasDemasDelGuionDeLasEvals...)
+			}
+
+			if decision, esta := caso.decision(t); esta {
+				variables = append(variables, variableDeLaDecisionDeEvals+"="+decision)
+			}
+
+			orden := exec.CommandContext(t.Context(), guion, skillDeLegalCore)
+			orden.Env = sobreLaBase(s.base(), variables, delGuionDeLasEvals...)
+
+			codigo, salida, deError := codigoYSalidas(t, orden)
+
+			require.Equalf(t, 1, codigo, "el código del guion, con esta salida de error:\n%s", deError)
+			require.Empty(t, salida, "la salida estándar del guion")
+			require.Equal(t, caso.deError, deError, "la salida de error del guion")
+
+			sesiones, err := os.ReadDir(filepath.Join(s.comun, sustitutoClaude))
+			require.NoError(t, err)
+			require.Empty(t, sesiones, "ninguna sesión llega al claude sustituto")
+
+			escrito, err := os.ReadDir(temporal)
+			require.NoError(t, err)
+			require.Empty(t, escrito, "el guion no deja nada en su RUNNER_TEMP")
+		})
+	}
+}
+
+// casosDelGuionSinLaDecision son los casos de TestGuionDeLasEvalsSinLaDecision:
+// los de una decisión que falta o no es un fichero legible, con las demás
+// variables y sin ellas, y el de un fichero legible, que pasa a la comprobación
+// siguiente.
+func casosDelGuionSinLaDecision() []casoDelGuionSinLaDecision {
+	sinLaDecision := func(*testing.T) (string, bool) { return "", false }
+
+	return []casoDelGuionSinLaDecision{
+		{nombre: "sin-la-decision", decision: sinLaDecision, conLasDemas: true, deError: faltaLaDecisionDeEvals},
+		{nombre: "sin-la-decision-ni-las-demas", decision: sinLaDecision, deError: faltaLaDecisionDeEvals},
+		{
+			nombre:      "con-la-decision-vacia",
+			decision:    func(*testing.T) (string, bool) { return "", true },
+			conLasDemas: true,
+			deError:     faltaLaDecisionDeEvals,
+		},
+		{
+			nombre: "con-una-decision-que-no-esta",
+			decision: func(t *testing.T) (string, bool) {
+				t.Helper()
+
+				return filepath.Join(t.TempDir(), "decision-de-evals.json"), true
+			},
+			conLasDemas: true,
+			deError:     faltaLaDecisionDeEvals,
+		},
+		{
+			nombre: "con-una-decision-que-es-un-directorio",
+			decision: func(t *testing.T) (string, bool) {
+				t.Helper()
+
+				return t.TempDir(), true
+			},
+			conLasDemas: true,
+			deError:     faltaLaDecisionDeEvals,
+		},
+		{
+			nombre:      "con-una-decision-que-no-se-puede-leer",
+			decision:    decisionQueNoSePuedeLeer,
+			conLasDemas: true,
+			deError:     faltaLaDecisionDeEvals,
+		},
+		{
+			nombre:   "con-una-decision-que-no-se-puede-leer-ni-las-demas",
+			decision: decisionQueNoSePuedeLeer,
+			deError:  faltaLaDecisionDeEvals,
+		},
+		{
+			nombre:   "con-una-decision-legible-sigue",
+			decision: decisionLegible,
+			deError:  "evals: falta MODELO_DE_EVALS\n",
+		},
+	}
+}
+
+// decisionLegible es la ruta de un fichero de la decisión que se puede leer,
+// en un directorio temporal del test.
+func decisionLegible(t *testing.T) (string, bool) {
+	t.Helper()
+
+	ruta := filepath.Join(t.TempDir(), "decision-de-evals.json")
+	require.NoError(t, os.WriteFile(ruta, []byte("{}\n"), 0o600))
+
+	return ruta, true
+}
+
+// decisionQueNoSePuedeLeer es la ruta de un fichero de la decisión sin permiso
+// de lectura, en un directorio temporal del test; que no se puede abrir para
+// leer es una premisa, que con permisos de root no se cumple.
+func decisionQueNoSePuedeLeer(t *testing.T) (string, bool) {
+	t.Helper()
+
+	const nombre = "decision-de-evals.json"
+
+	dir := t.TempDir()
+
+	raiz, err := os.OpenRoot(dir)
+	require.NoError(t, err)
+
+	defer func() { require.NoError(t, raiz.Close()) }()
+
+	require.NoError(t, raiz.WriteFile(nombre, []byte("{}\n"), 0o200))
+
+	fichero, err := raiz.Open(nombre)
+	if err == nil {
+		require.NoError(t, fichero.Close())
+	}
+
+	require.ErrorIs(t, err, fs.ErrPermission, "premisa: el fichero de la decisi\xc3\xb3n no se puede leer")
+
+	return filepath.Join(dir, nombre), true
 }

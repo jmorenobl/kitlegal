@@ -51,39 +51,138 @@ const (
 	// escalar plegado de la definición, que conserva los saltos de línea de las
 	// líneas más sangradas. Desde H24, el despacho con la entrada de la medida
 	// del juez no la corre: lanza la medida, y no las sesiones de evals
-	// (contracts/job-de-evals.md §3 de H24).
+	// (contracts/job-de-evals.md §3 de H24). Desde H30, corre también con la
+	// etiqueta evals-completa, y la apertura la corre si cambios elige alguna
+	// eval (contracts/job-de-evals.md §2 de H30; FR-016 a FR-018).
 	condicionDeLaTanda = sinCancelar + " && needs.cambios.result != 'failure' && (\n" +
 		"  " + despachoSinLaMedida + " ||\n" +
 		"  github.event.label.name == 'evals' ||\n" +
+		"  github.event.label.name == 'evals-completa' ||\n" +
 		"  github.event.label.name == 'evals-prueba-de-red' ||\n" +
-		"  needs.cambios.outputs.coincide == 'si'\n" +
+		"  needs.cambios.outputs.elige == 'si'\n" +
 		")"
 
 	// permisoDeLasEjecuciones es el de actions: con él lee gh las ejecuciones
 	// del flujo y sus trabajos.
 	permisoDeLasEjecuciones = "read"
 
-	// salidaDeLaTanda es su output medir, el del paso que decide.
-	salidaDeLaTanda = "${{ steps.decidir.outputs.medir }}"
+	// salidaDeLaTanda es su output medir, el del paso que decide, y
+	// salidaDelModoDeLaTanda, su output modo, del mismo paso (contracts/job-de-evals.md
+	// §2 de H30).
+	salidaDeLaTanda        = "${{ steps.decidir.outputs.medir }}"
+	salidaDelModoDeLaTanda = "${{ steps.decidir.outputs.modo }}"
+
+	// variableDelModoDeEvals es la del env del trabajo tanda que fija el modo de
+	// la ejecución, y modoDeLaTanda, su valor: completa solo con el despacho, la
+	// etiqueta evals-completa y la etiqueta evals-prueba-de-red, y con
+	// reutilización con cualquier otro disparo (contracts/job-de-evals.md §1 de
+	// H30; FR-016 a FR-018).
+	variableDelModoDeEvals = "MODO_DE_EVALS"
+	modoDeLaTanda          = "${{ (github.event_name == 'workflow_dispatch' || " +
+		"github.event.label.name == 'evals-completa' || github.event.label.name == 'evals-prueba-de-red') && " +
+		"'completa' || 'reutilizacion' }}"
 
 	// ordenDelPasoQueDecide es el run del paso que decide, el de id decidir:
-	// TestTandaDelCommit con el commit evaluado, la ejecución y el
+	// TestTandaDelCommit con el commit evaluado, la ejecución, el modo y el
 	// GITHUB_OUTPUT del paso. El -timeout supera los 10 min que la decisión
 	// espera como mucho, más sus consultas, y cabe con la preparación en los 15
 	// del trabajo: con los 10 de go test por omisión, el test acabaría en pánico
 	// antes de medir tras la espera, y el trabajo, en rojo.
 	ordenDelPasoQueDecide = `go test -tags evals -count=1 -timeout 12m -v -run '^TestTandaDelCommit$' ./internal/evals/ ` +
-		`-args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -salida "$GITHUB_OUTPUT"`
+		`-args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -modo "$MODO_DE_EVALS" -salida "$GITHUB_OUTPUT"`
 
 	// condicionDeLaMarca es el if de la marca: solo corre si el paso que
-	// decide dice que la ejecución mide.
-	condicionDeLaMarca = "steps.decidir.outputs.medir == 'si'"
+	// decide dice que la ejecución mide. Y condicionDeLaMarcaDeLaSuiteCompleta,
+	// el de la segunda marca, la que solo corre si además mide la suite completa
+	// (contracts/job-de-evals.md §2 de H30; research D13 de H30).
+	condicionDeLaMarca                  = "steps.decidir.outputs.medir == 'si'"
+	condicionDeLaMarcaDeLaSuiteCompleta = condicionDeLaMarca + " && steps.decidir.outputs.modo == 'completa'"
 
 	// condicionDelTrabajo es el if del trabajo evals: sin medir=si de la
 	// tanda, se salta entero. La función de estado quita el success()
 	// implícito, que podría saltarlo por cambios, saltado en la etiqueta y en
 	// el despacho (research.md S9 de H7.4).
 	condicionDelTrabajo = "${{ " + sinCancelar + " && needs.tanda.outputs.medir == 'si' }}"
+)
+
+// Lo que TestDefinicionDelJob exige al trabajo cambios desde H30
+// (contracts/job-de-evals.md §2 de H30; FR-016; research D5 y D17 de H30): solo
+// corre al abrir o reabrir una propuesta, con su tope y sus permisos de
+// lectura; su checkout lleva toda la historia, de la que sale el árbol de la
+// base; y su paso de id elegir ejecuta TestEleccionDeLaPropuesta y da la salida
+// elige.
+const (
+	condicionDeCambios = "github.event_name == 'pull_request' && github.event.action != 'labeled'"
+	topeDeCambios      = 15
+	salidaDeCambios    = "${{ steps.elegir.outputs.elige }}"
+	pasoDeLaEleccion   = "Elegir las evals que la propuesta ha podido cambiar"
+	ordenDeLaEleccion  = `go test -tags evals -count=1 -timeout 12m -v -run '^TestEleccionDeLaPropuesta$' ` +
+		`./internal/evals/ -args -propuesta "$PROPUESTA" -base "$BASE_DE_LA_PROPUESTA" -salida "$GITHUB_OUTPUT"`
+
+	// accionDelCheckout y accionDeGo son las acciones del paso que obtiene el
+	// código y del que instala Go, y todaLaHistoria, el fetch-depth del primero
+	// que trae todos los commits.
+	accionDelCheckout = "actions/checkout@v7"
+	accionDeGo        = "actions/setup-go@v7"
+	todaLaHistoria    = "0"
+)
+
+// Lo que TestDefinicionDelJob exige desde H30 a los pasos del trabajo evals
+// (contracts/job-de-evals.md §2 y §3 de H30; FR-010, FR-012, FR-019; research
+// D17 y D18 de H30): tras instalar Go, el paso de la decisión, con su plazo de
+// 15 minutos y el fichero que escribe; el que ejecuta las evals, con ese
+// fichero; y, el último, la marca del informe escrito, que corre aunque el
+// anterior falle y es la que lee la búsqueda de medidas de main.
+const (
+	ordenDeLaDecision = `go test -tags evals -count=1 -timeout 15m -v -run '^TestDecisionDelTrabajo$' ./internal/evals/ ` +
+		`-args -skill "$SKILL_EVALUADA" -modo "$MODO_DE_EVALS" -commit "$COMMIT_EVALUADO" -propuesta "$PROPUESTA" ` +
+		`-base "$BASE_DE_LA_PROPUESTA" -modelo-que-decide "$MODELO_DE_EVALS" ` +
+		`-version-de-claude-code "$VERSION_DE_CLAUDE_CODE" -modelo-del-juez "$MODELO_DEL_JUEZ" ` +
+		`-version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ" -salida "$RUNNER_TEMP/decision-de-evals.json"`
+	plazoDeLaDecisionDelContrato = 15 * time.Minute
+
+	pasoQueEjecutaLasEvals  = "Ejecutar las evals"
+	ordenQueEjecutaLasEvals = `DECISION_DE_EVALS="$RUNNER_TEMP/decision-de-evals.json" make evals SKILL="$SKILL_EVALUADA" 2>&1`
+
+	condicionDeLaMarcaDelInforme = "${{ " + sinCancelar + " }}"
+	ordenDeLaMarcaDelInforme     = `test -s "$RUNNER_TEMP/kitlegal-evals-$SKILL_EVALUADA/informe.json"`
+)
+
+// Las dos variables con las que gh lee la plataforma: en el trabajo evals, solo
+// en el paso de la decisión (contracts/job-de-evals.md §2 de H30).
+const (
+	variableDelAccesoDeGh = "GH_TOKEN"
+	variableDelRepoDeGh   = "GH_REPO"
+)
+
+// sesionesALaVezComoMucho son las que el trabajo evals abre a la vez como mucho
+// entre todas sus combinaciones: 5, 4 y 2, las de hoy (FR-020 y SC-011 de H30).
+const sesionesALaVezComoMucho = 11
+
+// permisosDeCambios y permisosDelTrabajo son los permissions del trabajo
+// cambios y del trabajo evals: de lectura, de los ficheros de la propuesta y,
+// en evals, también de las ejecuciones del flujo (contracts/job-de-evals.md §2
+// de H30).
+var (
+	permisosDeCambios  = map[string]string{"contents": "read", "pull-requests": "read"}
+	permisosDelTrabajo = map[string]string{"contents": "read", "actions": "read", "pull-requests": "read"}
+)
+
+// entornoDeLaEleccion y entornoDeLaDecision son los env del paso de la elección
+// del trabajo cambios y del paso de la decisión del trabajo evals: los dos con
+// lo que gh necesita, y el de la elección, además, la propuesta y su base, que
+// el trabajo evals lleva en el suyo.
+var (
+	entornoDeLaEleccion = map[string]string{
+		variableDelAccesoDeGh:  "${{ secrets.GITHUB_TOKEN }}",
+		variableDelRepoDeGh:    "${{ github.repository }}",
+		"PROPUESTA":            "${{ github.event.pull_request.number }}",
+		"BASE_DE_LA_PROPUESTA": "${{ github.event.pull_request.base.sha }}",
+	}
+	entornoDeLaDecision = map[string]string{
+		variableDelAccesoDeGh: "${{ secrets.GITHUB_TOKEN }}",
+		variableDelRepoDeGh:   "${{ github.repository }}",
+	}
 )
 
 // Lo que TestDefinicionDelJob exige al juez con modelo del trabajo evals y a la
@@ -151,10 +250,14 @@ var ajustesDelTrabajo = map[string]AjustesDeSkill{
 }
 
 // entornoDelTrabajo son las variables con las que su env pasa esos ajustes a
-// scripts/evals.sh.
+// scripts/evals.sh y, desde H30, el modo que decide la tanda, la propuesta y su
+// base al paso de la decisión (contracts/job-de-evals.md §2 de H30).
 var entornoDelTrabajo = map[string]string{
 	"CONCURRENCIA_DE_EVALS":         "${{ matrix.concurrencia }}",
 	"OBJETIVO_DE_DURACION_DE_EVALS": "${{ matrix.objetivo_de_duracion }}",
+	variableDelModoDeEvals:          "${{ needs.tanda.outputs.modo }}",
+	"PROPUESTA":                     "${{ github.event.pull_request.number }}",
+	"BASE_DE_LA_PROPUESTA":          "${{ github.event.pull_request.base.sha }}",
 }
 
 // TestDefinicionDelJob comprueba en make ci la definición del job de evals
@@ -193,12 +296,30 @@ var entornoDelTrabajo = map[string]string{
 // modo que la definición sin jurisprudencia en esa matriz, o con ella de una en
 // una, da su línea; y el tope de cada trabajo cubre su peor caso, que en
 // jurisprudencia cuenta ya los votos de su juez y los de sus casos etiquetados.
+//
+// Y, desde H30 (contracts/job-de-evals.md §1 a §3 de H30; FR-010, FR-012,
+// FR-016 a FR-020; SC-011), la elección, la decisión y la reutilización: el
+// trabajo cambios, con su tope, sus permisos de lectura, toda la historia en su
+// checkout, TestEleccionDeLaPropuesta y la salida elige; la tanda, que solo
+// corre con el despacho, con una de las etiquetas evals, evals-completa o
+// evals-prueba-de-red o con elige=si, y cuyo modo es completa solo con el
+// despacho y las dos últimas etiquetas, con su salida modo y la marca de la
+// suite completa; y, en el trabajo evals, sus permisos, el modo, la propuesta y
+// su base en el env, toda la historia en su checkout, el paso de la decisión
+// tras instalar Go y antes de ejecutar las evals, el único con GH_TOKEN y
+// GH_REPO, DECISION_DE_EVALS en el que las ejecuta y, el último, la marca del
+// informe escrito, que corre salvo que se cancele la ejecución. La matriz da una
+// sola combinación por skill, con 5, 4 y 2 sesiones a la vez, y 11 entre todas:
+// la definición que admite más da su línea. Y el peor caso de cada trabajo suma
+// el plazo del paso de la decisión, el -timeout de su go test, 15 minutos, que
+// el tope cubre.
 func TestDefinicionDelJob(t *testing.T) {
 	t.Parallel()
 
 	t.Run("del-repositorio", probarLaDefinicionDelRepositorio)
 	t.Run("sinteticas", probarLasDefinicionesSinteticas)
 	t.Run("errores", probarLosErroresDeLaDefinicion)
+	t.Run("plazo-de-la-decision", probarElPlazoDeLaDecision)
 	t.Run("peor-caso", probarElPeorCasoDelTrabajo)
 	t.Run("tope-con-las-evals-del-repositorio", probarElTopeConLasEvalsDelRepositorio)
 	t.Run("segundo-disparo", probarElSegundoDisparo)
@@ -288,15 +409,20 @@ func probarLaDefinicionDelRepositorio(t *testing.T) {
 // trabajo medida, la de la entrada del despacho que lo lanza y las de su tope,
 // en el orden de contracts/job-de-evals.md §5 de H24; desde H25, detrás de las
 // del trabajo medida van las de su matriz (contracts/job-de-evals.md §4 de H25).
-// Sin ninguna línea, la definición es la de los contratos.
+// Desde H30, delante de todas van las del trabajo cambios, y detrás de las del
+// env, las de los permisos y los pasos del trabajo evals (contracts/job-de-evals.md
+// §2 de H30). Sin ninguna línea, la definición es la de los contratos.
 func comprobarLaDefinicion(leida DefinicionDelJob, evals string) []string {
 	var fallos []string
 
+	fallos = append(fallos, fallosDeCambios(leida.cambios)...)
 	fallos = append(fallos, fallosDeLaTanda(leida.Tanda)...)
 	fallos = append(fallos, fallosDeLaDependencia(leida)...)
 	fallos = append(fallos, fallosDeLaConcurrencia(leida)...)
 	fallos = append(fallos, fallosDeLaMatriz(leida)...)
 	fallos = append(fallos, fallosDelEntorno(leida)...)
+	fallos = append(fallos, fallosDeUnMapa("jobs.evals.permissions", leida.permisos, permisosDelTrabajo)...)
+	fallos = append(fallos, fallosDeLosPasosDelTrabajo(leida)...)
 	fallos = append(fallos, fallosDelJuez(leida)...)
 	fallos = append(fallos, fallosDelTope(leida, evals)...)
 	fallos = append(fallos, fallosDeLaMedida(leida)...)
@@ -307,11 +433,202 @@ func comprobarLaDefinicion(leida DefinicionDelJob, evals string) []string {
 	return fallos
 }
 
+// fallosDeCambios comprueba el trabajo cambios de contracts/job-de-evals.md §2
+// de H30: que está; su if, que solo lo corre al abrir o reabrir una propuesta;
+// su tope; sus permisos; su salida elige; toda la historia en su checkout; y su
+// paso de id elegir, con su name, su env y su run. Sin el trabajo, solo esa
+// línea.
+func fallosDeCambios(cambios *trabajoDelFlujo) []string {
+	if cambios == nil {
+		return []string{fallo("jobs.cambios", noEsta, "el trabajo que elige las evals que la propuesta ha podido cambiar")}
+	}
+
+	var fallos []string
+
+	if cambios.Condicion != condicionDeCambios {
+		fallos = append(fallos, fallo("jobs.cambios.if", presentarTexto(cambios.Condicion),
+			strconv.Quote(condicionDeCambios)))
+	}
+
+	if cambios.TopeEnMinutos != topeDeCambios {
+		fallos = append(fallos, fallo("jobs.cambios.timeout-minutes", fmt.Sprintf("vale %d", cambios.TopeEnMinutos),
+			strconv.Itoa(topeDeCambios)))
+	}
+
+	fallos = append(fallos, fallosDeUnMapa("jobs.cambios.permissions", cambios.Permisos, permisosDeCambios)...)
+
+	if salida := cambios.Salidas["elige"]; salida != salidaDeCambios {
+		fallos = append(fallos, fallo("jobs.cambios.outputs.elige", presentarTexto(salida), strconv.Quote(salidaDeCambios)))
+	}
+
+	fallos = append(fallos, fallosDelCheckout("jobs.cambios.steps", cambios.Pasos)...)
+
+	var elige pasoDelFlujo
+	if indice := slices.IndexFunc(cambios.Pasos, func(paso pasoDelFlujo) bool { return paso.ID == "elegir" }); indice >= 0 {
+		elige = cambios.Pasos[indice]
+	}
+
+	const delPaso = "jobs.cambios.steps, id elegir, "
+
+	if elige.Nombre != pasoDeLaEleccion {
+		fallos = append(fallos, fallo(delPaso+"name", presentarTexto(elige.Nombre), strconv.Quote(pasoDeLaEleccion)))
+	}
+
+	fallos = append(fallos, fallosDeUnMapa(delPaso+"env", elige.Env, entornoDeLaEleccion)...)
+
+	if elige.Orden != ordenDeLaEleccion {
+		fallos = append(fallos, fallo(delPaso+"run", presentarTexto(elige.Orden), strconv.Quote(ordenDeLaEleccion)))
+	}
+
+	return fallos
+}
+
+// fallosDeUnMapa devuelve, con esa clave, la línea de un mapa de la definición
+// —unos permissions, el env de un paso— que no es exactamente el esperado: ni
+// una clave más ni una menos, cada una con su valor.
+func fallosDeUnMapa(clave string, encontrado, esperado map[string]string) []string {
+	if maps.Equal(encontrado, esperado) {
+		return nil
+	}
+
+	presentado := noEsta
+	if encontrado != nil {
+		presentado = "vale " + presentarMapa(encontrado)
+	}
+
+	return []string{fallo(clave, presentado, presentarMapa(esperado))}
+}
+
+// fallosDelCheckout comprueba que el primer paso de los dados que obtiene el
+// código, el de accionDelCheckout, trae toda la historia, de la que la elección
+// y la decisión sacan el árbol de la base (research D5 de H30), con la clave
+// de esos pasos.
+func fallosDelCheckout(clave string, pasos []pasoDelFlujo) []string {
+	clave += ", el de " + accionDelCheckout + ", with.fetch-depth"
+
+	indice := slices.IndexFunc(pasos, func(paso pasoDelFlujo) bool { return paso.Accion == accionDelCheckout })
+	if indice < 0 {
+		return []string{fallo(clave, "el paso "+noEsta, todaLaHistoria)}
+	}
+
+	if profundidad := pasos[indice].Con["fetch-depth"]; profundidad != todaLaHistoria {
+		return []string{fallo(clave, presentarTexto(profundidad), todaLaHistoria)}
+	}
+
+	return nil
+}
+
+// fallosDeLosPasosDelTrabajo comprueba los pasos del trabajo evals de
+// contracts/job-de-evals.md §2 de H30: toda la historia en su checkout; el paso
+// de la decisión, que está entre el que instala Go y el que ejecuta las evals,
+// con su run y con GH_TOKEN y GH_REPO en su env, que no están en el del
+// trabajo ni en el de ningún otro paso; el run del que ejecuta las evals; y el
+// name, el if y el run del último, la marca del informe escrito.
+func fallosDeLosPasosDelTrabajo(leida DefinicionDelJob) []string {
+	const clave = "jobs.evals.steps"
+
+	decide := slices.IndexFunc(leida.pasos, func(paso pasoDelFlujo) bool { return paso.Nombre == pasoDeLaDecision })
+
+	fallos := slices.Concat(fallosDelCheckout(clave, leida.pasos), fallosDeLaDecision(leida.pasos, decide),
+		fallosDeGhFueraDeLaDecision(leida, decide))
+
+	var ejecucion, ultimo pasoDelFlujo
+	if ejecuta := slices.IndexFunc(leida.pasos, func(paso pasoDelFlujo) bool {
+		return paso.Nombre == pasoQueEjecutaLasEvals
+	}); ejecuta >= 0 {
+		ejecucion = leida.pasos[ejecuta]
+	}
+
+	if len(leida.pasos) > 0 {
+		ultimo = leida.pasos[len(leida.pasos)-1]
+	}
+
+	elUltimo := clave + ", el \xc3\xbaltimo, "
+
+	for _, comprobada := range []struct{ clave, encontrado, esperado string }{
+		{clave + ", " + strconv.Quote(pasoQueEjecutaLasEvals) + ", run", ejecucion.Orden, ordenQueEjecutaLasEvals},
+		{elUltimo + "name", ultimo.Nombre, marcaDelInformeEscrito},
+		{elUltimo + "if", ultimo.Condicion, condicionDeLaMarcaDelInforme},
+		{elUltimo + "run", ultimo.Orden, ordenDeLaMarcaDelInforme},
+	} {
+		if comprobada.encontrado != comprobada.esperado {
+			fallos = append(fallos, fallo(comprobada.clave, presentarTexto(comprobada.encontrado),
+				strconv.Quote(comprobada.esperado)))
+		}
+	}
+
+	return fallos
+}
+
+// fallosDeLaDecision comprueba el paso de la decisión del trabajo evals, el de
+// la posición decide entre sus pasos (-1, ninguno): que está; que va tras el que
+// instala Go y antes del que ejecuta las evals; y su env y su run.
+func fallosDeLaDecision(pasos []pasoDelFlujo, decide int) []string {
+	delPaso := "jobs.evals.steps, " + strconv.Quote(pasoDeLaDecision)
+
+	if decide < 0 {
+		return []string{fallo(delPaso, noEsta, "el paso que decide qu\xc3\xa9 mide y qu\xc3\xa9 reutiliza")}
+	}
+
+	var fallos []string
+
+	instalaGo := slices.IndexFunc(pasos, func(paso pasoDelFlujo) bool { return paso.Accion == accionDeGo })
+	ejecuta := slices.IndexFunc(pasos, func(paso pasoDelFlujo) bool { return paso.Nombre == pasoQueEjecutaLasEvals })
+
+	if instalaGo < 0 || decide < instalaGo || ejecuta < decide {
+		fallos = append(fallos, fallo(delPaso, "est\xc3\xa1 en el paso "+strconv.Itoa(decide+1),
+			"que vaya tras el de "+accionDeGo+" y antes de "+strconv.Quote(pasoQueEjecutaLasEvals)))
+	}
+
+	decision := pasos[decide]
+
+	fallos = append(fallos, fallosDeUnMapa(delPaso+", env", decision.Env, entornoDeLaDecision)...)
+
+	if decision.Orden != ordenDeLaDecision {
+		fallos = append(fallos, fallo(delPaso+", run", presentarTexto(decision.Orden), strconv.Quote(ordenDeLaDecision)))
+	}
+
+	return fallos
+}
+
+// fallosDeGhFueraDeLaDecision devuelve una línea por cada sitio del trabajo
+// evals, aparte del paso de la decisión, cuyo env lleva GH_TOKEN o GH_REPO: el
+// env del trabajo y el de cada uno de sus otros pasos, en su orden. El de la
+// posición decide es el de la decisión; -1, ninguno.
+func fallosDeGhFueraDeLaDecision(leida DefinicionDelJob, decide int) []string {
+	type sitio struct {
+		clave string
+		env   map[string]string
+	}
+
+	var fallos []string
+
+	sitios := []sitio{{clave: "jobs.evals.env", env: leida.Env}}
+
+	for posicion, paso := range leida.pasos {
+		if posicion != decide {
+			sitios = append(sitios, sitio{clave: "jobs.evals.steps, " + strconv.Quote(paso.Nombre) + ", env", env: paso.Env})
+		}
+	}
+
+	for _, sitio := range sitios {
+		for _, variable := range []string{variableDelAccesoDeGh, variableDelRepoDeGh} {
+			if _, esta := sitio.env[variable]; esta {
+				fallos = append(fallos, fallo(sitio.clave+"."+variable, "est\xc3\xa1",
+					queNoEste+": solo el paso de la decisi\xc3\xb3n lee la plataforma"))
+			}
+		}
+	}
+
+	return fallos
+}
+
 // fallosDeLaTanda comprueba el trabajo tanda de contracts/tanda-del-job.md §4
 // de H7.4: que está; que un name no cambia el nombre con el que gh lo da, su
 // id, que es el que busca la decisión; su if; que no tiene concurrency; su
-// permiso de actions; su salida medir; y sus pasos. Sin el trabajo, solo esa
-// línea.
+// permiso de actions; su salida medir; y sus pasos. Desde H30, también el modo
+// de su env y su salida modo (contracts/job-de-evals.md §1 y §2 de H30). Sin el
+// trabajo, solo esa línea.
 func fallosDeLaTanda(tanda *TrabajoDeLaTanda) []string {
 	if tanda == nil {
 		return []string{fallo("jobs."+trabajoDeLaTanda, noEsta,
@@ -340,8 +657,19 @@ func fallosDeLaTanda(tanda *TrabajoDeLaTanda) []string {
 			strconv.Quote(permisoDeLasEjecuciones)))
 	}
 
-	if salida := tanda.Salidas["medir"]; salida != salidaDeLaTanda {
-		fallos = append(fallos, fallo("jobs.tanda.outputs.medir", presentarTexto(salida), strconv.Quote(salidaDeLaTanda)))
+	if modo := tanda.env[variableDelModoDeEvals]; modo != modoDeLaTanda {
+		fallos = append(fallos, fallo("jobs.tanda.env."+variableDelModoDeEvals, presentarTexto(modo),
+			strconv.Quote(modoDeLaTanda)))
+	}
+
+	for _, salida := range []struct{ nombre, esperada string }{
+		{"medir", salidaDeLaTanda},
+		{"modo", salidaDelModoDeLaTanda},
+	} {
+		if encontrada := tanda.Salidas[salida.nombre]; encontrada != salida.esperada {
+			fallos = append(fallos, fallo("jobs.tanda.outputs."+salida.nombre, presentarTexto(encontrada),
+				strconv.Quote(salida.esperada)))
+		}
 	}
 
 	return append(fallos, fallosDeLosPasosDeLaTanda(tanda.Pasos)...)
@@ -349,15 +677,21 @@ func fallosDeLaTanda(tanda *TrabajoDeLaTanda) []string {
 
 // fallosDeLosPasosDeLaTanda comprueba los pasos del trabajo tanda de
 // contracts/tanda-del-job.md §4 de H7.4: el run del paso que decide, el de id
-// decidir, y el name y el if del último, la marca que leen las ejecuciones
-// posteriores.
+// decidir, y el name y el if de las marcas que leen las ejecuciones
+// posteriores, que desde H30 son las dos últimas: la penúltima, la de que mide
+// el commit, y la última, la de que mide la suite completa
+// (contracts/job-de-evals.md §2 de H30; research D13 de H30).
 func fallosDeLosPasosDeLaTanda(pasos []PasoDelTrabajo) []string {
 	var fallos []string
 
-	var decide, ultimo PasoDelTrabajo
+	var decide, penultimo, ultimo PasoDelTrabajo
 
 	if indice := slices.IndexFunc(pasos, func(paso PasoDelTrabajo) bool { return paso.ID == "decidir" }); indice >= 0 {
 		decide = pasos[indice]
+	}
+
+	if len(pasos) > 1 {
+		penultimo = pasos[len(pasos)-2]
 	}
 
 	if len(pasos) > 0 {
@@ -369,14 +703,23 @@ func fallosDeLosPasosDeLaTanda(pasos []PasoDelTrabajo) []string {
 			strconv.Quote(ordenDelPasoQueDecide)))
 	}
 
-	if ultimo.Nombre != marcaDeLaTanda {
-		fallos = append(fallos, fallo("jobs.tanda.steps, el \xc3\xbaltimo, name", presentarTexto(ultimo.Nombre),
-			strconv.Quote(marcaDeLaTanda)))
-	}
+	for _, comprobado := range []struct {
+		clave             string
+		paso              PasoDelTrabajo
+		nombre, condicion string
+	}{
+		{"jobs.tanda.steps, el pen\xc3\xbaltimo, ", penultimo, marcaDeLaTanda, condicionDeLaMarca},
+		{"jobs.tanda.steps, el \xc3\xbaltimo, ", ultimo, marcaDeLaSuiteCompleta, condicionDeLaMarcaDeLaSuiteCompleta},
+	} {
+		if comprobado.paso.Nombre != comprobado.nombre {
+			fallos = append(fallos, fallo(comprobado.clave+"name", presentarTexto(comprobado.paso.Nombre),
+				strconv.Quote(comprobado.nombre)))
+		}
 
-	if ultimo.Condicion != condicionDeLaMarca {
-		fallos = append(fallos, fallo("jobs.tanda.steps, el \xc3\xbaltimo, if", presentarTexto(ultimo.Condicion),
-			strconv.Quote(condicionDeLaMarca)))
+		if comprobado.paso.Condicion != comprobado.condicion {
+			fallos = append(fallos, fallo(comprobado.clave+"if", presentarTexto(comprobado.paso.Condicion),
+				strconv.Quote(comprobado.condicion)))
+		}
 	}
 
 	return fallos
@@ -443,8 +786,46 @@ func fallosDeLaMatriz(leida DefinicionDelJob) []string {
 			presentarLista(skillsDelTrabajo)))
 	}
 
-	return append(fallos,
+	fallos = append(fallos,
 		fallosDelInclude("jobs.evals.strategy.matrix.include", leida.PorSkill, ajustesDelTrabajo, presentarAjustes)...)
+
+	return append(fallos, fallosDeLasSesionesALaVez(leida)...)
+}
+
+// fallosDeLasSesionesALaVez comprueba lo que la matriz del trabajo evals deja
+// abrir a la vez (FR-020 y SC-011 de H30): una sola combinación por skill
+// —ninguna clave de la matriz además de skill e include, que multiplicaría sus
+// trabajos— y, entre todas sus combinaciones, como mucho
+// sesionesALaVezComoMucho sesiones, la suma de la concurrencia de cada una: la
+// de cada skill de la matriz y la de cada skill que solo está en include, que
+// es otra combinación.
+func fallosDeLasSesionesALaVez(leida DefinicionDelJob) []string {
+	var fallos []string
+
+	for _, dimension := range leida.dimensionesDeLaMatriz {
+		fallos = append(fallos, fallo("jobs.evals.strategy.matrix."+dimension, "est\xc3\xa1",
+			queNoEste+": la matriz da un solo trabajo por skill"))
+	}
+
+	combinaciones := slices.Clone(leida.Skills)
+	for skill := range leida.PorSkill {
+		if !slices.Contains(combinaciones, skill) {
+			combinaciones = append(combinaciones, skill)
+		}
+	}
+
+	aLaVez := 0
+	for _, skill := range combinaciones {
+		aLaVez += leida.PorSkill[skill].Concurrencia
+	}
+
+	if aLaVez > sesionesALaVezComoMucho {
+		fallos = append(fallos, fallo("jobs.evals.strategy.matrix",
+			fmt.Sprintf("admite %d sesiones a la vez entre sus %d combinaciones", aLaVez, len(combinaciones)),
+			fmt.Sprintf("como mucho %d", sesionesALaVezComoMucho)))
+	}
+
+	return fallos
 }
 
 // fallosDelInclude devuelve una línea, con esa clave y la skill, por cada skill
@@ -755,6 +1136,17 @@ func presentarLista(elementos []string) string {
 	return "[" + strings.Join(elementos, ", ") + "]"
 }
 
+// presentarMapa presenta un mapa de YAML en flujo, con sus claves en orden,
+// como {a: b, c: d}.
+func presentarMapa(mapa map[string]string) string {
+	pares := make([]string, 0, len(mapa))
+	for _, clave := range slices.Sorted(maps.Keys(mapa)) {
+		pares = append(pares, clave+": "+mapa[clave])
+	}
+
+	return "{" + strings.Join(pares, ", ") + "}"
+}
+
 // presentarAjustes presenta los ajustes de una skill como las claves de su
 // entrada de include.
 func presentarAjustes(ajustes AjustesDeSkill) string {
@@ -770,33 +1162,84 @@ func presentarConcurrencia(concurrencia int) string {
 
 // trabajoDeLaTandaDelContrato es el trabajo tanda de definicionDelContrato, el
 // de contracts/tanda-del-job.md §1 de H7.4 sin sus comentarios ni los pasos que
-// no se comprueban.
+// no se comprueban, con lo que le añade contracts/job-de-evals.md §2 de H30: el
+// modo en su env, la salida modo y la marca de la suite completa.
 const trabajoDeLaTandaDelContrato = `  tanda:
     needs: [cambios]
     if: >-
       ` + sinCancelar + ` && needs.cambios.result != 'failure' && (
         ` + despachoSinLaMedida + ` ||
         github.event.label.name == 'evals' ||
+        github.event.label.name == 'evals-completa' ||
         github.event.label.name == 'evals-prueba-de-red' ||
-        needs.cambios.outputs.coincide == 'si'
+        needs.cambios.outputs.elige == 'si'
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
       actions: read
+    env:
+      MODO_DE_EVALS: >-
+        ${{ (github.event_name == 'workflow_dispatch' || github.event.label.name == 'evals-completa' ||
+        github.event.label.name == 'evals-prueba-de-red') && 'completa' || 'reutilizacion' }}
     outputs:
       medir: ${{ steps.decidir.outputs.medir }}
+      modo: ${{ steps.decidir.outputs.modo }}
     steps:
       - name: Mirar si otra tanda mide este commit
         id: decidir
         run: >-
           go test -tags evals -count=1 -timeout 12m -v -run '^TestTandaDelCommit$' ./internal/evals/
-          -args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -salida "$GITHUB_OUTPUT"
+          -args -commit "$COMMIT_EVALUADO" -ejecucion "$EJECUCION" -modo "$MODO_DE_EVALS" -salida "$GITHUB_OUTPUT"
       - name: ` + pasoDeLaMarca + `
         if: steps.decidir.outputs.medir == 'si'
         run: echo mide
+      - name: ` + pasoDeLaSuiteCompleta + `
+        if: steps.decidir.outputs.medir == 'si' && steps.decidir.outputs.modo == 'completa'
+        run: echo mide la suite completa
 `
+
+// trabajoDeCambiosDelContrato es el trabajo cambios de definicionDelContrato, el
+// de contracts/job-de-evals.md §2 de H30 sin el paso que instala Go, que no se
+// comprueba. Va el último de la definición: así un fragmento que está también
+// en la tanda, como su tope, se cambia en la tanda, y los cambios de este
+// trabajo los hace enCambios.
+const trabajoDeCambiosDelContrato = `  cambios:
+    if: ` + condicionDeCambios + `
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      elige: ${{ steps.elegir.outputs.elige }}
+    steps:
+      - name: Obtener la cabeza de la propuesta
+        uses: ` + accionDelCheckout + `
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: ` + pasoDeLaEleccion + `
+        id: elegir
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PROPUESTA: ${{ github.event.pull_request.number }}
+          BASE_DE_LA_PROPUESTA: ${{ github.event.pull_request.base.sha }}
+        run: >-
+          go test -tags evals -count=1 -timeout 12m -v -run '^TestEleccionDeLaPropuesta$' ./internal/evals/
+          -args -propuesta "$PROPUESTA" -base "$BASE_DE_LA_PROPUESTA" -salida "$GITHUB_OUTPUT"
+`
+
+// enCambios es el cambio de un fragmento por otro dentro del trabajo cambios de
+// definicionDelContrato, también si el fragmento está antes en otro trabajo.
+func enCambios(antes, despues string) cambioDeLaDefinicion {
+	return cambioDeLaDefinicion{
+		antes:   trabajoDeCambiosDelContrato,
+		despues: strings.Replace(trabajoDeCambiosDelContrato, antes, despues, 1),
+	}
+}
 
 // Lo que definicionDelContrato fija para el juez con modelo: su modelo y la
 // versión de Claude Code de sus votos, las dos líneas con las que los repiten
@@ -826,16 +1269,55 @@ const (
 	entradaDeLaMedidaDelFlujo   = "      " + entradaDeLaMedida + ":\n        type: boolean\n" + valorPorOmisionDeLaEntrada
 )
 
-// pasosDeEvalsDelContrato son los pasos del trabajo evals de
-// definicionDelContrato: de los de contracts/job-de-evals.md §2 de H24, el
-// único que se comprueba, el que instala los dos Claude Code.
-const pasosDeEvalsDelContrato = `    steps:
-      - name: Instalar strace y Claude Code
+// pasoDeInstalacionDelContrato es el paso del trabajo evals de
+// definicionDelContrato que instala los dos Claude Code, el de
+// contracts/job-de-evals.md §2 de H24.
+const pasoDeInstalacionDelContrato = `      - name: Instalar strace y Claude Code
         run: |
           ` + instalacionDeLasSesiones + `
           claude --version
 ` + lineaDeLaInstalacionDelJuez + `          "$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" --version
           echo "CLAUDE_DEL_JUEZ=$RUNNER_TEMP/claude-del-juez/node_modules/.bin/claude" >> "$GITHUB_ENV"
+`
+
+// pasoDeLaDecisionDelContrato es el paso del trabajo evals de
+// definicionDelContrato que decide qué mide y qué reutiliza, el de
+// contracts/job-de-evals.md §2 de H30, con su plazo de 15 minutos.
+const pasoDeLaDecisionDelContrato = `      - name: ` + pasoDeLaDecision + `
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: >-
+          go test -tags evals -count=1 -timeout 15m -v -run '^TestDecisionDelTrabajo$' ./internal/evals/
+          -args -skill "$SKILL_EVALUADA" -modo "$MODO_DE_EVALS" -commit "$COMMIT_EVALUADO" -propuesta "$PROPUESTA"
+          -base "$BASE_DE_LA_PROPUESTA" -modelo-que-decide "$MODELO_DE_EVALS"
+          -version-de-claude-code "$VERSION_DE_CLAUDE_CODE" -modelo-del-juez "$MODELO_DEL_JUEZ"
+          -version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ" -salida "$RUNNER_TEMP/decision-de-evals.json"
+`
+
+// pasosDeEvalsDelContrato son los pasos del trabajo evals de
+// definicionDelContrato: de los de contracts/job-de-evals.md §2 de H24, el que
+// instala los dos Claude Code, y, desde H30, los de contracts/job-de-evals.md
+// §2 de H30: el checkout con toda la historia, el que instala Go, el de la
+// decisión tras él, el que ejecuta las evals con su fichero y, el último, la
+// marca del informe escrito.
+const pasosDeEvalsDelContrato = `    steps:
+      - name: Obtener el commit evaluado
+        uses: ` + accionDelCheckout + `
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Instalar Go
+        uses: ` + accionDeGo + `
+        with:
+          go-version-file: go.mod
+` + pasoDeLaDecisionDelContrato + pasoDeInstalacionDelContrato + `      - name: ` + pasoQueEjecutaLasEvals + `
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: ` + ordenQueEjecutaLasEvals + `
+      - name: ` + marcaDelInformeEscrito + `
+        if: ` + condicionDeLaMarcaDelInforme + `
+        run: ` + ordenDeLaMarcaDelInforme + `
 `
 
 // trabajoDeLaMedidaDelContrato es el trabajo medida de definicionDelContrato, el
@@ -877,10 +1359,13 @@ const trabajoDeLaMedidaDelContrato = `  medida:
 // tienen además juez, que juzga las 3 respuestas del modelo que decide en cada
 // modo: 60 s de instalar su Claude Code y, de sus votos, (⌈3 × 6 / 5⌉ +
 // ⌈3 × 6 / 5⌉) × 40 s en boe-legislacion, 1953 s en total, y (⌈3 × 6 / 4⌉ +
-// ⌈3 × 6 / 4⌉) × 40 s en jurisprudencia, 2033 s. 120 minutos cubren los tres. Y
-// el de la medida de cada una, con sus 7 casos etiquetados, es de 485 + 60 +
-// ⌈7 × 6 / 5⌉ × 40 = 905 s en boe-legislacion y 485 + 60 + ⌈7 × 6 / 4⌉ × 40 =
-// 985 s en jurisprudencia, que cubren los 17 minutos de su trabajo.
+// ⌈3 × 6 / 4⌉) × 40 s en jurisprudencia, 2033 s. Desde H30 cada uno suma los
+// 900 s del plazo de la decisión (contracts/job-de-evals.md §2 de H30): 2853 s
+// en boe-legislacion, 2933 s en jurisprudencia y 3289 s en legal-core, y 120
+// minutos cubren los tres. Y el de la medida de cada una, con sus 7 casos
+// etiquetados, es de 485 + 60 + ⌈7 × 6 / 5⌉ × 40 = 905 s en boe-legislacion y
+// 485 + 60 + ⌈7 × 6 / 4⌉ × 40 = 985 s en jurisprudencia, que cubren los 17
+// minutos de su trabajo: el trabajo medida no decide nada.
 const definicionDelContrato = `name: evals
 on:
   workflow_dispatch:
@@ -888,9 +1373,10 @@ on:
 ` + entradaDeLaMedidaDelFlujo + `  pull_request:
     types: [opened, reopened, labeled]
 jobs:
-` + trabajoDeLaTandaDelContrato + trabajoDeEvalsDelContrato + trabajoDeLaMedidaDelContrato
+` + trabajoDeLaTandaDelContrato + trabajoDeEvalsDelContrato + trabajoDeLaMedidaDelContrato + trabajoDeCambiosDelContrato
 
-// trabajoDeEvalsDelContrato es el trabajo evals de definicionDelContrato.
+// trabajoDeEvalsDelContrato es el trabajo evals de definicionDelContrato, con
+// los permisos y el env que le añade contracts/job-de-evals.md §2 de H30.
 const trabajoDeEvalsDelContrato = `  evals:
     name: evals (${{ matrix.skill }})
     needs: [tanda]
@@ -914,6 +1400,10 @@ const trabajoDeEvalsDelContrato = `  evals:
             objetivo_de_duracion: 0
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     env:
       MODELO_DE_EVALS: claude-sonnet-5
 ` + entornoDelJuezDelContrato + `      MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001
@@ -922,6 +1412,9 @@ const trabajoDeEvalsDelContrato = `  evals:
       CONCURRENCIA_DE_EVALS: ${{ matrix.concurrencia }}
       OBJETIVO_DE_DURACION_DE_EVALS: ${{ matrix.objetivo_de_duracion }}
       VERSION_DE_CLAUDE_CODE: ` + versionDeLasSesionesDelContrato + `
+      MODO_DE_EVALS: ${{ needs.tanda.outputs.modo }}
+      PROPUESTA: ${{ github.event.pull_request.number }}
+      BASE_DE_LA_PROPUESTA: ${{ github.event.pull_request.base.sha }}
 ` + pasosDeEvalsDelContrato
 
 // cambioDeLaDefinicion sustituye, en definicionDelContrato, un fragmento por
@@ -1020,7 +1513,10 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // H9). Desde antes de H20, boe-legislacion va a cinco
 // a la vez y, desde H20, con sus veintitrés evals, el suyo es de 18 977 s
 // (research D16 y S1 de H20). Desde H26.1, con la 11 y la 12, el de legal-core
-// es de 19 525 s, el mayor de los tres (research V10 y D13 de H26.1). El tope
+// es de 19 525 s, el mayor de los tres (research V10 y D13 de H26.1). Desde
+// H30, cada uno suma los 900 s del plazo de la decisión (contracts/job-de-evals.md
+// §2 de H30): 19 877 s en boe-legislacion, 13 477 s en jurisprudencia y
+// 20 425 s en legal-core, que sigue siendo el mayor. El tope
 // de la definición del job cubre los tres; con 288 minutos, 17 280 s, ya no
 // cubre el de boe-legislacion ni el de legal-core; con 209,
 // que son 12 540 s, ninguno, ni el de legal-core ni el de jurisprudencia; y con
@@ -1030,7 +1526,7 @@ func leerLaSintetica(t *testing.T, cambios []cambioDeLaDefinicion) DefinicionDel
 // del repositorio, 352 y 269 minutos, que cubren el peor caso de cada trabajo
 // con las evals y los casos etiquetados del repositorio: la definición que deja
 // a jurisprudencia de una en una en el trabajo evals da la línea de su include
-// y la del tope, con su peor caso de 47 857 s; la que la deja de una en una en
+// y la del tope, con su peor caso de 48 757 s; la que la deja de una en una en
 // el trabajo medida, la de su include y la del tope de la medida, con el de sus
 // 249 casos, 60 305 s; y la que la quita de la matriz del trabajo medida, la de
 // esa matriz. En los demás casos el trabajo medida va con el tope de la
@@ -1099,6 +1595,13 @@ func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
 		require.Equal(t, delRepositorio.PorSkill[skill].Concurrencia, delContrato.PorSkill[skill].Concurrencia,
 			"premisa: la concurrencia de %s", skill)
 	}
+
+	plazoDelRepositorio, err := delRepositorio.plazoDeLaDecision()
+	require.NoError(t, err)
+
+	plazoDelContrato, err := delContrato.plazoDeLaDecision()
+	require.NoError(t, err)
+	require.Equal(t, plazoDelRepositorio, plazoDelContrato, "premisa: el plazo de la decisi\xc3\xb3n")
 
 	require.NotNil(t, delContrato.Medida, "premisa: la definici\xc3\xb3n del contrato tiene el trabajo medida")
 	require.Equal(t, delRepositorio.Medida.Skills, delContrato.Medida.Skills, "premisa: las skills de la matriz de la medida")
@@ -1169,10 +1672,11 @@ func probarElTopeConLasEvalsDelRepositorio(t *testing.T) {
 
 // definicionesSinteticas son los casos de probarLasDefinicionesSinteticas: uno
 // por comprobación de contracts/ejecucion-del-job.md §7 de H7.3, los del tope
-// que lo cubren y, detrás, los del juez y de su medida.
+// que lo cubren y, detrás, los del juez y de su medida y, desde H30, los de la
+// elección y la decisión.
 func definicionesSinteticas() []definicionSintetica {
 	return slices.Concat(definicionesSinteticasDelJob(), definicionesSinteticasDelJuez(),
-		definicionesSinteticasDeLaMedida())
+		definicionesSinteticasDeLaMedida(), definicionesSinteticasDeLaEleccion())
 }
 
 // definicionesSinteticasDelJuez son las definiciones que se apartan de
@@ -1234,7 +1738,7 @@ func definicionesSinteticasDelJuez() []definicionSintetica {
 		},
 		{
 			nombre:  "sin-el-paso-de-instalacion",
-			cambios: []cambioDeLaDefinicion{{pasosDeEvalsDelContrato, ""}},
+			cambios: []cambioDeLaDefinicion{{pasoDeInstalacionDelContrato, ""}},
 			fallos: []string{pasoDeLaInstalacion + ": " + noEsta + yLoEsperadoEs + "que tenga la l\xc3\xadnea " +
 				strconv.Quote(instalacionDelJuez)},
 		},
@@ -1472,19 +1976,24 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		ajustesDeBoe     = "{concurrencia: 5, objetivo_de_duracion: 900}"
 		ajustesDeJuris   = "{concurrencia: 4, objetivo_de_duracion: 0}"
 		ajustesDeLegal   = "{concurrencia: 2, objetivo_de_duracion: 0}"
-		peorCasoDeLegal  = "2389 s = 485 s + (\xe2\x8c\x887 / 2\xe2\x8c\x89 + \xe2\x8c\x886 / 2\xe2\x8c\x89) \xc3\x97 (22 s + 240 s + 10 s)"
-		peorCasoConJuez  = "2033 s = 485 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
+		peorCasoDeLegal  = "3289 s = 485 s + 900 s + (\xe2\x8c\x887 / 2\xe2\x8c\x89 + \xe2\x8c\x886 / 2\xe2\x8c\x89) \xc3\x97 (22 s + 240 s + 10 s)"
+		peorCasoConJuez  = "2933 s = 485 s + 900 s + (\xe2\x8c\x887 / 4\xe2\x8c\x89 + \xe2\x8c\x886 / 4\xe2\x8c\x89) " +
 			"\xc3\x97 (22 s + 240 s + 10 s) + 60 s + (\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89 + " +
 			"\xe2\x8c\x883 \xc3\x97 6 / 4\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
-		peorCasoDeBoe = "1953 s = 485 s + (\xe2\x8c\x887 / 5\xe2\x8c\x89 + \xe2\x8c\x886 / 5\xe2\x8c\x89) " +
+		peorCasoDeBoe = "2853 s = 485 s + 900 s + (\xe2\x8c\x887 / 5\xe2\x8c\x89 + \xe2\x8c\x886 / 5\xe2\x8c\x89) " +
 			"\xc3\x97 (22 s + 240 s + 10 s) + 60 s + (\xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89 + " +
 			"\xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89) \xc3\x97 (35 s + 5 s)"
-		alMenosElPeorDe  = ", y lo esperado es al menos el peor caso de "
-		esperadoDelGrupo = `"evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"`
-		pruebaDeRed      = "  github.event.label.name == 'evals-prueba-de-red' ||\n"
-		ejecucionDeGh    = ` -ejecucion "$EJECUCION"`
-		topeDeLaTanda    = "    timeout-minutes: 15\n"
-		elUltimo         = "jobs.tanda.steps, el \xc3\xbaltimo, "
+		alMenosElPeorDe    = ", y lo esperado es al menos el peor caso de "
+		esperadoDelGrupo   = `"evals-${{ github.event.pull_request.head.sha || github.sha }}-${{ matrix.skill }}"`
+		pruebaDeRed        = "  github.event.label.name == 'evals-prueba-de-red' ||\n"
+		evalsCompleta      = "  github.event.label.name == 'evals-completa' ||\n"
+		ejecucionDeGh      = ` -ejecucion "$EJECUCION"`
+		modoDeGh           = ` -modo "$MODO_DE_EVALS"`
+		topeDeLaTanda      = "    timeout-minutes: 15\n"
+		elPenultimo        = "jobs.tanda.steps, el pen\xc3\xbaltimo, "
+		elUltimo           = "jobs.tanda.steps, el \xc3\xbaltimo, "
+		yLoEsperadoEs      = ", y lo esperado es "
+		sesionesDeLaMatriz = "jobs.evals.strategy.matrix: "
 	)
 
 	return []definicionSintetica{
@@ -1525,15 +2034,65 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		},
 		{
 			nombre:  "tanda-sin-la-salida-medir",
-			cambios: []cambioDeLaDefinicion{{"    outputs:\n      medir: ${{ steps.decidir.outputs.medir }}\n", ""}},
+			cambios: []cambioDeLaDefinicion{{"      medir: ${{ steps.decidir.outputs.medir }}\n", ""}},
 			fallos: []string{`jobs.tanda.outputs.medir: no est` + "\xc3\xa1" + `, y lo esperado es ` +
 				`"${{ steps.decidir.outputs.medir }}"`},
+		},
+		{
+			// Sin la salida modo, el trabajo evals no sabe con qué modo decidir
+			// (contracts/job-de-evals.md §2 de H30).
+			nombre:  "tanda-sin-la-salida-modo",
+			cambios: []cambioDeLaDefinicion{{"      modo: ${{ steps.decidir.outputs.modo }}\n", ""}},
+			fallos: []string{`jobs.tanda.outputs.modo: no est` + "\xc3\xa1" + yLoEsperadoEs +
+				strconv.Quote(salidaDelModoDeLaTanda)},
+		},
+		{
+			// La etiqueta evals-completa sin tanda no mediría nada (FR-018 de H30).
+			nombre:  "tanda-sin-evals-completa",
+			cambios: []cambioDeLaDefinicion{{"      " + evalsCompleta, ""}},
+			fallos: []string{"jobs.tanda.if: vale " + strconv.Quote(strings.Replace(condicionDeLaTanda, evalsCompleta, "", 1)) +
+				yLoEsperadoEs + strconv.Quote(condicionDeLaTanda)},
+		},
+		{
+			// La salida de antes de H30, coincide, ya no la da cambios: la apertura
+			// que elige alguna eval no mediría (FR-016 de H30).
+			nombre:  "tanda-con-la-salida-de-antes",
+			cambios: []cambioDeLaDefinicion{{"needs.cambios.outputs.elige == 'si'", "needs.cambios.outputs.coincide == 'si'"}},
+			fallos: []string{"jobs.tanda.if: vale " + strconv.Quote(strings.Replace(condicionDeLaTanda, "elige", "coincide", 1)) +
+				yLoEsperadoEs + strconv.Quote(condicionDeLaTanda)},
+		},
+		{
+			// La etiqueta evals mide con reutilización (FR-017 de H30): con ella en
+			// la condición del modo mediría la suite completa.
+			nombre: "modo-completa-tambien-con-la-etiqueta-evals",
+			cambios: []cambioDeLaDefinicion{{
+				"(github.event_name == 'workflow_dispatch' || github.event.label.name == 'evals-completa' ||",
+				"(github.event_name == 'workflow_dispatch' || github.event.label.name == 'evals' || " +
+					"github.event.label.name == 'evals-completa' ||",
+			}},
+			fallos: []string{"jobs.tanda.env.MODO_DE_EVALS: vale " + strconv.Quote(strings.Replace(modoDeLaTanda,
+				"'workflow_dispatch' || ", "'workflow_dispatch' || github.event.label.name == 'evals' || ", 1)) +
+				yLoEsperadoEs + strconv.Quote(modoDeLaTanda)},
+		},
+		{
+			nombre:  "tanda-sin-el-modo",
+			cambios: []cambioDeLaDefinicion{{"      MODO_DE_EVALS: >-\n", "      OTRO_MODO: >-\n"}},
+			fallos:  []string{"jobs.tanda.env.MODO_DE_EVALS: no est\xc3\xa1" + yLoEsperadoEs + strconv.Quote(modoDeLaTanda)},
 		},
 		{
 			nombre:  "decidir-sin-la-ejecucion",
 			cambios: []cambioDeLaDefinicion{{ejecucionDeGh, ""}},
 			fallos: []string{"jobs.tanda.steps, id decidir, run: vale " +
 				strconv.Quote(strings.Replace(ordenDelPasoQueDecide, ejecucionDeGh, "", 1)) + ", y lo esperado es " +
+				strconv.Quote(ordenDelPasoQueDecide)},
+		},
+		{
+			// Sin -modo, TestTandaDelCommit no decide (contracts/job-de-evals.md §4
+			// de H30).
+			nombre:  "decidir-sin-el-modo",
+			cambios: []cambioDeLaDefinicion{{modoDeGh, ""}},
+			fallos: []string{"jobs.tanda.steps, id decidir, run: vale " +
+				strconv.Quote(strings.Replace(ordenDelPasoQueDecide, modoDeGh, "", 1)) + yLoEsperadoEs +
 				strconv.Quote(ordenDelPasoQueDecide)},
 		},
 		{
@@ -1545,14 +2104,50 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		{
 			nombre:  "marca-con-otro-nombre",
 			cambios: []cambioDeLaDefinicion{{"      - name: " + pasoDeLaMarca + "\n", "      - name: Mide el commit\n"}},
-			fallos: []string{elUltimo + `name: vale "Mide el commit", y lo esperado es "Esta ejecuci` + "\xc3\xb3" +
+			fallos: []string{elPenultimo + `name: vale "Mide el commit", y lo esperado es "Esta ejecuci` + "\xc3\xb3" +
 				`n mide el commit"`},
 		},
 		{
 			nombre:  "marca-sin-su-if",
 			cambios: []cambioDeLaDefinicion{{"        if: steps.decidir.outputs.medir == 'si'\n", ""}},
-			fallos: []string{elUltimo + `if: no est` + "\xc3\xa1" + `, y lo esperado es ` +
+			fallos: []string{elPenultimo + `if: no est` + "\xc3\xa1" + `, y lo esperado es ` +
 				`"steps.decidir.outputs.medir == 'si'"`},
+		},
+		{
+			nombre: "marca-de-la-suite-completa-con-otro-nombre",
+			cambios: []cambioDeLaDefinicion{{
+				"      - name: " + pasoDeLaSuiteCompleta + "\n", "      - name: Mide la suite completa\n",
+			}},
+			fallos: []string{elUltimo + `name: vale "Mide la suite completa"` + yLoEsperadoEs +
+				strconv.Quote(marcaDeLaSuiteCompleta)},
+		},
+		{
+			// Sin el modo en su if, la marca de la suite completa correría también
+			// en una ejecución con reutilización, y la tanda de otra ejecución de la
+			// suite completa no mediría (FR-021 de H30).
+			nombre:  "marca-de-la-suite-completa-sin-el-modo",
+			cambios: []cambioDeLaDefinicion{{" && steps.decidir.outputs.modo == 'completa'", ""}},
+			fallos: []string{elUltimo + `if: vale "steps.decidir.outputs.medir == 'si'"` + yLoEsperadoEs +
+				strconv.Quote(condicionDeLaMarcaDeLaSuiteCompleta)},
+		},
+		{
+			// La de antes de H30: la tanda con una sola marca, que ya no es la
+			// última.
+			nombre: "tanda-sin-la-marca-de-la-suite-completa",
+			cambios: []cambioDeLaDefinicion{{
+				"      - name: " + pasoDeLaSuiteCompleta + "\n" +
+					"        if: " + condicionDeLaMarcaDeLaSuiteCompleta + "\n        run: echo mide la suite completa\n",
+				"",
+			}},
+			fallos: []string{
+				elPenultimo + `name: vale "Mirar si otra tanda mide este commit"` + yLoEsperadoEs +
+					strconv.Quote(marcaDeLaTanda),
+				elPenultimo + `if: no est` + "\xc3\xa1" + yLoEsperadoEs + strconv.Quote(condicionDeLaMarca),
+				elUltimo + `name: vale "Esta ejecuci` + "\xc3\xb3" + `n mide el commit"` + yLoEsperadoEs +
+					strconv.Quote(marcaDeLaSuiteCompleta),
+				elUltimo + `if: vale "steps.decidir.outputs.medir == 'si'"` + yLoEsperadoEs +
+					strconv.Quote(condicionDeLaMarcaDeLaSuiteCompleta),
+			},
 		},
 		{
 			nombre:  "evals-sin-needs-tanda",
@@ -1633,10 +2228,10 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 		},
 		{
 			// jurisprudencia va a cuatro a la vez desde H25. Con la eval de
-			// evalsSinteticas, de una en una son 5521 s —los 4021 de sus sesiones y
-			// 60 + 36 × 40 de su juez—, que el tope cubre: la única línea es la de su
-			// include. La del tope, con las diez evals del repositorio, la da
-			// probarElTopeConLasEvalsDelRepositorio.
+			// evalsSinteticas, de una en una son 6421 s —los 4021 de sus sesiones,
+			// los 900 de la decisión y 60 + 36 × 40 de su juez—, que el tope cubre:
+			// la única línea es la de su include. La del tope, con las diez evals del
+			// repositorio, la da probarElTopeConLasEvalsDelRepositorio.
 			nombre:  "jurisprudencia-de-una-en-una",
 			cambios: []cambioDeLaDefinicion{{includeDeJuris, skillDeJuris + deUnaEnUna + sinObjetivo}},
 			fallos: []string{includeDeSkill + "jurisprudencia: vale " +
@@ -1661,10 +2256,36 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 			},
 		},
 		{
+			// Una skill que solo está en include es otra combinación, con sus
+			// sesiones a la vez además de las once de las tres (SC-011 de H30).
 			nombre:  "include-con-otra-skill",
 			cambios: []cambioDeLaDefinicion{{includeDeLegal, includeDeLegal + "          - skill: cita\n            concurrencia: 1\n"}},
-			fallos: []string{includeDeSkill + "cita: vale " +
-				"{concurrencia: 1, objetivo_de_duracion: 0}, y lo esperado es que no est\xc3\xa9"},
+			fallos: []string{
+				includeDeSkill + "cita: vale {concurrencia: 1, objetivo_de_duracion: 0}, y lo esperado es que no est\xc3\xa9",
+				sesionesDeLaMatriz + "admite 12 sesiones a la vez entre sus 4 combinaciones" + yLoEsperadoEs +
+					"como mucho 11",
+			},
+		},
+		{
+			// Una sesión más en una skill son doce entre las tres (FR-020 y SC-011 de
+			// H30): la línea de su include y la de las sesiones a la vez.
+			nombre:  "una-sesion-mas-en-boe-legislacion",
+			cambios: []cambioDeLaDefinicion{{"concurrencia: 5", "concurrencia: 6"}},
+			fallos: []string{
+				includeDeSkill + "boe-legislacion: vale {concurrencia: 6, objetivo_de_duracion: 900}" + yLoEsperadoEs +
+					ajustesDeBoe,
+				sesionesDeLaMatriz + "admite 12 sesiones a la vez entre sus 3 combinaciones" + yLoEsperadoEs +
+					"como mucho 11",
+			},
+		},
+		{
+			// Otra clave en la matriz multiplica los trabajos de cada skill: dos a
+			// la vez de la misma skill, cada uno con su concurrencia (SC-011 de
+			// H30).
+			nombre:  "matriz-con-otra-dimension",
+			cambios: []cambioDeLaDefinicion{{matrizDelJob, matrizDelJob + "\n        modo: [orden, herramienta]"}},
+			fallos: []string{"jobs.evals.strategy.matrix.modo: est\xc3\xa1" + yLoEsperadoEs + queNoEste +
+				": la matriz da un solo trabajo por skill"},
 		},
 		{
 			nombre:  "env-sin-la-concurrencia",
@@ -1679,70 +2300,293 @@ func definicionesSinteticasDelJob() []definicionSintetica {
 				`"${{ matrix.objetivo_de_duracion }}"`},
 		},
 		{
-			// 39 minutos son 2340 s, menos que el peor caso de legal-core, y
-			// cubren el de boe-legislacion y el de jurisprudencia.
+			// 54 minutos son 3240 s, menos que el peor caso de legal-core, 3289 s, y
+			// cubren el de boe-legislacion y el de jurisprudencia. Desde H30, todos
+			// llevan los 900 s de la decisión.
 			nombre:  "tope-por-debajo-del-peor-caso",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 39"}},
-			fallos:  []string{topeDeEvals + "vale 39 (2340 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 54"}},
+			fallos:  []string{topeDeEvals + "vale 54 (3240 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal},
 		},
 		{
-			// 26 minutos son 1560 s, menos que los 1573 s de las sesiones solas de
-			// una skill a cuatro a la vez: no cubren el peor caso de ninguna de las
-			// tres.
+			// 41 minutos son 2460 s, menos que los 2473 s de las sesiones solas de
+			// una skill a cuatro a la vez con la decisión: no cubren el peor caso de
+			// ninguna de las tres.
 			nombre:  "tope-por-debajo-de-los-tres",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 26"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 41"}},
 			fallos: []string{
-				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoDeBoe,
-				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
-				topeDeEvals + "vale 26 (1560 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
+				topeDeEvals + "vale 41 (2460 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoDeBoe,
+				topeDeEvals + "vale 41 (2460 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
+				topeDeEvals + "vale 41 (2460 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
 			},
 		},
 		{
-			// 32 minutos son 1920 s, menos que el peor caso de boe-legislacion con
-			// su juez, 1953 s, y que el de jurisprudencia, 2033 s: cubrirían el de
-			// sus sesiones solas, 1573 s, y no cubren el que cuenta sus votos.
+			// 47 minutos son 2820 s, menos que el peor caso de boe-legislacion con
+			// su juez, 2853 s, y que el de jurisprudencia, 2933 s: cubrirían el de
+			// sus sesiones solas con la decisión, 2473 s, y no cubren el que cuenta
+			// sus votos.
 			nombre:  "tope-por-debajo-del-de-la-skill-con-juez",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 32"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 47"}},
 			fallos: []string{
-				topeDeEvals + "vale 32 (1920 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoDeBoe,
-				topeDeEvals + "vale 32 (1920 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
-				topeDeEvals + "vale 32 (1920 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
+				topeDeEvals + "vale 47 (2820 s)" + alMenosElPeorDe + "boe-legislacion, " + peorCasoDeBoe,
+				topeDeEvals + "vale 47 (2820 s)" + alMenosElPeorDe + "jurisprudencia, " + peorCasoConJuez,
+				topeDeEvals + "vale 47 (2820 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal,
 			},
 		},
 		{
-			// 34 minutos, 2040 s, cubren el de boe-legislacion y el de
+			// 49 minutos, 2940 s, cubren el de boe-legislacion y el de
 			// jurisprudencia con su juez, y no el de legal-core.
 			nombre:  "tope-que-cubre-el-de-la-skill-con-juez",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 34"}},
-			fallos:  []string{topeDeEvals + "vale 34 (2040 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 49"}},
+			fallos:  []string{topeDeEvals + "vale 49 (2940 s)" + alMenosElPeorDe + "legal-core, " + peorCasoDeLegal},
 		},
 		{
 			nombre:  "tope-que-cubre-el-peor-caso",
-			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 40"}},
+			cambios: []cambioDeLaDefinicion{{topeDelJob, "timeout-minutes: 55"}},
 		},
 		{
 			// Con una repetición, 3 sesiones por skill en el modo orden y 2 en el
-			// modo herramienta: 485 + (⌈3 / 2⌉ + ⌈2 / 2⌉) × 272 = 1301 s en
-			// legal-core, que va de dos en dos y tiene el mayor de los tres, que 22
+			// modo herramienta: 485 + 900 + (⌈3 / 2⌉ + ⌈2 / 2⌉) × 272 = 2201 s en
+			// legal-core, que va de dos en dos y tiene el mayor de los tres, que 37
 			// minutos cubren.
 			nombre: "tope-con-las-repeticiones-del-env",
 			cambios: []cambioDeLaDefinicion{
-				{topeDelJob, "timeout-minutes: 22"},
+				{topeDelJob, "timeout-minutes: 37"},
 				{repeticionesEnv, "REPETICIONES_DE_EVALS: 1"},
 			},
 		},
 		{
 			// Sin modelos informativos, 4 sesiones por skill en el modo orden y 3
-			// en el modo herramienta: 485 + (⌈4 / 2⌉ + ⌈3 / 2⌉) × 272 = 1573 s en
-			// legal-core, que va de dos en dos y tiene el mayor de los tres, que 27
-			// minutos cubren.
+			// en el modo herramienta: 485 + 900 + (⌈4 / 2⌉ + ⌈3 / 2⌉) × 272 = 2473 s
+			// en legal-core, que va de dos en dos y tiene el mayor de los tres, que
+			// 42 minutos cubren.
 			nombre: "tope-con-los-modelos-del-env",
 			cambios: []cambioDeLaDefinicion{
-				{topeDelJob, "timeout-minutes: 27"},
+				{topeDelJob, "timeout-minutes: 42"},
 				{"MODELOS_INFORMATIVOS_DE_EVALS: claude-haiku-4-5-20251001", `MODELOS_INFORMATIVOS_DE_EVALS: ""`},
 			},
 		},
 	}
+}
+
+// definicionesSinteticasDeLaEleccion son las definiciones que se apartan de
+// contracts/job-de-evals.md §2 de H30 en el trabajo cambios y en los permisos,
+// el env y los pasos que el trabajo evals gana con la decisión, cada una con su
+// línea (FR-010, FR-012, FR-016, FR-019; research D5, D8 y D17 de H30).
+func definicionesSinteticasDeLaEleccion() []definicionSintetica {
+	const (
+		yLoEsperadoEs         = ", y lo esperado es "
+		deCambios             = "jobs.cambios"
+		delElegir             = "jobs.cambios.steps, id elegir, "
+		deLosPasos            = "jobs.evals.steps"
+		todaLaHist            = "          fetch-depth: 0\n"
+		accesoDeGh            = "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"
+		conElAccesoDeGh       = "          " + accesoDeGh
+		conRepoDeGh           = "          GH_REPO: ${{ github.repository }}\n"
+		modoEnElTrabajo       = "      MODO_DE_EVALS: ${{ needs.tanda.outputs.modo }}\n"
+		suscripcionDelPaso    = "          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}\n"
+		permisosDeEvals       = "      contents: read\n      actions: read\n      pull-requests: read\n"
+		elDeLaDecision        = deLosPasos + ", \"Decidir qu\xc3\xa9 mide y qu\xc3\xa9 reutiliza\""
+		laMarcaFinal          = deLosPasos + ", el \xc3\xbaltimo, "
+		ejecutarConLaDecision = "        run: " + ordenQueEjecutaLasEvals + "\n"
+	)
+
+	// La decisión que va detrás del paso que ejecuta las evals, en lugar de
+	// delante: el paso de la instalación y el que ejecuta las evals, y después el
+	// de la decisión.
+	pasosDeEvals := strings.SplitN(pasosDeEvalsDelContrato, pasoDeLaDecisionDelContrato, 2)
+	conLaDecisionDetras := pasoDeLaDecisionDelContrato + pasosDeEvals[1]
+	detrasDeLaEjecucion := strings.Replace(pasosDeEvals[1], "      - name: "+marcaDelInformeEscrito+"\n",
+		pasoDeLaDecisionDelContrato+"      - name: "+marcaDelInformeEscrito+"\n", 1)
+
+	return []definicionSintetica{
+		{
+			nombre:  "sin-cambios",
+			cambios: []cambioDeLaDefinicion{{trabajoDeCambiosDelContrato, ""}},
+			fallos: []string{deCambios + ": " + noEsta + yLoEsperadoEs +
+				"el trabajo que elige las evals que la propuesta ha podido cambiar"},
+		},
+		{
+			// cambios no corre con la etiqueta: la etiqueta evals mide aunque la
+			// propuesta no elija nada (FR-017 de H30).
+			nombre:  "cambios-tambien-con-la-etiqueta",
+			cambios: []cambioDeLaDefinicion{enCambios(" && github.event.action != 'labeled'", "")},
+			fallos: []string{deCambios + `.if: vale "github.event_name == 'pull_request'"` + yLoEsperadoEs +
+				strconv.Quote(condicionDeCambios)},
+		},
+		{
+			// Los 5 minutos de antes de H30 no cubren la elección, con sus 12
+			// minutos de go test.
+			nombre:  "cambios-con-el-tope-de-antes",
+			cambios: []cambioDeLaDefinicion{enCambios("    timeout-minutes: 15\n", "    timeout-minutes: 5\n")},
+			fallos:  []string{deCambios + ".timeout-minutes: vale 5" + yLoEsperadoEs + "15"},
+		},
+		{
+			nombre:  "cambios-sin-pull-requests-read",
+			cambios: []cambioDeLaDefinicion{enCambios("      pull-requests: read\n", "")},
+			fallos: []string{deCambios + ".permissions: vale {contents: read}" + yLoEsperadoEs +
+				"{contents: read, pull-requests: read}"},
+		},
+		{
+			nombre:  "cambios-con-permiso-de-escritura",
+			cambios: []cambioDeLaDefinicion{enCambios("      contents: read\n", "      contents: write\n")},
+			fallos: []string{deCambios + ".permissions: vale {contents: write, pull-requests: read}" + yLoEsperadoEs +
+				"{contents: read, pull-requests: read}"},
+		},
+		{
+			// La salida de antes de H30, coincide, no la lee la tanda.
+			nombre: "cambios-con-la-salida-de-antes",
+			cambios: []cambioDeLaDefinicion{enCambios("      elige: ${{ steps.elegir.outputs.elige }}\n",
+				"      coincide: ${{ steps.mirar.outputs.coincide }}\n")},
+			fallos: []string{deCambios + ".outputs.elige: " + noEsta + yLoEsperadoEs + strconv.Quote(salidaDeCambios)},
+		},
+		{
+			// Sin toda la historia no está el árbol de la base (research D5 de H30).
+			nombre:  "cambios-sin-toda-la-historia",
+			cambios: []cambioDeLaDefinicion{enCambios(todaLaHist, "")},
+			fallos: []string{deCambios + ".steps, el de " + accionDelCheckout + ", with.fetch-depth: " + noEsta +
+				yLoEsperadoEs + todaLaHistoria},
+		},
+		{
+			nombre:  "cambios-con-un-solo-commit",
+			cambios: []cambioDeLaDefinicion{enCambios(todaLaHist, "          fetch-depth: 1\n")},
+			fallos: []string{deCambios + ".steps, el de " + accionDelCheckout + `, with.fetch-depth: vale "1"` +
+				yLoEsperadoEs + todaLaHistoria},
+		},
+		{
+			nombre: "elegir-con-otra-prueba",
+			cambios: []cambioDeLaDefinicion{enCambios("'^TestEleccionDeLaPropuesta$'",
+				"'^TestDecisionDelTrabajo$'")},
+			fallos: []string{delElegir + "run: vale " + strconv.Quote(strings.Replace(ordenDeLaEleccion,
+				"TestEleccionDeLaPropuesta", "TestDecisionDelTrabajo", 1)) + yLoEsperadoEs + strconv.Quote(ordenDeLaEleccion)},
+		},
+		{
+			nombre:  "elegir-sin-el-token-de-gh",
+			cambios: []cambioDeLaDefinicion{enCambios(conElAccesoDeGh, "")},
+			fallos: []string{delElegir + "env: vale {BASE_DE_LA_PROPUESTA: ${{ github.event.pull_request.base.sha }}, " +
+				"GH_REPO: ${{ github.repository }}, PROPUESTA: ${{ github.event.pull_request.number }}}" + yLoEsperadoEs +
+				presentarMapa(entornoDeLaEleccion)},
+		},
+		{
+			nombre:  "elegir-con-otro-nombre",
+			cambios: []cambioDeLaDefinicion{enCambios("      - name: "+pasoDeLaEleccion+"\n", "      - name: Elegir\n")},
+			fallos:  []string{delElegir + `name: vale "Elegir"` + yLoEsperadoEs + strconv.Quote(pasoDeLaEleccion)},
+		},
+		{
+			// El de antes de H30: solo con contents.
+			nombre:  "evals-sin-sus-permisos",
+			cambios: []cambioDeLaDefinicion{{permisosDeEvals, "      contents: read\n"}},
+			fallos: []string{"jobs.evals.permissions: vale {contents: read}" + yLoEsperadoEs +
+				presentarMapa(permisosDelTrabajo)},
+		},
+		{
+			nombre:  "evals-sin-el-modo",
+			cambios: []cambioDeLaDefinicion{{"      MODO_DE_EVALS: ${{ needs.tanda.outputs.modo }}\n", ""}},
+			fallos: []string{"jobs.evals.env.MODO_DE_EVALS: " + noEsta + yLoEsperadoEs +
+				`"${{ needs.tanda.outputs.modo }}"`},
+		},
+		{
+			nombre:  "evals-sin-toda-la-historia",
+			cambios: []cambioDeLaDefinicion{{todaLaHist, ""}},
+			fallos: []string{deLosPasos + ", el de " + accionDelCheckout + ", with.fetch-depth: " + noEsta +
+				yLoEsperadoEs + todaLaHistoria},
+		},
+		{
+			// Sin la decisión, el job lo mediría todo, y scripts/evals.sh no
+			// tendría su fichero (FR-012 y research D18 de H30).
+			nombre:  "sin-la-decision",
+			cambios: []cambioDeLaDefinicion{{pasoDeLaDecisionDelContrato, ""}},
+			fallos: []string{elDeLaDecision + ": " + noEsta + yLoEsperadoEs +
+				"el paso que decide qu\xc3\xa9 mide y qu\xc3\xa9 reutiliza"},
+		},
+		{
+			// Antes de instalar Go no hay go con el que decidir.
+			nombre: "decision-antes-de-instalar-go",
+			cambios: []cambioDeLaDefinicion{{
+				pasosDeEvals[0] + pasoDeLaDecisionDelContrato,
+				strings.Replace(pasosDeEvals[0], "      - name: Instalar Go\n", pasoDeLaDecisionDelContrato+
+					"      - name: Instalar Go\n", 1),
+			}},
+			fallos: []string{elDeLaDecision + ": est\xc3\xa1 en el paso 2" + yLoEsperadoEs +
+				"que vaya tras el de " + accionDeGo + ` y antes de "Ejecutar las evals"`},
+		},
+		{
+			// Tras ejecutar las evals, la decisión no llega a ellas.
+			nombre:  "decision-tras-ejecutar-las-evals",
+			cambios: []cambioDeLaDefinicion{{conLaDecisionDetras, detrasDeLaEjecucion}},
+			fallos: []string{elDeLaDecision + ": est\xc3\xa1 en el paso 5" + yLoEsperadoEs +
+				"que vaya tras el de " + accionDeGo + ` y antes de "Ejecutar las evals"`},
+		},
+		{
+			// La decisión sin su plazo no tiene peor caso: go test sin -timeout
+			// espera sus 10 minutos por omisión, y el tope no sabría qué sumar
+			// (research D17 de H30).
+			nombre:  "decision-sin-su-plazo",
+			cambios: []cambioDeLaDefinicion{{"-count=1 -timeout 15m -v", "-count=1 -v"}},
+			fallos: slices.Concat(
+				[]string{elDeLaDecision + ", run: vale " + strconv.Quote(strings.Replace(ordenDeLaDecision,
+					"-timeout 15m ", "", 1)) + yLoEsperadoEs + strconv.Quote(ordenDeLaDecision)},
+				lineasSinElPlazo("jobs.evals.timeout-minutes: el peor caso de %s no se puede obtener: el paso "+
+					"\"Decidir qu\xc3\xa9 mide y qu\xc3\xa9 reutiliza\" no fija su plazo con -timeout"),
+			),
+		},
+		{
+			nombre:  "decision-sin-el-token-de-gh",
+			cambios: []cambioDeLaDefinicion{{"        env:\n" + conElAccesoDeGh + conRepoDeGh + "        run: >-\n", "        run: >-\n"}},
+			fallos:  []string{elDeLaDecision + ", env: " + noEsta + yLoEsperadoEs + presentarMapa(entornoDeLaDecision)},
+		},
+		{
+			// GH_TOKEN en el env del trabajo lo verían todos sus pasos, también las
+			// sesiones con modelo (contracts/job-de-evals.md §2 de H30).
+			nombre:  "token-de-gh-en-el-trabajo",
+			cambios: []cambioDeLaDefinicion{{modoEnElTrabajo, modoEnElTrabajo + "      " + accesoDeGh}},
+			fallos: []string{"jobs.evals.env.GH_TOKEN: est\xc3\xa1" + yLoEsperadoEs + queNoEste +
+				": solo el paso de la decisi\xc3\xb3n lee la plataforma"},
+		},
+		{
+			nombre:  "token-de-gh-al-ejecutar-las-evals",
+			cambios: []cambioDeLaDefinicion{{suscripcionDelPaso, suscripcionDelPaso + conElAccesoDeGh}},
+			fallos: []string{deLosPasos + `, "Ejecutar las evals", env.GH_TOKEN: est` + "\xc3\xa1" + yLoEsperadoEs +
+				queNoEste + ": solo el paso de la decisi\xc3\xb3n lee la plataforma"},
+		},
+		{
+			// Sin DECISION_DE_EVALS, scripts/evals.sh termina con 1 antes de la
+			// primera sesión (research D18 de H30).
+			nombre:  "ejecutar-sin-la-decision",
+			cambios: []cambioDeLaDefinicion{{ejecutarConLaDecision, "        run: make evals SKILL=\"$SKILL_EVALUADA\" 2>&1\n"}},
+			fallos: []string{deLosPasos + `, "Ejecutar las evals", run: vale "make evals SKILL=\"$SKILL_EVALUADA\" 2>&1"` +
+				yLoEsperadoEs + strconv.Quote(ordenQueEjecutaLasEvals)},
+		},
+		{
+			// La marca solo con success() no correría con las evals en rojo, y la
+			// búsqueda de medidas de main no vería su informe (FR-010 de H30).
+			nombre:  "marca-del-informe-sin-cancelled",
+			cambios: []cambioDeLaDefinicion{{"        if: " + condicionDeLaMarcaDelInforme + "\n", ""}},
+			fallos:  []string{laMarcaFinal + "if: " + noEsta + yLoEsperadoEs + strconv.Quote(condicionDeLaMarcaDelInforme)},
+		},
+		{
+			nombre:  "sin-la-marca-del-informe",
+			cambios: []cambioDeLaDefinicion{{"      - name: " + marcaDelInformeEscrito + "\n", "      - name: Otra marca\n"}},
+			fallos:  []string{laMarcaFinal + `name: vale "Otra marca"` + yLoEsperadoEs + strconv.Quote(marcaDelInformeEscrito)},
+		},
+		{
+			nombre:  "marca-del-informe-que-no-mira-su-contenido",
+			cambios: []cambioDeLaDefinicion{{"test -s \"$RUNNER_TEMP", "test -e \"$RUNNER_TEMP"}},
+			fallos: []string{laMarcaFinal + "run: vale " + strconv.Quote(strings.Replace(ordenDeLaMarcaDelInforme,
+				"-s", "-e", 1)) + yLoEsperadoEs + strconv.Quote(ordenDeLaMarcaDelInforme)},
+		},
+	}
+}
+
+// lineasSinElPlazo son las líneas del tope del trabajo evals de las tres
+// skills de la matriz, en su orden, con el formato dado, que lleva el %s de la
+// skill.
+func lineasSinElPlazo(formato string) []string {
+	lineas := make([]string, 0, len(skillsDelTrabajo))
+	for _, skill := range skillsDelTrabajo {
+		lineas = append(lineas, fmt.Sprintf(formato, skill))
+	}
+
+	return lineas
 }
 
 // skillConJuezSintetico es la skill de evalsSinteticas cuyo juez cambian los
@@ -1864,38 +2708,119 @@ func probarLosErroresDeLaDefinicion(t *testing.T) {
 	require.ErrorContains(t, err, `tiene la etiqueta "dudoso"`)
 }
 
+// probarElPlazoDeLaDecision fija de dónde sale el plazo del paso de la decisión
+// del trabajo evals que el peor caso suma (contracts/job-de-evals.md §2 de H30;
+// research D17 de H30): del -timeout del go test de su run, escrito con un
+// espacio o con un igual; sin el paso, ninguno; y, sin -timeout, sin su valor o
+// con un valor que no es una duración mayor que 0, que en go test es no tener
+// plazo, un error que nombra el paso.
+func probarElPlazoDeLaDecision(t *testing.T) {
+	t.Parallel()
+
+	const (
+		conSuPlazo = "-count=1 -timeout 15m -v -run '^TestDecisionDelTrabajo$'"
+		delPaso    = `el paso "Decidir qu` + "\xc3\xa9" + ` mide y qu` + "\xc3\xa9" + ` reutiliza" `
+		sinPlazo   = delPaso + "no fija su plazo con -timeout"
+	)
+
+	casos := []struct {
+		nombre  string
+		cambios []cambioDeLaDefinicion
+		plazo   time.Duration
+		error   string
+	}{
+		{nombre: "el-del-contrato", plazo: plazoDeLaDecisionDelContrato},
+		{
+			nombre:  "con-un-igual",
+			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -timeout=20m -v -run '^TestDecisionDelTrabajo$'"}},
+			plazo:   20 * time.Minute,
+		},
+		{nombre: "sin-el-paso", cambios: []cambioDeLaDefinicion{{pasoDeLaDecisionDelContrato, ""}}},
+		{
+			nombre:  "sin-timeout",
+			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -v -run '^TestDecisionDelTrabajo$'"}},
+			error:   sinPlazo,
+		},
+		{
+			nombre: "con-timeout-al-final-sin-valor",
+			cambios: []cambioDeLaDefinicion{
+				{conSuPlazo, "-count=1 -v -run '^TestDecisionDelTrabajo$'"},
+				{`-salida "$RUNNER_TEMP/decision-de-evals.json"`, `-salida "$RUNNER_TEMP/decision-de-evals.json" -timeout`},
+			},
+			error: sinPlazo,
+		},
+		{
+			nombre:  "sin-limite",
+			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -timeout 0 -v -run '^TestDecisionDelTrabajo$'"}},
+			error:   delPaso + `tiene el plazo -timeout "0", y tiene que ser una duraci` + "\xc3\xb3" + "n mayor que 0",
+		},
+		{
+			nombre:  "con-un-plazo-que-no-es-una-duracion",
+			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -timeout quince -v -run '^TestDecisionDelTrabajo$'"}},
+			error:   delPaso + `tiene el plazo -timeout "quince", y tiene que ser una duraci` + "\xc3\xb3" + "n mayor que 0",
+		},
+		{
+			nombre:  "con-el-plazo-de-lo-que-lee",
+			cambios: []cambioDeLaDefinicion{{conSuPlazo, "-count=1 -timeout 10m -v -run '^TestDecisionDelTrabajo$'"}},
+			error: delPaso + "tiene el plazo -timeout 10m, y tiene que ser mayor que los 10 minutos de lo que la decisi" +
+				"\xc3\xb3" + "n lee",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			plazo, err := leerLaSintetica(t, caso.cambios).plazoDeLaDecision()
+			if caso.error != "" {
+				require.EqualError(t, err, caso.error)
+
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, caso.plazo, plazo)
+		})
+	}
+}
+
 // Los peores casos de los trabajos de las tres skills con las evals del
 // repositorio y los ajustes de la definición del job, con sus términos: los de
 // una tanda de sesiones, que llevan los tres, y los de una tanda de votos, que
 // llevan los de las dos skills con juez. Y los de la medida del juez de
 // jurisprudencia, con sus casos etiquetados. Los fija
-// probarElPeorCasoDelTrabajo.
+// probarElPeorCasoDelTrabajo. Desde H30, los de los trabajos de las skills
+// llevan, tras lo de fuera de las sesiones, los 900 s del plazo de la decisión
+// (contracts/job-de-evals.md §2 de H30); los de la medida, no.
 const (
-	terminosDeUnaTanda = " \xc3\x97 (22 s + 240 s + 10 s)"
-	terminosDeUnVoto   = " \xc3\x97 (35 s + 5 s)"
+	terminosDeUnaTanda   = " \xc3\x97 (22 s + 240 s + 10 s)"
+	terminosDeUnVoto     = " \xc3\x97 (35 s + 5 s)"
+	fueraYLaDecision     = " = 485 s + 900 s + "
+	segundosDeLaDecision = 900 * time.Second
 
 	// El de boe-legislacion, el de research S1 de H20: sus veintitrés evals a
-	// cinco a la vez y las 60 respuestas que su juez juzga en cada modo.
-	peorCasoDeBoeLegislacion = "18977 s = 485 s + (\xe2\x8c\x88109 / 5\xe2\x8c\x89 + \xe2\x8c\x88108 / 5\xe2\x8c\x89 + " +
+	// cinco a la vez y las 60 respuestas que su juez juzga en cada modo, con la
+	// decisión, 19 877 s, el de contracts/job-de-evals.md §2 de H30.
+	peorCasoDeBoeLegislacion = "19877 s" + fueraYLaDecision + "(\xe2\x8c\x88109 / 5\xe2\x8c\x89 + \xe2\x8c\x88108 / 5\xe2\x8c\x89 + " +
 		"\xe2\x8c\x886 / 5\xe2\x8c\x89)" + terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8860 \xc3\x97 6 / 5\xe2\x8c\x89 + " +
 		"\xe2\x8c\x8860 \xc3\x97 6 / 5\xe2\x8c\x89 + \xe2\x8c\x883 \xc3\x97 6 / 5\xe2\x8c\x89)" + terminosDeUnVoto
 
 	// El de jurisprudencia, el de contracts/job-de-evals.md §3 de H25: sus diez
 	// evals a cuatro a la vez y las 30 respuestas que su juez juzga en cada modo.
-	peorCasoDeJurisprudencia = "12577 s = 485 s + (\xe2\x8c\x8861 / 4\xe2\x8c\x89 + \xe2\x8c\x8860 / 4\xe2\x8c\x89)" +
+	peorCasoDeJurisprudencia = "13477 s" + fueraYLaDecision + "(\xe2\x8c\x8861 / 4\xe2\x8c\x89 + \xe2\x8c\x8860 / 4\xe2\x8c\x89)" +
 		terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8830 \xc3\x97 6 / 4\xe2\x8c\x89 + \xe2\x8c\x8830 \xc3\x97 6 / 4\xe2\x8c\x89)" +
 		terminosDeUnVoto
 
 	// peorCasoDeJurisprudenciaDeUnaEnUna es el de la definición que la deja con
 	// la concurrencia de antes de H25, que el tope del trabajo no cubre.
-	peorCasoDeJurisprudenciaDeUnaEnUna = "47857 s = 485 s + (\xe2\x8c\x8861 / 1\xe2\x8c\x89 + \xe2\x8c\x8860 / 1\xe2\x8c\x89)" +
+	peorCasoDeJurisprudenciaDeUnaEnUna = "48757 s" + fueraYLaDecision + "(\xe2\x8c\x8861 / 1\xe2\x8c\x89 + \xe2\x8c\x8860 / 1\xe2\x8c\x89)" +
 		terminosDeUnaTanda + " + 60 s + (\xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89 + \xe2\x8c\x8830 \xc3\x97 6 / 1\xe2\x8c\x89)" +
 		terminosDeUnVoto
 
 	// El de legal-core, el de FR-050 de H9: sus doce evals, con la de vigencia
 	// del ADR 0042 y la 11 y la 12 de H26.1, a dos a la vez (research V10 y D13
 	// de H26.1; FR-020).
-	peorCasoDeLegalCore = "19525 s = 485 s + (\xe2\x8c\x8867 / 2\xe2\x8c\x89 + \xe2\x8c\x8866 / 2\xe2\x8c\x89 + " +
+	peorCasoDeLegalCore = "20425 s" + fueraYLaDecision + "(\xe2\x8c\x8867 / 2\xe2\x8c\x89 + \xe2\x8c\x8866 / 2\xe2\x8c\x89 + " +
 		"\xe2\x8c\x886 / 2\xe2\x8c\x89)" + terminosDeUnaTanda
 
 	// El de la medida del juez de jurisprudencia, con sus 249 casos etiquetados
@@ -1946,6 +2871,12 @@ const (
 // Desde H26.1 (research V10 y D13 de H26.1; FR-020; SC-009), el de legal-core
 // es el de sus doce evals, con la 11 y la 12, de modo: 67, 66 y 6 sesiones,
 // 19 525 s, el mayor de los tres, que el tope del trabajo cubre sin cambiar.
+//
+// Desde H30 (contracts/job-de-evals.md §2 de H30; research D17 de H30; FR-020),
+// cada uno suma los 900 s del plazo del paso de la decisión, el -timeout de su
+// go test: 19 877 s en boe-legislacion, 13 477 s en jurisprudencia y 20 425 s
+// en legal-core, el mayor, que el tope del trabajo, 352 minutos, cubre sin
+// cambiar. Los de la medida no cambian: su trabajo no decide nada.
 func probarElPeorCasoDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -1961,27 +2892,31 @@ func probarElPeorCasoDelTrabajo(t *testing.T) {
 		{
 			skill: "boe-legislacion",
 			peor: peorCasoDelTrabajo{
+				Decision:         segundosDeLaDecision,
 				SesionesPorGrupo: []int{109, 108, 6},
 				Concurrencia:     5,
 				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{60, 60, 3}, Concurrencia: 5},
 			},
-			duracion: 18977 * time.Second,
+			duracion: 19877 * time.Second,
 			texto:    peorCasoDeBoeLegislacion,
 		},
 		{
 			skill: "jurisprudencia",
 			peor: peorCasoDelTrabajo{
+				Decision:         segundosDeLaDecision,
 				SesionesPorGrupo: []int{61, 60},
 				Concurrencia:     4,
 				Juez:             &peorCasoDelJuez{RespuestasPorGrupo: []int{30, 30}, Concurrencia: 4},
 			},
-			duracion: 12577 * time.Second,
+			duracion: 13477 * time.Second,
 			texto:    peorCasoDeJurisprudencia,
 		},
 		{
-			skill:    "legal-core",
-			peor:     peorCasoDelTrabajo{SesionesPorGrupo: []int{67, 66, 6}, Concurrencia: 2},
-			duracion: 19525 * time.Second,
+			skill: "legal-core",
+			peor: peorCasoDelTrabajo{
+				Decision: segundosDeLaDecision, SesionesPorGrupo: []int{67, 66, 6}, Concurrencia: 2,
+			},
+			duracion: 20425 * time.Second,
 			texto:    peorCasoDeLegalCore,
 		},
 	}
@@ -2060,15 +2995,17 @@ const ejecucionPropia = 20
 
 // Los nombres de la definición del job con los que gh da los trabajos y los
 // pasos de una ejecución: el trabajo tanda, sin name, con su id; su paso que
-// decide y su último paso, la marca, que solo corre en la ejecución que mide
-// (contracts/tanda-del-job.md §1 de H7.4); cambios; y el trabajo evals saltado
-// por su if, con el nombre sin la skill (research.md O2 de H7.4).
+// decide y sus dos marcas, la que solo corre en la ejecución que mide
+// (contracts/tanda-del-job.md §1 de H7.4) y la que solo corre en la que mide la
+// suite completa (contracts/job-de-evals.md §2 de H30); cambios; y el trabajo
+// evals saltado por su if, con el nombre sin la skill (research.md O2 de H7.4).
 const (
-	nombreDeLaTanda  = "tanda"
-	pasoQueDecide    = "Mirar si otra tanda mide este commit"
-	pasoDeLaMarca    = "Esta ejecuci\xc3\xb3n mide el commit"
-	trabajoDeCambios = "cambios"
-	evalsSaltadas    = "evals (${{ matrix.skill }})"
+	nombreDeLaTanda       = "tanda"
+	pasoQueDecide         = "Mirar si otra tanda mide este commit"
+	pasoDeLaMarca         = "Esta ejecuci\xc3\xb3n mide el commit"
+	pasoDeLaSuiteCompleta = "Esta ejecuci\xc3\xb3n mide la suite completa"
+	trabajoDeCambios      = "cambios"
+	evalsSaltadas         = "evals (${{ matrix.skill }})"
 )
 
 // Los valores de status y conclusion con los que gh da una ejecución, un
@@ -2084,36 +3021,56 @@ const (
 // Los trabajos sintéticos de una ejecución del flujo evals, como los da gh run
 // view --json jobs (research.md O1 de H7.4): un trabajo saltado por su if sale
 // terminado, con la conclusión skipped y sin pasos, y un paso saltado, con la
-// conclusión skipped. El que mide deja cambios, su tanda con la marca y un
-// trabajo evals por skill; el que no, la marca saltada y evals saltado entero.
+// conclusión skipped. El que mide deja cambios, su tanda con la marca —y, si
+// mide la suite completa, también la segunda— y un trabajo evals por skill; el
+// que no, las dos marcas saltadas y evals saltado entero.
 var (
-	cambiosTerminado      = trabajoSintetico(trabajoDeCambios, ghTerminado, ghConExito)
-	tandaQueMideSintetica = trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
-		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito), pasoSintetico(pasoDeLaMarca, ghTerminado, ghConExito))
-	tandaQueNoMideSintetica = trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
-		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito), pasoSintetico(pasoDeLaMarca, ghTerminado, ghSaltado))
-	evalsSaltadasSinteticas = trabajoSintetico(evalsSaltadas, ghTerminado, ghSaltado)
+	cambiosTerminado = trabajoSintetico(trabajoDeCambios, ghTerminado, ghConExito)
+
+	// tandaQueMideConReutilizacionSintetica es la tanda de una ejecución que
+	// mide con reutilización, con la marca de la suite completa saltada;
+	// tandaQueMideLaSuiteCompletaSintetica, la de una que mide la suite
+	// completa, con las dos marcas; y tandaQueNoMideSintetica, la de una que no
+	// mide, con las dos saltadas.
+	tandaQueMideConReutilizacionSintetica = tandaSintetica(ghConExito, ghSaltado)
+	tandaQueMideLaSuiteCompletaSintetica  = tandaSintetica(ghConExito, ghConExito)
+	tandaQueNoMideSintetica               = tandaSintetica(ghSaltado, ghSaltado)
+	evalsSaltadasSinteticas               = trabajoSintetico(evalsSaltadas, ghTerminado, ghSaltado)
 
 	// trabajosSinDecidir son los de una ejecución que aún está en cambios: su
 	// tanda no se ha creado.
 	trabajosSinDecidir = trabajosSinteticos(trabajoSintetico(trabajoDeCambios, ghEnCurso, ""))
 
-	// trabajosQueMidenYCorren son los de una ejecución que mide y cuyas
-	// sesiones corren; trabajosQueMidenYEsperan, los de una que mide y cuyos
-	// trabajos evals esperan por su concurrency; y trabajosQueMidieron, los de
-	// una que ya midió.
-	trabajosQueMidenYCorren  = trabajosQueMiden(ghEnCurso, "")
-	trabajosQueMidenYEsperan = trabajosQueMiden(ghEnEspera, "")
-	trabajosQueMidieron      = trabajosQueMiden(ghTerminado, ghConExito)
+	// trabajosQueMidenYCorren son los de una ejecución que mide con
+	// reutilización y cuyas sesiones corren; trabajosQueMidenYEsperan, los de
+	// una que mide con reutilización y cuyos trabajos evals esperan por su
+	// concurrency; trabajosQueMidieron, los de una que ya midió; y
+	// trabajosQueMidenLaSuiteCompletaYCorren, los de una que mide la suite
+	// completa y cuyas sesiones corren.
+	trabajosQueMidenYCorren                = trabajosQueMiden(tandaQueMideConReutilizacionSintetica, ghEnCurso, "")
+	trabajosQueMidenYEsperan               = trabajosQueMiden(tandaQueMideConReutilizacionSintetica, ghEnEspera, "")
+	trabajosQueMidieron                    = trabajosQueMiden(tandaQueMideConReutilizacionSintetica, ghTerminado, ghConExito)
+	trabajosQueMidenLaSuiteCompletaYCorren = trabajosQueMiden(tandaQueMideLaSuiteCompletaSintetica, ghEnCurso, "")
 
 	// trabajosQueNoMiden son los de una ejecución cuya tanda decidió no medir.
 	trabajosQueNoMiden = trabajosSinteticos(cambiosTerminado, tandaQueNoMideSintetica, evalsSaltadasSinteticas)
 )
 
-// trabajosQueMiden son los trabajos de una ejecución cuya tanda mide, con los
-// trabajos evals de las dos skills en el estado y con la conclusión dados.
-func trabajosQueMiden(estadoDeEvals, conclusionDeEvals string) string {
-	return trabajosSinteticos(cambiosTerminado, tandaQueMideSintetica,
+// tandaSintetica es el trabajo tanda terminado de una ejecución, con su paso
+// que decide y sus dos marcas, cada una con la conclusion dada: primero la
+// marca de que mide el commit y después la de que mide la suite completa.
+func tandaSintetica(conclusionDeLaMarca, conclusionDeLaSuiteCompleta string) string {
+	return trabajoSintetico(nombreDeLaTanda, ghTerminado, ghConExito,
+		pasoSintetico(pasoQueDecide, ghTerminado, ghConExito),
+		pasoSintetico(pasoDeLaMarca, ghTerminado, conclusionDeLaMarca),
+		pasoSintetico(pasoDeLaSuiteCompleta, ghTerminado, conclusionDeLaSuiteCompleta))
+}
+
+// trabajosQueMiden son los trabajos de una ejecución cuya tanda, la dada, mide,
+// con los trabajos evals de las dos skills en el estado y con la conclusión
+// dados.
+func trabajosQueMiden(tanda, estadoDeEvals, conclusionDeEvals string) string {
+	return trabajosSinteticos(cambiosTerminado, tanda,
 		trabajoSintetico("evals (boe-legislacion)", estadoDeEvals, conclusionDeEvals),
 		trabajoSintetico("evals (legal-core)", estadoDeEvals, conclusionDeEvals))
 }
@@ -2207,10 +3164,12 @@ func (r *relojSintetico) esperar(_ context.Context, duracion time.Duration) erro
 }
 
 // segundoDisparo es un caso de la tabla de contracts/tanda-del-job.md §4 de
-// H7.4: lo que gh da en cada consulta, la decisión que se espera, las consultas
-// que se hacen y si se mide por agotar la espera.
+// H7.4, con el modo de la ejecución propia (data-model §10 de H30): lo que gh
+// da en cada consulta, la decisión que se espera, las consultas que se hacen y
+// si se mide por agotar la espera.
 type segundoDisparo struct {
 	nombre     string
+	modo       modoDelOrigen
 	rondas     []rondaSintetica
 	mide       bool
 	pendientes []int64
@@ -2219,7 +3178,9 @@ type segundoDisparo struct {
 }
 
 // segundosDisparos son los casos de probarElSegundoDisparo, en el orden de la
-// tabla de contracts/tanda-del-job.md §4 de H7.4.
+// tabla de contracts/tanda-del-job.md §4 de H7.4: la ejecución propia y las
+// anteriores que miden, todas con reutilización, el mismo modo; los de modos
+// distintos son los de TestTandaConLaSuiteCompleta.
 func segundosDisparos() []segundoDisparo {
 	propiaEnCurso := ejecucionSintetica(ejecucionPropia, ghEnCurso)
 	conLaAnteriorEnCurso := ejecucionesSinteticas(propiaEnCurso, ejecucionSintetica(10, ghEnCurso))
@@ -2227,16 +3188,19 @@ func segundosDisparos() []segundoDisparo {
 	return []segundoDisparo{
 		{
 			nombre:    "anterior-que-mide-corre",
+			modo:      origenConReutilizacion,
 			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYCorren}}},
 			consultas: 1,
 		},
 		{
 			nombre:    "anterior-que-mide-espera",
+			modo:      origenConReutilizacion,
 			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYEsperan}}},
 			consultas: 1,
 		},
 		{
 			nombre: "anterior-sin-decidir-que-mide",
+			modo:   origenConReutilizacion,
 			rondas: []rondaSintetica{
 				{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}},
 				{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueMidenYCorren}},
@@ -2245,6 +3209,7 @@ func segundosDisparos() []segundoDisparo {
 		},
 		{
 			nombre: "anterior-sin-decidir-que-no-mide",
+			modo:   origenConReutilizacion,
 			rondas: []rondaSintetica{
 				{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}},
 				{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueNoMiden}},
@@ -2254,6 +3219,7 @@ func segundosDisparos() []segundoDisparo {
 		},
 		{
 			nombre:    "anterior-que-no-mide",
+			modo:      origenConReutilizacion,
 			rondas:    []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosQueNoMiden}}},
 			mide:      true,
 			consultas: 1,
@@ -2262,6 +3228,7 @@ func segundosDisparos() []segundoDisparo {
 			// FR-071 de H7.4: la etiqueta sobre un commit cuya tanda terminó
 			// vuelve a medir.
 			nombre: "anterior-terminada",
+			modo:   origenConReutilizacion,
 			rondas: []rondaSintetica{{
 				ejecucionesSinteticas(propiaEnCurso, ejecucionSintetica(10, ghTerminado)),
 				map[int64]string{10: trabajosQueMidieron},
@@ -2271,6 +3238,7 @@ func segundosDisparos() []segundoDisparo {
 		},
 		{
 			nombre: "posterior-que-mide",
+			modo:   origenConReutilizacion,
 			rondas: []rondaSintetica{{
 				ejecucionesSinteticas(ejecucionSintetica(30, ghEnCurso), propiaEnCurso),
 				map[int64]string{30: trabajosQueMidenYCorren},
@@ -2280,6 +3248,7 @@ func segundosDisparos() []segundoDisparo {
 		},
 		{
 			nombre:    "sola",
+			modo:      origenConReutilizacion,
 			rondas:    []rondaSintetica{{ejecucionesSinteticas(propiaEnCurso), nil}},
 			mide:      true,
 			consultas: 1,
@@ -2288,6 +3257,7 @@ func segundosDisparos() []segundoDisparo {
 			// Una consulta cada 10 s desde la primera, en el segundo 0, hasta
 			// la del minuto 10, que ya no espera: 61.
 			nombre:     "espera-agotada",
+			modo:       origenConReutilizacion,
 			rondas:     []rondaSintetica{{conLaAnteriorEnCurso, map[int64]string{10: trabajosSinDecidir}}},
 			mide:       true,
 			pendientes: []int64{10},
@@ -2299,13 +3269,13 @@ func segundosDisparos() []segundoDisparo {
 
 // probarElSegundoDisparo fija la decisión de la tanda con la tabla de
 // contracts/tanda-del-job.md §4 de H7.4 (FR-070, FR-071 y FR-100 de H7.4;
-// SC-010 de H7.4): la ejecución propia consulta un gh sintético y espera con un
-// reloj que no duerme. No mide si una ejecución anterior sin terminar mide,
-// aunque sus trabajos evals esperen; espera, 10 s entre consulta y consulta, a
-// que decida la anterior que aún no lo ha hecho; y mide si ninguna anterior sin
-// terminar mide, si la que midió ya terminó, si la que mide es posterior o si
-// pasan 10 min sin que la anterior decida. Un error de la consulta es un error
-// que la nombra.
+// SC-010 de H7.4), con el modo (data-model §10 de H30): la ejecución propia
+// consulta un gh sintético y espera con un reloj que no duerme. No mide si una
+// ejecución anterior sin terminar mide con su modo, aunque sus trabajos evals
+// esperen; espera, 10 s entre consulta y consulta, a que decida la anterior que
+// aún no lo ha hecho; y mide si ninguna anterior sin terminar mide, si la que
+// midió ya terminó, si la que mide es posterior o si pasan 10 min sin que la
+// anterior decida. Un error de la consulta es un error que la nombra.
 func probarElSegundoDisparo(t *testing.T) {
 	t.Parallel()
 
@@ -2313,25 +3283,7 @@ func probarElSegundoDisparo(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			gh := ghSintetico{rondas: caso.rondas}
-
-			var reloj relojSintetico
-
-			decision, err := esperarLaDecision(t.Context(), ejecucionPropia, gh.consultar, reloj.ahora, reloj.esperar)
-			require.NoError(t, err)
-
-			assert.Equal(t, decisionTrasLaEspera{
-				decisionDeLaTanda: decisionDeLaTanda{mide: caso.mide, pendientes: caso.pendientes},
-				agotada:           caso.agotada,
-			}, decision)
-			assert.Equal(t, caso.consultas, gh.consultas, "consultas")
-
-			var esperas []time.Duration
-			for range caso.consultas - 1 {
-				esperas = append(esperas, 10*time.Second)
-			}
-
-			assert.Equal(t, esperas, reloj.esperas, "esperas")
+			probarUnDisparo(t, caso)
 		})
 	}
 
@@ -2343,22 +3295,71 @@ func probarElSegundoDisparo(t *testing.T) {
 
 		var reloj relojSintetico
 
-		_, err := esperarLaDecision(t.Context(), ejecucionPropia, fallida, reloj.ahora, reloj.esperar)
+		_, err := esperarLaDecision(t.Context(), ejecucionPropia, origenConReutilizacion, fallida, reloj.ahora,
+			reloj.esperar)
 		require.ErrorIs(t, err, errDeGh)
 		require.ErrorContains(t, err, "la consulta 1 de las ejecuciones del commit")
 	})
 }
 
+// probarUnDisparo decide la tanda de la ejecución propia con el modo y las
+// rondas de gh del caso, con un reloj que no duerme, y comprueba la decisión
+// —si mide, con su modo, sus pendientes y si agotó la espera—, las consultas y
+// los 10 s de espera entre una y la siguiente.
+func probarUnDisparo(t *testing.T, caso segundoDisparo) {
+	t.Helper()
+
+	gh := ghSintetico{rondas: caso.rondas}
+
+	var reloj relojSintetico
+
+	decision, err := esperarLaDecision(t.Context(), ejecucionPropia, caso.modo, gh.consultar, reloj.ahora,
+		reloj.esperar)
+	require.NoError(t, err)
+
+	assert.Equal(t, decisionTrasLaEspera{
+		decisionDeLaTanda: decisionDeLaTanda{mide: caso.mide, modo: caso.modo, pendientes: caso.pendientes},
+		agotada:           caso.agotada,
+	}, decision)
+	assert.Equal(t, caso.consultas, gh.consultas, "consultas")
+
+	var esperas []time.Duration
+	for range caso.consultas - 1 {
+		esperas = append(esperas, 10*time.Second)
+	}
+
+	assert.Equal(t, esperas, reloj.esperas, "esperas")
+}
+
 // probarElEstadoDeLaTanda fija el estado de la tanda de una ejecución leído
 // del JSON de sus trabajos (contracts/tanda-del-job.md §2 y §4 de H7.4;
-// research.md S4 de H7.4): mide con su trabajo tanda terminado y la marca en
-// success; no mide con la marca saltada o con la tanda saltada; y aún no ha
-// decidido con la tanda en curso o sin ella.
+// research.md S4 de H7.4), con su modo (data-model §10 de H30): mide con su
+// trabajo tanda terminado y la marca en success, la suite completa si también
+// la marca de la suite completa está en success y con reutilización si no; no
+// mide con la marca saltada, aunque la de la suite completa esté en success, o
+// con la tanda saltada; y aún no ha decidido con la tanda en curso o sin ella.
+// Los pasos con los que gh da la tanda en estos casos son, por su nombre y en
+// su orden, los tres últimos de la tanda de la definición del job: el que
+// decide y sus dos marcas.
 func probarElEstadoDeLaTanda(t *testing.T) {
 	t.Parallel()
 
+	delRepositorio, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+	require.NotNil(t, delRepositorio.Tanda, "premisa: la definici\xc3\xb3n del job tiene la tanda")
+
+	nombres := make([]string, 0, len(delRepositorio.Tanda.Pasos))
+	for _, paso := range delRepositorio.Tanda.Pasos {
+		nombres = append(nombres, paso.Nombre)
+	}
+
+	require.GreaterOrEqual(t, len(nombres), 3, "premisa: la tanda tiene el paso que decide y sus dos marcas")
+	require.Equal(t, []string{pasoQueDecide, pasoDeLaMarca, pasoDeLaSuiteCompleta}, nombres[len(nombres)-3:],
+		"premisa: los pasos de la tanda sint\xc3\xa9tica son los de la definici\xc3\xb3n del job")
+
 	tandaEnCurso := trabajoSintetico(nombreDeLaTanda, ghEnCurso, "",
-		pasoSintetico(pasoQueDecide, ghEnCurso, ""), pasoSintetico(pasoDeLaMarca, ghEnEspera, ""))
+		pasoSintetico(pasoQueDecide, ghEnCurso, ""), pasoSintetico(pasoDeLaMarca, ghEnEspera, ""),
+		pasoSintetico(pasoDeLaSuiteCompleta, ghEnEspera, ""))
 	tandaSaltada := trabajoSintetico(nombreDeLaTanda, ghTerminado, ghSaltado)
 
 	casos := []struct {
@@ -2366,7 +3367,17 @@ func probarElEstadoDeLaTanda(t *testing.T) {
 		trabajos string
 		estado   estadoDeLaTanda
 	}{
-		{nombre: "marca-en-success", trabajos: trabajosQueMidenYCorren, estado: tandaQueMide},
+		{nombre: "marca-en-success", trabajos: trabajosQueMidenYCorren, estado: tandaQueMideConReutilizacion},
+		{
+			nombre:   "las-dos-marcas-en-success",
+			trabajos: trabajosQueMidenLaSuiteCompletaYCorren,
+			estado:   tandaQueMideLaSuiteCompleta,
+		},
+		{
+			nombre:   "solo-la-marca-de-la-suite-completa",
+			trabajos: trabajosSinteticos(cambiosTerminado, tandaSintetica(ghSaltado, ghConExito), evalsSaltadasSinteticas),
+			estado:   tandaQueNoMide,
+		},
 		{nombre: "marca-saltada", trabajos: trabajosQueNoMiden, estado: tandaQueNoMide},
 		{nombre: "tanda-en-curso", trabajos: trabajosSinteticos(cambiosTerminado, tandaEnCurso), estado: tandaSinDecidir},
 		{nombre: "sin-tanda", trabajos: trabajosSinDecidir, estado: tandaSinDecidir},
