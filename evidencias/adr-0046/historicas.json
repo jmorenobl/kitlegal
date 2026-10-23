@@ -1,0 +1,50 @@
+[
+ {
+  "skill": "boe-legislacion",
+  "commit": "e1bfb77",
+  "fecha": "2026-10-20",
+  "descripcion": "Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento administrativo, contratación pública, régimen local, tributos y haciendas locales, transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia— o de lo que decía en una fecha —la del acto, la de los hechos—, también cuando creas conocer la respuesta: sin leer la norma con kitlegal, no hay cita. Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto, hoy o en una fecha, de una norma estatal o autonómica consolidada en el BOE. Lee índice y artículos con kitlegal y cita identificador y bloque."
+ },
+ {
+  "skill": "boe-legislacion",
+  "commit": "93a7cca",
+  "fecha": "2026-10-13",
+  "descripcion": "Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público, transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando creas conocer la respuesta: sin leer la norma con kitlegal, la respuesta no tiene cita. Actívala antes de llamar a boe_articulo u otra herramienta boe_…: qué pedir y cómo citar lo dice la skill. La norma puede nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con kitlegal y responde citando identificador y bloque."
+ },
+ {
+  "skill": "boe-legislacion",
+  "commit": "ae80fb7",
+  "fecha": "2026-10-02",
+  "descripcion": "Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público, transparencia, relaciones laborales… Úsala siempre que la respuesta dependa de lo que dice una norma —qué dice un artículo, una ley o un real decreto, qué plazo, requisito o procedimiento fija, dónde se regula una materia—, también cuando creas conocer la respuesta: sin leer la norma con el binario, la respuesta no tiene cita. La norma puede nombrarse por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…, o pedirse el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque."
+ },
+ {
+  "skill": "boe-legislacion",
+  "commit": "eafa386",
+  "fecha": "2026-09-30",
+  "descripcion": "Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia: procedimiento administrativo, contratación pública, régimen local, tributos y haciendas locales, régimen jurídico del sector público, transparencia, relaciones laborales… Úsala cuando se pregunte qué dice un artículo, una ley o un real decreto; cuando se nombre una norma por su número y año (Ley 39/2015, Real Decreto Legislativo 2/2004), por su abreviatura (LPAC, LCSP, LRBRL, LGT, TRLRHL, LRJSP) o por su identificador BOE-A-…; o cuando haya que citar el texto vigente de una norma estatal o autonómica consolidada en el BOE. Lee el índice y los artículos con el binario kitlegal y responde citando identificador y bloque."
+ },
+ {
+  "skill": "legal-core",
+  "commit": "80a3422",
+  "fecha": "2026-10-21",
+  "descripcion": "Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo o el del recurso contencioso-administrativo y cuándo se produce el silencio, con los festivos de los municipios que cuentan; y dice cuándo un asunto lo regula la ley aparte (tributos, multas de tráfico, Seguridad Social, extranjería). Razona con la jerarquía normativa y las leyes vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Úsala cuando se pregunte hasta cuándo se puede recurrir o qué plazo hay para un recurso, cuándo vence un plazo o se produce el silencio, qué comunidad, provincia o boletines corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Para el texto de un artículo se apoya en boe-legislacion."
+ },
+ {
+  "skill": "legal-core",
+  "commit": "ae80fb7",
+  "fecha": "2026-10-02",
+  "descripcion": "Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un ayuntamiento: identifica su territorio —municipio, código INE, provincia, comunidad autónoma, régimen común o foral, DIR3 del ayuntamiento y boletines oficiales que le corresponden— con el binario kitlegal, y razona con la jerarquía normativa (qué nivel regula qué, de la Unión Europea al municipio, y dónde publica cada nivel) y con los identificadores BOE de las leyes vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Úsala cuando se pregunte qué comunidad, provincia o boletines corresponden a un ayuntamiento, dónde se publican las normas de un municipio, si un municipio es de régimen foral, qué tipo de norma prevalece sobre otra o qué ley vertebral rige una materia. Para el texto de un artículo se apoya en boe-legislacion."
+ },
+ {
+  "skill": "jurisprudencia",
+  "commit": "e1bfb77",
+  "fecha": "2026-10-20",
+  "descripcion": "Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Úsala siempre que la pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando creas conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Actívala antes de llamar a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la que sí lo dice la skill."
+ },
+ {
+  "skill": "seo-semanal",
+  "commit": "f6e85c5",
+  "fecha": "2026-09-27",
+  "descripcion": "Informe semanal de visibilidad de kitlegal.es en Google, en tres líneas y con acciones concretas, a partir de los datos de Google Search Console (servidor MCP `gsc`, .mcp.json). Úsala cuando se pida el informe SEO, el resumen semanal, «cómo va la web en Google», qué páginas suben o bajan, qué consultas tienen impresiones sin clics o qué URL no está indexada. No es parte del producto: es una herramienta de quien mantiene la web (docs/SEO.md)."
+ }
+]

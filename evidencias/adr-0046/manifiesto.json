@@ -1,0 +1,84 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "7da5b3544d4b2d78143f5ca5518e6ee498612734d979b860867dd00fce5dc308",
+      "bytes": 5976,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "casos.yaml",
+      "sha256": "b9b2384a6adf9ac4219e9c4f65f1db430ca48a54a53b15704c7b46e677ecf31a",
+      "bytes": 109269,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "esquema.json",
+      "sha256": "9fddb8c336cf9e6c7aacadf2f5dd47707a224137d2be27dd799f52ee82a7c722",
+      "bytes": 355,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "guiones/casos.py",
+      "sha256": "f9586581d2ecc325425744050aa379b256eca6805df87faa9a3c1d57ca2164fd",
+      "bytes": 4964,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "guiones/juez.py",
+      "sha256": "cb66bdfc1af7d0f5d4ef647bce9afd3c20daf2aa35d20927de8ce6badf405984",
+      "bytes": 8404,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "guiones/resumen.py",
+      "sha256": "4f6aff4034758d7dcf665c47c681b97c5a99be04c67a2c49079cea53902fb352",
+      "bytes": 3087,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "historicas.json",
+      "sha256": "34f05bac881df51158b16c042e4f05844215ee6d0bcb60014a1d83eea10b29e7",
+      "bytes": 7827,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "medida.json",
+      "sha256": "1bb9b689dc778eb810af8ef0da511926dc8a94182112d81665d2516546552784",
+      "bytes": 703,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "rubrica.md",
+      "sha256": "db35645c843209838355887b95ba197ce7cdb6f06e1d397a2bd115e55a7efbc4",
+      "bytes": 3304,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    },
+    {
+      "fichero": "votos.jsonl",
+      "sha256": "339438ae6d5c1ecb951ccd3f905faa620fcea613a364ea8b968f3fab0da02f35",
+      "bytes": 102094,
+      "fecha": "2026-10-23",
+      "versionado": "sí",
+      "origen": "validación del juez de las descripciones (ADR 0046)"
+    }
+  ]
+}
