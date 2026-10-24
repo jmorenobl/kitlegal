@@ -1,0 +1,171 @@
+diff antes/contracts/controles-de-contenido.md ahora/contracts/controles-de-contenido.md
+--- antes/contracts/controles-de-contenido.md	2026-10-24 19:01:46
++++ ahora/contracts/controles-de-contenido.md	2026-10-24 19:04:18
+@@ -18,7 +18,7 @@
+ | 7 | Las líneas `⚠` de las referencias (`lineas-de-aviso-de-las-referencias`, nuevo) | ídem | `boe-legislacion`, `legal-core` | Cada línea de una referencia a mano que empieza, tras blancos, un marcador de lista (`-`, `*`, `<n>.`) y énfasis (`*`, `_`, `` ` ``), por `⚠` es, sin los blancos de los extremos, una línea del `SKILL.md` |
+ | 8 | Normas nombradas (`normas-nombradas`) | `internal/app/skills_test.go`, `TestSkillsDelRepositorio` | todas | Cada «Ley N/AAAA», «LO…», «RD…» de cada fichero empieza un título de `data/normas.yaml` |
+ | 9 | Sin instrucciones de las evals (`sin-instrucciones-de-evals`) | ídem | todas | Como hoy, `SKILL.md` sin la región y todo `references/*.md`; su mutante, también sobre una referencia a mano |
+-| 10 | Las órdenes de ejemplo que leen del BOE (`ordenes-de-ejemplo`, nuevo) | `internal/evals/conjunto_test.go`, `TestEvalsDelRepositorio` | las que tienen evals | Cada orden concreta `kitlegal boe <verbo> …` de cada fichero sale con 0 con `--offline` sobre la caché de una sesión de su skill |
++| 10 | Las órdenes de ejemplo que leen del BOE (`ordenes-de-ejemplo`, nuevo) | `internal/evals/conjunto_test.go`, `TestEvalsDelRepositorio` | las que tienen evals | Cada orden concreta de cada fichero —`kitlegal boe`, un verbo y al menos un argumento, sin marcador— sale con 0 con `--offline` sobre la caché de una sesión de su skill |
+ 
+ ## Detalle de los controles nuevos
+ 
+@@ -35,9 +35,17 @@
+ 
+ ### 10 · Las órdenes de ejemplo (FR-019)
+ 
+-- **Qué se extrae**: de cada fichero, en sus bloques de código y su código en línea, cada aparición de
+-  `kitlegal boe <verbo>` con lo que la sigue hasta el primer `&&`, `;`, `|`, `` ` `` o el final de la línea, sin
+-  `--json`; se descarta la que lleva un marcador `<…>` o `...`.
++- **Qué se extrae**: de cada fichero, en los tramos de código que ya recorre `ordenesDeLectura` (cada línea de un
++  bloque delimitado y cada tramo de código en línea fuera de ellos), cada aparición de `kitlegal boe` con lo que la
++  sigue en el tramo hasta el primer `&&`, `;` o `|`, sin `--json`. Es una orden concreta si lo que queda lleva un verbo
++  y al menos un argumento, y ningún marcador `<…>`, `...` ni `…`; lo demás no se ejecuta. La mención del verbo sin
++  argumentos no es una orden, como ya fija `TestOrdenesParaPowerShell` («El texto de kitlegal boe articulo en la
++  prosa no es una orden»): «`kitlegal boe articulo` o `articulos`» de la regla 6 (B123), «con
++  `kitlegal boe articulo`» de references/lecturas_que_fallan.md (B115) o «Si `kitlegal boe` falla» de la regla 2.
++- **El extractor**: `ordenesDeEjemplo` (`internal/evals/conjunto_test.go`, junto a `ordenesDeLectura`), que fija
++  `TestOrdenesDeEjemplo` sobre Markdown escrito en el test: la orden en un bloque, en su forma de Bash (hasta `&&`) y
++  en la de PowerShell (hasta `;`), y en código en línea, cada una con su línea y su `--fecha <día>`; y ninguna orden de
++  la que lleva un marcador, de la mención del verbo sin argumentos ni de la que está en la prosa.
+ - **Contra qué**: `cacheDeUnaSesion(t, evals/<skill>, <fichero>)`, la caché que prepara `PrepararSesion` para la primera
+   eval de `evals/<skill>/`, por nombre, que no declara `sin_servir`; `ComprobarSinRed` ejecuta cada una con
+   `--offline` y da una `Falta` por cada una que no sale con 0.
+@@ -46,7 +54,13 @@
+ - **El defecto**: `boe-legislacion: SKILL.md: «boe buscar régimen jurídico del sector público» terminó con código 4: …`
+   (el texto de la `Falta`).
+ - **Sin pasar en vacío**: el subtest exige al menos una orden en el repositorio (hoy, las de `boe-legislacion`).
+-- **Invocaciones**: una por orden concreta; hoy, con el reparto de contracts/skills-reescritas.md, unas cinco.
++- **Invocaciones**: una por aparición de una orden concreta. Con el reparto de contracts/skills-reescritas.md, cuatro,
++  todas de `boe-legislacion`: en el cuerpo, `boe indice BOE-A-2015-10565` y `boe articulo BOE-A-2015-10565 a21` en su
++  forma de Bash y en la de PowerShell; en references/redaccion_en_una_fecha.md,
++  `boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15` (cinco si la reescritura pone el ejemplo de `metadatos`, que
++  también se sirve). Las de `buscar`, `articulos`, la tabla de comandos y las de `legal-core` llevan marcadores;
++  `jurisprudencia` no tiene ninguna. Hoy, sobre el texto de `main`, son seis, y las de `buscar` y `analisis` (l. 48 y
++  88) salen con 4 (research V3): son las dos que cambia la reescritura (D17).
+ 
+ ## Mutantes (SC-005)
+ 
+diff antes/contracts/skills-reescritas.md ahora/contracts/skills-reescritas.md
+--- antes/contracts/skills-reescritas.md	2026-10-24 19:01:46
++++ ahora/contracts/skills-reescritas.md	2026-10-24 19:04:35
+@@ -23,9 +23,11 @@
+    de 100 líneas abren con su índice (FR-009); ninguna de las previstas pasa de 100.
+ 4. **Lo que no cambia** (FR-024): el `name`, `kitlegal-applets`, `kitlegal-referencias` y el contenido de las
+    referencias generadas.
+-5. **Órdenes de ejemplo** (FR-019): toda orden concreta `kitlegal boe <verbo> …` del cuerpo o de una referencia a mano
+-   es de lo que sirve la caché de una sesión (V3, V4: `indice`, `metadatos` y `articulo`, con y sin `--fecha`, de las
+-   normas de `data/normas.yaml`; ningún `buscar` ni `analisis`); las demás llevan marcadores (`<términos>`, `<norma>`).
++5. **Órdenes de ejemplo** (FR-019): toda orden concreta —`kitlegal boe`, un verbo y al menos un argumento— del cuerpo
++   o de una referencia a mano es de lo que sirve la caché de una sesión (V3, V4: `indice`, `metadatos` y `articulo`,
++   con y sin `--fecha`, de las normas de `data/normas.yaml`; ningún `buscar` ni `analisis`); las demás llevan
++   marcadores (`<términos>`, `<norma>`). La mención del verbo sin argumentos, como «`kitlegal boe articulo` o
++   `articulos`» de la regla 6, no es una orden y se queda como está (contracts/controles-de-contenido.md §10).
+ 6. **Prosa** (FR-016, FR-017): en `boe-legislacion`, ni el cuerpo ni sus referencias a mano llevan una expresión de
+    `evals/boe-legislacion/expresiones-prohibidas.yaml` fuera del código ni una fecha AAAAMMDD con cifras; en las tres,
+    toda norma nombrada como «Ley N/AAAA», «Real Decreto…» empieza un título de `data/normas.yaml`, y nada lleva los
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-24 19:01:46
++++ ahora/plan.md	2026-10-24 19:05:01
+@@ -177,8 +177,11 @@
+   `sincronia-con-referencias-a-mano` (SC-003); y los mutantes de `normas-nombradas` y `sin-instrucciones-de-evals` en
+   una referencia a mano. Desaparece `trescientas-lineas`.
+ - **`internal/evals`, contenido**: `TestEvalsDelRepositorio` con los subtests de hoy leyendo la skill entera y los
+-  nuevos `lineas-de-aviso-de-las-referencias` y `ordenes-de-ejemplo`; `TestControlesSobreLasReferenciasAMano`, un
+-  mutante por control (SC-005).
++  nuevos `lineas-de-aviso-de-las-referencias` y `ordenes-de-ejemplo`; `TestOrdenesDeEjemplo`, el extractor de las
++  órdenes de ejemplo sobre Markdown escrito en el test (la de un bloque en sus formas de Bash y de PowerShell, la de
++  código en línea, con `--fecha`; ninguna de la que lleva un marcador, de la mención del verbo sin argumentos ni de la
++  prosa; contracts/controles-de-contenido.md §10); `TestControlesSobreLasReferenciasAMano`, un mutante por control
++  (SC-005).
+ - **`internal/evals`, dependencias**: `TestConjuntoDeCadaEval` (la referencia a mano en (b), sin (c), sin error; la
+   skill nombrada solo en una referencia a mano) y `TestEleccionDeLosMutantes` (mutante `referencia-a-mano-de-legal-core`
+   y el de la descripción de hoy, que elige las 45).
+@@ -209,6 +212,7 @@
+ | FR-016 a FR-018 | 0 expresiones prohibidas o fechas con cifras, 0 órdenes sin su forma para PowerShell, 0 formas fijas fuera del cuerpo, 0 líneas `⚠` de una referencia que no estén en el cuerpo | Las tres skills del repositorio | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
+ | FR-016, SC-005 | 0 normas nombradas fuera de `data/normas.yaml` y 0 instrucciones de las evals, también en las referencias a mano; los dos mutantes, en rojo | Ídem y sus mutantes | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio` |
+ | FR-019, SC-005 | 0 órdenes de ejemplo que no salgan con 0 con `--offline` sobre la caché de una sesión; ≥ 1 orden encontrada; la que no se sirve → rojo | Ejecución con `ComprobarSinRed` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
++| FR-019 | Una orden por `kitlegal boe`, verbo y al menos un argumento en código; 0 órdenes de la mención del verbo sin argumentos, de la que lleva un marcador o de la prosa | Markdown escrito en el test | `ci:internal/evals/conjunto_test.go:TestOrdenesDeEjemplo` |
+ | FR-025, SC-006 | 0 bytes distintos en los cuatro ficheros respecto de `manifiesto.json`; un byte cambiado en cualquiera → rojo | Huellas de una copia | `ci:internal/evals/descripciones_test.go:TestJuezDeLasDescripciones` |
+ | FR-026, SC-008 | La medida corresponde y se cumple (0 de 63 sin marcar, 0 de 36 marcados) con lo que fija `evals.yml`; con cada mutación, 0 sesiones abiertas y el informe sin medir | Medida del repositorio y sus mutaciones; el job con un abridor de sesiones que falla si lo llaman | `ci:internal/evals/medida_test.go:TestMedidaVersionada`, `ci:internal/evals/ejecucion_test.go:TestEjecucionSinMedir` |
+ | FR-027 a FR-029, FR-032, FR-033, SC-007, SC-014 | Marca solo con tres «si» con frase; 0 votos pedidos tras un «no»; 1 repetición del nulo y del cortado; 0 del error; ≤ 6 votos; mensaje igual al de `mensaje_de`; 0 sesiones con modelo | Votante simulado y `claude` sustituto | `ci:internal/evals/descripciones_test.go:TestJuezDeLasDescripciones` |
+@@ -241,8 +245,10 @@
+   ahí adapta su generador (Clarificación Q4).
+ - **Defectos de los gates**: una línea de unos 100 bytes por regla y skill (contracts/gates-de-skills-check.md §2); se
+   apagan al corregir la skill.
+-- **Órdenes de ejemplo**: una ejecución con `--offline` por orden concreta, unas cinco hoy, y una caché de sesión por
+-  skill con evals, en cada `make ci`; no crece con el uso.
++- **Órdenes de ejemplo**: una ejecución con `--offline` por aparición de una orden concreta —`kitlegal boe`, verbo y
++  al menos un argumento; la mención del verbo solo no lo es—, cuatro con el reparto de contracts/skills-reescritas.md,
++  todas de `boe-legislacion` (contracts/controles-de-contenido.md §10), y una caché de sesión por skill con evals, en
++  cada `make ci`; no crece con el uso.
+ - **Juicio de la descripción**: una entrada por trabajo, unos 300 bytes sin votos y 1,5 KB con seis; como mucho seis
+   votos por trabajo, 18 en la ejecución con las tres cambiadas; se apaga cuando la propuesta no cambia ninguna
+   descripción, y la marca, cuando el juicio nuevo no la marca (contracts/juez-de-las-descripciones.md §8).
+@@ -268,7 +274,7 @@
+ | `ReferenciasAMano` y la clasificación en `sobrantes` | FR-012, FR-013 |
+ | `datosDeLasReferencias` sin las referencias a mano; nombres en ellas en `skillsDeLaEval` | FR-014 |
+ | Lectura de la skill entera en los controles 1, 3, 8 y 9; subtest `lineas-de-aviso-de-las-referencias` | FR-016, FR-017, FR-018 |
+-| Subtest `ordenes-de-ejemplo` | FR-019 |
++| Subtest `ordenes-de-ejemplo` y su extractor `ordenesDeEjemplo` | FR-019 |
+ | `TestControlesSobreLasReferenciasAMano` | SC-005 |
+ | Reescritura de las tres skills y sus referencias a mano; dos ejemplos de `boe-legislacion` con marcador | FR-020, FR-021, FR-022, FR-024, FR-019 |
+ | Entradas de `CHANGELOG.md` y `CONTRIBUTING.md` | FR-023 |
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-24 19:01:46
++++ ahora/quickstart.md	2026-10-24 19:04:53
+@@ -46,12 +46,13 @@
+ ## 4. Los controles de contenido leen la skill entera (SC-005)
+ 
+ ```sh
+-go test -count=1 -run '^(TestEvalsDelRepositorio|TestControlesSobreLasReferenciasAMano)$' ./internal/evals/
++go test -count=1 -run '^(TestEvalsDelRepositorio|TestOrdenesDeEjemplo|TestControlesSobreLasReferenciasAMano)$' ./internal/evals/
+ ```
+ 
+ Esperado: sale con 0. `TestEvalsDelRepositorio` lleva, además de los de hoy, `lineas-de-aviso-de-las-referencias` y
+-`ordenes-de-ejemplo`, que ejecuta las órdenes de ejemplo con `--offline` sobre la caché de una sesión preparada en
+-`t.TempDir()`.
++`ordenes-de-ejemplo`, que ejecuta con `--offline` sobre la caché de una sesión preparada en `t.TempDir()` cada orden
++concreta —`kitlegal boe`, verbo y al menos un argumento, sin marcador—, cuatro en `boe-legislacion`; la mención del
++verbo sin argumentos, como la de la regla 6, no se ejecuta (`TestOrdenesDeEjemplo`).
+ 
+ ## 5. Las dependencias de las evals cuentan la referencia a mano (SC-004, SC-010)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-24 19:01:46
++++ ahora/research.md	2026-10-24 19:04:32
+@@ -261,19 +261,28 @@
+ ### D17 · Las órdenes de ejemplo que leen del BOE (FR-019)
+ 
+ - **Decisión**: un subtest nuevo de `TestEvalsDelRepositorio`, `ordenes-de-ejemplo`, extrae del `SKILL.md` y de las
+-  referencias a mano de cada skill con evals las órdenes concretas `kitlegal boe <verbo> …` —en un bloque de código o
+-  en código en línea, sin ningún marcador `<…>` ni `...`; de cada una, el verbo y sus argumentos sin `--json`, hasta el
+-  primer `&&`, `;` o `|`— y las ejecuta con `ComprobarSinRed` (`preparar.go`), que lleva `--offline`, sobre la caché
+-  de una sesión de su skill
++  referencias a mano de cada skill con evals las órdenes concretas —en un bloque de código o en código en línea, los
++  tramos que ya recorre `ordenesDeLectura`, cada aparición de `kitlegal boe` con lo que la sigue hasta el primer `&&`,
++  `;` o `|`, sin `--json`, que lleva un verbo y al menos un argumento y ningún marcador `<…>`, `...` ni `…`— y las
++  ejecuta con `ComprobarSinRed` (`preparar.go`), que lleva `--offline`, sobre la caché de una sesión de su skill
+   (`cacheDeUnaSesion`): la de la primera eval de `evals/<skill>/`, por nombre de fichero, que no declara `sin_servir`.
+-  Sale en rojo con cada `Falta`. Tiene que encontrar al menos una orden en el repositorio, para no pasar en vacío.
++  Sale en rojo con cada `Falta`. Tiene que encontrar al menos una orden en el repositorio, para no pasar en vacío. El
++  extractor, `ordenesDeEjemplo`, lo fija `TestOrdenesDeEjemplo` (contracts/controles-de-contenido.md §10).
++- **La mención del verbo no es una orden.** El texto nombra el verbo sin argumentos en la prosa —«`kitlegal boe
++  articulo` o `articulos`» de la regla 6 (B123), que se queda en el cuerpo; «con `kitlegal boe articulo`» de B115, en
++  references/lecturas_que_fallan.md; hoy, las l. 64, 77, 83, 271 y 282 de `skills/boe-legislacion/SKILL.md`—, y
++  `boe articulo` o `boe articulos` sin norma ni bloque no pasan la gramática (argumentos obligatorios,
++  `internal/app/boe.go`): ejecutarla daría una `Falta` por cada mención y `make ci` en rojo sin que ningún ejemplo
++  esté mal. Es la frontera que ya fija `TestOrdenesParaPowerShell` («El texto de kitlegal boe articulo en la prosa no
++  es una orden»).
+ - **Por qué**: FR-019. La caché de una sesión sirve, para las normas de `data/normas.yaml`, `indice`, `metadatos` y
+   `articulo` con y sin `--fecha`, y ningún `buscar` ni `analisis` (V3, V4): las órdenes de ejemplo de hoy
+   `kitlegal boe buscar régimen jurídico del sector público --json` y `kitlegal boe analisis BOE-A-2017-12902 --json`
+   (`boe-legislacion`, paso 2 y paso 3) no se sirven, así que la reescritura las deja con marcador
+   (`kitlegal boe buscar <términos> --json`) o las retira; no es una regla, es un ejemplo (contracts/skills-reescritas.md).
+ - **Descartado**: grabar `buscar` y `analisis` para las sesiones (datos nuevos y una fila de lo grabado que el spec no
+-  pide); ejecutar las órdenes con placeholders (no son una orden).
++  pide); ejecutar las órdenes con placeholders o la mención del verbo sin argumentos (no son una orden); reescribir
++  las menciones del verbo para que no estén en código (cambiaría el texto de la regla 6, que FR-021 conserva).
+ 
+ ### D18 · El reparto de cada skill y la tabla de reglas
+ 

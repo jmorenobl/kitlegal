@@ -1,0 +1,177 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-10-24 17:23:29
++++ ahora/checklists/requirements.md	2026-10-24 17:24:44
+@@ -25,18 +25,21 @@
+   de una descripción) y FR-032 (la descripción sin juicio hace fallar el job); FR-009 precisa el caso sin encabezados.
+ - [x] Requirements are testable and unambiguous — cada FR lleva su «Criterio», un SC con el test de `make ci` o el job que
+   sale en rojo, o la revisión final donde el hito la pide (FR-001, FR-013, FR-021, FR-024); FR-003, FR-007, FR-008,
+-  FR-009 y FR-012 definen etiqueta XML, enlace, índice y referencia generada o a mano.
++  FR-009 y FR-012 definen etiqueta XML, enlace, índice y referencia generada o a mano (FR-012 clasifica primero por la
++  declaración, como dicen «Edge Cases», US4 y SC-003); la suposición de la elección es la regla de FR-030; FR-028 y
++  FR-032 dicen qué voto se repite (el nulo y el cortado por el tope) y cuál no; SC-005 lleva un mutante por cada
++  control de FR-016, FR-018 y FR-019.
+ - [x] Success criteria are measurable — SC-002 a SC-009 y SC-014 y SC-015 nombran su cifra y el test de `make ci` que
+   sale en rojo; SC-010, el job de evals con sus umbrales que deciden; SC-011, la medida que lanza una persona; SC-012 y
+   SC-013, la revisión final.
+ - [x] Success criteria are technology-agnostic (no implementation details) — se miden en `make ci`, en el job de evals y
+   en la revisión, que son la superficie del proyecto.
+ - [x] All acceptance scenarios are defined — seis historias en Dado/Cuando/Entonces.
+-- [x] Edge cases are identified — «Edge Cases»: skill sin `references/`, cabecera sin fila, fichero a mano con nombre
+-  declarado, enlaces con ancla y en bloques de código, referencia generada de más de 100 líneas, `<` que no es
++- [x] Edge cases are identified — «Edge Cases»: skill sin `references/`, fichero sin cabecera con nombre declarado, enlaces con ancla y en bloques de código, referencia generada de más de 100 líneas, `<` que no es
+   etiqueta, pregunta citada en la descripción y lo manipulado a mano (regla genérica).
+-- [x] Scope is clearly bounded — «Fuera de alcance» lleva lo que el hito deja fuera y lo que el spec no especifica.
+-- [x] Dependencies and assumptions identified — «Assumptions»: fuentes sin red, motivo `descripcion` de H30, modelo y
++- [x] Scope is clearly bounded — «Fuera de alcance» lleva lo que el hito deja fuera y lo que el spec no especifica,
++  también lo que deja fuera la Clarificación Q4 (cambiar los generadores para que escriban su índice).
++- [x] Dependencies and assumptions identified — «Assumptions»: fuentes sin red, la regla de la elección de FR-030, modelo y
+   versión del juez, instalación de `references/`, serie de cierres y release tras H31.
+ 
+ ## Feature Readiness
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-24 17:23:29
++++ ahora/spec.md	2026-10-24 17:24:35
+@@ -128,7 +128,7 @@
+    evals va a juzgar descripciones, **Entonces** sale en rojo antes de abrir ninguna sesión (FR-026).
+ 7. **Dado** una descripción marcada en una ejecución que la juzga, **Cuando** el job publica sus umbrales, **Entonces**
+    el umbral de la clase sale en rojo, el job falla y el informe da la skill, la frase y el motivo (FR-031).
+-8. **Dado** una descripción con un voto que no llega a darse tras su repetición, **Cuando** el job la juzga, **Entonces**
++8. **Dado** una descripción con un voto que no llega a darse (FR-028, FR-032), **Cuando** el job la juzga, **Entonces**
+    queda sin juzgar, el job falla con un motivo propio que nombra la skill y el motivo del voto, y no deja juicio que
+    reutilizar (FR-032).
+ 9. **Dado** una ejecución cuya elección no incluye el cambio de ninguna descripción (la etiqueta `evals` o la suite
+@@ -154,8 +154,9 @@
+ 1. **Dado** una skill con una referencia a mano y una referencia generada con un byte cambiado, **Cuando** corre
+    `make skills-sync`, **Entonces** la referencia a mano queda idéntica byte a byte y la generada vuelve a ser lo que
+    genera su fila (FR-012, SC-003).
+-2. **Dado** un fichero de `references/` que abre con la cabecera «generado desde» y no es lo que genera su fila (o no
+-   tiene fila declarada), **Cuando** corre `skills-check`, **Entonces** sale en rojo por deriva, como hoy (FR-012).
++2. **Dado** un fichero de `references/` declarado en `kitlegal-referencias` que no es lo que genera su fila, con o sin
++   la cabecera «generado desde», o uno no declarado que abre con ella, **Cuando** corre `skills-check`, **Entonces** sale
++   en rojo por deriva, como hoy (FR-012).
+ 3. **Dado** una skill con una referencia a mano, **Cuando** se calcula el conjunto de dependencias de una de sus evals
+    (H30), **Entonces** la referencia entra en la parte (b), sin parte (c), sin error; y una propuesta que solo la cambia
+    elige las evals de esa skill (FR-014, SC-004).
+@@ -210,10 +211,8 @@
+ 
+ - Una skill sin `references/` (`jurisprudencia` en `main`) es válida; tras la reescritura puede tener referencias a mano
+   sin ninguna generada (FR-006, FR-012).
+-- Un fichero de `references/` que abre con la cabecera «generado desde» y no tiene fila en `kitlegal-referencias` es un
+-  fichero sobrante, deriva, como hoy; `skills-sync` lo retira (FR-012).
+-- Un fichero a mano con el nombre de una referencia declarada en `kitlegal-referencias` es esa referencia generada: su
+-  contenido distinto es deriva y `skills-sync` lo rehace, como hoy (FR-012).
++- Un fichero con el nombre de una referencia declarada en `kitlegal-referencias` es esa referencia generada aunque no
++  abra con la cabecera: su contenido distinto es deriva y `skills-sync` lo rehace, como hoy (FR-012).
+ - Un enlace a `references/<fichero>.md#apartado` enlaza ese fichero; un texto con forma de enlace dentro de un bloque de
+   código no es un enlace (FR-007, FR-008).
+ - Una referencia generada que pasa de 100 líneas (`normas.md` con cientos de normas en `data/normas.yaml`) también abre
+@@ -280,11 +279,13 @@
+ 
+ #### La regla de `references/`
+ 
+-- **FR-012**: Una referencia generada es un fichero de `references/` que abre con la cabecera «generado desde» (la línea
+-  que hoy abre cada referencia generada); una referencia a mano, uno que no abre con ella. Lo que sale de `data/` sigue
+-  generado, con su cabecera y declarado en `kitlegal-referencias`. `make skills-sync` no escribe, no rehace ni retira
+-  una referencia a mano, y `skills-check` no la da como deriva; una referencia con la cabecera que no es lo que genera
+-  su fila —o sin fila declarada— es deriva, como hoy, y `skills-sync` la rehace o la retira. Criterio: SC-003.
++- **FR-012**: Un fichero de `references/` se clasifica primero por la declaración: (1) el que declara
++  `kitlegal-referencias` es la referencia generada, con o sin la cabecera «generado desde» (la línea que hoy abre cada
++  referencia generada); si difiere de lo que genera su fila es deriva y `skills-sync` lo rehace; (2) el que no está
++  declarado y abre con la cabecera es sobrante: deriva, y `skills-sync` lo retira; (3) solo el `.md` no declarado que no
++  abre con la cabecera es una referencia a mano. Lo que sale de `data/` sigue generado, con su cabecera y declarado.
++  `make skills-sync` no escribe, no rehace ni retira una referencia a mano, y `skills-check` no la da como deriva.
++  Criterio: SC-003.
+ - **FR-013**: Una referencia a mano se escribe sin cabecera y su contenido es el protocolo de detalle de su skill; no
+   repite lo que sale de `data/`, que tiene su referencia generada. Criterio: la revisión final.
+ - **FR-014**: El conjunto de dependencias de cada eval (H30) cuenta cada referencia a mano de las skills de la eval en la
+@@ -358,7 +359,10 @@
+   caso de `casos.yaml` construido como lo hace `mensaje_de`. Criterio: SC-007.
+ - **FR-028**: La frase citada se comprueba sin modelo, con la comparación de `frase_esta` de
+   `evidencias/adr-0046/guiones/juez.py`: un «si» cuya frase no está en la descripción es un voto nulo y se pide otra
+-  vez, una sola; cuenta la repetición y, si vuelve a ser nulo, su «si» no cuenta como «si». Criterio: SC-007.
++  vez, una sola; cuenta la repetición y, si vuelve a ser nulo, su «si» no cuenta como «si». El voto que corta el tope de
++  tiempo de un voto también se pide otra vez, una sola, como en el juez de las evals; la sesión que termina con error,
++  la que no devuelve una respuesta con la forma del esquema y la que corta un límite de uso no se repiten (FR-032).
++  Criterio: SC-007.
+ - **FR-029**: Una descripción queda marcada con tres votos «si» unánimes, cada uno con su frase comprobada, pedidos por
+   orden: el segundo solo si el primero marcó y el tercero solo si el segundo marcó. Con dos «si» y un «no», o con un
+   primer «no», no queda marcada. Como mucho seis votos por descripción, contadas las repeticiones. Criterio: SC-007.
+@@ -378,9 +382,9 @@
+   una sola marcada pone en rojo el umbral, publicado con `decide: true` (contrato del ADR 0029). El informe da, de cada
+   descripción marcada, la skill, la frase y el motivo, y de cada una, si se juzgó o se reutilizó y con qué procedencia;
+   lo reutilizado no entra en el umbral (ADR 0045, punto 1). Criterio: SC-007, SC-010.
+-- **FR-032**: Una descripción que queda sin juzgar porque un voto no llega a darse tras su repetición (la sesión no
+-  devuelve una respuesta con la forma del esquema, por un límite de uso, por el tope de tiempo del voto o porque termina
+-  con error) se publica sin juicio, con el motivo del voto, y hace fallar el job, como una respuesta sin juzgar del juez
++- **FR-032**: Una descripción que queda sin juzgar porque un voto no llega a darse (el tope de tiempo lo corta también en
++  su repetición, o, sin repetición, la sesión termina con error, no devuelve una respuesta con la forma del esquema o la
++  corta un límite de uso; FR-028) se publica sin juicio, con el motivo del voto, y hace fallar el job, como una respuesta sin juzgar del juez
+   de las evals (FR-007 de H24; ADR 0037, decisión 2): queda «sin juzgar», no «sin marcar», y no cuenta como marcada. El
+   job falla con un motivo propio, que nombra la skill y el motivo del voto y se distingue sin modelo de una descripción
+   marcada. No deja juicio que reutilizar: la siguiente ejecución que juzga descripciones la vuelve a juzgar (FR-030).
+@@ -399,9 +403,10 @@
+   agente carga al activar la skill. Medidas: líneas y caracteres (runas).
+ - **Descripción**: el `description` del frontmatter; lo que el agente lee siempre. Medidas: caracteres; juicio de tercera
+   persona.
+-- **Referencia generada**: fichero de `references/` que abre con la cabecera «generado desde», declarado en
+-  `kitlegal-referencias` y regenerado desde `data/`.
+-- **Referencia a mano**: fichero `.md` de `references/` sin esa cabecera; protocolo de detalle que `skills-sync` no toca.
++- **Referencia generada**: fichero de `references/` declarado en `kitlegal-referencias`, regenerado desde `data/` con
++  la cabecera «generado desde» (FR-012).
++- **Referencia a mano**: fichero `.md` de `references/` no declarado que no abre con esa cabecera; protocolo de detalle
++  que `skills-sync` no toca (FR-012).
+ - **Juicio de una descripción**: de una skill y su descripción, los votos, si queda marcada, la frase y el motivo, si se
+   juzgó o se reutilizó, su huella y su procedencia.
+ - **Medida del juez de las descripciones**: `evidencias/adr-0046/medida.json`: huellas de la rúbrica y de los casos,
+@@ -451,21 +456,24 @@
+   verde) y una de 101 líneas sin ningún encabezado de nivel 2 (100, en verde). Con cualquiera de ellos sin detectar, el
+   test sale en rojo.
+ - **SC-003**: Un test de `make ci` comprueba que `make skills-sync`, sobre una copia con una referencia a mano y una
+-  generada alterada, deja la referencia a mano idéntica byte a byte y rehace la generada; sale en rojo si toca la
+-  primera o no rehace la segunda.
++  generada alterada (un byte cambiado, y otra sin su cabecera), deja la referencia a mano idéntica byte a byte y rehace
++  las generadas; sale en rojo si toca la primera o no rehace una de las otras.
+ - **SC-004**: Un test de `make ci` comprueba que el conjunto de dependencias de una eval incluye la referencia a mano de
+   su skill en la parte (b), sin parte (c), y que una propuesta que solo la cambia elige las evals de esa skill; y que una
+   skill nombrada solo desde una referencia a mano entra en el conjunto con su `SKILL.md` y sus `references/`; sale en
+   rojo si no la incluye o si da error.
+ - **SC-005**: Cada control de contenido de FR-016 sale en rojo en `make ci` con su regla movida a una referencia a mano de
+-  una copia de la skill (un mutante por control: la expresión prohibida, la fecha AAAAMMDD, la orden sin su forma para
+-  PowerShell, la línea sin consulta, las formas de aviso, de hallazgo y de la redacción fechada, y la orden de ejemplo
+-  que la caché no sirve sin red).
++  una copia de la skill: un mutante por cada control de FR-016, FR-018 y FR-019, entre ellos la expresión prohibida, la
++  fecha AAAAMMDD, la orden sin su forma para PowerShell, la línea sin consulta, las formas de aviso, de hallazgo y de la
++  redacción fechada, la norma nombrada que no está en `data/normas.yaml`, la instrucción de las evals y la orden de
++  ejemplo que la caché no sirve sin red.
+ - **SC-006**: El control de identidad de `make ci` sale en rojo con un byte distinto en la rúbrica, el esquema, los casos
+   o la medida respecto de `evidencias/adr-0046/`.
+ - **SC-007**: Tests de `make ci` del juicio de una descripción con votos simulados, sin abrir ninguna sesión: marca con
+   tres «si» y su frase; no marca con dos «si» y un «no» ni con un primer «no», y entonces no pide los votos siguientes;
+-  un «si» con una frase que no está es nulo y se repite una vez; no se piden más de seis votos por descripción; el
++  un «si» con una frase que no está es nulo y se repite una vez; un voto cortado por el tope se repite una vez y, si
++  vuelve a cortarse, la descripción queda sin juzgar y el job falla; una sesión con error no se repite y la deja sin
++  juzgar; no se piden más de seis votos por descripción; el
+   mensaje es el de `mensaje_de`; una descripción marcada pone en rojo el umbral 0 de la clase y su informe lleva la
+   frase y el motivo. Con cualquiera de ellos distinto, el test sale en rojo.
+ - **SC-008**: Un test de `make ci` de la decisión del job comprueba que, con la medida que no corresponde (otra huella de
+@@ -513,9 +521,9 @@
+ 
+ - Las dos fuentes de la guía se citan con la fecha y las frases que registra el ADR 0046 (2026-10-23): el run no tiene
+   red y no las consulta.
+-- «La elección incluye el cambio de una descripción» es la elección de H30 con el motivo `descripcion`: cambia el
+-  `description` del frontmatter de algún `SKILL.md`. Con las tres descripciones cambiadas, la elección son las 45 evals
+-  (ADR 0046, «En contra»).
++- «La elección incluye el cambio de una descripción» es la regla de FR-030: alguna ruta de la propuesta es un
++  `SKILL.md` cuyo `description` difiere entre la base y la cabeza (la regla `cambiaLaDescripcion` de H30), sea cual sea
++  el motivo de cada eval. Con las tres descripciones cambiadas, la elección son las 45 evals (ADR 0046, «En contra»).
+ - El modelo y la versión de Claude Code del juez de las descripciones son los del juez de las evals,
+   `MODELO_DEL_JUEZ` y `VERSION_DE_CLAUDE_CODE_DEL_JUEZ` de `.github/workflows/evals.yml` (hoy `claude-opus-5-5` y
+   2.1.289), los mismos con que se tomó la medida de `evidencias/adr-0046/`.
+@@ -541,4 +549,7 @@
+ - El juez de las descripciones en `make evals-sondeo`, en `make ci` o en un paso del run.
+ - Las skills de agente que no son del producto (`.agents/skills/`, `seo-semanal`).
+ - Cambios en `scripts/workflow/`, `.specify/` e `internal/workflow/`.
++- Cambiar los generadores de las referencias generadas para que escriban su índice o sus encabezados de nivel 2
++  (Clarificación Q4): si un cambio posterior de `data/` lleva una por encima de 100 líneas, ese cambio adapta su
++  generador.
+ - La release y su etiqueta, y lanzar la medida del juez: los hace una persona.
