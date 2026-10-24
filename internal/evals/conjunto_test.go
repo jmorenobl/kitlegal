@@ -3820,7 +3820,13 @@ func conLasReferencias(contenidos map[string]string) func(t *testing.T, dir stri
 func quitarDelSkillMd(t *testing.T, dir string, casa func(linea string) bool) string {
 	t.Helper()
 
-	ruta := filepath.Join(dir, ficheroDeLaSkill)
+	return quitarDelFichero(t, filepath.Join(dir, ficheroDeLaSkill), casa)
+}
+
+// quitarDelFichero quita del fichero de la ruta cada línea con la que casa, que
+// tiene que haber al menos una, y devuelve las quitadas, juntas.
+func quitarDelFichero(t *testing.T, ruta string, casa func(linea string) bool) string {
+	t.Helper()
 
 	var quedan, quitadas strings.Builder
 
@@ -3838,28 +3844,45 @@ func quitarDelSkillMd(t *testing.T, dir string, casa func(linea string) bool) st
 	return quitadas.String()
 }
 
-// sinLasLineas es el mutante que quita del SKILL.md cada línea con la que casa.
-func sinLasLineas(casa func(linea string) bool) func(t *testing.T, dir string) {
+// enBloqueDeTexto son las líneas, que terminan en un salto de línea, en un
+// bloque de código text, como se enseña una forma fija.
+func enBloqueDeTexto(lineas string) string {
+	return aperturaDeBloqueDeTexto + "\n" + lineas + cierreDeBloqueDeCodigo + "\n"
+}
+
+// sinLasLineas es el mutante que quita del fichero de la skill, su ruta dentro
+// de ella, cada línea con la que casa.
+func sinLasLineas(fichero string, casa func(linea string) bool) func(t *testing.T, dir string) {
 	return func(t *testing.T, dir string) {
 		t.Helper()
 
-		quitarDelSkillMd(t, dir, casa)
+		quitarDelFichero(t, filepath.Join(dir, fichero), casa)
 	}
 }
 
 // conLasLineasMovidas es el mutante que lleva del SKILL.md a la referencia a
-// mano cada línea con la que casa: tal cual o, con enBloqueDeTexto, en un bloque
-// de código text, como se enseña una forma fija.
-func conLasLineasMovidas(casa func(linea string) bool, enBloqueDeTexto bool) func(t *testing.T, dir string) {
+// mano cada línea con la que casa, en un bloque de código text.
+func conLasLineasMovidas(casa func(linea string) bool) func(t *testing.T, dir string) {
 	return func(t *testing.T, dir string) {
 		t.Helper()
 
-		movidas := quitarDelSkillMd(t, dir, casa)
-		if enBloqueDeTexto {
-			movidas = aperturaDeBloqueDeTexto + "\n" + movidas + cierreDeBloqueDeCodigo + "\n"
-		}
+		escribirLaReferencia(t, dir, referenciaAMano, "# Lo que decía SKILL.md\n\n"+
+			enBloqueDeTexto(quitarDelSkillMd(t, dir, casa)))
+	}
+}
 
-		escribirLaReferencia(t, dir, referenciaAMano, "# Lo que decía SKILL.md\n\n"+movidas)
+// conLasLineasLlevadasAlSkillMd es el mutante que lleva cada línea con la que
+// casa del fichero de la skill, su ruta dentro de ella, al final de su SKILL.md,
+// en un bloque de código text.
+func conLasLineasLlevadasAlSkillMd(fichero string, casa func(linea string) bool) func(t *testing.T, dir string) {
+	return func(t *testing.T, dir string) {
+		t.Helper()
+
+		llevadas := quitarDelFichero(t, filepath.Join(dir, fichero), casa)
+		ruta := filepath.Join(dir, ficheroDeLaSkill)
+
+		require.NoError(t, os.WriteFile(ruta, []byte(string(contenidoDelFichero(t, ruta))+"\n"+
+			enBloqueDeTexto(llevadas)), 0o600))
 	}
 }
 
@@ -3892,8 +3915,9 @@ func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
 
 // mutantesDeLasOrdenes son los del control 3: en una referencia a mano, la
 // orden de Bash de articulo sin su forma para PowerShell, con ella en otra
-// referencia y con ella detrás; y las órdenes de articulos de SKILL.md llevadas
-// a una referencia, tal cual, o quitadas.
+// referencia y con ella detrás; y las órdenes de articulos, que desde H31 están
+// en references/varios_bloques.md (contracts/skills-reescritas.md de H31,
+// «boe-legislacion»), llevadas de ahí a SKILL.md, o quitadas.
 func mutantesDeLasOrdenes() []mutanteDeUnControl {
 	const (
 		enBash       = "# Lecturas\n\n```bash\n" + bashDeArticulo + "\n```\n"
@@ -3905,6 +3929,7 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 	conLasDeArticulos := func(linea string) bool {
 		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
 	}
+	referenciaDeArticulos := path.Join(directorioDeLasReferencias, "varios_bloques.md")
 
 	return []mutanteDeUnControl{
 		{
@@ -3924,12 +3949,12 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 			}),
 		},
 		{
-			nombre: "ordenes-de-articulos-en-una-referencia", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
-			mutar: conLasLineasMovidas(conLasDeArticulos, false),
+			nombre: "ordenes-de-articulos-en-skill-md", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			mutar: conLasLineasLlevadasAlSkillMd(referenciaDeArticulos, conLasDeArticulos),
 		},
 		{
 			nombre: "sin-las-ordenes-de-articulos", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
-			mutar: sinLasLineas(conLasDeArticulos),
+			mutar: sinLasLineas(referenciaDeArticulos, conLasDeArticulos),
 			defectos: []string{"boe-legislacion: ninguna orden de Bash lee con «kitlegal boe articulos» y comprueba " +
 				"detrás con kitlegal graph check"},
 			exactos: true,
@@ -3948,7 +3973,7 @@ func mutantesDeLaLineaSinConsulta() []mutanteDeUnControl {
 			nombre: "linea-sin-consulta-movida-en-" + skill, control: controlDeLaLineaSinConsulta, skill: skill,
 			mutar: conLasLineasMovidas(func(linea string) bool {
 				return strings.TrimSpace(linea) == lineaSinConsultaDeLasSkills
-			}, true),
+			}),
 			defectos: []string{skill + ": SKILL.md no dice en un bloque text la línea «" + lineaSinConsultaDeLasSkills +
 				"»"},
 			exactos: true,
@@ -3969,7 +3994,7 @@ func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
 	movida := func(nombre string, control controlDeContenido, forma *regexp.Regexp, defecto string) {
 		mutantes = append(mutantes, mutanteDeUnControl{
 			nombre: nombre, control: control, skill: skillBoeLegislacion,
-			mutar: conLasLineasMovidas(forma.MatchString, true), defectos: []string{defecto},
+			mutar: conLasLineasMovidas(forma.MatchString), defectos: []string{defecto},
 		})
 	}
 
