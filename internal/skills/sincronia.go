@@ -270,9 +270,9 @@ func defectoDeLosScripts(raiz, skill string) ([]*DefectoDeSkill, error) {
 }
 
 // declaracionDeLaSkill lee y valida el frontmatter de la skill, y devuelve su
-// declaración de kitlegal con los defectos del frontmatter: los de su lectura,
-// con SKILL.md delante, sin declaración; o los de ValidarFrontmatter, entre ellos
-// el de cada referencia declarada sin generador.
+// declaración de kitlegal con los defectos del frontmatter, todos con SKILL.md
+// delante: los de su lectura, sin declaración; o los de ValidarFrontmatter, entre
+// ellos el de cada referencia declarada sin generador.
 func declaracionDeLaSkill(raiz string, skill Skill, registrados []string) (
 	DeclaracionDeKitlegal, []*DefectoDeSkill, error,
 ) {

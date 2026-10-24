@@ -822,17 +822,25 @@ func alargarSkillMd(skill string, lineas int) func(t *testing.T, copia string) {
 }
 
 // casosDeFrontmatter son las reglas del frontmatter de la skill (data-model §1.1
-// y §1.3; research.md D3 y D4; FR-040): una fila por defecto, cada una con un
-// solo defecto que nombra la skill —el directorio de la skill se renombra cuando
-// el caso necesita otro nombre—, uno por cada referencia sin su YAML de datos, y
-// los límites exactos válidos, 64 caracteres en name y 1024 en description,
-// contados como caracteres y no como bytes. Los nombres que no valen salen del de
-// la skill: todo en mayúsculas, con dos guiones tras su primer carácter y con un
-// guion delante.
+// y §1.3; research.md D3, D4 y D11; FR-040; FR-002, FR-003, FR-005, FR-011 y
+// SC-002 de H31): una fila por defecto, cada una con un solo defecto que nombra
+// la skill, el fichero —SKILL.md— y la regla —el directorio de la skill se
+// renombra cuando el caso necesita otro nombre—, salvo la etiqueta XML en name,
+// que es además un carácter que name no admite; uno por cada referencia sin su
+// YAML de datos; y los límites exactos válidos, 64 caracteres en name y 900 en
+// description, contados como caracteres y no como bytes, y un < que no abre una
+// etiqueta. Los nombres que no valen salen del de la skill: todo en mayúsculas,
+// con dos guiones tras su primer carácter, con un guion delante y con una
+// etiqueta detrás; los que contienen claude y anthropic, de SC-002.
 func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
-	const description = "description: Una descripción válida de la skill.\n"
+	const (
+		description              = "description: Una descripción válida de la skill.\n"
+		conClaude, conAnthropic  = "claude-legal", "x-anthropic"
+		menorQueSinEtiqueta      = "Un cuerpo de menos de 5000 tokens (< 5000)."
+		descripcionConLaEtiqueta = "Consulta normas del BOE con un <ejemplo>."
+	)
 
 	var (
 		nombre                 = skill.nombre
@@ -841,6 +849,7 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 		enMayusculas           = strings.ToUpper(nombre)
 		conDosGuiones          = nombre[:1] + "--" + nombre[1:]
 		conGuionDelante        = "-" + nombre
+		conEtiqueta            = nombre + "<x>"
 		nombreDe64, nombreDe65 = strings.Repeat("a", 64), strings.Repeat("a", 65)
 	)
 
@@ -848,25 +857,26 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 		{
 			nombre:  "sin-name",
 			alterar: conOtroFrontmatter(nombre, nombre, description+metadata),
-			fallos:  []string{nombre + ": falta name"},
+			fallos:  []string{nombre + ": SKILL.md: falta name"},
 		},
 		{
 			nombre:  "name-distinto-del-directorio",
 			alterar: conOtroFrontmatter(nombre, nombre, "name: otra-skill\n"+description+metadata),
-			fallos:  []string{nombre + `: name "otra-skill" distinto del nombre del directorio`},
+			fallos:  []string{nombre + `: SKILL.md: name "otra-skill" distinto del nombre del directorio`},
 		},
 		{
 			nombre:  "name-con-mayuscula",
 			alterar: conOtroFrontmatter(nombre, enMayusculas, "name: "+enMayusculas+"\n"+description+metadata),
 			fallos: []string{
-				fmt.Sprintf("%s: name %q con caracteres que no son a-z, 0-9 ni -", enMayusculas, enMayusculas),
+				fmt.Sprintf("%s: SKILL.md: name %q con caracteres que no son a-z, 0-9 ni -", enMayusculas, enMayusculas),
 			},
 		},
 		{
 			nombre:  "name-con-dos-guiones-seguidos",
 			alterar: conOtroFrontmatter(nombre, conDosGuiones, "name: "+conDosGuiones+"\n"+description+metadata),
 			fallos: []string{
-				fmt.Sprintf("%s: name %q con un guion al principio, al final o dos seguidos", conDosGuiones, conDosGuiones),
+				fmt.Sprintf("%s: SKILL.md: name %q con un guion al principio, al final o dos seguidos", conDosGuiones,
+					conDosGuiones),
 			},
 		},
 		{
@@ -874,50 +884,75 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 			alterar: conOtroFrontmatter(nombre, conGuionDelante,
 				fmt.Sprintf("name: %q\n", conGuionDelante)+description+metadata),
 			fallos: []string{
-				fmt.Sprintf("%s: name %q con un guion al principio, al final o dos seguidos", conGuionDelante,
+				fmt.Sprintf("%s: SKILL.md: name %q con un guion al principio, al final o dos seguidos", conGuionDelante,
 					conGuionDelante),
 			},
 		},
 		{
 			nombre:  "name-de-65-caracteres",
 			alterar: conOtroFrontmatter(nombre, nombreDe65, "name: "+nombreDe65+"\n"+description+metadata),
-			fallos:  []string{nombreDe65 + ": name de 65 caracteres (máximo 64)"},
+			fallos:  []string{nombreDe65 + ": SKILL.md: name de 65 caracteres (máximo 64)"},
+		},
+		{
+			nombre:  "name-con-claude",
+			alterar: conOtroFrontmatter(nombre, conClaude, "name: "+conClaude+"\n"+description+metadata),
+			fallos:  []string{conClaude + `: SKILL.md: name "claude-legal" contiene «claude»`},
+		},
+		{
+			nombre:  "name-con-anthropic",
+			alterar: conOtroFrontmatter(nombre, conAnthropic, "name: "+conAnthropic+"\n"+description+metadata),
+			fallos:  []string{conAnthropic + `: SKILL.md: name "x-anthropic" contiene «anthropic»`},
+		},
+		{
+			nombre: "name-con-etiqueta-xml",
+			alterar: conOtroFrontmatter(nombre, conEtiqueta,
+				fmt.Sprintf("name: %q\n", conEtiqueta)+description+metadata),
+			fallos: []string{
+				fmt.Sprintf("%s: SKILL.md: name %q con caracteres que no son a-z, 0-9 ni -", conEtiqueta, conEtiqueta),
+				conEtiqueta + ": SKILL.md: name con la etiqueta XML «<x>»",
+			},
 		},
 		{
 			nombre:  "sin-description",
 			alterar: conOtroFrontmatter(nombre, nombre, name+metadata),
-			fallos:  []string{nombre + ": falta description"},
+			fallos:  []string{nombre + ": SKILL.md: falta description"},
 		},
 		{
 			nombre:  "description-vacia",
 			alterar: conOtroFrontmatter(nombre, nombre, name+"description: \"\"\n"+metadata),
-			fallos:  []string{nombre + ": description vacía"},
+			fallos:  []string{nombre + ": SKILL.md: description vacía"},
 		},
 		{
-			nombre:  "description-de-1025-caracteres",
-			alterar: conOtroFrontmatter(nombre, nombre, name+"description: "+strings.Repeat("ñ", 1025)+"\n"+metadata),
-			fallos:  []string{nombre + ": description de 1025 caracteres (máximo 1024)"},
+			nombre:  "description-de-901-caracteres",
+			alterar: conOtroFrontmatter(nombre, nombre, name+"description: "+strings.Repeat("ñ", 901)+"\n"+metadata),
+			fallos:  []string{nombre + ": SKILL.md: description de 901 caracteres (máximo 900)"},
 		},
 		{
-			nombre:  "description-con-menor-que",
-			alterar: conOtroFrontmatter(nombre, nombre, name+"description: \"Consulta normas del BOE < 1978.\"\n"+metadata),
-			fallos:  []string{nombre + ": description con < o >"},
+			nombre: "description-con-etiqueta-xml",
+			alterar: conOtroFrontmatter(nombre, nombre,
+				fmt.Sprintf("%sdescription: %q\n", name, descripcionConLaEtiqueta)+metadata),
+			fallos: []string{nombre + ": SKILL.md: description con la etiqueta XML «<ejemplo>»"},
+		},
+		{
+			nombre: "description-con-menor-que-sin-etiqueta",
+			alterar: conOtroFrontmatter(nombre, nombre,
+				fmt.Sprintf("%sdescription: %q\n", name, menorQueSinEtiqueta)+metadata),
 		},
 		{
 			nombre:  "clave-no-admitida",
 			alterar: conOtroFrontmatter(nombre, nombre, name+description+"version: \"1\"\n"+metadata),
-			fallos:  []string{nombre + ": clave no admitida: version"},
+			fallos:  []string{nombre + ": SKILL.md: clave no admitida: version"},
 		},
 		{
 			nombre: "applet-que-no-existe",
 			alterar: conOtroFrontmatter(nombre, nombre,
 				name+description+metadataDeKitlegal(slices.Concat(skill.applets, []string{"inexistente"}), skill.referencias)),
-			fallos: []string{nombre + `: metadata/kitlegal-applets: applet "inexistente" no registrado`},
+			fallos: []string{nombre + `: SKILL.md: metadata/kitlegal-applets: applet "inexistente" no registrado`},
 		},
 		{
 			nombre: "limites-validos",
 			alterar: conOtroFrontmatter(nombre, nombreDe64,
-				"name: "+nombreDe64+"\ndescription: "+strings.Repeat("ñ", 1024)+"\n"+metadata),
+				"name: "+nombreDe64+"\ndescription: "+strings.Repeat("ñ", 900)+"\n"+metadata),
 		},
 	}
 
@@ -953,8 +988,8 @@ func referenciaSinSusDatos(skill skillDelRecorrido, referencia referenciaDelReco
 	var fallos []string
 
 	for _, otra := range skill.referenciasDe(referencia.datos) {
-		fallos = append(fallos, fmt.Sprintf("%s: metadata/kitlegal-referencias: %q sin %s", skill.nombre, otra.nombre,
-			otra.datos))
+		fallos = append(fallos, fmt.Sprintf("%s: SKILL.md: metadata/kitlegal-referencias: %q sin %s", skill.nombre,
+			otra.nombre, otra.datos))
 	}
 
 	return casoSobreUnaCopia{

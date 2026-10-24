@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -47,12 +48,26 @@ const (
 	separadorDeNombres = " "
 )
 
-// Los límites del estándar, en caracteres y no en bytes (research.md D3).
+// Los límites, en caracteres y no en bytes (research.md D3): los del estándar,
+// salvo el de description, que es el de kitlegal, más estricto que los 1024 del
+// estándar y que así ya no pueden darse (research.md D11 de H31; FR-005;
+// ADR 0046).
 const (
 	maximoDelNombre          = 64
-	maximoDeLaDescripcion    = 1024
+	maximoDeLaDescripcion    = 900
 	maximoDeLaCompatibilidad = 500
 )
+
+// palabrasReservadas son las que name no puede contener (research.md D11 de H31;
+// FR-002), como subcadenas y no solo como palabras entre guiones, en minúsculas,
+// que es lo único que name admite.
+var palabrasReservadas = []string{"anthropic", "claude"}
+
+// etiquetaXML es una etiqueta XML en name o en description (research.md D11 de
+// H31; FR-003): un <, una barra opcional, una letra y lo que siga sin otro < ni >
+// hasta un >; cubre <nombre…>, </nombre> y <nombre/>, y no un < que no abre una
+// así, como el de «< 5000» o el de «a<b».
+var etiquetaXML = regexp.MustCompile(`</?\p{L}[^<>]*>`)
 
 // carpetaDeLosDatos es el directorio de los YAML de datos, relativo a la raíz
 // del repositorio: donde la validación de las referencias busca el que la tabla
@@ -335,15 +350,18 @@ func esCadena(nodo *yaml.Node) bool {
 }
 
 // ValidarFrontmatter aplica al frontmatter de la skill las reglas de data-model
-// §1.1 y §1.3 (research.md D3 y D4; FR-040) y devuelve un DefectoDeSkill por
-// cada incumplimiento, en este orden:
+// §1.1 y §1.3 (research.md D3 y D4; FR-040; y, desde H31, research.md D11,
+// FR-002, FR-003 y FR-005) y devuelve un DefectoDeSkill por cada
+// incumplimiento, con SKILL.md delante, que es el fichero que lo tiene (FR-011
+// de H31), en este orden:
 //
 //   - name está, no está vacío, solo tiene a-z, 0-9 y guiones, sin guion al
 //     principio ni al final ni dos seguidos —juntas, la forma
-//     ^[a-z0-9]+(-[a-z0-9]+)*$—, tiene hasta 64 caracteres y es igual al nombre
+//     ^[a-z0-9]+(-[a-z0-9]+)*$—, tiene hasta 64 caracteres, no contiene
+//     anthropic ni claude, no tiene ninguna etiqueta XML y es igual al nombre
 //     del directorio de la skill;
-//   - description está, no está vacía tras recortar espacios, tiene hasta 1024
-//     caracteres y no tiene < ni >;
+//   - description está, no está vacía tras recortar espacios, tiene hasta 900
+//     caracteres y no tiene ninguna etiqueta XML;
 //   - compatibility tiene hasta 500 caracteres;
 //   - cada clave de primer nivel es del estándar;
 //   - cada applet de kitlegal-applets está entre los registrados y no se repite;
@@ -375,7 +393,7 @@ func ValidarFrontmatter(raiz, skill string, frontmatter Frontmatter, applets []s
 
 	defectos := make([]*DefectoDeSkill, 0, len(textos))
 	for _, texto := range textos {
-		defectos = append(defectos, &DefectoDeSkill{Skill: skill, Defecto: texto})
+		defectos = append(defectos, &DefectoDeSkill{Skill: skill, Defecto: ficheroDeLaSkill + ": " + texto})
 	}
 
 	return defectos, nil
@@ -406,6 +424,14 @@ func defectosDelNombre(frontmatter Frontmatter, skill string) []string {
 	if longitud := utf8.RuneCountInString(nombre); longitud > maximoDelNombre {
 		defectos = append(defectos, demasiadoLargo(claveName, longitud, maximoDelNombre))
 	}
+
+	for _, reservada := range palabrasReservadas {
+		if strings.Contains(nombre, reservada) {
+			defectos = append(defectos, fmt.Sprintf("%s %q contiene «%s»", claveName, nombre, reservada))
+		}
+	}
+
+	defectos = append(defectos, defectosDeLaEtiqueta(claveName, nombre)...)
 
 	if nombre != skill {
 		defectos = append(defectos, fmt.Sprintf("%s %q distinto del nombre del directorio", claveName, nombre))
@@ -439,11 +465,19 @@ func defectosDeLaDescripcion(frontmatter Frontmatter) []string {
 		defectos = append(defectos, demasiadoLargo(claveDescription, longitud, maximoDeLaDescripcion))
 	}
 
-	if strings.ContainsAny(descripcion, "<>") {
-		defectos = append(defectos, claveDescription+" con < o >")
+	return append(defectos, defectosDeLaEtiqueta(claveDescription, descripcion)...)
+}
+
+// defectosDeLaEtiqueta es el defecto del valor de la clave si tiene alguna
+// etiqueta XML, que cita la primera, como «description con la etiqueta XML
+// «<ejemplo>»».
+func defectosDeLaEtiqueta(clave, valor string) []string {
+	etiqueta := etiquetaXML.FindString(valor)
+	if etiqueta == "" {
+		return nil
 	}
 
-	return defectos
+	return []string{fmt.Sprintf("%s con la etiqueta XML «%s»", clave, etiqueta)}
 }
 
 // defectosDeLaCompatibilidad es el defecto de compatibility, si es más larga de

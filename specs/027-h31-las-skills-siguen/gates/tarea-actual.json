@@ -1,16 +1,19 @@
 {
-  "id": "T008",
-  "texto": "T008 [US5] Construir el control 10 de contracts/controles-de-contenido.md (FR-019; research D17) en `internal/evals/conjunto_test.go`: el extractor `ordenesDeEjemplo`, junto a `ordenesDeLectura`, que de cada tramo de código que ya recorre `ordenesDeLectura` toma cada aparición de `kitlegal boe` con lo que la sigue hasta el primer `&&`, `;` o `|`, sin `--json`, y la da como orden concreta si lleva un verbo y al menos un argumento y ningún marcador `<…>`, `...` ni `…`; `TestOrdenesDeEjemplo` sobre Markdown escrito en el test (la orden de un bloque en su forma de Bash y en la de PowerShell, la de código en línea, cada una con su línea y su `--fecha <día>`; ninguna de la que lleva un marcador, de la mención del verbo sin argumentos ni de la prosa); el subtest `ordenes-de-ejemplo` de `TestEvalsDelRepositorio`, que en cada skill con evals ejecuta cada orden concreta del `SKILL.md` y de sus referencias a mano con `ComprobarSinRed` (`--offline`) sobre `cacheDeUnaSesion` de la primera eval de la carpeta de evals de la skill, por nombre, que no declara `sin_servir`, da una `Falta` por cada una que no sale con 0 con el defecto `<skill>: <fichero>: «…» terminó con código N: …` y exige al menos una orden en el repositorio; y el mutante del control 10 en `TestControlesSobreLasReferenciasAMano` (una orden de `buscar` sin marcador en una referencia a mano de una copia, en rojo). Ajustar `cacheDeUnaSesion` en `internal/evals/preparar_test.go` o `internal/evals/preparar.go` solo si el control lo necesita. En verde con las skills de T005–T007. FR-019, SC-005. Rutas: internal/evals/conjunto_test.go, internal/evals/preparar.go, internal/evals/preparar_test.go",
+  "id": "T009",
+  "texto": "T009 [US2] Ampliar la validación de la especificación (FR-002, FR-003, FR-005, FR-011; research D11; contracts/gates-de-skills-check.md §2 y §2.1) en `internal/skills/frontmatter.go`: `ValidarFrontmatter` da como defecto un `name` que contiene `claude` o `anthropic`, una etiqueta XML (coincidencia de `</?\\p{L}[^<>]*>`) en `name` y en `description`, y una `description` de más de 900 caracteres contados como runas (sustituye al máximo de 1024 y a la regla «description con < o >»); cada defecto de `ValidarFrontmatter` empieza por `SKILL.md: ` con el texto de hoy detrás. Tests: `TestValidarFrontmatter` (los defectos nuevos, el prefijo y la descripción de 900 sin defecto) y `TestEtiquetaXML` (casan `<ejemplo>`, `</b>`, `<br/>`, `<descripcion skill=\"x\">`; no casan «< 5000», `a<b`, `a < b > c`, `<>`, `<1>`) en `internal/skills/frontmatter_test.go`; los textos esperados de `internal/skills/sincronia_test.go` con el prefijo; y en `TestSkillsDelRepositorio` de `internal/app/skills_test.go`, el subtest `frontmatter` con los mutantes de SC-002 sobre `copiaConLaSkill` (`name: claude-legal`, `name: x-anthropic`, etiqueta en `name`, `<ejemplo>` en `description`, «menos de 5000 tokens (< 5000)» sin defecto, descripción de 901 en rojo y de 900 en verde), cada uno con el defecto que nombra skill, fichero y regla; en rojo si alguno no se detecta. Las tres skills reescritas pasan. FR-002, FR-003, FR-005, FR-011, SC-002, SC-009. Rutas: internal/skills/frontmatter.go, internal/skills/frontmatter_test.go, internal/skills/sincronia.go, internal/skills/sincronia_test.go, internal/app/skills_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "a6ac1caf50ce261cba34e20403d542a574f9903a",
+  "base": "2f27618ffa6af4e39e9018baaa6903ea43645ed3",
   "rutas": [
     "SKILL.md",
-    "contracts/controles-de-contenido.md",
-    "internal/evals/conjunto_test.go",
-    "internal/evals/preparar.go",
-    "internal/evals/preparar_test.go"
+    "br/",
+    "contracts/gates-de-skills-check.md",
+    "internal/app/skills_test.go",
+    "internal/skills/frontmatter.go",
+    "internal/skills/frontmatter_test.go",
+    "internal/skills/sincronia.go",
+    "internal/skills/sincronia_test.go"
   ],
   "cierre": false,
   "converger": false,

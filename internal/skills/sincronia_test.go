@@ -524,7 +524,7 @@ func probarDefectos(t *testing.T) {
 
 				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), "name: alfa\n", "name: otra\n")
 			},
-			defectos: []string{`alfa: name "otra" distinto del nombre del directorio`},
+			defectos: []string{`alfa: SKILL.md: name "otra" distinto del nombre del directorio`},
 		},
 		{
 			nombre: "frontmatter-ilegible",
@@ -543,7 +543,7 @@ func probarDefectos(t *testing.T) {
 				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"),
 					"kitlegal-applets: dos uno\n", "kitlegal-applets: dos tres\n")
 			},
-			defectos: []string{`alfa: metadata/kitlegal-applets: applet "tres" no registrado`},
+			defectos: []string{`alfa: SKILL.md: metadata/kitlegal-applets: applet "tres" no registrado`},
 		},
 		{
 			// Un YAML de datos con su nombre no le da generador: lo da la tabla.
@@ -555,7 +555,7 @@ func probarDefectos(t *testing.T) {
 					"kitlegal-referencias: "+referenciasDeAlfa+"\n", "kitlegal-referencias: "+referenciasDeAlfa+" otras\n")
 				escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "otras.yaml"), "otras: []\n")
 			},
-			defectos: []string{`alfa: metadata/kitlegal-referencias: "otras" sin generador conocido`},
+			defectos: []string{`alfa: SKILL.md: metadata/kitlegal-referencias: "otras" sin generador conocido`},
 		},
 		{
 			nombre: "referencia-sin-su-yaml-de-datos",
@@ -564,7 +564,9 @@ func probarDefectos(t *testing.T) {
 
 				retirarDePrueba(t, filepath.Join(raiz, "data", "jerarquia.yaml"))
 			},
-			defectos: []string{`alfa: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`},
+			defectos: []string{
+				`alfa: SKILL.md: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`,
+			},
 		},
 		{
 			nombre: "trescientas-lineas",
@@ -673,7 +675,7 @@ func probarDefectos(t *testing.T) {
 				alargarSkillMd(t, ruta, 300)
 			},
 			defectos: []string{
-				`alfa: name "otra" distinto del nombre del directorio`,
+				`alfa: SKILL.md: name "otra" distinto del nombre del directorio`,
 				"alfa: SKILL.md tiene 300 líneas (máximo 299)",
 			},
 		},
