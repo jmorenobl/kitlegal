@@ -13,6 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // TestEleccionDeLosMutantes calcula sobre el árbol del repositorio la elección
@@ -136,7 +138,7 @@ type mutanteConNombre struct {
 func mutantesDeLaEleccion(t *testing.T, repositorio fs.FS, base arbolDelRepositorio) []mutanteConNombre {
 	t.Helper()
 
-	referencia := ficheroDelRepositorio(t, repositorio, "skills/legal-core/references", esMarkdown)
+	referencia := referenciaGenerada(t, repositorio, "legal-core")
 	cli := ficheroDelRepositorio(t, repositorio, "internal/cli", esCodigoSinTests)
 	docs := ficheroDelRepositorio(t, repositorio, "docs", esMarkdown)
 
@@ -311,6 +313,31 @@ func conUnaReferenciaAMano(t *testing.T, repositorio fs.FS, skill string) mutant
 // esMarkdown dice si el nombre es el de un fichero de Markdown.
 func esMarkdown(nombre string) bool {
 	return strings.HasSuffix(nombre, ".md")
+}
+
+// referenciaGenerada es la ruta de la primera referencia generada de la skill,
+// por orden de nombre: la que abre con la cabecera «generado desde» que lee
+// skills.DatosDeLaReferencia. El mutante de la referencia de legal-core y el de
+// la renombrada cambian una generada, como en H30; el de la referencia a mano,
+// una a mano (FR-012 y FR-014 de H31). Desde H31, la primera referencia de
+// legal-core por orden de nombre es a mano.
+func referenciaGenerada(t *testing.T, repositorio fs.FS, skill string) string {
+	t.Helper()
+
+	directorio := path.Join("skills", skill, "references")
+
+	return ficheroDelRepositorio(t, repositorio, directorio, func(nombre string) bool {
+		if !esMarkdown(nombre) {
+			return false
+		}
+
+		contenido, err := fs.ReadFile(repositorio, path.Join(directorio, nombre))
+		require.NoError(t, err)
+
+		_, generada := skills.DatosDeLaReferencia(contenido)
+
+		return generada
+	})
 }
 
 // evalsDeLasSkills son las evals del listado que son de alguna de las skills,

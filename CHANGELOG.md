@@ -44,6 +44,26 @@ sustituyen a este fichero.
   la herramienta devuelve en lugar del código de salida pasa del protocolo al párrafo de los códigos de «Comandos». La
   descripción pasa a tercera persona («Se usa…», «Se activa…», «el agente crea conocerla») con los mismos
   disparadores. Las referencias viajan en el binario, y `kitlegal skills install` las instala con la skill.
+- **`legal-core` v1.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
+  escritas a mano** (H31; ADR 0046). Sustituye a `legal-core` v1.2.3. Cambia la forma de lo que lee el modelo, no
+  ninguna regla: cada una de las 105 reglas de v1.2.3 tiene su sitio en la nueva (`research.md` de H31, «Tabla de
+  reglas»). El cuerpo pasa de 283 líneas y 19 225 caracteres a 167 y 10 860. Un apartado nuevo, «Referencias», dice
+  cuándo leer cada una de las seis, con el único enlace de cada una; los once pasos, de uno o dos enunciados, conservan
+  lo que se comprueba sin modelo en las respuestas (decidir lo regulado aparte antes de preguntar nada, con
+  `⚠ NO CUBIERTO:` y sin `plazos calcular`; no preguntar la materia que no se dice; los municipios que cuentan; el plazo
+  sin calcular; la lectura con `--fecha` y la línea del plazo que se mantiene si falla; los avisos tal cual), y siguen
+  las tres líneas de la cobertura del territorio, las nueve formas `⚠` del plazo, sin cambio, la tabla de comandos, que
+  no cambia, y las nueve reglas, la 7 con la línea `⚠ SIN CONSULTA AL BOE:`. `references/municipios.md` lleva el
+  municipio que falta, lo que trae `data`, la plantilla del territorio, qué dice cada aspecto de la cobertura y qué se
+  hace cuando `territorio` o `plazos` no salen con 0; `references/calculo_de_plazos.md`, lo que la ley regula aparte
+  (con el ejemplo de las cuotas de la Seguridad Social y la lectura de `daprimera` fallida), el acto presunto, el
+  silencio, la reclamación del art. 24.2 LTAIBG, los municipios que cuentan, el plazo sin calcular y la lectura en la
+  fecha de inicio. La lista de materias del paso 7 sale del cuerpo: es la de la referencia generada de la cobertura por
+  materia, que se lee en toda pregunta de plazos. Las reglas 8 y 9 dicen ahora lo que decían los pasos 11 y 7: ninguna
+  fecha se calcula «para comprobarla», y de lo regulado aparte no se exponen los plazos de la norma que lo rige. La
+  descripción pasa a tercera persona («Se usa cuando se pregunta…») con los mismos disparadores, de 993 a 888
+  caracteres. Las cuatro referencias generadas no cambian; las dos nuevas viajan en el binario, y
+  `kitlegal skills install` las instala con la skill.
 - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de

@@ -1,18 +1,24 @@
 {
-  "id": "T005",
-  "texto": "T005 [US1] Reescribir `jurisprudencia` según contracts/skills-reescritas.md, «jurisprudencia»: el cuerpo de `skills/jurisprudencia/SKILL.md` con los apartados de su tabla (entrada condensada con J06–J10; J15 en el párrafo de «Comandos»; paso 2 con J20, J22, J23, J25 y J27 y la línea que manda leer la consulta preparada; paso 3 con J31–J33, J35 y J40 y la línea que manda leer el documento aportado; paso 6 sin el bloque de la orden ni J57; pasos 1, 4, 5 y 7, «Reglas» y la región generada iguales; `boe-legislacion` sigue nombrada, J70) y las dos referencias a mano nuevas `skills/jurisprudencia/references/consulta_preparada.md` (La orden de cada forma · Las casillas · El equivalente · La búsqueda por materia) y `skills/jurisprudencia/references/documento_aportado.md` (La ficha y nada más · Lo que devuelve · El documento que no es el pedido · El ROJ y el ECLI que no se corresponden · Un texto sin ficha reconocible); la línea `⚠ SENTENCIA NO COMPROBADA:` solo en el cuerpo; todas las reglas del CENDOJ (J04, J06–J08, J16, J48, J67) en el cuerpo o en la descripción; descripción en tercera persona de como mucho 900 caracteres que cubra lo que hoy dice la de `main`. Entrada en `CHANGELOG.md`: `jurisprudencia` v0.2 (de v0.1.2), con lo que cambia (research D19). Comprobar con `make skills-check`, `make skills-sync` sin cambios en el árbol, `TestEvalsDelRepositorio`, `TestSkillsEmpotradas` y `make ci`. FR-013, FR-015, FR-020, FR-021, FR-022, FR-023, FR-024, SC-009, SC-012. Rutas: skills/jurisprudencia/SKILL.md, skills/jurisprudencia/references/consulta_preparada.md, skills/jurisprudencia/references/documento_aportado.md, CHANGELOG.md",
-  "intento": 1,
+  "id": "T006",
+  "texto": "T006 [US1] Reescribir `legal-core` según contracts/skills-reescritas.md, «legal-core»: el cuerpo de `skills/legal-core/SKILL.md` con los apartados de su tabla (título y frase; `## Referencias` con una línea y un enlace por cada una de las seis referencias, que son el único enlace de cada una; `## Protocolo` con los pasos 1 a 11 y todo lo que sus evals comprueban sin modelo, que el contrato enumera en «Riesgos: lo que tiene que quedarse en el cuerpo»; `## Cómo se presenta el territorio` con las tres líneas de cobertura; `## Cómo se presenta un plazo` con las nueve formas `⚠` byte a byte; `## Comandos` con su párrafo y la región generada; `## Reglas`, las nueve, con la línea `⚠ SIN CONSULTA AL BOE: …` sola en su bloque `text` en la regla 7) y las dos referencias a mano nuevas `skills/legal-core/references/municipios.md` (El municipio que falta · Lo que trae `data` · La plantilla del territorio · Qué dice cada aspecto de la cobertura · Cuando no sale con 0) y `skills/legal-core/references/calculo_de_plazos.md` (Lo que la ley regula aparte · El acto presunto · El silencio · La reclamación del art. 24.2 LTAIBG · Los municipios que cuentan · El plazo sin calcular · La lectura en la fecha de inicio), sin ninguna norma escrita como «Ley N/AAAA» ni orden con un identificador real; los cambios de ejemplos y textos de «Notas» del contrato; descripción en tercera persona de como mucho 900 caracteres (el borrador del contrato o uno equivalente). Las cuatro referencias generadas (`leyes_vertebrales.md`, `jerarquia_normativa.md`, `cobertura_por_materia.md`, `recursos_y_plazos.md`) no cambian. Entrada en `CHANGELOG.md`: `legal-core` v1.3 (de v1.2.3). Comprobar con `make skills-check`, `make skills-sync` sin cambios en el árbol, `TestEvalsDelRepositorio`, `TestSkillsEmpotradas` y `make ci`. FR-013, FR-015, FR-020, FR-021, FR-022, FR-023, FR-024, SC-009, SC-012. Redelimitada en el intento 1: con las dos referencias a mano, el mutante `referencia-de-legal-core` (y el de la referencia renombrada) de `TestMatrizDeLasPropuestas` toma el primer fichero de Markdown de las referencias de legal-core por orden de nombre, que pasa a ser una a mano, y el golden de la matriz cambia de ruta; `mutantesDeLaEleccion` elige en su lugar la primera referencia generada (`referenciaGenerada`, con `skills.DatosDeLaReferencia`), como en H30, y el golden no cambia. Rutas: skills/legal-core/SKILL.md, skills/legal-core/references/municipios.md, skills/legal-core/references/calculo_de_plazos.md, CHANGELOG.md, internal/evals/eleccion_test.go",
+  "intento": 2,
   "datos": false,
   "aceptacion": false,
-  "base": "2b166e951e3a5393c6154df54411d78058de6525",
+  "base": "5cd2a15640c94b671455800864da62deca428f9c",
   "rutas": [
     "CHANGELOG.md",
+    "N/AAAA",
+    "cobertura_por_materia.md",
     "contracts/skills-reescritas.md",
-    "skills/jurisprudencia/SKILL.md",
-    "skills/jurisprudencia/references/consulta_preparada.md",
-    "skills/jurisprudencia/references/documento_aportado.md"
+    "internal/evals/eleccion_test.go",
+    "jerarquia_normativa.md",
+    "leyes_vertebrales.md",
+    "recursos_y_plazos.md",
+    "skills/legal-core/SKILL.md",
+    "skills/legal-core/references/calculo_de_plazos.md",
+    "skills/legal-core/references/municipios.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "5b20e54ae18e629bd4a00c2e78f64fa8531da9119beaf8247d9e9aa87075afdd"
 }
