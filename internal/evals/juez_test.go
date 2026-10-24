@@ -1919,3 +1919,65 @@ func exigirLaReglaConDosClasesQueDeciden(t *testing.T) {
 	assert.False(t, juicio.Clases[0].Marcada)
 	assert.False(t, juicio.Clases[1].Marcada)
 }
+
+// TestVotarUnMensaje fija lo que de la regla de los votos no es de una
+// respuesta, desde que juzgar se parte en dos (research D6 de H31;
+// contracts/juez-de-las-descripciones.md §5 de H31): votar pide cada voto con
+// el mensaje que recibe, tal cual, y busca la frase de cada voto en el texto
+// juzgado, no en el mensaje. Una frase que solo está en el texto cuenta; una
+// que solo está en el mensaje hace nulo el voto, que se repite una vez y, nulo
+// otra vez, no cuenta.
+func TestVotarUnMensaje(t *testing.T) {
+	t.Parallel()
+
+	const (
+		fraseDelMensaje = "una frase que solo está en el mensaje"
+		fraseDelTexto   = "una frase que solo está en el texto juzgado"
+		mensaje         = "El mensaje del voto, con " + fraseDelMensaje + "."
+		juzgado         = "El texto juzgado, con " + fraseDelTexto + "."
+	)
+
+	votarConGrabaciones := func(t *testing.T, grabaciones ...grabacion) (JuicioDeRespuesta, []string) {
+		t.Helper()
+
+		votante := &votanteGrabado{t: t, grabaciones: grabaciones}
+
+		votacion, err := nuevaVotacion(juezDeLasDosClases(), votante.votar)
+		require.NoError(t, err)
+
+		return votacion.votar(mensaje, juzgado), votante.mensajes
+	}
+
+	t.Run("frase-del-texto", func(t *testing.T) {
+		t.Parallel()
+
+		voto := votoDeLasDosClases(t, afirmaQueSi(fraseDelTexto), cuentaQueNo())
+		juicio, mensajes := votarConGrabaciones(t, voto, voto, voto)
+
+		assert.Equal(t, []string{mensaje, mensaje, mensaje}, mensajes, "cada voto se pide con el mensaje, tal cual")
+		require.Len(t, juicio.Clases, 2)
+		assert.True(t, juicio.Clases[0].Marcada, "tres síes con su frase en el texto juzgado")
+
+		for _, dado := range juicio.Clases[0].Votos {
+			assert.True(t, dado.FraseEnLaRespuesta, "la frase está en el texto juzgado")
+			assert.False(t, dado.Nulo)
+		}
+	})
+
+	t.Run("frase-del-mensaje", func(t *testing.T) {
+		t.Parallel()
+
+		voto := votoDeLasDosClases(t, afirmaQueSi(fraseDelMensaje), cuentaQueNo())
+		juicio, mensajes := votarConGrabaciones(t, voto, voto)
+
+		assert.Equal(t, []string{mensaje, mensaje}, mensajes, "el voto nulo se repite una vez, con el mismo mensaje")
+		require.Len(t, juicio.Clases, 2)
+		assert.False(t, juicio.Clases[0].Marcada, "el sí sin su frase en el texto juzgado no cuenta")
+		require.Len(t, juicio.Clases[0].Votos, 2)
+
+		for _, dado := range juicio.Clases[0].Votos {
+			assert.False(t, dado.FraseEnLaRespuesta, "la frase no está en el texto juzgado")
+			assert.True(t, dado.Nulo)
+		}
+	})
+}

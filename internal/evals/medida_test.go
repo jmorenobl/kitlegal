@@ -272,6 +272,12 @@ func ponerEnLaClave(valor any) func(objeto map[string]any, clave string) {
 // H25; FR-031, FR-104; SC-004), lo ve fallar con la carpeta del juez de cada
 // fila de la tabla de las copias, y no solo con la de la primera: la de
 // jurisprudencia da, con cada una de las seis, su línea.
+//
+// Desde H31 (contracts/juez-de-las-descripciones.md §3 de H31; research D8 de
+// H31; FR-026; SC-008), lo mismo con la medida del juez de las descripciones,
+// la de evidencias/adr-0046: corresponde y se cumple, de 63 defectos y 36
+// correctos, y sobre una copia de la evidencia da, con cada una de sus seis
+// mutaciones, su línea.
 func TestMedidaVersionada(t *testing.T) {
 	t.Parallel()
 
@@ -311,6 +317,61 @@ func TestMedidaVersionada(t *testing.T) {
 
 		probarLasClasesQueDeciden(t, modelo, version)
 	})
+
+	t.Run("descripciones", func(t *testing.T) {
+		t.Parallel()
+
+		probarLaMedidaDeLasDescripciones(t, modelo, version)
+	})
+}
+
+// Los recuentos de la medida del juez de las descripciones que nombra FR-026 de
+// H31: sus defectos y sus correctos.
+const (
+	defectosDeLaMedidaDeLasDescripciones  = 63
+	correctosDeLaMedidaDeLasDescripciones = 36
+)
+
+// probarLaMedidaDeLasDescripciones es la comprobación de la medida del juez de
+// las descripciones de FR-026 y SC-008 de H31 (research D8 de H31): la de la
+// evidencia del repositorio corresponde y se cumple con el modelo y la versión
+// que fija la definición del job, y es de 63 defectos y 36 correctos; y, sobre
+// una copia de la evidencia, cada una de sus seis mutaciones da su línea.
+func probarLaMedidaDeLasDescripciones(t *testing.T, modelo, version string) {
+	t.Helper()
+
+	juez := juezDeLasDescripcionesEn(t, raizDelRepositorio)
+
+	lineas := comprobarLaMedida(juez, modelo, version)
+	assert.Empty(t, lineas, "la medida versionada de %s, con el modelo %s y la versión %s de Claude Code que fija %s:\n%s",
+		rutaDeLaEvidenciaDeLasDescripciones, modelo, version, rutaDeLaDefinicionDelJob, strings.Join(lineas, "\n"))
+
+	medida, err := leerMedidaDelJuez([]byte(juez.Medida))
+	require.NoError(t, err)
+	assert.Equal(t, defectosDeLaMedidaDeLasDescripciones, medida.Defectos.Casos, "los defectos de la medida")
+	assert.Equal(t, correctosDeLaMedidaDeLasDescripciones, medida.Correctos.Casos, "los correctos de la medida")
+
+	mutaciones := mutacionesDeLaMedidaDeLasDescripciones(modelo, version)
+	require.Len(t, mutaciones, 6, "las seis mutaciones de SC-008 de H31")
+
+	for _, mutacion := range mutaciones {
+		t.Run(mutacion.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := copiarLaEvidenciaDeLasDescripciones(t)
+
+			probarMutacionDeLaCopia(t, carpetaDeLaEvidenciaEn(raiz), func() *Juez {
+				return juezDeLasDescripcionesEn(t, raiz)
+			}, modelo, version, mutacion)
+		})
+	}
+}
+
+// mutacionesDeLaMedidaDeLasDescripciones son las seis de SC-008 de H31: las de
+// mutacionesDeLaMedida, con los recuentos que nombra, 62 de los 63 defectos
+// marcados, que es 1 sin marcar, y 1 de los 36 correctos marcado.
+func mutacionesDeLaMedidaDeLasDescripciones(modelo, version string) []mutacionDeLaMedida {
+	return mutacionesConLosRecuentos(modelo, version, 1, 1)
 }
 
 // fijadosParaElJuez son el id del modelo del juez y la versión de Claude Code de
@@ -352,18 +413,25 @@ type mutacionDeLaMedida struct {
 }
 
 // Las líneas de la comprobación de la medida que no llevan ningún valor
-// (contracts/medida-del-juez.md §2 de H24), y los recuentos que los casos ponen
-// en la medida de la copia para darlas.
+// (contracts/medida-del-juez.md §2 de H24), y los recuentos que los casos de la
+// medida del juez de cada skill ponen en la medida de la copia.
 const (
 	lineaDeLaRubrica = "la rúbrica (juez/rubrica.md) no es la de la medida versionada"
 	lineaDeLosCasos  = "los casos (juez/casos.yaml) no son los de la medida versionada"
 
 	defectosSinMarcarDeLaMutacion = 1
-	lineaDeLosDefectosSinMarcar   = "la medida versionada no se cumple: 1 defectos sin marcar"
-
 	correctosMarcadosDeLaMutacion = 2
-	lineaDeLosCorrectosMarcados   = "la medida versionada no se cumple: 2 correctos marcados"
 )
+
+// lineaDeLosDefectosSinMarcar y lineaDeLosCorrectosMarcados son las líneas de
+// la comprobación de una medida con esos recuentos distintos de 0.
+func lineaDeLosDefectosSinMarcar(sinMarcar int) string {
+	return "la medida versionada no se cumple: " + strconv.Itoa(sinMarcar) + " defectos sin marcar"
+}
+
+func lineaDeLosCorrectosMarcados(marcados int) string {
+	return "la medida versionada no se cumple: " + strconv.Itoa(marcados) + " correctos marcados"
+}
 
 // otroFijado es un valor fijado para el juez distinto del de la medida.
 func otroFijado(deLaMedida string) string {
@@ -386,6 +454,12 @@ func lineaDeLaVersion(deLaMedida, fijada string) string {
 // y la versión, en lo fijado— y cada uno de sus dos recuentos distinto de 0,
 // con la línea que la nombra.
 func mutacionesDeLaMedida(modelo, version string) []mutacionDeLaMedida {
+	return mutacionesConLosRecuentos(modelo, version, defectosSinMarcarDeLaMutacion, correctosMarcadosDeLaMutacion)
+}
+
+// mutacionesConLosRecuentos son las seis mutaciones de mutacionesDeLaMedida, con
+// esos defectos sin marcar y esos correctos marcados en las dos últimas.
+func mutacionesConLosRecuentos(modelo, version string, sinMarcar, marcados int) []mutacionDeLaMedida {
 	return []mutacionDeLaMedida{
 		{
 			nombre:  "rubrica-cambiada",
@@ -410,20 +484,16 @@ func mutacionesDeLaMedida(modelo, version string) []mutacionDeLaMedida {
 			lineas: []string{lineaDeLaVersion(version, otroFijado(version))},
 		},
 		{
-			nombre: "defectos-sin-marcar",
-			cambios: []cambioDeLaCarpetaDelJuez{
-				cambiarLaMedidaEn("defectos.sin_marcar", ponerEnLaClave(defectosSinMarcarDeLaMutacion)),
-			},
-			modelo: modelo, version: version,
-			lineas: []string{lineaDeLosDefectosSinMarcar},
+			nombre:  "defectos-sin-marcar",
+			cambios: []cambioDeLaCarpetaDelJuez{cambiarLaMedidaEn("defectos.sin_marcar", ponerEnLaClave(sinMarcar))},
+			modelo:  modelo, version: version,
+			lineas: []string{lineaDeLosDefectosSinMarcar(sinMarcar)},
 		},
 		{
-			nombre: "correctos-marcados",
-			cambios: []cambioDeLaCarpetaDelJuez{
-				cambiarLaMedidaEn("correctos.marcados", ponerEnLaClave(correctosMarcadosDeLaMutacion)),
-			},
-			modelo: modelo, version: version,
-			lineas: []string{lineaDeLosCorrectosMarcados},
+			nombre:  "correctos-marcados",
+			cambios: []cambioDeLaCarpetaDelJuez{cambiarLaMedidaEn("correctos.marcados", ponerEnLaClave(marcados))},
+			modelo:  modelo, version: version,
+			lineas: []string{lineaDeLosCorrectosMarcados(marcados)},
 		},
 	}
 }
@@ -463,8 +533,8 @@ func otrasMedidasSinCorresponder(modelo, version string) []mutacionDeLaMedida {
 				lineaDelModelo(modelo, otroFijado(modelo)),
 				lineaDeLaVersion(version, otroFijado(version)),
 				lineaDeLaOtraClase,
-				lineaDeLosDefectosSinMarcar,
-				lineaDeLosCorrectosMarcados,
+				lineaDeLosDefectosSinMarcar(defectosSinMarcarDeLaMutacion),
+				lineaDeLosCorrectosMarcados(correctosMarcadosDeLaMutacion),
 			},
 		},
 		{
@@ -494,14 +564,30 @@ func probarMutacionDeLaMedida(
 	t.Helper()
 
 	evals := copiarLaCarpetaDelJuezDe(t, pareja)
-	require.Empty(t, comprobarLaMedida(juezDe(t, evals), modelo, version),
+
+	probarMutacionDeLaCopia(t, filepath.Join(evals, carpetaDelJuez), func() *Juez {
+		return juezDe(t, evals)
+	}, modelo, version, mutacion)
+}
+
+// probarMutacionDeLaCopia exige que la medida del juez que lee leer de la copia
+// de sus ficheros en esa carpeta no dé, sin tocar, ninguna línea con el modelo y
+// la versión que fija la definición del job; hace en la carpeta los cambios del
+// caso, vuelve a leer el juez y exige que la comprobación, con el modelo y la
+// versión del caso, dé exactamente sus líneas.
+func probarMutacionDeLaCopia(
+	t *testing.T, carpeta string, leer func() *Juez, modelo, version string, mutacion mutacionDeLaMedida,
+) {
+	t.Helper()
+
+	require.Empty(t, comprobarLaMedida(leer(), modelo, version),
 		"premisa: la medida de la copia sin tocar corresponde y se cumple")
 
 	for _, cambio := range mutacion.cambios {
-		cambio(t, filepath.Join(evals, carpetaDelJuez))
+		cambio(t, carpeta)
 	}
 
-	lineas := comprobarLaMedida(juezDe(t, evals), mutacion.modelo, mutacion.version)
+	lineas := comprobarLaMedida(leer(), mutacion.modelo, mutacion.version)
 
 	if !mutacion.soloElPrincipio {
 		assert.Equal(t, mutacion.lineas, lineas)
