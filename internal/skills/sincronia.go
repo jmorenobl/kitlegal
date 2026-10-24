@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"unicode/utf8"
 )
 
 // Lo que forma la parte generada de una skill, además de la región de SKILL.md
@@ -22,9 +23,11 @@ const (
 	// declara para <nombre>, y la a mano la lleva también (FR-012).
 	extensionDeLasReferencias = ".md"
 
-	// maximoDeLineas es el número de líneas de SKILL.md a partir del cual es un
-	// defecto (FR-041: «300 líneas o más» falla).
-	maximoDeLineas = 299
+	// maximoDeLineasDelCuerpo y maximoDeCaracteresDelCuerpo son los
+	// presupuestos del cuerpo de SKILL.md (data-model §1; FR-004 de H31): con 500
+	// líneas o más, o con más de 11 000 caracteres, es un defecto.
+	maximoDeLineasDelCuerpo     = 499
+	maximoDeCaracteresDelCuerpo = 11000
 
 	// carpetaDeLosScripts es la entrada que una skill no lleva: la de los
 	// enlaces al binario de la instalación anterior, que se retiró cuando las
@@ -66,7 +69,7 @@ type SkillRegenerada struct {
 	// kitlegal-referencias y en su orden; nil si no declara ninguna.
 	Referencias []Referencia
 
-	// Defectos son los de la skill, en el orden frontmatter, líneas, región,
+	// Defectos son los de la skill, en el orden frontmatter, cuerpo, región,
 	// datos y scripts/; nil si no tiene ninguno. Con alguno, Contenido y
 	// Referencias van vacíos: no hay nada regenerado que escribir ni con que
 	// comparar.
@@ -155,12 +158,13 @@ func (d *Deriva) Error() string {
 //   - con el frontmatter sin defectos, SKILL.md lleva en su región la tabla de
 //     comandos de los applets que declara, si declara alguno, y cada referencia
 //     declarada se genera con su fila desde su YAML de datos;
-//   - SKILL.md, tal como quedaría, tiene que tener menos de 300 líneas;
+//   - el cuerpo de SKILL.md, tal como quedaría, tiene que tener menos de 500
+//     líneas y como mucho 11 000 caracteres (defectosDelCuerpo);
 //   - la skill no lleva scripts/ (defectoDeLosScripts), tampoco sin SKILL.md.
 //
 // Nada de eso sale de una lista escrita para una skill concreta: sale de la
 // declaración de kitlegal de cada una y de data/. Los defectos de una skill van
-// en el orden frontmatter, líneas, región, datos y scripts/, cada uno con la
+// en el orden frontmatter, cuerpo, región, datos y scripts/, cada uno con la
 // skill y lo que falla; con alguno, la skill no lleva nada regenerado. El error
 // queda para lo que impide regenerar: un directorio de skills o de datos que no
 // se puede listar, o una entrada que no se puede consultar o leer.
@@ -242,7 +246,7 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 		}
 	}
 
-	defectos := slices.Concat(deFrontmatter, defectoDeLasLineas(nombre, regenerada.Contenido), deLaRegion, deLosDatos,
+	defectos := slices.Concat(deFrontmatter, defectosDelCuerpo(nombre, regenerada.Contenido), deLaRegion, deLosDatos,
 		deLosScripts)
 	if len(defectos) > 0 {
 		return SkillRegenerada{Nombre: nombre, Defectos: defectos}, nil
@@ -358,17 +362,50 @@ func referenciasGeneradas(raiz, skill string, nombres []string) ([]Referencia, [
 	return referencias, nil, nil
 }
 
-// defectoDeLasLineas es el defecto de un SKILL.md con 300 líneas o más.
-func defectoDeLasLineas(skill string, contenido []byte) []*DefectoDeSkill {
-	lineas := ContarLineas(contenido)
-	if lineas <= maximoDeLineas {
+// defectosDelCuerpo son los del cuerpo del SKILL.md de la skill, de contenido
+// regenerado (data-model §1; research D12; FR-004 y FR-010 de H31): uno si tiene
+// 500 líneas o más, contadas con ContarLineas, y otro si tiene más de 11 000
+// caracteres, contados como runas y no como bytes, en ese orden. Sin la línea que
+// cierra el frontmatter no hay cuerpo que medir: el defecto es el del
+// frontmatter, que ya da declaracionDeLaSkill.
+func defectosDelCuerpo(skill string, contenido []byte) []*DefectoDeSkill {
+	cuerpo, conCuerpo := cuerpoDeLaSkill(contenido)
+	if !conCuerpo {
 		return nil
 	}
 
-	return []*DefectoDeSkill{{
-		Skill:   skill,
-		Defecto: fmt.Sprintf("%s tiene %d líneas (máximo %d)", ficheroDeLaSkill, lineas, maximoDeLineas),
-	}}
+	var defectos []*DefectoDeSkill
+
+	if lineas := ContarLineas(cuerpo); lineas > maximoDeLineasDelCuerpo {
+		defectos = append(defectos, &DefectoDeSkill{
+			Skill:   skill,
+			Defecto: fmt.Sprintf("%s: cuerpo de %d líneas (máximo %d)", ficheroDeLaSkill, lineas, maximoDeLineasDelCuerpo),
+		})
+	}
+
+	if caracteres := utf8.RuneCount(cuerpo); caracteres > maximoDeCaracteresDelCuerpo {
+		defectos = append(defectos, &DefectoDeSkill{
+			Skill: skill,
+			Defecto: fmt.Sprintf("%s: cuerpo de %d caracteres (máximo %d)", ficheroDeLaSkill, caracteres,
+				maximoDeCaracteresDelCuerpo),
+		})
+	}
+
+	return defectos
+}
+
+// cuerpoDeLaSkill es el contenido de un SKILL.md desde el byte que sigue a la
+// línea --- que cierra su frontmatter (data-model §1), y si la tiene: lo que
+// bloqueDelFrontmatter no da es esa línea y lo que la sigue.
+func cuerpoDeLaSkill(contenido []byte) ([]byte, bool) {
+	bloque, err := bloqueDelFrontmatter(contenido)
+	if err != nil {
+		return nil, false
+	}
+
+	_, cuerpo, _ := bytes.Cut(contenido[len(bloque):], []byte("\n"))
+
+	return cuerpo, true
 }
 
 // defectosDelError es un defecto de la skill por cada error que une err —o uno

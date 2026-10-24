@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -261,15 +262,6 @@ func TestRegenerarYComparar(t *testing.T) {
 			"el segundo Escribir no cambia ningún byte ni ningún tiempo de modificación")
 	})
 
-	t.Run("doscientas-noventa-y-nueve-lineas", func(t *testing.T) {
-		t.Parallel()
-
-		raiz := arbolSincronizado(t)
-		alargarSkillMd(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), 299)
-
-		assert.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
-	})
-
 	t.Run("referencias-a-mano", probarReferenciasAMano)
 
 	probarDerivas(t)
@@ -501,7 +493,7 @@ func probarDerivas(t *testing.T) {
 }
 
 // probarDefectos fija los defectos de una skill (data-model §5): cada uno nombra
-// la skill y van en el orden frontmatter, líneas, región, datos y scripts/; una
+// la skill y van en el orden frontmatter, cuerpo, región, datos y scripts/; una
 // skill con defectos no tiene nada regenerado con que comparar, aunque las demás
 // sí; y Escribir no escribe nada, tampoco lo de las skills sin defectos. Una
 // entrada scripts en el directorio de una skill, sea lo que sea —el directorio con
@@ -567,29 +559,6 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{
 				`alfa: SKILL.md: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`,
 			},
-		},
-		{
-			nombre: "trescientas-lineas",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				alargarSkillMd(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), 300)
-			},
-			defectos: []string{"alfa: SKILL.md tiene 300 líneas (máximo 299)"},
-		},
-		{
-			// El límite es el del SKILL.md regenerado: con la región de la tabla
-			// vacía, el del árbol tiene menos de 300 líneas, tantas menos como la
-			// tabla, y la tabla que se regenera lo lleva a 300.
-			nombre: "trescientas-lineas-al-regenerar",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				ruta := rutaDeSkill(raiz, "alfa", "SKILL.md")
-				cambiarFicheroDePrueba(t, ruta, regionDeAlfa, "")
-				alargarSkillMd(t, ruta, 300-strings.Count(regionDeAlfa, "\n"))
-			},
-			defectos: []string{"alfa: SKILL.md tiene 300 líneas (máximo 299)"},
 		},
 		{
 			nombre: "region-sin-marcas",
@@ -666,30 +635,30 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{"gamma: falta SKILL.md"},
 		},
 		{
-			nombre: "frontmatter-y-lineas-en-su-orden",
+			nombre: "frontmatter-y-cuerpo-en-su-orden",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
 				ruta := rutaDeSkill(raiz, "alfa", "SKILL.md")
 				cambiarFicheroDePrueba(t, ruta, "name: alfa\n", "name: otra\n")
-				alargarSkillMd(t, ruta, 300)
+				alargarElCuerpo(t, ruta, 500)
 			},
 			defectos: []string{
 				`alfa: SKILL.md: name "otra" distinto del nombre del directorio`,
-				"alfa: SKILL.md tiene 300 líneas (máximo 299)",
+				"alfa: SKILL.md: cuerpo de 500 líneas (máximo 499)",
 			},
 		},
 		{
-			nombre: "lineas-y-region-en-su-orden",
+			nombre: "cuerpo-y-region-en-su-orden",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
 				ruta := rutaDeSkill(raiz, "alfa", "SKILL.md")
 				retirarLasMarcas(t, ruta)
-				alargarSkillMd(t, ruta, 300)
+				alargarElCuerpo(t, ruta, 500)
 			},
 			defectos: []string{
-				"alfa: SKILL.md tiene 300 líneas (máximo 299)",
+				"alfa: SKILL.md: cuerpo de 500 líneas (máximo 499)",
 				"alfa: SKILL.md: sin las marcas de la tabla de comandos",
 			},
 		},
@@ -791,6 +760,130 @@ func probarDefectos(t *testing.T) {
 			var defecto *skills.DefectoDeSkill
 			require.ErrorAs(t, err, &defecto)
 
+			for _, texto := range caso.defectos {
+				require.ErrorContains(t, err, texto)
+			}
+
+			assert.Equal(t, antes, fotografiar(t, raiz), "con defectos, Escribir no escribe nada")
+		})
+	}
+}
+
+// TestCuerpoDeLaSkill fija los presupuestos del cuerpo de SKILL.md
+// (contracts/gates-de-skills-check.md §2.2; data-model §1; research D12; FR-004,
+// FR-010, FR-011): el SKILL.md regenerado desde el byte que sigue a la línea que
+// cierra su frontmatter, que no cuenta, tiene menos de 500 líneas y como mucho
+// 11 000 caracteres, contados como runas y no como bytes. Sobre el árbol
+// sincronizado, cada caso cambia el SKILL.md de alfa y exige los defectos
+// exactos: ninguno en el límite, y entonces ninguna deriva; uno por medida por
+// encima, en el orden líneas y caracteres, y entonces Escribir no escribe nada.
+func TestCuerpoDeLaSkill(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre   string
+		alterar  func(t *testing.T, ruta string)
+		defectos []string
+	}{
+		{
+			// Con las 7 del frontmatter, el fichero tiene 506 líneas.
+			nombre: "cuatrocientas-noventa-y-nueve-lineas",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				alargarElCuerpo(t, ruta, 499)
+			},
+		},
+		{
+			nombre: "quinientas-lineas",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				alargarElCuerpo(t, ruta, 500)
+			},
+			defectos: []string{"alfa: SKILL.md: cuerpo de 500 líneas (máximo 499)"},
+		},
+		{
+			// El cuerpo que se mide es el regenerado: con la región de la tabla
+			// vacía, el del árbol tiene tantas líneas menos como la tabla, y la
+			// tabla que se regenera lo lleva a 500.
+			nombre: "quinientas-lineas-al-regenerar",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, ruta, regionDeAlfa, "")
+				alargarElCuerpo(t, ruta, 500-strings.Count(regionDeAlfa, "\n"))
+			},
+			defectos: []string{"alfa: SKILL.md: cuerpo de 500 líneas (máximo 499)"},
+		},
+		{
+			// Con el frontmatter, el fichero pasa de 11 000 caracteres, y el cuerpo,
+			// de 11 000 bytes.
+			nombre: "once-mil-caracteres",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				ensancharElCuerpo(t, ruta, 11000)
+			},
+		},
+		{
+			nombre: "once-mil-y-un-caracteres",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				ensancharElCuerpo(t, ruta, 11001)
+			},
+			defectos: []string{"alfa: SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"},
+		},
+		{
+			// ensancharElCuerpo añade una línea: de 499 a 500.
+			nombre: "lineas-y-caracteres-en-su-orden",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				alargarElCuerpo(t, ruta, 499)
+				ensancharElCuerpo(t, ruta, 11001)
+			},
+			defectos: []string{
+				"alfa: SKILL.md: cuerpo de 500 líneas (máximo 499)",
+				"alfa: SKILL.md: cuerpo de 11001 caracteres (máximo 11000)",
+			},
+		},
+		{
+			// Sin una línea que cierre el frontmatter no hay cuerpo que medir: el
+			// defecto es el del frontmatter.
+			nombre: "frontmatter-sin-cierre",
+			alterar: func(t *testing.T, ruta string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, ruta, "---\nname: alfa\n"+strings.Repeat("ñ\n", 6000))
+			},
+			defectos: []string{"alfa: SKILL.md: frontmatter sin cierre: ninguna línea --- después de la primera"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolSincronizado(t)
+			caso.alterar(t, rutaDeSkill(raiz, "alfa", "SKILL.md"))
+
+			regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+			require.Equal(t, caso.defectos, presentarDefectos(regenerado.Defectos()))
+
+			if len(caso.defectos) == 0 {
+				derivas, err := skills.Comparar(raiz, regenerado)
+				require.NoError(t, err)
+				assert.Empty(t, derivas, "en el límite, el cuerpo cambiado fuera de la región no deriva")
+
+				return
+			}
+
+			envejecer(t, raiz)
+			antes := fotografiar(t, raiz)
+
+			err := skills.Escribir(raiz, regenerado)
 			for _, texto := range caso.defectos {
 				require.ErrorContains(t, err, texto)
 			}
@@ -1065,16 +1158,51 @@ func retirarLasMarcas(t *testing.T, ruta string) {
 	cambiarFicheroDePrueba(t, ruta, finDeLaTabla+"\n", "")
 }
 
-// alargarSkillMd añade líneas en blanco al final del SKILL.md de la ruta, que
-// termina en salto de línea, hasta que tiene las líneas dadas.
-func alargarSkillMd(t *testing.T, ruta string, lineas int) {
+// cuerpoDePrueba es lo que sigue a la línea --- que cierra el frontmatter del
+// SKILL.md de la ruta, que abre con la que lo abre.
+func cuerpoDePrueba(t *testing.T, ruta string) string {
 	t.Helper()
 
 	contenido := leerFicheroDePrueba(t, ruta)
-	require.True(t, strings.HasSuffix(contenido, "\n"))
-	require.LessOrEqual(t, skills.ContarLineas([]byte(contenido)), lineas)
+	tras, abierto := strings.CutPrefix(contenido, "---")
+	_, cuerpo, cerrado := strings.Cut(tras, "\n---\n")
+	require.True(t, abierto && cerrado, "%s abre con su frontmatter y lo cierra", ruta)
 
-	escribirFicheroDePrueba(t, ruta, contenido+strings.Repeat("\n", lineas-skills.ContarLineas([]byte(contenido))))
+	return cuerpo
+}
+
+// alargarElCuerpo añade líneas en blanco al final del SKILL.md de la ruta, que
+// termina en salto de línea, hasta que su cuerpo tiene las líneas dadas.
+func alargarElCuerpo(t *testing.T, ruta string, lineas int) {
+	t.Helper()
+
+	actuales := skills.ContarLineas([]byte(cuerpoDePrueba(t, ruta)))
+	contenido := leerFicheroDePrueba(t, ruta)
+
+	require.True(t, strings.HasSuffix(contenido, "\n"))
+	require.LessOrEqual(t, actuales, lineas)
+
+	escribirFicheroDePrueba(t, ruta, contenido+strings.Repeat("\n", lineas-actuales))
+	require.Equal(t, lineas, skills.ContarLineas([]byte(cuerpoDePrueba(t, ruta))))
+}
+
+// ensancharElCuerpo añade al final del SKILL.md de la ruta, que termina en salto
+// de línea, una línea de eñes, de dos bytes cada una, hasta que su cuerpo tiene
+// los caracteres dados, y exige que entonces tenga más bytes que caracteres.
+func ensancharElCuerpo(t *testing.T, ruta string, caracteres int) {
+	t.Helper()
+
+	actuales := utf8.RuneCountInString(cuerpoDePrueba(t, ruta))
+	contenido := leerFicheroDePrueba(t, ruta)
+
+	require.True(t, strings.HasSuffix(contenido, "\n"))
+	require.Less(t, actuales, caracteres)
+
+	escribirFicheroDePrueba(t, ruta, contenido+strings.Repeat("ñ", caracteres-actuales-1)+"\n")
+
+	cuerpo := cuerpoDePrueba(t, ruta)
+	require.Equal(t, caracteres, utf8.RuneCountInString(cuerpo))
+	require.Greater(t, len(cuerpo), caracteres)
 }
 
 // crearEnlaceDePrueba crea en la ruta un enlace simbólico con el destino literal

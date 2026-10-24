@@ -1,17 +1,15 @@
 {
-  "id": "T009",
-  "texto": "T009 [US2] Ampliar la validación de la especificación (FR-002, FR-003, FR-005, FR-011; research D11; contracts/gates-de-skills-check.md §2 y §2.1) en `internal/skills/frontmatter.go`: `ValidarFrontmatter` da como defecto un `name` que contiene `claude` o `anthropic`, una etiqueta XML (coincidencia de `</?\\p{L}[^<>]*>`) en `name` y en `description`, y una `description` de más de 900 caracteres contados como runas (sustituye al máximo de 1024 y a la regla «description con < o >»); cada defecto de `ValidarFrontmatter` empieza por `SKILL.md: ` con el texto de hoy detrás. Tests: `TestValidarFrontmatter` (los defectos nuevos, el prefijo y la descripción de 900 sin defecto) y `TestEtiquetaXML` (casan `<ejemplo>`, `</b>`, `<br/>`, `<descripcion skill=\"x\">`; no casan «< 5000», `a<b`, `a < b > c`, `<>`, `<1>`) en `internal/skills/frontmatter_test.go`; los textos esperados de `internal/skills/sincronia_test.go` con el prefijo; y en `TestSkillsDelRepositorio` de `internal/app/skills_test.go`, el subtest `frontmatter` con los mutantes de SC-002 sobre `copiaConLaSkill` (`name: claude-legal`, `name: x-anthropic`, etiqueta en `name`, `<ejemplo>` en `description`, «menos de 5000 tokens (< 5000)» sin defecto, descripción de 901 en rojo y de 900 en verde), cada uno con el defecto que nombra skill, fichero y regla; en rojo si alguno no se detecta. Las tres skills reescritas pasan. FR-002, FR-003, FR-005, FR-011, SC-002, SC-009. Rutas: internal/skills/frontmatter.go, internal/skills/frontmatter_test.go, internal/skills/sincronia.go, internal/skills/sincronia_test.go, internal/app/skills_test.go",
+  "id": "T010",
+  "texto": "T010 [US2] Sustituir el límite de líneas por los presupuestos del cuerpo (FR-004, FR-010; research D12; contracts/gates-de-skills-check.md §2.2) en `internal/skills/sincronia.go`: `regenerarSkill` mide el cuerpo —el `SKILL.md` con la región de la tabla de comandos regenerada, desde el byte que sigue a la línea `---` que cierra el frontmatter— con `ContarLineas` y `utf8.RuneCount`, y da `SKILL.md: cuerpo de N líneas (máximo 499)` con 500 o más y `SKILL.md: cuerpo de N caracteres (máximo 11000)` con más de 11 000; desaparecen `maximoDeLineas`, `defectoDeLasLineas` y el defecto «SKILL.md tiene N líneas (máximo 299)»; `make skills-sync` da los defectos y no escribe nada, como hoy. Tests: `TestCuerpoDeLaSkill` en `internal/skills/sincronia_test.go` (499 líneas en verde y 500 en rojo; 11 000 runas con más de 11 000 bytes en verde y 11 001 en rojo, con caracteres de varios bytes), retirando los casos `trescientas-lineas` y `trescientas-lineas-al-regenerar`; en `TestSkillsDelRepositorio` de `internal/app/skills_test.go`, el subtest `presupuestos` con esos cuatro mutantes sobre `copiaConLaSkill` y sin el subtest `trescientas-lineas`; `internal/skills/export_test.go` si hace falta. Las tres skills reescritas pasan. FR-004, FR-010, FR-011, SC-002, SC-009. Rutas: internal/skills/sincronia.go, internal/skills/sincronia_test.go, internal/skills/export_test.go, internal/app/skills_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "2f27618ffa6af4e39e9018baaa6903ea43645ed3",
+  "base": "671c92c0cd5d7a23f76cead103a8836c0f63c1f8",
   "rutas": [
     "SKILL.md",
-    "br/",
     "contracts/gates-de-skills-check.md",
     "internal/app/skills_test.go",
-    "internal/skills/frontmatter.go",
-    "internal/skills/frontmatter_test.go",
+    "internal/skills/export_test.go",
     "internal/skills/sincronia.go",
     "internal/skills/sincronia_test.go"
   ],

@@ -17,6 +17,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -109,10 +110,10 @@ func TestSkillsDelRepositorio(t *testing.T) {
 		probarSobreCopias(t, descripciones, casosDeDeriva)
 	})
 
-	t.Run("trescientas-lineas", func(t *testing.T) {
+	t.Run("presupuestos", func(t *testing.T) {
 		t.Parallel()
 
-		probarSobreCopias(t, descripciones, casosDeLineas)
+		probarSobreCopias(t, descripciones, casosDePresupuestos)
 	})
 
 	t.Run("frontmatter", func(t *testing.T) {
@@ -788,37 +789,110 @@ func primeraCelda(t *testing.T, referencia referenciaDelRecorrido) string {
 	return celda
 }
 
-// casosDeLineas son el límite de líneas del SKILL.md de la skill (FR-041;
-// data-model §1.2): 299 no es un defecto y 300 sí.
-func casosDeLineas(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
+// casosDePresupuestos son los presupuestos del cuerpo de SKILL.md de la skill
+// (contracts/gates-de-skills-check.md §2.2; FR-004, FR-010, FR-011 y SC-002 de
+// H31): 499 líneas y 11 000 caracteres, con más de 11 000 bytes, no son un
+// defecto, y 500 líneas y 11 001 caracteres sí. Cada mutante cambia una sola de
+// las dos medidas y nada de lo regenerado: las líneas, sin cambiar el número de
+// caracteres (partirElCuerpo); los caracteres, con una línea más
+// (ensancharElCuerpo), lejos de las 499.
+func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
 	return []casoSobreUnaCopia{
-		{nombre: "doscientas-noventa-y-nueve", alterar: alargarSkillMd(skill.nombre, 299)},
+		{nombre: "cuatrocientas-noventa-y-nueve-lineas", alterar: partirElCuerpo(skill.nombre, 499)},
 		{
-			nombre:  "trescientas",
-			alterar: alargarSkillMd(skill.nombre, 300),
-			fallos:  []string{skill.nombre + ": SKILL.md tiene 300 líneas (máximo 299)"},
+			nombre:  "quinientas-lineas",
+			alterar: partirElCuerpo(skill.nombre, 500),
+			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 500 líneas (máximo 499)"},
+		},
+		{nombre: "once-mil-caracteres", alterar: ensancharElCuerpo(skill.nombre, 11000)},
+		{
+			nombre:  "once-mil-y-un-caracteres",
+			alterar: ensancharElCuerpo(skill.nombre, 11001),
+			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"},
 		},
 	}
 }
 
-// alargarSkillMd añade líneas en blanco al final del SKILL.md de la skill, que
-// termina en salto de línea, hasta que tiene las líneas dadas: fuera de la región
-// generada, así que no cambia lo regenerado.
-func alargarSkillMd(skill string, lineas int) func(t *testing.T, copia string) {
+// partirElCuerpo convierte en saltos de línea, de uno en uno y desde el
+// principio, los espacios de las líneas de prosa del cuerpo del SKILL.md de la
+// skill hasta que el cuerpo tiene las líneas dadas. Una línea de prosa está
+// fuera de la región generada y no lleva corchete, comilla invertida, virgulilla
+// ni barra vertical, con los que podría ser parte de un enlace, de un código o de
+// un bloque de código, o de una tabla; las marcas de
+// la región tampoco lo son. Cada espacio es un carácter y cada salto otro, así
+// que el cuerpo conserva sus caracteres, y lo regenerado no cambia.
+func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
+	return func(t *testing.T, copia string) {
+		t.Helper()
+
+		ruta := rutaEnLaSkill(copia, skill, "SKILL.md")
+		frontmatter, cuerpo := partesDelSkillMd(t, leerFicheroDelArbol(t, ruta))
+		faltan := lineas - skills.ContarLineas([]byte(cuerpo))
+
+		require.GreaterOrEqual(t, faltan, 0, "el cuerpo de SKILL.md no tiene ya más de %d líneas", lineas)
+
+		var (
+			partido   strings.Builder
+			enLaTabla bool
+		)
+
+		for linea := range strings.Lines(cuerpo) {
+			switch strings.TrimSuffix(linea, "\n") {
+			case inicioDeLaTablaDeComandos:
+				enLaTabla = true
+			case finDeLaTablaDeComandos:
+				enLaTabla = false
+			default:
+				for !enLaTabla && !strings.ContainsAny(linea, "[`~|") && faltan > 0 && strings.Contains(linea, " ") {
+					linea = strings.Replace(linea, " ", "\n", 1)
+					faltan--
+				}
+			}
+
+			partido.WriteString(linea)
+		}
+
+		require.Zero(t, faltan, "el cuerpo de SKILL.md tiene espacios de prosa para llegar a %d líneas", lineas)
+
+		escribirFicheroDeLaCopia(t, ruta, frontmatter+partido.String())
+	}
+}
+
+// ensancharElCuerpo añade al final del SKILL.md de la skill, que termina en
+// salto de línea y fuera de la región generada, una línea de eñes, de dos bytes
+// cada una, hasta que su cuerpo tiene los caracteres dados, y exige que entonces
+// tenga más bytes que caracteres.
+func ensancharElCuerpo(skill string, caracteres int) func(t *testing.T, copia string) {
 	return func(t *testing.T, copia string) {
 		t.Helper()
 
 		ruta := rutaEnLaSkill(copia, skill, "SKILL.md")
 		contenido := leerFicheroDelArbol(t, ruta)
-		actuales := skills.ContarLineas([]byte(contenido))
+		_, cuerpo := partesDelSkillMd(t, contenido)
+		actuales := utf8.RuneCountInString(cuerpo)
 
 		require.True(t, strings.HasSuffix(contenido, "\n"), "SKILL.md termina en salto de línea")
-		require.LessOrEqual(t, actuales, lineas, "SKILL.md no tiene ya más de %d líneas", lineas)
+		require.Less(t, actuales, caracteres, "el cuerpo de SKILL.md tiene menos de %d caracteres", caracteres)
 
-		escribirFicheroDeLaCopia(t, ruta, contenido+strings.Repeat("\n", lineas-actuales))
+		linea := strings.Repeat("ñ", caracteres-actuales-1) + "\n"
+		require.Greater(t, len(cuerpo+linea), caracteres, "el cuerpo tiene más bytes que caracteres")
+
+		escribirFicheroDeLaCopia(t, ruta, contenido+linea)
 	}
+}
+
+// partesDelSkillMd son el frontmatter del SKILL.md, con la línea --- que lo
+// cierra, y su cuerpo, lo que sigue a esa línea.
+func partesDelSkillMd(t *testing.T, contenido string) (string, string) {
+	t.Helper()
+
+	tras, abierto := strings.CutPrefix(contenido, "---")
+	bloque, cuerpo, cerrado := strings.Cut(tras, "\n---\n")
+	require.True(t, abierto && cerrado, "SKILL.md abre con su frontmatter y lo cierra")
+
+	return "---" + bloque + "\n---\n", cuerpo
 }
 
 // casosDeFrontmatter son las reglas del frontmatter de la skill (data-model §1.1
@@ -1104,18 +1178,26 @@ func casosDeRegion(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 			fallos: []string{skill.nombre + ": SKILL.md: sin las marcas de la tabla de comandos"},
 		},
 		{
-			// La marca de inicio repetida sustituye a la línea en blanco que precede a
-			// la de fin: la copia tiene las líneas del SKILL.md real, que puede estar
-			// en su máximo (FR-041), y su único defecto es el de la marca.
+			// La marca de inicio repetida sustituye a la tabla, entre las dos marcas:
+			// el cuerpo de la copia tiene menos líneas y menos caracteres que el del
+			// SKILL.md real, que puede estar en sus máximos (FR-004 de H31), y su
+			// único defecto es el de la marca.
 			nombre: "dos-inicios",
 			alterar: func(t *testing.T, copia string) {
 				t.Helper()
 
-				cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), "\n\n"+finDeLaTablaDeComandos+"\n",
-					"\n"+inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n")
+				ruta := rutaEnLaSkill(copia, skill.nombre, "SKILL.md")
+				contenido := leerFicheroDelArbol(t, ruta)
+
+				antes, tras, hayInicio := strings.Cut(contenido, inicioDeLaTablaDeComandos+"\n")
+				_, despues, hayFin := strings.Cut(tras, finDeLaTablaDeComandos+"\n")
+				require.True(t, hayInicio && hayFin, "SKILL.md tiene las dos marcas, en su orden")
+
+				escribirFicheroDeLaCopia(t, ruta,
+					antes+inicioDeLaTablaDeComandos+"\n"+inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n"+despues)
 			},
 			fallos: []string{fmt.Sprintf("%s: SKILL.md: la marca de inicio de la tabla de comandos "+
-				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, fin-1)},
+				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, inicio+1)},
 		},
 		{
 			nombre: "fin-antes-del-inicio",
