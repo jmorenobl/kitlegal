@@ -122,6 +122,12 @@ func TestSkillsDelRepositorio(t *testing.T) {
 		probarSobreCopias(t, descripciones, casosDeFrontmatter)
 	})
 
+	t.Run("referencias", func(t *testing.T) {
+		t.Parallel()
+
+		probarSobreCopias(t, descripciones, casosDeReferencias)
+	})
+
 	t.Run("scripts", func(t *testing.T) {
 		t.Parallel()
 
@@ -1100,6 +1106,169 @@ func conOtroFrontmatter(skill, directorio, frontmatter string) func(t *testing.T
 	}
 }
 
+// casosDeReferencias son los gates de references/ en la skill
+// (contracts/gates-de-skills-check.md §2.3 y §3; research D13 y D14; FR-006 a
+// FR-009, FR-011 y SC-002 de H31): un subdirectorio y un fichero .txt en
+// references/; una referencia sin enlace desde SKILL.md; una enlazada desde otra;
+// y una de 101 líneas sin índice y otra sin ningún apartado ##, con las mismas de
+// 100 en verde y la de 101 con su índice también. Cada referencia de prueba es a
+// mano, la única clase que cualquier skill puede ganar sin cambiar data/ ni su
+// declaración, y la que el caso no quiere sin enlace va enlazada desde SKILL.md
+// sin que el cuerpo gane caracteres (enlazarDesdeElSkillMd), aunque el real esté
+// en sus presupuestos. Cada caso en rojo da un solo defecto, que nombra la skill,
+// el fichero y la regla.
+func casosDeReferencias(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
+	t.Helper()
+
+	const otraAMano = "otra_a_mano_de_prueba.md"
+
+	referencia := "references/" + ficheroAMano
+	fallo := func(regla string) []string { return []string{skill.nombre + ": " + referencia + ": " + regla} }
+
+	// enlazada deja en references/ la referencia a mano de prueba con el
+	// contenido y la enlaza desde SKILL.md.
+	enlazada := func(contenido string) func(t *testing.T, copia string) {
+		return func(t *testing.T, copia string) {
+			t.Helper()
+
+			escribirReferenciaAMano(t, copia, skill.nombre, contenido)
+			enlazarDesdeElSkillMd(t, copia, skill.nombre, ficheroAMano)
+		}
+	}
+
+	return []casoSobreUnaCopia{
+		{
+			nombre: "subdirectorio",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references", "anexos"), 0o750))
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "anexos", "nota.md"),
+					referenciaAMano)
+			},
+			fallos: []string{skill.nombre + ": references/anexos: no es un fichero .md"},
+		},
+		{
+			nombre: "fichero-txt",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "notas.txt"), referenciaAMano)
+			},
+			fallos: []string{skill.nombre + ": references/notas.txt: no es un fichero .md"},
+		},
+		{
+			nombre: "sin-enlace",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				escribirReferenciaAMano(t, copia, skill.nombre, referenciaAMano)
+			},
+			fallos: fallo("SKILL.md no la enlaza con [](" + referencia + ")"),
+		},
+		{
+			nombre: "enlazada-desde-otra",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				escribirReferenciaAMano(t, copia, skill.nombre, referenciaAMano+"Ver [la otra]("+otraAMano+").\n")
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", otraAMano), referenciaAMano)
+				enlazarDesdeElSkillMd(t, copia, skill.nombre, ficheroAMano, otraAMano)
+			},
+			fallos: fallo("enlaza otra referencia, references/" + otraAMano),
+		},
+		{nombre: "cien-lineas-sin-indice", alterar: enlazada(referenciaLargaAMano(t, 100, true, false))},
+		{
+			nombre:  "ciento-una-lineas-sin-indice",
+			alterar: enlazada(referenciaLargaAMano(t, 101, true, false)),
+			fallos:  fallo("101 líneas sin un índice que nombre sus apartados ## antes del primero (más de 100)"),
+		},
+		{nombre: "ciento-una-lineas-con-indice", alterar: enlazada(referenciaLargaAMano(t, 101, true, true))},
+		{nombre: "cien-lineas-sin-apartados", alterar: enlazada(referenciaLargaAMano(t, 100, false, false))},
+		{
+			nombre:  "ciento-una-lineas-sin-apartados",
+			alterar: enlazada(referenciaLargaAMano(t, 101, false, false)),
+			fallos:  fallo("101 líneas sin ningún apartado ## (más de 100)"),
+		},
+	}
+}
+
+// referenciaLargaAMano es una referencia a mano de prueba con las líneas dadas:
+// su título y su párrafo; con apartados, dos «## » y, con índice, delante de
+// ellos la lista que los nombra; y líneas de relleno hasta las dadas.
+func referenciaLargaAMano(t *testing.T, lineas int, conApartados, conIndice bool) string {
+	t.Helper()
+
+	fijas := []string{"# Referencia de prueba", "", "Una referencia escrita a mano, sin la cabecera de las generadas."}
+
+	if conIndice {
+		fijas = append(fijas, "", "- [Lo que lleva](#lo-que-lleva)", "- [Cuándo se lee](#cuando-se-lee)")
+	}
+
+	if conApartados {
+		fijas = append(fijas, "", "## Lo que lleva", "", "## Cuándo se lee")
+	}
+
+	require.Less(t, len(fijas), lineas, "las líneas fijas caben en %d", lineas)
+
+	referencia := strings.Join(fijas, "\n") + "\n" + strings.Repeat("Una línea de relleno.\n", lineas-len(fijas))
+	require.Equal(t, lineas, skills.ContarLineas([]byte(referencia)))
+
+	return referencia
+}
+
+// vallaDeUnBloque es la línea que abre o cierra un bloque de código en las
+// skills: hasta tres espacios y tres acentos graves o virgulillas.
+var vallaDeUnBloque = regexp.MustCompile("^ {0,3}(```|~~~)")
+
+// enlazarDesdeElSkillMd enlaza desde el SKILL.md de la skill, dentro de una
+// copia temporal, cada fichero de references/ dado con «[](references/<fichero>)»
+// (FR-007 de H31): sustituye por el enlace de cada uno, desde el principio del
+// cuerpo, una línea de prosa que tenga al menos tantos caracteres como él. Una
+// línea de prosa está fuera de la región generada y de los bloques de código y
+// no lleva corchete, comilla invertida, virgulilla ni barra vertical
+// (partirElCuerpo), así que no enlazaba nada; y como el enlace no es más largo,
+// el cuerpo no gana líneas ni caracteres, y sigue en sus presupuestos aunque el
+// del SKILL.md real esté en ellos (FR-004 de H31). Lo regenerado no cambia.
+func enlazarDesdeElSkillMd(t *testing.T, copia, skill string, ficheros ...string) {
+	t.Helper()
+
+	ruta := rutaEnLaSkill(copia, skill, "SKILL.md")
+	frontmatter, cuerpo := partesDelSkillMd(t, leerFicheroDelArbol(t, ruta))
+	pendientes := slices.Clone(ficheros)
+
+	var (
+		enlazado              strings.Builder
+		enLaTabla, enUnBloque bool
+	)
+
+	for linea := range strings.Lines(cuerpo) {
+		texto := strings.TrimSuffix(linea, "\n")
+
+		switch {
+		case texto == inicioDeLaTablaDeComandos:
+			enLaTabla = true
+		case texto == finDeLaTablaDeComandos:
+			enLaTabla = false
+		case vallaDeUnBloque.MatchString(texto):
+			enUnBloque = !enUnBloque
+		case !enLaTabla && !enUnBloque && len(pendientes) > 0 && !strings.ContainsAny(texto, "[`~|"):
+			enlace := "[](references/" + pendientes[0] + ")"
+			if utf8.RuneCountInString(texto) >= utf8.RuneCountInString(enlace) {
+				linea = enlace + strings.TrimPrefix(linea, texto)
+				pendientes = pendientes[1:]
+			}
+		}
+
+		enlazado.WriteString(linea)
+	}
+
+	require.Empty(t, pendientes, "el cuerpo de SKILL.md tiene líneas de prosa para enlazar %v", ficheros)
+
+	escribirFicheroDeLaCopia(t, ruta, frontmatter+enlazado.String())
+}
+
 // casosDeScripts son el defecto de FR-082 en la skill (ADR 0019;
 // contracts/skills-e-invocacion.md §3 de H19): una entrada scripts en su
 // directorio, sea lo que sea —el directorio con un enlace por applet declarado
@@ -1340,7 +1509,8 @@ func conUnByteCambiado(t *testing.T, contenido string) string {
 
 // probarSincroniaConReferenciasAMano fija SC-003 (FR-012; contracts/
 // gates-de-skills-check.md §3) sobre dos copias con solo la skill. Cada una lleva
-// en references/ una referencia a mano y cada referencia declarada alterada, una
+// en references/ una referencia a mano, enlazada desde su SKILL.md (FR-007 de
+// H31), y cada referencia declarada alterada, una
 // con un byte cambiado y la siguiente sin su cabecera, alternando: la primera
 // copia empieza por el byte y la segunda por la cabecera, de modo que cada
 // referencia declarada pasa por las dos alteraciones, también en la skill que
@@ -1363,6 +1533,7 @@ func probarSincroniaConReferenciasAMano(t *testing.T, descripciones []skills.Des
 			copia := copiaConLaSkill(t, skill.nombre)
 			require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
 			escribirFicheroDeLaCopia(t, filepath.Join(copia, filepath.FromSlash(aMano)), referenciaAMano)
+			enlazarDesdeElSkillMd(t, copia, skill.nombre, ficheroAMano)
 
 			var derivas []string
 

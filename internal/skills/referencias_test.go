@@ -536,7 +536,8 @@ func TestRenderizarCobertura(t *testing.T) {
 }
 
 // regenerarGamma es lo que skills.Regenerar construye para un repositorio
-// temporal con data/<datos> y la skill gamma, que declara la referencia dada.
+// temporal con data/<datos> y la skill gamma, que declara la referencia dada y
+// la enlaza (FR-007 de H31).
 func regenerarGamma(t *testing.T, datos, contenido, referencia string) skills.Regenerado {
 	t.Helper()
 
@@ -548,7 +549,9 @@ func regenerarGamma(t *testing.T, datos, contenido, referencia string) skills.Re
 		"metadata:\n"+
 		"  kitlegal-referencias: "+referencia+"\n"+
 		"---\n"+
-		"# Gamma\n")
+		"# Gamma\n"+
+		"\n"+
+		"- ["+referencia+"](references/"+referencia+".md)\n")
 
 	regenerado, err := skills.Regenerar(raiz, nil)
 	require.NoError(t, err)
@@ -708,7 +711,10 @@ const (
 // o sin su cabecera, la declarada y ausente, la no declarada que abre con la
 // cabecera y la no declarada que no abre con ella—, solo la última es una
 // referencia a mano, también con el nombre de una fila de la tabla de generadores
-// en una skill que no la declara; van con sus bytes y en orden de nombre.
+// en una skill que no la declara; van con sus bytes y en orden de nombre. Y la
+// primera, la entrada que no es un fichero regular .md, declarada o no, es la
+// que da el defecto de FR-006 de H31 (entradasQueNoSonFicherosMd), por su
+// nombre y en orden de nombre.
 func TestReferenciasAMano(t *testing.T) {
 	t.Parallel()
 
@@ -723,8 +729,17 @@ func TestReferenciasAMano(t *testing.T) {
 
 		// aMano son los nombres de las referencias a mano, en su orden.
 		aMano []string
+
+		// noMd son los nombres de las entradas que no son un fichero regular .md,
+		// en su orden.
+		noMd []string
 	}{
-		{nombre: "subdirectorio", skill: "alfa", entradas: fstest.MapFS{"anexos.md/nota.md": sinCabecera()}},
+		{
+			nombre:   "subdirectorio",
+			skill:    "alfa",
+			entradas: fstest.MapFS{"anexos.md/nota.md": sinCabecera()},
+			noMd:     []string{"anexos.md"},
+		},
 		{
 			nombre: "enlace",
 			skill:  "alfa",
@@ -733,8 +748,26 @@ func TestReferenciasAMano(t *testing.T) {
 				"como_se_cita.md": sinCabecera(),
 			},
 			aMano: []string{"como_se_cita.md"},
+			noMd:  []string{"enlace.md"},
 		},
-		{nombre: "otra-extension", skill: "alfa", entradas: fstest.MapFS{"notas.txt": sinCabecera()}},
+		{
+			nombre:   "otra-extension",
+			skill:    "alfa",
+			entradas: fstest.MapFS{"notas.txt": sinCabecera()},
+			noMd:     []string{"notas.txt"},
+		},
+		{
+			nombre:   "sin-extension",
+			skill:    "beta",
+			entradas: fstest.MapFS{"LEEME": sinCabecera()},
+			noMd:     []string{"LEEME"},
+		},
+		{
+			nombre:   "declarada-que-es-un-enlace",
+			skill:    "alfa",
+			entradas: fstest.MapFS{"normas.md": {Data: []byte("../../../data/normas.yaml"), Mode: fs.ModeSymlink}},
+			noMd:     []string{"normas.md"},
+		},
 		{nombre: "declarada-con-cabecera", skill: "alfa", entradas: fstest.MapFS{"normas.md": conCabecera()}},
 		{nombre: "declarada-sin-cabecera", skill: "alfa", entradas: fstest.MapFS{"normas.md": sinCabecera()}},
 		{nombre: "declaradas-y-ausentes", skill: "alfa", entradas: fstest.MapFS{}},
@@ -765,6 +798,7 @@ func TestReferenciasAMano(t *testing.T) {
 				"ambito.md":              {Data: []byte("# Ámbito\n\nOtra referencia escrita a mano.\n")},
 			},
 			aMano: []string{"ambito.md", "como_se_cita.md"},
+			noMd:  []string{"anexos.md", "enlace.md", "notas.txt"},
 		},
 	}
 
@@ -788,6 +822,10 @@ func TestReferenciasAMano(t *testing.T) {
 			aMano, err := skills.ReferenciasAMano(arbol, caso.skill)
 			require.NoError(t, err)
 			assert.Equal(t, esperadas, aMano)
+
+			noMd, err := skills.EntradasQueNoSonFicherosMd(arbol, caso.skill)
+			require.NoError(t, err)
+			assert.Equal(t, caso.noMd, noMd)
 		})
 	}
 
@@ -797,6 +835,22 @@ func TestReferenciasAMano(t *testing.T) {
 		aMano, err := skills.ReferenciasAMano(arbolDeLasSkills(), "alfa")
 		require.NoError(t, err)
 		assert.Empty(t, aMano)
+
+		noMd, err := skills.EntradasQueNoSonFicherosMd(arbolDeLasSkills(), "alfa")
+		require.NoError(t, err)
+		assert.Empty(t, noMd)
+	})
+
+	t.Run("entradas-de-references-que-no-es-un-directorio", func(t *testing.T) {
+		t.Parallel()
+
+		arbol := arbolDeLasSkills()
+		arbol["skills/alfa/references"] = sinCabecera()
+
+		noMd, err := skills.EntradasQueNoSonFicherosMd(arbol, "alfa")
+		require.Error(t, err)
+		assert.Nil(t, noMd)
+		assert.True(t, strings.HasPrefix(err.Error(), "skills/alfa/references no se puede listar: "), "error: %v", err)
 	})
 
 	probarReferenciasAManoSinPoderLeer(t)

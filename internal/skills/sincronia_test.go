@@ -1,6 +1,7 @@
 package skills_test
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -64,8 +65,15 @@ const (
 		"\n" +
 		inicioDeLaTabla + "\n"
 
-	// pieDeAlfa es el SKILL.md de alfa desde la marca de fin de su tabla.
+	// pieDeAlfa es el SKILL.md de alfa desde la marca de fin de su tabla, con un
+	// enlace a cada referencia que declara (FR-007 de H31).
 	pieDeAlfa = finDeLaTabla + "\n" +
+		"\n" +
+		"## Referencias\n" +
+		"\n" +
+		"- [normas](references/normas.md): las normas de la tabla.\n" +
+		"- [leyes_vertebrales](references/leyes_vertebrales.md#leyes-vertebrales): las vertebrales.\n" +
+		"- [jerarquia_normativa](references/jerarquia_normativa.md): los niveles.\n" +
 		"\n" +
 		"## Reglas\n"
 
@@ -194,8 +202,9 @@ func descripcionesDeSincronia() []skills.DescripcionDeVerbo {
 // deriva y Escribir no la toca, mientras que la declarada sin su cabecera y el .md
 // no declarado que abre con ella sí lo son (FR-012); cada clase de deriva nombra
 // la skill y el fichero, y Escribir la deshace; y cada defecto de una skill —entre
-// ellos, llevar scripts/ (FR-082)— nombra la skill, la deja sin nada que comparar
-// e impide que Escribir escriba nada.
+// ellos, llevar scripts/ (FR-082) y los de references/ (FR-006 a FR-009 de
+// H31)— nombra la skill, la deja sin nada que comparar e impide que Escribir
+// escriba nada.
 func TestRegenerarYComparar(t *testing.T) {
 	t.Parallel()
 
@@ -250,6 +259,7 @@ func TestRegenerarYComparar(t *testing.T) {
 		raiz := arbolDeFuentes(t)
 		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), sobranteConCabecera)
 		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"), referenciaAMano)
+		enlazarDesdeSkillMd(t, raiz, "alfa", "como_se_cita.md")
 
 		require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
 		require.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
@@ -263,6 +273,7 @@ func TestRegenerarYComparar(t *testing.T) {
 	})
 
 	t.Run("referencias-a-mano", probarReferenciasAMano)
+	t.Run("referencia-que-deja-de-ser-un-fichero-regular", probarReferenciaQueDejaDeSerUnFichero)
 
 	probarDerivas(t)
 	probarDefectos(t)
@@ -270,12 +281,14 @@ func TestRegenerarYComparar(t *testing.T) {
 
 // probarReferenciasAMano fija la clasificación de FR-012 en la sincronía
 // (contracts/gates-de-skills-check.md §3; research D13): sobre un árbol
-// sincronizado con una referencia a mano en cada skill —en beta, con el nombre de
-// una referencia que no declara—, la referencia declarada sin su cabecera, un .md
-// no declarado que abre con ella y una entrada que no es un .md, Comparar da la
-// deriva de la declarada y las dos sobrantes, y ninguna de las referencias a
-// mano; Escribir rehace la declarada, retira las sobrantes y no toca las
-// referencias a mano, ni sus bytes ni su tiempo de modificación.
+// sincronizado con una referencia a mano en cada skill, enlazada desde su
+// SKILL.md —en beta, con el nombre de una referencia que no declara—, la
+// referencia declarada sin su cabecera y un .md no declarado que abre con ella,
+// Comparar da la deriva de la declarada y la sobrante, y ninguna de las
+// referencias a mano; Escribir rehace la declarada, retira la sobrante y no toca
+// las referencias a mano, ni sus bytes ni su tiempo de modificación. Una entrada
+// que no es un fichero .md ya no es sobrante, sino un defecto (FR-006 de H31,
+// en probarDefectos).
 func probarReferenciasAMano(t *testing.T) {
 	t.Parallel()
 
@@ -286,15 +299,16 @@ func probarReferenciasAMano(t *testing.T) {
 		escribirFicheroDePrueba(t, filepath.Join(raiz, filepath.FromSlash(ruta)), referenciaAMano)
 	}
 
+	enlazarDesdeSkillMd(t, raiz, "alfa", "como_se_cita.md")
+	enlazarDesdeSkillMd(t, raiz, "beta", "normas.md")
+
 	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "normas.md"),
 		"<!-- generado desde data/normas.yaml, no editar -->\n", "")
 	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "antigua.md"), sobranteConCabecera)
-	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "notas.txt"), referenciaAMano)
 
 	assert.Equal(t, []*skills.Deriva{
 		{Skill: "alfa", Ruta: "references/normas.md", Clase: skills.DerivaContenidoDistinto},
 		{Skill: "alfa", Ruta: "references/antigua.md", Clase: skills.DerivaFicheroSobrante},
-		{Skill: "alfa", Ruta: "references/notas.txt", Clase: skills.DerivaFicheroSobrante},
 	}, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
 
 	envejecer(t, raiz)
@@ -311,7 +325,33 @@ func probarReferenciasAMano(t *testing.T) {
 
 	assert.Equal(t, referenciaDeAlfa, leerFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "normas.md")))
 	assert.NotContains(t, despues, "skills/alfa/references/antigua.md")
-	assert.NotContains(t, despues, "skills/alfa/references/notas.txt")
+}
+
+// probarReferenciaQueDejaDeSerUnFichero fija lo que Comparar y Escribir hacen
+// con una referencia declarada que deja de ser un fichero regular después de
+// Regenerar, que no la ha visto así: con ella, Regenerar daría el defecto de
+// FR-006 de H31. Comparar la da como contenido distinto, con el detalle, y
+// Escribir retira el enlace, sin escribir en su destino, y deja en su lugar la
+// referencia regenerada.
+func probarReferenciaQueDejaDeSerUnFichero(t *testing.T) {
+	t.Parallel()
+
+	raiz := arbolSincronizado(t)
+	regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+
+	ruta := rutaDeSkill(raiz, "alfa", "references", "normas.md")
+	retirarDePrueba(t, ruta)
+	crearEnlaceDePrueba(t, "../../../data/normas.yaml", ruta)
+
+	derivas, err := skills.Comparar(raiz, regenerado)
+	require.NoError(t, err)
+	require.Len(t, derivas, 1)
+	assert.Equal(t, "alfa: references/normas.md: contenido-distinto (no es un fichero regular)", derivas[0].Error())
+
+	require.NoError(t, skills.Escribir(raiz, regenerado))
+	assert.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
+	assert.Equal(t, normasDeSincronia, leerFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml")),
+		"Escribir no escribe en el destino del enlace")
 }
 
 // probarDerivas fija cada clase de deriva de data-model §5: sobre un árbol
@@ -401,23 +441,6 @@ func probarDerivas(t *testing.T) {
 			mensaje: "alfa: SKILL.md: contenido-distinto",
 		},
 		{
-			nombre: "referencia-que-no-es-un-fichero-regular",
-			alterar: func(t *testing.T, raiz string) {
-				t.Helper()
-
-				ruta := rutaDeSkill(raiz, "alfa", "references", "normas.md")
-				retirarDePrueba(t, ruta)
-				crearEnlaceDePrueba(t, "../../../data/normas.yaml", ruta)
-			},
-			deriva: skills.Deriva{
-				Skill:   "alfa",
-				Ruta:    "references/normas.md",
-				Clase:   skills.DerivaContenidoDistinto,
-				Detalle: "no es un fichero regular",
-			},
-			mensaje: "alfa: references/normas.md: contenido-distinto (no es un fichero regular)",
-		},
-		{
 			// Declarada, es la referencia generada aunque haya perdido la cabecera
 			// (FR-012).
 			nombre: "referencia-declarada-sin-cabecera",
@@ -492,23 +515,29 @@ func probarDerivas(t *testing.T) {
 	}
 }
 
+// casoDeDefecto es un cambio sobre un árbol sincronizado —en sus ficheros, en
+// las descripciones de los verbos o en los dos— y los defectos exactos que da, en
+// su orden.
+type casoDeDefecto struct {
+	nombre               string
+	alterar              func(t *testing.T, raiz string)
+	cambiarDescripciones func(descripciones []skills.DescripcionDeVerbo)
+	defectos             []string
+}
+
 // probarDefectos fija los defectos de una skill (data-model §5): cada uno nombra
-// la skill y van en el orden frontmatter, cuerpo, región, datos y scripts/; una
-// skill con defectos no tiene nada regenerado con que comparar, aunque las demás
-// sí; y Escribir no escribe nada, tampoco lo de las skills sin defectos. Una
-// entrada scripts en el directorio de una skill, sea lo que sea —el directorio con
-// los enlaces que dejaba la instalación anterior, uno vacío, un fichero o un
-// enlace colgante—, es un defecto, también en una skill sin SKILL.md, y Escribir
-// no la retira (ADR 0019; contracts/skills-e-invocacion.md §3; FR-082).
+// la skill y van en el orden frontmatter, cuerpo, región, datos, references/ y
+// scripts/; una skill con defectos no tiene nada regenerado con que comparar,
+// aunque las demás sí; y Escribir no escribe nada, tampoco lo de las skills sin
+// defectos. Una entrada scripts en el directorio de una skill, sea lo que sea —el
+// directorio con los enlaces que dejaba la instalación anterior, uno vacío, un
+// fichero o un enlace colgante—, es un defecto, también en una skill sin
+// SKILL.md, y Escribir no la retira (ADR 0019; contracts/skills-e-invocacion.md
+// §3; FR-082). Los de references/ los da casosDeReferences.
 func probarDefectos(t *testing.T) {
 	t.Helper()
 
-	casos := []struct {
-		nombre               string
-		alterar              func(t *testing.T, raiz string)
-		cambiarDescripciones func(descripciones []skills.DescripcionDeVerbo)
-		defectos             []string
-	}{
+	casos := []casoDeDefecto{
 		{
 			nombre: "frontmatter",
 			alterar: func(t *testing.T, raiz string) {
@@ -726,6 +755,8 @@ func probarDefectos(t *testing.T) {
 		},
 	}
 
+	casos = append(casos, casosDeReferences()...)
+
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
@@ -767,6 +798,216 @@ func probarDefectos(t *testing.T) {
 			assert.Equal(t, antes, fotografiar(t, raiz), "con defectos, Escribir no escribe nada")
 		})
 	}
+}
+
+// casosDeReferences son los defectos de references/ de alfa
+// (contracts/gates-de-skills-check.md §2.3 y §3; research D13 y D14; FR-006 a
+// FR-009 y FR-011 de H31), sobre su SKILL.md regenerado y sus referencias —las
+// generadas, como las regenera su fila; las a mano, como están—: una entrada que
+// no es un fichero regular .md, también la de una referencia declarada; una
+// referencia, generada o a mano, sin un enlace desde SKILL.md fuera de un bloque
+// de código; una que enlaza otra de la skill; y una de más de 100 líneas sin su
+// índice, también la generada. Van tras los de los datos y antes del de
+// scripts/: los de las entradas, en su orden, y después los de cada referencia,
+// en el orden de sus nombres, por regla. Con los datos con defectos no hay
+// referencias regeneradas y solo se miran las entradas.
+func casosDeReferences() []casoDeDefecto {
+	const (
+		conEnlaces = "Las normas, en [la tabla](normas.md#normas-de-referencia), [el ámbito](./ambito.md), " +
+			"[otra vez](../references/normas.md) y [aquí](como_se_cita.md#x).\n"
+		sinEnlaceDeLeyes = "- [leyes_vertebrales](references/leyes_vertebrales.md#leyes-vertebrales): las vertebrales.\n"
+		sinIndiceEn101   = "101 líneas sin un índice que nombre sus apartados ## antes del primero (más de 100)"
+	)
+
+	return []casoDeDefecto{
+		{
+			nombre: "subdirectorio-en-references",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "anexos", "nota.md"), referenciaAMano)
+			},
+			defectos: []string{"alfa: references/anexos: no es un fichero .md"},
+		},
+		{
+			nombre: "fichero-de-otra-extension-en-references",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "notas.txt"), referenciaAMano)
+			},
+			defectos: []string{"alfa: references/notas.txt: no es un fichero .md"},
+		},
+		{
+			// Declarada, la que no es un fichero regular es un defecto, no una
+			// deriva, y Escribir no la retira.
+			nombre: "referencia-declarada-que-es-un-enlace",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				ruta := rutaDeSkill(raiz, "alfa", "references", "normas.md")
+				retirarDePrueba(t, ruta)
+				crearEnlaceDePrueba(t, "../../../data/normas.yaml", ruta)
+			},
+			defectos: []string{"alfa: references/normas.md: no es un fichero .md"},
+		},
+		{
+			nombre: "referencia-generada-sin-enlace",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), sinEnlaceDeLeyes, "")
+			},
+			defectos: []string{
+				"alfa: references/leyes_vertebrales.md: SKILL.md no la enlaza con [](references/leyes_vertebrales.md)",
+			},
+		},
+		{
+			// Ausente del árbol, la referencia es la que regenera su fila: la mira
+			// igual.
+			nombre: "referencia-ausente-sin-enlace",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				retirarDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "leyes_vertebrales.md"))
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), sinEnlaceDeLeyes, "")
+			},
+			defectos: []string{
+				"alfa: references/leyes_vertebrales.md: SKILL.md no la enlaza con [](references/leyes_vertebrales.md)",
+			},
+		},
+		{
+			nombre: "referencia-enlazada-solo-dentro-de-un-bloque",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), sinEnlaceDeLeyes,
+					"```text\n"+sinEnlaceDeLeyes+"```\n")
+			},
+			defectos: []string{
+				"alfa: references/leyes_vertebrales.md: SKILL.md no la enlaza con [](references/leyes_vertebrales.md)",
+			},
+		},
+		{
+			nombre: "referencia-a-mano-sin-enlace",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"), referenciaAMano)
+			},
+			defectos: []string{
+				"alfa: references/como_se_cita.md: SKILL.md no la enlaza con [](references/como_se_cita.md)",
+			},
+		},
+		{
+			// Una sola vez cada referencia enlazada, en el orden en que aparece; el
+			// enlace a la propia referencia no cuenta.
+			nombre: "referencia-que-enlaza-otras",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"),
+					referenciaAMano+conEnlaces)
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "ambito.md"), referenciaAMano)
+				enlazarDesdeSkillMd(t, raiz, "alfa", "como_se_cita.md", "ambito.md")
+			},
+			defectos: []string{
+				"alfa: references/como_se_cita.md: enlaza otra referencia, references/normas.md",
+				"alfa: references/como_se_cita.md: enlaza otra referencia, references/ambito.md",
+			},
+		},
+		{
+			nombre: "referencia-a-mano-de-ciento-una-lineas-sin-indice",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"),
+					referenciaDe(t, []string{"## Lo que hace cita"}, nil, 101))
+				enlazarDesdeSkillMd(t, raiz, "alfa", "como_se_cita.md")
+			},
+			defectos: []string{"alfa: references/como_se_cita.md: " + sinIndiceEn101},
+		},
+		{
+			// La referencia de las normas, con 95, tiene 101 líneas y ningún
+			// apartado: el generador no cambia en H31 (FR-009, Clarificación Q4).
+			nombre: "referencia-generada-de-ciento-una-lineas",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"), normasDeSincroniaConRelleno(93))
+			},
+			defectos: []string{"alfa: references/normas.md: 101 líneas sin ningún apartado ## (más de 100)"},
+		},
+		{
+			nombre: "entradas-referencias-y-scripts-en-su-orden",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "notas.txt"), referenciaAMano)
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"),
+					referenciaDe(t, []string{strings.TrimSuffix(conEnlaces, "\n"), "## Lo que hace cita"}, nil, 101))
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), sinEnlaceDeLeyes, "")
+				require.NoError(t, os.Mkdir(rutaDeSkill(raiz, "alfa", "scripts"), 0o750))
+			},
+			defectos: []string{
+				"alfa: references/notas.txt: no es un fichero .md",
+				"alfa: references/como_se_cita.md: SKILL.md no la enlaza con [](references/como_se_cita.md)",
+				"alfa: references/como_se_cita.md: enlaza otra referencia, references/normas.md",
+				"alfa: references/como_se_cita.md: " + sinIndiceEn101,
+				"alfa: references/leyes_vertebrales.md: SKILL.md no la enlaza con [](references/leyes_vertebrales.md)",
+				"alfa: una skill no lleva scripts/ (ADR 0019)",
+			},
+		},
+		{
+			nombre: "datos-con-defectos-y-entradas",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
+					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "notas.txt"), referenciaAMano)
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"), referenciaAMano)
+			},
+			defectos: []string{
+				"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical",
+				"alfa: references/notas.txt: no es un fichero .md",
+			},
+		},
+	}
+}
+
+// normasDeSincroniaConRelleno es data/normas.yaml de la sincronía con tantas
+// normas más como se piden, ninguna vertebral.
+func normasDeSincroniaConRelleno(relleno int) string {
+	var normas strings.Builder
+
+	normas.WriteString(normasDeSincronia)
+
+	for numero := 1; numero <= relleno; numero++ {
+		fmt.Fprintf(&normas, "  BOE-A-2000-%d:\n"+
+			"    titulo: Norma de relleno %d.\n"+
+			"    rango: Ley\n"+
+			"    materias:\n"+
+			"      - procedimiento\n", numero, numero)
+	}
+
+	return normas.String()
+}
+
+// enlazarDesdeSkillMd añade al final del SKILL.md de la skill del repositorio de
+// raíz, fuera de la región generada, un enlace a cada fichero de references/
+// dado (FR-007 de H31).
+func enlazarDesdeSkillMd(t *testing.T, raiz, skill string, ficheros ...string) {
+	t.Helper()
+
+	ruta := rutaDeSkill(raiz, skill, "SKILL.md")
+	contenido := leerFicheroDePrueba(t, ruta)
+
+	for _, fichero := range ficheros {
+		contenido += "- [" + strings.TrimSuffix(fichero, ".md") + "](references/" + fichero + ")\n"
+	}
+
+	escribirFicheroDePrueba(t, ruta, contenido)
 }
 
 // TestCuerpoDeLaSkill fija los presupuestos del cuerpo de SKILL.md
@@ -989,8 +1230,10 @@ func TestCompararYEscribirSinBuscarLasDerivas(t *testing.T) {
 //   - retirar: references/normas.md es un directorio con un fichero dentro;
 //   - crear el directorio: el directorio de alfa es ahora un enlace colgante, así
 //     que ninguna de sus rutas existe y el directorio no se puede crear donde
-//     está el enlace. Lo regenerado es de antes del cambio: Regenerar no lista un
-//     enlace como skill.
+//     está el enlace.
+//
+// En los dos, lo regenerado es de antes del cambio: con el directorio, Regenerar
+// daría el defecto de FR-006 de H31, y no lista un enlace como skill.
 func TestEscribirSinAplicarUnArreglo(t *testing.T) {
 	t.Parallel()
 
@@ -1010,12 +1253,13 @@ func TestEscribirSinAplicarUnArreglo(t *testing.T) {
 				t.Helper()
 
 				require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
+				regenerado := regenerar(t, raiz, descripcionesDeSincronia())
 
 				ruta := rutaDeSkill(raiz, "alfa", "references", "normas.md")
 				retirarDePrueba(t, ruta)
 				escribirFicheroDePrueba(t, filepath.Join(ruta, "nota.md"), "# Nota\n")
 
-				return regenerar(t, raiz, descripcionesDeSincronia())
+				return regenerado
 			},
 			prefijo: "alfa: references/normas.md no se puede retirar: ",
 			causa:   syscall.ENOTEMPTY,

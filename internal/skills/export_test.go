@@ -15,3 +15,20 @@ var CompilarEsquemaDelTerritorio = compilarEsquemaDelTerritorio
 // paquete externo, por la misma razón: la ruta constante del esquema de
 // data/jerarquia.yaml no da nunca sus errores.
 var CompilarEsquemaDeJerarquia = compilarEsquemaDeJerarquia
+
+// EnlacesDeMarkdown, FicherosEnlazados y FaltaDelIndice son enlacesDeMarkdown,
+// ficherosEnlazados y faltaDelIndice para los tests del paquete externo: con
+// ellos fijan, sobre textos sueltos, lo que los gates de references/ leen de un
+// fichero Markdown (contracts/gates-de-skills-check.md §2.3), cuyos casos límite
+// no caben en las skills de un árbol de prueba sin que lo tape otro defecto.
+var (
+	EnlacesDeMarkdown = enlacesDeMarkdown
+	FicherosEnlazados = ficherosEnlazados
+	FaltaDelIndice    = faltaDelIndice
+)
+
+// EntradasQueNoSonFicherosMd es entradasQueNoSonFicherosMd para los tests del
+// paquete externo: con ella TestReferenciasAMano fija, sobre el mismo árbol, que
+// lo que no es una referencia a mano por no ser un fichero regular .md es lo que
+// da el defecto de FR-006.
+var EntradasQueNoSonFicherosMd = entradasQueNoSonFicherosMd

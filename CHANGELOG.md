@@ -82,6 +82,25 @@ sustituyen a este fichero.
   su referencia. La descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
   crea saberlo») con los mismos disparadores, de 1023 a 878 caracteres. `references/normas.md` no cambia; las siete
   nuevas viajan en el binario, y `kitlegal skills install` las instala con la skill.
+- **`make skills-check` hace cumplir la forma de la especificación Agent Skills y de la guía del proyecto, y el límite
+  de menos de 300 líneas desaparece** (H31; ADR 0046). Cada incumplimiento es un defecto que nombra la skill, el fichero
+  y la regla, con la medida y el límite cuando los hay, y `make skills-sync` lo da también y no escribe nada:
+  - el frontmatter: `name` no contiene `claude` ni `anthropic`; ni `name` ni `description` llevan una etiqueta XML
+    (`<ejemplo>`, `</b>`, `<br/>`; «< 5000» no lo es); y la descripción tiene como mucho 900 caracteres, que sustituyen
+    al máximo de 1024 y a la regla de los `<` y `>`. Los defectos del frontmatter empiezan por `SKILL.md: `;
+  - el cuerpo de `SKILL.md` —sin el frontmatter y con la tabla de comandos como la deja `make skills-sync`— tiene menos
+    de 500 líneas y como mucho 11 000 caracteres, contados como caracteres y no como bytes. Sustituye al límite de
+    menos de 300 líneas del fichero entero;
+  - `references/` solo lleva ficheros regulares `.md`: un subdirectorio, un enlace o un fichero de otra extensión es un
+    defecto (`references/notas.txt: no es un fichero .md`), y `make skills-sync` ya no lo retira como sobrante;
+  - cada referencia, generada o a mano, está enlazada desde el cuerpo de `SKILL.md` con un enlace de Markdown fuera de
+    los bloques de código, `[…](references/<fichero>.md)`, con o sin `#apartado`; ninguna enlaza otra referencia de su
+    skill; y la de más de 100 líneas abre con su índice, una lista antes de su primer apartado `## ` que nombra cada
+    uno en su orden, y la que no tiene ningún `## ` también es un defecto. Una referencia generada se mira como la
+    regenera su fila, y una a mano, como está.
+
+  Las tres skills pasan sin defectos. `TestSkillsDelRepositorio` lo comprueba sobre cada skill con un mutante en rojo
+  por regla y su límite en verde (499 líneas, 11 000 caracteres, 900 en la descripción, 100 líneas sin índice).
 - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de
