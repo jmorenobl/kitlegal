@@ -3,6 +3,10 @@ package skills
 import (
 	"bytes"
 	"cmp"
+	"errors"
+	"fmt"
+	"io/fs"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -169,6 +173,85 @@ func DatosDeLaReferencia(referencia []byte) (string, bool) {
 	}
 
 	return carpetaDeLosDatos + "/" + fichero, true
+}
+
+// ReferenciasAMano son las referencias a mano de la skill del árbol, que es la
+// raíz de un repositorio (contracts/gates-de-skills-check.md §3; research D13;
+// data-model §3; FR-012): los ficheros regulares .md de
+// skills/<skill>/references/ que su kitlegal-referencias no declara y cuya
+// primera línea no es la cabecera de una referencia generada
+// (DatosDeLaReferencia), con sus bytes y en orden de nombre. No lo son lo que no
+// es un fichero regular .md —un subdirectorio, un enlace, otra extensión—, la
+// referencia declarada, con su cabecera o sin ella, ni la no declarada que abre
+// con la cabecera, que es sobrante. Sin references/ no hay ninguna, y no se lee
+// SKILL.md. El error queda para lo que no se puede leer: references/, el
+// frontmatter de SKILL.md o una referencia.
+func ReferenciasAMano(arbol fs.FS, skill string) ([]Referencia, error) {
+	directorio := path.Join(carpetaDeLasSkills, skill)
+	carpeta := path.Join(directorio, carpetaDeLasReferencias)
+
+	entradas, err := fs.ReadDir(arbol, carpeta)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("%s no se puede listar: %w", carpeta, err)
+	}
+
+	declaradas, err := ficherosDeclarados(arbol, path.Join(directorio, ficheroDeLaSkill))
+	if err != nil {
+		return nil, err
+	}
+
+	var aMano []Referencia
+
+	for _, entrada := range entradas {
+		nombre := entrada.Name()
+		if !entrada.Type().IsRegular() || path.Ext(nombre) != extensionDeLasReferencias || declaradas[nombre] {
+			continue
+		}
+
+		ruta := path.Join(carpeta, nombre)
+
+		contenido, err := fs.ReadFile(arbol, ruta)
+		if err != nil {
+			return nil, fmt.Errorf("%s no se puede leer: %w", ruta, err)
+		}
+
+		if _, generada := DatosDeLaReferencia(contenido); generada {
+			continue
+		}
+
+		aMano = append(aMano, Referencia{Fichero: nombre, Contenido: contenido})
+	}
+
+	return aMano, nil
+}
+
+// ficherosDeclarados son los ficheros de references/ que declara el
+// kitlegal-referencias del SKILL.md de la ruta del árbol: <nombre>.md por cada
+// nombre. Es un error que SKILL.md no se pueda leer o que su frontmatter no se
+// lea.
+func ficherosDeclarados(arbol fs.FS, skillMd string) (map[string]bool, error) {
+	contenido, err := fs.ReadFile(arbol, skillMd)
+	if err != nil {
+		return nil, fmt.Errorf("%s no se puede leer: %w", skillMd, err)
+	}
+
+	frontmatter, err := LeerFrontmatter(contenido)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", skillMd, err)
+	}
+
+	nombres := frontmatter.DeclaracionDeKitlegal().Referencias
+	declarados := make(map[string]bool, len(nombres))
+
+	for _, nombre := range nombres {
+		declarados[nombre+extensionDeLasReferencias] = true
+	}
+
+	return declarados, nil
 }
 
 // componer es la referencia con el cuerpo dado: la cabecera, el título, la fila

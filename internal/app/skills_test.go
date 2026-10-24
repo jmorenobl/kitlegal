@@ -141,6 +141,16 @@ func TestSkillsDelRepositorio(t *testing.T) {
 		})
 	})
 
+	t.Run("sincronia-con-referencias-a-mano", func(t *testing.T) {
+		t.Parallel()
+
+		probarCadaSkill(t, func(t *testing.T, skill skillDelRecorrido) {
+			t.Helper()
+
+			probarSincroniaConReferenciasAMano(t, descripciones, skill)
+		})
+	})
+
 	t.Run("normas-nombradas", func(t *testing.T) {
 		t.Parallel()
 
@@ -634,7 +644,10 @@ func probarSobreCopias(t *testing.T, descripciones []skills.DescripcionDeVerbo,
 // casosDeDeriva son las derivas de lo generado de la skill desde sus tres
 // fuentes (US5 escenarios 2 y 3, SC-005): cada referencia editada a mano, los
 // datos de cada referencia cambiados sin regenerar y lo que declara --describe de
-// cada applet cambiado sin regenerar.
+// cada applet cambiado sin regenerar. Y las clases de FR-012 que son deriva
+// (contracts/gates-de-skills-check.md §3): cada referencia declarada que no es lo
+// que genera su fila, con su cabecera —la editada— o sin ella, y un .md que la
+// skill no declara y que abre con la cabecera, sobrante.
 func casosDeDeriva(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
@@ -650,8 +663,27 @@ func casosDeDeriva(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 				escribirFicheroDeLaCopia(t, ruta, leerFicheroDelArbol(t, ruta)+"Una línea escrita a mano.\n")
 			},
 			fallos: []string{skill.nombre + ": " + referencia.fichero() + ": contenido-distinto"},
+		}, casoSobreUnaCopia{
+			nombre: "referencia-sin-cabecera-" + referencia.nombre,
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				ruta := rutaEnLaSkill(copia, skill.nombre, referencia.fichero())
+				escribirFicheroDeLaCopia(t, ruta, sinSuCabecera(t, leerFicheroDelArbol(t, ruta)))
+			},
+			fallos: []string{skill.nombre + ": " + referencia.fichero() + ": contenido-distinto"},
 		}, datosSinRegenerar(t, skill, referencia))
 	}
+
+	casos = append(casos, casoSobreUnaCopia{
+		nombre: "referencia-sobrante",
+		alterar: func(t *testing.T, copia string) {
+			t.Helper()
+
+			dejarSobrante(t, copia, skill.nombre)
+		},
+		fallos: []string{skill.nombre + ": references/" + ficheroSobrante + ": fichero-sobrante"},
+	})
 
 	for _, applet := range skill.applets {
 		casos = append(casos, casoSobreUnaCopia{
@@ -1100,11 +1132,8 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 		fallos = append(fallos, skill.nombre+": "+referencia.fichero()+": fichero-ausente")
 	}
 
-	// La skill que no declara referencias no tiene references/ (research.md D15
-	// de H23): la carpeta se crea antes de dejar en ella la sobrante.
-	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
-	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "antigua.md"), "# Antigua\n")
-	fallos = append(fallos, skill.nombre+": references/antigua.md: fichero-sobrante")
+	dejarSobrante(t, copia, skill.nombre)
+	fallos = append(fallos, skill.nombre+": references/"+ficheroSobrante+": fichero-sobrante")
 
 	require.Equal(t, fallos, fallosDeLasSkills(t, copia, descripciones))
 
@@ -1121,6 +1150,110 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 	assert.Equal(t, antes, fotografiarArbol(t, copia),
 		"el segundo Escribir no cambia ningún byte ni ningún tiempo de modificación")
 	assert.Empty(t, fallosDeLasSkills(t, copia, descripciones))
+}
+
+// Lo que las pruebas sobre copias dejan en references/ además de las referencias
+// declaradas (FR-012): un fichero sobrante, que abre con la cabecera de una
+// referencia generada sin que la skill lo declare, y una referencia a mano, que no
+// abre con ella. Ninguno de los dos nombres es el de una fila de la tabla de
+// generadores.
+const (
+	ficheroSobrante     = "antigua.md"
+	sobranteConCabecera = "<!-- generado desde data/normas.yaml, no editar -->\n\n# Antigua\n"
+
+	ficheroAMano    = "a_mano_de_prueba.md"
+	referenciaAMano = "# Protocolo de prueba\n\nUna referencia escrita a mano, sin la cabecera de las generadas.\n"
+)
+
+// dejarSobrante deja en references/ de la skill, dentro de una copia temporal, el
+// fichero sobrante. La skill que no declara referencias no tiene references/
+// (research.md D15 de H23): la carpeta se crea antes.
+func dejarSobrante(t *testing.T, copia, skill string) {
+	t.Helper()
+
+	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill, "references"), 0o750))
+	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill, "references", ficheroSobrante), sobranteConCabecera)
+}
+
+// sinSuCabecera es el contenido de una referencia generada sin su primera línea,
+// la cabecera «generado desde».
+func sinSuCabecera(t *testing.T, contenido string) string {
+	t.Helper()
+
+	cabecera := cabeceraDeUnaReferencia.FindString(contenido)
+	require.NotEmpty(t, cabecera, "la referencia abre con su cabecera")
+
+	return strings.TrimPrefix(contenido, cabecera)
+}
+
+// conUnByteCambiado es el contenido de una referencia generada con un solo byte
+// cambiado: la última barra de su tabla, la que cierra su última fila, es una
+// exclamación.
+func conUnByteCambiado(t *testing.T, contenido string) string {
+	t.Helper()
+
+	barra := strings.LastIndexByte(contenido, '|')
+	require.GreaterOrEqual(t, barra, 0, "la referencia tiene una tabla")
+
+	return contenido[:barra] + "!" + contenido[barra+1:]
+}
+
+// probarSincroniaConReferenciasAMano fija SC-003 (FR-012; contracts/
+// gates-de-skills-check.md §3) sobre dos copias con solo la skill. Cada una lleva
+// en references/ una referencia a mano y cada referencia declarada alterada, una
+// con un byte cambiado y la siguiente sin su cabecera, alternando: la primera
+// copia empieza por el byte y la segunda por la cabecera, de modo que cada
+// referencia declarada pasa por las dos alteraciones, también en la skill que
+// declara una sola. skills-check da la deriva de cada referencia declarada y
+// ninguna de la referencia a mano; y skills-sync —Regenerar y Escribir— deja la
+// referencia a mano idéntica, sin tocar sus bytes ni su tiempo de modificación, y
+// rehace las declaradas.
+func probarSincroniaConReferenciasAMano(t *testing.T, descripciones []skills.DescripcionDeVerbo,
+	skill skillDelRecorrido,
+) {
+	t.Helper()
+
+	alteraciones := []func(t *testing.T, contenido string) string{conUnByteCambiado, sinSuCabecera}
+	aMano := path.Join("skills", skill.nombre, "references", ficheroAMano)
+
+	for primera, nombre := range []string{"desde-el-byte-cambiado", "desde-la-cabecera-retirada"} {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			copia := copiaConLaSkill(t, skill.nombre)
+			require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
+			escribirFicheroDeLaCopia(t, filepath.Join(copia, filepath.FromSlash(aMano)), referenciaAMano)
+
+			var derivas []string
+
+			for indice, referencia := range skill.referencias {
+				alterar := alteraciones[(primera+indice)%len(alteraciones)]
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, referencia.fichero()),
+					alterar(t, referencia.contenido))
+				derivas = append(derivas, skill.nombre+": "+referencia.fichero()+": contenido-distinto")
+			}
+
+			require.Equal(t, derivas, fallosDeLasSkills(t, copia, descripciones),
+				"skills-check da la deriva de cada referencia declarada y ninguna de la referencia a mano")
+
+			envejecerArbol(t, copia)
+			antes := fotografiarArbol(t, copia)
+
+			escribirSkills(t, copia, descripciones)
+
+			despues := fotografiarArbol(t, copia)
+			assert.Equal(t, antes[aMano], despues[aMano], "skills-sync no toca la referencia a mano")
+			assert.Equal(t, referenciaAMano, despues[aMano].contenido)
+
+			for _, referencia := range skill.referencias {
+				assert.Equal(t, referencia.contenido,
+					leerFicheroDelArbol(t, rutaEnLaSkill(copia, skill.nombre, referencia.fichero())),
+					"skills-sync rehace %s", referencia.fichero())
+			}
+
+			assert.Empty(t, fallosDeLasSkills(t, copia, descripciones))
+		})
+	}
 }
 
 // normaNombrada es la forma en que SKILL.md nombra una norma por su rango, su

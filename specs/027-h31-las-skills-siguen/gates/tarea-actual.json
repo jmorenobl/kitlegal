@@ -1,0 +1,20 @@
+{
+  "id": "T001",
+  "texto": "T001 [US4] Implementar la clasificación de FR-012 (contracts/gates-de-skills-check.md §3; research D13): nueva función exportada `ReferenciasAMano(arbol fs.FS, skill string) ([]Referencia, error)` en `internal/skills/referencias.go`, que da los ficheros regulares `.md` del directorio `references` de la skill que `kitlegal-referencias` no declara y cuya primera línea no es la cabecera «generado desde» (`DatosDeLaReferencia`); en `internal/skills/sincronia.go`, `sobrantes` deja de dar `fichero-sobrante` a la referencia a mano (ni deriva ni retirada), el no declarado que abre con la cabecera sigue siendo `fichero-sobrante` y el declarado sigue dando `contenido-distinto` o `fichero-ausente` si no es lo que genera su fila, con o sin cabecera; la entrada que no es un `.md` regular sigue como hoy hasta T011. Tests: `TestReferenciasAMano` en `internal/skills/referencias_test.go` (las cinco clases de la tabla del §3, sobre un `fstest.MapFS`), `TestRegenerarYComparar` en `internal/skills/sincronia_test.go` (la clasificación en el árbol sintético) y, en `TestSkillsDelRepositorio` de `internal/app/skills_test.go`, el subtest `deriva` con las clases de FR-012 (declarada distinta con y sin cabecera, no declarada con cabecera) y el nuevo `sincronia-con-referencias-a-mano` (SC-003: sobre `copiaConLaSkill`, una referencia a mano, una generada con un byte cambiado y otra sin su cabecera; tras `skills.Regenerar` y `skills.Escribir`, la a mano idéntica byte a byte y las dos generadas rehechas; en rojo si toca la primera o no rehace una de las otras). Ajustar `internal/skills/export_test.go` si un test necesita algo no exportado. Con las skills de `main`, sin referencias a mano, nada cambia. FR-012, FR-013, SC-003. Rutas: internal/skills/referencias.go, internal/skills/referencias_test.go, internal/skills/sincronia.go, internal/skills/sincronia_test.go, internal/skills/export_test.go, internal/app/skills_test.go",
+  "intento": 1,
+  "datos": false,
+  "aceptacion": false,
+  "base": "361da9cd74c0f3d618e5dc9a3d323b1eeda945cc",
+  "rutas": [
+    "contracts/gates-de-skills-check.md",
+    "internal/app/skills_test.go",
+    "internal/skills/export_test.go",
+    "internal/skills/referencias.go",
+    "internal/skills/referencias_test.go",
+    "internal/skills/sincronia.go",
+    "internal/skills/sincronia_test.go"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}

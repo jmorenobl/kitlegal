@@ -13,13 +13,13 @@ import (
 // Lo que forma la parte generada de una skill, además de la región de SKILL.md
 // (data-model §1 y §4.2), y lo que una skill no lleva.
 const (
-	// carpetaDeLasReferencias es el directorio de las referencias generadas de
-	// una skill, dentro del suyo.
+	// carpetaDeLasReferencias es el directorio de las referencias de una skill,
+	// las generadas y las a mano, dentro del suyo.
 	carpetaDeLasReferencias = "references"
 
-	// extensionDeLasReferencias es la extensión de una referencia generada:
+	// extensionDeLasReferencias es la extensión de una referencia: la generada
 	// references/<nombre>.md sale del YAML de datos que la tabla de generadores
-	// declara para <nombre>.
+	// declara para <nombre>, y la a mano la lleva también (FR-012).
 	extensionDeLasReferencias = ".md"
 
 	// maximoDeLineas es el número de líneas de SKILL.md a partir del cual es un
@@ -73,7 +73,8 @@ type SkillRegenerada struct {
 	Defectos []*DefectoDeSkill
 }
 
-// Referencia es un fichero generado de references/ (data-model §4.2).
+// Referencia es un fichero de references/: una referencia generada (data-model
+// §4.2) o una a mano (ReferenciasAMano).
 type Referencia struct {
 	// Fichero es su nombre dentro de references/: <nombre>.md.
 	Fichero string
@@ -107,7 +108,8 @@ const (
 	DerivaFicheroAusente ClaseDeDeriva = "fichero-ausente"
 
 	// DerivaFicheroSobrante es la de una entrada de references/ que no es
-	// ninguna referencia declarada.
+	// ninguna referencia declarada ni una referencia a mano (FR-012): entre
+	// ellas, el .md no declarado que abre con la cabecera de una generada.
 	DerivaFicheroSobrante ClaseDeDeriva = "fichero-sobrante"
 )
 
@@ -390,10 +392,11 @@ func defectosDelError(skill, fichero string, err error) []*DefectoDeSkill {
 // Comparar compara lo regenerado con el árbol del repositorio de raíz sin
 // escribir nada (data-model §5; FR-042) y devuelve una Deriva por cada
 // diferencia, skill a skill y, en cada una, en este orden: SKILL.md, las
-// referencias declaradas y las entradas sobrantes de references/. Una skill con
-// defectos no tiene nada regenerado con que comparar y no da ninguna. El error
-// queda para lo que impide comparar: una entrada que no se puede consultar o
-// leer, o un references/ que no es un directorio.
+// referencias declaradas y las entradas sobrantes de references/. Una referencia
+// a mano no es ninguna deriva (FR-012). Una skill con defectos no tiene nada
+// regenerado con que comparar y no da ninguna. El error queda para lo que impide
+// comparar: una entrada que no se puede consultar o leer, o un references/ que no
+// es un directorio.
 func Comparar(raiz string, regenerado Regenerado) ([]*Deriva, error) {
 	arreglos, err := arreglosDe(raiz, regenerado)
 	if err != nil {
@@ -412,7 +415,8 @@ func Comparar(raiz string, regenerado Regenerado) ([]*Deriva, error) {
 // Escribir deja el árbol del repositorio de raíz como lo regenerado
 // (contrato sincronizacion-y-comprobacion §2; FR-034, FR-036): deshace cada
 // deriva que da Comparar, y nada más. Escribe los ficheros generados que faltan o
-// que difieren y retira las entradas sobrantes de references/. Lo que ya
+// que difieren y retira las entradas sobrantes de references/; no escribe, no
+// rehace ni retira una referencia a mano (FR-012). Lo que ya
 // coincide no se toca, así que sobre un árbol sin derivas no escribe nada, ni
 // siquiera un tiempo de modificación. No crea ningún scripts/ ni retira el que
 // haya (ADR 0019; FR-080 y FR-082 de H19): una skill que lo lleva tiene un
@@ -508,7 +512,7 @@ func arreglosDe(raiz string, regenerado Regenerado) ([]arreglo, error) {
 			continue
 		}
 
-		deLaSkill, err := arreglosDeLaSkill(filepath.Join(raiz, carpetaDeLasSkills, skill.Nombre), skill)
+		deLaSkill, err := arreglosDeLaSkill(raiz, skill)
 		if err != nil {
 			return nil, err
 		}
@@ -519,10 +523,18 @@ func arreglosDe(raiz string, regenerado Regenerado) ([]arreglo, error) {
 	return arreglos, nil
 }
 
-// arreglosDeLaSkill son los arreglos de las derivas de la skill, cuyo directorio
-// es el dado: SKILL.md, las referencias y las entradas sobrantes de references/.
-func arreglosDeLaSkill(directorio string, skill SkillRegenerada) ([]arreglo, error) {
+// arreglosDeLaSkill son los arreglos de las derivas de la skill del repositorio
+// de raíz: SKILL.md, las referencias declaradas y las entradas sobrantes de
+// references/, que no son ni una referencia declarada ni una a mano (FR-012).
+func arreglosDeLaSkill(raiz string, skill SkillRegenerada) ([]arreglo, error) {
+	directorio := filepath.Join(raiz, carpetaDeLasSkills, skill.Nombre)
+
 	enReferences, err := entradasDeLaCarpeta(directorio, skill.Nombre, carpetaDeLasReferencias)
+	if err != nil {
+		return nil, err
+	}
+
+	aMano, err := ReferenciasAMano(os.DirFS(raiz), skill.Nombre)
 	if err != nil {
 		return nil, err
 	}
@@ -532,7 +544,7 @@ func arreglosDeLaSkill(directorio string, skill SkillRegenerada) ([]arreglo, err
 		return nil, err
 	}
 
-	ficheros := make([]string, 0, len(skill.Referencias))
+	conservadas := make([]string, 0, len(skill.Referencias)+len(aMano))
 
 	for _, referencia := range skill.Referencias {
 		deLaReferencia, err := arregloDelFichero(directorio, skill.Nombre,
@@ -542,10 +554,15 @@ func arreglosDeLaSkill(directorio string, skill SkillRegenerada) ([]arreglo, err
 		}
 
 		arreglos = append(arreglos, deLaReferencia...)
-		ficheros = append(ficheros, referencia.Fichero)
+		conservadas = append(conservadas, referencia.Fichero)
 	}
 
-	arreglos = append(arreglos, sobrantes(directorio, skill.Nombre, carpetaDeLasReferencias, enReferences, ficheros)...)
+	for _, referencia := range aMano {
+		conservadas = append(conservadas, referencia.Fichero)
+	}
+
+	arreglos = append(arreglos,
+		sobrantes(directorio, skill.Nombre, carpetaDeLasReferencias, enReferences, conservadas)...)
 
 	return arreglos, nil
 }
@@ -619,13 +636,14 @@ func arregloDelFichero(directorio, skill, relativa string, contenido []byte) ([]
 }
 
 // sobrantes son los arreglos de las entradas de la carpeta del directorio de la
-// skill que no son ninguno de los nombres esperados, en el orden de las entradas:
-// cada una, un fichero sobrante.
-func sobrantes(directorio, skill, carpeta string, entradas, esperados []string) []arreglo {
+// skill que no son ninguno de los nombres conservados —las referencias
+// declaradas y las referencias a mano—, en el orden de las entradas: cada una, un
+// fichero sobrante.
+func sobrantes(directorio, skill, carpeta string, entradas, conservadas []string) []arreglo {
 	var arreglos []arreglo
 
 	for _, entrada := range entradas {
-		if slices.Contains(esperados, entrada) {
+		if slices.Contains(conservadas, entrada) {
 			continue
 		}
 

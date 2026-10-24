@@ -80,6 +80,15 @@ const (
 // referenciasDeAlfa es el valor de kitlegal-referencias de alfa.
 const referenciasDeAlfa = "normas leyes_vertebrales jerarquia_normativa"
 
+// Lo que las pruebas de la sincronía dejan en references/ además de las
+// referencias declaradas (FR-012): un fichero sobrante, que abre con la cabecera
+// de una referencia generada sin que nadie lo declare, y una referencia a mano,
+// que no abre con ella.
+const (
+	sobranteConCabecera = "<!-- generado desde data/normas.yaml, no editar -->\n\n# Sobrante\n"
+	referenciaAMano     = "# Cómo se cita\n\nEl protocolo de detalle de la skill, escrito a mano.\n"
+)
+
 // Lo que la sincronía genera para alfa desde esas fuentes y desde
 // descripcionesDeSincronia, byte a byte: la región de su tabla de comandos, con
 // una sección por applet en el orden de su declaración (contrato
@@ -180,7 +189,9 @@ func descripcionesDeSincronia() []skills.DescripcionDeVerbo {
 // tabla de generadores que lleva su nombre, que no tiene por qué ser el de su
 // YAML de datos; Regenerar y Comparar no escriben nada; Escribir deja el árbol sin
 // derivas y sin ningún scripts/ (ADR 0019; FR-080), y un segundo Escribir no
-// cambia ningún byte ni ningún tiempo de modificación; cada clase de deriva nombra
+// cambia ningún byte ni ningún tiempo de modificación; una referencia a mano no es
+// deriva y Escribir no la toca, mientras que la declarada sin su cabecera y el .md
+// no declarado que abre con ella sí lo son (FR-012); cada clase de deriva nombra
 // la skill y el fichero, y Escribir la deshace; y cada defecto de una skill —entre
 // ellos, llevar scripts/ (FR-082)— nombra la skill, la deja sin nada que comparar
 // e impide que Escribir escriba nada.
@@ -236,7 +247,8 @@ func TestRegenerarYComparar(t *testing.T) {
 		t.Parallel()
 
 		raiz := arbolDeFuentes(t)
-		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), "# Sobrante\n")
+		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), sobranteConCabecera)
+		escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"), referenciaAMano)
 
 		require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
 		require.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
@@ -258,8 +270,56 @@ func TestRegenerarYComparar(t *testing.T) {
 		assert.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
 	})
 
+	t.Run("referencias-a-mano", probarReferenciasAMano)
+
 	probarDerivas(t)
 	probarDefectos(t)
+}
+
+// probarReferenciasAMano fija la clasificación de FR-012 en la sincronía
+// (contracts/gates-de-skills-check.md §3; research D13): sobre un árbol
+// sincronizado con una referencia a mano en cada skill —en beta, con el nombre de
+// una referencia que no declara—, la referencia declarada sin su cabecera, un .md
+// no declarado que abre con ella y una entrada que no es un .md, Comparar da la
+// deriva de la declarada y las dos sobrantes, y ninguna de las referencias a
+// mano; Escribir rehace la declarada, retira las sobrantes y no toca las
+// referencias a mano, ni sus bytes ni su tiempo de modificación.
+func probarReferenciasAMano(t *testing.T) {
+	t.Parallel()
+
+	raiz := arbolSincronizado(t)
+	aMano := []string{"skills/alfa/references/como_se_cita.md", "skills/beta/references/normas.md"}
+
+	for _, ruta := range aMano {
+		escribirFicheroDePrueba(t, filepath.Join(raiz, filepath.FromSlash(ruta)), referenciaAMano)
+	}
+
+	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "normas.md"),
+		"<!-- generado desde data/normas.yaml, no editar -->\n", "")
+	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "antigua.md"), sobranteConCabecera)
+	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "notas.txt"), referenciaAMano)
+
+	assert.Equal(t, []*skills.Deriva{
+		{Skill: "alfa", Ruta: "references/normas.md", Clase: skills.DerivaContenidoDistinto},
+		{Skill: "alfa", Ruta: "references/antigua.md", Clase: skills.DerivaFicheroSobrante},
+		{Skill: "alfa", Ruta: "references/notas.txt", Clase: skills.DerivaFicheroSobrante},
+	}, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
+
+	envejecer(t, raiz)
+	antes := fotografiar(t, raiz)
+
+	require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
+	assert.Empty(t, compararSinDefectos(t, raiz, descripcionesDeSincronia()))
+
+	despues := fotografiar(t, raiz)
+	for _, ruta := range aMano {
+		assert.Equal(t, antes[ruta], despues[ruta], "Escribir no toca la referencia a mano %s", ruta)
+		assert.Equal(t, referenciaAMano, despues[ruta].Contenido)
+	}
+
+	assert.Equal(t, referenciaDeAlfa, leerFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "normas.md")))
+	assert.NotContains(t, despues, "skills/alfa/references/antigua.md")
+	assert.NotContains(t, despues, "skills/alfa/references/notas.txt")
 }
 
 // probarDerivas fija cada clase de deriva de data-model §5: sobre un árbol
@@ -366,6 +426,19 @@ func probarDerivas(t *testing.T) {
 			mensaje: "alfa: references/normas.md: contenido-distinto (no es un fichero regular)",
 		},
 		{
+			// Declarada, es la referencia generada aunque haya perdido la cabecera
+			// (FR-012).
+			nombre: "referencia-declarada-sin-cabecera",
+			alterar: func(t *testing.T, raiz string) {
+				t.Helper()
+
+				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "normas.md"),
+					"<!-- generado desde data/normas.yaml, no editar -->\n", "")
+			},
+			deriva:  skills.Deriva{Skill: "alfa", Ruta: "references/normas.md", Clase: skills.DerivaContenidoDistinto},
+			mensaje: "alfa: references/normas.md: contenido-distinto",
+		},
+		{
 			nombre: "referencia-ausente",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
@@ -380,7 +453,7 @@ func probarDerivas(t *testing.T) {
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
-				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "antigua.md"), "# Antigua\n")
+				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "antigua.md"), sobranteConCabecera)
 			},
 			deriva:  skills.Deriva{Skill: "alfa", Ruta: "references/antigua.md", Clase: skills.DerivaFicheroSobrante},
 			mensaje: "alfa: references/antigua.md: fichero-sobrante",
@@ -693,7 +766,7 @@ func probarDefectos(t *testing.T) {
 
 			// beta no tiene defectos y sí una deriva, que Comparar sigue viendo y que
 			// Escribir tampoco deshace.
-			escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), "# Sobrante\n")
+			escribirFicheroDePrueba(t, rutaDeSkill(raiz, "beta", "references", "sobrante.md"), sobranteConCabecera)
 			envejecer(t, raiz)
 			antes := fotografiar(t, raiz)
 

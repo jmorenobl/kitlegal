@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -689,4 +690,221 @@ func comprobarDatosDeTextos(t *testing.T) {
 			assert.Equal(t, caso.datos, datos)
 		})
 	}
+}
+
+// Los dos contenidos de las entradas de references/ de TestReferenciasAMano: uno
+// que abre con la cabecera de una referencia generada y otro que no.
+const (
+	contenidoConCabecera = "<!-- generado desde data/normas.yaml, no editar -->\n\n# Normas de referencia\n"
+	contenidoSinCabecera = "# Cómo se cita\n\nEl protocolo de detalle, escrito a mano.\n"
+)
+
+// TestReferenciasAMano fija la clasificación de FR-012 (contracts/
+// gates-de-skills-check.md §3; research D13; data-model §3) sobre la raíz de un
+// repositorio en un fstest.MapFS, con las skills de la sincronía: alfa declara
+// normas, leyes_vertebrales y jerarquia_normativa, y beta no declara ninguna. De
+// las cinco clases de entradas de references/ —lo que no es un fichero regular
+// .md (un subdirectorio, un enlace, otra extensión), la referencia declarada, con
+// o sin su cabecera, la declarada y ausente, la no declarada que abre con la
+// cabecera y la no declarada que no abre con ella—, solo la última es una
+// referencia a mano, también con el nombre de una fila de la tabla de generadores
+// en una skill que no la declara; van con sus bytes y en orden de nombre.
+func TestReferenciasAMano(t *testing.T) {
+	t.Parallel()
+
+	casos := []struct {
+		nombre string
+
+		// skill es la del árbol cuyas referencias a mano se piden.
+		skill string
+
+		// entradas son las de references/ de la skill, por su ruta dentro de él.
+		entradas fstest.MapFS
+
+		// aMano son los nombres de las referencias a mano, en su orden.
+		aMano []string
+	}{
+		{nombre: "subdirectorio", skill: "alfa", entradas: fstest.MapFS{"anexos.md/nota.md": sinCabecera()}},
+		{
+			nombre: "enlace",
+			skill:  "alfa",
+			entradas: fstest.MapFS{
+				"enlace.md":       {Data: []byte("como_se_cita.md"), Mode: fs.ModeSymlink},
+				"como_se_cita.md": sinCabecera(),
+			},
+			aMano: []string{"como_se_cita.md"},
+		},
+		{nombre: "otra-extension", skill: "alfa", entradas: fstest.MapFS{"notas.txt": sinCabecera()}},
+		{nombre: "declarada-con-cabecera", skill: "alfa", entradas: fstest.MapFS{"normas.md": conCabecera()}},
+		{nombre: "declarada-sin-cabecera", skill: "alfa", entradas: fstest.MapFS{"normas.md": sinCabecera()}},
+		{nombre: "declaradas-y-ausentes", skill: "alfa", entradas: fstest.MapFS{}},
+		{nombre: "no-declarada-con-cabecera", skill: "alfa", entradas: fstest.MapFS{"antigua.md": conCabecera()}},
+		{
+			nombre:   "no-declarada-sin-cabecera",
+			skill:    "alfa",
+			entradas: fstest.MapFS{"como_se_cita.md": sinCabecera()},
+			aMano:    []string{"como_se_cita.md"},
+		},
+		{
+			nombre:   "con-el-nombre-de-un-generador-sin-declararla",
+			skill:    "beta",
+			entradas: fstest.MapFS{"normas.md": sinCabecera(), "antigua.md": conCabecera()},
+			aMano:    []string{"normas.md"},
+		},
+		{
+			nombre: "todas-las-clases-juntas",
+			skill:  "alfa",
+			entradas: fstest.MapFS{
+				"anexos.md/nota.md":      sinCabecera(),
+				"enlace.md":              {Data: []byte("ambito.md"), Mode: fs.ModeSymlink},
+				"notas.txt":              sinCabecera(),
+				"normas.md":              sinCabecera(),
+				"jerarquia_normativa.md": conCabecera(),
+				"antigua.md":             conCabecera(),
+				"como_se_cita.md":        sinCabecera(),
+				"ambito.md":              {Data: []byte("# Ámbito\n\nOtra referencia escrita a mano.\n")},
+			},
+			aMano: []string{"ambito.md", "como_se_cita.md"},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			arbol := arbolDeLasSkills()
+			references := "skills/" + caso.skill + "/references"
+			arbol[references] = &fstest.MapFile{Mode: fs.ModeDir | 0o750}
+
+			for ruta, entrada := range caso.entradas {
+				arbol[references+"/"+ruta] = entrada
+			}
+
+			var esperadas []skills.Referencia
+			for _, nombre := range caso.aMano {
+				esperadas = append(esperadas, skills.Referencia{Fichero: nombre, Contenido: caso.entradas[nombre].Data})
+			}
+
+			aMano, err := skills.ReferenciasAMano(arbol, caso.skill)
+			require.NoError(t, err)
+			assert.Equal(t, esperadas, aMano)
+		})
+	}
+
+	t.Run("sin-references", func(t *testing.T) {
+		t.Parallel()
+
+		aMano, err := skills.ReferenciasAMano(arbolDeLasSkills(), "alfa")
+		require.NoError(t, err)
+		assert.Empty(t, aMano)
+	})
+
+	probarReferenciasAManoSinPoderLeer(t)
+}
+
+// probarReferenciasAManoSinPoderLeer fija los errores de ReferenciasAMano, cada
+// uno con lo que no se puede leer: references/ que no es un directorio, la skill
+// sin SKILL.md o con un frontmatter que no se lee, y una referencia que no se
+// puede abrir.
+func probarReferenciasAManoSinPoderLeer(t *testing.T) {
+	t.Helper()
+
+	casos := []struct {
+		nombre string
+
+		// alterar deja el árbol, que tiene ya references/como_se_cita.md en alfa,
+		// como lo pide el caso, y devuelve el que se lee.
+		alterar func(arbol fstest.MapFS) fs.FS
+
+		prefijo string
+		causa   error
+	}{
+		{
+			nombre: "references-que-no-es-un-directorio",
+			alterar: func(arbol fstest.MapFS) fs.FS {
+				delete(arbol, "skills/alfa/references/como_se_cita.md")
+				arbol["skills/alfa/references"] = sinCabecera()
+
+				return arbol
+			},
+			prefijo: "skills/alfa/references no se puede listar: ",
+		},
+		{
+			nombre: "sin-skill-md",
+			alterar: func(arbol fstest.MapFS) fs.FS {
+				delete(arbol, "skills/alfa/SKILL.md")
+
+				return arbol
+			},
+			prefijo: "skills/alfa/SKILL.md no se puede leer: ",
+			causa:   fs.ErrNotExist,
+		},
+		{
+			nombre: "frontmatter-que-no-se-lee",
+			alterar: func(arbol fstest.MapFS) fs.FS {
+				arbol["skills/alfa/SKILL.md"] = &fstest.MapFile{Data: []byte("# Alfa sin frontmatter\n")}
+
+				return arbol
+			},
+			prefijo: "skills/alfa/SKILL.md: ",
+		},
+		{
+			nombre: "referencia-que-no-se-puede-abrir",
+			alterar: func(arbol fstest.MapFS) fs.FS {
+				return arbolQueNoAbre{FS: arbol, ruta: "skills/alfa/references/como_se_cita.md"}
+			},
+			prefijo: "skills/alfa/references/como_se_cita.md no se puede leer: ",
+			causa:   fs.ErrPermission,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			arbol := arbolDeLasSkills()
+			arbol["skills/alfa/references/como_se_cita.md"] = sinCabecera()
+
+			aMano, err := skills.ReferenciasAMano(caso.alterar(arbol), "alfa")
+			require.Error(t, err)
+			assert.Nil(t, aMano)
+			assert.True(t, strings.HasPrefix(err.Error(), caso.prefijo), "error: %v", err)
+
+			if caso.causa != nil {
+				require.ErrorIs(t, err, caso.causa)
+			}
+		})
+	}
+}
+
+// arbolDeLasSkills es la raíz de un repositorio con el SKILL.md de las dos skills
+// de la sincronía, sin ninguna references/, en un árbol nuevo en cada llamada.
+func arbolDeLasSkills() fstest.MapFS {
+	return fstest.MapFS{
+		"skills/alfa/SKILL.md": {Data: []byte(skillMdDeAlfaSinSincronizar)},
+		"skills/beta/SKILL.md": {Data: []byte(skillMdDeBetaSinNadaQueGenerar)},
+	}
+}
+
+// conCabecera y sinCabecera son un fichero regular nuevo con cada uno de los dos
+// contenidos.
+func conCabecera() *fstest.MapFile { return &fstest.MapFile{Data: []byte(contenidoConCabecera)} }
+
+func sinCabecera() *fstest.MapFile { return &fstest.MapFile{Data: []byte(contenidoSinCabecera)} }
+
+// arbolQueNoAbre es un árbol que no abre la ruta dada. Solo tiene Open, así que
+// fs.ReadDir y fs.ReadFile pasan por él.
+type arbolQueNoAbre struct {
+	fs.FS
+
+	ruta string
+}
+
+// Open da un error de permiso para la ruta dada y abre las demás.
+func (a arbolQueNoAbre) Open(nombre string) (fs.File, error) {
+	if nombre == a.ruta {
+		return nil, &fs.PathError{Op: "open", Path: nombre, Err: fs.ErrPermission}
+	}
+
+	return a.FS.Open(nombre)
 }
