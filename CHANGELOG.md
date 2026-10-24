@@ -31,6 +31,19 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **`jurisprudencia` v0.2: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
+  escritas a mano** (H31; ADR 0046). Sustituye a `jurisprudencia` v0.1.2. Cambia la forma de lo que lee el modelo, no
+  ninguna regla: cada una de las 74 reglas de v0.1.2 tiene su sitio en la nueva (`research.md` de H31, «Tabla de
+  reglas»). El cuerpo pasa de 193 líneas y 13 637 caracteres a 159 y 10 859, y conserva la entrada con las reglas del
+  CENDOJ, los siete pasos con la línea `⚠ SENTENCIA NO COMPROBADA:`, lo que se pide según cómo se dio la referencia,
+  el cotejo antes de nada y la forma de la cita, la tabla de comandos, que no cambia, y las seis reglas.
+  `references/consulta_preparada.md` lleva la orden de cada forma de la referencia y por qué un número sin fecha no se
+  prepara, las casillas, el equivalente y la búsqueda por materia, y los pasos 2 y 6 dicen cuándo leerla;
+  `references/documento_aportado.md` lleva qué se pasa del documento y cómo, lo que devuelve el cotejo y qué se dice si
+  no es la pedida, si su ROJ y su ECLI no se corresponden o si no lleva ficha, y el paso 3 dice cuándo leerla. Lo que
+  la herramienta devuelve en lugar del código de salida pasa del protocolo al párrafo de los códigos de «Comandos». La
+  descripción pasa a tercera persona («Se usa…», «Se activa…», «el agente crea conocerla») con los mismos
+  disparadores. Las referencias viajan en el binario, y `kitlegal skills install` las instala con la skill.
 - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de

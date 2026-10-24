@@ -1,14 +1,14 @@
 ---
 name: jurisprudencia
 description: >-
-  Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Úsala siempre que la pregunta
-  nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la sentencia
-  del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia («qué dice
-  la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando creas
-  conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del CENDOJ: prepara
-  la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae. Actívala antes de
-  llamar a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante y cómo citar la
-  que sí lo dice la skill.
+  Sentencias y jurisprudencia de los tribunales españoles, sin citar ninguna de memoria. Se usa siempre que la
+  pregunta nombre, pida, cite o resuma una sentencia o un auto —«STS 1088/2023, de 4 de julio», un ECLI, un ROJ, «la
+  sentencia del Supremo sobre…»—, pregunte si una sentencia existe o qué dice, pida jurisprudencia sobre una materia
+  («qué dice la jurisprudencia sobre la cláusula suelo») o traiga el texto o el PDF de una resolución, también cuando
+  el agente crea conocerla: una sentencia solo se cita con su documento delante. kitlegal no consulta el buscador del
+  CENDOJ: prepara la consulta exacta para que la persona la busque con su navegador y coteja el documento que trae.
+  Se activa antes de llamar a cita_preparar o a cita_cotejar: qué pedir, qué decir de la sentencia que no está delante
+  y cómo citar la que sí lo dice la skill.
 metadata:
   kitlegal-applets: cita
 ---
@@ -16,13 +16,12 @@ metadata:
 # Sentencias: la consulta exacta, el documento cotejado y ninguna cita de memoria
 
 Esta skill responde cuando hace falta una sentencia o un auto de un tribunal español. kitlegal **no consulta el
-buscador de jurisprudencia del CENDOJ**: el buscador cierra el paso a los programas con un CAPTCHA, y no se sortea.
-Ese obstáculo es de los programas y no de la persona: a ella, con su navegador, no le sale. Por eso la respuesta no
-le anuncia un CAPTCHA ni le pide que resuelva ninguno. La búsqueda la hace la persona con su navegador, y la skill le
-quita el trabajo de alrededor: le da la consulta exacta —la dirección y cada casilla con su valor— y, cuando trae el
+buscador de jurisprudencia del CENDOJ**: cierra el paso a los programas con un CAPTCHA, y no se sortea. La búsqueda
+la hace la persona con su navegador, y a ella no le sale: la respuesta no le anuncia un CAPTCHA ni le pide que
+resuelva ninguno. La skill le da la consulta exacta —la dirección y cada casilla con su valor— y, cuando trae el
 documento, comprueba que es el que se pidió. Una sentencia citada de memoria puede no existir, y un escrito que la
-lleve se paga caro: por eso **solo se cita la sentencia cuyo documento está en la conversación**. La skill prepara,
-coteja y cita: no tramita nada y no sustituye el asesoramiento de un profesional.
+lleve se paga caro: **solo se cita la sentencia cuyo documento está en la conversación**. La skill prepara, coteja y
+cita: no tramita nada y no sustituye el asesoramiento de un profesional.
 
 ## Protocolo
 
@@ -34,8 +33,7 @@ Sigue los pasos que pida la pregunta. Las dos operaciones se piden de una de dos
   argumentos. Si la tienes, úsala siempre.
 - **Con su orden**, `kitlegal cita <verbo> … --json`, si no la tienes. Siempre con `--json`.
 
-Donde un paso dice que una orden termina con un código, con la herramienta el resultado viene marcado como error y su
-`data.clase` dice cuál («Comandos»). Ninguna de las dos pide nada a la red: no dicen si una sentencia existe.
+Ninguna de las dos pide nada a la red: no dicen si una sentencia existe.
 
 ### 1. Qué sentencias hacen falta, y cuáles están delante
 
@@ -57,69 +55,42 @@ principio de una línea —`⚠`, la etiqueta `SENTENCIA NO COMPROBADA`, dos pun
 ⚠ SENTENCIA NO COMPROBADA: STS 1088/2023, de 4 de julio
 ```
 
-Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Cómo se pide depende de cómo se
+Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Lo que se pide depende de cómo se
 dio la referencia:
 
-| Cómo se dio | Qué se pide | Orden |
-|---|---|---|
-| Un ECLI (`ECLI:ES:TS:2023:3144`) | `ecli` | `kitlegal cita preparar ECLI:ES:TS:2023:3144 --json` |
-| Un ROJ dicho como tal («ROJ: STS 3144/2023») | `roj` | `kitlegal cita preparar --roj "STS 3144/2023" --json` |
-| Número y fecha («STS 1088/2023, de 4 de julio») | `resolucion` y `fecha` | `kitlegal cita preparar --resolucion 1088/2023 --fecha 2023-07-04 --json` |
-| Número sin fecha («la STS 1088/2023») | nada: se pide la fecha | — |
+| Cómo se dio | Qué se pide |
+|---|---|
+| Un ECLI (`ECLI:ES:TS:2023:3144`) | `ecli` |
+| Un ROJ dicho como tal («ROJ: STS 3144/2023») | `roj` |
+| Número y fecha («STS 1088/2023, de 4 de julio») | `resolucion` y `fecha` |
+| Número sin fecha («la STS 1088/2023») | nada: **sin fecha no se prepara de ninguna forma**, tampoco como ROJ; lleva la línea y se pide la fecha |
 
 - Una cita escrita como «STS 1088/2023, de 4 de julio» lleva el **número de resolución**, no el ROJ: se prepara con
   `resolucion` y con `fecha` en la forma `AAAA-MM-DD`. El año de la fecha es el del número, salvo que la cita diga otro.
-- **Sin fecha no se prepara de ninguna forma**, tampoco como ROJ: los ROJ son correlativos, y ese mismo número es el
-  ROJ de otra sentencia. La respuesta lleva la línea y pide la fecha.
 - La respuesta da la consulta con lo que devuelve la operación, sin escribir nada de memoria: la **dirección** del
-  buscador (`direccion`) y **cada casilla con su valor** (`casillas`: el nombre que la persona ve en la pantalla, la
-  parte de la casilla si tiene dos —«Desde» y «Hasta»— y lo que hay que escribir). Dile a la persona qué hacer: abrir
-  la dirección, escribir cada valor en su casilla, buscar, descargar el documento y traerlo —pegado o adjunto—.
-- Si la operación da además un **equivalente** —el ROJ de un ECLI o el ECLI de un ROJ—, puedes nombrarlo junto a la
-  referencia, y entonces dilo como lo que es: deducido de esa referencia, sin que nadie lo haya comprobado. No lo
-  compongas tú: solo se deduce para el Tribunal Supremo, y cuando no viene no lo hay.
+  buscador y **cada casilla con su valor**. Dile a la persona qué hacer: abrir la dirección, escribir cada valor en su
+  casilla, buscar, descargar el documento y traerlo —pegado o adjunto—.
 - **La respuesta no dice que la sentencia existe ni que no existe**: nadie lo ha comprobado. Tampoco dice de qué
   trata, qué resolvió ni si es firme (paso 5).
+
+Antes de dar la consulta, lee [references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada
+forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación.
 
 ### 3. Con el documento delante: cotejar su ficha
 
 - **El cotejo es lo primero** que se hace con un documento que está en la conversación, sea su texto pegado o un PDF
-  que has leído: su ficha va a `cita_cotejar`, o a su orden, como se dice debajo, antes de escribir ninguna frase
-  sobre él.
+  que has leído: su ficha va a `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él.
 - **Nada del documento antes del cotejo**: ni que es la sentencia pedida, ni que coincide con ella, ni de qué trata.
 - **Si es o no la pedida lo dice `es_la_pedida`**, lo que devuelve la operación, y nunca una comparación hecha a ojo
-  entre el documento y la referencia, que falla cuando el número de resolución del documento es el ROJ pedido:
-  1088/2023 es el número de resolución del documento del ROJ STS 3144/2023, y el ROJ STS 1088/2023 es el de otra
-  sentencia.
+  entre el documento y la referencia.
+- Si se había pedido una sentencia concreta, da además la referencia en la forma en que se pidió (`ecli`, `roj`, o
+  `resolucion` con `fecha`).
+- **Si el documento no es el pedido, no lo cites como si fuera el pedido.** La sentencia pedida sigue sin estar
+  delante: va por el paso 2, con su línea y su consulta, preparada en la forma en que se pidió.
 
-Pasa a `cita_cotejar`, en `documento`, **la ficha y nada más**: sus líneas tal como están en el documento, desde la
-de `Roj:` hasta la de `Tipo de Resolución:`, con las que haya entre ellas. La operación solo lee la ficha: el resto
-del texto no cambia lo que devuelve, y copiarlo alarga cada cotejo con el tamaño de la sentencia. Si se había pedido
-una sentencia concreta, da además la referencia en la forma en que se pidió (`ecli`, `roj`, o `resolucion` con
-`fecha`). Con la orden, la ficha va por la entrada estándar, o en `--documento` si tu shell no tiene `<<`:
-
-```bash
-kitlegal cita cotejar --roj "STS 1088/2023" --json <<'DOCUMENTO'
-Roj: STS 3144/2023 - ECLI:ES:TS:2023:3144
-…las demás líneas de la ficha, hasta la de «Tipo de Resolución:»…
-DOCUMENTO
-```
-
-- Un PDF lo lees tú y pasas su ficha: kitlegal no abre ficheros.
-- Devuelve los ocho datos de la ficha (`ficha`), si el documento es el pedido (`es_la_pedida`, solo si diste una
-  referencia) y, si no lo es, un hallazgo que dice qué difiere (`hallazgos`).
-- **Si el documento no es el pedido**, dilo con lo que difiere, con las palabras del hallazgo —por ejemplo, que
-  1088/2023 es el número de resolución de ese documento y no su ROJ—, y **no lo cites como si fuera el pedido**. La
-  sentencia pedida sigue sin estar delante: va por el paso 2, con su línea y su consulta, preparada en la forma en que
-  se pidió.
-- Mira también `correspondencia`. Con `no-se-corresponden`, el ROJ y el ECLI de la ficha no son de la misma
-  resolución: **no cites el documento**, di que no se corresponden, da los dos tal como están en la ficha y pide a la
-  persona que vuelva a descargar el documento del buscador y lo traiga. Con cualquier otro valor, cita y no digas nada
-  de esto.
-- Si termina con el código 2 (`argumentos`) porque el texto no lleva una ficha reconocible, mira el dato que nombra
-  el mensaje. Si está en el documento, no pasaste la ficha entera: repite el cotejo con todas sus líneas. Si no
-  está, no hay sentencia que citar: di qué falta —el encabezamiento del documento del CENDOJ, o ese dato— y pide el
-  documento completo. Sobre un texto sin ficha puedes responder, sin atribuirlo a una sentencia identificada.
+Con cada documento, antes del cotejo, lee [references/documento_aportado.md](references/documento_aportado.md): qué
+se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se corresponden o si no lleva
+ficha.
 
 ### 4. Citar
 
@@ -149,15 +120,10 @@ STS 1088/2023, de 4 de julio [ECLI:ES:TS:2023:3144, ROJ: STS 3144/2023]
 
 ### 6. Una pregunta por materia
 
-Ante «qué dice la jurisprudencia sobre…», pide `cita_preparar` con los términos de la pregunta en `texto`, o su orden:
-
-```bash
-kitlegal cita preparar --texto "cláusula suelo" --json
-```
-
-Da la dirección que devuelve, que abre el buscador con esa búsqueda ya hecha; dile a la persona que descargue las
-sentencias que le interesen y las adjunte; y sigue con lo que traiga (pasos 3 a 5). **Mientras tanto no cites
-ninguna sentencia de memoria**, ni como ejemplo: si la respuesta necesita una, va por el paso 2.
+Ante «qué dice la jurisprudencia sobre…», lee «La búsqueda por materia» en
+[references/consulta_preparada.md](references/consulta_preparada.md), pide `cita_preparar` con los términos de la
+pregunta en `texto`, o su orden, y da la dirección que devuelve. **Mientras tanto no cites ninguna sentencia de
+memoria**, ni como ejemplo: si la respuesta necesita una, va por el paso 2.
 
 ### 7. Una sentencia del Tribunal Constitucional
 
@@ -167,11 +133,11 @@ paso 2 —esa línea anuncia una consulta en el CENDOJ— y no pidas `cita_prepa
 
 ## Comandos
 
-`kitlegal` se invoca desde el `PATH`, y cada herramienta, por el nombre de su fila. Códigos de salida, y entre
-paréntesis la `data.clase` del error de la herramienta: 0 correcto —también cuando el documento no es el pedido, que
-es un hallazgo y no un fallo— y 2 (`argumentos`) con una referencia mal formada, más de una forma de referencia, un
-número de resolución sin su fecha, un texto de búsqueda vacío o un documento sin ficha reconocible. Ante un error de
-argumentos, corrige la llamada o pide a la persona lo que falta, y no cites.
+`kitlegal` se invoca desde el `PATH`, y cada herramienta, por el nombre de su fila. Códigos de salida de la orden, y
+entre paréntesis la `data.clase` del resultado que la herramienta marca como error: 0 correcto —también cuando el
+documento no es el pedido, que es un hallazgo y no un fallo— y 2 (`argumentos`) con una referencia mal formada, más de
+una forma de referencia, un número de resolución sin su fecha, un texto de búsqueda vacío o un documento sin ficha
+reconocible. Ante un error de argumentos, corrige la llamada o pide a la persona lo que falta, y no cites.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 

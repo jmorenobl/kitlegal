@@ -1,17 +1,16 @@
 {
-  "id": "T004",
-  "texto": "T004 [US5] Llevar los controles 8 y 9 de contracts/controles-de-contenido.md a las referencias a mano (FR-016, FR-017; research D16) en `TestSkillsDelRepositorio` de `internal/app/skills_test.go`: `normas-nombradas` comprueba cada «Ley N/AAAA», «LO…» y «RD…» del `SKILL.md` y de cada referencia a mano (`skills.ReferenciasAMano`) contra los títulos de `normas.yaml`, el registro de normas, con el fichero en el defecto; `sin-instrucciones-de-evals` sigue leyendo el `SKILL.md` sin la región y todo `references/*.md`. Mutantes sobre `copiaConLaSkill`: una norma que no está en `normas.yaml` escrita en una referencia a mano y una instrucción de las evals escrita en una referencia a mano, cada uno con su defecto; en rojo si alguno no se detecta. FR-016, FR-017, SC-005. Rutas: internal/app/skills_test.go",
+  "id": "T005",
+  "texto": "T005 [US1] Reescribir `jurisprudencia` según contracts/skills-reescritas.md, «jurisprudencia»: el cuerpo de `skills/jurisprudencia/SKILL.md` con los apartados de su tabla (entrada condensada con J06–J10; J15 en el párrafo de «Comandos»; paso 2 con J20, J22, J23, J25 y J27 y la línea que manda leer la consulta preparada; paso 3 con J31–J33, J35 y J40 y la línea que manda leer el documento aportado; paso 6 sin el bloque de la orden ni J57; pasos 1, 4, 5 y 7, «Reglas» y la región generada iguales; `boe-legislacion` sigue nombrada, J70) y las dos referencias a mano nuevas `skills/jurisprudencia/references/consulta_preparada.md` (La orden de cada forma · Las casillas · El equivalente · La búsqueda por materia) y `skills/jurisprudencia/references/documento_aportado.md` (La ficha y nada más · Lo que devuelve · El documento que no es el pedido · El ROJ y el ECLI que no se corresponden · Un texto sin ficha reconocible); la línea `⚠ SENTENCIA NO COMPROBADA:` solo en el cuerpo; todas las reglas del CENDOJ (J04, J06–J08, J16, J48, J67) en el cuerpo o en la descripción; descripción en tercera persona de como mucho 900 caracteres que cubra lo que hoy dice la de `main`. Entrada en `CHANGELOG.md`: `jurisprudencia` v0.2 (de v0.1.2), con lo que cambia (research D19). Comprobar con `make skills-check`, `make skills-sync` sin cambios en el árbol, `TestEvalsDelRepositorio`, `TestSkillsEmpotradas` y `make ci`. FR-013, FR-015, FR-020, FR-021, FR-022, FR-023, FR-024, SC-009, SC-012. Rutas: skills/jurisprudencia/SKILL.md, skills/jurisprudencia/references/consulta_preparada.md, skills/jurisprudencia/references/documento_aportado.md, CHANGELOG.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "7454fd58633775be19a1a3c5d7f4d0e4e969e6aa",
+  "base": "2b166e951e3a5393c6154df54411d78058de6525",
   "rutas": [
-    "N/AAAA",
-    "SKILL.md",
-    "contracts/controles-de-contenido.md",
-    "internal/app/skills_test.go",
-    "normas.yaml",
-    "references/*.md"
+    "CHANGELOG.md",
+    "contracts/skills-reescritas.md",
+    "skills/jurisprudencia/SKILL.md",
+    "skills/jurisprudencia/references/consulta_preparada.md",
+    "skills/jurisprudencia/references/documento_aportado.md"
   ],
   "cierre": false,
   "converger": false,
