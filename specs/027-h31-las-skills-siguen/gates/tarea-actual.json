@@ -1,34 +1,18 @@
 {
-  "id": "T007",
-  "texto": "T007 [US1] Reescribir `boe-legislacion` según contracts/skills-reescritas.md, «boe-legislacion»: el cuerpo de `skills/boe-legislacion/SKILL.md` con los apartados de su tabla (Protocolo; pasos 1 a 5; `## Cómo se cita`; `## Redacción en una fecha` con las tres formas fechadas juntas en un bloque `text`; `## Redacción modificada` con `⚠ REDACCIÓN MODIFICADA:`; `## Comandos` y la región generada; `## Reglas`, las ocho con su número, la 3 con las tres etiquetas de aviso, la 7 sin su frase y la 8 con la línea sin consulta sola en su bloque `text`; las órdenes `kitlegal boe indice BOE-A-2015-10565` y la de `a21` con su forma para PowerShell en el cuerpo; el enlace a la referencia generada `normas.md` desde el paso 1) y las siete referencias a mano nuevas `skills/boe-legislacion/references/con_herramientas.md`, `buscar_la_norma.md`, `varios_bloques.md` (con la orden de Bash de `articulos` y su forma para PowerShell), `lecturas_que_fallan.md` (con la frase de la regla 7 sola en un bloque `text`), `como_se_cita.md`, `redaccion_en_una_fecha.md` (con `kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json`) y `redaccion_modificada.md`, con los apartados y el contenido (B…) del contrato; los «Ejemplos que cambian» del contrato, entre ellos `kitlegal boe buscar <términos> --json` en lugar del ejemplo de `buscar` y la retirada del ejemplo de `analisis`, que la caché de una sesión no sirve (research D17); la prosa de cuerpo y referencias sin ninguna expresión de `expresiones-prohibidas.yaml`, el de sus evals, ni fecha AAAAMMDD con cifras (contrato, «Riesgos»); descripción en tercera persona de como mucho 900 caracteres (la «Descripción propuesta» del contrato o una equivalente). `normas.md` no cambia. Entrada en `CHANGELOG.md`: `boe-legislacion` v0.3 (de v0.2.2). Comprobar con `make skills-check`, `make skills-sync` sin cambios en el árbol, `TestEvalsDelRepositorio`, `TestOrdenesParaPowerShell`, `TestSkillsEmpotradas` y `make ci`. Redelimitada en el intento 1: con las órdenes de `articulos` en `varios_bloques.md`, los mutantes `ordenes-de-articulos-en-una-referencia` y `sin-las-ordenes-de-articulos` de `TestControlesSobreLasReferenciasAMano` quitan de `SKILL.md` unas líneas que ya no lleva y salen en rojo; en `internal/evals/conjunto_test.go`, el primero pasa a llevarlas de `varios_bloques.md` al final de `SKILL.md` (`ordenes-de-articulos-en-skill-md`, sin defecto) y el segundo a quitarlas de `varios_bloques.md`, con el defecto de hoy (`quitarDelFichero`, `sinLasLineas` con el fichero, `conLasLineasLlevadasAlSkillMd`; `conLasLineasMovidas` sin el parámetro que ya solo recibe verdadero; el diff, en gates/tarea-T007.md). FR-013, FR-015, FR-019, FR-020, FR-021, FR-022, FR-023, FR-024, SC-009, SC-012. Rutas: skills/boe-legislacion/SKILL.md, skills/boe-legislacion/references/con_herramientas.md, skills/boe-legislacion/references/buscar_la_norma.md, skills/boe-legislacion/references/varios_bloques.md, skills/boe-legislacion/references/lecturas_que_fallan.md, skills/boe-legislacion/references/como_se_cita.md, skills/boe-legislacion/references/redaccion_en_una_fecha.md, skills/boe-legislacion/references/redaccion_modificada.md, CHANGELOG.md, internal/evals/conjunto_test.go",
-  "intento": 2,
+  "id": "T008",
+  "texto": "T008 [US5] Construir el control 10 de contracts/controles-de-contenido.md (FR-019; research D17) en `internal/evals/conjunto_test.go`: el extractor `ordenesDeEjemplo`, junto a `ordenesDeLectura`, que de cada tramo de código que ya recorre `ordenesDeLectura` toma cada aparición de `kitlegal boe` con lo que la sigue hasta el primer `&&`, `;` o `|`, sin `--json`, y la da como orden concreta si lleva un verbo y al menos un argumento y ningún marcador `<…>`, `...` ni `…`; `TestOrdenesDeEjemplo` sobre Markdown escrito en el test (la orden de un bloque en su forma de Bash y en la de PowerShell, la de código en línea, cada una con su línea y su `--fecha <día>`; ninguna de la que lleva un marcador, de la mención del verbo sin argumentos ni de la prosa); el subtest `ordenes-de-ejemplo` de `TestEvalsDelRepositorio`, que en cada skill con evals ejecuta cada orden concreta del `SKILL.md` y de sus referencias a mano con `ComprobarSinRed` (`--offline`) sobre `cacheDeUnaSesion` de la primera eval de la carpeta de evals de la skill, por nombre, que no declara `sin_servir`, da una `Falta` por cada una que no sale con 0 con el defecto `<skill>: <fichero>: «…» terminó con código N: …` y exige al menos una orden en el repositorio; y el mutante del control 10 en `TestControlesSobreLasReferenciasAMano` (una orden de `buscar` sin marcador en una referencia a mano de una copia, en rojo). Ajustar `cacheDeUnaSesion` en `internal/evals/preparar_test.go` o `internal/evals/preparar.go` solo si el control lo necesita. En verde con las skills de T005–T007. FR-019, SC-005. Rutas: internal/evals/conjunto_test.go, internal/evals/preparar.go, internal/evals/preparar_test.go",
+  "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "128fad913ebe94d0c249fe236332f08d4dc90b92",
+  "base": "a6ac1caf50ce261cba34e20403d542a574f9903a",
   "rutas": [
-    "CHANGELOG.md",
     "SKILL.md",
-    "buscar_la_norma.md",
-    "como_se_cita.md",
-    "contracts/skills-reescritas.md",
-    "expresiones-prohibidas.yaml",
-    "gates/tarea-T007.md",
+    "contracts/controles-de-contenido.md",
     "internal/evals/conjunto_test.go",
-    "lecturas_que_fallan.md",
-    "normas.md",
-    "redaccion_en_una_fecha.md",
-    "redaccion_modificada.md",
-    "skills/boe-legislacion/SKILL.md",
-    "skills/boe-legislacion/references/buscar_la_norma.md",
-    "skills/boe-legislacion/references/como_se_cita.md",
-    "skills/boe-legislacion/references/con_herramientas.md",
-    "skills/boe-legislacion/references/lecturas_que_fallan.md",
-    "skills/boe-legislacion/references/redaccion_en_una_fecha.md",
-    "skills/boe-legislacion/references/redaccion_modificada.md",
-    "skills/boe-legislacion/references/varios_bloques.md",
-    "varios_bloques.md"
+    "internal/evals/preparar.go",
+    "internal/evals/preparar_test.go"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "b339809240877514acbe4b7f1fbc0b26a9704ccf0a3b97e5b619dfdad883efda"
+  "nota": "-"
 }

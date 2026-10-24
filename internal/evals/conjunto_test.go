@@ -2000,7 +2000,10 @@ const (
 // exigiendo en SKILL.md, y cada línea ⚠ de una referencia a mano de
 // boe-legislacion y de legal-core es una de su SKILL.md
 // (contracts/controles-de-contenido.md de H31; research D16 de H31; FR-016 a
-// FR-018). Lee las carpetas enteras.
+// FR-018); y cada orden de ejemplo concreta de kitlegal boe de la skill entera
+// de cada skill con evals sale con 0 con --offline sobre la caché de una sesión
+// de su skill (contracts/controles-de-contenido.md §10 de H31; research D17 de
+// H31; FR-019). Lee las carpetas enteras.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2279,6 +2282,8 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		probarElControlDeContenido(t, controlDeLasLineasDeAviso)
 	})
+
+	t.Run("ordenes-de-ejemplo", probarLasOrdenesDeEjemplo)
 
 	t.Run("lo-que-lleva-a-leer", probarLoQueLlevaALeer)
 
@@ -3193,12 +3198,34 @@ func sinPrefijo(palabras, prefijo []string) (resto []string, conPrefijo bool) {
 }
 
 // ordenesDeLectura son las órdenes de lectura y comprobación del Markdown, en su
-// orden: cada línea de un bloque delimitado y cada tramo de código en línea fuera
-// de ellos que leerOrdenDeLectura lee como una. Como en CommonMark, un bloque que
-// no se cierra llega hasta el final.
+// orden: cada tramo de código (tramosDeCodigo) que leerOrdenDeLectura lee como
+// una.
 func ordenesDeLectura(markdown string) []ordenDeLectura {
+	var ordenes []ordenDeLectura
+
+	for _, tramo := range tramosDeCodigo(markdown) {
+		if orden, conForma := leerOrdenDeLectura(tramo.linea, tramo.texto); conForma {
+			ordenes = append(ordenes, orden)
+		}
+	}
+
+	return ordenes
+}
+
+// tramoDeCodigo es un tramo de código del Markdown: el número de la línea en
+// que está y su texto.
+type tramoDeCodigo struct {
+	linea int
+	texto string
+}
+
+// tramosDeCodigo son los tramos de código del Markdown en que se buscan sus
+// órdenes, en su orden: cada línea de un bloque delimitado, sin la sangría, y
+// cada tramo de código en línea fuera de ellos, sin sus acentos graves. Como en
+// CommonMark, un bloque que no se cierra llega hasta el final.
+func tramosDeCodigo(markdown string) []tramoDeCodigo {
 	var (
-		ordenes  []ordenDeLectura
+		tramos   []tramoDeCodigo
 		numero   int
 		enBloque bool
 	)
@@ -3207,27 +3234,99 @@ func ordenesDeLectura(markdown string) []ordenDeLectura {
 		numero++
 		recortada := strings.TrimSpace(linea)
 
-		var tramos []string
-
 		switch {
 		case strings.HasPrefix(recortada, delimitadorDeBloque):
 			enBloque = !enBloque
 		case enBloque:
-			tramos = []string{recortada}
+			tramos = append(tramos, tramoDeCodigo{linea: numero, texto: recortada})
 		default:
 			for _, codigo := range codigoEnLinea.FindAllString(recortada, -1) {
-				tramos = append(tramos, strings.Trim(codigo, "`"))
-			}
-		}
-
-		for _, tramo := range tramos {
-			if orden, conForma := leerOrdenDeLectura(numero, tramo); conForma {
-				ordenes = append(ordenes, orden)
+				tramos = append(tramos, tramoDeCodigo{linea: numero, texto: strings.Trim(codigo, "`")})
 			}
 		}
 	}
 
+	return tramos
+}
+
+// separadoresDeOrdenes son lo que termina una orden de ejemplo en su tramo de
+// código, también pegado a una palabra: lo que une dos órdenes en Bash, lo que
+// las separa en PowerShell y la tubería (contracts/controles-de-contenido.md §10
+// de H31).
+var separadoresDeOrdenes = []string{unionDeBash, ";", "|"}
+
+// marcadorDeEjemplo casa con lo que hace de una orden un ejemplo por concretar:
+// un marcador <…>, tres puntos o unos puntos suspensivos
+// (contracts/controles-de-contenido.md §10 de H31).
+var marcadorDeEjemplo = regexp.MustCompile(`<[^<>]*>|\.\.\.|…`)
+
+// ordenDeEjemplo es una orden de ejemplo concreta de kitlegal boe del Markdown
+// (contracts/controles-de-contenido.md §10 de H31): el número de la línea en que
+// está y la consulta que hace, sin --json, que le añade ComprobarSinRed.
+type ordenDeEjemplo struct {
+	linea    int
+	consulta Consulta
+}
+
+// ordenesDeEjemplo son las órdenes de ejemplo concretas de kitlegal boe del
+// Markdown, en su orden (contracts/controles-de-contenido.md §10 de H31; research
+// D17 de H31; FR-019): en cada tramo de código de los que lee ordenesDeLectura
+// (tramosDeCodigo), cada aparición de las palabras kitlegal boe con las que la
+// siguen hasta el primer &&, ; o | (palabrasHastaElSeparador), sin --json, si
+// son un verbo y al menos un argumento y no llevan ningún marcador
+// (marcadorDeEjemplo). La mención del verbo sin argumentos, la orden con un
+// marcador y la que está en la prosa no son órdenes concretas, y no se ejecutan.
+func ordenesDeEjemplo(markdown string) []ordenDeEjemplo {
+	var ordenes []ordenDeEjemplo
+
+	for _, tramo := range tramosDeCodigo(markdown) {
+		palabras := strings.Fields(tramo.texto)
+
+		for posicion := range palabras {
+			resto, conLectura := sinPrefijo(palabras[posicion:], lecturaDeLaOrden)
+			if !conLectura {
+				continue
+			}
+
+			orden := palabrasHastaElSeparador(resto)
+			if len(orden) < 2 || marcadorDeEjemplo.MatchString(strings.Join(orden, " ")) {
+				continue
+			}
+
+			ordenes = append(ordenes, ordenDeEjemplo{
+				linea:    tramo.linea,
+				consulta: Consulta{Applet: appletDeLasNormas, Verbo: orden[0], Argumentos: orden[1:]},
+			})
+		}
+	}
+
 	return ordenes
+}
+
+// palabrasHastaElSeparador son las palabras hasta el primer separador de
+// órdenes (separadoresDeOrdenes), sin --json: de la palabra a la que va pegado,
+// lo que tiene delante.
+func palabrasHastaElSeparador(palabras []string) []string {
+	var hasta []string
+
+	for _, palabra := range palabras {
+		fin := len(palabra)
+		for _, separador := range separadoresDeOrdenes {
+			if posicion := strings.Index(palabra, separador); posicion >= 0 {
+				fin = min(fin, posicion)
+			}
+		}
+
+		if antes := palabra[:fin]; antes != "" && antes != banderaDeLaOrden {
+			hasta = append(hasta, antes)
+		}
+
+		if fin < len(palabra) {
+			return hasta
+		}
+	}
+
+	return hasta
 }
 
 // defectosDeLasOrdenesParaPowerShell da una línea por cada defecto de las
@@ -3431,6 +3530,120 @@ func TestOrdenesParaPowerShell(t *testing.T) {
 			t.Parallel()
 
 			assert.Equal(t, caso.defectos, defectosDeLasOrdenesParaPowerShell(caso.markdown))
+		})
+	}
+}
+
+// TestOrdenesDeEjemplo fija ordenesDeEjemplo, el extractor del control 10, el de
+// la subprueba ordenes-de-ejemplo (contracts/controles-de-contenido.md §10 de
+// H31; research D17 de H31; FR-019, SC-005), sobre Markdown escrito aquí: la
+// orden de un bloque, en su forma de Bash, hasta &&, también con la sangría de
+// una lista, y en la de PowerShell, hasta ;, y la de código en línea, cada una
+// con su línea, sin --json y con su --fecha y su día; la que sigue a una tubería,
+// hasta |; y las dos de un mismo tramo. Ninguna de la que lleva un marcador, <…>,
+// ... o …, de la mención del verbo sin argumentos, también con solo --json, ni de
+// la que está en la prosa.
+func TestOrdenesDeEjemplo(t *testing.T) {
+	t.Parallel()
+
+	const (
+		enSuFechaEnBash = "kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json && " +
+			"kitlegal graph check BOE-A-1985-5392 a22 --json"
+		enSuFechaEnPowerShell = "kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json; " +
+			"if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-1985-5392 a22 --json }"
+	)
+
+	// enBloque es un Markdown con la orden en la línea 6, en un bloque del
+	// lenguaje con la sangría.
+	enBloque := func(sangria, lenguaje, orden string) string {
+		return "## Lectura\n\n- Lee el bloque en su fecha:\n\n" +
+			sangria + "```" + lenguaje + "\n" + sangria + orden + "\n" + sangria + "```\n"
+	}
+	deLaLinea := func(linea int, verbo string, argumentos ...string) ordenDeEjemplo {
+		return ordenDeEjemplo{
+			linea:    linea,
+			consulta: Consulta{Applet: appletDeLasNormas, Verbo: verbo, Argumentos: argumentos},
+		}
+	}
+	enSuFecha := []string{"BOE-A-1985-5392", "a22", "--fecha", "2005-06-15"}
+
+	casos := []struct {
+		nombre   string
+		markdown string
+		ordenes  []ordenDeEjemplo
+	}{
+		{
+			nombre:   "en-un-bloque-en-su-forma-de-bash",
+			markdown: enBloque("", "bash", enSuFechaEnBash),
+			ordenes:  []ordenDeEjemplo{deLaLinea(6, verboArticulo, enSuFecha...)},
+		},
+		{
+			nombre:   "en-un-bloque-de-una-lista",
+			markdown: enBloque("  ", "bash", enSuFechaEnBash),
+			ordenes:  []ordenDeEjemplo{deLaLinea(6, verboArticulo, enSuFecha...)},
+		},
+		{
+			nombre:   "en-un-bloque-en-su-forma-de-powershell",
+			markdown: enBloque("", "powershell", enSuFechaEnPowerShell),
+			ordenes:  []ordenDeEjemplo{deLaLinea(6, verboArticulo, enSuFecha...)},
+		},
+		{
+			nombre: "en-codigo-en-linea",
+			markdown: "# Fechas\n\nLee el bloque en su fecha con " +
+				"`kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json`, o con `boe_articulo`.\n",
+			ordenes: []ordenDeEjemplo{deLaLinea(3, verboArticulo, enSuFecha...)},
+		},
+		{
+			nombre:   "tras-una-tuberia",
+			markdown: enBloque("", "bash", "kitlegal boe indice BOE-A-2015-10565 --json | jq '.data.bloques'"),
+			ordenes:  []ordenDeEjemplo{deLaLinea(6, verboIndice, "BOE-A-2015-10565")},
+		},
+		{
+			nombre: "dos-en-un-tramo",
+			markdown: enBloque("", "bash", "kitlegal boe indice BOE-A-2015-10565 --json && "+
+				"kitlegal boe articulo BOE-A-2015-10565 a21 --json"),
+			ordenes: []ordenDeEjemplo{
+				deLaLinea(6, verboIndice, "BOE-A-2015-10565"),
+				deLaLinea(6, verboArticulo, "BOE-A-2015-10565", "a21"),
+			},
+		},
+		{
+			nombre:   "con-un-marcador-entre-angulos",
+			markdown: enBloque("", "bash", "kitlegal boe buscar <términos> --json"),
+		},
+		{
+			nombre: "con-un-marcador-en-la-fecha",
+			markdown: "Léelo con `kitlegal boe articulo BOE-A-1985-5392 a22 --fecha <inicio> --json`, sin " +
+				"`kitlegal graph check`.\n",
+		},
+		{
+			nombre:   "con-tres-puntos",
+			markdown: enBloque("", "bash", "kitlegal boe articulos BOE-A-2015-10565 a21 a22... --json"),
+		},
+		{
+			nombre:   "con-puntos-suspensivos",
+			markdown: enBloque("", "bash", "kitlegal boe articulos BOE-A-2015-10565 a21 … --json"),
+		},
+		{
+			nombre: "la-mencion-del-verbo",
+			markdown: "Lo citado sale de `kitlegal boe articulo` o `articulos`. Si `kitlegal boe` falla, " +
+				"dilo.\n",
+		},
+		{
+			nombre:   "el-verbo-con-solo-json",
+			markdown: enBloque("", "bash", "kitlegal boe articulo --json"),
+		},
+		{
+			nombre:   "en-la-prosa",
+			markdown: "Lee el artículo con kitlegal boe articulo BOE-A-2015-10565 a21 --json y cítalo.\n",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, caso.ordenes, ordenesDeEjemplo(caso.markdown))
 		})
 	}
 }
@@ -3707,11 +3920,139 @@ func defectosDeLasLineasDeAviso(skill skillEntera) []string {
 	return defectos
 }
 
+// controlDeLasOrdenesDeEjemplo es el control 10, el de la subprueba
+// ordenes-de-ejemplo (contracts/controles-de-contenido.md §10 de H31; research
+// D17 de H31; FR-019, SC-005): en cada una de las skills, cada orden de ejemplo
+// concreta de cada fichero (ordenesDeEjemplo) sale con 0 con --offline,
+// ComprobarSinRed, sobre la caché de una sesión de su skill, la que da cacheDe,
+// que solo se pide para la skill que tiene alguna. Cada Falta es un defecto con
+// la skill y el fichero, y el error que impide comprobar las del fichero,
+// también.
+func controlDeLasOrdenesDeEjemplo(conEvals []string, cacheDe func(skill string) string) controlDeContenido {
+	return controlDeContenido{
+		exige: "cada orden de ejemplo concreta de kitlegal boe sale con 0 con --offline sobre la caché de una sesión " +
+			"de su skill",
+		skills: conEvals,
+		defectos: func(skill skillEntera) []string {
+			var (
+				defectos []string
+				dirCache string
+			)
+
+			for _, fichero := range skill.ficheros() {
+				ordenes := ordenesDeEjemplo(fichero.texto)
+				if len(ordenes) == 0 {
+					continue
+				}
+
+				if dirCache == "" {
+					dirCache = cacheDe(skill.nombre)
+				}
+
+				consultas := make([]Consulta, 0, len(ordenes))
+				for _, orden := range ordenes {
+					consultas = append(consultas, orden.consulta)
+				}
+
+				faltas, err := ComprobarSinRed(dirCache, consultas)
+				if err != nil {
+					defectos = append(defectos, skill.defectosDe(fichero, []string{err.Error()})...)
+
+					continue
+				}
+
+				for _, falta := range faltas {
+					defectos = append(defectos, skill.defectosDe(fichero, []string{falta.String()})...)
+				}
+			}
+
+			return defectos
+		},
+	}
+}
+
+// skillsConEvals son las skills de skills/ del repositorio, en su orden, que
+// tienen su carpeta en evals/: en ellas se aplica el control 10.
+func skillsConEvals(t *testing.T) []string {
+	t.Helper()
+
+	nombres, err := skills.Listar(raizDeLasSkills)
+	require.NoError(t, err)
+
+	var conEvals []string
+
+	for _, nombre := range nombres {
+		info, err := os.Stat(filepath.Join(directorioDeEvals, nombre))
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+
+		require.NoError(t, err, "la carpeta de evals de %s", nombre)
+
+		if info.IsDir() {
+			conEvals = append(conEvals, nombre)
+		}
+	}
+
+	return conEvals
+}
+
+// cacheDeLaPrimeraEvalServida es la caché de una sesión de la skill de la
+// carpeta de evals contra la que se ejecutan sus órdenes de ejemplo
+// (contracts/controles-de-contenido.md §10 de H31): la de cacheDeUnaSesion para
+// la primera eval de la carpeta, por nombre, que no declara sin_servir.
+func cacheDeLaPrimeraEvalServida(t *testing.T, carpeta string) string {
+	t.Helper()
+
+	conjunto, err := LeerConjunto(carpeta)
+	require.NoError(t, err)
+
+	var primera string
+
+	for _, eval := range conjunto.Evals {
+		if len(eval.SinServir) == 0 && (primera == "" || eval.Fichero < primera) {
+			primera = eval.Fichero
+		}
+	}
+
+	require.NotEmpty(t, primera, "%s tiene una eval bien formada que no declara sin_servir", carpeta)
+
+	return cacheDeUnaSesion(t, carpeta, primera)
+}
+
+// probarLasOrdenesDeEjemplo es el subtest ordenes-de-ejemplo de
+// TestEvalsDelRepositorio (contracts/controles-de-contenido.md §10 de H31;
+// research D17 de H31; FR-019, SC-005): el control 10 en cada skill con evals,
+// sobre la caché de la primera eval de su carpeta que no declara sin_servir; y
+// el repositorio tiene al menos una orden de ejemplo concreta, para que el
+// control no pase en vacío.
+func probarLasOrdenesDeEjemplo(t *testing.T) {
+	t.Parallel()
+
+	conEvals := skillsConEvals(t)
+	probarElControlDeContenido(t, controlDeLasOrdenesDeEjemplo(conEvals, func(skill string) string {
+		return cacheDeLaPrimeraEvalServida(t, filepath.Join(directorioDeEvals, skill))
+	}))
+
+	ordenes := 0
+
+	for _, nombre := range conEvals {
+		for _, fichero := range leerLaSkillEntera(t, raizDeLasSkills, nombre).ficheros() {
+			ordenes += len(ordenesDeEjemplo(fichero.texto))
+		}
+	}
+
+	assert.Positive(t, ordenes, "las skills con evals, %s, tienen alguna orden de ejemplo concreta de kitlegal boe",
+		strings.Join(conEvals, ", "))
+}
+
 // mutanteDeUnControl es un caso de TestControlesSobreLasReferenciasAMano: el
 // control, la skill de la copia, lo que le hace a la copia, que recibe el
 // directorio de la skill, y los defectos que el control tiene que dar con ella:
-// con exactos, esos y ninguno más, en su orden; sin exactos, al menos esos; y sin
-// ninguno, ninguno.
+// con exactos, esos y ninguno más, en su orden; con prefijos, tantos como esos,
+// en su orden, y cada uno empieza por el suyo, para el defecto que termina con
+// lo que la invocación escribió en la salida de error, con la hora de su registro;
+// sin ninguno de los dos, al menos esos; y sin ninguno, ninguno.
 type mutanteDeUnControl struct {
 	nombre   string
 	control  controlDeContenido
@@ -3719,11 +4060,12 @@ type mutanteDeUnControl struct {
 	mutar    func(t *testing.T, dir string)
 	defectos []string
 	exactos  bool
+	prefijos bool
 }
 
 // TestControlesSobreLasReferenciasAMano es el de los mutantes de los controles
-// 1 a 7 de contracts/controles-de-contenido.md de H31 (research D16 de H31;
-// FR-016 a FR-018; SC-005): sobre una copia de la skill en un temporal, cada
+// 1 a 7 y 10 de contracts/controles-de-contenido.md de H31 (research D16 y D17 de
+// H31; FR-016 a FR-019; SC-005): sobre una copia de la skill en un temporal, cada
 // mutante lleva la regla de un control del SKILL.md a una referencia a mano, o
 // la escribe en ella, y el control da su defecto, con la skill y el fichero.
 // Las de ausencia, en la referencia, como en SKILL.md: una expresión prohibida y
@@ -3735,9 +4077,10 @@ type mutanteDeUnControl struct {
 // de hallazgo o cada una de la redacción fechada da el defecto de su control.
 // Y una línea ⚠ de una referencia que no es, sin los blancos de los extremos,
 // una de SKILL.md —una errata, un marcador de lista o un énfasis— es un defecto
-// con su línea; la que sí lo es, o la que no empieza por la marca, no. Sin
-// mutar, la copia no da ningún defecto del control: si no, el mutante pasaría
-// por lo que ya estaba.
+// con su línea; la que sí lo es, o la que no empieza por la marca, no. Una
+// orden de ejemplo de una referencia que la caché de una sesión no sirve es un
+// defecto, y la que lleva un marcador no se ejecuta. Sin mutar, la copia no da
+// ningún defecto del control: si no, el mutante pasaría por lo que ya estaba.
 func TestControlesSobreLasReferenciasAMano(t *testing.T) {
 	t.Parallel()
 
@@ -3745,7 +4088,8 @@ func TestControlesSobreLasReferenciasAMano(t *testing.T) {
 	require.NoError(t, err)
 
 	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(),
-		mutantesDeLaLineaSinConsulta(), mutantesDeLasFormasMovidas(), mutantesDeLasLineasDeAviso(t))
+		mutantesDeLaLineaSinConsulta(), mutantesDeLasFormasMovidas(), mutantesDeLasLineasDeAviso(t),
+		mutantesDeLasOrdenesDeEjemplo(t))
 
 	for _, mutante := range mutantes {
 		t.Run(mutante.nombre, func(t *testing.T) {
@@ -3765,10 +4109,25 @@ func TestControlesSobreLasReferenciasAMano(t *testing.T) {
 				assert.Empty(t, defectos, "el control no da ningún defecto con la copia")
 			case mutante.exactos:
 				assert.Equal(t, mutante.defectos, defectos, "los defectos del control con la copia")
+			case mutante.prefijos:
+				exigeLosPrefijos(t, mutante.defectos, defectos)
 			default:
 				assert.Subset(t, defectos, mutante.defectos, "los defectos del control con la copia")
 			}
 		})
+	}
+}
+
+// exigeLosPrefijos exige que haya tantos defectos como prefijos y que cada uno,
+// en su orden, empiece por el suyo.
+func exigeLosPrefijos(t *testing.T, prefijos, defectos []string) {
+	t.Helper()
+
+	require.Len(t, defectos, len(prefijos), "los defectos del control con la copia:\n%s", strings.Join(defectos, "\n"))
+
+	for posicion, prefijo := range prefijos {
+		assert.True(t, strings.HasPrefix(defectos[posicion], prefijo),
+			"el defecto %d del control con la copia empieza por «%s»: %s", posicion+1, prefijo, defectos[posicion])
 	}
 }
 
@@ -4091,6 +4450,38 @@ func lineaDeAvisoDeLaSkill(t *testing.T, skill, principio string) string {
 	require.Failf(t, "falta la línea", "el SKILL.md de %s no lleva ninguna línea que empiece por «%s»", skill, principio)
 
 	return ""
+}
+
+// mutantesDeLasOrdenesDeEjemplo son los del control 10, sobre la caché de la
+// primera eval de evals/boe-legislacion/ que no declara sin_servir, preparada
+// aquí, para todos: en una referencia a mano, la orden de buscar de antes de H31,
+// sin marcador, que la caché de una sesión no sirve, da su defecto con la skill
+// y el fichero, el texto de la Falta; y con un marcador, no se ejecuta y no da
+// ninguno.
+func mutantesDeLasOrdenesDeEjemplo(t *testing.T) []mutanteDeUnControl {
+	t.Helper()
+
+	dirCache := cacheDeLaPrimeraEvalServida(t, evalsDelRepositorio)
+	control := controlDeLasOrdenesDeEjemplo([]string{skillBoeLegislacion}, func(string) string { return dirCache })
+
+	return []mutanteDeUnControl{
+		{
+			nombre: "orden-de-ejemplo-sin-servir", control: control, skill: skillBoeLegislacion,
+			mutar: conLasReferencias(map[string]string{
+				referenciaAMano: "# Búsquedas\n\n```bash\nkitlegal boe buscar régimen jurídico del sector público " +
+					"--json\n```\n",
+			}),
+			defectos: []string{"boe-legislacion: references/a_mano.md: «boe buscar régimen jurídico del sector " +
+				"público» terminó con código 4: "},
+			prefijos: true,
+		},
+		{
+			nombre: "orden-de-ejemplo-con-un-marcador", control: control, skill: skillBoeLegislacion,
+			mutar: conLasReferencias(map[string]string{
+				referenciaAMano: "# Búsquedas\n\nBusca con `kitlegal boe buscar <términos> --json`.\n",
+			}),
+		},
+	}
 }
 
 // conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con
