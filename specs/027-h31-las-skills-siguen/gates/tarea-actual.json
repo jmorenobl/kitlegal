@@ -1,18 +1,17 @@
 {
-  "id": "T001",
-  "texto": "T001 [US4] Implementar la clasificación de FR-012 (contracts/gates-de-skills-check.md §3; research D13): nueva función exportada `ReferenciasAMano(arbol fs.FS, skill string) ([]Referencia, error)` en `internal/skills/referencias.go`, que da los ficheros regulares `.md` del directorio `references` de la skill que `kitlegal-referencias` no declara y cuya primera línea no es la cabecera «generado desde» (`DatosDeLaReferencia`); en `internal/skills/sincronia.go`, `sobrantes` deja de dar `fichero-sobrante` a la referencia a mano (ni deriva ni retirada), el no declarado que abre con la cabecera sigue siendo `fichero-sobrante` y el declarado sigue dando `contenido-distinto` o `fichero-ausente` si no es lo que genera su fila, con o sin cabecera; la entrada que no es un `.md` regular sigue como hoy hasta T011. Tests: `TestReferenciasAMano` en `internal/skills/referencias_test.go` (las cinco clases de la tabla del §3, sobre un `fstest.MapFS`), `TestRegenerarYComparar` en `internal/skills/sincronia_test.go` (la clasificación en el árbol sintético) y, en `TestSkillsDelRepositorio` de `internal/app/skills_test.go`, el subtest `deriva` con las clases de FR-012 (declarada distinta con y sin cabecera, no declarada con cabecera) y el nuevo `sincronia-con-referencias-a-mano` (SC-003: sobre `copiaConLaSkill`, una referencia a mano, una generada con un byte cambiado y otra sin su cabecera; tras `skills.Regenerar` y `skills.Escribir`, la a mano idéntica byte a byte y las dos generadas rehechas; en rojo si toca la primera o no rehace una de las otras). Ajustar `internal/skills/export_test.go` si un test necesita algo no exportado. Con las skills de `main`, sin referencias a mano, nada cambia. FR-012, FR-013, SC-003. Rutas: internal/skills/referencias.go, internal/skills/referencias_test.go, internal/skills/sincronia.go, internal/skills/sincronia_test.go, internal/skills/export_test.go, internal/app/skills_test.go",
+  "id": "T002",
+  "texto": "T002 [US4] Contar las referencias a mano en el conjunto de dependencias de cada eval (FR-014, Clarificación Q1; research D15): en `internal/evals/dependencias.go`, `datosDeLasReferencias` deja fuera de la parte (c) las referencias a mano de la skill (`skills.ReferenciasAMano`), sin error (la que no abre con la cabecera y no es a mano sigue siendo error), y `skillsDeLaEval` busca con `nombra` los nombres de otras skills en el `SKILL.md` y en cada referencia a mano de cada skill que visita, sin mezclar sus bytes con los que lee `AppletsDeLaTabla`; las referencias generadas no se leen para nombres; actualizar la descripción del conjunto en `internal/evals/doc.go`. Tests: `TestConjuntoDeCadaEval` en `internal/evals/dependencias_test.go` (con el árbol del repositorio y una referencia a mano superpuesta: entra en (b), no en (c), sin error; una skill nombrada solo en una referencia a mano entra en (b) con su `SKILL.md` y sus `references/` y el cierre sigue desde ella; en rojo si no la incluye o da error) y `TestEleccionDeLosMutantes` en `internal/evals/eleccion_test.go` (mutante nuevo `referencia-a-mano-de-legal-core`: 0 evals de diferencia con las de `legal-core` y las de las skills que la nombran; y el mutante de la descripción de hoy sigue eligiendo las 45 evals con 0 reutilizadas, en rojo si difiere en una sola). Con las skills de `main` la elección no cambia. FR-014, FR-030, SC-004, SC-010. Rutas: internal/evals/dependencias.go, internal/evals/dependencias_test.go, internal/evals/eleccion_test.go, internal/evals/doc.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "361da9cd74c0f3d618e5dc9a3d323b1eeda945cc",
+  "base": "5ef944255b6e811590c084f021f015eaf14a58e7",
   "rutas": [
-    "contracts/gates-de-skills-check.md",
-    "internal/app/skills_test.go",
-    "internal/skills/export_test.go",
-    "internal/skills/referencias.go",
-    "internal/skills/referencias_test.go",
-    "internal/skills/sincronia.go",
-    "internal/skills/sincronia_test.go"
+    "SKILL.md",
+    "internal/evals/dependencias.go",
+    "internal/evals/dependencias_test.go",
+    "internal/evals/doc.go",
+    "internal/evals/eleccion_test.go",
+    "references/"
   ],
   "cierre": false,
   "converger": false,

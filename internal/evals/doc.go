@@ -268,10 +268,12 @@
 //   - la elección de una propuesta (dependencias.go y eleccion.go; FR-001 a
 //     FR-008 de H30). calcularDependencias da, sobre el árbol de la cabeza y el
 //     grafo de paquetes de go list (leerGrafoDePaquetes), el conjunto de
-//     dependencias de cada eval: su fichero; el SKILL.md y las referencias de su
-//     skill y de cada skill cuyo nombre aparece en el SKILL.md de otra del
-//     conjunto; el fichero de data/ del que sale cada referencia
-//     (skills.DatosDeLaReferencia); de cada applet de sus tablas de comandos
+//     dependencias de cada eval: su fichero; el SKILL.md y las referencias, las
+//     generadas y las a mano (skills.ReferenciasAMano), de su skill y de cada
+//     skill cuyo nombre aparece en el SKILL.md o en una referencia a mano de
+//     otra del conjunto (FR-014 de H31); el fichero de data/ del que sale cada
+//     referencia generada (skills.DatosDeLaReferencia), sin ninguno por las a
+//     mano; de cada applet de sus tablas de comandos
 //     (skills.AppletsDeLaTabla), su fichero de internal/app y los paquetes del
 //     módulo que alcanza, con sus ficheros empotrados y sus módulos externos;
 //     las raíces de grabaciones; y la carpeta del juez y los demás ficheros de

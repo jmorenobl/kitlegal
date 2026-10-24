@@ -17,7 +17,9 @@ import (
 
 // TestEleccionDeLosMutantes calcula sobre el árbol del repositorio la elección
 // de cada mutante de SC-003 y de FR-002 a FR-007 (quickstart.md §2; data-model
-// §5): la base es el repositorio; la cabeza, el repositorio con el mutante en
+// §5), y la del de la referencia a mano de FR-014 de H31 (SC-004), que elige
+// lo mismo que un cambio de una referencia generada de su skill: la base es el
+// repositorio; la cabeza, el repositorio con el mutante en
 // memoria, con sus conjuntos, calculados sobre ella. Cada subtest compara las
 // evals elegidas, eval por eval, con las que espera, sacadas del listado de
 // evals/<skill>/ y no de los conjuntos, y comprueba que cada una lleva el motivo
@@ -52,9 +54,14 @@ func TestEleccionDeLosMutantes(t *testing.T) {
 		mutanteSoloDocs:               {},
 		mutanteUnaEval:                {evals: []string{"jurisprudencia/03-por-materia"}, motivo: motivoConjunto},
 		mutanteReferenciaRenombrada:   {evals: evalsDeLasSkills(evals, "legal-core"), motivo: motivoConjunto},
+		mutanteReferenciaAManoDeLegalCore: {
+			evals: evalsDeLasSkills(evals, "legal-core"), motivo: motivoConjunto,
+		},
 	}
 
-	casos := mutantesDeLaEleccion(t, repositorio, base)
+	casos := append(mutantesDeLaEleccion(t, repositorio, base), mutanteConNombre{
+		nombre: mutanteReferenciaAManoDeLegalCore, mutante: conUnaReferenciaAMano(t, repositorio, "legal-core"),
+	})
 	require.Len(t, casos, len(esperadas), "un esperado por mutante")
 
 	for _, caso := range casos {
@@ -110,6 +117,11 @@ const (
 	mutanteUnaEval                = "una-eval"
 	mutanteReferenciaRenombrada   = "referencia-renombrada"
 )
+
+// mutanteReferenciaAManoDeLegalCore es el mutante de FR-014 de H31 (SC-004),
+// que solo elige: la matriz de TestMatrizDeLasPropuestas es la de las
+// ejecuciones fijas de H30.
+const mutanteReferenciaAManoDeLegalCore = "referencia-a-mano-de-legal-core"
 
 // mutanteConNombre es un mutante de SC-003 o de FR-002 a FR-007 con su nombre.
 type mutanteConNombre struct {
@@ -276,6 +288,23 @@ func conLaReferenciaRenombrada(t *testing.T, repositorio fs.FS, referencia strin
 		cambiados: fstest.MapFS{nueva: {Data: contenido}},
 		retirados: []string{referencia},
 		cambios:   []cambioDeLaPropuesta{{ruta: nueva, anterior: referencia}},
+	}
+}
+
+// conUnaReferenciaAMano es el mutante que añade a references/ de la skill una
+// referencia a mano (FR-012 y FR-014 de H31): un .md que kitlegal-referencias
+// no declara, sin la cabecera «generado desde» y que no nombra ninguna skill.
+func conUnaReferenciaAMano(t *testing.T, repositorio fs.FS, skill string) mutanteDeLaPropuesta {
+	t.Helper()
+
+	ruta := "skills/" + skill + "/references/" + referenciaAManoDelMutante
+
+	_, err := fs.Stat(repositorio, ruta)
+	require.ErrorIs(t, err, fs.ErrNotExist, "la referencia a mano del mutante es nueva")
+
+	return mutanteDeLaPropuesta{
+		cambiados: fstest.MapFS{ruta: {Data: []byte("# Protocolo del mutante\n\nUna línea del mutante.\n")}},
+		cambios:   []cambioDeLaPropuesta{{ruta: ruta}},
 	}
 }
 
