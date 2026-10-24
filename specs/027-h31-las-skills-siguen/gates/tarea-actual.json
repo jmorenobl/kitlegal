@@ -1,16 +1,16 @@
 {
-  "id": "T002",
-  "texto": "T002 [US4] Contar las referencias a mano en el conjunto de dependencias de cada eval (FR-014, Clarificación Q1; research D15): en `internal/evals/dependencias.go`, `datosDeLasReferencias` deja fuera de la parte (c) las referencias a mano de la skill (`skills.ReferenciasAMano`), sin error (la que no abre con la cabecera y no es a mano sigue siendo error), y `skillsDeLaEval` busca con `nombra` los nombres de otras skills en el `SKILL.md` y en cada referencia a mano de cada skill que visita, sin mezclar sus bytes con los que lee `AppletsDeLaTabla`; las referencias generadas no se leen para nombres; actualizar la descripción del conjunto en `internal/evals/doc.go`. Tests: `TestConjuntoDeCadaEval` en `internal/evals/dependencias_test.go` (con el árbol del repositorio y una referencia a mano superpuesta: entra en (b), no en (c), sin error; una skill nombrada solo en una referencia a mano entra en (b) con su `SKILL.md` y sus `references/` y el cierre sigue desde ella; en rojo si no la incluye o da error) y `TestEleccionDeLosMutantes` en `internal/evals/eleccion_test.go` (mutante nuevo `referencia-a-mano-de-legal-core`: 0 evals de diferencia con las de `legal-core` y las de las skills que la nombran; y el mutante de la descripción de hoy sigue eligiendo las 45 evals con 0 reutilizadas, en rojo si difiere en una sola). Con las skills de `main` la elección no cambia. FR-014, FR-030, SC-004, SC-010. Rutas: internal/evals/dependencias.go, internal/evals/dependencias_test.go, internal/evals/eleccion_test.go, internal/evals/doc.go",
+  "id": "T003",
+  "texto": "T003 [US5] Llevar los controles 1 a 7 de contracts/controles-de-contenido.md a la skill entera (FR-016 a FR-018; research D16) en `TestEvalsDelRepositorio` de `internal/evals/conjunto_test.go`, leyendo el `SKILL.md` y cada referencia a mano (`skills.ReferenciasAMano`) por separado y con su ruta en cada defecto, en las mismas skills que hoy: `prosa-de-la-skill` (`defectosDeLaProsa` sobre cada fichero: ninguna expresión de `expresiones-prohibidas.yaml`, el de las evals de `boe-legislacion`, fuera del código ni fecha AAAAMMDD con cifras; la prosa no vacía, al `SKILL.md`); `ordenes-para-powershell` (cada orden de lectura o de comprobación de cada fichero lleva detrás, en ese mismo fichero, su forma para PowerShell; una orden de Bash por verbo de lectura, `articulo` y `articulos`, en la skill entera); `linea-sin-consulta`, `formas-de-la-redaccion-fechada`, `avisos-de-la-skill` y `hallazgos-de-la-skill` siguen exigiendo su forma en el `SKILL.md`; y el subtest nuevo `lineas-de-aviso-de-las-referencias` (`boe-legislacion`, `legal-core`: cada línea de una referencia a mano que empieza, tras blancos, marcador de lista y énfasis, por `⚠` es, sin los blancos de los extremos, una línea del `SKILL.md`, con el defecto `<skill>: references/<f>.md:<n>: la línea ⚠ no es ninguna de SKILL.md: «…»`). Test nuevo `TestControlesSobreLasReferenciasAMano` en el mismo fichero: copia la skill a `t.TempDir()` y, por cada control 1 a 7, mueve su regla del `SKILL.md` a una referencia a mano de la copia o la escribe en ella (expresión prohibida, fecha AAAAMMDD, orden sin su forma para PowerShell, línea sin consulta movida, cada forma de aviso, de hallazgo y de la redacción fechada movida, una línea `⚠` mal escrita) y exige el defecto; en rojo si alguno no se detecta. Las tres skills de `main` siguen sin defectos. FR-016, FR-017, FR-018, SC-005. Rutas: internal/evals/conjunto_test.go, internal/evals/conjunto.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "5ef944255b6e811590c084f021f015eaf14a58e7",
+  "base": "a88edef921485e65f81649b3f349689d83171ee4",
   "rutas": [
     "SKILL.md",
-    "internal/evals/dependencias.go",
-    "internal/evals/dependencias_test.go",
-    "internal/evals/doc.go",
-    "internal/evals/eleccion_test.go",
+    "contracts/controles-de-contenido.md",
+    "expresiones-prohibidas.yaml",
+    "internal/evals/conjunto.go",
+    "internal/evals/conjunto_test.go",
     "references/"
   ],
   "cierre": false,

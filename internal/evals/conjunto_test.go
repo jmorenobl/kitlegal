@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -24,6 +25,7 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/core/grafo"
 	"github.com/jmorenobl/kitlegal/internal/graph"
 	"github.com/jmorenobl/kitlegal/internal/skills"
+	"github.com/jmorenobl/kitlegal/internal/source/boe"
 )
 
 // Contenidos de las evals sintéticas de TestLeerConjunto. La del art. 21 se
@@ -1901,10 +1903,6 @@ const (
 	// cada una de sus carpetas están las evals de una skill (FR-060).
 	directorioDeEvals = "../../evals"
 
-	// skillDelRepositorio es el SKILL.md de boe-legislacion, relativo al
-	// directorio de este paquete: la skill cuyas respuestas juzgan sus evals.
-	skillDelRepositorio = "../../skills/boe-legislacion/SKILL.md"
-
 	// evalsDeLegalCore es evals/legal-core/, relativo al directorio de este
 	// paquete: las evals de la skill legal-core, a las que se aplican las reglas
 	// de su juego (contrato de evals §3 y §4 de H6).
@@ -1994,8 +1992,15 @@ const (
 // Desde H26.1, la 14, la 15 y la 16 de boe-legislacion llevan sus lecturas, y
 // ninguna otra eval lleva ninguna; sus bloques son consultas necesarias, que el
 // subtest grabado exige grabadas y servidas sin red como las demás
-// (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011). Lee las carpetas
-// enteras.
+// (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011). Desde H31, los
+// controles de contenido de las skills —la prosa, las órdenes para PowerShell,
+// la línea sin consulta, las formas de la redacción fechada, las de aviso y las
+// de hallazgo— leen la skill entera, su SKILL.md y sus referencias a mano, cada
+// fichero por separado y con su ruta en cada defecto; las formas fijas se siguen
+// exigiendo en SKILL.md, y cada línea ⚠ de una referencia a mano de
+// boe-legislacion y de legal-core es una de su SKILL.md
+// (contracts/controles-de-contenido.md de H31; research D16 de H31; FR-016 a
+// FR-018). Lee las carpetas enteras.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2209,10 +2214,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	t.Run("avisos-de-la-skill", func(t *testing.T) {
 		t.Parallel()
 
-		skill := contenidoDelFichero(t, skillDelRepositorio)
-
-		assert.NoError(t, ComprobarFormasDeAviso(string(skill)),
-			"%s enseña la forma fija de cada código de aviso del binario", skillDelRepositorio)
+		probarElControlDeContenido(t, controlDeLosAvisos)
 	})
 
 	t.Run("hallazgos-del-esquema", func(t *testing.T) {
@@ -2229,18 +2231,13 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	t.Run("hallazgos-de-la-skill", func(t *testing.T) {
 		t.Parallel()
 
-		skill := contenidoDelFichero(t, skillDelRepositorio)
-
-		assert.NoError(t, ComprobarFormasDeHallazgo(string(skill)),
-			"%s enseña la forma fija de cada clase de hallazgo etiquetada por el binario", skillDelRepositorio)
+		probarElControlDeContenido(t, controlDeLosHallazgos)
 	})
 
 	t.Run("formas-de-la-redaccion-fechada", func(t *testing.T) {
 		t.Parallel()
 
-		defectos := defectosDeLasFormasFechadas(string(contenidoDelFichero(t, skillDelRepositorio)))
-		assert.Empty(t, defectos, "%s enseña en un bloque text la forma fija de cada línea de una redacción fechada:\n%s",
-			skillDelRepositorio, strings.Join(defectos, "\n"))
+		probarElControlDeContenido(t, controlDeLasFormasFechadas)
 	})
 
 	t.Run("cobertura-del-esquema", func(t *testing.T) {
@@ -2262,18 +2259,26 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	t.Run("prosa-de-la-skill", func(t *testing.T) {
 		t.Parallel()
 
-		probarProsaDeLaSkill(t, listaDelRepositorio(t, conjunto))
+		probarElControlDeContenido(t, controlDeLaProsa(listaDelRepositorio(t, conjunto)))
 	})
 
 	t.Run("ordenes-para-powershell", func(t *testing.T) {
 		t.Parallel()
 
-		defectos := defectosDeLasOrdenesParaPowerShell(string(contenidoDelFichero(t, skillDelRepositorio)))
-		assert.Empty(t, defectos, "%s enseña cada orden de lectura y comprobación con su forma para PowerShell:\n%s",
-			skillDelRepositorio, strings.Join(defectos, "\n"))
+		probarElControlDeContenido(t, controlDeLasOrdenes)
 	})
 
-	t.Run("linea-sin-consulta", probarLineaSinConsulta)
+	t.Run("linea-sin-consulta", func(t *testing.T) {
+		t.Parallel()
+
+		probarElControlDeContenido(t, controlDeLaLineaSinConsulta)
+	})
+
+	t.Run("lineas-de-aviso-de-las-referencias", func(t *testing.T) {
+		t.Parallel()
+
+		probarElControlDeContenido(t, controlDeLasLineasDeAviso)
+	})
 
 	t.Run("lo-que-lleva-a-leer", probarLoQueLlevaALeer)
 
@@ -2387,34 +2392,7 @@ const (
 // linea-sin-consulta no pase en vacío para ninguna (FR-035 de H21).
 // jurisprudencia no está: no consulta el BOE y, sin herramienta ni binario,
 // lleva su propia línea (research.md D16 de H23).
-var skillsConLineaSinConsulta = []string{"boe-legislacion", "legal-core"}
-
-// probarLineaSinConsulta es la subprueba linea-sin-consulta de
-// TestEvalsDelRepositorio (contracts/skills.md §5 de H21; FR-035, FR-077): el
-// SKILL.md de cada skill que lleva la regla dice la línea de contracts/skills.md
-// §3 tal cual en un bloque de código text, y esa línea casa con lo que el juicio
-// reconoce, ExtraerSinConsulta, con su dirección. Cada defecto nombra la skill.
-func probarLineaSinConsulta(t *testing.T) {
-	t.Parallel()
-
-	nombres, err := skills.Listar(raizDeLasSkills)
-	require.NoError(t, err)
-	require.Subset(t, nombres, skillsConLineaSinConsulta, "skills/ tiene las skills que llevan la regla")
-
-	var defectos []string
-
-	for _, nombre := range skillsConLineaSinConsulta {
-		skill, err := skills.Cargar(raizDeLasSkills, nombre)
-		require.NoError(t, err)
-
-		for _, defecto := range defectosDeLaLineaSinConsulta(string(skill.Contenido)) {
-			defectos = append(defectos, nombre+": "+defecto)
-		}
-	}
-
-	assert.Empty(t, defectos, "cada SKILL.md que lleva la regla enseña la línea %s en un bloque text:\n%s",
-		formaEscrita(etiquetaSinConsulta), strings.Join(defectos, "\n"))
-}
+var skillsConLineaSinConsulta = []string{skillBoeLegislacion, "legal-core"}
 
 // defectosDeLaLineaSinConsulta da los defectos de un SKILL.md respecto de la
 // línea de contracts/skills.md §3 de H21, o nil si no tiene ninguno: que ningún
@@ -2734,27 +2712,6 @@ func defectosDeLasFormasFechadas(markdown string) []string {
 	}
 
 	return defectos
-}
-
-// probarProsaDeLaSkill es la subprueba prosa-de-la-skill de
-// TestEvalsDelRepositorio (contracts/skill-boe-legislacion.md §5; research D4;
-// FR-010, FR-013, FR-091, SC-005): con defectosDeLaProsa, ningún párrafo de la
-// prosa del SKILL.md de boe-legislacion, frontmatter incluido, lleva ninguna
-// expresión de la lista, y ninguna línea del fichero lleva una fecha AAAAMMDD
-// escrita con cifras. El fichero tiene prosa: sin ella, la subprueba pasaría en
-// vacío. Desde H24 (contracts/skill-boe-legislacion.md §4; FR-085, FR-110,
-// SC-010), tampoco lleva ninguna de las de lo que devuelven las herramientas,
-// ni escrita como código en línea: es el control de ese umbral, 0 usos.
-func probarProsaDeLaSkill(t *testing.T, lista ExpresionesProhibidas) {
-	t.Helper()
-
-	skill := string(contenidoDelFichero(t, skillDelRepositorio))
-	require.NotEmpty(t, parrafosDeLaProsa(skill), "%s tiene prosa fuera del código y de la región generada",
-		skillDelRepositorio)
-
-	defectos := defectosDeLaProsa(skill, lista)
-	assert.Empty(t, defectos, "%s enseña con su prosa expresiones que la respuesta no lleva, o escribe con cifras "+
-		"una fecha AAAAMMDD:\n%s", skillDelRepositorio, strings.Join(defectos, "\n"))
 }
 
 // Lo que la prosa de un SKILL.md no es (contracts/skill-boe-legislacion.md §5):
@@ -3106,6 +3063,19 @@ const (
 	cierreDeBloqueDePowerShell = "}"
 )
 
+// La orden de lectura y comprobación de un bloque, en sus dos formas, y lo que
+// dice el defecto de la de Bash a la que no sigue la suya: las escriben
+// TestOrdenesParaPowerShell y los mutantes de TestControlesSobreLasReferenciasAMano.
+const (
+	bashDeArticulo = "kitlegal boe articulo BOE-A-2015-10565 a21 --json && " +
+		"kitlegal graph check BOE-A-2015-10565 a21 --json"
+	powershellDeArticulo = "kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { " +
+		"kitlegal graph check BOE-A-2015-10565 a21 --json }"
+
+	sinSuForma = ": no la sigue su forma para PowerShell, «…; if ($LASTEXITCODE -eq 0) { … }», con el mismo " +
+		"verbo, la misma norma y los mismos bloques"
+)
+
 // ordenDeLectura es una orden de lectura y comprobación escrita en el código de
 // un SKILL.md, en cualquiera de sus dos formas (contracts/skill-boe-legislacion.md
 // §4 de H7.4).
@@ -3269,10 +3239,19 @@ func ordenesDeLectura(markdown string) []ordenDeLectura {
 // otra de Bash o porque lee otra cosa—, y por cada orden, de las dos formas, cuya
 // comprobación no lleva la norma y los bloques de su lectura. Una orden sin la
 // condición de PowerShell o con otra no es ninguna de las dos formas: la de Bash
-// que la precede no tiene la suya. Nil si no hay ningún defecto.
+// que la precede no tiene la suya. Nil si no hay ningún defecto. Desde H31, las
+// dos partes las aplica por separado el control de la skill entera
+// (controlDeLasOrdenes): la primera, a las órdenes de todos sus ficheros, y la
+// segunda, a las de cada uno.
 func defectosDeLasOrdenesParaPowerShell(markdown string) []string {
 	ordenes := ordenesDeLectura(markdown)
 
+	return slices.Concat(verbosSinOrdenDeBash(ordenes), defectosDeLasOrdenes(ordenes))
+}
+
+// verbosSinOrdenDeBash da una línea por cada verbo de lectura, en su orden, que
+// ninguna orden de Bash de las órdenes usa, o nil si las hay de todos.
+func verbosSinOrdenDeBash(ordenes []ordenDeLectura) []string {
 	var defectos []string
 
 	for _, verbo := range verbosDeLectura {
@@ -3283,6 +3262,16 @@ func defectosDeLasOrdenesParaPowerShell(markdown string) []string {
 				"detrás con kitlegal graph check", verbo))
 		}
 	}
+
+	return defectos
+}
+
+// defectosDeLasOrdenes da, en su orden, una línea por cada orden de Bash de las
+// órdenes de un fichero a la que no sigue su forma para PowerShell y otra por
+// cada orden cuya comprobación no lleva la norma y los bloques de su lectura, o
+// nil si no hay ninguna.
+func defectosDeLasOrdenes(ordenes []ordenDeLectura) []string {
+	var defectos []string
 
 	for posicion, orden := range ordenes {
 		if !orden.powershell && (posicion+1 == len(ordenes) || !esSuFormaParaPowerShell(orden, ordenes[posicion+1])) {
@@ -3320,17 +3309,11 @@ func TestOrdenesParaPowerShell(t *testing.T) {
 	t.Parallel()
 
 	const (
-		bashDeArticulo = "kitlegal boe articulo BOE-A-2015-10565 a21 --json && " +
-			"kitlegal graph check BOE-A-2015-10565 a21 --json"
-		powershellDeArticulo = "kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { " +
-			"kitlegal graph check BOE-A-2015-10565 a21 --json }"
 		bashDeArticulos = "kitlegal boe articulos <norma> <bloques>... --json && " +
 			"kitlegal graph check <norma> <bloques>... --json"
 		powershellDeArticulos = "kitlegal boe articulos <norma> <bloques>... --json; if ($LASTEXITCODE -eq 0) { " +
 			"kitlegal graph check <norma> <bloques>... --json }"
 
-		sinSuForma = ": no la sigue su forma para PowerShell, «…; if ($LASTEXITCODE -eq 0) { … }», con el mismo " +
-			"verbo, la misma norma y los mismos bloques"
 		otraComprobacion = ": kitlegal graph check no lleva la norma y los bloques de la lectura"
 	)
 
@@ -3450,6 +3433,639 @@ func TestOrdenesParaPowerShell(t *testing.T) {
 			assert.Equal(t, caso.defectos, defectosDeLasOrdenesParaPowerShell(caso.markdown))
 		})
 	}
+}
+
+// ficheroDeUnaSkill es un fichero de la skill entera: su ruta en el directorio
+// de la skill, SKILL.md o references/<fichero>.md, como la nombra un defecto, y
+// su texto.
+type ficheroDeUnaSkill struct {
+	ruta  string
+	texto string
+}
+
+// skillEntera es lo que leen de una skill los controles de contenido desde H31
+// (contracts/controles-de-contenido.md de H31; research D16 de H31; FR-016): su
+// nombre, su SKILL.md y sus referencias a mano (skills.ReferenciasAMano), en
+// orden de nombre, cada fichero por separado. Las referencias generadas no se
+// leen.
+type skillEntera struct {
+	nombre      string
+	skillMd     ficheroDeUnaSkill
+	referencias []ficheroDeUnaSkill
+}
+
+// leerLaSkillEntera lee la skill entera del nombre en el repositorio de raiz.
+func leerLaSkillEntera(t *testing.T, raiz, nombre string) skillEntera {
+	t.Helper()
+
+	cargada, err := skills.Cargar(raiz, nombre)
+	require.NoError(t, err)
+
+	aMano, err := skills.ReferenciasAMano(os.DirFS(raiz), nombre)
+	require.NoError(t, err, "las referencias a mano de %s", nombre)
+
+	skill := skillEntera{
+		nombre:  nombre,
+		skillMd: ficheroDeUnaSkill{ruta: ficheroDeLaSkill, texto: string(cargada.Contenido)},
+	}
+
+	for _, referencia := range aMano {
+		skill.referencias = append(skill.referencias, ficheroDeUnaSkill{
+			ruta:  path.Join(directorioDeLasReferencias, referencia.Fichero),
+			texto: string(referencia.Contenido),
+		})
+	}
+
+	return skill
+}
+
+// ficheros son el SKILL.md y, detrás, las referencias a mano.
+func (s skillEntera) ficheros() []ficheroDeUnaSkill {
+	return slices.Concat([]ficheroDeUnaSkill{s.skillMd}, s.referencias)
+}
+
+// defectosDe son los defectos de un fichero de la skill, cada uno con la skill y
+// la ruta del fichero delante; nil sin ninguno.
+func (s skillEntera) defectosDe(fichero ficheroDeUnaSkill, defectos []string) []string {
+	return conPrefijo(s.nombre+": "+fichero.ruta+": ", defectos)
+}
+
+// defectosDeLaSkill son los defectos de la skill entera, o los que ya nombran su
+// fichero, cada uno con la skill delante; nil sin ninguno.
+func (s skillEntera) defectosDeLaSkill(defectos []string) []string {
+	return conPrefijo(s.nombre+": ", defectos)
+}
+
+// conPrefijo son los defectos, cada uno con el prefijo delante; nil sin ninguno.
+func conPrefijo(prefijo string, defectos []string) []string {
+	var conElPrefijo []string
+
+	for _, defecto := range defectos {
+		conElPrefijo = append(conElPrefijo, prefijo+defecto)
+	}
+
+	return conElPrefijo
+}
+
+// controlDeContenido es uno de los controles 1 a 7 de
+// contracts/controles-de-contenido.md de H31 (research D16 de H31; FR-016 a
+// FR-018): lo que exige, como lo dice su fallo; las skills en que se aplica, las
+// de antes de H31; y sus defectos sobre la skill entera de una de ellas, una
+// línea cada uno con la skill y, si es de un fichero, el fichero; nil sin
+// ninguno.
+type controlDeContenido struct {
+	exige    string
+	skills   []string
+	defectos func(skill skillEntera) []string
+}
+
+// probarElControlDeContenido aplica el control a la skill entera de cada una de
+// sus skills del repositorio, que skills/ tiene que tener para que no pase en
+// vacío en ninguna, y exige que no dé ningún defecto.
+func probarElControlDeContenido(t *testing.T, control controlDeContenido) {
+	t.Helper()
+
+	nombres, err := skills.Listar(raizDeLasSkills)
+	require.NoError(t, err)
+	require.Subset(t, nombres, control.skills, "skills/ tiene las skills en que se aplica el control")
+
+	var defectos []string
+
+	for _, nombre := range control.skills {
+		defectos = append(defectos, control.defectos(leerLaSkillEntera(t, raizDeLasSkills, nombre))...)
+	}
+
+	assert.Empty(t, defectos, "en %s, %s:\n%s", strings.Join(control.skills, " y "), control.exige,
+		strings.Join(defectos, "\n"))
+}
+
+// controlDeLaProsa es el control 1, el de la subprueba prosa-de-la-skill
+// (contracts/skill-boe-legislacion.md §5 de H7.3; research D4 de H7.3; FR-010,
+// FR-013, FR-091, SC-005 de H7.3): con defectosDeLaProsa, ningún párrafo de la
+// prosa de ningún fichero, frontmatter incluido, lleva ninguna expresión de la
+// lista, tampoco de lo que devuelven las herramientas escrita como código en
+// línea (contracts/skill-boe-legislacion.md §4 de H24; FR-085, FR-110, SC-010
+// de H24), y ninguna línea lleva una fecha AAAAMMDD escrita con cifras. SKILL.md
+// tiene prosa: sin ella, el control pasaría en vacío.
+func controlDeLaProsa(lista ExpresionesProhibidas) controlDeContenido {
+	return controlDeContenido{
+		exige: "ningún fichero enseña con su prosa expresiones que la respuesta no lleva ni escribe con cifras una " +
+			"fecha AAAAMMDD, y SKILL.md tiene prosa",
+		skills: []string{skillBoeLegislacion},
+		defectos: func(skill skillEntera) []string {
+			var defectos []string
+
+			if len(parrafosDeLaProsa(skill.skillMd.texto)) == 0 {
+				defectos = skill.defectosDe(skill.skillMd,
+					[]string{"no tiene prosa fuera del código y de la región generada"})
+			}
+
+			for _, fichero := range skill.ficheros() {
+				defectos = append(defectos, skill.defectosDe(fichero, defectosDeLaProsa(fichero.texto, lista))...)
+			}
+
+			return defectos
+		},
+	}
+}
+
+// controlDeLasOrdenes es el control 3, el de la subprueba
+// ordenes-para-powershell (contracts/skill-boe-legislacion.md §4 de H7.4;
+// FR-024, FR-095, SC-005 de H7.4): cada orden de lectura y comprobación de un
+// fichero lleva detrás, en ese mismo fichero, su forma para PowerShell —una orden
+// de un fichero no se empareja con la de otro—, y hay una orden de Bash de cada
+// verbo de lectura en la skill entera (FR-018 de H31). Los defectos de los
+// verbos, que son de la skill entera, van delante.
+var controlDeLasOrdenes = controlDeContenido{
+	exige: "cada orden de lectura y comprobación lleva detrás, en su fichero, su forma para PowerShell, y la skill " +
+		"tiene una orden de Bash de cada verbo de lectura",
+	skills: []string{skillBoeLegislacion},
+	defectos: func(skill skillEntera) []string {
+		var (
+			todas         []ordenDeLectura
+			deLosFicheros []string
+		)
+
+		for _, fichero := range skill.ficheros() {
+			ordenes := ordenesDeLectura(fichero.texto)
+			todas = append(todas, ordenes...)
+			deLosFicheros = append(deLosFicheros, skill.defectosDe(fichero, defectosDeLasOrdenes(ordenes))...)
+		}
+
+		return append(skill.defectosDeLaSkill(verbosSinOrdenDeBash(todas)), deLosFicheros...)
+	},
+}
+
+// controlDeLaLineaSinConsulta es el control 2, el de la subprueba
+// linea-sin-consulta (contracts/skills.md §5 de H21; FR-035, FR-077 de H21): el
+// SKILL.md de cada skill que lleva la regla dice la línea de contracts/skills.md
+// §3 de H21 tal cual en un bloque de código text, y esa línea casa con lo que el
+// juicio reconoce, ExtraerSinConsulta, con su dirección. Es una forma fija que
+// las evals comprueban sin modelo: en una referencia sola no vale (FR-018 de
+// H31).
+var controlDeLaLineaSinConsulta = controlDeContenido{
+	exige:  "SKILL.md enseña la línea " + formaEscrita(etiquetaSinConsulta) + " en un bloque text",
+	skills: skillsConLineaSinConsulta,
+	defectos: func(skill skillEntera) []string {
+		return skill.defectosDeLaSkill(defectosDeLaLineaSinConsulta(skill.skillMd.texto))
+	},
+}
+
+// controlDeLasFormasFechadas es el control 4, el de la subprueba
+// formas-de-la-redaccion-fechada (contracts/skill-boe-legislacion.md §1 de H20;
+// FR-048 de H20): con defectosDeLasFormasFechadas, el SKILL.md enseña en un
+// bloque text cada una de las tres formas fijas de una redacción fechada; en una
+// referencia sola no vale (FR-018 de H31).
+var controlDeLasFormasFechadas = controlDeContenido{
+	exige:  "SKILL.md enseña en un bloque text la forma fija de cada línea de una redacción fechada",
+	skills: []string{skillBoeLegislacion},
+	defectos: func(skill skillEntera) []string {
+		return skill.defectosDeLaSkill(defectosDeLasFormasFechadas(skill.skillMd.texto))
+	},
+}
+
+// controlDeLosAvisos es el control 5, el de la subprueba avisos-de-la-skill
+// (FR-014 de H5.1): el SKILL.md lleva la forma fija de cada código de aviso del
+// binario, reconocida con la misma función que usa Juzgar; en una referencia sola
+// no vale (FR-018 de H31).
+var controlDeLosAvisos = controlDeContenido{
+	exige:  "SKILL.md enseña la forma fija de cada código de aviso del binario",
+	skills: []string{skillBoeLegislacion},
+	defectos: func(skill skillEntera) []string {
+		return skill.defectosDe(skill.skillMd, lineasDelError(ComprobarFormasDeAviso(skill.skillMd.texto)))
+	},
+}
+
+// controlDeLosHallazgos es el control 6, el de la subprueba
+// hallazgos-de-la-skill (FR-045, FR-093 de H7.1): el SKILL.md lleva la forma fija
+// de cada clase de hallazgo etiquetada por el binario, reconocida con la misma
+// función que usa Juzgar; en una referencia sola no vale (FR-018 de H31).
+var controlDeLosHallazgos = controlDeContenido{
+	exige:  "SKILL.md enseña la forma fija de cada clase de hallazgo etiquetada por el binario",
+	skills: []string{skillBoeLegislacion},
+	defectos: func(skill skillEntera) []string {
+		return skill.defectosDe(skill.skillMd, lineasDelError(ComprobarFormasDeHallazgo(skill.skillMd.texto)))
+	},
+}
+
+// lineasDelError son las líneas del mensaje del error, una por cada error que
+// junta errors.Join, o nil sin error.
+func lineasDelError(err error) []string {
+	if err == nil {
+		return nil
+	}
+
+	return strings.Split(err.Error(), "\n")
+}
+
+// skillsConLineasDeAviso son las skills en que se aplica el control 7: las dos
+// cuyas formas fijas, las líneas ⚠, comprueban sin modelo sus evals (research
+// D16 de H31).
+var skillsConLineasDeAviso = []string{skillBoeLegislacion, "legal-core"}
+
+// inicioDeLineaDeAviso casa con la línea que, tras su sangría, un marcador de
+// lista (-, * o <n>.) con sus blancos y el énfasis (*, _ o `), cada uno si lo
+// lleva, empieza por la marca ⚠ (contracts/controles-de-contenido.md §7 de H31).
+var inicioDeLineaDeAviso = regexp.MustCompile("^[ \t]*(?:(?:[-*]|[0-9]+\\.)[ \t]+)?[*_`]*⚠")
+
+// controlDeLasLineasDeAviso es el control 7, el de la subprueba
+// lineas-de-aviso-de-las-referencias (contracts/controles-de-contenido.md §7 de
+// H31; research D16 de H31; FR-018), con defectosDeLasLineasDeAviso.
+var controlDeLasLineasDeAviso = controlDeContenido{
+	exige:    "cada línea ⚠ de una referencia a mano es una de SKILL.md",
+	skills:   skillsConLineasDeAviso,
+	defectos: defectosDeLasLineasDeAviso,
+}
+
+// defectosDeLasLineasDeAviso da, en el orden de las referencias a mano y de sus
+// líneas, una línea por cada línea ⚠ de una referencia (inicioDeLineaDeAviso)
+// que no es, sin los blancos de los extremos, ninguna de SKILL.md, también sin
+// ellos, con su número y su texto; o nil si no hay ninguna. Una variante mal
+// escrita de una forma fija —una errata, otra puntuación, otro marcador— no lo
+// es, aunque la gramática con la que se juzga la respuesta la reconociera.
+func defectosDeLasLineasDeAviso(skill skillEntera) []string {
+	delSkillMd := map[string]bool{}
+	for linea := range strings.Lines(skill.skillMd.texto) {
+		delSkillMd[strings.TrimSpace(linea)] = true
+	}
+
+	var defectos []string
+
+	for _, referencia := range skill.referencias {
+		numero := 0
+
+		for linea := range strings.Lines(referencia.texto) {
+			numero++
+
+			if recortada := strings.TrimSpace(linea); inicioDeLineaDeAviso.MatchString(linea) && !delSkillMd[recortada] {
+				defectos = append(defectos, fmt.Sprintf("%s: %s:%d: la línea ⚠ no es ninguna de SKILL.md: «%s»",
+					skill.nombre, referencia.ruta, numero, recortada))
+			}
+		}
+	}
+
+	return defectos
+}
+
+// mutanteDeUnControl es un caso de TestControlesSobreLasReferenciasAMano: el
+// control, la skill de la copia, lo que le hace a la copia, que recibe el
+// directorio de la skill, y los defectos que el control tiene que dar con ella:
+// con exactos, esos y ninguno más, en su orden; sin exactos, al menos esos; y sin
+// ninguno, ninguno.
+type mutanteDeUnControl struct {
+	nombre   string
+	control  controlDeContenido
+	skill    string
+	mutar    func(t *testing.T, dir string)
+	defectos []string
+	exactos  bool
+}
+
+// TestControlesSobreLasReferenciasAMano es el de los mutantes de los controles
+// 1 a 7 de contracts/controles-de-contenido.md de H31 (research D16 de H31;
+// FR-016 a FR-018; SC-005): sobre una copia de la skill en un temporal, cada
+// mutante lleva la regla de un control del SKILL.md a una referencia a mano, o
+// la escribe en ella, y el control da su defecto, con la skill y el fichero.
+// Las de ausencia, en la referencia, como en SKILL.md: una expresión prohibida y
+// una fecha AAAAMMDD con cifras en su prosa, y una orden de lectura sin su forma
+// para PowerShell, también cuando esa forma está en otro fichero; la orden de
+// Bash de un verbo se busca en la skill entera, así que llevar las de articulos a
+// una referencia no es un defecto y quitarlas sí. Las formas fijas, en SKILL.md:
+// llevar a una referencia la línea sin consulta, cada forma de aviso, cada una
+// de hallazgo o cada una de la redacción fechada da el defecto de su control.
+// Y una línea ⚠ de una referencia que no es, sin los blancos de los extremos,
+// una de SKILL.md —una errata, un marcador de lista o un énfasis— es un defecto
+// con su línea; la que sí lo es, o la que no empieza por la marca, no. Sin
+// mutar, la copia no da ningún defecto del control: si no, el mutante pasaría
+// por lo que ya estaba.
+func TestControlesSobreLasReferenciasAMano(t *testing.T) {
+	t.Parallel()
+
+	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	require.NoError(t, err)
+
+	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(),
+		mutantesDeLaLineaSinConsulta(), mutantesDeLasFormasMovidas(), mutantesDeLasLineasDeAviso(t))
+
+	for _, mutante := range mutantes {
+		t.Run(mutante.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			require.Contains(t, mutante.control.skills, mutante.skill, "el control se aplica en %s", mutante.skill)
+
+			raiz := copiaDeLaSkill(t, mutante.skill)
+			require.Empty(t, mutante.control.defectos(leerLaSkillEntera(t, raiz, mutante.skill)),
+				"sin mutar, la copia de %s no da ningún defecto del control", mutante.skill)
+
+			mutante.mutar(t, filepath.Join(raiz, directorioDeLasSkills, mutante.skill))
+			defectos := mutante.control.defectos(leerLaSkillEntera(t, raiz, mutante.skill))
+
+			switch {
+			case len(mutante.defectos) == 0:
+				assert.Empty(t, defectos, "el control no da ningún defecto con la copia")
+			case mutante.exactos:
+				assert.Equal(t, mutante.defectos, defectos, "los defectos del control con la copia")
+			default:
+				assert.Subset(t, defectos, mutante.defectos, "los defectos del control con la copia")
+			}
+		})
+	}
+}
+
+// skillBoeLegislacion es la skill en la que se aplican todos los controles de
+// contenido.
+const skillBoeLegislacion = "boe-legislacion"
+
+// referenciaAMano es el fichero de references/ de la copia en el que escriben
+// los mutantes: ninguna skill lo declara en su kitlegal-referencias, y no abre
+// con la cabecera de una referencia generada.
+const referenciaAMano = "a_mano.md"
+
+// copiaDeLaSkill copia la skill del repositorio, su directorio entero, en
+// skills/ de un temporal, y lo devuelve: es la raíz de la copia.
+func copiaDeLaSkill(t *testing.T, nombre string) string {
+	t.Helper()
+
+	raiz := t.TempDir()
+	require.NoError(t, os.CopyFS(filepath.Join(raiz, directorioDeLasSkills, nombre),
+		os.DirFS(filepath.Join(raizDeLasSkills, directorioDeLasSkills, nombre))))
+
+	return raiz
+}
+
+// escribirLaReferencia escribe el contenido en el fichero de references/ de la
+// skill de dir.
+func escribirLaReferencia(t *testing.T, dir, fichero, contenido string) {
+	t.Helper()
+
+	carpeta := filepath.Join(dir, directorioDeLasReferencias)
+	require.NoError(t, os.MkdirAll(carpeta, 0o750))
+	require.NoError(t, os.WriteFile(filepath.Join(carpeta, fichero), []byte(contenido), 0o600))
+}
+
+// conLasReferencias es el mutante que escribe cada fichero de references/ con
+// su contenido.
+func conLasReferencias(contenidos map[string]string) func(t *testing.T, dir string) {
+	return func(t *testing.T, dir string) {
+		t.Helper()
+
+		for fichero, contenido := range contenidos {
+			escribirLaReferencia(t, dir, fichero, contenido)
+		}
+	}
+}
+
+// quitarDelSkillMd quita del SKILL.md de la skill de dir cada línea con la que
+// casa, que tiene que haber al menos una, y devuelve las quitadas, juntas.
+func quitarDelSkillMd(t *testing.T, dir string, casa func(linea string) bool) string {
+	t.Helper()
+
+	ruta := filepath.Join(dir, ficheroDeLaSkill)
+
+	var quedan, quitadas strings.Builder
+
+	for linea := range strings.Lines(string(contenidoDelFichero(t, ruta))) {
+		if casa(linea) {
+			quitadas.WriteString(linea)
+		} else {
+			quedan.WriteString(linea)
+		}
+	}
+
+	require.NotZero(t, quitadas.Len(), "%s lleva lo que el mutante quita", ruta)
+	require.NoError(t, os.WriteFile(ruta, []byte(quedan.String()), 0o600))
+
+	return quitadas.String()
+}
+
+// sinLasLineas es el mutante que quita del SKILL.md cada línea con la que casa.
+func sinLasLineas(casa func(linea string) bool) func(t *testing.T, dir string) {
+	return func(t *testing.T, dir string) {
+		t.Helper()
+
+		quitarDelSkillMd(t, dir, casa)
+	}
+}
+
+// conLasLineasMovidas es el mutante que lleva del SKILL.md a la referencia a
+// mano cada línea con la que casa: tal cual o, con enBloqueDeTexto, en un bloque
+// de código text, como se enseña una forma fija.
+func conLasLineasMovidas(casa func(linea string) bool, enBloqueDeTexto bool) func(t *testing.T, dir string) {
+	return func(t *testing.T, dir string) {
+		t.Helper()
+
+		movidas := quitarDelSkillMd(t, dir, casa)
+		if enBloqueDeTexto {
+			movidas = aperturaDeBloqueDeTexto + "\n" + movidas + cierreDeBloqueDeCodigo + "\n"
+		}
+
+		escribirLaReferencia(t, dir, referenciaAMano, "# Lo que decía SKILL.md\n\n"+movidas)
+	}
+}
+
+// mutantesDeLaProsa son los del control 1: una expresión de la lista, la
+// primera de la maquinaria, y una fecha AAAAMMDD con cifras en la prosa de una
+// referencia a mano, cada una con el defecto de defectosDeLaProsa y la ruta.
+func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
+	control := controlDeLaProsa(lista)
+	expresion := lista.Maquinaria[0]
+
+	return []mutanteDeUnControl{
+		{
+			nombre: "prosa-con-una-expresion-prohibida", control: control, skill: skillBoeLegislacion,
+			mutar: conLasReferencias(map[string]string{
+				referenciaAMano: "# Notas\n\nEsta referencia nombra la " + expresion + " en su prosa.\n",
+			}),
+			defectos: []string{"boe-legislacion: references/a_mano.md: párrafo de la línea 3: " + expresion},
+			exactos:  true,
+		},
+		{
+			nombre: "prosa-con-una-fecha-con-cifras", control: control, skill: skillBoeLegislacion,
+			mutar: conLasReferencias(map[string]string{
+				referenciaAMano: "# Notas\n\nLa redacción de 20151002 es la primera.\n",
+			}),
+			defectos: []string{"boe-legislacion: references/a_mano.md: línea 3: fecha escrita con cifras 20151002"},
+			exactos:  true,
+		},
+	}
+}
+
+// mutantesDeLasOrdenes son los del control 3: en una referencia a mano, la
+// orden de Bash de articulo sin su forma para PowerShell, con ella en otra
+// referencia y con ella detrás; y las órdenes de articulos de SKILL.md llevadas
+// a una referencia, tal cual, o quitadas.
+func mutantesDeLasOrdenes() []mutanteDeUnControl {
+	const (
+		enBash       = "# Lecturas\n\n```bash\n" + bashDeArticulo + "\n```\n"
+		enPowerShell = "# Lecturas en PowerShell\n\n```powershell\n" + powershellDeArticulo + "\n```\n"
+	)
+
+	sinSuFormaEnLaReferencia := []string{"boe-legislacion: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
+		sinSuForma}
+	conLasDeArticulos := func(linea string) bool {
+		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
+	}
+
+	return []mutanteDeUnControl{
+		{
+			nombre: "orden-sin-su-forma-para-powershell", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			mutar:    conLasReferencias(map[string]string{referenciaAMano: enBash}),
+			defectos: sinSuFormaEnLaReferencia, exactos: true,
+		},
+		{
+			nombre: "orden-con-su-forma-en-otra-referencia", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			mutar:    conLasReferencias(map[string]string{referenciaAMano: enBash, "otra_a_mano.md": enPowerShell}),
+			defectos: sinSuFormaEnLaReferencia, exactos: true,
+		},
+		{
+			nombre: "orden-con-su-forma-detras", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			mutar: conLasReferencias(map[string]string{
+				referenciaAMano: enBash + "\n```powershell\n" + powershellDeArticulo + "\n```\n",
+			}),
+		},
+		{
+			nombre: "ordenes-de-articulos-en-una-referencia", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			mutar: conLasLineasMovidas(conLasDeArticulos, false),
+		},
+		{
+			nombre: "sin-las-ordenes-de-articulos", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			mutar: sinLasLineas(conLasDeArticulos),
+			defectos: []string{"boe-legislacion: ninguna orden de Bash lee con «kitlegal boe articulos» y comprueba " +
+				"detrás con kitlegal graph check"},
+			exactos: true,
+		},
+	}
+}
+
+// mutantesDeLaLineaSinConsulta son los del control 2: en cada skill que la
+// lleva, la línea sin consulta llevada del bloque text de SKILL.md al de una
+// referencia a mano.
+func mutantesDeLaLineaSinConsulta() []mutanteDeUnControl {
+	mutantes := make([]mutanteDeUnControl, 0, len(skillsConLineaSinConsulta))
+
+	for _, skill := range skillsConLineaSinConsulta {
+		mutantes = append(mutantes, mutanteDeUnControl{
+			nombre: "linea-sin-consulta-movida-en-" + skill, control: controlDeLaLineaSinConsulta, skill: skill,
+			mutar: conLasLineasMovidas(func(linea string) bool {
+				return strings.TrimSpace(linea) == lineaSinConsultaDeLasSkills
+			}, true),
+			defectos: []string{skill + ": SKILL.md no dice en un bloque text la línea «" + lineaSinConsultaDeLasSkills +
+				"»"},
+			exactos: true,
+		})
+	}
+
+	return mutantes
+}
+
+// mutantesDeLasFormasMovidas son los de los controles 4, 5 y 6: cada línea de
+// SKILL.md que lleva una forma de la redacción fechada, un aviso o un hallazgo,
+// con la gramática con la que se juzga la respuesta, llevada al bloque text de
+// una referencia a mano, forma a forma; el control da al menos el defecto de la
+// movida, porque una línea puede llevar más de una.
+func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
+	var mutantes []mutanteDeUnControl
+
+	movida := func(nombre string, control controlDeContenido, forma *regexp.Regexp, defecto string) {
+		mutantes = append(mutantes, mutanteDeUnControl{
+			nombre: nombre, control: control, skill: skillBoeLegislacion,
+			mutar: conLasLineasMovidas(forma.MatchString, true), defectos: []string{defecto},
+		})
+	}
+
+	for _, forma := range formasFechadas {
+		movida("forma-fechada-movida-"+strings.ToLower(strings.ReplaceAll(string(forma), " ", "-")),
+			controlDeLasFormasFechadas, expresionesFechadas()[forma],
+			"boe-legislacion: ningún bloque text de SKILL.md lleva la forma fija "+formaEscrita(string(forma)))
+	}
+
+	etiquetasDeAviso := boe.EtiquetasDeAviso()
+	for _, codigo := range boe.CodigosDeAviso() {
+		movida("aviso-movido-"+codigo, controlDeLosAvisos, formasDeAviso()[codigo],
+			"boe-legislacion: SKILL.md: falta la forma fija del aviso "+codigo+": "+
+				formaEscrita(etiquetasDeAviso[codigo]))
+	}
+
+	etiquetasDeHallazgo := grafo.EtiquetasDeHallazgo()
+	for _, clase := range clasesEtiquetadas() {
+		movida("hallazgo-movido-"+clase, controlDeLosHallazgos, formasDeHallazgo()[clase],
+			"boe-legislacion: SKILL.md: falta la forma fija del hallazgo "+clase+": "+
+				formaEscrita(etiquetasDeHallazgo[grafo.ClaseDeHallazgo(clase)]))
+	}
+
+	return mutantes
+}
+
+// mutantesDeLasLineasDeAviso son los del control 7, uno por skill en que se
+// aplica, con una referencia a mano que lleva líneas ⚠ de SKILL.md, con otra
+// sangría, y variantes de ellas: en boe-legislacion, la de la redacción
+// modificada sin la tilde, el ejemplo del contrato; en legal-core, la del plazo
+// con un marcador de lista y énfasis, una forma con un número de lista, otra con
+// los énfasis de subrayado y de código y otra con el marcador * delante. Una
+// línea con la marca en medio no es una línea ⚠.
+func mutantesDeLasLineasDeAviso(t *testing.T) []mutanteDeUnControl {
+	t.Helper()
+
+	modificada := lineaDeAvisoDeLaSkill(t, skillBoeLegislacion, "⚠ REDACCIÓN MODIFICADA:")
+	malEscrita := strings.Replace(modificada, "REDACCIÓN", "REDACCION", 1)
+
+	plazo := lineaDeAvisoDeLaSkill(t, "legal-core", "⚠ PLAZO: <AAAA-MM-DD> — <tipo>")
+	festivos := lineaDeAvisoDeLaSkill(t, "legal-core", "⚠ FALTAN FESTIVOS LOCALES:")
+	conEnfasis := "- **⚠ PLAZO:**" + strings.TrimPrefix(plazo, "⚠ PLAZO:")
+	conNumero := "1. " + festivos
+	conSubrayado := "_" + festivos + "_"
+	conCodigo := "`" + festivos + "`"
+	conAsterisco := "* " + festivos
+
+	return []mutanteDeUnControl{
+		{
+			nombre: "linea-de-aviso-mal-escrita-en-boe-legislacion", control: controlDeLasLineasDeAviso,
+			skill: skillBoeLegislacion,
+			mutar: conLasReferencias(map[string]string{
+				"redaccion_modificada.md": "# Redacción modificada\n\nLa respuesta lo dice con su línea:\n\n```text\n  " +
+					modificada + "\n" + malEscrita + "\n```\n",
+			}),
+			defectos: []string{"boe-legislacion: references/redaccion_modificada.md:7: la línea ⚠ no es ninguna de " +
+				"SKILL.md: «" + malEscrita + "»"},
+			exactos: true,
+		},
+		{
+			nombre: "lineas-de-aviso-mal-escritas-en-legal-core", control: controlDeLasLineasDeAviso,
+			skill: "legal-core",
+			mutar: conLasReferencias(map[string]string{
+				referenciaAMano: "# Plazos\n\n- La línea `⚠ PLAZO:` va sola.\n" + conEnfasis + "\n" + conNumero + "\n" +
+					conSubrayado + "\n" + conCodigo + "\n   " + festivos + "\t\n" + conAsterisco + "\n",
+			}),
+			defectos: []string{
+				"legal-core: references/a_mano.md:4: la línea ⚠ no es ninguna de SKILL.md: «" + conEnfasis + "»",
+				"legal-core: references/a_mano.md:5: la línea ⚠ no es ninguna de SKILL.md: «" + conNumero + "»",
+				"legal-core: references/a_mano.md:6: la línea ⚠ no es ninguna de SKILL.md: «" + conSubrayado + "»",
+				"legal-core: references/a_mano.md:7: la línea ⚠ no es ninguna de SKILL.md: «" + conCodigo + "»",
+				"legal-core: references/a_mano.md:9: la línea ⚠ no es ninguna de SKILL.md: «" + conAsterisco + "»",
+			},
+			exactos: true,
+		},
+	}
+}
+
+// lineaDeAvisoDeLaSkill es la línea del SKILL.md de la skill del repositorio que
+// empieza, sin su sangría, por el principio, sin los blancos de los extremos;
+// tiene que haber una.
+func lineaDeAvisoDeLaSkill(t *testing.T, skill, principio string) string {
+	t.Helper()
+
+	cargada, err := skills.Cargar(raizDeLasSkills, skill)
+	require.NoError(t, err)
+
+	for linea := range strings.Lines(string(cargada.Contenido)) {
+		if recortada := strings.TrimSpace(linea); strings.HasPrefix(recortada, principio) {
+			return recortada
+		}
+	}
+
+	require.Failf(t, "falta la línea", "el SKILL.md de %s no lleva ninguna línea que empiece por «%s»", skill, principio)
+
+	return ""
 }
 
 // conjuntoDeUnaSkill es el conjunto de evals leído de una carpeta de evals/, con
