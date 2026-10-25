@@ -1,7 +1,6 @@
 package evals
 
 import (
-	"cmp"
 	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"fmt"
@@ -683,8 +682,8 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 // de esa ejecución lleva la clases.yaml de evals/boe-legislacion/juez, leída
 // del repositorio: el umbral con el que el informe compara es el dato que leerá
 // el job y no una copia, y lo que el test espera de él va escrito a mano
-// —0.028, «≤ 2,8 %», 3 de 108—, de modo que otro valor en el repositorio no
-// pasa.
+// —0.034 desde el ADR 0047, «≤ 3,4 %», 3 de 108—, de modo que otro valor en el
+// repositorio no pasa.
 //
 //   - Con 3 marcadas de 108, el conjunto se cumple se repartan como se
 //     repartan entre los modos —3 y 0, 0 y 3, 2 y 1—: el veredicto es aprobado
@@ -699,13 +698,13 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 //     104 respuestas juzgadas sin ningún otro motivo de fallo. Desde H30
 //     (contracts/informe-del-job.md §4 de H30; FR-024), con menos respuestas
 //     que las 108 de su plan, el límite del conjunto es el de la regla de la
-//     tasa, k(104) = 3, y publica 3/104, porque con 0.028 la proporción daría
-//     2: con 2 marcadas y con 3, que la proporción no admitía, se cumple, y con
-//     4, no, con el motivo que lo dice con 3/104.
+//     tasa, k(104) = 3, que con 0.034 es también el de la proporción, así que
+//     publica 0.034: con 2 marcadas y con 3 se cumple, y con 4, no. La rama
+//     que publica k(n)/n la fija TestUmbralConjuntoConMenosRespuestas.
 //
 // En todos, umbrales son los trece del contrato, en su orden, con el umbral
-// 0.028 en los dos recuentos por modo y en el conjunto —3/104 en el de las
-// 104—, y deciden nueve; desde H26.1, detrás de ellos, los cuatro
+// 0.034 en los dos recuentos por modo y en el conjunto, y deciden nueve; desde
+// H26.1, detrás de ellos, los cuatro
 // fuera_de_lo_grabado, que no deciden. Y con las tres en un modo, su recuento
 // y el conjunto están escritos en informe.json como los dos ejemplos de
 // boe-legislacion del contrato: tal cual en 0-y-3, que es el informe de esos
@@ -748,18 +747,19 @@ const (
 )
 
 // Los dos ejemplos de boe-legislacion de contracts/umbrales-del-informe.md §2 y
-// §3 de H26, tal cual: el umbral conjunto con 3 marcadas de 108, que se cumple
-// y decide, y el recuento del modo herramienta de ese mismo informe, con las
-// tres, que no se cumple y no decide.
+// §3 de H26, con el umbral 0.034 del ADR 0047 donde el contrato lleva 0.028: el
+// umbral conjunto con 3 marcadas de 108, que se cumple y decide, y el recuento
+// del modo herramienta de ese mismo informe, con las tres, que no se cumple y
+// no decide.
 const (
 	conjuntoDelContrato = `{"nombre":"afirma_lo_no_leido:claude-sonnet-5-5","descripcion":"Respuestas de ` +
 		`claude-sonnet-5-5, con todos los modos juntos, que el juez marca en afirma_lo_no_leido con sus tres votos, ` +
 		`sobre sus respuestas juzgadas en las evals que activan la skill","medida":3,"total":108,"comparacion":"<=",` +
-		`"umbral":0.028,"cumple":true,"decide":true}`
+		`"umbral":0.034,"cumple":true,"decide":true}`
 
 	recuentoDelContrato = `{"nombre":"afirma_lo_no_leido:claude-sonnet-5-5:herramienta","descripcion":"Respuestas de ` +
 		`claude-sonnet-5-5 en el modo herramienta que el juez marca en afirma_lo_no_leido con sus tres votos, sobre sus ` +
-		`respuestas juzgadas en las evals que activan la skill","medida":3,"total":54,"comparacion":"<=","umbral":0.028,` +
+		`respuestas juzgadas en las evals que activan la skill","medida":3,"total":54,"comparacion":"<=","umbral":0.034,` +
 		`"cumple":false,"decide":false}`
 )
 
@@ -780,12 +780,10 @@ type casoDelUmbralConjunto struct {
 
 	// porModo son las respuestas juzgadas de cada modo; ordenCumple,
 	// herramientaCumple y conjuntoCumple, si cumplen la tasa el recuento de
-	// afirma_lo_no_leido de cada modo y su umbral conjunto; umbralDelConjunto,
-	// el que publica el conjunto si no es el de la declaración, 0.028; motivos,
-	// los de la raíz; y veredicto, el del informe.
+	// afirma_lo_no_leido de cada modo y su umbral conjunto; motivos, los de la
+	// raíz; y veredicto, el del informe.
 	porModo                                        int
 	ordenCumple, herramientaCumple, conjuntoCumple bool
-	umbralDelConjunto                              float64
 	motivos                                        []string
 	veredicto                                      Veredicto
 
@@ -795,10 +793,10 @@ type casoDelUmbralConjunto struct {
 }
 
 // casosDelUmbralConjunto son los de TestUmbralConjunto. Lo que cumple cada
-// elemento es lo de contracts/umbrales-del-informe.md §2 de H26: 3 de 108 caben
-// en el 2,8 %, y 4 de 108, no; en un modo, 1 de 54 y 1 de 52 caben, y 2 de 54 y
-// 2 de 52, no; y, desde H30, con las 104 el conjunto admite k(104) = 3
-// (contracts/informe-del-job.md §4 de H30), y 4, no.
+// elemento es lo de contracts/umbrales-del-informe.md §2 de H26 con el 0.034 del
+// ADR 0047: 3 de 108 caben en el 3,4 %, y 4 de 108, no; en un modo, 1 de 54 y 1
+// de 52 caben, y 2 de 54 y 2 de 52, no; y, desde H30, con las 104 el conjunto
+// admite k(104) = 3 (contracts/informe-del-job.md §4 de H30), y 4, no.
 func casosDelUmbralConjunto() []casoDelUmbralConjunto {
 	return []casoDelUmbralConjunto{
 		{
@@ -822,7 +820,7 @@ func casosDelUmbralConjunto() []casoDelUmbralConjunto {
 			nombre: "4-y-0", enOrden: 4,
 			porModo: 54, ordenCumple: false, herramientaCumple: true, conjuntoCumple: false,
 			motivos: []string{
-				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: " +
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 3,4 %: " +
 					"01-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel22Y24 +
 					"; 02-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel23Y25 +
 					"; 03-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel29Y30 +
@@ -834,7 +832,7 @@ func casosDelUmbralConjunto() []casoDelUmbralConjunto {
 			nombre: "2-y-2", enOrden: 2, enHerramienta: 2,
 			porModo: 54, ordenCumple: false, herramientaCumple: false, conjuntoCumple: false,
 			motivos: []string{
-				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: " +
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 3,4 %: " +
 					"01-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel22Y24 +
 					"; 02-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel23Y25 +
 					"; 01-sintetica-herramienta-claude-sonnet-5-5-01 (modo herramienta): " + frasesDel29Y30 +
@@ -845,21 +843,18 @@ func casosDelUmbralConjunto() []casoDelUmbralConjunto {
 		{
 			nombre: "104-con-2", enOrden: 1, enHerramienta: 1, conCortadas: true,
 			porModo: 52, ordenCumple: true, herramientaCumple: true, conjuntoCumple: true,
-			umbralDelConjunto: limiteDeLas104,
-			veredicto:         VeredictoAprobado,
+			veredicto: VeredictoAprobado,
 		},
 		{
 			nombre: "104-con-3", enOrden: 2, enHerramienta: 1, conCortadas: true,
 			porModo: 52, ordenCumple: false, herramientaCumple: true, conjuntoCumple: true,
-			umbralDelConjunto: limiteDeLas104,
-			veredicto:         VeredictoAprobado,
+			veredicto: VeredictoAprobado,
 		},
 		{
 			nombre: "104-con-4", enOrden: 2, enHerramienta: 2, conCortadas: true,
 			porModo: 52, ordenCumple: false, herramientaCumple: false, conjuntoCumple: false,
-			umbralDelConjunto: limiteDeLas104,
 			motivos: []string{
-				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 104 (3,8 %), y tiene que ser ≤ 2,9 %: " +
+				"umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 104 (3,8 %), y tiene que ser ≤ 3,4 %: " +
 					"01-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel22Y24 +
 					"; 02-sintetica-claude-sonnet-5-5-01 (modo orden): " + frasesDel23Y25 +
 					"; 01-sintetica-herramienta-claude-sonnet-5-5-01 (modo herramienta): " + frasesDel29Y30 +
@@ -870,20 +865,13 @@ func casosDelUmbralConjunto() []casoDelUmbralConjunto {
 	}
 }
 
-// limiteDeLas104 es el umbral que publica el conjunto de los casos de 104
-// respuestas de TestUmbralConjunto, escrito a mano: k(104)/104, con k(104) = 3,
-// el límite de la regla de la tasa con las 108 respuestas de su plan y el
-// 0.028 de su clase (contracts/informe-del-job.md §4 de H30).
-const limiteDeLas104 = 3.0 / 104
-
 // umbrales son los trece del informe del caso, en el orden de
 // contracts/umbrales-del-informe.md §1 de H26, con sus valores escritos a mano:
 // los de umbralesConJuez con las marcadas y las respuestas juzgadas de cada
 // modo, que dan al conjunto la suma de unas y la de otras, y con las dos
 // tandas en su objetivo; y en los tres de afirma_lo_no_leido —el 2, el 5 y el 7
-// de los trece—, la tasa de la declaración de boe-legislacion, 0.028 —en el
-// conjunto, el umbralDelConjunto del caso, si lo lleva—, y si la cumple cada
-// uno. Detrás, desde H26.1, los cuatro fuera_de_lo_grabado, con
+// de los trece—, la tasa de la declaración de boe-legislacion, 0.034, y si la
+// cumple cada uno. Detrás, desde H26.1, los cuatro fuera_de_lo_grabado, con
 // medida 0 sobre las sesiones medidas de cada modelo en cada modo: 54 y 30,
 // también con las cuatro cortadas, que son sesiones medidas aunque no sean
 // respuestas juzgadas (research D11 de H26.1).
@@ -894,10 +882,8 @@ func (c casoDelUmbralConjunto) umbrales() []Umbral {
 		medidasDeUnModo{modo: ModoHerramienta, respuestas: c.porModo, marcadas: c.enHerramienta})
 
 	for posicion, cumple := range map[int]bool{1: c.ordenCumple, 4: c.herramientaCumple, 6: c.conjuntoCumple} {
-		trece[posicion].Umbral, trece[posicion].Cumple = 0.028, cumple
+		trece[posicion].Umbral, trece[posicion].Cumple = 0.034, cumple
 	}
-
-	trece[6].Umbral = cmp.Or(c.umbralDelConjunto, trece[6].Umbral)
 
 	return slices.Concat(trece, sinFueraDeLoGrabado(ModoOrden, 54, 30), sinFueraDeLoGrabado(ModoHerramienta, 54, 30))
 }
@@ -1011,11 +997,12 @@ func exigirElRecuentoConLasTres(modo Modo) func(t *testing.T, leido informeLeido
 // (contracts/informe-del-job.md §4 de H30; data-model §9; research D12;
 // FR-024): el ejemplo del contrato, boe-legislacion con 60 respuestas medidas,
 // 30 por modo, de las de su plan —el del job con sus evals y su clases.yaml,
-// leídos del repositorio—. El límite es k(60) = 2, donde la proporción con el
-// umbral de la clase daría 1, y publica 2/60, con el que la comparación de
+// leídos del repositorio—. Con el 0.034 del ADR 0047 y las 120 respuestas de su
+// plan, el límite es k(60) = 3, donde la proporción con el umbral de la clase
+// daría 2, y publica 3/60, con el que la comparación de
 // scripts/workflow/informe.sh da lo mismo que el job: con 1 marcada, el
-// elemento del contrato, tal cual y con sus claves en su orden; con 2, se
-// cumple; y con 3, no.
+// elemento del contrato con ese umbral donde el contrato lleva el 2/60 del
+// 0.028, y con sus claves en su orden; con 2 y con 3, se cumple; y con 4, no.
 func TestUmbralConjuntoConMenosRespuestas(t *testing.T) {
 	t.Parallel()
 
@@ -1025,7 +1012,7 @@ func TestUmbralConjuntoConMenosRespuestas(t *testing.T) {
 		delContrato = `{"nombre":"afirma_lo_no_leido:claude-sonnet-5-5","descripcion":"Respuestas de ` +
 			`claude-sonnet-5-5, con todos los modos juntos, que el juez marca en afirma_lo_no_leido con sus tres ` +
 			`votos, sobre sus respuestas juzgadas en las evals que activan la skill","medida":1,"total":60,` +
-			`"comparacion":"<=","umbral":0.03333333333333333,"cumple":true,"decide":true}`
+			`"comparacion":"<=","umbral":0.05,"cumple":true,"decide":true}`
 	)
 
 	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
@@ -1045,7 +1032,7 @@ func TestUmbralConjuntoConMenosRespuestas(t *testing.T) {
 	for _, caso := range []struct {
 		marcadas int
 		cumple   bool
-	}{{1, true}, {2, true}, {3, false}} {
+	}{{1, true}, {2, true}, {3, true}, {4, false}} {
 		t.Run(strconv.Itoa(caso.marcadas)+"-marcadas", func(t *testing.T) {
 			t.Parallel()
 

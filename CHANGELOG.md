@@ -66,6 +66,12 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **El umbral de `afirma_lo_no_leido` en `boe-legislacion` sube a 4 marcadas de 120** (ADR 0047). `clases.yaml` pasa
+  de `0.028` a `0.034`. El de antes suponía una tasa del 0,85 %, y la serie de cierres da el 1,14 % (19 de 1.664), sin
+  que ninguna versión de la skill se distinga de las demás. Con él, una ejecución completa salía en rojo sin motivo 1
+  de cada 20 veces. Con el nuevo vuelve el criterio de 1 de cada 50, y una vuelta a la tasa de H22 se sigue viendo 4 de
+  cada 5 veces. La regla del límite del ADR 0045 no cambia: *p*ref pasa a 1,28 %, y con 60 respuestas medidas el
+  límite es 3. `jurisprudencia` sigue con 1 de 60.
 - **`jurisprudencia` v0.2: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
   escritas a mano** (H31; ADR 0046). Sustituye a `jurisprudencia` v0.1.2. Cambia la forma de lo que lee el modelo, no
   ninguna regla: cada una de las 74 reglas de v0.1.2 tiene su sitio en la nueva (`research.md` de H31, «Tabla de

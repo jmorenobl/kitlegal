@@ -10,6 +10,21 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-25 · Una subida de dependencia sale en rojo por la skill
+
+- **Qué se pidió.** Fusionar cinco propuestas de la deuda tras H31, una de ellas la #195, que solo sube
+  `golang.org/x/text`.
+- **Qué pasó.** La #195 midió la suite completa, porque toca `go.mod`, y `boe-legislacion` dio 5 de 120 en
+  `afirma_lo_no_leido`, con 3 de tope. Cuatro de las cinco frases dicen de memoria que el art. 7 de la Ley del IRPF
+  regula las rentas exentas. Es el defecto de siempre: no lo causa el cambio. Las dos medidas siguientes del día dieron
+  3 y 2 de 120.
+- **Qué falló.** El umbral: supone una tasa del 0,85 %, y la serie de cierres da el 1,14 % (19 de 1.664), sin que
+  ninguna versión de la skill se distinga de las demás. Con esa tasa, una ejecución completa sale en rojo sin motivo 1
+  de cada 20 veces. Volver a medir hasta que salga en verde cuesta mucha cuota y no dice nada de la skill.
+- **Qué se hizo.** La #195 se fusionó en rojo, con un comentario que lo explica. El ADR 0047 sube el umbral a 4 de 120
+  con la tasa de la serie entera y el mismo criterio de 1 rojo sin motivo de cada 50. Arreglar el defecto queda para
+  después de H32, sobre las skills ya reorganizadas.
+
 ### 2026-10-21 · La póliza se lee bien, pero no hay nada alrededor de la norma
 
 - **Qué se pidió.** Una familia a la que una aseguradora renovó y cobró una póliza tras el fallecimiento de la asegurada

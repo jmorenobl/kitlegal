@@ -789,9 +789,9 @@ no por sentencias. `legal-core` no la tiene. Los cinco ficheros de la carpeta:
 | `medida.json` | La medida versionada: lo que dio votar esos casos, y con qué rúbrica, qué casos, qué modelo y qué versión de Claude Code ([Job de evals](#job-de-evals)) |
 
 En `boe-legislacion` las clases son dos. `afirma_lo_no_leido` **decide**, con la tasa de su `clases.yaml` sobre las
-respuestas de los dos modos juntas (ADR 0038), 0.028, que son como mucho 3 marcadas de 120: la respuesta expone una
-regla que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de qué
-trata un precepto que nombra y no leyó; avisar de lo que la respuesta no cubre sin nombrar ningún precepto no cuenta.
+respuestas de los dos modos juntas (ADR 0038 y 0047), 0.034, que son como mucho 4 marcadas de 120: la respuesta expone
+una regla que no está en los textos que devolvieron sus herramientas, cambia una remisión por su descripción o dice de
+qué trata un precepto que nombra y no leyó; avisar de lo que la respuesta no cubre sin nombrar ningún precepto no cuenta.
 `cuenta_su_proceso` **solo se publica**. En `jurisprudencia` son otras dos. `afirma_lo_no_leido` **decide**, con la
 tasa de la suya, también sobre los dos modos juntos, 0.017, que es como mucho 1 marcada de 60: la respuesta dice qué
 dice, qué resuelve o de qué trata una sentencia, o un dato suyo, o qué dice la
@@ -1233,11 +1233,11 @@ con la suma de esos aportes, que decide como el original salvo `<clase>:<modelo>
 marcadas y el total. Una serie que decide de una eval reutilizada que no pasa, o un umbral `:reutilizadas` que decide
 y no se cumple, ponen el veredicto en fallo. El umbral en tasa de la clase que decide, `<clase>:<modelo>`, se aplica a
 las *n* respuestas medidas del modelo que decide, con los dos modos juntos, con el límite k(*n*) del ADR 0045: el *k*
-más estricto con P(Bin(*n*, *p*ref) > *k*) ≤ 0,02, con *p*ref derivada del `umbral` de `clases.yaml` —0,85 % en
-`boe-legislacion` y 0,36 % en `jurisprudencia`—. Con todas las respuestas es el límite de antes, 3 de 120 y 1 de 60, y
-el informe publica el `umbral` de `clases.yaml`; con menos, publica k(*n*)/*n* si la proporción daría otro límite
-(con 60 respuestas de `boe-legislacion`, k(60) = 2, y publica 0,0333). Lo comprueba `TestLimiteDeLaTasa`, para cada
-*n* de 1 a todas. La fila de la serie de cierres de una ejecución con reutilización es la de lo medido, y
+más estricto con P(Bin(*n*, *p*ref) > *k*) ≤ 0,02, con *p*ref derivada del `umbral` de `clases.yaml` —1,28 % en
+`boe-legislacion` desde el ADR 0047 y 0,36 % en `jurisprudencia`—. Con todas las respuestas es el límite de la
+proporción, 4 de 120 y 1 de 60, y el informe publica el `umbral` de `clases.yaml`; con menos, publica k(*n*)/*n* si la
+proporción daría otro límite (con 60 respuestas de `boe-legislacion`, k(60) = 3, y publica 0,05). Lo comprueba
+`TestLimiteDeLaTasa`, para cada *n* de 1 a todas. La fila de la serie de cierres de una ejecución con reutilización es la de lo medido, y
 `scripts/workflow/serie.sh` no cambia (`TestFilaConReutilizadas`); la suite completa da el mismo informe que antes,
 con `origen` (`TestInformeDeLaSuiteCompletaNoCambia`).
 
@@ -1338,7 +1338,7 @@ Cómo se lee el informe:
   juez—, una petición llegada a la red o un umbral que decide y no se cumple. El del conjunto de una clase del juez
   nombra detrás cada respuesta marcada de todos los modos, las del modo orden delante, por su sesión, con su modo y
   con las frases de sus tres votos:
-  `umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 2,8 %: <sesión> (modo <modo>): «<frase 1>» · «<frase 2>» · «<frase 3>»`,
+  `umbral afirma_lo_no_leido:claude-sonnet-5-5: 4 de 108 (3,7 %), y tiene que ser ≤ 3,4 %: <sesión> (modo <modo>): «<frase 1>» · «<frase 2>» · «<frase 3>»`,
   y `; <sesión> (modo <modo>): …` por cada otra. Los que
   dependen del modo lo nombran, en el `<modelo>` de la serie —`claude-sonnet-5-5 (herramienta)` en el modo
   herramienta, el id solo en el modo orden y en la eval sin binario ni servidor— o en el nombre del umbral. Una serie
@@ -1383,10 +1383,10 @@ H20, si alguna lleva `redaccion_fechada`; desde H26.1, los de las lecturas, de l
   | `nombre` | `medida` | `total` | `umbral` | `decide` |
   |---|---|---|---|---|
   | `sin_activar:<modelo>:<modo>` | Respuestas del modelo que decide que no activan la skill | Sus respuestas medidas en ese modo, en las evals que activan la skill (60) | `0` | sí |
-  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.028` | no |
+  | `afirma_lo_no_leido:<modelo>:<modo>` | Las que el juez marca en la clase, con sus tres votos | Las mismas | `0.034` | no |
   | `cuenta_su_proceso:<modelo>:<modo>` | Las que tienen sí en el primer voto de la clase | Las mismas | `0` | no |
   | `redaccion_sin_fechar:<modelo>:<modo>` | Las de una eval con `redaccion_fechada` cuya sesión no leyó el bloque de la eval en su fecha —ningún `boe articulo` de su norma y su bloque con `--fecha` ese día, ni ninguna llamada a `boe_articulo` con esa `fecha`, que termine con `0` o con `3`— o cuya respuesta no lleva las líneas que la eval espera | Sus respuestas medidas en ese modo, en las evals con `redaccion_fechada` (6) | `0` | sí |
-  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (120) | `0.028`; con menos respuestas medidas, k(*n*)/*n* si da otro límite (ADR 0045) | sí |
+  | `afirma_lo_no_leido:<modelo>` | Las que el juez marca en la clase, con sus tres votos, en los dos modos: la suma de las `medida` de sus dos recuentos | La suma de sus `total`: las respuestas de los dos modos (120) | `0.034`; con menos respuestas medidas, k(*n*)/*n* si da otro límite (ADR 0045) | sí |
   | `medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar` | `defectos.sin_marcar` de la medida versionada | `defectos.casos` (212) | `0` | sí |
   | `medida_del_juez:afirma_lo_no_leido:correctos_marcados` | `correctos.marcados` de la medida versionada | `correctos.casos` (47) | `0` | sí |
   | `duracion_de_las_sesiones:<modo>` | Segundos de la tanda de ese modo | — | `900`, el objetivo del job | sí |

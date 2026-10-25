@@ -1,7 +1,8 @@
 # 0045 · Lo reutilizado no cuenta en la tasa; el límite de marcadas se deriva para las respuestas medidas
 
 - **Estado**: propuesta (2026-10-22), escrita en el run de H30; queda aceptada cuando una persona fusiona la propuesta
-  de cambio del hito (ADR 0018).
+  de cambio del hito (ADR 0018). El ADR 0047 (2026-10-25) sube el `umbral` de `boe-legislacion` a 0.034: con la misma
+  regla, *p*ref pasa a 1,28 % y k(120) a 4. Las cifras de «Las cifras de hoy» y «Validación» son las del 0.028.
 - **Fecha**: 2026-10-22
 - **Hito**: H30, las evals que solo miden lo que cambia (FR-024, SC-010 y SC-013 de su spec). Precisa el ADR 0038 en
   el número de respuestas de su regla (punto 3), que contaba con que una ejecución las mide todas, y mantiene su

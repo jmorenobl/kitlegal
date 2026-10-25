@@ -2,11 +2,12 @@
 # cada respuesta, con las preguntas de rubrica.md y la forma de esquema.json. De cada una, su nombre, si decide —su
 # umbral del informe hace fallar el job— o solo se publica, y su umbral: la proporción de respuestas marcadas que
 # admite. El de la clase que decide lo fija el ADR 0038 sobre las respuestas de todos los modos juntas, y solo lo
-# estrecha una persona, con las cifras de la serie de cierres: aquí, como mucho 3 marcadas de 108 (H26, FR-020).
+# estrecha una persona, con las cifras de la serie de cierres: aquí, como mucho 4 marcadas de 120, desde el ADR 0047,
+# que lo sube con la tasa de la serie entera (H26, FR-020).
 clases:
   - nombre: afirma_lo_no_leido
     decide: true
-    umbral: 0.028
+    umbral: 0.034
   - nombre: cuenta_su_proceso
     decide: false
     umbral: 0

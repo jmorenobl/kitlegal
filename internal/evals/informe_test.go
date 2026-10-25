@@ -1912,8 +1912,9 @@ const (
 	cabeceraDeLosUmbralesDelJob = "Umbrales que publica el job (ADR 0029):"
 
 	// tasaDeBoeLegislacion es la de afirma_lo_no_leido de boe-legislacion en su
-	// declaración de clases (ADR 0038): como mucho 3 marcadas de 108.
-	tasaDeBoeLegislacion = 0.028
+	// declaración de clases (ADR 0038 y 0047): como mucho 3 marcadas de 108 y 4
+	// de 120.
+	tasaDeBoeLegislacion = 0.034
 )
 
 // TestInformeFinalDeLosUmbrales ejecuta guionDelInformeFinal con --solo-ver
@@ -7931,7 +7932,7 @@ func exigirLosUmbralesDeBoeLegislacion(t *testing.T, caso casoDeUmbralesDeBoeLeg
 		case umbral.Total == nil:
 			condicion = "≤ 900"
 		case strings.HasPrefix(umbral.Nombre, claseAfirmaLoNoLeido+":"):
-			condicion = "≤ 2,8 %"
+			condicion = "≤ 3,4 %"
 		}
 
 		if !umbral.Decide {

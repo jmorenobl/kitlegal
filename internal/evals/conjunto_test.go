@@ -1972,11 +1972,12 @@ const (
 // respuesta: del calibrado de H7.4 quedan sus tres totales, como premisa de
 // TestJuzgarSinLaLista (FR-071 de H24). Desde H26, la clase que decide lleva en
 // cada declaración el umbral del ADR 0038, una tasa sobre las respuestas de
-// todos los modos juntas —0.028 en boe-legislacion y 0.017 en jurisprudencia—,
-// y la que solo se publica sigue con 0: los dos valores van aquí escritos a
-// mano y se comparan con igualdad exacta, de modo que otro en cualquiera de las
-// dos declaraciones no pasa (contracts/clases-yaml.diff de H26; data-model §1
-// de H26; research D9 de H26; FR-020, FR-022, FR-077; SC-007). Desde H9, las de
+// todos los modos juntas —0.034 en boe-legislacion, desde el ADR 0047, y 0.017
+// en jurisprudencia—, y la que solo se publica sigue con 0: los dos valores van
+// aquí escritos a mano y se comparan con igualdad exacta, de modo que otro en
+// cualquiera de las dos declaraciones no pasa (contracts/clases-yaml.diff de
+// H26; data-model §1 de H26; research D9 de H26; FR-020, FR-022, FR-077;
+// SC-007). Desde H9, las de
 // evals/legal-core/ son nueve, bien formadas, cumplen además la regla de la
 // cobertura por materia, y la unión de grabaciones sirve sin red lo que leen del
 // BOE, como las de boe-legislacion (contracts/evals-legal-core.md §4 y §5 de H9;
@@ -2034,11 +2035,11 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		// La carpeta del juez se lee con las evals: boe-legislacion declara sus
 		// dos clases y legal-core no tiene juez (FR-020 y FR-021 de H24). La que
-		// decide lleva el umbral del ADR 0038, como mucho 3 marcadas de 108, y la
-		// que solo se publica, 0 (FR-020 y FR-022 de H26).
+		// decide lleva el umbral del ADR 0038 que fija el ADR 0047, como mucho 4
+		// marcadas de 120, y la que solo se publica, 0 (FR-020 y FR-022 de H26).
 		require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez", evalsDelRepositorio)
 		assert.Equal(t, []ClaseDelJuez{
-			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.028},
+			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.034},
 			{Nombre: "cuenta_su_proceso", Decide: false, Umbral: 0},
 		}, conjunto.Juez.Clases)
 
