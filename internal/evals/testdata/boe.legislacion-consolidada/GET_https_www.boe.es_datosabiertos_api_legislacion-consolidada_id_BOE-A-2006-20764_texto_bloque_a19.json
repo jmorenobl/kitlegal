@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-25T23:26:43Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2006-20764/texto/bloque/a19",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Length": [
+        "4199"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Sun, 25 Oct 2026 23:26:40 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a19\" tipo=\"precepto\" titulo=\"Artículo 19\">\n      <version id_norma=\"BOE-A-2006-20764\" fecha_publicacion=\"20061129\" fecha_vigencia=\"20070101\">\n        <p class=\"articulo\">Artículo 19. Rendimiento neto del trabajo.</p>\n        <p class=\"parrafo\">1. El rendimiento neto del trabajo será el resultado de disminuir el rendimiento íntegro en el importe de los gastos deducibles.</p>\n        <p class=\"parrafo\">2. Tendrán la consideración de gastos deducibles exclusivamente los siguientes:</p>\n        <p class=\"parrafo_2\">a) Las cotizaciones a la Seguridad Social o a mutualidades generales obligatorias de funcionarios.</p>\n        <p class=\"parrafo\">b) Las detracciones por derechos pasivos.</p>\n        <p class=\"parrafo\">c) Las cotizaciones a los colegios de huérfanos o entidades similares.</p>\n        <p class=\"parrafo\">d) Las cuotas satisfechas a sindicatos y colegios profesionales, cuando la colegiación tenga carácter obligatorio, en la parte que corresponda a los fines esenciales de estas instituciones, y con el límite que reglamentariamente se establezca.</p>\n        <p class=\"parrafo\">e) Los gastos de defensa jurídica derivados directamente de litigios suscitados en la relación del contribuyente con la persona de la que percibe los rendimientos, con el límite de 300 euros anuales.</p>\n      </version>\n      <version id_norma=\"BOE-A-2014-12327\" fecha_publicacion=\"20141128\" fecha_vigencia=\"20150101\">\n        <p class=\"articulo\">Artículo 19. Rendimiento neto del trabajo.</p>\n        <p class=\"parrafo\">1. El rendimiento neto del trabajo será el resultado de disminuir el rendimiento íntegro en el importe de los gastos deducibles.</p>\n        <p class=\"parrafo\">2. Tendrán la consideración de gastos deducibles exclusivamente los siguientes:</p>\n        <p class=\"parrafo_2\">a) Las cotizaciones a la Seguridad Social o a mutualidades generales obligatorias de funcionarios.</p>\n        <p class=\"parrafo\">b) Las detracciones por derechos pasivos.</p>\n        <p class=\"parrafo\">c) Las cotizaciones a los colegios de huérfanos o entidades similares.</p>\n        <p class=\"parrafo\">d) Las cuotas satisfechas a sindicatos y colegios profesionales, cuando la colegiación tenga carácter obligatorio, en la parte que corresponda a los fines esenciales de estas instituciones, y con el límite que reglamentariamente se establezca.</p>\n        <p class=\"parrafo\">e) Los gastos de defensa jurídica derivados directamente de litigios suscitados en la relación del contribuyente con la persona de la que percibe los rendimientos, con el límite de 300 euros anuales.</p>\n        <p class=\"parrafo\">f) En concepto de otros gastos distintos de los anteriores, 2.000 euros anuales.</p>\n        <p class=\"parrafo_2\">Tratándose de contribuyentes desempleados inscritos en la oficina de empleo que acepten un puesto de trabajo que exija el traslado de su residencia habitual a un nuevo municipio, en las condiciones que reglamentariamente se determinen, se incrementará dicha cuantía, en el periodo impositivo en el que se produzca el cambio de residencia y en el siguiente, en 2.000 euros anuales adicionales.</p>\n        <p class=\"parrafo\">Tratándose de personas con discapacidad que obtengan rendimientos del trabajo como trabajadores activos, se incrementará dicha cuantía en 3.500 euros anuales. Dicho incremento será de 7.750 euros anuales, para las personas con discapacidad que siendo trabajadores activos acrediten necesitar ayuda de terceras personas o movilidad reducida, o un grado de discapacidad igual o superior al 65 por ciento.</p>\n        <p class=\"parrafo\">Los gastos deducibles a que se refiere esta letra f) tendrán como límite el rendimiento íntegro del trabajo una vez minorado por el resto de gastos deducibles previstos en este apartado.</p>\n        <blockquote>\n          <p class=\"nota_pie\">Se modifica el apartado 2 por el art. 1.11 de la Ley 26/2014, de 27 de noviembre. <a class=\"refPost\">Ref. BOE-A-2014-12327</a>.</p>\n        </blockquote>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}
