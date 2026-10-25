@@ -202,7 +202,10 @@ referencia sin agrandar el cuerpo.
 
 **`references/` es plano**: solo ficheros regulares `.md`. Un subdirectorio, un enlace simbólico o un fichero de otra
 extensión es un defecto (`references/notas.txt: no es un fichero .md`, `references/anexos: no es un fichero .md`), y
-`make skills-sync` no lo retira ni escribe nada.
+`make skills-sync` no lo retira ni escribe nada. Un subdirectorio sin ningún fichero que se pueda empotrar (vacío, o
+con solo ficheros que empiezan por punto, como `.DS_Store`) no llega a ese defecto: el `//go:embed` de `skills.go` no
+compila, y el error de Go lo nombra (`cannot embed directory skills/<skill>/references/<dir>: contains no embeddable
+files`). Solo pasa en local, porque git no guarda directorios vacíos; se arregla borrando el directorio.
 
 **Cada fichero se clasifica primero por la declaración** (FR-012 de H31), en este orden:
 
