@@ -190,7 +190,7 @@ que decide es el de caracteres. Al cerrar H31:
 
 | Skill | Cuerpo antes de H31 | Cuerpo | Descripción |
 |---|---|---|---|
-| `boe-legislacion` | 283 líneas, 24 439 caracteres | 152 líneas, 10 993 caracteres | 878 caracteres |
+| `boe-legislacion` | 283 líneas, 24 439 caracteres | 152 líneas, 10 992 caracteres | 878 caracteres |
 | `legal-core` | 283 líneas, 19 225 caracteres | 168 líneas, 10 944 caracteres | 888 caracteres |
 | `jurisprudencia` | 193 líneas, 13 637 caracteres | 159 líneas, 10 859 caracteres | 842 caracteres |
 
