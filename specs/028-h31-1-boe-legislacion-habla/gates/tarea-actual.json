@@ -1,0 +1,23 @@
+{
+  "id": "T001",
+  "texto": "T001 [datos] [US3] Añadir al manifiesto `internal/evals/testdata/grabaciones.json` (`\"fuente\": \"boe.legislacion-consolidada\"`, sin tocar ningún otro campo ni entrada) los ocho bloques de FR-010, en las dos entradas que ya existen y en el orden de contracts/lecturas-y-grabaciones.md §2: en la de `titulo_empieza_por` «Ley 35/2006,», `bloques` pasa a `a18`, `a7`, `a19`, `a20`, `dadecimoctava`; en la de «Real Decreto Legislativo 2/2004,», a `a15`, `a60`, `a92`, `a100`, `a104`; y al final del `para` de cada una, la frase literal de esa tabla. La entrada de la Ley 19/2013 no cambia (`a24` ya está grabado para `data/plazos.yaml`). Antes de escribirlos, comprobar con `jq` que cada id es el `id` de la entrada cuyo `titulo` es su precepto («Artículo 7», «Artículo 19», «Artículo 20», «Disposición adicional decimoctava», «Artículo 60», «Artículo 92», «Artículo 100», «Artículo 104») en los índices grabados de H5, `testdata/evals/boe.legislacion-consolidada/GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2006-20764_texto_indice.json` y `…_id_BOE-A-2004-4214_texto_indice.json` (solo lectura), nunca compuesto ni de memoria. Nada más en la tarea: ni evals, ni tests, ni grabaciones, ni red; las graba el paso `grabar_datos` tras el commit con `TestGrabarEvals`. Test: `TestManifiestoDeGrabaciones` sigue en verde, la primera orden `jq` de quickstart.md escenario 6 da `Ley 35/2006, a18 a7 a19 a20 dadecimoctava` y `Real Decreto Legislativo 2/2004, a15 a60 a92 a100 a104`, y `make ci` en verde (ninguna eval pide aún los bloques nuevos; research D8) (FR-010, SC-004)",
+  "intento": 1,
+  "datos": true,
+  "aceptacion": false,
+  "base": "f42bc14bb52788d13ad92703691efbf974221997",
+  "rutas": [
+    "19/2013",
+    "2/2004",
+    "35/2006",
+    "GET_https_www.boe.es_datosabiertos_api_legislacion-consolidada_id_BOE-A-2006-20764_texto_indice.json",
+    "_id_BOE-A-2004-4214_texto_indice.json",
+    "contracts/lecturas-y-grabaciones.md",
+    "data/plazos.yaml",
+    "internal/evals/testdata/grabaciones.json",
+    "quickstart.md",
+    "testdata/evals/boe.legislacion-consolidada"
+  ],
+  "cierre": false,
+  "converger": false,
+  "nota": "-"
+}
