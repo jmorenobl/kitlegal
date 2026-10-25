@@ -1,0 +1,386 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 4769fca..3cad6e0 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -28,15 +28,16 @@ sustituyen a este fichero.
+   pide sin tocar el guion; el juez del plan juzga solo que lo que dice cada fila es cierto. Admite las tres formas de
+   fila de los planes anteriores, y ni «II» ni una fila que empieza por una palabra, como «Implementación…», cuentan
+   como el principio I. Lo comprueba `TestElConstitutionCheckLlevaUnaFilaPorPrincipio`.
+-- **El job de evals juzga la descripción de una skill cuando una propuesta de cambio la cambia, con el juez de las
+-  descripciones** (H31; ADR 0046). La tercera persona de la descripción no la comprueba una lista de palabras: la
++- **El job de evals juzga las descripciones de las skills cuando una propuesta de cambio cambia alguna, con el juez de
++  las descripciones** (H31; ADR 0046). La tercera persona de la descripción no la comprueba una lista de palabras: la
+   juzga un modelo, el juez de las evals (`claude-opus-5-5` con Claude Code 2.1.289), con la clase
+   `habla_en_primera_o_segunda_persona` y la rúbrica, el esquema, los casos y la medida de `evidencias/adr-0046/`, que
+   lee donde están y que `make ci` comprueba contra el manifiesto de la evidencia:
+-  - el trabajo `evals (<skill>)` juzga la descripción de su skill solo si la propuesta cambia su `SKILL.md` en la
+-    descripción; si no, no hay juicio, ni umbral, ni apartado en el informe. El juicio se reutiliza de una medida de
+-    `main` con la misma huella —la de la descripción, los cuatro ficheros del juez, su modelo y su versión—, como los
+-    resultados de H30, y lo reutilizado no cuenta en el umbral;
++  - si la propuesta cambia, respecto de su base, la descripción del `SKILL.md` de alguna skill, el trabajo
++    `evals (<skill>)` de cada skill juzga la descripción de la suya o reutiliza su juicio de una medida de `main` con
++    la misma huella —la de la descripción, los cuatro ficheros del juez, su modelo y su versión—, como los resultados
++    de H30, y lo reutilizado no cuenta en el umbral; sin esa medida, o en la suite completa, la juzga. Sin ninguna
++    descripción cambiada, o fuera de una propuesta, ningún trabajo lleva juicio, umbral ni apartado en el informe;
+   - antes de abrir ninguna sesión, el trabajo comprueba que la medida del juez de las descripciones corresponde y se
+     cumple; si no, el informe sale sin medir, con cada motivo precedido de `juez de las descripciones: `;
+   - cada voto lleva la descripción entre `<descripcion skill="…">` y `</descripcion>`, con la regla de los votos del
+@@ -81,7 +82,7 @@ sustituyen a este fichero.
+ - **`legal-core` v1.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
+   escritas a mano** (H31; ADR 0046). Sustituye a `legal-core` v1.2.3. Cambia la forma de lo que lee el modelo, no
+   ninguna regla: cada una de las 105 reglas de v1.2.3 tiene su sitio en la nueva (`research.md` de H31, «Tabla de
+-  reglas»). El cuerpo pasa de 283 líneas y 19 225 caracteres a 167 y 10 860. Un apartado nuevo, «Referencias», dice
++  reglas»). El cuerpo pasa de 283 líneas y 19 225 caracteres a 168 y 10 944. Un apartado nuevo, «Referencias», dice
+   cuándo leer cada una de las seis, con el único enlace de cada una; los once pasos, de uno o dos enunciados, conservan
+   lo que se comprueba sin modelo en las respuestas (decidir lo regulado aparte antes de preguntar nada, con
+   `⚠ NO CUBIERTO:` y sin `plazos calcular`; no preguntar la materia que no se dice; los municipios que cuentan; el plazo
+@@ -101,7 +102,7 @@ sustituyen a este fichero.
+ - **`boe-legislacion` v0.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, siete
+   referencias escritas a mano** (H31; ADR 0046). Sustituye a `boe-legislacion` v0.2.2. Cambia la forma de lo que lee el
+   modelo, no ninguna regla: cada una de las 132 reglas de v0.2.2 tiene su sitio en la nueva (`research.md` de H31,
+-  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 151 y 10 976, con cinco pasos (identificar la
++  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 152 y 10 993, con cinco pasos (identificar la
+   norma, leer, completar, responder y, de un precepto no leído, nada), la forma de la cita, las tres líneas de la
+   redacción en una fecha juntas en un bloque, la de la redacción modificada, la tabla de comandos, que no cambia, y las
+   ocho reglas con su número: la 3 con las tres etiquetas de aviso, la 7 con su frase en la referencia de las lecturas
+@@ -113,7 +114,8 @@ sustituyen a este fichero.
+   `--fecha` y cuándo va cada línea fechada (`redaccion_en_una_fecha.md`) y qué compara `kitlegal graph check`
+   (`redaccion_modificada.md`); cada paso dice cuándo leer la suya. Cambian tres ejemplos: los dos que la caché de una
+   sesión no sirve —la búsqueda pasa a `kitlegal boe buscar <términos> --json` y sale el de `analisis`— y la lectura con
+-  fecha, que la caché sí sirve y va a su referencia. La descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
++  fecha, que la caché sí sirve y va a su referencia, como el id de la Ley 9/2017 a la de las lecturas que fallan. La
++  descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
+   crea saberlo») con los mismos disparadores, de 1023 a 878 caracteres. `references/normas.md` no cambia; las siete
+   nuevas viajan en el binario, y `kitlegal skills install` las instala con la skill.
+ - **`make skills-check` hace cumplir la forma de la especificación Agent Skills y de la guía del proyecto, y el límite
+diff --git a/CONTRIBUTING.md b/CONTRIBUTING.md
+index fc8e273..d762471 100644
+--- a/CONTRIBUTING.md
++++ b/CONTRIBUTING.md
+@@ -1313,8 +1313,10 @@ Un caso que no se puede resolver es un error que lo nombra, y la medida falla si
+ primera o en segunda persona, con la clase `habla_en_primera_o_segunda_persona`, que decide con umbral 0. No tiene
+ carpeta en `evals/`: su rúbrica, su esquema, sus casos y su medida son los de `evidencias/adr-0046/`, que el job lee
+ donde están y cuya huella `make ci` compara con la de su manifiesto, y el modelo y la versión de Claude Code de sus
+-votos son los del juez de las evals. El trabajo `evals (<skill>)` juzga la descripción de su skill solo en una
+-ejecución sobre una propuesta de cambio que la cambia respecto de su base. Antes de abrir ninguna sesión comprueba
++votos son los del juez de las evals. Solo corre en una ejecución sobre una propuesta de cambio que cambia, respecto de
++su base, la descripción de alguna skill; entonces el trabajo `evals (<skill>)` de cada skill juzga la descripción de la
++suya, haya cambiado o no, o reutiliza su juicio por huella, y sin ninguna descripción cambiada ningún trabajo lleva
++juicio, umbral ni apartado. Antes de abrir ninguna sesión comprueba
+ que esa medida corresponde y se cumple —si no, el informe sale sin medir, con cada motivo precedido de
+ `juez de las descripciones: `—; después de las sesiones de las evals, vota la descripción —la marcan tres «si»
+ unánimes, pedidos por orden y cada uno con una frase que está en la descripción; como mucho seis votos—, o reutiliza
+diff --git a/docs/SKILLS.md b/docs/SKILLS.md
+index 640df5b..9a35417 100644
+--- a/docs/SKILLS.md
++++ b/docs/SKILLS.md
+@@ -139,11 +139,12 @@ con la clase `habla_en_primera_o_segunda_persona` y la rúbrica, el esquema, los
+ `evidencias/adr-0046/` (ADR 0046, punto 4), cuya huella `make ci` compara con la de su manifiesto. Su pregunta cerrada
+ es la de `rubrica.md`: «¿Hay en la descripción, fuera de las citas, alguna forma de primera o de segunda persona?».
+ 
+-- **Cuándo juzga.** En el trabajo `evals (<skill>)` de una ejecución sobre una propuesta de cambio que cambia la
+-  descripción del `SKILL.md` de esa skill respecto de su base; sin ese cambio, no hay juicio, ni umbral, ni apartado
+-  en el informe. Si una medida de `main` ya tiene el juicio de la misma descripción con la misma huella —la de la
+-  descripción, los cuatro ficheros del juez, su modelo y su versión—, lo reutiliza, y lo reutilizado no cuenta en el
+-  umbral. Nunca en `make ci` ni en un paso de un run (ADR 0032): sus tests votan con votos simulados o con un `claude`
++- **Cuándo juzga.** En una ejecución sobre una propuesta de cambio que cambia, respecto de su base, la descripción del
++  `SKILL.md` de alguna skill: entonces el trabajo `evals (<skill>)` de cada skill juzga la descripción de la suya, haya
++  cambiado o no; sin ninguna descripción cambiada, o fuera de una propuesta, ningún trabajo lleva juicio, umbral ni
++  apartado en el informe. Si una medida de `main` ya tiene el juicio de la misma descripción con la misma huella —la
++  de la descripción, los cuatro ficheros del juez, su modelo y su versión—, lo reutiliza, salvo en la suite completa,
++  y lo reutilizado no cuenta en el umbral. Nunca en `make ci` ni en un paso de un run (ADR 0032): sus tests votan con votos simulados o con un `claude`
+   sustituto.
+ - **Cómo vota.** Con `claude-opus-5-5` y Claude Code 2.1.289, los fijados para el juez de las evals; cada voto recibe
+   la descripción entre `<descripcion skill="…">` y `</descripcion>`. La marcan tres «si» unánimes, pedidos por orden,
+@@ -189,8 +190,8 @@ que decide es el de caracteres. Al cerrar H31:
+ 
+ | Skill | Cuerpo antes de H31 | Cuerpo | Descripción |
+ |---|---|---|---|
+-| `boe-legislacion` | 283 líneas, 24 439 caracteres | 151 líneas, 10 976 caracteres | 878 caracteres |
+-| `legal-core` | 283 líneas, 19 225 caracteres | 167 líneas, 10 860 caracteres | 888 caracteres |
++| `boe-legislacion` | 283 líneas, 24 439 caracteres | 152 líneas, 10 993 caracteres | 878 caracteres |
++| `legal-core` | 283 líneas, 19 225 caracteres | 168 líneas, 10 944 caracteres | 888 caracteres |
+ | `jurisprudencia` | 193 líneas, 13 637 caracteres | 159 líneas, 10 859 caracteres | 842 caracteres |
+ 
+ Sin margen en el cuerpo, una regla nueva cabe sacando a una referencia el detalle que solo pide una clase de pregunta
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index f4c0945..acf2a4d 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -19,8 +19,8 @@ metadata:
+ ## Protocolo
+ 
+ Sigue los pasos en orden, cada operación con su orden, `kitlegal <applet> <verbo> … --json`, o, si la tienes, siempre
+-con su herramienta («Comandos»), tras leer [con_herramientas](references/con_herramientas.md). Las dos dan `fuente`,
+-`url`, `fecha_consulta`, `hash` y `data`: sin ellos, no hay cita.
++con su herramienta («Comandos»), tras leer [con_herramientas](references/con_herramientas.md). Sin su `fuente`, `url`,
++`fecha_consulta` y `hash`, no hay cita.
+ 
+ ### 1. Identificar la norma
+ 
+@@ -30,10 +30,10 @@ por su título con [buscar_la_norma](references/buscar_la_norma.md).
+ ### 2. Leer
+ 
+ - Sin el id del bloque, lee el índice: `kitlegal boe indice BOE-A-2015-10565 --json`. Copia el id de la entrada cuyo
+-  `titulo` es el artículo, nunca lo compongas con su número (en la Ley 9/2017, «Artículo 118» es `a1-30`; `a118` no
+-  está), y no pidas ninguno que no salga del índice o de la pregunta.
+-- Sin fecha —con ella, «Redacción en una fecha»—, lee cada bloque una vez, con su comprobación detrás, en la misma
+-  orden:
++  `titulo` es el artículo, nunca lo compongas con su número, y no pidas ninguno que no salga del índice o de la
++  pregunta.
++- Sin fecha —con ella, «Redacción en una fecha»—, lee cada bloque una vez, con la comprobación de esa norma y ese
++  bloque detrás, en la misma orden:
+   ```bash
+   kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json
+   ```
+@@ -41,15 +41,15 @@ por su título con [buscar_la_norma](references/buscar_la_norma.md).
+   ```powershell
+   kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-2015-10565 a21 --json }
+   ```
+-  La comprobación, siempre tras la lectura y con su norma y sus bloques, nunca sin argumentos ni antes; si faltó,
+-  pídela ya. Releer el bloque apagaría su línea `⚠ REDACCIÓN MODIFICADA:`.
+-- Varios bloques a la vez, todos del índice: [varios_bloques](references/varios_bloques.md). Si una orden, también
+-  `kitlegal graph check`, no termina con `0`, antes de seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
++  La comprobación, nunca sin argumentos ni antes; si faltó, pídela ya. Releer el bloque apagaría su línea
++  `⚠ REDACCIÓN MODIFICADA:`.
++- Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no termina con `0`, antes de
++  seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
+ 
+ ### 3. Completar
+ 
+-Lee lo remitido que cambia la respuesta, de esta norma o de otra, y, si importan la vigencia o una modificación, los
+-metadatos y el análisis.
++Lee lo remitido que cambia la respuesta, de esta norma o de otra, resuelta antes con los pasos 1 y 2, y, si importan
++la vigencia o una modificación, los metadatos y el análisis.
+ 
+ ### 4. Responder
+ 
+@@ -59,8 +59,10 @@ metadatos y el análisis.
+   identificador, sin decir de dónde sale, qué haces ni qué devolvió una orden.
+ - **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la línea
+   `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
+-- Cada afirmación sobre una norma lleva su cita, de lo que `kitlegal boe` devolvió en esta conversación.
+-- **Ley y reglamento**: con rangos distintos, di el de cada una y que la ley prevalece sobre su reglamento.
++- Cada afirmación sobre el contenido de una norma lleva su cita, de lo que `kitlegal boe` devolvió en esta
++  conversación.
++- **Ley y reglamento**: con rangos distintos, di el `rango` de cada una, de la tabla o de la búsqueda, y que la ley
++  prevalece sobre su reglamento.
+ - De la redacción leída, di qué norma la dio y desde cuándo rige, nunca hasta cuándo: ninguna lectura lo trae, ni el
+   aviso de una derogada; `kitlegal graph check` no dice nada de la vigencia.
+ 
+@@ -82,9 +84,9 @@ Cada línea `⚠` va entera, en una sola línea y con los datos de la lectura: d
+ 
+ ## Redacción en una fecha
+ 
+-Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—, se cita la redacción vigente ese día: lee
+-antes [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md), cómo leerla sin `kitlegal graph check` y
+-cuándo va cada línea, solo de una lectura con fecha:
++Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—, se cita la redacción vigente ese día,
++leída sin `kitlegal graph check`: lee antes [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md). Cada
++línea, solo de una lectura con fecha:
+ 
+ ```text
+ ⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <id>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.
+@@ -94,15 +96,14 @@ cuándo va cada línea, solo de una lectura con fecha:
+ 
+ ## Redacción modificada
+ 
+-Por cada entrada `version-obsoleta` de `kitlegal graph check`, una línea con la cita y las dos fechas de la entrada,
+-la superada y después la leída:
++Por cada entrada `version-obsoleta` de `kitlegal graph check`, una línea, con su cita y sus dos fechas:
+ 
+ ```text
+ ⚠ REDACCIÓN MODIFICADA: <forma legible> [<identificador>, bloque <id>]: la redacción con fecha de vigencia AAAAMMDD, la que se consultó antes, ha sido sustituida por la de AAAAMMDD, que es la que se cita.
+ ```
+ 
+ De `kitlegal graph` solo se usa `check`, y nada más suyo va en la respuesta: ni `fuente-caducada` ni nada de un bloque
+-sin `version-obsoleta`; con otro código que `0`, la regla 7. Con `version-obsoleta` o si se pregunta qué cambió:
++sin `version-obsoleta`. Con `version-obsoleta` o si se pregunta qué cambió:
+ [redaccion_modificada](references/redaccion_modificada.md).
+ 
+ ## Comandos
+@@ -140,18 +141,18 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
+ 
+ 1. **No concluir que algo no existe.** Una búsqueda vacía, o una norma fuera de la tabla, no prueba que no exista: di
+    «no encontrada con esta búsqueda» y propón reformularla.
+-2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla o no está, di qué bloques no pudiste consultar, por su
+-   número, y por qué, sin el código ni de qué tratan, y no suplas nada de memoria; sin herramienta ni binario, la
+-   regla 8.
++2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla o no está, di qué bloques no pudiste consultar y por
++   qué, y no suplas nada de memoria; sin herramienta ni binario, la regla 8.
+ 3. **Trasladar la vigencia.** Cada aviso va con su forma fija, `⚠`, su etiqueta y dos puntos, y su frase o una
+-   explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`. Tenlos en cuenta,
+-   como una fecha de vigencia que no encaja con lo preguntado; una derogada no es vigente. Los textos consolidados del
+-   BOE son informativos, no asesoramiento.
++   explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`. Tenlos en cuenta
++   y trasládalos, también una fecha de vigencia del bloque que no encaja con lo preguntado; una derogada no es vigente.
++   Los textos consolidados del BOE son informativos, no asesoramiento.
+ 4. **Nunca actuar en nombre de nadie.** La skill consulta y cita: no presentes, notifiques, firmes ni tramites nada por
+    nadie, ni lo simules; si se pide, di que lo hace la persona y cita, si procede, la norma aplicable.
+-5. **Ningún caso especial para un territorio.** Nada propio de un municipio o una comunidad: responde con la normativa
+-   estatal o autonómica consolidada en el BOE, di si varía por normativa autonómica y que las normas locales no están
+-   en esta fuente.
++5. **Ningún caso especial para un territorio.** Nada propio de un municipio o una comunidad concretos. Si se pregunta
++   por un municipio, responde con la normativa estatal o autonómica consolidada en el BOE y di que las ordenanzas y
++   demás normas locales no están en esta fuente; dilo también siempre que lo preguntado les corresponda. Si puede
++   variar por normativa autonómica (competencias compartidas o cedidas, desarrollo autonómico, régimen foral), dilo.
+ 6. **El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.** Lo citado sale de `kitlegal boe articulo` o
+    `articulos`; lo de `kitlegal graph` no se cita, parafrasea ni reconstruye: dice qué volver a comprobar, no qué dice
+    el artículo.
+diff --git a/skills/boe-legislacion/references/lecturas_que_fallan.md b/skills/boe-legislacion/references/lecturas_que_fallan.md
+index a3b1609..eb9cd48 100644
+--- a/skills/boe-legislacion/references/lecturas_que_fallan.md
++++ b/skills/boe-legislacion/references/lecturas_que_fallan.md
+@@ -20,8 +20,9 @@ de `SKILL.md`.
+ 
+ ## Un bloque que no está
+ 
+-Si `kitlegal boe` termina con `3`, vuelve al índice en lugar de probar otros ids. Si el artículo no existe en la norma,
+-dilo.
++Si `kitlegal boe` termina con `3`, vuelve al índice en lugar de probar otros ids: el id es el de la entrada cuyo
++`titulo` es el artículo, no su número (en la Ley 9/2017, «Artículo 118» es `a1-30`; `a118` no está). Si el artículo no
++existe en la norma, dilo.
+ 
+ ## Una lectura de varios bloques
+ 
+diff --git a/skills/legal-core/SKILL.md b/skills/legal-core/SKILL.md
+index ee341ec..81c9348 100644
+--- a/skills/legal-core/SKILL.md
++++ b/skills/legal-core/SKILL.md
+@@ -59,14 +59,15 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7
+    interesado y el de la sede del órgano**, o en el contencioso-administrativo **el de la sede del juzgado**.
+ 9. **Pedir el plazo**: el tipo, de los recursos y plazos; `plazos_calcular` o `kitlegal plazos calcular <tipo> <inicio>
+    <municipios>... --json`, con los municipios del 8 en su orden. **Con el 3 y un `data.mensaje` que empieza por «el
+-   plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del plazo ni ninguna fecha, y sin el 10.
++   plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del plazo ni ninguna fecha de vencimiento, y
++   sin el 10.
+ 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
+     `kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
+     `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
+     afirmar qué dice.
+-11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha (regla 8); los festivos que la movieron, de
+-    `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su `texto` tal cual; el
+-    alcance de los festivos, solo si lo dice un aviso.
++11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
++    la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
++    `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.
+ 
+ ## Cómo se presenta el territorio
+ 
+@@ -82,8 +83,8 @@ dir3: <valor>
+ ## Cómo se presenta un plazo
+ 
+ La línea del plazo, con `data.fecha` tal cual, el tipo como lo nombran los recursos y plazos y cada precepto de
+-`data.preceptos` en sus propios corchetes, con un solo bloque (dos en unos corchetes no son cita de ninguno); debajo,
+-la del contencioso:
++`data.preceptos` en sus propios corchetes, con un solo bloque (dos en unos corchetes no son cita de ninguno); y, de
++ejemplo, la de los dos preceptos del recurso contencioso-administrativo:
+ 
+ ```text
+ ⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]
+diff --git a/specs/027-h31-las-skills-siguen/contracts/skills-reescritas.md b/specs/027-h31-las-skills-siguen/contracts/skills-reescritas.md
+index d406f10..86f2dcd 100644
+--- a/specs/027-h31-las-skills-siguen/contracts/skills-reescritas.md
++++ b/specs/027-h31-las-skills-siguen/contracts/skills-reescritas.md
+@@ -49,7 +49,7 @@ plan, no versionado): runas con `LC_ALL=en_US.UTF-8 wc -m`, líneas de 120 colum
+ |---|---|---|
+ | línea en blanco, `# Consultar y citar legislación consolidada del BOE` y `## Protocolo` con su párrafo | pasos en orden; orden o, si la tienes, siempre la herramienta de su fila, tras leer la referencia de las herramientas; sin `fuente`, `url`, `fecha_consulta` y `hash`, no hay cita | 379 |
+ | paso 1, **Identificar la norma** | tabla de normas antes de nada; `BOE-A-…` de ahí; no exhaustiva; si no está, la referencia de búsqueda | 229 |
+-| paso 2, **Leer** | índice y copia del id (ejemplo de la Ley 9/2017); ningún id fuera del índice; una lectura sin fecha por bloque, con `kitlegal graph check` detrás; la orden de `articulo` en Bash y en PowerShell; con fecha, «Redacción en una fecha»; varios bloques y orden que falla, sus referencias | 1222 |
++| paso 2, **Leer** | índice y copia del id (el ejemplo de la Ley 9/2017, en la revisión final, a `lecturas_que_fallan.md`); ningún id fuera del índice; una lectura sin fecha por bloque, con `kitlegal graph check` detrás; la orden de `articulo` en Bash y en PowerShell; con fecha, «Redacción en una fecha»; varios bloques y orden que falla, sus referencias | 1222 |
+ | paso 3, **Completar** | remisiones; metadatos y análisis si la pregunta depende de la vigencia o de una modificación | 210 |
+ | paso 4, **Responder** | B48–B57, B63, B67–B69 | 992 |
+ | paso 5, **De un precepto no leído, nada** | B58–B62, con un ejemplo de afirmar y otro de negar | 631 |
+@@ -78,7 +78,7 @@ tienen menos de 100 líneas, así que ninguna necesita índice.
+ | `con_herramientas.md` | Nombres · Argumentos · Las órdenes del protocolo · Encadenar y fallar | ~25 | «Protocolo»: «Sigue los pasos en orden, cada operación con su orden, `kitlegal <applet> <verbo> … --json`, o, si la tienes, siempre con la herramienta de su fila en «Comandos», tras leer [con_herramientas](references/con_herramientas.md).» |
+ | `buscar_la_norma.md` | Buscar por el título · Varias posibles · Normas autonómicas · Si no aparece | ~20 | paso 1: «Si no está, se busca por su título con [buscar_la_norma](references/buscar_la_norma.md).» |
+ | `varios_bloques.md` | Cuándo · La orden | ~12 | paso 2: «Para varios bloques a la vez, [varios_bloques](references/varios_bloques.md);» |
+-| `lecturas_que_fallan.md` | Los códigos · Un bloque que no está · Una lectura de varios bloques · Qué dice la respuesta · Si `kitlegal graph check` falla | ~40 | paso 2: «si una orden, también `kitlegal graph check`, no termina con `0`, antes de seguir, [lecturas_que_fallan](references/lecturas_que_fallan.md).» (la regla 7 la enlaza también) |
++| `lecturas_que_fallan.md` | Los códigos · Un bloque que no está · Una lectura de varios bloques · Qué dice la respuesta · Si `kitlegal graph check` falla | ~40 | paso 2: «si una orden no termina con `0`, antes de seguir, [lecturas_que_fallan](references/lecturas_que_fallan.md).» (la regla 7 la enlaza también) |
+ | `como_se_cita.md` | Lo que hace cita · La forma legible dentro · Lo que no es cita · Sola o bajo una cita textual · Ids que terminan en punto · Bloques remitidos · Los avisos | ~28 | «Cómo se cita»: «Una cita por bloque; repasa cada una, y para otra forma, [como_se_cita](references/como_se_cita.md).» |
+ | `redaccion_en_una_fecha.md` | Qué es una fecha · Cómo se lee · Un hecho sin día · Un año o un mes · Lo que se cita · La redacción de hoy · Sin redacción vigente · Las tres líneas | ~40 | «Redacción en una fecha»: «Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—, lee antes [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md): cómo se lee, sin `kitlegal graph check`, y cuándo va cada una de estas líneas, que solo salen de una lectura con fecha:» |
+ | `redaccion_modificada.md` | Qué compara · La línea, por bloque · No es un aviso de vigencia · La redacción superada · Si se pregunta qué cambió | ~25 | «Redacción modificada»: «Con `version-obsoleta`, o si se pregunta qué cambió, [redaccion_modificada](references/redaccion_modificada.md).» |
+@@ -94,7 +94,7 @@ Qué lleva cada una:
+   órdenes para PowerShell lee la skill entera (FR-016, FR-018), así que la orden de Bash de `articulos` cumple aquí la
+   de «una orden de Bash por verbo».
+ - `lecturas_que_fallan.md`: B39, B43, B108, B109, B112–B115 y B125–B128, con la frase de la regla 7 sola en un
+-  bloque `text`.
++  bloque `text`, y el ejemplo de B28 (en la Ley 9/2017, «Artículo 118» es `a1-30`).
+ - `como_se_cita.md`: B72–B78 en detalle, con los ejemplos de cita de hoy.
+ - `redaccion_en_una_fecha.md`: B81–B94, con `kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json`.
+ - `redaccion_modificada.md`: B98, B99, B101, B104, B105 y la explicación de l. 200–203.
+@@ -122,7 +122,8 @@ Ninguno es una regla.
+ - Los tres ejemplos sin regla que se retiran para el margen: en el paso 1, «por su nombre, su número y año o su
+   abreviatura» (las formas de nombrar una norma siguen en la descripción, B06); en el paso 5, «el art. N sobre
+   <materia>» (quedan «el art. N, que es…» y «no puedo decir qué <regla> fija»); y en la regla 5, «(competencias
+-  compartidas o cedidas, desarrollo autonómico, régimen foral)».
++  compartidas o cedidas, desarrollo autonómico, régimen foral)». La revisión final devuelve este último a la regla 5,
++  con las condiciones de B64, B65 y B122, y lleva el ejemplo de la Ley 9/2017 (B28) a `lecturas_que_fallan.md`.
+ - `mcp__kitlegal__boe_articulo` y el `world.db` ilegible pasan a sus referencias. «En PowerShell, que en su versión 5.1
+   no tiene `&&`» queda como «En PowerShell 5.1, sin `&&`». Las tres formas fechadas van juntas en un bloque `text` (el
+   control solo pide que cada una esté en un bloque `text`).
+diff --git a/specs/027-h31-las-skills-siguen/plan.md b/specs/027-h31-las-skills-siguen/plan.md
+index a14c2c1..4bd19af 100644
+--- a/specs/027-h31-las-skills-siguen/plan.md
++++ b/specs/027-h31-las-skills-siguen/plan.md
+@@ -237,7 +237,7 @@ descripciones no dependen de las normas ni los bloques consultados (spec, «Uso,
+   tokens a 2,26 caracteres por token, ADR 0046); las tres, como mucho 2700. Los borradores: 878, 888 y 842 (V2).
+ - **Cuerpo**: una carga por pregunta por cada skill que activa; con `legal-core` y `boe-legislacion` juntas, como mucho
+   22 000 caracteres (unos 9700 tokens) frente a 43 664 de hoy (24 439 + 19 225, V1). Los borradores: 10 881, 10 490 y
+-  10 605 (V2); al cerrar, 10 976, 10 860 y 10 859. Lo escribe una persona y lo acota el gate.
++  10 605 (V2); al cerrar, 10 993, 10 944 y 10 859. Lo escribe una persona y lo acota el gate.
+ - **Referencias a mano**: de 0 a pocas lecturas por pregunta, cuando el cuerpo lo dice; las previstas tenían de 12 a
+   64 líneas (contracts/skills-reescritas.md), y las escritas tienen de 24 a 68; sin índice porque ninguna pasa de 100.
+ - **Referencias generadas**: crecen con `data/`; `normas.md` tiene 24 líneas (V1). Con cientos de normas (unos 150
+diff --git a/specs/027-h31-las-skills-siguen/research.md b/specs/027-h31-las-skills-siguen/research.md
+index 1e176de..2e052e4 100644
+--- a/specs/027-h31-las-skills-siguen/research.md
++++ b/specs/027-h31-las-skills-siguen/research.md
+@@ -423,7 +423,7 @@ de hoy, y siete referencias escritas a mano.
+ | B09 | Lo que se dice de una norma sale del texto que devolvió `kitlegal boe` en la misma conversación, con su cita. | SKILL.md, introducción (l. 22–23) | SKILL.md, «Protocolo», paso 4 |
+ | B10 | La skill consulta y cita: no tramita nada y no sustituye el asesoramiento de un profesional. | SKILL.md, introducción (l. 23) | SKILL.md, «Reglas», 3 y 4 |
+ | B11 | Seguir los pasos del protocolo en orden. | SKILL.md, «Protocolo» (l. 27) | SKILL.md, «Protocolo» (párrafo inicial) |
+-| B12 | Orden y herramienta devuelven el mismo sobre; sin `fuente`, `url`, `fecha_consulta` y `hash` no hay cita. | SKILL.md, «Protocolo» (l. 27–28) | SKILL.md, «Protocolo» (párrafo inicial) |
++| B12 | Orden y herramienta devuelven el mismo sobre; sin `fuente`, `url`, `fecha_consulta` y `hash` no hay cita. | SKILL.md, «Protocolo» (l. 27–28) | SKILL.md, «Protocolo» (párrafo inicial: sin ellos, no hay cita); «Comandos», región generada (el mismo sobre) |
+ | B13 | Con la herramienta de su nombre, sola o tras el prefijo del agente (`mcp__kitlegal__boe_articulo`); si se tiene, siempre. | SKILL.md, «Protocolo» (l. 30–32) | SKILL.md, «Protocolo» (párrafo inicial: «si la tienes, siempre»); references/con_herramientas.md, «Nombres» |
+ | B14 | Los argumentos de una herramienta van por su nombre: `norma`, `bloque`, `bloques`, `texto`, `fecha`. | SKILL.md, «Protocolo» (l. 31–32) | references/con_herramientas.md, «Argumentos» |
+ | B15 | Sin la herramienta, la orden `kitlegal <applet> <verbo> … --json`. | SKILL.md, «Protocolo» (l. 33) | SKILL.md, «Protocolo» (párrafo inicial) |
+@@ -439,7 +439,7 @@ de hoy, y siete referencias escritas a mano.
+ | B25 | Una norma autonómica consolidada en el BOE se resuelve igual y, si la búsqueda la encuentra, se lee y se cita como una estatal. | SKILL.md, «2. Resolver» (l. 52–53) | references/buscar_la_norma.md, «Normas autonómicas» |
+ | B26 | Si la búsqueda no da la norma, reformularla con otras palabras del título; que no aparezca no prueba que no exista. | SKILL.md, «2. Resolver» (l. 53–54) | references/buscar_la_norma.md, «Si no aparece»; SKILL.md, «Reglas», 1 |
+ | B27 | Sin el id del bloque (el número del artículo no basta), leer el índice, con `boe_indice` o su orden. | SKILL.md, «3. Leer» (l. 58–59) | SKILL.md, «Protocolo», paso 2 |
+-| B28 | Copiar el id de la entrada cuyo `titulo` es el artículo; nunca componerlo con el número (Ley 9/2017: «Artículo 118» es `a1-30`). | SKILL.md, «3. Leer» (l. 60–62) | SKILL.md, «Protocolo», paso 2 |
++| B28 | Copiar el id de la entrada cuyo `titulo` es el artículo; nunca componerlo con el número (Ley 9/2017: «Artículo 118» es `a1-30`). | SKILL.md, «3. Leer» (l. 60–62) | SKILL.md, «Protocolo», paso 2 (el ejemplo de la Ley 9/2017: references/lecturas_que_fallan.md, «Un bloque que no está») |
+ | B29 | Sin fecha, leer los bloques de uno en uno con `kitlegal boe articulo` y `kitlegal graph check` de esa norma y bloque detrás, en la misma orden. | SKILL.md, «3. Leer» (l. 63–67) | SKILL.md, «Protocolo», paso 2 |
+ | B30 | Con fecha en la pregunta, se lee como dice «Redacción en una fecha». | SKILL.md, «3. Leer» (l. 63) | SKILL.md, «Protocolo», paso 2 |
+ | B31 | En PowerShell 5.1, sin `&&`, la misma orden con `; if ($LASTEXITCODE -eq 0) { … }`. | SKILL.md, «3. Leer» (l. 68–71, 79–80) | SKILL.md, «Protocolo», paso 2 (la de `articulo`); references/varios_bloques.md, «La orden» (la de `articulos`) |
+@@ -508,7 +508,7 @@ de hoy, y siete referencias escritas a mano.
+ | B94 | Con otro `3` en una lectura con fecha, vale la regla 2. | SKILL.md, «Redacción en una fecha» (l. 192) | references/redaccion_en_una_fecha.md, «Sin redacción vigente» |
+ | B95 | Las tres líneas fechadas salen solo de una lectura con fecha, cada una con su forma fija. | SKILL.md, «Redacción en una fecha» (l. 196) | SKILL.md, «Redacción en una fecha» |
+ | B96 | De `kitlegal graph`, el protocolo solo usa `check`, tras cada lectura sin fecha. | SKILL.md, «Redacción modificada» (l. 203–204) | SKILL.md, «Redacción modificada»; «Protocolo», paso 2 |
+-| B97 | Con `version-obsoleta`, una línea `⚠ REDACCIÓN MODIFICADA:` por bloque, con su cita y las dos fechas: la superada y después la leída. | SKILL.md, «Redacción modificada» (l. 206–211) | SKILL.md, «Redacción modificada» |
++| B97 | Con `version-obsoleta`, una línea `⚠ REDACCIÓN MODIFICADA:` por bloque, con su cita y las dos fechas: la superada y después la leída. | SKILL.md, «Redacción modificada» (l. 206–211) | SKILL.md, «Redacción modificada» (el orden de las dos fechas, en la forma fija); references/redaccion_modificada.md, «La línea, por bloque» |
+ | B98 | Con dos bloques en `version-obsoleta`, dos líneas, cada una con su cita y sus fechas. | SKILL.md, «Redacción modificada» (l. 212) | SKILL.md, «Redacción modificada» («por cada entrada»); references/redaccion_modificada.md, «La línea, por bloque» |
+ | B99 | Decirlo con otras palabras no vale, ni en lugar de la línea ni además de ella. | SKILL.md, «Redacción modificada» (l. 212–213) | references/redaccion_modificada.md, «La línea, por bloque»; SKILL.md, «Cómo se cita» (B80) |
+ | B100 | Una entrada `fuente-caducada` no va en la respuesta, que cita el texto leído. | SKILL.md, «Redacción modificada» (l. 214) | SKILL.md, «Redacción modificada» |
+@@ -523,9 +523,9 @@ de hoy, y siete referencias escritas a mano.
+ | B109 | Códigos: `2` argumentos, `3` no-encontrado, `4` fuente-no-disponible, `5` limite-o-tos, `6` identidad-humana, `1` inesperado (`world.db` ilegible). | SKILL.md, «Comandos» (l. 230–233) | references/lecturas_que_fallan.md, «Los códigos» |
+ | B110 | Una búsqueda vacía o una norma fuera de la tabla no prueba que no exista: «no encontrada con esta búsqueda» y proponer reformularla. | SKILL.md, «Reglas», 1 (l. 264–265) | SKILL.md, «Reglas», 1 |
+ | B111 | Nunca inventar contenido legal ni suplir el texto con conocimiento propio. | SKILL.md, «Reglas», 2 (l. 266, 270) | SKILL.md, «Reglas», 2 |
+-| B112 | Si `kitlegal boe` falla (`3`, `4`, `5`, o sin caché con `--offline`) o no está, decir qué bloques no se consultaron, por su número. | SKILL.md, «Reglas», 2 (l. 266–268) | SKILL.md, «Reglas», 2; references/lecturas_que_fallan.md, «Los códigos» (qué es fallar) |
++| B112 | Si `kitlegal boe` falla (`3`, `4`, `5`, o sin caché con `--offline`) o no está, decir qué bloques no se consultaron, por su número. | SKILL.md, «Reglas», 2 (l. 266–268) | SKILL.md, «Reglas», 2; references/lecturas_que_fallan.md, «Los códigos» (qué es fallar) y «Qué dice la respuesta» (por su número) |
+ | B113 | Decir por qué: no están en la norma, la fuente no estaba disponible, limitó las consultas o no fecha sus redacciones. | SKILL.md, «Reglas», 2 (l. 268–269) | SKILL.md, «Reglas», 2 («y por qué»); references/lecturas_que_fallan.md, «Qué dice la respuesta» |
+-| B114 | Sin el código, sin decir de qué tratan los bloques ni para qué se pedían. | SKILL.md, «Reglas», 2 (l. 269–270) | SKILL.md, «Reglas», 2; references/lecturas_que_fallan.md, «Qué dice la respuesta» (para qué se pedían) |
++| B114 | Sin el código, sin decir de qué tratan los bloques ni para qué se pedían. | SKILL.md, «Reglas», 2 (l. 269–270) | references/lecturas_que_fallan.md, «Qué dice la respuesta»; SKILL.md, «Protocolo», paso 4 (ni qué devolvió una orden) y paso 5 (de qué trata un precepto no leído) |
+ | B115 | Si la orden que falló pedía varios bloques, decirlo solo tras pedir cada uno por separado con `kitlegal boe articulo`. | SKILL.md, «Reglas», 2 (l. 270–271) | references/lecturas_que_fallan.md, «Una lectura de varios bloques» |
+ | B116 | Sin la herramienta ni el binario, vale la regla 8. | SKILL.md, «Reglas», 2 (l. 271) | SKILL.md, «Reglas», 2 |
+ | B117 | No presentar como vigente el texto de una norma derogada. | SKILL.md, «Reglas», 3 (l. 274) | SKILL.md, «Reglas», 3 |
+@@ -540,7 +540,7 @@ de hoy, y siete referencias escritas a mano.
+ | B126 | Y llevar la frase «No se ha podido comprobar…», tal cual y sin nada más sobre la redacción. | SKILL.md, «Reglas», 7 (l. 286–289) | SKILL.md, «Reglas», 7 (sin la frase); references/lecturas_que_fallan.md, «Si `kitlegal graph check` falla» (la frase, en un bloque `text`) |
+ | B127 | La frase es solo de ese caso: con `0` no va, ni afirmada, ni negada, ni con otras palabras. | SKILL.md, «Reglas», 7 (l. 290–291) | SKILL.md, «Reglas», 7 («y solo entonces»); references/lecturas_que_fallan.md, «Si `kitlegal graph check` falla» |
+ | B128 | Si lo que falla es la lectura, la orden termina ahí, sin la comprobación, y vale la regla 2. | SKILL.md, «Reglas», 7 (l. 291–292) | references/lecturas_que_fallan.md, «Si `kitlegal graph check` falla» |
+-| B129 | La línea `⚠ REDACCIÓN MODIFICADA:` solo va cuando la comprobación termina con `0` y trae `version-obsoleta`. | SKILL.md, «Reglas», 7 (l. 292) | SKILL.md, «Redacción modificada» («por cada entrada…; si falla, la regla 7») |
++| B129 | La línea `⚠ REDACCIÓN MODIFICADA:` solo va cuando la comprobación termina con `0` y trae `version-obsoleta`. | SKILL.md, «Reglas», 7 (l. 292) | SKILL.md, «Redacción modificada» («por cada entrada…») y «Reglas», 7; references/lecturas_que_fallan.md, «Si `kitlegal graph check` falla» («sin nada más sobre la redacción») |
+ | B130 | Sin herramienta, si la orden falla porque `kitlegal` no está (shell sin él, o sin poder ejecutar órdenes), no buscarlo en otras carpetas ni en un plugin. | SKILL.md, «Reglas», 8 (l. 293–295) | SKILL.md, «Reglas», 8 |
+ | B131 | Entonces no se ha consultado nada: no afirmar nada de la norma, ni de memoria ni con salvedades, ni escribir ninguna cita. | SKILL.md, «Reglas», 8 (l. 295–296) | SKILL.md, «Reglas», 8 |
+ | B132 | Llevar la línea `⚠ SIN CONSULTA AL BOE:` con la causa en el marcador, sola en un bloque `text`. | SKILL.md, «Reglas», 8 (l. 296–299) | SKILL.md, «Reglas», 8 |
