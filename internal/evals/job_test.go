@@ -307,14 +307,20 @@ func TestEleccionDeLaPropuesta(t *testing.T) {
 // de -propuesta, elige sobre la base de fusión de -base y busca lo demás en las
 // medidas de main, con un plazo de 10 minutos para todo lo que lee de la
 // plataforma; con completa, las mide todas sin leer nada de ella, y -propuesta y
-// -base pueden ir vacías. Registra el error de la plataforma, si lo hubo, y una
-// línea por eval, medida con su motivo o reutilizada con su procedencia, y
+// -base pueden ir vacías. Con -propuesta y -base no vacías, en los dos modos,
+// lee también el árbol de la base y, si la descripción de alguna skill cambia
+// entre la base y la cabeza, el fichero lleva el bloque descripcion de la de
+// -skill, juzgada o, con reutilización, con el juicio de una medida de main con
+// su huella, con el juez de las descripciones de evidencias/adr-0046/,
+// -modelo-del-juez y -version-del-juez (contracts/juez-de-las-descripciones.md
+// §2 de H31; FR-030 de H31). Registra el error de la plataforma, si lo hubo, y
+// una línea por eval, medida con su motivo o reutilizada con su procedencia, y
 // escribe en -salida el fichero de la decisión, el bloque origen sin
 // sesiones_abiertas. -commit es el commit evaluado, el del checkout. Falla solo
-// con un error de sus banderas, del checkout o de -salida: un error de la
-// plataforma, o el plazo agotado, no lo hace fallar, y lo que no se pudo
-// reutilizar se mide. Solo lo ejecuta el job, porque consulta la API de GitHub;
-// lo que decide lo fija TestDecisionDelJob.
+// con un error de sus banderas, del checkout, del juez de las descripciones o
+// de -salida: un error de la plataforma, o el plazo agotado, no lo hace fallar,
+// y lo que no se pudo reutilizar se mide o se juzga. Solo lo ejecuta el job,
+// porque consulta la API de GitHub; lo que decide lo fija TestDecisionDelJob.
 func TestDecisionDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -330,10 +336,12 @@ func TestDecisionDelTrabajo(t *testing.T) {
 		skill: *banderaSkill, modo: modo, plataforma: ghDeLaPlataforma{entorno: os.Environ()}, instante: instante,
 	}
 
-	base := ""
 	if modo == origenConReutilizacion {
 		exigirBanderas(t, "propuesta", "base")
+	}
 
+	base := ""
+	if *banderaPropuesta != "" && *banderaBase != "" {
 		trabajo.propuesta = numeroDeLaPropuesta(t)
 		base = *banderaBase
 	}

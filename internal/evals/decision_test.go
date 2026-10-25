@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -52,23 +54,30 @@ type medidasEsperadas struct {
 	ficheros []string
 }
 
-// casoDeLaDecision es un caso de TestDecisionDelJob: lo que lo lanza, la
-// propuesta con sus ficheros, si hay medida de main y con qué huellas
-// distintas de las de la cabeza, los fallos de la plataforma, si el conjunto
-// de evalSinResultado no se puede calcular, y lo que espera: si los trabajos
-// corren, lo que mide cada skill —las que no están, todo reutilizado de la
-// medida de main—, el error de la plataforma y las lecturas de cada trabajo.
+// casoDeLaDecision es un caso de TestDecisionDelJob: lo que lo lanza, si la
+// ejecución no tiene propuesta (el despacho manual), la propuesta con sus
+// ficheros, si hay medida de main y con qué huellas distintas de las de la
+// cabeza, los fallos de la plataforma, si el conjunto de evalSinResultado no se
+// puede calcular, otro juez que el de fijadosDelTest, y lo que espera: si los
+// trabajos corren, lo que mide cada skill —las que no están, todo reutilizado de
+// la medida de main—, las skills cuya descripción se juzga y aquellas cuyo
+// juicio se reutiliza de la medida de main —las demás, sin bloque
+// descripcion—, el error de la plataforma y las lecturas de cada trabajo.
 type casoDeLaDecision struct {
 	nombre       string
 	disparo      disparoDelJob
+	sinPropuesta bool
 	mutante      mutanteDeLaPropuesta
 	sinMain      bool
 	otrasHuellas map[string]string
 	fallos       map[string]error
 	incalculable bool
+	otroJuez     func(fijados *fijadosDeLaHuella)
 
 	sinTrabajos       bool
 	medidas           map[string]medidasEsperadas
+	juzgadas          []string
+	reutilizadas      []string
 	plataformaFallida *errorDeLaPlataformaEnElOrigen
 	sinLecturas       bool
 	soloLasLecturas   []string
@@ -76,7 +85,8 @@ type casoDeLaDecision struct {
 
 // repositorioDeLaDecision es lo que los casos de TestDecisionDelJob leen una
 // vez del repositorio: su árbol, su grafo de paquetes, su árbol como base de la
-// propuesta, lo común, sus skills con evals, en orden, y las evals de cada una.
+// propuesta, lo común, sus skills con evals, en orden, las evals de cada una y
+// el juez de las descripciones.
 type repositorioDeLaDecision struct {
 	arbol  fs.FS
 	grafo  grafoDePaquetes
@@ -84,6 +94,7 @@ type repositorioDeLaDecision struct {
 	comun  loComun
 	skills []string
 	evals  map[string][]Eval
+	juez   *Juez
 }
 
 // TestDecisionDelJob fija lo que mide y lo que reutiliza cada trabajo del job
@@ -96,23 +107,56 @@ type repositorioDeLaDecision struct {
 // plataforma, cada una con el plazo de 10 minutos de la decisión, y cuenta las
 // sesiones del plan de cada trabajo con las que espera,
 // que salen del plan de las evals que espera medir: sale en rojo con una sola de
-// más.
+// más. Y el bloque descripcion de cada trabajo (FR-030 de H31; Clarificación Q2
+// de H31; research D3 y D4 de H31; contracts/juez-de-las-descripciones.md §2 de
+// H31): con una descripción cambiada, en los dos modos y con lo común cambiado a
+// la vez, lo lleva el trabajo de cada skill, juzgada o, con reutilización, con
+// el juicio de la medida de main con su huella; sin propuesta, con la etiqueta
+// evals o la suite completa sin descripciones cambiadas y con un cambio solo de
+// la rúbrica, el esquema, los casos, la medida, el modelo o la versión del
+// juez, ninguno lo lleva.
 func TestDecisionDelJob(t *testing.T) {
 	t.Parallel()
 
 	repositorio := leerElRepositorioDeLaDecision(t)
+
+	casos := slices.Concat(casosDeLaDecisionDeH30(t, repositorio), casosDeLaDescripcionDelJob(t, repositorio),
+		casosSinDescripcionQueJuzgar(t, repositorio))
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			comprobarLaDecision(t, repositorio, caso)
+		})
+	}
+
+	t.Run("juez-de-las-descripciones-que-no-se-lee", func(t *testing.T) {
+		t.Parallel()
+
+		calculo := repositorio.calculo(t, casoDeLaDecision{
+			disparo: disparoCompleto, sinPropuesta: true, mutante: conOtraDescripcionDeLegalCore(t, repositorio.arbol),
+		})
+
+		err := calculo.juzgarLasDescripciones(true, t.TempDir(), fijadosDelTest)
+		require.Error(t, err, "con una descripción cambiada, el juez de las descripciones se lee")
+		assert.Contains(t, err.Error(), "evidencias/adr-0046/rubrica.md", "el error nombra el fichero del juez")
+		assert.Nil(t, calculo.huellasDeLasDescripciones, "sin juez, ninguna huella")
+	})
+}
+
+// casosDeLaDecisionDeH30 son los casos de lo que mide y lo que reutiliza cada
+// trabajo, los de H30, en los que ninguna descripción cambia.
+func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) []casoDeLaDecision {
+	t.Helper()
 
 	docs := conUnaLineaMas(t, repositorio.arbol, ficheroDelRepositorio(t, repositorio.arbol, "docs", esMarkdown))
 	cuerpo := "skills/jurisprudencia/SKILL.md"
 	deJurisprudencia := map[string]medidasEsperadas{
 		"jurisprudencia": {motivo: motivoConjunto, rutas: []string{cuerpo}},
 	}
-	errDeLosFicheros := &errorDeUnaOrden{
-		orden: ordenDeLosFicherosDeLaPropuesta, variables: []string{"PROPUESTA=" + strconv.Itoa(propuestaDelJob)},
-		causa: errors.New("exit status 1"), salidaDeError: "HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls/210/files)\n",
-	}
 
-	casos := []casoDeLaDecision{
+	return []casoDeLaDecision{
 		{
 			nombre: "solo-el-cuerpo-de-jurisprudencia", disparo: disparoDeLaApertura,
 			mutante: conUnaLineaMas(t, repositorio.arbol, cuerpo), medidas: deJurisprudencia,
@@ -148,24 +192,135 @@ func TestDecisionDelJob(t *testing.T) {
 		},
 		{
 			nombre: "ficheros-de-la-propuesta-que-gh-no-da", disparo: disparoDeLaApertura,
-			mutante: conUnaLineaMas(t, repositorio.arbol, cuerpo),
-			fallos:  map[string]error{"ficheros de la propuesta 210": errDeLosFicheros},
-			medidas: todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoPlataforma}),
-			plataformaFallida: &errorDeLaPlataformaEnElOrigen{
-				Orden: ordenDeLosFicherosDeLaPropuesta + ", con PROPUESTA=210",
-				Error: "HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls/210/files)",
+			mutante:           conUnaLineaMas(t, repositorio.arbol, cuerpo),
+			fallos:            falloDeLosFicherosDeLaPropuesta(),
+			medidas:           todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoPlataforma}),
+			plataformaFallida: errorDeLosFicherosDeLaPropuesta(),
+			soloLasLecturas:   []string{"ficheros de la propuesta 210"},
+		},
+	}
+}
+
+// casosDeLaDescripcionDelJob son los casos de una propuesta que cambia la
+// descripción de legal-core, en la que el trabajo de cada skill lleva el bloque
+// descripcion: con la apertura, sola y con lo común cambiado a la vez, juzga la
+// de legal-core, cuya huella no tiene la medida de main, y reutiliza el juicio
+// de las demás de la medida de main, que se lee aunque ninguna eval se busque;
+// en la suite completa sobre la propuesta, las juzga todas sin leer nada de la
+// plataforma; y si gh no da los ficheros de la propuesta, la búsqueda no
+// empieza y las juzga todas.
+func casosDeLaDescripcionDelJob(t *testing.T, repositorio repositorioDeLaDecision) []casoDeLaDecision {
+	t.Helper()
+
+	descripcion := conOtraDescripcionDeLegalCore(t, repositorio.arbol)
+	skillMD := "skills/legal-core/SKILL.md"
+	cli := ficheroDelRepositorio(t, repositorio.arbol, "internal/cli", esCodigoSinTests)
+	lasDemas := slices.DeleteFunc(slices.Clone(repositorio.skills), func(skill string) bool { return skill == "legal-core" })
+	conLaMedidaDeMain := slices.Concat([]string{"ficheros de la propuesta 210"}, lecturasDeLasMedidas(ejecucionDeMainDelJob))
+
+	return []casoDeLaDecision{
+		{
+			nombre: "descripcion-de-legal-core-con-la-apertura", disparo: disparoDeLaApertura, mutante: descripcion,
+			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoDescripcion, rutas: []string{skillMD}}),
+			juzgadas: []string{"legal-core"}, reutilizadas: lasDemas, soloLasLecturas: conLaMedidaDeMain,
+		},
+		{
+			nombre: "descripcion-de-legal-core-y-lo-comun-con-la-apertura", disparo: disparoDeLaApertura,
+			mutante:  juntos(descripcion, conUnaLineaMas(t, repositorio.arbol, cli)),
+			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoComun, rutas: []string{cli, skillMD}}),
+			juzgadas: []string{"legal-core"}, reutilizadas: lasDemas, soloLasLecturas: conLaMedidaDeMain,
+		},
+		{
+			nombre: "descripcion-de-legal-core-sin-medida-de-main", disparo: disparoDeLaEtiqueta, mutante: descripcion,
+			sinMain:  true,
+			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoDescripcion, rutas: []string{skillMD}}),
+			juzgadas: repositorio.skills,
+			soloLasLecturas: []string{
+				"ficheros de la propuesta 210", lecturaDeLasEjecuciones, lecturaDeLasPropuestas,
 			},
-			soloLasLecturas: []string{"ficheros de la propuesta 210"},
+		},
+		{
+			nombre: "descripcion-de-legal-core-en-la-suite-completa", disparo: disparoCompleto, mutante: descripcion,
+			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoSuiteCompleta}),
+			juzgadas: repositorio.skills, sinLecturas: true,
+		},
+		{
+			nombre: "descripcion-de-legal-core-sin-los-ficheros-de-la-propuesta", disparo: disparoDeLaApertura,
+			mutante: descripcion, fallos: falloDeLosFicherosDeLaPropuesta(),
+			medidas:           todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoPlataforma}),
+			juzgadas:          repositorio.skills,
+			plataformaFallida: errorDeLosFicherosDeLaPropuesta(),
+			soloLasLecturas:   []string{"ficheros de la propuesta 210"},
+		},
+	}
+}
+
+// casosSinDescripcionQueJuzgar son los casos en que ningún trabajo lleva el
+// bloque descripcion: la descripción de legal-core cambiada en la suite
+// completa sin propuesta, el despacho manual; y, con la etiqueta evals, un
+// cambio solo de uno de los cuatro ficheros del juez de las descripciones, o de
+// su modelo o su versión de Claude Code, que no cambian ninguna descripción.
+func casosSinDescripcionQueJuzgar(t *testing.T, repositorio repositorioDeLaDecision) []casoDeLaDecision {
+	t.Helper()
+
+	docs := conUnaLineaMas(t, repositorio.arbol, ficheroDelRepositorio(t, repositorio.arbol, "docs", esMarkdown))
+	casos := []casoDeLaDecision{
+		{
+			nombre: "descripcion-de-legal-core-sin-propuesta", disparo: disparoCompleto, sinPropuesta: true,
+			mutante:     conOtraDescripcionDeLegalCore(t, repositorio.arbol),
+			medidas:     todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoSuiteCompleta}),
+			sinLecturas: true,
+		},
+		{
+			nombre: "etiqueta-con-otro-modelo-del-juez", disparo: disparoDeLaEtiqueta, mutante: docs,
+			otroJuez: func(fijados *fijadosDeLaHuella) { fijados.modeloDelJuez = "claude-opus-5-6" },
+		},
+		{
+			nombre: "etiqueta-con-otra-version-del-juez", disparo: disparoDeLaEtiqueta, mutante: docs,
+			otroJuez: func(fijados *fijadosDeLaHuella) { fijados.claudeCodeDelJuez = "2.1.290" },
 		},
 	}
 
-	for _, caso := range casos {
-		t.Run(caso.nombre, func(t *testing.T) {
-			t.Parallel()
-
-			comprobarLaDecision(t, repositorio, caso)
+	for _, usado := range ficherosUsadosPorElJuez {
+		casos = append(casos, casoDeLaDecision{
+			nombre: "etiqueta-con-solo-" + usado.campo + "-del-juez", disparo: disparoDeLaEtiqueta,
+			mutante: conUnaLineaMas(t, repositorio.arbol, enLaEvidencia(usado.fichero)),
 		})
 	}
+
+	return casos
+}
+
+// falloDeLosFicherosDeLaPropuesta es el fallo de la lectura de los ficheros de
+// la propuesta del job en la plataforma en memoria: gh termina con 1 y un 502.
+func falloDeLosFicherosDeLaPropuesta() map[string]error {
+	return map[string]error{"ficheros de la propuesta 210": &errorDeUnaOrden{
+		orden: ordenDeLosFicherosDeLaPropuesta, variables: []string{"PROPUESTA=" + strconv.Itoa(propuestaDelJob)},
+		causa: errors.New("exit status 1"), salidaDeError: "HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls/210/files)\n",
+	}}
+}
+
+// errorDeLosFicherosDeLaPropuesta es el error de la plataforma en el origen
+// por falloDeLosFicherosDeLaPropuesta.
+func errorDeLosFicherosDeLaPropuesta() *errorDeLaPlataformaEnElOrigen {
+	return &errorDeLaPlataformaEnElOrigen{
+		Orden: ordenDeLosFicherosDeLaPropuesta + ", con PROPUESTA=210",
+		Error: "HTTP 502: Bad Gateway (https://api.github.com/repos/o/r/pulls/210/files)",
+	}
+}
+
+// juntos es la propuesta que cambia lo que cambian todos los mutantes dados,
+// que no cambian el mismo fichero.
+func juntos(mutantes ...mutanteDeLaPropuesta) mutanteDeLaPropuesta {
+	junto := mutanteDeLaPropuesta{cambiados: fstest.MapFS{}}
+
+	for _, mutante := range mutantes {
+		maps.Copy(junto.cambiados, mutante.cambiados)
+		junto.retirados = append(junto.retirados, mutante.retirados...)
+		junto.cambios = append(junto.cambios, mutante.cambios...)
+	}
+
+	return junto
 }
 
 // leerElRepositorioDeLaDecision lee del repositorio lo que comparten los casos
@@ -182,7 +337,12 @@ func leerElRepositorioDeLaDecision(t *testing.T) repositorioDeLaDecision {
 	comun, err := grafo.loComun(base.modulos)
 	require.NoError(t, err)
 
-	repositorio := repositorioDeLaDecision{arbol: arbol, grafo: grafo, base: base, comun: comun, evals: map[string][]Eval{}}
+	juez, err := juezDeLasDescripciones(raizDelRepositorio)
+	require.NoError(t, err)
+
+	repositorio := repositorioDeLaDecision{
+		arbol: arbol, grafo: grafo, base: base, comun: comun, evals: map[string][]Eval{}, juez: juez,
+	}
 
 	for _, nombre := range nombresDeLasEvals(t, arbol) {
 		skill, _, _ := strings.Cut(nombre, "/")
@@ -216,7 +376,9 @@ func todasMedidas(skills []string, medidas medidasEsperadas) map[string]medidasE
 // los conjuntos de la cabeza, lo común, los árboles de la cabeza y de la base,
 // y una huella sintética por conjunto, la de su nombre; con el conjunto de
 // evalSinResultado incalculable, si el caso lo pide, y entonces ninguna huella,
-// como en el job.
+// como en el job. Y la huella del juicio de cada descripción si la ejecución
+// las juzga (juzgarLasDescripciones), con el juez del repositorio y los
+// fijados del caso, como en el job.
 func (r repositorioDeLaDecision) calculo(t *testing.T, caso casoDeLaDecision) calculoDeLaDecision {
 	t.Helper()
 
@@ -237,15 +399,35 @@ func (r repositorioDeLaDecision) calculo(t *testing.T, caso casoDeLaDecision) ca
 			skill: conjuntos[indice].skill, eval: conjuntos[indice].eval,
 			err: errors.New(evalSinResultado + `: el applet "inexistente" no tiene fichero en internal/app`),
 		}
-
-		return calculo
+	} else {
+		for _, conjunto := range conjuntos {
+			calculo.huellas = append(calculo.huellas, huellaSintetica(conjunto.nombre()))
+		}
 	}
 
-	for _, conjunto := range conjuntos {
-		calculo.huellas = append(calculo.huellas, huellaSintetica(conjunto.nombre()))
-	}
+	require.NoError(t, calculo.juzgarLasDescripciones(!caso.sinPropuesta, raizDelRepositorio, caso.fijados()))
 
 	return calculo
+}
+
+// fijados son los del caso: los de fijadosDelTest, con el otro juez si lo
+// lleva.
+func (c casoDeLaDecision) fijados() fijadosDeLaHuella {
+	fijados := fijadosDelTest
+	if c.otroJuez != nil {
+		c.otroJuez(&fijados)
+	}
+
+	return fijados
+}
+
+// huellaDelJuicioDeLaSkill es la huella del juicio de la descripción de la
+// skill en el árbol dado, la de la cabeza o la de la base, con el juez del
+// repositorio y los fijados dados.
+func (r repositorioDeLaDecision) huellaDelJuicioDeLaSkill(
+	arbol arbolDelRepositorio, skill string, fijados fijadosDeLaHuella,
+) string {
+	return huellaDelJuicio(skill, arbol.descripciones[skill], r.juez, fijados.modeloDelJuez, fijados.claudeCodeDelJuez)
 }
 
 // huellaSintetica es la huella de la eval con ese nombre en los casos de
@@ -258,7 +440,8 @@ func huellaSintetica(nombre string) string {
 // o para el trabajo cambios si skill está vacía: los ficheros de la propuesta
 // del mutante, sus fallos y, salvo sinMain, una medida de main con el informe
 // de la skill, con la huella de cada eval de la base y, en la de cada eval de
-// otrasHuellas, la suya.
+// otrasHuellas, la suya, y con el juicio sin marcar de la descripción de la
+// skill en la base, con fijadosDelTest.
 func (r repositorioDeLaDecision) plataforma(t *testing.T, caso casoDeLaDecision, skill string) *plataformaEnMemoria {
 	t.Helper()
 
@@ -292,7 +475,8 @@ func (r repositorioDeLaDecision) plataforma(t *testing.T, caso casoDeLaDecision,
 		informe.Tasas = append(informe.Tasas, seriesDeLaEval(eval.Fichero)...)
 	}
 
-	plataforma.ejecuciones = []ejecucionEnMemoria{medidaDeMainDelJob(t, r.skills, skill, informe)}
+	plataforma.ejecuciones = []ejecucionEnMemoria{conLaDescripcion(t, medidaDeMainDelJob(t, r.skills, skill, informe),
+		bloqueJuzgadoEnMain(skill, r.huellaDelJuicioDeLaSkill(r.base, skill, fijadosDelTest), false))}
 
 	return plataforma
 }
@@ -353,10 +537,22 @@ func (c casoDeLaDecision) modo() modoDelOrigen {
 // evals de su conjunto en la cabeza, en su orden: las de sus medidas, medidas
 // con su motivo y sus rutas, y las demás, reutilizadas de la medida de main con
 // sus aportes y sus series; cada una con su huella sintética, salvo sin
-// conjunto.
-func (c casoDeLaDecision) esperado(calculo calculoDeLaDecision, skill string) *origenDeLasEvals {
+// conjunto. Si la skill es de las juzgadas, el bloque descripcion con la huella
+// dada, juzgada; si es de las reutilizadas, con el juicio sin marcar de la
+// medida de main y su procedencia; si no, sin bloque.
+func (c casoDeLaDecision) esperado(calculo calculoDeLaDecision, skill, huella string) *origenDeLasEvals {
 	origen := &origenDeLasEvals{
 		Modo: c.modo(), SinConjunto: calculo.eleccion.sinConjunto(), ErrorDeLaPlataforma: c.plataformaFallida,
+	}
+
+	switch {
+	case slices.Contains(c.juzgadas, skill):
+		origen.Descripcion = &descripcionDeLaDecision{Skill: skill, Huella: huella, Juzgada: true}
+	case slices.Contains(c.reutilizadas, skill):
+		origen.Descripcion = &descripcionDeLaDecision{
+			Skill: skill, Huella: huella, Procedencia: procedenciaDeMainDelJob(),
+			Juicio: &juicioReutilizado{Motivo: motivoSinMarcarEnMain},
+		}
 	}
 
 	medidas, conMedidas := c.medidas[skill]
@@ -435,7 +631,8 @@ func comprobarLaDecision(t *testing.T, repositorio repositorioDeLaDecision, caso
 	}
 
 	for _, skill := range repositorio.skills {
-		esperado := caso.esperado(calculo, skill)
+		esperado := caso.esperado(calculo, skill,
+			repositorio.huellaDelJuicioDeLaSkill(calculo.eleccion.cabeza, skill, caso.fijados()))
 		sesiones := 0
 
 		if corren {
@@ -520,6 +717,7 @@ func comprobarElOrigenDeLaDecision(t *testing.T, skill string, esperado, origen 
 	contenido, err := os.ReadFile(filepath.Clean(ruta))
 	require.NoError(t, err)
 	assert.NotContains(t, string(contenido), `"sesiones_abiertas"`, "el fichero de la decisión no lleva sesiones abiertas")
+	comprobarLaDescripcionDelFichero(t, skill, esperado.Descripcion, contenido)
 
 	leido, err := leerElFicheroDeLaDecision(ruta)
 	require.NoError(t, err)
@@ -529,6 +727,41 @@ func comprobarElOrigenDeLaDecision(t *testing.T, skill string, esperado, origen 
 	otraVez, err := os.ReadFile(filepath.Clean(deNuevo))
 	require.NoError(t, err)
 	assert.JSONEqf(t, string(contenido), string(otraVez), "el fichero de la decisión de %s se lee como se escribió", skill)
+}
+
+// comprobarLaDescripcionDelFichero compara el bloque descripcion del fichero
+// de la decisión del trabajo de la skill con el esperado, clave a clave, con
+// las de contracts/juez-de-las-descripciones.md §2 de H31: skill, huella y
+// juzgada y, si se reutiliza, procedencia, con las claves de la de H30, y
+// juicio, con marcada, frase y motivo. Sin el esperado, el fichero no lleva el
+// bloque.
+func comprobarLaDescripcionDelFichero(t *testing.T, skill string, esperada *descripcionDeLaDecision, contenido []byte) {
+	t.Helper()
+
+	var fichero map[string]any
+	require.NoError(t, json.Unmarshal(contenido, &fichero))
+
+	bloque, conBloque := fichero["descripcion"]
+	if esperada == nil {
+		assert.Falsef(t, conBloque, "el fichero de la decisión de %s no lleva el bloque descripcion", skill)
+
+		return
+	}
+
+	contrato := map[string]any{"skill": esperada.Skill, "huella": esperada.Huella, "juzgada": esperada.Juzgada}
+
+	if procedencia := esperada.Procedencia; procedencia != nil {
+		contrato["procedencia"] = map[string]any{
+			"ejecucion": float64(procedencia.Ejecucion), "trabajo": float64(procedencia.Trabajo),
+			"commit": procedencia.Commit, "propuesta": float64(procedencia.Propuesta), "fecha": procedencia.Fecha,
+		}
+	}
+
+	if juicio := esperada.Juicio; juicio != nil {
+		contrato["juicio"] = map[string]any{"marcada": juicio.Marcada, "frase": juicio.Frase, "motivo": juicio.Motivo}
+	}
+
+	assert.Equalf(t, contrato, bloque, "el bloque descripcion del fichero de la decisión de %s", skill)
 }
 
 // comprobarLasLecturas compara las lecturas de la plataforma del trabajo de la
@@ -652,6 +885,7 @@ func TestCalculoDeLaDecisionDelCheckout(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, sinBase.eleccion.base.skills, "sin base, ningún árbol de la base")
 	assert.Equal(t, calculo.huellas, sinBase.huellas, "la base no cambia ninguna huella")
+	assert.Nil(t, sinBase.huellasDeLasDescripciones, "sin base, que es sin propuesta, ninguna descripción que juzgar")
 
 	sinModelo := fijadosDelTest
 	sinModelo.modeloQueDecide = ""

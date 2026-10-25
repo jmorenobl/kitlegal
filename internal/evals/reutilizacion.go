@@ -68,23 +68,31 @@ type medidaDeMain struct {
 // y §8 de H30; research D8, D9 y D17 de H30): una entrada del origen por eval
 // buscada, en su orden, que es la reutilizada de la medida de main más reciente
 // que tiene de ella un resultado reutilizable (resultadoReutilizable) o, si
-// ninguna lo tiene, la de la eval medida con sin_resultado_de_main. Lee de la
-// plataforma solo si hay algo que buscar y para en cuanto cada eval tiene
-// resultado. La primera lectura que falla, o el plazo del contexto agotado, la
-// para: lo que queda se mide, y el error, con la orden que falló o la que
-// estaba en curso, es el segundo resultado; nil si no hubo ninguno. El instante
-// es el de la decisión, con el que se compara la edad de cada medida y de cada
-// procedencia.
+// ninguna lo tiene, la de la eval medida con sin_resultado_de_main. En el mismo
+// recorrido, si la huella de la descripción no está vacía, busca el juicio de
+// la descripción de la skill con esa huella (FR-030 de H31; research D4 de H31):
+// el segundo resultado es el de la medida de main más reciente que tiene uno
+// reutilizable (juicioReutilizable), o nil si ninguna lo tiene o no lo busca.
+// Lee de la plataforma solo si hay algo que buscar y para en cuanto todo lo
+// buscado tiene resultado. La primera lectura que falla, o el plazo del
+// contexto agotado, la para: lo que queda se mide o se juzga, y el error, con
+// la orden que falló o la que estaba en curso, es el tercer resultado; nil si
+// no hubo ninguno. El instante es el de la decisión, con el que se compara la
+// edad de cada medida y de cada procedencia.
 func buscarEnLasMedidasDeMain(
-	ctx context.Context, plataforma lecturasDeLaPlataforma, skill string, buscadas []evalABuscar, instante time.Time,
-) ([]origenDeEval, *errorDeLaPlataformaEnElOrigen) {
-	halladas := make(map[string]origenDeEval, len(buscadas))
-	plataformaFallida := recorrerLasMedidasDeMain(ctx, plataforma, skill, buscadas, instante, halladas)
+	ctx context.Context, plataforma lecturasDeLaPlataforma, skill string, buscadas []evalABuscar,
+	huellaDeLaDescripcion string, instante time.Time,
+) ([]origenDeEval, *descripcionDeLaDecision, *errorDeLaPlataformaEnElOrigen) {
+	busqueda := &busquedaEnMain{
+		skill: skill, buscadas: buscadas, huellaDeLaDescripcion: huellaDeLaDescripcion, instante: instante,
+		halladas: make(map[string]origenDeEval, len(buscadas)),
+	}
+	plataformaFallida := busqueda.recorrer(ctx, plataforma)
 
 	evals := make([]origenDeEval, 0, len(buscadas))
 
 	for _, buscada := range buscadas {
-		hallada, ok := halladas[buscada.fichero]
+		hallada, ok := busqueda.halladas[buscada.fichero]
 		if !ok {
 			hallada = origenDeEval{Eval: buscada.fichero, Huella: buscada.huella, Medida: true, Motivo: motivoSinResultadoDeMain}
 		}
@@ -92,25 +100,43 @@ func buscarEnLasMedidasDeMain(
 		evals = append(evals, hallada)
 	}
 
-	return evals, plataformaFallida
+	return evals, busqueda.juicio, plataformaFallida
 }
 
-// recorrerLasMedidasDeMain pasa por las medidas de main, de la más reciente a
-// la más antigua y como mucho medidasQueSeRecorren, y pone en halladas el
-// resultado reutilizable de cada eval buscada que aún no lo tenga, hasta que
-// todas lo tienen (FR-012 de H30). Una posible medida que sus trabajos
-// descartan (trabajoDeLaSkillEnLaMedida) no cuenta entre las recorridas, y una
-// medida cuyo informe no se puede sacar del registro o leer no aporta nada
-// (research D8 de H30). Devuelve el error de la lectura que la paró, o nil.
-func recorrerLasMedidasDeMain(
-	ctx context.Context, plataforma lecturasDeLaPlataforma, skill string, buscadas []evalABuscar, instante time.Time,
-	halladas map[string]origenDeEval,
-) *errorDeLaPlataformaEnElOrigen {
-	if len(buscadas) == 0 {
+// busquedaEnMain es lo que la decisión de un trabajo busca en las medidas de
+// main —el resultado de cada eval no elegida de la skill y, si la huella no
+// está vacía, el juicio de su descripción con esa huella— con el instante de
+// la decisión, y lo que lleva hallado: el resultado de cada eval por su fichero
+// y el juicio.
+type busquedaEnMain struct {
+	skill                 string
+	buscadas              []evalABuscar
+	huellaDeLaDescripcion string
+	instante              time.Time
+
+	halladas map[string]origenDeEval
+	juicio   *descripcionDeLaDecision
+}
+
+// terminada dice si todo lo buscado tiene resultado: cada eval y, si lo busca,
+// el juicio de la descripción.
+func (b *busquedaEnMain) terminada() bool {
+	return len(b.halladas) == len(b.buscadas) && (b.huellaDeLaDescripcion == "" || b.juicio != nil)
+}
+
+// recorrer pasa por las medidas de main, de la más reciente a la más antigua y
+// como mucho medidasQueSeRecorren, y anota en la búsqueda lo que cada una
+// tiene de lo que aún no tiene resultado, hasta que todo lo tiene (FR-012 de
+// H30; FR-030 de H31). Una posible medida que sus trabajos descartan
+// (trabajoDeLaSkillEnLaMedida) no cuenta entre las recorridas, y una medida
+// cuyo informe no se puede sacar del registro o leer no aporta nada (research
+// D8 de H30). Devuelve el error de la lectura que la paró, o nil.
+func (b *busquedaEnMain) recorrer(ctx context.Context, plataforma lecturasDeLaPlataforma) *errorDeLaPlataformaEnElOrigen {
+	if b.terminada() {
 		return nil
 	}
 
-	posibles, plataformaFallida := posiblesMedidasDeMain(ctx, plataforma, instante)
+	posibles, plataformaFallida := posiblesMedidasDeMain(ctx, plataforma, b.instante)
 	if plataformaFallida != nil {
 		return plataformaFallida
 	}
@@ -118,11 +144,11 @@ func recorrerLasMedidasDeMain(
 	recorridas := 0
 
 	for _, posible := range posibles {
-		if recorridas == medidasQueSeRecorren || len(halladas) == len(buscadas) {
+		if recorridas == medidasQueSeRecorren || b.terminada() {
 			break
 		}
 
-		informe, esMedida, plataformaFallida := leerLaMedida(ctx, plataforma, skill, &posible)
+		informe, esMedida, plataformaFallida := leerLaMedida(ctx, plataforma, b.skill, &posible)
 		if plataformaFallida != nil {
 			return plataformaFallida
 		}
@@ -133,22 +159,31 @@ func recorrerLasMedidasDeMain(
 
 		recorridas++
 
-		if informe == nil {
-			continue
-		}
-
-		for _, buscada := range buscadas {
-			if _, hallada := halladas[buscada.fichero]; hallada {
-				continue
-			}
-
-			if resultado, ok := resultadoReutilizable(informe, posible, buscada, instante); ok {
-				halladas[buscada.fichero] = resultado
-			}
+		if informe != nil {
+			b.anotar(informe, posible)
 		}
 	}
 
 	return nil
+}
+
+// anotar anota en la búsqueda lo que el informe de la medida de main tiene de
+// lo que aún no tiene resultado: el resultado reutilizable de cada eval y el
+// juicio reutilizable de la descripción, si lo busca.
+func (b *busquedaEnMain) anotar(informe *informeDeLaMedida, medida medidaDeMain) {
+	for _, buscada := range b.buscadas {
+		if _, hallada := b.halladas[buscada.fichero]; hallada {
+			continue
+		}
+
+		if resultado, ok := resultadoReutilizable(&informe.Informe, medida, buscada, b.instante); ok {
+			b.halladas[buscada.fichero] = resultado
+		}
+	}
+
+	if b.huellaDeLaDescripcion != "" && b.juicio == nil {
+		b.juicio = juicioReutilizable(informe.Descripcion, medida, b.skill, b.huellaDeLaDescripcion, b.instante)
+	}
 }
 
 // posiblesMedidasDeMain son las ejecuciones del flujo que pueden ser medida
@@ -198,6 +233,32 @@ func posiblesMedidasDeMain(
 	return posibles, nil
 }
 
+// informeDeLaMedida es lo que la búsqueda lee del informe del trabajo de la
+// skill en una medida de main: el informe y su bloque descripcion, nil si no lo
+// lleva.
+type informeDeLaMedida struct {
+	Informe
+
+	Descripcion *descripcionEnElInforme `json:"descripcion"`
+}
+
+// descripcionEnElInforme es lo que la búsqueda lee del bloque descripcion del
+// informe de una medida de main (contracts/juez-de-las-descripciones.md §6 de
+// H31; data-model §4 de H31): la skill, la huella del juicio, si se juzgó allí
+// o se reutilizó con su procedencia, la marca, la frase y el motivo del juicio,
+// y el motivo del voto de la descripción que quedó sin juzgar, vacío si se
+// juzgó.
+type descripcionEnElInforme struct {
+	Skill       string                 `json:"skill"`
+	Huella      string                 `json:"huella"`
+	Juzgada     bool                   `json:"juzgada"`
+	Procedencia *procedenciaDeLaMedida `json:"procedencia"`
+	Marcada     bool                   `json:"marcada"`
+	Frase       string                 `json:"frase"`
+	Motivo      string                 `json:"motivo"`
+	SinJuzgar   string                 `json:"sin_juzgar"`
+}
+
 // leerLaMedida lee los trabajos de la posible medida y, si lo es, pone en ella
 // el trabajo de la skill y lee su informe. Devuelve el informe —nil si
 // no se pudo sacar del registro o leer, que deja la medida sin aportar nada—, si
@@ -205,7 +266,7 @@ func posiblesMedidasDeMain(
 // trabajos, y la del registro si su orden falló o se agotó el plazo.
 func leerLaMedida(
 	ctx context.Context, plataforma lecturasDeLaPlataforma, skill string, posible *medidaDeMain,
-) (*Informe, bool, *errorDeLaPlataformaEnElOrigen) {
+) (*informeDeLaMedida, bool, *errorDeLaPlataformaEnElOrigen) {
 	ejecucion := strconv.FormatInt(posible.ejecucion, 10)
 
 	trabajos, err := plataforma.trabajos(ctx, posible.ejecucion)
@@ -235,9 +296,10 @@ func leerLaMedida(
 		return nil, true, nil
 	}
 
-	var informe Informe
+	var informe informeDeLaMedida
 	if json.Unmarshal(contenido, &informe) != nil {
-		// Un informe que no es JSON tampoco aporta nada (FR-013 de H30).
+		// Un informe que no es JSON con su forma tampoco aporta nada (FR-013 de
+		// H30).
 		return nil, true, nil
 	}
 
@@ -319,25 +381,69 @@ func resultadoReutilizable(
 			return origenDeEval{}, false
 		}
 
-		resultado.Procedencia = &procedenciaDeLaMedida{
-			Ejecucion: medida.ejecucion, Trabajo: medida.trabajo, Commit: medida.commit, Propuesta: medida.propuesta,
-			Fecha: medida.fecha.UTC().Format(time.RFC3339),
-		}
+		resultado.Procedencia = medida.procedencia()
 		resultado.Tasas = slices.DeleteFunc(slices.Clone(informe.Tasas), func(serie TasaDelInforme) bool {
 			return serie.Eval != buscada.fichero
 		})
 	}
 
-	if resultado.Procedencia == nil {
-		return origenDeEval{}, false
-	}
-
-	fecha, err := time.Parse(time.RFC3339, resultado.Procedencia.Fecha)
-	if err != nil || !vigente(fecha, instante) {
+	if !procedenciaVigente(resultado.Procedencia, instante) {
 		return origenDeEval{}, false
 	}
 
 	return resultado, true
+}
+
+// juicioReutilizable es el juicio de la descripción de la skill con esa huella
+// que se reutiliza del bloque descripcion del informe de una medida de main, o
+// nil si no es reutilizable (FR-030 y FR-032 de H31; research D4 de H31): el
+// bloque tiene que ser de la skill, con la misma huella, y su juicio, completo,
+// no sin juzgar. Si se juzgó allí, su procedencia es esa medida; si se
+// reutilizó allí, la del bloque, la de la medida en que se juzgó. En los dos
+// casos, como la de un resultado de una eval, de menos de vidaDeUnResultado
+// antes del instante.
+func juicioReutilizable(
+	bloque *descripcionEnElInforme, medida medidaDeMain, skill, huella string, instante time.Time,
+) *descripcionDeLaDecision {
+	if bloque == nil || bloque.Skill != skill || bloque.Huella != huella || bloque.SinJuzgar != "" {
+		return nil
+	}
+
+	procedencia := bloque.Procedencia
+	if bloque.Juzgada {
+		procedencia = medida.procedencia()
+	}
+
+	if !procedenciaVigente(procedencia, instante) {
+		return nil
+	}
+
+	return &descripcionDeLaDecision{
+		Skill: skill, Huella: huella, Procedencia: procedencia,
+		Juicio: &juicioReutilizado{Marcada: bloque.Marcada, Frase: bloque.Frase, Motivo: bloque.Motivo},
+	}
+}
+
+// procedencia es la de lo que se midió o se juzgó en la medida de main: su
+// ejecución, el trabajo de la skill, su commit, su propuesta y la fecha en que
+// se creó, en UTC (data-model §7 y §8 de H30).
+func (m medidaDeMain) procedencia() *procedenciaDeLaMedida {
+	return &procedenciaDeLaMedida{
+		Ejecucion: m.ejecucion, Trabajo: m.trabajo, Commit: m.commit, Propuesta: m.propuesta,
+		Fecha: m.fecha.UTC().Format(time.RFC3339),
+	}
+}
+
+// procedenciaVigente dice si hay procedencia y su fecha, que tiene que leerse
+// en RFC 3339, es de menos de vidaDeUnResultado antes del instante.
+func procedenciaVigente(procedencia *procedenciaDeLaMedida, instante time.Time) bool {
+	if procedencia == nil {
+		return false
+	}
+
+	fecha, err := time.Parse(time.RFC3339, procedencia.Fecha)
+
+	return err == nil && vigente(fecha, instante)
 }
 
 // completaEnElInforme dice si el resultado de una eval medida en un informe

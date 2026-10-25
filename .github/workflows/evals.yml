@@ -306,8 +306,9 @@ jobs:
       # false, con la entrada o con la etiqueta.
       PRUEBA_DE_RED: >-
         ${{ matrix.skill == 'boe-legislacion' && (github.event.label.name == 'evals-prueba-de-red' || inputs.prueba_de_red == true) }}
-      # El modo que decidió la tanda, y la propuesta y su base, con las que la decisión elige en reutilizacion; en el
-      # despacho, que es completa, van vacías (contracts/job-de-evals.md §2 de H30).
+      # El modo que decidió la tanda, y la propuesta y su base, con las que la decisión elige en reutilizacion y decide,
+      # en los dos modos, si se juzgan las descripciones; en el despacho, que es completa, van vacías
+      # (contracts/job-de-evals.md §2 de H30; FR-030 de H31).
       MODO_DE_EVALS: ${{ needs.tanda.outputs.modo }}
       PROPUESTA: ${{ github.event.pull_request.number }}
       BASE_DE_LA_PROPUESTA: ${{ github.event.pull_request.base.sha }}
@@ -332,7 +333,12 @@ jobs:
       # FR-018): TestDecisionDelTrabajo calcula la huella de cada eval con los modelos y las versiones de Claude Code
       # fijados en el env; en completa las mide todas sin leer nada de la plataforma; en reutilizacion lee con gh los
       # ficheros de la propuesta y busca lo no elegido en las medidas de main, con un plazo de 10 minutos para todo lo que
-      # lee. Registra una línea por eval —medida con su motivo o reutilizada con su procedencia— y escribe el fichero de
+      # lee. Con propuesta, en los dos modos, lee también el árbol de su base y, si la descripción de alguna skill cambia
+      # entre la base y la cabeza, la decisión lleva el bloque descripcion de la skill del trabajo, juzgada o, en
+      # reutilizacion, con el juicio de una medida de main con su huella, la del juez de las descripciones con
+      # MODELO_DEL_JUEZ y VERSION_DE_CLAUDE_CODE_DEL_JUEZ (specs/027-h31-las-skills-siguen/contracts/
+      # juez-de-las-descripciones.md §2; FR-030 de H31); en el despacho, sin propuesta, no lo lleva. Registra una línea
+      # por eval —medida con su motivo o reutilizada con su procedencia— y escribe el fichero de
       # la decisión, que lee el paso que ejecuta las evals. Una orden de gh que falla, o el plazo agotado, no lo dejan en
       # rojo: lo que no pudo reutilizar se mide, y la orden y su error van al registro y al informe (research.md D17 de
       # H30). Es el único paso con GH_TOKEN y GH_REPO, y lo que sigue no los ve. Su -timeout, 15 minutos, es el plazo que
