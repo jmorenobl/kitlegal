@@ -1,7 +1,7 @@
 ---
 id: H32
 fase: "1"
-depende_de: [H31]
+depende_de: [H31.1]
 ---
 
 # H32 · Arquitectura de skills: una entrada genérica, skills por capacidad y las materias como referencias

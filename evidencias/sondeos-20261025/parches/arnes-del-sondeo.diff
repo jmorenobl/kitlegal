@@ -1,0 +1,102 @@
+diff --git a/internal/evals/plan.go b/internal/evals/plan.go
+index 07fba81..2d530dc 100644
+--- a/internal/evals/plan.go
++++ b/internal/evals/plan.go
+@@ -150,8 +150,10 @@ func (p PlanDeEvals) Comprobar() error {
+ // que se abren: el modo orden y el modo herramienta, los que estén en Modos; sin
+ // ninguno en Modos, solo el modo orden.
+ func (p PlanDeEvals) modos() []Modo {
++	// ARNÉS DEL SONDEO PREVIO A H26, fuera del producto: sin modos, los dos, para
++	// que el sondeo abra también las sesiones del modo herramienta.
+ 	if len(p.Modos) == 0 {
+-		return []Modo{ModoOrden}
++		return []Modo{ModoOrden, ModoHerramienta}
+ 	}
+ 
+ 	var modos []Modo
+diff --git a/internal/evals/sondeo.go b/internal/evals/sondeo.go
+index a5f96ea..fd56856 100644
+--- a/internal/evals/sondeo.go
++++ b/internal/evals/sondeo.go
+@@ -2,6 +2,7 @@ package evals
+ 
+ import (
+ 	"context"
++	"encoding/json"
+ 	"errors"
+ 	"fmt"
+ 	"os"
+@@ -401,6 +402,24 @@ func (s SondeoAJuzgar) juzgarConElJuez(
+ 		delSondeo.respuestas[posicion].juicio = juicio
+ 	}
+ 
++	// ARNÉS DEL SONDEO, fuera del producto: los votos de cada respuesta, con sus
++	// frases, quedan en votos.json junto a las sesiones del temporal conservado.
++	type votosDeLaSesion struct {
++		Sesion    string            `json:"sesion"`
++		Respuesta string            `json:"respuesta"`
++		Juicio    JuicioDeRespuesta `json:"juicio"`
++	}
++
++	volcado := make([]votosDeLaSesion, 0, len(delSondeo.respuestas))
++	for posicion, aJuzgar := range delSondeo.aJuzgar(sesiones) {
++		respuesta := delSondeo.respuestas[posicion]
++		volcado = append(volcado, votosDeLaSesion{Sesion: respuesta.sesion, Respuesta: aJuzgar.respuesta, Juicio: respuesta.juicio})
++	}
++
++	if contenido, errDelVolcado := json.MarshalIndent(volcado, "", " "); errDelVolcado == nil {
++		_ = os.WriteFile(filepath.Join(filepath.Dir(s.Sesiones), "votos.json"), contenido, 0o600)
++	}
++
+ 	delJuez := &juezDelSondeo{modelo: s.ModeloDelJuez, version: versionDelEquipo(sesiones)}
+ 
+ 	for posicion, clase := range s.Juez.Clases {
+@@ -495,6 +514,12 @@ func juzgarSesionDelSondeo(e InformeAEscribir, evals []Eval, nombre string) sesi
+ 		clave: claveDeSerie{modelo: strings.TrimSuffix(string(modelo), "\n"), modo: ModoOrden},
+ 	}
+ 
++	// ARNÉS DEL SONDEO PREVIO A H26, fuera del producto: el modo de la sesión sale
++	// de su nombre, como lo compone el plan.
++	if strings.Contains(nombre, sufijoDelModoHerramienta+"-") {
++		juzgada.clave.modo = ModoHerramienta
++	}
++
+ 	if errDeEval == nil {
+ 		juzgada.clave.eval = nombreDeEval
+ 		juzgada.clave.preguntaAmpliada = juzgada.preguntaLeida && juzgada.pregunta != eval.Pregunta+"\n"
+@@ -1126,12 +1151,15 @@ func sondear(interrupcion <-chan struct{}, s SondeoAEjecutar) (string, error) {
+ 	}
+ 
+ 	ejecucion, err := ejecutarSesiones(interrupcion, SesionesAEjecutar{
+-		Plan:          plan.Sesiones(),
+-		Concurrencia:  comprobado.concurrencia,
+-		Evals:         comprobado.evals,
+-		Sesiones:      sesiones,
+-		Skills:        filepath.Join(temporal, carpetaPersonal, carpetaDeClaudeCode, directorioDeSkills),
+-		Guion:         s.Guion,
++		Plan:         plan.Sesiones(),
++		Concurrencia: comprobado.concurrencia,
++		Evals:        comprobado.evals,
++		Sesiones:     sesiones,
++		Skills:       filepath.Join(temporal, carpetaPersonal, carpetaDeClaudeCode, directorioDeSkills),
++		Guion:        s.Guion,
++		// ARNÉS DEL SONDEO PREVIO A H26, fuera del producto: el binario del
++		// temporal, que las sesiones del modo herramienta declaran como servidor.
++		Binario:       filepath.Join(temporal, carpetaDeBinarios, programaDeLasConsultas),
+ 		Entorno:       entornoDelSondeo(s.Entorno, temporal),
+ 		Traza:         false,
+ 		Tope:          topeDeUnaSesion,
+diff --git a/scripts/evals-sondeo.sh b/scripts/evals-sondeo.sh
+index 4cb78b4..901dbdf 100755
+--- a/scripts/evals-sondeo.sh
++++ b/scripts/evals-sondeo.sh
+@@ -30,7 +30,8 @@ fi
+ # TestSondeo hace en proceso. Fuera quedan solo las cachés de Go. Su ruta es absoluta: TestSondeo la recibe por bandera
+ # y go test lo ejecuta en el directorio de su paquete.
+ temporal="$(mktemp -d "${TMPDIR:-/tmp}/kitlegal-sondeo.XXXXXX")"
+-trap 'rm -rf -- "$temporal"' EXIT
++# ARNÉS DEL SONDEO PREVIO A H26, fuera del producto: el temporal no se borra, para leer las respuestas y los votos.
++echo "evals-sondeo: temporal conservado en $temporal" >&2
+ temporal="$(cd "$temporal" && pwd -P)"
+ mkdir "$temporal/tmp"
+ 

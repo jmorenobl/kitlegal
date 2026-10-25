@@ -1,0 +1,196 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "494db869fb3b832a0d45ac94ac833f6d3c13a49bdd27db922ad47a7745044961",
+      "bytes": 5378,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "evidencia de la entrada de H31.1"
+    },
+    {
+      "fichero": "brazo-A/salida.txt",
+      "sha256": "b4dd3160b5bdff7a21f7ffceff798ad9bac2cd805f1aa4df3b804404ebd51509",
+      "bytes": 1008,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-A/votos.json",
+      "sha256": "b449328ab4d4c757522d02027ac6b6d2c70d8c1b06967d8cec18add162ad9e8c",
+      "bytes": 246554,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-A2/salida.txt",
+      "sha256": "f9f4f7ecf057d77991369ad0f771bae049886a6df1202c2d4f809cff94b31c75",
+      "bytes": 1010,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-A2/votos.json",
+      "sha256": "723c9ebd2ff24991a0c4da16d863f072d2399b09410e7d62555543d171c5120d",
+      "bytes": 252964,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-B/salida.txt",
+      "sha256": "0202eb9faa5cb6ae5e46ec0f283a18c9fce02f188484b4c7dd7b1231468d59cc",
+      "bytes": 1009,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-B/votos.json",
+      "sha256": "783ef9d8af4ca60db3165a621e7fb339ee2042d1ded80f7e4f677242933b46b5",
+      "bytes": 250667,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-C/salida.txt",
+      "sha256": "484e65f25d6ba437ddfe222782b079b0bf5e8ed90d2a9c484e5748aca547d0fa",
+      "bytes": 1008,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-C/votos.json",
+      "sha256": "e2673b42d93dea7ec4332bead604f53ea2eb0d9155d11a91ebd86a460c7012ec",
+      "bytes": 253147,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-D/salida.txt",
+      "sha256": "8d06891e4ccb655469150a9b4fb033d5107b1894be7e87a6aec9893006c9f4a6",
+      "bytes": 1009,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-D/votos.json",
+      "sha256": "2431a4c3048f395daf339ce5a50e054b0c9fb1d982a520ecf1439fca2e63de99",
+      "bytes": 264032,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-E/salida.txt",
+      "sha256": "0206ca2693852df463dbb43e7f54dc4a927342595dab9309ad57431e854632e5",
+      "bytes": 1007,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "brazo-E/votos.json",
+      "sha256": "b2752b6a0b4b06c6429efe0d4bde6a3856bc7f7623ba3bb3116cf6998dda97bc",
+      "bytes": 259037,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-25"
+    },
+    {
+      "fichero": "guiones/analizar.py",
+      "sha256": "a994ad33185e22ab80585973b72bfc979e92c8b30548814349d71d64f1efdce1",
+      "bytes": 2424,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-25, fuera del producto"
+    },
+    {
+      "fichero": "guiones/extraer.py",
+      "sha256": "ff418497a5a8b88281dd7b70e80bededc30f18bc9cc5bcf49cd3a73f42d1139a",
+      "bytes": 566,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-25, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar-2.sh",
+      "sha256": "362e36d125b7a4504e6385d5149004e46aeb85d1f7afabff3e77506aff44c757",
+      "bytes": 1761,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-25, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar.sh",
+      "sha256": "f77c2da82ce66a202cfc6ce75dfe8b41fadaa8e9f5f8e3b03a5c958a29dd9d63",
+      "bytes": 1898,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-25, fuera del producto"
+    },
+    {
+      "fichero": "guiones/recoger.sh",
+      "sha256": "307bc297eb1d10fc420cc25223d2420e2dbc8bcf2c11121aef14241e6935abec",
+      "bytes": 1352,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-25, fuera del producto"
+    },
+    {
+      "fichero": "guiones/tabla.py",
+      "sha256": "728ecd532d4edd7d1e17e77e01a5f644f2f9a8220b40d1a831a372522606ac74",
+      "bytes": 1357,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-25, fuera del producto"
+    },
+    {
+      "fichero": "medidas-del-job/medidas.json",
+      "sha256": "cf94b091c3b0f4d2b4a422bd7de4e9140bdbb2aad82ecd95c1afbc307748be8e",
+      "bytes": 44996,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "resumen de los logs del job de evals de GitHub Actions, de las ejecuciones del 2026-10-06 al 2026-10-25"
+    },
+    {
+      "fichero": "parches/arnes-del-sondeo.diff",
+      "sha256": "a96d626139dd1d69bdcccfa6639f733a15a90866d4f70e875e3471a8a66b99b8",
+      "bytes": 4366,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` (8d00d67) para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/brazo-B.diff",
+      "sha256": "c8bef954864c7dae217cb82b66589655dfc658164390896fc3655e79c02a8c71",
+      "bytes": 1886,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` (8d00d67) para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/brazo-C.diff",
+      "sha256": "7b34422460b29fd4cb4248ffe4817706da37c0b66ef73e62137097a40fa12077",
+      "bytes": 1739,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` (8d00d67) para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/brazo-D.diff",
+      "sha256": "3d6957b2cef6eb7a347da91c2393093b67523f17b6e28a92a1db893811d597cb",
+      "bytes": 2543,
+      "fecha": "2026-10-25",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre `main` (8d00d67) para los sondeos; no es parte del producto"
+    }
+  ]
+}
