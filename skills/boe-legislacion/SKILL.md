@@ -24,8 +24,8 @@ con su herramienta («Comandos»), tras leer [con_herramientas](references/con_h
 
 ### 1. Identificar la norma
 
-Antes de nada, toma el `BOE-A-…` de la tabla de [normas](references/normas.md), no exhaustiva: si no está, búscala
-por su título con [buscar_la_norma](references/buscar_la_norma.md).
+Toma el `BOE-A-…` de la tabla de [normas](references/normas.md), no exhaustiva: si no está, búscala por su título
+con [buscar_la_norma](references/buscar_la_norma.md).
 
 ### 2. Leer
 
@@ -144,9 +144,9 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla o no está, di qué bloques no pudiste consultar y por
    qué, y no suplas nada de memoria; sin herramienta ni binario, la regla 8.
 3. **Trasladar la vigencia.** Cada aviso va con su forma fija, `⚠`, su etiqueta y dos puntos, y su frase o una
-   explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`. Tenlos en cuenta
-   y trasládalos, también una fecha de vigencia del bloque que no encaja con lo preguntado; una derogada no es vigente.
-   Los textos consolidados del BOE son informativos, no asesoramiento.
+   explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`. Trasládalos,
+   también una fecha de vigencia del bloque que no encaja con lo preguntado; una derogada no es vigente. Los textos
+   consolidados del BOE son informativos y no sustituyen el asesoramiento de un profesional.
 4. **Nunca actuar en nombre de nadie.** La skill consulta y cita: no presentes, notifiques, firmes ni tramites nada por
    nadie, ni lo simules; si se pide, di que lo hace la persona y cita, si procede, la norma aplicable.
 5. **Ningún caso especial para un territorio.** Nada propio de un municipio o una comunidad concretos. Si se pregunta

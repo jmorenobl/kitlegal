@@ -102,11 +102,12 @@ sustituyen a este fichero.
 - **`boe-legislacion` v0.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, siete
   referencias escritas a mano** (H31; ADR 0046). Sustituye a `boe-legislacion` v0.2.2. Cambia la forma de lo que lee el
   modelo, no ninguna regla: cada una de las 132 reglas de v0.2.2 tiene su sitio en la nueva (`research.md` de H31,
-  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 152 y 10 993, con cinco pasos (identificar la
+  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 152 y 10 992, con cinco pasos (identificar la
   norma, leer, completar, responder y, de un precepto no leído, nada), la forma de la cita, las tres líneas de la
   redacción en una fecha juntas en un bloque, la de la redacción modificada, la tabla de comandos, que no cambia, y las
-  ocho reglas con su número: la 3 con las tres etiquetas de aviso, la 7 con su frase en la referencia de las lecturas
-  que fallan y la 8 con la línea `⚠ SIN CONSULTA AL BOE:`. Siguen en el cuerpo las órdenes de `indice` y de `articulo`,
+  ocho reglas con su número: la 3 con las tres etiquetas de aviso y con que los textos consolidados no sustituyen el
+  asesoramiento de un profesional, la 7 con su frase en la referencia de las lecturas que fallan y la 8 con la línea
+  `⚠ SIN CONSULTA AL BOE:`. Siguen en el cuerpo las órdenes de `indice` y de `articulo`,
   esta con su forma para PowerShell. Las referencias nuevas dicen cómo se pide cada orden con herramientas
   (`references/con_herramientas.md`), cómo se busca una norma que no está en la tabla (`buscar_la_norma.md`), la orden
   de `articulos` con su forma para PowerShell (`varios_bloques.md`), qué se hace con cada código y la frase de la
