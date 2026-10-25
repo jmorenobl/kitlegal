@@ -1,0 +1,68 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-10-25 22:25:35
++++ ahora/checklists/requirements.md	2026-10-25 22:26:16
+@@ -22,8 +22,10 @@
+ - [x] No [NEEDS CLARIFICATION] markers remain — el de FR-013 (el tope de una sesión, 240 s) se cerró en `clarify`: no
+   cambia, y queda en «Fuera de alcance».
+ - [x] Requirements are testable and unambiguous — cada FR lleva su «Criterio»; «Contexto» fija qué son «la regla 5», «el
+-  paso 3» y los pasajes de `27aeccc`; FR-001 enumera los seis ejemplos que se buscan; FR-002 y FR-003 dicen las dos
+-  excepciones (el segundo salto y la lectura que falla) sin contradecirse.
++  paso 3» y los dos pasajes de `27aeccc` (su paso 5 entero y la última viñeta de su paso 4), los mismos que nombran
++  FR-001, US1 y SC-003; FR-001 enumera los seis ejemplos que se buscan y dice que en lo remitido y en el precepto no
++  leído prevalecen FR-002 y FR-003, que dicen las dos excepciones (el segundo salto y la lectura que falla) sin
++  contradecirse; FR-012 da las cifras de `LEEME.md`, con `con_herramientas` solo en los brazos con la skill de H31.
+ - [x] Success criteria are measurable — SC-001, SC-002, SC-004 y SC-005, en `make ci`; SC-007 a SC-011, en el job de
+   cierre, con su veredicto; SC-008 con el control de SC-004 y la falta de la preparación; SC-012, el sondeo que lanza
+   una persona; SC-003 y SC-013, la revisión final.
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-25 22:25:35
++++ ahora/spec.md	2026-10-25 22:26:13
+@@ -59,7 +59,8 @@
+ **Why this priority**: es el defecto que H31 introdujo y el que el sondeo atribuye al texto de la skill (0 de 40 con la
+ de antes de H31 frente a 17 de 80 con la de hoy).
+ 
+-**Independent Test**: se compara el cuerpo de v0.3.1 con los tres pasajes del cuerpo de `27aeccc` (FR-001) y se buscan
++**Independent Test**: se compara el cuerpo de v0.3.1 con los dos pasajes de `27aeccc` —su paso 5 entero y la última viñeta
++de su paso 4— (FR-001) y se buscan
+ en él sus seis ejemplos; y lo mide una persona con el sondeo de la eval 15 (SC-012).
+ 
+ **Acceptance Scenarios**:
+@@ -219,12 +220,14 @@
+ - **FR-001**: El cuerpo de `skills/boe-legislacion/SKILL.md` de v0.3.1 lleva cada regla del paso 5, «Responder citando»,
+   y de la última viñeta del paso 4 del cuerpo de `27aeccc`, con sus ejemplos: lo que H31 comprimió o llevó a una
+   referencia vuelve al cuerpo, en el paso «Responder» o en el paso 5. Todas son de toda respuesta. Una regla que el
+-  cuerpo de hoy ya dice con el mismo contenido se queda como está. El plan trae cada regla desde la tabla de reglas de
+-  `specs/027-h31-las-skills-siguen/research.md` y dice, por cada una, la frase del cuerpo de v0.3.1 que la lleva.
++  cuerpo de hoy ya dice con el mismo contenido se queda como está, salvo las de lo remitido y del precepto no leído: esas
++  vuelven como las dejan FR-002 y FR-003, que prevalecen. El plan trae cada regla desde la tabla de reglas de
++  `specs/027-h31-las-skills-siguen/research.md` y dice, por cada una, la frase del cuerpo de v0.3.1 que la lleva; la de
++  esas dos, con el cambio de FR-002 y FR-003.
+   Criterio: el cuerpo de v0.3.1 contiene los seis ejemplos de esos pasajes —«el artículo no lleva avisos de vigencia»,
+   «la lectura no trajo avisos», «el art. N, que es…», «el art. N sobre <materia>», «los artículos que regulan <materia>
+-  (N y M)» y «no puedo decir qué <regla> fija»—, y cada regla de los tres pasajes tiene su fila en la tabla del plan
+-  con su frase en el cuerpo, que la revisión final coteja.
++  (N y M)» y «no puedo decir qué <regla> fija»—, y cada regla de los dos pasajes de `27aeccc` —su paso 5 entero y la
++  última viñeta de su paso 4— tiene su fila en la tabla del plan con su frase en el cuerpo, que la revisión final coteja.
+ 
+ #### El cuerpo: lo que la respuesta nombra, se lee antes
+ 
+@@ -292,7 +295,8 @@
+ - **FR-012**: `docs/SKILLS.md` §1 dice lo medido en `evidencias/sondeos-20261025/`: las sesiones abren las referencias de
+   las que necesitan un dato para seguir y no las que solo traen guía, aunque el cuerpo mande leerlas —ninguna de las 40
+   sesiones de `brazo-D` abrió la que el cuerpo mandaba leer antes de responder, y en los seis brazos se abrieron
+-  `normas` (de 23 a 40 sesiones por brazo) y `con_herramientas` (de 6 a 9)—; y sus consecuencias: lo que toda respuesta
++  `normas` (de 23 a 40 sesiones por brazo) y, en los brazos con la skill de H31 (todos menos `brazo-E`, que no tiene esa
++  referencia), `con_herramientas` (de 6 a 9)—; y sus consecuencias: lo que toda respuesta
+   necesita va en el cuerpo, y una referencia nueva lleva el paso del protocolo que la pide. Criterio: el apartado lo
+   dice con esas cifras y la ruta de la evidencia; la revisión final lo coteja con `LEEME.md`.
+ 
+@@ -353,7 +357,8 @@
+ - **SC-002**: El cuerpo de `SKILL.md` tiene como mucho 11 000 caracteres; la comprobación de las skills de `make ci` y
+   `make skills-sync` salen en rojo con 11 001 o más (FR-005).
+ - **SC-003**: El cuerpo contiene los seis ejemplos de FR-001 y las reglas de FR-002 y FR-003 en sus pasos, y la tabla del
+-  plan da cada regla de los tres pasajes de `27aeccc` con su frase; lo coteja la revisión final.
++  plan da cada regla de los dos pasajes de `27aeccc` —su paso 5 entero y la última viñeta de su paso 4— con su frase,
++  la de lo remitido y del precepto no leído con el cambio de FR-002 y FR-003; lo coteja la revisión final.
+ - **SC-004**: Los tests de `lecturas` de H26.1 con los bloques nuevos: cada uno se sirve en la caché de su eval, sin
+   fecha y con `9999-12-31`, y la caché de las sesiones lo da sin red; esos tests salen en rojo en `make ci` si la caché
+   no sirve uno de ellos (FR-011).

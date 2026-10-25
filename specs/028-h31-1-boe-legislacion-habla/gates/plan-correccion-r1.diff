@@ -1,0 +1,359 @@
+diff antes/contracts/guia-y-changelog.md ahora/contracts/guia-y-changelog.md
+--- antes/contracts/guia-y-changelog.md	2026-10-25 23:43:24
++++ ahora/contracts/guia-y-changelog.md	2026-10-25 23:53:09
+@@ -22,7 +22,7 @@
+ ## 2. `CHANGELOG.md`, *Unreleased* (FR-014, SC-006)
+ 
+ Una entrada en «### Cambiado», detrás de la de `boe-legislacion` v0.3, como la v0.2.2 sigue a la v0.2.1 en 0.8.0. La
+-cifra del cuerpo es la que dé el gate al cerrar la tarea (con el contrato, 10 972):
++cifra del cuerpo es la que dé el gate al cerrar la tarea (con el contrato, 10 993):
+ 
+ ```markdown
+ - **`boe-legislacion` v0.3.1: la respuesta habla de la norma, no de la consulta, y lo que nombra lo ha leído antes**
+@@ -34,11 +34,11 @@
+   no le sirven, con sus dos ejemplos, y el paso 5 vuelve a llevar sus cuatro. El paso 3 dice que la respuesta nombra un
+   precepto solo si `kitlegal boe articulo` o `articulos` ha devuelto su texto, y manda leer antes, con los pasos 1 y 2,
+   el que remite un bloque leído o cuyo id solo salió en un índice; leído, la respuesta dice de qué trata, con su cita, y
+-  esa lectura es un salto: lo que remite, como lo que no se pudo leer, se nombra solo con las palabras del texto leído. El cuerpo queda en 10 972 caracteres: salen a sus referencias
+-  textos que solo pide una clase de pregunta —la regla 7, la de la comprobación que no termina con `0`, que ya decía
+-  `references/lecturas_que_fallan.md` (la 8 pasa a ser la 7); el detalle de la lectura con fecha, cuyo enlace pasa al
+-  paso 2; lo demás de `kitlegal graph check` y la segunda lectura de un bloque, a `redaccion_modificada.md`; la
+-  comprobación que faltó, a `con_herramientas.md`; y lo que se dice de una norma que la búsqueda no da, a
++  esa lectura es un salto: lo que remite, como lo que no se pudo leer, se nombra solo con las palabras del texto leído.
++  El cuerpo queda en 10 993 caracteres: salen a sus referencias textos que solo pide una clase de pregunta —la regla 7,
++  la de la comprobación que no termina con `0`, que ya decía `references/lecturas_que_fallan.md` (la 8 pasa a ser la
++  7); el detalle de la lectura con fecha, cuyo enlace pasa al paso 2; lo demás de `kitlegal graph check` y la segunda
++  lectura de un bloque, a `redaccion_modificada.md`; y lo que se dice de una norma que la búsqueda no da, a
+   `buscar_la_norma.md`—. La descripción no cambia. Las evals 14, 15 y 17 llevan en `lecturas` los preceptos que sus
+   respuestas nombraban sin haberlos leído —`a60`, `a92`, `a100` y `a104` del texto refundido de la Ley reguladora de
+   las Haciendas Locales; `a7`, `a19`, `a20` y `dadecimoctava` de la Ley 35/2006; y `a24` de la Ley 19/2013—, grabados
+diff antes/contracts/skill-boe-legislacion-v0-3-1.md ahora/contracts/skill-boe-legislacion-v0-3-1.md
+--- antes/contracts/skill-boe-legislacion-v0-3-1.md	2026-10-25 23:43:24
++++ ahora/contracts/skill-boe-legislacion-v0-3-1.md	2026-10-25 23:52:46
+@@ -41,7 +41,7 @@
+   ```powershell
+   kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-2015-10565 a21 --json }
+   ```
+-  La comprobación, nunca sin argumentos ni antes.
++  La comprobación, nunca sin argumentos ni antes; si faltó, pídela ya.
+ - Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no termina con `0`, antes de
+   seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
+ 
+@@ -129,10 +129,10 @@
+ 
+ ### 1.3 Presupuesto
+ 
+-Con §1.1 y §1.2, el cuerpo (desde el byte que sigue a la línea `---` que cierra el frontmatter) tiene **10 972
+-caracteres**, 20 menos que hoy (10 992) y 28 por debajo del máximo (FR-005; research V6). Lo mide el gate de H31 con
+-`utf8.RuneCount` (`internal/skills/sincronia.go`, `maximoDeCaracteresDelCuerpo`): en la sesión del plan, un borrador
+-de 10 982 con 31 caracteres más dio `cuerpo de 11013 caracteres (máximo 11000)` y `TestSkillsDelRepositorio` en rojo
++Con §1.1 y §1.2, el cuerpo (desde el byte que sigue a la línea `---` que cierra el frontmatter) tiene **10 993
++caracteres**, uno más que hoy (10 992) y 7 por debajo del máximo (FR-005; research V6). Lo mide el gate de H31 con
++`utf8.RuneCount` (`internal/skills/sincronia.go`, `maximoDeCaracteresDelCuerpo`): en la copia del plan, el mismo
++cuerpo con 8 caracteres más dio `cuerpo de 11001 caracteres (máximo 11000)` y `TestSkillsDelRepositorio` en rojo
+ (research V6). Si la revisión cambia una frase, el corrector
+ deja el cuerpo en 11 000 o menos con la regla de FR-006, nunca sacando nada de §2.
+ 
+@@ -184,7 +184,7 @@
+ 
+ ## 3. Lo que sale del cuerpo (FR-006)
+ 
+-Ocho textos que solo pide una clase de pregunta. Cada uno va a una referencia a mano que ya existe, y el cuerpo la
++Siete textos que solo pide una clase de pregunta. Cada uno va a una referencia a mano que ya existe, y el cuerpo la
+ enlaza en la frase que dice cuándo leerla. Ninguno es del protocolo que toda respuesta necesita, de una regla invariante,
+ de FR-001 a FR-004 ni una forma fija (research D6).
+ 
+@@ -195,17 +195,17 @@
+ | 3 | «una línea, con su cita y sus dos fechas» | «Redacción modificada» | `redaccion_modificada.md`, «La línea, por bloque» (sin cambios) | Un bloque con `version-obsoleta` | «Redacción modificada»: «Por cada entrada `version-obsoleta` de `kitlegal graph check`, y si se pregunta qué cambió, lee [redaccion_modificada]» (la comprobación es la del paso 2) |
+ | 4 | «ni `fuente-caducada` ni nada de un bloque sin `version-obsoleta`» | «Redacción modificada» | `redaccion_modificada.md`, apartado nuevo «Lo demás de la comprobación» (§4) | La comprobación trae otras entradas | La misma de la fila 3; el cuerpo conserva «De `kitlegal graph` solo se usa `check`, y nada más suyo va en la respuesta» |
+ | 5 | «Releer el bloque apagaría su línea `⚠ REDACCIÓN MODIFICADA:`» | Paso 2 | `redaccion_modificada.md`, apartado nuevo «Una lectura por bloque» (§4) | Un bloque con `version-obsoleta` | La misma de la fila 3; el paso 2 conserva «lee cada bloque una vez» |
+-| 6 | «si faltó, pídela ya» (la comprobación) | Paso 2 | `con_herramientas.md`, «Las órdenes del protocolo» (§4) | Con herramientas, la comprobación es una segunda llamada | Protocolo: «o, si la tienes, siempre con su herramienta, tras leer [con_herramientas]» |
+-| 7 | «di «no encontrada con esta búsqueda» y propón reformularla» | Reglas, 1 | `buscar_la_norma.md`, «Si no aparece» (§4) | La norma no está en la tabla y la búsqueda no la da | Paso 1: «si no está, búscala por su título con [buscar_la_norma]»; la regla 1 conserva que no aparecer no prueba que no exista |
+-| 8 | «(«Comandos»)», de dónde salen los nombres de las herramientas | Protocolo | `con_herramientas.md`, «Nombres», que ya lo dice (sin cambios) | Con herramientas | Protocolo: «tras leer [con_herramientas]» |
++| 6 | «di «no encontrada con esta búsqueda» y propón reformularla» | Reglas, 1 | `buscar_la_norma.md`, «Si no aparece» (§4) | La norma no está en la tabla y la búsqueda no la da | Paso 1: «si no está, búscala por su título con [buscar_la_norma]»; la regla 1 conserva que no aparecer no prueba que no exista |
++| 7 | «(«Comandos»)», de dónde salen los nombres de las herramientas | Protocolo | `con_herramientas.md`, «Nombres», que ya lo dice (sin cambios) | Con herramientas | Protocolo: «tras leer [con_herramientas]» |
+ 
+ Consecuencia de la fila 1: la regla 8 de hoy pasa a ser la 7, la regla 2 remite a «la regla 7» y `CONTRIBUTING.md`
+ (línea 743) deja de llamar «la frase de la regla 7» a la de las lecturas que fallan (contracts/guia-y-changelog.md §3).
+ 
+ ## 4. Las referencias a mano que cambian
+ 
+-Las demás (`como_se_cita.md`, `lecturas_que_fallan.md`, `redaccion_en_una_fecha.md`, `varios_bloques.md`) y la
+-generada `normas.md` no cambian.
++Las demás (`como_se_cita.md`, `con_herramientas.md`, `lecturas_que_fallan.md`, `redaccion_en_una_fecha.md`,
++`varios_bloques.md`) y la generada `normas.md` no cambian. «Si faltó, pídela ya», de la comprobación, se queda en el
++paso 2 (§1.1): es del protocolo y vale en los dos modos (B36 de la tabla de H31).
+ 
+ ### 4.1 `references/redaccion_modificada.md`
+ 
+@@ -234,20 +234,11 @@
+ 
+ ### 4.2 `references/buscar_la_norma.md`
+ 
+-«Si no aparece» (fila 7 de §3) pasa a ser:
++«Si no aparece» (fila 6 de §3) pasa a ser:
+ 
+ ```markdown
+ Reformula la búsqueda con otras palabras del título. Que no aparezca no prueba que no exista (regla 1 de `SKILL.md`):
+ di «no encontrada con esta búsqueda» y propón reformularla.
+-```
+-
+-### 4.3 `references/con_herramientas.md`
+-
+-La viñeta «Un bloque sin fecha» de «Las órdenes del protocolo» (fila 6 de §3) pasa a ser:
+-
+-```markdown
+-- Un bloque sin fecha: `boe_articulo`, con `norma` y `bloque`, y detrás `graph_check`, con esa `norma` y ese bloque en
+-  `bloques`; si faltó la comprobación, pídela ya.
+ ```
+ 
+ ## 5. Lo que comprueba `make ci` de este contrato
+diff antes/data-model.md ahora/data-model.md
+--- antes/data-model.md	2026-10-25 23:43:24
++++ ahora/data-model.md	2026-10-25 23:52:24
+@@ -13,7 +13,7 @@
+ - **Reglas**: como mucho 11 000 caracteres (runas) y menos de 500 líneas (gate de H31, `maximoDeCaracteresDelCuerpo`,
+   `maximoDeLineasDelCuerpo`); cada referencia de `references/` enlazada desde él; las formas fijas `⚠` en bloques
+   `text`; la tabla de comandos, la que regenera `make skills-sync`.
+-- **En este hito**: 10 992 → 10 972 caracteres; el texto de contracts/skill-boe-legislacion-v0-3-1.md §1.
++- **En este hito**: 10 992 → 10 993 caracteres; el texto de contracts/skill-boe-legislacion-v0-3-1.md §1.
+ 
+ ## 2. Referencia a mano
+ 
+@@ -21,8 +21,8 @@
+   El agente la lee si un paso del cuerpo la pide y la sesión necesita lo que trae.
+ - **Reglas**: enlazada desde `SKILL.md` y desde ninguna otra referencia; sin `⚠` al principio de una línea que no sea
+   una línea de `SKILL.md`; los controles de contenido de `docs/SKILLS.md` §1 la leen como al cuerpo.
+-- **En este hito**: cambian `redaccion_modificada.md` (dos apartados y su párrafo de entrada), `buscar_la_norma.md`
+-  («Si no aparece») y `con_herramientas.md` (una viñeta); ninguna nueva (contracts/skill-boe-legislacion-v0-3-1.md §4).
++- **En este hito**: cambian `redaccion_modificada.md` (dos apartados y su párrafo de entrada) y `buscar_la_norma.md`
++  («Si no aparece»); ninguna nueva (contracts/skill-boe-legislacion-v0-3-1.md §4).
+ 
+ ## 3. Lectura de una eval
+ 
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-25 23:43:24
++++ ahora/plan.md	2026-10-25 23:52:21
+@@ -14,13 +14,13 @@
+ `kitlegal boe articulo` o `articulos` ha devuelto su texto, y lo remitido por un bloque del paso 2 o salido de un índice
+ se lee con los pasos 1 y 2 antes de nombrarlo, o no se nombra— y el paso 5, el salto: lo que remite esa lectura, como lo
+ que no se pudo leer, se nombra solo con las palabras del texto leído (FR-002, FR-003).
+-El cuerpo queda en 10 972 caracteres porque ocho textos que solo pide una clase de pregunta pasan a referencias a mano
++El cuerpo queda en 10 993 caracteres porque siete textos que solo pide una clase de pregunta pasan a referencias a mano
+ que ya existen y que el cuerpo enlaza en el paso que las pide (FR-005, FR-006). Las evals 14, 15 y 17 llevan en
+ `lecturas` los nueve preceptos que sus respuestas nombraban sin leer; una tarea `[datos]` los añade al manifiesto y
+ `grabar_datos` graba los ocho que faltan (FR-009 a FR-011). `docs/SKILLS.md` §1 dice qué referencias leen las sesiones,
+ con lo medido (FR-012), y `CHANGELOG.md` registra v0.3.1 (FR-014). El tope del trabajo de evals no cambia: las lecturas
+ no tocan su peor caso (FR-013). El texto exacto se validó en una copia del repositorio con los gates y controles de
+-`make skills-check` en verde (research V6). Decisiones, en research.md (D1 a D15); verificaciones, V1 a V12.
++`make skills-check` en verde (research V6). Decisiones, en research.md (D1 a D15); verificaciones, V1 a V13.
+ 
+ ## Technical Context
+ 
+@@ -41,14 +41,14 @@
+ 
+ **Project Type**: skill agéntica sobre el CLI multicall (el binario no cambia) y datos del arnés de evals.
+ 
+-**Performance Goals**: el cuerpo, como mucho 11 000 caracteres (10 972); el peor caso del trabajo de evals de
++**Performance Goals**: el cuerpo, como mucho 11 000 caracteres (10 993); el peor caso del trabajo de evals de
+ `boe-legislacion`, 20 117 s, dentro de los 352 minutos (21 120 s) de hoy (research V3).
+ 
+ **Constraints**: sin red ni modelo en el run (ADR 0032), salvo `grabar_datos`; la descripción, la tabla de comandos, los
+ umbrales, la rúbrica y los casos del juez, el tope de una sesión (240 s), `jurisprudencia`, `legal-core`,
+ `scripts/workflow/`, `.specify/`, `internal/workflow/` y `web/`, fuera.
+ 
+-**Scale/Scope**: 1 skill (cuerpo y 3 referencias a mano), 3 evals, 9 lecturas, 2 entradas de manifiesto, 8
++**Scale/Scope**: 1 skill (cuerpo y 2 referencias a mano), 3 evals, 9 lecturas, 2 entradas de manifiesto, 8
+ grabaciones, 2 tests, 1 apartado de la guía, 1 entrada del CHANGELOG y 1 frase de `CONTRIBUTING.md`.
+ 
+ ## Constitution Check
+@@ -110,8 +110,7 @@
+ ├── SKILL.md                               # FR-001 a FR-006: pasos 2 a 5, «Cómo se cita», «Redacción…», reglas 1, 2 y 7
+ └── references/
+     ├── redaccion_modificada.md            # FR-006: «Lo demás de la comprobación», «Una lectura por bloque»
+-    ├── buscar_la_norma.md                 # FR-006: «Si no aparece»
+-    └── con_herramientas.md                # FR-006: la comprobación que faltó
++    └── buscar_la_norma.md                 # FR-006: «Si no aparece»
+ evals/boe-legislacion/
+ ├── 14-trlrhl-impuestos-por-materia.yaml   # FR-009: a60, a92, a100, a104
+ ├── 15-irpf-rendimientos-por-materia.yaml  # FR-009: a7, a19, a20, dadecimoctava
+@@ -166,14 +165,15 @@
+ | Requisito | Umbral | Control | Dónde |
+ |---|---|---|---|
+ | SC-001 | `make ci` termina con 0 | Todos los de esta tabla y los de siempre | `ci:Makefile:ci` |
+-| FR-005, SC-002 | Cuerpo de `SKILL.md` ≤ 11 000 caracteres (10 972 con el contrato); con 11 001, rojo | Gate del cuerpo de H31 sobre las skills del repositorio y sobre copias de 11 000 y 11 001 | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio`, `ci:internal/skills/sincronia_test.go:TestCuerpoDeLaSkill` |
++| FR-005, SC-002 | Cuerpo de `SKILL.md` ≤ 11 000 caracteres (10 993 con el contrato); con 11 001, rojo | Gate del cuerpo de H31 sobre las skills del repositorio y sobre copias de 11 000 y 11 001 | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio`, `ci:internal/skills/sincronia_test.go:TestCuerpoDeLaSkill` |
+ | FR-006 | 0 referencias de `references/` sin enlace desde `SKILL.md` | Gate de H31 | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio` |
+ | FR-004, FR-007 | 0 instrucciones de las evals y 0 normas nombradas fuera de `data/normas.yaml`, en el cuerpo y en las referencias | `sin-instrucciones-de-evals`, `normas-nombradas` | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio` |
+ | FR-006, FR-007, SC-001 | 0 defectos de los controles de contenido en `SKILL.md` y en cada referencia a mano, también 0 órdenes de ejemplo concretas que no salgan con 0 con `--offline` | Los ocho controles de `docs/SKILLS.md` §1 | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
+ | FR-009, SC-004 | Las lecturas de cada eval, exactamente las del contrato: 0 de más, 0 de menos, 0 motivos distintos | Subtest `lecturas`, con el mapa escrito a mano | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
+-| FR-010, FR-011, SC-004, SC-008 | 0 consultas de las evals —las lecturas, sin fecha y con `9999-12-31`— sin su respuesta en la unión de grabaciones o que la caché preparada no sirva sin red | Subtest `grabado` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
+-| FR-011, SC-004, SC-008 | Cada uno de los nueve bloques sale con 0 con `boe articulo … --offline` desde la caché de una sesión de su eval, sin fecha y con `--fecha 9999-12-31` | Subtest `lecturas` de la caché | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
+-| SC-008 | Con una lectura sin grabar, sus 2 faltas (sin fecha y con `9999-12-31`) y la sesión sin preparar | Sin cambios (US3, escenario 3) | `ci:internal/evals/preparar_test.go:TestLecturaDeLaEvalSinGrabar` |
++| FR-010, FR-011, SC-004 | 0 consultas de las evals —las lecturas, sin fecha y con `9999-12-31`— sin su respuesta en la unión de grabaciones o que la caché preparada no sirva sin red | Subtest `grabado` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio` |
++| FR-011, SC-004 | Cada uno de los nueve bloques sale con 0 con `boe articulo … --offline` desde la caché de una sesión de su eval, sin fecha y con `--fecha 9999-12-31` | Subtest `lecturas` de la caché | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones` |
++| FR-010, FR-011 | Con una lectura sin grabar, sus 2 faltas (sin fecha y con `9999-12-31`) y la sesión sin preparar | Sin cambios (US3, escenario 3) | `ci:internal/evals/preparar_test.go:TestLecturaDeLaEvalSinGrabar` |
++| SC-008 | 0 sesiones de `claude-sonnet-5-5` de las evals 14, 15 y 17 con una orden o llamada en `fuera_de_lo_grabado` que sale con 4 o 5 porque la caché de la sesión no sirve un bloque de sus `lecturas`; no cuenta la `articulos` que sale con 5 por otro bloque sin grabar de la misma norma, que se atribuye a ese bloque | Las tres filas de arriba: salen en rojo si la caché de una eval no sirve un bloque de sus `lecturas` sin red, sin fecha o con `9999-12-31`, o si falta su grabación, que es la causa que cuenta | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones`, `ci:internal/evals/preparar_test.go:TestLecturaDeLaEvalSinGrabar` |
+ | FR-013, SC-005 | `timeout-minutes` ≥ peor caso de cada skill: 21 120 s frente a 20 117 s de `boe-legislacion` | `fallosDelTope` sobre la definición del repositorio | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob` |
+ | SC-007 | `afirma_lo_no_leido` de `claude-sonnet-5-5`, todos los modos juntos, ≤ 0.028; si pasa, veredicto `fallo` y job en rojo | Umbral del juez, `decide: true` | `evals:boe-legislacion:afirma_lo_no_leido:claude-sonnet-5-5` |
+ | SC-009 | Cada umbral que decide de `boe-legislacion` se cumple; el que no, veredicto `fallo` y job en rojo | Los umbrales de hoy, `decide: true`, en los dos modos | `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:sin_activar:claude-sonnet-5-5:herramienta`, `evals:boe-legislacion:redaccion_sin_fechar:claude-sonnet-5-5:orden`, `evals:boe-legislacion:redaccion_sin_fechar:claude-sonnet-5-5:herramienta`, `evals:boe-legislacion:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:boe-legislacion:medida_del_juez:afirma_lo_no_leido:correctos_marcados`, `evals:boe-legislacion:duracion_de_las_sesiones:orden`, `evals:boe-legislacion:duracion_de_las_sesiones:herramienta`, `evals:boe-legislacion:duracion_del_juez:orden`, `evals:boe-legislacion:duracion_del_juez:herramienta` |
+@@ -187,13 +187,19 @@
+ criterios de FR-004 y FR-008 sobre el diff de la rama contra `main` (quickstart, escenarios 3 y 4; research D14). Los
+ nombres de SC-009 y SC-011 son los del cierre de H31 sin `habla_en_primera_o_segunda_persona`, que solo va cuando la
+ propuesta cambia una descripción y aquí no cambia ninguna (FR-008; research V10, S4). `fuera_de_lo_grabado` no decide
+-(H26.1): lo de SC-008 lo hacen cumplir los tests de la caché, porque un bloque que la caché sirve no puede quedar fuera
+-de lo grabado.
++(H26.1), y hacerlo decidir queda fuera del hito: SC-008 cuenta solo la orden o llamada que sale con 4 o 5 porque la
++caché de la sesión no sirve un bloque de las `lecturas` de su eval. Los tests de su fila prueban que la caché de cada
++eval sirve sin red cada bloque de sus `lecturas`, sin fecha y con `9999-12-31`, y que una lectura sin grabar para la
++preparación de la sesión. No prueban que una orden `articulos` que pide, con esos bloques, otro de la misma norma sin
++grabar salga con 0: sale entera con 5, como `boe_articulos BOE-A-2004-4214 a57 a59` en la sesión
++`14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-03` del cierre de H31, con `a59` grabado y `a57` no
++(research V13). Esa salida se atribuye al bloque sin grabar, no cuenta para SC-008, y `fuera_de_lo_grabado` la publica
++sin decidir.
+ 
+ ## Uso, de fuera adentro (criterio de uso, ADR 0028)
+ 
+-- **El cuerpo** (FR-001 a FR-006): lo carga el agente entero, una vez por pregunta que activa la skill: 10 972
+-  caracteres, unos 4 850 tokens a 2,26 caracteres por token (ADR 0046), 20 menos que hoy. No crece con el uso: lo
++- **El cuerpo** (FR-001 a FR-006): lo carga el agente entero, una vez por pregunta que activa la skill: 10 993
++  caracteres, unos 4 860 tokens a 2,26 caracteres por token (ADR 0046), uno más que hoy. No crece con el uso: lo
+   escribe una persona y el gate lo acota.
+ - **Las lecturas que pide la regla nueva** (FR-002, FR-003): una por precepto que la respuesta va a nombrar y no ha
+   leído, si lo remite un bloque leído en el paso 2 o su id solo salió en un índice; cada una, `kitlegal boe articulo
+@@ -240,7 +246,7 @@
+ | Primera viñeta del paso 4 con B48, B50, B52 y B53; los cuatro ejemplos del paso 5 | FR-001, SC-003 |
+ | Segunda frase del paso 3 (nombrar solo lo que `articulo` o `articulos` ha devuelto; lo remitido o salido de un índice, leído antes con los pasos 1 y 2, o no nombrado; leído, de qué trata) | FR-002, FR-004 |
+ | Frase del salto en el paso 5 | FR-003, FR-004 |
+-| Las ocho salidas de contracts/skill-boe-legislacion-v0-3-1.md §3, el enlace de `redaccion_en_una_fecha` en el paso 2 y los cambios de `redaccion_modificada.md`, `buscar_la_norma.md` y `con_herramientas.md` | FR-005, FR-006 |
++| Las siete salidas de contracts/skill-boe-legislacion-v0-3-1.md §3, el enlace de `redaccion_en_una_fecha` en el paso 2 y los cambios de `redaccion_modificada.md` y `buscar_la_norma.md` | FR-005, FR-006 |
+ | Regla 8 → 7, la regla 2 y la frase de `CONTRIBUTING.md` | FR-006 (consecuencia de sacar la regla 7) |
+ | Las nueve `lecturas` con su `motivo` | FR-009 |
+ | Bloques y `para` de dos entradas del manifiesto; las ocho grabaciones | FR-010 |
+@@ -270,7 +276,7 @@
+ 1. **`[datos]`**: los ocho bloques y su `para` en el manifiesto (FR-010). Después, `grabar_datos` graba los ocho.
+ 2. **Las lecturas**: las nueve entradas en las evals 14, 15 y 17, el mapa de `TestEvalsDelRepositorio/lecturas` y la
+    tabla de `TestCacheDeLasSesiones/lecturas` (FR-009, FR-011).
+-3. **La skill**: el cuerpo de v0.3.1, las tres referencias a mano, la frase de `CONTRIBUTING.md` y la entrada de
++3. **La skill**: el cuerpo de v0.3.1, las dos referencias a mano, la frase de `CONTRIBUTING.md` y la entrada de
+    `CHANGELOG.md` (FR-001 a FR-008, FR-014), con `make skills-sync` y `make skills-check` en verde.
+ 4. **La guía**: el párrafo de `docs/SKILLS.md` §1 (FR-012).
+ 
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-25 23:43:24
++++ ahora/quickstart.md	2026-10-25 23:52:26
+@@ -12,7 +12,7 @@
+ awk 'NR>1 && /^---$/ {f=1; next} f' skills/boe-legislacion/SKILL.md | wc -m
+ ```
+ 
+-Espera un número de 11 000 o menos: 10 972 con el texto de contracts/skill-boe-legislacion-v0-3-1.md (hoy, 10 992).
++Espera un número de 11 000 o menos: 10 993 con el texto de contracts/skill-boe-legislacion-v0-3-1.md (hoy, 10 992).
+ `wc -m` cuenta caracteres en una locale UTF-8, como el gate de `make skills-check` (escenario 5), que es el que decide y
+ sale en rojo con 11 001; con otra locale, `wc -m` cuenta bytes y da más.
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-25 23:43:24
++++ ahora/research.md	2026-10-25 23:52:17
+@@ -65,23 +65,25 @@
+   se lee antes con los pasos 1 y 2, o no se nombra.
+ - **Por qué**: FR-001 manda que las reglas del precepto no leído vuelvan como las deja FR-002, y FR-002 dice que el id
+   en un índice no basta: el índice da el id, no el texto. Decirlo también en el paso 5 cuesta 29 caracteres (V6).
+-- **Alternativa**: las dos frases: 10 972 + 29 = 11 001, uno más que el máximo.
++- **Alternativa**: las dos frases: 10 993 + 29 = 11 022, 22 más que el máximo.
+ 
+-### D6 · El sitio: ocho textos de una sola clase de pregunta a referencias que ya existen
++### D6 · El sitio: siete textos de una sola clase de pregunta a referencias que ya existen
+ 
+-- **Decisión**: los ocho de contracts/skill-boe-legislacion-v0-3-1.md §3 —la regla 7 de la comprobación que falla, el
++- **Decisión**: los siete de contracts/skill-boe-legislacion-v0-3-1.md §3 —la regla 7 de la comprobación que falla, el
+   detalle de la lectura con fecha, el de la línea de la redacción modificada, lo demás de `graph check`, la segunda
+-  lectura de un bloque, la comprobación que faltó con herramientas, la frase de la norma que la búsqueda no da y
+-  «(«Comandos»)»—. Seis ya estaban en su referencia y salen sin tocarla; dos (filas 4 y 5) van a apartados nuevos de
+-  `redaccion_modificada.md`, y la 6 y la 7, a una frase de `con_herramientas.md` y de `buscar_la_norma.md`. El enlace
+-  de `redaccion_en_una_fecha.md` pasa del apartado «Redacción en una fecha» al paso 2, que es el paso que lee.
+-  Cuerpo resultante: 10 972 caracteres (V6).
++  lectura de un bloque, la frase de la norma que la búsqueda no da y «(«Comandos»)»—. Cuatro ya estaban en su
++  referencia y salen sin tocarla; dos (filas 4 y 5) van a apartados nuevos de `redaccion_modificada.md`, y la 6, a una
++  frase de `buscar_la_norma.md`. El enlace de `redaccion_en_una_fecha.md` pasa del apartado «Redacción en una fecha» al
++  paso 2, que es el paso que lee. Cuerpo resultante: 10 993 caracteres (V6).
+ - **Por qué**: FR-006. Cada texto lo necesita una clase de pregunta —con fecha, con `version-obsoleta`, con la
+   comprobación que falla, con herramientas, con una norma que no está en la tabla— y su referencia la pide un paso que
+   ya la enlaza con la condición de esa clase; varias son referencias que las sesiones abren porque traen un dato para
+   seguir (la orden con `--fecha`, la frase de la comprobación que falla, los nombres de las herramientas), que es lo que
+   mide la evidencia (`LEEME.md`).
+-- **Alternativas descartadas, por texto**: la definición de fecha («un día, un mes, un año o un hecho fechado»): sin
++- **Alternativas descartadas, por texto**: «si faltó, pídela ya», de la comprobación en el paso 2: es del protocolo y
++  vale en los dos modos (B36 de la tabla de H31, `specs/027-h31-las-skills-siguen/research.md`), y `con_herramientas.md`
++  solo se lee con herramientas, así que una sesión en modo orden que leyera un bloque sin su comprobación no sabría
++  pedirla ni llevaría la línea REDACCIÓN MODIFICADA; la definición de fecha («un día, un mes, un año o un hecho fechado»): sin
+   ella, un año puede no leerse como fecha y `redaccion_sin_fechar` decide con 0 en las evals 22 y 23; la explicación de
+   la regla 8 (sin binario): la eval 21 la mide y la referencia no traería ningún dato para seguir; la regla 5: el spec
+   dice que no cambia; la cola de la regla 4: no hay referencia que la reciba y su enlace costaría lo mismo; la forma para
+@@ -202,12 +204,15 @@
+   `a18` (18 728), `a15` (2 697). `docs/SOURCES.md` de `main`: la fila de `boe.legislacion-consolidada` con «Revisado»
+   2026-09-13. `TestGrabarEvals` (`internal/evals/grabacion_test.go`, `//go:build grabacion`) sirve primero de lo grabado
+   y no escribe en `evidencias/`.
+-- **V6 · El prototipo del cuerpo**: copia de `HEAD` en `$TMPDIR` con §1 y §4 de contracts/skill-boe-legislacion-v0-3-1.md:
+-  `go -C <copia> test -count=1 -run '^(TestSkillsDelRepositorio|TestOrdenesDeLasSkillsEmpotradas|TestNormasDelRepositorio|TestTerritorioDelRepositorio|TestJerarquiaDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas|TestSkillsEmpotradas)$' ./internal/app/ ./internal/skills/ ./internal/evals/ .`
+-  → `ok` en los cuatro paquetes, y `TestControlesSobreLasReferenciasAMano` → `ok`; `wc -m` del fichero, 11 984, menos
+-  1 012 del frontmatter: 10 972. Un mutante de 31 caracteres sobre un borrador de 10 982 dio
+-  `cuerpo de 11013 caracteres (máximo 11000)` en `TestSkillsDelRepositorio`. Los seis ejemplos de FR-001, cada uno en
+-  una línea (`grep -oF`), y ninguna de las normas de FR-004 en el cuerpo (`grep -nE` solo encuentra la descripción).
++- **V6 · El prototipo del cuerpo**: clon de la rama (`HEAD`, `3dec6e3`) en `$TMPDIR`, con el cuerpo montado con `sed`
++  desde las líneas de hoy que no cambian y los bloques de §1.1 y §1.2 de contracts/skill-boe-legislacion-v0-3-1.md, y
++  `redaccion_modificada.md` y `buscar_la_norma.md` con los de §4:
++  `go -C <copia> test -count=1 -v -run '^(TestSkillsDelRepositorio|TestOrdenesDeLasSkillsEmpotradas|TestNormasDelRepositorio|TestTerritorioDelRepositorio|TestJerarquiaDelRepositorio|TestEvalsDelRepositorio|TestIdentificadoresDeLasNormas|TestSkillsEmpotradas|TestCuerpoDeLaSkill|TestControlesSobreLasReferenciasAMano)$' ./internal/app/ ./internal/skills/ ./internal/evals/ .`
++  → `--- PASS` de los diez y `ok` en los cuatro paquetes; `wc -m` del fichero, 12 005, menos 1 012 del frontmatter:
++  10 993 (hoy, 12 004: 10 992). Un mutante de 8 caracteres más (11 001) dio
++  `cuerpo de 11001 caracteres (máximo 11000)` en `TestSkillsDelRepositorio`. Los seis ejemplos de FR-001, cada uno en
++  una línea (`grep -oF -f` con los seis), y ninguna de las normas de FR-004 en las líneas añadidas (`git diff` de la
++  copia, `grep -cE` → 0).
+ - **V7 · Una lectura sin grabar**: en la copia, con `a7` en las `lecturas` de la 15 y `a24` en las de la 17,
+   `TestEvalsDelRepositorio/grabado` dio «la lectura BOE-A-2006-20764 a7 sin su bloque… no hay grabación de GET …/bloque/a7»
+   y ninguna falta de `a24`; `lecturas` falló por su mapa escrito a mano, y `ordenes-de-ejemplo` y
+@@ -235,6 +240,16 @@
+   el escenario 1 lo advierte. `make ci` escribe `coverage.out` y `coverage-integration.out` (`Makefile`, líneas 87 y 91,
+   `-coverprofile`), que `.gitignore` ignora (`git check-ignore -v`: `/coverage.*` y `/*.out`). Los escenarios 2, 3, 4,
+   6 (`git ls-files`), 7 (`grep`) y 8, ejecutados hoy, dan los valores «de hoy» que citan.
++- **V13 · Lo que SC-008 cuenta y lo que no**: `jq -c '.fuera_de_lo_grabado[] | select(.eval | test("^1[457]-"))'`
++  sobre `specs/027-h31-las-skills-siguen/gates/evals/boe-legislacion.json` (el cierre de H31) da dos invocaciones, las
++  dos de la sesión `14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-03` y con código 5:
++  `boe_articulos BOE-A-2004-4214 a57 a59` y `boe_articulo BOE-A-2004-4214 a57`. `a59` es el comando de la eval 14 y
++  está grabado (`testdata/evals/boe.legislacion-consolidada/`, `…_BOE-A-2004-4214_texto_bloque_a59.json`); `a57` no está
++  en ninguna de las dos carpetas de grabaciones (`ls`). La orden de dos bloques salió entera con 5 por el que no estaba
++  grabado. `internal/evals/juzgar.go` pone en `FueraDeLoGrabado` toda invocación con 4 o 5 que no consulte una lectura
++  del `sin_servir` de su eval, y `internal/evals/umbrales.go` dice que su umbral no decide. `internal/evals/consultas.go`:
++  la caché preparada sirve cada bloque de las `lecturas` sin fecha y con `--fecha 9999-12-31`, «así el bloque en
++  cualquier fecha».
+ 
+ Herramientas, comprobadas en local: `go version` → go1.27.3 (`go.mod`: `go 1.27.0`, `toolchain go1.27.3`); `-run`
+ parte su patrón por las barras sin corchetes y cada parte casa con un nivel del nombre del test (`go help testflag`),
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-25 23:43:24
++++ ahora/spec.md	2026-10-25 23:51:25
+@@ -149,7 +149,8 @@
+    `afirma_lo_no_leido:claude-sonnet-5-5` se cumple con 0.028 y los demás umbrales que deciden se cumplen; y
+    `cuenta_su_proceso` se publica por modo, sin decidir.
+ 2. **Dado** ese informe, **Cuando** se leen las sesiones de `claude-sonnet-5-5` de las evals 14, 15 y 17, **Entonces**
+-   ninguna tiene en `fuera_de_lo_grabado` un bloque de las `lecturas` de su eval.
++   ninguna tiene en `fuera_de_lo_grabado` una orden o llamada que sale con 4 o 5 porque la caché de la sesión no sirve
++   un bloque de las `lecturas` de su eval, contada como dice SC-008.
+ 3. **Dado** los informes del job de cierre de `jurisprudencia` y `legal-core`, **Cuando** se lee su veredicto, **Entonces**
+    es aprobado.
+ 4. **Dado** la definición del job, **Cuando** corre `TestDefinicionDelJob` en `make ci`, **Entonces** el tope del trabajo de
+@@ -370,9 +371,12 @@
+   el umbral de hoy, 0.028. El umbral decide: si la tasa pasa de 0.028, el veredicto del job es fallo y el job sale en
+   rojo.
+ - **SC-008**: En el informe del job de cierre de `boe-legislacion`, ninguna sesión de `claude-sonnet-5-5` de las evals 14,
+-  15 y 17 tiene en `fuera_de_lo_grabado` un bloque de sus `lecturas` (umbral: 0 sesiones). Lo hacen cumplir los tests de
+-  SC-004, que salen en rojo en `make ci` si la caché de la skill no sirve un bloque de `lecturas` sin fecha y con
+-  `9999-12-31`, y la preparación de la sesión, que da la falta y no la abre si no está grabado (FR-010, FR-011).
++  15 y 17 tiene en `fuera_de_lo_grabado` una orden o llamada que sale con 4 o 5 porque la caché de la sesión no sirve un
++  bloque de sus `lecturas` (umbral: 0 sesiones). No cuenta la orden o llamada `articulos` que sale con 5 porque pide,
++  con bloques que la caché sirve, otro de la misma norma sin grabar: la salida se atribuye a ese bloque (en el cierre de
++  H31, `boe_articulos BOE-A-2004-4214 a57 a59` salió entera con 5 por `a57`, con `a59` grabado). Lo hacen cumplir los
++  tests de SC-004, que salen en rojo en `make ci` si la caché de la skill no sirve un bloque de `lecturas` sin fecha y
++  con `9999-12-31`, y la preparación de la sesión, que da la falta y no la abre si no está grabado (FR-010, FR-011).
+ - **SC-009**: Los demás umbrales que deciden del informe del job de cierre de `boe-legislacion` se cumplen; el que no se
+   cumple pone su veredicto en fallo.
+ - **SC-010**: `cuenta_su_proceso` se publica por modo, como hoy, sin cifra de aceptación en el cierre: no decide, y
