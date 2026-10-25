@@ -1313,8 +1313,10 @@ Un caso que no se puede resolver es un error que lo nombra, y la medida falla si
 primera o en segunda persona, con la clase `habla_en_primera_o_segunda_persona`, que decide con umbral 0. No tiene
 carpeta en `evals/`: su rúbrica, su esquema, sus casos y su medida son los de `evidencias/adr-0046/`, que el job lee
 donde están y cuya huella `make ci` compara con la de su manifiesto, y el modelo y la versión de Claude Code de sus
-votos son los del juez de las evals. El trabajo `evals (<skill>)` juzga la descripción de su skill solo en una
-ejecución sobre una propuesta de cambio que la cambia respecto de su base. Antes de abrir ninguna sesión comprueba
+votos son los del juez de las evals. Solo corre en una ejecución sobre una propuesta de cambio que cambia, respecto de
+su base, la descripción de alguna skill; entonces el trabajo `evals (<skill>)` de cada skill juzga la descripción de la
+suya, haya cambiado o no, o reutiliza su juicio por huella, y sin ninguna descripción cambiada ningún trabajo lleva
+juicio, umbral ni apartado. Antes de abrir ninguna sesión comprueba
 que esa medida corresponde y se cumple —si no, el informe sale sin medir, con cada motivo precedido de
 `juez de las descripciones: `—; después de las sesiones de las evals, vota la descripción —la marcan tres «si»
 unánimes, pedidos por orden y cada uno con una frase que está en la descripción; como mucho seis votos—, o reutiliza

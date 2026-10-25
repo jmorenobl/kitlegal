@@ -237,7 +237,7 @@ descripciones no dependen de las normas ni los bloques consultados (spec, «Uso,
   tokens a 2,26 caracteres por token, ADR 0046); las tres, como mucho 2700. Los borradores: 878, 888 y 842 (V2).
 - **Cuerpo**: una carga por pregunta por cada skill que activa; con `legal-core` y `boe-legislacion` juntas, como mucho
   22 000 caracteres (unos 9700 tokens) frente a 43 664 de hoy (24 439 + 19 225, V1). Los borradores: 10 881, 10 490 y
-  10 605 (V2); al cerrar, 10 976, 10 860 y 10 859. Lo escribe una persona y lo acota el gate.
+  10 605 (V2); al cerrar, 10 993, 10 944 y 10 859. Lo escribe una persona y lo acota el gate.
 - **Referencias a mano**: de 0 a pocas lecturas por pregunta, cuando el cuerpo lo dice; las previstas tenían de 12 a
   64 líneas (contracts/skills-reescritas.md), y las escritas tienen de 24 a 68; sin índice porque ninguna pasa de 100.
 - **Referencias generadas**: crecen con `data/`; `normas.md` tiene 24 líneas (V1). Con cientos de normas (unos 150

@@ -28,15 +28,16 @@ sustituyen a este fichero.
   pide sin tocar el guion; el juez del plan juzga solo que lo que dice cada fila es cierto. Admite las tres formas de
   fila de los planes anteriores, y ni «II» ni una fila que empieza por una palabra, como «Implementación…», cuentan
   como el principio I. Lo comprueba `TestElConstitutionCheckLlevaUnaFilaPorPrincipio`.
-- **El job de evals juzga la descripción de una skill cuando una propuesta de cambio la cambia, con el juez de las
-  descripciones** (H31; ADR 0046). La tercera persona de la descripción no la comprueba una lista de palabras: la
+- **El job de evals juzga las descripciones de las skills cuando una propuesta de cambio cambia alguna, con el juez de
+  las descripciones** (H31; ADR 0046). La tercera persona de la descripción no la comprueba una lista de palabras: la
   juzga un modelo, el juez de las evals (`claude-opus-5-5` con Claude Code 2.1.289), con la clase
   `habla_en_primera_o_segunda_persona` y la rúbrica, el esquema, los casos y la medida de `evidencias/adr-0046/`, que
   lee donde están y que `make ci` comprueba contra el manifiesto de la evidencia:
-  - el trabajo `evals (<skill>)` juzga la descripción de su skill solo si la propuesta cambia su `SKILL.md` en la
-    descripción; si no, no hay juicio, ni umbral, ni apartado en el informe. El juicio se reutiliza de una medida de
-    `main` con la misma huella —la de la descripción, los cuatro ficheros del juez, su modelo y su versión—, como los
-    resultados de H30, y lo reutilizado no cuenta en el umbral;
+  - si la propuesta cambia, respecto de su base, la descripción del `SKILL.md` de alguna skill, el trabajo
+    `evals (<skill>)` de cada skill juzga la descripción de la suya o reutiliza su juicio de una medida de `main` con
+    la misma huella —la de la descripción, los cuatro ficheros del juez, su modelo y su versión—, como los resultados
+    de H30, y lo reutilizado no cuenta en el umbral; sin esa medida, o en la suite completa, la juzga. Sin ninguna
+    descripción cambiada, o fuera de una propuesta, ningún trabajo lleva juicio, umbral ni apartado en el informe;
   - antes de abrir ninguna sesión, el trabajo comprueba que la medida del juez de las descripciones corresponde y se
     cumple; si no, el informe sale sin medir, con cada motivo precedido de `juez de las descripciones: `;
   - cada voto lleva la descripción entre `<descripcion skill="…">` y `</descripcion>`, con la regla de los votos del
@@ -81,7 +82,7 @@ sustituyen a este fichero.
 - **`legal-core` v1.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
   escritas a mano** (H31; ADR 0046). Sustituye a `legal-core` v1.2.3. Cambia la forma de lo que lee el modelo, no
   ninguna regla: cada una de las 105 reglas de v1.2.3 tiene su sitio en la nueva (`research.md` de H31, «Tabla de
-  reglas»). El cuerpo pasa de 283 líneas y 19 225 caracteres a 167 y 10 860. Un apartado nuevo, «Referencias», dice
+  reglas»). El cuerpo pasa de 283 líneas y 19 225 caracteres a 168 y 10 944. Un apartado nuevo, «Referencias», dice
   cuándo leer cada una de las seis, con el único enlace de cada una; los once pasos, de uno o dos enunciados, conservan
   lo que se comprueba sin modelo en las respuestas (decidir lo regulado aparte antes de preguntar nada, con
   `⚠ NO CUBIERTO:` y sin `plazos calcular`; no preguntar la materia que no se dice; los municipios que cuentan; el plazo
@@ -101,7 +102,7 @@ sustituyen a este fichero.
 - **`boe-legislacion` v0.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, siete
   referencias escritas a mano** (H31; ADR 0046). Sustituye a `boe-legislacion` v0.2.2. Cambia la forma de lo que lee el
   modelo, no ninguna regla: cada una de las 132 reglas de v0.2.2 tiene su sitio en la nueva (`research.md` de H31,
-  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 151 y 10 976, con cinco pasos (identificar la
+  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 152 y 10 993, con cinco pasos (identificar la
   norma, leer, completar, responder y, de un precepto no leído, nada), la forma de la cita, las tres líneas de la
   redacción en una fecha juntas en un bloque, la de la redacción modificada, la tabla de comandos, que no cambia, y las
   ocho reglas con su número: la 3 con las tres etiquetas de aviso, la 7 con su frase en la referencia de las lecturas
@@ -113,7 +114,8 @@ sustituyen a este fichero.
   `--fecha` y cuándo va cada línea fechada (`redaccion_en_una_fecha.md`) y qué compara `kitlegal graph check`
   (`redaccion_modificada.md`); cada paso dice cuándo leer la suya. Cambian tres ejemplos: los dos que la caché de una
   sesión no sirve —la búsqueda pasa a `kitlegal boe buscar <términos> --json` y sale el de `analisis`— y la lectura con
-  fecha, que la caché sí sirve y va a su referencia. La descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
+  fecha, que la caché sí sirve y va a su referencia, como el id de la Ley 9/2017 a la de las lecturas que fallan. La
+  descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
   crea saberlo») con los mismos disparadores, de 1023 a 878 caracteres. `references/normas.md` no cambia; las siete
   nuevas viajan en el binario, y `kitlegal skills install` las instala con la skill.
 - **`make skills-check` hace cumplir la forma de la especificación Agent Skills y de la guía del proyecto, y el límite

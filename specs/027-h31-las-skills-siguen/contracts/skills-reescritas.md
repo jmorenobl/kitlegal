@@ -49,7 +49,7 @@ plan, no versionado): runas con `LC_ALL=en_US.UTF-8 wc -m`, líneas de 120 colum
 |---|---|---|
 | línea en blanco, `# Consultar y citar legislación consolidada del BOE` y `## Protocolo` con su párrafo | pasos en orden; orden o, si la tienes, siempre la herramienta de su fila, tras leer la referencia de las herramientas; sin `fuente`, `url`, `fecha_consulta` y `hash`, no hay cita | 379 |
 | paso 1, **Identificar la norma** | tabla de normas antes de nada; `BOE-A-…` de ahí; no exhaustiva; si no está, la referencia de búsqueda | 229 |
-| paso 2, **Leer** | índice y copia del id (ejemplo de la Ley 9/2017); ningún id fuera del índice; una lectura sin fecha por bloque, con `kitlegal graph check` detrás; la orden de `articulo` en Bash y en PowerShell; con fecha, «Redacción en una fecha»; varios bloques y orden que falla, sus referencias | 1222 |
+| paso 2, **Leer** | índice y copia del id (el ejemplo de la Ley 9/2017, en la revisión final, a `lecturas_que_fallan.md`); ningún id fuera del índice; una lectura sin fecha por bloque, con `kitlegal graph check` detrás; la orden de `articulo` en Bash y en PowerShell; con fecha, «Redacción en una fecha»; varios bloques y orden que falla, sus referencias | 1222 |
 | paso 3, **Completar** | remisiones; metadatos y análisis si la pregunta depende de la vigencia o de una modificación | 210 |
 | paso 4, **Responder** | B48–B57, B63, B67–B69 | 992 |
 | paso 5, **De un precepto no leído, nada** | B58–B62, con un ejemplo de afirmar y otro de negar | 631 |
@@ -78,7 +78,7 @@ tienen menos de 100 líneas, así que ninguna necesita índice.
 | `con_herramientas.md` | Nombres · Argumentos · Las órdenes del protocolo · Encadenar y fallar | ~25 | «Protocolo»: «Sigue los pasos en orden, cada operación con su orden, `kitlegal <applet> <verbo> … --json`, o, si la tienes, siempre con la herramienta de su fila en «Comandos», tras leer [con_herramientas](references/con_herramientas.md).» |
 | `buscar_la_norma.md` | Buscar por el título · Varias posibles · Normas autonómicas · Si no aparece | ~20 | paso 1: «Si no está, se busca por su título con [buscar_la_norma](references/buscar_la_norma.md).» |
 | `varios_bloques.md` | Cuándo · La orden | ~12 | paso 2: «Para varios bloques a la vez, [varios_bloques](references/varios_bloques.md);» |
-| `lecturas_que_fallan.md` | Los códigos · Un bloque que no está · Una lectura de varios bloques · Qué dice la respuesta · Si `kitlegal graph check` falla | ~40 | paso 2: «si una orden, también `kitlegal graph check`, no termina con `0`, antes de seguir, [lecturas_que_fallan](references/lecturas_que_fallan.md).» (la regla 7 la enlaza también) |
+| `lecturas_que_fallan.md` | Los códigos · Un bloque que no está · Una lectura de varios bloques · Qué dice la respuesta · Si `kitlegal graph check` falla | ~40 | paso 2: «si una orden no termina con `0`, antes de seguir, [lecturas_que_fallan](references/lecturas_que_fallan.md).» (la regla 7 la enlaza también) |
 | `como_se_cita.md` | Lo que hace cita · La forma legible dentro · Lo que no es cita · Sola o bajo una cita textual · Ids que terminan en punto · Bloques remitidos · Los avisos | ~28 | «Cómo se cita»: «Una cita por bloque; repasa cada una, y para otra forma, [como_se_cita](references/como_se_cita.md).» |
 | `redaccion_en_una_fecha.md` | Qué es una fecha · Cómo se lee · Un hecho sin día · Un año o un mes · Lo que se cita · La redacción de hoy · Sin redacción vigente · Las tres líneas | ~40 | «Redacción en una fecha»: «Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—, lee antes [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md): cómo se lee, sin `kitlegal graph check`, y cuándo va cada una de estas líneas, que solo salen de una lectura con fecha:» |
 | `redaccion_modificada.md` | Qué compara · La línea, por bloque · No es un aviso de vigencia · La redacción superada · Si se pregunta qué cambió | ~25 | «Redacción modificada»: «Con `version-obsoleta`, o si se pregunta qué cambió, [redaccion_modificada](references/redaccion_modificada.md).» |
@@ -94,7 +94,7 @@ Qué lleva cada una:
   órdenes para PowerShell lee la skill entera (FR-016, FR-018), así que la orden de Bash de `articulos` cumple aquí la
   de «una orden de Bash por verbo».
 - `lecturas_que_fallan.md`: B39, B43, B108, B109, B112–B115 y B125–B128, con la frase de la regla 7 sola en un
-  bloque `text`.
+  bloque `text`, y el ejemplo de B28 (en la Ley 9/2017, «Artículo 118» es `a1-30`).
 - `como_se_cita.md`: B72–B78 en detalle, con los ejemplos de cita de hoy.
 - `redaccion_en_una_fecha.md`: B81–B94, con `kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json`.
 - `redaccion_modificada.md`: B98, B99, B101, B104, B105 y la explicación de l. 200–203.
@@ -122,7 +122,8 @@ Ninguno es una regla.
 - Los tres ejemplos sin regla que se retiran para el margen: en el paso 1, «por su nombre, su número y año o su
   abreviatura» (las formas de nombrar una norma siguen en la descripción, B06); en el paso 5, «el art. N sobre
   <materia>» (quedan «el art. N, que es…» y «no puedo decir qué <regla> fija»); y en la regla 5, «(competencias
-  compartidas o cedidas, desarrollo autonómico, régimen foral)».
+  compartidas o cedidas, desarrollo autonómico, régimen foral)». La revisión final devuelve este último a la regla 5,
+  con las condiciones de B64, B65 y B122, y lleva el ejemplo de la Ley 9/2017 (B28) a `lecturas_que_fallan.md`.
 - `mcp__kitlegal__boe_articulo` y el `world.db` ilegible pasan a sus referencias. «En PowerShell, que en su versión 5.1
   no tiene `&&`» queda como «En PowerShell 5.1, sin `&&`». Las tres formas fechadas van juntas en un bloque `text` (el
   control solo pide que cada una esté en un bloque `text`).

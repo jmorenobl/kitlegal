@@ -139,11 +139,12 @@ con la clase `habla_en_primera_o_segunda_persona` y la rúbrica, el esquema, los
 `evidencias/adr-0046/` (ADR 0046, punto 4), cuya huella `make ci` compara con la de su manifiesto. Su pregunta cerrada
 es la de `rubrica.md`: «¿Hay en la descripción, fuera de las citas, alguna forma de primera o de segunda persona?».
 
-- **Cuándo juzga.** En el trabajo `evals (<skill>)` de una ejecución sobre una propuesta de cambio que cambia la
-  descripción del `SKILL.md` de esa skill respecto de su base; sin ese cambio, no hay juicio, ni umbral, ni apartado
-  en el informe. Si una medida de `main` ya tiene el juicio de la misma descripción con la misma huella —la de la
-  descripción, los cuatro ficheros del juez, su modelo y su versión—, lo reutiliza, y lo reutilizado no cuenta en el
-  umbral. Nunca en `make ci` ni en un paso de un run (ADR 0032): sus tests votan con votos simulados o con un `claude`
+- **Cuándo juzga.** En una ejecución sobre una propuesta de cambio que cambia, respecto de su base, la descripción del
+  `SKILL.md` de alguna skill: entonces el trabajo `evals (<skill>)` de cada skill juzga la descripción de la suya, haya
+  cambiado o no; sin ninguna descripción cambiada, o fuera de una propuesta, ningún trabajo lleva juicio, umbral ni
+  apartado en el informe. Si una medida de `main` ya tiene el juicio de la misma descripción con la misma huella —la
+  de la descripción, los cuatro ficheros del juez, su modelo y su versión—, lo reutiliza, salvo en la suite completa,
+  y lo reutilizado no cuenta en el umbral. Nunca en `make ci` ni en un paso de un run (ADR 0032): sus tests votan con votos simulados o con un `claude`
   sustituto.
 - **Cómo vota.** Con `claude-opus-5-5` y Claude Code 2.1.289, los fijados para el juez de las evals; cada voto recibe
   la descripción entre `<descripcion skill="…">` y `</descripcion>`. La marcan tres «si» unánimes, pedidos por orden,
@@ -189,8 +190,8 @@ que decide es el de caracteres. Al cerrar H31:
 
 | Skill | Cuerpo antes de H31 | Cuerpo | Descripción |
 |---|---|---|---|
-| `boe-legislacion` | 283 líneas, 24 439 caracteres | 151 líneas, 10 976 caracteres | 878 caracteres |
-| `legal-core` | 283 líneas, 19 225 caracteres | 167 líneas, 10 860 caracteres | 888 caracteres |
+| `boe-legislacion` | 283 líneas, 24 439 caracteres | 152 líneas, 10 993 caracteres | 878 caracteres |
+| `legal-core` | 283 líneas, 19 225 caracteres | 168 líneas, 10 944 caracteres | 888 caracteres |
 | `jurisprudencia` | 193 líneas, 13 637 caracteres | 159 líneas, 10 859 caracteres | 842 caracteres |
 
 Sin margen en el cuerpo, una regla nueva cabe sacando a una referencia el detalle que solo pide una clase de pregunta

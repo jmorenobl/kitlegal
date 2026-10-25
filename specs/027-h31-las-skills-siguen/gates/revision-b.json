@@ -1,0 +1,86 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina con «ci: todos los controles en verde» y «kitlegal-verificacion exit=0» (lint 0 issues, go test -race y -tags=integration en verde, govulncheck sin vulnerabilidades, skills-check, goreleaser check, gitleaks, go mod verify y tidy -diff). `git status --porcelain` sobre la cabeza (22d7962) solo da lo que escribe el propio workflow para esta ronda: gates/modelos.jsonl (M), gates/revision-cambios.md y gates/revision-ciclo.json (??)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Todo el código nuevo tiene test offline que detecta su regresión: lo comprobé con `go test -overlay` sobre copias mutadas en el temporal, sin tocar el árbol, con la línea base en verde (`ok internal/skills`, `ok internal/evals`, `ok internal/app` para TestSkillsDelRepositorio). Los diez mutantes salieron en rojo: M1 cuerpo contado en bytes (sincronia.go:442) → TestCuerpoDeLaSkill/once-mil-caracteres y once-mil-y-un-caracteres; M2 etiqueta XML `<[^<>]*>` (frontmatter.go:69) → TestEtiquetaXML/sin-nombre, menor-que-y-mayor-que-con-espacios, nombre-que-empieza-por-cifra; M11 palabrasReservadas vacías (frontmatter.go:63) → TestValidarFrontmatter/name-con-claude, name-con-anthropic…; M3 nombraCadaApartado sin fallo (markdown.go:173) → 8 subtests de TestIndiceDeLaReferencia; M8 declaradas tratadas como a mano (referencias.go:211) → TestReferenciasAMano/declarada-sin-cabecera; M4 umbral de la descripción con Decide:false (umbrales.go, umbral()) → TestUmbralDeLaDescripcion y TestInformeConLaDescripcion; M5 juicioReutilizable sin `bloque.SinJuzgar != \"\"` (reutilizacion.go) → TestBusquedaDeMedidasDeMain/descripcion-sin-juzgar; M6 sinMedir sin las líneas del juez de las descripciones (ejecucion.go) → TestEjecucionSinMedir/descripciones; M7 deLaDescripcion() a 0 (definicion.go) → TestDefinicionDelJob/peor-caso, tope-con-las-evals-del-repositorio, sinteticas; M10 laNombra sin las referencias a mano (dependencias.go) → TestConjuntoDeCadaEval/referencias-a-mano. Los mutantes de SC-002 y SC-005 están en TestSkillsDelRepositorio (internal/app/skills_test.go: presupuestos, frontmatter, referencias, sincronia-con-referencias-a-mano con assert byte a byte en l. 1556-1557) y TestControlesSobreLasReferenciasAMano (conjunto_test.go, 15 mutantes). Suite de aceptación e2e: no aplica, registrado en plan.md «Aceptación e2e» y «Complexity Tracking» y en tasks.md; no hay gates/aceptacion-congelada.json que alterar. Los puntos de entrada que abren sesiones llevan `//go:build evals` (internal/evals/job_test.go:1) y no se compilan en make ci."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep de las líneas añadidas del diff: ningún `net/http`, `os.Exit` ni `fmt.Print*` en código no de test; los dos `exec.CommandContext` nuevos están en tests (medida_test.go, umbrales_test.go) y ejecutan los guiones de scripts/ con el `claude` sustituto. internal/evals sigue importando internal/skills como ya hacía (dependencias.go, descripciones.go:13) y `internal/arch_test.go` pasa en gates/ci.log (paquete `internal` ok). Sin dependencias nuevas: go.mod, go.sum y tools/ sin cambios en `git diff --stat main...HEAD`."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El hito no cambia ningún applet ni ninguna salida del binario: el diff no toca internal/app/*.go salvo skills_test.go, ni cmd/, schemas/ ni testdata/ (`git diff --stat main...HEAD`), y `TestEsquemasPublicados` sigue en verde en gates/ci.log. No hay salida nueva que validar contra el esquema."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida nuevo. Los errores nuevos se envuelven con su causa (`el job no se puede ejecutar: %w`, ejecucion.go; `%s no se puede leer: %w`, referencias.go:198,218 y descripciones.go:78). Ninguna ruta de pánico alcanzable: `juicioDeLaDescripcion` toma `Clases[0]` y `juezDeLasDescripciones` exige exactamente una clase (descripciones.go:129,141-143); `procedenciaDeLaMedida.escrita` admite nil (origen.go:412-415); `defectosDeReferences` solo mira enlaces e índices con el frontmatter y los datos en orden (sincronia.go, conTodoRegenerado). CHANGELOG no promete ningún código que el binario no dé."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md (Unreleased) lleva el juez de las descripciones, la guía, las tres skills (jurisprudencia v0.2 desde v0.1.2, legal-core v1.3 desde v1.2.3, boe-legislacion v0.3 desde v0.2.2), los gates nuevos y la regla de las referencias a mano; CONTRIBUTING.md deja de pedir menos de 300 líneas y remite a docs/SKILLS.md (l. 144-147, 164-223). Las cifras de docs/SKILLS.md §3 son las medidas: cuerpos de 151/10 976, 167/10 860 y 159/10 859 (`awk … | wc -lm`) y descripciones de 878, 888 y 842 runas; los textos de los defectos de §5 coinciden con el código (frontmatter.go:495-497 `%s de %d caracteres (máximo %d)`, frontmatter.go:429 `contiene «%s»`, referencias.go:304 y 312, markdown.go:153-157, sincronia.go:438-446). FR-024: name, kitlegal-applets y kitlegal-referencias iguales a main en las tres skills, y las cinco referencias generadas sin diff con main. Ningún ADR ni fila de docs/SOURCES.md hacía falta (plan.md «Datos externos»; ADR 0046 ya en main). SC-012: contrasté la tabla de research.md (B01-B132 l. 415-546, L01-L105 l. 565-669, J01-J74 l. 685-758) con el cuerpo de main (`git show main:skills/<skill>/SKILL.md`) y con los SKILL.md y las 11 referencias nuevas: ninguna regla perdida ni añadida; dos correspondencias algo forzadas van a observaciones."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Sin red en nada nuevo: el juez de las descripciones lee evidencias/adr-0046/ del disco (descripciones.go:75-82) y vota con scripts/evals-voto.sh como el juez de H24; los tests usan votos simulados y el `claude` sustituto (sustitutos_test.go). Sin datos personales ni secretos en el diff (gitleaks en verde). Datos externos: ninguno, ni data/, ni testdata/, ni evidencias/ cambian. scripts/evals.sh exige ahora el claude del juez en todo trabajo, y .github/workflows/evals.yml lo instala sin condición en el paso «Instalar strace y Claude Code» de cada trabajo evals (l. 368-379), así que el trabajo de legal-core lo tiene."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep del diff: ningún `t.Skip`, `//nolint`, `TODO` ni error silenciado en las líneas añadidas. El único descarte, `cuerpo, _ := cuerpoDeLaSkill(skill.Contenido)` (sincronia.go, defectosDeReferences), está bajo `conTodoRegenerado`, que ya garantiza el frontmatter cerrado. Ningún fixture ni golden cambia (`git diff --stat main...HEAD -- testdata schemas` vacío); el golden de la matriz se conservó eligiendo la primera referencia generada (tasks.md T006, redelimitación registrada). gates/cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff toca solo las rutas que declaran las tareas (internal/skills, internal/evals, internal/app/skills_test.go, skills/*, scripts/evals.sh, scripts/evals-medir-juez.sh, .github/workflows/evals.yml, docs/SKILLS.md, CONTRIBUTING.md, CHANGELOG.md) más specs/ y una línea de docs/ROADMAP.md. Los 46 supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: p. ej. T011 (un destino que no es ninguna referencia no da defecto; sin frontmatter en orden no se miran FR-007 a FR-009), T017 (sin medida con casos sin juzgar), T015 (el informe sin medir de una skill sin juez no lleva juez), T007 (la frase de la regla 7 va a la referencia, como fija el contrato y D17). Nada fuera de alcance: ni nombres de skills, ni cobertura en positivo, ni generadores de referencias."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Lo que lee el agente no crece con el uso: las descripciones miden 878, 888 y 842 runas (≤ 900, gate frontmatter.go:56) y los cuerpos 10 976, 10 860 y 10 859 (≤ 11 000, sincronia.go:29), frente a 24 439, 19 225 y 13 637 en main; las referencias a mano tienen de 24 a 68 líneas y se leen solo cuando el cuerpo lo manda. El juez pide como mucho 6 votos por descripción y solo en una ejecución cuya propuesta cambia una descripción (decision.go, cambiaAlgunaDescripcion); sin ese cambio no hay bloque, umbral ni apartado (TestDecisionDelJob). Las señales caducan: el defecto de un gate desaparece al corregir la skill, la marca al cambiar la descripción, y lo reutilizado sale de la ventana de 90 días de H30 (procedenciaVigente). `ordenes-de-ejemplo` ejecuta cuatro invocaciones con --offline por make ci, fijas por el texto de la skill."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a su FR (plan.md «Trazabilidad»): markdown.go (bloques, enlaces, apartados, índice) a FR-007-FR-009, sin analizador general (D14); ReferenciasAMano y entradasQueNoSonFicherosMd a FR-012 y FR-006; defectosDelCuerpo a FR-004/FR-010; descripciones.go (identidad, mensaje, huella, votación, informe) a FR-025-FR-033; medirAlJuezDeLasDescripciones y votarLosCasos con concurrencia a FR-034 (matriz a 5); peorCasoDeLaDescripcion a SC-015; la clasificación de la decisión y la búsqueda en main a FR-030; sinJuez en InformeAEscribir al supuesto T015 (FR-026 en una skill sin juez). Ningún caso para un estado que no pasa la materialidad (enlaces, truncados, permisos: regla genérica). Dos duplicaciones menores de tipos van a observaciones y no estorban al spec."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «## Controles de umbral» de plan.md tiene su control y sale en rojo al pasar del umbral: FR-004/FR-010 (M1 en rojo), FR-002/FR-003/FR-005 (M2 y M11 en rojo; description-de-901-caracteres en TestSkillsDelRepositorio), FR-006-FR-009 (M3 en rojo; subtests referencias), FR-012 (M8 en rojo; sincronia-con-referencias-a-mano), FR-014 (M10 en rojo), FR-025 (TestJuezDeLasDescripciones/identidad con cambiado-<fichero> y sin-registrar-<fichero>), FR-026 (M6 en rojo), FR-030 (TestDecisionDelJob, TestBusquedaDeMedidasDeMain con M5 en rojo), SC-015 (M7 en rojo). El umbral del job `habla_en_primera_o_segunda_persona` va con `Decide: true`, umbral 0 y total 1 solo si se juzgó (umbrales.go, umbral()); con Decide:false (M4) TestUmbralDeLaDescripcion y TestInformeConLaDescripcion salen en rojo, y la descripción sin juzgar da su motivo propio y veredicto fallo (TestInformeConLaDescripcion/sin-juzgar, motivos-distinguibles). Los umbrales en tasa de afirma_lo_no_leido no cambian."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "SC-012, boe-legislacion: B10 («no sustituye el asesoramiento de un profesional») queda en la nueva solo como «informativos, no asesoramiento» (regla 3) y «la skill consulta y cita» (regla 4); legal-core y jurisprudencia conservan la frase entera en su entrada. La sustancia (no es asesoramiento) se mantiene; la mención al profesional se pierde en esa skill.",
+    "SC-012, boe-legislacion: B63 pierde el inciso «el rango de references/normas.md o de la búsqueda» (de dónde sale el rango); el paso 4 nuevo dice «di el de cada una». Es una pista de fuente, no una regla.",
+    "(k) internal/evals/reutilizacion.go: `informeDeLaMedida` embebe `Informe`, que ya lleva `Descripcion *DescripcionInformada` con la clave JSON `descripcion`, y añade otro campo `Descripcion *descripcionEnElInforme` con la misma clave; el tipo nuevo repite los campos de `DescripcionInformada` sin los votos, y `juicioReutilizado` (origen.go) repite tres de `JuicioDeLaDescripcion`. Leer `informe.Descripcion` directamente ahorraría dos tipos; funciona igual porque encoding/json da precedencia al campo exterior.",
+    "Un subdirectorio de `references/` sin ficheros empotrables (lo observé al dejar mi sesión, por su directorio de trabajo, un `references/.claude/.cc-writes/` vacío, ya desaparecido y que git no ve) hace fallar la compilación del `embed` `skills/*/references/*` de skills.go antes de que skills-check pueda dar el defecto de FR-006. Es el patrón de embed anterior al hito y un fichero del kit tocado fuera del binario: regla genérica, no motivo.",
+    "docs/ROADMAP.md l. 185 pasa a «H29, H30 y H31 están hechos»: es la alineación de una frase que ya estaba desactualizada (no decía H30) y será cierta al fusionar; FR-023 no la pide pero no excede el alcance documental del barrido.",
+    "La verificación con mutantes se hizo con `go test -overlay` sobre copias de los ficheros en el temporal, porque copiar el árbol fuera del repositorio no estaba permitido en esta sesión; ninguna orden escribió en el árbol de trabajo."
+  ]
+}

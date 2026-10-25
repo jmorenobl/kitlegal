@@ -59,14 +59,15 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    interesado y el de la sede del órgano**, o en el contencioso-administrativo **el de la sede del juzgado**.
 9. **Pedir el plazo**: el tipo, de los recursos y plazos; `plazos_calcular` o `kitlegal plazos calcular <tipo> <inicio>
    <municipios>... --json`, con los municipios del 8 en su orden. **Con el 3 y un `data.mensaje` que empieza por «el
-   plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del plazo ni ninguna fecha, y sin el 10.
+   plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del plazo ni ninguna fecha de vencimiento, y
+   sin el 10.
 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
     `kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
     `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
     afirmar qué dice.
-11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha (regla 8); los festivos que la movieron, de
-    `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su `texto` tal cual; el
-    alcance de los festivos, solo si lo dice un aviso.
+11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
+    la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
+    `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.
 
 ## Cómo se presenta el territorio
 
@@ -82,8 +83,8 @@ dir3: <valor>
 ## Cómo se presenta un plazo
 
 La línea del plazo, con `data.fecha` tal cual, el tipo como lo nombran los recursos y plazos y cada precepto de
-`data.preceptos` en sus propios corchetes, con un solo bloque (dos en unos corchetes no son cita de ninguno); debajo,
-la del contencioso:
+`data.preceptos` en sus propios corchetes, con un solo bloque (dos en unos corchetes no son cita de ninguno); y, de
+ejemplo, la de los dos preceptos del recurso contencioso-administrativo:
 
 ```text
 ⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]

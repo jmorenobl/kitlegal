@@ -20,8 +20,9 @@ de `SKILL.md`.
 
 ## Un bloque que no está
 
-Si `kitlegal boe` termina con `3`, vuelve al índice en lugar de probar otros ids. Si el artículo no existe en la norma,
-dilo.
+Si `kitlegal boe` termina con `3`, vuelve al índice en lugar de probar otros ids: el id es el de la entrada cuyo
+`titulo` es el artículo, no su número (en la Ley 9/2017, «Artículo 118» es `a1-30`; `a118` no está). Si el artículo no
+existe en la norma, dilo.
 
 ## Una lectura de varios bloques
 
