@@ -243,9 +243,11 @@ type InformeAEscribir struct {
 
 	// InstrumentoSinMedir son las líneas de comprobarLaMedida, las que da quien
 	// ejecuta el job de una skill con juez cuando su medida versionada no
-	// corresponde o no se cumple: con alguna, el informe es el del instrumento
-	// sin medir, que no lleva nada medido (contracts/informe-del-job.md §5 de
-	// H24; research D11 de H24; FR-043 de H24).
+	// corresponde o no se cumple —desde H31, también las del juez de las
+	// descripciones, con su prefijo—: con alguna, el informe es el del
+	// instrumento sin medir, que no lleva nada medido
+	// (contracts/informe-del-job.md §5 de H24; research D11 de H24; FR-043 de
+	// H24; contracts/juez-de-las-descripciones.md §3 de H31).
 	InstrumentoSinMedir []string
 
 	// decision es la del job sobre las evals de la skill: cuáles mide y, de las
@@ -255,6 +257,21 @@ type InformeAEscribir struct {
 	// reutilizado va en su origen, en sus umbrales :reutilizadas y en su
 	// veredicto. nil es la ejecución de todas, la de la suite completa.
 	decision *origenDeLasEvals
+
+	// descripcion es la de la skill, juzgada en la ejecución o reutilizada, con
+	// su juicio, si la decisión lleva el bloque descripcion
+	// (contracts/juez-de-las-descripciones.md §6 de H31; research D7 de H31;
+	// FR-031, FR-032): el informe la publica con el umbral de su clase, su
+	// motivo si quedó sin juzgar y la sección «La descripción». nil sin el
+	// bloque, y entonces no lleva nada de ella (FR-030).
+	descripcion *DescripcionInformada
+
+	// sinJuez dice que la skill no tiene juez: el informe del instrumento sin
+	// medir, que con la medida del juez de las descripciones también lo puede
+	// tener una skill así, no lleva el juez de las respuestas, como cualquier
+	// otro informe suyo (contracts/juez-de-las-descripciones.md §3 de H31). En
+	// los demás informes, el juez sale de su carpeta de evals.
+	sinJuez bool
 }
 
 // Informe es el informe de una ejecución del job de evals (data-model §10.3;
@@ -303,6 +320,13 @@ type Informe struct {
 	// FR-022 de H30); null solo en un informe anterior a H30. Los demás campos
 	// dicen solo lo medido (FR-023 de H30).
 	Origen *origenDeLasEvals `json:"origen"`
+
+	// Descripcion es la descripción de la skill, juzgada en la ejecución o
+	// reutilizada de una medida de main, si la decisión del trabajo la juzga
+	// (contracts/juez-de-las-descripciones.md §6 de H31; FR-030 a FR-032 de
+	// H31); nil, y ausente en informe.json, si no, y en el informe del
+	// instrumento sin medir, que no lleva nada medido.
+	Descripcion *DescripcionInformada `json:"descripcion,omitzero"`
 
 	// Tasas son las series —las sesiones de una eval con un modelo en un modo—
 	// con cuántas de sus sesiones pasan: primero las que el plan pide, en su
@@ -1151,7 +1175,10 @@ func cabeceraDelInforme(e InformeAEscribir, sinPython string) Informe {
 // la versión de Claude Code de sus votos, los fijados, sin ninguna respuesta.
 // Así quien lee el informe no da por medido ningún umbral del juez. Desde H30,
 // lleva el origen recibido, sin ninguna sesión abierta ni ningún aporte medido
-// (origenSinNadaMedido).
+// (origenSinNadaMedido). Desde H31, la medida que no corresponde o no se cumple
+// puede ser la del juez de las descripciones, también en una skill sin juez,
+// cuyo informe no lleva juez (e.sinJuez); y no lleva la descripción, ni su
+// umbral, ni su sección (contracts/juez-de-las-descripciones.md §3 de H31).
 func informeDelInstrumentoSinMedir(e InformeAEscribir, sinPython string) Informe {
 	informe := cabeceraDelInforme(e, sinPython)
 
@@ -1159,7 +1186,10 @@ func informeDelInstrumentoSinMedir(e InformeAEscribir, sinPython string) Informe
 		informe.Motivos = append(informe.Motivos, motivoDeLaEjecucion+motivoDelInstrumentoSinMedir+linea)
 	}
 
-	informe.Juez = &JuezInformado{Modelo: e.ModeloDelJuez, VersionDeClaudeCode: e.VersionDelJuez}
+	if !e.sinJuez {
+		informe.Juez = &JuezInformado{Modelo: e.ModeloDelJuez, VersionDeClaudeCode: e.VersionDelJuez}
+	}
+
 	informe.Origen = origenSinNadaMedido(e)
 	informe.Veredicto = veredictoDelInforme(informe)
 
@@ -1918,13 +1948,15 @@ func (g grupoJuzgado) aJuzgar(sesiones []sesionJuzgada) []respuestaAJuzgar {
 // mide de las lecturas de las sesiones, para fuera_de_lo_grabado de toda skill
 // y, si alguna eval tiene un comando de bloque en su sin_servir, para
 // lectura_sin_intentar, y decide sus motivos y su veredicto. Desde H30, con el
-// origen de sus evals (origenDelInforme; FR-022 de H30).
+// origen de sus evals (origenDelInforme; FR-022 de H30); y desde H31, con la
+// descripción de la skill, si la recibe (FR-031 de H31).
 func componerInforme(
 	e InformeAEscribir, sinPython string, conjunto Conjunto, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
 ) Informe {
 	informe := cabeceraDelInforme(e, sinPython)
 	informe.Origen = origenDelInforme(e, conjunto.Evals, sesiones, series, respuestas)
+	informe.Descripcion = e.descripcion
 
 	for _, malFormado := range conjunto.MalFormados {
 		informe.FicherosMalFormados = append(informe.FicherosMalFormados,
@@ -2224,6 +2256,12 @@ func agregarSinRepetir(lista []string, valor string) []string {
 // los de las series van los de las series que deciden de las evals
 // reutilizadas que no pasan (motivosDeLasReutilizadas), y, entre los de los
 // umbrales, los de los :reutilizadas que deciden y no se cumplen.
+//
+// Desde H31 (contracts/juez-de-las-descripciones.md §6 de H31; FR-032 de H31),
+// la descripción de la skill marcada da el motivo de su umbral, entre los de
+// los umbrales, y la que quedó sin juzgar, detrás del de las respuestas sin
+// juzgar, el suyo propio, que no cita ningún umbral
+// (DescripcionInformada.motivoSinJuzgar).
 func motivosDelInforme(
 	e InformeAEscribir, informe Informe, evals []Eval, sesiones []sesionJuzgada, series []serieJuzgada,
 	respuestas *respuestasMedidas, lecturas *lecturasMedidas,
@@ -2265,6 +2303,8 @@ func motivosDelInforme(
 	if sinJuzgar := respuestas.juez().sinJuzgar(); len(sinJuzgar) > 0 {
 		motivos = append(motivos, motivoDeLasRespuestasSinJuzgar(sinJuzgar))
 	}
+
+	motivos = append(motivos, informe.Descripcion.motivoSinJuzgar()...)
 
 	return append(motivos, motivosDeLaDuracionDeLasSesiones(informe.Umbrales)...)
 }
@@ -2439,7 +2479,10 @@ func retirarFichero(ruta string) error {
 // «Expresiones prohibidas por modelo» ni la columna «Expresiones prohibidas» de
 // la tabla de las sesiones (contracts/informe-del-job.md §7 de H24; FR-062).
 // Desde H30, delante de las tasas, la sección «Medidas y reutilizadas»
-// (documento.medidasYReutilizadas; contracts/informe-del-job.md §6 de H30).
+// (documento.medidasYReutilizadas; contracts/informe-del-job.md §6 de H30); y,
+// desde H31, entre ella y las tasas, la sección «La descripción», si el informe
+// lleva la descripción de la skill (documento.descripcion;
+// contracts/juez-de-las-descripciones.md §6 de H31).
 func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	var md documento
 
@@ -2483,6 +2526,7 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	md.tablaOVacia(encabezadosDeRed, filasDeRed(informe.Red), sinLlegadasALaRed)
 
 	md.medidasYReutilizadas(informe.Origen)
+	md.descripcion(informe.Descripcion)
 
 	md.parrafo("## Tasas por eval")
 	md.tablaOVacia(encabezadosDeTasas, filasDeTasas(informe.Tasas), ningunaEnElInforme)
@@ -2504,6 +2548,47 @@ func renderizarInforme(informe Informe, sesiones []sesionJuzgada) []byte {
 	}
 
 	return md.unido()
+}
+
+// Textos fijos de la sección «La descripción» de informe.md
+// (contracts/juez-de-las-descripciones.md §6 de H31): su título y lo que dice
+// de la descripción juzgada en la ejecución.
+const (
+	tituloDeLaDescripcion  = "## La descripción"
+	juzgadaEnEstaEjecucion = "juzgada en esta ejecución"
+)
+
+// descripcion añade la sección «La descripción» (contracts/juez-de-las-descripciones.md
+// §6 de H31; research D7 de H31; FR-031, FR-032): la skill; si se juzgó en esta
+// ejecución o se reutilizó, con la procedencia; y, si quedó sin juzgar, el
+// motivo del voto, o si quedó marcada y, marcada, la frase y el motivo. Sin la
+// descripción, nada.
+func (d *documento) descripcion(descripcion *DescripcionInformada) {
+	if descripcion == nil {
+		return
+	}
+
+	juicio := juzgadaEnEstaEjecucion
+	if !descripcion.Juzgada {
+		juicio = descripcion.Procedencia.escrita()
+	}
+
+	d.parrafo(tituloDeLaDescripcion)
+	d.parrafo("Skill: " + descripcion.Skill)
+	d.parrafo("Juicio: " + juicio)
+
+	if descripcion.SinJuzgar != "" {
+		d.parrafo("Sin juzgar: " + descripcion.SinJuzgar)
+
+		return
+	}
+
+	d.parrafo("Marcada: " + siONo(descripcion.Marcada))
+
+	if descripcion.Marcada {
+		d.parrafo("Frase: " + comillaQueAbre + descripcion.Frase + comillaQueCierra)
+		d.parrafo("Motivo: " + descripcion.Motivo)
+	}
 }
 
 // juez añade el cuerpo de la sección del juez (contracts/informe-del-job.md §7

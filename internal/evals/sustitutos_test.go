@@ -1088,3 +1088,106 @@ func decisionQueNoSePuedeLeer(t *testing.T) (string, bool) {
 
 	return filepath.Join(dir, nombre), true
 }
+
+// casoDelGuionConLoDelJuez es un caso de TestGuionDeLasEvalsConLoDelJuez: lo
+// del juez que el guion recibe, nombre=valor, y lo que dice en su salida de
+// error.
+type casoDelGuionConLoDelJuez struct {
+	nombre  string
+	delJuez func(t *testing.T) []string
+	deError string
+}
+
+// TestGuionDeLasEvalsConLoDelJuez fija que scripts/evals.sh pide lo del juez en
+// todo trabajo, y no solo con la carpeta juez en las evals de la skill
+// (contracts/juez-de-las-descripciones.md §3 de H31; FR-026 de H31): con la
+// skill legal-core, que no la tiene, la decisión legible y las demás variables
+// obligatorias, termina con 1 y la línea de la primera de las tres que falta
+// —MODELO_DEL_JUEZ, VERSION_DE_CLAUDE_CODE_DEL_JUEZ o CLAUDE_DEL_JUEZ, que falta
+// también si su ruta no es la de un fichero ejecutable—, con la salida estándar
+// vacía, sin que llegue ninguna sesión al claude sustituto y sin dejar nada en
+// su RUNNER_TEMP. Así las tres banderas del juez llegan a TestEjecucionDelJob en
+// todo trabajo, que es donde vota la descripción de su skill si la decisión lo
+// pide.
+func TestGuionDeLasEvalsConLoDelJuez(t *testing.T) {
+	t.Parallel()
+
+	require.NoDirExists(t, filepath.Join(raizDelRepositorio, directorioDeLasEvals, skillDeLegalCore, carpetaDelJuez),
+		"premisa: las evals de legal-core no tienen la carpeta juez")
+
+	guion, err := filepath.Abs(guionDeLasEvals)
+	require.NoError(t, err)
+
+	for _, caso := range casosDelGuionConLoDelJuez() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			s := escribirSustitutos(t)
+			temporal := t.TempDir()
+			decision, _ := decisionLegible(t)
+
+			variables := slices.Concat([]string{
+				"RUNNER_TEMP=" + temporal, "TMPDIR=" + temporal, variableDeLaDecisionDeEvals + "=" + decision,
+			}, lasDemasDelGuionDeLasEvals, caso.delJuez(t))
+
+			orden := exec.CommandContext(t.Context(), guion, skillDeLegalCore)
+			orden.Env = sobreLaBase(s.base(), variables, delGuionDeLasEvals...)
+
+			codigo, salida, deError := codigoYSalidas(t, orden)
+
+			require.Equalf(t, 1, codigo, "el código del guion, con esta salida de error:\n%s", deError)
+			require.Empty(t, salida, "la salida estándar del guion")
+			require.Equal(t, caso.deError, deError, "la salida de error del guion")
+
+			sesiones, err := os.ReadDir(filepath.Join(s.comun, sustitutoClaude))
+			require.NoError(t, err)
+			require.Empty(t, sesiones, "ninguna sesión llega al claude sustituto")
+
+			escrito, err := os.ReadDir(temporal)
+			require.NoError(t, err)
+			require.Empty(t, escrito, "el guion no deja nada en su RUNNER_TEMP")
+		})
+	}
+}
+
+// casosDelGuionConLoDelJuez son los casos de TestGuionDeLasEvalsConLoDelJuez:
+// sin nada del juez, con el modelo, con el modelo y la versión, y con los tres
+// y un claude del juez que no es ejecutable.
+func casosDelGuionConLoDelJuez() []casoDelGuionConLoDelJuez {
+	const (
+		modelo  = variableDelModeloDelJuez + "=claude-opus-5-5"
+		version = variableDeLaVersionDelJuez + "=2.1.289"
+	)
+
+	falta := func(variable string) string { return "evals: falta " + variable + "\n" }
+
+	return []casoDelGuionConLoDelJuez{
+		{
+			nombre:  "sin-lo-del-juez",
+			delJuez: func(*testing.T) []string { return nil },
+			deError: falta(variableDelModeloDelJuez),
+		},
+		{
+			nombre:  "con-el-modelo",
+			delJuez: func(*testing.T) []string { return []string{modelo} },
+			deError: falta(variableDeLaVersionDelJuez),
+		},
+		{
+			nombre:  "con-el-modelo-y-la-version",
+			delJuez: func(*testing.T) []string { return []string{modelo, version} },
+			deError: falta(variableDelClaudeDelJuez),
+		},
+		{
+			nombre: "con-un-claude-del-juez-que-no-es-ejecutable",
+			delJuez: func(t *testing.T) []string {
+				t.Helper()
+
+				claude := filepath.Join(t.TempDir(), "claude")
+				require.NoError(t, os.WriteFile(claude, []byte("#!/bin/sh\nexit 0\n"), 0o600))
+
+				return []string{modelo, version, variableDelClaudeDelJuez + "=" + claude}
+			},
+			deError: falta(variableDelClaudeDelJuez),
+		},
+	}
+}

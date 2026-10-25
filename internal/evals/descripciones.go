@@ -351,3 +351,174 @@ func huellaDelJuicio(skill, descripcion string, juez *Juez, modelo, version stri
 
 	return huellaSHA256([]byte(strings.Join(lineas, "\n") + "\n"))
 }
+
+// Lo que el trabajo dice de la descripción de su skill además de su juicio
+// (contracts/juez-de-las-descripciones.md §3 y §6 de H31; research D7 y D8 de
+// H31): el prefijo de cada línea de la comprobación de la medida del juez de
+// las descripciones en el informe del instrumento sin medir, que las distingue
+// de las del juez de las respuestas; y el motivo de la raíz de la descripción
+// que quedó sin juzgar, con la skill y el motivo del voto, que no es el de
+// ningún umbral (FR-032).
+const (
+	prefijoDelJuezDeLasDescripciones = "juez de las descripciones: "
+	motivoDeLaDescripcionSinJuzgar   = "el juez de las descripciones dejó sin juzgar la descripción de %s: %s"
+)
+
+// DescripcionInformada es la descripción de la skill del trabajo como la
+// presenta el informe, el bloque descripcion de informe.json
+// (contracts/juez-de-las-descripciones.md §6 de H31; data-model §5 de H31;
+// research D7 de H31; FR-031, FR-032): juzgada en la ejecución, con su juicio y
+// sus votos, o reutilizada de una medida de main, con su procedencia y el
+// juicio de allí. Lo leen quien revisa la propuesta y la búsqueda de las medidas
+// de main de una ejecución posterior. Sus claves JSON, en el orden de sus
+// campos, son las del bloque.
+type DescripcionInformada struct {
+	// Skill es la skill de la descripción; Clase, la única del juez de las
+	// descripciones; y Huella, la del juicio que da la decisión
+	// (huellaDelJuicio).
+	Skill  string `json:"skill"`
+	Clase  string `json:"clase"`
+	Huella string `json:"huella"`
+
+	// Juzgada dice si se juzgó en esta ejecución. Si no, Procedencia es la de la
+	// medida de main en que se juzgó; nil, y ausente, en la juzgada.
+	Juzgada     bool                   `json:"juzgada"`
+	Procedencia *procedenciaDeLaMedida `json:"procedencia,omitzero"`
+
+	// Marcada, Frase y Motivo son los del juicio, el de esta ejecución o el de
+	// la medida de main: si quedó marcada y la frase y el motivo de su primer
+	// voto (JuicioDeLaDescripcion).
+	Marcada bool   `json:"marcada"`
+	Frase   string `json:"frase"`
+	Motivo  string `json:"motivo"`
+
+	// Votos son los que se dieron en esta ejecución, en su orden, siempre una
+	// lista en la juzgada; nil, y ausentes, en la reutilizada, que no pidió
+	// ninguno.
+	Votos []VotoDeLaDescripcion `json:"votos,omitzero"`
+
+	// SinJuzgar es el motivo del voto que no llegó a darse, con su número, en la
+	// juzgada que quedó sin juzgar; vacío, y ausente, si no.
+	SinJuzgar string `json:"sin_juzgar,omitzero"`
+}
+
+// motivoSinJuzgar es el motivo de la raíz de la descripción que quedó sin
+// juzgar (contracts/juez-de-las-descripciones.md §6 de H31; FR-032): la skill y
+// el motivo del voto, sin citar ningún umbral, y ninguno sin descripción o con
+// la que tiene juicio.
+func (d *DescripcionInformada) motivoSinJuzgar() []string {
+	if d == nil || d.SinJuzgar == "" {
+		return nil
+	}
+
+	return []string{fmt.Sprintf(motivoDeLaDescripcionSinJuzgar, d.Skill, d.SinJuzgar)}
+}
+
+// descripcionDelTrabajo es la descripción de la skill que un trabajo juzga, o
+// cuyo juicio reutiliza, con lo que necesita para publicarla
+// (contracts/juez-de-las-descripciones.md §3 de H31): el bloque de la
+// decisión; el juez de las descripciones, con cuya medida se comprueba antes de
+// abrir ninguna sesión que el instrumento está medido; y, con la juzgada, la
+// votación preparada y la descripción de su SKILL.md.
+type descripcionDelTrabajo struct {
+	deLaDecision descripcionDeLaDecision
+	juez         *Juez
+	votacion     *votacion
+	descripcion  string
+}
+
+// leerElJuezDeLaDescripcion lee de la raíz del repositorio el juez de las
+// descripciones de la descripción del bloque de la decisión. El error es el del
+// juez que no se puede leer.
+func leerElJuezDeLaDescripcion(raiz string, deLaDecision descripcionDeLaDecision) (*descripcionDelTrabajo, error) {
+	juez, err := juezDeLasDescripciones(raiz)
+	if err != nil {
+		return nil, err
+	}
+
+	return &descripcionDelTrabajo{deLaDecision: deLaDecision, juez: juez}, nil
+}
+
+// sinMedir son las líneas de la comprobación de la medida del juez de las
+// descripciones (comprobarLaMedida) con el modelo y la versión fijados para el
+// juez, cada una con su prefijo; ninguna sin descripción que publicar o con la
+// medida que corresponde y se cumple (FR-026).
+func (d *descripcionDelTrabajo) sinMedir(modelo, version string) []string {
+	if d == nil {
+		return nil
+	}
+
+	lineas := comprobarLaMedida(d.juez, modelo, version)
+	for posicion, linea := range lineas {
+		lineas[posicion] = prefijoDelJuezDeLasDescripciones + linea
+	}
+
+	return lineas
+}
+
+// prepararLaVotacion prepara, con la descripción juzgada, lo que sus votos
+// necesitan: lee de la raíz la descripción del SKILL.md de su skill, la que da
+// LeerFrontmatter, y prepara la votación del juez de las descripciones con el
+// votante que da quien lo da. Con la reutilizada, sin descripción o sin
+// bloque, no hace nada: su juicio es el del bloque. El error es el del SKILL.md
+// que no se puede leer, el de la reutilizada sin juicio, el de quien no está y
+// el de la votación que no se puede preparar.
+func (d *descripcionDelTrabajo) prepararLaVotacion(raiz string, votante func(juez *Juez) Votante) error {
+	switch {
+	case d == nil:
+		return nil
+	case !d.deLaDecision.Juzgada && d.deLaDecision.Juicio == nil:
+		return fmt.Errorf("la decisión reutiliza la descripción de %s sin su juicio", d.deLaDecision.Skill)
+	case !d.deLaDecision.Juzgada:
+		return nil
+	case votante == nil:
+		return errors.New("el juez de las descripciones no tiene votante")
+	}
+
+	descripcion, err := descripcionDeLaSkill(path.Join(directorioDeLasSkills, d.deLaDecision.Skill, ficheroDeLaSkill),
+		func(ruta string) ([]byte, error) { return leerFichero(filepath.Join(raiz, filepath.FromSlash(ruta))) })
+	if err != nil {
+		return err
+	}
+
+	votacion, err := nuevaVotacion(d.juez, votante(d.juez))
+	if err != nil {
+		return err
+	}
+
+	d.descripcion, d.votacion = descripcion, votacion
+
+	return nil
+}
+
+// informada es la descripción del trabajo como la presenta el informe
+// (contracts/juez-de-las-descripciones.md §3 y §6 de H31; research D7 de H31):
+// la juzgada, con el juicio de sus votos, que pide aquí, después de las
+// sesiones de las evals, con la votación preparada (juzgarLaDescripcion); y la
+// reutilizada, con el juicio y la procedencia del bloque, sin pedir ningún
+// voto. nil sin descripción que publicar.
+func (d *descripcionDelTrabajo) informada() *DescripcionInformada {
+	if d == nil {
+		return nil
+	}
+
+	informada := DescripcionInformada{
+		Skill: d.deLaDecision.Skill, Clase: claseDeLasDescripciones, Huella: d.deLaDecision.Huella,
+		Juzgada: d.deLaDecision.Juzgada,
+	}
+
+	if !d.deLaDecision.Juzgada {
+		informada.Procedencia = d.deLaDecision.Procedencia
+		informada.Marcada = d.deLaDecision.Juicio.Marcada
+		informada.Frase = d.deLaDecision.Juicio.Frase
+		informada.Motivo = d.deLaDecision.Juicio.Motivo
+
+		return &informada
+	}
+
+	juicio := d.votacion.juzgarLaDescripcion(d.deLaDecision.Skill, d.descripcion)
+	informada.Marcada, informada.Frase, informada.Motivo = juicio.Marcada, juicio.Frase, juicio.Motivo
+	informada.Votos, informada.SinJuzgar = juicio.Votos, juicio.SinJuzgar
+
+	return &informada
+}

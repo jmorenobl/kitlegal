@@ -177,15 +177,27 @@ var (
 // H30; FR-012, FR-014). Sin -decision las mide todas, como antes: la exige
 // scripts/evals.sh.
 //
+// Desde H31 (contracts/juez-de-las-descripciones.md §3 de H31; FR-026, FR-031,
+// FR-032 de H31), si la decisión lleva el bloque descripcion, ejecutarElJob lee
+// de la raíz del repositorio el juez de las descripciones y comprueba también
+// su medida antes de abrir ninguna sesión; con la descripción juzgada, le pide
+// aquí el votante con ese juez (votanteDelJuez, que exige las tres banderas del
+// juez, que scripts/evals.sh pasa en todo trabajo) y vota la descripción de la
+// skill tras las sesiones; con la reutilizada, toma el juicio del bloque. El
+// informe la lleva con el umbral habla_en_primera_o_segunda_persona, que decide.
+//
 // Falla con un error o con el veredicto fallo, nombrando sus motivos: así el job
 // sale en rojo por una serie que no pasa en un modo, por un umbral que decide y
 // no se cumple en un modo, por la duración de una tanda, por sesiones sin medir
 // (FR-043 de H7.3; FR-044 de H21), por una respuesta que el juez marca o deja
-// sin juzgar o por el instrumento sin medir (FR-043 de H24). Solo lo ejecuta
-// scripts/evals.sh, porque abre sesiones con modelo; lo que decide lo fijan
-// TestPlan, TestPlanEnDosModos, los tests del repartidor, TestEjecutarPorTandas,
-// TestInforme, TestInformeEnDosModos, TestUmbralesDelInforme,
-// TestInformeConElJuez, TestEjecucionSinMedir y TestEjecutarElJob.
+// sin juzgar o por el instrumento sin medir (FR-043 de H24), y, desde H31, por
+// la descripción de la skill que el juez de las descripciones marca o deja sin
+// juzgar. Solo lo ejecuta scripts/evals.sh, porque abre sesiones con modelo; lo
+// que decide lo fijan TestPlan, TestPlanEnDosModos, los tests del repartidor,
+// TestEjecutarPorTandas, TestInforme, TestInformeEnDosModos,
+// TestUmbralesDelInforme, TestInformeConElJuez, TestEjecucionSinMedir,
+// TestEjecutarElJob, TestEjecutarElJobConLaDescripcion,
+// TestInformeConLaDescripcion y TestUmbralDeLaDescripcion.
 func TestEjecucionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -260,7 +272,11 @@ func TestEjecucionDelJob(t *testing.T) {
 		ModeloDelJuez:       *banderaModeloDelJuez,
 		VersionDelJuez:      *banderaVersionDelJuez,
 		ConcurrenciaDelJuez: concurrencia,
-		decision:            decision,
+		Raiz:                raizDelRepositorio,
+		VotanteDeLasDescripciones: func(juez *Juez) Votante {
+			return votanteDelJuez(senales, t, juez)
+		},
+		decision: decision,
 	})
 	require.NoError(t, err)
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
@@ -373,12 +389,13 @@ func numeroDeLaPropuesta(t *testing.T) int {
 	return propuesta
 }
 
-// votanteDelJuez da el votante del juez de la skill en el job y en la ejecución
-// de su medida, el que abre cada voto con scripts/evals-voto.sh
-// (nuevoVotanteDelGuion; contracts/job-de-evals.md §2 y contracts/juez-y-voto.md
-// §4 de H24), y deja para el final del test la retirada de su directorio. Exige
-// las tres banderas del juez, que scripts/evals.sh pasa con una skill que lo
-// tiene y scripts/evals-medir-juez.sh, siempre. El PATH de los votos es el de
+// votanteDelJuez da el votante de un juez en el job y en la ejecución de su
+// medida —el de la skill o, desde H31, el de las descripciones—, el que abre
+// cada voto con scripts/evals-voto.sh (nuevoVotanteDelGuion;
+// contracts/job-de-evals.md §2 y contracts/juez-y-voto.md §4 de H24), y deja
+// para el final del test la retirada de su directorio. Exige las tres banderas
+// del juez, que scripts/evals.sh y scripts/evals-medir-juez.sh pasan siempre
+// (contracts/juez-de-las-descripciones.md §3 de H31). El PATH de los votos es el de
 // quien lo lanza con el directorio de -claude-del-juez delante (pathDelJuez),
 // su credencial es la suya, y su contexto, el de las señales del punto de
 // entrada, de modo que SIGINT y SIGTERM cortan los votos abiertos.
