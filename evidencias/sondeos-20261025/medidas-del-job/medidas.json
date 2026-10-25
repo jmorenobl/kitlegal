@@ -1,0 +1,1810 @@
+{
+ "skill": "boe-legislacion",
+ "modelo": "claude-sonnet-5-5",
+ "ejecuciones": [
+  {
+   "ejecucion": 37394360637,
+   "commit": "a5bda455447c99042f4848455650bbe84e37b3cb",
+   "arbol_de_la_skill": "6d65aa3",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     3,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "08-ltaibg-plazo-de-resolucion-claude-sonnet-5-5-01",
+     "frases": [
+      "También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso"
+     ],
+     "precepto": [
+      "Artículo 24 de la Ley 19/2013",
+      "Artículo 24 de la Ley 19/2013 (reclamación potestativa)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 37400993299,
+   "commit": "b0a7a9c3d34b9b6c2f745d7469e657b65bebb031",
+   "arbol_de_la_skill": "75e1d04",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 3,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     1,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Intenté leer los artículos que regulan cada impuesto (60, 78, 92, 100 y 104)",
+      "Intenté leer los artículos que regulan cada impuesto (60, 78, 92, 100 y 104), pero la fuente no estaba disponible y no se pudo consultar ninguno."
+     ],
+     "precepto": [
+      "Artículos 60, 78, 92, 100 y 104 del TRLRHL",
+      "Artículos 60, 78, 92, 100 y 104 del TRLRHL (de qué tratan)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "No puedo decir aquí qué rentas exime.",
+      "se remiten al artículo 7 de la Ley, que no he leído. No puedo decir aquí qué rentas exime."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006",
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "Puedo leer también los demás artículos del mismo capítulo (arts. 26 a 31), que desarrollan otros principios de la potestad sancionadora."
+     ],
+     "precepto": [
+      "Arts. 26 a 31 de la Ley 40/2015",
+      "Artículos 26 a 31 de la Ley 40/2015",
+      "Artículos 26 a 31 de la Ley 40/2015 (BOE-A-2015-10566)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 37406586514,
+   "commit": "3107ae28eba0b81935418f33b7818a2f8da09b51",
+   "arbol_de_la_skill": "6063317",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     2,
+     54
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 37661635788,
+   "commit": "bf4befd60b50750e21243d64b3097ebb76beef62",
+   "arbol_de_la_skill": "6063317",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     1,
+     50
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 38077358779,
+   "commit": "e380f0a377d00f615a5adf53c1385ed4bad464f1",
+   "arbol_de_la_skill": "6063317",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     3,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "Algunos supuestos de los apartados 1 y 2 remiten a otros preceptos, como el art. 7 sobre rentas exentas"
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006",
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "el artículo remite a otros preceptos, como el art. 7 sobre rentas exentas y la disposición adicional decimoctava"
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38086437788,
+   "commit": "d51f3d76f939f2c8525b38c918629456480df50a",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     54
+    ],
+    "herramienta": [
+     0,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "el texto añade \"sin perjuicio de lo dispuesto en el artículo 7\", que regula las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    },
+    {
+     "sesion": "16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "No he leído los demás artículos del Capítulo (por ejemplo, el art. 27 sobre tipicidad), así que no puedo decir qué regulan."
+     ],
+     "precepto": [
+      "Artículo 27 de la Ley 40/2015",
+      "Artículo 27 de la Ley 40/2015 (BOE-A-2015-10566)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38093230614,
+   "commit": "6ba703b0158b9f9ce82f561529f89e8669408b5d",
+   "arbol_de_la_skill": "6063317",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 0
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     23
+    ],
+    "herramienta": [
+     0,
+     0
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 38320818242,
+   "commit": "76b89e7f6a6d3d6fc2e50b1467756eb31f2f6ebf",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": null
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     0,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "Varias de estas partidas se dicen «sin perjuicio de lo dispuesto en el artículo 7» de la Ley, que es el artículo de las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "Varios de estos supuestos se dan \"sin perjuicio\" de lo dispuesto en el art. 7 de la Ley, que regula otras rentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38397987554,
+   "commit": "b29fe6c5e465a9ff25c0cbdff596887ade85b884",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     2,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "06-irpf-rendimientos-del-trabajo-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "El rendimiento neto se obtiene después, descontando los gastos deducibles que fije la Ley."
+     ],
+     "precepto": [
+      "Precepto de la Ley 35/2006 que regula el rendimiento neto del trabajo y los gastos deducibles (art. 19), no devuelto",
+      "Precepto de la Ley 35/2006 sobre el rendimiento neto del trabajo y los gastos deducibles (artículo 19), que no devolvió ninguna herramienta",
+      "Regla de la LIRPF sobre el cálculo del rendimiento neto del trabajo (gastos deducibles), que ninguna herramienta devolvió"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "El rendimiento neto resulta de restar los gastos deducibles."
+     ],
+     "precepto": [
+      "Artículo 19 de la Ley 35/2006 (rendimiento neto del trabajo y gastos deducibles)",
+      "Artículo 19 de la Ley 35/2006 (rendimiento neto del trabajo), no devuelto por ninguna herramienta",
+      "Precepto de la Ley 35/2006 sobre el rendimiento neto del trabajo y los gastos deducibles (artículo 19), no devuelto"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38547712693,
+   "commit": "fcea1de937cb8c563173ebd297a75d22aa8955d5",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     1,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "Por eso no puedo precisar aquí qué parte de ellas queda exenta.",
+      "Varias de estas letras (pensiones, pensiones compensatorias y anualidades por alimentos, becas) se entienden \"sin perjuicio de lo dispuesto en el artículo 7\" de la Ley, que no he leído. Por eso no puedo precisar aquí qué parte de ellas queda exenta."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38557014707,
+   "commit": "de6d60e53f0d040e09fada01a3e7a32caad102e3",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     54
+    ],
+    "herramienta": [
+     4,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "El artículo remite a otros preceptos, como el art. 7 sobre rentas exentas, que no he leído."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 (IRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38568026597,
+   "commit": "badbc6cebb41e81e345500f6ebb7416ac8b3c11f",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     54
+    ],
+    "herramienta": [
+     2,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "No he leído los preceptos a los que remite, como el art. 7 sobre rentas exentas",
+      "No he leído los preceptos a los que remite, como el art. 7 sobre rentas exentas, ni los que fijan cómo se calcula el rendimiento neto."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38769264343,
+   "commit": "7823a96c81fa37b7e38de41c792c414c1f546a80",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 4,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     1,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "No he leído el art. 123, que podría completar el régimen de los municipios de gran población."
+     ],
+     "precepto": [
+      "Artículo 123 de la Ley 7/1985 (LRBRL)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "Algunas de las rentas citadas pueden estar exentas por el art. 7 de la Ley, que no he leído."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Varias letras se aplican \"sin perjuicio\" de lo dispuesto en el art. 7 de la Ley (exenciones)."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (IRPF)",
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "16-lrjsp-legalidad-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "Las comunidades autónomas pueden regular su propia potestad sancionadora en las materias de su competencia."
+     ],
+     "precepto": [
+      "Las normas sobre la competencia de las comunidades autónomas para regular la potestad sancionadora (reparto competencial). No aparecen en el art. 25 de la Ley 40/2015 ni en ningún otro texto devuelto.",
+      "Regla de competencia de las comunidades autónomas para regular su potestad sancionadora (precepto no identificado y no devuelto)",
+      "Regla de reparto competencial sobre la potestad sancionadora autonómica (normas constitucionales o estatutarias no devueltas)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38797220859,
+   "commit": "b4cc5a3c5547488de7041e485fbcb876175539e7",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     0,
+     54
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 38821249157,
+   "commit": "878688537530947c821137755f7bb0ab7b1de5bc",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     54
+    ],
+    "herramienta": [
+     2,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "06-irpf-rendimientos-del-trabajo-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Varios de estos supuestos se entienden «sin perjuicio» de lo dispuesto en el artículo 7 de la misma ley (rentas exentas)."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 (IRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38824636853,
+   "commit": "bab34595466e6c3251fe1f9397910c596c5bf27e",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     4,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Algunos de estos supuestos se aplican \"sin perjuicio de lo dispuesto en el artículo 7\" de la Ley, que trata las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 38902031599,
+   "commit": "60e86788d87bc19415912e3f4669ec789714463f",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 3,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     54
+    ],
+    "herramienta": [
+     0,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "08-ltaibg-plazo-de-resolucion-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "También cabe la reclamación potestativa del art. 24, que es previa a ese recurso"
+     ],
+     "precepto": [
+      "Artículo 24 de la Ley 19/2013",
+      "Artículo 24 de la Ley 19/2013 (reclamación potestativa)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "Las remisiones al art. 7 (rentas exentas) y a la disposición adicional decimoctava no las he leído, así que no digo qué contienen."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Los ingresos exentos (art. 7) y la determinación del rendimiento neto no se han consultado aquí."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39040848519,
+   "commit": "ca03848092e78753e5d332aefdb783933e5c7471",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     3,
+     54
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 39168409746,
+   "commit": "3f14e3a216b41f76a7e17484f3053976074406ae",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     54
+    ],
+    "herramienta": [
+     0,
+     54
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "No he leído el artículo 7 de la Ley, al que remite el art. 17.2, que incluye las rentas exentas",
+      "No he leído el artículo 7 de la Ley, al que remite el art. 17.2, que incluye las rentas exentas, así que no puedo decir qué supuestos quedan exentos."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39174538581,
+   "commit": "92fc232d48d786de909edd093ec647a0e1cd3d11",
+   "arbol_de_la_skill": "eed129f",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 108
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     54
+    ],
+    "herramienta": [
+     2,
+     54
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 39308925687,
+   "commit": "77211a98d2e2f9eeb470d09dc1bd018a161af0fb",
+   "arbol_de_la_skill": "49b59ac",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     60
+    ],
+    "herramienta": [
+     1,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "No he podido leer el art. 123 de la LRBRL porque la fuente limitó las consultas. Por eso no afirmo nada sobre el régimen de los municipios de gran población, que puede diferir."
+     ],
+     "precepto": [
+      "Artículo 123 de la Ley 7/1985 (BOE-A-1985-5392)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "Varias letras (pensiones, pensiones compensatorias, becas) se dicen \"sin perjuicio de lo dispuesto en el artículo 7\" de la ley, que no he leído, así que no puedo precisar qué rentas quedan exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39382777463,
+   "commit": "ce7268196b89246d9806e4c92655ae25f9d91293",
+   "arbol_de_la_skill": "7ed809e",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     3,
+     60
+    ],
+    "herramienta": [
+     2,
+     60
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 39399902083,
+   "commit": "d6213b94e48e75eac809ecb1c280efac0493b73a",
+   "arbol_de_la_skill": "7cba1ea",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     60
+    ],
+    "herramienta": [
+     4,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03",
+     "frases": [
+      "El texto remite en varios puntos al art. 7 de la ley, que regula las rentas exentas",
+      "El texto remite en varios puntos al art. 7 de la ley, que regula las rentas exentas, y a otras normas, como la de planes y fondos de pensiones."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39417085312,
+   "commit": "c8a0b9fb0b4858d6f9d351fb1138ffb69623aa73",
+   "arbol_de_la_skill": "af8e72c",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     60
+    ],
+    "herramienta": [
+     1,
+     60
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 39432580088,
+   "commit": "3391a232eca85496ff351735ff41f43bb45af919",
+   "arbol_de_la_skill": "af8e72c",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     60
+    ],
+    "herramienta": [
+     2,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "Los arts. 18 a 20 de la Ley, que no he leído, también forman parte de la regulación de estos rendimientos."
+     ],
+     "precepto": [
+      "Artículos 18 a 20 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39447467111,
+   "commit": "bae2c10fee0acd6500cc37d394e81fc0b29c94e3",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 3,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     60
+    ],
+    "herramienta": [
+     3,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "En varios de estos supuestos el texto remite al art. 7 de la Ley, que contiene exenciones."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    },
+    {
+     "sesion": "16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "No he podido consultar los arts. 26 y 27, que completan los principios de la potestad sancionadora, porque la fuente limitó las consultas."
+     ],
+     "precepto": [
+      "Artículos 26 y 27 de la Ley 40/2015",
+      "Artículos 26 y 27 de la Ley 40/2015 (BOE-A-2015-10566)"
+     ]
+    },
+    {
+     "sesion": "17-ltaibg-plazo-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso"
+     ],
+     "precepto": [
+      "Artículo 24 de la Ley 19/2013",
+      "Artículo 24 de la Ley 19/2013 (reclamación ante el Consejo de Transparencia)",
+      "Artículo 24 de la Ley 19/2013 (reclamación potestativa)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39492300808,
+   "commit": "8e7b6c3d03fbc30e7c9345e4ae34604d285196da",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     60
+    ],
+    "herramienta": [
+     1,
+     60
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 39605962511,
+   "commit": "444e674ca73826feafbd151fdee59b3ff36e984c",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     60
+    ],
+    "herramienta": [
+     0,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "Varias letras del apartado 2 se dan \"sin perjuicio de lo dispuesto en el artículo 7\" de la misma ley (rentas exentas)."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006",
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39690813918,
+   "commit": "daa83189836fe80073d16adfee8d585a100d532f",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     60
+    ],
+    "herramienta": [
+     3,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "08-ltaibg-plazo-de-resolucion-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso y alternativa a él"
+     ],
+     "precepto": [
+      "Artículo 24 de la Ley 19/2013",
+      "Artículo 24 de la Ley 19/2013 (reclamación potestativa)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39731914214,
+   "commit": "0329761279494ff78daa0a7f3c6f9c6d3abaf19e",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     2,
+     60
+    ],
+    "herramienta": [
+     0,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "El art. 17 remite al art. 7 de la Ley para las rentas exentas",
+      "El art. 17 remite al art. 7 de la Ley para las rentas exentas, y a otros preceptos para las reducciones y la imputación de planes de pensiones."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39858603133,
+   "commit": "2c8dda625bb253a8a6170eee452bfa1ec073e92c",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     60
+    ],
+    "herramienta": [
+     2,
+     60
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 39865614518,
+   "commit": "5ef76bc788c9fbd9b4c08710241cfba5df0a52eb",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     4,
+     60
+    ],
+    "herramienta": [
+     0,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "El rendimiento neto resulta de aplicar los gastos deducibles y las reducciones."
+     ],
+     "precepto": [
+      "Preceptos de la LIRPF sobre el rendimiento neto del trabajo (gastos deducibles y reducciones), no devueltos",
+      "Preceptos de la LIRPF sobre el rendimiento neto del trabajo (gastos deducibles y reducciones), no devueltos por las herramientas",
+      "Preceptos de la LIRPF sobre el rendimiento neto del trabajo (gastos deducibles y reducciones), no devueltos por ninguna herramienta"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39916223315,
+   "commit": "3d9d059e5a3fa5798bd7cf5f055cdf6156d1b20d",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     0,
+     60
+    ],
+    "herramienta": [
+     0,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "13-lrbrl-atribuciones-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Esa norma es la que podría completar o modificar este régimen en otros tipos de municipio."
+     ],
+     "precepto": [
+      "Artículo 123 de la Ley 7/1985 (BOE-A-1985-5392)",
+      "Artículo 123 de la Ley 7/1985, Reguladora de las Bases del Régimen Local"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 39917130258,
+   "commit": "fe150d0ba9dde7cd4713ca2d73bd143fd7198eb6",
+   "arbol_de_la_skill": "27aeccc",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 0,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     1,
+     60
+    ],
+    "herramienta": [
+     3,
+     60
+    ]
+   },
+   "marcadas": []
+  },
+  {
+   "ejecucion": 40163549411,
+   "commit": "03cf8d9d6002a24b0ccebe2ab0ca0f22edbfe207",
+   "arbol_de_la_skill": "92525ec",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 1,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     10,
+     60
+    ],
+    "herramienta": [
+     21,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "Varias de estas letras se remiten al art. 7 de la Ley, que contiene exenciones."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)",
+      "Artículo 7 de la Ley 35/2006, del IRPF"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40185973041,
+   "commit": "44adb4ea0cf48d7c490f732b731655b8b6575d3b",
+   "arbol_de_la_skill": "b4620bb",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 3,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     16,
+     60
+    ],
+    "herramienta": [
+     21,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03",
+     "frases": [
+      "Ese artículo regula las rentas exentas y no lo he leído, así que no puedo decir qué excluye."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "En varios casos el propio artículo hace una salvedad respecto del art. 7 de la Ley, que contempla rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    },
+    {
+     "sesion": "17-ltaibg-plazo-por-materia-claude-sonnet-5-5-03",
+     "frases": [
+      "También cabe la reclamación potestativa del artículo 24, que es previa a ese recurso (art. 20.5)."
+     ],
+     "precepto": [
+      "Artículo 24 de la Ley 19/2013 (reclamación potestativa)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40186909164,
+   "commit": "01f77333fb63eabae336428c5ee60b9cc97f9f24",
+   "arbol_de_la_skill": "92525ec",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 1,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     14,
+     60
+    ],
+    "herramienta": [
+     21,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "Algunos de estos supuestos se entienden sin perjuicio del art. 7 de la Ley (el de las rentas exentas)."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    },
+    {
+     "sesion": "17-ltaibg-plazo-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "No pude leer el artículo 19, que regula la tramitación, porque la consulta al BOE falló."
+     ],
+     "precepto": [
+      "Artículo 19 de la Ley 19/2013",
+      "Artículo 19 de la Ley 19/2013 (BOE-A-2013-12887)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40187587575,
+   "commit": "e055a392d5f880a9afa2d2501ac5ec62f3816695",
+   "arbol_de_la_skill": "92525ec",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     14,
+     60
+    ],
+    "herramienta": [
+     22,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "Algunas de estas letras (pensiones, pensiones compensatorias, becas) se remiten al art. 7 de la propia Ley, que regula las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "En varios de estos supuestos el propio artículo se remite al art. 7 de la Ley, que regula las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40191101566,
+   "commit": "75c75b7d60cae94d478baa6cb52e63ba2239429b",
+   "arbol_de_la_skill": "92525ec",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 5,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 3,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     18,
+     60
+    ],
+    "herramienta": [
+     18,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "06-irpf-rendimientos-del-trabajo-claude-sonnet-5-5-01",
+     "frases": [
+      "Las letras a) 1.ª, f) y h) del apartado 2 se entienden sin perjuicio de lo dispuesto en el art. 7 de la propia Ley, que regula las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006",
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    },
+    {
+     "sesion": "06-irpf-rendimientos-del-trabajo-claude-sonnet-5-5-02",
+     "frases": [
+      "En varios de estos supuestos el propio texto remite al art. 7 de la Ley, que regula las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 (Ley del IRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "Ese artículo regula rentas exentas, así que puede afectar a pensiones, prestaciones, becas y anualidades por alimentos."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03",
+     "frases": [
+      "Algunas remisiones, como las del artículo 7 sobre rentas exentas, las dietas y los límites reglamentarios, condicionan el resultado en cada caso."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "El rendimiento neto resulta de restarles los gastos deducibles, que el art. 17 no regula."
+     ],
+     "precepto": [
+      "Precepto de la Ley 35/2006 que regula el rendimiento neto del trabajo (gastos deducibles), no devuelto por las herramientas",
+      "Regla de cálculo del rendimiento neto del trabajo de la Ley 35/2006 (art. 19, no devuelto)",
+      "Regla del rendimiento neto del trabajo de la Ley 35/2006 (art. 19), no devuelta por ninguna herramienta"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40196385596,
+   "commit": "a9e550e41ac0b93bccc76f04d32e6dc8baaacdd8",
+   "arbol_de_la_skill": "b4620bb",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 3,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 0,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     16,
+     60
+    ],
+    "herramienta": [
+     26,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "10-et-vacaciones-claude-sonnet-5-5-01",
+     "frases": [
+      "Coincidencia con incapacidad temporal por embarazo, parto o lactancia natural, o con suspensión del contrato por nacimiento:"
+     ],
+     "precepto": [
+      "Artículo 48, apartados 4, 5 y 7, del Estatuto de los Trabajadores (BOE-A-2015-11430)",
+      "Artículo 48, apartados 4, 5 y 7, del Estatuto de los Trabajadores (remitido desde el art. 38.3)",
+      "Artículo 48, apartados 4, 5 y 7, del Estatuto de los Trabajadores (remitidos en el art. 38.3)"
+     ]
+    },
+    {
+     "sesion": "13-lrbrl-atribuciones-por-materia-claude-sonnet-5-5-02",
+     "frases": [
+      "Los municipios de gran población tienen un régimen propio de organización y competencias, que puede variar las atribuciones del Pleno."
+     ],
+     "precepto": [
+      "Art. 123 de la Ley 7/1985 (régimen de los municipios de gran población)",
+      "Art. 123 de la Ley 7/1985 y régimen de los municipios de gran población",
+      "Artículo 123 de la Ley 7/1985 (régimen de municipios de gran población)"
+     ]
+    },
+    {
+     "sesion": "16-lrjsp-legalidad-por-materia-herramienta-claude-sonnet-5-5-01",
+     "frases": [
+      "Al reconocerla, la ley define las infracciones y sanciones, y la competencia de los órganos puede venir también de un reglamento."
+     ],
+     "precepto": [
+      "Regla de que la ley define infracciones y sanciones (principio de tipicidad, art. 27 de la Ley 40/2015), no devuelta",
+      "Regla de tipicidad de infracciones y sanciones (art. 27 de la Ley 40/2015, no devuelto), atribuida en el resumen al principio de legalidad",
+      "Regla de tipicidad de la Ley 40/2015 (definición legal de infracciones y sanciones), que no está en el art. 25 devuelto"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40198845191,
+   "commit": "f2d46e2c84090ca268dac15b0cd105dbe34b6563",
+   "arbol_de_la_skill": "b4620bb",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 2,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 2,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     21,
+     60
+    ],
+    "herramienta": [
+     17,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-03",
+     "frases": [
+      "En varias de estas letras el precepto añade \"sin perjuicio de lo dispuesto en el artículo 7\", que se refiere a las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006",
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "Varias de estas letras se dicen \"sin perjuicio de lo dispuesto en el artículo 7\" de la Ley, es decir, de las rentas exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    }
+   ]
+  },
+  {
+   "ejecucion": 40208916233,
+   "commit": "ba43c38b5548056983bd9d3a7647a63837f60d90",
+   "arbol_de_la_skill": "b4620bb",
+   "versiones_de_claude_code": [
+    "2.1.284"
+   ],
+   "version_del_juez": "2.1.289",
+   "afirma_lo_no_leido": {
+    "marcadas": 5,
+    "total": 120
+   },
+   "afirma_lo_no_leido_eval_15": {
+    "marcadas": 3,
+    "total": 6
+   },
+   "cuenta_su_proceso": {
+    "orden": [
+     18,
+     60
+    ],
+    "herramienta": [
+     17,
+     60
+    ]
+   },
+   "marcadas": [
+    {
+     "sesion": "14-trlrhl-impuestos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "Intenté leer también los artículos que regulan cada impuesto (bloques a60, a92, a100 y a104)."
+     ],
+     "precepto": [
+      "Artículos 60, 92, 100 y 104 del Real Decreto Legislativo 2/2004 (BOE-A-2004-4214)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-claude-sonnet-5-5-01",
+     "frases": [
+      "Ese artículo no lo he leído, así que no puedo precisar qué supuestos quedan exentos."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (LIRPF)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-02",
+     "frases": [
+      "El precepto remite al art. 7 de la Ley (rentas exentas) para algunos supuestos, y no lo he leído aquí."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)"
+     ]
+    },
+    {
+     "sesion": "15-irpf-rendimientos-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "Varias de estas letras se aplican \"sin perjuicio de lo dispuesto en el artículo 7\" de la Ley, que no he leído. Por eso no puedo decir qué rentas quedan exentas."
+     ],
+     "precepto": [
+      "Artículo 7 de la Ley 35/2006 (BOE-A-2006-20764)",
+      "Artículo 7 de la Ley 35/2006 del IRPF"
+     ]
+    },
+    {
+     "sesion": "17-ltaibg-plazo-por-materia-herramienta-claude-sonnet-5-5-03",
+     "frases": [
+      "Cabe también la reclamación potestativa del artículo 24, que es previa a ese recurso"
+     ],
+     "precepto": [
+      "Artículo 24 de la Ley 19/2013",
+      "Artículo 24 de la Ley 19/2013 (reclamación potestativa)"
+     ]
+    }
+   ]
+  }
+ ]
+}

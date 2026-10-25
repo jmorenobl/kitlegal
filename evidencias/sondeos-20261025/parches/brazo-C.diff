@@ -1,0 +1,27 @@
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index 05a4fd7..0103c90 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -69,11 +69,17 @@ la vigencia o una modificación, los metadatos y el análisis.
+ ### 5. De un precepto no leído, nada
+ 
+ De un artículo, apartado o disposición que nada te ha devuelto en esta conversación no digas qué dice, de qué trata ni
+-cuándo o cómo se aplica, ni en un inciso ni aunque creas saberlo: sería texto legal sin fuente, y el índice solo da
+-números. Número y materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…»), ni negando («no puedo
+-decir qué <regla> fija»), ni al ofrecer leerlo o avisar de lo no leído: o el número, o la materia. Lo remitido, léelo
+-y cítalo, o nómbralo con las palabras leídas, nada más. Puedes avisar de que una materia se regula en otra parte, sin
+-nombrar precepto ni regla.
++cuándo o cómo se aplica, aunque creas saberlo: sería texto legal sin fuente, y el índice solo da números. Si lo leído
++remite a él y no lo lees, nómbralo solo con las palabras del texto leído, entre comillas, y termina ahí:
++
++```text
++✓ Se aplica «sin perjuicio de lo dispuesto en el artículo N». No lo he leído.
++✗ …el artículo N, que regula <materia>.        ✗ …el artículo N (<materia>).
++✗ …el artículo N, es decir, de <materia>.      ✗ No he leído el artículo N, sobre <materia>.
++```
++
++Tampoco al avisar de lo no leído ni al ofrecer leerlo: o el número, o la materia, nunca juntos. Para decir de qué
++trata, léelo y cítalo. Puedes avisar de que una materia se regula en otra parte, sin nombrar precepto ni regla.
+ 
+ ## Cómo se cita
+ 

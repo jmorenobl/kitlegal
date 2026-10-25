@@ -10,6 +10,21 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-25 · Una subida de dependencia sale en rojo por la skill
+
+- **Qué se pidió.** Fusionar cinco propuestas de la deuda tras H31, una de ellas la #195, que solo sube
+  `golang.org/x/text`.
+- **Qué pasó.** La #195 midió la suite completa, porque toca `go.mod`, y `boe-legislacion` dio 5 de 120 en
+  `afirma_lo_no_leido`, con 3 de tope: cuatro respuestas dicen de memoria que el art. 7 de la Ley del IRPF regula las
+  rentas exentas. Se fusionó en rojo, con un comentario que lo explica. Una propuesta para subir el umbral (#198, ADR
+  0047) volvió a dar 5 de 120 y se retiró: con todas las medidas guardadas del job, la skill marca más desde H31.
+- **Qué faltó.** Saber de dónde venía. Seis sondeos de la eval 15 lo separaron (`evidencias/sondeos-20261025/`):
+  `afirma_lo_no_leido` no es de H31, porque la skill de antes marca lo mismo que la de hoy, y ninguna redacción de la
+  regla 5 lo baja; `cuenta_su_proceso` sí empeoró con H31, del 2 % al 30 % en el job; y una referencia que el cuerpo
+  manda leer antes de responder no la abrió ninguna sesión.
+- **Qué se hizo.** H31.1, delante de H32: devolver al cuerpo lo que H31 comprimió sobre la respuesta, leer lo que la
+  respuesta nombra, y escribir en `docs/SKILLS.md` qué referencias se leen. Ningún umbral se toca.
+
 ### 2026-10-21 · La póliza se lee bien, pero no hay nada alrededor de la norma
 
 - **Qué se pidió.** Una familia a la que una aseguradora renovó y cobró una póliza tras el fallecimiento de la asegurada

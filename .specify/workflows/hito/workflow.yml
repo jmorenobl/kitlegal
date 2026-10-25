@@ -29,7 +29,7 @@ inputs:
     # los pasos shell: ninguno lleva un metacarácter. La lista la genera
     # `make roadmap-sync` desde docs/roadmap/ (done/, in-progress/ y todo/),
     # y TestRoadmap falla si no coincide: no se edita a mano.
-    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H6","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H9.1","H10","H11","H15","H16","H19","H20","H21","H22","H23","H23.1","H24","H25","H26","H26.1","H27","H28","H29","H30","H31","H32","H33","H34","H35","H36","H37","H38"]
+    enum: ["H0","H1","H2","H3","H4","H5","H5.1","H6","H7","H7.1","H7.2","H7.3","H7.4","H8","H9","H9.1","H10","H11","H15","H16","H19","H20","H21","H22","H23","H23.1","H24","H25","H26","H26.1","H27","H28","H29","H30","H31","H31.1","H32","H33","H34","H35","H36","H37","H38"]
   # ---- modelo y esfuerzo por rol: "<modelo>" o "<modelo>@<esfuerzo>" ----
   # (Haiku 4.5 no admite esfuerzo: solo sin sufijo.)
   # scripts/claude-modelo.sh (SPECKIT_INTEGRATION_CLAUDE_EXECUTABLE, exportado
