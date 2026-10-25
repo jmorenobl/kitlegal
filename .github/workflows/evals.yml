@@ -250,7 +250,12 @@ jobs:
     # D13 de H7.3). Desde H30, el de cada skill suma los 900 s del plazo del paso de la decisión, el -timeout de su go
     # test (contracts/job-de-evals.md §2 de H30; research.md D17 de H30): 19 877 s en boe-legislacion, 331,3 minutos;
     # 13 477 s en jurisprudencia, 224,6 minutos; y 20 425 s en legal-core, 340,4 minutos, el mayor, que los 352 minutos
-    # cubren sin cambiar. Las cifras que siguen son las de sus sesiones y su juez, sin la decisión.
+    # cubren sin cambiar. Desde H31, el de cada skill suma el del juez de su descripción, que todo trabajo puede juzgar:
+    # sus 6 votos de 40 s, 240 s, y, en legal-core, que no tiene juez de las respuestas, los 60 s de instalar el Claude
+    # Code del juez (specs/027-h31-las-skills-siguen/research.md D10; SC-015 de H31): 20 117 s en boe-legislacion, 335,3
+    # minutos; 13 717 s en jurisprudencia, 228,6 minutos; y 20 725 s en legal-core, 345,4 minutos, el mayor, que los 352
+    # minutos cubren sin cambiar. Las cifras que siguen son las de sus sesiones y su juez, sin la decisión ni la
+    # descripción.
     # 352 minutos: el peor caso de boe-legislacion, a cinco a la vez desde antes de H20, es de 18 977 s,
     # 316,3 minutos. Son los 12 997 s de sus sesiones, con sus 23 evals en tres tandas —las del modo orden, las del modo
     # herramienta y las de la eval sin binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md
