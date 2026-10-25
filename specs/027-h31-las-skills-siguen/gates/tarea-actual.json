@@ -1,23 +1,17 @@
 {
-  "id": "T012",
-  "texto": "T012 [US3] Construir el juez de las descripciones y su identidad (FR-025, FR-026, FR-027; research D2, D4, D5, D8; contracts/juez-de-las-descripciones.md §1, §2 y §4): en `internal/evals/juez.go`, partir `juzgar` en lo que arma el mensaje de una respuesta (`mensajeDelVoto`) y lo que vota un mensaje contra el texto en que se busca la frase, sin cambiar el comportamiento del juez de las respuestas; nuevo `internal/evals/descripciones.go` con `juezDeLasDescripciones(raiz)`, que lee `rubrica.md`, `esquema.json`, `casos.yaml` y `medida.json` del directorio de evidencia del ADR 0046 y devuelve un `*Juez` con la clase `{Nombre: \"habla_en_primera_o_segunda_persona\", Decide: true}`; el control de identidad, que compara el SHA-256 de cada uno de los cuatro con el que registra su `manifiesto.json`; `mensajeDeLaDescripcion(skill, descripcion)`, el de `mensaje_de` (descripción de `LeerFrontmatter` sin los blancos de `esBlanco`, entre `<descripcion skill=\"<skill>\">` y `</descripcion>`, una línea en blanco y «Responde a la pregunta de la rúbrica sobre esta descripción.», sin salto final); y la huella del juicio (SHA-256 del texto de líneas `skill`, `descripcion`, `rubrica`, `esquema`, `casos`, `medida` y `juez <modelo> <versión>`). Tests: `TestJuezDeLasDescripciones` en `internal/evals/descripciones_test.go` (identidad con el manifiesto y un byte cambiado en cualquiera de los cuatro, sobre una copia en `t.TempDir()`, en rojo; el mensaje igual, byte a byte, al construido como `mensaje_de` para un caso de `casos.yaml`; la huella cambia con cada uno de sus datos) y, en `TestMedidaVersionada` de `internal/evals/medida_test.go`, la medida de las descripciones comprobada con `comprobarLaMedida` frente al modelo y la versión que fija el workflow de las evals (`fijadosParaElJuez`) y sus seis mutaciones (otra huella de la rúbrica, otra de los casos, otro modelo, otra versión, 62 de 63 y 1 de 36), cada una con su línea; `TestJuezDeLaDefinicionDelJob` y `TestCopiasDelJuez` siguen en verde. Sin abrir ninguna sesión. FR-025, FR-026, FR-027, FR-033, SC-006, SC-008, SC-014. Rutas: internal/evals/juez.go, internal/evals/juez_test.go, internal/evals/descripciones.go, internal/evals/descripciones_test.go, internal/evals/medida.go, internal/evals/medida_test.go",
+  "id": "T013",
+  "texto": "T013 [US3] Votar una descripción con la regla de la `votacion` del juez de las evals (FR-028, FR-029, FR-032, FR-033; research D6; contracts/juez-de-las-descripciones.md §5): en `internal/evals/descripciones.go`, el juicio de una descripción que pide los votos por orden con el votante de `nuevoVotanteDelGuion` (el guion de voto de las evals, sin cambios) y la `votacion` de `internal/evals/juez.go` con la clase única: marcada con tres «si» unánimes con su frase comprobada con `fraseEsta`; el segundo voto solo tras un primer «si» y el tercero solo tras el segundo; un «si» con una frase que no está, nulo y repetido una sola vez (si vuelve a ser nulo, su «si» no cuenta); el voto cortado por el tope (35 s más 5), repetido una vez, y cortado otra vez, sin juzgar; la sesión con error, sin la forma del esquema o cortada por un límite de uso, sin repetición y sin juzgar, con el motivo del voto; como mucho seis votos; `frase` y `motivo` del primer voto. Tests en `TestJuezDeLasDescripciones` de `internal/evals/descripciones_test.go` con un `Votante` simulado (tres «si» → marcada con su frase y su motivo; «si», «si», «no» → sin marcar; primer «no» → sin marcar y 0 votos pedidos después; frase que no está → nulo y una repetición; cortado dos veces → sin juzgar; error → sin juzgar y sin repetición; ≤ 6 votos en el peor caso) y con el `claude` sustituto de `internal/evals/sustitutos_test.go` (el mensaje llega por la entrada estándar y no se abre ninguna sesión con modelo); en rojo con cualquiera distinto. FR-028, FR-029, FR-032, FR-033, SC-007, SC-014. Rutas: internal/evals/descripciones.go, internal/evals/descripciones_test.go, internal/evals/juez.go, internal/evals/juez_test.go, internal/evals/sustitutos_test.go",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "6081deaa4967a63efc2391f3b7b489b5d857a803",
+  "base": "4ccc19bf8fd7d4c8211f6afdb59b6394da1b2a1f",
   "rutas": [
-    "casos.yaml",
     "contracts/juez-de-las-descripciones.md",
-    "esquema.json",
     "internal/evals/descripciones.go",
     "internal/evals/descripciones_test.go",
     "internal/evals/juez.go",
     "internal/evals/juez_test.go",
-    "internal/evals/medida.go",
-    "internal/evals/medida_test.go",
-    "manifiesto.json",
-    "medida.json",
-    "rubrica.md"
+    "internal/evals/sustitutos_test.go"
   ],
   "cierre": false,
   "converger": false,

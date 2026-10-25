@@ -235,6 +235,102 @@ func mensajeDeLaDescripcion(skill, descripcion string) string {
 		peticionDelVotoDeLaDescripcion
 }
 
+// VotoDeLaDescripcion es lo que el juicio de una descripción guarda de cada voto
+// que se dio (data-model §4 de H31; contracts/juez-de-las-descripciones.md §6
+// de H31): lo que el juez dijo de su única clase, tal como lo dio. Sus claves
+// JSON, en el orden de sus campos, son las de un voto del juicio de una
+// descripción.
+type VotoDeLaDescripcion struct {
+	// Respuesta es «si» o «no».
+	Respuesta string `json:"respuesta"`
+
+	// Frase es la frase de la descripción que el juez cita como prueba de su
+	// sí; vacía con un no.
+	Frase string `json:"frase"`
+
+	// Motivo es el motivo que el juez da de su respuesta.
+	Motivo string `json:"motivo"`
+}
+
+// JuicioDeLaDescripcion es el juicio del juez de las descripciones sobre la
+// descripción de una skill, el que da la regla de los votos con su única clase
+// (data-model §4 de H31; contracts/juez-de-las-descripciones.md §5 y §6 de H31;
+// FR-028, FR-029, FR-032). Sus claves JSON son las del juicio de una
+// descripción.
+type JuicioDeLaDescripcion struct {
+	// Marcada dice si tres votos dicen sí con su frase en la descripción. Con la
+	// descripción sin juzgar es falsa.
+	Marcada bool `json:"marcada"`
+
+	// Frase es la del primer voto, si la descripción está marcada; vacía si no.
+	// Del primer voto cuenta, como en la regla de los votos, la repetición de un
+	// nulo o de un cortado.
+	Frase string `json:"frase"`
+
+	// Motivo es el del primer voto, el que cuenta, esté o no marcada la
+	// descripción; vacío si no llegó a darse.
+	Motivo string `json:"motivo"`
+
+	// Votos son todos los votos que se dieron, en su orden: también los nulos,
+	// delante de su repetición, y no los que el tope cortó, que no dieron nada.
+	Votos []VotoDeLaDescripcion `json:"votos"`
+
+	// SinJuzgar es el motivo del voto que no llegó a darse, con su número;
+	// vacío, y sin clave, si la descripción se juzgó.
+	SinJuzgar string `json:"sin_juzgar,omitzero"`
+}
+
+// juzgarLaDescripcion aplica a la descripción de una skill la regla de los
+// votos de la votación (votar), que es la del juez de las descripciones, con
+// su única clase, que decide (contracts/juez-de-las-descripciones.md §5 de H31;
+// research D6 de H31; FR-028, FR-029, FR-032): pide cada voto, por orden, con
+// el mensaje de la descripción, mensajeDeLaDescripcion, y busca su frase en la
+// descripción con fraseEsta. Así, la descripción queda marcada con tres «si»
+// con su frase; el segundo voto se pide solo tras un primer «si», y el tercero
+// solo tras el segundo; un «si» con una frase que no está es nulo y se pide
+// otra vez, una sola; el voto que el tope corta se pide otra vez, una sola, y
+// cortado otra vez deja la descripción sin juzgar; y la sesión con error, sin
+// la forma del esquema o cortada por un límite de uso, sin repetición, la deja
+// sin juzgar, con el motivo del voto. Como mucho, votosPorRespuestaComoMucho
+// votos.
+func (v *votacion) juzgarLaDescripcion(skill, descripcion string) JuicioDeLaDescripcion {
+	return juicioDeLaDescripcion(v.votar(mensajeDeLaDescripcion(skill, descripcion), descripcion))
+}
+
+// juicioDeLaDescripcion es el juicio de una descripción que da el de la regla
+// de los votos con la única clase del juez de las descripciones: si queda
+// marcada, sus votos, sin el número, y el motivo de la descripción sin juzgar;
+// y, del primer voto, el último que lleva su número, que es el que cuenta, el
+// motivo y, si queda marcada, la frase.
+func juicioDeLaDescripcion(juicio JuicioDeRespuesta) JuicioDeLaDescripcion {
+	clase := juicio.Clases[0]
+
+	deLaDescripcion := JuicioDeLaDescripcion{
+		Marcada:   clase.Marcada,
+		Votos:     make([]VotoDeLaDescripcion, 0, len(clase.Votos)),
+		SinJuzgar: juicio.SinJuzgar,
+	}
+
+	var primero VotoDeClase
+
+	for _, voto := range clase.Votos {
+		deLaDescripcion.Votos = append(deLaDescripcion.Votos,
+			VotoDeLaDescripcion{Respuesta: voto.Respuesta, Frase: voto.Frase, Motivo: voto.Motivo})
+
+		if voto.Voto == 1 {
+			primero = voto
+		}
+	}
+
+	deLaDescripcion.Motivo = primero.Motivo
+
+	if clase.Marcada {
+		deLaDescripcion.Frase = primero.Frase
+	}
+
+	return deLaDescripcion
+}
+
 // huellaDelJuicio es la huella del juicio de la descripción de una skill
 // (contracts/juez-de-las-descripciones.md §2 de H31; data-model §4 de H31;
 // research D4 de H31): el SHA-256, en hexadecimal, de un texto con una línea

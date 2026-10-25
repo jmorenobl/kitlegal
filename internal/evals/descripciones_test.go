@@ -106,10 +106,22 @@ func identidadEn(t *testing.T, raiz string) []string {
 //   - el mensaje de cada voto es el de mensaje_de, byte a byte, para los casos
 //     de casos.yaml, y quita de la descripción los blancos de los extremos que
 //     quita str.strip();
-//   - y la huella del juicio es la del texto del contrato y cambia con cada uno
-//     de sus datos.
+//   - la huella del juicio es la del texto del contrato y cambia con cada uno
+//     de sus datos;
+//   - la descripción se vota con la regla de la votación del juez de las evals
+//     y su clase única (FR-028, FR-029 y FR-032 de H31;
+//     contracts/juez-de-las-descripciones.md §5 de H31; research D6 de H31;
+//     SC-007): marcada con tres «si» unánimes con su frase en la descripción,
+//     pedidos por orden; un «si» con una frase que no está, nulo y repetido una
+//     vez; el voto cortado por el tope, repetido una vez, y cortado otra vez,
+//     sin juzgar; la sesión con error, sin la forma del esquema o cortada por
+//     un límite de uso, sin repetición y sin juzgar; como mucho seis votos; y
+//     la frase y el motivo del primer voto que cuenta;
+//   - y el votante del guion de las evals, con el claude sustituto, recibe el
+//     mensaje de la descripción por su entrada estándar, con la rúbrica y el
+//     esquema de la evidencia.
 //
-// Ninguno abre una sesión (FR-033; SC-014).
+// Ninguno abre una sesión con modelo (FR-033; SC-014).
 func TestJuezDeLasDescripciones(t *testing.T) {
 	t.Parallel()
 
@@ -135,6 +147,18 @@ func TestJuezDeLasDescripciones(t *testing.T) {
 		t.Parallel()
 
 		probarLaHuellaDelJuicio(t)
+	})
+
+	t.Run("votos", func(t *testing.T) {
+		t.Parallel()
+
+		probarLosVotosDeLaDescripcion(t)
+	})
+
+	t.Run("votante-del-guion", func(t *testing.T) {
+		t.Parallel()
+
+		probarLaDescripcionConElVotanteDelGuion(t)
 	})
 }
 
@@ -373,5 +397,272 @@ func probarLaHuellaDelJuicio(t *testing.T) {
 		}
 
 		vistas[huella] = cambio.dato
+	}
+}
+
+// La descripción que juzgan los tests de los votos y lo que dicen de ella los
+// votos grabados: tres frases que están en ella, una que no está, otra que solo
+// está en el mensaje del voto, el motivo de cada voto y el texto del error de
+// una sesión del juez. Cada voto que dice sí lleva su frase y su motivo, para
+// que el juicio diga de qué voto son los suyos.
+const (
+	skillDeLosVotos       = "boe-legislacion"
+	descripcionDeLosVotos = "Consulta y cita normativa consolidada del BOE.\n" +
+		"Úsala siempre que la respuesta dependa de lo que dice una norma: sin leerla, no hay cita."
+
+	fraseDelPrimerVoto            = "Úsala siempre que la respuesta dependa"
+	fraseDelSegundoVoto           = "Úsala   siempre"
+	fraseDelTercerVoto            = "*Úsala* siempre que la respuesta dependa de lo que dice una norma"
+	fraseQueNoEstaEnLaDescripcion = "Úsame cuando lo necesites"
+	fraseDelMensajeDelVoto        = "Responde a la pregunta de la rúbrica"
+
+	motivoDelPrimerVoto  = "Da una orden a quien la lee con un imperativo con un pronombre pegado."
+	motivoDelSegundoVoto = "Se dirige a quien la lee con un imperativo."
+	motivoDelTercerVoto  = "Le dice a quien la lee cuándo usarla."
+	motivoDelVotoNulo    = "Habla en primera persona."
+	motivoDelVotoQueNo   = "Describe la skill en tercera persona y no se dirige a nadie."
+
+	errorDeLaSesionDelJuez = "API Error: 500 Internal server error"
+)
+
+// votoDeLaDescripcion es la grabación de un voto del juez de las descripciones
+// que llega a darse, con lo que dice de su única clase.
+func votoDeLaDescripcion(t *testing.T, respuesta, frase, motivo string) grabacion {
+	t.Helper()
+
+	return votoGrabado(t, map[string]dicho{
+		claseHablaEnPrimeraOSegundaPersona: {motivo: motivo, respuesta: respuesta, frase: frase},
+	})
+}
+
+// sesionDelJuezConError es la grabación del voto cuya sesión del juez terminó
+// con error, con ese texto en result, el de un límite de uso entre ellos: la
+// salida que deja la sesión y el error del proceso, que sale con 1.
+func sesionDelJuezConError(t *testing.T, texto string) grabacion {
+	t.Helper()
+
+	return grabacion{
+		salida: `{"type":"result","subtype":"success","is_error":true,"duration_ms":412,"num_turns":1,"result":` +
+			cadenaJSON(t, texto) + `,"session_id":"00000000-0000-4000-8000-000000000103"}` + "\n",
+		err: errorDeProceso{codigo: 1, texto: "exit status 1"},
+	}
+}
+
+// votoDado es lo que el juicio de una descripción guarda de un voto que se dio.
+func votoDado(respuesta, frase, motivo string) VotoDeLaDescripcion {
+	return VotoDeLaDescripcion{Respuesta: respuesta, Frase: frase, Motivo: motivo}
+}
+
+// casoDeVotosDeLaDescripcion es un caso de los votos de una descripción: lo que
+// el votante simulado devuelve de cada voto, por orden, que son todos los que
+// se le tienen que pedir, y el juicio que queda.
+type casoDeVotosDeLaDescripcion struct {
+	nombre      string
+	grabaciones []grabacion
+	juicio      JuicioDeLaDescripcion
+}
+
+// casosDeVotosDeLaDescripcion son los casos de los votos de una descripción,
+// los de la tabla de contracts/juez-de-las-descripciones.md §5 de H31.
+func casosDeVotosDeLaDescripcion(t *testing.T) []casoDeVotosDeLaDescripcion {
+	t.Helper()
+
+	primero := votoDeLaDescripcion(t, "si", fraseDelPrimerVoto, motivoDelPrimerVoto)
+	segundo := votoDeLaDescripcion(t, "si", fraseDelSegundoVoto, motivoDelSegundoVoto)
+	tercero := votoDeLaDescripcion(t, "si", fraseDelTercerVoto, motivoDelTercerVoto)
+	nulo := votoDeLaDescripcion(t, "si", fraseQueNoEstaEnLaDescripcion, motivoDelVotoNulo)
+	delMensaje := votoDeLaDescripcion(t, "si", fraseDelMensajeDelVoto, motivoDelVotoNulo)
+	queNo := votoDeLaDescripcion(t, "no", "", motivoDelVotoQueNo)
+	cortado := grabacion{err: fmt.Errorf("el voto se ha cortado antes de terminar: %w", errTopeDelVoto)}
+
+	sinForma := juicioGrabado(t, map[string]dicho{
+		claseHablaEnPrimeraOSegundaPersona: {motivo: motivoDelVotoQueNo, respuesta: "quizá"},
+	})
+
+	dadoPrimero := votoDado("si", fraseDelPrimerVoto, motivoDelPrimerVoto)
+	dadoSegundo := votoDado("si", fraseDelSegundoVoto, motivoDelSegundoVoto)
+	dadoTercero := votoDado("si", fraseDelTercerVoto, motivoDelTercerVoto)
+	dadoNulo := votoDado("si", fraseQueNoEstaEnLaDescripcion, motivoDelVotoNulo)
+	dadoDelMensaje := votoDado("si", fraseDelMensajeDelVoto, motivoDelVotoNulo)
+	dadoQueNo := votoDado("no", "", motivoDelVotoQueNo)
+
+	marcada := JuicioDeLaDescripcion{
+		Marcada: true, Frase: fraseDelPrimerVoto, Motivo: motivoDelPrimerVoto,
+		Votos: []VotoDeLaDescripcion{dadoPrimero, dadoSegundo, dadoTercero},
+	}
+
+	return []casoDeVotosDeLaDescripcion{
+		{nombre: "tres-si", grabaciones: []grabacion{primero, segundo, tercero}, juicio: marcada},
+		{
+			nombre:      "si-si-no",
+			grabaciones: []grabacion{primero, segundo, queNo},
+			juicio: JuicioDeLaDescripcion{
+				Motivo: motivoDelPrimerVoto, Votos: []VotoDeLaDescripcion{dadoPrimero, dadoSegundo, dadoQueNo},
+			},
+		},
+		{
+			nombre:      "primer-no",
+			grabaciones: []grabacion{queNo},
+			juicio:      JuicioDeLaDescripcion{Motivo: motivoDelVotoQueNo, Votos: []VotoDeLaDescripcion{dadoQueNo}},
+		},
+		{
+			nombre:      "frase-que-no-esta-dos-veces",
+			grabaciones: []grabacion{nulo, nulo},
+			juicio:      JuicioDeLaDescripcion{Motivo: motivoDelVotoNulo, Votos: []VotoDeLaDescripcion{dadoNulo, dadoNulo}},
+		},
+		{
+			nombre:      "frase-del-mensaje-dos-veces",
+			grabaciones: []grabacion{delMensaje, delMensaje},
+			juicio: JuicioDeLaDescripcion{
+				Motivo: motivoDelVotoNulo, Votos: []VotoDeLaDescripcion{dadoDelMensaje, dadoDelMensaje},
+			},
+		},
+		{
+			nombre:      "frase-que-no-esta-y-tres-si",
+			grabaciones: []grabacion{nulo, primero, segundo, tercero},
+			juicio: JuicioDeLaDescripcion{
+				Marcada: true, Frase: fraseDelPrimerVoto, Motivo: motivoDelPrimerVoto,
+				Votos: []VotoDeLaDescripcion{dadoNulo, dadoPrimero, dadoSegundo, dadoTercero},
+			},
+		},
+		{nombre: "cortado-y-tres-si", grabaciones: []grabacion{cortado, primero, segundo, tercero}, juicio: marcada},
+		{
+			nombre:      "cortado-dos-veces",
+			grabaciones: []grabacion{cortado, cortado},
+			juicio:      JuicioDeLaDescripcion{Votos: []VotoDeLaDescripcion{}, SinJuzgar: motivoDelTopeDosVecesUno},
+		},
+		{
+			nombre:      "cortado-dos-veces-en-el-segundo",
+			grabaciones: []grabacion{primero, cortado, cortado},
+			juicio: JuicioDeLaDescripcion{
+				Motivo: motivoDelPrimerVoto, Votos: []VotoDeLaDescripcion{dadoPrimero}, SinJuzgar: motivoDelTopeDosVecesDos,
+			},
+		},
+		{
+			nombre:      "sesion-con-error",
+			grabaciones: []grabacion{sesionDelJuezConError(t, errorDeLaSesionDelJuez)},
+			juicio: JuicioDeLaDescripcion{
+				Votos: []VotoDeLaDescripcion{}, SinJuzgar: prefijoDeSesionConError + errorDeLaSesionDelJuez,
+			},
+		},
+		{
+			nombre:      "limite-de-uso",
+			grabaciones: []grabacion{sesionDelJuezConError(t, limiteDeUsoDeLaSesion)},
+			juicio: JuicioDeLaDescripcion{
+				Votos: []VotoDeLaDescripcion{}, SinJuzgar: prefijoDeSesionConError + limiteDeUsoDeLaSesion,
+			},
+		},
+		{
+			nombre:      "sin-la-forma-del-esquema",
+			grabaciones: []grabacion{{salida: cabeceraDeLaSalidaDelJuez + sinForma + pieDeLaSalidaDelJuez}},
+			juicio:      JuicioDeLaDescripcion{Votos: []VotoDeLaDescripcion{}, SinJuzgar: prefijoDeSalidaSinForma + sinForma},
+		},
+		{
+			nombre:      "sesion-con-error-en-el-segundo",
+			grabaciones: []grabacion{primero, sesionDelJuezConError(t, errorDeLaSesionDelJuez)},
+			juicio: JuicioDeLaDescripcion{
+				Motivo: motivoDelPrimerVoto, Votos: []VotoDeLaDescripcion{dadoPrimero},
+				SinJuzgar: "voto 2: la sesión del juez terminó con error: " + errorDeLaSesionDelJuez,
+			},
+		},
+		{
+			nombre:      "peor-caso",
+			grabaciones: []grabacion{nulo, primero, cortado, segundo, nulo, tercero},
+			juicio: JuicioDeLaDescripcion{
+				Marcada: true, Frase: fraseDelPrimerVoto, Motivo: motivoDelPrimerVoto,
+				Votos: []VotoDeLaDescripcion{dadoNulo, dadoPrimero, dadoSegundo, dadoNulo, dadoTercero},
+			},
+		},
+	}
+}
+
+// probarLosVotosDeLaDescripcion vota la descripción de cada caso con la
+// votación del juez de las descripciones del repositorio y un votante simulado,
+// y exige su juicio y los votos que pide: los de sus grabaciones, ni uno más ni
+// uno menos, que nunca son más de seis, cada uno con el mensaje de la
+// descripción. Y fija las claves del juicio. Sin abrir ninguna sesión.
+func probarLosVotosDeLaDescripcion(t *testing.T) {
+	t.Helper()
+
+	juez := juezDeLasDescripcionesEn(t, raizDelRepositorio)
+	mensaje := mensajeDeLaDescripcion(skillDeLosVotos, descripcionDeLosVotos)
+
+	for _, caso := range casosDeVotosDeLaDescripcion(t) {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			votante := &votanteGrabado{t: t, grabaciones: caso.grabaciones}
+
+			votacion, err := nuevaVotacion(juez, votante.votar)
+			require.NoError(t, err)
+
+			assert.Equal(t, caso.juicio, votacion.juzgarLaDescripcion(skillDeLosVotos, descripcionDeLosVotos))
+			assert.Len(t, votante.mensajes, len(caso.grabaciones), "los votos pedidos, ni uno más ni uno menos")
+			assert.LessOrEqual(t, len(votante.mensajes), votosPorRespuestaComoMucho, "como mucho seis votos")
+
+			for _, pedido := range votante.mensajes {
+				assert.Equal(t, mensaje, pedido, "cada voto se pide con el mensaje de la descripción")
+			}
+		})
+	}
+
+	t.Run("forma", func(t *testing.T) {
+		t.Parallel()
+
+		marcada, err := json.Marshal(JuicioDeLaDescripcion{
+			Marcada: true, Frase: fraseDelPrimerVoto, Motivo: motivoDelPrimerVoto,
+			Votos: []VotoDeLaDescripcion{votoDado("si", fraseDelPrimerVoto, motivoDelPrimerVoto)},
+		})
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"marcada":true,"frase":"`+fraseDelPrimerVoto+`","motivo":"`+motivoDelPrimerVoto+`",`+
+			`"votos":[{"respuesta":"si","frase":"`+fraseDelPrimerVoto+`","motivo":"`+motivoDelPrimerVoto+`"}]}`,
+			string(marcada), "las claves del juicio de una descripción, las de data-model §4 de H31")
+
+		sinJuzgar, err := json.Marshal(JuicioDeLaDescripcion{SinJuzgar: motivoDelTopeDosVecesUno})
+		require.NoError(t, err)
+		assert.JSONEq(t, `{"marcada":false,"frase":"","motivo":"","votos":[],"sin_juzgar":"`+motivoDelTopeDosVecesUno+`"}`,
+			string(sinJuzgar), "sin_juzgar solo en la descripción que quedó sin juzgar, y votos siempre es una lista")
+	})
+}
+
+// probarLaDescripcionConElVotanteDelGuion vota una descripción con la votación
+// del juez de las descripciones del repositorio y el votante del guion de voto
+// de las evals, con el sustituto de claude del juez delante en el PATH, que da
+// tres «si» con una frase que está en ella: la descripción queda marcada, con un
+// proceso del sustituto por voto, cada uno con el mensaje de la descripción por
+// su entrada estándar, byte a byte, y con la rúbrica y el esquema de la
+// evidencia del ADR 0046 en sus argumentos. Ninguna sesión con modelo.
+func probarLaDescripcionConElVotanteDelGuion(t *testing.T) {
+	t.Helper()
+
+	grabada := votoDeLaDescripcion(t, "si", fraseDelPrimerVoto, motivoDelPrimerVoto).salida
+	sustituto := escribirElClaudeDelJuez(t, map[string]string{salidaDelClaudeDelJuez: grabada})
+
+	juez := juezDeLasDescripcionesEn(t, raizDelRepositorio)
+
+	votar, retirar, err := nuevoVotanteDelGuion(t.Context(), ordenDelVotoConElSustituto(t, sustituto, juez))
+	require.NoError(t, err)
+	t.Cleanup(func() { assert.NoError(t, retirar()) })
+
+	votacion, err := nuevaVotacion(juez, votar)
+	require.NoError(t, err)
+
+	dado := votoDado("si", fraseDelPrimerVoto, motivoDelPrimerVoto)
+	assert.Equal(t, JuicioDeLaDescripcion{
+		Marcada: true, Frase: fraseDelPrimerVoto, Motivo: motivoDelPrimerVoto,
+		Votos: []VotoDeLaDescripcion{dado, dado, dado},
+	}, votacion.juzgarLaDescripcion(skillDeLosVotos, descripcionDeLosVotos))
+
+	votos := sustituto.votos(t)
+	require.Len(t, votos, votosParaMarcar, "un proceso del sustituto por voto")
+
+	for _, voto := range votos {
+		assert.Equal(t, mensajeDeLaDescripcion(skillDeLosVotos, descripcionDeLosVotos), voto.entrada,
+			"el mensaje de la descripción llega por la entrada estándar, byte a byte")
+		assert.Equal(t, []string{
+			"-p", "--model", modeloDelJuezDelGuion, "--tools", "", "--strict-mcp-config", "--disable-slash-commands",
+			"--no-session-persistence", "--system-prompt", juez.Rubrica, "--output-format", "json",
+			"--json-schema", strings.TrimRight(juez.Esquema, "\n"),
+		}, voto.argumentos, "la rúbrica y el esquema de la evidencia, con el guion de voto de las evals")
 	}
 }
