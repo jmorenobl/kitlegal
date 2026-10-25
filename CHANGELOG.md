@@ -55,6 +55,13 @@ sustituyen a este fichero.
     5305 s, cabe en el tope del trabajo, 269 minutos. La lanza una persona, nunca un paso del run.
 
   Nada de ello abre una sesión en `make ci`: sus tests votan con votos simulados o con un `claude` sustituto.
+- **La guía de autoría de las skills, `docs/SKILLS.md`** (H31; ADR 0046), sobre la especificación Agent Skills y la
+  guía de autoría de Anthropic, consultadas el 2026-10-23: qué va en el cuerpo de `SKILL.md` —el protocolo, las reglas
+  invariantes, las líneas `⚠`, la tabla de comandos y cuándo leer cada referencia— y qué en una referencia; la
+  descripción en tercera persona, con la pregunta citada y el verbo con la skill de sujeto, que son correctos, y el
+  juez de las descripciones; los presupuestos con su porqué (menos de 500 líneas; 11 000 caracteres, unos 4870 tokens
+  a 2,26 caracteres por token; 900 en la descripción, el 88 % de 1024), y la regla de `references/` con los defectos
+  de `make skills-check`. `CONTRIBUTING.md` deja de pedir menos de 300 líneas y remite a ella.
 
 ### Cambiado
 
@@ -128,6 +135,23 @@ sustituyen a este fichero.
 
   Las tres skills pasan sin defectos. `TestSkillsDelRepositorio` lo comprueba sobre cada skill con un mutante en rojo
   por regla y su límite en verde (499 líneas, 11 000 caracteres, 900 en la descripción, 100 líneas sin índice).
+- **`references/` admite referencias escritas a mano, y lo que se comprueba de una skill se comprueba también en
+  ellas** (H31; ADR 0046). Un fichero de `references/` se clasifica primero por la declaración: el que declara
+  `kitlegal-referencias` es la referencia generada, con o sin su cabecera «generado desde», y `make skills-sync` lo
+  rehace si difiere; el no declarado que abre con la cabecera es un sobrante, que retira; y el `.md` no declarado sin
+  la cabecera es una referencia a mano, que `make skills-sync` no escribe, no rehace ni retira y `make skills-check` no
+  da como deriva. Además:
+  - los controles de contenido de `make ci` leen el `SKILL.md` y cada referencia a mano, cada una con su ruta en el
+    defecto: la prosa sin expresiones prohibidas ni fechas con cifras, las órdenes con su forma para PowerShell en el
+    mismo fichero, las normas nombradas y la ausencia de instrucciones de las evals; las formas fijas —la línea sin
+    consulta, las de aviso, de hallazgo y de la redacción fechada— se siguen exigiendo en el `SKILL.md`. Dos son
+    nuevos: cada línea `⚠` de una referencia a mano es una del `SKILL.md`
+    (`la línea ⚠ no es ninguna de SKILL.md: «…»`), y cada orden concreta de `kitlegal boe` de la skill sale con 0 con
+    `--offline` sobre la caché de una sesión de sus evals (ADR 0043). `TestControlesSobreLasReferenciasAMano` lleva el
+    mutante de cada control a una referencia a mano de una copia;
+  - el conjunto de dependencias de cada eval (H30) cuenta las referencias a mano: una propuesta que solo cambia una
+    elige las evals de su skill y las de las skills que la nombran, y una skill nombrada solo en una referencia a mano
+    entra en el conjunto con su `SKILL.md` y sus `references/`. Con las skills de antes de H31 la elección no cambia.
 - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de
