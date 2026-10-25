@@ -237,9 +237,9 @@ descripciones no dependen de las normas ni los bloques consultados (spec, «Uso,
   tokens a 2,26 caracteres por token, ADR 0046); las tres, como mucho 2700. Los borradores: 878, 888 y 842 (V2).
 - **Cuerpo**: una carga por pregunta por cada skill que activa; con `legal-core` y `boe-legislacion` juntas, como mucho
   22 000 caracteres (unos 9700 tokens) frente a 43 664 de hoy (24 439 + 19 225, V1). Los borradores: 10 881, 10 490 y
-  10 605 (V2). Lo escribe una persona y lo acota el gate.
-- **Referencias a mano**: de 0 a pocas lecturas por pregunta, cuando el cuerpo lo dice; las previstas tienen de 12 a
-  64 líneas (contracts/skills-reescritas.md); sin índice porque ninguna pasa de 100.
+  10 605 (V2); al cerrar, 10 976, 10 860 y 10 859. Lo escribe una persona y lo acota el gate.
+- **Referencias a mano**: de 0 a pocas lecturas por pregunta, cuando el cuerpo lo dice; las previstas tenían de 12 a
+  64 líneas (contracts/skills-reescritas.md), y las escritas tienen de 24 a 68; sin índice porque ninguna pasa de 100.
 - **Referencias generadas**: crecen con `data/`; `normas.md` tiene 24 líneas (V1). Con cientos de normas (unos 150
   bytes por fila: unos 45 KB con 300) pasa de 100 líneas, y FR-009 exige su índice; el cambio de `data/` que la lleve
   ahí adapta su generador (Clarificación Q4).
@@ -276,7 +276,7 @@ Las del diseño están en research.md: dónde corre el juez (D1), de dónde lee 
 | Lectura de la skill entera en los controles 1, 3, 8 y 9; subtest `lineas-de-aviso-de-las-referencias` | FR-016, FR-017, FR-018 |
 | Subtest `ordenes-de-ejemplo` y su extractor `ordenesDeEjemplo` | FR-019 |
 | `TestControlesSobreLasReferenciasAMano` | SC-005 |
-| Reescritura de las tres skills y sus referencias a mano; dos ejemplos de `boe-legislacion` con marcador | FR-020, FR-021, FR-022, FR-024, FR-019 |
+| Reescritura de las tres skills y sus referencias a mano; los dos ejemplos de `boe-legislacion` que la caché no sirve, uno con marcador y otro retirado | FR-020, FR-021, FR-022, FR-024, FR-019 |
 | Entradas de `CHANGELOG.md` y `CONTRIBUTING.md` | FR-023 |
 | `juezDeLasDescripciones` (lectura de `evidencias/adr-0046/`) y el control de identidad | FR-025, SC-006 |
 | `comprobarLaMedida` antes de abrir nada con el bloque; la medida en `TestMedidaVersionada` | FR-026, SC-008 |

@@ -111,9 +111,9 @@ sustituyen a este fichero.
   de `articulos` con su forma para PowerShell (`varios_bloques.md`), qué se hace con cada código y la frase de la
   regla 7 (`lecturas_que_fallan.md`), las formas de la cita con sus ejemplos (`como_se_cita.md`), la lectura con
   `--fecha` y cuándo va cada línea fechada (`redaccion_en_una_fecha.md`) y qué compara `kitlegal graph check`
-  (`redaccion_modificada.md`); cada paso dice cuándo leer la suya. Cambian tres ejemplos que la caché de una sesión no
-  sirve: la búsqueda pasa a `kitlegal boe buscar <términos> --json`, sale el de `analisis` y la lectura con fecha va a
-  su referencia. La descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
+  (`redaccion_modificada.md`); cada paso dice cuándo leer la suya. Cambian tres ejemplos: los dos que la caché de una
+  sesión no sirve —la búsqueda pasa a `kitlegal boe buscar <términos> --json` y sale el de `analisis`— y la lectura con
+  fecha, que la caché sí sirve y va a su referencia. La descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
   crea saberlo») con los mismos disparadores, de 1023 a 878 caracteres. `references/normas.md` no cambia; las siete
   nuevas viajan en el binario, y `kitlegal skills install` las instala con la skill.
 - **`make skills-check` hace cumplir la forma de la especificación Agent Skills y de la guía del proyecto, y el límite

@@ -296,7 +296,9 @@ go test -count=1 -run '^TestSkillsDelRepositorio$' ./internal/app/   # los mismo
 go test -count=1 -run '^(TestEvalsDelRepositorio|TestControlesSobreLasReferenciasAMano)$' ./internal/evals/
 ```
 
-La última ejecuta los controles de contenido de §1 con sus mutantes. Para ver las medidas de un cuerpo, que cuentan
+Las dos últimas ejecutan los controles de contenido de §1 con sus mutantes: `normas-nombradas` y
+`sin-instrucciones-de-evals` son subtests de `TestSkillsDelRepositorio`, y los demás, de `TestEvalsDelRepositorio`,
+con los mutantes de `TestControlesSobreLasReferenciasAMano`. Para ver las medidas de un cuerpo, que cuentan
 como el gate mientras el `SKILL.md` termine en salto de línea:
 
 ```sh

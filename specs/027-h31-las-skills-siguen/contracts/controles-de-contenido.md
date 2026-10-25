@@ -4,7 +4,7 @@ Quién lo consume: quien ejecuta `make ci`; una línea por defecto, que nombra l
 darse: cuando el texto se corrige. No crece con el uso: lee el texto de las skills del repositorio.
 
 «La skill entera» es su `SKILL.md` y sus referencias a mano (`skills.ReferenciasAMano`, contracts/gates-de-skills-check.md
-§3), cada una por separado y con su ruta. Las referencias generadas no se leen, salvo donde ya se leían (control 8).
+§3), cada una por separado y con su ruta. Las referencias generadas no se leen, salvo donde ya se leían (control 9).
 Cada control se aplica en las mismas skills que hoy.
 
 | # | Control (subtest) | Dónde | Skills | Qué lee y qué exige, desde H31 |

@@ -136,7 +136,7 @@ juez terminó con error: …"`. Reutilizada: `"juzgada": false`, `procedencia` y
 
 `medida` cuenta solo lo juzgado en la ejecución (0 o 1) y `total` es 1 si se juzgó y 0 si se reutilizó o quedó sin
 juzgar; lo reutilizado no entra (FR-031; ADR 0045, punto 1). Con `cumple: false` y `decide: true`, el motivo es el de
-hoy, «umbral habla_en_primera_o_segunda_persona: 1, y tiene que ser <= 0», y el veredicto, `fallo`. La descripción sin
+hoy, «umbral habla_en_primera_o_segunda_persona: 1 de 1 (100,0 %), y tiene que ser ≤ 0,0 %», y el veredicto, `fallo`. La descripción sin
 juzgar añade el motivo propio, que no cita ningún umbral:
 
 ```text

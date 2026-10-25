@@ -1088,11 +1088,16 @@ orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 
 juez y dos a la vez, es desde H26.1 el mayor de los tres: 19 525 s, 325,4 minutos, y desde H30 20 425 s, 340,4 minutos,
 el literal `peorCasoDeLegalCore` de `TestDefinicionDelJob`:
 67, 66 y 6 sesiones —también cuenta la de la prueba de red, que su trabajo no lleva—, 70 tandas; de una en una el tope
-no lo cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Es un
+no lo cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Desde H31 cada
+uno suma el peor caso del juez de las descripciones, `6 × (35 s + 5 s)`, 240 s, y el de `legal-core`, que no tiene
+juez de las respuestas, también los 60 s de instalar el Claude Code del juez: 20 117 s, 335,3 minutos, en
+`boe-legislacion`; 13 717 s, 228,6 minutos, en `jurisprudencia`; y 20 725 s, 345,4 minutos, en `legal-core`, que sigue
+siendo el mayor (los literales de `TestDefinicionDelJob`). Es un
 cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
 casos etiquetados: en `boe-legislacion`, con 259 a 5, 12 985 s, 216,4 minutos (a 4 eran 16 105 s, 268,4 minutos); en
-`jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes
-cambió con H25, con el paso de `boe-legislacion` a cinco ni con las dos evals de `legal-core` de H26.1.
+`jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s; y en `descripciones`, la
+entrada de H31, con los 99 casos de `evidencias/adr-0046/casos.yaml` a 5, 5305 s, 88,4 minutos. Ninguno de los dos
+topes cambió con H25, con el paso de `boe-legislacion` a cinco, con las dos evals de `legal-core` de H26.1 ni con H31.
 `TestDefinicionDelJob` comprueba en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de

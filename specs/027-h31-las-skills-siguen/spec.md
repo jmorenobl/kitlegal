@@ -420,7 +420,7 @@ referencias, normas de `data/`), y los gates lo acotan.
 
 - **La descripción (FR-005, FR-022)**: la lee el agente en cada sesión, de cada skill instalada, una vez, para decidir si
   la activa. Como mucho 900 caracteres por skill, unos 400 tokens: con las tres, como mucho 2700 caracteres frente a los
-  unos 2700 de hoy con la de 1023, pero ya no al borde del límite de la especificación. No depende de las preguntas
+  2847 de hoy (1023, 993 y 831), y ninguna ya al borde del límite de la especificación. No depende de las preguntas
   hechas; cambia solo cuando una propuesta cambia una descripción.
 - **El cuerpo (FR-004, FR-020)**: lo carga el agente una vez por pregunta por cada skill que activa: con `legal-core` y
   `boe-legislacion` juntas, la pregunta de un plazo con su artículo, como mucho 2 × 11 000 caracteres, unos 9700 tokens,

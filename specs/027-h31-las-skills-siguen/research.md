@@ -151,8 +151,9 @@ diseño se cierran aquí.
   descripción: `votosPorRespuestaComoMucho` (6) × (`topeDelVoto` + `margenDelVoto`) = 240 s, y la instalación del
   Claude Code del juez (60 s) en el trabajo de una skill sin juez de las respuestas (hoy `legal-core`), que hoy no la
   cuenta. `TestDefinicionDelJob` falla si el tope del trabajo (`timeout-minutes`, 352 min = 21 120 s) es menor que el
-  mayor peor caso, y su cadena esperada de cada skill cambia en esas cifras; el de `boe-legislacion`, el mayor, pasa de
-  19 877 s a 20 117 s (V10), por debajo del tope, que no cambia. El trabajo `medida` gana la entrada de D9.
+  mayor peor caso, y su cadena esperada de cada skill cambia en esas cifras: el de `boe-legislacion` pasa de 19 877 s a
+  20 117 s (V10), el de `jurisprudencia` de 13 477 s a 13 717 s y el de `legal-core`, el mayor, de 20 425 s a
+  20 725 s, todos por debajo del tope, que no cambia. El trabajo `medida` gana la entrada de D9.
 - **Por qué**: SC-015 pide que el tope cubra lo que suman el peor caso de las evals y el de las descripciones; en un
   trabajo es una descripción, la de su skill (D1). El paso que instala los dos Claude Code ya corre en todo trabajo
   `evals` (V10).
