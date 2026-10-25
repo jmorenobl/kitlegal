@@ -28,6 +28,33 @@ sustituyen a este fichero.
   pide sin tocar el guion; el juez del plan juzga solo que lo que dice cada fila es cierto. Admite las tres formas de
   fila de los planes anteriores, y ni «II» ni una fila que empieza por una palabra, como «Implementación…», cuentan
   como el principio I. Lo comprueba `TestElConstitutionCheckLlevaUnaFilaPorPrincipio`.
+- **El job de evals juzga la descripción de una skill cuando una propuesta de cambio la cambia, con el juez de las
+  descripciones** (H31; ADR 0046). La tercera persona de la descripción no la comprueba una lista de palabras: la
+  juzga un modelo, el juez de las evals (`claude-opus-5-5` con Claude Code 2.1.289), con la clase
+  `habla_en_primera_o_segunda_persona` y la rúbrica, el esquema, los casos y la medida de `evidencias/adr-0046/`, que
+  lee donde están y que `make ci` comprueba contra el manifiesto de la evidencia:
+  - el trabajo `evals (<skill>)` juzga la descripción de su skill solo si la propuesta cambia su `SKILL.md` en la
+    descripción; si no, no hay juicio, ni umbral, ni apartado en el informe. El juicio se reutiliza de una medida de
+    `main` con la misma huella —la de la descripción, los cuatro ficheros del juez, su modelo y su versión—, como los
+    resultados de H30, y lo reutilizado no cuenta en el umbral;
+  - antes de abrir ninguna sesión, el trabajo comprueba que la medida del juez de las descripciones corresponde y se
+    cumple; si no, el informe sale sin medir, con cada motivo precedido de `juez de las descripciones: `;
+  - cada voto lleva la descripción entre `<descripcion skill="…">` y `</descripcion>`, con la regla de los votos del
+    juez de las evals: tres «si» unánimes, pedidos por orden y con su frase en la descripción, la marcan; como mucho
+    seis votos. Una descripción marcada pone en rojo el umbral `habla_en_primera_o_segunda_persona` (0, que decide), y
+    una sin juzgar da su propio motivo, «el juez de las descripciones dejó sin juzgar la descripción de <skill>: …».
+    `informe.json` lleva el bloque `descripcion` con el juicio y sus votos, o la procedencia del reutilizado, e
+    `informe.md`, el apartado «La descripción»;
+  - el tope de cada trabajo `evals` cubre además los seis votos de una descripción, 240 s, y en `legal-core`, que no
+    tiene juez de las respuestas, la instalación del Claude Code del juez, 60 s;
+  - **`make evals-medir-juez SKILL=descripciones`** repite la medida con el código del job: vota los 99 casos de
+    `evidencias/adr-0046/casos.yaml` e imprime la medida entre `--- inicio de medida.json ---` y
+    `--- fin de medida.json ---`, con la forma de la de la evidencia, sin escribirla en el repositorio, y deja en el
+    registro una línea por caso mal etiquetado o sin juzgar. La ejecuta la entrada `descripciones` del trabajo
+    `medida`, a cinco casos a la vez, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez`: su peor caso,
+    5305 s, cabe en el tope del trabajo, 269 minutos. La lanza una persona, nunca un paso del run.
+
+  Nada de ello abre una sesión en `make ci`: sus tests votan con votos simulados o con un `claude` sustituto.
 
 ### Cambiado
 

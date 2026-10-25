@@ -2,11 +2,14 @@ package evals
 
 import (
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,16 +35,17 @@ const (
 const plantillaDeMensajeDe = "<descripcion skill=\"%s\">\n%s\n</descripcion>\n\n" +
 	"Responde a la pregunta de la rúbrica sobre esta descripción."
 
-// casoDelMensaje es lo que el test del mensaje lee de un caso de casos.yaml de
-// la evidencia: su id, su skill y su descripción.
+// casoDelMensaje es lo que los tests del mensaje y de la medida leen de un caso
+// de casos.yaml de la evidencia: su id, su skill, su descripción y su etiqueta.
 type casoDelMensaje struct {
 	ID          string `yaml:"id"`
 	Skill       string `yaml:"skill"`
 	Descripcion string `yaml:"descripcion"`
+	Etiqueta    string `yaml:"etiqueta"`
 }
 
-// casosDelMensaje es el documento casos.yaml de la evidencia, con lo que el test
-// del mensaje lee de cada caso.
+// casosDelMensaje es el documento casos.yaml de la evidencia, con lo que los
+// tests del mensaje y de la medida leen de cada caso.
 type casosDelMensaje struct {
 	Casos []casoDelMensaje `yaml:"casos"`
 }
@@ -117,9 +121,17 @@ func identidadEn(t *testing.T, raiz string) []string {
 //     sin juzgar; la sesión con error, sin la forma del esquema o cortada por
 //     un límite de uso, sin repetición y sin juzgar; como mucho seis votos; y
 //     la frase y el motivo del primer voto que cuenta;
-//   - y el votante del guion de las evals, con el claude sustituto, recibe el
+//   - el votante del guion de las evals, con el claude sustituto, recibe el
 //     mensaje de la descripción por su entrada estándar, con la rúbrica y el
-//     esquema de la evidencia.
+//     esquema de la evidencia;
+//   - y la ejecución de la medida del juez de las descripciones, la de
+//     TestMedidaDelJuezDeLasDescripciones (FR-034 de H31;
+//     contracts/juez-de-las-descripciones.md §7 de H31; research D9 de H31),
+//     vota con esa regla los casos de casos.yaml y da la medida con la forma de
+//     medida.json, que con los casos de la evidencia y los votos que dicen lo
+//     que dice su etiqueta es la versionada; una línea por caso que no da lo
+//     que dice su etiqueta, con la medida; y, con algún caso sin juzgar, una
+//     línea por cada uno y ninguna medida.
 //
 // Ninguno abre una sesión con modelo (FR-033; SC-014).
 func TestJuezDeLasDescripciones(t *testing.T) {
@@ -159,6 +171,12 @@ func TestJuezDeLasDescripciones(t *testing.T) {
 		t.Parallel()
 
 		probarLaDescripcionConElVotanteDelGuion(t)
+	})
+
+	t.Run("medida", func(t *testing.T) {
+		t.Parallel()
+
+		probarLaMedidaDelJuezDeLasDescripciones(t)
 	})
 }
 
@@ -665,4 +683,421 @@ func probarLaDescripcionConElVotanteDelGuion(t *testing.T) {
 			"--json-schema", strings.TrimRight(juez.Esquema, "\n"),
 		}, voto.argumentos, "la rúbrica y el esquema de la evidencia, con el guion de voto de las evals")
 	}
+}
+
+// formaDeLaMedidaDeLasDescripciones es la medida que da la ejecución de la
+// medida del juez de las descripciones, con sus claves en el orden de
+// contracts/juez-de-las-descripciones.md §7 de H31, las de medida.json de la
+// evidencia sin skill y sin votos: con el día, el modelo, la versión, las dos
+// huellas, los dos recuentos y el commit del origen.
+const formaDeLaMedidaDeLasDescripciones = `{
+  "clase": "habla_en_primera_o_segunda_persona",
+  "fecha": "%s",
+  "modelo_del_juez": "%s",
+  "version_de_claude_code": "%s",
+  "rubrica": {
+    "fichero": "rubrica.md",
+    "sha256": "%s"
+  },
+  "casos": {
+    "fichero": "casos.yaml",
+    "sha256": "%s"
+  },
+  "defectos": {
+    "casos": %d,
+    "sin_marcar": %d
+  },
+  "correctos": {
+    "casos": %d,
+    "marcados": %d
+  },
+  "origen": "ejecución de la medida del juez de las descripciones del job de evals sobre %s"
+}
+`
+
+// votantePorMensaje es un votante simulado de la medida del juez de las
+// descripciones, al que se llama desde varias gorrutinas a la vez: da, por
+// orden, las grabaciones del mensaje con el que se pide cada voto, y anota
+// cuántos se piden con cada uno. Un voto con un mensaje del que no queda
+// ninguna grabación es un error del test.
+type votantePorMensaje struct {
+	t           *testing.T
+	grabaciones map[string][]grabacion
+
+	mutex   sync.Mutex
+	pedidos map[string]int
+}
+
+// nuevoVotantePorMensaje es el votante simulado que da esas grabaciones de cada
+// mensaje.
+func nuevoVotantePorMensaje(t *testing.T, grabaciones map[string][]grabacion) *votantePorMensaje {
+	t.Helper()
+
+	return &votantePorMensaje{t: t, grabaciones: grabaciones, pedidos: make(map[string]int, len(grabaciones))}
+}
+
+// votar da la grabación siguiente del mensaje.
+func (v *votantePorMensaje) votar(mensaje string) ([]byte, error) {
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
+	dados := v.pedidos[mensaje]
+	v.pedidos[mensaje] = dados + 1
+
+	grabaciones := v.grabaciones[mensaje]
+	if dados >= len(grabaciones) {
+		v.t.Errorf("se pide el voto %d de un mensaje del que hay %d grabados:\n%s", dados+1, len(grabaciones), mensaje)
+
+		return nil, errors.New("voto sin grabar")
+	}
+
+	return []byte(grabaciones[dados].salida), grabaciones[dados].err
+}
+
+// exigirTodos exige que se hayan pedido con cada mensaje todos sus votos
+// grabados, ni uno más ni uno menos, y devuelve cuántos se han pedido.
+func (v *votantePorMensaje) exigirTodos() int {
+	v.t.Helper()
+
+	v.mutex.Lock()
+	defer v.mutex.Unlock()
+
+	for mensaje, grabaciones := range v.grabaciones {
+		assert.Equal(v.t, len(grabaciones), v.pedidos[mensaje], "los votos pedidos con el mensaje:\n%s", mensaje)
+	}
+
+	pedidos := 0
+	for _, deUnMensaje := range v.pedidos {
+		pedidos += deUnMensaje
+	}
+
+	return pedidos
+}
+
+// probarLaMedidaDelJuezDeLasDescripciones fija la ejecución de la medida del
+// juez de las descripciones (contracts/juez-de-las-descripciones.md §7 de H31;
+// research D9 de H31; FR-034), la que lanza TestMedidaDelJuezDeLasDescripciones,
+// con votantes simulados que no abren ninguna sesión (FR-033; SC-014): con los
+// casos de la evidencia, la medida versionada; con unos casos sintéticos, las
+// líneas de los que no dan lo que dice su etiqueta, con la medida, y las de los
+// que quedan sin juzgar, sin ella; y, sin juez, sin votante, sin casos a la vez,
+// con un juez de otra clase o con casos que no tienen su forma, ningún voto ni
+// ninguna medida.
+func probarLaMedidaDelJuezDeLasDescripciones(t *testing.T) {
+	t.Helper()
+
+	t.Run("con-los-casos-de-la-evidencia", func(t *testing.T) {
+		t.Parallel()
+
+		probarLaMedidaConLosCasosDeLaEvidencia(t)
+	})
+
+	for _, caso := range casosDeLaMedidaSintetica() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			caso.probar(t)
+		})
+	}
+
+	for _, caso := range medicionesDeLasDescripcionesQueNoVotan() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			caso.probar(t)
+		})
+	}
+}
+
+// probarLaMedidaConLosCasosDeLaEvidencia mide al juez de las descripciones del
+// repositorio con sus 99 casos y un votante que dice de cada uno lo que dice su
+// etiqueta: tres «si» de cada defecto, con la descripción entera como frase, y
+// un «no» de cada correcto. La medida que da es la versionada salvo el día y el
+// origen —las mismas huellas, el mismo modelo, la misma versión y los mismos
+// recuentos, 63 de 63 y 0 de 36—, con sus claves en el orden del contrato y sin
+// skill ni votos; comprobarLaMedida la da por buena con ese modelo y esa
+// versión; y se piden 225 votos, cinco casos a la vez, sin ningún error.
+func probarLaMedidaConLosCasosDeLaEvidencia(t *testing.T) {
+	t.Helper()
+
+	juez := juezDeLasDescripcionesEn(t, raizDelRepositorio)
+
+	versionada, err := leerMedidaDelJuez([]byte(juez.Medida))
+	require.NoError(t, err)
+
+	casos, err := skills.ValidarDocumentoYAML[casosDelMensaje]([]byte(juez.Casos), nil)
+	require.NoError(t, err)
+
+	grabaciones := make(map[string][]grabacion, len(casos.Casos))
+	etiquetas := make(map[string]string, len(casos.Casos))
+
+	for _, caso := range casos.Casos {
+		mensaje := mensajeDeLaDescripcion(caso.Skill, caso.Descripcion)
+		if etiqueta, esta := etiquetas[mensaje]; esta {
+			require.Equal(t, etiqueta, caso.Etiqueta, "premisa: los casos con el mensaje del caso %s tienen su etiqueta",
+				caso.ID)
+		}
+
+		etiquetas[mensaje] = caso.Etiqueta
+
+		if caso.Etiqueta == etiquetaDefecto {
+			si := votoDeLaDescripcion(t, "si", caso.Descripcion, motivoDelPrimerVoto)
+			grabaciones[mensaje] = append(grabaciones[mensaje], si, si, si)
+
+			continue
+		}
+
+		grabaciones[mensaje] = append(grabaciones[mensaje], votoDeLaDescripcion(t, "no", "", motivoDelVotoQueNo))
+	}
+
+	votante := nuevoVotantePorMensaje(t, grabaciones)
+
+	texto, err := medirAlJuezDeLasDescripciones(MedicionDelJuez{
+		Juez: juez, Votar: votante.votar, ModeloDelJuez: versionada.ModeloDelJuez,
+		VersionDelJuez: versionada.VersionDeClaudeCode, Concurrencia: concurrenciaDeLaMedidaDeLasDescripciones,
+		Commit: commitDeLaMedicion, Fecha: instanteDeLaMedicion(),
+	})
+	require.NoError(t, err)
+
+	exigirLaMedidaDeLasDescripciones(t, fmt.Sprintf(formaDeLaMedidaDeLasDescripciones, fechaDeLaMedidaDada,
+		versionada.ModeloDelJuez, versionada.VersionDeClaudeCode, versionada.HuellaDeLaRubrica, versionada.HuellaDeLosCasos,
+		defectosDeLaMedidaDeLasDescripciones, 0, correctosDeLaMedidaDeLasDescripciones, 0, commitDeLaMedicion), texto)
+	assert.Equal(t, votosParaMarcar*defectosDeLaMedidaDeLasDescripciones+correctosDeLaMedidaDeLasDescripciones,
+		votante.exigirTodos(), "tres votos por cada defecto y uno por cada correcto")
+
+	conLaDada := *juez
+	conLaDada.Medida = texto
+
+	assert.Empty(t, comprobarLaMedida(&conLaDada, versionada.ModeloDelJuez, versionada.VersionDeClaudeCode),
+		"la medida que da corresponde a lo que hay y se cumple")
+}
+
+// Los casos etiquetados sintéticos de la medida del juez de las descripciones,
+// con la forma de casos.yaml de la evidencia: dos defectos y dos correctos, cada
+// uno con una descripción de una línea, y las frases que los votos grabados
+// citan de los tres primeros.
+const (
+	descripcionDelCaso1 = "Consulta y cita normativa consolidada del BOE. Úsala siempre que la respuesta dependa de una norma."
+	descripcionDelCaso2 = "Calcula con kitlegal hasta qué día se puede recurrir una resolución."
+	descripcionDelCaso3 = "Cita sentencias con su documento delante. Úsala cuando se pida una sentencia."
+	descripcionDelCaso4 = "Identifica el territorio de un municipio y sus boletines."
+
+	fraseDelCaso1 = "Úsala siempre"
+	fraseDelCaso2 = "hasta qué día se puede recurrir"
+	fraseDelCaso3 = "Úsala cuando se pida una sentencia"
+
+	casosSinteticosDeLasDescripciones = "casos:\n" +
+		"- id: '001'\n  skill: boe-legislacion\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso1 + "'\n" +
+		"- id: '002'\n  skill: legal-core\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso2 + "'\n" +
+		"- id: '003'\n  skill: jurisprudencia\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso3 + "'\n" +
+		"- id: '004'\n  skill: legal-core\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso4 + "'\n"
+)
+
+// Los mensajes de los votos de cada caso sintético.
+var (
+	mensajeDelCaso1 = mensajeDeLaDescripcion("boe-legislacion", descripcionDelCaso1)
+	mensajeDelCaso2 = mensajeDeLaDescripcion("legal-core", descripcionDelCaso2)
+	mensajeDelCaso3 = mensajeDeLaDescripcion("jurisprudencia", descripcionDelCaso3)
+	mensajeDelCaso4 = mensajeDeLaDescripcion("legal-core", descripcionDelCaso4)
+)
+
+// juezConLosCasosSinteticos es el juez de las descripciones del repositorio con
+// esos casos en lugar de los de la evidencia.
+func juezConLosCasosSinteticos(t *testing.T, casos string) *Juez {
+	t.Helper()
+
+	juez := *juezDeLasDescripcionesEn(t, raizDelRepositorio)
+	juez.Casos = casos
+
+	return &juez
+}
+
+// casoDeLaMedidaSintetica es un caso de la medida con los casos sintéticos: lo
+// que el votante simulado da con el mensaje de cada caso, todos los votos que se
+// le tienen que pedir; los dos recuentos que no dan lo de su etiqueta, o
+// ninguna medida si sinMedida; y las líneas del error, en su orden.
+type casoDeLaMedidaSintetica struct {
+	nombre      string
+	grabaciones func(t *testing.T) map[string][]grabacion
+	sinMarcar   int
+	marcados    int
+	sinMedida   bool
+	lineas      []string
+}
+
+// casosDeLaMedidaSintetica son los casos de la medida con los casos sintéticos:
+// el defecto que no queda marcado y el correcto que sí, con la medida y la
+// línea de cada uno, con las frases de sus «si»; y dos casos sin juzgar, uno en
+// su primer voto y otro en el segundo, con la línea de cada uno, con su motivo,
+// y sin medida.
+func casosDeLaMedidaSintetica() []casoDeLaMedidaSintetica {
+	return []casoDeLaMedidaSintetica{
+		{
+			nombre: "casos-que-no-dan-su-etiqueta",
+			grabaciones: func(t *testing.T) map[string][]grabacion {
+				t.Helper()
+
+				si1 := votoDeLaDescripcion(t, "si", fraseDelCaso1, motivoDelPrimerVoto)
+				si2 := votoDeLaDescripcion(t, "si", fraseDelCaso2, motivoDelSegundoVoto)
+				si3 := votoDeLaDescripcion(t, "si", fraseDelCaso3, motivoDelTercerVoto)
+				no := votoDeLaDescripcion(t, "no", "", motivoDelVotoQueNo)
+
+				return map[string][]grabacion{
+					mensajeDelCaso1: {si1, si1, no}, mensajeDelCaso2: {si2, si2, si2},
+					mensajeDelCaso3: {si3, si3, si3}, mensajeDelCaso4: {no},
+				}
+			},
+			sinMarcar: 1,
+			marcados:  1,
+			lineas: []string{
+				"001: etiquetado defecto y sin marcar: «" + fraseDelCaso1 + "» · «" + fraseDelCaso1 + "»",
+				"002: etiquetado correcto y marcado: «" + fraseDelCaso2 + "» · «" + fraseDelCaso2 + "» · «" +
+					fraseDelCaso2 + "»",
+			},
+		},
+		{
+			nombre: "casos-sin-juzgar",
+			grabaciones: func(t *testing.T) map[string][]grabacion {
+				t.Helper()
+
+				si1 := votoDeLaDescripcion(t, "si", fraseDelCaso1, motivoDelPrimerVoto)
+				si3 := votoDeLaDescripcion(t, "si", fraseDelCaso3, motivoDelTercerVoto)
+				conError := sesionDelJuezConError(t, errorDeLaSesionDelJuez)
+				no := votoDeLaDescripcion(t, "no", "", motivoDelVotoQueNo)
+
+				return map[string][]grabacion{
+					mensajeDelCaso1: {si1, si1, si1}, mensajeDelCaso2: {conError},
+					mensajeDelCaso3: {si3, conError}, mensajeDelCaso4: {no},
+				}
+			},
+			sinMedida: true,
+			lineas: []string{
+				"002: sin juzgar: " + prefijoDeSesionConError + errorDeLaSesionDelJuez,
+				"003: sin juzgar: voto 2: la sesión del juez terminó con error: " + errorDeLaSesionDelJuez,
+			},
+		},
+	}
+}
+
+// probar mide al juez con los casos sintéticos, dos a la vez, con el votante
+// simulado del caso, y exige sus líneas, unidas en el error; la medida, con las
+// huellas de la rúbrica de la evidencia y de los casos sintéticos y los dos
+// recuentos, o ninguna; y que se hayan pedido todos los votos grabados.
+func (c casoDeLaMedidaSintetica) probar(t *testing.T) {
+	t.Helper()
+
+	juez := juezConLosCasosSinteticos(t, casosSinteticosDeLasDescripciones)
+	votante := nuevoVotantePorMensaje(t, c.grabaciones(t))
+
+	texto, err := medirAlJuezDeLasDescripciones(MedicionDelJuez{
+		Juez: juez, Votar: votante.votar, ModeloDelJuez: modeloDelGuion, VersionDelJuez: versionDelGuion,
+		Concurrencia: 2, Commit: commitDeLaMedicion, Fecha: instanteDeLaMedicion(),
+	})
+
+	require.EqualError(t, err, strings.Join(c.lineas, "\n"), "una línea por caso, en el orden de los casos")
+	votante.exigirTodos()
+
+	if c.sinMedida {
+		assert.Empty(t, texto, "con un caso sin juzgar no hay medida")
+
+		return
+	}
+
+	exigirLaMedidaDeLasDescripciones(t, fmt.Sprintf(formaDeLaMedidaDeLasDescripciones, fechaDeLaMedidaDada,
+		modeloDelGuion, versionDelGuion, sha256DeTexto(juez.Rubrica), sha256DeTexto(casosSinteticosDeLasDescripciones),
+		2, c.sinMarcar, 2, c.marcados, commitDeLaMedicion), texto)
+}
+
+// exigirLaMedidaDeLasDescripciones exige que la medida dada sea la esperada
+// carácter a carácter, con su sangría, el orden de sus claves y su salto final,
+// línea a línea: la forma es parte de lo que se versiona.
+func exigirLaMedidaDeLasDescripciones(t *testing.T, esperada, dada string) {
+	t.Helper()
+
+	assert.Equal(t, slices.Collect(strings.Lines(esperada)), slices.Collect(strings.Lines(dada)),
+		"la medida, con la forma de contracts/juez-de-las-descripciones.md §7 de H31")
+}
+
+// medicionDeLasDescripcionesQueNoVota es una medición de las descripciones que
+// no llega a votar: lo que cambia en una medición que sí votaría y lo que dice
+// su error.
+type medicionDeLasDescripcionesQueNoVota struct {
+	nombre  string
+	cambiar func(medicion *MedicionDelJuez)
+	dice    string
+}
+
+// medicionesDeLasDescripcionesQueNoVotan son las mediciones que no llegan a
+// votar: sin juez, sin votante, sin casos a la vez, con un esquema que no
+// compila, con un juez sin la clase de las descripciones, con unos casos que no
+// son YAML y con un caso de otra etiqueta.
+func medicionesDeLasDescripcionesQueNoVotan() []medicionDeLasDescripcionesQueNoVota {
+	return []medicionDeLasDescripcionesQueNoVota{
+		{
+			nombre:  "sin-juez",
+			cambiar: func(medicion *MedicionDelJuez) { medicion.Juez = nil },
+			dice:    "no hay juez de las descripciones que medir",
+		},
+		{
+			nombre:  "sin-votante",
+			cambiar: func(medicion *MedicionDelJuez) { medicion.Votar = nil },
+			dice:    "el juez de las descripciones no tiene votante",
+		},
+		{
+			nombre:  "sin-casos-a-la-vez",
+			cambiar: func(medicion *MedicionDelJuez) { medicion.Concurrencia = 0 },
+			dice:    "los casos que se votan a la vez son 0 y tienen que ser al menos 1",
+		},
+		{
+			nombre:  "con-un-esquema-que-no-compila",
+			cambiar: func(medicion *MedicionDelJuez) { medicion.Juez.Esquema = `{"type": 3}` },
+			dice:    "el esquema de la respuesta del juez no sirve para validar sus votos",
+		},
+		{
+			nombre: "con-un-juez-de-otra-clase",
+			cambiar: func(medicion *MedicionDelJuez) {
+				medicion.Juez.Clases = []ClaseDelJuez{{Nombre: claseAfirmaLoNoLeido, Decide: true}}
+			},
+			dice: "el juez no tiene la clase " + claseHablaEnPrimeraOSegundaPersona + ", que decide",
+		},
+		{
+			nombre:  "con-casos-que-no-son-yaml",
+			cambiar: func(medicion *MedicionDelJuez) { medicion.Juez.Casos = "casos: [\n" },
+			dice:    "los casos etiquetados del juez de las descripciones (evidencias/adr-0046/casos.yaml): ",
+		},
+		{
+			nombre: "con-un-caso-de-otra-etiqueta",
+			cambiar: func(medicion *MedicionDelJuez) {
+				medicion.Juez.Casos = strings.Replace(casosSinteticosDeLasDescripciones, "etiqueta: correcto",
+					"etiqueta: dudoso", 1)
+			},
+			dice: `el caso 2 (002) tiene la etiqueta "dudoso", que no es defecto ni correcto`,
+		},
+	}
+}
+
+// probar ejecuta la medición del caso con un votante que cuenta sus llamadas, y
+// exige su error, ninguna medida y ningún voto.
+func (m medicionDeLasDescripcionesQueNoVota) probar(t *testing.T) {
+	t.Helper()
+
+	var pedidos atomic.Int64
+
+	medicion := MedicionDelJuez{
+		Juez: juezConLosCasosSinteticos(t, casosSinteticosDeLasDescripciones),
+		Votar: func(string) ([]byte, error) {
+			pedidos.Add(1)
+
+			return nil, errors.New("un voto que no se tenía que pedir")
+		},
+		ModeloDelJuez: modeloDelGuion, VersionDelJuez: versionDelGuion, Concurrencia: 2, Commit: commitDeLaMedicion,
+		Fecha: instanteDeLaMedicion(),
+	}
+	m.cambiar(&medicion)
+
+	texto, err := medirAlJuezDeLasDescripciones(medicion)
+
+	require.ErrorContains(t, err, m.dice)
+	assert.Empty(t, texto, "sin votar no hay medida")
+	assert.Zero(t, pedidos.Load(), "no se pide ningún voto")
 }

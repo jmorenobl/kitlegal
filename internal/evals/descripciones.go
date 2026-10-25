@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // directorioDelJuezDeLasDescripciones es el de la evidencia del ADR 0046, desde
@@ -294,7 +297,17 @@ type JuicioDeLaDescripcion struct {
 // sin juzgar, con el motivo del voto. Como mucho, votosPorRespuestaComoMucho
 // votos.
 func (v *votacion) juzgarLaDescripcion(skill, descripcion string) JuicioDeLaDescripcion {
-	return juicioDeLaDescripcion(v.votar(mensajeDeLaDescripcion(skill, descripcion), descripcion))
+	return juicioDeLaDescripcion(v.votarLaDescripcion(skill, descripcion))
+}
+
+// votarLaDescripcion es el juicio de la regla de los votos sobre la descripción
+// de una skill, con los votos de cada clase del juez tal como se dieron: el que
+// presenta juzgarLaDescripcion en el trabajo de la skill y el que cuenta la
+// medida del juez de las descripciones con sus casos
+// (medirAlJuezDeLasDescripciones). Pide cada voto con el mensaje de la
+// descripción y busca su frase en la descripción.
+func (v *votacion) votarLaDescripcion(skill, descripcion string) JuicioDeRespuesta {
+	return v.votar(mensajeDeLaDescripcion(skill, descripcion), descripcion)
 }
 
 // juicioDeLaDescripcion es el juicio de una descripción que da el de la regla
@@ -414,6 +427,10 @@ func (d *DescripcionInformada) motivoSinJuzgar() []string {
 	return []string{fmt.Sprintf(motivoDeLaDescripcionSinJuzgar, d.Skill, d.SinJuzgar)}
 }
 
+// juezDeLasDescripcionesSinVotante es el error de los votos del juez de las
+// descripciones que no tienen quien los dé, en el trabajo y en la medida.
+const juezDeLasDescripcionesSinVotante = "el juez de las descripciones no tiene votante"
+
 // descripcionDelTrabajo es la descripción de la skill que un trabajo juzga, o
 // cuyo juicio reutiliza, con lo que necesita para publicarla
 // (contracts/juez-de-las-descripciones.md §3 de H31): el bloque de la
@@ -472,7 +489,7 @@ func (d *descripcionDelTrabajo) prepararLaVotacion(raiz string, votante func(jue
 	case !d.deLaDecision.Juzgada:
 		return nil
 	case votante == nil:
-		return errors.New("el juez de las descripciones no tiene votante")
+		return errors.New(juezDeLasDescripcionesSinVotante)
 	}
 
 	descripcion, err := descripcionDeLaSkill(path.Join(directorioDeLasSkills, d.deLaDecision.Skill, ficheroDeLaSkill),
@@ -521,4 +538,178 @@ func (d *descripcionDelTrabajo) informada() *DescripcionInformada {
 	informada.Votos, informada.SinJuzgar = juicio.Votos, juicio.SinJuzgar
 
 	return &informada
+}
+
+// entradaDeLasDescripciones es la entrada de la matriz del trabajo medida de la
+// definición del job que ejecuta la medida del juez de las descripciones, y el
+// argumento con el que la ejecuta scripts/evals-medir-juez.sh
+// (contracts/juez-de-las-descripciones.md §7 de H31; research D9 de H31;
+// FR-034): las demás entradas son skills con juez.
+const entradaDeLasDescripciones = "descripciones"
+
+// casoDeLaDescripcion es un caso etiquetado del juez de las descripciones, de
+// casos.yaml de la evidencia del ADR 0046: su id, que lo nombra en las líneas
+// de la medida; la skill y la descripción con las que se pide cada voto; y su
+// etiqueta, etiquetaDefecto o etiquetaCorrecto. Las demás claves de un caso
+// —origen, clase y forma, que dicen cómo se construyó— no se leen.
+type casoDeLaDescripcion struct {
+	ID          string `yaml:"id"`
+	Skill       string `yaml:"skill"`
+	Etiqueta    string `yaml:"etiqueta"`
+	Descripcion string `yaml:"descripcion"`
+}
+
+// casosDeLasDescripciones es lo que se lee de casos.yaml de la evidencia del
+// juez de las descripciones: sus casos, en el orden del fichero.
+type casosDeLasDescripciones struct {
+	Casos []casoDeLaDescripcion `yaml:"casos"`
+}
+
+// casosDeLasDescripcionesMalFormados es el error de los casos etiquetados del
+// juez de las descripciones que no tienen su forma; sigue con el de
+// leerLosCasosDeLasDescripciones.
+const casosDeLasDescripcionesMalFormados = "los casos etiquetados del juez de las descripciones (%s): %w"
+
+// leerLosCasosDeLasDescripciones lee los casos etiquetados del juez de las
+// descripciones de su contenido, el de casos.yaml de la evidencia, con el lector
+// común de documentos YAML de internal/skills —una clave repetida es un defecto,
+// nunca la última que gana— y, como leerCasosEtiquetados, sin esquema
+// publicado: de un caso solo exige que su etiqueta sea una de las dos, porque
+// con otra no se podría contar. El error nombra el fichero de la evidencia.
+func leerLosCasosDeLasDescripciones(contenido []byte) ([]casoDeLaDescripcion, error) {
+	leidos, err := skills.ValidarDocumentoYAML[casosDeLasDescripciones](contenido, nil)
+	if err != nil {
+		return nil, fmt.Errorf(casosDeLasDescripcionesMalFormados, enLaEvidencia(ficheroDeCasosDelJuez), err)
+	}
+
+	for posicion, caso := range leidos.Casos {
+		if caso.Etiqueta != etiquetaDefecto && caso.Etiqueta != etiquetaCorrecto {
+			return nil, fmt.Errorf(casosDeLasDescripcionesMalFormados, enLaEvidencia(ficheroDeCasosDelJuez),
+				fmt.Errorf("el caso %d (%s) tiene la etiqueta %q, que no es %s ni %s", posicion+1, caso.ID,
+					caso.Etiqueta, etiquetaDefecto, etiquetaCorrecto))
+		}
+	}
+
+	return leidos.Casos, nil
+}
+
+// leerLosCasosDeLaEvidencia lee los casos etiquetados del juez de las
+// descripciones de la evidencia de esa raíz del repositorio: con ellos cuenta
+// el peor caso de la entrada descripciones del trabajo medida (research D9 y
+// D10 de H31; SC-015). El error es el del fichero que no se puede leer o el de
+// unos casos que no tienen su forma.
+func leerLosCasosDeLaEvidencia(raiz string) ([]casoDeLaDescripcion, error) {
+	contenido, err := leerDeLaEvidencia(raiz, ficheroDeCasosDelJuez)
+	if err != nil {
+		return nil, err
+	}
+
+	return leerLosCasosDeLasDescripciones(contenido)
+}
+
+// origenDeLaMedidaDeLasDescripciones es el origen de la medida que da
+// medirAlJuezDeLasDescripciones, que sigue con el commit
+// (contracts/juez-de-las-descripciones.md §7 de H31).
+const origenDeLaMedidaDeLasDescripciones = "ejecución de la medida del juez de las descripciones del job de evals " +
+	"sobre %s"
+
+// medirAlJuezDeLasDescripciones ejecuta la medida del juez de las descripciones
+// (contracts/juez-de-las-descripciones.md §7 de H31; research D9 de H31; FR-034,
+// SC-011): vota sus casos etiquetados con el código del job y devuelve el texto
+// de la medida de lo que hay, lista para que una persona la versione. Es la de
+// medirAlJuez con otros casos, que no se reconstruyen de ningún informe: cada
+// uno lleva su descripción.
+//
+//  1. No comprueba la medida versionada ni la lee para decidir nada: vota
+//     corresponda o no a lo que hay.
+//  2. Lee los casos del juez, los de casos.yaml de la evidencia del ADR 0046
+//     (leerLosCasosDeLasDescripciones).
+//  3. Vota cada caso con la regla de los votos de la descripción del trabajo de
+//     una skill (votarLaDescripcion): el mensaje de su descripción, con su
+//     skill, y la votación del juez de las evals con la clase
+//     claseDeLasDescripciones, por orden; como mucho Concurrencia casos a la
+//     vez, tres votos por cada defecto que se marca y uno por cada correcto que
+//     no.
+//  4. Devuelve la medida (medidaDada), sin skill, con las huellas de la rúbrica
+//     y de los casos del juez, el modelo y la versión recibidos y sus dos
+//     recuentos, que son las claves que lee leerMedidaDelJuez, y el origen.
+//  5. Si un defecto no queda marcado o un correcto queda marcado, devuelve
+//     además, con la medida, un error con una línea por caso, en el orden de
+//     los casos: «<id>: etiquetado <etiqueta> y <marcado | sin marcar>» y, si
+//     alguno de sus votos dijo sí con su frase, «: «<frase>» · …».
+//  6. Si algún caso queda sin juzgar, devuelve solo un error, con una línea
+//     «<id>: sin juzgar: <motivo>» por cada uno: una medida con casos sin
+//     juzgar no es una medida.
+//
+// Es un error, sin ningún voto ni ninguna medida, que la medición no tenga juez,
+// votante o al menos un caso a la vez, que el esquema del juez no sirva para
+// validar sus votos, que el juez no tenga la clase de las descripciones que
+// decide o que los casos no tengan su forma. La Skill de la medición no se usa.
+//
+// No escribe en la salida estándar ni en el repositorio: el texto lo escribe
+// quien la llama.
+func medirAlJuezDeLasDescripciones(medicion MedicionDelJuez) (string, error) {
+	switch {
+	case medicion.Juez == nil:
+		return "", errors.New("no hay juez de las descripciones que medir")
+	case medicion.Votar == nil:
+		return "", errors.New(juezDeLasDescripcionesSinVotante)
+	case medicion.Concurrencia < 1:
+		return "", fmt.Errorf(casosALaVezQueNoSirven, medicion.Concurrencia)
+	}
+
+	votacion, err := nuevaVotacion(medicion.Juez, medicion.Votar)
+	if err != nil {
+		return "", err
+	}
+
+	deLaClase := slices.IndexFunc(medicion.Juez.Clases, func(clase ClaseDelJuez) bool {
+		return clase.Decide && clase.Nombre == claseDeLasDescripciones
+	})
+	if deLaClase < 0 {
+		return "", fmt.Errorf("el juez no tiene la clase %s, que decide", claseDeLasDescripciones)
+	}
+
+	casos, err := leerLosCasosDeLasDescripciones([]byte(medicion.Juez.Casos))
+	if err != nil {
+		return "", err
+	}
+
+	var recuento recuentoDeLaMedida
+
+	for posicion, juicio := range votacion.votarLosCasos(casos, medicion.Concurrencia) {
+		recuento.contarElCaso(casos[posicion].ID, casos[posicion].Etiqueta, juicio, deLaClase)
+	}
+
+	return medicion.resultadoDeLaMedida(claseDeLasDescripciones,
+		fmt.Sprintf(origenDeLaMedidaDeLasDescripciones, medicion.Commit), recuento)
+}
+
+// votarLosCasos vota la descripción de cada caso de la medida del juez de las
+// descripciones (votarLaDescripcion), como mucho concurrencia casos a la vez, y
+// devuelve sus juicios en su mismo orden, como juzgarTodas con las respuestas:
+// los votos de un mismo caso van uno detrás de otro, cada caso se vota en su
+// gorrutina, un canal con concurrencia huecos es el semáforo y un
+// sync.WaitGroup espera a los que están en curso. La concurrencia es al menos
+// 1, y el votante se puede llamar desde varias gorrutinas a la vez.
+func (v *votacion) votarLosCasos(casos []casoDeLaDescripcion, concurrencia int) []JuicioDeRespuesta {
+	juicios := make([]JuicioDeRespuesta, len(casos))
+	huecos := make(chan struct{}, concurrencia)
+
+	var enCurso sync.WaitGroup
+
+	for posicion, caso := range casos {
+		huecos <- struct{}{}
+
+		enCurso.Go(func() {
+			defer func() { <-huecos }()
+
+			// Cada gorrutina escribe solo en la posición de su caso.
+			juicios[posicion] = v.votarLaDescripcion(caso.Skill, caso.Descripcion)
+		})
+	}
+
+	enCurso.Wait()
+
+	return juicios
 }

@@ -8,7 +8,13 @@
 # recuentos. No comprueba la medida versionada ni dice si corresponde: en esa propuesta lo dice make ci. No usa nada
 # posterior a bash 3.2, el de macOS.
 #
+# Desde H31 (specs/027-h31-las-skills-siguen/contracts/juez-de-las-descripciones.md §7; FR-034), con el argumento
+# descripciones mide el juez de las descripciones: ejecuta TestMedidaDelJuezDeLasDescripciones, que vota los 99 casos de
+# evidencias/adr-0046/casos.yaml con el mensaje y la regla de los votos de la descripción del trabajo de cada skill, con
+# las mismas banderas salvo -skill, y deja en medida.json del temporal su medida, con la forma de la de la evidencia.
+#
 #   make evals-medir-juez SKILL=<skill>
+#   make evals-medir-juez SKILL=descripciones
 #
 # Abre sesiones con modelo y consume la credencial de Claude Code: la lanza una persona, en el job de evals, con la
 # etiqueta evals-medir-juez en una propuesta de cambio o con la entrada medir_al_juez del flujo lanzado a mano; ni make
@@ -28,9 +34,9 @@ if [[ $# -ne 1 ]] || [[ -z "$1" ]]; then
 	exit 1
 fi
 
-# Las variables, antes de construir nada y de pedir ningún voto. Que tengan un valor que sirva lo dice TestMedidaDelJuez
-# con su error: aquí solo se mira que estén, y que el claude del juez, que falta también si su ruta no es la de un
-# fichero ejecutable, se pueda ejecutar.
+# Las variables, antes de construir nada y de pedir ningún voto. Que tengan un valor que sirva lo dice el punto de
+# entrada con su error: aquí solo se mira que estén, y que el claude del juez, que falta también si su ruta no es la de
+# un fichero ejecutable, se pueda ejecutar.
 for variable in MODELO_DEL_JUEZ VERSION_DE_CLAUDE_CODE_DEL_JUEZ CONCURRENCIA_DE_EVALS COMMIT_EVALUADO CLAUDE_DEL_JUEZ \
 	CLAUDE_CODE_OAUTH_TOKEN; do
 	if [[ -z "${!variable:-}" ]]; then
@@ -46,26 +52,36 @@ fi
 # El temporal, en TMPDIR o, sin él, en /tmp, el directorio temporal por defecto de POSIX, se borra al salir, también
 # cuando el guion termina con otro código: todo lo que la medida escribe va dentro —la medida y, en su tmp/, que es el
 # TMPDIR de go test, el directorio de trabajo de go, la reconstrucción de los casos y el directorio del juez, con el
-# HOME y la configuración de Claude Code de sus votos—. Fuera quedan solo las cachés de Go. Su ruta es absoluta:
-# TestMedidaDelJuez la recibe por bandera y go test lo ejecuta en el directorio de su paquete.
+# HOME y la configuración de Claude Code de sus votos—. Fuera quedan solo las cachés de Go. Su ruta es absoluta: el
+# punto de entrada la recibe por bandera y go test lo ejecuta en el directorio de su paquete.
 temporal="$(mktemp -d "${TMPDIR:-/tmp}/kitlegal-medida-del-juez.XXXXXX")"
 trap 'rm -rf -- "$temporal"' EXIT
 temporal="$(cd "$temporal" && pwd -P)"
 mkdir "$temporal/tmp"
 
+# El punto de entrada y sus banderas: las del juez de una skill con -skill delante, y las del juez de las descripciones,
+# que no es de ninguna, sin ella. Las dos listas tienen algo: bash 3.2 con set -u no admite expandir una vacía.
+argumentos=(-modelo-del-juez "$MODELO_DEL_JUEZ" -version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ"
+	-claude-del-juez "$CLAUDE_DEL_JUEZ" -concurrencia "$CONCURRENCIA_DE_EVALS" -commit "$COMMIT_EVALUADO"
+	-salida "$temporal/medida.json")
+if [[ "$1" == descripciones ]]; then
+	punto='^TestMedidaDelJuezDeLasDescripciones$'
+else
+	punto='^TestMedidaDelJuez$'
+	argumentos=(-skill "$1" "${argumentos[@]}")
+fi
+
 # Sin límite de tiempo de go test: el de cada voto es su tope, el de la ejecución es el del trabajo que la lanza, y
 # SIGINT y SIGTERM cortan los votos abiertos. Las dos salidas de go test son las del guion: si un defecto no queda
-# marcado o un correcto queda marcado, o si un caso queda sin juzgar, el error de TestMedidaDelJuez nombra cada caso.
+# marcado o un correcto queda marcado, o si un caso queda sin juzgar, el error del punto de entrada nombra cada caso.
 codigo=0
-TMPDIR="$temporal/tmp" go test -tags evals -count=1 -timeout 0 -run '^TestMedidaDelJuez$' ./internal/evals/ -args \
-	-skill "$1" -modelo-del-juez "$MODELO_DEL_JUEZ" -version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ" \
-	-claude-del-juez "$CLAUDE_DEL_JUEZ" -concurrencia "$CONCURRENCIA_DE_EVALS" -commit "$COMMIT_EVALUADO" \
-	-salida "$temporal/medida.json" || codigo=$?
+TMPDIR="$temporal/tmp" go test -tags evals -count=1 -timeout 0 -run "$punto" ./internal/evals/ -args \
+	"${argumentos[@]}" || codigo=$?
 
 # La medida entera entre sus dos marcas, que es de donde la saca del registro quien la lanzó; termina en salto de línea,
-# así que cada marca queda en su propia línea. Se imprime también cuando no se cumple, con sus recuentos. Si
-# TestMedidaDelJuez no la escribió —un caso sin juzgar, o un error anterior a los votos—, no se imprime ninguna marca:
-# una medida con casos sin juzgar no es una medida (FR-053).
+# así que cada marca queda en su propia línea. Se imprime también cuando no se cumple, con sus recuentos. Si el punto
+# de entrada no la escribió —un caso sin juzgar, o un error anterior a los votos—, no se imprime ninguna marca: una
+# medida con casos sin juzgar no es una medida (FR-053).
 if [[ -f "$temporal/medida.json" ]]; then
 	echo "--- inicio de medida.json ---"
 	cat "$temporal/medida.json"

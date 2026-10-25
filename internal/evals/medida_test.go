@@ -5677,8 +5677,10 @@ var nombreDelTemporalDeLaMedida = regexp.MustCompile(`^kitlegal-medida-del-juez\
 // el guion de la ruta dada, escrita entera con constantes (gosec G204); lo que
 // cambia en las seis variables obligatorias, que el test da todas; la medida
 // que el sustituto de go escribe, ninguna si está vacía, y el código con el que
-// sale; y lo que se espera del guion: su código, sus dos salidas y si no
-// ejecuta go.
+// sale; y lo que se espera del guion: su código, sus dos salidas, si no
+// ejecuta go y, si lo ejecuta, si es con el punto de entrada de la medida del
+// juez de las descripciones, el de su argumento descripciones, y no con el de
+// la medida del juez de una skill.
 type casoDelGuionDeLaMedida struct {
 	nombre     string
 	orden      func(ctx context.Context, guion string) *exec.Cmd
@@ -5686,10 +5688,11 @@ type casoDelGuionDeLaMedida struct {
 	medida     string
 	codigoDeGo int
 
-	codigo  int
-	salida  string
-	deError string
-	sinGo   bool
+	codigo             int
+	salida             string
+	deError            string
+	sinGo              bool
+	deLasDescripciones bool
 }
 
 // TestGuionDeLaMedida fija scripts/evals-medir-juez.sh
@@ -5713,6 +5716,12 @@ type casoDelGuionDeLaMedida struct {
 //     falla, que es el defecto sin marcar o el correcto marcado (FR-052).
 //   - Si go test falla sin escribirla, que es el caso sin juzgar, el guion no
 //     imprime ninguna marca y sale con el código de go test (FR-053).
+//   - Desde H31 (contracts/juez-de-las-descripciones.md §7 de H31; research D9
+//     de H31; FR-034), con el argumento descripciones, lo mismo con el punto de
+//     entrada de la medida del juez de las descripciones,
+//     TestMedidaDelJuezDeLasDescripciones, y sus banderas, que son las de la
+//     medida del juez de una skill sin -skill: el juez de las descripciones no
+//     es de ninguna.
 //
 // En todos los casos el TMPDIR del test queda vacío: la medida y lo que go test
 // deja en su TMPDIR, que el sustituto no borra, están en el temporal, y el
@@ -5757,7 +5766,8 @@ func TestGuionDeLaMedida(t *testing.T) {
 				return
 			}
 
-			exigirLaOrdenDeLaMedida(t, leerElGoAnotado(t, anotaciones), variables[variableDelClaudeDelJuez], temporal, raiz)
+			exigirLaOrdenDeLaMedida(t, leerElGoAnotado(t, anotaciones), caso, variables[variableDelClaudeDelJuez], temporal,
+				raiz)
 		})
 	}
 }
@@ -5765,7 +5775,8 @@ func TestGuionDeLaMedida(t *testing.T) {
 // casosDelGuionDeLaMedida son los casos de TestGuionDeLaMedida: los tres en los
 // que el guion ejecuta go test —escribe la medida y sale con 0, falla sin
 // escribirla y la escribe y falla, con dos códigos que no son el 1 de los demás
-// casos—, los tres sin la skill y los de cada variable obligatoria.
+// casos—, los mismos tres con el argumento descripciones, los tres sin la skill
+// y los de cada variable obligatoria.
 func casosDelGuionDeLaMedida() []casoDelGuionDeLaMedida {
 	cumplida, sinMarcar := medidaDelGuion(0, 0), medidaDelGuion(1, 0)
 
@@ -5834,7 +5845,62 @@ func casosDelGuionDeLaMedida() []casoDelGuionDeLaMedida {
 			}))
 	}
 
-	return append(casos, casosDelClaudeQueNoSirve()...)
+	return slices.Concat(casos, casosDelClaudeQueNoSirve(), casosDelGuionDeLaMedidaDeLasDescripciones())
+}
+
+// casosDelGuionDeLaMedidaDeLasDescripciones son los casos de TestGuionDeLaMedida
+// con el argumento descripciones (contracts/juez-de-las-descripciones.md §7 de
+// H31; FR-034): los tres en los que el guion ejecuta go test, con la medida del
+// juez de las descripciones, que no lleva skill, y su punto de entrada.
+func casosDelGuionDeLaMedidaDeLasDescripciones() []casoDelGuionDeLaMedida {
+	cumplida, marcada := medidaDeLasDescripcionesDelGuion(0, 0), medidaDeLasDescripcionesDelGuion(0, 1)
+
+	return []casoDelGuionDeLaMedida{
+		{
+			nombre:             "descripciones-go-test-escribe-la-medida-y-sale-con-0",
+			orden:              guionDeLaMedidaDeLasDescripciones,
+			medida:             cumplida,
+			codigo:             0,
+			salida:             registroDeGoEnSuSalida + "\n" + inicioDeLaMedidaImpresa + cumplida + finDeLaMedidaImpresa,
+			deError:            registroDeGoEnLaDeError + "\n",
+			deLasDescripciones: true,
+		},
+		{
+			nombre:             "descripciones-go-test-falla-sin-escribir-la-medida",
+			orden:              guionDeLaMedidaDeLasDescripciones,
+			codigoDeGo:         2,
+			codigo:             2,
+			salida:             registroDeGoEnSuSalida + "\n",
+			deError:            registroDeGoEnLaDeError + "\n",
+			deLasDescripciones: true,
+		},
+		{
+			nombre:             "descripciones-go-test-escribe-la-medida-y-falla",
+			orden:              guionDeLaMedidaDeLasDescripciones,
+			medida:             marcada,
+			codigoDeGo:         3,
+			codigo:             3,
+			salida:             registroDeGoEnSuSalida + "\n" + inicioDeLaMedidaImpresa + marcada + finDeLaMedidaImpresa,
+			deError:            registroDeGoEnLaDeError + "\n",
+			deLasDescripciones: true,
+		},
+	}
+}
+
+// guionDeLaMedidaDeLasDescripciones es la orden que ejecuta el guion de la
+// medida de esa ruta con descripciones, su único argumento.
+func guionDeLaMedidaDeLasDescripciones(ctx context.Context, guion string) *exec.Cmd {
+	return exec.CommandContext(ctx, guion, entradaDeLasDescripciones)
+}
+
+// medidaDeLasDescripcionesDelGuion es la medida del juez de las descripciones
+// que el sustituto de go escribe en TestGuionDeLaMedida: la forma de la que da
+// medirAlJuezDeLasDescripciones, con lo que el test da al guion y con esos dos
+// recuentos.
+func medidaDeLasDescripcionesDelGuion(sinMarcar, marcados int) string {
+	return fmt.Sprintf(formaDeLaMedidaDeLasDescripciones, fechaDeLaMedidaDada, modeloDelGuion, versionDelGuion,
+		"huella-de-la-rubrica", "huella-de-los-casos", defectosDeLaMedidaDeLasDescripciones, sinMarcar,
+		correctosDeLaMedidaDeLasDescripciones, marcados, commitDeLaMedicion)
 }
 
 // casosDelClaudeQueNoSirve son los casos de TestGuionDeLaMedida con un
@@ -5959,11 +6025,13 @@ func prepararElGuionDeLaMedida(t *testing.T, orden *exec.Cmd, caso casoDelGuionD
 }
 
 // exigirLaOrdenDeLaMedida exige que el sustituto de go se haya ejecutado en la
-// raíz del repositorio con la orden del punto de entrada de la medida
-// (ordenDeLaMedida), con ese claude del juez y con -salida en un temporal del
-// TMPDIR dado, con el nombre de la plantilla, que solo tenía su tmp/, y con ese
-// tmp/ como TMPDIR.
-func exigirLaOrdenDeLaMedida(t *testing.T, anotado goAnotado, claude, temporal, raiz string) {
+// raíz del repositorio con la orden del punto de entrada de la medida del caso
+// (ordenDeLaMedida u ordenDeLaMedidaDeLasDescripciones), con ese claude del
+// juez y con -salida en un temporal del TMPDIR dado, con el nombre de la
+// plantilla, que solo tenía su tmp/, y con ese tmp/ como TMPDIR.
+func exigirLaOrdenDeLaMedida(t *testing.T, anotado goAnotado, caso casoDelGuionDeLaMedida, claude, temporal,
+	raiz string,
+) {
 	t.Helper()
 
 	require.NotEmpty(t, anotado.argumentos)
@@ -5972,10 +6040,15 @@ func exigirLaOrdenDeLaMedida(t *testing.T, anotado goAnotado, claude, temporal, 
 	fisico, err := filepath.EvalSymlinks(temporal)
 	require.NoError(t, err)
 
+	orden := ordenDeLaMedida
+	if caso.deLasDescripciones {
+		orden = ordenDeLaMedidaDeLasDescripciones
+	}
+
 	assert.Equal(t, fisico, filepath.Dir(temporalDelGuion), "el temporal del guion está en TMPDIR")
 	assert.Regexp(t, nombreDelTemporalDeLaMedida, filepath.Base(temporalDelGuion))
 	assert.Equal(t, goAnotado{
-		argumentos: ordenDeLaMedida(claude, temporalDelGuion),
+		argumentos: orden(claude, temporalDelGuion),
 		directorio: raiz,
 		tmpdir:     filepath.Join(temporalDelGuion, "tmp"),
 		temporal:   "tmp",
@@ -5989,6 +6062,19 @@ func ordenDeLaMedida(claude, temporal string) []string {
 	return []string{
 		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestMedidaDelJuez$", "./internal/evals/", "-args",
 		"-skill", skillDeLaMedicion, "-modelo-del-juez", modeloDelGuion, "-version-del-juez", versionDelGuion,
+		"-claude-del-juez", claude, "-concurrencia", concurrenciaDelGuion, "-commit", commitDeLaMedicion,
+		"-salida", filepath.Join(temporal, ficheroDeLaMedidaDelGuion),
+	}
+}
+
+// ordenDeLaMedidaDeLasDescripciones son los argumentos de go de la orden del
+// punto de entrada de la medida del juez de las descripciones
+// (contracts/juez-de-las-descripciones.md §7 de H31): los de ordenDeLaMedida con
+// su punto de entrada y sin -skill.
+func ordenDeLaMedidaDeLasDescripciones(claude, temporal string) []string {
+	return []string{
+		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestMedidaDelJuezDeLasDescripciones$",
+		"./internal/evals/", "-args", "-modelo-del-juez", modeloDelGuion, "-version-del-juez", versionDelGuion,
 		"-claude-del-juez", claude, "-concurrencia", concurrenciaDelGuion, "-commit", commitDeLaMedicion,
 		"-salida", filepath.Join(temporal, ficheroDeLaMedidaDelGuion),
 	}

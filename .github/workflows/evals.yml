@@ -27,7 +27,8 @@
 #   - La etiqueta evals-completa y el despacho sin medir_al_juez: la suite completa, todas las evals de cada skill
 #     medidas y ninguna reutilizada (modo completa). La etiqueta evals-prueba-de-red y el despacho con prueba_de_red,
 #     también, con la sesión de prueba de red de la eval 01 de boe-legislacion.
-#   - La etiqueta evals-medir-juez y el despacho con medir_al_juez: la medida del juez, sin evals, como hasta ahora.
+#   - La etiqueta evals-medir-juez y el despacho con medir_al_juez: la medida del juez, sin evals, como hasta ahora, y,
+#     desde H31, la del juez de las descripciones.
 # La release exige la suite completa: no publica sin una ejecución de este flujo en modo completa sobre el commit
 # etiquetado con el trabajo de cada skill en verde, que se lanza con gh workflow run evals.yml --ref <etiqueta>
 # (contracts/release.md; FR-025). Ninguna ejecución abre más sesiones a la vez que antes de H30 (FR-020).
@@ -41,9 +42,10 @@ on:
         description: "Añade la sesión de prueba de red de la eval 01 de boe-legislacion (SC-012)"
         type: boolean
         default: false
-      # Con ella, el despacho no abre las sesiones de evals: ejecuta la medida del juez, el trabajo medida (ADR 0037).
+      # Con ella, el despacho no abre las sesiones de evals: ejecuta la medida del juez, el trabajo medida (ADR 0037), y,
+      # desde H31, la del juez de las descripciones (ADR 0046).
       medir_al_juez:
-        description: "Ejecuta la medida del juez de las skills que lo tienen en lugar de sus evals (ADR 0037)"
+        description: "Ejecuta la medida del juez de las skills que lo tienen y la del de las descripciones en lugar de sus evals (ADR 0037, ADR 0046)"
         type: boolean
         default: false
   # Al abrir (o reabrir) una propuesta de cambio que elige alguna eval, y al poner la etiqueta evals, evals-completa o
@@ -501,18 +503,26 @@ jobs:
   # 60 305 s, que el tope no cubre. Con la etiqueta o con la entrada corren los dos trabajos de la matriz, sin selector
   # por skill y cada uno con su resultado (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1 a §3; FR-050, FR-071 y
   # FR-072 de H25).
+  #
+  # Desde H31, la entrada descripciones mide al juez de las descripciones con los 99 casos de
+  # evidencias/adr-0046/casos.yaml, a 5 a la vez (specs/027-h31-las-skills-siguen/contracts/juez-de-las-descripciones.md
+  # §7; research.md D9; FR-034): 5305 s, 88,4 minutos, con los 485 s de fuera de los votos, los 60 s de instalar el
+  # Claude Code del juez y 119 tandas de 40 s, que el tope cubre. La lanza una persona, con la etiqueta, nunca un paso
+  # del run (SC-011).
   medida:
     name: medida del juez (${{ matrix.skill }})
     if: github.event.label.name == 'evals-medir-juez' || inputs.medir_al_juez == true
     strategy:
       fail-fast: false
       matrix:
-        skill: [boe-legislacion, jurisprudencia]
+        skill: [boe-legislacion, jurisprudencia, descripciones]
         include:
           - skill: boe-legislacion
             concurrencia: 5
           - skill: jurisprudencia
             concurrencia: 4
+          - skill: descripciones
+            concurrencia: 5
     runs-on: ubuntu-24.04
     timeout-minutes: 269
     permissions:

@@ -622,9 +622,10 @@ func (p peorCasoDelJuez) String() string {
 }
 
 // peorCasoDeLaMedida es lo más que puede tardar el trabajo de la medida del
-// juez de una skill (contracts/job-de-evals.md §4 de H24): fueraDeLasSesiones,
-// que no abre ninguna, más lo que el juez añade con sus casos etiquetados, que
-// vota en un solo grupo.
+// juez de una skill (contracts/job-de-evals.md §4 de H24) o, desde H31, del
+// juez de las descripciones (research D9 de H31): fueraDeLasSesiones, que no
+// abre ninguna, más lo que el juez añade con sus casos etiquetados, que vota en
+// un solo grupo.
 type peorCasoDeLaMedida struct {
 	// Casos son los casos etiquetados del juez de la skill.
 	Casos int
@@ -800,10 +801,25 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
 // la carpeta juez de sus evals, dentro de evals, y su concurrencia, la que le da
 // el include del trabajo. Es un error una concurrencia menor que 1, una carpeta
 // que no se puede leer, una skill sin juez o unos casos que no tienen su forma.
+//
+// Desde H31, el de la entrada descripciones es el de la medida del juez de las
+// descripciones (research D9 y D10 de H31; SC-015): sus casos son los de la
+// evidencia del ADR 0046 en la raíz del repositorio que contiene evals, que es
+// su directorio evals (directorioDeLasEvals). Es un error que no se puedan leer
+// o que no tengan su forma.
 func (m TrabajoDeLaMedida) peorCaso(evals, skill string) (peorCasoDeLaMedida, error) {
 	concurrencia, err := concurrenciaDeLaSkill(m.ConcurrenciaPorSkill[skill], skill)
 	if err != nil {
 		return peorCasoDeLaMedida{}, err
+	}
+
+	if skill == entradaDeLasDescripciones {
+		casos, err := leerLosCasosDeLaEvidencia(filepath.Dir(evals))
+		if err != nil {
+			return peorCasoDeLaMedida{}, err
+		}
+
+		return peorCasoDeLaMedida{Casos: len(casos), Concurrencia: concurrencia}, nil
 	}
 
 	conjunto, err := LeerConjunto(filepath.Join(evals, skill))

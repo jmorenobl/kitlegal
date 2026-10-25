@@ -1,14 +1,23 @@
 {
-  "id": "T016",
-  "texto": "T016 [US3] Cubrir con el tope de cada trabajo el peor caso de la descripción (SC-015, FR-030; research D10): en `internal/evals/definicion.go`, `peorCasoDelTrabajo` suma en todo trabajo `evals` el peor caso de una descripción, `votosPorRespuestaComoMucho` (6) × (`topeDelVoto` + `margenDelVoto`) = 240 s, y la instalación del Claude Code del juez (60 s) en el trabajo de una skill sin juez de las respuestas (hoy `legal-core`); `TestDefinicionDelJob` en `internal/evals/definicion_test.go` con las cadenas esperadas de cada skill con esas cifras (el de `boe-legislacion` pasa de 19 877 s a 20 117 s, bajo el tope de 352 min de `.github/workflows/evals.yml`, que no cambia) y en rojo si el tope de un trabajo es menor que la suma del peor caso de sus evals y el de la descripción. FR-030, SC-015. Rutas: internal/evals/definicion.go, internal/evals/definicion_test.go, .github/workflows/evals.yml",
+  "id": "T017",
+  "texto": "T017 [US3] Medir la clase con el código del job (FR-034; research D9; contracts/juez-de-las-descripciones.md §7): punto de entrada `TestMedidaDelJuezDeLasDescripciones` en `internal/evals/job_test.go` (`//go:build evals`), que vota los 99 casos de `casos.yaml` con el mensaje de T012 y la votación de T013, por orden, y escribe en `-salida` la medida con las claves que lee `leerMedidaDelJuez` (`clase`, `fecha`, `modelo_del_juez`, `version_de_claude_code`, `rubrica`, `casos`, `defectos`, `correctos`) y `origen`, con una línea en el registro por caso mal etiquetado y por caso sin juzgar, sin escribir nada en el repositorio, apoyado en lo que necesite de `internal/evals/descripciones.go` y `internal/evals/medida.go`; `scripts/evals-medir-juez.sh` admite `descripciones` y ejecuta ese punto de entrada, imprimiendo la medida entre `--- inicio de medida.json ---` y `--- fin de medida.json ---`; el trabajo `medida` de `.github/workflows/evals.yml` gana la entrada `descripciones` en su matriz, con concurrencia 5. Tests: `TestGuionDeLaMedida` en `internal/evals/medida_test.go` (el guion con `descripciones`, con el `claude` sustituto) y `TestDefinicionDelJob` en `internal/evals/definicion_test.go` (la entrada `descripciones` de `medida` y su peor caso, 485 s + 60 s + ⌈99 × 6 / 5⌉ × 40 s = 5305 s, bajo su tope de 269 min). Entrada en `CHANGELOG.md` con el juez de las descripciones (FR-023). La medida la lanza fuera del run quien tiene la etiqueta `evals-medir-juez` (SC-011); ninguna orden de esta tarea abre una sesión. FR-023, FR-033, FR-034, SC-011, SC-014, SC-015. Rutas: internal/evals/job_test.go, internal/evals/descripciones.go, internal/evals/medida.go, internal/evals/medida_test.go, internal/evals/definicion.go, internal/evals/definicion_test.go, scripts/evals-medir-juez.sh, .github/workflows/evals.yml, CHANGELOG.md",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "43dd65be704dc12bfb43922bac19f6296b43c968",
+  "base": "a090404097a037e008f0abcb6f1fe26e6f6c0fc3",
   "rutas": [
     ".github/workflows/evals.yml",
+    "CHANGELOG.md",
+    "casos.yaml",
+    "contracts/juez-de-las-descripciones.md",
     "internal/evals/definicion.go",
-    "internal/evals/definicion_test.go"
+    "internal/evals/definicion_test.go",
+    "internal/evals/descripciones.go",
+    "internal/evals/job_test.go",
+    "internal/evals/medida.go",
+    "internal/evals/medida_test.go",
+    "medida.json",
+    "scripts/evals-medir-juez.sh"
   ],
   "cierre": false,
   "converger": false,
