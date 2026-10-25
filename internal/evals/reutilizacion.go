@@ -170,13 +170,13 @@ func (b *busquedaEnMain) recorrer(ctx context.Context, plataforma lecturasDeLaPl
 // anotar anota en la búsqueda lo que el informe de la medida de main tiene de
 // lo que aún no tiene resultado: el resultado reutilizable de cada eval y el
 // juicio reutilizable de la descripción, si lo busca.
-func (b *busquedaEnMain) anotar(informe *informeDeLaMedida, medida medidaDeMain) {
+func (b *busquedaEnMain) anotar(informe *Informe, medida medidaDeMain) {
 	for _, buscada := range b.buscadas {
 		if _, hallada := b.halladas[buscada.fichero]; hallada {
 			continue
 		}
 
-		if resultado, ok := resultadoReutilizable(&informe.Informe, medida, buscada, b.instante); ok {
+		if resultado, ok := resultadoReutilizable(informe, medida, buscada, b.instante); ok {
 			b.halladas[buscada.fichero] = resultado
 		}
 	}
@@ -233,40 +233,15 @@ func posiblesMedidasDeMain(
 	return posibles, nil
 }
 
-// informeDeLaMedida es lo que la búsqueda lee del informe del trabajo de la
-// skill en una medida de main: el informe y su bloque descripcion, nil si no lo
-// lleva.
-type informeDeLaMedida struct {
-	Informe
-
-	Descripcion *descripcionEnElInforme `json:"descripcion"`
-}
-
-// descripcionEnElInforme es lo que la búsqueda lee del bloque descripcion del
-// informe de una medida de main (contracts/juez-de-las-descripciones.md §6 de
-// H31; data-model §4 de H31): la skill, la huella del juicio, si se juzgó allí
-// o se reutilizó con su procedencia, la marca, la frase y el motivo del juicio,
-// y el motivo del voto de la descripción que quedó sin juzgar, vacío si se
-// juzgó.
-type descripcionEnElInforme struct {
-	Skill       string                 `json:"skill"`
-	Huella      string                 `json:"huella"`
-	Juzgada     bool                   `json:"juzgada"`
-	Procedencia *procedenciaDeLaMedida `json:"procedencia"`
-	Marcada     bool                   `json:"marcada"`
-	Frase       string                 `json:"frase"`
-	Motivo      string                 `json:"motivo"`
-	SinJuzgar   string                 `json:"sin_juzgar"`
-}
-
 // leerLaMedida lee los trabajos de la posible medida y, si lo es, pone en ella
-// el trabajo de la skill y lee su informe. Devuelve el informe —nil si
+// el trabajo de la skill y lee su informe, con su bloque descripcion si lo
+// lleva (Informe.Descripcion). Devuelve el informe —nil si
 // no se pudo sacar del registro o leer, que deja la medida sin aportar nada—, si
 // es medida y el error de la lectura que falló, que para la búsqueda: la de los
 // trabajos, y la del registro si su orden falló o se agotó el plazo.
 func leerLaMedida(
 	ctx context.Context, plataforma lecturasDeLaPlataforma, skill string, posible *medidaDeMain,
-) (*informeDeLaMedida, bool, *errorDeLaPlataformaEnElOrigen) {
+) (*Informe, bool, *errorDeLaPlataformaEnElOrigen) {
 	ejecucion := strconv.FormatInt(posible.ejecucion, 10)
 
 	trabajos, err := plataforma.trabajos(ctx, posible.ejecucion)
@@ -296,7 +271,7 @@ func leerLaMedida(
 		return nil, true, nil
 	}
 
-	var informe informeDeLaMedida
+	var informe Informe
 	if json.Unmarshal(contenido, &informe) != nil {
 		// Un informe que no es JSON con su forma tampoco aporta nada (FR-013 de
 		// H30).
@@ -403,7 +378,7 @@ func resultadoReutilizable(
 // casos, como la de un resultado de una eval, de menos de vidaDeUnResultado
 // antes del instante.
 func juicioReutilizable(
-	bloque *descripcionEnElInforme, medida medidaDeMain, skill, huella string, instante time.Time,
+	bloque *DescripcionInformada, medida medidaDeMain, skill, huella string, instante time.Time,
 ) *descripcionDeLaDecision {
 	if bloque == nil || bloque.Skill != skill || bloque.Huella != huella || bloque.SinJuzgar != "" {
 		return nil
