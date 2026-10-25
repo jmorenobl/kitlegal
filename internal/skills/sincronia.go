@@ -8,23 +8,26 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"unicode/utf8"
 )
 
 // Lo que forma la parte generada de una skill, además de la región de SKILL.md
 // (data-model §1 y §4.2), y lo que una skill no lleva.
 const (
-	// carpetaDeLasReferencias es el directorio de las referencias generadas de
-	// una skill, dentro del suyo.
+	// carpetaDeLasReferencias es el directorio de las referencias de una skill,
+	// las generadas y las a mano, dentro del suyo.
 	carpetaDeLasReferencias = "references"
 
-	// extensionDeLasReferencias es la extensión de una referencia generada:
+	// extensionDeLasReferencias es la extensión de una referencia: la generada
 	// references/<nombre>.md sale del YAML de datos que la tabla de generadores
-	// declara para <nombre>.
+	// declara para <nombre>, y la a mano la lleva también (FR-012).
 	extensionDeLasReferencias = ".md"
 
-	// maximoDeLineas es el número de líneas de SKILL.md a partir del cual es un
-	// defecto (FR-041: «300 líneas o más» falla).
-	maximoDeLineas = 299
+	// maximoDeLineasDelCuerpo y maximoDeCaracteresDelCuerpo son los
+	// presupuestos del cuerpo de SKILL.md (data-model §1; FR-004 de H31): con 500
+	// líneas o más, o con más de 11 000 caracteres, es un defecto.
+	maximoDeLineasDelCuerpo     = 499
+	maximoDeCaracteresDelCuerpo = 11000
 
 	// carpetaDeLosScripts es la entrada que una skill no lleva: la de los
 	// enlaces al binario de la instalación anterior, que se retiró cuando las
@@ -34,6 +37,10 @@ const (
 	// defectoDeScripts es el defecto de una skill que la lleva
 	// (contracts/skills-e-invocacion.md §3 de H19).
 	defectoDeScripts = "una skill no lleva " + carpetaDeLosScripts + "/ (ADR 0019)"
+
+	// defectoDeUnaEntrada es el de una entrada de references/ que no es un
+	// fichero regular .md, detrás de su ruta (FR-006 de H31).
+	defectoDeUnaEntrada = "no es un fichero " + extensionDeLasReferencias
 )
 
 // Los permisos con que Escribir crea lo que falta: un directorio, sin escritura
@@ -66,14 +73,15 @@ type SkillRegenerada struct {
 	// kitlegal-referencias y en su orden; nil si no declara ninguna.
 	Referencias []Referencia
 
-	// Defectos son los de la skill, en el orden frontmatter, líneas, región,
-	// datos y scripts/; nil si no tiene ninguno. Con alguno, Contenido y
+	// Defectos son los de la skill, en el orden frontmatter, cuerpo, región,
+	// datos, references/ y scripts/; nil si no tiene ninguno. Con alguno, Contenido y
 	// Referencias van vacíos: no hay nada regenerado que escribir ni con que
 	// comparar.
 	Defectos []*DefectoDeSkill
 }
 
-// Referencia es un fichero generado de references/ (data-model §4.2).
+// Referencia es un fichero de references/: una referencia generada (data-model
+// §4.2) o una a mano (ReferenciasAMano).
 type Referencia struct {
 	// Fichero es su nombre dentro de references/: <nombre>.md.
 	Fichero string
@@ -100,14 +108,18 @@ type ClaseDeDeriva string
 // Las clases de deriva de data-model §5.
 const (
 	// DerivaContenidoDistinto es la de un fichero generado —SKILL.md o una
-	// referencia— que existe con otros bytes, o que no es un fichero regular.
+	// referencia— que existe con otros bytes, o que no es un fichero regular: una
+	// referencia que lo deja de ser después de Regenerar, que habría dado el
+	// defecto de FR-006 de H31.
 	DerivaContenidoDistinto ClaseDeDeriva = "contenido-distinto"
 
 	// DerivaFicheroAusente es la de un fichero generado que falta.
 	DerivaFicheroAusente ClaseDeDeriva = "fichero-ausente"
 
 	// DerivaFicheroSobrante es la de una entrada de references/ que no es
-	// ninguna referencia declarada.
+	// ninguna referencia declarada ni una referencia a mano (FR-012): el .md no
+	// declarado que abre con la cabecera de una generada. Lo que no es un fichero
+	// regular .md no es una deriva, sino un defecto (FR-006 de H31).
 	DerivaFicheroSobrante ClaseDeDeriva = "fichero-sobrante"
 )
 
@@ -153,15 +165,20 @@ func (d *Deriva) Error() string {
 //   - con el frontmatter sin defectos, SKILL.md lleva en su región la tabla de
 //     comandos de los applets que declara, si declara alguno, y cada referencia
 //     declarada se genera con su fila desde su YAML de datos;
-//   - SKILL.md, tal como quedaría, tiene que tener menos de 300 líneas;
+//   - el cuerpo de SKILL.md, tal como quedaría, tiene que tener menos de 500
+//     líneas y como mucho 11 000 caracteres (defectosDelCuerpo);
+//   - references/ solo lleva ficheros regulares .md, y cada referencia, generada
+//     o a mano, está enlazada desde ese cuerpo, no enlaza otra y, con más de 100
+//     líneas, abre con su índice (defectosDeReferences);
 //   - la skill no lleva scripts/ (defectoDeLosScripts), tampoco sin SKILL.md.
 //
 // Nada de eso sale de una lista escrita para una skill concreta: sale de la
 // declaración de kitlegal de cada una y de data/. Los defectos de una skill van
-// en el orden frontmatter, líneas, región, datos y scripts/, cada uno con la
-// skill y lo que falla; con alguno, la skill no lleva nada regenerado. El error
-// queda para lo que impide regenerar: un directorio de skills o de datos que no
-// se puede listar, o una entrada que no se puede consultar o leer.
+// en el orden frontmatter, cuerpo, región, datos, references/ y scripts/, cada
+// uno con la skill y lo que falla; con alguno, la skill no lleva nada
+// regenerado. El error queda para lo que impide regenerar: un directorio de
+// skills, de datos o de referencias que no se puede listar, o una entrada que no
+// se puede consultar o leer.
 func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, error) {
 	nombres, err := Listar(raiz)
 	if err != nil {
@@ -240,13 +257,58 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 		}
 	}
 
-	defectos := slices.Concat(deFrontmatter, defectoDeLasLineas(nombre, regenerada.Contenido), deLaRegion, deLosDatos,
-		deLosScripts)
+	deReferences, err := defectosDeReferences(raiz, regenerada, len(deFrontmatter) == 0 && len(deLosDatos) == 0)
+	if err != nil {
+		return SkillRegenerada{}, err
+	}
+
+	defectos := slices.Concat(deFrontmatter, defectosDelCuerpo(nombre, regenerada.Contenido), deLaRegion, deLosDatos,
+		deReferences, deLosScripts)
 	if len(defectos) > 0 {
 		return SkillRegenerada{Nombre: nombre, Defectos: defectos}, nil
 	}
 
 	return regenerada, nil
+}
+
+// defectosDeReferences son los de references/ de la skill regenerada del
+// repositorio de raíz (contracts/gates-de-skills-check.md §2 y §3; research D13;
+// FR-006 a FR-009 de H31): uno por cada entrada que no es un fichero regular .md,
+// en orden de nombre, que nadie retira; y, si la skill tiene todo lo regenerado
+// —el frontmatter y los datos sin defectos—, los de sus referencias, las
+// generadas como las regenera su fila y las a mano como están, con el cuerpo de
+// su SKILL.md regenerado (defectosDeEnlacesEIndices). Sin eso, las declaradas no
+// se han generado y no hay referencias que mirar.
+func defectosDeReferences(raiz string, skill SkillRegenerada, conTodoRegenerado bool) ([]*DefectoDeSkill, error) {
+	arbol := os.DirFS(raiz)
+
+	noMd, err := entradasQueNoSonFicherosMd(arbol, skill.Nombre)
+	if err != nil {
+		return nil, err
+	}
+
+	var defectos []*DefectoDeSkill
+
+	for _, entrada := range noMd {
+		defectos = append(defectos, &DefectoDeSkill{
+			Skill:   skill.Nombre,
+			Defecto: carpetaDeLasReferencias + "/" + entrada + ": " + defectoDeUnaEntrada,
+		})
+	}
+
+	if !conTodoRegenerado {
+		return defectos, nil
+	}
+
+	aMano, err := ReferenciasAMano(arbol, skill.Nombre)
+	if err != nil {
+		return nil, err
+	}
+
+	cuerpo, _ := cuerpoDeLaSkill(skill.Contenido)
+
+	return append(defectos, defectosDeEnlacesEIndices(skill.Nombre, cuerpo, slices.Concat(skill.Referencias, aMano))...),
+		nil
 }
 
 // defectoDeLosScripts es el defecto de la skill de nombre si lleva scripts/
@@ -268,9 +330,9 @@ func defectoDeLosScripts(raiz, skill string) ([]*DefectoDeSkill, error) {
 }
 
 // declaracionDeLaSkill lee y valida el frontmatter de la skill, y devuelve su
-// declaración de kitlegal con los defectos del frontmatter: los de su lectura,
-// con SKILL.md delante, sin declaración; o los de ValidarFrontmatter, entre ellos
-// el de cada referencia declarada sin generador.
+// declaración de kitlegal con los defectos del frontmatter, todos con SKILL.md
+// delante: los de su lectura, sin declaración; o los de ValidarFrontmatter, entre
+// ellos el de cada referencia declarada sin generador.
 func declaracionDeLaSkill(raiz string, skill Skill, registrados []string) (
 	DeclaracionDeKitlegal, []*DefectoDeSkill, error,
 ) {
@@ -356,17 +418,50 @@ func referenciasGeneradas(raiz, skill string, nombres []string) ([]Referencia, [
 	return referencias, nil, nil
 }
 
-// defectoDeLasLineas es el defecto de un SKILL.md con 300 líneas o más.
-func defectoDeLasLineas(skill string, contenido []byte) []*DefectoDeSkill {
-	lineas := ContarLineas(contenido)
-	if lineas <= maximoDeLineas {
+// defectosDelCuerpo son los del cuerpo del SKILL.md de la skill, de contenido
+// regenerado (data-model §1; research D12; FR-004 y FR-010 de H31): uno si tiene
+// 500 líneas o más, contadas con ContarLineas, y otro si tiene más de 11 000
+// caracteres, contados como runas y no como bytes, en ese orden. Sin la línea que
+// cierra el frontmatter no hay cuerpo que medir: el defecto es el del
+// frontmatter, que ya da declaracionDeLaSkill.
+func defectosDelCuerpo(skill string, contenido []byte) []*DefectoDeSkill {
+	cuerpo, conCuerpo := cuerpoDeLaSkill(contenido)
+	if !conCuerpo {
 		return nil
 	}
 
-	return []*DefectoDeSkill{{
-		Skill:   skill,
-		Defecto: fmt.Sprintf("%s tiene %d líneas (máximo %d)", ficheroDeLaSkill, lineas, maximoDeLineas),
-	}}
+	var defectos []*DefectoDeSkill
+
+	if lineas := ContarLineas(cuerpo); lineas > maximoDeLineasDelCuerpo {
+		defectos = append(defectos, &DefectoDeSkill{
+			Skill:   skill,
+			Defecto: fmt.Sprintf("%s: cuerpo de %d líneas (máximo %d)", ficheroDeLaSkill, lineas, maximoDeLineasDelCuerpo),
+		})
+	}
+
+	if caracteres := utf8.RuneCount(cuerpo); caracteres > maximoDeCaracteresDelCuerpo {
+		defectos = append(defectos, &DefectoDeSkill{
+			Skill: skill,
+			Defecto: fmt.Sprintf("%s: cuerpo de %d caracteres (máximo %d)", ficheroDeLaSkill, caracteres,
+				maximoDeCaracteresDelCuerpo),
+		})
+	}
+
+	return defectos
+}
+
+// cuerpoDeLaSkill es el contenido de un SKILL.md desde el byte que sigue a la
+// línea --- que cierra su frontmatter (data-model §1), y si la tiene: lo que
+// bloqueDelFrontmatter no da es esa línea y lo que la sigue.
+func cuerpoDeLaSkill(contenido []byte) ([]byte, bool) {
+	bloque, err := bloqueDelFrontmatter(contenido)
+	if err != nil {
+		return nil, false
+	}
+
+	_, cuerpo, _ := bytes.Cut(contenido[len(bloque):], []byte("\n"))
+
+	return cuerpo, true
 }
 
 // defectosDelError es un defecto de la skill por cada error que une err —o uno
@@ -390,10 +485,11 @@ func defectosDelError(skill, fichero string, err error) []*DefectoDeSkill {
 // Comparar compara lo regenerado con el árbol del repositorio de raíz sin
 // escribir nada (data-model §5; FR-042) y devuelve una Deriva por cada
 // diferencia, skill a skill y, en cada una, en este orden: SKILL.md, las
-// referencias declaradas y las entradas sobrantes de references/. Una skill con
-// defectos no tiene nada regenerado con que comparar y no da ninguna. El error
-// queda para lo que impide comparar: una entrada que no se puede consultar o
-// leer, o un references/ que no es un directorio.
+// referencias declaradas y las entradas sobrantes de references/. Una referencia
+// a mano no es ninguna deriva (FR-012). Una skill con defectos no tiene nada
+// regenerado con que comparar y no da ninguna. El error queda para lo que impide
+// comparar: una entrada que no se puede consultar o leer, o un references/ que no
+// es un directorio.
 func Comparar(raiz string, regenerado Regenerado) ([]*Deriva, error) {
 	arreglos, err := arreglosDe(raiz, regenerado)
 	if err != nil {
@@ -412,7 +508,9 @@ func Comparar(raiz string, regenerado Regenerado) ([]*Deriva, error) {
 // Escribir deja el árbol del repositorio de raíz como lo regenerado
 // (contrato sincronizacion-y-comprobacion §2; FR-034, FR-036): deshace cada
 // deriva que da Comparar, y nada más. Escribe los ficheros generados que faltan o
-// que difieren y retira las entradas sobrantes de references/. Lo que ya
+// que difieren y retira las entradas sobrantes de references/; no escribe, no
+// rehace ni retira una referencia a mano (FR-012), ni retira lo que no es un
+// fichero regular .md, que es un defecto (FR-006 de H31). Lo que ya
 // coincide no se toca, así que sobre un árbol sin derivas no escribe nada, ni
 // siquiera un tiempo de modificación. No crea ningún scripts/ ni retira el que
 // haya (ADR 0019; FR-080 y FR-082 de H19): una skill que lo lleva tiene un
@@ -508,7 +606,7 @@ func arreglosDe(raiz string, regenerado Regenerado) ([]arreglo, error) {
 			continue
 		}
 
-		deLaSkill, err := arreglosDeLaSkill(filepath.Join(raiz, carpetaDeLasSkills, skill.Nombre), skill)
+		deLaSkill, err := arreglosDeLaSkill(raiz, skill)
 		if err != nil {
 			return nil, err
 		}
@@ -519,10 +617,18 @@ func arreglosDe(raiz string, regenerado Regenerado) ([]arreglo, error) {
 	return arreglos, nil
 }
 
-// arreglosDeLaSkill son los arreglos de las derivas de la skill, cuyo directorio
-// es el dado: SKILL.md, las referencias y las entradas sobrantes de references/.
-func arreglosDeLaSkill(directorio string, skill SkillRegenerada) ([]arreglo, error) {
+// arreglosDeLaSkill son los arreglos de las derivas de la skill del repositorio
+// de raíz: SKILL.md, las referencias declaradas y las entradas sobrantes de
+// references/, que no son ni una referencia declarada ni una a mano (FR-012).
+func arreglosDeLaSkill(raiz string, skill SkillRegenerada) ([]arreglo, error) {
+	directorio := filepath.Join(raiz, carpetaDeLasSkills, skill.Nombre)
+
 	enReferences, err := entradasDeLaCarpeta(directorio, skill.Nombre, carpetaDeLasReferencias)
+	if err != nil {
+		return nil, err
+	}
+
+	aMano, err := ReferenciasAMano(os.DirFS(raiz), skill.Nombre)
 	if err != nil {
 		return nil, err
 	}
@@ -532,7 +638,7 @@ func arreglosDeLaSkill(directorio string, skill SkillRegenerada) ([]arreglo, err
 		return nil, err
 	}
 
-	ficheros := make([]string, 0, len(skill.Referencias))
+	conservadas := make([]string, 0, len(skill.Referencias)+len(aMano))
 
 	for _, referencia := range skill.Referencias {
 		deLaReferencia, err := arregloDelFichero(directorio, skill.Nombre,
@@ -542,10 +648,15 @@ func arreglosDeLaSkill(directorio string, skill SkillRegenerada) ([]arreglo, err
 		}
 
 		arreglos = append(arreglos, deLaReferencia...)
-		ficheros = append(ficheros, referencia.Fichero)
+		conservadas = append(conservadas, referencia.Fichero)
 	}
 
-	arreglos = append(arreglos, sobrantes(directorio, skill.Nombre, carpetaDeLasReferencias, enReferences, ficheros)...)
+	for _, referencia := range aMano {
+		conservadas = append(conservadas, referencia.Fichero)
+	}
+
+	arreglos = append(arreglos,
+		sobrantes(directorio, skill.Nombre, carpetaDeLasReferencias, enReferences, conservadas)...)
 
 	return arreglos, nil
 }
@@ -619,13 +730,14 @@ func arregloDelFichero(directorio, skill, relativa string, contenido []byte) ([]
 }
 
 // sobrantes son los arreglos de las entradas de la carpeta del directorio de la
-// skill que no son ninguno de los nombres esperados, en el orden de las entradas:
-// cada una, un fichero sobrante.
-func sobrantes(directorio, skill, carpeta string, entradas, esperados []string) []arreglo {
+// skill que no son ninguno de los nombres conservados —las referencias
+// declaradas y las referencias a mano—, en el orden de las entradas: cada una, un
+// fichero sobrante.
+func sobrantes(directorio, skill, carpeta string, entradas, conservadas []string) []arreglo {
 	var arreglos []arreglo
 
 	for _, entrada := range entradas {
-		if slices.Contains(esperados, entrada) {
+		if slices.Contains(conservadas, entrada) {
 			continue
 		}
 

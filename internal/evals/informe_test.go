@@ -4415,6 +4415,209 @@ func respuestaPublicada(sesion string, enAfirma, enCuenta bool, votos ...votoPub
 	return RespuestaConVotos{Sesion: sesion, Clases: []JuicioDeClase{afirma, cuenta}}
 }
 
+// casoDelInformeConLaDescripcion es un caso de TestInformeConLaDescripcion: el
+// bloque descripcion que recibe el informe, nil sin él; si lleva el umbral de su
+// clase, con cuántas marcadas y cuántas juzgadas; los motivos de la raíz; el
+// bloque tal como lo escribe informe.json, sin blancos; y la sección «La
+// descripción» de informe.md.
+type casoDelInformeConLaDescripcion struct {
+	nombre             string
+	descripcion        *DescripcionInformada
+	conUmbral          bool
+	marcadas, juzgadas int
+	motivos            []string
+	escrito            string
+	seccion            string
+}
+
+// Lo que el informe dice del bloque descripcion, escrito a mano
+// (contracts/juez-de-las-descripciones.md §6 de H31): el principio del motivo
+// del umbral de su clase, el motivo de la descripción sin juzgar, que no cita
+// ningún umbral, y las dos primeras líneas de la sección «La descripción» de la
+// juzgada.
+const (
+	principioDelMotivoDelUmbralDeLaDescripcion = "umbral habla_en_primera_o_segunda_persona: "
+	motivoDeLaDescripcionSinJuzgarEsperado     = "el juez de las descripciones dejó sin juzgar la descripción de " +
+		skillDeLasSesiones + ": " + prefijoDeSesionConError + errorDeLaSesionDelJuez
+	principioDeLaSeccionDeLaJuzgada = "Skill: " + skillDeLasSesiones + "\n\nJuicio: juzgada en esta ejecución\n\n"
+)
+
+// TestInformeConLaDescripcion fija lo que el informe publica de la descripción
+// de la skill (contracts/juez-de-las-descripciones.md §6 de H31; research D7 de
+// H31; FR-031, FR-032; SC-007, SC-010), sobre el caso aprobado, que no tiene
+// juez y aprueba:
+//
+//   - marcada: el umbral habla_en_primera_o_segunda_persona con 1 de 1, en rojo,
+//     el motivo de hoy y el veredicto fallo; el bloque, con la frase y el motivo
+//     de su primer voto y sus votos, y la sección, con la frase y el motivo;
+//   - sin marcar: el umbral con 0 de 1 y aprobado;
+//   - sin juzgar: el umbral con 0 de 0, el motivo propio, que nombra la skill y
+//     el motivo del voto y no cita ningún umbral —se distingue sin modelo del de
+//     una marcada, que empieza por el del umbral—, y el veredicto fallo;
+//   - reutilizada, también la marcada en la medida de main: el umbral con 0 de
+//     0, aprobado, y el bloque y la sección con su procedencia, sin votos;
+//   - y sin el bloque, ni bloque, ni umbral, ni sección (FR-030).
+//
+// El bloque va en informe.json detrás de origen y delante de tasas, y la
+// sección, en informe.md detrás de «Medidas y reutilizadas» y delante de «Tasas
+// por eval».
+func TestInformeConLaDescripcion(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDelInformeConLaDescripcion(t) {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			probarElInformeConLaDescripcion(t, caso)
+		})
+	}
+
+	t.Run("motivos-distinguibles", func(t *testing.T) {
+		t.Parallel()
+
+		assert.True(t, strings.HasPrefix(motivoDeLaDescripcionMarcada, principioDelMotivoDelUmbralDeLaDescripcion))
+		assert.NotContains(t, motivoDeLaDescripcionSinJuzgarEsperado, "umbral",
+			"el motivo de la sin juzgar no cita ningún umbral")
+	})
+}
+
+// casosDelInformeConLaDescripcion son los casos de TestInformeConLaDescripcion.
+func casosDelInformeConLaDescripcion(t *testing.T) []casoDelInformeConLaDescripcion {
+	t.Helper()
+
+	huella := huellaDeLaDescripcionDeLaDecision()
+	cabecera := `{"skill":` + cadenaJSON(t, skillDeLasSesiones) + `,"clase":` + cadenaJSON(t, claseHablaEnPrimeraOSegundaPersona) +
+		`,"huella":` + cadenaJSON(t, huella)
+
+	procedencia, err := json.Marshal(procedenciaDeMainDelJob())
+	require.NoError(t, err)
+
+	votoEscrito := func(frase, motivo string) string {
+		return `{"respuesta":"si","frase":` + cadenaJSON(t, frase) + `,"motivo":` + cadenaJSON(t, motivo) + `}`
+	}
+
+	juzgada := func(marcada bool, frase, motivo string, votos []VotoDeLaDescripcion, sinJuzgar string) *DescripcionInformada {
+		return &DescripcionInformada{
+			Skill: skillDeLasSesiones, Clase: claseHablaEnPrimeraOSegundaPersona, Huella: huella, Juzgada: true,
+			Marcada: marcada, Frase: frase, Motivo: motivo, Votos: votos, SinJuzgar: sinJuzgar,
+		}
+	}
+
+	reutilizada := func(marcada bool, frase string) *DescripcionInformada {
+		return &DescripcionInformada{
+			Skill: skillDeLasSesiones, Clase: claseHablaEnPrimeraOSegundaPersona, Huella: huella,
+			Procedencia: procedenciaDeMainDelJob(), Marcada: marcada, Frase: frase, Motivo: motivoDelPrimerVoto,
+		}
+	}
+
+	seccionDeLaReutilizada := "Skill: " + skillDeLasSesiones + "\n\nJuicio: " + procedenciaDeMainDelJob().escrita()
+
+	return []casoDelInformeConLaDescripcion{
+		{
+			nombre: "marcada",
+			descripcion: juzgada(true, fraseDelPrimerVoto, motivoDelPrimerVoto, []VotoDeLaDescripcion{
+				votoDado("si", fraseDelPrimerVoto, motivoDelPrimerVoto),
+				votoDado("si", fraseDelSegundoVoto, motivoDelSegundoVoto),
+				votoDado("si", fraseDelTercerVoto, motivoDelTercerVoto),
+			}, ""),
+			conUmbral: true, marcadas: 1, juzgadas: 1,
+			motivos: []string{motivoDeLaDescripcionMarcada},
+			escrito: cabecera + `,"juzgada":true,"marcada":true,"frase":` + cadenaJSON(t, fraseDelPrimerVoto) +
+				`,"motivo":` + cadenaJSON(t, motivoDelPrimerVoto) + `,"votos":[` +
+				votoEscrito(fraseDelPrimerVoto, motivoDelPrimerVoto) + "," +
+				votoEscrito(fraseDelSegundoVoto, motivoDelSegundoVoto) + "," +
+				votoEscrito(fraseDelTercerVoto, motivoDelTercerVoto) + "]}",
+			seccion: principioDeLaSeccionDeLaJuzgada + "Marcada: sí\n\nFrase: «" + fraseDelPrimerVoto + "»\n\nMotivo: " +
+				motivoDelPrimerVoto,
+		},
+		{
+			nombre: "sin-marcar",
+			descripcion: juzgada(false, "", motivoDelVotoQueNo,
+				[]VotoDeLaDescripcion{votoDado("no", "", motivoDelVotoQueNo)}, ""),
+			conUmbral: true, juzgadas: 1,
+			escrito: cabecera + `,"juzgada":true,"marcada":false,"frase":"","motivo":` + cadenaJSON(t, motivoDelVotoQueNo) +
+				`,"votos":[{"respuesta":"no","frase":"","motivo":` + cadenaJSON(t, motivoDelVotoQueNo) + `}]}`,
+			seccion: principioDeLaSeccionDeLaJuzgada + "Marcada: no",
+		},
+		{
+			nombre:      "sin-juzgar",
+			descripcion: juzgada(false, "", "", []VotoDeLaDescripcion{}, prefijoDeSesionConError+errorDeLaSesionDelJuez),
+			conUmbral:   true,
+			motivos:     []string{motivoDeLaDescripcionSinJuzgarEsperado},
+			escrito: cabecera + `,"juzgada":true,"marcada":false,"frase":"","motivo":"","votos":[],"sin_juzgar":` +
+				cadenaJSON(t, prefijoDeSesionConError+errorDeLaSesionDelJuez) + "}",
+			seccion: principioDeLaSeccionDeLaJuzgada + "Sin juzgar: " + prefijoDeSesionConError + errorDeLaSesionDelJuez,
+		},
+		{
+			nombre:      "reutilizada",
+			descripcion: reutilizada(false, ""),
+			conUmbral:   true,
+			escrito: cabecera + `,"juzgada":false,"procedencia":` + string(procedencia) +
+				`,"marcada":false,"frase":"","motivo":` + cadenaJSON(t, motivoDelPrimerVoto) + "}",
+			seccion: seccionDeLaReutilizada + "\n\nMarcada: no",
+		},
+		{
+			nombre:      "reutilizada-y-marcada-en-main",
+			descripcion: reutilizada(true, fraseDelPrimerVoto),
+			conUmbral:   true,
+			escrito: cabecera + `,"juzgada":false,"procedencia":` + string(procedencia) +
+				`,"marcada":true,"frase":` + cadenaJSON(t, fraseDelPrimerVoto) + `,"motivo":` +
+				cadenaJSON(t, motivoDelPrimerVoto) + "}",
+			seccion: seccionDeLaReutilizada + "\n\nMarcada: sí\n\nFrase: «" + fraseDelPrimerVoto + "»\n\nMotivo: " +
+				motivoDelPrimerVoto,
+		},
+		{nombre: "sin-el-bloque"},
+	}
+}
+
+// probarElInformeConLaDescripcion escribe el informe del caso aprobado con el
+// bloque descripcion del caso y exige sus umbrales, sus motivos, su veredicto,
+// el bloque escrito y su sección, en su sitio, o que no lleve nada de la
+// descripción.
+func probarElInformeConLaDescripcion(t *testing.T, caso casoDelInformeConLaDescripcion) {
+	t.Helper()
+
+	leido := informeDeLaCopia(t, filepath.Join(casosDeInforme, casoAprobado), func(entradas *InformeAEscribir) {
+		entradas.descripcion = caso.descripcion
+	})
+
+	umbrales := []Umbral{umbralDeFueraDeLoGrabado(modeloQueDecide, ModoOrden, 0, 2)}
+	if caso.conUmbral {
+		umbrales = append(umbrales, umbralDeLaDescripcionEsperado(caso.marcadas, caso.juzgadas))
+	}
+
+	exigirUmbrales(t, leido, umbrales)
+	exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
+
+	veredicto := VeredictoAprobado
+	if len(caso.motivos) > 0 {
+		veredicto = VeredictoFallo
+	}
+
+	assert.Equal(t, veredicto, leido.informe.Veredicto)
+
+	if caso.descripcion == nil {
+		exigirSinLaDescripcion(t, leido)
+
+		return
+	}
+
+	assert.Equal(t, caso.descripcion, leido.informe.Descripcion)
+
+	var raiz map[string]jsontext.Value
+
+	require.NoError(t, json.Unmarshal([]byte(leido.escrito), &raiz))
+	require.Contains(t, raiz, "descripcion")
+	assert.Equal(t, caso.escrito, compacto(t, raiz["descripcion"]), "el bloque descripcion, con sus claves en su orden")
+	assert.Equal(t, "descripcion", claveDetras(t, leido.escrito, "origen"), "el bloque va detrás de origen")
+	assert.Equal(t, "tasas", claveDetras(t, leido.escrito, "descripcion"), "y delante de tasas")
+
+	assert.Equal(t, caso.seccion, seccionDelInforme(t, leido.md, "La descripción"))
+	assert.Equal(t, "La descripción", seccionDetras(t, leido.md, "Medidas y reutilizadas"),
+		"la sección va detrás de «Medidas y reutilizadas»")
+	assert.Equal(t, "Tasas por eval", seccionDetras(t, leido.md, "La descripción"), "y delante de «Tasas por eval»")
+}
+
 // TestInformeConElJuez fija lo que el juez con modelo hace en el informe
 // (contracts/informe-del-job.md §1 a §4 y §9 de H24; data-model §3 y §5;
 // research D6, D7, D9, D10 y D13; FR-007, FR-012 a FR-014, FR-030, FR-031,

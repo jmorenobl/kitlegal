@@ -57,6 +57,12 @@ const umbralDeLecturasSinIntentar = 0
 // FR-021 de H26.1).
 const umbralDeLecturasFueraDeLoGrabado = 0
 
+// La proporción de las descripciones juzgadas en la ejecución que admite el
+// umbral de las que el juez de las descripciones marca: ninguna
+// (contracts/juez-de-las-descripciones.md §6 de H31; research D7 de H31;
+// FR-031 de H31).
+const umbralDeDescripcionesMarcadas = 0
+
 // Lo que admiten los umbrales del juez que no salen de su declaración de clases
 // (contracts/informe-del-job.md §2 de H24): la proporción de los casos
 // etiquetados de su medida versionada que no dan lo que dice su etiqueta,
@@ -183,6 +189,8 @@ const (
 		"hasta que termina la última"
 	descripcionDelUmbralDeLaDuracionDelJuez = "Segundos de los votos del juez sobre las respuestas del modo %s, " +
 		"desde que empieza el primero hasta que termina el último"
+	descripcionDelUmbralDeLaDescripcion = "Descripciones marcadas por el juez de las descripciones, sobre las " +
+		"juzgadas en esta ejecución"
 
 	comparacionMenorOIgual = "<="
 	signoMenorOIgual       = "≤ "
@@ -242,7 +250,9 @@ type Umbral struct {
 	// fuera_de_lo_grabado:<modelo>:<modo> y, con alguna eval con un comando de
 	// bloque cuya lectura está en su sin_servir,
 	// lectura_sin_intentar:<modelo>:<modo> (contracts/juicio-e-informe.md §4
-	// de H26.1).
+	// de H26.1); y, con la descripción de la skill en el informe, el de la
+	// clase del juez de las descripciones, habla_en_primera_o_segunda_persona,
+	// sin modelo ni modo (contracts/juez-de-las-descripciones.md §6 de H31).
 	Nombre string `json:"nombre"`
 
 	// Descripcion dice en una línea qué se mide, en qué modo —o con todos los
@@ -409,6 +419,13 @@ type Umbral struct {
 // H30; FR-015, FR-023, FR-024), todos ellos cuentan solo lo medido, y, con
 // alguna eval reutilizada en la decisión, justo detrás de cada uno de las
 // respuestas al que aporta va su umbral :reutilizadas (conLasReutilizadas).
+//
+// Desde H31 (contracts/juez-de-las-descripciones.md §6 de H31; research D7 de
+// H31; FR-030, FR-031 de H31), con la descripción de la skill en el informe,
+// detrás de todos ellos va el de la clase del juez de las descripciones,
+// habla_en_primera_o_segunda_persona (DescripcionInformada.umbral), sin modelo
+// ni modo: no es una clase del juez de las respuestas y la serie de cierres no
+// lo cuenta. Sin ella, no va.
 func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas, lecturas *lecturasMedidas) []Umbral {
 	delJuez := respuestas.juez()
 	umbrales := respuestas.umbrales()
@@ -434,7 +451,41 @@ func umbralesDelInforme(e InformeAEscribir, respuestas *respuestasMedidas, lectu
 		umbrales = append(umbrales, delJuez.umbralesDeLaDuracion()...)
 	}
 
-	return conLasReutilizadas(append(umbrales, lecturas.umbrales()...), e.decision.reutilizadas(), delJuez)
+	umbrales = conLasReutilizadas(append(umbrales, lecturas.umbrales()...), e.decision.reutilizadas(), delJuez)
+
+	if e.descripcion != nil {
+		umbrales = append(umbrales, e.descripcion.umbral())
+	}
+
+	return umbrales
+}
+
+// umbral es el de la clase del juez de las descripciones sobre la descripción
+// del informe (contracts/juez-de-las-descripciones.md §6 de H31; research D7 de
+// H31; FR-031, FR-032 de H31): medida, las descripciones marcadas entre las
+// juzgadas en la ejecución, y total, las juzgadas, 1 si se juzgó y 0 si se
+// reutilizó o quedó sin juzgar, con 0 y decidiendo. Lo reutilizado no entra
+// (ADR 0045, punto 1), y la que quedó sin juzgar no es una marcada: da su
+// propio motivo (motivoSinJuzgar).
+func (d *DescripcionInformada) umbral() Umbral {
+	marcadas, juzgadas := 0, 0
+
+	if d.Juzgada && d.SinJuzgar == "" {
+		juzgadas = 1
+
+		if d.Marcada {
+			marcadas = 1
+		}
+	}
+
+	return compararUmbral(Umbral{
+		Nombre:      claseDeLasDescripciones,
+		Descripcion: descripcionDelUmbralDeLaDescripcion,
+		Medida:      float64(marcadas),
+		Total:       &juzgadas,
+		Umbral:      umbralDeDescripcionesMarcadas,
+		Decide:      true,
+	})
 }
 
 // conLasReutilizadas son los umbrales del informe con, justo detrás de cada uno

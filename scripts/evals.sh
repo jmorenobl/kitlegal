@@ -22,6 +22,11 @@
 # «Decidir qué mide y qué reutiliza» del job, y compone el informe con las que reutiliza; sin ese fichero no abre
 # ninguna (contracts/job-de-evals.md §3 de H30; research.md D18 de H30).
 #
+# Desde H31, si la decisión juzga la descripción de la skill, esa orden comprueba también, antes de abrir ninguna
+# sesión, la medida del juez de las descripciones de evidencias/adr-0046/, con el mismo modelo y la misma versión; y,
+# tras las sesiones, ese juez vota la descripción con scripts/evals-voto.sh y el Claude Code del juez, o el informe
+# toma su juicio de la medida de main que la decisión reutiliza (contracts/juez-de-las-descripciones.md §3 de H31).
+#
 #   DECISION_DE_EVALS=<fichero> make evals SKILL=<skill>
 #
 # Abre sesiones con modelo y consume la credencial de Claude Code: lo ejecuta el job de evals
@@ -36,10 +41,10 @@
 # MODELOS_INFORMATIVOS_DE_EVALS, separados por comas, que se ejecutan y se publican como límite inferior sin decidir;
 # REPETICIONES_DE_EVALS y UMBRAL_DE_EVALS, las sesiones que se abren de cada eval con cada modelo y cuántas tienen que
 # pasar (ADR 0016); CONCURRENCIA_DE_EVALS, cuántas sesiones se abren a la vez como mucho; y COMMIT_EVALUADO.
-# Obligatorias además con una skill que tiene juez, y sin mirar con una que no lo tiene: MODELO_DEL_JUEZ, el id del
-# modelo del juez, y VERSION_DE_CLAUDE_CODE_DEL_JUEZ, la versión de Claude Code de sus votos, las dos fijadas en la
-# definición del job, aparte de las de las sesiones; y CLAUDE_DEL_JUEZ, la ruta absoluta del claude de esa versión, un
-# ejecutable que no es el claude de las sesiones (contracts/job-de-evals.md §2 de H24).
+# Obligatorias además, con cualquier skill desde H31: MODELO_DEL_JUEZ, el id del modelo del juez, y
+# VERSION_DE_CLAUDE_CODE_DEL_JUEZ, la versión de Claude Code de sus votos, las dos fijadas en la definición del job,
+# aparte de las de las sesiones; y CLAUDE_DEL_JUEZ, la ruta absoluta del claude de esa versión, un ejecutable que no es
+# el claude de las sesiones (contracts/job-de-evals.md §2 de H24; contracts/juez-de-las-descripciones.md §3 de H31).
 # Opcionales: OBJETIVO_DE_DURACION_DE_EVALS, los segundos que el job admite para sus sesiones, 0 si no está, que es no
 # tener objetivo; PRUEBA_DE_RED, que con el valor true añade la sesión de prueba de red de la primera eval (§6);
 # CLAUDE_CODE_OAUTH_TOKEN, que lee Claude Code; y RUNNER_TEMP o TMPDIR, donde vive la carpeta de salida
@@ -91,28 +96,26 @@ if [[ ! "${CONCURRENCIA_DE_EVALS:-}" =~ $forma_de_entero ]]; then
 	exit 1
 fi
 
-# Lo del juez, solo con una skill que lo tiene, que es la que tiene la carpeta juez en sus evals
-# (contracts/job-de-evals.md §2 de H24): el modelo, la versión de Claude Code de sus votos y el claude de esa versión,
-# que falta también si su ruta no es la de un fichero ejecutable. Van a TestEjecucionDelJob con sus tres banderas; con
-# una skill sin juez, ninguna.
-banderas_del_juez=()
-if [[ -d "evals/$skill/juez" ]]; then
-	for variable in MODELO_DEL_JUEZ VERSION_DE_CLAUDE_CODE_DEL_JUEZ CLAUDE_DEL_JUEZ; do
-		if [[ -z "${!variable:-}" ]]; then
-			echo "evals: falta $variable" >&2
-			exit 1
-		fi
-	done
-	if [[ ! -f "$CLAUDE_DEL_JUEZ" ]] || [[ ! -x "$CLAUDE_DEL_JUEZ" ]]; then
-		echo "evals: falta CLAUDE_DEL_JUEZ" >&2
+# Lo del juez, en todo trabajo (contracts/job-de-evals.md §2 de H24; contracts/juez-de-las-descripciones.md §3 de
+# H31): el modelo, la versión de Claude Code de sus votos y el claude de esa versión, que falta también si su ruta no es
+# la de un fichero ejecutable. Van a TestEjecucionDelJob con sus tres banderas, también con una skill sin la carpeta
+# juez en sus evals: con ellas vota el juez de sus respuestas, si lo tiene, y el de las descripciones, si la decisión
+# juzga la de la skill, y con ellas se comprueban sus medidas.
+for variable in MODELO_DEL_JUEZ VERSION_DE_CLAUDE_CODE_DEL_JUEZ CLAUDE_DEL_JUEZ; do
+	if [[ -z "${!variable:-}" ]]; then
+		echo "evals: falta $variable" >&2
 		exit 1
 	fi
-	banderas_del_juez=(
-		-modelo-del-juez "$MODELO_DEL_JUEZ"
-		-version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ"
-		-claude-del-juez "$CLAUDE_DEL_JUEZ"
-	)
+done
+if [[ ! -f "$CLAUDE_DEL_JUEZ" ]] || [[ ! -x "$CLAUDE_DEL_JUEZ" ]]; then
+	echo "evals: falta CLAUDE_DEL_JUEZ" >&2
+	exit 1
 fi
+banderas_del_juez=(
+	-modelo-del-juez "$MODELO_DEL_JUEZ"
+	-version-del-juez "$VERSION_DE_CLAUDE_CODE_DEL_JUEZ"
+	-claude-del-juez "$CLAUDE_DEL_JUEZ"
+)
 
 # La carpeta de salida se vacía al empezar, de modo que ningún fichero de una ejecución anterior —un sin-python.txt, un
 # informe— pase por uno de esta. Su ruta es absoluta: TestEjecucionDelJob la recibe por bandera y go test lo ejecuta en
@@ -183,9 +186,10 @@ fi
 # la duración o por sesiones sin medir (FR-037 y FR-043 de H7.3). Sin límite de tiempo de go test: el de la ejecución
 # es el tope de la definición del job. -kitlegal es la ruta del binario del PATH, el del paso 6: la orden del servidor de
 # las sesiones del modo herramienta, y el directorio que sale del PATH de las que no son del modo orden
-# (contracts/evals-en-dos-modos.md §2.2 de H21). Con una skill que tiene juez van además sus tres banderas, y la orden
-# no abre ninguna sesión si su medida versionada no corresponde o no se cumple: escribe el informe del instrumento sin
-# medir y falla con su veredicto (contracts/informe-del-job.md §5 de H24; FR-043 de H24). Con -decision, el fichero
+# (contracts/evals-en-dos-modos.md §2.2 de H21). Van además, en todo trabajo, las tres banderas del juez, y la orden
+# no abre ninguna sesión si la medida versionada de un juez que usa no corresponde o no se cumple: escribe el informe del
+# instrumento sin medir y falla con su veredicto (contracts/informe-del-job.md §5 de H24; FR-043 de H24;
+# contracts/juez-de-las-descripciones.md §3 de H31). Con -decision, el fichero
 # de la decisión, el plan solo lleva las sesiones de las evals que mide, y el informe, también las que reutiliza
 # (contracts/job-de-evals.md §3 y §4 de H30).
 codigo_del_informe=0

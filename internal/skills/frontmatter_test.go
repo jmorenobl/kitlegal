@@ -297,15 +297,18 @@ const skillDePrueba = "boe-legislacion"
 var appletsRegistrados = []string{"boe", "placsp"}
 
 // TestValidarFrontmatter fija ValidarFrontmatter (data-model §1.1 y §1.3;
-// research.md D3 y D4; FR-040, SC-005): cada regla da un defecto que nombra la
-// skill y el defecto, y sus límites exactos son válidos —name de 64 caracteres,
-// description de 1024 contados en caracteres y no en bytes, compatibility de
-// 500—; las claves del estándar se admiten y las demás no; cada applet declarado
-// está registrado y sin repetir; y cada referencia declarada tiene generador en
-// la tabla de generadores y el YAML de datos que esa tabla le declara, que no
-// tiene por qué llamarse como ella, es un fichero regular del directorio de
-// datos (research.md D20). Una referencia sin generador es un defecto aunque haya
-// un YAML de datos de su nombre.
+// research.md D3 y D4; FR-040, SC-005; y, desde H31, research.md D11, FR-002,
+// FR-003, FR-005 y FR-011): cada regla da un defecto que nombra la skill, el
+// fichero —SKILL.md— y el defecto, y sus límites exactos son válidos —name de 64
+// caracteres, description de 900 contados en caracteres y no en bytes,
+// compatibility de 500—; name no contiene anthropic ni claude; ni name ni
+// description llevan una etiqueta XML, y un < o un > que no la forman no son un
+// defecto; las claves del estándar se admiten y las demás no; cada applet
+// declarado está registrado y sin repetir; y cada referencia declarada tiene
+// generador en la tabla de generadores y el YAML de datos que esa tabla le
+// declara, que no tiene por qué llamarse como ella, es un fichero regular del
+// directorio de datos (research.md D20). Una referencia sin generador es un
+// defecto aunque haya un YAML de datos de su nombre.
 func TestValidarFrontmatter(t *testing.T) {
 	t.Parallel()
 
@@ -345,89 +348,133 @@ func TestValidarFrontmatter(t *testing.T) {
 			nombre:   "name-de-65-caracteres",
 			cambio:   func(f *skills.Frontmatter) { f.Name = nombreDe(65) },
 			skill:    nombreDe(65),
-			defectos: []string{nombreDe(65) + ": name de 65 caracteres (máximo 64)"},
+			defectos: []string{nombreDe(65) + ": SKILL.md: name de 65 caracteres (máximo 64)"},
 		},
 		{
 			nombre:   "sin-name",
 			cambio:   func(f *skills.Frontmatter) { f.Claves, f.Name = clavesSin(f.Claves, "name"), "" },
-			defectos: []string{"boe-legislacion: falta name"},
+			defectos: []string{"boe-legislacion: SKILL.md: falta name"},
 		},
 		{
 			nombre: "name-vacio",
 			cambio: func(f *skills.Frontmatter) { f.Name = "" },
 			defectos: []string{
-				"boe-legislacion: name vacío",
-				`boe-legislacion: name "" distinto del nombre del directorio`,
+				"boe-legislacion: SKILL.md: name vacío",
+				`boe-legislacion: SKILL.md: name "" distinto del nombre del directorio`,
 			},
 		},
 		{
 			nombre:   "name-distinto-del-directorio",
 			cambio:   func(f *skills.Frontmatter) { f.Name = "boe" },
-			defectos: []string{`boe-legislacion: name "boe" distinto del nombre del directorio`},
+			defectos: []string{`boe-legislacion: SKILL.md: name "boe" distinto del nombre del directorio`},
 		},
 		{
 			nombre:   "name-con-mayuscula",
 			cambio:   func(f *skills.Frontmatter) { f.Name = "Boe-legislacion" },
 			skill:    "Boe-legislacion",
-			defectos: []string{`Boe-legislacion: name "Boe-legislacion" con caracteres que no son a-z, 0-9 ni -`},
+			defectos: []string{`Boe-legislacion: SKILL.md: name "Boe-legislacion" con caracteres que no son a-z, 0-9 ni -`},
 		},
 		{
 			nombre:   "name-con-otro-caracter",
 			cambio:   func(f *skills.Frontmatter) { f.Name = "boe_legislación" },
 			skill:    "boe_legislación",
-			defectos: []string{`boe_legislación: name "boe_legislación" con caracteres que no son a-z, 0-9 ni -`},
+			defectos: []string{`boe_legislación: SKILL.md: name "boe_legislación" con caracteres que no son a-z, 0-9 ni -`},
 		},
 		{
-			nombre:   "name-con-dos-guiones-seguidos",
-			cambio:   func(f *skills.Frontmatter) { f.Name = "boe--legislacion" },
-			skill:    "boe--legislacion",
-			defectos: []string{`boe--legislacion: name "boe--legislacion" con un guion al principio, al final o dos seguidos`},
+			nombre: "name-con-dos-guiones-seguidos",
+			cambio: func(f *skills.Frontmatter) { f.Name = "boe--legislacion" },
+			skill:  "boe--legislacion",
+			defectos: []string{
+				`boe--legislacion: SKILL.md: name "boe--legislacion" con un guion al principio, al final o dos seguidos`,
+			},
 		},
 		{
 			nombre:   "name-empezando-por-guion",
 			cambio:   func(f *skills.Frontmatter) { f.Name = "-boe" },
 			skill:    "-boe",
-			defectos: []string{`-boe: name "-boe" con un guion al principio, al final o dos seguidos`},
+			defectos: []string{`-boe: SKILL.md: name "-boe" con un guion al principio, al final o dos seguidos`},
 		},
 		{
 			nombre:   "name-terminando-en-guion",
 			cambio:   func(f *skills.Frontmatter) { f.Name = "boe-" },
 			skill:    "boe-",
-			defectos: []string{`boe-: name "boe-" con un guion al principio, al final o dos seguidos`},
+			defectos: []string{`boe-: SKILL.md: name "boe-" con un guion al principio, al final o dos seguidos`},
+		},
+		{
+			nombre:   "name-con-claude",
+			cambio:   func(f *skills.Frontmatter) { f.Name = "claude-legal" },
+			skill:    "claude-legal",
+			defectos: []string{`claude-legal: SKILL.md: name "claude-legal" contiene «claude»`},
+		},
+		{
+			nombre:   "name-con-anthropic",
+			cambio:   func(f *skills.Frontmatter) { f.Name = "x-anthropic" },
+			skill:    "x-anthropic",
+			defectos: []string{`x-anthropic: SKILL.md: name "x-anthropic" contiene «anthropic»`},
+		},
+		{
+			// Una subcadena, no una palabra entre guiones (research.md D11).
+			nombre:   "name-con-claude-dentro-de-una-palabra",
+			cambio:   func(f *skills.Frontmatter) { f.Name = "boeclaudex" },
+			skill:    "boeclaudex",
+			defectos: []string{`boeclaudex: SKILL.md: name "boeclaudex" contiene «claude»`},
+		},
+		{
+			nombre: "name-con-claude-y-anthropic",
+			cambio: func(f *skills.Frontmatter) { f.Name = "claude-anthropic" },
+			skill:  "claude-anthropic",
+			defectos: []string{
+				`claude-anthropic: SKILL.md: name "claude-anthropic" contiene «anthropic»`,
+				`claude-anthropic: SKILL.md: name "claude-anthropic" contiene «claude»`,
+			},
+		},
+		{
+			// El < y el > ya no los admite el juego de caracteres de name; la
+			// etiqueta es un defecto más (research.md D11).
+			nombre: "name-con-etiqueta-xml",
+			cambio: func(f *skills.Frontmatter) { f.Name = "boe<x>" },
+			skill:  "boe<x>",
+			defectos: []string{
+				`boe<x>: SKILL.md: name "boe<x>" con caracteres que no son a-z, 0-9 ni -`,
+				"boe<x>: SKILL.md: name con la etiqueta XML «<x>»",
+			},
 		},
 		{
 			nombre:   "sin-description",
 			cambio:   func(f *skills.Frontmatter) { f.Claves, f.Description = clavesSin(f.Claves, "description"), "" },
-			defectos: []string{"boe-legislacion: falta description"},
+			defectos: []string{"boe-legislacion: SKILL.md: falta description"},
 		},
 		{
 			nombre:   "description-vacia",
 			cambio:   func(f *skills.Frontmatter) { f.Description = "" },
-			defectos: []string{"boe-legislacion: description vacía"},
+			defectos: []string{"boe-legislacion: SKILL.md: description vacía"},
 		},
 		{
 			nombre:   "description-solo-con-espacios",
 			cambio:   func(f *skills.Frontmatter) { f.Description = " \n\t" },
-			defectos: []string{"boe-legislacion: description vacía"},
+			defectos: []string{"boe-legislacion: SKILL.md: description vacía"},
 		},
 		{
-			nombre: "description-de-1024-caracteres",
-			cambio: func(f *skills.Frontmatter) { f.Description = strings.Repeat("á", 1024) },
+			nombre: "description-de-900-caracteres",
+			cambio: func(f *skills.Frontmatter) { f.Description = strings.Repeat("á", 900) },
 		},
 		{
-			nombre:   "description-de-1025-caracteres",
-			cambio:   func(f *skills.Frontmatter) { f.Description = strings.Repeat("á", 1025) },
-			defectos: []string{"boe-legislacion: description de 1025 caracteres (máximo 1024)"},
+			nombre:   "description-de-901-caracteres",
+			cambio:   func(f *skills.Frontmatter) { f.Description = strings.Repeat("á", 901) },
+			defectos: []string{"boe-legislacion: SKILL.md: description de 901 caracteres (máximo 900)"},
 		},
 		{
-			nombre:   "description-con-menor-que",
+			nombre:   "description-con-etiqueta-xml",
 			cambio:   func(f *skills.Frontmatter) { f.Description = "Consulta <normas> del BOE." },
-			defectos: []string{"boe-legislacion: description con < o >"},
+			defectos: []string{"boe-legislacion: SKILL.md: description con la etiqueta XML «<normas>»"},
 		},
 		{
-			nombre:   "description-con-mayor-que",
-			cambio:   func(f *skills.Frontmatter) { f.Description = "Consulta -> cita." },
-			defectos: []string{"boe-legislacion: description con < o >"},
+			nombre: "description-con-menor-que-sin-etiqueta",
+			cambio: func(f *skills.Frontmatter) { f.Description = "Un cuerpo de menos de 5000 tokens (< 5000)." },
+		},
+		{
+			nombre: "description-con-mayor-que-sin-etiqueta",
+			cambio: func(f *skills.Frontmatter) { f.Description = "Consulta -> cita." },
 		},
 		{
 			nombre: "compatibility-de-500-caracteres",
@@ -436,12 +483,12 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "compatibility-de-501-caracteres",
 			cambio:   func(f *skills.Frontmatter) { f.Compatibility = strings.Repeat("é", 501) },
-			defectos: []string{"boe-legislacion: compatibility de 501 caracteres (máximo 500)"},
+			defectos: []string{"boe-legislacion: SKILL.md: compatibility de 501 caracteres (máximo 500)"},
 		},
 		{
 			nombre:   "clave-no-admitida",
 			cambio:   func(f *skills.Frontmatter) { f.Claves = append(f.Claves, "user-invocable") },
-			defectos: []string{"boe-legislacion: clave no admitida: user-invocable"},
+			defectos: []string{"boe-legislacion: SKILL.md: clave no admitida: user-invocable"},
 		},
 		{
 			nombre: "varios-applets",
@@ -450,42 +497,50 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "applet-no-registrado",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-applets"] = "boe cita" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-applets: applet "cita" no registrado`},
+			defectos: []string{`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "cita" no registrado`},
 		},
 		{
 			nombre:   "applet-repetido",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-applets"] = "boe placsp boe" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-applets: applet "boe" repetido`},
+			defectos: []string{`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "boe" repetido`},
 		},
 		{
 			nombre:   "applets-separados-por-dos-espacios",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-applets"] = "boe  placsp" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-applets: applet "" no registrado`},
+			defectos: []string{`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "" no registrado`},
 		},
 		{
 			nombre: "referencia-que-no-se-llama-como-sus-datos",
 			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "normas leyes_vertebrales" },
 		},
 		{
-			nombre:   "referencia-sin-generador",
-			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "normas tributos" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "tributos" sin generador conocido`},
+			nombre: "referencia-sin-generador",
+			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "normas tributos" },
+			defectos: []string{
+				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
+			},
 		},
 		{
-			nombre:   "referencia-cuyo-yaml-de-datos-no-es-un-fichero",
-			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "jerarquia_normativa" },
-			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`},
+			nombre: "referencia-cuyo-yaml-de-datos-no-es-un-fichero",
+			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "jerarquia_normativa" },
+			defectos: []string{
+				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`,
+			},
 		},
 		{
-			nombre:   "referencia-sin-directorio-de-datos",
-			raiz:     sinDatos,
-			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "normas" sin data/normas.yaml`},
+			nombre: "referencia-sin-directorio-de-datos",
+			raiz:   sinDatos,
+			defectos: []string{
+				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "normas" sin data/normas.yaml`,
+			},
 		},
 		{
-			nombre:   "referencia-sin-el-yaml-de-datos-de-otro-nombre",
-			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "leyes_vertebrales" },
-			raiz:     sinDatos,
-			defectos: []string{`boe-legislacion: metadata/kitlegal-referencias: "leyes_vertebrales" sin data/normas.yaml`},
+			nombre: "referencia-sin-el-yaml-de-datos-de-otro-nombre",
+			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "leyes_vertebrales" },
+			raiz:   sinDatos,
+			defectos: []string{
+				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "leyes_vertebrales" sin data/normas.yaml`,
+			},
 		},
 		{
 			nombre: "varios-defectos-en-orden",
@@ -496,11 +551,11 @@ func TestValidarFrontmatter(t *testing.T) {
 				f.Metadata["kitlegal-referencias"] = "tributos"
 			},
 			defectos: []string{
-				`boe-legislacion: name "boe" distinto del nombre del directorio`,
-				"boe-legislacion: falta description",
-				"boe-legislacion: clave no admitida: user-invocable",
-				`boe-legislacion: metadata/kitlegal-applets: applet "cita" no registrado`,
-				`boe-legislacion: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
+				`boe-legislacion: SKILL.md: name "boe" distinto del nombre del directorio`,
+				"boe-legislacion: SKILL.md: falta description",
+				"boe-legislacion: SKILL.md: clave no admitida: user-invocable",
+				`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "cita" no registrado`,
+				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
 			},
 		},
 	}
@@ -545,6 +600,57 @@ func TestValidarFrontmatter(t *testing.T) {
 		require.NoError(t, err)
 		assert.Empty(t, defectos)
 	})
+}
+
+// TestEtiquetaXML fija qué es una etiqueta XML (FR-003; contracts/
+// gates-de-skills-check.md §2.1; research.md D11): un < con una barra opcional,
+// una letra y lo que siga sin otro < ni > hasta un >. Cada texto va en la
+// description de un frontmatter válido; si casa, el único defecto es el de la
+// etiqueta y cita la primera que encuentra; si no, no hay ninguno.
+func TestEtiquetaXML(t *testing.T) {
+	t.Parallel()
+
+	raiz := t.TempDir()
+	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"), "normas:\n")
+
+	casos := []struct {
+		nombre   string
+		texto    string
+		etiqueta string
+	}{
+		{nombre: "apertura", texto: "Un <ejemplo> en la descripción.", etiqueta: "<ejemplo>"},
+		{nombre: "cierre", texto: "Cierra con </b>.", etiqueta: "</b>"},
+		{nombre: "vacia", texto: "Un salto <br/> en medio.", etiqueta: "<br/>"},
+		{nombre: "con-atributo", texto: `Con <descripcion skill="x"> delante.`, etiqueta: `<descripcion skill="x">`},
+		{nombre: "letra-no-ascii", texto: "Una etiqueta <ñandú> que abre con una letra.", etiqueta: "<ñandú>"},
+		{nombre: "la-primera-de-dos", texto: "Dos etiquetas, <primera> y <segunda>.", etiqueta: "<primera>"},
+		{nombre: "tras-un-menor-que", texto: "Un < sin letra y <ejemplo> detrás.", etiqueta: "<ejemplo>"},
+		{nombre: "menor-que-y-numero", texto: "Un cuerpo de menos de 5000 tokens (< 5000)."},
+		{nombre: "menor-que-sin-cierre", texto: "a<b"},
+		{nombre: "menor-que-y-mayor-que-con-espacios", texto: "a < b > c"},
+		{nombre: "sin-nombre", texto: "Nada entre <>."},
+		{nombre: "nombre-que-empieza-por-cifra", texto: "Un número <1>."},
+		{nombre: "flechas", texto: "Una flecha -> y otra <-."},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			frontmatter := frontmatterValido()
+			frontmatter.Description = caso.texto
+
+			defectos, err := skills.ValidarFrontmatter(raiz, skillDePrueba, frontmatter, appletsRegistrados)
+			require.NoError(t, err)
+
+			var esperados []string
+			if caso.etiqueta != "" {
+				esperados = []string{skillDePrueba + ": SKILL.md: description con la etiqueta XML «" + caso.etiqueta + "»"}
+			}
+
+			assert.Equal(t, esperados, textosDeLosDefectos(t, defectos, skillDePrueba))
+		})
+	}
 }
 
 // frontmatterValido es un Frontmatter nuevo, con su propio mapa de metadata, que

@@ -91,6 +91,40 @@ type origenDeLasEvals struct {
 
 	// Evals son una entrada por eval de la skill, en orden de fichero.
 	Evals []origenDeEval `json:"evals"`
+
+	// Descripcion es el bloque descripcion de la decisión, el de la descripción
+	// de la skill que el trabajo juzga o cuyo juicio reutiliza
+	// (contracts/juez-de-las-descripciones.md §2 de H31; FR-030 de H31); nil, y
+	// ausente, si la ejecución no juzga descripciones y en el bloque origen de
+	// informe.json, que no lo lleva (origenRecibido).
+	Descripcion *descripcionDeLaDecision `json:"descripcion,omitzero"`
+}
+
+// descripcionDeLaDecision es lo que la decisión de un trabajo dice de la
+// descripción de su skill (contracts/juez-de-las-descripciones.md §2 de H31;
+// data-model §4 de H31; research D3 y D4 de H31): la skill, la huella de su
+// juicio (huellaDelJuicio) y si se juzga en la ejecución o, con reutilización,
+// se reutiliza el de una medida de main con su huella, con la procedencia de
+// ese juicio, con la forma de la de H30, y el juicio. Sus claves JSON, en el
+// orden de sus campos, son las del bloque.
+type descripcionDeLaDecision struct {
+	Skill   string `json:"skill"`
+	Huella  string `json:"huella"`
+	Juzgada bool   `json:"juzgada"`
+
+	// Procedencia y Juicio son los del juicio reutilizado; nil, y ausentes, si
+	// se juzga en la ejecución.
+	Procedencia *procedenciaDeLaMedida `json:"procedencia,omitzero"`
+	Juicio      *juicioReutilizado     `json:"juicio,omitzero"`
+}
+
+// juicioReutilizado es el juicio de una descripción que la decisión reutiliza
+// de una medida de main: si quedó marcada y la frase y el motivo de su primer
+// voto (contracts/juez-de-las-descripciones.md §2 de H31).
+type juicioReutilizado struct {
+	Marcada bool   `json:"marcada"`
+	Frase   string `json:"frase"`
+	Motivo  string `json:"motivo"`
 }
 
 // origenDeEval es lo que el origen dice de una eval: su nombre, el mismo que
@@ -182,10 +216,10 @@ func (o *origenDeLasEvals) medidas(evals []Eval) []Eval {
 	})
 }
 
-// origenRecibido es el origen que da la decisión, sin sus sesiones abiertas y
-// con sus recuentos: una copia, que no cambia la decisión. Sin decisión, el de
-// la suite completa, con cada una de las evals dadas medida por eso, en su
-// orden.
+// origenRecibido es el origen que da la decisión, sin sus sesiones abiertas ni
+// su bloque descripcion, que no es del origen de informe.json, y con sus
+// recuentos: una copia, que no cambia la decisión. Sin decisión, el de la suite
+// completa, con cada una de las evals dadas medida por eso, en su orden.
 func (e InformeAEscribir) origenRecibido(evals []Eval) *origenDeLasEvals {
 	origen := origenDeLasEvals{Modo: origenDeLaSuiteCompleta}
 
@@ -193,6 +227,7 @@ func (e InformeAEscribir) origenRecibido(evals []Eval) *origenDeLasEvals {
 		origen = *e.decision
 		origen.Evals = slices.Clone(e.decision.Evals)
 		origen.SesionesAbiertas = nil
+		origen.Descripcion = nil
 	} else {
 		for _, eval := range evals {
 			origen.Evals = append(origen.Evals, origenDeEval{Eval: eval.Fichero, Medida: true, Motivo: motivoSuiteCompleta})

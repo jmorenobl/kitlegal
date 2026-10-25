@@ -774,8 +774,17 @@ func nuevaVotacion(juez *Juez, votante Votante) (*votacion, error) {
 	return &votacion{clases: juez.Clases, esquema: esquema, votante: votante}, nil
 }
 
-// juzgar aplica a una respuesta la regla de los votos, genérica sobre las
-// clases del juez (contracts/juez-y-voto.md §8 de H24; research D9 de H24;
+// juzgar aplica a una respuesta la regla de los votos (votar): pide cada voto
+// con el mensaje de la respuesta, mensajeDelVoto, y busca la frase de cada voto
+// en la respuesta.
+func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRespuesta {
+	return v.votar(mensajeDelVoto(pregunta, respuesta, textos), respuesta)
+}
+
+// votar aplica la regla de los votos, genérica sobre las clases del juez, a un
+// texto juzgado —la respuesta de una sesión o una descripción (research D6 de
+// H31)—: pide cada voto con el mensaje, tal cual, y busca la frase de cada voto
+// en el texto juzgado (contracts/juez-y-voto.md §8 de H24; research D9 de H24;
 // FR-010, FR-011):
 //
 //   - se vota por orden, hasta tres veces, cada vez con el mismo mensaje, y se
@@ -793,9 +802,7 @@ func nuevaVotacion(juez *Juez, votante Votante) (*votacion, error) {
 // De un voto nulo o cortado cuenta su repetición (votosDelNumero). El juicio
 // lleva, por clase, todos los votos que se dieron, y aparte los motivos de los
 // cortados.
-func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRespuesta {
-	mensaje := mensajeDelVoto(pregunta, respuesta, textos)
-
+func (v *votacion) votar(mensaje, juzgado string) JuicioDeRespuesta {
 	juicio := JuicioDeRespuesta{Clases: make([]JuicioDeClase, len(v.clases))}
 
 	// siguen dice, de cada clase, si decide y todos sus votos dicen sí con su
@@ -808,7 +815,7 @@ func (v *votacion) juzgar(pregunta, respuesta string, textos []Texto) JuicioDeRe
 	}
 
 	for numero := 1; numero <= votosParaMarcar; numero++ {
-		dados, cortado, motivo := v.votosDelNumero(numero, mensaje, respuesta)
+		dados, cortado, motivo := v.votosDelNumero(numero, mensaje, juzgado)
 
 		if cortado != "" {
 			juicio.Cortados = append(juicio.Cortados, cortado)

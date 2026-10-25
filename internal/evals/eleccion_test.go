@@ -13,11 +13,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // TestEleccionDeLosMutantes calcula sobre el árbol del repositorio la elección
 // de cada mutante de SC-003 y de FR-002 a FR-007 (quickstart.md §2; data-model
-// §5): la base es el repositorio; la cabeza, el repositorio con el mutante en
+// §5), y la del de la referencia a mano de FR-014 de H31 (SC-004), que elige
+// lo mismo que un cambio de una referencia generada de su skill: la base es el
+// repositorio; la cabeza, el repositorio con el mutante en
 // memoria, con sus conjuntos, calculados sobre ella. Cada subtest compara las
 // evals elegidas, eval por eval, con las que espera, sacadas del listado de
 // evals/<skill>/ y no de los conjuntos, y comprueba que cada una lleva el motivo
@@ -52,9 +56,14 @@ func TestEleccionDeLosMutantes(t *testing.T) {
 		mutanteSoloDocs:               {},
 		mutanteUnaEval:                {evals: []string{"jurisprudencia/03-por-materia"}, motivo: motivoConjunto},
 		mutanteReferenciaRenombrada:   {evals: evalsDeLasSkills(evals, "legal-core"), motivo: motivoConjunto},
+		mutanteReferenciaAManoDeLegalCore: {
+			evals: evalsDeLasSkills(evals, "legal-core"), motivo: motivoConjunto,
+		},
 	}
 
-	casos := mutantesDeLaEleccion(t, repositorio, base)
+	casos := append(mutantesDeLaEleccion(t, repositorio, base), mutanteConNombre{
+		nombre: mutanteReferenciaAManoDeLegalCore, mutante: conUnaReferenciaAMano(t, repositorio, "legal-core"),
+	})
 	require.Len(t, casos, len(esperadas), "un esperado por mutante")
 
 	for _, caso := range casos {
@@ -111,6 +120,11 @@ const (
 	mutanteReferenciaRenombrada   = "referencia-renombrada"
 )
 
+// mutanteReferenciaAManoDeLegalCore es el mutante de FR-014 de H31 (SC-004),
+// que solo elige: la matriz de TestMatrizDeLasPropuestas es la de las
+// ejecuciones fijas de H30.
+const mutanteReferenciaAManoDeLegalCore = "referencia-a-mano-de-legal-core"
+
 // mutanteConNombre es un mutante de SC-003 o de FR-002 a FR-007 con su nombre.
 type mutanteConNombre struct {
 	nombre  string
@@ -124,7 +138,7 @@ type mutanteConNombre struct {
 func mutantesDeLaEleccion(t *testing.T, repositorio fs.FS, base arbolDelRepositorio) []mutanteConNombre {
 	t.Helper()
 
-	referencia := ficheroDelRepositorio(t, repositorio, "skills/legal-core/references", esMarkdown)
+	referencia := referenciaGenerada(t, repositorio, "legal-core")
 	cli := ficheroDelRepositorio(t, repositorio, "internal/cli", esCodigoSinTests)
 	docs := ficheroDelRepositorio(t, repositorio, "docs", esMarkdown)
 
@@ -279,9 +293,51 @@ func conLaReferenciaRenombrada(t *testing.T, repositorio fs.FS, referencia strin
 	}
 }
 
+// conUnaReferenciaAMano es el mutante que añade a references/ de la skill una
+// referencia a mano (FR-012 y FR-014 de H31): un .md que kitlegal-referencias
+// no declara, sin la cabecera «generado desde» y que no nombra ninguna skill.
+func conUnaReferenciaAMano(t *testing.T, repositorio fs.FS, skill string) mutanteDeLaPropuesta {
+	t.Helper()
+
+	ruta := "skills/" + skill + "/references/" + referenciaAManoDelMutante
+
+	_, err := fs.Stat(repositorio, ruta)
+	require.ErrorIs(t, err, fs.ErrNotExist, "la referencia a mano del mutante es nueva")
+
+	return mutanteDeLaPropuesta{
+		cambiados: fstest.MapFS{ruta: {Data: []byte("# Protocolo del mutante\n\nUna línea del mutante.\n")}},
+		cambios:   []cambioDeLaPropuesta{{ruta: ruta}},
+	}
+}
+
 // esMarkdown dice si el nombre es el de un fichero de Markdown.
 func esMarkdown(nombre string) bool {
 	return strings.HasSuffix(nombre, ".md")
+}
+
+// referenciaGenerada es la ruta de la primera referencia generada de la skill,
+// por orden de nombre: la que abre con la cabecera «generado desde» que lee
+// skills.DatosDeLaReferencia. El mutante de la referencia de legal-core y el de
+// la renombrada cambian una generada, como en H30; el de la referencia a mano,
+// una a mano (FR-012 y FR-014 de H31). Desde H31, la primera referencia de
+// legal-core por orden de nombre es a mano.
+func referenciaGenerada(t *testing.T, repositorio fs.FS, skill string) string {
+	t.Helper()
+
+	directorio := path.Join("skills", skill, "references")
+
+	return ficheroDelRepositorio(t, repositorio, directorio, func(nombre string) bool {
+		if !esMarkdown(nombre) {
+			return false
+		}
+
+		contenido, err := fs.ReadFile(repositorio, path.Join(directorio, nombre))
+		require.NoError(t, err)
+
+		_, generada := skills.DatosDeLaReferencia(contenido)
+
+		return generada
+	})
 }
 
 // evalsDeLasSkills son las evals del listado que son de alguna de las skills,

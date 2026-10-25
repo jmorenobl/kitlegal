@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"log/slog"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,8 +80,9 @@ var cabeceraDeUnaReferencia = regexp.MustCompile(`\A<!-- generado desde (data/[^
 // siguientes rompen, de uno en uno y para cada skill del árbol, copias temporales
 // con solo esa skill y exigen los fallos exactos, de modo que ninguna
 // comprobación pasa en vacío para ninguna skill (research.md D26); y los dos
-// últimos comprueban las normas que nombra SKILL.md (FR-020) y lo que la skill
-// no puede decir (FR-077), en el árbol real y sobre cada skill.
+// últimos comprueban las normas que nombra la skill entera —SKILL.md y sus
+// referencias a mano— (FR-020; FR-016 de H31) y lo que la skill no puede decir
+// (FR-077), en el árbol real y sobre cada skill.
 func TestSkillsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -107,16 +110,22 @@ func TestSkillsDelRepositorio(t *testing.T) {
 		probarSobreCopias(t, descripciones, casosDeDeriva)
 	})
 
-	t.Run("trescientas-lineas", func(t *testing.T) {
+	t.Run("presupuestos", func(t *testing.T) {
 		t.Parallel()
 
-		probarSobreCopias(t, descripciones, casosDeLineas)
+		probarSobreCopias(t, descripciones, casosDePresupuestos)
 	})
 
 	t.Run("frontmatter", func(t *testing.T) {
 		t.Parallel()
 
 		probarSobreCopias(t, descripciones, casosDeFrontmatter)
+	})
+
+	t.Run("referencias", func(t *testing.T) {
+		t.Parallel()
+
+		probarSobreCopias(t, descripciones, casosDeReferencias)
 	})
 
 	t.Run("scripts", func(t *testing.T) {
@@ -138,6 +147,16 @@ func TestSkillsDelRepositorio(t *testing.T) {
 			t.Helper()
 
 			probarRegenerarDosVeces(t, descripciones, skill)
+		})
+	})
+
+	t.Run("sincronia-con-referencias-a-mano", func(t *testing.T) {
+		t.Parallel()
+
+		probarCadaSkill(t, func(t *testing.T, skill skillDelRecorrido) {
+			t.Helper()
+
+			probarSincroniaConReferenciasAMano(t, descripciones, skill)
 		})
 	})
 
@@ -634,7 +653,10 @@ func probarSobreCopias(t *testing.T, descripciones []skills.DescripcionDeVerbo,
 // casosDeDeriva son las derivas de lo generado de la skill desde sus tres
 // fuentes (US5 escenarios 2 y 3, SC-005): cada referencia editada a mano, los
 // datos de cada referencia cambiados sin regenerar y lo que declara --describe de
-// cada applet cambiado sin regenerar.
+// cada applet cambiado sin regenerar. Y las clases de FR-012 que son deriva
+// (contracts/gates-de-skills-check.md §3): cada referencia declarada que no es lo
+// que genera su fila, con su cabecera —la editada— o sin ella, y un .md que la
+// skill no declara y que abre con la cabecera, sobrante.
 func casosDeDeriva(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
@@ -650,8 +672,27 @@ func casosDeDeriva(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 				escribirFicheroDeLaCopia(t, ruta, leerFicheroDelArbol(t, ruta)+"Una línea escrita a mano.\n")
 			},
 			fallos: []string{skill.nombre + ": " + referencia.fichero() + ": contenido-distinto"},
+		}, casoSobreUnaCopia{
+			nombre: "referencia-sin-cabecera-" + referencia.nombre,
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				ruta := rutaEnLaSkill(copia, skill.nombre, referencia.fichero())
+				escribirFicheroDeLaCopia(t, ruta, sinSuCabecera(t, leerFicheroDelArbol(t, ruta)))
+			},
+			fallos: []string{skill.nombre + ": " + referencia.fichero() + ": contenido-distinto"},
 		}, datosSinRegenerar(t, skill, referencia))
 	}
+
+	casos = append(casos, casoSobreUnaCopia{
+		nombre: "referencia-sobrante",
+		alterar: func(t *testing.T, copia string) {
+			t.Helper()
+
+			dejarSobrante(t, copia, skill.nombre)
+		},
+		fallos: []string{skill.nombre + ": references/" + ficheroSobrante + ": fichero-sobrante"},
+	})
 
 	for _, applet := range skill.applets {
 		casos = append(casos, casoSobreUnaCopia{
@@ -754,51 +795,132 @@ func primeraCelda(t *testing.T, referencia referenciaDelRecorrido) string {
 	return celda
 }
 
-// casosDeLineas son el límite de líneas del SKILL.md de la skill (FR-041;
-// data-model §1.2): 299 no es un defecto y 300 sí.
-func casosDeLineas(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
+// casosDePresupuestos son los presupuestos del cuerpo de SKILL.md de la skill
+// (contracts/gates-de-skills-check.md §2.2; FR-004, FR-010, FR-011 y SC-002 de
+// H31): 499 líneas y 11 000 caracteres, con más de 11 000 bytes, no son un
+// defecto, y 500 líneas y 11 001 caracteres sí. Cada mutante cambia una sola de
+// las dos medidas y nada de lo regenerado: las líneas, sin cambiar el número de
+// caracteres (partirElCuerpo); los caracteres, con una línea más
+// (ensancharElCuerpo), lejos de las 499.
+func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
 	return []casoSobreUnaCopia{
-		{nombre: "doscientas-noventa-y-nueve", alterar: alargarSkillMd(skill.nombre, 299)},
+		{nombre: "cuatrocientas-noventa-y-nueve-lineas", alterar: partirElCuerpo(skill.nombre, 499)},
 		{
-			nombre:  "trescientas",
-			alterar: alargarSkillMd(skill.nombre, 300),
-			fallos:  []string{skill.nombre + ": SKILL.md tiene 300 líneas (máximo 299)"},
+			nombre:  "quinientas-lineas",
+			alterar: partirElCuerpo(skill.nombre, 500),
+			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 500 líneas (máximo 499)"},
+		},
+		{nombre: "once-mil-caracteres", alterar: ensancharElCuerpo(skill.nombre, 11000)},
+		{
+			nombre:  "once-mil-y-un-caracteres",
+			alterar: ensancharElCuerpo(skill.nombre, 11001),
+			fallos:  []string{skill.nombre + ": SKILL.md: cuerpo de 11001 caracteres (máximo 11000)"},
 		},
 	}
 }
 
-// alargarSkillMd añade líneas en blanco al final del SKILL.md de la skill, que
-// termina en salto de línea, hasta que tiene las líneas dadas: fuera de la región
-// generada, así que no cambia lo regenerado.
-func alargarSkillMd(skill string, lineas int) func(t *testing.T, copia string) {
+// partirElCuerpo convierte en saltos de línea, de uno en uno y desde el
+// principio, los espacios de las líneas de prosa del cuerpo del SKILL.md de la
+// skill hasta que el cuerpo tiene las líneas dadas. Una línea de prosa está
+// fuera de la región generada y no lleva corchete, comilla invertida, virgulilla
+// ni barra vertical, con los que podría ser parte de un enlace, de un código o de
+// un bloque de código, o de una tabla; las marcas de
+// la región tampoco lo son. Cada espacio es un carácter y cada salto otro, así
+// que el cuerpo conserva sus caracteres, y lo regenerado no cambia.
+func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
+	return func(t *testing.T, copia string) {
+		t.Helper()
+
+		ruta := rutaEnLaSkill(copia, skill, "SKILL.md")
+		frontmatter, cuerpo := partesDelSkillMd(t, leerFicheroDelArbol(t, ruta))
+		faltan := lineas - skills.ContarLineas([]byte(cuerpo))
+
+		require.GreaterOrEqual(t, faltan, 0, "el cuerpo de SKILL.md no tiene ya más de %d líneas", lineas)
+
+		var (
+			partido   strings.Builder
+			enLaTabla bool
+		)
+
+		for linea := range strings.Lines(cuerpo) {
+			switch strings.TrimSuffix(linea, "\n") {
+			case inicioDeLaTablaDeComandos:
+				enLaTabla = true
+			case finDeLaTablaDeComandos:
+				enLaTabla = false
+			default:
+				for !enLaTabla && !strings.ContainsAny(linea, "[`~|") && faltan > 0 && strings.Contains(linea, " ") {
+					linea = strings.Replace(linea, " ", "\n", 1)
+					faltan--
+				}
+			}
+
+			partido.WriteString(linea)
+		}
+
+		require.Zero(t, faltan, "el cuerpo de SKILL.md tiene espacios de prosa para llegar a %d líneas", lineas)
+
+		escribirFicheroDeLaCopia(t, ruta, frontmatter+partido.String())
+	}
+}
+
+// ensancharElCuerpo añade al final del SKILL.md de la skill, que termina en
+// salto de línea y fuera de la región generada, una línea de eñes, de dos bytes
+// cada una, hasta que su cuerpo tiene los caracteres dados, y exige que entonces
+// tenga más bytes que caracteres.
+func ensancharElCuerpo(skill string, caracteres int) func(t *testing.T, copia string) {
 	return func(t *testing.T, copia string) {
 		t.Helper()
 
 		ruta := rutaEnLaSkill(copia, skill, "SKILL.md")
 		contenido := leerFicheroDelArbol(t, ruta)
-		actuales := skills.ContarLineas([]byte(contenido))
+		_, cuerpo := partesDelSkillMd(t, contenido)
+		actuales := utf8.RuneCountInString(cuerpo)
 
 		require.True(t, strings.HasSuffix(contenido, "\n"), "SKILL.md termina en salto de línea")
-		require.LessOrEqual(t, actuales, lineas, "SKILL.md no tiene ya más de %d líneas", lineas)
+		require.Less(t, actuales, caracteres, "el cuerpo de SKILL.md tiene menos de %d caracteres", caracteres)
 
-		escribirFicheroDeLaCopia(t, ruta, contenido+strings.Repeat("\n", lineas-actuales))
+		linea := strings.Repeat("ñ", caracteres-actuales-1) + "\n"
+		require.Greater(t, len(cuerpo+linea), caracteres, "el cuerpo tiene más bytes que caracteres")
+
+		escribirFicheroDeLaCopia(t, ruta, contenido+linea)
 	}
 }
 
+// partesDelSkillMd son el frontmatter del SKILL.md, con la línea --- que lo
+// cierra, y su cuerpo, lo que sigue a esa línea.
+func partesDelSkillMd(t *testing.T, contenido string) (string, string) {
+	t.Helper()
+
+	tras, abierto := strings.CutPrefix(contenido, "---")
+	bloque, cuerpo, cerrado := strings.Cut(tras, "\n---\n")
+	require.True(t, abierto && cerrado, "SKILL.md abre con su frontmatter y lo cierra")
+
+	return "---" + bloque + "\n---\n", cuerpo
+}
+
 // casosDeFrontmatter son las reglas del frontmatter de la skill (data-model §1.1
-// y §1.3; research.md D3 y D4; FR-040): una fila por defecto, cada una con un
-// solo defecto que nombra la skill —el directorio de la skill se renombra cuando
-// el caso necesita otro nombre—, uno por cada referencia sin su YAML de datos, y
-// los límites exactos válidos, 64 caracteres en name y 1024 en description,
-// contados como caracteres y no como bytes. Los nombres que no valen salen del de
-// la skill: todo en mayúsculas, con dos guiones tras su primer carácter y con un
-// guion delante.
+// y §1.3; research.md D3, D4 y D11; FR-040; FR-002, FR-003, FR-005, FR-011 y
+// SC-002 de H31): una fila por defecto, cada una con un solo defecto que nombra
+// la skill, el fichero —SKILL.md— y la regla —el directorio de la skill se
+// renombra cuando el caso necesita otro nombre—, salvo la etiqueta XML en name,
+// que es además un carácter que name no admite; uno por cada referencia sin su
+// YAML de datos; y los límites exactos válidos, 64 caracteres en name y 900 en
+// description, contados como caracteres y no como bytes, y un < que no abre una
+// etiqueta. Los nombres que no valen salen del de la skill: todo en mayúsculas,
+// con dos guiones tras su primer carácter, con un guion delante y con una
+// etiqueta detrás; los que contienen claude y anthropic, de SC-002.
 func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
 
-	const description = "description: Una descripción válida de la skill.\n"
+	const (
+		description              = "description: Una descripción válida de la skill.\n"
+		conClaude, conAnthropic  = "claude-legal", "x-anthropic"
+		menorQueSinEtiqueta      = "Un cuerpo de menos de 5000 tokens (< 5000)."
+		descripcionConLaEtiqueta = "Consulta normas del BOE con un <ejemplo>."
+	)
 
 	var (
 		nombre                 = skill.nombre
@@ -807,6 +929,7 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 		enMayusculas           = strings.ToUpper(nombre)
 		conDosGuiones          = nombre[:1] + "--" + nombre[1:]
 		conGuionDelante        = "-" + nombre
+		conEtiqueta            = nombre + "<x>"
 		nombreDe64, nombreDe65 = strings.Repeat("a", 64), strings.Repeat("a", 65)
 	)
 
@@ -814,25 +937,26 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 		{
 			nombre:  "sin-name",
 			alterar: conOtroFrontmatter(nombre, nombre, description+metadata),
-			fallos:  []string{nombre + ": falta name"},
+			fallos:  []string{nombre + ": SKILL.md: falta name"},
 		},
 		{
 			nombre:  "name-distinto-del-directorio",
 			alterar: conOtroFrontmatter(nombre, nombre, "name: otra-skill\n"+description+metadata),
-			fallos:  []string{nombre + `: name "otra-skill" distinto del nombre del directorio`},
+			fallos:  []string{nombre + `: SKILL.md: name "otra-skill" distinto del nombre del directorio`},
 		},
 		{
 			nombre:  "name-con-mayuscula",
 			alterar: conOtroFrontmatter(nombre, enMayusculas, "name: "+enMayusculas+"\n"+description+metadata),
 			fallos: []string{
-				fmt.Sprintf("%s: name %q con caracteres que no son a-z, 0-9 ni -", enMayusculas, enMayusculas),
+				fmt.Sprintf("%s: SKILL.md: name %q con caracteres que no son a-z, 0-9 ni -", enMayusculas, enMayusculas),
 			},
 		},
 		{
 			nombre:  "name-con-dos-guiones-seguidos",
 			alterar: conOtroFrontmatter(nombre, conDosGuiones, "name: "+conDosGuiones+"\n"+description+metadata),
 			fallos: []string{
-				fmt.Sprintf("%s: name %q con un guion al principio, al final o dos seguidos", conDosGuiones, conDosGuiones),
+				fmt.Sprintf("%s: SKILL.md: name %q con un guion al principio, al final o dos seguidos", conDosGuiones,
+					conDosGuiones),
 			},
 		},
 		{
@@ -840,50 +964,75 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 			alterar: conOtroFrontmatter(nombre, conGuionDelante,
 				fmt.Sprintf("name: %q\n", conGuionDelante)+description+metadata),
 			fallos: []string{
-				fmt.Sprintf("%s: name %q con un guion al principio, al final o dos seguidos", conGuionDelante,
+				fmt.Sprintf("%s: SKILL.md: name %q con un guion al principio, al final o dos seguidos", conGuionDelante,
 					conGuionDelante),
 			},
 		},
 		{
 			nombre:  "name-de-65-caracteres",
 			alterar: conOtroFrontmatter(nombre, nombreDe65, "name: "+nombreDe65+"\n"+description+metadata),
-			fallos:  []string{nombreDe65 + ": name de 65 caracteres (máximo 64)"},
+			fallos:  []string{nombreDe65 + ": SKILL.md: name de 65 caracteres (máximo 64)"},
+		},
+		{
+			nombre:  "name-con-claude",
+			alterar: conOtroFrontmatter(nombre, conClaude, "name: "+conClaude+"\n"+description+metadata),
+			fallos:  []string{conClaude + `: SKILL.md: name "claude-legal" contiene «claude»`},
+		},
+		{
+			nombre:  "name-con-anthropic",
+			alterar: conOtroFrontmatter(nombre, conAnthropic, "name: "+conAnthropic+"\n"+description+metadata),
+			fallos:  []string{conAnthropic + `: SKILL.md: name "x-anthropic" contiene «anthropic»`},
+		},
+		{
+			nombre: "name-con-etiqueta-xml",
+			alterar: conOtroFrontmatter(nombre, conEtiqueta,
+				fmt.Sprintf("name: %q\n", conEtiqueta)+description+metadata),
+			fallos: []string{
+				fmt.Sprintf("%s: SKILL.md: name %q con caracteres que no son a-z, 0-9 ni -", conEtiqueta, conEtiqueta),
+				conEtiqueta + ": SKILL.md: name con la etiqueta XML «<x>»",
+			},
 		},
 		{
 			nombre:  "sin-description",
 			alterar: conOtroFrontmatter(nombre, nombre, name+metadata),
-			fallos:  []string{nombre + ": falta description"},
+			fallos:  []string{nombre + ": SKILL.md: falta description"},
 		},
 		{
 			nombre:  "description-vacia",
 			alterar: conOtroFrontmatter(nombre, nombre, name+"description: \"\"\n"+metadata),
-			fallos:  []string{nombre + ": description vacía"},
+			fallos:  []string{nombre + ": SKILL.md: description vacía"},
 		},
 		{
-			nombre:  "description-de-1025-caracteres",
-			alterar: conOtroFrontmatter(nombre, nombre, name+"description: "+strings.Repeat("ñ", 1025)+"\n"+metadata),
-			fallos:  []string{nombre + ": description de 1025 caracteres (máximo 1024)"},
+			nombre:  "description-de-901-caracteres",
+			alterar: conOtroFrontmatter(nombre, nombre, name+"description: "+strings.Repeat("ñ", 901)+"\n"+metadata),
+			fallos:  []string{nombre + ": SKILL.md: description de 901 caracteres (máximo 900)"},
 		},
 		{
-			nombre:  "description-con-menor-que",
-			alterar: conOtroFrontmatter(nombre, nombre, name+"description: \"Consulta normas del BOE < 1978.\"\n"+metadata),
-			fallos:  []string{nombre + ": description con < o >"},
+			nombre: "description-con-etiqueta-xml",
+			alterar: conOtroFrontmatter(nombre, nombre,
+				fmt.Sprintf("%sdescription: %q\n", name, descripcionConLaEtiqueta)+metadata),
+			fallos: []string{nombre + ": SKILL.md: description con la etiqueta XML «<ejemplo>»"},
+		},
+		{
+			nombre: "description-con-menor-que-sin-etiqueta",
+			alterar: conOtroFrontmatter(nombre, nombre,
+				fmt.Sprintf("%sdescription: %q\n", name, menorQueSinEtiqueta)+metadata),
 		},
 		{
 			nombre:  "clave-no-admitida",
 			alterar: conOtroFrontmatter(nombre, nombre, name+description+"version: \"1\"\n"+metadata),
-			fallos:  []string{nombre + ": clave no admitida: version"},
+			fallos:  []string{nombre + ": SKILL.md: clave no admitida: version"},
 		},
 		{
 			nombre: "applet-que-no-existe",
 			alterar: conOtroFrontmatter(nombre, nombre,
 				name+description+metadataDeKitlegal(slices.Concat(skill.applets, []string{"inexistente"}), skill.referencias)),
-			fallos: []string{nombre + `: metadata/kitlegal-applets: applet "inexistente" no registrado`},
+			fallos: []string{nombre + `: SKILL.md: metadata/kitlegal-applets: applet "inexistente" no registrado`},
 		},
 		{
 			nombre: "limites-validos",
 			alterar: conOtroFrontmatter(nombre, nombreDe64,
-				"name: "+nombreDe64+"\ndescription: "+strings.Repeat("ñ", 1024)+"\n"+metadata),
+				"name: "+nombreDe64+"\ndescription: "+strings.Repeat("ñ", 900)+"\n"+metadata),
 		},
 	}
 
@@ -919,8 +1068,8 @@ func referenciaSinSusDatos(skill skillDelRecorrido, referencia referenciaDelReco
 	var fallos []string
 
 	for _, otra := range skill.referenciasDe(referencia.datos) {
-		fallos = append(fallos, fmt.Sprintf("%s: metadata/kitlegal-referencias: %q sin %s", skill.nombre, otra.nombre,
-			otra.datos))
+		fallos = append(fallos, fmt.Sprintf("%s: SKILL.md: metadata/kitlegal-referencias: %q sin %s", skill.nombre,
+			otra.nombre, otra.datos))
 	}
 
 	return casoSobreUnaCopia{
@@ -955,6 +1104,169 @@ func conOtroFrontmatter(skill, directorio, frontmatter string) func(t *testing.T
 
 		escribirFicheroDeLaCopia(t, ruta, "---\n"+frontmatter+"---\n"+resto)
 	}
+}
+
+// casosDeReferencias son los gates de references/ en la skill
+// (contracts/gates-de-skills-check.md §2.3 y §3; research D13 y D14; FR-006 a
+// FR-009, FR-011 y SC-002 de H31): un subdirectorio y un fichero .txt en
+// references/; una referencia sin enlace desde SKILL.md; una enlazada desde otra;
+// y una de 101 líneas sin índice y otra sin ningún apartado ##, con las mismas de
+// 100 en verde y la de 101 con su índice también. Cada referencia de prueba es a
+// mano, la única clase que cualquier skill puede ganar sin cambiar data/ ni su
+// declaración, y la que el caso no quiere sin enlace va enlazada desde SKILL.md
+// sin que el cuerpo gane caracteres (enlazarDesdeElSkillMd), aunque el real esté
+// en sus presupuestos. Cada caso en rojo da un solo defecto, que nombra la skill,
+// el fichero y la regla.
+func casosDeReferencias(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
+	t.Helper()
+
+	const otraAMano = "otra_a_mano_de_prueba.md"
+
+	referencia := "references/" + ficheroAMano
+	fallo := func(regla string) []string { return []string{skill.nombre + ": " + referencia + ": " + regla} }
+
+	// enlazada deja en references/ la referencia a mano de prueba con el
+	// contenido y la enlaza desde SKILL.md.
+	enlazada := func(contenido string) func(t *testing.T, copia string) {
+		return func(t *testing.T, copia string) {
+			t.Helper()
+
+			escribirReferenciaAMano(t, copia, skill.nombre, contenido)
+			enlazarDesdeElSkillMd(t, copia, skill.nombre, ficheroAMano)
+		}
+	}
+
+	return []casoSobreUnaCopia{
+		{
+			nombre: "subdirectorio",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references", "anexos"), 0o750))
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "anexos", "nota.md"),
+					referenciaAMano)
+			},
+			fallos: []string{skill.nombre + ": references/anexos: no es un fichero .md"},
+		},
+		{
+			nombre: "fichero-txt",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "notas.txt"), referenciaAMano)
+			},
+			fallos: []string{skill.nombre + ": references/notas.txt: no es un fichero .md"},
+		},
+		{
+			nombre: "sin-enlace",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				escribirReferenciaAMano(t, copia, skill.nombre, referenciaAMano)
+			},
+			fallos: fallo("SKILL.md no la enlaza con [](" + referencia + ")"),
+		},
+		{
+			nombre: "enlazada-desde-otra",
+			alterar: func(t *testing.T, copia string) {
+				t.Helper()
+
+				escribirReferenciaAMano(t, copia, skill.nombre, referenciaAMano+"Ver [la otra]("+otraAMano+").\n")
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", otraAMano), referenciaAMano)
+				enlazarDesdeElSkillMd(t, copia, skill.nombre, ficheroAMano, otraAMano)
+			},
+			fallos: fallo("enlaza otra referencia, references/" + otraAMano),
+		},
+		{nombre: "cien-lineas-sin-indice", alterar: enlazada(referenciaLargaAMano(t, 100, true, false))},
+		{
+			nombre:  "ciento-una-lineas-sin-indice",
+			alterar: enlazada(referenciaLargaAMano(t, 101, true, false)),
+			fallos:  fallo("101 líneas sin un índice que nombre sus apartados ## antes del primero (más de 100)"),
+		},
+		{nombre: "ciento-una-lineas-con-indice", alterar: enlazada(referenciaLargaAMano(t, 101, true, true))},
+		{nombre: "cien-lineas-sin-apartados", alterar: enlazada(referenciaLargaAMano(t, 100, false, false))},
+		{
+			nombre:  "ciento-una-lineas-sin-apartados",
+			alterar: enlazada(referenciaLargaAMano(t, 101, false, false)),
+			fallos:  fallo("101 líneas sin ningún apartado ## (más de 100)"),
+		},
+	}
+}
+
+// referenciaLargaAMano es una referencia a mano de prueba con las líneas dadas:
+// su título y su párrafo; con apartados, dos «## » y, con índice, delante de
+// ellos la lista que los nombra; y líneas de relleno hasta las dadas.
+func referenciaLargaAMano(t *testing.T, lineas int, conApartados, conIndice bool) string {
+	t.Helper()
+
+	fijas := []string{"# Referencia de prueba", "", "Una referencia escrita a mano, sin la cabecera de las generadas."}
+
+	if conIndice {
+		fijas = append(fijas, "", "- [Lo que lleva](#lo-que-lleva)", "- [Cuándo se lee](#cuando-se-lee)")
+	}
+
+	if conApartados {
+		fijas = append(fijas, "", "## Lo que lleva", "", "## Cuándo se lee")
+	}
+
+	require.Less(t, len(fijas), lineas, "las líneas fijas caben en %d", lineas)
+
+	referencia := strings.Join(fijas, "\n") + "\n" + strings.Repeat("Una línea de relleno.\n", lineas-len(fijas))
+	require.Equal(t, lineas, skills.ContarLineas([]byte(referencia)))
+
+	return referencia
+}
+
+// vallaDeUnBloque es la línea que abre o cierra un bloque de código en las
+// skills: hasta tres espacios y tres acentos graves o virgulillas.
+var vallaDeUnBloque = regexp.MustCompile("^ {0,3}(```|~~~)")
+
+// enlazarDesdeElSkillMd enlaza desde el SKILL.md de la skill, dentro de una
+// copia temporal, cada fichero de references/ dado con «[](references/<fichero>)»
+// (FR-007 de H31): sustituye por el enlace de cada uno, desde el principio del
+// cuerpo, una línea de prosa que tenga al menos tantos caracteres como él. Una
+// línea de prosa está fuera de la región generada y de los bloques de código y
+// no lleva corchete, comilla invertida, virgulilla ni barra vertical
+// (partirElCuerpo), así que no enlazaba nada; y como el enlace no es más largo,
+// el cuerpo no gana líneas ni caracteres, y sigue en sus presupuestos aunque el
+// del SKILL.md real esté en ellos (FR-004 de H31). Lo regenerado no cambia.
+func enlazarDesdeElSkillMd(t *testing.T, copia, skill string, ficheros ...string) {
+	t.Helper()
+
+	ruta := rutaEnLaSkill(copia, skill, "SKILL.md")
+	frontmatter, cuerpo := partesDelSkillMd(t, leerFicheroDelArbol(t, ruta))
+	pendientes := slices.Clone(ficheros)
+
+	var (
+		enlazado              strings.Builder
+		enLaTabla, enUnBloque bool
+	)
+
+	for linea := range strings.Lines(cuerpo) {
+		texto := strings.TrimSuffix(linea, "\n")
+
+		switch {
+		case texto == inicioDeLaTablaDeComandos:
+			enLaTabla = true
+		case texto == finDeLaTablaDeComandos:
+			enLaTabla = false
+		case vallaDeUnBloque.MatchString(texto):
+			enUnBloque = !enUnBloque
+		case !enLaTabla && !enUnBloque && len(pendientes) > 0 && !strings.ContainsAny(texto, "[`~|"):
+			enlace := "[](references/" + pendientes[0] + ")"
+			if utf8.RuneCountInString(texto) >= utf8.RuneCountInString(enlace) {
+				linea = enlace + strings.TrimPrefix(linea, texto)
+				pendientes = pendientes[1:]
+			}
+		}
+
+		enlazado.WriteString(linea)
+	}
+
+	require.Empty(t, pendientes, "el cuerpo de SKILL.md tiene líneas de prosa para enlazar %v", ficheros)
+
+	escribirFicheroDeLaCopia(t, ruta, frontmatter+enlazado.String())
 }
 
 // casosDeScripts son el defecto de FR-082 en la skill (ADR 0019;
@@ -1035,18 +1347,26 @@ func casosDeRegion(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 			fallos: []string{skill.nombre + ": SKILL.md: sin las marcas de la tabla de comandos"},
 		},
 		{
-			// La marca de inicio repetida sustituye a la línea en blanco que precede a
-			// la de fin: la copia tiene las líneas del SKILL.md real, que puede estar
-			// en su máximo (FR-041), y su único defecto es el de la marca.
+			// La marca de inicio repetida sustituye a la tabla, entre las dos marcas:
+			// el cuerpo de la copia tiene menos líneas y menos caracteres que el del
+			// SKILL.md real, que puede estar en sus máximos (FR-004 de H31), y su
+			// único defecto es el de la marca.
 			nombre: "dos-inicios",
 			alterar: func(t *testing.T, copia string) {
 				t.Helper()
 
-				cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), "\n\n"+finDeLaTablaDeComandos+"\n",
-					"\n"+inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n")
+				ruta := rutaEnLaSkill(copia, skill.nombre, "SKILL.md")
+				contenido := leerFicheroDelArbol(t, ruta)
+
+				antes, tras, hayInicio := strings.Cut(contenido, inicioDeLaTablaDeComandos+"\n")
+				_, despues, hayFin := strings.Cut(tras, finDeLaTablaDeComandos+"\n")
+				require.True(t, hayInicio && hayFin, "SKILL.md tiene las dos marcas, en su orden")
+
+				escribirFicheroDeLaCopia(t, ruta,
+					antes+inicioDeLaTablaDeComandos+"\n"+inicioDeLaTablaDeComandos+"\n"+finDeLaTablaDeComandos+"\n"+despues)
 			},
 			fallos: []string{fmt.Sprintf("%s: SKILL.md: la marca de inicio de la tabla de comandos "+
-				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, fin-1)},
+				"aparece 2 veces, en las líneas %d y %d", skill.nombre, inicio, inicio+1)},
 		},
 		{
 			nombre: "fin-antes-del-inicio",
@@ -1100,11 +1420,8 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 		fallos = append(fallos, skill.nombre+": "+referencia.fichero()+": fichero-ausente")
 	}
 
-	// La skill que no declara referencias no tiene references/ (research.md D15
-	// de H23): la carpeta se crea antes de dejar en ella la sobrante.
-	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
-	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "references", "antigua.md"), "# Antigua\n")
-	fallos = append(fallos, skill.nombre+": references/antigua.md: fichero-sobrante")
+	dejarSobrante(t, copia, skill.nombre)
+	fallos = append(fallos, skill.nombre+": references/"+ficheroSobrante+": fichero-sobrante")
 
 	require.Equal(t, fallos, fallosDeLasSkills(t, copia, descripciones))
 
@@ -1123,7 +1440,134 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 	assert.Empty(t, fallosDeLasSkills(t, copia, descripciones))
 }
 
-// normaNombrada es la forma en que SKILL.md nombra una norma por su rango, su
+// Lo que las pruebas sobre copias dejan en references/ además de las referencias
+// declaradas (FR-012): un fichero sobrante, que abre con la cabecera de una
+// referencia generada sin que la skill lo declare, y una referencia a mano, que no
+// abre con ella. Ninguno de los dos nombres es el de una fila de la tabla de
+// generadores.
+const (
+	ficheroSobrante     = "antigua.md"
+	sobranteConCabecera = "<!-- generado desde data/normas.yaml, no editar -->\n\n# Antigua\n"
+
+	ficheroAMano    = "a_mano_de_prueba.md"
+	referenciaAMano = "# Protocolo de prueba\n\nUna referencia escrita a mano, sin la cabecera de las generadas.\n"
+)
+
+// dejarSobrante deja en references/ de la skill, dentro de una copia temporal, el
+// fichero sobrante. La skill que no declara referencias no tiene references/
+// (research.md D15 de H23): la carpeta se crea antes.
+func dejarSobrante(t *testing.T, copia, skill string) {
+	t.Helper()
+
+	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill, "references"), 0o750))
+	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill, "references", ficheroSobrante), sobranteConCabecera)
+}
+
+// escribirReferenciaAMano deja en references/ de la skill, dentro de una copia
+// temporal, la referencia a mano de prueba con el contenido, y devuelve su ruta
+// dentro del directorio de la skill, como la nombran los defectos:
+// references/<fichero>. Exige que skills.ReferenciasAMano la clasifique como a
+// mano (contracts/gates-de-skills-check.md §3 de H31): un mutante sobre otra
+// clase de referencia no probaría que el control lee las referencias a mano.
+func escribirReferenciaAMano(t *testing.T, copia, skill, contenido string) string {
+	t.Helper()
+
+	require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill, "references"), 0o750))
+	escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill, "references", ficheroAMano), contenido)
+
+	aMano, err := skills.ReferenciasAMano(os.DirFS(copia), skill)
+	require.NoError(t, err)
+	require.True(t, slices.ContainsFunc(aMano, func(referencia skills.Referencia) bool {
+		return referencia.Fichero == ficheroAMano
+	}), "%s: %s es una referencia a mano", skill, ficheroAMano)
+
+	return path.Join("references", ficheroAMano)
+}
+
+// sinSuCabecera es el contenido de una referencia generada sin su primera línea,
+// la cabecera «generado desde».
+func sinSuCabecera(t *testing.T, contenido string) string {
+	t.Helper()
+
+	cabecera := cabeceraDeUnaReferencia.FindString(contenido)
+	require.NotEmpty(t, cabecera, "la referencia abre con su cabecera")
+
+	return strings.TrimPrefix(contenido, cabecera)
+}
+
+// conUnByteCambiado es el contenido de una referencia generada con un solo byte
+// cambiado: la última barra de su tabla, la que cierra su última fila, es una
+// exclamación.
+func conUnByteCambiado(t *testing.T, contenido string) string {
+	t.Helper()
+
+	barra := strings.LastIndexByte(contenido, '|')
+	require.GreaterOrEqual(t, barra, 0, "la referencia tiene una tabla")
+
+	return contenido[:barra] + "!" + contenido[barra+1:]
+}
+
+// probarSincroniaConReferenciasAMano fija SC-003 (FR-012; contracts/
+// gates-de-skills-check.md §3) sobre dos copias con solo la skill. Cada una lleva
+// en references/ una referencia a mano, enlazada desde su SKILL.md (FR-007 de
+// H31), y cada referencia declarada alterada, una
+// con un byte cambiado y la siguiente sin su cabecera, alternando: la primera
+// copia empieza por el byte y la segunda por la cabecera, de modo que cada
+// referencia declarada pasa por las dos alteraciones, también en la skill que
+// declara una sola. skills-check da la deriva de cada referencia declarada y
+// ninguna de la referencia a mano; y skills-sync —Regenerar y Escribir— deja la
+// referencia a mano idéntica, sin tocar sus bytes ni su tiempo de modificación, y
+// rehace las declaradas.
+func probarSincroniaConReferenciasAMano(t *testing.T, descripciones []skills.DescripcionDeVerbo,
+	skill skillDelRecorrido,
+) {
+	t.Helper()
+
+	alteraciones := []func(t *testing.T, contenido string) string{conUnByteCambiado, sinSuCabecera}
+	aMano := path.Join("skills", skill.nombre, "references", ficheroAMano)
+
+	for primera, nombre := range []string{"desde-el-byte-cambiado", "desde-la-cabecera-retirada"} {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			copia := copiaConLaSkill(t, skill.nombre)
+			require.NoError(t, os.MkdirAll(rutaEnLaSkill(copia, skill.nombre, "references"), 0o750))
+			escribirFicheroDeLaCopia(t, filepath.Join(copia, filepath.FromSlash(aMano)), referenciaAMano)
+			enlazarDesdeElSkillMd(t, copia, skill.nombre, ficheroAMano)
+
+			var derivas []string
+
+			for indice, referencia := range skill.referencias {
+				alterar := alteraciones[(primera+indice)%len(alteraciones)]
+				escribirFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, referencia.fichero()),
+					alterar(t, referencia.contenido))
+				derivas = append(derivas, skill.nombre+": "+referencia.fichero()+": contenido-distinto")
+			}
+
+			require.Equal(t, derivas, fallosDeLasSkills(t, copia, descripciones),
+				"skills-check da la deriva de cada referencia declarada y ninguna de la referencia a mano")
+
+			envejecerArbol(t, copia)
+			antes := fotografiarArbol(t, copia)
+
+			escribirSkills(t, copia, descripciones)
+
+			despues := fotografiarArbol(t, copia)
+			assert.Equal(t, antes[aMano], despues[aMano], "skills-sync no toca la referencia a mano")
+			assert.Equal(t, referenciaAMano, despues[aMano].contenido)
+
+			for _, referencia := range skill.referencias {
+				assert.Equal(t, referencia.contenido,
+					leerFicheroDelArbol(t, rutaEnLaSkill(copia, skill.nombre, referencia.fichero())),
+					"skills-sync rehace %s", referencia.fichero())
+			}
+
+			assert.Empty(t, fallosDeLasSkills(t, copia, descripciones))
+		})
+	}
+}
+
+// normaNombrada es la forma en que una skill nombra una norma por su rango, su
 // número y su año: «Ley N/AAAA», «Ley Orgánica N/AAAA», «Real Decreto N/AAAA»,
 // «Real Decreto-ley N/AAAA» o «Real Decreto Legislativo N/AAAA» (contrato
 // sincronizacion-y-comprobacion §2). Los rangos más largos van antes que los que
@@ -1131,9 +1575,9 @@ func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeV
 var normaNombrada = regexp.MustCompile(
 	`\b(?:Ley Orgánica|Ley|Real Decreto Legislativo|Real Decreto-ley|Real Decreto) [0-9]+/[0-9]{4}\b`)
 
-// probarNormasNombradasDelArbol fija que toda norma que nombra el SKILL.md de
-// una skill del árbol real empieza el título de una norma de data/normas.yaml
-// (FR-020), y que el árbol nombra alguna: sin ninguna, la comprobación pasaría en
+// probarNormasNombradasDelArbol fija que toda norma que nombra una skill entera
+// del árbol real empieza el título de una norma de data/normas.yaml (FR-020; FR-016
+// de H31), y que el árbol nombra alguna: sin ninguna, la comprobación pasaría en
 // vacío.
 func probarNormasNombradasDelArbol(t *testing.T) {
 	t.Helper()
@@ -1141,43 +1585,86 @@ func probarNormasNombradasDelArbol(t *testing.T) {
 	var nombradas []string
 
 	for _, skill := range skillsDelArbol(t, raizDelRepositorio) {
-		skillMd := leerFicheroDelArbol(t, rutaEnLaSkill(raizDelRepositorio, skill, "SKILL.md"))
-		nombradas = append(nombradas, normaNombrada.FindAllString(skillMd, -1)...)
+		for _, fichero := range ficherosDeLaSkillEntera(t, raizDelRepositorio, skill) {
+			nombradas = append(nombradas, normaNombrada.FindAllString(fichero.texto, -1)...)
+		}
 	}
 
-	require.NotEmpty(t, nombradas, "algún SKILL.md nombra alguna norma por su número y año")
+	require.NotEmpty(t, nombradas, "alguna skill nombra alguna norma por su número y año")
 	assert.Empty(t, fallosDeNormasNombradas(t, raizDelRepositorio))
+}
+
+// textoDeUnFichero es un fichero de una skill que leen los controles de
+// contenido: su ruta dentro del directorio de la skill, con barra, como la
+// nombran los defectos, y su texto.
+type textoDeUnFichero struct {
+	ruta  string
+	texto string
+}
+
+// ficherosDeLaSkillEntera son los ficheros de la skill del árbol de raíz que lee
+// un control de contenido desde H31 (contracts/controles-de-contenido.md de H31;
+// research D16 de H31; FR-016): su SKILL.md y, detrás, sus referencias a mano
+// (skills.ReferenciasAMano), en orden de nombre, cada uno por separado. Las
+// referencias generadas no se leen.
+func ficherosDeLaSkillEntera(t *testing.T, raiz, skill string) []textoDeUnFichero {
+	t.Helper()
+
+	aMano, err := skills.ReferenciasAMano(os.DirFS(raiz), skill)
+	require.NoError(t, err, "las referencias a mano de %s", skill)
+
+	ficheros := []textoDeUnFichero{{
+		ruta:  ficheroDeLaSkill,
+		texto: leerFicheroDelArbol(t, rutaEnLaSkill(raiz, skill, ficheroDeLaSkill)),
+	}}
+
+	for _, referencia := range aMano {
+		ficheros = append(ficheros, textoDeUnFichero{
+			ruta:  path.Join("references", referencia.Fichero),
+			texto: string(referencia.Contenido),
+		})
+	}
+
+	return ficheros
 }
 
 // probarNormasNombradas fija, sobre una copia con solo la skill, que su SKILL.md
 // falla por cada una de cinco normas nombradas que la tabla no tiene, una de cada
-// forma, y no por una que sí tiene (FR-020). Las cinco llevan el número 0, que no
-// lleva ninguna norma: la tabla crece con cada hito —en H6, con la LEC 1/2000 y
-// la LOPDGDD 3/2018, que eran dos de estos ejemplos— y un ejemplo que pudiera
-// entrar en ella dejaría el caso sin fallo.
+// forma, y no por una que sí tiene (FR-020); y que una referencia a mano falla
+// igual por la que la tabla no tiene, con su fichero en el defecto, y no por la
+// que tiene (FR-016, FR-017; contracts/controles-de-contenido.md, control 8, de
+// H31). Las que no tiene llevan el número 0, que no lleva ninguna norma: la tabla
+// crece con cada hito —en H6, con la LEC 1/2000 y la LOPDGDD 3/2018, que eran dos
+// de estos ejemplos— y un ejemplo que pudiera entrar en ella dejaría el caso sin
+// fallo.
 func probarNormasNombradas(t *testing.T, skill skillDelRecorrido) {
 	t.Helper()
 
 	copia := copiaConLaSkill(t, skill.nombre)
-	ruta := rutaEnLaSkill(copia, skill.nombre, "SKILL.md")
+	ruta := rutaEnLaSkill(copia, skill.nombre, ficheroDeLaSkill)
 	escribirFicheroDeLaCopia(t, ruta, leerFicheroDelArbol(t, ruta)+"Ver la Ley 0/2000, la Ley Orgánica 0/2018, "+
 		"el Real Decreto 0/2001, el Real Decreto-ley 0/2020, el Real Decreto Legislativo 0/2015 y el "+
 		"Real Decreto Legislativo 2/2004.\n")
 
-	const sinEntrada = "%s: SKILL.md nombra «%s», que no empieza el título de ninguna norma de data/normas.yaml"
+	aMano := escribirReferenciaAMano(t, copia, skill.nombre,
+		referenciaAMano+"Ver la Ley 0/1999 y el Real Decreto Legislativo 2/2004.\n")
+
+	const sinEntrada = "%s: %s nombra «%s», que no empieza el título de ninguna norma de data/normas.yaml"
 
 	assert.Equal(t, []string{
-		fmt.Sprintf(sinEntrada, skill.nombre, "Ley 0/2000"),
-		fmt.Sprintf(sinEntrada, skill.nombre, "Ley Orgánica 0/2018"),
-		fmt.Sprintf(sinEntrada, skill.nombre, "Real Decreto 0/2001"),
-		fmt.Sprintf(sinEntrada, skill.nombre, "Real Decreto-ley 0/2020"),
-		fmt.Sprintf(sinEntrada, skill.nombre, "Real Decreto Legislativo 0/2015"),
+		fmt.Sprintf(sinEntrada, skill.nombre, ficheroDeLaSkill, "Ley 0/2000"),
+		fmt.Sprintf(sinEntrada, skill.nombre, ficheroDeLaSkill, "Ley Orgánica 0/2018"),
+		fmt.Sprintf(sinEntrada, skill.nombre, ficheroDeLaSkill, "Real Decreto 0/2001"),
+		fmt.Sprintf(sinEntrada, skill.nombre, ficheroDeLaSkill, "Real Decreto-ley 0/2020"),
+		fmt.Sprintf(sinEntrada, skill.nombre, ficheroDeLaSkill, "Real Decreto Legislativo 0/2015"),
+		fmt.Sprintf(sinEntrada, skill.nombre, aMano, "Ley 0/1999"),
 	}, fallosDeNormasNombradas(t, copia))
 }
 
-// fallosDeNormasNombradas es un fallo por cada norma que nombra el SKILL.md de
-// una skill del árbol de raíz sin que ninguna norma de su data/normas.yaml tenga
-// un título que empiece así, en el orden de las skills y del texto.
+// fallosDeNormasNombradas es un fallo por cada norma que nombra un fichero de
+// una skill entera del árbol de raíz (ficherosDeLaSkillEntera) sin que ninguna
+// norma de su data/normas.yaml tenga un título que empiece así, con el fichero,
+// en el orden de las skills, de sus ficheros y del texto.
 func fallosDeNormasNombradas(t *testing.T, raiz string) []string {
 	t.Helper()
 
@@ -1187,18 +1674,32 @@ func fallosDeNormasNombradas(t *testing.T, raiz string) []string {
 	var fallos []string
 
 	for _, skill := range skillsDelArbol(t, raiz) {
-		for _, nombrada := range normaNombrada.FindAllString(leerFicheroDelArbol(t, rutaEnLaSkill(raiz, skill, "SKILL.md")), -1) {
-			empieza := slices.ContainsFunc(normas, func(norma skills.Norma) bool {
-				return empiezaElTitulo(norma.Titulo, nombrada)
-			})
-			if !empieza {
-				fallos = append(fallos, fmt.Sprintf("%s: SKILL.md nombra «%s», que no empieza el título de ninguna "+
-					"norma de data/normas.yaml", skill, nombrada))
+		for _, fichero := range ficherosDeLaSkillEntera(t, raiz, skill) {
+			for _, nombrada := range normasSinTitulo(normas, fichero.texto) {
+				fallos = append(fallos, fmt.Sprintf("%s: %s nombra «%s», que no empieza el título de ninguna "+
+					"norma de data/normas.yaml", skill, fichero.ruta, nombrada))
 			}
 		}
 	}
 
 	return fallos
+}
+
+// normasSinTitulo son las normas que nombra el texto sin que ninguna de las
+// normas tenga un título que empiece así, en el orden del texto.
+func normasSinTitulo(normas []skills.Norma, texto string) []string {
+	var sinTitulo []string
+
+	for _, nombrada := range normaNombrada.FindAllString(texto, -1) {
+		empieza := slices.ContainsFunc(normas, func(norma skills.Norma) bool {
+			return empiezaElTitulo(norma.Titulo, nombrada)
+		})
+		if !empieza {
+			sinTitulo = append(sinTitulo, nombrada)
+		}
+	}
+
+	return sinTitulo
 }
 
 // empiezaElTitulo dice si el título empieza por la norma nombrada y lo que sigue
@@ -1220,8 +1721,9 @@ var instruccionDeEvals = regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}])` +
 
 // probarSinInstruccionesDeEvals fija, sobre una copia con solo la skill, que
 // cada término de lo que no puede decir (FR-077) cuenta en su SKILL.md y en cada
-// una de sus referencias, y que no cuentan «evalúa», el «siempre» de otra frase
-// ni lo que va dentro de la región generada.
+// una de sus referencias, también en una referencia a mano (FR-016, FR-017 de
+// H31), y que no cuentan «evalúa», el «siempre» de otra frase ni lo que va dentro
+// de la región generada.
 func probarSinInstruccionesDeEvals(t *testing.T, skill skillDelRecorrido) {
 	t.Helper()
 
@@ -1248,27 +1750,35 @@ func probarSinInstruccionesDeEvals(t *testing.T, skill skillDelRecorrido) {
 	}
 	escribirFicheroDeLaCopia(t, skillMd, contenido+strings.Join(slices.Concat(prohibidas, admitidas), "\n")+"\n")
 
-	esperados := make([]string, 0, len(prohibidas)+len(skill.referencias))
+	esperados := make([]string, 0, len(prohibidas)+len(skill.referencias)+1)
 	for indice, linea := range prohibidas {
 		esperados = append(esperados, fmt.Sprintf("%s: SKILL.md:%d: %s", skill.nombre, primera+indice, linea))
 	}
 
-	// Las referencias se recorren en el orden de sus ficheros, que es el de
-	// references/.
-	ficheros := make([]string, 0, len(skill.referencias))
+	// Cada referencia declarada lleva una fila que lo dice, y la referencia a
+	// mano, una línea (FR-016, FR-017; contracts/controles-de-contenido.md,
+	// control 9, de H31).
+	porFichero := make(map[string]string, len(skill.referencias)+1)
+
 	for _, referencia := range skill.referencias {
-		ficheros = append(ficheros, referencia.fichero())
-	}
-
-	slices.Sort(ficheros)
-
-	for _, fichero := range ficheros {
-		ruta := rutaEnLaSkill(copia, skill.nombre, fichero)
+		ruta := rutaEnLaSkill(copia, skill.nombre, referencia.fichero())
 		tabla := leerFicheroDelArbol(t, ruta)
 		escribirFicheroDeLaCopia(t, ruta, tabla+"| evals |\n")
 
-		esperados = append(esperados, fmt.Sprintf("%s: %s:%d: | evals |", skill.nombre, fichero,
-			skills.ContarLineas([]byte(tabla))+1))
+		porFichero[referencia.fichero()] = fmt.Sprintf("%s: %s:%d: | evals |", skill.nombre, referencia.fichero(),
+			skills.ContarLineas([]byte(tabla))+1)
+	}
+
+	const enLaReferenciaAMano = "Lo lanza un job semanal."
+
+	aMano := escribirReferenciaAMano(t, copia, skill.nombre, referenciaAMano+enLaReferenciaAMano+"\n")
+	porFichero[aMano] = fmt.Sprintf("%s: %s:%d: %s", skill.nombre, aMano,
+		skills.ContarLineas([]byte(referenciaAMano))+1, enLaReferenciaAMano)
+
+	// Las referencias se recorren en el orden de sus ficheros, que es el de
+	// references/.
+	for _, fichero := range slices.Sorted(maps.Keys(porFichero)) {
+		esperados = append(esperados, porFichero[fichero])
 	}
 
 	assert.Equal(t, esperados, fallosDeInstruccionesDeEvals(t, copia))

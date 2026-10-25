@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
 // prefijoDelInstrumentoSinMedir es, escrito a mano, lo que lleva delante de
@@ -122,6 +124,220 @@ func TestEjecucionSinMedir(t *testing.T) {
 			probarLaEjecucionSinMedirDe(t, medido, modelo, version)
 		})
 	}
+
+	t.Run("descripciones", func(t *testing.T) {
+		t.Parallel()
+
+		probarLaEjecucionSinMedirDeLasDescripciones(t, modelo, version)
+	})
+}
+
+// prefijoDeLasDescripcionesSinMedir es, escrito a mano, lo que lleva delante de
+// cada línea de la comprobación de la medida del juez de las descripciones el
+// motivo del informe del instrumento sin medir
+// (contracts/juez-de-las-descripciones.md §3 de H31): el del instrumento sin
+// medir y el del juez de las descripciones, que distingue sus líneas de las del
+// juez de las respuestas.
+const prefijoDeLasDescripcionesSinMedir = prefijoDelInstrumentoSinMedir + "juez de las descripciones: "
+
+// probarLaEjecucionSinMedirDeLasDescripciones fija con la medida del juez de las
+// descripciones lo que TestEjecucionSinMedir fija con la de cada juez de las
+// respuestas (contracts/juez-de-las-descripciones.md §3 de H31; research D8 de
+// H31; FR-026; SC-008): con el bloque descripcion en la decisión, juzgada en la
+// ejecución o reutilizada, cada una de las seis mutaciones de su medida, sobre
+// una copia de la evidencia, deja el job de una skill sin juez en fallo sin
+// llamar a quien abre las sesiones ni a quien da el votante de las
+// descripciones, con un motivo por línea, cada una con su prefijo, sin ningún
+// umbral, ni bloque descripcion, ni juez. Con el juez de la skill medido, solo
+// dan motivo las líneas de las descripciones, y el informe lleva el juez de la
+// skill; y con los dos sin medir, las del juez de la skill van delante.
+func probarLaEjecucionSinMedirDeLasDescripciones(t *testing.T, modelo, version string) {
+	t.Helper()
+
+	mutaciones := mutacionesDeLaMedidaDeLasDescripciones(modelo, version)
+	require.Len(t, mutaciones, 6, "las seis mutaciones de SC-008 de H31")
+
+	bloques := map[string]descripcionDeLaDecision{
+		"juzgada":     descripcionJuzgadaEnLaDecision(),
+		"reutilizada": descripcionReutilizadaEnLaDecision(),
+	}
+
+	for _, mutacion := range mutaciones {
+		for deLaDecision, bloque := range bloques {
+			t.Run(mutacion.nombre+"-"+deLaDecision, func(t *testing.T) {
+				t.Parallel()
+
+				_, leido := probarElJobSinMedirLaDescripcion(t, t.TempDir(), bloque, mutacion)
+
+				exigirMotivosDeLaRaiz(t, leido, conElPrefijo(prefijoDeLasDescripcionesSinMedir, mutacion.lineas)...)
+				assert.Nil(t, leido.informe.Juez, "la skill no tiene juez, tampoco en el informe del instrumento sin medir")
+				exigirUmbrales(t, leido, nil)
+				assert.Empty(t, leido.informe.Tasas)
+				assert.Empty(t, leido.informe.Evals)
+			})
+		}
+	}
+
+	t.Run("con-el-juez-de-la-skill-medido", func(t *testing.T) {
+		t.Parallel()
+
+		mutacion := mutaciones[0]
+		job, leido := probarElJobSinMedirLaDescripcion(t, copiarLaCarpetaDelJuez(t), descripcionJuzgadaEnLaDecision(),
+			mutacion)
+
+		exigirMotivosDeLaRaiz(t, leido, conElPrefijo(prefijoDeLasDescripcionesSinMedir, mutacion.lineas)...)
+		exigirNadaMedido(t, leido, job.ejecucion)
+	})
+
+	t.Run("con-los-dos-sin-medir", func(t *testing.T) {
+		t.Parallel()
+
+		evals := copiarLaCarpetaDelJuez(t)
+		cambiarUnByteDe(ficheroDeRubricaDelJuez)(t, filepath.Join(evals, carpetaDelJuez))
+
+		mutacion := mutaciones[1]
+		job, leido := probarElJobSinMedirLaDescripcion(t, evals, descripcionJuzgadaEnLaDecision(), mutacion)
+
+		exigirMotivosDeLaRaiz(t, leido, slices.Concat(
+			conElPrefijo(prefijoDelInstrumentoSinMedir, []string{lineaDeLaRubrica}),
+			conElPrefijo(prefijoDeLasDescripcionesSinMedir, mutacion.lineas))...)
+		exigirNadaMedido(t, leido, job.ejecucion)
+	})
+}
+
+// conElPrefijo son las líneas, cada una con el prefijo delante.
+func conElPrefijo(prefijo string, lineas []string) []string {
+	conPrefijo := make([]string, 0, len(lineas))
+	for _, linea := range lineas {
+		conPrefijo = append(conPrefijo, prefijo+linea)
+	}
+
+	return conPrefijo
+}
+
+// probarElJobSinMedirLaDescripcion copia la evidencia del juez de las
+// descripciones, exige que la copia sin tocar corresponda y se cumpla con lo que
+// fija la definición del job, hace los cambios de la mutación y ejecuta el job
+// sobre ese directorio de evals con el modelo y la versión de la mutación, la
+// copia como raíz y la decisión con ese bloque descripcion: exige que no se
+// llame a quien abre las sesiones ni a quien da el votante de las descripciones,
+// ni se pida ningún voto de las respuestas, que no se cree el directorio de
+// sesiones y que el informe sea el del instrumento sin medir, sin bloque
+// descripcion ni su sección.
+func probarElJobSinMedirLaDescripcion(
+	t *testing.T, evals string, bloque descripcionDeLaDecision, mutacion mutacionDeLaMedida,
+) (*jobDePrueba, informeLeido) {
+	t.Helper()
+
+	modelo, version := fijadosParaElJuez(t)
+
+	raiz := copiarLaEvidenciaDeLasDescripciones(t)
+	require.Empty(t, comprobarLaMedida(juezDeLasDescripcionesEn(t, raiz), modelo, version),
+		"premisa: la medida de la copia sin tocar corresponde y se cumple")
+
+	for _, cambio := range mutacion.cambios {
+		cambio(t, carpetaDeLaEvidenciaEn(raiz))
+	}
+
+	job := nuevoJobDePrueba(t, evals, mutacion.modelo, mutacion.version)
+	job.conLaDescripcion(raiz, bloque)
+	job.ejecucion.AbrirLaTanda = abridorQueNoSeLlama(t)
+	job.ejecucion.VotanteDeLasDescripciones = votanteDeLasDescripcionesQueNoSePide(t)
+
+	informe, err := ejecutarElJob(job.ejecucion)
+	require.NoError(t, err)
+
+	assert.Empty(t, job.votante.pedidos(), "ni se pide ningún voto de las respuestas")
+	assert.NoDirExists(t, job.ejecucion.Sesiones, "no se ha abierto ninguna sesión")
+
+	leido := leerInformeEscrito(t, job.ejecucion.Destino, informe)
+
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+	exigirSinLaDescripcion(t, leido)
+
+	return job, leido
+}
+
+// abridorQueNoSeLlama es quien abre las sesiones de un job que no tiene que
+// abrir ninguna: si se le llama, el test falla, y no abre nada.
+func abridorQueNoSeLlama(t *testing.T) func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+	t.Helper()
+
+	return func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+		t.Errorf("se llama a quien abre las sesiones con una tanda de %d", len(tanda))
+
+		return EjecucionDeSesiones{}, errors.New("no se abre ninguna sesión")
+	}
+}
+
+// votanteDeLasDescripcionesQueNoSePide es quien da el votante de las
+// descripciones de un job que no tiene que votar ninguna: si se le pide, el
+// test falla, y el votante que da no vota.
+func votanteDeLasDescripcionesQueNoSePide(t *testing.T) func(juez *Juez) Votante {
+	t.Helper()
+
+	return func(*Juez) Votante {
+		t.Error("se pide el votante de las descripciones")
+
+		return func(string) ([]byte, error) { return nil, errors.New("ningún voto") }
+	}
+}
+
+// huellaDeLaDescripcionDeLaDecision es la huella, sintética, del bloque
+// descripcion de la decisión en los tests de la ejecución.
+func huellaDeLaDescripcionDeLaDecision() string {
+	return huellaSintetica("descripcion de " + skillDeLasSesiones)
+}
+
+// descripcionJuzgadaEnLaDecision y descripcionReutilizadaEnLaDecision son los
+// dos bloques descripcion de la decisión de los tests de la ejecución, los de
+// contracts/juez-de-las-descripciones.md §2 de H31: el de la descripción de la
+// skill de las sesiones que se juzga en la ejecución y el de la que reutiliza
+// el juicio de una medida de main, sin marcar, con su procedencia.
+func descripcionJuzgadaEnLaDecision() descripcionDeLaDecision {
+	return descripcionDeLaDecision{Skill: skillDeLasSesiones, Huella: huellaDeLaDescripcionDeLaDecision(), Juzgada: true}
+}
+
+func descripcionReutilizadaEnLaDecision() descripcionDeLaDecision {
+	return descripcionDeLaDecision{
+		Skill: skillDeLasSesiones, Huella: huellaDeLaDescripcionDeLaDecision(), Procedencia: procedenciaDeMainDelJob(),
+		Juicio: &juicioReutilizado{Motivo: motivoDelVotoQueNo},
+	}
+}
+
+// conLaDescripcion pone en la ejecución del job la raíz de la que se leen el
+// juez de las descripciones y la descripción de la skill, y la decisión de la
+// suite completa que mide todas las evals de su plan, con ese bloque
+// descripcion.
+func (j *jobDePrueba) conLaDescripcion(raiz string, bloque descripcionDeLaDecision) {
+	j.ejecucion.Raiz = raiz
+	j.ejecucion.decision = &origenDeLasEvals{Modo: origenDeLaSuiteCompleta, Descripcion: &bloque}
+
+	for _, eval := range j.ejecucion.Plan.Evals {
+		j.ejecucion.decision.Evals = append(j.ejecucion.decision.Evals,
+			origenDeEval{Eval: eval.Fichero, Medida: true, Motivo: motivoSuiteCompleta})
+	}
+}
+
+// exigirSinLaDescripcion exige que el informe no lleve nada de la descripción:
+// ni el bloque descripcion en informe.json, ni el umbral de su clase, ni la
+// sección «La descripción» en informe.md (contracts/juez-de-las-descripciones.md
+// §6 de H31; FR-030).
+func exigirSinLaDescripcion(t *testing.T, leido informeLeido) {
+	t.Helper()
+
+	assert.Nil(t, leido.informe.Descripcion)
+
+	var raiz map[string]jsontext.Value
+
+	require.NoError(t, json.Unmarshal([]byte(leido.escrito), &raiz))
+	assert.NotContains(t, raiz, "descripcion", "informe.json no lleva el bloque descripcion")
+
+	for _, umbral := range leido.informe.Umbrales {
+		assert.NotEqual(t, claseHablaEnPrimeraOSegundaPersona, umbral.Nombre, "ni el umbral de su clase")
+	}
+
+	assert.NotContains(t, leido.md, "\n## La descripción\n", "ni informe.md su sección")
 }
 
 // juezMedido es el juez de una fila de la tabla de las copias con lo que los
@@ -477,6 +693,227 @@ func TestEjecutarElJobConLaDecision(t *testing.T) {
 	assert.Equal(t, procedenciaDeMainDelJob(), leido.informe.Origen.Evals[1].Procedencia,
 		"la reutilizada lleva la procedencia de la decisión")
 	assert.Len(t, leido.informe.Evals, 1, "el informe juzga solo la sesión medida")
+}
+
+// TestEjecutarElJobConLaDescripcion fija el recorrido del job con el bloque
+// descripcion en la decisión y la medida del juez de las descripciones que
+// corresponde y se cumple (contracts/juez-de-las-descripciones.md §3 y §6 de
+// H31; research D7 de H31; FR-026, FR-031, FR-032), con quien abre las sesiones
+// de pega y un votante simulado, sin ninguna sesión con modelo (FR-033):
+//
+//   - juzgada: se pide el votante una vez, con el juez de las descripciones de
+//     la raíz, antes de abrir las sesiones de las evals, y los votos de la
+//     descripción de la skill, cada uno con su mensaje, detrás de ellas; el
+//     informe lleva su juicio, marcada con sus tres «si», y el umbral en rojo;
+//   - reutilizada: no se pide ningún votante, y el informe lleva el juicio del
+//     bloque con su procedencia y el umbral con 0 de 0;
+//   - y, antes de abrir ninguna sesión y sin escribir el informe, el error de
+//     una raíz sin el juez de las descripciones, de una juzgada sin quien dé su
+//     votante o sin el SKILL.md de su skill, y de una reutilizada sin el juicio.
+func TestEjecutarElJobConLaDescripcion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("juzgada", func(t *testing.T) {
+		t.Parallel()
+
+		probarElJobQueJuzgaLaDescripcion(t)
+	})
+
+	t.Run("reutilizada", func(t *testing.T) {
+		t.Parallel()
+
+		probarElJobQueReutilizaLaDescripcion(t)
+	})
+
+	antesDeAbrir := map[string]struct {
+		raiz      func(t *testing.T) string
+		bloque    descripcionDeLaDecision
+		sinQuien  bool
+		fragmento string
+	}{
+		"sin-el-juez-de-las-descripciones": {
+			raiz:      func(t *testing.T) string { t.Helper(); return t.TempDir() },
+			bloque:    descripcionJuzgadaEnLaDecision(),
+			fragmento: "evidencias/adr-0046/rubrica.md",
+		},
+		"juzgada-sin-quien-de-su-votante": {
+			raiz:      raizConLaDescripcion,
+			bloque:    descripcionJuzgadaEnLaDecision(),
+			sinQuien:  true,
+			fragmento: "votante",
+		},
+		"juzgada-sin-el-skill-md": {
+			raiz:      copiarLaEvidenciaDeLasDescripciones,
+			bloque:    descripcionJuzgadaEnLaDecision(),
+			fragmento: "skills/" + skillDeLasSesiones + "/SKILL.md",
+		},
+		"reutilizada-sin-el-juicio": {
+			raiz: copiarLaEvidenciaDeLasDescripciones,
+			bloque: descripcionDeLaDecision{
+				Skill: skillDeLasSesiones, Huella: huellaDeLaDescripcionDeLaDecision(), Procedencia: procedenciaDeMainDelJob(),
+			},
+			fragmento: "sin su juicio",
+		},
+	}
+
+	for nombre, caso := range antesDeAbrir {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			modelo, version := fijadosParaElJuez(t)
+
+			job := nuevoJobDeLaDescripcion(t, modelo, version, caso.raiz(t), caso.bloque)
+			job.ejecucion.AbrirLaTanda = abridorQueNoSeLlama(t)
+			job.ejecucion.VotanteDeLasDescripciones = votanteDeLasDescripcionesQueNoSePide(t)
+
+			if caso.sinQuien {
+				job.ejecucion.VotanteDeLasDescripciones = nil
+			}
+
+			informe, err := ejecutarElJob(job.ejecucion)
+			require.Error(t, err)
+			require.ErrorContains(t, err, "el job no se puede ejecutar")
+			require.ErrorContains(t, err, caso.fragmento)
+
+			assert.NoDirExists(t, job.ejecucion.Sesiones, "no se ha abierto ninguna sesión")
+			job.exigirSinInforme(t, informe)
+		})
+	}
+}
+
+// nuevoJobDeLaDescripcion arma la ejecución del job de la skill sintética del
+// caso aprobado, que no tiene juez, con ese modelo y esa versión del juez, esa
+// raíz y la decisión con ese bloque descripcion.
+func nuevoJobDeLaDescripcion(t *testing.T, modelo, version, raiz string, bloque descripcionDeLaDecision) *jobDePrueba {
+	t.Helper()
+
+	job := nuevoJobDePrueba(t, t.TempDir(), modelo, version)
+	job.ejecucion.Votar = nil
+	job.ejecucion.ConcurrenciaDelJuez = 0
+	job.conLaDescripcion(raiz, bloque)
+
+	return job
+}
+
+// raizConLaDescripcion es la raíz de un repositorio en un directorio temporal
+// del test, con la evidencia del juez de las descripciones copiada y el
+// SKILL.md de la skill de las sesiones con la descripción de los tests de los
+// votos, descripcionDeLosVotos, en un escalar literal que la deja tal cual.
+func raizConLaDescripcion(t *testing.T) string {
+	t.Helper()
+
+	raiz := copiarLaEvidenciaDeLasDescripciones(t)
+	skill := filepath.Join(raiz, "skills", skillDeLasSesiones)
+	require.NoError(t, os.MkdirAll(skill, 0o750))
+
+	contenido := "---\nname: " + skillDeLasSesiones + "\ndescription: |-\n  " +
+		strings.ReplaceAll(descripcionDeLosVotos, "\n", "\n  ") + "\n---\n\n# " + skillDeLasSesiones + "\n"
+	require.NoError(t, os.WriteFile(filepath.Join(skill, "SKILL.md"), []byte(contenido), 0o600))
+
+	frontmatter, err := skills.LeerFrontmatter([]byte(contenido))
+	require.NoError(t, err)
+	require.Equal(t, descripcionDeLosVotos, frontmatter.Description, "premisa: la descripción del SKILL.md, tal cual")
+
+	return raiz
+}
+
+// probarElJobQueJuzgaLaDescripcion ejecuta el job con la descripción juzgada en
+// la decisión y un votante que dice tres «si» con su frase: exige que el votante
+// se pida una vez, con el juez de las descripciones de la raíz, antes de abrir
+// las sesiones, y los votos detrás de ellas, cada uno con el mensaje de la
+// descripción; y que el informe lleve su juicio, marcada, con la frase y el
+// motivo de su primer voto, y el umbral de su clase en rojo, con su motivo.
+func probarElJobQueJuzgaLaDescripcion(t *testing.T) {
+	t.Helper()
+
+	modelo, version := fijadosParaElJuez(t)
+
+	job := nuevoJobDeLaDescripcion(t, modelo, version, raizConLaDescripcion(t), descripcionJuzgadaEnLaDecision())
+
+	var sucesos []string
+
+	abrir := job.ejecucion.AbrirLaTanda
+	job.ejecucion.AbrirLaTanda = func(tanda []SesionPlanificada) (EjecucionDeSesiones, error) {
+		sucesos = append(sucesos, "tanda")
+
+		return abrir(tanda)
+	}
+
+	votante := &votanteGrabado{t: t, grabaciones: []grabacion{
+		votoDeLaDescripcion(t, "si", fraseDelPrimerVoto, motivoDelPrimerVoto),
+		votoDeLaDescripcion(t, "si", fraseDelSegundoVoto, motivoDelSegundoVoto),
+		votoDeLaDescripcion(t, "si", fraseDelTercerVoto, motivoDelTercerVoto),
+	}}
+
+	var jueces []*Juez
+
+	job.ejecucion.VotanteDeLasDescripciones = func(juez *Juez) Votante {
+		jueces = append(jueces, juez)
+		sucesos = append(sucesos, "votante")
+
+		return func(mensaje string) ([]byte, error) {
+			sucesos = append(sucesos, "voto")
+
+			return votante.votar(mensaje)
+		}
+	}
+
+	informe, err := ejecutarElJob(job.ejecucion)
+	require.NoError(t, err)
+
+	require.Len(t, jueces, 1, "el votante se pide una vez")
+	assert.Equal(t, juezDeLasDescripcionesEn(t, job.ejecucion.Raiz), jueces[0], "con el juez de las descripciones")
+	assert.Equal(t, []string{"votante", "tanda", "voto", "voto", "voto"}, sucesos,
+		"el votante, antes de abrir las sesiones, y los tres votos de una descripción marcada, detrás de ellas")
+
+	for _, mensaje := range votante.mensajes {
+		assert.Equal(t, mensajeDeLaDescripcion(skillDeLasSesiones, descripcionDeLosVotos), mensaje)
+	}
+
+	leido := leerInformeEscrito(t, job.ejecucion.Destino, informe)
+
+	assert.Equal(t, &DescripcionInformada{
+		Skill: skillDeLasSesiones, Clase: claseHablaEnPrimeraOSegundaPersona, Huella: huellaDeLaDescripcionDeLaDecision(),
+		Juzgada: true, Marcada: true, Frase: fraseDelPrimerVoto, Motivo: motivoDelPrimerVoto,
+		Votos: []VotoDeLaDescripcion{
+			votoDado("si", fraseDelPrimerVoto, motivoDelPrimerVoto),
+			votoDado("si", fraseDelSegundoVoto, motivoDelSegundoVoto),
+			votoDado("si", fraseDelTercerVoto, motivoDelTercerVoto),
+		},
+	}, leido.informe.Descripcion)
+	exigirUmbrales(t, leido, []Umbral{umbralDeFueraDeLoGrabado(modeloQueDecide, ModoOrden, 0, 2), umbralDeLaDescripcionEsperado(1, 1)})
+	exigirMotivosDeLaRaiz(t, leido, motivoDeLaDescripcionMarcada)
+	assert.Equal(t, VeredictoFallo, leido.informe.Veredicto)
+}
+
+// probarElJobQueReutilizaLaDescripcion ejecuta el job con la descripción
+// reutilizada en la decisión: exige que no se pida ningún votante ni ningún
+// voto, que se abran las sesiones de las evals y que el informe lleve el juicio
+// del bloque, con su procedencia y sin votos, y el umbral de su clase con 0 de
+// 0, aprobado.
+func probarElJobQueReutilizaLaDescripcion(t *testing.T) {
+	t.Helper()
+
+	modelo, version := fijadosParaElJuez(t)
+
+	job := nuevoJobDeLaDescripcion(t, modelo, version, copiarLaEvidenciaDeLasDescripciones(t),
+		descripcionReutilizadaEnLaDecision())
+	job.ejecucion.VotanteDeLasDescripciones = votanteDeLasDescripcionesQueNoSePide(t)
+
+	informe, err := ejecutarElJob(job.ejecucion)
+	require.NoError(t, err)
+
+	require.Len(t, job.tandas, 1, "las sesiones de las evals se abren")
+
+	leido := leerInformeEscrito(t, job.ejecucion.Destino, informe)
+
+	assert.Equal(t, &DescripcionInformada{
+		Skill: skillDeLasSesiones, Clase: claseHablaEnPrimeraOSegundaPersona, Huella: huellaDeLaDescripcionDeLaDecision(),
+		Procedencia: procedenciaDeMainDelJob(), Motivo: motivoDelVotoQueNo,
+	}, leido.informe.Descripcion)
+	exigirUmbrales(t, leido, []Umbral{umbralDeFueraDeLoGrabado(modeloQueDecide, ModoOrden, 0, 2), umbralDeLaDescripcionEsperado(0, 0)})
+	exigirMotivosDeLaRaiz(t, leido)
+	assert.Equal(t, VeredictoAprobado, leido.informe.Veredicto)
 }
 
 // TestPathDelJuez fija el PATH de los votos del juez en el job

@@ -1,15 +1,14 @@
 ---
 name: legal-core
 description: >-
-  Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo: identifica
-  el territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y
-  calcula con kitlegal hasta qué día se puede recurrir una resolución, cuándo vence un plazo administrativo
-  o el del recurso contencioso-administrativo y cuándo se produce el silencio, con los festivos de los municipios que
-  cuentan; y dice cuándo un asunto lo regula la ley aparte (tributos, multas de tráfico, Seguridad Social,
-  extranjería). Razona con la jerarquía normativa y las leyes vertebrales (Constitución, LPAC, LRJSP, LRBRL, TRLRHL,
-  LCSP, LGT…). Úsala cuando se pregunte hasta cuándo se puede recurrir o qué plazo hay para un recurso, cuándo vence un
-  plazo o se produce el silencio, qué comunidad, provincia o boletines corresponden a un ayuntamiento, si un municipio
-  es foral o qué norma prevalece. Para el texto de un artículo se apoya en boe-legislacion.
+  Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo. Se usa
+  cuando se pregunta hasta cuándo se puede recurrir o qué plazo hay para un recurso, cuándo vence un plazo
+  administrativo o el del contencioso-administrativo o se produce el silencio, qué comunidad, provincia o boletines
+  corresponden a un ayuntamiento, si un municipio es foral o qué norma prevalece. Con kitlegal identifica el
+  territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
+  el último día del plazo con los festivos de los municipios que cuentan; dice qué asuntos regula aparte la ley
+  (tributos, multas de tráfico, Seguridad Social, extranjería) y razona con la jerarquía normativa y las leyes
+  vertebrales (CE, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Para el texto de un artículo se apoya en boe-legislacion.
 metadata:
   kitlegal-applets: territorio plazos
   kitlegal-referencias: leyes_vertebrales jerarquia_normativa recursos_y_plazos cobertura_por_materia
@@ -17,219 +16,103 @@ metadata:
 
 # Territorio, plazos, jerarquía normativa y leyes vertebrales
 
-Esta skill es el punto de partida de las preguntas de derecho público español que dependen de dónde se plantean o de
-un plazo. Identifica el territorio con `kitlegal territorio`, calcula los plazos con `kitlegal plazos` y razona con
-cuatro referencias: `references/leyes_vertebrales.md`, con el identificador `BOE-A-…` de cada ley vertebral;
-`references/jerarquia_normativa.md`, con qué nivel regula qué; `references/recursos_y_plazos.md`, con cada tipo de
-plazo, su duración y el precepto que la fija; y `references/cobertura_por_materia.md`, con lo que la ley regula aparte.
-La skill identifica, calcula y orienta: no tramita nada y no sustituye el asesoramiento de un profesional.
+Esta skill identifica el territorio, calcula los plazos y orienta: no tramita nada y no sustituye el asesoramiento de
+un profesional.
+
+## Referencias
+
+Cuándo leer cada una:
+
+- [leyes_vertebrales.md](references/leyes_vertebrales.md): al nombrar una norma, su identificador y su rango.
+- [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el autonómico de la
+  `comunidad` de `data`, y la norma que prevalece.
+- [cobertura_por_materia.md](references/cobertura_por_materia.md): en toda pregunta de plazos o de recursos.
+- [recursos_y_plazos.md](references/recursos_y_plazos.md): para elegir el tipo de plazo y nombrarlo.
+- [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio o no sale con 0, y
+  para explicar su cobertura.
+- [calculo_de_plazos.md](references/calculo_de_plazos.md): en lo que la ley regula aparte, un acto presunto, un
+  silencio, una reclamación de acceso, un plazo sin calcular y una lectura fallida o con `redaccion_posterior`.
 
 ## Protocolo
 
-Una pregunta de territorio sigue del 1 al 4, y el 5 y el 6 si va más allá del territorio. Una pregunta de plazos o de
-recursos empieza por el 7, que decide si hay plazo que calcular antes de preguntar nada; solo si lo hay, el 8 resuelve
-los municipios que cuentan con los pasos 1 a 4, y siguen del 9 al 11. Cada operación se pide de una de dos formas,
-que devuelven el mismo sobre, con `fuente`, `url`, `fecha_consulta` y `hash` junto a `data`:
+Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 y, solo si hay plazo, del 8 al 11.
 
-- **Con la herramienta** de su fila en «Comandos», si entre las tuyas hay una con ese nombre, solo o detrás del prefijo
-  que le ponga tu agente, como `mcp__kitlegal__territorio_resolver`. Si la tienes, úsala siempre.
-- **Con la orden** `kitlegal … --json`, si no la tienes.
-
-Donde un paso dice que la orden termina con un código, la herramienta da un error con su `data.clase` («Comandos»).
-
-### 1. Identificar el territorio
-
-- Toma el municipio de la conversación: su nombre o su código INE, tal como los haya dado la persona.
-- Si la conversación no lo dice, **pregúntalo** y espera la respuesta. No lo supongas, no lo deduzcas de otros datos
-  ni sigas con un municipio de ejemplo, tampoco con el de quien usa el kit. Si solo se nombra una provincia o una
-  comunidad, pregunta también por el municipio: `kitlegal territorio` resuelve municipios.
-
-### 2. Resolverlo con `kitlegal territorio`
-
-Llama a `territorio_resolver` con el municipio en `consulta` o ejecuta `kitlegal territorio resolver <nombre o código
-INE> --json`.
-
-- Pasa el nombre o el código tal como los dio la persona; no conviertas de memoria un nombre en un código ni al revés.
-- Ningún dato de territorio —comunidad, provincia, régimen, DIR3, boletines— se da por sabido ni se escribe de
-  memoria: todos salen de `data` en esta conversación. Ningún municipio ni ninguna comunidad tiene un trato propio.
-- Con el código 0, `data` trae siempre `municipio`, `codigo_ine`, `provincia`, `comunidad`, `dir3`, `regimen`,
-  `boletines` y `cobertura`, y cada dato lleva su `source`.
-- Si no tienes ni la herramienta ni el binario, vale la regla 7.
-
-### 3. Leer `cobertura` y trasladarla a la respuesta
-
-| Aspecto | Valores | Qué dice |
-|---|---|---|
-| `boletin_autonomico` | `configurado`, `no-configurado` | si kitlegal tiene declarado el boletín de la comunidad |
-| `boletin_provincial` | `configurado`, `no-configurado` | si kitlegal tiene declarado el de la provincia |
-| `dir3` | `verificado`, `no-verificado` | si el DIR3 del ayuntamiento está en la correspondencia verificada |
-
-- Responde con lo que dice `data` y escribe la cobertura con sus tres aspectos en su forma fija (más en «Cómo se
-  presenta el territorio»). Lo `no-configurado` o `no-verificado` dilo con sus palabras: **no** significa que no
-  exista (regla 5).
-- **No nombres ningún boletín que el applet no haya devuelto**, aunque creas conocerlo; la clase de boletín de
-  `references/jerarquia_normativa.md` no suple un nivel `no-configurado`.
-- Con `dir3` en `no-verificado`, no compongas el DIR3 a partir del código INE. Si `regimen.valor` es `foral`, dilo
-  (regla 4). Di de cuándo son los datos: `fecha_consulta`.
-
-### 4. Ambigüedad y ausencia
-
-- **Código 2 (`argumentos`) con candidatos**: `data.mensaje` los da todos, cada uno como `<código INE> <nombre>
-  (<provincia>)`. Ofrécelos, pregunta a cuál se refiere la persona y vuelve al paso 2 con el código que elija.
-- **Código 2 sin candidatos**: la consulta no forma un código INE válido o su dígito de control no es el oficial. Díselo
-  y pide el nombre o el código; no corrijas tú el código.
-- **Código 3 (`no-encontrado`)**: no está en la relación de municipios que lleva kitlegal. Dilo así, sin concluir que
-  no exista, y pide otra forma del nombre o su código INE.
-- Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.
-
-### 5. Razonar con las referencias
-
-- Nombra cada norma con el identificador de `references/leyes_vertebrales.md`, con su rango.
-- Usa `references/jerarquia_normativa.md` para decir en qué nivel se regula lo preguntado y qué norma prevalece. El
-  nivel autonómico es el de la `comunidad` de `data`; los boletines concretos, solo los de `boletines`.
-
-### 6. Delegar el texto en `boe-legislacion`
-
-- **Afirmar lo que dice un artículo exige leerlo con la skill `boe-legislacion` en esta misma conversación**
-  (`kitlegal boe articulo <norma> <bloque>` o `boe_articulo`), y citarlo como ella cita. No lo cites de memoria ni desde
-  las referencias, que no llevan el texto de ninguna norma.
-- El identificador de una norma que no está en las referencias también se resuelve con `boe-legislacion`.
-
-### 7. Decidir si hay plazo que calcular
-
-Con lo que la conversación ya dice del acto o de la solicitud, de la administración que lo dictó o lo recibe y de su
-materia, mira estos dos casos **antes de preguntar nada**, tampoco el municipio ni la fecha: ninguno los necesita,
-porque no se les calcula nada.
-
-- **Lo que la ley regula aparte.** Si la materia del asunto está en `references/cobertura_por_materia.md` —tributos,
-  Seguridad Social, sancionadores tributarios, sociales, de tráfico o de extranjería, extranjería y asilo, una
-  impugnación que sustituye a la alzada, una reclamación económico-administrativa—, declara que no está cubierto con la
-  línea `⚠ NO CUBIERTO:`. **No pidas `plazos calcular`** ni des la línea del plazo ni ninguna fecha: el plazo del común
-  no es el suyo. Y tras la línea **no expongas la norma que rige el procedimiento** —sus plazos, sus recursos—: la
-  nombra la línea, solo con lo que trae la entrada. No afirma qué dice ningún precepto, sino qué no calcula kitlegal:
-  por eso va aunque falle una lectura, que se dice aparte como `boe-legislacion` dice cualquiera, sin lo que dice el
-  bloque ni la línea de la regla 7 (cuotas de la Seguridad Social con `daprimera` fallida: la línea con la DA 1ª.2.b y
-  «no he podido leer el bloque daprimera de la LPAC: la fuente no estaba disponible»). Si la conversación no dice la
-  materia, no cae en ninguna entrada: **no la preguntes ni detengas la respuesta por ella**; sigue con el 8 y di al
-  responder que la fecha no vale si el asunto es de los que la ley regula aparte, nombrándolos solo con la referencia.
-- **Acto presunto**: no hay fecha. Cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, leídos con `boe-legislacion`, y
-  no pidas ningún plazo.
-
-### 8. Situar el plazo
-
-- La fecha de inicio: la de la notificación o la publicación; en el silencio, la del acuerdo de iniciación o la de
-  entrada de la solicitud en el registro. Si falta, **pregúntala**: `plazos` no la deduce y tú tampoco.
-- Los municipios que cuentan: en un plazo administrativo, **el del interesado y el de la sede del órgano** (pueden ser
-  el mismo); en el recurso contencioso-administrativo, **el de la sede del juzgado**. Tómalos y resuélvelos con los
-  pasos 1 a 4: si la persona no los ha dado, pregúntalos; nunca supongas el de quien usa el kit.
-
-### 9. Pedir el plazo a `plazos`
-
-Elige el tipo en `references/recursos_y_plazos.md` y llama a `plazos_calcular` o ejecuta `kitlegal plazos calcular
-<tipo> <inicio> <municipios>... --json`, con los municipios en su orden (interesado y sede del órgano, o sede del
-juzgado).
-
-- **Solo municipios que `territorio` haya resuelto en esta conversación** (paso 8), cada uno como lo dio la persona.
-  `plazos` acepta un nombre, pero sin el paso 8 la respuesta no tiene el territorio ni la cobertura de ese municipio:
-  no se lo pases sin resolver.
-- **Silencio**: el plazo máximo para resolver lo fija la norma del procedimiento; léela con `boe-legislacion` y pásalo
-  con `--duracion` y `--unidad`. Solo si no fija ninguno, los tres meses del art. 21.3 LPAC, y dilo citándolo.
-  `plazos` no dice si el silencio es estimatorio o desestimatorio: eso lo dice la norma, no la fecha.
-- **Reclamación del art. 24.2 LTAIBG**: señala como variación autonómica ante quién se reclama, el Consejo de
-  Transparencia y Buen Gobierno o el órgano que la comunidad haya designado (art. 24.6).
-- Con el código 2 o 3 de un municipio, como en el paso 4, con los candidatos en `data.mensaje` tras el municipio.
-- **Con el código 3 y un `data.mensaje` que empieza por «el plazo de tipo», no hay fecha.** Un plazo se rige por la
-  redacción vigente el día en que empieza, y algún precepto con que `plazos` lo cuenta no decía entonces lo que dice
-  hoy (cada línea del mensaje nombra uno). Qué regía lo dicen esa redacción y el régimen transitorio de la norma que la
-  cambió, y `plazos` no elige: tú tampoco. Da la línea `⚠ PLAZO SIN CALCULAR:` y dilo así, sin la línea del plazo, sin
-  ninguna fecha de vencimiento y sin nombrar de memoria la norma que regía; el paso 10 no se aplica.
-
-### 10. Leer el precepto en la fecha de inicio
-
-Un plazo se rige por la redacción vigente el día en que empieza, no por la de hoy. Por eso cada precepto de
-`data.preceptos`, y la norma que leas para el silencio, se lee con `boe-legislacion` en la fecha de inicio que pasaste a
-`plazos` (paso 8), con `boe_articulo` y `fecha` o con `kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`
-sin `kitlegal graph check` detrás, y se cita como ella cita una redacción a fecha, con su línea `⚠ REDACCIÓN A FECHA:`.
-
-- Si esa lectura sale con 4 o 5 en un precepto de `data.preceptos`, la línea `⚠ PLAZO:` se mantiene, con la fecha de
-  `plazos` y la cita de cada precepto de `data.preceptos`; en lugar de su `⚠ REDACCIÓN A FECHA:`, di aparte que no has
-  podido leer esa redacción, como `boe-legislacion` dice cualquier lectura fallida, y no afirmes qué dice el precepto.
-- Si el `data` de la lectura trae `redaccion_posterior`, el bloque cambió después: va también su línea
-  `⚠ REDACCIÓN DE HOY:`. En un precepto de `data.preceptos`, `plazos` ya comprobó que su apartado decía lo mismo ese
-  día (paso 9): lo que cambió es otra parte del bloque. En la norma del silencio, la duración que pasaste es la de ese
-  día, y si rige la de hoy lo diría el régimen transitorio de la norma que la cambió, que no has leído. Dilo así.
-
-### 11. Responder con el plazo
-
-- Da la fecha de `data.fecha` en la línea del plazo, con su tipo y una cita por cada precepto de `data.preceptos`, y
-  ninguna otra fecha de vencimiento. **No calcules ni corrijas ninguna fecha**, tampoco para «comprobarla».
-- Di qué festivos movieron la fecha, con `data.festivos`: su fecha, su ámbito y, si es local, su municipio.
-- Traslada cada aviso de `data.avisos` con su línea `texto`, tal cual.
-- Hasta qué disposición llegan los festivos lo dice ya el aviso de cobertura que lo trae; sin aviso, no lo copies.
+1. **El municipio**, de la conversación. Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien
+   usa el kit.
+2. **Resolverlo** con `territorio_resolver` o `kitlegal territorio resolver <nombre o código INE> --json`, tal como lo
+   dio la persona. Sin herramienta ni binario, la regla 7.
+3. **Responder con `data`**, la cobertura en su forma fija y de cuándo son los datos (`fecha_consulta`). **Ningún
+   boletín que no esté en `boletines`.**
+4. **Sin el 0**: con el 2 o el 3 de un municipio, lo que dice la referencia de los municipios; con otro código, di que
+   no se pudo resolver, sin suplir lo que falte.
+5. **Razonar** con las leyes vertebrales y la jerarquía normativa: identificador y rango de cada norma, nivel que
+   regula lo preguntado y norma que prevalece.
+6. **El texto de un artículo**, y el identificador que no está en las referencias, con `boe-legislacion` en esta
+   conversación, citado como ella cita (regla 2).
+7. **¿Hay plazo?** Con lo que ya dice la conversación del acto, la administración y la materia, **antes de preguntar
+   nada**, ni el municipio ni la fecha. Si la materia está en la cobertura por materia, `⚠ NO CUBIERTO:`,
+   **ni `plazos calcular`** ni ninguna fecha (regla 9). Si no dice la materia, **no la preguntes ni detengas la
+   respuesta**: sigue con el 8, y al responder di que la fecha no vale si la ley regula el asunto aparte, nombrando
+   esos asuntos solo con la referencia. Un acto presunto no tiene fecha: ningún plazo.
+8. **Situar el plazo**: la fecha de inicio (notificación o publicación; en el silencio, acuerdo de iniciación o
+   entrada en el registro), que si falta **se pregunta**; y los municipios que cuentan, con los pasos 1 a 4: **el del
+   interesado y el de la sede del órgano**, o en el contencioso-administrativo **el de la sede del juzgado**.
+9. **Pedir el plazo**: el tipo, de los recursos y plazos; `plazos_calcular` o `kitlegal plazos calcular <tipo> <inicio>
+   <municipios>... --json`, con los municipios del 8 en su orden. **Con el 3 y un `data.mensaje` que empieza por «el
+   plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del plazo ni ninguna fecha de vencimiento, y
+   sin el 10.
+10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
+    `kitlegal boe articulo <norma> <bloque> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
+    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
+    afirmar qué dice.
+11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
+    la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
+    `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.
 
 ## Cómo se presenta el territorio
 
-Cada dato sale de `data`, con el nombre y el código tal como los da:
+Cada dato como lo da `data`; un boletín, por su `codigo` y su `nombre` exactos; la cobertura, con la clave y el valor
+exactos, una línea por aspecto, y detrás puedes explicarla:
 
 ```text
-Municipio: <nombre>, código INE <codigo> (dígito de control <digito_de_control>)
-Provincia: <nombre de la provincia>
-Comunidad o ciudad autónoma: <nombre de la comunidad>, régimen <común o foral, según regimen.valor>
-DIR3 del ayuntamiento: <código, o «no verificado»>
-Boletines: <código> — <nombre> (<nivel>), uno por cada entrada de `boletines`
 boletin_autonomico: <valor>
 boletin_provincial: <valor>
 dir3: <valor>
 ```
 
-La cobertura va con la clave y el valor exactos de `data`; detrás puedes explicar qué significa. Un boletín se nombra por
-su `codigo` y su `nombre` exactos.
-
 ## Cómo se presenta un plazo
 
-La línea del plazo, con la fecha de `data.fecha` tal cual, el tipo como lo nombra `references/recursos_y_plazos.md` y la
-cita de cada precepto de `data.preceptos`, leído en el paso 10:
+La línea del plazo, con `data.fecha` tal cual, el tipo como lo nombran los recursos y plazos y cada precepto de
+`data.preceptos` en sus propios corchetes, con un solo bloque (dos en unos corchetes no son cita de ninguno); y, de
+ejemplo, la de los dos preceptos del recurso contencioso-administrativo:
 
 ```text
 ⚠ PLAZO: <AAAA-MM-DD> — <tipo> [<norma>, <precepto>, <identificador>, bloque <bloque>]
-```
-
-Cada precepto va en sus propios corchetes, uno detrás de otro en esa misma línea: lo que hace cita es que los corchetes
-terminen en `<identificador>, bloque <bloque>]`, con un solo bloque. Con los dos preceptos del recurso
-contencioso-administrativo:
-
-```text
 ⚠ PLAZO: <AAAA-MM-DD> — recurso contencioso-administrativo [art. 46.1 de la LJCA, BOE-A-1998-16718, bloque a46] [art. 128.2 de la LJCA, BOE-A-1998-16718, bloque a128]
 ```
 
-Dos bloques en unos mismos corchetes —«bloques a46 y a128», o «bloque a46; …, bloque a128»— no son una cita de ninguno
-de los dos.
-
-Detrás de la línea del plazo, una línea por cada precepto leído en la fecha de inicio (paso 10), con la fecha de
-inicio y la fecha de vigencia que da la lectura; y, si la lectura trae `redaccion_posterior`, también la segunda, con
-la norma y la fecha de vigencia de ese campo:
+Detrás, la redacción a fecha de cada precepto leído en el paso 10 y, con `redaccion_posterior`, la de hoy:
 
 ```text
 ⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <bloque>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.
 ⚠ REDACCIÓN DE HOY: <forma legible> [<identificador>, bloque <bloque>]: hoy la redacción es otra, la de <identificador>, con fecha de vigencia AAAAMMDD.
 ```
 
-Con el 3 de un plazo que no se calcula (paso 9), en lugar de la línea del plazo, con el tipo como lo nombra
-`references/recursos_y_plazos.md`, la fecha de inicio y cada línea del mensaje, con su norma, su bloque y su día:
+Con el 3 del paso 9, en lugar de la línea del plazo, con cada línea del mensaje:
 
 ```text
 ⚠ PLAZO SIN CALCULAR: <tipo> que empieza el <AAAA-MM-DD>: kitlegal no lo calcula, porque lo cuenta con preceptos que ese día no decían lo que dicen hoy: <identificador>, bloque <bloque>, apartado <apartado>, desde el <AAAA-MM-DD>; <…>.
 ```
 
-La declaración de que el asunto no está cubierto, con el procedimiento como lo nombra
-`references/cobertura_por_materia.md`; la primera si la entrada trae la norma que lo rige, la segunda si no:
+Lo no cubierto (paso 7), con el procedimiento como lo nombra la cobertura por materia: la primera si la entrada trae
+la norma que lo rige; si no, la segunda:
 
 ```text
 ⚠ NO CUBIERTO: <procedimiento> se rige por <norma> (<identificador>), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (<precepto de la LPAC>).
 ⚠ NO CUBIERTO: <procedimiento> lo regula aparte la <precepto de la LPAC> (BOE-A-2015-10565): kitlegal no calcula sus plazos ni sus recursos.
 ```
 
-Los avisos, cada uno con el `texto` de `data.avisos`, que empieza por una de estas formas:
+Los avisos de `data.avisos`, cada uno con su `texto`, que empieza así:
 
 ```text
 ⚠ FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS: …
@@ -238,16 +121,16 @@ Los avisos, cada uno con el `texto` de `data.avisos`, que empieza por una de est
 ⚠ FESTIVO DE UNA PARTE: …
 ```
 
-Cada línea `⚠` la lee un programa sin leer el resto de la respuesta, y comprueba en ella su etiqueta, sus fechas, sus
-normas y sus citas: lo que dice solo se comprueba en ella, y dicho con otras palabras, la línea falta. Por eso va
-entera, en una sola línea y con su forma; detrás puedes explicarla con tus palabras.
+Un programa comprueba cada línea `⚠` sin leer nada más: dicha con otras palabras, falta. Va entera, en una sola línea
+y con su forma; detrás puedes explicarla.
 
 ## Comandos
 
-`kitlegal` se invoca desde el `PATH`, y la herramienta, por el nombre de su fila. Los dos applets responden con lo que
-lleva dentro el binario, sin consultar ninguna fuente. Códigos, y entre paréntesis la `data.clase` del error de la
-herramienta: 0 correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un municipio—, 3
-(`no-encontrado`) un municipio que no está en la relación o un plazo con preceptos que no regían el día de inicio.
+Con la herramienta de su fila si entre las tuyas hay una con ese nombre, sola o tras el prefijo de tu agente, como
+`mcp__kitlegal__territorio_resolver`: si la tienes, úsala siempre. Si no, con la orden `kitlegal … --json`, desde el
+`PATH`. Donde la orden sale con un código, la herramienta da un error con la `data.clase` entre paréntesis: 0
+correcto, 2 (`argumentos`) argumentos inválidos —también un nombre de más de un municipio—, 3 (`no-encontrado`) un
+municipio fuera de la relación o un plazo con preceptos que no regían el día de inicio.
 
 <!-- inicio de la tabla de comandos: generada desde --describe con make skills-sync, no editar -->
 
@@ -294,6 +177,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    ⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/
    ```
 
-8. **Ninguna fecha que no dé `plazos`.** La fecha de un plazo sale de `data.fecha`; ni la cuentes ni la retoques.
-9. **Lo que la ley regula aparte no recibe el plazo del común.** Si el asunto está en
-   `references/cobertura_por_materia.md`, se declara no cubierto, falle o no una lectura, y no se pide ningún plazo.
+8. **Ninguna fecha que no dé `plazos`.** La fecha de un plazo sale de `data.fecha`; ni la cuentes ni la retoques,
+   tampoco para «comprobarla».
+9. **Lo que la ley regula aparte no recibe el plazo del común.** Si el asunto está en la cobertura por materia, se
+   declara no cubierto, falle o no una lectura; ni se pide un plazo ni se exponen los de la norma que lo rige.

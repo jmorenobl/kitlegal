@@ -193,8 +193,8 @@ versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 | Medidas con el reloj de pared, las dos de `MEDIDAS_DE_TIEMPO`: las cotas de tiempo de los guiones e2e (`TestMedidasDeTiempo`: `boe articulo` desde la caché y `territorio resolver` por debajo de 200 ms, ahora entregando al grafo del mundo) y el coste del grafo (`TestCosteDelGrafo`: con un `world.db` que ya existe, la entrega no añade más de 150 ms a la mediana de 20 `boe articulo` desde la caché respecto de los mismos con `--no-graph`, y, en medianas de cinco sobre 10 000 nodos y 10 000 aristas `graph check` tarda menos de 3 s y `graph stats` menos de 1 s). Solas y sin la caché de resultados de `go test`, después de las dos anteriores, que las saltan: medir con el reloj mientras corren todos los paquetes mide la carga de la máquina, no el programa | `make test-tiempos` | sí |
 | Vulnerabilidades conocidas (`govulncheck`) | `make vuln` | sí |
 | Esquemas publicados en `schemas/` iguales a lo que emite `--describe` de cada verbo, sin escribir nada | `make schema-check` | sí |
-| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter y límite de líneas de cada `SKILL.md`; ninguna skill con `scripts/`; derivas de las referencias y de la tabla de comandos; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario, y cada herramienta, una de las que anuncia su servidor MCP; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals, lo grabado que necesitan y el grafo previo que nombran | `make skills-check` | sí |
-| Regeneración de lo que se deriva de cada skill (referencias y tabla de comandos de `SKILL.md`); una skill con `scripts/` la hace fallar | `make skills-sync` | no — escribe en el árbol |
+| Skills, datos y evals, sin red, sin modelo y sin escribir nada: frontmatter de cada `SKILL.md`, presupuestos de su cuerpo y de su descripción y regla de `references/` ([guía de autoría](docs/SKILLS.md)); ninguna skill con `scripts/`; derivas de las referencias generadas y de la tabla de comandos; controles de contenido sobre el `SKILL.md` y las referencias a mano; cada orden de la tabla de comandos de cada skill empotrada nombra un applet y un verbo del binario, y cada herramienta, una de las que anuncia su servidor MCP; tabla de normas contra su esquema y sus identificadores; ficheros congelados de `data/territorio/` contra sus esquemas y su integridad; jerarquía normativa contra su esquema; formato y conjunto de evals, lo grabado que necesitan y el grafo previo que nombran | `make skills-check` | sí |
+| Regeneración de lo que se deriva de cada skill (referencias generadas y tabla de comandos de `SKILL.md`), sin tocar las referencias a mano; un defecto de una skill, como una con `scripts/`, la hace fallar sin escribir nada | `make skills-sync` | no — escribe en el árbol |
 | Configuración de la release válida (`goreleaser check`, sin construir nada; una propiedad obsoleta en la versión fijada falla) | `make goreleaser-check` | sí |
 | Detección de secretos (`gitleaks`) | `make secrets` | sí |
 | Integridad de los módulos (`go mod verify`, raíz y herramientas) | `make mod-verify` | sí |
@@ -203,7 +203,7 @@ versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`; desde H30, con el fichero de la decisión del trabajo en `DECISION_DE_EVALS`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
-| Medida del juez con modelo de una skill: vota sus casos etiquetados e imprime `medida.json`, sin escribirla en el repositorio (`scripts/evals-medir-juez.sh`; [Job de evals](#job-de-evals), «La medida del juez») | `make evals-medir-juez` | no — sesiones con modelo y credencial, fuera de `make ci`; la lanza una persona, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez` del flujo `evals`, y ningún paso del workflow `hito` la lanza |
+| Medida del juez con modelo de una skill, o del de las descripciones con `SKILL=descripciones`: vota sus casos etiquetados e imprime `medida.json`, sin escribirla en el repositorio (`scripts/evals-medir-juez.sh`; [Job de evals](#job-de-evals), «La medida del juez») | `make evals-medir-juez` | no — sesiones con modelo y credencial, fuera de `make ci`; la lanza una persona, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez` del flujo `evals`, y ningún paso del workflow `hito` la lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm`, las dos piezas de la instalación sin terminal —la extensión de escritorio, `kitlegal.mcpb`, y el plugin de Claude, `kitlegal-plugin.zip`— y `checksums.txt`, que lista también las dos piezas e `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`, que comprueba también las dos piezas: su huella, el manifiesto, los binarios, el icono y el servidor de la extensión, y las skills del plugin) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
 | El plugin del snapshot y el catálogo de su versión, válidos para `claude plugin validate` (`TestPluginValido`), sin sesión con modelo ni credencial | `make plugin-check` | no — necesita Claude Code y el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
@@ -528,8 +528,9 @@ Sus tests, y la orden que los ejecuta:
 
 ## Skills y evals
 
-Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y, si tiene referencias, `references/`
-—`jurisprudencia` no las tiene—, sin `scripts/` (ADR 0019). Cada
+Una skill es un directorio sin código bajo `skills/`: `SKILL.md` y `references/`, sin `scripts/` (ADR 0019). Qué va
+en el cuerpo de `SKILL.md` y qué en una referencia, cómo se escribe la descripción, qué presupuestos hay y por qué, y
+la regla de `references/` están en la [guía de autoría](docs/SKILLS.md) (ADR 0046). Cada
 operación de la skill se pide de dos formas (ADR 0035): con la herramienta `<applet>_<verbo>` del
 [servidor MCP](#el-servidor-mcp-internalmcp), si el agente la tiene, y si no, con la orden
 `kitlegal <applet> <verbo> …` desde el `PATH`. Sin la una ni la otra, la skill no afirma nada: `boe-legislacion` y
@@ -540,18 +541,42 @@ empotradas y las instala con `kitlegal skills install`. Qué son los tres direct
 [`README.md`](README.md#instalar-con-la-terminal); esta sección es lo que hace falta para cambiar una skill, sus
 datos o sus evals.
 
-**Lo generado no se edita.** `references/*.md` y la tabla de comandos de `SKILL.md` —entre sus marcas— se derivan de
-`data/*.yaml` y de `--describe` del binario. La orden de cada fila de la tabla lleva los argumentos de posición del
-verbo y, detrás, sus banderas propias, que son las que nombra la anotación `x-banderas` de su `entrada`
-(`kitlegal cita preparar [<ecli>] [--roj <roj>] …`). Tras cambiar `data/`, añadir un verbo o cambiar su entrada o su
-salida, se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio: `make skills-check`, dentro de `make ci`, lo
-regenera en memoria y falla nombrando la skill y el fichero que difieren. Comprueba además el frontmatter de cada
-`SKILL.md` y que tenga menos de 300 líneas, que ninguna skill tiene `scripts/` —una entrada `skills/<skill>/scripts`
-hace fallar también `make skills-sync`, que no la retira—, que cada orden de la tabla de comandos de cada skill
-empotrada nombra un applet y un verbo que el binario registra y cada herramienta de su columna «Herramienta», una de
-las que anuncia el servidor (`TestOrdenesDeLasSkillsEmpotradas`), que la línea `⚠ SIN CONSULTA AL BOE:` del
-`SKILL.md` de las dos skills que la llevan, `boe-legislacion` y `legal-core`, es la que el juicio de las evals
-reconoce (`TestEvalsDelRepositorio`, subprueba `linea-sin-consulta`), la
+**Lo generado no se edita.** Las referencias generadas —las que declara `kitlegal-referencias` en el frontmatter, que
+abren con `<!-- generado desde data/<fichero>, no editar -->`— y la tabla de comandos de `SKILL.md` —entre sus
+marcas— se derivan de `data/*.yaml` y de `--describe` del binario. La orden de cada fila de la tabla lleva los
+argumentos de posición del verbo y, detrás, sus banderas propias, que son las que nombra la anotación `x-banderas` de
+su `entrada` (`kitlegal cita preparar [<ecli>] [--roj <roj>] …`). Tras cambiar `data/`, añadir un verbo o cambiar su
+entrada o su salida, se ejecuta `make skills-sync` y lo regenerado va en el mismo cambio: `make skills-check`, dentro
+de `make ci`, lo regenera en memoria y falla nombrando la skill y el fichero que difieren.
+
+**Las referencias a mano se escriben a mano.** El protocolo de detalle de una skill va en referencias escritas a mano:
+un `.md` de `references/` que `kitlegal-referencias` no declara y que no abre con la cabecera «generado desde». Ni
+`make skills-sync` lo escribe, lo rehace o lo retira, ni `make skills-check` lo da como deriva; un fichero declarado
+es la referencia generada aunque haya perdido la cabecera, y el no declarado que la lleva es un sobrante, que
+`make skills-sync` retira. Una referencia a mano no repite lo que sale de `data/`, que tiene su referencia generada;
+viaja en el binario con su skill, y cuenta en el conjunto de dependencias de cada eval de su skill
+([Job de evals](#job-de-evals), «Lo que mide y lo que reutiliza»).
+
+**Los gates de `make skills-check`** (ADR 0046; cada uno con su mutante en `TestSkillsDelRepositorio` y su porqué en
+la [guía](docs/SKILLS.md)): el frontmatter de cada `SKILL.md`, con un `name` sin `anthropic` ni `claude`, ni `name`
+ni `description` con una etiqueta XML y la descripción de como mucho 900 caracteres; el cuerpo de `SKILL.md` —sin el
+frontmatter y con la tabla de comandos generada— en menos de 500 líneas y como mucho 11 000 caracteres, contados como
+caracteres y no como bytes, que sustituyen al límite de menos de 300 líneas del fichero entero; `references/` solo con
+ficheros regulares `.md`; cada referencia, generada o a mano, enlazada desde `SKILL.md` con
+`[…](references/<fichero>.md)` fuera de los bloques de código; ninguna que enlace otra de su skill; y la de más de
+100 líneas, con un índice de sus apartados `## ` antes del primero. Cada defecto nombra la skill, el fichero y la
+regla, y `make skills-sync` lo da también y no escribe nada. Comprueba además que ninguna skill tiene `scripts/` —una
+entrada `skills/<skill>/scripts` hace fallar también `make skills-sync`, que no la retira—, que cada orden de la tabla
+de comandos de cada skill empotrada nombra un applet y un verbo que el binario registra y cada herramienta de su
+columna «Herramienta», una de las que anuncia el servidor (`TestOrdenesDeLasSkillsEmpotradas`), que la línea
+`⚠ SIN CONSULTA AL BOE:` del `SKILL.md` de las dos skills que la llevan, `boe-legislacion` y `legal-core`, es la que
+el juicio de las evals reconoce (`TestEvalsDelRepositorio`, subprueba `linea-sin-consulta`), los controles de
+contenido sobre el `SKILL.md` y cada referencia a mano —mover un texto a una referencia no lo saca de ninguno: cada
+línea `⚠` de una referencia a mano es una del `SKILL.md` (`lineas-de-aviso-de-las-referencias`), cada orden concreta
+de `kitlegal boe` sale con 0 con `--offline` sobre la caché de una sesión de su skill (`ordenes-de-ejemplo`), y la
+prosa, las órdenes para PowerShell, las normas nombradas y la ausencia de instrucciones de las evals se miran en los
+dos sitios, con sus mutantes en `TestControlesSobreLasReferenciasAMano` y en `TestSkillsDelRepositorio` (la tabla de
+la [guía](docs/SKILLS.md#1-qué-va-en-el-cuerpo-y-qué-en-una-referencia))—, la
 tabla de normas contra `schemas/normas.yaml.json`,
 que cada identificador está en la búsqueda grabada del BOE, la jerarquía normativa de `data/jerarquia.yaml` contra
 `schemas/jerarquia.yaml.json`, los ficheros congelados de `data/territorio/` contra sus esquemas y su integridad, la
@@ -729,21 +754,23 @@ alguna de las seis que falta o vacía, expresión con blancos en un extremo o co
 forma fija en blanco o de más de una línea, o una entrada con ese nombre que no es un fichero— es un fichero mal
 formado, como una eval: `make ci` falla nombrándola y las evals de la carpeta se leen sin lista.
 
-Hoy solo la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` la aplica a su `SKILL.md`: **la prosa de la skill no
-usa ese vocabulario** (subprueba `prosa-de-la-skill`). Mira el fichero entero, frontmatter incluido, sin los bloques
-delimitados ni la región generada de la tabla de comandos, párrafo a párrafo —partido por las líneas en blanco y por
+Hoy solo la tiene `boe-legislacion`, y `TestEvalsDelRepositorio` la aplica a su `SKILL.md` y a cada una de sus
+referencias a mano, por separado: **la prosa de la skill no usa ese vocabulario** (subprueba `prosa-de-la-skill`).
+Mira cada fichero entero —el `SKILL.md` con su frontmatter—, sin los bloques delimitados ni la región generada de la
+tabla de comandos, párrafo a párrafo —partido por las líneas en blanco y por
 cada elemento de lista—. Las cuatro familias se buscan sin los tramos de código en línea: lo que la skill ejecuta y
 lo que lee en la salida del binario va en código (`version-obsoleta`, `data.hallazgos`, `3`), y no cuenta.
 `salida_de_las_herramientas` se busca **también en el código en línea**, sin sus acentos graves y sin quitar las
-formas fijas, porque un nombre de campo se escribe como código. Y en todo el fichero no hay ninguna fecha `AAAAMMDD`
+formas fijas, porque un nombre de campo se escribe como código. Y en ningún fichero hay ninguna fecha `AAAAMMDD`
 escrita con cifras, que un ejemplo daría a copiar: los ejemplos de una forma que lleva datos del binario usan
 marcadores como `AAAAMMDD`. Falla nombrando la primera línea de cada párrafo que lleva alguna expresión, con sus
 expresiones, y cada línea con una fecha. `TestEvalsDelRepositorio` ya no compara la lista con ninguna respuesta, con
 los bloques grabados ni con las formas de la skill: de su calibrado sobre los informes de H7.1, H7.2 y H7.3 quedan
 solo sus tres totales (36, 11 y 9 respuestas marcadas), como premisa de `TestJuzgarSinLaLista`, que fija que ninguna
 de esas respuestas deja ya un motivo ni una clave de la lista en su resultado. Aparte, cada orden de lectura y
-comprobación de su `SKILL.md`, la de `articulo` y la de `articulos`, lleva detrás su forma para PowerShell, con la
-misma norma y los mismos bloques (`ordenes-para-powershell`).
+comprobación de su `SKILL.md` y de sus referencias a mano lleva detrás, en el mismo fichero, su forma para PowerShell,
+con la misma norma y los mismos bloques, y la skill entera tiene la de `articulo` y la de `articulos`
+(`ordenes-para-powershell`).
 
 **El juez con modelo** de una skill es la carpeta `evals/<skill>/juez/` (ADR 0037). Juzga lo que ningún guion puede
 comprobar, el significado de una respuesta; lo que tiene forma o es un hecho de la sesión —citas, avisos, formas
@@ -1061,11 +1088,16 @@ orden aunque su trabajo no la lleve —16 y 15 tandas, 8 917 s—, y 30, 30 y 0 
 juez y dos a la vez, es desde H26.1 el mayor de los tres: 19 525 s, 325,4 minutos, y desde H30 20 425 s, 340,4 minutos,
 el literal `peorCasoDeLegalCore` de `TestDefinicionDelJob`:
 67, 66 y 6 sesiones —también cuenta la de la prueba de red, que su trabajo no lleva—, 70 tandas; de una en una el tope
-no lo cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Es un
+no lo cubre, y con un tope de 288 minutos, 17 280 s, quedaría fuera, como el de `boe-legislacion`. Desde H31 cada
+uno suma el peor caso del juez de las descripciones, `6 × (35 s + 5 s)`, 240 s, y el de `legal-core`, que no tiene
+juez de las respuestas, también los 60 s de instalar el Claude Code del juez: 20 117 s, 335,3 minutos, en
+`boe-legislacion`; 13 717 s, 228,6 minutos, en `jurisprudencia`; y 20 725 s, 345,4 minutos, en `legal-core`, que sigue
+siendo el mayor (los literales de `TestDefinicionDelJob`). Es un
 cálculo, no una medida de lo que tarda. El segundo cubre el peor caso de la medida de cada skill de su matriz, `485 s + 60 s + ⌈K × 6 / C⌉ × 40 s`, con `K` sus
 casos etiquetados: en `boe-legislacion`, con 259 a 5, 12 985 s, 216,4 minutos (a 4 eran 16 105 s, 268,4 minutos); en
-`jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s. Ninguno de los dos topes
-cambió con H25, con el paso de `boe-legislacion` a cinco ni con las dos evals de `legal-core` de H26.1.
+`jurisprudencia`, con 249 a 4, 15 505 s, 258,4 minutos, y de uno en uno serían 60 305 s; y en `descripciones`, la
+entrada de H31, con los 99 casos de `evidencias/adr-0046/casos.yaml` a 5, 5305 s, 88,4 minutos. Ninguno de los dos
+topes cambió con H25, con el paso de `boe-legislacion` a cinco, con las dos evals de `legal-core` de H26.1 ni con H31.
 `TestDefinicionDelJob` comprueba en `make ci` la
 definición del job —el trabajo `tanda` (abajo): su condición, que no lleva `concurrency`, su permiso `actions: read`,
 su salida `medir`, la orden de su paso `decidir` y, como último paso, la marca con su condición; que el trabajo de
@@ -1141,9 +1173,9 @@ posterior obliga a repetirlas.
 ha podido cambiar y, de las demás, reutiliza el resultado que ya tiene `main`. **La elección** la calcula
 `TestEleccionDeLaPropuesta` (etiqueta `evals`) en el trabajo `cambios`, sobre el checkout y sin ninguna lista de rutas
 a mano, con el conjunto de dependencias de cada eval: su fichero; el `SKILL.md` y las `references/` de su skill y de
-cada skill cuyo nombre aparece en el `SKILL.md` de otra del conjunto; el fichero de `data/` de la cabecera de cada
-referencia; de cada applet de la tabla de comandos de esas skills, su fichero de `internal/app` y los paquetes del
-módulo que alcanza, con sus ficheros empotrados y sus módulos externos; las raíces de grabaciones y, si la eval lo
+cada skill cuyo nombre aparece en el `SKILL.md` o en una referencia a mano de otra del conjunto —las generadas no se
+leen para nombres—; el fichero de `data/` de la cabecera de cada referencia generada; de cada applet de la tabla de
+comandos de esas skills, su fichero de `internal/app` y los paquetes del módulo que alcanza, con sus ficheros empotrados y sus módulos externos; las raíces de grabaciones y, si la eval lo
 tiene, su `grafo_previo`; y la carpeta `evals/<skill>/juez/` y los demás ficheros de `evals/<skill>/` que no son
 evals. Lo común a todas es `cmd/`, `internal/app/`, `internal/cli/`, `internal/httpx/`, `internal/cache/`,
 `internal/mcp/`, `internal/evals/`, `skills.go`, el `Makefile`, `.github/workflows/evals.yml`, los cuatro
@@ -1236,8 +1268,9 @@ formas y ninguna más:
 | Manual | Desde la plataforma, con la entrada `medir_al_juez` del flujo lanzado a mano |
 
 Las dos lanzan los trabajos `medida del juez (<skill>)` del flujo `evals`, uno por cada skill con juez —hoy
-`medida del juez (boe-legislacion)` y `medida del juez (jurisprudencia)`—, y no los de las evals: no hay selector por
-skill, corren los dos y cada uno termina con su resultado. La etiqueta `evals-medir-juez` no es una de las de
+`medida del juez (boe-legislacion)` y `medida del juez (jurisprudencia)`— y, desde H31, `medida del juez
+(descripciones)`, la del juez de las descripciones (abajo), y no los de las evals: no hay selector por skill, corren
+los tres y cada uno termina con su resultado. La etiqueta `evals-medir-juez` no es una de las de
 `tanda`, y el despacho con `medir_al_juez` no la corre. La etiqueta `evals`,
 la apertura de una propuesta y el despacho sin esa entrada no lanzan la medida. El trabajo instala el Claude Code del
 juez y ejecuta `make evals-medir-juez SKILL=<skill>` —`scripts/evals-medir-juez.sh`, que llama a `TestMedidaDelJuez`
@@ -1275,6 +1308,26 @@ sondeos de la validación, `sondeo-con-skill.json` y `sondeo-sin-skill.json` de
 Un caso que no se puede resolver es un error que lo nombra, y la medida falla sin votar
 (`TestReconstruccionDeJurisprudencia` resuelve los 249 en `make ci`, y `TestGrabacionesDerivadas`, de
 `internal/evals`, exige que cada derivado solo se diferencie de su sesión en lo quitado).
+
+**El juez de las descripciones** (H31; ADR 0046) no juzga una respuesta, sino la descripción de una skill: si habla en
+primera o en segunda persona, con la clase `habla_en_primera_o_segunda_persona`, que decide con umbral 0. No tiene
+carpeta en `evals/`: su rúbrica, su esquema, sus casos y su medida son los de `evidencias/adr-0046/`, que el job lee
+donde están y cuya huella `make ci` compara con la de su manifiesto, y el modelo y la versión de Claude Code de sus
+votos son los del juez de las evals. Solo corre en una ejecución sobre una propuesta de cambio que cambia, respecto de
+su base, la descripción de alguna skill; entonces el trabajo `evals (<skill>)` de cada skill juzga la descripción de la
+suya, haya cambiado o no, o reutiliza su juicio por huella, y sin ninguna descripción cambiada ningún trabajo lleva
+juicio, umbral ni apartado. Antes de abrir ninguna sesión comprueba
+que esa medida corresponde y se cumple —si no, el informe sale sin medir, con cada motivo precedido de
+`juez de las descripciones: `—; después de las sesiones de las evals, vota la descripción —la marcan tres «si»
+unánimes, pedidos por orden y cada uno con una frase que está en la descripción; como mucho seis votos—, o reutiliza
+el juicio de una medida de `main` con la misma huella, que no cuenta en el umbral. `informe.json` lleva entonces el
+bloque `descripcion` y el umbral `habla_en_primera_o_segunda_persona`, además de los de la skill, e `informe.md`, el
+apartado «La descripción», con la frase y el motivo de la marcada; la que queda sin juzgar falla con su propio motivo,
+«el juez de las descripciones dejó sin juzgar la descripción de <skill>: …». Su medida la repite el trabajo
+`medida del juez (descripciones)`, con `make evals-medir-juez SKILL=descripciones`: vota los 99 casos de
+`evidencias/adr-0046/casos.yaml`, cinco a la vez, y tiene que dar 63 de 63 defectos marcados y 0 de 36 correctos. Cómo
+se escribe una descripción en tercera persona, con los casos que una lista no distingue, está en la
+[guía de autoría](docs/SKILLS.md#2-la-descripción).
 
 Cómo se lee el informe:
 

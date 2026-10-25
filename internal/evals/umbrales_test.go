@@ -2994,3 +2994,110 @@ func insertarTrasLaActivacion(t *testing.T, dir, mensajes string) {
 	escribirEnLaCopia(t, dir, ficheroDelTranscript,
 		antes+`"content":"Launching skill: `+resto+"\n"+mensajes+siguientes)
 }
+
+// Lo que el informe dice del umbral de la clase del juez de las descripciones,
+// escrito a mano (contracts/juez-de-las-descripciones.md §6 de H31; research D7
+// de H31; FR-031): su descripción y, con la descripción marcada, el motivo de la
+// raíz, el de hoy de cualquier umbral que decide y no se cumple, con la medida y
+// la condición de un umbral con total.
+const (
+	descripcionDelUmbralDeLaDescripcionEsperada = "Descripciones marcadas por el juez de las descripciones, " +
+		"sobre las juzgadas en esta ejecución"
+	motivoDeLaDescripcionMarcada = "umbral habla_en_primera_o_segunda_persona: 1 de 1 (100,0 %), y tiene que ser ≤ 0,0 %"
+)
+
+// umbralDeLaDescripcionEsperado es el umbral habla_en_primera_o_segunda_persona
+// escrito a mano: las descripciones marcadas entre las juzgadas en la
+// ejecución, sobre las juzgadas, con 0 y decidiendo.
+func umbralDeLaDescripcionEsperado(marcadas, juzgadas int) Umbral {
+	return Umbral{
+		Nombre:      claseHablaEnPrimeraOSegundaPersona,
+		Descripcion: descripcionDelUmbralDeLaDescripcionEsperada,
+		Medida:      float64(marcadas),
+		Total:       &juzgadas,
+		Comparacion: comparacionMenorOIgual,
+		Umbral:      0,
+		Cumple:      marcadas == 0,
+		Decide:      true,
+	}
+}
+
+// casoDelUmbralDeLaDescripcion es un caso de TestUmbralDeLaDescripcion: el
+// bloque descripcion del informe, las marcadas y las juzgadas que da su umbral
+// y, si lo fija el contrato, el umbral tal como lo escribe informe.json.
+type casoDelUmbralDeLaDescripcion struct {
+	nombre              string
+	descripcion         DescripcionInformada
+	marcadas, juzgadas  int
+	escritoEnElContrato string
+}
+
+// TestUmbralDeLaDescripcion fija el umbral de la clase del juez de las
+// descripciones (contracts/juez-de-las-descripciones.md §6 de H31; research D7
+// de H31; FR-031, FR-032; SC-007): medida, las descripciones marcadas entre las
+// juzgadas en la ejecución, y total, 1 si se juzgó y 0 si se reutilizó o quedó
+// sin juzgar, con 0 y decidiendo. La juzgada y marcada lo pone en rojo, con el
+// motivo de hoy, y su forma en informe.json es la del contrato, con sus claves
+// en su orden; la juzgada sin marcar, la que quedó sin juzgar y la reutilizada,
+// también la marcada en la medida de main, lo cumplen y no dan ningún motivo de
+// umbral: lo reutilizado no entra en el umbral (ADR 0045, punto 1).
+func TestUmbralDeLaDescripcion(t *testing.T) {
+	t.Parallel()
+
+	const marcadaEnElContrato = `{"nombre":"habla_en_primera_o_segunda_persona",` +
+		`"descripcion":"Descripciones marcadas por el juez de las descripciones, sobre las juzgadas en esta ejecución",` +
+		`"medida":1,"total":1,"comparacion":"<=","umbral":0,"cumple":false,"decide":true}`
+
+	casos := []casoDelUmbralDeLaDescripcion{
+		{
+			nombre:              "juzgada-y-marcada",
+			descripcion:         DescripcionInformada{Juzgada: true, Marcada: true, Frase: fraseDelPrimerVoto},
+			marcadas:            1,
+			juzgadas:            1,
+			escritoEnElContrato: marcadaEnElContrato,
+		},
+		{nombre: "juzgada-sin-marcar", descripcion: DescripcionInformada{Juzgada: true}, juzgadas: 1},
+		{nombre: "sin-juzgar", descripcion: DescripcionInformada{Juzgada: true, SinJuzgar: motivoDelTopeDosVecesUno}},
+		{nombre: "reutilizada-sin-marcar", descripcion: DescripcionInformada{Procedencia: procedenciaDeMainDelJob()}},
+		{
+			nombre: "reutilizada-y-marcada",
+			descripcion: DescripcionInformada{
+				Procedencia: procedenciaDeMainDelJob(), Marcada: true, Frase: fraseDelPrimerVoto,
+			},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			probarElUmbralDeLaDescripcion(t, caso)
+		})
+	}
+}
+
+// probarElUmbralDeLaDescripcion exige el umbral del bloque del caso, su forma
+// en informe.json y su motivo de la raíz, que solo da la marcada.
+func probarElUmbralDeLaDescripcion(t *testing.T, caso casoDelUmbralDeLaDescripcion) {
+	t.Helper()
+
+	esperado := umbralDeLaDescripcionEsperado(caso.marcadas, caso.juzgadas)
+	umbral := caso.descripcion.umbral()
+
+	assert.Equal(t, esperado, umbral)
+
+	escrito, err := json.Marshal(umbral)
+	require.NoError(t, err)
+	assert.Equal(t, umbralEscrito(t, esperado), string(escrito), "las claves del umbral, en el orden del ADR 0029")
+
+	if caso.escritoEnElContrato != "" {
+		assert.Equal(t, caso.escritoEnElContrato, string(escrito), "el umbral del contrato, tal cual")
+	}
+
+	motivos := motivosDeLosUmbrales([]Umbral{umbral}, nil, nil)
+	if caso.marcadas > 0 {
+		assert.Equal(t, []string{motivoDeLaDescripcionMarcada}, motivos, "el motivo de hoy")
+	} else {
+		assert.Empty(t, motivos, "ningún motivo de umbral")
+	}
+}

@@ -3,6 +3,7 @@ package evals
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io/fs"
 	"maps"
 	"os"
@@ -25,8 +26,10 @@ import (
 // cada eval de evals/*/ tiene un conjunto calculable, no vacío y con sus seis
 // partes; lo que FR-001 pide y excluye para una eval de legal-core y una de
 // jurisprudencia; que un applet inexistente en la tabla de una skill es un error
-// de cada eval que la usa, nombrada; y lo que da el predicado de las rutas que
-// miden con una ruta de cada clase de data-model §1.
+// de cada eval que la usa, nombrada; que una referencia a mano entra por la parte
+// (b), sin (c) ni error, y que una skill nombrada solo desde una de ellas entra
+// con sus partes (FR-014 de H31, SC-004); y lo que da el predicado de las rutas
+// que miden con una ruta de cada clase de data-model §1.
 func TestConjuntoDeCadaEval(t *testing.T) {
 	t.Parallel()
 
@@ -46,6 +49,7 @@ func TestConjuntoDeCadaEval(t *testing.T) {
 		{nombre: "lo-que-pide-fr-001-a-legal-core", comprobar: comprobarFR001DeLegalCore},
 		{nombre: "lo-que-pide-fr-001-a-jurisprudencia", comprobar: comprobarFR001DeJurisprudencia},
 		{nombre: "applet-inexistente", comprobar: comprobarElAppletInexistente},
+		{nombre: "referencias-a-mano", comprobar: comprobarLasReferenciasAMano},
 		{nombre: "rutas-que-miden", comprobar: comprobarLasRutasQueMiden},
 	}
 
@@ -264,9 +268,9 @@ func comprobarElAppletInexistente(t *testing.T, calculo calculoDelRepositorio) {
 	assert.Positive(t, usanLaSkill, "alguna eval usa la skill del mutante")
 }
 
-// arbolConCambios es un árbol con unos ficheros cambiados en memoria: abre los
-// cambiados de cambiados y todo lo demás del árbol de debajo, también la lista
-// de un directorio que tiene alguno.
+// arbolConCambios es un árbol con unos ficheros cambiados o añadidos en
+// memoria: abre los de cambiados y todo lo demás del árbol de debajo, y la
+// lista de un directorio es la de debajo con los añadidos que están en él.
 type arbolConCambios struct {
 	fs.FS
 
@@ -280,6 +284,131 @@ func (a arbolConCambios) Open(nombre string) (fs.File, error) {
 	}
 
 	return a.FS.Open(nombre)
+}
+
+// ReadDir lista el directorio de debajo, si está, con las entradas de
+// cambiados que no tiene, en orden de nombre: un fichero añadido, y el
+// directorio que solo está en cambiados, con los suyos.
+func (a arbolConCambios) ReadDir(nombre string) ([]fs.DirEntry, error) {
+	deDebajo, errDeDebajo := fs.ReadDir(a.FS, nombre)
+
+	anadidas, errDeLosCambiados := a.cambiados.ReadDir(nombre)
+	if errDeLosCambiados != nil {
+		return deDebajo, errDeDebajo
+	}
+
+	if errDeDebajo != nil && !errors.Is(errDeDebajo, fs.ErrNotExist) {
+		return nil, errDeDebajo
+	}
+
+	entradas := map[string]fs.DirEntry{}
+	for _, entrada := range slices.Concat(anadidas, deDebajo) {
+		entradas[entrada.Name()] = entrada
+	}
+
+	return slices.SortedFunc(maps.Values(entradas), func(una, otra fs.DirEntry) int {
+		return strings.Compare(una.Name(), otra.Name())
+	}), nil
+}
+
+// referenciaAManoDelMutante es el nombre, en references/ de una skill, de la
+// referencia a mano que añaden los mutantes de FR-014 de H31: ninguna skill lo
+// declara en kitlegal-referencias.
+const referenciaAManoDelMutante = "protocolo-del-mutante.md"
+
+// comprobarLasReferenciasAMano añade en memoria una referencia a mano a
+// boe-legislacion, que nombra jurisprudencia, y otra a jurisprudencia, que
+// nombra legal-core, y comprueba sobre el cálculo con las dos (FR-014 y
+// Clarificación Q1 de H31; SC-004): que cada conjunto se calcula, sin el error
+// de la referencia sin cabecera; que cada referencia a mano entra solo por la
+// parte (b), con su directorio de references/, y no da nada en (c); y que en
+// el conjunto de cada eval de boe-legislacion entra jurisprudencia, nombrada
+// solo desde una referencia a mano, con su SKILL.md, sus references/ y los
+// paquetes de su tabla, y legal-core, a la que se llega siguiendo el cierre
+// desde jurisprudencia. Sin las dos referencias, ni una ni otra son de esos
+// conjuntos: el test lo comprueba antes, para no pasar sin comprobar nada.
+func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
+	t.Helper()
+
+	deBoeLegislacion := "skills/boe-legislacion/references/" + referenciaAManoDelMutante
+	deJurisprudencia := "skills/jurisprudencia/references/" + referenciaAManoDelMutante
+
+	nombradas := []string{
+		"fichero skills/jurisprudencia/SKILL.md", "directorio skills/jurisprudencia/references/",
+		"fichero skills/legal-core/SKILL.md", "directorio skills/legal-core/references/",
+	}
+	paquetes := []string{
+		ficheroDelRepositorio(t, calculo.repositorio, "internal/core/cita", esCodigoSinTests),
+		ficheroDelRepositorio(t, calculo.repositorio, "internal/core/plazos", esCodigoSinTests),
+	}
+
+	sinLasReferencias := 0
+
+	for _, conjunto := range calculo.conjuntos {
+		if conjunto.skill != "boe-legislacion" {
+			continue
+		}
+
+		sinLasReferencias++
+
+		for _, ruta := range []string{"skills/jurisprudencia/SKILL.md", "skills/legal-core/SKILL.md"} {
+			require.Falsef(t, conjunto.pertenece(ruta),
+				"%s: sin las referencias a mano, el conjunto ya contiene %s", conjunto.nombre(), ruta)
+		}
+	}
+
+	require.Positive(t, sinLasReferencias, "boe-legislacion tiene evals")
+
+	for _, ruta := range []string{deBoeLegislacion, deJurisprudencia} {
+		_, err := fs.Stat(calculo.repositorio, ruta)
+		require.ErrorIsf(t, err, fs.ErrNotExist, "la referencia a mano %s es nueva", ruta)
+	}
+
+	arbol := arbolConCambios{FS: calculo.repositorio, cambiados: fstest.MapFS{
+		deBoeLegislacion: {Data: []byte("# Protocolo de detalle\n\nUna sentencia la lleva la skill jurisprudencia.\n")},
+		deJurisprudencia: {Data: []byte("# Protocolo de detalle\n\nUn plazo lo calcula la skill legal-core.\n")},
+	}}
+
+	conjuntos, err := calcularDependencias(arbol, calculo.grafo)
+	require.NoError(t, err)
+	require.Len(t, conjuntos, len(calculo.conjuntos))
+
+	for _, conjunto := range conjuntos {
+		require.NoErrorf(t, conjunto.err, "%s: el conjunto no se puede calcular", conjunto.nombre())
+
+		partes := entradasPorParte(conjunto)
+		assert.Equalf(t, datosDeLasCabeceras(t, arbol, partes[parteDeLasSkills]), partes[parteDeLosDatos],
+			"%s: (c)", conjunto.nombre())
+
+		if conjunto.skill != "boe-legislacion" {
+			continue
+		}
+
+		for _, ruta := range []string{deBoeLegislacion, deJurisprudencia} {
+			assert.Equalf(t, []parteDelConjunto{parteDeLasSkills}, partesQueContienen(conjunto, ruta),
+				"%s: la referencia a mano %s entra solo por (b)", conjunto.nombre(), ruta)
+		}
+
+		assert.Subsetf(t, partes[parteDeLasSkills], nombradas, "%s: (b)", conjunto.nombre())
+
+		for _, ruta := range paquetes {
+			assert.Truef(t, conjunto.pertenece(ruta), "%s: el conjunto no contiene %s", conjunto.nombre(), ruta)
+		}
+	}
+}
+
+// partesQueContienen son las partes de las entradas del conjunto que contienen
+// la ruta, en el orden de las entradas.
+func partesQueContienen(conjunto dependenciasDeLaEval, ruta string) []parteDelConjunto {
+	var partes []parteDelConjunto
+
+	for _, entrada := range conjunto.entradas {
+		if entrada.contiene(ruta) {
+			partes = append(partes, entrada.parte)
+		}
+	}
+
+	return partes
 }
 
 // comprobarLasRutasQueMiden comprueba el predicado de data-model §1 con una
@@ -668,7 +797,9 @@ var cabeceraDeLaReferencia = regexp.MustCompile(`\A<!-- generado desde (data/[^,
 
 // datosDeLasCabeceras son los data/*.yaml de las cabeceras de las referencias
 // de las skills cuyo SKILL.md está entre las entradas dadas, como entradas
-// fichero, ordenadas y sin repetir. Toda referencia tiene cabecera.
+// fichero, ordenadas y sin repetir. La referencia sin cabecera es a mano y no
+// da ninguno (FR-014 de H31): si no lo fuera, el conjunto sería un error, y
+// quien llama lo comprueba antes.
 func datosDeLasCabeceras(t *testing.T, repositorio fs.FS, entradasDeLasSkills []string) []string {
 	t.Helper()
 
@@ -687,10 +818,9 @@ func datosDeLasCabeceras(t *testing.T, repositorio fs.FS, entradasDeLasSkills []
 			contenido, err := fs.ReadFile(repositorio, referencia)
 			require.NoError(t, err)
 
-			cabecera := cabeceraDeLaReferencia.FindSubmatch(contenido)
-			require.NotNilf(t, cabecera, "%s tiene la cabecera «generado desde»", referencia)
-
-			datos = append(datos, string(entradaFichero)+" "+string(cabecera[1]))
+			if cabecera := cabeceraDeLaReferencia.FindSubmatch(contenido); cabecera != nil {
+				datos = append(datos, string(entradaFichero)+" "+string(cabecera[1]))
+			}
 		}
 	}
 

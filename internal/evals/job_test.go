@@ -63,7 +63,9 @@ var (
 // Con una skill sin juez no las pasa ni se miran. Son también, con -skill,
 // -concurrencia, -commit y -salida, las de la ejecución de la medida del juez,
 // con las que la invoca scripts/evals-medir-juez.sh (contracts/job-de-evals.md
-// §3 de H24).
+// §3 de H24), y, con las mismas salvo -skill, las de la ejecución de la medida
+// del juez de las descripciones (contracts/juez-de-las-descripciones.md §7 de
+// H31).
 var (
 	banderaModeloDelJuez  = flag.String("modelo-del-juez", "", "id del modelo del juez de la skill")
 	banderaVersionDelJuez = flag.String("version-del-juez", "", "versión de Claude Code de los votos del juez")
@@ -177,15 +179,27 @@ var (
 // H30; FR-012, FR-014). Sin -decision las mide todas, como antes: la exige
 // scripts/evals.sh.
 //
+// Desde H31 (contracts/juez-de-las-descripciones.md §3 de H31; FR-026, FR-031,
+// FR-032 de H31), si la decisión lleva el bloque descripcion, ejecutarElJob lee
+// de la raíz del repositorio el juez de las descripciones y comprueba también
+// su medida antes de abrir ninguna sesión; con la descripción juzgada, le pide
+// aquí el votante con ese juez (votanteDelJuez, que exige las tres banderas del
+// juez, que scripts/evals.sh pasa en todo trabajo) y vota la descripción de la
+// skill tras las sesiones; con la reutilizada, toma el juicio del bloque. El
+// informe la lleva con el umbral habla_en_primera_o_segunda_persona, que decide.
+//
 // Falla con un error o con el veredicto fallo, nombrando sus motivos: así el job
 // sale en rojo por una serie que no pasa en un modo, por un umbral que decide y
 // no se cumple en un modo, por la duración de una tanda, por sesiones sin medir
 // (FR-043 de H7.3; FR-044 de H21), por una respuesta que el juez marca o deja
-// sin juzgar o por el instrumento sin medir (FR-043 de H24). Solo lo ejecuta
-// scripts/evals.sh, porque abre sesiones con modelo; lo que decide lo fijan
-// TestPlan, TestPlanEnDosModos, los tests del repartidor, TestEjecutarPorTandas,
-// TestInforme, TestInformeEnDosModos, TestUmbralesDelInforme,
-// TestInformeConElJuez, TestEjecucionSinMedir y TestEjecutarElJob.
+// sin juzgar o por el instrumento sin medir (FR-043 de H24), y, desde H31, por
+// la descripción de la skill que el juez de las descripciones marca o deja sin
+// juzgar. Solo lo ejecuta scripts/evals.sh, porque abre sesiones con modelo; lo
+// que decide lo fijan TestPlan, TestPlanEnDosModos, los tests del repartidor,
+// TestEjecutarPorTandas, TestInforme, TestInformeEnDosModos,
+// TestUmbralesDelInforme, TestInformeConElJuez, TestEjecucionSinMedir,
+// TestEjecutarElJob, TestEjecutarElJobConLaDescripcion,
+// TestInformeConLaDescripcion y TestUmbralDeLaDescripcion.
 func TestEjecucionDelJob(t *testing.T) {
 	t.Parallel()
 
@@ -260,7 +274,11 @@ func TestEjecucionDelJob(t *testing.T) {
 		ModeloDelJuez:       *banderaModeloDelJuez,
 		VersionDelJuez:      *banderaVersionDelJuez,
 		ConcurrenciaDelJuez: concurrencia,
-		decision:            decision,
+		Raiz:                raizDelRepositorio,
+		VotanteDeLasDescripciones: func(juez *Juez) Votante {
+			return votanteDelJuez(senales, t, juez)
+		},
+		decision: decision,
 	})
 	require.NoError(t, err)
 	require.Equalf(t, VeredictoAprobado, informe.Veredicto, "motivos del veredicto:\n%s", strings.Join(informe.Motivos, "\n"))
@@ -307,14 +325,20 @@ func TestEleccionDeLaPropuesta(t *testing.T) {
 // de -propuesta, elige sobre la base de fusión de -base y busca lo demás en las
 // medidas de main, con un plazo de 10 minutos para todo lo que lee de la
 // plataforma; con completa, las mide todas sin leer nada de ella, y -propuesta y
-// -base pueden ir vacías. Registra el error de la plataforma, si lo hubo, y una
-// línea por eval, medida con su motivo o reutilizada con su procedencia, y
+// -base pueden ir vacías. Con -propuesta y -base no vacías, en los dos modos,
+// lee también el árbol de la base y, si la descripción de alguna skill cambia
+// entre la base y la cabeza, el fichero lleva el bloque descripcion de la de
+// -skill, juzgada o, con reutilización, con el juicio de una medida de main con
+// su huella, con el juez de las descripciones de evidencias/adr-0046/,
+// -modelo-del-juez y -version-del-juez (contracts/juez-de-las-descripciones.md
+// §2 de H31; FR-030 de H31). Registra el error de la plataforma, si lo hubo, y
+// una línea por eval, medida con su motivo o reutilizada con su procedencia, y
 // escribe en -salida el fichero de la decisión, el bloque origen sin
 // sesiones_abiertas. -commit es el commit evaluado, el del checkout. Falla solo
-// con un error de sus banderas, del checkout o de -salida: un error de la
-// plataforma, o el plazo agotado, no lo hace fallar, y lo que no se pudo
-// reutilizar se mide. Solo lo ejecuta el job, porque consulta la API de GitHub;
-// lo que decide lo fija TestDecisionDelJob.
+// con un error de sus banderas, del checkout, del juez de las descripciones o
+// de -salida: un error de la plataforma, o el plazo agotado, no lo hace fallar,
+// y lo que no se pudo reutilizar se mide o se juzga. Solo lo ejecuta el job,
+// porque consulta la API de GitHub; lo que decide lo fija TestDecisionDelJob.
 func TestDecisionDelTrabajo(t *testing.T) {
 	t.Parallel()
 
@@ -330,10 +354,12 @@ func TestDecisionDelTrabajo(t *testing.T) {
 		skill: *banderaSkill, modo: modo, plataforma: ghDeLaPlataforma{entorno: os.Environ()}, instante: instante,
 	}
 
-	base := ""
 	if modo == origenConReutilizacion {
 		exigirBanderas(t, "propuesta", "base")
+	}
 
+	base := ""
+	if *banderaPropuesta != "" && *banderaBase != "" {
 		trabajo.propuesta = numeroDeLaPropuesta(t)
 		base = *banderaBase
 	}
@@ -365,12 +391,13 @@ func numeroDeLaPropuesta(t *testing.T) int {
 	return propuesta
 }
 
-// votanteDelJuez da el votante del juez de la skill en el job y en la ejecución
-// de su medida, el que abre cada voto con scripts/evals-voto.sh
-// (nuevoVotanteDelGuion; contracts/job-de-evals.md §2 y contracts/juez-y-voto.md
-// §4 de H24), y deja para el final del test la retirada de su directorio. Exige
-// las tres banderas del juez, que scripts/evals.sh pasa con una skill que lo
-// tiene y scripts/evals-medir-juez.sh, siempre. El PATH de los votos es el de
+// votanteDelJuez da el votante de un juez en el job y en la ejecución de su
+// medida —el de la skill o, desde H31, el de las descripciones—, el que abre
+// cada voto con scripts/evals-voto.sh (nuevoVotanteDelGuion;
+// contracts/job-de-evals.md §2 y contracts/juez-y-voto.md §4 de H24), y deja
+// para el final del test la retirada de su directorio. Exige las tres banderas
+// del juez, que scripts/evals.sh y scripts/evals-medir-juez.sh pasan siempre
+// (contracts/juez-de-las-descripciones.md §3 de H31). El PATH de los votos es el de
 // quien lo lanza con el directorio de -claude-del-juez delante (pathDelJuez),
 // su credencial es la suya, y su contexto, el de las señales del punto de
 // entrada, de modo que SIGINT y SIGTERM cortan los votos abiertos.
@@ -470,6 +497,71 @@ func TestMedidaDelJuez(t *testing.T) {
 		Skill:          *banderaSkill,
 		Juez:           conjunto.Juez,
 		Votar:          votar,
+		ModeloDelJuez:  *banderaModeloDelJuez,
+		VersionDelJuez: *banderaVersionDelJuez,
+		Concurrencia:   concurrencia,
+		Commit:         *banderaCommit,
+		Fecha:          time.Now(),
+	})
+
+	if texto != "" {
+		require.NoError(t, os.WriteFile(*banderaSalida, []byte(texto), 0o600))
+	}
+
+	require.NoError(t, err)
+}
+
+// TestMedidaDelJuezDeLasDescripciones es la ejecución de la medida del juez de
+// las descripciones, entera y en una sola orden
+// (contracts/juez-de-las-descripciones.md §7 de H31; research D9 de H31;
+// FR-034, SC-011):
+//
+//  1. exige sus banderas —las de TestMedidaDelJuez sin -skill:
+//     -modelo-del-juez, -version-del-juez, -claude-del-juez, -concurrencia,
+//     -commit y -salida— y lee de la raíz del repositorio el juez de las
+//     descripciones, con la rúbrica, el esquema, los casos y la medida de la
+//     evidencia del ADR 0046. Falla si no se lee;
+//  2. prepara el votante que abre cada voto con scripts/evals-voto.sh
+//     (votanteDelJuez), con el directorio de -claude-del-juez delante en su
+//     PATH y el contexto de SIGINT y SIGTERM, que cortan los votos abiertos:
+//     sus casos quedan sin juzgar;
+//  3. llama a medirAlJuezDeLasDescripciones con el modelo y la versión de sus
+//     banderas, que van a la medida tal cual, -concurrencia casos a la vez, el
+//     commit y el instante en el que se lanza: vota los 99 casos de casos.yaml
+//     con el mensaje y la regla de los votos de la descripción del trabajo de
+//     una skill. No comprueba la medida versionada ni abre ninguna sesión de
+//     evals;
+//  4. escribe en el fichero de -salida el texto de la medida, si
+//     medirAlJuezDeLasDescripciones da alguno: es el que su guion imprime entre
+//     sus dos marcas. Con algún caso sin juzgar no hay texto y no escribe nada.
+//     No escribe en ningún otro sitio, tampoco en el repositorio: la versiona
+//     una persona;
+//  5. falla con el error de medirAlJuezDeLasDescripciones, que deja en el
+//     registro una línea por caso: el defecto que no queda marcado y el
+//     correcto que queda marcado, con la medida ya escrita, o el que queda sin
+//     juzgar, con su motivo.
+//
+// Solo lo ejecuta scripts/evals-medir-juez.sh con el argumento descripciones,
+// porque abre sesiones con modelo, y lo lanza una persona con la etiqueta
+// evals-medir-juez o la entrada medir_al_juez, nunca un paso del run (FR-033);
+// lo que decide lo fija TestJuezDeLasDescripciones, y la orden que lo ejecuta,
+// TestGuionDeLaMedida.
+func TestMedidaDelJuezDeLasDescripciones(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "modelo-del-juez", "version-del-juez", "claude-del-juez", "concurrencia", "commit", "salida")
+
+	concurrencia := enteroDeLaBandera(t, "concurrencia")
+
+	juez, err := juezDeLasDescripciones(raizDelRepositorio)
+	require.NoError(t, err)
+
+	senales, dejarDeEscuchar := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
+	defer dejarDeEscuchar()
+
+	texto, err := medirAlJuezDeLasDescripciones(MedicionDelJuez{
+		Juez:           juez,
+		Votar:          votanteDelJuez(senales, t, juez),
 		ModeloDelJuez:  *banderaModeloDelJuez,
 		VersionDelJuez: *banderaVersionDelJuez,
 		Concurrencia:   concurrencia,

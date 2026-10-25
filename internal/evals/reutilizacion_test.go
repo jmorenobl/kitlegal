@@ -427,16 +427,19 @@ func lecturasDeLasMedidas(medidas ...int64) []string {
 }
 
 // casoDeLaBusqueda es un caso de TestBusquedaDeMedidasDeMain: las evals que
-// buscan, las ejecuciones de la plataforma, los fallos de sus lecturas, si el
-// plazo está agotado, y lo que espera: las evals, el error de la plataforma y
-// las lecturas, en orden.
+// buscan, la huella del juicio de la descripción que busca, vacía si no busca
+// ninguno, las ejecuciones de la plataforma, los fallos de sus lecturas, si el
+// plazo está agotado, y lo que espera: las evals, el juicio reutilizado, nil si
+// no reutiliza ninguno, el error de la plataforma y las lecturas, en orden.
 type casoDeLaBusqueda struct {
 	nombre            string
 	buscadas          []evalABuscar
+	descripcion       string
 	ejecuciones       []ejecucionEnMemoria
 	fallos            map[string]error
 	plazoAgotado      bool
 	evals             []origenDeEval
+	juicio            *descripcionDeLaDecision
 	plataformaFallida *errorDeLaPlataformaEnElOrigen
 	lecturas          []string
 }
@@ -453,12 +456,17 @@ type casoDeLaBusqueda struct {
 // eval no se reutilizan; la procedencia de una reutilizada en main
 // es la original, y la de 90 días o más deja la eval sin resultado; y la
 // primera lectura que falla, o el plazo agotado, paran la búsqueda: lo que
-// queda se mide, con la orden y su error en el resultado.
+// queda se mide, con la orden y su error en el resultado. Y, en el mismo
+// recorrido, el juicio de la descripción de la skill (FR-030 de H31; research
+// D4 de H31; contracts/juez-de-las-descripciones.md §2 de H31): se reutiliza el
+// de la medida más reciente con la misma huella y juicio completo, con su
+// procedencia, y ninguno con otra huella, de otra skill, sin juzgar, de lo que
+// no es medida de main o de una procedencia de 90 días o más.
 func TestBusquedaDeMedidasDeMain(t *testing.T) {
 	t.Parallel()
 
 	casos := slices.Concat(casosDeLoQueNoEsMedida(t), casosDelOrdenDeLasMedidas(t), casosDeLosResultados(t),
-		casosDeLosFallos(t))
+		casosDeLosFallos(t), casosDeLaDescripcion(t), casosDeLaDescripcionQueNoSeReutiliza(t))
 
 	for _, caso := range casos {
 		t.Run(caso.nombre, func(t *testing.T) {
@@ -484,10 +492,11 @@ func comprobarLaBusqueda(t *testing.T, caso casoDeLaBusqueda) {
 		defer cancelar()
 	}
 
-	evals, plataformaFallida := buscarEnLasMedidasDeMain(ctx, plataforma, skillDeLaBusqueda, caso.buscadas,
-		instanteDeLaBusqueda)
+	evals, juicio, plataformaFallida := buscarEnLasMedidasDeMain(ctx, plataforma, skillDeLaBusqueda, caso.buscadas,
+		caso.descripcion, instanteDeLaBusqueda)
 
 	assert.Equal(t, caso.evals, evals, "las evals de la búsqueda")
+	assert.Equal(t, caso.juicio, juicio, "el juicio de la descripción reutilizado")
 	assert.Equal(t, caso.plataformaFallida, plataformaFallida, "el error de la plataforma")
 	assert.Equal(t, caso.lecturas, plataforma.lecturas, "las lecturas de la plataforma, en orden")
 }
@@ -780,6 +789,216 @@ func casosDeLosFallos(t *testing.T) []casoDeLaBusqueda {
 			ejecuciones: []ejecucionEnMemoria{soloLaPrimera, conElInforme(anterior, "{\n  \"skill\": \n"), antesAun},
 			evals:       []origenDeEval{reutilizadaDe(evalBuscadaA, soloLaPrimera), reutilizadaDe(evalBuscadaB, antesAun)},
 			lecturas:    lecturasDeLasMedidas(101, 100, 99),
+		},
+	}
+}
+
+// La huella del juicio de la descripción de la skill buscada en los casos de
+// la descripción, y la frase y los motivos de los juicios de las medidas de
+// main sintéticas.
+const (
+	huellaDeLaDescripcionBuscada = "d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0"
+	fraseMarcadaEnMain           = "Úsala siempre que la respuesta dependa de lo que dice una norma"
+	motivoMarcadaEnMain          = "Da una orden a quien la lee con un imperativo con un pronombre pegado."
+	motivoSinMarcarEnMain        = "Todas las frases hablan de la skill en tercera persona."
+	motivoSinJuzgarEnMain        = "voto 1: la sesión del juez terminó con error: exit status 1"
+	claseDeLaDescripcionMain     = "habla_en_primera_o_segunda_persona"
+)
+
+// bloqueJuzgadoEnMain es el bloque descripcion del informe de un trabajo que
+// juzgó la descripción de la skill dada con esa huella, con la forma de
+// contracts/juez-de-las-descripciones.md §6 de H31: marcada con tres «si» con
+// su frase o sin marcar con un primer «no».
+func bloqueJuzgadoEnMain(skill, huella string, marcada bool) map[string]any {
+	bloque := map[string]any{
+		"skill": skill, "clase": claseDeLaDescripcionMain, "huella": huella, "juzgada": true, "marcada": marcada,
+		"frase": "", "motivo": motivoSinMarcarEnMain,
+		"votos": []any{map[string]any{"respuesta": "no", "frase": "", "motivo": motivoSinMarcarEnMain}},
+	}
+
+	if marcada {
+		voto := map[string]any{"respuesta": "si", "frase": fraseMarcadaEnMain, "motivo": motivoMarcadaEnMain}
+		bloque["frase"], bloque["motivo"], bloque["votos"] = fraseMarcadaEnMain, motivoMarcadaEnMain, []any{voto, voto, voto}
+	}
+
+	return bloque
+}
+
+// bloqueSinJuzgarEnMain es el bloque descripcion del informe de un trabajo que
+// dejó sin juzgar la descripción de la skill buscada con esa huella.
+func bloqueSinJuzgarEnMain(huella string) map[string]any {
+	return map[string]any{
+		"skill": skillDeLaBusqueda, "clase": claseDeLaDescripcionMain, "huella": huella, "juzgada": true,
+		"marcada": false, "frase": "", "motivo": "", "votos": []any{}, "sin_juzgar": motivoSinJuzgarEnMain,
+	}
+}
+
+// bloqueReutilizadoEnMain es el bloque descripcion del informe de un trabajo
+// que reutilizó, sin marcar, el juicio de la descripción de la skill buscada
+// con esa huella de la ejecución dada, de la propuesta dada, creada el tiempo
+// dado antes de la búsqueda.
+func bloqueReutilizadoEnMain(huella string, ejecucion int64, propuesta int, antes time.Duration) map[string]any {
+	return map[string]any{
+		"skill": skillDeLaBusqueda, "clase": claseDeLaDescripcionMain, "huella": huella, "juzgada": false,
+		"procedencia": map[string]any{
+			"ejecucion": ejecucion, "trabajo": trabajoDeLaSkillBuscada(ejecucion), "commit": cabezaDeLaPropuesta(propuesta),
+			"propuesta": propuesta, "fecha": fechaDesdeLaBusqueda(antes),
+		},
+		"marcada": false, "frase": "", "motivo": motivoSinMarcarEnMain,
+	}
+}
+
+// conLaDescripcion es la ejecución sintética con el bloque descripcion dado en
+// el informe del trabajo de la skill buscada.
+func conLaDescripcion(t *testing.T, enMemoria ejecucionEnMemoria, bloque map[string]any) ejecucionEnMemoria {
+	t.Helper()
+
+	var informe map[string]any
+	require.NoError(t, json.Unmarshal(enMemoria.informe, &informe))
+
+	informe["descripcion"] = bloque
+
+	contenido, err := json.MarshalIndent(informe, "", "  ")
+	require.NoError(t, err)
+
+	contenido = append(contenido, '\n')
+	enMemoria.informe = contenido
+
+	return enMemoria
+}
+
+// juicioReutilizadoDe es el juicio de la descripción de la skill buscada que
+// la búsqueda reutiliza de la medida dada, en la que se juzgó: con su
+// procedencia, la medida, y su marca, su frase y su motivo.
+func juicioReutilizadoDe(medida ejecucionEnMemoria, marcada bool) *descripcionDeLaDecision {
+	juicio := &juicioReutilizado{Motivo: motivoSinMarcarEnMain}
+	if marcada {
+		juicio = &juicioReutilizado{Marcada: true, Frase: fraseMarcadaEnMain, Motivo: motivoMarcadaEnMain}
+	}
+
+	return &descripcionDeLaDecision{
+		Skill: skillDeLaBusqueda, Huella: huellaDeLaDescripcionBuscada,
+		Procedencia: &procedenciaDeLaMedida{
+			Ejecucion: medida.ejecucion.ID, Trabajo: trabajoDeLaSkillBuscada(medida.ejecucion.ID),
+			Commit: medida.ejecucion.Commit, Propuesta: medida.propuesta,
+			Fecha: medida.ejecucion.Creada.Format(time.RFC3339),
+		},
+		Juicio: juicio,
+	}
+}
+
+// casosDeLaDescripcion son los del juicio de la descripción que la búsqueda
+// reutiliza: el de la medida más reciente con su huella y juicio completo,
+// marcado o no, con su procedencia, o con la original si allí se reutilizó; en
+// el mismo recorrido que las evals, que no para hasta que todo lo buscado tiene
+// resultado.
+func casosDeLaDescripcion(t *testing.T) []casoDeLaBusqueda {
+	t.Helper()
+
+	ambas := informeDeMain(medidaAqui(evalBuscadaA, evalBuscadaA.huella), medidaAqui(evalBuscadaB, evalBuscadaB.huella))
+	reciente := medidaEnMemoria(t, 101, 186, time.Hour, ambas)
+	anterior := medidaEnMemoria(t, 100, 185, 2*time.Hour, ambas)
+	marcadaReciente := conLaDescripcion(t, reciente, bloqueJuzgadoEnMain(skillDeLaBusqueda, huellaDeLaDescripcionBuscada, true))
+	sinMarcarAnterior := conLaDescripcion(t, anterior,
+		bloqueJuzgadoEnMain(skillDeLaBusqueda, huellaDeLaDescripcionBuscada, false))
+	conOtraHuellaReciente := conLaDescripcion(t, reciente, bloqueJuzgadoEnMain(skillDeLaBusqueda, otraHuella, true))
+	reutilizadaReciente := conLaDescripcion(t, reciente,
+		bloqueReutilizadoEnMain(huellaDeLaDescripcionBuscada, 90, 180, 20*24*time.Hour))
+
+	return []casoDeLaBusqueda{
+		{
+			nombre: "descripcion-marcada-con-la-misma-huella", descripcion: huellaDeLaDescripcionBuscada,
+			ejecuciones: []ejecucionEnMemoria{marcadaReciente, sinMarcarAnterior}, evals: []origenDeEval{},
+			juicio: juicioReutilizadoDe(marcadaReciente, true), lecturas: lecturasDeLasMedidas(101),
+		},
+		{
+			nombre: "descripcion-con-otra-huella-sigue-con-la-anterior", descripcion: huellaDeLaDescripcionBuscada,
+			ejecuciones: []ejecucionEnMemoria{conOtraHuellaReciente, sinMarcarAnterior}, evals: []origenDeEval{},
+			juicio: juicioReutilizadoDe(sinMarcarAnterior, false), lecturas: lecturasDeLasMedidas(101, 100),
+		},
+		{
+			nombre: "descripcion-reutilizada-en-main-con-su-procedencia-original", descripcion: huellaDeLaDescripcionBuscada,
+			ejecuciones: []ejecucionEnMemoria{reutilizadaReciente}, evals: []origenDeEval{},
+			juicio: &descripcionDeLaDecision{
+				Skill: skillDeLaBusqueda, Huella: huellaDeLaDescripcionBuscada,
+				Procedencia: &procedenciaDeLaMedida{
+					Ejecucion: 90, Trabajo: trabajoDeLaSkillBuscada(90), Commit: cabezaDeLaPropuesta(180), Propuesta: 180,
+					Fecha: fechaDesdeLaBusqueda(20 * 24 * time.Hour),
+				},
+				Juicio: &juicioReutilizado{Motivo: motivoSinMarcarEnMain},
+			},
+			lecturas: lecturasDeLasMedidas(101),
+		},
+		{
+			nombre: "evals-y-descripcion-en-la-misma-medida", buscadas: []evalABuscar{evalBuscadaA, evalBuscadaB},
+			descripcion: huellaDeLaDescripcionBuscada, ejecuciones: []ejecucionEnMemoria{marcadaReciente, sinMarcarAnterior},
+			evals:  []origenDeEval{reutilizadaDe(evalBuscadaA, reciente), reutilizadaDe(evalBuscadaB, reciente)},
+			juicio: juicioReutilizadoDe(marcadaReciente, true), lecturas: lecturasDeLasMedidas(101),
+		},
+		{
+			nombre: "la-descripcion-sigue-el-recorrido-tras-las-evals", buscadas: []evalABuscar{evalBuscadaA, evalBuscadaB},
+			descripcion: huellaDeLaDescripcionBuscada, ejecuciones: []ejecucionEnMemoria{reciente, sinMarcarAnterior},
+			evals:  []origenDeEval{reutilizadaDe(evalBuscadaA, reciente), reutilizadaDe(evalBuscadaB, reciente)},
+			juicio: juicioReutilizadoDe(sinMarcarAnterior, false), lecturas: lecturasDeLasMedidas(101, 100),
+		},
+		{
+			nombre: "sin-descripcion-que-buscar", buscadas: []evalABuscar{evalBuscadaA, evalBuscadaB},
+			ejecuciones: []ejecucionEnMemoria{marcadaReciente, sinMarcarAnterior},
+			evals:       []origenDeEval{reutilizadaDe(evalBuscadaA, reciente), reutilizadaDe(evalBuscadaB, reciente)},
+			lecturas:    lecturasDeLasMedidas(101),
+		},
+	}
+}
+
+// casosDeLaDescripcionQueNoSeReutiliza son los de 0 juicios reutilizados: con
+// otra huella, de otra skill, sin juzgar, de una medida de main sin bloque, de
+// lo que no es medida de main —una ejecución cancelada, la de 90 días o más o
+// la que no tiene la marca del informe escrito— o de una procedencia de 90 días
+// o más; y la primera lectura que falla, que para la búsqueda.
+func casosDeLaDescripcionQueNoSeReutiliza(t *testing.T) []casoDeLaBusqueda {
+	t.Helper()
+
+	ambas := informeDeMain(medidaAqui(evalBuscadaA, evalBuscadaA.huella), medidaAqui(evalBuscadaB, evalBuscadaB.huella))
+	reciente := medidaEnMemoria(t, 101, 186, time.Hour, ambas)
+	juzgada := conLaDescripcion(t, reciente, bloqueJuzgadoEnMain(skillDeLaBusqueda, huellaDeLaDescripcionBuscada, true))
+	noventa := conLaDescripcion(t, medidaEnMemoria(t, 101, 186, noventaDiasDeRegistro, ambas),
+		bloqueJuzgadoEnMain(skillDeLaBusqueda, huellaDeLaDescripcionBuscada, true))
+
+	ninguno := func(nombre string, ejecucion ejecucionEnMemoria, lecturas []string) casoDeLaBusqueda {
+		return casoDeLaBusqueda{
+			nombre: nombre, descripcion: huellaDeLaDescripcionBuscada, ejecuciones: []ejecucionEnMemoria{ejecucion},
+			evals: []origenDeEval{}, lecturas: lecturas,
+		}
+	}
+
+	return []casoDeLaBusqueda{
+		ninguno("descripcion-con-otra-huella",
+			conLaDescripcion(t, reciente, bloqueJuzgadoEnMain(skillDeLaBusqueda, otraHuella, false)),
+			lecturasDeLasMedidas(101)),
+		ninguno("descripcion-de-otra-skill",
+			conLaDescripcion(t, reciente, bloqueJuzgadoEnMain(otraSkillDeLaBusqueda, huellaDeLaDescripcionBuscada, false)),
+			lecturasDeLasMedidas(101)),
+		ninguno("descripcion-sin-juzgar", conLaDescripcion(t, reciente, bloqueSinJuzgarEnMain(huellaDeLaDescripcionBuscada)),
+			lecturasDeLasMedidas(101)),
+		ninguno("medida-sin-bloque-de-la-descripcion", reciente, lecturasDeLasMedidas(101)),
+		ninguno("descripcion-de-una-ejecucion-cancelada", conLaEjecucion(juzgada, func(ejecucion *ejecucionDelFlujo) {
+			ejecucion.Conclusion = conclusionCancelada
+		}), lecturasDeLasMedidas()),
+		ninguno("descripcion-de-una-medida-de-90-dias", noventa, lecturasDeLasMedidas()),
+		ninguno("descripcion-de-una-ejecucion-sin-la-marca", conLaMarca(juzgada, otraSkillDeLaBusqueda, ""),
+			[]string{lecturaDeLasEjecuciones, lecturaDeLasPropuestas, lecturaDeLosTrabajos(101)}),
+		ninguno("descripcion-de-una-procedencia-de-90-dias",
+			conLaDescripcion(t, reciente, bloqueReutilizadoEnMain(huellaDeLaDescripcionBuscada, 79, 180, noventaDiasDeRegistro)),
+			lecturasDeLasMedidas(101)),
+		{
+			nombre: "descripcion-con-la-primera-lectura-que-falla", descripcion: huellaDeLaDescripcionBuscada,
+			ejecuciones: []ejecucionEnMemoria{juzgada},
+			fallos:      map[string]error{lecturaDeLasEjecuciones: errors.New("la lista de ejecuciones del flujo no se puede leer")},
+			evals:       []origenDeEval{},
+			plataformaFallida: &errorDeLaPlataformaEnElOrigen{
+				Orden: ordenDeLasEjecucionesDelFlujo, Error: "la lista de ejecuciones del flujo no se puede leer",
+			},
+			lecturas: []string{lecturaDeLasEjecuciones},
 		},
 	}
 }

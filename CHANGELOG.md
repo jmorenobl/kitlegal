@@ -28,9 +28,132 @@ sustituyen a este fichero.
   pide sin tocar el guion; el juez del plan juzga solo que lo que dice cada fila es cierto. Admite las tres formas de
   fila de los planes anteriores, y ni «II» ni una fila que empieza por una palabra, como «Implementación…», cuentan
   como el principio I. Lo comprueba `TestElConstitutionCheckLlevaUnaFilaPorPrincipio`.
+- **El job de evals juzga las descripciones de las skills cuando una propuesta de cambio cambia alguna, con el juez de
+  las descripciones** (H31; ADR 0046). La tercera persona de la descripción no la comprueba una lista de palabras: la
+  juzga un modelo, el juez de las evals (`claude-opus-5-5` con Claude Code 2.1.289), con la clase
+  `habla_en_primera_o_segunda_persona` y la rúbrica, el esquema, los casos y la medida de `evidencias/adr-0046/`, que
+  lee donde están y que `make ci` comprueba contra el manifiesto de la evidencia:
+  - si la propuesta cambia, respecto de su base, la descripción del `SKILL.md` de alguna skill, el trabajo
+    `evals (<skill>)` de cada skill juzga la descripción de la suya o reutiliza su juicio de una medida de `main` con
+    la misma huella —la de la descripción, los cuatro ficheros del juez, su modelo y su versión—, como los resultados
+    de H30, y lo reutilizado no cuenta en el umbral; sin esa medida, o en la suite completa, la juzga. Sin ninguna
+    descripción cambiada, o fuera de una propuesta, ningún trabajo lleva juicio, umbral ni apartado en el informe;
+  - antes de abrir ninguna sesión, el trabajo comprueba que la medida del juez de las descripciones corresponde y se
+    cumple; si no, el informe sale sin medir, con cada motivo precedido de `juez de las descripciones: `;
+  - cada voto lleva la descripción entre `<descripcion skill="…">` y `</descripcion>`, con la regla de los votos del
+    juez de las evals: tres «si» unánimes, pedidos por orden y con su frase en la descripción, la marcan; como mucho
+    seis votos. Una descripción marcada pone en rojo el umbral `habla_en_primera_o_segunda_persona` (0, que decide), y
+    una sin juzgar da su propio motivo, «el juez de las descripciones dejó sin juzgar la descripción de <skill>: …».
+    `informe.json` lleva el bloque `descripcion` con el juicio y sus votos, o la procedencia del reutilizado, e
+    `informe.md`, el apartado «La descripción»;
+  - el tope de cada trabajo `evals` cubre además los seis votos de una descripción, 240 s, y en `legal-core`, que no
+    tiene juez de las respuestas, la instalación del Claude Code del juez, 60 s;
+  - **`make evals-medir-juez SKILL=descripciones`** repite la medida con el código del job: vota los 99 casos de
+    `evidencias/adr-0046/casos.yaml` e imprime la medida entre `--- inicio de medida.json ---` y
+    `--- fin de medida.json ---`, con la forma de la de la evidencia, sin escribirla en el repositorio, y deja en el
+    registro una línea por caso mal etiquetado o sin juzgar. La ejecuta la entrada `descripciones` del trabajo
+    `medida`, a cinco casos a la vez, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez`: su peor caso,
+    5305 s, cabe en el tope del trabajo, 269 minutos. La lanza una persona, nunca un paso del run.
+
+  Nada de ello abre una sesión en `make ci`: sus tests votan con votos simulados o con un `claude` sustituto.
+- **La guía de autoría de las skills, `docs/SKILLS.md`** (H31; ADR 0046), sobre la especificación Agent Skills y la
+  guía de autoría de Anthropic, consultadas el 2026-10-23: qué va en el cuerpo de `SKILL.md` —el protocolo, las reglas
+  invariantes, las líneas `⚠`, la tabla de comandos y cuándo leer cada referencia— y qué en una referencia; la
+  descripción en tercera persona, con la pregunta citada y el verbo con la skill de sujeto, que son correctos, y el
+  juez de las descripciones; los presupuestos con su porqué (menos de 500 líneas; 11 000 caracteres, unos 4870 tokens
+  a 2,26 caracteres por token; 900 en la descripción, el 88 % de 1024), y la regla de `references/` con los defectos
+  de `make skills-check`. `CONTRIBUTING.md` deja de pedir menos de 300 líneas y remite a ella.
 
 ### Cambiado
 
+- **`jurisprudencia` v0.2: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
+  escritas a mano** (H31; ADR 0046). Sustituye a `jurisprudencia` v0.1.2. Cambia la forma de lo que lee el modelo, no
+  ninguna regla: cada una de las 74 reglas de v0.1.2 tiene su sitio en la nueva (`research.md` de H31, «Tabla de
+  reglas»). El cuerpo pasa de 193 líneas y 13 637 caracteres a 159 y 10 859, y conserva la entrada con las reglas del
+  CENDOJ, los siete pasos con la línea `⚠ SENTENCIA NO COMPROBADA:`, lo que se pide según cómo se dio la referencia,
+  el cotejo antes de nada y la forma de la cita, la tabla de comandos, que no cambia, y las seis reglas.
+  `references/consulta_preparada.md` lleva la orden de cada forma de la referencia y por qué un número sin fecha no se
+  prepara, las casillas, el equivalente y la búsqueda por materia, y los pasos 2 y 6 dicen cuándo leerla;
+  `references/documento_aportado.md` lleva qué se pasa del documento y cómo, lo que devuelve el cotejo y qué se dice si
+  no es la pedida, si su ROJ y su ECLI no se corresponden o si no lleva ficha, y el paso 3 dice cuándo leerla. Lo que
+  la herramienta devuelve en lugar del código de salida pasa del protocolo al párrafo de los códigos de «Comandos». La
+  descripción pasa a tercera persona («Se usa…», «Se activa…», «el agente crea conocerla») con los mismos
+  disparadores. Las referencias viajan en el binario, y `kitlegal skills install` las instala con la skill.
+- **`legal-core` v1.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
+  escritas a mano** (H31; ADR 0046). Sustituye a `legal-core` v1.2.3. Cambia la forma de lo que lee el modelo, no
+  ninguna regla: cada una de las 105 reglas de v1.2.3 tiene su sitio en la nueva (`research.md` de H31, «Tabla de
+  reglas»). El cuerpo pasa de 283 líneas y 19 225 caracteres a 168 y 10 944. Un apartado nuevo, «Referencias», dice
+  cuándo leer cada una de las seis, con el único enlace de cada una; los once pasos, de uno o dos enunciados, conservan
+  lo que se comprueba sin modelo en las respuestas (decidir lo regulado aparte antes de preguntar nada, con
+  `⚠ NO CUBIERTO:` y sin `plazos calcular`; no preguntar la materia que no se dice; los municipios que cuentan; el plazo
+  sin calcular; la lectura con `--fecha` y la línea del plazo que se mantiene si falla; los avisos tal cual), y siguen
+  las tres líneas de la cobertura del territorio, las nueve formas `⚠` del plazo, sin cambio, la tabla de comandos, que
+  no cambia, y las nueve reglas, la 7 con la línea `⚠ SIN CONSULTA AL BOE:`. `references/municipios.md` lleva el
+  municipio que falta, lo que trae `data`, la plantilla del territorio, qué dice cada aspecto de la cobertura y qué se
+  hace cuando `territorio` o `plazos` no salen con 0; `references/calculo_de_plazos.md`, lo que la ley regula aparte
+  (con el ejemplo de las cuotas de la Seguridad Social y la lectura de `daprimera` fallida), el acto presunto, el
+  silencio, la reclamación del art. 24.2 LTAIBG, los municipios que cuentan, el plazo sin calcular y la lectura en la
+  fecha de inicio. La lista de materias del paso 7 sale del cuerpo: es la de la referencia generada de la cobertura por
+  materia, que se lee en toda pregunta de plazos. Las reglas 8 y 9 dicen ahora lo que decían los pasos 11 y 7: ninguna
+  fecha se calcula «para comprobarla», y de lo regulado aparte no se exponen los plazos de la norma que lo rige. La
+  descripción pasa a tercera persona («Se usa cuando se pregunta…») con los mismos disparadores, de 993 a 888
+  caracteres. Las cuatro referencias generadas no cambian; las dos nuevas viajan en el binario, y
+  `kitlegal skills install` las instala con la skill.
+- **`boe-legislacion` v0.3: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, siete
+  referencias escritas a mano** (H31; ADR 0046). Sustituye a `boe-legislacion` v0.2.2. Cambia la forma de lo que lee el
+  modelo, no ninguna regla: cada una de las 132 reglas de v0.2.2 tiene su sitio en la nueva (`research.md` de H31,
+  «Tabla de reglas»). El cuerpo pasa de 283 líneas y 24 439 caracteres a 152 y 10 993, con cinco pasos (identificar la
+  norma, leer, completar, responder y, de un precepto no leído, nada), la forma de la cita, las tres líneas de la
+  redacción en una fecha juntas en un bloque, la de la redacción modificada, la tabla de comandos, que no cambia, y las
+  ocho reglas con su número: la 3 con las tres etiquetas de aviso, la 7 con su frase en la referencia de las lecturas
+  que fallan y la 8 con la línea `⚠ SIN CONSULTA AL BOE:`. Siguen en el cuerpo las órdenes de `indice` y de `articulo`,
+  esta con su forma para PowerShell. Las referencias nuevas dicen cómo se pide cada orden con herramientas
+  (`references/con_herramientas.md`), cómo se busca una norma que no está en la tabla (`buscar_la_norma.md`), la orden
+  de `articulos` con su forma para PowerShell (`varios_bloques.md`), qué se hace con cada código y la frase de la
+  regla 7 (`lecturas_que_fallan.md`), las formas de la cita con sus ejemplos (`como_se_cita.md`), la lectura con
+  `--fecha` y cuándo va cada línea fechada (`redaccion_en_una_fecha.md`) y qué compara `kitlegal graph check`
+  (`redaccion_modificada.md`); cada paso dice cuándo leer la suya. Cambian tres ejemplos: los dos que la caché de una
+  sesión no sirve —la búsqueda pasa a `kitlegal boe buscar <términos> --json` y sale el de `analisis`— y la lectura con
+  fecha, que la caché sí sirve y va a su referencia, como el id de la Ley 9/2017 a la de las lecturas que fallan. La
+  descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
+  crea saberlo») con los mismos disparadores, de 1023 a 878 caracteres. `references/normas.md` no cambia; las siete
+  nuevas viajan en el binario, y `kitlegal skills install` las instala con la skill.
+- **`make skills-check` hace cumplir la forma de la especificación Agent Skills y de la guía del proyecto, y el límite
+  de menos de 300 líneas desaparece** (H31; ADR 0046). Cada incumplimiento es un defecto que nombra la skill, el fichero
+  y la regla, con la medida y el límite cuando los hay, y `make skills-sync` lo da también y no escribe nada:
+  - el frontmatter: `name` no contiene `claude` ni `anthropic`; ni `name` ni `description` llevan una etiqueta XML
+    (`<ejemplo>`, `</b>`, `<br/>`; «< 5000» no lo es); y la descripción tiene como mucho 900 caracteres, que sustituyen
+    al máximo de 1024 y a la regla de los `<` y `>`. Los defectos del frontmatter empiezan por `SKILL.md: `;
+  - el cuerpo de `SKILL.md` —sin el frontmatter y con la tabla de comandos como la deja `make skills-sync`— tiene menos
+    de 500 líneas y como mucho 11 000 caracteres, contados como caracteres y no como bytes. Sustituye al límite de
+    menos de 300 líneas del fichero entero;
+  - `references/` solo lleva ficheros regulares `.md`: un subdirectorio, un enlace o un fichero de otra extensión es un
+    defecto (`references/notas.txt: no es un fichero .md`), y `make skills-sync` ya no lo retira como sobrante;
+  - cada referencia, generada o a mano, está enlazada desde el cuerpo de `SKILL.md` con un enlace de Markdown fuera de
+    los bloques de código, `[…](references/<fichero>.md)`, con o sin `#apartado`; ninguna enlaza otra referencia de su
+    skill; y la de más de 100 líneas abre con su índice, una lista antes de su primer apartado `## ` que nombra cada
+    uno en su orden, y la que no tiene ningún `## ` también es un defecto. Una referencia generada se mira como la
+    regenera su fila, y una a mano, como está.
+
+  Las tres skills pasan sin defectos. `TestSkillsDelRepositorio` lo comprueba sobre cada skill con un mutante en rojo
+  por regla y su límite en verde (499 líneas, 11 000 caracteres, 900 en la descripción, 100 líneas sin índice).
+- **`references/` admite referencias escritas a mano, y lo que se comprueba de una skill se comprueba también en
+  ellas** (H31; ADR 0046). Un fichero de `references/` se clasifica primero por la declaración: el que declara
+  `kitlegal-referencias` es la referencia generada, con o sin su cabecera «generado desde», y `make skills-sync` lo
+  rehace si difiere; el no declarado que abre con la cabecera es un sobrante, que retira; y el `.md` no declarado sin
+  la cabecera es una referencia a mano, que `make skills-sync` no escribe, no rehace ni retira y `make skills-check` no
+  da como deriva. Además:
+  - los controles de contenido de `make ci` leen el `SKILL.md` y cada referencia a mano, cada una con su ruta en el
+    defecto: la prosa sin expresiones prohibidas ni fechas con cifras, las órdenes con su forma para PowerShell en el
+    mismo fichero, las normas nombradas y la ausencia de instrucciones de las evals; las formas fijas —la línea sin
+    consulta, las de aviso, de hallazgo y de la redacción fechada— se siguen exigiendo en el `SKILL.md`. Dos son
+    nuevos: cada línea `⚠` de una referencia a mano es una del `SKILL.md`
+    (`la línea ⚠ no es ninguna de SKILL.md: «…»`), y cada orden concreta de `kitlegal boe` de la skill sale con 0 con
+    `--offline` sobre la caché de una sesión de sus evals (ADR 0043). `TestControlesSobreLasReferenciasAMano` lleva el
+    mutante de cada control a una referencia a mano de una copia;
+  - el conjunto de dependencias de cada eval (H30) cuenta las referencias a mano: una propuesta que solo cambia una
+    elige las evals de su skill y las de las skills que la nombran, y una skill nombrada solo en una referencia a mano
+    entra en el conjunto con su `SKILL.md` y sus `references/`. Con las skills de antes de H31 la elección no cambia.
 - **El job de evals mide solo las evals que una propuesta de cambio ha podido cambiar, y reutiliza lo demás de `main`
   por su huella** (H30; ADR 0045). Al abrir o reabrir una propuesta, el trabajo nuevo `cambios`
   (`TestEleccionDeLaPropuesta`) calcula sobre el checkout, sin lista de rutas a mano, el conjunto de dependencias de

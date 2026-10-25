@@ -1,0 +1,88 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log está fechado el 2026-10-25 a las 05:40:10 (+01:00), el instante del commit 3b987fd, la cabeza; su cabecera «guardián de diff ok ((global), 21 ficheros)» coincide con los 21 ficheros de `git diff --name-only 22d7962..HEAD`, y termina con «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», con internal/skills (41,7 s), internal/app (43,5 s) e internal/evals (166,9 s) en ok, lint, govulncheck, skills-check, goreleaser check, gitleaks, go mod verify y tidy -diff en verde. `git status --porcelain` solo da lo que escribe el propio workflow para esta ronda: gates/modelos.jsonl (M), gates/revision-cambios.md (M), gates/revision-cambios-r2.diff (??) y el borrado de gates/base-global-pendiente."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El rango 22d7962..HEAD no añade ni toca código Go (gates/revision-cambios-r2.diff: CHANGELOG.md, CONTRIBUTING.md, docs/SKILLS.md, dos SKILL.md, references/lecturas_que_fallan.md y tres artefactos de specs/), así que los diez mutantes en rojo de la ronda 1 siguen valiendo. Los gates que leen las skills siguen en verde sobre el texto corregido: reproduje en esta sesión, leyendo el árbol sin escribir en él, `go test ./internal/skills/ ./internal/app/ -run 'TestSkillsDelRepositorio|TestTablaDeComandosCoincideConLaGramatica|TestOrdenesDeLasSkillsEmpotradas|TestCuerpoDeLaSkill|TestReferenciasAMano|TestValidarFrontmatter|TestIndiceDeLaReferencia|TestEtiquetaXML'` (314 passed) y `go test ./internal/evals/ -run 'TestEvalsDelRepositorio|TestLineaSinConsultaDeUnaSkill|TestProsaDeLaSkill|TestOrdenesParaPowerShell|TestOrdenesDeEjemplo|TestControlesSobreLasReferenciasAMano|TestFormatoDeLasEvalsDeCadaSkill|TestConjuntoDeEvals|TestDecisionDelJob'` (219 passed). Sin suite de aceptación e2e (plan.md «Aceptación e2e: no aplica»; ninguna tarea [aceptacion]); gates/cuarentena.json vacío; tasks.md sin cambios en el rango, 18/18 [X]."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Sin código nuevo en el rango. Vale la evidencia de la ronda 1: ningún `net/http`, `os.Exit` ni `fmt.Print*` en las líneas añadidas fuera de tests en `git diff main...HEAD`; `internal/arch_test.go` (paquete `internal`) ok en gates/ci.log; go.mod, go.sum y tools/ sin cambios."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ni el hito ni el rango cambian ningún applet ni ninguna salida del binario (el diff no toca internal/app/*.go salvo skills_test.go, ni cmd/, schemas/ ni testdata/). TestEsquemasPublicados en verde en gates/ci.log y TestTablaDeComandosCoincideConLaGramatica reproducido en verde: la región generada de «Comandos» (SKILL.md l.113-138) no cambia en el rango."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios de código en el rango; vale la ronda 1: ningún código de salida nuevo, errores envueltos con su causa (ejecucion.go, referencias.go:198,218, descripciones.go:78), ninguna ruta de pánico alcanzable, y CHANGELOG no promete ningún código que el binario no dé."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Las cifras nuevas son las medidas en esta sesión: cuerpo de boe-legislacion 152 líneas y 10 993 runas, legal-core 168 y 10 944, jurisprudencia 159 y 10 859 (texto desde la línea que sigue al `---` de cierre, como cuerpoDeLaSkill en sincronia.go:456-465, con `LC_ALL=en_US.UTF-8 wc -lm`), iguales en CHANGELOG.md l.85 y l.105, docs/SKILLS.md l.193-194 y plan.md l.240. El motivo 3 del juez A queda corregido: CHANGELOG.md l.20-24, CONTRIBUTING.md l.1316-1319 y docs/SKILLS.md l.86-91 dicen lo que hace el código: juzgarLasDescripciones (decision.go:84-102) exige propuesta y alguna descripción cambiada (cambiaAlgunaDescripcion, l.107-117) y calcula la huella de cada skill de la cabeza; decidirElTrabajo (decision.go:271-304) pone el bloque juzgado en cada trabajo y solo en modo reutilización lo sustituye por el juicio de main que da conReutilizacion; en la suite completa no busca. La tabla de reglas de research.md lleva el sitio final de lo que la corrección movió: B12 (l.426; SKILL.md l.134 «devuelven el mismo sobre»), B28 (l.442; lecturas_que_fallan.md l.23-24), B97 (l.511; la forma fija de SKILL.md l.102 y redaccion_modificada.md l.17), B112 y B114 (l.526-528; lecturas_que_fallan.md l.35-37, SKILL.md paso 4 l.59 y paso 5 l.71-76), B129 (l.543), y B33, B37 y B42 (l.447-456) siguen ciertas con el paso 2 recortado (varios_bloques.md l.8 «todos salen del índice»). contracts/skills-reescritas.md l.52, 97 y 124-126 dicen el reparto final; CHANGELOG.md l.117 nombra el traslado del ejemplo de la Ley 9/2017; gates/supuestos.md registra las tres decisiones del corrector. Ningún ADR ni fila de docs/SOURCES.md hacía falta."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca red, fuentes, data/, testdata/ ni evidencias/; gitleaks en verde en gates/ci.log. Vale la ronda 1: el juez de las descripciones lee evidencias/adr-0046/ del disco y vota con scripts/evals-voto.sh, los tests usan votos simulados y el `claude` sustituto, y ningún dato externo nuevo entra."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin código, fixtures ni goldens en el rango; `git diff --stat main...HEAD -- testdata schemas` sigue vacío. En el texto corregido no hay ninguna regla retirada para que un control pase: los controles de contenido (avisos, órdenes de ejemplo, prosa, PowerShell, referencias a mano) salen en verde con el texto nuevo sin que ningún test cambie. gates/cuarentena.json vacío."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango es exactamente la corrección de los tres motivos del juez A, dentro de FR-021/SC-012 y FR-023. (1) boe-legislacion: la regla 5 (SKILL.md l.152-155) recupera de main las tres condiciones y los ejemplos (main l.124-126 y l.278-280: «si se pregunta por un municipio», «siempre que lo preguntado les corresponda», «competencias compartidas o cedidas, desarrollo autonómico, régimen foral»); el paso 3 (l.51) «resuelta antes con los pasos 1 y 2» (main l.86); el paso 4 (l.62 y l.64) «sobre el contenido de una norma» y «el `rango` de cada una, de la tabla o de la búsqueda» (main l.111 y l.122-123; la tabla es la de normas del paso 1); la regla 3 (l.147-148) «Tenlos en cuenta y trasládalos, también una fecha de vigencia del bloque que no encaja» (main l.96). Para que quepa (10 993 de 11 000) salió del cuerpo solo detalle que ya está en una referencia que el cuerpo manda leer en ese caso (ADR 0046, decisión 1): el ejemplo de la Ley 9/2017, «por su número» y «sin el código ni de qué tratan» (lecturas_que_fallan.md l.23-24 y 35-37, que el paso 2 manda leer con cualquier orden que no termine en 0), el orden de las dos fechas (en la forma fija) y el sobre (en la región generada). (2) legal-core: pasos 9 y 11 (l.62 y l.68) con «de vencimiento» (main l.145 y l.165) y la línea del contencioso marcada como ejemplo (l.86-87; main l.198). El frontmatter de las tres skills no cambia en el rango (los hunks empiezan en l.19 y l.59) y jurisprudencia no cambia. Los tres supuestos nuevos de gates/supuestos.md son lecturas conservadoras coherentes con el spec."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Lo que lee el agente por pregunta sigue acotado y no crece con el uso: cuerpos de 10 993, 10 944 y 10 859 runas (≤ 11 000; márgenes de 7, 56 y 141), descripciones sin cambios (878, 888 y 842 ≤ 900); lecturas_que_fallan.md pasa de 48 a 51 líneas y solo se lee con una orden que no termina en 0. Las invocaciones por pregunta del protocolo no cambian (las órdenes del cuerpo son las mismas); el juez pide como mucho 6 votos por descripción y solo con una descripción cambiada en la propuesta."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "El rango no añade ningún mecanismo: ni paquete, tipo, función, rama, opción ni test. Vale la trazabilidad de la ronda 1 (plan.md «Trazabilidad»: markdown.go a FR-007-FR-009, ReferenciasAMano a FR-012, defectosDelCuerpo a FR-004/FR-010, descripciones.go a FR-025-FR-033, la decisión a FR-030, peorCasoDeLaDescripcion a SC-015)."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Los controles no cambian y siguen cumpliéndose con los textos nuevos: 10 993 y 10 944 runas ≤ maximoDeCaracteresDelCuerpo = 11000 (sincronia.go:30 y 442) y 152 y 168 líneas ≤ maximoDeLineasDelCuerpo = 499 (sincronia.go:29 y 435); descripciones ≤ maximoDeLaDescripcion = 900 (frontmatter.go:57 y 464); TestSkillsDelRepositorio reproducido en verde. Los mutantes de la ronda 1 (cuerpo en bytes, umbral con Decide:false, sinMedir sin el juez, deLaDescripcion a 0) siguen valiendo porque el código no cambia; el umbral del job `habla_en_primera_o_segunda_persona` sigue con Decide: true y umbral 0, y los umbrales en tasa de afirma_lo_no_leido no cambian."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "SC-012, boe-legislacion: B10 («no sustituye el asesoramiento de un profesional») sigue en la nueva solo como «informativos, no asesoramiento» (regla 3) y «la skill consulta y cita» (regla 4); legal-core y jurisprudencia conservan la frase entera. La sustancia se mantiene; la mención al profesional se pierde en esa skill.",
+    "SC-012, boe-legislacion, B129: la condición «termina con 0» ya no está escrita en el cuerpo; se deduce de «Redacción modificada» (una línea por entrada `version-obsoleta`), de la regla 7 y de «sin nada más sobre la redacción» en lecturas_que_fallan.md, que se lee en ese caso. Basta para FR-021, pero es menos explícita que main l.292.",
+    "El cuerpo de boe-legislacion queda a 7 runas del presupuesto de 11 000 (10 993): cualquier corrección futura del texto tendrá que liberar espacio antes.",
+    "Líneas de prosa de 121 a 125 columnas en los SKILL.md (boe-legislacion l.35, 66, 71-75, 147-148; legal-core l.8, 62, 124, 132) y en lecturas_que_fallan.md (l.3, 24, 35, 36, 42). La convención de 120 columnas de contracts/skills-reescritas.md no es un gate ni un FR, y ya había líneas así en 22d7962 y en main.",
+    "(k) internal/evals/reutilizacion.go: `informeDeLaMedida` embebe `Informe`, que ya lleva `Descripcion *DescripcionInformada` con la clave JSON `descripcion`, y añade otro campo `Descripcion *descripcionEnElInforme` con la misma clave; `juicioReutilizado` (origen.go) repite tres campos de `JuicioDeLaDescripcion`. Funciona porque encoding/json da precedencia al campo exterior; leer `informe.Descripcion` ahorraría dos tipos.",
+    "Un subdirectorio de `references/` sin ficheros empotrables hace fallar la compilación del `embed` `skills/*/references/*` de skills.go antes de que skills-check pueda dar el defecto de FR-006. Patrón de embed anterior al hito y fichero del kit tocado fuera del binario: regla genérica, no motivo.",
+    "docs/ROADMAP.md l.185 pasa a «H29, H30 y H31 están hechos»: alineación de una frase ya desactualizada que será cierta al fusionar; FR-023 no la pide pero no excede el alcance documental del barrido.",
+    "Los tests de esta ronda se reprodujeron con `go test` leyendo el árbol de trabajo, que solo escribe en la caché de Go y en el temporal, porque copiar el árbol fuera del repositorio no estaba permitido en esta sesión; ninguna orden escribió en el árbol. gates/ci.log de la cabeza dice lo mismo."
+  ]
+}

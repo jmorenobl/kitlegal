@@ -63,6 +63,12 @@ const (
 	votosPorRespuestaComoMucho = 2 * votosParaMarcar
 )
 
+// peorCasoDeLaDescripcion es lo más que tardan los votos de la descripción
+// que juzga un trabajo evals, la de su skill (research D1 y D10 de H31;
+// SC-015): los votosPorRespuestaComoMucho que puede pedir, uno tras otro, cada
+// uno con el tope de un voto y su margen.
+const peorCasoDeLaDescripcion = votosPorRespuestaComoMucho * (topeDelVoto + margenDelVoto)
+
 // Los términos del peor caso del trabajo de una skill (research.md D13 de H7.3):
 // dos medidos en el cierre de H7.2 y el tope de una sesión con su margen.
 const (
@@ -543,7 +549,9 @@ func separarLosModelos(lista string) []string {
 // (research.md D13 de H7.3; contracts/evals-en-dos-modos.md §6 de H21;
 // research.md D20 de H21). Con una skill con juez, más lo que el juez añade
 // (contracts/job-de-evals.md §4 de H24). Y, desde H30, más el plazo del paso
-// de la decisión (contracts/job-de-evals.md §2 de H30).
+// de la decisión (contracts/job-de-evals.md §2 de H30). Y, desde H31, más lo
+// que añade el juez de la descripción de su skill (research D10 de H31;
+// SC-015).
 type peorCasoDelTrabajo struct {
 	// Decision es el plazo del paso de la decisión del trabajo, el de
 	// plazoDeLaDecision, o 0 si el trabajo no tiene ese paso.
@@ -560,6 +568,12 @@ type peorCasoDelTrabajo struct {
 	// Juez es lo que el juez de la skill añade al peor caso, o nil si la skill
 	// no tiene juez: entonces el peor caso es el de sus sesiones.
 	Juez *peorCasoDelJuez
+
+	// JuzgaLaDescripcion dice si el trabajo puede juzgar la descripción de su
+	// skill, como todo trabajo evals desde H31: entonces suma
+	// peorCasoDeLaDescripcion y, si la skill no tiene juez, que ya la cuente,
+	// instalacionDelClaudeDelJuez.
+	JuzgaLaDescripcion bool
 }
 
 // peorCasoDelJuez es lo más que el juez con modelo puede añadir a un trabajo
@@ -608,9 +622,10 @@ func (p peorCasoDelJuez) String() string {
 }
 
 // peorCasoDeLaMedida es lo más que puede tardar el trabajo de la medida del
-// juez de una skill (contracts/job-de-evals.md §4 de H24): fueraDeLasSesiones,
-// que no abre ninguna, más lo que el juez añade con sus casos etiquetados, que
-// vota en un solo grupo.
+// juez de una skill (contracts/job-de-evals.md §4 de H24) o, desde H31, del
+// juez de las descripciones (research D9 de H31): fueraDeLasSesiones, que no
+// abre ninguna, más lo que el juez añade con sus casos etiquetados, que vota en
+// un solo grupo.
 type peorCasoDeLaMedida struct {
 	// Casos son los casos etiquetados del juez de la skill.
 	Casos int
@@ -656,13 +671,30 @@ func (p peorCasoDelTrabajo) Duracion() time.Duration {
 		duracion += p.Juez.Duracion()
 	}
 
-	return duracion
+	return duracion + p.deLaDescripcion()
+}
+
+// deLaDescripcion es lo que el juez de la descripción añade al peor caso:
+// peorCasoDeLaDescripcion y, si la skill no tiene juez, que ya cuente la
+// instalación del Claude Code del juez, esa instalación; o nada si el trabajo
+// no juzga la descripción.
+func (p peorCasoDelTrabajo) deLaDescripcion() time.Duration {
+	switch {
+	case !p.JuzgaLaDescripcion:
+		return 0
+	case p.Juez == nil:
+		return instalacionDelClaudeDelJuez + peorCasoDeLaDescripcion
+	default:
+		return peorCasoDeLaDescripcion
+	}
 }
 
 // String presenta el peor caso en segundos con sus términos, como
 // «14357 s = 485 s + (⌈97 / 4⌉ + ⌈96 / 4⌉ + ⌈6 / 4⌉) × (22 s + 240 s + 10 s)»;
 // con el plazo de la decisión, detrás de lo de fuera de las sesiones, como
-// «485 s + 900 s + (…)»; y, con una skill con juez, con los del juez detrás.
+// «485 s + 900 s + (…)»; con una skill con juez, con los del juez detrás; y,
+// si juzga la descripción, con los suyos al final, «+ 6 × (35 s + 5 s)», con
+// «+ 60 s» delante en una skill sin juez.
 func (p peorCasoDelTrabajo) String() string {
 	porGrupo := make([]string, 0, len(p.SesionesPorGrupo))
 	for _, sesiones := range p.SesionesPorGrupo {
@@ -680,6 +712,15 @@ func (p peorCasoDelTrabajo) String() string {
 
 	if p.Juez != nil {
 		texto += " + " + p.Juez.String()
+	}
+
+	if p.JuzgaLaDescripcion {
+		if p.Juez == nil {
+			texto += fmt.Sprintf(" + %d s", segundos(instalacionDelClaudeDelJuez))
+		}
+
+		texto += fmt.Sprintf(" + %d × (%d s + %d s)", votosPorRespuestaComoMucho, segundos(topeDelVoto),
+			segundos(margenDelVoto))
 	}
 
 	return texto
@@ -705,7 +746,9 @@ func segundos(duracion time.Duration) int {
 //
 // Desde H30 lleva también el plazo del paso de la decisión, que corre antes de
 // cualquier sesión (plazoDeLaDecision; contracts/job-de-evals.md §2 de H30): un
-// plazo que no se puede obtener es un error.
+// plazo que no se puede obtener es un error. Y, desde H31, lo que añade el juez
+// de la descripción de la skill, que todo trabajo puede juzgar (research D10 de
+// H31; SC-015).
 func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, error) {
 	concurrencia, err := concurrenciaDeLaSkill(d.PorSkill[skill].Concurrencia, skill)
 	if err != nil {
@@ -737,9 +780,10 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
 	sesiones := plan.Sesiones()
 
 	peor := peorCasoDelTrabajo{
-		Decision:         decision,
-		SesionesPorGrupo: contarPorGrupo(sesiones, func(SesionPlanificada) bool { return true }),
-		Concurrencia:     concurrencia,
+		Decision:           decision,
+		SesionesPorGrupo:   contarPorGrupo(sesiones, func(SesionPlanificada) bool { return true }),
+		Concurrencia:       concurrencia,
+		JuzgaLaDescripcion: true,
 	}
 
 	if conjunto.Juez != nil {
@@ -757,10 +801,25 @@ func (d DefinicionDelJob) peorCaso(evals, skill string) (peorCasoDelTrabajo, err
 // la carpeta juez de sus evals, dentro de evals, y su concurrencia, la que le da
 // el include del trabajo. Es un error una concurrencia menor que 1, una carpeta
 // que no se puede leer, una skill sin juez o unos casos que no tienen su forma.
+//
+// Desde H31, el de la entrada descripciones es el de la medida del juez de las
+// descripciones (research D9 y D10 de H31; SC-015): sus casos son los de la
+// evidencia del ADR 0046 en la raíz del repositorio que contiene evals, que es
+// su directorio evals (directorioDeLasEvals). Es un error que no se puedan leer
+// o que no tengan su forma.
 func (m TrabajoDeLaMedida) peorCaso(evals, skill string) (peorCasoDeLaMedida, error) {
 	concurrencia, err := concurrenciaDeLaSkill(m.ConcurrenciaPorSkill[skill], skill)
 	if err != nil {
 		return peorCasoDeLaMedida{}, err
+	}
+
+	if skill == entradaDeLasDescripciones {
+		casos, err := leerLosCasosDeLaEvidencia(filepath.Dir(evals))
+		if err != nil {
+			return peorCasoDeLaMedida{}, err
+		}
+
+		return peorCasoDeLaMedida{Casos: len(casos), Concurrencia: concurrencia}, nil
 	}
 
 	conjunto, err := LeerConjunto(filepath.Join(evals, skill))

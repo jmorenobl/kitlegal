@@ -3,6 +3,10 @@ package skills
 import (
 	"bytes"
 	"cmp"
+	"errors"
+	"fmt"
+	"io/fs"
+	"path"
 	"slices"
 	"strconv"
 	"strings"
@@ -169,6 +173,184 @@ func DatosDeLaReferencia(referencia []byte) (string, bool) {
 	}
 
 	return carpetaDeLosDatos + "/" + fichero, true
+}
+
+// ReferenciasAMano son las referencias a mano de la skill del árbol, que es la
+// raíz de un repositorio (contracts/gates-de-skills-check.md §3; research D13;
+// data-model §3; FR-012): los ficheros regulares .md de
+// skills/<skill>/references/ que su kitlegal-referencias no declara y cuya
+// primera línea no es la cabecera de una referencia generada
+// (DatosDeLaReferencia), con sus bytes y en orden de nombre. No lo son lo que no
+// es un fichero regular .md —un subdirectorio, un enlace, otra extensión—, la
+// referencia declarada, con su cabecera o sin ella, ni la no declarada que abre
+// con la cabecera, que es sobrante. Sin references/ no hay ninguna, y no se lee
+// SKILL.md. El error queda para lo que no se puede leer: references/, el
+// frontmatter de SKILL.md o una referencia.
+func ReferenciasAMano(arbol fs.FS, skill string) ([]Referencia, error) {
+	directorio := path.Join(carpetaDeLasSkills, skill)
+	carpeta := path.Join(directorio, carpetaDeLasReferencias)
+
+	entradas, err := fs.ReadDir(arbol, carpeta)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("%s no se puede listar: %w", carpeta, err)
+	}
+
+	declaradas, err := ficherosDeclarados(arbol, path.Join(directorio, ficheroDeLaSkill))
+	if err != nil {
+		return nil, err
+	}
+
+	var aMano []Referencia
+
+	for _, entrada := range entradas {
+		nombre := entrada.Name()
+		if !esFicheroMd(entrada) || declaradas[nombre] {
+			continue
+		}
+
+		ruta := path.Join(carpeta, nombre)
+
+		contenido, err := fs.ReadFile(arbol, ruta)
+		if err != nil {
+			return nil, fmt.Errorf("%s no se puede leer: %w", ruta, err)
+		}
+
+		if _, generada := DatosDeLaReferencia(contenido); generada {
+			continue
+		}
+
+		aMano = append(aMano, Referencia{Fichero: nombre, Contenido: contenido})
+	}
+
+	return aMano, nil
+}
+
+// esFicheroMd dice si una entrada de references/, vista sin seguirla, es lo
+// único que references/ admite (FR-006 de H31): un fichero regular .md.
+func esFicheroMd(entrada fs.DirEntry) bool {
+	return entrada.Type().IsRegular() && path.Ext(entrada.Name()) == extensionDeLasReferencias
+}
+
+// entradasQueNoSonFicherosMd son los nombres de las entradas de
+// skills/<skill>/references/ del árbol, que es la raíz de un repositorio, que no
+// son un fichero regular .md —un subdirectorio, un enlace, un fichero de otra
+// extensión o sin ella—, declaradas o no, en orden de nombre
+// (contracts/gates-de-skills-check.md §3; research D13; FR-006 de H31): cada una
+// es un defecto, no una deriva, y nadie la retira. Sin references/ no hay
+// ninguna. El error queda para un references/ que no se puede listar.
+func entradasQueNoSonFicherosMd(arbol fs.FS, skill string) ([]string, error) {
+	carpeta := path.Join(carpetaDeLasSkills, skill, carpetaDeLasReferencias)
+
+	entradas, err := fs.ReadDir(arbol, carpeta)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("%s no se puede listar: %w", carpeta, err)
+	}
+
+	var nombres []string
+
+	for _, entrada := range entradas {
+		if !esFicheroMd(entrada) {
+			nombres = append(nombres, entrada.Name())
+		}
+	}
+
+	return nombres, nil
+}
+
+// defectosDeEnlacesEIndices son los defectos de las referencias de la skill —las
+// generadas, como las regenera su fila, y las a mano, como están— con el cuerpo
+// de su SKILL.md regenerado (contracts/gates-de-skills-check.md §2 y §2.3;
+// research D13 y D14; FR-007 a FR-009 de H31), referencia a referencia en el
+// orden de sus nombres y, en cada una, en este orden:
+//
+//   - si ningún enlace del cuerpo, fuera de un bloque de código, tiene por
+//     destino references/<fichero>, con o sin #apartado (FR-007);
+//   - cada otra referencia de la skill a la que lleva un enlace suyo, resuelto
+//     desde references/, una vez y en el orden en que aparece (FR-008);
+//   - lo que le falta para abrir con su índice si tiene más de 100 líneas
+//     (FR-009).
+//
+// Cada defecto nombra el fichero, references/<fichero>, y la regla.
+func defectosDeEnlacesEIndices(skill string, cuerpo []byte, referencias []Referencia) []*DefectoDeSkill {
+	ordenadas := slices.SortedFunc(slices.Values(referencias), func(a, b Referencia) int {
+		return cmp.Compare(a.Fichero, b.Fichero)
+	})
+
+	deLaSkill := make(map[string]bool, len(ordenadas))
+	for _, referencia := range ordenadas {
+		deLaSkill[rutaDeLaReferencia(referencia)] = true
+	}
+
+	enlazadas := enlacesDeMarkdown(cuerpo)
+
+	var defectos []*DefectoDeSkill
+
+	defecto := func(ruta, regla string) {
+		defectos = append(defectos, &DefectoDeSkill{Skill: skill, Defecto: ruta + ": " + regla})
+	}
+
+	for _, referencia := range ordenadas {
+		ruta := rutaDeLaReferencia(referencia)
+
+		if !slices.Contains(enlazadas, ruta) {
+			defecto(ruta, ficheroDeLaSkill+" no la enlaza con []("+ruta+")")
+		}
+
+		var otras []string
+
+		for _, enlazada := range ficherosEnlazados(referencia.Contenido, carpetaDeLasReferencias) {
+			if enlazada != ruta && deLaSkill[enlazada] && !slices.Contains(otras, enlazada) {
+				otras = append(otras, enlazada)
+				defecto(ruta, "enlaza otra referencia, "+enlazada)
+			}
+		}
+
+		if falta := faltaDelIndice(referencia.Contenido); falta != "" {
+			defecto(ruta, falta)
+		}
+	}
+
+	return defectos
+}
+
+// rutaDeLaReferencia es la ruta de la referencia dentro del directorio de su
+// skill, con barra, como la nombran los defectos y los enlaces de SKILL.md:
+// references/<fichero>.
+func rutaDeLaReferencia(referencia Referencia) string {
+	return carpetaDeLasReferencias + "/" + referencia.Fichero
+}
+
+// ficherosDeclarados son los ficheros de references/ que declara el
+// kitlegal-referencias del SKILL.md de la ruta del árbol: <nombre>.md por cada
+// nombre. Es un error que SKILL.md no se pueda leer o que su frontmatter no se
+// lea.
+func ficherosDeclarados(arbol fs.FS, skillMd string) (map[string]bool, error) {
+	contenido, err := fs.ReadFile(arbol, skillMd)
+	if err != nil {
+		return nil, fmt.Errorf("%s no se puede leer: %w", skillMd, err)
+	}
+
+	frontmatter, err := LeerFrontmatter(contenido)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", skillMd, err)
+	}
+
+	nombres := frontmatter.DeclaracionDeKitlegal().Referencias
+	declarados := make(map[string]bool, len(nombres))
+
+	for _, nombre := range nombres {
+		declarados[nombre+extensionDeLasReferencias] = true
+	}
+
+	return declarados, nil
 }
 
 // componer es la referencia con el cuerpo dado: la cabecera, el título, la fila

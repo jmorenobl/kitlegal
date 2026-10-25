@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -25,14 +26,22 @@ const extensionDeUnaEval = ".yaml"
 type calculoDeLaDecision struct {
 	eleccion calculoDeLaEleccion
 	huellas  []string
+
+	// huellasDeLasDescripciones son la huella del juicio de la descripción de
+	// cada skill de la cabeza, por su nombre, si la ejecución juzga las
+	// descripciones (juzgarLasDescripciones); nil si no las juzga.
+	huellasDeLasDescripciones map[string]string
 }
 
 // leerElCalculoDeLaDecision lee del checkout de la raíz lo que la decisión de
 // un trabajo necesita (contracts/eleccion-y-huella.md §1 de H30): antes de nada
 // exige los fijados de la huella; después, la elección, con el árbol de la base
 // de fusión de base si no está vacía —con la suite completa no se elige nada—,
-// y la huella de cada eval, si todos sus conjuntos se calculan. Es un error que
-// un fijado no pueda ir en la huella o que el checkout no se pueda leer.
+// la huella de cada eval, si todos sus conjuntos se calculan, y, con base, que
+// es con propuesta, la del juicio de cada descripción si alguna cambia
+// (juzgarLasDescripciones). Es un error que un fijado no pueda ir en la huella,
+// que el checkout no se pueda leer o que, con una descripción cambiada, no se
+// pueda leer el juez de las descripciones.
 func leerElCalculoDeLaDecision(ctx context.Context, raiz, base string, fijados fijadosDeLaHuella) (
 	calculoDeLaDecision, error,
 ) {
@@ -46,16 +55,65 @@ func leerElCalculoDeLaDecision(ctx context.Context, raiz, base string, fijados f
 	}
 
 	calculo := calculoDeLaDecision{eleccion: eleccion}
-	if eleccion.sinConjunto() != "" {
-		return calculo, nil
+	if eleccion.sinConjunto() == "" {
+		calculo.huellas, err = huella.huellas()
+		if err != nil {
+			return calculoDeLaDecision{}, err
+		}
 	}
 
-	calculo.huellas, err = huella.huellas()
-	if err != nil {
+	if err := calculo.juzgarLasDescripciones(base != "", raiz, fijados); err != nil {
 		return calculoDeLaDecision{}, err
 	}
 
 	return calculo, nil
+}
+
+// juzgarLasDescripciones pone en el cálculo la huella del juicio de la
+// descripción de cada skill de la cabeza (huellaDelJuicio) si la ejecución
+// tiene propuesta y la descripción de alguna skill cambia entre la base y la
+// cabeza (FR-030 de H31; research D3 de H31; Clarificación Q2 de H31): si algún
+// skills/<skill>/SKILL.md de los dos árboles cumple cambiaLaDescripcion, la
+// regla de la elección, que no mira el motivo de ninguna eval. Solo entonces lee
+// de la raíz el juez de las descripciones, cuyos cuatro ficheros entran en la
+// huella con el modelo del juez y la versión de Claude Code de sus votos de los
+// fijados. Sin propuesta no se ha leído el árbol de la base y no juzga ninguna;
+// sin una descripción cambiada, tampoco: un cambio solo del juez no es el de
+// una descripción. Es un error, que deja el cálculo como estaba, que el juez no
+// se pueda leer.
+func (c *calculoDeLaDecision) juzgarLasDescripciones(conPropuesta bool, raiz string, fijados fijadosDeLaHuella) error {
+	if !conPropuesta || !c.cambiaAlgunaDescripcion() {
+		return nil
+	}
+
+	juez, err := juezDeLasDescripciones(raiz)
+	if err != nil {
+		return err
+	}
+
+	huellas := make(map[string]string, len(c.eleccion.cabeza.descripciones))
+	for skill, descripcion := range c.eleccion.cabeza.descripciones {
+		huellas[skill] = huellaDelJuicio(skill, descripcion, juez, fijados.modeloDelJuez, fijados.claudeCodeDelJuez)
+	}
+
+	c.huellasDeLasDescripciones = huellas
+
+	return nil
+}
+
+// cambiaAlgunaDescripcion dice si el SKILL.md de alguna skill de la base o de
+// la cabeza cumple cambiaLaDescripcion: su description difiere entre los dos
+// árboles o la skill está en uno solo.
+func (c calculoDeLaDecision) cambiaAlgunaDescripcion() bool {
+	for _, arbol := range []arbolDelRepositorio{c.eleccion.base, c.eleccion.cabeza} {
+		for skill := range arbol.descripciones {
+			if c.eleccion.cambiaLaDescripcion(path.Join(directorioDeLasSkills, skill, ficheroDeLaSkill)) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // leerElCalculoDeLaEleccion lee del checkout de la raíz lo que la elección de la
@@ -202,12 +260,30 @@ type evalDelTrabajo struct {
 //
 // Cada una lleva su huella, salvo sin conjunto, y el origen, la causa por la
 // que algún conjunto no se pudo calcular.
+//
+// Si la ejecución juzga las descripciones (juzgarLasDescripciones), el origen
+// lleva además el bloque descripcion de la skill, con la huella de su juicio
+// (FR-030 de H31; research D3 y D4 de H31; contracts/juez-de-las-descripciones.md
+// §2 de H31): en la suite completa, juzgada, sin buscar nada; con reutilización,
+// el juicio de la medida de main más reciente con su huella, buscado en el
+// mismo recorrido que las evals, o, sin él, juzgada. Si gh no da los ficheros de
+// la propuesta, la búsqueda no empieza y la descripción se juzga.
 func decidirElTrabajo(ctx context.Context, trabajo trabajoADecidir) *origenDeLasEvals {
 	origen := &origenDeLasEvals{Modo: trabajo.modo, SinConjunto: trabajo.calculo.eleccion.sinConjunto()}
 	evals := trabajo.calculo.evalsDeLaSkill(trabajo.skill)
+	huella, juzgaLaDescripcion := trabajo.calculo.huellasDeLasDescripciones[trabajo.skill]
+
+	if juzgaLaDescripcion {
+		origen.Descripcion = &descripcionDeLaDecision{Skill: trabajo.skill, Huella: huella, Juzgada: true}
+	}
 
 	if trabajo.modo == origenConReutilizacion {
-		origen.Evals, origen.ErrorDeLaPlataforma = trabajo.conReutilizacion(ctx, evals)
+		var reutilizado *descripcionDeLaDecision
+
+		origen.Evals, reutilizado, origen.ErrorDeLaPlataforma = trabajo.conReutilizacion(ctx, evals, huella)
+		if reutilizado != nil {
+			origen.Descripcion = reutilizado
+		}
 	} else {
 		for _, eval := range evals {
 			origen.Evals = append(origen.Evals, origenDeEval{
@@ -228,14 +304,21 @@ func decidirElTrabajo(ctx context.Context, trabajo trabajoADecidir) *origenDeLas
 }
 
 // conReutilizacion son las entradas del origen de las evals del trabajo con
-// reutilización, en su orden, y el error de la plataforma, si lo hubo.
+// reutilización, en su orden; el juicio de la descripción de la skill con la
+// huella dada que reutiliza de una medida de main, nil si no reutiliza ninguno
+// o si la huella está vacía, que es no buscarlo; y el error de la plataforma, si
+// lo hubo. Si la lectura de los ficheros de la propuesta falla, la búsqueda no
+// busca la descripción: la primera lectura que falla la para.
 func (t trabajoADecidir) conReutilizacion(
-	ctx context.Context, evals []evalDelTrabajo,
-) ([]origenDeEval, *errorDeLaPlataformaEnElOrigen) {
+	ctx context.Context, evals []evalDelTrabajo, huellaDeLaDescripcion string,
+) ([]origenDeEval, *descripcionDeLaDecision, *errorDeLaPlataformaEnElOrigen) {
 	ctx, cancelar := context.WithTimeout(ctx, plazoDeLaPlataforma)
 	defer cancelar()
 
 	eleccion, deLosFicheros := eleccionConLaPlataforma(ctx, t.plataforma, t.propuesta, t.calculo.eleccion)
+	if deLosFicheros != nil {
+		huellaDeLaDescripcion = ""
+	}
 
 	elegidas := map[string]evalElegida{}
 
@@ -253,7 +336,8 @@ func (t trabajoADecidir) conReutilizacion(
 		}
 	}
 
-	halladas, deLaBusqueda := buscarEnLasMedidasDeMain(ctx, t.plataforma, t.skill, buscadas, t.instante)
+	halladas, juicio, deLaBusqueda := buscarEnLasMedidasDeMain(ctx, t.plataforma, t.skill, buscadas,
+		huellaDeLaDescripcion, t.instante)
 
 	porFichero := make(map[string]origenDeEval, len(halladas))
 	for _, hallada := range halladas {
@@ -275,7 +359,7 @@ func (t trabajoADecidir) conReutilizacion(
 		})
 	}
 
-	return decididas, cmp.Or(deLosFicheros, deLaBusqueda)
+	return decididas, juicio, cmp.Or(deLosFicheros, deLaBusqueda)
 }
 
 // evalsDeLaSkill son las evals de la skill, en el orden de sus conjuntos, que

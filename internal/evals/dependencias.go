@@ -128,9 +128,11 @@ const (
 	// parteDeLaEval es (a), el fichero de la eval.
 	parteDeLaEval parteDelConjunto = "a"
 	// parteDeLasSkills es (b), el SKILL.md y las referencias de cada skill de la
-	// eval: la que mide y las que nombran, por cierre.
+	// eval, las generadas y las a mano: la que mide y las que nombran, por
+	// cierre.
 	parteDeLasSkills parteDelConjunto = "b"
-	// parteDeLosDatos es (c), los data/*.yaml de los que salen esas referencias.
+	// parteDeLosDatos es (c), los data/*.yaml de los que salen las referencias
+	// generadas de esas skills.
 	parteDeLosDatos parteDelConjunto = "c"
 	// parteDeLosPaquetes es (d), los paquetes de los applets de las tablas de
 	// esas skills y lo que empotran.
@@ -831,14 +833,15 @@ func (c calculoDeDependencias) grabacionesDeLaEval(ruta, fichero string) ([]entr
 
 // deLaSkill son las partes (b), (c) y (d) que comparten las evals de la skill,
 // y la versión de los módulos de sus paquetes; o el error que impide
-// calcularlas: que no exista skills/<skill>/, que su SKILL.md o el de una skill
-// que nombra no se pueda leer, o el de alguna de sus partes.
+// calcularlas: que no exista skills/<skill>/, que su SKILL.md o sus referencias
+// a mano, o las de una skill que nombra, no se puedan leer, o el de alguna de
+// sus partes.
 func (c calculoDeDependencias) deLaSkill(skill string) ([]entradaDeDependencia, map[string]string, error) {
 	if !slices.Contains(c.skills, skill) {
 		return nil, nil, fmt.Errorf("no existe %s/%s/", directorioDeLasSkills, skill)
 	}
 
-	nombradas, contenidos, err := c.skillsDeLaEval(skill)
+	nombradas, leidas, err := c.skillsDeLaEval(skill)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -849,7 +852,7 @@ func (c calculoDeDependencias) deLaSkill(skill string) ([]entradaDeDependencia, 
 	)
 
 	for _, nombrada := range nombradas {
-		deLaNombrada, deSusApplets, err := c.deUnaSkill(nombrada, contenidos[nombrada])
+		deLaNombrada, deSusApplets, err := c.deUnaSkill(nombrada, leidas[nombrada])
 		if err != nil {
 			return nil, nil, err
 		}
@@ -874,22 +877,39 @@ func (c calculoDeDependencias) deLaSkill(skill string) ([]entradaDeDependencia, 
 	return entradas, cierre.modulos, nil
 }
 
+// skillDelConjunto es lo que se lee de una skill del conjunto de una eval: su
+// SKILL.md, del que sale su tabla de comandos, y sus referencias a mano
+// (skills.ReferenciasAMano), cada fichero por separado.
+type skillDelConjunto struct {
+	skillMD []byte
+	aMano   []skills.Referencia
+}
+
+// laNombra dice si el SKILL.md o alguna referencia a mano de la skill nombra la
+// otra, en un mismo fichero (FR-014 y Clarificación Q1 de H31). Las referencias
+// generadas no se leen: salen de data/, que entra por (c).
+func (s skillDelConjunto) laNombra(otra string) bool {
+	return nombra(s.skillMD, otra) || slices.ContainsFunc(s.aMano, func(referencia skills.Referencia) bool {
+		return nombra(referencia.Contenido, otra)
+	})
+}
+
 // skillsDeLaEval son las skills de una eval de la skill (FR-001(b)): ella y,
-// por cierre, cada skill de skills/ cuyo nombre aparece en el SKILL.md de otra
-// del conjunto entre límites que no son [a-z0-9-]; en el orden en que se
-// encuentran, con el contenido de cada SKILL.md. Es un error que uno no se
-// pueda leer.
-func (c calculoDeDependencias) skillsDeLaEval(skill string) ([]string, map[string][]byte, error) {
+// por cierre, cada skill de skills/ cuyo nombre aparece en el SKILL.md o en una
+// referencia a mano de otra del conjunto entre límites que no son [a-z0-9-]; en
+// el orden en que se encuentran, con lo leído de cada una. Es un error que un
+// SKILL.md o sus referencias a mano no se puedan leer.
+func (c calculoDeDependencias) skillsDeLaEval(skill string) ([]string, map[string]skillDelConjunto, error) {
 	var nombradas []string
 
-	contenidos := map[string][]byte{}
+	leidas := map[string]skillDelConjunto{}
 	pendientes := []string{skill}
 
 	for len(pendientes) > 0 {
 		actual := pendientes[0]
 		pendientes = pendientes[1:]
 
-		if _, leida := contenidos[actual]; leida {
+		if _, leida := leidas[actual]; leida {
 			continue
 		}
 
@@ -900,17 +920,22 @@ func (c calculoDeDependencias) skillsDeLaEval(skill string) ([]string, map[strin
 			return nil, nil, fmt.Errorf("%s no se puede leer: %w", ruta, err)
 		}
 
-		contenidos[actual] = contenido
+		aMano, err := skills.ReferenciasAMano(c.arbol, actual)
+		if err != nil {
+			return nil, nil, fmt.Errorf("las referencias a mano de %s/%s: %w", directorioDeLasSkills, actual, err)
+		}
+
+		leidas[actual] = skillDelConjunto{skillMD: contenido, aMano: aMano}
 		nombradas = append(nombradas, actual)
 
 		for _, otra := range c.skills {
-			if otra != actual && nombra(contenido, otra) {
+			if otra != actual && leidas[actual].laNombra(otra) {
 				pendientes = append(pendientes, otra)
 			}
 		}
 	}
 
-	return nombradas, contenidos, nil
+	return nombradas, leidas, nil
 }
 
 // nombra dice si el nombre aparece en el contenido entre límites que no son
@@ -942,11 +967,13 @@ func esDeUnNombre(b byte) bool {
 }
 
 // deUnaSkill son, de una skill de la eval, su SKILL.md y sus referencias (b),
-// los data/*.yaml de las cabeceras de esas referencias (c) y los paquetes de los
-// que parte el cierre de los applets de su tabla de comandos (d). Es un error
-// una referencia sin la cabecera «generado desde», una tabla sin sus marcas o
-// sin applets, o un applet de la tabla sin fichero en internal/app (FR-005).
-func (c calculoDeDependencias) deUnaSkill(skill string, contenido []byte) ([]entradaDeDependencia, []string, error) {
+// las generadas y las a mano; los data/*.yaml de las cabeceras de las generadas
+// (c); y los paquetes de los que parte el cierre de los applets de su tabla de
+// comandos (d). Es un error una referencia que no es a mano sin la cabecera
+// «generado desde», una tabla sin sus marcas o sin applets, o un applet de la
+// tabla sin fichero en internal/app (FR-005).
+func (c calculoDeDependencias) deUnaSkill(skill string, leida skillDelConjunto,
+) ([]entradaDeDependencia, []string, error) {
 	directorio := directorioDeLasSkills + "/" + skill
 	referencias := directorio + "/" + directorioDeLasReferencias
 
@@ -955,14 +982,14 @@ func (c calculoDeDependencias) deUnaSkill(skill string, contenido []byte) ([]ent
 		{clase: entradaDirectorio, ruta: referencias + "/", parte: parteDeLasSkills},
 	}
 
-	datos, err := c.datosDeLasReferencias(referencias)
+	datos, err := c.datosDeLasReferencias(referencias, leida.aMano)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	entradas = append(entradas, datos...)
 
-	applets, err := skills.AppletsDeLaTabla(contenido)
+	applets, err := skills.AppletsDeLaTabla(leida.skillMD)
 	if err != nil {
 		return nil, nil, fmt.Errorf("la tabla de comandos de %s/%s: %w", directorio, ficheroDeLaSkill, err)
 	}
@@ -983,10 +1010,12 @@ func (c calculoDeDependencias) deUnaSkill(skill string, contenido []byte) ([]ent
 }
 
 // datosDeLasReferencias son los data/*.yaml de las cabeceras de las
-// referencias del directorio, uno por fichero (FR-001(c)); ninguno si el
-// directorio no existe. Es un error que no se pueda listar o leer, o que una
-// referencia no tenga la cabecera.
-func (c calculoDeDependencias) datosDeLasReferencias(referencias string) ([]entradaDeDependencia, error) {
+// referencias del directorio, uno por fichero que no está entre las a mano
+// dadas (FR-001(c); FR-014 de H31): una referencia a mano no da parte (c).
+// Ninguno si el directorio no existe. Es un error que no se pueda listar o
+// leer, o que una referencia que no es a mano no tenga la cabecera.
+func (c calculoDeDependencias) datosDeLasReferencias(referencias string, aMano []skills.Referencia,
+) ([]entradaDeDependencia, error) {
 	ficheros, err := fs.ReadDir(c.arbol, referencias)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
@@ -999,7 +1028,10 @@ func (c calculoDeDependencias) datosDeLasReferencias(referencias string) ([]entr
 	var datos []entradaDeDependencia
 
 	for _, fichero := range ficheros {
-		if fichero.IsDir() {
+		esAMano := slices.ContainsFunc(aMano, func(referencia skills.Referencia) bool {
+			return referencia.Fichero == fichero.Name()
+		})
+		if fichero.IsDir() || esAMano {
 			continue
 		}
 

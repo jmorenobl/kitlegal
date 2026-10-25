@@ -182,7 +182,7 @@ Al terminar: `legal-core` y `cita-verificada` funcionan para cualquier municipio
 
 Al terminar: se puede preguntar a kitlegal de cualquier materia. La norma que gobierna la pregunta se lee y se cita; lo que la base cubre se responde con sus herramientas; lo que no cubre se declara con el mismo «⚠ NO CUBIERTO» en todas las materias, y el agente lo busca con las herramientas genéricas y lo marca como no verificado, sin dar de memoria ningún plazo, órgano ni vía. Las skills siguen la especificación Agent Skills: un `SKILL.md` corto que guía, y el detalle —también el de cada materia— en referencias que se cargan cuando hacen falta. El código tiene puertos genéricos para las fuentes, el cómputo de plazos, los destinatarios y los documentos, cada uno validado con dos implementaciones. Y una propuesta de cambio mide solo las evals que ha podido cambiar. Lo administrativo de hoy sigue funcionando igual, ya como el primer paquete de materia; lo protegen sus evals. **Aceptación de la fase**: evals de cinco o seis materias, entre ellas el caso de la póliza (`docs/USO.md`, 2026-10-21), en las que la norma se lee y se cita, ningún plazo sale de memoria, la cobertura se declara y lo que falta se busca marcado.
 
-H29 está hecho (ADR 0044). Las entradas de H30 a H38 son de alto nivel: cada una se completa antes de lanzarla (§6). H38 no depende de ninguna y puede adelantarse.
+H29, H30 y H31 están hechos (ADR 0044, 0045 y 0046). Las entradas de H32 a H38 son de alto nivel: cada una se completa antes de lanzarla (§6). H38 no depende de ninguna y puede adelantarse.
 
 ### Fase 2 — Lo administrativo sobre la base: un asunto ante cualquier administración (después; `todo/`, fase `2`)
 
