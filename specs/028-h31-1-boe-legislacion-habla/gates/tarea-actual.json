@@ -1,26 +1,24 @@
 {
-  "id": "T002",
-  "texto": "T002 [US3] Añadir las nueve `lecturas` de FR-009 a las evals y los dos tests que las enumeran, en evals/boe-legislacion/14-trlrhl-impuestos-por-materia.yaml, evals/boe-legislacion/15-irpf-rendimientos-por-materia.yaml, evals/boe-legislacion/17-ltaibg-plazo-por-materia.yaml, internal/evals/conjunto_test.go e internal/evals/preparar_test.go, según contracts/lecturas-y-grabaciones.md §1 y §4, y dar holgura en internal/evals/sesiones_test.go a los dos casos de `TestTopeDeLaSesion` que no miran el corte. Primero los tests, vistos en rojo con las evals de hoy: (a) en `probarLasLecturasDeLasEvalsDelRepositorio` (`TestEvalsDelRepositorio/lecturas`), el mapa escrito a mano gana `a60`, `a92`, `a100`, `a104` de `BOE-A-2004-4214` en la 14 tras `a15`, `a7`, `a19`, `a20`, `dadecimoctava` de `BOE-A-2006-20764` en la 15 tras `a18`, y `a24` de `BOE-A-2013-12887` en la 17, cada una con el `motivo` literal de §1, y su comentario dice que llevan lecturas la 14, la 15, la 16 y la 17; (b) en `probarLasLecturasDeLasEvals` (`TestCacheDeLasSesiones/lecturas`), cada fila de la tabla lleva la eval de cuya sesión se prepara la caché —las cuatro de hoy, la 01; las nueve nuevas, la suya (14, 15 o 17), una caché preparada por eval distinta (research D9)— y cada bloque sale con 0 con `boe articulo … --offline` sin fecha y con `--fecha 9999-12-31`. Después, las evals: cada lectura detrás de las de hoy, en el orden de §1, con ese `motivo`; la 17 gana la clave `lecturas:`. Nada más de esas evals cambia —pregunta, `comandos`, `citas`, `informativa`, `por_materia`— ni ninguna otra eval, ni código de producción, ni `.github/workflows/evals.yml`, ni `internal/evals/definicion.go` (research D10). Y en internal/evals/sesiones_test.go, que la verificación del intento 1 vio en rojo por la carga de `make ci` (gates/tarea-T002.md: `termina-antes` y `muere-por-otra-senal` con 124 en lugar de 3 y de 129, porque el tope de 1 s envió TERM antes de que el sustituto de `claude` llegara a su `exit`), la tabla de `TestTopeDeLaSesion` gana un campo `tope` por caso, con `ejecucion.Tope = caso.tope`: `topeDeLosTests` en `basta-term` y `hace-falta-kill`, los que miran el corte, y `topeSinCorte` en `termina-antes` y `muere-por-otra-senal`, que solo miran el código de un sustituto que termina solo, por la regla que ya fija el propio fichero (un test que no mira el tope no depende de la carga de la máquina); el comentario del test lo dice. `topeDeLosTests`, `margenDeLosTests`, `topeSinCorte`, el tope y el margen de verdad (240 s y 10 s) y lo demás del fichero no cambian. Test: los cuatro de quickstart.md escenario 6, `TestTopeDeLaSesion` y `TestDefinicionDelJob` (escenario 7: el peor caso sigue en 20 117 s frente a 21 120 s; FR-013, SC-005) en verde, la orden `git ls-files` del escenario 6 da `8`, `make skills-check` y `make ci` en verde (FR-009, FR-011, FR-013, SC-004, SC-005, SC-008)",
-  "intento": 2,
+  "id": "T003",
+  "texto": "T003 [US1] Escribir `boe-legislacion` v0.3.1 (US1 y US2) en skills/boe-legislacion/SKILL.md, skills/boe-legislacion/references/redaccion_modificada.md, skills/boe-legislacion/references/buscar_la_norma.md y CONTRIBUTING.md, con el texto de contracts/skill-boe-legislacion-v0-3-1.md: (a) el cuerpo, desde el título hasta antes de la tabla de comandos, pasa a ser el de §1.1 y §1.2 tal cual —pasos 2 a 5 con la primera viñeta del paso 4 (B48, B50, B52, B53) y sus dos ejemplos, los cuatro ejemplos del paso 5, la segunda frase del paso 3 (FR-002), la frase del salto del paso 5 (FR-003), «Cómo se cita», «Redacción en una fecha», «Redacción modificada» y las reglas, con la regla 7 de hoy fuera, la 8 renumerada 7 y la regla 2 remitiendo a «la regla 7»—; el frontmatter (con su `description`, FR-008) y la tabla de comandos generada no se tocan, y se regenera con `make skills-sync`; (b) las siete salidas de §3, cada una a la referencia y con el enlace del paso que dice §3; (c) en `redaccion_modificada.md`, el párrafo de entrada y los apartados «Lo demás de la comprobación» y «Una lectura por bloque» de §4.1, delante de «## La redacción superada», sin ninguna línea que empiece por `⚠`; en `buscar_la_norma.md`, «Si no aparece» como en §4.2; las demás referencias y la generada `normas.md` no cambian; (d) en CONTRIBUTING.md (línea 743), el paréntesis de contracts/guia-y-changelog.md §3, reflujando el párrafo a 120 columnas y nada más. Ninguna orden concreta nueva de `kitlegal boe` en el cuerpo ni en una referencia (las menciones nuevas de `articulo` y `articulos`, sin argumentos; FR-007). Test (los gates y controles de H31, sin cambios, sobre la skill nueva): quickstart.md escenario 1 da 11 000 o menos (10 993 con el contrato; con 11 001, el gate en rojo), escenario 2 da `6`, escenario 3 da `0`, escenario 4 da `0`, escenario 5 (`make skills-check`) en verde con `TestSkillsDelRepositorio`, `TestCuerpoDeLaSkill` y los ocho controles de contenido de `docs/SKILLS.md` §1 de `TestEvalsDelRepositorio`, `grep -c 'regla 7 sin su punto final' CONTRIBUTING.md` da `0`, `TestSkillsEmpotradas` y `make ci` en verde (FR-001 a FR-008, SC-001, SC-002, SC-003)",
+  "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "3b83cdb2f9e341afa1acbbc33d3db9196b1a291b",
+  "base": "c7aae318abdeb003d3f9ba0cfe838f45f562d7bc",
   "rutas": [
-    ".github/workflows/evals.yml",
-    "TestCacheDeLasSesiones/lecturas",
-    "TestEvalsDelRepositorio/lecturas",
-    "contracts/lecturas-y-grabaciones.md",
-    "evals/boe-legislacion/14-trlrhl-impuestos-por-materia.yaml",
-    "evals/boe-legislacion/15-irpf-rendimientos-por-materia.yaml",
-    "evals/boe-legislacion/17-ltaibg-plazo-por-materia.yaml",
-    "gates/tarea-T002.md",
-    "internal/evals/conjunto_test.go",
-    "internal/evals/definicion.go",
-    "internal/evals/preparar_test.go",
-    "internal/evals/sesiones_test.go",
-    "quickstart.md"
+    "CONTRIBUTING.md",
+    "buscar_la_norma.md",
+    "contracts/guia-y-changelog.md",
+    "contracts/skill-boe-legislacion-v0-3-1.md",
+    "docs/SKILLS.md",
+    "normas.md",
+    "quickstart.md",
+    "redaccion_modificada.md",
+    "skills/boe-legislacion/SKILL.md",
+    "skills/boe-legislacion/references/buscar_la_norma.md",
+    "skills/boe-legislacion/references/redaccion_modificada.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "f7bbb3b54f5d406d40243e98977e553430e5e57a2c98c7e8f1ba5a6c492265e2"
+  "nota": "-"
 }

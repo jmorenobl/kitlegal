@@ -19,7 +19,7 @@ metadata:
 ## Protocolo
 
 Sigue los pasos en orden, cada operación con su orden, `kitlegal <applet> <verbo> … --json`, o, si la tienes, siempre
-con su herramienta («Comandos»), tras leer [con_herramientas](references/con_herramientas.md). Sin su `fuente`, `url`,
+con su herramienta, tras leer [con_herramientas](references/con_herramientas.md). Sin su `fuente`, `url`,
 `fecha_consulta` y `hash`, no hay cita.
 
 ### 1. Identificar la norma
@@ -32,8 +32,8 @@ con [buscar_la_norma](references/buscar_la_norma.md).
 - Sin el id del bloque, lee el índice: `kitlegal boe indice BOE-A-2015-10565 --json`. Copia el id de la entrada cuyo
   `titulo` es el artículo, nunca lo compongas con su número, y no pidas ninguno que no salga del índice o de la
   pregunta.
-- Sin fecha —con ella, «Redacción en una fecha»—, lee cada bloque una vez, con la comprobación de esa norma y ese
-  bloque detrás, en la misma orden:
+- Sin fecha —con ella, [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md)—, lee cada bloque una vez, con
+  la comprobación de esa norma y ese bloque detrás, en la misma orden:
   ```bash
   kitlegal boe articulo BOE-A-2015-10565 a21 --json && kitlegal graph check BOE-A-2015-10565 a21 --json
   ```
@@ -41,22 +41,25 @@ con [buscar_la_norma](references/buscar_la_norma.md).
   ```powershell
   kitlegal boe articulo BOE-A-2015-10565 a21 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-2015-10565 a21 --json }
   ```
-  La comprobación, nunca sin argumentos ni antes; si faltó, pídela ya. Releer el bloque apagaría su línea
-  `⚠ REDACCIÓN MODIFICADA:`.
+  La comprobación, nunca sin argumentos ni antes; si faltó, pídela ya.
 - Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no termina con `0`, antes de
   seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
 
 ### 3. Completar
 
 Lee lo remitido que cambia la respuesta, de esta norma o de otra, resuelta antes con los pasos 1 y 2, y, si importan
-la vigencia o una modificación, los metadatos y el análisis.
+la vigencia o una modificación, los metadatos y el análisis. Nombra un precepto solo si `kitlegal boe articulo` o
+`articulos` ha devuelto su texto en esta conversación, salvo lo del paso 5: si lo remite un bloque leído en el paso 2,
+o su id solo salió en un índice, léelo antes con los pasos 1 y 2, o no lo nombres; leído, di de qué trata, con su cita.
 
 ### 4. Responder
 
-- **La respuesta empieza por lo que se pregunta y habla de la norma, no de la consulta.** Es lo escrito tras la última
-  orden o llamada; quien pregunta no las ve, ni lo que devuelven o decides. La hacen la norma, su texto, su cita, sus
-  avisos y las líneas `⚠` de cada bloque: escribe como quien tiene el BOE delante, la norma por su nombre e
-  identificador, sin decir de dónde sale, qué haces ni qué devolvió una orden.
+- **La respuesta empieza por lo que se pregunta y habla de la norma, no de la consulta.** Es todo lo que escribes
+  tras la última orden o llamada, desde su primera palabra, y quien pregunta la lee entera: no ve las órdenes, las
+  llamadas ni lo que devuelven, y lo que decides al completar la lectura no va en ella. La hacen la norma, su texto, su
+  cita, sus avisos y las líneas `⚠` de cada bloque: escribe como quien tiene el BOE delante,
+  «el artículo no lleva avisos de vigencia» y no «la lectura no trajo avisos», la norma por su nombre e identificador,
+  sin decir de dónde sale, qué has hecho o vas a hacer ni qué ha devuelto o no una orden: no le sirve.
 - **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la línea
   `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
 - Cada afirmación sobre el contenido de una norma lleva su cita, de lo que `kitlegal boe` devolvió en esta
@@ -69,11 +72,12 @@ la vigencia o una modificación, los metadatos y el análisis.
 ### 5. De un precepto no leído, nada
 
 De un artículo, apartado o disposición que nada te ha devuelto en esta conversación no digas qué dice, de qué trata ni
-cuándo o cómo se aplica, ni en un inciso ni aunque creas saberlo: sería texto legal sin fuente, y el índice solo da
-números. Número y materia no van juntos en ninguna frase, ni afirmando («el art. N, que es…»), ni negando («no puedo
-decir qué <regla> fija»), ni al ofrecer leerlo o avisar de lo no leído: o el número, o la materia. Lo remitido, léelo
-y cítalo, o nómbralo con las palabras leídas, nada más. Puedes avisar de que una materia se regula en otra parte, sin
-nombrar precepto ni regla.
+cuándo o cómo se aplica, ni en un inciso ni aunque creas saberlo: sería texto legal sin fuente. Número y materia no
+van juntos en ninguna frase, ni afirmando («el art. N, que es…», «el art. N sobre <materia>»,
+«los artículos que regulan <materia> (N y M)»), ni negando («no puedo decir qué <regla> fija»), ni al ofrecer leerlo o
+avisar de lo no leído: o el número, o la materia. Lo leído para nombrarlo (paso 3) es un salto: lo que remite no se
+lee para nombrarlo y, como lo que no se pudo leer, se nombra solo con las palabras del texto leído. Puedes avisar de
+que una materia se regula en otra parte, sin nombrar precepto ni regla.
 
 ## Cómo se cita
 
@@ -84,9 +88,7 @@ Cada línea `⚠` va entera, en una sola línea y con los datos de la lectura: d
 
 ## Redacción en una fecha
 
-Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—, se cita la redacción vigente ese día,
-leída sin `kitlegal graph check`: lee antes [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md). Cada
-línea, solo de una lectura con fecha:
+Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—:
 
 ```text
 ⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <id>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.
@@ -96,15 +98,14 @@ línea, solo de una lectura con fecha:
 
 ## Redacción modificada
 
-Por cada entrada `version-obsoleta` de `kitlegal graph check`, una línea, con su cita y sus dos fechas:
+Por cada entrada `version-obsoleta` de `kitlegal graph check`, y si se pregunta qué cambió, lee
+[redaccion_modificada](references/redaccion_modificada.md):
 
 ```text
 ⚠ REDACCIÓN MODIFICADA: <forma legible> [<identificador>, bloque <id>]: la redacción con fecha de vigencia AAAAMMDD, la que se consultó antes, ha sido sustituida por la de AAAAMMDD, que es la que se cita.
 ```
 
-De `kitlegal graph` solo se usa `check`, y nada más suyo va en la respuesta: ni `fuente-caducada` ni nada de un bloque
-sin `version-obsoleta`. Con `version-obsoleta` o si se pregunta qué cambió:
-[redaccion_modificada](references/redaccion_modificada.md).
+De `kitlegal graph` solo se usa `check`, y nada más suyo va en la respuesta.
 
 ## Comandos
 
@@ -139,10 +140,9 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 
 ## Reglas
 
-1. **No concluir que algo no existe.** Una búsqueda vacía, o una norma fuera de la tabla, no prueba que no exista: di
-   «no encontrada con esta búsqueda» y propón reformularla.
+1. **No concluir que algo no existe.** Una búsqueda vacía, o una norma fuera de la tabla, no prueba que no exista.
 2. **Nunca inventar contenido legal.** Si `kitlegal boe` falla o no está, di qué bloques no pudiste consultar y por
-   qué, y no suplas nada de memoria; sin herramienta ni binario, la regla 8.
+   qué, y no suplas nada de memoria; sin herramienta ni binario, la regla 7.
 3. **Trasladar la vigencia.** Cada aviso va con su forma fija, `⚠`, su etiqueta y dos puntos, y su frase o una
    explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:` o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`. Trasládalos,
    también una fecha de vigencia del bloque que no encaja con lo preguntado; una derogada no es vigente. Los textos
@@ -156,10 +156,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 6. **El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.** Lo citado sale de `kitlegal boe articulo` o
    `articulos`; lo de `kitlegal graph` no se cita, parafrasea ni reconstruye: dice qué volver a comprobar, no qué dice
    el artículo.
-7. **Si `kitlegal graph check` no termina con `0`.** Si, tras una lectura sin fecha, termina con otro código o
-   `graph_check` da un error, cita lo leído y lleva, solo entonces, la frase de
-   [lecturas_que_fallan](references/lecturas_que_fallan.md).
-8. **Sin herramienta y sin binario, la respuesta lo dice.** Sin la herramienta, si `kitlegal` no está —el shell no lo
+7. **Sin herramienta y sin binario, la respuesta lo dice.** Sin la herramienta, si `kitlegal` no está —el shell no lo
    encuentra o no ejecutas órdenes—, no lo busques en otras carpetas ni en un plugin: no has consultado nada.
    No afirmes nada de la norma, de memoria o con salvedades, ni cites; lleva esta línea, con la causa en el marcador:
    ```text
