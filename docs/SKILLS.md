@@ -59,6 +59,13 @@ activa una; y una referencia, solo si la lee. Lo que va a una referencia el mode
 se busca una norma que no está en la tabla, qué se hace con cada código de salida, lo que la ley regula aparte en un
 plazo, qué se dice de un documento que no es el pedido.
 
+**Lo que se lee de una referencia, medido** (`evidencias/sondeos-20261025/`, `LEEME.md`). Las sesiones abren las
+referencias de las que necesitan un dato para seguir y no las que solo traen guía, aunque el cuerpo mande leerlas: en
+los sondeos de la eval 15 de `boe-legislacion`, ninguna de las 40 sesiones de `brazo-D` abrió la referencia que el
+cuerpo mandaba leer antes de responder, y en los seis brazos se abrieron `normas` (de 23 a 40 sesiones por brazo) y,
+en los brazos con la skill de H31 —todos menos `brazo-E`, que no tiene esa referencia—, `con_herramientas` (de 6 a 9).
+Por eso lo que toda respuesta necesita va en el cuerpo, y una referencia nueva lleva el paso del protocolo que la pide.
+
 Cuándo leer cada referencia lo dice el cuerpo de una de dos maneras. Con un apartado «Referencias», una línea por
 referencia, como `legal-core`:
 

@@ -120,6 +120,25 @@ sustituyen a este fichero.
   descripción pasa a tercera persona («Se usa siempre que…», «Se activa antes de…», «aunque el agente
   crea saberlo») con los mismos disparadores, de 1023 a 878 caracteres. `references/normas.md` no cambia; las siete
   nuevas viajan en el binario, y `kitlegal skills install` las instala con la skill.
+- **`boe-legislacion` v0.3.1: la respuesta habla de la norma, no de la consulta, y lo que nombra lo ha leído antes**
+  (H31.1). Sustituye a `boe-legislacion` v0.3. En el sondeo de la eval 15 (`evidencias/sondeos-20261025/`), las
+  respuestas que cuentan lo que hizo el agente pasaron de 0 de 40 con la skill de antes de H31 a 17 de 80 con la v0.3.
+  El paso «Responder» vuelve a decir que la respuesta es todo lo que se escribe tras la última orden o llamada, desde su
+  primera palabra; que quien la pregunta la lee entera y no ve las órdenes, las llamadas ni lo que devuelven; que lo
+  que se decide al completar la lectura no va en ella; y que lo hecho, lo que se va a hacer y lo que devolvió una orden
+  no le sirven, con sus dos ejemplos, y el paso 5 vuelve a llevar sus cuatro. El paso 3 dice que la respuesta nombra un
+  precepto solo si `kitlegal boe articulo` o `articulos` ha devuelto su texto, y manda leer antes, con los pasos 1 y 2,
+  el que remite un bloque leído o cuyo id solo salió en un índice; leído, la respuesta dice de qué trata, con su cita, y
+  esa lectura es un salto: lo que remite, como lo que no se pudo leer, se nombra solo con las palabras del texto leído.
+  El cuerpo queda en 10 993 caracteres: salen a sus referencias textos que solo pide una clase de pregunta —la regla 7,
+  la de la comprobación que no termina con `0`, que ya decía `references/lecturas_que_fallan.md` (la 8 pasa a ser la
+  7); el detalle de la lectura con fecha, cuyo enlace pasa al paso 2; lo demás de `kitlegal graph check` y la segunda
+  lectura de un bloque, a `redaccion_modificada.md`; y lo que se dice de una norma que la búsqueda no da, a
+  `buscar_la_norma.md`—. La descripción no cambia. Las evals 14, 15 y 17 llevan en `lecturas` los preceptos que sus
+  respuestas nombraban sin haberlos leído —`a60`, `a92`, `a100` y `a104` del texto refundido de la Ley reguladora de
+  las Haciendas Locales; `a7`, `a19`, `a20` y `dadecimoctava` de la Ley 35/2006; y `a24` de la Ley 19/2013—, grabados
+  en `internal/evals/testdata/`; no cuentan en ningún umbral. `docs/SKILLS.md` §1 dice qué referencias se leen y cuáles
+  no, con lo medido.
 - **`make skills-check` hace cumplir la forma de la especificación Agent Skills y de la guía del proyecto, y el límite
   de menos de 300 líneas desaparece** (H31; ADR 0046). Cada incumplimiento es un defecto que nombra la skill, el fichero
   y la regla, con la medida y el límite cuando los hay, y `make skills-sync` lo da también y no escribe nada:

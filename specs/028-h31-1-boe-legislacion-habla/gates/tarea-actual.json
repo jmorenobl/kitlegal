@@ -1,22 +1,15 @@
 {
-  "id": "T003",
-  "texto": "T003 [US1] Escribir `boe-legislacion` v0.3.1 (US1 y US2) en skills/boe-legislacion/SKILL.md, skills/boe-legislacion/references/redaccion_modificada.md, skills/boe-legislacion/references/buscar_la_norma.md y CONTRIBUTING.md, con el texto de contracts/skill-boe-legislacion-v0-3-1.md: (a) el cuerpo, desde el título hasta antes de la tabla de comandos, pasa a ser el de §1.1 y §1.2 tal cual —pasos 2 a 5 con la primera viñeta del paso 4 (B48, B50, B52, B53) y sus dos ejemplos, los cuatro ejemplos del paso 5, la segunda frase del paso 3 (FR-002), la frase del salto del paso 5 (FR-003), «Cómo se cita», «Redacción en una fecha», «Redacción modificada» y las reglas, con la regla 7 de hoy fuera, la 8 renumerada 7 y la regla 2 remitiendo a «la regla 7»—; el frontmatter (con su `description`, FR-008) y la tabla de comandos generada no se tocan, y se regenera con `make skills-sync`; (b) las siete salidas de §3, cada una a la referencia y con el enlace del paso que dice §3; (c) en `redaccion_modificada.md`, el párrafo de entrada y los apartados «Lo demás de la comprobación» y «Una lectura por bloque» de §4.1, delante de «## La redacción superada», sin ninguna línea que empiece por `⚠`; en `buscar_la_norma.md`, «Si no aparece» como en §4.2; las demás referencias y la generada `normas.md` no cambian; (d) en CONTRIBUTING.md (línea 743), el paréntesis de contracts/guia-y-changelog.md §3, reflujando el párrafo a 120 columnas y nada más. Ninguna orden concreta nueva de `kitlegal boe` en el cuerpo ni en una referencia (las menciones nuevas de `articulo` y `articulos`, sin argumentos; FR-007). Test (los gates y controles de H31, sin cambios, sobre la skill nueva): quickstart.md escenario 1 da 11 000 o menos (10 993 con el contrato; con 11 001, el gate en rojo), escenario 2 da `6`, escenario 3 da `0`, escenario 4 da `0`, escenario 5 (`make skills-check`) en verde con `TestSkillsDelRepositorio`, `TestCuerpoDeLaSkill` y los ocho controles de contenido de `docs/SKILLS.md` §1 de `TestEvalsDelRepositorio`, `grep -c 'regla 7 sin su punto final' CONTRIBUTING.md` da `0`, `TestSkillsEmpotradas` y `make ci` en verde (FR-001 a FR-008, SC-001, SC-002, SC-003)",
+  "id": "T004",
+  "texto": "T004 [US5] Escribir en docs/SKILLS.md, apartado «## 1. Qué va en el cuerpo y qué en una referencia», detrás del párrafo que empieza «**En una referencia, el detalle que solo pide una clase de pregunta**» y delante de «Cuándo leer cada referencia lo dice el cuerpo…», el párrafo literal de contracts/guia-y-changelog.md §1 —lo medido en los sondeos de la eval 15, con sus cifras (ninguna de las 40 sesiones de `brazo-D`; `normas`, de 23 a 40 sesiones por brazo; `con_herramientas`, de 6 a 9) y la ruta de su evidencia, y sus dos consecuencias— sin tocar nada más de la guía (FR-012); y en CHANGELOG.md, en «### Cambiado» de *Unreleased*, detrás de la entrada de `boe-legislacion` v0.3, la entrada v0.3.1 literal de contracts/guia-y-changelog.md §2, con la cifra del cuerpo que da quickstart.md escenario 1 tras T003 (FR-014). Test: quickstart.md escenario 8 da `1`, `1` y `0`; `make ci` en verde (FR-012, FR-014, SC-001, SC-006, SC-013)",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "c7aae318abdeb003d3f9ba0cfe838f45f562d7bc",
+  "base": "890d879decfdb6ba767ea738bbe37368a488d114",
   "rutas": [
-    "CONTRIBUTING.md",
-    "buscar_la_norma.md",
+    "CHANGELOG.md",
     "contracts/guia-y-changelog.md",
-    "contracts/skill-boe-legislacion-v0-3-1.md",
     "docs/SKILLS.md",
-    "normas.md",
-    "quickstart.md",
-    "redaccion_modificada.md",
-    "skills/boe-legislacion/SKILL.md",
-    "skills/boe-legislacion/references/buscar_la_norma.md",
-    "skills/boe-legislacion/references/redaccion_modificada.md"
+    "quickstart.md"
   ],
   "cierre": false,
   "converger": false,
