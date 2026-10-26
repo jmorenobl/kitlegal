@@ -1,0 +1,89 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log:1-106: guardián de diff ok (9 ficheros), lint 0 issues, go test -race en los dos modos ok en todos los paquetes (internal/evals 96,4 %), govulncheck sin vulnerabilidades, esquemas, skills, goreleaser, gitleaks, go mod verify y tidy -diff, «ci: todos los controles en verde», exit=0. En un clon de la cabeza bajo $TMPDIR, TestEvalsDelRepositorio, TestCacheDeLasSesiones, TestLecturaDeLaEvalSinGrabar y TestSkillsDelRepositorio en verde (ok internal/evals 4,8 s, internal/app 6,3 s). Árbol: `git status` solo muestra gates/modelos.jsonl modificado y gates/revision-cambios.md y gates/revision-ciclo.json sin seguir, que escribe revision.sh al preparar esta ronda, nada del producto."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "El diff no añade código de producción (git diff main...HEAD --stat: solo skills/, evals/, docs, CHANGELOG, CONTRIBUTING, testdata y tres tests). Los tests que cambian detectan lo que dicen, probado con mutantes en el clon: (1) evals/boe-legislacion/14-*.yaml con la versión de main (sin a60, a92, a100, a104) y el motivo de a7 alterado en la 15 → TestEvalsDelRepositorio/lecturas en rojo en conjunto_test.go:2365 nombrando los bloques que faltan y el motivo distinto, y TestCacheDeLasSesiones/lecturas en rojo en preparar_test.go:1126 con código 4 para a60 y a92 sin fecha y con 9999-12-31; (2) solo la grabación de a92 borrada → TestEvalsDelRepositorio/grabado en rojo («la lectura BOE-A-2004-4214 a92 sin su bloque») y TestCacheDeLasSesiones/lecturas en rojo porque la sesión de la 14 no se prepara sin faltas. Los nueve ids son los de los índices grabados (jq sobre testdata/evals/…_texto_indice.json: a7 «Artículo 7», a19, a20, dadecimoctava «Disposición adicional decimoctava», a60, a92, a100, a104, a24 «Artículo 24»). Suite de aceptación congelada: no hay (plan.md:137-142, «Aceptación e2e: no aplica», justificado en Complexity Tracking plan.md:296: el binario no cambia); no existe gates/aceptacion-congelada.json que alterar. TestTopeDeLaSesion (sesiones_test.go:56-62, 81-83, 123) sigue mirando el corte en basta-term y hace-falta-kill con topeDeLosTests y solo el código en los otros dos con topeSinCorte, que ya existía en main (11 usos)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Ningún fichero .go de producción en el diff (git log main..HEAD -- internal: solo conjunto_test.go, preparar_test.go, sesiones_test.go y testdata); ningún import nuevo; internal/arch_test.go pasa en gates/ci.log:15. Nada de net/http, os.Exit ni fmt.Print fuera de lo autorizado porque no hay código nuevo."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ninguna salida de applet ni esquema cambia (schemas/ no está en el diff; plan.md:137-139). TestEsquemasPublicados en verde en gates/ci.log:78-79. Los sobres de las lecturas nuevas, medidos en el clon con app.Main boe articulo --offline --json desde la caché de una sesión de su eval, salen con código 0 los once (a17, a18, a7, a19, a20, dadecimoctava, a60, a92, a100, a104, a24)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida ni error tipado cambia (plan.md:306). Lo que la skill promete de los códigos sigue siendo lo de main: references/lecturas_que_fallan.md:9-18 enumera 2, 3, 4, 5, 6 y 1 como los da el binario (ADR 0023), y la caché de una sesión sin un bloque de lecturas sale con 4 con --offline (visto en el mutante, preparar_test.go:1126), que es lo que la referencia dice del fallo de lectura."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:123-142, entrada v0.3.1 en Unreleased (quickstart escenario 8 da 1): cada afirmación cotejada: «0 de 40 … a 17 de 80» = evidencias/sondeos-20261025/LEEME.md:56; «El cuerpo queda en 10 993 caracteres» = awk+wc -m sobre SKILL.md da 10993 (11160 bytes); «la regla 7 … que ya decía references/lecturas_que_fallan.md» = lecturas_que_fallan.md:40-50 («Si kitlegal graph check falla»); la 8 pasa a ser la 7 (SKILL.md:159, regla 2 remite a «la regla 7» en :145); el enlace de la lectura con fecha en el paso 2 (SKILL.md:35); lo demás de graph check y la segunda lectura en redaccion_modificada.md:27-34; lo de la búsqueda en buscar_la_norma.md:24-25; los nueve bloques en lecturas con grabaciones (8 ficheros nuevos en internal/evals/testdata, commit 3b83cdb). docs/SKILLS.md:62-67 (dentro de §1, que va de :42 a :113) dice lo de FR-012 con las cifras de LEEME.md:45 y :57-59 (brazo-D 0 de 40, normas de 23 a 40, con_herramientas de 6 a 9, brazo-E sin esa referencia) y la ruta de la evidencia. CONTRIBUTING.md:743 ya no llama «la frase de la regla 7» a la de lecturas_que_fallan (grep da 0), coherente con formas_fijas de evals/boe-legislacion/expresiones-prohibidas.yaml:106-108. Ningún ADR hace falta (ninguna decisión de arquitectura cambia; umbrales fuera de alcance, spec.md:433). docs/SOURCES.md:42 ya tiene la fila revisada de boe.legislacion-consolidada (2026-09-13) y su uso no cambia."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Las ocho grabaciones nuevas las escribió el paso grabar_datos (commit 3b83cdb, gates/grabaciones.log: TestGrabarEvals ok 10,5 s; gates/grabaciones.md con sus huellas) por internal/httpx: cada fichero lleva peticion.metodo GET, Accept application/xml y User-Agent «kitlegal/dev (+https://kitlegal.es/bot)» (…_a60.json:4-13). El robots.txt regrabado solo cambia grabado_en, Age y Date (git diff main...HEAD: 3 líneas). Ningún fichero de data/ ni de evidencias/ en el diff (plan.md:274: material de origen, ninguno). Sin secretos (gitleaks, ci.log:88-90), sin NIF ni datos de persona: los cuerpos son texto legal del BOE."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "git diff main...HEAD -- ':!specs' | grep nolint, t.Skip, Skip(, TODO, FIXME: sin resultados. gates/cuarentena.json: tareas {} y 0 consecutivas. Ningún fixture retocado: las grabaciones son nuevas y el robots.txt solo cambia cabeceras. El cambio de sesiones_test.go no salta ni afloja el test que mira el corte: basta-term y hace-falta-kill siguen con topeDeLosTests (sesiones_test.go:92, 100); los dos que pasan a topeSinCorte solo miran el código de un sustituto que termina solo, y el rojo que lo motivó está documentado con su causa raíz en gates/tarea-T002.md:1-36 (124 en lugar de 3 y 129 bajo la carga de make ci, verde aislado)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada fichero del diff se traza a un FR: SKILL.md y dos referencias (FR-001 a FR-007), CONTRIBUTING.md:740-746 (consecuencia de FR-006, research D7, contracts/guia-y-changelog.md §3), tres evals (FR-009), manifiesto y grabaciones (FR-010), dos tests de lecturas (FR-011), docs/SKILLS.md §1 (FR-012), CHANGELOG (FR-014). FR-004: 0 líneas añadidas al cuerpo nombran BOE-A-2004-4214, BOE-A-2006-20764, BOE-A-2013-12887, Ley 35/2006, Real Decreto Legislativo 2/2004, Ley 19/2013, IRPF ni TRLRHL (quickstart escenario 3). FR-008: ningún trozo del diff de SKILL.md empieza antes de la línea 22 (git diff -U0: primer @@ -22), el frontmatter y la description son los de main. Nada de .github/workflows/evals.yml, definicion.go, jurisprudencia, legal-core, scripts/workflow ni web/ (spec.md:440-448). Los tres supuestos de gates/supuestos.md son lecturas conservadoras: «si faltó, pídela ya» se queda en el paso 2 (SKILL.md:44), que es protocolo y FR-006 prohíbe sacar; la cuenta de SC-008 no toca el umbral (0 sesiones) y queda escrita en spec.md:374-380 y plan.md:182, 195-203; el separador del `para` y el reflujo de CONTRIBUTING no cambian nada observable."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en el clon con el binario sobre lo grabado (app.Main boe articulo --offline --json desde la caché de una sesión de su eval): a7 22 304 bytes, a19 2 819, a20 2 921, dadecimoctava 3 061, a18 4 803 (los cinco que la regla lleva a leer en la eval 15 suman 35 908, igual que research V11 y plan.md:218); a60 893, a92 1 704, a100 2 061, a104 7 779, a24 2 690; once lecturas, 60 380 bytes. El cuerpo, cargado una vez por pregunta, 10 993 caracteres (awk+wc -m), acotado por el gate. Invocaciones por pregunta: las de hoy más, en el paso 3, una lectura con su comprobación por precepto que la respuesta va a nombrar y no ha leído (o una `articulos` con su comprobación, SKILL.md:45, 51-53), acotadas por lo que la respuesta nombra y por el salto (SKILL.md:78-79): crecen con la pregunta, no con lo acumulado, porque cada lectura pide un bloque por su id y `graph check <norma> <bloque>` devuelve solo entradas de ese bloque (la orden sin argumentos sigue prohibida, SKILL.md:44). Señales: ninguna nueva; ⚠ REDACCIÓN MODIFICADA sigue dándose solo si el bloque cambió desde una lectura anterior y deja de darse al leerlo (paso 2, «lee cada bloque una vez»); fuente-caducada y lo demás de la comprobación no van en la respuesta (SKILL.md:108, redaccion_modificada.md:27-30). Las lecturas de las evals solo crecen con lo que se escribe en evals/."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo del diff se traza (plan.md:250-262): la primera viñeta del paso 4 y los cuatro ejemplos del paso 5 (FR-001; SKILL.md:57-62, 75-78), la segunda frase del paso 3 (FR-002; :51-53), la frase del salto (FR-003; :78-79), las siete salidas del cuerpo con su enlace en el paso que las pide (FR-005/FR-006; contracts §3 cotejado con SKILL.md:22, 35, 45-46, 101-102, 108 y buscar_la_norma.md:24-25, redaccion_modificada.md:27-34, lecturas_que_fallan.md:40-50, redaccion_en_una_fecha.md:14-16 y :57-60, con_herramientas.md:6), las nueve lecturas con un solo motivo compartido (FR-009), dos entradas del manifiesto (FR-010), el mapa y la tabla de los dos tests con una caché por eval distinta (FR-011, research D9, US3 escenarios 1-2), el párrafo de la guía (FR-012), el recálculo sin cambio de tope (FR-013; peorCasoDeBoeLegislacion «20117 s» en definicion_test.go:2997 frente a timeout-minutes 352 en evals.yml:276), la entrada del CHANGELOG (FR-014). Ninguna referencia nueva, ningún objetivo de make, ningún control nuevo (research D6, D14). El único mecanismo sin FR es el campo `tope` por caso de TestTopeDeLaSesion, que no añade un estado aparte ni un caso límite: quita una cota sin holgura de dos casos que no la miden, para que make ci (DoD 1) no dependa de la carga de la máquina; va a observaciones."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» (plan.md:171-187) con control en el código, y los que decide make ci comprobados con mutantes en el clon: cuerpo ≤ 11 000 (FR-005, SC-002): con 9 caracteres de más, TestSkillsDelRepositorio en rojo «boe-legislacion: SKILL.md: cuerpo de 11002 caracteres (máximo 11000)» (sincronia.go:30, 442); lecturas exactas (FR-009, SC-004): mapa a mano en conjunto_test.go:2324-2353, rojo con un bloque de menos y con un motivo distinto; 0 consultas sin grabación ni sin servir (FR-010, FR-011): subtest grabado rojo con la grabación de a92 borrada; cada bloque con 0 sin fecha y con 9999-12-31 desde la caché de su eval (FR-011, SC-004): preparar_test.go:1097-1129, rojo en los dos mutantes; lectura sin grabar (TestLecturaDeLaEvalSinGrabar, sin cambios, en verde); SC-008 (0 sesiones): lo hacen cumplir esas tres filas por su causa, como dice plan.md:195-203, porque la caché sirve cada bloque de lecturas en las dos formas; FR-013/SC-005: fallosDelTope en definicion_test.go:948 sobre 352 min (21 120 s) ≥ 20 117 s, test en verde en ci.log:31. SC-007, SC-009 y SC-011 son umbrales del job con decide: true cuya configuración el hito no toca (plan.md:184-187; spec.md:433); los mide el cierre sobre la cabeza y no entran aquí. SC-010 publica sin decidir por decisión de la entrada, y SC-012 lo mide una persona."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "sesiones_test.go: el campo `tope` por caso de TestTopeDeLaSesion no se traza a ningún FR; es la corrección de raíz de un rojo de make ci bajo carga (gates/tarea-T002.md), test-only, documentada en tasks.md T002 y plan.md:159-161, y no afloja los dos casos que miden el corte. No cambia nada observable del producto.",
+    "SC-008 no es un umbral con decide: true del job: fuera_de_lo_grabado sigue publicándose sin decidir (H26.1) y la cuenta de SC-008 se apoya en los tests de make ci más la regla de atribución de spec.md:376-378. Hacerlo decidir está fuera del hito; cuando se quiera, pide una fila en `umbrales` del informe.",
+    "SC-007, SC-009 y SC-011 los mide el job de evals del cierre sobre la cabeza; no he podido medirlos en esta sesión (sin modelo ni red) y no entran en el veredicto.",
+    "No hay suite de aceptación congelada para este hito: el plan lo declara «no aplica» (plan.md:137-142, 296) porque el binario no cambia; la aceptación sin persona es el job de evals y la de la persona, el sondeo de SC-012.",
+    "El User-Agent de las grabaciones es «kitlegal/dev (+https://kitlegal.es/bot)», la versión de una construcción de desarrollo de grabar_datos; comportamiento anterior al hito, no suyo.",
+    "Las huellas SHA-256 de gates/grabaciones.md no las he recalculado (shasum pide aprobación en esta sesión); los ficheros son los del commit 3b83cdb del paso grabar_datos y el árbol está limpio en ellos.",
+    "El apartado «Redacción modificada» del cuerpo dice ahora «Por cada entrada version-obsoleta de kitlegal graph check, y si se pregunta qué cambió, lee redaccion_modificada:» seguido de la forma fija; «una línea, con su cita y sus dos fechas» vive en la referencia (redaccion_modificada.md:13) y el paso 4 conserva «de ellas solo va la línea ⚠ REDACCIÓN MODIFICADA: de cada bloque que la trae». Es lo que piden FR-006 y contracts §3 fila 3; si una medida posterior muestra respuestas sin la línea con version-obsoleta, ese es el sitio a mirar.",
+    "git status muestra gates/modelos.jsonl modificado y gates/revision-cambios.md y gates/revision-ciclo.json sin seguir: los escribe el propio workflow al preparar esta ronda, no son del producto.",
+    "Medida de los sobres hecha en un clon bajo $TMPDIR con un test temporal fuera del repositorio; el clon queda en $TMPDIR/h311 y no toca el árbol de trabajo."
+  ]
+}
