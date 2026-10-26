@@ -53,7 +53,12 @@ const (
 // además ignora TERM deja 137, porque hizo falta KILL; y el que termina antes
 // deja su código, también el de una señal que no es del tope, como lo daría la
 // shell. Los dos primeros no cumplen su espera: el tope los corta antes, y no
-// se limita a esperarlos. LeerSesion lee cada código.
+// se limita a esperarlos. LeerSesion lee cada código. Cada caso abre la sesión
+// con su tope: topeDeLosTests los dos que miran el corte, y topeSinCorte los
+// dos que solo miran el código de un sustituto que termina solo, porque un test
+// que no mira el tope no depende de la carga de la máquina: con el tope de 1 s,
+// la carga de make ci llegó a enviar TERM antes de que el sustituto saliera por
+// su cuenta, y dejó 124 en lugar de su código (T002 de H31.1).
 func TestTopeDeLaSesion(t *testing.T) {
 	t.Parallel()
 
@@ -72,6 +77,10 @@ func TestTopeDeLaSesion(t *testing.T) {
 		// minimo es lo que tarda la sesión como poco: el tope si hace falta
 		// TERM, y el tope más el margen si hace falta KILL.
 		minimo time.Duration
+
+		// tope es el de la sesión: topeDeLosTests si el caso mira el corte, y
+		// topeSinCorte si solo mira el código de un sustituto que termina solo.
+		tope time.Duration
 	}{
 		{
 			nombre:    "basta-term",
@@ -80,6 +89,7 @@ func TestTopeDeLaSesion(t *testing.T) {
 			cortada:   true,
 			term:      true,
 			minimo:    topeDeLosTests,
+			tope:      topeDeLosTests,
 		},
 		{
 			nombre:    "hace-falta-kill",
@@ -87,16 +97,19 @@ func TestTopeDeLaSesion(t *testing.T) {
 			codigo:    codigoDeKillTrasElTope,
 			cortada:   true,
 			minimo:    topeDeLosTests + margenDeLosTests,
+			tope:      topeDeLosTests,
 		},
 		{
 			nombre:    "termina-antes",
 			variables: []string{variableDeCodigo + "=3"},
 			codigo:    3,
+			tope:      topeSinCorte,
 		},
 		{
 			nombre:    "muere-por-otra-senal",
 			variables: []string{variableDeSenal + "=HUP"},
 			codigo:    128 + int(syscall.SIGHUP),
+			tope:      topeSinCorte,
 		},
 	}
 
@@ -107,6 +120,7 @@ func TestTopeDeLaSesion(t *testing.T) {
 			s := escribirSustitutos(t)
 			ejecucion := sesionesDelTest(t, s, false)
 			ejecucion.Entorno = s.base(caso.variables...)
+			ejecucion.Tope = caso.tope
 			sesion := ejecucion.Plan[0]
 
 			inicio := time.Now()

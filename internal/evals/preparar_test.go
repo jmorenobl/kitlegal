@@ -1066,7 +1066,11 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 // SC-005). lecturas: desde la caché de una sesión de la 01 de boe-legislacion,
 // los arts. 26 y 27 de la LRJSP, el 18 de la Ley del IRPF y el 15 del TRLRHL, las
 // lecturas de la 16, la 15 y la 14, salen con 0 sin fecha y con --fecha
-// 9999-12-31 (US3, escenario 1; FR-006; SC-004).
+// 9999-12-31 (US3, escenario 1; FR-006; SC-004); y desde la de su propia eval,
+// las nueve de H31.1: los arts. 60, 92, 100 y 104 del TRLRHL desde la 14, los
+// arts. 7, 19 y 20 y la disposición adicional decimoctava de la Ley del IRPF
+// desde la 15 y el art. 24 de la Ley 19/2013 desde la 17 (US3, escenarios 1 y
+// 2 de H31.1; FR-011; SC-004, SC-008).
 func TestCacheDeLasSesiones(t *testing.T) {
 	t.Parallel()
 
@@ -1075,26 +1079,52 @@ func TestCacheDeLasSesiones(t *testing.T) {
 }
 
 // probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:
-// desde la caché de una sesión de la 01 de boe-legislacion, que no lleva
-// ninguna, cada bloque de las lecturas de la 14, la 15 y la 16 sale con 0 sin
-// fecha y con --fecha 9999-12-31.
+// cada fila es un bloque de las lecturas de una eval de boe-legislacion y la
+// eval de cuya sesión se prepara la caché que lo lee, sin fecha y con --fecha
+// 9999-12-31, con 0. Las de la 14, la 15 y la 16 de H26.1, desde la de la 01,
+// que no lleva ninguna; las de H31.1, desde la de su eval (research D9 de
+// H31.1). Se prepara una caché por eval distinta.
 func probarLasLecturasDeLasEvals(t *testing.T) {
 	t.Parallel()
 
-	dirCache := cacheDeUnaSesion(t, evalsDelRepositorio, "01-lpac-articulo-21.yaml")
+	const (
+		laDeLa01 = "01-lpac-articulo-21.yaml"
+		laDeLa14 = "14-trlrhl-impuestos-por-materia.yaml"
+		laDeLa15 = "15-irpf-rendimientos-por-materia.yaml"
+		laDeLa17 = "17-ltaibg-plazo-por-materia.yaml"
+	)
 
-	for _, bloque := range [][]string{
-		{"BOE-A-2015-10566", "a26"},
-		{"BOE-A-2015-10566", "a27"},
-		{"BOE-A-2006-20764", "a18"},
-		{"BOE-A-2004-4214", "a15"},
-	} {
+	filas := []struct{ fichero, norma, bloque string }{
+		{fichero: laDeLa01, norma: "BOE-A-2015-10566", bloque: "a26"},
+		{fichero: laDeLa01, norma: "BOE-A-2015-10566", bloque: "a27"},
+		{fichero: laDeLa01, norma: "BOE-A-2006-20764", bloque: "a18"},
+		{fichero: laDeLa01, norma: "BOE-A-2004-4214", bloque: "a15"},
+		{fichero: laDeLa14, norma: "BOE-A-2004-4214", bloque: "a60"},
+		{fichero: laDeLa14, norma: "BOE-A-2004-4214", bloque: "a92"},
+		{fichero: laDeLa14, norma: "BOE-A-2004-4214", bloque: "a100"},
+		{fichero: laDeLa14, norma: "BOE-A-2004-4214", bloque: "a104"},
+		{fichero: laDeLa15, norma: "BOE-A-2006-20764", bloque: "a7"},
+		{fichero: laDeLa15, norma: "BOE-A-2006-20764", bloque: "a19"},
+		{fichero: laDeLa15, norma: "BOE-A-2006-20764", bloque: "a20"},
+		{fichero: laDeLa15, norma: "BOE-A-2006-20764", bloque: "dadecimoctava"},
+		{fichero: laDeLa17, norma: "BOE-A-2013-12887", bloque: "a24"},
+	}
+
+	caches := map[string]string{}
+
+	for _, fila := range filas {
+		dirCache, preparada := caches[fila.fichero]
+		if !preparada {
+			dirCache = cacheDeUnaSesion(t, evalsDelRepositorio, fila.fichero)
+			caches[fila.fichero] = dirCache
+		}
+
 		for _, fecha := range [][]string{nil, {"--fecha", "9999-12-31"}} {
-			argumentos := slices.Concat(bloque, fecha)
+			argumentos := slices.Concat([]string{fila.norma, fila.bloque}, fecha)
 
 			codigo, errores := leerSinRedEnLaSesion(t, dirCache, argumentos...)
-			assert.Zero(t, codigo, "boe articulo %s --offline desde la caché de la sesión de la 01: %s",
-				strings.Join(argumentos, " "), errores)
+			assert.Zero(t, codigo, "boe articulo %s --offline desde la caché de la sesión de %s: %s",
+				strings.Join(argumentos, " "), fila.fichero, errores)
 		}
 	}
 }

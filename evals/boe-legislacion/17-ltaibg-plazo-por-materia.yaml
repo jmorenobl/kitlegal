@@ -13,3 +13,7 @@ comandos:
 citas:
   - norma: BOE-A-2013-12887
     bloque: a20
+lecturas:
+  - norma: BOE-A-2013-12887
+    bloque: a24
+    motivo: "Lo nombran sin haberlo leído las respuestas de los sondeos de evidencias/sondeos-20261025/ y de los jobs, y la regla de leer lo que se nombra lo pide (H31.1; ADR 0043, clase b)."
