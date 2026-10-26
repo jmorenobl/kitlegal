@@ -6,9 +6,10 @@
 
 **Status**: Draft
 
-**Input**: el fichero del hito, `docs/roadmap/in-progress/H31.1-boe-legislacion-habla-de-la-norma-y-lee-lo-que-nombra.md`,
-la única entrada humana del run (ADR 0018), con su evidencia en `evidencias/sondeos-20261025/`, que está en `main` desde
-la propuesta de la entrada (#199): el run la usa, no la escribe.
+**Input**: el fichero del hito, `docs/roadmap/in-progress/H31.1-boe-legislacion-habla-de-la-norma-y-lee-lo-que-nombra.md`
+(la rama lo pasa a `docs/roadmap/done/` en `3dec6e3`), la única entrada humana del run (ADR 0018), con su evidencia en
+`evidencias/sondeos-20261025/`, que está en `main` desde la propuesta de la entrada (#199): el run la usa, no la
+escribe.
 
 ## Contexto
 
@@ -337,14 +338,14 @@ una persona lo lanza con la skill de la propuesta, como los de `evidencias/sonde
   comprobación detrás. Las acota la respuesta y el salto: solo lo que la respuesta nombra, remitido por un bloque leído en
   el paso 2 o salido de su índice, y nada de lo que remiten esas lecturas. En la eval 15, el art. 17 de la Ley 35/2006
   lleva a cinco bloques (`a7`, `a18`, `a19`, `a20`, `dadecimoctava`): en esa pregunta, cinco sobres más, cada uno del
-  tamaño de un bloque (la grabación de `a18`, la mayor de hoy de esa norma, tiene 18,3 KB). Con cientos de normas y miles
-  de bloques consultados no cambia: cada lectura se pide por su id y devuelve un bloque, no lo acumulado. Sus señales son
-  las de toda lectura: los avisos de vigencia del bloque y, de la comprobación, `⚠ REDACCIÓN MODIFICADA:` solo si el
-  bloque cambió desde una lectura anterior, que deja de darse al leerlo (lo que ya hace hoy el paso 2). Ninguna señal
-  nueva.
+  tamaño de un bloque (los cinco sobres suman 35 908 bytes, medidos tras grabarlos; research V11). Con cientos de normas
+  y miles de bloques consultados no cambia: cada lectura se pide por su id y devuelve un bloque, no lo acumulado. Sus
+  señales son las de toda lectura: los avisos de vigencia del bloque y, de la comprobación, `⚠ REDACCIÓN MODIFICADA:`
+  solo si el bloque cambió desde una lectura anterior, que deja de darse al leerlo (lo que ya hace hoy el paso 2).
+  Ninguna señal nueva.
 - **Las `lecturas` de las evals y sus grabaciones (FR-009 a FR-011)**: las pide la preparación de la caché de cada sesión
-  de `boe-legislacion`, una vez por sesión: nueve bloques más, ocho grabaciones nuevas de unos pocos KB a unas decenas
-  cada una. No crecen con el uso de kitlegal: solo con lo que se escribe en `evals/`.
+  de `boe-legislacion`, una vez por sesión: nueve bloques más, ocho grabaciones nuevas de 1,7 KB (`a60`) a 393 KB (`a7`,
+  con sus veinte redacciones). No crecen con el uso de kitlegal: solo con lo que se escribe en `evals/`.
 - **El apartado de `docs/SKILLS.md` §1 (FR-012)**: lo lee quien escribe o reparte una skill, una vez por skill; un
   párrafo. Deja de valer cuando otra medida, en otra evidencia, diga otra cosa.
 - **La entrada de `CHANGELOG.md` (FR-014)**: la lee quien actualiza kitlegal, una vez por versión.

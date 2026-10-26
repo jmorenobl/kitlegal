@@ -50,7 +50,9 @@ grabaciones de H4, H5 y H9 y pidiendo por `internal/httpx` (robots.txt, User-Age
 Lo que falta son los ocho bloques, `…/id/BOE-A-2006-20764/texto/bloque/{a7,a19,a20,dadecimoctava}` y
 `…/id/BOE-A-2004-4214/texto/bloque/{a60,a92,a100,a104}`: la búsqueda, los metadatos y el índice de las dos normas están
 grabados desde H5, como dice el `para` de H26.1 (supuesto, research S2: se comprueba al grabar). Las respuestas quedan en
-`internal/evals/testdata/boe.legislacion-consolidada/` (ocho ficheros `GET_https_www.boe.es_…_texto_bloque_<id>.json`).
+`internal/evals/testdata/boe.legislacion-consolidada/` (ocho ficheros `GET_https_www.boe.es_…_texto_bloque_<id>.json`),
+y el `robots.txt` que `internal/httpx` pide antes queda regrabado, con otro `grabado_en` y otras cabeceras `Age` y
+`Date` y el mismo cuerpo (`gates/grabaciones.md`).
 Una grabación de bloque sirve la lectura sin fecha y la de `--fecha 9999-12-31`: el BOE da todas las versiones del
 bloque en la misma respuesta, como ya hacen `a18` y `a15` (H26.1). No hay material de origen: ningún fichero de
 `data/` sale de lo grabado, y `$KITLEGAL_EVIDENCIAS` (`evidencias/h31-1/`) no recibe nada de esta fuente. Si el BOE no
@@ -78,4 +80,5 @@ Van en la tarea que añade las lecturas a las evals, detrás de la grabación:
 - **`TestLecturaDeLaEvalSinGrabar`** (sin cambios): una lectura sin grabar da la falta y la sesión no se abre
   (US3, escenario 3).
 
-Ninguna de las dos tareas cambia código de producción ni el arnés: solo datos, evals y los tests que los enumeran.
+Ninguna de las dos tareas cambia código de producción ni el arnés: solo datos, evals y los tests que los enumeran, y,
+en la de las lecturas, el tope de los dos casos de `TestTopeDeLaSesion` que no miran el corte (tasks.md, T002).

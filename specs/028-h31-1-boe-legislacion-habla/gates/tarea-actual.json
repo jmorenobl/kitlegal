@@ -1,16 +1,11 @@
 {
-  "id": "T004",
-  "texto": "T004 [US5] Escribir en docs/SKILLS.md, apartado «## 1. Qué va en el cuerpo y qué en una referencia», detrás del párrafo que empieza «**En una referencia, el detalle que solo pide una clase de pregunta**» y delante de «Cuándo leer cada referencia lo dice el cuerpo…», el párrafo literal de contracts/guia-y-changelog.md §1 —lo medido en los sondeos de la eval 15, con sus cifras (ninguna de las 40 sesiones de `brazo-D`; `normas`, de 23 a 40 sesiones por brazo; `con_herramientas`, de 6 a 9) y la ruta de su evidencia, y sus dos consecuencias— sin tocar nada más de la guía (FR-012); y en CHANGELOG.md, en «### Cambiado» de *Unreleased*, detrás de la entrada de `boe-legislacion` v0.3, la entrada v0.3.1 literal de contracts/guia-y-changelog.md §2, con la cifra del cuerpo que da quickstart.md escenario 1 tras T003 (FR-014). Test: quickstart.md escenario 8 da `1`, `1` y `0`; `make ci` en verde (FR-012, FR-014, SC-001, SC-006, SC-013)",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "890d879decfdb6ba767ea738bbe37368a488d114",
-  "rutas": [
-    "CHANGELOG.md",
-    "contracts/guia-y-changelog.md",
-    "docs/SKILLS.md",
-    "quickstart.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"

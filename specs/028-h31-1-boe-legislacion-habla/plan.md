@@ -25,7 +25,7 @@ no tocan su peor caso (FR-013). El texto exacto se validó en una copia del repo
 ## Technical Context
 
 **Language/Version**: Markdown para la skill, la guía y el CHANGELOG; YAML para las evals; JSON para el manifiesto; Go
-1.27 solo en dos tests que enumeran las lecturas (`go.mod`: `go 1.27.0`, `toolchain go1.27.3`; `go version` en la
+1.27 solo en tests: los dos que enumeran las lecturas y, desde T002, `TestTopeDeLaSesion` (`go.mod`: `go 1.27.0`, `toolchain go1.27.3`; `go version` en la
 sesión: go1.27.3).
 
 **Primary Dependencies**: ninguna nueva. Los tests usan las de hoy (`stretchr/testify`, `gopkg.in/yaml.v3`).
@@ -49,7 +49,8 @@ umbrales, la rúbrica y los casos del juez, el tope de una sesión (240 s), `jur
 `scripts/workflow/`, `.specify/`, `internal/workflow/` y `web/`, fuera.
 
 **Scale/Scope**: 1 skill (cuerpo y 2 referencias a mano), 3 evals, 9 lecturas, 2 entradas de manifiesto, 8
-grabaciones, 2 tests, 1 apartado de la guía, 1 entrada del CHANGELOG y 1 frase de `CONTRIBUTING.md`.
+grabaciones (y el `robots.txt` del BOE, regrabado con el mismo cuerpo), 3 tests (los 2 de las lecturas y
+`TestTopeDeLaSesion`, desde T002), 1 apartado de la guía, 1 entrada del CHANGELOG y 1 frase de `CONTRIBUTING.md`.
 
 ## Constitution Check
 
@@ -119,7 +120,8 @@ internal/evals/
 ├── testdata/grabaciones.json              # FR-010 [datos]: bloques y para de dos entradas
 ├── testdata/boe.legislacion-consolidada/  # FR-010: ocho grabaciones (grabar_datos)
 ├── conjunto_test.go                       # FR-009, FR-011: el mapa de TestEvalsDelRepositorio/lecturas
-└── preparar_test.go                       # FR-011: la tabla de TestCacheDeLasSesiones/lecturas
+├── preparar_test.go                       # FR-011: la tabla de TestCacheDeLasSesiones/lecturas
+└── sesiones_test.go                       # T002: el tope de cada caso de TestTopeDeLaSesion
 docs/SKILLS.md                             # FR-012: un párrafo de §1
 CHANGELOG.md                               # FR-014
 CONTRIBUTING.md                            # FR-006 (consecuencia): la frase de la regla 7
@@ -154,11 +156,15 @@ Capa 1 de la constitución («Gates»), en `make ci` salvo lo que se dice del jo
 - **Tests que cambian** (FR-009, FR-011): el mapa escrito a mano de `TestEvalsDelRepositorio/lecturas`
   (`probarLasLecturasDeLasEvalsDelRepositorio`) y la tabla de `TestCacheDeLasSesiones/lecturas`
   (`probarLasLecturasDeLasEvals`), con la eval de cada fila (contracts/lecturas-y-grabaciones.md §4). Sin cambios, pero
-  ahora sobre las lecturas nuevas: `TestEvalsDelRepositorio/grabado` y `TestLecturaDeLaEvalSinGrabar`.
+  ahora sobre las lecturas nuevas: `TestEvalsDelRepositorio/grabado` y `TestLecturaDeLaEvalSinGrabar`. Y, ajeno a las
+  lecturas, `TestTopeDeLaSesion` (`internal/evals/sesiones_test.go`): la verificación de T002 lo vio en rojo por la
+  carga de `make ci`, y sus dos casos que no miran el corte pasan a `topeSinCorte` (tasks.md, T002).
 - **Job**: `TestDefinicionDelJob` (`internal/evals/definicion_test.go`) sigue exigiendo que `timeout-minutes` cubra el
   peor caso de cada skill; los umbrales del informe del job, sin cambios.
 - **Fixtures**: ocho grabaciones nuevas en `internal/evals/testdata/boe.legislacion-consolidada/`, del paso
-  `grabar_datos` tras la tarea `[datos]` del manifiesto; ninguna en `schemas/`. Ninguna grabación existente cambia.
+  `grabar_datos` tras la tarea `[datos]` del manifiesto; ninguna en `schemas/`. De las existentes, `grabar_datos` solo
+  regrabó `GET_https_www.boe.es_robots.txt.json`, que `internal/httpx` pide antes de las peticiones nuevas: cambian su
+  `grabado_en` y las cabeceras `Age` y `Date`, no su cuerpo (`gates/grabaciones.md`).
 
 ## Controles de umbral
 
@@ -209,10 +215,10 @@ sin decidir.
   norma_modificadora, texto, hash_texto, avisos, url, url_eli}`. Bytes medidos de sobres de esas normas (research V11):
   `a17` de la Ley 35/2006, 9 345; `a18`, 4 803; `a59` y `a15` de Haciendas Locales, 1 302 y 1 708; `a20` y `a24` de la
   Ley 19/2013, 2 432 y 2 690. En la eval 15, el art. 17 lleva a cinco (`a7`, `a18`, `a19`, `a20`, `dadecimoctava`):
-  cinco sobres más en esa pregunta, del orden de las decenas de KB juntos; los de los bloques nuevos se sabrán al
-  grabarlos (research V11). Lo acotan la respuesta y el salto: solo lo que la respuesta nombra y nada de lo que remiten
-  esas lecturas. Con meses de uso —cientos de normas, miles de bloques consultados, la mayoría hace más de una semana—
-  no cambia: cada lectura pide un bloque por su id y devuelve ese bloque, y su comprobación lleva norma y bloque, así que
+  cinco sobres más en esa pregunta, del orden de las decenas de KB juntos: 35 908 bytes, medidos con los bloques ya
+  grabados (`a7`, 22 304; research V11). Lo acotan la respuesta y el salto: solo lo que la respuesta nombra y nada de
+  lo que remiten esas lecturas. Con meses de uso —cientos de normas, miles de bloques consultados, la mayoría hace más
+  de una semana— no cambia: cada lectura pide un bloque por su id y devuelve ese bloque, y su comprobación lleva norma y bloque, así que
   da como mucho una entrada de ese bloque, nunca lo acumulado (la orden sin argumentos sigue prohibida, paso 2).
 - **Sus señales**: los avisos de vigencia del bloque, que vienen con la norma y se trasladan en cada lectura que los
   trae; y `⚠ REDACCIÓN MODIFICADA:`, solo si la redacción del bloque cambió desde una lectura anterior, que deja de darse
@@ -277,7 +283,8 @@ Cada paso deja `make ci` en verde.
 2. **Las lecturas**: las nueve entradas en las evals 14, 15 y 17, el mapa de `TestEvalsDelRepositorio/lecturas` y la
    tabla de `TestCacheDeLasSesiones/lecturas` (FR-009, FR-011).
 3. **La skill**: el cuerpo de v0.3.1, las dos referencias a mano, la frase de `CONTRIBUTING.md` y la entrada de
-   `CHANGELOG.md` (FR-001 a FR-008, FR-014), con `make skills-sync` y `make skills-check` en verde.
+   `CHANGELOG.md` (FR-001 a FR-008, FR-014), con `make skills-sync` y `make skills-check` en verde. La entrada de
+   `CHANGELOG.md` la escribió T004, tras la guía, porque nombra su párrafo (tasks.md, «Organización»).
 4. **La guía**: el párrafo de `docs/SKILLS.md` §1 (FR-012).
 
 FR-013 no tiene tarea: el recálculo es el de research D10 y `TestDefinicionDelJob` ya lo comprueba.
@@ -297,11 +304,12 @@ FR-013 no tiene tarea: el recálculo es el de research D10 y `TestDefinicionDelJ
 - **b · dependencias**: ninguna nueva.
 - **c · reglas_dependencia**: ningún import nuevo en ningún paquete.
 - **d · errores_exit_codes**: ningún código cambia; la falta de una lectura sin grabar, la de H26.1.
-- **e · tests_primero**: «no aplica» con motivo; los dos tests que cambian, los que siguen igual y los fixtures, arriba.
+- **e · tests_primero**: «no aplica» con motivo; los dos tests que cambian, los que siguen igual y los fixtures, arriba,
+  y `TestTopeDeLaSesion`, que T002 cambió tras verlo en rojo por la carga de `make ci`.
 - **f · alcance**: solo FR-001 a FR-014; `CONTRIBUTING.md`, por la regla 7 que sale (D7).
 - **g · sin_atajos**: ningún `//nolint`, `t.Skip`, TODO ni error silenciado.
 - **h · mejor_alternativa**: cada decisión de research con su descartada.
-- **i · afirmaciones_verificadas**: V1 a V12, ejecutadas en esta sesión; S1 a S4, supuestos.
+- **i · afirmaciones_verificadas**: V1 a V13, ejecutadas en esta sesión; S1 a S4, supuestos.
 - **j · quickstart_ejecutable**: órdenes de lectura, probadas hoy las que no dependen de la entrega; solo el escenario
   9 escribe, y declara qué.
 - **k · datos_externos**: «Datos externos».

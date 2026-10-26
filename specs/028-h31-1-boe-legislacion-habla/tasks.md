@@ -19,7 +19,8 @@ SC-011). El spec deja fuera evals nuevas («Fuera de alcance»): ninguna tarea a
 
 **Tests**: cada tarea lleva su test o los controles que la cubren y la implementación mínima, y deja `make ci` en verde al
 terminar. Todo sin red ni modelo (ADR 0032). Los tests que cambian son los dos que enumeran las lecturas (T002), que se
-escriben antes que las evals y se ven en rojo; el texto de la skill y la guía los cubren los gates y controles de H31 que
+escriben antes que las evals y se ven en rojo, y `TestTopeDeLaSesion`, al que T002 da holgura en los dos casos que no
+miran el corte tras verlo en rojo por la carga de `make ci`; el texto de la skill y la guía los cubren los gates y controles de H31 que
 ya existen (`TestSkillsDelRepositorio`, `TestCuerpoDeLaSkill`, `TestEvalsDelRepositorio`, `TestSkillsEmpotradas`), sin
 cambios (plan, «Controles mecánicos»), más las órdenes de quickstart.md que cada tarea nombra. Ningún paquete, función,
 tipo ni fichero de código de producción cambia.

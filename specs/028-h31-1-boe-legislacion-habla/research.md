@@ -233,8 +233,12 @@ Q2, qué lecturas son el salto).
 - **V11 · El tamaño de un sobre de lectura**: en la copia del prototipo, un test temporal (borrado) preparó la caché de
   una sesión de la 01 con `cacheDeUnaSesion` y ejecutó `app.Main` con `boe articulo <norma> <bloque> --offline --json`:
   `a17` de la Ley 35/2006, 9 345 bytes; `a18`, 4 803; `a59` del texto refundido de Haciendas Locales, 1 302; `a15`,
-  1 708; `a20` de la Ley 19/2013, 2 432; `a24`, 2 690. Todos con código 0. Los bloques nuevos no están grabados y su
-  tamaño no se conoce hasta `grabar_datos`.
+  1 708; `a20` de la Ley 19/2013, 2 432; `a24`, 2 690. Todos con código 0. Los bloques nuevos no estaban grabados y su
+  tamaño no se conocía hasta `grabar_datos`. Tras grabarlos, el barrido repitió la medida en una copia de la rama bajo
+  `$TMPDIR`, desde la caché de una sesión de su eval: `a60`, `a92`, `a100` y `a104` del texto refundido, 893, 1 704,
+  2 061 y 7 779 bytes; `a7`, `a19`, `a20` y `dadecimoctava` de la Ley 35/2006, 22 304, 2 819, 2 921 y 3 061 (con `a18`,
+  los cinco de la eval 15 suman 35 908); todos con código 0, y `a18` y `a24` dan los mismos bytes que arriba. Las
+  grabaciones van de 1 766 bytes (`a60`) a 402 526 (`a7`, con veinte redacciones del bloque).
 
 - **V12 · Lo que deja el quickstart**: con `LC_ALL=C`, la misma cuenta del cuerpo de hoy da 11 168 (bytes), no 10 992:
   el escenario 1 lo advierte. `make ci` escribe `coverage.out` y `coverage-integration.out` (`Makefile`, líneas 87 y 91,
@@ -265,7 +269,9 @@ por eso los escenarios usan `'^Test…$/^subtest$'`; `git archive -o <fichero>` 
   sondeo dirá si basta.
 - **S2 · Lo que se graba.** Que `TestGrabarEvals` solo pida al BOE los ocho bloques —la búsqueda, los metadatos y el
   índice de las dos normas están grabados desde H5, como dice el `para` de H26.1— no se puede ver sin red; lo registra
-  `gates/grabaciones.md` del run.
+  `gates/grabaciones.md` del run. Tras grabar, registra los ocho bloques y, además, el `robots.txt` del BOE, que
+  `internal/httpx` pide antes de las peticiones y queda regrabado con el mismo cuerpo (otro `grabado_en` y otras
+  cabeceras `Age` y `Date`); ni búsqueda, ni metadatos, ni índice.
 - **S3 · La duración de las sesiones.** Lo que tarda una sesión de la eval 15 con cinco lecturas más no está medido
   (la evidencia no guarda duraciones). Si una no cabe en 240 s, el informe lo dice con su motivo (Clarificación Q1).
 - **S4 · Los umbrales del cierre.** Los nombres de plan.md, «Controles de umbral», son los del cierre de H31 sin el de
@@ -276,5 +282,6 @@ por eso los escenarios usan `'^Test…$/^subtest$'`; `git archive -o <fichero>` 
 
 Ninguna fuente nueva: la única que se graba, `boe.legislacion-consolidada`, tiene fila revisada en `main`. Nada de
 `data/` cambia ni se deriva. El tope de una sesión, los umbrales, la rúbrica y los casos del juez, `jurisprudencia`,
-`legal-core`, la tabla de comandos, el binario, el arnés de evals (salvo los tests que enumeran las lecturas),
+`legal-core`, la tabla de comandos, el binario, el arnés de evals (salvo los tests que enumeran las lecturas y el tope
+de dos casos de `TestTopeDeLaSesion`, tasks.md T002),
 `scripts/workflow/`, `.specify/`, `internal/workflow/` y `web/` no se tocan (spec, «Fuera de alcance»).
