@@ -1,0 +1,212 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "1f42a520bb355bfda6a0d586ca3692afd5def061f6b543d5314194bf01b9a691",
+      "bytes": 4641,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "evidencia de la entrada corregida de H31.1"
+    },
+    {
+      "fichero": "brazo-H/salida.txt",
+      "sha256": "50edb6919957277ddb7dd6b92d9638b7194c564206edf8a6a645b5f564c7e6df",
+      "bytes": 1010,
+      "fecha": "2026-10-26",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-26"
+    },
+    {
+      "fichero": "brazo-H/votos.json",
+      "sha256": "0a019d7d5cefdf05ea317c454f39e5323f4eaab9cf3e36df61ff96cc8d9f05dc",
+      "bytes": 261555,
+      "fecha": "2026-10-26",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-26"
+    },
+    {
+      "fichero": "brazo-V/salida.txt",
+      "sha256": "0206ca2693852df463dbb43e7f54dc4a927342595dab9309ad57431e854632e5",
+      "bytes": 1007,
+      "fecha": "2026-10-26",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-26"
+    },
+    {
+      "fichero": "brazo-V/votos.json",
+      "sha256": "64cb28f173ab2d8c2c09f54b39938cc9c489c9ebed193f709fcddf2e6495e21f",
+      "bytes": 257457,
+      "fecha": "2026-10-26",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-26"
+    },
+    {
+      "fichero": "brazo-V2/salida.txt",
+      "sha256": "39fa9e934274d623cecb9431e4c8f2cd02f5220bf47f08c30d2ba86a3ced97ae",
+      "bytes": 1008,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-27"
+    },
+    {
+      "fichero": "brazo-V2/votos.json",
+      "sha256": "95dece482dc3160ec334bb26a34a5bfea8562f4707bc1032fe6615b2498430e4",
+      "bytes": 247008,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-27"
+    },
+    {
+      "fichero": "brazo-W/salida.txt",
+      "sha256": "f8e121ccc5a96eadce1db47a7f6d40b71824dd3ec5c060c0284fb13118aa6418",
+      "bytes": 1006,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-27"
+    },
+    {
+      "fichero": "brazo-W/skill/SKILL.md",
+      "sha256": "26eeacca82f0ab3308803aab29d726440b9b4890667a4e60c953d6ab677a086a",
+      "bytes": 13319,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/buscar_la_norma.md",
+      "sha256": "7bd42668c82fd3ee12b9995fa31862676317450baeb1686beb7f02161f1a005e",
+      "bytes": 1159,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/como_se_cita.md",
+      "sha256": "aa6e72a3e88ba5f491a0cb4ae398d8214bf1ada143557645518b4a476bd1203c",
+      "bytes": 2075,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/con_herramientas.md",
+      "sha256": "37301434d2854afe214c54f6425a27710c28326909fb67be4102ebc0c86970cc",
+      "bytes": 1985,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/lecturas_que_fallan.md",
+      "sha256": "b56f9bf5b1f5231c9610ebf10ffca723b7e0477fe33ea2987c2d7e70ac969e56",
+      "bytes": 2493,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/normas.md",
+      "sha256": "c622a5f822ed8c1916d0a31c1462228c02a1a41590e9210218660229e9d55084",
+      "bytes": 3413,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/redaccion_en_una_fecha.md",
+      "sha256": "7d891643cb9b5177c663db02782e81aca3b2158dbe72c76323f3a71f7581f93a",
+      "bytes": 2692,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/redaccion_modificada.md",
+      "sha256": "a90adb4335f6dfe979293cb650f0645de476a2614d28c8abadebe0b34c0a583f",
+      "bytes": 2359,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/skill/references/varios_bloques.md",
+      "sha256": "413e9d730134d4f804b41c06f8897f32c777b522cb669442518effa5b79c7fcc",
+      "bytes": 909,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "skill medida en el brazo W: la de la #200 (47c3c24) con `parches/brazo-W.diff`; no es parte del producto"
+    },
+    {
+      "fichero": "brazo-W/votos.json",
+      "sha256": "3f3352022779d45851109297c53d62267a27b08c67e17202ee61336abea6937e",
+      "bytes": 243822,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-27"
+    },
+    {
+      "fichero": "brazo-X/salida.txt",
+      "sha256": "9d51ce6434e15b162e861d8a0473d8fa2a3ba9797c811b7be24c9bcd1d3d0312",
+      "bytes": 1007,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-27"
+    },
+    {
+      "fichero": "brazo-X/votos.json",
+      "sha256": "afe6efdbb0fc7b8668f87eacea401b9d75f10ad3a7d30a68d4260c6502013c92",
+      "bytes": 259082,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-27"
+    },
+    {
+      "fichero": "guiones/analizar.py",
+      "sha256": "ff1cdbf451b73c5b3112fb8b43ac714cf80fee3537df19fb2e71ed13a37f0c5e",
+      "bytes": 2871,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-27, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar-2.sh",
+      "sha256": "ab883e5f0a8778dcb125ce634367e450919620b2f097e3b9c5f31cb7aa8bd46d",
+      "bytes": 1896,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-27, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar.sh",
+      "sha256": "7cabb7d8d11f5120f017491f8e83aeb07fb25f17ad108095c18ae831147d454b",
+      "bytes": 1866,
+      "fecha": "2026-10-26",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-26, fuera del producto"
+    },
+    {
+      "fichero": "parches/brazo-V.diff",
+      "sha256": "662fde837ea3cbab48f835d8b11b78b1c58b55b85cfbad056e3e483ca131d212",
+      "bytes": 1469,
+      "fecha": "2026-10-26",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre la cabeza de la #200 (47c3c24) para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/brazo-W.diff",
+      "sha256": "ab3e528cea23129e54bba076861a74300b16e9ab9e81b90325e6fac6415c84da",
+      "bytes": 2840,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre la cabeza de la #200 (47c3c24) para los sondeos; no es parte del producto"
+    },
+    {
+      "fichero": "parches/brazo-X.diff",
+      "sha256": "e3f161976c9a94b4712f8c5ce63b3c406b822917d5d3e694151babc734c51d26",
+      "bytes": 3708,
+      "fecha": "2026-10-27",
+      "versionado": "sí",
+      "origen": "prototipo aplicado sobre la cabeza de la #200 (47c3c24) para los sondeos; no es parte del producto"
+    }
+  ]
+}

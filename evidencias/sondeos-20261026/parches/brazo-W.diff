@@ -1,0 +1,46 @@
+diff --git a/skills/boe-legislacion/SKILL.md b/skills/boe-legislacion/SKILL.md
+index 880bb95..490a079 100644
+--- a/skills/boe-legislacion/SKILL.md
++++ b/skills/boe-legislacion/SKILL.md
+@@ -47,10 +47,16 @@ con [buscar_la_norma](references/buscar_la_norma.md).
+ 
+ ### 3. Completar
+ 
+-Lee lo remitido que cambia la respuesta, de esta norma o de otra, resuelta antes con los pasos 1 y 2, y, si importan
+-la vigencia o una modificación, los metadatos y el análisis. Nombra un precepto solo si `kitlegal boe articulo` o
+-`articulos` ha devuelto su texto en esta conversación, salvo lo del paso 5: si lo remite un bloque leído en el paso 2,
+-o su id solo salió en un índice, léelo antes con los pasos 1 y 2, o no lo nombres; leído, di de qué trata, con su cita.
++Si un bloque leído remite a otro precepto («sin perjuicio de lo dispuesto en el artículo N», «en los términos
++del artículo N»), de esta norma o de otra, o viste su id solo en un índice, y la respuesta va a hablar de él,
++aunque sea para avisar, léelo con los pasos 1 y 2 antes de escribir. Es un salto: lo que remita esa segunda
++lectura no se lee. Si importan la vigencia o una modificación, lee también los metadatos y el análisis.
++
++Por qué: quien pregunta va a actuar con lo que escribes y no puede comprobar lo que no lleva cita; con el texto
++delante, lo que sabes de ese precepto se puede decir y citar.
++
++Ojo: una remisión no dice de qué trata lo remitido. Lo que recuerdes de él, aunque sea cierto, no está en lo
++leído: si te parece útil decirlo, esa es la señal de que hay que leerlo.
+ 
+ ### 4. Responder
+ 
+@@ -79,6 +85,20 @@ avisar de lo no leído: o el número, o la materia. Lo leído para nombrarlo (pa
+ lee para nombrarlo y, como lo que no se pudo leer, se nombra solo con las palabras del texto leído. Puedes avisar de
+ que una materia se regula en otra parte, sin nombrar precepto ni regla.
+ 
++### 6. Repasar antes de enviar
++
++Con la respuesta escrita, y antes de enviarla, repásala frase a frase. Es el último paso: no lo saltes.
++
++1. Por cada cosa que la respuesta dice de un precepto, con su número o sin él, también de aquello a lo que
++   remite el texto leído, busca en esta conversación la orden `kitlegal boe articulo` o `articulos`, o la
++   llamada `boe_articulo` o `boe_articulos`, que devolvió su texto. Si no está, léelo ahora con los pasos 1
++   y 2, un salto, y deja lo dicho con su cita; si no se puede leer, quita la frase o déjala con las palabras
++   del texto leído, nada más.
++2. Quita toda frase que hable de la consulta y no de la norma: lo que hiciste, una orden, lo que devolvió o
++   no devolvió.
++
++Envía la respuesta corregida, no la primera.
++
+ ## Cómo se cita
+ 
+ La forma legible de la norma y del bloque y, en la misma línea, entre corchetes, el identificador y el id como los da
