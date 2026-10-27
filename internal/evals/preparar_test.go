@@ -1066,7 +1066,10 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 // SC-005). lecturas: desde la caché de una sesión de la 01 de boe-legislacion,
 // los arts. 26 y 27 de la LRJSP, el 18 de la Ley del IRPF y el 15 del TRLRHL, las
 // lecturas de la 16, la 15 y la 14, salen con 0 sin fecha y con --fecha
-// 9999-12-31 (US3, escenario 1; FR-006; SC-004).
+// 9999-12-31 (US3, escenario 1; FR-006; SC-004); y, desde H31.1, los arts. 7,
+// 19 y 20 y la disposición adicional decimoctava de la Ley del IRPF, los arts.
+// 60, 92, 100 y 104 del TRLRHL y el 24 de la LTAIBG, las que ganan la 15, la 14
+// y la 17 (FR-013 de H31.1; SC-004, SC-008).
 func TestCacheDeLasSesiones(t *testing.T) {
 	t.Parallel()
 
@@ -1076,8 +1079,10 @@ func TestCacheDeLasSesiones(t *testing.T) {
 
 // probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:
 // desde la caché de una sesión de la 01 de boe-legislacion, que no lleva
-// ninguna, cada bloque de las lecturas de la 14, la 15 y la 16 sale con 0 sin
-// fecha y con --fecha 9999-12-31.
+// ninguna, cada bloque de las lecturas de la 14, la 15, la 16 y la 17 sale con
+// 0 sin fecha y con --fecha 9999-12-31; desde H31.1, también los nueve que
+// ganan la 14, la 15 y la 17 (contracts/lecturas-y-grabaciones.md §4 de H31.1;
+// FR-013).
 func probarLasLecturasDeLasEvals(t *testing.T) {
 	t.Parallel()
 
@@ -1087,7 +1092,16 @@ func probarLasLecturasDeLasEvals(t *testing.T) {
 		{"BOE-A-2015-10566", "a26"},
 		{"BOE-A-2015-10566", "a27"},
 		{"BOE-A-2006-20764", "a18"},
+		{"BOE-A-2006-20764", "a7"},
+		{"BOE-A-2006-20764", "a19"},
+		{"BOE-A-2006-20764", "a20"},
+		{"BOE-A-2006-20764", "dadecimoctava"},
 		{"BOE-A-2004-4214", "a15"},
+		{"BOE-A-2004-4214", "a60"},
+		{"BOE-A-2004-4214", "a92"},
+		{"BOE-A-2004-4214", "a100"},
+		{"BOE-A-2004-4214", "a104"},
+		{"BOE-A-2013-12887", "a24"},
 	} {
 		for _, fecha := range [][]string{nil, {"--fecha", "9999-12-31"}} {
 			argumentos := slices.Concat(bloque, fecha)

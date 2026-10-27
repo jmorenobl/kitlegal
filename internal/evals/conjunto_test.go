@@ -1990,9 +1990,10 @@ const (
 // bloques de código text, la forma fija de cada una de las tres líneas de una
 // redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048).
 // Desde H26.1, la 14, la 15 y la 16 de boe-legislacion llevan sus lecturas, y
-// ninguna otra eval lleva ninguna; sus bloques son consultas necesarias, que el
-// subtest grabado exige grabadas y servidas sin red como las demás
-// (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011). Desde H31, los
+// desde H31.1 también la 17, y ninguna otra eval lleva ninguna; sus bloques son
+// consultas necesarias, que el subtest grabado exige grabadas y servidas sin red
+// como las demás (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011;
+// contracts/lecturas-y-grabaciones.md §1 de H31.1). Desde H31, los
 // controles de contenido de las skills —la prosa, las órdenes para PowerShell,
 // la línea sin consulta, las formas de la redacción fechada, las de aviso y las
 // de hallazgo— leen la skill entera, su SKILL.md y sus referencias a mano, cada
@@ -2293,21 +2294,29 @@ func TestEvalsDelRepositorio(t *testing.T) {
 // probarLasLecturasDeLasEvalsDelRepositorio es el subtest lecturas de
 // TestEvalsDelRepositorio (contracts/formato-de-eval.md §3.3 de H26.1;
 // data-model §8 de H26.1; FR-011): de las evals del repositorio, llevan
-// lecturas la 14, la 15 y la 16 de boe-legislacion, cada una con sus bloques y
-// los motivos del contrato, escritos aquí a mano, y ninguna otra; que la unión
-// de grabaciones los sirve sin red lo exige el subtest grabado, porque son
-// consultas necesarias (FR-010).
+// lecturas la 14, la 15, la 16 y la 17 de boe-legislacion, cada una con sus
+// bloques y los motivos del contrato, escritos aquí a mano, y ninguna otra; que
+// la unión de grabaciones los sirve sin red lo exige el subtest grabado, porque
+// son consultas necesarias (FR-010). Desde H31.1, la 14 y la 15 ganan cuatro
+// cada una y la 17 la primera, todas con el mismo motivo
+// (contracts/lecturas-y-grabaciones.md §1 de H31.1; FR-011).
 func probarLasLecturasDeLasEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
 	const (
 		trlrhl = "BOE-A-2004-4214"
 		lirpf  = "BOE-A-2006-20764"
+		ltaibg = "BOE-A-2013-12887"
 
 		motivoDeLa14 = "De la misma norma que el art. 59 que pide la eval: la exploración que provoca la pregunta, " +
 			"vista en los jobs de la #175 y la #178 (ADR 0043, clase b)."
 		motivoDeLa15 = "Junto al art. 17 que pide la eval: la exploración que provoca la pregunta, vista en los jobs " +
 			"de la #175 y la #178 (ADR 0043, clase b)."
+		// motivoDeLoQueSeNombra es el de las nueve lecturas de H31.1, el mismo
+		// para todas (contracts/lecturas-y-grabaciones.md §1 de H31.1; FR-011).
+		motivoDeLoQueSeNombra = "Lo nombran, sin haberlo leído, respuestas de los sondeos de " +
+			"evidencias/sondeos-20261025/ o de los jobs de las evals, y la regla de leer lo que se nombra lo pide " +
+			"(H31.1; ADR 0043, clase b)."
 	)
 
 	carpetas := []struct {
@@ -2317,12 +2326,25 @@ func probarLasLecturasDeLasEvalsDelRepositorio(t *testing.T) {
 		{
 			carpeta: evalsDelRepositorio,
 			lecturas: map[string][]LecturaDeLaEval{
-				"14-trlrhl-impuestos-por-materia.yaml":  {{Norma: trlrhl, Bloque: "a15", Motivo: motivoDeLa14}},
-				"15-irpf-rendimientos-por-materia.yaml": {{Norma: lirpf, Bloque: "a18", Motivo: motivoDeLa15}},
+				"14-trlrhl-impuestos-por-materia.yaml": {
+					{Norma: trlrhl, Bloque: "a15", Motivo: motivoDeLa14},
+					{Norma: trlrhl, Bloque: "a60", Motivo: motivoDeLoQueSeNombra},
+					{Norma: trlrhl, Bloque: "a92", Motivo: motivoDeLoQueSeNombra},
+					{Norma: trlrhl, Bloque: "a100", Motivo: motivoDeLoQueSeNombra},
+					{Norma: trlrhl, Bloque: "a104", Motivo: motivoDeLoQueSeNombra},
+				},
+				"15-irpf-rendimientos-por-materia.yaml": {
+					{Norma: lirpf, Bloque: "a18", Motivo: motivoDeLa15},
+					{Norma: lirpf, Bloque: "a7", Motivo: motivoDeLoQueSeNombra},
+					{Norma: lirpf, Bloque: "a19", Motivo: motivoDeLoQueSeNombra},
+					{Norma: lirpf, Bloque: "a20", Motivo: motivoDeLoQueSeNombra},
+					{Norma: lirpf, Bloque: "dadecimoctava", Motivo: motivoDeLoQueSeNombra},
+				},
 				ficheroDeLaEval16: {
 					{Norma: normaDeLaLRJSP, Bloque: "a26", Motivo: motivoDeLasLecturasDeLa16},
 					{Norma: normaDeLaLRJSP, Bloque: "a27", Motivo: motivoDeLasLecturasDeLa16},
 				},
+				"17-ltaibg-plazo-por-materia.yaml": {{Norma: ltaibg, Bloque: "a24", Motivo: motivoDeLoQueSeNombra}},
 			},
 		},
 		{carpeta: evalsDeLegalCore, lecturas: map[string][]LecturaDeLaEval{}},
