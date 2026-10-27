@@ -65,7 +65,7 @@ US2: pasos 3 y 5) y cabe en 11 000 caracteres sin sacar nada a una referencia (U
 
 ## Fase 5: Cierre del artefacto — CHANGELOG (FR-016; SC-006)
 
-- [ ] T006 [P] Añadir a `CHANGELOG.md`, como primera entrada de «### Cambiado» en *Unreleased*, la de `boe-legislacion` v0.3.1 de `specs/029-h31-1-boe-legislacion-habla/contracts/guia-y-changelog.md` §2, tal cual: la respuesta empieza por lo que se pregunta, lo que nombra se lee antes, se repasa antes de enviar y el cuerpo cabe en 11 000 caracteres; la entrada de v0.3 no se toca (FR-016; SC-006; research D11; Definition of Done §1.6). Verificación: quickstart §11 (`1`) y `make ci` en verde
+- [X] T006 [P] Añadir a `CHANGELOG.md`, como primera entrada de «### Cambiado» en *Unreleased*, la de `boe-legislacion` v0.3.1 de `specs/029-h31-1-boe-legislacion-habla/contracts/guia-y-changelog.md` §2, tal cual: la respuesta empieza por lo que se pregunta, lo que nombra se lee antes, se repasa antes de enviar y el cuerpo cabe en 11 000 caracteres; la entrada de v0.3 no se toca (FR-016; SC-006; research D11; Definition of Done §1.6). Verificación: quickstart §11 (`1`) y `make ci` en verde
 
 ---
 
