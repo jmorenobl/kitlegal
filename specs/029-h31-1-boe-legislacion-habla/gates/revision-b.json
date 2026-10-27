@@ -1,0 +1,85 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0» (lint 0 issues, test, integration, govulncheck, esquemas, skills, goreleaser, gitleaks, go mod verify, tidy). Árbol: los únicos cambios sin commit son specs/029-…/gates/modelos.jsonl (M), gates/revision-cambios.md y gates/revision-ciclo.json, que escribe revision.sh al preparar esta ronda; nada del producto. Reproducido en una copia sin .git en $TMPDIR/h31-1-juezb: TestEntregaDelHito/h31-1-* (3 PASS), TestCacheDeLasSesiones, TestLecturaDeLaEvalSinGrabar y TestEvalsDelRepositorio (todos PASS)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "No hay código Go de producción nuevo (git diff main...HEAD: solo internal/evals/conjunto_test.go y preparar_test.go, dos tablas). Suite congelada intacta: sha256sum de specs/029-…/aceptacion/h31-1-{lee-lo-que-nombra,responder,sitio-en-el-cuerpo}.txtar = f4e344d8…, fdf5002c…, 25a294a0…, las de gates/aceptacion-congelada.json; git diff c50b874 HEAD -- aceptacion/ vacío; cmp con internal/app/testdata/script/h31-1-h31-1-*.txtar idéntico. Mutantes en la copia: SKILL.md de main → los tres guiones en rojo («distinto: 12 líneas frente a 4», «distinto: 6 líneas frente a 4», «encabezados: distinto: 14 frente a 13»); una palabra del paso 5 → solo lee-lo-que-nombra en rojo («distinto en la línea 7»); otro encabezado de la regla 5 → sitio-en-el-cuerpo («reglas: distinto en 5»); «TRLRHL» en el cuerpo → sitio-en-el-cuerpo (unexpected match, guion línea 56); sin la grabación de a7 → TestEvalsDelRepositorio/grabado y TestCacheDeLasSesiones/lecturas en rojo («la lectura BOE-A-2006-20764 a7 sin su bloque»); la eval 17 sin lecturas → TestEvalsDelRepositorio/lecturas en rojo; otro motivo en la 14 → lecturas en rojo."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Ninguna importación nueva: el diff de *.go solo añade entradas a dos tablas y una constante (conjunto_test.go:2300-2340, preparar_test.go:1091-1105). Sin net/http, os.Exit ni fmt.Print* añadidos (grep sobre el diff: 0 resultados). golangci-lint «0 issues» y arch_test dentro de make test en gates/ci.log."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Ningún applet, schemas/ ni internal/source cambia (git diff main...HEAD --stat: sin ficheros en schemas/, cmd/, internal/app no test, internal/source). TestEsquemasPublicados en verde en gates/ci.log. Los nueve bloques de FR-011 leídos desde la caché de una sesión con boe articulo … --offline --json salen con 0 y su sobre (medido en la copia: de 893 a 22 304 bytes)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Ningún código de salida cambia (sin cambios en internal/cli ni en los applets). Lo que el CHANGELOG promete de la skill está en el producto: la regla de graph check que no termina con 0 en skills/boe-legislacion/references/lecturas_que_fallan.md:39-47; «no encontrada con esta búsqueda» en references/buscar_la_norma.md:24-25; lo que no lleva la comprobación en references/redaccion_modificada.md:27-33; una lectura sin grabar sigue siendo una falta de la preparación (TestLecturaDeLaEvalSinGrabar PASS; mutante sin a7: faltas con código 1 y 4 y la sesión sin preparar)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md:69 bajo «## [Unreleased]» (línea 13), primera de «### Cambiado» (67); la de v0.3 sigue. Sin ADR: ninguna decisión de arquitectura cambia (research D12; el binario y el arnés no cambian). docs/SOURCES.md:42 ya tiene la fila de boe.legislacion-consolidada revisada 2026-09-13 y no se toca. Cifras cotejadas: docs/SKILLS.md:73-81 frente a evidencias/sondeos-20261025/LEEME.md:57-59 (40 sesiones de brazo-D, normas 23 a 40, con_herramientas 6 a 9); CHANGELOG y spec frente a evidencias/sondeos-20261026/LEEME.md:22-46 (brazo-W 1 de 40 y 2 de 40, brazo-H 11 y 10, brazo-X 6, medianas 19 s y 23 s); cuerpo 10 995 / 12 081 / 10 992 (wc -m tras el segundo ---) como dicen spec, plan, research V1 y el contrato; contracts/skill-md-v0.3.1.md = skills/boe-legislacion/SKILL.md byte a byte (cmp); la única URL que §1 añade, https://agentskills.io/, y el ancla #las-dos-fuentes (docs/SKILLS.md:22); CONTRIBUTING.md:743 remite a la frase que está en lecturas_que_fallan.md:46 y en evals/boe-legislacion/expresiones-prohibidas.yaml:108."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Las ocho grabaciones nuevas y el robots.txt regrabado llegan solo en el commit 495d090 del paso grabar_datos (git log main..HEAD -- internal/evals/testdata); sus SHA-256 son los de gates/grabaciones.md (nueve de nueve). Peticiones GET con User-Agent «kitlegal/dev (+https://kitlegal.es/bot)» y Accept application/xml (…_a60.json:4-15); sin Cookie, Set-Cookie ni Authorization en los ocho ficheros (grep -il, 0). El robots.txt solo cambia grabado_en, Age y Date. Ningún NIF ni dato personal: textos consolidados del BOE. Ningún fichero de data/ sale de lo grabado (plan, «Datos externos»)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "En el diff de *.go no hay nolint, t.Skip, TODO, FIXME ni «_ =» (grep: 0). Ningún fixture retocado: los únicos commits sobre testdata son e0cfbf6 (manifiesto, T002), 495d090 (grabar_datos) y 7701ebd (activación de la suite, byte a byte con la congelada). gates/cuarentena.json vacío. Los guiones no saltan nada: cada awk sale con 0 y la aserción es stdout/cmp/! grep, y los mutantes los ponen en rojo."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff fuera de specs/ son los 12 ficheros de FR-001 a FR-016 más CONTRIBUTING.md:743 (consecuencia de FR-001, research D10, plan «Trazabilidad») y el rename del fichero del hito a docs/roadmap/done/ (commit 40ad582 del workflow). skills/boe-legislacion/references = las de la skill medida (diff -r vacío); SKILL.md difiere de la medida exactamente en T1 a T15 del contrato §2 (diff: título, Protocolo, paso 2, tres viñetas del paso 4, Cómo se cita, la línea del PATH, reglas 2 a 6); FR-009: 0 líneas añadidas con las normas de las evals por materia; frontmatter: el diff con main empieza en la línea 17. evals/: solo +12, +12 y +4 líneas en 14, 15 y 17. Los tres supuestos de gates/supuestos.md son lecturas conservadoras: encabezados y reglas fijados por la suite; solo la URL que registra el repositorio; el PATH vuelve a la regla 2 (T11) para no romper h19-skills-invocacion.txtar:40, dentro de lo que FR-006 permite reescribir y registrado en el contrato (T10, T11), plan y supuestos."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Medido en la copia con el binario sobre lo grabado, desde la caché de una sesión de la 01, sin red: el sobre de cada bloque de FR-011 pesa a7 22 304 B, a19 2 819, a20 2 921, dadecimoctava 3 061, a60 893, a92 1 704, a100 2 061, a104 7 779, a24 2 690, todos con código 0: cada lectura devuelve el bloque pedido por su id, no lo acumulado, así que con cientos de normas y miles de bloques consultados no crece. Invocaciones por pregunta que pide la SKILL.md: una lectura más comprobación por precepto que la respuesta va a nombrar y no ha leído (paso 3, 45-56) y, como mucho, la que faltó en el repaso (paso 6.1, 83-87), acotadas por «es un salto: lo que remita esa segunda lectura no se lee»; en la eval 15, como mucho cuatro más además de a17 y a18. El cuerpo se carga una vez por pregunta y no crece con el uso: 10 995 caracteres, 3 más que main, acotado por el gate. Señales: las de siempre; ⚠ REDACCIÓN MODIFICADA deja de darse al releer (redaccion_modificada.md:31-33); ninguna señal nueva ni que se repita sin información nueva."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo tiene su FR: los tres guiones y sus tres programas awk (pasaje, extracto con cuatro modos, formas) → SC-003 y FR-001/002/003/004/006/007/009/010, sin orden nueva del arnés (research D4); el mapa de probarLasLecturasDeLasEvalsDelRepositorio con la constante motivoDeLoQueSeNombra y ltaibg (conjunto_test.go:2305-2340) → FR-011; la tabla de probarLasLecturasDeLasEvals (preparar_test.go:1091-1105) → FR-013; dos entradas del manifiesto → FR-012; el párrafo de docs/SKILLS.md:73-81 → FR-014; CHANGELOG.md:69 → FR-016; CONTRIBUTING.md:743 → FR-001 (D10). Ninguna referencia nueva, ningún control nuevo fuera de la suite, ningún cambio del tope (D8: peor caso 20 117 s bajo 21 120 s, definicion_test.go:2997 y :3112, evals.yml:276). No hay mecanismo sin FR ni rama para un estado que no pasa el umbral de materialidad."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "FR-005/SC-002 (≤ 11 000): con 11 002 caracteres TestSkillsDelRepositorio sale en rojo («cuerpo de 11002 caracteres (máximo 11000)», mutante en la copia) y TestCuerpoDeLaSkill tiene los casos once-mil-caracteres y once-mil-y-un-caracteres (sincronia_test.go:1063-1071; sincronia.go:30,442). SC-003: los cuatro mutantes del SKILL.md ponen la suite en rojo. FR-011: sin una lectura o con otro motivo, TestEvalsDelRepositorio/lecturas en rojo. FR-012/FR-013/SC-004/SC-008: sin la grabación de a7, grabado y TestCacheDeLasSesiones/lecturas en rojo; con todo, los nueve salen con 0 sin fecha y con --fecha 9999-12-31. FR-015/SC-005: TestDefinicionDelJob exige timeout-minutes ≥ peor caso y lleva mutantes del tope (definicion_test.go:1669-1675), en verde en gates/ci.log. SC-007/SC-009/SC-011: en el informe del cierre de H31 (specs/027-h31-las-skills-siguen/gates/evals/boe-legislacion.json) afirma_lo_no_leido:claude-sonnet-5-5 tiene umbral 0.028 y decide: true, como los demás de la tabla del plan; el workflow los mide sobre la cabeza tras esta revisión."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "SC-008: fuera_de_lo_grabado sigue con decide: false en el informe del job (visto en specs/027-h31-las-skills-siguen/gates/evals/boe-legislacion.json); su umbral de 0 sesiones lo hacen cumplir en make ci los tres tests de su fila, que salen en rojo si la caché no sirve un bloque de lecturas (mutante sin a7). Que decida vive en internal/evals/umbrales.go, que el hito no toca por su propia entrada («Fuera de alcance») y pediría un ADR: no es motivo.",
+    "El título «# Consultar y citar legislación consolidada del BOE» sale del cuerpo (research D3): boe-legislacion es ahora la única skill sin título #, mientras jurisprudencia (SKILL.md:16) y legal-core (SKILL.md:17) lo llevan. Ningún gate lo exige y make ci está en verde; es forma, no comportamiento.",
+    "gates/analyze.md dice que el cuerpo del contrato tiene 10 996 caracteres «igual que dice tasks.md T004»; tasks.md, plan, research V1, el contrato y wc -m dan 10 995. Es una cifra del artefacto del gate, no del producto.",
+    "docs/SKILLS.md:86 dice que las referencias a mano «abren con un título # »; references/redaccion_modificada.md abre sin él, en main y en la skill medida. Preexistente, no lo introduce el hito, y la misma frase dice que ningún gate lo exige.",
+    "TestCacheDeLasSesiones/lecturas lee con --offline; las sesiones del job invocan sin esa bandera y las sirve la caché preparada (diseño de H26.1, sin cambios en este hito). El robots.txt del BOE se regrabó solo con otro grabado_en, Age y Date (research S4)."
+  ]
+}
