@@ -10,6 +10,22 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-10-27 · El hito sale en verde y el sondeo dice que no basta
+
+- **Qué se pidió.** Cerrar H31.1: el run `ce64a33e` dejó la #200 con los dos jueces y el job de evals en verde, y la
+  entrada pedía, antes de fusionar, un sondeo de la eval 15 con como mucho 2 de 40 en `afirma_lo_no_leido` y en
+  `cuenta_su_proceso`.
+- **Qué pasó.** El sondeo dio 11 de 40 y 10 de 40, y ninguna sesión leyó el art. 7 de la Ley del IRPF, que es lo que
+  el hito quería: el job mide 6 respuestas de esa eval y no lo veía. La #200 se cerró sin fusionar.
+- **Qué faltó.** Saber qué cambio del cuerpo funciona antes de pedírselo a un run. Cuatro brazos más sobre la #200 lo
+  separaron (`evidencias/sondeos-20261026/`): un paso de repaso antes de enviar baja `cuenta_su_proceso` a 4 de 80; un
+  paso 3 que manda leer por defecto lo remitido, con su porqué, baja `afirma_lo_no_leido` a 1 de 40, aunque tampoco
+  lee el art. 7: la respuesta deja de pegar al número lo que el modelo sabe de memoria; y quitar las prohibiciones
+  concretas de la regla 5 lo empeora.
+- **Qué se hizo.** La entrada de H31.1, corregida para partir de la skill medida, con sus pasos 3, 5 y 6 palabra por
+  palabra, y relanzada. El criterio de `cuenta_su_proceso` en el sondeo pasa a como mucho 4 de 40. Ningún umbral se
+  toca.
+
 ### 2026-10-25 · Una subida de dependencia sale en rojo por la skill
 
 - **Qué se pidió.** Fusionar cinco propuestas de la deuda tras H31, una de ellas la #195, que solo sube

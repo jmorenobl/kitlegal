@@ -1,0 +1,16 @@
+Esto es un sondeo, no un veredicto: el veredicto de la skill lo da el job de evals.
+No comprueba lo que el job lee de la traza de strace —qué órdenes se ejecutaron (los comandos esperados y los prohibidos de cada eval) y las llegadas a la red— ni la ausencia de Python: por eso sus tasas no son las del job.
+
+Tasa de cada serie (sesiones que pasan de las medidas):
+- 15-irpf-rendimientos-por-materia.yaml con claude-sonnet-5-5 (informativa): 20 de 20
+- 15-irpf-rendimientos-por-materia.yaml con claude-sonnet-5-5 (herramienta) (informativa): 20 de 20
+
+Juez (claude-opus-5-5), sobre las respuestas de las evals que activan la skill:
+- marcadas en afirma_lo_no_leido, con sus tres votos: 6 de 40 (15,0 %).
+- con sí en cuenta_su_proceso, con un voto: 0 de 40 (0,0 %).
+La medida versionada del juez corresponde a lo que hay, con el Claude Code de este equipo (2.1.289).
+Respuestas sin juzgar: ninguna.
+
+Sesiones sin medir por límite de uso: ninguna.
+
+Sesiones que no terminaron por otra causa: ninguna.
