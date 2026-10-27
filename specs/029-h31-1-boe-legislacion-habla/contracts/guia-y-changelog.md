@@ -40,14 +40,14 @@ las de H31. La de v0.3 no se toca.
 >   paso 3 lee antes de escribir el precepto al que remite un bloque leído, o cuyo id solo salió en un índice, si la
 >   respuesta va a hablar de él, y lo que remita esa segunda lectura ya no se lee; el paso 5 no junta número y materia
 >   de lo no leído; y el paso 6, nuevo, repasa la respuesta frase a frase antes de enviarla. Para que el cuerpo siga en
->   11 000 caracteres como mucho —queda en 10 996—, lo demás se dice más corto, sin quitar ninguna regla invariante ni
+>   11 000 caracteres como mucho —queda en 10 995—, lo demás se dice más corto, sin quitar ninguna regla invariante ni
 >   forma fija, y la regla de `kitlegal graph check` que no termina con `0` queda en `lecturas_que_fallan`, como la
 >   frase de «no encontrada con esta búsqueda» en `buscar_la_norma` y lo que no lleva la respuesta de la comprobación
 >   en `redaccion_modificada`. Las evals 14, 15 y 17 llevan en `lecturas` los nueve preceptos que sus respuestas
 >   nombran, grabados para que las sesiones los lean sin red.
 
 Cada afirmación de la entrada sale del diff de la entrega con `main`: los pasos, de §1 de
-[skill-boe-legislacion-v0-3-1.md](skill-boe-legislacion-v0-3-1.md); el cuerpo de 10 996 caracteres, del mismo
+[skill-boe-legislacion-v0-3-1.md](skill-boe-legislacion-v0-3-1.md); el cuerpo de 10 995 caracteres, del mismo
 contrato; la regla 7 de `main` («Si `kitlegal graph check` no termina con `0`»), que no está en la skill medida, y las
 dos referencias que cambió la #200, del diff de `buscar_la_norma.md` y `redaccion_modificada.md` con `main` (research
 V2); las lecturas, de [lecturas-y-grabaciones.md](lecturas-y-grabaciones.md) §1.

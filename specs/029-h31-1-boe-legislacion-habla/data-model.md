@@ -8,7 +8,7 @@ sus partes, con las reglas que las comprueban.
 | Parte | Qué es | Regla | Lo comprueba |
 |---|---|---|---|
 | Frontmatter | `name`, `description`, `metadata` (`kitlegal-applets: boe graph`, `kitlegal-referencias: normas`), líneas 1 a 15 | igual al de `main` y al de la skill medida (FR-010) | `h31-1-sitio-en-el-cuerpo`; `TestSkillsDelRepositorio` |
-| Cuerpo | desde la línea 16: lo que el agente carga entero al activar la skill | ≤ 11 000 runas y < 500 líneas: 10 996 y 156 (FR-005) | gate de H31 (`defectosDelCuerpo`) |
+| Cuerpo | desde la línea 16: lo que el agente carga entero al activar la skill | ≤ 11 000 runas y < 500 líneas: 10 995 y 156 (FR-005) | gate de H31 (`defectosDelCuerpo`) |
 | Pasaje medido | paso 3, primera viñeta del paso 4, paso 5, paso 6 | idéntico, línea a línea, a la skill medida (FR-002) | `h31-1-responder`, `h31-1-lee-lo-que-nombra` |
 | Forma fija | cada línea de un bloque `text` y las tres etiquetas de aviso | en el `SKILL.md` tal cual (FR-003) | `h31-1-sitio-en-el-cuerpo`; controles de §1 de `docs/SKILLS.md` |
 | Tabla de comandos | entre `<!-- inicio de la tabla de comandos…-->` y `<!-- fin de la tabla de comandos -->` | la generada, igual a la de la skill medida (FR-004) | `h31-1-sitio-en-el-cuerpo`; `make skills-check` |

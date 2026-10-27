@@ -10,7 +10,7 @@
 con el cuerpo reescrito para caber. Los pasajes medidos —el paso 3, la primera viñeta del paso 4, el paso 5 y el paso 6—,
 las formas fijas, la tabla de comandos, el frontmatter, los encabezados y las reglas quedan como en ella; lo demás se
 dice más corto, quitando lo que el cuerpo ya dice en otro sitio (casi siempre en los pasos 5 y 6 medidos) y lo que el
-agente no haría mal sin ello, y sale el título `#`. El cuerpo pasa de 12 081 caracteres a **10 996**, y ningún texto sale
+agente no haría mal sin ello, y sale el título `#`. El cuerpo pasa de 12 081 caracteres a **10 995**, y ningún texto sale
 a una referencia: las ocho son las de la skill medida (research D1 a D3; el `SKILL.md` entero, en
 [contracts/skill-md-v0.3.1.md](contracts/skill-md-v0.3.1.md); la tabla de textos, en
 [contracts/skill-boe-legislacion-v0-3-1.md](contracts/skill-boe-legislacion-v0-3-1.md)). Tres guiones de aceptación
@@ -41,7 +41,7 @@ cierre y, con potencia, el sondeo de una persona (SC-012).
 
 **Project Type**: skill agéntica sobre el CLI multicall (el binario no cambia) y datos del arnés de evals.
 
-**Performance Goals**: el cuerpo, como mucho 11 000 caracteres (10 996); el peor caso del trabajo de evals de
+**Performance Goals**: el cuerpo, como mucho 11 000 caracteres (10 995); el peor caso del trabajo de evals de
 `boe-legislacion`, 20 117 s, dentro de los 21 120 s del tope.
 
 **Constraints**: sin red ni modelo en el run (ADR 0032), salvo `grabar_datos`. Fuera: la descripción, los umbrales,
@@ -182,7 +182,7 @@ Capa 1 de la constitución («Gates»), en `make ci` salvo lo que se dice del wo
 | Requisito | Umbral | Control | Dónde |
 |---|---|---|---|
 | SC-001 | `make ci` termina con 0 | Todos los de esta tabla que viven en `make ci` y los de siempre | `ci:Makefile:ci` |
-| FR-005, SC-002 | Cuerpo de `SKILL.md` ≤ 11 000 caracteres (10 996); con 11 001, rojo | Gate del cuerpo de H31 sobre las skills del repositorio y sobre copias de 11 000 y 11 001 | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio`, `ci:internal/skills/sincronia_test.go:TestCuerpoDeLaSkill` |
+| FR-005, SC-002 | Cuerpo de `SKILL.md` ≤ 11 000 caracteres (10 995); con 11 001, rojo | Gate del cuerpo de H31 sobre las skills del repositorio y sobre copias de 11 000 y 11 001 | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio`, `ci:internal/skills/sincronia_test.go:TestCuerpoDeLaSkill` |
 | FR-007 | 0 ficheros de `references/` sin enlace desde `SKILL.md` | Subtest `referencias` del gate de H31 | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio` |
 | FR-004 | 0 diferencias entre la tabla del `SKILL.md` y la que genera `--describe` | Regeneración del gate de H31 (`make skills-check`) | `ci:internal/app/skills_test.go:TestSkillsDelRepositorio` |
 | FR-008, SC-001 | 0 defectos de los diez controles de contenido en el `SKILL.md` y en cada referencia a mano, también 0 órdenes de ejemplo que no salgan con 0 con `--offline` | Los ocho subtests de `TestEvalsDelRepositorio` y `normas-nombradas` y `sin-instrucciones-de-evals` | `ci:internal/evals/conjunto_test.go:TestEvalsDelRepositorio`, `ci:internal/app/skills_test.go:TestSkillsDelRepositorio` |
@@ -210,8 +210,8 @@ de las `lecturas` y que una lectura sin grabar para la preparación (research V1
 
 ## Uso, de fuera adentro
 
-- **El cuerpo** (FR-001 a FR-010): lo carga el agente entero, una vez por pregunta que activa la skill: 10 996
-  caracteres, unos 4 870 tokens a 2,26 caracteres por token (ADR 0046, línea 24), 4 más que hoy. No crece con el uso:
+- **El cuerpo** (FR-001 a FR-010): lo carga el agente entero, una vez por pregunta que activa la skill: 10 995
+  caracteres, unos 4 870 tokens a 2,26 caracteres por token (ADR 0046, línea 24), 3 más que hoy. No crece con el uso:
   lo escribe una persona y el gate lo acota. Ninguna referencia nueva: las que se leen siguen siendo las de hoy, cuando
   su paso las pide.
 - **Las lecturas de la regla de leer lo que se nombra** (paso 3 y paso 6.1, medidos): las pide el agente una vez por

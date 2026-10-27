@@ -1,7 +1,7 @@
 # Redacción modificada
 
-Qué compara `kitlegal graph check` tras una lectura sin fecha, y cuándo y cómo lleva la respuesta la línea de
-«Redacción modificada» de `SKILL.md`.
+Qué compara `kitlegal graph check` tras una lectura sin fecha, cuándo y cómo lleva la respuesta la línea de
+«Redacción modificada» de `SKILL.md`, y qué no lleva.
 
 ## Qué compara
 
@@ -23,6 +23,15 @@ lugar de la línea ni además de ella: la línea va con su forma fija y lo dice 
 Un aviso es un dato de la norma, que el BOE da con el bloque, y la etiqueta REDACCIÓN MODIFICADA no es la de ninguno:
 una entrada de `kitlegal graph check` es un dato de kitlegal sobre otras conversaciones, que quien pregunta no conoce.
 Mencionarla fuera de su línea sería contar lo que devolvió una orden y hablar de otras conversaciones.
+
+## Lo demás de la comprobación
+
+Una entrada `fuente-caducada`, o cualquiera de un bloque sin `version-obsoleta`, no va en la respuesta, que cita el
+texto que acabas de leer.
+
+## Una lectura por bloque
+
+No releas un bloque sin fecha: una segunda lectura apagaría su línea REDACCIÓN MODIFICADA.
 
 ## La redacción superada
 

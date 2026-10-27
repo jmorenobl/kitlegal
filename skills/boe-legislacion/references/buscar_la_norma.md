@@ -21,5 +21,5 @@ cita como una estatal.
 
 ## Si no aparece
 
-Reformula la búsqueda con otras palabras del título. Que no aparezca no prueba que no exista: la regla 1 de `SKILL.md`
-dice cómo se dice.
+Reformula la búsqueda con otras palabras del título. Que no aparezca no prueba que no exista (regla 1 de `SKILL.md`):
+di «no encontrada con esta búsqueda» y propón reformularla.

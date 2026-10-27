@@ -153,8 +153,8 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 ## Reglas
 
 1. **No concluir que algo no existe.** Una búsqueda vacía, o una norma fuera de la tabla, no prueba que no exista.
-2. **Nunca inventar contenido legal.** Si una lectura falla, di qué bloques no pudiste consultar y por qué, y no
-   suplas nada de memoria; sin herramienta ni binario, la regla 7.
+2. **Nunca inventar contenido legal.** Si una lectura falla, di qué bloques faltan y por qué, y no
+   suplas nada de memoria; sin herramienta ni binario en el `PATH`, la regla 7.
 3. **Trasladar la vigencia.** Cada aviso, con su frase o una explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:`
    o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`, y la fecha de vigencia del bloque que no encaja con lo preguntado; una
    derogada no es vigente. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.

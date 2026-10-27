@@ -11,7 +11,7 @@ entrega, lo dicen con su resultado de hoy.
 tail -n +16 skills/boe-legislacion/SKILL.md | wc -m
 ```
 
-Con la entrega: `10996`. Hoy: `10992`. La skill medida, `tail -n +16 evidencias/sondeos-20261026/brazo-W/skill/SKILL.md | wc -m`: `12081`.
+Con la entrega: `10995`. Hoy: `10992`. La skill medida, `tail -n +16 evidencias/sondeos-20261026/brazo-W/skill/SKILL.md | wc -m`: `12081`.
 
 ## 2. El `SKILL.md` es el del contrato (FR-001 a FR-010)
 

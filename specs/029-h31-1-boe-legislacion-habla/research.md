@@ -9,7 +9,7 @@ repositorio y se cita con su ruta.
 ### D1. La skill de la entrega es la medida con el cuerpo reescrito; ningún texto sale a una referencia
 
 - **Decisión**: `skills/boe-legislacion/` de v0.3.1 = `evidencias/sondeos-20261026/brazo-W/skill/` (las ocho
-  referencias, tal cual) con el `SKILL.md` de `contracts/skill-md-v0.3.1.md`, cuyo cuerpo tiene 10 996 caracteres. El
+  referencias, tal cual) con el `SKILL.md` de `contracts/skill-md-v0.3.1.md`, cuyo cuerpo tiene 10 995 caracteres. El
   sitio sale entero de reescribir más corto lo que no es pasaje medido, forma fija ni tabla (FR-006; contrato §2,
   T1 a T15). Ningún texto sale a una referencia y no hay referencia nueva (contrato §3).
 - **Por qué**: FR-007 permite sacar un texto de una clase, no lo exige, y lo acota (Clarificación 3): el enlace solo
@@ -147,7 +147,7 @@ Ni el binario, ni el arnés de evals salvo los dos tests de §4 del contrato de 
 ## Verificaciones de esta sesión
 
 - **V1. Tamaños.** `tail -n +16 <SKILL.md> | wc -m`: skill medida 12 081, `main` 10 992, `contracts/skill-md-v0.3.1.md`
-  10 996; `wc -l`, 169 y 156. El gate cuenta runas (`utf8.RuneCount`, `internal/skills/sincronia.go:442`) frente a
+  10 995; `wc -l`, 169 y 156. El gate cuenta runas (`utf8.RuneCount`, `internal/skills/sincronia.go:442`) frente a
   `maximoDeCaracteresDelCuerpo = 11000` (`:30`); `TestCuerpoDeLaSkill` (`internal/skills/sincronia_test.go`) lo prueba
   con un cuerpo de 11 000 caracteres y otro de 11 001, que da «cuerpo de 11001 caracteres (máximo 11000)» y con el que
   la sincronía no escribe nada (casos `once-mil-caracteres` y `once-mil-y-un-caracteres`).
