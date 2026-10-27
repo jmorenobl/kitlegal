@@ -124,7 +124,7 @@ internal/evals/
 ├── conjunto_test.go                         # FR-011: el mapa de TestEvalsDelRepositorio/lecturas
 └── preparar_test.go                         # FR-013: la tabla de TestCacheDeLasSesiones/lecturas
 specs/029-h31-1-boe-legislacion-habla/aceptacion/
-└── h31-1-{responder,lee-lo-que-nombra,sitio-en-el-cuerpo}.txtar   # SC-003; activados en internal/app/testdata/script/
+└── h31-1-{responder,lee-lo-que-nombra,sitio-en-el-cuerpo}.txtar   # SC-003; activados en internal/app/testdata/script/h31-1-h31-1-*.txtar
 docs/SKILLS.md                               # FR-014: un párrafo de §1
 CONTRIBUTING.md                              # FR-001 (consecuencia): la frase de la línea 743
 CHANGELOG.md                                 # FR-016

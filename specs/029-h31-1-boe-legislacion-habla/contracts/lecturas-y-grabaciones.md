@@ -59,8 +59,8 @@ entradas que ya tienen las lecturas de hoy; nada más del fichero cambia:
 
 | Test | Cambia | Qué hace cumplir |
 |---|---|---|
-| `TestEvalsDelRepositorio/lecturas` (`internal/evals/conjunto_test.go:2300`, `probarLasLecturasDeLasEvalsDelRepositorio`) | el mapa escrito a mano gana las nueve entradas, con una constante para el motivo de §1, y la 17 | que cada eval lleve exactamente sus lecturas: ni una de más, ni de menos, ni otro motivo (FR-011) |
-| `TestCacheDeLasSesiones/lecturas` (`internal/evals/preparar_test.go:1081`, `probarLasLecturasDeLasEvals`) | la tabla gana los nueve bloques | que la caché de una sesión sirva cada uno sin red con `boe articulo … --offline`, sin fecha y con `--fecha 9999-12-31`, con código 0 (FR-013) |
+| `TestEvalsDelRepositorio/lecturas` (`internal/evals/conjunto_test.go:2303`, `probarLasLecturasDeLasEvalsDelRepositorio`) | el mapa escrito a mano gana las nueve entradas, con una constante para el motivo de §1, y la 17 | que cada eval lleve exactamente sus lecturas: ni una de más, ni de menos, ni otro motivo (FR-011) |
+| `TestCacheDeLasSesiones/lecturas` (`internal/evals/preparar_test.go:1086`, `probarLasLecturasDeLasEvals`) | la tabla gana los nueve bloques | que la caché de una sesión sirva cada uno sin red con `boe articulo … --offline`, sin fecha y con `--fecha 9999-12-31`, con código 0 (FR-013) |
 | `TestEvalsDelRepositorio/grabado` | nada | que la unión de grabaciones sirva cada consulta necesaria de las evals, las lecturas entre ellas, sin red (FR-012) |
 | `TestLecturaDeLaEvalSinGrabar` (`internal/evals/preparar_test.go:738`) | nada | que una lectura sin grabar dé sus dos faltas y la sesión no se prepare (US4, escenario 3) |
 

@@ -36,7 +36,9 @@ Con la entrega: `iguales`. Hoy: difieren `buscar_la_norma.md` y `redaccion_modif
 go test -count=1 -v -run 'TestEntregaDelHito/h31-1-' ./internal/app/ 2>&1 | grep -E '^\s*--- '
 ```
 
-Con la suite activada: `--- PASS` para `h31-1-responder`, `h31-1-lee-lo-que-nombra` y `h31-1-sitio-en-el-cuerpo`.
+Con la suite activada: `--- PASS` para `TestEntregaDelHito` y sus tres subtests, `h31-1-h31-1-responder`,
+`h31-1-h31-1-lee-lo-que-nombra` y `h31-1-h31-1-sitio-en-el-cuerpo`: la activación copia cada guion a
+`internal/app/testdata/script/` con el prefijo del hito, `h31-1-`, delante de su nombre.
 
 ## 5. Las skills (FR-003, FR-004, FR-007, FR-008; SC-001)
 

@@ -1,14 +1,11 @@
 {
-  "id": "T006",
-  "texto": "T006 [P] Añadir a `CHANGELOG.md`, como primera entrada de «### Cambiado» en *Unreleased*, la de `boe-legislacion` v0.3.1 de `specs/029-h31-1-boe-legislacion-habla/contracts/guia-y-changelog.md` §2, tal cual: la respuesta empieza por lo que se pregunta, lo que nombra se lee antes, se repasa antes de enviar y el cuerpo cabe en 11 000 caracteres; la entrada de v0.3 no se toca (FR-016; SC-006; research D11; Definition of Done §1.6). Verificación: quickstart §11 (`1`) y `make ci` en verde",
-  "intento": 1,
+  "id": "",
+  "texto": "",
+  "intento": 0,
   "datos": false,
   "aceptacion": false,
-  "base": "58fcf134c64f458d091aa90d4bc679d0e3d87d76",
-  "rutas": [
-    "CHANGELOG.md",
-    "specs/029-h31-1-boe-legislacion-habla/contracts/guia-y-changelog.md"
-  ],
+  "base": "",
+  "rutas": [],
   "cierre": false,
   "converger": false,
   "nota": "-"
