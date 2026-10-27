@@ -1,0 +1,37 @@
+# h31-1-lee-lo-que-nombra.txtar
+# Lo que la respuesta nombra, se ha leído antes o se nombra con las palabras
+# leídas: el paso 3 y el paso 5 del SKILL.md de boe-legislacion son, línea a
+# línea, las líneas 48 a 59 y 78 a 86 del SKILL.md de la skill medida,
+# evidencias/sondeos-20261026/brazo-W/skill/; la regla de leer lo que se nombra
+# va en el cuerpo.
+#
+# Cubre: US2, escenario 1 · FR-002 · SC-003.
+#
+# pasaje.awk compara y sale siempre con 0; la aserción es la de stdout.
+
+env MEDIDA=$KITLEGAL_SKILLS/../evidencias/sondeos-20261026/brazo-W/skill
+env RAMA=$KITLEGAL_SKILLS/boe-legislacion
+
+# --- El paso 3, «Completar» (líneas 48 a 59) ---
+exec awk -v desde=48 -v hasta=59 -v 'ini=^### 3[.] Completar$' -v 'fin=^### 4[.] ' -f pasaje.awk $MEDIDA/SKILL.md $RAMA/SKILL.md
+stdout '^idéntico 12$'
+
+# --- El paso 5, «De un precepto no leído, nada» (líneas 78 a 86) ---
+exec awk -v desde=78 -v hasta=86 -v 'ini=^### 5[.] De un precepto no leído, nada$' -v 'fin=^### 6[.] ' -f pasaje.awk $MEDIDA/SKILL.md $RAMA/SKILL.md
+stdout '^idéntico 9$'
+
+-- pasaje.awk --
+# Las líneas desde..hasta del primer fichero, la skill medida, frente al tramo del
+# segundo, la rama, que empieza en la primera línea que casa con ini y acaba antes
+# de la siguiente que casa con fin, sin las líneas en blanco del final.
+FNR == NR { if (FNR >= desde && FNR <= hasta) m[++nm] = $0; next }
+p && $0 ~ fin { p = 0 }
+visto == 0 && $0 ~ ini { p = 1; visto = 1 }
+p { r[++nr] = $0 }
+END {
+	while (nr > 0 && r[nr] == "") nr--
+	v = "idéntico " nm
+	if (nm != nr) v = "distinto: " nm " líneas frente a " nr
+	else for (i = 1; i <= nm; i++) if (m[i] != r[i]) { v = "distinto en la línea " i; break }
+	print v
+}
