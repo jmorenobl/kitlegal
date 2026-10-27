@@ -1,18 +1,15 @@
 {
-  "id": "T004",
-  "texto": "T004 [US3] Sustituir `skills/boe-legislacion/SKILL.md` por `specs/029-h31-1-boe-legislacion-habla/contracts/skill-md-v0.3.1.md` byte a byte (cuerpo de 10 996 caracteres; frontmatter, tabla de comandos, formas fijas, encabezados `##`/`###` y número y encabezado de cada regla como en la skill medida; los pasos 3, 4 primera viñeta, 5 y 6 idénticos a los suyos; sin título `#`) y `skills/boe-legislacion/references/buscar_la_norma.md` y `skills/boe-legislacion/references/redaccion_modificada.md` por las de la skill medida, también byte a byte, con lo que la #200 cambió en ellas; ninguna referencia nueva ni otro fichero de `skills/boe-legislacion/` cambia (FR-001 a FR-007, FR-009, FR-010; US1, US2, US3; SC-002, SC-003). En la misma rebanada, por consecuencia de FR-001 (research D10; contrato de la skill §6), en `CONTRIBUTING.md` (líneas 742-743, partida en dos líneas) «la frase de la regla 7» pasa a «la frase de `references/lecturas_que_fallan.md`» y nada más del fichero cambia. Verificación: `make skills-sync` sin cambios en lo generado, `make skills-check` en verde (gate del cuerpo de H31 —`TestCuerpoDeLaSkill` lo ve fallar con 11 001 caracteres—, `referencias`, tabla sin drift, `normas-nombradas`, `sin-instrucciones-de-evals` y los ocho controles de contenido de `TestEvalsDelRepositorio`, `ordenes-de-ejemplo` incluido; FR-004, FR-005, FR-007, FR-008), `TestSkillsEmpotradas` en verde, quickstart §2 (`igual`), §3 (`iguales`) y §8 (`0`), que son las comparaciones que los tres guiones de T001 hacen (research V3 a V5), y `make ci` en verde",
+  "id": "T005",
+  "texto": "T005 [P] [US6] Añadir a `docs/SKILLS.md` §1 el párrafo «Lo que se lee y lo que no» de `specs/029-h31-1-boe-legislacion-habla/contracts/guia-y-changelog.md` §1, tal cual y en el sitio que dice (en «Qué va en el cuerpo y qué en una referencia», detrás del párrafo que nombra el contrato), con las cifras de lo medido, la ruta de su evidencia, `https://agentskills.io/` y el enlace a «Las dos fuentes» (`#las-dos-fuentes`); ninguna otra URL ni ningún otro cambio de `docs/SKILLS.md` (FR-014; SC-013; research D9). Verificación: quickstart §10 (solo `https://agentskills.io/`, que está en `web/src/components/Pie.astro:30`), el ancla `las-dos-fuentes` existe en `docs/SKILLS.md` (`grep -n '^#.*Las dos fuentes' docs/SKILLS.md`) y `make ci` en verde, con los controles de contenido de `TestEvalsDelRepositorio` que nombra §1 sin cambios",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "59e235c033f2f2125b0da6608b6c4c60cc8a801f",
+  "base": "0e93cb52bcc7ef8bc388bd2bce01dcaf95ec0a9b",
   "rutas": [
-    "CONTRIBUTING.md",
-    "references/lecturas_que_fallan.md",
-    "skills/boe-legislacion/",
-    "skills/boe-legislacion/SKILL.md",
-    "skills/boe-legislacion/references/buscar_la_norma.md",
-    "skills/boe-legislacion/references/redaccion_modificada.md",
-    "specs/029-h31-1-boe-legislacion-habla/contracts/skill-md-v0.3.1.md"
+    ".io/",
+    "docs/SKILLS.md",
+    "specs/029-h31-1-boe-legislacion-habla/contracts/guia-y-changelog.md",
+    "web/src/components/Pie.astro"
   ],
   "cierre": false,
   "converger": false,
