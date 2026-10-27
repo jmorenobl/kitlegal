@@ -1,0 +1,117 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-10-27 16:59:44
++++ ahora/checklists/requirements.md	2026-10-27 17:01:17
+@@ -21,7 +21,9 @@
+   lecturas y los umbrales.
+ - [x] Requirements are testable and unambiguous — cada FR lleva su «Criterio»; los pasajes medidos se fijan por líneas
+   del `SKILL.md` de la skill medida (Contexto, FR-002), y «texto de una clase de pregunta» frente a «lo que toda
+-  respuesta necesita» se define en el Contexto y se lista en FR-006.
++  respuesta necesita» se define en el Contexto y se lista en FR-006; las remisiones de las referencias al cuerpo siguen
++  valiendo porque FR-006 fija encabezados y reglas, con su control en la suite de aceptación (SC-003); y los enlaces de
++  FR-014 salen del repositorio, cotejables por la revisión final (SC-013).
+ - [x] Success criteria are measurable — SC-002 (11 000 caracteres), SC-007 (0.028), SC-008 (0 sesiones), SC-012 (2 y 4
+   de 40), y cada umbral sin persona nombra la comprobación que sale en rojo (SC-001 a SC-009, SC-011).
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden la skill y el cierre por sus
+@@ -31,8 +33,9 @@
+   fija u orden concreta, y la regla genérica para lo manipulado a mano.
+ - [x] Scope is clearly bounded — «Fuera de alcance» recoge el del hito y lo que no está en él (descripción, referencias más
+   allá de recibir textos, `topeDeUnaSesion`, binario, workflow).
+-- [x] Dependencies and assumptions identified — «Assumptions»: lo reescrito no medido, la falta de red para las guías,
+-  `a24` ya grabado, la serie que empieza de cero.
++- [x] Dependencies and assumptions identified — «Assumptions»: lo reescrito no medido, la falta de red para las guías
++  («Las dos fuentes» no da ninguna URL; el repositorio solo registra `https://agentskills.io/`), `a24` ya grabado, la
++  serie que empieza de cero.
+ 
+ ## Feature Readiness
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-27 16:59:44
++++ ahora/spec.md	2026-10-27 17:01:13
+@@ -181,7 +181,7 @@
+ 1. **Dado** `docs/SKILLS.md` §1 de la rama, **Cuando** se lee, **Entonces** dice lo medido, con sus cifras y la ruta
+    `evidencias/sondeos-20261025/`; sus dos consecuencias —lo que toda respuesta necesita va en el cuerpo, y una
+    referencia nueva lleva el paso que la pide—; y las tres prácticas de las guías de autoría de agentskills.io y de
+-   Anthropic, con el enlace de cada guía.
++   Anthropic, con `https://agentskills.io/` y el enlace a «Las dos fuentes» (FR-014).
+ 
+ ---
+ 
+@@ -254,9 +254,14 @@
+   de nadie, el texto sale de `kitlegal boe` y no del grafo, y sin herramienta ni binario la respuesta lo dice—. Fuera de
+   los pasajes medidos, las formas fijas y la tabla, un texto suyo se puede reescribir más corto, como piden las guías de
+   autoría de agentskills.io y de Anthropic: quitar lo que el agente no haría mal sin ello y lo que el cuerpo ya dice en
+-  otro sitio, y decir el porqué en vez de enumerar prohibiciones. Criterio: el plan da, por cada texto reescrito, el de
+-  la skill medida y el de la entrega, y por qué lo quitado no hace falta; cada regla invariante de esta lista tiene su
+-  frase en el cuerpo de v0.3.1; la revisión final lo coteja.
++  otro sitio, y decir el porqué en vez de enumerar prohibiciones. Reescribir no mueve lo que se remite: las referencias
++  que FR-001 deja igual remiten al cuerpo por número y título («regla 1», «regla 2», «regla 3», «paso 2», «Cómo se
++  cita», «Redacción en una fecha», «Redacción modificada», «Comandos»), y el cuerpo a su regla 7; por eso cada encabezado
++  `##` y `###` del cuerpo conserva su texto y su orden, y cada una de las siete reglas su número y su encabezado en
++  negrita. Criterio: el plan da, por cada texto reescrito, el de la skill medida y el de la entrega, y por qué lo
++  quitado no hace falta; cada regla invariante de esta lista tiene su frase en el cuerpo de v0.3.1; la revisión final
++  lo coteja; y la suite de aceptación sale en rojo si un encabezado o el número o el encabezado en negrita de una regla
++  difieren de los de la skill medida.
+ - **FR-007**: Un texto de una clase de pregunta puede salir del cuerpo a la referencia a mano de esa clase, existente o
+   nueva, y el paso del protocolo que lo necesita lleva, en la frase, el enlace a la referencia y la condición de leerla.
+   Ningún texto que toda respuesta necesita sale del cuerpo. El enlace va solo en un paso numerado del protocolo que no sea
+@@ -308,10 +313,14 @@
+   `normas`, de 23 a 40 sesiones por brazo, y, en los brazos con la skill de H31, `con_herramientas`, de 6 a 9—; sus
+   consecuencias: lo que toda respuesta necesita va en el cuerpo, y una referencia nueva
+   lleva el paso del protocolo que la pide; y las prácticas de las guías de autoría de agentskills.io y de Anthropic que lo
+-  respaldan, con el enlace de cada guía: decir cuándo leer cada referencia, no solo que existe; explicar el porqué en vez
+-  de encadenar prohibiciones; y quitar del cuerpo lo que el agente no haría mal sin ello. Nada de §1 que no sea eso
+-  cambia. Criterio: el apartado lo dice con esas cifras, la ruta de la evidencia y los dos enlaces; la revisión final
+-  coteja las cifras con `LEEME.md`.
++  respaldan: decir cuándo leer cada referencia, no solo que existe; explicar el porqué en vez de encadenar
++  prohibiciones; y quitar del cuerpo lo que el agente no haría mal sin ello. El enlace de cada guía es el que registra
++  el repositorio: `https://agentskills.io/` (`web/src/components/Pie.astro`) para la especificación; la URL de la guía
++  de Anthropic no la registra ningún fichero, así que §1 no la escribe de memoria, enlaza a «Las dos fuentes»
++  (`#las-dos-fuentes`) y el informe final la da como pendiente de la persona. Nada de §1 que no sea eso cambia.
++  Criterio: el apartado lo dice con esas cifras, la ruta de la evidencia, `https://agentskills.io/` y el enlace a «Las
++  dos fuentes»; la revisión final coteja las cifras con `LEEME.md` y que cada URL que la rama añade a §1 está en un
++  fichero de `main`.
+ 
+ #### El cierre
+ 
+@@ -367,7 +376,8 @@
+ - **SC-002**: El cuerpo de `SKILL.md` tiene como mucho 11 000 caracteres; la comprobación de las skills de `make ci` y
+   `make skills-sync` salen en rojo con 11 001 o más (FR-005).
+ - **SC-003**: Los pasajes medidos son idénticos a los de la skill medida (FR-002), las formas fijas siguen tal cual
+-  (FR-003) y el frontmatter no cambia (FR-010); la suite de aceptación lo comprueba contra
++  (FR-003), el frontmatter no cambia (FR-010) y los encabezados y las reglas conservan lo que fija FR-006; la suite de
++  aceptación lo comprueba contra
+   `evidencias/sondeos-20261026/brazo-W/skill/SKILL.md` y sale en rojo con una diferencia. La tabla de textos del plan
+   (FR-006, FR-007) la coteja la revisión final.
+ - **SC-004**: Los tests de `lecturas` de H26.1 con los bloques nuevos: cada uno se sirve en la caché de su eval, sin
+@@ -405,8 +415,8 @@
+   debajo de los 17 de 80 del control (el hito pide la cifra, no la significación: 4 de 40 frente a 17 de 80 da p ≈
+   0,099). Lo mide una persona fuera del run (ADR 0032): el informe final lo da como pendiente. Si no se cumple, la
+   propuesta no se fusiona y se decide con sus cifras.
+-- **SC-013**: `docs/SKILLS.md` §1 dice lo de FR-014 con sus cifras, su evidencia y los enlaces de las dos guías; lo coteja
+-  la revisión final.
++- **SC-013**: `docs/SKILLS.md` §1 dice lo de FR-014 con sus cifras, su evidencia, `https://agentskills.io/` y el enlace
++  a «Las dos fuentes», sin ninguna URL que no esté en un fichero de `main`; lo coteja la revisión final.
+ 
+ ### Criterios del hito, tal como los escribe
+ 
+@@ -434,8 +444,9 @@
+ - Lo reescrito no se midió: la skill de la entrega ya no es la réplica de `brazo-W`, y por eso decide el sondeo de la
+   persona (SC-012), no el cierre.
+ - Las sesiones del run no tienen red fuera de las herramientas de Go: lo que `docs/SKILLS.md` §1 dice de las guías de
+-  autoría es lo que el hito les atribuye y lo que ya registra «Las dos fuentes» de esa guía, con su enlace; no lleva una
+-  cita literal que no se haya consultado.
++  autoría es lo que el hito les atribuye y lo que ya registra «Las dos fuentes», que no da ninguna URL; no lleva una
++  cita literal ni una URL que no se hayan consultado. La única URL de una guía que registra el repositorio es
++  `https://agentskills.io/`, en `web/src/components/Pie.astro` (FR-014).
+ - `a24` de `BOE-A-2013-12887` ya está en el manifiesto y grabado (lo pide `data/plazos.yaml`, H9): la eval 17 lo lleva en
+   `lecturas` igualmente, con su motivo, como pide el hito. Si `grabar_datos` no puede grabar un bloque porque la fuente
+   no responde, es una causa mayor del run (dependencia externa inaccesible), no un caso del producto.
+@@ -454,6 +465,8 @@
+ - La descripción y el resto del frontmatter de `boe-legislacion` (FR-010).
+ - Reescribir las referencias más allá de recibir los textos que salen del cuerpo (FR-001), y reescribir al moverlo un
+   texto que sale: llega palabra por palabra.
++- Renumerar o juntar las reglas del cuerpo y cambiar un encabezado suyo: las referencias remiten a ellos (FR-006).
++- Escribir en `docs/SKILLS.md` §1 una URL que no registra ningún fichero del repositorio (FR-014).
+ - Sacar del cuerpo un texto cuya única necesidad está en un pasaje medido o fuera de los pasos numerados («Protocolo»,
+   «Cómo se cita», «Redacción en una fecha», «Redacción modificada», «Reglas»): se queda en el cuerpo (FR-007).
+ - Que `fuera_de_lo_grabado` decida en el cierre de `boe-legislacion`, y cambiar el arnés de evals para ello (SC-008).
