@@ -74,10 +74,12 @@ sustituyen a este fichero.
   paso 3 lee antes de escribir el precepto al que remite un bloque leído, o cuyo id solo salió en un índice, si la
   respuesta va a hablar de él, y lo que remita esa segunda lectura ya no se lee; el paso 5 no junta número y materia
   de lo no leído; y el paso 6, nuevo, repasa la respuesta frase a frase antes de enviarla. Para que el cuerpo siga en
-  11 000 caracteres como mucho —queda en 10 995—, lo demás se dice más corto, sin quitar ninguna regla invariante ni
-  forma fija, y la regla de `kitlegal graph check` que no termina con `0` queda en `lecturas_que_fallan`, como la
-  frase de «no encontrada con esta búsqueda» en `buscar_la_norma` y lo que no lleva la respuesta de la comprobación
-  en `redaccion_modificada`. Las evals 14, 15 y 17 llevan en `lecturas` los nueve preceptos que sus respuestas
+  11 000 caracteres como mucho —queda en 10 998—, lo demás se dice más corto, sin quitar ninguna regla invariante ni
+  forma fija ni las tres frases de la skill medida que sostienen el paso 3: nada de otra conversación, ni para
+  afirmar, confirmar o desmentir; cada afirmación, con su cita de lo que `kitlegal boe` devolvió en esta
+  conversación; y una cita por bloque, también del remitido, repasadas. La regla de `kitlegal graph check` que no
+  termina con `0` queda en `lecturas_que_fallan`, como la frase de «no encontrada con esta búsqueda» en
+  `buscar_la_norma` y lo que no lleva la respuesta de la comprobación en `redaccion_modificada`. Las evals 14, 15 y 17 llevan en `lecturas` los nueve preceptos que sus respuestas
   nombran, grabados para que las sesiones los lean sin red.
 - **`jurisprudencia` v0.2: el cuerpo de `SKILL.md` lleva lo que toda respuesta necesita, y el detalle, dos referencias
   escritas a mano** (H31; ADR 0046). Sustituye a `jurisprudencia` v0.1.2. Cambia la forma de lo que lee el modelo, no

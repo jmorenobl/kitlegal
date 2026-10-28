@@ -16,14 +16,13 @@ metadata:
 
 ## Protocolo
 
-Sigue los pasos en orden, cada operación con `kitlegal … --json` o, si la tienes, siempre con su herramienta, tras
-leer [con_herramientas](references/con_herramientas.md). Sin `fuente`, `url`,
-`fecha_consulta` y `hash`, no hay cita.
+Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o, si la tienes, con su
+herramienta, tras leer [con_herramientas](references/con_herramientas.md).
 
 ### 1. Identificar la norma
 
-Toma el `BOE-A-…` de la tabla de [normas](references/normas.md), no exhaustiva: si no está, búscala por su título
-con [buscar_la_norma](references/buscar_la_norma.md).
+Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, búscala con
+[buscar_la_norma](references/buscar_la_norma.md).
 
 ### 2. Leer
 
@@ -63,7 +62,10 @@ leído: si te parece útil decirlo, esa es la señal de que hay que leerlo.
   cita, sus avisos y las líneas `⚠` de cada bloque: escribe como quien tiene el BOE delante,
   «el artículo no lleva avisos de vigencia» y no «la lectura no trajo avisos», la norma por su nombre e identificador,
   sin decir de dónde sale, qué has hecho o vas a hacer ni qué ha devuelto o no una orden: no le sirve.
-- **Nada de otra conversación**, salvo la línea `⚠ REDACCIÓN MODIFICADA:`.
+- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la línea
+  `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
+- Cada afirmación sobre el contenido de una norma lleva su cita, de lo que `kitlegal boe` devolvió en esta
+  conversación.
 - **Ley y reglamento**: di el `rango` de cada una y que la ley prevalece sobre su reglamento.
 - De la redacción leída, di qué norma la dio y desde cuándo rige, nunca hasta cuándo: ninguna lectura lo trae, ni el
   aviso de una derogada.
@@ -94,11 +96,10 @@ Envía la respuesta corregida, no la primera.
 
 ## Cómo se cita
 
-Cada afirmación sobre una norma lleva su cita: la forma legible y, en la misma línea, entre corchetes, el
-identificador y el id como los da `kitlegal boe`, nada tras el id aunque acabe en punto:
-`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`. Una cita por bloque; para otra forma,
-[como_se_cita](references/como_se_cita.md). Cada línea `⚠` va entera, en una línea y con los datos de la lectura:
-dicha de otro modo, falta.
+La forma legible y, en la misma línea, entre corchetes, el identificador y el id como los da `kitlegal boe`, nada
+tras el id aunque acabe en punto: `art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`. Una cita por bloque,
+también del remitido; repásalas, y para otra forma, [como_se_cita](references/como_se_cita.md). Cada línea `⚠` va
+entera, en una línea y con los datos de la lectura: dicha de otro modo, falta.
 
 ## Redacción en una fecha
 
@@ -118,8 +119,6 @@ Por cada entrada `version-obsoleta` de `kitlegal graph check`, y si se pregunta 
 ```text
 ⚠ REDACCIÓN MODIFICADA: <forma legible> [<identificador>, bloque <id>]: la redacción con fecha de vigencia AAAAMMDD, la que se consultó antes, ha sido sustituida por la de AAAAMMDD, que es la que se cita.
 ```
-
-De `kitlegal graph` solo se usa `check`, y nada más suyo va en la respuesta.
 
 ## Comandos
 
@@ -153,8 +152,8 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 ## Reglas
 
 1. **No concluir que algo no existe.** Una búsqueda vacía, o una norma fuera de la tabla, no prueba que no exista.
-2. **Nunca inventar contenido legal.** Si una lectura falla, di qué bloques faltan y por qué, y no
-   suplas nada de memoria; sin herramienta ni binario en el `PATH`, la regla 7.
+2. **Nunca inventar contenido legal.** Si una lectura falla, di qué bloques faltan y por qué, y no suplas
+   nada de memoria.
 3. **Trasladar la vigencia.** Cada aviso, con su frase o una explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:`
    o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`, y la fecha de vigencia del bloque que no encaja con lo preguntado; una
    derogada no es vigente. El texto consolidado es informativo y no sustituye el asesoramiento de un profesional.
@@ -162,7 +161,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    persona.
 5. **Ningún caso especial para un territorio.** Las ordenanzas y demás normas locales no están en esta fuente: dilo si
    se pregunta por un municipio o lo preguntado les corresponde. Si puede variar por normativa autonómica o foral, dilo.
-6. **El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.**
+6. **El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.** Del grafo, solo `check`.
 7. **Sin herramienta y sin binario, la respuesta lo dice.** Sin la herramienta, si `kitlegal` no está —el shell no lo
    encuentra o no ejecutas órdenes—, no lo busques en otras carpetas ni en un plugin: no has consultado nada.
    No afirmes nada de la norma, de memoria o con salvedades, ni cites; lleva esta línea, con la causa en el marcador:
