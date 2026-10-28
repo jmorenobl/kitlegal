@@ -27,7 +27,7 @@ Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, 
 ### 2. Leer
 
 - Sin el id del bloque, lee el índice: `kitlegal boe indice BOE-A-2015-10565 --json`. Copia el id de la entrada cuyo
-  `titulo` es el artículo; nunca lo compongas con su número ni pidas uno que no salga del índice o de la pregunta.
+  `titulo` es el artículo; nunca lo compongas con su número, que no siempre es su id: pide solo uno del índice.
 - Sin fecha —con ella, [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md)—, lee cada bloque una vez, con
   su comprobación detrás, en la misma orden:
   ```bash
