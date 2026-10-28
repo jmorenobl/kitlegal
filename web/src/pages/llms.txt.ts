@@ -9,7 +9,7 @@ import type { APIRoute } from "astro";
 import { parse } from "yaml";
 import { audiencias } from "../data/audiencias";
 import { consultas } from "../data/consultas";
-import { consultas as indiceDeConsultas, instalar, type Pagina, rastreador } from "../data/paginas";
+import { evaluacion, consultas as indiceDeConsultas, instalar, type Pagina, rastreador } from "../data/paginas";
 import {
   carpetasPublicadas,
   formatoEntero,
@@ -106,6 +106,7 @@ export const GET: APIRoute = () => {
     "## Optional",
     "",
     ...audiencias.map(pagina),
+    pagina(evaluacion),
     pagina(rastreador),
     entrada("CHANGELOG", urlPublicada("CHANGELOG.md"), "Los cambios de comportamiento de cada versión publicada."),
     ...esquemas(),

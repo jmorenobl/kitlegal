@@ -40,6 +40,8 @@ export interface Audiencia {
     antetitulo: string;
     titulo: string;
     texto: string;
+    // La página que cuenta cómo se comprueba lo que se promete, si la hay.
+    enlace?: { texto: string; destino: string };
     pilares: { icono: string; tono: Tono; fondo: string; titulo: string; texto: string; pie: string }[];
   };
   // `consulta` es el slug de la página de consultas.ts que desarrolla la
@@ -228,8 +230,9 @@ export const despachos: Audiencia = {
     },
     {
       etiqueta: "Alcance",
-      valor: "Legislación, no sentencias",
-      texto: "Lee la legislación consolidada del BOE. Hoy no consulta ni comprueba jurisprudencia.",
+      valor: "Leyes, y tu sentencia",
+      texto:
+        "Lee la legislación consolidada del BOE. No busca sentencias: solo cita la que traes, tras comprobar que es la que se pide.",
       tono: "agente",
     },
     {
@@ -256,6 +259,7 @@ export const despachos: Audiencia = {
     titulo: "Tres garantías que da el programa, no el modelo",
     texto:
       "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y situar el territorio. El modelo razona sobre lo que el programa le devuelve.",
+    enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
     pilares: [
       {
         icono: "menu-book",

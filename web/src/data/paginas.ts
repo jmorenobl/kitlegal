@@ -39,6 +39,13 @@ export const consultas: Pagina = {
     "Plazos de recursos, silencio administrativo, fianza del alquiler, preaviso, Hacienda: preguntas habituales con el artículo vigente del BOE que las responde.",
 };
 
+export const evaluacion: Pagina = {
+  ruta: "/como-se-evalua/",
+  titulo: "Cómo se evalúa kitlegal: qué se comprueba y qué falla",
+  descripcion:
+    "Las mismas preguntas en cada cambio, un revisor comprobado con casos conocidos y los errores que quedan, con su ejemplo, su fecha y su fuente.",
+};
+
 export const rastreador: Pagina = {
   ruta: "/bot/",
   titulo: "El rastreador de kitlegal",
