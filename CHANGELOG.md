@@ -256,6 +256,12 @@ sustituyen a este fichero.
 
 ### Corregido
 
+- **`boe-legislacion` v0.3.2: el id de un bloque sale del índice, nunca de la pregunta.** El paso 2 decía «ni pidas
+  uno que no salga del índice o de la pregunta», y la sesión que leía «el artículo 118» en la pregunta pedía el bloque
+  `a118`, que no existe: el art. 118 de la LCSP es `a1-30`. La lectura fallaba y la respuesta no podía dar la línea
+  `⚠ REDACCIÓN A FECHA:` (eval 22, `redaccion_sin_fechar` en modo herramienta, 1 de 6 en la #170 y en dos de las tres
+  medidas de la #204). Ahora dice que el número no siempre es el id y que solo se pide uno del índice.
+
 - **Las llamadas simultáneas del servidor MCP ya no pierden lo observado.** Cada entrega al grafo del mundo competía
   por el bloqueo de `world.db` en SQLite, reintentando por tramos de 100 ms con una espera propia de 5 s, también
   contra las demás entregas del mismo proceso: con muchas llamadas a la vez y la máquina cargada, alguna agotaba esa
