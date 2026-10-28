@@ -16,6 +16,7 @@ const imagenes: Record<string, { titulo: string; subtitulo: string }> = {
       { titulo: pregunta, subtitulo: `${etiqueta} · con la cita del BOE` },
     ]),
   ),
+  evaluacion: { titulo: "Cómo se evalúa kitlegal", subtitulo: "Qué se comprueba en cada cambio y qué errores quedan" },
   bot: { titulo: "El rastreador de kitlegal", subtitulo: "Qué es, cómo se comporta con tu sitio y cómo limitarlo" },
 };
 

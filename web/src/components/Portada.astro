@@ -265,6 +265,17 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         {garantias.titulo}
       </h2>
       <p class="leading-relaxed text-tenue">{garantias.texto}</p>
+      {
+        garantias.enlace && (
+          <a
+            href={garantias.enlace.destino}
+            class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2"
+          >
+            {garantias.enlace.texto}
+            <Icono nombre="arrow-forward" class="size-4" />
+          </a>
+        )
+      }
     </div>
     <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
       {

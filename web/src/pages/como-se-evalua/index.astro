@@ -1,0 +1,274 @@
+---
+// Cómo se evalúa kitlegal, para quien llega desde la portada de despachos y
+// quiere saber si puede fiarse de lo que responde. Cada cifra sale del
+// repositorio (evidencias/, la serie de cierres de scripts/workflow/serie.sh y
+// los informes del job de evals) y lleva su fecha y su fuente; ninguna se
+// redondea. La página no cita ninguna norma: lo que dice de una respuesta lo
+// dice de la respuesta.
+import Prosa from "../../components/Prosa.astro";
+import { evaluacion as pagina } from "../../data/paginas";
+import Base from "../../layouts/Base.astro";
+import { migas } from "../../lib/estructurados";
+import { REPOSITORIO } from "../../lib/proyecto";
+
+const repositorio = (ruta: string) => `${REPOSITORIO}/blob/main/${ruta}`;
+const carpeta = (ruta: string) => `${REPOSITORIO}/tree/main/${ruta}`;
+
+// Lo que se ha medido, de lo más reciente a lo más antiguo dentro de cada tema.
+const resultados = [
+  {
+    tema: "Afirmar lo que dice una norma sin haberla leído",
+    antes: "16 de 80",
+    ahora: "2 de 80",
+    texto:
+      "En la pregunta en la que más se equivocaba, repetida 80 veces: antes y después del último cambio de las instrucciones.",
+    fecha: "25 y 28 de octubre de 2026",
+    fuente: { texto: "evidencias/sondeos-20261028", destino: carpeta("evidencias/sondeos-20261028") },
+  },
+  {
+    tema: "Contar cómo ha hecho la consulta en lugar de hablar de la norma",
+    antes: "17 de 80",
+    ahora: "4 de 80",
+    texto: "La misma pregunta, las mismas 80 respuestas.",
+    fecha: "25 y 28 de octubre de 2026",
+    fuente: { texto: "evidencias/sondeos-20261028", destino: carpeta("evidencias/sondeos-20261028") },
+  },
+  {
+    tema: "Afirmar sin haber leído, en todas las preguntas sobre normas",
+    ahora: "entre 0 y 3",
+    texto:
+      "Respuestas señaladas de cada 108 o 120, en las 16 comprobaciones hechas antes de publicar un cambio. La última dio 0 de 120.",
+    fecha: "del 6 al 27 de octubre de 2026",
+    fuente: { texto: "la serie de comprobaciones", destino: repositorio("scripts/workflow/serie.sh") },
+  },
+  {
+    tema: "Resumir una sentencia que no tenía delante",
+    ahora: "0",
+    texto:
+      "Respuestas señaladas en 12 comprobaciones de 60 respuestas cada una. Para comparar: sin kitlegal, el mismo modelo lo hizo en las 12 respuestas de 12 a cuatro preguntas sobre sentencias que no tenía delante (9 de octubre).",
+    fecha: "del 10 al 27 de octubre de 2026",
+    fuente: {
+      texto: "evidencias/adr-0037-jurisprudencia",
+      destino: carpeta("evidencias/adr-0037-jurisprudencia"),
+    },
+  },
+];
+---
+
+<Base
+  titulo={pagina.titulo}
+  descripcion={pagina.descripcion}
+  imagen="evaluacion"
+  datos={migas({ nombre: "Cómo se evalúa", ruta: pagina.ruta })}
+>
+  <Prosa
+    etiqueta="Para despachos y juristas"
+    titulo="Cómo se evalúa kitlegal"
+    entradilla="Antes de publicar cualquier cambio, le hacemos a kitlegal las mismas preguntas muchas veces y revisamos cada respuesta. Aquí está qué se comprueba, qué ha salido y qué errores quedan."
+  >
+    <h2>En pocas palabras</h2>
+    <ul>
+      <li>
+        Lo que más importa es que una respuesta no diga qué establece una norma sin haberla leído en el BOE en esa misma
+        consulta. En la pregunta en la que más fallaba, ha pasado de <strong>16 de cada 80 respuestas a 2 de cada 80</strong>.
+      </li>
+      <li>
+        En el conjunto de preguntas sobre normas, el revisor señala <strong>entre 0 y 3 respuestas de cada 120</strong> (o
+        de cada 108, en las comprobaciones más antiguas). Una versión con más de 3 de cada 120 no se publica.
+      </li>
+      <li>
+        Ninguna respuesta ha resumido una sentencia que no tuviera delante en las 12 comprobaciones hechas hasta el 27 de
+        octubre de 2026.
+      </li>
+      <li>
+        No es infalible. Quedan errores, y abajo están contados por tipo, con un ejemplo real de cada uno.
+      </li>
+    </ul>
+
+    <h2>Qué se promete</h2>
+    <p>Cada una de estas promesas se comprueba en cada cambio:</p>
+    <ul>
+      <li>
+        <strong>No afirma lo que dice una norma sin haberla leído</strong> en el BOE en esa consulta. Si no la ha leído,
+        lo dice.
+      </li>
+      <li><strong>Cita de dónde sale lo que dice</strong>: la norma y el artículo del BOE.</li>
+      <li>
+        <strong>Avisa de la vigencia</strong>: si la norma está derogada o su redacción ha cambiado, lo dice al principio
+        de la respuesta.
+      </li>
+      <li>
+        <strong>Lee la redacción vigente en una fecha</strong> cuando la pregunta es por un momento pasado, como el día del
+        acto o de los hechos, y dice qué fecha ha usado.
+      </li>
+      <li>
+        <strong>Dice lo que no cubre</strong>: si la pregunta cae fuera de lo que kitlegal sabe tratar, lo advierte y no da
+        plazos ni vías de memoria.
+      </li>
+      <li>
+        <strong>Solo cita una sentencia con su documento delante</strong>, el que trae la persona. kitlegal no busca
+        sentencias por su cuenta.
+      </li>
+    </ul>
+
+    <h2>Cómo se comprueba</h2>
+    <ul>
+      <li>
+        <strong>Las mismas preguntas, siempre.</strong> 45 preguntas fijas, como las haría un despacho o un ciudadano: qué
+        dice un artículo, qué plazo hay, qué decía una ley en una fecha, o una pregunta por materia sin nombrar el
+        artículo. En cada cambio, cada una se hace tres veces por cada una de las dos formas en que el asistente puede usar
+        kitlegal, porque la misma pregunta no recibe siempre la misma respuesta.
+      </li>
+      <li>
+        <strong>Con las normas grabadas del BOE.</strong> Las respuestas se leen contra una copia guardada de los
+        artículos, para que el resultado no dependa del día en que se mide.
+      </li>
+      <li>
+        <strong>Lo que tiene forma, lo comprueba un programa.</strong> La cita y el aviso de norma derogada: cada pregunta
+        tiene que salir bien en al menos 2 de sus 3 repeticiones. La fecha de la redacción, el aviso de lo que no cubre y
+        la sentencia citada sin su documento: no se admite ningún fallo.
+      </li>
+      <li>
+        <strong>Lo que hay que leer, lo lee otro modelo</strong>, más capaz que el que responde. Responde a una pregunta
+        cerrada sobre cada respuesta, y un error solo cuenta si lo señala en tres lecturas. Antes de usarlo, lo
+        comprobamos con casos que una persona había clasificado a mano: señaló los 212 errores y ninguna de las 47
+        respuestas correctas; en las sentencias, los 125 errores y ninguna de las 124 correctas. Un límite: esos casos
+        los clasificó la misma persona que escribió la pregunta del revisor.
+      </li>
+      <li>
+        <strong>Lo que no pasa, no se publica.</strong> Una versión solo se publica si la comprobación completa sale bien
+        sobre esa misma versión.
+      </li>
+      <li><strong>Publicar lo decide siempre una persona</strong>, con los resultados delante.</li>
+    </ul>
+    <p>
+      ¿Por qué se admiten hasta 3 de cada 120, y no cero? Porque el texto de una respuesta lo escribe un modelo de
+      lenguaje, y eso se puede reducir pero no garantizar. Con un límite de cero, el resultado dependería del azar: una
+      versión buena suspendería a menudo y una mala podría pasar. Con 3 de cada 120, una versión que empeore se detecta,
+      y la que no empeora casi nunca suspende.
+    </p>
+
+    <h2>Resultados</h2>
+    <div class="not-prose grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {
+        resultados.map(({ tema, antes, ahora, texto, fecha, fuente }) => (
+          <div class="flex flex-col rounded-lg border border-linea bg-white p-6 shadow-sm">
+            <p class="text-sm font-semibold text-tinta">{tema}</p>
+            <p class="mt-3 font-serif text-3xl font-semibold text-tinta">
+              {antes && <span class="text-xl text-tenue line-through decoration-1">{antes}</span>}
+              {antes && " → "}
+              {ahora}
+            </p>
+            <p class="mt-3 text-sm leading-relaxed text-tenue">{texto}</p>
+            <p class="mt-auto pt-4 font-mono text-xs text-tenue">
+              {fecha} ·{" "}
+              <a href={fuente.destino}>{fuente.texto}</a>
+            </p>
+          </div>
+        ))
+      }
+    </div>
+    <p>
+      La pregunta de las 80 respuestas es a propósito la más difícil: pregunta por una materia del IRPF sin nombrar el
+      artículo. Por eso da más errores que el conjunto, en el que cada pregunta se repite menos veces.
+    </p>
+
+    <h2>Los errores que quedan</h2>
+
+    <h3>1. Decir el contenido de una regla sin haberla leído</h3>
+    <p>
+      Es el error más grave, porque es contenido legal sin fuente. Hoy, 2 de cada 80 respuestas en la pregunta más
+      difícil, y entre 0 y 3 de cada 120 en el conjunto.
+    </p>
+    <p>
+      <strong>Ejemplo real</strong> (28 de octubre de 2026). A la pregunta de qué rendimientos son del trabajo en la ley
+      del IRPF, una respuesta añadió «antes de tributar se restan los gastos deducibles», una regla que no había leído en
+      el BOE en esa consulta. Otra pegó una materia a una remisión que tampoco había leído: «sin perjuicio de otra regla
+      de la misma Ley sobre rentas exentas».
+    </p>
+    <p>
+      <strong>Qué se hace.</strong> Es el error que decide si una versión se publica. El último cambio de las
+      instrucciones lo bajó de 16 a 2 de cada 80, y cada cambio posterior se mide con las mismas preguntas.
+    </p>
+
+    <h3>2. Contar cómo ha hecho la consulta en lugar de hablar de la norma</h3>
+    <p>
+      Hoy, 4 de cada 80 respuestas. No es contenido inventado, pero confunde: dice algo de cómo trabajó la herramienta, y
+      se puede leer como si fuera un dato de la norma.
+    </p>
+    <p>
+      <strong>Ejemplo real</strong> (28 de octubre de 2026). Las cuatro respuestas señaladas dicen lo mismo: «no consta
+      ninguna redacción posterior». Es lo que devolvió una comprobación interna, no una afirmación sobre la historia de
+      la norma.
+    </p>
+    <p>
+      <strong>Qué se hace.</strong> Se cuenta y se publica en cada comprobación, pero no impide publicar una versión,
+      porque no afirma nada falso de la norma. El último cambio lo bajó de 17 a 4 de cada 80.
+    </p>
+
+    <h3>3. Avisar con una forma distinta de la prevista</h3>
+    <p>
+      Los avisos (norma derogada, redacción en una fecha, asunto no cubierto) tienen una forma fija, para que se vean y
+      se puedan comprobar. En el de redacción en una fecha y en el de asunto no cubierto no se admite ningún fallo: si
+      una sola respuesta lo da con otra forma, la comprobación suspende.
+    </p>
+    <p>
+      <strong>Ejemplo real</strong> (28 de octubre de 2026). A una persona que preguntaba hasta cuándo podía recurrir una
+      liquidación de la Agencia Tributaria, una respuesta de 9 avisó, bien, de que el caso no estaba cubierto y no dio
+      ninguna fecha, pero en el aviso nombró la disposición que excluye el caso, no la ley que lo regula, que es la que
+      estaba prevista. Esa comprobación{" "}
+      <a href="https://github.com/jmorenobl/kitlegal/actions/runs/40682099061">suspendió</a>; la siguiente, el mismo día,
+      dio 0 de 9.
+    </p>
+    <p>
+      <strong>Qué se hace.</strong> El próximo hito, H32, reorganiza las instrucciones de kitlegal por tipo de tarea, y
+      el siguiente, H33, deja un único aviso de «no cubierto» para todas las materias. Los dos se medirán con estas mismas
+      preguntas antes de publicarse.
+    </p>
+
+    <h2>Qué no es</h2>
+    <ul>
+      <li>
+        <strong>No sustituye el criterio del profesional.</strong> Una respuesta de kitlegal se revisa como se revisaría
+        el borrador de un colaborador: con la cita delante.
+      </li>
+      <li>
+        <strong>Los textos consolidados del BOE son informativos.</strong> El texto con valor jurídico es el publicado en
+        el diario oficial.
+      </li>
+      <li>
+        <strong>Medir no es garantizar.</strong> Las cifras dicen cómo responde a estas preguntas. Otra pregunta puede
+        fallar de otra manera, y por eso cada respuesta lleva su cita, para comprobarla.
+      </li>
+    </ul>
+
+    <h2>Dónde mirar el detalle</h2>
+    <p>Todo está en el repositorio público del proyecto, con sus fechas:</p>
+    <ul>
+      <li>
+        <a href={repositorio("docs/HISTORIAL.md")}>El historial</a>: qué se ha entregado en cada hito y con qué resultado.
+      </li>
+      <li>
+        <a href={carpeta("evidencias")}>Las evidencias</a>: las respuestas, las revisiones y las cuentas de cada medida.
+      </li>
+      <li>
+        <a href={repositorio("docs/adr/0037-lo-que-es-de-significado-lo-juzga-un-modelo.md")}>
+          Por qué lo que hay que leer lo revisa otro modelo
+        </a>{" "}
+        (decisión 0037).
+      </li>
+      <li>
+        <a href={repositorio("docs/adr/0038-el-umbral-de-una-clase-de-significado-es-una-tasa.md")}>
+          Por qué el límite es de 3 de cada 120 y no cero
+        </a>{" "}
+        (decisión 0038).
+      </li>
+      <li>
+        <a href={repositorio("docs/adr/0047-el-sondeo-de-la-persona-decide-con-80-respuestas.md")}>
+          Por qué la prueba de la pregunta difícil usa 80 respuestas
+        </a>{" "}
+        (decisión 0047).
+      </li>
+    </ul>
+  </Prosa>
+</Base>
