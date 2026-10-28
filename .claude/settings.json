@@ -1,7 +1,10 @@
 {
   "extraKnownMarketplaces": {
     "agricidaniel-claude-seo": {
-      "source": { "source": "github", "repo": "AgriciDaniel/claude-seo" }
+      "source": {
+        "source": "github",
+        "repo": "AgriciDaniel/claude-seo"
+      }
     }
   },
   "enabledPlugins": {
@@ -122,7 +125,6 @@
       "Bash(git push --all:*)",
       "Bash(git push --mirror:*)",
       "Bash(git push --tags:*)",
-      "Bash(git merge:*)",
       "Bash(git reset --hard:*)",
       "Bash(gh pr close:*)",
       "Bash(gh release:*)",
@@ -136,7 +138,8 @@
       "Bash(gh repo edit:*)",
       "Bash(gh api:*)",
       "Bash(git push origin v:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(git merge:*)"
     ]
   },
   "hooks": {
