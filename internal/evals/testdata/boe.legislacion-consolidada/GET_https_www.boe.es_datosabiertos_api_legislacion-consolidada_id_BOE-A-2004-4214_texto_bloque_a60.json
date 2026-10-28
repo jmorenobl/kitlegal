@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "grabado_en": "2026-10-27T18:05:32Z",
+  "peticion": {
+    "metodo": "GET",
+    "url": "https://www.boe.es/datosabiertos/api/legislacion-consolidada/id/BOE-A-2004-4214/texto/bloque/a60",
+    "cabeceras": {
+      "Accept": [
+        "application/xml"
+      ],
+      "User-Agent": [
+        "kitlegal/dev (+https://kitlegal.es/bot)"
+      ]
+    }
+  },
+  "respuesta": {
+    "estado": 200,
+    "cabeceras": {
+      "Accept-Ranges": [
+        "bytes"
+      ],
+      "Access-Control-Allow-Headers": [
+        "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range"
+      ],
+      "Access-Control-Allow-Methods": [
+        "GET, POST, OPTIONS"
+      ],
+      "Access-Control-Allow-Origin": [
+        "*"
+      ],
+      "Access-Control-Expose-Headers": [
+        "Content-Length,Content-Range"
+      ],
+      "Age": [
+        "0"
+      ],
+      "Content-Type": [
+        "application/xml"
+      ],
+      "Date": [
+        "Tue, 27 Oct 2026 18:05:35 GMT"
+      ],
+      "Strict-Transport-Security": [
+        "max-age=31536000"
+      ],
+      "Vary": [
+        "Accept"
+      ]
+    },
+    "cuerpo": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<response>\n  <status>\n    <code>200</code>\n    <text>ok</text>\n  </status>\n  <data>\n    <bloque id=\"a60\" tipo=\"precepto\" titulo=\"Artículo 60\">\n      <version id_norma=\"BOE-A-2004-4214\" fecha_publicacion=\"20040309\" fecha_vigencia=\"20040310\">\n        <p class=\"articulo\">Artículo 60. Naturaleza.</p>\n        <p class=\"parrafo\">El Impuesto sobre Bienes Inmuebles es un tributo directo de carácter real que grava el valor de los bienes inmuebles en los términos establecidos en esta ley.</p>\n      </version>\n    </bloque>\n  </data>\n</response>\n"
+  }
+}

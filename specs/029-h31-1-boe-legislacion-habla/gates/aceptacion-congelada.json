@@ -1,0 +1,12 @@
+{
+  "tarea": "T001",
+  "commit": "c50b8742c110578f6b8349859276622a538a9b81",
+  "ficheros": {
+    "specs/029-h31-1-boe-legislacion-habla/aceptacion/h31-1-lee-lo-que-nombra.txtar": "f4e344d82da1f1b456af074133848c1a1b146df03be24106f7d440d0ea786853",
+    "specs/029-h31-1-boe-legislacion-habla/aceptacion/h31-1-responder.txtar": "fdf5002c16f76389c36ee22432a9e70c2576081d828b464750f0932e258dc3e5",
+    "specs/029-h31-1-boe-legislacion-habla/aceptacion/h31-1-sitio-en-el-cuerpo.txtar": "25a294a06033deb52ba37259b727dfa5892a1f7d3de99713063291212f797264",
+    "internal/app/testdata/script/h31-1-h31-1-lee-lo-que-nombra.txtar": "f4e344d82da1f1b456af074133848c1a1b146df03be24106f7d440d0ea786853",
+    "internal/app/testdata/script/h31-1-h31-1-responder.txtar": "fdf5002c16f76389c36ee22432a9e70c2576081d828b464750f0932e258dc3e5",
+    "internal/app/testdata/script/h31-1-h31-1-sitio-en-el-cuerpo.txtar": "25a294a06033deb52ba37259b727dfa5892a1f7d3de99713063291212f797264"
+  }
+}

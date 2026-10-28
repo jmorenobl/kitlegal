@@ -740,7 +740,7 @@ redacción que no ha leído.
 `formas_fijas` tampoco es una familia: son las formas que la skill enseña a escribir y que llevan palabras de la
 lista, cada una de una sola línea, con los marcadores `<cita>` —opcional: la forma casa también sin la cita— y
 `<fecha>` —ocho cifras— en lugar de sus datos (en `boe-legislacion`, la línea `⚠ REDACCIÓN MODIFICADA:` y la frase de
-la regla 7 sin su punto final). **Se quitan del texto antes de buscar las cuatro familias**, en todas sus
+`references/lecturas_que_fallan.md` sin su punto final). **Se quitan del texto antes de buscar las cuatro familias**, en todas sus
 apariciones, con varios blancos donde la forma lleva uno y, en una `⚠` inicial, las tolerancias de la forma fija de
 los avisos; y se quitan también la marca, la etiqueta y los dos puntos de cada aviso de vigencia. Cada tramo quitado
 deja un salto de línea. Así «la que se consultó antes» dentro de la línea no cuenta, y fuera de ella, sí.

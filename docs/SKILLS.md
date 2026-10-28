@@ -70,6 +70,20 @@ referencia, como `legal-core`:
 o en el paso del protocolo que la necesita, con el enlace en la frase, como `boe-legislacion` y `jurisprudencia`:
 «si no está, búscala por su título con [buscar_la_norma](references/buscar_la_norma.md)».
 
+**Lo que se lee y lo que no.** Lo midió el sondeo de la eval 15 de `boe-legislacion` (`evidencias/sondeos-20261025/`):
+las sesiones abren las referencias de las que necesitan un dato para seguir y no las que solo traen guía, aunque el
+cuerpo mande leerlas. Ninguna de las 40 sesiones de `brazo-D` abrió la que el cuerpo mandaba leer antes de
+responder; en los seis brazos se abrieron `normas`, de 23 a 40 sesiones por brazo, y, en los brazos con la skill de
+H31, `con_herramientas`, de 6 a 9. De ahí dos consecuencias: lo que toda respuesta necesita va en el cuerpo, y una
+referencia nueva lleva el paso del protocolo que la pide, con la condición de su clase. Lo respaldan tres prácticas
+de las guías de autoría de la especificación
+([«Best practices for skill creators»](https://agentskills.io/skill-creation/best-practices)) y de Anthropic
+([«Skill authoring best practices»](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)),
+consultadas el 2026-10-27: decir cuándo leer cada referencia, no solo que existe («The key is telling the agent
+*when* to load each file»); explicar el porqué en vez de encadenar prohibiciones («Explain the why»); y quitar del
+cuerpo lo que el agente no haría mal sin ello («Would the agent get this wrong without this instruction? If the answer
+is no, cut it»).
+
 Una referencia es de una de dos clases, y la clase la decide la regla de §4:
 
 - **A mano**: el protocolo de detalle de su skill, escrito sin la cabecera «generado desde». No repite lo que sale de

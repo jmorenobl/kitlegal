@@ -1,0 +1,36 @@
+# h31-1-responder.txtar
+# La respuesta empieza por lo que se pregunta y se repasa antes de enviarla: la
+# primera viñeta del paso 4 y el paso 6 del SKILL.md de boe-legislacion son, línea
+# a línea, las líneas 63 a 68 y 88 a 100 del SKILL.md de la skill medida,
+# evidencias/sondeos-20261026/brazo-W/skill/.
+#
+# Cubre: US1, escenario 1 · FR-002 · SC-003.
+#
+# pasaje.awk compara y sale siempre con 0; la aserción es la de stdout.
+
+env MEDIDA=$KITLEGAL_SKILLS/../evidencias/sondeos-20261026/brazo-W/skill
+env RAMA=$KITLEGAL_SKILLS/boe-legislacion
+
+# --- La primera viñeta del paso 4, «Responder» (líneas 63 a 68) ---
+exec awk -v desde=63 -v hasta=68 -v 'ini=^- [*][*]La respuesta empieza por lo que se pregunta' -v 'fin=^- ' -f pasaje.awk $MEDIDA/SKILL.md $RAMA/SKILL.md
+stdout '^idéntico 6$'
+
+# --- El paso 6, «Repasar antes de enviar» (líneas 88 a 100) ---
+exec awk -v desde=88 -v hasta=100 -v 'ini=^### 6[.] Repasar antes de enviar$' -v 'fin=^## ' -f pasaje.awk $MEDIDA/SKILL.md $RAMA/SKILL.md
+stdout '^idéntico 13$'
+
+-- pasaje.awk --
+# Las líneas desde..hasta del primer fichero, la skill medida, frente al tramo del
+# segundo, la rama, que empieza en la primera línea que casa con ini y acaba antes
+# de la siguiente que casa con fin, sin las líneas en blanco del final.
+FNR == NR { if (FNR >= desde && FNR <= hasta) m[++nm] = $0; next }
+p && $0 ~ fin { p = 0 }
+visto == 0 && $0 ~ ini { p = 1; visto = 1 }
+p { r[++nr] = $0 }
+END {
+	while (nr > 0 && r[nr] == "") nr--
+	v = "idéntico " nm
+	if (nm != nr) v = "distinto: " nm " líneas frente a " nr
+	else for (i = 1; i <= nm; i++) if (m[i] != r[i]) { v = "distinto en la línea " i; break }
+	print v
+}
