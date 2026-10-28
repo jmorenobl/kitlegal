@@ -1,0 +1,60 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "45559e8cc679e24d9a5f45878bb89b46ba39d564f28df956cb2d81e03e81a7da",
+      "bytes": 3934,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H31.1"
+    },
+    {
+      "fichero": "brazo-P40/salida.txt",
+      "sha256": "fea58a29669b0f72ba22e1266170a92db67f64f5d3762d375cf9aec1803889f5",
+      "bytes": 1007,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-28 sobre la #204 (1d7944f)"
+    },
+    {
+      "fichero": "brazo-P40/votos.json",
+      "sha256": "5e4409aeb2d5d44cb3fab5acd630a9ffe86d756ea80c7c66e77c6da79bb7b1b0",
+      "bytes": 251286,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-28 sobre la #204 (1d7944f)"
+    },
+    {
+      "fichero": "brazo-P80/salida.txt",
+      "sha256": "13cf30891f2f325c20fdd8cd269be3574bba43ca063e6ad2bc7fa8e8ed6faea9",
+      "bytes": 1006,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-28 sobre la #204 (36fddc7)"
+    },
+    {
+      "fichero": "brazo-P80/votos.json",
+      "sha256": "0cb544c48bb5ef2da97234e8554473af508c25a0694356d413b320f02989feec",
+      "bytes": 500645,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por Jorge el 2026-10-28 sobre la #204 (36fddc7)"
+    },
+    {
+      "fichero": "guiones/lanzar-40.sh",
+      "sha256": "9b4e0c0c53867e1194a2bd9c672eade9bc26d673967a349e916d21f1d27b4662",
+      "bytes": 1837,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-28, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar-80.sh",
+      "sha256": "ac2f828d5a0cbd523671ebab0fb92783e88058be7db0432a13623014e2244b16",
+      "bytes": 1844,
+      "fecha": "2026-10-28",
+      "versionado": "sí",
+      "origen": "guion de la sesión del 2026-10-28, fuera del producto"
+    }
+  ]
+}
