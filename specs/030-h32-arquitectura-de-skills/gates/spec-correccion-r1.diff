@@ -1,0 +1,89 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-10-29 10:01:24
++++ ahora/checklists/requirements.md	2026-10-29 10:02:40
+@@ -25,7 +25,9 @@
+ - [x] Requirements are testable and unambiguous — cada FR lleva su «Criterio»; el Contexto fija «skill de entrada»,
+   «skill de capacidad», «paquete de materia», «nombre retirado», «forma única de cita», «cita de un bloque» y las evals
+   por su fichero en `c991808`; FR-006 y FR-032 definen qué es una remisión o una aparición de un nombre para que la
+-  búsqueda no confunda un nombre con una palabra.
++  búsqueda no confunda un nombre con una palabra. SC-010 y US6 escenario 1 dan el 0.028 a la skill de normativa y el
++  0.017 a la heredera de `jurisprudencia`, como FR-038; US7 escenario 2 es la búsqueda de FR-032, con sus directorios y
++  sus excepciones, sin contradecir «Fuera de alcance».
+ - [x] Success criteria are measurable — SC-002 (11 000 caracteres), SC-007 (900 caracteres y umbral 0), SC-010 (0.028),
+   SC-011 (0 por modo), SC-012 (0 sesiones), SC-016 (la tabla del ADR 0047), y cada umbral que se mide sin persona nombra
+   la comprobación que sale en rojo (SC-001 a SC-015, SC-017, SC-018; FR-014, FR-021, FR-039).
+@@ -36,7 +38,11 @@
+   nombre retirado pedido por su nombre o en dos ámbitos, una skill no empotrada de otra rama, y la regla genérica para lo
+   manipulado por algo que no es el binario.
+ - [x] Scope is clearly bounded — «Fuera de alcance» recoge el del hito y lo que no está en él (juez de la skill de entrada,
+-  otras materias, `doctor` y `list`, `CLAUDE.md` y `CONTRIBUTING.md`, capturas de la web, el workflow).
++  otras materias, `doctor` y `list`, `CLAUDE.md` y `CONTRIBUTING.md`, capturas de la web, el workflow). La búsqueda de
++  FR-032 y SC-018 cuenta solo rutas que operan con la skill (`skills/`, `evals/` del repositorio o `.agents/skills/` de
++  un ámbito, sin otro segmento delante) y deja fuera los ficheros de `evals/<skill>/juez/`, lo grabado bajo
++  `internal/evals/testdata/` y las rutas a `specs/`: no obliga a editar los casos de los jueces ni un fixture; ningún
++  umbral se ensancha (SC-010).
+ - [x] Dependencies and assumptions identified — «Assumptions»: nombres del plan, la serie que empieza de cero, la falta de
+   red para las guías, la grabación de la Ley 50/1980, el arnés del sondeo y los documentos que nombran las skills de hoy.
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-10-29 10:01:24
++++ ahora/spec.md	2026-10-29 10:02:29
+@@ -194,7 +194,8 @@
+ **Acceptance Scenarios**:
+ 
+ 1. **Dado** el informe del job de cierre, **Cuando** se leen sus umbrales, **Entonces** los que deciden se cumplen en
+-   todas las skills, `afirma_lo_no_leido:claude-sonnet-5-5` como mucho 0.028, y `cuenta_su_proceso` se publica por modo.
++   todas las skills, `afirma_lo_no_leido:claude-sonnet-5-5` como mucho 0.028 en la de normativa y 0.017 en la que hereda
++   las evals de `jurisprudencia`, y `cuenta_su_proceso` se publica por modo.
+ 2. **Dado** una eval de hoy, **Cuando** se sigue su fichero en la rama, **Entonces** está en la carpeta de evals de la
+    skill que hereda su pregunta, renombrada en git, y pasa.
+ 3. **Dado** la definición del job, **Cuando** corre `TestDefinicionDelJob` en `make ci`, **Entonces** la matriz tiene
+@@ -215,8 +216,8 @@
+ 
+ 1. **Dado** `docs/SKILLS.md` de la rama, **Cuando** se lee, **Entonces** dice qué skills hay y qué cubre cada una, el
+    molde de un paquete y lo medido, con sus cifras y sus fuentes.
+-2. **Dado** el repositorio de la rama, **Cuando** se buscan los nombres retirados fuera de lo histórico y de la lista de
+-   nombres retirados, **Entonces** no están.
++2. **Dado** la búsqueda de FR-032, con sus directorios y sus excepciones, **Cuando** corre en la suite de aceptación,
++   **Entonces** no encuentra ningún nombre retirado.
+ 
+ ---
+ 
+@@ -436,9 +437,11 @@
+   plugin y el servidor MCP que el binario empaqueta, el texto de la página `/instalar/` de la web, `README.md`,
+   `.github/workflows/`, `Makefile` e `internal/`. Criterio: la suite de aceptación sale en rojo si `git grep` encuentra,
+   en `skills/`, `evals/`, `internal/`, `cmd/`, `.github/workflows/`, `Makefile`, `README.md` o `web/src/pages/`, un
+-  nombre retirado como ruta (`skills/<nombre>`, `evals/<nombre>`, `.agents/skills/<nombre>`), como código en línea solo
+-  o detrás de la palabra «skill», salvo en la lista de FR-025 y sus tests, en el e2e de FR-031 y en el texto alternativo
+-  de una captura que enseña la skill de hoy.
++  nombre retirado como ruta que opera con la skill —`skills/<nombre>` o `evals/<nombre>` del repositorio, o
++  `.agents/skills/<nombre>` de un ámbito, sin otro segmento de ruta delante—, como código en línea solo o detrás de la
++  palabra «skill». No cuentan la lista de FR-025 y sus tests, el e2e de FR-031, el texto alternativo de una captura que
++  enseña la skill de hoy, los ficheros de `evals/<skill>/juez/` (`casos.yaml`, `medida.json`, `rubrica.md`), lo grabado
++  bajo `internal/evals/testdata/` ni una ruta a `specs/`.
+ 
+ #### Las evals
+ 
+@@ -565,8 +568,9 @@
+ - **SC-009**: `CHANGELOG.md` (*Unreleased*) (FR-043); y el job de evals en la propuesta de cambio, con todas las skills,
+   que el workflow mide en el cierre sobre la cabeza de la rama.
+ - **SC-010**: En el informe del job de cierre, `afirma_lo_no_leido:claude-sonnet-5-5` se cumple con el umbral de hoy,
+-  0.028, en cada skill que lo tiene. El umbral decide: si la tasa pasa del límite del ADR 0045, el veredicto es fallo y el
+-  job sale en rojo.
++  0.028, en la skill de normativa, la que hereda `evals/boe-legislacion/juez/clases.yaml`; en la que hereda
++  `evals/jurisprudencia/juez/clases.yaml` sigue en 0.017 (SC-013, FR-038). El umbral decide: si la tasa pasa del límite
++  del ADR 0045, el veredicto es fallo y el job sale en rojo.
+ - **SC-011**: En el informe del job de cierre, `cobertura_sin_declarar` es 0 en los dos modos, con la medida de FR-014;
+   decide: con una respuesta sin declarar, el veredicto es fallo y el job sale en rojo.
+ - **SC-012**: En el informe del job de cierre, ninguna sesión de `claude-sonnet-5-5` de las evals 14, 15 y 17 tiene en
+@@ -599,8 +603,8 @@
+   marcadas; el sondeo no se repite para ver si sale en verde.
+ - **SC-017**: La suite de aceptación sale en rojo si no se cumplen FR-004, FR-005, FR-006, FR-007, FR-015, FR-016,
+   FR-017, FR-019 o FR-021, cada uno con su criterio.
+-- **SC-018**: Nada de lo que busca FR-032 nombra una skill retirada; la suite de aceptación lo comprueba con `git grep`
+-  y sale en rojo con una aparición.
++- **SC-018**: Nada de lo que busca FR-032 nombra una skill retirada; la suite de aceptación lo comprueba con `git grep`,
++  con las excepciones de FR-032, y sale en rojo con una aparición que cuenta.
+ 
+ ### Criterios del hito, tal como los escribe
+ 
