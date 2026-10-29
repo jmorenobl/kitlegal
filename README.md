@@ -21,7 +21,8 @@ Web del proyecto: **[kitlegal.es](https://kitlegal.es)**.
 
 ## Qué sabe hacer tu agente con kitlegal
 
-Hay tres skills. La tercera, `jurisprudencia`, es la de las sentencias, y tiene su apartado:
+Hay cuatro skills. Toda pregunta legal entra por `consulta-juridica`, que dice qué la resuelve y qué no cubre kitlegal,
+y la lleva a la skill que la responde. `jurisprudencia` es la de las sentencias, y tiene su apartado:
 [¿Y las sentencias?](#y-las-sentencias). Con las otras dos, `normativa` y `plazos-y-territorio`, tu agente responde
 sobre **cualquier norma consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas
 autonómicas que el BOE consolida— y, si la pregunta lleva una fecha —la del acto, la de los hechos—, cita la redacción

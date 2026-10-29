@@ -51,7 +51,7 @@ y en `internal/evals`).
 **Constraints**: el run no usa red ni modelo salvo `grabar_datos` (ADR 0032); ningún umbral cambia; ningún applet de
 capacidad ni `internal/source` cambian; `scripts/workflow/`, `.specify/` e `internal/workflow/` no se tocan.
 
-**Scale/Scope**: cuatro skills; 45 evals movidas y 2 nuevas; un paquete; diez normas marcadas y una nueva; dos nombres
+**Scale/Scope**: cuatro skills; 35 evals movidas (23 a `normativa` y 12 a `plazos-y-territorio`) y 2 nuevas; un paquete; diez normas marcadas y una nueva; dos nombres
 retirados; seis guiones de aceptación; un ADR.
 
 ## Constitution Check
@@ -114,7 +114,7 @@ specs/030-h32-arquitectura-de-skills/
 ```text
 skills/
 ├── consulta-juridica/SKILL.md                     # nueva
-├── normativa/                                     # git mv de boe-legislacion/; SKILL.md y como_se_cita.md cambian
+├── normativa/                                     # git mv de boe-legislacion/; SKILL.md y como_se_cita.md cambian, normas.md se regenera con la Ley 50/1980
 ├── jurisprudencia/SKILL.md                        # cambia (J1–J3)
 └── plazos-y-territorio/                           # git mv de legal-core/
     ├── SKILL.md                                   # cambia (P1–P17)
@@ -143,7 +143,8 @@ internal/evals/testdata/grabaciones.json           # la entrada de la Ley 50/198
 .github/workflows/release.yml                      # el paso de humo de skills install, con normativa
 skills_test.go                                     # skillsDeHoy, con las cuatro skills de la entrega
 release_test.go                                    # comprobacionesDelHumo: la orden de skills-install, con normativa
-README.md, web/src/pages/instalar/index.astro      # nombres nuevos (el texto alternativo de la captura, no)
+README.md                                          # nombres nuevos
+web/src/pages/instalar/index.astro                 # sin cambios: su texto no nombra ninguna skill (la captura, no)
 docs/SKILLS.md, docs/ADR/0048-…, CHANGELOG.md
 ```
 

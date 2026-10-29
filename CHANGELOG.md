@@ -141,8 +141,9 @@ sustituyen a este fichero.
   paquetes, vacías. Los cuerpos quedan en 153 líneas y 10 858 caracteres (`normativa`), 161 y 10 842
   (`jurisprudencia`) y 169 y 10 896, con la línea de su paquete (`plazos-y-territorio`). Las evals pasan con su
   historia (`git mv`) a la carpeta de la skill que hereda su pregunta, y la serie de cierres de cada skill empieza de
-  cero. `README.md`, el humo de `release.yml`, la página `/instalar/` y lo que nombra las skills en `internal/` usan
-  los nombres nuevos; los ADR anteriores conservan los de su fecha.
+  cero. `README.md`, el humo de `release.yml` y lo que nombra las skills en `internal/` usan los nombres nuevos; el
+  texto de la página `/instalar/` no nombra ninguna skill, y sus capturas, que enseñan las de antes, las rehace una
+  persona; los ADR anteriores conservan los nombres de su fecha.
 - **Una sola forma de cita en todas las skills: `<forma legible> [<identificador>, bloque <id>]`** (H32; ADR 0048). La
   de `boe-legislacion` es ahora la de todas, también en las formas fijas (`⚠ PLAZO:`, `⚠ PLAZO SIN CALCULAR:`, las de
   la redacción, `⚠ NO CUBIERTO:`) y en las tablas generadas, con el marcador `<id>` para el id. Antes, la línea

@@ -228,7 +228,7 @@ LTAIBG, LRBRL, LCSP, LGS, LGP, TRLRHL y LJCA—; su única referencia, `plazos-y
 con la prosa de lo que solo pide el procedimiento común (lo que la ley regula aparte, el acto presunto, el silencio, la
 reclamación del art. 24.2 LTAIBG) y las tres regiones; y las nueve filas de la cobertura, con su precepto en la LPAC.
 `normativa` y `jurisprudencia` no necesitan referencia suya. La CE, el CC, la LEC y la LOPJ son de la base, y la LGT,
-la LIRPF, el ET y la LOPDGDD, de materias sin paquete: no llevan `vertical`.
+la LIRPF, el ET, la LOPDGDD y la Ley 50/1980, de Contrato de Seguro, de materias sin paquete: no llevan `vertical`.
 
 **La vertical de ensayo** prueba el molde: `internal/skills/testdata/vertical-de-ensayo/` trae dos normas de una
 materia que no existe (`BOE-A-1900-1` y `BOE-A-1900-2`, `vertical: ensayo`), una referencia `ensayo.md` por skill de
@@ -465,7 +465,7 @@ lleva su mutante en rojo y su límite en verde. Con la skill de ejemplo, `normat
 | Región sin uno de sus ficheros de `data/` | `plazos-y-territorio: references/administrativo.md: la región recursos_y_plazos sin data/plazos.yaml` |
 | Región de la cobertura en una skill cuyo `SKILL.md` no tiene las dos formas `⚠ NO CUBIERTO:` | `plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una skill sin las dos formas ⚠ NO CUBIERTO: en SKILL.md` |
 | Región de la cobertura con una forma `⚠ NO CUBIERTO:` que lleva un marcador desconocido | `plazos-y-territorio: references/administrativo.md: la forma ⚠ NO CUBIERTO: de SKILL.md lleva <identificador de la ley>, un marcador que la tabla no conoce` |
-| Fila de `data/cobertura.yaml` que ninguna región de la cobertura genera, una por fila, en cada skill con las dos formas | `plazos-y-territorio: data/cobertura.yaml: la fila de «aplicación de los tributos» no la genera ninguna región cobertura_por_materia` |
+| Fila de `data/cobertura.yaml` que ninguna región de la cobertura genera, una por fila, en cada skill con las dos formas | `plazos-y-territorio: data/cobertura.yaml: la fila de «aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa» no la genera ninguna región cobertura_por_materia` |
 | Referencia de un paquete en una skill cuyo `SKILL.md` no lleva las marcas de los paquetes | `plazos-y-territorio: SKILL.md: referencia de paquete sin enlazar: administrativo.md` |
 | Marcas de los paquetes, o de los paquetes de la base en la skill de entrada, que no van en pareja | `normativa: SKILL.md: las marcas de los paquetes no van en pareja: falta la de fin` |
 
