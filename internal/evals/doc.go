@@ -2,11 +2,13 @@
 // sus skills con evals: lee cada fichero de evals/<skill>/ en el formato común de
 // schemas/eval.yaml.json y lo entrega como una Eval comparable por identificador
 // (FR-060, FR-061; research.md D10), también con las skills que la sesión no
-// activa (no_se_activan) y las líneas ⚠ REDACCIÓN MODIFICADA: que la respuesta
-// lleva (redacciones_modificadas; FR-003, FR-004 y FR-053 de H7.4), y con la
-// eval sin binario ni servidor, la que declara sin_binario_ni_servidor: su
-// sesión tiene la skill y nada con lo que consultar, y no lleva comandos ni nada
-// de lo que una respuesta con consulta debe traer (FR-046 de H21). Desde H23
+// activa (no_se_activan), desde H32 con las que activa además de la de su
+// carpeta (se_activan; FR-036 de H32), y las líneas ⚠ REDACCIÓN MODIFICADA:
+// que la respuesta lleva (redacciones_modificadas; FR-003, FR-004 y FR-053 de
+// H7.4), y con la eval sin binario ni servidor, la que declara
+// sin_binario_ni_servidor: su sesión tiene la skill y nada con lo que
+// consultar, y no lleva comandos ni nada de lo que una respuesta con consulta
+// debe traer (FR-046 de H21). Desde H23
 // una eval puede declarar además sentencias —lo que la respuesta debe llevar, y
 // lo que no, de las sentencias de las que habla— y, entre sus comandos, los dos
 // del applet cita, preparar y cotejar; con sentencias puede no llevar comandos,
@@ -72,11 +74,12 @@
 //     cada una de esas llamadas, en su orden, que es lo que el juez recibe de la
 //     sesión (FR-001 y FR-002 de H24);
 //   - Juzgar decide si pasa cada sesión con lo que dejan su transcript y su
-//     traza —también si activa una skill de no_se_activan y si falta la línea de
-//     una redacción esperada, que ExtraerRedaccionesModificadas lee con su cita y
-//     sus dos fechas—, y ClasificarElLimite reconoce, en el transcript, la que un
-//     límite de la cuenta no dejó terminar, que queda sin medir y no es una eval
-//     fallida (FR-040 a FR-043 de H7.3; FR-052 de H7.4). Las llamadas cuentan en
+//     traza —también si no activa una skill de se_activan, si activa una de
+//     no_se_activan y si falta la línea de una redacción esperada, que
+//     ExtraerRedaccionesModificadas lee con su cita y sus dos fechas—, y
+//     ClasificarElLimite reconoce, en el transcript, la que un límite de la
+//     cuenta no dejó terminar, que queda sin medir y no es una eval fallida
+//     (FR-040 a FR-043 de H7.3; FR-052 de H7.4). Las llamadas cuentan en
 //     el juicio como invocaciones, con las reglas de la orden: el applet y el
 //     verbo de la herramienta, los argumentos de cli.LineaDeLlamada y el código
 //     de su clase, de modo que cumplen un comando esperado, incumplen uno

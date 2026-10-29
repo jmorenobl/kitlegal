@@ -524,6 +524,12 @@ func modoSinServidor(eval Eval) Modo {
 // eval sin sin_servir se juzga como antes, y ningún motivo cambia si la sesión
 // pasa (contracts/juicio-e-informe.md §1 a §3 de H26.1; FR-015, FR-016, FR-023 a
 // FR-028).
+//
+// Desde H32, anota además, con su motivo detrás del de la activación y delante
+// de los de NoSeActivan, cada skill de SeActivan que la sesión no activó, y una
+// sin activar impide pasar: los comandos de la eval no prueban que se activó. Una
+// eval sin se_activan se juzga como antes (contracts/evals.md §2 de H32;
+// research D14 de H32; FR-036).
 func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDeEval {
 	codigo := sesion.Codigo
 
@@ -550,6 +556,7 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 
 	citas := ExtraerCitas(sesion.Respuesta)
 
+	sinActivarDebiendo := resultado.anotarLasQueSeActivan(eval.SeActivan, sesion)
 	activadasSinDeber := resultado.anotarLasQueNoSeActivan(eval.NoSeActivan, sesion)
 	invocaciones, conLasLlamadas := resultado.invocacionesDe(sesion)
 	resultado.repartirComandos(eval, invocaciones)
@@ -570,8 +577,8 @@ func juzgarEnModo(eval Eval, sesion Sesion, skill string, modo Modo) ResultadoDe
 		resultado.informarLaJuzgada(eval, invocacion, sesion.OrdenesDeBash)
 	}
 
-	resultado.Pasa = sesion.Terminada && activadasSinDeber == 0 && conLasLlamadas && ordenesSinKitlegal == 0 &&
-		sentenciasComoSeEsperan && sinConsultaComoSeEspera && resultado.cumpleLoEsperado(eval)
+	resultado.Pasa = sesion.Terminada && sinActivarDebiendo == 0 && activadasSinDeber == 0 && conLasLlamadas &&
+		ordenesSinKitlegal == 0 && sentenciasComoSeEsperan && sinConsultaComoSeEspera && resultado.cumpleLoEsperado(eval)
 
 	return resultado
 }
@@ -819,6 +826,30 @@ func motivoDeActivacion(skill string, activa bool) string {
 	}
 
 	return fmt.Sprintf("la activación no coincide: se esperaba que la skill %s no se activara y se activó", skill)
+}
+
+// anotarLasQueSeActivan anota, con su motivo y en el orden de la eval, cada
+// skill que la eval dice que se activa y que la sesión no activó, y devuelve
+// cuántas son: es anotarLasQueNoSeActivan al revés (contracts/evals.md §2 de
+// H32; research D14 de H32; FR-036).
+func (r *ResultadoDeEval) anotarLasQueSeActivan(seActivan []string, sesion Sesion) int {
+	sinActivar := 0
+
+	for _, nombre := range seActivan {
+		if !sesion.Activada(nombre) {
+			sinActivar++
+
+			r.Motivos = append(r.Motivos, motivoDeLaQueSeActiva(nombre))
+		}
+	}
+
+	return sinActivar
+}
+
+// motivoDeLaQueSeActiva es el motivo de una skill que la eval dice que se
+// activa y que la sesión no activó, que la nombra.
+func motivoDeLaQueSeActiva(nombre string) string {
+	return fmt.Sprintf("no se activó la skill %s, que la eval dice que se activa", nombre)
 }
 
 // anotarLasQueNoSeActivan anota, con su motivo y en el orden de la eval, cada

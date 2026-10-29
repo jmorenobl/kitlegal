@@ -2011,7 +2011,10 @@ const (
 // —la 07, la 08 y la 12 de plazos-y-territorio, las tres con la DA 1ª de la
 // LPAC— es el precepto de una fila de data/cobertura.yaml, y un bloque que
 // ninguna fila tiene da el defecto (contracts/forma-de-cita.md §4 de H32;
-// data-model §8 de H32; research D16 de H32; FR-014). Lee las carpetas enteras.
+// data-model §8 de H32; research D16 de H32; FR-014); y cada nombre de
+// se_activan y de no_se_activan de cada eval de cada carpeta es una skill de
+// skills/, y un nombre retirado da el defecto (contracts/evals.md §4 de H32;
+// data-model §8 de H32; FR-037). Lee las carpetas enteras.
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -2106,6 +2109,8 @@ func TestEvalsDelRepositorio(t *testing.T) {
 	})
 
 	t.Run("precepto-de-la-cobertura", probarLosPreceptosDeLaCobertura)
+
+	t.Run("skills-nombradas", probarLasSkillsNombradas)
 
 	t.Run("conjunto-jurisprudencia", func(t *testing.T) {
 		t.Parallel()
@@ -2351,6 +2356,64 @@ func probarLosPreceptosDeLaCobertura(t *testing.T) {
 		ficheroDeLaEval12 + ": no_cubierto.precepto BOE-A-2015-10565, bloque a999 no es el precepto de ninguna fila " +
 			"de data/cobertura.yaml",
 	}, preceptosFueraDeLaCobertura(mutadas, cobertura))
+}
+
+// probarLasSkillsNombradas es el subtest skills-nombradas de
+// TestEvalsDelRepositorio (contracts/evals.md §4 de H32; data-model §8 de H32;
+// FR-037): cada nombre de se_activan y de no_se_activan de cada eval de cada
+// carpeta de evals/ es una skill de skills/, y alguna eval nombra alguna —sin
+// ninguna, el subtest pasaría en vacío—; y su mutante, la primera eval de
+// plazos-y-territorio que declara no_se_activan con legal-core en se_activan y
+// boe-legislacion detrás de sus no_se_activan, los dos nombres retirados, da un
+// defecto por cada uno, con su fichero y su clave, escritos aquí a mano.
+func probarLasSkillsNombradas(t *testing.T) {
+	t.Parallel()
+
+	skillsDelRepositorio, err := directoriosDe(os.DirFS(raizDelRepositorio), directorioDeLasSkills)
+	require.NoError(t, err)
+	require.NotEmpty(t, skillsDelRepositorio, "%s/%s tiene skills", raizDelRepositorio, directorioDeLasSkills)
+
+	nombradas := 0
+
+	for _, deUnaSkill := range conjuntosDeCadaSkill(t, directorioDeEvals) {
+		for _, eval := range deUnaSkill.conjunto.Evals {
+			nombradas += len(eval.SeActivan) + len(eval.NoSeActivan)
+		}
+
+		defectos := ComprobarLasSkillsNombradas(deUnaSkill.conjunto.Evals, skillsDelRepositorio)
+		assert.Empty(t, defectos, "skills nombradas en %s que no son de %s/:\n%s",
+			deUnaSkill.carpeta, directorioDeLasSkills, presentarDefectos(defectos))
+	}
+
+	require.Positive(t, nombradas, "alguna eval de %s nombra alguna skill en se_activan o en no_se_activan",
+		directorioDeEvals)
+
+	const (
+		retiradaDeSeActivan   = "legal-core"
+		retiradaDeNoSeActivan = "boe-legislacion"
+	)
+
+	require.NotContains(t, skillsDelRepositorio, retiradaDeSeActivan, "premisa: %s es un nombre retirado",
+		retiradaDeSeActivan)
+	require.NotContains(t, skillsDelRepositorio, retiradaDeNoSeActivan, "premisa: %s es un nombre retirado",
+		retiradaDeNoSeActivan)
+
+	dePlazosYTerritorio, err := LeerConjunto(evalsDePlazosYTerritorio)
+	require.NoError(t, err)
+
+	mutadas := slices.Clone(dePlazosYTerritorio.Evals)
+	posicion := slices.IndexFunc(mutadas, func(eval Eval) bool { return len(eval.NoSeActivan) > 0 })
+	require.NotEqual(t, -1, posicion, "alguna eval de %s declara no_se_activan", evalsDePlazosYTerritorio)
+
+	mutadas[posicion].SeActivan = []string{retiradaDeSeActivan}
+	mutadas[posicion].NoSeActivan = append(slices.Clone(mutadas[posicion].NoSeActivan), retiradaDeNoSeActivan)
+
+	fichero := mutadas[posicion].Fichero
+
+	assert.Equal(t, []DefectoDelConjunto{
+		{Regla: "skills nombradas", Mensaje: fichero + ": se_activan nombra legal-core, que no es una skill de skills/"},
+		{Regla: "skills nombradas", Mensaje: fichero + ": no_se_activan nombra boe-legislacion, que no es una skill de skills/"},
+	}, ComprobarLasSkillsNombradas(mutadas, skillsDelRepositorio))
 }
 
 // preceptosFueraDeLaCobertura son los defectos de las evals de cobertura cuyo

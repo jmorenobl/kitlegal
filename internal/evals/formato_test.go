@@ -218,6 +218,12 @@ func leidaDeDosBloquesDeLaLCSP(fichero string) Eval {
 // activar: las dos de contracts/evals-en-dos-modos.md §1. Con comandos, con
 // citas, con informativa, en una eval de no activación o con el valor false se
 // rechaza (contracts/evals-en-dos-modos.md §1 y §8; FR-046).
+//
+// Desde H32, las skills que la sesión tiene que activar además de la de su
+// carpeta se leen en SeActivan, en el orden del fichero, también junto a las
+// que no puede activar; vacías, con un nombre que no es de skill o con uno
+// repetido se rechazan, como no_se_activan (contracts/evals.md §2 de H32;
+// research D14 de H32; FR-036).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -720,6 +726,47 @@ func TestLeerEval(t *testing.T) {
 			nombre:    "no-se-activan-con-un-nombre-repetido",
 			documento: municipioQueNoActiva("no_se_activan: [normativa, normativa]\n"),
 			error:     nombreDeEval + ": no_se_activan, línea 3: items at 0 and 1 are equal",
+		},
+		{
+			nombre:    "se-activan",
+			documento: municipioQueNoActiva("se_activan: [normativa, jurisprudencia]\n"),
+			leida: Eval{
+				Fichero:    nombreDeEval,
+				Pregunta:   preguntaDelMunicipioLeida,
+				Activa:     true,
+				SeActivan:  []string{"normativa", "jurisprudencia"},
+				Comandos:   comandoDelMunicipioLeido,
+				Territorio: territorioDelMunicipioLeido,
+			},
+		},
+		{
+			nombre:    "se-activan-y-no-se-activan",
+			documento: municipioQueNoActiva("se_activan: [normativa]\n" + "no_se_activan: [jurisprudencia]\n"),
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    preguntaDelMunicipioLeida,
+				Activa:      true,
+				SeActivan:   []string{"normativa"},
+				NoSeActivan: []string{"jurisprudencia"},
+				Comandos:    comandoDelMunicipioLeido,
+				Territorio:  territorioDelMunicipioLeido,
+			},
+		},
+		{
+			nombre:    "se-activan-vacio",
+			documento: municipioQueNoActiva("se_activan: []\n"),
+			error:     nombreDeEval + ": se_activan, línea 3: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "se-activan-con-un-nombre-que-no-es-de-skill",
+			documento: municipioQueNoActiva("se_activan: [Normativa]\n"),
+			error: nombreDeEval + ": se_activan/0, línea 3: " +
+				"'Normativa' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
+		},
+		{
+			nombre:    "se-activan-con-un-nombre-repetido",
+			documento: municipioQueNoActiva("se_activan: [normativa, normativa]\n"),
+			error:     nombreDeEval + ": se_activan, línea 3: items at 0 and 1 are equal",
 		},
 		{
 			// La eval de contracts/evals-y-juicio.md §3 de H7.4, sin su comentario.
@@ -2151,6 +2198,9 @@ func probarLasLecturasDelConjunto(t *testing.T, casos []casoDeLecturaDeEval) {
 // Desde H21, la que no escribe sin_binario_ni_servidor se lee sin ella, y la
 // rama del esquema de esa clave es la de contracts/evals-en-dos-modos.md §1
 // (probarLaRamaSinBinarioNiServidor; FR-046).
+//
+// Desde H32, la que no escribe se_activan se lee sin ellas, así que su juicio
+// no cambia (contracts/evals.md §2 de H32; FR-036).
 func TestEsquemaDeEval(t *testing.T) {
 	t.Parallel()
 
@@ -2187,6 +2237,10 @@ func TestEsquemaDeEval(t *testing.T) {
 
 			if _, escribe := claves["no_se_activan"]; !escribe {
 				assert.Nil(t, eval.NoSeActivan, "%s no escribe no_se_activan y se lee sin ellas", ruta)
+			}
+
+			if _, escribe := claves["se_activan"]; !escribe {
+				assert.Nil(t, eval.SeActivan, "%s no escribe se_activan y se lee sin ellas", ruta)
 			}
 
 			if _, escribe := claves["redacciones_modificadas"]; !escribe {

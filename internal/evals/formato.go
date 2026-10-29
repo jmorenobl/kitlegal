@@ -28,6 +28,13 @@ type Eval struct {
 	// Activa dice si la skill debe activarse con la pregunta.
 	Activa bool `yaml:"activa"`
 
+	// SeActivan son los nombres de las skills que la sesión tiene que activar
+	// además de la de su carpeta, en el orden del fichero y sin repetir; vacío si
+	// la eval no los declara. Se juzgan como NoSeActivan, al revés: la 02 de
+	// consulta-juridica declara la skill de la capacidad que pregunta
+	// (contracts/evals.md §2 de H32; research D14 de H32; FR-036).
+	SeActivan []string `yaml:"se_activan"`
+
 	// NoSeActivan son los nombres de las skills que la sesión no puede activar,
 	// en el orden del fichero y sin repetir; vacío si la eval no los declara. Los
 	// admite cualquier eval, también una de no activación: las de

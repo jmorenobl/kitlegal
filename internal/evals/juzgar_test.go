@@ -182,6 +182,21 @@ const (
 	motivoDeNormativaActivada = "se activ\xc3\xb3 la skill normativa, que la eval dice que no se activa"
 )
 
+// Lo que juzgan las evals del municipio cubierto que declaran las skills que se
+// activan con plazos-y-territorio y sus sesiones de TestJuzgar
+// (contracts/evals.md §2 de H32; research D14 de H32; FR-036).
+const (
+	// motivoDeNormativaSinActivar y motivoDeJurisprudenciaSinActivar son los
+	// motivos de la sesión que no activa una skill que la eval declara en
+	// se_activan, escritos a mano.
+	motivoDeNormativaSinActivar      = "no se activó la skill normativa, que la eval dice que se activa"
+	motivoDeJurisprudenciaSinActivar = "no se activó la skill jurisprudencia, que la eval dice que se activa"
+
+	// motivoDeJurisprudenciaActivada es el motivo de la sesión que activa
+	// jurisprudencia cuando la eval la declara en no_se_activan, escrito a mano.
+	motivoDeJurisprudenciaActivada = "se activó la skill jurisprudencia, que la eval dice que no se activa"
+)
+
 // Respuestas con expresiones de la lista de normativa (contrato
 // lista-y-juicio §3 y §4 de H7.2; contracts/lista-de-expresiones.md §6 de H7.3),
 // con las que los tests del juicio, del informe y del sondeo fijan que la lista
@@ -295,6 +310,12 @@ type juicio struct {
 // activarla, o si la eval no la declara, se juzga como antes
 // (contracts/evals-y-juicio.md §2 de H7.4; FR-003, FR-004, FR-023, FR-052,
 // FR-053, FR-094; SC-007).
+//
+// Desde H32, una sesión que no activa una skill de se_activan no pasa, con un
+// motivo que la nombra por cada una que falta, en el orden de la eval, detrás
+// del de la activación y delante de los de no_se_activan; activándolas todas,
+// en cualquier orden, pasa (contracts/evals.md §2 de H32; research D14 de H32;
+// FR-036; SC-015).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -819,6 +840,17 @@ func TestJuzgar(t *testing.T) {
 		{
 			nombre:  "no-se-activan-detras-del-motivo-de-plazos-y-territorio",
 			juicios: []juicio{laQueNoSeActivaDetrasDeLaActivacion(t)},
+		},
+		{
+			// La sesión de la eval que declara que normativa y jurisprudencia se
+			// activan con plazos-y-territorio no pasa sin activar alguna, con un
+			// motivo que nombra cada una que falta; activándolas todas, pasa.
+			nombre:  "se-activan",
+			juicios: seActivanLasQueSeActivan(t),
+		},
+		{
+			nombre:  "se-activan-delante-de-no-se-activan",
+			juicios: []juicio{lasQueSeActivanDelanteDeLasQueNo()},
 		},
 		{
 			// La eval 01 no declara no_se_activan: otra skill activada no cambia su
@@ -2315,6 +2347,94 @@ func laQueNoSeActivaDetrasDeLaActivacion(t *testing.T) juicio {
 			r.Motivos = []string{
 				"la activaci\xc3\xb3n no coincide: se esperaba que la skill plazos-y-territorio se activara y no se activ\xc3\xb3",
 				motivoDeNormativaActivada,
+				"comando ausente: " + textoDelComandoDeLeganes,
+			}
+			r.Pasa = false
+		}),
+	}
+}
+
+// evalDelMunicipioQueActivaDos es la eval del municipio cubierto que declara
+// que, con plazos-y-territorio, se activan normativa y jurisprudencia, en ese
+// orden, como la 02 de consulta-juridica declara la skill de su capacidad
+// (contracts/evals.md §2 de H32).
+func evalDelMunicipioQueActivaDos() Eval {
+	eval := evalDelMunicipioCubierto()
+	eval.SeActivan = []string{skillNormativa, skillDeJurisprudencia}
+
+	return eval
+}
+
+// seActivanLasQueSeActivan son los juicios de la eval del municipio cubierto que
+// declara que se activan normativa y jurisprudencia, con la sesión que lo
+// resuelve y declara su territorio: activando solo plazos-y-territorio, no
+// pasa, con un motivo por cada una, en el orden de la eval; activando además
+// normativa, no pasa, con el motivo que nombra jurisprudencia; y activándolas
+// todas, en otro orden que el de la eval, pasa.
+func seActivanLasQueSeActivan(t *testing.T) []juicio {
+	t.Helper()
+
+	sinActivarlas := sesionDeTerritorio(respuestaDelMunicipio, resuelveLeganes(t))
+	activando := func(skills ...string) Sesion {
+		return cambiada(sinActivarlas, func(s *Sesion) {
+			s.SkillsActivadas = append([]string{skillDeTerritorio}, skills...)
+		})
+	}
+	queNoPasa := func(motivos ...string) ResultadoDeEval {
+		return cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.Motivos = motivos
+			r.Pasa = false
+		})
+	}
+
+	return []juicio{
+		{
+			eval:     evalDelMunicipioQueActivaDos(),
+			sesion:   sinActivarlas,
+			skill:    skillDeTerritorio,
+			esperado: queNoPasa(motivoDeNormativaSinActivar, motivoDeJurisprudenciaSinActivar),
+		},
+		{
+			eval:     evalDelMunicipioQueActivaDos(),
+			sesion:   activando(skillNormativa),
+			skill:    skillDeTerritorio,
+			esperado: queNoPasa(motivoDeJurisprudenciaSinActivar),
+		},
+		{
+			eval:     evalDelMunicipioQueActivaDos(),
+			sesion:   activando(skillDeJurisprudencia, skillNormativa),
+			skill:    skillDeTerritorio,
+			esperado: resultadoDelMunicipioQuePasa(),
+		},
+	}
+}
+
+// lasQueSeActivanDelanteDeLasQueNo es el juicio de la eval del municipio
+// cubierto que declara que normativa se activa y jurisprudencia no, con una
+// sesión que activa solo jurisprudencia, no resuelve el municipio y declara su
+// territorio: los motivos van en su orden, el de la activación de
+// plazos-y-territorio, el de normativa sin activar, el de jurisprudencia
+// activada y el del comando ausente.
+func lasQueSeActivanDelanteDeLasQueNo() juicio {
+	eval := evalDelMunicipioCubierto()
+	eval.SeActivan = []string{skillNormativa}
+	eval.NoSeActivan = []string{skillDeJurisprudencia}
+
+	return juicio{
+		eval: eval,
+		sesion: cambiada(sesionTerminada(false, respuestaDelMunicipio), func(s *Sesion) {
+			s.SkillsActivadas = []string{skillDeJurisprudencia}
+		}),
+		skill: skillDeTerritorio,
+		esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.Activada = false
+			r.ComandosEjecutados = nil
+			r.ComandosAusentes = []string{textoDelComandoDeLeganes}
+			r.Invocaciones = nil
+			r.Motivos = []string{
+				"la activación no coincide: se esperaba que la skill plazos-y-territorio se activara y no se activó",
+				motivoDeNormativaSinActivar,
+				motivoDeJurisprudenciaActivada,
 				"comando ausente: " + textoDelComandoDeLeganes,
 			}
 			r.Pasa = false

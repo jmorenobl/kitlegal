@@ -383,6 +383,43 @@ func ComprobarConjunto(evals []Eval, normas map[string]NormaConocida, reglas []R
 	return defectos
 }
 
+// reglaDeLasSkillsNombradas es el nombre de la regla de ComprobarLasSkillsNombradas
+// en sus defectos.
+const reglaDeLasSkillsNombradas = "skills nombradas"
+
+// ComprobarLasSkillsNombradas comprueba que cada nombre de se_activan y de
+// no_se_activan de las evals es una de las skills dadas, las de skills/: con un
+// nombre retirado, el juicio de la eval dejaría de comprobar nada sin avisar
+// (contracts/evals.md §4 de H32; data-model §8 de H32; FR-037). Devuelve un
+// defecto por cada nombre que no lo es, en el orden de las evals y, en cada una,
+// los de se_activan delante de los de no_se_activan, y ninguno si lo son todos.
+// No lee ficheros.
+func ComprobarLasSkillsNombradas(evals []Eval, skills []string) []DefectoDelConjunto {
+	var defectos []DefectoDelConjunto
+
+	for _, eval := range evals {
+		for _, nombradas := range []struct {
+			clave   string
+			nombres []string
+		}{
+			{clave: "se_activan", nombres: eval.SeActivan},
+			{clave: "no_se_activan", nombres: eval.NoSeActivan},
+		} {
+			for _, nombre := range nombradas.nombres {
+				if !slices.Contains(skills, nombre) {
+					defectos = append(defectos, DefectoDelConjunto{
+						Regla: reglaDeLasSkillsNombradas,
+						Mensaje: fmt.Sprintf("%s: %s nombra %s, que no es una skill de %s/", eval.Fichero, nombradas.clave,
+							nombre, directorioDeLasSkills),
+					})
+				}
+			}
+		}
+	}
+
+	return defectos
+}
+
 // conjuntoAComprobar son las evals y las normas que miran las reglas, con lo que
 // varias de ellas necesitan calculado una sola vez. Las evals se nombran por su
 // posición en evals, y no por su Fichero, para no confundir dos con el mismo.
