@@ -187,7 +187,8 @@
 //     de plazo, detrás va plazo_sin_fecha, las respuestas de esas evals sin la
 //     línea ⚠ PLAZO: con la fecha esperada, y con alguna de cobertura,
 //     cobertura_sin_declarar, las de esas evals sin la línea ⚠ NO CUBIERTO:
-//     con la norma esperada o con una línea ⚠ PLAZO:, cada uno sobre las de
+//     con la norma esperada —desde H32, y la cita de su precepto en la misma
+//     línea— o con una línea ⚠ PLAZO:, cada uno sobre las de
 //     sus evals, que deciden con 0 y cuyo motivo nombra cada sesión que
 //     cuenta; con ellas, la skill tiene también sin_activar, aunque no tenga
 //     juez ni sentencias. Desde el ADR 0042, con alguna eval de vigencia,

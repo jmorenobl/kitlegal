@@ -195,11 +195,18 @@ type PlazoEsperado struct {
 }
 
 // NoCubiertoEsperado es lo que una eval de cobertura espera de la respuesta
-// (contracts/evals-legal-core.md §1 de H9; data-model §3 de H9).
+// (contracts/evals-legal-core.md §1 de H9; data-model §3 de H9; data-model §8
+// de H32).
 type NoCubiertoEsperado struct {
 	// Norma es el identificador de la norma que rige el procedimiento, BOE-A-…,
 	// que tiene que llevar la línea ⚠ NO CUBIERTO: de la respuesta.
 	Norma string `yaml:"norma"`
+
+	// Precepto es el de la LPAC que lo regula aparte, el de su fila de
+	// data/cobertura.yaml por su norma y su bloque, cuya cita tiene que llevar
+	// esa misma línea (contracts/forma-de-cita.md §4 de H32; FR-014). El
+	// esquema no admite una eval de cobertura sin él.
+	Precepto CitaEsperada `yaml:"precepto"`
 }
 
 // PlazoSinCalcularEsperado es lo que una eval de vigencia espera de la

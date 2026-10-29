@@ -199,7 +199,8 @@ type ResultadoDeEval struct {
 	// son los códigos de los avisos esperados, en el orden de la eval, cuya forma
 	// fija no lleva (ExtraerAvisosDelPlazo). NoCubiertoDeclarado dice, en una de
 	// cobertura, si lleva la declaración de no cubierto en su forma fija con la
-	// norma esperada (ExtraerNoCubierto), y PlazoSinCalcularDeclarado, en una de
+	// norma esperada y la cita de su precepto en la misma línea
+	// (ExtraerNoCubierto; FR-014 de H32), y PlazoSinCalcularDeclarado, en una de
 	// vigencia, si lleva la de un plazo sin calcular con la norma esperada
 	// (ExtraerPlazoSinCalcular; ADR 0042). Y LineasDelPlazo son, en las tres, las
 	// fechas de las líneas del plazo en su forma fija de la respuesta, en su orden

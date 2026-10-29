@@ -12,3 +12,4 @@ prohibidos:
     verbo: calcular
 no_cubierto:
   norma: BOE-A-2015-10565
+  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}

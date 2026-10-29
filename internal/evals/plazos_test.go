@@ -2,6 +2,7 @@ package evals
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,14 +27,29 @@ const (
 	// detrás de los dos puntos y la cita en la misma línea.
 	lineaDelPlazo = "⚠ PLAZO: " + fechaDelPlazo + " — recurso de reposición " + citaDel124
 
+	// lpacDeLasCoberturas y bloqueDeLasCoberturas son el precepto de la fila de
+	// las tres evals de cobertura en data/cobertura.yaml, la DA 1ª de la LPAC, y
+	// citaDeLaDAPrimera, su cita en la forma única (contracts/forma-de-cita.md §4
+	// de H32).
+	lpacDeLasCoberturas   = "BOE-A-2015-10565"
+	bloqueDeLasCoberturas = "daprimera"
+	citaDeLaDAPrimera     = "[" + lpacDeLasCoberturas + ", bloque " + bloqueDeLasCoberturas + "]"
+
 	// declaracionDeLaLGT es la declaración de no cubierto con la norma que rige
 	// el procedimiento, y declaracionSinNorma, la de un procedimiento sin norma
-	// propia, con la LPAC.
+	// propia, con la LPAC; las dos, con la cita del precepto de su fila en la
+	// misma línea (contracts/forma-de-cita.md §3 de H32).
 	declaracionDeLaLGT = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General Tributaria " +
 		"(" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos " +
-		"(DA 1ª.2.a LPAC)."
-	declaracionSinNorma = "⚠ NO CUBIERTO: la aplicación de los tributos lo regula aparte la DA 1ª.2.a " +
-		"(BOE-A-2015-10565): kitlegal no calcula sus plazos ni sus recursos."
+		"(DA 1ª.2.a LPAC " + citaDeLaDAPrimera + ")."
+	declaracionSinNorma = "⚠ NO CUBIERTO: la aplicación de los tributos lo regula aparte la ley, no el procedimiento " +
+		"común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC " + citaDeLaDAPrimera + ")."
+
+	// declaracionDeLaLGTSinLaCita es declaracionDeLaLGT sin la cita del
+	// precepto: la de c991808, con la norma que rige y el precepto por su nombre.
+	declaracionDeLaLGTSinLaCita = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General " +
+		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
+		"recursos (DA 1ª.2.a LPAC)."
 
 	// avisoDeLosLocales es el texto del aviso faltan-festivos-locales de plazos,
 	// tal como lo da data (contracts/applet-plazos.md §5 de H9).
@@ -213,27 +229,66 @@ func probarLasLineasDelPlazo(t *testing.T) {
 	}
 }
 
-// probarLasDeclaracionesDeNoCubierto fija ExtraerNoCubierto: cada identificador
-// BOE-A-… entero de cada línea con la forma fija ⚠ NO CUBIERTO:, en su orden, con
-// la tolerancia de la etiqueta; el de la norma que rige el procedimiento y, sin
-// ella, el de la LPAC. El identificador de otra línea no cuenta.
+// probarLasDeclaracionesDeNoCubierto fija ExtraerNoCubierto: una declaración por
+// cada línea con la forma fija ⚠ NO CUBIERTO:, en su orden, con la tolerancia de
+// la etiqueta, y de cada una, cada identificador BOE-A-… entero de la línea —el
+// de la norma que rige el procedimiento, sin ella el de la LPAC, y el de la
+// cita— y cada cita de la línea con su forma (ExtraerCitas). El identificador y
+// la cita de otra línea no cuentan (contracts/forma-de-cita.md §4 de H32;
+// FR-014).
 func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
 	t.Parallel()
 
+	daPrimera := Cita{Norma: lpacDeLasCoberturas, Bloque: bloqueDeLasCoberturas}
+
 	casos := []struct {
-		nombre    string
-		respuesta string
-		normas    []string
+		nombre        string
+		respuesta     string
+		declaraciones []DeclaracionDeNoCubierto
 	}{
-		{nombre: "con-la-norma", respuesta: "No puedo darte la fecha.\n\n" + declaracionDeLaLGT + "\n", normas: []string{lgtDeLasCoberturas}},
-		{nombre: "sin-norma", respuesta: declaracionSinNorma, normas: []string{"BOE-A-2015-10565"}},
 		{
-			nombre:    "con-enfasis",
-			respuesta: "**⚠ No cubierto:** se rige por la LGT (" + lgtDeLasCoberturas + ") y la LPAC (BOE-A-2015-10565).",
-			normas:    []string{lgtDeLasCoberturas, "BOE-A-2015-10565"},
+			nombre: "con-la-norma", respuesta: "No puedo darte la fecha.\n\n" + declaracionDeLaLGT + "\n",
+			declaraciones: []DeclaracionDeNoCubierto{
+				{Normas: []string{lgtDeLasCoberturas, lpacDeLasCoberturas}, Citas: []Cita{daPrimera}},
+			},
 		},
-		{nombre: "identificador-mas-largo", respuesta: "⚠ NO CUBIERTO: se rige por BOE-A-2003-231860.", normas: []string{"BOE-A-2003-231860"}},
-		{nombre: "norma-en-otra-linea", respuesta: "⚠ NO CUBIERTO: se rige por la Ley General Tributaria.\n(" + lgtDeLasCoberturas + ")"},
+		{
+			nombre: "sin-norma", respuesta: declaracionSinNorma,
+			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lpacDeLasCoberturas}, Citas: []Cita{daPrimera}}},
+		},
+		{
+			nombre:        "sin-la-cita",
+			respuesta:     declaracionDeLaLGTSinLaCita,
+			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas}}},
+		},
+		{
+			nombre:        "con-enfasis",
+			respuesta:     "**⚠ No cubierto:** se rige por la LGT (" + lgtDeLasCoberturas + ") y la LPAC (BOE-A-2015-10565).",
+			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas, lpacDeLasCoberturas}}},
+		},
+		{
+			nombre:        "identificador-mas-largo",
+			respuesta:     "⚠ NO CUBIERTO: se rige por BOE-A-2003-231860.",
+			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{"BOE-A-2003-231860"}}},
+		},
+		{
+			nombre:        "norma-en-otra-linea",
+			respuesta:     "⚠ NO CUBIERTO: se rige por la Ley General Tributaria.\n(" + lgtDeLasCoberturas + ")",
+			declaraciones: []DeclaracionDeNoCubierto{{}},
+		},
+		{
+			nombre:        "cita-en-otra-linea",
+			respuesta:     declaracionDeLaLGTSinLaCita + "\n" + citaDeLaDAPrimera,
+			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas}}},
+		},
+		{
+			nombre:    "dos-lineas",
+			respuesta: declaracionDeLaLGTSinLaCita + "\n\n" + declaracionSinNorma,
+			declaraciones: []DeclaracionDeNoCubierto{
+				{Normas: []string{lgtDeLasCoberturas}},
+				{Normas: []string{lpacDeLasCoberturas}, Citas: []Cita{daPrimera}},
+			},
+		},
 		{nombre: "sin-la-forma", respuesta: "No está cubierto: se rige por la Ley General Tributaria (" + lgtDeLasCoberturas + ")."},
 	}
 
@@ -241,7 +296,7 @@ func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, caso.normas, ExtraerNoCubierto(caso.respuesta))
+			assert.Equal(t, caso.declaraciones, ExtraerNoCubierto(caso.respuesta))
 		})
 	}
 }
@@ -290,14 +345,17 @@ func evalDePlazoSintetica(avisos ...string) Eval {
 }
 
 // evalDeCoberturaSintetica es una eval de cobertura de plazos-y-territorio, sin
-// comandos y con plazos calcular prohibido.
+// comandos, con plazos calcular prohibido y con el precepto de su fila.
 func evalDeCoberturaSintetica() Eval {
 	return Eval{
 		Fichero:    "07-cobertura-liquidacion-tributaria.yaml",
 		Pregunta:   "¿Hasta cuándo puedo recurrir una liquidación de la Agencia Tributaria?",
 		Activa:     true,
 		Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
-		NoCubierto: NoCubiertoEsperado{Norma: lgtDeLasCoberturas},
+		NoCubierto: NoCubiertoEsperado{
+			Norma:    lgtDeLasCoberturas,
+			Precepto: CitaEsperada{Norma: lpacDeLasCoberturas, Bloque: bloqueDeLasCoberturas},
+		},
 	}
 }
 
@@ -406,11 +464,14 @@ func probarElJuicioDeUnPlazo(t *testing.T) {
 }
 
 // probarElJuicioDeUnaCobertura fija el juicio de una eval de cobertura: con la
-// declaración de no cubierto con su norma, pasa, aunque la respuesta lleve una
-// fecha suelta; sin declaración o con la de otra norma, no, con el motivo
-// declaración de no cubierto ausente; con una línea del plazo, tampoco, con su
-// motivo; y con plazos calcular ejecutado, como orden o como llamada, tampoco,
-// con el motivo de un comando prohibido, termine como termine.
+// declaración de no cubierto con su norma y la cita de su precepto en la misma
+// línea, pasa, aunque la respuesta lleve una fecha suelta; sin declaración, con
+// la de otra norma, con la norma y sin la cita, con la cita de otro bloque, o con
+// la norma en una línea y la cita en otra —suelta o en otra declaración—, no,
+// con el motivo declaración de no cubierto ausente; con una línea del plazo,
+// tampoco, con su motivo; y con plazos calcular ejecutado, como orden o como
+// llamada, tampoco, con el motivo de un comando prohibido, termine como termine
+// (contracts/forma-de-cita.md §4 de H32; FR-014).
 func probarElJuicioDeUnaCobertura(t *testing.T) {
 	t.Parallel()
 
@@ -432,6 +493,22 @@ func probarElJuicioDeUnaCobertura(t *testing.T) {
 		},
 		{nombre: "sin-declaración", respuesta: "Tienes un mes.", juicio: juicioDelPlazo{motivos: []string{ausente}}},
 		{nombre: "con-la-de-la-lpac", respuesta: declaracionSinNorma, juicio: juicioDelPlazo{motivos: []string{ausente}}},
+		{nombre: "con-la-norma-sin-la-cita", respuesta: declaracionDeLaLGTSinLaCita, juicio: juicioDelPlazo{motivos: []string{ausente}}},
+		{
+			nombre:    "con-la-cita-de-otro-bloque",
+			respuesta: strings.Replace(declaracionDeLaLGT, ", bloque "+bloqueDeLasCoberturas+"]", ", bloque a112]", 1),
+			juicio:    juicioDelPlazo{motivos: []string{ausente}},
+		},
+		{
+			nombre:    "con-la-cita-en-otra-linea",
+			respuesta: declaracionDeLaLGTSinLaCita + "\n" + citaDeLaDAPrimera,
+			juicio:    juicioDelPlazo{motivos: []string{ausente}},
+		},
+		{
+			nombre:    "con-la-cita-en-otra-declaración",
+			respuesta: declaracionDeLaLGTSinLaCita + "\n\n" + declaracionSinNorma,
+			juicio:    juicioDelPlazo{motivos: []string{ausente}},
+		},
 		{
 			nombre:    "con-una-linea-del-plazo",
 			respuesta: declaracionDeLaLGT + "\n\n⚠ PLAZO: 2026-10-09 — recurso de reposición " + citaDel124,

@@ -107,32 +107,62 @@ func ExtraerLineasDelPlazo(respuesta string) []string {
 	return fechas
 }
 
-// ExtraerNoCubierto devuelve cada identificador BOE-A-… de las líneas de la
-// respuesta con la forma fija de la declaración de no cubierto —la marca, la
-// etiqueta NO CUBIERTO y los dos puntos, con la tolerancia de las etiquetas de
-// los avisos—, en el orden en que aparecen y con sus repeticiones, o nil si no
-// lleva ninguno. El identificador de otra línea no cuenta, y no lee ninguna otra
-// redacción (contracts/evals-legal-core.md §2 de H9; FR-048).
-func ExtraerNoCubierto(respuesta string) []string {
-	return identificadoresDeLasLineas(respuesta, formaDeNoCubierto)
+// DeclaracionDeNoCubierto es lo que la medida lee de una línea de la respuesta
+// con la forma fija de la declaración de no cubierto: sus identificadores y sus
+// citas, que solo cuentan juntos si son de la misma línea
+// (contracts/forma-de-cita.md §4 de H32; FR-014).
+type DeclaracionDeNoCubierto struct {
+	// Normas son los identificadores BOE-A-… de la línea, también el de cada
+	// cita, en su orden y con sus repeticiones.
+	Normas []string
+
+	// Citas son las citas de la línea con su forma (ExtraerCitas), en su orden.
+	Citas []Cita
+}
+
+// ExtraerNoCubierto devuelve una declaración por cada línea de la respuesta con
+// la forma fija de la declaración de no cubierto —la marca, la etiqueta NO
+// CUBIERTO y los dos puntos, con la tolerancia de las etiquetas de los avisos—,
+// en el orden en que aparecen, o nil si no lleva ninguna; de cada una, los
+// identificadores BOE-A-… y las citas de esa línea. El identificador y la cita
+// de otra línea no cuentan, y no lee ninguna otra redacción
+// (contracts/evals-legal-core.md §2 de H9; FR-048; contracts/forma-de-cita.md
+// §4 de H32; FR-014).
+func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
+	var declaraciones []DeclaracionDeNoCubierto
+
+	for linea := range strings.Lines(respuesta) {
+		if formaDeNoCubierto.MatchString(linea) {
+			declaraciones = append(declaraciones, DeclaracionDeNoCubierto{
+				Normas: formaDeIdentificador.FindAllString(linea, -1),
+				Citas:  ExtraerCitas(linea),
+			})
+		}
+	}
+
+	return declaraciones
+}
+
+// declarada dice si alguna de las declaraciones lleva, en su misma línea, el
+// identificador de la norma esperada y la cita de su precepto, la pareja exacta
+// de su norma y su bloque (contracts/forma-de-cita.md §4 de H32; FR-014).
+func (e NoCubiertoEsperado) declarada(declaraciones []DeclaracionDeNoCubierto) bool {
+	return slices.ContainsFunc(declaraciones, func(deUnaLinea DeclaracionDeNoCubierto) bool {
+		return slices.Contains(deUnaLinea.Normas, e.Norma) && slices.Contains(deUnaLinea.Citas, Cita(e.Precepto))
+	})
 }
 
 // ExtraerPlazoSinCalcular devuelve cada identificador BOE-A-… de las líneas de
 // la respuesta con la forma fija de la declaración de un plazo sin calcular
 // —la marca, la etiqueta PLAZO SIN CALCULAR y los dos puntos, con la tolerancia
 // de las etiquetas de los avisos—, en el orden en que aparecen y con sus
-// repeticiones, o nil si no lleva ninguno, como ExtraerNoCubierto (ADR 0042).
+// repeticiones, o nil si no lleva ninguno. El identificador de otra línea no
+// cuenta (ADR 0042).
 func ExtraerPlazoSinCalcular(respuesta string) []string {
-	return identificadoresDeLasLineas(respuesta, formaDelPlazoSinCalcular)
-}
-
-// identificadoresDeLasLineas son los identificadores BOE-A-… de las líneas de la
-// respuesta que casan con la forma, en su orden y con sus repeticiones.
-func identificadoresDeLasLineas(respuesta string, forma *regexp.Regexp) []string {
 	var normas []string
 
 	for linea := range strings.Lines(respuesta) {
-		if forma.MatchString(linea) {
+		if formaDelPlazoSinCalcular.MatchString(linea) {
 			normas = append(normas, formaDeIdentificador.FindAllString(linea, -1)...)
 		}
 	}
@@ -191,11 +221,13 @@ func ComprobarCodigosDeAvisoDelPlazo(esquema *jsonschema.Schema) error {
 // En una de plazo, anota si alguna lleva la fecha esperada, con el motivo plazo
 // ausente si no, y cada aviso esperado cuya forma fija no lleva la respuesta
 // (ExtraerAvisosDelPlazo), con el suyo. En una de cobertura, anota si alguna
-// declaración de no cubierto lleva la norma esperada (ExtraerNoCubierto), con
-// el motivo de la declaración ausente si no, y una línea del plazo, de la fecha
-// que sea, lleva el suyo. En una de vigencia, lo mismo con la declaración de un
-// plazo sin calcular (ExtraerPlazoSinCalcular; ADR 0042). Las demás evals no se
-// juzgan aquí y dejan vacío todo.
+// declaración de no cubierto lleva en su misma línea la norma esperada y la
+// cita de su precepto (ExtraerNoCubierto; contracts/forma-de-cita.md §4 de H32;
+// FR-014), con el motivo de la declaración ausente si no, y una línea del
+// plazo, de la fecha que sea, lleva el suyo. En una de vigencia, lo mismo con la
+// declaración de un plazo sin calcular con la norma esperada
+// (ExtraerPlazoSinCalcular; ADR 0042). Las demás evals no se juzgan aquí y
+// dejan vacío todo.
 func (r *ResultadoDeEval) juzgarElPlazo(eval Eval, respuesta string) {
 	if !eval.esDePlazo() && !eval.esDeCobertura() && !eval.esDeVigencia() {
 		return
@@ -214,7 +246,7 @@ func (r *ResultadoDeEval) juzgarElPlazo(eval Eval, respuesta string) {
 	}
 
 	if eval.esDeCobertura() {
-		r.NoCubiertoDeclarado = slices.Contains(ExtraerNoCubierto(respuesta), eval.NoCubierto.Norma)
+		r.NoCubiertoDeclarado = eval.NoCubierto.declarada(ExtraerNoCubierto(respuesta))
 		if !r.NoCubiertoDeclarado {
 			r.Motivos = append(r.Motivos, motivoDeNoCubiertoAusente+eval.NoCubierto.Norma)
 		}

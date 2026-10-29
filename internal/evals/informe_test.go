@@ -6623,7 +6623,7 @@ const (
 
 	declaracionDeLaLeyDeTrafico = "⚠ NO CUBIERTO: el procedimiento sancionador en materia de tráfico se rige por la " +
 		"Ley sobre Tráfico (BOE-A-2015-11722), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
-		"recursos (DA 1ª.2 LPAC)."
+		"recursos (DA 1ª.2.c LPAC " + citaDeLaDAPrimera + ")."
 
 	// declaracionDelPlazoSinCalcular es la de la eval de vigencia, con la norma
 	// que espera (ADR 0042).

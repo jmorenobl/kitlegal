@@ -3918,6 +3918,7 @@ prohibidos:
     verbo: calcular
 no_cubierto:
   norma: BOE-A-2015-10565
+  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}
 `
 )
 
@@ -3937,8 +3938,8 @@ const (
 
 	respuestaDeLa11 = "Hasta el martes 13 de octubre de 2026.\n\n" + lineaDelPlazo + "\n\nNo he podido leer la " +
 		"redacción del art. 124 vigente el 2026-09-09: el BOE no respondió."
-	respuestaDeLa12 = "⚠ NO CUBIERTO: la gestión recaudatoria de la Seguridad Social lo regula aparte la DA 1ª.2.b " +
-		"(BOE-A-2015-10565): kitlegal no calcula sus plazos ni sus recursos."
+	respuestaDeLa12 = "⚠ NO CUBIERTO: la gestión recaudatoria de la Seguridad Social lo regula aparte la ley, no el " +
+		"procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.b LPAC " + citaDeLaDAPrimera + ")."
 
 	normaDeLaLRJSP = "BOE-A-2015-10566"
 	citaDel25      = "[Ley 40/2015, art. 25, BOE-A-2015-10566, bloque a25]"

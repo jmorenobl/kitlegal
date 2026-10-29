@@ -1256,8 +1256,12 @@ const (
 		"  avisos: []\n" +
 		"  razonamiento: Un mes desde el d\xc3\xada siguiente, prorrogado al primer d\xc3\xada h\xc3\xa1bil.\n"
 	noCubiertoPorLaLGT = "no_cubierto:\n" +
-		"  norma: BOE-A-2003-23186\n"
-	prohibidoElCalculo = "prohibidos:\n" +
+		"  norma: BOE-A-2003-23186\n" +
+		preceptoDeLaDAPrimera
+	// preceptoDeLaDAPrimera es la línea del precepto de no_cubierto con el de la
+	// fila de las evals de cobertura, la DA 1ª de la LPAC (data-model §8 de H32).
+	preceptoDeLaDAPrimera = "  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}\n"
+	prohibidoElCalculo    = "prohibidos:\n" +
 		"  - applet: plazos\n" +
 		"    verbo: calcular\n"
 	sinCalcularPorLaLPAC = "plazo_sin_calcular:\n" +
@@ -1266,15 +1270,18 @@ const (
 
 // TestFormatoDePlazos fija lo que H9 da al formato de eval
 // (contracts/evals-legal-core.md §1; data-model §3 de H9; FR-051): plazo, con su
-// fecha, sus avisos y su razonamiento, no_cubierto, con su norma, y el comando
-// calcular, con su tipo, se leen enteros; con plazo, una eval puede no llevar
-// citas, y con no_cubierto, ni comandos ni citas. Se rechazan: plazo o
-// no_cubierto en una eval que no activa la skill o que es sin binario ni
-// servidor, los dos juntos, plazo sin comandos, una fecha que no es AAAA-MM-DD,
-// unos avisos repetidos o que no son de plazos, plazo sin avisos o sin
-// razonamiento, o con un razonamiento vacío o con otra clave, una norma que no es
-// BOE-A-… o que falta, y un comando calcular sin tipo, con el tipo vacío o con
-// una norma: cada documento es el bien formado con solo ese defecto. Y el
+// fecha, sus avisos y su razonamiento, no_cubierto, con su norma y, desde H32,
+// el precepto de su fila con su norma y su bloque (data-model §8 de H32;
+// FR-014), y el comando calcular, con su tipo, se leen enteros; con plazo, una
+// eval puede no llevar citas, y con no_cubierto, ni comandos ni citas. Se
+// rechazan: plazo o no_cubierto en una eval que no activa la skill o que es sin
+// binario ni servidor, los dos juntos, plazo sin comandos, una fecha que no es
+// AAAA-MM-DD, unos avisos repetidos o que no son de plazos, plazo sin avisos o
+// sin razonamiento, o con un razonamiento vacío o con otra clave, una norma que
+// no es BOE-A-… o que falta, no_cubierto sin precepto, un precepto sin bloque,
+// con un bloque que no es un id o con otra clave, y un comando calcular sin
+// tipo, con el tipo vacío o con una norma: cada documento es el bien formado
+// con solo ese defecto. Y el
 // enumerado de plazo.avisos del esquema publicado es exactamente
 // plazos.CodigosDeAviso, comprobado como ComprobarCodigosDeAviso comprueba el de
 // avisos (ComprobarCodigosDeAvisoDelPlazo); las evals de normativa y de
@@ -1334,7 +1341,10 @@ func TestFormatoDePlazos(t *testing.T) {
 			leida: Eval{
 				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
 				Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
-				NoCubierto: NoCubiertoEsperado{Norma: lgt},
+				NoCubierto: NoCubiertoEsperado{
+					Norma:    lgt,
+					Precepto: CitaEsperada{Norma: "BOE-A-2015-10565", Bloque: "daprimera"},
+				},
 			},
 		},
 		{
@@ -1462,13 +1472,41 @@ func TestFormatoDePlazos(t *testing.T) {
 		},
 		{
 			nombre:    "no-cubierto-sin-su-forma",
-			documento: activa + "no_cubierto:\n  norma: LGT\n",
+			documento: activa + "no_cubierto:\n  norma: LGT\n" + preceptoDeLaDAPrimera,
 			error:     nombreDeEval + ": no_cubierto/norma, l\xc3\xadnea 4: 'LGT' does not match pattern " + normaDelEsquema,
 		},
 		{
-			nombre:    "no-cubierto-vacio",
-			documento: activa + "no_cubierto: {}\n",
-			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 3: missing property 'norma'",
+			nombre:    "no-cubierto-sin-norma",
+			documento: activa + "no_cubierto:\n" + preceptoDeLaDAPrimera,
+			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 4: missing property 'norma'",
+		},
+		{
+			nombre:    "no-cubierto-sin-precepto",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n",
+			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 4: missing property 'precepto'",
+		},
+		{
+			nombre:    "precepto-sin-bloque",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n  precepto: {norma: BOE-A-2015-10565}\n",
+			error:     nombreDeEval + ": no_cubierto/precepto, l\xc3\xadnea 5: missing property 'bloque'",
+		},
+		{
+			nombre:    "precepto-sin-su-forma",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n  precepto: {norma: LPAC, bloque: daprimera}\n",
+			error: nombreDeEval + ": no_cubierto/precepto/norma, l\xc3\xadnea 5: 'LPAC' does not match pattern " +
+				normaDelEsquema,
+		},
+		{
+			nombre:     "precepto-con-un-bloque-que-no-es-un-id",
+			documento:  activa + "no_cubierto:\n  norma: " + lgt + "\n  precepto: {norma: BOE-A-2015-10565, bloque: da primera}\n",
+			fragmentos: []string{"no_cubierto/precepto/bloque, l\xc3\xadnea 5: 'da primera' does not match pattern"},
+		},
+		{
+			// La fila de data/cobertura.yaml lleva además el apartado; la eval, no.
+			nombre: "precepto-con-otra-clave",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n" +
+				"  precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: DA-1.2.a}\n",
+			error: nombreDeEval + ": no_cubierto/precepto, l\xc3\xadnea 5: additional properties 'apartado' not allowed",
 		},
 		{
 			nombre:     "calcular-sin-tipo",

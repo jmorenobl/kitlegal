@@ -124,8 +124,16 @@
     "no_cubierto": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["norma"],
-      "properties": { "norma": { "$ref": "#/$defs/norma" } }
+      "required": ["norma", "precepto"],
+      "properties": {
+        "norma": { "$ref": "#/$defs/norma" },
+        "precepto": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["norma", "bloque"],
+          "properties": { "norma": { "$ref": "#/$defs/norma" }, "bloque": { "$ref": "#/$defs/bloque" } }
+        }
+      }
     },
     "plazo_sin_calcular": {
       "type": "object",
