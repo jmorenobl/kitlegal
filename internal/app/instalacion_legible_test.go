@@ -102,11 +102,11 @@ func TestLegibleDeInstall(t *testing.T) {
 				},
 			},
 			{
-				Nombre: "legal-core", Ruta: "/home/ana/.agents/skills/legal-core",
+				Nombre: "plazos-y-territorio", Ruta: "/home/ana/.agents/skills/plazos-y-territorio",
 				Estado: instalacion.EstadoActualizada,
 				Enlaces: []instalacion.Enlace{
-					enlace("claude", "/home/ana/.claude/skills/legal-core", instalacion.ModoEnlace),
-					enlace("antigravity", "/home/ana/.gemini/config/skills/legal-core", instalacion.ModoEnlace),
+					enlace("claude", "/home/ana/.claude/skills/plazos-y-territorio", instalacion.ModoEnlace),
+					enlace("antigravity", "/home/ana/.gemini/config/skills/plazos-y-territorio", instalacion.ModoEnlace),
 				},
 			},
 		}
@@ -114,12 +114,12 @@ func TestLegibleDeInstall(t *testing.T) {
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal v0.3.0 en ~/.agents/skills (Codex las lee de ahí):",
 			"",
-			"  normativa   instalada",
+			"  normativa            instalada",
 			"    Claude Code  ~/.claude/skills/normativa",
 			"    Antigravity  ~/.gemini/config/skills/normativa",
-			"  legal-core  actualizada",
-			"    Claude Code  ~/.claude/skills/legal-core",
-			"    Antigravity  ~/.gemini/config/skills/legal-core",
+			"  plazos-y-territorio  actualizada",
+			"    Claude Code  ~/.claude/skills/plazos-y-territorio",
+			"    Antigravity  ~/.gemini/config/skills/plazos-y-territorio",
 			"",
 			"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
 			"",
@@ -131,14 +131,14 @@ func TestLegibleDeInstall(t *testing.T) {
 
 		skills := []instalacion.SkillInstalada{
 			instaladaSinEnlaces(".agents/skills", "normativa", instalacion.EstadoSinCambios),
-			instaladaSinEnlaces(".agents/skills", "legal-core", instalacion.EstadoSinCambios),
+			instaladaSinEnlaces(".agents/skills", "plazos-y-territorio", instalacion.EstadoSinCambios),
 		}
 
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal dev en .agents/skills (Codex y Antigravity las leen de ahí):",
 			"",
-			"  normativa   sin cambios",
-			"  legal-core  sin cambios",
+			"  normativa            sin cambios",
+			"  plazos-y-territorio  sin cambios",
 			"",
 			"Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».",
 			"Ya estaban instaladas y al día: no se ha cambiado nada.",
@@ -150,15 +150,15 @@ func TestLegibleDeInstall(t *testing.T) {
 		t.Parallel()
 
 		skills := []instalacion.SkillInstalada{{
-			Nombre: "legal-core", Ruta: ".agents/skills/legal-core", Estado: instalacion.EstadoInstalada,
-			Enlaces: []instalacion.Enlace{enlace("claude", ".claude/skills/legal-core", instalacion.ModoCopia)},
+			Nombre: "plazos-y-territorio", Ruta: ".agents/skills/plazos-y-territorio", Estado: instalacion.EstadoInstalada,
+			Enlaces: []instalacion.Enlace{enlace("claude", ".claude/skills/plazos-y-territorio", instalacion.ModoCopia)},
 		}}
 
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal v0.3.0 en .agents/skills (Codex y Antigravity las leen de ahí):",
 			"",
-			"  legal-core  instalada",
-			"    Claude Code  .claude/skills/legal-core (copia, porque en esa carpeta no se pueden crear enlaces)",
+			"  plazos-y-territorio  instalada",
+			"    Claude Code  .claude/skills/plazos-y-territorio (copia, porque en esa carpeta no se pueden crear enlaces)",
 			"",
 			"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
 			"",
@@ -169,8 +169,8 @@ func TestLegibleDeInstall(t *testing.T) {
 		t.Parallel()
 
 		skills := []instalacion.SkillInstalada{{
-			Nombre: "legal-core", Ruta: "/home/ana/.agents/skills/legal-core", Estado: instalacion.EstadoInstalada,
-			Enlaces: []instalacion.Enlace{enlace("claude", "/home/ana/.claude/skills/legal-core", instalacion.ModoEnlace)},
+			Nombre: "plazos-y-territorio", Ruta: "/home/ana/.agents/skills/plazos-y-territorio", Estado: instalacion.EstadoInstalada,
+			Enlaces: []instalacion.Enlace{enlace("claude", "/home/ana/.claude/skills/plazos-y-territorio", instalacion.ModoEnlace)},
 		}}
 
 		texto := legibleDeInstall(skills, ambitoGlobalDePrueba(t), "v0.3.0", homeDePrueba)
@@ -183,13 +183,13 @@ func TestLegibleDeInstall(t *testing.T) {
 		t.Parallel()
 
 		skills := []instalacion.SkillInstalada{
-			instaladaSinEnlaces("destino", "legal-core", instalacion.EstadoInstalada),
+			instaladaSinEnlaces("destino", "plazos-y-territorio", instalacion.EstadoInstalada),
 		}
 
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal v0.3.0 en destino:",
 			"",
-			"  legal-core  instalada",
+			"  plazos-y-territorio  instalada",
 			"",
 			"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
 			"",
@@ -214,10 +214,10 @@ func TestLegibleDeList(t *testing.T) {
 					Enlaces: []instalacion.Enlace{},
 				},
 				{
-					Nombre: "legal-core", Ruta: "/home/ana/.agents/skills/legal-core", Version: "v0.3.0", Empotrada: true,
+					Nombre: "plazos-y-territorio", Ruta: "/home/ana/.agents/skills/plazos-y-territorio", Version: "v0.3.0", Empotrada: true,
 					Enlaces: []instalacion.Enlace{
-						enlace("claude", "/home/ana/.claude/skills/legal-core", instalacion.ModoEnlace),
-						enlace("antigravity", "/home/ana/.gemini/config/skills/legal-core", instalacion.ModoCopia),
+						enlace("claude", "/home/ana/.claude/skills/plazos-y-territorio", instalacion.ModoEnlace),
+						enlace("antigravity", "/home/ana/.gemini/config/skills/plazos-y-territorio", instalacion.ModoCopia),
 					},
 				},
 			},
@@ -226,10 +226,10 @@ func TestLegibleDeList(t *testing.T) {
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal en ~/.agents/skills (Codex las lee de ahí):",
 			"",
-			"  antigua     v0.1.0 (esta versión de kitlegal ya no la lleva)",
-			"  legal-core  v0.3.0",
-			"    Claude Code  ~/.claude/skills/legal-core",
-			"    Antigravity  ~/.gemini/config/skills/legal-core (copia, porque en esa carpeta no se pueden crear enlaces)",
+			"  antigua              v0.1.0 (esta versión de kitlegal ya no la lleva)",
+			"  plazos-y-territorio  v0.3.0",
+			"    Claude Code  ~/.claude/skills/plazos-y-territorio",
+			"    Antigravity  ~/.gemini/config/skills/plazos-y-territorio (copia, porque en esa carpeta no se pueden crear enlaces)",
 			"",
 		}, "\n"), legibleDeList(listado, ambitoGlobalDePrueba(t), homeDePrueba))
 	})
@@ -240,7 +240,7 @@ func TestLegibleDeList(t *testing.T) {
 		listado := instalacion.Listado{
 			Directorio: ".agents/skills", Manifiesto: true, Version: versionDelManifiesto(),
 			Skills: []instalacion.SkillListada{{
-				Nombre: "legal-core", Ruta: ".agents/skills/legal-core", Version: "v0.3.0", Empotrada: true,
+				Nombre: "plazos-y-territorio", Ruta: ".agents/skills/plazos-y-territorio", Version: "v0.3.0", Empotrada: true,
 				Enlaces: []instalacion.Enlace{},
 			}},
 		}
@@ -248,7 +248,7 @@ func TestLegibleDeList(t *testing.T) {
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal en .agents/skills (Codex y Antigravity las leen de ahí):",
 			"",
-			"  legal-core  v0.3.0",
+			"  plazos-y-territorio  v0.3.0",
 			"",
 			"Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».",
 			"",
@@ -318,17 +318,17 @@ func TestLegibleDeDoctor(t *testing.T) {
 			VersionDelBinario: "v0.3.0",
 			Hallazgos: []instalacion.Hallazgo{{
 				Clase: instalacion.HallazgoFicheroEditado,
-				Ruta:  "/home/ana/.agents/skills/legal-core/SKILL.md",
-				Orden: "rm -- '/home/ana/.agents/skills/legal-core/SKILL.md' && kitlegal skills install legal-core -g",
+				Ruta:  "/home/ana/.agents/skills/plazos-y-territorio/SKILL.md",
+				Orden: "rm -- '/home/ana/.agents/skills/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio -g",
 			}},
 		}
 
 		assert.Equal(t, strings.Join([]string{
 			"Hay 1 cosa que arreglar en las skills de ~/.agents/skills:",
 			"",
-			"  1. ~/.agents/skills/legal-core/SKILL.md ya no es el fichero que dejó kitlegal:" +
+			"  1. ~/.agents/skills/plazos-y-territorio/SKILL.md ya no es el fichero que dejó kitlegal:" +
 				" se ha editado, se ha sustituido o falta.",
-			"     rm -- '/home/ana/.agents/skills/legal-core/SKILL.md' && kitlegal skills install legal-core -g",
+			"     rm -- '/home/ana/.agents/skills/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio -g",
 			"",
 			"Ejecuta la orden y vuelve a comprobarlo con «kitlegal skills doctor -g».",
 			"",
@@ -343,20 +343,20 @@ func TestLegibleDeDoctor(t *testing.T) {
 			Directorio: ".agents/skills", Manifiesto: true, Version: &version, VersionDelBinario: "v0.3.0",
 			Hallazgos: []instalacion.Hallazgo{
 				{
-					Clase: instalacion.HallazgoEnlaceColgando, Ruta: ".agents/skills/legal-core",
-					Orden: "rm -- '.agents/skills/legal-core' && kitlegal skills install legal-core --host claude",
+					Clase: instalacion.HallazgoEnlaceColgando, Ruta: ".agents/skills/plazos-y-territorio",
+					Orden: "rm -- '.agents/skills/plazos-y-territorio' && kitlegal skills install plazos-y-territorio --host claude",
 				},
 				{
 					Clase: instalacion.HallazgoEnlaceAOtroSitio, Ruta: ".claude/skills/normativa",
 					Orden: "kitlegal skills install normativa --host claude",
 				},
 				{
-					Clase: instalacion.HallazgoCopia, Ruta: ".claude/skills/legal-core",
-					Orden: "kitlegal skills install legal-core --host claude",
+					Clase: instalacion.HallazgoCopia, Ruta: ".claude/skills/plazos-y-territorio",
+					Orden: "kitlegal skills install plazos-y-territorio --host claude",
 				},
 				{
 					Clase: instalacion.HallazgoVersionDistinta, Ruta: ".agents/skills/kitlegal.json",
-					Orden: "kitlegal skills install normativa legal-core --host claude",
+					Orden: "kitlegal skills install normativa plazos-y-territorio --host claude",
 				},
 				{
 					Clase: instalacion.HallazgoVersionDistinta, Ruta: ".agents/skills/normativa",
@@ -368,14 +368,14 @@ func TestLegibleDeDoctor(t *testing.T) {
 		assert.Equal(t, strings.Join([]string{
 			"Hay 5 cosas que arreglar en las skills de .agents/skills:",
 			"",
-			"  1. .agents/skills/legal-core es un enlace que apunta a algo que ya no existe.",
-			"     rm -- '.agents/skills/legal-core' && kitlegal skills install legal-core --host claude",
+			"  1. .agents/skills/plazos-y-territorio es un enlace que apunta a algo que ya no existe.",
+			"     rm -- '.agents/skills/plazos-y-territorio' && kitlegal skills install plazos-y-territorio --host claude",
 			"  2. .claude/skills/normativa no es el enlace que creó kitlegal: apunta a otro sitio, es otra cosa o falta.",
 			"     kitlegal skills install normativa --host claude",
-			"  3. .claude/skills/legal-core es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.",
-			"     kitlegal skills install legal-core --host claude",
+			"  3. .claude/skills/plazos-y-territorio es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.",
+			"     kitlegal skills install plazos-y-territorio --host claude",
 			"  4. Las skills son de kitlegal v0.1.0 y este kitlegal es v0.3.0.",
-			"     kitlegal skills install normativa legal-core --host claude",
+			"     kitlegal skills install normativa plazos-y-territorio --host claude",
 			"  5. La skill de .agents/skills/normativa es de otra versión de kitlegal, y este kitlegal es v0.3.0.",
 			"     kitlegal skills install normativa --host claude",
 			"",
@@ -391,8 +391,8 @@ func TestLegibleSinSecuenciasDeEscape(t *testing.T) {
 	t.Parallel()
 
 	skills := []instalacion.SkillInstalada{{
-		Nombre: "legal-core", Ruta: ".agents/skills/legal-core", Estado: instalacion.EstadoInstalada,
-		Enlaces: []instalacion.Enlace{enlace("claude", ".claude/skills/legal-core", instalacion.ModoCopia)},
+		Nombre: "plazos-y-territorio", Ruta: ".agents/skills/plazos-y-territorio", Estado: instalacion.EstadoInstalada,
+		Enlaces: []instalacion.Enlace{enlace("claude", ".claude/skills/plazos-y-territorio", instalacion.ModoCopia)},
 	}}
 
 	for _, texto := range []string{

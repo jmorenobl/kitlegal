@@ -105,8 +105,8 @@ func probarLasDeclaracionesDePlazoSinCalcular(t *testing.T) {
 	}
 }
 
-// evalDeVigenciaSintetica es una eval de vigencia de legal-core, con su comando
-// calcular de un plazo sin calcular (ADR 0042).
+// evalDeVigenciaSintetica es una eval de vigencia de plazos-y-territorio, con
+// su comando calcular de un plazo sin calcular (ADR 0042).
 func evalDeVigenciaSintetica() Eval {
 	return Eval{
 		Fichero:          "10-plazo-reposicion-anterior-a-la-lpac.yaml",
@@ -158,7 +158,7 @@ func probarElJuicioDeUnaVigencia(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			resultado := Juzgar(evalDeVigenciaSintetica(), sesionDeLegalCore(caso.respuesta, calcula), skillDeTerritorio)
+			resultado := Juzgar(evalDeVigenciaSintetica(), sesionDePlazosYTerritorio(caso.respuesta, calcula), skillDeTerritorio)
 			require.Equal(t, []string{"plazos calcular reposicion"}, resultado.ComandosEjecutados,
 				"premisa: la orden que termina con 3 satisface el comando de un plazo sin calcular")
 
@@ -277,8 +277,8 @@ func probarLosAvisosDelPlazo(t *testing.T) {
 	}
 }
 
-// evalDePlazoSintetica es una eval de plazo de legal-core con el comando
-// calcular y los avisos dados.
+// evalDePlazoSintetica es una eval de plazo de plazos-y-territorio con el
+// comando calcular y los avisos dados.
 func evalDePlazoSintetica(avisos ...string) Eval {
 	return Eval{
 		Fichero:  "05-plazo-reposicion-leganes.yaml",
@@ -289,8 +289,8 @@ func evalDePlazoSintetica(avisos ...string) Eval {
 	}
 }
 
-// evalDeCoberturaSintetica es una eval de cobertura de legal-core, sin comandos y
-// con plazos calcular prohibido.
+// evalDeCoberturaSintetica es una eval de cobertura de plazos-y-territorio, sin
+// comandos y con plazos calcular prohibido.
 func evalDeCoberturaSintetica() Eval {
 	return Eval{
 		Fichero:    "07-cobertura-liquidacion-tributaria.yaml",
@@ -309,9 +309,9 @@ func calculaElPlazo(t *testing.T, codigo *int, argumentos ...string) Invocacion 
 	return invocada(t, codigo, slices.Concat([]string{kitlegalDelPath, "plazos", "calcular"}, argumentos))
 }
 
-// sesionDeLegalCore es la sesión terminada que activó legal-core, con la
-// respuesta y las invocaciones dadas.
-func sesionDeLegalCore(respuesta string, invocaciones ...Invocacion) Sesion {
+// sesionDePlazosYTerritorio es la sesión terminada que activó
+// plazos-y-territorio, con la respuesta y las invocaciones dadas.
+func sesionDePlazosYTerritorio(respuesta string, invocaciones ...Invocacion) Sesion {
 	return cambiada(sesionTerminada(false, respuesta, invocaciones...), func(s *Sesion) {
 		s.SkillsActivadas = []string{skillDeTerritorio}
 	})
@@ -394,7 +394,7 @@ func probarElJuicioDeUnPlazo(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			resultado := Juzgar(caso.eval, sesionDeLegalCore(caso.respuesta, calcula), skillDeTerritorio)
+			resultado := Juzgar(caso.eval, sesionDePlazosYTerritorio(caso.respuesta, calcula), skillDeTerritorio)
 			require.Equal(t, []string{"plazos calcular reposicion"}, resultado.ComandosEjecutados,
 				"premisa: la orden satisface el comando calcular")
 
@@ -445,7 +445,7 @@ func probarElJuicioDeUnaCobertura(t *testing.T) {
 			sesion: func(t *testing.T, respuesta string) Sesion {
 				t.Helper()
 
-				return sesionDeLegalCore(respuesta, calculaElPlazo(t, codigoDeSalida(2), "reposicion", "2026-09-09", "Leganés"))
+				return sesionDePlazosYTerritorio(respuesta, calculaElPlazo(t, codigoDeSalida(2), "reposicion", "2026-09-09", "Leganés"))
 			},
 			juicio: juicioDelPlazo{noCubiertoDeclarado: true, motivos: []string{prohibido}},
 		},
@@ -465,7 +465,7 @@ func probarElJuicioDeUnaCobertura(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			sesion := sesionDeLegalCore(caso.respuesta)
+			sesion := sesionDePlazosYTerritorio(caso.respuesta)
 			modo := ModoOrden
 
 			if caso.sesion != nil {
@@ -505,7 +505,7 @@ func probarElComandoCalcular(t *testing.T) {
 		return func(t *testing.T) Sesion {
 			t.Helper()
 
-			return sesionDeLegalCore(lineaDelPlazo, calculaElPlazo(t, codigoDeSalida(codigo), argumentos...))
+			return sesionDePlazosYTerritorio(lineaDelPlazo, calculaElPlazo(t, codigoDeSalida(codigo), argumentos...))
 		}
 	}
 

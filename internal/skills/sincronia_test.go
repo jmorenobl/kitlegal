@@ -113,7 +113,7 @@ const (
 // sincronizacion-y-comprobacion §3); la referencia de las normas, por año y
 // número del identificador (contrato normas-y-referencias §5); la de las leyes
 // vertebrales, solo con la marcada; y la de la jerarquía, con sus cinco niveles y
-// sus cuatro reglas (contrato de la skill legal-core §2).
+// sus cuatro reglas (contrato skill-legal-core §2).
 const (
 	regionDeAlfa = "\n" +
 		"### `kitlegal dos`\n" +
@@ -652,8 +652,8 @@ func probarDefectos(t *testing.T) {
 			defectos: []string{defectoDelCampoNoDeclarado},
 		},
 		{
-			// Como legal-core: leyes_vertebrales sin normas delante, así que el
-			// defecto de data/normas.yaml lo encuentra su propio generador.
+			// Como plazos-y-territorio: leyes_vertebrales sin normas delante, así que
+			// el defecto de data/normas.yaml lo encuentra su propio generador.
 			nombre: "vertebrales-sin-normas-con-campo-no-declarado",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()

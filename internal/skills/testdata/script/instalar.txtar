@@ -25,21 +25,21 @@ exists $WORK/gobin/kitlegal
 # En ~/.agents/skills/, las tres skills y el manifiesto, y nada más (FR-126,
 # SC-018).
 exec ls -A $HOME/.agents/skills
-stdout '\Ajurisprudencia\nkitlegal\.json\nlegal-core\nnormativa\n\z'
+stdout '\Ajurisprudencia\nkitlegal\.json\nnormativa\nplazos-y-territorio\n\z'
 
 # En ~/.claude/skills/, un enlace relativo por skill con el destino literal
 # ../../.agents/skills/<skill>, y nada más (FR-126, SC-018).
 exec ls -A $HOME/.claude/skills
-stdout '\Ajurisprudencia\nlegal-core\nnormativa\n\z'
+stdout '\Ajurisprudencia\nnormativa\nplazos-y-territorio\n\z'
 exec readlink $HOME/.claude/skills/normativa
 stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
 exec readlink $HOME/.claude/skills/jurisprudencia
 stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
-exec readlink $HOME/.claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink $HOME/.claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 # Y el SKILL.md instalado de cada skill es, byte a byte, el del árbol del que
 # se compiló el binario (FR-126).
 cmp $HOME/.agents/skills/jurisprudencia/SKILL.md $WORK/repo/skills/jurisprudencia/SKILL.md
-cmp $HOME/.agents/skills/legal-core/SKILL.md $WORK/repo/skills/legal-core/SKILL.md
+cmp $HOME/.agents/skills/plazos-y-territorio/SKILL.md $WORK/repo/skills/plazos-y-territorio/SKILL.md
 cmp $HOME/.agents/skills/normativa/SKILL.md $WORK/repo/skills/normativa/SKILL.md

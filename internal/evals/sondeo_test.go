@@ -1115,7 +1115,7 @@ const valorDeLaSuscripcion = "de-la-base"
 // la vez (contracts/ejecucion-del-job.md §7 de H7.3).
 const (
 	skillQueSondea     = "normativa"
-	otraSkillQueSondea = "legal-core"
+	otraSkillQueSondea = "plazos-y-territorio"
 )
 
 // casoDeComprobarElSondeo es un caso de TestComprobarElSondeo: cómo cambia el

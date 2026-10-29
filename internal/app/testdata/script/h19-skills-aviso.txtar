@@ -140,7 +140,7 @@ env HOME=$WORK/home
 mkdir $WORK/subconjunto
 cd $WORK/subconjunto
 exec $KITLEGAL_V1_BIN skills install
-exec $KITLEGAL_V2_BIN skills install legal-core
+exec $KITLEGAL_V2_BIN skills install plazos-y-territorio
 grep -count=2 '"v0\.2\.0"' .agents/skills/kitlegal.json
 grep -count=2 '"v0\.1\.0"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V2_BIN territorio resolver Leganés --json

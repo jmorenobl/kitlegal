@@ -342,9 +342,9 @@ func probarElMensajeDeLaDescripcion(t *testing.T) {
 	}
 
 	assert.Equal(t,
-		"<descripcion skill=\"legal-core\">\nPunto de partida…\n\n  Segunda línea.\n</descripcion>\n\n"+
+		"<descripcion skill=\"plazos-y-territorio\">\nPunto de partida…\n\n  Segunda línea.\n</descripcion>\n\n"+
 			"Responde a la pregunta de la rúbrica sobre esta descripción.",
-		mensajeDeLaDescripcion("legal-core", "\x1c \xc2\xa0\tPunto de partida…\n\n  Segunda línea.\n\x1f\r\n"))
+		mensajeDeLaDescripcion("plazos-y-territorio", "\x1c \xc2\xa0\tPunto de partida…\n\n  Segunda línea.\n\x1f\r\n"))
 }
 
 // datosDeLaHuella son los datos de la huella del juicio de una descripción: la
@@ -372,14 +372,14 @@ func probarLaHuellaDelJuicio(t *testing.T) {
 	t.Helper()
 
 	base := datosDeLaHuella{
-		skill:       "legal-core",
+		skill:       "plazos-y-territorio",
 		descripcion: "Punto de partida de las preguntas de derecho público español.",
 		juez:        Juez{Rubrica: "la rúbrica", Esquema: "el esquema", Casos: "los casos", Medida: "la medida"},
 		modelo:      "claude-opus-5-5",
 		version:     "2.1.289",
 	}
 
-	texto := "skill legal-core\n" +
+	texto := "skill plazos-y-territorio\n" +
 		"descripcion " + sha256DeTexto(base.descripcion) + "\n" +
 		"rubrica " + sha256DeTexto(base.juez.Rubrica) + "\n" +
 		"esquema " + sha256DeTexto(base.juez.Esquema) + "\n" +
@@ -888,17 +888,17 @@ const (
 
 	casosSinteticosDeLasDescripciones = "casos:\n" +
 		"- id: '001'\n  skill: normativa\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso1 + "'\n" +
-		"- id: '002'\n  skill: legal-core\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso2 + "'\n" +
+		"- id: '002'\n  skill: plazos-y-territorio\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso2 + "'\n" +
 		"- id: '003'\n  skill: jurisprudencia\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso3 + "'\n" +
-		"- id: '004'\n  skill: legal-core\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso4 + "'\n"
+		"- id: '004'\n  skill: plazos-y-territorio\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso4 + "'\n"
 )
 
 // Los mensajes de los votos de cada caso sintético.
 var (
 	mensajeDelCaso1 = mensajeDeLaDescripcion("normativa", descripcionDelCaso1)
-	mensajeDelCaso2 = mensajeDeLaDescripcion("legal-core", descripcionDelCaso2)
+	mensajeDelCaso2 = mensajeDeLaDescripcion("plazos-y-territorio", descripcionDelCaso2)
 	mensajeDelCaso3 = mensajeDeLaDescripcion("jurisprudencia", descripcionDelCaso3)
-	mensajeDelCaso4 = mensajeDeLaDescripcion("legal-core", descripcionDelCaso4)
+	mensajeDelCaso4 = mensajeDeLaDescripcion("plazos-y-territorio", descripcionDelCaso4)
 )
 
 // juezConLosCasosSinteticos es el juez de las descripciones del repositorio con

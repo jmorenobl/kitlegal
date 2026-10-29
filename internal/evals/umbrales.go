@@ -381,13 +381,13 @@ type Umbral struct {
 // respuestas también si alguna de sus evals es de plazo o de cobertura, y los
 // de cada modo llevan, detrás de documento_sin_cotejar, plazo_sin_fecha si
 // alguna es de plazo y cobertura_sin_declarar si alguna es de cobertura, los
-// dos decidiendo con 0. Con el plan del job, los de legal-core, sin juez ni
-// objetivo, son seis, y deciden los seis: de cada modo, sin_activar,
+// dos decidiendo con 0. Con el plan del job, los de plazos-y-territorio, sin
+// juez ni objetivo, son seis, y deciden los seis: de cada modo, sin_activar,
 // plazo_sin_fecha y cobertura_sin_declarar. Ninguna eval de normativa ni
 // de jurisprudencia es de plazo ni de cobertura, y sus trece y sus quince no
 // cambian. Desde el ADR 0042, con alguna eval de vigencia, detrás de
 // cobertura_sin_declarar va vigencia_sin_declarar, que decide con 0: los de
-// legal-core, con redaccion_sin_fechar desde el ADR 0041, son diez.
+// plazos-y-territorio, con redaccion_sin_fechar desde el ADR 0041, son diez.
 //
 // Desde H20 (contracts/evals-redaccion-fechada.md §3 de H20; data-model §7.4 de
 // H20; research D14 de H20; FR-054 a FR-056 de H20), una skill tiene umbrales
@@ -396,8 +396,8 @@ type Umbral struct {
 // redaccion_sin_fechar, que decide con 0. Con el plan del job, los de
 // normativa, la única con evals con fecha, con su objetivo, son quince,
 // de los que deciden once: los trece de antes, con redaccion_sin_fechar de cada
-// modo detrás de su cuenta_su_proceso. Los de jurisprudencia y legal-core no
-// cambian.
+// modo detrás de su cuenta_su_proceso. Los de jurisprudencia y
+// plazos-y-territorio no cambian.
 //
 // Desde H26.1 (contracts/juicio-e-informe.md §4 de H26.1; data-model §7 de
 // H26.1; research D11 y D12 de H26.1; FR-021, FR-022, FR-033 de H26.1), detrás
@@ -410,10 +410,10 @@ type Umbral struct {
 // lectura_sin_intentar, que decide con 0 solo con el modelo que decide. Los dos
 // miden sesiones y no respuestas, también las de los modelos informativos.
 // lecturas es lo que se mide de esas sesiones; nil no da ninguno. Con el plan
-// del job, los dos modos y los dos modelos, son ocho en legal-core, que tiene
-// una eval así, y cuatro en normativa y en jurisprudencia: dieciocho, de
-// los que deciden doce, en la primera, y diecinueve, de los que deciden once,
-// los de antes, en las otras dos.
+// del job, los dos modos y los dos modelos, son ocho en plazos-y-territorio,
+// que tiene una eval así, y cuatro en normativa y en jurisprudencia: dieciocho,
+// de los que deciden doce, en la primera, y diecinueve, de los que deciden
+// once, los de antes, en las otras dos.
 //
 // Desde H30 (contracts/informe-del-job.md §3 y §4 de H30; data-model §9 de
 // H30; FR-015, FR-023, FR-024), todos ellos cuentan solo lo medido, y, con
@@ -1074,7 +1074,7 @@ func medirLasLecturasDelGrupo(
 // comandosSinServir son, en su orden, los comandos de la eval cuya lectura la
 // eval hace fallar a propósito (Eval.comandoSinServir): los de bloque cuya norma
 // y cuyo bloque son una entrada de bloque de su sin_servir. Ninguno en una eval
-// sin comandos, como la 12 de legal-core.
+// sin comandos, como la 12 de plazos-y-territorio.
 func comandosSinServir(eval Eval) []ComandoEsperado {
 	var comandos []ComandoEsperado
 

@@ -1,5 +1,5 @@
 ---
-name: legal-core
+name: plazos-y-territorio
 description: >-
   Punto de partida de las preguntas de derecho público español que dependen de un municipio o de un plazo. Se usa
   cuando se pregunta hasta cuándo se puede recurrir o qué plazo hay para un recurso, cuándo vence un plazo

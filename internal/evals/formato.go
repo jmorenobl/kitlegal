@@ -30,9 +30,9 @@ type Eval struct {
 
 	// NoSeActivan son los nombres de las skills que la sesión no puede activar,
 	// en el orden del fichero y sin repetir; vacío si la eval no los declara. Los
-	// admite cualquier eval, también una de no activación: las de legal-core
-	// declaran normativa, que sus sesiones también ven instalada
-	// (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003, FR-004).
+	// admite cualquier eval, también una de no activación: las de
+	// plazos-y-territorio declaran normativa, que sus sesiones también ven
+	// instalada (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003, FR-004).
 	NoSeActivan []string `yaml:"no_se_activan"`
 
 	// Reproduce es el nombre de la skill cuya consulta reproduce la eval, o

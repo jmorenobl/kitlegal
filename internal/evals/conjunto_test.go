@@ -141,9 +141,9 @@ type malFormadoEsperado struct {
 // salida_de_las_herramientas queda también en Conjunto.Prohibidas, y la lista de
 // cinco claves de H7.4, sin ella, es un fichero mal formado. Y cada eval se lee
 // con sus claves de H7.4 (contracts/evals-y-juicio.md §1 y §5; FR-003, FR-004,
-// FR-053): las de legal-core, con la skill que no se activa en NoSeActivan, y la
-// positiva de los dos bloques de la LCSP, con sus redacciones modificadas en
-// RedaccionesModificadas.
+// FR-053): las de plazos-y-territorio, con la skill que no se activa en
+// NoSeActivan, y la positiva de los dos bloques de la LCSP, con sus redacciones
+// modificadas en RedaccionesModificadas.
 //
 // Desde H24 (contracts/juez-y-voto.md §1; FR-020), fija también la carpeta del
 // juez, con los casos de casosDeLaCarpetaJuez: la entrada que se llama
@@ -351,20 +351,20 @@ func TestLeerConjunto(t *testing.T) {
 			malFormados: []malFormadoEsperado{{fichero: "expresiones-prohibidas.yml", fragmento: sinLaForma}},
 		},
 		{
-			// Las dos de legal-core, cada una con la skill que no se activa
+			// Las dos de plazos-y-territorio, cada una con la skill que no se activa
 			// detrás de activa, como en el repositorio.
-			nombre: "no-se-activan-en-legal-core",
+			nombre: "no-se-activan-en-plazos-y-territorio",
 			entradas: []entradaDeConjunto{
 				{
-					nombre: legalCoreCubierto,
+					nombre: plazosYTerritorioCubierto,
 					contenido: preguntaDelMunicipio + "activa: true\n" + noSeActivaNormativa + comandoDelMunicipio +
 						"territorio:\n  comunidad: Comunidad de Madrid\n",
 				},
-				{nombre: legalCoreNoActivacion, contenido: evalDeLaReceta + noSeActivaNormativa},
+				{nombre: plazosYTerritorioNoActivacion, contenido: evalDeLaReceta + noSeActivaNormativa},
 			},
 			evals: []Eval{
 				{
-					Fichero:     legalCoreCubierto,
+					Fichero:     plazosYTerritorioCubierto,
 					Pregunta:    "¿En qué boletines se publican las normas que afectan a Leganés?",
 					Activa:      true,
 					NoSeActivan: []string{"normativa"},
@@ -372,7 +372,7 @@ func TestLeerConjunto(t *testing.T) {
 					Territorio:  TerritorioEsperado{Comunidad: "Comunidad de Madrid"},
 				},
 				{
-					Fichero:     legalCoreNoActivacion,
+					Fichero:     plazosYTerritorioNoActivacion,
 					Pregunta:    "¿Cómo se hace una tortilla de patatas jugosa?",
 					NoSeActivan: []string{"normativa"},
 				},
@@ -764,8 +764,8 @@ func sinMateria(conjunto *conjuntoSintetico, materia string) {
 
 // TestConjuntoDeEvals fija ComprobarConjunto con sus dos juegos de reglas
 // (contrato de evals §3 de H6; research D22): las de normativa y las de
-// legal-core, cada juego sobre evals sintéticas. Desde H21, el tamaño de
-// normativa llega a 21 y los dos juegos llevan la regla sin binario ni
+// plazos-y-territorio, cada juego sobre evals sintéticas. Desde H21, el tamaño
+// de normativa llega a 21 y los dos juegos llevan la regla sin binario ni
 // servidor, la última de cada tabla: exactamente una eval que lo declara, que no
 // cuenta como positiva ni necesita un esperado verificable
 // (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde H23, el tercer
@@ -778,7 +778,7 @@ func TestConjuntoDeEvals(t *testing.T) {
 	t.Parallel()
 
 	t.Run("normativa", probarReglasDeNormativa)
-	t.Run("legal-core", probarReglasDeLegalCore)
+	t.Run("plazos-y-territorio", probarReglasDePlazosYTerritorio)
 	t.Run("jurisprudencia", probarReglasDeJurisprudencia)
 }
 
@@ -1086,36 +1086,36 @@ func probarReglasDeNormativa(t *testing.T) {
 	})
 }
 
-// Las evals sintéticas del conjunto de legal-core de probarReglasDeLegalCore: la
-// del municipio cubierto, la del no cubierto y la de no activación (contrato de
-// evals §4 de H6), desde H21, la eval sin binario ni servidor
-// (contracts/evals-en-dos-modos.md §1 de H21) y, desde H9, la de plazo y la de
-// cobertura (contracts/evals-legal-core.md §4 de H9); y las que los casos le
-// añaden.
+// Las evals sintéticas del conjunto de plazos-y-territorio de
+// probarReglasDePlazosYTerritorio: la del municipio cubierto, la del no
+// cubierto y la de no activación (contrato de evals §4 de H6), desde H21, la
+// eval sin binario ni servidor (contracts/evals-en-dos-modos.md §1 de H21) y,
+// desde H9, la de plazo y la de cobertura (contracts/evals-legal-core.md §4 de
+// H9); y las que los casos le añaden.
 const (
-	legalCoreCubierto       = "01-territorio-municipio-cubierto.yaml"
-	legalCoreNoCubierto     = "02-territorio-municipio-no-cubierto.yaml"
-	legalCoreNoActivacion   = "03-no-activa-receta-de-cocina.yaml"
-	legalCoreSinBinario     = "04-sin-binario-ni-servidor.yaml"
-	legalCoreDePlazo        = "05-plazo-reposicion-leganes.yaml"
-	legalCoreDeCobertura    = "07-cobertura-liquidacion-tributaria.yaml"
-	legalCoreSinVerificable = "05-territorio-sin-esperado.yaml"
-	legalCoreConCitas       = "05-articulo-21-con-citas.yaml"
-	legalCoreOtraSinBinario = "05-sin-binario-ni-servidor-otra.yaml"
+	plazosYTerritorioCubierto       = "01-territorio-municipio-cubierto.yaml"
+	plazosYTerritorioNoCubierto     = "02-territorio-municipio-no-cubierto.yaml"
+	plazosYTerritorioNoActivacion   = "03-no-activa-receta-de-cocina.yaml"
+	plazosYTerritorioSinBinario     = "04-sin-binario-ni-servidor.yaml"
+	plazosYTerritorioDePlazo        = "05-plazo-reposicion-leganes.yaml"
+	plazosYTerritorioDeCobertura    = "07-cobertura-liquidacion-tributaria.yaml"
+	plazosYTerritorioSinVerificable = "05-territorio-sin-esperado.yaml"
+	plazosYTerritorioConCitas       = "05-articulo-21-con-citas.yaml"
+	plazosYTerritorioOtraSinBinario = "05-sin-binario-ni-servidor-otra.yaml"
 )
 
-// conjuntoDeLegalCore devuelve, nuevo en cada llamada, un conjunto que cumple las
-// reglas de legal-core: una eval activa que resuelve un municipio del
-// territorio configurado y espera su boletín, otra que resuelve uno de una
-// comunidad sin configuración y espera no configurado cada aspecto de boletín,
-// una de no activación, la eval sin binario ni servidor, activa y sin nada que
-// consultar ni que esperar, y, desde H9, una de plazo que solo espera el plazo y
-// una de cobertura que solo espera la declaración de no cubierto, sin comandos
-// ni citas: las dos tienen un esperado verificable.
-func conjuntoDeLegalCore() []Eval {
+// conjuntoDePlazosYTerritorio devuelve, nuevo en cada llamada, un conjunto que
+// cumple las reglas de plazos-y-territorio: una eval activa que resuelve un
+// municipio del territorio configurado y espera su boletín, otra que resuelve
+// uno de una comunidad sin configuración y espera no configurado cada aspecto
+// de boletín, una de no activación, la eval sin binario ni servidor, activa y
+// sin nada que consultar ni que esperar, y, desde H9, una de plazo que solo
+// espera el plazo y una de cobertura que solo espera la declaración de no
+// cubierto, sin comandos ni citas: las dos tienen un esperado verificable.
+func conjuntoDePlazosYTerritorio() []Eval {
 	return []Eval{
 		{
-			Fichero:  legalCoreCubierto,
+			Fichero:  plazosYTerritorioCubierto,
 			Pregunta: "¿En qué boletines se publican las normas que afectan a Leganés?",
 			Activa:   true,
 			Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
@@ -1124,7 +1124,7 @@ func conjuntoDeLegalCore() []Eval {
 			},
 		},
 		{
-			Fichero:  legalCoreNoCubierto,
+			Fichero:  plazosYTerritorioNoCubierto,
 			Pregunta: "¿En qué boletines se publican las normas que afectan a Tordesillas?",
 			Activa:   true,
 			Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Tordesillas"}},
@@ -1134,9 +1134,9 @@ func conjuntoDeLegalCore() []Eval {
 				Cobertura: []string{"boletin_autonomico: no-configurado", "boletin_provincial: no-configurado"},
 			},
 		},
-		{Fichero: legalCoreNoActivacion, Pregunta: "¿Cómo hago una tortilla de patatas?"},
+		{Fichero: plazosYTerritorioNoActivacion, Pregunta: "¿Cómo hago una tortilla de patatas?"},
 		{
-			Fichero:              legalCoreSinBinario,
+			Fichero:              plazosYTerritorioSinBinario,
 			Pregunta:             "\xc2\xbfQu\xc3\xa9 comunidad y qu\xc3\xa9 boletines corresponden al Ayuntamiento de Getafe?",
 			Activa:               true,
 			NoSeActivan:          []string{"normativa"},
@@ -1147,16 +1147,17 @@ func conjuntoDeLegalCore() []Eval {
 	}
 }
 
-// probarReglasDeLegalCore fija ComprobarConjunto con ReglasDeLegalCore (contrato
-// de evals §3 de H6; FR-081, FR-082): el conjunto que las cumple no da ningún
-// defecto, y tampoco con una eval activa más que solo espera citas; cada copia que
-// incumple una regla da el defecto de esa regla, con su nombre y un mensaje que
-// nombra los ficheros implicados; y un conjunto que las incumple todas da un
-// defecto por regla, en el orden de la tabla. Desde H21, el conjunto lleva
-// cuatro evals, con la que es sin binario ni servidor, que no necesita un
-// esperado verificable: sin una de las cuatro incumple solo la regla de esa eval,
-// sin dos incumple también el tamaño, y con dos evals sin binario ni servidor,
-// solo la regla nueva (contracts/evals-en-dos-modos.md §1 de H21; FR-046).
+// probarReglasDePlazosYTerritorio fija ComprobarConjunto con
+// ReglasDePlazosYTerritorio (contrato de evals §3 de H6; FR-081, FR-082): el
+// conjunto que las cumple no da ningún defecto, y tampoco con una eval activa
+// más que solo espera citas; cada copia que incumple una regla da el defecto de
+// esa regla, con su nombre y un mensaje que nombra los ficheros implicados; y
+// un conjunto que las incumple todas da un defecto por regla, en el orden de la
+// tabla. Desde H21, el conjunto lleva cuatro evals, con la que es sin binario
+// ni servidor, que no necesita un esperado verificable: sin una de las cuatro
+// incumple solo la regla de esa eval, sin dos incumple también el tamaño, y con
+// dos evals sin binario ni servidor, solo la regla nueva
+// (contracts/evals-en-dos-modos.md §1 de H21; FR-046).
 //
 // Desde H9, el conjunto lleva además una eval de plazo y una de cobertura, que
 // solo esperan el plazo y la declaración de no cubierto y tienen con ellos un
@@ -1164,22 +1165,22 @@ func conjuntoDeLegalCore() []Eval {
 // cobertura por materia, que va detrás de la del esperado verificable, y su
 // mensaje nombra las que hay de cada clase; y sin cuatro, también el tamaño
 // (contracts/evals-legal-core.md §4 de H9; FR-051, FR-088).
-func probarReglasDeLegalCore(t *testing.T) {
+func probarReglasDePlazosYTerritorio(t *testing.T) {
 	t.Parallel()
 
 	t.Run("cumple-todas", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Empty(t, ComprobarConjunto(conjuntoDeLegalCore(), nil, ReglasDeLegalCore()))
+		assert.Empty(t, ComprobarConjunto(conjuntoDePlazosYTerritorio(), nil, ReglasDePlazosYTerritorio()))
 
-		conCitas := append(conjuntoDeLegalCore(), Eval{
-			Fichero:  legalCoreConCitas,
+		conCitas := append(conjuntoDePlazosYTerritorio(), Eval{
+			Fichero:  plazosYTerritorioConCitas,
 			Pregunta: preguntaDelArticulo21Eval,
 			Activa:   true,
 			Comandos: []ComandoEsperado{{Applet: "boe", Norma: normaLPAC, Bloque: "a21"}},
 			Citas:    []CitaEsperada{{Norma: normaLPAC, Bloque: "a21"}},
 		})
-		assert.Empty(t, ComprobarConjunto(conCitas, nil, ReglasDeLegalCore()),
+		assert.Empty(t, ComprobarConjunto(conCitas, nil, ReglasDePlazosYTerritorio()),
 			"una eval que solo espera citas tiene un esperado verificable")
 	})
 
@@ -1195,25 +1196,25 @@ func probarReglasDeLegalCore(t *testing.T) {
 	}{
 		{
 			nombre:    "sin-la-del-cubierto",
-			modificar: sinLaEval(legalCoreCubierto),
+			modificar: sinLaEval(plazosYTerritorioCubierto),
 			reglas:    []string{"cubierto"},
-			ficheros:  []string{legalCoreNoCubierto},
+			ficheros:  []string{plazosYTerritorioNoCubierto},
 		},
 		{
 			nombre:    "sin-la-del-no-cubierto",
-			modificar: sinLaEval(legalCoreNoCubierto),
+			modificar: sinLaEval(plazosYTerritorioNoCubierto),
 			reglas:    []string{"no cubierto"},
-			ficheros:  []string{legalCoreCubierto},
+			ficheros:  []string{plazosYTerritorioCubierto},
 		},
 		{
 			nombre:    "sin-la-de-no-activación",
-			modificar: sinLaEval(legalCoreNoActivacion),
+			modificar: sinLaEval(plazosYTerritorioNoActivacion),
 			reglas:    []string{"no activación"},
-			ficheros:  []string{legalCoreCubierto, legalCoreNoCubierto, legalCoreSinBinario},
+			ficheros:  []string{plazosYTerritorioCubierto, plazosYTerritorioNoCubierto, plazosYTerritorioSinBinario},
 		},
 		{
 			nombre:    "sin-la-eval-sin-binario-ni-servidor",
-			modificar: sinLaEval(legalCoreSinBinario),
+			modificar: sinLaEval(plazosYTerritorioSinBinario),
 			reglas:    []string{"sin binario ni servidor"},
 			dice:      []string{"hay 0 evals sin binario ni servidor", "exactamente 1: ning\xc3\xban fichero"},
 		},
@@ -1221,27 +1222,27 @@ func probarReglasDeLegalCore(t *testing.T) {
 			nombre: "dos-evals-sin-binario-ni-servidor",
 			modificar: func(_ *testing.T, evals []Eval) []Eval {
 				return append(evals, Eval{
-					Fichero:  legalCoreOtraSinBinario,
+					Fichero:  plazosYTerritorioOtraSinBinario,
 					Pregunta: "\xc2\xbfQu\xc3\xa9 boletines corresponden al Ayuntamiento de M\xc3\xb3stoles?",
 					Activa:   true, SinBinarioNiServidor: true,
 				})
 			},
 			reglas:   []string{"sin binario ni servidor"},
-			ficheros: []string{legalCoreSinBinario, legalCoreOtraSinBinario},
+			ficheros: []string{plazosYTerritorioSinBinario, plazosYTerritorioOtraSinBinario},
 			dice:     []string{"hay 2 evals sin binario ni servidor"},
 		},
 		{
 			nombre:    "sin-la-de-cobertura",
-			modificar: sinLaEval(legalCoreDeCobertura),
+			modificar: sinLaEval(plazosYTerritorioDeCobertura),
 			reglas:    []string{"cobertura por materia"},
-			ficheros:  []string{legalCoreDePlazo},
+			ficheros:  []string{plazosYTerritorioDePlazo},
 			dice:      []string{"de cobertura, ning\xc3\xban fichero"},
 		},
 		{
 			nombre:    "sin-la-de-plazo",
-			modificar: sinLaEval(legalCoreDePlazo),
+			modificar: sinLaEval(plazosYTerritorioDePlazo),
 			reglas:    []string{"cobertura por materia"},
-			ficheros:  []string{legalCoreDeCobertura},
+			ficheros:  []string{plazosYTerritorioDeCobertura},
 			dice:      []string{"de plazo, ning\xc3\xban fichero"},
 		},
 		{
@@ -1252,7 +1253,7 @@ func probarReglasDeLegalCore(t *testing.T) {
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
 
-				for _, fichero := range []string{legalCoreSinBinario, legalCoreNoActivacion, legalCoreDePlazo, legalCoreDeCobertura} {
+				for _, fichero := range []string{plazosYTerritorioSinBinario, plazosYTerritorioNoActivacion, plazosYTerritorioDePlazo, plazosYTerritorioDeCobertura} {
 					evals = sinLaEval(fichero)(t, evals)
 				}
 
@@ -1265,36 +1266,36 @@ func probarReglasDeLegalCore(t *testing.T) {
 			nombre: "cubierto-sin-boletines",
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
-				evalDe(t, evals, legalCoreCubierto).Territorio.Boletines = nil
+				evalDe(t, evals, plazosYTerritorioCubierto).Territorio.Boletines = nil
 
 				return evals
 			},
 			reglas:   []string{"cubierto"},
-			ficheros: []string{legalCoreCubierto, legalCoreNoCubierto},
+			ficheros: []string{plazosYTerritorioCubierto, plazosYTerritorioNoCubierto},
 		},
 		{
 			nombre: "cubierto-sin-comando-de-territorio",
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
-				evalDe(t, evals, legalCoreCubierto).Comandos = []ComandoEsperado{
+				evalDe(t, evals, plazosYTerritorioCubierto).Comandos = []ComandoEsperado{
 					{Applet: "boe", Verbo: "buscar", Terminos: []string{"Leganés"}},
 				}
 
 				return evals
 			},
 			reglas:   []string{"cubierto"},
-			ficheros: []string{legalCoreNoCubierto},
+			ficheros: []string{plazosYTerritorioNoCubierto},
 		},
 		{
 			nombre: "cubierto-sin-activar",
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
-				evalDe(t, evals, legalCoreCubierto).Activa = false
+				evalDe(t, evals, plazosYTerritorioCubierto).Activa = false
 
 				return evals
 			},
 			reglas:   []string{"cubierto"},
-			ficheros: []string{legalCoreNoCubierto},
+			ficheros: []string{plazosYTerritorioNoCubierto},
 		},
 		{
 			// Con boletines, la eval de una comunidad sin configuración sigue sin
@@ -1302,36 +1303,36 @@ func probarReglasDeLegalCore(t *testing.T) {
 			nombre: "no-cubierto-con-boletines-no-es-cubierto",
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
-				evalDe(t, evals, legalCoreNoCubierto).Territorio.Boletines = []string{"BOE"}
+				evalDe(t, evals, plazosYTerritorioNoCubierto).Territorio.Boletines = []string{"BOE"}
 
-				return sinLaEval(legalCoreCubierto)(t, evals)
+				return sinLaEval(plazosYTerritorioCubierto)(t, evals)
 			},
 			reglas:   []string{"cubierto"},
-			ficheros: []string{legalCoreNoCubierto},
+			ficheros: []string{plazosYTerritorioNoCubierto},
 		},
 		{
 			nombre: "no-cubierto-con-un-solo-aspecto",
 			modificar: func(t *testing.T, evals []Eval) []Eval {
 				t.Helper()
-				evalDe(t, evals, legalCoreNoCubierto).Territorio.Cobertura = []string{"boletin_autonomico: no-configurado"}
+				evalDe(t, evals, plazosYTerritorioNoCubierto).Territorio.Cobertura = []string{"boletin_autonomico: no-configurado"}
 
 				return evals
 			},
 			reglas:   []string{"no cubierto"},
-			ficheros: []string{legalCoreCubierto, legalCoreNoCubierto},
+			ficheros: []string{plazosYTerritorioCubierto, plazosYTerritorioNoCubierto},
 		},
 		{
 			nombre: "esperado-verificable",
 			modificar: func(_ *testing.T, evals []Eval) []Eval {
 				return append(evals, Eval{
-					Fichero:  legalCoreSinVerificable,
+					Fichero:  plazosYTerritorioSinVerificable,
 					Pregunta: "¿Qué boletín publica las ordenanzas de Leganés?",
 					Activa:   true,
 					Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
 				})
 			},
 			reglas:   []string{"esperado verificable"},
-			ficheros: []string{legalCoreSinVerificable},
+			ficheros: []string{plazosYTerritorioSinVerificable},
 		},
 	}
 
@@ -1339,7 +1340,7 @@ func probarReglasDeLegalCore(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			defectos := ComprobarConjunto(caso.modificar(t, conjuntoDeLegalCore()), nil, ReglasDeLegalCore())
+			defectos := ComprobarConjunto(caso.modificar(t, conjuntoDePlazosYTerritorio()), nil, ReglasDePlazosYTerritorio())
 			require.Equal(t, caso.reglas, reglasIncumplidas(defectos), "la copia incumple solo esas reglas: %v", defectos)
 
 			for _, nombrado := range slices.Concat(caso.ficheros, caso.dice) {
@@ -1352,7 +1353,7 @@ func probarReglasDeLegalCore(t *testing.T) {
 		t.Parallel()
 
 		sinEsperado := []Eval{{
-			Fichero:  legalCoreSinVerificable,
+			Fichero:  plazosYTerritorioSinVerificable,
 			Pregunta: "¿Qué boletín publica las ordenanzas de Leganés?",
 			Activa:   true,
 			Comandos: []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
@@ -1361,7 +1362,7 @@ func probarReglasDeLegalCore(t *testing.T) {
 		assert.Equal(t, []string{
 			"tamaño", "cubierto", "no cubierto", "no activación", "esperado verificable", "cobertura por materia",
 			"sin binario ni servidor",
-		}, reglasIncumplidas(ComprobarConjunto(sinEsperado, nil, ReglasDeLegalCore())))
+		}, reglasIncumplidas(ComprobarConjunto(sinEsperado, nil, ReglasDePlazosYTerritorio())))
 	})
 
 	t.Run("sin-configuración-ningún-boletín", func(t *testing.T) {
@@ -1851,8 +1852,8 @@ func probarReglasDeJurisprudencia(t *testing.T) {
 	})
 }
 
-// sinLaEval devuelve la modificación de probarReglasDeLegalCore que quita del
-// conjunto la eval con ese fichero, que tiene que estar.
+// sinLaEval devuelve la modificación de probarReglasDePlazosYTerritorio que
+// quita del conjunto la eval con ese fichero, que tiene que estar.
 func sinLaEval(fichero string) func(t *testing.T, evals []Eval) []Eval {
 	return func(t *testing.T, evals []Eval) []Eval {
 		t.Helper()
@@ -1903,10 +1904,11 @@ const (
 	// cada una de sus carpetas están las evals de una skill (FR-060).
 	directorioDeEvals = "../../evals"
 
-	// evalsDeLegalCore es evals/legal-core/, relativo al directorio de este
-	// paquete: las evals de la skill legal-core, a las que se aplican las reglas
-	// de su juego (contrato de evals §3 y §4 de H6).
-	evalsDeLegalCore = "../../evals/legal-core"
+	// evalsDePlazosYTerritorio es evals/plazos-y-territorio/, relativo al
+	// directorio de este paquete: las evals de la skill plazos-y-territorio, a
+	// las que se aplican las reglas de su juego (contrato de evals §3 y §4 de
+	// H6).
+	evalsDePlazosYTerritorio = "../../evals/plazos-y-territorio"
 
 	// evalsDeJurisprudencia es evals/jurisprudencia/, relativo al directorio de
 	// este paquete: las evals de la skill jurisprudencia, a las que se aplican
@@ -1914,12 +1916,12 @@ const (
 	// H25).
 	evalsDeJurisprudencia = "../../evals/jurisprudencia"
 
-	// evalsDeLegalCoreConLaDeVigencia son las de evals/legal-core/: desde H9, las cuatro de
-	// antes, las tres de plazo y las dos de cobertura (contracts/evals-legal-core.md
-	// §5 de H9; FR-050), desde el ADR 0042, la de vigencia, y desde H26.1, la de
-	// plazo y la de cobertura con una lectura sin servir (FR-017, FR-018 de
-	// H26.1).
-	evalsDeLegalCoreConLaDeVigencia = 12
+	// evalsDePlazosYTerritorioConLaDeVigencia son las de
+	// evals/plazos-y-territorio/: desde H9, las cuatro de antes, las tres de
+	// plazo y las dos de cobertura (contracts/evals-legal-core.md §5 de H9;
+	// FR-050), desde el ADR 0042, la de vigencia, y desde H26.1, la de plazo y la
+	// de cobertura con una lectura sin servir (FR-017, FR-018 de H26.1).
+	evalsDePlazosYTerritorioConLaDeVigencia = 12
 )
 
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
@@ -1937,11 +1939,11 @@ const (
 // reconocida con la misma función que usa Juzgar (FR-045, FR-093 de H7.1);
 // el esquema publicado admite en la cobertura del territorio esperado
 // exactamente las combinaciones del vocabulario del applet territorio (contrato de
-// evals §1.2 de H6); las de evals/legal-core/ cumplen las reglas del conjunto de
-// legal-core (contrato de evals §3 de H6; FR-080 a FR-082, SC-011); y el grafo
-// previo de cada eval que lo lleva existe y se prepara sin faltas, con un
-// BloqueVersion por comando (contrato evals-y-skill §3 de H7; FR-085). Desde
-// H7.2, sobre
+// evals §1.2 de H6); las de evals/plazos-y-territorio/ cumplen las reglas del
+// conjunto de plazos-y-territorio (contrato de evals §3 de H6; FR-080 a FR-082,
+// SC-011); y el grafo previo de cada eval que lo lleva existe y se prepara sin
+// faltas, con un BloqueVersion por comando (contrato evals-y-skill §3 de H7;
+// FR-085). Desde H7.2, sobre
 // cada grafo previo, la lectura de los bloques de la eval y graph check dan los
 // hallazgos que la eval espera, de la redacción que dejó el grafo previo a la
 // leída (contrato eval-y-derivada §4; FR-002 de H7.2). Desde H7.3, ninguna
@@ -1953,10 +1955,10 @@ const (
 // comprobación de la skill lleva detrás su forma para PowerShell
 // (contracts/skill-boe-legislacion.md
 // §4 de H7.4; FR-095; SC-005). Desde
-// H21, las 21 evals de normativa y las 4 de legal-core cumplen además la
-// regla sin binario ni servidor de su juego: cada carpeta lleva exactamente una
-// eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde
-// H23, las evals de evals/jurisprudencia/ cumplen las reglas de su juego
+// H21, las 21 evals de normativa y las 4 de plazos-y-territorio cumplen además
+// la regla sin binario ni servidor de su juego: cada carpeta lleva exactamente
+// una eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046).
+// Desde H23, las evals de evals/jurisprudencia/ cumplen las reglas de su juego
 // (contracts/evals-jurisprudencia.md §5 de H23; FR-056); desde H25 son diez, con
 // las cuatro que llevan una pregunta del sondeo de la validación de su juez
 // (contracts/evals-jurisprudencia.md §3 de H25; FR-065; SC-010), y su carpeta
@@ -1966,8 +1968,8 @@ const (
 // H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
 // da ningún fichero mal formado: la de normativa declara sus dos clases,
 // afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, y
-// legal-core no tiene juez (contracts/juez-y-voto.md §1 de H24; FR-020,
-// FR-021); y la lista deja de compararse con respuestas, con los
+// plazos-y-territorio no tiene juez (contracts/juez-y-voto.md §1 de H24;
+// FR-020, FR-021); y la lista deja de compararse con respuestas, con los
 // bloques grabados y con las formas de la skill, porque ya no juzga ninguna
 // respuesta: del calibrado de H7.4 quedan sus tres totales, como premisa de
 // TestJuzgarSinLaLista (FR-071 de H24). Desde H26, la clase que decide lleva en
@@ -1977,29 +1979,30 @@ const (
 // mano y se comparan con igualdad exacta, de modo que otro en cualquiera de las
 // dos declaraciones no pasa (contracts/clases-yaml.diff de H26; data-model §1
 // de H26; research D9 de H26; FR-020, FR-022, FR-077; SC-007). Desde H9, las de
-// evals/legal-core/ son nueve, bien formadas, cumplen además la regla de la
-// cobertura por materia, y la unión de grabaciones sirve sin red lo que leen del
-// BOE, como las de normativa (contracts/evals-legal-core.md §4 y §5 de H9;
-// FR-050, FR-052, FR-088). Desde H20, las consultas de las dos carpetas llevan,
-// junto a cada bloque, su lectura con --fecha 9999-12-31, y la caché se prepara
-// y se comprueba sin red también con ellas (contracts/evals-redaccion-fechada.md
-// §4 de H20; FR-053); y las de normativa son veintitrés, con las dos con
-// fecha, bien formadas, con las reglas de su conjunto y con su caché preparada
-// y comprobada sin red (contracts/evals-redaccion-fechada.md §1.3 y §1.4 de
-// H20; FR-050 a FR-053); y el SKILL.md de normativa lleva, en sus
-// bloques de código text, la forma fija de cada una de las tres líneas de una
-// redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048).
-// Desde H26.1, la 14, la 15 y la 16 de normativa llevan sus lecturas, y
-// desde H31.1 también la 17, y ninguna otra eval lleva ninguna; sus bloques son
-// consultas necesarias, que el subtest grabado exige grabadas y servidas sin red
-// como las demás (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011;
-// contracts/lecturas-y-grabaciones.md §1 de H31.1). Desde H31, los
-// controles de contenido de las skills —la prosa, las órdenes para PowerShell,
-// la línea sin consulta, las formas de la redacción fechada, las de aviso y las
-// de hallazgo— leen la skill entera, su SKILL.md y sus referencias a mano, cada
-// fichero por separado y con su ruta en cada defecto; las formas fijas se siguen
-// exigiendo en SKILL.md, y cada línea ⚠ de una referencia a mano de
-// normativa y de legal-core es una de su SKILL.md
+// evals/plazos-y-territorio/ son nueve, bien formadas, cumplen además la regla
+// de la cobertura por materia, y la unión de grabaciones sirve sin red lo que
+// leen del BOE, como las de normativa (contracts/evals-legal-core.md §4 y §5 de
+// H9; FR-050, FR-052, FR-088). Desde H20, las consultas de las dos carpetas
+// llevan, junto a cada bloque, su lectura con --fecha 9999-12-31, y la caché se
+// prepara y se comprueba sin red también con ellas
+// (contracts/evals-redaccion-fechada.md §4 de H20; FR-053); y las de normativa
+// son veintitrés, con las dos con fecha, bien formadas, con las reglas de su
+// conjunto y con su caché preparada y comprobada sin red
+// (contracts/evals-redaccion-fechada.md §1.3 y §1.4 de H20; FR-050 a FR-053); y
+// el SKILL.md de normativa lleva, en sus bloques de código text, la forma fija
+// de cada una de las tres líneas de una redacción fechada
+// (contracts/skill-boe-legislacion.md §1 de H20; FR-048). Desde H26.1, la 14,
+// la 15 y la 16 de normativa llevan sus lecturas, y desde H31.1 también la 17,
+// y ninguna otra eval lleva ninguna; sus bloques son consultas necesarias, que
+// el subtest grabado exige grabadas y servidas sin red como las demás
+// (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011;
+// contracts/lecturas-y-grabaciones.md §1 de H31.1). Desde H31, los controles de
+// contenido de las skills —la prosa, las órdenes para PowerShell, la línea sin
+// consulta, las formas de la redacción fechada, las de aviso y las de hallazgo—
+// leen la skill entera, su SKILL.md y sus referencias a mano, cada fichero por
+// separado y con su ruta en cada defecto; las formas fijas se siguen exigiendo
+// en SKILL.md, y cada línea ⚠ de una referencia a mano de normativa y de
+// plazos-y-territorio es una de su SKILL.md
 // (contracts/controles-de-contenido.md de H31; research D16 de H31; FR-016 a
 // FR-018); y cada orden de ejemplo concreta de kitlegal boe de la skill entera
 // de cada skill con evals sale con 0 con --offline sobre la caché de una sesión
@@ -2034,18 +2037,18 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			directorioDeEvals, strings.Join(malFormados, "\n"))
 
 		// La carpeta del juez se lee con las evals: normativa declara sus
-		// dos clases y legal-core no tiene juez (FR-020 y FR-021 de H24). La que
-		// decide lleva el umbral del ADR 0038, como mucho 3 marcadas de 108, y la
-		// que solo se publica, 0 (FR-020 y FR-022 de H26).
+		// dos clases y plazos-y-territorio no tiene juez (FR-020 y FR-021 de H24).
+		// La que decide lleva el umbral del ADR 0038, como mucho 3 marcadas de 108,
+		// y la que solo se publica, 0 (FR-020 y FR-022 de H26).
 		require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez", evalsDeNormativa)
 		assert.Equal(t, []ClaseDelJuez{
 			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.028},
 			{Nombre: "cuenta_su_proceso", Decide: false, Umbral: 0},
 		}, conjunto.Juez.Clases)
 
-		deLegalCore, err := LeerConjunto(evalsDeLegalCore)
+		dePlazosYTerritorio, err := LeerConjunto(evalsDePlazosYTerritorio)
 		require.NoError(t, err)
-		assert.Nil(t, deLegalCore.Juez, "%s no tiene juez", evalsDeLegalCore)
+		assert.Nil(t, dePlazosYTerritorio.Juez, "%s no tiene juez", evalsDePlazosYTerritorio)
 	})
 
 	t.Run("conjunto", func(t *testing.T) {
@@ -2056,46 +2059,46 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			evalsDeNormativa, presentarDefectos(deOtrasReglas))
 	})
 
-	t.Run("conjunto-legal-core", func(t *testing.T) {
+	t.Run("conjunto-plazos-y-territorio", func(t *testing.T) {
 		t.Parallel()
 
-		deLegalCore, err := LeerConjunto(evalsDeLegalCore)
+		dePlazosYTerritorio, err := LeerConjunto(evalsDePlazosYTerritorio)
 		require.NoError(t, err)
 
-		defectosDeLegalCore := ComprobarConjunto(deLegalCore.Evals, normasConocidasDe(normas), ReglasDeLegalCore())
-		assert.Empty(t, defectosDeLegalCore, "defectos del conjunto de %s:\n%s",
-			evalsDeLegalCore, presentarDefectos(defectosDeLegalCore))
+		defectosDePlazosYTerritorio := ComprobarConjunto(dePlazosYTerritorio.Evals, normasConocidasDe(normas), ReglasDePlazosYTerritorio())
+		assert.Empty(t, defectosDePlazosYTerritorio, "defectos del conjunto de %s:\n%s",
+			evalsDePlazosYTerritorio, presentarDefectos(defectosDePlazosYTerritorio))
 
-		// Las doce de legal-core, bien formadas (FR-050 de H9; ADR 0042; FR-017 y
-		// FR-018 de H26.1), y lo que leen del BOE sus sesiones, servido sin red por
-		// la unión de grabaciones (FR-052 de H9).
-		assert.Empty(t, deLegalCore.MalFormados, "cada fichero de %s es una eval bien formada", evalsDeLegalCore)
+		// Las doce de plazos-y-territorio, bien formadas (FR-050 de H9; ADR 0042;
+		// FR-017 y FR-018 de H26.1), y lo que leen del BOE sus sesiones, servido
+		// sin red por la unión de grabaciones (FR-052 de H9).
+		assert.Empty(t, dePlazosYTerritorio.MalFormados, "cada fichero de %s es una eval bien formada", evalsDePlazosYTerritorio)
 
-		ficheros := make([]string, 0, len(deLegalCore.Evals))
-		for _, eval := range deLegalCore.Evals {
+		ficheros := make([]string, 0, len(dePlazosYTerritorio.Evals))
+		for _, eval := range dePlazosYTerritorio.Evals {
 			ficheros = append(ficheros, eval.Fichero)
 		}
 
-		assert.Len(t, ficheros, evalsDeLegalCoreConLaDeVigencia, "%s tiene las doce evals de legal-core",
-			evalsDeLegalCore)
+		assert.Len(t, ficheros, evalsDePlazosYTerritorioConLaDeVigencia, "%s tiene las doce evals de plazos-y-territorio",
+			evalsDePlazosYTerritorio)
 
-		consultas := ConsultasNecesarias(deLegalCore.Evals)
-		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDeLegalCore)
+		consultas := ConsultasNecesarias(dePlazosYTerritorio.Evals)
+		require.NotEmpty(t, consultas, "las evals de %s leen algún bloque del BOE", evalsDePlazosYTerritorio)
 
 		// Desde H20, cada bloque con su lectura con --fecha 9999-12-31 (FR-053).
-		exigeLecturasFechadas(t, consultas, evalsDeLegalCore)
+		exigeLecturasFechadas(t, consultas, evalsDePlazosYTerritorio)
 
 		dirCache := t.TempDir()
 
 		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
 		require.NoError(t, err)
 		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
-			evalsDeLegalCore, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+			evalsDePlazosYTerritorio, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
 
 		comprobadas, err := ComprobarSinRed(dirCache, consultas)
 		require.NoError(t, err)
 		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
-			evalsDeLegalCore, presentarFaltas(comprobadas))
+			evalsDePlazosYTerritorio, presentarFaltas(comprobadas))
 	})
 
 	t.Run("conjunto-jurisprudencia", func(t *testing.T) {
@@ -2130,15 +2133,15 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		// Piden el cotejo las evals que activan la skill y esperan algún cita
 		// cotejar, lleve o no ROJ, y lo dicen sus comandos: en jurisprudencia, la
-		// 04, la 06, la 08 y la 09; en normativa y en legal-core, ninguna, y
-		// sus umbrales no llevan documento_sin_cotejar (FR-001, FR-007 y FR-063 de
-		// H23.1; SC-005).
+		// 04, la 06, la 08 y la 09; en normativa y en plazos-y-territorio, ninguna,
+		// y sus umbrales no llevan documento_sin_cotejar (FR-001, FR-007 y FR-063
+		// de H23.1; SC-005).
 		carpetas := []struct {
 			carpeta string
 			piden   []string
 		}{
 			{carpeta: evalsDeNormativa},
-			{carpeta: evalsDeLegalCore},
+			{carpeta: evalsDePlazosYTerritorio},
 			{
 				carpeta: evalsDeJurisprudencia,
 				piden: []string{
@@ -2347,7 +2350,7 @@ func probarLasLecturasDeLasEvalsDelRepositorio(t *testing.T) {
 				"17-ltaibg-plazo-por-materia.yaml": {{Norma: ltaibg, Bloque: "a24", Motivo: motivoDeLoQueSeNombra}},
 			},
 		},
-		{carpeta: evalsDeLegalCore, lecturas: map[string][]LecturaDeLaEval{}},
+		{carpeta: evalsDePlazosYTerritorio, lecturas: map[string][]LecturaDeLaEval{}},
 		{carpeta: evalsDeJurisprudencia, lecturas: map[string][]LecturaDeLaEval{}},
 	}
 
@@ -2382,7 +2385,7 @@ func probarLoQueLlevaALeer(t *testing.T) {
 	lecturas := loQueLlevaALeerElRepositorio(t)
 	require.NotEmpty(t, lecturas, "data/ lleva a leer algún bloque del BOE")
 
-	for _, carpeta := range []string{evalsDeNormativa, evalsDeLegalCore, evalsDeJurisprudencia} {
+	for _, carpeta := range []string{evalsDeNormativa, evalsDePlazosYTerritorio, evalsDeJurisprudencia} {
 		t.Run(filepath.Base(carpeta), func(t *testing.T) {
 			t.Parallel()
 
@@ -2419,7 +2422,7 @@ const (
 // linea-sin-consulta no pase en vacío para ninguna (FR-035 de H21).
 // jurisprudencia no está: no consulta el BOE y, sin herramienta ni binario,
 // lleva su propia línea (research.md D16 de H23).
-var skillsConLineaSinConsulta = []string{skillNormativa, "legal-core"}
+var skillsConLineaSinConsulta = []string{skillNormativa, "plazos-y-territorio"}
 
 // defectosDeLaLineaSinConsulta da los defectos de un SKILL.md respecto de la
 // línea de contracts/skills.md §3 de H21, o nil si no tiene ninguno: que ningún
@@ -3896,7 +3899,7 @@ func lineasDelError(err error) []string {
 // skillsConLineasDeAviso son las skills en que se aplica el control 7: las dos
 // cuyas formas fijas, las líneas ⚠, comprueban sin modelo sus evals (research
 // D16 de H31).
-var skillsConLineasDeAviso = []string{skillNormativa, "legal-core"}
+var skillsConLineasDeAviso = []string{skillNormativa, "plazos-y-territorio"}
 
 // inicioDeLineaDeAviso casa con la línea que, tras su sangría, un marcador de
 // lista (-, * o <n>.) con sus blancos y el énfasis (*, _ o `), cada uno si lo
@@ -4405,18 +4408,18 @@ func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
 // mutantesDeLasLineasDeAviso son los del control 7, uno por skill en que se
 // aplica, con una referencia a mano que lleva líneas ⚠ de SKILL.md, con otra
 // sangría, y variantes de ellas: en normativa, la de la redacción
-// modificada sin la tilde, el ejemplo del contrato; en legal-core, la del plazo
-// con un marcador de lista y énfasis, una forma con un número de lista, otra con
-// los énfasis de subrayado y de código y otra con el marcador * delante. Una
-// línea con la marca en medio no es una línea ⚠.
+// modificada sin la tilde, el ejemplo del contrato; en plazos-y-territorio, la
+// del plazo con un marcador de lista y énfasis, una forma con un número de
+// lista, otra con los énfasis de subrayado y de código y otra con el marcador *
+// delante. Una línea con la marca en medio no es una línea ⚠.
 func mutantesDeLasLineasDeAviso(t *testing.T) []mutanteDeUnControl {
 	t.Helper()
 
 	modificada := lineaDeAvisoDeLaSkill(t, skillNormativa, "⚠ REDACCIÓN MODIFICADA:")
 	malEscrita := strings.Replace(modificada, "REDACCIÓN", "REDACCION", 1)
 
-	plazo := lineaDeAvisoDeLaSkill(t, "legal-core", "⚠ PLAZO: <AAAA-MM-DD> — <tipo>")
-	festivos := lineaDeAvisoDeLaSkill(t, "legal-core", "⚠ FALTAN FESTIVOS LOCALES:")
+	plazo := lineaDeAvisoDeLaSkill(t, "plazos-y-territorio", "⚠ PLAZO: <AAAA-MM-DD> — <tipo>")
+	festivos := lineaDeAvisoDeLaSkill(t, "plazos-y-territorio", "⚠ FALTAN FESTIVOS LOCALES:")
 	conEnfasis := "- **⚠ PLAZO:**" + strings.TrimPrefix(plazo, "⚠ PLAZO:")
 	conNumero := "1. " + festivos
 	conSubrayado := "_" + festivos + "_"
@@ -4436,18 +4439,18 @@ func mutantesDeLasLineasDeAviso(t *testing.T) []mutanteDeUnControl {
 			exactos: true,
 		},
 		{
-			nombre: "lineas-de-aviso-mal-escritas-en-legal-core", control: controlDeLasLineasDeAviso,
-			skill: "legal-core",
+			nombre: "lineas-de-aviso-mal-escritas-en-plazos-y-territorio", control: controlDeLasLineasDeAviso,
+			skill: "plazos-y-territorio",
 			mutar: conLasReferencias(map[string]string{
 				referenciaAMano: "# Plazos\n\n- La línea `⚠ PLAZO:` va sola.\n" + conEnfasis + "\n" + conNumero + "\n" +
 					conSubrayado + "\n" + conCodigo + "\n   " + festivos + "\t\n" + conAsterisco + "\n",
 			}),
 			defectos: []string{
-				"legal-core: references/a_mano.md:4: la línea ⚠ no es ninguna de SKILL.md: «" + conEnfasis + "»",
-				"legal-core: references/a_mano.md:5: la línea ⚠ no es ninguna de SKILL.md: «" + conNumero + "»",
-				"legal-core: references/a_mano.md:6: la línea ⚠ no es ninguna de SKILL.md: «" + conSubrayado + "»",
-				"legal-core: references/a_mano.md:7: la línea ⚠ no es ninguna de SKILL.md: «" + conCodigo + "»",
-				"legal-core: references/a_mano.md:9: la línea ⚠ no es ninguna de SKILL.md: «" + conAsterisco + "»",
+				"plazos-y-territorio: references/a_mano.md:4: la línea ⚠ no es ninguna de SKILL.md: «" + conEnfasis + "»",
+				"plazos-y-territorio: references/a_mano.md:5: la línea ⚠ no es ninguna de SKILL.md: «" + conNumero + "»",
+				"plazos-y-territorio: references/a_mano.md:6: la línea ⚠ no es ninguna de SKILL.md: «" + conSubrayado + "»",
+				"plazos-y-territorio: references/a_mano.md:7: la línea ⚠ no es ninguna de SKILL.md: «" + conCodigo + "»",
+				"plazos-y-territorio: references/a_mano.md:9: la línea ⚠ no es ninguna de SKILL.md: «" + conAsterisco + "»",
 			},
 			exactos: true,
 		},

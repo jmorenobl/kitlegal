@@ -130,9 +130,10 @@ func TestRenderizarNormas(t *testing.T) {
 }
 
 // comienzoDeLasLeyesVertebrales es lo que abre toda referencia de leyes
-// vertebrales, hasta la fila de separación de su tabla (contrato de la skill
-// legal-core §2): la cabecera nombra data/normas.yaml, del que sale aunque no se
-// llame como ella, y los encabezados son los de la referencia de normas.
+// vertebrales, hasta la fila de separación de su tabla (contrato
+// skill-legal-core §2): la cabecera nombra data/normas.yaml, del que sale
+// aunque no se llame como ella, y los encabezados son los de la referencia de
+// normas.
 const comienzoDeLasLeyesVertebrales = "<!-- generado desde data/normas.yaml, no editar -->\n" +
 	"\n" +
 	"# Leyes vertebrales\n" +
@@ -150,8 +151,8 @@ func normasDePruebaConDosVertebrales() []skills.Norma {
 	return normas
 }
 
-// TestRenderizarLeyesVertebrales fija RenderizarLeyesVertebrales (contrato de la
-// skill legal-core §2 y §4; research.md D20; FR-065, FR-067): solo las normas
+// TestRenderizarLeyesVertebrales fija RenderizarLeyesVertebrales (contrato
+// skill-legal-core §2 y §4; research.md D20; FR-065, FR-067): solo las normas
 // marcadas vertebral, con la cabecera que nombra data/normas.yaml, su propio
 // título y los encabezados, el orden y los escapes de la referencia de normas; sin
 // ninguna marcada, la tabla vacía; y las normas que recibe no cambian.
@@ -238,12 +239,12 @@ func jerarquiaConEscapes() skills.Jerarquia {
 	}
 }
 
-// TestRenderizarJerarquia fija RenderizarJerarquia (contrato de la skill
-// legal-core §2 y §4; research.md D20; FR-066, FR-067): los bytes exactos de la
-// referencia, con la cabecera que nombra data/jerarquia.yaml, la tabla de niveles
-// con su boletín y sus tipos de norma, y la lista de reglas; los niveles y las
-// reglas van en el orden en que llegan, que es el que el esquema impone al
-// documento; y la jerarquía que recibe no cambia.
+// TestRenderizarJerarquia fija RenderizarJerarquia (contrato
+// skill-legal-core §2 y §4; research.md D20; FR-066, FR-067): los bytes exactos
+// de la referencia, con la cabecera que nombra data/jerarquia.yaml, la tabla de
+// niveles con su boletín y sus tipos de norma, y la lista de reglas; los
+// niveles y las reglas van en el orden en que llegan, que es el que el esquema
+// impone al documento; y la jerarquía que recibe no cambia.
 func TestRenderizarJerarquia(t *testing.T) {
 	t.Parallel()
 
@@ -368,13 +369,13 @@ func tiposDePrueba() []plazos.Tipo {
 	}
 }
 
-// TestRenderizarRecursosYPlazos fija RenderizarRecursosYPlazos (contrato de la
-// skill legal-core §4 de H9; FR-032): los bytes exactos de la referencia, con la
-// cabecera que nombra data/plazos.yaml; cada unidad de plazos.Unidades con su
-// nombre; los tipos que recibe no cambian; y references/recursos_y_plazos.md de
-// una skill que la declara sale de data/plazos.yaml con plazos.LeerTipos —una
-// fila por tipo y por unidad del genérico—, o el defecto del fichero que no se
-// lee.
+// TestRenderizarRecursosYPlazos fija RenderizarRecursosYPlazos (contrato
+// skill-legal-core §4 de H9; FR-032): los bytes exactos de la referencia, con
+// la cabecera que nombra data/plazos.yaml; cada unidad de plazos.Unidades con
+// su nombre; los tipos que recibe no cambian; y references/recursos_y_plazos.md
+// de una skill que la declara sale de data/plazos.yaml con plazos.LeerTipos
+// —una fila por tipo y por unidad del genérico—, o el defecto del fichero que
+// no se lee.
 func TestRenderizarRecursosYPlazos(t *testing.T) {
 	t.Parallel()
 
@@ -492,12 +493,12 @@ const referenciaDeLaCoberturaDePrueba = "<!-- generado desde data/cobertura.yaml
 	"| procedimiento con una barra \\| y un salto de línea | DA 1ª.2.b (BOE-A-2015-10565, bloque daprimera) | — |\n" +
 	"| reclamaciones económico-administrativas | art. 112.4 (BOE-A-2015-10565, bloque a112) | — |\n"
 
-// TestRenderizarCobertura fija RenderizarCobertura (contrato de la skill
-// legal-core §4 de H9; FR-031, FR-032): los bytes exactos de la referencia, con
-// la cabecera que nombra data/cobertura.yaml; la cobertura que recibe no cambia; y
-// references/cobertura_por_materia.md de una skill que la declara sale de
-// data/cobertura.yaml con skills.LeerCobertura —una fila por entrada—, o los
-// defectos del fichero que no valida.
+// TestRenderizarCobertura fija RenderizarCobertura (contrato
+// skill-legal-core §4 de H9; FR-031, FR-032): los bytes exactos de la
+// referencia, con la cabecera que nombra data/cobertura.yaml; la cobertura que
+// recibe no cambia; y references/cobertura_por_materia.md de una skill que la
+// declara sale de data/cobertura.yaml con skills.LeerCobertura —una fila por
+// entrada—, o los defectos del fichero que no valida.
 func TestRenderizarCobertura(t *testing.T) {
 	t.Parallel()
 

@@ -78,12 +78,12 @@ cmp stdout $WORK/antes.txt
 mkdir $WORK/enlace-roto/.agents/skills
 cd $WORK/enlace-roto
 symlink .agents/skills/normativa -> ../../no-existe
-symlink .agents/skills/legal-core -> legal-core
+symlink .agents/skills/plazos-y-territorio -> plazos-y-territorio
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/legal-core\\nenlace roto: \.agents/skills/normativa"\}\}\n\z'
-stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/legal-core\nenlace roto: \.agents/skills/normativa$'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/normativa\\nenlace roto: \.agents/skills/plazos-y-territorio"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/normativa\nenlace roto: \.agents/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -97,8 +97,8 @@ cd $WORK/host-carpeta
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.claude/skills/legal-core"\}\}\n\z'
-stderr '^carpeta ajena: \.claude/skills/legal-core$'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.claude/skills/plazos-y-territorio"\}\}\n\z'
+stderr '^carpeta ajena: \.claude/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -106,36 +106,36 @@ cd $WORK/host-fichero
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.claude/skills/legal-core"\}\}\n\z'
-stderr '^fichero: \.claude/skills/legal-core$'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.claude/skills/plazos-y-territorio"\}\}\n\z'
+stderr '^fichero: \.claude/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
 mkdir $WORK/host-enlace-otro/.claude/skills
 cd $WORK/host-enlace-otro
-symlink .claude/skills/legal-core -> ../../otro-sitio
+symlink .claude/skills/plazos-y-territorio -> ../../otro-sitio
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.claude/skills/legal-core"\}\}\n\z'
-stderr '^enlace a otro sitio: \.claude/skills/legal-core$'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace a otro sitio: \.claude/skills/plazos-y-territorio"\}\}\n\z'
+stderr '^enlace a otro sitio: \.claude/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
 mkdir $WORK/host-enlace-roto/.claude/skills
 cd $WORK/host-enlace-roto
-symlink .claude/skills/legal-core -> ../../no-existe
+symlink .claude/skills/plazos-y-territorio -> ../../no-existe
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.claude/skills/legal-core"\}\}\n\z'
-stderr '^enlace roto: \.claude/skills/legal-core$'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.claude/skills/plazos-y-territorio"\}\}\n\z'
+stderr '^enlace roto: \.claude/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
 # --- Todos a la vez: se nombran todos, por ruta (FR-040, FR-042) ---
 #
-# Un conflicto en cada entrada de normativa y de legal-core, en el
+# Un conflicto en cada entrada de normativa y de plazos-y-territorio, en el
 # directorio neutro y en el host, y ninguno en las de jurisprudencia: cuatro,
 # uno por entrada, ordenados por ruta byte a byte —que aquí no es ni el orden de
 # las clases ni el de las skills— y nada escrito.
@@ -143,25 +143,25 @@ mkdir $WORK/varios/.agents/skills
 mkdir $WORK/varios/.claude/skills
 cd $WORK/varios
 symlink .agents/skills/normativa -> ../../no-existe
-symlink .claude/skills/legal-core -> ../../otro-sitio
+symlink .claude/skills/plazos-y-territorio -> ../../otro-sitio
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nfichero: \.agents/skills/legal-core\\nenlace roto: \.agents/skills/normativa\\nenlace a otro sitio: \.claude/skills/legal-core\\ncarpeta ajena: \.claude/skills/normativa"\}\}\n\z'
-stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nfichero: \.agents/skills/legal-core\nenlace roto: \.agents/skills/normativa\nenlace a otro sitio: \.claude/skills/legal-core\ncarpeta ajena: \.claude/skills/normativa$'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\nenlace roto: \.agents/skills/normativa\\nfichero: \.agents/skills/plazos-y-territorio\\ncarpeta ajena: \.claude/skills/normativa\\nenlace a otro sitio: \.claude/skills/plazos-y-territorio"\}\}\n\z'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\nenlace roto: \.agents/skills/normativa\nfichero: \.agents/skills/plazos-y-territorio\ncarpeta ajena: \.claude/skills/normativa\nenlace a otro sitio: \.claude/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
 # --- Atomicidad entre skills: un conflicto en la última (FR-043, SC-008) ---
 #
-# legal-core es una carpeta ajena y normativa y jurisprudencia no tienen
-# ninguno: la orden sale con 7 y ninguna de las dos se instala; el disco queda
-# intacto.
+# plazos-y-territorio es una carpeta ajena y normativa y jurisprudencia no
+# tienen ninguno: la orden sale con 7 y ninguna de las dos se instala; el disco
+# queda intacto.
 cd $WORK/ultima
 arbol .
 cp stdout $WORK/antes.txt
 exec sh -c 'kitlegal skills install --json; test $? -eq 7'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/legal-core"\}\}\n\z'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"conflicto","mensaje":"skills install: nada se ha creado ni cambiado; conflictos:\\ncarpeta ajena: \.agents/skills/plazos-y-territorio"\}\}\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 ! exists .agents/skills/normativa
@@ -172,7 +172,7 @@ cmp stdout $WORK/antes.txt
 # estándar.
 exec sh -c 'kitlegal skills install; test $? -eq 7'
 ! stdout .
-stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/legal-core$'
+stderr '^skills install: nada se ha creado ni cambiado; conflictos:\ncarpeta ajena: \.agents/skills/plazos-y-territorio$'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -180,19 +180,19 @@ cmp stdout $WORK/antes.txt
 #
 # .claude/skills/normativa ya es ../../.agents/skills/normativa y
 # el manifiesto no existe: no es conflicto; queda tal cual, declarado, y la
-# salida lo nombra con su modo; jurisprudencia y legal-core se enlazan como
-# siempre.
+# salida lo nombra con su modo; jurisprudencia y plazos-y-territorio se enlazan
+# como siempre.
 mkdir $WORK/adopta/.claude/skills
 cd $WORK/adopta
 symlink .claude/skills/normativa -> ../../.agents/skills/normativa
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/legal-core","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/normativa","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 exec readlink .claude/skills/normativa
 stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
 cmp .claude/skills/normativa/SKILL.md $KITLEGAL_SKILLS/normativa/SKILL.md
 grep '"ruta": *"\.claude/skills/jurisprudencia"' .agents/skills/kitlegal.json
-grep '"ruta": *"\.claude/skills/legal-core"' .agents/skills/kitlegal.json
+grep '"ruta": *"\.claude/skills/plazos-y-territorio"' .agents/skills/kitlegal.json
 grep '"ruta": *"\.claude/skills/normativa"' .agents/skills/kitlegal.json
 
 -- carpeta-ajena/.agents/skills/normativa/mio.md --
@@ -201,17 +201,17 @@ Una carpeta que no instaló kitlegal.
 Un fichero con el nombre de una skill.
 -- enlace-otro/otro-sitio/mio.md --
 Lo que hay al otro lado del enlace.
--- host-carpeta/.claude/skills/legal-core/mio.md --
+-- host-carpeta/.claude/skills/plazos-y-territorio/mio.md --
 Una carpeta que no instaló kitlegal.
--- host-fichero/.claude/skills/legal-core --
+-- host-fichero/.claude/skills/plazos-y-territorio --
 Un fichero con el nombre de una skill.
 -- host-enlace-otro/otro-sitio/mio.md --
 Lo que hay al otro lado del enlace.
--- varios/.agents/skills/legal-core --
+-- varios/.agents/skills/plazos-y-territorio --
 Un fichero con el nombre de una skill.
 -- varios/.claude/skills/normativa/mio.md --
 Una carpeta que no instaló kitlegal.
 -- varios/otro-sitio/mio.md --
 Lo que hay al otro lado del enlace.
--- ultima/.agents/skills/legal-core/mio.md --
+-- ultima/.agents/skills/plazos-y-territorio/mio.md --
 Una carpeta que no instaló kitlegal.

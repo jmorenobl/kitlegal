@@ -43,7 +43,7 @@ const transcriptTerminado = `{"type":"system","subtype":"init","model":"` + mode
 // un enlace a otra, como las deja make install.
 const (
 	skillEnCarpeta = "normativa"
-	skillEnlazada  = "legal-core"
+	skillEnlazada  = "plazos-y-territorio"
 )
 
 // TestTopeDeLaSesion fija el tope de la sesión, en Go y sin timeout

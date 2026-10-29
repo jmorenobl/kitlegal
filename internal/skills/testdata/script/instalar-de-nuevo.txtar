@@ -17,7 +17,7 @@ exec make -C $WORK/repo install
 # persona (ADR 0026): una línea por skill con su estado, las dos sin cambios, y
 # la despedida que dice que no se ha cambiado nada.
 stdout '^  normativa +sin cambios$'
-stdout '^  legal-core +sin cambios$'
+stdout '^  plazos-y-territorio +sin cambios$'
 ! stdout '^  \S+ +(?:instalada|actualizada)$'
 stdout '^Ya estaban instaladas y al día: no se ha cambiado nada\.$'
 
@@ -25,5 +25,5 @@ cmp $HOME/.agents/skills/kitlegal.json manifiesto-de-la-primera.json
 
 exec readlink $HOME/.claude/skills/normativa
 stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
-exec readlink $HOME/.claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink $HOME/.claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'

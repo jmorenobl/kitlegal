@@ -126,13 +126,13 @@ cmp stdout $WORK/antes.txt
 # enlace .claude.
 cd $WORK/claude-fichero
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 cmp .claude $WORK/claude-fichero-original
 ! grep '"hosts"' .agents/skills/kitlegal.json
 
 cd $WORK/claude-enlace
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 arbol real-claude
 ! stdout .
 exec readlink .claude
@@ -212,7 +212,7 @@ stdout '"data":\{"clase":"conflicto","mensaje":"skills list: manifiesto ilegible
 # legible: la instalación termina bien.
 cd $WORK/legible
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 
 -- agents-fichero/.agents --
 No soy un directorio.
@@ -258,9 +258,9 @@ esto no es JSON
 -- ilegible-ruta/.agents/skills/kitlegal.json --
 {
   "skills": {
-    "legal-core": {
+    "plazos-y-territorio": {
       "ficheros": {
-        "legal-core/../SKILL.md": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        "plazos-y-territorio/../SKILL.md": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
       },
       "version": "dev"
     }
@@ -270,9 +270,9 @@ esto no es JSON
 -- ilegible-huella/.agents/skills/kitlegal.json --
 {
   "skills": {
-    "legal-core": {
+    "plazos-y-territorio": {
       "ficheros": {
-        "legal-core/SKILL.md": "sha256:ABCDEF"
+        "plazos-y-territorio/SKILL.md": "sha256:ABCDEF"
       },
       "version": "dev"
     }

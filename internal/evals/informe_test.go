@@ -1550,11 +1550,11 @@ const (
 	principioDelProgramaDeRecuentos = `jq -r "$jq_umbral"'` + "\n"
 	finalDelProgramaDeRecuentos     = `' "$1"` + "\n"
 
-	// skillDeLegalCore es la skill que no tiene juez ni objetivo de duración, cuyas
-	// evals del repositorio son evalsDeLegalCore: hasta H9 no tenía umbrales, y
-	// desde H9 los de sus respuestas salen de sus evals de plazo y de cobertura
-	// (contracts/evals-legal-core.md §3 de H9).
-	skillDeLegalCore = "legal-core"
+	// skillDePlazosYTerritorio es la skill que no tiene juez ni objetivo de
+	// duración, cuyas evals del repositorio son evalsDePlazosYTerritorio: hasta
+	// H9 no tenía umbrales, y desde H9 los de sus respuestas salen de sus evals
+	// de plazo y de cobertura (contracts/evals-legal-core.md §3 de H9).
+	skillDePlazosYTerritorio = "plazos-y-territorio"
 )
 
 // Las líneas del programa jq de seccion_evals y del de recuentos_y_umbrales de
@@ -1607,10 +1607,10 @@ var (
 //     ejecutarlo—, ninguna pareja de fila y modelo se repite en tasas: cada serie
 //     de cada modo tiene su celda, con su ✗ la que no pasa, y la fila de la eval
 //     informativa conserva su marca;
-//   - y legal-core, con las evals del repositorio, sin juez, y el objetivo de la
-//     definición del job, que es 0, publica las series de sus dos modos y de su
-//     eval sin binario ni servidor y, desde H9, los umbrales de sus
-//     respuestas —ocho desde el ADR 0041—, sin ninguno de la duración.
+//   - y plazos-y-territorio, con las evals del repositorio, sin juez, y el
+//     objetivo de la definición del job, que es 0, publica las series de sus
+//     dos modos y de su eval sin binario ni servidor y, desde H9, los umbrales
+//     de sus respuestas —ocho desde el ADR 0041—, sin ninguno de la duración.
 func TestInformeEnDosModos(t *testing.T) {
 	t.Parallel()
 
@@ -1705,7 +1705,7 @@ func TestInformeEnDosModos(t *testing.T) {
 		assert.Equal(t, "1/3 ✗", tabla.celdas[celdaDelInformeFinal{fila: ficheroSintetico(4), modelo: modeloSonnet55}])
 	})
 
-	t.Run("legal-core", func(t *testing.T) {
+	t.Run("plazos-y-territorio", func(t *testing.T) {
 		t.Parallel()
 		exigirElInformeDeLaSkillSinJuez(t)
 	})
@@ -1922,12 +1922,12 @@ const (
 //
 //   - como en el cierre de H26, con los trece umbrales que llevaban entonces
 //     normativa y jurisprudencia —antes de documento_sin_cotejar, que
-//     llega en H23.1—, nueve que deciden y se cumplen, y legal-core sin ninguno:
-//     la sección 1 no cuenta como sin cumplir los que solo se publican, sino
-//     aparte, con los que pasan de su umbral —en normativa, el recuento de
-//     afirma_lo_no_leido del modo herramienta, 2 de 54, y los dos de
-//     cuenta_su_proceso—; y en la tabla de la sección 3 ninguno de ellos lleva ✗,
-//     sino «dentro» o «por encima»;
+//     llega en H23.1—, nueve que deciden y se cumplen, y plazos-y-territorio
+//     sin ninguno: la sección 1 no cuenta como sin cumplir los que solo se
+//     publican, sino aparte, con los que pasan de su umbral —en normativa, el
+//     recuento de afirma_lo_no_leido del modo herramienta, 2 de 54, y los dos
+//     de cuenta_su_proceso—; y en la tabla de la sección 3 ninguno de ellos
+//     lleva ✗, sino «dentro» o «por encima»;
 //   - y con el umbral conjunto de afirma_lo_no_leido de normativa sin
 //     cumplir, que decide: la sección 1 lo cuenta como sin cumplir, en negrita, y
 //     la tabla le pone ✗ **NO**.
@@ -1950,12 +1950,12 @@ func TestInformeFinalDeLosUmbrales(t *testing.T) {
 		}
 
 		leido := informeFinalConLosDelJob(t,
-			append(conJuez, informeDelJobConUmbrales(skillDeLegalCore, VeredictoAprobado, nil))...)
+			append(conJuez, informeDelJobConUmbrales(skillDePlazosYTerritorio, VeredictoAprobado, nil))...)
 
 		assert.Equal(t,
 			"jurisprudencia: 13 umbrales, los 9 que deciden se cumplen y 4 solo se publican, todos dentro de su umbral; "+
-				skillDeLegalCore+": sin umbrales; "+
-				"normativa: 13 umbrales, los 9 que deciden se cumplen"+publicadosDeNormativa,
+				"normativa: 13 umbrales, los 9 que deciden se cumplen"+publicadosDeNormativa+"; "+
+				skillDePlazosYTerritorio+": sin umbrales",
 			leido.resumen)
 
 		assert.Equal(t, cumpleDeNormativa(nil), leido.cumple["normativa"])
@@ -2210,12 +2210,12 @@ func leerElInformeFinal(t *testing.T, informe string) informeFinalLeido {
 	return leido
 }
 
-// exigirElInformeDeLaSkillSinJuez escribe el informe de legal-core con sus evals
-// del repositorio, el plan del job en sus dos modos y el objetivo de duración
-// que le da la definición del job, sin ninguna sesión, y exige que la skill no
-// tenga juez ni objetivo (FR-045 de H21; FR-037 de H24) y que sus umbrales sean,
-// desde H9, los de sus respuestas, sobre ninguna, también con las
-// duraciones de sus tandas: de cada modo, sin_activar, plazo_sin_fecha,
+// exigirElInformeDeLaSkillSinJuez escribe el informe de plazos-y-territorio con
+// sus evals del repositorio, el plan del job en sus dos modos y el objetivo de
+// duración que le da la definición del job, sin ninguna sesión, y exige que la
+// skill no tenga juez ni objetivo (FR-045 de H21; FR-037 de H24) y que sus
+// umbrales sean, desde H9, los de sus respuestas, sobre ninguna, también con
+// las duraciones de sus tandas: de cada modo, sin_activar, plazo_sin_fecha,
 // cobertura_sin_declarar y, desde el ADR 0041, redaccion_sin_fechar, sin ninguno
 // de la duración
 // (contracts/evals-legal-core.md §3 de H9; FR-056 de H9, que sustituye a FR 007
@@ -2234,20 +2234,20 @@ func exigirElInformeDeLaSkillSinJuez(t *testing.T) {
 	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
 
-	ajustes, esta := delJob.PorSkill[skillDeLegalCore]
-	require.True(t, esta, "la definición del job tiene los ajustes de %s", skillDeLegalCore)
-	require.Zero(t, ajustes.ObjetivoDeDuracion, "%s no tiene objetivo de duración", skillDeLegalCore)
+	ajustes, esta := delJob.PorSkill[skillDePlazosYTerritorio]
+	require.True(t, esta, "la definición del job tiene los ajustes de %s", skillDePlazosYTerritorio)
+	require.Zero(t, ajustes.ObjetivoDeDuracion, "%s no tiene objetivo de duración", skillDePlazosYTerritorio)
 
-	conjunto, err := LeerConjunto(evalsDeLegalCore)
+	conjunto, err := LeerConjunto(evalsDePlazosYTerritorio)
 	require.NoError(t, err)
 	require.Empty(t, conjunto.MalFormados)
-	require.Nil(t, conjunto.Juez, "%s no tiene juez", skillDeLegalCore)
+	require.Nil(t, conjunto.Juez, "%s no tiene juez", skillDePlazosYTerritorio)
 
 	destino := t.TempDir()
 
 	informe, err := EscribirInforme(InformeAEscribir{
-		Skill:                 skillDeLegalCore,
-		Evals:                 evalsDeLegalCore,
+		Skill:                 skillDePlazosYTerritorio,
+		Evals:                 evalsDePlazosYTerritorio,
 		Sesiones:              t.TempDir(),
 		Destino:               destino,
 		ModeloQueDecide:       modeloSonnet55,
@@ -2265,8 +2265,8 @@ func exigirElInformeDeLaSkillSinJuez(t *testing.T) {
 
 	leido := leerElInformeDeLaSkill(t, destino, informe)
 
-	exigirUmbrales(t, leido, umbralesDeLegalCoreSobre(totalesDeLegalCore{}, nil))
-	assert.Nil(t, leido.informe.Juez, "%s no tiene juez en su informe", skillDeLegalCore)
+	exigirUmbrales(t, leido, umbralesDePlazosYTerritorioSobre(totalesDePlazosYTerritorio{}, nil))
+	assert.Nil(t, leido.informe.Juez, "%s no tiene juez en su informe", skillDePlazosYTerritorio)
 	assert.Equal(t, "null", compacto(t, leido.crudo.Juez), "sin juez, juez es null")
 
 	type serie struct {
@@ -2299,8 +2299,8 @@ func exigirElInformeDeLaSkillSinJuez(t *testing.T) {
 	}
 
 	esperadas = append(esperadas,
-		serie{eval: ficheroSinBinarioDeLegalCore, modelo: modeloSonnet55, decide: true},
-		serie{eval: ficheroSinBinarioDeLegalCore, modelo: modeloHaiku45})
+		serie{eval: ficheroSinBinarioDePlazosYTerritorio, modelo: modeloSonnet55, decide: true},
+		serie{eval: ficheroSinBinarioDePlazosYTerritorio, modelo: modeloHaiku45})
 
 	series := make([]serie, 0, len(informe.Tasas))
 	for _, tasa := range informe.Tasas {
@@ -6560,52 +6560,53 @@ func leerElInformeDeLaSkill(t *testing.T, destino string, informe Informe) infor
 	return leido
 }
 
-// Lo que TestUmbralesDeLegalCore sabe de las respuestas del modelo que decide
-// en un modo con las evals de legal-core del repositorio y el plan del job, tres
-// veces cada eval (contracts/evals-legal-core.md §3 de H9; FR-053, FR-054 y
-// FR-056 de H9): las de sus diez evals de modo que activan la skill, el total
-// de sin_activar; las de sus cuatro evals de plazo, el de plazo_sin_fecha; las
-// de sus tres evals de cobertura, el de cobertura_sin_declarar; desde el ADR
-// 0042, las de su eval de vigencia, el de vigencia_sin_declarar; y, desde el ADR
-// 0041, las de sus tres evals de plazo con redacción fechada, el de
-// redaccion_sin_fechar. Desde H26.1, la 11 es de plazo sin redacción fechada y
-// la 12, de cobertura (FR-017, FR-018 de H26.1), y las sesiones de la 11 de cada
-// modelo en un modo, el total de lectura_sin_intentar de ese modelo y ese modo
-// (research D11 de H26.1; FR-033); y las de cada modelo en un modo de sus once
-// evals de modo, también la de no activación, el de fuera_de_lo_grabado de ese
-// modelo y ese modo (contracts/juicio-e-informe.md §4 de H26.1; FR-021).
+// Lo que TestUmbralesDePlazosYTerritorio sabe de las respuestas del modelo que
+// decide en un modo con las evals de plazos-y-territorio del repositorio y el
+// plan del job, tres veces cada eval (contracts/evals-legal-core.md §3 de H9;
+// FR-053, FR-054 y FR-056 de H9): las de sus diez evals de modo que activan la
+// skill, el total de sin_activar; las de sus cuatro evals de plazo, el de
+// plazo_sin_fecha; las de sus tres evals de cobertura, el de
+// cobertura_sin_declarar; desde el ADR 0042, las de su eval de vigencia, el de
+// vigencia_sin_declarar; y, desde el ADR 0041, las de sus tres evals de plazo
+// con redacción fechada, el de redaccion_sin_fechar. Desde H26.1, la 11 es de
+// plazo sin redacción fechada y la 12, de cobertura (FR-017, FR-018 de H26.1),
+// y las sesiones de la 11 de cada modelo en un modo, el total de
+// lectura_sin_intentar de ese modelo y ese modo (research D11 de H26.1;
+// FR-033); y las de cada modelo en un modo de sus once evals de modo, también
+// la de no activación, el de fuera_de_lo_grabado de ese modelo y ese modo
+// (contracts/juicio-e-informe.md §4 de H26.1; FR-021).
 const (
-	respuestasDeLegalCorePorModo          = 30
+	respuestasDePlazosYTerritorioPorModo  = 30
 	respuestasDePlazoPorModo              = 12
 	respuestasDeCoberturaPorModo          = 9
 	respuestasDeVigenciaPorModo           = 3
 	respuestasConLaRedaccionPorModo       = 9
 	sesionesDeLaLecturaSinServirPorModelo = repeticionesConUmbrales
-	sesionesDeLegalCorePorModelo          = 33
+	sesionesDePlazosYTerritorioPorModelo  = 33
 )
 
-// Las evals de legal-core del repositorio por su fichero, salvo la sin binario
-// ni servidor, que es ficheroSinBinarioDeLegalCore.
+// Las evals de plazos-y-territorio del repositorio por su fichero, salvo la sin
+// binario ni servidor, que es ficheroSinBinarioDePlazosYTerritorio.
 const (
-	evalDeTerritorio           = "01-territorio-municipio-cubierto.yaml"
-	evalDeTerritorioNoCubierto = "02-territorio-municipio-no-cubierto.yaml"
-	evalDeLaRecetaDeLegalCore  = "03-no-activa-receta-de-cocina.yaml"
-	evalDePlazoEnLeganes       = "05-plazo-reposicion-leganes.yaml"
-	evalDePlazoEnTordesillas   = "06-plazo-reposicion-tordesillas.yaml"
-	evalDeLaLiquidacion        = "07-cobertura-liquidacion-tributaria.yaml"
-	evalDeLaMulta              = "08-cobertura-multa-de-trafico.yaml"
-	evalDelContencioso         = "09-plazo-contencioso-agosto.yaml"
-	evalDeLaVigencia           = "10-plazo-reposicion-anterior-a-la-lpac.yaml"
+	evalDeTerritorio                  = "01-territorio-municipio-cubierto.yaml"
+	evalDeTerritorioNoCubierto        = "02-territorio-municipio-no-cubierto.yaml"
+	evalDeLaRecetaDePlazosYTerritorio = "03-no-activa-receta-de-cocina.yaml"
+	evalDePlazoEnLeganes              = "05-plazo-reposicion-leganes.yaml"
+	evalDePlazoEnTordesillas          = "06-plazo-reposicion-tordesillas.yaml"
+	evalDeLaLiquidacion               = "07-cobertura-liquidacion-tributaria.yaml"
+	evalDeLaMulta                     = "08-cobertura-multa-de-trafico.yaml"
+	evalDelContencioso                = "09-plazo-contencioso-agosto.yaml"
+	evalDeLaVigencia                  = "10-plazo-reposicion-anterior-a-la-lpac.yaml"
 )
 
-// Las piezas de las respuestas de las sesiones modelo de legal-core que no
-// están ya en plazos_test.go, en su forma fija (contracts/evals-legal-core.md §2
-// de H9): las citas de los dos artículos de la LJCA que lee la eval del
-// contencioso; la línea del plazo de la eval de Tordesillas y la del
-// contencioso, cada una con su fecha esperada; la línea de la redacción a fecha
-// de cada precepto leído el día de la notificación, con la fecha de vigencia de
-// su redacción ese día (ADR 0041); y la declaración de no cubierto de la eval de
-// la multa, con la norma que espera.
+// Las piezas de las respuestas de las sesiones modelo de plazos-y-territorio
+// que no están ya en plazos_test.go, en su forma fija
+// (contracts/evals-legal-core.md §2 de H9): las citas de los dos artículos de
+// la LJCA que lee la eval del contencioso; la línea del plazo de la eval de
+// Tordesillas y la del contencioso, cada una con su fecha esperada; la línea de
+// la redacción a fecha de cada precepto leído el día de la notificación, con la
+// fecha de vigencia de su redacción ese día (ADR 0041); y la declaración de no
+// cubierto de la eval de la multa, con la norma que espera.
 const (
 	citaDel46  = "[Ley 29/1998, art. 46, BOE-A-1998-16718, bloque a46]"
 	citaDel128 = "[Ley 29/1998, art. 128, BOE-A-1998-16718, bloque a128]"
@@ -6632,35 +6633,38 @@ const (
 		"apartado 30.4, desde el 2016-10-02."
 )
 
-// medidasDeLegalCore son las medidas de los umbrales de un modo del informe de
-// legal-core: las respuestas del modelo que decide que no activaron la skill,
-// las de las evals de plazo sin la línea del plazo con la fecha esperada, las
-// de las evals de cobertura sin la declaración con la norma esperada o con una
-// línea del plazo y, desde el ADR 0041, las de las evals de plazo sin la lectura
-// en su fecha o sin la línea de la redacción a fecha y, desde el ADR 0042, las
-// de la eval de vigencia sin la declaración del plazo sin calcular o con una
-// línea del plazo. sinMedir son las sesiones del modo que quedaron sin medir,
-// todas de una eval de plazo con redacción fechada: no están en el total de
-// sin_activar, ni en el de plazo_sin_fecha, ni en el de redaccion_sin_fechar.
-type medidasDeLegalCore struct {
+// medidasDePlazosYTerritorio son las medidas de los umbrales de un modo del
+// informe de plazos-y-territorio: las respuestas del modelo que decide que no
+// activaron la skill, las de las evals de plazo sin la línea del plazo con la
+// fecha esperada, las de las evals de cobertura sin la declaración con la norma
+// esperada o con una línea del plazo y, desde el ADR 0041, las de las evals de
+// plazo sin la lectura en su fecha o sin la línea de la redacción a fecha y,
+// desde el ADR 0042, las de la eval de vigencia sin la declaración del plazo
+// sin calcular o con una línea del plazo. sinMedir son las sesiones del modo
+// que quedaron sin medir, todas de una eval de plazo con redacción fechada: no
+// están en el total de sin_activar, ni en el de plazo_sin_fecha, ni en el de
+// redaccion_sin_fechar.
+type medidasDePlazosYTerritorio struct {
 	sinActivar, sinFecha, sinDeclarar, sinFechar, sinDeclararLaVigencia int
 	sinMedir                                                            int
 }
 
-// totalesDeLegalCore son los totales de los umbrales de un modo del informe de
-// legal-core antes de quitarles las sesiones sin medir: las respuestas del
-// modelo que decide en las evals de modo que activan la skill, en las de plazo,
-// en las de cobertura, en las de vigencia y en las de plazo con redacción
-// fechada; y, desde H26.1, las sesiones de cada modelo de las evals con un
-// comando de bloque sin servir y las de cada modelo de todas las evals de modo.
-type totalesDeLegalCore struct {
+// totalesDePlazosYTerritorio son los totales de los umbrales de un modo del
+// informe de plazos-y-territorio antes de quitarles las sesiones sin medir: las
+// respuestas del modelo que decide en las evals de modo que activan la skill,
+// en las de plazo, en las de cobertura, en las de vigencia y en las de plazo
+// con redacción fechada; y, desde H26.1, las sesiones de cada modelo de las
+// evals con un comando de bloque sin servir y las de cada modelo de todas las
+// evals de modo.
+type totalesDePlazosYTerritorio struct {
 	respuestas, dePlazo, deCobertura, deVigencia, conLaRedaccion int
 	deLaLecturaSinServir, sesiones                               int
 }
 
-// casoDeUmbralesDeLegalCore es un caso de TestUmbralesDeLegalCore: lo que cambia
-// en las sesiones del plan del job y lo que el informe tiene que decir.
-type casoDeUmbralesDeLegalCore struct {
+// casoDeUmbralesDePlazosYTerritorio es un caso de
+// TestUmbralesDePlazosYTerritorio: lo que cambia en las sesiones del plan del
+// job y lo que el informe tiene que decir.
+type casoDeUmbralesDePlazosYTerritorio struct {
 	nombre string
 
 	// respuestas son las que se dan a algunas sesiones, por su nombre, en lugar
@@ -6673,7 +6677,7 @@ type casoDeUmbralesDeLegalCore struct {
 
 	// porModo son las medidas de los umbrales de cada modo, 0 en lo que no se
 	// da; y motivos, los de la raíz.
-	porModo map[Modo]medidasDeLegalCore
+	porModo map[Modo]medidasDePlazosYTerritorio
 	motivos []string
 
 	// noPasan son los motivos de las sesiones que no cumplen lo esperado, por su
@@ -6681,12 +6685,13 @@ type casoDeUmbralesDeLegalCore struct {
 	noPasan map[string][]string
 }
 
-// TestUmbralesDeLegalCore fija los umbrales del informe de legal-core, una skill
-// sin juez ni objetivo de duración con evals de plazo y de cobertura
-// (contracts/evals-legal-core.md §2 y §3 de H9; data-model §3 de H9; research
-// D20 de H9; FR-053 a FR-055, FR-057, FR-087, FR-088; SC-001, SC-012; US6.1 y
-// US6.2), con las evals del repositorio y las sesiones sintéticas de
-// armarSesionesDeLegalCore, las del plan del job, que pasan todas:
+// TestUmbralesDePlazosYTerritorio fija los umbrales del informe de
+// plazos-y-territorio, una skill sin juez ni objetivo de duración con evals de
+// plazo y de cobertura (contracts/evals-legal-core.md §2 y §3 de H9; data-model
+// §3 de H9; research D20 de H9; FR-053 a FR-055, FR-057, FR-087, FR-088;
+// SC-001, SC-012; US6.1 y US6.2), con las evals del repositorio y las sesiones
+// sintéticas de armarSesionesDePlazosYTerritorio, las del plan del job, que
+// pasan todas:
 //
 //   - umbrales son exactamente dieciocho, decidiendo doce: de cada modo, el del
 //     modo orden delante, sin_activar, sobre las 30 respuestas del modelo que
@@ -6727,14 +6732,14 @@ type casoDeUmbralesDeLegalCore struct {
 //     ninguna medida, y da solo el motivo de la ejecución;
 //   - las de Haiku, el modelo informativo, no entran en ninguno;
 //   - y sin_activar decide: una sesión sin activar da su fallo.
-func TestUmbralesDeLegalCore(t *testing.T) {
+func TestUmbralesDePlazosYTerritorio(t *testing.T) {
 	t.Parallel()
 
-	for _, caso := range casosDeLosUmbralesDeLegalCore() {
+	for _, caso := range casosDeLosUmbralesDePlazosYTerritorio() {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			exigirLosUmbralesDeLegalCore(t, caso)
+			exigirLosUmbralesDePlazosYTerritorio(t, caso)
 		})
 	}
 
@@ -6758,8 +6763,9 @@ func TestUmbralesDeLegalCore(t *testing.T) {
 	})
 }
 
-// casosDeLosUmbralesDeLegalCore son los de TestUmbralesDeLegalCore.
-func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
+// casosDeLosUmbralesDePlazosYTerritorio son los de
+// TestUmbralesDePlazosYTerritorio.
+func casosDeLosUmbralesDePlazosYTerritorio() []casoDeUmbralesDePlazosYTerritorio {
 	const (
 		// sinLaLinea es una respuesta de la eval de Leganés con su fecha y su
 		// cita, sin la línea del plazo; y conOtraFecha, la línea del plazo con
@@ -6803,9 +6809,9 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 	vigenciaConOtraNorma := sesion(evalDeLaVigencia, modeloSonnet55, ModoHerramienta, 1)
 	vigenciaConLaFecha := sesion(evalDeLaVigencia, modeloSonnet55, ModoOrden, 3)
 
-	modelos := modelosDeLegalCore()
+	modelos := modelosDePlazosYTerritorio()
 
-	return []casoDeUmbralesDeLegalCore{
+	return []casoDeUmbralesDePlazosYTerritorio{
 		{
 			// Las 12 sesiones de las evals de plazo de cada modo llevan la línea
 			// con su fecha, y las 9 de las de cobertura, la declaración con su
@@ -6817,7 +6823,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			// el modo orden, con su fallo y el motivo que nombra la sesión (US6.1).
 			nombre:     "una-de-plazo-sin-la-fecha",
 			respuestas: map[string]string{plazoEnOrden: sinLaLinea},
-			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinFecha: 1}},
+			porModo:    map[Modo]medidasDePlazosYTerritorio{ModoOrden: {sinFecha: 1}},
 			motivos: []string{
 				"umbral plazo_sin_fecha:claude-sonnet-5-5:orden: 1 de 12 (8,3 %), y tiene que ser ≤ 0,0 %: " +
 					plazoEnOrden,
@@ -6834,7 +6840,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 				contenciosoSinLaLinea: "Tienes hasta el 15 de septiembre de 2026 " + citaDel46 + "; agosto no cuenta " +
 					citaDel128 + ".\n\n" + redaccionAFechaDel46 + "\n" + redaccionAFechaDel128,
 			},
-			porModo: map[Modo]medidasDeLegalCore{ModoHerramienta: {sinFecha: 2}},
+			porModo: map[Modo]medidasDePlazosYTerritorio{ModoHerramienta: {sinFecha: 2}},
 			motivos: []string{
 				"umbral plazo_sin_fecha:claude-sonnet-5-5:herramienta: 2 de 12 (16,7 %), y tiene que ser ≤ 0,0 %: " +
 					plazoConOtraFecha + "; " + contenciosoSinLaLinea,
@@ -6847,7 +6853,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 		{
 			nombre:     "una-de-cobertura-sin-declarar",
 			respuestas: map[string]string{liquidacionSinDeclarar: sinDeclarar},
-			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinDeclarar: 1}},
+			porModo:    map[Modo]medidasDePlazosYTerritorio{ModoOrden: {sinDeclarar: 1}},
 			motivos: []string{
 				"umbral cobertura_sin_declarar:claude-sonnet-5-5:orden: 1 de 9 (11,1 %), y tiene que ser ≤ 0,0 %: " +
 					liquidacionSinDeclarar,
@@ -6862,7 +6868,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 				liquidacionConLasDos: sinDeclarar + "\n\n" + conOtraFecha,
 				multaConLaLinea:      declaracionDeLaLeyDeTrafico + "\n\n" + conOtraFecha,
 			},
-			porModo: map[Modo]medidasDeLegalCore{ModoHerramienta: {sinDeclarar: 2}},
+			porModo: map[Modo]medidasDePlazosYTerritorio{ModoHerramienta: {sinDeclarar: 2}},
 			motivos: []string{
 				"umbral cobertura_sin_declarar:claude-sonnet-5-5:herramienta: 2 de 9 (22,2 %), y tiene que ser " +
 					"≤ 0,0 %: " + liquidacionConLasDos + "; " + multaConLaLinea,
@@ -6886,7 +6892,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			// otras palabras: 1 de 3 en el modo orden (ADR 0042).
 			nombre:     "una-de-vigencia-sin-declarar",
 			respuestas: map[string]string{vigenciaSinDeclarar: sinDeclarar},
-			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinDeclararLaVigencia: 1}},
+			porModo:    map[Modo]medidasDePlazosYTerritorio{ModoOrden: {sinDeclararLaVigencia: 1}},
 			motivos: []string{
 				"umbral vigencia_sin_declarar:claude-sonnet-5-5:orden: 1 de 3 (33,3 %), y tiene que ser ≤ 0,0 %: " +
 					vigenciaSinDeclarar,
@@ -6901,7 +6907,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 				vigenciaConOtraNorma: conLaDeOtraNorma,
 				vigenciaConLaFecha:   conLaDeclaracionYFecha,
 			},
-			porModo: map[Modo]medidasDeLegalCore{
+			porModo: map[Modo]medidasDePlazosYTerritorio{
 				ModoOrden: {sinDeclararLaVigencia: 1}, ModoHerramienta: {sinDeclararLaVigencia: 1},
 			},
 			motivos: []string{
@@ -6929,7 +6935,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			// redaccion_sin_fechar, 1 de 9 en el modo orden (ADR 0041).
 			nombre:     "una-de-plazo-sin-la-redaccion-a-fecha",
 			respuestas: map[string]string{plazoEnOrden: lineaDelPlazo},
-			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinFechar: 1}},
+			porModo:    map[Modo]medidasDePlazosYTerritorio{ModoOrden: {sinFechar: 1}},
 			motivos: []string{
 				"umbral redaccion_sin_fechar:claude-sonnet-5-5:orden: 1 de 9 (11,1 %), y tiene que ser ≤ 0,0 %: " +
 					plazoEnOrden,
@@ -6953,7 +6959,7 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			nombre:     "una-sin-medir",
 			respuestas: map[string]string{plazoEnOrden: sinLaLinea},
 			sinMedir:   plazoEnOrden,
-			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinMedir: 1}},
+			porModo:    map[Modo]medidasDePlazosYTerritorio{ModoOrden: {sinMedir: 1}},
 			motivos: []string{motivoEsperadoDelLimite(SesionSinMedir{
 				Sesion: plazoEnOrden, Eval: evalDePlazoEnLeganes, Modelo: modeloSonnet55, Motivo: sinMedirPorElMensaje,
 			})},
@@ -6968,25 +6974,27 @@ func casosDeLosUmbralesDeLegalCore() []casoDeUmbralesDeLegalCore {
 			},
 		},
 		{
-			// Desde H9, sin_activar de legal-core decide: con la línea con su fecha,
-			// la sesión no cuenta en plazo_sin_fecha, pero sí en sin_activar.
+			// Desde H9, sin_activar de plazos-y-territorio decide: con la línea con
+			// su fecha, la sesión no cuenta en plazo_sin_fecha, pero sí en
+			// sin_activar.
 			nombre:     "una-sin-activar",
 			sinActivar: plazoEnOrden,
-			porModo:    map[Modo]medidasDeLegalCore{ModoOrden: {sinActivar: 1}},
+			porModo:    map[Modo]medidasDePlazosYTerritorio{ModoOrden: {sinActivar: 1}},
 			motivos:    []string{"umbral sin_activar:claude-sonnet-5-5:orden: 1 de 30 (3,3 %), y tiene que ser ≤ 0,0 %"},
-			noPasan:    map[string][]string{plazoEnOrden: {motivoDeActivacion(skillDeLegalCore, true)}},
+			noPasan:    map[string][]string{plazoEnOrden: {motivoDeActivacion(skillDePlazosYTerritorio, true)}},
 		},
 	}
 }
 
-// exigirLosUmbralesDeLegalCore arma las sesiones del plan del job con los
-// cambios del caso, escribe el informe y exige sus dieciocho umbrales, sus motivos y
-// su veredicto, que es fallo si hay algún motivo; los motivos de cada sesión que
-// no pasa, que cuenta en su serie; y la fila de cada umbral en informe.md.
-func exigirLosUmbralesDeLegalCore(t *testing.T, caso casoDeUmbralesDeLegalCore) {
+// exigirLosUmbralesDePlazosYTerritorio arma las sesiones del plan del job con
+// los cambios del caso, escribe el informe y exige sus dieciocho umbrales, sus
+// motivos y su veredicto, que es fallo si hay algún motivo; los motivos de cada
+// sesión que no pasa, que cuenta en su serie; y la fila de cada umbral en
+// informe.md.
+func exigirLosUmbralesDePlazosYTerritorio(t *testing.T, caso casoDeUmbralesDePlazosYTerritorio) {
 	t.Helper()
 
-	sesiones := armarSesionesDeLegalCore(t, caso.respuestas)
+	sesiones := armarSesionesDePlazosYTerritorio(t, caso.respuestas)
 
 	if caso.sinActivar != "" {
 		quitarLaActivacion(t, filepath.Join(sesiones, caso.sinActivar))
@@ -6997,9 +7005,9 @@ func exigirLosUmbralesDeLegalCore(t *testing.T, caso casoDeUmbralesDeLegalCore) 
 			mensajeResultConError(t, textoDelLimiteDeSesion))
 	}
 
-	leido := informeDelPlanDelJob(t, skillDeLegalCore, evalsDeLegalCore, sesiones, 0, nuevoVotanteDelInforme(t))
+	leido := informeDelPlanDelJob(t, skillDePlazosYTerritorio, evalsDePlazosYTerritorio, sesiones, 0, nuevoVotanteDelInforme(t))
 
-	exigirUmbrales(t, leido, umbralesDeLegalCore(caso.porModo))
+	exigirUmbrales(t, leido, umbralesDePlazosYTerritorio(caso.porModo))
 	exigirLosInvariantesDeLosUmbrales(t, leido)
 	exigirMotivosDeLaRaiz(t, leido, caso.motivos...)
 
@@ -7041,16 +7049,17 @@ func exigirLasQueNoPasan(t *testing.T, leido informeLeido, noPasan map[string][]
 // TestUmbralesDeLasTresSkills fija los umbrales de las tres skills con sus
 // evals del repositorio, el plan del job y el objetivo de duración que les da
 // su definición (contracts/evals-legal-core.md §3 de H9; FR-056, FR-087;
-// SC-011): legal-core, con las sesiones de armarSesionesDeLegalCore, lleva
-// exactamente sin_activar, plazo_sin_fecha, cobertura_sin_declarar, desde el
-// ADR 0042, vigencia_sin_declarar y, desde el ADR 0041, redaccion_sin_fechar del
-// modo orden y los mismos del modo herramienta, los diez decidiendo, desde
-// H26.1 sobre 30, 12, 9, 3 y 9 respuestas, y detrás de ellos, desde H26.1, de
-// cada modo y cada modelo, fuera_de_lo_grabado, sobre sus 33 sesiones medidas,
-// que no decide, y lectura_sin_intentar, sobre las 3 sesiones de la 11, los dos
-// del modelo que decide decidiendo: dieciocho, doce que deciden (FR-021, FR-033
-// de H26.1); y jurisprudencia, sin sesiones, lleva los quince de antes, once
-// que deciden, en su orden y sin cambiar ninguno, y detrás los cuatro
+// SC-011): plazos-y-territorio, con las sesiones de
+// armarSesionesDePlazosYTerritorio, lleva exactamente sin_activar,
+// plazo_sin_fecha, cobertura_sin_declarar, desde el ADR 0042,
+// vigencia_sin_declarar y, desde el ADR 0041, redaccion_sin_fechar del modo
+// orden y los mismos del modo herramienta, los diez decidiendo, desde H26.1
+// sobre 30, 12, 9, 3 y 9 respuestas, y detrás de ellos, desde H26.1, de cada
+// modo y cada modelo, fuera_de_lo_grabado, sobre sus 33 sesiones medidas, que
+// no decide, y lectura_sin_intentar, sobre las 3 sesiones de la 11, los dos del
+// modelo que decide decidiendo: dieciocho, doce que deciden (FR-021, FR-033 de
+// H26.1); y jurisprudencia, sin sesiones, lleva los quince de antes, once que
+// deciden, en su orden y sin cambiar ninguno, y detrás los cuatro
 // fuera_de_lo_grabado: diecinueve, los mismos once que deciden, sin ningún
 // lectura_sin_intentar (SC-020 de H26.1); lo que no sale de las respuestas —el
 // nombre, la descripción, la comparación, el umbral y si decide— es el de
@@ -7074,13 +7083,13 @@ func TestUmbralesDeLasTresSkills(t *testing.T) {
 	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
 
-	t.Run(skillDeLegalCore, func(t *testing.T) {
+	t.Run(skillDePlazosYTerritorio, func(t *testing.T) {
 		t.Parallel()
 
-		leido := informeDelPlanDelJob(t, skillDeLegalCore, evalsDeLegalCore, armarSesionesDeLegalCore(t, nil),
-			delJob.PorSkill[skillDeLegalCore].ObjetivoDeDuracion, nuevoVotanteDelInforme(t))
+		leido := informeDelPlanDelJob(t, skillDePlazosYTerritorio, evalsDePlazosYTerritorio, armarSesionesDePlazosYTerritorio(t, nil),
+			delJob.PorSkill[skillDePlazosYTerritorio].ObjetivoDeDuracion, nuevoVotanteDelInforme(t))
 
-		exigirUmbrales(t, leido, umbralesDeLegalCore(nil))
+		exigirUmbrales(t, leido, umbralesDePlazosYTerritorio(nil))
 
 		var nombres, deciden []string
 
@@ -7216,24 +7225,24 @@ func formaDeLosUmbrales(umbrales []Umbral) []Umbral {
 	return forma
 }
 
-// umbralesDeLegalCore son los dieciocho umbrales del informe de legal-core con
-// las evals del repositorio y las sesiones del plan del job
-// (umbralesDeLegalCoreSobre): sobre las 30 respuestas de cada modo, las 12 de
-// sus evals de plazo, las 9 de las de cobertura, las 3 de la de vigencia y las
-// 9 de las de plazo con redacción fechada; y, desde H26.1, sobre las 33
-// sesiones de cada modelo en cada modo y las 3 de la 11.
-func umbralesDeLegalCore(porModo map[Modo]medidasDeLegalCore) []Umbral {
-	return umbralesDeLegalCoreSobre(totalesDeLegalCore{
-		respuestas: respuestasDeLegalCorePorModo, dePlazo: respuestasDePlazoPorModo,
+// umbralesDePlazosYTerritorio son los dieciocho umbrales del informe de
+// plazos-y-territorio con las evals del repositorio y las sesiones del plan del
+// job (umbralesDePlazosYTerritorioSobre): sobre las 30 respuestas de cada modo,
+// las 12 de sus evals de plazo, las 9 de las de cobertura, las 3 de la de
+// vigencia y las 9 de las de plazo con redacción fechada; y, desde H26.1, sobre
+// las 33 sesiones de cada modelo en cada modo y las 3 de la 11.
+func umbralesDePlazosYTerritorio(porModo map[Modo]medidasDePlazosYTerritorio) []Umbral {
+	return umbralesDePlazosYTerritorioSobre(totalesDePlazosYTerritorio{
+		respuestas: respuestasDePlazosYTerritorioPorModo, dePlazo: respuestasDePlazoPorModo,
 		deCobertura: respuestasDeCoberturaPorModo, deVigencia: respuestasDeVigenciaPorModo,
 		conLaRedaccion: respuestasConLaRedaccionPorModo, deLaLecturaSinServir: sesionesDeLaLecturaSinServirPorModelo,
-		sesiones: sesionesDeLegalCorePorModelo,
+		sesiones: sesionesDePlazosYTerritorioPorModelo,
 	}, porModo)
 }
 
-// umbralesDeLegalCoreSobre son los dieciocho umbrales del informe de
-// legal-core, en el orden de contracts/evals-legal-core.md §3 de H9 con
-// vigencia_sin_declarar detrás de cobertura_sin_declarar (ADR 0042),
+// umbralesDePlazosYTerritorioSobre son los dieciocho umbrales del informe de
+// plazos-y-territorio, en el orden de contracts/evals-legal-core.md §3 de H9
+// con vigencia_sin_declarar detrás de cobertura_sin_declarar (ADR 0042),
 // redaccion_sin_fechar detrás de todos (ADR 0041) y, desde H26.1, detrás de los
 // de los dos modos, fuera_de_lo_grabado y lectura_sin_intentar
 // (contracts/juicio-e-informe.md §4 de H26.1), con los totales dados de cada
@@ -7246,7 +7255,7 @@ func umbralesDeLegalCore(porModo map[Modo]medidasDeLegalCore) []Umbral {
 // fuera_de_lo_grabado con medida 0, que no decide, sobre sus sesiones medidas
 // —las del modelo que decide, sin las sin medir del modo—, y
 // lectura_sin_intentar con medida 0, que decide solo con el modelo que decide.
-func umbralesDeLegalCoreSobre(totales totalesDeLegalCore, porModo map[Modo]medidasDeLegalCore) []Umbral {
+func umbralesDePlazosYTerritorioSobre(totales totalesDePlazosYTerritorio, porModo map[Modo]medidasDePlazosYTerritorio) []Umbral {
 	var umbrales []Umbral
 
 	for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
@@ -7344,22 +7353,22 @@ type modeloDeUnaEval struct {
 	consultas []consultaSintetica
 }
 
-// modelosDeLegalCore son, por el fichero de cada eval de legal-core del
-// repositorio, las sesiones que la pasan en los dos modos —la de la eval sin
-// binario ni servidor, sin ninguno— (contracts/evals-legal-core.md §2 y §5 de
-// H9): las de territorio resuelven el municipio y declaran lo que la eval
-// espera; la de no activación responde sin la skill; la sin binario ni
-// servidor, con la línea ⚠ SIN CONSULTA AL BOE: y su dirección; las de plazo
-// sitúan el municipio, calculan el plazo, leen sus preceptos y responden con la
-// línea del plazo y la de cada aviso esperado; las de cobertura no consultan
-// nada y responden con la declaración de no cubierto; la de vigencia sitúa el
-// municipio, pide el plazo, que no se calcula, y responde con la declaración del
-// plazo sin calcular (ADR 0042); y, desde H26.1, la 11 hace lo que la 05, con
-// la lectura del art. 124, que no se sirve, terminada con 4, y responde con la
-// línea del plazo y que no pudo leer esa redacción, y la 12 intenta leer la
-// DA 1ª, que tampoco se sirve, y responde con la declaración de no cubierto de
-// la LPAC (FR-017, FR-018 de H26.1).
-func modelosDeLegalCore() map[string]modeloDeUnaEval {
+// modelosDePlazosYTerritorio son, por el fichero de cada eval de
+// plazos-y-territorio del repositorio, las sesiones que la pasan en los dos
+// modos —la de la eval sin binario ni servidor, sin ninguno—
+// (contracts/evals-legal-core.md §2 y §5 de H9): las de territorio resuelven el
+// municipio y declaran lo que la eval espera; la de no activación responde sin
+// la skill; la sin binario ni servidor, con la línea ⚠ SIN CONSULTA AL BOE: y
+// su dirección; las de plazo sitúan el municipio, calculan el plazo, leen sus
+// preceptos y responden con la línea del plazo y la de cada aviso esperado; las
+// de cobertura no consultan nada y responden con la declaración de no cubierto;
+// la de vigencia sitúa el municipio, pide el plazo, que no se calcula, y
+// responde con la declaración del plazo sin calcular (ADR 0042); y, desde
+// H26.1, la 11 hace lo que la 05, con la lectura del art. 124, que no se sirve,
+// terminada con 4, y responde con la línea del plazo y que no pudo leer esa
+// redacción, y la 12 intenta leer la DA 1ª, que tampoco se sirve, y responde
+// con la declaración de no cubierto de la LPAC (FR-017, FR-018 de H26.1).
+func modelosDePlazosYTerritorio() map[string]modeloDeUnaEval {
 	const (
 		leganes     = "Leganés"
 		tordesillas = "Tordesillas"
@@ -7380,8 +7389,8 @@ func modelosDeLegalCore() map[string]modeloDeUnaEval {
 				"boletin_autonomico: no-configurado\nboletin_provincial: no-configurado",
 			consultas: []consultaSintetica{resolverElMunicipio(tordesillas)},
 		},
-		evalDeLaRecetaDeLegalCore: {respuesta: "Con las patatas pochadas a fuego lento y el huevo poco cuajado."},
-		ficheroSinBinarioDeLegalCore: {
+		evalDeLaRecetaDePlazosYTerritorio: {respuesta: "Con las patatas pochadas a fuego lento y el huevo poco cuajado."},
+		ficheroSinBinarioDePlazosYTerritorio: {
 			activa: true,
 			respuesta: "⚠ SIN CONSULTA AL BOE: no tengo kitlegal ni su servidor; instálalo desde " +
 				direccionParaInstalar,
@@ -7391,7 +7400,7 @@ func modelosDeLegalCore() map[string]modeloDeUnaEval {
 			respuesta: lineaDelPlazo + "\n" + redaccionAFechaDel124,
 			consultas: []consultaSintetica{
 				resolverElMunicipio(leganes), calcularElPlazo("reposicion", notificada, leganes, leganes),
-				leerElArticuloEnUnDia(lpac, "a124", notificada, sobreDeLegalCore("boe"), 0),
+				leerElArticuloEnUnDia(lpac, "a124", notificada, sobreDePlazosYTerritorio("boe"), 0),
 			},
 		},
 		evalDePlazoEnTordesillas: {
@@ -7399,7 +7408,7 @@ func modelosDeLegalCore() map[string]modeloDeUnaEval {
 			respuesta: lineaDelPlazoEnTordesillas + "\n" + redaccionAFechaDel124 + "\n\n" + avisoDeLosLocales,
 			consultas: []consultaSintetica{
 				resolverElMunicipio(tordesillas), calcularElPlazo("reposicion", notificada, tordesillas, tordesillas),
-				leerElArticuloEnUnDia(lpac, "a124", notificada, sobreDeLegalCore("boe"), 0),
+				leerElArticuloEnUnDia(lpac, "a124", notificada, sobreDePlazosYTerritorio("boe"), 0),
 			},
 		},
 		evalDeLaLiquidacion: {activa: true, respuesta: declaracionDeLaLGT},
@@ -7410,8 +7419,8 @@ func modelosDeLegalCore() map[string]modeloDeUnaEval {
 				"\n\nAgosto no cuenta " + citaDel128 + ".",
 			consultas: []consultaSintetica{
 				resolverElMunicipio("Madrid"), calcularElPlazo("contencioso", "2026-06-15", leganes, "Madrid"),
-				leerElArticuloEnUnDia(ljca, "a46", "2026-06-15", sobreDeLegalCore("boe"), 0),
-				leerElArticuloEnUnDia(ljca, "a128", "2026-06-15", sobreDeLegalCore("boe"), 0),
+				leerElArticuloEnUnDia(ljca, "a46", "2026-06-15", sobreDePlazosYTerritorio("boe"), 0),
+				leerElArticuloEnUnDia(ljca, "a128", "2026-06-15", sobreDePlazosYTerritorio("boe"), 0),
 			},
 		},
 		evalDeLaVigencia: {
@@ -7476,7 +7485,7 @@ func resolverElMunicipio(municipio string) consultaSintetica {
 		orden:       []string{"territorio", "resolver", municipio},
 		herramienta: "territorio_resolver",
 		argumentos:  `{"consulta":"` + municipio + `"}`,
-		sobre:       sobreDeLegalCore("territorio"),
+		sobre:       sobreDePlazosYTerritorio("territorio"),
 	}
 }
 
@@ -7488,7 +7497,7 @@ func calcularElPlazo(tipo, inicio, delInteresado, deLaSede string) consultaSinte
 		herramienta: "plazos_calcular",
 		argumentos: `{"tipo":"` + tipo + `","inicio":"` + inicio + `","municipios":["` + delInteresado + `","` +
 			deLaSede + `"]}`,
-		sobre: sobreDeLegalCore("plazos"),
+		sobre: sobreDePlazosYTerritorio("plazos"),
 	}
 }
 
@@ -7498,36 +7507,37 @@ func leerElArticulo(norma, bloque string) consultaSintetica {
 		orden:       []string{"boe", "articulo", norma, bloque},
 		herramienta: "boe_articulo",
 		argumentos:  `{"norma":"` + norma + `","bloque":"` + bloque + `"}`,
-		sobre:       sobreDeLegalCore("boe"),
+		sobre:       sobreDePlazosYTerritorio("boe"),
 	}
 }
 
-// sobreDeLegalCore es un sobre de éxito del applet, en una línea, con un data
-// vacío: el juicio de una sesión de legal-core solo mira de él que no es de
-// fallo.
-func sobreDeLegalCore(applet string) string {
+// sobreDePlazosYTerritorio es un sobre de éxito del applet, en una línea, con
+// un data vacío: el juicio de una sesión de plazos-y-territorio solo mira de él
+// que no es de fallo.
+func sobreDePlazosYTerritorio(applet string) string {
 	return `{"ok":true,"fuente":"kitlegal.` + applet + `","url":"kitlegal:applet/` + applet +
 		`","fecha_consulta":"2026-10-07T10:00:00Z","hash":"sha256:` + strings.Repeat("0", 64) + `","data":{}}`
 }
 
-// armarSesionesDeLegalCore escribe en un directorio temporal del test las
-// sesiones que el plan del job pide con las evals de legal-core del repositorio
-// —las once de modo, tres veces, con los dos modelos y en los dos modos, y la
-// sin binario ni servidor, tres veces con cada modelo—, cada una la de
-// modelosDeLegalCore para su eval o, si las respuestas dadas la nombran, con la
-// suya, y devuelve el directorio (escribirLasSesionesDelPlan).
-func armarSesionesDeLegalCore(t *testing.T, respuestas map[string]string) string {
+// armarSesionesDePlazosYTerritorio escribe en un directorio temporal del test
+// las sesiones que el plan del job pide con las evals de plazos-y-territorio
+// del repositorio —las once de modo, tres veces, con los dos modelos y en los
+// dos modos, y la sin binario ni servidor, tres veces con cada modelo—, cada
+// una la de modelosDePlazosYTerritorio para su eval o, si las respuestas dadas
+// la nombran, con la suya, y devuelve el directorio
+// (escribirLasSesionesDelPlan).
+func armarSesionesDePlazosYTerritorio(t *testing.T, respuestas map[string]string) string {
 	t.Helper()
 
-	conjunto, err := LeerConjunto(evalsDeLegalCore)
+	conjunto, err := LeerConjunto(evalsDePlazosYTerritorio)
 	require.NoError(t, err)
 	require.Empty(t, conjunto.MalFormados)
-	require.Nil(t, conjunto.Juez, "%s no tiene juez", skillDeLegalCore)
+	require.Nil(t, conjunto.Juez, "%s no tiene juez", skillDePlazosYTerritorio)
 
-	modelos := modelosDeLegalCore()
-	require.Len(t, conjunto.Evals, len(modelos), "hay una sesión modelo por eval de %s", evalsDeLegalCore)
+	modelos := modelosDePlazosYTerritorio()
+	require.Len(t, conjunto.Evals, len(modelos), "hay una sesión modelo por eval de %s", evalsDePlazosYTerritorio)
 
-	return escribirLasSesionesDelPlan(t, skillDeLegalCore, conjunto.Evals, modelos,
+	return escribirLasSesionesDelPlan(t, skillDePlazosYTerritorio, conjunto.Evals, modelos,
 		func(planificada SesionPlanificada, modelo modeloDeUnaEval) modeloDeUnaEval {
 			if respuesta, cambiada := respuestas[planificada.Nombre]; cambiada {
 				modelo.respuesta = respuesta
@@ -7756,7 +7766,7 @@ func casosDeLosUmbralesDeNormativa() []casoDeUmbralesDeNormativa {
 
 	sinLaFecha := []consultaSintetica{leerElArticulo(normaDeLaLCSP, bloqueDelArticulo118)}
 	conOtroDia := []consultaSintetica{
-		leerElArticuloEnUnDia(normaDeLaLCSP, bloqueDelArticulo118, "2019-06-02", sobreDeLegalCore("boe"), 0),
+		leerElArticuloEnUnDia(normaDeLaLCSP, bloqueDelArticulo118, "2019-06-02", sobreDePlazosYTerritorio("boe"), 0),
 	}
 
 	unaEnOrden := func(nombre string) string {
@@ -8107,7 +8117,7 @@ func modelosDeNormativa(t *testing.T, evals []Eval) map[string]modeloDeUnaEval {
 			activa:    true,
 			respuesta: lineaDeLaRedaccionAFecha + "\n\n" + lineaDeLaRedaccionDeHoy,
 			consultas: []consultaSintetica{leerElArticuloEnUnDia(normaDeLaLCSP, bloqueDelArticulo118, diaDelContratoMenor,
-				sobreDeLegalCore("boe"), 0)},
+				sobreDePlazosYTerritorio("boe"), 0)},
 		},
 		evalDelArticulo21En2016: {
 			activa:    true,
@@ -8194,7 +8204,7 @@ func comprobarLaNorma(norma string) consultaSintetica {
 		orden:       []string{"graph", "check", norma},
 		herramienta: "graph_check",
 		argumentos:  `{"norma":"` + norma + `"}`,
-		sobre:       sobreDeLegalCore("graph"),
+		sobre:       sobreDePlazosYTerritorio("graph"),
 	}
 }
 

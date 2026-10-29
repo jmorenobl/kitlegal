@@ -14,7 +14,7 @@ import (
 )
 
 // Las etiquetas de las tres formas fijas con las que la respuesta de una eval de
-// legal-core da un plazo, declara que un asunto no está cubierto
+// plazos-y-territorio da un plazo, declara que un asunto no está cubierto
 // (contracts/evals-legal-core.md §2 de H9; FR-048) y, desde el ADR 0042, que
 // plazos no calcula un plazo. Las de los avisos de un plazo no van aquí: son las
 // de plazos.EtiquetaDeAviso.

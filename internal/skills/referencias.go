@@ -15,7 +15,7 @@ import (
 )
 
 // Lo que forma una celda de la tabla de una referencia generada (contrato
-// normas-y-referencias §5; contrato de la skill legal-core §2).
+// normas-y-referencias §5; contrato skill-legal-core §2).
 const (
 	// separadorDeMaterias separa las materias de una norma dentro de su celda, y
 	// los tipos de norma de un nivel dentro de la suya.
@@ -57,7 +57,7 @@ var escapeDeCelda = strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ", "|", 
 var enUnaLinea = strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ")
 
 // generadorDeReferencia es una fila de la tabla de generadores (research.md D20;
-// contrato de la skill legal-core §4): lo que declara de una referencia
+// contrato skill-legal-core §4): lo que declara de una referencia
 // generada —el YAML de datos del que sale, su título y los encabezados de su
 // tabla— y la función que da el resto desde el contenido de ese YAML. La
 // cabecera, el título y la fila de títulos de la tabla salen de la fila y no de
@@ -132,7 +132,7 @@ var (
 var columnasDeUnaNorma = []string{"Norma", "Abreviatura", "Identificador", "Rango", "Materias"}
 
 // generadoresDeReferencias es la tabla de generadores (research.md D20; contrato
-// de la skill legal-core §4): la fila de cada referencia por su nombre, que es el
+// skill-legal-core §4): la fila de cada referencia por su nombre, que es el
 // que declara kitlegal-referencias y el de references/<nombre>.md. Una referencia
 // sin fila no tiene generador, y dos pueden salir del mismo YAML de datos.
 var generadoresDeReferencias = map[string]generadorDeReferencia{
@@ -401,7 +401,7 @@ func RenderizarNormas(normas []Norma) []byte {
 }
 
 // RenderizarLeyesVertebrales da references/leyes_vertebrales.md desde las normas
-// de data/normas.yaml (contrato de la skill legal-core §2; FR-065, FR-067): como
+// de data/normas.yaml (contrato skill-legal-core §2; FR-065, FR-067): como
 // RenderizarNormas, con su propio título y solo con las normas marcadas
 // vertebral; si no hay ninguna, la tabla va sin filas. Las normas que recibe no
 // cambian.
@@ -410,7 +410,7 @@ func RenderizarLeyesVertebrales(normas []Norma) []byte {
 }
 
 // RenderizarJerarquia da references/jerarquia_normativa.md desde la jerarquía de
-// data/jerarquia.yaml (contrato de la skill legal-core §2; FR-066, FR-067): la
+// data/jerarquia.yaml (contrato skill-legal-core §2; FR-066, FR-067): la
 // cabecera de fichero generado que nombra data/jerarquia.yaml, el título, una
 // tabla con una fila por nivel —su nombre, la clase de boletín que lo publica y
 // sus tipos de norma, de mayor a menor rango y separados por «, »— y la sección
@@ -425,7 +425,7 @@ func RenderizarJerarquia(jerarquia Jerarquia) []byte {
 }
 
 // RenderizarRecursosYPlazos da references/recursos_y_plazos.md desde los tipos
-// de plazo de data/plazos.yaml (contrato de la skill legal-core §4 de H9;
+// de plazo de data/plazos.yaml (contrato skill-legal-core §4 de H9;
 // FR-032): la cabecera de fichero generado que nombra data/plazos.yaml, el título
 // y una tabla con una fila por tipo —su nombre, su código, su duración, su
 // cómputo y sus preceptos— y, en el que lleva unidades, el genérico, una por
@@ -441,7 +441,7 @@ func RenderizarRecursosYPlazos(tipos []plazos.Tipo) []byte {
 }
 
 // RenderizarCobertura da references/cobertura_por_materia.md desde la cobertura
-// por materia de data/cobertura.yaml (contrato de la skill legal-core §4 de H9;
+// por materia de data/cobertura.yaml (contrato skill-legal-core §4 de H9;
 // FR-031, FR-032): la cabecera de fichero generado que nombra
 // data/cobertura.yaml, el título y una tabla con una fila por procedimiento que
 // la ley regula aparte —el procedimiento, el precepto de la LPAC que lo dice,

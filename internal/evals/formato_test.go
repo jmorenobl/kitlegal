@@ -92,11 +92,11 @@ const (
 // Trozos de las evals sintéticas del formato de H7.4 de TestLeerEval y
 // TestLeerConjunto, cada uno con sus líneas completas: una eval de no activación
 // y la skill que la sesión no puede activar, para ir detrás de activa, como en
-// las evals de legal-core (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003,
-// FR-004); y la eval de los dos bloques de la LCSP de contracts §3, sin su
-// comentario, con las dos redacciones modificadas que la respuesta tiene que
-// llevar, cada una con la fecha de la redacción superada y la de la leída
-// (FR-053).
+// las evals de plazos-y-territorio (contracts/evals-y-juicio.md §1 y §5 de
+// H7.4; FR-003, FR-004); y la eval de los dos bloques de la LCSP de contracts
+// §3, sin su comentario, con las dos redacciones modificadas que la respuesta
+// tiene que llevar, cada una con la fecha de la redacción superada y la de la
+// leída (FR-053).
 const (
 	evalDeLaReceta                 = "pregunta: \"¿Cómo se hace una tortilla de patatas jugosa?\"\nactiva: false\n"
 	noSeActivaNormativa            = "no_se_activan: [normativa]\n"
@@ -130,17 +130,17 @@ const (
 
 // Las dos evals sin binario ni servidor de contracts/evals-en-dos-modos.md §1 de
 // H21, sin su comentario y con sus líneas completas, y la pregunta de cada una
-// tal como se lee: la de normativa y la de legal-core, que además declara
-// la skill que su sesión no puede activar (FR-046).
+// tal como se lee: la de normativa y la de plazos-y-territorio, que además
+// declara la skill que su sesión no puede activar (FR-046).
 const (
 	preguntaSinBinarioDeNormativa = "\xc2\xbfQu\xc3\xa9 dice el art. 53 de la Ley 39/2015 sobre los derechos " +
 		"del interesado en el procedimiento administrativo?"
-	preguntaSinBinarioDeLegalCore = "\xc2\xbfQu\xc3\xa9 comunidad aut\xc3\xb3noma, provincia y boletines oficiales " +
+	preguntaSinBinarioDePlazosYTerritorio = "\xc2\xbfQu\xc3\xa9 comunidad aut\xc3\xb3noma, provincia y boletines oficiales " +
 		"corresponden al Ayuntamiento de Getafe?"
 	sinBinarioNiServidor      = "sin_binario_ni_servidor: true\n"
 	evalSinBinarioDeNormativa = "pregunta: \"" + preguntaSinBinarioDeNormativa + "\"\n" +
 		"activa: true\n" + sinBinarioNiServidor
-	evalSinBinarioDeLegalCore = "pregunta: \"" + preguntaSinBinarioDeLegalCore + "\"\n" +
+	evalSinBinarioDePlazosYTerritorio = "pregunta: \"" + preguntaSinBinarioDePlazosYTerritorio + "\"\n" +
 		"activa: true\n" + noSeActivaNormativa + sinBinarioNiServidor
 )
 
@@ -247,7 +247,7 @@ func TestLeerEval(t *testing.T) {
 
 	// La eval de territorio del municipio cubierto con las skills que no se
 	// activan en la línea que se le pase, detrás de activa, como en las evals de
-	// legal-core: esa línea es la 3.
+	// plazos-y-territorio: esa línea es la 3.
 	municipioQueNoActiva := func(noSeActivan string) string {
 		return preguntaDelMunicipio + "activa: true\n" + noSeActivan + comandoDelMunicipio + territorioDelMunicipio
 	}
@@ -762,12 +762,12 @@ func TestLeerEval(t *testing.T) {
 			},
 		},
 		{
-			// La de legal-core del mismo contrato, sin su comentario.
+			// La de plazos-y-territorio del mismo contrato, sin su comentario.
 			nombre:    "sin-binario-ni-servidor-con-no-se-activan",
-			documento: evalSinBinarioDeLegalCore,
+			documento: evalSinBinarioDePlazosYTerritorio,
 			leida: Eval{
 				Fichero:              nombreDeEval,
-				Pregunta:             preguntaSinBinarioDeLegalCore,
+				Pregunta:             preguntaSinBinarioDePlazosYTerritorio,
 				Activa:               true,
 				NoSeActivan:          []string{"normativa"},
 				SinBinarioNiServidor: true,
@@ -1219,7 +1219,7 @@ func TestFormatoDeSentencias(t *testing.T) {
 	t.Run("las-evals-de-hoy", func(t *testing.T) {
 		t.Parallel()
 
-		for _, dir := range []string{evalsDeNormativa, evalsDeLegalCore} {
+		for _, dir := range []string{evalsDeNormativa, evalsDePlazosYTerritorio} {
 			conjunto, err := LeerConjunto(dir)
 			require.NoError(t, err)
 			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
@@ -2098,10 +2098,10 @@ func probarLasLecturasDelConjunto(t *testing.T, casos []casoDeLecturaDeEval) {
 //
 // Desde H7, comprueba además que el formato ampliado es compatible hacia atrás
 // (FR-086; contrato evals-y-skill §1 de H7): cada eval del repositorio de
-// normativa y de legal-core se lee y valida; la que no escribe prohibidos
-// ni grafo_previo se lee sin prohibidos y sin grafo previo; y solo el comando que
-// escribe el verbo check tiene la forma de comprobación, de modo que el resto
-// conserva la suya.
+// normativa y de plazos-y-territorio se lee y valida; la que no escribe
+// prohibidos ni grafo_previo se lee sin prohibidos y sin grafo previo; y solo
+// el comando que escribe el verbo check tiene la forma de comprobación, de modo
+// que el resto conserva la suya.
 //
 // Desde H7.1, la que no escribe hallazgos se lee sin hallazgos, y el comando de
 // comprobación que no escribe la norma, sin Norma: se leen igual que en H7
@@ -2120,7 +2120,7 @@ func TestEsquemaDeEval(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, esquema)
 
-	for _, dir := range []string{evalsDeNormativa, evalsDeLegalCore} {
+	for _, dir := range []string{evalsDeNormativa, evalsDePlazosYTerritorio} {
 		conjunto, err := LeerConjunto(dir)
 		require.NoError(t, err)
 		require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)

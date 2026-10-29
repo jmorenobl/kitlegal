@@ -201,8 +201,8 @@
 //     evals, que decide con 0 y cuyo motivo nombra cada sesión que cuenta; con
 //     ellas, la skill tiene también sin_activar. Con el plan del job, los dos
 //     modos, normativa lleva quince, de los que deciden once;
-//     jurisprudencia, quince, de los que deciden once; y legal-core, diez, que
-//     deciden los diez: de cada modo, sin_activar, plazo_sin_fecha,
+//     jurisprudencia, quince, de los que deciden once; y plazos-y-territorio,
+//     diez, que deciden los diez: de cada modo, sin_activar, plazo_sin_fecha,
 //     cobertura_sin_declarar, vigencia_sin_declarar y redaccion_sin_fechar. En
 //     normativa, con
 //     su objetivo: de cada modo, el del modo orden delante, sin_activar, los
@@ -236,7 +236,7 @@
 //     bloque de cada uno de esos comandos, sobre esas sesiones, también con
 //     medida 0; decide con 0 solo el del modelo que decide, y su motivo nombra
 //     cada sesión que cuenta. Con el plan del job, los dos modos y los dos
-//     modelos, legal-core lleva dieciocho, de los que deciden doce, y
+//     modelos, plazos-y-territorio lleva dieciocho, de los que deciden doce, y
 //     normativa y jurisprudencia, diecinueve, de los que deciden los once
 //     de antes. Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones

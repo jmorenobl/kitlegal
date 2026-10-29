@@ -1161,7 +1161,7 @@ func TestFilaConReutilizadas(t *testing.T) {
 		require.NoError(t, os.WriteFile(informe,
 			[]byte(strings.Replace(leido.escrito, evaluado, `"commit": "`+commit+`"`, 1)), 0o600))
 
-		salida, deError, codigo := ejecutarLaSerie(t, raiz, "fila", skillDeLasSesiones, procedenciaDeLaSerie(1, commit),
+		salida, deError, codigo := ejecutarLaSerie(t, raiz, "fila", skillNormativa, procedenciaDeLaSerie(1, commit),
 			informe)
 		require.Equalf(t, 0, codigo, "fila: %s", deError)
 

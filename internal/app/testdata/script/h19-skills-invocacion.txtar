@@ -25,24 +25,24 @@ exec kitlegal skills install
 # --- Ninguna invocación por scripts/ (US2.1, FR-081) ---
 ! grep 'scripts/boe' .agents/skills/normativa/SKILL.md
 ! grep 'scripts/territorio' .agents/skills/normativa/SKILL.md
-! grep 'scripts/boe' .agents/skills/legal-core/SKILL.md
-! grep 'scripts/territorio' .agents/skills/legal-core/SKILL.md
+! grep 'scripts/boe' .agents/skills/plazos-y-territorio/SKILL.md
+! grep 'scripts/territorio' .agents/skills/plazos-y-territorio/SKILL.md
 
 # Toda invocación es kitlegal boe … o kitlegal territorio …, en el texto libre
 # y en la tabla generada, y la sección de comandos dice que kitlegal se invoca
 # desde el PATH.
 grep 'kitlegal boe articulo BOE-A-2015-10565 a21' .agents/skills/normativa/SKILL.md
-grep 'kitlegal territorio resolver' .agents/skills/legal-core/SKILL.md
+grep 'kitlegal territorio resolver' .agents/skills/plazos-y-territorio/SKILL.md
 grep '^### `kitlegal boe`$' .agents/skills/normativa/SKILL.md
-grep '^### `kitlegal territorio`$' .agents/skills/legal-core/SKILL.md
+grep '^### `kitlegal territorio`$' .agents/skills/plazos-y-territorio/SKILL.md
 grep '^\| `kitlegal boe articulo ' .agents/skills/normativa/SKILL.md
-grep '^\| `kitlegal territorio resolver ' .agents/skills/legal-core/SKILL.md
+grep '^\| `kitlegal territorio resolver ' .agents/skills/plazos-y-territorio/SKILL.md
 grep 'PATH' .agents/skills/normativa/SKILL.md
-grep 'PATH' .agents/skills/legal-core/SKILL.md
+grep 'PATH' .agents/skills/plazos-y-territorio/SKILL.md
 
 # --- Cada orden de la tabla, registrada en el binario (US2.2, FR-084) ---
 exec sh $WORK/ordenes-de-la-tabla.sh .agents/skills/normativa/SKILL.md
-exec sh $WORK/ordenes-de-la-tabla.sh .agents/skills/legal-core/SKILL.md
+exec sh $WORK/ordenes-de-la-tabla.sh .agents/skills/plazos-y-territorio/SKILL.md
 
 # Y la comprobación no es vacua: una orden con un verbo que no existe no pasa.
 ! exec sh $WORK/ordenes-de-la-tabla.sh $WORK/tabla-con-un-verbo-inventado.md
@@ -56,7 +56,7 @@ arbol .agents/skills
 ! stdout 'scripts'
 arbol $KITLEGAL_SKILLS
 stdout '^f normativa/SKILL\.md '
-stdout '^f legal-core/SKILL\.md '
+stdout '^f plazos-y-territorio/SKILL\.md '
 ! stdout '^. [^/ ]+/scripts( |$)'
 
 -- ordenes-de-la-tabla.sh --

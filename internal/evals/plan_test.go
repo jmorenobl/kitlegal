@@ -287,7 +287,7 @@ func probarLaPruebaDeRedEnDosModos(t *testing.T) {
 // tanda del plan de cada skill, las de la tabla de contracts/evals-en-dos-modos.md
 // §2.1: desde H20, con las veintitrés evals de normativa, 36, 36 y 2 series
 // y 108, 108 y 6 sesiones (research D16 de H20; FR-059 de H20) y, desde H9, con
-// las nueve evals de legal-core, 48, 48 y 6 en legal-core
+// las nueve evals de plazos-y-territorio, 48, 48 y 6 en plazos-y-territorio
 // (contracts/evals-legal-core.md §5 de H9; FR-050), con la de vigencia del ADR
 // 0042, 54, 54 y 6 y, desde H26.1, con la 11 y la 12, de modo, 22, 22 y 2
 // series y 66, 66 y 6 sesiones (research V10 de H26.1; FR-017, FR-018), y una
@@ -309,7 +309,7 @@ func probarElPlanDelRepositorio(t *testing.T) {
 			sesiones: map[Modo]int{ModoOrden: 108, ModoHerramienta: 108, "": 6},
 		},
 		{
-			skill:    "legal-core",
+			skill:    "plazos-y-territorio",
 			series:   map[Modo]int{ModoOrden: 22, ModoHerramienta: 22, "": 2},
 			sesiones: map[Modo]int{ModoOrden: 66, ModoHerramienta: 66, "": 6},
 		},

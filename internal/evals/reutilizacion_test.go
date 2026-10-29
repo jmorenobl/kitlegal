@@ -20,7 +20,7 @@ import (
 // informativo y la vida de un resultado, la del registro de la plataforma.
 const (
 	skillDeLaBusqueda       = "normativa"
-	otraSkillDeLaBusqueda   = "legal-core"
+	otraSkillDeLaBusqueda   = "plazos-y-territorio"
 	modeloQueDecideEnMain   = "claude-sonnet-5-5"
 	modeloInformativoEnMain = "claude-haiku-4-5"
 	noventaDiasDeRegistro   = 90 * 24 * time.Hour

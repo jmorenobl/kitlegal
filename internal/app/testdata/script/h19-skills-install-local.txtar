@@ -34,7 +34,7 @@ mkdir $WORK/home
 mkdir $WORK/proyecto
 cd $WORK/proyecto
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 
 # Las únicas entradas nuevas son las tres skills y el manifiesto, en el
@@ -44,16 +44,16 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills"
 # que pueda apuntar al árbol de un clon (SC-021); y ningún fichero con permiso
 # de ejecución (FR-015).
 arbol .
-stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:normativa|jurisprudencia|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+)\n)+\z'
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:normativa|jurisprudencia|plazos-y-territorio)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+)\n)+\z'
 stdout '^d \.agents/skills/normativa$'
 stdout '^f \.agents/skills/normativa/SKILL\.md '
 stdout '^f \.agents/skills/normativa/references/normas\.md '
 stdout '^d \.agents/skills/jurisprudencia$'
 stdout '^f \.agents/skills/jurisprudencia/SKILL\.md '
-stdout '^d \.agents/skills/legal-core$'
-stdout '^f \.agents/skills/legal-core/SKILL\.md '
-stdout '^f \.agents/skills/legal-core/references/jerarquia_normativa\.md '
-stdout '^f \.agents/skills/legal-core/references/leyes_vertebrales\.md '
+stdout '^d \.agents/skills/plazos-y-territorio$'
+stdout '^f \.agents/skills/plazos-y-territorio/SKILL\.md '
+stdout '^f \.agents/skills/plazos-y-territorio/references/jerarquia_normativa\.md '
+stdout '^f \.agents/skills/plazos-y-territorio/references/leyes_vertebrales\.md '
 stdout '^f \.agents/skills/kitlegal\.json '
 ! stdout '/scripts'
 ! stdout '^l '
@@ -69,9 +69,9 @@ arbol $WORK/home
 cmp .agents/skills/normativa/SKILL.md $KITLEGAL_SKILLS/normativa/SKILL.md
 cmp .agents/skills/normativa/references/normas.md $KITLEGAL_SKILLS/normativa/references/normas.md
 cmp .agents/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
-cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
-cmp .agents/skills/legal-core/references/jerarquia_normativa.md $KITLEGAL_SKILLS/legal-core/references/jerarquia_normativa.md
-cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+cmp .agents/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
+cmp .agents/skills/plazos-y-territorio/references/jerarquia_normativa.md $KITLEGAL_SKILLS/plazos-y-territorio/references/jerarquia_normativa.md
+cmp .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md $KITLEGAL_SKILLS/plazos-y-territorio/references/leyes_vertebrales.md
 
 # El manifiesto: la versión del binario que lo escribió, la de cada skill y la
 # huella SHA-256 de cada fichero instalado, con su ruta relativa al directorio
@@ -81,9 +81,9 @@ grep -count=4 '"version": *"dev"' .agents/skills/kitlegal.json
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json normativa/SKILL.md .agents/skills/normativa/SKILL.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json normativa/references/normas.md .agents/skills/normativa/references/normas.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json jurisprudencia/SKILL.md .agents/skills/jurisprudencia/SKILL.md
-exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/SKILL.md .agents/skills/legal-core/SKILL.md
-exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/references/jerarquia_normativa.md .agents/skills/legal-core/references/jerarquia_normativa.md
-exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/references/leyes_vertebrales.md .agents/skills/legal-core/references/leyes_vertebrales.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/SKILL.md .agents/skills/plazos-y-territorio/SKILL.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/references/jerarquia_normativa.md .agents/skills/plazos-y-territorio/references/jerarquia_normativa.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/references/leyes_vertebrales.md .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md
 ! grep '"hosts"' .agents/skills/kitlegal.json
 ! grep ${WORK@R} .agents/skills/kitlegal.json
 ! grep '"/' .agents/skills/kitlegal.json
@@ -96,7 +96,7 @@ exec sh $WORK/declara.sh .agents/skills/kitlegal.json legal-core/references/leye
 mkdir $WORK/otra/ruta/mas/honda
 cd $WORK/otra/ruta/mas/honda
 exec kitlegal skills install --offline --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 cmp .agents/skills/kitlegal.json $WORK/proyecto/.agents/skills/kitlegal.json
 arbol .
@@ -109,10 +109,10 @@ cmp stdout $WORK/proyecto.txt
 cd $WORK/con-skills
 exec kitlegal skills install
 cmp .agents/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
-cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp .agents/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 cmp .agents/skills/normativa/SKILL.md $KITLEGAL_SKILLS/normativa/SKILL.md
 cmp skills/jurisprudencia/SKILL.md $WORK/falso.md
-cmp skills/legal-core/SKILL.md $WORK/falso.md
+cmp skills/plazos-y-territorio/SKILL.md $WORK/falso.md
 cmp skills/normativa/SKILL.md $WORK/falso.md
 
 # --- El ámbito local no sube a buscar la raíz del proyecto (FR-011) ---
@@ -124,31 +124,32 @@ cd $WORK/proyecto/sub
 arbol $WORK/proyecto/.agents
 cp stdout $WORK/proyecto-agents.txt
 exec kitlegal skills install --json
-stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 exists .agents/skills/kitlegal.json
 arbol $WORK/proyecto/.agents
 cmp stdout $WORK/proyecto-agents.txt
 
 # --- Una sola skill (US1.6, SC-006) ---
 #
-# Solo legal-core queda instalada y el manifiesto solo la declara a ella.
+# Solo plazos-y-territorio queda instalada y el manifiesto solo la declara a
+# ella.
 mkdir $WORK/una
 cd $WORK/una
-exec kitlegal skills install legal-core --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+exec kitlegal skills install plazos-y-territorio --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 arbol .
-stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/legal-core(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+)\n)+\z'
-stdout '^d \.agents/skills/legal-core$'
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/plazos-y-territorio(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+)\n)+\z'
+stdout '^d \.agents/skills/plazos-y-territorio$'
 ! stdout 'skills/normativa'
 ! stdout 'jurisprudencia'
-grep '"legal-core": *\{' .agents/skills/kitlegal.json
+grep '"plazos-y-territorio": *\{' .agents/skills/kitlegal.json
 ! grep '"normativa' .agents/skills/kitlegal.json
 ! grep 'jurisprudencia' .agents/skills/kitlegal.json
 
 # Un nombre repetido cuenta una vez: una sola entrada en `data` (FR-010).
-exec kitlegal skills install legal-core legal-core --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"legal-core","ruta":"\.agents/skills/legal-core","estado":"sin cambios","enlaces":\[\]\}\]\}\n\z'
+exec kitlegal skills install plazos-y-territorio plazos-y-territorio --json
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"sin cambios","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 
 # --- Un nombre que no es de ninguna skill empotrada (FR-010) ---
@@ -158,14 +159,14 @@ stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills"
 mkdir $WORK/desconocida
 cd $WORK/desconocida
 exec sh -c 'kitlegal skills install desconocida --json; test $? -eq 2'
-stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: jurisprudencia, legal-core, normativa(?:[^"\\]|\\.)*"\}\}\n\z'
-stderr 'no es ninguna skill de este binario; skills disponibles: jurisprudencia, legal-core, normativa'
+stdout '\A\{"ok":false,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: jurisprudencia, normativa, plazos-y-territorio(?:[^"\\]|\\.)*"\}\}\n\z'
+stderr 'no es ninguna skill de este binario; skills disponibles: jurisprudencia, normativa, plazos-y-territorio'
 arbol .
 ! stdout .
 
-exec sh -c 'kitlegal skills install legal-core desconocida; test $? -eq 2'
+exec sh -c 'kitlegal skills install plazos-y-territorio desconocida; test $? -eq 2'
 ! stdout .
-stderr 'no es ninguna skill de este binario; skills disponibles: jurisprudencia, legal-core, normativa'
+stderr 'no es ninguna skill de este binario; skills disponibles: jurisprudencia, normativa, plazos-y-territorio'
 arbol .
 ! stdout .
 
@@ -189,5 +190,5 @@ Esto no es ninguna skill empotrada.
 Esto no es ninguna skill empotrada.
 -- con-skills/skills/jurisprudencia/SKILL.md --
 Esto no es ninguna skill empotrada.
--- con-skills/skills/legal-core/SKILL.md --
+-- con-skills/skills/plazos-y-territorio/SKILL.md --
 Esto no es ninguna skill empotrada.

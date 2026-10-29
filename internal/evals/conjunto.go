@@ -211,7 +211,7 @@ type NormaConocida struct {
 type DefectoDelConjunto struct {
 	// Regla es el nombre de la regla en la tabla de su juego, como «materias
 	// distintas» o «normas conocidas» en el de normativa y «cubierto» en el
-	// de legal-core.
+	// de plazos-y-territorio.
 	Regla string
 
 	// Mensaje dice qué se incumple, nombrando los ficheros de eval y las normas
@@ -239,10 +239,10 @@ const (
 // (FR-062), en el orden de data-model §6.3.
 var abreviaturasDelHito = []string{"LPAC", "LCSP", "LRBRL", "LGT", "TRLRHL"}
 
-// Lo que fijan las reglas del conjunto de evals de legal-core (contrato de evals
-// §3 de H6; FR-080 a FR-082).
+// Lo que fijan las reglas del conjunto de evals de plazos-y-territorio
+// (contrato de evals §3 de H6; FR-080 a FR-082).
 const (
-	minimoDeEvalsDeLegalCore = 3
+	minimoDeEvalsDePlazosYTerritorio = 3
 
 	// valorNoConfigurado es el valor del vocabulario de cobertura con el que el
 	// applet territorio dice que la comunidad no tiene configurado un aspecto
@@ -257,7 +257,8 @@ const sinBinarioNiServidorDelConjunto = 1
 
 // ReglaDelConjunto es una regla de un juego de reglas del conjunto de evals, con
 // su nombre en la tabla de ese juego. Los juegos los dan ReglasDeNormativa,
-// ReglasDeLegalCore y ReglasDeJurisprudencia, y los aplica ComprobarConjunto.
+// ReglasDePlazosYTerritorio y ReglasDeJurisprudencia, y los aplica
+// ComprobarConjunto.
 type ReglaDelConjunto struct {
 	nombre string
 
@@ -290,14 +291,14 @@ func ReglasDeNormativa() []ReglaDelConjunto {
 // eval sin binario ni servidor (contracts/evals-en-dos-modos.md §1 de H21).
 const reglaSinBinarioNiServidor = "sin binario ni servidor"
 
-// ReglasDeLegalCore son las reglas del conjunto de evals de legal-core del
-// contrato de evals §3 de H6, en el orden de su tabla, con la de la cobertura
-// por materia de H9 detrás de la del esperado verificable
-// (contracts/evals-legal-core.md §4 de H9), y, detrás, la de la eval sin binario
-// ni servidor de H21. Cada llamada devuelve un juego nuevo.
-func ReglasDeLegalCore() []ReglaDelConjunto {
+// ReglasDePlazosYTerritorio son las reglas del conjunto de evals de
+// plazos-y-territorio del contrato de evals §3 de H6, en el orden de su tabla,
+// con la de la cobertura por materia de H9 detrás de la del esperado
+// verificable (contracts/evals-legal-core.md §4 de H9), y, detrás, la de la
+// eval sin binario ni servidor de H21. Cada llamada devuelve un juego nuevo.
+func ReglasDePlazosYTerritorio() []ReglaDelConjunto {
 	return []ReglaDelConjunto{
-		{nombre: "tamaño", incumplimiento: incumplimientoDelMinimoDeLegalCore},
+		{nombre: "tamaño", incumplimiento: incumplimientoDelMinimoDePlazosYTerritorio},
 		{nombre: "cubierto", incumplimiento: incumplimientoDelMunicipioCubierto},
 		{nombre: "no cubierto", incumplimiento: incumplimientoDelMunicipioNoCubierto},
 		{nombre: "no activación", incumplimiento: incumplimientoDeNoActivacion},
@@ -681,14 +682,15 @@ func incumplimientoDeNormasConocidas(conjunto *conjuntoAComprobar) string {
 	return "normas de citas o comandos esperados que no están en data/normas.yaml: " + strings.Join(partes, "; ")
 }
 
-// incumplimientoDelMinimoDeLegalCore: al menos tres evals bien formadas.
-func incumplimientoDelMinimoDeLegalCore(conjunto *conjuntoAComprobar) string {
-	if len(conjunto.evals) >= minimoDeEvalsDeLegalCore {
+// incumplimientoDelMinimoDePlazosYTerritorio: al menos tres evals bien
+// formadas.
+func incumplimientoDelMinimoDePlazosYTerritorio(conjunto *conjuntoAComprobar) string {
+	if len(conjunto.evals) >= minimoDeEvalsDePlazosYTerritorio {
 		return ""
 	}
 
 	return fmt.Sprintf("hay %d evals y el conjunto lleva al menos %d: %s",
-		len(conjunto.evals), minimoDeEvalsDeLegalCore, conjunto.todosLosFicheros())
+		len(conjunto.evals), minimoDeEvalsDePlazosYTerritorio, conjunto.todosLosFicheros())
 }
 
 // incumplimientoDelMunicipioCubierto: al menos una eval activa resuelve con su
