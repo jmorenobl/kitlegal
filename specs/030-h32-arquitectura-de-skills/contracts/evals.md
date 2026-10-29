@@ -77,8 +77,9 @@ de su tabla y la caché de las sesiones sirva su índice y sus metadatos, porque
 
 y el paso `grabar_datos` la graba con `TestGrabarEvals` (`//go:build grabacion`, `internal/evals/grabacion_test.go`)
 desde `boe.legislacion-consolidada`, con fila revisada en `docs/SOURCES.md`; lo grabado queda en
-`internal/evals/testdata/boe.legislacion-consolidada/` y el material de origen en `$KITLEGAL_EVIDENCIAS`. La tarea
-siguiente toma de la respuesta grabada de la búsqueda el título exacto para `data/normas.yaml`, y
+`internal/evals/testdata/boe.legislacion-consolidada/` y el material de origen en `$KITLEGAL_EVIDENCIAS`. Hasta que se
+graba, `TestPreceptosDeLosPlazos` admite esa entrada sin grabar con una excepción temporal y acotada que la tarea
+siguiente quita (research D22). La tarea siguiente toma de la respuesta grabada de la búsqueda el título exacto para `data/normas.yaml`, y
 `TestIdentificadoresDeLasNormas` lo comprueba: pasa a resolver cada norma de la tabla con el manifiesto de H5 y, la que
 no está en él, con el de H9.
 

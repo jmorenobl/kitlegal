@@ -190,8 +190,10 @@ US6 no tiene guion: su aceptación son `TestDefinicionDelJob`, `TestEvalsDelRepo
 | umbrales del informe (tocados) | `TestUmbralesDeLasSkills` con cuatro skills y los valores de hoy: `consulta-juridica`, de sus respuestas, solo con `fuera_de_lo_grabado` por modelo y modo, que no decide, sin `sin_activar` ni `lectura_sin_intentar` ([contracts/evals.md](contracts/evals.md) §7); `TestLimiteDeLaTasa` con `normativa` | `internal/evals/informe_test.go`, `tasa_test.go` |
 | `TestCacheDeLasSesiones` (tocado) | los bloques de la eval de la póliza; las carpetas nuevas | `internal/evals/preparar_test.go` |
 | `TestIdentificadoresDeLasNormas` (tocado) | la Ley 50/1980 contra el manifiesto de H9 | `internal/evals/grabaciones_test.go` |
+| `TestPreceptosDeLosPlazos` (tocado y restituido) | entre T002 y T003, `verificarLasNormasDeLaCobertura` admite sin grabar solo la entrada «contrato de seguro» del manifiesto de H9, y solo con la falta de la reproducción de su búsqueda; T003, con lo grabado, quita la excepción y la función vuelve a ser la de `c991808`: al final del hito, toda entrada del manifiesto de H9 se resuelve contra lo grabado, como hoy (research D22) | `internal/evals/grabaciones_test.go` |
 | `make schema-check` (tocado) | `schemas/instalacion.json` regenerado | `esquemas_test.go` |
 | `TestSkillsEmpotradas` (tocado) | `skillsDeHoy` pasa a `consulta-juridica`, `jurisprudencia`, `normativa` y `plazos-y-territorio`: con los nombres de `c991808`, `require.Subset` sale en rojo en cuanto el árbol los pierde (FR-005, FR-007) | `skills_test.go` de la raíz |
+| `TestEjecutar` (tocado) | `skillsDeHoy` de `internal/empaquetado/ejecutar_test.go`, que exige con `require.Subset` esas rutas sobre lo empotrado de verdad (`kitlegal.Skills()`), pasa a `skills/normativa/SKILL.md` en T004 y a `skills/plazos-y-territorio/SKILL.md` en T005: con los nombres de `c991808` sale en rojo en cuanto la carpeta se renombra, así que cambia en la tarea que la renombra (FR-007) | `internal/empaquetado/ejecutar_test.go` |
 | `TestConfiguracionDeLaRelease`, subtest `humo` (tocado) | la orden `if [ ! -f .agents/skills/normativa/SKILL.md ]; then` de la comprobación `skills-install` de `comprobacionesDelHumo`, copia de la del paso de `.github/workflows/release.yml` (su nombre, el `if` y el `echo`), que cambia a la vez por FR-032: `normativa` hereda de `boe-legislacion` lo que el paso comprobaba | `release_test.go` de la raíz |
 | `TestEntregaDelHito` (tocado) | los seis `h32-*`; los `h19-*` y `skills-*` con los nombres nuevos; salen los `h31-1-*` | `internal/app/e2e_test.go` |
 | fixtures | nuevos: la grabación de la Ley 50/1980 (`internal/evals/testdata/boe.legislacion-consolidada/`), la vertical de ensayo; modificados: los guiones de `internal/app/testdata/script/` y `internal/skills/testdata/script/` que nombran las skills de hoy | tareas `[datos]` |
@@ -248,7 +250,11 @@ sondeo de SC-016 lo mide una persona fuera del run.
 
 La entrada del manifiesto la escribe una tarea `[datos]`; la graba el paso `grabar_datos`, sin modelo; la tarea
 siguiente lleva a `data/normas.yaml` el identificador y el título que da la búsqueda grabada, y
-`TestIdentificadoresDeLasNormas` los compara con lo grabado (research D13). Ninguna otra fuente: las marcas `vertical`
+`TestIdentificadoresDeLasNormas` los compara con lo grabado (research D13). Como `verificar.sh tarea` corre `make ci`
+antes del commit y `grabar_datos` graba después, y `TestPreceptosDeLosPlazos` cuenta como defecto toda entrada del
+manifiesto de H9 que no se resuelve contra lo grabado, la tarea del manifiesto (T002) deja en ese test una excepción
+temporal y acotada —solo la entrada «contrato de seguro», solo con la falta de la reproducción de su búsqueda— y la
+tarea siguiente (T003), ya con lo grabado, la quita y deja la verificación como en `c991808` (research D22). Ninguna otra fuente: las marcas `vertical`
 son una clasificación del plan, sin fuente (research D5), y la vertical de ensayo son datos de un test, no normas.
 
 ## Trazabilidad

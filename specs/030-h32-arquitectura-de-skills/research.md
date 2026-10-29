@@ -221,6 +221,23 @@ tabla de nombres de `c991808` a la entrega. El último ADR del repositorio es el
 Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). Lo que ocurre, en
 [contracts/evals.md](contracts/evals.md) §5. `scripts/workflow/` no cambia (fuera de alcance).
 
+### D22 · La entrada sin grabar entre el commit de T002 y la grabación (FR-035)
+
+- **Decisión**: T002 añade la entrada «contrato de seguro» al manifiesto de H9 y, en
+  `internal/evals/grabaciones_test.go`, una excepción temporal en `verificarLasNormasDeLaCobertura`: esa entrada, y
+  solo ella, no cuenta como defecto cuando su búsqueda da la falta de la reproducción (no está grabada); con cualquier
+  otro error, o cualquier otra entrada, el defecto es el de hoy. T003, la primera tarea con lo grabado, quita la
+  excepción, y la función queda como en `c991808`.
+- **Por qué**: `verificar.sh tarea` corre `make ci` antes del commit y `grabar_datos` graba después; el test, sin
+  etiqueta de compilación, resuelve contra lo grabado cada entrada del manifiesto de H9 (`TestPreceptosDeLosPlazos` →
+  `verificarLasNormasDeLaCobertura` → `resolverEntrada` → `reproducirBusqueda`), y ni la búsqueda ni
+  `BOE-A-1980-22501` están grabadas. Sin la excepción, T002 no puede quedar en verde, no hay commit y no se graba nada.
+  H26.1 y H31.1 añadieron entradas o bloques a ese manifiesto sin ella porque sus búsquedas ya estaban grabadas.
+- **Rechazadas**: rebajar la verificación para siempre (dejaría pasar un manifiesto que no está grabado); un manifiesto
+  aparte (`grabar_datos` solo graba `<paquete>/testdata/grabaciones.json`, y el de H5 no lo es: V11); cambiar el orden
+  del workflow (`scripts/workflow/` está fuera de alcance); una búsqueda ya grabada que diera la Ley 50/1980 (ninguna
+  la da).
+
 ## Comprobaciones hechas en esta sesión
 
 | # | Qué | Dónde se comprobó |
