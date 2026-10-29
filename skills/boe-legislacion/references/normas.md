@@ -6,6 +6,7 @@
 |---|---|---|---|---|
 | Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil. | CC | `BOE-A-1889-4763` | Real Decreto | derecho civil, fuentes del derecho |
 | Constitución Española. | CE | `BOE-A-1978-31229` | Constitución | organización territorial, autonomía local |
+| Ley 50/1980, de 8 de octubre, de Contrato de Seguro. |  | `BOE-A-1980-22501` | Ley | seguros |
 | Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local | LRBRL | `BOE-A-1985-5392` | Ley | régimen local |
 | Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial. | LOPJ | `BOE-A-1985-12666` | Ley Orgánica | poder judicial |
 | Ley 30/1992, de 26 de noviembre, de Régimen Jurídico de las Administraciones Públicas y del Procedimiento Administrativo Común. | LRJPAC | `BOE-A-1992-26318` | Ley | régimen jurídico de las administraciones públicas, procedimiento administrativo |

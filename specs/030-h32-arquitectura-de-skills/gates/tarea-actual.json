@@ -1,24 +1,29 @@
 {
-  "id": "T002",
-  "texto": "T002 [datos] [US6] La entrada de la Ley 50/1980 en el manifiesto de grabación de las evals, con la excepción temporal que deja `make ci` en verde hasta que se graba, en una sola tarea porque `verificar.sh tarea` corre `make ci` antes del commit, `grabar_datos` graba después, y sin la excepción `TestPreceptosDeLosPlazos` sale en rojo con la entrada sin grabar (FR-035; contracts/evals.md §2; research D13, D22, V11; plan.md «Datos externos» y «Controles mecánicos»). **Manifiesto**: en internal/evals/testdata/grabaciones.json, el manifiesto de H9 (`\"fuente\": \"boe.legislacion-consolidada\"`, fuente con fila revisada en `docs/SOURCES.md` de `main`), al final de `normas`, la entrada `{\"busqueda\": \"contrato de seguro\", \"titulo_empieza_por\": \"Ley 50/1980,\", \"bloques\": [\"a4\", \"a22\"], \"para\": …}` con un `para` que diga que es para la eval 01 de `consulta-juridica` (H32, FR-035) y para qué sirven sus arts. 4 y 22 (la lectura y la cita de la prórroga). **Excepción temporal**: en internal/evals/grabaciones_test.go, `verificarLasNormasDeLaCobertura` (la que usa `TestPreceptosDeLosPlazos`) resuelve contra lo grabado cada entrada del manifiesto de H9 y cuenta como defecto la que no se resuelve; con esta tarea, la entrada cuya `busqueda` es la de una constante `busquedaSinGrabarDeH32` («contrato de seguro»), con un comentario que dice que la retira T003 tras `grabar_datos`, no cuenta como defecto solo si falla porque la reproducción de su búsqueda da la falta de `reproducirBusqueda` (la búsqueda no está grabada), que `resolverEntrada` ya envuelve con `%w` y la excepción distingue con `errors.As` sobre un tipo de error de la falta, sin cambiar su mensaje. Cualquier otra entrada, y esa misma con otro error (grabada y con cero o con dos títulos que empiezan por el prefijo), sigue siendo un defecto, como hoy. Sin `data/normas.yaml`, sin eval y sin test nuevo: la graba el paso `grabar_datos` con el `TestGrabarEvals` de hoy (`//go:build grabacion`, internal/evals/grabacion_test.go, sin cambios), T003 parte de lo grabado y retira la excepción. Rutas: internal/evals/testdata/grabaciones.json, internal/evals/grabaciones_test.go. Test: `go test -count=1 -run '^(TestManifiestoDeGrabaciones|TestGrabacionesSinSolape|TestPreceptosDeLosPlazos|TestIdentificadoresDeLasNormas)$' -v ./internal/evals/` (el manifiesto se lee con `LeerManifiesto` sin defectos y `TestPreceptosDeLosPlazos` pasa con la entrada sin grabar) y `make ci`",
-  "intento": 1,
+  "id": "T003",
+  "texto": "T003 [datos] [US4] El campo `vertical` de una norma y las normas del paquete de lo administrativo, con la Ley 50/1980 de lo grabado, en una sola tarea porque el lector estricto de normas rechaza hoy `vertical`, la norma nueva cambia a la vez `normas.md` y la verificación de los identificadores, y la excepción temporal de T002 se retira en la primera tarea que tiene lo grabado (FR-021, FR-022, FR-035; contracts/paquetes.md §1; data-model §2; research D3, D5, D13, V12). **Esquema**: schemas/normas.yaml.json admite `vertical`, opcional, cadena con el patrón `^[a-z][a-z0-9-]*$`. **Lectura**: internal/skills/normas.go, `Norma` gana `Vertical string` (`yaml:\"vertical\"`), leído por el lector estricto y validado con el esquema; los casos `con-vertical` de internal/skills/normas_test.go y `norma-con-vertical` de internal/skills/sincronia_test.go pasan de defecto a norma válida, y un caso nuevo con `vertical: Fiscal` da el defecto del patrón. **Datos**: en data/normas.yaml, `vertical: administrativo` en las diez normas de research D5 —LPAC `BOE-A-2015-10565`, LRJSP, LRJPAC, LTAIBG, LRBRL `BOE-A-1985-5392`, LCSP `BOE-A-2017-12902`, LGS, LGP, TRLRHL `BOE-A-2004-4214` y LJCA `BOE-A-1998-16718`— y en ninguna otra (ni la CE, el CC, la LEC, la LOPJ, la LGT, la LIRPF, el ET ni la LOPDGDD), con el comentario de cabecera que dice qué marca `vertical`; y la entrada `BOE-A-1980-22501` con el `titulo` y el `rango` copiados de la respuesta grabada de la búsqueda «contrato de seguro» bajo internal/evals/testdata/boe.legislacion-consolidada/ (nunca de memoria), `materias: [seguros]`, sin `vertical` ni `vertebral`. **Verificación**: internal/evals/grabaciones_test.go, `TestIdentificadoresDeLasNormas` resuelve cada norma de la tabla con el manifiesto de H5 y, la que no está en él, con el de H9 (internal/evals/testdata/grabaciones.json), con un subtest que quita la entrada de la Ley 50/1980 de la copia del manifiesto de H9 y exige el error que la nombra. **Restitución**: en el mismo fichero, se retira la excepción temporal de T002 —la constante `busquedaSinGrabarDeH32`, su rama en `verificarLasNormasDeLaCobertura` y el tipo de error de la falta si solo servía a ella—, de modo que `verificarLasNormasDeLaCobertura` y `reproducirBusqueda` quedan, línea a línea, como en `c991808` (`git diff c991808 -- internal/evals/grabaciones_test.go` no toca sus cuerpos) y toda entrada del manifiesto de H9, también la de la Ley 50/1980, se resuelve contra lo grabado: `TestPreceptosDeLosPlazos` en verde lo prueba con la grabación de `grabar_datos`. **Regenerado**: skills/boe-legislacion/references/normas.md con `make skills-sync` (su fila nueva). **Guion de H31.1** (ampliación del intento 1, nota en gates/tarea-T003.md): internal/app/testdata/script/h31-1-h31-1-sitio-en-el-cuerpo.txtar, que T004 retira (FR-040), compara byte a byte `normas.md` de la rama con la de la skill medida, y la fila nueva de la Ley 50/1980 lo pone en rojo (`TestEntregaDelHito`, en `make test` y `make test-integration`); como la skill medida no se toca, el guion compara la de la rama sin esa fila —`exec grep -v -F` con la celda del identificador `BOE-A-1980-22501`, `cp stdout` y `cmp` contra la medida— y su cabecera dice por qué, de modo que cualquier otra diferencia sigue en rojo. Test: `go test -count=1 ./internal/skills/ ./internal/evals/` (con `TestPreceptosDeLosPlazos` y `TestIdentificadoresDeLasNormas`), `TestEntregaDelHito`, `make skills-check`, `make ci`",
+  "intento": 2,
   "datos": true,
   "aceptacion": false,
-  "base": "fc15e4b425789be8c23db2ccade061f34c01a84a",
+  "base": "9946648e639eeed4b5e7cabe6440011f88cd7ec4",
   "rutas": [
     "50/1980",
-    "contracts/evals.md",
+    "contracts/paquetes.md",
     "data/normas.yaml",
-    "docs/SOURCES.md",
+    "gates/tarea-T003.md",
+    "internal/app/testdata/script/h31-1-h31-1-sitio-en-el-cuerpo.txtar",
     "internal/evals/",
-    "internal/evals/grabacion_test.go",
     "internal/evals/grabaciones_test.go",
-    "internal/evals/grabaciones_test.go.",
+    "internal/evals/testdata/boe.legislacion-consolidada",
     "internal/evals/testdata/grabaciones.json",
-    "plan.md",
-    "verificar.sh"
+    "internal/skills/",
+    "internal/skills/normas.go",
+    "internal/skills/normas_test.go",
+    "internal/skills/sincronia_test.go",
+    "normas.md",
+    "schemas/normas.yaml.json",
+    "skills/boe-legislacion/references/normas.md"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "2536b02c70db669b76d41da7e8b370195d33f77056b86d36b2547671b9fd0032"
 }

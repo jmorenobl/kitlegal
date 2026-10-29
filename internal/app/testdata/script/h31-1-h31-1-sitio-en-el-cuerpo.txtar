@@ -7,6 +7,10 @@
 # cada una igual y ninguna más, porque ningún texto sale del cuerpo; y su cuerpo
 # no nombra las normas de las evals por materia.
 #
+# references/normas.md se genera desde data/normas.yaml, que gana en H32 la Ley
+# 50/1980 (FR-035 de H32): es la de la skill medida sin otra diferencia que su
+# fila, que se quita antes de comparar. H32 retira este guion (FR-040 de H32).
+#
 # Cubre: US3, escenarios 2 y 3 · FR-001, FR-003, FR-004, FR-006, FR-007, FR-009,
 # FR-010 · SC-003.
 #
@@ -45,7 +49,9 @@ cmp $RAMA/references/buscar_la_norma.md $MEDIDA/references/buscar_la_norma.md
 cmp $RAMA/references/como_se_cita.md $MEDIDA/references/como_se_cita.md
 cmp $RAMA/references/con_herramientas.md $MEDIDA/references/con_herramientas.md
 cmp $RAMA/references/lecturas_que_fallan.md $MEDIDA/references/lecturas_que_fallan.md
-cmp $RAMA/references/normas.md $MEDIDA/references/normas.md
+exec grep -v -F '| `BOE-A-1980-22501` |' $RAMA/references/normas.md
+cp stdout normas-sin-la-ley-50-1980.md
+cmp normas-sin-la-ley-50-1980.md $MEDIDA/references/normas.md
 cmp $RAMA/references/redaccion_en_una_fecha.md $MEDIDA/references/redaccion_en_una_fecha.md
 cmp $RAMA/references/redaccion_modificada.md $MEDIDA/references/redaccion_modificada.md
 cmp $RAMA/references/varios_bloques.md $MEDIDA/references/varios_bloques.md

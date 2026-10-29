@@ -334,8 +334,19 @@ const (
 	normasMinimasDeLaTabla = 10
 
 	// nombreDeLaCopiaDeLaTabla es el nombre de la copia temporal de la tabla de
-	// normas que escriben los subtests; la del manifiesto lleva el suyo.
+	// normas que escriben los subtests; la del manifiesto de H5 lleva el suyo.
 	nombreDeLaCopiaDeLaTabla = "normas.yaml"
+
+	// nombreDeLaCopiaDelManifiestoDeH9 es el de la copia temporal del manifiesto
+	// de H9, que no puede llevar el suyo: es el mismo que el del de H5.
+	nombreDeLaCopiaDelManifiestoDeH9 = "grabaciones-de-h9.json"
+)
+
+// Los nombres con que los defectos de verificarIdentificadores presentan los
+// manifiestos con que resuelve las normas de la tabla.
+const (
+	etiquetaDelManifiestoDeH5 = "manifiesto de H5"
+	etiquetaDelManifiestoDeH9 = "manifiesto de H9"
 )
 
 // Las normas con las que los subtests de TestIdentificadoresDeLasNormas rompen
@@ -349,74 +360,105 @@ const (
 	// tiene la forma de un identificador y no es el resultado de ninguna
 	// búsqueda grabada, porque ninguna norma es del año 2099.
 	identificadorSinBusqueda = "BOE-A-2099-99999"
+
+	// identificadorDelContratoDeSeguro es el de la Ley 50/1980, de Contrato de
+	// Seguro, cuya entrada se retira del manifiesto de H9: es la norma de la tabla
+	// que ninguna entrada del de H5 resuelve y sí una del de H9 (research D13 de
+	// H32).
+	identificadorDelContratoDeSeguro = "BOE-A-1980-22501"
 )
 
 // TestIdentificadoresDeLasNormas repite sin red la verificación con boe buscar
 // de los identificadores de data/normas.yaml (contrato normas-y-referencias §6;
-// FR-023, FR-024, FR-043, SC-008; US6, escenario 4): sobre la reproducción de las
-// grabaciones de H4 y de H5, cada norma de la tabla la resuelve exactamente una
-// entrada del manifiesto de grabación, con su mismo identificador y su mismo
-// título, y la tabla tiene al menos las diez normas de H5. Los subtests rompen
-// copias temporales de la tabla y del manifiesto y exigen que la verificación
-// falle nombrando la norma: con su identificador cambiado, con su título
-// cambiado, sin la entrada que la resuelve y con una norma que da la búsqueda de
-// otra entrada sin ser la que esa entrada resuelve.
+// FR-023, FR-024, FR-043, SC-008; US6, escenario 4; FR-035 y research D13 de
+// H32): sobre la reproducción de la unión de las grabaciones, cada norma de la
+// tabla la resuelve exactamente una entrada del manifiesto de grabación de H5 o,
+// si ninguna del de H5 la resuelve, exactamente una del de H9, con su mismo
+// identificador y su mismo título, y la tabla tiene al menos las diez normas de
+// H5. Los subtests rompen copias temporales de la tabla y de los manifiestos y
+// exigen que la verificación falle nombrando la norma: con su identificador
+// cambiado, con su título cambiado, sin las entradas que la resuelven, con una
+// norma que da la búsqueda de otra entrada sin ser la que esa entrada resuelve y
+// sin la entrada del manifiesto de H9 que resuelve la Ley 50/1980.
 func TestIdentificadoresDeLasNormas(t *testing.T) {
 	t.Parallel()
 
 	reproduccion := copiaDeLaUnionDeGrabaciones(t)
 	rutaDelManifiesto := rutaDelManifiestoJuntoA(GrabacionesDeH5)
+	rutaDelManifiestoDeH9 := rutaDelManifiestoJuntoA(GrabacionesDeH9)
 
-	normas, err := verificarIdentificadores(t, reproduccion, rutaDelManifiesto, tablaDeNormasDelRepositorio)
-	require.NoError(t, err, "los identificadores de %s contra las búsquedas grabadas del manifiesto %s",
-		tablaDeNormasDelRepositorio, rutaDelManifiesto)
+	normas, err := verificarIdentificadores(t, reproduccion, rutaDelManifiesto, rutaDelManifiestoDeH9,
+		tablaDeNormasDelRepositorio)
+	require.NoError(t, err, "los identificadores de %s contra las búsquedas grabadas de los manifiestos %s y %s",
+		tablaDeNormasDelRepositorio, rutaDelManifiesto, rutaDelManifiestoDeH9)
 	require.GreaterOrEqual(t, len(normas), normasMinimasDeLaTabla,
 		"%s tiene al menos las diez normas de H5", tablaDeNormasDelRepositorio)
 
 	tabla := string(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
 	contenidoDelManifiesto := string(contenidoDelFichero(t, rutaDelManifiesto))
+	contenidoDelManifiestoDeH9 := string(contenidoDelFichero(t, rutaDelManifiestoDeH9))
 
 	manifiesto, err := LeerManifiesto([]byte(contenidoDelManifiesto))
 	require.NoError(t, err)
 
+	manifiestoDeH9, err := LeerManifiesto([]byte(contenidoDelManifiestoDeH9))
+	require.NoError(t, err)
+
 	lpac := normaDeLaTabla(t, normas, identificadorDeLaLPAC)
 	entradaDeLaLPAC := entradaConPrefijoDe(t, manifiesto, lpac.Titulo)
-	otra := otraNormaDeLaBusqueda(t, reproduccion, manifiesto, entradaDeLaLPAC, normas)
+	otra := otraNormaDeLaBusqueda(t, reproduccion, manifiesto, entradaDeLaLPAC, normas, manifiestoDeH9)
+	seguro := normaDeLaTabla(t, normas, identificadorDelContratoDeSeguro)
 
 	tituloCambiado := strings.TrimSuffix(lpac.Titulo, ".")
 	require.NotEqual(t, lpac.Titulo, tituloCambiado, "el título de la LPAC termina en punto: sin él, cambia")
 
 	casos := []struct {
-		nombre     string
-		tabla      string
-		manifiesto string
-		error      string
+		nombre         string
+		tabla          string
+		manifiesto     string
+		manifiestoDeH9 string
+		error          string
 	}{
 		{
-			nombre:     "identificador-cambiado",
-			tabla:      sustituida(t, tabla, "  "+identificadorDeLaLPAC+":\n", "  "+identificadorSinBusqueda+":\n"),
-			manifiesto: contenidoDelManifiesto,
-			error:      identificadorSinBusqueda + ": ninguna entrada del manifiesto lo resuelve",
+			nombre:         "identificador-cambiado",
+			tabla:          sustituida(t, tabla, "  "+identificadorDeLaLPAC+":\n", "  "+identificadorSinBusqueda+":\n"),
+			manifiesto:     contenidoDelManifiesto,
+			manifiestoDeH9: contenidoDelManifiestoDeH9,
+			error:          identificadorSinBusqueda + ": " + ningunaEntradaLoResuelve,
 		},
 		{
-			nombre:     "titulo-cambiado",
-			tabla:      sustituida(t, tabla, lpac.Titulo, tituloCambiado),
-			manifiesto: contenidoDelManifiesto,
-			error:      identificadorDeLaLPAC + ": el título no coincide con la búsqueda grabada: " + lpac.Titulo,
+			nombre:         "titulo-cambiado",
+			tabla:          sustituida(t, tabla, lpac.Titulo, tituloCambiado),
+			manifiesto:     contenidoDelManifiesto,
+			manifiestoDeH9: contenidoDelManifiestoDeH9,
+			error:          identificadorDeLaLPAC + ": el título no coincide con la búsqueda grabada: " + lpac.Titulo,
 		},
 		{
-			nombre:     "norma-sin-entrada",
-			tabla:      tabla,
-			manifiesto: manifiestoSinEntrada(t, manifiesto, entradaDeLaLPAC),
-			error:      identificadorDeLaLPAC + ": ninguna entrada del manifiesto lo resuelve",
+			// El manifiesto de H9 también tiene una entrada que resuelve la LPAC:
+			// sin la del de H5, la resolvería la suya.
+			nombre:         "norma-sin-entrada",
+			tabla:          tabla,
+			manifiesto:     manifiestoSinEntrada(t, manifiesto, entradaDeLaLPAC),
+			manifiestoDeH9: manifiestoSinEntrada(t, manifiestoDeH9, entradaConPrefijoDe(t, manifiestoDeH9, lpac.Titulo)),
+			error:          identificadorDeLaLPAC + ": " + ningunaEntradaLoResuelve,
 		},
 		{
 			// La búsqueda grabada de la entrada de la LPAC da también esta norma,
 			// pero la entrada resuelve la LPAC: no cuenta (data-model §7.2).
-			nombre:     "norma-en-la-busqueda-de-otra-entrada",
-			tabla:      tabla + normaEscrita(t, otra, lpac.Materias),
-			manifiesto: contenidoDelManifiesto,
-			error:      otra.Identificador + ": ninguna entrada del manifiesto lo resuelve",
+			nombre:         "norma-en-la-busqueda-de-otra-entrada",
+			tabla:          tabla + normaEscrita(t, otra, lpac.Materias),
+			manifiesto:     contenidoDelManifiesto,
+			manifiestoDeH9: contenidoDelManifiestoDeH9,
+			error:          otra.Identificador + ": " + ningunaEntradaLoResuelve,
+		},
+		{
+			// Ninguna entrada del manifiesto de H5 resuelve la Ley 50/1980, y sin la
+			// del de H9 no la resuelve ninguna.
+			nombre:         "norma-de-h9-sin-entrada",
+			tabla:          tabla,
+			manifiesto:     contenidoDelManifiesto,
+			manifiestoDeH9: manifiestoSinEntrada(t, manifiestoDeH9, entradaConPrefijoDe(t, manifiestoDeH9, seguro.Titulo)),
+			error:          identificadorDelContratoDeSeguro + ": " + ningunaEntradaLoResuelve,
 		},
 	}
 
@@ -427,15 +469,22 @@ func TestIdentificadoresDeLasNormas(t *testing.T) {
 			copias := t.TempDir()
 			copiaDeLaTabla := filepath.Join(copias, nombreDeLaCopiaDeLaTabla)
 			copiaDelManifiesto := filepath.Join(copias, nombreDelManifiestoDelRepositorio)
+			copiaDelManifiestoDeH9 := filepath.Join(copias, nombreDeLaCopiaDelManifiestoDeH9)
 
 			require.NoError(t, escribirFichero(copiaDeLaTabla, []byte(caso.tabla)))
 			require.NoError(t, escribirFichero(copiaDelManifiesto, []byte(caso.manifiesto)))
+			require.NoError(t, escribirFichero(copiaDelManifiestoDeH9, []byte(caso.manifiestoDeH9)))
 
-			_, err := verificarIdentificadores(t, reproduccion, copiaDelManifiesto, copiaDeLaTabla)
+			_, err := verificarIdentificadores(t, reproduccion, copiaDelManifiesto, copiaDelManifiestoDeH9, copiaDeLaTabla)
 			require.EqualError(t, err, caso.error)
 		})
 	}
 }
+
+// ningunaEntradaLoResuelve es el defecto de comprobarNorma de la norma que no
+// resuelve ninguna entrada de los dos manifiestos, detrás de su identificador.
+const ningunaEntradaLoResuelve = "ninguna entrada del " + etiquetaDelManifiestoDeH5 + " ni del " +
+	etiquetaDelManifiestoDeH9 + " lo resuelve"
 
 // normaResuelta es la norma que resuelve una entrada del manifiesto: el único
 // resultado de su búsqueda grabada cuyo título empieza por su prefijo.
@@ -448,26 +497,34 @@ type normaResuelta struct {
 }
 
 // verificarIdentificadores comprueba sin red la tabla de normas de rutaDeLaTabla
-// contra las búsquedas grabadas del manifiesto de rutaDelManifiesto,
-// reproducidas desde el directorio reproduccion (contrato normas-y-referencias
-// §6), y devuelve las normas de la tabla y los defectos unidos:
+// contra las búsquedas grabadas de los manifiestos de H5, en rutaDelManifiesto,
+// y de H9, en rutaDelManifiestoDeH9, reproducidas desde el directorio
+// reproduccion (contrato normas-y-referencias §6; research D13 de H32), y
+// devuelve las normas de la tabla y los defectos unidos:
 //
-//  1. lee el manifiesto con LeerManifiesto y devuelve su error tal cual, antes
-//     de reproducir ninguna búsqueda; después lee la tabla con skills.LeerNormas,
-//     con su error igual;
-//  2. resuelve cada entrada del manifiesto con resolverEntrada, que da un defecto
-//     por cada entrada que no se resuelve;
-//  3. exige a cada norma de la tabla exactamente una entrada que la resuelva, con
-//     su identificador y su título, con comprobarNorma.
+//  1. lee los dos manifiestos con LeerManifiesto y devuelve el error del primero
+//     que no se lee tal cual, antes de reproducir ninguna búsqueda; después lee
+//     la tabla con skills.LeerNormas, con su error igual;
+//  2. resuelve cada entrada de los dos manifiestos con resolverEntradas, que da
+//     un defecto por cada entrada que no se resuelve;
+//  3. exige a cada norma de la tabla, con comprobarNorma, exactamente una
+//     entrada que la resuelva, con su identificador y su título: del manifiesto
+//     de H5 o, si ninguna suya la resuelve, del de H9. Así, una norma que
+//     resuelven los dos no cuenta dos veces.
 //
 // Lo que impide verificar, un fichero que no se lee o el registro que no se
 // monta, hace fallar el test.
 func verificarIdentificadores(
-	t *testing.T, reproduccion, rutaDelManifiesto, rutaDeLaTabla string,
+	t *testing.T, reproduccion, rutaDelManifiesto, rutaDelManifiestoDeH9, rutaDeLaTabla string,
 ) ([]skills.Norma, error) {
 	t.Helper()
 
 	manifiesto, err := LeerManifiesto(contenidoDelFichero(t, rutaDelManifiesto))
+	if err != nil {
+		return nil, err
+	}
+
+	manifiestoDeH9, err := LeerManifiesto(contenidoDelFichero(t, rutaDelManifiestoDeH9))
 	if err != nil {
 		return nil, err
 	}
@@ -478,6 +535,30 @@ func verificarIdentificadores(
 	}
 
 	registro := registroDeLaReproduccion(t, reproduccion)
+	resueltas, defectos := resolverEntradas(registro, etiquetaDelManifiestoDeH5, manifiesto)
+	resueltasDeH9, defectosDeH9 := resolverEntradas(registro, etiquetaDelManifiestoDeH9, manifiestoDeH9)
+	defectos = append(defectos, defectosDeH9...)
+
+	for _, norma := range normas {
+		etiqueta, suyas := etiquetaDelManifiestoDeH5, resueltas[norma.Identificador]
+		if len(suyas) == 0 {
+			etiqueta, suyas = etiquetaDelManifiestoDeH9, resueltasDeH9[norma.Identificador]
+		}
+
+		if err := comprobarNorma(norma, etiqueta, suyas); err != nil {
+			defectos = append(defectos, err)
+		}
+	}
+
+	return normas, errors.Join(defectos...)
+}
+
+// resolverEntradas resuelve con resolverEntrada cada entrada del manifiesto que
+// presenta la etiqueta y devuelve las normas que resuelven, por identificador, y
+// un defecto por cada entrada que no se resuelve, con la etiqueta delante.
+func resolverEntradas(
+	registro *app.Registro, etiqueta string, manifiesto Manifiesto,
+) (map[string][]normaResuelta, []error) {
 	resueltas := make(map[string][]normaResuelta, len(manifiesto.Normas))
 
 	var defectos []error
@@ -485,7 +566,7 @@ func verificarIdentificadores(
 	for indice, entrada := range manifiesto.Normas {
 		resuelta, err := resolverEntrada(registro, indice, entrada)
 		if err != nil {
-			defectos = append(defectos, err)
+			defectos = append(defectos, fmt.Errorf("%s: %w", etiqueta, err))
 
 			continue
 		}
@@ -494,13 +575,7 @@ func verificarIdentificadores(
 		resueltas[identificador] = append(resueltas[identificador], resuelta)
 	}
 
-	for _, norma := range normas {
-		if err := comprobarNorma(norma, resueltas[norma.Identificador]); err != nil {
-			defectos = append(defectos, err)
-		}
-	}
-
-	return normas, errors.Join(defectos...)
+	return resueltas, defectos
 }
 
 // resolverEntrada reproduce boe buscar con la búsqueda de la entrada y devuelve
@@ -537,7 +612,7 @@ func resolverEntrada(registro *app.Registro, indice int, entrada EntradaDelManif
 
 // reproducirBusqueda ejecuta la búsqueda con app.Main y --json sobre el registro
 // y devuelve sus resultados. Un código distinto de 0 es un error con la orden, su
-// código y su mensaje, como los presenta Falta: un *errorDeLaFalta.
+// código y su mensaje, como los presenta Falta.
 func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.ResultadoDeBusqueda, error) {
 	var salida, errores bytes.Buffer
 
@@ -547,7 +622,7 @@ func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.Result
 		sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion); codigo != 0 {
 		falta := Falta{Consulta: busqueda, Codigo: codigo, Mensaje: strings.TrimSuffix(errores.String(), "\n")}
 
-		return nil, &errorDeLaFalta{falta: falta}
+		return nil, errors.New(falta.String())
 	}
 
 	var sobre struct {
@@ -561,39 +636,18 @@ func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.Result
 	return sobre.Data, nil
 }
 
-// busquedaSinGrabarDeH32 es la búsqueda de la entrada de la Ley 50/1980 que T002
-// de H32 añade al manifiesto de H9 y que el paso grabar_datos graba después de su
-// commit (research D22 de H32). Hasta entonces su reproducción da la falta de
-// reproducirBusqueda, y verificarLasNormasDeLaCobertura no la cuenta como
-// defecto; cualquier otro error de esa entrada, y el de cualquier otra, sí. La
-// retira T003 tras grabar_datos, en la primera tarea con lo grabado, con su
-// rama en verificarLasNormasDeLaCobertura y errorDeLaFalta.
-const busquedaSinGrabarDeH32 = "contrato de seguro"
-
-// errorDeLaFalta es el error de reproducirBusqueda cuando la búsqueda termina
-// con un código distinto de 0, la búsqueda que lo grabado no sirve: su mensaje
-// es el de la Falta, como lo presenta Falta.String. Solo lo distingue la
-// excepción de busquedaSinGrabarDeH32, y lo retira T003 con ella.
-type errorDeLaFalta struct {
-	falta Falta
-}
-
-// Error presenta la falta con Falta.String.
-func (e *errorDeLaFalta) Error() string {
-	return e.falta.String()
-}
-
 // comprobarNorma exige que exactamente una de las entradas que resuelven el
-// identificador de la norma la resuelva, y con su mismo título. Que la norma
-// esté entre los resultados de la búsqueda de otra entrada sin ser el que esa
-// entrada resuelve no cuenta: no está en resueltas (data-model §7.2). Dos
-// entradas solo pueden resolver el mismo identificador si sus búsquedas lo dan
-// con títulos distintos, porque LeerManifiesto rechaza dos prefijos de un mismo
-// título.
-func comprobarNorma(norma skills.Norma, resueltas []normaResuelta) error {
+// identificador de la norma la resuelva, y con su mismo título: las del
+// manifiesto que presenta la etiqueta, que es el de H9 solo cuando ninguna del de
+// H5 la resuelve (verificarIdentificadores). Que la norma esté entre los
+// resultados de la búsqueda de otra entrada sin ser el que esa entrada resuelve
+// no cuenta: no está en resueltas (data-model §7.2). Dos entradas solo pueden
+// resolver el mismo identificador si sus búsquedas lo dan con títulos distintos,
+// porque LeerManifiesto rechaza dos prefijos de un mismo título.
+func comprobarNorma(norma skills.Norma, etiqueta string, resueltas []normaResuelta) error {
 	switch len(resueltas) {
 	case 0:
-		return fmt.Errorf("%s: ninguna entrada del manifiesto lo resuelve", norma.Identificador)
+		return fmt.Errorf("%s: %s", norma.Identificador, ningunaEntradaLoResuelve)
 	case 1:
 		if grabado := resueltas[0].resultado.Titulo; grabado != norma.Titulo {
 			return fmt.Errorf("%s: el título no coincide con la búsqueda grabada: %s", norma.Identificador, grabado)
@@ -606,8 +660,8 @@ func comprobarNorma(norma skills.Norma, resueltas []normaResuelta) error {
 			entradas = append(entradas, resuelta.entrada)
 		}
 
-		return fmt.Errorf("%s: lo resuelven %d entradas del manifiesto, y tiene que ser una sola: %s",
-			norma.Identificador, len(resueltas), strings.Join(entradas, ", "))
+		return fmt.Errorf("%s: lo resuelven %d entradas del %s, y tiene que ser una sola: %s",
+			norma.Identificador, len(resueltas), etiqueta, strings.Join(entradas, ", "))
 	}
 }
 
@@ -687,15 +741,16 @@ func entradaConPrefijoDe(t *testing.T, manifiesto Manifiesto, titulo string) int
 
 // otraNormaDeLaBusqueda es el primer resultado de la búsqueda grabada de la
 // entrada del manifiesto en la posición indice que no es ninguna de las normas y
-// cuyo título no empieza por el prefijo de ninguna entrada del manifiesto: la
-// búsqueda lo da, pero la entrada resuelve otra norma y ninguna entrada lo
-// resuelve a él. Sin la condición del prefijo, la entrada de una norma que
-// todavía no está en la tabla lo resolvería, y el subtest que lo añade a la
-// tabla fallaría por su premisa y no por lo que prueba (contrato de la eval y la
-// grabación §1 de H5.1; research D12). Una búsqueda que no dé ninguno así es un
-// fallo del test, que si no pasaría en vacío.
+// cuyo título no empieza por el prefijo de ninguna entrada del manifiesto ni del
+// de H9: la búsqueda lo da, pero la entrada resuelve otra norma y ninguna
+// entrada lo resuelve a él. Sin la condición del prefijo, la entrada de una
+// norma que todavía no está en la tabla lo resolvería, y el subtest que lo añade
+// a la tabla fallaría por su premisa y no por lo que prueba (contrato de la eval
+// y la grabación §1 de H5.1; research D12). Una búsqueda que no dé ninguno así es
+// un fallo del test, que si no pasaría en vacío.
 func otraNormaDeLaBusqueda(
 	t *testing.T, reproduccion string, manifiesto Manifiesto, indice int, normas []skills.Norma,
+	manifiestoDeH9 Manifiesto,
 ) boe.ResultadoDeBusqueda {
 	t.Helper()
 
@@ -704,18 +759,19 @@ func otraNormaDeLaBusqueda(
 	resultados, err := reproducirBusqueda(registroDeLaReproduccion(t, reproduccion), busquedaDe(entrada))
 	require.NoError(t, err)
 
+	entradas := slices.Concat(manifiesto.Normas, manifiestoDeH9.Normas)
 	posicion := slices.IndexFunc(resultados, func(resultado boe.ResultadoDeBusqueda) bool {
 		enLaTabla := slices.ContainsFunc(normas, func(norma skills.Norma) bool {
 			return norma.Identificador == resultado.Identificador
 		})
-		conPrefijo := slices.ContainsFunc(manifiesto.Normas, func(otra EntradaDelManifiesto) bool {
+		conPrefijo := slices.ContainsFunc(entradas, func(otra EntradaDelManifiesto) bool {
 			return strings.HasPrefix(resultado.Titulo, otra.TituloEmpiezaPor)
 		})
 
 		return !enLaTabla && !conPrefijo
 	})
 	require.GreaterOrEqual(t, posicion, 0, "la búsqueda grabada %q da alguna norma que no está en la tabla de normas "+
-		"y cuyo título no empieza por el prefijo de ninguna entrada del manifiesto", entrada.Busqueda)
+		"y cuyo título no empieza por el prefijo de ninguna entrada de los manifiestos", entrada.Busqueda)
 
 	return resultados[posicion]
 }
@@ -1525,9 +1581,7 @@ func comprobarLasPalabras(fila palabrasDeUnPrecepto, texto string) []error {
 // norma de la cobertura exactamente una entrada que la resuelva (punto 3;
 // FR-031): su identificador sale de lo grabado y no de memoria (research S5 de
 // H9). Una entrada que no se resuelve es un defecto, y uno cada norma que
-// ninguna o más de una resuelven, con su procedimiento. Hasta que grabar_datos
-// la graba, la entrada de busquedaSinGrabarDeH32 cuya búsqueda da la falta de
-// reproducirBusqueda no es un defecto (research D22 de H32).
+// ninguna o más de una resuelven, con su procedimiento.
 func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) []error {
 	t.Helper()
 
@@ -1542,11 +1596,6 @@ func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) [
 	for indice, entrada := range manifiesto.Normas {
 		resuelta, err := resolverEntrada(registro, indice, entrada)
 		if err != nil {
-			var falta *errorDeLaFalta
-			if entrada.Busqueda == busquedaSinGrabarDeH32 && errors.As(err, &falta) {
-				continue
-			}
-
 			defectos = append(defectos, err)
 
 			continue
