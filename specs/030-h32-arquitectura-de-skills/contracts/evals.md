@@ -28,16 +28,16 @@ no_se_activan: [jurisprudencia]
 comandos:
   - applet: boe
     norma: BOE-A-1980-22501
-    bloque: a22
+    bloque: aveintidos
 citas:
   - norma: BOE-A-1980-22501
-    bloque: a22
+    bloque: aveintidos
 prohibidos:
   - applet: plazos
     verbo: calcular
 lecturas:
   - norma: BOE-A-1980-22501
-    bloque: a4
+    bloque: acuarto
     motivo: "…"
 ```
 
@@ -72,7 +72,7 @@ de su tabla y la caché de las sesiones sirva su índice y sus metadatos, porque
 `internal/evals/testdata/grabaciones.json` la entrada
 
 ```json
-{"busqueda": "contrato de seguro", "titulo_empieza_por": "Ley 50/1980,", "bloques": ["a4", "a22"], "para": "eval 01 de consulta-juridica (H32, FR-035): la Ley 50/1980, de Contrato de Seguro, sus arts. 4 y 22; …"}
+{"busqueda": "contrato de seguro", "titulo_empieza_por": "Ley 50/1980,", "bloques": ["acuarto", "aveintidos"], "para": "eval 01 de consulta-juridica (H32, FR-035): la Ley 50/1980, de Contrato de Seguro, sus arts. 4 y 22; …"}
 ```
 
 y el paso `grabar_datos` la graba con `TestGrabarEvals` (`//go:build grabacion`, `internal/evals/grabacion_test.go`)
@@ -178,6 +178,6 @@ una skill de su `se_activan` no pasa, y una serie que no llega a la regla pone e
 ## 8. La caché de las sesiones (FR-035, SC-012)
 
 `TestCacheDeLasSesiones` (`internal/evals/preparar_test.go`) gana el subtest de `consulta-juridica`: la caché de una
-sesión de su eval 01 sirve `BOE-A-1980-22501` `a22` y `a4`, sin fecha y con `--fecha 9999-12-31`, con 0. Los subtests de
+sesión de su eval 01 sirve `BOE-A-1980-22501` `aveintidos` y `acuarto`, sin fecha y con `--fecha 9999-12-31`, con 0. Los subtests de
 hoy pasan a las carpetas nuevas (`evalsDeNormativa`, `evalsDePlazosYTerritorio`) con los mismos ficheros y bloques, y
 siguen en rojo si la caché de la skill que hereda las evals 14, 15 y 17 no sirve un bloque de sus `lecturas`.

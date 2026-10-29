@@ -136,5 +136,5 @@ Las dos evals nuevas de `consulta-juridica` ([evals.md](evals.md) §2):
 
 | Eval nueva | Se activan | Formas |
 |---|---|---|
-| `consulta-juridica/01-poliza-tras-el-fallecimiento` (FR-035) | `consulta-juridica`, `normativa`; no `jurisprudencia` | ninguna: la cita `[BOE-A-1980-22501, bloque a22]` y la prosa de lo no cubierto; prohibida `plazos calcular` |
+| `consulta-juridica/01-poliza-tras-el-fallecimiento` (FR-035) | `consulta-juridica`, `normativa`; no `jurisprudencia` | ninguna: la cita `[BOE-A-1980-22501, bloque aveintidos]` y la prosa de lo no cubierto; prohibida `plazos calcular` |
 | `consulta-juridica/02-una-sola-capacidad` (FR-036) | `consulta-juridica` y `normativa` (`se_activan`); no `jurisprudencia` ni `plazos-y-territorio` | la cita `[BOE-A-2015-11430, bloque a38]` |

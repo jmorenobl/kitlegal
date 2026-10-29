@@ -246,7 +246,7 @@ sondeo de SC-016 lo mide una persona fuera del run.
 
 | Fuente | Fila en `docs/SOURCES.md` de `main` | Manifiesto | Test de grabación | Lo que deja |
 |---|---|---|---|---|
-| `boe.legislacion-consolidada` | sí, «Revisado» 2026-09-13 | `internal/evals/testdata/grabaciones.json` (`"fuente": "boe.legislacion-consolidada"`), una entrada nueva: la búsqueda «contrato de seguro», `titulo_empieza_por` «Ley 50/1980,», bloques `a4` y `a22` | `TestGrabarEvals`, `//go:build grabacion`, `internal/evals/grabacion_test.go`, por `internal/httpx` | las respuestas en `internal/evals/testdata/boe.legislacion-consolidada/`; el material de origen en `$KITLEGAL_EVIDENCIAS` (`evidencias/H32/`) |
+| `boe.legislacion-consolidada` | sí, «Revisado» 2026-09-13 | `internal/evals/testdata/grabaciones.json` (`"fuente": "boe.legislacion-consolidada"`), una entrada nueva: la búsqueda «contrato de seguro», `titulo_empieza_por` «Ley 50/1980,», bloques `acuarto` y `aveintidos` | `TestGrabarEvals`, `//go:build grabacion`, `internal/evals/grabacion_test.go`, por `internal/httpx` | las respuestas en `internal/evals/testdata/boe.legislacion-consolidada/`; el material de origen en `$KITLEGAL_EVIDENCIAS` (`evidencias/H32/`) |
 
 La entrada del manifiesto la escribe una tarea `[datos]`; la graba el paso `grabar_datos`, sin modelo; la tarea
 siguiente lleva a `data/normas.yaml` el identificador y el título que da la búsqueda grabada, y

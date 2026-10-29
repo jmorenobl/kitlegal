@@ -138,7 +138,7 @@ no se han podido comprobar sin red ni modelo (S). Cada decisión, con la alterna
 ### D13 · La eval de la póliza y la Ley 50/1980 en `data/normas.yaml` (FR-035)
 
 - **Decisión**: la pregunta habla de la prórroga de la póliza tras el fallecimiento, y la eval exige la cita del
-  art. 22 (`a22`, la prórroga) y sirve el 4 (`a4`) como lectura. La Ley 50/1980 entra en `data/normas.yaml`
+  art. 22 (`aveintidos`, la prórroga) y sirve el 4 (`acuarto`) como lectura: la ley numera sus artículos con letra y el índice del BOE les da esos ids. La Ley 50/1980 entra en `data/normas.yaml`
   (`materias: [seguros]`, sin `vertical`), con su identificador y su título de la búsqueda grabada, y
   `TestIdentificadoresDeLasNormas` resuelve las normas de la tabla con el manifiesto de H5 y, la que no está en él, con
   el de H9.
@@ -263,7 +263,7 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
 
 | # | Supuesto | Qué pasa si no se cumple |
 |---|---|---|
-| S1 | La búsqueda «contrato de seguro» del BOE da la Ley 50/1980 con un título que empieza por «Ley 50/1980,», y su índice tiene los bloques `a4` y `a22` | `grabar_datos` falla nombrando la entrada: causa mayor del run (dependencia externa inaccesible, supuesto del spec); una persona corrige la entrada del manifiesto y reanuda |
+| S1 | La búsqueda «contrato de seguro» del BOE da la Ley 50/1980 con un título que empieza por «Ley 50/1980,», y su índice tiene los bloques `a4` y `a22` (falso: el índice grabado el 2026-10-29 da `acuarto` y `aveintidos`, porque la ley numera sus artículos con letra; `grabar_datos` paró el run `da17a6b8` y la entrada se corrigió con los ids del índice) | `grabar_datos` falla nombrando la entrada: causa mayor del run (dependencia externa inaccesible, supuesto del spec); una persona corrige la entrada del manifiesto y reanuda |
 | S2 | La sesión que activa `consulta-juridica` activa después la skill de la capacidad que la pregunta pide | lo mide el job de cierre: la sesión que no activa la skill de su `se_activan` no pasa, y la serie de la eval decide por su regla (SC-015); `consulta-juridica` no publica `sin_activar` ([contracts/evals.md](contracts/evals.md) §7) |
 | S3 | La sesión de la póliza cita el art. 22, el de la prórroga | lo mide el job de cierre (SC-015) |
 | S4 | `git diff --find-renames` detecta como renombrados los ficheros de `evals/` con una o dos líneas cambiadas (umbral por omisión del 50 % según la documentación de git, no consultada sin red) | `git diff --find-renames=90%` lo dice igual; lo coteja la revisión final (FR-033) |
