@@ -789,12 +789,12 @@ const versionDePrueba = "v0.1.0"
 // binario con sus ficheros, en una lista nueva en cada llamada.
 func empotradasDePrueba() []instalacion.SkillEmpotrada {
 	return []instalacion.SkillEmpotrada{
-		{Nombre: "boe-legislacion", Ficheros: []instalacion.FicheroEmpotrado{
-			instalacion.NuevoFicheroEmpotrado("SKILL.md", []byte("# boe-legislacion\n")),
+		{Nombre: "normativa", Ficheros: []instalacion.FicheroEmpotrado{
+			instalacion.NuevoFicheroEmpotrado("SKILL.md", []byte("# normativa\n")),
 			instalacion.NuevoFicheroEmpotrado("references/normas.md", []byte("# Normas\n")),
 		}},
-		{Nombre: "legal-core", Ficheros: []instalacion.FicheroEmpotrado{
-			instalacion.NuevoFicheroEmpotrado("SKILL.md", []byte("# legal-core\n")),
+		{Nombre: "plazos-y-territorio", Ficheros: []instalacion.FicheroEmpotrado{
+			instalacion.NuevoFicheroEmpotrado("SKILL.md", []byte("# plazos-y-territorio\n")),
 			instalacion.NuevoFicheroEmpotrado("references/jerarquia_normativa.md", []byte("# Jerarquía\n")),
 			instalacion.NuevoFicheroEmpotrado("references/leyes_vertebrales.md", []byte("# Leyes\n")),
 		}},

@@ -80,15 +80,15 @@ func avisoGlobal(instalada, binario string) string {
 // homeDePrueba y en el directorio neutro que se nombre. Cada fila las cambia
 // antes de escribir su manifiesto.
 func enLocal(d *discoEnMemoria, version string) *instalada {
-	return instalarLocal(d, "boe-legislacion", "legal-core").deVersion(version)
+	return instalarLocal(d, "normativa", "plazos-y-territorio").deVersion(version)
 }
 
 func enGlobal(d *discoEnMemoria, version string) *instalada {
-	return instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "boe-legislacion", "legal-core").deVersion(version)
+	return instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "normativa", "plazos-y-territorio").deVersion(version)
 }
 
 func enNeutro(d *discoEnMemoria, neutro, version string) *instalada {
-	return instalarEn(d, instalacion.NuevoAmbitoDir(neutro), "boe-legislacion", "legal-core").deVersion(version)
+	return instalarEn(d, instalacion.NuevoAmbitoDir(neutro), "normativa", "plazos-y-territorio").deVersion(version)
 }
 
 // globalDeOtraVersion deja en el ámbito global el manifiesto de un binario
@@ -285,7 +285,7 @@ func casosDelAvisoEnElManifiesto() []casoDeAviso {
 			nombre: "sin kitlegal.json, el global de otra versión",
 			preparar: func(d *discoEnMemoria) {
 				globalDeOtraVersion(d)
-				d.fichero(".agents/skills/legal-core/SKILL.md", "# legal-core\n")
+				d.fichero(".agents/skills/plazos-y-territorio/SKILL.md", "# plazos-y-territorio\n")
 			},
 			esperada: avisoGlobal(versionDePrueba, versionNueva),
 		},
@@ -447,7 +447,7 @@ func casosDelAvisoEnElGlobal() []casoDeAviso {
 		{
 			nombre: "sin kitlegal.json en HOME",
 			preparar: func(d *discoEnMemoria) {
-				d.fichero(homeDePrueba+"/.agents/skills/legal-core/SKILL.md", "# legal-core\n")
+				d.fichero(homeDePrueba+"/.agents/skills/plazos-y-territorio/SKILL.md", "# plazos-y-territorio\n")
 			},
 		},
 		{
@@ -506,7 +506,7 @@ func casosDeLasVersionesDelAviso() []casoDeAviso {
 		{
 			nombre: "el manifiesto al día y una skill de otra versión",
 			preparar: func(d *discoEnMemoria) {
-				enLocal(d, versionNueva).skillDeVersion("legal-core", versionDePrueba).escribir()
+				enLocal(d, versionNueva).skillDeVersion("plazos-y-territorio", versionDePrueba).escribir()
 			},
 			esperada: avisoLocal(versionDePrueba, versionNueva),
 		},
@@ -514,8 +514,8 @@ func casosDeLasVersionesDelAviso() []casoDeAviso {
 			nombre: "dos skills de otra versión: la primera por nombre",
 			preparar: func(d *discoEnMemoria) {
 				enLocal(d, versionNueva).
-					skillDeVersion("legal-core", versionVieja).
-					skillDeVersion("boe-legislacion", versionDePrueba).
+					skillDeVersion("plazos-y-territorio", versionVieja).
+					skillDeVersion("normativa", versionDePrueba).
 					escribir()
 			},
 			esperada: avisoLocal(versionDePrueba, versionNueva),
@@ -523,14 +523,14 @@ func casosDeLasVersionesDelAviso() []casoDeAviso {
 		{
 			nombre: "el manifiesto y una skill de otra versión: la del manifiesto",
 			preparar: func(d *discoEnMemoria) {
-				enLocal(d, versionDePrueba).skillDeVersion("boe-legislacion", versionVieja).escribir()
+				enLocal(d, versionDePrueba).skillDeVersion("normativa", versionVieja).escribir()
 			},
 			esperada: avisoLocal(versionDePrueba, versionNueva),
 		},
 		{
 			nombre: "una skill que solo difiere en la v inicial",
 			preparar: func(d *discoEnMemoria) {
-				enLocal(d, versionNueva).skillDeVersion("legal-core", "0.2.0").escribir()
+				enLocal(d, versionNueva).skillDeVersion("plazos-y-territorio", "0.2.0").escribir()
 			},
 		},
 		{
@@ -544,7 +544,7 @@ func casosDeLasVersionesDelAviso() []casoDeAviso {
 			preparar: func(d *discoEnMemoria) {
 				enLocal(d, versionNueva).
 					noEmpotrada("antigua", versionVieja).
-					skillDeVersion("legal-core", versionDePrueba).
+					skillDeVersion("plazos-y-territorio", versionDePrueba).
 					escribir()
 			},
 			esperada: avisoLocal(versionDePrueba, versionNueva),
@@ -552,7 +552,7 @@ func casosDeLasVersionesDelAviso() []casoDeAviso {
 		{
 			nombre: "el global al día y una skill de otra versión",
 			preparar: func(d *discoEnMemoria) {
-				enGlobal(d, versionNueva).skillDeVersion("legal-core", versionDePrueba).escribir()
+				enGlobal(d, versionNueva).skillDeVersion("plazos-y-territorio", versionDePrueba).escribir()
 			},
 			esperada: avisoGlobal(versionDePrueba, versionNueva),
 		},

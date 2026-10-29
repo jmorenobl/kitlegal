@@ -110,8 +110,8 @@ func escenarioDeCopiaAEnlace() escenarioDeAplicar {
 	return escenarioDeAplicar{
 		nombre: "copia que pasa a enlace, con otra skill nueva",
 		preparar: func(d *discoEnMemoria) {
-			instalarLocal(d, "boe-legislacion").copiar("boe-legislacion").
-				deOtroBinario("boe-legislacion", "SKILL.md", "# boe-legislacion de otro binario\n").escribir()
+			instalarLocal(d, "normativa").copiar("normativa").
+				deOtroBinario("normativa", "SKILL.md", "# normativa de otro binario\n").escribir()
 		},
 	}
 }
@@ -129,19 +129,19 @@ func escenariosDeAplicar() []escenarioDeAplicar {
 		{
 			nombre: "actualización desde otro binario, con un fichero declarado que falta",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").
-					deOtroBinario("legal-core", "SKILL.md", "# legal-core de otro binario\n").
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio").
+					deOtroBinario("plazos-y-territorio", "SKILL.md", "# plazos-y-territorio de otro binario\n").
 					deVersion(versionVieja).escribir()
-				d.retirar(".agents/skills/boe-legislacion/references/normas.md")
+				d.retirar(".agents/skills/normativa/references/normas.md")
 			},
 		},
 		escenarioDeCopiaAEnlace(),
 		{
 			nombre: "retirada de lo que se deja de empotrar, en el neutro y en una copia que se mantiene",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").
-					deOtroBinario("legal-core", "references/antigua.md", "# Antigua\n").
-					copiaDeOtroBinario("legal-core", "references/antigua.md", "# Antigua\n").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("normativa").copiar("plazos-y-territorio").
+					deOtroBinario("plazos-y-territorio", "references/antigua.md", "# Antigua\n").
+					copiaDeOtroBinario("plazos-y-territorio", "references/antigua.md", "# Antigua\n").escribir()
 			},
 			admite: admiteNunca,
 		},
@@ -238,13 +238,13 @@ func probarPrimerFalloAlAplicar(t *testing.T) {
 		},
 		{
 			escenario: escenarioNuevo(),
-			operacion: "escribir .agents/skills/legal-core/SKILL.md",
-			mensaje:   "skills install: escribir .agents/skills/legal-core/SKILL.md: fallo de entrada y salida inyectado",
+			operacion: "escribir .agents/skills/plazos-y-territorio/SKILL.md",
+			mensaje:   "skills install: escribir .agents/skills/plazos-y-territorio/SKILL.md: fallo de entrada y salida inyectado",
 		},
 		{
 			escenario: escenarioDeCopiaAEnlace(),
-			operacion: "retirar .claude/skills/boe-legislacion/references",
-			mensaje:   "skills install: retirar .claude/skills/boe-legislacion/references: fallo de entrada y salida inyectado",
+			operacion: "retirar .claude/skills/normativa/references",
+			mensaje:   "skills install: retirar .claude/skills/normativa/references: fallo de entrada y salida inyectado",
 		},
 	}
 
@@ -285,29 +285,29 @@ func probarCopiaAlAplicar(t *testing.T) {
 	assert.Equal(t, porElEscritor(slices.Concat(
 		enlazarLasDos(ambitoLocal, ".claude/skills"),
 		manifiestoNuevo(ambitoLocal, ".agents", ".agents/skills"),
-		escribirEnteras(t, ".agents/skills/boe-legislacion", ".agents/skills/legal-core", ".claude/skills/boe-legislacion"),
+		escribirEnteras(t, ".agents/skills/normativa", ".agents/skills/plazos-y-territorio", ".claude/skills/normativa"),
 	)), r.operaciones)
 
 	assert.Equal(t, []instalacion.SkillInstalada{
-		salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoInstalada, instalacion.ModoCopia),
-		salidaEn(ambitoLocal, "legal-core", instalacion.EstadoInstalada, instalacion.ModoEnlace),
+		salidaEn(ambitoLocal, "normativa", instalacion.EstadoInstalada, instalacion.ModoCopia),
+		salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoInstalada, instalacion.ModoEnlace),
 	}, r.skills)
 	assert.Equal(t, lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace), r.plan.Skills,
 		"el plan no cambia")
 	exigirHostsEnElDisco(t, d, r.skills)
 
-	for _, fichero := range empotradaDePrueba(t, "boe-legislacion").Ficheros {
-		assert.Equal(t, fichero.Contenido, leerDelDisco(t, d, path.Join(".claude/skills/boe-legislacion", fichero.Ruta)))
+	for _, fichero := range empotradaDePrueba(t, "normativa").Ficheros {
+		assert.Equal(t, fichero.Contenido, leerDelDisco(t, d, path.Join(".claude/skills/normativa", fichero.Ruta)))
 	}
 
 	manifiesto := leerManifiestoDelDisco(t, d)
 
-	copia := entradaDe(manifiesto.Skills["boe-legislacion"], "claude")
+	copia := entradaDe(manifiesto.Skills["normativa"], "claude")
 	require.NotNil(t, copia)
 	assert.Equal(t, instalacion.ModoCopia, copia.Modo)
-	assert.Equal(t, huellasEmpotradas(t, "boe-legislacion", ".claude/skills/boe-legislacion/"), copia.Ficheros)
+	assert.Equal(t, huellasEmpotradas(t, "normativa", ".claude/skills/normativa/"), copia.Ficheros)
 
-	enlace := entradaDe(manifiesto.Skills["legal-core"], "claude")
+	enlace := entradaDe(manifiesto.Skills["plazos-y-territorio"], "claude")
 	require.NotNil(t, enlace)
 	assert.Equal(t, instalacion.ModoEnlace, enlace.Modo)
 }

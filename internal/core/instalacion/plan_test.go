@@ -192,7 +192,7 @@ func casosDelAmbito() []casoDeConflictos {
 		{
 			nombre: ".agents es un enlace a un directorio",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("real/skills"), "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("real/skills"), "plazos-y-territorio").escribir()
 				d.enlace(".agents", "real")
 			},
 			invocacion:   conHost,
@@ -207,7 +207,7 @@ func casosDelAmbito() []casoDeConflictos {
 		{
 			nombre: ".agents/skills es un enlace a un directorio con un manifiesto válido",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("real"), "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("real"), "plazos-y-territorio").escribir()
 				d.directorio(".agents")
 				d.enlace(".agents/skills", "../real")
 			},
@@ -243,11 +243,11 @@ func casosDelAmbito() []casoDeConflictos {
 		{
 			nombre: "con -g, un HOME al que se llega por un enlace se usa tal cual",
 			preparar: func(d *discoEnMemoria) {
-				d.fichero("/usuarios/ana/.agents/skills/boe-legislacion/mio.md", "una carpeta ajena")
+				d.fichero("/usuarios/ana/.agents/skills/normativa/mio.md", "una carpeta ajena")
 				d.enlace("/home", "/usuarios")
 			},
 			invocacion: global,
-			esperados:  []instalacion.Conflicto{conflicto(carpetaAjena, homeDePrueba+"/.agents/skills/boe-legislacion")},
+			esperados:  []instalacion.Conflicto{conflicto(carpetaAjena, homeDePrueba+"/.agents/skills/normativa")},
 		},
 		{
 			nombre:    "manifiesto que no es JSON",
@@ -257,7 +257,7 @@ func casosDelAmbito() []casoDeConflictos {
 		{
 			nombre: "manifiesto que es un enlace a uno válido",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "plazos-y-territorio").escribir()
 				d.enlace(".agents/skills/kitlegal.json", "../../fuera/kitlegal.json")
 			},
 			esperados:    []instalacion.Conflicto{conflicto(ilegible, ".agents/skills/kitlegal.json")},
@@ -279,17 +279,17 @@ func casosDelAmbito() []casoDeConflictos {
 		{
 			nombre: "con --dir, manifiesto que declara entradas de host",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
-				d.fichero(".agents/skills/boe-legislacion/SKILL.md", "editado a mano")
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
+				d.fichero(".agents/skills/normativa/SKILL.md", "editado a mano")
 			},
 			invocacion:   instalacion.Invocacion{Dir: texto(".agents/skills")},
 			esperados:    []instalacion.Conflicto{conflicto(conEntradasDeHost, ".agents/skills/kitlegal.json")},
-			noExaminadas: []string{".agents/skills/boe-legislacion", ".agents/skills/legal-core", ".claude"},
+			noExaminadas: []string{".agents/skills/normativa", ".agents/skills/plazos-y-territorio", ".claude"},
 		},
 		{
 			nombre: "con --dir, manifiesto sin entradas de host",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("destino"), "boe-legislacion", "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("destino"), "normativa", "plazos-y-territorio").escribir()
 			},
 			invocacion: instalacion.Invocacion{Dir: texto("destino")},
 		},
@@ -297,14 +297,14 @@ func casosDelAmbito() []casoDeConflictos {
 			nombre: "con un conflicto de ámbito no se examina ninguna skill",
 			preparar: func(d *discoEnMemoria) {
 				d.fichero(".agents/skills/kitlegal.json", "esto no es JSON")
-				d.fichero(".agents/skills/boe-legislacion/mio.md", "una carpeta ajena")
+				d.fichero(".agents/skills/normativa/mio.md", "una carpeta ajena")
 				d.fichero(".claude/skills", "no soy un directorio")
 			},
 			esperados: []instalacion.Conflicto{
 				conflicto(ilegible, ".agents/skills/kitlegal.json"),
 				conflicto(noEsDirectorio, ".claude/skills"),
 			},
-			noExaminadas: []string{".agents/skills/boe-legislacion", ".agents/skills/legal-core"},
+			noExaminadas: []string{".agents/skills/normativa", ".agents/skills/plazos-y-territorio"},
 		},
 	}
 }
@@ -323,7 +323,7 @@ func casosDelAmbitoDelHost() []casoDeConflictos {
 		{
 			nombre: ".claude es un enlace a un directorio, con --host claude",
 			preparar: func(d *discoEnMemoria) {
-				d.fichero("real-claude/skills/legal-core", "un fichero")
+				d.fichero("real-claude/skills/plazos-y-territorio", "un fichero")
 				d.enlace(".claude", "real-claude")
 			},
 			invocacion:   conHost,
@@ -337,7 +337,7 @@ func casosDelAmbitoDelHost() []casoDeConflictos {
 		{
 			nombre: ".claude es un enlace, sin --host: cuenta como ausente",
 			preparar: func(d *discoEnMemoria) {
-				d.fichero("real-claude/skills/legal-core", "un fichero")
+				d.fichero("real-claude/skills/plazos-y-territorio", "un fichero")
 				d.enlace(".claude", "real-claude")
 			},
 			noExaminadas: []string{"real-claude"},
@@ -351,7 +351,7 @@ func casosDelAmbitoDelHost() []casoDeConflictos {
 			nombre: ".claude/skills es un enlace a un directorio, con --host claude",
 			preparar: func(d *discoEnMemoria) {
 				d.directorio(".claude")
-				d.fichero("real-skills/legal-core", "un fichero")
+				d.fichero("real-skills/plazos-y-territorio", "un fichero")
 				d.enlace(".claude/skills", "../real-skills")
 			},
 			invocacion:   conHost,
@@ -362,17 +362,17 @@ func casosDelAmbitoDelHost() []casoDeConflictos {
 			nombre: "con .claude/skills en conflicto, el directorio neutro se examina igual",
 			preparar: func(d *discoEnMemoria) {
 				d.fichero(".claude/skills", "no soy un directorio")
-				d.fichero(".agents/skills/legal-core", "un fichero")
+				d.fichero(".agents/skills/plazos-y-territorio", "un fichero")
 			},
 			esperados: []instalacion.Conflicto{
-				conflicto(fichero, ".agents/skills/legal-core"),
+				conflicto(fichero, ".agents/skills/plazos-y-territorio"),
 				conflicto(noEsDirectorio, ".claude/skills"),
 			},
 		},
 		{
 			nombre: "con --host claude y sin .claude, ninguna entrada de host existe",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
 			},
 			invocacion: conHost,
 		},
@@ -383,7 +383,7 @@ func casosDelAmbitoDelHost() []casoDeConflictos {
 		{
 			nombre: "con --dir no se examina nada de host",
 			preparar: func(d *discoEnMemoria) {
-				d.fichero(".claude/skills/legal-core", "un fichero")
+				d.fichero(".claude/skills/plazos-y-territorio", "un fichero")
 			},
 			invocacion:   instalacion.Invocacion{Dir: texto("destino")},
 			noExaminadas: []string{".claude"},
@@ -403,107 +403,107 @@ func casosDelNeutro() []casoDeConflictos {
 	return []casoDeConflictos{
 		{
 			nombre:   "carpeta ajena, sin manifiesto",
-			preparar: func(d *discoEnMemoria) { d.fichero(".agents/skills/boe-legislacion/mio.md", "no es de kitlegal") },
+			preparar: func(d *discoEnMemoria) { d.fichero(".agents/skills/normativa/mio.md", "no es de kitlegal") },
 			esperados: []instalacion.Conflicto{
-				conflicto(carpetaAjena, ".agents/skills/boe-legislacion"),
+				conflicto(carpetaAjena, ".agents/skills/normativa"),
 			},
-			noExaminadas: []string{".agents/skills/boe-legislacion/mio.md", ".agents/skills/boe-legislacion/SKILL.md"},
+			noExaminadas: []string{".agents/skills/normativa/mio.md", ".agents/skills/normativa/SKILL.md"},
 		},
 		{
 			nombre: "carpeta ajena, con un manifiesto que no la declara",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion").escribir()
-				d.fichero(".agents/skills/legal-core/mio.md", "no es de kitlegal")
+				instalarLocal(d, "normativa").escribir()
+				d.fichero(".agents/skills/plazos-y-territorio/mio.md", "no es de kitlegal")
 			},
-			esperados: []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/legal-core")},
+			esperados: []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/plazos-y-territorio")},
 		},
 		{
 			nombre:    "fichero regular",
-			preparar:  func(d *discoEnMemoria) { d.fichero(".agents/skills/boe-legislacion", "un fichero") },
-			esperados: []instalacion.Conflicto{conflicto(fichero, ".agents/skills/boe-legislacion")},
+			preparar:  func(d *discoEnMemoria) { d.fichero(".agents/skills/normativa", "un fichero") },
+			esperados: []instalacion.Conflicto{conflicto(fichero, ".agents/skills/normativa")},
 		},
 		{
 			nombre:    "tubería con nombre, que no se abre",
-			preparar:  func(d *discoEnMemoria) { d.tuberia(".agents/skills/boe-legislacion") },
-			esperados: []instalacion.Conflicto{conflicto(fichero, ".agents/skills/boe-legislacion")},
+			preparar:  func(d *discoEnMemoria) { d.tuberia(".agents/skills/normativa") },
+			esperados: []instalacion.Conflicto{conflicto(fichero, ".agents/skills/normativa")},
 		},
 		{
 			nombre: "enlace a otro sitio",
 			preparar: func(d *discoEnMemoria) {
 				d.fichero("otro-sitio/mio.md", "lo que hay al otro lado")
-				d.enlace(".agents/skills/boe-legislacion", "../../otro-sitio")
+				d.enlace(".agents/skills/normativa", "../../otro-sitio")
 			},
-			esperados:    []instalacion.Conflicto{conflicto(enlaceAOtroSitio, ".agents/skills/boe-legislacion")},
+			esperados:    []instalacion.Conflicto{conflicto(enlaceAOtroSitio, ".agents/skills/normativa")},
 			noExaminadas: []string{"otro-sitio"},
 		},
 		{
 			nombre: "skill declarada sustituida por un enlace a una copia idéntica",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
-				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "legal-core")
-				d.enlace(".agents/skills/legal-core", "../../fuera/legal-core")
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "plazos-y-territorio")
+				d.enlace(".agents/skills/plazos-y-territorio", "../../fuera/plazos-y-territorio")
 			},
-			esperados:    []instalacion.Conflicto{conflicto(enlaceAOtroSitio, ".agents/skills/legal-core")},
+			esperados:    []instalacion.Conflicto{conflicto(enlaceAOtroSitio, ".agents/skills/plazos-y-territorio")},
 			noExaminadas: []string{"fuera"},
 		},
 		{
 			nombre:    "enlace colgando",
-			preparar:  func(d *discoEnMemoria) { d.enlace(".agents/skills/boe-legislacion", "../../no-existe") },
-			esperados: []instalacion.Conflicto{conflicto(enlaceRoto, ".agents/skills/boe-legislacion")},
+			preparar:  func(d *discoEnMemoria) { d.enlace(".agents/skills/normativa", "../../no-existe") },
+			esperados: []instalacion.Conflicto{conflicto(enlaceRoto, ".agents/skills/normativa")},
 		},
 		{
 			nombre:    "enlace a sí mismo",
-			preparar:  func(d *discoEnMemoria) { d.enlace(".agents/skills/legal-core", "legal-core") },
-			esperados: []instalacion.Conflicto{conflicto(enlaceRoto, ".agents/skills/legal-core")},
+			preparar:  func(d *discoEnMemoria) { d.enlace(".agents/skills/plazos-y-territorio", "plazos-y-territorio") },
+			esperados: []instalacion.Conflicto{conflicto(enlaceRoto, ".agents/skills/plazos-y-territorio")},
 		},
 		{
 			nombre: "dos enlaces en ciclo",
 			preparar: func(d *discoEnMemoria) {
-				d.enlace(".agents/skills/boe-legislacion", "legal-core")
-				d.enlace(".agents/skills/legal-core", "boe-legislacion")
+				d.enlace(".agents/skills/normativa", "plazos-y-territorio")
+				d.enlace(".agents/skills/plazos-y-territorio", "normativa")
 			},
 			esperados: []instalacion.Conflicto{
-				conflicto(enlaceRoto, ".agents/skills/boe-legislacion"),
-				conflicto(enlaceRoto, ".agents/skills/legal-core"),
+				conflicto(enlaceRoto, ".agents/skills/normativa"),
+				conflicto(enlaceRoto, ".agents/skills/plazos-y-territorio"),
 			},
 		},
 		{
 			nombre: "skill declarada sustituida por un enlace colgando",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
-				d.enlace(".agents/skills/legal-core", "/no-existe")
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
+				d.enlace(".agents/skills/plazos-y-territorio", "/no-existe")
 			},
-			esperados: []instalacion.Conflicto{conflicto(enlaceRoto, ".agents/skills/legal-core")},
+			esperados: []instalacion.Conflicto{conflicto(enlaceRoto, ".agents/skills/plazos-y-territorio")},
 		},
 		{
 			nombre: "una en cada skill: se nombran todas, en orden de ruta",
 			preparar: func(d *discoEnMemoria) {
 				d.directorio(".claude/skills")
-				d.enlace(".agents/skills/boe-legislacion", "../../no-existe")
-				d.fichero(".agents/skills/legal-core", "un fichero")
-				d.fichero(".claude/skills/boe-legislacion/mio.md", "no es de kitlegal")
+				d.enlace(".agents/skills/normativa", "../../no-existe")
+				d.fichero(".agents/skills/plazos-y-territorio", "un fichero")
+				d.fichero(".claude/skills/normativa/mio.md", "no es de kitlegal")
 				d.fichero("otro-sitio/mio.md", "lo que hay al otro lado")
-				d.enlace(".claude/skills/legal-core", "../../otro-sitio")
+				d.enlace(".claude/skills/plazos-y-territorio", "../../otro-sitio")
 			},
 			esperados: []instalacion.Conflicto{
-				conflicto(enlaceRoto, ".agents/skills/boe-legislacion"),
-				conflicto(fichero, ".agents/skills/legal-core"),
-				conflicto(carpetaAjena, ".claude/skills/boe-legislacion"),
-				conflicto(enlaceAOtroSitio, ".claude/skills/legal-core"),
+				conflicto(enlaceRoto, ".agents/skills/normativa"),
+				conflicto(fichero, ".agents/skills/plazos-y-territorio"),
+				conflicto(carpetaAjena, ".claude/skills/normativa"),
+				conflicto(enlaceAOtroSitio, ".claude/skills/plazos-y-territorio"),
 			},
 		},
 		{
 			nombre: "un conflicto en la segunda skill basta: la primera no se instala",
 			preparar: func(d *discoEnMemoria) {
-				d.fichero(".agents/skills/legal-core/mio.md", "no es de kitlegal")
+				d.fichero(".agents/skills/plazos-y-territorio/mio.md", "no es de kitlegal")
 			},
-			esperados: []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/legal-core")},
+			esperados: []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/plazos-y-territorio")},
 		},
 		{
 			nombre: "skill declarada cuyo directorio falta",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
-				d.retirar(".agents/skills/legal-core")
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
+				d.retirar(".agents/skills/plazos-y-territorio")
 			},
 		},
 	}
@@ -513,17 +513,17 @@ func casosDelNeutro() []casoDeConflictos {
 // fichero y cada directorio intermedio de una skill declarada cuyo directorio
 // es real.
 func casosDentroDeUnaSkill() []casoDeConflictos {
-	const skill = ".agents/skills/legal-core"
+	const skill = ".agents/skills/plazos-y-territorio"
 
 	return []casoDeConflictos{
 		{
 			nombre:   "instalación intacta",
-			preparar: func(d *discoEnMemoria) { instalarLocal(d, "boe-legislacion", "legal-core").escribir() },
+			preparar: func(d *discoEnMemoria) { instalarLocal(d, "normativa", "plazos-y-territorio").escribir() },
 		},
 		{
 			nombre: "fichero editado",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
 				d.fichero(skill+"/SKILL.md", "editado a mano")
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroEditado, skill+"/SKILL.md")},
@@ -531,8 +531,8 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "SKILL.md sustituido por un enlace a una copia idéntica",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
-				d.fichero("fuera/SKILL.md", "# legal-core\n")
+				instalarLocal(d, "plazos-y-territorio").escribir()
+				d.fichero("fuera/SKILL.md", "# plazos-y-territorio\n")
 				d.enlace(skill+"/SKILL.md", "../../../fuera/SKILL.md")
 			},
 			esperados:    []instalacion.Conflicto{conflicto(ficheroEditado, skill+"/SKILL.md")},
@@ -541,7 +541,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "SKILL.md sustituido por un directorio",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").escribir()
 				d.retirar(skill + "/SKILL.md")
 				d.fichero(skill+"/SKILL.md/nota.md", "un fichero")
 			},
@@ -551,7 +551,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "SKILL.md sustituido por una tubería con nombre, que no se abre",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").escribir()
 				d.tuberia(skill + "/SKILL.md")
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroEditado, skill+"/SKILL.md")},
@@ -559,7 +559,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "declarado que ya no se empotra, editado",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").declarar("legal-core", "legal-core/references/antigua.md", "antigua").escribir()
+				instalarLocal(d, "plazos-y-territorio").declarar("plazos-y-territorio", "plazos-y-territorio/references/antigua.md", "antigua").escribir()
 				d.fichero(skill+"/references/antigua.md", "editada")
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroEditado, skill+"/references/antigua.md")},
@@ -567,7 +567,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "declarado que ya no se empotra, sustituido por un enlace",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").declarar("legal-core", "legal-core/references/antigua.md", "antigua").escribir()
+				instalarLocal(d, "plazos-y-territorio").declarar("plazos-y-territorio", "plazos-y-territorio/references/antigua.md", "antigua").escribir()
 				d.enlace(skill+"/references/antigua.md", "../SKILL.md")
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroEditado, skill+"/references/antigua.md")},
@@ -575,9 +575,9 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "declarados que ya no se empotran, uno intacto y otro que falta",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").
-					declarar("legal-core", "legal-core/references/antigua.md", "antigua").
-					declarar("legal-core", "legal-core/references/perdida.md", "perdida").
+				instalarLocal(d, "plazos-y-territorio").
+					declarar("plazos-y-territorio", "plazos-y-territorio/references/antigua.md", "antigua").
+					declarar("plazos-y-territorio", "plazos-y-territorio/references/perdida.md", "perdida").
 					escribir()
 				d.fichero(skill+"/references/antigua.md", "antigua")
 			},
@@ -585,14 +585,14 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "fichero empotrado que el manifiesto no declara",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").olvidar("legal-core", "legal-core/references/jerarquia_normativa.md").escribir()
+				instalarLocal(d, "plazos-y-territorio").olvidar("plazos-y-territorio", "plazos-y-territorio/references/jerarquia_normativa.md").escribir()
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroAjeno, skill+"/references/jerarquia_normativa.md")},
 		},
 		{
 			nombre: "enlace no declarado en una ruta empotrada, que no se sigue",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").olvidar("legal-core", "legal-core/references/jerarquia_normativa.md").escribir()
+				instalarLocal(d, "plazos-y-territorio").olvidar("plazos-y-territorio", "plazos-y-territorio/references/jerarquia_normativa.md").escribir()
 				d.enlace(skill+"/references/jerarquia_normativa.md", "../SKILL.md")
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroAjeno, skill+"/references/jerarquia_normativa.md")},
@@ -600,7 +600,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "directorio no declarado en una ruta empotrada",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").olvidar("legal-core", "legal-core/references/jerarquia_normativa.md").escribir()
+				instalarLocal(d, "plazos-y-territorio").olvidar("plazos-y-territorio", "plazos-y-territorio/references/jerarquia_normativa.md").escribir()
 				d.retirar(skill + "/references/jerarquia_normativa.md")
 				d.fichero(skill+"/references/jerarquia_normativa.md/nota.md", "un fichero")
 			},
@@ -610,7 +610,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "references es un fichero",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").escribir()
 				d.fichero(skill+"/references", "no soy un directorio")
 			},
 			esperados: []instalacion.Conflicto{conflicto(noEsDirectorio, skill+"/references")},
@@ -618,9 +618,9 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "references es un enlace a un directorio con los mismos ficheros",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
-				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "legal-core")
-				d.enlace(skill+"/references", "../../../fuera/legal-core/references")
+				instalarLocal(d, "plazos-y-territorio").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "plazos-y-territorio")
+				d.enlace(skill+"/references", "../../../fuera/plazos-y-territorio/references")
 			},
 			esperados:    []instalacion.Conflicto{conflicto(noEsDirectorio, skill+"/references")},
 			noExaminadas: []string{"fuera"},
@@ -628,7 +628,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "directorio intermedio de un declarado que ya no se empotra",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").declarar("legal-core", "legal-core/antiguas/una.md", "antigua").escribir()
+				instalarLocal(d, "plazos-y-territorio").declarar("plazos-y-territorio", "plazos-y-territorio/antiguas/una.md", "antigua").escribir()
 				d.fichero(skill+"/antiguas", "no soy un directorio")
 			},
 			esperados: []instalacion.Conflicto{conflicto(noEsDirectorio, skill+"/antiguas")},
@@ -636,7 +636,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "una entrada que es a la vez intermedio y fichero declarado cae en una sola clase",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").declarar("legal-core", "legal-core/SKILL.md/x.md", "x").escribir()
+				instalarLocal(d, "plazos-y-territorio").declarar("plazos-y-territorio", "plazos-y-territorio/SKILL.md/x.md", "x").escribir()
 				d.fichero(skill+"/SKILL.md", "editado a mano")
 			},
 			esperados: []instalacion.Conflicto{conflicto(noEsDirectorio, skill+"/SKILL.md")},
@@ -644,15 +644,15 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 		{
 			nombre: "fichero declarado que falta y references que falta entero",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
-				d.retirar(".agents/skills/boe-legislacion/SKILL.md")
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
+				d.retirar(".agents/skills/normativa/SKILL.md")
 				d.retirar(skill + "/references")
 			},
 		},
 		{
 			nombre: "lo no declarado que no coincide con ninguna ruta empotrada se deja intacto",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").escribir()
 				d.fichero(skill+"/notas.md", "mías")
 				d.fichero(skill+"/references/mias.md", "mías")
 				d.fichero(skill+"/borradores/uno.md", "mío")
@@ -668,7 +668,7 @@ func casosDentroDeUnaSkill() []casoDeConflictos {
 // casosDelHost son los de data-model §4.3 en la entrada de host de cada skill
 // pedida, con .claude real, salvo la copia declarada.
 func casosDelHost() []casoDeConflictos {
-	const host = ".claude/skills/legal-core"
+	const host = ".claude/skills/plazos-y-territorio"
 
 	return []casoDeConflictos{
 		{
@@ -680,9 +680,9 @@ func casosDelHost() []casoDeConflictos {
 		{
 			nombre: "carpeta ajena donde se declara un enlace",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
 				d.retirar(host)
-				d.fichero(host+"/SKILL.md", "# legal-core\n")
+				d.fichero(host+"/SKILL.md", "# plazos-y-territorio\n")
 			},
 			esperados:    []instalacion.Conflicto{conflicto(carpetaAjena, host)},
 			noExaminadas: []string{host + "/SKILL.md"},
@@ -695,7 +695,7 @@ func casosDelHost() []casoDeConflictos {
 		{
 			nombre: "tubería con nombre, que no se abre",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.tuberia(host)
 			},
 			esperados: []instalacion.Conflicto{conflicto(fichero, host)},
@@ -720,8 +720,8 @@ func casosDelHost() []casoDeConflictos {
 		{
 			nombre: "enlace al mismo sitio con otro destino literal",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").escribir()
-				d.enlace(host, directorioDeTrabajo+"/.agents/skills/legal-core")
+				instalarLocal(d, "plazos-y-territorio").escribir()
+				d.enlace(host, directorioDeTrabajo+"/.agents/skills/plazos-y-territorio")
 			},
 			esperados: []instalacion.Conflicto{conflicto(enlaceAOtroSitio, host)},
 		},
@@ -729,16 +729,16 @@ func casosDelHost() []casoDeConflictos {
 			nombre: "el enlace de FR-021 colgando, sin manifiesto, se adopta",
 			preparar: func(d *discoEnMemoria) {
 				d.directorio(".claude/skills")
-				d.enlace(".claude/skills/boe-legislacion", "../../.agents/skills/boe-legislacion")
+				d.enlace(".claude/skills/normativa", "../../.agents/skills/normativa")
 			},
 		},
 		{
 			nombre: "el enlace de FR-021 que resuelve y no se declara se adopta",
 			preparar: func(d *discoEnMemoria) {
-				i := instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core")
-				i.manifiesto.Skills["legal-core"] = instalacion.SkillDeclarada{
+				i := instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio")
+				i.manifiesto.Skills["plazos-y-territorio"] = instalacion.SkillDeclarada{
 					Version:  versionDePrueba,
-					Ficheros: i.manifiesto.Skills["legal-core"].Ficheros,
+					Ficheros: i.manifiesto.Skills["plazos-y-territorio"].Ficheros,
 				}
 				i.escribir()
 			},
@@ -746,9 +746,9 @@ func casosDelHost() []casoDeConflictos {
 		{
 			nombre: "el enlace de FR-021 donde se declara una copia",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.retirar(host)
-				d.enlace(host, "../../.agents/skills/legal-core")
+				d.enlace(host, "../../.agents/skills/plazos-y-territorio")
 			},
 		},
 		{
@@ -767,7 +767,7 @@ func casosDelHost() []casoDeConflictos {
 // lo que contiene tiene que estar declarado e intacto; si no, se mantiene y se
 // actualiza con las reglas del directorio neutro.
 func casosDeLaCopia() []casoDeConflictos {
-	const host = ".claude/skills/legal-core"
+	const host = ".claude/skills/plazos-y-territorio"
 
 	sonda := []string{".claude/skills"}
 
@@ -775,7 +775,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia intacta que pasa a enlace, en las dos skills: una sola sonda",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("normativa").copiar("plazos-y-territorio").escribir()
 			},
 			disponible: true,
 			sondas:     sonda,
@@ -783,7 +783,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con un fichero editado",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.fichero(host+"/SKILL.md", "editado a mano")
 			},
 			disponible: true,
@@ -793,8 +793,8 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con un fichero sustituido por un enlace",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
-				d.enlace(host+"/SKILL.md", "../../../.agents/skills/legal-core/SKILL.md")
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
+				d.enlace(host+"/SKILL.md", "../../../.agents/skills/plazos-y-territorio/SKILL.md")
 			},
 			disponible: true,
 			esperados:  []instalacion.Conflicto{conflicto(ficheroEditado, host+"/SKILL.md")},
@@ -803,7 +803,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con un fichero no declarado",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.fichero(host+"/references/mias.md", "mías")
 			},
 			disponible: true,
@@ -813,7 +813,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con un directorio no declarado",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.fichero(host+"/borradores/uno.md", "mío")
 			},
 			disponible:   true,
@@ -824,8 +824,8 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con un empotrado que no declara",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").
-					olvidar("legal-core", host+"/references/leyes_vertebrales.md").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").
+					olvidar("plazos-y-territorio", host+"/references/leyes_vertebrales.md").escribir()
 			},
 			disponible: true,
 			esperados:  []instalacion.Conflicto{conflicto(ficheroAjeno, host+"/references/leyes_vertebrales.md")},
@@ -834,9 +834,9 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con references que es un enlace",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.retirar(host + "/references")
-				d.enlace(host+"/references", "../../../.agents/skills/legal-core/references")
+				d.enlace(host+"/references", "../../../.agents/skills/plazos-y-territorio/references")
 			},
 			disponible: true,
 			esperados:  []instalacion.Conflicto{conflicto(noEsDirectorio, host+"/references")},
@@ -845,7 +845,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que pasa a enlace con ficheros declarados que faltan",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.retirar(host + "/references")
 			},
 			disponible: true,
@@ -854,14 +854,14 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que se mantiene, intacta",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 			},
 			sondas: sonda,
 		},
 		{
 			nombre: "copia que se mantiene con un fichero editado",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.fichero(host+"/references/leyes_vertebrales.md", "editado a mano")
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroEditado, host+"/references/leyes_vertebrales.md")},
@@ -870,7 +870,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que se mantiene con lo no declarado que no coincide con ninguna ruta empotrada",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.fichero(host+"/references/mias.md", "mías")
 			},
 			sondas:       sonda,
@@ -879,7 +879,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que se mantiene con un empotrado que no declara",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").olvidar("legal-core", host+"/SKILL.md").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").olvidar("plazos-y-territorio", host+"/SKILL.md").escribir()
 			},
 			esperados: []instalacion.Conflicto{conflicto(ficheroAjeno, host+"/SKILL.md")},
 			sondas:    sonda,
@@ -887,7 +887,7 @@ func casosDeLaCopia() []casoDeConflictos {
 		{
 			nombre: "copia que se mantiene con references que es un fichero",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 				d.fichero(host+"/references", "no soy un directorio")
 			},
 			esperados: []instalacion.Conflicto{conflicto(noEsDirectorio, host+"/references")},
@@ -904,7 +904,7 @@ func casosQueNoSeTocan() []casoDeConflictos {
 		{
 			nombre: "skill declarada que el binario no empotra",
 			preparar: func(d *discoEnMemoria) {
-				i := instalarLocal(d, "boe-legislacion", "legal-core")
+				i := instalarLocal(d, "normativa", "plazos-y-territorio")
 				i.manifiesto.Skills["otra-skill"] = instalacion.SkillDeclarada{
 					Version:  "v0.0.9",
 					Ficheros: map[string]string{"otra-skill/SKILL.md": instalacion.HuellaDe([]byte("# otra\n"))},
@@ -919,12 +919,12 @@ func casosQueNoSeTocan() []casoDeConflictos {
 		{
 			nombre: "skill declarada que no se pide",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").escribir()
-				d.fichero(".agents/skills/legal-core/SKILL.md", "editado a mano")
-				d.fichero(".claude/skills/legal-core/SKILL.md", "editado a mano")
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
+				d.fichero(".agents/skills/plazos-y-territorio/SKILL.md", "editado a mano")
+				d.fichero(".claude/skills/plazos-y-territorio/SKILL.md", "editado a mano")
 			},
-			invocacion:   instalacion.Invocacion{Skills: []string{"boe-legislacion"}},
-			noExaminadas: []string{".agents/skills/legal-core", ".claude/skills/legal-core"},
+			invocacion:   instalacion.Invocacion{Skills: []string{"normativa"}},
+			noExaminadas: []string{".agents/skills/plazos-y-territorio", ".claude/skills/plazos-y-territorio"},
 		},
 	}
 }
@@ -935,10 +935,10 @@ func casosQueNoSeTocan() []casoDeConflictos {
 func probarFallosAlComprobar(t *testing.T) {
 	t.Parallel()
 
-	const host = ".claude/skills/legal-core"
+	const host = ".claude/skills/plazos-y-territorio"
 
 	instalacionConCopia := func(d *discoEnMemoria) {
-		instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").escribir()
+		instalarLocal(d, "normativa", "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 	}
 
 	casos := []struct {
@@ -953,21 +953,21 @@ func probarFallosAlComprobar(t *testing.T) {
 		{nombre: "leer el manifiesto", preparar: instalacionConCopia, operacion: opLeer, ruta: ".agents/skills/kitlegal.json"},
 		{nombre: ".claude", operacion: opExaminar, ruta: ".claude"},
 		{nombre: ".claude/skills", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".claude/skills"},
-		{nombre: "una skill", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/legal-core"},
+		{nombre: "una skill", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/plazos-y-territorio"},
 		{
 			nombre: "un intermedio", preparar: instalacionConCopia,
-			operacion: opExaminar, ruta: ".agents/skills/legal-core/references",
+			operacion: opExaminar, ruta: ".agents/skills/plazos-y-territorio/references",
 		},
 		{
 			nombre: "un intermedio por encima de otro",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").declarar("legal-core", "legal-core/antiguas/sub/una.md", "antigua").escribir()
-				d.fichero(".agents/skills/legal-core/antiguas/sub/una.md", "antigua")
+				instalarLocal(d, "plazos-y-territorio").declarar("plazos-y-territorio", "plazos-y-territorio/antiguas/sub/una.md", "antigua").escribir()
+				d.fichero(".agents/skills/plazos-y-territorio/antiguas/sub/una.md", "antigua")
 			},
-			operacion: opExaminar, ruta: ".agents/skills/legal-core/antiguas",
+			operacion: opExaminar, ruta: ".agents/skills/plazos-y-territorio/antiguas",
 		},
-		{nombre: "un fichero", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/legal-core/SKILL.md"},
-		{nombre: "una huella", preparar: instalacionConCopia, operacion: opHuella, ruta: ".agents/skills/legal-core/SKILL.md"},
+		{nombre: "un fichero", preparar: instalacionConCopia, operacion: opExaminar, ruta: ".agents/skills/plazos-y-territorio/SKILL.md"},
+		{nombre: "una huella", preparar: instalacionConCopia, operacion: opHuella, ruta: ".agents/skills/plazos-y-territorio/SKILL.md"},
 		{nombre: "una entrada de host", preparar: instalacionConCopia, operacion: opExaminar, ruta: host},
 		{nombre: "una copia", preparar: instalacionConCopia, operacion: opNombres, ruta: host, disponible: true},
 		{
@@ -1038,7 +1038,7 @@ func probarPedidoNoEmpotrado(t *testing.T) {
 	t.Parallel()
 
 	d := nuevoDiscoEnMemoria(t)
-	pedido := instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: []string{"legal-core", "otra-skill"}}
+	pedido := instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: []string{"plazos-y-territorio", "otra-skill"}}
 
 	err := instalacion.ComprobarConflictos(d, &enlazadorDePrueba{}, pedido, empotradasDePrueba())
 	require.Error(t, err)
@@ -1293,8 +1293,8 @@ func salidaEn(
 // nombre, con el mismo estado y los mismos modos.
 func lasDos(ambito instalacion.Ambito, estado instalacion.Estado, modos ...instalacion.Modo) []instalacion.SkillInstalada {
 	return []instalacion.SkillInstalada{
-		salidaEn(ambito, "boe-legislacion", estado, modos...),
-		salidaEn(ambito, "legal-core", estado, modos...),
+		salidaEn(ambito, "normativa", estado, modos...),
+		salidaEn(ambito, "plazos-y-territorio", estado, modos...),
 	}
 }
 
@@ -1342,7 +1342,7 @@ func enlazarLasDos(ambito instalacion.Ambito, faltan ...string) []string {
 		operaciones = append(operaciones, "2 crear "+dir)
 	}
 
-	for _, nombre := range []string{"boe-legislacion", "legal-core"} {
+	for _, nombre := range []string{"normativa", "plazos-y-territorio"} {
 		operaciones = append(operaciones, "2 enlazar "+ambito.RutaDeHost("claude", nombre)+" -> ../../.agents/skills/"+nombre)
 	}
 
@@ -1352,13 +1352,13 @@ func enlazarLasDos(ambito instalacion.Ambito, faltan ...string) []string {
 // lasDosEn son las rutas de las dos skills empotradas en el directorio neutro
 // del ámbito, y lasDosConCopia, además, cada una seguida de su copia de host.
 func lasDosEn(ambito instalacion.Ambito) []string {
-	return []string{ambito.RutaDeSkill("boe-legislacion"), ambito.RutaDeSkill("legal-core")}
+	return []string{ambito.RutaDeSkill("normativa"), ambito.RutaDeSkill("plazos-y-territorio")}
 }
 
 func lasDosConCopia(ambito instalacion.Ambito) []string {
 	return []string{
-		ambito.RutaDeSkill("boe-legislacion"), ambito.RutaDeHost("claude", "boe-legislacion"),
-		ambito.RutaDeSkill("legal-core"), ambito.RutaDeHost("claude", "legal-core"),
+		ambito.RutaDeSkill("normativa"), ambito.RutaDeHost("claude", "normativa"),
+		ambito.RutaDeSkill("plazos-y-territorio"), ambito.RutaDeHost("claude", "plazos-y-territorio"),
 	}
 }
 
@@ -1381,22 +1381,22 @@ func casosDeInstalacionNueva(t *testing.T) []casoDePlan {
 
 				manifiesto := leerManifiestoDelDisco(t, d)
 				assert.Equal(t, versionDePrueba, manifiesto.Version)
-				assert.Equal(t, huellasEmpotradas(t, "legal-core", "legal-core/"), manifiesto.Skills["legal-core"].Ficheros)
-				assert.Empty(t, manifiesto.Skills["legal-core"].Hosts, "sin hosts")
+				assert.Equal(t, huellasEmpotradas(t, "plazos-y-territorio", "plazos-y-territorio/"), manifiesto.Skills["plazos-y-territorio"].Ficheros)
+				assert.Empty(t, manifiesto.Skills["plazos-y-territorio"].Hosts, "sin hosts")
 			},
 		},
 		{
 			nombre:      "una sola skill: un directorio y un manifiesto que declara una (SC-006)",
 			preparar:    func(*discoEnMemoria) {},
-			invocacion:  instalacion.Invocacion{Skills: []string{"legal-core"}},
-			skills:      []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoInstalada)},
-			operaciones: slices.Concat(nuevo, escribirEnteras(t, ".agents/skills/legal-core")),
+			invocacion:  instalacion.Invocacion{Skills: []string{"plazos-y-territorio"}},
+			skills:      []instalacion.SkillInstalada{salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoInstalada)},
+			operaciones: slices.Concat(nuevo, escribirEnteras(t, ".agents/skills/plazos-y-territorio")),
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
 				nombres, err := d.Nombres(".agents/skills")
 				require.NoError(t, err)
-				assert.Equal(t, []string{"kitlegal.json", "legal-core"}, nombres)
+				assert.Equal(t, []string{"kitlegal.json", "plazos-y-territorio"}, nombres)
 				assert.Len(t, leerManifiestoDelDisco(t, d).Skills, 1)
 			},
 		},
@@ -1428,10 +1428,10 @@ func casosDeInstalacionNueva(t *testing.T) []casoDePlan {
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
-				copia := entradaDe(leerManifiestoDelDisco(t, d).Skills["legal-core"], "claude")
+				copia := entradaDe(leerManifiestoDelDisco(t, d).Skills["plazos-y-territorio"], "claude")
 				require.NotNil(t, copia)
 				assert.Equal(t, instalacion.ModoCopia, copia.Modo)
-				assert.Equal(t, huellasEmpotradas(t, "legal-core", ".claude/skills/legal-core/"), copia.Ficheros,
+				assert.Equal(t, huellasEmpotradas(t, "plazos-y-territorio", ".claude/skills/plazos-y-territorio/"), copia.Ficheros,
 					"la copia declara la huella de cada fichero copiado")
 			},
 		},
@@ -1501,27 +1501,27 @@ func casosDeAmbitosDelPlan(t *testing.T) []casoDePlan {
 func casosDeActualizacion(t *testing.T) []casoDePlan {
 	t.Helper()
 
-	const skill = ".agents/skills/legal-core"
+	const skill = ".agents/skills/plazos-y-territorio"
 
 	return []casoDePlan{
 		{
 			nombre: "nada que cambiar: sin cambios y el plan vacío",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio").escribir()
 			},
 			skills: lasDos(ambitoLocal, instalacion.EstadoSinCambios, instalacion.ModoEnlace),
 		},
 		{
 			nombre: "ficheros declarados que faltan, repuestos sin tocar el manifiesto",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
-				d.retirar(".agents/skills/boe-legislacion/SKILL.md")
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
+				d.retirar(".agents/skills/normativa/SKILL.md")
 				d.retirar(skill + "/references")
 			},
 			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada),
 			operaciones: []string{
 				"4 crear " + skill + "/references",
-				"4 escribir .agents/skills/boe-legislacion/SKILL.md",
+				"4 escribir .agents/skills/normativa/SKILL.md",
 				"4 escribir " + skill + "/references/jerarquia_normativa.md",
 				"4 escribir " + skill + "/references/leyes_vertebrales.md",
 			},
@@ -1529,8 +1529,8 @@ func casosDeActualizacion(t *testing.T) []casoDePlan {
 		{
 			nombre: "otro binario: se retira y se reescribe lo que difiere, y se declara la versión",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").deVersion(versionVieja).
-					deOtroBinario("legal-core", "SKILL.md", "# legal-core de antes\n").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").deVersion(versionVieja).
+					deOtroBinario("plazos-y-territorio", "SKILL.md", "# plazos-y-territorio de antes\n").escribir()
 			},
 			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada),
 			operaciones: []string{
@@ -1542,13 +1542,13 @@ func casosDeActualizacion(t *testing.T) []casoDePlan {
 		{
 			nombre: "lo que se deja de empotrar se retira si está intacto y se quita del manifiesto si falta",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").
-					deOtroBinario("legal-core", "references/antigua.md", "antigua").
-					deOtroBinario("legal-core", "antiguas/una.md", "una").
-					declarar("legal-core", "legal-core/references/perdida.md", "perdida").escribir()
+				instalarLocal(d, "plazos-y-territorio").
+					deOtroBinario("plazos-y-territorio", "references/antigua.md", "antigua").
+					deOtroBinario("plazos-y-territorio", "antiguas/una.md", "una").
+					declarar("plazos-y-territorio", "plazos-y-territorio/references/perdida.md", "perdida").escribir()
 			},
-			invocacion: instalacion.Invocacion{Skills: []string{"legal-core"}},
-			skills:     []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada)},
+			invocacion: instalacion.Invocacion{Skills: []string{"plazos-y-territorio"}},
+			skills:     []instalacion.SkillInstalada{salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoActualizada)},
 			operaciones: []string{
 				"1 retirar " + skill + "/antiguas/una.md",
 				"1 retirar " + skill + "/references/antigua.md",
@@ -1557,8 +1557,8 @@ func casosDeActualizacion(t *testing.T) []casoDePlan {
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
-				assert.Equal(t, huellasEmpotradas(t, "legal-core", "legal-core/"),
-					leerManifiestoDelDisco(t, d).Skills["legal-core"].Ficheros, "declara solo lo empotrado")
+				assert.Equal(t, huellasEmpotradas(t, "plazos-y-territorio", "plazos-y-territorio/"),
+					leerManifiestoDelDisco(t, d).Skills["plazos-y-territorio"].Ficheros, "declara solo lo empotrado")
 				assert.Equal(t, instalacion.EntradaDirectorio, examinarEnMemoria(t, d, skill+"/antiguas").Tipo,
 					"el directorio que se queda vacío no está declarado y no se retira (FR-047)")
 			},
@@ -1584,27 +1584,27 @@ func casosDelPlanQueNoSeTocan(t *testing.T) []casoDePlan {
 		{
 			nombre: "un subconjunto conserva las demás entradas del manifiesto",
 			preparar: func(d *discoEnMemoria) {
-				i := instalarLocal(d, "boe-legislacion").deVersion(versionVieja)
+				i := instalarLocal(d, "normativa").deVersion(versionVieja)
 				i.manifiesto.Skills["otra-skill"] = otraSkill
 				i.escribir()
-				d.fichero(".agents/skills/boe-legislacion/SKILL.md", "editado a mano")
+				d.fichero(".agents/skills/normativa/SKILL.md", "editado a mano")
 				antesDelSubconjunto = leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto())
 			},
-			invocacion:   instalacion.Invocacion{Skills: []string{"legal-core"}},
-			skills:       []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoInstalada)},
-			operaciones:  slices.Concat(manifiestoNuevo(ambitoLocal), escribirEnteras(t, ".agents/skills/legal-core")),
-			noExaminadas: []string{".agents/skills/boe-legislacion", ".agents/skills/otra-skill"},
+			invocacion:   instalacion.Invocacion{Skills: []string{"plazos-y-territorio"}},
+			skills:       []instalacion.SkillInstalada{salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoInstalada)},
+			operaciones:  slices.Concat(manifiestoNuevo(ambitoLocal), escribirEnteras(t, ".agents/skills/plazos-y-territorio")),
+			noExaminadas: []string{".agents/skills/normativa", ".agents/skills/otra-skill"},
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
 				exigirEntradasConservadas(t, antesDelSubconjunto, leerDelDisco(t, d, ambitoLocal.RutaDelManifiesto()),
-					"boe-legislacion", "otra-skill")
+					"normativa", "otra-skill")
 			},
 		},
 		{
 			nombre: "sin nombres, la skill que el binario no empotra se queda como está",
 			preparar: func(d *discoEnMemoria) {
-				i := instalarLocal(d, "boe-legislacion", "legal-core").deVersion(versionVieja)
+				i := instalarLocal(d, "normativa", "plazos-y-territorio").deVersion(versionVieja)
 				i.manifiesto.Skills["otra-skill"] = otraSkill
 				i.escribir()
 				d.enlace(".agents/skills/otra-skill", "../../no-existe")
@@ -1632,21 +1632,21 @@ func casosDelPlanDelHost(t *testing.T) []casoDePlan {
 	t.Helper()
 
 	enlazadas := func(d *discoEnMemoria) *instalada {
-		return instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core")
+		return instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio")
 	}
 
-	boeSinCambios := salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoSinCambios, instalacion.ModoEnlace)
-	legalActualizada := salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada, instalacion.ModoEnlace)
+	boeSinCambios := salidaEn(ambitoLocal, "normativa", instalacion.EstadoSinCambios, instalacion.ModoEnlace)
+	legalActualizada := salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoActualizada, instalacion.ModoEnlace)
 
 	return []casoDePlan{
 		{
 			nombre: "la entrada de host que falta se recrea",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d).escribir()
-				d.retirar(".claude/skills/legal-core")
+				d.retirar(".claude/skills/plazos-y-territorio")
 			},
 			skills:      []instalacion.SkillInstalada{boeSinCambios, legalActualizada},
-			operaciones: []string{"2 enlazar .claude/skills/legal-core -> ../../.agents/skills/legal-core"},
+			operaciones: []string{"2 enlazar .claude/skills/plazos-y-territorio -> ../../.agents/skills/plazos-y-territorio"},
 			sondas:      []string{".claude/skills"},
 		},
 		{
@@ -1663,28 +1663,28 @@ func casosDelPlanDelHost(t *testing.T) []casoDePlan {
 		{
 			nombre: "sin .claude ni --host, se quita del manifiesto",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
 				d.retirar(".claude")
 			},
 			skills: []instalacion.SkillInstalada{
-				salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoSinCambios),
-				salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada),
+				salidaEn(ambitoLocal, "normativa", instalacion.EstadoSinCambios),
+				salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoActualizada),
 			},
 			operaciones: []string{"3 manifiesto .agents/skills/kitlegal.json"},
 			comprobar: func(t *testing.T, d *discoEnMemoria) {
 				t.Helper()
 
-				assert.Nil(t, entradaDe(leerManifiestoDelDisco(t, d).Skills["legal-core"], "claude"))
+				assert.Nil(t, entradaDe(leerManifiestoDelDisco(t, d).Skills["plazos-y-territorio"], "claude"))
 			},
 		},
 		{
 			nombre: "un .claude que no es un directorio real, sin --host: se quita sin mirar debajo",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").enlazar("legal-core").escribir()
+				instalarLocal(d, "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
 				d.fichero(".claude", "no soy un directorio")
 			},
-			invocacion:   instalacion.Invocacion{Skills: []string{"legal-core"}},
-			skills:       []instalacion.SkillInstalada{salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada)},
+			invocacion:   instalacion.Invocacion{Skills: []string{"plazos-y-territorio"}},
+			skills:       []instalacion.SkillInstalada{salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoActualizada)},
 			operaciones:  []string{"3 manifiesto .agents/skills/kitlegal.json"},
 			noExaminadas: []string{".claude/skills"},
 		},
@@ -1692,20 +1692,20 @@ func casosDelPlanDelHost(t *testing.T) []casoDePlan {
 			nombre: "el enlace de FR-021 colgando y sin declarar se adopta, y la skill se instala",
 			preparar: func(d *discoEnMemoria) {
 				d.directorio(".claude/skills")
-				d.enlace(".claude/skills/boe-legislacion", "../../.agents/skills/boe-legislacion")
+				d.enlace(".claude/skills/normativa", "../../.agents/skills/normativa")
 			},
 			skills: lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace),
 			operaciones: slices.Concat(
-				[]string{"2 enlazar .claude/skills/legal-core -> ../../.agents/skills/legal-core"},
+				[]string{"2 enlazar .claude/skills/plazos-y-territorio -> ../../.agents/skills/plazos-y-territorio"},
 				manifiestoNuevo(ambitoLocal, ".agents", ".agents/skills"), escribirEnteras(t, lasDosEn(ambitoLocal)...)),
 			sondas: []string{".claude/skills"},
 		},
 		{
 			nombre: "el enlace de FR-021 donde se declara una copia se declara enlace",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").copiar("legal-core").escribir()
-				d.retirar(".claude/skills/legal-core")
-				d.enlace(".claude/skills/legal-core", "../../.agents/skills/legal-core")
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").copiar("plazos-y-territorio").escribir()
+				d.retirar(".claude/skills/plazos-y-territorio")
+				d.enlace(".claude/skills/plazos-y-territorio", "../../.agents/skills/plazos-y-territorio")
 			},
 			skills:      []instalacion.SkillInstalada{boeSinCambios, legalActualizada},
 			operaciones: []string{"3 manifiesto .agents/skills/kitlegal.json"},
@@ -1717,7 +1717,7 @@ func casosDelPlanDelHost(t *testing.T) []casoDePlan {
 // enlace si el creador de enlaces funciona en .claude/skills y, si no, se
 // mantiene y se actualiza como el directorio neutro (FR-024, FR-046).
 func casosDelPlanDeLasCopias() []casoDePlan {
-	const host = ".claude/skills/legal-core"
+	const host = ".claude/skills/plazos-y-territorio"
 
 	return []casoDePlan{
 		{
@@ -1726,8 +1726,8 @@ func casosDelPlanDeLasCopias() []casoDePlan {
 			// arriba abajo chocaría con references, que aún no está vacío.
 			nombre: "la copia pasa a enlace: se retira entera, de abajo arriba, y se enlaza",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").
-					copiaDeOtroBinario("legal-core", "references/antiguas/una.md", "una").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("plazos-y-territorio").
+					copiaDeOtroBinario("plazos-y-territorio", "references/antiguas/una.md", "una").escribir()
 			},
 			skills: lasDos(ambitoLocal, instalacion.EstadoActualizada, instalacion.ModoEnlace),
 			operaciones: slices.Concat([]string{
@@ -1744,7 +1744,7 @@ func casosDelPlanDeLasCopias() []casoDePlan {
 		{
 			nombre: "la copia que se mantiene, sin nada que actualizar, sale sin cambios",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("normativa").copiar("plazos-y-territorio").escribir()
 			},
 			admite: admiteNunca,
 			skills: lasDos(ambitoLocal, instalacion.EstadoSinCambios, instalacion.ModoCopia),
@@ -1753,14 +1753,14 @@ func casosDelPlanDeLasCopias() []casoDePlan {
 		{
 			nombre: "la copia que se mantiene se actualiza como el directorio neutro",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core").
-					copiaDeOtroBinario("legal-core", "SKILL.md", "# legal-core de antes\n").escribir()
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio").
+					copiaDeOtroBinario("plazos-y-territorio", "SKILL.md", "# plazos-y-territorio de antes\n").escribir()
 				d.retirar(host + "/references")
 			},
-			invocacion: instalacion.Invocacion{Skills: []string{"legal-core"}},
+			invocacion: instalacion.Invocacion{Skills: []string{"plazos-y-territorio"}},
 			admite:     admiteNunca,
 			skills: []instalacion.SkillInstalada{
-				salidaEn(ambitoLocal, "legal-core", instalacion.EstadoActualizada, instalacion.ModoCopia),
+				salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoActualizada, instalacion.ModoCopia),
 			},
 			operaciones: []string{
 				"1 retirar " + host + "/SKILL.md",
@@ -1823,7 +1823,7 @@ func casosConEnlacesSoloFueraDelAmbito(t *testing.T) []casoDePlan {
 		{
 			nombre: "-g con las copias ya hechas",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, deHome, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").escribir()
+				instalarEn(d, deHome, "normativa", "plazos-y-territorio").copiar("normativa").copiar("plazos-y-territorio").escribir()
 			},
 			invocacion: global,
 			admite:     admiteFueraDe(homeDePrueba),
@@ -1868,7 +1868,7 @@ func probarRecursoDeCopia(t *testing.T) {
 	assert.Equal(t, previsto, conOtra, "una skill que no es la de ningún enlace del plan no cambia nada")
 
 	enCopia := aplicarEnMemoria(t, plan, &escritorEnMemoria{disco: d, enlazador: enlazador})
-	require.Equal(t, []string{"boe-legislacion", "legal-core"}, enCopia)
+	require.Equal(t, []string{"normativa", "plazos-y-territorio"}, enCopia)
 
 	manifiesto := leerManifiestoDelDisco(t, d)
 	for _, nombre := range enCopia {
@@ -1909,7 +1909,7 @@ func probarPlanConConflictos(t *testing.T) {
 
 	d := nuevoDiscoEnMemoria(t)
 	d.directorio(".claude")
-	d.fichero(".agents/skills/legal-core/mio.md", "no es de kitlegal")
+	d.fichero(".agents/skills/plazos-y-territorio/mio.md", "no es de kitlegal")
 
 	pedido, err := instalacion.ValidarInvocacion(instalacion.Invocacion{}, "", empotradasDePrueba())
 	require.NoError(t, err)
@@ -1917,7 +1917,7 @@ func probarPlanConConflictos(t *testing.T) {
 	enlazador := nuevoEnlazadorHonesto(d, admiteSiempre)
 
 	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
-	exigirConflictos(t, err, []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/legal-core")})
+	exigirConflictos(t, err, []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/plazos-y-territorio")})
 	assert.Equal(t, instalacion.Plan{}, plan)
 	assert.Empty(t, enlazador.preguntados)
 }
@@ -1998,15 +1998,15 @@ func probarSalidaDeInstall(t *testing.T) {
 	t.Parallel()
 
 	salida, err := json.Marshal([]instalacion.SkillInstalada{
-		salidaEn(ambitoLocal, "boe-legislacion", instalacion.EstadoInstalada, instalacion.ModoEnlace),
-		salidaEn(ambitoLocal, "legal-core", instalacion.EstadoSinCambios),
+		salidaEn(ambitoLocal, "normativa", instalacion.EstadoInstalada, instalacion.ModoEnlace),
+		salidaEn(ambitoLocal, "plazos-y-territorio", instalacion.EstadoSinCambios),
 	})
 	require.NoError(t, err)
 
 	assert.JSONEq(t, `[
-		{"nombre": "boe-legislacion", "ruta": ".agents/skills/boe-legislacion", "estado": "instalada",
-		 "enlaces": [{"host": "claude", "ruta": ".claude/skills/boe-legislacion", "modo": "enlace"}]},
-		{"nombre": "legal-core", "ruta": ".agents/skills/legal-core", "estado": "sin cambios", "enlaces": []}
+		{"nombre": "normativa", "ruta": ".agents/skills/normativa", "estado": "instalada",
+		 "enlaces": [{"host": "claude", "ruta": ".claude/skills/normativa", "modo": "enlace"}]},
+		{"nombre": "plazos-y-territorio", "ruta": ".agents/skills/plazos-y-territorio", "estado": "sin cambios", "enlaces": []}
 	]`, string(salida))
 
 	enumerado := func(valores ...string) string {

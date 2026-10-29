@@ -22,12 +22,12 @@ Web del proyecto: **[kitlegal.es](https://kitlegal.es)**.
 ## Qué sabe hacer tu agente con kitlegal
 
 Hay tres skills. La tercera, `jurisprudencia`, es la de las sentencias, y tiene su apartado:
-[¿Y las sentencias?](#y-las-sentencias). Con las otras dos, `boe-legislacion` y `legal-core`, tu agente responde sobre
-**cualquier norma consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas autonómicas
-que el BOE consolida— y, si la pregunta lleva una fecha —la del acto, la de los hechos—, cita la redacción que regía
-ese día y te avisa si hoy es otra; sitúa **cualquier municipio de España** en su territorio y te dice **hasta qué día
-puedes recurrir** una resolución o cuándo vence un plazo administrativo, con la fecha calculada por kitlegal con los
-festivos nacionales, autonómicos y locales que cuentan. Lleva los nacionales y autonómicos de 2025 a 2027, y los
+[¿Y las sentencias?](#y-las-sentencias). Con las otras dos, `normativa` y `plazos-y-territorio`, tu agente responde
+sobre **cualquier norma consolidada en el BOE** —leyes, reales decretos, textos refundidos, también las normas
+autonómicas que el BOE consolida— y, si la pregunta lleva una fecha —la del acto, la de los hechos—, cita la redacción
+que regía ese día y te avisa si hoy es otra; sitúa **cualquier municipio de España** en su territorio y te dice **hasta
+qué día puedes recurrir** una resolución o cuándo vence un plazo administrativo, con la fecha calculada por kitlegal con
+los festivos nacionales, autonómicos y locales que cuentan. Lleva los nacionales y autonómicos de 2025 a 2027, y los
 locales solo de la Comunidad de Madrid, de 2025 y 2026; fuera de ellos, la respuesta te avisa de que la fecha puede
 ser anterior a la real. Un festivo autonómico de solo una parte de la comunidad —una isla de Canarias, el territorio
 de Arán— lo cuenta como hábil y te lo avisa: la fecha es la más temprana posible. Y si el
