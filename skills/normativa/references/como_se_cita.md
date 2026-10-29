@@ -5,20 +5,15 @@ puede ir, qué pasa con un id que termina en punto y con un bloque remitido, y d
 
 ## Lo que hace cita
 
-Que los corchetes terminen en `<identificador>, bloque <id de bloque>]`: el identificador `BOE-A-…`, una coma, la
-palabra `bloque` y el id, sin nada entre el id y el corchete de cierre, y los dos corchetes en la misma línea. La forma
-recomendada pone delante la forma legible de la norma y del bloque:
-`art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]`.
-
-## La forma legible dentro
-
-Si dentro de los corchetes va también la forma legible, va delante del identificador y separada de él por una coma:
-`[art. 20.1 de la LTAIBG, BOE-A-2013-12887, bloque a20]` también es una cita.
+Una sola forma: `<forma legible> [<identificador>, bloque <id>]`. Delante va la forma legible de la norma y del
+bloque; detrás, en la misma línea y entre corchetes, el identificador `BOE-A-…`, una coma, la palabra `bloque` y el
+id, y nada más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`.
 
 ## Lo que no es cita
 
-Detrás del id no va nada: `[BOE-A-2015-10565, bloque a21, art. 21]` no es una cita. Tampoco lo son el identificador
-sin el id del bloque, ni el identificador y el id sin corchetes.
+Lo que se aparta de esa forma no es una cita: los corchetes con algo más que el identificador, la palabra `bloque` y
+el id, sea delante del identificador, como la forma legible, o detrás del id; el identificador sin el id del bloque; el
+identificador y el id sin corchetes, entre paréntesis o con los corchetes en líneas distintas.
 
 ## Sola o bajo una cita textual
 
