@@ -46,7 +46,7 @@ func TestEleccionDeLosMutantes(t *testing.T) {
 	}{
 		mutanteReferenciaDePlazosYTerritorio: {evals: evalsDeLasSkills(evals, "plazos-y-territorio"), motivo: motivoConjunto},
 		mutanteCuerpoDeNormativa: {
-			evals: evalsDeLasSkills(evals, "normativa", "plazos-y-territorio", "jurisprudencia"), motivo: motivoConjunto,
+			evals: evalsDeLasSkills(evals, "normativa", "plazos-y-territorio"), motivo: motivoConjunto,
 		},
 		mutanteCuerpoDeJurisprudencia:         {evals: evalsDeLasSkills(evals, "jurisprudencia"), motivo: motivoConjunto},
 		mutanteInternalCLI:                    {evals: evals, motivo: motivoComun},
@@ -827,17 +827,17 @@ evals (plazos-y-territorio): medidas 12, reutilizadas 0
   11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
   12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
 ## cuerpo-de-normativa
-evals (jurisprudencia): medidas 10, reutilizadas 0
-  01-existe-con-numero-y-fecha.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  02-resumen-sin-documento.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  03-por-materia.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  04-documento-pegado.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  05-tribunal-constitucional.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  06-documento-que-no-es-el-pedido.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  07-resumen-de-una-conocida.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  08-doctrina-con-el-fallo-delante.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  09-de-que-trata-con-la-ficha-sola.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
-  10-doctrina-dada-por-hecha.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
+evals (jurisprudencia): medidas 0, reutilizadas 10
+  01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  02-resumen-sin-documento.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  03-por-materia.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  04-documento-pegado.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  05-tribunal-constitucional.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  06-documento-que-no-es-el-pedido.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  07-resumen-de-una-conocida.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  08-doctrina-con-el-fallo-delante.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  09-de-que-trata-con-la-ficha-sola.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
+  10-doctrina-dada-por-hecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 evals (normativa): medidas 23, reutilizadas 0
   01-lpac-articulo-21.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)
   02-lcsp-contrato-menor.yaml: medida: rutas de su conjunto (skills/normativa/SKILL.md)

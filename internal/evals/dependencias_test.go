@@ -71,14 +71,20 @@ type calculoDelRepositorio struct {
 	conjuntos   []dependenciasDeLaEval
 }
 
+// skillsSinDatos son las skills cuyas evals no tienen ningún data/*.yaml en la
+// parte (c): sus referencias son todas a mano y no nombran otra skill, porque
+// ninguna skill de capacidad remite a otra (FR-006 de H32).
+var skillsSinDatos = []string{"jurisprudencia"}
+
 // comprobarLasSeisPartes comprueba que hay un conjunto por eval del repositorio,
 // en su orden, y que cada uno se calcula sin error y trae sus seis partes, cada
 // una con lo que dice el repositorio, leído aquí por su lado: (a) su fichero;
 // (b) el SKILL.md y las referencias de su skill; (c) los data/*.yaml de las
-// cabeceras de las referencias de las skills de (b); (d) algún paquete, de un
-// directorio que existe; (e) las raíces de grabaciones y la de su grafo previo;
-// (f) la carpeta del juez de su skill, si la tiene, y los demás ficheros de su
-// directorio que no son evals.
+// cabeceras de las referencias de las skills de (b), ninguno en las de
+// skillsSinDatos y alguno en las demás; (d) algún paquete, de un directorio que
+// existe; (e) las raíces de grabaciones y la de su grafo previo; (f) la carpeta
+// del juez de su skill, si la tiene, y los demás ficheros de su directorio que
+// no son evals.
 func comprobarLasSeisPartes(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
@@ -106,7 +112,12 @@ func comprobarLasSeisPartes(t *testing.T, calculo calculoDelRepositorio) {
 			"%s: (b)", conjunto.nombre())
 
 		datos := datosDeLasCabeceras(t, calculo.repositorio, partes[parteDeLasSkills])
-		assert.NotEmptyf(t, datos, "%s: (c) sin ningún data/*.yaml", conjunto.nombre())
+		if slices.Contains(skillsSinDatos, conjunto.skill) {
+			assert.Emptyf(t, datos, "%s: (c) con algún data/*.yaml", conjunto.nombre())
+		} else {
+			assert.NotEmptyf(t, datos, "%s: (c) sin ningún data/*.yaml", conjunto.nombre())
+		}
+
 		assert.Equalf(t, datos, partes[parteDeLosDatos], "%s: (c)", conjunto.nombre())
 
 		comprobarLosPaquetes(t, calculo.repositorio, conjunto.nombre(), partes[parteDeLosPaquetes])
@@ -156,19 +167,21 @@ func comprobarFR001DePlazosYTerritorio(t *testing.T, calculo calculoDelRepositor
 }
 
 // comprobarFR001DeJurisprudencia comprueba el criterio de FR-001 en la primera
-// eval de jurisprudencia: pide skills/normativa/SKILL.md, un fichero de
-// internal/core/cita y uno de la carpeta de su juez, y excluye otra eval suya,
-// una eval de otra skill y skills/plazos-y-territorio/SKILL.md.
+// eval de jurisprudencia: pide su SKILL.md, un fichero de internal/core/cita y
+// uno de la carpeta de su juez, y excluye otra eval suya, una eval de otra
+// skill, skills/plazos-y-territorio/SKILL.md y skills/normativa/SKILL.md, que
+// jurisprudencia ya no nombra: ninguna skill de capacidad remite a otra (FR-006
+// de H32).
 func comprobarFR001DeJurisprudencia(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
 	comprobarLoQuePideFR001(t, calculo, "jurisprudencia",
 		[]string{
-			"skills/normativa/SKILL.md",
+			"skills/jurisprudencia/SKILL.md",
 			ficheroDelRepositorio(t, calculo.repositorio, "internal/core/cita", esCodigoSinTests),
 			ficheroDelRepositorio(t, calculo.repositorio, "evals/jurisprudencia/juez", func(string) bool { return true }),
 		},
-		[]string{"skills/plazos-y-territorio/SKILL.md"})
+		[]string{"skills/plazos-y-territorio/SKILL.md", "skills/normativa/SKILL.md"})
 }
 
 // comprobarLoQuePideFR001 comprueba que el conjunto de la primera eval de la

@@ -15,13 +15,12 @@ metadata:
 
 # Sentencias: la consulta exacta, el documento cotejado y ninguna cita de memoria
 
-Esta skill responde cuando hace falta una sentencia o un auto de un tribunal español. kitlegal **no consulta el
-buscador de jurisprudencia del CENDOJ**: cierra el paso a los programas con un CAPTCHA, y no se sortea. La búsqueda
-la hace la persona con su navegador, y a ella no le sale: la respuesta no le anuncia un CAPTCHA ni le pide que
-resuelva ninguno. La skill le da la consulta exacta —la dirección y cada casilla con su valor— y, cuando trae el
-documento, comprueba que es el que se pidió. Una sentencia citada de memoria puede no existir, y un escrito que la
-lleve se paga caro: **solo se cita la sentencia cuyo documento está en la conversación**. La skill prepara, coteja y
-cita: no tramita nada y no sustituye el asesoramiento de un profesional.
+kitlegal **no consulta el buscador de jurisprudencia del CENDOJ**: cierra el paso a los programas con un CAPTCHA, y
+no se sortea. La búsqueda la hace la persona con su navegador, y a ella no le sale: la respuesta no le anuncia un
+CAPTCHA ni le pide que resuelva ninguno. La skill le da la consulta exacta —la dirección y cada casilla con su
+valor— y, cuando trae el documento, comprueba que es el que se pidió. Una sentencia citada de memoria puede no
+existir, y un escrito que la lleve se paga caro: **solo se cita la sentencia cuyo documento está en la
+conversación**. La skill prepara, coteja y cita: no tramita nada y no sustituye el asesoramiento de un profesional.
 
 ## Protocolo
 
@@ -34,6 +33,9 @@ Sigue los pasos que pida la pregunta. Las dos operaciones se piden de una de dos
 - **Con su orden**, `kitlegal cita <verbo> … --json`, si no la tienes. Siempre con `--json`.
 
 Ninguna de las dos pide nada a la red: no dicen si una sentencia existe.
+
+<!-- paquetes: lo genera make skills-sync -->
+<!-- fin de los paquetes -->
 
 ### 1. Qué sentencias hacen falta, y cuáles están delante
 
@@ -164,8 +166,8 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 3. **La respuesta habla a la persona.** Da la dirección, las casillas y los datos de la ficha con palabras de quien
    busca una sentencia, sin nombrar los campos de lo que devuelve una orden.
 4. **Cuando hable de normas**, distingue ley de reglamento, señala lo que una comunidad autónoma puede haber regulado
-   de otro modo y no apliques el procedimiento común a lo que la ley regula aparte. El texto de un artículo no se cita
-   de memoria: se consulta con `normativa`.
+   de otro modo y no apliques el procedimiento común a lo que la ley regula aparte. Ningún artículo, plazo, órgano ni
+   vía de memoria: aquí no están cubiertos.
 5. **Ninguna acción con identidad.** No presentes, firmes ni tramites nada en nombre de nadie, ni lo simules.
 6. **Sin herramienta y sin binario, ninguna cita.** Si no tienes las herramientas y la orden falla porque `kitlegal`
    no está, no lo busques en otras carpetas ni en un plugin: no has cotejado nada, y no cites ninguna sentencia. La
