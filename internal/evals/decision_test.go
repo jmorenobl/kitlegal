@@ -151,9 +151,13 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 	t.Helper()
 
 	docs := conUnaLineaMas(t, repositorio.arbol, ficheroDelRepositorio(t, repositorio.arbol, "docs", esMarkdown))
+	// El cuerpo de jurisprudencia lo carga también la skill de entrada, que la
+	// nombra: sus evals se miden con las de jurisprudencia (contracts/evals.md §5
+	// (d) de H32).
 	cuerpo := "skills/jurisprudencia/SKILL.md"
 	deJurisprudencia := map[string]medidasEsperadas{
-		"jurisprudencia": {motivo: motivoConjunto, rutas: []string{cuerpo}},
+		"consulta-juridica": {motivo: motivoConjunto, rutas: []string{cuerpo}},
+		"jurisprudencia":    {motivo: motivoConjunto, rutas: []string{cuerpo}},
 	}
 
 	return []casoDeLaDecision{
@@ -165,6 +169,7 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 			nombre: "solo-el-cuerpo-de-jurisprudencia-sin-medida-de-main", disparo: disparoDeLaApertura,
 			mutante: conUnaLineaMas(t, repositorio.arbol, cuerpo), sinMain: true,
 			medidas: map[string]medidasEsperadas{
+				"consulta-juridica":   {motivo: motivoConjunto, rutas: []string{cuerpo}},
 				"normativa":           {motivo: motivoSinResultadoDeMain},
 				"jurisprudencia":      {motivo: motivoConjunto, rutas: []string{cuerpo}},
 				"plazos-y-territorio": {motivo: motivoSinResultadoDeMain},

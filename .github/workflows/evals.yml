@@ -220,7 +220,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        skill: [normativa, jurisprudencia, plazos-y-territorio]
+        skill: [consulta-juridica, jurisprudencia, normativa, plazos-y-territorio]
         # Cuántas sesiones abre a la vez el trabajo de cada skill y el objetivo de duración de sus sesiones, en
         # segundos (0, sin objetivo): include los añade a la combinación de su skill sin crear otras (FR-030 y FR-051
         # de H7.3; research.md D12 de H7.3). normativa va a cinco a la vez desde antes de H20: a cuatro, con las
@@ -235,14 +235,21 @@ jobs:
         # corren a la vez contra la misma suscripción, con once sesiones entre los tres, que no se han medido
         # (specs/020-h25-el-juez-de/contracts/job-de-evals.md §1, §3 y §5; FR-070 de H25). Desde H30 siguen siendo
         # como mucho once, también con la reutilización: una combinación por skill, sin otra clave en la matriz, y
-        # TestDefinicionDelJob sale en rojo si la matriz admite más (FR-020 y SC-011 de H30).
+        # TestDefinicionDelJob sale en rojo si la matriz admite más (FR-020 y SC-011 de H30). Desde H32 son las cuatro
+        # skills de la entrega, en orden de nombre, y siguen siendo once: la de entrada, consulta-juridica, va a una, sin
+        # objetivo, y jurisprudencia baja a tres, con lo que su peor caso pasa de 13 717 s a 17 637 s, que el tope cubre;
+        # normativa a cuatro pasaría de él, y plazos-y-territorio a una, también (specs/030-h32-arquitectura-de-skills/
+        # contracts/evals.md §6; research.md D15; FR-039).
         include:
+          - skill: consulta-juridica
+            concurrencia: 1
+            objetivo_de_duracion: 0
+          - skill: jurisprudencia
+            concurrencia: 3
+            objetivo_de_duracion: 0
           - skill: normativa
             concurrencia: 5
             objetivo_de_duracion: 900
-          - skill: jurisprudencia
-            concurrencia: 4
-            objetivo_de_duracion: 0
           - skill: plazos-y-territorio
             concurrencia: 2
             objetivo_de_duracion: 0
@@ -256,8 +263,11 @@ jobs:
     # juzgar: sus 6 votos de 40 s, 240 s, y, en plazos-y-territorio, que no tiene juez de las respuestas, los 60 s de
     # instalar el Claude Code del juez (specs/027-h31-las-skills-siguen/research.md D10; SC-015 de H31): 20 117 s en
     # normativa, 335,3 minutos; 13 717 s en jurisprudencia, 228,6 minutos; y 20 725 s en plazos-y-territorio, 345,4
-    # minutos, el mayor, que los 352 minutos cubren sin cambiar. Las cifras que siguen son las de sus sesiones y su
-    # juez, sin la decisión ni la descripción.
+    # minutos, el mayor, que los 352 minutos cubren sin cambiar. Desde H32, con la skill de entrada a una y
+    # jurisprudencia a tres: 8485 s en consulta-juridica, 141,4 minutos, con sus dos evals y sin juez de las respuestas;
+    # 17 637 s en jurisprudencia, 294,0 minutos; y, sin cambio, los de normativa y plazos-y-territorio, que sigue siendo
+    # el mayor, 20 725 s, que los 352 minutos cubren sin cambiar (specs/030-h32-arquitectura-de-skills/contracts/evals.md
+    # §6). Las cifras que siguen son las de sus sesiones y su juez, sin la decisión ni la descripción.
     # 352 minutos: el peor caso de normativa, a cinco a la vez desde antes de H20, es de 18 977 s,
     # 316,3 minutos. Son los 12 997 s de sus sesiones, con sus 23 evals en tres tandas —las del modo orden, las del modo
     # herramienta y las de la eval sin binario ni servidor— (FR-083 de H21; specs/015-h21-kitlegal-mcp-serve/research.md
@@ -510,18 +520,22 @@ jobs:
   # §7; research.md D9; FR-034): 5305 s, 88,4 minutos, con los 485 s de fuera de los votos, los 60 s de instalar el
   # Claude Code del juez y 119 tandas de 40 s, que el tope cubre. La lanza una persona, con la etiqueta, nunca un paso
   # del run (SC-011).
+  #
+  # Desde H32, sus skills van en el orden de la matriz del trabajo evals, y cada una con la concurrencia de antes:
+  # jurisprudencia baja a tres en el trabajo evals y no aquí, donde, con sus 249 casos, su peor caso a tres sería de
+  # 20 465 s, que el tope no cubre (specs/030-h32-arquitectura-de-skills/contracts/evals.md §6).
   medida:
     name: medida del juez (${{ matrix.skill }})
     if: github.event.label.name == 'evals-medir-juez' || inputs.medir_al_juez == true
     strategy:
       fail-fast: false
       matrix:
-        skill: [normativa, jurisprudencia, descripciones]
+        skill: [jurisprudencia, normativa, descripciones]
         include:
-          - skill: normativa
-            concurrencia: 5
           - skill: jurisprudencia
             concurrencia: 4
+          - skill: normativa
+            concurrencia: 5
           - skill: descripciones
             concurrencia: 5
     runs-on: ubuntu-24.04

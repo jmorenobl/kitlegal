@@ -6505,9 +6505,11 @@ func informeDelPlanDelJob(
 }
 
 // informeDelPlanDelJobConTandas es informeDelPlanDelJob con los segundos dados
-// de la tanda de cada modo, y lo lee (leerElInformeDeLaSkill).
+// de la tanda de cada modo, y lo lee (leerElInformeDeLaSkill). Los cambios, en
+// su orden, se aplican a las entradas antes de escribirlo.
 func informeDelPlanDelJobConTandas(
 	t *testing.T, skill, evals, sesiones string, objetivo int, tandas map[Modo]int, votante *votanteDelInforme,
+	cambios ...func(*InformeAEscribir),
 ) informeLeido {
 	t.Helper()
 
@@ -6531,6 +6533,10 @@ func informeDelPlanDelJobConTandas(
 		ObjetivoDeDuracion:    objetivo,
 	}
 	votante.darA(&entradas)
+
+	for _, cambio := range cambios {
+		cambio(&entradas)
+	}
 
 	informe, err := EscribirInforme(entradas)
 	require.NoError(t, err)
@@ -7046,7 +7052,7 @@ func exigirLasQueNoPasan(t *testing.T, leido informeLeido, noPasan map[string][]
 	}
 }
 
-// TestUmbralesDeLasTresSkills fija los umbrales de las tres skills con sus
+// TestUmbralesDeLasSkills fija los umbrales de las skills con sus
 // evals del repositorio, el plan del job y el objetivo de duración que les da
 // su definición (contracts/evals-legal-core.md §3 de H9; FR-056, FR-087;
 // SC-011): plazos-y-territorio, con las sesiones de
@@ -7077,11 +7083,28 @@ func exigirLasQueNoPasan(t *testing.T, leido informeLeido, noPasan map[string][]
 // medidas del modelo que decide y las 42 de Haiku 4.5 de cada modo:
 // diecinueve, con los mismos once que deciden y sin ningún lectura_sin_intentar
 // (SC-019 de H26.1).
-func TestUmbralesDeLasTresSkills(t *testing.T) {
+//
+// Desde H32 (contracts/evals.md §7 de H32; research V16 de H32; FR-038; SC-010
+// a SC-015), las cuatro skills de la entrega, con los nombres nuevos y sin
+// cambiar ningún valor: normativa con los diecinueve de boe-legislacion,
+// jurisprudencia con sus diecinueve y plazos-y-territorio con los dieciocho de
+// legal-core; y consulta-juridica, la de entrada, sin juez, sentencias ni evals
+// de plazo, de cobertura, de vigencia o con una redacción fechada, solo con
+// fuera_de_lo_grabado de cada modelo y cada modo del plan del job, que no
+// decide, sin sin_activar ni lectura_sin_intentar; y, con la descripción en el
+// informe, como las otras tres, además el de su clase,
+// habla_en_primera_o_segunda_persona, que decide.
+func TestUmbralesDeLasSkills(t *testing.T) {
 	t.Parallel()
 
 	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
+
+	t.Run(skillDeConsultaJuridica, func(t *testing.T) {
+		t.Parallel()
+
+		probarLosUmbralesDeLaEntrada(t, delJob)
+	})
 
 	t.Run(skillDePlazosYTerritorio, func(t *testing.T) {
 		t.Parallel()
@@ -7206,6 +7229,72 @@ func TestUmbralesDeLasTresSkills(t *testing.T) {
 				assert.Equal(t, total, *leido.informe.Umbrales[deLaLista].Total, "el total de %s", nombre)
 			}
 		})
+	}
+}
+
+// skillDeConsultaJuridica es la skill de entrada de la entrega de H32
+// (contracts/reparto.md §1 de H32).
+const skillDeConsultaJuridica = "consulta-juridica"
+
+// probarLosUmbralesDeLaEntrada es el subtest de consulta-juridica de
+// TestUmbralesDeLasSkills (contracts/evals.md §7 de H32; research V16 de H32):
+// con sus evals del repositorio, el plan del job, el objetivo de duración que le
+// da su definición y sin sesiones, como jurisprudencia, sus umbrales son los
+// cuatro fuera_de_lo_grabado del plan, uno por modelo y modo, ninguno
+// decidiendo; y, con su descripción en el informe, juzgada sin marcar, además
+// el de la descripción, detrás, que decide.
+func probarLosUmbralesDeLaEntrada(t *testing.T, delJob DefinicionDelJob) {
+	t.Helper()
+
+	ajustes, esta := delJob.PorSkill[skillDeConsultaJuridica]
+	require.True(t, esta, "la definición del job tiene los ajustes de %s", skillDeConsultaJuridica)
+
+	deLasRespuestas := []Umbral{
+		umbralDeFueraDeLoGrabado(modeloSonnet55, ModoOrden, 0, 0),
+		umbralDeFueraDeLoGrabado(modeloHaiku45, ModoOrden, 0, 0),
+		umbralDeFueraDeLoGrabado(modeloSonnet55, ModoHerramienta, 0, 0),
+		umbralDeFueraDeLoGrabado(modeloHaiku45, ModoHerramienta, 0, 0),
+	}
+
+	conLaDescripcion := func(entradas *InformeAEscribir) {
+		entradas.descripcion = &DescripcionInformada{
+			Skill: skillDeConsultaJuridica, Clase: claseHablaEnPrimeraOSegundaPersona,
+			Huella: huellaDeLaDescripcionDeLaDecision(), Juzgada: true, Motivo: motivoDelVotoQueNo,
+			Votos: []VotoDeLaDescripcion{votoDado("no", "", motivoDelVotoQueNo)},
+		}
+	}
+
+	casos := []struct {
+		nombre   string
+		cambios  []func(*InformeAEscribir)
+		umbrales []Umbral
+		deciden  []string
+	}{
+		{nombre: "sin-la-descripcion", umbrales: deLasRespuestas},
+		{
+			nombre:   "con-la-descripcion",
+			cambios:  []func(*InformeAEscribir){conLaDescripcion},
+			umbrales: append(slices.Clone(deLasRespuestas), umbralDeLaDescripcionEsperado(0, 1)),
+			deciden:  []string{claseHablaEnPrimeraOSegundaPersona},
+		},
+	}
+
+	for _, caso := range casos {
+		leido := informeDelPlanDelJobConTandas(t, skillDeConsultaJuridica, evalsDeConsultaJuridica, t.TempDir(),
+			ajustes.ObjetivoDeDuracion, map[Modo]int{ModoOrden: 950, ModoHerramienta: 1000}, nuevoVotanteDelInforme(t),
+			caso.cambios...)
+
+		assert.Equal(t, formaDeLosUmbrales(caso.umbrales), formaDeLosUmbrales(leido.informe.Umbrales), caso.nombre)
+
+		var deciden []string
+
+		for _, umbral := range leido.informe.Umbrales {
+			if umbral.Decide {
+				deciden = append(deciden, umbral.Nombre)
+			}
+		}
+
+		assert.Equal(t, caso.deciden, deciden, "%s: solo decide el de la descripción", caso.nombre)
 	}
 }
 

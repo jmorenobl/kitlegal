@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -780,6 +781,360 @@ func TestConjuntoDeEvals(t *testing.T) {
 	t.Run("normativa", probarReglasDeNormativa)
 	t.Run("plazos-y-territorio", probarReglasDePlazosYTerritorio)
 	t.Run("jurisprudencia", probarReglasDeJurisprudencia)
+	t.Run("consulta-juridica", probarReglasDeConsultaJuridica)
+	t.Run("reglas-de-cada-carpeta", probarLasReglasDeCadaCarpeta)
+	t.Run("no-activación-de-cada-capacidad", probarLaNoActivacionDeCadaCapacidad)
+}
+
+// Las evals sintéticas del conjunto de consulta-juridica de
+// probarReglasDeConsultaJuridica: la de una materia sin paquete y la de una sola
+// capacidad (contracts/evals.md §2 y §4 de H32), con las normas que citan; y la
+// del conjunto de una sola eval que es de las dos clases.
+const (
+	consultaDeLaMateriaSinPaquete = "01-poliza-tras-el-fallecimiento.yaml"
+	consultaDeUnaSolaCapacidad    = "02-una-sola-capacidad.yaml"
+	consultaDeLasDosClases        = "01-de-las-dos-clases.yaml"
+	normaDeLaMateriaSinPaquete    = "BOE-A-1980-22501"
+	normaDeUnaSolaCapacidad       = "BOE-A-2015-11430"
+)
+
+// capacidadesSinteticas son las skills de capacidad con las que
+// probarReglasDeConsultaJuridica pide sus reglas: las tres de la entrega.
+var capacidadesSinteticas = []string{"jurisprudencia", "normativa", "plazos-y-territorio"}
+
+// conjuntoDeConsultaJuridica devuelve, nuevo en cada llamada, un conjunto que
+// cumple las reglas de consulta-juridica: una eval activa que prohíbe plazos
+// calcular y cita una norma sin vertical, y otra activa con una sola skill de
+// capacidad en se_activan y las demás en no_se_activan.
+func conjuntoDeConsultaJuridica() []Eval {
+	return []Eval{
+		{
+			Fichero:     consultaDeLaMateriaSinPaquete,
+			Pregunta:    "Mi madre falleci\xc3\xb3 y la aseguradora prorrog\xc3\xb3 su p\xc3\xb3liza. \xc2\xbfQu\xc3\xa9 podemos hacer?",
+			Activa:      true,
+			NoSeActivan: []string{"jurisprudencia"},
+			Comandos:    []ComandoEsperado{{Applet: "boe", Norma: normaDeLaMateriaSinPaquete, Bloque: "aveintidos"}},
+			Citas:       []CitaEsperada{{Norma: normaDeLaMateriaSinPaquete, Bloque: "aveintidos"}},
+			Prohibidos:  []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
+		},
+		{
+			Fichero:     consultaDeUnaSolaCapacidad,
+			Pregunta:    "\xc2\xbfQu\xc3\xa9 dice el Estatuto de los Trabajadores sobre las vacaciones?",
+			Activa:      true,
+			SeActivan:   []string{"normativa"},
+			NoSeActivan: []string{"jurisprudencia", "plazos-y-territorio"},
+			Comandos:    []ComandoEsperado{{Applet: "boe", Norma: normaDeUnaSolaCapacidad, Bloque: "a38"}},
+			Citas:       []CitaEsperada{{Norma: normaDeUnaSolaCapacidad, Bloque: "a38"}},
+		},
+	}
+}
+
+// normasDeConsultaJuridica son las normas conocidas del conjunto: las dos que
+// cita, sin vertical, y la LPAC, del paquete de lo administrativo.
+func normasDeConsultaJuridica() map[string]NormaConocida {
+	return map[string]NormaConocida{
+		normaDeLaMateriaSinPaquete: {Materias: []string{"seguros"}},
+		normaDeUnaSolaCapacidad:    {Abreviatura: "ET", Materias: []string{"relaciones laborales"}},
+		normaLPAC: {
+			Abreviatura: "LPAC", Materias: []string{"procedimiento administrativo"}, Vertical: "administrativo",
+		},
+	}
+}
+
+// probarReglasDeConsultaJuridica fija ComprobarConjunto con
+// ReglasDeConsultaJuridica (contracts/evals.md §4 de H32; FR-035 a FR-037): el
+// conjunto que las cumple no da ningún defecto; cada copia que incumple una
+// regla da el defecto de esa regla, con su nombre y un mensaje que nombra los
+// ficheros implicados; una sola eval de las dos clases incumple solo el tamaño;
+// y un conjunto vacío las incumple todas, en el orden de la tabla.
+func probarReglasDeConsultaJuridica(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cumple-todas", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, ComprobarConjunto(conjuntoDeConsultaJuridica(), normasDeConsultaJuridica(),
+			ReglasDeConsultaJuridica(capacidadesSinteticas)))
+	})
+
+	casos := []struct {
+		nombre    string
+		modificar func(t *testing.T, evals []Eval) []Eval
+		reglas    []string
+		ficheros  []string
+	}{
+		{
+			nombre: "materia-sin-prohibir-el-plazo",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeLaMateriaSinPaquete).Prohibidos = nil
+
+				return evals
+			},
+			reglas:   []string{"materia sin paquete"},
+			ficheros: []string{consultaDeLaMateriaSinPaquete, consultaDeUnaSolaCapacidad},
+		},
+		{
+			nombre: "materia-que-prohibe-otro-verbo",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeLaMateriaSinPaquete).Prohibidos = []ComandoProhibido{
+					{Applet: "plazos", Verbo: "tipos"},
+				}
+
+				return evals
+			},
+			reglas:   []string{"materia sin paquete"},
+			ficheros: []string{consultaDeLaMateriaSinPaquete},
+		},
+		{
+			nombre: "materia-de-un-paquete",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeLaMateriaSinPaquete).Citas = []CitaEsperada{{Norma: normaLPAC, Bloque: "a21"}}
+
+				return evals
+			},
+			reglas:   []string{"materia sin paquete"},
+			ficheros: []string{consultaDeLaMateriaSinPaquete},
+		},
+		{
+			// Una norma que no está en data/normas.yaml no es una norma sin
+			// vertical de la tabla.
+			nombre: "materia-con-una-norma-desconocida",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeLaMateriaSinPaquete).Citas = []CitaEsperada{
+					{Norma: normaDesconocida, Bloque: "a1"},
+				}
+
+				return evals
+			},
+			reglas:   []string{"materia sin paquete"},
+			ficheros: []string{consultaDeLaMateriaSinPaquete},
+		},
+		{
+			nombre: "materia-sin-activar",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeLaMateriaSinPaquete).Activa = false
+
+				return evals
+			},
+			reglas: []string{"materia sin paquete"},
+		},
+		{
+			nombre: "capacidad-sin-se-activan",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeUnaSolaCapacidad).SeActivan = nil
+
+				return evals
+			},
+			reglas: []string{"una sola capacidad"},
+		},
+		{
+			nombre: "dos-capacidades-en-se-activan",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				eval := evalDe(t, evals, consultaDeUnaSolaCapacidad)
+				eval.SeActivan = []string{"normativa", "plazos-y-territorio"}
+				eval.NoSeActivan = []string{"jurisprudencia"}
+
+				return evals
+			},
+			reglas:   []string{"una sola capacidad"},
+			ficheros: []string{consultaDeUnaSolaCapacidad},
+		},
+		{
+			// La skill de entrada no es de capacidad: no la declara
+			// capacidadesSinteticas.
+			nombre: "se-activan-que-no-es-de-capacidad",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				eval := evalDe(t, evals, consultaDeUnaSolaCapacidad)
+				eval.SeActivan = []string{"consulta-juridica"}
+				eval.NoSeActivan = slices.Clone(capacidadesSinteticas)
+
+				return evals
+			},
+			reglas:   []string{"una sola capacidad"},
+			ficheros: []string{consultaDeUnaSolaCapacidad},
+		},
+		{
+			nombre: "capacidad-que-falta-en-no-se-activan",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeUnaSolaCapacidad).NoSeActivan = []string{"jurisprudencia"}
+
+				return evals
+			},
+			reglas:   []string{"una sola capacidad"},
+			ficheros: []string{consultaDeUnaSolaCapacidad},
+		},
+		{
+			nombre: "capacidad-sin-activar",
+			modificar: func(t *testing.T, evals []Eval) []Eval {
+				t.Helper()
+				evalDe(t, evals, consultaDeUnaSolaCapacidad).Activa = false
+
+				return evals
+			},
+			reglas: []string{"una sola capacidad"},
+		},
+		{
+			// Una sola eval de las dos clases cumple las dos reglas de las clases, y
+			// no la del tamaño.
+			nombre: "tama\xc3\xb1o",
+			modificar: func(_ *testing.T, _ []Eval) []Eval {
+				return []Eval{{
+					Fichero:     consultaDeLasDosClases,
+					Pregunta:    "\xc2\xbfQu\xc3\xa9 dice la Ley de Contrato de Seguro de la pr\xc3\xb3rroga?",
+					Activa:      true,
+					SeActivan:   []string{"normativa"},
+					NoSeActivan: []string{"jurisprudencia", "plazos-y-territorio"},
+					Comandos:    []ComandoEsperado{{Applet: "boe", Norma: normaDeLaMateriaSinPaquete, Bloque: "aveintidos"}},
+					Citas:       []CitaEsperada{{Norma: normaDeLaMateriaSinPaquete, Bloque: "aveintidos"}},
+					Prohibidos:  []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
+				}}
+			},
+			reglas:   []string{"tama\xc3\xb1o"},
+			ficheros: []string{consultaDeLasDosClases},
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			defectos := ComprobarConjunto(caso.modificar(t, conjuntoDeConsultaJuridica()), normasDeConsultaJuridica(),
+				ReglasDeConsultaJuridica(capacidadesSinteticas))
+			require.Equal(t, caso.reglas, reglasIncumplidas(defectos), "la copia incumple solo esas reglas: %v", defectos)
+
+			for _, nombrado := range caso.ficheros {
+				assert.Contains(t, defectos[len(defectos)-1].Mensaje, nombrado, "el mensaje nombra lo implicado")
+			}
+		})
+	}
+
+	t.Run("orden-de-la-tabla", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []string{"tama\xc3\xb1o", "materia sin paquete", "una sola capacidad"},
+			reglasIncumplidas(ComprobarConjunto(nil, normasDeConsultaJuridica(),
+				ReglasDeConsultaJuridica(capacidadesSinteticas))))
+	})
+
+	t.Run("sin-capacidades", func(t *testing.T) {
+		t.Parallel()
+
+		// Sin skills de capacidad, ningún nombre de se_activan es de una: la regla
+		// no pasa en vacío.
+		assert.Equal(t, []string{"una sola capacidad"}, reglasIncumplidas(ComprobarConjunto(
+			conjuntoDeConsultaJuridica(), normasDeConsultaJuridica(), ReglasDeConsultaJuridica(nil))))
+	})
+
+	t.Run("mensajes", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Equal(t, []DefectoDelConjunto{
+			{
+				Regla:   "tama\xc3\xb1o",
+				Mensaje: "hay 0 evals y el conjunto lleva al menos 2: ning\xc3\xban fichero",
+			},
+			{
+				Regla: "materia sin paquete",
+				Mensaje: "ninguna eval activa prohíbe plazos calcular y cita una norma de data/normas.yaml sin " +
+					"vertical; evals activas: ning\xc3\xban fichero",
+			},
+			{
+				Regla: "una sola capacidad",
+				Mensaje: "ninguna eval activa declara en se_activan una sola skill de capacidad y en no_se_activan " +
+					"las demás (jurisprudencia, normativa, plazos-y-territorio); evals activas: ning\xc3\xban fichero",
+			},
+		}, ComprobarConjunto(nil, nil, ReglasDeConsultaJuridica(capacidadesSinteticas)))
+	})
+}
+
+// probarLasReglasDeCadaCarpeta fija ReglasDeLaCarpeta (contracts/evals.md §4 de
+// H32; FR-037): cada carpeta de evals de la entrega tiene el juego de su skill,
+// con las mismas reglas, en su orden, que el que da su función; y un nombre
+// retirado, o el de una carpeta sin juego, no tiene ninguno.
+func probarLasReglasDeCadaCarpeta(t *testing.T) {
+	t.Parallel()
+
+	nombres := func(reglas []ReglaDelConjunto) []string {
+		var deLasReglas []string
+		for _, regla := range reglas {
+			deLasReglas = append(deLasReglas, regla.nombre)
+		}
+
+		return deLasReglas
+	}
+
+	juegos := map[string][]ReglaDelConjunto{
+		"consulta-juridica":   ReglasDeConsultaJuridica(capacidadesSinteticas),
+		"jurisprudencia":      ReglasDeJurisprudencia(),
+		"normativa":           ReglasDeNormativa(),
+		"plazos-y-territorio": ReglasDePlazosYTerritorio(),
+	}
+
+	for carpeta, juego := range juegos {
+		elegidas, conJuego := ReglasDeLaCarpeta(carpeta, capacidadesSinteticas)
+		require.True(t, conJuego, "la carpeta %s tiene su juego de reglas", carpeta)
+		assert.Equal(t, nombres(juego), nombres(elegidas), "las reglas de la carpeta %s", carpeta)
+	}
+
+	// La de la skill de entrada recibe las skills de capacidad: sin ellas, el
+	// conjunto que cumple con ellas incumple la de una sola capacidad.
+	deLaEntrada, _ := ReglasDeLaCarpeta("consulta-juridica", nil)
+	assert.Equal(t, []string{"una sola capacidad"}, reglasIncumplidas(ComprobarConjunto(
+		conjuntoDeConsultaJuridica(), normasDeConsultaJuridica(), deLaEntrada)))
+
+	for _, sinJuego := range []string{"boe-legislacion", "legal-core", "otra"} {
+		elegidas, conJuego := ReglasDeLaCarpeta(sinJuego, capacidadesSinteticas)
+		assert.False(t, conJuego, "la carpeta %s no tiene juego de reglas", sinJuego)
+		assert.Nil(t, elegidas, "la carpeta %s no tiene juego de reglas", sinJuego)
+	}
+}
+
+// probarLaNoActivacionDeCadaCapacidad fija ComprobarLaNoActivacionDeCadaCapacidad
+// (contracts/evals.md §4 de H32; FR-037) sobre carpetas sintéticas: cada skill de
+// capacidad está en el no_se_activan de una eval de otra carpeta, y la que no lo
+// está da su defecto, en el orden de las capacidades; y la que solo está en el
+// no_se_activan de una eval de su propia carpeta no cuenta.
+func probarLaNoActivacionDeCadaCapacidad(t *testing.T) {
+	t.Parallel()
+
+	conNoSeActivan := func(nombres ...string) Eval {
+		return Eval{Fichero: "01-sintetica.yaml", Activa: true, NoSeActivan: nombres}
+	}
+
+	carpetas := map[string][]Eval{
+		"consulta-juridica":   {conNoSeActivan("jurisprudencia", "plazos-y-territorio")},
+		"plazos-y-territorio": {conNoSeActivan("normativa")},
+	}
+
+	assert.Empty(t, ComprobarLaNoActivacionDeCadaCapacidad(carpetas, capacidadesSinteticas))
+
+	defectoDe := func(capacidad string) DefectoDelConjunto {
+		return DefectoDelConjunto{
+			Regla:   "no activaci\xc3\xb3n de cada capacidad",
+			Mensaje: capacidad + " no est\xc3\xa1 en el no_se_activan de ninguna eval de otra carpeta de evals/",
+		}
+	}
+
+	sinLasDeOtra := map[string][]Eval{
+		"consulta-juridica":   {conNoSeActivan("jurisprudencia")},
+		"plazos-y-territorio": {conNoSeActivan("normativa", "plazos-y-territorio")},
+	}
+
+	assert.Equal(t, []DefectoDelConjunto{defectoDe("plazos-y-territorio")},
+		ComprobarLaNoActivacionDeCadaCapacidad(sinLasDeOtra, capacidadesSinteticas),
+		"la que solo está en el no_se_activan de su propia carpeta no cuenta")
+
+	assert.Equal(t, []DefectoDelConjunto{defectoDe("jurisprudencia"), defectoDe("normativa"), defectoDe("plazos-y-territorio")},
+		ComprobarLaNoActivacionDeCadaCapacidad(nil, capacidadesSinteticas))
 }
 
 // probarReglasDeNormativa fija ComprobarConjunto con ReglasDeNormativa
@@ -1916,6 +2271,14 @@ const (
 	// H25).
 	evalsDeJurisprudencia = "../../evals/jurisprudencia"
 
+	// evalsDeConsultaJuridica es evals/consulta-juridica/, relativo al
+	// directorio de este paquete: las evals de la skill de entrada, a las que se
+	// aplican las reglas de su juego, y evalsDeConsultaJuridicaDeLaEntrega, las
+	// dos de la entrega, la de la póliza y la de una sola capacidad
+	// (contracts/evals.md §2 y §4 de H32; FR-035, FR-036).
+	evalsDeConsultaJuridica            = "../../evals/consulta-juridica"
+	evalsDeConsultaJuridicaDeLaEntrega = 2
+
 	// evalsDePlazosYTerritorioConLaDeVigencia son las de
 	// evals/plazos-y-territorio/: desde H9, las cuatro de antes, las tres de
 	// plazo y las dos de cobertura (contracts/evals-legal-core.md §5 de H9;
@@ -2056,6 +2419,16 @@ func TestEvalsDelRepositorio(t *testing.T) {
 		dePlazosYTerritorio, err := LeerConjunto(evalsDePlazosYTerritorio)
 		require.NoError(t, err)
 		assert.Nil(t, dePlazosYTerritorio.Juez, "%s no tiene juez", evalsDePlazosYTerritorio)
+
+		// La skill de entrada tampoco tiene juez, y sus dos evals están bien
+		// formadas (contracts/evals.md §2 de H32; FR-035, FR-036).
+		require.Contains(t, carpetas, evalsDeConsultaJuridica)
+
+		deConsultaJuridica, err := LeerConjunto(evalsDeConsultaJuridica)
+		require.NoError(t, err)
+		assert.Nil(t, deConsultaJuridica.Juez, "%s no tiene juez", evalsDeConsultaJuridica)
+		assert.Len(t, deConsultaJuridica.Evals, evalsDeConsultaJuridicaDeLaEntrega,
+			"%s tiene las dos evals de la entrega", evalsDeConsultaJuridica)
 	})
 
 	t.Run("conjunto", func(t *testing.T) {
@@ -2112,6 +2485,14 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 	t.Run("skills-nombradas", probarLasSkillsNombradas)
 
+	t.Run("conjunto-de-cada-carpeta", func(t *testing.T) {
+		t.Parallel()
+
+		probarElConjuntoDeCadaCarpeta(t, normasConocidasDe(normas))
+	})
+
+	t.Run("no-activación-de-cada-capacidad", probarLaNoActivacionDeCadaCapacidadDelRepositorio)
+
 	t.Run("conjunto-jurisprudencia", func(t *testing.T) {
 		t.Parallel()
 
@@ -2151,6 +2532,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			carpeta string
 			piden   []string
 		}{
+			{carpeta: evalsDeConsultaJuridica},
 			{carpeta: evalsDeNormativa},
 			{carpeta: evalsDePlazosYTerritorio},
 			{
@@ -2414,6 +2796,126 @@ func probarLasSkillsNombradas(t *testing.T) {
 		{Regla: "skills nombradas", Mensaje: fichero + ": se_activan nombra legal-core, que no es una skill de skills/"},
 		{Regla: "skills nombradas", Mensaje: fichero + ": no_se_activan nombra boe-legislacion, que no es una skill de skills/"},
 	}, ComprobarLasSkillsNombradas(mutadas, skillsDelRepositorio))
+}
+
+// probarElConjuntoDeCadaCarpeta es el subtest conjunto-de-cada-carpeta de
+// TestEvalsDelRepositorio (contracts/evals.md §4 de H32; FR-037): cada carpeta
+// de evals/ tiene el juego de reglas de su skill (ReglasDeLaCarpeta), con las
+// skills de capacidad del repositorio, y sus evals lo cumplen con las normas
+// de data/normas.yaml; una carpeta sin juego, como la de una skill nueva sin
+// reglas, da su fallo. Entre ellas, la de la skill de entrada.
+func probarElConjuntoDeCadaCarpeta(t *testing.T, normas map[string]NormaConocida) {
+	t.Helper()
+
+	capacidades := capacidadesDelRepositorio(t)
+	conjuntos := conjuntosDeCadaSkill(t, directorioDeEvals)
+
+	var carpetas []string
+
+	for _, deUnaSkill := range conjuntos {
+		carpeta := filepath.Base(deUnaSkill.carpeta)
+		carpetas = append(carpetas, carpeta)
+
+		reglas, conJuego := ReglasDeLaCarpeta(carpeta, capacidades)
+		if !assert.True(t, conJuego, "la carpeta %s tiene su juego de reglas en ReglasDeLaCarpeta", deUnaSkill.carpeta) {
+			continue
+		}
+
+		defectos := ComprobarConjunto(deUnaSkill.conjunto.Evals, normas, reglas)
+		assert.Empty(t, defectos, "defectos del conjunto de %s:\n%s", deUnaSkill.carpeta, presentarDefectos(defectos))
+	}
+
+	require.Contains(t, carpetas, filepath.Base(evalsDeConsultaJuridica), "%s tiene la carpeta de la skill de entrada",
+		directorioDeEvals)
+}
+
+// probarLaNoActivacionDeCadaCapacidadDelRepositorio es el subtest
+// no-activación-de-cada-capacidad de TestEvalsDelRepositorio
+// (contracts/evals.md §4 de H32; data-model §8 de H32; FR-037): las skills de
+// capacidad del repositorio son las tres que nombra la de entrada, y cada una
+// está en el no_se_activan de una eval de otra carpeta de evals/; y su mutante,
+// sin plazos-y-territorio en el no_se_activan de la 02 de consulta-juridica, la
+// única eval de otra carpeta que la nombra, y con ella en el de la primera de
+// su propia carpeta, da su defecto.
+func probarLaNoActivacionDeCadaCapacidadDelRepositorio(t *testing.T) {
+	t.Parallel()
+
+	capacidades := capacidadesDelRepositorio(t)
+	require.Equal(t, skillsDeCapacidad, capacidades,
+		"las skills de capacidad, las de %s/ que declaran kitlegal-applets", directorioDeLasSkills)
+
+	carpetas := map[string][]Eval{}
+	for _, deUnaSkill := range conjuntosDeCadaSkill(t, directorioDeEvals) {
+		carpetas[filepath.Base(deUnaSkill.carpeta)] = deUnaSkill.conjunto.Evals
+	}
+
+	defectos := ComprobarLaNoActivacionDeCadaCapacidad(carpetas, capacidades)
+	assert.Empty(t, defectos, "skills de capacidad fuera de todo no_se_activan de otra carpeta:\n%s",
+		presentarDefectos(defectos))
+
+	const (
+		entrada   = "consulta-juridica"
+		capacidad = "plazos-y-territorio"
+	)
+
+	deLaEntrada := slices.Clone(carpetas[entrada])
+	posicion := slices.IndexFunc(deLaEntrada, func(eval Eval) bool { return eval.Fichero == consultaDeUnaSolaCapacidad })
+	require.NotEqual(t, -1, posicion, "%s está en %s", consultaDeUnaSolaCapacidad, evalsDeConsultaJuridica)
+
+	deLaEntrada[posicion].NoSeActivan = slices.DeleteFunc(slices.Clone(deLaEntrada[posicion].NoSeActivan),
+		func(nombre string) bool { return nombre == capacidad })
+
+	for carpeta, evals := range carpetas {
+		if carpeta == entrada || carpeta == capacidad {
+			continue
+		}
+
+		require.False(t, slices.ContainsFunc(evals, func(eval Eval) bool { return slices.Contains(eval.NoSeActivan, capacidad) }),
+			"premisa: ninguna eval de evals/%s nombra %s en no_se_activan", carpeta, capacidad)
+	}
+
+	deLaCapacidad := slices.Clone(carpetas[capacidad])
+	require.NotEmpty(t, deLaCapacidad, "evals/%s tiene evals", capacidad)
+	deLaCapacidad[0].NoSeActivan = append(slices.Clone(deLaCapacidad[0].NoSeActivan), capacidad)
+
+	mutadas := maps.Clone(carpetas)
+	mutadas[entrada] = deLaEntrada
+	mutadas[capacidad] = deLaCapacidad
+
+	assert.Equal(t, []DefectoDelConjunto{{
+		Regla:   "no activaci\xc3\xb3n de cada capacidad",
+		Mensaje: "plazos-y-territorio no est\xc3\xa1 en el no_se_activan de ninguna eval de otra carpeta de evals/",
+	}}, ComprobarLaNoActivacionDeCadaCapacidad(mutadas, capacidades))
+}
+
+// capacidadesDelRepositorio son las skills de capacidad de skills/, las que
+// declaran kitlegal-applets en su frontmatter, en orden de nombre
+// (contracts/evals.md §4 de H32; data-model §1 de H32).
+func capacidadesDelRepositorio(t *testing.T) []string {
+	t.Helper()
+
+	repositorio := os.DirFS(raizDelRepositorio)
+
+	nombres, err := directoriosDe(repositorio, directorioDeLasSkills)
+	require.NoError(t, err)
+
+	var capacidades []string
+
+	for _, nombre := range nombres {
+		ruta := path.Join(directorioDeLasSkills, nombre, ficheroDeLaSkill)
+
+		contenido, err := fs.ReadFile(repositorio, ruta)
+		require.NoError(t, err)
+
+		frontmatter, err := skills.LeerFrontmatter(contenido)
+		require.NoError(t, err, "el frontmatter de %s", ruta)
+
+		if len(frontmatter.DeclaracionDeKitlegal().Applets) > 0 {
+			capacidades = append(capacidades, nombre)
+		}
+	}
+
+	return capacidades
 }
 
 // preceptosFueraDeLaCobertura son los defectos de las evals de cobertura cuyo
@@ -5264,7 +5766,9 @@ func TestPreguntasDelSondeo(t *testing.T) {
 func normasConocidasDe(normas []skills.Norma) map[string]NormaConocida {
 	conocidas := make(map[string]NormaConocida, len(normas))
 	for _, norma := range normas {
-		conocidas[norma.Identificador] = NormaConocida{Abreviatura: norma.Abreviatura, Materias: norma.Materias}
+		conocidas[norma.Identificador] = NormaConocida{
+			Abreviatura: norma.Abreviatura, Materias: norma.Materias, Vertical: norma.Vertical,
+		}
 	}
 
 	return conocidas

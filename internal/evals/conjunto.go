@@ -204,6 +204,10 @@ type NormaConocida struct {
 
 	// Materias son las materias de la norma.
 	Materias []string
+
+	// Vertical es el paquete de materia que trae la norma, o vacío si no es de
+	// ninguno (data-model §2 de H32; FR-021).
+	Vertical string
 }
 
 // DefectoDelConjunto es el incumplimiento de una regla del conjunto de evals
@@ -250,6 +254,16 @@ const (
 	valorNoConfigurado = "no-configurado"
 )
 
+// Lo que fijan las reglas del conjunto de evals de la skill de entrada
+// (contracts/evals.md §4 de H32; FR-035 a FR-037): al menos sus dos evals, y el
+// comando que prohíbe la de una materia sin paquete, la que con una materia que
+// la base no cubre no pide un plazo de otra.
+const (
+	minimoDeEvalsDeConsultaJuridica = 2
+	appletDelPlazoProhibido         = "plazos"
+	verboDelPlazoProhibido          = "calcular"
+)
+
 // sinBinarioNiServidorDelConjunto son las evals sin binario ni servidor que
 // lleva el conjunto de cada skill: exactamente una (contracts/evals-en-dos-modos.md
 // §1 de H21; FR-046).
@@ -257,8 +271,9 @@ const sinBinarioNiServidorDelConjunto = 1
 
 // ReglaDelConjunto es una regla de un juego de reglas del conjunto de evals, con
 // su nombre en la tabla de ese juego. Los juegos los dan ReglasDeNormativa,
-// ReglasDePlazosYTerritorio y ReglasDeJurisprudencia, y los aplica
-// ComprobarConjunto.
+// ReglasDePlazosYTerritorio, ReglasDeJurisprudencia y, desde H32,
+// ReglasDeConsultaJuridica; ReglasDeLaCarpeta elige el de cada carpeta de
+// evals/, y los aplica ComprobarConjunto.
 type ReglaDelConjunto struct {
 	nombre string
 
@@ -361,6 +376,84 @@ func ReglasDeJurisprudencia() []ReglaDelConjunto {
 		{nombre: "documento distinto", incumplimiento: incumplimientoDeLaClase(unaDeCadaClase,
 			"con la línea, un ROJ que no se cita, y cita cotejar y cita preparar con ese ROJ", esConOtroDocumento)},
 	}
+}
+
+// ReglasDeConsultaJuridica son las reglas del conjunto de evals de la skill de
+// entrada de contracts/evals.md §4 de H32, en su orden: al menos dos evals; una
+// activa que prohíbe plazos calcular y cita una norma de data/normas.yaml sin
+// vertical, la de una materia que la base no cubre (FR-035); y una activa con
+// un solo nombre en se_activan, el de una skill de capacidad, y las demás de
+// capacidad en no_se_activan, la de una pregunta de una sola capacidad
+// (FR-036). Las skills de capacidad son las dadas, las de skills/ que declaran
+// kitlegal-applets. Cada llamada devuelve un juego nuevo.
+func ReglasDeConsultaJuridica(capacidades []string) []ReglaDelConjunto {
+	capacidades = slices.Clone(capacidades)
+
+	return []ReglaDelConjunto{
+		{nombre: "tamaño", incumplimiento: incumplimientoDelMinimoDeConsultaJuridica},
+		{nombre: "materia sin paquete", incumplimiento: incumplimientoDeLaMateriaSinPaquete},
+		{nombre: "una sola capacidad", incumplimiento: func(conjunto *conjuntoAComprobar) string {
+			return incumplimientoDeUnaSolaCapacidad(conjunto, capacidades)
+		}},
+	}
+}
+
+// ReglasDeLaCarpeta es el juego de reglas del conjunto de evals de la carpeta
+// evals/<carpeta>/, el de su skill, con las skills de capacidad dadas, que
+// miran las de la skill de entrada (contracts/evals.md §4 de H32; FR-037); y
+// falso, sin juego, si la carpeta no es la de una skill con reglas, como la de
+// un nombre retirado. Cada llamada devuelve un juego nuevo.
+func ReglasDeLaCarpeta(carpeta string, capacidades []string) ([]ReglaDelConjunto, bool) {
+	switch carpeta {
+	case "consulta-juridica":
+		return ReglasDeConsultaJuridica(capacidades), true
+	case "jurisprudencia":
+		return ReglasDeJurisprudencia(), true
+	case "normativa":
+		return ReglasDeNormativa(), true
+	case "plazos-y-territorio":
+		return ReglasDePlazosYTerritorio(), true
+	default:
+		return nil, false
+	}
+}
+
+// reglaDeLaNoActivacionDeCadaCapacidad es el nombre de la regla de
+// ComprobarLaNoActivacionDeCadaCapacidad en sus defectos.
+const reglaDeLaNoActivacionDeCadaCapacidad = "no activación de cada capacidad"
+
+// ComprobarLaNoActivacionDeCadaCapacidad comprueba, sobre las evals de cada
+// carpeta de evals/, por su nombre, que cada skill de capacidad dada está en el
+// no_se_activan de al menos una eval de otra carpeta: la de una pregunta de
+// otra capacidad (contracts/evals.md §4 de H32; data-model §8 de H32; FR-037).
+// Devuelve un defecto por cada una que no lo está, en el orden dado, y ninguno
+// si lo están todas. No lee ficheros.
+func ComprobarLaNoActivacionDeCadaCapacidad(carpetas map[string][]Eval, capacidades []string) []DefectoDelConjunto {
+	var defectos []DefectoDelConjunto
+
+	for _, capacidad := range capacidades {
+		excluida := false
+
+		for carpeta, evals := range carpetas {
+			if carpeta != capacidad && slices.ContainsFunc(evals, func(eval Eval) bool {
+				return slices.Contains(eval.NoSeActivan, capacidad)
+			}) {
+				excluida = true
+
+				break
+			}
+		}
+
+		if !excluida {
+			defectos = append(defectos, DefectoDelConjunto{
+				Regla: reglaDeLaNoActivacionDeCadaCapacidad,
+				Mensaje: fmt.Sprintf("%s no está en el no_se_activan de ninguna eval de otra carpeta de %s/", capacidad,
+					directorioDeLasEvals),
+			})
+		}
+	}
+
+	return defectos
 }
 
 // ComprobarConjunto aplica a las evals bien formadas de una carpeta evals/<skill>/
@@ -816,6 +909,65 @@ func incumplimientoDeSinBinarioNiServidor(conjunto *conjuntoAComprobar) string {
 	return fmt.Sprintf("hay %d evals sin binario ni servidor (sin_binario_ni_servidor: true) "+
 		"y el conjunto lleva exactamente %d: %s", len(conjunto.sinBinarioNiServidor),
 		sinBinarioNiServidorDelConjunto, conjunto.ficheros(conjunto.sinBinarioNiServidor))
+}
+
+// incumplimientoDelMinimoDeConsultaJuridica: al menos dos evals bien formadas.
+func incumplimientoDelMinimoDeConsultaJuridica(conjunto *conjuntoAComprobar) string {
+	if len(conjunto.evals) >= minimoDeEvalsDeConsultaJuridica {
+		return ""
+	}
+
+	return fmt.Sprintf("hay %d evals y el conjunto lleva al menos %d: %s",
+		len(conjunto.evals), minimoDeEvalsDeConsultaJuridica, conjunto.todosLosFicheros())
+}
+
+// incumplimientoDeLaMateriaSinPaquete: al menos una eval activa prohíbe plazos
+// calcular y cita una norma de data/normas.yaml sin vertical (FR-035). Una
+// norma que no está en la tabla no es una norma sin vertical de ella. Nombra
+// las evals activas.
+func incumplimientoDeLaMateriaSinPaquete(conjunto *conjuntoAComprobar) string {
+	prohibeElPlazo := func(prohibido ComandoProhibido) bool {
+		return prohibido.Applet == appletDelPlazoProhibido && prohibido.Verbo == verboDelPlazoProhibido
+	}
+
+	sinVertical := func(norma string) bool {
+		conocida, esta := conjunto.normas[norma]
+
+		return esta && conocida.Vertical == ""
+	}
+
+	if slices.ContainsFunc(conjunto.evals, func(eval Eval) bool {
+		return eval.Activa && slices.ContainsFunc(eval.Prohibidos, prohibeElPlazo) &&
+			slices.ContainsFunc(normasCitadas(eval), sinVertical)
+	}) {
+		return ""
+	}
+
+	return fmt.Sprintf("ninguna eval activa prohíbe %s %s y cita una norma de data/normas.yaml sin vertical; "+
+		"evals activas: %s", appletDelPlazoProhibido, verboDelPlazoProhibido,
+		conjunto.ficheros(conjunto.posicionesDeLasQue(func(eval Eval) bool { return eval.Activa })))
+}
+
+// incumplimientoDeUnaSolaCapacidad: al menos una eval activa declara en
+// se_activan un solo nombre, el de una de las skills de capacidad, y en
+// no_se_activan todas las demás (FR-036). Nombra las skills de capacidad y las
+// evals activas.
+func incumplimientoDeUnaSolaCapacidad(conjunto *conjuntoAComprobar, capacidades []string) string {
+	if slices.ContainsFunc(conjunto.evals, func(eval Eval) bool {
+		if !eval.Activa || len(eval.SeActivan) != 1 || !slices.Contains(capacidades, eval.SeActivan[0]) {
+			return false
+		}
+
+		return !slices.ContainsFunc(capacidades, func(capacidad string) bool {
+			return capacidad != eval.SeActivan[0] && !slices.Contains(eval.NoSeActivan, capacidad)
+		})
+	}) {
+		return ""
+	}
+
+	return fmt.Sprintf("ninguna eval activa declara en se_activan una sola skill de capacidad y en no_se_activan "+
+		"las demás (%s); evals activas: %s", enumerar(capacidades, "ninguna skill de capacidad"),
+		conjunto.ficheros(conjunto.posicionesDeLasQue(func(eval Eval) bool { return eval.Activa })))
 }
 
 // incumplimientoDelTamanioDeJurisprudencia: exactamente diez evals.
