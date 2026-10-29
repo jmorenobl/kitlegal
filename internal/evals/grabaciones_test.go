@@ -537,7 +537,7 @@ func resolverEntrada(registro *app.Registro, indice int, entrada EntradaDelManif
 
 // reproducirBusqueda ejecuta la búsqueda con app.Main y --json sobre el registro
 // y devuelve sus resultados. Un código distinto de 0 es un error con la orden, su
-// código y su mensaje, como los presenta Falta.
+// código y su mensaje, como los presenta Falta: un *errorDeLaFalta.
 func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.ResultadoDeBusqueda, error) {
 	var salida, errores bytes.Buffer
 
@@ -547,7 +547,7 @@ func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.Result
 		sinDatosDeConstruccion, sinDatosDeConstruccion, sinDatosDeConstruccion); codigo != 0 {
 		falta := Falta{Consulta: busqueda, Codigo: codigo, Mensaje: strings.TrimSuffix(errores.String(), "\n")}
 
-		return nil, errors.New(falta.String())
+		return nil, &errorDeLaFalta{falta: falta}
 	}
 
 	var sobre struct {
@@ -559,6 +559,28 @@ func reproducirBusqueda(registro *app.Registro, busqueda Consulta) ([]boe.Result
 	}
 
 	return sobre.Data, nil
+}
+
+// busquedaSinGrabarDeH32 es la búsqueda de la entrada de la Ley 50/1980 que T002
+// de H32 añade al manifiesto de H9 y que el paso grabar_datos graba después de su
+// commit (research D22 de H32). Hasta entonces su reproducción da la falta de
+// reproducirBusqueda, y verificarLasNormasDeLaCobertura no la cuenta como
+// defecto; cualquier otro error de esa entrada, y el de cualquier otra, sí. La
+// retira T003 tras grabar_datos, en la primera tarea con lo grabado, con su
+// rama en verificarLasNormasDeLaCobertura y errorDeLaFalta.
+const busquedaSinGrabarDeH32 = "contrato de seguro"
+
+// errorDeLaFalta es el error de reproducirBusqueda cuando la búsqueda termina
+// con un código distinto de 0, la búsqueda que lo grabado no sirve: su mensaje
+// es el de la Falta, como lo presenta Falta.String. Solo lo distingue la
+// excepción de busquedaSinGrabarDeH32, y lo retira T003 con ella.
+type errorDeLaFalta struct {
+	falta Falta
+}
+
+// Error presenta la falta con Falta.String.
+func (e *errorDeLaFalta) Error() string {
+	return e.falta.String()
 }
 
 // comprobarNorma exige que exactamente una de las entradas que resuelven el
@@ -1503,7 +1525,9 @@ func comprobarLasPalabras(fila palabrasDeUnPrecepto, texto string) []error {
 // norma de la cobertura exactamente una entrada que la resuelva (punto 3;
 // FR-031): su identificador sale de lo grabado y no de memoria (research S5 de
 // H9). Una entrada que no se resuelve es un defecto, y uno cada norma que
-// ninguna o más de una resuelven, con su procedimiento.
+// ninguna o más de una resuelven, con su procedimiento. Hasta que grabar_datos
+// la graba, la entrada de busquedaSinGrabarDeH32 cuya búsqueda da la falta de
+// reproducirBusqueda no es un defecto (research D22 de H32).
 func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) []error {
 	t.Helper()
 
@@ -1518,6 +1542,11 @@ func verificarLasNormasDeLaCobertura(t *testing.T, cobertura skills.Cobertura) [
 	for indice, entrada := range manifiesto.Normas {
 		resuelta, err := resolverEntrada(registro, indice, entrada)
 		if err != nil {
+			var falta *errorDeLaFalta
+			if entrada.Busqueda == busquedaSinGrabarDeH32 && errors.As(err, &falta) {
+				continue
+			}
+
 			defectos = append(defectos, err)
 
 			continue
