@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sync"
 	"unicode/utf8"
 )
 
@@ -66,7 +67,8 @@ type SkillRegenerada struct {
 	Nombre string
 
 	// Contenido son los bytes de SKILL.md con la región de la tabla de comandos
-	// regenerada, o tal cual si la skill no declara applets.
+	// regenerada, o tal cual si la skill no declara applets, y las de los paquetes
+	// de materia que lleve, también regeneradas.
 	Contenido []byte
 
 	// Referencias son las referencias generadas, una por cada nombre de
@@ -165,6 +167,12 @@ func (d *Deriva) Error() string {
 //   - con el frontmatter sin defectos, SKILL.md lleva en su región la tabla de
 //     comandos de los applets que declara, si declara alguno, y cada referencia
 //     declarada se genera con su fila desde su YAML de datos;
+//   - con el frontmatter sin defectos, SKILL.md lleva entre las marcas de los
+//     paquetes el enlace a la referencia de cada paquete de materia que la skill
+//     tiene, y entre las de la base, la lista de los paquetes con las skills que
+//     tienen su referencia (paquetes.regenerar; contracts/paquetes.md §2 y §4 de
+//     H32); la referencia de un paquete en una skill sin esas marcas, o unas
+//     marcas que no van en pareja, son un defecto;
 //   - el cuerpo de SKILL.md, tal como quedaría, tiene que tener menos de 500
 //     líneas y como mucho 11 000 caracteres (defectosDelCuerpo);
 //   - references/ solo lleva ficheros regulares .md, y cada referencia, generada
@@ -178,7 +186,8 @@ func (d *Deriva) Error() string {
 // uno con la skill y lo que falla; con alguno, la skill no lleva nada
 // regenerado. El error queda para lo que impide regenerar: un directorio de
 // skills, de datos o de referencias que no se puede listar, o una entrada que no
-// se puede consultar o leer.
+// se puede consultar o leer. Los paquetes se leen una vez, con la primera skill
+// cuyo frontmatter no tiene defectos (leerPaquetes).
 func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, error) {
 	nombres, err := Listar(raiz)
 	if err != nil {
@@ -188,8 +197,12 @@ func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, err
 	registrados := appletsDescritos(descripciones)
 	regenerado := Regenerado{Skills: make([]SkillRegenerada, 0, len(nombres))}
 
+	losPaquetes := sync.OnceValues(func() (paquetes, error) {
+		return leerPaquetes(raiz, nombres)
+	})
+
 	for _, nombre := range nombres {
-		skill, err := regenerarSkill(raiz, nombre, registrados, descripciones)
+		skill, err := regenerarSkill(raiz, nombre, registrados, descripciones, losPaquetes)
 		if err != nil {
 			return Regenerado{}, err
 		}
@@ -215,10 +228,11 @@ func appletsDescritos(descripciones []DescripcionDeVerbo) []string {
 	return applets
 }
 
-// regenerarSkill construye lo regenerado de la skill de nombre, o sus defectos.
-func regenerarSkill(raiz, nombre string, registrados []string, descripciones []DescripcionDeVerbo) (
-	SkillRegenerada, error,
-) {
+// regenerarSkill construye lo regenerado de la skill de nombre, o sus defectos,
+// con los paquetes del repositorio que da losPaquetes.
+func regenerarSkill(raiz, nombre string, registrados []string, descripciones []DescripcionDeVerbo,
+	losPaquetes func() (paquetes, error),
+) (SkillRegenerada, error) {
 	skill, err := Cargar(raiz, nombre)
 
 	// Sin un SKILL.md que leer, Cargar da su defecto y no hay nada que
@@ -251,10 +265,25 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 	if len(deFrontmatter) == 0 {
 		regenerada.Contenido, deLaRegion = contenidoRegenerado(skill, deKitlegal.Applets, descripciones)
 
+		var (
+			delRepositorio           paquetes
+			deLasMarcas, deLasNormas []*DefectoDeSkill
+		)
+
+		delRepositorio, err = losPaquetes()
+		if err != nil {
+			return SkillRegenerada{}, err
+		}
+
+		regenerada.Contenido, deLasMarcas, deLasNormas = delRepositorio.regenerar(nombre, regenerada.Contenido)
+		deLaRegion = append(deLaRegion, deLasMarcas...)
+
 		regenerada.Referencias, deLosDatos, err = referenciasGeneradas(raiz, nombre, deKitlegal.Referencias)
 		if err != nil {
 			return SkillRegenerada{}, err
 		}
+
+		deLosDatos = sinRepetir(deLosDatos, deLasNormas)
 	}
 
 	deReferences, err := defectosDeReferences(raiz, regenerada, len(deFrontmatter) == 0 && len(deLosDatos) == 0)
@@ -416,6 +445,19 @@ func referenciasGeneradas(raiz, skill string, nombres []string) ([]Referencia, [
 	}
 
 	return referencias, nil, nil
+}
+
+// sinRepetir son los defectos y, detrás, cada uno de otros que no está ya entre
+// ellos: los de un YAML de datos van una sola vez aunque salgan de él una
+// referencia declarada y los paquetes.
+func sinRepetir(defectos, otros []*DefectoDeSkill) []*DefectoDeSkill {
+	for _, otro := range otros {
+		if !slices.ContainsFunc(defectos, func(defecto *DefectoDeSkill) bool { return *defecto == *otro }) {
+			defectos = append(defectos, otro)
+		}
+	}
+
+	return defectos
 }
 
 // defectosDelCuerpo son los del cuerpo del SKILL.md de la skill, de contenido

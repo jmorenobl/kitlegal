@@ -1,21 +1,26 @@
 {
-  "id": "T007",
-  "texto": "T007 [US2] `jurisprudencia` con el cuerpo de la entrega (FR-006, FR-009, FR-023; contracts/textos.md §2; contracts/reparto.md §4; research D9): skills/jurisprudencia/SKILL.md pasa a ser contracts/borradores/jurisprudencia.SKILL.md —J1, la introducción sin «Esta skill responde cuando…»; J2, las dos marcas de los paquetes, vacías, tras «Ninguna de las dos pide nada a la red…»; J3, la regla 4 «Ningún artículo, plazo, órgano ni vía de memoria: aquí no están cubiertos.»—, con la tabla de comandos regenerada por `make skills-sync` y la descripción de hoy; los controles de contenido de internal/evals/conjunto_test.go y de internal/app/skills_test.go que citan la regla 4 de hoy pasan a la nueva sin rebajar lo que exigen. Test: `make skills-check`; `go test -count=1 -run '^TestSkillsDelRepositorio$' ./internal/app/` (cuerpo de 10 842 caracteres); `go test -count=1 -run '^TestEvalsDelRepositorio$' ./internal/evals/`; `make ci`",
-  "intento": 1,
+  "id": "T008",
+  "texto": "T008 [US4] Los enlaces de los paquetes y la lista de la entrada, generados por la sincronía (FR-001 punto 3, FR-022, FR-023; contracts/paquetes.md §1, §2 y §4; data-model §3; research D3, D10). En internal/skills/paquetes.go, nuevo, y su uso en internal/skills/sincronia.go: los paquetes son los valores de `vertical` de `data/normas.yaml`, y la referencia de un paquete en una skill es `skills/<skill>/references/<nombre>.md` con `<nombre>` uno de ellos; en cada `SKILL.md` con las marcas `<!-- paquetes: lo genera make skills-sync -->` y `<!-- fin de los paquetes -->`, cada una en su línea, `Regenerar` escribe entre ellas una línea por paquete con referencia en esa skill, en el orden de los nombres, `- Si la pregunta es de lo <nombre>, lee [<nombre>](references/<nombre>.md).`; en cada `SKILL.md` con `<!-- paquetes de la base: lo genera make skills-sync -->` y `<!-- fin de los paquetes de la base -->`, una línea por paquete, en el orden de los nombres, `- lo <nombre>: ` seguido de las skills que tienen su referencia como código en línea, en el orden de sus nombres y separadas por «, », y un punto; `Comparar` da la deriva `contenido-distinto` si el texto entre las marcas no es el generado, y la regeneración da el defecto `referencia de paquete sin enlazar: <nombre>.md` si una skill tiene la referencia de un paquete y no tiene las marcas, y el de marcas que no van en pareja. Tests en internal/skills/paquetes_test.go, con árboles escritos en `t.TempDir()`: un paquete con su línea byte a byte (la de lo administrativo, 93 caracteres y su salto; paquetes.md §2), dos paquetes en orden, el texto entre marcas editado a mano (deriva), la referencia sin marcas (defecto), las marcas sin pareja (defecto) y la lista de la entrada (`- lo administrativo: \\`plazos-y-territorio\\`.`). En el repositorio, las marcas de `normativa` (T006) y `jurisprudencia` (T007) quedan vacías porque ningún paquete tiene aún referencia. En internal/app/skills_test.go, `enlazarDesdeElSkillMd` (el ayudante de los casos de `TestSkillsDelRepositorio` que enlazan una referencia a mano en una copia) no toma por prosa una línea que empieza por `<!--`: hoy sustituye por el enlace la marca de inicio de los paquetes de `normativa`, la primera línea de su cuerpo sin corchete ni comilla invertida, y la copia da el defecto de las marcas sin pareja (gates/tarea-T008.md). Rutas: internal/skills/paquetes.go, internal/skills/sincronia.go, internal/app/skills_test.go. Test: `go test -count=1 ./internal/skills/`, `make skills-check`, `make ci`",
+  "intento": 2,
   "datos": false,
   "aceptacion": false,
-  "base": "47888423bc08ee3d93e8c30cc5798e8d6bcf7efc",
+  "base": "ca16ede87a95b9b68cd394180d80fd5e363fb1be",
   "rutas": [
-    "contracts/borradores/jurisprudencia.SKILL.md",
-    "contracts/reparto.md",
-    "contracts/textos.md",
-    "internal/app/",
+    "SKILL.md",
+    "contracts/paquetes.md",
+    "data/normas.yaml",
+    "gates/tarea-T008.md",
     "internal/app/skills_test.go",
-    "internal/evals/",
-    "internal/evals/conjunto_test.go",
-    "skills/jurisprudencia/SKILL.md"
+    "internal/app/skills_test.go.",
+    "internal/skills/",
+    "internal/skills/paquetes.go",
+    "internal/skills/paquetes_test.go",
+    "internal/skills/sincronia.go",
+    "paquetes.md",
+    "references/",
+    "skills/"
   ],
   "cierre": false,
   "converger": false,
-  "nota": "-"
+  "nota": "fdf427e3fe8f4e37f71b427698070d4f86e87c2e3e4d18a54f29689d64b0b7ec"
 }

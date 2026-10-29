@@ -1226,11 +1226,13 @@ var vallaDeUnBloque = regexp.MustCompile("^ {0,3}(```|~~~)")
 // copia temporal, cada fichero de references/ dado con «[](references/<fichero>)»
 // (FR-007 de H31): sustituye por el enlace de cada uno, desde el principio del
 // cuerpo, una línea de prosa que tenga al menos tantos caracteres como él. Una
-// línea de prosa está fuera de la región generada y de los bloques de código y
-// no lleva corchete, comilla invertida, virgulilla ni barra vertical
-// (partirElCuerpo), así que no enlazaba nada; y como el enlace no es más largo,
-// el cuerpo no gana líneas ni caracteres, y sigue en sus presupuestos aunque el
-// del SKILL.md real esté en ellos (FR-004 de H31). Lo regenerado no cambia.
+// línea de prosa está fuera de la región generada y de los bloques de código,
+// no es un comentario HTML, como las marcas de los paquetes que la sincronía
+// lee (contracts/paquetes.md §2 y §4 de H32), y no lleva corchete, comilla
+// invertida, virgulilla ni barra vertical (partirElCuerpo), así que no enlazaba
+// nada; y como el enlace no es más largo, el cuerpo no gana líneas ni
+// caracteres, y sigue en sus presupuestos aunque el del SKILL.md real esté en
+// ellos (FR-004 de H31). Lo regenerado no cambia.
 func enlazarDesdeElSkillMd(t *testing.T, copia, skill string, ficheros ...string) {
 	t.Helper()
 
@@ -1253,6 +1255,9 @@ func enlazarDesdeElSkillMd(t *testing.T, copia, skill string, ficheros ...string
 			enLaTabla = false
 		case vallaDeUnBloque.MatchString(texto):
 			enUnBloque = !enUnBloque
+		case strings.HasPrefix(texto, "<!--"):
+			// Un comentario HTML no es prosa: sustituir una marca de los paquetes
+			// dejaría la otra sin pareja, y la sincronía lo daría por defecto.
 		case !enLaTabla && !enUnBloque && len(pendientes) > 0 && !strings.ContainsAny(texto, "[`~|"):
 			enlace := "[](references/" + pendientes[0] + ")"
 			if utf8.RuneCountInString(texto) >= utf8.RuneCountInString(enlace) {
