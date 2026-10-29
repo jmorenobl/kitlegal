@@ -110,7 +110,7 @@ func TestMedidaDelGrafo(t *testing.T) {
 	compruebaLaMedidaConLaNormaYUnBloque(t, binario, directorio)
 }
 
-// TestLoQueLeeLaSkill comprueba lo que lee boe-legislacion por pregunta
+// TestLoQueLeeLaSkill comprueba lo que lee normativa por pregunta
 // (SC-005): con los cinco bloques cuya última lectura vio una redacción nueva,
 // cinco version-obsoleta y ningún fuente-caducada en 3 800 bytes como mucho; y,
 // leídos otra vez, ninguno. Publica los bytes medidos.
@@ -279,7 +279,7 @@ func comprobarConT8(t *testing.T, orden *exec.Cmd, directorio string) ([]byte, g
 }
 
 // comprobarLaSkill es graph check --json con la norma y los cinco bloques de la
-// skill, como lo pide boe-legislacion antes de responder. Los argumentos van
+// skill, como lo pide normativa antes de responder. Los argumentos van
 // escritos enteros con constantes, que es lo que el análisis de seguridad exige
 // de un subproceso.
 func comprobarLaSkill(t *testing.T, binario, directorio string) ([]byte, grafo.Comprobacion) {

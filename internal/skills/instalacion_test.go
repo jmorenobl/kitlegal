@@ -102,18 +102,18 @@ const guionDelEnlaceRoto = `# Un enlace roto con el nombre de la skill en ~/.cla
 # $WORK/repo (FR-055 de H5; contrato instalacion §4 de H5).
 
 mkdir $HOME/.claude/skills
-symlink $HOME/.claude/skills/boe-legislacion -> $WORK/sin-destino
+symlink $HOME/.claude/skills/normativa -> $WORK/sin-destino
 
 ! exec make -C $WORK/repo install
-stderr '^enlace roto: '${WORK@R}'/home/\.claude/skills/boe-legislacion$'
+stderr '^enlace roto: '${WORK@R}'/home/\.claude/skills/normativa$'
 
 # El enlace conserva su destino, que sigue sin existir, y es lo único que hay
 # en ~/.claude/skills/.
-exec readlink $HOME/.claude/skills/boe-legislacion
+exec readlink $HOME/.claude/skills/normativa
 stdout '\A'${WORK@R}'/sin-destino\n\z'
 ! exists $WORK/sin-destino
 exec ls -A $HOME/.claude/skills
-stdout '\Aboe-legislacion\n\z'
+stdout '\Anormativa\n\z'
 
 # Y nada se ha instalado en ~/.agents.
 ! exists $HOME/.agents

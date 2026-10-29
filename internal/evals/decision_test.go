@@ -165,9 +165,9 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 			nombre: "solo-el-cuerpo-de-jurisprudencia-sin-medida-de-main", disparo: disparoDeLaApertura,
 			mutante: conUnaLineaMas(t, repositorio.arbol, cuerpo), sinMain: true,
 			medidas: map[string]medidasEsperadas{
-				"boe-legislacion": {motivo: motivoSinResultadoDeMain},
-				"jurisprudencia":  {motivo: motivoConjunto, rutas: []string{cuerpo}},
-				"legal-core":      {motivo: motivoSinResultadoDeMain},
+				"normativa":      {motivo: motivoSinResultadoDeMain},
+				"jurisprudencia": {motivo: motivoConjunto, rutas: []string{cuerpo}},
+				"legal-core":     {motivo: motivoSinResultadoDeMain},
 			},
 		},
 		{nombre: "etiqueta-evals-sin-cambios", disparo: disparoDeLaEtiqueta, mutante: docs},

@@ -21,7 +21,7 @@ mkdir $WORK/home/.gemini/config
 mkdir $WORK/proyecto
 cd $WORK/proyecto
 exec kitlegal skills install -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/normativa","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 
 exec readlink $WORK/home/.gemini/config/skills/legal-core
@@ -62,8 +62,8 @@ stdout '\A\.\./\.\./\.\./\.agents/skills/legal-core\n\z'
 env HOME=$WORK/home-sin-gemini
 mkdir $WORK/home-sin-gemini
 exec kitlegal skills install -g --host antigravity
-exec readlink $WORK/home-sin-gemini/.gemini/config/skills/boe-legislacion
-stdout '\A\.\./\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $WORK/home-sin-gemini/.gemini/config/skills/normativa
+stdout '\A\.\./\.\./\.\./\.agents/skills/normativa\n\z'
 
 # --- ~/.gemini/ sin config/, el de Gemini CLI: no se enlaza ---
 env HOME=$WORK/home-gemini-cli

@@ -1,5 +1,5 @@
 ---
-name: boe-legislacion
+name: normativa
 description: >-
   Consulta y cita normativa consolidada del Boletín Oficial del Estado (BOE) de cualquier materia —procedimiento
   administrativo, contratación pública, régimen local, tributos, transparencia, relaciones laborales…—: lee con

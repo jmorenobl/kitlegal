@@ -94,11 +94,11 @@ func TestLegibleDeInstall(t *testing.T) {
 
 		skills := []instalacion.SkillInstalada{
 			{
-				Nombre: "boe-legislacion", Ruta: "/home/ana/.agents/skills/boe-legislacion",
+				Nombre: "normativa", Ruta: "/home/ana/.agents/skills/normativa",
 				Estado: instalacion.EstadoInstalada,
 				Enlaces: []instalacion.Enlace{
-					enlace("claude", "/home/ana/.claude/skills/boe-legislacion", instalacion.ModoEnlace),
-					enlace("antigravity", "/home/ana/.gemini/config/skills/boe-legislacion", instalacion.ModoEnlace),
+					enlace("claude", "/home/ana/.claude/skills/normativa", instalacion.ModoEnlace),
+					enlace("antigravity", "/home/ana/.gemini/config/skills/normativa", instalacion.ModoEnlace),
 				},
 			},
 			{
@@ -114,10 +114,10 @@ func TestLegibleDeInstall(t *testing.T) {
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal v0.3.0 en ~/.agents/skills (Codex las lee de ahí):",
 			"",
-			"  boe-legislacion  instalada",
-			"    Claude Code  ~/.claude/skills/boe-legislacion",
-			"    Antigravity  ~/.gemini/config/skills/boe-legislacion",
-			"  legal-core       actualizada",
+			"  normativa   instalada",
+			"    Claude Code  ~/.claude/skills/normativa",
+			"    Antigravity  ~/.gemini/config/skills/normativa",
+			"  legal-core  actualizada",
 			"    Claude Code  ~/.claude/skills/legal-core",
 			"    Antigravity  ~/.gemini/config/skills/legal-core",
 			"",
@@ -130,15 +130,15 @@ func TestLegibleDeInstall(t *testing.T) {
 		t.Parallel()
 
 		skills := []instalacion.SkillInstalada{
-			instaladaSinEnlaces(".agents/skills", "boe-legislacion", instalacion.EstadoSinCambios),
+			instaladaSinEnlaces(".agents/skills", "normativa", instalacion.EstadoSinCambios),
 			instaladaSinEnlaces(".agents/skills", "legal-core", instalacion.EstadoSinCambios),
 		}
 
 		assert.Equal(t, strings.Join([]string{
 			"Skills de kitlegal dev en .agents/skills (Codex y Antigravity las leen de ahí):",
 			"",
-			"  boe-legislacion  sin cambios",
-			"  legal-core       sin cambios",
+			"  normativa   sin cambios",
+			"  legal-core  sin cambios",
 			"",
 			"Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».",
 			"Ya estaban instaladas y al día: no se ha cambiado nada.",
@@ -347,8 +347,8 @@ func TestLegibleDeDoctor(t *testing.T) {
 					Orden: "rm -- '.agents/skills/legal-core' && kitlegal skills install legal-core --host claude",
 				},
 				{
-					Clase: instalacion.HallazgoEnlaceAOtroSitio, Ruta: ".claude/skills/boe-legislacion",
-					Orden: "kitlegal skills install boe-legislacion --host claude",
+					Clase: instalacion.HallazgoEnlaceAOtroSitio, Ruta: ".claude/skills/normativa",
+					Orden: "kitlegal skills install normativa --host claude",
 				},
 				{
 					Clase: instalacion.HallazgoCopia, Ruta: ".claude/skills/legal-core",
@@ -356,11 +356,11 @@ func TestLegibleDeDoctor(t *testing.T) {
 				},
 				{
 					Clase: instalacion.HallazgoVersionDistinta, Ruta: ".agents/skills/kitlegal.json",
-					Orden: "kitlegal skills install boe-legislacion legal-core --host claude",
+					Orden: "kitlegal skills install normativa legal-core --host claude",
 				},
 				{
-					Clase: instalacion.HallazgoVersionDistinta, Ruta: ".agents/skills/boe-legislacion",
-					Orden: "kitlegal skills install boe-legislacion --host claude",
+					Clase: instalacion.HallazgoVersionDistinta, Ruta: ".agents/skills/normativa",
+					Orden: "kitlegal skills install normativa --host claude",
 				},
 			},
 		}
@@ -370,14 +370,14 @@ func TestLegibleDeDoctor(t *testing.T) {
 			"",
 			"  1. .agents/skills/legal-core es un enlace que apunta a algo que ya no existe.",
 			"     rm -- '.agents/skills/legal-core' && kitlegal skills install legal-core --host claude",
-			"  2. .claude/skills/boe-legislacion no es el enlace que creó kitlegal: apunta a otro sitio, es otra cosa o falta.",
-			"     kitlegal skills install boe-legislacion --host claude",
+			"  2. .claude/skills/normativa no es el enlace que creó kitlegal: apunta a otro sitio, es otra cosa o falta.",
+			"     kitlegal skills install normativa --host claude",
 			"  3. .claude/skills/legal-core es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.",
 			"     kitlegal skills install legal-core --host claude",
 			"  4. Las skills son de kitlegal v0.1.0 y este kitlegal es v0.3.0.",
-			"     kitlegal skills install boe-legislacion legal-core --host claude",
-			"  5. La skill de .agents/skills/boe-legislacion es de otra versión de kitlegal, y este kitlegal es v0.3.0.",
-			"     kitlegal skills install boe-legislacion --host claude",
+			"     kitlegal skills install normativa legal-core --host claude",
+			"  5. La skill de .agents/skills/normativa es de otra versión de kitlegal, y este kitlegal es v0.3.0.",
+			"     kitlegal skills install normativa --host claude",
 			"",
 			"Ejecuta las órdenes en ese orden y vuelve a comprobarlo con «kitlegal skills doctor».",
 			"",

@@ -210,7 +210,7 @@ type NormaConocida struct {
 // (data-model §6.3 de H5 y §6.4 de H6).
 type DefectoDelConjunto struct {
 	// Regla es el nombre de la regla en la tabla de su juego, como «materias
-	// distintas» o «normas conocidas» en el de boe-legislacion y «cubierto» en el
+	// distintas» o «normas conocidas» en el de normativa y «cubierto» en el
 	// de legal-core.
 	Regla string
 
@@ -219,7 +219,7 @@ type DefectoDelConjunto struct {
 	Mensaje string
 }
 
-// Lo que fijan las reglas del conjunto de evals de boe-legislacion (data-model
+// Lo que fijan las reglas del conjunto de evals de normativa (data-model
 // §6.3; FR-062 a FR-064). El máximo es de 21 desde H21, con la eval sin binario
 // ni servidor (contracts/evals-en-dos-modos.md §1 de H21), y de 23 desde H20,
 // con las dos evals con fecha (contracts/evals-redaccion-fechada.md §1.4 de
@@ -256,7 +256,7 @@ const (
 const sinBinarioNiServidorDelConjunto = 1
 
 // ReglaDelConjunto es una regla de un juego de reglas del conjunto de evals, con
-// su nombre en la tabla de ese juego. Los juegos los dan ReglasDeBoeLegislacion,
+// su nombre en la tabla de ese juego. Los juegos los dan ReglasDeNormativa,
 // ReglasDeLegalCore y ReglasDeJurisprudencia, y los aplica ComprobarConjunto.
 type ReglaDelConjunto struct {
 	nombre string
@@ -266,11 +266,11 @@ type ReglaDelConjunto struct {
 	incumplimiento func(conjunto *conjuntoAComprobar) string
 }
 
-// ReglasDeBoeLegislacion son las reglas del conjunto de evals de boe-legislacion
+// ReglasDeNormativa son las reglas del conjunto de evals de normativa
 // de data-model §6.3 de H5, en el orden de su tabla, salvo la de revisión (sin
 // municipio), que no es mecánica, y, detrás, la de la eval sin binario ni
 // servidor de H21. Cada llamada devuelve un juego nuevo.
-func ReglasDeBoeLegislacion() []ReglaDelConjunto {
+func ReglasDeNormativa() []ReglaDelConjunto {
 	return []ReglaDelConjunto{
 		{nombre: "tamaño", incumplimiento: incumplimientoDelTamanio},
 		{nombre: "positivas", incumplimiento: incumplimientoDePositivas},

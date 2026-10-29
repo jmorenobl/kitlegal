@@ -8,7 +8,7 @@ description: >-
   territorio de un municipio —código INE, provincia, comunidad, régimen, DIR3 del ayuntamiento y boletines— y calcula
   el último día del plazo con los festivos de los municipios que cuentan; dice qué asuntos regula aparte la ley
   (tributos, multas de tráfico, Seguridad Social, extranjería) y razona con la jerarquía normativa y las leyes
-  vertebrales (CE, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Para el texto de un artículo se apoya en boe-legislacion.
+  vertebrales (CE, LPAC, LRJSP, LRBRL, TRLRHL, LCSP, LGT…). Para el texto de un artículo se apoya en normativa.
 metadata:
   kitlegal-applets: territorio plazos
   kitlegal-referencias: leyes_vertebrales jerarquia_normativa recursos_y_plazos cobertura_por_materia
@@ -47,7 +47,7 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    no se pudo resolver, sin suplir lo que falte.
 5. **Razonar** con las leyes vertebrales y la jerarquía normativa: identificador y rango de cada norma, nivel que
    regula lo preguntado y norma que prevalece.
-6. **El texto de un artículo**, y el identificador que no está en las referencias, con `boe-legislacion` en esta
+6. **El texto de un artículo**, y el identificador que no está en las referencias, con `normativa` en esta
    conversación, citado como ella cita (regla 2).
 7. **¿Hay plazo?** Con lo que ya dice la conversación del acto, la administración y la materia, **antes de preguntar
    nada**, ni el municipio ni la fecha. Si la materia está en la cobertura por materia, `⚠ NO CUBIERTO:`,
@@ -156,9 +156,9 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 
 1. **Nunca inventar contenido legal ni citar de memoria.** Ni el texto de una norma, ni su identificador, ni ningún
    dato de territorio, ni ninguna fecha: lo que no salga en esta conversación de `kitlegal`, de las referencias o de
-   `boe-legislacion`, no se afirma.
+   `normativa`, no se afirma.
 2. **Cada afirmación sobre una norma, con su identificador.** El identificador sale de las referencias o de
-   `boe-legislacion`; el texto de un artículo, solo de `boe-legislacion`.
+   `normativa`; el texto de un artículo, solo de `normativa`.
 3. **Distinguir ley de reglamento.** Di el rango de cada norma que nombres y recuerda que un reglamento nunca puede
    contradecir la ley.
 4. **Señalar la variación autonómica.** Di lo que una comunidad puede haber regulado de otro modo, y más aún si su

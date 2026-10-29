@@ -357,24 +357,24 @@ func TestLeerConjunto(t *testing.T) {
 			entradas: []entradaDeConjunto{
 				{
 					nombre: legalCoreCubierto,
-					contenido: preguntaDelMunicipio + "activa: true\n" + noSeActivaBoeLegislacion + comandoDelMunicipio +
+					contenido: preguntaDelMunicipio + "activa: true\n" + noSeActivaNormativa + comandoDelMunicipio +
 						"territorio:\n  comunidad: Comunidad de Madrid\n",
 				},
-				{nombre: legalCoreNoActivacion, contenido: evalDeLaReceta + noSeActivaBoeLegislacion},
+				{nombre: legalCoreNoActivacion, contenido: evalDeLaReceta + noSeActivaNormativa},
 			},
 			evals: []Eval{
 				{
 					Fichero:     legalCoreCubierto,
 					Pregunta:    "¿En qué boletines se publican las normas que afectan a Leganés?",
 					Activa:      true,
-					NoSeActivan: []string{"boe-legislacion"},
+					NoSeActivan: []string{"normativa"},
 					Comandos:    []ComandoEsperado{{Applet: "territorio", Verbo: "resolver", Municipio: "Leganés"}},
 					Territorio:  TerritorioEsperado{Comunidad: "Comunidad de Madrid"},
 				},
 				{
 					Fichero:     legalCoreNoActivacion,
 					Pregunta:    "¿Cómo se hace una tortilla de patatas jugosa?",
-					NoSeActivan: []string{"boe-legislacion"},
+					NoSeActivan: []string{"normativa"},
 				},
 			},
 		},
@@ -630,14 +630,14 @@ const evalConFecha = "15-lcsp-contrato-menor-en-2019.yaml"
 
 // conjuntoSintetico son las evals y las normas conocidas con las que
 // TestConjuntoDeEvals llama a ComprobarConjunto con las reglas de
-// boe-legislacion.
+// normativa.
 type conjuntoSintetico struct {
 	evals  []Eval
 	normas map[string]NormaConocida
 }
 
 // conjuntoQueCumple devuelve, nuevo en cada llamada, un conjunto que cumple
-// todas las reglas de data-model §6.3: el de evals/boe-legislacion/ del contrato
+// todas las reglas de data-model §6.3: el de evals/normativa/ del contrato
 // de evals §2, con diez positivas de una norma cada una y dos de no activación,
 // la informativa por materia, desde H21, la eval sin binario ni servidor
 // (contracts/evals-en-dos-modos.md §1 de H21) y, desde H20, una eval con fecha
@@ -763,26 +763,26 @@ func sinMateria(conjunto *conjuntoSintetico, materia string) {
 }
 
 // TestConjuntoDeEvals fija ComprobarConjunto con sus dos juegos de reglas
-// (contrato de evals §3 de H6; research D22): las de boe-legislacion y las de
+// (contrato de evals §3 de H6; research D22): las de normativa y las de
 // legal-core, cada juego sobre evals sintéticas. Desde H21, el tamaño de
-// boe-legislacion llega a 21 y los dos juegos llevan la regla sin binario ni
+// normativa llega a 21 y los dos juegos llevan la regla sin binario ni
 // servidor, la última de cada tabla: exactamente una eval que lo declara, que no
 // cuenta como positiva ni necesita un esperado verificable
 // (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde H23, el tercer
 // juego, el de jurisprudencia (contracts/evals-jurisprudencia.md §5 de H23;
 // FR-056), que desde H25 cuenta diez evals (contracts/evals-jurisprudencia.md
-// §3 de H25; FR-065). Desde H20, el tamaño de boe-legislacion llega a 23, y una
+// §3 de H25; FR-065). Desde H20, el tamaño de normativa llega a 23, y una
 // eval con fecha se aparta como la eval sin binario ni servidor: no es positiva
 // (contracts/evals-redaccion-fechada.md §1.4 de H20; research D15 de H20).
 func TestConjuntoDeEvals(t *testing.T) {
 	t.Parallel()
 
-	t.Run("boe-legislacion", probarReglasDeBoeLegislacion)
+	t.Run("normativa", probarReglasDeNormativa)
 	t.Run("legal-core", probarReglasDeLegalCore)
 	t.Run("jurisprudencia", probarReglasDeJurisprudencia)
 }
 
-// probarReglasDeBoeLegislacion fija ComprobarConjunto con ReglasDeBoeLegislacion
+// probarReglasDeNormativa fija ComprobarConjunto con ReglasDeNormativa
 // (contrato de evals §2 de H5): el conjunto que cumple todas las reglas de
 // data-model §6.3 no da ningún defecto; cada copia que incumple solo una regla da
 // exactamente un defecto, con el nombre de esa regla y un mensaje que nombra los
@@ -797,7 +797,7 @@ func TestConjuntoDeEvals(t *testing.T) {
 // comando o en su cita incumple solo la regla de las normas conocidas; y con 23
 // evals el conjunto sigue cumpliendo y con 24 incumple el tamaño
 // (contracts/evals-redaccion-fechada.md §1.4 de H20; research D15 de H20).
-func probarReglasDeBoeLegislacion(t *testing.T) {
+func probarReglasDeNormativa(t *testing.T) {
 	t.Parallel()
 
 	todos := []string{
@@ -832,12 +832,12 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 		conjunto := conjuntoQueCumple(t)
 		require.Equal(t, todos, ficherosDelConjunto(conjunto), "el conjunto sintético es el del contrato")
 
-		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion()))
+		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeNormativa()))
 
 		conDeMas(&conjunto, deMas[:len(deMas)-1])
 		require.Len(t, conjunto.evals, 23, "el conjunto sint\xc3\xa9tico llega al m\xc3\xa1ximo de evals")
 
-		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion()),
+		assert.Empty(t, ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeNormativa()),
 			"con 23 evals, el conjunto cumple el tama\xc3\xb1o")
 	})
 
@@ -1053,7 +1053,7 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 			conjunto := conjuntoQueCumple(t)
 			caso.modificar(t, &conjunto)
 
-			defectos := ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion())
+			defectos := ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeNormativa())
 			require.Len(t, defectos, 1, "la copia solo incumple la regla %s: %v", caso.regla, defectos)
 			assert.Equal(t, caso.regla, defectos[0].Regla)
 
@@ -1082,7 +1082,7 @@ func probarReglasDeBoeLegislacion(t *testing.T) {
 		assert.Equal(t, []string{
 			"tamaño", "positivas", "no activación", "informativas", "materias distintas", "normas del hito",
 			"art. 21", "fiscal", "boe-fiscal", "normas conocidas", "sin binario ni servidor",
-		}, reglasIncumplidas(ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeBoeLegislacion())))
+		}, reglasIncumplidas(ComprobarConjunto(conjunto.evals, conjunto.normas, ReglasDeNormativa())))
 	})
 }
 
@@ -1139,7 +1139,7 @@ func conjuntoDeLegalCore() []Eval {
 			Fichero:              legalCoreSinBinario,
 			Pregunta:             "\xc2\xbfQu\xc3\xa9 comunidad y qu\xc3\xa9 boletines corresponden al Ayuntamiento de Getafe?",
 			Activa:               true,
-			NoSeActivan:          []string{"boe-legislacion"},
+			NoSeActivan:          []string{"normativa"},
 			SinBinarioNiServidor: true,
 		},
 		evalDePlazoSintetica(),
@@ -1885,9 +1885,9 @@ func ficherosDelConjunto(conjunto conjuntoSintetico) []string {
 // Lo que TestEvalsDelRepositorio lee del repositorio y lo que le exige (contrato
 // evals-y-grabaciones §2).
 const (
-	// evalsDelRepositorio es evals/boe-legislacion/, relativo al directorio de
+	// evalsDeNormativa es evals/normativa/, relativo al directorio de
 	// este paquete, que es donde go test ejecuta sus tests (research.md V46).
-	evalsDelRepositorio = "../../evals/boe-legislacion"
+	evalsDeNormativa = "../../evals/normativa"
 
 	// evalsMinimasDelRepositorio son las doce del contrato de evals §2, diez
 	// positivas y dos de no activación: con menos, el subtest grabado podría
@@ -1925,15 +1925,15 @@ const (
 // TestEvalsDelRepositorio comprueba sin red las evals del repositorio (contrato
 // evals-y-grabaciones §2 y §5.2; FR-060, FR-062 a FR-066, FR-074, FR-075,
 // SC-010): cada fichero de cada directorio evals/<skill>/ se lee como eval, y las
-// de evals/boe-legislacion/ cumplen las reglas del conjunto de data-model §6.3,
+// de evals/normativa/ cumplen las reglas del conjunto de data-model §6.3,
 // esperan solo normas de data/normas.yaml y tienen en las grabaciones de H4 y de
 // H5 lo que necesitan para servir sin red cada consulta; el esquema publicado
 // del formato admite en avisos exactamente los códigos de aviso del binario
-// (FR-013 de H5.1); el SKILL.md de boe-legislacion lleva la forma fija de cada
+// (FR-013 de H5.1); el SKILL.md de normativa lleva la forma fija de cada
 // uno de esos códigos, reconocida con la misma función que usa Juzgar (FR-014 de
 // H5.1); el esquema publicado admite en hallazgos exactamente las clases de
 // hallazgo que el binario etiqueta (contrato evals-y-skill §3 de H7.1; FR-054);
-// el SKILL.md de boe-legislacion lleva la forma fija de cada una de esas clases,
+// el SKILL.md de normativa lleva la forma fija de cada una de esas clases,
 // reconocida con la misma función que usa Juzgar (FR-045, FR-093 de H7.1);
 // el esquema publicado admite en la cobertura del territorio esperado
 // exactamente las combinaciones del vocabulario del applet territorio (contrato de
@@ -1945,15 +1945,15 @@ const (
 // cada grafo previo, la lectura de los bloques de la eval y graph check dan los
 // hallazgos que la eval espera, de la redacción que dejó el grafo previo a la
 // leída (contrato eval-y-derivada §4; FR-002 de H7.2). Desde H7.3, ninguna
-// expresión de la lista de expresiones prohibidas de evals/boe-legislacion/ va
-// en la prosa del SKILL.md de boe-legislacion —fuera
+// expresión de la lista de expresiones prohibidas de evals/normativa/ va
+// en la prosa del SKILL.md de normativa —fuera
 // del código y de la región generada— ni el fichero lleva ninguna fecha AAAAMMDD
 // escrita con cifras (contracts/skill-boe-legislacion.md §5; FR-091, SC-005).
 // Desde H7.4, cada orden de lectura y
 // comprobación de la skill lleva detrás su forma para PowerShell
 // (contracts/skill-boe-legislacion.md
 // §4 de H7.4; FR-095; SC-005). Desde
-// H21, las 21 evals de boe-legislacion y las 4 de legal-core cumplen además la
+// H21, las 21 evals de normativa y las 4 de legal-core cumplen además la
 // regla sin binario ni servidor de su juego: cada carpeta lleva exactamente una
 // eval que lo declara (contracts/evals-en-dos-modos.md §1 de H21; FR-046). Desde
 // H23, las evals de evals/jurisprudencia/ cumplen las reglas de su juego
@@ -1964,7 +1964,7 @@ const (
 // afirma_que_existe, que solo se publica (contracts/juez-de-jurisprudencia.md
 // §1 de H25; FR-002). Desde
 // H24, la carpeta del juez de cada skill que la tiene se lee con sus evals y no
-// da ningún fichero mal formado: la de boe-legislacion declara sus dos clases,
+// da ningún fichero mal formado: la de normativa declara sus dos clases,
 // afirma_lo_no_leido, que decide, y cuenta_su_proceso, que solo se publica, y
 // legal-core no tiene juez (contracts/juez-y-voto.md §1 de H24; FR-020,
 // FR-021); y la lista deja de compararse con respuestas, con los
@@ -1972,24 +1972,24 @@ const (
 // respuesta: del calibrado de H7.4 quedan sus tres totales, como premisa de
 // TestJuzgarSinLaLista (FR-071 de H24). Desde H26, la clase que decide lleva en
 // cada declaración el umbral del ADR 0038, una tasa sobre las respuestas de
-// todos los modos juntas —0.028 en boe-legislacion y 0.017 en jurisprudencia—,
+// todos los modos juntas —0.028 en normativa y 0.017 en jurisprudencia—,
 // y la que solo se publica sigue con 0: los dos valores van aquí escritos a
 // mano y se comparan con igualdad exacta, de modo que otro en cualquiera de las
 // dos declaraciones no pasa (contracts/clases-yaml.diff de H26; data-model §1
 // de H26; research D9 de H26; FR-020, FR-022, FR-077; SC-007). Desde H9, las de
 // evals/legal-core/ son nueve, bien formadas, cumplen además la regla de la
 // cobertura por materia, y la unión de grabaciones sirve sin red lo que leen del
-// BOE, como las de boe-legislacion (contracts/evals-legal-core.md §4 y §5 de H9;
+// BOE, como las de normativa (contracts/evals-legal-core.md §4 y §5 de H9;
 // FR-050, FR-052, FR-088). Desde H20, las consultas de las dos carpetas llevan,
 // junto a cada bloque, su lectura con --fecha 9999-12-31, y la caché se prepara
 // y se comprueba sin red también con ellas (contracts/evals-redaccion-fechada.md
-// §4 de H20; FR-053); y las de boe-legislacion son veintitrés, con las dos con
+// §4 de H20; FR-053); y las de normativa son veintitrés, con las dos con
 // fecha, bien formadas, con las reglas de su conjunto y con su caché preparada
 // y comprobada sin red (contracts/evals-redaccion-fechada.md §1.3 y §1.4 de
-// H20; FR-050 a FR-053); y el SKILL.md de boe-legislacion lleva, en sus
+// H20; FR-050 a FR-053); y el SKILL.md de normativa lleva, en sus
 // bloques de código text, la forma fija de cada una de las tres líneas de una
 // redacción fechada (contracts/skill-boe-legislacion.md §1 de H20; FR-048).
-// Desde H26.1, la 14, la 15 y la 16 de boe-legislacion llevan sus lecturas, y
+// Desde H26.1, la 14, la 15 y la 16 de normativa llevan sus lecturas, y
 // desde H31.1 también la 17, y ninguna otra eval lleva ninguna; sus bloques son
 // consultas necesarias, que el subtest grabado exige grabadas y servidas sin red
 // como las demás (contracts/formato-de-eval.md §3.3 de H26.1; FR-010, FR-011;
@@ -1999,7 +1999,7 @@ const (
 // de hallazgo— leen la skill entera, su SKILL.md y sus referencias a mano, cada
 // fichero por separado y con su ruta en cada defecto; las formas fijas se siguen
 // exigiendo en SKILL.md, y cada línea ⚠ de una referencia a mano de
-// boe-legislacion y de legal-core es una de su SKILL.md
+// normativa y de legal-core es una de su SKILL.md
 // (contracts/controles-de-contenido.md de H31; research D16 de H31; FR-016 a
 // FR-018); y cada orden de ejemplo concreta de kitlegal boe de la skill entera
 // de cada skill con evals sale con 0 con --offline sobre la caché de una sesión
@@ -2008,14 +2008,14 @@ const (
 func TestEvalsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
-	conjunto, errDeLaLectura := LeerConjunto(evalsDelRepositorio)
+	conjunto, errDeLaLectura := LeerConjunto(evalsDeNormativa)
 
 	normas, err := skills.LeerNormas(contenidoDelFichero(t, tablaDeNormasDelRepositorio))
 	require.NoError(t, err, "la tabla de normas %s", tablaDeNormasDelRepositorio)
 
 	// Una sola llamada: conjunto y normas-conocidas presentan cada uno una parte
 	// de sus defectos.
-	defectos := ComprobarConjunto(conjunto.Evals, normasConocidasDe(normas), ReglasDeBoeLegislacion())
+	defectos := ComprobarConjunto(conjunto.Evals, normasConocidasDe(normas), ReglasDeNormativa())
 	esDeNormasConocidas := func(defecto DefectoDelConjunto) bool { return defecto.Regla == reglaDeNormasConocidas }
 
 	t.Run("formato", func(t *testing.T) {
@@ -2023,21 +2023,21 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		require.NoError(t, errDeLaLectura)
 		assert.GreaterOrEqual(t, len(conjunto.Evals), evalsMinimasDelRepositorio,
-			"%s tiene al menos las doce evals bien formadas del contrato", evalsDelRepositorio)
+			"%s tiene al menos las doce evals bien formadas del contrato", evalsDeNormativa)
 
 		// El formato común es el de las evals de cualquier skill (FR-060): se leen
-		// todas las carpetas de evals/, la de boe-legislacion entre ellas.
+		// todas las carpetas de evals/, la de normativa entre ellas.
 		carpetas, malFormados := malFormadosDeCadaSkill(t, directorioDeEvals)
 
-		require.Contains(t, carpetas, evalsDelRepositorio)
+		require.Contains(t, carpetas, evalsDeNormativa)
 		assert.Empty(t, malFormados, "ficheros mal formados en %s:\n%s",
 			directorioDeEvals, strings.Join(malFormados, "\n"))
 
-		// La carpeta del juez se lee con las evals: boe-legislacion declara sus
+		// La carpeta del juez se lee con las evals: normativa declara sus
 		// dos clases y legal-core no tiene juez (FR-020 y FR-021 de H24). La que
 		// decide lleva el umbral del ADR 0038, como mucho 3 marcadas de 108, y la
 		// que solo se publica, 0 (FR-020 y FR-022 de H26).
-		require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez", evalsDelRepositorio)
+		require.NotNil(t, conjunto.Juez, "%s tiene la carpeta del juez", evalsDeNormativa)
 		assert.Equal(t, []ClaseDelJuez{
 			{Nombre: "afirma_lo_no_leido", Decide: true, Umbral: 0.028},
 			{Nombre: "cuenta_su_proceso", Decide: false, Umbral: 0},
@@ -2053,7 +2053,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		deOtrasReglas := slices.DeleteFunc(slices.Clone(defectos), esDeNormasConocidas)
 		assert.Empty(t, deOtrasReglas, "defectos del conjunto de %s:\n%s",
-			evalsDelRepositorio, presentarDefectos(deOtrasReglas))
+			evalsDeNormativa, presentarDefectos(deOtrasReglas))
 	})
 
 	t.Run("conjunto-legal-core", func(t *testing.T) {
@@ -2130,14 +2130,14 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		// Piden el cotejo las evals que activan la skill y esperan algún cita
 		// cotejar, lleve o no ROJ, y lo dicen sus comandos: en jurisprudencia, la
-		// 04, la 06, la 08 y la 09; en boe-legislacion y en legal-core, ninguna, y
+		// 04, la 06, la 08 y la 09; en normativa y en legal-core, ninguna, y
 		// sus umbrales no llevan documento_sin_cotejar (FR-001, FR-007 y FR-063 de
 		// H23.1; SC-005).
 		carpetas := []struct {
 			carpeta string
 			piden   []string
 		}{
-			{carpeta: evalsDelRepositorio},
+			{carpeta: evalsDeNormativa},
 			{carpeta: evalsDeLegalCore},
 			{
 				carpeta: evalsDeJurisprudencia,
@@ -2170,7 +2170,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 
 		// Con la regla nombrada de otra forma, este subtest no vería sus defectos
 		// y pasaría en vacío.
-		require.True(t, slices.ContainsFunc(ReglasDeBoeLegislacion(), func(regla ReglaDelConjunto) bool {
+		require.True(t, slices.ContainsFunc(ReglasDeNormativa(), func(regla ReglaDelConjunto) bool {
 			return regla.nombre == reglaDeNormasConocidas
 		}), "la regla %q es una de las del conjunto", reglaDeNormasConocidas)
 
@@ -2178,31 +2178,31 @@ func TestEvalsDelRepositorio(t *testing.T) {
 			return !esDeNormasConocidas(defecto)
 		})
 		assert.Empty(t, desconocidas, "normas de las evals de %s que no están en %s:\n%s",
-			evalsDelRepositorio, tablaDeNormasDelRepositorio, presentarDefectos(desconocidas))
+			evalsDeNormativa, tablaDeNormasDelRepositorio, presentarDefectos(desconocidas))
 	})
 
 	t.Run("grabado", func(t *testing.T) {
 		t.Parallel()
 
 		consultas := ConsultasNecesarias(conjunto.Evals)
-		require.NotEmpty(t, consultas, "las evals de %s necesitan alguna consulta", evalsDelRepositorio)
+		require.NotEmpty(t, consultas, "las evals de %s necesitan alguna consulta", evalsDeNormativa)
 
 		// Desde H20, la caché preparada sirve también la lectura con --fecha
 		// 9999-12-31 de cada bloque, y la unión de grabaciones la sirve sin red
 		// (contracts/evals-redaccion-fechada.md §4 de H20; FR-053).
-		exigeLecturasFechadas(t, consultas, evalsDelRepositorio)
+		exigeLecturasFechadas(t, consultas, evalsDeNormativa)
 
 		dirCache := t.TempDir()
 
 		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
 		require.NoError(t, err)
 		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
-			evalsDelRepositorio, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+			evalsDeNormativa, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
 
 		comprobadas, err := ComprobarSinRed(dirCache, consultas)
 		require.NoError(t, err)
 		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
-			evalsDelRepositorio, presentarFaltas(comprobadas))
+			evalsDeNormativa, presentarFaltas(comprobadas))
 	})
 
 	t.Run("avisos-del-esquema", func(t *testing.T) {
@@ -2294,7 +2294,7 @@ func TestEvalsDelRepositorio(t *testing.T) {
 // probarLasLecturasDeLasEvalsDelRepositorio es el subtest lecturas de
 // TestEvalsDelRepositorio (contracts/formato-de-eval.md §3.3 de H26.1;
 // data-model §8 de H26.1; FR-011): de las evals del repositorio, llevan
-// lecturas la 14, la 15, la 16 y la 17 de boe-legislacion, cada una con sus
+// lecturas la 14, la 15, la 16 y la 17 de normativa, cada una con sus
 // bloques y los motivos del contrato, escritos aquí a mano, y ninguna otra; que
 // la unión de grabaciones los sirve sin red lo exige el subtest grabado, porque
 // son consultas necesarias (FR-010). Desde H31.1, la 14 y la 15 ganan cuatro
@@ -2324,7 +2324,7 @@ func probarLasLecturasDeLasEvalsDelRepositorio(t *testing.T) {
 		lecturas map[string][]LecturaDeLaEval
 	}{
 		{
-			carpeta: evalsDelRepositorio,
+			carpeta: evalsDeNormativa,
 			lecturas: map[string][]LecturaDeLaEval{
 				"14-trlrhl-impuestos-por-materia.yaml": {
 					{Norma: trlrhl, Bloque: "a15", Motivo: motivoDeLa14},
@@ -2382,7 +2382,7 @@ func probarLoQueLlevaALeer(t *testing.T) {
 	lecturas := loQueLlevaALeerElRepositorio(t)
 	require.NotEmpty(t, lecturas, "data/ lleva a leer algún bloque del BOE")
 
-	for _, carpeta := range []string{evalsDelRepositorio, evalsDeLegalCore, evalsDeJurisprudencia} {
+	for _, carpeta := range []string{evalsDeNormativa, evalsDeLegalCore, evalsDeJurisprudencia} {
 		t.Run(filepath.Base(carpeta), func(t *testing.T) {
 			t.Parallel()
 
@@ -2419,7 +2419,7 @@ const (
 // linea-sin-consulta no pase en vacío para ninguna (FR-035 de H21).
 // jurisprudencia no está: no consulta el BOE y, sin herramienta ni binario,
 // lleva su propia línea (research.md D16 de H23).
-var skillsConLineaSinConsulta = []string{skillBoeLegislacion, "legal-core"}
+var skillsConLineaSinConsulta = []string{skillNormativa, "legal-core"}
 
 // defectosDeLaLineaSinConsulta da los defectos de un SKILL.md respecto de la
 // línea de contracts/skills.md §3 de H21, o nil si no tiene ninguno: que ningún
@@ -2525,7 +2525,7 @@ func TestLineaSinConsultaDeUnaSkill(t *testing.T) {
 	}
 }
 
-// Los informes del job de evals de boe-legislacion en el cierre de H7.1, de
+// Los informes del job de evals de normativa en el cierre de H7.1, de
 // H7.2 y de H7.3 (el de 196ee05), relativos al directorio de este paquete: sus
 // respuestas son con las que se calibró la lista de expresiones prohibidas
 // (FR-021 de H7.3; FR-032 de H7.4; contracts/lista-de-expresiones.md §4 de
@@ -2570,7 +2570,7 @@ func entradasDelInforme(t *testing.T, ruta string) []entradaDelInforme {
 }
 
 // listaDelRepositorio es la lista de expresiones prohibidas de
-// evals/boe-legislacion/, la que deja en el conjunto el LeerConjunto de
+// evals/normativa/, la que deja en el conjunto el LeerConjunto de
 // TestEvalsDelRepositorio. Tiene expresiones en sus cuatro familias, las de lo
 // que devuelven las herramientas y formas fijas: sin ellas, los tests que la
 // aplican pasarían en vacío.
@@ -2579,17 +2579,17 @@ func listaDelRepositorio(t *testing.T, conjunto Conjunto) ExpresionesProhibidas 
 
 	lista := conjunto.Prohibidas
 	require.NotEmpty(t, lista.Maquinaria, "%s tiene lista de expresiones prohibidas, con las de la maquinaria",
-		evalsDelRepositorio)
+		evalsDeNormativa)
 	require.NotEmpty(t, lista.OtraConversacion, "%s tiene lista de expresiones prohibidas, con las de otra conversación",
-		evalsDelRepositorio)
+		evalsDeNormativa)
 	require.NotEmpty(t, lista.Anuncio, "%s tiene lista de expresiones prohibidas, con las del anuncio",
-		evalsDelRepositorio)
+		evalsDeNormativa)
 	require.NotEmpty(t, lista.RedaccionNoLeida, "%s tiene lista de expresiones prohibidas, con las de la redacción "+
-		"no leída", evalsDelRepositorio)
+		"no leída", evalsDeNormativa)
 	require.NotEmpty(t, lista.SalidaDeLasHerramientas, "%s tiene lista de expresiones prohibidas, con las de lo que "+
-		"devuelven las herramientas", evalsDelRepositorio)
+		"devuelven las herramientas", evalsDeNormativa)
 	require.NotEmpty(t, lista.FormasFijas, "%s tiene lista de expresiones prohibidas, con sus formas fijas",
-		evalsDelRepositorio)
+		evalsDeNormativa)
 
 	return lista
 }
@@ -2959,7 +2959,7 @@ func TestProsaDeLaSkill(t *testing.T) {
 		},
 		{
 			nombre: "en-el-frontmatter",
-			markdown: "---\nname: boe-legislacion\ndescription: >-\n  Traslada los hallazgos.\n---\n\n" +
+			markdown: "---\nname: normativa\ndescription: >-\n  Traslada los hallazgos.\n---\n\n" +
 				"# Consultar\n",
 			defectos: []string{"párrafo de la línea 1: hallazgos"},
 		},
@@ -3786,7 +3786,7 @@ func controlDeLaProsa(lista ExpresionesProhibidas) controlDeContenido {
 	return controlDeContenido{
 		exige: "ningún fichero enseña con su prosa expresiones que la respuesta no lleva ni escribe con cifras una " +
 			"fecha AAAAMMDD, y SKILL.md tiene prosa",
-		skills: []string{skillBoeLegislacion},
+		skills: []string{skillNormativa},
 		defectos: func(skill skillEntera) []string {
 			var defectos []string
 
@@ -3814,7 +3814,7 @@ func controlDeLaProsa(lista ExpresionesProhibidas) controlDeContenido {
 var controlDeLasOrdenes = controlDeContenido{
 	exige: "cada orden de lectura y comprobación lleva detrás, en su fichero, su forma para PowerShell, y la skill " +
 		"tiene una orden de Bash de cada verbo de lectura",
-	skills: []string{skillBoeLegislacion},
+	skills: []string{skillNormativa},
 	defectos: func(skill skillEntera) []string {
 		var (
 			todas         []ordenDeLectura
@@ -3853,7 +3853,7 @@ var controlDeLaLineaSinConsulta = controlDeContenido{
 // referencia sola no vale (FR-018 de H31).
 var controlDeLasFormasFechadas = controlDeContenido{
 	exige:  "SKILL.md enseña en un bloque text la forma fija de cada línea de una redacción fechada",
-	skills: []string{skillBoeLegislacion},
+	skills: []string{skillNormativa},
 	defectos: func(skill skillEntera) []string {
 		return skill.defectosDeLaSkill(defectosDeLasFormasFechadas(skill.skillMd.texto))
 	},
@@ -3865,7 +3865,7 @@ var controlDeLasFormasFechadas = controlDeContenido{
 // no vale (FR-018 de H31).
 var controlDeLosAvisos = controlDeContenido{
 	exige:  "SKILL.md enseña la forma fija de cada código de aviso del binario",
-	skills: []string{skillBoeLegislacion},
+	skills: []string{skillNormativa},
 	defectos: func(skill skillEntera) []string {
 		return skill.defectosDe(skill.skillMd, lineasDelError(ComprobarFormasDeAviso(skill.skillMd.texto)))
 	},
@@ -3877,7 +3877,7 @@ var controlDeLosAvisos = controlDeContenido{
 // función que usa Juzgar; en una referencia sola no vale (FR-018 de H31).
 var controlDeLosHallazgos = controlDeContenido{
 	exige:  "SKILL.md enseña la forma fija de cada clase de hallazgo etiquetada por el binario",
-	skills: []string{skillBoeLegislacion},
+	skills: []string{skillNormativa},
 	defectos: func(skill skillEntera) []string {
 		return skill.defectosDe(skill.skillMd, lineasDelError(ComprobarFormasDeHallazgo(skill.skillMd.texto)))
 	},
@@ -3896,7 +3896,7 @@ func lineasDelError(err error) []string {
 // skillsConLineasDeAviso son las skills en que se aplica el control 7: las dos
 // cuyas formas fijas, las líneas ⚠, comprueban sin modelo sus evals (research
 // D16 de H31).
-var skillsConLineasDeAviso = []string{skillBoeLegislacion, "legal-core"}
+var skillsConLineasDeAviso = []string{skillNormativa, "legal-core"}
 
 // inicioDeLineaDeAviso casa con la línea que, tras su sangría, un marcador de
 // lista (-, * o <n>.) con sus blancos y el énfasis (*, _ o `), cada uno si lo
@@ -4106,7 +4106,7 @@ type mutanteDeUnControl struct {
 func TestControlesSobreLasReferenciasAMano(t *testing.T) {
 	t.Parallel()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	mutantes := slices.Concat(mutantesDeLaProsa(listaDelRepositorio(t, conjunto)), mutantesDeLasOrdenes(),
@@ -4153,9 +4153,9 @@ func exigeLosPrefijos(t *testing.T, prefijos, defectos []string) {
 	}
 }
 
-// skillBoeLegislacion es la skill en la que se aplican todos los controles de
+// skillNormativa es la skill en la que se aplican todos los controles de
 // contenido.
-const skillBoeLegislacion = "boe-legislacion"
+const skillNormativa = "normativa"
 
 // referenciaAMano es el fichero de references/ de la copia en el que escriben
 // los mutantes: ninguna skill lo declara en su kitlegal-referencias, y no abre
@@ -4276,19 +4276,19 @@ func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
 
 	return []mutanteDeUnControl{
 		{
-			nombre: "prosa-con-una-expresion-prohibida", control: control, skill: skillBoeLegislacion,
+			nombre: "prosa-con-una-expresion-prohibida", control: control, skill: skillNormativa,
 			mutar: conLasReferencias(map[string]string{
 				referenciaAMano: "# Notas\n\nEsta referencia nombra la " + expresion + " en su prosa.\n",
 			}),
-			defectos: []string{"boe-legislacion: references/a_mano.md: párrafo de la línea 3: " + expresion},
+			defectos: []string{"normativa: references/a_mano.md: párrafo de la línea 3: " + expresion},
 			exactos:  true,
 		},
 		{
-			nombre: "prosa-con-una-fecha-con-cifras", control: control, skill: skillBoeLegislacion,
+			nombre: "prosa-con-una-fecha-con-cifras", control: control, skill: skillNormativa,
 			mutar: conLasReferencias(map[string]string{
 				referenciaAMano: "# Notas\n\nLa redacción de 20151002 es la primera.\n",
 			}),
-			defectos: []string{"boe-legislacion: references/a_mano.md: línea 3: fecha escrita con cifras 20151002"},
+			defectos: []string{"normativa: references/a_mano.md: línea 3: fecha escrita con cifras 20151002"},
 			exactos:  true,
 		},
 	}
@@ -4298,14 +4298,14 @@ func mutantesDeLaProsa(lista ExpresionesProhibidas) []mutanteDeUnControl {
 // orden de Bash de articulo sin su forma para PowerShell, con ella en otra
 // referencia y con ella detrás; y las órdenes de articulos, que desde H31 están
 // en references/varios_bloques.md (contracts/skills-reescritas.md de H31,
-// «boe-legislacion»), llevadas de ahí a SKILL.md, o quitadas.
+// «normativa»), llevadas de ahí a SKILL.md, o quitadas.
 func mutantesDeLasOrdenes() []mutanteDeUnControl {
 	const (
 		enBash       = "# Lecturas\n\n```bash\n" + bashDeArticulo + "\n```\n"
 		enPowerShell = "# Lecturas en PowerShell\n\n```powershell\n" + powershellDeArticulo + "\n```\n"
 	)
 
-	sinSuFormaEnLaReferencia := []string{"boe-legislacion: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
+	sinSuFormaEnLaReferencia := []string{"normativa: references/a_mano.md: línea 4, «" + bashDeArticulo + "»" +
 		sinSuForma}
 	conLasDeArticulos := func(linea string) bool {
 		return strings.Contains(linea, "kitlegal boe articulos <norma> <bloques>... --json")
@@ -4314,29 +4314,29 @@ func mutantesDeLasOrdenes() []mutanteDeUnControl {
 
 	return []mutanteDeUnControl{
 		{
-			nombre: "orden-sin-su-forma-para-powershell", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			nombre: "orden-sin-su-forma-para-powershell", control: controlDeLasOrdenes, skill: skillNormativa,
 			mutar:    conLasReferencias(map[string]string{referenciaAMano: enBash}),
 			defectos: sinSuFormaEnLaReferencia, exactos: true,
 		},
 		{
-			nombre: "orden-con-su-forma-en-otra-referencia", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			nombre: "orden-con-su-forma-en-otra-referencia", control: controlDeLasOrdenes, skill: skillNormativa,
 			mutar:    conLasReferencias(map[string]string{referenciaAMano: enBash, "otra_a_mano.md": enPowerShell}),
 			defectos: sinSuFormaEnLaReferencia, exactos: true,
 		},
 		{
-			nombre: "orden-con-su-forma-detras", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			nombre: "orden-con-su-forma-detras", control: controlDeLasOrdenes, skill: skillNormativa,
 			mutar: conLasReferencias(map[string]string{
 				referenciaAMano: enBash + "\n```powershell\n" + powershellDeArticulo + "\n```\n",
 			}),
 		},
 		{
-			nombre: "ordenes-de-articulos-en-skill-md", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			nombre: "ordenes-de-articulos-en-skill-md", control: controlDeLasOrdenes, skill: skillNormativa,
 			mutar: conLasLineasLlevadasAlSkillMd(referenciaDeArticulos, conLasDeArticulos),
 		},
 		{
-			nombre: "sin-las-ordenes-de-articulos", control: controlDeLasOrdenes, skill: skillBoeLegislacion,
+			nombre: "sin-las-ordenes-de-articulos", control: controlDeLasOrdenes, skill: skillNormativa,
 			mutar: sinLasLineas(referenciaDeArticulos, conLasDeArticulos),
-			defectos: []string{"boe-legislacion: ninguna orden de Bash lee con «kitlegal boe articulos» y comprueba " +
+			defectos: []string{"normativa: ninguna orden de Bash lee con «kitlegal boe articulos» y comprueba " +
 				"detrás con kitlegal graph check"},
 			exactos: true,
 		},
@@ -4374,7 +4374,7 @@ func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
 
 	movida := func(nombre string, control controlDeContenido, forma *regexp.Regexp, defecto string) {
 		mutantes = append(mutantes, mutanteDeUnControl{
-			nombre: nombre, control: control, skill: skillBoeLegislacion,
+			nombre: nombre, control: control, skill: skillNormativa,
 			mutar: conLasLineasMovidas(forma.MatchString), defectos: []string{defecto},
 		})
 	}
@@ -4382,20 +4382,20 @@ func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
 	for _, forma := range formasFechadas {
 		movida("forma-fechada-movida-"+strings.ToLower(strings.ReplaceAll(string(forma), " ", "-")),
 			controlDeLasFormasFechadas, expresionesFechadas()[forma],
-			"boe-legislacion: ningún bloque text de SKILL.md lleva la forma fija "+formaEscrita(string(forma)))
+			"normativa: ningún bloque text de SKILL.md lleva la forma fija "+formaEscrita(string(forma)))
 	}
 
 	etiquetasDeAviso := boe.EtiquetasDeAviso()
 	for _, codigo := range boe.CodigosDeAviso() {
 		movida("aviso-movido-"+codigo, controlDeLosAvisos, formasDeAviso()[codigo],
-			"boe-legislacion: SKILL.md: falta la forma fija del aviso "+codigo+": "+
+			"normativa: SKILL.md: falta la forma fija del aviso "+codigo+": "+
 				formaEscrita(etiquetasDeAviso[codigo]))
 	}
 
 	etiquetasDeHallazgo := grafo.EtiquetasDeHallazgo()
 	for _, clase := range clasesEtiquetadas() {
 		movida("hallazgo-movido-"+clase, controlDeLosHallazgos, formasDeHallazgo()[clase],
-			"boe-legislacion: SKILL.md: falta la forma fija del hallazgo "+clase+": "+
+			"normativa: SKILL.md: falta la forma fija del hallazgo "+clase+": "+
 				formaEscrita(etiquetasDeHallazgo[grafo.ClaseDeHallazgo(clase)]))
 	}
 
@@ -4404,7 +4404,7 @@ func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
 
 // mutantesDeLasLineasDeAviso son los del control 7, uno por skill en que se
 // aplica, con una referencia a mano que lleva líneas ⚠ de SKILL.md, con otra
-// sangría, y variantes de ellas: en boe-legislacion, la de la redacción
+// sangría, y variantes de ellas: en normativa, la de la redacción
 // modificada sin la tilde, el ejemplo del contrato; en legal-core, la del plazo
 // con un marcador de lista y énfasis, una forma con un número de lista, otra con
 // los énfasis de subrayado y de código y otra con el marcador * delante. Una
@@ -4412,7 +4412,7 @@ func mutantesDeLasFormasMovidas() []mutanteDeUnControl {
 func mutantesDeLasLineasDeAviso(t *testing.T) []mutanteDeUnControl {
 	t.Helper()
 
-	modificada := lineaDeAvisoDeLaSkill(t, skillBoeLegislacion, "⚠ REDACCIÓN MODIFICADA:")
+	modificada := lineaDeAvisoDeLaSkill(t, skillNormativa, "⚠ REDACCIÓN MODIFICADA:")
 	malEscrita := strings.Replace(modificada, "REDACCIÓN", "REDACCION", 1)
 
 	plazo := lineaDeAvisoDeLaSkill(t, "legal-core", "⚠ PLAZO: <AAAA-MM-DD> — <tipo>")
@@ -4425,13 +4425,13 @@ func mutantesDeLasLineasDeAviso(t *testing.T) []mutanteDeUnControl {
 
 	return []mutanteDeUnControl{
 		{
-			nombre: "linea-de-aviso-mal-escrita-en-boe-legislacion", control: controlDeLasLineasDeAviso,
-			skill: skillBoeLegislacion,
+			nombre: "linea-de-aviso-mal-escrita-en-normativa", control: controlDeLasLineasDeAviso,
+			skill: skillNormativa,
 			mutar: conLasReferencias(map[string]string{
 				"redaccion_modificada.md": "# Redacción modificada\n\nLa respuesta lo dice con su línea:\n\n```text\n  " +
 					modificada + "\n" + malEscrita + "\n```\n",
 			}),
-			defectos: []string{"boe-legislacion: references/redaccion_modificada.md:7: la línea ⚠ no es ninguna de " +
+			defectos: []string{"normativa: references/redaccion_modificada.md:7: la línea ⚠ no es ninguna de " +
 				"SKILL.md: «" + malEscrita + "»"},
 			exactos: true,
 		},
@@ -4475,7 +4475,7 @@ func lineaDeAvisoDeLaSkill(t *testing.T, skill, principio string) string {
 }
 
 // mutantesDeLasOrdenesDeEjemplo son los del control 10, sobre la caché de la
-// primera eval de evals/boe-legislacion/ que no declara sin_servir, preparada
+// primera eval de evals/normativa/ que no declara sin_servir, preparada
 // aquí, para todos: en una referencia a mano, la orden de buscar de antes de H31,
 // sin marcador, que la caché de una sesión no sirve, da su defecto con la skill
 // y el fichero, el texto de la Falta; y con un marcador, no se ejecuta y no da
@@ -4483,22 +4483,22 @@ func lineaDeAvisoDeLaSkill(t *testing.T, skill, principio string) string {
 func mutantesDeLasOrdenesDeEjemplo(t *testing.T) []mutanteDeUnControl {
 	t.Helper()
 
-	dirCache := cacheDeLaPrimeraEvalServida(t, evalsDelRepositorio)
-	control := controlDeLasOrdenesDeEjemplo([]string{skillBoeLegislacion}, func(string) string { return dirCache })
+	dirCache := cacheDeLaPrimeraEvalServida(t, evalsDeNormativa)
+	control := controlDeLasOrdenesDeEjemplo([]string{skillNormativa}, func(string) string { return dirCache })
 
 	return []mutanteDeUnControl{
 		{
-			nombre: "orden-de-ejemplo-sin-servir", control: control, skill: skillBoeLegislacion,
+			nombre: "orden-de-ejemplo-sin-servir", control: control, skill: skillNormativa,
 			mutar: conLasReferencias(map[string]string{
 				referenciaAMano: "# Búsquedas\n\n```bash\nkitlegal boe buscar régimen jurídico del sector público " +
 					"--json\n```\n",
 			}),
-			defectos: []string{"boe-legislacion: references/a_mano.md: «boe buscar régimen jurídico del sector " +
+			defectos: []string{"normativa: references/a_mano.md: «boe buscar régimen jurídico del sector " +
 				"público» terminó con código 4: "},
 			prefijos: true,
 		},
 		{
-			nombre: "orden-de-ejemplo-con-un-marcador", control: control, skill: skillBoeLegislacion,
+			nombre: "orden-de-ejemplo-con-un-marcador", control: control, skill: skillNormativa,
 			mutar: conLasReferencias(map[string]string{
 				referenciaAMano: "# Búsquedas\n\nBusca con `kitlegal boe buscar <términos> --json`.\n",
 			}),
@@ -4806,7 +4806,7 @@ func bloquesVersionados(t *testing.T, dirCache string) []bloqueVersionado {
 
 // TestFormatoDeLasEvalsDeCadaSkill fija, sobre un evals/ que el propio test
 // escribe en t.TempDir(), que el subtest formato de TestEvalsDelRepositorio lee
-// las evals de cada skill y no solo las de boe-legislacion (FR-060): con una eval
+// las evals de cada skill y no solo las de normativa (FR-060): con una eval
 // bien formada en alfa/, otra sin pregunta en beta/ y un fichero suelto en la
 // raíz, lee alfa y beta y da solo el fichero de beta, con su directorio y su
 // error.

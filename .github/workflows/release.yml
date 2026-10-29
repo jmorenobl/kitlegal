@@ -186,7 +186,7 @@ jobs:
             exit 1
           fi
 
-      - name: Comprobar que skills install deja boe-legislacion en un directorio vacío
+      - name: Comprobar que skills install deja normativa en un directorio vacío
         shell: bash
         working-directory: ${{ runner.temp }}
         run: |
@@ -194,8 +194,8 @@ jobs:
           proyecto=$(mktemp -d)
           cd "$proyecto"
           "$RUNNER_TEMP/kitlegal" skills install
-          if [ ! -f .agents/skills/boe-legislacion/SKILL.md ]; then
-            echo "skills install no deja .agents/skills/boe-legislacion/SKILL.md" >&2
+          if [ ! -f .agents/skills/normativa/SKILL.md ]; then
+            echo "skills install no deja .agents/skills/normativa/SKILL.md" >&2
             exit 1
           fi
 

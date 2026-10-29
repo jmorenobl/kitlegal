@@ -28,7 +28,7 @@ var nombresDeMarca = map[string]string{
 }
 
 // preguntaDeEjemplo es con la que se invita a probar el agente tras instalar:
-// una pregunta a la que boe-legislacion responde con el texto vigente.
+// una pregunta a la que normativa responde con el texto vigente.
 const preguntaDeEjemplo = "«¿Qué dice el artículo 21 de la Ley 39/2015?»"
 
 // Las sangrías de la lista: dos espacios para cada skill y cuatro para cada

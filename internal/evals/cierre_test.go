@@ -47,7 +47,7 @@ esac
 `
 
 	directorioDelHitoDelCierre = "specs/000-hito-del-test"
-	skillDelCierre             = "boe-legislacion"
+	skillDelCierre             = "normativa"
 
 	// lineaDeOtraSalida es la que make escribe en su salida de error cuando el
 	// guion de las evals termina en fallo, y avisoDeLasDescartadas, lo que el
@@ -61,13 +61,13 @@ esac
 // de evals imprime en su registro, con un gh que devuelve un registro escrito
 // aquí.
 //
-// Existe por el run de H21: el informe de boe-legislacion en dos modos pesaba
+// Existe por el run de H21: el informe de normativa en dos modos pesaba
 // 821 kB, el registro lo partió en dos trozos y el segundo empezaba a mitad del
 // JSON, con la marca de orden de bytes delante de la hora. El guion no quitaba
 // la marca, la hora se quedaba dentro del informe, que dejaba de ser JSON, y el
 // informe final salió sin los umbrales de la skill, que el trabajo cumplía.
 //
-// Y por el de H25: el trabajo de boe-legislacion falló, y la línea con la que
+// Y por el de H25: el trabajo de normativa falló, y la línea con la que
 // make lo dice en su salida de error quedó en el registro dentro del informe,
 // que el runner aún no había terminado de entregar por la salida estándar. Lo
 // recogido no era JSON, el cierre no dejó fichero y la reparación trabajó sin

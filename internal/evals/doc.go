@@ -159,7 +159,7 @@
 //     que decide —las de cada modo en las evals que activan la skill y, aparte,
 //     las de la eval sin binario ni servidor, que no entran en ningún umbral—, y
 //     sus umbrales son, por cada modo, sin_activar y el recuento de cada clase
-//     del juez, <clase>:<modelo>:<modo> —en boe-legislacion, afirma_lo_no_leido
+//     del juez, <clase>:<modelo>:<modo> —en normativa, afirma_lo_no_leido
 //     y cuenta_su_proceso; en jurisprudencia, afirma_lo_no_leido y
 //     afirma_que_existe—; desde H26, el umbral conjunto de cada clase que
 //     decide, <clase>:<modelo>, sin modo —en las dos skills,
@@ -200,11 +200,11 @@
 //     HOY: y ⚠ SIN REDACCIÓN VIGENTE: que la eval espera, sobre las de esas
 //     evals, que decide con 0 y cuyo motivo nombra cada sesión que cuenta; con
 //     ellas, la skill tiene también sin_activar. Con el plan del job, los dos
-//     modos, boe-legislacion lleva quince, de los que deciden once;
+//     modos, normativa lleva quince, de los que deciden once;
 //     jurisprudencia, quince, de los que deciden once; y legal-core, diez, que
 //     deciden los diez: de cada modo, sin_activar, plazo_sin_fecha,
 //     cobertura_sin_declarar, vigencia_sin_declarar y redaccion_sin_fechar. En
-//     boe-legislacion, con
+//     normativa, con
 //     su objetivo: de cada modo, el del modo orden delante, sin_activar, los
 //     recuentos de afirma_lo_no_leido y de cuenta_su_proceso y
 //     redaccion_sin_fechar; el conjunto de afirma_lo_no_leido; los dos de la
@@ -237,7 +237,7 @@
 //     medida 0; decide con 0 solo el del modelo que decide, y su motivo nombra
 //     cada sesión que cuenta. Con el plan del job, los dos modos y los dos
 //     modelos, legal-core lleva dieciocho, de los que deciden doce, y
-//     boe-legislacion y jurisprudencia, diecinueve, de los que deciden los once
+//     normativa y jurisprudencia, diecinueve, de los que deciden los once
 //     de antes. Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta

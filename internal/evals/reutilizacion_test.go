@@ -19,7 +19,7 @@ import (
 // la skill cuyo trabajo busca, la otra skill del flujo, el modelo que decide, el
 // informativo y la vida de un resultado, la del registro de la plataforma.
 const (
-	skillDeLaBusqueda       = "boe-legislacion"
+	skillDeLaBusqueda       = "normativa"
 	otraSkillDeLaBusqueda   = "legal-core"
 	modeloQueDecideEnMain   = "claude-sonnet-5-5"
 	modeloInformativoEnMain = "claude-haiku-4-5"
@@ -711,7 +711,7 @@ func casosDeLosResultados(t *testing.T) []casoDeLaBusqueda {
 		},
 		{
 			nombre: "informe-anterior-al-origen", buscadas: []evalABuscar{evalBuscadaA},
-			ejecuciones: []ejecucionEnMemoria{conElInforme(sinMedir, `{"skill": "boe-legislacion", "origen": null}`+"\n")},
+			ejecuciones: []ejecucionEnMemoria{conElInforme(sinMedir, `{"skill": "normativa", "origen": null}`+"\n")},
 			evals:       []origenDeEval{sinResultadoDeMain(evalBuscadaA)},
 			lecturas:    lecturasDeLasMedidas(sinMedir.ejecucion.ID),
 		},

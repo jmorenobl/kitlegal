@@ -600,12 +600,12 @@ const (
 func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	t.Parallel()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == ficheroDeLaConsultaRepetida })
 	require.GreaterOrEqual(t, posicion, 0, "%s es una eval bien formada de %s", ficheroDeLaConsultaRepetida,
-		evalsDelRepositorio)
+		evalsDeNormativa)
 
 	eval := conjunto.Evals[posicion]
 	ambito := grafo.Ambito{Norma: normaQueComprueba(t, eval)}
@@ -619,7 +619,7 @@ func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	require.NoError(t, os.Mkdir(dirCache, 0o750))
 
 	faltas, err := PrepararSesion(SesionAPreparar{
-		Evals:       evalsDelRepositorio,
+		Evals:       evalsDeNormativa,
 		Grabaciones: UnionDeGrabaciones(),
 		Fichero:     ficheroDeLaConsultaRepetida,
 		Modelo:      modeloDeLaSesion,
@@ -1063,7 +1063,7 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 // FR-001, FR-011; SC-008). Desde la de la 11, que lleva el art. 124 en
 // sin_servir, ese bloque sale con 4 en las tres, y desde la de la 12, que lleva
 // la disposición adicional primera, esa, igual (US2, escenario 1; FR-013;
-// SC-005). lecturas: desde la caché de una sesión de la 01 de boe-legislacion,
+// SC-005). lecturas: desde la caché de una sesión de la 01 de normativa,
 // los arts. 26 y 27 de la LRJSP, el 18 de la Ley del IRPF y el 15 del TRLRHL, las
 // lecturas de la 16, la 15 y la 14, salen con 0 sin fecha y con --fecha
 // 9999-12-31 (US3, escenario 1; FR-006; SC-004); y, desde H31.1, los arts. 7,
@@ -1078,7 +1078,7 @@ func TestCacheDeLasSesiones(t *testing.T) {
 }
 
 // probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:
-// desde la caché de una sesión de la 01 de boe-legislacion, que no lleva
+// desde la caché de una sesión de la 01 de normativa, que no lleva
 // ninguna, cada bloque de las lecturas de la 14, la 15, la 16 y la 17 sale con
 // 0 sin fecha y con --fecha 9999-12-31; desde H31.1, también los nueve que
 // ganan la 14, la 15 y la 17 (contracts/lecturas-y-grabaciones.md §4 de H31.1;
@@ -1086,7 +1086,7 @@ func TestCacheDeLasSesiones(t *testing.T) {
 func probarLasLecturasDeLasEvals(t *testing.T) {
 	t.Parallel()
 
-	dirCache := cacheDeUnaSesion(t, evalsDelRepositorio, "01-lpac-articulo-21.yaml")
+	dirCache := cacheDeUnaSesion(t, evalsDeNormativa, "01-lpac-articulo-21.yaml")
 
 	for _, bloque := range [][]string{
 		{"BOE-A-2015-10566", "a26"},

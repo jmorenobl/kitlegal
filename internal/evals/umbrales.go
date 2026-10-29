@@ -358,7 +358,7 @@ type Umbral struct {
 // las respuestas de todos los modos y va detrás de los umbrales de las
 // respuestas de todos ellos y delante de los dos de la medida; el de la clase
 // en un modo es un recuento, que se publica sin decidir, también el de la que
-// decide. Con el plan del job, los dos modos, los umbrales de boe-legislacion,
+// decide. Con el plan del job, los dos modos, los umbrales de normativa,
 // con su objetivo, son trece, de los que deciden nueve: de cada modo,
 // sin_activar y los recuentos de afirma_lo_no_leido y de cuenta_su_proceso; el
 // conjunto de afirma_lo_no_leido; los dos de la medida; y
@@ -372,7 +372,7 @@ type Umbral struct {
 // objetivo, son quince, de los que deciden once: de cada modo, sin_activar, los
 // recuentos de afirma_lo_no_leido y de afirma_que_existe, cita_sin_documento y
 // documento_sin_cotejar; el conjunto de afirma_lo_no_leido; los dos de la
-// medida; y duracion_del_juez de cada modo. Ninguna eval de boe-legislacion
+// medida; y duracion_del_juez de cada modo. Ninguna eval de normativa
 // pide el cotejo, y sus trece no cambian. En las dos, no deciden los cuatro
 // recuentos: los de las dos clases del juez en los dos modos.
 //
@@ -383,7 +383,7 @@ type Umbral struct {
 // alguna es de plazo y cobertura_sin_declarar si alguna es de cobertura, los
 // dos decidiendo con 0. Con el plan del job, los de legal-core, sin juez ni
 // objetivo, son seis, y deciden los seis: de cada modo, sin_activar,
-// plazo_sin_fecha y cobertura_sin_declarar. Ninguna eval de boe-legislacion ni
+// plazo_sin_fecha y cobertura_sin_declarar. Ninguna eval de normativa ni
 // de jurisprudencia es de plazo ni de cobertura, y sus trece y sus quince no
 // cambian. Desde el ADR 0042, con alguna eval de vigencia, detrás de
 // cobertura_sin_declarar va vigencia_sin_declarar, que decide con 0: los de
@@ -394,7 +394,7 @@ type Umbral struct {
 // de sus respuestas también si alguna de sus evals espera una redacción
 // fechada, y los de cada modo llevan, detrás de todos los demás de ese modo,
 // redaccion_sin_fechar, que decide con 0. Con el plan del job, los de
-// boe-legislacion, la única con evals con fecha, con su objetivo, son quince,
+// normativa, la única con evals con fecha, con su objetivo, son quince,
 // de los que deciden once: los trece de antes, con redaccion_sin_fechar de cada
 // modo detrás de su cuenta_su_proceso. Los de jurisprudencia y legal-core no
 // cambian.
@@ -411,7 +411,7 @@ type Umbral struct {
 // miden sesiones y no respuestas, también las de los modelos informativos.
 // lecturas es lo que se mide de esas sesiones; nil no da ninguno. Con el plan
 // del job, los dos modos y los dos modelos, son ocho en legal-core, que tiene
-// una eval así, y cuatro en boe-legislacion y en jurisprudencia: dieciocho, de
+// una eval así, y cuatro en normativa y en jurisprudencia: dieciocho, de
 // los que deciden doce, en la primera, y diecinueve, de los que deciden once,
 // los de antes, en las otras dos.
 //

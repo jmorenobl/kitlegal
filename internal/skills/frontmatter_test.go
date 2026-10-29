@@ -19,7 +19,7 @@ import (
 // un cuerpo con otra línea --- y un trozo que no es YAML válido: la lectura solo
 // toca el bloque entre la primera línea --- y la siguiente.
 const skillMdCompleto = "---\n" +
-	"name: boe-legislacion\n" +
+	"name: normativa\n" +
 	"description: >-\n" +
 	"  Consulta y cita normativa\n" +
 	"  consolidada del BOE.\n" +
@@ -43,7 +43,7 @@ const skillMdCompleto = "---\n" +
 // obligatorias, en las líneas 2 y 3.
 const (
 	delimitador      = "---\n"
-	nameYDescription = "name: boe-legislacion\ndescription: d\n"
+	nameYDescription = "name: normativa\ndescription: d\n"
 )
 
 // TestLeerFrontmatter fija LeerFrontmatter (data-model §1.1 y §1.3; contrato
@@ -69,7 +69,7 @@ func TestLeerFrontmatter(t *testing.T) {
 			contenido: skillMdCompleto,
 			frontmatter: skills.Frontmatter{
 				Claves:        []string{"name", "description", "license", "allowed-tools", "compatibility", "metadata"},
-				Name:          "boe-legislacion",
+				Name:          "normativa",
 				Description:   "Consulta y cita normativa consolidada del BOE.",
 				Compatibility: "Claude Code",
 				Metadata: map[string]string{
@@ -160,12 +160,12 @@ func TestLeerFrontmatter(t *testing.T) {
 		},
 		{
 			nombre:    "yaml-invalido",
-			contenido: delimitador + "name: boe-legislacion\n  description: d\n" + delimitador,
+			contenido: delimitador + "name: normativa\n  description: d\n" + delimitador,
 			error:     "no es YAML válido: yaml: line 3: mapping values are not allowed in this context",
 		},
 		{
 			nombre:    "no-es-un-mapa",
-			contenido: delimitador + "- boe-legislacion\n" + delimitador,
+			contenido: delimitador + "- normativa\n" + delimitador,
 			error:     "línea 2: el frontmatter no es un mapa",
 			defecto:   &skills.DefectoEnElDocumento{Linea: 2, Motivo: "el frontmatter no es un mapa"},
 		},
@@ -232,7 +232,7 @@ func TestLeerFrontmatter(t *testing.T) {
 		},
 		{
 			nombre:    "name-dos-veces-por-un-alias",
-			contenido: delimitador + "&clave name: boe-legislacion\ndescription: d\n*clave : otra\n" + delimitador,
+			contenido: delimitador + "&clave name: normativa\ndescription: d\n*clave : otra\n" + delimitador,
 			error:     "name repetido en las líneas 2 y 4",
 			defecto:   &skills.ClaveRepetida{Clave: "name", Lineas: [2]int{2, 4}},
 		},
@@ -268,12 +268,12 @@ func TestLeerFrontmatter(t *testing.T) {
 	}
 }
 
-// frontmatterLeido es el Frontmatter de un SKILL.md con name boe-legislacion,
+// frontmatterLeido es el Frontmatter de un SKILL.md con name normativa,
 // description d y, detrás, las otras claves, sin metadata.
 func frontmatterLeido(otrasClaves ...string) skills.Frontmatter {
 	return skills.Frontmatter{
 		Claves:      append([]string{"name", "description"}, otrasClaves...),
-		Name:        "boe-legislacion",
+		Name:        "normativa",
 		Description: "d",
 	}
 }
@@ -291,7 +291,7 @@ func primerDefecto(err error) error {
 
 // Lo que TestValidarFrontmatter da por registrado y por escrito en el
 // repositorio.
-const skillDePrueba = "boe-legislacion"
+const skillDePrueba = "normativa"
 
 // appletsRegistrados son los applets registrados de TestValidarFrontmatter.
 var appletsRegistrados = []string{"boe", "placsp"}
@@ -353,20 +353,20 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "sin-name",
 			cambio:   func(f *skills.Frontmatter) { f.Claves, f.Name = clavesSin(f.Claves, "name"), "" },
-			defectos: []string{"boe-legislacion: SKILL.md: falta name"},
+			defectos: []string{"normativa: SKILL.md: falta name"},
 		},
 		{
 			nombre: "name-vacio",
 			cambio: func(f *skills.Frontmatter) { f.Name = "" },
 			defectos: []string{
-				"boe-legislacion: SKILL.md: name vacío",
-				`boe-legislacion: SKILL.md: name "" distinto del nombre del directorio`,
+				"normativa: SKILL.md: name vacío",
+				`normativa: SKILL.md: name "" distinto del nombre del directorio`,
 			},
 		},
 		{
 			nombre:   "name-distinto-del-directorio",
 			cambio:   func(f *skills.Frontmatter) { f.Name = "boe" },
-			defectos: []string{`boe-legislacion: SKILL.md: name "boe" distinto del nombre del directorio`},
+			defectos: []string{`normativa: SKILL.md: name "boe" distinto del nombre del directorio`},
 		},
 		{
 			nombre:   "name-con-mayuscula",
@@ -442,17 +442,17 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "sin-description",
 			cambio:   func(f *skills.Frontmatter) { f.Claves, f.Description = clavesSin(f.Claves, "description"), "" },
-			defectos: []string{"boe-legislacion: SKILL.md: falta description"},
+			defectos: []string{"normativa: SKILL.md: falta description"},
 		},
 		{
 			nombre:   "description-vacia",
 			cambio:   func(f *skills.Frontmatter) { f.Description = "" },
-			defectos: []string{"boe-legislacion: SKILL.md: description vacía"},
+			defectos: []string{"normativa: SKILL.md: description vacía"},
 		},
 		{
 			nombre:   "description-solo-con-espacios",
 			cambio:   func(f *skills.Frontmatter) { f.Description = " \n\t" },
-			defectos: []string{"boe-legislacion: SKILL.md: description vacía"},
+			defectos: []string{"normativa: SKILL.md: description vacía"},
 		},
 		{
 			nombre: "description-de-900-caracteres",
@@ -461,12 +461,12 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "description-de-901-caracteres",
 			cambio:   func(f *skills.Frontmatter) { f.Description = strings.Repeat("á", 901) },
-			defectos: []string{"boe-legislacion: SKILL.md: description de 901 caracteres (máximo 900)"},
+			defectos: []string{"normativa: SKILL.md: description de 901 caracteres (máximo 900)"},
 		},
 		{
 			nombre:   "description-con-etiqueta-xml",
 			cambio:   func(f *skills.Frontmatter) { f.Description = "Consulta <normas> del BOE." },
-			defectos: []string{"boe-legislacion: SKILL.md: description con la etiqueta XML «<normas>»"},
+			defectos: []string{"normativa: SKILL.md: description con la etiqueta XML «<normas>»"},
 		},
 		{
 			nombre: "description-con-menor-que-sin-etiqueta",
@@ -483,12 +483,12 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "compatibility-de-501-caracteres",
 			cambio:   func(f *skills.Frontmatter) { f.Compatibility = strings.Repeat("é", 501) },
-			defectos: []string{"boe-legislacion: SKILL.md: compatibility de 501 caracteres (máximo 500)"},
+			defectos: []string{"normativa: SKILL.md: compatibility de 501 caracteres (máximo 500)"},
 		},
 		{
 			nombre:   "clave-no-admitida",
 			cambio:   func(f *skills.Frontmatter) { f.Claves = append(f.Claves, "user-invocable") },
-			defectos: []string{"boe-legislacion: SKILL.md: clave no admitida: user-invocable"},
+			defectos: []string{"normativa: SKILL.md: clave no admitida: user-invocable"},
 		},
 		{
 			nombre: "varios-applets",
@@ -497,17 +497,17 @@ func TestValidarFrontmatter(t *testing.T) {
 		{
 			nombre:   "applet-no-registrado",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-applets"] = "boe cita" },
-			defectos: []string{`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "cita" no registrado`},
+			defectos: []string{`normativa: SKILL.md: metadata/kitlegal-applets: applet "cita" no registrado`},
 		},
 		{
 			nombre:   "applet-repetido",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-applets"] = "boe placsp boe" },
-			defectos: []string{`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "boe" repetido`},
+			defectos: []string{`normativa: SKILL.md: metadata/kitlegal-applets: applet "boe" repetido`},
 		},
 		{
 			nombre:   "applets-separados-por-dos-espacios",
 			cambio:   func(f *skills.Frontmatter) { f.Metadata["kitlegal-applets"] = "boe  placsp" },
-			defectos: []string{`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "" no registrado`},
+			defectos: []string{`normativa: SKILL.md: metadata/kitlegal-applets: applet "" no registrado`},
 		},
 		{
 			nombre: "referencia-que-no-se-llama-como-sus-datos",
@@ -517,21 +517,21 @@ func TestValidarFrontmatter(t *testing.T) {
 			nombre: "referencia-sin-generador",
 			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "normas tributos" },
 			defectos: []string{
-				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
+				`normativa: SKILL.md: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
 			},
 		},
 		{
 			nombre: "referencia-cuyo-yaml-de-datos-no-es-un-fichero",
 			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "jerarquia_normativa" },
 			defectos: []string{
-				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`,
+				`normativa: SKILL.md: metadata/kitlegal-referencias: "jerarquia_normativa" sin data/jerarquia.yaml`,
 			},
 		},
 		{
 			nombre: "referencia-sin-directorio-de-datos",
 			raiz:   sinDatos,
 			defectos: []string{
-				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "normas" sin data/normas.yaml`,
+				`normativa: SKILL.md: metadata/kitlegal-referencias: "normas" sin data/normas.yaml`,
 			},
 		},
 		{
@@ -539,7 +539,7 @@ func TestValidarFrontmatter(t *testing.T) {
 			cambio: func(f *skills.Frontmatter) { f.Metadata["kitlegal-referencias"] = "leyes_vertebrales" },
 			raiz:   sinDatos,
 			defectos: []string{
-				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "leyes_vertebrales" sin data/normas.yaml`,
+				`normativa: SKILL.md: metadata/kitlegal-referencias: "leyes_vertebrales" sin data/normas.yaml`,
 			},
 		},
 		{
@@ -551,11 +551,11 @@ func TestValidarFrontmatter(t *testing.T) {
 				f.Metadata["kitlegal-referencias"] = "tributos"
 			},
 			defectos: []string{
-				`boe-legislacion: SKILL.md: name "boe" distinto del nombre del directorio`,
-				"boe-legislacion: SKILL.md: falta description",
-				"boe-legislacion: SKILL.md: clave no admitida: user-invocable",
-				`boe-legislacion: SKILL.md: metadata/kitlegal-applets: applet "cita" no registrado`,
-				`boe-legislacion: SKILL.md: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
+				`normativa: SKILL.md: name "boe" distinto del nombre del directorio`,
+				"normativa: SKILL.md: falta description",
+				"normativa: SKILL.md: clave no admitida: user-invocable",
+				`normativa: SKILL.md: metadata/kitlegal-applets: applet "cita" no registrado`,
+				`normativa: SKILL.md: metadata/kitlegal-referencias: "tributos" sin generador conocido`,
 			},
 		},
 	}

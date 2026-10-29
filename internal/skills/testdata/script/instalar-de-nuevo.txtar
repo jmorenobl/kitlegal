@@ -16,14 +16,14 @@ exec make -C $WORK/repo install
 # La salida de `kitlegal skills install` sin --json es el texto para una
 # persona (ADR 0026): una línea por skill con su estado, las dos sin cambios, y
 # la despedida que dice que no se ha cambiado nada.
-stdout '^  boe-legislacion +sin cambios$'
+stdout '^  normativa +sin cambios$'
 stdout '^  legal-core +sin cambios$'
 ! stdout '^  \S+ +(?:instalada|actualizada)$'
 stdout '^Ya estaban instaladas y al día: no se ha cambiado nada\.$'
 
 cmp $HOME/.agents/skills/kitlegal.json manifiesto-de-la-primera.json
 
-exec readlink $HOME/.claude/skills/boe-legislacion
-stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $HOME/.claude/skills/normativa
+stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
 exec readlink $HOME/.claude/skills/legal-core
 stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'

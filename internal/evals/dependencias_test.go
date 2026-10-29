@@ -139,7 +139,7 @@ func comprobarLosPaquetes(t *testing.T, repositorio fs.FS, eval string, paquetes
 }
 
 // comprobarFR001DeLegalCore comprueba el criterio de FR-001 en la primera eval
-// de legal-core: pide skills/boe-legislacion/SKILL.md, data/plazos.yaml y un
+// de legal-core: pide skills/normativa/SKILL.md, data/plazos.yaml y un
 // fichero de internal/core/plazos, y excluye otra eval suya, una eval de otra
 // skill y skills/jurisprudencia/SKILL.md (contracts/eleccion-y-huella.md §2).
 func comprobarFR001DeLegalCore(t *testing.T, calculo calculoDelRepositorio) {
@@ -147,7 +147,7 @@ func comprobarFR001DeLegalCore(t *testing.T, calculo calculoDelRepositorio) {
 
 	comprobarLoQuePideFR001(t, calculo, "legal-core",
 		[]string{
-			"skills/boe-legislacion/SKILL.md",
+			"skills/normativa/SKILL.md",
 			"data/plazos.yaml",
 			ficheroDelRepositorio(t, calculo.repositorio, "internal/core/plazos", esCodigoSinTests),
 		},
@@ -155,7 +155,7 @@ func comprobarFR001DeLegalCore(t *testing.T, calculo calculoDelRepositorio) {
 }
 
 // comprobarFR001DeJurisprudencia comprueba el criterio de FR-001 en la primera
-// eval de jurisprudencia: pide skills/boe-legislacion/SKILL.md, un fichero de
+// eval de jurisprudencia: pide skills/normativa/SKILL.md, un fichero de
 // internal/core/cita y uno de la carpeta de su juez, y excluye otra eval suya,
 // una eval de otra skill y skills/legal-core/SKILL.md.
 func comprobarFR001DeJurisprudencia(t *testing.T, calculo calculoDelRepositorio) {
@@ -163,7 +163,7 @@ func comprobarFR001DeJurisprudencia(t *testing.T, calculo calculoDelRepositorio)
 
 	comprobarLoQuePideFR001(t, calculo, "jurisprudencia",
 		[]string{
-			"skills/boe-legislacion/SKILL.md",
+			"skills/normativa/SKILL.md",
 			ficheroDelRepositorio(t, calculo.repositorio, "internal/core/cita", esCodigoSinTests),
 			ficheroDelRepositorio(t, calculo.repositorio, "evals/jurisprudencia/juez", func(string) bool { return true }),
 		},
@@ -317,12 +317,12 @@ func (a arbolConCambios) ReadDir(nombre string) ([]fs.DirEntry, error) {
 const referenciaAManoDelMutante = "protocolo-del-mutante.md"
 
 // comprobarLasReferenciasAMano añade en memoria una referencia a mano a
-// boe-legislacion, que nombra jurisprudencia, y otra a jurisprudencia, que
+// normativa, que nombra jurisprudencia, y otra a jurisprudencia, que
 // nombra legal-core, y comprueba sobre el cálculo con las dos (FR-014 y
 // Clarificación Q1 de H31; SC-004): que cada conjunto se calcula, sin el error
 // de la referencia sin cabecera; que cada referencia a mano entra solo por la
 // parte (b), con su directorio de references/, y no da nada en (c); y que en
-// el conjunto de cada eval de boe-legislacion entra jurisprudencia, nombrada
+// el conjunto de cada eval de normativa entra jurisprudencia, nombrada
 // solo desde una referencia a mano, con su SKILL.md, sus references/ y los
 // paquetes de su tabla, y legal-core, a la que se llega siguiendo el cierre
 // desde jurisprudencia. Sin las dos referencias, ni una ni otra son de esos
@@ -330,7 +330,7 @@ const referenciaAManoDelMutante = "protocolo-del-mutante.md"
 func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
-	deBoeLegislacion := "skills/boe-legislacion/references/" + referenciaAManoDelMutante
+	deNormativa := "skills/normativa/references/" + referenciaAManoDelMutante
 	deJurisprudencia := "skills/jurisprudencia/references/" + referenciaAManoDelMutante
 
 	nombradas := []string{
@@ -345,7 +345,7 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 	sinLasReferencias := 0
 
 	for _, conjunto := range calculo.conjuntos {
-		if conjunto.skill != "boe-legislacion" {
+		if conjunto.skill != "normativa" {
 			continue
 		}
 
@@ -357,15 +357,15 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 		}
 	}
 
-	require.Positive(t, sinLasReferencias, "boe-legislacion tiene evals")
+	require.Positive(t, sinLasReferencias, "normativa tiene evals")
 
-	for _, ruta := range []string{deBoeLegislacion, deJurisprudencia} {
+	for _, ruta := range []string{deNormativa, deJurisprudencia} {
 		_, err := fs.Stat(calculo.repositorio, ruta)
 		require.ErrorIsf(t, err, fs.ErrNotExist, "la referencia a mano %s es nueva", ruta)
 	}
 
 	arbol := arbolConCambios{FS: calculo.repositorio, cambiados: fstest.MapFS{
-		deBoeLegislacion: {Data: []byte("# Protocolo de detalle\n\nUna sentencia la lleva la skill jurisprudencia.\n")},
+		deNormativa:      {Data: []byte("# Protocolo de detalle\n\nUna sentencia la lleva la skill jurisprudencia.\n")},
 		deJurisprudencia: {Data: []byte("# Protocolo de detalle\n\nUn plazo lo calcula la skill legal-core.\n")},
 	}}
 
@@ -380,11 +380,11 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 		assert.Equalf(t, datosDeLasCabeceras(t, arbol, partes[parteDeLasSkills]), partes[parteDeLosDatos],
 			"%s: (c)", conjunto.nombre())
 
-		if conjunto.skill != "boe-legislacion" {
+		if conjunto.skill != "normativa" {
 			continue
 		}
 
-		for _, ruta := range []string{deBoeLegislacion, deJurisprudencia} {
+		for _, ruta := range []string{deNormativa, deJurisprudencia} {
 			assert.Equalf(t, []parteDelConjunto{parteDeLasSkills}, partesQueContienen(conjunto, ruta),
 				"%s: la referencia a mano %s entra solo por (b)", conjunto.nombre(), ruta)
 		}

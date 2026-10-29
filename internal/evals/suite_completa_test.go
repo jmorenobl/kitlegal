@@ -32,7 +32,7 @@ var instanteDeLaRelease = time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
 // etiquetado, como las da evalsDelCommit.
 var evalsDelCommitEtiquetado = []evalsDeUnaSkill{
 	{
-		skill:    "boe-legislacion",
+		skill:    "normativa",
 		ficheros: []string{"01-articulo.yaml", "02-indice.yaml", "03-vigencia.yaml", "04-derogada.yaml"},
 	},
 	{skill: "legal-core", ficheros: []string{"01-territorio.yaml", "02-plazo.yaml"}},
@@ -360,7 +360,7 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 			// dadas de la más antigua a la más reciente.
 			nombre: "el-mensaje-del-contrato",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(18733990002, 3*time.Hour, cambiandoElInforme("boe-legislacion", func(informe *Informe) {
+				ejecucionCompleta(18733990002, 3*time.Hour, cambiandoElInforme("normativa", func(informe *Informe) {
 					conModo(origenConReutilizacion)(informe)
 					reutilizando("02-indice.yaml", "03-vigencia.yaml", "04-derogada.yaml")(informe)
 				})),
@@ -368,7 +368,7 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
 				"- ejecución 18734029311: el trabajo evals (legal-core) terminó en failure",
-				"- ejecución 18733990002: el informe de boe-legislacion es de una ejecución con reutilización "+
+				"- ejecución 18733990002: el informe de normativa es de una ejecución con reutilización "+
 					"(3 evals reutilizadas)",
 			),
 		},
@@ -396,9 +396,9 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 		{
 			nombre: "con-un-trabajo-saltado",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, conElTrabajo("boe-legislacion", statusTerminado, "skipped")),
+				ejecucionCompleta(1001, time.Hour, conElTrabajo("normativa", statusTerminado, "skipped")),
 			},
-			mensaje: mensajeDeLaSuiteIncompleta("- ejecución 1001: el trabajo evals (boe-legislacion) terminó en skipped"),
+			mensaje: mensajeDeLaSuiteIncompleta("- ejecución 1001: el trabajo evals (normativa) terminó en skipped"),
 		},
 		{
 			nombre: "con-un-trabajo-sin-terminar",
@@ -428,10 +428,10 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 		{
 			nombre: "con-una-eval-reutilizada",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("boe-legislacion", reutilizando("02-indice.yaml"))),
+				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("normativa", reutilizando("02-indice.yaml"))),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el informe de boe-legislacion reutiliza la eval 02-indice.yaml"),
+				"- ejecución 1001: el informe de normativa reutiliza la eval 02-indice.yaml"),
 		},
 		{
 			nombre: "con-modo-reutilizacion",
@@ -623,11 +623,11 @@ func TestEvalsDelCommit(t *testing.T) {
 	arbol := fstest.MapFS{
 		"evals/legal-core/02-plazo.yaml":                       {},
 		"evals/legal-core/01-territorio.yaml":                  {},
-		"evals/boe-legislacion/01-articulo.yaml":               {},
-		"evals/boe-legislacion/expresiones-prohibidas.yaml":    {},
-		"evals/boe-legislacion/juez/clases.yaml":               {},
-		"evals/boe-legislacion/LEEME.md":                       {},
-		"evals/boe-legislacion/02-indice.yaml":                 {},
+		"evals/normativa/01-articulo.yaml":                     {},
+		"evals/normativa/expresiones-prohibidas.yaml":          {},
+		"evals/normativa/juez/clases.yaml":                     {},
+		"evals/normativa/LEEME.md":                             {},
+		"evals/normativa/02-indice.yaml":                       {},
 		"evals/sin-evals/LEEME.md":                             {},
 		"evals/notas.yaml":                                     {},
 		"evals/jurisprudencia/01-sentencia-sin-documento.yaml": {},
@@ -636,9 +636,9 @@ func TestEvalsDelCommit(t *testing.T) {
 	evals, err := evalsDelCommit(arbol)
 	require.NoError(t, err)
 	assert.Equal(t, []evalsDeUnaSkill{
-		{skill: "boe-legislacion", ficheros: []string{"01-articulo.yaml", "02-indice.yaml"}},
 		{skill: "jurisprudencia", ficheros: []string{"01-sentencia-sin-documento.yaml"}},
 		{skill: "legal-core", ficheros: []string{"01-territorio.yaml", "02-plazo.yaml"}},
+		{skill: "normativa", ficheros: []string{"01-articulo.yaml", "02-indice.yaml"}},
 	}, evals)
 
 	_, err = evalsDelCommit(fstest.MapFS{"skills/legal-core/SKILL.md": {}})

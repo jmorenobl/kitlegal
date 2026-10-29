@@ -2,5 +2,5 @@
 # la línea ⚠ SIN CONSULTA AL BOE: con https://kitlegal.es/instalar/ en esa misma línea, y ninguna cita.
 pregunta: "¿Qué comunidad autónoma, provincia y boletines oficiales corresponden al Ayuntamiento de Getafe?"
 activa: true
-no_se_activan: [boe-legislacion]
+no_se_activan: [normativa]
 sin_binario_ni_servidor: true

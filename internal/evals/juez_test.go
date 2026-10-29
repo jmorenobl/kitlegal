@@ -115,7 +115,7 @@ const (
 )
 
 // esquemaDeLasDosClases es el esquema de la respuesta de un juez con las dos
-// clases de boe-legislacion, con la forma del que validó el ADR 0037: las dos
+// clases de normativa, con la forma del que validó el ADR 0037: las dos
 // obligatorias, sin más propiedades, y precepto solo en la que decide.
 const esquemaDeLasDosClases = `{"type":"object","additionalProperties":false,` +
 	`"required":["afirma_lo_no_leido","cuenta_su_proceso"],"properties":{` +
@@ -129,7 +129,7 @@ const esquemaDeLasDosClases = `{"type":"object","additionalProperties":false,` +
 // esquemaConSentencia es el esquema de la respuesta de un juez con las dos
 // clases de jurisprudencia, con la forma del que validó el ADR 0037 para esa
 // skill: las dos obligatorias, sin más propiedades, y sentencia, donde el de
-// boe-legislacion lleva precepto, solo en la que decide.
+// normativa lleva precepto, solo en la que decide.
 const esquemaConSentencia = `{"type":"object","additionalProperties":false,` +
 	`"required":["afirma_lo_no_leido","afirma_que_existe"],"properties":{` +
 	`"afirma_lo_no_leido":{"type":"object","additionalProperties":false,` +
@@ -163,7 +163,7 @@ func textosJuzgados() []Texto {
 	}
 }
 
-// juezDeLasDosClases es un juez con las dos clases de boe-legislacion: la que
+// juezDeLasDosClases es un juez con las dos clases de normativa: la que
 // decide y la que solo se publica, en ese orden.
 func juezDeLasDosClases() *Juez {
 	return &Juez{
@@ -557,7 +557,7 @@ func TestMensajeDelVoto(t *testing.T) {
 		transcript := mensajeInit +
 			mensajeDeLlamadas(t,
 				usoDeHerramienta{id: "toolu_01", nombre: herramientaSkill, entrada: activacionDeLaSkill},
-				usoDeHerramienta{id: "toolu_02", nombre: "Read", entrada: `{"file_path":"/tmp/trabajo/.claude/skills/boe-legislacion/SKILL.md"}`},
+				usoDeHerramienta{id: "toolu_02", nombre: "Read", entrada: `{"file_path":"/tmp/trabajo/.claude/skills/normativa/SKILL.md"}`},
 				usoDeHerramienta{id: "toolu_03", nombre: "Bash", entrada: entradaDeBash(t, ordenDelArticulo)},
 				usoDeHerramienta{id: "toolu_04", nombre: "mcp__kitlegal__boe_indice", entrada: argumentosDelIndice},
 			) +
@@ -1286,7 +1286,7 @@ type casoDeVoto struct {
 // Y fija el campo propio de la clase que decide en jurisprudencia
 // (contracts/juez-de-jurisprudencia.md §3 y §9 de H25; data-model §2 de H25;
 // FR-013 y FR-108 de H25; SC-008 de H25), con un juez cuyo esquema lleva
-// sentencia donde el de boe-legislacion lleva precepto:
+// sentencia donde el de normativa lleva precepto:
 //
 //   - el voto del ejemplo del contrato vale, y deja en la clase que decide su
 //     sentencia, sin precepto, y en la que solo se publica, ninguno de los dos;

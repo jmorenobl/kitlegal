@@ -74,7 +74,7 @@ const (
 const medidaSinCorresponder = "la medida versionada (juez/medida.json) no corresponde: "
 
 // claseQueDecideEnElRepositorio es la clase que decide del juez de cada skill de
-// la tabla de las copias, boe-legislacion y jurisprudencia, que es la de su
+// la tabla de las copias, normativa y jurisprudencia, que es la de su
 // medida (FR-032 de H24; FR-002 y FR-022 de H25).
 const claseQueDecideEnElRepositorio = "afirma_lo_no_leido"
 
@@ -629,7 +629,7 @@ func probarLasClasesQueDeciden(t *testing.T, modelo, version string) {
 }
 
 // copiarLaCarpetaDelJuez es copiarLaCarpetaDelJuezDe con la primera pareja de la
-// tabla de las copias, la de boe-legislacion.
+// tabla de las copias, la de normativa.
 func copiarLaCarpetaDelJuez(t *testing.T) string {
 	t.Helper()
 
@@ -733,7 +733,7 @@ func (p parejaDeCarpetas) skill() string {
 // esté aquí hace fallar el test. Desde H25 lleva la fila de jurisprudencia
 // (contracts/juez-de-jurisprudencia.md §1 de H25; FR-001, FR-102).
 var copiasDelJuez = []parejaDeCarpetas{
-	{copias: "evals/boe-legislacion/juez", origen: "evidencias/adr-0037"},
+	{copias: "evals/normativa/juez", origen: "evidencias/adr-0037"},
 	{copias: "evals/jurisprudencia/juez", origen: "evidencias/adr-0037-jurisprudencia"},
 }
 
@@ -3160,7 +3160,7 @@ func TestResolverCasosSinPoderPreparar(t *testing.T) {
 // sesiones mientras no tenga más de 100 s; con más, se rehace en otro
 // directorio y la anterior se retira, porque lo que guarda de buscar y de
 // metadatos caduca a los 300 s; y al retirarla no queda nada. Desde H26.1, la
-// base de boe-legislacion sirve también lo que la skill lleva a leer de data/,
+// base de normativa sirve también lo que la skill lleva a leer de data/,
 // que no nombra ninguna de sus evals (FR-004), y la de cada skill con juez no
 // sirve nada que las sesiones de sus casos etiquetados no tuvieran.
 func TestBaseDeLaReconstruccion(t *testing.T) {
@@ -3269,7 +3269,7 @@ func probarLaBaseSinLoQueNoTuvieronSusSesiones(t *testing.T) {
 }
 
 // probarLaBaseConLoQueLlevaALeer es el caso de TestBaseDeLaReconstruccion con
-// las evals de hoy de boe-legislacion (contracts/cache-de-la-sesion.md §1 de
+// las evals de hoy de normativa (contracts/cache-de-la-sesion.md §1 de
 // H26.1; research D4 de H26.1; FR-004): ninguna nombra la disposición adicional
 // primera de la LPAC, que la skill lee por data/cobertura.yaml, y la base de la
 // medida la sirve sin red sin fecha, con --fecha 2026-09-09 y con --fecha
@@ -3279,12 +3279,12 @@ func probarLaBaseConLoQueLlevaALeer(t *testing.T) {
 
 	const norma, bloque = "BOE-A-2015-10565", "daprimera"
 
-	for _, consulta := range ConsultasNecesarias(evalsDe(t, evalsDelRepositorio)) {
+	for _, consulta := range ConsultasNecesarias(evalsDe(t, evalsDeNormativa)) {
 		require.False(t, slices.Contains(consulta.Argumentos, bloque),
-			"ninguna eval de %s nombra %s: %s", evalsDelRepositorio, bloque, ordenDe(consulta))
+			"ninguna eval de %s nombra %s: %s", evalsDeNormativa, bloque, ordenDe(consulta))
 	}
 
-	reconstructor := nuevoReconstructor(evalsDelRepositorio)
+	reconstructor := nuevoReconstructor(evalsDeNormativa)
 
 	base, err := reconstructor.baseVigente()
 	require.NoError(t, err)
@@ -3300,7 +3300,7 @@ func probarLaBaseConLoQueLlevaALeer(t *testing.T) {
 
 	faltas, err := ComprobarSinRed(base, lecturas)
 	require.NoError(t, err)
-	assert.Empty(t, faltas, "la base de la medida de %s sirve sin red %s de %s:\n%s", evalsDelRepositorio, bloque, norma,
+	assert.Empty(t, faltas, "la base de la medida de %s sirve sin red %s de %s:\n%s", evalsDeNormativa, bloque, norma,
 		presentarFaltas(faltas))
 }
 
@@ -3858,12 +3858,12 @@ func preguntasDeLosSondeosCompuestas(t *testing.T) map[string]string {
 }
 
 // preguntaLeidaAparte es la pregunta del fichero de eval de ese nombre, leída
-// por su cuenta, sin el lector del paquete: el de las evals de boe-legislacion
+// por su cuenta, sin el lector del paquete: el de las evals de normativa
 // del repositorio o, si no está en ellas, el de las retiradas.
 func preguntaLeidaAparte(t *testing.T, eval string) string {
 	t.Helper()
 
-	return preguntaLeidaAparteDe(t, eval, evalsDelRepositorio, EvalsRetiradas)
+	return preguntaLeidaAparteDe(t, eval, evalsDeNormativa, EvalsRetiradas)
 }
 
 // preguntaLeidaAparteDe es la pregunta del fichero de eval de ese nombre, leída
@@ -3927,16 +3927,16 @@ const (
 )
 
 // formaDeUnInformeVersionado es la de la ruta, desde la raíz del repositorio,
-// del informe del job de evals de boe-legislacion que versiona el cierre de un
+// del informe del job de evals de normativa que versiona el cierre de un
 // hito.
 var formaDeUnInformeVersionado = regexp.MustCompile(`^specs/[0-9]{3}-[a-z0-9-]+/gates/evals/boe-legislacion\.json$`)
 
 // reconstructorDelRepositorio es el reconstructor de los casos etiquetados de
-// boe-legislacion con lo del repositorio. Es uno por proceso de test y lo
+// normativa con lo del repositorio. Es uno por proceso de test y lo
 // comparten los tests que lo usan: recuerda lo que ya ha reconstruido de cada
 // sesión, así que la reconstrucción de los casos se hace una sola vez.
 var reconstructorDelRepositorio = sync.OnceValue(func() *reconstructor {
-	return nuevoReconstructor(evalsDelRepositorio)
+	return nuevoReconstructor(evalsDeNormativa)
 })
 
 // reconstructorDeJurisprudencia es el reconstructor de los casos etiquetados de
@@ -3950,7 +3950,7 @@ var reconstructorDeJurisprudencia = sync.OnceValue(func() *reconstructor {
 // etiquetados de cada skill con juez, las de la tabla de las copias: una skill
 // con juez cuyos casos no comprueba lo hace fallar.
 //
-// Con los de boe-legislacion es el control de umbral de FR-109 y SC-009 de H24
+// Con los de normativa es el control de umbral de FR-109 y SC-009 de H24
 // (contracts/medida-del-juez.md §6 y §8; FR-024), con los casos etiquetados de
 // la copia del repositorio, que son los 259 de research M2:
 //
@@ -3983,7 +3983,7 @@ func TestGrabacionesDerivadas(t *testing.T) {
 	t.Parallel()
 
 	controles := map[string]func(t *testing.T){
-		skillDeLaMedicion:     probarLasDerivacionesDeBoeLegislacion,
+		skillDeLaMedicion:     probarLasDerivacionesDeNormativa,
 		skillDeJurisprudencia: probarLasDerivacionesDeJurisprudencia,
 	}
 
@@ -4037,13 +4037,13 @@ func exigirLasRespuestas(
 	}
 }
 
-// probarLasDerivacionesDeBoeLegislacion es el control de derivaciones con los
-// casos etiquetados de boe-legislacion (contracts/medida-del-juez.md §6 y §8 de
+// probarLasDerivacionesDeNormativa es el control de derivaciones con los
+// casos etiquetados de normativa (contracts/medida-del-juez.md §6 y §8 de
 // H24; FR-024).
-func probarLasDerivacionesDeBoeLegislacion(t *testing.T) {
+func probarLasDerivacionesDeNormativa(t *testing.T) {
 	t.Helper()
 
-	leidos, err := leerCasosEtiquetados([]byte(juezDe(t, evalsDelRepositorio).Casos))
+	leidos, err := leerCasosEtiquetados([]byte(juezDe(t, evalsDeNormativa).Casos))
 	require.NoError(t, err)
 
 	casos := leidos.Casos
@@ -4405,7 +4405,7 @@ func exigirLosTextosDeJurisprudencia(
 // la vez, que son los cuatro de contracts/medida-del-juez.md §7 de H24; y la
 // fecha, que la medida lleva sin su hora.
 const (
-	skillDeLaMedicion        = "boe-legislacion"
+	skillDeLaMedicion        = "normativa"
 	commitDeLaMedicion       = "0123456789abcdef0123456789abcdef01234567"
 	concurrenciaDeLaMedicion = 4
 	fechaDeLaMedidaDada      = "2026-10-06"
@@ -4456,9 +4456,9 @@ type skillAMedir struct {
 	delVoto votosDeUnJuez
 }
 
-// boeLegislacionAMedir es boe-legislacion, con sus 259 casos y los votos del
+// normativaAMedir es normativa, con sus 259 casos y los votos del
 // esquema que lleva precepto.
-func boeLegislacionAMedir() skillAMedir {
+func normativaAMedir() skillAMedir {
 	return skillAMedir{
 		nombre:   skillDeLaMedicion,
 		defectos: defectosDeLaCopia, correctos: correctosDeLaCopia, votos: votosDeLaCopia,
@@ -4574,7 +4574,7 @@ func instanteDeLaMedicion() time.Time {
 // Desde H25 es también el control de umbral de FR-107 y SC-007 de H25
 // (contracts/medida-y-casos.md §9 y §11 de H25; research D11 de H25; FR-051),
 // con los casos de jurisprudencia, cuyo juez vota con sentencia donde el de
-// boe-legislacion lleva precepto:
+// normativa lleva precepto:
 //
 //   - Los 249 casos bien, sobre una copia de su carpeta del juez cuya medida
 //     versionada no corresponde: pide 499 votos y da la medida con sus cuatro
@@ -4613,7 +4613,7 @@ type casoDeLaEjecucion struct {
 }
 
 // casosDeLaEjecucionDeLaMedida son los de TestEjecucionDeLaMedida, todos en su
-// primer nivel: las ejecuciones con los 259 casos de boe-legislacion bien y con
+// primer nivel: las ejecuciones con los 259 casos de normativa bien y con
 // los 249 de jurisprudencia bien, las que tienen algún caso al que el votante
 // responde otra cosa que lo de su etiqueta y las que no llegan a votar. Los de
 // jurisprudencia llevan la skill delante de su nombre.
@@ -4652,7 +4652,7 @@ func probarLos259Bien(t *testing.T) {
 		"0123456789abcdef0123456789abcdef01234567")
 	require.Len(t, ejemplo, bytesDelEjemploDeLaMedida, "premisa: la forma es la del ejemplo del contrato")
 
-	probarTodosLosCasosBien(t, boeLegislacionAMedir())
+	probarTodosLosCasosBien(t, normativaAMedir())
 }
 
 // Los ejemplos de contracts/medida-y-casos.md §9 de H25: los bytes de la medida
@@ -4720,7 +4720,7 @@ func probarTodosLosCasosBien(t *testing.T, deLaSkill skillAMedir) {
 func probarLos259SinLaMedidaVersionada(t *testing.T) {
 	t.Helper()
 
-	copia := nuevaCopiaAMedir(t, boeLegislacionAMedir())
+	copia := nuevaCopiaAMedir(t, normativaAMedir())
 	copia.juez.Medida = ""
 
 	lineas := comprobarLaMedida(copia.juez, copia.modelo, copia.version)
@@ -4743,7 +4743,7 @@ func probarLos259SinLaMedidaVersionada(t *testing.T) {
 func probarLos259ConLasClasesEnOtroOrden(t *testing.T) {
 	t.Helper()
 
-	copia := nuevaCopiaAMedir(t, boeLegislacionAMedir())
+	copia := nuevaCopiaAMedir(t, normativaAMedir())
 
 	slices.Reverse(copia.juez.Clases)
 	require.NotEqual(t, claseQueDecideEnElRepositorio, copia.juez.Clases[0].Nombre,
@@ -4765,7 +4765,7 @@ func probarLos259ConLasClasesEnOtroOrden(t *testing.T) {
 func probarLaMedidaQueNoSePuedeEscribir(t *testing.T) {
 	t.Helper()
 
-	copia := nuevaCopiaAMedir(t, boeLegislacionAMedir())
+	copia := nuevaCopiaAMedir(t, normativaAMedir())
 	copia.modelo = "claude-juez-\xff"
 
 	votante := copia.votante(t, nil)
@@ -4802,7 +4802,7 @@ type copiaAMedir struct {
 
 // nuevaCopiaAMedir copia la carpeta del juez de esa skill, le añade una línea a
 // su rúbrica y un comentario a sus casos, que siguen siendo los suyos —los 259
-// de boe-legislacion o los 249 de jurisprudencia—, lee el juez de ella y
+// de normativa o los 249 de jurisprudencia—, lee el juez de ella y
 // resuelve sus casos con el reconstructor de la skill. Exige como premisa que
 // la comprobación de la medida versionada dé sus cuatro líneas: con una medida
 // que correspondiera, el test no distinguiría la ejecución que vota de la que
@@ -5247,7 +5247,7 @@ func esUnCorrectoDerivadoPorTexto(caso CasoEtiquetado, frases []string) bool {
 }
 
 // ejecucionesConCasosCambiados son las de TestEjecucionDeLaMedida. Con los casos
-// de boe-legislacion (FR-052, FR-053, FR-106 y SC-006 de H24):
+// de normativa (FR-052, FR-053, FR-106 y SC-006 de H24):
 //
 //   - un defecto sin marcar, con los votos sí, sí y no: la medida con 1 de 212
 //     y un error con el caso, que es un derivado, y sus dos frases; de uno en
@@ -5278,7 +5278,7 @@ func esUnCorrectoDerivadoPorTexto(caso CasoEtiquetado, frases []string) bool {
 //     124 y un error con el caso, que nombra la parte del texto pegado que
 //     quita, y sus tres frases; dos votos más.
 func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
-	deBoeLegislacion, deJurisprudencia := boeLegislacionAMedir(), jurisprudenciaAMedir()
+	deNormativa, deJurisprudencia := normativaAMedir(), jurisprudenciaAMedir()
 
 	sinMarcarConDosFrases := casoCambiado{
 		que: "un defecto derivado con tres frases", es: esUnDefectoDerivado,
@@ -5333,44 +5333,44 @@ func ejecucionesConCasosCambiados() []ejecucionConCasosCambiados {
 
 	return []ejecucionConCasosCambiados{
 		{
-			nombre: "un-defecto-sin-marcar", deLaSkill: deBoeLegislacion,
+			nombre: "un-defecto-sin-marcar", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{sinMarcarConDosFrases},
 			aLaVez:    1, votos: votosDeLaCopia,
 			sinMarcar: 1,
 		},
 		{
-			nombre: "un-correcto-marcado", deLaSkill: deBoeLegislacion,
+			nombre: "un-correcto-marcado", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{marcado},
 			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2,
 			marcados: 1,
 		},
 		{
-			nombre: "varios-casos-sin-lo-que-dice-su-etiqueta", deLaSkill: deBoeLegislacion,
+			nombre: "varios-casos-sin-lo-que-dice-su-etiqueta", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{marcado, sinNingunSi, sinMarcarConDosFrases},
 			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2 - 2,
 			sinMarcar: 2, marcados: 1,
 		},
 		{
-			nombre: "un-correcto-marcado-tras-un-voto-nulo", deLaSkill: deBoeLegislacion,
+			nombre: "un-correcto-marcado-tras-un-voto-nulo", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{marcadoTrasUnNulo},
 			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 3,
 			marcados: 1,
 		},
 		{
-			nombre: "un-defecto-sin-marcar-por-un-voto-nulo", deLaSkill: deBoeLegislacion,
+			nombre: "un-defecto-sin-marcar-por-un-voto-nulo", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{sinMarcarPorUnNulo},
 			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia,
 			sinMarcar: 1,
 		},
 		{
-			nombre: "un-correcto-marcado-tras-un-voto-cortado", deLaSkill: deBoeLegislacion,
+			nombre: "un-correcto-marcado-tras-un-voto-cortado", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{marcadoTrasUnCorte},
 			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 3,
 			marcados: 1,
 		},
 		{
 			// El tope corta las dos peticiones del segundo voto del defecto.
-			nombre: "un-voto-que-no-llega", deLaSkill: deBoeLegislacion,
+			nombre: "un-voto-que-no-llega", deLaSkill: deNormativa,
 			cambiados: []casoCambiado{marcadoSinNombrar, sinJuzgar},
 			aLaVez:    concurrenciaDeLaMedicion, votos: votosDeLaCopia + 2,
 			sinMedida: true,
@@ -5443,7 +5443,7 @@ type medicionQueNoVota struct {
 	nombre string
 
 	// deLosCasos es el reconstructor con el que se resuelven sus casos; nil, el
-	// de boe-legislacion.
+	// de normativa.
 	deLosCasos func() *reconstructor
 
 	// preparar da la medición del caso, con ese votante.

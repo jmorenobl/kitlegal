@@ -165,7 +165,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
    busca una sentencia, sin nombrar los campos de lo que devuelve una orden.
 4. **Cuando hable de normas**, distingue ley de reglamento, señala lo que una comunidad autónoma puede haber regulado
    de otro modo y no apliques el procedimiento común a lo que la ley regula aparte. El texto de un artículo no se cita
-   de memoria: se consulta con `boe-legislacion`.
+   de memoria: se consulta con `normativa`.
 5. **Ninguna acción con identidad.** No presentes, firmes ni tramites nada en nombre de nadie, ni lo simules.
 6. **Sin herramienta y sin binario, ninguna cita.** Si no tienes las herramientas y la orden falla porque `kitlegal`
    no está, no lo busques en otras carpetas ni en un plugin: no has cotejado nada, y no cites ninguna sentencia. La

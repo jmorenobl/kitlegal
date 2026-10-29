@@ -12,7 +12,7 @@ fecha de inicio. Las líneas que da la respuesta son las de «Cómo se presenta 
 - Tras esa línea no expongas la norma que rige el procedimiento —sus plazos, sus recursos—: la nombra la línea, solo
   con lo que trae la entrada.
 - La línea no afirma qué dice ningún precepto, sino qué no calcula kitlegal: por eso va aunque falle una lectura. La
-  lectura fallida se dice aparte, como `boe-legislacion` dice cualquiera, sin lo que dice el bloque ni la línea de la
+  lectura fallida se dice aparte, como `normativa` dice cualquiera, sin lo que dice el bloque ni la línea de la
   regla 7. Con las cuotas de la Seguridad Social y la lectura de `daprimera` fallida: la línea de no cubierto con la
   DA 1ª.2.b y «no he podido leer el bloque daprimera de la LPAC: la fuente no estaba disponible».
 - Si la conversación no dice la materia, no cae en ninguna entrada. Al responder, di que la fecha no vale si el asunto
@@ -21,12 +21,12 @@ fecha de inicio. Las líneas que da la respuesta son las de «Cómo se presenta 
 ## El acto presunto
 
 No hay fecha, y no se pide ningún plazo. Cita los arts. 122.1 y 124.1 LPAC y el 46.1 LJCA, leídos con
-`boe-legislacion`.
+`normativa`.
 
 ## El silencio
 
 - La fecha de inicio es la del acuerdo de iniciación o la de entrada de la solicitud en el registro.
-- El plazo máximo para resolver lo fija la norma del procedimiento: léela con `boe-legislacion` en la fecha de inicio,
+- El plazo máximo para resolver lo fija la norma del procedimiento: léela con `normativa` en la fecha de inicio,
   como cada precepto del paso 10, y pásalo a `plazos` con `--duracion` y `--unidad`. Solo si no fija ninguno, los tres
   meses del art. 21.3 LPAC, y dilo citándolo.
 - `plazos` no dice si el silencio es estimatorio o desestimatorio: eso lo dice la norma, no la fecha.
@@ -61,7 +61,7 @@ plazo, sin ninguna fecha de vencimiento y sin nombrar de memoria la norma que re
   línea de redacción a fecha lleva la fecha de inicio y la fecha de vigencia que da la lectura.
 - Si esa lectura sale con 4 o 5 en un precepto de `data.preceptos`, la línea del plazo se mantiene, con la fecha de
   `plazos` y la cita de cada precepto. En lugar de su línea de redacción a fecha, di aparte que no has podido leer esa
-  redacción, como `boe-legislacion` dice cualquier lectura fallida, y no afirmes qué dice el precepto.
+  redacción, como `normativa` dice cualquier lectura fallida, y no afirmes qué dice el precepto.
 - Si el `data` de la lectura trae `redaccion_posterior`, el bloque cambió después: va también su línea de redacción de
   hoy, con la norma y la fecha de vigencia de ese campo. En un precepto de `data.preceptos`, `plazos` ya comprobó que su apartado decía lo mismo ese día: lo que cambió
   es otra parte del bloque. En la norma del silencio, la duración que pasaste es la de ese día, y si rige la de hoy lo

@@ -44,7 +44,7 @@ type DefectoDeSkill struct {
 	Defecto string
 }
 
-// Error presenta la skill y el defecto, como «boe-legislacion: falta name».
+// Error presenta la skill y el defecto, como «normativa: falta name».
 func (d *DefectoDeSkill) Error() string {
 	return d.Skill + ": " + d.Defecto
 }

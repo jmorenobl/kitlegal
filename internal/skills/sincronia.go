@@ -142,7 +142,7 @@ type Deriva struct {
 }
 
 // Error presenta la skill, la ruta y la clase, con el detalle entre paréntesis si
-// lo hay, como «boe-legislacion: references/normas.md: contenido-distinto (no es
+// lo hay, como «normativa: references/normas.md: contenido-distinto (no es
 // un fichero regular)».
 func (d *Deriva) Error() string {
 	texto := d.Skill + ": " + d.Ruta + ": " + string(d.Clase)

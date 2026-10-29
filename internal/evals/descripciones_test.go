@@ -393,7 +393,7 @@ func probarLaHuellaDelJuicio(t *testing.T) {
 		dato   string
 		cambio func(d *datosDeLaHuella)
 	}{
-		{"skill", func(d *datosDeLaHuella) { d.skill = "boe-legislacion" }},
+		{"skill", func(d *datosDeLaHuella) { d.skill = "normativa" }},
 		{"descripcion", func(d *datosDeLaHuella) { d.descripcion += " " }},
 		{"rubrica", func(d *datosDeLaHuella) { d.juez.Rubrica += "." }},
 		{"esquema", func(d *datosDeLaHuella) { d.juez.Esquema += "." }},
@@ -424,7 +424,7 @@ func probarLaHuellaDelJuicio(t *testing.T) {
 // una sesión del juez. Cada voto que dice sí lleva su frase y su motivo, para
 // que el juicio diga de qué voto son los suyos.
 const (
-	skillDeLosVotos       = "boe-legislacion"
+	skillDeLosVotos       = "normativa"
 	descripcionDeLosVotos = "Consulta y cita normativa consolidada del BOE.\n" +
 		"Úsala siempre que la respuesta dependa de lo que dice una norma: sin leerla, no hay cita."
 
@@ -887,7 +887,7 @@ const (
 	fraseDelCaso3 = "Úsala cuando se pida una sentencia"
 
 	casosSinteticosDeLasDescripciones = "casos:\n" +
-		"- id: '001'\n  skill: boe-legislacion\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso1 + "'\n" +
+		"- id: '001'\n  skill: normativa\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso1 + "'\n" +
 		"- id: '002'\n  skill: legal-core\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso2 + "'\n" +
 		"- id: '003'\n  skill: jurisprudencia\n  etiqueta: defecto\n  descripcion: '" + descripcionDelCaso3 + "'\n" +
 		"- id: '004'\n  skill: legal-core\n  etiqueta: correcto\n  descripcion: '" + descripcionDelCaso4 + "'\n"
@@ -895,7 +895,7 @@ const (
 
 // Los mensajes de los votos de cada caso sintético.
 var (
-	mensajeDelCaso1 = mensajeDeLaDescripcion("boe-legislacion", descripcionDelCaso1)
+	mensajeDelCaso1 = mensajeDeLaDescripcion("normativa", descripcionDelCaso1)
 	mensajeDelCaso2 = mensajeDeLaDescripcion("legal-core", descripcionDelCaso2)
 	mensajeDelCaso3 = mensajeDeLaDescripcion("jurisprudencia", descripcionDelCaso3)
 	mensajeDelCaso4 = mensajeDeLaDescripcion("legal-core", descripcionDelCaso4)

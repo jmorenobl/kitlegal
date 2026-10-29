@@ -72,7 +72,7 @@ type casoDelJuicioDelSondeo struct {
 // Y fija lo que el juez con modelo de la skill deja en el juicio del sondeo
 // (contracts/informe-del-job.md §8 y §9 de H24; research D12 de H24; FR-075,
 // FR-076), con un sondeo sintético de nueve respuestas, una copia de la carpeta
-// del juez de boe-legislacion y un votante de salidas grabadas que cuenta sus
+// del juez de normativa y un votante de salidas grabadas que cuenta sus
 // llamadas (casosDelJuezDelSondeo): ninguna marcada y dos con sí de nueve; una
 // marcada con sus tres votos; y una sin juzgar, con su motivo, que no cuenta
 // entre las juzgadas. En los tres, cada voto se pide con el mensaje de la
@@ -170,7 +170,7 @@ type sondeoConJuez struct {
 // armarSondeoConJuez arma un sondeo sintético de tres evals que deciden con
 // modeloSonnet5 y tres repeticiones, nueve sesiones (escribirSondeoSintetico),
 // cada una con la orden que lee el bloque en su transcript, y con una copia de
-// la carpeta del juez de boe-legislacion en la carpeta de sus evals. La medida
+// la carpeta del juez de normativa en la carpeta de sus evals. La medida
 // de la copia se deja con el modelo y la versión de los tests del informe, y lo
 // demás como está: corresponde a su rúbrica y a sus casos. Hace en la carpeta
 // del juez los cambios dados, antes de leer el juez; pone en el transcript de
@@ -1029,7 +1029,7 @@ func exigirLasDosPrimerasLineas(t *testing.T, salida string) {
 func exigirSinExpresiones(t *testing.T, juicio juicioDelSondeo, salida string) {
 	t.Helper()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	lista := listaDelRepositorio(t, conjunto)
@@ -1114,7 +1114,7 @@ const valorDeLaSuscripcion = "de-la-base"
 // matriz del job, con 5, desde antes de H20, y 2, desde antes de H9, sesiones a
 // la vez (contracts/ejecucion-del-job.md §7 de H7.3).
 const (
-	skillQueSondea     = "boe-legislacion"
+	skillQueSondea     = "normativa"
 	otraSkillQueSondea = "legal-core"
 )
 
@@ -1277,7 +1277,7 @@ func casosDeLosArgumentos() []casoDeComprobarElSondeo {
 					entradaDeConjunto{nombre: "14-bien-formada.yaml", contenido: contenidoDelArticulo21},
 					entradaDeConjunto{nombre: "03-sin-pregunta.yaml", contenido: contenidoSinPregunta})
 			},
-			errores: []string{"SKILL: \xc2\xabboe-legislacion\xc2\xbb no es ninguna skill con evals"},
+			errores: []string{"SKILL: \xc2\xabnormativa\xc2\xbb no es ninguna skill con evals"},
 		},
 		{
 			nombre: "skill-que-el-job-no-ejecuta",
@@ -1377,7 +1377,7 @@ func casosDeLasEvals() []casoDeComprobarElSondeo {
 
 // Lo que el sondeo dice de una eval sin binario ni servidor pedida en EVALS,
 // detrás de su número (contracts/evals-en-dos-modos.md §7 de H21; FR-050 de
-// H21), y la línea entera de la 21 de boe-legislacion, la del repositorio.
+// H21), y la línea entera de la 21 de normativa, la del repositorio.
 const (
 	soloLaMideElJob           = " es una eval sin binario ni servidor: solo la mide el job de evals"
 	lineaDeLaEvalSinBinario21 = "EVALS: 21" + soloLaMideElJob
@@ -1409,8 +1409,8 @@ func casosDeLasEvalsSinBinarioNiServidor() []casoDeComprobarElSondeo {
 
 				s.EvalsDeLasSkills = carpetasDeEvals(t, skillQueSondea,
 					entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
-					entradaDeConjunto{nombre: "05-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeBoeLegislacion},
-					entradaDeConjunto{nombre: "07-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeBoeLegislacion})
+					entradaDeConjunto{nombre: "05-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeNormativa},
+					entradaDeConjunto{nombre: "07-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeNormativa})
 				s.Argumentos.Evals, s.Argumentos.Modelo, s.Argumentos.Repeticiones = "07,98,01,05", "", "0"
 			},
 			errores: []string{
@@ -1497,7 +1497,7 @@ func carpetasDeEvals(t *testing.T, skill string, entradas ...entradaDeConjunto) 
 // el sustituto de claude en todas las sesiones, el transcript y la espera de
 // cada una, por su posición en el plan, y, o bien su error, o bien las sesiones
 // del plan que se abren, desde la primera, y su salida. Con votos, la skill del
-// sondeo tiene juez —una copia de la carpeta del de boe-legislacion— y son los
+// sondeo tiene juez —una copia de la carpeta del de normativa— y son los
 // votos grabados de sus respuestas, por el párrafo que llevan.
 type casoDeSondear struct {
 	nombre       string
@@ -1715,7 +1715,7 @@ func pedirConUnaSinBinarioNiServidor(evals string) func(t *testing.T, s *SondeoA
 
 		s.EvalsDeLasSkills = carpetasDeEvals(t, skillQueSondea,
 			entradaDeConjunto{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
-			entradaDeConjunto{nombre: "02-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeBoeLegislacion})
+			entradaDeConjunto{nombre: "02-sin-binario-ni-servidor.yaml", contenido: evalSinBinarioDeNormativa})
 		s.Argumentos.Evals = evals
 	}
 }
@@ -1856,7 +1856,7 @@ func (v *votantePedido) dar(arbolPreparado *bool) func(juez *Juez, modelo string
 // CLAUDE_CODE_OAUTH_TOKEN y las que las sesiones no tienen que ver. Deja los
 // transcripts y las esperas del caso, y el ajuste del caso, si lo hay. Con los
 // votos del caso, deja además en la carpeta de la skill una copia de la carpeta
-// del juez de boe-legislacion; y, con ellos o sin ellos, quien da el votante es
+// del juez de normativa; y, con ellos o sin ellos, quien da el votante es
 // el que lo anota y da el de esos votos grabados (votantePedido).
 func nuevoSondeoDelTest(t *testing.T, caso casoDeSondear) sondeoDelTest {
 	t.Helper()
@@ -2130,7 +2130,7 @@ exit "$codigo"
 // TestGuionDelSondeo, con el salto de línea final con el que lo escribe
 // TestSondeo (contracts/sondeo.md §3 de H7.4): los errores de MODELO vacío y
 // REPETICIONES=0, uno por línea y en el orden de la orden, el de la credencial
-// que falta y el de la eval 21 de boe-legislacion, sin binario ni servidor, que
+// que falta y el de la eval 21 de normativa, sin binario ni servidor, que
 // es el de comprobarElSondeo con ella sola en EVALS (TestComprobarElSondeo;
 // contracts/evals-en-dos-modos.md §7 de H21).
 const (

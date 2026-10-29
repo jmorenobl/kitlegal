@@ -1006,7 +1006,7 @@ func TestJuzgarSinSentencias(t *testing.T) {
 	sesion := sesionQuePasa(t)
 	sesion.Respuesta += "\n\nComp\xc3\xa1rese con " + citaDelFragmento + "."
 
-	resultado := Juzgar(evalDelArticulo21(), sesion, skillDeLasSesiones)
+	resultado := Juzgar(evalDelArticulo21(), sesion, skillNormativa)
 
 	assert.Empty(t, resultado.Motivos)
 	assert.True(t, resultado.Pasa)
