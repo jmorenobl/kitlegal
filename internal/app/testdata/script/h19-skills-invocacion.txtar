@@ -31,9 +31,11 @@ exec kitlegal skills install
 ! grep 'scripts/territorio' .agents/skills/plazos-y-territorio/SKILL.md
 
 # Toda invocación es kitlegal boe … o kitlegal territorio …, en el texto libre
-# y en la tabla generada, y la sección de comandos dice que kitlegal se invoca
-# desde el PATH; la skill de entrada, que no tiene tabla, lo dice donde remite
-# las órdenes a la skill de cada capacidad (FR-003 de H32).
+# y en la tabla generada, y cada skill de capacidad dice que kitlegal se invoca
+# desde el PATH (normativa, en su protocolo; jurisprudencia y
+# plazos-y-territorio, en su sección de comandos); la skill de entrada, que no
+# tiene tabla, lo dice donde remite las órdenes a la skill de cada capacidad
+# (FR-003 de H32).
 grep 'kitlegal boe articulo BOE-A-1978-31229 a140' .agents/skills/normativa/SKILL.md
 grep 'kitlegal territorio resolver' .agents/skills/plazos-y-territorio/SKILL.md
 grep '^### `kitlegal boe`$' .agents/skills/normativa/SKILL.md
@@ -41,6 +43,7 @@ grep '^### `kitlegal territorio`$' .agents/skills/plazos-y-territorio/SKILL.md
 grep '^\| `kitlegal boe articulo ' .agents/skills/normativa/SKILL.md
 grep '^\| `kitlegal territorio resolver ' .agents/skills/plazos-y-territorio/SKILL.md
 grep 'PATH' .agents/skills/consulta-juridica/SKILL.md
+grep 'PATH' .agents/skills/jurisprudencia/SKILL.md
 grep 'PATH' .agents/skills/normativa/SKILL.md
 grep 'PATH' .agents/skills/plazos-y-territorio/SKILL.md
 

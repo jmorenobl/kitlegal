@@ -258,3 +258,7 @@ T016 [datos] [US5] La retirada de los nombres retirados al instalar (internal/co
   elección, T009 y T014; FR-035/SC-012, T014; FR-039/SC-008, T014; FR-035/FR-036/SC-015, T012 y T014; SC-013, T004,
   T005 y T014 (los valores de hoy).
 - `scripts/workflow/`, `.specify/` e `internal/workflow/` no se tocan (plan.md, «Constraints»).
+
+## Phase 12: Convergence
+
+- [X] T019 [datos] Exigir `PATH` en el `SKILL.md` de las cuatro skills de la entrega en `h19-skills-invocacion`, como fija contracts/textos.md §5 («exige `PATH` en el `SKILL.md` de cada una de las cuatro skills»), per FR-040 (partial). Hoy el guion lo exige en `consulta-juridica`, `normativa` y `plazos-y-territorio` y en ningún sitio en `jurisprudencia`: en internal/app/testdata/script/h19-skills-invocacion.txtar, junto a las otras tres, la línea `grep 'PATH' .agents/skills/jurisprudencia/SKILL.md`, y en el comentario que la precede, que la sección de comandos de cada skill de capacidad lo dice. El cuerpo de `jurisprudencia` ya lo lleva («`kitlegal` se invoca desde el `PATH`»): nada cambia en skills/. Antes de terminar, comprobar sobre una copia temporal fuera del árbol que el guion sale en rojo por esa aserción si el `SKILL.md` instalado de `jurisprudencia` no contiene `PATH`, y dejar el árbol sin más cambio que la línea y el comentario. Rutas: internal/app/testdata/script/h19-skills-invocacion.txtar. Test: `go test -count=1 -run 'TestEntregaDelHito/^h19-skills-invocacion$' -v ./internal/app/`, `make ci`
