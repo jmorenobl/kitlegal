@@ -71,7 +71,7 @@ func (e escenarioDeAplicar) aplicar(t *testing.T, d *discoEnMemoria, fallarEn in
 		enlazador.enlaza = e.enlaza
 	}
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
 	require.NoError(t, err, "planificar no encuentra ningún conflicto (FR-044)")
 
 	escritor := &escritorEnMemoria{disco: d, enlazador: enlazador, fallarEn: fallarEn}

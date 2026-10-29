@@ -243,7 +243,7 @@ func (c casoDeDoctor) instalar(t *testing.T, d *discoEnMemoria, invocacion insta
 
 	enlazador := c.enlazadorEn(d)
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), c.versionDelCaso())
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, c.versionDelCaso())
 	if err != nil {
 		return err
 	}

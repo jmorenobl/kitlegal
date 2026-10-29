@@ -1219,6 +1219,37 @@ func TestEnsayoDeInstall(t *testing.T) {
 	assert.Empty(t, ensayoDeInstall(nil, "/home/x"))
 }
 
+// TestEnsayoDeInstallConRetiradas fija las líneas que --dry-run describe de las
+// skills de nombre retirado (contracts/instalacion-retiradas.md §2), con
+// nombres que no son los de ninguna entrega: la que se retiraría, con cada
+// entrada de host que se quitaría, y la que se conservaría, con su aviso tal
+// cual; las rutas de la línea, abreviadas como las demás.
+func TestEnsayoDeInstallConRetiradas(t *testing.T) {
+	t.Parallel()
+
+	skills := []instalacion.SkillInstalada{
+		{
+			Nombre: "antigua", Ruta: "/home/x/.agents/skills/antigua", Estado: instalacion.EstadoRetirada,
+			Enlaces: []instalacion.Enlace{
+				{Host: "claude", Ruta: "/home/x/.claude/skills/antigua", Modo: instalacion.ModoEnlace},
+				{Host: "antigravity", Ruta: "/home/x/.gemini/config/skills/antigua", Modo: instalacion.ModoCopia},
+			},
+		},
+		{Nombre: "sola", Ruta: ".agents/skills/sola", Estado: instalacion.EstadoRetirada, Enlaces: []instalacion.Enlace{}},
+		{
+			Nombre: "vieja", Ruta: "/home/x/.agents/skills/vieja", Estado: instalacion.EstadoSinRetirar,
+			Enlaces: []instalacion.Enlace{}, Aviso: "/home/x/.agents/skills/vieja: el aviso de vieja.",
+		},
+	}
+
+	assert.Equal(t, []string{
+		"retirar antigua de ~/.agents/skills/antigua; Claude Code ~/.claude/skills/antigua (enlace);" +
+			" Antigravity ~/.gemini/config/skills/antigua (copia)",
+		"retirar sola de .agents/skills/sola",
+		"conservar vieja en ~/.agents/skills/vieja: /home/x/.agents/skills/vieja: el aviso de vieja.",
+	}, ensayoDeInstall(skills, "/home/x"))
+}
+
 // TestSalidaDeSkillsContraSchemas es el punto 4 de la Definition of Done sobre
 // el applet skills (FR-053, FR-061, FR-067; contracts/applet-skills.md §4): el
 // sobre real que emite el kernel con --json, sobre el registro local, valida

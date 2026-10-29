@@ -1164,7 +1164,7 @@ func probarCasoDePlan(t *testing.T, caso casoDePlan) {
 	enlazador := nuevoEnlazadorHonesto(d, admite)
 	antes := d.instantanea()
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
 	require.NoError(t, err)
 
 	assert.Equal(t, antes, d.instantanea(), "planificar, que es todo lo que hace --dry-run, no cambia nada (FR-048)")
@@ -1258,7 +1258,7 @@ func exigirSegundaSinCambios(
 	enlazador := nuevoEnlazadorHonesto(d, admite)
 	antes := d.instantanea()
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
 	require.NoError(t, err, "la segunda ejecución no encuentra ningún conflicto")
 
 	esperadas := make([]instalacion.SkillInstalada, 0, len(primera))
@@ -1849,7 +1849,7 @@ func probarRecursoDeCopia(t *testing.T) {
 
 	enlazador := &enlazadorEnMemoria{disco: d, sondea: admiteSiempre, enlaza: admiteNunca}
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
 	require.NoError(t, err)
 	assert.Equal(t, lasDos(ambitoLocal, instalacion.EstadoInstalada, instalacion.ModoEnlace), plan.Skills,
 		"la predicción, que sale de la sonda")
@@ -1916,7 +1916,7 @@ func probarPlanConConflictos(t *testing.T) {
 
 	enlazador := nuevoEnlazadorHonesto(d, admiteSiempre)
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
 	exigirConflictos(t, err, []instalacion.Conflicto{conflicto(carpetaAjena, ".agents/skills/legal-core")})
 	assert.Equal(t, instalacion.Plan{}, plan)
 	assert.Empty(t, enlazador.preguntados)
@@ -1970,7 +1970,7 @@ func probarFallosAlPlanificar(t *testing.T) {
 			enlazador := nuevoEnlazadorHonesto(d, admiteSiempre)
 			enlazador.err = caso.sonda
 
-			_, err = instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), versionDePrueba)
+			_, err = instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, versionDePrueba)
 			exigirFalloSinConflictos(t, err, errInyectado)
 		})
 	}
@@ -1982,7 +1982,7 @@ func probarFallosAlPlanificar(t *testing.T) {
 			d := nuevoDiscoEnMemoria(t)
 
 			_, err := instalacion.Planificar(d, nuevoEnlazadorHonesto(d, admiteSiempre), pedidoLocalConHost(t),
-				empotradasDePrueba(), version)
+				empotradasDePrueba(), nil, version)
 			require.Error(t, err)
 			assert.Empty(t, d.accesos, "no se examina nada")
 		})
@@ -2015,7 +2015,7 @@ func probarSalidaDeInstall(t *testing.T) {
 
 	etiquetas := map[string]string{
 		"Estado": enumerado(string(instalacion.EstadoInstalada), string(instalacion.EstadoActualizada),
-			string(instalacion.EstadoSinCambios)),
+			string(instalacion.EstadoSinCambios), string(instalacion.EstadoRetirada), string(instalacion.EstadoSinRetirar)),
 		"Host": enumerado(instalacion.HostsConocidos()...),
 		"Modo": enumerado(string(instalacion.ModoEnlace), string(instalacion.ModoCopia)),
 	}

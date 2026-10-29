@@ -123,7 +123,7 @@ func TestLegibleDeInstall(t *testing.T) {
 			"",
 			"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
 			"",
-		}, "\n"), legibleDeInstall(skills, ambitoGlobalDePrueba(t), "v0.3.0", homeDePrueba))
+		}, "\n"), legibleDeInstall(skills, ambitoGlobalDePrueba(t), "v0.3.0", homeDePrueba, nil))
 	})
 
 	t.Run("en el proyecto, sin ningún host y sin cambios", func(t *testing.T) {
@@ -143,7 +143,7 @@ func TestLegibleDeInstall(t *testing.T) {
 			"Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».",
 			"Ya estaban instaladas y al día: no se ha cambiado nada.",
 			"",
-		}, "\n"), legibleDeInstall(skills, instalacion.NuevoAmbitoLocal(), "dev", homeDePrueba))
+		}, "\n"), legibleDeInstall(skills, instalacion.NuevoAmbitoLocal(), "dev", homeDePrueba, nil))
 	})
 
 	t.Run("una copia dice por qué no es un enlace", func(t *testing.T) {
@@ -162,7 +162,7 @@ func TestLegibleDeInstall(t *testing.T) {
 			"",
 			"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
 			"",
-		}, "\n"), legibleDeInstall(skills, instalacion.NuevoAmbitoLocal(), "v0.3.0", homeDePrueba))
+		}, "\n"), legibleDeInstall(skills, instalacion.NuevoAmbitoLocal(), "v0.3.0", homeDePrueba, nil))
 	})
 
 	t.Run("en la cuenta, solo Claude Code enlazado: Antigravity no las verá", func(t *testing.T) {
@@ -173,7 +173,7 @@ func TestLegibleDeInstall(t *testing.T) {
 			Enlaces: []instalacion.Enlace{enlace("claude", "/home/ana/.claude/skills/plazos-y-territorio", instalacion.ModoEnlace)},
 		}}
 
-		texto := legibleDeInstall(skills, ambitoGlobalDePrueba(t), "v0.3.0", homeDePrueba)
+		texto := legibleDeInstall(skills, ambitoGlobalDePrueba(t), "v0.3.0", homeDePrueba, nil)
 		assert.Contains(t, texto,
 			"\nAntigravity no las verá: si lo usas, ejecuta «kitlegal skills install -g --host antigravity».\n")
 		assert.NotContains(t, texto, "Claude Code no las verá")
@@ -193,8 +193,56 @@ func TestLegibleDeInstall(t *testing.T) {
 			"",
 			"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
 			"",
-		}, "\n"), legibleDeInstall(skills, instalacion.NuevoAmbitoDir("destino"), "v0.3.0", homeDePrueba))
+		}, "\n"), legibleDeInstall(skills, instalacion.NuevoAmbitoDir("destino"), "v0.3.0", homeDePrueba, nil))
 	})
+
+	t.Run("con skills de nombre retirado", probarLegibleDeInstallConRetiradas)
+}
+
+// probarLegibleDeInstallConRetiradas fija las líneas de install de las skills de
+// nombre retirado (contracts/instalacion-retiradas.md §2), con nombres que no
+// son los de ninguna entrega: la que se retira, con las herederas que la
+// sustituyen, y la que no, con su aviso, cada una en su línea debajo de la
+// lista y fuera de su columna. Una entrada de host quitada no cuenta como
+// entrada del host, y la que no se retira no cambia nada.
+func probarLegibleDeInstallConRetiradas(t *testing.T) {
+	t.Parallel()
+
+	instalada := instaladaSinEnlaces(".agents/skills", "heredera", instalacion.EstadoSinCambios)
+	retirada := instalacion.SkillInstalada{
+		Nombre: "antigua", Ruta: ".agents/skills/antigua", Estado: instalacion.EstadoRetirada,
+		Enlaces: []instalacion.Enlace{enlace("claude", ".claude/skills/antigua", instalacion.ModoEnlace)},
+	}
+	sinRetirar := instalacion.SkillInstalada{
+		Nombre: "vieja", Ruta: ".agents/skills/vieja", Estado: instalacion.EstadoSinRetirar,
+		Enlaces: []instalacion.Enlace{}, Aviso: "El aviso de vieja.",
+	}
+	retiradas := instalacion.Retiradas{"antigua": {"heredera", "otra"}, "vieja": {"heredera"}}
+
+	assert.Equal(t, strings.Join([]string{
+		"Skills de kitlegal v0.3.0 en .agents/skills (Codex y Antigravity las leen de ahí):",
+		"",
+		"  heredera  sin cambios",
+		"  antigua: retirada; la sustituye heredera y otra",
+		"  vieja: sin retirar. El aviso de vieja.",
+		"",
+		"Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».",
+		"Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»",
+		"",
+	}, "\n"), legibleDeInstall([]instalacion.SkillInstalada{instalada, retirada, sinRetirar},
+		instalacion.NuevoAmbitoLocal(), "v0.3.0", homeDePrueba, retiradas), "la que se retira cambia algo")
+
+	assert.Equal(t, strings.Join([]string{
+		"Skills de kitlegal v0.3.0 en .agents/skills (Codex y Antigravity las leen de ahí):",
+		"",
+		"  heredera  sin cambios",
+		"  vieja: sin retirar. El aviso de vieja.",
+		"",
+		"Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».",
+		"Ya estaban instaladas y al día: no se ha cambiado nada.",
+		"",
+	}, "\n"), legibleDeInstall([]instalacion.SkillInstalada{instalada, sinRetirar},
+		instalacion.NuevoAmbitoLocal(), "v0.3.0", homeDePrueba, retiradas), "la que no se retira no cambia nada")
 }
 
 // TestLegibleDeList fija el texto de list: cada skill con su versión y sus
@@ -396,7 +444,7 @@ func TestLegibleSinSecuenciasDeEscape(t *testing.T) {
 	}}
 
 	for _, texto := range []string{
-		legibleDeInstall(skills, instalacion.NuevoAmbitoLocal(), "v0.3.0", ""),
+		legibleDeInstall(skills, instalacion.NuevoAmbitoLocal(), "v0.3.0", "", nil),
 		legibleDeList(instalacion.Listado{Directorio: ".agents/skills"}, instalacion.NuevoAmbitoLocal(), ""),
 		legibleDeDoctor(instalacion.Diagnostico{Directorio: ".agents/skills"}, instalacion.NuevoAmbitoLocal(), ""),
 	} {

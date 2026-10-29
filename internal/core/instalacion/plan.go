@@ -26,16 +26,21 @@ var errNoEsFicheroRegular = errors.New("no es un fichero regular")
 // EscribirFichero, que no lo da, y no tiene forma de pedir otro modo.
 type Plan struct {
 	// Skills son las pedidas, en orden de nombre, tal como quedan si cada
-	// entrada de host se crea en el modo previsto: la salida de la orden y la
-	// de --dry-run (FR-048, FR-051). Una skill declarada que el binario no
-	// empotra no está nunca (FR-036). Es una lista, aunque esté vacía.
+	// entrada de host se crea en el modo previsto, y detrás, también en orden
+	// de nombre, cada una de nombre retirado que se retira o que no se retira
+	// y lleva su aviso: la salida de la orden y la de --dry-run (FR-048,
+	// FR-051; H32, FR-026 a FR-028). Una skill declarada que el binario no
+	// empotra y no es un nombre retirado no está nunca (FR-036; H32, FR-030).
+	// Es una lista, aunque esté vacía.
 	Skills []SkillInstalada
 
 	// Retirar es la fase 1: cada fichero declarado e intacto que se reescribe
 	// o que ya no se empotra, en el directorio neutro o en una copia de host
 	// que se mantiene, y cada copia de host que pasa a enlace, entera —sus
 	// ficheros, después cada directorio suyo de abajo arriba y el de la copia
-	// el último—, en ese orden (FR-046).
+	// el último—, en ese orden (FR-046); y detrás, cada skill de nombre
+	// retirado que se retira, entera igual, y cada entrada de host suya (H32,
+	// FR-026).
 	Retirar []string
 
 	// Enlazar es la fase 2.
@@ -112,6 +117,9 @@ type ManifiestoFinal struct {
 	// copias son, por la ruta de cada entrada de host que se crea como enlace,
 	// la entrada que se declara si el enlace no se puede crear.
 	copias map[string]reservaDeCopia
+	// quitadas son las skills de nombre retirado cuya entrada sale del
+	// manifiesto: las que se retiran y aquellas de las que no queda nada.
+	quitadas []string
 }
 
 // reservaDeCopia es la entrada de host en copia que se declara en lugar de un
@@ -125,11 +133,12 @@ type reservaDeCopia struct {
 // Contenido son los bytes canónicos del manifiesto final, con la entrada de
 // host de cada ruta de enCopia —la de un enlace que no se pudo crear en la
 // fase 2— en copia; una ruta que no es la de ningún enlace del plan no cambia
-// nada. Si ninguna entrada de una skill pedida cambia, es nil: el manifiesto
-// no se escribe y queda byte a byte igual (FR-033, FR-045). Las demás
-// entradas se conservan tal como están, también las de las skills que el
-// binario no empotra (FR-034, FR-036), y la versión de nivel superior pasa a
-// ser la del binario (contracts/manifiesto.md §2).
+// nada, y sin la entrada de cada skill de nombre retirado que sale (H32,
+// FR-026, FR-027). Si ninguna entrada de una skill pedida cambia y ninguna
+// sale, es nil: el manifiesto no se escribe y queda byte a byte igual (FR-033,
+// FR-045). Las demás entradas se conservan tal como están, también las de las
+// skills que el binario no empotra (FR-034, FR-036), y la versión de nivel
+// superior pasa a ser la del binario (contracts/manifiesto.md §2).
 func (m ManifiestoFinal) Contenido(enCopia []string) ([]byte, error) {
 	skills := maps.Clone(m.actual.Skills)
 	if skills == nil {
@@ -149,6 +158,14 @@ func (m ManifiestoFinal) Contenido(enCopia []string) ([]byte, error) {
 		anterior, estaba := skills[nombre]
 		cambia = cambia || !estaba || !mismaDeclaracion(anterior, declarada)
 		skills[nombre] = declarada
+	}
+
+	for _, nombre := range m.quitadas {
+		if _, estaba := skills[nombre]; estaba {
+			delete(skills, nombre)
+
+			cambia = true
+		}
 	}
 
 	if !cambia {
@@ -204,8 +221,19 @@ type Escritura struct {
 // ámbito no existe, no se pregunta y se prevé enlace (data-model §3;
 // research.md D9). Un fallo del Disco o del Enlazador se devuelve tal cual. Una version
 // que el manifiesto no admitiría es un error antes de examinar nada.
+//
+// Además, sin ningún conflicto, por cada skill que el manifiesto declara con
+// un nombre de retiradas, la pida o no la invocación (H32, FR-026 a FR-028;
+// contracts/instalacion-retiradas.md §2): si su directorio tiene exactamente
+// los ficheros que el manifiesto le declara, cada uno con su huella, y cada
+// entrada de host es la declarada, se retira entera, con sus entradas de host
+// y su entrada del manifiesto, y sale «retirada»; si no, no se toca nada de
+// ella y sale «sin retirar», con su aviso; y si no queda ni su directorio ni
+// ninguna entrada de host, su entrada sale del manifiesto y no se nombra. Una
+// declarada que no se empotra y no es un nombre retirado no se toca (FR-030).
 func Planificar(
-	disco Disco, enlazador Enlazador, pedido Pedido, empotradas []SkillEmpotrada, version string,
+	disco Disco, enlazador Enlazador, pedido Pedido, empotradas []SkillEmpotrada, retiradas Retiradas,
+	version string,
 ) (Plan, error) {
 	if err := comprobarVersion(version); err != nil {
 		return Plan{}, fmt.Errorf("la versión del binario no se puede declarar en el manifiesto: %w", err)
@@ -213,6 +241,10 @@ func Planificar(
 
 	c, err := comprobar(disco, enlazador, pedido, empotradas)
 	if err != nil {
+		return Plan{}, err
+	}
+
+	if err := c.examinarLasRetiradas(retiradas); err != nil {
 		return Plan{}, err
 	}
 
@@ -286,6 +318,8 @@ func comprobar(disco Disco, enlazador Enlazador, pedido Pedido, empotradas []Ski
 		return nil, err
 	}
 
+	c.conEntradas = hostsReales
+
 	if !ambitoIlegible {
 		err = c.comprobarLasSkills(pedidas, neutroReal, hostsReales)
 		if err != nil {
@@ -337,8 +371,15 @@ type comprobacion struct {
 	neutroQueFalta []string
 	// hosts es lo que se sabe de cada host del ámbito, por nombre.
 	hosts map[string]hostExaminado
+	// conEntradas dice, por host del ámbito, si hay entradas suyas que
+	// examinar: si se enlaza en él y su directorio de skills es un directorio
+	// real.
+	conEntradas map[string]bool
 	// skills es lo examinado de cada skill pedida, en orden de nombre.
 	skills []skillExaminada
+	// retiradas es lo examinado de cada skill que el manifiesto declara con un
+	// nombre retirado, en orden de nombre.
+	retiradas []retiradaExaminada
 	// encima es lo examinado por encima de la raíz del ámbito o de la ruta de
 	// --dir, por ruta, cada una una sola vez.
 	encima map[string]Entrada
@@ -984,15 +1025,18 @@ type planificacion struct {
 	hostsQueCrear map[string]bool
 	// creados es cada directorio de encima del ámbito que el plan ya crea.
 	creados map[string]bool
+	// quitadas son las skills de nombre retirado cuya entrada sale del
+	// manifiesto.
+	quitadas []string
 }
 
 // planificar construye el plan con lo examinado, con version como la de cada
-// skill pedida.
+// skill pedida: las pedidas y, detrás, las de nombre retirado.
 func (c *comprobacion) planificar(version string) (Plan, error) {
 	p := &planificacion{
 		c:             c,
 		version:       version,
-		plan:          Plan{Skills: make([]SkillInstalada, 0, len(c.skills))},
+		plan:          Plan{Skills: make([]SkillInstalada, 0, len(c.skills)+len(c.retiradas))},
 		declaradas:    map[string]SkillDeclarada{},
 		copias:        map[string]reservaDeCopia{},
 		hostsQueCrear: map[string]bool{},
@@ -1003,6 +1047,10 @@ func (c *comprobacion) planificar(version string) (Plan, error) {
 		if err := p.planificarSkill(skill); err != nil {
 			return Plan{}, err
 		}
+	}
+
+	for _, retirada := range c.retiradas {
+		p.planificarRetirada(retirada)
 	}
 
 	if err := p.planificarLoQueFalta(); err != nil {
@@ -1316,6 +1364,7 @@ func (p *planificacion) planificarLoQueFalta() error {
 		version:    p.version,
 		declaradas: p.declaradas,
 		copias:     p.copias,
+		quitadas:   p.quitadas,
 	}
 
 	contenido, err := p.plan.Manifiesto.Contenido(nil)
