@@ -16,9 +16,11 @@ exists $WORK/gopath/bin/kitlegal
 ! exists $WORK/repo/bin/instalado
 
 exec ls -A $HOME/.agents/skills
-stdout '\Ajurisprudencia\nkitlegal\.json\nnormativa\nplazos-y-territorio\n\z'
+stdout '\Aconsulta-juridica\njurisprudencia\nkitlegal\.json\nnormativa\nplazos-y-territorio\n\z'
 exec readlink $HOME/.claude/skills/normativa
 stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
+exec readlink $HOME/.claude/skills/consulta-juridica
+stdout '\A\.\./\.\./\.agents/skills/consulta-juridica\n\z'
 exec readlink $HOME/.claude/skills/jurisprudencia
 stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
 exec readlink $HOME/.claude/skills/plazos-y-territorio

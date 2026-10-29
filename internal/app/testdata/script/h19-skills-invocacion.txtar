@@ -23,6 +23,8 @@ cd $WORK/proyecto
 exec kitlegal skills install
 
 # --- Ninguna invocación por scripts/ (US2.1, FR-081) ---
+! grep 'scripts/boe' .agents/skills/consulta-juridica/SKILL.md
+! grep 'scripts/territorio' .agents/skills/consulta-juridica/SKILL.md
 ! grep 'scripts/boe' .agents/skills/normativa/SKILL.md
 ! grep 'scripts/territorio' .agents/skills/normativa/SKILL.md
 ! grep 'scripts/boe' .agents/skills/plazos-y-territorio/SKILL.md
@@ -30,13 +32,15 @@ exec kitlegal skills install
 
 # Toda invocación es kitlegal boe … o kitlegal territorio …, en el texto libre
 # y en la tabla generada, y la sección de comandos dice que kitlegal se invoca
-# desde el PATH.
+# desde el PATH; la skill de entrada, que no tiene tabla, lo dice donde remite
+# las órdenes a la skill de cada capacidad (FR-003 de H32).
 grep 'kitlegal boe articulo BOE-A-1978-31229 a140' .agents/skills/normativa/SKILL.md
 grep 'kitlegal territorio resolver' .agents/skills/plazos-y-territorio/SKILL.md
 grep '^### `kitlegal boe`$' .agents/skills/normativa/SKILL.md
 grep '^### `kitlegal territorio`$' .agents/skills/plazos-y-territorio/SKILL.md
 grep '^\| `kitlegal boe articulo ' .agents/skills/normativa/SKILL.md
 grep '^\| `kitlegal territorio resolver ' .agents/skills/plazos-y-territorio/SKILL.md
+grep 'PATH' .agents/skills/consulta-juridica/SKILL.md
 grep 'PATH' .agents/skills/normativa/SKILL.md
 grep 'PATH' .agents/skills/plazos-y-territorio/SKILL.md
 
@@ -55,6 +59,7 @@ arbol .agents/skills
 ! stdout '^. [^/ ]+/scripts( |$)'
 ! stdout 'scripts'
 arbol $KITLEGAL_SKILLS
+stdout '^f consulta-juridica/SKILL\.md '
 stdout '^f normativa/SKILL\.md '
 stdout '^f plazos-y-territorio/SKILL\.md '
 ! stdout '^. [^/ ]+/scripts( |$)'

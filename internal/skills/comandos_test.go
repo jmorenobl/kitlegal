@@ -1137,7 +1137,9 @@ func TestAppletsDeLaTabla(t *testing.T) {
 
 // comprobarAppletsDeLasSkillsDelRepositorio comprueba, con el SKILL.md de cada
 // skill del repositorio, que los applets de su tabla son los que nombran sus
-// órdenes, en el orden en que aparecen y sin repetir.
+// órdenes, en el orden en que aparecen y sin repetir. La skill que no declara
+// kitlegal-applets, como la de entrada, no tiene tabla (research D10 de H32):
+// AppletsDeLaTabla da el defecto de las marcas que faltan.
 func comprobarAppletsDeLasSkillsDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -1153,6 +1155,16 @@ func comprobarAppletsDeLasSkillsDelRepositorio(t *testing.T) {
 
 			contenido, err := fs.ReadFile(raiz, ruta)
 			require.NoError(t, err)
+
+			frontmatter, err := skills.LeerFrontmatter(contenido)
+			require.NoError(t, err)
+
+			if len(frontmatter.DeclaracionDeKitlegal().Applets) == 0 {
+				_, err := skills.AppletsDeLaTabla(contenido)
+				require.EqualError(t, err, "sin las marcas de la tabla de comandos")
+
+				return
+			}
 
 			esperados := appletsDeLasOrdenes(t, string(contenido))
 			require.NotEmpty(t, esperados)

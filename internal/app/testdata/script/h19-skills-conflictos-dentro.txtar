@@ -247,7 +247,7 @@ symlink .agents/skills/plazos-y-territorio/atajo -> ../../../no-existe
 arbol .agents/skills/plazos-y-territorio
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_V2_BIN skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"actualizada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"consulta-juridica","ruta":"\.agents/skills/consulta-juridica","estado":"actualizada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"actualizada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 arbol .agents/skills/plazos-y-territorio
 cmp stdout $WORK/antes.txt

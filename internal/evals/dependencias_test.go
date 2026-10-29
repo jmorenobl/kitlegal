@@ -28,8 +28,10 @@ import (
 // una de jurisprudencia; que un applet inexistente en la tabla de una skill es
 // un error de cada eval que la usa, nombrada; que una referencia a mano entra
 // por la parte (b), sin (c) ni error, y que una skill nombrada solo desde una
-// de ellas entra con sus partes (FR-014 de H31, SC-004); y lo que da el
-// predicado de las rutas que miden con una ruta de cada clase de data-model §1.
+// de ellas entra con sus partes (FR-014 de H31, SC-004); que una skill sin
+// kitlegal-applets no tiene tabla de comandos y da las partes de las skills que
+// nombra (contracts/evals.md §5 (d) de H32); y lo que da el predicado de las
+// rutas que miden con una ruta de cada clase de data-model §1.
 func TestConjuntoDeCadaEval(t *testing.T) {
 	t.Parallel()
 
@@ -51,6 +53,7 @@ func TestConjuntoDeCadaEval(t *testing.T) {
 		{nombre: "applet-inexistente", comprobar: comprobarElAppletInexistente},
 		{nombre: "referencias-a-mano", comprobar: comprobarLasReferenciasAMano},
 		{nombre: "region-de-una-referencia-a-mano", comprobar: comprobarLasRegionesDeLasReferenciasAMano},
+		{nombre: "skill-sin-applets", comprobar: comprobarLaSkillSinApplets},
 		{nombre: "rutas-que-miden", comprobar: comprobarLasRutasQueMiden},
 	}
 
@@ -452,6 +455,128 @@ func comprobarLasRegionesDeLasReferenciasAMano(t *testing.T, calculo calculoDelR
 	}
 
 	require.Positive(t, deJurisprudencia, "jurisprudencia tiene evals")
+}
+
+// skillDeEntrada es la skill de entrada (contracts/reparto.md §1 de H32): no
+// declara kitlegal-applets ni tiene tabla de comandos, y nombra como código en
+// línea las skillsDeCapacidad, a las que remite.
+const skillDeEntrada = "consulta-juridica"
+
+// skillsDeCapacidad son las skills que nombra skillDeEntrada, en el orden de sus
+// nombres.
+var skillsDeCapacidad = []string{"jurisprudencia", "normativa", "plazos-y-territorio"}
+
+// evalDelMutanteSinApplets es la eval que comprobarLaSkillSinApplets añade a
+// evals/<skillDeEntrada>/: ninguna eval del repositorio se llama así.
+const evalDelMutanteSinApplets = "99-mutante-sin-applets"
+
+// comprobarLaSkillSinApplets añade en memoria una eval a la skill de entrada,
+// copia de la primera del repositorio, y comprueba la parte (d) de
+// contracts/evals.md §5 de H32 (research D10): la skill, que no declara
+// kitlegal-applets ni tiene tabla de comandos, da un conjunto sin error, con su
+// SKILL.md y, por el cierre de (b), las partes (b), (c) y (d) de cada skill que
+// nombra como código en línea, las de la primera eval de esa skill. Y que la
+// frontera es la declaración y no la tabla: con kitlegal-applets declarado y
+// sin tabla, el conjunto es el error que nombra la tabla de comandos. Antes de
+// nada comprueba que la skill es lo que el caso dice que es, para no pasar sin
+// comprobar nada.
+func comprobarLaSkillSinApplets(t *testing.T, calculo calculoDelRepositorio) {
+	t.Helper()
+
+	ficheroDeLaEntrada := "skills/" + skillDeEntrada + "/SKILL.md"
+
+	skillMD, err := fs.ReadFile(calculo.repositorio, ficheroDeLaEntrada)
+	require.NoError(t, err)
+
+	frontmatter, err := skills.LeerFrontmatter(skillMD)
+	require.NoError(t, err)
+	require.Empty(t, frontmatter.DeclaracionDeKitlegal().Applets, "%s no declara kitlegal-applets", ficheroDeLaEntrada)
+
+	_, err = skills.AppletsDeLaTabla(skillMD)
+	require.Error(t, err, "%s no tiene tabla de comandos", ficheroDeLaEntrada)
+
+	for _, nombrada := range skillsDeCapacidad {
+		require.Containsf(t, string(skillMD), "`"+nombrada+"`", "%s nombra %s como código en línea",
+			ficheroDeLaEntrada, nombrada)
+	}
+
+	evals := nombresDeLasEvals(t, calculo.repositorio)
+	require.NotEmpty(t, evals)
+
+	copiada, err := fs.ReadFile(calculo.repositorio, "evals/"+evals[0]+".yaml")
+	require.NoError(t, err)
+
+	eval := "evals/" + skillDeEntrada + "/" + evalDelMutanteSinApplets + ".yaml"
+	_, err = fs.Stat(calculo.repositorio, eval)
+	require.ErrorIsf(t, err, fs.ErrNotExist, "la eval %s es nueva", eval)
+
+	sinApplets := calcularConLaEval(t, calculo, eval, copiada, nil)
+	require.NoErrorf(t, sinApplets.err, "%s: el conjunto no se puede calcular", sinApplets.nombre())
+
+	assert.Truef(t, sinApplets.pertenece(ficheroDeLaEntrada), "%s: el conjunto no contiene %s",
+		sinApplets.nombre(), ficheroDeLaEntrada)
+
+	partes := entradasPorParte(sinApplets)
+
+	for _, nombrada := range skillsDeCapacidad {
+		primera := primerConjuntoDe(t, calculo.conjuntos, nombrada)
+		deLaNombrada := entradasPorParte(primera)
+
+		for _, parte := range []parteDelConjunto{parteDeLasSkills, parteDeLosDatos, parteDeLosPaquetes} {
+			assert.Subsetf(t, partes[parte], deLaNombrada[parte], "%s: (%s) sin la de %s", sinApplets.nombre(), parte,
+				primera.nombre())
+		}
+	}
+
+	conApplets := strings.Replace(string(skillMD), "\n---\n", "\nmetadata:\n  kitlegal-applets: cita\n---\n", 1)
+	require.NotEqual(t, string(skillMD), conApplets, "el mutante declara kitlegal-applets en el frontmatter")
+
+	declarados, err := skills.LeerFrontmatter([]byte(conApplets))
+	require.NoError(t, err)
+	require.Equal(t, []string{"cita"}, declarados.DeclaracionDeKitlegal().Applets)
+
+	sinTabla := calcularConLaEval(t, calculo, eval, copiada, []byte(conApplets))
+	require.Errorf(t, sinTabla.err, "%s: el cálculo acepta kitlegal-applets sin tabla de comandos", sinTabla.nombre())
+	assert.Truef(t, strings.HasPrefix(sinTabla.err.Error(), sinTabla.nombre()+": "), "el error nombra la eval: %v",
+		sinTabla.err)
+	assert.Contains(t, sinTabla.err.Error(), "la tabla de comandos de "+ficheroDeLaEntrada)
+}
+
+// calcularConLaEval calcula los conjuntos del repositorio con la eval añadida en
+// memoria y, si skillMD no es nil, con él como SKILL.md de la skill de entrada,
+// y devuelve el de la eval añadida.
+func calcularConLaEval(t *testing.T, calculo calculoDelRepositorio, eval string, contenido, skillMD []byte,
+) dependenciasDeLaEval {
+	t.Helper()
+
+	cambiados := fstest.MapFS{eval: {Data: contenido}}
+	if skillMD != nil {
+		cambiados["skills/"+skillDeEntrada+"/SKILL.md"] = &fstest.MapFile{Data: skillMD}
+	}
+
+	conjuntos, err := calcularDependencias(arbolConCambios{FS: calculo.repositorio, cambiados: cambiados}, calculo.grafo)
+	require.NoError(t, err)
+
+	nombre := strings.TrimSuffix(strings.TrimPrefix(eval, "evals/"), ".yaml")
+
+	indice := slices.IndexFunc(conjuntos, func(conjunto dependenciasDeLaEval) bool {
+		return conjunto.nombre() == nombre
+	})
+	require.GreaterOrEqualf(t, indice, 0, "%s tiene conjunto", nombre)
+
+	return conjuntos[indice]
+}
+
+// primerConjuntoDe es el conjunto, calculado sin error, de la primera eval de la
+// skill.
+func primerConjuntoDe(t *testing.T, conjuntos []dependenciasDeLaEval, skill string) dependenciasDeLaEval {
+	t.Helper()
+
+	indice := slices.IndexFunc(conjuntos, func(conjunto dependenciasDeLaEval) bool { return conjunto.skill == skill })
+	require.GreaterOrEqualf(t, indice, 0, "%s tiene evals", skill)
+	require.NoErrorf(t, conjuntos[indice].err, "%s: el conjunto no se puede calcular", conjuntos[indice].nombre())
+
+	return conjuntos[indice]
 }
 
 // partesQueContienen son las partes de las entradas del conjunto que contienen

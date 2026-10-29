@@ -57,10 +57,10 @@ const (
 
 // skillsExigidas son las skills que skills/ tiene que tener: sin una de ellas,
 // las comprobaciones sobre skills/ pasarían en vacío para ella (plan, obligación
-// 12). normativa la trajo H5; plazos-y-territorio, H6, y jurisprudencia, H23.
-// Los casos negativos no salen de esta lista, sino de las skills que hay
-// (skillsDelRecorrido).
-var skillsExigidas = []string{"jurisprudencia", "normativa", "plazos-y-territorio"}
+// 12). normativa la trajo H5; plazos-y-territorio, H6; jurisprudencia, H23, y
+// consulta-juridica, la de entrada, H32. Los casos negativos no salen de esta
+// lista, sino de las skills que hay (skillsDelRecorrido).
+var skillsExigidas = []string{"consulta-juridica", "jurisprudencia", "normativa", "plazos-y-territorio"}
 
 // cabeceraDeUnaReferencia es la primera línea de una referencia generada, que
 // nombra el YAML de datos del que sale (FR-031, FR-065, FR-066).
@@ -816,7 +816,8 @@ func primeraCelda(t *testing.T, referencia referenciaDelRecorrido) string {
 // H31): 499 líneas y 11 000 caracteres, con más de 11 000 bytes, no son un
 // defecto, y 500 líneas y 11 001 caracteres sí. Cada mutante cambia una sola de
 // las dos medidas y nada de lo regenerado: las líneas, sin cambiar el número de
-// caracteres (partirElCuerpo); los caracteres, con una línea más
+// caracteres o, en un cuerpo corto como el de la skill de entrada, lejos de los
+// 11 000 (partirElCuerpo); los caracteres, con una línea más
 // (ensancharElCuerpo), lejos de las 499.
 func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
@@ -846,7 +847,8 @@ func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCo
 // la región tampoco lo son, ni otra línea que empieza por <!--, como las marcas
 // de los paquetes, que partidas dejarían de serlo. Cada espacio es un carácter y
 // cada salto otro, así que el cuerpo conserva sus caracteres, y lo regenerado no
-// cambia.
+// cambia. Si los espacios no bastan, las líneas que faltan son líneas en blanco
+// al final, de un carácter cada una, lejos de los 11 000.
 func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
 	return func(t *testing.T, copia string) {
 		t.Helper()
@@ -879,7 +881,15 @@ func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
 			partido.WriteString(linea)
 		}
 
-		require.Zero(t, faltan, "el cuerpo de SKILL.md tiene espacios de prosa para llegar a %d líneas", lineas)
+		// Un cuerpo corto, como el de la skill de entrada, no tiene espacios de
+		// prosa bastantes: las líneas que faltan son líneas en blanco al final, de
+		// un carácter cada una, y el cuerpo sigue en su presupuesto de caracteres.
+		if faltan > 0 {
+			require.LessOrEqual(t, utf8.RuneCountInString(cuerpo)+faltan, 11000,
+				"el cuerpo de SKILL.md, con las líneas en blanco que le faltan, sigue en sus 11 000 caracteres")
+
+			partido.WriteString(strings.Repeat("\n", faltan))
+		}
 
 		escribirFicheroDeLaCopia(t, ruta, frontmatter+partido.String())
 	}
@@ -1065,19 +1075,30 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 // metadataDeKitlegal es el bloque metadata de un frontmatter que declara los
 // applets y las referencias dados, en su orden. Sin referencias no lleva la
 // clave kitlegal-referencias, como el frontmatter de la skill que no declara
-// ninguna (research.md D15 de H23).
+// ninguna (research.md D15 de H23), y sin applets no lleva kitlegal-applets,
+// como el de la skill de entrada (research D10 de H32): sin ninguna de las dos,
+// no hay bloque.
 func metadataDeKitlegal(applets []string, referencias []referenciaDelRecorrido) string {
-	metadata := "metadata:\n  kitlegal-applets: " + strings.Join(applets, " ") + "\n"
-	if len(referencias) == 0 {
-		return metadata
+	var claves string
+
+	if len(applets) > 0 {
+		claves += "  kitlegal-applets: " + strings.Join(applets, " ") + "\n"
 	}
 
-	nombres := make([]string, 0, len(referencias))
-	for _, referencia := range referencias {
-		nombres = append(nombres, referencia.nombre)
+	if len(referencias) > 0 {
+		nombres := make([]string, 0, len(referencias))
+		for _, referencia := range referencias {
+			nombres = append(nombres, referencia.nombre)
+		}
+
+		claves += "  kitlegal-referencias: " + strings.Join(nombres, " ") + "\n"
 	}
 
-	return metadata + "  kitlegal-referencias: " + strings.Join(nombres, " ") + "\n"
+	if claves == "" {
+		return ""
+	}
+
+	return "metadata:\n" + claves
 }
 
 // referenciaSinSusDatos es el caso de la referencia sin el YAML de datos del que
@@ -1351,9 +1372,14 @@ func casosDeScripts(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 
 // casosDeRegion son los defectos de las marcas de la región generada del
 // SKILL.md de la skill (data-model §2; FR-032), con las líneas que ocupan las dos
-// marcas en su SKILL.md real.
+// marcas en su SKILL.md real. Una skill que no declara kitlegal-applets, como la
+// de entrada, no tiene tabla de comandos (research D10 de H32), y no tiene casos.
 func casosDeRegion(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 	t.Helper()
+
+	if len(skill.applets) == 0 {
+		return nil
+	}
 
 	skillMd := leerFicheroDelArbol(t, rutaEnLaSkill(raizDelRepositorio, skill.nombre, "SKILL.md"))
 	inicio, fin := lineaDeLaMarca(t, skillMd, inicioDeLaTablaDeComandos), lineaDeLaMarca(t, skillMd, finDeLaTablaDeComandos)
@@ -1424,20 +1450,41 @@ func lineaDeLaMarca(t *testing.T, contenido, marca string) int {
 	return strings.Count(antes, "\n") + 1
 }
 
+// derivaDelSkillMd es la marca de fin, con su salto, de la región generada del
+// SKILL.md de la skill que una deriva cambia, y la línea escrita a mano que la
+// deriva le pone delante: la tabla de comandos, si la skill declara applets; si
+// no, la lista de los paquetes de la base, si la lleva, como la skill de entrada
+// (research D10 de H32); y ninguna, con la marca vacía, si no lleva ninguna.
+func derivaDelSkillMd(t *testing.T, skill skillDelRecorrido) (fin, escrito string) {
+	t.Helper()
+
+	switch {
+	case len(skill.applets) > 0:
+		return finDeLaTablaDeComandos + "\n", "tabla escrita a mano\n"
+	case skillsDeLaListaDeLaBase(t, skill.nombre) != nil:
+		return finDeLaListaDeLaBase, "- lista escrita a mano\n"
+	default:
+		return "", ""
+	}
+}
+
 // probarRegenerarDosVeces fija que la regeneración de la skill es idempotente
 // (FR-034, FR-036): sobre una copia con una deriva de cada parte generada —la
-// tabla, cada referencia y una referencia sobrante—, Escribir la deja sin
-// derivas y sin ningún scripts/ (ADR 0019; FR-080 de H19), y un segundo Escribir
-// no cambia ningún byte ni ningún tiempo de modificación.
+// tabla o, en la skill que no la tiene, la lista de los paquetes de la base,
+// cada referencia y una referencia sobrante—, Escribir la deja sin derivas y sin
+// ningún scripts/ (ADR 0019; FR-080 de H19), y un segundo Escribir no cambia
+// ningún byte ni ningún tiempo de modificación.
 func probarRegenerarDosVeces(t *testing.T, descripciones []skills.DescripcionDeVerbo, skill skillDelRecorrido) {
 	t.Helper()
 
 	copia := copiaConLaSkill(t, skill.nombre)
 
-	cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), finDeLaTablaDeComandos+"\n",
-		"tabla escrita a mano\n"+finDeLaTablaDeComandos+"\n")
+	var fallos []string
 
-	fallos := []string{skill.nombre + ": SKILL.md: contenido-distinto"}
+	if fin, escrito := derivaDelSkillMd(t, skill); fin != "" {
+		cambiarFicheroDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, "SKILL.md"), fin, escrito+fin)
+		fallos = append(fallos, skill.nombre+": SKILL.md: contenido-distinto")
+	}
 
 	for _, referencia := range skill.referencias {
 		retirarDeLaCopia(t, rutaEnLaSkill(copia, skill.nombre, referencia.fichero()))
@@ -1755,15 +1802,18 @@ var instruccionDeEvals = regexp.MustCompile(`(?i)(?:^|[^\p{L}\p{N}])` +
 // cada término de lo que no puede decir (FR-077) cuenta en su SKILL.md y en cada
 // una de sus referencias, también en una referencia a mano (FR-016, FR-017 de
 // H31), y que no cuentan «evalúa», el «siempre» de otra frase ni lo que va dentro
-// de la región generada.
+// de la región generada, en la skill que la tiene: la que no declara
+// kitlegal-applets no tiene tabla de comandos (research D10 de H32).
 func probarSinInstruccionesDeEvals(t *testing.T, skill skillDelRecorrido) {
 	t.Helper()
 
 	copia := copiaConLaSkill(t, skill.nombre)
 
 	skillMd := rutaEnLaSkill(copia, skill.nombre, "SKILL.md")
-	cambiarFicheroDeLaCopia(t, skillMd, finDeLaTablaDeComandos+"\n",
-		"Un job dentro de la tabla generada no cuenta.\n"+finDeLaTablaDeComandos+"\n")
+	if len(skill.applets) > 0 {
+		cambiarFicheroDeLaCopia(t, skillMd, finDeLaTablaDeComandos+"\n",
+			"Un job dentro de la tabla generada no cuenta.\n"+finDeLaTablaDeComandos+"\n")
+	}
 
 	contenido := leerFicheroDelArbol(t, skillMd)
 	primera := skills.ContarLineas([]byte(contenido)) + 1
@@ -2493,16 +2543,55 @@ func rutaEnLaSkill(raiz, skill string, partes ...string) string {
 }
 
 // copiaConLaSkill copia en un directorio temporal lo que Regenerar lee del árbol
-// real para la skill —su directorio de skills/ y data/— y devuelve su raíz: sin
-// las demás skills, un cambio en data/ o en lo que declara --describe solo da los
-// fallos de ella. Los enlaces simbólicos se recrean con su destino literal, sin
-// seguirlos, de modo que la copia tiene lo mismo que el árbol aunque no resuelvan.
-// Los dos árboles se abren como os.Root, que no deja salir de ellos por un enlace
-// mientras se copia.
+// real para la skill —su directorio de skills/ y data/ y, si lleva la lista de
+// los paquetes de la base, el de cada skill que la lista nombra, de cuyas
+// referencias sale— y devuelve su raíz: sin las demás skills, un cambio en data/
+// o en lo que declara --describe solo da los fallos de ella. Los enlaces
+// simbólicos se recrean con su destino literal, sin seguirlos, de modo que la
+// copia tiene lo mismo que el árbol aunque no resuelvan. Los dos árboles se abren
+// como os.Root, que no deja salir de ellos por un enlace mientras se copia.
 func copiaConLaSkill(t *testing.T, skill string) string {
 	t.Helper()
 
-	return copiaConLasSkills(t, skill)
+	return copiaConLasSkills(t, append([]string{skill}, skillsDeLaListaDeLaBase(t, skill)...)...)
+}
+
+// Las dos marcas de la lista de los paquetes de la base de la skill de entrada
+// (contracts/paquetes.md §4 de H32).
+const (
+	inicioDeLaListaDeLaBase = "<!-- paquetes de la base: lo genera make skills-sync -->\n"
+	finDeLaListaDeLaBase    = "<!-- fin de los paquetes de la base -->\n"
+)
+
+// skillEnCodigo es el nombre de una skill escrito como código en línea.
+var skillEnCodigo = regexp.MustCompile("`([a-z0-9-]+)`")
+
+// skillsDeLaListaDeLaBase son las skills, distintas de ella, que nombra como
+// código en línea la lista de los paquetes de la base del SKILL.md de la skill
+// en el árbol real, en su orden y sin repetir: las que tienen la referencia de
+// un paquete. Ninguna si la skill no lleva la lista.
+func skillsDeLaListaDeLaBase(t *testing.T, skill string) []string {
+	t.Helper()
+
+	_, tras, conInicio := strings.Cut(leerFicheroDelArbol(t, rutaEnLaSkill(raizDelRepositorio, skill, "SKILL.md")),
+		inicioDeLaListaDeLaBase)
+	lista, _, conFin := strings.Cut(tras, finDeLaListaDeLaBase)
+
+	if !conInicio || !conFin {
+		return nil
+	}
+
+	var nombradas []string
+
+	for _, nombre := range skillEnCodigo.FindAllStringSubmatch(lista, -1) {
+		if nombre[1] != skill && !slices.Contains(nombradas, nombre[1]) {
+			nombradas = append(nombradas, nombre[1])
+		}
+	}
+
+	require.NotEmpty(t, nombradas, "la lista de los paquetes de la base de %s nombra alguna skill", skill)
+
+	return nombradas
 }
 
 // copiaConLasSkills es copiaConLaSkill con las skills dadas, para los controles

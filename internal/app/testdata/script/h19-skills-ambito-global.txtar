@@ -22,21 +22,23 @@ mkdir $WORK/home/.claude
 mkdir $WORK/proyecto
 cd $WORK/proyecto
 exec kitlegal skills install -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/home/\.agents/skills/consulta-juridica","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/consulta-juridica","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 
 # Nada en el directorio de trabajo.
 arbol .
 ! stdout .
 
-# En HOME, lo de una instalación local con .claude/: las tres skills y el
+# En HOME, lo de una instalación local con .claude/: las cuatro skills y el
 # manifiesto en el directorio neutro y un enlace relativo por skill.
 arbol $WORK/home
-stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:normativa|jurisprudencia|plazos-y-territorio)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+|d \.claude|d \.claude/skills|l \.claude/skills/normativa -> \.\./\.\./\.agents/skills/normativa|l \.claude/skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia|l \.claude/skills/plazos-y-territorio -> \.\./\.\./\.agents/skills/plazos-y-territorio)\n)+\z'
+stdout '\A(?:(?:d \.agents|d \.agents/skills|[df] \.agents/skills/(?:normativa|consulta-juridica|jurisprudencia|plazos-y-territorio)(?:/\S+)?(?: [0-7]+ \S+)?|f \.agents/skills/kitlegal\.json [0-7]+ \S+|d \.claude|d \.claude/skills|l \.claude/skills/normativa -> \.\./\.\./\.agents/skills/normativa|l \.claude/skills/consulta-juridica -> \.\./\.\./\.agents/skills/consulta-juridica|l \.claude/skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia|l \.claude/skills/plazos-y-territorio -> \.\./\.\./\.agents/skills/plazos-y-territorio)\n)+\z'
 stdout '^f \.agents/skills/kitlegal\.json '
+stdout '^f \.agents/skills/consulta-juridica/SKILL\.md '
 stdout '^f \.agents/skills/jurisprudencia/SKILL\.md '
 stdout '^f \.agents/skills/plazos-y-territorio/SKILL\.md '
 stdout '^f \.agents/skills/normativa/SKILL\.md '
+stdout '^l \.claude/skills/consulta-juridica -> \.\./\.\./\.agents/skills/consulta-juridica$'
 stdout '^l \.claude/skills/jurisprudencia -> \.\./\.\./\.agents/skills/jurisprudencia$'
 stdout '^l \.claude/skills/plazos-y-territorio -> \.\./\.\./\.agents/skills/plazos-y-territorio$'
 stdout '^l \.claude/skills/normativa -> \.\./\.\./\.agents/skills/normativa$'
@@ -51,7 +53,7 @@ grep '"ruta": *"\.claude/skills/plazos-y-territorio"' $WORK/home/.agents/skills/
 env HOME=$WORK/home-sin-claude
 mkdir $WORK/home-sin-claude
 exec kitlegal skills install -g --json
-stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/consulta-juridica","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home-sin-claude/\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 arbol $WORK/home-sin-claude
 ! stdout '\.claude'
 arbol .
@@ -60,12 +62,12 @@ arbol .
 # --- list y doctor con -g leen el global, no el local (US6.4) ---
 #
 # El local solo tiene plazos-y-territorio, sin host, y con un fichero editado;
-# el global, las tres skills y sus enlaces, sin tocar.
+# el global, las cuatro skills y sus enlaces, sin tocar.
 env HOME=$WORK/home
 exec kitlegal skills install plazos-y-territorio
 exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/plazos-y-territorio/SKILL.md'
 exec kitlegal skills list -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/home/\.agents/skills/consulta-juridica","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/consulta-juridica","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stderr .
 exec kitlegal skills doctor -g --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'

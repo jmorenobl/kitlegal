@@ -970,9 +970,13 @@ func esDeUnNombre(b byte) bool {
 // las generadas y las a mano; los data/*.yaml de las cabeceras de las generadas
 // y de la marca de inicio de cada región de las a mano (c); y los paquetes de
 // los que parte el cierre de los applets de su tabla de
-// comandos (d). Es un error una referencia que no es a mano sin la cabecera
-// «generado desde», una tabla sin sus marcas o sin applets, o un applet de la
-// tabla sin fichero en internal/app (FR-005).
+// comandos (d). Una skill que no declara kitlegal-applets, como la de entrada,
+// no tiene tabla y no parte de ningún paquete: los suyos llegan por las skills
+// que nombra (contracts/evals.md §5 (d) de H32; research D10). Es un error un
+// frontmatter que no se puede leer, una referencia que no es a mano sin la
+// cabecera «generado desde», una tabla de una skill que declara applets sin sus
+// marcas o sin applets, o un applet de la tabla sin fichero en internal/app
+// (FR-005).
 func (c calculoDeDependencias) deUnaSkill(skill string, leida skillDelConjunto,
 ) ([]entradaDeDependencia, []string, error) {
 	directorio := directorioDeLasSkills + "/" + skill
@@ -989,6 +993,15 @@ func (c calculoDeDependencias) deUnaSkill(skill string, leida skillDelConjunto,
 	}
 
 	entradas = append(entradas, datos...)
+
+	frontmatter, err := skills.LeerFrontmatter(leida.skillMD)
+	if err != nil {
+		return nil, nil, fmt.Errorf("el frontmatter de %s/%s: %w", directorio, ficheroDeLaSkill, err)
+	}
+
+	if len(frontmatter.DeclaracionDeKitlegal().Applets) == 0 {
+		return entradas, nil, nil
+	}
 
 	applets, err := skills.AppletsDeLaTabla(leida.skillMD)
 	if err != nil {

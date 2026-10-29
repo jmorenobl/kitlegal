@@ -23,20 +23,20 @@ arbol .
 cp stdout $WORK/antes.txt
 exec kitlegal skills install --dry-run --json
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: instalada; Claude Code \.claude/skills/normativa \(enlace\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: instalada; Claude Code \.claude/skills/plazos-y-territorio \(enlace\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar consulta-juridica en \.agents/skills/consulta-juridica: instalada; Claude Code \.claude/skills/consulta-juridica \(enlace\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: instalada; Claude Code \.claude/skills/normativa \(enlace\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: instalada; Claude Code \.claude/skills/plazos-y-territorio \(enlace\)\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
 # Lo que predijo es lo que hace la orden real.
 exec kitlegal skills install --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"consulta-juridica","ruta":"\.agents/skills/consulta-juridica","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/consulta-juridica","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
 
 # --- Sin cambios ---
 arbol .
 cp stdout $WORK/antes.txt
 exec kitlegal skills install --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: sin cambios; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: sin cambios; Claude Code \.claude/skills/normativa \(enlace\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: sin cambios; Claude Code \.claude/skills/plazos-y-territorio \(enlace\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar consulta-juridica en \.agents/skills/consulta-juridica: sin cambios; Claude Code \.claude/skills/consulta-juridica \(enlace\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: sin cambios; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: sin cambios; Claude Code \.claude/skills/normativa \(enlace\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: sin cambios; Claude Code \.claude/skills/plazos-y-territorio \(enlace\)\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 
@@ -56,16 +56,16 @@ arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_V2_BIN skills install --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: actualizada\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: actualizada\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: actualizada\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar consulta-juridica en \.agents/skills/consulta-juridica: actualizada\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: actualizada\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: actualizada\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: actualizada\n\z'
 exec $KITLEGAL_V2_BIN skills install plazos-y-territorio --dry-run
 ! stdout .
 stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: actualizada\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
-grep -count=4 '"v0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=5 '"v0\.1\.0"' .agents/skills/kitlegal.json
 
 exec $KITLEGAL_V2_BIN skills install --json
-stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"actualizada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"consulta-juridica","ruta":"\.agents/skills/consulta-juridica","estado":"actualizada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"actualizada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"actualizada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
 
 # --- Con conflictos: el mismo fallo y el mismo código que sin la bandera ---
 cd $WORK/conflicto
@@ -92,7 +92,7 @@ mkdir $WORK/forzado
 cd $WORK/forzado
 exec kitlegal skills install --host claude --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: instalada; Claude Code \.claude/skills/normativa \(enlace\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: instalada; Claude Code \.claude/skills/plazos-y-territorio \(enlace\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar consulta-juridica en \.agents/skills/consulta-juridica: instalada; Claude Code \.claude/skills/consulta-juridica \(enlace\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(enlace\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: instalada; Claude Code \.claude/skills/normativa \(enlace\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: instalada; Claude Code \.claude/skills/plazos-y-territorio \(enlace\)\n\z'
 arbol .
 ! stdout .
 
@@ -106,11 +106,11 @@ arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --dry-run
 ! stdout .
-stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(copia\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: instalada; Claude Code \.claude/skills/normativa \(copia\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: instalada; Claude Code \.claude/skills/plazos-y-territorio \(copia\)\n\z'
+stderr '\A--dry-run: no se ha ejecutado nada; se habría ejecutado el applet "skills", el verbo "install", con los argumentos [^\n]*\n--dry-run: se habría pedido instalar consulta-juridica en \.agents/skills/consulta-juridica: instalada; Claude Code \.claude/skills/consulta-juridica \(copia\)\n--dry-run: se habría pedido instalar jurisprudencia en \.agents/skills/jurisprudencia: instalada; Claude Code \.claude/skills/jurisprudencia \(copia\)\n--dry-run: se habría pedido instalar normativa en \.agents/skills/normativa: instalada; Claude Code \.claude/skills/normativa \(copia\)\n--dry-run: se habría pedido instalar plazos-y-territorio en \.agents/skills/plazos-y-territorio: instalada; Claude Code \.claude/skills/plazos-y-territorio \(copia\)\n\z'
 arbol .
 cmp stdout $WORK/antes.txt
 exec $KITLEGAL_SIN_ENLACES_BIN skills install --json
-stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/normativa","modo":"copia"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/plazos-y-territorio","modo":"copia"\}\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"consulta-juridica","ruta":"\.agents/skills/consulta-juridica","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/consulta-juridica","modo":"copia"\}\]\},\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/jurisprudencia","modo":"copia"\}\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/normativa","modo":"copia"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/plazos-y-territorio","modo":"copia"\}\]\}\]\}\n\z'
 
 -- conflicto/.agents/skills/normativa/mio.md --
 Una carpeta que no instaló kitlegal.

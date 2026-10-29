@@ -50,7 +50,7 @@ exec kitlegal skills doctor -g
 
 # Con --json, el sobre de siempre y nada más: sin ~ ni nombres de marca.
 exec kitlegal skills list -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/home/\.agents/skills/consulta-juridica","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/consulta-juridica","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/consulta-juridica","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stdout 'Claude Code|~/'
 ! stderr .
 
@@ -119,6 +119,9 @@ stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario e
 -- esperado/install-g.txt --
 Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
 
+  consulta-juridica    instalada
+    Claude Code  ~/.claude/skills/consulta-juridica
+    Antigravity  ~/.gemini/config/skills/consulta-juridica
   jurisprudencia       instalada
     Claude Code  ~/.claude/skills/jurisprudencia
     Antigravity  ~/.gemini/config/skills/jurisprudencia
@@ -133,6 +136,9 @@ Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la L
 -- esperado/install-g-sin-cambios.txt --
 Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
 
+  consulta-juridica    sin cambios
+    Claude Code  ~/.claude/skills/consulta-juridica
+    Antigravity  ~/.gemini/config/skills/consulta-juridica
   jurisprudencia       sin cambios
     Claude Code  ~/.claude/skills/jurisprudencia
     Antigravity  ~/.gemini/config/skills/jurisprudencia
@@ -147,6 +153,9 @@ Ya estaban instaladas y al día: no se ha cambiado nada.
 -- esperado/list-g.txt --
 Skills de kitlegal en ~/.agents/skills (Codex las lee de ahí):
 
+  consulta-juridica    dev
+    Claude Code  ~/.claude/skills/consulta-juridica
+    Antigravity  ~/.gemini/config/skills/consulta-juridica
   jurisprudencia       dev
     Claude Code  ~/.claude/skills/jurisprudencia
     Antigravity  ~/.gemini/config/skills/jurisprudencia
@@ -161,6 +170,7 @@ Todo en orden: las skills de ~/.agents/skills son de kitlegal dev y están como 
 -- esperado/install-sin-hosts.txt --
 Skills de kitlegal dev en .agents/skills (Codex y Antigravity las leen de ahí):
 
+  consulta-juridica    instalada
   jurisprudencia       instalada
   normativa            instalada
   plazos-y-territorio  instalada
@@ -170,6 +180,7 @@ Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la L
 -- esperado/list-sin-hosts.txt --
 Skills de kitlegal en .agents/skills (Codex y Antigravity las leen de ahí):
 
+  consulta-juridica    dev
   jurisprudencia       dev
   normativa            dev
   plazos-y-territorio  dev
@@ -180,6 +191,8 @@ No hay skills de kitlegal en .agents/skills. Para instalarlas: kitlegal skills i
 -- esperado/install-copia.txt --
 Skills de kitlegal v0.1.0 en .agents/skills (Codex y Antigravity las leen de ahí):
 
+  consulta-juridica    instalada
+    Claude Code  .claude/skills/consulta-juridica (copia, porque en esa carpeta no se pueden crear enlaces)
   jurisprudencia       instalada
     Claude Code  .claude/skills/jurisprudencia (copia, porque en esa carpeta no se pueden crear enlaces)
   normativa            instalada
@@ -189,15 +202,17 @@ Skills de kitlegal v0.1.0 en .agents/skills (Codex y Antigravity las leen de ah�
 
 Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
 -- esperado/doctor-copia.txt --
-Hay 4 cosas que arreglar en las skills de .agents/skills:
+Hay 5 cosas que arreglar en las skills de .agents/skills:
 
   1. Las skills son de kitlegal v0.1.0 y este kitlegal es dev.
-     kitlegal skills install jurisprudencia normativa plazos-y-territorio --host claude
-  2. .claude/skills/jurisprudencia es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install consulta-juridica jurisprudencia normativa plazos-y-territorio --host claude
+  2. .claude/skills/consulta-juridica es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install consulta-juridica --host claude
+  3. .claude/skills/jurisprudencia es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
      kitlegal skills install jurisprudencia --host claude
-  3. .claude/skills/normativa es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+  4. .claude/skills/normativa es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
      kitlegal skills install normativa --host claude
-  4. .claude/skills/plazos-y-territorio es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+  5. .claude/skills/plazos-y-territorio es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
      kitlegal skills install plazos-y-territorio --host claude
 
 Ejecuta las órdenes en ese orden y vuelve a comprobarlo con «kitlegal skills doctor».
