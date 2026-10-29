@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -1256,9 +1257,11 @@ func TestEnsayoDeInstallConRetiradas(t *testing.T) {
 // contra la parte de su verbo leída de schemas/instalacion.json, y no contra lo
 // que emite --describe mientras se ejecuta el test. Lo hace toda salida correcta
 // de install, list y doctor —la de doctor, sin hallazgos—: cada estado y cada
-// modo de install, la lista de enlaces vacía, los tres ámbitos, la skill
-// declarada que el binario ya no lleva y, sin manifiesto, la de list y la de
-// doctor con la versión nula y la lista vacía, que el contrato tiene que admitir.
+// modo de install, también los de la skill de nombre retirado, la retirada y la
+// que no se retira con su aviso (H32, FR-026 y FR-027), la lista de enlaces
+// vacía, los tres ámbitos, la skill declarada que el binario ya no lleva y, sin
+// manifiesto, la de list y la de doctor con la versión nula y la lista vacía,
+// que el contrato tiene que admitir.
 // La validación restringe: el mismo sobre con una clave de más o de menos en su
 // data no valida.
 //
@@ -1324,6 +1327,14 @@ func salidasDeSkills() []salidaDeSkills {
 	soloAlfa := dependenciasDePrueba(disco.Enlazador{})
 	soloAlfa.Skills = sinLaSkill(skillsDePrueba(), "beta")
 
+	// Un binario anterior que aún empotra una skill de nombre retirado; su
+	// nombre sale de la lista, y no de un literal, por la búsqueda de FR-032.
+	retirado := slices.Sorted(maps.Keys(skillsRetiradas))[0]
+	conLaRetirada := dependenciasDePrueba(disco.Enlazador{})
+	empotradas := skillsDePrueba()
+	empotradas["skills/"+retirado+"/SKILL.md"] = &fstest.MapFile{Data: []byte("# " + retirado + "\n")}
+	conLaRetirada.Skills = empotradas
+
 	enlazada := `"modo":"enlace"`
 	copiada := `"modo":"copia"`
 	absoluta := `"ruta":"/`
@@ -1362,6 +1373,17 @@ func salidasDeSkills() []salidaDeSkills {
 			"install-dir", sinInstalar(".claude"),
 			[]string{"install", "--dir", "mis-skills"},
 			[]string{`"ruta":"mis-skills/alfa"`, `"enlaces":[]`},
+		},
+		{
+			"install-retirada", instaladoCon(conLaRetirada, sistema, nil, ".claude"),
+			[]string{"install"},
+			[]string{`"nombre":"` + retirado + `"`, `"estado":"retirada","enlaces":[{"host":"claude"`},
+		},
+		{
+			"install-sin-retirar-con-aviso",
+			conElSkillMdEditado(retirado, instaladoCon(conLaRetirada, sistema, nil, ".claude")),
+			[]string{"install"},
+			[]string{`"nombre":"` + retirado + `"`, `"estado":"sin retirar","enlaces":[],"aviso":"`},
 		},
 
 		{
@@ -1451,6 +1473,20 @@ func instaladoCon(antes, despues DependenciasDeSkills, argumentos []string, carp
 		require.Equal(t, 0, res.codigo, res.errores)
 
 		return registroDeSkills(t, despues)
+	}
+}
+
+// conElSkillMdEditado es la preparación con el SKILL.md de la skill de ese
+// nombre, en el ámbito local, editado después: su directorio ya no es lo que
+// declara el manifiesto.
+func conElSkillMdEditado(nombre string, prepara preparacionDeSkills) preparacionDeSkills {
+	return func(t *testing.T) *Registro {
+		t.Helper()
+
+		registro := prepara(t)
+		escribirEnElProyecto(t, filepath.Join(".agents", "skills", nombre, "SKILL.md"), "Editado a mano.\n")
+
+		return registro
 	}
 }
 

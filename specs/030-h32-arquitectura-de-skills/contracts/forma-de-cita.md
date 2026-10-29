@@ -58,10 +58,13 @@ misma línea** `⚠ NO CUBIERTO:` (la forma que ya reconoce `formaDeNoCubierto`)
 
 1. el identificador `no_cubierto.norma` de la eval, como hoy; y
 2. la cita, en la forma única, del precepto de su fila: la pareja `no_cubierto.precepto.norma` y
-   `no_cubierto.precepto.bloque`, extraída de esa línea con `ExtraerCitas` (`internal/evals/citas.go`).
+   `no_cubierto.precepto.bloque` entre corchetes que solo la contienen, `[<norma>, bloque <bloque>]`, extraída de esa
+   línea con `citasEnLaFormaUnica` (`internal/evals/citas.go`). La forma legible dentro de los corchetes, delante del
+   identificador, no es la forma única y no cuenta; `ExtraerCitas`, que la admite y mide las citas esperadas de todas
+   las evals desde H5, no cambia.
 
-`ExtraerNoCubierto` pasa a devolver, por cada línea, sus identificadores y sus citas, y `NoCubiertoDeclarado` exige las
-dos cosas en la misma línea. El umbral no cambia: `cobertura_sin_declarar`, 0 en cada modo, decide
+`ExtraerNoCubierto` pasa a devolver, por cada línea, sus identificadores y sus citas en la forma única, y
+`NoCubiertoDeclarado` exige las dos cosas en la misma línea. El umbral no cambia: `cobertura_sin_declarar`, 0 en cada modo, decide
 (`umbralDeCoberturaSinDeclarar`, `internal/evals/umbrales.go`).
 
 `no_cubierto.precepto` lo añade el hito a las evals de cobertura (07, 08 y 12) y al esquema (`schemas/eval.yaml.json`,
@@ -70,6 +73,6 @@ cada `no_cubierto.precepto` es el `precepto` de una fila de `data/cobertura.yaml
 la 08, la del tráfico; la 12, la de la Seguridad Social: las tres, `BOE-A-2015-10565` y `daprimera`).
 
 Tests, en `TestJuzgarPlazos` (`internal/evals/plazos_test.go`): una respuesta con la norma esperada y sin la cita del
-precepto no cuenta como declarada; con la norma en una línea y la cita en otra, tampoco; con las dos en la misma
-línea, sí. Las respuestas de ejemplo de hoy (`declaracionDeLaLGT`, `declaracionSinNorma`, `declaracionDeLaLeyDeTrafico`,
+precepto no cuenta como declarada; con la forma legible dentro de los corchetes de la cita, tampoco; con la norma en
+una línea y la cita en otra, tampoco; con las dos en la misma línea, sí. Las respuestas de ejemplo de hoy (`declaracionDeLaLGT`, `declaracionSinNorma`, `declaracionDeLaLeyDeTrafico`,
 `respuestaDeLa12`) pasan a llevar la cita.

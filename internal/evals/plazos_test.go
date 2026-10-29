@@ -51,6 +51,13 @@ const (
 		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
 		"recursos (DA 1ª.2.a LPAC)."
 
+	// declaracionDeLaLGTConLaFormaLegible es declaracionDeLaLGT con la forma
+	// legible del precepto dentro de los corchetes, delante del identificador:
+	// la pareja la extrae ExtraerCitas, pero no es la forma única.
+	declaracionDeLaLGTConLaFormaLegible = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General " +
+		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
+		"recursos [DA 1ª.2.a LPAC, " + lpacDeLasCoberturas + ", bloque " + bloqueDeLasCoberturas + "]."
+
 	// avisoDeLosLocales es el texto del aviso faltan-festivos-locales de plazos,
 	// tal como lo da data (contracts/applet-plazos.md §5 de H9).
 	avisoDeLosLocales = "⚠ FALTAN FESTIVOS LOCALES: kitlegal no tiene los de Tordesillas (47165) de 2026; la fecha " +
@@ -233,9 +240,9 @@ func probarLasLineasDelPlazo(t *testing.T) {
 // cada línea con la forma fija ⚠ NO CUBIERTO:, en su orden, con la tolerancia de
 // la etiqueta, y de cada una, cada identificador BOE-A-… entero de la línea —el
 // de la norma que rige el procedimiento, sin ella el de la LPAC, y el de la
-// cita— y cada cita de la línea con su forma (ExtraerCitas). El identificador y
-// la cita de otra línea no cuentan (contracts/forma-de-cita.md §4 de H32;
-// FR-014).
+// cita— y cada cita de la línea en la forma única, sin la que lleva la forma
+// legible dentro de los corchetes. El identificador y la cita de otra línea no
+// cuentan (contracts/forma-de-cita.md §4 de H32; FR-014).
 func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
 	t.Parallel()
 
@@ -260,6 +267,11 @@ func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
 			nombre:        "sin-la-cita",
 			respuesta:     declaracionDeLaLGTSinLaCita,
 			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas}}},
+		},
+		{
+			nombre:        "con-la-forma-legible-en-los-corchetes",
+			respuesta:     declaracionDeLaLGTConLaFormaLegible,
+			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas, lpacDeLasCoberturas}}},
 		},
 		{
 			nombre:        "con-enfasis",
@@ -466,8 +478,9 @@ func probarElJuicioDeUnPlazo(t *testing.T) {
 // probarElJuicioDeUnaCobertura fija el juicio de una eval de cobertura: con la
 // declaración de no cubierto con su norma y la cita de su precepto en la misma
 // línea, pasa, aunque la respuesta lleve una fecha suelta; sin declaración, con
-// la de otra norma, con la norma y sin la cita, con la cita de otro bloque, o con
-// la norma en una línea y la cita en otra —suelta o en otra declaración—, no,
+// la de otra norma, con la norma y sin la cita, con la cita de otro bloque, con
+// la forma legible dentro de los corchetes de la cita, o con la norma en una
+// línea y la cita en otra —suelta o en otra declaración—, no,
 // con el motivo declaración de no cubierto ausente; con una línea del plazo,
 // tampoco, con su motivo; y con plazos calcular ejecutado, como orden o como
 // llamada, tampoco, con el motivo de un comando prohibido, termine como termine
@@ -497,6 +510,11 @@ func probarElJuicioDeUnaCobertura(t *testing.T) {
 		{
 			nombre:    "con-la-cita-de-otro-bloque",
 			respuesta: strings.Replace(declaracionDeLaLGT, ", bloque "+bloqueDeLasCoberturas+"]", ", bloque a112]", 1),
+			juicio:    juicioDelPlazo{motivos: []string{ausente}},
+		},
+		{
+			nombre:    "con-la-forma-legible-en-los-corchetes",
+			respuesta: declaracionDeLaLGTConLaFormaLegible,
 			juicio:    juicioDelPlazo{motivos: []string{ausente}},
 		},
 		{

@@ -116,7 +116,9 @@ type DeclaracionDeNoCubierto struct {
 	// cita, en su orden y con sus repeticiones.
 	Normas []string
 
-	// Citas son las citas de la línea con su forma (ExtraerCitas), en su orden.
+	// Citas son las citas de la línea en la forma única (citasEnLaFormaUnica),
+	// en su orden: la que lleva la forma legible dentro de los corchetes no es
+	// una de ellas.
 	Citas []Cita
 }
 
@@ -124,8 +126,9 @@ type DeclaracionDeNoCubierto struct {
 // la forma fija de la declaración de no cubierto —la marca, la etiqueta NO
 // CUBIERTO y los dos puntos, con la tolerancia de las etiquetas de los avisos—,
 // en el orden en que aparecen, o nil si no lleva ninguna; de cada una, los
-// identificadores BOE-A-… y las citas de esa línea. El identificador y la cita
-// de otra línea no cuentan, y no lee ninguna otra redacción
+// identificadores BOE-A-… y las citas en la forma única de esa línea. El
+// identificador y la cita de otra línea no cuentan, y no lee ninguna otra
+// redacción
 // (contracts/evals-legal-core.md §2 de H9; FR-048; contracts/forma-de-cita.md
 // §4 de H32; FR-014).
 func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
@@ -135,7 +138,7 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
 		if formaDeNoCubierto.MatchString(linea) {
 			declaraciones = append(declaraciones, DeclaracionDeNoCubierto{
 				Normas: formaDeIdentificador.FindAllString(linea, -1),
-				Citas:  ExtraerCitas(linea),
+				Citas:  citasEnLaFormaUnica(linea),
 			})
 		}
 	}
@@ -144,8 +147,9 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
 }
 
 // declarada dice si alguna de las declaraciones lleva, en su misma línea, el
-// identificador de la norma esperada y la cita de su precepto, la pareja exacta
-// de su norma y su bloque (contracts/forma-de-cita.md §4 de H32; FR-014).
+// identificador de la norma esperada y la cita de su precepto en la forma única,
+// la pareja exacta de su norma y su bloque (contracts/forma-de-cita.md §4 de
+// H32; FR-014).
 func (e NoCubiertoEsperado) declarada(declaraciones []DeclaracionDeNoCubierto) bool {
 	return slices.ContainsFunc(declaraciones, func(deUnaLinea DeclaracionDeNoCubierto) bool {
 		return slices.Contains(deUnaLinea.Normas, e.Norma) && slices.Contains(deUnaLinea.Citas, Cita(e.Precepto))
@@ -222,7 +226,8 @@ func ComprobarCodigosDeAvisoDelPlazo(esquema *jsonschema.Schema) error {
 // ausente si no, y cada aviso esperado cuya forma fija no lleva la respuesta
 // (ExtraerAvisosDelPlazo), con el suyo. En una de cobertura, anota si alguna
 // declaración de no cubierto lleva en su misma línea la norma esperada y la
-// cita de su precepto (ExtraerNoCubierto; contracts/forma-de-cita.md §4 de H32;
+// cita de su precepto en la forma única (ExtraerNoCubierto;
+// contracts/forma-de-cita.md §4 de H32;
 // FR-014), con el motivo de la declaración ausente si no, y una línea del
 // plazo, de la fecha que sea, lleva el suyo. En una de vigencia, lo mismo con la
 // declaración de un plazo sin calcular con la norma esperada
