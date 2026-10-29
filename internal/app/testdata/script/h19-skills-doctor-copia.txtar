@@ -48,7 +48,7 @@ cmp .claude/skills/normativa/references/normas.md $KITLEGAL_SKILLS/normativa/ref
 cmp .claude/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
 cmp .claude/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 cmp .claude/skills/plazos-y-territorio/references/jerarquia_normativa.md $KITLEGAL_SKILLS/plazos-y-territorio/references/jerarquia_normativa.md
-cmp .claude/skills/plazos-y-territorio/references/leyes_vertebrales.md $KITLEGAL_SKILLS/plazos-y-territorio/references/leyes_vertebrales.md
+cmp .claude/skills/plazos-y-territorio/references/administrativo.md $KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
 grep -count=3 '"modo": *"copia"' .agents/skills/kitlegal.json
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/jurisprudencia/SKILL.md .claude/skills/jurisprudencia/SKILL.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json .claude/skills/plazos-y-territorio/SKILL.md .claude/skills/plazos-y-territorio/SKILL.md
@@ -84,14 +84,14 @@ exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 cmp .claude/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 
-rm .claude/skills/plazos-y-territorio/references/leyes_vertebrales.md
+rm .claude/skills/plazos-y-territorio/references/administrativo.md
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.claude/skills/plazos-y-territorio/references/leyes_vertebrales\.md","orden":"kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.claude/skills/plazos-y-territorio/references/administrativo\.md","orden":"kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-cmp .claude/skills/plazos-y-territorio/references/leyes_vertebrales.md $KITLEGAL_SKILLS/plazos-y-territorio/references/leyes_vertebrales.md
+cmp .claude/skills/plazos-y-territorio/references/administrativo.md $KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
 env PATH=$PATH_ORIGINAL
 
 # --- Con un creador que funciona, la copia es un hallazgo (US4.3) ---

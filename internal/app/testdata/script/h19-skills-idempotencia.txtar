@@ -78,10 +78,10 @@ cmp stdout $WORK/manifiesto-v1.json
 mkdir $WORK/falta
 cd $WORK/falta
 exec kitlegal skills install
-rm .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md
+rm .agents/skills/plazos-y-territorio/references/administrativo.md
 exec kitlegal skills install --json
 stdout '"data":\[\{"nombre":"jurisprudencia","ruta":"\.agents/skills/jurisprudencia","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"normativa","ruta":"\.agents/skills/normativa","estado":"sin cambios","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"\.agents/skills/plazos-y-territorio","estado":"actualizada","enlaces":\[\]\}\]\}\n\z'
-cmp .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md $KITLEGAL_SKILLS/plazos-y-territorio/references/leyes_vertebrales.md
+cmp .agents/skills/plazos-y-territorio/references/administrativo.md $KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
 
 # --- Un fichero declarado que ya no se empotra, con la huella intacta, se retira (FR-046) ---
 #

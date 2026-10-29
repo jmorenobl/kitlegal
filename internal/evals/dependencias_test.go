@@ -50,6 +50,7 @@ func TestConjuntoDeCadaEval(t *testing.T) {
 		{nombre: "lo-que-pide-fr-001-a-jurisprudencia", comprobar: comprobarFR001DeJurisprudencia},
 		{nombre: "applet-inexistente", comprobar: comprobarElAppletInexistente},
 		{nombre: "referencias-a-mano", comprobar: comprobarLasReferenciasAMano},
+		{nombre: "region-de-una-referencia-a-mano", comprobar: comprobarLasRegionesDeLasReferenciasAMano},
 		{nombre: "rutas-que-miden", comprobar: comprobarLasRutasQueMiden},
 	}
 
@@ -409,6 +410,48 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 			assert.Truef(t, conjunto.pertenece(ruta), "%s: el conjunto no contiene %s", conjunto.nombre(), ruta)
 		}
 	}
+}
+
+// comprobarLasRegionesDeLasReferenciasAMano añade en memoria a jurisprudencia,
+// cuyas evals no cargan ningún data/*.yaml, una referencia a mano con una región
+// generada, y comprueba que la parte (c) del conjunto de cada eval suya son los
+// data/*.yaml que nombra la marca de inicio de la región, y nada más
+// (contracts/evals.md §5 (c); contracts/paquetes.md §3; FR-038 de H32).
+func comprobarLasRegionesDeLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
+	t.Helper()
+
+	conRegion := "skills/jurisprudencia/references/" + referenciaAManoDelMutante
+
+	_, err := fs.Stat(calculo.repositorio, conRegion)
+	require.ErrorIsf(t, err, fs.ErrNotExist, "la referencia a mano %s es nueva", conRegion)
+
+	arbol := arbolConCambios{FS: calculo.repositorio, cambiados: fstest.MapFS{
+		conRegion: {Data: []byte("# Protocolo de detalle\n\n" +
+			"<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y data/normas.yaml con " +
+			"make skills-sync, no editar -->\n" +
+			"| Procedimiento | Línea que da la respuesta |\n|---|---|\n" +
+			"<!-- fin de cobertura_por_materia -->\n")},
+	}}
+
+	conjuntos, err := calcularDependencias(arbol, calculo.grafo)
+	require.NoError(t, err)
+
+	deJurisprudencia := 0
+
+	for _, conjunto := range conjuntos {
+		require.NoErrorf(t, conjunto.err, "%s: el conjunto no se puede calcular", conjunto.nombre())
+
+		if conjunto.skill != "jurisprudencia" {
+			continue
+		}
+
+		deJurisprudencia++
+
+		assert.Equalf(t, []string{"fichero data/cobertura.yaml", "fichero data/normas.yaml"},
+			entradasPorParte(conjunto)[parteDeLosDatos], "%s: (c)", conjunto.nombre())
+	}
+
+	require.Positive(t, deJurisprudencia, "jurisprudencia tiene evals")
 }
 
 // partesQueContienen son las partes de las entradas del conjunto que contienen
@@ -809,11 +852,18 @@ func entradasPorParte(conjunto dependenciasDeLaEval) map[parteDelConjunto][]stri
 // internal/skills.
 var cabeceraDeLaReferencia = regexp.MustCompile(`\A<!-- generado desde (data/[^,\n]+), no editar -->\n`)
 
+// inicioDeUnaRegion es la marca de inicio de una región generada de una
+// referencia a mano, con los data/*.yaml de los que sale separados por « y »
+// (contracts/paquetes.md §3 de H32): la otra sonda del test.
+var inicioDeUnaRegion = regexp.MustCompile(
+	`(?m)^<!-- inicio de [^:\n]+: generada desde (data/\S+(?: y data/\S+)*) con make skills-sync, no editar -->$`)
+
 // datosDeLasCabeceras son los data/*.yaml de las cabeceras de las referencias
-// de las skills cuyo SKILL.md está entre las entradas dadas, como entradas
-// fichero, ordenadas y sin repetir. La referencia sin cabecera es a mano y no
-// da ninguno (FR-014 de H31): si no lo fuera, el conjunto sería un error, y
-// quien llama lo comprueba antes.
+// de las skills cuyo SKILL.md está entre las entradas dadas, y los de las marcas
+// de inicio de cada región de sus referencias a mano, como entradas fichero,
+// ordenadas y sin repetir. La referencia sin cabecera es a mano y solo da los de
+// cada región suya (FR-014 de H31; contracts/evals.md §5 (c) de H32): si no lo fuera,
+// el conjunto sería un error, y quien llama lo comprueba antes.
 func datosDeLasCabeceras(t *testing.T, repositorio fs.FS, entradasDeLasSkills []string) []string {
 	t.Helper()
 
@@ -834,6 +884,14 @@ func datosDeLasCabeceras(t *testing.T, repositorio fs.FS, entradasDeLasSkills []
 
 			if cabecera := cabeceraDeLaReferencia.FindSubmatch(contenido); cabecera != nil {
 				datos = append(datos, string(entradaFichero)+" "+string(cabecera[1]))
+
+				continue
+			}
+
+			for _, marca := range inicioDeUnaRegion.FindAllSubmatch(contenido, -1) {
+				for _, fichero := range strings.Split(string(marca[1]), " y ") {
+					datos = append(datos, string(entradaFichero)+" "+fichero)
+				}
 			}
 		}
 	}

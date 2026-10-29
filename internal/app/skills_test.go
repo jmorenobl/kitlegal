@@ -827,8 +827,10 @@ func casosDePresupuestos(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCo
 // fuera de la región generada y no lleva corchete, comilla invertida, virgulilla
 // ni barra vertical, con los que podría ser parte de un enlace, de un código o de
 // un bloque de código, o de una tabla; las marcas de
-// la región tampoco lo son. Cada espacio es un carácter y cada salto otro, así
-// que el cuerpo conserva sus caracteres, y lo regenerado no cambia.
+// la región tampoco lo son, ni otra línea que empieza por <!--, como las marcas
+// de los paquetes, que partidas dejarían de serlo. Cada espacio es un carácter y
+// cada salto otro, así que el cuerpo conserva sus caracteres, y lo regenerado no
+// cambia.
 func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
 	return func(t *testing.T, copia string) {
 		t.Helper()
@@ -851,7 +853,8 @@ func partirElCuerpo(skill string, lineas int) func(t *testing.T, copia string) {
 			case finDeLaTablaDeComandos:
 				enLaTabla = false
 			default:
-				for !enLaTabla && !strings.ContainsAny(linea, "[`~|") && faltan > 0 && strings.Contains(linea, " ") {
+				for !enLaTabla && !strings.HasPrefix(linea, "<!--") && !strings.ContainsAny(linea, "[`~|") && faltan > 0 &&
+					strings.Contains(linea, " ") {
 					linea = strings.Replace(linea, " ", "\n", 1)
 					faltan--
 				}

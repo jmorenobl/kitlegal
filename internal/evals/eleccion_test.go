@@ -19,8 +19,10 @@ import (
 
 // TestEleccionDeLosMutantes calcula sobre el árbol del repositorio la elección
 // de cada mutante de SC-003 y de FR-002 a FR-007 (quickstart.md §2; data-model
-// §5), y la del de la referencia a mano de FR-014 de H31 (SC-004), que elige
-// lo mismo que un cambio de una referencia generada de su skill: la base es el
+// §5), la del de la referencia a mano de FR-014 de H31 (SC-004), que elige
+// lo mismo que un cambio de una referencia generada de su skill, y las de los de
+// FR-038 de H32, la referencia de un paquete y los datos de una región suya,
+// que eligen las evals de la skill que la enlaza: la base es el
 // repositorio; la cabeza, el repositorio con el mutante en
 // memoria, con sus conjuntos, calculados sobre ella. Cada subtest compara las
 // evals elegidas, eval por eval, con las que espera, sacadas del listado de
@@ -59,11 +61,21 @@ func TestEleccionDeLosMutantes(t *testing.T) {
 		mutanteReferenciaAManoDePlazosYTerritorio: {
 			evals: evalsDeLasSkills(evals, "plazos-y-territorio"), motivo: motivoConjunto,
 		},
+		mutanteReferenciaDelPaquete: {evals: evalsDeLasSkills(evals, "plazos-y-territorio"), motivo: motivoConjunto},
+		mutanteDatosDeLaCobertura:   {evals: evalsDeLasSkills(evals, "plazos-y-territorio"), motivo: motivoConjunto},
 	}
 
-	casos := append(mutantesDeLaEleccion(t, repositorio, base), mutanteConNombre{
-		nombre: mutanteReferenciaAManoDePlazosYTerritorio, mutante: conUnaReferenciaAMano(t, repositorio, "plazos-y-territorio"),
-	})
+	casos := append(mutantesDeLaEleccion(t, repositorio, base),
+		mutanteConNombre{
+			nombre:  mutanteReferenciaAManoDePlazosYTerritorio,
+			mutante: conUnaReferenciaAMano(t, repositorio, "plazos-y-territorio"),
+		},
+		mutanteConNombre{
+			nombre:  mutanteReferenciaDelPaquete,
+			mutante: conUnaLineaMas(t, repositorio, "skills/plazos-y-territorio/references/administrativo.md"),
+		},
+		mutanteConNombre{nombre: mutanteDatosDeLaCobertura, mutante: conUnaLineaMas(t, repositorio, "data/cobertura.yaml")},
+	)
 	require.Len(t, casos, len(esperadas), "un esperado por mutante")
 
 	for _, caso := range casos {
@@ -124,6 +136,15 @@ const (
 // (SC-004), que solo elige: la matriz de TestMatrizDeLasPropuestas es la de las
 // ejecuciones fijas de H30.
 const mutanteReferenciaAManoDePlazosYTerritorio = "referencia-a-mano-de-plazos-y-territorio"
+
+// Los mutantes de FR-038 de H32, que solo eligen (contracts/evals.md §5): la
+// referencia del paquete de lo administrativo, a mano y con una región por tabla, que
+// plazos-y-territorio enlaza; y data/cobertura.yaml, del que sale su región de la
+// cobertura.
+const (
+	mutanteReferenciaDelPaquete = "referencia-del-paquete-de-plazos-y-territorio"
+	mutanteDatosDeLaCobertura   = "datos-de-la-cobertura"
+)
 
 // mutanteConNombre es un mutante de SC-003 o de FR-002 a FR-007 con su nombre.
 type mutanteConNombre struct {
@@ -814,18 +835,18 @@ evals (normativa): medidas 0, reutilizadas 23
   22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md)
+  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
+  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md)
 ## cuerpo-de-normativa
 evals (jurisprudencia): medidas 0, reutilizadas 10
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
@@ -1208,18 +1229,18 @@ evals (normativa): medidas 0, reutilizadas 23
   22-lcsp-contrato-menor-en-2019.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
   23-lpac-articulo-21-en-2016.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)
 evals (plazos-y-territorio): medidas 12, reutilizadas 0
-  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
-  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/cobertura_por_materia.md, skills/plazos-y-territorio/references/cobertura_por_materia_renombrada.md)
+  01-territorio-municipio-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  02-territorio-municipio-no-cubierto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  03-no-activa-receta-de-cocina.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  04-sin-binario-ni-servidor.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  05-plazo-reposicion-leganes.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  06-plazo-reposicion-tordesillas.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  07-cobertura-liquidacion-tributaria.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  08-cobertura-multa-de-trafico.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  09-plazo-contencioso-agosto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  10-plazo-reposicion-anterior-a-la-lpac.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  11-plazo-reposicion-sin-leer-el-precepto.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
+  12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml: medida: rutas de su conjunto (skills/plazos-y-territorio/references/jerarquia_normativa.md, skills/plazos-y-territorio/references/jerarquia_normativa_renombrada.md)
 ## etiqueta-evals-sin-nada-elegido
 evals (jurisprudencia): medidas 0, reutilizadas 10
   01-existe-con-numero-y-fecha.yaml: reutilizada de la ejecución 301 (propuesta #199, cabeza-, 2026-10-22T11:00:00Z)

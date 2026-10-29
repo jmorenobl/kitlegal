@@ -75,10 +75,16 @@ type SkillRegenerada struct {
 	// kitlegal-referencias y en su orden; nil si no declara ninguna.
 	Referencias []Referencia
 
+	// AManoConRegiones son las referencias a mano que llevan alguna región
+	// generada (contracts/paquetes.md §3 de H32), con lo que hay entre sus marcas
+	// regenerado y lo demás tal cual, en orden de nombre; nil si no hay ninguna.
+	AManoConRegiones []Referencia
+
 	// Defectos son los de la skill, en el orden frontmatter, cuerpo, región,
-	// datos, references/ y scripts/; nil si no tiene ninguno. Con alguno, Contenido y
-	// Referencias van vacíos: no hay nada regenerado que escribir ni con que
-	// comparar.
+	// datos, cada región de references/, references/, scripts/ y filas de la
+	// cobertura sin región; nil si no tiene ninguno. Con alguno, Contenido,
+	// Referencias y AManoConRegiones van vacíos: no hay nada regenerado que escribir
+	// ni con que comparar.
 	Defectos []*DefectoDeSkill
 }
 
@@ -175,19 +181,28 @@ func (d *Deriva) Error() string {
 //     marcas que no van en pareja, son un defecto;
 //   - el cuerpo de SKILL.md, tal como quedaría, tiene que tener menos de 500
 //     líneas y como mucho 11 000 caracteres (defectosDelCuerpo);
+//   - con el frontmatter sin defectos, cada referencia a mano lleva entre las
+//     marcas de cada región suya la tabla de su generador desde data/, y
+//     nada más cambia (contracts/paquetes.md §3 de H32; datosDeLasRegiones);
 //   - references/ solo lleva ficheros regulares .md, y cada referencia, generada
 //     o a mano, está enlazada desde ese cuerpo, no enlaza otra y, con más de 100
 //     líneas, abre con su índice (defectosDeReferences);
-//   - la skill no lleva scripts/ (defectoDeLosScripts), tampoco sin SKILL.md.
+//   - la skill no lleva scripts/ (defectoDeLosScripts), tampoco sin SKILL.md;
+//   - cada fila de data/cobertura.yaml la genera una región de la cobertura
+//     (filasSinRegion): la que no, es un defecto de cada skill cuyo SKILL.md
+//     tiene las dos formas ⚠ NO CUBIERTO:, que es la que da su línea; un árbol
+//     sin ninguna, como la copia de una sola skill que no las tiene, no da la
+//     línea de ninguna fila y no tiene ese defecto.
 //
 // Nada de eso sale de una lista escrita para una skill concreta: sale de la
 // declaración de kitlegal de cada una y de data/. Los defectos de una skill van
-// en el orden frontmatter, cuerpo, región, datos, references/ y scripts/, cada
-// uno con la skill y lo que falla; con alguno, la skill no lleva nada
-// regenerado. El error queda para lo que impide regenerar: un directorio de
-// skills, de datos o de referencias que no se puede listar, o una entrada que no
-// se puede consultar o leer. Los paquetes se leen una vez, con la primera skill
-// cuyo frontmatter no tiene defectos (leerPaquetes).
+// en el orden frontmatter, cuerpo, región, datos, cada región de references/,
+// references/, scripts/ y filas sin región, cada uno con la skill y lo que
+// falla; con alguno, la skill no lleva nada regenerado. El error queda para lo
+// que impide regenerar: un directorio de skills, de datos o de referencias que no
+// se puede listar, o una entrada que no se puede consultar o leer. Los paquetes
+// se leen una vez, con la primera skill cuyo frontmatter no tiene defectos
+// (leerPaquetes), y cada YAML de una región, una vez, cuando se pide.
 func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, error) {
 	nombres, err := Listar(raiz)
 	if err != nil {
@@ -200,17 +215,55 @@ func Regenerar(raiz string, descripciones []DescripcionDeVerbo) (Regenerado, err
 	losPaquetes := sync.OnceValues(func() (paquetes, error) {
 		return leerPaquetes(raiz, nombres)
 	})
+	datos := leerDatosDeLasRegiones(raiz)
+
+	var (
+		cubiertos []string
+		conFormas []int
+	)
 
 	for _, nombre := range nombres {
-		skill, err := regenerarSkill(raiz, nombre, registrados, descripciones, losPaquetes)
+		skill, tablas, err := regenerarSkill(raiz, nombre, registrados, descripciones, losPaquetes, datos)
 		if err != nil {
 			return Regenerado{}, err
 		}
 
+		if tablas.conFormas {
+			conFormas = append(conFormas, len(regenerado.Skills))
+		}
+
+		cubiertos = append(cubiertos, tablas.cubiertos...)
 		regenerado.Skills = append(regenerado.Skills, skill)
 	}
 
+	sinRegion, err := datos.filasSinRegion(cubiertos)
+	if err != nil {
+		return Regenerado{}, err
+	}
+
+	regenerado.anotarFilasSinRegion(sinRegion, conFormas)
+
 	return regenerado, nil
+}
+
+// anotarFilasSinRegion añade los defectos de las filas de la cobertura sin región
+// a cada skill de las posiciones dadas —las que tienen las dos formas ⚠ NO
+// CUBIERTO:—, que dejan de llevar nada regenerado.
+func (r Regenerado) anotarFilasSinRegion(sinRegion []string, posiciones []int) {
+	if len(sinRegion) == 0 {
+		return
+	}
+
+	for _, posicion := range posiciones {
+		skill := r.Skills[posicion]
+		defectos := skill.Defectos
+
+		for _, fila := range sinRegion {
+			defectos = append(defectos, &DefectoDeSkill{Skill: skill.Nombre, Defecto: fila})
+		}
+
+		r.Skills[posicion] = SkillRegenerada{Nombre: skill.Nombre, Defectos: defectos}
+	}
 }
 
 // appletsDescritos son los applets de las descripciones, cada uno una vez, en el
@@ -229,10 +282,11 @@ func appletsDescritos(descripciones []DescripcionDeVerbo) []string {
 }
 
 // regenerarSkill construye lo regenerado de la skill de nombre, o sus defectos,
-// con los paquetes del repositorio que da losPaquetes.
+// con los paquetes del repositorio que da losPaquetes y los datos de cada
+// región, y lo que cada región suya da para las filas de la cobertura.
 func regenerarSkill(raiz, nombre string, registrados []string, descripciones []DescripcionDeVerbo,
-	losPaquetes func() (paquetes, error),
-) (SkillRegenerada, error) {
+	losPaquetes func() (paquetes, error), datos *datosDeLasRegiones,
+) (SkillRegenerada, regionesDeLaSkill, error) {
 	skill, err := Cargar(raiz, nombre)
 
 	// Sin un SKILL.md que leer, Cargar da su defecto y no hay nada que
@@ -241,26 +295,31 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 
 	sinSkillMd := errors.As(err, &deSkillMd)
 	if err != nil && !sinSkillMd {
-		return SkillRegenerada{}, err
+		return SkillRegenerada{}, regionesDeLaSkill{}, err
 	}
 
 	deLosScripts, err := defectoDeLosScripts(raiz, nombre)
 	if err != nil {
-		return SkillRegenerada{}, err
+		return SkillRegenerada{}, regionesDeLaSkill{}, err
 	}
 
 	if sinSkillMd {
-		return SkillRegenerada{Nombre: nombre, Defectos: slices.Concat([]*DefectoDeSkill{deSkillMd}, deLosScripts)}, nil
+		return SkillRegenerada{Nombre: nombre, Defectos: slices.Concat([]*DefectoDeSkill{deSkillMd}, deLosScripts)},
+			regionesDeLaSkill{}, nil
 	}
 
 	deKitlegal, deFrontmatter, err := declaracionDeLaSkill(raiz, skill, registrados)
 	if err != nil {
-		return SkillRegenerada{}, err
+		return SkillRegenerada{}, regionesDeLaSkill{}, err
 	}
 
 	regenerada := SkillRegenerada{Nombre: nombre, Contenido: skill.Contenido}
 
-	var deLaRegion, deLosDatos []*DefectoDeSkill
+	var (
+		deLaRegion, deLosDatos []*DefectoDeSkill
+		aMano                  []Referencia
+		tablas                 regionesDeLaSkill
+	)
 
 	if len(deFrontmatter) == 0 {
 		regenerada.Contenido, deLaRegion = contenidoRegenerado(skill, deKitlegal.Applets, descripciones)
@@ -272,7 +331,7 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 
 		delRepositorio, err = losPaquetes()
 		if err != nil {
-			return SkillRegenerada{}, err
+			return SkillRegenerada{}, regionesDeLaSkill{}, err
 		}
 
 		regenerada.Contenido, deLasMarcas, deLasNormas = delRepositorio.regenerar(nombre, regenerada.Contenido)
@@ -280,24 +339,68 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 
 		regenerada.Referencias, deLosDatos, err = referenciasGeneradas(raiz, nombre, deKitlegal.Referencias)
 		if err != nil {
-			return SkillRegenerada{}, err
+			return SkillRegenerada{}, regionesDeLaSkill{}, err
 		}
 
-		deLosDatos = sinRepetir(deLosDatos, deLasNormas)
+		aMano, tablas, err = referenciasAManoRegeneradas(raiz, nombre, regenerada.Contenido, datos)
+		if err != nil {
+			return SkillRegenerada{}, regionesDeLaSkill{}, err
+		}
+
+		regenerada.AManoConRegiones = tablas.referencias
+		deLosDatos = sinRepetir(sinRepetir(deLosDatos, deLasNormas), tablas.deLosDatos)
 	}
 
-	deReferences, err := defectosDeReferences(raiz, regenerada, len(deFrontmatter) == 0 && len(deLosDatos) == 0)
+	deReferences, err := defectosDeReferences(raiz, regenerada, conLasRegiones(aMano, tablas.referencias),
+		len(deFrontmatter) == 0 && len(deLosDatos) == 0)
 	if err != nil {
-		return SkillRegenerada{}, err
+		return SkillRegenerada{}, regionesDeLaSkill{}, err
 	}
 
 	defectos := slices.Concat(deFrontmatter, defectosDelCuerpo(nombre, regenerada.Contenido), deLaRegion, deLosDatos,
-		deReferences, deLosScripts)
+		tablas.deLasMarcas, deReferences, deLosScripts)
 	if len(defectos) > 0 {
-		return SkillRegenerada{Nombre: nombre, Defectos: defectos}, nil
+		return SkillRegenerada{Nombre: nombre, Defectos: defectos}, tablas, nil
 	}
 
-	return regenerada, nil
+	return regenerada, tablas, nil
+}
+
+// referenciasAManoRegeneradas son las referencias a mano de la skill del
+// repositorio de raíz, tal como están, y lo que da cada región suya regenerada
+// con los datos y con el SKILL.md de la skill regenerado. El error queda para lo
+// que no se puede leer.
+func referenciasAManoRegeneradas(raiz, skill string, skillMd []byte, datos *datosDeLasRegiones) (
+	[]Referencia, regionesDeLaSkill, error,
+) {
+	aMano, err := ReferenciasAMano(os.DirFS(raiz), skill)
+	if err != nil {
+		return nil, regionesDeLaSkill{}, err
+	}
+
+	tablas, err := datos.regenerar(skill, skillMd, aMano)
+	if err != nil {
+		return nil, regionesDeLaSkill{}, err
+	}
+
+	return aMano, tablas, nil
+}
+
+// conLasRegiones son las referencias a mano, cada una con cada región suya
+// regenerada si está entre las regeneradas, y como está si no.
+func conLasRegiones(aMano, regeneradas []Referencia) []Referencia {
+	referencias := slices.Clone(aMano)
+
+	for posicion, referencia := range referencias {
+		indice := slices.IndexFunc(regeneradas, func(regenerada Referencia) bool {
+			return regenerada.Fichero == referencia.Fichero
+		})
+		if indice >= 0 {
+			referencias[posicion] = regeneradas[indice]
+		}
+	}
+
+	return referencias
 }
 
 // defectosDeReferences son los de references/ de la skill regenerada del
@@ -305,10 +408,13 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 // FR-006 a FR-009 de H31): uno por cada entrada que no es un fichero regular .md,
 // en orden de nombre, que nadie retira; y, si la skill tiene todo lo regenerado
 // —el frontmatter y los datos sin defectos—, los de sus referencias, las
-// generadas como las regenera su fila y las a mano como están, con el cuerpo de
-// su SKILL.md regenerado (defectosDeEnlacesEIndices). Sin eso, las declaradas no
-// se han generado y no hay referencias que mirar.
-func defectosDeReferences(raiz string, skill SkillRegenerada, conTodoRegenerado bool) ([]*DefectoDeSkill, error) {
+// generadas como las regenera su fila y las a mano dadas, con cada región suya
+// regenerada, con el cuerpo de su SKILL.md regenerado
+// (defectosDeEnlacesEIndices). Sin eso, las declaradas no se han generado y no
+// hay referencias que mirar.
+func defectosDeReferences(raiz string, skill SkillRegenerada, aMano []Referencia, conTodoRegenerado bool) (
+	[]*DefectoDeSkill, error,
+) {
 	arbol := os.DirFS(raiz)
 
 	noMd, err := entradasQueNoSonFicherosMd(arbol, skill.Nombre)
@@ -327,11 +433,6 @@ func defectosDeReferences(raiz string, skill SkillRegenerada, conTodoRegenerado 
 
 	if !conTodoRegenerado {
 		return defectos, nil
-	}
-
-	aMano, err := ReferenciasAMano(arbol, skill.Nombre)
-	if err != nil {
-		return nil, err
 	}
 
 	cuerpo, _ := cuerpoDeLaSkill(skill.Contenido)
@@ -527,8 +628,10 @@ func defectosDelError(skill, fichero string, err error) []*DefectoDeSkill {
 // Comparar compara lo regenerado con el árbol del repositorio de raíz sin
 // escribir nada (data-model §5; FR-042) y devuelve una Deriva por cada
 // diferencia, skill a skill y, en cada una, en este orden: SKILL.md, las
-// referencias declaradas y las entradas sobrantes de references/. Una referencia
-// a mano no es ninguna deriva (FR-012). Una skill con defectos no tiene nada
+// referencias declaradas, las referencias a mano con alguna región y las entradas
+// sobrantes de references/. Una referencia a mano solo es una deriva si lo que
+// hay entre las marcas de alguna región suya no es lo generado (FR-012; contracts/paquetes.md
+// §3 de H32). Una skill con defectos no tiene nada
 // regenerado con que comparar y no da ninguna. El error queda para lo que impide
 // comparar: una entrada que no se puede consultar o leer, o un references/ que no
 // es un directorio.
@@ -550,8 +653,9 @@ func Comparar(raiz string, regenerado Regenerado) ([]*Deriva, error) {
 // Escribir deja el árbol del repositorio de raíz como lo regenerado
 // (contrato sincronizacion-y-comprobacion §2; FR-034, FR-036): deshace cada
 // deriva que da Comparar, y nada más. Escribe los ficheros generados que faltan o
-// que difieren y retira las entradas sobrantes de references/; no escribe, no
-// rehace ni retira una referencia a mano (FR-012), ni retira lo que no es un
+// que difieren y retira las entradas sobrantes de references/; de una referencia
+// a mano solo reescribe lo que hay entre las marcas de cada región suya, y no la
+// rehace ni la retira (FR-012; contracts/paquetes.md §3 de H32), ni retira lo que no es un
 // fichero regular .md, que es un defecto (FR-006 de H31). Lo que ya
 // coincide no se toca, así que sobre un árbol sin derivas no escribe nada, ni
 // siquiera un tiempo de modificación. No crea ningún scripts/ ni retira el que
@@ -660,8 +764,9 @@ func arreglosDe(raiz string, regenerado Regenerado) ([]arreglo, error) {
 }
 
 // arreglosDeLaSkill son los arreglos de las derivas de la skill del repositorio
-// de raíz: SKILL.md, las referencias declaradas y las entradas sobrantes de
-// references/, que no son ni una referencia declarada ni una a mano (FR-012).
+// de raíz: SKILL.md, las referencias declaradas, las referencias a mano con
+// alguna región y las entradas sobrantes de references/, que no son ni una referencia
+// declarada ni una a mano (FR-012).
 func arreglosDeLaSkill(raiz string, skill SkillRegenerada) ([]arreglo, error) {
 	directorio := filepath.Join(raiz, carpetaDeLasSkills, skill.Nombre)
 
@@ -691,6 +796,16 @@ func arreglosDeLaSkill(raiz string, skill SkillRegenerada) ([]arreglo, error) {
 
 		arreglos = append(arreglos, deLaReferencia...)
 		conservadas = append(conservadas, referencia.Fichero)
+	}
+
+	for _, referencia := range skill.AManoConRegiones {
+		deLaReferencia, err := arregloDelFichero(directorio, skill.Nombre,
+			carpetaDeLasReferencias+"/"+referencia.Fichero, referencia.Contenido)
+		if err != nil {
+			return nil, err
+		}
+
+		arreglos = append(arreglos, deLaReferencia...)
 	}
 
 	for _, referencia := range aMano {

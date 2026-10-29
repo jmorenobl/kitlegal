@@ -968,7 +968,8 @@ func esDeUnNombre(b byte) bool {
 
 // deUnaSkill son, de una skill de la eval, su SKILL.md y sus referencias (b),
 // las generadas y las a mano; los data/*.yaml de las cabeceras de las generadas
-// (c); y los paquetes de los que parte el cierre de los applets de su tabla de
+// y de la marca de inicio de cada región de las a mano (c); y los paquetes de
+// los que parte el cierre de los applets de su tabla de
 // comandos (d). Es un error una referencia que no es a mano sin la cabecera
 // «generado desde», una tabla sin sus marcas o sin applets, o un applet de la
 // tabla sin fichero en internal/app (FR-005).
@@ -1011,9 +1012,11 @@ func (c calculoDeDependencias) deUnaSkill(skill string, leida skillDelConjunto,
 
 // datosDeLasReferencias son los data/*.yaml de las cabeceras de las
 // referencias del directorio, uno por fichero que no está entre las a mano
-// dadas (FR-001(c); FR-014 de H31): una referencia a mano no da parte (c).
-// Ninguno si el directorio no existe. Es un error que no se pueda listar o
-// leer, o que una referencia que no es a mano no tenga la cabecera.
+// dadas (FR-001(c); FR-014 de H31), y los que nombran las marcas de inicio de
+// cada región generada de las a mano (skills.DatosDeLasRegiones;
+// contracts/evals.md §5 (c) de H32): sin ninguna región, una referencia a mano no da
+// parte (c). Ninguno si el directorio no existe. Es un error que no se pueda
+// listar o leer, o que una referencia que no es a mano no tenga la cabecera.
 func (c calculoDeDependencias) datosDeLasReferencias(referencias string, aMano []skills.Referencia,
 ) ([]entradaDeDependencia, error) {
 	ficheros, err := fs.ReadDir(c.arbol, referencias)
@@ -1028,10 +1031,7 @@ func (c calculoDeDependencias) datosDeLasReferencias(referencias string, aMano [
 	var datos []entradaDeDependencia
 
 	for _, fichero := range ficheros {
-		esAMano := slices.ContainsFunc(aMano, func(referencia skills.Referencia) bool {
-			return referencia.Fichero == fichero.Name()
-		})
-		if fichero.IsDir() || esAMano {
+		if fichero.IsDir() {
 			continue
 		}
 
@@ -1040,6 +1040,16 @@ func (c calculoDeDependencias) datosDeLasReferencias(referencias string, aMano [
 		contenido, err := fs.ReadFile(c.arbol, ruta)
 		if err != nil {
 			return nil, fmt.Errorf("%s no se puede leer: %w", ruta, err)
+		}
+
+		if slices.ContainsFunc(aMano, func(referencia skills.Referencia) bool {
+			return referencia.Fichero == fichero.Name()
+		}) {
+			for _, deDatos := range skills.DatosDeLasRegiones(contenido) {
+				datos = append(datos, entradaDeDependencia{clase: entradaFichero, ruta: deDatos, parte: parteDeLosDatos})
+			}
+
+			continue
 		}
 
 		deDatos, generada := skills.DatosDeLaReferencia(contenido)

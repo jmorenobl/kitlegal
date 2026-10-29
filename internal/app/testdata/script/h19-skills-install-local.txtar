@@ -53,7 +53,8 @@ stdout '^f \.agents/skills/jurisprudencia/SKILL\.md '
 stdout '^d \.agents/skills/plazos-y-territorio$'
 stdout '^f \.agents/skills/plazos-y-territorio/SKILL\.md '
 stdout '^f \.agents/skills/plazos-y-territorio/references/jerarquia_normativa\.md '
-stdout '^f \.agents/skills/plazos-y-territorio/references/leyes_vertebrales\.md '
+stdout '^f \.agents/skills/plazos-y-territorio/references/administrativo\.md '
+! stdout '/references/(?:cobertura_por_materia|recursos_y_plazos|leyes_vertebrales)\.md '
 stdout '^f \.agents/skills/kitlegal\.json '
 ! stdout '/scripts'
 ! stdout '^l '
@@ -71,7 +72,7 @@ cmp .agents/skills/normativa/references/normas.md $KITLEGAL_SKILLS/normativa/ref
 cmp .agents/skills/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
 cmp .agents/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 cmp .agents/skills/plazos-y-territorio/references/jerarquia_normativa.md $KITLEGAL_SKILLS/plazos-y-territorio/references/jerarquia_normativa.md
-cmp .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md $KITLEGAL_SKILLS/plazos-y-territorio/references/leyes_vertebrales.md
+cmp .agents/skills/plazos-y-territorio/references/administrativo.md $KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
 
 # El manifiesto: la versión del binario que lo escribió, la de cada skill y la
 # huella SHA-256 de cada fichero instalado, con su ruta relativa al directorio
@@ -83,7 +84,7 @@ exec sh $WORK/declara.sh .agents/skills/kitlegal.json normativa/references/norma
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json jurisprudencia/SKILL.md .agents/skills/jurisprudencia/SKILL.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/SKILL.md .agents/skills/plazos-y-territorio/SKILL.md
 exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/references/jerarquia_normativa.md .agents/skills/plazos-y-territorio/references/jerarquia_normativa.md
-exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/references/leyes_vertebrales.md .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md
+exec sh $WORK/declara.sh .agents/skills/kitlegal.json plazos-y-territorio/references/administrativo.md .agents/skills/plazos-y-territorio/references/administrativo.md
 ! grep '"hosts"' .agents/skills/kitlegal.json
 ! grep ${WORK@R} .agents/skills/kitlegal.json
 ! grep '"/' .agents/skills/kitlegal.json

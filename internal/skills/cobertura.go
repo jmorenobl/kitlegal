@@ -15,8 +15,9 @@ const rutaDelEsquemaDeCobertura = "../../schemas/cobertura.yaml.json"
 // Cobertura es data/cobertura.yaml leído y validado contra su esquema
 // (contracts/datos-de-plazos.md §3 de H9; FR-031; research D17 de H9): los
 // procedimientos que la LPAC deja a su normativa específica, en el orden del
-// documento. Solo lo lee la skill plazos-y-territorio, por su referencia
-// generada; el binario no lo lleva.
+// documento. Solo lo lee la skill que tiene las formas ⚠ NO CUBIERTO:, por la
+// región cobertura_por_materia de la referencia de cada paquete
+// (contracts/paquetes.md §3 de H32); el binario no lo lleva.
 type Cobertura struct {
 	// ReguladosAparte son los procedimientos, al menos uno.
 	ReguladosAparte []ReguladoAparte `yaml:"regulados_aparte"`

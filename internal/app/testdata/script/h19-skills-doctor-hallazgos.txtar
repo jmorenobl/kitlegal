@@ -69,14 +69,14 @@ stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 mkdir $WORK/falta
 cd $WORK/falta
 exec kitlegal skills install
-rm .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md
+rm .agents/skills/plazos-y-territorio/references/administrativo.md
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/references/leyes_vertebrales\.md","orden":"kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/references/administrativo\.md","orden":"kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-cmp .agents/skills/plazos-y-territorio/references/leyes_vertebrales.md $KITLEGAL_SKILLS/plazos-y-territorio/references/leyes_vertebrales.md
+cmp .agents/skills/plazos-y-territorio/references/administrativo.md $KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
 
 # --- Una entrada de host que apunta a otro sitio (US4.3) ---
 #
