@@ -1,0 +1,6 @@
+# La fila de cobertura de la vertical de ensayo de TestVerticalDeEnsayo (contracts/paquetes.md §5 de H32), con su
+# precepto en la primera de sus dos normas: el test la añade a regulados_aparte de data/cobertura.yaml en una copia del
+# repositorio, y la genera la región cobertura_por_materia de skills/plazos-y-territorio/references/ensayo.md.
+regulados_aparte:
+  - procedimiento: procedimientos de ensayo del molde de los paquetes
+    precepto: {norma: BOE-A-1900-1, bloque: a1, apartado: "1"}
