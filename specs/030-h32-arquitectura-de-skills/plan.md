@@ -305,8 +305,7 @@ El sondeo de SC-016; las capturas de `/instalar/` que enseñan una skill de hoy;
 ADR anteriores, que nombran las skills de hoy; la grabación nueva de la Ley 50/1980 y su evidencia, y los ficheros
 modificados de `testdata/` y `schemas/` (constitución, capa 3). De la reparación del cierre (research D23): la ayuda
 del argumento `bloque` de `kitlegal boe articulo` («Identificador del bloque en el índice de la norma: a21, da-3…»,
-`internal/app/boe.go`), que el modo herramienta ve como descripción del parámetro y que invita a componer el id con el
-número del artículo; el applet `boe` está fuera del alcance de este hito, y la cambia, con la comprobación del id contra
+`internal/app/boe.go`), solo en `--help`, que invita a componer el id con el número del artículo; el applet `boe` está fuera del alcance de este hito, y la cambia, con la comprobación del id contra
 el índice, una propuesta aparte (ADR 0049).
 
 ## Complexity Tracking

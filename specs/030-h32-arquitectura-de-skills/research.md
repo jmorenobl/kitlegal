@@ -267,10 +267,10 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
   anteriores es la skill de entrada, que las sesiones tienen instalada; el informe no registra qué skills activó la
   sesión, así que la corrección es la lectura conservadora: hacer explícito el orden en el paso que reparte.
 - **Rechazadas**: cambiar la ayuda del argumento `bloque` de `kitlegal boe articulo` («Identificador del bloque en el
-  índice de la norma: a21, da-3…», `internal/app/boe.go`), que el modo herramienta ve como descripción del parámetro y
-  que invita a componer el id: el spec deja fuera de alcance los cambios en el applet `boe`, así que va, con la comprobación del id contra el índice
-  en caché antes de ir a la red, a una propuesta aparte decidida por una persona (ADR 0049): es un cambio del applet,
-  fuera del alcance de este hito;
+  índice de la norma: a21, da-3…», `internal/app/boe.go`), que invita a componer el id (solo en `--help`: `--describe`
+  no la lleva a los esquemas de las herramientas, contra lo que suponía la reparación), y comprobar el id contra el
+  índice en caché: son cambios del applet `boe`, fuera del alcance de este hito, y van a una propuesta aparte decidida
+  por una persona (ADR 0049);
   tocar la eval 22, el umbral o la medida (ADR 0029 y 0038); servir `a118` en la caché de la sesión (no existe en la
   norma: haría pasar una lectura que en el uso real da `3`).
 

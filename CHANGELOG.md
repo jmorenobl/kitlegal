@@ -378,9 +378,9 @@ sustituyen a este fichero.
   índice, con fecha o sin ella, y que nunca se compone con el número ni se toma de la pregunta, sin nombrar el artículo
   ni el bloque de ninguna eval; `redaccion_en_una_fecha` y `con_herramientas` lo repiten en su paso, y
   `lecturas_que_fallan` vuelve al índice con cualquier código si el id no salió de él. El cuerpo queda en 154 líneas y
-  10 903 caracteres. La ayuda del argumento `bloque` de `kitlegal boe articulo` («a21, da-3…»), que el modo herramienta
-  ve como descripción del parámetro, y la comprobación del id contra el índice van en una propuesta aparte (ADR 0049):
-  los applets están fuera del alcance de H32.
+  10 903 caracteres. La comprobación del id contra el índice y la ayuda del argumento `bloque` de `kitlegal boe articulo`
+  («a21, da-3…», solo en `--help`: los esquemas de las herramientas no la llevan) van en una propuesta aparte (ADR
+  0049): los applets están fuera del alcance de H32.
 - **`consulta-juridica` v0.1.1: la skill de la capacidad se activa antes de pedir nada a kitlegal** (H32, reparación
   del cierre). En la misma medición, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval 04 de `normativa`
   pidió `boe_articulo` sin activar `normativa`: `sin_activar:claude-sonnet-5-5:herramienta` dio 1 de 60, con 0 en los
