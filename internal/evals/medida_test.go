@@ -2800,7 +2800,7 @@ const (
 	fuenteDelBoeEnElSobre   = "boe.legislacion-consolidada"
 	fuenteDelGrafoEnElSobre = "kitlegal.graph"
 	fuenteDeCitaEnElSobre   = "kitlegal.cita"
-	claseFuenteNoDisponible = "fuente-no-disponible"
+	claseNoEncontrado       = "no-encontrado"
 
 	documentoEnLaURLDelSobre = "kitlegal:documento/sha256:"
 )
@@ -2933,7 +2933,9 @@ func exigirElCotejo(t *testing.T, texto Texto, orden, documento string) cotejoLe
 // sintético: uno por orden, con la orden del informe tal cual y, de salida, el
 // sobre de repetirla con --offline sobre la caché de la base, como lo escribe el
 // binario: lo grabado termina con 0 y lo que no está en ninguna grabación, sin
-// red, con el sobre de su fallo.
+// red, con el sobre de su fallo; el bloque a9998, que el índice de la norma que
+// la sesión leyó antes no tiene, con el de «no encontrado» que da el índice
+// guardado, como en la sesión (ADR 0049).
 func exigirLosTextosDeLasOrdenes(t *testing.T, textos []Texto) {
 	t.Helper()
 
@@ -2963,9 +2965,9 @@ func exigirLosTextosDeLasOrdenes(t *testing.T, textos []Texto) {
 	assert.Equal(t, []string{"a21"}, datosDelSobre[comprobacionLeida](t, comprobacion.Salida).Bloques)
 
 	assert.False(t, leerSobre(t, fallo.Salida).Ok)
-	assert.Equal(t, claseFuenteNoDisponible, datosDelSobre[falloLeido](t, fallo.Salida).Clase)
-	assert.Contains(t, datosDelSobre[falloLeido](t, fallo.Salida).Mensaje, "con --offline no se pide nada a la fuente",
-		"la orden se repite con --offline")
+	assert.Equal(t, claseNoEncontrado, datosDelSobre[falloLeido](t, fallo.Salida).Clase)
+	assert.Contains(t, datosDelSobre[falloLeido](t, fallo.Salida).Mensaje,
+		"la norma BOE-A-2015-10565 no tiene el bloque a9998 en su índice")
 }
 
 // exigirLosTextosDeLasLlamadas exige los textos de la sesión de llamadas del

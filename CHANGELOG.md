@@ -256,6 +256,15 @@ sustituyen a este fichero.
 
 ### Corregido
 
+- **`kitlegal boe articulo` y `articulos`: un bloque que el índice guardado de su norma no tiene sale con 3 y nombra el
+  del artículo** (ADR 0049). Si la lectura de un bloque falla —un 404, la fuente caída, un límite o la entrada ausente
+  con `--offline`— y la caché tiene vigente el índice de su norma sin ese id, el fallo es «no encontrado», código 3, y
+  dice cuál es el bloque del artículo: «la norma BOE-A-2017-12902 no tiene el bloque a118 en su índice: el «Artículo
+  118» es el bloque a1-30». Antes, en una sesión de evals, el bloque compuesto con el número del artículo salía con 5,
+  como si el BOE estuviera caído (eval 22 de `normativa` en la medición de cierre de H32, 0 de 3 en modo herramienta).
+  No pide nada más: sin el índice guardado, o con el id en él, el fallo es el de antes. La ayuda de los argumentos
+  `bloque` y `bloques` en `--help` dice que el id sale del campo `id` de `kitlegal boe indice` y no se compone con el
+  número del artículo; los esquemas de las herramientas MCP no llevan esa ayuda y no cambian.
 - **`boe-legislacion` v0.3.2: el id de un bloque sale del índice, nunca de la pregunta.** El paso 2 decía «ni pidas
   uno que no salga del índice o de la pregunta», y la sesión que leía «el artículo 118» en la pregunta pedía el bloque
   `a118`, que no existe: el art. 118 de la LCSP es `a1-30`. La lectura fallaba y la respuesta no podía dar la línea
