@@ -1,0 +1,89 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "La cabeza sigue en 513ea02 (gates/base-global; gates/revision-cambios.md: ningún commit fuera de gates/ desde la ronda 3; revision-cambios-r4.diff de 0 bytes). gates/ci.log (ignorado por git, .gitignore:25) lo reescribió kitlegal-verificacion el 2026-10-30 a las 08:57:31 sobre esta misma cabeza, después de leerse la ronda 3 (07:40:06Z), y ahora está en verde de principio a fin: «guardián de diff ok ((global), 14 ficheros)» (ci.log:1), golangci-lint fmt --diff sin diferencias y run ./... «0 issues.» (:3-9), todos los paquetes ok en el test con -race y -shuffle (:11-38 y siguientes, internal/evals 197,6 s), goreleaser «1 configuration file(s) validated», gitleaks «no leaks found», «all modules verified» en el módulo y en los cinco tools/, go mod tidy -diff sin salida, «ci: todos los controles en verde» y «kitlegal-verificacion exit=0» (:104-106). Queda resuelto el rojo por tiempo de la ronda 3. Árbol limpio fuera de gates/: `git status --short` sin ninguna línea que no sea de specs/030-h32-arquitectura-de-skills/gates/. En esta sesión, en un clon de 513ea02 en $TMPDIR: misspell sobre internal/core/instalacion «0 issues.», internal/core/instalacion ok con -race (2,3 s) y TestEntregaDelHito con sus seis subtests h32-* en PASS (ok internal/app 20,1 s)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada intacta y activada: `git diff --stat fc15e4b HEAD -- specs/030-h32-arquitectura-de-skills/aceptacion` no lista ninguno de los seis guiones (solo las seis copias de internal/app/testdata/script/h32-*.txtar, añadidas al activarla en 95570b3), `git diff --stat HEAD` sobre los dos directorios está vacío, y `git ls-tree HEAD` da a cada copia el mismo blob que a su original (capacidades 56104c85, entrada a6e7facf, nombres-retirados 5447fa49, normativa 8148f9ef, paquetes 9b0a81d2, retiradas 8e2cd7a9); gates/aceptacion-congelada.json registra las huellas en fc15e4b, de donde no han cambiado. No pude calcular SHA-256 en esta sesión (shasum y openssl piden aprobación): la igualdad la da git. TestEntregaDelHito 6/6 PASS en el clon (h32-retiradas 1,14 s). Los tests nuevos detectan lo que dicen: el código es byte a byte el de las rondas 1 a 3 (rango vacío), y los mutantes de esas rondas —ExtraerCitas en plazos.go:141, el enum «sin retirar» y la propiedad aviso de schemas/instalacion.json— están en gates/revision-b-r1.json, -r2.json y -r3.json. Sin nolint, t.Skip, `_ =` ni fixtures retocados en el rango (vacío)."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "Rango vacío: ninguna importación nueva de net/http, os.Exit ni fmt.Print*; depguard y forbidigo en verde con golangci-lint run ./... «0 issues.» (gates/ci.log:9, sobre 513ea02, y en el clon en esta sesión). Las reglas de dependencia entre paquetes son las juzgadas en las rondas 1 y 2 (internal/core/instalacion sin red ni salida; la lista de nombres retirados entra por internal/app/retiradas.go)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: TestSalidaDeSkillsContraSchemas valida la salida real de `skills install --json` contra la parte de install de schemas/instalacion.json, con los casos install-retirada e install-sin-retirar-con-aviso (internal/app/instalacion_test.go:1377-1388); internal/app ok en gates/ci.log:16 y schema-check (TestEsquemasPublicados) en verde en el mismo log."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2. Los códigos del contrato se ejercen en la suite congelada, en PASS en el clon en esta sesión: h32-retiradas.txtar (0 al retirar, conservar y --dry-run; 2 con un nombre retirado pedido) y TestRetiradas/fallos_del_disco en internal/core/instalacion (ok con -race). Ningún panic nuevo; la suite entera con -race en verde en gates/ci.log."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: contracts/forma-de-cita.md §4 punto 2 describe lo que hace plazos.go:141 (citasEnLaFormaUnica) y :153-156 (declarada); tasks.md T011 y gates/supuestos.md:26 y :48 lo registran; CHANGELOG.md (Unreleased) y docs/SKILLS.md:264 siguen siendo ciertos; ninguna fuente nueva, así que docs/SOURCES.md no cambia. La línea 49 de supuestos.md («make ci sigue en rojo») es una nota de proceso fechada el 2026-10-29T23:56:30Z, cierta entonces; el estado actual lo da gates/ci.log (observación)."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Rango vacío: nada toca internal/httpx ni internal/source, ni graba datos (internal/evals/testdata y gates/grabaciones.md iguales que en la ronda 1). gitleaks sobre 513ea02: «no leaks found» (gates/ci.log, 08:57). Sin NIF ni datos de persona: las salidas validadas llevan nombres de skill, rutas de t.TempDir() y el aviso."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": false,
+      "evidencia": "Motivo de las rondas 1, 2 y 3 sin corregir, con el rango vacío: internal/core/instalacion/retiradas.go:35 (avisoDeRetirada) sigue con el verbo partido en `\" no es lo que insta\" + \"ló kitlegal: …\"` y el comentario de :31-33 que explica que es para que misspell no lea «instal» como errata de «install»; internal/core/instalacion/retiradas_test.go:111 (avisoDeVieja) repite la partición con el mismo comentario en :108-110. Es una supresión del linter por otra vía, contra la regla del repositorio (.golangci.yml:294-295: «el español se neutraliza falso positivo a falso positivo en ignore-rules», research.md D9 de H4), que scripts/workflow/guardian-diff.sh:43-62 admite en cualquier tarea sin declarar .golangci.yml. Comprobado en el clon en esta sesión: con los dos literales unidos, `golangci-lint run --enable-only misspell ./internal/core/instalacion/...` da `retiradas.go:33:31: instal is a misspelling of install` y `retiradas_test.go:109:37` lo mismo (2 issues); con la entrada `- instal` en misspell.ignore-rules entre `- informativo` (.golangci.yml:376) y `- inventario` (:379), golangci-lint run ./... «0 issues.», internal/core/instalacion ok con -race y TestEntregaDelHito 6/6 PASS, h32-retiradas incluido, porque el texto emitido no cambia. Lo demás, limpio: sin nolint, t.Skip, TODO, error silenciado ni fixture retocado (los cambios se hicieron en el clon, no en el árbol)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Rango vacío. El diff main...HEAD es el juzgado en las rondas 1 y 2: la unión de los motivos de la ronda 1 sobre lo entregado por el spec, sin applets, data/, schemas/ ni skills/ fuera de él. Los supuestos de gates/supuestos.md son los mismos (el 48 es la lectura conservadora de FR-014; el 49, una nota de proceso)."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: ninguna salida que consuma una skill o una persona cambia (cuerpos de las skills 3660 y 10 858/10 842/10 896 caracteres; la línea ⚠ NO CUBIERTO:; una entrada de data y una línea legible por nombre retirado en `skills install`, que cesan al quitar el directorio). Lo medido en las rondas 1 y 2 (gates/revision-b-r1.json, -r2.json) sigue valiendo porque el binario es el mismo (513ea02)."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Rango vacío. Los mecanismos del hito se trazaron en las rondas 1 y 2 a sus FR (formaUnicaDeCita, citasEnLaFormaUnica y parejaDeLaCita a FR-014 con la forma de FR-010; conElSkillMdEditado y conLaRetirada a FR-026 y FR-027; skillsRetiradas a FR-032); nada nuevo que trazar ni retirar. La partición del literal del motivo [h] no es un mecanismo de producto: su retirada no quita código, une dos literales."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Sin cambios desde la ronda 2: el control de FR-014/SC-011 (plazos.go:141 con citasEnLaFormaUnica y declarada en :153-156, umbral cobertura_sin_declarar 0 por modo con decide: true en umbrales.go) sale en rojo con el mutante que vuelve a ExtraerCitas (gates/revision-b-r3.json, mismo código); los demás controles de «Controles de umbral» de plan.md (gate del cuerpo, forma-de-cita, formas-compartidas, TestRegiones, TestVerticalDeEnsayo, TestSkillsRetiradas, guiones h32-*, TestEvalsDelRepositorio, TestDefinicionDelJob, TestUmbralesDeLasSkills, TestLimiteDeLaTasa) en verde en gates/ci.log (test y skills-check) sobre 513ea02."
+    }
+  ],
+  "motivos": [
+    "[h] internal/core/instalacion/retiradas.go:31-36 (avisoDeRetirada) e internal/core/instalacion/retiradas_test.go:108-111 (avisoDeVieja): el verbo del aviso sigue partido en `\" no es lo que insta\" + \"ló kitlegal: …\"` para esquivar misspell, con el comentario que lo explica; motivo de las rondas 1, 2 y 3 sin corregir, con el rango vacío. El arreglo, comprobado en verde en un clon de 513ea02 en esta sesión: (1) en .golangci.yml, misspell.ignore-rules, la entrada `- instal` con su comentario («Instaló», del aviso de la skill de nombre retirado que install no retira, H32, FR-027, contracts/instalacion-retiradas.md §2, que fija la suite de aceptación; misspell lee su raíz como «install»), entre `- informativo` (línea 376) y `- inventario` (línea 379); (2) en retiradas.go, el literal unido (`\" no es lo que instaló kitlegal: su protocolo puede activarse junto al de \"`) sin las líneas 31-33 del comentario; (3) en retiradas_test.go, avisoDeVieja unido y sin la frase del comentario sobre los dos literales. Con eso golangci-lint run ./... da 0 issues, internal/core/instalacion pasa con -race y los seis guiones h32-* siguen en PASS porque el texto emitido no cambia. Ni //nolint ni otra partición ni un escape del carácter son el arreglo (.golangci.yml:294-295). Es configuración de lint, que el corrector no puede tocar (workflow.yml:928): el corrector no cambia nada por este motivo y lo deja en gates/revision-pendiente.md; lo aplica una persona en la rama del hito o en una propuesta aparte antes de fusionar."
+  ],
+  "observaciones": [
+    "gates/ci.log está ahora en verde sobre 513ea02 (reescrito por kitlegal-verificacion el 2026-10-30 a las 08:57:31, «kitlegal-verificacion exit=0»), lo que cierra la observación de la ronda 3 sobre el timeout de internal/evals: era contención de la máquina, no del hito. La línea 49 de gates/supuestos.md («make ci sigue en rojo», fechada 2026-10-29T23:56:30Z) queda como nota histórica; el informe debe tomar el estado de ci.log, no de esa línea.",
+    "Esta es la cuarta ronda de las cuatro que da el workflow (`scripts/workflow/gate.sh leer revision 4`, workflow.yml:909). Sin la aprobación de los dos jueces, gate.sh:186-188 reescribe gates/revision-pendiente.md con los motivos de ambos veredictos (se pierde el detalle que dejó el corrector), lo anota en supuestos.md y el run sigue hacia el cierre y el informe (informe.sh:166): por eso el motivo [h] lleva el arreglo entero. Aprobar habría archivado revision-pendiente.md como resuelto (gate.sh:178-181) sin estar hecho.",
+    "scripts/workflow/guardian-diff.sh:43-62 admite sin declarar un diff de .golangci.yml que solo añade entradas a misspell.ignore-rules, mientras el prompt del corrector de la revisión (workflow.yml:928) le prohíbe tocar la configuración de lint: por eso el motivo [h] queda para una persona. Es proceso, fuera de la rama del hito.",
+    "formaUnicaDeCita (internal/evals/citas.go:22) acepta el corchete interior de un texto que abre otro, como `[art. 46 [BOE-A-1998-16718, bloque a46]]`, igual que ExtraerCitas; ninguna skill lo produce y como_se_cita.md no lo contempla: no llega al umbral.",
+    "Siguen como en las rondas 1 a 3, para el informe final: CONTRIBUTING.md nombra boe-legislacion y legal-core como skills que se instalan y TestUmbralesDeLasTresSkills, fuera del alcance del spec; el supuesto de T017 sobre el README («Hay tres skills») lo superó el barrido d9ca963; no hay evidencias/H32/ porque la Ley 50/1980 entra desde la búsqueda grabada bajo internal/evals/testdata/ con su SHA-256 en gates/grabaciones.md.",
+    "No se reproduce en esta sesión nada del job de evals ni ninguna sesión con modelo (ADR 0032): los umbrales del job se juzgan por su código (umbralesDelInforme, decide: true), sin cambios desde la ronda 1. Tampoco se repitió entera la suite de make ci en el clon: gates/ci.log ya está en verde sobre esta cabeza y el rango es vacío; en el clon se ejecutaron el linter completo, internal/core/instalacion y TestEntregaDelHito.",
+    "El juez A aprobó en las rondas 2 y 3 sin motivos (gates/revision-a.json: motivos vacíos): no hay corrección suya que comprobar."
+  ]
+}

@@ -1,38 +1,5 @@
-# Pendiente de la revisión final de H32
+# Motivos de la revisión final sin resolver al agotar las rondas del ciclo 1
 
-## [h] El verbo del aviso de la retirada, partido en dos literales (juez B)
+Juez A: aprobado. Juez B: rechazado (ronda 4).
 
-**Motivo.** `internal/core/instalacion/retiradas.go:35` (`avisoDeRetirada`) escribe «instaló» como `"insta" + "ló"`
-para que misspell no lea «instal» como errata de «install», y lo explica en el comentario de las líneas 31-33: es una
-supresión del linter por otra vía. La misma partición está en `internal/core/instalacion/retiradas_test.go:111`
-(`avisoDeVieja`). El juez pide unir el literal y neutralizar el falso positivo donde lo hace el repositorio.
-
-**Por qué no se arregla aquí.** Las dos salidas posibles quedan fuera de lo que puede tocar el corrector:
-
-- El arreglo que fija el repositorio es la regla de ignorar de misspell en `.golangci.yml`
-  (`linters.settings.misspell.ignore-rules`, «el español se neutraliza falso positivo a falso positivo»), que es
-  configuración de lint: el corrector no puede modificarla, y el workflow desharía el cambio.
-- Cambiar el texto del aviso para no usar el verbo no es posible: lo fija byte a byte la suite de aceptación congelada
-  (`internal/app/testdata/script/h32-retiradas.txtar`, líneas 47, 60 y 80, con su huella en
-  `gates/aceptacion-congelada.json`) y `contracts/instalacion-retiradas.md` §2.
-
-Comprobado en esta sesión: con el literal unido, `go tool -modfile=tools/golangci-lint/go.mod golangci-lint run
---enable-only misspell ./internal/core/instalacion/...` da `retiradas.go:35:31: `instal` is a misspelling of `install`
-(misspell)`; el fichero se restauró después y el código queda como estaba.
-
-**Lo que hace falta, en una propuesta aparte o en la rama del hito, por una persona.**
-
-1. En `.golangci.yml`, en `misspell.ignore-rules`, por orden alfabético, entre las entradas que ya hay:
-
-   ```yaml
-   # «Instaló», del aviso de la skill de nombre retirado que install no retira
-   # (H32, FR-027; contracts/instalacion-retiradas.md §2), que fija la suite de
-   # aceptación; misspell lee su raíz como «install».
-   - instal
-   ```
-
-2. En `internal/core/instalacion/retiradas.go`, `avisoDeRetirada` con el literal unido
-   (`" no es lo que instaló kitlegal: su protocolo puede activarse junto al de "`) y sin las líneas del comentario que
-   explican la partición; en `internal/core/instalacion/retiradas_test.go`, `avisoDeVieja` con el literal unido.
-
-3. `make ci` en verde: el texto emitido no cambia, así que `h32-retiradas.txtar` y la salida legible siguen iguales.
+- [h] internal/core/instalacion/retiradas.go:31-36 (avisoDeRetirada) e internal/core/instalacion/retiradas_test.go:108-111 (avisoDeVieja): el verbo del aviso sigue partido en `" no es lo que insta" + "ló kitlegal: …"` para esquivar misspell, con el comentario que lo explica; motivo de las rondas 1, 2 y 3 sin corregir, con el rango vacío. El arreglo, comprobado en verde en un clon de 513ea02 en esta sesión: (1) en .golangci.yml, misspell.ignore-rules, la entrada `- instal` con su comentario («Instaló», del aviso de la skill de nombre retirado que install no retira, H32, FR-027, contracts/instalacion-retiradas.md §2, que fija la suite de aceptación; misspell lee su raíz como «install»), entre `- informativo` (línea 376) y `- inventario` (línea 379); (2) en retiradas.go, el literal unido (`" no es lo que instaló kitlegal: su protocolo puede activarse junto al de "`) sin las líneas 31-33 del comentario; (3) en retiradas_test.go, avisoDeVieja unido y sin la frase del comentario sobre los dos literales. Con eso golangci-lint run ./... da 0 issues, internal/core/instalacion pasa con -race y los seis guiones h32-* siguen en PASS porque el texto emitido no cambia. Ni //nolint ni otra partición ni un escape del carácter son el arreglo (.golangci.yml:294-295). Es configuración de lint, que el corrector no puede tocar (workflow.yml:928): el corrector no cambia nada por este motivo y lo deja en gates/revision-pendiente.md; lo aplica una persona en la rama del hito o en una propuesta aparte antes de fusionar.
