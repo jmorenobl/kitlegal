@@ -322,3 +322,16 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
   una lectura con fecha.
 - **Rechazadas**: quitar la frase de v0.4, que es la que baja `cuenta_su_proceso` (2 y 4 de 60 en esta medición, 7 y
   14 en la #207); tocar la eval, el umbral o la medida.
+
+### D25 · Tercera medición del cierre: el plazo se pide aunque la sesión crea que la norma no regía
+
+- **Evidencia**: la medición de `83071c4` (ejecución 41049698509) da `normativa` aprobada y
+  `vigencia_sin_declarar:claude-sonnet-5-5:herramienta` 1 de 3 en `plazos-y-territorio`: la sesión 02 de la eval 10
+  resolvió el municipio, no pidió `plazos_calcular` y buscó la Ley 30/1992, que salió con `5`. No dio ninguna fecha,
+  pero tampoco la línea `⚠ PLAZO SIN CALCULAR:`, y citó `a124` de la LPAC sin leerlo. El paso 9 dice lo mismo que el de
+  `legal-core`: la skill no cambió desde las dos mediciones anteriores, en las que dio 0 de 3.
+- **Decisión**: el paso 9 añade «Pídelo aunque creas que no regía.», 34 caracteres, los que deja libres la vertical
+  de ensayo. `plazos-y-territorio` v2.0.1; cuerpo de 10 930 caracteres.
+- **Por qué**: si un precepto regía o no el día de inicio lo decide `plazos` (ADR 0042), no la sesión. La causa sale
+  de una sola respuesta: el job no guarda transcripciones, y una medición en verde no probaría por sí sola el arreglo.
+- **Rechazadas**: repetir el trabajo sin cambios, que sería medir para ver si sale en verde; tocar la eval o el umbral.

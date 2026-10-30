@@ -391,6 +391,12 @@ sustituyen a este fichero.
   perdió una línea. Ahora «si faltó, pídela ya» es solo para la lectura sin fecha, y el paso 2 dice que las líneas de
   una fecha van siempre. Para que quepa con la vertical de ensayo, «el número del artículo no siempre es su id» queda en
   «no siempre es su id». El cuerpo queda en 10 928 caracteres.
+- **`plazos-y-territorio` v2.0.1: el plazo se pide aunque la sesión crea que la norma no regía** (H32, tercera medición
+  del cierre, ejecución 41049698509, commit `83071c4`). Una sesión de `claude-sonnet-5-5` en modo herramienta de la
+  eval 10 (un recurso de reposición notificado en 2014) no pidió `plazos_calcular`, decidió por su cuenta que la LPAC
+  no regía y respondió sin la línea `⚠ PLAZO SIN CALCULAR:`: `vigencia_sin_declarar:claude-sonnet-5-5:herramienta` 1 de
+  3. Lo que no regía ese día lo dice `plazos` (ADR 0042), y el paso 9 ahora lo pide también en ese caso. El cuerpo queda
+  en 10 930 caracteres, justo los que dejan sitio a la vertical de ensayo.
 - **`consulta-juridica` v0.1.1: la skill de la capacidad se activa antes de pedir nada a kitlegal** (H32, reparación
   del cierre). En la misma medición, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval 04 de `normativa`
   pidió `boe_articulo` sin activar `normativa`: `sin_activar:claude-sonnet-5-5:herramienta` dio 1 de 60, con 0 en los

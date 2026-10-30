@@ -59,9 +59,9 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    entrada en el registro), que si falta **se pregunta**; y los municipios que cuentan, con los pasos 1 a 4: **el del
    interesado y el de la sede del órgano**, o en el contencioso-administrativo **el de la sede del juzgado**.
 9. **Pedir el plazo**: el tipo, de la referencia del paquete; `plazos_calcular` o `kitlegal plazos calcular <tipo>
-   <inicio> <municipios>... --json`, con los municipios del 8 en su orden. **Con el 3 y un `data.mensaje` que empieza
-   por «el plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del plazo ni ninguna fecha de
-   vencimiento, y sin el 10.
+   <inicio> <municipios>... --json`, con los municipios del 8 en su orden. Pídelo aunque creas que no regía. **Con el 3
+   y un `data.mensaje` que empieza por «el plazo de tipo», no hay fecha**: `⚠ PLAZO SIN CALCULAR:`, sin la línea del
+   plazo ni ninguna fecha de vencimiento, y sin el 10.
 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
     `kitlegal boe articulo <identificador> <id> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
     `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
