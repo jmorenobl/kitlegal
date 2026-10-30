@@ -50,7 +50,7 @@ exec kitlegal skills doctor -g
 
 # Con --json, el sobre de siempre y nada más: sin ~ ni nombres de marca.
 exec kitlegal skills list -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/boe-legislacion","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"'${WORK@R}'/home/\.agents/skills","manifiesto":true,"version":"dev","skills":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/home/\.agents/skills/consulta-juridica","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/consulta-juridica","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/consulta-juridica","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/jurisprudencia","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/normativa","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","version":"dev","empotrada":true,"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home/\.claude/skills/plazos-y-territorio","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\}\n\z'
 ! stdout 'Claude Code|~/'
 ! stderr .
 
@@ -83,7 +83,7 @@ exec $KITLEGAL_SIN_ENLACES_BIN skills install
 cmp stdout $WORK/esperado/install-copia.txt
 ! stderr .
 exec $KITLEGAL_SIN_ENLACES_BIN skills list
-stdout '^    Claude Code  \.claude/skills/legal-core \(copia, porque en esa carpeta no se pueden crear enlaces\)$'
+stdout '^    Claude Code  \.claude/skills/plazos-y-territorio \(copia, porque en esa carpeta no se pueden crear enlaces\)$'
 
 # Con el binario que sí sabe enlazar, doctor lo cuenta como algo que arreglar,
 # junto a la versión, cada uno con su orden debajo, en el orden de doctor: por
@@ -97,14 +97,14 @@ cmp stdout $WORK/esperado/doctor-copia.txt
 # La orden no se abrevia: es la que se copia y se pega, y ~ entre comillas
 # simples no se expandiría.
 cd $WORK/proyecto
-exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/legal-core/SKILL.md"'
+exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/plazos-y-territorio/SKILL.md"'
 exec kitlegal skills doctor -g
-stdout '\AHay 1 cosa que arreglar en las skills de ~/\.agents/skills:\n\n  1\. ~/\.agents/skills/legal-core/SKILL\.md ya no es el fichero que dejó kitlegal: se ha editado, se ha sustituido o falta\.\n     rm -- '''${WORK@R}'/home/\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core -g --host claude --host antigravity\n\nEjecuta la orden y vuelve a comprobarlo con «kitlegal skills doctor -g»\.\n\z'
+stdout '\AHay 1 cosa que arreglar en las skills de ~/\.agents/skills:\n\n  1\. ~/\.agents/skills/plazos-y-territorio/SKILL\.md ya no es el fichero que dejó kitlegal: se ha editado, se ha sustituido o falta\.\n     rm -- '''${WORK@R}'/home/\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio -g --host claude --host antigravity\n\nEjecuta la orden y vuelve a comprobarlo con «kitlegal skills doctor -g»\.\n\z'
 ! stderr .
 
 # Ejecutar la orden que da deja doctor en orden.
-exec sh -c 'rm -- "$HOME/.agents/skills/legal-core/SKILL.md" && kitlegal skills install legal-core -g --host claude --host antigravity'
-stdout '^  legal-core  actualizada$'
+exec sh -c 'rm -- "$HOME/.agents/skills/plazos-y-territorio/SKILL.md" && kitlegal skills install plazos-y-territorio -g --host claude --host antigravity'
+stdout '^  plazos-y-territorio  actualizada$'
 exec kitlegal skills doctor -g
 cmp stdout $WORK/esperado/doctor-g-en-orden.txt
 
@@ -119,60 +119,71 @@ stderr '\Aaviso: las skills instaladas son de kitlegal v0\.1\.0 y este binario e
 -- esperado/install-g.txt --
 Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
 
-  boe-legislacion  instalada
-    Claude Code  ~/.claude/skills/boe-legislacion
-    Antigravity  ~/.gemini/config/skills/boe-legislacion
-  jurisprudencia   instalada
+  consulta-juridica    instalada
+    Claude Code  ~/.claude/skills/consulta-juridica
+    Antigravity  ~/.gemini/config/skills/consulta-juridica
+  jurisprudencia       instalada
     Claude Code  ~/.claude/skills/jurisprudencia
     Antigravity  ~/.gemini/config/skills/jurisprudencia
-  legal-core       instalada
-    Claude Code  ~/.claude/skills/legal-core
-    Antigravity  ~/.gemini/config/skills/legal-core
+  normativa            instalada
+    Claude Code  ~/.claude/skills/normativa
+    Antigravity  ~/.gemini/config/skills/normativa
+  plazos-y-territorio  instalada
+    Claude Code  ~/.claude/skills/plazos-y-territorio
+    Antigravity  ~/.gemini/config/skills/plazos-y-territorio
 
 Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
 -- esperado/install-g-sin-cambios.txt --
 Skills de kitlegal dev en ~/.agents/skills (Codex las lee de ahí):
 
-  boe-legislacion  sin cambios
-    Claude Code  ~/.claude/skills/boe-legislacion
-    Antigravity  ~/.gemini/config/skills/boe-legislacion
-  jurisprudencia   sin cambios
+  consulta-juridica    sin cambios
+    Claude Code  ~/.claude/skills/consulta-juridica
+    Antigravity  ~/.gemini/config/skills/consulta-juridica
+  jurisprudencia       sin cambios
     Claude Code  ~/.claude/skills/jurisprudencia
     Antigravity  ~/.gemini/config/skills/jurisprudencia
-  legal-core       sin cambios
-    Claude Code  ~/.claude/skills/legal-core
-    Antigravity  ~/.gemini/config/skills/legal-core
+  normativa            sin cambios
+    Claude Code  ~/.claude/skills/normativa
+    Antigravity  ~/.gemini/config/skills/normativa
+  plazos-y-territorio  sin cambios
+    Claude Code  ~/.claude/skills/plazos-y-territorio
+    Antigravity  ~/.gemini/config/skills/plazos-y-territorio
 
 Ya estaban instaladas y al día: no se ha cambiado nada.
 -- esperado/list-g.txt --
 Skills de kitlegal en ~/.agents/skills (Codex las lee de ahí):
 
-  boe-legislacion  dev
-    Claude Code  ~/.claude/skills/boe-legislacion
-    Antigravity  ~/.gemini/config/skills/boe-legislacion
-  jurisprudencia   dev
+  consulta-juridica    dev
+    Claude Code  ~/.claude/skills/consulta-juridica
+    Antigravity  ~/.gemini/config/skills/consulta-juridica
+  jurisprudencia       dev
     Claude Code  ~/.claude/skills/jurisprudencia
     Antigravity  ~/.gemini/config/skills/jurisprudencia
-  legal-core       dev
-    Claude Code  ~/.claude/skills/legal-core
-    Antigravity  ~/.gemini/config/skills/legal-core
+  normativa            dev
+    Claude Code  ~/.claude/skills/normativa
+    Antigravity  ~/.gemini/config/skills/normativa
+  plazos-y-territorio  dev
+    Claude Code  ~/.claude/skills/plazos-y-territorio
+    Antigravity  ~/.gemini/config/skills/plazos-y-territorio
 -- esperado/doctor-g-en-orden.txt --
 Todo en orden: las skills de ~/.agents/skills son de kitlegal dev y están como las dejó.
 -- esperado/install-sin-hosts.txt --
 Skills de kitlegal dev en .agents/skills (Codex y Antigravity las leen de ahí):
 
-  boe-legislacion  instalada
-  jurisprudencia   instalada
-  legal-core       instalada
+  consulta-juridica    instalada
+  jurisprudencia       instalada
+  normativa            instalada
+  plazos-y-territorio  instalada
 
 Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».
 Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
 -- esperado/list-sin-hosts.txt --
 Skills de kitlegal en .agents/skills (Codex y Antigravity las leen de ahí):
 
-  boe-legislacion  dev
-  jurisprudencia   dev
-  legal-core       dev
+  consulta-juridica    dev
+  jurisprudencia       dev
+  normativa            dev
+  plazos-y-territorio  dev
 
 Claude Code no las verá: si lo usas, ejecuta «kitlegal skills install --host claude».
 -- esperado/sin-nada.txt --
@@ -180,24 +191,28 @@ No hay skills de kitlegal en .agents/skills. Para instalarlas: kitlegal skills i
 -- esperado/install-copia.txt --
 Skills de kitlegal v0.1.0 en .agents/skills (Codex y Antigravity las leen de ahí):
 
-  boe-legislacion  instalada
-    Claude Code  .claude/skills/boe-legislacion (copia, porque en esa carpeta no se pueden crear enlaces)
-  jurisprudencia   instalada
+  consulta-juridica    instalada
+    Claude Code  .claude/skills/consulta-juridica (copia, porque en esa carpeta no se pueden crear enlaces)
+  jurisprudencia       instalada
     Claude Code  .claude/skills/jurisprudencia (copia, porque en esa carpeta no se pueden crear enlaces)
-  legal-core       instalada
-    Claude Code  .claude/skills/legal-core (copia, porque en esa carpeta no se pueden crear enlaces)
+  normativa            instalada
+    Claude Code  .claude/skills/normativa (copia, porque en esa carpeta no se pueden crear enlaces)
+  plazos-y-territorio  instalada
+    Claude Code  .claude/skills/plazos-y-territorio (copia, porque en esa carpeta no se pueden crear enlaces)
 
 Abre tu agente y pregúntale, por ejemplo: «¿Qué dice el artículo 21 de la Ley 39/2015?»
 -- esperado/doctor-copia.txt --
-Hay 4 cosas que arreglar en las skills de .agents/skills:
+Hay 5 cosas que arreglar en las skills de .agents/skills:
 
   1. Las skills son de kitlegal v0.1.0 y este kitlegal es dev.
-     kitlegal skills install boe-legislacion jurisprudencia legal-core --host claude
-  2. .claude/skills/boe-legislacion es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
-     kitlegal skills install boe-legislacion --host claude
+     kitlegal skills install consulta-juridica jurisprudencia normativa plazos-y-territorio --host claude
+  2. .claude/skills/consulta-juridica es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install consulta-juridica --host claude
   3. .claude/skills/jurisprudencia es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
      kitlegal skills install jurisprudencia --host claude
-  4. .claude/skills/legal-core es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
-     kitlegal skills install legal-core --host claude
+  4. .claude/skills/normativa es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install normativa --host claude
+  5. .claude/skills/plazos-y-territorio es una copia, y en esa carpeta ya se pueden crear enlaces: puede pasar a ser uno.
+     kitlegal skills install plazos-y-territorio --host claude
 
 Ejecuta las órdenes en ese orden y vuelve a comprobarlo con «kitlegal skills doctor».

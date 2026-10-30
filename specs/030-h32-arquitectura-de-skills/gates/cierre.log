@@ -1,0 +1,151 @@
+== https://github.com/jmorenobl/kitlegal/actions/runs/41024981954/job/123961493428
+2026-10-30T08:41:08.2678336Z         }
+2026-10-30T08:41:08.2678381Z       ],
+2026-10-30T08:41:08.2678454Z       "lecturas_sin_servir": [],
+2026-10-30T08:41:08.2678523Z       "llegadas_a_la_red": [],
+2026-10-30T08:41:08.2680167Z       "respuesta": "⚠ SIN REDACCIÓN VIGENTE: art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]: el 2016-06-01 no tenía redacción vigente; la tiene desde el 20161002, la fecha de vigencia de su primera redacción.\n\nEl 1 de junio de 2016 el artículo 21 de la Ley 39/2015 no tenía texto vigente, así que no hay redacción de ese día que citar. Su primera redacción rige desde el 2 de octubre de 2016 [BOE-A-2015-10565, bloque a21].\n\nSi te sirve el texto de una fecha posterior, por ejemplo el 2 de octubre de 2016 o el vigente hoy, puedo leerlo.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+2026-10-30T08:41:08.2680322Z       "codigo_de_la_sesion": 0,
+2026-10-30T08:41:08.2680410Z       "fin_de_la_sesion": "result success",
+2026-10-30T08:41:08.2680514Z       "sesion_terminada": true,
+2026-10-30T08:41:08.2680632Z       "reintentos_por_limite_de_ritmo": 0,
+2026-10-30T08:41:08.2680694Z       "sin_medir": "",
+2026-10-30T08:41:08.2680755Z       "motivos": [],
+2026-10-30T08:41:08.2680812Z       "pasa": true
+2026-10-30T08:41:08.2680857Z     },
+2026-10-30T08:41:08.2680896Z     {
+2026-10-30T08:41:08.2681074Z       "sesion": "23-lpac-articulo-21-en-2016-herramienta-claude-sonnet-5-5-02",
+2026-10-30T08:41:08.2681175Z       "eval": "23-lpac-articulo-21-en-2016.yaml",
+2026-10-30T08:41:08.2681261Z       "modelo": "claude-sonnet-5-5",
+2026-10-30T08:41:08.2681362Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
+2026-10-30T08:41:08.2681433Z       "modo": "herramienta",
+2026-10-30T08:41:08.2681495Z       "decide": true,
+2026-10-30T08:41:08.2681554Z       "activa": true,
+2026-10-30T08:41:08.2681617Z       "activada": true,
+2026-10-30T08:41:08.2681685Z       "por_materia": false,
+2026-10-30T08:41:08.2681758Z       "comandos_ejecutados": [
+2026-10-30T08:41:08.2681869Z         "bloque boe BOE-A-2015-10565 a21 2016-06-01"
+2026-10-30T08:41:08.2681919Z       ],
+2026-10-30T08:41:08.2681990Z       "comandos_ausentes": [],
+2026-10-30T08:41:08.2682082Z       "comandos_prohibidos_ejecutados": [],
+2026-10-30T08:41:08.2682152Z       "citas_encontradas": [
+2026-10-30T08:41:08.2682223Z         "BOE-A-2015-10565 a21"
+2026-10-30T08:41:08.2682270Z       ],
+2026-10-30T08:41:08.2682337Z       "citas_ausentes": [],
+2026-10-30T08:41:08.2682409Z       "avisos_encontrados": [],
+2026-10-30T08:41:08.2682480Z       "avisos_ausentes": [],
+2026-10-30T08:41:08.2682560Z       "hallazgos_encontrados": [],
+2026-10-30T08:41:08.2682631Z       "hallazgos_ausentes": [],
+2026-10-30T08:41:08.2682731Z       "redacciones_modificadas_encontradas": [],
+2026-10-30T08:41:08.2682825Z       "redacciones_modificadas_ausentes": [],
+2026-10-30T08:41:08.2682901Z       "plazo_encontrado": false,
+2026-10-30T08:41:08.2682984Z       "avisos_del_plazo_ausentes": [],
+2026-10-30T08:41:08.2683067Z       "no_cubierto_declarado": false,
+2026-10-30T08:41:08.2683159Z       "plazo_sin_calcular_declarado": false,
+2026-10-30T08:41:08.2683231Z       "lineas_del_plazo": [],
+2026-10-30T08:41:08.2683311Z       "territorio_encontrado": [],
+2026-10-30T08:41:08.2683384Z       "territorio_ausente": [],
+2026-10-30T08:41:08.2683460Z       "linea_sin_consulta": false,
+2026-10-30T08:41:08.2683599Z       "citas_sin_consulta": [],
+2026-10-30T08:41:08.2683664Z       "invocaciones": [
+2026-10-30T08:41:08.2683712Z         {
+2026-10-30T08:41:08.2683793Z           "orden": "mcp serve",
+2026-10-30T08:41:08.2683864Z           "codigo": -1,
+2026-10-30T08:41:08.2683942Z           "conexiones": [],
+2026-10-30T08:41:08.2684015Z           "llamada": false
+2026-10-30T08:41:08.2684065Z         },
+2026-10-30T08:41:08.2684114Z         {
+2026-10-30T08:41:08.2684281Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
+2026-10-30T08:41:08.2684349Z           "codigo": 3,
+2026-10-30T08:41:08.2684425Z           "conexiones": [],
+2026-10-30T08:41:08.2684498Z           "llamada": true
+2026-10-30T08:41:08.2684546Z         }
+2026-10-30T08:41:08.2684593Z       ],
+2026-10-30T08:41:08.2684669Z       "fuera_de_lo_grabado": [],
+2026-10-30T08:41:08.2684733Z       "otras_fallidas": [
+2026-10-30T08:41:08.2684782Z         {
+2026-10-30T08:41:08.2684950Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
+2026-10-30T08:41:08.2685017Z           "codigo": 3
+2026-10-30T08:41:08.2685065Z         }
+2026-10-30T08:41:08.2685111Z       ],
+2026-10-30T08:41:08.2685234Z       "lecturas_sin_servir": [],
+2026-10-30T08:41:08.2685305Z       "llegadas_a_la_red": [],
+2026-10-30T08:41:08.2687091Z       "respuesta": "⚠ SIN REDACCIÓN VIGENTE: art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]: el 2016-06-01 no tenía redacción vigente; la tiene desde el 20161002, la fecha de vigencia de su primera redacción.\n\nEl 1 de junio de 2016 el artículo 21 de la Ley 39/2015 no tenía texto vigente, así que no hay redacción de ese día que citar. La fuente consolidada del BOE da como primera redacción de ese bloque la que rige desde el 2 de octubre de 2016.\n\nNo he leído el texto de esa primera redacción ni el actual, así que no digo qué establecen. Puedo leer cualquiera de los dos si lo necesitas.\n\nEl texto consolidado es informativo y no sustituye el asesoramiento de un profesional.",
+2026-10-30T08:41:08.2687284Z       "codigo_de_la_sesion": 0,
+2026-10-30T08:41:08.2687370Z       "fin_de_la_sesion": "result success",
+2026-10-30T08:41:08.2687442Z       "sesion_terminada": true,
+2026-10-30T08:41:08.2687535Z       "reintentos_por_limite_de_ritmo": 0,
+2026-10-30T08:41:08.2687595Z       "sin_medir": "",
+2026-10-30T08:41:08.2687656Z       "motivos": [],
+2026-10-30T08:41:08.2687715Z       "pasa": true
+2026-10-30T08:41:08.2687758Z     },
+2026-10-30T08:41:08.2687798Z     {
+2026-10-30T08:41:08.2687977Z       "sesion": "23-lpac-articulo-21-en-2016-herramienta-claude-sonnet-5-5-03",
+2026-10-30T08:41:08.2688078Z       "eval": "23-lpac-articulo-21-en-2016.yaml",
+2026-10-30T08:41:08.2688163Z       "modelo": "claude-sonnet-5-5",
+2026-10-30T08:41:08.2688268Z       "modelo_de_la_sesion": "claude-sonnet-5-5",
+2026-10-30T08:41:08.2688337Z       "modo": "herramienta",
+2026-10-30T08:41:08.2688398Z       "decide": true,
+2026-10-30T08:41:08.2688458Z       "activa": true,
+2026-10-30T08:41:08.2688519Z       "activada": true,
+2026-10-30T08:41:08.2688586Z       "por_materia": false,
+2026-10-30T08:41:08.2688659Z       "comandos_ejecutados": [
+2026-10-30T08:41:08.2688770Z         "bloque boe BOE-A-2015-10565 a21 2016-06-01"
+2026-10-30T08:41:08.2688819Z       ],
+2026-10-30T08:41:08.2688889Z       "comandos_ausentes": [],
+2026-10-30T08:41:08.2688981Z       "comandos_prohibidos_ejecutados": [],
+2026-10-30T08:41:08.2689052Z       "citas_encontradas": [
+2026-10-30T08:41:08.2689123Z         "BOE-A-2015-10565 a21"
+2026-10-30T08:41:08.2689169Z       ],
+2026-10-30T08:41:08.2689236Z       "citas_ausentes": [],
+2026-10-30T08:41:08.2689310Z       "avisos_encontrados": [],
+2026-10-30T08:41:08.2689378Z       "avisos_ausentes": [],
+2026-10-30T08:41:08.2689460Z       "hallazgos_encontrados": [],
+2026-10-30T08:41:08.2689531Z       "hallazgos_ausentes": [],
+2026-10-30T08:41:08.2689630Z       "redacciones_modificadas_encontradas": [],
+2026-10-30T08:41:08.2689723Z       "redacciones_modificadas_ausentes": [],
+2026-10-30T08:41:08.2689798Z       "plazo_encontrado": false,
+2026-10-30T08:41:08.2689881Z       "avisos_del_plazo_ausentes": [],
+2026-10-30T08:41:08.2689962Z       "no_cubierto_declarado": false,
+2026-10-30T08:41:08.2690053Z       "plazo_sin_calcular_declarado": false,
+2026-10-30T08:41:08.2690125Z       "lineas_del_plazo": [],
+2026-10-30T08:41:08.2690204Z       "territorio_encontrado": [],
+2026-10-30T08:41:08.2690277Z       "territorio_ausente": [],
+2026-10-30T08:41:08.2690351Z       "linea_sin_consulta": false,
+2026-10-30T08:41:08.2690422Z       "citas_sin_consulta": [],
+2026-10-30T08:41:08.2690487Z       "invocaciones": [
+2026-10-30T08:41:08.2690535Z         {
+2026-10-30T08:41:08.2690616Z           "orden": "mcp serve",
+2026-10-30T08:41:08.2690749Z           "codigo": -1,
+2026-10-30T08:41:08.2690827Z           "conexiones": [],
+2026-10-30T08:41:08.2690900Z           "llamada": false
+2026-10-30T08:41:08.2690948Z         },
+2026-10-30T08:41:08.2690996Z         {
+2026-10-30T08:41:08.2691164Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
+2026-10-30T08:41:08.2691231Z           "codigo": 3,
+2026-10-30T08:41:08.2691309Z           "conexiones": [],
+2026-10-30T08:41:08.2691379Z           "llamada": true
+2026-10-30T08:41:08.2691457Z         }
+2026-10-30T08:41:08.2691504Z       ],
+2026-10-30T08:41:08.2691578Z       "fuera_de_lo_grabado": [],
+2026-10-30T08:41:08.2691642Z       "otras_fallidas": [
+2026-10-30T08:41:08.2691720Z         {
+2026-10-30T08:41:08.2691886Z           "orden": "boe_articulo --fecha=2016-06-01 BOE-A-2015-10565 a21",
+2026-10-30T08:41:08.2691953Z           "codigo": 3
+2026-10-30T08:41:08.2692003Z         }
+2026-10-30T08:41:08.2692049Z       ],
+2026-10-30T08:41:08.2692120Z       "lecturas_sin_servir": [],
+2026-10-30T08:41:08.2692219Z       "llegadas_a_la_red": [],
+2026-10-30T08:41:08.2694086Z       "respuesta": "⚠ SIN REDACCIÓN VIGENTE: art. 21 de la Ley 39/2015 [BOE-A-2015-10565, bloque a21]: el 2016-06-01 no tenía redacción vigente; la tiene desde el 20161002, la fecha de vigencia de su primera redacción.\n\nEl 1 de junio de 2016 el artículo 21 de la Ley 39/2015 no tenía texto vigente, así que no hay redacción de esa fecha que citar. Su primera redacción rige desde el 2 de octubre de 2016.\n\nNo puedo decir qué disponía el artículo en esa fecha, porque no hay texto vigente que citar. Para otra fecha, a partir del 2 de octubre de 2016, puedo consultar la redacción que correspondía.\n\nEl texto consolidado del BOE es informativo y no sustituye el asesoramiento de un profesional.",
+2026-10-30T08:41:08.2694169Z       "codigo_de_la_sesion": 0,
+2026-10-30T08:41:08.2694255Z       "fin_de_la_sesion": "result success",
+2026-10-30T08:41:08.2694328Z       "sesion_terminada": true,
+2026-10-30T08:41:08.2694420Z       "reintentos_por_limite_de_ritmo": 0,
+2026-10-30T08:41:08.2694483Z       "sin_medir": "",
+2026-10-30T08:41:08.2694544Z       "motivos": [],
+2026-10-30T08:41:08.2694601Z       "pasa": true
+2026-10-30T08:41:08.2694640Z     }
+2026-10-30T08:41:08.2694680Z   ]
+2026-10-30T08:41:08.2694723Z }
+2026-10-30T08:41:08.2694815Z --- fin de informe.json ---
+2026-10-30T08:41:08.2694915Z make: *** [Makefile:135: evals] Error 1
+2026-10-30T08:41:08.2706359Z ##[error]Process completed with exit code 2.

@@ -1,5 +1,5 @@
-# Un ~/.claude/skills/boe-legislacion que dejó la instalación anterior —un
-# enlace absoluto al skills/boe-legislacion de un clon, aquí el de la copia
+# Un ~/.claude/skills/normativa que dejó la instalación anterior —un
+# enlace absoluto al skills/normativa de un clon, aquí el de la copia
 # $WORK/repo, cuyo destino existe— es un conflicto: `make install` termina con
 # código distinto de 0 nombrándolo como «enlace a otro sitio», y no toca
 # ~/.agents ni ~/.claude ni escribe nada a través del enlace (FR-125, FR-126;
@@ -10,14 +10,14 @@
 # $WORK/repo (FR-055 de H5; contrato instalacion §4 de H5).
 
 mkdir $HOME/.claude/skills
-symlink $HOME/.claude/skills/boe-legislacion -> $WORK/repo/skills/boe-legislacion
-exec ls -A $WORK/repo/skills/boe-legislacion
+symlink $HOME/.claude/skills/normativa -> $WORK/repo/skills/normativa
+exec ls -A $WORK/repo/skills/normativa
 cp stdout skill-del-clon.txt
-cp $WORK/repo/skills/boe-legislacion/SKILL.md SKILL-del-clon.md
+cp $WORK/repo/skills/normativa/SKILL.md SKILL-del-clon.md
 
 ! exec make -C $WORK/repo install
 stderr '^skills install: nada se ha creado ni cambiado; conflictos:$'
-stderr '^enlace a otro sitio: '${WORK@R}'/home/\.claude/skills/boe-legislacion$'
+stderr '^enlace a otro sitio: '${WORK@R}'/home/\.claude/skills/normativa$'
 
 # Nada en ~/.agents, y ~/.claude sigue con el único enlace y su destino. El
 # resto de HOME no se mira: el go command escribe en él su configuración, como
@@ -26,12 +26,12 @@ stderr '^enlace a otro sitio: '${WORK@R}'/home/\.claude/skills/boe-legislacion$'
 exec ls -A $HOME/.claude
 stdout '\Askills\n\z'
 exec ls -A $HOME/.claude/skills
-stdout '\Aboe-legislacion\n\z'
-exec readlink $HOME/.claude/skills/boe-legislacion
-stdout '\A'${WORK@R}'/repo/skills/boe-legislacion\n\z'
+stdout '\Anormativa\n\z'
+exec readlink $HOME/.claude/skills/normativa
+stdout '\A'${WORK@R}'/repo/skills/normativa\n\z'
 
 # Y nada se ha escrito a través del enlace: la skill del clon tiene las mismas
 # entradas y el mismo SKILL.md.
-exec ls -A $WORK/repo/skills/boe-legislacion
+exec ls -A $WORK/repo/skills/normativa
 cmp stdout skill-del-clon.txt
-cmp $WORK/repo/skills/boe-legislacion/SKILL.md SKILL-del-clon.md
+cmp $WORK/repo/skills/normativa/SKILL.md SKILL-del-clon.md

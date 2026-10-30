@@ -22,15 +22,15 @@ import (
 // da la plataforma en memoria; la medida de main sintética, su ejecución, la
 // propuesta fusionada de cuya cabeza es y el tiempo entre su creación y la
 // decisión;
-// las repeticiones del job; y la eval de legal-core que en algún caso no tiene
-// resultado en main o no tiene conjunto.
+// las repeticiones del job; y la eval de plazos-y-territorio que en algún caso
+// no tiene resultado en main o no tiene conjunto.
 const (
 	propuestaDelJob       = 210
 	ejecucionDeMainDelJob = 301
 	propuestaDeMainDelJob = 199
 	antesDeLaMedidaDeMain = time.Hour
 	repeticionesDelJob    = 3
-	evalSinResultado      = "legal-core/05-plazo-reposicion-leganes"
+	evalSinResultado      = "plazos-y-territorio/05-plazo-reposicion-leganes"
 )
 
 // disparoDelJob es lo que lanza el job en un caso de TestDecisionDelJob
@@ -135,7 +135,7 @@ func TestDecisionDelJob(t *testing.T) {
 		t.Parallel()
 
 		calculo := repositorio.calculo(t, casoDeLaDecision{
-			disparo: disparoCompleto, sinPropuesta: true, mutante: conOtraDescripcionDeLegalCore(t, repositorio.arbol),
+			disparo: disparoCompleto, sinPropuesta: true, mutante: conOtraDescripcionDePlazosYTerritorio(t, repositorio.arbol),
 		})
 
 		err := calculo.juzgarLasDescripciones(true, t.TempDir(), fijadosDelTest)
@@ -151,9 +151,13 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 	t.Helper()
 
 	docs := conUnaLineaMas(t, repositorio.arbol, ficheroDelRepositorio(t, repositorio.arbol, "docs", esMarkdown))
+	// El cuerpo de jurisprudencia lo carga también la skill de entrada, que la
+	// nombra: sus evals se miden con las de jurisprudencia (contracts/evals.md §5
+	// (d) de H32).
 	cuerpo := "skills/jurisprudencia/SKILL.md"
 	deJurisprudencia := map[string]medidasEsperadas{
-		"jurisprudencia": {motivo: motivoConjunto, rutas: []string{cuerpo}},
+		"consulta-juridica": {motivo: motivoConjunto, rutas: []string{cuerpo}},
+		"jurisprudencia":    {motivo: motivoConjunto, rutas: []string{cuerpo}},
 	}
 
 	return []casoDeLaDecision{
@@ -165,9 +169,10 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 			nombre: "solo-el-cuerpo-de-jurisprudencia-sin-medida-de-main", disparo: disparoDeLaApertura,
 			mutante: conUnaLineaMas(t, repositorio.arbol, cuerpo), sinMain: true,
 			medidas: map[string]medidasEsperadas{
-				"boe-legislacion": {motivo: motivoSinResultadoDeMain},
-				"jurisprudencia":  {motivo: motivoConjunto, rutas: []string{cuerpo}},
-				"legal-core":      {motivo: motivoSinResultadoDeMain},
+				"consulta-juridica":   {motivo: motivoConjunto, rutas: []string{cuerpo}},
+				"normativa":           {motivo: motivoSinResultadoDeMain},
+				"jurisprudencia":      {motivo: motivoConjunto, rutas: []string{cuerpo}},
+				"plazos-y-territorio": {motivo: motivoSinResultadoDeMain},
 			},
 		},
 		{nombre: "etiqueta-evals-sin-cambios", disparo: disparoDeLaEtiqueta, mutante: docs},
@@ -175,7 +180,7 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 			nombre: "solo-la-eval-sin-resultado", disparo: disparoDeLaEtiqueta, mutante: docs,
 			otrasHuellas: map[string]string{evalSinResultado: otraHuella},
 			medidas: map[string]medidasEsperadas{
-				"legal-core": {motivo: motivoSinResultadoDeMain, ficheros: []string{"05-plazo-reposicion-leganes.yaml"}},
+				"plazos-y-territorio": {motivo: motivoSinResultadoDeMain, ficheros: []string{"05-plazo-reposicion-leganes.yaml"}},
 			},
 		},
 		{nombre: "apertura-sin-eleccion", disparo: disparoDeLaApertura, mutante: docs, sinMain: true, sinTrabajos: true},
@@ -202,36 +207,36 @@ func casosDeLaDecisionDeH30(t *testing.T, repositorio repositorioDeLaDecision) [
 }
 
 // casosDeLaDescripcionDelJob son los casos de una propuesta que cambia la
-// descripción de legal-core, en la que el trabajo de cada skill lleva el bloque
-// descripcion: con la apertura, sola y con lo común cambiado a la vez, juzga la
-// de legal-core, cuya huella no tiene la medida de main, y reutiliza el juicio
-// de las demás de la medida de main, que se lee aunque ninguna eval se busque;
-// en la suite completa sobre la propuesta, las juzga todas sin leer nada de la
-// plataforma; y si gh no da los ficheros de la propuesta, la búsqueda no
-// empieza y las juzga todas.
+// descripción de plazos-y-territorio, en la que el trabajo de cada skill lleva
+// el bloque descripcion: con la apertura, sola y con lo común cambiado a la
+// vez, juzga la de plazos-y-territorio, cuya huella no tiene la medida de main,
+// y reutiliza el juicio de las demás de la medida de main, que se lee aunque
+// ninguna eval se busque; en la suite completa sobre la propuesta, las juzga
+// todas sin leer nada de la plataforma; y si gh no da los ficheros de la
+// propuesta, la búsqueda no empieza y las juzga todas.
 func casosDeLaDescripcionDelJob(t *testing.T, repositorio repositorioDeLaDecision) []casoDeLaDecision {
 	t.Helper()
 
-	descripcion := conOtraDescripcionDeLegalCore(t, repositorio.arbol)
-	skillMD := "skills/legal-core/SKILL.md"
+	descripcion := conOtraDescripcionDePlazosYTerritorio(t, repositorio.arbol)
+	skillMD := "skills/plazos-y-territorio/SKILL.md"
 	cli := ficheroDelRepositorio(t, repositorio.arbol, "internal/cli", esCodigoSinTests)
-	lasDemas := slices.DeleteFunc(slices.Clone(repositorio.skills), func(skill string) bool { return skill == "legal-core" })
+	lasDemas := slices.DeleteFunc(slices.Clone(repositorio.skills), func(skill string) bool { return skill == "plazos-y-territorio" })
 	conLaMedidaDeMain := slices.Concat([]string{"ficheros de la propuesta 210"}, lecturasDeLasMedidas(ejecucionDeMainDelJob))
 
 	return []casoDeLaDecision{
 		{
-			nombre: "descripcion-de-legal-core-con-la-apertura", disparo: disparoDeLaApertura, mutante: descripcion,
+			nombre: "descripcion-de-plazos-y-territorio-con-la-apertura", disparo: disparoDeLaApertura, mutante: descripcion,
 			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoDescripcion, rutas: []string{skillMD}}),
-			juzgadas: []string{"legal-core"}, reutilizadas: lasDemas, soloLasLecturas: conLaMedidaDeMain,
+			juzgadas: []string{"plazos-y-territorio"}, reutilizadas: lasDemas, soloLasLecturas: conLaMedidaDeMain,
 		},
 		{
-			nombre: "descripcion-de-legal-core-y-lo-comun-con-la-apertura", disparo: disparoDeLaApertura,
+			nombre: "descripcion-de-plazos-y-territorio-y-lo-comun-con-la-apertura", disparo: disparoDeLaApertura,
 			mutante:  juntos(descripcion, conUnaLineaMas(t, repositorio.arbol, cli)),
 			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoComun, rutas: []string{cli, skillMD}}),
-			juzgadas: []string{"legal-core"}, reutilizadas: lasDemas, soloLasLecturas: conLaMedidaDeMain,
+			juzgadas: []string{"plazos-y-territorio"}, reutilizadas: lasDemas, soloLasLecturas: conLaMedidaDeMain,
 		},
 		{
-			nombre: "descripcion-de-legal-core-sin-medida-de-main", disparo: disparoDeLaEtiqueta, mutante: descripcion,
+			nombre: "descripcion-de-plazos-y-territorio-sin-medida-de-main", disparo: disparoDeLaEtiqueta, mutante: descripcion,
 			sinMain:  true,
 			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoDescripcion, rutas: []string{skillMD}}),
 			juzgadas: repositorio.skills,
@@ -240,12 +245,12 @@ func casosDeLaDescripcionDelJob(t *testing.T, repositorio repositorioDeLaDecisio
 			},
 		},
 		{
-			nombre: "descripcion-de-legal-core-en-la-suite-completa", disparo: disparoCompleto, mutante: descripcion,
+			nombre: "descripcion-de-plazos-y-territorio-en-la-suite-completa", disparo: disparoCompleto, mutante: descripcion,
 			medidas:  todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoSuiteCompleta}),
 			juzgadas: repositorio.skills, sinLecturas: true,
 		},
 		{
-			nombre: "descripcion-de-legal-core-sin-los-ficheros-de-la-propuesta", disparo: disparoDeLaApertura,
+			nombre: "descripcion-de-plazos-y-territorio-sin-los-ficheros-de-la-propuesta", disparo: disparoDeLaApertura,
 			mutante: descripcion, fallos: falloDeLosFicherosDeLaPropuesta(),
 			medidas:           todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoPlataforma}),
 			juzgadas:          repositorio.skills,
@@ -256,18 +261,18 @@ func casosDeLaDescripcionDelJob(t *testing.T, repositorio repositorioDeLaDecisio
 }
 
 // casosSinDescripcionQueJuzgar son los casos en que ningún trabajo lleva el
-// bloque descripcion: la descripción de legal-core cambiada en la suite
-// completa sin propuesta, el despacho manual; y, con la etiqueta evals, un
-// cambio solo de uno de los cuatro ficheros del juez de las descripciones, o de
-// su modelo o su versión de Claude Code, que no cambian ninguna descripción.
+// bloque descripcion: la descripción de plazos-y-territorio cambiada en la
+// suite completa sin propuesta, el despacho manual; y, con la etiqueta evals,
+// un cambio solo de uno de los cuatro ficheros del juez de las descripciones, o
+// de su modelo o su versión de Claude Code, que no cambian ninguna descripción.
 func casosSinDescripcionQueJuzgar(t *testing.T, repositorio repositorioDeLaDecision) []casoDeLaDecision {
 	t.Helper()
 
 	docs := conUnaLineaMas(t, repositorio.arbol, ficheroDelRepositorio(t, repositorio.arbol, "docs", esMarkdown))
 	casos := []casoDeLaDecision{
 		{
-			nombre: "descripcion-de-legal-core-sin-propuesta", disparo: disparoCompleto, sinPropuesta: true,
-			mutante:     conOtraDescripcionDeLegalCore(t, repositorio.arbol),
+			nombre: "descripcion-de-plazos-y-territorio-sin-propuesta", disparo: disparoCompleto, sinPropuesta: true,
+			mutante:     conOtraDescripcionDePlazosYTerritorio(t, repositorio.arbol),
 			medidas:     todasMedidas(repositorio.skills, medidasEsperadas{motivo: motivoSuiteCompleta}),
 			sinLecturas: true,
 		},

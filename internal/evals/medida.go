@@ -366,7 +366,7 @@ type CasoEtiquetado struct {
 // Quitado es lo que un caso derivado quita de su sesión, en una de dos formas
 // (data-model §3 y research D3 de H25): el texto de un bloque de una norma, de
 // los textos de sus herramientas, que es la de los derivados de
-// boe-legislacion; o una parte del texto pegado, de su pregunta, que es la de
+// normativa; o una parte del texto pegado, de su pregunta, que es la de
 // los de jurisprudencia. El fichero de los casos lleva además, en estos, la
 // clave regla, que dice con qué cuenta se etiquetó el derivado y no se lee.
 type Quitado struct {

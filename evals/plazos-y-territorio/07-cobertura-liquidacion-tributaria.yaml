@@ -1,0 +1,13 @@
+# Eval de cobertura (c): un recurso contra una liquidación de la Agencia Tributaria, de la aplicación de los tributos,
+# que la DA 1ª.2.a de la LPAC deja fuera del procedimiento común. La pregunta da el municipio y la fecha de la
+# notificación, todo lo que plazos calcular necesitaría: la respuesta tiene que declarar en la línea ⚠ NO CUBIERTO: que
+# el procedimiento se rige por la Ley General Tributaria, con su identificador, sin calcular ningún plazo ni dar la
+# línea ⚠ PLAZO: (FR-050, FR-051, FR-057, FR-088; research D26; contracts/evals-legal-core.md §5).
+pregunta: "Vivo en Leganés y el 9 de septiembre de 2026 me notificaron una liquidación de la Agencia Tributaria. ¿Hasta cuándo puedo recurrirla?"
+activa: true
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+no_cubierto:
+  norma: BOE-A-2003-23186
+  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}

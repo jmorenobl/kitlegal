@@ -21,14 +21,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// skillDelArbol es la SKILL.md de boe-legislacion del árbol de trabajo,
+// skillDelArbol es la SKILL.md de normativa del árbol de trabajo,
 // relativa al directorio de este paquete: la que el sondeo tiene que instalar.
-const skillDelArbol = "../../skills/boe-legislacion/SKILL.md"
+const skillDelArbol = "../../skills/normativa/SKILL.md"
 
 // TestPrepararElArbolDelSondeo prepara el árbol del sondeo de verdad en un
 // directorio temporal del test (contracts/sondeo.md §3.3 y §7 de H7.3; FR-062,
 // FR-064): el kitlegal del bin/ del temporal existe y es ejecutable, y la
-// SKILL.md de boe-legislacion que ve Claude Code en el HOME del temporal es,
+// SKILL.md de normativa que ve Claude Code en el HOME del temporal es,
 // byte a byte, la del árbol. El HOME de la base es otro temporal, con las cachés
 // de Go del proceso de test y sin red (GOPROXY=off, GOFLAGS=-mod=readonly), y
 // no gana nada fuera de lo que el go command guarda de sí mismo, su telemetría,
@@ -56,7 +56,7 @@ func TestPrepararElArbolDelSondeo(t *testing.T) {
 	assert.True(t, binario.Mode().IsRegular(), "el kitlegal del temporal es un fichero")
 	assert.NotZero(t, binario.Mode().Perm()&0o100, "el kitlegal del temporal es ejecutable")
 
-	instalada, err := leerFichero(filepath.Join(temporal, "home", ".claude", "skills", "boe-legislacion", "SKILL.md"))
+	instalada, err := leerFichero(filepath.Join(temporal, "home", ".claude", "skills", "normativa", "SKILL.md"))
 	require.NoError(t, err)
 
 	delArbol, err := leerFichero(skillDelArbol)

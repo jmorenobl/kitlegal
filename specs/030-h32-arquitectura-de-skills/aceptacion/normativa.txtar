@@ -1,0 +1,228 @@
+# normativa.txtar
+# La skill de normativa no cuenta la comprobación ni pega materia a una
+# remisión, y conserva lo que sigue valiendo de la suite de H31.1: el paso que
+# pide kitlegal graph check dice que un bloque sin entrada version-obsoleta no da
+# nada a la respuesta; el paso 5 lleva las dos frases nuevas y no las dos que
+# salen; los pasos 3 y 6 y la primera viñeta del paso 4 son, línea a línea, los
+# de c991808; sus formas fijas siguen en un bloque text; la tabla de comandos
+# tiene una fila por verbo de boe y de graph; y ningún cuerpo de una skill de
+# capacidad nombra una norma de las evals por materia.
+#
+# Cubre: US3 · FR-015, FR-016, FR-017, FR-018, FR-021, FR-040 · SC-017.
+#
+# Un paso es el tramo entre su encabezado «### <n>.» y el siguiente ### o ##, y
+# su primera viñeta, de su «- » a la línea anterior a la primera que no empieza
+# por dos blancos (pasos.awk), sin las líneas en blanco del final. Para buscar
+# una frase, el paso va en una línea, con sus líneas juntadas por un espacio y
+# los blancos colapsados, porque el cuerpo va cortado a 120 columnas. Los pasos 3
+# y 6 y la primera viñeta del paso 4 de c991808, los de la skill de normativa con
+# el nombre de entonces, van copiados en las secciones c991808/ tal como los da
+# pasos.awk: el make ci de la entrega corre sobre un clon superficial, sin ese
+# commit. Las formas fijas son las de c991808, que no cambian
+# (contracts/textos.md §1); las etiquetas de aviso de la regla 3 no son líneas
+# enteras y las mira avisos-de-la-skill, no este guion. Los verbos de cada applet
+# salen de su ayuda. La lista mínima de FR-021 se busca como texto en el cuerpo
+# de cada SKILL.md de capacidad, desde la línea que sigue al --- que cierra el
+# frontmatter. Los awk y el sh salen siempre con 0: el veredicto es el de stdout
+# o el de grep sobre lo que escriben.
+
+env SKILL=$KITLEGAL_SKILLS/normativa/SKILL.md
+exists $SKILL
+
+# --- FR-015: el paso que pide kitlegal graph check dice que sin version-obsoleta no hay nada que contar ---
+exec awk -v paso=2 -v junto=1 -f pasos.awk $SKILL
+cp stdout paso-2.txt
+grep 'kitlegal graph check' paso-2.txt
+grep 'Habla de otras conversaciones, que quien pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni una línea, ni una frase junto a los avisos o a la fecha de vigencia\.' paso-2.txt
+
+# --- FR-016: el paso 5, sin materia en la remisión no leída ---
+exec awk -v paso=5 -v junto=1 -f pasos.awk $SKILL
+cp stdout paso-5.txt
+grep 'Una remisión que no has leído se repite con las palabras del texto leído, sin materia: quitarle el número y dejarle la materia sigue diciendo lo que no has leído\.' paso-5.txt
+grep 'Y explicar una palabra del texto leído con lo que regula otro precepto es afirmar ese precepto: es decir qué dice\.' paso-5.txt
+! grep 'o el número, o la materia' paso-5.txt
+! grep 'Puedes avisar de que una materia se regula en otra parte' paso-5.txt
+
+# --- FR-017: los pasos 3 y 6 y la primera viñeta del paso 4, los de c991808 ---
+exec awk -v paso=3 -f pasos.awk $SKILL
+cmp stdout c991808/paso-3.md
+exec awk -v paso=4 -v vineta=1 -f pasos.awk $SKILL
+cmp stdout c991808/paso-4-primera-vineta.md
+exec awk -v paso=6 -f pasos.awk $SKILL
+cmp stdout c991808/paso-6.md
+
+# --- FR-018: las formas fijas, cada una como línea de un bloque text ---
+exec awk -f en-bloques.awk formas.txt $SKILL
+stdout '^formas: 5 de 5$'
+
+# --- FR-018: la tabla de comandos, entre sus marcas, con una fila por verbo de boe y de graph ---
+exec $KITLEGAL_BIN boe --help
+cp stdout ayuda-boe.txt
+exec $KITLEGAL_BIN graph --help
+cp stdout ayuda-graph.txt
+exec awk -f tabla.awk ayuda-boe.txt ayuda-graph.txt $SKILL
+stdout '^tabla: boe [1-9][0-9]* verbos, graph [1-9][0-9]* verbos; sin su fila: 0$'
+
+# --- FR-021: ningún cuerpo de capacidad nombra una norma de las evals por materia ---
+exists $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
+exists $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
+exec sh cuerpos.sh $KITLEGAL_SKILLS normativa jurisprudencia plazos-y-territorio
+cp stdout cuerpos.txt
+exec awk -f nombra.awk lista-minima.txt cuerpos.txt
+stdout '^cuerpos: 3; normas nombradas: 0$'
+
+-- c991808/paso-3.md --
+### 3. Completar
+
+Si un bloque leído remite a otro precepto («sin perjuicio de lo dispuesto en el artículo N», «en los términos
+del artículo N»), de esta norma o de otra, o viste su id solo en un índice, y la respuesta va a hablar de él,
+aunque sea para avisar, léelo con los pasos 1 y 2 antes de escribir. Es un salto: lo que remita esa segunda
+lectura no se lee. Si importan la vigencia o una modificación, lee también los metadatos y el análisis.
+
+Por qué: quien pregunta va a actuar con lo que escribes y no puede comprobar lo que no lleva cita; con el texto
+delante, lo que sabes de ese precepto se puede decir y citar.
+
+Ojo: una remisión no dice de qué trata lo remitido. Lo que recuerdes de él, aunque sea cierto, no está en lo
+leído: si te parece útil decirlo, esa es la señal de que hay que leerlo.
+-- c991808/paso-4-primera-vineta.md --
+- **La respuesta empieza por lo que se pregunta y habla de la norma, no de la consulta.** Es todo lo que escribes
+  tras la última orden o llamada, desde su primera palabra, y quien pregunta la lee entera: no ve las órdenes, las
+  llamadas ni lo que devuelven, y lo que decides al completar la lectura no va en ella. La hacen la norma, su texto, su
+  cita, sus avisos y las líneas `⚠` de cada bloque: escribe como quien tiene el BOE delante,
+  «el artículo no lleva avisos de vigencia» y no «la lectura no trajo avisos», la norma por su nombre e identificador,
+  sin decir de dónde sale, qué has hecho o vas a hacer ni qué ha devuelto o no una orden: no le sirve.
+-- c991808/paso-6.md --
+### 6. Repasar antes de enviar
+
+Con la respuesta escrita, y antes de enviarla, repásala frase a frase. Es el último paso: no lo saltes.
+
+1. Por cada cosa que la respuesta dice de un precepto, con su número o sin él, también de aquello a lo que
+   remite el texto leído, busca en esta conversación la orden `kitlegal boe articulo` o `articulos`, o la
+   llamada `boe_articulo` o `boe_articulos`, que devolvió su texto. Si no está, léelo ahora con los pasos 1
+   y 2, un salto, y deja lo dicho con su cita; si no se puede leer, quita la frase o déjala con las palabras
+   del texto leído, nada más.
+2. Quita toda frase que hable de la consulta y no de la norma: lo que hiciste, una orden, lo que devolvió o
+   no devolvió.
+
+Envía la respuesta corregida, no la primera.
+-- formas.txt --
+⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <id>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.
+⚠ REDACCIÓN DE HOY: <forma legible> [<identificador>, bloque <id>]: hoy la redacción es otra, la de <identificador>, con fecha de vigencia AAAAMMDD.
+⚠ SIN REDACCIÓN VIGENTE: <forma legible> [<identificador>, bloque <id>]: el AAAA-MM-DD no tenía redacción vigente; la tiene desde el AAAAMMDD, la fecha de vigencia de su primera redacción.
+⚠ REDACCIÓN MODIFICADA: <forma legible> [<identificador>, bloque <id>]: la redacción con fecha de vigencia AAAAMMDD, la que se consultó antes, ha sido sustituida por la de AAAAMMDD, que es la que se cita.
+⚠ SIN CONSULTA AL BOE: <causa>. Si ya tienes kitlegal, cierra Claude del todo, ábrelo y pregunta en un chat nuevo; si no: https://kitlegal.es/instalar/
+-- lista-minima.txt --
+texto|BOE-A-1985-5392
+texto|BOE-A-2004-4214
+texto|BOE-A-2006-20764
+texto|BOE-A-2013-12887
+texto|BOE-A-2015-10566
+texto|Ley 7/1985
+texto|Real Decreto Legislativo 2/2004
+texto|Ley 35/2006
+texto|Ley 19/2013
+texto|Ley 40/2015
+texto|LRBRL
+texto|TRLRHL
+texto|IRPF
+texto|LTAIBG
+texto|LRJSP
+-- pasos.awk --
+# pasos.awk -v paso=<n> [-v vineta=1] [-v junto=1] <SKILL.md>: el paso <n> del
+# protocolo, de su encabezado «### <n>.» a la línea anterior al siguiente ### o
+# ##, o, con vineta=1, su primera viñeta, de su «- » a la línea anterior a la
+# primera que no empieza por dos blancos; sin las líneas en blanco del final y,
+# con junto=1, en una sola línea, con sus líneas juntadas por un espacio y los
+# blancos colapsados. Sin el paso, nada o una línea vacía.
+/^##/ && dentro { dentro = 0; hecho = 1 }
+/^##/ && !hecho && index($0, "### " paso ".") == 1 { dentro = 1; if (!vineta) lineas[++n] = $0; next }
+dentro && !vineta { lineas[++n] = $0 }
+dentro && vineta && v == 1 && !/^  / { v = 2 }
+dentro && vineta && v == 1 { lineas[++n] = $0 }
+dentro && vineta && v == 0 && /^- / { v = 1; lineas[++n] = $0 }
+END {
+	while (n > 0 && lineas[n] ~ /^[ \t]*$/) n--
+	if (!junto) {
+		for (i = 1; i <= n; i++) print lineas[i]
+		exit
+	}
+	for (i = 1; i <= n; i++) texto = texto " " lineas[i]
+	gsub(/[ \t]+/, " ", texto); sub(/^ /, "", texto); sub(/ $/, "", texto)
+	print texto
+}
+-- en-bloques.awk --
+# en-bloques.awk <formas> <SKILL.md>: cada línea de <formas> es, sin los blancos
+# de los extremos, una línea de un bloque text del SKILL.md, también sin ellos.
+FNR == 1 { f++; t = 0 }
+{ l = $0; sub(/^[ \t]+/, "", l); sub(/[ \t]+$/, "", l) }
+f == 1 { if (l != "") formas[++n] = l; next }
+l == "```text" { t = 1; next }
+t && l ~ /^```/ { t = 0; next }
+t { enBloque[l] = 1 }
+END {
+	estan = 0
+	for (i = 1; i <= n; i++) if (formas[i] in enBloque) estan++; else print "falta: " formas[i]
+	print "formas: " estan " de " n
+}
+-- tabla.awk --
+# tabla.awk <ayuda>... <SKILL.md>: los verbos de cada applet según su ayuda —el
+# applet de «uso: <applet> …» y cada verbo de la lista de «verbos:»— y cuántas
+# filas de la tabla de comandos del SKILL.md, entre sus marcas, empiezan por
+# «| `kitlegal <applet> <verbo>» seguido de un blanco o de la comilla: una por
+# verbo.
+FNR == 1 { esSkill = FILENAME ~ /SKILL\.md$/; enVerbos = 0; t = 0 }
+!esSkill && $1 == "uso:" { applet = $2; next }
+!esSkill && $0 == "verbos:" { enVerbos = 1; next }
+!esSkill && enVerbos && /^  [a-z]/ { n++; delApplet[n] = applet; orden[n] = "| `kitlegal " applet " " $1; deCada[applet]++; next }
+!esSkill { enVerbos = 0; next }
+index($0, "<!-- inicio de la tabla de comandos") == 1 { t = 1; next }
+index($0, "<!-- fin de la tabla de comandos -->") == 1 { t = 0; next }
+t { for (i = 1; i <= n; i++) if (index($0, orden[i] " ") == 1 || index($0, orden[i] "`") == 1) filas[i]++ }
+END {
+	sinFila = 0
+	for (i = 1; i <= n; i++) if (filas[i] != 1) { sinFila++; print "sin su fila: " orden[i] "` (" filas[i] + 0 " filas)" }
+	print "tabla: boe " deCada["boe"] + 0 " verbos, graph " deCada["graph"] + 0 " verbos; sin su fila: " sinFila
+}
+-- cuerpos.sh --
+# cuerpos.sh <skills> <skill>...: el cuerpo del SKILL.md de cada <skill>, desde la
+# línea que sigue al --- que cierra el frontmatter, en una línea «<skill>: <texto>»,
+# con sus líneas juntadas por un espacio y los blancos colapsados.
+raiz=$1
+shift
+for skill in "$@"; do
+	awk -v skill="$skill" '
+		d >= 2 { texto = texto " " $0; next }
+		$0 == "---" { d++ }
+		END { gsub(/[ \t]+/, " ", texto); print skill ":" texto }
+	' "$raiz/$skill/SKILL.md"
+done
+exit 0
+-- nombra.awk --
+# nombra.awk <términos>... cuerpos.txt: por cada cuerpo de cuerpos.txt —una línea
+# «<skill>: <texto>»—, cada término de los ficheros de términos —una línea
+# «<clase>|<término>»— que lo nombra: con la clase abreviatura, como palabra
+# entera; con las demás, como texto.
+function palabra(texto, w,   base, resto, p, antes, despues) {
+	base = 0; resto = texto
+	while ((p = index(resto, w)) > 0) {
+		antes = (base + p > 1) ? substr(texto, base + p - 1, 1) : ""
+		despues = substr(texto, base + p + length(w), 1)
+		if (antes !~ /[A-Za-z0-9_]/ && despues !~ /[A-Za-z0-9_]/) return 1
+		base += p; resto = substr(texto, base + 1)
+	}
+	return 0
+}
+FILENAME !~ /cuerpos\.txt$/ {
+	if ((c = index($0, "|")) > 0) { n++; clase[n] = substr($0, 1, c - 1); termino[n] = substr($0, c + 1) }
+	next
+}
+{
+	cuerpos++
+	skill = $0; sub(/: .*/, "", skill)
+	texto = substr($0, length(skill) + 3)
+	for (i = 1; i <= n; i++) {
+		hay = (clase[i] == "abreviatura") ? palabra(texto, termino[i]) : index(texto, termino[i])
+		if (hay) { print "nombra " skill ": " termino[i]; nombradas++ }
+	}
+}
+END { print "cuerpos: " cuerpos + 0 "; normas nombradas: " nombradas + 0 }

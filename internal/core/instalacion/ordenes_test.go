@@ -243,7 +243,7 @@ func (c casoDeDoctor) instalar(t *testing.T, d *discoEnMemoria, invocacion insta
 
 	enlazador := c.enlazadorEn(d)
 
-	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), c.versionDelCaso())
+	plan, err := instalacion.Planificar(d, enlazador, pedido, empotradasDePrueba(), nil, c.versionDelCaso())
 	if err != nil {
 		return err
 	}
@@ -313,8 +313,8 @@ func casosDeOrdenes(t *testing.T) []casoDeDoctor {
 	deOtroHome := ambitoGlobal(t, "/home/o'neil")
 	editadoEn := func(ambito instalacion.Ambito) func(d *discoEnMemoria) {
 		return func(d *discoEnMemoria) {
-			instalarEn(d, ambito, "boe-legislacion", "legal-core").escribir()
-			d.fichero(ambito.RutaDeSkill("legal-core")+"/SKILL.md", "editado a mano")
+			instalarEn(d, ambito, "normativa", "plazos-y-territorio").escribir()
+			d.fichero(ambito.RutaDeSkill("plazos-y-territorio")+"/SKILL.md", "editado a mano")
 		}
 	}
 
@@ -323,73 +323,73 @@ func casosDeOrdenes(t *testing.T) []casoDeDoctor {
 			nombre:     "-g: rutas absolutas y la bandera",
 			preparar:   editadoEn(deHome),
 			invocacion: global,
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "/home/ana/.agents/skills/legal-core/SKILL.md",
-				"rm -- '/home/ana/.agents/skills/legal-core/SKILL.md' && kitlegal skills install legal-core -g")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "/home/ana/.agents/skills/plazos-y-territorio/SKILL.md",
+				"rm -- '/home/ana/.agents/skills/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio -g")},
 		},
 		{
 			nombre:     "-g con una comilla simple en HOME",
 			preparar:   editadoEn(deOtroHome),
 			invocacion: global,
 			home:       "/home/o'neil",
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "/home/o'neil/.agents/skills/legal-core/SKILL.md",
-				`rm -- '/home/o'\''neil/.agents/skills/legal-core/SKILL.md' && kitlegal skills install legal-core -g`)},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "/home/o'neil/.agents/skills/plazos-y-territorio/SKILL.md",
+				`rm -- '/home/o'\''neil/.agents/skills/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio -g`)},
 		},
 		{
 			nombre: "-g: una copia, sin rm y con --host claude",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, deHome, "boe-legislacion", "legal-core").enlazar("boe-legislacion").
-					copiar("legal-core").escribir()
+				instalarEn(d, deHome, "normativa", "plazos-y-territorio").enlazar("normativa").
+					copiar("plazos-y-territorio").escribir()
 			},
 			invocacion: global,
-			esperados: []instalacion.Hallazgo{hallazgo(esCopia, "/home/ana/.claude/skills/legal-core",
-				"kitlegal skills install legal-core -g --host claude")},
+			esperados: []instalacion.Hallazgo{hallazgo(esCopia, "/home/ana/.claude/skills/plazos-y-territorio",
+				"kitlegal skills install plazos-y-territorio -g --host claude")},
 			sondas: []string{"/home/ana/.claude/skills"},
 		},
 		{
 			nombre: "-g: un directorio real en lugar del enlace de host, con rm -r",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, deHome, "legal-core").enlazar("legal-core").escribir()
-				d.retirar("/home/ana/.claude/skills/legal-core")
-				d.fichero("/home/ana/.claude/skills/legal-core/nota.md", "no es de kitlegal")
+				instalarEn(d, deHome, "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
+				d.retirar("/home/ana/.claude/skills/plazos-y-territorio")
+				d.fichero("/home/ana/.claude/skills/plazos-y-territorio/nota.md", "no es de kitlegal")
 			},
 			invocacion: global,
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, "/home/ana/.claude/skills/legal-core",
-				"rm -r -- '/home/ana/.claude/skills/legal-core' && kitlegal skills install legal-core -g --host claude")},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, "/home/ana/.claude/skills/plazos-y-territorio",
+				"rm -r -- '/home/ana/.claude/skills/plazos-y-territorio' && kitlegal skills install plazos-y-territorio -g --host claude")},
 		},
 		{
 			nombre:     "--dir relativo, sin --host",
 			preparar:   editadoEn(instalacion.NuevoAmbitoDir("destino")),
 			invocacion: instalacion.Invocacion{Dir: texto("destino")},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "destino/legal-core/SKILL.md",
-				"rm -- 'destino/legal-core/SKILL.md' && kitlegal skills install legal-core --dir 'destino'")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "destino/plazos-y-territorio/SKILL.md",
+				"rm -- 'destino/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio --dir 'destino'")},
 		},
 		{
 			nombre:     "--dir con barra final: la ruta limpia y la bandera tal como se pasó",
 			preparar:   editadoEn(instalacion.NuevoAmbitoDir("destino")),
 			invocacion: instalacion.Invocacion{Dir: texto("destino/")},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "destino/legal-core/SKILL.md",
-				"rm -- 'destino/legal-core/SKILL.md' && kitlegal skills install legal-core --dir 'destino/'")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "destino/plazos-y-territorio/SKILL.md",
+				"rm -- 'destino/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio --dir 'destino/'")},
 		},
 		{
 			nombre:     "--dir absoluto",
 			preparar:   editadoEn(instalacion.NuevoAmbitoDir("/srv/skills")),
 			invocacion: instalacion.Invocacion{Dir: texto("/srv/skills")},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "/srv/skills/legal-core/SKILL.md",
-				"rm -- '/srv/skills/legal-core/SKILL.md' && kitlegal skills install legal-core --dir '/srv/skills'")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "/srv/skills/plazos-y-territorio/SKILL.md",
+				"rm -- '/srv/skills/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio --dir '/srv/skills'")},
 		},
 		{
 			nombre:     "--dir con una comilla simple",
 			preparar:   editadoEn(instalacion.NuevoAmbitoDir("o'tro")),
 			invocacion: instalacion.Invocacion{Dir: texto("o'tro")},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "o'tro/legal-core/SKILL.md",
-				`rm -- 'o'\''tro/legal-core/SKILL.md' && kitlegal skills install legal-core --dir 'o'\''tro'`)},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "o'tro/plazos-y-territorio/SKILL.md",
+				`rm -- 'o'\''tro/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio --dir 'o'\''tro'`)},
 		},
 		{
 			nombre:     "--dir vacío, el directorio de trabajo",
 			preparar:   editadoEn(instalacion.NuevoAmbitoDir("")),
 			invocacion: instalacion.Invocacion{Dir: texto("")},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "legal-core/SKILL.md",
-				"rm -- 'legal-core/SKILL.md' && kitlegal skills install legal-core --dir ''")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "plazos-y-territorio/SKILL.md",
+				"rm -- 'plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio --dir ''")},
 		},
 		{
 			// Con la ruta en la palabra siguiente, «--dir '-raro'», el install
@@ -397,31 +397,31 @@ func casosDeOrdenes(t *testing.T) []casoDeDoctor {
 			nombre:     "--dir que empieza por un guion: la ruta en la misma palabra que la bandera",
 			preparar:   editadoEn(instalacion.NuevoAmbitoDir("-raro")),
 			invocacion: instalacion.Invocacion{Dir: texto("-raro")},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, "-raro/legal-core/SKILL.md",
-				"rm -- '-raro/legal-core/SKILL.md' && kitlegal skills install legal-core --dir='-raro'")},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, "-raro/plazos-y-territorio/SKILL.md",
+				"rm -- '-raro/plazos-y-territorio/SKILL.md' && kitlegal skills install plazos-y-territorio --dir='-raro'")},
 		},
 		{
 			nombre: "--dir: el manifiesto de otra versión, con las dos skills",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("destino"), "boe-legislacion", "legal-core").
+				instalarEn(d, instalacion.NuevoAmbitoDir("destino"), "normativa", "plazos-y-territorio").
 					deVersion(versionVieja).escribir()
 			},
 			invocacion: instalacion.Invocacion{Dir: texto("destino")},
 			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, "destino/kitlegal.json",
-				"kitlegal skills install boe-legislacion legal-core --dir 'destino'")},
+				"kitlegal skills install normativa plazos-y-territorio --dir 'destino'")},
 		},
 		{
 			nombre: "una ruta con espacios y un && dentro de las comillas",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("mis skills && más"), "legal-core").escribir()
-				d.retirar("mis skills && más/legal-core/references")
+				instalarEn(d, instalacion.NuevoAmbitoDir("mis skills && más"), "plazos-y-territorio").escribir()
+				d.retirar("mis skills && más/plazos-y-territorio/references")
 			},
 			invocacion: instalacion.Invocacion{Dir: texto("mis skills && más")},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, "mis skills && más/legal-core/references/jerarquia_normativa.md",
-					"kitlegal skills install legal-core --dir 'mis skills && más'"),
-				hallazgo(editado, "mis skills && más/legal-core/references/leyes_vertebrales.md",
-					"kitlegal skills install legal-core --dir 'mis skills && más'"),
+				hallazgo(editado, "mis skills && más/plazos-y-territorio/references/jerarquia_normativa.md",
+					"kitlegal skills install plazos-y-territorio --dir 'mis skills && más'"),
+				hallazgo(editado, "mis skills && más/plazos-y-territorio/references/leyes_vertebrales.md",
+					"kitlegal skills install plazos-y-territorio --dir 'mis skills && más'"),
 			},
 		},
 	}
@@ -483,7 +483,7 @@ func probarLectorDeShell(t *testing.T) {
 	t.Parallel()
 
 	leidas := map[string][][]string{
-		"kitlegal skills install legal-core": {{"kitlegal", "skills", "install", "legal-core"}},
+		"kitlegal skills install plazos-y-territorio": {{"kitlegal", "skills", "install", "plazos-y-territorio"}},
 		`rm -- 'a b/c'\''d' && kitlegal skills install x --dir ''`: {
 			{"rm", "--", "a b/c'd"}, {"kitlegal", "skills", "install", "x", "--dir", ""},
 		},

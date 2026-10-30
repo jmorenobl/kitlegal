@@ -1258,7 +1258,7 @@ var comprobacionesDelHumo = []comprobacionDelHumo{
 		"proyecto=$(mktemp -d)",
 		`cd "$proyecto"`,
 		`"$RUNNER_TEMP/kitlegal" skills install`,
-		"if [ ! -f .agents/skills/boe-legislacion/SKILL.md ]; then",
+		"if [ ! -f .agents/skills/normativa/SKILL.md ]; then",
 		"exit 1",
 	}},
 

@@ -1775,9 +1775,9 @@ func TestBinariosDelArnes(t *testing.T) {
 
 			proyecto := t.TempDir()
 			require.NoError(t, os.Mkdir(filepath.Join(proyecto, ".claude"), 0o700))
-			instalarBoeLegislacion(t, binario, proyecto)
+			instalarNormativa(t, binario, proyecto)
 
-			estado, err := os.Lstat(filepath.Join(proyecto, ".claude", "skills", "boe-legislacion"))
+			estado, err := os.Lstat(filepath.Join(proyecto, ".claude", "skills", "normativa"))
 			require.NoError(t, err)
 
 			if caso.enlaza {
@@ -1872,13 +1872,13 @@ func primeraLineaDeVersion(t *testing.T, binario string) string {
 	return primera
 }
 
-// instalarBoeLegislacion instala boe-legislacion con el binario en el proyecto,
+// instalarNormativa instala normativa con el binario en el proyecto,
 // con un entorno vacío: el ámbito local no necesita nada de él, y así nada de
 // la cuenta de quien ejecuta los tests entra en la prueba.
-func instalarBoeLegislacion(t *testing.T, binario, proyecto string) {
+func instalarNormativa(t *testing.T, binario, proyecto string) {
 	t.Helper()
 
-	orden := exec.CommandContext(t.Context(), binario, "skills", "install", "boe-legislacion")
+	orden := exec.CommandContext(t.Context(), binario, "skills", "install", "normativa")
 	orden.Dir = proyecto
 	orden.Env = []string{}
 
@@ -1904,7 +1904,7 @@ func TestVariablesDeLosGuiones(t *testing.T) {
 			variable, entorno.variables[variable])
 	}
 
-	assert.FileExists(t, filepath.Join(entorno.variables[variableSkills], "boe-legislacion", "SKILL.md"))
+	assert.FileExists(t, filepath.Join(entorno.variables[variableSkills], "normativa", "SKILL.md"))
 	assert.Equal(t, filepath.Join("scripts", "install.sh"),
 		filepath.Join(filepath.Base(filepath.Dir(entorno.variables[variableInstalador])),
 			filepath.Base(entorno.variables[variableInstalador])))

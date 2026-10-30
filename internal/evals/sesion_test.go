@@ -25,10 +25,14 @@ const casosDeLeerSesion = "testdata/sesiones/leer-sesion"
 
 // Lo que declaran los transcripts sintéticos de leer-sesion.
 const (
-	skillDeLasSesiones   = "boe-legislacion"
-	modeloDeLasSesiones  = "claude-haiku-4-5-20251001"
-	versionDeLasSesiones = "2.1.270"
-	respuestaConCita     = "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n" +
+	skillDeLasSesiones  = "boe-legislacion"
+	modeloDeLasSesiones = "claude-haiku-4-5-20251001"
+	// skillDelTerritorioGrabada es la que activa el transcript de
+	// error-por-is-error, de leer-llamadas: la de territorio con el nombre que
+	// tenía al grabarlo.
+	skillDelTerritorioGrabada = "legal-core"
+	versionDeLasSesiones      = "2.1.270"
+	respuestaConCita          = "El artículo 21 de la Ley 39/2015 regula la obligación de resolver.\n\n" +
 		"[BOE-A-2015-10565, bloque a21]"
 
 	// respuestaSinSkill es la del transcript de no-activada. Su primera palabra
@@ -356,7 +360,7 @@ func TestLeerLasLlamadas(t *testing.T) {
 		},
 		{
 			nombre: "error-por-is-error",
-			sesion: conLlamada(skillDeTerritorio, respuestaSinMunicipio, Llamada{
+			sesion: conLlamada(skillDelTerritorioGrabada, respuestaSinMunicipio, Llamada{
 				Herramienta:  "territorio_resolver",
 				Argumentos:   json.RawMessage(argumentosDelMunicipio),
 				ConResultado: true,

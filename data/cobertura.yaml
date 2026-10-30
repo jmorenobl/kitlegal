@@ -1,6 +1,7 @@
 # Cobertura por materia de kitlegal: los procedimientos que la ley regula aparte del procedimiento común (DA 1ª.2 y
 # art. 112 LPAC), a los que no se aplican el art. 30 LPAC ni `plazos calcular`. Lo lee skills.LeerCobertura contra
-# schemas/cobertura.yaml.json; única fuente de verdad de references/cobertura_por_materia.md.
+# schemas/cobertura.yaml.json; única fuente de verdad de las regiones cobertura_por_materia de la referencia de cada
+# paquete, hoy skills/plazos-y-territorio/references/administrativo.md.
 # Sin texto de ninguna norma: cada precepto se nombra por su identificador, su bloque y su apartado. Solo lleva norma
 # la entrada cuyo precepto aplicable se cita de lo grabado; la que no la lleva no la toma de ningún otro sitio, y la
 # declaración nombra el precepto de la LPAC. TestPreceptosDeLosPlazos (internal/evals) comprueba contra lo grabado del

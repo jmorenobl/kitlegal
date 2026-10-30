@@ -28,10 +28,10 @@ const (
 	// TestGrabarEvals desde el segundo manifiesto, el de testdata/ de este
 	// paquete: los preceptos que verifican data/plazos.yaml y
 	// data/cobertura.yaml y lo que leen del BOE las sesiones de las evals de
-	// legal-core v1 (contracts/datos-de-plazos.md §4.1 de H9; research D15 de
-	// H9). Es la única raíz de este paquete en la que grabar_datos escribe:
-	// solo graba manifiestos <paquete>/testdata/grabaciones.json, y el de H5,
-	// en testdata/evals/, no lo es (research V2 y V3 de H9).
+	// plazos-y-territorio v1 (contracts/datos-de-plazos.md §4.1 de H9; research
+	// D15 de H9). Es la única raíz de este paquete en la que grabar_datos
+	// escribe: solo graba manifiestos <paquete>/testdata/grabaciones.json, y el
+	// de H5, en testdata/evals/, no lo es (research V2 y V3 de H9).
 	GrabacionesDeH9 = "../../internal/evals/testdata/" + boe.NombreDeLaFuente
 )
 

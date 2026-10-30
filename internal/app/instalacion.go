@@ -264,11 +264,13 @@ func (a appletSkills) ejecutar(
 // efectos, así que el ensayo predice el código de la orden real (FR-048;
 // research.md D13; ADR 0023). La sonda del Enlazador sí
 // se hace, porque es de donde sale el modo que se predice, y deja el disco como
-// estaba (research.md D9).
+// estaba (research.md D9). Con la lista de los nombres retirados, retira del
+// ámbito cada skill de nombre retirado que está como la dejó kitlegal y avisa
+// de la que no, pida lo que pida la invocación (H32, FR-026 a FR-028).
 func (d DependenciasDeSkills) instalar(
 	pedido instalacion.Pedido, empotradas []instalacion.SkillEmpotrada, ensayo bool, home string,
 ) (schema.Resultado, error) {
-	plan, err := instalacion.Planificar(disco.Lector{}, d.Enlazador, pedido, empotradas, d.Version)
+	plan, err := instalacion.Planificar(disco.Lector{}, d.Enlazador, pedido, empotradas, skillsRetiradas, d.Version)
 	if err != nil {
 		return schema.Resultado{}, delVerbo(verboInstall, err)
 	}
@@ -286,7 +288,7 @@ func (d DependenciasDeSkills) instalar(
 
 	return schema.Resultado{
 		Datos:   instaladas,
-		Legible: legibleDeInstall(instaladas, pedido.Ambito, d.Version, hogar(home)),
+		Legible: legibleDeInstall(instaladas, pedido.Ambito, d.Version, hogar(home), skillsRetiradas),
 	}, nil
 }
 
@@ -326,13 +328,28 @@ func (d DependenciasDeSkills) diagnosticar(
 // pedida, con su ruta, el estado que resultaría y cada entrada de host, con el
 // nombre de su marca y el modo que predice la sonda
 // (contracts/applet-skills.md §7), con el mismo vocabulario y las rutas
-// abreviadas igual que en la salida de la orden real. El prefijo «--dry-run: se
-// habría pedido » lo pone el kernel.
+// abreviadas igual que en la salida de la orden real; y una por cada skill de
+// nombre retirado: la que se retiraría, con cada entrada de host que se
+// quitaría, y la que se conservaría, con su aviso tal cual
+// (contracts/instalacion-retiradas.md §2). El prefijo «--dry-run: se habría
+// pedido » lo pone el kernel.
 func ensayoDeInstall(skills []instalacion.SkillInstalada, h hogar) []string {
 	lineas := make([]string, 0, len(skills))
 
 	for _, skill := range skills {
-		linea := "instalar " + skill.Nombre + " en " + h.abreviar(skill.Ruta) + ": " + string(skill.Estado)
+		var linea string
+
+		switch skill.Estado {
+		case instalacion.EstadoSinRetirar:
+			lineas = append(lineas, "conservar "+skill.Nombre+" en "+h.abreviar(skill.Ruta)+": "+skill.Aviso)
+
+			continue
+		case instalacion.EstadoRetirada:
+			linea = "retirar " + skill.Nombre + " de " + h.abreviar(skill.Ruta)
+		default:
+			linea = "instalar " + skill.Nombre + " en " + h.abreviar(skill.Ruta) + ": " + string(skill.Estado)
+		}
+
 		for _, enlace := range skill.Enlaces {
 			linea += "; " + nombreDeMarca(enlace.Host) + " " + h.abreviar(enlace.Ruta) +
 				" (" + string(enlace.Modo) + ")"

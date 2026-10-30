@@ -1,0 +1,50 @@
+# nombres-retirados.txtar
+# Lo que nombra una skill para operar con ella usa los nombres de la entrega: la
+# búsqueda de FR-032, literal, con sus directorios y sus excepciones
+# (contracts/aceptacion.md), no da ninguna línea.
+#
+# Cubre: US7 · FR-032 · SC-018.
+#
+# buscar.sh corre la búsqueda en la raíz del repositorio, $KITLEGAL_SKILLS/.., con
+# los nombres retirados en N y los patrones P1 a P4 del contrato. git grep sale
+# con 1 si no encuentra nada, así que la búsqueda va dentro de buscar.sh, que
+# sale con 0 y escribe cuántas líneas da y una muestra de ellas: el veredicto es
+# el de stdout. Para distinguir un error de git grep —una salida mayor que 1, que
+# no es un resultado— de una búsqueda vacía, guarda lo que encuentra y su código
+# antes de quitar con grep -v las líneas del texto alternativo de una captura.
+# La muestra es corta a propósito: la salida de un guion que falla la lee entera
+# el workflow por una tubería con grep -q y pipefail, y con más de lo que cabe en
+# una escritura (16 KB) el escritor recibe SIGPIPE y el guion pasa por ilegible;
+# las líneas enteras las da la búsqueda de contracts/aceptacion.md. Este guion
+# escribe los patrones y se excluye a sí mismo, como el e2e de FR-031.
+
+exec sh buscar.sh
+stdout '^búsqueda de FR-032: 0 líneas$'
+
+-- buscar.sh --
+# buscar.sh: la búsqueda de FR-032, cuántas líneas da y una muestra de 4000 bytes.
+RAIZ=$KITLEGAL_SKILLS/..
+N='boe-legislacion|legal-core'
+P1='(^|[^A-Za-z0-9_./-])(skills|evals)/('"$N"')([^A-Za-z0-9-]|$)'
+P2='(^|[^A-Za-z0-9_./-])\.agents/skills/('"$N"')([^A-Za-z0-9-]|$)'
+P3='`('"$N"')`'
+P4='(^|[^A-Za-z0-9_])[Ss]kills?[[:space:]]+`?('"$N"')([^A-Za-z0-9-]|$)'
+encontradas=$(git -C "$RAIZ" grep -n -E -e "$P1" -e "$P2" -e "$P3" -e "$P4" -- \
+  skills evals internal cmd .github/workflows Makefile README.md web/src/pages \
+  ':(exclude)evals/*/juez/*' ':(exclude)internal/evals/testdata' \
+  ':(exclude)internal/app/retiradas.go' ':(exclude)internal/app/retiradas_test.go' \
+  ':(exclude)internal/app/testdata/script/h32-retiradas.txtar' \
+  ':(exclude)internal/app/testdata/script/h32-nombres-retirados.txtar')
+estado=$?
+if [ "$estado" -gt 1 ]; then
+	echo "git grep salió con $estado: no hay búsqueda"
+	exit 0
+fi
+lineas=$(printf '%s\n' "$encontradas" | grep -v 'alt="' | grep .)
+total=$(printf '%s' "$lineas" | grep -c .)
+if [ "$total" -gt 0 ]; then
+	printf '%s\n' "$(printf '%s\n' "$lineas" | head -c 4000)"
+	echo "… (muestra de 4000 bytes)"
+fi
+echo "búsqueda de FR-032: $total líneas"
+exit 0

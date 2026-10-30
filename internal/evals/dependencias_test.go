@@ -24,12 +24,14 @@ import (
 // dependencias de cada eval (FR-001 a FR-005, SC-002; data-model §1 y §3;
 // contracts/eleccion-y-huella.md §2) y comprueba, cada cosa en su subtest: que
 // cada eval de evals/*/ tiene un conjunto calculable, no vacío y con sus seis
-// partes; lo que FR-001 pide y excluye para una eval de legal-core y una de
-// jurisprudencia; que un applet inexistente en la tabla de una skill es un error
-// de cada eval que la usa, nombrada; que una referencia a mano entra por la parte
-// (b), sin (c) ni error, y que una skill nombrada solo desde una de ellas entra
-// con sus partes (FR-014 de H31, SC-004); y lo que da el predicado de las rutas
-// que miden con una ruta de cada clase de data-model §1.
+// partes; lo que FR-001 pide y excluye para una eval de plazos-y-territorio y
+// una de jurisprudencia; que un applet inexistente en la tabla de una skill es
+// un error de cada eval que la usa, nombrada; que una referencia a mano entra
+// por la parte (b), sin (c) ni error, y que una skill nombrada solo desde una
+// de ellas entra con sus partes (FR-014 de H31, SC-004); que una skill sin
+// kitlegal-applets no tiene tabla de comandos y da las partes de las skills que
+// nombra (contracts/evals.md §5 (d) de H32); y lo que da el predicado de las
+// rutas que miden con una ruta de cada clase de data-model §1.
 func TestConjuntoDeCadaEval(t *testing.T) {
 	t.Parallel()
 
@@ -46,10 +48,12 @@ func TestConjuntoDeCadaEval(t *testing.T) {
 		comprobar func(t *testing.T, calculo calculoDelRepositorio)
 	}{
 		{nombre: "cada-eval-con-sus-seis-partes", comprobar: comprobarLasSeisPartes},
-		{nombre: "lo-que-pide-fr-001-a-legal-core", comprobar: comprobarFR001DeLegalCore},
+		{nombre: "lo-que-pide-fr-001-a-plazos-y-territorio", comprobar: comprobarFR001DePlazosYTerritorio},
 		{nombre: "lo-que-pide-fr-001-a-jurisprudencia", comprobar: comprobarFR001DeJurisprudencia},
 		{nombre: "applet-inexistente", comprobar: comprobarElAppletInexistente},
 		{nombre: "referencias-a-mano", comprobar: comprobarLasReferenciasAMano},
+		{nombre: "region-de-una-referencia-a-mano", comprobar: comprobarLasRegionesDeLasReferenciasAMano},
+		{nombre: "skill-sin-applets", comprobar: comprobarLaSkillSinApplets},
 		{nombre: "rutas-que-miden", comprobar: comprobarLasRutasQueMiden},
 	}
 
@@ -71,14 +75,20 @@ type calculoDelRepositorio struct {
 	conjuntos   []dependenciasDeLaEval
 }
 
+// skillsSinDatos son las skills cuyas evals no tienen ningún data/*.yaml en la
+// parte (c): sus referencias son todas a mano y no nombran otra skill, porque
+// ninguna skill de capacidad remite a otra (FR-006 de H32).
+var skillsSinDatos = []string{"jurisprudencia"}
+
 // comprobarLasSeisPartes comprueba que hay un conjunto por eval del repositorio,
 // en su orden, y que cada uno se calcula sin error y trae sus seis partes, cada
 // una con lo que dice el repositorio, leído aquí por su lado: (a) su fichero;
 // (b) el SKILL.md y las referencias de su skill; (c) los data/*.yaml de las
-// cabeceras de las referencias de las skills de (b); (d) algún paquete, de un
-// directorio que existe; (e) las raíces de grabaciones y la de su grafo previo;
-// (f) la carpeta del juez de su skill, si la tiene, y los demás ficheros de su
-// directorio que no son evals.
+// cabeceras de las referencias de las skills de (b), ninguno en las de
+// skillsSinDatos y alguno en las demás; (d) algún paquete, de un directorio que
+// existe; (e) las raíces de grabaciones y la de su grafo previo; (f) la carpeta
+// del juez de su skill, si la tiene, y los demás ficheros de su directorio que
+// no son evals.
 func comprobarLasSeisPartes(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
@@ -106,7 +116,12 @@ func comprobarLasSeisPartes(t *testing.T, calculo calculoDelRepositorio) {
 			"%s: (b)", conjunto.nombre())
 
 		datos := datosDeLasCabeceras(t, calculo.repositorio, partes[parteDeLasSkills])
-		assert.NotEmptyf(t, datos, "%s: (c) sin ningún data/*.yaml", conjunto.nombre())
+		if slices.Contains(skillsSinDatos, conjunto.skill) {
+			assert.Emptyf(t, datos, "%s: (c) con algún data/*.yaml", conjunto.nombre())
+		} else {
+			assert.NotEmptyf(t, datos, "%s: (c) sin ningún data/*.yaml", conjunto.nombre())
+		}
+
 		assert.Equalf(t, datos, partes[parteDeLosDatos], "%s: (c)", conjunto.nombre())
 
 		comprobarLosPaquetes(t, calculo.repositorio, conjunto.nombre(), partes[parteDeLosPaquetes])
@@ -138,16 +153,17 @@ func comprobarLosPaquetes(t *testing.T, repositorio fs.FS, eval string, paquetes
 	}
 }
 
-// comprobarFR001DeLegalCore comprueba el criterio de FR-001 en la primera eval
-// de legal-core: pide skills/boe-legislacion/SKILL.md, data/plazos.yaml y un
-// fichero de internal/core/plazos, y excluye otra eval suya, una eval de otra
-// skill y skills/jurisprudencia/SKILL.md (contracts/eleccion-y-huella.md §2).
-func comprobarFR001DeLegalCore(t *testing.T, calculo calculoDelRepositorio) {
+// comprobarFR001DePlazosYTerritorio comprueba el criterio de FR-001 en la
+// primera eval de plazos-y-territorio: pide skills/normativa/SKILL.md,
+// data/plazos.yaml y un fichero de internal/core/plazos, y excluye otra eval
+// suya, una eval de otra skill y skills/jurisprudencia/SKILL.md
+// (contracts/eleccion-y-huella.md §2).
+func comprobarFR001DePlazosYTerritorio(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
-	comprobarLoQuePideFR001(t, calculo, "legal-core",
+	comprobarLoQuePideFR001(t, calculo, "plazos-y-territorio",
 		[]string{
-			"skills/boe-legislacion/SKILL.md",
+			"skills/normativa/SKILL.md",
 			"data/plazos.yaml",
 			ficheroDelRepositorio(t, calculo.repositorio, "internal/core/plazos", esCodigoSinTests),
 		},
@@ -155,19 +171,21 @@ func comprobarFR001DeLegalCore(t *testing.T, calculo calculoDelRepositorio) {
 }
 
 // comprobarFR001DeJurisprudencia comprueba el criterio de FR-001 en la primera
-// eval de jurisprudencia: pide skills/boe-legislacion/SKILL.md, un fichero de
-// internal/core/cita y uno de la carpeta de su juez, y excluye otra eval suya,
-// una eval de otra skill y skills/legal-core/SKILL.md.
+// eval de jurisprudencia: pide su SKILL.md, un fichero de internal/core/cita y
+// uno de la carpeta de su juez, y excluye otra eval suya, una eval de otra
+// skill, skills/plazos-y-territorio/SKILL.md y skills/normativa/SKILL.md, que
+// jurisprudencia ya no nombra: ninguna skill de capacidad remite a otra (FR-006
+// de H32).
 func comprobarFR001DeJurisprudencia(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
 	comprobarLoQuePideFR001(t, calculo, "jurisprudencia",
 		[]string{
-			"skills/boe-legislacion/SKILL.md",
+			"skills/jurisprudencia/SKILL.md",
 			ficheroDelRepositorio(t, calculo.repositorio, "internal/core/cita", esCodigoSinTests),
 			ficheroDelRepositorio(t, calculo.repositorio, "evals/jurisprudencia/juez", func(string) bool { return true }),
 		},
-		[]string{"skills/legal-core/SKILL.md"})
+		[]string{"skills/plazos-y-territorio/SKILL.md", "skills/normativa/SKILL.md"})
 }
 
 // comprobarLoQuePideFR001 comprueba que el conjunto de la primera eval de la
@@ -317,25 +335,25 @@ func (a arbolConCambios) ReadDir(nombre string) ([]fs.DirEntry, error) {
 const referenciaAManoDelMutante = "protocolo-del-mutante.md"
 
 // comprobarLasReferenciasAMano añade en memoria una referencia a mano a
-// boe-legislacion, que nombra jurisprudencia, y otra a jurisprudencia, que
-// nombra legal-core, y comprueba sobre el cálculo con las dos (FR-014 y
-// Clarificación Q1 de H31; SC-004): que cada conjunto se calcula, sin el error
-// de la referencia sin cabecera; que cada referencia a mano entra solo por la
-// parte (b), con su directorio de references/, y no da nada en (c); y que en
-// el conjunto de cada eval de boe-legislacion entra jurisprudencia, nombrada
+// normativa, que nombra jurisprudencia, y otra a jurisprudencia, que
+// nombra plazos-y-territorio, y comprueba sobre el cálculo con las dos (FR-014
+// y Clarificación Q1 de H31; SC-004): que cada conjunto se calcula, sin el
+// error de la referencia sin cabecera; que cada referencia a mano entra solo
+// por la parte (b), con su directorio de references/, y no da nada en (c); y
+// que en el conjunto de cada eval de normativa entra jurisprudencia, nombrada
 // solo desde una referencia a mano, con su SKILL.md, sus references/ y los
-// paquetes de su tabla, y legal-core, a la que se llega siguiendo el cierre
-// desde jurisprudencia. Sin las dos referencias, ni una ni otra son de esos
-// conjuntos: el test lo comprueba antes, para no pasar sin comprobar nada.
+// paquetes de su tabla, y plazos-y-territorio, a la que se llega siguiendo el
+// cierre desde jurisprudencia. Sin las dos referencias, ni una ni otra son de
+// esos conjuntos: el test lo comprueba antes, para no pasar sin comprobar nada.
 func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 	t.Helper()
 
-	deBoeLegislacion := "skills/boe-legislacion/references/" + referenciaAManoDelMutante
+	deNormativa := "skills/normativa/references/" + referenciaAManoDelMutante
 	deJurisprudencia := "skills/jurisprudencia/references/" + referenciaAManoDelMutante
 
 	nombradas := []string{
 		"fichero skills/jurisprudencia/SKILL.md", "directorio skills/jurisprudencia/references/",
-		"fichero skills/legal-core/SKILL.md", "directorio skills/legal-core/references/",
+		"fichero skills/plazos-y-territorio/SKILL.md", "directorio skills/plazos-y-territorio/references/",
 	}
 	paquetes := []string{
 		ficheroDelRepositorio(t, calculo.repositorio, "internal/core/cita", esCodigoSinTests),
@@ -345,28 +363,28 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 	sinLasReferencias := 0
 
 	for _, conjunto := range calculo.conjuntos {
-		if conjunto.skill != "boe-legislacion" {
+		if conjunto.skill != "normativa" {
 			continue
 		}
 
 		sinLasReferencias++
 
-		for _, ruta := range []string{"skills/jurisprudencia/SKILL.md", "skills/legal-core/SKILL.md"} {
+		for _, ruta := range []string{"skills/jurisprudencia/SKILL.md", "skills/plazos-y-territorio/SKILL.md"} {
 			require.Falsef(t, conjunto.pertenece(ruta),
 				"%s: sin las referencias a mano, el conjunto ya contiene %s", conjunto.nombre(), ruta)
 		}
 	}
 
-	require.Positive(t, sinLasReferencias, "boe-legislacion tiene evals")
+	require.Positive(t, sinLasReferencias, "normativa tiene evals")
 
-	for _, ruta := range []string{deBoeLegislacion, deJurisprudencia} {
+	for _, ruta := range []string{deNormativa, deJurisprudencia} {
 		_, err := fs.Stat(calculo.repositorio, ruta)
 		require.ErrorIsf(t, err, fs.ErrNotExist, "la referencia a mano %s es nueva", ruta)
 	}
 
 	arbol := arbolConCambios{FS: calculo.repositorio, cambiados: fstest.MapFS{
-		deBoeLegislacion: {Data: []byte("# Protocolo de detalle\n\nUna sentencia la lleva la skill jurisprudencia.\n")},
-		deJurisprudencia: {Data: []byte("# Protocolo de detalle\n\nUn plazo lo calcula la skill legal-core.\n")},
+		deNormativa:      {Data: []byte("# Protocolo de detalle\n\nUna sentencia la lleva la skill jurisprudencia.\n")},
+		deJurisprudencia: {Data: []byte("# Protocolo de detalle\n\nUn plazo lo calcula la skill plazos-y-territorio.\n")},
 	}}
 
 	conjuntos, err := calcularDependencias(arbol, calculo.grafo)
@@ -380,11 +398,11 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 		assert.Equalf(t, datosDeLasCabeceras(t, arbol, partes[parteDeLasSkills]), partes[parteDeLosDatos],
 			"%s: (c)", conjunto.nombre())
 
-		if conjunto.skill != "boe-legislacion" {
+		if conjunto.skill != "normativa" {
 			continue
 		}
 
-		for _, ruta := range []string{deBoeLegislacion, deJurisprudencia} {
+		for _, ruta := range []string{deNormativa, deJurisprudencia} {
 			assert.Equalf(t, []parteDelConjunto{parteDeLasSkills}, partesQueContienen(conjunto, ruta),
 				"%s: la referencia a mano %s entra solo por (b)", conjunto.nombre(), ruta)
 		}
@@ -395,6 +413,170 @@ func comprobarLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
 			assert.Truef(t, conjunto.pertenece(ruta), "%s: el conjunto no contiene %s", conjunto.nombre(), ruta)
 		}
 	}
+}
+
+// comprobarLasRegionesDeLasReferenciasAMano añade en memoria a jurisprudencia,
+// cuyas evals no cargan ningún data/*.yaml, una referencia a mano con una región
+// generada, y comprueba que la parte (c) del conjunto de cada eval suya son los
+// data/*.yaml que nombra la marca de inicio de la región, y nada más
+// (contracts/evals.md §5 (c); contracts/paquetes.md §3; FR-038 de H32).
+func comprobarLasRegionesDeLasReferenciasAMano(t *testing.T, calculo calculoDelRepositorio) {
+	t.Helper()
+
+	conRegion := "skills/jurisprudencia/references/" + referenciaAManoDelMutante
+
+	_, err := fs.Stat(calculo.repositorio, conRegion)
+	require.ErrorIsf(t, err, fs.ErrNotExist, "la referencia a mano %s es nueva", conRegion)
+
+	arbol := arbolConCambios{FS: calculo.repositorio, cambiados: fstest.MapFS{
+		conRegion: {Data: []byte("# Protocolo de detalle\n\n" +
+			"<!-- inicio de cobertura_por_materia: generada desde data/cobertura.yaml y data/normas.yaml con " +
+			"make skills-sync, no editar -->\n" +
+			"| Procedimiento | Línea que da la respuesta |\n|---|---|\n" +
+			"<!-- fin de cobertura_por_materia -->\n")},
+	}}
+
+	conjuntos, err := calcularDependencias(arbol, calculo.grafo)
+	require.NoError(t, err)
+
+	deJurisprudencia := 0
+
+	for _, conjunto := range conjuntos {
+		require.NoErrorf(t, conjunto.err, "%s: el conjunto no se puede calcular", conjunto.nombre())
+
+		if conjunto.skill != "jurisprudencia" {
+			continue
+		}
+
+		deJurisprudencia++
+
+		assert.Equalf(t, []string{"fichero data/cobertura.yaml", "fichero data/normas.yaml"},
+			entradasPorParte(conjunto)[parteDeLosDatos], "%s: (c)", conjunto.nombre())
+	}
+
+	require.Positive(t, deJurisprudencia, "jurisprudencia tiene evals")
+}
+
+// skillDeEntrada es la skill de entrada (contracts/reparto.md §1 de H32): no
+// declara kitlegal-applets ni tiene tabla de comandos, y nombra como código en
+// línea las skillsDeCapacidad, a las que remite.
+const skillDeEntrada = "consulta-juridica"
+
+// skillsDeCapacidad son las skills que nombra skillDeEntrada, en el orden de sus
+// nombres.
+var skillsDeCapacidad = []string{"jurisprudencia", "normativa", "plazos-y-territorio"}
+
+// evalDelMutanteSinApplets es la eval que comprobarLaSkillSinApplets añade a
+// evals/<skillDeEntrada>/: ninguna eval del repositorio se llama así.
+const evalDelMutanteSinApplets = "99-mutante-sin-applets"
+
+// comprobarLaSkillSinApplets añade en memoria una eval a la skill de entrada,
+// copia de la primera del repositorio, y comprueba la parte (d) de
+// contracts/evals.md §5 de H32 (research D10): la skill, que no declara
+// kitlegal-applets ni tiene tabla de comandos, da un conjunto sin error, con su
+// SKILL.md y, por el cierre de (b), las partes (b), (c) y (d) de cada skill que
+// nombra como código en línea, las de la primera eval de esa skill. Y que la
+// frontera es la declaración y no la tabla: con kitlegal-applets declarado y
+// sin tabla, el conjunto es el error que nombra la tabla de comandos. Antes de
+// nada comprueba que la skill es lo que el caso dice que es, para no pasar sin
+// comprobar nada.
+func comprobarLaSkillSinApplets(t *testing.T, calculo calculoDelRepositorio) {
+	t.Helper()
+
+	ficheroDeLaEntrada := "skills/" + skillDeEntrada + "/SKILL.md"
+
+	skillMD, err := fs.ReadFile(calculo.repositorio, ficheroDeLaEntrada)
+	require.NoError(t, err)
+
+	frontmatter, err := skills.LeerFrontmatter(skillMD)
+	require.NoError(t, err)
+	require.Empty(t, frontmatter.DeclaracionDeKitlegal().Applets, "%s no declara kitlegal-applets", ficheroDeLaEntrada)
+
+	_, err = skills.AppletsDeLaTabla(skillMD)
+	require.Error(t, err, "%s no tiene tabla de comandos", ficheroDeLaEntrada)
+
+	for _, nombrada := range skillsDeCapacidad {
+		require.Containsf(t, string(skillMD), "`"+nombrada+"`", "%s nombra %s como código en línea",
+			ficheroDeLaEntrada, nombrada)
+	}
+
+	evals := nombresDeLasEvals(t, calculo.repositorio)
+	require.NotEmpty(t, evals)
+
+	copiada, err := fs.ReadFile(calculo.repositorio, "evals/"+evals[0]+".yaml")
+	require.NoError(t, err)
+
+	eval := "evals/" + skillDeEntrada + "/" + evalDelMutanteSinApplets + ".yaml"
+	_, err = fs.Stat(calculo.repositorio, eval)
+	require.ErrorIsf(t, err, fs.ErrNotExist, "la eval %s es nueva", eval)
+
+	sinApplets := calcularConLaEval(t, calculo, eval, copiada, nil)
+	require.NoErrorf(t, sinApplets.err, "%s: el conjunto no se puede calcular", sinApplets.nombre())
+
+	assert.Truef(t, sinApplets.pertenece(ficheroDeLaEntrada), "%s: el conjunto no contiene %s",
+		sinApplets.nombre(), ficheroDeLaEntrada)
+
+	partes := entradasPorParte(sinApplets)
+
+	for _, nombrada := range skillsDeCapacidad {
+		primera := primerConjuntoDe(t, calculo.conjuntos, nombrada)
+		deLaNombrada := entradasPorParte(primera)
+
+		for _, parte := range []parteDelConjunto{parteDeLasSkills, parteDeLosDatos, parteDeLosPaquetes} {
+			assert.Subsetf(t, partes[parte], deLaNombrada[parte], "%s: (%s) sin la de %s", sinApplets.nombre(), parte,
+				primera.nombre())
+		}
+	}
+
+	conApplets := strings.Replace(string(skillMD), "\n---\n", "\nmetadata:\n  kitlegal-applets: cita\n---\n", 1)
+	require.NotEqual(t, string(skillMD), conApplets, "el mutante declara kitlegal-applets en el frontmatter")
+
+	declarados, err := skills.LeerFrontmatter([]byte(conApplets))
+	require.NoError(t, err)
+	require.Equal(t, []string{"cita"}, declarados.DeclaracionDeKitlegal().Applets)
+
+	sinTabla := calcularConLaEval(t, calculo, eval, copiada, []byte(conApplets))
+	require.Errorf(t, sinTabla.err, "%s: el cálculo acepta kitlegal-applets sin tabla de comandos", sinTabla.nombre())
+	assert.Truef(t, strings.HasPrefix(sinTabla.err.Error(), sinTabla.nombre()+": "), "el error nombra la eval: %v",
+		sinTabla.err)
+	assert.Contains(t, sinTabla.err.Error(), "la tabla de comandos de "+ficheroDeLaEntrada)
+}
+
+// calcularConLaEval calcula los conjuntos del repositorio con la eval añadida en
+// memoria y, si skillMD no es nil, con él como SKILL.md de la skill de entrada,
+// y devuelve el de la eval añadida.
+func calcularConLaEval(t *testing.T, calculo calculoDelRepositorio, eval string, contenido, skillMD []byte,
+) dependenciasDeLaEval {
+	t.Helper()
+
+	cambiados := fstest.MapFS{eval: {Data: contenido}}
+	if skillMD != nil {
+		cambiados["skills/"+skillDeEntrada+"/SKILL.md"] = &fstest.MapFile{Data: skillMD}
+	}
+
+	conjuntos, err := calcularDependencias(arbolConCambios{FS: calculo.repositorio, cambiados: cambiados}, calculo.grafo)
+	require.NoError(t, err)
+
+	nombre := strings.TrimSuffix(strings.TrimPrefix(eval, "evals/"), ".yaml")
+
+	indice := slices.IndexFunc(conjuntos, func(conjunto dependenciasDeLaEval) bool {
+		return conjunto.nombre() == nombre
+	})
+	require.GreaterOrEqualf(t, indice, 0, "%s tiene conjunto", nombre)
+
+	return conjuntos[indice]
+}
+
+// primerConjuntoDe es el conjunto, calculado sin error, de la primera eval de la
+// skill.
+func primerConjuntoDe(t *testing.T, conjuntos []dependenciasDeLaEval, skill string) dependenciasDeLaEval {
+	t.Helper()
+
+	indice := slices.IndexFunc(conjuntos, func(conjunto dependenciasDeLaEval) bool { return conjunto.skill == skill })
+	require.GreaterOrEqualf(t, indice, 0, "%s tiene evals", skill)
+	require.NoErrorf(t, conjuntos[indice].err, "%s: el conjunto no se puede calcular", conjuntos[indice].nombre())
+
+	return conjuntos[indice]
 }
 
 // partesQueContienen son las partes de las entradas del conjunto que contienen
@@ -575,8 +757,8 @@ func TestLoComun(t *testing.T) {
 			"scripts/evals-sesion.sh":       true,
 			"schemas/juez-clases.yaml.json": true,
 			ficheroDelRepositorio(t, repositorio, "internal/core/plazos", esCodigoSinTests): false,
-			"skills/legal-core/SKILL.md": false,
-			"go.mod":                     false,
+			"skills/plazos-y-territorio/SKILL.md":                                           false,
+			"go.mod":                                                                        false,
 		} {
 			assert.Equalf(t, esComun, esDeLoComun(ruta), "%s", ruta)
 		}
@@ -795,11 +977,18 @@ func entradasPorParte(conjunto dependenciasDeLaEval) map[parteDelConjunto][]stri
 // internal/skills.
 var cabeceraDeLaReferencia = regexp.MustCompile(`\A<!-- generado desde (data/[^,\n]+), no editar -->\n`)
 
+// inicioDeUnaRegion es la marca de inicio de una región generada de una
+// referencia a mano, con los data/*.yaml de los que sale separados por « y »
+// (contracts/paquetes.md §3 de H32): la otra sonda del test.
+var inicioDeUnaRegion = regexp.MustCompile(
+	`(?m)^<!-- inicio de [^:\n]+: generada desde (data/\S+(?: y data/\S+)*) con make skills-sync, no editar -->$`)
+
 // datosDeLasCabeceras son los data/*.yaml de las cabeceras de las referencias
-// de las skills cuyo SKILL.md está entre las entradas dadas, como entradas
-// fichero, ordenadas y sin repetir. La referencia sin cabecera es a mano y no
-// da ninguno (FR-014 de H31): si no lo fuera, el conjunto sería un error, y
-// quien llama lo comprueba antes.
+// de las skills cuyo SKILL.md está entre las entradas dadas, y los de las marcas
+// de inicio de cada región de sus referencias a mano, como entradas fichero,
+// ordenadas y sin repetir. La referencia sin cabecera es a mano y solo da los de
+// cada región suya (FR-014 de H31; contracts/evals.md §5 (c) de H32): si no lo fuera,
+// el conjunto sería un error, y quien llama lo comprueba antes.
 func datosDeLasCabeceras(t *testing.T, repositorio fs.FS, entradasDeLasSkills []string) []string {
 	t.Helper()
 
@@ -820,6 +1009,14 @@ func datosDeLasCabeceras(t *testing.T, repositorio fs.FS, entradasDeLasSkills []
 
 			if cabecera := cabeceraDeLaReferencia.FindSubmatch(contenido); cabecera != nil {
 				datos = append(datos, string(entradaFichero)+" "+string(cabecera[1]))
+
+				continue
+			}
+
+			for _, marca := range inicioDeUnaRegion.FindAllSubmatch(contenido, -1) {
+				for _, fichero := range strings.Split(string(marca[1]), " y ") {
+					datos = append(datos, string(entradaFichero)+" "+fichero)
+				}
 			}
 		}
 	}

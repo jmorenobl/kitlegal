@@ -18,7 +18,7 @@ const (
 	fraseGlobalConDir     = "-g y --dir se excluyen"
 	fraseHostConDir       = "--host no se combina con --dir"
 	fraseHostNoAdmitido   = "los hosts admitidos son claude y antigravity"
-	fraseSkillDesconocida = "no es ninguna skill de este binario; skills disponibles: boe-legislacion, legal-core"
+	fraseSkillDesconocida = "no es ninguna skill de este binario; skills disponibles: normativa, plazos-y-territorio"
 	fraseSinHome          = "HOME no está definido o está vacío"
 )
 
@@ -64,7 +64,7 @@ func texto(valor string) *string {
 // binario, en una lista nueva en cada llamada. Sus ficheros no importan para
 // validar una invocación.
 func skillsDelBinario() []instalacion.SkillEmpotrada {
-	return []instalacion.SkillEmpotrada{{Nombre: "boe-legislacion"}, {Nombre: "legal-core"}}
+	return []instalacion.SkillEmpotrada{{Nombre: "normativa"}, {Nombre: "plazos-y-territorio"}}
 }
 
 // TestValidarInvocacion fija la validación de contracts/applet-skills.md §2 y
@@ -92,7 +92,7 @@ func TestValidarInvocacion(t *testing.T) {
 	t.Run("nombra la primera skill desconocida, una vez", func(t *testing.T) {
 		t.Parallel()
 
-		invocacion := instalacion.Invocacion{Skills: []string{"otra", "legal-core", "desconocida", "otra"}}
+		invocacion := instalacion.Invocacion{Skills: []string{"otra", "plazos-y-territorio", "desconocida", "otra"}}
 		_, err := instalacion.ValidarInvocacion(invocacion, "", skillsDelBinario())
 
 		exigirRechazo(t, err, schema.ClaseArgumentos, fraseSkillDesconocida)
@@ -135,12 +135,12 @@ func TestValidarInvocacion(t *testing.T) {
 	t.Run("no cambia los nombres que recibe", func(t *testing.T) {
 		t.Parallel()
 
-		nombres := []string{"legal-core", "boe-legislacion", "legal-core"}
+		nombres := []string{"plazos-y-territorio", "normativa", "plazos-y-territorio"}
 		pedido, err := instalacion.ValidarInvocacion(instalacion.Invocacion{Skills: nombres}, "", skillsDelBinario())
 
 		require.NoError(t, err)
-		assert.Equal(t, []string{"boe-legislacion", "legal-core"}, pedido.Skills)
-		assert.Equal(t, []string{"legal-core", "boe-legislacion", "legal-core"}, nombres,
+		assert.Equal(t, []string{"normativa", "plazos-y-territorio"}, pedido.Skills)
+		assert.Equal(t, []string{"plazos-y-territorio", "normativa", "plazos-y-territorio"}, nombres,
 			"ordenar y quitar repetidos se hace sobre una copia")
 	})
 }
@@ -252,7 +252,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		},
 		{
 			nombre:     "una skill desconocida junto a una empotrada",
-			invocacion: instalacion.Invocacion{Skills: []string{"legal-core", "desconocida"}},
+			invocacion: instalacion.Invocacion{Skills: []string{"plazos-y-territorio", "desconocida"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseSkillDesconocida,
 		},
 		{
@@ -262,12 +262,12 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		},
 		{
 			nombre:     "el nombre de una empotrada con mayúsculas",
-			invocacion: instalacion.Invocacion{Skills: []string{"Legal-Core"}},
+			invocacion: instalacion.Invocacion{Skills: []string{"Plazos-Y-Territorio"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseSkillDesconocida,
 		},
 		{
 			nombre:     "una ruta en lugar de un nombre",
-			invocacion: instalacion.Invocacion{Skills: []string{"../legal-core"}},
+			invocacion: instalacion.Invocacion{Skills: []string{"../plazos-y-territorio"}},
 			home:       home, clase: schema.ClaseArgumentos, frase: fraseSkillDesconocida,
 		},
 		{
@@ -278,7 +278,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		{
 			nombre: "-g con --host claude y una skill desconocida, sin HOME",
 			invocacion: instalacion.Invocacion{
-				Global: true, Hosts: []string{"claude"}, Skills: []string{"legal-core", "desconocida"},
+				Global: true, Hosts: []string{"claude"}, Skills: []string{"plazos-y-territorio", "desconocida"},
 			},
 			home: "", clase: schema.ClaseArgumentos, frase: fraseSkillDesconocida,
 		},
@@ -292,7 +292,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 		{
 			nombre: "-g con --host claude y skills empotradas, una repetida, sin HOME",
 			invocacion: instalacion.Invocacion{
-				Global: true, Hosts: []string{"claude"}, Skills: []string{"legal-core", "legal-core"},
+				Global: true, Hosts: []string{"claude"}, Skills: []string{"plazos-y-territorio", "plazos-y-territorio"},
 			},
 			home: "", clase: schema.ClaseConflicto, frase: fraseSinHome,
 		},
@@ -317,7 +317,7 @@ func probarRechazosDeLaInvocacion(t *testing.T) {
 func probarInvocacionesValidas(t *testing.T) {
 	t.Parallel()
 
-	todas := []string{"boe-legislacion", "legal-core"}
+	todas := []string{"normativa", "plazos-y-territorio"}
 
 	casos := []struct {
 		nombre     string
@@ -337,13 +337,13 @@ func probarInvocacionesValidas(t *testing.T) {
 		},
 		{
 			nombre:     "nombres desordenados y repetidos: en orden de nombre y una vez",
-			invocacion: instalacion.Invocacion{Skills: []string{"legal-core", "boe-legislacion", "legal-core"}},
+			invocacion: instalacion.Invocacion{Skills: []string{"plazos-y-territorio", "normativa", "plazos-y-territorio"}},
 			esperado:   instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: todas},
 		},
 		{
 			nombre:     "un nombre repetido cuenta una vez",
-			invocacion: instalacion.Invocacion{Skills: []string{"legal-core", "legal-core"}},
-			esperado:   instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: []string{"legal-core"}},
+			invocacion: instalacion.Invocacion{Skills: []string{"plazos-y-territorio", "plazos-y-territorio"}},
+			esperado:   instalacion.Pedido{Ambito: instalacion.NuevoAmbitoLocal(), Skills: []string{"plazos-y-territorio"}},
 		},
 		{
 			nombre:     "--host claude",
@@ -373,10 +373,10 @@ func probarInvocacionesValidas(t *testing.T) {
 		},
 		{
 			nombre:     "-g con --host claude, una skill y HOME con barra final",
-			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}, Skills: []string{"legal-core"}},
+			invocacion: instalacion.Invocacion{Global: true, Hosts: []string{"claude"}, Skills: []string{"plazos-y-territorio"}},
 			home:       "/home/ana/",
 			esperado: instalacion.Pedido{
-				Ambito: ambitoGlobal(t, "/home/ana"), Skills: []string{"legal-core"}, Hosts: []string{"claude"},
+				Ambito: ambitoGlobal(t, "/home/ana"), Skills: []string{"plazos-y-territorio"}, Hosts: []string{"claude"},
 			},
 		},
 		{
@@ -387,10 +387,10 @@ func probarInvocacionesValidas(t *testing.T) {
 		},
 		{
 			nombre:     "--dir vacío, con una skill",
-			invocacion: instalacion.Invocacion{Dir: texto(""), Skills: []string{"boe-legislacion"}},
+			invocacion: instalacion.Invocacion{Dir: texto(""), Skills: []string{"normativa"}},
 			home:       "/home/ana",
 			esperado: instalacion.Pedido{
-				Ambito: instalacion.NuevoAmbitoDir(""), Skills: []string{"boe-legislacion"},
+				Ambito: instalacion.NuevoAmbitoDir(""), Skills: []string{"normativa"},
 			},
 		},
 	}

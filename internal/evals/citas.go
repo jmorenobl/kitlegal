@@ -13,8 +13,18 @@ import (
 // en letra ni en cifra, como la forma legible de la norma y del bloque; si ese
 // texto abre otro corchete, la cita es la del corchete interior. El corchete de
 // cierre delimita el id del bloque, que puede terminar en punto, como a85bis.
-var formaDeCita = regexp.MustCompile(`\[(?:[^\[\]\n]*[^\[\]\n\p{L}\p{N}])?` +
-	`(BOE-A-[0-9]{4}-[0-9]{1,9}), bloque ([A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`)
+var formaDeCita = regexp.MustCompile(`\[(?:[^\[\]\n]*[^\[\]\n\p{L}\p{N}])?` + parejaDeLaCita)
+
+// formaUnicaDeCita es la forma única de cita (FR-010 de H32;
+// skills/normativa/references/como_se_cita.md): los corchetes contienen solo el
+// identificador, una coma, la palabra bloque y el id, sin el texto que
+// formaDeCita admite delante del identificador.
+var formaUnicaDeCita = regexp.MustCompile(`\[` + parejaDeLaCita)
+
+// parejaDeLaCita es el final de los corchetes de una cita, común a sus dos
+// formas: el identificador y el id del bloque, sus dos grupos, y el corchete de
+// cierre.
+const parejaDeLaCita = `(BOE-A-[0-9]{4}-[0-9]{1,9}), bloque ([A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`
 
 // Cita es la parte mecánica de una cita de la respuesta de una sesión: la norma y
 // el bloque citados. Se compara con una CitaEsperada por igualdad exacta de la
@@ -34,9 +44,22 @@ type Cita struct {
 // antes del corchete de cierre no es una cita, y la redacción legible, dentro o
 // fuera de los corchetes, no se lee (FR-008, FR-072).
 func ExtraerCitas(respuesta string) []Cita {
+	return citasConLaForma(formaDeCita, respuesta)
+}
+
+// citasEnLaFormaUnica devuelve las citas del texto en la forma única
+// (formaUnicaDeCita), en el orden en que aparecen, o nil si no hay ninguna: la
+// cita con la forma legible dentro de los corchetes no cuenta.
+func citasEnLaFormaUnica(texto string) []Cita {
+	return citasConLaForma(formaUnicaDeCita, texto)
+}
+
+// citasConLaForma devuelve la pareja de cada aparición de forma en el texto, en
+// su orden, o nil si no hay ninguna.
+func citasConLaForma(forma *regexp.Regexp, texto string) []Cita {
 	var citas []Cita
 
-	for _, partes := range formaDeCita.FindAllStringSubmatch(respuesta, -1) {
+	for _, partes := range forma.FindAllStringSubmatch(texto, -1) {
 		citas = append(citas, Cita{Norma: partes[1], Bloque: partes[2]})
 	}
 

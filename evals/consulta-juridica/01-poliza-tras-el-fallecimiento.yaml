@@ -1,0 +1,22 @@
+# Eval positiva de la skill de entrada con la pregunta de la póliza de docs/USO.md (2026-10-21), de una materia que la
+# base no cubre: la sesión lee la Ley 50/1980, de Contrato de Seguro, con kitlegal y cita su art. 22, el de la prórroga
+# (bloque aveintidos), y no pide un plazo de otra materia, así que plazos calcular está prohibido. No exige ninguna línea
+# fija: lo que no cubre lo dice en prosa (FR-001, FR-035; contracts/evals.md §2 de H32; research D13 de H32). Ninguna
+# pregunta de sentencias: jurisprudencia no se activa (FR-037).
+pregunta: "Mi madre falleció y después la aseguradora prorrogó su póliza y nos cobró la prima del nuevo periodo. ¿Qué dice la ley y qué podemos hacer?"
+activa: true
+no_se_activan: [jurisprudencia]
+comandos:
+  - applet: boe
+    norma: BOE-A-1980-22501
+    bloque: aveintidos
+citas:
+  - norma: BOE-A-1980-22501
+    bloque: aveintidos
+prohibidos:
+  - applet: plazos
+    verbo: calcular
+lecturas:
+  - norma: BOE-A-1980-22501
+    bloque: acuarto
+    motivo: "De la misma norma que el art. 22 que pide la eval: la prórroga tras el fallecimiento lleva a mirar si existía el riesgo cuando se concluyó el nuevo periodo, que es lo que dice el art. 4 (research D13 de H32)."

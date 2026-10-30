@@ -11,7 +11,7 @@ import (
 )
 
 // rutasDelAmbito es todo lo que un Ámbito dice de sí mismo, con la skill
-// legal-core como ejemplo de las rutas que dependen de una skill, para
+// plazos-y-territorio como ejemplo de las rutas que dependen de una skill, para
 // comparar un ámbito entero con una sola aserción.
 type rutasDelAmbito struct {
 	clase             instalacion.ClaseDeAmbito
@@ -41,14 +41,14 @@ func rutasDe(ambito instalacion.Ambito) rutasDelAmbito {
 		conHosts:          ambito.ConHosts(),
 		banderas:          ambito.Banderas(),
 		manifiesto:        ambito.RutaDelManifiesto(),
-		skill:             ambito.RutaDeSkill("legal-core"),
+		skill:             ambito.RutaDeSkill("plazos-y-territorio"),
 		directorioDelHost: ambito.DirectorioDelHost("claude"),
 		skillsDelHost:     ambito.SkillsDelHost("claude"),
-		host:              ambito.RutaDeHost("claude", "legal-core"),
+		host:              ambito.RutaDeHost("claude", "plazos-y-territorio"),
 		hosts:             ambito.Hosts(),
 		configAntigravity: ambito.DirectorioDelHost("antigravity"),
 		skillsAntigravity: ambito.SkillsDelHost("antigravity"),
-		hostAntigravity:   ambito.RutaDeHost("antigravity", "legal-core"),
+		hostAntigravity:   ambito.RutaDeHost("antigravity", "plazos-y-territorio"),
 	}
 }
 
@@ -87,10 +87,10 @@ func TestAmbito(t *testing.T) {
 		conHosts:          true,
 		banderas:          "",
 		manifiesto:        ".agents/skills/kitlegal.json",
-		skill:             ".agents/skills/legal-core",
+		skill:             ".agents/skills/plazos-y-territorio",
 		directorioDelHost: ".claude",
 		skillsDelHost:     ".claude/skills",
-		host:              ".claude/skills/legal-core",
+		host:              ".claude/skills/plazos-y-territorio",
 		hosts:             []string{"claude"},
 	}
 	globalDeAna := rutasDelAmbito{
@@ -101,14 +101,14 @@ func TestAmbito(t *testing.T) {
 		conHosts:          true,
 		banderas:          "-g",
 		manifiesto:        "/home/ana/.agents/skills/kitlegal.json",
-		skill:             "/home/ana/.agents/skills/legal-core",
+		skill:             "/home/ana/.agents/skills/plazos-y-territorio",
 		directorioDelHost: "/home/ana/.claude",
 		skillsDelHost:     "/home/ana/.claude/skills",
-		host:              "/home/ana/.claude/skills/legal-core",
+		host:              "/home/ana/.claude/skills/plazos-y-territorio",
 		hosts:             []string{"claude", "antigravity"},
 		configAntigravity: "/home/ana/.gemini/config",
 		skillsAntigravity: "/home/ana/.gemini/config/skills",
-		hostAntigravity:   "/home/ana/.gemini/config/skills/legal-core",
+		hostAntigravity:   "/home/ana/.gemini/config/skills/plazos-y-territorio",
 	}
 
 	// dir es el ámbito de --dir, sin raíz ni hosts, con su directorio neutro
@@ -149,14 +149,14 @@ func TestAmbito(t *testing.T) {
 				conHosts:          true,
 				banderas:          "-g",
 				manifiesto:        "/.agents/skills/kitlegal.json",
-				skill:             "/.agents/skills/legal-core",
+				skill:             "/.agents/skills/plazos-y-territorio",
 				directorioDelHost: "/.claude",
 				skillsDelHost:     "/.claude/skills",
-				host:              "/.claude/skills/legal-core",
+				host:              "/.claude/skills/plazos-y-territorio",
 				hosts:             []string{"claude", "antigravity"},
 				configAntigravity: "/.gemini/config",
 				skillsAntigravity: "/.gemini/config/skills",
-				hostAntigravity:   "/.gemini/config/skills/legal-core",
+				hostAntigravity:   "/.gemini/config/skills/plazos-y-territorio",
 			},
 		},
 
@@ -165,69 +165,69 @@ func TestAmbito(t *testing.T) {
 		{
 			nombre:  "dir relativo",
 			ambito:  instalacion.NuevoAmbitoDir("destino"),
-			esperan: dir("destino", "--dir 'destino'", "destino/kitlegal.json", "destino/legal-core"),
+			esperan: dir("destino", "--dir 'destino'", "destino/kitlegal.json", "destino/plazos-y-territorio"),
 		},
 		{
 			nombre: "dir con barra final",
 			ambito: instalacion.NuevoAmbitoDir("otro/destino/"),
 			esperan: dir("otro/destino", "--dir 'otro/destino/'", "otro/destino/kitlegal.json",
-				"otro/destino/legal-core"),
+				"otro/destino/plazos-y-territorio"),
 		},
 		{
 			nombre: "dir absoluto",
 			ambito: instalacion.NuevoAmbitoDir("/tmp/skills"),
 			esperan: dir("/tmp/skills", "--dir '/tmp/skills'", "/tmp/skills/kitlegal.json",
-				"/tmp/skills/legal-core"),
+				"/tmp/skills/plazos-y-territorio"),
 		},
 		{
 			nombre:  "dir que se limpia",
 			ambito:  instalacion.NuevoAmbitoDir("./a/../b"),
-			esperan: dir("b", "--dir './a/../b'", "b/kitlegal.json", "b/legal-core"),
+			esperan: dir("b", "--dir './a/../b'", "b/kitlegal.json", "b/plazos-y-territorio"),
 		},
 		{
 			nombre:  "dir que es el directorio de trabajo",
 			ambito:  instalacion.NuevoAmbitoDir("."),
-			esperan: dir(".", "--dir '.'", "kitlegal.json", "legal-core"),
+			esperan: dir(".", "--dir '.'", "kitlegal.json", "plazos-y-territorio"),
 		},
 		{
 			nombre:  "dir vacío, que se resuelve contra el directorio de trabajo",
 			ambito:  instalacion.NuevoAmbitoDir(""),
-			esperan: dir(".", "--dir ''", "kitlegal.json", "legal-core"),
+			esperan: dir(".", "--dir ''", "kitlegal.json", "plazos-y-territorio"),
 		},
 		{
 			nombre: "dir con una comilla simple",
 			ambito: instalacion.NuevoAmbitoDir("it's/x"),
 			esperan: dir("it's/x", `--dir 'it'\''s/x'`, "it's/x/kitlegal.json",
-				"it's/x/legal-core"),
+				"it's/x/plazos-y-territorio"),
 		},
 		{
 			// Separada, la palabra «'-raro'» se leería como otra bandera: la
 			// ruta va en la misma palabra que --dir.
 			nombre:  "dir que empieza por un guion",
 			ambito:  instalacion.NuevoAmbitoDir("-raro"),
-			esperan: dir("-raro", "--dir='-raro'", "-raro/kitlegal.json", "-raro/legal-core"),
+			esperan: dir("-raro", "--dir='-raro'", "-raro/kitlegal.json", "-raro/plazos-y-territorio"),
 		},
 		{
 			nombre:  "dir que es un guion suelto",
 			ambito:  instalacion.NuevoAmbitoDir("-"),
-			esperan: dir("-", "--dir='-'", "-/kitlegal.json", "-/legal-core"),
+			esperan: dir("-", "--dir='-'", "-/kitlegal.json", "-/plazos-y-territorio"),
 		},
 		{
 			nombre: "dir que empieza por un guion y lleva una comilla simple",
 			ambito: instalacion.NuevoAmbitoDir("--it's"),
 			esperan: dir("--it's", `--dir='--it'\''s'`, "--it's/kitlegal.json",
-				"--it's/legal-core"),
+				"--it's/plazos-y-territorio"),
 		},
 		{
 			nombre:  "dir con un guion que no va delante",
 			ambito:  instalacion.NuevoAmbitoDir("a/-raro"),
-			esperan: dir("a/-raro", "--dir 'a/-raro'", "a/-raro/kitlegal.json", "a/-raro/legal-core"),
+			esperan: dir("a/-raro", "--dir 'a/-raro'", "a/-raro/kitlegal.json", "a/-raro/plazos-y-territorio"),
 		},
 		{
 			nombre: "dir con blancos y lo que el shell expandiría sin comillas",
 			ambito: instalacion.NuevoAmbitoDir("mis skills/$HOME/*"),
 			esperan: dir("mis skills/$HOME/*", "--dir 'mis skills/$HOME/*'",
-				"mis skills/$HOME/*/kitlegal.json", "mis skills/$HOME/*/legal-core"),
+				"mis skills/$HOME/*/kitlegal.json", "mis skills/$HOME/*/plazos-y-territorio"),
 		},
 	}
 

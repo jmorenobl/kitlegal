@@ -40,7 +40,7 @@ var probabilidadDelCriterio = big.NewRat(1, 50)
 // da pref, N y k(N), las cifras del ADR (T016 de H30).
 //
 // Y el mutante de SC-010, en memoria y sin tocar el fichero: el clases.yaml de
-// boe-legislacion con umbral: 0.017 baja pref, no deja ningún k(n) por encima
+// normativa con umbral: 0.017 baja pref, no deja ningún k(n) por encima
 // del de hoy y da k(N) = 2 (2 de 120), el mayor entero con K/N ≤ 0.017.
 func TestLimiteDeLaTasa(t *testing.T) {
 	t.Parallel()
@@ -160,14 +160,14 @@ func exigirElLimiteDeLaTasa(t *testing.T, limite limiteDeLaTasa, umbral float64,
 }
 
 // exigirElMutanteDelUmbral exige el mutante de SC-010: el clases.yaml de
-// boe-legislacion, leído del repositorio y con el umbral de su clase que decide
+// normativa, leído del repositorio y con el umbral de su clase que decide
 // cambiado en memoria a 0.017, da un límite con pref más baja, ningún k(n) por
 // encima del del umbral vigente y k(N) más estricto, el de 0.017: 2 de 120.
 func exigirElMutanteDelUmbral(t *testing.T, delJob DefinicionDelJob) {
 	t.Helper()
 
 	const (
-		skill     = "boe-legislacion"
+		skill     = "normativa"
 		estrecho  = 0.017
 		escritoEn = "umbral: "
 	)

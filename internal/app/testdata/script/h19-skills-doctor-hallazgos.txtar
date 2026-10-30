@@ -1,7 +1,7 @@
 # Cada hallazgo de `doctor`, con su clase, su ruta y la orden que lo arregla:
 # fichero editado (con rm) y fichero que falta (sin rm); enlace de host colgando,
 # a otro sitio (otro destino, un fichero o un directorio en su lugar) o que falta
-# (una entrada o todo .claude/); versión distinta del manifiesto y de sus tres
+# (una entrada o todo .claude/); versión distinta del manifiesto y de sus cuatro
 # skills (un único hallazgo) o de una sola skill; y, dentro del directorio de
 # una skill, el enlace que ocupa el sitio de la skill o de references/ y el
 # SKILL.md que es un enlace o un directorio. doctor sale con 0 sin cambiar nada,
@@ -36,32 +36,32 @@ symlink $WORK/bin-v2/kitlegal -> $KITLEGAL_V2_BIN
 mkdir $WORK/editado
 cd $WORK/editado
 exec kitlegal skills install
-exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/plazos-y-territorio/SKILL.md'
 arbol .
 cp stdout $WORK/antes.txt
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/SKILL\.md","orden":"rm -- ''\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
-cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp .agents/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 
 # --- Un fichero editado de una skill con entrada de host: --host claude ---
 mkdir $WORK/editado-host/.claude
 cd $WORK/editado-host
 exec kitlegal skills install
-exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/plazos-y-territorio/SKILL.md'
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/SKILL\.md","orden":"rm -- ''\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink .claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink .claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 # --- Un fichero declarado que falta (US4.6) ---
 #
@@ -69,14 +69,14 @@ stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 mkdir $WORK/falta
 cd $WORK/falta
 exec kitlegal skills install
-rm .agents/skills/legal-core/references/leyes_vertebrales.md
+rm .agents/skills/plazos-y-territorio/references/administrativo.md
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/references/leyes_vertebrales\.md","orden":"kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/references/administrativo\.md","orden":"kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/legal-core/references/leyes_vertebrales.md
+cmp .agents/skills/plazos-y-territorio/references/administrativo.md $KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
 
 # --- Una entrada de host que apunta a otro sitio (US4.3) ---
 #
@@ -86,50 +86,50 @@ cmp .agents/skills/legal-core/references/leyes_vertebrales.md $KITLEGAL_SKILLS/l
 mkdir $WORK/host-otro/.claude
 cd $WORK/host-otro
 exec kitlegal skills install
-rm .claude/skills/legal-core
-symlink .claude/skills/legal-core -> ../../otro-sitio
+rm .claude/skills/plazos-y-territorio
+symlink .claude/skills/plazos-y-territorio -> ../../otro-sitio
 arbol .
 cp stdout $WORK/antes.txt
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/plazos-y-territorio","orden":"rm -- ''\.claude/skills/plazos-y-territorio'' && kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink .claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink .claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 cmp otro-sitio/mio.md $WORK/nota.md
 
 mkdir $WORK/host-fichero/.claude
 cd $WORK/host-fichero
 exec kitlegal skills install
-rm .claude/skills/legal-core
-cp $WORK/nota.md .claude/skills/legal-core
+rm .claude/skills/plazos-y-territorio
+cp $WORK/nota.md .claude/skills/plazos-y-territorio
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"rm -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/plazos-y-territorio","orden":"rm -- ''\.claude/skills/plazos-y-territorio'' && kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink .claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink .claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 mkdir $WORK/host-directorio/.claude
 cd $WORK/host-directorio
 exec kitlegal skills install
-rm .claude/skills/legal-core
-mkdir .claude/skills/legal-core
-cp $WORK/nota.md .claude/skills/legal-core/nota.md
+rm .claude/skills/plazos-y-territorio
+mkdir .claude/skills/plazos-y-territorio
+cp $WORK/nota.md .claude/skills/plazos-y-territorio/nota.md
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"rm -r -- ''\.claude/skills/legal-core'' && kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/plazos-y-territorio","orden":"rm -r -- ''\.claude/skills/plazos-y-territorio'' && kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink .claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink .claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 # --- Una entrada de host que falta: una, o todo .claude/ (US4.7) ---
 #
@@ -137,29 +137,31 @@ stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 mkdir $WORK/host-falta/.claude
 cd $WORK/host-falta
 exec kitlegal skills install
-rm .claude/skills/legal-core
+rm .claude/skills/plazos-y-territorio
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/plazos-y-territorio","orden":"kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink .claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink .claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 rm .claude
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/jurisprudencia","orden":"kitlegal skills install jurisprudencia --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/consulta-juridica","orden":"kitlegal skills install consulta-juridica --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/jurisprudencia","orden":"kitlegal skills install jurisprudencia --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/normativa","orden":"kitlegal skills install normativa --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/plazos-y-territorio","orden":"kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink .claude/skills/boe-legislacion
-stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/normativa
+stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
+exec readlink .claude/skills/consulta-juridica
+stdout '\A\.\./\.\./\.agents/skills/consulta-juridica\n\z'
 exec readlink .claude/skills/jurisprudencia
 stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
-exec readlink .claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink .claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 # --- Un enlace de host colgando (US4.3) ---
 #
@@ -168,15 +170,15 @@ stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
 mkdir $WORK/colgando-host/.claude
 cd $WORK/colgando-host
 exec kitlegal skills install
-rm .agents/skills/legal-core
-symlink .agents/skills/legal-core -> $WORK/no-existe
+rm .agents/skills/plazos-y-territorio
+symlink .agents/skills/plazos-y-territorio -> $WORK/no-existe
 exec kitlegal skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace colgando","ruta":"\.agents/skills/legal-core","orden":"rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core --host claude"\},\{"clase":"enlace colgando","ruta":"\.claude/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"enlace colgando","ruta":"\.agents/skills/plazos-y-territorio","orden":"rm -- ''\.agents/skills/plazos-y-territorio'' && kitlegal skills install plazos-y-territorio --host claude"\},\{"clase":"enlace colgando","ruta":"\.claude/skills/plazos-y-territorio","orden":"kitlegal skills install plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp .claude/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 
 # --- Dentro del directorio de una skill, sin .claude/ (US4.11) ---
 #
@@ -187,10 +189,10 @@ cmp .claude/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
 mkdir $WORK/dentro-colgando
 cd $WORK/dentro-colgando
 exec kitlegal skills install
-rm .agents/skills/legal-core
-symlink .agents/skills/legal-core -> $WORK/no-existe
+rm .agents/skills/plazos-y-territorio
+symlink .agents/skills/plazos-y-territorio -> $WORK/no-existe
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"enlace colgando","ruta":"\.agents/skills/legal-core","orden":"rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"enlace colgando","ruta":"\.agents/skills/plazos-y-territorio","orden":"rm -- ''\.agents/skills/plazos-y-territorio'' && kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
@@ -200,13 +202,13 @@ mkdir $WORK/dentro-copia
 mkdir $WORK/fuera-copia
 cd $WORK/dentro-copia
 exec kitlegal skills install
-exec cp -R .agents/skills/legal-core $WORK/fuera-copia/legal-core
-rm .agents/skills/legal-core
-symlink .agents/skills/legal-core -> $WORK/fuera-copia/legal-core
+exec cp -R .agents/skills/plazos-y-territorio $WORK/fuera-copia/plazos-y-territorio
+rm .agents/skills/plazos-y-territorio
+symlink .agents/skills/plazos-y-territorio -> $WORK/fuera-copia/plazos-y-territorio
 arbol $WORK/fuera-copia
 cp stdout $WORK/fuera-antes.txt
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.agents/skills/legal-core","orden":"rm -- ''\.agents/skills/legal-core'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.agents/skills/plazos-y-territorio","orden":"rm -- ''\.agents/skills/plazos-y-territorio'' && kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
@@ -218,13 +220,13 @@ mkdir $WORK/dentro-references
 mkdir $WORK/fuera-references
 cd $WORK/dentro-references
 exec kitlegal skills install
-exec cp -R .agents/skills/legal-core/references $WORK/fuera-references/references
-rm .agents/skills/legal-core/references
-symlink .agents/skills/legal-core/references -> $WORK/fuera-references/references
+exec cp -R .agents/skills/plazos-y-territorio/references $WORK/fuera-references/references
+rm .agents/skills/plazos-y-territorio/references
+symlink .agents/skills/plazos-y-territorio/references -> $WORK/fuera-references/references
 arbol $WORK/fuera-references
 cp stdout $WORK/fuera-antes.txt
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.agents/skills/legal-core/references","orden":"rm -- ''\.agents/skills/legal-core/references'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"\.agents/skills/plazos-y-territorio/references","orden":"rm -- ''\.agents/skills/plazos-y-territorio/references'' && kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
@@ -236,13 +238,13 @@ mkdir $WORK/dentro-skill-enlace
 mkdir $WORK/fuera-skill
 cd $WORK/dentro-skill-enlace
 exec kitlegal skills install
-cp .agents/skills/legal-core/SKILL.md $WORK/fuera-skill/SKILL.md
-rm .agents/skills/legal-core/SKILL.md
-symlink .agents/skills/legal-core/SKILL.md -> $WORK/fuera-skill/SKILL.md
+cp .agents/skills/plazos-y-territorio/SKILL.md $WORK/fuera-skill/SKILL.md
+rm .agents/skills/plazos-y-territorio/SKILL.md
+symlink .agents/skills/plazos-y-territorio/SKILL.md -> $WORK/fuera-skill/SKILL.md
 arbol $WORK/fuera-skill
 cp stdout $WORK/fuera-antes.txt
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/SKILL\.md","orden":"rm -- ''\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
@@ -253,18 +255,18 @@ cmp stdout $WORK/fuera-antes.txt
 mkdir $WORK/dentro-skill-directorio
 cd $WORK/dentro-skill-directorio
 exec kitlegal skills install
-rm .agents/skills/legal-core/SKILL.md
-mkdir .agents/skills/legal-core/SKILL.md
-cp $WORK/nota.md .agents/skills/legal-core/SKILL.md/nota.md
+rm .agents/skills/plazos-y-territorio/SKILL.md
+mkdir .agents/skills/plazos-y-territorio/SKILL.md
+cp $WORK/nota.md .agents/skills/plazos-y-territorio/SKILL.md/nota.md
 exec kitlegal skills doctor --json
-stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -r -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/SKILL\.md","orden":"rm -r -- ''\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-cmp .agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp .agents/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 
-# --- Versión distinta del manifiesto y de sus tres skills (US4.10) ---
+# --- Versión distinta del manifiesto y de sus cuatro skills (US4.10) ---
 #
 # Un único hallazgo, con la ruta del manifiesto, cuya orden reinstala todas las
 # skills declaradas y empotradas, por orden de nombre, con --host claude porque
@@ -273,7 +275,7 @@ mkdir $WORK/version/.claude
 cd $WORK/version
 exec $KITLEGAL_V1_BIN skills install
 exec $KITLEGAL_V2_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install consulta-juridica jurisprudencia normativa plazos-y-territorio --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
 exec sh $WORK/ordenes.sh $WORK/doctor.json
@@ -288,19 +290,19 @@ cd $WORK/version-dev
 exec $KITLEGAL_V1_BIN skills install
 exec kitlegal skills doctor
 stdout '^  1\. Las skills son de kitlegal v0\.1\.0 y este kitlegal es dev\.$'
-stdout '^     kitlegal skills install boe-legislacion jurisprudencia legal-core$'
+stdout '^     kitlegal skills install consulta-juridica jurisprudencia normativa plazos-y-territorio$'
 
 # --- Versión distinta de una sola skill (US4.10) ---
 #
-# Tras instalar un subconjunto con otro binario —las otras dos—, el manifiesto
-# coincide y solo boe-legislacion difiere: un hallazgo con la ruta de su
+# Tras instalar un subconjunto con otro binario —las otras tres—, el manifiesto
+# coincide y solo normativa difiere: un hallazgo con la ruta de su
 # directorio y una orden que solo la nombra a ella.
 mkdir $WORK/version-una
 cd $WORK/version-una
 exec $KITLEGAL_V1_BIN skills install
-exec $KITLEGAL_V2_BIN skills install jurisprudencia legal-core
+exec $KITLEGAL_V2_BIN skills install consulta-juridica jurisprudencia plazos-y-territorio
 exec $KITLEGAL_V2_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/normativa","orden":"kitlegal skills install normativa"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
 exec sh $WORK/ordenes.sh $WORK/doctor.json
@@ -315,11 +317,11 @@ env PATH=$PATH_ORIGINAL
 mkdir $WORK/dos
 cd $WORK/dos
 exec $KITLEGAL_V1_BIN skills install
-exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/legal-core/SKILL.md'
+exec sh -c 'echo "una línea añadida a mano" >> .agents/skills/plazos-y-territorio/SKILL.md'
 arbol .
 cp stdout $WORK/antes.txt
 exec $KITLEGAL_V2_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/legal-core/SKILL\.md","orden":"rm -- ''\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core"\},\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"fichero editado","ruta":"\.agents/skills/plazos-y-territorio/SKILL\.md","orden":"rm -- ''\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio"\},\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install consulta-juridica jurisprudencia normativa plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 arbol .
 cmp stdout $WORK/antes.txt
@@ -331,25 +333,25 @@ env PATH=$PATH_ORIGINAL
 
 # --- Dentro de un grupo, por ruta (FR-066) ---
 #
-# Dos hallazgos sin rm: la versión distinta de legal-core, la única que no se
-# reinstala con el otro binario, y la entrada de host de boe-legislacion que
+# Dos hallazgos sin rm: la versión distinta de plazos-y-territorio, la única que
+# no se reinstala con el otro binario, y la entrada de host de normativa que
 # falta. Van por ruta byte a byte, que aquí no es ni el orden de las clases ni el
 # de las skills.
 mkdir $WORK/grupo/.claude
 cd $WORK/grupo
 exec $KITLEGAL_V1_BIN skills install
-exec $KITLEGAL_V2_BIN skills install boe-legislacion jurisprudencia
-rm .claude/skills/boe-legislacion
+exec $KITLEGAL_V2_BIN skills install consulta-juridica normativa jurisprudencia
+rm .claude/skills/normativa
 exec $KITLEGAL_V2_BIN skills doctor --json
-stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/legal-core","orden":"kitlegal skills install legal-core --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/boe-legislacion","orden":"kitlegal skills install boe-legislacion --host claude"\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"[^"]+","url":"[^"]+","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"[^"]+","manifiesto":true,"version":"[^"]+","version_del_binario":"[^"]+","hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/plazos-y-territorio","orden":"kitlegal skills install plazos-y-territorio --host claude"\},\{"clase":"enlace a otro sitio","ruta":"\.claude/skills/normativa","orden":"kitlegal skills install normativa --host claude"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v2${:}$PATH_ORIGINAL
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --json
 stdout '"hallazgos":\[\]\}\}\n\z'
 env PATH=$PATH_ORIGINAL
-exec readlink .claude/skills/boe-legislacion
-stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink .claude/skills/normativa
+stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
 
 # --- La regla de igualdad de versiones (FR-077) ---
 #
@@ -359,13 +361,13 @@ mkdir $WORK/igualdad
 cd $WORK/igualdad
 exec $KITLEGAL_V1_BIN skills install
 exec sh -c 'sed "s/\"v0\.1\.0\"/\"0.1.0\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
-grep -count=4 '"0\.1\.0"' .agents/skills/kitlegal.json
+grep -count=5 '"0\.1\.0"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V1_BIN skills doctor --json
 stdout '"data":\{"directorio":"\.agents/skills","manifiesto":true,"version":"0\.1\.0","version_del_binario":"v0\.1\.0","hallazgos":\[\]\}\}\n\z'
 exec sh -c 'sed "s/\"0\.1\.0\"/\"0.1.0+abc\"/g" .agents/skills/kitlegal.json > "$WORK/kitlegal.json" && mv "$WORK/kitlegal.json" .agents/skills/kitlegal.json'
-grep -count=4 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
+grep -count=5 '"0\.1\.0\+abc"' .agents/skills/kitlegal.json
 exec $KITLEGAL_V1_BIN skills doctor --json
-stdout '"hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install boe-legislacion jurisprudencia legal-core"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"versión distinta","ruta":"\.agents/skills/kitlegal\.json","orden":"kitlegal skills install consulta-juridica jurisprudencia normativa plazos-y-territorio"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 env PATH=$WORK/bin-v1${:}$PATH_ORIGINAL
 exec sh $WORK/ordenes.sh $WORK/doctor.json
@@ -379,14 +381,14 @@ mkdir $WORK/home-g
 mkdir $WORK/global
 cd $WORK/global
 exec kitlegal skills install -g
-exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/legal-core/SKILL.md"'
+exec sh -c 'echo "una línea añadida a mano" >> "$HOME/.agents/skills/plazos-y-territorio/SKILL.md"'
 exec kitlegal skills doctor -g --json
-stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"'${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md","orden":"rm -- '''${WORK@R}'/home-g/\.agents/skills/legal-core/SKILL\.md'' && kitlegal skills install legal-core -g"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"'${WORK@R}'/home-g/\.agents/skills/plazos-y-territorio/SKILL\.md","orden":"rm -- '''${WORK@R}'/home-g/\.agents/skills/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio -g"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor -g --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-cmp $WORK/home-g/.agents/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp $WORK/home-g/.agents/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 arbol .
 ! stdout .
 
@@ -394,14 +396,14 @@ arbol .
 mkdir $WORK/con-dir
 cd $WORK/con-dir
 exec kitlegal skills install --dir destino
-exec sh -c 'echo "una línea añadida a mano" >> destino/legal-core/SKILL.md'
+exec sh -c 'echo "una línea añadida a mano" >> destino/plazos-y-territorio/SKILL.md'
 exec kitlegal skills doctor --dir destino --json
-stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"destino/legal-core/SKILL\.md","orden":"rm -- ''destino/legal-core/SKILL\.md'' && kitlegal skills install legal-core --dir ''destino''"\}\]\}\}\n\z'
+stdout '"hallazgos":\[\{"clase":"fichero editado","ruta":"destino/plazos-y-territorio/SKILL\.md","orden":"rm -- ''destino/plazos-y-territorio/SKILL\.md'' && kitlegal skills install plazos-y-territorio --dir ''destino''"\}\]\}\}\n\z'
 cp stdout $WORK/doctor.json
 exec sh $WORK/ordenes.sh $WORK/doctor.json
 exec kitlegal skills doctor --dir destino --json
 stdout '"data":\{"directorio":"destino","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
-cmp destino/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp destino/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 ! exists .agents
 
 -- nota.md --

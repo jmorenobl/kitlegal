@@ -130,9 +130,10 @@ func TestRenderizarNormas(t *testing.T) {
 }
 
 // comienzoDeLasLeyesVertebrales es lo que abre toda referencia de leyes
-// vertebrales, hasta la fila de separación de su tabla (contrato de la skill
-// legal-core §2): la cabecera nombra data/normas.yaml, del que sale aunque no se
-// llame como ella, y los encabezados son los de la referencia de normas.
+// vertebrales, hasta la fila de separación de su tabla (contrato
+// skill-legal-core §2): la cabecera nombra data/normas.yaml, del que sale
+// aunque no se llame como ella, y los encabezados son los de la referencia de
+// normas.
 const comienzoDeLasLeyesVertebrales = "<!-- generado desde data/normas.yaml, no editar -->\n" +
 	"\n" +
 	"# Leyes vertebrales\n" +
@@ -150,8 +151,8 @@ func normasDePruebaConDosVertebrales() []skills.Norma {
 	return normas
 }
 
-// TestRenderizarLeyesVertebrales fija RenderizarLeyesVertebrales (contrato de la
-// skill legal-core §2 y §4; research.md D20; FR-065, FR-067): solo las normas
+// TestRenderizarLeyesVertebrales fija RenderizarLeyesVertebrales (contrato
+// skill-legal-core §2 y §4; research.md D20; FR-065, FR-067): solo las normas
 // marcadas vertebral, con la cabecera que nombra data/normas.yaml, su propio
 // título y los encabezados, el orden y los escapes de la referencia de normas; sin
 // ninguna marcada, la tabla vacía; y las normas que recibe no cambian.
@@ -238,12 +239,12 @@ func jerarquiaConEscapes() skills.Jerarquia {
 	}
 }
 
-// TestRenderizarJerarquia fija RenderizarJerarquia (contrato de la skill
-// legal-core §2 y §4; research.md D20; FR-066, FR-067): los bytes exactos de la
-// referencia, con la cabecera que nombra data/jerarquia.yaml, la tabla de niveles
-// con su boletín y sus tipos de norma, y la lista de reglas; los niveles y las
-// reglas van en el orden en que llegan, que es el que el esquema impone al
-// documento; y la jerarquía que recibe no cambia.
+// TestRenderizarJerarquia fija RenderizarJerarquia (contrato
+// skill-legal-core §2 y §4; research.md D20; FR-066, FR-067): los bytes exactos
+// de la referencia, con la cabecera que nombra data/jerarquia.yaml, la tabla de
+// niveles con su boletín y sus tipos de norma, y la lista de reglas; los
+// niveles y las reglas van en el orden en que llegan, que es el que el esquema
+// impone al documento; y la jerarquía que recibe no cambia.
 func TestRenderizarJerarquia(t *testing.T) {
 	t.Parallel()
 
@@ -284,32 +285,6 @@ func leerDatosDelRepositorio(t *testing.T, nombre string) []byte {
 
 	return contenido
 }
-
-// referenciaDeLosTiposDePrueba son los bytes exactos de la referencia de
-// tiposDePrueba: una fila por tipo en el orden en que llegan y, en el genérico,
-// una por unidad en el orden de plazos.Unidades; la duración con el nombre de su
-// unidad en singular o en plural; los preceptos separados por «; », con «art.»
-// delante del apartado de un artículo; y la barra escrita \| y cada salto de
-// línea como un espacio.
-const referenciaDeLosTiposDePrueba = "<!-- generado desde data/plazos.yaml, no editar -->\n" +
-	"\n" +
-	"# Recursos y plazos\n" +
-	"\n" +
-	"| Tipo | Código | Duración | Cómputo | Precepto |\n" +
-	"|---|---|---|---|---|\n" +
-	"| recurso de alzada | `alzada` | 1 mes | `lpac` | art. 122.1 (BOE-A-2015-10565, bloque a122) |\n" +
-	"| recurso \\| con una barra en dos líneas | `contencioso` | 2 meses | `contencioso` | " +
-	"art. 46.1 (BOE-A-1998-16718, bloque a46); art. 128.2 (BOE-A-1998-16718, bloque a128) |\n" +
-	"| de un día hábil | `un-dia-habil` | 1 día hábil | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |\n" +
-	"| de quince días hábiles | `quince-dias-habiles` | 15 días hábiles | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |\n" +
-	"| de un día natural | `un-dia-natural` | 1 día natural | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |\n" +
-	"| de veinte días naturales | `veinte-dias-naturales` | 20 días naturales | `lpac` | " +
-	"DA 3ª (BOE-A-2015-10565, bloque datercera) |\n" +
-	"| día en que se produce el silencio administrativo | `silencio` | la que recibe, con su unidad | `lpac` | " +
-	"art. 21.3 (BOE-A-2015-10565, bloque a21); art. 24.4 (BOE-A-2015-10565, bloque a24) |\n" +
-	"| plazo genérico | `generico` | la que recibe, en `meses` | `lpac` | art. 30.4 (BOE-A-2015-10565, bloque a30) |\n" +
-	"| plazo genérico | `generico` | la que recibe, en `dias-habiles` | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |\n" +
-	"| plazo genérico | `generico` | la que recibe, en `dias-naturales` | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |\n"
 
 // tiposDePrueba son los tipos de TestRenderizarRecursosYPlazos: los de
 // data/plazos.yaml que fijan su duración en meses, uno con una barra y un salto de
@@ -368,23 +343,72 @@ func tiposDePrueba() []plazos.Tipo {
 	}
 }
 
-// TestRenderizarRecursosYPlazos fija RenderizarRecursosYPlazos (contrato de la
-// skill legal-core §4 de H9; FR-032): los bytes exactos de la referencia, con la
-// cabecera que nombra data/plazos.yaml; cada unidad de plazos.Unidades con su
-// nombre; los tipos que recibe no cambian; y references/recursos_y_plazos.md de
-// una skill que la declara sale de data/plazos.yaml con plazos.LeerTipos —una
-// fila por tipo y por unidad del genérico—, o el defecto del fichero que no se
-// lee.
+// normasDeLosTiposDePrueba son las normas de los preceptos de tiposDePrueba: la
+// del procedimiento común, con su abreviatura, y la del contencioso, sin ella.
+func normasDeLosTiposDePrueba() []skills.Norma {
+	return []skills.Norma{
+		{
+			Identificador: "BOE-A-2015-10565",
+			Titulo:        "Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común.",
+			Rango:         "Ley",
+			Abreviatura:   "LPAC",
+			Materias:      []string{"procedimiento administrativo"},
+		},
+		{
+			Identificador: "BOE-A-1998-16718",
+			Titulo:        "Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa.",
+			Rango:         "Ley",
+			Materias:      []string{"jurisdicción contencioso-administrativa"},
+		},
+	}
+}
+
+// tablaDeLosTiposDePrueba son los bytes exactos de la tabla de tiposDePrueba: una
+// fila por tipo en el orden en que llegan y, en el genérico, una por unidad en el
+// orden de plazos.Unidades; la duración con el nombre de su unidad en singular o
+// en plural; los preceptos separados por «; », cada uno en la forma única, con
+// «art.» delante del apartado de un artículo y la abreviatura de su norma o, sin
+// ella, su título hasta la primera coma; y la barra escrita \| y cada salto de
+// línea como un espacio.
+const tablaDeLosTiposDePrueba = "| Tipo | Código | Duración | Cómputo | Precepto |\n" +
+	"|---|---|---|---|---|\n" +
+	"| recurso de alzada | `alzada` | 1 mes | `lpac` | art. 122.1 LPAC [BOE-A-2015-10565, bloque a122] |\n" +
+	"| recurso \\| con una barra en dos líneas | `contencioso` | 2 meses | `contencioso` | " +
+	"art. 46.1 Ley 29/1998 [BOE-A-1998-16718, bloque a46]; art. 128.2 Ley 29/1998 [BOE-A-1998-16718, bloque a128] |\n" +
+	"| de un día hábil | `un-dia-habil` | 1 día hábil | `lpac` | art. 30.2 LPAC [BOE-A-2015-10565, bloque a30] |\n" +
+	"| de quince días hábiles | `quince-dias-habiles` | 15 días hábiles | `lpac` | " +
+	"art. 30.2 LPAC [BOE-A-2015-10565, bloque a30] |\n" +
+	"| de un día natural | `un-dia-natural` | 1 día natural | `lpac` | art. 30.2 LPAC [BOE-A-2015-10565, bloque a30] |\n" +
+	"| de veinte días naturales | `veinte-dias-naturales` | 20 días naturales | `lpac` | " +
+	"DA 3ª LPAC [BOE-A-2015-10565, bloque datercera] |\n" +
+	"| día en que se produce el silencio administrativo | `silencio` | la que recibe, con su unidad | `lpac` | " +
+	"art. 21.3 LPAC [BOE-A-2015-10565, bloque a21]; art. 24.4 LPAC [BOE-A-2015-10565, bloque a24] |\n" +
+	"| plazo genérico | `generico` | la que recibe, en `meses` | `lpac` | art. 30.4 LPAC [BOE-A-2015-10565, bloque a30] |\n" +
+	"| plazo genérico | `generico` | la que recibe, en `dias-habiles` | `lpac` | " +
+	"art. 30.2 LPAC [BOE-A-2015-10565, bloque a30] |\n" +
+	"| plazo genérico | `generico` | la que recibe, en `dias-naturales` | `lpac` | " +
+	"art. 30.2 LPAC [BOE-A-2015-10565, bloque a30] |\n"
+
+// TestRenderizarRecursosYPlazos fija RenderizarRecursosYPlazos, la tabla de la
+// región recursos_y_plazos (contracts/paquetes.md §3; research D7 de H32;
+// FR-010 y FR-019): sus bytes exactos; cada unidad de plazos.Unidades con su
+// nombre; los tipos y las normas que recibe no cambian; un precepto de una norma
+// que no está en las normas es un error que la nombra; y la región de la
+// referencia de lo administrativo del repositorio es la que da data/plazos.yaml
+// con data/normas.yaml —una fila por tipo y por unidad del genérico—.
 func TestRenderizarRecursosYPlazos(t *testing.T) {
 	t.Parallel()
 
 	t.Run("bytes-exactos", func(t *testing.T) {
 		t.Parallel()
 
-		tipos := tiposDePrueba()
+		tipos, normas := tiposDePrueba(), normasDeLosTiposDePrueba()
 
-		assert.Equal(t, referenciaDeLosTiposDePrueba, string(skills.RenderizarRecursosYPlazos(tipos)))
+		tabla, err := skills.RenderizarRecursosYPlazos(tipos, normas)
+		require.NoError(t, err)
+		assert.Equal(t, tablaDeLosTiposDePrueba, string(tabla))
 		assert.Equal(t, tiposDePrueba(), tipos, "los tipos que recibe no cambian")
+		assert.Equal(t, normasDeLosTiposDePrueba(), normas, "las normas que recibe no cambian")
 	})
 
 	t.Run("cada-unidad-con-su-nombre", func(t *testing.T) {
@@ -407,178 +431,145 @@ func TestRenderizarRecursosYPlazos(t *testing.T) {
 		tipo := tiposDePrueba()[0]
 		tipo.Duracion = &plazos.Duracion{Cantidad: 3, Unidad: "semanas"}
 
-		assert.Contains(t, string(skills.RenderizarRecursosYPlazos([]plazos.Tipo{tipo})), "| 3 semanas |")
+		tabla, err := skills.RenderizarRecursosYPlazos([]plazos.Tipo{tipo}, normasDeLosTiposDePrueba())
+		require.NoError(t, err)
+		assert.Contains(t, string(tabla), "| 3 semanas |")
+	})
+
+	t.Run("norma-que-no-esta", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := skills.RenderizarRecursosYPlazos(tiposDePrueba(), normasDeLosTiposDePrueba()[:1])
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "BOE-A-1998-16718")
 	})
 
 	t.Run("desde-data", func(t *testing.T) {
 		t.Parallel()
 
-		contenido := leerDatosDelRepositorio(t, "plazos.yaml")
-
-		tipos, err := plazos.LeerTipos(contenido)
+		tipos, err := plazos.LeerTipos(leerDatosDelRepositorio(t, "plazos.yaml"))
 		require.NoError(t, err)
 
-		referencia := referenciaRegenerada(t, "plazos.yaml", string(contenido), "recursos_y_plazos")
+		normas, err := skills.LeerNormas(leerDatosDelRepositorio(t, "normas.yaml"))
+		require.NoError(t, err)
 
-		assert.Equal(t, string(skills.RenderizarRecursosYPlazos(tipos)), referencia)
-		assert.Equal(t, 6+9, strings.Count(referencia, "\n"),
-			"la cabecera, el título y la tabla, con nueve filas: seis tipos y las tres unidades del genérico")
-	})
+		tabla, err := skills.RenderizarRecursosYPlazos(tipos, normas)
+		require.NoError(t, err)
 
-	t.Run("defecto-de-los-datos", func(t *testing.T) {
-		t.Parallel()
-
-		defectos := defectosDeLaRegeneracion(t, "plazos.yaml", "tipos: []\n", "recursos_y_plazos")
-
-		require.NotEmpty(t, defectos)
-		assert.True(t, strings.HasPrefix(defectos[0], "gamma: data/plazos.yaml: "), "el defecto nombra el fichero: %q", defectos[0])
+		region := regionDeLaReferenciaDelRepositorio(t, "recursos_y_plazos")
+		assert.Equal(t, string(tabla), region)
+		assert.Equal(t, 2+9, strings.Count(region, "\n"),
+			"los encabezados y nueve filas: seis tipos y las tres unidades del genérico")
 	})
 }
 
-// celdaDeLaDuracion es la celda de la duración de la única fila de la referencia
-// de un tipo que fija la duración dada.
+// celdaDeLaDuracion es la celda de la duración de la única fila de la tabla de
+// un tipo que fija la duración dada.
 func celdaDeLaDuracion(t *testing.T, cantidad int, unidad plazos.Unidad) string {
 	t.Helper()
 
 	tipo := tiposDePrueba()[0]
 	tipo.Duracion = &plazos.Duracion{Cantidad: cantidad, Unidad: unidad}
 
-	lineas := strings.Split(strings.TrimSuffix(string(skills.RenderizarRecursosYPlazos([]plazos.Tipo{tipo})), "\n"), "\n")
+	tabla, err := skills.RenderizarRecursosYPlazos([]plazos.Tipo{tipo}, normasDeLosTiposDePrueba())
+	require.NoError(t, err)
+
+	lineas := strings.Split(strings.TrimSuffix(string(tabla), "\n"), "\n")
 	celdas := strings.Split(lineas[len(lineas)-1], " | ")
 	require.Len(t, celdas, 5)
 
 	return celdas[2]
 }
 
-// coberturaDePruebaParaLaReferencia es la cobertura de TestRenderizarCobertura:
-// una entrada con norma y otra sin ella, las dos con el apartado de una
-// disposición, y una tercera con el de un artículo, con una barra y un salto de
-// línea en sus textos.
-func coberturaDePruebaParaLaReferencia() skills.Cobertura {
-	return skills.Cobertura{ReguladosAparte: []skills.ReguladoAparte{
-		{
-			Procedimiento: "aplicación de los tributos",
-			Precepto:      skills.PreceptoDeLaCobertura{Norma: "BOE-A-2015-10565", Bloque: "daprimera", Apartado: "DA 1ª.2.a"},
-			Norma: &skills.NormaQueLoRige{
-				Identificador: "BOE-A-2003-23186",
-				Nombre:        "Ley 58/2003, General | Tributaria",
-				Aplicable:     skills.PreceptoAplicable{Bloque: "a97", Apartado: "97"},
-			},
-		},
-		{
-			Procedimiento: "procedimiento con una barra |\r\ny un salto de línea",
-			Precepto:      skills.PreceptoDeLaCobertura{Norma: "BOE-A-2015-10565", Bloque: "daprimera", Apartado: "DA 1ª.2.b"},
-		},
-		{
-			Procedimiento: "reclamaciones económico-administrativas",
-			Precepto:      skills.PreceptoDeLaCobertura{Norma: "BOE-A-2015-10565", Bloque: "a112", Apartado: "112.4"},
-		},
-	}}
+// referenciaDelPaqueteDelRepositorio es la referencia de lo administrativo de
+// plazos-y-territorio, relativa al directorio de este paquete.
+const referenciaDelPaqueteDelRepositorio = "../../skills/plazos-y-territorio/references/administrativo.md"
+
+// regionDeLaReferenciaDelRepositorio es lo que hay entre las marcas de la región
+// del generador dado en la referencia de lo administrativo del repositorio.
+func regionDeLaReferenciaDelRepositorio(t *testing.T, generador string) string {
+	t.Helper()
+
+	contenido, err := os.ReadFile(referenciaDelPaqueteDelRepositorio)
+	require.NoError(t, err)
+
+	_, region, conInicio := strings.Cut(string(contenido), "\n<!-- inicio de "+generador+": ")
+	_, region, conSalto := strings.Cut(region, "\n")
+	region, _, conFin := strings.Cut(region, "<!-- fin de "+generador+" -->\n")
+	require.True(t, conInicio && conSalto && conFin, "la región %s en %s", generador, referenciaDelPaqueteDelRepositorio)
+
+	return region
 }
 
-// referenciaDeLaCoberturaDePrueba son los bytes exactos de la referencia de
-// coberturaDePruebaParaLaReferencia: una fila por entrada en el orden en que
-// llegan, «art.» solo delante del apartado de un artículo, la norma que lo rige
-// con su nombre y su identificador o «—», y la barra escrita \| y cada salto de
-// línea como un espacio.
-const referenciaDeLaCoberturaDePrueba = "<!-- generado desde data/cobertura.yaml, no editar -->\n" +
-	"\n" +
-	"# Cobertura por materia\n" +
-	"\n" +
-	"| Procedimiento | Lo regula aparte | Norma que lo rige |\n" +
-	"|---|---|---|\n" +
-	"| aplicación de los tributos | DA 1ª.2.a (BOE-A-2015-10565, bloque daprimera) | " +
-	"Ley 58/2003, General \\| Tributaria (BOE-A-2003-23186) |\n" +
-	"| procedimiento con una barra \\| y un salto de línea | DA 1ª.2.b (BOE-A-2015-10565, bloque daprimera) | — |\n" +
-	"| reclamaciones económico-administrativas | art. 112.4 (BOE-A-2015-10565, bloque a112) | — |\n"
+// filaDeLosTributos es la fila de la aplicación de los tributos en la región de
+// la cobertura, byte a byte la de contracts/paquetes.md §3 de H32 (US2,
+// escenario 3).
+const filaDeLosTributos = "| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
+	"administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía " +
+	"administrativa se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común: " +
+	"kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). |\n"
 
-// TestRenderizarCobertura fija RenderizarCobertura (contrato de la skill
-// legal-core §4 de H9; FR-031, FR-032): los bytes exactos de la referencia, con
-// la cabecera que nombra data/cobertura.yaml; la cobertura que recibe no cambia; y
-// references/cobertura_por_materia.md de una skill que la declara sale de
-// data/cobertura.yaml con skills.LeerCobertura —una fila por entrada—, o los
-// defectos del fichero que no valida.
-func TestRenderizarCobertura(t *testing.T) {
+// TestRegionDeLaCobertura fija la región cobertura_por_materia de la referencia
+// de lo administrativo del repositorio (contracts/paquetes.md §3; research D6;
+// FR-012 de H32), sobre una copia de plazos-y-territorio y de data/: la sincronía
+// da una fila por entrada de data/cobertura.yaml, todas del paquete, con la línea
+// de los tributos byte a byte la del contrato, y la referencia del repositorio es
+// la que genera; y su mutante, la forma del cuerpo cambiada sin regenerar, da la
+// deriva de la referencia.
+func TestRegionDeLaCobertura(t *testing.T) {
 	t.Parallel()
 
-	t.Run("bytes-exactos", func(t *testing.T) {
-		t.Parallel()
+	raiz := copiaDePlazosYTerritorio(t)
 
-		cobertura := coberturaDePruebaParaLaReferencia()
+	regenerado := regenerar(t, raiz, nil)
+	require.Empty(t, presentarDefectos(regenerado.Defectos()))
+	require.Len(t, regenerado.Skills, 1)
 
-		assert.Equal(t, referenciaDeLaCoberturaDePrueba, string(skills.RenderizarCobertura(cobertura)))
-		assert.Equal(t, coberturaDePruebaParaLaReferencia(), cobertura, "la cobertura que recibe no cambia")
-	})
+	var administrativo string
 
-	t.Run("desde-data", func(t *testing.T) {
-		t.Parallel()
+	for _, referencia := range regenerado.Skills[0].AManoConRegiones {
+		if referencia.Fichero == "administrativo.md" {
+			administrativo = string(referencia.Contenido)
+		}
+	}
 
-		contenido := leerDatosDelRepositorio(t, "cobertura.yaml")
+	assert.Contains(t, administrativo, "\n"+filaDeLosTributos)
 
-		cobertura, err := skills.LeerCobertura(contenido)
-		require.NoError(t, err)
+	cobertura, err := skills.LeerCobertura(leerDatosDelRepositorio(t, "cobertura.yaml"))
+	require.NoError(t, err)
+	assert.Equal(t, 2+len(cobertura.ReguladosAparte),
+		strings.Count(regionDeLaReferenciaDelRepositorio(t, "cobertura_por_materia"), "\n"),
+		"los encabezados y una fila por entrada de data/cobertura.yaml")
 
-		referencia := referenciaRegenerada(t, "cobertura.yaml", string(contenido), "cobertura_por_materia")
+	derivas, err := skills.Comparar(raiz, regenerado)
+	require.NoError(t, err)
+	assert.Empty(t, derivas, "la referencia del repositorio es la que genera la sincronía")
 
-		assert.Equal(t, string(skills.RenderizarCobertura(cobertura)), referencia)
-		assert.Equal(t, 6+len(cobertura.ReguladosAparte), strings.Count(referencia, "\n"),
-			"la cabecera, el título y la tabla, con una fila por entrada")
-	})
+	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"),
+		"kitlegal no calcula sus plazos ni sus recursos (<precepto>", "kitlegal no calcula sus plazos (<precepto>")
 
-	t.Run("defecto-de-los-datos", func(t *testing.T) {
-		t.Parallel()
-
-		defectos := defectosDeLaRegeneracion(t, "cobertura.yaml", "regulados_aparte: []\n", "cobertura_por_materia")
-
-		require.NotEmpty(t, defectos)
-		assert.True(t, strings.HasPrefix(defectos[0], "gamma: data/cobertura.yaml: "), "el defecto nombra el fichero: %q", defectos[0])
-	})
+	assert.Equal(t, []*skills.Deriva{
+		{Skill: "plazos-y-territorio", Ruta: "references/administrativo.md", Clase: skills.DerivaContenidoDistinto},
+	}, compararSinDefectos(t, raiz, nil))
 }
 
-// regenerarGamma es lo que skills.Regenerar construye para un repositorio
-// temporal con data/<datos> y la skill gamma, que declara la referencia dada y
-// la enlaza (FR-007 de H31).
-func regenerarGamma(t *testing.T, datos, contenido, referencia string) skills.Regenerado {
+// copiaDePlazosYTerritorio es un repositorio temporal con una copia de la skill
+// plazos-y-territorio del repositorio, sin applets declarados —la tabla de
+// comandos no se regenera sin sus descripciones—, y de los datos de los que salen
+// sus referencias: data/normas.yaml, data/plazos.yaml, data/cobertura.yaml y
+// data/jerarquia.yaml.
+func copiaDePlazosYTerritorio(t *testing.T) string {
 	t.Helper()
 
 	raiz := t.TempDir()
-	escribirFicheroDePrueba(t, filepath.Join(raiz, "data", datos), contenido)
-	escribirFicheroDePrueba(t, rutaDeSkill(raiz, "gamma", "SKILL.md"), "---\n"+
-		"name: gamma\n"+
-		"description: Skill de prueba con una referencia.\n"+
-		"metadata:\n"+
-		"  kitlegal-referencias: "+referencia+"\n"+
-		"---\n"+
-		"# Gamma\n"+
-		"\n"+
-		"- ["+referencia+"](references/"+referencia+".md)\n")
+	require.NoError(t, os.CopyFS(rutaDeSkill(raiz, "plazos-y-territorio"), os.DirFS("../../skills/plazos-y-territorio")))
+	cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "plazos-y-territorio", "SKILL.md"), "  kitlegal-applets: territorio plazos\n", "")
 
-	regenerado, err := skills.Regenerar(raiz, nil)
-	require.NoError(t, err)
+	for _, datos := range []string{"normas.yaml", "plazos.yaml", "cobertura.yaml", "jerarquia.yaml"} {
+		escribirFicheroDePrueba(t, filepath.Join(raiz, "data", datos), string(leerDatosDelRepositorio(t, datos)))
+	}
 
-	return regenerado
-}
-
-// referenciaRegenerada es el contenido de references/<referencia>.md de gamma,
-// regenerada sin defectos desde data/<datos>.
-func referenciaRegenerada(t *testing.T, datos, contenido, referencia string) string {
-	t.Helper()
-
-	regenerado := regenerarGamma(t, datos, contenido, referencia)
-	require.Empty(t, presentarDefectos(regenerado.Defectos()))
-	require.Len(t, regenerado.Skills, 1)
-	require.Len(t, regenerado.Skills[0].Referencias, 1)
-	require.Equal(t, referencia+".md", regenerado.Skills[0].Referencias[0].Fichero)
-
-	return string(regenerado.Skills[0].Referencias[0].Contenido)
-}
-
-// defectosDeLaRegeneracion son los defectos de gamma regenerada desde
-// data/<datos>, que no se lee.
-func defectosDeLaRegeneracion(t *testing.T, datos, contenido, referencia string) []string {
-	t.Helper()
-
-	return presentarDefectos(regenerarGamma(t, datos, contenido, referencia).Defectos())
+	return raiz
 }
 
 // cabeceraDeUnaGenerada es la sonda independiente de DatosDeLaReferencia: la

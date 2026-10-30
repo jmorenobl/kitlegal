@@ -14,6 +14,51 @@ sustituyen a este fichero.
 
 ### Añadido
 
+- **La skill de entrada, `consulta-juridica` v0.1: toda pregunta legal, de cualquier materia, entra por ella** (H32;
+  ADR 0048). Su método dice qué tipo de pregunta es —lo que dice una norma, una sentencia, hasta cuándo, el territorio,
+  qué hacer—, qué capacidad la resuelve y con qué skill, qué cubre la base, por capacidad y por paquete, y lo que no
+  cubre, en prosa: sin forma fija nueva, solo con la norma leída con kitlegal y citada en la forma única, sin ningún
+  plazo, órgano ni vía de memoria ni los de otra materia, y sin `kitlegal plazos calcular` para otra materia. Los
+  documentos y los destinatarios, que aún no tienen herramienta, los declara no cubiertos. No declara applets ni
+  referencias ni lleva ninguna línea `⚠`: lo que hace falta para responder está en la skill de cada capacidad. El
+  cuerpo tiene 57 líneas y 3660 caracteres, y la descripción, 705. Trae dos evals: `01-poliza-tras-el-fallecimiento`,
+  la pregunta de la póliza de `docs/USO.md` (2026-10-21), que lee la Ley 50/1980 (`BOE-A-1980-22501`, grabada para que
+  la sesión la lea sin red) y no pide `plazos calcular`; y `02-una-sola-capacidad`, que exige que se active
+  `normativa`, con el campo nuevo `se_activan` de las evals, y que no se activen `jurisprudencia` ni
+  `plazos-y-territorio`. El job de evals tiene un trabajo por skill, cuatro.
+- **Una materia entra como un paquete de ficheros, y lo administrativo es el primero** (H32; ADR 0048). Un paquete son
+  sus normas, marcadas con `vertical: <nombre>` en `data/normas.yaml` (un campo nuevo de `schemas/normas.yaml.json`),
+  una referencia por skill de capacidad que la necesite, `skills/<skill>/references/<nombre>.md`, sus filas de
+  `data/cobertura.yaml` y sus evals, y nada más: ni código ni cambios a mano en un `SKILL.md`. `make skills-sync`
+  escribe entre marcas el enlace de cada referencia en el `SKILL.md` que la recibe («Si la pregunta es de lo
+  <nombre>, lee …») y la lista de paquetes de `consulta-juridica`, y regenera, dentro de la referencia escrita a mano,
+  las tablas que salen de `data/`, en regiones con su «generada desde» (`cobertura_por_materia`, `recursos_y_plazos` y
+  `leyes_vertebrales`). `make skills-check` da como defecto una región sin pareja o de un generador que no la admite,
+  una región de la cobertura en una skill sin las dos formas `⚠ NO CUBIERTO:` o con un marcador desconocido, una fila
+  de la cobertura que ninguna región genera y una referencia de un paquete sin enlazar. El de lo administrativo marca
+  diez normas (LPAC, LRJSP, LRJPAC, LTAIBG, LRBRL, LCSP, LGS, LGP, TRLRHL y LJCA) y lleva una referencia,
+  `plazos-y-territorio/references/administrativo.md`, con la prosa de lo que solo pide el procedimiento común —lo que
+  la ley regula aparte, el acto presunto, el silencio, la reclamación del art. 24.2 LTAIBG— y las tres regiones; sus
+  nueve filas de cobertura son las de antes. `TestVerticalDeEnsayo` instala en `make ci` una vertical de `testdata/`
+  sobre una copia del repositorio y comprueba que entra sin un `.go` ni un cambio en un `SKILL.md` fuera de las marcas.
+  `docs/SKILLS.md` dice el reparto, el molde, sus defectos y lo medido.
+- **`kitlegal skills install` retira lo que instaló con un nombre retirado** (H32; ADR 0048). Quien instaló
+  `boe-legislacion` o `legal-core` y volvía a instalar se quedaba con dos skills del mismo protocolo, que se activan a
+  la vez. Ahora, en cada ámbito y sin mirar qué skills pide la invocación, una skill que el manifiesto declara con un
+  nombre retirado:
+  - con las huellas del manifiesto —su directorio con exactamente sus ficheros, cada uno con su huella, y cada entrada
+    de host la declarada—, se retira: sus ficheros y directorios, sus entradas de host y su entrada del manifiesto.
+    `data` la da con `estado: "retirada"`, y la salida legible, con `<nombre>: retirada; la sustituye <herederas>`;
+  - con alguna huella distinta, no se toca: `data` la da con `estado: "sin retirar"` y el campo nuevo `aviso`, que la
+    salida legible repite: «`<ruta>` no es lo que instaló kitlegal: su protocolo puede activarse junto al de
+    `<herederas>`, que la sustituye; retirarla es cosa tuya.»;
+  - sin su directorio ni sus entradas de host, sale del manifiesto sin decir nada.
+
+  Sale con 0 (ADR 0023). Con `--dry-run` dice lo que retiraría o conservaría y no toca nada; un nombre retirado pedido
+  en la invocación sale con 2, como toda skill que el binario no empotra, y una skill no empotrada que no es un nombre
+  retirado sigue como en H19. `schemas/instalacion.json` lleva los dos estados y `aviso`. Lo comprueban
+  `TestSkillsRetiradas`, que coteja la lista con los nombres de `c991808` y con lo empotrado, y el e2e de la
+  instalación con un nombre retirado de la suite de aceptación del hito.
 - **El registro de spec-kit sigue al workflow `hito`** (`make workflow-registro`). `specify workflow list` decía que el
   workflow iba por la 1.4.1, con la descripción de septiembre y una fuente en un directorio temporal que ya no existía:
   spec-kit copia la cabecera de `workflow.yml` al registro al instalarlo y nada la volvía a copiar. Ahora
@@ -66,6 +111,51 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- **Las skills se reparten por capacidad, y dos cambian de nombre** (H32; ADR 0048). Las de antes se llamaban por su
+  fuente o por un núcleo, y `legal-core` llevaba lo administrativo en su cuerpo y en sus referencias. Ahora, junto a la
+  skill de entrada, hay una skill por cada capacidad con herramienta, y cada applet de capacidad está en una sola:
+
+  | Skill | Capacidad | `kitlegal-applets` | Sustituye a |
+  |---|---|---|---|
+  | `normativa` v0.4 | normativa | `boe graph` | `boe-legislacion` v0.3.2 |
+  | `jurisprudencia` v0.2.1 | jurisprudencia | `cita` | `jurisprudencia` v0.2 |
+  | `plazos-y-territorio` v2.0 | plazos y territorio | `territorio plazos` | `legal-core` v1.3 |
+
+  Los nombres retirados, con la skill que hereda sus preguntas:
+
+  | Nombre retirado | Lo hereda |
+  |---|---|
+  | `boe-legislacion` | `normativa` |
+  | `legal-core` | `plazos-y-territorio` |
+
+  Cada skill de capacidad responde sola: ni su cuerpo ni sus referencias remiten a otra skill —las remisiones de
+  `legal-core` a `boe-legislacion` pasan a la orden `kitlegal boe …` o salen, y la regla 4 de `jurisprudencia` dice
+  «Ningún artículo, plazo, órgano ni vía de memoria: aquí no están cubiertos»—, y ningún cuerpo de una skill de capacidad
+  nombra una norma de un paquete: los ejemplos de `normativa` pasan a la Constitución
+  (`kitlegal boe articulo BOE-A-1978-31229 a140`), y su regla 2 declara no cubierto lo que lo leído no da —un plazo,
+  un órgano, una vía—, sin suplirlo de memoria ni con el procedimiento común. `plazos-y-territorio` deja de
+  presentarse como «derecho público» y dice qué plazos cuenta hoy, los del procedimiento administrativo (LPAC) y la
+  interposición del contencioso; lo administrativo pasa a su paquete (arriba, en *Añadido*), y `kitlegal-referencias`
+  queda en `jerarquia_normativa`: `cobertura_por_materia.md`, `recursos_y_plazos.md` y `leyes_vertebrales.md` salen,
+  con sus filas en las regiones de `administrativo.md`. `normativa` y `jurisprudencia` llevan las marcas de los
+  paquetes, vacías. Los cuerpos quedan en 153 líneas y 10 858 caracteres (`normativa`), 161 y 10 842
+  (`jurisprudencia`) y 169 y 10 896, con la línea de su paquete (`plazos-y-territorio`). Las evals pasan con su
+  historia (`git mv`) a la carpeta de la skill que hereda su pregunta, y la serie de cierres de cada skill empieza de
+  cero. `README.md`, el humo de `release.yml` y lo que nombra las skills en `internal/` usan los nombres nuevos; el
+  texto de la página `/instalar/` no nombra ninguna skill, y sus capturas, que enseñan las de antes, las rehace una
+  persona; los ADR anteriores conservan los nombres de su fecha.
+- **Una sola forma de cita en todas las skills: `<forma legible> [<identificador>, bloque <id>]`** (H32; ADR 0048). La
+  de `boe-legislacion` es ahora la de todas, también en las formas fijas (`⚠ PLAZO:`, `⚠ PLAZO SIN CALCULAR:`, las de
+  la redacción, `⚠ NO CUBIERTO:`) y en las tablas generadas, con el marcador `<id>` para el id. Antes, la línea
+  `⚠ NO CUBIERTO:` de `legal-core` pedía `(BOE-A-2015-10565)` y la cobertura por materia escribía
+  `(BOE-A-2015-10565, bloque daprimera)`; una sesión mezcló las dos y dejó fuera la norma que lo rige
+  (`cobertura_sin_declarar`, 1 de 36 respuestas en las evals 07, 08 y 12, tumbó el job de la ejecución 40682099061).
+  Ahora `⚠ NO CUBIERTO:` cita así el precepto de la LPAC que lo regula aparte y nombra la norma que lo rige por su
+  nombre y su identificador, y la cobertura da, por cada fila, esa línea entera, con los datos de la fila, lista para
+  copiar. Las líneas de una misma etiqueta `⚠` son iguales en cada `SKILL.md` que la lleva. Lo comprueban dos subtests
+  nuevos de `TestSkillsDelRepositorio`, `forma-de-cita` y `formas-compartidas`, con sus mutantes; y
+  `cobertura_sin_declarar` cuenta como declarada solo la respuesta cuya línea `⚠ NO CUBIERTO:` lleva la norma esperada
+  y la cita del precepto de su fila (`no_cubierto.precepto` en las evals 07, 08 y 12), con el umbral de siempre, 0.
 - **`boe-legislacion` v0.3.1: la respuesta empieza por lo que se pregunta, lo que nombra se lee antes y se repasa
   antes de enviarla** (H31.1). Sustituye a `boe-legislacion` v0.3. Lleva, palabra por palabra, los pasos que se
   midieron en el sondeo de la eval 15 (`evidencias/sondeos-20261026/`, `brazo-W`: 1 de 40 en `afirma_lo_no_leido`
@@ -256,6 +346,65 @@ sustituyen a este fichero.
 
 ### Corregido
 
+- **`normativa` v0.4: la respuesta no cuenta la comprobación ni pega materia a una remisión** (H32). Los dos defectos
+  de la skill que quedaban tras H31.1, medidos en el sondeo de la persona (`evidencias/sondeos-20261028/`,
+  `brazo-P80`) y en los jobs de evals de la #207:
+  - **La comprobación no da nada a la respuesta sin `version-obsoleta`.** En `brazo-P80`, las 4 marcadas de 80 en
+    `cuenta_su_proceso` daban el resultado de `kitlegal graph check`, y en el job de `cd21c7b` (ejecución
+    40700995075), 17 de las 21 marcadas de 120. El cuerpo de antes de H31 lo impedía (`e1bfb77`), y H31 lo llevó a
+    una referencia que solo se lee con un `version-obsoleta`. Ahora el paso 2, el que pide la comprobación, dice que
+    habla de otras conversaciones, que quien pregunta no conoce, y que un bloque sin entrada `version-obsoleta` no da
+    nada a la respuesta, ni una línea, ni una frase junto a los avisos o a la fecha de vigencia.
+  - **Una remisión no leída se repite sin materia.** Las 2 marcadas de `brazo-P80` en `afirma_lo_no_leido` explicaban
+    una palabra del texto leído con una regla de otro precepto y describían un artículo sin su número, como permitía
+    el paso 5 («o el número, o la materia»; «Puedes avisar de que una materia se regula en otra parte»). Ahora el paso
+    5 dice, con su porqué, que una remisión no leída se repite con las palabras del texto leído, sin materia —quitarle
+    el número y dejarle la materia sigue diciendo lo que no se ha leído—, y que explicar una palabra del texto leído
+    con lo que regula otro precepto es afirmar ese precepto.
+
+  Los pasos 3 y 6 y la primera viñeta del paso 4 no cambian. El sitio sale de decir más corto «Cómo se cita», dos
+  viñetas del paso 4 y las reglas 4, 5 y 6, y de quitar la viñeta del paso 4 que repetía lo de la comprobación. Se
+  retiran los tres guiones e2e de H31.1 (`h31-1-h31-1-*.txtar`); lo que sigue valiendo lo comprueba la suite de
+  aceptación del hito.
+- **`normativa` v0.4.1: el id del bloque sale del índice también con fecha, y un id que no salió de él y falla vuelve
+  al índice** (H32, reparación del cierre). En la medición de cierre (ejecución 41024981954, commit `7f8ef89`), las
+  tres sesiones de `claude-sonnet-5-5` en modo herramienta de la eval 22 (el art. 118 de la LCSP el 1 de junio de 2019)
+  pidieron `boe_articulo` con `a118` y `fecha`, dos veces cada una, y respondieron que el BOE no respondía:
+  `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` dio 3 de 6 y la eval, 0 de 3 con umbral 2. En los cinco cierres
+  anteriores con esa eval, 14 de las 15 sesiones de ese modo leían antes `boe_indice`. El paso 2 decía «Sin el id del
+  bloque, lee el índice», que deja leer el número del artículo como id; `redaccion_en_una_fecha` y `con_herramientas`,
+  las dos referencias de ese camino, no lo repetían; y `lecturas_que_fallan` solo volvía al índice con un `3`, cuando en
+  una sesión de evals un bloque que la caché no sirve sale con `5` (ADR 0043). Ahora el paso 2 dice que el id sale del
+  índice, con fecha o sin ella, y que nunca se compone con el número ni se toma de la pregunta, sin nombrar el artículo
+  ni el bloque de ninguna eval; `redaccion_en_una_fecha` y `con_herramientas` lo repiten en su paso, y
+  `lecturas_que_fallan` vuelve al índice con cualquier código si el id no salió de él. El cuerpo queda en 154 líneas y
+  10 903 caracteres. La comprobación del id contra el índice y la ayuda del argumento `bloque` de `kitlegal boe articulo`
+  («a21, da-3…», solo en `--help`: los esquemas de las herramientas no la llevan) llegan aparte, con la #215 (ADR
+  0049): los applets están fuera del alcance de H32.
+- **`normativa` v0.4.2: las líneas de una lectura con fecha van siempre, también junto a una comprobación** (H32,
+  segunda medición del cierre, ejecución 41042775588, commit `560a7fb`). Con el id ya del índice, dos de las tres
+  sesiones de `claude-sonnet-5-5` en modo herramienta de la eval 22 dieron solo una de las dos líneas,
+  `⚠ REDACCIÓN A FECHA:` o `⚠ REDACCIÓN DE HOY:`: `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` 2 de 6. Las dos
+  habían pedido `graph_check` tras la lectura con fecha, que va sin él, empujadas por «si faltó, pídela ya», y la frase
+  que v0.4 añadió al paso 2 —un bloque sin `version-obsoleta` no da «ni una frase junto a […] la fecha de vigencia»—
+  les hizo quitar una línea. Con la skill de `main` y el mismo binario (#215), 1 de 6 pidió la comprobación y ninguna
+  perdió una línea. Ahora «si faltó, pídela ya» es solo para la lectura sin fecha, y el paso 2 dice que las líneas de
+  una fecha van siempre. Para que quepa con la vertical de ensayo, «el número del artículo no siempre es su id» queda en
+  «no siempre es su id». El cuerpo queda en 10 928 caracteres.
+- **`plazos-y-territorio` v2.0.1: el plazo se pide aunque la sesión crea que la norma no regía** (H32, tercera medición
+  del cierre, ejecución 41049698509, commit `83071c4`). Una sesión de `claude-sonnet-5-5` en modo herramienta de la
+  eval 10 (un recurso de reposición notificado en 2014) no pidió `plazos_calcular`, decidió por su cuenta que la LPAC
+  no regía y respondió sin la línea `⚠ PLAZO SIN CALCULAR:`: `vigencia_sin_declarar:claude-sonnet-5-5:herramienta` 1 de
+  3. Lo que no regía ese día lo dice `plazos` (ADR 0042), y el paso 9 ahora lo pide también en ese caso. El cuerpo queda
+  en 10 930 caracteres, justo los que dejan sitio a la vertical de ensayo.
+- **`consulta-juridica` v0.1.1: la skill de la capacidad se activa antes de pedir nada a kitlegal** (H32, reparación
+  del cierre). En la misma medición, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval 04 de `normativa`
+  pidió `boe_articulo` sin activar `normativa`: `sin_activar:claude-sonnet-5-5:herramienta` dio 1 de 60, con 0 en los
+  diez cierres anteriores de la skill. El informe no dice qué skills activó esa sesión; la skill de entrada es lo único
+  nuevo en la activación, y su paso 2 decía solo «Activa la skill de cada capacidad que pida la pregunta». Ahora dice
+  que va antes de pedir nada a kitlegal, ninguna orden ni herramienta sin su skill activada, aunque la herramienta o la
+  forma de la cita parezcan bastar. Lo que las dos correcciones cambian en las respuestas lo mide el job en la medición
+  siguiente.
 - **`kitlegal boe articulo` y `articulos`: un bloque que el índice guardado de su norma no tiene sale con 3 y nombra el
   del artículo** (ADR 0049). Si la lectura de un bloque falla —un 404, la fuente caída, un límite o la entrada ausente
   con `--offline`— y la caché tiene vigente el índice de su norma sin ese id, el fallo es «no encontrado», código 3, y

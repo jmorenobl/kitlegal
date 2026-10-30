@@ -216,7 +216,7 @@ func TestConsultasNecesarias(t *testing.T) {
 	comandoDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoComandoEsperado}
 	normaDel2016 := Origen{Eval: deArticulo21En2016, Punto: PuntoNormaDeLaEval}
 
-	// Una eval por materia con dos lecturas, como la 16 de boe-legislacion: el
+	// Una eval por materia con dos lecturas, como la 16 de normativa: el
 	// art. 22 de la LPAC, que la 03 de arriba ya pide como cita, y el art. 23, que
 	// no pide nadie más.
 	conLecturas := Eval{

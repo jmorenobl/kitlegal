@@ -98,13 +98,22 @@ const (
 	referenciaAMano     = "# Cómo se cita\n\nEl protocolo de detalle de la skill, escrito a mano.\n"
 )
 
+// Lo que las pruebas de la sincronía añaden a la primera norma de
+// normasDeSincronia: el paquete de materia, que el esquema admite (FR-022 de
+// H32), y un campo que no declara, con el defecto que da en alfa.
+const (
+	verticalDeNorma            = "    vertical: fiscal\n"
+	campoNoDeclaradoDeNorma    = "    estado: vigente\n"
+	defectoDelCampoNoDeclarado = "alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: estado"
+)
+
 // Lo que la sincronía genera para alfa desde esas fuentes y desde
 // descripcionesDeSincronia, byte a byte: la región de su tabla de comandos, con
 // una sección por applet en el orden de su declaración (contrato
 // sincronizacion-y-comprobacion §3); la referencia de las normas, por año y
 // número del identificador (contrato normas-y-referencias §5); la de las leyes
 // vertebrales, solo con la marcada; y la de la jerarquía, con sus cinco niveles y
-// sus cuatro reglas (contrato de la skill legal-core §2).
+// sus cuatro reglas (contrato skill-legal-core §2).
 const (
 	regionDeAlfa = "\n" +
 		"### `kitlegal dos`\n" +
@@ -200,11 +209,11 @@ func descripcionesDeSincronia() []skills.DescripcionDeVerbo {
 // derivas y sin ningún scripts/ (ADR 0019; FR-080), y un segundo Escribir no
 // cambia ningún byte ni ningún tiempo de modificación; una referencia a mano no es
 // deriva y Escribir no la toca, mientras que la declarada sin su cabecera y el .md
-// no declarado que abre con ella sí lo son (FR-012); cada clase de deriva nombra
-// la skill y el fichero, y Escribir la deshace; y cada defecto de una skill —entre
-// ellos, llevar scripts/ (FR-082) y los de references/ (FR-006 a FR-009 de
-// H31)— nombra la skill, la deja sin nada que comparar e impide que Escribir
-// escriba nada.
+// no declarado que abre con ella sí lo son (FR-012); una norma con vertical no es
+// un defecto (FR-022 de H32); cada clase de deriva nombra la skill y el fichero,
+// y Escribir la deshace; y cada defecto de una skill —entre ellos, llevar
+// scripts/ (FR-082) y los de references/ (FR-006 a FR-009 de H31)— nombra la
+// skill, la deja sin nada que comparar e impide que Escribir escriba nada.
 func TestRegenerarYComparar(t *testing.T) {
 	t.Parallel()
 
@@ -270,6 +279,18 @@ func TestRegenerarYComparar(t *testing.T) {
 		require.NoError(t, skills.Escribir(raiz, regenerar(t, raiz, descripcionesDeSincronia())))
 		assert.Equal(t, antes, fotografiar(t, raiz),
 			"el segundo Escribir no cambia ningún byte ni ningún tiempo de modificación")
+	})
+
+	t.Run("norma-con-vertical", func(t *testing.T) {
+		t.Parallel()
+
+		raiz := arbolDeFuentes(t)
+		cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
+			"      - procedimiento\n", "      - procedimiento\n"+verticalDeNorma)
+
+		regenerado := regenerar(t, raiz, descripcionesDeSincronia())
+		assert.Empty(t, presentarDefectos(regenerado.Defectos()),
+			"una norma con vertical es una norma válida, sin defecto en ninguna referencia de data/normas.yaml")
 	})
 
 	t.Run("referencias-a-mano", probarReferenciasAMano)
@@ -621,28 +642,28 @@ func probarDefectos(t *testing.T) {
 		{
 			// Dos referencias de alfa salen de data/normas.yaml, y su defecto va una
 			// sola vez.
-			nombre: "norma-con-vertical",
+			nombre: "norma-con-campo-no-declarado",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
 				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
-					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+					"      - procedimiento\n", "      - procedimiento\n"+campoNoDeclaradoDeNorma)
 			},
-			defectos: []string{"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical"},
+			defectos: []string{defectoDelCampoNoDeclarado},
 		},
 		{
-			// Como legal-core: leyes_vertebrales sin normas delante, así que el
-			// defecto de data/normas.yaml lo encuentra su propio generador.
-			nombre: "vertebrales-sin-normas-con-vertical",
+			// Como plazos-y-territorio: leyes_vertebrales sin normas delante, así que
+			// el defecto de data/normas.yaml lo encuentra su propio generador.
+			nombre: "vertebrales-sin-normas-con-campo-no-declarado",
 			alterar: func(t *testing.T, raiz string) {
 				t.Helper()
 
 				cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"),
 					"kitlegal-referencias: "+referenciasDeAlfa+"\n", "kitlegal-referencias: leyes_vertebrales jerarquia_normativa\n")
 				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
-					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+					"      - procedimiento\n", "      - procedimiento\n"+campoNoDeclaradoDeNorma)
 			},
-			defectos: []string{"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical"},
+			defectos: []string{defectoDelCampoNoDeclarado},
 		},
 		{
 			nombre: "jerarquia-con-una-clave-desconocida",
@@ -745,11 +766,11 @@ func probarDefectos(t *testing.T) {
 				t.Helper()
 
 				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
-					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+					"      - procedimiento\n", "      - procedimiento\n"+campoNoDeclaradoDeNorma)
 				require.NoError(t, os.Mkdir(rutaDeSkill(raiz, "alfa", "scripts"), 0o750))
 			},
 			defectos: []string{
-				"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical",
+				defectoDelCampoNoDeclarado,
 				"alfa: una skill no lleva scripts/ (ADR 0019)",
 			},
 		},
@@ -964,12 +985,12 @@ func casosDeReferences() []casoDeDefecto {
 				t.Helper()
 
 				cambiarFicheroDePrueba(t, filepath.Join(raiz, "data", "normas.yaml"),
-					"      - procedimiento\n", "      - procedimiento\n    vertical: fiscal\n")
+					"      - procedimiento\n", "      - procedimiento\n"+campoNoDeclaradoDeNorma)
 				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "notas.txt"), referenciaAMano)
 				escribirFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "references", "como_se_cita.md"), referenciaAMano)
 			},
 			defectos: []string{
-				"alfa: data/normas.yaml: BOE-A-2015-10565: campo no declarado: vertical",
+				defectoDelCampoNoDeclarado,
 				"alfa: references/notas.txt: no es un fichero .md",
 			},
 		},

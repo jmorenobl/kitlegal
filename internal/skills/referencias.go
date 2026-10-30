@@ -15,7 +15,7 @@ import (
 )
 
 // Lo que forma una celda de la tabla de una referencia generada (contrato
-// normas-y-referencias §5; contrato de la skill legal-core §2).
+// normas-y-referencias §5; contrato skill-legal-core §2).
 const (
 	// separadorDeMaterias separa las materias de una norma dentro de su celda, y
 	// los tipos de norma de un nivel dentro de la suya.
@@ -28,10 +28,6 @@ const (
 	// separadorDePreceptos separa los preceptos de un tipo de plazo dentro de su
 	// celda.
 	separadorDePreceptos = "; "
-
-	// sinNorma es la celda de la norma que rige un procedimiento regulado aparte
-	// cuando la entrada no la trae.
-	sinNorma = "—"
 )
 
 // nombresDeLasUnidades da el nombre de cada unidad de plazos.Unidades, en
@@ -57,7 +53,7 @@ var escapeDeCelda = strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ", "|", 
 var enUnaLinea = strings.NewReplacer("\r\n", " ", "\r", " ", "\n", " ")
 
 // generadorDeReferencia es una fila de la tabla de generadores (research.md D20;
-// contrato de la skill legal-core §4): lo que declara de una referencia
+// contrato skill-legal-core §4): lo que declara de una referencia
 // generada —el YAML de datos del que sale, su título y los encabezados de su
 // tabla— y la función que da el resto desde el contenido de ese YAML. La
 // cabecera, el título y la fila de títulos de la tabla salen de la fila y no de
@@ -107,40 +103,29 @@ var (
 		encabezados: []string{"Nivel", "Boletín", "Tipos de norma, de mayor a menor rango"},
 		cuerpo:      cuerpoDeLaJerarquia,
 	}
-
-	// generadorDeLosRecursosYPlazos da references/recursos_y_plazos.md: los tipos
-	// de plazo de data/plazos.yaml.
-	generadorDeLosRecursosYPlazos = generadorDeReferencia{
-		datos:       "plazos.yaml",
-		titulo:      "Recursos y plazos",
-		encabezados: []string{"Tipo", "Código", "Duración", "Cómputo", "Precepto"},
-		cuerpo:      cuerpoDeLosRecursosYPlazos,
-	}
-
-	// generadorDeLaCobertura da references/cobertura_por_materia.md: los
-	// procedimientos que la ley regula aparte de data/cobertura.yaml.
-	generadorDeLaCobertura = generadorDeReferencia{
-		datos:       "cobertura.yaml",
-		titulo:      "Cobertura por materia",
-		encabezados: []string{"Procedimiento", "Lo regula aparte", "Norma que lo rige"},
-		cuerpo:      cuerpoDeLaCobertura,
-	}
 )
 
 // columnasDeUnaNorma son los encabezados de las referencias de normas: título,
 // abreviatura, identificador, rango y materias.
 var columnasDeUnaNorma = []string{"Norma", "Abreviatura", "Identificador", "Rango", "Materias"}
 
+// columnasDeUnTipo son los encabezados de la tabla de los recursos y plazos:
+// nombre, código, duración, cómputo y preceptos de cada tipo.
+var columnasDeUnTipo = []string{"Tipo", "Código", "Duración", "Cómputo", "Precepto"}
+
 // generadoresDeReferencias es la tabla de generadores (research.md D20; contrato
-// de la skill legal-core §4): la fila de cada referencia por su nombre, que es el
+// skill-legal-core §4): la fila de cada referencia por su nombre, que es el
 // que declara kitlegal-referencias y el de references/<nombre>.md. Una referencia
-// sin fila no tiene generador, y dos pueden salir del mismo YAML de datos.
+// sin fila no tiene generador, y dos pueden salir del mismo YAML de datos. Los
+// recursos y plazos y la cobertura por materia no son referencias enteras sino
+// la tabla de una región de la referencia de un paquete (generadoresDeRegiones; contracts/paquetes.md
+// §3 de H32): la cita de sus preceptos en la forma única lleva la abreviatura de
+// la norma, de data/normas.yaml, y la línea de cada fila de la cobertura, la forma
+// del cuerpo de la skill que la tiene.
 var generadoresDeReferencias = map[string]generadorDeReferencia{
-	"normas":                generadorDeLasNormas,
-	"leyes_vertebrales":     generadorDeLasLeyesVertebrales,
-	"jerarquia_normativa":   generadorDeLaJerarquia,
-	"recursos_y_plazos":     generadorDeLosRecursosYPlazos,
-	"cobertura_por_materia": generadorDeLaCobertura,
+	"normas":              generadorDeLasNormas,
+	"leyes_vertebrales":   generadorDeLasLeyesVertebrales,
+	"jerarquia_normativa": generadorDeLaJerarquia,
 }
 
 // cabecera es la primera línea de la referencia: la marca de fichero generado
@@ -360,11 +345,16 @@ func (g generadorDeReferencia) componer(cuerpo []byte) []byte {
 	var referencia bytes.Buffer
 
 	referencia.WriteString(g.cabecera() + "\n\n# " + g.titulo + "\n\n")
-	referencia.WriteString(filaDeLaTabla(g.encabezados))
-	referencia.WriteString("|" + strings.Repeat("---|", len(g.encabezados)) + "\n")
+	referencia.WriteString(encabezadoDeLaTabla(g.encabezados))
 	referencia.Write(cuerpo)
 
 	return referencia.Bytes()
+}
+
+// encabezadoDeLaTabla es la fila de títulos de una tabla y su fila de
+// separación, cada una con su salto de línea.
+func encabezadoDeLaTabla(encabezados []string) string {
+	return filaDeLaTabla(encabezados) + "|" + strings.Repeat("---|", len(encabezados)) + "\n"
 }
 
 // generar es la referencia desde el contenido de su YAML de datos, o los
@@ -401,7 +391,7 @@ func RenderizarNormas(normas []Norma) []byte {
 }
 
 // RenderizarLeyesVertebrales da references/leyes_vertebrales.md desde las normas
-// de data/normas.yaml (contrato de la skill legal-core §2; FR-065, FR-067): como
+// de data/normas.yaml (contrato skill-legal-core §2; FR-065, FR-067): como
 // RenderizarNormas, con su propio título y solo con las normas marcadas
 // vertebral; si no hay ninguna, la tabla va sin filas. Las normas que recibe no
 // cambian.
@@ -410,7 +400,7 @@ func RenderizarLeyesVertebrales(normas []Norma) []byte {
 }
 
 // RenderizarJerarquia da references/jerarquia_normativa.md desde la jerarquía de
-// data/jerarquia.yaml (contrato de la skill legal-core §2; FR-066, FR-067): la
+// data/jerarquia.yaml (contrato skill-legal-core §2; FR-066, FR-067): la
 // cabecera de fichero generado que nombra data/jerarquia.yaml, el título, una
 // tabla con una fila por nivel —su nombre, la clase de boletín que lo publica y
 // sus tipos de norma, de mayor a menor rango y separados por «, »— y la sección
@@ -424,32 +414,27 @@ func RenderizarJerarquia(jerarquia Jerarquia) []byte {
 	return generadorDeLaJerarquia.componer(seccionesDeLaJerarquia(jerarquia))
 }
 
-// RenderizarRecursosYPlazos da references/recursos_y_plazos.md desde los tipos
-// de plazo de data/plazos.yaml (contrato de la skill legal-core §4 de H9;
-// FR-032): la cabecera de fichero generado que nombra data/plazos.yaml, el título
-// y una tabla con una fila por tipo —su nombre, su código, su duración, su
-// cómputo y sus preceptos— y, en el que lleva unidades, el genérico, una por
+// RenderizarRecursosYPlazos da la tabla de la región recursos_y_plazos desde los
+// tipos de plazo de data/plazos.yaml y las normas de data/normas.yaml
+// (contracts/paquetes.md §3; research D7 de H32; FR-010, FR-019): la fila de
+// títulos, su separación y una fila por tipo —su nombre, su código, su duración,
+// su cómputo y sus preceptos— y, en el que lleva unidades, el genérico, una por
 // unidad, en el orden de plazos.Unidades y con el precepto que da su cómputo.
 //
 // La duración que fija un tipo va con el nombre de su unidad en singular o en
 // plural; la del que no la fija dice que la recibe, en la unidad de su fila o con
-// la suya. Los preceptos van separados por «; », cada uno con citaDelPrecepto, y
-// ninguna celda lleva texto de ninguna norma. Los tipos van en el orden en que
-// llegan, que es el del fichero, y no cambian.
-func RenderizarRecursosYPlazos(tipos []plazos.Tipo) []byte {
-	return generadorDeLosRecursosYPlazos.componer(filasDeLosTipos(tipos))
-}
+// la suya. Los preceptos van separados por «; », cada uno en la forma única
+// (citaDelPrecepto), y ninguna celda lleva texto de ninguna norma. Los tipos van
+// en el orden en que llegan, que es el del fichero, y ni ellos ni las normas
+// cambian. Es un error, que la nombra, un precepto de una norma que no está entre
+// las normas: sin ella no hay forma legible.
+func RenderizarRecursosYPlazos(tipos []plazos.Tipo, normas []Norma) ([]byte, error) {
+	filas, err := filasDeLosTipos(tipos, normasPorIdentificador(normas))
+	if err != nil {
+		return nil, err
+	}
 
-// RenderizarCobertura da references/cobertura_por_materia.md desde la cobertura
-// por materia de data/cobertura.yaml (contrato de la skill legal-core §4 de H9;
-// FR-031, FR-032): la cabecera de fichero generado que nombra
-// data/cobertura.yaml, el título y una tabla con una fila por procedimiento que
-// la ley regula aparte —el procedimiento, el precepto de la LPAC que lo dice,
-// con citaDelPrecepto, y la norma que lo rige, con su nombre y su identificador,
-// o «—» si la entrada no la trae—, sin texto de ninguna norma. Las entradas van
-// en el orden en que llegan, que es el del documento, y no cambian.
-func RenderizarCobertura(cobertura Cobertura) []byte {
-	return generadorDeLaCobertura.componer(filasDeLaCobertura(cobertura))
+	return slices.Concat([]byte(encabezadoDeLaTabla(columnasDeUnTipo)), filas), nil
 }
 
 // cuerpoDeLasNormas son las filas de todas las normas del contenido de
@@ -485,36 +470,21 @@ func cuerpoDeLaJerarquia(datos []byte) ([]byte, error) {
 	return seccionesDeLaJerarquia(jerarquia), nil
 }
 
-// cuerpoDeLosRecursosYPlazos son las filas de los tipos del contenido de
-// data/plazos.yaml, leído con plazos.LeerTipos.
-func cuerpoDeLosRecursosYPlazos(datos []byte) ([]byte, error) {
-	tipos, err := plazos.LeerTipos(datos)
-	if err != nil {
-		return nil, err
-	}
-
-	return filasDeLosTipos(tipos), nil
-}
-
-// cuerpoDeLaCobertura son las filas de las entradas del contenido de
-// data/cobertura.yaml, leído con LeerCobertura.
-func cuerpoDeLaCobertura(datos []byte) ([]byte, error) {
-	cobertura, err := LeerCobertura(datos)
-	if err != nil {
-		return nil, err
-	}
-
-	return filasDeLaCobertura(cobertura), nil
-}
-
 // filasDeLosTipos es una fila por tipo y, en el que lleva unidades, una por
-// unidad, en el orden de plazos.Unidades: el mapa de unidades no tiene orden.
-func filasDeLosTipos(tipos []plazos.Tipo) []byte {
+// unidad, en el orden de plazos.Unidades: el mapa de unidades no tiene orden. La
+// cita de cada precepto lleva la forma legible de su norma, de las normas por su
+// identificador; un precepto de una norma que no está es un error.
+func filasDeLosTipos(tipos []plazos.Tipo, normas map[string]Norma) ([]byte, error) {
 	var filas bytes.Buffer
 
 	for _, tipo := range tipos {
 		if len(tipo.Unidades) == 0 {
-			filas.WriteString(filaDelTipo(tipo, duracionDelTipo(tipo, ""), tipo.Preceptos))
+			fila, err := filaDelTipo(tipo, duracionDelTipo(tipo, ""), tipo.Preceptos, normas)
+			if err != nil {
+				return nil, err
+			}
+
+			filas.WriteString(fila)
 
 			continue
 		}
@@ -525,19 +495,34 @@ func filasDeLosTipos(tipos []plazos.Tipo) []byte {
 				continue
 			}
 
-			filas.WriteString(filaDelTipo(tipo, duracionDelTipo(tipo, unidad),
-				append(slices.Clone(tipo.Preceptos), precepto)))
+			fila, err := filaDelTipo(tipo, duracionDelTipo(tipo, unidad), append(slices.Clone(tipo.Preceptos), precepto),
+				normas)
+			if err != nil {
+				return nil, err
+			}
+
+			filas.WriteString(fila)
 		}
 	}
 
-	return filas.Bytes()
+	return filas.Bytes(), nil
 }
 
-// filaDelTipo es la fila de un tipo con su duración y sus preceptos.
-func filaDelTipo(tipo plazos.Tipo, duracion string, preceptos []plazos.Precepto) string {
+// filaDelTipo es la fila de un tipo con su duración y sus preceptos, cada uno
+// citado con la norma de su identificador entre las normas.
+func filaDelTipo(tipo plazos.Tipo, duracion string, preceptos []plazos.Precepto, normas map[string]Norma) (
+	string, error,
+) {
 	citas := make([]string, 0, len(preceptos))
+
 	for _, precepto := range preceptos {
-		citas = append(citas, citaDelPrecepto(precepto.Norma, precepto.Bloque, precepto.Apartado))
+		norma, esta := normas[precepto.Norma]
+		if !esta {
+			return "", fmt.Errorf("el precepto %s del tipo %s es de %s, que no está en %s/%s", precepto.Apartado,
+				tipo.Codigo, precepto.Norma, carpetaDeLosDatos, ficheroDeLasNormas)
+		}
+
+		citas = append(citas, escapeDeCelda.Replace(citaDelPrecepto(norma, precepto.Bloque, precepto.Apartado)))
 	}
 
 	return filaDeLaTabla([]string{
@@ -546,7 +531,7 @@ func filaDelTipo(tipo plazos.Tipo, duracion string, preceptos []plazos.Precepto)
 		duracion,
 		"`" + escapeDeCelda.Replace(string(tipo.Computo)) + "`",
 		strings.Join(citas, separadorDePreceptos),
-	})
+	}), nil
 }
 
 // duracionDelTipo es la celda de la duración de un tipo: la que fija, con el
@@ -580,37 +565,41 @@ func duracionEnPalabras(duracion plazos.Duracion) string {
 	return strconv.Itoa(duracion.Cantidad) + " " + nombre
 }
 
-// filasDeLaCobertura es una fila por entrada de la cobertura, en su orden.
-func filasDeLaCobertura(cobertura Cobertura) []byte {
-	var filas bytes.Buffer
-
-	for _, entrada := range cobertura.ReguladosAparte {
-		norma := sinNorma
-		if entrada.Norma != nil {
-			norma = escapeDeCelda.Replace(entrada.Norma.Nombre + " (" + entrada.Norma.Identificador + ")")
-		}
-
-		filas.WriteString(filaDeLaTabla([]string{
-			escapeDeCelda.Replace(entrada.Procedimiento),
-			citaDelPrecepto(entrada.Precepto.Norma, entrada.Precepto.Bloque, entrada.Precepto.Apartado),
-			norma,
-		}))
-	}
-
-	return filas.Bytes()
+// citaDelPrecepto es la cita de un apartado de una norma consolidada del BOE en
+// la forma única (contracts/paquetes.md §3; research D7 de H32; FR-010): su forma
+// legible y, detrás, entre corchetes, el identificador de la norma y el bloque de
+// su índice, sin texto de la norma: «art. 124.1 LPAC [BOE-A-2015-10565, bloque
+// a124]», «DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]».
+func citaDelPrecepto(norma Norma, bloque, apartado string) string {
+	return formaLegible(norma, apartado) + " [" + norma.Identificador + ", bloque " + bloque + "]"
 }
 
-// citaDelPrecepto es la celda de un apartado de una norma consolidada del BOE,
-// como «art. 124.1 (BOE-A-2015-10565, bloque a124)»: el apartado, la norma por su
-// identificador y el bloque de su índice, sin texto de la norma. «art.» va solo
-// delante del apartado de un artículo, que empieza por una cifra; el de una
-// disposición, como «DA 1ª.2.a», ya dice qué es.
-func citaDelPrecepto(norma, bloque, apartado string) string {
+// formaLegible es el apartado de la norma como se lee: «art.» delante del
+// apartado de un artículo, que empieza por una cifra —el de una disposición, como
+// «DA 1ª.2.a», ya dice qué es—, un espacio y la abreviatura de la norma o, si no
+// la tiene, su título hasta la primera coma, como «Ley 29/1998».
+func formaLegible(norma Norma, apartado string) string {
 	if strings.IndexAny(apartado, "0123456789") == 0 {
 		apartado = "art. " + apartado
 	}
 
-	return escapeDeCelda.Replace(apartado + " (" + norma + ", bloque " + bloque + ")")
+	nombre := norma.Abreviatura
+	if nombre == "" {
+		nombre, _, _ = strings.Cut(norma.Titulo, ",")
+	}
+
+	return apartado + " " + nombre
+}
+
+// normasPorIdentificador son las normas por su identificador.
+func normasPorIdentificador(normas []Norma) map[string]Norma {
+	porIdentificador := make(map[string]Norma, len(normas))
+
+	for _, norma := range normas {
+		porIdentificador[norma.Identificador] = norma
+	}
+
+	return porIdentificador
 }
 
 // vertebrales son las normas marcadas vertebral, en su orden y en una copia.

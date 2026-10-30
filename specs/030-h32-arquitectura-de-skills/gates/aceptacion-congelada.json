@@ -1,0 +1,18 @@
+{
+  "tarea": "T001",
+  "commit": "fc15e4b425789be8c23db2ccade061f34c01a84a",
+  "ficheros": {
+    "specs/030-h32-arquitectura-de-skills/aceptacion/capacidades.txtar": "b8a53fdd9717e2bb918eb08c5babf33f1b0201ac4d5638b04018c18e33968ebf",
+    "specs/030-h32-arquitectura-de-skills/aceptacion/entrada.txtar": "2e8ad5cdef776f55d7665bbd2d13617bd12d6ae21ca1fe2cbb4e3cb22ca2fa4e",
+    "specs/030-h32-arquitectura-de-skills/aceptacion/nombres-retirados.txtar": "5e23ab56b32bb14a82333a70412ca42e493147f0a8032d9b47529310b3e9e355",
+    "specs/030-h32-arquitectura-de-skills/aceptacion/normativa.txtar": "a610468ebaa12c0ae38f56960befd63a7833d5a9b39cc65e2928a717f73636f9",
+    "specs/030-h32-arquitectura-de-skills/aceptacion/paquetes.txtar": "7dd269e2d515fdcb4b1345f5d470a3edaa4b79a3545f02b9bdc26a6e88ccab80",
+    "specs/030-h32-arquitectura-de-skills/aceptacion/retiradas.txtar": "d06d78de38653af7b55077a99aec4431e63d2295005188231fa099d0a3a020e3",
+    "internal/app/testdata/script/h32-capacidades.txtar": "b8a53fdd9717e2bb918eb08c5babf33f1b0201ac4d5638b04018c18e33968ebf",
+    "internal/app/testdata/script/h32-entrada.txtar": "2e8ad5cdef776f55d7665bbd2d13617bd12d6ae21ca1fe2cbb4e3cb22ca2fa4e",
+    "internal/app/testdata/script/h32-nombres-retirados.txtar": "5e23ab56b32bb14a82333a70412ca42e493147f0a8032d9b47529310b3e9e355",
+    "internal/app/testdata/script/h32-normativa.txtar": "a610468ebaa12c0ae38f56960befd63a7833d5a9b39cc65e2928a717f73636f9",
+    "internal/app/testdata/script/h32-paquetes.txtar": "7dd269e2d515fdcb4b1345f5d470a3edaa4b79a3545f02b9bdc26a6e88ccab80",
+    "internal/app/testdata/script/h32-retiradas.txtar": "d06d78de38653af7b55077a99aec4431e63d2295005188231fa099d0a3a020e3"
+  }
+}

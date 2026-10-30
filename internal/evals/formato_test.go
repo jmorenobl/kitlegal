@@ -92,14 +92,14 @@ const (
 // Trozos de las evals sintéticas del formato de H7.4 de TestLeerEval y
 // TestLeerConjunto, cada uno con sus líneas completas: una eval de no activación
 // y la skill que la sesión no puede activar, para ir detrás de activa, como en
-// las evals de legal-core (contracts/evals-y-juicio.md §1 y §5 de H7.4; FR-003,
-// FR-004); y la eval de los dos bloques de la LCSP de contracts §3, sin su
-// comentario, con las dos redacciones modificadas que la respuesta tiene que
-// llevar, cada una con la fecha de la redacción superada y la de la leída
-// (FR-053).
+// las evals de plazos-y-territorio (contracts/evals-y-juicio.md §1 y §5 de
+// H7.4; FR-003, FR-004); y la eval de los dos bloques de la LCSP de contracts
+// §3, sin su comentario, con las dos redacciones modificadas que la respuesta
+// tiene que llevar, cada una con la fecha de la redacción superada y la de la
+// leída (FR-053).
 const (
 	evalDeLaReceta                 = "pregunta: \"¿Cómo se hace una tortilla de patatas jugosa?\"\nactiva: false\n"
-	noSeActivaBoeLegislacion       = "no_se_activan: [boe-legislacion]\n"
+	noSeActivaNormativa            = "no_se_activan: [normativa]\n"
 	redaccionesModificadasDeLaLCSP = "redacciones_modificadas:\n" +
 		"  - norma: BOE-A-2017-12902\n" +
 		"    bloque: a1-30\n" +
@@ -130,18 +130,18 @@ const (
 
 // Las dos evals sin binario ni servidor de contracts/evals-en-dos-modos.md §1 de
 // H21, sin su comentario y con sus líneas completas, y la pregunta de cada una
-// tal como se lee: la de boe-legislacion y la de legal-core, que además declara
-// la skill que su sesión no puede activar (FR-046).
+// tal como se lee: la de normativa y la de plazos-y-territorio, que además
+// declara la skill que su sesión no puede activar (FR-046).
 const (
-	preguntaSinBinarioDeBoeLegislacion = "\xc2\xbfQu\xc3\xa9 dice el art. 53 de la Ley 39/2015 sobre los derechos " +
+	preguntaSinBinarioDeNormativa = "\xc2\xbfQu\xc3\xa9 dice el art. 53 de la Ley 39/2015 sobre los derechos " +
 		"del interesado en el procedimiento administrativo?"
-	preguntaSinBinarioDeLegalCore = "\xc2\xbfQu\xc3\xa9 comunidad aut\xc3\xb3noma, provincia y boletines oficiales " +
+	preguntaSinBinarioDePlazosYTerritorio = "\xc2\xbfQu\xc3\xa9 comunidad aut\xc3\xb3noma, provincia y boletines oficiales " +
 		"corresponden al Ayuntamiento de Getafe?"
-	sinBinarioNiServidor           = "sin_binario_ni_servidor: true\n"
-	evalSinBinarioDeBoeLegislacion = "pregunta: \"" + preguntaSinBinarioDeBoeLegislacion + "\"\n" +
+	sinBinarioNiServidor      = "sin_binario_ni_servidor: true\n"
+	evalSinBinarioDeNormativa = "pregunta: \"" + preguntaSinBinarioDeNormativa + "\"\n" +
 		"activa: true\n" + sinBinarioNiServidor
-	evalSinBinarioDeLegalCore = "pregunta: \"" + preguntaSinBinarioDeLegalCore + "\"\n" +
-		"activa: true\n" + noSeActivaBoeLegislacion + sinBinarioNiServidor
+	evalSinBinarioDePlazosYTerritorio = "pregunta: \"" + preguntaSinBinarioDePlazosYTerritorio + "\"\n" +
+		"activa: true\n" + noSeActivaNormativa + sinBinarioNiServidor
 )
 
 // leidaDeDosBloquesDeLaLCSP es lo que se lee de evalDeDosBloquesDeLaLCSP con el
@@ -218,6 +218,12 @@ func leidaDeDosBloquesDeLaLCSP(fichero string) Eval {
 // activar: las dos de contracts/evals-en-dos-modos.md §1. Con comandos, con
 // citas, con informativa, en una eval de no activación o con el valor false se
 // rechaza (contracts/evals-en-dos-modos.md §1 y §8; FR-046).
+//
+// Desde H32, las skills que la sesión tiene que activar además de la de su
+// carpeta se leen en SeActivan, en el orden del fichero, también junto a las
+// que no puede activar; vacías, con un nombre que no es de skill o con uno
+// repetido se rechazan, como no_se_activan (contracts/evals.md §2 de H32;
+// research D14 de H32; FR-036).
 func TestLeerEval(t *testing.T) {
 	t.Parallel()
 
@@ -247,7 +253,7 @@ func TestLeerEval(t *testing.T) {
 
 	// La eval de territorio del municipio cubierto con las skills que no se
 	// activan en la línea que se le pase, detrás de activa, como en las evals de
-	// legal-core: esa línea es la 3.
+	// plazos-y-territorio: esa línea es la 3.
 	municipioQueNoActiva := func(noSeActivan string) string {
 		return preguntaDelMunicipio + "activa: true\n" + noSeActivan + comandoDelMunicipio + territorioDelMunicipio
 	}
@@ -625,7 +631,7 @@ func TestLeerEval(t *testing.T) {
 		},
 		{
 			nombre:    "grafo-previo-con-clave-desconocida",
-			documento: positivaDelArticulo21 + grafoPrevioDelArticulo21 + "  skill: boe-legislacion\n",
+			documento: positivaDelArticulo21 + grafoPrevioDelArticulo21 + "  skill: normativa\n",
 			error:     nombreDeEval + ": grafo_previo, línea 11: additional properties 'skill' not allowed",
 		},
 		{
@@ -686,23 +692,23 @@ func TestLeerEval(t *testing.T) {
 		},
 		{
 			nombre:    "no-se-activan",
-			documento: municipioQueNoActiva(noSeActivaBoeLegislacion),
+			documento: municipioQueNoActiva(noSeActivaNormativa),
 			leida: Eval{
 				Fichero:     nombreDeEval,
 				Pregunta:    preguntaDelMunicipioLeida,
 				Activa:      true,
-				NoSeActivan: []string{"boe-legislacion"},
+				NoSeActivan: []string{"normativa"},
 				Comandos:    comandoDelMunicipioLeido,
 				Territorio:  territorioDelMunicipioLeido,
 			},
 		},
 		{
 			nombre:    "no-activa-con-no-se-activan",
-			documento: evalDeLaReceta + noSeActivaBoeLegislacion,
+			documento: evalDeLaReceta + noSeActivaNormativa,
 			leida: Eval{
 				Fichero:     nombreDeEval,
 				Pregunta:    "¿Cómo se hace una tortilla de patatas jugosa?",
-				NoSeActivan: []string{"boe-legislacion"},
+				NoSeActivan: []string{"normativa"},
 			},
 		},
 		{
@@ -718,8 +724,49 @@ func TestLeerEval(t *testing.T) {
 		},
 		{
 			nombre:    "no-se-activan-con-un-nombre-repetido",
-			documento: municipioQueNoActiva("no_se_activan: [boe-legislacion, boe-legislacion]\n"),
+			documento: municipioQueNoActiva("no_se_activan: [normativa, normativa]\n"),
 			error:     nombreDeEval + ": no_se_activan, línea 3: items at 0 and 1 are equal",
+		},
+		{
+			nombre:    "se-activan",
+			documento: municipioQueNoActiva("se_activan: [normativa, jurisprudencia]\n"),
+			leida: Eval{
+				Fichero:    nombreDeEval,
+				Pregunta:   preguntaDelMunicipioLeida,
+				Activa:     true,
+				SeActivan:  []string{"normativa", "jurisprudencia"},
+				Comandos:   comandoDelMunicipioLeido,
+				Territorio: territorioDelMunicipioLeido,
+			},
+		},
+		{
+			nombre:    "se-activan-y-no-se-activan",
+			documento: municipioQueNoActiva("se_activan: [normativa]\n" + "no_se_activan: [jurisprudencia]\n"),
+			leida: Eval{
+				Fichero:     nombreDeEval,
+				Pregunta:    preguntaDelMunicipioLeida,
+				Activa:      true,
+				SeActivan:   []string{"normativa"},
+				NoSeActivan: []string{"jurisprudencia"},
+				Comandos:    comandoDelMunicipioLeido,
+				Territorio:  territorioDelMunicipioLeido,
+			},
+		},
+		{
+			nombre:    "se-activan-vacio",
+			documento: municipioQueNoActiva("se_activan: []\n"),
+			error:     nombreDeEval + ": se_activan, línea 3: minItems: got 0, want 1",
+		},
+		{
+			nombre:    "se-activan-con-un-nombre-que-no-es-de-skill",
+			documento: municipioQueNoActiva("se_activan: [Normativa]\n"),
+			error: nombreDeEval + ": se_activan/0, línea 3: " +
+				"'Normativa' does not match pattern '^[a-z0-9]+(-[a-z0-9]+)*$'",
+		},
+		{
+			nombre:    "se-activan-con-un-nombre-repetido",
+			documento: municipioQueNoActiva("se_activan: [normativa, normativa]\n"),
+			error:     nombreDeEval + ": se_activan, línea 3: items at 0 and 1 are equal",
 		},
 		{
 			// La eval de contracts/evals-y-juicio.md §3 de H7.4, sin su comentario.
@@ -750,42 +797,42 @@ func TestLeerEval(t *testing.T) {
 				"'20201306' does not match pattern " + patronDeFecha,
 		},
 		{
-			// La eval de boe-legislacion de contracts/evals-en-dos-modos.md §1 de
+			// La eval de normativa de contracts/evals-en-dos-modos.md §1 de
 			// H21, sin su comentario.
 			nombre:    "sin-binario-ni-servidor",
-			documento: evalSinBinarioDeBoeLegislacion,
+			documento: evalSinBinarioDeNormativa,
 			leida: Eval{
 				Fichero:              nombreDeEval,
-				Pregunta:             preguntaSinBinarioDeBoeLegislacion,
+				Pregunta:             preguntaSinBinarioDeNormativa,
 				Activa:               true,
 				SinBinarioNiServidor: true,
 			},
 		},
 		{
-			// La de legal-core del mismo contrato, sin su comentario.
+			// La de plazos-y-territorio del mismo contrato, sin su comentario.
 			nombre:    "sin-binario-ni-servidor-con-no-se-activan",
-			documento: evalSinBinarioDeLegalCore,
+			documento: evalSinBinarioDePlazosYTerritorio,
 			leida: Eval{
 				Fichero:              nombreDeEval,
-				Pregunta:             preguntaSinBinarioDeLegalCore,
+				Pregunta:             preguntaSinBinarioDePlazosYTerritorio,
 				Activa:               true,
-				NoSeActivan:          []string{"boe-legislacion"},
+				NoSeActivan:          []string{"normativa"},
 				SinBinarioNiServidor: true,
 			},
 		},
 		{
 			nombre:    "sin-binario-ni-servidor-con-comandos",
-			documento: evalSinBinarioDeBoeLegislacion + comandoDelArticulo21,
+			documento: evalSinBinarioDeNormativa + comandoDelArticulo21,
 			error:     nombreDeEval + ": línea 1: 'not' failed",
 		},
 		{
 			nombre:    "sin-binario-ni-servidor-con-citas",
-			documento: evalSinBinarioDeBoeLegislacion + citaDelArticulo21,
+			documento: evalSinBinarioDeNormativa + citaDelArticulo21,
 			error:     nombreDeEval + ": línea 1: 'not' failed",
 		},
 		{
 			nombre:    "sin-binario-ni-servidor-con-informativa",
-			documento: evalSinBinarioDeBoeLegislacion + "informativa: true\n",
+			documento: evalSinBinarioDeNormativa + "informativa: true\n",
 			error:     nombreDeEval + ": línea 1: 'not' failed",
 		},
 		{
@@ -841,7 +888,7 @@ func TestLeerEval(t *testing.T) {
 			// Las respuestas de una eval sin binario ni servidor no son de ningún
 			// modo y no cuentan en la serie.
 			nombre:    "sin-binario-ni-servidor-con-por-materia",
-			documento: evalSinBinarioDeBoeLegislacion + "por_materia: true\n",
+			documento: evalSinBinarioDeNormativa + "por_materia: true\n",
 			error:     nombreDeEval + ": línea 1: 'not' failed",
 		},
 	}
@@ -1219,7 +1266,7 @@ func TestFormatoDeSentencias(t *testing.T) {
 	t.Run("las-evals-de-hoy", func(t *testing.T) {
 		t.Parallel()
 
-		for _, dir := range []string{evalsDelRepositorio, evalsDeLegalCore} {
+		for _, dir := range []string{evalsDeNormativa, evalsDePlazosYTerritorio} {
 			conjunto, err := LeerConjunto(dir)
 			require.NoError(t, err)
 			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
@@ -1256,8 +1303,12 @@ const (
 		"  avisos: []\n" +
 		"  razonamiento: Un mes desde el d\xc3\xada siguiente, prorrogado al primer d\xc3\xada h\xc3\xa1bil.\n"
 	noCubiertoPorLaLGT = "no_cubierto:\n" +
-		"  norma: BOE-A-2003-23186\n"
-	prohibidoElCalculo = "prohibidos:\n" +
+		"  norma: BOE-A-2003-23186\n" +
+		preceptoDeLaDAPrimera
+	// preceptoDeLaDAPrimera es la línea del precepto de no_cubierto con el de la
+	// fila de las evals de cobertura, la DA 1ª de la LPAC (data-model §8 de H32).
+	preceptoDeLaDAPrimera = "  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}\n"
+	prohibidoElCalculo    = "prohibidos:\n" +
 		"  - applet: plazos\n" +
 		"    verbo: calcular\n"
 	sinCalcularPorLaLPAC = "plazo_sin_calcular:\n" +
@@ -1266,18 +1317,21 @@ const (
 
 // TestFormatoDePlazos fija lo que H9 da al formato de eval
 // (contracts/evals-legal-core.md §1; data-model §3 de H9; FR-051): plazo, con su
-// fecha, sus avisos y su razonamiento, no_cubierto, con su norma, y el comando
-// calcular, con su tipo, se leen enteros; con plazo, una eval puede no llevar
-// citas, y con no_cubierto, ni comandos ni citas. Se rechazan: plazo o
-// no_cubierto en una eval que no activa la skill o que es sin binario ni
-// servidor, los dos juntos, plazo sin comandos, una fecha que no es AAAA-MM-DD,
-// unos avisos repetidos o que no son de plazos, plazo sin avisos o sin
-// razonamiento, o con un razonamiento vacío o con otra clave, una norma que no es
-// BOE-A-… o que falta, y un comando calcular sin tipo, con el tipo vacío o con
-// una norma: cada documento es el bien formado con solo ese defecto. Y el
+// fecha, sus avisos y su razonamiento, no_cubierto, con su norma y, desde H32,
+// el precepto de su fila con su norma y su bloque (data-model §8 de H32;
+// FR-014), y el comando calcular, con su tipo, se leen enteros; con plazo, una
+// eval puede no llevar citas, y con no_cubierto, ni comandos ni citas. Se
+// rechazan: plazo o no_cubierto en una eval que no activa la skill o que es sin
+// binario ni servidor, los dos juntos, plazo sin comandos, una fecha que no es
+// AAAA-MM-DD, unos avisos repetidos o que no son de plazos, plazo sin avisos o
+// sin razonamiento, o con un razonamiento vacío o con otra clave, una norma que
+// no es BOE-A-… o que falta, no_cubierto sin precepto, un precepto sin bloque,
+// con un bloque que no es un id o con otra clave, y un comando calcular sin
+// tipo, con el tipo vacío o con una norma: cada documento es el bien formado
+// con solo ese defecto. Y el
 // enumerado de plazo.avisos del esquema publicado es exactamente
 // plazos.CodigosDeAviso, comprobado como ComprobarCodigosDeAviso comprueba el de
-// avisos (ComprobarCodigosDeAvisoDelPlazo); las evals de boe-legislacion y de
+// avisos (ComprobarCodigosDeAvisoDelPlazo); las evals de normativa y de
 // jurisprudencia se leen sin plazo, sin no_cubierto y sin ningún tipo.
 func TestFormatoDePlazos(t *testing.T) {
 	t.Parallel()
@@ -1334,7 +1388,10 @@ func TestFormatoDePlazos(t *testing.T) {
 			leida: Eval{
 				Fichero: nombreDeEval, Pregunta: preguntaLeida, Activa: true,
 				Prohibidos: []ComandoProhibido{{Applet: "plazos", Verbo: "calcular"}},
-				NoCubierto: NoCubiertoEsperado{Norma: lgt},
+				NoCubierto: NoCubiertoEsperado{
+					Norma:    lgt,
+					Precepto: CitaEsperada{Norma: "BOE-A-2015-10565", Bloque: "daprimera"},
+				},
 			},
 		},
 		{
@@ -1462,13 +1519,41 @@ func TestFormatoDePlazos(t *testing.T) {
 		},
 		{
 			nombre:    "no-cubierto-sin-su-forma",
-			documento: activa + "no_cubierto:\n  norma: LGT\n",
+			documento: activa + "no_cubierto:\n  norma: LGT\n" + preceptoDeLaDAPrimera,
 			error:     nombreDeEval + ": no_cubierto/norma, l\xc3\xadnea 4: 'LGT' does not match pattern " + normaDelEsquema,
 		},
 		{
-			nombre:    "no-cubierto-vacio",
-			documento: activa + "no_cubierto: {}\n",
-			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 3: missing property 'norma'",
+			nombre:    "no-cubierto-sin-norma",
+			documento: activa + "no_cubierto:\n" + preceptoDeLaDAPrimera,
+			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 4: missing property 'norma'",
+		},
+		{
+			nombre:    "no-cubierto-sin-precepto",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n",
+			error:     nombreDeEval + ": no_cubierto, l\xc3\xadnea 4: missing property 'precepto'",
+		},
+		{
+			nombre:    "precepto-sin-bloque",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n  precepto: {norma: BOE-A-2015-10565}\n",
+			error:     nombreDeEval + ": no_cubierto/precepto, l\xc3\xadnea 5: missing property 'bloque'",
+		},
+		{
+			nombre:    "precepto-sin-su-forma",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n  precepto: {norma: LPAC, bloque: daprimera}\n",
+			error: nombreDeEval + ": no_cubierto/precepto/norma, l\xc3\xadnea 5: 'LPAC' does not match pattern " +
+				normaDelEsquema,
+		},
+		{
+			nombre:     "precepto-con-un-bloque-que-no-es-un-id",
+			documento:  activa + "no_cubierto:\n  norma: " + lgt + "\n  precepto: {norma: BOE-A-2015-10565, bloque: da primera}\n",
+			fragmentos: []string{"no_cubierto/precepto/bloque, l\xc3\xadnea 5: 'da primera' does not match pattern"},
+		},
+		{
+			// La fila de data/cobertura.yaml lleva además el apartado; la eval, no.
+			nombre: "precepto-con-otra-clave",
+			documento: activa + "no_cubierto:\n  norma: " + lgt + "\n" +
+				"  precepto: {norma: BOE-A-2015-10565, bloque: daprimera, apartado: DA-1.2.a}\n",
+			error: nombreDeEval + ": no_cubierto/precepto, l\xc3\xadnea 5: additional properties 'apartado' not allowed",
 		},
 		{
 			nombre:     "calcular-sin-tipo",
@@ -1492,7 +1577,7 @@ func TestFormatoDePlazos(t *testing.T) {
 	t.Run("las-evals-de-las-otras-skills", func(t *testing.T) {
 		t.Parallel()
 
-		for _, dir := range []string{evalsDelRepositorio, evalsDeJurisprudencia} {
+		for _, dir := range []string{evalsDeNormativa, evalsDeJurisprudencia} {
 			conjunto, err := LeerConjunto(dir)
 			require.NoError(t, err)
 			require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
@@ -2098,10 +2183,10 @@ func probarLasLecturasDelConjunto(t *testing.T, casos []casoDeLecturaDeEval) {
 //
 // Desde H7, comprueba además que el formato ampliado es compatible hacia atrás
 // (FR-086; contrato evals-y-skill §1 de H7): cada eval del repositorio de
-// boe-legislacion y de legal-core se lee y valida; la que no escribe prohibidos
-// ni grafo_previo se lee sin prohibidos y sin grafo previo; y solo el comando que
-// escribe el verbo check tiene la forma de comprobación, de modo que el resto
-// conserva la suya.
+// normativa y de plazos-y-territorio se lee y valida; la que no escribe
+// prohibidos ni grafo_previo se lee sin prohibidos y sin grafo previo; y solo
+// el comando que escribe el verbo check tiene la forma de comprobación, de modo
+// que el resto conserva la suya.
 //
 // Desde H7.1, la que no escribe hallazgos se lee sin hallazgos, y el comando de
 // comprobación que no escribe la norma, sin Norma: se leen igual que en H7
@@ -2113,6 +2198,9 @@ func probarLasLecturasDelConjunto(t *testing.T, casos []casoDeLecturaDeEval) {
 // Desde H21, la que no escribe sin_binario_ni_servidor se lee sin ella, y la
 // rama del esquema de esa clave es la de contracts/evals-en-dos-modos.md §1
 // (probarLaRamaSinBinarioNiServidor; FR-046).
+//
+// Desde H32, la que no escribe se_activan se lee sin ellas, así que su juicio
+// no cambia (contracts/evals.md §2 de H32; FR-036).
 func TestEsquemaDeEval(t *testing.T) {
 	t.Parallel()
 
@@ -2120,7 +2208,7 @@ func TestEsquemaDeEval(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, esquema)
 
-	for _, dir := range []string{evalsDelRepositorio, evalsDeLegalCore} {
+	for _, dir := range []string{evalsDeNormativa, evalsDePlazosYTerritorio} {
 		conjunto, err := LeerConjunto(dir)
 		require.NoError(t, err)
 		require.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", dir)
@@ -2149,6 +2237,10 @@ func TestEsquemaDeEval(t *testing.T) {
 
 			if _, escribe := claves["no_se_activan"]; !escribe {
 				assert.Nil(t, eval.NoSeActivan, "%s no escribe no_se_activan y se lee sin ellas", ruta)
+			}
+
+			if _, escribe := claves["se_activan"]; !escribe {
+				assert.Nil(t, eval.SeActivan, "%s no escribe se_activan y se lee sin ellas", ruta)
 			}
 
 			if _, escribe := claves["redacciones_modificadas"]; !escribe {
@@ -2191,7 +2283,7 @@ func probarLaRamaSinBinarioNiServidor(t *testing.T) {
 	// valor: una de las suyas o una que no lleva.
 	sinBinario := func(clave string, valor any) map[string]any {
 		documento := map[string]any{
-			"pregunta": preguntaSinBinarioDeBoeLegislacion, "activa": true, "sin_binario_ni_servidor": true,
+			"pregunta": preguntaSinBinarioDeNormativa, "activa": true, "sin_binario_ni_servidor": true,
 		}
 		documento[clave] = valor
 
@@ -2200,7 +2292,7 @@ func probarLaRamaSinBinarioNiServidor(t *testing.T) {
 
 	assert.True(t, aceptaLaEval(t, sinBinario("activa", true)),
 		"la clave con activa: true y nada m\xc3\xa1s es una eval v\xc3\xa1lida")
-	assert.True(t, aceptaLaEval(t, sinBinario("no_se_activan", []any{"boe-legislacion"})),
+	assert.True(t, aceptaLaEval(t, sinBinario("no_se_activan", []any{"normativa"})),
 		"la eval sin binario ni servidor admite las skills que su sesi\xc3\xb3n no puede activar")
 	assert.False(t, aceptaLaEval(t, sinBinario("activa", false)),
 		"una eval de no activaci\xc3\xb3n no puede ser sin binario ni servidor")
@@ -2402,7 +2494,7 @@ func TestEsquemaDeExpresionesProhibidas(t *testing.T) {
 		},
 	}, leida, "la lista con sus seis claves se lee entera")
 
-	delRepositorio := filepath.Join(evalsDelRepositorio, ficheroDeExpresionesProhibidas)
+	delRepositorio := filepath.Join(evalsDeNormativa, ficheroDeExpresionesProhibidas)
 	contenidoDelRepositorio, err := leerFichero(delRepositorio)
 	require.NoError(t, err, "la lista del repositorio %s se lee", delRepositorio)
 

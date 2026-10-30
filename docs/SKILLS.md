@@ -1,9 +1,10 @@
 # Guía de autoría de las skills
 
-Para quien escribe o revisa una skill de `skills/`: qué va en el cuerpo de `SKILL.md` y qué en una referencia, cómo se
-escribe la descripción, qué presupuestos hay y por qué, y la regla de `references/`. La decide el ADR 0046 y la nombra
-el principio VIII de la constitución. `CONTRIBUTING.md` («Skills y evals») dice cómo se regenera lo generado y qué
-comprueba cada objetivo del `Makefile`; las reglas legales de cada skill —qué cita, qué avisa, qué declara no
+Para quien escribe o revisa una skill de `skills/` o un paquete de materia: qué skills hay, qué va en el cuerpo de
+`SKILL.md` y qué en una referencia, qué trae un paquete, cómo se escribe la descripción, qué presupuestos hay y por
+qué, y la regla de `references/`. La deciden el ADR 0046 y, en el reparto y el molde de un paquete, el ADR 0048, y la
+nombra el principio VIII de la constitución. `CONTRIBUTING.md` («Skills y evals») dice cómo se regenera lo generado y
+qué comprueba cada objetivo del `Makefile`; las reglas legales de cada skill —qué cita, qué avisa, qué declara no
 cubierto— no son de esta guía, sino de su `SKILL.md`, y las deciden sus evals.
 
 Lo que tiene forma lo comprueba `make ci` sin red ni modelo: `make skills-check` y los controles de contenido. Lo que
@@ -45,6 +46,26 @@ El agente tiene siempre el nombre y la descripción de todas las skills; el cuer
 activa una; y una referencia, solo si la lee. Lo que va a una referencia el modelo puede no leerlo. De ahí el reparto
 (ADR 0046, punto 1).
 
+**Las skills** (ADR 0048). Una de entrada y una por cada capacidad que tiene herramienta; cada applet de capacidad está
+en el `kitlegal-applets` de exactamente una skill de capacidad, y la de entrada no declara ninguno:
+
+| Skill | Clase | Capacidad | Lo que hace |
+|---|---|---|---|
+| `consulta-juridica` | entrada | ninguna | Dice qué tipo de pregunta es, qué capacidad y qué skill la resuelven, qué cubre la base —por capacidad y por paquete— y, en prosa, lo que no cubre; sin applets, referencias ni líneas `⚠` |
+| `normativa` | capacidad | normativa: `kitlegal boe` y `kitlegal graph check` | Lee y cita una norma consolidada del BOE, hoy o en una fecha |
+| `jurisprudencia` | capacidad | jurisprudencia: `kitlegal cita` | Prepara la consulta de una sentencia y coteja el documento que trae la persona |
+| `plazos-y-territorio` | capacidad | plazos y territorio: `kitlegal plazos` y `kitlegal territorio` | Sitúa un municipio y cuenta los plazos que cuenta `kitlegal plazos` |
+
+Toda pregunta legal, de cualquier materia, entra por `consulta-juridica`, que la lleva a la skill de su capacidad y no
+lleva ninguna regla que otra necesite para responder. **Cada skill de capacidad responde sola**: su cuerpo lleva el
+protocolo, las reglas invariantes y las formas fijas que dan sus respuestas, aunque otra las repita, y ni su cuerpo ni
+sus referencias remiten a otra skill, porque lo que va a otra skill como guía no se lee (abajo, «Lo que se lee y lo que
+no»). Plazos y territorio van juntos: todo plazo con festivos locales resuelve antes sus municipios, y separadas cada
+pregunta de plazos cargaría dos skills con el mismo paso. Lo que vale para cualquier materia —la jerarquía normativa,
+el método— queda en una skill de capacidad o en la de entrada; lo de una materia, en su paquete
+([abajo](#el-molde-de-un-paquete-de-materia)), y ningún cuerpo de una skill de capacidad nombra una norma de un paquete
+(principio X).
+
 **En el cuerpo, lo que toda respuesta de la skill necesita:**
 
 - el protocolo, con sus pasos en orden;
@@ -60,17 +81,19 @@ se busca una norma que no está en la tabla, qué se hace con cada código de sa
 plazo, qué se dice de un documento que no es el pedido.
 
 Cuándo leer cada referencia lo dice el cuerpo de una de dos maneras. Con un apartado «Referencias», una línea por
-referencia, como `legal-core`:
+referencia, como `plazos-y-territorio`:
 
 ```markdown
 - [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio o no sale con 0, y
   para explicar su cobertura.
 ```
 
-o en el paso del protocolo que la necesita, con el enlace en la frase, como `boe-legislacion` y `jurisprudencia`:
-«si no está, búscala por su título con [buscar_la_norma](references/buscar_la_norma.md)».
+o en el paso del protocolo que la necesita, con el enlace en la frase, como `normativa` y `jurisprudencia`: «si no
+está, búscala con [buscar_la_norma](references/buscar_la_norma.md)». El enlace a la referencia de un paquete no lo
+escribe nadie: lo genera `make skills-sync` entre sus marcas ([abajo](#el-molde-de-un-paquete-de-materia)).
 
-**Lo que se lee y lo que no.** Lo midió el sondeo de la eval 15 de `boe-legislacion` (`evidencias/sondeos-20261025/`):
+**Lo que se lee y lo que no.** Lo midió el sondeo de la eval 15 de `boe-legislacion`, hoy de `normativa`
+(`evidencias/sondeos-20261025/`):
 las sesiones abren las referencias de las que necesitan un dato para seguir y no las que solo traen guía, aunque el
 cuerpo mande leerlas. Ninguna de las 40 sesiones de `brazo-D` abrió la que el cuerpo mandaba leer antes de
 responder; en los seis brazos se abrieron `normas`, de 23 a 40 sesiones por brazo, y, en los brazos con la skill de
@@ -84,39 +107,162 @@ consultadas el 2026-10-27: decir cuándo leer cada referencia, no solo que exist
 cuerpo lo que el agente no haría mal sin ello («Would the agent get this wrong without this instruction? If the answer
 is no, cut it»).
 
-Una referencia es de una de dos clases, y la clase la decide la regla de §4:
+El reparto (ADR 0048) sigue otras prácticas de las mismas dos guías, tal como las cita el hito H32. De la de la
+especificación, las skills como unidades coherentes, ni tan estrechas que una pregunta habitual cargue otra con
+instrucciones que choquen, ni tan anchas que no se activen con precisión («Design coherent units»; «conflicting
+instructions»), y los *gotchas* en el cuerpo, donde el agente los lee antes de encontrarse el caso («Keep gotchas in
+`SKILL.md` where the agent reads them before encountering the situation»). De la de Anthropic, la misma terminología
+en todas («Use consistent terminology»), una referencia por dominio («Pattern 2: Domain-specific organization»), que
+aquí es una por materia, y los nombres como sintagma nominal («Noun phrases»).
+
+Una referencia es de una de dos clases, más la de un paquete, y la clase la decide la regla de §4:
 
 - **A mano**: el protocolo de detalle de su skill, escrito sin la cabecera «generado desde». No repite lo que sale de
-  `data/`, que tiene su referencia generada. Las de hoy abren con un título `# ` y un párrafo que dice lo que llevan y
-  desde qué paso se leen; ningún gate lo exige.
-- **Generada**: lo que sale de `data/*.yaml` —la tabla de normas, la jerarquía normativa, la cobertura por materia…—,
-  con su cabecera `<!-- generado desde data/<fichero>, no editar -->`, declarada en `kitlegal-referencias` del
-  frontmatter y escrita por `make skills-sync`. `data/` es su única fuente de verdad: se cambia el YAML, no la
-  referencia.
+  `data/`, que va en una referencia generada o en una región generada. Las de hoy abren con un título `# ` y un párrafo
+  que dice lo que llevan y desde qué paso se leen; ningún gate lo exige.
+- **Generada**: lo que sale de `data/*.yaml` —la tabla de normas, la jerarquía normativa…—, con su cabecera
+  `<!-- generado desde data/<fichero>, no editar -->`, declarada en `kitlegal-referencias` del frontmatter y escrita
+  por `make skills-sync`. `data/` es su única fuente de verdad: se cambia el YAML, no la referencia.
+- **De un paquete**: `references/<paquete>.md`, escrita a mano, con la prosa de su materia y, entre marcas, las tablas
+  que salen de `data/`, que `make skills-sync` rehace como una generada. Para §4 es una referencia a mano; lo que la
+  hace de un paquete es su nombre, el de un paquete de `data/normas.yaml`
+  ([abajo](#el-molde-de-un-paquete-de-materia)).
 
 El cuerpo y las referencias a mano le hablan al agente, en imperativo («toma», «búscala»); la tercera persona es de la
 descripción (§2), que es lo único que juzga el juez de las descripciones.
 
 **Mover un texto a una referencia a mano no lo saca de ningún control** (ADR 0046, punto 5). Los controles de
 contenido de `make ci` leen el `SKILL.md` y cada referencia a mano por separado, y cada defecto nombra su fichero; las
-referencias generadas solo las lee `sin-instrucciones-de-evals`:
+referencias generadas solo las leen `sin-instrucciones-de-evals` y `forma-de-cita`:
 
 | Control (subtest) | Skills | Lo que exige |
 |---|---|---|
-| `prosa-de-la-skill` | `boe-legislacion`, la que tiene `evals/<skill>/expresiones-prohibidas.yaml` | Ninguna expresión de la lista fuera del código y ninguna fecha AAAAMMDD con cifras, en ningún fichero |
-| `ordenes-para-powershell` | `boe-legislacion` | Cada orden de lectura o de comprobación lleva detrás, en el mismo fichero, su forma para PowerShell |
-| `linea-sin-consulta` | `boe-legislacion`, `legal-core` | La línea `⚠ SIN CONSULTA AL BOE:`, sola en un bloque `text` del `SKILL.md` |
-| `formas-de-la-redaccion-fechada`, `avisos-de-la-skill`, `hallazgos-de-la-skill` | `boe-legislacion` | Cada forma, en el `SKILL.md` |
-| `lineas-de-aviso-de-las-referencias` | `boe-legislacion`, `legal-core` | Cada línea `⚠` de una referencia a mano es, sin los blancos de los extremos, una línea del `SKILL.md` |
+| `prosa-de-la-skill` | `normativa`, la que tiene `evals/<skill>/expresiones-prohibidas.yaml` | Ninguna expresión de la lista fuera del código y ninguna fecha AAAAMMDD con cifras, en ningún fichero |
+| `ordenes-para-powershell` | `normativa` | Cada orden de lectura o de comprobación lleva detrás, en el mismo fichero, su forma para PowerShell |
+| `linea-sin-consulta` | `normativa`, `plazos-y-territorio` | La línea `⚠ SIN CONSULTA AL BOE:`, sola en un bloque `text` del `SKILL.md` |
+| `formas-de-la-redaccion-fechada`, `avisos-de-la-skill`, `hallazgos-de-la-skill` | `normativa` | Cada forma, en el `SKILL.md` |
+| `lineas-de-aviso-de-las-referencias` | `normativa`, `plazos-y-territorio` | Cada línea `⚠` de una referencia a mano es, sin los blancos de los extremos, una línea del `SKILL.md` |
 | `ordenes-de-ejemplo` | Las que tienen evals | Cada orden concreta de `kitlegal boe` —un verbo y al menos un argumento, sin marcador `<…>`, `...` ni `…`— sale con 0 con `--offline` sobre la caché de una sesión de su skill (ADR 0043) |
 | `normas-nombradas` | Todas | Cada norma nombrada por su rango, número y año («Ley 39/2015», «Real Decreto Legislativo 2/2004») empieza un título de `data/normas.yaml` |
 | `sin-instrucciones-de-evals` | Todas | Ninguna instrucción de las evals en el `SKILL.md`, sin la tabla de comandos, ni en ningún fichero de `references/` |
+| `forma-de-cita` | Todas | Cada cita de un bloque —un `BOE-A-…` o el marcador `<identificador>` seguido de `, bloque `—, en el `SKILL.md` y en cada referencia, a mano o generada, también en las formas fijas, los bloques de código y las tablas, va en la forma única: entre corchetes que solo la contienen, `[<identificador>, bloque <id>]`, con el id o el marcador `<id>` |
+| `formas-compartidas` | Las que llevan una misma etiqueta | Para cada etiqueta `⚠ <ETIQUETA>:` de una línea de un bloque `text` de un `SKILL.md`, las líneas con esa etiqueta son las mismas en cada `SKILL.md` que la lleva |
+
+`forma-de-cita` y `formas-compartidas` son subtests de `TestSkillsDelRepositorio` (H32; ADR 0048). Sus defectos:
+`<skill>: <fichero>:<n>: cita de un bloque fuera de la forma única: «<línea>»`, con la cita entre paréntesis
+(`(BOE-A-2015-10565, bloque daprimera)`) o con la forma legible dentro de los corchetes como mutantes; y
+`<skill> y <skill>: la forma ⚠ <ETIQUETA>: difiere: «<línea>» frente a «<línea>»`, con una palabra cambiada en la línea
+`⚠ SIN CONSULTA AL BOE:` de una sola skill como mutante. La forma legible va fuera de los corchetes: `art. 140 de la
+Constitución Española [BOE-A-1978-31229, bloque a140]`; una norma nombrada con su identificador entre paréntesis, sin
+bloque, no es cita de un bloque.
 
 Así, una forma fija llevada solo a una referencia pone en rojo su control, y una variante mal escrita de ella en una
 referencia también, con el defecto `<skill>: references/<fichero>.md:<n>: la línea ⚠ no es ninguna de SKILL.md: «…»`:
 la referencia no puede enseñarle al agente una forma que la eval no reconoce. Y un ejemplo que la caché de las
 sesiones no sirve sin red —hoy, `buscar` y `analisis`; sí `indice`, `metadatos` y `articulo`, con y sin `--fecha`, de
 las normas de `data/normas.yaml`— se escribe con marcadores, o no se escribe.
+
+### El molde de un paquete de materia
+
+Una materia entra en la base como un paquete de ficheros, no como una skill ni como código (ADR 0044, punto 5; ADR
+0048). Un paquete es, y no es más que:
+
+| Pieza | Dónde | Quién la escribe |
+|---|---|---|
+| Su nombre | El valor `vertical: <nombre>` de sus normas en `data/normas.yaml`: un adjetivo, porque el enlace dice «lo <nombre>», con la forma `^[a-z][a-z0-9-]*$` | La persona que añade la materia |
+| Sus normas | Las entradas de `data/normas.yaml` con `vertical: <nombre>` | Ídem; el identificador y el título, de lo grabado (`TestIdentificadoresDeLasNormas`) |
+| Una referencia por skill de capacidad que la necesite | `skills/<skill>/references/<nombre>.md`, en `references/` plano (§4) | A mano, con las tablas de `data/` en regiones generadas |
+| Sus filas de cobertura | Las de `data/cobertura.yaml` cuyo `precepto.norma` es una norma del paquete | La persona |
+| Sus evals | `evals/<skill>/NN-*.yaml` de la skill que hereda su pregunta | La persona |
+
+No hay fichero que declare el paquete: los paquetes son los valores de `vertical` de `data/normas.yaml`, y la
+referencia de un paquete en una skill es la que lleva su nombre. **Un paquete no edita ningún `SKILL.md`**: ni su
+cuerpo ni su frontmatter. Quien lo añade escribe sus ficheros y corre `make skills-sync`, que escribe los enlaces y las
+regiones.
+
+**El enlace.** Cada `SKILL.md` de capacidad lleva una vez, cada una en su línea, las marcas
+`<!-- paquetes: lo genera make skills-sync -->` y `<!-- fin de los paquetes -->`, en el paso que lee las referencias de
+los paquetes. Entre ellas, `make skills-sync` escribe una línea por cada paquete con referencia en esa skill, en el
+orden de los nombres, con la condición de su clase:
+
+```text
+- Si la pregunta es de lo administrativo, lee [administrativo](references/administrativo.md).
+```
+
+La línea cuenta en el presupuesto del cuerpo (§3): unos 70 a 95 caracteres por paquete y skill; el paquete que no cabe
+pone `make ci` en rojo. `consulta-juridica` lleva, en «3. Qué cubre la base», las marcas
+`<!-- paquetes de la base: lo genera make skills-sync -->` y `<!-- fin de los paquetes de la base -->`, y entre ellas
+una línea por paquete con las skills de capacidad que tienen su referencia:
+``- lo administrativo: `plazos-y-territorio`.``
+
+**Las regiones generadas.** Una referencia a mano puede llevar una región por cada generador que la admite, entre dos
+marcas:
+
+```text
+<!-- inicio de <generador>: generada desde data/<fichero>[ y data/<fichero>] con make skills-sync, no editar -->
+…
+<!-- fin de <generador> -->
+```
+
+`make skills-sync` reescribe lo que hay entre las marcas, y `make skills-check` da la deriva si difiere. La marca de
+inicio nombra cada fichero de `data/` del que sale la tabla: es su cabecera «generado desde», y por ella la elección de
+las evals sabe qué datos carga la skill (ADR 0045). Admiten región tres generadores:
+
+| Generador | Datos | Filas |
+|---|---|---|
+| `cobertura_por_materia` | `data/cobertura.yaml` y `data/normas.yaml` | Las de la cobertura cuyo precepto es de una norma del paquete del fichero; columnas `Procedimiento` y `Línea que da la respuesta` |
+| `recursos_y_plazos` | `data/plazos.yaml` y `data/normas.yaml` | Todos los tipos de plazo, con el precepto en la forma única |
+| `leyes_vertebrales` | `data/normas.yaml` | Las normas con `vertebral: true` |
+
+El precepto se escribe en su **forma legible**: `art. <apartado>` si el apartado empieza por cifra, el apartado si no,
+y la abreviatura de su norma (sin abreviatura, su título hasta la primera coma), y detrás la cita:
+`art. 124.1 LPAC [BOE-A-2015-10565, bloque a124]`, `DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]`. **La línea de
+cada fila de la cobertura** es la línea `⚠ NO CUBIERTO:` entera, lista para copiar («Templates for output format»): la
+forma del bloque `text` del `SKILL.md` de la skill —la que lleva `<norma>` si la fila trae la norma que lo rige; la otra
+si no— con `<procedimiento>`, `<norma>`, `<identificador de la norma>`, `<precepto>`, `<identificador>` e `<id>`
+sustituidos por los datos de la fila. Así la sesión no elige entre dos plantillas, y el cuerpo conserva la forma con
+sus marcadores. Toda fila de `data/cobertura.yaml` la genera alguna región.
+
+**El paquete de lo administrativo** es el primero: `vertical: administrativo` en diez normas —LPAC, LRJSP, LRJPAC,
+LTAIBG, LRBRL, LCSP, LGS, LGP, TRLRHL y LJCA—; su única referencia, `plazos-y-territorio/references/administrativo.md`,
+con la prosa de lo que solo pide el procedimiento común (lo que la ley regula aparte, el acto presunto, el silencio, la
+reclamación del art. 24.2 LTAIBG) y las tres regiones; y las nueve filas de la cobertura, con su precepto en la LPAC.
+`normativa` y `jurisprudencia` no necesitan referencia suya. La CE, el CC, la LEC y la LOPJ son de la base, y la LGT,
+la LIRPF, el ET, la LOPDGDD y la Ley 50/1980, de Contrato de Seguro, de materias sin paquete: no llevan `vertical`.
+
+**La vertical de ensayo** prueba el molde: `internal/skills/testdata/vertical-de-ensayo/` trae dos normas de una
+materia que no existe (`BOE-A-1900-1` y `BOE-A-1900-2`, `vertical: ensayo`), una referencia `ensayo.md` por skill de
+capacidad, la de `plazos-y-territorio` con la región de la cobertura, una fila de cobertura y una eval de `normativa`.
+`TestVerticalDeEnsayo` la instala sobre una copia de `skills/`, `data/` y `evals/normativa/`, corre la sincronía y
+comprueba que no queda ningún defecto ni deriva, que la eval se carga, que no hay ningún `.go` y que ningún `SKILL.md`
+cambia fuera de las marcas; y que `skills/` y `data/` del repositorio no cambian. Su mutante, un enlace escrito a mano
+en el cuerpo de `normativa`, lo pone en rojo.
+
+### Lo medido: los tres defectos que el reparto arregla
+
+Los que quedaban tras H31.1, medidos en el sondeo de la persona (`evidencias/sondeos-20261028/`, `brazo-P80`) y en los
+jobs de evals de la #207:
+
+- **`cuenta_su_proceso`, por la línea de la comprobación.** En `brazo-P80`, las 4 marcadas de 80 dan el resultado de
+  `kitlegal graph check`; en el job de `cd21c7b` (ejecución 40700995075), 17 de las 21 marcadas de 120 de
+  `claude-sonnet-5-5`, y en el de `0f9ef2f` (40682099061), las 16 de 120. Se concentra en la eval 05: 6 de sus 12
+  respuestas en las dos ejecuciones. Antes de H31 eran el 1,8 % y el 2,8 %, con un cuerpo que decía que un bloque sin
+  `version-obsoleta` no da nada a la respuesta (`e1bfb77`, `skills/boe-legislacion/SKILL.md`, líneas 215 a 220). H31
+  lo llevó a `redaccion_modificada`, que solo se lee con un `version-obsoleta`: lo que va a una referencia como guía no
+  se lee (arriba). **Arreglo**: vuelve al cuerpo de `normativa`, como *gotcha*, en el paso que pide la comprobación.
+- **`afirma_lo_no_leido`, por reglas de memoria y materia pegada a una remisión.** Las 2 marcadas de `brazo-P80`
+  explican «íntegros» con una regla del rendimiento neto y describen el art. 7 de la Ley 35/2006 sin su número; el
+  paso 5 lo permitía («o el número, o la materia»; «Puedes avisar de que una materia se regula en otra parte»).
+  **Arreglo**: el paso 5 de `normativa` dice, cada cosa con su porqué, que una remisión no leída se repite con las
+  palabras del texto leído, sin materia, y que explicar una palabra del texto leído con lo que regula otro precepto es
+  afirmar ese precepto.
+- **Dos formas para la misma cita.** `boe-legislacion` citaba `[BOE-A-2015-10565, bloque daprimera]`; la línea
+  `⚠ NO CUBIERTO:` de `legal-core` pedía `(BOE-A-2015-10565)`, la cobertura por materia escribía
+  `(BOE-A-2015-10565, bloque daprimera)` y el paso 6 de `legal-core` mandaba citar «como ella cita». Una sesión mezcló
+  las dos y dejó fuera la norma que lo rige: `cobertura_sin_declarar` dio 1 de 36 respuestas en las evals 07, 08 y 12,
+  y tumbó el job (ejecución 40682099061). **Arreglo**: una sola forma en todas las skills, con `forma-de-cita` y
+  `formas-compartidas`; la línea de cada fila, generada entera; y `cobertura_sin_declarar` cuenta como declarada solo
+  la respuesta cuya línea `⚠ NO CUBIERTO:` lleva la norma esperada y la cita del precepto de su fila.
 
 ## 2. La descripción
 
@@ -208,9 +354,19 @@ que decide es el de caracteres. Al cerrar H31:
 | `legal-core` | 283 líneas, 19 225 caracteres | 168 líneas, 10 944 caracteres | 888 caracteres |
 | `jurisprudencia` | 193 líneas, 13 637 caracteres | 159 líneas, 10 859 caracteres | 842 caracteres |
 
+Al cerrar H32, con el reparto del ADR 0048 (medido con la orden de §6):
+
+| Skill | Sale de | Cuerpo | Descripción |
+|---|---|---|---|
+| `consulta-juridica` | — | 57 líneas, 3660 caracteres | 705 caracteres |
+| `normativa` | `boe-legislacion` | 153 líneas, 10 858 caracteres | 887 caracteres |
+| `jurisprudencia` | `jurisprudencia` | 161 líneas, 10 842 caracteres | 842 caracteres |
+| `plazos-y-territorio` | `legal-core` | 169 líneas, 10 896 caracteres, con la línea de lo administrativo | 879 caracteres |
+
 Sin margen en el cuerpo, una regla nueva cabe sacando a una referencia el detalle que solo pide una clase de pregunta
-(§1), nunca una forma fija ni una regla que toda respuesta necesita. Una materia nueva (ADR 0044) puede entrar como
-referencia sin agrandar el cuerpo.
+(§1), nunca una forma fija ni una regla que toda respuesta necesita. Una materia nueva (ADR 0044) entra como paquete
+(§1): su prosa y sus tablas van a su referencia, y al cuerpo de cada skill que la recibe solo llega la línea de su
+enlace, que cuenta.
 
 ## 4. La regla de `references/`
 
@@ -279,23 +435,43 @@ leen para nombres: entran por su fichero de `data/`.
 ## 5. Los defectos de `skills-check`
 
 Los da `TestSkillsDelRepositorio` (`internal/app/skills_test.go`) con lo que regenera `skills.Regenerar`, y cada uno
-lleva su mutante en rojo y su límite en verde. Con la skill de ejemplo, `boe-legislacion`:
+lleva su mutante en rojo y su límite en verde. Con la skill de ejemplo, `normativa`:
 
 | Regla | Defecto |
 |---|---|
-| Las del frontmatter de la especificación (nombre de como mucho 64 caracteres, en `a-z`, `0-9` y `-`, sin guion al principio, al final ni dos seguidos e igual al directorio; descripción presente y no vacía; compatibilidad de como mucho 500; solo las claves `name`, `description`, `license`, `allowed-tools`, `compatibility` y `metadata`) y las de kitlegal (applets registrados, referencias declaradas con su generador) | `SKILL.md: ` y la regla, p. ej. `boe-legislacion: SKILL.md: name vacío` |
-| `name` con `anthropic` o `claude`, como subcadena | `boe-legislacion: SKILL.md: name "claude-legal" contiene «claude»` |
-| Etiqueta XML en `name` | `boe-legislacion: SKILL.md: name con la etiqueta XML «<x>»` |
-| Etiqueta XML en `description` | `boe-legislacion: SKILL.md: description con la etiqueta XML «<ejemplo>»` |
-| `description` de más de 900 caracteres | `boe-legislacion: SKILL.md: description de 901 caracteres (máximo 900)` |
-| Cuerpo de 500 líneas o más | `boe-legislacion: SKILL.md: cuerpo de 500 líneas (máximo 499)` |
-| Cuerpo de más de 11 000 caracteres | `boe-legislacion: SKILL.md: cuerpo de 11001 caracteres (máximo 11000)` |
-| Entrada de `references/` que no es un fichero `.md` | `boe-legislacion: references/notas.txt: no es un fichero .md` |
-| Referencia sin enlace desde `SKILL.md` | `boe-legislacion: references/como_se_cita.md: SKILL.md no la enlaza con [](references/como_se_cita.md)` |
-| Referencia que enlaza otra | `boe-legislacion: references/como_se_cita.md: enlaza otra referencia, references/varios_bloques.md` |
-| Más de 100 líneas, sin índice | `boe-legislacion: references/como_se_cita.md: 101 líneas sin un índice que nombre sus apartados ## antes del primero (más de 100)` |
-| Más de 100 líneas, sin ningún `## ` | `boe-legislacion: references/como_se_cita.md: 101 líneas sin ningún apartado ## (más de 100)` |
-| Un `scripts/` en la skill (ADR 0019) | `boe-legislacion: una skill no lleva scripts/ (ADR 0019)` |
+| Las del frontmatter de la especificación (nombre de como mucho 64 caracteres, en `a-z`, `0-9` y `-`, sin guion al principio, al final ni dos seguidos e igual al directorio; descripción presente y no vacía; compatibilidad de como mucho 500; solo las claves `name`, `description`, `license`, `allowed-tools`, `compatibility` y `metadata`) y las de kitlegal (applets registrados, referencias declaradas con su generador) | `SKILL.md: ` y la regla, p. ej. `normativa: SKILL.md: name vacío` |
+| `name` con `anthropic` o `claude`, como subcadena | `normativa: SKILL.md: name "claude-legal" contiene «claude»` |
+| Etiqueta XML en `name` | `normativa: SKILL.md: name con la etiqueta XML «<x>»` |
+| Etiqueta XML en `description` | `normativa: SKILL.md: description con la etiqueta XML «<ejemplo>»` |
+| `description` de más de 900 caracteres | `normativa: SKILL.md: description de 901 caracteres (máximo 900)` |
+| Cuerpo de 500 líneas o más | `normativa: SKILL.md: cuerpo de 500 líneas (máximo 499)` |
+| Cuerpo de más de 11 000 caracteres | `normativa: SKILL.md: cuerpo de 11001 caracteres (máximo 11000)` |
+| Entrada de `references/` que no es un fichero `.md` | `normativa: references/notas.txt: no es un fichero .md` |
+| Referencia sin enlace desde `SKILL.md` | `normativa: references/como_se_cita.md: SKILL.md no la enlaza con [](references/como_se_cita.md)` |
+| Referencia que enlaza otra | `normativa: references/como_se_cita.md: enlaza otra referencia, references/varios_bloques.md` |
+| Más de 100 líneas, sin índice | `normativa: references/como_se_cita.md: 101 líneas sin un índice que nombre sus apartados ## antes del primero (más de 100)` |
+| Más de 100 líneas, sin ningún `## ` | `normativa: references/como_se_cita.md: 101 líneas sin ningún apartado ## (más de 100)` |
+| Un `scripts/` en la skill (ADR 0019) | `normativa: una skill no lleva scripts/ (ADR 0019)` |
+
+**Los del molde de un paquete** (§1; H32, ADR 0048). Los fijan, con sus mutantes, `TestRegiones` y `TestPaquetes`
+(`internal/skills/`). Con la referencia de ejemplo,
+`plazos-y-territorio/references/administrativo.md`:
+
+| Regla | Defecto |
+|---|---|
+| Región de un generador que no la admite (§1, «Las regiones generadas») | `plazos-y-territorio: references/administrativo.md: región de normas, un generador que no la admite` |
+| Marcas de una región que no van en pareja: falta una, una va en más de una línea, la de fin va antes, o la región empieza dentro de otra | `plazos-y-territorio: references/administrativo.md: las marcas de la región recursos_y_plazos no van en pareja: falta la de fin` |
+| Marca de inicio de una región con otros datos que los de su generador | `plazos-y-territorio: references/administrativo.md: la marca de inicio de la región recursos_y_plazos no es «<!-- inicio de recursos_y_plazos: generada desde data/plazos.yaml y data/normas.yaml con make skills-sync, no editar -->»` |
+| Región sin uno de sus ficheros de `data/` | `plazos-y-territorio: references/administrativo.md: la región recursos_y_plazos sin data/plazos.yaml` |
+| Región de la cobertura en una skill cuyo `SKILL.md` no tiene las dos formas `⚠ NO CUBIERTO:` | `plazos-y-territorio: references/administrativo.md: región cobertura_por_materia en una skill sin las dos formas ⚠ NO CUBIERTO: en SKILL.md` |
+| Región de la cobertura con una forma `⚠ NO CUBIERTO:` que lleva un marcador desconocido | `plazos-y-territorio: references/administrativo.md: la forma ⚠ NO CUBIERTO: de SKILL.md lleva <identificador de la ley>, un marcador que la tabla no conoce` |
+| Fila de `data/cobertura.yaml` que ninguna región de la cobertura genera, una por fila, en cada skill con las dos formas | `plazos-y-territorio: data/cobertura.yaml: la fila de «aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa» no la genera ninguna región cobertura_por_materia` |
+| Referencia de un paquete en una skill cuyo `SKILL.md` no lleva las marcas de los paquetes | `plazos-y-territorio: SKILL.md: referencia de paquete sin enlazar: administrativo.md` |
+| Marcas de los paquetes, o de los paquetes de la base en la skill de entrada, que no van en pareja | `normativa: SKILL.md: las marcas de los paquetes no van en pareja: falta la de fin` |
+
+Lo que hay entre las marcas de una región o de los paquetes y no es lo que genera la sincronía es una deriva, como la
+de la tabla de comandos: `make skills-check` la da (`<skill>: <fichero>: contenido-distinto`) y `make skills-sync` la
+reescribe.
 
 **Una etiqueta XML** es un texto de la forma `<nombre…>`, `</nombre>` o `<nombre/>`, con `nombre` empezando por una
 letra (`</?\p{L}[^<>]*>`): lo son `<ejemplo>`, `</b>`, `<br/>` y `<descripcion skill="x">`; no lo son «< 5000», «a<b»,
@@ -308,15 +484,17 @@ En los límites, en verde: 499 líneas, 11 000 caracteres de cuerpo, 900 de desc
 ## 6. Antes de proponer el cambio
 
 ```sh
-make skills-sync                                                      # regenera la tabla y las referencias generadas
+make skills-sync                                                      # regenera tabla, enlaces, regiones y referencias
 make skills-check                                                     # los gates de esta guía, sin escribir nada
 go test -count=1 -run '^TestSkillsDelRepositorio$' ./internal/app/   # los mismos, con sus mutantes
 go test -count=1 -run '^(TestEvalsDelRepositorio|TestControlesSobreLasReferenciasAMano)$' ./internal/evals/
+go test -count=1 -run '^(TestRegiones|TestPaquetes|TestVerticalDeEnsayo)$' ./internal/skills/
 ```
 
-Las dos últimas ejecutan los controles de contenido de §1 con sus mutantes: `normas-nombradas` y
-`sin-instrucciones-de-evals` son subtests de `TestSkillsDelRepositorio`, y los demás, de `TestEvalsDelRepositorio`,
-con los mutantes de `TestControlesSobreLasReferenciasAMano`. Para ver las medidas de un cuerpo, que cuentan
+La tercera y la cuarta ejecutan los controles de contenido de §1 con sus mutantes: `normas-nombradas`,
+`sin-instrucciones-de-evals`, `forma-de-cita` y `formas-compartidas` son subtests de `TestSkillsDelRepositorio`, y los
+demás, de `TestEvalsDelRepositorio`, con los mutantes de `TestControlesSobreLasReferenciasAMano`. La última, los
+defectos del molde de §5 y la vertical de ensayo. Para ver las medidas de un cuerpo, que cuentan
 como el gate mientras el `SKILL.md` termine en salto de línea:
 
 ```sh
