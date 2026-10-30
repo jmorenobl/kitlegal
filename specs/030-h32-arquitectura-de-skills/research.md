@@ -238,6 +238,42 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
   del workflow (`scripts/workflow/` está fuera de alcance); una búsqueda ya grabada que diera la Ley 50/1980 (ninguna
   la da).
 
+### D23 · reparar_cierre: el id del bloque sale siempre del índice, y la entrada activa la capacidad antes de pedir nada
+
+- **Evidencia**: la medición de cierre de la cabeza `7f8ef89` (ejecución 41024981954, trabajo `evals (normativa)`;
+  `gates/evals/normativa.json`) falla por tres motivos que deciden: la eval 22 con `claude-sonnet-5-5` en modo
+  herramienta pasa 0 de 3 (umbral 2); `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` da 3 de 6 (≤ 0); y
+  `sin_activar:claude-sonnet-5-5:herramienta` da 1 de 60 (≤ 0). Las tres sesiones de la eval 22 pidieron
+  `boe_articulo --fecha=2019-06-01 BOE-A-2017-12902 a118`, dos veces cada una, recibieron `5` (la caché de la sesión no
+  sirve `a118`, que no existe; ADR 0043) y respondieron con `⚠ SIN CONSULTA AL BOE:`, sin pedir `boe_indice`; en modo
+  orden, 2 de 3 leyeron el índice antes y la tercera lo leyó tras el `5`. En los cinco cierres anteriores con la eval
+  (`specs/024`, `025`, `026`, `027` y `029`, `gates/evals/boe-legislacion.json`), 14 de 15 sesiones de ese modo pidieron
+  `boe_indice` antes. La sesión sin activar es `04-lgt-prescripcion-herramienta-claude-sonnet-5-5-02`: pidió
+  `boe_articulo BOE-A-2003-23186 a66` sin la herramienta `Skill` para `normativa`; en los diez cierres anteriores de la
+  skill el umbral dio 0 de 54 o de 60.
+- **Decisión**: en `normativa`, el paso 2 dice que el id de cada bloque sale del índice, con fecha o sin ella, que
+  nunca se compone con el número del artículo ni se toma de la pregunta, sin nombrar el artículo ni el bloque de
+  ninguna eval (la reparación lo hacía con los de la eval 22; se quitó a mano, porque enseñaba la respuesta de la eval
+  en lugar de la regla); `redaccion_en_una_fecha` («Cómo se lee») y `con_herramientas» («Argumentos», «Las órdenes del protocolo»
+  y «Encadenar y fallar») lo repiten en el camino de la lectura con fecha y con herramientas; y `lecturas_que_fallan`
+  («Un bloque que no está») vuelve al índice con cualquier código, no solo con `3`, si el id no salió del índice en
+  esta conversación. En `consulta-juridica`, el paso 2 pide activar la skill de la capacidad antes de pedir nada a
+  kitlegal, ninguna orden ni herramienta sin ella. Las versiones suben a `normativa` v0.4.1 y `consulta-juridica`
+  v0.1.1 en `CHANGELOG.md`. El cuerpo de `normativa` queda en 10 903 caracteres (FR-009). Nada de esto se puede medir
+  en una sesión de paso: lo mide el job en la medición siguiente.
+- **Por qué**: una eval o un umbral en rojo se arreglan en la skill o en la herramienta (ADR 0029), y la causa es que el
+  texto de la skill, en el camino de la lectura con fecha y con herramientas, dejaba leer el número del artículo como
+  id y, ante el `5`, no llevaba de vuelta al índice. Lo que distingue la activación en esta medición de las diez
+  anteriores es la skill de entrada, que las sesiones tienen instalada; el informe no registra qué skills activó la
+  sesión, así que la corrección es la lectura conservadora: hacer explícito el orden en el paso que reparte.
+- **Rechazadas**: cambiar la ayuda del argumento `bloque` de `kitlegal boe articulo` («Identificador del bloque en el
+  índice de la norma: a21, da-3…», `internal/app/boe.go`), que el modo herramienta ve como descripción del parámetro y
+  que invita a componer el id: el spec deja fuera de alcance los cambios en el applet `boe`, así que va, con la comprobación del id contra el índice
+  en caché antes de ir a la red, a una propuesta aparte decidida por una persona (ADR 0049): es un cambio del applet,
+  fuera del alcance de este hito;
+  tocar la eval 22, el umbral o la medida (ADR 0029 y 0038); servir `a118` en la caché de la sesión (no existe en la
+  norma: haría pasar una lectura que en el uso real da `3`).
+
 ## Comprobaciones hechas en esta sesión
 
 | # | Qué | Dónde se comprobó |

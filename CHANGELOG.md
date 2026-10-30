@@ -366,6 +366,29 @@ sustituyen a este fichero.
   viñetas del paso 4 y las reglas 4, 5 y 6, y de quitar la viñeta del paso 4 que repetía lo de la comprobación. Se
   retiran los tres guiones e2e de H31.1 (`h31-1-h31-1-*.txtar`); lo que sigue valiendo lo comprueba la suite de
   aceptación del hito.
+- **`normativa` v0.4.1: el id del bloque sale del índice también con fecha, y un id que no salió de él y falla vuelve
+  al índice** (H32, reparación del cierre). En la medición de cierre (ejecución 41024981954, commit `7f8ef89`), las
+  tres sesiones de `claude-sonnet-5-5` en modo herramienta de la eval 22 (el art. 118 de la LCSP el 1 de junio de 2019)
+  pidieron `boe_articulo` con `a118` y `fecha`, dos veces cada una, y respondieron que el BOE no respondía:
+  `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` dio 3 de 6 y la eval, 0 de 3 con umbral 2. En los cinco cierres
+  anteriores con esa eval, 14 de las 15 sesiones de ese modo leían antes `boe_indice`. El paso 2 decía «Sin el id del
+  bloque, lee el índice», que deja leer el número del artículo como id; `redaccion_en_una_fecha` y `con_herramientas`,
+  las dos referencias de ese camino, no lo repetían; y `lecturas_que_fallan` solo volvía al índice con un `3`, cuando en
+  una sesión de evals un bloque que la caché no sirve sale con `5` (ADR 0043). Ahora el paso 2 dice que el id sale del
+  índice, con fecha o sin ella, y que nunca se compone con el número ni se toma de la pregunta, sin nombrar el artículo
+  ni el bloque de ninguna eval; `redaccion_en_una_fecha` y `con_herramientas` lo repiten en su paso, y
+  `lecturas_que_fallan` vuelve al índice con cualquier código si el id no salió de él. El cuerpo queda en 154 líneas y
+  10 903 caracteres. La ayuda del argumento `bloque` de `kitlegal boe articulo` («a21, da-3…»), que el modo herramienta
+  ve como descripción del parámetro, y la comprobación del id contra el índice van en una propuesta aparte (ADR 0049):
+  los applets están fuera del alcance de H32.
+- **`consulta-juridica` v0.1.1: la skill de la capacidad se activa antes de pedir nada a kitlegal** (H32, reparación
+  del cierre). En la misma medición, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval 04 de `normativa`
+  pidió `boe_articulo` sin activar `normativa`: `sin_activar:claude-sonnet-5-5:herramienta` dio 1 de 60, con 0 en los
+  diez cierres anteriores de la skill. El informe no dice qué skills activó esa sesión; la skill de entrada es lo único
+  nuevo en la activación, y su paso 2 decía solo «Activa la skill de cada capacidad que pida la pregunta». Ahora dice
+  que va antes de pedir nada a kitlegal, ninguna orden ni herramienta sin su skill activada, aunque la herramienta o la
+  forma de la cita parezcan bastar. Lo que las dos correcciones cambian en las respuestas lo mide el job en la medición
+  siguiente.
 - **`boe-legislacion` v0.3.2: el id de un bloque sale del índice, nunca de la pregunta.** El paso 2 decía «ni pidas
   uno que no salga del índice o de la pregunta», y la sesión que leía «el artículo 118» en la pregunta pedía el bloque
   `a118`, que no existe: el art. 118 de la LCSP es `a1-30`. La lectura fallaba y la respuesta no podía dar la línea

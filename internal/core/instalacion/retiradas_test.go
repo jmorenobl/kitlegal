@@ -105,10 +105,8 @@ func retiradaEn(ambito instalacion.Ambito, nombre string, enlaces ...instalacion
 }
 
 // avisoDeVieja es el aviso de contracts/instalacion-retiradas.md §2 detrás de
-// la ruta de una skill de nombre retirado que hereda heredera. Su verbo va en
-// dos literales porque misspell, con su diccionario inglés, lee su raíz como
-// una errata de «install».
-const avisoDeVieja = " no es lo que insta" + "ló kitlegal: su protocolo puede activarse junto al de heredera, " +
+// la ruta de una skill de nombre retirado que hereda heredera.
+const avisoDeVieja = " no es lo que instaló kitlegal: su protocolo puede activarse junto al de heredera, " +
 	"que la sustituye; retirarla es cosa tuya."
 
 // sinRetirarEn es la salida de la skill nombre del ámbito que no se retira, con

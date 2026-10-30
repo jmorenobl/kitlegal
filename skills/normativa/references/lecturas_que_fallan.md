@@ -16,13 +16,15 @@ Cada orden termina con `0` si todo fue bien y, si no, con el código de lo que f
 - `1` o `inesperado`: un fallo inesperado, como un `world.db` que no se puede leer en `kitlegal graph`.
 
 Una lectura de `kitlegal boe` falla si termina con `3`, `4` o `5`, o si no hay caché con `--offline`: vale la regla 2
-de `SKILL.md`.
+de `SKILL.md`, tras lo que dice «Un bloque que no está».
 
 ## Un bloque que no está
 
-Si `kitlegal boe` termina con `3`, vuelve al índice en lugar de probar otros ids: el id es el de la entrada cuyo
-`titulo` es el artículo, no su número (en la Ley 9/2017, «Artículo 118» es `a1-30`; `a118` no está). Si el artículo no
-existe en la norma, dilo.
+Si `kitlegal boe` termina con `3` —o con cualquier código, si el id del bloque no lo copiaste del índice en esta
+conversación—, vuelve al índice en lugar de probar otros ids o de dar la fuente por caída: el id es el de la entrada
+cuyo `titulo` es el artículo, no su número (en la Ley 9/2017, «Artículo 118» es `a1-30`; `a118` no está), y una
+lectura con un id compuesto no dice nada de la fuente. Si el artículo no existe en la norma, dilo; si el índice
+también falla, vale la regla 2.
 
 ## Una lectura de varios bloques
 

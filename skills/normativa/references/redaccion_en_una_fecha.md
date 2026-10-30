@@ -10,9 +10,9 @@ del acto, la de los hechos. Entonces se cita la redacción vigente ese día, no 
 
 ## Cómo se lee
 
-Cada bloque, con `--fecha AAAA-MM-DD` detrás, como en
-`kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json`, o con `boe_articulo` y el día en `fecha`. La
-lectura con fecha va sin `kitlegal graph check`.
+Cada bloque, con el id que da el índice —la fecha no cambia de dónde sale el id: paso 2 de `SKILL.md`— y con
+`--fecha AAAA-MM-DD` detrás, como en `kitlegal boe articulo BOE-A-1985-5392 a22 --fecha 2005-06-15 --json`, o con
+`boe_articulo`, el id en `bloque` y el día en `fecha`. La lectura con fecha va sin `kitlegal graph check`.
 
 ## Un hecho sin día
 

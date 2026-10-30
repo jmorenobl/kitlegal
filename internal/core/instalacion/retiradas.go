@@ -28,11 +28,9 @@ func (r Retiradas) Herederas(nombre string) string {
 
 // avisoDeRetirada es el aviso de la skill de nombre retirado de ruta, que no
 // se retira, con las herederas que la sustituyen
-// (contracts/instalacion-retiradas.md §2). Su verbo va en dos literales porque
-// misspell, con su diccionario inglés, lee su raíz como una errata de
-// «install».
+// (contracts/instalacion-retiradas.md §2).
 func avisoDeRetirada(ruta, herederas string) string {
-	return ruta + " no es lo que insta" + "ló kitlegal: su protocolo puede activarse junto al de " + herederas +
+	return ruta + " no es lo que instaló kitlegal: su protocolo puede activarse junto al de " + herederas +
 		", que la sustituye; retirarla es cosa tuya."
 }
 

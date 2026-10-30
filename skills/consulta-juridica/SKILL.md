@@ -34,8 +34,9 @@ escrito—. Una pregunta puede pedir varias cosas: cada una va a su capacidad.
 | Hasta cuándo se recurre, cuándo vence un plazo o se produce el silencio | plazos | `plazos-y-territorio` |
 | La comunidad, la provincia, los boletines o el DIR3 de un municipio | territorio | `plazos-y-territorio` |
 
-Activa la skill de cada capacidad que pida la pregunta y responde con su protocolo: sus formas y sus citas son las de
-la respuesta.
+Activa la skill de cada capacidad que pida la pregunta antes de pedir nada a kitlegal —ninguna orden ni herramienta
+suya sin su skill activada, aunque la herramienta o la forma de la cita parezcan bastar— y responde con su protocolo:
+sus formas y sus citas son las de la respuesta.
 
 ### 3. Qué cubre la base
 
