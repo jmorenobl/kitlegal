@@ -304,3 +304,21 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
 | S3 | La sesión de la póliza cita el art. 22, el de la prórroga | lo mide el job de cierre (SC-015) |
 | S4 | `git diff --find-renames` detecta como renombrados los ficheros de `evals/` con una o dos líneas cambiadas (umbral por omisión del 50 % según la documentación de git, no consultada sin red) | `git diff --find-renames=90%` lo dice igual; lo coteja la revisión final (FR-033) |
 | S5 | El límite de seis horas de un trabajo de un runner de GitHub | no se usa: el tope no cambia (D15) |
+
+### D24 · Segunda medición del cierre: las líneas de una lectura con fecha van siempre
+
+- **Evidencia**: la medición de `560a7fb` (ejecución 41042775588) da `redaccion_sin_fechar:claude-sonnet-5-5:herramienta`
+  2 de 6: con el id ya del índice (las tres sesiones de la eval 22 piden `a1-30` con `fecha`), la 01 da solo
+  `⚠ REDACCIÓN A FECHA:` y la 02 solo `⚠ REDACCIÓN DE HOY:`; las dos pidieron `graph_check` tras la lectura con
+  fecha, y la 03, que da las dos, no. Con la skill de `main` y el mismo binario (#215, ejecución 41036019865), una de
+  seis sesiones del modo pidió la comprobación y ninguna perdió una línea.
+- **Decisión**: en el paso 2, «si faltó, pídela ya» pasa a «sin fecha, si faltó, pídela ya», y detrás de la frase de
+  v0.4 sobre la comprobación va «Las líneas de una fecha van siempre»; y «el número del artículo no siempre es su id»
+  queda en «no siempre es su id», para que el cuerpo quepa con la vertical de ensayo (`TestVerticalDeEnsayo`, 70
+  caracteres más). `normativa` v0.4.2; cuerpo de 10 928 caracteres.
+- **Por qué**: la frase de v0.4 («un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni una línea, ni
+  una frase junto a los avisos o a la fecha de vigencia») no distingue las líneas de la comprobación de las de la
+  redacción en una fecha, que también nombran una fecha de vigencia; y «si faltó, pídela ya» llevaba a pedirla tras
+  una lectura con fecha.
+- **Rechazadas**: quitar la frase de v0.4, que es la que baja `cuenta_su_proceso` (2 y 4 de 60 en esta medición, 7 y
+  14 en la #207); tocar la eval, el umbral o la medida.

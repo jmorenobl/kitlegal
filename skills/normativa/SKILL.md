@@ -30,8 +30,8 @@ Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, 
 ### 2. Leer
 
 - El id de cada bloque sale del índice, con fecha o sin ella: `kitlegal boe indice BOE-A-1978-31229 --json`. Copia el
-  id de la entrada cuyo `titulo` es el artículo; nunca lo compongas con su número ni lo tomes de la pregunta: el
-  número del artículo no siempre es su id.
+  id de la entrada cuyo `titulo` es el artículo; nunca lo compongas con su número ni lo tomes de la pregunta: no
+  siempre es su id.
 - Sin fecha —con ella, [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md)—, lee cada bloque una vez, con
   su comprobación detrás, en la misma orden:
   ```bash
@@ -41,9 +41,9 @@ Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, 
   ```powershell
   kitlegal boe articulo BOE-A-1978-31229 a140 --json; if ($LASTEXITCODE -eq 0) { kitlegal graph check BOE-A-1978-31229 a140 --json }
   ```
-  La comprobación, nunca sin argumentos ni antes; si faltó, pídela ya. Habla de otras conversaciones, que quien
-  pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni una línea, ni una frase
-  junto a los avisos o a la fecha de vigencia.
+  La comprobación, nunca sin argumentos ni antes; sin fecha, si faltó, pídela ya. Habla de otras conversaciones, que
+  quien pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni una línea, ni una
+  frase junto a los avisos o a la fecha de vigencia. Las líneas de una fecha van siempre.
 - Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no termina con `0`, antes de
   seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
 

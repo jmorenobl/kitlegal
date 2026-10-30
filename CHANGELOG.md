@@ -381,6 +381,16 @@ sustituyen a este fichero.
   10 903 caracteres. La comprobación del id contra el índice y la ayuda del argumento `bloque` de `kitlegal boe articulo`
   («a21, da-3…», solo en `--help`: los esquemas de las herramientas no la llevan) llegan aparte, con la #215 (ADR
   0049): los applets están fuera del alcance de H32.
+- **`normativa` v0.4.2: las líneas de una lectura con fecha van siempre, también junto a una comprobación** (H32,
+  segunda medición del cierre, ejecución 41042775588, commit `560a7fb`). Con el id ya del índice, dos de las tres
+  sesiones de `claude-sonnet-5-5` en modo herramienta de la eval 22 dieron solo una de las dos líneas,
+  `⚠ REDACCIÓN A FECHA:` o `⚠ REDACCIÓN DE HOY:`: `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` 2 de 6. Las dos
+  habían pedido `graph_check` tras la lectura con fecha, que va sin él, empujadas por «si faltó, pídela ya», y la frase
+  que v0.4 añadió al paso 2 —un bloque sin `version-obsoleta` no da «ni una frase junto a […] la fecha de vigencia»—
+  les hizo quitar una línea. Con la skill de `main` y el mismo binario (#215), 1 de 6 pidió la comprobación y ninguna
+  perdió una línea. Ahora «si faltó, pídela ya» es solo para la lectura sin fecha, y el paso 2 dice que las líneas de
+  una fecha van siempre. Para que quepa con la vertical de ensayo, «el número del artículo no siempre es su id» queda en
+  «no siempre es su id». El cuerpo queda en 10 928 caracteres.
 - **`consulta-juridica` v0.1.1: la skill de la capacidad se activa antes de pedir nada a kitlegal** (H32, reparación
   del cierre). En la misma medición, una sesión de `claude-sonnet-5-5` en modo herramienta de la eval 04 de `normativa`
   pidió `boe_articulo` sin activar `normativa`: `sin_activar:claude-sonnet-5-5:herramienta` dio 1 de 60, con 0 en los
