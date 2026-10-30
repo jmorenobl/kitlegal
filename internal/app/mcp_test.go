@@ -504,11 +504,15 @@ func llamadasSimultaneas() []llamadaSimultanea {
 	}
 
 	return []llamadaSimultanea{
+		// El índice, la primera: con él guardado, el bloque que no existe falla
+		// siempre con el mismo sobre, el que nombra el índice (ADR 0049), lo
+		// lea antes o después en la referencia o en las llamadas a la vez.
+		deLaNorma("indice"),
 		// La misma herramienta, con entradas distintas: tres bloques que
 		// existen y uno que no, que falla con su propio sobre.
 		deUnBloque("a1"), deUnBloque("a21"), deUnBloque("a22"), deUnBloque("a23"), deUnBloque("a9999"),
 		// Y otras herramientas, de boe y de otro applet.
-		deLaNorma("indice"), deLaNorma("metadatos"), deLaNorma("analisis"),
+		deLaNorma("metadatos"), deLaNorma("analisis"),
 		deUnMunicipio("Leganés"), deUnMunicipio("Tordesillas"),
 	}
 }
@@ -539,6 +543,11 @@ func TestLlamadasSimultaneas(t *testing.T) {
 	registro.EntregarAlGrafo(graph.Nuevo(graph.ConDirectorio(t.TempDir())))
 
 	servidor := arrancarElServidor(t, registro, false)
+
+	// El índice, leído una vez antes de las llamadas a la vez, como en la
+	// referencia.
+	_, err := servidor.pedir(t, entradas[0].herramienta, json.RawMessage(entradas[0].argumentos))
+	require.NoError(t, err)
 
 	type recibido struct {
 		resultado mcptest.Resultado
