@@ -374,3 +374,13 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
   serie a una persona, porque tocar su umbral pediría un ADR.
 - **Rechazadas**: repetir el job sin cambios, que sería medir para ver si sale en verde (D25); y lanzar el sondeo sin un
   job en verde.
+
+### D28 · El sondeo de `854b60a` pasa
+
+- **Hecho**: la medición del cierre de `854b60a` (ejecución 41326785699) salió en verde en las cuatro skills y el sondeo
+  de la persona dio, en `normativa`: eval 15, `afirma_lo_no_leido` 2 de 80 (límite 6; p = 0,0003 frente a 16 de 80) y
+  `cuenta_su_proceso` 0 de 80 (límite 8; p < 0,00001 frente a 17 de 80); eval 05, `cuenta_su_proceso` 1 de 80 (límite 6).
+  Las tres marcas son del modo herramienta. El sondeo de `plazos-y-territorio` sobre `ddfb799`, 0 de 120 sin la línea
+  `⚠ NO CUBIERTO:`, sigue valiendo: esa skill no ha cambiado.
+- **Decisión**: ningún cambio más en las skills. La evidencia de los dos sondeos va a `evidencias/sondeos-20261101/`.
+- **Queda fuera**: por qué las referencias casi no se abren en modo herramienta (D26), que no afecta a estos límites.
