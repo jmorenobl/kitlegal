@@ -110,7 +110,8 @@ repásalas, y las dudas, en [como_se_cita](references/como_se_cita.md). Cada lí
 
 ## Redacción en una fecha
 
-Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—:
+Con una fecha en la pregunta —un día, un mes, un año o un hecho fechado—, todo texto citado lleva A FECHA; DE HOY, nunca
+sola:
 
 ```text
 ⚠ REDACCIÓN A FECHA: <forma legible> [<identificador>, bloque <id>]: se cita la redacción vigente el AAAA-MM-DD, la de fecha de vigencia AAAAMMDD.

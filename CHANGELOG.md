@@ -405,6 +405,10 @@ sustituyen a este fichero.
   sesiones que han perdido una línea desde D24 habían pedido esa comprobación. El paso 2 lo decía solo de forma
   implícita y la regla explícita está en una referencia: ahora dice «nunca sin argumentos, ni antes, ni con fecha». El
   cuerpo queda en 10 876 caracteres.
+- **`normativa` v0.4.5: `⚠ REDACCIÓN DE HOY:` nunca va sin `⚠ REDACCIÓN A FECHA:`** (H32, medición del cierre de
+  `be86054`, ejecución 41338382776). La sesión 02 de la eval 22 en modo herramienta dio solo `⚠ REDACCIÓN DE HOY:` sin
+  haber pedido `graph_check`: 2 de 18 con el texto de v0.4.3 y v0.4.4. El cuerpo enseñaba las tres líneas sin decir cuáles
+  van juntas, y eso solo estaba en una referencia. El cuerpo queda en 10 927 caracteres.
 - **`plazos-y-territorio` v2.0.1: el plazo se pide aunque la sesión crea que la norma no regía** (H32, tercera medición
   del cierre, ejecución 41049698509, commit `83071c4`). Una sesión de `claude-sonnet-5-5` en modo herramienta de la
   eval 10 (un recurso de reposición notificado en 2014) no pidió `plazos_calcular`, decidió por su cuenta que la LPAC

@@ -384,3 +384,18 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
   `⚠ NO CUBIERTO:`, sigue valiendo: esa skill no ha cambiado.
 - **Decisión**: ningún cambio más en las skills. La evidencia de los dos sondeos va a `evidencias/sondeos-20261101/`.
 - **Queda fuera**: por qué las referencias casi no se abren en modo herramienta (D26), que no afecta a estos límites.
+
+### D29 · Medición de `be86054`: `⚠ REDACCIÓN DE HOY:` nunca va sola
+
+- **Hecho** (ejecución 41338382776, misma skill que `854b60a`): `redaccion_sin_fechar:claude-sonnet-5-5:herramienta`
+  1 de 6. La sesión 02 de la eval 22 compuso `a118` sin el índice (código 3), leyó `a1-30` con fecha, no pidió
+  `graph_check` y dio `⚠ REDACCIÓN DE HOY:` sin `⚠ REDACCIÓN A FECHA:`. Corrige D27: la comprobación pedida con fecha no
+  es la única causa. Con el texto de v0.4.3 y v0.4.4 son 2 de 18 en modo herramienta, y 0 de 18 en modo orden. D28 sigue
+  siendo lo medido sobre `854b60a`, pero no sobre la skill final.
+- **Causa probable, sin confirmar con la transcripción**: la sección «Redacción en una fecha» enseñaba las tres líneas sin
+  decir cuáles van juntas; eso lo dice `redaccion_en_una_fecha`, que en modo herramienta se abre poco (D26).
+- **Decisión** (de una persona, a mano): la sección dice «todo texto citado lleva A FECHA; DE HOY, nunca sola», sin tocar
+  ninguna de las tres formas. `normativa` v0.4.5; cuerpo de 10 927 caracteres. Como cambia el texto medido, se repiten el
+  job y el sondeo de 160.
+- **Rechazadas**: repetir el job sin cambios (D25); fusionar con el verde de `854b60a`, que dejaría el defecto; y cambiar
+  el umbral de una clase de forma.
