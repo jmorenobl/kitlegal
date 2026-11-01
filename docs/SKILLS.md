@@ -74,6 +74,8 @@ el método— queda en una skill de capacidad o en la de entrada; lo de una mate
   `⚠ SENTENCIA NO COMPROBADA:`, `⚠ NO CUBIERTO:`, las de aviso, las de la redacción en una fecha, las del plazo…),
   cada una tal cual, en un bloque `text`;
 - la tabla de comandos, que `make skills-sync` genera entre sus marcas desde `--describe` del binario y no se edita;
+  `kitlegal-sin-fila`, en `metadata`, deja fuera de ella los verbos que la skill no deja usar, nombrados por su
+  herramienta (`graph_show graph_stats`): el nombre que no quita nada es un defecto;
 - y, por cada referencia, cuándo leerla, con su enlace (§4).
 
 **En una referencia, el detalle que solo pide una clase de pregunta**: cómo se pide cada orden con herramientas, cómo

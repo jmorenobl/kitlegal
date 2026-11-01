@@ -322,7 +322,7 @@ func regenerarSkill(raiz, nombre string, registrados []string, descripciones []D
 	)
 
 	if len(deFrontmatter) == 0 {
-		regenerada.Contenido, deLaRegion = contenidoRegenerado(skill, deKitlegal.Applets, descripciones)
+		regenerada.Contenido, deLaRegion = contenidoRegenerado(skill, deKitlegal, descripciones)
 
 		var (
 			delRepositorio           paquetes
@@ -480,17 +480,23 @@ func declaracionDeLaSkill(raiz string, skill Skill, registrados []string) (
 }
 
 // contenidoRegenerado es el SKILL.md de la skill con la tabla de comandos de los
-// applets declarados en su región, o tal cual si no declara ninguno. Si la tabla
-// no se puede escribir o la región no se puede sustituir, es el SKILL.md tal cual
-// y el defecto que lo impide, con SKILL.md delante.
-func contenidoRegenerado(skill Skill, applets []string, descripciones []DescripcionDeVerbo) (
+// applets declarados en su región, sin las filas de kitlegal-sin-fila, o tal cual
+// si no declara ninguno. Si la tabla no se puede escribir o la región no se puede
+// sustituir, es el SKILL.md tal cual y el defecto que lo impide, con SKILL.md
+// delante.
+func contenidoRegenerado(skill Skill, deKitlegal DeclaracionDeKitlegal, descripciones []DescripcionDeVerbo) (
 	[]byte, []*DefectoDeSkill,
 ) {
-	if len(applets) == 0 {
+	if len(deKitlegal.Applets) == 0 {
 		return skill.Contenido, nil
 	}
 
-	tabla, err := RenderizarTabla(applets, descripciones)
+	conFila, err := verbosConFila(descripciones, deKitlegal)
+	if err != nil {
+		return skill.Contenido, defectosDelError(skill.Nombre, ficheroDeLaSkill, err)
+	}
+
+	tabla, err := RenderizarTabla(deKitlegal.Applets, conFila)
 	if err != nil {
 		return skill.Contenido, defectosDelError(skill.Nombre, ficheroDeLaSkill, err)
 	}

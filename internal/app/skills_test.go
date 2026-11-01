@@ -549,6 +549,9 @@ type skillDelRecorrido struct {
 
 	// referencias son las de kitlegal-referencias, en su orden.
 	referencias []referenciaDelRecorrido
+
+	// sinFila son los de kitlegal-sin-fila, en su orden.
+	sinFila []string
 }
 
 // referenciaDelRecorrido es una referencia generada de una skill del árbol real.
@@ -601,7 +604,7 @@ func skillsDelRecorrido(t *testing.T) []skillDelRecorrido {
 		require.NoError(t, err, "%s: el frontmatter de SKILL.md se lee", nombre)
 
 		deKitlegal := frontmatter.DeclaracionDeKitlegal()
-		recorrida := skillDelRecorrido{nombre: nombre, applets: deKitlegal.Applets}
+		recorrida := skillDelRecorrido{nombre: nombre, applets: deKitlegal.Applets, sinFila: deKitlegal.SinFila}
 
 		for _, declarada := range deKitlegal.Referencias {
 			referencia := referenciaDelRecorrido{nombre: declarada}
@@ -717,9 +720,10 @@ func casosDeDeriva(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCopia {
 				t.Helper()
 
 				verbo := slices.IndexFunc(descripciones, func(descripcion skills.DescripcionDeVerbo) bool {
-					return descripcion.Applet == applet
+					return descripcion.Applet == applet &&
+						!slices.Contains(skill.sinFila, descripcion.Applet+"_"+descripcion.Verbo)
 				})
-				require.GreaterOrEqual(t, verbo, 0, "hay descripción de algún verbo de %s", applet)
+				require.GreaterOrEqual(t, verbo, 0, "hay descripción de algún verbo de %s con fila", applet)
 
 				descripciones[verbo].Hace = "Hace otra cosa, que no se ha regenerado."
 			},
@@ -954,7 +958,7 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 	var (
 		nombre                 = skill.nombre
 		name                   = "name: " + nombre + "\n"
-		metadata               = metadataDeKitlegal(skill.applets, skill.referencias)
+		metadata               = metadataDeKitlegal(skill.applets, skill.referencias, skill.sinFila)
 		enMayusculas           = strings.ToUpper(nombre)
 		conDosGuiones          = nombre[:1] + "--" + nombre[1:]
 		conGuionDelante        = "-" + nombre
@@ -1055,7 +1059,8 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 		{
 			nombre: "applet-que-no-existe",
 			alterar: conOtroFrontmatter(nombre, nombre,
-				name+description+metadataDeKitlegal(slices.Concat(skill.applets, []string{"inexistente"}), skill.referencias)),
+				name+description+metadataDeKitlegal(slices.Concat(skill.applets, []string{"inexistente"}), skill.referencias,
+					skill.sinFila)),
 			fallos: []string{nombre + `: SKILL.md: metadata/kitlegal-applets: applet "inexistente" no registrado`},
 		},
 		{
@@ -1077,8 +1082,8 @@ func casosDeFrontmatter(t *testing.T, skill skillDelRecorrido) []casoSobreUnaCop
 // clave kitlegal-referencias, como el frontmatter de la skill que no declara
 // ninguna (research.md D15 de H23), y sin applets no lleva kitlegal-applets,
 // como el de la skill de entrada (research D10 de H32): sin ninguna de las dos,
-// no hay bloque.
-func metadataDeKitlegal(applets []string, referencias []referenciaDelRecorrido) string {
+// no hay bloque. La clave kitlegal-sin-fila va solo si la skill la declara.
+func metadataDeKitlegal(applets []string, referencias []referenciaDelRecorrido, sinFila []string) string {
 	var claves string
 
 	if len(applets) > 0 {
@@ -1092,6 +1097,10 @@ func metadataDeKitlegal(applets []string, referencias []referenciaDelRecorrido) 
 		}
 
 		claves += "  kitlegal-referencias: " + strings.Join(nombres, " ") + "\n"
+	}
+
+	if len(sinFila) > 0 {
+		claves += "  kitlegal-sin-fila: " + strings.Join(sinFila, " ") + "\n"
 	}
 
 	if claves == "" {

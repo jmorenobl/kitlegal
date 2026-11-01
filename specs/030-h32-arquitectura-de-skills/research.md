@@ -335,3 +335,25 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
 - **Por qué**: si un precepto regía o no el día de inicio lo decide `plazos` (ADR 0042), no la sesión. La causa sale
   de una sola respuesta: el job no guarda transcripciones, y una medición en verde no probaría por sí sola el arreglo.
 - **Rechazadas**: repetir el trabajo sin cambios, que sería medir para ver si sale en verde; tocar la eval o el umbral.
+
+### D26 · El sondeo de `ddfb799` no pasa: vuelven las frases medidas y el sitio sale de la tabla
+
+- **Evidencia**: sondeo de `ddfb799` (`evidencias/`, 2026-11-01): eval 15, `afirma_lo_no_leido` 9 de 80 (límite 6;
+  Fisher p = 0,095 frente a 16 de 80) y `cuenta_su_proceso` 2 de 80; eval 05, `cuenta_su_proceso` 7 de 80 (límite 6).
+  Seis marcas de `afirma_lo_no_leido` pegan una materia a una remisión al avisar de lo que falta por leer, tres dicen
+  sin leer cómo se calcula un rendimiento, y las siete de la eval 05 son variantes de «no consta ninguna redacción
+  posterior». Frente a `main`, N5, N8 y N9 de [textos.md](contracts/textos.md) habían quitado texto medido en
+  `evidencias/sondeos-20261028/` y, el de las prohibiciones del paso 5, en `brazo-X` de `evidencias/sondeos-20261026/`.
+- **Decisión** (de una persona, a mano): vuelven palabra por palabra «ni al ofrecer leerlo o avisar de lo no leído»,
+  «los artículos que regulan <materia> (N y M)», «Nada de otra conversación…», «Cada afirmación sobre el contenido de una
+  norma lleva su cita, de lo que `kitlegal boe` devolvió en esta conversación» y «repásalas»; y el paso 2 añade
+  «Ni «no consta otra redacción».», un ejemplo de la clase, detrás de la frase que fija FR-015. No vuelve «o el número, o
+  la materia», que FR-016 retira. Son 336 caracteres más. Frente a un tope real de 10 930, los recortes de texto no
+  medido daban 116. El sitio sale de la tabla: `kitlegal-sin-fila` (en `metadata`, por nombre de herramienta) quita las
+  filas de `graph show` y `graph stats`, 403 caracteres, que la regla 6 no deja usar y que las evals 19 y 20 piden no
+  pedir. Solo cambia `normativa`, así que el sondeo de `plazos-y-territorio` sobre `ddfb799` sigue valiendo. `normativa`
+  v0.4.3; cuerpo de 10 861 caracteres. La suite `normativa.txtar` cambia con esa aprobación, y su huella en
+  `gates/aceptacion-congelada.json` con ella.
+- **Rechazadas**: recortar reglas que las evals deciden; quitar las líneas del sobre y de las banderas del generador,
+  que cambiaría las tres skills con tabla; subir el tope (ADR 0046); y mover lo medido a una referencia: en este sondeo,
+  en modo herramienta, `con_herramientas` se abrió en 4 de 80 sesiones aunque el cuerpo manda leerla.

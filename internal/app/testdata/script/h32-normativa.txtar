@@ -5,8 +5,9 @@
 # nada a la respuesta; el paso 5 lleva las dos frases nuevas y no las dos que
 # salen; los pasos 3 y 6 y la primera viñeta del paso 4 son, línea a línea, los
 # de c991808; sus formas fijas siguen en un bloque text; la tabla de comandos
-# tiene una fila por verbo de boe y de graph; y ningún cuerpo de una skill de
-# capacidad nombra una norma de las evals por materia.
+# tiene una fila por verbo de boe y de graph, salvo los dos verbos de graph que
+# la regla 6 no deja usar (research D26); y ningún cuerpo de una skill de capacidad
+# nombra una norma de las evals por materia.
 #
 # Cubre: US3 · FR-015, FR-016, FR-017, FR-018, FR-021, FR-040 · SC-017.
 #
@@ -55,13 +56,15 @@ cmp stdout c991808/paso-6.md
 exec awk -f en-bloques.awk formas.txt $SKILL
 stdout '^formas: 5 de 5$'
 
-# --- FR-018: la tabla de comandos, entre sus marcas, con una fila por verbo de boe y de graph ---
+# --- FR-018: la tabla de comandos, entre sus marcas, con una fila por verbo de boe y de graph, sin show ni stats ---
 exec $KITLEGAL_BIN boe --help
 cp stdout ayuda-boe.txt
 exec $KITLEGAL_BIN graph --help
 cp stdout ayuda-graph.txt
 exec awk -f tabla.awk ayuda-boe.txt ayuda-graph.txt $SKILL
-stdout '^tabla: boe [1-9][0-9]* verbos, graph [1-9][0-9]* verbos; sin su fila: 0$'
+stdout '^tabla: boe [1-9][0-9]* verbos, graph [1-9][0-9]* verbos; sin su fila: 2$'
+stdout '^sin su fila: \| `kitlegal graph show` \(0 filas\)$'
+stdout '^sin su fila: \| `kitlegal graph stats` \(0 filas\)$'
 
 # --- FR-021: ningún cuerpo de capacidad nombra una norma de las evals por materia ---
 exists $KITLEGAL_SKILLS/jurisprudencia/SKILL.md

@@ -391,6 +391,14 @@ sustituyen a este fichero.
   perdió una línea. Ahora «si faltó, pídela ya» es solo para la lectura sin fecha, y el paso 2 dice que las líneas de
   una fecha van siempre. Para que quepa con la vertical de ensayo, «el número del artículo no siempre es su id» queda en
   «no siempre es su id». El cuerpo queda en 10 928 caracteres.
+- **`normativa` v0.4.3: vuelven las frases medidas que el reparto perdió** (H32, sondeo de `ddfb799`, que no pasó: eval
+  15, `afirma_lo_no_leido` 9 de 80, límite 6; eval 05, `cuenta_su_proceso` 7 de 80, límite 6). Seis de las nueve marcas
+  pegaban una materia a una remisión al avisar de lo no leído. Vuelven, palabra por palabra, «ni al ofrecer leerlo o
+  avisar de lo no leído» y «los artículos que regulan <materia> (N y M)» al paso 5, «Nada de otra conversación» y «de lo
+  que `kitlegal boe` devolvió en esta conversación» al paso 4 y «repásalas» a «Cómo se cita»; el paso 2 añade «no consta
+  otra redacción», un ejemplo de la clase de las siete marcas de la eval 05. El sitio no sale de ningún texto: la clave
+  nueva `kitlegal-sin-fila` deja fuera de la tabla de `normativa` `graph show` y `graph stats`, que su regla 6 no deja
+  usar. Los verbos siguen en el binario y en el servidor MCP. El cuerpo queda en 10 861 caracteres.
 - **`plazos-y-territorio` v2.0.1: el plazo se pide aunque la sesión crea que la norma no regía** (H32, tercera medición
   del cierre, ejecución 41049698509, commit `83071c4`). Una sesión de `claude-sonnet-5-5` en modo herramienta de la
   eval 10 (un recurso de reposición notificado en 2014) no pidió `plazos_calcular`, decidió por su cuenta que la LPAC

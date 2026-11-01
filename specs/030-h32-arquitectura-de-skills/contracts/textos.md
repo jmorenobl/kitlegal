@@ -33,6 +33,9 @@ Las descripciones: `normativa`, unos 887 caracteres; `plazos-y-territorio`, unos
 | N13 | regla 6 | «**El texto sale de `kitlegal boe`, nunca de `kitlegal graph`.** Del grafo, solo `check`.» | «**Del grafo, solo `kitlegal graph check`.** El texto sale de `kitlegal boe`.» | FR-009 |
 | N14 | descripción | «…relaciones laborales…—» | «…relaciones laborales, seguros…—» | FR-004: cualquier materia |
 
+N5, el ejemplo de N8 y «repásalas» de N9 vuelven en v0.4.3, y la tabla pierde `graph show` y `graph stats`
+([research](../research.md) D26): la tabla de arriba es la de la entrega de v0.4.
+
 No cambian (FR-017, FR-018): el paso 3 entero, con su encabezado; el paso 6 entero; la primera viñeta del paso 4; las
 formas de «Redacción en una fecha» y «Redacción modificada»; la regla 3 y la 7 con `⚠ SIN CONSULTA AL BOE:`; la tabla
 de comandos. La comprobación (FR-015) no pide ningún cambio en los pasos 3 y 6 ni en esa viñeta: la tabla de FR-017

@@ -12,6 +12,7 @@ description: >-
 metadata:
   kitlegal-applets: boe graph
   kitlegal-referencias: normas
+  kitlegal-sin-fila: graph_show graph_stats
 ---
 
 ## Protocolo
@@ -43,7 +44,8 @@ Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, 
   ```
   La comprobación, nunca sin argumentos ni antes; sin fecha, si faltó, pídela ya. Habla de otras conversaciones, que
   quien pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni una línea, ni una
-  frase junto a los avisos o a la fecha de vigencia. Las líneas de una fecha van siempre.
+  frase junto a los avisos o a la fecha de vigencia. Ni «no consta otra redacción». Las líneas de una fecha van
+  siempre.
 - Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no termina con `0`, antes de
   seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
 
@@ -68,7 +70,10 @@ leído: si te parece útil decirlo, esa es la señal de que hay que leerlo.
   cita, sus avisos y las líneas `⚠` de cada bloque: escribe como quien tiene el BOE delante,
   «el artículo no lleva avisos de vigencia» y no «la lectura no trajo avisos», la norma por su nombre e identificador,
   sin decir de dónde sale, qué has hecho o vas a hacer ni qué ha devuelto o no una orden: no le sirve.
-- Cada afirmación sobre una norma, con su cita de lo que `kitlegal boe` devolvió aquí.
+- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la línea
+  `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
+- Cada afirmación sobre el contenido de una norma lleva su cita, de lo que `kitlegal boe` devolvió en esta
+  conversación.
 - **Ley y reglamento**: di el `rango` de cada una y que la ley prevalece sobre su reglamento.
 - De la redacción leída, qué norma la dio y desde cuándo rige, nunca hasta cuándo: ninguna lectura lo trae, ni el
   aviso de una derogada.
@@ -77,8 +82,9 @@ leído: si te parece útil decirlo, esa es la señal de que hay que leerlo.
 
 De un artículo, apartado o disposición que nada te ha devuelto en esta conversación no digas qué dice, de qué trata ni
 cuándo o cómo se aplica, ni en un inciso ni aunque creas saberlo: sería texto legal sin fuente. Número y materia no
-van juntos en ninguna frase, ni afirmando («el art. N, que es…», «el art. N sobre <materia>») ni negando («no puedo
-decir qué <regla> fija»). Una remisión que no has leído se repite con las palabras del texto leído, sin materia:
+van juntos en ninguna frase, ni afirmando («el art. N, que es…», «el art. N sobre <materia>»,
+«los artículos que regulan <materia> (N y M)»), ni negando («no puedo decir qué <regla> fija»), ni al ofrecer leerlo o
+avisar de lo no leído. Una remisión que no has leído se repite con las palabras del texto leído, sin materia:
 quitarle el número y dejarle la materia sigue diciendo lo que no has leído. Y explicar una palabra del texto leído con
 lo que regula otro precepto es afirmar ese precepto: es decir qué dice.
 
@@ -99,8 +105,8 @@ Envía la respuesta corregida, no la primera.
 ## Cómo se cita
 
 La forma legible y, en la misma línea, entre corchetes, el identificador y el id como los da `kitlegal boe`, y nada
-más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`. Una por bloque, también del remitido;
-las dudas, en [como_se_cita](references/como_se_cita.md). Cada línea `⚠` va entera y con los datos de la lectura.
+más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`. Una cita por bloque, también del remitido;
+repásalas, y las dudas, en [como_se_cita](references/como_se_cita.md). Cada línea `⚠` va entera y con los datos de la lectura.
 
 ## Redacción en una fecha
 
@@ -140,8 +146,6 @@ Por cada entrada `version-obsoleta` de `kitlegal graph check`, y si se pregunta 
 
 | Orden | Herramienta | Qué hace | Qué devuelve en `data` |
 |---|---|---|---|
-| `kitlegal graph show <id>` | `graph_show` | Devuelve un nodo del grafo del mundo con sus aristas y su procedencia, sin texto legal. | objeto con `nodo`, `salientes`, `entrantes` |
-| `kitlegal graph stats` | `graph_stats` | Cuenta los nodos, las aristas y los textos del grafo del mundo por tipo, relación y fuente. | objeto con `nodos`, `aristas`, `textos`, `nodos_por_tipo`, `aristas_por_relacion` |
 | `kitlegal graph check [<norma> [<bloques>...]]` | `graph_check` | Comprueba lo consultado de una norma, de algunos de sus bloques o, sin argumentos, todo lo consultado, y lista como mucho 50 hallazgos: redacciones que han cambiado desde la lectura anterior y consultas caducadas. | objeto con `norma`, `bloques`, `version-obsoleta`, `fuente-caducada`, `omitidos`, `hallazgos` |
 
 La orden y la herramienta de cada fila devuelven el mismo sobre: `ok`, `fuente`, `url`, `fecha_consulta`, `hash`, `data`; con `ok` falso, `data` lleva `clase` y `mensaje`.

@@ -1567,3 +1567,73 @@ func abrirArbol(t *testing.T, raiz string) *os.Root {
 
 	return arbol
 }
+
+// TestVerbosSinFila fija kitlegal-sin-fila (research D26 de H32): la tabla de la
+// skill que la declara no lleva esos verbos, y la declaración que no quita lo
+// que dice —un nombre que no es de un verbo de sus applets, o repetido— o que deja
+// un applet sin verbos es un defecto de SKILL.md, sin tabla nueva.
+func TestVerbosSinFila(t *testing.T) {
+	t.Parallel()
+
+	const applets = "  kitlegal-applets: dos uno\n"
+
+	casos := []struct {
+		nombre  string
+		sinFila string
+		defecto string
+	}{
+		{nombre: "quita-la-fila", sinFila: "uno_borrar"},
+		{
+			nombre:  "nombre-desconocido",
+			sinFila: "uno_otro",
+			defecto: `alfa: SKILL.md: kitlegal-sin-fila: "uno_otro" no es un verbo de la tabla o se repite`,
+		},
+		{
+			nombre:  "repetido",
+			sinFila: "uno_borrar uno_borrar",
+			defecto: `alfa: SKILL.md: kitlegal-sin-fila: "uno_borrar" no es un verbo de la tabla o se repite`,
+		},
+		{
+			nombre:  "applet-no-declarado",
+			sinFila: "tres_leer",
+			defecto: `alfa: SKILL.md: kitlegal-sin-fila: "tres_leer" no es un verbo de la tabla o se repite`,
+		},
+		{
+			nombre:  "applet-sin-verbos",
+			sinFila: "dos_listar",
+			defecto: "alfa: SKILL.md: el applet dos no tiene ningún verbo descrito",
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			raiz := arbolDeFuentes(t)
+			cambiarFicheroDePrueba(t, rutaDeSkill(raiz, "alfa", "SKILL.md"), applets,
+				applets+"  kitlegal-sin-fila: "+caso.sinFila+"\n")
+
+			descripciones := descripcionesDeSincronia()
+			primera := descripciones[0]
+			descripciones = append(descripciones, skills.DescripcionDeVerbo{
+				Applet: "uno", Verbo: "borrar", Hace: "Borra un bloque.",
+				Banderas: primera.Banderas, Devuelve: primera.Devuelve, Sobre: primera.Sobre,
+			}, skills.DescripcionDeVerbo{
+				Applet: "tres", Verbo: "leer", Hace: "Lee en otro applet.",
+				Banderas: primera.Banderas, Devuelve: primera.Devuelve, Sobre: primera.Sobre,
+			})
+
+			regenerado := regenerar(t, raiz, descripciones)
+
+			if caso.defecto != "" {
+				assert.Equal(t, []string{caso.defecto}, textosDeLosFallos(regenerado.Defectos()))
+
+				return
+			}
+
+			assert.Empty(t, textosDeLosFallos(regenerado.Defectos()))
+			assert.Contains(t, string(regenerado.Skills[0].Contenido), "`kitlegal uno leer <bloque>`")
+			assert.NotContains(t, string(regenerado.Skills[0].Contenido), "uno_borrar` |")
+		})
+	}
+}
