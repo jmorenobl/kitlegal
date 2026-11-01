@@ -399,6 +399,12 @@ sustituyen a este fichero.
   otra redacción», un ejemplo de la clase de las siete marcas de la eval 05. El sitio no sale de ningún texto: la clave
   nueva `kitlegal-sin-fila` deja fuera de la tabla de `normativa` `graph show` y `graph stats`, que su regla 6 no deja
   usar. Los verbos siguen en el binario y en el servidor MCP. El cuerpo queda en 10 861 caracteres.
+- **`normativa` v0.4.4: con fecha no se pide la comprobación** (H32, medición del cierre de `75bf303`, ejecución
+  41303272174). La sesión 03 de la eval 22 en modo herramienta pidió `graph_check` tras leer con fecha y dio
+  `⚠ REDACCIÓN DE HOY:` sin `⚠ REDACCIÓN A FECHA:`: `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` 1 de 6. Las tres
+  sesiones que han perdido una línea desde D24 habían pedido esa comprobación. El paso 2 lo decía solo de forma
+  implícita y la regla explícita está en una referencia: ahora dice «nunca sin argumentos, ni antes, ni con fecha». El
+  cuerpo queda en 10 876 caracteres.
 - **`plazos-y-territorio` v2.0.1: el plazo se pide aunque la sesión crea que la norma no regía** (H32, tercera medición
   del cierre, ejecución 41049698509, commit `83071c4`). Una sesión de `claude-sonnet-5-5` en modo herramienta de la
   eval 10 (un recurso de reposición notificado en 2014) no pidió `plazos_calcular`, decidió por su cuenta que la LPAC

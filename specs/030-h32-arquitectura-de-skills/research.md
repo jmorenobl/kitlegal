@@ -357,3 +357,20 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
 - **Rechazadas**: recortar reglas que las evals deciden; quitar las líneas del sobre y de las banderas del generador,
   que cambiaría las tres skills con tabla; subir el tope (ADR 0046); y mover lo medido a una referencia: en este sondeo,
   en modo herramienta, `con_herramientas` se abrió en 4 de 80 sesiones aunque el cuerpo manda leerla.
+
+### D27 · Medición del cierre de `75bf303`: con fecha no se pide la comprobación
+
+- **Hecho** (ejecución 41303272174): `ci`, `plazos-y-territorio`, `jurisprudencia` y `consulta-juridica`, en verde;
+  `normativa`, en rojo por dos umbrales de cero en modo herramienta. `afirma_lo_no_leido` da 1 de 120 (umbral 2,8 %).
+  - `redaccion_sin_fechar:claude-sonnet-5-5:herramienta` 1 de 6: la sesión 03 de la eval 22 pidió `graph_check` tras leer
+    con fecha y dio solo `⚠ REDACCIÓN DE HOY:`. Es el patrón de D24: las tres sesiones que han perdido una línea pidieron
+    esa comprobación. D24 ató «si faltó, pídela ya» a la lectura sin fecha, pero el cuerpo no decía que con fecha no se
+    pide; lo dice `redaccion_en_una_fecha`, y en modo herramienta las referencias se abren poco (D26).
+  - `sin_activar:claude-sonnet-5-5:herramienta` 1 de 60: la sesión 01 de la eval 04 llamó a `boe_articulo` sin activar la
+    skill. No leyó el cuerpo, así que ningún cambio de v0.4.3 puede ser la causa, y la descripción no cambió. Es la misma
+    eval y el mismo modo que `7f8ef89` (D23).
+- **Decisión** (de una persona, a mano): el paso 2 dice «nunca sin argumentos, ni antes, ni con fecha». `normativa`
+  v0.4.4; cuerpo de 10 876 caracteres. Para `sin_activar` no se cambia nada: si la eval 04 vuelve a caer, se lleva como
+  serie a una persona, porque tocar su umbral pediría un ADR.
+- **Rechazadas**: repetir el job sin cambios, que sería medir para ver si sale en verde (D25); y lanzar el sondeo sin un
+  job en verde.
