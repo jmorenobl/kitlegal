@@ -42,6 +42,7 @@ var clavesAdmitidas = []string{
 const (
 	claveKitlegalApplets     = "kitlegal-applets"
 	claveKitlegalReferencias = "kitlegal-referencias"
+	claveKitlegalSinFila     = "kitlegal-sin-fila"
 
 	// separadorDeNombres separa los nombres de applet o de referencia dentro del
 	// valor de cada una.
@@ -118,6 +119,11 @@ type DeclaracionDeKitlegal struct {
 	// la declara. Cada nombre es el de una fila de la tabla de generadores, que
 	// declara de qué YAML de datos sale la referencia.
 	Referencias []string
+
+	// SinFila son los nombres de kitlegal-sin-fila, o nil si la skill no la
+	// declara: los verbos de sus applets que su tabla de comandos no lleva,
+	// nombrados por su herramienta (research D26 de H32).
+	SinFila []string
 }
 
 // DeclaracionDeKitlegal es la declaración de kitlegal del frontmatter: cada
@@ -127,6 +133,7 @@ func (f Frontmatter) DeclaracionDeKitlegal() DeclaracionDeKitlegal {
 	return DeclaracionDeKitlegal{
 		Applets:     nombresDeclarados(f.Metadata, claveKitlegalApplets),
 		Referencias: nombresDeclarados(f.Metadata, claveKitlegalReferencias),
+		SinFila:     nombresDeclarados(f.Metadata, claveKitlegalSinFila),
 	}
 }
 

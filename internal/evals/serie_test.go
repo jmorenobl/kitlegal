@@ -32,7 +32,7 @@ const (
 
 	// La skill del repositorio del test, con su juez y sus dos evals que activan
 	// la skill: una que nombra el precepto y otra por materia.
-	skillDeLaSerie      = "boe-legislacion"
+	skillDeLaSerie      = "normativa"
 	evalQueNombra       = "01-nombra.yaml"
 	evalPorMateria      = "02-por-materia.yaml"
 	evalSinBinario      = "03-sin-binario.yaml"
@@ -777,13 +777,13 @@ func TestMostrarLaSerie(t *testing.T) {
 	}{
 		{
 			nombre: "tasa-del-escalon-3-con-108", umbral: umbralDeBoe, total: 108, filas: 5, marcadas: 5,
-			escalon:    "como mucho 3 marcadas (vale hasta una tasa del 0,95 %). El umbral de hoy, 0.028 en `evals/boe-legislacion/juez/clases.yaml`, admite 3 de 108.",
+			escalon:    "como mucho 3 marcadas (vale hasta una tasa del 0,95 %). El umbral de hoy, 0.028 en `evals/normativa/juez/clases.yaml`, admite 3 de 108.",
 			conclusion: "El umbral de hoy es el de la regla.",
 		},
 		{
 			nombre: "tasa-del-escalon-2-con-108", umbral: umbralDeBoe, total: 108, filas: 5, marcadas: 2,
 			escalon:    "como mucho 2 marcadas (vale hasta una tasa del 0,53 %)",
-			conclusion: "Permite estrechar el umbral a 2 de 108. Lo baja una persona, con un diff de `evals/boe-legislacion/juez/clases.yaml` y estas cifras (ADR 0038, punto 4); ningún run lo cambia.",
+			conclusion: "Permite estrechar el umbral a 2 de 108. Lo baja una persona, con un diff de `evals/normativa/juez/clases.yaml` y estas cifras (ADR 0038, punto 4); ningún run lo cambia.",
 		},
 		{
 			nombre: "tasa-del-escalon-1-con-108", umbral: umbralDeBoe, total: 108, filas: 5, marcadas: 1,
@@ -797,7 +797,7 @@ func TestMostrarLaSerie(t *testing.T) {
 		},
 		{
 			nombre: "tasa-del-escalon-1-con-60", umbral: umbralDeJuris, total: 60, filas: 9, marcadas: 1,
-			escalon:    "como mucho 1 marcada (vale hasta una tasa del 0,36 %). El umbral de hoy, 0.017 en `evals/boe-legislacion/juez/clases.yaml`, admite 1 de 60.",
+			escalon:    "como mucho 1 marcada (vale hasta una tasa del 0,36 %). El umbral de hoy, 0.017 en `evals/normativa/juez/clases.yaml`, admite 1 de 60.",
 			conclusion: "El umbral de hoy es el de la regla.",
 		},
 		{
@@ -1161,7 +1161,7 @@ func TestFilaConReutilizadas(t *testing.T) {
 		require.NoError(t, os.WriteFile(informe,
 			[]byte(strings.Replace(leido.escrito, evaluado, `"commit": "`+commit+`"`, 1)), 0o600))
 
-		salida, deError, codigo := ejecutarLaSerie(t, raiz, "fila", skillDeLasSesiones, procedenciaDeLaSerie(1, commit),
+		salida, deError, codigo := ejecutarLaSerie(t, raiz, "fila", skillNormativa, procedenciaDeLaSerie(1, commit),
 			informe)
 		require.Equalf(t, 0, codigo, "fila: %s", deError)
 

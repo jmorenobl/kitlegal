@@ -22,16 +22,16 @@ const variableDirDePrueba = "KITLEGAL_DIR_DE_PRUEBA"
 // con el análisis de la invocación real, que las pruebas del dominio imitan: con
 // cada ruta de --dir —también una que empieza por «-», que ese análisis leería
 // como otra bandera si fuera en la palabra siguiente a --dir—, instalada
-// legal-core y editado su SKILL.md, doctor sale con 0 y un solo hallazgo; su
-// orden, ejecutada por sh en el mismo directorio de trabajo, sale con 0 y deja
-// SKILL.md como lo empotra el binario; y el doctor siguiente sale con 0 y sin
-// hallazgos.
+// plazos-y-territorio y editado su SKILL.md, doctor sale con 0 y un solo
+// hallazgo; su orden, ejecutada por sh en el mismo directorio de trabajo, sale
+// con 0 y deja SKILL.md como lo empotra el binario; y el doctor siguiente sale
+// con 0 y sin hallazgos.
 func TestOrdenesDeDoctorConElBinario(t *testing.T) {
 	t.Parallel()
 
 	require.NoError(t, entorno.err)
 
-	empotrado, err := os.ReadFile(filepath.Join(entorno.variables[variableSkills], "legal-core", "SKILL.md"))
+	empotrado, err := os.ReadFile(filepath.Join(entorno.variables[variableSkills], "plazos-y-territorio", "SKILL.md"))
 	require.NoError(t, err)
 
 	for _, dir := range []string{"destino", "-raro", "--", "-o'tro y más"} {
@@ -41,7 +41,7 @@ func TestOrdenesDeDoctorConElBinario(t *testing.T) {
 			proyecto := t.TempDir()
 
 			_, errores, codigo := enSh(t, proyecto, dir,
-				`kitlegal skills install legal-core --dir="$`+variableDirDePrueba+`" --json`)
+				`kitlegal skills install plazos-y-territorio --dir="$`+variableDirDePrueba+`" --json`)
 			require.Equal(t, 0, codigo, errores)
 
 			// El fichero se edita y se relee por un os.Root del proyecto, que no
@@ -50,7 +50,7 @@ func TestOrdenesDeDoctorConElBinario(t *testing.T) {
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, raiz.Close()) })
 
-			skillMd := filepath.Join(dir, "legal-core", "SKILL.md")
+			skillMd := filepath.Join(dir, "plazos-y-territorio", "SKILL.md")
 			require.NoError(t, raiz.WriteFile(skillMd, []byte("editado a mano\n"), 0o600))
 
 			orden := ordenDelUnicoHallazgo(t, proyecto, dir, filepath.ToSlash(skillMd))

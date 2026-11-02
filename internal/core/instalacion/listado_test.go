@@ -38,9 +38,9 @@ type casoDeAmbitoIlegible struct {
 // qué es de quién y no se examina ninguna skill.
 func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 	instaladas := func(d *discoEnMemoria) {
-		instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
+		instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
 	}
-	sinExaminar := []string{".agents/skills/boe-legislacion", ".agents/skills/legal-core", ".claude"}
+	sinExaminar := []string{".agents/skills/normativa", ".agents/skills/plazos-y-territorio", ".claude"}
 
 	return []casoDeAmbitoIlegible{
 		{
@@ -51,7 +51,7 @@ func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 		{
 			nombre: ".agents es un enlace a un directorio con una instalación",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir(temporal+"/dotfiles/skills"), "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir(temporal+"/dotfiles/skills"), "plazos-y-territorio").escribir()
 				d.enlace(".agents", temporal+"/dotfiles")
 			},
 			motivo:       conflicto(noEsDirectorio, ".agents"),
@@ -70,8 +70,8 @@ func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 		{
 			nombre: "kitlegal.json es un enlace a un manifiesto válido",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "legal-core").escribir()
-				instalarLocal(d, "legal-core")
+				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "plazos-y-territorio").escribir()
+				instalarLocal(d, "plazos-y-territorio")
 				d.enlace(".agents/skills/kitlegal.json", "../../fuera/kitlegal.json")
 			},
 			motivo:       conflicto(ilegible, ".agents/skills/kitlegal.json"),
@@ -105,7 +105,7 @@ func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 		{
 			nombre: "la ruta de --dir es un enlace a un directorio con una instalación",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir("fuera"), "plazos-y-territorio").escribir()
 				d.enlace("destino", "fuera")
 			},
 			invocacion:   instalacion.Invocacion{Dir: texto("destino")},
@@ -122,18 +122,18 @@ func casosDeAmbitoIlegible() []casoDeAmbitoIlegible {
 		{
 			nombre: "local con una entrada de antigravity, que solo tiene el global",
 			preparar: func(d *discoEnMemoria) {
-				i := instalarLocal(d, "legal-core")
-				i.manifiesto.Skills["legal-core"] = conEntrada(i.manifiesto.Skills["legal-core"], "antigravity",
-					instalacion.EntradaDeHost{Ruta: ".gemini/config/skills/legal-core", Modo: instalacion.ModoEnlace})
+				i := instalarLocal(d, "plazos-y-territorio")
+				i.manifiesto.Skills["plazos-y-territorio"] = conEntrada(i.manifiesto.Skills["plazos-y-territorio"], "antigravity",
+					instalacion.EntradaDeHost{Ruta: ".gemini/config/skills/plazos-y-territorio", Modo: instalacion.ModoEnlace})
 				i.escribir()
 			},
 			motivo:       conflicto(conEntradasDeHost, ".agents/skills/kitlegal.json"),
-			noExaminadas: []string{".agents/skills/legal-core", ".gemini"},
+			noExaminadas: []string{".agents/skills/plazos-y-territorio", ".gemini"},
 		},
 		{
 			nombre: "-g con $HOME/.agents enlazado desde un repositorio de dotfiles",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir(temporal+"/dotfiles/skills"), "legal-core").escribir()
+				instalarEn(d, instalacion.NuevoAmbitoDir(temporal+"/dotfiles/skills"), "plazos-y-territorio").escribir()
 				d.directorio(homeDePrueba)
 				d.enlace(homeDePrueba+"/.agents", temporal+"/dotfiles")
 			},
@@ -294,11 +294,11 @@ func casosDeListado(t *testing.T) []casoDeListado {
 		{
 			nombre: "el directorio neutro sin kitlegal.json, con una skill dentro",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core")
+				instalarLocal(d, "plazos-y-territorio")
 				d.directorio(".claude")
 			},
 			esperado:     sinManifiesto(ambitoLocal),
-			noExaminadas: []string{".agents/skills/legal-core", ".claude"},
+			noExaminadas: []string{".agents/skills/plazos-y-territorio", ".claude"},
 		},
 		{
 			nombre:   "un manifiesto que no declara ninguna skill",
@@ -308,59 +308,59 @@ func casosDeListado(t *testing.T) []casoDeListado {
 		{
 			nombre: "las dos, enlazadas en el host",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio").escribir()
 			},
 			esperado: listadoDe(ambitoLocal, versionDePrueba,
-				listadaEn(ambitoLocal, "boe-legislacion", versionDePrueba, true, instalacion.ModoEnlace),
-				listadaEn(ambitoLocal, "legal-core", versionDePrueba, true, instalacion.ModoEnlace)),
-			noExaminadas: []string{".agents/skills/boe-legislacion", ".agents/skills/legal-core", ".claude"},
+				listadaEn(ambitoLocal, "normativa", versionDePrueba, true, instalacion.ModoEnlace),
+				listadaEn(ambitoLocal, "plazos-y-territorio", versionDePrueba, true, instalacion.ModoEnlace)),
+			noExaminadas: []string{".agents/skills/normativa", ".agents/skills/plazos-y-territorio", ".claude"},
 		},
 		{
 			nombre: "una en copia, otra sin host, y cada una de su versión",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("boe-legislacion").
-					skillDeVersion("legal-core", versionVieja).escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("normativa").
+					skillDeVersion("plazos-y-territorio", versionVieja).escribir()
 			},
 			esperado: listadoDe(ambitoLocal, versionDePrueba,
-				listadaEn(ambitoLocal, "boe-legislacion", versionDePrueba, true, instalacion.ModoCopia),
-				listadaEn(ambitoLocal, "legal-core", versionVieja, true)),
+				listadaEn(ambitoLocal, "normativa", versionDePrueba, true, instalacion.ModoCopia),
+				listadaEn(ambitoLocal, "plazos-y-territorio", versionVieja, true)),
 			noExaminadas: []string{".claude"},
 		},
 		{
 			nombre: "una skill que el binario no empotra, de otra versión",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").noEmpotrada("otra-skill", versionVieja).escribir()
+				instalarLocal(d, "plazos-y-territorio").noEmpotrada("otra-skill", versionVieja).escribir()
 			},
 			esperado: listadoDe(ambitoLocal, versionDePrueba,
-				listadaEn(ambitoLocal, "legal-core", versionDePrueba, true),
-				listadaEn(ambitoLocal, "otra-skill", versionVieja, false, instalacion.ModoEnlace)),
+				listadaEn(ambitoLocal, "otra-skill", versionVieja, false, instalacion.ModoEnlace),
+				listadaEn(ambitoLocal, "plazos-y-territorio", versionDePrueba, true)),
 			noExaminadas: []string{".agents/skills/otra-skill", ".claude"},
 		},
 		{
 			nombre: "-g: rutas absolutas",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, deHome, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
+				instalarEn(d, deHome, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
 			},
 			invocacion: global,
 			esperado: listadoDe(deHome, versionDePrueba,
-				listadaEn(deHome, "boe-legislacion", versionDePrueba, true),
-				listadaEn(deHome, "legal-core", versionDePrueba, true, instalacion.ModoEnlace)),
+				listadaEn(deHome, "normativa", versionDePrueba, true),
+				listadaEn(deHome, "plazos-y-territorio", versionDePrueba, true, instalacion.ModoEnlace)),
 		},
 		{
 			nombre: "-g: una skill en los dos hosts, claude primero",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, deHome, "legal-core").copiarEn("antigravity", "legal-core").
-					enlazarEn("claude", "legal-core").escribir()
+				instalarEn(d, deHome, "plazos-y-territorio").copiarEn("antigravity", "plazos-y-territorio").
+					enlazarEn("claude", "plazos-y-territorio").escribir()
 			},
 			invocacion: global,
 			esperado: listadoDe(deHome, versionDePrueba, instalacion.SkillListada{
-				Nombre:    "legal-core",
-				Ruta:      deHome.RutaDeSkill("legal-core"),
+				Nombre:    "plazos-y-territorio",
+				Ruta:      deHome.RutaDeSkill("plazos-y-territorio"),
 				Version:   versionDePrueba,
 				Empotrada: true,
 				Enlaces: []instalacion.Enlace{
-					{Host: "claude", Ruta: deHome.RutaDeHost("claude", "legal-core"), Modo: instalacion.ModoEnlace},
-					{Host: "antigravity", Ruta: deHome.RutaDeHost("antigravity", "legal-core"), Modo: instalacion.ModoCopia},
+					{Host: "claude", Ruta: deHome.RutaDeHost("claude", "plazos-y-territorio"), Modo: instalacion.ModoEnlace},
+					{Host: "antigravity", Ruta: deHome.RutaDeHost("antigravity", "plazos-y-territorio"), Modo: instalacion.ModoCopia},
 				},
 			}),
 			noExaminadas: []string{homeDePrueba + "/.claude", homeDePrueba + "/.gemini"},
@@ -373,10 +373,10 @@ func casosDeListado(t *testing.T) []casoDeListado {
 		},
 		{
 			nombre:     "--dir, con la ruta limpia",
-			preparar:   func(d *discoEnMemoria) { instalarEn(d, enDestino, "legal-core").escribir() },
+			preparar:   func(d *discoEnMemoria) { instalarEn(d, enDestino, "plazos-y-territorio").escribir() },
 			invocacion: instalacion.Invocacion{Dir: texto("destino/")},
 			esperado: listadoDe(enDestino, versionDePrueba,
-				listadaEn(enDestino, "legal-core", versionDePrueba, true)),
+				listadaEn(enDestino, "plazos-y-territorio", versionDePrueba, true)),
 		},
 		{
 			nombre:     "--dir que no existe",
@@ -446,7 +446,7 @@ func probarFallosAlListar(t *testing.T) {
 			t.Parallel()
 
 			d := nuevoDiscoEnMemoria(t)
-			instalarLocal(d, "legal-core").escribir()
+			instalarLocal(d, "plazos-y-territorio").escribir()
 			d.fallar(caso.operacion, caso.ruta, errInyectado)
 
 			listado, err := instalacion.Listar(d, ambitoLocal, empotradasDePrueba())
@@ -471,11 +471,11 @@ func probarSalidaDeList(t *testing.T) {
 	listados := map[string]instalacion.Listado{
 		`{"directorio":".agents/skills","manifiesto":false,"version":null,"skills":[]}`: sinManifiesto(ambitoLocal),
 		`{"directorio":".agents/skills","manifiesto":true,"version":"v0.1.0","skills":[` +
-			`{"nombre":"boe-legislacion","ruta":".agents/skills/boe-legislacion","version":"v0.1.0","empotrada":true,` +
-			`"enlaces":[{"host":"claude","ruta":".claude/skills/boe-legislacion","modo":"enlace"}]},` +
+			`{"nombre":"normativa","ruta":".agents/skills/normativa","version":"v0.1.0","empotrada":true,` +
+			`"enlaces":[{"host":"claude","ruta":".claude/skills/normativa","modo":"enlace"}]},` +
 			`{"nombre":"otra-skill","ruta":".agents/skills/otra-skill","version":"v0.0.9","empotrada":false,` +
 			`"enlaces":[]}]}`: listadoDe(ambitoLocal, versionDePrueba,
-			listadaEn(ambitoLocal, "boe-legislacion", versionDePrueba, true, instalacion.ModoEnlace),
+			listadaEn(ambitoLocal, "normativa", versionDePrueba, true, instalacion.ModoEnlace),
 			listadaEn(ambitoLocal, "otra-skill", versionVieja, false)),
 	}
 

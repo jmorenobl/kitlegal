@@ -976,7 +976,7 @@ func TestGuionDeLasEvalsSinLaDecision(t *testing.T) {
 				variables = append(variables, variableDeLaDecisionDeEvals+"="+decision)
 			}
 
-			orden := exec.CommandContext(t.Context(), guion, skillDeLegalCore)
+			orden := exec.CommandContext(t.Context(), guion, skillDePlazosYTerritorio)
 			orden.Env = sobreLaBase(s.base(), variables, delGuionDeLasEvals...)
 
 			codigo, salida, deError := codigoYSalidas(t, orden)
@@ -1101,19 +1101,19 @@ type casoDelGuionConLoDelJuez struct {
 // TestGuionDeLasEvalsConLoDelJuez fija que scripts/evals.sh pide lo del juez en
 // todo trabajo, y no solo con la carpeta juez en las evals de la skill
 // (contracts/juez-de-las-descripciones.md §3 de H31; FR-026 de H31): con la
-// skill legal-core, que no la tiene, la decisión legible y las demás variables
-// obligatorias, termina con 1 y la línea de la primera de las tres que falta
-// —MODELO_DEL_JUEZ, VERSION_DE_CLAUDE_CODE_DEL_JUEZ o CLAUDE_DEL_JUEZ, que falta
-// también si su ruta no es la de un fichero ejecutable—, con la salida estándar
-// vacía, sin que llegue ninguna sesión al claude sustituto y sin dejar nada en
-// su RUNNER_TEMP. Así las tres banderas del juez llegan a TestEjecucionDelJob en
-// todo trabajo, que es donde vota la descripción de su skill si la decisión lo
-// pide.
+// skill plazos-y-territorio, que no la tiene, la decisión legible y las demás
+// variables obligatorias, termina con 1 y la línea de la primera de las tres
+// que falta —MODELO_DEL_JUEZ, VERSION_DE_CLAUDE_CODE_DEL_JUEZ o
+// CLAUDE_DEL_JUEZ, que falta también si su ruta no es la de un fichero
+// ejecutable—, con la salida estándar vacía, sin que llegue ninguna sesión al
+// claude sustituto y sin dejar nada en su RUNNER_TEMP. Así las tres banderas
+// del juez llegan a TestEjecucionDelJob en todo trabajo, que es donde vota la
+// descripción de su skill si la decisión lo pide.
 func TestGuionDeLasEvalsConLoDelJuez(t *testing.T) {
 	t.Parallel()
 
-	require.NoDirExists(t, filepath.Join(raizDelRepositorio, directorioDeLasEvals, skillDeLegalCore, carpetaDelJuez),
-		"premisa: las evals de legal-core no tienen la carpeta juez")
+	require.NoDirExists(t, filepath.Join(raizDelRepositorio, directorioDeLasEvals, skillDePlazosYTerritorio, carpetaDelJuez),
+		"premisa: las evals de plazos-y-territorio no tienen la carpeta juez")
 
 	guion, err := filepath.Abs(guionDeLasEvals)
 	require.NoError(t, err)
@@ -1130,7 +1130,7 @@ func TestGuionDeLasEvalsConLoDelJuez(t *testing.T) {
 				"RUNNER_TEMP=" + temporal, "TMPDIR=" + temporal, variableDeLaDecisionDeEvals + "=" + decision,
 			}, lasDemasDelGuionDeLasEvals, caso.delJuez(t))
 
-			orden := exec.CommandContext(t.Context(), guion, skillDeLegalCore)
+			orden := exec.CommandContext(t.Context(), guion, skillDePlazosYTerritorio)
 			orden.Env = sobreLaBase(s.base(), variables, delGuionDeLasEvals...)
 
 			codigo, salida, deError := codigoYSalidas(t, orden)

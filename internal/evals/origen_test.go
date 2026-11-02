@@ -14,7 +14,7 @@ import (
 func TestOrigenRecibidoSinLaDescripcion(t *testing.T) {
 	t.Parallel()
 
-	descripcion := &descripcionDeLaDecision{Skill: "legal-core", Huella: strings.Repeat("d", 64), Juzgada: true}
+	descripcion := &descripcionDeLaDecision{Skill: "plazos-y-territorio", Huella: strings.Repeat("d", 64), Juzgada: true}
 	decision := &origenDeLasEvals{
 		Modo:        origenConReutilizacion,
 		Evals:       []origenDeEval{{Eval: "01-plazo.yaml", Medida: true, Motivo: motivoDescripcion}},

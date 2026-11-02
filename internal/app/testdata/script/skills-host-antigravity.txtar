@@ -21,14 +21,14 @@ mkdir $WORK/home/.gemini/config
 mkdir $WORK/proyecto
 cd $WORK/proyecto
 exec kitlegal skills install -g --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/home/\.agents/skills/boe-legislacion","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/boe-legislacion","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/home/\.agents/skills/legal-core","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/home/\.agents/skills/consulta-juridica","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/consulta-juridica","modo":"enlace"\}\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/home/\.agents/skills/jurisprudencia","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/jurisprudencia","modo":"enlace"\}\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/home/\.agents/skills/normativa","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/normativa","modo":"enlace"\}\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/home/\.agents/skills/plazos-y-territorio","estado":"instalada","enlaces":\[\{"host":"antigravity","ruta":"'${WORK@R}'/home/\.gemini/config/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
 ! stderr .
 
-exec readlink $WORK/home/.gemini/config/skills/legal-core
-stdout '\A\.\./\.\./\.\./\.agents/skills/legal-core\n\z'
-cmp $WORK/home/.gemini/config/skills/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+exec readlink $WORK/home/.gemini/config/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
+cmp $WORK/home/.gemini/config/skills/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 grep '"antigravity": *\{' $WORK/home/.agents/skills/kitlegal.json
-grep '"ruta": *"\.gemini/config/skills/legal-core"' $WORK/home/.agents/skills/kitlegal.json
+grep '"ruta": *"\.gemini/config/skills/plazos-y-territorio"' $WORK/home/.agents/skills/kitlegal.json
 ! grep ${WORK@R} $WORK/home/.agents/skills/kitlegal.json
 
 # Nada en el directorio de trabajo, y la segunda vez nada que cambiar.
@@ -42,28 +42,28 @@ stdout '"estado":"sin cambios","enlaces":\[\{"host":"antigravity".*"estado":"sin
 env HOME=$WORK/home-dos
 mkdir $WORK/home-dos/.claude
 mkdir $WORK/home-dos/.gemini/config
-exec kitlegal skills install legal-core -g --json
-stdout '"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home-dos/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\n\z'
+exec kitlegal skills install plazos-y-territorio -g --json
+stdout '"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home-dos/\.claude/skills/plazos-y-territorio","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\n\z'
 exec kitlegal skills list -g --json
-stdout '"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home-dos/\.claude/skills/legal-core","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/legal-core","modo":"enlace"\}\]\}\]\}\}\n\z'
+stdout '"enlaces":\[\{"host":"claude","ruta":"'${WORK@R}'/home-dos/\.claude/skills/plazos-y-territorio","modo":"enlace"\},\{"host":"antigravity","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/plazos-y-territorio","modo":"enlace"\}\]\}\]\}\}\n\z'
 
 # Sin ~/.gemini/config/, doctor lo encuentra y su orden fuerza los dos hosts,
 # de modo que ejecutarla lo arregla.
 rm $WORK/home-dos/.gemini/config
 exec kitlegal skills doctor -g --json
-stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/legal-core","orden":"kitlegal skills install legal-core -g --host claude --host antigravity"\}\]\}\}\n\z'
-exec kitlegal skills install legal-core -g --host claude --host antigravity
+stdout '"hallazgos":\[\{"clase":"enlace a otro sitio","ruta":"'${WORK@R}'/home-dos/\.gemini/config/skills/plazos-y-territorio","orden":"kitlegal skills install plazos-y-territorio -g --host claude --host antigravity"\}\]\}\}\n\z'
+exec kitlegal skills install plazos-y-territorio -g --host claude --host antigravity
 exec kitlegal skills doctor -g --json
 stdout '"hallazgos":\[\]\}\}\n\z'
-exec readlink $WORK/home-dos/.gemini/config/skills/legal-core
-stdout '\A\.\./\.\./\.\./\.agents/skills/legal-core\n\z'
+exec readlink $WORK/home-dos/.gemini/config/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
 
 # --- --host antigravity sin ~/.gemini/: se crea la cadena entera ---
 env HOME=$WORK/home-sin-gemini
 mkdir $WORK/home-sin-gemini
 exec kitlegal skills install -g --host antigravity
-exec readlink $WORK/home-sin-gemini/.gemini/config/skills/boe-legislacion
-stdout '\A\.\./\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+exec readlink $WORK/home-sin-gemini/.gemini/config/skills/normativa
+stdout '\A\.\./\.\./\.\./\.agents/skills/normativa\n\z'
 
 # --- ~/.gemini/ sin config/, el de Gemini CLI: no se enlaza ---
 env HOME=$WORK/home-gemini-cli

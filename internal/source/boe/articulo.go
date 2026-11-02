@@ -257,17 +257,23 @@ func articuloDelBloque(ctx context.Context, en *invocacion, norma *normaDeLaInvo
 //     vigencia de articulo y la más antigua de las fechas de consulta del bloque
 //     y de los metadatos, que es la suya (FR-091, FR-096).
 //
-// Nada de lo que falla se escribe (FR-093).
+// Si el bloque no se obtiene en 1 o en 2, el fallo pasa por fueraDelIndice: con
+// el índice de la norma guardado y sin ese id, es «no encontrado» y nombra el
+// bloque del artículo (ADR 0049). Nada de lo que falla se escribe (FR-093).
 func resolverElBloque[T datosDeEntrada](ctx context.Context, en *invocacion, clave claveDeEntrada[T],
 	norma *normaDeLaInvocacion, bloque string, componer func(leido bloqueLeido, metadatos Metadatos) T,
 ) (consultaResuelta[T], error) {
 	if guardado, resuelto, err := resolverSinPedir(ctx, en, clave); resuelto {
-		return guardado, err
+		if err != nil {
+			return consultaResuelta[T]{}, fueraDelIndice(ctx, en, norma.identificador, bloque, err)
+		}
+
+		return guardado, nil
 	}
 
 	delBloque, err := pedirElBloque(ctx, en, norma.identificador, bloque)
 	if err != nil {
-		return consultaResuelta[T]{}, err
+		return consultaResuelta[T]{}, fueraDelIndice(ctx, en, norma.identificador, bloque, err)
 	}
 
 	metadatos, err := norma.resolverMetadatos(ctx, en)

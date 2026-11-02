@@ -1,0 +1,311 @@
+diff --git a/internal/app/instalacion_test.go b/internal/app/instalacion_test.go
+index a28ef89..0e2032e 100644
+--- a/internal/app/instalacion_test.go
++++ b/internal/app/instalacion_test.go
+@@ -6,6 +6,7 @@ import (
+ 	"errors"
+ 	"fmt"
+ 	"io/fs"
++	"maps"
+ 	"os"
+ 	"path"
+ 	"path/filepath"
+@@ -1256,9 +1257,11 @@ func TestEnsayoDeInstallConRetiradas(t *testing.T) {
+ // contra la parte de su verbo leída de schemas/instalacion.json, y no contra lo
+ // que emite --describe mientras se ejecuta el test. Lo hace toda salida correcta
+ // de install, list y doctor —la de doctor, sin hallazgos—: cada estado y cada
+-// modo de install, la lista de enlaces vacía, los tres ámbitos, la skill
+-// declarada que el binario ya no lleva y, sin manifiesto, la de list y la de
+-// doctor con la versión nula y la lista vacía, que el contrato tiene que admitir.
++// modo de install, también los de la skill de nombre retirado, la retirada y la
++// que no se retira con su aviso (H32, FR-026 y FR-027), la lista de enlaces
++// vacía, los tres ámbitos, la skill declarada que el binario ya no lleva y, sin
++// manifiesto, la de list y la de doctor con la versión nula y la lista vacía,
++// que el contrato tiene que admitir.
+ // La validación restringe: el mismo sobre con una clave de más o de menos en su
+ // data no valida.
+ //
+@@ -1324,6 +1327,14 @@ func salidasDeSkills() []salidaDeSkills {
+ 	soloAlfa := dependenciasDePrueba(disco.Enlazador{})
+ 	soloAlfa.Skills = sinLaSkill(skillsDePrueba(), "beta")
+ 
++	// Un binario anterior que aún empotra una skill de nombre retirado; su
++	// nombre sale de la lista, y no de un literal, por la búsqueda de FR-032.
++	retirado := slices.Sorted(maps.Keys(skillsRetiradas))[0]
++	conLaRetirada := dependenciasDePrueba(disco.Enlazador{})
++	empotradas := skillsDePrueba()
++	empotradas["skills/"+retirado+"/SKILL.md"] = &fstest.MapFile{Data: []byte("# " + retirado + "\n")}
++	conLaRetirada.Skills = empotradas
++
+ 	enlazada := `"modo":"enlace"`
+ 	copiada := `"modo":"copia"`
+ 	absoluta := `"ruta":"/`
+@@ -1363,6 +1374,17 @@ func salidasDeSkills() []salidaDeSkills {
+ 			[]string{"install", "--dir", "mis-skills"},
+ 			[]string{`"ruta":"mis-skills/alfa"`, `"enlaces":[]`},
+ 		},
++		{
++			"install-retirada", instaladoCon(conLaRetirada, sistema, nil, ".claude"),
++			[]string{"install"},
++			[]string{`"nombre":"` + retirado + `"`, `"estado":"retirada","enlaces":[{"host":"claude"`},
++		},
++		{
++			"install-sin-retirar-con-aviso",
++			conElSkillMdEditado(retirado, instaladoCon(conLaRetirada, sistema, nil, ".claude")),
++			[]string{"install"},
++			[]string{`"nombre":"` + retirado + `"`, `"estado":"sin retirar","enlaces":[],"aviso":"`},
++		},
+ 
+ 		{
+ 			"list-sin-manifiesto", sinInstalar(".claude"),
+@@ -1454,6 +1476,20 @@ func instaladoCon(antes, despues DependenciasDeSkills, argumentos []string, carp
+ 	}
+ }
+ 
++// conElSkillMdEditado es la preparación con el SKILL.md de la skill de ese
++// nombre, en el ámbito local, editado después: su directorio ya no es lo que
++// declara el manifiesto.
++func conElSkillMdEditado(nombre string, prepara preparacionDeSkills) preparacionDeSkills {
++	return func(t *testing.T) *Registro {
++		t.Helper()
++
++		registro := prepara(t)
++		escribirEnElProyecto(t, filepath.Join(".agents", "skills", nombre, "SKILL.md"), "Editado a mano.\n")
++
++		return registro
++	}
++}
++
+ // conClaudeEnHome hace de HOME, antes de la preparación, un directorio nuevo con
+ // .claude/ dentro: el host del ámbito global existe, así que install -g enlaza
+ // en él.
+diff --git a/internal/evals/citas.go b/internal/evals/citas.go
+index dbb171b..cd29983 100644
+--- a/internal/evals/citas.go
++++ b/internal/evals/citas.go
+@@ -13,8 +13,18 @@ import (
+ // en letra ni en cifra, como la forma legible de la norma y del bloque; si ese
+ // texto abre otro corchete, la cita es la del corchete interior. El corchete de
+ // cierre delimita el id del bloque, que puede terminar en punto, como a85bis.
+-var formaDeCita = regexp.MustCompile(`\[(?:[^\[\]\n]*[^\[\]\n\p{L}\p{N}])?` +
+-	`(BOE-A-[0-9]{4}-[0-9]{1,9}), bloque ([A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`)
++var formaDeCita = regexp.MustCompile(`\[(?:[^\[\]\n]*[^\[\]\n\p{L}\p{N}])?` + parejaDeLaCita)
++
++// formaUnicaDeCita es la forma única de cita (FR-010 de H32;
++// skills/normativa/references/como_se_cita.md): los corchetes contienen solo el
++// identificador, una coma, la palabra bloque y el id, sin el texto que
++// formaDeCita admite delante del identificador.
++var formaUnicaDeCita = regexp.MustCompile(`\[` + parejaDeLaCita)
++
++// parejaDeLaCita es el final de los corchetes de una cita, común a sus dos
++// formas: el identificador y el id del bloque, sus dos grupos, y el corchete de
++// cierre.
++const parejaDeLaCita = `(BOE-A-[0-9]{4}-[0-9]{1,9}), bloque ([A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`
+ 
+ // Cita es la parte mecánica de una cita de la respuesta de una sesión: la norma y
+ // el bloque citados. Se compara con una CitaEsperada por igualdad exacta de la
+@@ -34,9 +44,22 @@ type Cita struct {
+ // antes del corchete de cierre no es una cita, y la redacción legible, dentro o
+ // fuera de los corchetes, no se lee (FR-008, FR-072).
+ func ExtraerCitas(respuesta string) []Cita {
++	return citasConLaForma(formaDeCita, respuesta)
++}
++
++// citasEnLaFormaUnica devuelve las citas del texto en la forma única
++// (formaUnicaDeCita), en el orden en que aparecen, o nil si no hay ninguna: la
++// cita con la forma legible dentro de los corchetes no cuenta.
++func citasEnLaFormaUnica(texto string) []Cita {
++	return citasConLaForma(formaUnicaDeCita, texto)
++}
++
++// citasConLaForma devuelve la pareja de cada aparición de forma en el texto, en
++// su orden, o nil si no hay ninguna.
++func citasConLaForma(forma *regexp.Regexp, texto string) []Cita {
+ 	var citas []Cita
+ 
+-	for _, partes := range formaDeCita.FindAllStringSubmatch(respuesta, -1) {
++	for _, partes := range forma.FindAllStringSubmatch(texto, -1) {
+ 		citas = append(citas, Cita{Norma: partes[1], Bloque: partes[2]})
+ 	}
+ 
+diff --git a/internal/evals/juzgar.go b/internal/evals/juzgar.go
+index 05a880f..5aa748a 100644
+--- a/internal/evals/juzgar.go
++++ b/internal/evals/juzgar.go
+@@ -199,7 +199,7 @@ type ResultadoDeEval struct {
+ 	// son los códigos de los avisos esperados, en el orden de la eval, cuya forma
+ 	// fija no lleva (ExtraerAvisosDelPlazo). NoCubiertoDeclarado dice, en una de
+ 	// cobertura, si lleva la declaración de no cubierto en su forma fija con la
+-	// norma esperada y la cita de su precepto en la misma línea
++	// norma esperada y la cita de su precepto en la forma única en la misma línea
+ 	// (ExtraerNoCubierto; FR-014 de H32), y PlazoSinCalcularDeclarado, en una de
+ 	// vigencia, si lleva la de un plazo sin calcular con la norma esperada
+ 	// (ExtraerPlazoSinCalcular; ADR 0042). Y LineasDelPlazo son, en las tres, las
+diff --git a/internal/evals/plazos.go b/internal/evals/plazos.go
+index 1c3a8ca..ea7663e 100644
+--- a/internal/evals/plazos.go
++++ b/internal/evals/plazos.go
+@@ -116,7 +116,9 @@ type DeclaracionDeNoCubierto struct {
+ 	// cita, en su orden y con sus repeticiones.
+ 	Normas []string
+ 
+-	// Citas son las citas de la línea con su forma (ExtraerCitas), en su orden.
++	// Citas son las citas de la línea en la forma única (citasEnLaFormaUnica),
++	// en su orden: la que lleva la forma legible dentro de los corchetes no es
++	// una de ellas.
+ 	Citas []Cita
+ }
+ 
+@@ -124,8 +126,9 @@ type DeclaracionDeNoCubierto struct {
+ // la forma fija de la declaración de no cubierto —la marca, la etiqueta NO
+ // CUBIERTO y los dos puntos, con la tolerancia de las etiquetas de los avisos—,
+ // en el orden en que aparecen, o nil si no lleva ninguna; de cada una, los
+-// identificadores BOE-A-… y las citas de esa línea. El identificador y la cita
+-// de otra línea no cuentan, y no lee ninguna otra redacción
++// identificadores BOE-A-… y las citas en la forma única de esa línea. El
++// identificador y la cita de otra línea no cuentan, y no lee ninguna otra
++// redacción
+ // (contracts/evals-legal-core.md §2 de H9; FR-048; contracts/forma-de-cita.md
+ // §4 de H32; FR-014).
+ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
+@@ -135,7 +138,7 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
+ 		if formaDeNoCubierto.MatchString(linea) {
+ 			declaraciones = append(declaraciones, DeclaracionDeNoCubierto{
+ 				Normas: formaDeIdentificador.FindAllString(linea, -1),
+-				Citas:  ExtraerCitas(linea),
++				Citas:  citasEnLaFormaUnica(linea),
+ 			})
+ 		}
+ 	}
+@@ -144,8 +147,9 @@ func ExtraerNoCubierto(respuesta string) []DeclaracionDeNoCubierto {
+ }
+ 
+ // declarada dice si alguna de las declaraciones lleva, en su misma línea, el
+-// identificador de la norma esperada y la cita de su precepto, la pareja exacta
+-// de su norma y su bloque (contracts/forma-de-cita.md §4 de H32; FR-014).
++// identificador de la norma esperada y la cita de su precepto en la forma única,
++// la pareja exacta de su norma y su bloque (contracts/forma-de-cita.md §4 de
++// H32; FR-014).
+ func (e NoCubiertoEsperado) declarada(declaraciones []DeclaracionDeNoCubierto) bool {
+ 	return slices.ContainsFunc(declaraciones, func(deUnaLinea DeclaracionDeNoCubierto) bool {
+ 		return slices.Contains(deUnaLinea.Normas, e.Norma) && slices.Contains(deUnaLinea.Citas, Cita(e.Precepto))
+@@ -222,7 +226,8 @@ func ComprobarCodigosDeAvisoDelPlazo(esquema *jsonschema.Schema) error {
+ // ausente si no, y cada aviso esperado cuya forma fija no lleva la respuesta
+ // (ExtraerAvisosDelPlazo), con el suyo. En una de cobertura, anota si alguna
+ // declaración de no cubierto lleva en su misma línea la norma esperada y la
+-// cita de su precepto (ExtraerNoCubierto; contracts/forma-de-cita.md §4 de H32;
++// cita de su precepto en la forma única (ExtraerNoCubierto;
++// contracts/forma-de-cita.md §4 de H32;
+ // FR-014), con el motivo de la declaración ausente si no, y una línea del
+ // plazo, de la fecha que sea, lleva el suyo. En una de vigencia, lo mismo con la
+ // declaración de un plazo sin calcular con la norma esperada
+diff --git a/internal/evals/plazos_test.go b/internal/evals/plazos_test.go
+index 77a4308..77d55c5 100644
+--- a/internal/evals/plazos_test.go
++++ b/internal/evals/plazos_test.go
+@@ -51,6 +51,13 @@ const (
+ 		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
+ 		"recursos (DA 1ª.2.a LPAC)."
+ 
++	// declaracionDeLaLGTConLaFormaLegible es declaracionDeLaLGT con la forma
++	// legible del precepto dentro de los corchetes, delante del identificador:
++	// la pareja la extrae ExtraerCitas, pero no es la forma única.
++	declaracionDeLaLGTConLaFormaLegible = "⚠ NO CUBIERTO: la aplicación de los tributos se rige por la Ley General " +
++		"Tributaria (" + lgtDeLasCoberturas + "), no por el procedimiento común: kitlegal no calcula sus plazos ni sus " +
++		"recursos [DA 1ª.2.a LPAC, " + lpacDeLasCoberturas + ", bloque " + bloqueDeLasCoberturas + "]."
++
+ 	// avisoDeLosLocales es el texto del aviso faltan-festivos-locales de plazos,
+ 	// tal como lo da data (contracts/applet-plazos.md §5 de H9).
+ 	avisoDeLosLocales = "⚠ FALTAN FESTIVOS LOCALES: kitlegal no tiene los de Tordesillas (47165) de 2026; la fecha " +
+@@ -233,9 +240,9 @@ func probarLasLineasDelPlazo(t *testing.T) {
+ // cada línea con la forma fija ⚠ NO CUBIERTO:, en su orden, con la tolerancia de
+ // la etiqueta, y de cada una, cada identificador BOE-A-… entero de la línea —el
+ // de la norma que rige el procedimiento, sin ella el de la LPAC, y el de la
+-// cita— y cada cita de la línea con su forma (ExtraerCitas). El identificador y
+-// la cita de otra línea no cuentan (contracts/forma-de-cita.md §4 de H32;
+-// FR-014).
++// cita— y cada cita de la línea en la forma única, sin la que lleva la forma
++// legible dentro de los corchetes. El identificador y la cita de otra línea no
++// cuentan (contracts/forma-de-cita.md §4 de H32; FR-014).
+ func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
+ 	t.Parallel()
+ 
+@@ -261,6 +268,11 @@ func probarLasDeclaracionesDeNoCubierto(t *testing.T) {
+ 			respuesta:     declaracionDeLaLGTSinLaCita,
+ 			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas}}},
+ 		},
++		{
++			nombre:        "con-la-forma-legible-en-los-corchetes",
++			respuesta:     declaracionDeLaLGTConLaFormaLegible,
++			declaraciones: []DeclaracionDeNoCubierto{{Normas: []string{lgtDeLasCoberturas, lpacDeLasCoberturas}}},
++		},
+ 		{
+ 			nombre:        "con-enfasis",
+ 			respuesta:     "**⚠ No cubierto:** se rige por la LGT (" + lgtDeLasCoberturas + ") y la LPAC (BOE-A-2015-10565).",
+@@ -466,8 +478,9 @@ func probarElJuicioDeUnPlazo(t *testing.T) {
+ // probarElJuicioDeUnaCobertura fija el juicio de una eval de cobertura: con la
+ // declaración de no cubierto con su norma y la cita de su precepto en la misma
+ // línea, pasa, aunque la respuesta lleve una fecha suelta; sin declaración, con
+-// la de otra norma, con la norma y sin la cita, con la cita de otro bloque, o con
+-// la norma en una línea y la cita en otra —suelta o en otra declaración—, no,
++// la de otra norma, con la norma y sin la cita, con la cita de otro bloque, con
++// la forma legible dentro de los corchetes de la cita, o con la norma en una
++// línea y la cita en otra —suelta o en otra declaración—, no,
+ // con el motivo declaración de no cubierto ausente; con una línea del plazo,
+ // tampoco, con su motivo; y con plazos calcular ejecutado, como orden o como
+ // llamada, tampoco, con el motivo de un comando prohibido, termine como termine
+@@ -499,6 +512,11 @@ func probarElJuicioDeUnaCobertura(t *testing.T) {
+ 			respuesta: strings.Replace(declaracionDeLaLGT, ", bloque "+bloqueDeLasCoberturas+"]", ", bloque a112]", 1),
+ 			juicio:    juicioDelPlazo{motivos: []string{ausente}},
+ 		},
++		{
++			nombre:    "con-la-forma-legible-en-los-corchetes",
++			respuesta: declaracionDeLaLGTConLaFormaLegible,
++			juicio:    juicioDelPlazo{motivos: []string{ausente}},
++		},
+ 		{
+ 			nombre:    "con-la-cita-en-otra-linea",
+ 			respuesta: declaracionDeLaLGTSinLaCita + "\n" + citaDeLaDAPrimera,
+diff --git a/specs/030-h32-arquitectura-de-skills/contracts/forma-de-cita.md b/specs/030-h32-arquitectura-de-skills/contracts/forma-de-cita.md
+index 1ef8415..dfb7b08 100644
+--- a/specs/030-h32-arquitectura-de-skills/contracts/forma-de-cita.md
++++ b/specs/030-h32-arquitectura-de-skills/contracts/forma-de-cita.md
+@@ -58,10 +58,13 @@ misma línea** `⚠ NO CUBIERTO:` (la forma que ya reconoce `formaDeNoCubierto`)
+ 
+ 1. el identificador `no_cubierto.norma` de la eval, como hoy; y
+ 2. la cita, en la forma única, del precepto de su fila: la pareja `no_cubierto.precepto.norma` y
+-   `no_cubierto.precepto.bloque`, extraída de esa línea con `ExtraerCitas` (`internal/evals/citas.go`).
++   `no_cubierto.precepto.bloque` entre corchetes que solo la contienen, `[<norma>, bloque <bloque>]`, extraída de esa
++   línea con `citasEnLaFormaUnica` (`internal/evals/citas.go`). La forma legible dentro de los corchetes, delante del
++   identificador, no es la forma única y no cuenta; `ExtraerCitas`, que la admite y mide las citas esperadas de todas
++   las evals desde H5, no cambia.
+ 
+-`ExtraerNoCubierto` pasa a devolver, por cada línea, sus identificadores y sus citas, y `NoCubiertoDeclarado` exige las
+-dos cosas en la misma línea. El umbral no cambia: `cobertura_sin_declarar`, 0 en cada modo, decide
++`ExtraerNoCubierto` pasa a devolver, por cada línea, sus identificadores y sus citas en la forma única, y
++`NoCubiertoDeclarado` exige las dos cosas en la misma línea. El umbral no cambia: `cobertura_sin_declarar`, 0 en cada modo, decide
+ (`umbralDeCoberturaSinDeclarar`, `internal/evals/umbrales.go`).
+ 
+ `no_cubierto.precepto` lo añade el hito a las evals de cobertura (07, 08 y 12) y al esquema (`schemas/eval.yaml.json`,
+@@ -70,6 +73,6 @@ cada `no_cubierto.precepto` es el `precepto` de una fila de `data/cobertura.yaml
+ la 08, la del tráfico; la 12, la de la Seguridad Social: las tres, `BOE-A-2015-10565` y `daprimera`).
+ 
+ Tests, en `TestJuzgarPlazos` (`internal/evals/plazos_test.go`): una respuesta con la norma esperada y sin la cita del
+-precepto no cuenta como declarada; con la norma en una línea y la cita en otra, tampoco; con las dos en la misma
+-línea, sí. Las respuestas de ejemplo de hoy (`declaracionDeLaLGT`, `declaracionSinNorma`, `declaracionDeLaLeyDeTrafico`,
++precepto no cuenta como declarada; con la forma legible dentro de los corchetes de la cita, tampoco; con la norma en
++una línea y la cita en otra, tampoco; con las dos en la misma línea, sí. Las respuestas de ejemplo de hoy (`declaracionDeLaLGT`, `declaracionSinNorma`, `declaracionDeLaLeyDeTrafico`,
+ `respuestaDeLa12`) pasan a llevar la cita.
+diff --git a/specs/030-h32-arquitectura-de-skills/tasks.md b/specs/030-h32-arquitectura-de-skills/tasks.md
+index 9da6352..0ce71db 100644
+--- a/specs/030-h32-arquitectura-de-skills/tasks.md
++++ b/specs/030-h32-arquitectura-de-skills/tasks.md
+@@ -110,7 +110,7 @@ la cita del precepto.
+ **Independent Test**: `TestSkillsDelRepositorio` (con sus mutantes) y `TestJuzgarPlazos`.
+ 
+ - [X] T010 [US2] Los controles `forma-de-cita` y `formas-compartidas` en internal/app/skills_test.go, subtests de `TestSkillsDelRepositorio` que `make skills-check` corre (FR-010, FR-013, SC-003, SC-004; contracts/forma-de-cita.md §1 y §2; research D17). `forma-de-cita` mira cada `skills/*/SKILL.md` y cada `skills/*/references/*.md`, a mano o generados, línea a línea y también dentro de bloques de código y tablas: toda aparición de `(BOE-A-[0-9]{4}-[0-9]{1,9}|<identificador>), bloque ` tiene que tener `[` delante y casar desde él con `\[(BOE-A-[0-9]{4}-[0-9]{1,9}|<identificador>), bloque (<id>|[A-Za-z0-9][A-Za-z0-9.-]{0,63})\]`; si no, el defecto `<skill>: <fichero>:<línea>: cita de un bloque fuera de la forma única: «<línea>»`, uno por línea; sus mutantes, sobre copias en `t.TempDir()`: una referencia a mano con `(BOE-A-2015-10565, bloque daprimera)`, otra con `[art. 46.1 de la LJCA, BOE-A-1998-16718, bloque a46]` y otra con `[<identificador>, bloque <bloque>]` dan cada una su defecto con su fichero y su línea, y `(BOE-A-2003-23186)`, un identificador en su columna de `normas.md` y «el bloque daprimera de la LPAC» no dan ninguno. `formas-compartidas` toma las líneas de un bloque `text` de cada `skills/*/SKILL.md` que, sin los blancos del principio, empiezan por `⚠ <ETIQUETA>:` (mayúsculas, espacios y cifras hasta los dos puntos) y exige que el conjunto de líneas de cada etiqueta sea el mismo en cada `SKILL.md` que la lleva; si no, `<skill A> y <skill B>: la forma ⚠ <ETIQUETA>: difiere: «<línea de A>» frente a «<línea de B>»`; su mutante, una palabra cambiada en la línea `⚠ SIN CONSULTA AL BOE:` de `normativa` en una copia, da el defecto con las dos skills y la etiqueta. Sobre el repositorio, los dos en verde (las líneas que hoy fallan las cambiaron T006 y T009). Test: `go test -count=1 -run '^TestSkillsDelRepositorio$' -v ./internal/app/`, `make skills-check`, `make ci`
+-- [X] T011 [datos] [US2] La medida de `cobertura_sin_declarar` con la cita del precepto en la misma línea, con el precepto en las tres evals de cobertura y en su esquema, en una sola tarea porque el lector estricto rechaza una clave que el tipo no tiene y el esquema valida toda eval (FR-014, SC-011; contracts/forma-de-cita.md §4; contracts/evals.md §3; data-model §8; research D16). schemas/eval.yaml.json: `no_cubierto: {norma, precepto: {norma, bloque}}`, con `precepto` obligatorio; internal/evals/formato.go: `NoCubiertoEsperado` gana `Precepto` (norma y bloque); internal/evals/plazos.go: `ExtraerNoCubierto` devuelve, por cada línea `⚠ NO CUBIERTO:` (la forma que reconoce `formaDeNoCubierto`), sus identificadores y sus citas (`ExtraerCitas`, internal/evals/citas.go), y `NoCubiertoDeclarado` y `juzgarElPlazo` cuentan como declarada la respuesta solo si una misma línea lleva el identificador `no_cubierto.norma` y la cita en la forma única de `no_cubierto.precepto`; el umbral no cambia (`umbralDeCoberturaSinDeclarar`, 0 en cada modo, decide). En evals/plazos-y-territorio/07-cobertura-liquidacion-tributaria.yaml, evals/plazos-y-territorio/08-cobertura-multa-de-trafico.yaml y evals/plazos-y-territorio/12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml, `precepto: {norma: BOE-A-2015-10565, bloque: daprimera}` y nada más. internal/evals/conjunto.go (o su test de repositorio, internal/evals/conjunto_test.go): cada `no_cubierto.precepto` es el `precepto` de una fila de `data/cobertura.yaml`, con su mutante (un bloque que ninguna fila tiene da el defecto). internal/evals/plazos_test.go, `TestJuzgarPlazos`: la norma esperada sin la cita no cuenta como declarada; la norma en una línea y la cita en otra, tampoco; las dos en la misma línea, sí; `declaracionDeLaLGT`, `declaracionSinNorma`, `declaracionDeLaLeyDeTrafico` y `respuestaDeLa12` llevan la cita. Lo grabado y las sesiones de ejemplo de internal/evals/testdata/ no cambian. Rutas: schemas/eval.yaml.json, internal/evals/ (formato.go, plazos.go, conjunto.go y sus tests, y quien llame a lo que cambia de firma), evals/plazos-y-territorio/07-cobertura-liquidacion-tributaria.yaml, evals/plazos-y-territorio/08-cobertura-multa-de-trafico.yaml, evals/plazos-y-territorio/12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml. Test: `go test -count=1 ./internal/evals/`, `make schema-check`, `make ci`
++- [X] T011 [datos] [US2] La medida de `cobertura_sin_declarar` con la cita del precepto en la misma línea, con el precepto en las tres evals de cobertura y en su esquema, en una sola tarea porque el lector estricto rechaza una clave que el tipo no tiene y el esquema valida toda eval (FR-014, SC-011; contracts/forma-de-cita.md §4; contracts/evals.md §3; data-model §8; research D16). schemas/eval.yaml.json: `no_cubierto: {norma, precepto: {norma, bloque}}`, con `precepto` obligatorio; internal/evals/formato.go: `NoCubiertoEsperado` gana `Precepto` (norma y bloque); internal/evals/plazos.go: `ExtraerNoCubierto` devuelve, por cada línea `⚠ NO CUBIERTO:` (la forma que reconoce `formaDeNoCubierto`), sus identificadores y sus citas en la forma única (`citasEnLaFormaUnica`, internal/evals/citas.go; en la revisión final, en lugar de `ExtraerCitas`, que admite la forma legible dentro de los corchetes), y `NoCubiertoDeclarado` y `juzgarElPlazo` cuentan como declarada la respuesta solo si una misma línea lleva el identificador `no_cubierto.norma` y la cita en la forma única de `no_cubierto.precepto`; el umbral no cambia (`umbralDeCoberturaSinDeclarar`, 0 en cada modo, decide). En evals/plazos-y-territorio/07-cobertura-liquidacion-tributaria.yaml, evals/plazos-y-territorio/08-cobertura-multa-de-trafico.yaml y evals/plazos-y-territorio/12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml, `precepto: {norma: BOE-A-2015-10565, bloque: daprimera}` y nada más. internal/evals/conjunto.go (o su test de repositorio, internal/evals/conjunto_test.go): cada `no_cubierto.precepto` es el `precepto` de una fila de `data/cobertura.yaml`, con su mutante (un bloque que ninguna fila tiene da el defecto). internal/evals/plazos_test.go, `TestJuzgarPlazos`: la norma esperada sin la cita no cuenta como declarada; la norma en una línea y la cita en otra, tampoco; las dos en la misma línea, sí; `declaracionDeLaLGT`, `declaracionSinNorma`, `declaracionDeLaLeyDeTrafico` y `respuestaDeLa12` llevan la cita. Lo grabado y las sesiones de ejemplo de internal/evals/testdata/ no cambian. Rutas: schemas/eval.yaml.json, internal/evals/ (formato.go, plazos.go, conjunto.go y sus tests, y quien llame a lo que cambia de firma), evals/plazos-y-territorio/07-cobertura-liquidacion-tributaria.yaml, evals/plazos-y-territorio/08-cobertura-multa-de-trafico.yaml, evals/plazos-y-territorio/12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml. Test: `go test -count=1 ./internal/evals/`, `make schema-check`, `make ci`
+ 
+ **Checkpoint**: la forma única y las formas compartidas, vigiladas en `make ci`; la cobertura se mide con la cita.
+ 

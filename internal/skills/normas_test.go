@@ -70,6 +70,11 @@ const (
 	materiaDeLaLPAC     = "      - procedimiento administrativo\n"
 )
 
+// defectoDelPatronDeVertical es el defecto de la LPAC con vertical: Fiscal en
+// TestLeerNormas: el campo y el texto del lector, que da el valor y el patrón de
+// schemas/normas.yaml.json.
+const defectoDelPatronDeVertical = "vertical: 'Fiscal' does not match pattern '^[a-z][a-z0-9-]*$'"
+
 // TestLeerNormas fija LeerNormas (contrato normas-y-referencias §3; US6,
 // escenarios 2 y 3; SC-005): una tabla válida da sus normas en el orden del
 // documento, con la abreviatura vacía si no la lleva; cada defecto de una norma
@@ -153,11 +158,38 @@ func TestLeerNormas(t *testing.T) {
 			error: "BOE-A-2015-10565: vertebral: got string, want boolean",
 		},
 		{
+			// El paquete de materia es opcional: la LPAC lo lleva y la LCSP no lo
+			// escribe, así que no es de ninguno (contracts/paquetes.md §1 de H32).
 			nombre: "con-vertical",
 			documento: inicioDeLasNormas +
-				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertical: fiscal\n"),
-			error:   "BOE-A-2015-10565: campo no declarado: vertical",
-			defecto: &skills.DefectoDeNorma{Norma: "BOE-A-2015-10565", Defecto: "campo no declarado: vertical"},
+				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertical: fiscal\n") +
+				normaDeLaLCSP,
+			normas: []skills.Norma{
+				{
+					Identificador: "BOE-A-2015-10565",
+					Titulo:        tituloDeLaLPAC,
+					Rango:         "Ley",
+					Abreviatura:   "LPAC",
+					Materias:      []string{"procedimiento administrativo"},
+					Vertical:      "fiscal",
+				},
+				{
+					Identificador: "BOE-A-2017-12902",
+					Titulo:        tituloDeLaLCSP,
+					Rango:         "Ley",
+					Abreviatura:   "LCSP",
+					Materias:      []string{"contratación pública"},
+				},
+			},
+		},
+		{
+			// El nombre del paquete tiene la forma de un nombre de fichero, en
+			// minúsculas: con una mayúscula, el esquema lo rechaza por su patrón.
+			nombre: "vertical-con-otra-forma",
+			documento: inicioDeLasNormas +
+				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertical: Fiscal\n"),
+			error:   "BOE-A-2015-10565: " + defectoDelPatronDeVertical,
+			defecto: &skills.DefectoDeNorma{Norma: "BOE-A-2015-10565", Defecto: defectoDelPatronDeVertical},
 		},
 		{
 			nombre: "con-campo-no-declarado",
@@ -267,9 +299,9 @@ func TestLeerNormas(t *testing.T) {
 		{
 			nombre: "defectos-en-dos-normas-en-orden-de-linea",
 			documento: inicioDeLasNormas +
-				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    vertical: fiscal\n") +
+				cambiada(t, normaDeLaLPAC, abreviaturaDeLaLPAC, abreviaturaDeLaLPAC+"    estado: vigente\n") +
 				cambiada(t, normaDeLaLRBRL, rangoDeLaLPAC, ""),
-			error: "BOE-A-2015-10565: campo no declarado: vertical\nBOE-A-1985-5392: falta rango",
+			error: "BOE-A-2015-10565: campo no declarado: estado\nBOE-A-1985-5392: falta rango",
 		},
 		{
 			// Sin línea ni campo que nombrar: el defecto va con el texto del lector.
@@ -399,12 +431,36 @@ var leyesVertebrales = []string{
 	"BOE-A-2003-21614",
 }
 
+// paqueteDeLoAdministrativo es el nombre del paquete de materia de lo
+// administrativo: el valor de vertical de sus normas (contracts/paquetes.md §1
+// de H32).
+const paqueteDeLoAdministrativo = "administrativo"
+
+// normasDeLoAdministrativo son los identificadores de las diez normas del
+// paquete de lo administrativo (research D5 de H32; FR-021, FR-022): la LPAC, la
+// LRJSP, la LRJPAC, la LTAIBG, la LRBRL, la LCSP, la LGS, la LGP, el TRLRHL y la
+// LJCA. No lo llevan la base —la Constitución, el Código Civil, la LEC y la
+// LOPJ— ni las normas de otras materias.
+var normasDeLoAdministrativo = []string{
+	"BOE-A-2015-10565",
+	"BOE-A-2015-10566",
+	"BOE-A-1992-26318",
+	"BOE-A-2013-12887",
+	"BOE-A-1985-5392",
+	"BOE-A-2017-12902",
+	"BOE-A-2003-20977",
+	"BOE-A-2003-21614",
+	"BOE-A-2004-4214",
+	"BOE-A-1998-16718",
+}
+
 // TestNormasDelRepositorio comprueba que la tabla de normas del repositorio es
 // válida (US6, escenario 1; FR-021, FR-043): LeerNormas la lee sin ningún
-// defecto, sin campo vertical ni ningún otro que el esquema no declare, y con
-// alguna norma; y la marca vertebral la llevan exactamente las quince leyes de la
-// tabla de leyes vertebrales, ninguna más ni ninguna menos (FR-067, FR-070,
-// SC-010).
+// defecto, sin ningún campo que el esquema no declare, y con alguna norma; la
+// marca vertebral la llevan exactamente las quince leyes de la tabla de leyes
+// vertebrales, ninguna más ni ninguna menos (FR-067, FR-070, SC-010); y
+// vertical: administrativo, exactamente las diez normas de lo administrativo
+// (FR-021, FR-022 de H32).
 func TestNormasDelRepositorio(t *testing.T) {
 	t.Parallel()
 
@@ -429,6 +485,22 @@ func TestNormasDelRepositorio(t *testing.T) {
 		assert.ElementsMatch(t, leyesVertebrales, marcadas,
 			"las normas de %s con vertebral: true son las quince de la tabla de leyes vertebrales",
 			tablaDeNormasDelRepositorio)
+	})
+
+	t.Run("paquete-de-lo-administrativo", func(t *testing.T) {
+		t.Parallel()
+
+		var delPaquete []string
+
+		for _, norma := range normas {
+			if norma.Vertical == paqueteDeLoAdministrativo {
+				delPaquete = append(delPaquete, norma.Identificador)
+			}
+		}
+
+		assert.ElementsMatch(t, normasDeLoAdministrativo, delPaquete,
+			"las normas de %s con vertical: %s son las diez de lo administrativo",
+			tablaDeNormasDelRepositorio, paqueteDeLoAdministrativo)
 	})
 }
 

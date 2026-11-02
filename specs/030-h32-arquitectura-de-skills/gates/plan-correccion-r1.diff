@@ -1,0 +1,161 @@
+diff antes/contracts/evals.md ahora/contracts/evals.md
+--- antes/contracts/evals.md	2026-10-29 11:29:04
++++ ahora/contracts/evals.md	2026-10-29 11:31:54
+@@ -161,11 +161,18 @@
+ 
+ ## 7. Los umbrales del informe (FR-038, SC-010 a SC-015)
+ 
+-Ningún valor cambia. `TestUmbralesDeLasTresSkills` pasa a `TestUmbralesDeLasSkills`, con las cuatro: `normativa` con
+-los 19 de `boe-legislacion`, `jurisprudencia` con sus 19, `plazos-y-territorio` con los 18 de `legal-core`, y
+-`consulta-juridica` con los que dan sus dos evals por las reglas de hoy (`sin_activar` por modo, que decide, y
+-`fuera_de_lo_grabado` y `lectura_sin_intentar` por modelo y modo, que no). `TestLimiteDeLaTasa` y su mutante, con
+-`normativa`. `cobertura_sin_declarar`, con la medida de FR-014.
++Ningún valor cambia y no se añade ningún umbral (FR-038). `TestUmbralesDeLasTresSkills` pasa a
++`TestUmbralesDeLasSkills`, con las cuatro: `normativa` con los 19 de `boe-legislacion`, `jurisprudencia` con sus 19,
++`plazos-y-territorio` con los 18 de `legal-core`, y `consulta-juridica` con los que dan de verdad sus dos evals por las
++reglas de hoy: `fuera_de_lo_grabado:<modelo>:<modo>`, uno por modelo y modo del plan del job, que no decide, y nada
++más de sus respuestas. No tiene `sin_activar` ni ningún otro umbral de las respuestas, porque `medirLasRespuestas`
++(`internal/evals/informe.go`) da nil a una skill sin juez, sentencias ni evals de plazo, de cobertura, de vigencia o
++con una redacción fechada; ni `lectura_sin_intentar`, porque ninguna de sus evals tiene un comando de bloque en su
++`sin_servir` (las `lecturas` de la 01 no lo son). Con la descripción en el informe, lleva además, como las otras
++tres, el de la descripción, `habla_en_primera_o_segunda_persona`, que decide (H31). Lo que decide sobre sus sesiones
++es el veredicto por la regla de cada serie (2 de 3; ADR 0016; SC-015): una sesión que no activa `consulta-juridica` o
++una skill de su `se_activan` no pasa, y una serie que no llega a la regla pone el veredicto en fallo y el job en rojo.
++`TestLimiteDeLaTasa` y su mutante, con `normativa`. `cobertura_sin_declarar`, con la medida de FR-014.
+ 
+ ## 8. La caché de las sesiones (FR-035, SC-012)
+ 
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-10-29 11:29:04
++++ ahora/plan.md	2026-10-29 11:34:06
+@@ -93,7 +93,7 @@
+ ```text
+ specs/030-h32-arquitectura-de-skills/
+ ├── plan.md              # este fichero
+-├── research.md          # decisiones D1–D21, comprobaciones V1–V14, supuestos S1–S5
++├── research.md          # decisiones D1–D21, comprobaciones V1–V16, supuestos S1–S5
+ ├── data-model.md        # entidades: skills, norma con vertical, paquete, regiones, retirada, evals
+ ├── quickstart.md        # escenarios de comprobación, sin efectos en el árbol
+ ├── contracts/
+@@ -139,7 +139,10 @@
+ internal/app/testdata/script/                      # h32-*.txtar (activación); salen h31-1-h31-1-*.txtar; h19-*, nombres nuevos
+ internal/evals/                                    # se_activan, cobertura con cita, reglas, dependencias, tests con nombres nuevos
+ internal/evals/testdata/grabaciones.json           # la entrada de la Ley 50/1980
+-.github/workflows/evals.yml, release.yml           # matriz y nombres
++.github/workflows/evals.yml                        # matriz y nombres
++.github/workflows/release.yml                      # el paso de humo de skills install, con normativa
++skills_test.go                                     # skillsDeHoy, con las cuatro skills de la entrega
++release_test.go                                    # comprobacionesDelHumo: la orden de skills-install, con normativa
+ README.md, web/src/pages/instalar/index.astro      # nombres nuevos (el texto alternativo de la captura, no)
+ docs/SKILLS.md, docs/ADR/0048-…, CHANGELOG.md
+ ```
+@@ -180,13 +183,16 @@
+ | `TestSkillsDelRepositorio`, `normas-nombradas`, presupuestos, frontmatter (tocados) | `skillsExigidas` con los cuatro nombres; las mismas reglas sobre cuatro skills | `internal/app/skills_test.go` |
+ | controles de contenido de `TestEvalsDelRepositorio` (tocados) | los de `boe-legislacion`, sobre `normativa`; los de `legal-core`, sobre `plazos-y-territorio` (SC-001) | `internal/evals/conjunto_test.go` |
+ | reglas de las evals (tocadas y nuevas) | `ReglasDeNormativa`, `ReglasDePlazosYTerritorio`, `ReglasDeConsultaJuridica`; cada skill de capacidad en un `no_se_activan` de otra carpeta; los nombres de `se_activan` y `no_se_activan`, de skills que existen; `no_cubierto.precepto`, de una fila | `internal/evals/conjunto.go`, `conjunto_test.go` |
++| `TestJuzgar` (tocado) | `se_activan`: la sesión que no activa una de sus skills no pasa, con el motivo que la nombra, y la que las activa todas pasa, junto a los casos de `no_se_activan` | `internal/evals/juzgar_test.go` |
+ | `TestJuzgarPlazos` (tocado) | la medida de `cobertura_sin_declarar` con la cita del precepto en la misma línea | `internal/evals/plazos_test.go` |
+ | `TestDefinicionDelJob` (tocado) | la matriz de cuatro skills, once sesiones, el peor caso recalculado | `internal/evals/definicion_test.go` |
+ | `TestEleccionDeLosMutantes` (tocado) | una referencia de un paquete y `data/cobertura.yaml` eligen las evals de la skill que la enlaza | `internal/evals/eleccion_test.go` |
+-| umbrales del informe (tocados) | `TestUmbralesDeLasSkills` con cuatro skills y los valores de hoy; `TestLimiteDeLaTasa` con `normativa` | `internal/evals/informe_test.go`, `tasa_test.go` |
++| umbrales del informe (tocados) | `TestUmbralesDeLasSkills` con cuatro skills y los valores de hoy: `consulta-juridica`, de sus respuestas, solo con `fuera_de_lo_grabado` por modelo y modo, que no decide, sin `sin_activar` ni `lectura_sin_intentar` ([contracts/evals.md](contracts/evals.md) §7); `TestLimiteDeLaTasa` con `normativa` | `internal/evals/informe_test.go`, `tasa_test.go` |
+ | `TestCacheDeLasSesiones` (tocado) | los bloques de la eval de la póliza; las carpetas nuevas | `internal/evals/preparar_test.go` |
+ | `TestIdentificadoresDeLasNormas` (tocado) | la Ley 50/1980 contra el manifiesto de H9 | `internal/evals/grabaciones_test.go` |
+ | `make schema-check` (tocado) | `schemas/instalacion.json` regenerado | `esquemas_test.go` |
++| `TestSkillsEmpotradas` (tocado) | `skillsDeHoy` pasa a `consulta-juridica`, `jurisprudencia`, `normativa` y `plazos-y-territorio`: con los nombres de `c991808`, `require.Subset` sale en rojo en cuanto el árbol los pierde (FR-005, FR-007) | `skills_test.go` de la raíz |
++| `TestConfiguracionDeLaRelease`, subtest `humo` (tocado) | la orden `if [ ! -f .agents/skills/normativa/SKILL.md ]; then` de la comprobación `skills-install` de `comprobacionesDelHumo`, copia de la del paso de `.github/workflows/release.yml` (su nombre, el `if` y el `echo`), que cambia a la vez por FR-032: `normativa` hereda de `boe-legislacion` lo que el paso comprobaba | `release_test.go` de la raíz |
+ | `TestEntregaDelHito` (tocado) | los seis `h32-*`; los `h19-*` y `skills-*` con los nombres nuevos; salen los `h31-1-*` | `internal/app/e2e_test.go` |
+ | fixtures | nuevos: la grabación de la Ley 50/1980 (`internal/evals/testdata/boe.legislacion-consolidada/`), la vertical de ensayo; modificados: los guiones de `internal/app/testdata/script/` y `internal/skills/testdata/script/` que nombran las skills de hoy | tareas `[datos]` |
+ 
+@@ -215,7 +221,7 @@
+ | FR-038 | 0 cambios que una skill carga sin elegir sus evals, también una referencia de un paquete | `TestEleccionDeLosMutantes` | `ci:internal/evals/eleccion_test.go:TestEleccionDeLosMutantes` |
+ | FR-035, SC-012 | 0 bloques de las `lecturas` de las evals 14, 15 y 17, y de la eval de la póliza, sin servir sin fecha y con `--fecha 9999-12-31`; la preparación da la falta y no abre la sesión | `TestCacheDeLasSesiones` y `TestLecturaDeLaEvalSinGrabar` | `ci:internal/evals/preparar_test.go:TestCacheDeLasSesiones`, `ci:internal/evals/preparar_test.go:TestLecturaDeLaEvalSinGrabar` |
+ | FR-039, SC-008 | ≤ 11 sesiones a la vez; tope ≥ peor caso de cada trabajo; ninguna skill de la entrega fuera y ningún nombre retirado dentro | `TestDefinicionDelJob` | `ci:internal/evals/definicion_test.go:TestDefinicionDelJob` |
+-| FR-035, FR-036, SC-015 | 0 sesiones sin activar su skill, en cada modo, decide; una eval que decide y no pasa por la regla de su serie pone el veredicto en fallo | `sin_activar` y el veredicto del informe (`veredictoDelInforme`), con `se_activan` como motivo de la sesión | `evals:consulta-juridica:sin_activar:claude-sonnet-5-5:orden`, `evals:consulta-juridica:sin_activar:claude-sonnet-5-5:herramienta`, `evals:normativa:sin_activar:claude-sonnet-5-5:orden`, `evals:normativa:sin_activar:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:herramienta`, `evals:plazos-y-territorio:sin_activar:claude-sonnet-5-5:orden`, `evals:plazos-y-territorio:sin_activar:claude-sonnet-5-5:herramienta`, `ci:internal/evals/informe_test.go:TestInforme` |
++| FR-035, FR-036, SC-015 | cada eval que decide pasa por la regla de su serie (2 de 3; ADR 0016), y una que no pasa pone el veredicto de su skill en fallo y el job en rojo: en `consulta-juridica`, que no publica `sin_activar` ([contracts/evals.md](contracts/evals.md) §7), es lo único que decide sobre sus sesiones, y una sesión que no activa la skill o una de su `se_activan` no pasa; en `normativa`, `jurisprudencia` y `plazos-y-territorio`, además, 0 sesiones sin activar su skill en cada modo, decide | el motivo de `se_activan` en el juicio de la sesión (`anotarLasQueSeActivan`); el veredicto del informe por la regla de cada serie (`veredictoDelInforme`, sin cambios); `sin_activar` en las tres skills que lo publican | `ci:internal/evals/juzgar_test.go:TestJuzgar`, `ci:internal/evals/informe_test.go:TestInforme`, `evals:normativa:sin_activar:claude-sonnet-5-5:orden`, `evals:normativa:sin_activar:claude-sonnet-5-5:herramienta`, `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:sin_activar:claude-sonnet-5-5:herramienta`, `evals:plazos-y-territorio:sin_activar:claude-sonnet-5-5:orden`, `evals:plazos-y-territorio:sin_activar:claude-sonnet-5-5:herramienta` |
+ | SC-013 | los demás umbrales con `decide: true` de cada skill, con los valores de hoy | los de `umbralesDelInforme`, sin cambios | `evals:normativa:redaccion_sin_fechar:claude-sonnet-5-5:orden`, `evals:normativa:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:jurisprudencia:cita_sin_documento:claude-sonnet-5-5:orden`, `evals:jurisprudencia:documento_sin_cotejar:claude-sonnet-5-5:orden`, `evals:jurisprudencia:medida_del_juez:afirma_lo_no_leido:defectos_sin_marcar`, `evals:plazos-y-territorio:plazo_sin_fecha:claude-sonnet-5-5:orden`, `evals:plazos-y-territorio:vigencia_sin_declarar:claude-sonnet-5-5:orden`, `evals:plazos-y-territorio:redaccion_sin_fechar:claude-sonnet-5-5:orden`, y los mismos en `herramienta`; `ci:internal/evals/informe_test.go:TestUmbralesDeLasSkills` |
+ 
+ `cuenta_su_proceso` (SC-014) y `fuera_de_lo_grabado` se publican sin decidir, como hoy: no son umbrales que decidan. El
+@@ -269,6 +275,7 @@
+ | `instalacion.Retiradas`, la retirada, el aviso, los estados y `aviso` en `data` | FR-025 a FR-029 |
+ | `TestSkillsRetiradas`; `h32-retiradas` | FR-025, FR-031 |
+ | los nombres de hoy fuera de `internal/`, `README.md`, `release.yml`, `evals.yml`, la página `/instalar/` | FR-032 |
++| `skillsDeHoy` (`skills_test.go`) y la orden del humo (`release_test.go`), en la raíz | FR-005, FR-007 (los nombres de `c991808` salen del árbol), FR-032 (el paso de `release.yml`), SC-001 |
+ | la retirada de los guiones de H31.1 | FR-040 |
+ | `docs/SKILLS.md`, el ADR 0048, `CHANGELOG.md` | FR-041, FR-042, FR-043 |
+ 
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-10-29 11:29:04
++++ ahora/quickstart.md	2026-10-29 11:33:05
+@@ -9,10 +9,13 @@
+ ```sh
+ make skills-check
+ go test -count=1 -run '^TestSkillsDelRepositorio$' ./internal/app/
++go test -count=1 -run '^(TestSkillsEmpotradas|TestConfiguracionDeLaRelease)$' .
+ ```
+ 
+-Esperado: los dos en verde. El segundo corre, con sus mutantes, `forma-de-cita` y `formas-compartidas` (los controles
+-nuevos de FR-010 y FR-013) y los de hoy (`normas-nombradas`, `sin-instrucciones-de-evals`, presupuestos, regiones).
++Esperado: los tres en verde. El segundo corre, con sus mutantes, `forma-de-cita` y `formas-compartidas` (los controles
++nuevos de FR-010 y FR-013) y los de hoy (`normas-nombradas`, `sin-instrucciones-de-evals`, presupuestos, regiones). El
++tercero, los dos tests de la raíz que nombran las skills: `skillsDeHoy` con las cuatro de la entrega y la orden del
++humo de `skills install` con `normativa` (research D19).
+ 
+ Las cuatro skills, y el cuerpo de cada una medido como el gate:
+ 
+@@ -91,7 +94,7 @@
+ ## 6. Las evals, el job y la elección (FR-014, FR-033 a FR-039; SC-008)
+ 
+ ```sh
+-go test -count=1 -run '^(TestEvalsDelRepositorio|TestDefinicionDelJob|TestEleccionDeLosMutantes|TestLimiteDeLaTasa|TestCacheDeLasSesiones|TestJuzgarPlazos|TestIdentificadoresDeLasNormas)$' ./internal/evals/
++go test -count=1 -run '^(TestEvalsDelRepositorio|TestDefinicionDelJob|TestEleccionDeLosMutantes|TestLimiteDeLaTasa|TestUmbralesDeLasSkills|TestCacheDeLasSesiones|TestJuzgar|TestJuzgarPlazos|TestIdentificadoresDeLasNormas)$' ./internal/evals/
+ git diff --find-renames --name-status c991808 -- evals/
+ ```
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-10-29 11:29:04
++++ ahora/research.md	2026-10-29 11:33:14
+@@ -192,13 +192,23 @@
+   BOE da: son datos de un test, no normas de la base.
+ - **Rechazada**: ponerlo en `internal/app`, que no es donde vive lo que prueba.
+ 
+-### D19 · Los nombres de hoy en los tests y los comentarios de `internal/` (FR-032)
++### D19 · Los nombres de hoy en los tests y los comentarios (FR-032)
+ 
+ - **Decisión**: donde un test o un comentario nombra una skill para operar con ella, pasa al nombre de la entrega
+   (`ReglasDeBoeLegislacion` → `ReglasDeNormativa`, `skillBoeLegislacion`, las rutas de `evals/` y `skills/`, los nombres
+   de ejemplo de `internal/core/instalacion`). Donde un test compara con una sesión grabada, conserva el nombre que la
+-  grabación lleva, como dato.
+-- **Por qué**: FR-032 busca en `internal/`; lo grabado no se reescribe (constitución) y está fuera de la búsqueda.
++  grabación lleva, como dato. Lo mismo vale para los dos tests de la raíz que `make ci` corre y que nombran una skill
++  de hoy (`git grep -n -E 'boe-legislacion|legal-core' -- '*.go' ':!internal/'`, en esta sesión): `skillsDeHoy`
++  (`skills_test.go`, línea 36), que `TestSkillsEmpotradas` exige con `require.Subset`, pasa a las cuatro skills de la
++  entrega; y la orden de la comprobación `skills-install` de `comprobacionesDelHumo` (`release_test.go`, línea 1261),
++  copia de la del paso de `.github/workflows/release.yml` que FR-032 cambia, pasa a
++  `.agents/skills/normativa/SKILL.md`, a la vez que el paso (su nombre, el `if` y el `echo`).
++- **Por qué**: FR-032 busca en `internal/` y en `.github/workflows/`; lo grabado no se reescribe (constitución) y está
++  fuera de la búsqueda. Los dos tests de la raíz quedan fuera de esa búsqueda, pero el renombrado los pone en rojo en
++  `make ci` (SC-001): el primero, porque el árbol pierde los nombres de `c991808`; el segundo, porque fija entera la
++  orden del paso. El humo comprueba `normativa` porque hereda de `boe-legislacion` lo que el paso comprobaba.
++- **Rechazada**: dejar `skillsDeHoy` con solo las dos herederas; la lista dice las skills que el repositorio tiene, y
++  con las cuatro la comparación entre lo empotrado y el árbol tampoco pasa en vacío.
+ 
+ ### D20 · El ADR del hito: 0048 (FR-042)
+ 
+@@ -229,13 +239,15 @@
+ | V12 | Los `materias` de las 18 normas de `data/normas.yaml`; `internal/skills/normas_test.go` es `package skills_test` e importa `internal/evals` | `data/normas.yaml`; cabecera de `internal/skills/normas_test.go` |
+ | V13 | Las skills se empotran con `//go:embed skills/*/SKILL.md skills/*/references/*`: una referencia de un paquete en `references/` viaja en el binario | `skills.go`, línea 24 |
+ | V14 | Los borradores cumplen FR-010 (ninguna cita de un bloque fuera de la forma), FR-013 (las tres líneas compartidas, iguales) y FR-021 (ninguna norma del paquete en los cuerpos; solo en las descripciones) | `grep -nE` sobre `contracts/borradores/` en esta sesión |
++| V15 | Fuera de `internal/`, solo dos `.go` nombran una skill de hoy: `skills_test.go:36` (`skillsDeHoy`, que `TestSkillsEmpotradas` exige con `require.Subset`) y `release_test.go:1261` (la orden de `skills-install` en `comprobacionesDelHumo`, que `probarHumo` compara con el paso de `release.yml`, líneas 189 a 198); los dos pasan hoy y corren en `make test` (`./...`) | `git grep -n -E 'boe-legislacion\|legal-core' -- '*.go' ':!internal/'` y `go test -count=1 -run '^(TestSkillsEmpotradas\|TestConfiguracionDeLaRelease)$' .`, en verde, en la sesión del corrector del plan |
++| V16 | Una skill sin juez, sentencias ni evals de plazo, de cobertura, de vigencia o con una redacción fechada no tiene umbrales de sus respuestas, tampoco `sin_activar`; `lectura_sin_intentar` pide un comando de bloque en `sin_servir`; el de la descripción va con la descripción en el informe | `medirLasRespuestas` (`internal/evals/informe.go`, líneas 1584 a 1595), `internal/evals/doc.go` (líneas 219 y 220, 232 a 238) y el comentario de `Nombre` en `internal/evals/umbrales.go` (líneas 249 a 255) |
+ 
+ ## Supuestos no verificados
+ 
+ | # | Supuesto | Qué pasa si no se cumple |
+ |---|---|---|
+ | S1 | La búsqueda «contrato de seguro» del BOE da la Ley 50/1980 con un título que empieza por «Ley 50/1980,», y su índice tiene los bloques `a4` y `a22` | `grabar_datos` falla nombrando la entrada: causa mayor del run (dependencia externa inaccesible, supuesto del spec); una persona corrige la entrada del manifiesto y reanuda |
+-| S2 | La sesión que activa `consulta-juridica` activa después la skill de la capacidad que la pregunta pide | lo mide el job de cierre: `se_activan` y `sin_activar` deciden (SC-015) |
++| S2 | La sesión que activa `consulta-juridica` activa después la skill de la capacidad que la pregunta pide | lo mide el job de cierre: la sesión que no activa la skill de su `se_activan` no pasa, y la serie de la eval decide por su regla (SC-015); `consulta-juridica` no publica `sin_activar` ([contracts/evals.md](contracts/evals.md) §7) |
+ | S3 | La sesión de la póliza cita el art. 22, el de la prórroga | lo mide el job de cierre (SC-015) |
+ | S4 | `git diff --find-renames` detecta como renombrados los ficheros de `evals/` con una o dos líneas cambiadas (umbral por omisión del 50 % según la documentación de git, no consultada sin red) | `git diff --find-renames=90%` lo dice igual; lo coteja la revisión final (FR-033) |
+ | S5 | El límite de seis horas de un trabajo de un runner de GitHub | no se usa: el tope no cambia (D15) |

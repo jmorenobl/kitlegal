@@ -635,8 +635,9 @@ type respuestaDelJuez struct {
 	// dePlazo dice si su eval es de plazo, y sinFecha, si además su respuesta no
 	// lleva la línea del plazo con la fecha esperada; deCobertura, si su eval es
 	// de cobertura, y sinDeclarar, si además su respuesta no lleva la
-	// declaración de no cubierto con la norma esperada o lleva una línea del
-	// plazo; deVigencia, si su eval es de vigencia, y sinCalcularSinDeclarar, si
+	// declaración de no cubierto con la norma esperada y la cita de su precepto
+	// en la misma línea (FR-014 de H32) o lleva una línea del plazo; deVigencia,
+	// si su eval es de vigencia, y sinCalcularSinDeclarar, si
 	// además su respuesta no lleva la declaración del plazo sin calcular con la
 	// norma esperada o lleva una línea del plazo (ADR 0042). Todos falsos si
 	// ninguna eval de la skill es de plazo, de cobertura ni de vigencia y no se
@@ -830,8 +831,9 @@ func (g grupoJuzgado) deLasEvalsDeCobertura() []respuestaDelJuez {
 }
 
 // sinLaDeclaracion son, de las respuestas del grupo cuya eval es de cobertura,
-// las que no llevan la declaración de no cubierto con la norma esperada o
-// llevan una línea del plazo, en orden de sesión: la medida de
+// las que no llevan la declaración de no cubierto con la norma esperada y la
+// cita de su precepto en la misma línea (FR-014 de H32) o llevan una línea del
+// plazo, en orden de sesión: la medida de
 // cobertura_sin_declarar de su modo y las que nombra su motivo. Cada sesión
 // cuenta una vez como mucho, le falte lo uno, le sobre lo otro o las dos cosas
 // (FR-054, FR-055 de H9).
@@ -1699,7 +1701,8 @@ func (r *respuestasMedidas) medirLosCotejos(evals []Eval, sesiones []sesionJuzga
 // las suyas, con lo que el juicio sin modelo de su sesión leyó de su respuesta
 // (juzgarElPlazo): la de plazo, si no lleva la línea del plazo con la fecha
 // esperada; y la de cobertura, si no lleva la declaración de no cubierto con la
-// norma esperada o lleva una línea del plazo de la fecha que sea
+// norma esperada y la cita de su precepto en la misma línea (FR-014 de H32) o
+// lleva una línea del plazo de la fecha que sea
 // (contracts/evals-legal-core.md §3 de H9; data-model §3 de H9; FR-053 a FR-055
 // de H9). Una fecha suelta en el texto no es una línea del plazo, y los avisos
 // del plazo no cuentan aquí, sino en la serie (FR-057 de H9). Son las respuestas

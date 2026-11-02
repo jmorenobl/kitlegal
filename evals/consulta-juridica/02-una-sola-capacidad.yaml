@@ -1,0 +1,15 @@
+# Eval positiva de la skill de entrada con una pregunta que resuelve una sola capacidad, la de normativa: se activan la
+# de entrada y la de esa capacidad, y ninguna de las otras dos. La norma y el bloque son los de la eval 10 de normativa,
+# ya grabados: el art. 38 del Estatuto de los Trabajadores (bloque a38) (FR-036, FR-037; contracts/evals.md §2 de H32;
+# research D14 de H32).
+pregunta: "¿Qué dice el Estatuto de los Trabajadores sobre los días de vacaciones al año?"
+activa: true
+se_activan: [normativa]
+no_se_activan: [jurisprudencia, plazos-y-territorio]
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-11430
+    bloque: a38
+citas:
+  - norma: BOE-A-2015-11430
+    bloque: a38

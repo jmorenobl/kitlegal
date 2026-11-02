@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Los modelos del job de cierre de boe-legislacion (contrato informe-del-job §1
+// Los modelos del job de cierre de normativa (contrato informe-del-job §1
 // de H7.3; ADR 0031): el que decide y el que solo se publica, con los que
 // TestUmbralesDelInforme y TestInformeMarkdownDeLosUmbrales arman sus
 // ejecuciones; y modeloSonnet5, el que decidía hasta el ADR 0031, con el que
@@ -260,7 +260,7 @@ const (
 func TestUmbralesDelInforme(t *testing.T) {
 	t.Parallel()
 
-	// comoElJob es la ejecución del cierre de boe-legislacion desde H7.4: 18
+	// comoElJob es la ejecución del cierre de normativa desde H7.4: 18
 	// evals que activan la skill, 8 de ellas informativas, con Sonnet 5.5 y Haiku
 	// 4.5 (54 respuestas del que decide, y 30 sesiones de Haiku 4.5, que abre
 	// solo las 10 que deciden); minima, con una de cada clase (6, y 3). Las dos,
@@ -680,7 +680,7 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 // respuestas del modelo que decide por modo, y el objetivo de duración del
 // job—, escrita con EscribirInforme en t.TempDir(), y un votante de votos
 // grabados que marca con tres síes las respuestas del caso. La carpeta del juez
-// de esa ejecución lleva la clases.yaml de evals/boe-legislacion/juez, leída
+// de esa ejecución lleva la clases.yaml de evals/normativa/juez, leída
 // del repositorio: el umbral con el que el informe compara es el dato que leerá
 // el job y no una copia, y lo que el test espera de él va escrito a mano
 // —0.028, «≤ 2,8 %», 3 de 108—, de modo que otro valor en el repositorio no
@@ -708,7 +708,7 @@ func TestUmbralesConJuezYConSentencias(t *testing.T) {
 // 104—, y deciden nueve; desde H26.1, detrás de ellos, los cuatro
 // fuera_de_lo_grabado, que no deciden. Y con las tres en un modo, su recuento
 // y el conjunto están escritos en informe.json como los dos ejemplos de
-// boe-legislacion del contrato: tal cual en 0-y-3, que es el informe de esos
+// normativa del contrato: tal cual en 0-y-3, que es el informe de esos
 // ejemplos.
 func TestUmbralConjunto(t *testing.T) {
 	t.Parallel()
@@ -716,7 +716,7 @@ func TestUmbralConjunto(t *testing.T) {
 	comoElCierre := ejecucionConUmbrales{
 		queDeciden: 10, informativas: 8, conHaiku: true, dosModos: true,
 		duracion: 500, duracionEnHerramienta: 600, objetivo: 900,
-		clasesDelJuez: string(contenidoDelFichero(t, filepath.Join(evalsDelRepositorio, clasesEnElJuez))),
+		clasesDelJuez: string(contenidoDelFichero(t, filepath.Join(evalsDeNormativa, clasesEnElJuez))),
 	}
 
 	for _, caso := range casosDelUmbralConjunto() {
@@ -747,7 +747,7 @@ const (
 	frasesDel32Y33             = "«" + fraseDelArticulo32 + "» · «" + fraseDeLosArticulos32Y33 + "» · «" + fraseDelArticulo33 + "»"
 )
 
-// Los dos ejemplos de boe-legislacion de contracts/umbrales-del-informe.md §2 y
+// Los dos ejemplos de normativa de contracts/umbrales-del-informe.md §2 y
 // §3 de H26, tal cual: el umbral conjunto con 3 marcadas de 108, que se cumple
 // y decide, y el recuento del modo herramienta de ese mismo informe, con las
 // tres, que no se cumple y no decide.
@@ -881,7 +881,7 @@ const limiteDeLas104 = 3.0 / 104
 // los de umbralesConJuez con las marcadas y las respuestas juzgadas de cada
 // modo, que dan al conjunto la suma de unas y la de otras, y con las dos
 // tandas en su objetivo; y en los tres de afirma_lo_no_leido —el 2, el 5 y el 7
-// de los trece—, la tasa de la declaración de boe-legislacion, 0.028 —en el
+// de los trece—, la tasa de la declaración de normativa, 0.028 —en el
 // conjunto, el umbralDelConjunto del caso, si lo lleva—, y si la cumple cada
 // uno. Detrás, desde H26.1, los cuatro fuera_de_lo_grabado, con
 // medida 0 sobre las sesiones medidas de cada modelo en cada modo: 54 y 30,
@@ -1009,7 +1009,7 @@ func exigirElRecuentoConLasTres(modo Modo) func(t *testing.T, leido informeLeido
 // TestUmbralConjuntoConMenosRespuestas fija el umbral conjunto de la clase que
 // decide con menos respuestas medidas que las que su plan da a juzgar
 // (contracts/informe-del-job.md §4 de H30; data-model §9; research D12;
-// FR-024): el ejemplo del contrato, boe-legislacion con 60 respuestas medidas,
+// FR-024): el ejemplo del contrato, normativa con 60 respuestas medidas,
 // 30 por modo, de las de su plan —el del job con sus evals y su clases.yaml,
 // leídos del repositorio—. El límite es k(60) = 2, donde la proporción con el
 // umbral de la clase daría 1, y publica 2/60, con el que la comparación de
@@ -1031,9 +1031,9 @@ func TestUmbralConjuntoConMenosRespuestas(t *testing.T) {
 	delJob, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
 	require.NoError(t, err)
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
-	require.NotNil(t, conjunto.Juez, "boe-legislacion tiene juez")
+	require.NotNil(t, conjunto.Juez, "normativa tiene juez")
 
 	delPlan := respuestasDelPlanDelJob(t, delJob, conjunto)
 	require.Greater(t, delPlan, 2*porModo, "las 60 son menos que las de su plan")
@@ -1306,7 +1306,7 @@ func votosDeUnJuezQueDiceNo(ejecucion ejecucionConUmbrales, umbrales []Umbral) i
 }
 
 // exigirLosTreceDelContrato exige, del caso 900-s-en-los-dos-modos y de cada
-// uno de TestUmbralConjunto, los trece elementos de umbrales de boe-legislacion
+// uno de TestUmbralConjunto, los trece elementos de umbrales de normativa
 // de contracts/umbrales-del-informe.md §1 de H26, en su orden, cada uno con su
 // nombre, su descripción y su decide, escritos a mano: deciden nueve —el
 // recuento de afirma_lo_no_leido de cada modo no, y su umbral conjunto, detrás
@@ -1487,7 +1487,7 @@ func exigirLaDeNoActivacionSinContar(t *testing.T, leido informeLeido) {
 func exigirLasTresConExpresionesQuePasan(t *testing.T, leido informeLeido) {
 	t.Helper()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	lista := listaDelRepositorio(t, conjunto)
@@ -1567,7 +1567,7 @@ func exigirLaMismaSesionSinActivarConExpresiones(t *testing.T, leido informeLeid
 	assert.Equal(t, []string{misma}, sinActivar)
 	assert.Equal(t, []string{misma}, conExpresiones)
 	assert.Equal(t,
-		[]string{"la activación no coincide: se esperaba que la skill boe-legislacion se activara y no se activó"},
+		[]string{"la activación no coincide: se esperaba que la skill " + skillDeLasSesiones + " se activara y no se activó"},
 		resultadoDeLaSesion(t, leido.informe, misma).Motivos)
 }
 

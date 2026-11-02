@@ -262,6 +262,9 @@
         "instalacion.SkillInstalada": {
           "additionalProperties": false,
           "properties": {
+            "aviso": {
+              "type": "string"
+            },
             "enlaces": {
               "items": {
                 "$ref": "#/$defs/instalacion.Enlace"
@@ -272,7 +275,9 @@
               "enum": [
                 "instalada",
                 "actualizada",
-                "sin cambios"
+                "sin cambios",
+                "retirada",
+                "sin retirar"
               ],
               "type": "string"
             },

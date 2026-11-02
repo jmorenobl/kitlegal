@@ -190,7 +190,7 @@ func (a *argumentosDeUnaNorma) Ejecutar(
 // (FR-005, FR-012; research.md D2).
 type argumentosDeArticulo struct {
 	Norma  string  `arg:"" name:"norma" help:"Identificador de la norma en el BOE: BOE-A-<año>-<número>."`
-	Bloque string  `arg:"" name:"bloque" help:"Identificador del bloque en el índice de la norma: a21, da-3…"`
+	Bloque string  `arg:"" name:"bloque" help:"Id del bloque, del campo id de kitlegal boe indice (a21, da-3, a1-30…): no se compone con el número del artículo, que no siempre es su id."`
 	Fecha  *string `placeholder:"AAAA-MM-DD" help:"Día cuya redacción del bloque se quiere, la que regía ese día, en lugar de la vigente."`
 
 	dependencias DependenciasDeBoe
@@ -207,7 +207,7 @@ func (a *argumentosDeArticulo) Ejecutar(
 // el orden pedido y con repeticiones (contrato verbos-y-salidas §4).
 type argumentosDeArticulos struct {
 	Norma   string   `arg:"" name:"norma" help:"Identificador de la norma en el BOE: BOE-A-<año>-<número>."`
-	Bloques []string `arg:"" name:"bloques" help:"Identificadores de los bloques, en el orden en que se quieren."`
+	Bloques []string `arg:"" name:"bloques" help:"Ids de los bloques, del campo id de kitlegal boe indice, en el orden en que se quieren: no se componen con el número del artículo."`
 
 	dependencias DependenciasDeBoe
 }

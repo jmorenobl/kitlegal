@@ -81,9 +81,9 @@ func casosDeConflictosDeAntigravity() []casoDeConflictos {
 		},
 		{
 			nombre:     "carpeta ajena con el nombre de una skill",
-			preparar:   func(d *discoEnMemoria) { d.fichero(skillsDeGeminiDePrueba+"/legal-core/mio.md", "mío") },
+			preparar:   func(d *discoEnMemoria) { d.fichero(skillsDeGeminiDePrueba+"/plazos-y-territorio/mio.md", "mío") },
 			invocacion: global,
-			esperados:  []instalacion.Conflicto{conflicto(carpetaAjena, skillsDeGeminiDePrueba+"/legal-core")},
+			esperados:  []instalacion.Conflicto{conflicto(carpetaAjena, skillsDeGeminiDePrueba+"/plazos-y-territorio")},
 		},
 		{
 			// El destino del enlace de claude sube dos niveles: desde
@@ -91,18 +91,18 @@ func casosDeConflictosDeAntigravity() []casoDeConflictos {
 			// existe, aunque la skill esté instalada en el directorio neutro.
 			nombre: "el enlace con el destino de claude cuelga",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "legal-core").escribir()
-				d.enlace(skillsDeGeminiDePrueba+"/legal-core", "../../.agents/skills/legal-core")
+				instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "plazos-y-territorio").escribir()
+				d.enlace(skillsDeGeminiDePrueba+"/plazos-y-territorio", "../../.agents/skills/plazos-y-territorio")
 			},
 			invocacion: global,
-			esperados:  []instalacion.Conflicto{conflicto(enlaceRoto, skillsDeGeminiDePrueba+"/legal-core")},
+			esperados:  []instalacion.Conflicto{conflicto(enlaceRoto, skillsDeGeminiDePrueba+"/plazos-y-territorio")},
 		},
 		{
 			nombre: "un manifiesto local que declara una entrada de antigravity",
 			preparar: func(d *discoEnMemoria) {
-				i := instalarLocal(d, "legal-core")
-				i.manifiesto.Skills["legal-core"] = conEntrada(i.manifiesto.Skills["legal-core"], "antigravity",
-					instalacion.EntradaDeHost{Ruta: ".gemini/config/skills/legal-core", Modo: instalacion.ModoEnlace})
+				i := instalarLocal(d, "plazos-y-territorio")
+				i.manifiesto.Skills["plazos-y-territorio"] = conEntrada(i.manifiesto.Skills["plazos-y-territorio"], "antigravity",
+					instalacion.EntradaDeHost{Ruta: ".gemini/config/skills/plazos-y-territorio", Modo: instalacion.ModoEnlace})
 				i.escribir()
 			},
 			esperados: []instalacion.Conflicto{conflicto(conEntradasDeHost, ".agents/skills/kitlegal.json")},
@@ -181,15 +181,15 @@ func casosDelPlanDeAntigravity(t *testing.T) []casoDePlan {
 			skills:     lasDosEnHosts(deHome, instalacion.EstadoInstalada, instalacion.ModoCopia, antigravity...),
 			operaciones: slices.Concat([]string{"2 crear " + skillsDeGeminiDePrueba}, nuevo,
 				escribirEnteras(t,
-					deHome.RutaDeSkill("boe-legislacion"), deHome.RutaDeHost("antigravity", "boe-legislacion"),
-					deHome.RutaDeSkill("legal-core"), deHome.RutaDeHost("antigravity", "legal-core"))),
+					deHome.RutaDeSkill("normativa"), deHome.RutaDeHost("antigravity", "normativa"),
+					deHome.RutaDeSkill("plazos-y-territorio"), deHome.RutaDeHost("antigravity", "plazos-y-territorio"))),
 			sondas: []string{configDeGeminiDePrueba},
 		},
 		{
 			nombre: "-g con los enlaces de antigravity ya declarados: sin cambios",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, deHome, "boe-legislacion", "legal-core").
-					enlazarEn("antigravity", "boe-legislacion").enlazarEn("antigravity", "legal-core").escribir()
+				instalarEn(d, deHome, "normativa", "plazos-y-territorio").
+					enlazarEn("antigravity", "normativa").enlazarEn("antigravity", "plazos-y-territorio").escribir()
 			},
 			invocacion: global,
 			skills:     lasDosEnHosts(deHome, instalacion.EstadoSinCambios, instalacion.ModoEnlace, antigravity...),
@@ -213,7 +213,7 @@ func lasDosEnHosts(
 ) []instalacion.SkillInstalada {
 	skills := make([]instalacion.SkillInstalada, 0, 2)
 
-	for _, nombre := range []string{"boe-legislacion", "legal-core"} {
+	for _, nombre := range []string{"normativa", "plazos-y-territorio"} {
 		enlaces := []instalacion.Enlace{}
 		for _, host := range hosts {
 			enlaces = append(enlaces, instalacion.Enlace{Host: host, Ruta: ambito.RutaDeHost(host, nombre), Modo: modo})
@@ -236,7 +236,7 @@ func enlazarLasDosEnHosts(ambito instalacion.Ambito, hosts []string, faltan ...s
 		operaciones = append(operaciones, "2 crear "+dir)
 	}
 
-	for _, nombre := range []string{"boe-legislacion", "legal-core"} {
+	for _, nombre := range []string{"normativa", "plazos-y-territorio"} {
 		for _, host := range hosts {
 			operaciones = append(operaciones,
 				"2 enlazar "+ambito.RutaDeHost(host, nombre)+" -> "+subidaDelHostDePrueba[host]+nombre)
@@ -252,17 +252,17 @@ func enlazarLasDosEnHosts(ambito instalacion.Ambito, hosts []string, faltan ...s
 // modo que reinstala aunque falte .gemini/config (ADR 0025).
 func casosDoctorDeAntigravity() []casoDeDoctor {
 	enAntigravity := func(d *discoEnMemoria) {
-		instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "boe-legislacion", "legal-core").
-			enlazarEn("antigravity", "boe-legislacion").enlazarEn("antigravity", "legal-core").escribir()
+		instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "normativa", "plazos-y-territorio").
+			enlazarEn("antigravity", "normativa").enlazarEn("antigravity", "plazos-y-territorio").escribir()
 	}
 	enLosDos := func(d *discoEnMemoria) {
-		instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "boe-legislacion", "legal-core").
-			enlazarEn("claude", "boe-legislacion").enlazarEn("antigravity", "boe-legislacion").
-			enlazarEn("claude", "legal-core").enlazarEn("antigravity", "legal-core").escribir()
+		instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "normativa", "plazos-y-territorio").
+			enlazarEn("claude", "normativa").enlazarEn("antigravity", "normativa").
+			enlazarEn("claude", "plazos-y-territorio").enlazarEn("antigravity", "plazos-y-territorio").escribir()
 	}
-	hostLcDeGemini := skillsDeGeminiDePrueba + "/legal-core"
-	hostBoeDeGemini := skillsDeGeminiDePrueba + "/boe-legislacion"
-	lc := instala("legal-core") + " -g --host antigravity"
+	hostPlazosDeGemini := skillsDeGeminiDePrueba + "/plazos-y-territorio"
+	hostNormativaDeGemini := skillsDeGeminiDePrueba + "/normativa"
+	plazos := instala("plazos-y-territorio") + " -g --host antigravity"
 
 	return []casoDeDoctor{
 		{nombre: "-g, los enlaces de antigravity sin tocar", preparar: enAntigravity, invocacion: global},
@@ -270,10 +270,10 @@ func casosDoctorDeAntigravity() []casoDeDoctor {
 			nombre: "-g, falta un enlace de antigravity",
 			preparar: func(d *discoEnMemoria) {
 				enAntigravity(d)
-				d.retirar(hostLcDeGemini)
+				d.retirar(hostPlazosDeGemini)
 			},
 			invocacion: global,
-			esperados:  []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLcDeGemini, lc)},
+			esperados:  []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazosDeGemini, plazos)},
 		},
 		{
 			nombre: "-g con los dos hosts y sin .gemini/config: cada orden fuerza los dos",
@@ -283,8 +283,8 @@ func casosDoctorDeAntigravity() []casoDeDoctor {
 			},
 			invocacion: global,
 			esperados: []instalacion.Hallazgo{
-				hallazgo(aOtroSitio, hostBoeDeGemini, instala("boe-legislacion")+" -g --host claude --host antigravity"),
-				hallazgo(aOtroSitio, hostLcDeGemini, instala("legal-core")+" -g --host claude --host antigravity"),
+				hallazgo(aOtroSitio, hostNormativaDeGemini, instala("normativa")+" -g --host claude --host antigravity"),
+				hallazgo(aOtroSitio, hostPlazosDeGemini, instala("plazos-y-territorio")+" -g --host claude --host antigravity"),
 			},
 			noExaminadas: []string{skillsDeGeminiDePrueba},
 		},
@@ -292,18 +292,18 @@ func casosDoctorDeAntigravity() []casoDeDoctor {
 			nombre: "-g, un enlace de antigravity con el destino de claude",
 			preparar: func(d *discoEnMemoria) {
 				enAntigravity(d)
-				d.enlace(hostLcDeGemini, "../../.agents/skills/legal-core")
+				d.enlace(hostPlazosDeGemini, "../../.agents/skills/plazos-y-territorio")
 			},
 			invocacion: global,
-			esperados:  []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLcDeGemini, rmY(hostLcDeGemini, lc))},
+			esperados:  []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazosDeGemini, rmY(hostPlazosDeGemini, plazos))},
 		},
 		{
 			nombre: "-g, una copia de antigravity donde ya se puede enlazar",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "legal-core").copiarEn("antigravity", "legal-core").escribir()
+				instalarEn(d, ambitoGlobal(d.t, homeDePrueba), "plazos-y-territorio").copiarEn("antigravity", "plazos-y-territorio").escribir()
 			},
 			invocacion: global,
-			esperados:  []instalacion.Hallazgo{hallazgo(esCopia, hostLcDeGemini, lc)},
+			esperados:  []instalacion.Hallazgo{hallazgo(esCopia, hostPlazosDeGemini, plazos)},
 			sondas:     []string{skillsDeGeminiDePrueba},
 		},
 	}

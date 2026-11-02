@@ -748,7 +748,7 @@ func TestMontadorFechaDeConsulta(t *testing.T) {
 func TestResultadoLegible(t *testing.T) {
 	t.Parallel()
 
-	const legible = "Skills de kitlegal v0.3.0 en ~/.agents/skills:\n\n  legal-core  instalada\n"
+	const legible = "Skills de kitlegal v0.3.0 en ~/.agents/skills:\n\n  plazos-y-territorio  instalada\n"
 
 	conLegible := resultadoDePrueba()
 	conLegible.Legible = legible

@@ -600,12 +600,12 @@ const (
 func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	t.Parallel()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool { return eval.Fichero == ficheroDeLaConsultaRepetida })
 	require.GreaterOrEqual(t, posicion, 0, "%s es una eval bien formada de %s", ficheroDeLaConsultaRepetida,
-		evalsDelRepositorio)
+		evalsDeNormativa)
 
 	eval := conjunto.Evals[posicion]
 	ambito := grafo.Ambito{Norma: normaQueComprueba(t, eval)}
@@ -619,7 +619,7 @@ func TestEstadoPrevioDeLaRedaccionCambiada(t *testing.T) {
 	require.NoError(t, os.Mkdir(dirCache, 0o750))
 
 	faltas, err := PrepararSesion(SesionAPreparar{
-		Evals:       evalsDelRepositorio,
+		Evals:       evalsDeNormativa,
 		Grabaciones: UnionDeGrabaciones(),
 		Fichero:     ficheroDeLaConsultaRepetida,
 		Modelo:      modeloDeLaSesion,
@@ -734,18 +734,61 @@ func TestFaltaSinOrigenesODeOtroPunto(t *testing.T) {
 // (data-model §2 de H26.1; FR-006, FR-010): con una eval que lleva a leer un
 // bloque que no está grabado, la preparación da, sin error, una falta por cada
 // una de sus dos lecturas, que nombra la eval, la norma y el bloque de la
-// lectura y la orden que no terminó en 0.
+// lectura y la orden que no terminó en 0. Desde H32, también con la 01 de
+// consulta-juridica, la de la póliza: con su lectura del art. 4 de la Ley
+// 50/1980 grabada, ninguna falta; y con la lectura de un bloque de esa ley que
+// no está grabado, las dos de esa lectura (contracts/evals.md §8 de H32;
+// FR-035; SC-012).
 func TestLecturaDeLaEvalSinGrabar(t *testing.T) {
 	t.Parallel()
 
-	const norma, bloque = "BOE-A-2015-10565", "a9998"
+	const bloque = "a9998"
 
-	eval := Eval{
-		Fichero:  nombreDeEval,
-		Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
-		Activa:   true,
-		Lecturas: []LecturaDeLaEval{{Norma: norma, Bloque: bloque, Motivo: "Un bloque que no está grabado."}},
-	}
+	t.Run("eval-sintetica", func(t *testing.T) {
+		t.Parallel()
+
+		eval := Eval{
+			Fichero:  nombreDeEval,
+			Pregunta: "¿qué dice el art. 21 de la Ley 39/2015?",
+			Activa:   true,
+			Lecturas: []LecturaDeLaEval{{Norma: normaLPAC, Bloque: bloque, Motivo: "Un bloque que no está grabado."}},
+		}
+
+		exigirLasFaltasDeLaLectura(t, eval, normaLPAC, bloque)
+	})
+
+	t.Run("eval-de-la-poliza", func(t *testing.T) {
+		t.Parallel()
+
+		conjunto, err := LeerConjunto(evalsDeConsultaJuridica)
+		require.NoError(t, err)
+
+		posicion := slices.IndexFunc(conjunto.Evals, func(eval Eval) bool {
+			return eval.Fichero == consultaDeLaMateriaSinPaquete
+		})
+		require.NotEqual(t, -1, posicion, "%s está en %s", consultaDeLaMateriaSinPaquete, evalsDeConsultaJuridica)
+
+		poliza := conjunto.Evals[posicion]
+		require.Equal(t, []LecturaDeLaEval{{Norma: normaDeLaMateriaSinPaquete, Bloque: "acuarto", Motivo: poliza.Lecturas[0].Motivo}},
+			poliza.Lecturas, "la 01 lleva a leer el art. 4 de la Ley 50/1980")
+
+		faltas, err := Preparar(t.TempDir(), UnionDeGrabaciones(), ConsultasNecesarias([]Eval{poliza}))
+		require.NoError(t, err)
+		assert.Empty(t, faltas, "lo que necesita la 01, su lectura entre ello, está grabado:\n%s", presentarFaltas(faltas))
+
+		sinGrabar := poliza
+		sinGrabar.Lecturas = []LecturaDeLaEval{{Norma: normaDeLaMateriaSinPaquete, Bloque: bloque, Motivo: "Sin grabar."}}
+
+		exigirLasFaltasDeLaLectura(t, sinGrabar, normaDeLaMateriaSinPaquete, bloque)
+	})
+}
+
+// exigirLasFaltasDeLaLectura prepara las consultas necesarias de la eval sobre
+// la unión de grabaciones y exige, sin error, exactamente las dos faltas de su
+// lectura de ese bloque de esa norma, que no está grabado: sin fecha y con
+// --fecha 9999-12-31, cada una con la eval, la norma, el bloque y la orden.
+func exigirLasFaltasDeLaLectura(t *testing.T, eval Eval, norma, bloque string) {
+	t.Helper()
 
 	faltas, err := Preparar(t.TempDir(), UnionDeGrabaciones(), ConsultasNecesarias([]Eval{eval}))
 	require.NoError(t, err, "lo que no está grabado es una falta, nunca el error")
@@ -753,7 +796,7 @@ func TestLecturaDeLaEvalSinGrabar(t *testing.T) {
 
 	orden := "boe articulo " + norma + " " + bloque
 	for posicion, deLaOrden := range []string{orden, orden + " --fecha 9999-12-31"} {
-		prefijo := nombreDeEval + ": la lectura " + norma + " " + bloque + " sin su bloque: «" + deLaOrden +
+		prefijo := eval.Fichero + ": la lectura " + norma + " " + bloque + " sin su bloque: «" + deLaOrden +
 			"» terminó con código "
 
 		assert.True(t, strings.HasPrefix(faltas[posicion].String(), prefijo), "la falta empieza por %q: %s", prefijo,
@@ -1056,29 +1099,54 @@ func TestLoQueLlevaALeerSinGrabar(t *testing.T) {
 
 // TestCacheDeLasSesiones fija lo que sirve la caché de una sesión de evals
 // (contracts/cache-de-la-sesion.md §1 de H26.1). sin-servir: desde la caché de
-// una sesión de la 07 de legal-core, la disposición adicional primera de la
-// LPAC, que lee la skill por data/cobertura.yaml y no nombra ninguna de sus
-// evals, sale con 0 sin fecha, con --fecha 2026-09-09 y con --fecha
+// una sesión de la 07 de plazos-y-territorio, la disposición adicional primera
+// de la LPAC, que lee la skill por data/cobertura.yaml y no nombra ninguna de
+// sus evals, sale con 0 sin fecha, con --fecha 2026-09-09 y con --fecha
 // 9999-12-31; y desde la de la 05, el art. 124, igual (US1, escenario 1;
 // FR-001, FR-011; SC-008). Desde la de la 11, que lleva el art. 124 en
 // sin_servir, ese bloque sale con 4 en las tres, y desde la de la 12, que lleva
 // la disposición adicional primera, esa, igual (US2, escenario 1; FR-013;
-// SC-005). lecturas: desde la caché de una sesión de la 01 de boe-legislacion,
+// SC-005). lecturas: desde la caché de una sesión de la 01 de normativa,
 // los arts. 26 y 27 de la LRJSP, el 18 de la Ley del IRPF y el 15 del TRLRHL, las
 // lecturas de la 16, la 15 y la 14, salen con 0 sin fecha y con --fecha
 // 9999-12-31 (US3, escenario 1; FR-006; SC-004); y, desde H31.1, los arts. 7,
 // 19 y 20 y la disposición adicional decimoctava de la Ley del IRPF, los arts.
 // 60, 92, 100 y 104 del TRLRHL y el 24 de la LTAIBG, las que ganan la 15, la 14
-// y la 17 (FR-013 de H31.1; SC-004, SC-008).
+// y la 17 (FR-013 de H31.1; SC-004, SC-008). consulta-juridica: desde H32, la
+// caché de una sesión de la 01 de la skill de entrada sirve los arts. 22 y 4 de
+// la Ley 50/1980, su comando y su lectura, con 0 sin fecha y con --fecha
+// 9999-12-31 (contracts/evals.md §8 de H32; FR-035; SC-012).
 func TestCacheDeLasSesiones(t *testing.T) {
 	t.Parallel()
 
 	t.Run("sin-servir", probarLoQueNoSeSirve)
 	t.Run("lecturas", probarLasLecturasDeLasEvals)
+	t.Run("consulta-juridica", probarLaCacheDeLaPoliza)
+}
+
+// probarLaCacheDeLaPoliza es el subtest consulta-juridica de
+// TestCacheDeLasSesiones: desde la caché de una sesión de la 01 de
+// consulta-juridica, el art. 22 de la Ley 50/1980, el de su comando y su cita,
+// y el art. 4, el de su lectura, salen con 0 sin fecha y con --fecha 9999-12-31
+// (contracts/evals.md §8 de H32; FR-035; SC-012).
+func probarLaCacheDeLaPoliza(t *testing.T) {
+	t.Parallel()
+
+	dirCache := cacheDeUnaSesion(t, evalsDeConsultaJuridica, consultaDeLaMateriaSinPaquete)
+
+	for _, bloque := range []string{"aveintidos", "acuarto"} {
+		for _, fecha := range [][]string{nil, {"--fecha", "9999-12-31"}} {
+			argumentos := slices.Concat([]string{normaDeLaMateriaSinPaquete, bloque}, fecha)
+
+			codigo, errores := leerSinRedEnLaSesion(t, dirCache, argumentos...)
+			assert.Zero(t, codigo, "boe articulo %s --offline desde la caché de la sesión de la 01 de %s: %s",
+				strings.Join(argumentos, " "), evalsDeConsultaJuridica, errores)
+		}
+	}
 }
 
 // probarLasLecturasDeLasEvals es el subtest lecturas de TestCacheDeLasSesiones:
-// desde la caché de una sesión de la 01 de boe-legislacion, que no lleva
+// desde la caché de una sesión de la 01 de normativa, que no lleva
 // ninguna, cada bloque de las lecturas de la 14, la 15, la 16 y la 17 sale con
 // 0 sin fecha y con --fecha 9999-12-31; desde H31.1, también los nueve que
 // ganan la 14, la 15 y la 17 (contracts/lecturas-y-grabaciones.md §4 de H31.1;
@@ -1086,7 +1154,7 @@ func TestCacheDeLasSesiones(t *testing.T) {
 func probarLasLecturasDeLasEvals(t *testing.T) {
 	t.Parallel()
 
-	dirCache := cacheDeUnaSesion(t, evalsDelRepositorio, "01-lpac-articulo-21.yaml")
+	dirCache := cacheDeUnaSesion(t, evalsDeNormativa, "01-lpac-articulo-21.yaml")
 
 	for _, bloque := range [][]string{
 		{"BOE-A-2015-10566", "a26"},
@@ -1123,11 +1191,11 @@ func probarLoQueNoSeSirve(t *testing.T) {
 		evals, fichero, bloque string
 		codigo                 int
 	}{
-		{evals: evalsDeLegalCore, fichero: "07-cobertura-liquidacion-tributaria.yaml", bloque: "daprimera"},
-		{evals: evalsDeLegalCore, fichero: "05-plazo-reposicion-leganes.yaml", bloque: "a124"},
-		{evals: evalsDeLegalCore, fichero: "11-plazo-reposicion-sin-leer-el-precepto.yaml", bloque: "a124", codigo: 4},
+		{evals: evalsDePlazosYTerritorio, fichero: "07-cobertura-liquidacion-tributaria.yaml", bloque: "daprimera"},
+		{evals: evalsDePlazosYTerritorio, fichero: "05-plazo-reposicion-leganes.yaml", bloque: "a124"},
+		{evals: evalsDePlazosYTerritorio, fichero: "11-plazo-reposicion-sin-leer-el-precepto.yaml", bloque: "a124", codigo: 4},
 		{
-			evals: evalsDeLegalCore, fichero: "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml",
+			evals: evalsDePlazosYTerritorio, fichero: "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml",
 			bloque: "daprimera", codigo: 4,
 		},
 	}

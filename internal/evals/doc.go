@@ -2,11 +2,13 @@
 // sus skills con evals: lee cada fichero de evals/<skill>/ en el formato común de
 // schemas/eval.yaml.json y lo entrega como una Eval comparable por identificador
 // (FR-060, FR-061; research.md D10), también con las skills que la sesión no
-// activa (no_se_activan) y las líneas ⚠ REDACCIÓN MODIFICADA: que la respuesta
-// lleva (redacciones_modificadas; FR-003, FR-004 y FR-053 de H7.4), y con la
-// eval sin binario ni servidor, la que declara sin_binario_ni_servidor: su
-// sesión tiene la skill y nada con lo que consultar, y no lleva comandos ni nada
-// de lo que una respuesta con consulta debe traer (FR-046 de H21). Desde H23
+// activa (no_se_activan), desde H32 con las que activa además de la de su
+// carpeta (se_activan; FR-036 de H32), y las líneas ⚠ REDACCIÓN MODIFICADA:
+// que la respuesta lleva (redacciones_modificadas; FR-003, FR-004 y FR-053 de
+// H7.4), y con la eval sin binario ni servidor, la que declara
+// sin_binario_ni_servidor: su sesión tiene la skill y nada con lo que
+// consultar, y no lleva comandos ni nada de lo que una respuesta con consulta
+// debe traer (FR-046 de H21). Desde H23
 // una eval puede declarar además sentencias —lo que la respuesta debe llevar, y
 // lo que no, de las sentencias de las que habla— y, entre sus comandos, los dos
 // del applet cita, preparar y cotejar; con sentencias puede no llevar comandos,
@@ -72,11 +74,12 @@
 //     cada una de esas llamadas, en su orden, que es lo que el juez recibe de la
 //     sesión (FR-001 y FR-002 de H24);
 //   - Juzgar decide si pasa cada sesión con lo que dejan su transcript y su
-//     traza —también si activa una skill de no_se_activan y si falta la línea de
-//     una redacción esperada, que ExtraerRedaccionesModificadas lee con su cita y
-//     sus dos fechas—, y ClasificarElLimite reconoce, en el transcript, la que un
-//     límite de la cuenta no dejó terminar, que queda sin medir y no es una eval
-//     fallida (FR-040 a FR-043 de H7.3; FR-052 de H7.4). Las llamadas cuentan en
+//     traza —también si no activa una skill de se_activan, si activa una de
+//     no_se_activan y si falta la línea de una redacción esperada, que
+//     ExtraerRedaccionesModificadas lee con su cita y sus dos fechas—, y
+//     ClasificarElLimite reconoce, en el transcript, la que un límite de la
+//     cuenta no dejó terminar, que queda sin medir y no es una eval fallida
+//     (FR-040 a FR-043 de H7.3; FR-052 de H7.4). Las llamadas cuentan en
 //     el juicio como invocaciones, con las reglas de la orden: el applet y el
 //     verbo de la herramienta, los argumentos de cli.LineaDeLlamada y el código
 //     de su clase, de modo que cumplen un comando esperado, incumplen uno
@@ -159,7 +162,7 @@
 //     que decide —las de cada modo en las evals que activan la skill y, aparte,
 //     las de la eval sin binario ni servidor, que no entran en ningún umbral—, y
 //     sus umbrales son, por cada modo, sin_activar y el recuento de cada clase
-//     del juez, <clase>:<modelo>:<modo> —en boe-legislacion, afirma_lo_no_leido
+//     del juez, <clase>:<modelo>:<modo> —en normativa, afirma_lo_no_leido
 //     y cuenta_su_proceso; en jurisprudencia, afirma_lo_no_leido y
 //     afirma_que_existe—; desde H26, el umbral conjunto de cada clase que
 //     decide, <clase>:<modelo>, sin modo —en las dos skills,
@@ -187,7 +190,8 @@
 //     de plazo, detrás va plazo_sin_fecha, las respuestas de esas evals sin la
 //     línea ⚠ PLAZO: con la fecha esperada, y con alguna de cobertura,
 //     cobertura_sin_declarar, las de esas evals sin la línea ⚠ NO CUBIERTO:
-//     con la norma esperada o con una línea ⚠ PLAZO:, cada uno sobre las de
+//     con la norma esperada —desde H32, y la cita de su precepto en la misma
+//     línea— o con una línea ⚠ PLAZO:, cada uno sobre las de
 //     sus evals, que deciden con 0 y cuyo motivo nombra cada sesión que
 //     cuenta; con ellas, la skill tiene también sin_activar, aunque no tenga
 //     juez ni sentencias. Desde el ADR 0042, con alguna eval de vigencia,
@@ -200,11 +204,11 @@
 //     HOY: y ⚠ SIN REDACCIÓN VIGENTE: que la eval espera, sobre las de esas
 //     evals, que decide con 0 y cuyo motivo nombra cada sesión que cuenta; con
 //     ellas, la skill tiene también sin_activar. Con el plan del job, los dos
-//     modos, boe-legislacion lleva quince, de los que deciden once;
-//     jurisprudencia, quince, de los que deciden once; y legal-core, diez, que
-//     deciden los diez: de cada modo, sin_activar, plazo_sin_fecha,
+//     modos, normativa lleva quince, de los que deciden once;
+//     jurisprudencia, quince, de los que deciden once; y plazos-y-territorio,
+//     diez, que deciden los diez: de cada modo, sin_activar, plazo_sin_fecha,
 //     cobertura_sin_declarar, vigencia_sin_declarar y redaccion_sin_fechar. En
-//     boe-legislacion, con
+//     normativa, con
 //     su objetivo: de cada modo, el del modo orden delante, sin_activar, los
 //     recuentos de afirma_lo_no_leido y de cuenta_su_proceso y
 //     redaccion_sin_fechar; el conjunto de afirma_lo_no_leido; los dos de la
@@ -236,8 +240,8 @@
 //     bloque de cada uno de esos comandos, sobre esas sesiones, también con
 //     medida 0; decide con 0 solo el del modelo que decide, y su motivo nombra
 //     cada sesión que cuenta. Con el plan del job, los dos modos y los dos
-//     modelos, legal-core lleva dieciocho, de los que deciden doce, y
-//     boe-legislacion y jurisprudencia, diecinueve, de los que deciden los once
+//     modelos, plazos-y-territorio lleva dieciocho, de los que deciden doce, y
+//     normativa y jurisprudencia, diecinueve, de los que deciden los once
 //     de antes. Ninguno mide las expresiones de la lista: desde H24 no hay
 //     expresiones_prohibidas ni redaccion_no_leida, ni recuento de expresiones
 //     por modelo. La clave juez lleva los votos y las frases de cada respuesta

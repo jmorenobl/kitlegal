@@ -60,9 +60,9 @@ func TestExaminar(t *testing.T) {
 		},
 		{
 			nombre:   "un enlace colgando no resuelve",
-			preparar: conEnlaceA("../../.agents/skills/boe-legislacion"),
+			preparar: conEnlaceA("../../.agents/skills/normativa"),
 			esperada: instalacion.Entrada{
-				Tipo: instalacion.EntradaEnlace, Destino: "../../.agents/skills/boe-legislacion",
+				Tipo: instalacion.EntradaEnlace, Destino: "../../.agents/skills/normativa",
 			},
 		},
 		{
