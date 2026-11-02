@@ -27,32 +27,44 @@ depende_de: [H32]
   remiten a las skills y no bastan. Los esquemas de las herramientas no
   llevan la descripción de ningún parámetro: la ayuda de un argumento no llega a `--describe`.
 - **Entrega**:
-  - Una skill de laboratorio, pequeña y fuera del producto: no va en `skills/`, no se empotra ni se instala. Usa las
-    herramientas de kitlegal sobre lecturas grabadas y lleva una regla testigo que el modelo no puede saber de memoria
-    y que un guion comprueba sin modelo en la respuesta.
+  - Una skill de laboratorio, pequeña y fuera del producto: no va en `skills/`, no se empotra ni se instala, y no
+    entra en el job de evals, que no la mide: la mide el sondeo. Usa las herramientas de kitlegal sobre lecturas que ya
+    están grabadas para las evals de hoy, sin grabar ninguna nueva, y lleva una regla testigo de forma que el modelo no
+    puede saber de memoria y que un guion comprueba sin modelo en la respuesta (ADR 0037: lo que tiene forma lo
+    comprueba un guion).
   - Sus variantes, cada una distinta de la de control en una sola cosa, y las mismas evals para todas. Lo que se
     pregunta: la regla en el cuerpo (control); con las instrucciones del servidor MCP pidiendo activar la skill antes de la
     primera herramienta; con una skill de entrada que remite a la de laboratorio, como `consulta-juridica`; en una
     referencia que el cuerpo manda leer en una frase secundaria, como
     hoy; en una referencia que se lee como paso propio antes de la primera llamada; en una referencia que se manda leer
     en el punto en que hace falta, como `administrativo.md`; en la descripción del parámetro de la herramienta; y con
-    la descripción de la skill sin nombrar herramientas.
+    la descripción de la skill sin nombrar herramientas. Una variante que en un modo no difiere de la de control (las
+    instrucciones del servidor y la descripción del parámetro, que en modo orden no llegan al agente) se mide solo en
+    el otro.
   - Que la ayuda de cada argumento de un applet llegue a la descripción de su parámetro en el esquema de `--describe`,
-    y con ella a las herramientas MCP y a la tabla de comandos: es un defecto de la base, conocido desde H32, y es lo
-    que necesita la variante del esquema.
+    y con ella a las herramientas MCP: es un defecto de la base, conocido desde H32, y es lo que necesita la variante
+    del esquema. La tabla de comandos de los `SKILL.md` no gana columnas ni texto: el cuerpo de `normativa` está en el
+    tope del ADR 0046, con 3 caracteres de margen.
   - El arnés que lanza las variantes por modo en el sondeo de la persona (ADR 0032; el run no abre sesiones con
-    modelo) y un guion que da, por variante y modo, las sesiones que activan la skill (y la de entrada) antes de la
-    primera herramienta, las que abren la referencia y en qué turno, y las que cumplen la regla testigo, con su
-    intervalo.
+    modelo), con el modelo y la versión de Claude Code que se le pasan, que comprueba antes de abrir ninguna sesión y
+    anota en la tabla, y un guion que da, por variante y modo, las sesiones que activan la skill (y la de entrada)
+    antes de la primera herramienta, las que abren la referencia y en qué turno, y las que cumplen la regla testigo,
+    cada cifra con su intervalo de Wilson al 95 %. El arnés y el guion no van en `evidencias/`, que el run no escribe.
+  - `CHANGELOG.md` (*Unreleased*), por el cambio de los esquemas.
 - **Fuera**: reorganizar las skills del producto, que es un hito aparte cuya entrada se escribe con el resultado;
   cambiar ningún umbral, límite ni tope, también el de 11 000 caracteres (ADR 0046); y guardar las sesiones del job de
   evals como artefacto, que sigue en `backlog/medida-de-las-skills.md`.
 - **Controles**: `make ci` comprueba la regla testigo con respuestas fijas que la cumplen y que no, que las variantes
   difieren de la de control solo en lo declarado, que la skill de laboratorio no se empotra ni se instala, y la
   descripción de los parámetros en `--describe` y en las herramientas MCP. Las evals de las skills del producto en
-  verde: el cambio de los esquemas es común y las mide todas.
+  verde: el cambio de los esquemas es común y las mide todas. Los rojos de partida en modo herramienta (la eval 04 de
+  `normativa`, `sin_activar`, y la eval 02 de `consulta-juridica`, en la ejecución 41474010633) son el defecto que este
+  hito mide: si el cierre los da, la reparación no los arregla con texto nuevo en las skills del producto ni
+  reorganizándolas, que queda fuera, y el informe los da con sus cifras para que decida una persona.
 - **Aceptación**: el sondeo de la persona, con `claude-sonnet-5-5`, 40 sesiones por variante y modo, deja su tabla en
   `evidencias/`, y un ADR que precisa el 0046 dice, con esas cifras, dónde va en una skill, y en el servidor, lo que hace
   que el agente la active y cumpla lo que pide en cada modo. Si ninguna referencia se lee de forma fiable en modo herramienta, el ADR lo dice y propone
-  dónde va lo imprescindible.
+  dónde va lo imprescindible. El run no lanza el sondeo ni escribe el ADR, que no tiene cifras hasta el sondeo: los
+  dos se añaden a la propuesta de cambio antes de fusionarla, como el sondeo de H32, y la propuesta no se fusiona
+  sin ellos.
 - **Dependencias**: H32.
