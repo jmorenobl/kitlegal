@@ -10,6 +10,22 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
 
 ## Entradas
 
+### 2026-11-02 · En modo herramienta, las referencias de `normativa` no se abren
+
+- **Qué se pidió.** Saber por qué, en los sondeos de la #214, `con_herramientas.md` se abrió en 4 de 80 sesiones en
+  modo herramienta y en 39 de 80 en modo orden, aunque el cuerpo de `normativa` manda leerla. Por eso todo lo medido
+  tuvo que quedarse en el cuerpo, que tiene 3 caracteres de margen.
+- **Qué pasó.** En las 440 sesiones de los tres sondeos, en modo herramienta, el agente pide `ToolSearch` en el mismo
+  turno que `Skill` (240 de 240 en `normativa`): carga las herramientas antes de leer el cuerpo, y en el turno
+  siguiente va a `boe_indice` con el id de memoria. `normas.md` se abre en 30 de 240 (en modo orden, en 234) y
+  `con_herramientas.md` en 9 (106). En `plazos-y-territorio`, cuya descripción no nombra ninguna herramienta, la
+  referencia del paquete se abre en 58 de 60 en modo herramienta. `con_herramientas.md` lleva justo las reglas que
+  fallaron en la eval 22 en ese modo, y los esquemas de las herramientas no describen ningún parámetro.
+- **Qué faltó.** Saber qué organización de una skill se lee en los dos modos. El tope del cuerpo es el de la
+  especificación (ADR 0046), y arreglar cada defecto con una frase más en el cuerpo no tiene recorrido.
+- **Qué se hizo.** H39: una skill de laboratorio con una regla testigo y sus variantes, medidas en un sondeo, antes de
+  reorganizar las skills del producto.
+
 ### 2026-10-27 · El hito sale en verde y el sondeo dice que no basta
 
 - **Qué se pidió.** Cerrar H31.1: el run `ce64a33e` dejó la #200 con los dos jueces y el job de evals en verde, y la
