@@ -30,12 +30,12 @@ const (
 // contrato, y ninguna si la primera lleva la forma de version-obsoleta en una
 // línea con las dos fechas como palabras y la segunda no la lleva. Una
 // conversación sin terminar se nombra con su motivo y su respuesta no se mira.
-// Desde H24, las expresiones de la lista de boe-legislacion que lleve una
+// Desde H24, las expresiones de la lista de normativa que lleve una
 // respuesta no dan ninguna línea (research D14 de H24; FR-070).
 func TestCondicionesDeLaConsultaRepetida(t *testing.T) {
 	t.Parallel()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	lista := listaDelRepositorio(t, conjunto)

@@ -578,6 +578,28 @@ func verbosDelApplet(descripciones []DescripcionDeVerbo, applet string) []Descri
 	return verbos
 }
 
+// verbosConFila son las descripciones sin los verbos que la skill deja fuera de
+// su tabla con kitlegal-sin-fila (research D26 de H32). Es un defecto un nombre
+// que no es la herramienta de un verbo de sus applets, o que se repite: una
+// declaración que no quita lo que dice no se deja pasar en silencio.
+func verbosConFila(descripciones []DescripcionDeVerbo, deKitlegal DeclaracionDeKitlegal) ([]DescripcionDeVerbo, error) {
+	conFila := slices.Clone(descripciones)
+
+	for _, nombre := range deKitlegal.SinFila {
+		antes := len(conFila)
+
+		conFila = slices.DeleteFunc(conFila, func(verbo DescripcionDeVerbo) bool {
+			return nombreDeLaHerramienta(verbo) == nombre && slices.Contains(deKitlegal.Applets, verbo.Applet)
+		})
+
+		if len(conFila) == antes {
+			return nil, fmt.Errorf("%s: %q no es un verbo de la tabla o se repite", claveKitlegalSinFila, nombre)
+		}
+	}
+
+	return conFila, nil
+}
+
 // mismoSobreYBanderas comprueba que un verbo declara las mismas banderas
 // globales y el mismo sobre que el primero de la tabla.
 func mismoSobreYBanderas(comun, verbo DescripcionDeVerbo) error {

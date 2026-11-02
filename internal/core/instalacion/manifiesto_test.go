@@ -21,34 +21,15 @@ import (
 // enlace, en copia y sin entrada de host.
 const canonicoDeReferencia = `{
   "skills": {
-    "boe-legislacion": {
+    "normativa": {
       "ficheros": {
-        "boe-legislacion/SKILL.md": "` + huellaDeA + `",
-        "boe-legislacion/references/normas.md": "` + huellaDeB + `"
+        "normativa/SKILL.md": "` + huellaDeA + `",
+        "normativa/references/normas.md": "` + huellaDeB + `"
       },
       "hosts": {
         "claude": {
           "modo": "enlace",
-          "ruta": ".claude/skills/boe-legislacion"
-        }
-      },
-      "version": "v0.1.0"
-    },
-    "legal-core": {
-      "ficheros": {
-        "legal-core/SKILL.md": "` + huellaDeC + `",
-        "legal-core/references/jerarquia_normativa.md": "` + huellaDeABC + `",
-        "legal-core/references/leyes_vertebrales.md": "` + huellaVacia + `"
-      },
-      "hosts": {
-        "claude": {
-          "ficheros": {
-            ".claude/skills/legal-core/SKILL.md": "` + huellaDeC + `",
-            ".claude/skills/legal-core/references/jerarquia_normativa.md": "` + huellaDeABC + `",
-            ".claude/skills/legal-core/references/leyes_vertebrales.md": "` + huellaVacia + `"
-          },
-          "modo": "copia",
-          "ruta": ".claude/skills/legal-core"
+          "ruta": ".claude/skills/normativa"
         }
       },
       "version": "v0.1.0"
@@ -58,6 +39,25 @@ const canonicoDeReferencia = `{
         "otra-skill/SKILL.md": "` + huellaDeA + `"
       },
       "version": "v0.0.9"
+    },
+    "plazos-y-territorio": {
+      "ficheros": {
+        "plazos-y-territorio/SKILL.md": "` + huellaDeC + `",
+        "plazos-y-territorio/references/jerarquia_normativa.md": "` + huellaDeABC + `",
+        "plazos-y-territorio/references/leyes_vertebrales.md": "` + huellaVacia + `"
+      },
+      "hosts": {
+        "claude": {
+          "ficheros": {
+            ".claude/skills/plazos-y-territorio/SKILL.md": "` + huellaDeC + `",
+            ".claude/skills/plazos-y-territorio/references/jerarquia_normativa.md": "` + huellaDeABC + `",
+            ".claude/skills/plazos-y-territorio/references/leyes_vertebrales.md": "` + huellaVacia + `"
+          },
+          "modo": "copia",
+          "ruta": ".claude/skills/plazos-y-territorio"
+        }
+      },
+      "version": "v0.1.0"
     }
   },
   "version": "v0.1.0"
@@ -68,16 +68,16 @@ const canonicoDeReferencia = `{
 // cada objeto en otro orden: legible, pero no canónico.
 const compactoDeReferencia = `{"version":"v0.1.0","skills":{` +
 	`"otra-skill":{"version":"v0.0.9","ficheros":{"otra-skill/SKILL.md":"` + huellaDeA + `"}},` +
-	`"legal-core":{"version":"v0.1.0","hosts":{"claude":{"ruta":".claude/skills/legal-core","modo":"copia",` +
-	`"ficheros":{".claude/skills/legal-core/references/leyes_vertebrales.md":"` + huellaVacia + `",` +
-	`".claude/skills/legal-core/references/jerarquia_normativa.md":"` + huellaDeABC + `",` +
-	`".claude/skills/legal-core/SKILL.md":"` + huellaDeC + `"}}},` +
-	`"ficheros":{"legal-core/references/leyes_vertebrales.md":"` + huellaVacia + `",` +
-	`"legal-core/references/jerarquia_normativa.md":"` + huellaDeABC + `",` +
-	`"legal-core/SKILL.md":"` + huellaDeC + `"}},` +
-	`"boe-legislacion":{"version":"v0.1.0","hosts":{"claude":{"ruta":".claude/skills/boe-legislacion",` +
-	`"modo":"enlace"}},"ficheros":{"boe-legislacion/references/normas.md":"` + huellaDeB + `",` +
-	`"boe-legislacion/SKILL.md":"` + huellaDeA + `"}}}}`
+	`"plazos-y-territorio":{"version":"v0.1.0","hosts":{"claude":{"ruta":".claude/skills/plazos-y-territorio","modo":"copia",` +
+	`"ficheros":{".claude/skills/plazos-y-territorio/references/leyes_vertebrales.md":"` + huellaVacia + `",` +
+	`".claude/skills/plazos-y-territorio/references/jerarquia_normativa.md":"` + huellaDeABC + `",` +
+	`".claude/skills/plazos-y-territorio/SKILL.md":"` + huellaDeC + `"}}},` +
+	`"ficheros":{"plazos-y-territorio/references/leyes_vertebrales.md":"` + huellaVacia + `",` +
+	`"plazos-y-territorio/references/jerarquia_normativa.md":"` + huellaDeABC + `",` +
+	`"plazos-y-territorio/SKILL.md":"` + huellaDeC + `"}},` +
+	`"normativa":{"version":"v0.1.0","hosts":{"claude":{"ruta":".claude/skills/normativa",` +
+	`"modo":"enlace"}},"ficheros":{"normativa/references/normas.md":"` + huellaDeB + `",` +
+	`"normativa/SKILL.md":"` + huellaDeA + `"}}}}`
 
 // manifiestoDeReferencia es lo que se lee de canonicoDeReferencia, nuevo en
 // cada llamada.
@@ -85,28 +85,28 @@ func manifiestoDeReferencia() instalacion.Manifiesto {
 	return instalacion.Manifiesto{
 		Version: "v0.1.0",
 		Skills: map[string]instalacion.SkillDeclarada{
-			"boe-legislacion": {
+			"normativa": {
 				Version: "v0.1.0",
 				Ficheros: map[string]string{
-					"boe-legislacion/SKILL.md":             huellaDeA,
-					"boe-legislacion/references/normas.md": huellaDeB,
+					"normativa/SKILL.md":             huellaDeA,
+					"normativa/references/normas.md": huellaDeB,
 				},
-				Hosts: enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/boe-legislacion", Modo: instalacion.ModoEnlace}),
+				Hosts: enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/normativa", Modo: instalacion.ModoEnlace}),
 			},
-			"legal-core": {
+			"plazos-y-territorio": {
 				Version: "v0.1.0",
 				Ficheros: map[string]string{
-					"legal-core/SKILL.md":                          huellaDeC,
-					"legal-core/references/jerarquia_normativa.md": huellaDeABC,
-					"legal-core/references/leyes_vertebrales.md":   huellaVacia,
+					"plazos-y-territorio/SKILL.md":                          huellaDeC,
+					"plazos-y-territorio/references/jerarquia_normativa.md": huellaDeABC,
+					"plazos-y-territorio/references/leyes_vertebrales.md":   huellaVacia,
 				},
 				Hosts: enClaude(instalacion.EntradaDeHost{
-					Ruta: ".claude/skills/legal-core",
+					Ruta: ".claude/skills/plazos-y-territorio",
 					Modo: instalacion.ModoCopia,
 					Ficheros: map[string]string{
-						".claude/skills/legal-core/SKILL.md":                          huellaDeC,
-						".claude/skills/legal-core/references/jerarquia_normativa.md": huellaDeABC,
-						".claude/skills/legal-core/references/leyes_vertebrales.md":   huellaVacia,
+						".claude/skills/plazos-y-territorio/SKILL.md":                          huellaDeC,
+						".claude/skills/plazos-y-territorio/references/jerarquia_normativa.md": huellaDeABC,
+						".claude/skills/plazos-y-territorio/references/leyes_vertebrales.md":   huellaVacia,
 					},
 				}),
 			},
@@ -121,12 +121,15 @@ func manifiestoDeReferencia() instalacion.Manifiesto {
 // Piezas legibles con las que se escriben los manifiestos de las filas: cada
 // fila cambia una sola cosa respecto de un manifiesto legible.
 const (
-	// ficherosDeLegalCore es un miembro ficheros legible de legal-core.
-	ficherosDeLegalCore = `{"legal-core/SKILL.md": "` + huellaDeC + `"}`
-	// enlaceDeLegalCore es una entrada de host legible de legal-core.
-	enlaceDeLegalCore = `{"modo": "enlace", "ruta": ".claude/skills/legal-core"}`
-	// entradaDeLegalCore es una entrada de skill legible de legal-core.
-	entradaDeLegalCore = `{"ficheros": ` + ficherosDeLegalCore + `, "version": "v0.1.0"}`
+	// ficherosDePlazosYTerritorio es un miembro ficheros legible de
+	// plazos-y-territorio.
+	ficherosDePlazosYTerritorio = `{"plazos-y-territorio/SKILL.md": "` + huellaDeC + `"}`
+	// enlaceDePlazosYTerritorio es una entrada de host legible de
+	// plazos-y-territorio.
+	enlaceDePlazosYTerritorio = `{"modo": "enlace", "ruta": ".claude/skills/plazos-y-territorio"}`
+	// entradaDePlazosYTerritorio es una entrada de skill legible de
+	// plazos-y-territorio.
+	entradaDePlazosYTerritorio = `{"ficheros": ` + ficherosDePlazosYTerritorio + `, "version": "v0.1.0"}`
 	// entradaSinFicheros es una entrada de skill legible de cualquier nombre.
 	entradaSinFicheros = `{"ficheros": {}, "version": "v0.1.0"}`
 )
@@ -149,42 +152,43 @@ func conNombre(nombre string) string {
 	return conSkills(`{"` + nombre + `": ` + entradaSinFicheros + `}`)
 }
 
-// conLegalCore es el manifiesto de una sola skill, legal-core, cuya entrada es
-// el literal JSON entrada.
-func conLegalCore(entrada string) string {
-	return conSkills(`{"legal-core": ` + entrada + `}`)
+// conPlazosYTerritorio es el manifiesto de una sola skill, plazos-y-territorio,
+// cuya entrada es el literal JSON entrada.
+func conPlazosYTerritorio(entrada string) string {
+	return conSkills(`{"plazos-y-territorio": ` + entrada + `}`)
 }
 
-// conFicheros es el de legal-core sin hosts y con el miembro ficheros literal.
+// conFicheros es el de plazos-y-territorio sin hosts y con el miembro ficheros
+// literal.
 func conFicheros(ficheros string) string {
-	return conLegalCore(`{"ficheros": ` + ficheros + `, "version": "v0.1.0"}`)
+	return conPlazosYTerritorio(`{"ficheros": ` + ficheros + `, "version": "v0.1.0"}`)
 }
 
-// conFichero es el de legal-core con un único fichero declarado, de ruta y
-// huella dadas, escritas tal cual entre comillas.
+// conFichero es el de plazos-y-territorio con un único fichero declarado, de
+// ruta y huella dadas, escritas tal cual entre comillas.
 func conFichero(ruta, huella string) string {
 	return conFicheros(`{"` + ruta + `": "` + huella + `"}`)
 }
 
-// conHosts es el de legal-core con ficheros legibles y el miembro hosts
-// literal.
+// conHosts es el de plazos-y-territorio con ficheros legibles y el miembro
+// hosts literal.
 func conHosts(hosts string) string {
-	return conLegalCore(`{"ficheros": ` + ficherosDeLegalCore + `, "hosts": ` + hosts + `, "version": "v0.1.0"}`)
+	return conPlazosYTerritorio(`{"ficheros": ` + ficherosDePlazosYTerritorio + `, "hosts": ` + hosts + `, "version": "v0.1.0"}`)
 }
 
-// conClaude es el de legal-core con la entrada de host claude literal.
+// conClaude es el de plazos-y-territorio con la entrada de host claude literal.
 func conClaude(claude string) string {
 	return conHosts(`{"claude": ` + claude + `}`)
 }
 
-// conCopia es el de legal-core con una copia de host cuyo miembro ficheros es
-// el literal JSON ficheros.
+// conCopia es el de plazos-y-territorio con una copia de host cuyo miembro
+// ficheros es el literal JSON ficheros.
 func conCopia(ficheros string) string {
-	return conClaude(`{"ficheros": ` + ficheros + `, "modo": "copia", "ruta": ".claude/skills/legal-core"}`)
+	return conClaude(`{"ficheros": ` + ficheros + `, "modo": "copia", "ruta": ".claude/skills/plazos-y-territorio"}`)
 }
 
-// conFicheroDeLaCopia es el de legal-core con una copia de host de un único
-// fichero, de ruta y huella dadas.
+// conFicheroDeLaCopia es el de plazos-y-territorio con una copia de host de un
+// único fichero, de ruta y huella dadas.
 func conFicheroDeLaCopia(ruta, huella string) string {
 	return conCopia(`{"` + ruta + `": "` + huella + `"}`)
 }
@@ -239,10 +243,10 @@ func probarManifiestosLegibles(t *testing.T) {
 		},
 		{
 			nombre: "versiones sin forma de SemVer, que solo no pueden estar vacías ni llevar controles",
-			contenido: `{"skills": {"legal-core": {"ficheros": {}, "version": "desarrollo local ñ"}},` +
+			contenido: `{"skills": {"plazos-y-territorio": {"ficheros": {}, "version": "desarrollo local ñ"}},` +
 				` "version": "0.1.0"}`,
 			manifiesto: instalacion.Manifiesto{Version: "0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {Version: "desarrollo local ñ", Ficheros: map[string]string{}},
+				"plazos-y-territorio": {Version: "desarrollo local ñ", Ficheros: map[string]string{}},
 			}},
 		},
 		{
@@ -258,33 +262,33 @@ func probarManifiestosLegibles(t *testing.T) {
 		},
 		{
 			nombre: "elementos de ruta que empiezan por punto sin ser . ni ..",
-			contenido: conFicheros(`{"legal-core/.oculto": "` + huellaDeA + `", "legal-core/references/..md": "` +
-				huellaDeB + `", "legal-core/...": "` + huellaDeC + `"}`),
+			contenido: conFicheros(`{"plazos-y-territorio/.oculto": "` + huellaDeA + `", "plazos-y-territorio/references/..md": "` +
+				huellaDeB + `", "plazos-y-territorio/...": "` + huellaDeC + `"}`),
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {Version: "v0.1.0", Ficheros: map[string]string{
-					"legal-core/.oculto":         huellaDeA,
-					"legal-core/references/..md": huellaDeB,
-					"legal-core/...":             huellaDeC,
+				"plazos-y-territorio": {Version: "v0.1.0", Ficheros: map[string]string{
+					"plazos-y-territorio/.oculto":         huellaDeA,
+					"plazos-y-territorio/references/..md": huellaDeB,
+					"plazos-y-territorio/...":             huellaDeC,
 				}},
 			}},
 		},
 		{
 			nombre: "cadenas con escapes JSON",
-			contenido: `{"skills": {"legal-core": {"ficheros": {"legal-core\/SKILL.md": "` + huellaDeC +
+			contenido: `{"skills": {"plazos-y-territorio": {"ficheros": {"plazos-y-territorio\/SKILL.md": "` + huellaDeC +
 				`"}, "version": "v0.1.0+abc"}}, "version": "v0.1.0"}`,
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {Version: "v0.1.0+abc", Ficheros: map[string]string{"legal-core/SKILL.md": huellaDeC}},
+				"plazos-y-territorio": {Version: "v0.1.0+abc", Ficheros: map[string]string{"plazos-y-territorio/SKILL.md": huellaDeC}},
 			}},
 		},
 		{
 			nombre:    "copia de host sin ficheros declarados",
 			contenido: conCopia(`{}`),
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {
+				"plazos-y-territorio": {
 					Version:  "v0.1.0",
-					Ficheros: map[string]string{"legal-core/SKILL.md": huellaDeC},
+					Ficheros: map[string]string{"plazos-y-territorio/SKILL.md": huellaDeC},
 					Hosts: enClaude(instalacion.EntradaDeHost{
-						Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoCopia, Ficheros: map[string]string{},
+						Ruta: ".claude/skills/plazos-y-territorio", Modo: instalacion.ModoCopia, Ficheros: map[string]string{},
 					}),
 				},
 			}},
@@ -361,28 +365,28 @@ func probarIlegiblesPorElDocumento(t *testing.T) {
 		},
 		{
 			nombre:    "skill repetida",
-			contenido: conSkills(`{"legal-core": ` + entradaDeLegalCore + `, "legal-core": ` + entradaDeLegalCore + `}`),
+			contenido: conSkills(`{"plazos-y-territorio": ` + entradaDePlazosYTerritorio + `, "plazos-y-territorio": ` + entradaDePlazosYTerritorio + `}`),
 			fallo:     sintactico, causa: jsontext.ErrDuplicateName,
 		},
 		{
 			nombre:    "miembro repetido en la entrada de una skill",
-			contenido: conLegalCore(`{"ficheros": {}, "version": "v0.1.0", "version": "v0.2.0"}`),
+			contenido: conPlazosYTerritorio(`{"ficheros": {}, "version": "v0.1.0", "version": "v0.2.0"}`),
 			fallo:     sintactico, causa: jsontext.ErrDuplicateName,
 		},
 		{
 			nombre: "fichero repetido",
-			contenido: conFicheros(`{"legal-core/SKILL.md": "` + huellaDeC + `", "legal-core/SKILL.md": "` +
+			contenido: conFicheros(`{"plazos-y-territorio/SKILL.md": "` + huellaDeC + `", "plazos-y-territorio/SKILL.md": "` +
 				huellaDeA + `"}`),
 			fallo: sintactico, causa: jsontext.ErrDuplicateName,
 		},
 		{
 			nombre:    "host repetido",
-			contenido: conHosts(`{"claude": ` + enlaceDeLegalCore + `, "claude": ` + enlaceDeLegalCore + `}`),
+			contenido: conHosts(`{"claude": ` + enlaceDePlazosYTerritorio + `, "claude": ` + enlaceDePlazosYTerritorio + `}`),
 			fallo:     sintactico, causa: jsontext.ErrDuplicateName,
 		},
 		{
 			nombre:    "miembro repetido en la entrada de host",
-			contenido: conClaude(`{"modo": "enlace", "modo": "copia", "ruta": ".claude/skills/legal-core"}`),
+			contenido: conClaude(`{"modo": "enlace", "modo": "copia", "ruta": ".claude/skills/plazos-y-territorio"}`),
 			fallo:     sintactico, causa: jsontext.ErrDuplicateName,
 		},
 
@@ -395,13 +399,13 @@ func probarIlegiblesPorElDocumento(t *testing.T) {
 		},
 		{
 			nombre:    "miembro desconocido en la entrada de una skill",
-			contenido: conLegalCore(`{"ficheros": {}, "usuario": "ana", "version": "v0.1.0"}`),
+			contenido: conPlazosYTerritorio(`{"ficheros": {}, "usuario": "ana", "version": "v0.1.0"}`),
 			fallo:     semantico, causa: json.ErrUnknownName,
 		},
 		{
 			nombre: "miembro desconocido en la entrada de host",
 			contenido: conClaude(`{"maquina": "portatil", "modo": "enlace", ` +
-				`"ruta": ".claude/skills/legal-core"}`),
+				`"ruta": ".claude/skills/plazos-y-territorio"}`),
 			fallo: semantico, causa: json.ErrUnknownName,
 		},
 		{
@@ -427,34 +431,34 @@ func probarIlegiblesPorElDocumento(t *testing.T) {
 		},
 		{
 			nombre:    "entrada de skill que es una lista",
-			contenido: conSkills(`{"legal-core": []}`),
-			fallo:     semantico, puntero: "/skills/legal-core",
+			contenido: conSkills(`{"plazos-y-territorio": []}`),
+			fallo:     semantico, puntero: "/skills/plazos-y-territorio",
 		},
 		{
 			nombre:    "ficheros null",
 			contenido: conFicheros(`null`),
-			fallo:     semantico, puntero: "/skills/legal-core/ficheros", motivo: "no es un objeto JSON",
+			fallo:     semantico, puntero: "/skills/plazos-y-territorio/ficheros", motivo: "no es un objeto JSON",
 		},
 		{
 			nombre:    "ficheros que es una lista",
-			contenido: conFicheros(`["legal-core/SKILL.md"]`),
-			fallo:     semantico, puntero: "/skills/legal-core/ficheros", motivo: "no es un objeto JSON",
+			contenido: conFicheros(`["plazos-y-territorio/SKILL.md"]`),
+			fallo:     semantico, puntero: "/skills/plazos-y-territorio/ficheros", motivo: "no es un objeto JSON",
 		},
-		{nombre: "huella que no es una cadena", contenido: conFicheros(`{"legal-core/SKILL.md": 1}`), fallo: semantico},
+		{nombre: "huella que no es una cadena", contenido: conFicheros(`{"plazos-y-territorio/SKILL.md": 1}`), fallo: semantico},
 		{
 			nombre:    "hosts null",
 			contenido: conHosts(`null`),
-			fallo:     semantico, puntero: "/skills/legal-core/hosts", motivo: "no es un objeto JSON",
+			fallo:     semantico, puntero: "/skills/plazos-y-territorio/hosts", motivo: "no es un objeto JSON",
 		},
 		{
 			nombre:    "ficheros de la copia null",
 			contenido: conCopia(`null`),
-			fallo:     semantico, puntero: "/skills/legal-core/hosts/claude/ficheros", motivo: "no es un objeto JSON",
+			fallo:     semantico, puntero: "/skills/plazos-y-territorio/hosts/claude/ficheros", motivo: "no es un objeto JSON",
 		},
 		{
 			nombre:    "modo que no es una cadena",
-			contenido: conClaude(`{"modo": true, "ruta": ".claude/skills/legal-core"}`),
-			fallo:     semantico, puntero: "/skills/legal-core/hosts/claude/modo",
+			contenido: conClaude(`{"modo": true, "ruta": ".claude/skills/plazos-y-territorio"}`),
+			fallo:     semantico, puntero: "/skills/plazos-y-territorio/hosts/claude/modo",
 		},
 	}
 
@@ -517,11 +521,11 @@ func probarIlegiblesPorLaForma(t *testing.T) {
 
 		// El nombre de una skill.
 		{nombre: "nombre vacío", contenido: conNombre(""), motivo: "no tiene la forma de un nombre de skill"},
-		{nombre: "nombre con mayúsculas", contenido: conNombre("Legal-core"), motivo: "no tiene la forma de un nombre de skill"},
-		{nombre: "nombre con guion bajo", contenido: conNombre("legal_core"), motivo: "no tiene la forma de un nombre de skill"},
-		{nombre: "nombre con punto", contenido: conNombre("legal.core"), motivo: "no tiene la forma de un nombre de skill"},
-		{nombre: "nombre con barra", contenido: conNombre("legal/core"), motivo: "no tiene la forma de un nombre de skill"},
-		{nombre: "nombre con blanco", contenido: conNombre("legal core"), motivo: "no tiene la forma de un nombre de skill"},
+		{nombre: "nombre con mayúsculas", contenido: conNombre("Plazos-y-territorio"), motivo: "no tiene la forma de un nombre de skill"},
+		{nombre: "nombre con guion bajo", contenido: conNombre("plazos_y_territorio"), motivo: "no tiene la forma de un nombre de skill"},
+		{nombre: "nombre con punto", contenido: conNombre("plazos.y.territorio"), motivo: "no tiene la forma de un nombre de skill"},
+		{nombre: "nombre con barra", contenido: conNombre("plazos/y/territorio"), motivo: "no tiene la forma de un nombre de skill"},
+		{nombre: "nombre con blanco", contenido: conNombre("plazos y territorio"), motivo: "no tiene la forma de un nombre de skill"},
 		{nombre: "nombre ..", contenido: conNombre(".."), motivo: "no tiene la forma de un nombre de skill"},
 		{nombre: "nombre fuera de ASCII", contenido: conNombre("legislación"), motivo: "no tiene la forma de un nombre de skill"},
 		{nombre: "guion al principio", contenido: conNombre("-legal"), motivo: "no tiene la forma de un nombre de skill"},
@@ -536,261 +540,261 @@ func probarIlegiblesPorLaForma(t *testing.T) {
 		// La version de una skill.
 		{
 			nombre:    "skill sin version",
-			contenido: conLegalCore(`{"ficheros": ` + ficherosDeLegalCore + `}`),
-			motivo:    `skill "legal-core": version: está vacía`,
+			contenido: conPlazosYTerritorio(`{"ficheros": ` + ficherosDePlazosYTerritorio + `}`),
+			motivo:    `skill "plazos-y-territorio": version: está vacía`,
 		},
 		{
 			nombre:    "skill con un control en la version",
-			contenido: conLegalCore(`{"ficheros": ` + ficherosDeLegalCore + `, "version": "v0.1.0\r"}`),
-			motivo:    `skill "legal-core": version: "v0.1.0\r" lleva un carácter de control`,
+			contenido: conPlazosYTerritorio(`{"ficheros": ` + ficherosDePlazosYTerritorio + `, "version": "v0.1.0\r"}`),
+			motivo:    `skill "plazos-y-territorio": version: "v0.1.0\r" lleva un carácter de control`,
 		},
 		{
 			nombre:    "entrada de skill null",
-			contenido: conSkills(`{"legal-core": null}`),
-			motivo:    `skill "legal-core": version: está vacía`,
+			contenido: conSkills(`{"plazos-y-territorio": null}`),
+			motivo:    `skill "plazos-y-territorio": version: está vacía`,
 		},
 
 		// Los ficheros de una skill: rutas relativas, limpias, con / y bajo
 		// el directorio de la skill.
 		{
 			nombre:    "sin ficheros",
-			contenido: conLegalCore(`{"version": "v0.1.0"}`),
-			motivo:    `skill "legal-core": falta ficheros`,
+			contenido: conPlazosYTerritorio(`{"version": "v0.1.0"}`),
+			motivo:    `skill "plazos-y-territorio": falta ficheros`,
 		},
 		{
 			nombre:    "ruta vacía",
 			contenido: conFichero("", huellaDeC),
-			motivo:    `skill "legal-core": ficheros: una ruta está vacía`,
+			motivo:    `skill "plazos-y-territorio": ficheros: una ruta está vacía`,
 		},
 		{
 			nombre:    "ruta absoluta",
-			contenido: conFichero("/legal-core/SKILL.md", huellaDeC),
-			motivo:    `skill "legal-core": ficheros: la ruta "/legal-core/SKILL.md" es absoluta`,
+			contenido: conFichero("/plazos-y-territorio/SKILL.md", huellaDeC),
+			motivo:    `skill "plazos-y-territorio": ficheros: la ruta "/plazos-y-territorio/SKILL.md" es absoluta`,
 		},
 		{
 			nombre:    "ruta absoluta con la raíz de la instalación",
-			contenido: conFichero("/home/ana/proyecto/.agents/skills/legal-core/SKILL.md", huellaDeC),
+			contenido: conFichero("/home/ana/proyecto/.agents/skills/plazos-y-territorio/SKILL.md", huellaDeC),
 			motivo:    "es absoluta",
 		},
 		{
 			nombre:    "ruta con barras invertidas",
-			contenido: conFichero(`legal-core\\references\\normas.md`, huellaDeC),
-			motivo:    `skill "legal-core": ficheros: la ruta "legal-core\\references\\normas.md" lleva una barra invertida`,
+			contenido: conFichero(`plazos-y-territorio\\references\\normas.md`, huellaDeC),
+			motivo:    `skill "plazos-y-territorio": ficheros: la ruta "plazos-y-territorio\\references\\normas.md" lleva una barra invertida`,
 		},
 		{
 			nombre:    "ruta que sube con barras invertidas",
-			contenido: conFichero(`legal-core/references\\..\\..\\fuera.md`, huellaDeC),
+			contenido: conFichero(`plazos-y-territorio/references\\..\\..\\fuera.md`, huellaDeC),
 			motivo:    "lleva una barra invertida",
 		},
-		{nombre: "componente vacío", contenido: conFichero("legal-core//SKILL.md", huellaDeC), motivo: "no está limpia"},
-		{nombre: "componente .", contenido: conFichero("legal-core/./SKILL.md", huellaDeC), motivo: "no está limpia"},
-		{nombre: "componente ..", contenido: conFichero("legal-core/../SKILL.md", huellaDeC), motivo: "no está limpia"},
+		{nombre: "componente vacío", contenido: conFichero("plazos-y-territorio//SKILL.md", huellaDeC), motivo: "no está limpia"},
+		{nombre: "componente .", contenido: conFichero("plazos-y-territorio/./SKILL.md", huellaDeC), motivo: "no está limpia"},
+		{nombre: "componente ..", contenido: conFichero("plazos-y-territorio/../SKILL.md", huellaDeC), motivo: "no está limpia"},
 		{
 			nombre:    "ruta que sale de la skill",
-			contenido: conFichero("legal-core/references/../../boe-legislacion/SKILL.md", huellaDeC),
+			contenido: conFichero("plazos-y-territorio/references/../../normativa/SKILL.md", huellaDeC),
 			motivo:    "no está limpia",
 		},
-		{nombre: "ruta que termina en ..", contenido: conFichero("legal-core/..", huellaDeC), motivo: "no está limpia"},
-		{nombre: "ruta que termina en .", contenido: conFichero("legal-core/.", huellaDeC), motivo: "no está limpia"},
-		{nombre: "barra final", contenido: conFichero("legal-core/references/", huellaDeC), motivo: "no está limpia"},
-		{nombre: "empieza por ..", contenido: conFichero("../legal-core/SKILL.md", huellaDeC), motivo: "no está limpia"},
-		{nombre: "empieza por .", contenido: conFichero("./legal-core/SKILL.md", huellaDeC), motivo: "no está limpia"},
+		{nombre: "ruta que termina en ..", contenido: conFichero("plazos-y-territorio/..", huellaDeC), motivo: "no está limpia"},
+		{nombre: "ruta que termina en .", contenido: conFichero("plazos-y-territorio/.", huellaDeC), motivo: "no está limpia"},
+		{nombre: "barra final", contenido: conFichero("plazos-y-territorio/references/", huellaDeC), motivo: "no está limpia"},
+		{nombre: "empieza por ..", contenido: conFichero("../plazos-y-territorio/SKILL.md", huellaDeC), motivo: "no está limpia"},
+		{nombre: "empieza por .", contenido: conFichero("./plazos-y-territorio/SKILL.md", huellaDeC), motivo: "no está limpia"},
 		{
 			nombre:    "ruta de otra skill",
-			contenido: conFichero("boe-legislacion/SKILL.md", huellaDeC),
-			motivo:    `skill "legal-core": ficheros: la ruta "boe-legislacion/SKILL.md" no empieza por "legal-core/"`,
+			contenido: conFichero("normativa/SKILL.md", huellaDeC),
+			motivo:    `skill "plazos-y-territorio": ficheros: la ruta "normativa/SKILL.md" no empieza por "plazos-y-territorio/"`,
 		},
 		{
 			nombre:    "ruta de una skill cuyo nombre empieza igual",
-			contenido: conFichero("legal-core-extra/SKILL.md", huellaDeC),
-			motivo:    `no empieza por "legal-core/"`,
+			contenido: conFichero("plazos-y-territorio-extra/SKILL.md", huellaDeC),
+			motivo:    `no empieza por "plazos-y-territorio/"`,
 		},
-		{nombre: "ruta que es la skill", contenido: conFichero("legal-core", huellaDeC), motivo: `no empieza por "legal-core/"`},
-		{nombre: "ruta sin la skill", contenido: conFichero("SKILL.md", huellaDeC), motivo: `no empieza por "legal-core/"`},
+		{nombre: "ruta que es la skill", contenido: conFichero("plazos-y-territorio", huellaDeC), motivo: `no empieza por "plazos-y-territorio/"`},
+		{nombre: "ruta sin la skill", contenido: conFichero("SKILL.md", huellaDeC), motivo: `no empieza por "plazos-y-territorio/"`},
 
 		// Las huellas.
 		{
 			nombre:    "huella vacía",
-			contenido: conFichero("legal-core/SKILL.md", ""),
-			motivo:    `skill "legal-core": ficheros: la huella de "legal-core/SKILL.md" no es sha256: seguido de`,
+			contenido: conFichero("plazos-y-territorio/SKILL.md", ""),
+			motivo:    `skill "plazos-y-territorio": ficheros: la huella de "plazos-y-territorio/SKILL.md" no es sha256: seguido de`,
 		},
 		{
 			nombre:    "huella null",
-			contenido: conFicheros(`{"legal-core/SKILL.md": null}`),
+			contenido: conFicheros(`{"plazos-y-territorio/SKILL.md": null}`),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "huella sin prefijo",
-			contenido: conFichero("legal-core/SKILL.md", strings.TrimPrefix(huellaDeC, "sha256:")),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", strings.TrimPrefix(huellaDeC, "sha256:")),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "prefijo en mayúsculas",
-			contenido: conFichero("legal-core/SKILL.md", "SHA256:"+strings.TrimPrefix(huellaDeC, "sha256:")),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", "SHA256:"+strings.TrimPrefix(huellaDeC, "sha256:")),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "otro algoritmo",
-			contenido: conFichero("legal-core/SKILL.md", "md5:"+strings.TrimPrefix(huellaDeC, "sha256:")),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", "md5:"+strings.TrimPrefix(huellaDeC, "sha256:")),
 			motivo:    "no es sha256: seguido de",
 		},
-		{nombre: "huella corta", contenido: conFichero("legal-core/SKILL.md", "sha256:ABCDEF"), motivo: "no es sha256: seguido de"},
+		{nombre: "huella corta", contenido: conFichero("plazos-y-territorio/SKILL.md", "sha256:ABCDEF"), motivo: "no es sha256: seguido de"},
 		{
 			nombre:    "hexadecimales en mayúsculas",
-			contenido: conFichero("legal-core/SKILL.md", "sha256:"+strings.ToUpper(huellaDeC[len("sha256:"):])),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", "sha256:"+strings.ToUpper(huellaDeC[len("sha256:"):])),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "63 hexadecimales",
-			contenido: conFichero("legal-core/SKILL.md", huellaDeC[:len(huellaDeC)-1]),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", huellaDeC[:len(huellaDeC)-1]),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "65 hexadecimales",
-			contenido: conFichero("legal-core/SKILL.md", huellaDeC+"0"),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", huellaDeC+"0"),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "un carácter que no es hexadecimal",
-			contenido: conFichero("legal-core/SKILL.md", huellaDeC[:len(huellaDeC)-1]+"g"),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", huellaDeC[:len(huellaDeC)-1]+"g"),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "un blanco tras el prefijo",
-			contenido: conFichero("legal-core/SKILL.md", "sha256: "+huellaDeC[len("sha256:"):]),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", "sha256: "+huellaDeC[len("sha256:"):]),
 			motivo:    "no es sha256: seguido de",
 		},
 		{
 			nombre:    "un salto de línea tras la huella",
-			contenido: conFichero("legal-core/SKILL.md", huellaDeC+`\n`),
+			contenido: conFichero("plazos-y-territorio/SKILL.md", huellaDeC+`\n`),
 			motivo:    "no es sha256: seguido de",
 		},
 
 		// hosts: se omite sin entradas y sus claves son las de los hosts
 		// conocidos, claude y antigravity.
-		{nombre: "hosts sin entradas", contenido: conHosts(`{}`), motivo: `skill "legal-core": hosts no tiene ninguna entrada`},
+		{nombre: "hosts sin entradas", contenido: conHosts(`{}`), motivo: `skill "plazos-y-territorio": hosts no tiene ninguna entrada`},
 		{
 			nombre:    "otro host",
-			contenido: conHosts(`{"codex": ` + enlaceDeLegalCore + `}`),
-			motivo:    `skill "legal-core": hosts: el host "codex" no se admite`,
+			contenido: conHosts(`{"codex": ` + enlaceDePlazosYTerritorio + `}`),
+			motivo:    `skill "plazos-y-territorio": hosts: el host "codex" no se admite`,
 		},
 		{
 			nombre:    "claude con mayúscula",
-			contenido: conHosts(`{"Claude": ` + enlaceDeLegalCore + `}`),
+			contenido: conHosts(`{"Claude": ` + enlaceDePlazosYTerritorio + `}`),
 			motivo:    `el host "Claude" no se admite`,
 		},
 		{
 			nombre:    "claude y otro host",
-			contenido: conHosts(`{"claude": ` + enlaceDeLegalCore + `, "codex": ` + enlaceDeLegalCore + `}`),
+			contenido: conHosts(`{"claude": ` + enlaceDePlazosYTerritorio + `, "codex": ` + enlaceDePlazosYTerritorio + `}`),
 			motivo:    `el host "codex" no se admite`,
 		},
 		{
 			nombre:    "antigravity con la ruta de claude",
-			contenido: conHosts(`{"antigravity": ` + enlaceDeLegalCore + `}`),
-			motivo: `skill "legal-core": hosts: antigravity: la ruta es ".claude/skills/legal-core" y tiene que ser ` +
-				`".gemini/config/skills/legal-core"`,
+			contenido: conHosts(`{"antigravity": ` + enlaceDePlazosYTerritorio + `}`),
+			motivo: `skill "plazos-y-territorio": hosts: antigravity: la ruta es ".claude/skills/plazos-y-territorio" y tiene que ser ` +
+				`".gemini/config/skills/plazos-y-territorio"`,
 		},
 
 		// La entrada de host claude: su ruta exacta y su modo.
 		{
 			nombre:    "entrada de host null",
 			contenido: conClaude(`null`),
-			motivo:    `skill "legal-core": hosts: claude: la ruta es "" y tiene que ser ".claude/skills/legal-core"`,
+			motivo:    `skill "plazos-y-territorio": hosts: claude: la ruta es "" y tiene que ser ".claude/skills/plazos-y-territorio"`,
 		},
 		{nombre: "sin ruta", contenido: conClaude(`{"modo": "enlace"}`), motivo: `hosts: claude: la ruta es ""`},
 		{
 			nombre:    "ruta absoluta con la raíz del ámbito",
-			contenido: conClaude(`{"modo": "enlace", "ruta": "/home/ana/proyecto/.claude/skills/legal-core"}`),
-			motivo:    `hosts: claude: la ruta es "/home/ana/proyecto/.claude/skills/legal-core"`,
+			contenido: conClaude(`{"modo": "enlace", "ruta": "/home/ana/proyecto/.claude/skills/plazos-y-territorio"}`),
+			motivo:    `hosts: claude: la ruta es "/home/ana/proyecto/.claude/skills/plazos-y-territorio"`,
 		},
 		{
 			nombre:    "ruta de otra skill",
-			contenido: conClaude(`{"modo": "enlace", "ruta": ".claude/skills/boe-legislacion"}`),
-			motivo:    `hosts: claude: la ruta es ".claude/skills/boe-legislacion"`,
+			contenido: conClaude(`{"modo": "enlace", "ruta": ".claude/skills/normativa"}`),
+			motivo:    `hosts: claude: la ruta es ".claude/skills/normativa"`,
 		},
 		{
 			nombre:    "ruta con barra final",
-			contenido: conClaude(`{"modo": "enlace", "ruta": ".claude/skills/legal-core/"}`),
-			motivo:    `hosts: claude: la ruta es ".claude/skills/legal-core/"`,
+			contenido: conClaude(`{"modo": "enlace", "ruta": ".claude/skills/plazos-y-territorio/"}`),
+			motivo:    `hosts: claude: la ruta es ".claude/skills/plazos-y-territorio/"`,
 		},
 		{
 			nombre:    "ruta que empieza por ./",
-			contenido: conClaude(`{"modo": "enlace", "ruta": "./.claude/skills/legal-core"}`),
-			motivo:    `hosts: claude: la ruta es "./.claude/skills/legal-core"`,
+			contenido: conClaude(`{"modo": "enlace", "ruta": "./.claude/skills/plazos-y-territorio"}`),
+			motivo:    `hosts: claude: la ruta es "./.claude/skills/plazos-y-territorio"`,
 		},
 		{
 			nombre:    "ruta del directorio neutro",
-			contenido: conClaude(`{"modo": "enlace", "ruta": ".agents/skills/legal-core"}`),
-			motivo:    `hosts: claude: la ruta es ".agents/skills/legal-core"`,
+			contenido: conClaude(`{"modo": "enlace", "ruta": ".agents/skills/plazos-y-territorio"}`),
+			motivo:    `hosts: claude: la ruta es ".agents/skills/plazos-y-territorio"`,
 		},
 		{
 			nombre:    "sin modo",
-			contenido: conClaude(`{"ruta": ".claude/skills/legal-core"}`),
-			motivo:    `skill "legal-core": hosts: claude: el modo es "" y tiene que ser "enlace" o "copia"`,
+			contenido: conClaude(`{"ruta": ".claude/skills/plazos-y-territorio"}`),
+			motivo:    `skill "plazos-y-territorio": hosts: claude: el modo es "" y tiene que ser "enlace" o "copia"`,
 		},
 		{
 			nombre:    "modo con mayúscula",
-			contenido: conClaude(`{"modo": "Enlace", "ruta": ".claude/skills/legal-core"}`),
+			contenido: conClaude(`{"modo": "Enlace", "ruta": ".claude/skills/plazos-y-territorio"}`),
 			motivo:    `hosts: claude: el modo es "Enlace"`,
 		},
 		{
 			nombre:    "modo desconocido",
-			contenido: conClaude(`{"modo": "symlink", "ruta": ".claude/skills/legal-core"}`),
+			contenido: conClaude(`{"modo": "symlink", "ruta": ".claude/skills/plazos-y-territorio"}`),
 			motivo:    `hosts: claude: el modo es "symlink"`,
 		},
 
 		// Los ficheros de una entrada de host: solo y obligatorios en copia.
 		{
 			nombre:    "enlace con ficheros vacíos",
-			contenido: conClaude(`{"ficheros": {}, "modo": "enlace", "ruta": ".claude/skills/legal-core"}`),
-			motivo:    `skill "legal-core": hosts: claude: ficheros solo va en modo copia`,
+			contenido: conClaude(`{"ficheros": {}, "modo": "enlace", "ruta": ".claude/skills/plazos-y-territorio"}`),
+			motivo:    `skill "plazos-y-territorio": hosts: claude: ficheros solo va en modo copia`,
 		},
 		{
 			nombre: "enlace con ficheros",
-			contenido: conClaude(`{"ficheros": {".claude/skills/legal-core/SKILL.md": "` + huellaDeC +
-				`"}, "modo": "enlace", "ruta": ".claude/skills/legal-core"}`),
+			contenido: conClaude(`{"ficheros": {".claude/skills/plazos-y-territorio/SKILL.md": "` + huellaDeC +
+				`"}, "modo": "enlace", "ruta": ".claude/skills/plazos-y-territorio"}`),
 			motivo: "ficheros solo va en modo copia",
 		},
 		{
 			nombre:    "copia sin ficheros",
-			contenido: conClaude(`{"modo": "copia", "ruta": ".claude/skills/legal-core"}`),
-			motivo:    `skill "legal-core": hosts: claude: falta ficheros, obligatorio en modo copia`,
+			contenido: conClaude(`{"modo": "copia", "ruta": ".claude/skills/plazos-y-territorio"}`),
+			motivo:    `skill "plazos-y-territorio": hosts: claude: falta ficheros, obligatorio en modo copia`,
 		},
 		{
 			nombre:    "fichero de la copia con la ruta del directorio neutro",
-			contenido: conFicheroDeLaCopia("legal-core/SKILL.md", huellaDeC),
-			motivo: `skill "legal-core": hosts: claude: ficheros: la ruta "legal-core/SKILL.md" no empieza por ` +
-				`".claude/skills/legal-core/"`,
+			contenido: conFicheroDeLaCopia("plazos-y-territorio/SKILL.md", huellaDeC),
+			motivo: `skill "plazos-y-territorio": hosts: claude: ficheros: la ruta "plazos-y-territorio/SKILL.md" no empieza por ` +
+				`".claude/skills/plazos-y-territorio/"`,
 		},
 		{
 			nombre:    "fichero de la copia de otra skill",
-			contenido: conFicheroDeLaCopia(".claude/skills/boe-legislacion/SKILL.md", huellaDeC),
-			motivo:    `no empieza por ".claude/skills/legal-core/"`,
+			contenido: conFicheroDeLaCopia(".claude/skills/normativa/SKILL.md", huellaDeC),
+			motivo:    `no empieza por ".claude/skills/plazos-y-territorio/"`,
 		},
 		{
 			nombre:    "fichero de la copia que es la copia",
-			contenido: conFicheroDeLaCopia(".claude/skills/legal-core", huellaDeC),
-			motivo:    `no empieza por ".claude/skills/legal-core/"`,
+			contenido: conFicheroDeLaCopia(".claude/skills/plazos-y-territorio", huellaDeC),
+			motivo:    `no empieza por ".claude/skills/plazos-y-territorio/"`,
 		},
 		{
 			nombre:    "fichero de la copia con ruta absoluta",
-			contenido: conFicheroDeLaCopia("/home/ana/.claude/skills/legal-core/SKILL.md", huellaDeC),
-			motivo:    `hosts: claude: ficheros: la ruta "/home/ana/.claude/skills/legal-core/SKILL.md" es absoluta`,
+			contenido: conFicheroDeLaCopia("/home/ana/.claude/skills/plazos-y-territorio/SKILL.md", huellaDeC),
+			motivo:    `hosts: claude: ficheros: la ruta "/home/ana/.claude/skills/plazos-y-territorio/SKILL.md" es absoluta`,
 		},
 		{
 			nombre:    "fichero de la copia que sale de ella",
-			contenido: conFicheroDeLaCopia(".claude/skills/legal-core/../boe-legislacion/SKILL.md", huellaDeC),
+			contenido: conFicheroDeLaCopia(".claude/skills/plazos-y-territorio/../normativa/SKILL.md", huellaDeC),
 			motivo:    "hosts: claude: ficheros: la ruta",
 		},
 		{
 			nombre:    "fichero de la copia con barra invertida",
-			contenido: conFicheroDeLaCopia(`.claude/skills/legal-core/references\\normas.md`, huellaDeC),
+			contenido: conFicheroDeLaCopia(`.claude/skills/plazos-y-territorio/references\\normas.md`, huellaDeC),
 			motivo:    "lleva una barra invertida",
 		},
 		{
 			nombre:    "huella de la copia que no es sha256",
-			contenido: conFicheroDeLaCopia(".claude/skills/legal-core/SKILL.md", "sha256:ABCDEF"),
-			motivo:    `hosts: claude: ficheros: la huella de ".claude/skills/legal-core/SKILL.md" no es sha256:`,
+			contenido: conFicheroDeLaCopia(".claude/skills/plazos-y-territorio/SKILL.md", "sha256:ABCDEF"),
+			motivo:    `hosts: claude: ficheros: la huella de ".claude/skills/plazos-y-territorio/SKILL.md" no es sha256:`,
 		},
 	}
 
@@ -987,48 +991,48 @@ func probarObjetosSinEntradas(t *testing.T) {
 		{
 			nombre: "una skill sin ficheros y con una copia sin ficheros",
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {
+				"plazos-y-territorio": {
 					Version: "v0.1.0",
-					Hosts:   enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoCopia}),
+					Hosts:   enClaude(instalacion.EntradaDeHost{Ruta: ".claude/skills/plazos-y-territorio", Modo: instalacion.ModoCopia}),
 				},
 			}},
-			escrito: "{\n  \"skills\": {\n    \"legal-core\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
+			escrito: "{\n  \"skills\": {\n    \"plazos-y-territorio\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
 				"        \"claude\": {\n          \"ficheros\": {},\n          \"modo\": \"copia\",\n" +
-				"          \"ruta\": \".claude/skills/legal-core\"\n        }\n      },\n" +
+				"          \"ruta\": \".claude/skills/plazos-y-territorio\"\n        }\n      },\n" +
 				"      \"version\": \"v0.1.0\"\n    }\n  },\n  \"version\": \"v0.1.0\"\n}\n",
 		},
 		{
 			nombre: "los dos hosts, con sus claves en orden",
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {
+				"plazos-y-territorio": {
 					Version: "v0.1.0",
 					Hosts: map[string]instalacion.EntradaDeHost{
-						"claude":      {Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoEnlace},
-						"antigravity": {Ruta: ".gemini/config/skills/legal-core", Modo: instalacion.ModoEnlace},
+						"claude":      {Ruta: ".claude/skills/plazos-y-territorio", Modo: instalacion.ModoEnlace},
+						"antigravity": {Ruta: ".gemini/config/skills/plazos-y-territorio", Modo: instalacion.ModoEnlace},
 					},
 				},
 			}},
-			escrito: "{\n  \"skills\": {\n    \"legal-core\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
+			escrito: "{\n  \"skills\": {\n    \"plazos-y-territorio\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
 				"        \"antigravity\": {\n          \"modo\": \"enlace\",\n" +
-				"          \"ruta\": \".gemini/config/skills/legal-core\"\n        },\n" +
+				"          \"ruta\": \".gemini/config/skills/plazos-y-territorio\"\n        },\n" +
 				"        \"claude\": {\n          \"modo\": \"enlace\",\n" +
-				"          \"ruta\": \".claude/skills/legal-core\"\n        }\n      },\n" +
+				"          \"ruta\": \".claude/skills/plazos-y-territorio\"\n        }\n      },\n" +
 				"      \"version\": \"v0.1.0\"\n    }\n  },\n  \"version\": \"v0.1.0\"\n}\n",
 		},
 		{
 			nombre: "un enlace con un mapa de ficheros vacío",
 			manifiesto: instalacion.Manifiesto{Version: "v0.1.0", Skills: map[string]instalacion.SkillDeclarada{
-				"legal-core": {
+				"plazos-y-territorio": {
 					Version:  "v0.1.0",
 					Ficheros: map[string]string{},
 					Hosts: enClaude(instalacion.EntradaDeHost{
-						Ruta: ".claude/skills/legal-core", Modo: instalacion.ModoEnlace, Ficheros: map[string]string{},
+						Ruta: ".claude/skills/plazos-y-territorio", Modo: instalacion.ModoEnlace, Ficheros: map[string]string{},
 					}),
 				},
 			}},
-			escrito: "{\n  \"skills\": {\n    \"legal-core\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
+			escrito: "{\n  \"skills\": {\n    \"plazos-y-territorio\": {\n      \"ficheros\": {},\n      \"hosts\": {\n" +
 				"        \"claude\": {\n          \"modo\": \"enlace\",\n" +
-				"          \"ruta\": \".claude/skills/legal-core\"\n        }\n      },\n" +
+				"          \"ruta\": \".claude/skills/plazos-y-territorio\"\n        }\n      },\n" +
 				"      \"version\": \"v0.1.0\"\n    }\n  },\n  \"version\": \"v0.1.0\"\n}\n",
 		},
 	}
@@ -1070,7 +1074,7 @@ func probarLoQueNoSeEscribe(t *testing.T) {
 		{
 			nombre: "nombre de skill sin forma",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["Legal-core"] = m.Skills["otra-skill"]
+				m.Skills["Plazos-y-territorio"] = m.Skills["otra-skill"]
 			},
 		},
 		{
@@ -1096,7 +1100,7 @@ func probarLoQueNoSeEscribe(t *testing.T) {
 		{
 			nombre: "fichero de otra skill",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["otra-skill"].Ficheros["legal-core/SKILL.md"] = huellaDeA
+				m.Skills["otra-skill"].Ficheros["plazos-y-territorio/SKILL.md"] = huellaDeA
 			},
 		},
 		{
@@ -1114,42 +1118,42 @@ func probarLoQueNoSeEscribe(t *testing.T) {
 		{
 			nombre: "host con la ruta absoluta de un proyecto",
 			cambiar: func(m *instalacion.Manifiesto) {
-				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) {
-					e.Ruta = "/home/ana/proyecto/.claude/skills/boe-legislacion"
+				cambiarEnClaude(m, "normativa", func(e *instalacion.EntradaDeHost) {
+					e.Ruta = "/home/ana/proyecto/.claude/skills/normativa"
 				})
 			},
 		},
 		{
 			nombre: "host con la ruta absoluta de un HOME",
 			cambiar: func(m *instalacion.Manifiesto) {
-				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) {
-					e.Ruta = "/Users/luis/.claude/skills/boe-legislacion"
+				cambiarEnClaude(m, "normativa", func(e *instalacion.EntradaDeHost) {
+					e.Ruta = "/Users/luis/.claude/skills/normativa"
 				})
 			},
 		},
 		{
 			nombre: "fichero de la copia con la ruta absoluta de un HOME",
 			cambiar: func(m *instalacion.Manifiesto) {
-				m.Skills["legal-core"].Hosts["claude"].Ficheros["/Users/luis/.claude/skills/legal-core/SKILL.md"] = huellaDeC
+				m.Skills["plazos-y-territorio"].Hosts["claude"].Ficheros["/Users/luis/.claude/skills/plazos-y-territorio/SKILL.md"] = huellaDeC
 			},
 		},
 		{
 			nombre: "host sin modo",
 			cambiar: func(m *instalacion.Manifiesto) {
-				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) { e.Modo = "" })
+				cambiarEnClaude(m, "normativa", func(e *instalacion.EntradaDeHost) { e.Modo = "" })
 			},
 		},
 		{
 			nombre: "host con otro modo",
 			cambiar: func(m *instalacion.Manifiesto) {
-				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) { e.Modo = "symlink" })
+				cambiarEnClaude(m, "normativa", func(e *instalacion.EntradaDeHost) { e.Modo = "symlink" })
 			},
 		},
 		{
 			nombre: "enlace con ficheros",
 			cambiar: func(m *instalacion.Manifiesto) {
-				cambiarEnClaude(m, "boe-legislacion", func(e *instalacion.EntradaDeHost) {
-					e.Ficheros = map[string]string{".claude/skills/boe-legislacion/SKILL.md": huellaDeA}
+				cambiarEnClaude(m, "normativa", func(e *instalacion.EntradaDeHost) {
+					e.Ficheros = map[string]string{".claude/skills/normativa/SKILL.md": huellaDeA}
 				})
 			},
 		},
@@ -1184,8 +1188,8 @@ func FuzzLeerManifiesto(f *testing.F) {
 		`{"skills": {}, "version": "dev"}`,
 		conCopia(`{}`),
 		conHosts(`{}`),
-		conFichero("legal-core/../SKILL.md", huellaDeC),
-		conFichero("legal-core/SKILL.md", "sha256:ABCDEF"),
+		conFichero("plazos-y-territorio/../SKILL.md", huellaDeC),
+		conFichero("plazos-y-territorio/SKILL.md", "sha256:ABCDEF"),
 		`{"skills": {}, "version": "v0.1.0", "version": "v0.1.0"}`,
 		conVersion(`"v0.1.0"`) + "\n{}",
 		conVersion("\"v0.1.0\xff\""),

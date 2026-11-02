@@ -1,0 +1,131 @@
+# capacidades.txtar
+# Cada skill de capacidad responde sola: las formas fijas que dan sus respuestas
+# están en su propio SKILL.md, cada una como línea de un bloque text, aunque otra
+# skill las repita; y ni su cuerpo ni sus referencias remiten a otra skill de la
+# entrega.
+#
+# Cubre: US2 · FR-006 · SC-017.
+#
+# Las formas son las «sí» de contracts/reparto.md §5, en formas.txt: la skill, la
+# etiqueta y cuántas líneas la llevan como mínimo, dos en ⚠ NO CUBIERTO:, que
+# tiene la forma con la norma que lo rige y la forma sin ella. Cuenta una línea
+# de un bloque text que, sin los blancos del principio, empieza por la etiqueta.
+# Las etiquetas de aviso de la regla 3 de normativa no son líneas enteras y no
+# las mira este guion, sino avisos-de-la-skill (reparto.md §5).
+#
+# Una remisión es el nombre de otra skill de skills/ como código en línea solo o
+# detrás de la palabra «skill» (FR-006). remisiones.sh la busca en el cuerpo de
+# cada SKILL.md de capacidad —desde la línea que sigue al --- que cierra el
+# frontmatter— y en cada una de sus referencias, con las líneas juntadas por un
+# espacio y los blancos colapsados: una remisión cortada en dos líneas también
+# cuenta. Los awk y el sh salen siempre con 0: el veredicto es el de stdout.
+
+exists $KITLEGAL_SKILLS/normativa/SKILL.md
+exists $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
+exists $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
+
+# --- Las formas fijas de cada skill, en un bloque text de su SKILL.md ---
+exec awk -f formas.awk formas.txt $KITLEGAL_SKILLS/normativa/SKILL.md $KITLEGAL_SKILLS/jurisprudencia/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
+stdout '^formas: 16 de 16$'
+
+# --- Ni el cuerpo ni las referencias remiten a otra skill de la entrega ---
+exec sh remisiones.sh $KITLEGAL_SKILLS normativa jurisprudencia plazos-y-territorio
+stdout '^remisiones: 0 en [1-9][0-9]* ficheros$'
+
+-- formas.txt --
+normativa|⚠ SIN CONSULTA AL BOE:|1
+normativa|⚠ REDACCIÓN A FECHA:|1
+normativa|⚠ REDACCIÓN DE HOY:|1
+normativa|⚠ SIN REDACCIÓN VIGENTE:|1
+normativa|⚠ REDACCIÓN MODIFICADA:|1
+jurisprudencia|⚠ SENTENCIA NO COMPROBADA:|1
+plazos-y-territorio|⚠ SIN CONSULTA AL BOE:|1
+plazos-y-territorio|⚠ REDACCIÓN A FECHA:|1
+plazos-y-territorio|⚠ REDACCIÓN DE HOY:|1
+plazos-y-territorio|⚠ PLAZO:|1
+plazos-y-territorio|⚠ PLAZO SIN CALCULAR:|1
+plazos-y-territorio|⚠ NO CUBIERTO:|2
+plazos-y-territorio|⚠ FALTAN FESTIVOS NACIONALES Y AUTONÓMICOS:|1
+plazos-y-territorio|⚠ FALTAN FESTIVOS LOCALES:|1
+plazos-y-territorio|⚠ DÍAS DEL ART. 183 LOPJ:|1
+plazos-y-territorio|⚠ FESTIVO DE UNA PARTE:|1
+-- formas.awk --
+# formas.awk formas.txt <SKILL.md>...: por cada forma de formas.txt
+# —skill|etiqueta|mínimo—, cuántas líneas de un bloque text del SKILL.md de su
+# skill, sin los blancos del principio, empiezan por la etiqueta; la forma está
+# si son al menos el mínimo.
+FNR == 1 {
+	f++; t = 0
+	skill = FILENAME; sub(/\/SKILL\.md$/, "", skill); sub(/.*\//, "", skill)
+}
+f == 1 {
+	if ((p = index($0, "|")) > 0 && (q = index(substr($0, p + 1), "|")) > 0) {
+		n++
+		deLa[n] = substr($0, 1, p - 1)
+		etiqueta[n] = substr($0, p + 1, q - 1)
+		minimo[n] = substr($0, p + q + 1) + 0
+	}
+	next
+}
+{ l = $0; sub(/^[ \t]+/, "", l) }
+l == "```text" { t = 1; next }
+t && l ~ /^```/ { t = 0; next }
+t { for (i = 1; i <= n; i++) if (deLa[i] == skill && index(l, etiqueta[i]) == 1) cuenta[i]++ }
+END {
+	estan = 0
+	for (i = 1; i <= n; i++) {
+		if (cuenta[i] >= minimo[i]) estan++
+		else print "falta: " deLa[i] " " etiqueta[i] " (" cuenta[i] + 0 " de " minimo[i] ")"
+	}
+	print "formas: " estan " de " n
+}
+-- remisiones.sh --
+# remisiones.sh <skills> <skill>...: las remisiones a otra skill de <skills> en el
+# cuerpo del SKILL.md y en las referencias de cada <skill>, y cuántas hay. Las
+# demás skills son las carpetas de <skills> con SKILL.md.
+raiz=$1
+shift
+otras=""
+for carpeta in "$raiz"/*/; do
+	carpeta=${carpeta%/}
+	if [ -f "$carpeta/SKILL.md" ]; then otras="$otras ${carpeta##*/}"; fi
+done
+ficheros=0
+remisiones=0
+for skill in "$@"; do
+	for fichero in "$raiz/$skill/SKILL.md" "$raiz/$skill"/references/*; do
+		[ -f "$fichero" ] || continue
+		ficheros=$((ficheros + 1))
+		cuerpo=0
+		if [ "$fichero" = "$raiz/$skill/SKILL.md" ]; then cuerpo=1; fi
+		halladas=$(awk -v propia="$skill" -v otras="$otras" -v cuerpo="$cuerpo" -v fichero="$fichero" \
+			-f "$WORK/remisiones.awk" "$fichero")
+		if [ -n "$halladas" ]; then
+			printf '%s\n' "$halladas"
+			remisiones=$((remisiones + $(printf '%s\n' "$halladas" | grep -c .)))
+		fi
+	done
+done
+echo "remisiones: $remisiones en $ficheros ficheros"
+exit 0
+-- remisiones.awk --
+# remisiones.awk -v propia=<skill> -v otras="<skill>..." -v cuerpo=<0|1>
+# -v fichero=<ruta> <fichero>: con cuerpo=1, desde la línea que sigue al --- que
+# cierra el frontmatter; si no, el fichero entero. Con sus líneas juntadas por un
+# espacio y los blancos colapsados, cada otra skill nombrada como código en línea
+# solo o detrás de la palabra «skill». El texto empieza y acaba en un blanco, así
+# que la palabra y el nombre siempre tienen algo delante y detrás.
+BEGIN { d = (cuerpo + 0) ? 0 : 2 }
+d < 2 { if ($0 == "---") d++; next }
+{ texto = texto " " $0 }
+END {
+	texto = texto " "
+	gsub(/[ \t]+/, " ", texto)
+	n = split(otras, nombres, " ")
+	for (i = 1; i <= n; i++) {
+		if (nombres[i] == propia) continue
+		if (index(texto, "`" nombres[i] "`")) print "remisión en " fichero ": `" nombres[i] "`"
+		if (match(texto, "[^A-Za-z0-9_][Ss]kills? `?" nombres[i] "[^A-Za-z0-9-]"))
+			print "remisión en " fichero ": «" substr(texto, RSTART, RLENGTH) "»"
+	}
+}

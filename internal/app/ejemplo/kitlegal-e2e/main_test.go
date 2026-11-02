@@ -67,9 +67,9 @@ func TestEnlazadorFallido(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, disponible)
 
-	ruta := filepath.Join(directorio, "boe-legislacion")
+	ruta := filepath.Join(directorio, "normativa")
 
-	err = enlazadorFallido{}.Enlazar("../../.agents/skills/boe-legislacion", ruta)
+	err = enlazadorFallido{}.Enlazar("../../.agents/skills/normativa", ruta)
 	require.ErrorIs(t, err, errSinEnlaces)
 	require.ErrorContains(t, err, ruta)
 

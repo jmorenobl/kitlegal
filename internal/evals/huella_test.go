@@ -99,7 +99,7 @@ func TestHuellaDeLasEvals(t *testing.T) {
 		},
 		{
 			nombre:  "referencia",
-			mutante: conUnaLineaMas(t, repositorio, ficheroDelRepositorio(t, repositorio, "skills/legal-core/references", esMarkdown)),
+			mutante: conUnaLineaMas(t, repositorio, ficheroDelRepositorio(t, repositorio, "skills/plazos-y-territorio/references", esMarkdown)),
 			alcance: eligeAlgunas,
 		},
 		{
@@ -125,7 +125,7 @@ func TestHuellaDeLasEvals(t *testing.T) {
 				entradaDeAlgunas(t, calculo.conjuntos, parteDelJuez, entradaDirectorio))),
 			alcance: eligeAlgunas,
 		},
-		{nombre: "descripcion", mutante: conOtraDescripcionDeLegalCore(t, repositorio), alcance: eligeTodas},
+		{nombre: "descripcion", mutante: conOtraDescripcionDePlazosYTerritorio(t, repositorio), alcance: eligeTodas},
 		{
 			nombre:  "lo-comun",
 			mutante: conUnaLineaMas(t, repositorio, ficheroDelRepositorio(t, repositorio, "internal/cli", esCodigoSinTests)),

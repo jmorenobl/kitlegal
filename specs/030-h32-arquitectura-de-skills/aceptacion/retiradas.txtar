@@ -1,0 +1,255 @@
+# retiradas.txtar
+# Quien instaló las skills con un nombre que la entrega retira no se queda con
+# dos protocolos: install retira la skill de nombre retirado si está como la dejó
+# kitlegal, en el proyecto y en -g, y lo dice en data; si un fichero suyo se ha
+# editado no toca nada de ella, conserva su entrada del manifiesto y avisa, con
+# su ruta, en data y en la salida legible; con --dry-run dice lo que retiraría y
+# lo que avisaría sin tocar nada; y un nombre retirado pedido en la invocación
+# sale con 2, como toda skill que el binario no empotra.
+#
+# Cubre: US5 · FR-026, FR-027, FR-028, FR-029, FR-031 · SC-006.
+#
+# Cada ámbito se siembra como lo habría dejado un binario anterior: su manifiesto,
+# escrito en el guion (contracts/manifiesto.md §1 de H19), declara la skill de
+# nombre retirado con la versión v0.0.9, sus ficheros y su entrada de host;
+# huellas.sh pone en él la huella SHA-256 de los bytes de cada fichero, y el
+# enlace de host se crea con symlink, con el destino que le da install
+# (../../.agents/skills/<skill>). El texto de cada aviso y de cada línea de
+# --dry-run es el de contracts/instalacion-retiradas.md §2. kitlegal.sh ejecuta
+# $KITLEGAL_BIN y escribe después «salida: <código>» en stdout: el código lo
+# juzga stdout, no exec. «Nada cambia» es arbol —tipo, ruta, permisos, huella de
+# cada fichero y destino de cada enlace— antes y después.
+
+# --- Huellas que coinciden, en el proyecto: se retira (FR-026) ---
+mkdir $WORK/proyecto/.claude/skills
+cd $WORK/proyecto
+symlink .claude/skills/boe-legislacion -> ../../.agents/skills/boe-legislacion
+exec sh $WORK/huellas.sh .agents/skills/kitlegal.json boe-legislacion/SKILL.md boe-legislacion/references/normas.md
+exec sh $WORK/kitlegal.sh skills install --json
+stdout '^salida: 0$'
+stdout '\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"retirada","enlaces":\[\{"host":"claude","ruta":"\.claude/skills/boe-legislacion","modo":"enlace"\}\]\}'
+! exists .agents/skills/boe-legislacion
+arbol .
+! stdout 'boe-legislacion'
+! grep 'boe-legislacion' .agents/skills/kitlegal.json
+
+# --- Un fichero editado: nada cambia, se conserva su entrada y se avisa (FR-027) ---
+mkdir $WORK/editada/.claude/skills
+cd $WORK/editada
+symlink .claude/skills/boe-legislacion -> ../../.agents/skills/boe-legislacion
+exec sh $WORK/huellas.sh .agents/skills/kitlegal.json boe-legislacion/SKILL.md boe-legislacion/references/normas.md
+cp stdout $WORK/declaradas.txt
+cp $WORK/editado.md .agents/skills/boe-legislacion/references/normas.md
+arbol .agents/skills/boe-legislacion
+cp stdout $WORK/editada-antes.txt
+exec sh $WORK/kitlegal.sh skills install --json
+stdout '^salida: 0$'
+stdout '\{"nombre":"boe-legislacion","ruta":"\.agents/skills/boe-legislacion","estado":"sin retirar","enlaces":\[\],"aviso":"\.agents/skills/boe-legislacion no es lo que instaló kitlegal: su protocolo puede activarse junto al de normativa, que la sustituye; retirarla es cosa tuya\."\}'
+arbol .agents/skills/boe-legislacion
+cmp stdout $WORK/editada-antes.txt
+arbol .
+stdout '^l \.claude/skills/boe-legislacion -> \.\./\.\./\.agents/skills/boe-legislacion$'
+exec sh $WORK/conservadas.sh .agents/skills/kitlegal.json $WORK/declaradas.txt
+stdout '^conservadas: 2 de 2$'
+grep '"ruta": *"\.claude/skills/boe-legislacion"' .agents/skills/kitlegal.json
+grep '"version": *"v0\.0\.9"' .agents/skills/kitlegal.json
+
+# En la salida legible, el mismo aviso, con su ruta; y sigue sin cambiar nada.
+exec sh $WORK/kitlegal.sh skills install
+stdout '^salida: 0$'
+stdout '\.agents/skills/boe-legislacion no es lo que instaló kitlegal: su protocolo puede activarse junto al de normativa, que la sustituye; retirarla es cosa tuya\.'
+arbol .agents/skills/boe-legislacion
+cmp stdout $WORK/editada-antes.txt
+exec sh $WORK/conservadas.sh .agents/skills/kitlegal.json $WORK/declaradas.txt
+stdout '^conservadas: 2 de 2$'
+
+# --- --dry-run: dice lo que retiraría y lo que avisaría, y no toca nada (FR-028) ---
+#
+# boe-legislacion, intacta y con su enlace de host; legal-core, sin entrada de
+# host y con su SKILL.md editado.
+mkdir $WORK/ensayo/.claude/skills
+cd $WORK/ensayo
+symlink .claude/skills/boe-legislacion -> ../../.agents/skills/boe-legislacion
+exec sh $WORK/huellas.sh .agents/skills/kitlegal.json boe-legislacion/SKILL.md boe-legislacion/references/normas.md legal-core/SKILL.md
+cp $WORK/editado.md .agents/skills/legal-core/SKILL.md
+arbol .
+cp stdout $WORK/ensayo-antes.txt
+exec sh $WORK/kitlegal.sh skills install --dry-run
+stdout '^salida: 0$'
+stderr '^--dry-run: se habría pedido retirar boe-legislacion de \.agents/skills/boe-legislacion; Claude Code \.claude/skills/boe-legislacion \(enlace\)$'
+stderr '^--dry-run: se habría pedido conservar legal-core en \.agents/skills/legal-core: \.agents/skills/legal-core no es lo que instaló kitlegal: su protocolo puede activarse junto al de plazos-y-territorio, que la sustituye; retirarla es cosa tuya\.$'
+arbol .
+cmp stdout $WORK/ensayo-antes.txt
+
+# --- Un nombre retirado pedido en la invocación sale con 2 y no escribe nada (FR-029) ---
+mkdir $WORK/nombrada
+cd $WORK/nombrada
+exec sh $WORK/kitlegal.sh skills install boe-legislacion --json
+stdout '^salida: 2$'
+stdout '"ok":false'
+stdout '"clase":"argumentos"'
+arbol .
+! stdout .
+
+# --- Huellas que coinciden, en -g: se retira (FR-026) ---
+env HOME=$WORK/home
+mkdir $WORK/home/.claude/skills
+cd $WORK/home
+symlink .claude/skills/legal-core -> ../../.agents/skills/legal-core
+exec sh $WORK/huellas.sh .agents/skills/kitlegal.json legal-core/SKILL.md legal-core/references/municipios.md
+mkdir $WORK/en-otra-carpeta
+cd $WORK/en-otra-carpeta
+exec sh $WORK/kitlegal.sh skills install -g --json
+stdout '^salida: 0$'
+stdout '\{"nombre":"legal-core","ruta":"[^"]*\.agents/skills/legal-core","estado":"retirada","enlaces":\[\{"host":"claude","ruta":"[^"]*\.claude/skills/legal-core","modo":"enlace"\}\]\}'
+! exists $WORK/home/.agents/skills/legal-core
+arbol $WORK/home
+! stdout 'legal-core'
+! grep 'legal-core' $WORK/home/.agents/skills/kitlegal.json
+
+-- kitlegal.sh --
+# kitlegal.sh <argumentos>...: ejecuta $KITLEGAL_BIN con ellos y escribe después,
+# en stdout, «salida: <código>»; sale con 0.
+"$KITLEGAL_BIN" "$@"
+echo "salida: $?"
+-- huellas.sh --
+# huellas.sh <manifiesto> <clave>...: pone en el manifiesto, en lugar de
+# «sha256:pendiente», la huella SHA-256 de los bytes del fichero <clave> del
+# directorio del manifiesto, y escribe cada declaración que deja,
+# «"<clave>": "sha256:<huella>"», una por línea. Sin tocar nada más: el
+# manifiesto sigue siendo legible.
+set -eu
+manifiesto=$1
+shift
+directorio=$(dirname "$manifiesto")
+for clave in "$@"; do
+	if command -v sha256sum > /dev/null 2>&1; then
+		huella=$(sha256sum < "$directorio/$clave" | cut -d ' ' -f 1)
+	else
+		huella=$(shasum -a 256 < "$directorio/$clave" | cut -d ' ' -f 1)
+	fi
+	sed "s|\"$clave\": \"sha256:pendiente\"|\"$clave\": \"sha256:$huella\"|" "$manifiesto" > "$manifiesto.nuevo"
+	mv "$manifiesto.nuevo" "$manifiesto"
+	grep -q "\"$clave\": \"sha256:$huella\"" "$manifiesto"
+	printf '"%s": "sha256:%s"\n' "$clave" "$huella"
+done
+! grep -q 'sha256:pendiente' "$manifiesto"
+-- conservadas.sh --
+# conservadas.sh <manifiesto> <declaraciones>: cuántas declaraciones —una por
+# línea, como las escribe huellas.sh— lleva el manifiesto, sin contar los
+# blancos, y cuáles no.
+sin_blancos() { tr -d ' \t'; }
+manifiesto=$(sin_blancos < "$1")
+total=0
+estan=0
+while IFS= read -r declaracion; do
+	total=$((total + 1))
+	case $manifiesto in
+	*"$(printf '%s' "$declaracion" | sin_blancos)"*) estan=$((estan + 1)) ;;
+	*) echo "falta en el manifiesto: $declaracion" ;;
+	esac
+done < "$2"
+echo "conservadas: $estan de $total"
+exit 0
+-- editado.md --
+Una línea que la persona cambió después de instalar.
+-- proyecto/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "boe-legislacion": {
+      "ficheros": {
+        "boe-legislacion/SKILL.md": "sha256:pendiente",
+        "boe-legislacion/references/normas.md": "sha256:pendiente"
+      },
+      "hosts": {
+        "claude": {
+          "modo": "enlace",
+          "ruta": ".claude/skills/boe-legislacion"
+        }
+      },
+      "version": "v0.0.9"
+    }
+  },
+  "version": "v0.0.9"
+}
+-- proyecto/.agents/skills/boe-legislacion/SKILL.md --
+La skill que un binario anterior instaló con este nombre, como la dejó.
+-- proyecto/.agents/skills/boe-legislacion/references/normas.md --
+Una de sus referencias, como la dejó.
+-- editada/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "boe-legislacion": {
+      "ficheros": {
+        "boe-legislacion/SKILL.md": "sha256:pendiente",
+        "boe-legislacion/references/normas.md": "sha256:pendiente"
+      },
+      "hosts": {
+        "claude": {
+          "modo": "enlace",
+          "ruta": ".claude/skills/boe-legislacion"
+        }
+      },
+      "version": "v0.0.9"
+    }
+  },
+  "version": "v0.0.9"
+}
+-- editada/.agents/skills/boe-legislacion/SKILL.md --
+La skill que un binario anterior instaló con este nombre, como la dejó.
+-- editada/.agents/skills/boe-legislacion/references/normas.md --
+Una de sus referencias, como la dejó.
+-- ensayo/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "boe-legislacion": {
+      "ficheros": {
+        "boe-legislacion/SKILL.md": "sha256:pendiente",
+        "boe-legislacion/references/normas.md": "sha256:pendiente"
+      },
+      "hosts": {
+        "claude": {
+          "modo": "enlace",
+          "ruta": ".claude/skills/boe-legislacion"
+        }
+      },
+      "version": "v0.0.9"
+    },
+    "legal-core": {
+      "ficheros": {
+        "legal-core/SKILL.md": "sha256:pendiente"
+      },
+      "version": "v0.0.9"
+    }
+  },
+  "version": "v0.0.9"
+}
+-- ensayo/.agents/skills/boe-legislacion/SKILL.md --
+La skill que un binario anterior instaló con este nombre, como la dejó.
+-- ensayo/.agents/skills/boe-legislacion/references/normas.md --
+Una de sus referencias, como la dejó.
+-- ensayo/.agents/skills/legal-core/SKILL.md --
+La otra skill que un binario anterior instaló con un nombre que la entrega retira.
+-- home/.agents/skills/kitlegal.json --
+{
+  "skills": {
+    "legal-core": {
+      "ficheros": {
+        "legal-core/SKILL.md": "sha256:pendiente",
+        "legal-core/references/municipios.md": "sha256:pendiente"
+      },
+      "hosts": {
+        "claude": {
+          "modo": "enlace",
+          "ruta": ".claude/skills/legal-core"
+        }
+      },
+      "version": "v0.0.9"
+    }
+  },
+  "version": "v0.0.9"
+}
+-- home/.agents/skills/legal-core/SKILL.md --
+La skill que un binario anterior instaló con este nombre en la cuenta, como la dejó.
+-- home/.agents/skills/legal-core/references/municipios.md --
+Una de sus referencias, como la dejó.

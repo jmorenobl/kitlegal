@@ -48,8 +48,8 @@ const (
 	// skillDeTerritorio es la skill cuyas evals esperan el territorio, y
 	// territorioDeLaSkillInstalada, el nombre de invocación con el que la skill
 	// instalada invoca el applet territorio.
-	skillDeTerritorio            = "legal-core"
-	territorioDeLaSkillInstalada = "/home/runner/.claude/skills/legal-core/scripts/territorio"
+	skillDeTerritorio            = "plazos-y-territorio"
+	territorioDeLaSkillInstalada = "/home/runner/.claude/skills/plazos-y-territorio/scripts/territorio"
 
 	ficheroDelMunicipioCubierto = "01-territorio-municipio-cubierto.yaml"
 
@@ -122,7 +122,7 @@ const (
 )
 
 // Lo que juzgan la eval de los dos bloques, sintética con las dos redacciones
-// modificadas de la eval 20 de boe-legislacion, y sus sesiones de TestJuzgar,
+// modificadas de la eval 20 de normativa, y sus sesiones de TestJuzgar,
 // construidas en memoria (contracts/evals-y-juicio.md §2 y §3 de H7.4).
 const (
 	ficheroDeLosDosBloques = "20-lcsp-dos-bloques-redaccion-cambiada.yaml"
@@ -171,18 +171,33 @@ const (
 	principioDeRedaccionAusente = "redacci\xc3\xb3n modificada ausente: "
 )
 
-// Lo que juzgan la eval de legal-core que declara que boe-legislacion no se
+// Lo que juzgan la eval de plazos-y-territorio que declara que normativa no se
 // activa y sus sesiones de TestJuzgar (contracts/evals-y-juicio.md §2 y §5 de
 // H7.4; FR-003, FR-004, FR-094).
 const (
-	// skillQueNoSeActiva es la skill que declaran las evals de legal-core en
-	// no_se_activan, y motivoDeBoeLegislacionActivada, el motivo de la sesión
-	// que la activa, escrito a mano.
-	skillQueNoSeActiva             = "boe-legislacion"
-	motivoDeBoeLegislacionActivada = "se activ\xc3\xb3 la skill boe-legislacion, que la eval dice que no se activa"
+	// skillQueNoSeActiva es la skill que declaran las evals de
+	// plazos-y-territorio en no_se_activan, y motivoDeNormativaActivada, el
+	// motivo de la sesión que la activa, escrito a mano.
+	skillQueNoSeActiva        = "normativa"
+	motivoDeNormativaActivada = "se activ\xc3\xb3 la skill normativa, que la eval dice que no se activa"
 )
 
-// Respuestas con expresiones de la lista de boe-legislacion (contrato
+// Lo que juzgan las evals del municipio cubierto que declaran las skills que se
+// activan con plazos-y-territorio y sus sesiones de TestJuzgar
+// (contracts/evals.md §2 de H32; research D14 de H32; FR-036).
+const (
+	// motivoDeNormativaSinActivar y motivoDeJurisprudenciaSinActivar son los
+	// motivos de la sesión que no activa una skill que la eval declara en
+	// se_activan, escritos a mano.
+	motivoDeNormativaSinActivar      = "no se activó la skill normativa, que la eval dice que se activa"
+	motivoDeJurisprudenciaSinActivar = "no se activó la skill jurisprudencia, que la eval dice que se activa"
+
+	// motivoDeJurisprudenciaActivada es el motivo de la sesión que activa
+	// jurisprudencia cuando la eval la declara en no_se_activan, escrito a mano.
+	motivoDeJurisprudenciaActivada = "se activó la skill jurisprudencia, que la eval dice que no se activa"
+)
+
+// Respuestas con expresiones de la lista de normativa (contrato
 // lista-y-juicio §3 y §4 de H7.2; contracts/lista-de-expresiones.md §6 de H7.3),
 // con las que los tests del juicio, del informe y del sondeo fijan que la lista
 // ya no juzga ninguna (FR-070 de H24).
@@ -216,7 +231,7 @@ var elementosDelMunicipio = []string{
 }
 
 // juicio es una llamada a Juzgar y el resultado que el caso exige de ella. skill
-// es la skill con la que se juzga; vacía, la de las sesiones de boe-legislacion.
+// es la skill con la que se juzga; vacía, la de las sesiones de normativa.
 type juicio struct {
 	eval     Eval
 	sesion   Sesion
@@ -290,10 +305,17 @@ type juicio struct {
 // hallazgos; una eval sin redacciones esperadas
 // se juzga como antes aunque la respuesta lleve las líneas. Y una sesión que
 // activa una skill de no_se_activan no pasa, con un motivo que la nombra detrás
-// del de la activación y delante del de los comandos, en una eval de legal-core
-// que activa la skill y en una de no activación; sin activarla, o si la eval no la
-// declara, se juzga como antes (contracts/evals-y-juicio.md §2 de H7.4; FR-003,
-// FR-004, FR-023, FR-052, FR-053, FR-094; SC-007).
+// del de la activación y delante del de los comandos, en una eval de
+// plazos-y-territorio que activa la skill y en una de no activación; sin
+// activarla, o si la eval no la declara, se juzga como antes
+// (contracts/evals-y-juicio.md §2 de H7.4; FR-003, FR-004, FR-023, FR-052,
+// FR-053, FR-094; SC-007).
+//
+// Desde H32, una sesión que no activa una skill de se_activan no pasa, con un
+// motivo que la nombra por cada una que falta, en el orden de la eval, detrás
+// del de la activación y delante de los de no_se_activan; activándolas todas,
+// en cualquier orden, pasa (contracts/evals.md §2 de H32; research D14 de H32;
+// FR-036; SC-015).
 func TestJuzgar(t *testing.T) {
 	t.Parallel()
 
@@ -316,7 +338,7 @@ func TestJuzgar(t *testing.T) {
 				esperado: cambiado(resultadoQuePasa(), func(r *ResultadoDeEval) {
 					r.Activada = false
 					r.Motivos = []string{
-						"la activación no coincide: se esperaba que la skill boe-legislacion se activara y no se activó",
+						"la activación no coincide: se esperaba que la skill normativa se activara y no se activó",
 					}
 					r.Pasa = false
 				}),
@@ -336,7 +358,7 @@ func TestJuzgar(t *testing.T) {
 					FinDeLaSesion:    "result success",
 					SesionTerminada:  true,
 					Motivos: []string{
-						"la activación no coincide: se esperaba que la skill boe-legislacion no se activara y se activó",
+						"la activación no coincide: se esperaba que la skill normativa no se activara y se activó",
 					},
 				},
 			}},
@@ -409,7 +431,7 @@ func TestJuzgar(t *testing.T) {
 				sesion: Sesion{
 					Modelo:              modeloDeLasSesiones,
 					VersionDeClaudeCode: versionDeLasSesiones,
-					SkillsActivadas:     []string{skillDeLasSesiones},
+					SkillsActivadas:     []string{skillNormativa},
 					Codigo:              124,
 					Fin:                 "assistant",
 					Cortada:             true,
@@ -810,14 +832,25 @@ func TestJuzgar(t *testing.T) {
 				})},
 		},
 		{
-			// La sesión de la eval de legal-core activa también boe-legislacion: no
-			// pasa, con el motivo que la nombra; sin activarla, pasa.
+			// La sesión de la eval de plazos-y-territorio activa también normativa:
+			// no pasa, con el motivo que la nombra; sin activarla, pasa.
 			nombre:  "no-se-activan",
 			juicios: seActivaLaQueNoSeActiva(t),
 		},
 		{
-			nombre:  "no-se-activan-detras-del-motivo-de-legal-core",
+			nombre:  "no-se-activan-detras-del-motivo-de-plazos-y-territorio",
 			juicios: []juicio{laQueNoSeActivaDetrasDeLaActivacion(t)},
+		},
+		{
+			// La sesión de la eval que declara que normativa y jurisprudencia se
+			// activan con plazos-y-territorio no pasa sin activar alguna, con un
+			// motivo que nombra cada una que falta; activándolas todas, pasa.
+			nombre:  "se-activan",
+			juicios: seActivanLasQueSeActivan(t),
+		},
+		{
+			nombre:  "se-activan-delante-de-no-se-activan",
+			juicios: []juicio{lasQueSeActivanDelanteDeLasQueNo()},
 		},
 		{
 			// La eval 01 no declara no_se_activan: otra skill activada no cambia su
@@ -826,7 +859,7 @@ func TestJuzgar(t *testing.T) {
 			juicios: []juicio{{
 				eval: evalDelArticulo21(),
 				sesion: cambiada(sesionQuePasa(t), func(s *Sesion) {
-					s.SkillsActivadas = []string{skillDeTerritorio, skillDeLasSesiones}
+					s.SkillsActivadas = []string{skillDeTerritorio, skillNormativa}
 				}),
 				esperado: resultadoQuePasa(),
 			}},
@@ -850,7 +883,7 @@ func TestJuzgar(t *testing.T) {
 			t.Parallel()
 
 			for _, j := range caso.juicios {
-				assert.Equal(t, j.esperado, Juzgar(j.eval, j.sesion, cmp.Or(j.skill, skillDeLasSesiones)),
+				assert.Equal(t, j.esperado, Juzgar(j.eval, j.sesion, cmp.Or(j.skill, skillNormativa)),
 					"la eval %s con la sesión del caso", j.eval.Fichero)
 			}
 		})
@@ -858,8 +891,8 @@ func TestJuzgar(t *testing.T) {
 }
 
 // TestJuzgarLasEvalsSinHallazgos fija que las evals del repositorio de
-// boe-legislacion y de legal-core que no esperan hallazgos se juzgan igual que
-// antes de H7.1 (contrato evals-y-skill §1 de H7.1; FR-054): con una sesión
+// normativa y de plazos-y-territorio que no esperan hallazgos se juzgan igual
+// que antes de H7.1 (contrato evals-y-skill §1 de H7.1; FR-054): con una sesión
 // terminada, activada si la eval espera que se active, cuya respuesta lleva la
 // cita del art. 21 de la Ley 39/2015, el resultado es el mismo con la forma fija
 // de version-obsoleta delante de la respuesta que sin ella, salvo la respuesta, y
@@ -867,7 +900,7 @@ func TestJuzgar(t *testing.T) {
 func TestJuzgarLasEvalsSinHallazgos(t *testing.T) {
 	t.Parallel()
 
-	for dir, skill := range map[string]string{evalsDelRepositorio: skillDeLasSesiones, evalsDeLegalCore: skillDeTerritorio} {
+	for dir, skill := range map[string]string{evalsDeNormativa: skillNormativa, evalsDePlazosYTerritorio: skillDeTerritorio} {
 		conjunto, err := LeerConjunto(dir)
 		require.NoError(t, err)
 		require.NotEmpty(t, conjunto.Evals, "%s tiene evals", dir)
@@ -936,7 +969,7 @@ func TestHallazgosDelResultadoEnJSON(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			codificado, err := json.Marshal(Juzgar(caso.juicio.eval, caso.juicio.sesion, skillDeLasSesiones))
+			codificado, err := json.Marshal(Juzgar(caso.juicio.eval, caso.juicio.sesion, skillNormativa))
 			require.NoError(t, err)
 
 			var crudo struct {
@@ -966,7 +999,7 @@ func TestPorMateriaDelResultadoEnJSON(t *testing.T) {
 			eval := evalDelArticulo21()
 			eval.PorMateria = porMateria
 
-			codificado, err := json.Marshal(Juzgar(eval, sesionQuePasa(t), skillDeLasSesiones))
+			codificado, err := json.Marshal(Juzgar(eval, sesionQuePasa(t), skillNormativa))
 			require.NoError(t, err)
 
 			var crudo map[string]jsontext.Value
@@ -1012,7 +1045,7 @@ func TestRedaccionesDelResultadoEnJSON(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			codificado, err := json.Marshal(Juzgar(caso.juicio.eval, caso.juicio.sesion, skillDeLasSesiones))
+			codificado, err := json.Marshal(Juzgar(caso.juicio.eval, caso.juicio.sesion, skillNormativa))
 			require.NoError(t, err)
 
 			var crudo struct {
@@ -1068,7 +1101,7 @@ var marcadasDeCadaInforme = []struct {
 
 // TestJuzgarSinLaLista fija que la lista de expresiones ya no juzga ninguna
 // respuesta (contracts/informe-del-job.md §6 y §9 de H24; FR-070, FR-111;
-// SC-011), con las evals que LeerConjunto lee de la carpeta de boe-legislacion y
+// SC-011), con las evals que LeerConjunto lee de la carpeta de normativa y
 // la lista de esa carpeta, que sigue en ella para la prosa de la skill:
 //
 //   - la respuesta de la eval sin binario ni servidor que ofrece repetir la
@@ -1085,7 +1118,7 @@ var marcadasDeCadaInforme = []struct {
 func TestJuzgarSinLaLista(t *testing.T) {
 	t.Parallel()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	lista := listaDelRepositorio(t, conjunto)
@@ -1115,7 +1148,7 @@ func juzgarLaOfertaSinLaLista(t *testing.T, evals []Eval, lista ExpresionesProhi
 		"la oferta de consultar después casa con una expresión de la lista")
 
 	respuesta := lineaSinConsultaAlBOE + "\n\n" + ofertaDeConsultarDespues
-	resultado := Juzgar(sinConsulta, sesionSinBinarioNiServidor(skillDeLasSesiones, respuesta), skillDeLasSesiones)
+	resultado := Juzgar(sinConsulta, sesionSinBinarioNiServidor(skillNormativa, respuesta), skillNormativa)
 
 	assert.True(t, resultado.Pasa, "%s pasa con la oferta de consultar después: %v", ficheroSinBinarioDeBoe,
 		resultado.Motivos)
@@ -1147,13 +1180,13 @@ func juzgarElCalibradoSinLaLista(t *testing.T, evals []Eval, lista ExpresionesPr
 	for _, caso := range respuestasDelCalibrado(t, evals, lista) {
 		sesion := sesionTerminada(caso.entrada.Activada, caso.entrada.Respuesta)
 
-		for _, rastro := range deLaLista(t, Juzgar(caso.eval, sesion, skillDeLasSesiones)) {
+		for _, rastro := range deLaLista(t, Juzgar(caso.eval, sesion, skillNormativa)) {
 			marcadasPorLaLista = append(marcadasPorLaLista, caso.informe+", "+caso.entrada.Sesion+": "+rastro)
 		}
 	}
 
 	assert.Empty(t, marcadasPorLaLista, "sesiones del calibrado de H7.4 que Juzgar marca por la lista de %s:\n%s",
-		evalsDelRepositorio, strings.Join(marcadasPorLaLista, "\n"))
+		evalsDeNormativa, strings.Join(marcadasPorLaLista, "\n"))
 }
 
 // respuestasDelCalibrado son las respuestas de los tres informes del calibrado
@@ -1184,17 +1217,17 @@ func respuestasDelCalibrado(t *testing.T, evals []Eval, lista ExpresionesProhibi
 		}
 
 		require.Equal(t, calibrado.marcadas, delInforme, "respuestas del informe %s que marca la lista de %s",
-			calibrado.informe, evalsDelRepositorio)
+			calibrado.informe, evalsDeNormativa)
 	}
 
 	require.Len(t, respuestas, marcadasEnElCalibrado, "respuestas de los tres informes que marca la lista de %s",
-		evalsDelRepositorio)
+		evalsDeNormativa)
 
 	fueraDeLaCarpeta := slices.DeleteFunc(slices.Clone(respuestas), func(respuesta respuestaDelCalibrado) bool {
 		return respuesta.enLaCarpeta
 	})
 	require.Len(t, fueraDeLaCarpeta, marcadasDeLaEvalRetirada, "respuestas marcadas cuya eval no está en %s",
-		evalsDelRepositorio)
+		evalsDeNormativa)
 
 	for _, respuesta := range fueraDeLaCarpeta {
 		require.Equal(t, informeDeLaEvalRetirada, respuesta.informe, "el informe de la eval retirada")
@@ -1287,9 +1320,9 @@ func territorioSatisface(t *testing.T) []juicio {
 		argv  []string
 		orden string
 	}{
-		{argv: deLegalCore("resolver", "Leganés", "--json"), orden: ordenDeLeganes},
-		{argv: deLegalCore("resolver", "leganes", "--json"), orden: "territorio resolver leganes --json"},
-		{argv: deLegalCore("resolver", "LEGANÉS", "--json"), orden: "territorio resolver LEGANÉS --json"},
+		{argv: dePlazosYTerritorio("resolver", "Leganés", "--json"), orden: ordenDeLeganes},
+		{argv: dePlazosYTerritorio("resolver", "leganes", "--json"), orden: "territorio resolver leganes --json"},
+		{argv: dePlazosYTerritorio("resolver", "LEGANÉS", "--json"), orden: "territorio resolver LEGANÉS --json"},
 		{argv: []string{"/ruta/kitlegal", "territorio", "resolver", "Leganés", "--json"}, orden: ordenDeLeganes},
 	}
 
@@ -1320,8 +1353,8 @@ func territorioOtroMunicipio(t *testing.T) juicio {
 	return juicio{
 		eval: evalDelMunicipioCubierto(),
 		sesion: sesionDeTerritorio(respuestaDelMunicipio,
-			invocada(t, codigoDeSalida(0), deLegalCore("resolver", "Getafe", "--json")),
-			invocada(t, codigoDeSalida(0), deLegalCore("resolver", "Leganés", "--describe")),
+			invocada(t, codigoDeSalida(0), dePlazosYTerritorio("resolver", "Getafe", "--json")),
+			invocada(t, codigoDeSalida(0), dePlazosYTerritorio("resolver", "Leganés", "--describe")),
 			invocada(t, codigoDeSalida(0), deLaSkill("buscar", "Leganés", "--json"))),
 		skill: skillDeTerritorio,
 		esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
@@ -1503,7 +1536,7 @@ func resultadoDelMunicipioQuePasa() ResultadoDeEval {
 }
 
 // sesionDeTerritorio es la sesión que terminó con código 0 y result success,
-// activó legal-core y tiene la respuesta y las invocaciones dadas.
+// activó plazos-y-territorio y tiene la respuesta y las invocaciones dadas.
 func sesionDeTerritorio(respuesta string, invocaciones ...Invocacion) Sesion {
 	return cambiada(sesionTerminada(false, respuesta, invocaciones...), func(s *Sesion) {
 		s.SkillsActivadas = []string{skillDeTerritorio}
@@ -1515,12 +1548,12 @@ func sesionDeTerritorio(respuesta string, invocaciones ...Invocacion) Sesion {
 func resuelveLeganes(t *testing.T) Invocacion {
 	t.Helper()
 
-	return invocada(t, codigoDeSalida(0), deLegalCore("resolver", "Leganés", "--json"))
+	return invocada(t, codigoDeSalida(0), dePlazosYTerritorio("resolver", "Leganés", "--json"))
 }
 
-// deLegalCore es el argv con el que la skill instalada invoca el applet
+// dePlazosYTerritorio es el argv con el que la skill instalada invoca el applet
 // territorio.
-func deLegalCore(tokens ...string) []string {
+func dePlazosYTerritorio(tokens ...string) []string {
 	return slices.Concat([]string{territorioDeLaSkillInstalada}, tokens)
 }
 
@@ -2174,7 +2207,7 @@ func losDosBloquesEnDosOrdenes(t *testing.T) juicio {
 // sesión de conLasLineas cuya respuesta anuncia que ya puede responder, sin
 // ninguna línea: los motivos van en su orden, el del hallazgo ausente y el de
 // cada redacción ausente, en el orden de la eval, y ninguno por el anuncio, que
-// lleva una expresión de la lista de boe-legislacion.
+// lleva una expresión de la lista de normativa.
 func redaccionesDetrasDelHallazgo(t *testing.T) juicio {
 	t.Helper()
 
@@ -2233,21 +2266,23 @@ func compruebaLosDosBloques(t *testing.T) Invocacion {
 	return invocada(t, codigoDeSalida(0), deKitlegal(strings.Fields(ordenDeLaComprobacionDeLosDosBloques)...))
 }
 
-// evalDeLegalCoreSinBoeLegislacion es la eval del municipio cubierto que declara,
-// como las de legal-core del repositorio, que boe-legislacion no se activa.
-func evalDeLegalCoreSinBoeLegislacion() Eval {
+// evalDePlazosYTerritorioSinNormativa es la eval del municipio cubierto que
+// declara, como las de plazos-y-territorio del repositorio, que normativa no se
+// activa.
+func evalDePlazosYTerritorioSinNormativa() Eval {
 	eval := evalDelMunicipioCubierto()
 	eval.NoSeActivan = []string{skillQueNoSeActiva}
 
 	return eval
 }
 
-// seActivaLaQueNoSeActiva son los juicios de las evals de legal-core que declaran
-// que boe-legislacion no se activa: la del municipio cubierto, con la sesión que
-// lo resuelve, declara su territorio y activa legal-core y boe-legislacion, no
-// pasa, con el motivo que nombra boe-legislacion, y con la misma sin activar
-// boe-legislacion, pasa; y la de no activación, con una sesión que activa solo
-// boe-legislacion —la activación de legal-core coincide—, no pasa, con ese motivo.
+// seActivaLaQueNoSeActiva son los juicios de las evals de plazos-y-territorio
+// que declaran que normativa no se activa: la del municipio cubierto, con la
+// sesión que lo resuelve, declara su territorio y activa plazos-y-territorio y
+// normativa, no pasa, con el motivo que nombra normativa, y con la misma sin
+// activar normativa, pasa; y la de no activación, con una sesión que activa
+// solo normativa —la activación de plazos-y-territorio coincide—, no pasa, con
+// ese motivo.
 func seActivaLaQueNoSeActiva(t *testing.T) []juicio {
 	t.Helper()
 
@@ -2261,16 +2296,16 @@ func seActivaLaQueNoSeActiva(t *testing.T) []juicio {
 
 	return []juicio{
 		{
-			eval:   evalDeLegalCoreSinBoeLegislacion(),
+			eval:   evalDePlazosYTerritorioSinNormativa(),
 			sesion: activandola,
 			skill:  skillDeTerritorio,
 			esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
-				r.Motivos = []string{motivoDeBoeLegislacionActivada}
+				r.Motivos = []string{motivoDeNormativaActivada}
 				r.Pasa = false
 			}),
 		},
 		{
-			eval:     evalDeLegalCoreSinBoeLegislacion(),
+			eval:     evalDePlazosYTerritorioSinNormativa(),
 			sesion:   sinActivarla,
 			skill:    skillDeTerritorio,
 			esperado: resultadoDelMunicipioQuePasa(),
@@ -2286,22 +2321,22 @@ func seActivaLaQueNoSeActiva(t *testing.T) []juicio {
 				CodigoDeLaSesion: codigoDeSalida(0),
 				FinDeLaSesion:    "result success",
 				SesionTerminada:  true,
-				Motivos:          []string{motivoDeBoeLegislacionActivada},
+				Motivos:          []string{motivoDeNormativaActivada},
 			},
 		},
 	}
 }
 
 // laQueNoSeActivaDetrasDeLaActivacion es el juicio de la eval del municipio
-// cubierto que declara que boe-legislacion no se activa con una sesión que activa
-// solo boe-legislacion, no resuelve el municipio y declara su territorio: los
-// motivos van en su orden, el de la activación de legal-core, el de
-// boe-legislacion y el del comando ausente.
+// cubierto que declara que normativa no se activa con una sesión que activa
+// solo normativa, no resuelve el municipio y declara su territorio: los
+// motivos van en su orden, el de la activación de plazos-y-territorio, el de
+// normativa y el del comando ausente.
 func laQueNoSeActivaDetrasDeLaActivacion(t *testing.T) juicio {
 	t.Helper()
 
 	return juicio{
-		eval:   evalDeLegalCoreSinBoeLegislacion(),
+		eval:   evalDePlazosYTerritorioSinNormativa(),
 		sesion: sesionTerminada(true, respuestaDelMunicipio),
 		skill:  skillDeTerritorio,
 		esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
@@ -2310,8 +2345,96 @@ func laQueNoSeActivaDetrasDeLaActivacion(t *testing.T) juicio {
 			r.ComandosAusentes = []string{textoDelComandoDeLeganes}
 			r.Invocaciones = nil
 			r.Motivos = []string{
-				"la activaci\xc3\xb3n no coincide: se esperaba que la skill legal-core se activara y no se activ\xc3\xb3",
-				motivoDeBoeLegislacionActivada,
+				"la activaci\xc3\xb3n no coincide: se esperaba que la skill plazos-y-territorio se activara y no se activ\xc3\xb3",
+				motivoDeNormativaActivada,
+				"comando ausente: " + textoDelComandoDeLeganes,
+			}
+			r.Pasa = false
+		}),
+	}
+}
+
+// evalDelMunicipioQueActivaDos es la eval del municipio cubierto que declara
+// que, con plazos-y-territorio, se activan normativa y jurisprudencia, en ese
+// orden, como la 02 de consulta-juridica declara la skill de su capacidad
+// (contracts/evals.md §2 de H32).
+func evalDelMunicipioQueActivaDos() Eval {
+	eval := evalDelMunicipioCubierto()
+	eval.SeActivan = []string{skillNormativa, skillDeJurisprudencia}
+
+	return eval
+}
+
+// seActivanLasQueSeActivan son los juicios de la eval del municipio cubierto que
+// declara que se activan normativa y jurisprudencia, con la sesión que lo
+// resuelve y declara su territorio: activando solo plazos-y-territorio, no
+// pasa, con un motivo por cada una, en el orden de la eval; activando además
+// normativa, no pasa, con el motivo que nombra jurisprudencia; y activándolas
+// todas, en otro orden que el de la eval, pasa.
+func seActivanLasQueSeActivan(t *testing.T) []juicio {
+	t.Helper()
+
+	sinActivarlas := sesionDeTerritorio(respuestaDelMunicipio, resuelveLeganes(t))
+	activando := func(skills ...string) Sesion {
+		return cambiada(sinActivarlas, func(s *Sesion) {
+			s.SkillsActivadas = append([]string{skillDeTerritorio}, skills...)
+		})
+	}
+	queNoPasa := func(motivos ...string) ResultadoDeEval {
+		return cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.Motivos = motivos
+			r.Pasa = false
+		})
+	}
+
+	return []juicio{
+		{
+			eval:     evalDelMunicipioQueActivaDos(),
+			sesion:   sinActivarlas,
+			skill:    skillDeTerritorio,
+			esperado: queNoPasa(motivoDeNormativaSinActivar, motivoDeJurisprudenciaSinActivar),
+		},
+		{
+			eval:     evalDelMunicipioQueActivaDos(),
+			sesion:   activando(skillNormativa),
+			skill:    skillDeTerritorio,
+			esperado: queNoPasa(motivoDeJurisprudenciaSinActivar),
+		},
+		{
+			eval:     evalDelMunicipioQueActivaDos(),
+			sesion:   activando(skillDeJurisprudencia, skillNormativa),
+			skill:    skillDeTerritorio,
+			esperado: resultadoDelMunicipioQuePasa(),
+		},
+	}
+}
+
+// lasQueSeActivanDelanteDeLasQueNo es el juicio de la eval del municipio
+// cubierto que declara que normativa se activa y jurisprudencia no, con una
+// sesión que activa solo jurisprudencia, no resuelve el municipio y declara su
+// territorio: los motivos van en su orden, el de la activación de
+// plazos-y-territorio, el de normativa sin activar, el de jurisprudencia
+// activada y el del comando ausente.
+func lasQueSeActivanDelanteDeLasQueNo() juicio {
+	eval := evalDelMunicipioCubierto()
+	eval.SeActivan = []string{skillNormativa}
+	eval.NoSeActivan = []string{skillDeJurisprudencia}
+
+	return juicio{
+		eval: eval,
+		sesion: cambiada(sesionTerminada(false, respuestaDelMunicipio), func(s *Sesion) {
+			s.SkillsActivadas = []string{skillDeJurisprudencia}
+		}),
+		skill: skillDeTerritorio,
+		esperado: cambiado(resultadoDelMunicipioQuePasa(), func(r *ResultadoDeEval) {
+			r.Activada = false
+			r.ComandosEjecutados = nil
+			r.ComandosAusentes = []string{textoDelComandoDeLeganes}
+			r.Invocaciones = nil
+			r.Motivos = []string{
+				"la activación no coincide: se esperaba que la skill plazos-y-territorio se activara y no se activó",
+				motivoDeNormativaSinActivar,
+				motivoDeJurisprudenciaActivada,
 				"comando ausente: " + textoDelComandoDeLeganes,
 			}
 			r.Pasa = false
@@ -2484,7 +2607,7 @@ func sesionTerminada(activada bool, respuesta string, invocaciones ...Invocacion
 	}
 
 	if activada {
-		sesion.SkillsActivadas = []string{skillDeLasSesiones}
+		sesion.SkillsActivadas = []string{skillNormativa}
 	}
 
 	return sesion
@@ -2698,8 +2821,8 @@ const (
 // binario ni servidor, la línea con su forma fija y los tres motivos de
 // contracts/evals-en-dos-modos.md §4 de H21, escritos a mano.
 const (
-	ficheroSinBinarioDeBoe       = "21-sin-binario-ni-servidor.yaml"
-	ficheroSinBinarioDeLegalCore = "04-sin-binario-ni-servidor.yaml"
+	ficheroSinBinarioDeBoe               = "21-sin-binario-ni-servidor.yaml"
+	ficheroSinBinarioDePlazosYTerritorio = "04-sin-binario-ni-servidor.yaml"
 
 	// lineaSinConsultaAlBOE es la línea de contracts/skills.md §3 de H21 con una
 	// causa en lugar del marcador y la dirección en la misma línea, y
@@ -2713,7 +2836,7 @@ const (
 	principioDeCitaSinConsulta  = "cita en una respuesta sin consulta: "
 
 	// citaDelArticulo53 es una cita con la forma fija, la del artículo por el que
-	// pregunta la eval de boe-legislacion, y textoDeLaCita53, su texto en el
+	// pregunta la eval de normativa, y textoDeLaCita53, su texto en el
 	// informe y en los motivos.
 	citaDelArticulo53 = "[BOE-A-2015-10565, bloque a53]"
 	textoDeLaCita53   = "BOE-A-2015-10565 a53"
@@ -2772,7 +2895,7 @@ func TestJuzgarLasLlamadas(t *testing.T) {
 			t.Parallel()
 
 			for posicion, j := range caso.juicios {
-				assert.Equal(t, j.esperado, juzgarEnModo(j.eval, j.sesion, cmp.Or(j.skill, skillDeLasSesiones), j.modo),
+				assert.Equal(t, j.esperado, juzgarEnModo(j.eval, j.sesion, cmp.Or(j.skill, skillNormativa), j.modo),
 					"el juicio %d: la eval %s con la sesión del caso", posicion, j.eval.Fichero)
 			}
 		})
@@ -3057,7 +3180,7 @@ func terminosPorHerramienta(t *testing.T) []juicioDeModo {
 }
 
 // municipioPorHerramienta son los juicios de la eval del municipio cubierto con
-// una sesión del modo herramienta de legal-core que lo resuelve con
+// una sesión del modo herramienta de plazos-y-territorio que lo resuelve con
 // territorio_resolver y declara su territorio: con el municipio, escrito de otra
 // forma que plegada es la suya, el comando queda ejecutado y la eval pasa; con
 // su código INE, queda ausente.
@@ -3314,8 +3437,8 @@ func TestJuzgarSinBinarioNiServidor(t *testing.T) {
 		eval  Eval
 		skill string
 	}{
-		{eval: sinBinarioDeBoeLegislacion(), skill: skillDeLasSesiones},
-		{eval: sinBinarioDeLegalCore(), skill: skillDeTerritorio},
+		{eval: sinBinarioDeNormativa(), skill: skillNormativa},
+		{eval: sinBinarioDePlazosYTerritorio(), skill: skillDeTerritorio},
 	}
 
 	for _, caso := range respuestas {
@@ -3354,9 +3477,9 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 		laOrden = "boe articulo BOE-A-2015-10565 a53 --json"
 	)
 
-	eval := sinBinarioDeBoeLegislacion()
+	eval := sinBinarioDeNormativa()
 
-	conLaOrden := cambiada(sesionSinBinarioNiServidor(skillDeLasSesiones, lineaSinSuDireccion), func(s *Sesion) {
+	conLaOrden := cambiada(sesionSinBinarioNiServidor(skillNormativa, lineaSinSuDireccion), func(s *Sesion) {
 		s.Invocaciones = []Invocacion{
 			invocada(t, codigoDeSalida(4), []string{kitlegalDelServidor, "boe", "articulo", normaDeLasTrazas, "a53", "--json"}),
 		}
@@ -3368,12 +3491,12 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 	}{
 		{nombre: "con-enfasis", juicio: juicio{
 			eval:     eval,
-			sesion:   sesionSinBinarioNiServidor(skillDeLasSesiones, conEnfasis),
+			sesion:   sesionSinBinarioNiServidor(skillNormativa, conEnfasis),
 			esperado: resultadoSinConsulta(eval, conEnfasis),
 		}},
 		{nombre: "sin-la-linea-y-con-tres-citas", juicio: juicio{
 			eval:   eval,
-			sesion: sesionSinBinarioNiServidor(skillDeLasSesiones, sinLineaYCon3),
+			sesion: sesionSinBinarioNiServidor(skillNormativa, sinLineaYCon3),
 			esperado: cambiado(resultadoSinConsulta(eval, sinLineaYCon3), func(r *ResultadoDeEval) {
 				r.LineaSinConsulta = false
 				r.CitasSinConsulta = []string{textoDeLaCita53, "BOE-A-2015-10565 a13", textoDeLaCita53}
@@ -3384,7 +3507,7 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 		}},
 		{nombre: "sin-terminar", juicio: juicio{
 			eval: eval,
-			sesion: cambiada(sesionSinBinarioNiServidor(skillDeLasSesiones, lineaSinConsultaAlBOE), func(s *Sesion) {
+			sesion: cambiada(sesionSinBinarioNiServidor(skillNormativa, lineaSinConsultaAlBOE), func(s *Sesion) {
 				s.Fin, s.Terminada, s.MotivoSinTerminar = "result error_max_turns", false, "result con subtype error_max_turns"
 			}),
 			esperado: cambiado(resultadoSinConsulta(eval, lineaSinConsultaAlBOE), func(r *ResultadoDeEval) {
@@ -3399,7 +3522,7 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 			esperado: cambiado(resultadoSinConsulta(eval, lineaSinConsultaAlBOE), func(r *ResultadoDeEval) {
 				r.Activada = false
 				r.Motivos = []string{
-					"la activación no coincide: se esperaba que la skill boe-legislacion se activara y no se activó",
+					"la activación no coincide: se esperaba que la skill normativa se activara y no se activó",
 				}
 				r.Pasa = false
 			}),
@@ -3430,7 +3553,7 @@ func TestJuzgarSinBinarioNiServidorConLoDeSiempre(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			assert.Equal(t, caso.juicio.esperado, Juzgar(caso.juicio.eval, caso.juicio.sesion, skillDeLasSesiones))
+			assert.Equal(t, caso.juicio.esperado, Juzgar(caso.juicio.eval, caso.juicio.sesion, skillNormativa))
 		})
 	}
 }
@@ -3456,7 +3579,7 @@ func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 	}{
 		{
 			nombre:    "modo-orden",
-			resultado: Juzgar(evalDelArticulo21(), sesionQuePasa(t), skillDeLasSesiones),
+			resultado: Juzgar(evalDelArticulo21(), sesionQuePasa(t), skillNormativa),
 			claves: []string{
 				`"modelo_de_la_sesion":"","modo":"orden","decide":false,`,
 				`"territorio_ausente":[],"linea_sin_consulta":false,"citas_sin_consulta":[],"invocaciones":[` +
@@ -3466,7 +3589,7 @@ func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 		{
 			nombre: "modo-herramienta",
 			resultado: juzgarEnModo(evalDelArticulo21(), sesionDelModoHerramienta(t, respuestaConCita,
-				llamadaCorrecta(herramientaDeArticulo, argumentosDelArticulo21)), skillDeLasSesiones, ModoHerramienta),
+				llamadaCorrecta(herramientaDeArticulo, argumentosDelArticulo21)), skillNormativa, ModoHerramienta),
 			claves: []string{
 				`"modelo_de_la_sesion":"","modo":"herramienta","decide":false,`,
 				`"linea_sin_consulta":false,"citas_sin_consulta":[],"invocaciones":[` +
@@ -3476,8 +3599,8 @@ func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 		},
 		{
 			nombre: "sin-binario-ni-servidor",
-			resultado: Juzgar(sinBinarioDeBoeLegislacion(), sesionSinBinarioNiServidor(skillDeLasSesiones, conUnaCita),
-				skillDeLasSesiones),
+			resultado: Juzgar(sinBinarioDeNormativa(), sesionSinBinarioNiServidor(skillNormativa, conUnaCita),
+				skillNormativa),
 			claves: []string{
 				`"modelo_de_la_sesion":"","modo":"","decide":false,`,
 				`"territorio_ausente":[],"linea_sin_consulta":true,` +
@@ -3500,26 +3623,26 @@ func TestElModoYLasLlamadasDelResultadoEnJSON(t *testing.T) {
 	}
 }
 
-// sinBinarioDeBoeLegislacion es la eval sin binario ni servidor de
-// boe-legislacion (contracts/evals-en-dos-modos.md §1 de H21), como se lee de
-// evalSinBinarioDeBoeLegislacion.
-func sinBinarioDeBoeLegislacion() Eval {
+// sinBinarioDeNormativa es la eval sin binario ni servidor de
+// normativa (contracts/evals-en-dos-modos.md §1 de H21), como se lee de
+// evalSinBinarioDeNormativa.
+func sinBinarioDeNormativa() Eval {
 	return Eval{
 		Fichero:              ficheroSinBinarioDeBoe,
-		Pregunta:             preguntaSinBinarioDeBoeLegislacion,
+		Pregunta:             preguntaSinBinarioDeNormativa,
 		Activa:               true,
 		SinBinarioNiServidor: true,
 	}
 }
 
-// sinBinarioDeLegalCore es la eval sin binario ni servidor de legal-core, que
-// declara además que boe-legislacion no se activa
+// sinBinarioDePlazosYTerritorio es la eval sin binario ni servidor de
+// plazos-y-territorio, que declara además que normativa no se activa
 // (contracts/evals-en-dos-modos.md §1 de H21), como se lee de
-// evalSinBinarioDeLegalCore.
-func sinBinarioDeLegalCore() Eval {
+// evalSinBinarioDePlazosYTerritorio.
+func sinBinarioDePlazosYTerritorio() Eval {
 	return Eval{
-		Fichero:              ficheroSinBinarioDeLegalCore,
-		Pregunta:             preguntaSinBinarioDeLegalCore,
+		Fichero:              ficheroSinBinarioDePlazosYTerritorio,
+		Pregunta:             preguntaSinBinarioDePlazosYTerritorio,
 		Activa:               true,
 		NoSeActivan:          []string{skillQueNoSeActiva},
 		SinBinarioNiServidor: true,
@@ -3599,7 +3722,7 @@ func sirveElServidor(t *testing.T, codigo *int, conexiones ...Conexion) Invocaci
 }
 
 // sesionDelModoHerramienta es la sesión del modo herramienta que terminó con
-// código 0 y result success y activó boe-legislacion, con la respuesta y las
+// código 0 y result success y activó normativa, con la respuesta y las
 // llamadas dadas y, en su traza, solo el proceso del servidor, que terminó con 0.
 func sesionDelModoHerramienta(t *testing.T, respuesta string, llamadas ...Llamada) Sesion {
 	t.Helper()
@@ -3677,7 +3800,7 @@ func TestJuzgarLecturasFechadas(t *testing.T) {
 			}
 
 			for _, comando := range comandos {
-				resultado := juzgarEnModo(comando.eval, caso.sesion, skillDeLasSesiones, caso.modo)
+				resultado := juzgarEnModo(comando.eval, caso.sesion, skillNormativa, caso.modo)
 
 				if comando.cumple {
 					assert.Equal(t, []string{comando.texto}, resultado.ComandosEjecutados, "%s se cumple", comando.texto)
@@ -3817,14 +3940,14 @@ func lecturasDelArticulo118(t *testing.T) []lecturaDelArticulo118 {
 }
 
 // probarElComandoSinFechaDeLaEval02 es el caso 9 de FR-089 de H20: la eval 02
-// de boe-legislacion, leída del repositorio, espera el bloque a1-30 de la LCSP
+// de normativa, leída del repositorio, espera el bloque a1-30 de la LCSP
 // sin fecha; una sesión que lo cita y solo lo lee con fecha, como orden o como
 // herramienta, no lo cumple, y su único motivo es el comando ausente, el de
 // bloque sin fecha. La misma sesión con la lectura sin fecha pasa.
 func probarElComandoSinFechaDeLaEval02(t *testing.T) {
 	t.Parallel()
 
-	conjunto, err := LeerConjunto(evalsDelRepositorio)
+	conjunto, err := LeerConjunto(evalsDeNormativa)
 	require.NoError(t, err)
 
 	eval02 := *evalDe(t, conjunto.Evals, "02-lcsp-contrato-menor.yaml")
@@ -3842,7 +3965,7 @@ func probarElComandoSinFechaDeLaEval02(t *testing.T) {
 	}
 
 	for _, fechada := range fechadas {
-		resultado := juzgarEnModo(eval02, fechada.sesion, skillDeLasSesiones, fechada.modo)
+		resultado := juzgarEnModo(eval02, fechada.sesion, skillNormativa, fechada.modo)
 
 		assert.False(t, resultado.Pasa, "en el modo %s, la lectura fechada no cumple la eval 02", fechada.modo)
 		assert.Equal(t, []string{"comando ausente: bloque boe BOE-A-2017-12902 a1-30"}, resultado.Motivos,
@@ -3851,7 +3974,7 @@ func probarElComandoSinFechaDeLaEval02(t *testing.T) {
 
 	sinFecha := sesionTerminada(true, respuestaConLaCita118, invocada(t, codigoDeSalida(0),
 		deLaSkill("articulo", normaDeLaLCSP, bloqueDelArticulo118, "--json")))
-	resultado := juzgarEnModo(eval02, sinFecha, skillDeLasSesiones, ModoOrden)
+	resultado := juzgarEnModo(eval02, sinFecha, skillNormativa, ModoOrden)
 
 	assert.True(t, resultado.Pasa, "la lectura sin fecha cumple la eval 02: %v", resultado.Motivos)
 }
@@ -3868,11 +3991,11 @@ func evalDelArticulo118(comando ComandoEsperado) Eval {
 	}
 }
 
-// Las evals 11 y 12 de legal-core que juzgan las sesiones de
+// Las evals 11 y 12 de plazos-y-territorio que juzgan las sesiones de
 // TestJuzgarLasLecturasSinServir, con el contenido de
 // contracts/formato-de-eval.md §3.1 y §3.2 de H26.1 y el razonamiento de la 05,
 // que las juzgan también con su fichero del repositorio, y la 16 de
-// boe-legislacion del repositorio.
+// normativa del repositorio.
 const (
 	ficheroDeLaEval11 = "11-plazo-reposicion-sin-leer-el-precepto.yaml"
 	ficheroDeLaEval12 = "12-cobertura-seguridad-social-sin-leer-la-da-primera.yaml"
@@ -3915,6 +4038,7 @@ prohibidos:
     verbo: calcular
 no_cubierto:
   norma: BOE-A-2015-10565
+  precepto: {norma: BOE-A-2015-10565, bloque: daprimera}
 `
 )
 
@@ -3934,8 +4058,8 @@ const (
 
 	respuestaDeLa11 = "Hasta el martes 13 de octubre de 2026.\n\n" + lineaDelPlazo + "\n\nNo he podido leer la " +
 		"redacción del art. 124 vigente el 2026-09-09: el BOE no respondió."
-	respuestaDeLa12 = "⚠ NO CUBIERTO: la gestión recaudatoria de la Seguridad Social lo regula aparte la DA 1ª.2.b " +
-		"(BOE-A-2015-10565): kitlegal no calcula sus plazos ni sus recursos."
+	respuestaDeLa12 = "⚠ NO CUBIERTO: la gestión recaudatoria de la Seguridad Social lo regula aparte la ley, no el " +
+		"procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.b LPAC " + citaDeLaDAPrimera + ")."
 
 	normaDeLaLRJSP = "BOE-A-2015-10566"
 	citaDel25      = "[Ley 40/2015, art. 25, BOE-A-2015-10566, bloque a25]"
@@ -3961,7 +4085,7 @@ const (
 //     cobertura_sin_declarar, y no con plazos calcular;
 //   - la sesión cortada, con la lectura sin código en lecturas_sin_servir y su
 //     código null;
-//   - y la 16 de boe-legislacion del repositorio, que juzga igual con sus
+//   - y la 16 de normativa del repositorio, que juzga igual con sus
 //     lecturas y sin ellas una sesión que no las lee.
 func TestJuzgarLasLecturasSinServir(t *testing.T) {
 	t.Parallel()
@@ -3986,7 +4110,8 @@ func evalLeida(t *testing.T, fichero, contenido string) Eval {
 }
 
 // evalDeUnOrigen es una eval y de dónde sale: del contrato, con el contenido de
-// este test, o del repositorio, con el de su fichero de evals/legal-core/.
+// este test, o del repositorio, con el de su fichero de
+// evals/plazos-y-territorio/.
 type evalDeUnOrigen struct {
 	origen string
 	eval   Eval
@@ -3998,7 +4123,7 @@ type evalDeUnOrigen struct {
 func lasDosEvals(t *testing.T, fichero, contenido string) []evalDeUnOrigen {
 	t.Helper()
 
-	delRepositorio := contenidoDelFichero(t, filepath.Join(evalsDeLegalCore, fichero))
+	delRepositorio := contenidoDelFichero(t, filepath.Join(evalsDePlazosYTerritorio, fichero))
 
 	return []evalDeUnOrigen{
 		{origen: "del-contrato", eval: evalLeida(t, fichero, contenido)},
@@ -4087,7 +4212,7 @@ func repartirLasLecturasSinServir(t *testing.T, eval Eval) {
 		deLaLPAC(t, codigoDeSalida(2), "articulo", "a31", "--json"),
 	}
 
-	sesion := sesionDeLegalCore(respuestaDeLa11,
+	sesion := sesionDePlazosYTerritorio(respuestaDeLa11,
 		slices.Concat([]Invocacion{resuelveLeganes(t), calculaLaReposicion(t)}, lecturas)...)
 	resultado := Juzgar(eval, sesion, skillDeTerritorio)
 
@@ -4179,7 +4304,7 @@ func probarLaEvalSinServirDelPlazo(t *testing.T) {
 				}
 
 				eval := deUnOrigen.eval
-				resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
+				resultado := Juzgar(eval, sesionDePlazosYTerritorio(caso.respuesta, invocaciones...), skillDeTerritorio)
 
 				assert.Equal(t, caso.motivos, resultado.Motivos)
 				assert.Equal(t, caso.motivos == nil, resultado.Pasa)
@@ -4318,7 +4443,7 @@ func probarLaEvalSinServirDeLaCobertura(t *testing.T) {
 				}
 
 				eval := deUnOrigen.eval
-				resultado := Juzgar(eval, sesionDeLegalCore(caso.respuesta, invocaciones...), skillDeTerritorio)
+				resultado := Juzgar(eval, sesionDePlazosYTerritorio(caso.respuesta, invocaciones...), skillDeTerritorio)
 
 				assert.Equal(t, caso.motivos, resultado.Motivos)
 				assert.Equal(t, caso.motivos == nil, resultado.Pasa)
@@ -4359,7 +4484,7 @@ func probarLaSesionCortadaConLaLecturaSinServir(t *testing.T) {
 func juzgarLaSesionCortada(t *testing.T, eval Eval) {
 	t.Helper()
 
-	cortada := cambiada(sesionDeLegalCore(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t),
+	cortada := cambiada(sesionDePlazosYTerritorio(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t),
 		deLaLPAC(t, nil, "articulo", "a124", "--fecha", diaDeLaNotificacion, "--json")), func(s *Sesion) {
 		s.Codigo, s.Fin, s.Terminada, s.Cortada = 124, "assistant", false, true
 		s.MotivoSinTerminar = "tope de 240 s agotado (código 124)"
@@ -4377,7 +4502,7 @@ func juzgarLaSesionCortada(t *testing.T, eval Eval) {
 	require.NoError(t, err)
 	assert.JSONEq(t, `[{"orden":"`+ordenDelArticulo124+`","codigo":null}]`, string(escrita))
 
-	sinNinguna := Juzgar(eval, sesionDeLegalCore(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t)),
+	sinNinguna := Juzgar(eval, sesionDePlazosYTerritorio(respuestaDeLa11, resuelveLeganes(t), calculaLaReposicion(t)),
 		skillDeTerritorio)
 	escrito, err := json.Marshal(sinNinguna)
 	require.NoError(t, err)
@@ -4385,7 +4510,7 @@ func juzgarLaSesionCortada(t *testing.T, eval Eval) {
 		"lecturas_sin_servir va vacía, detrás de otras_fallidas")
 }
 
-// probarLasLecturasDeLaEval16 fija que la 16 de boe-legislacion del repositorio,
+// probarLasLecturasDeLaEval16 fija que la 16 de normativa del repositorio,
 // que lleva a leer a26 y a27, juzga una sesión que no los lee igual que la misma
 // eval sin sus lecturas (US3, escenario 2; FR-007): la que lee el art. 25 y lo
 // cita, que pasa; la que no lee nada, que no; y la que lee el 25 y el 28, que
@@ -4393,7 +4518,7 @@ func juzgarLaSesionCortada(t *testing.T, eval Eval) {
 func probarLasLecturasDeLaEval16(t *testing.T) {
 	t.Parallel()
 
-	contenido, err := os.ReadFile(filepath.Join(evalsDelRepositorio, ficheroDeLaEval16))
+	contenido, err := os.ReadFile(filepath.Join(evalsDeNormativa, ficheroDeLaEval16))
 	require.NoError(t, err)
 
 	conLecturas := evalLeida(t, ficheroDeLaEval16, string(contenido))
@@ -4432,10 +4557,10 @@ func probarLasLecturasDeLaEval16(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			sin := Juzgar(sinLecturas, caso.sesion, skillDeLasSesiones)
+			sin := Juzgar(sinLecturas, caso.sesion, skillNormativa)
 			require.Equal(t, caso.pasa, sin.Pasa, "premisa: sin lecturas, %v", sin.Motivos)
 
-			assert.Equal(t, sin, Juzgar(conLecturas, caso.sesion, skillDeLasSesiones))
+			assert.Equal(t, sin, Juzgar(conLecturas, caso.sesion, skillNormativa))
 		})
 	}
 }
@@ -4518,11 +4643,11 @@ func probarElMotivoDeLaLlamadaSinSobre(t *testing.T) {
 
 			if caso.sinServir != nil {
 				require.Equal(t, []InvocacionFallida{{Orden: llamadaDelIndice, Codigo: codigoDeSalida(1)}},
-					Juzgar(eval, conSobre, skillDeLasSesiones).LecturasSinServir,
+					Juzgar(eval, conSobre, skillNormativa).LecturasSinServir,
 					"premisa: sin la marca, la llamada es una lectura de sin_servir")
 			}
 
-			resultado := Juzgar(eval, sinSobre, skillDeLasSesiones)
+			resultado := Juzgar(eval, sinSobre, skillNormativa)
 
 			assert.Equal(t, []InvocacionInformada{
 				{Orden: ordenDelArticulo21, Codigo: codigoDeSalida(0)},
@@ -4539,7 +4664,7 @@ func probarElMotivoDeLaLlamadaSinSobre(t *testing.T) {
 			assert.Equal(t, []string{llamadaDelIndice, "sin sobre", "sin conexiones", "sí"},
 				filasDeInvocaciones(resultado.Invocaciones)[1], "su fila de informe.md dice «sin sobre»")
 
-			exigirElMismoJuicio(t, Juzgar(eval, conSobre, skillDeLasSesiones), resultado)
+			exigirElMismoJuicio(t, Juzgar(eval, conSobre, skillNormativa), resultado)
 		})
 	}
 }
@@ -4617,7 +4742,7 @@ func probarElMotivoDeLaSalidaNoEscrita(t *testing.T) {
 				invocada(t, codigoDeSalida(caso.codigo), deKitlegal("boe", "indice", normaDeLasTrazas, "--json")))
 			conLasOrdenes := cambiada(sinLasOrdenes, func(s *Sesion) { s.OrdenesDeBash = caso.ordenes })
 
-			resultado := Juzgar(eval, conLasOrdenes, skillDeLasSesiones)
+			resultado := Juzgar(eval, conLasOrdenes, skillNormativa)
 
 			assert.Equal(t, caso.otras, resultado.OtrasFallidas)
 			assert.Equal(t, caso.lecturas, resultado.LecturasSinServir)
@@ -4627,7 +4752,7 @@ func probarElMotivoDeLaSalidaNoEscrita(t *testing.T) {
 			exigirLoEscrito(t, slices.Concat(resultado.OtrasFallidas, resultado.LecturasSinServir,
 				resultado.FueraDeLoGrabado), caso.escritas)
 
-			exigirElMismoJuicio(t, Juzgar(eval, sinLasOrdenes, skillDeLasSesiones), resultado)
+			exigirElMismoJuicio(t, Juzgar(eval, sinLasOrdenes, skillNormativa), resultado)
 		})
 	}
 }

@@ -33,7 +33,7 @@ const (
 // skillsDeHoy son las skills que el repositorio tiene hoy (FR-004, SC-021): sin
 // ellas, la comparación entre lo empotrado y el árbol pasaría en vacío. Una
 // skill nueva no rompe nada: basta con que estén estas.
-var skillsDeHoy = []string{"boe-legislacion", "legal-core"}
+var skillsDeHoy = []string{"consulta-juridica", "jurisprudencia", "normativa", "plazos-y-territorio"}
 
 // TestSkillsEmpotradas fija que lo empotrado es exactamente lo que dice FR-001
 // del árbol, byte a byte (FR-001, FR-003, FR-004; contracts/skills-e-invocacion.md

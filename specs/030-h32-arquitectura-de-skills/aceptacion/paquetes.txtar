@@ -1,0 +1,258 @@
+# paquetes.txtar
+# Lo administrativo es el primer paquete de materia: cada fila de las tres
+# referencias generadas de legal-core en c991808 —la cobertura por materia, los
+# recursos y plazos y las leyes vertebrales— tiene sus datos en la referencia del
+# paquete en plazos-y-territorio, con la cita en la forma única; la fila de la
+# aplicación de los tributos es, byte a byte, la del ejemplo de
+# contracts/paquetes.md §3; ningún cuerpo de una skill de capacidad nombra una
+# norma del paquete ni una de las evals por materia; y el SKILL.md de
+# plazos-y-territorio lleva, entre sus marcas, el enlace a la referencia.
+#
+# Cubre: US4 · FR-019, FR-021, FR-023 · SC-017.
+#
+# Las tres referencias de c991808 van copiadas enteras en las secciones
+# c991808/, tal como las da git show: el make ci de la entrega corre sobre un
+# clon superficial, sin ese commit. Una fila tiene sus datos en la referencia si
+# una de sus líneas lleva cada celda de la fila tal cual y, de cada precepto
+# «<apartado> (<identificador>, bloque <id>)», el apartado y
+# «[<identificador>, bloque <id>]» (filas.awk); una celda «—» no tiene datos.
+#
+# Las normas del paquete son las de data/normas.yaml de la rama con vertical: su
+# identificador, su título hasta la primera coma y su abreviatura (paquete.awk).
+# Se buscan en el cuerpo de cada SKILL.md de capacidad, desde la línea que sigue
+# al --- que cierra el frontmatter y con sus líneas juntadas por un espacio y los
+# blancos colapsados: la abreviatura, como palabra entera; lo demás y la lista
+# mínima de FR-021, como texto. Los awk y el sh salen siempre con 0: el veredicto
+# es el de stdout.
+
+env REFERENCIA=$KITLEGAL_SKILLS/plazos-y-territorio/references/administrativo.md
+exists $REFERENCIA
+
+# --- FR-019: cada fila de c991808, con sus datos, en la referencia del paquete ---
+exec awk -f filas.awk c991808/cobertura_por_materia.md c991808/recursos_y_plazos.md c991808/leyes_vertebrales.md $REFERENCIA
+stdout '^filas: 33 de 33$'
+
+# --- FR-012, FR-019: la fila de la aplicación de los tributos, byte a byte ---
+exec awk -f iguales.awk tributos.txt $REFERENCIA
+stdout '^iguales: 1 de 1$'
+
+# --- FR-023: el enlace a la referencia, entre las marcas de los paquetes ---
+exists $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
+exec awk -f marcas.awk $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
+cp stdout entre-marcas.txt
+exec awk -f iguales.awk enlace.txt entre-marcas.txt
+stdout '^iguales: 1 de 1$'
+
+# --- FR-021: ningún cuerpo de capacidad nombra una norma del paquete ni de la lista mínima ---
+exists $KITLEGAL_SKILLS/normativa/SKILL.md
+exists $KITLEGAL_SKILLS/jurisprudencia/SKILL.md
+exec awk -f paquete.awk $KITLEGAL_SKILLS/../data/normas.yaml
+stdout '^normas con vertical: [1-9][0-9]*$'
+cp stdout normas-del-paquete.txt
+exec sh cuerpos.sh $KITLEGAL_SKILLS normativa jurisprudencia plazos-y-territorio
+cp stdout cuerpos.txt
+exec awk -f nombra.awk normas-del-paquete.txt lista-minima.txt cuerpos.txt
+stdout '^cuerpos: 3; normas nombradas: 0$'
+
+-- c991808/cobertura_por_materia.md --
+<!-- generado desde data/cobertura.yaml, no editar -->
+
+# Cobertura por materia
+
+| Procedimiento | Lo regula aparte | Norma que lo rige |
+|---|---|---|
+| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa | DA 1ª.2.a (BOE-A-2015-10565, bloque daprimera) | Ley 58/2003, General Tributaria (BOE-A-2003-23186) |
+| gestión, inspección, liquidación, recaudación, impugnación y revisión en materia de Seguridad Social y desempleo | DA 1ª.2.b (BOE-A-2015-10565, bloque daprimera) | — |
+| procedimientos sancionadores en materia tributaria y aduanera | DA 1ª.2.c (BOE-A-2015-10565, bloque daprimera) | — |
+| procedimientos sancionadores en el orden social | DA 1ª.2.c (BOE-A-2015-10565, bloque daprimera) | — |
+| procedimientos sancionadores en materia de tráfico y seguridad vial | DA 1ª.2.c (BOE-A-2015-10565, bloque daprimera) | texto refundido de la Ley sobre Tráfico, Circulación de Vehículos a Motor y Seguridad Vial (BOE-A-2015-11722) |
+| procedimientos sancionadores en materia de extranjería | DA 1ª.2.c (BOE-A-2015-10565, bloque daprimera) | — |
+| actuaciones y procedimientos en materia de extranjería y asilo | DA 1ª.2.d (BOE-A-2015-10565, bloque daprimera) | — |
+| procedimientos de impugnación que una ley establece en sustitución del recurso de alzada | art. 112.2 (BOE-A-2015-10565, bloque a112) | — |
+| reclamaciones económico-administrativas | art. 112.4 (BOE-A-2015-10565, bloque a112) | — |
+-- c991808/recursos_y_plazos.md --
+<!-- generado desde data/plazos.yaml, no editar -->
+
+# Recursos y plazos
+
+| Tipo | Código | Duración | Cómputo | Precepto |
+|---|---|---|---|---|
+| recurso de alzada | `alzada` | 1 mes | `lpac` | art. 122.1 (BOE-A-2015-10565, bloque a122) |
+| recurso potestativo de reposición | `reposicion` | 1 mes | `lpac` | art. 124.1 (BOE-A-2015-10565, bloque a124) |
+| recurso contencioso-administrativo | `contencioso` | 2 meses | `contencioso` | art. 46.1 (BOE-A-1998-16718, bloque a46); art. 128.2 (BOE-A-1998-16718, bloque a128) |
+| plazo para resolver una solicitud de acceso a la información pública | `acceso-resolver` | 1 mes | `lpac` | art. 20.1 (BOE-A-2013-12887, bloque a20) |
+| reclamación contra la resolución de una solicitud de acceso | `acceso-reclamar` | 1 mes | `lpac` | art. 24.2 (BOE-A-2013-12887, bloque a24) |
+| día en que se produce el silencio administrativo | `silencio` | la que recibe, con su unidad | `lpac` | art. 21.3 (BOE-A-2015-10565, bloque a21); art. 24.4 (BOE-A-2015-10565, bloque a24) |
+| plazo genérico | `generico` | la que recibe, en `meses` | `lpac` | art. 30.4 (BOE-A-2015-10565, bloque a30) |
+| plazo genérico | `generico` | la que recibe, en `dias-habiles` | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |
+| plazo genérico | `generico` | la que recibe, en `dias-naturales` | `lpac` | art. 30.2 (BOE-A-2015-10565, bloque a30) |
+-- c991808/leyes_vertebrales.md --
+<!-- generado desde data/normas.yaml, no editar -->
+
+# Leyes vertebrales
+
+| Norma | Abreviatura | Identificador | Rango | Materias |
+|---|---|---|---|---|
+| Real Decreto de 24 de julio de 1889 por el que se publica el Código Civil. | CC | `BOE-A-1889-4763` | Real Decreto | derecho civil, fuentes del derecho |
+| Constitución Española. | CE | `BOE-A-1978-31229` | Constitución | organización territorial, autonomía local |
+| Ley 7/1985, de 2 de abril, Reguladora de las Bases del Régimen Local | LRBRL | `BOE-A-1985-5392` | Ley | régimen local |
+| Ley Orgánica 6/1985, de 1 de julio, del Poder Judicial. | LOPJ | `BOE-A-1985-12666` | Ley Orgánica | poder judicial |
+| Ley 29/1998, de 13 de julio, reguladora de la Jurisdicción Contencioso-administrativa. | LJCA | `BOE-A-1998-16718` | Ley | jurisdicción contencioso-administrativa, recurso contencioso-administrativo |
+| Ley 1/2000, de 7 de enero, de Enjuiciamiento Civil. | LEC | `BOE-A-2000-323` | Ley | proceso civil |
+| Ley 38/2003, de 17 de noviembre, General de Subvenciones. | LGS | `BOE-A-2003-20977` | Ley | subvenciones |
+| Ley 47/2003, de 26 de noviembre, General Presupuestaria. | LGP | `BOE-A-2003-21614` | Ley | presupuestos públicos, control del gasto público |
+| Ley 58/2003, de 17 de diciembre, General Tributaria. | LGT | `BOE-A-2003-23186` | Ley | tributos |
+| Real Decreto Legislativo 2/2004, de 5 de marzo, por el que se aprueba el texto refundido de la Ley Reguladora de las Haciendas Locales. | TRLRHL | `BOE-A-2004-4214` | Real Decreto Legislativo | tributos, haciendas locales |
+| Ley 19/2013, de 9 de diciembre, de transparencia, acceso a la información pública y buen gobierno. | LTAIBG | `BOE-A-2013-12887` | Ley | transparencia, acceso a la información pública |
+| Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas. | LPAC | `BOE-A-2015-10565` | Ley | procedimiento administrativo |
+| Ley 40/2015, de 1 de octubre, de Régimen Jurídico del Sector Público. | LRJSP | `BOE-A-2015-10566` | Ley | régimen jurídico del sector público, potestad sancionadora |
+| Ley 9/2017, de 8 de noviembre, de Contratos del Sector Público, por la que se transponen al ordenamiento jurídico español las Directivas del Parlamento Europeo y del Consejo 2014/23/UE y 2014/24/UE, de 26 de febrero de 2014. | LCSP | `BOE-A-2017-12902` | Ley | contratación pública |
+| Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales. | LOPDGDD | `BOE-A-2018-16673` | Ley Orgánica | protección de datos personales, derechos digitales |
+-- tributos.txt --
+| aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa | ⚠ NO CUBIERTO: aplicación de los tributos en materia tributaria y aduanera y su revisión en vía administrativa se rige por Ley 58/2003, General Tributaria (BOE-A-2003-23186), no por el procedimiento común: kitlegal no calcula sus plazos ni sus recursos (DA 1ª.2.a LPAC [BOE-A-2015-10565, bloque daprimera]). |
+-- enlace.txt --
+- Si la pregunta es de lo administrativo, lee [administrativo](references/administrativo.md).
+-- lista-minima.txt --
+texto|BOE-A-1985-5392
+texto|BOE-A-2004-4214
+texto|BOE-A-2006-20764
+texto|BOE-A-2013-12887
+texto|BOE-A-2015-10566
+texto|Ley 7/1985
+texto|Real Decreto Legislativo 2/2004
+texto|Ley 35/2006
+texto|Ley 19/2013
+texto|Ley 40/2015
+texto|LRBRL
+texto|TRLRHL
+texto|IRPF
+texto|LTAIBG
+texto|LRJSP
+-- filas.awk --
+# filas.awk <tabla>... <referencia>: por cada fila de datos de cada tabla, si una
+# línea de la referencia —el último fichero— lleva todos sus datos, y cuáles no.
+function partir(s, separador, partes,   n, p) {
+	n = 0
+	while ((p = index(s, separador)) > 0) {
+		partes[++n] = substr(s, 1, p - 1)
+		s = substr(s, p + length(separador))
+	}
+	partes[++n] = s
+	return n
+}
+function pide(r, texto) { if (texto != "") necesita[r, ++cuantos[r]] = texto }
+function datos(r, linea,   celdas, k, i, preceptos, m, j, p, apartado, cita) {
+	sub(/^\| /, "", linea); sub(/ \|$/, "", linea)
+	k = partir(linea, " | ", celdas)
+	for (i = 1; i <= k; i++) {
+		if (celdas[i] == "—") continue
+		if (!index(celdas[i], "(BOE-A-") || !index(celdas[i], ", bloque ")) { pide(r, celdas[i]); continue }
+		m = partir(celdas[i], "; ", preceptos)
+		for (j = 1; j <= m; j++) {
+			p = index(preceptos[j], " (")
+			apartado = substr(preceptos[j], 1, p - 1)
+			cita = substr(preceptos[j], p + 2); sub(/\)$/, "", cita)
+			pide(r, apartado)
+			pide(r, "[" cita "]")
+		}
+	}
+}
+function todos(r, linea,   i) {
+	for (i = 1; i <= cuantos[r]; i++) if (!index(linea, necesita[r, i])) return 0
+	return 1
+}
+FNR == 1 { enTabla = 0; referencia = (FILENAME == ARGV[ARGC - 1]) }
+referencia { for (r = 1; r <= filas; r++) if (!hallada[r] && todos(r, $0)) hallada[r] = 1; next }
+!/^\|/ { next }
+!enTabla { enTabla = 1; next }
+/^\|[-|]+$/ { next }
+{ filas++; fila[filas] = FILENAME ": " $0; datos(filas, $0) }
+END {
+	estan = 0
+	for (r = 1; r <= filas; r++) if (hallada[r]) estan++; else print "sin sus datos: " fila[r]
+	print "filas: " estan " de " filas
+}
+-- iguales.awk --
+# iguales.awk <esperadas> <fichero>: cada línea de <esperadas> es, byte a byte,
+# una línea de <fichero>.
+FNR == 1 { f++ }
+f == 1 { esperadas[++n] = $0; next }
+{ hay[$0] = 1 }
+END {
+	estan = 0
+	for (i = 1; i <= n; i++) if (esperadas[i] in hay) estan++; else print "falta: " esperadas[i]
+	print "iguales: " estan " de " n
+}
+-- marcas.awk --
+# marcas.awk <SKILL.md>: las líneas entre las marcas de los paquetes, sin ellas.
+$0 == "<!-- fin de los paquetes -->" { dentro = 0 }
+dentro { print }
+$0 == "<!-- paquetes: lo genera make skills-sync -->" { dentro = 1 }
+-- paquete.awk --
+# paquete.awk <data/normas.yaml>: por cada norma con vertical, lo que la nombra
+# —«identificador|<id>», «titulo|<título hasta la primera coma>» y
+# «abreviatura|<abreviatura>»— y, al final, cuántas normas tienen vertical.
+function valor(linea) {
+	sub(/^[^:]*:[ \t]*/, "", linea); sub(/[ \t]+$/, "", linea)
+	if (linea ~ /^".*"$/ || linea ~ /^'.*'$/) linea = substr(linea, 2, length(linea) - 2)
+	return linea
+}
+function cerrar(   c) {
+	if (id != "" && vertical != "") {
+		normas++
+		print "identificador|" id
+		c = index(titulo, ",")
+		if (c) titulo = substr(titulo, 1, c - 1)
+		if (titulo != "") print "titulo|" titulo
+		if (abreviatura != "") print "abreviatura|" abreviatura
+	}
+	id = ""; titulo = ""; abreviatura = ""; vertical = ""
+}
+/^  [^ #][^:]*:[ \t]*$/ { cerrar(); id = $0; sub(/^  /, "", id); sub(/:[ \t]*$/, "", id); next }
+/^    titulo:/ { titulo = valor($0) }
+/^    abreviatura:/ { abreviatura = valor($0) }
+/^    vertical:/ { vertical = valor($0) }
+END { cerrar(); print "normas con vertical: " normas + 0 }
+-- cuerpos.sh --
+# cuerpos.sh <skills> <skill>...: el cuerpo del SKILL.md de cada <skill>, desde la
+# línea que sigue al --- que cierra el frontmatter, en una línea «<skill>: <texto>»,
+# con sus líneas juntadas por un espacio y los blancos colapsados.
+raiz=$1
+shift
+for skill in "$@"; do
+	awk -v skill="$skill" '
+		d >= 2 { texto = texto " " $0; next }
+		$0 == "---" { d++ }
+		END { gsub(/[ \t]+/, " ", texto); print skill ":" texto }
+	' "$raiz/$skill/SKILL.md"
+done
+exit 0
+-- nombra.awk --
+# nombra.awk <términos>... cuerpos.txt: por cada cuerpo de cuerpos.txt —una línea
+# «<skill>: <texto>»—, cada término de los ficheros de términos —una línea
+# «<clase>|<término>»— que lo nombra: con la clase abreviatura, como palabra
+# entera; con las demás, como texto.
+function palabra(texto, w,   base, resto, p, antes, despues) {
+	base = 0; resto = texto
+	while ((p = index(resto, w)) > 0) {
+		antes = (base + p > 1) ? substr(texto, base + p - 1, 1) : ""
+		despues = substr(texto, base + p + length(w), 1)
+		if (antes !~ /[A-Za-z0-9_]/ && despues !~ /[A-Za-z0-9_]/) return 1
+		base += p; resto = substr(texto, base + 1)
+	}
+	return 0
+}
+FILENAME !~ /cuerpos\.txt$/ {
+	if ((c = index($0, "|")) > 0) { n++; clase[n] = substr($0, 1, c - 1); termino[n] = substr($0, c + 1) }
+	next
+}
+{
+	cuerpos++
+	skill = $0; sub(/: .*/, "", skill)
+	texto = substr($0, length(skill) + 3)
+	for (i = 1; i <= n; i++) {
+		hay = (clase[i] == "abreviatura") ? palabra(texto, termino[i]) : index(texto, termino[i])
+		if (hay) { print "nombra " skill ": " termino[i]; nombradas++ }
+	}
+}
+END { print "cuerpos: " cuerpos + 0 "; normas nombradas: " nombradas + 0 }

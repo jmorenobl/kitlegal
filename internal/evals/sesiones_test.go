@@ -42,8 +42,8 @@ const transcriptTerminado = `{"type":"system","subtype":"init","model":"` + mode
 // Las entradas del directorio de skills instaladas de los tests: una carpeta y
 // un enlace a otra, como las deja make install.
 const (
-	skillEnCarpeta = "boe-legislacion"
-	skillEnlazada  = "legal-core"
+	skillEnCarpeta = "normativa"
+	skillEnlazada  = "plazos-y-territorio"
 )
 
 // TestTopeDeLaSesion fija el tope de la sesión, en Go y sin timeout
@@ -1237,7 +1237,7 @@ func sesionesEnDosModos(t *testing.T, s sustitutos) SesionesAEjecutar {
 
 	evals := crearConjunto(t, []entradaDeConjunto{
 		{nombre: nombreDeEval, contenido: contenidoDelArticulo21},
-		{nombre: ficheroDeEvalSinBinario, contenido: evalSinBinarioDeBoeLegislacion},
+		{nombre: ficheroDeEvalSinBinario, contenido: evalSinBinarioDeNormativa},
 	})
 
 	conjunto, err := LeerConjunto(evals)

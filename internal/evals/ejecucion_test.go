@@ -351,7 +351,7 @@ type juezMedido struct {
 }
 
 // juecesMedidos son los jueces de la tabla de las copias, en su orden: el de
-// boe-legislacion, con los 212 y los 47 casos de su medida (FR-044 de H24) y el
+// normativa, con los 212 y los 47 casos de su medida (FR-044 de H24) y el
 // voto de sus dos clases, y el de jurisprudencia, con los 125 y los 124 de la
 // suya (contracts/juez-de-jurisprudencia.md §5 de H25; FR-022) y el voto cuyo
 // esquema lleva sentencia.

@@ -1,0 +1,11 @@
+# Eval de la vertical de ensayo de TestVerticalDeEnsayo (contracts/paquetes.md §5 de H32): cita la primera norma del
+# paquete. El test la copia a evals/normativa/ de una copia del repositorio y la carga; ninguna sesión la ejecuta.
+pregunta: "¿Qué dice el artículo 1 de la Ley 1/1900?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-1900-1
+    bloque: a1
+citas:
+  - norma: BOE-A-1900-1
+    bloque: a1

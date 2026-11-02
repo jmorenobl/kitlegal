@@ -16,11 +16,13 @@ exists $WORK/gopath/bin/kitlegal
 ! exists $WORK/repo/bin/instalado
 
 exec ls -A $HOME/.agents/skills
-stdout '\Aboe-legislacion\njurisprudencia\nkitlegal\.json\nlegal-core\n\z'
-exec readlink $HOME/.claude/skills/boe-legislacion
-stdout '\A\.\./\.\./\.agents/skills/boe-legislacion\n\z'
+stdout '\Aconsulta-juridica\njurisprudencia\nkitlegal\.json\nnormativa\nplazos-y-territorio\n\z'
+exec readlink $HOME/.claude/skills/normativa
+stdout '\A\.\./\.\./\.agents/skills/normativa\n\z'
+exec readlink $HOME/.claude/skills/consulta-juridica
+stdout '\A\.\./\.\./\.agents/skills/consulta-juridica\n\z'
 exec readlink $HOME/.claude/skills/jurisprudencia
 stdout '\A\.\./\.\./\.agents/skills/jurisprudencia\n\z'
-exec readlink $HOME/.claude/skills/legal-core
-stdout '\A\.\./\.\./\.agents/skills/legal-core\n\z'
-cmp $HOME/.agents/skills/legal-core/SKILL.md $WORK/repo/skills/legal-core/SKILL.md
+exec readlink $HOME/.claude/skills/plazos-y-territorio
+stdout '\A\.\./\.\./\.agents/skills/plazos-y-territorio\n\z'
+cmp $HOME/.agents/skills/plazos-y-territorio/SKILL.md $WORK/repo/skills/plazos-y-territorio/SKILL.md

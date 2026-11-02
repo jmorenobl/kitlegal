@@ -1,0 +1,100 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "eecef0a3fb9732d13c73d9691478c2c3024f32a1634072f79ce956b1509a1dc1",
+      "bytes": 4823,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "evidencia de los sondeos de la persona antes de fusionar H32"
+    },
+    {
+      "fichero": "brazo-274a5ca/salida.txt",
+      "sha256": "01ed8366f0da64039ee9e65aef8c89d44192a5e0d8c2e04b8f3c04e04734b19d",
+      "bytes": 1164,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por una persona el 2026-11-02 sobre la #214 (274a5ca)"
+    },
+    {
+      "fichero": "brazo-274a5ca/votos.json",
+      "sha256": "7720bca68b52750276e4ba4b71bcdac005fced19caf8e780e09ec659071f29bc",
+      "bytes": 705161,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por una persona el 2026-11-02 sobre la #214 (274a5ca)"
+    },
+    {
+      "fichero": "brazo-854b60a/salida.txt",
+      "sha256": "84addd69d019415b637bef574308d26e63542c0c639dcc5a69ace15044147651",
+      "bytes": 1164,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por una persona el 2026-11-01 sobre la #214 (854b60a)"
+    },
+    {
+      "fichero": "brazo-854b60a/votos.json",
+      "sha256": "462214e9569e938791805bd7d4697782ba869526f5a297ef97ea0fc7e4c3c47a",
+      "bytes": 701816,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por una persona el 2026-11-01 sobre la #214 (854b60a)"
+    },
+    {
+      "fichero": "brazo-ddfb799-plazos/salida.txt",
+      "sha256": "eea0f4c27ebd0b990e4a7776a07ea8ab644147cba53e49fd7befd10561d057ab",
+      "bytes": 1012,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo, lanzado por una persona sobre la #214 (ddfb799)"
+    },
+    {
+      "fichero": "brazo-ddfb799/salida.txt",
+      "sha256": "ca159eacd14c6ab8239a6abc933c5c3e52e4d9103e0802e2a4ce0d2120fd9748",
+      "bytes": 1164,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por una persona sobre la #214 (ddfb799)"
+    },
+    {
+      "fichero": "brazo-ddfb799/votos.json",
+      "sha256": "5656e0b6146811677567d4899e5abadaab12203d618a466e0747b9a378b06c7d",
+      "bytes": 731202,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "salida del sondeo y votos del juez, lanzado por una persona sobre la #214 (ddfb799)"
+    },
+    {
+      "fichero": "guiones/analizar.py",
+      "sha256": "9119695570f97431b49c96e70d0f26fa095d1edf02739bfc021c11ad3311e983",
+      "bytes": 1424,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "guion de las sesiones del 2026-10-30 al 2026-11-02, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar-160-274a5ca.sh",
+      "sha256": "f2cf9da9a8f0ccf2ce423226aa76a74e44399f358d039f469aa5c063ceb34fe6",
+      "bytes": 2015,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "guion de las sesiones del 2026-10-30 al 2026-11-02, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar-160-854b60a.sh",
+      "sha256": "9d7836be525ba8c23a4fbc12d6ce228e2edfeb7a9d0301e07f2a10aedbd99e63",
+      "bytes": 2015,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "guion de las sesiones del 2026-10-30 al 2026-11-02, fuera del producto"
+    },
+    {
+      "fichero": "guiones/lanzar-280.sh",
+      "sha256": "50bb992f7a3c718aac8187ad755146c84bcac83d3bb62a571fb9a053fb134ab4",
+      "bytes": 2274,
+      "fecha": "2026-11-02",
+      "versionado": "sí",
+      "origen": "guion de las sesiones del 2026-10-30 al 2026-11-02, fuera del producto"
+    }
+  ]
+}

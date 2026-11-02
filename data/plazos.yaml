@@ -1,5 +1,6 @@
 # Tipos de plazo de `kitlegal plazos calcular`: su cómputo, la duración que fijan y los preceptos que los fundan, cada
-# uno con lo que fija. Lo lee plazos.LeerTipos, el binario y el generador de references/recursos_y_plazos.md.
+# uno con lo que fija. Lo lee plazos.LeerTipos, el binario y el generador de la región recursos_y_plazos de la
+# referencia de cada paquete, hoy skills/plazos-y-territorio/references/administrativo.md.
 # Los cómputos llevan los preceptos con que se cuenta cualquier plazo de su cómputo. Cada precepto lleva también
 # vigente_desde: el primer día en que su apartado dice lo que dice en la última redacción grabada, con la que está
 # escrito este fichero; plazos no da la fecha de un plazo que empieza antes de ese día en alguno de sus preceptos
