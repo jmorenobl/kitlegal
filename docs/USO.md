@@ -21,10 +21,13 @@ quiso hacer y qué pasó. Las referencias a municipios concretos son bienvenidas
   `con_herramientas.md` en 9 (106). En `plazos-y-territorio`, cuya descripción no nombra ninguna herramienta, la
   referencia del paquete se abre en 58 de 60 en modo herramienta. `con_herramientas.md` lleva justo las reglas que
   fallaron en la eval 22 en ese modo, y los esquemas de las herramientas no describen ningún parámetro.
+  La suite completa de la release v0.9.0 sale en rojo por la misma vía: en modo herramienta, una sesión de la eval 04
+  de `normativa` va a `boe_articulo` sin activar ninguna skill, y dos de la eval 02 de `consulta-juridica` se saltan la
+  skill de entrada. v0.9.0 espera.
 - **Qué faltó.** Saber qué organización de una skill se lee en los dos modos. El tope del cuerpo es el de la
   especificación (ADR 0046), y arreglar cada defecto con una frase más en el cuerpo no tiene recorrido.
-- **Qué se hizo.** H39: una skill de laboratorio con una regla testigo y sus variantes, medidas en un sondeo, antes de
-  reorganizar las skills del producto.
+- **Qué se hizo.** H39: una skill de laboratorio con una regla testigo y sus variantes, también de activación, medidas
+  en un sondeo, antes de reorganizar las skills del producto; la release, después.
 
 ### 2026-10-27 · El hito sale en verde y el sondeo dice que no basta
 
