@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-02
+
 ### Añadido
 
 - **La skill de entrada, `consulta-juridica` v0.1: toda pregunta legal, de cualquier materia, entra por ella** (H32;
