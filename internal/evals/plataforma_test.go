@@ -16,7 +16,7 @@ import (
 // trabajo, en los registros sintéticos de los tests de la plataforma: el
 // trabajo y el paso, cada uno con un tabulador detrás, y la hora con un espacio.
 const (
-	trabajoDelRegistro = "evals (boe-legislacion)\t"
+	trabajoDelRegistro = "evals (normativa)\t"
 	pasoDelRegistro    = "Ejecutar las evals\t"
 	horaDeUnRegistro   = "2026-10-22T09:41:03.0000001Z "
 )
@@ -57,7 +57,7 @@ func registroConElInforme(lineas []string) string {
 // la que lo escribe el job.
 var lineasDeUnInforme = []string{
 	"{",
-	`  "skill": "boe-legislacion",`,
+	`  "skill": "normativa",`,
 	`  "tasas": []`,
 	"}",
 }
@@ -182,13 +182,13 @@ func TestOrdenesDeLaPlataforma(t *testing.T) {
 				return plataforma.trabajos(ctx, 18712345678)
 			},
 			respuesta: `{"jobs":[{"completedAt":"2026-10-22T11:02:44Z","conclusion":"failure",` +
-				`"databaseId":53398112233,"name":"evals (boe-legislacion)","startedAt":"2026-10-22T09:21:02Z",` +
+				`"databaseId":53398112233,"name":"evals (normativa)","startedAt":"2026-10-22T09:21:02Z",` +
 				`"status":"completed","steps":[{"conclusion":"failure","name":"Ejecutar las evals","number":7,` +
 				`"status":"completed"},{"conclusion":"success","name":"El informe del trabajo está escrito",` +
 				`"number":8,"status":"completed"}],"url":"https://github.com/o/r/actions/runs/1/job/2"}]}` + "\n",
 			leido: []trabajoDeLaEjecucion{
 				{
-					ID: 53398112233, Name: "evals (boe-legislacion)", Status: statusTerminado, Conclusion: "failure",
+					ID: 53398112233, Name: "evals (normativa)", Status: statusTerminado, Conclusion: "failure",
 					Steps: []pasoDeLaEjecucion{
 						{Name: "Ejecutar las evals", Conclusion: "failure"},
 						{Name: "El informe del trabajo está escrito", Conclusion: conclusionDeExito},

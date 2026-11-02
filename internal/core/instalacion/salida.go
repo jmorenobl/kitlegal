@@ -2,9 +2,10 @@ package instalacion
 
 // Los tipos de la salida de install, list y doctor, el data de cada verbo, con
 // las claves de data-model §10 en español y en el orden del contrato
-// (contracts/applet-skills.md §4; FR-051, FR-060, FR-067). Ninguno lleva
-// omitempty y una lista vacía es una lista, nunca nil, así que se emite [] y
-// no null; la versión de un ámbito sin manifiesto es nil y se emite null.
+// (contracts/applet-skills.md §4; FR-051, FR-060, FR-067). Solo el aviso de
+// una skill de nombre retirado lleva omitempty (H32); una lista vacía es una
+// lista, nunca nil, así que se emite [] y no null; la versión de un ámbito sin
+// manifiesto es nil y se emite null.
 //
 // Las etiquetas jsonschema son la descripción formal de los valores, de la que
 // --describe genera el esquema del verbo y de la que sale el publicado
@@ -12,10 +13,11 @@ package instalacion
 // los enumerados repiten los vocabularios de Estado, Modo, el host y
 // ClaseDeHallazgo, y TestPlan y TestHallazgos exigen que digan lo mismo.
 
-// Estado es cómo queda una skill pedida tras install (FR-046, FR-051).
+// Estado es cómo queda tras install una skill pedida (FR-046, FR-051) o una
+// que el manifiesto declara con un nombre retirado (H32, FR-026, FR-027).
 type Estado string
 
-// Los tres estados de una skill pedida.
+// Los tres estados de una skill pedida y los dos de una de nombre retirado.
 const (
 	// EstadoInstalada es el de la skill que el manifiesto no declaraba.
 	EstadoInstalada Estado = "instalada"
@@ -24,11 +26,18 @@ const (
 	EstadoActualizada Estado = "actualizada"
 	// EstadoSinCambios es el de la skill declarada en la que no cambia nada.
 	EstadoSinCambios Estado = "sin cambios"
+	// EstadoRetirada es el de la skill de nombre retirado que era lo que
+	// declara el manifiesto y se ha retirado entera, con su entrada.
+	EstadoRetirada Estado = "retirada"
+	// EstadoSinRetirar es el de la skill de nombre retirado que no es lo que
+	// declara el manifiesto: no se toca nada de ella.
+	EstadoSinRetirar Estado = "sin retirar"
 )
 
-// SkillInstalada es una skill pedida tal como queda tras install: su nombre,
-// la ruta de su directorio en el directorio neutro, su estado y sus entradas
-// de host, como se presentan (FR-051; research.md D11).
+// SkillInstalada es una skill tal como queda tras install: su nombre, la ruta
+// de su directorio en el directorio neutro, su estado y sus entradas de host,
+// como se presentan (FR-051; research.md D11); y, si es una de nombre retirado
+// que no se retira, su aviso.
 type SkillInstalada struct {
 	// Nombre es el de la skill.
 	Nombre string `json:"nombre" jsonschema:"minLength=1"`
@@ -36,9 +45,13 @@ type SkillInstalada struct {
 	// trabajo.
 	Ruta string `json:"ruta" jsonschema:"minLength=1"`
 	// Estado es el que resulta de la orden.
-	Estado Estado `json:"estado" jsonschema:"enum=instalada,enum=actualizada,enum=sin cambios"`
-	// Enlaces son sus entradas de host tras la orden; ninguna sin hosts.
+	Estado Estado `json:"estado" jsonschema:"enum=instalada,enum=actualizada,enum=sin cambios,enum=retirada,enum=sin retirar"`
+	// Enlaces son sus entradas de host tras la orden; ninguna sin hosts. En
+	// una skill retirada, las que se han quitado; en una sin retirar, ninguna.
 	Enlaces []Enlace `json:"enlaces"`
+	// Aviso dice, en una skill de nombre retirado que no se retira, por qué y
+	// qué hacer; vacío en las demás (H32).
+	Aviso string `json:"aviso,omitempty"`
 }
 
 // Enlace es una entrada de host de una skill: el host, la ruta de la entrada

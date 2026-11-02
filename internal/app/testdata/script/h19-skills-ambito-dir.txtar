@@ -28,23 +28,24 @@ mkdir $WORK/home
 mkdir $WORK/proyecto/.claude
 cd $WORK/proyecto
 exec kitlegal skills install --dir destino --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"boe-legislacion","ruta":"destino/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"destino/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"destino/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\[\{"nombre":"consulta-juridica","ruta":"destino/consulta-juridica","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"destino/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"destino/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"destino/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 ! stderr .
 arbol .
-stdout '\A(?:(?:d \.claude|d destino|[df] destino/(?:boe-legislacion|jurisprudencia|legal-core)(?:/\S+)?(?: [0-7]+ \S+)?|f destino/kitlegal\.json [0-7]+ \S+)\n)+\z'
+stdout '\A(?:(?:d \.claude|d destino|[df] destino/(?:normativa|consulta-juridica|jurisprudencia|plazos-y-territorio)(?:/\S+)?(?: [0-7]+ \S+)?|f destino/kitlegal\.json [0-7]+ \S+)\n)+\z'
 stdout '^f destino/kitlegal\.json '
-stdout '^f destino/boe-legislacion/SKILL\.md '
+stdout '^f destino/consulta-juridica/SKILL\.md '
 stdout '^f destino/jurisprudencia/SKILL\.md '
-stdout '^f destino/legal-core/SKILL\.md '
+stdout '^f destino/plazos-y-territorio/SKILL\.md '
+stdout '^f destino/normativa/SKILL\.md '
 ! stdout '\.agents'
-cmp destino/legal-core/SKILL.md $KITLEGAL_SKILLS/legal-core/SKILL.md
+cmp destino/plazos-y-territorio/SKILL.md $KITLEGAL_SKILLS/plazos-y-territorio/SKILL.md
 ! grep '"hosts"' destino/kitlegal.json
 ! grep ${WORK@R} destino/kitlegal.json
 
 # list y doctor con --dir leen ese manifiesto, y el ámbito local sigue sin
 # ninguno (US6.4).
 exec kitlegal skills list --dir destino --json
-stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"destino","manifiesto":true,"version":"dev","skills":\[\{"nombre":"boe-legislacion","ruta":"destino/boe-legislacion","version":"dev","empotrada":true,"enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"destino/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\]\},\{"nombre":"legal-core","ruta":"destino/legal-core","version":"dev","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
+stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"destino","manifiesto":true,"version":"dev","skills":\[\{"nombre":"consulta-juridica","ruta":"destino/consulta-juridica","version":"dev","empotrada":true,"enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"destino/jurisprudencia","version":"dev","empotrada":true,"enlaces":\[\]\},\{"nombre":"normativa","ruta":"destino/normativa","version":"dev","empotrada":true,"enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"destino/plazos-y-territorio","version":"dev","empotrada":true,"enlaces":\[\]\}\]\}\}\n\z'
 ! stderr .
 exec kitlegal skills doctor --dir destino --json
 stdout '\A\{"ok":true,"fuente":"kitlegal\.skills","url":"kitlegal:applet/skills","fecha_consulta":"[^"]+","hash":"sha256:[0-9a-f]{64}","data":\{"directorio":"destino","manifiesto":true,"version":"dev","version_del_binario":"dev","hallazgos":\[\]\}\}\n\z'
@@ -57,12 +58,12 @@ stdout '"data":\{"directorio":"\.agents/skills","manifiesto":false,"version":nul
 # La ruta presentada cuelga de la ruta tal como se pasó, limpia y sin barra
 # final.
 exec kitlegal skills install --dir $WORK/absoluto --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"'${WORK@R}'/absoluto/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/absoluto/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"'${WORK@R}'/absoluto/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"consulta-juridica","ruta":"'${WORK@R}'/absoluto/consulta-juridica","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"'${WORK@R}'/absoluto/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"'${WORK@R}'/absoluto/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"'${WORK@R}'/absoluto/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 exists $WORK/absoluto/kitlegal.json
 exec kitlegal skills list --dir $WORK/absoluto --json
 stdout '"data":\{"directorio":"'${WORK@R}'/absoluto","manifiesto":true,'
 exec kitlegal skills install --dir otro/destino/ --json
-stdout '"data":\[\{"nombre":"boe-legislacion","ruta":"otro/destino/boe-legislacion","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"otro/destino/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"legal-core","ruta":"otro/destino/legal-core","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
+stdout '"data":\[\{"nombre":"consulta-juridica","ruta":"otro/destino/consulta-juridica","estado":"instalada","enlaces":\[\]\},\{"nombre":"jurisprudencia","ruta":"otro/destino/jurisprudencia","estado":"instalada","enlaces":\[\]\},\{"nombre":"normativa","ruta":"otro/destino/normativa","estado":"instalada","enlaces":\[\]\},\{"nombre":"plazos-y-territorio","ruta":"otro/destino/plazos-y-territorio","estado":"instalada","enlaces":\[\]\}\]\}\n\z'
 exists otro/destino/kitlegal.json
 
 # --- --host claude con --dir: 2 y nada escrito (US6.2) ---
@@ -139,7 +140,7 @@ stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*-g y --dir se ex
 # Una skill desconocida y un host que no se admite, con HOME vacío.
 env HOME=
 exec sh -c 'kitlegal skills install desconocida -g --json; test $? -eq 2'
-stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, jurisprudencia, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: consulta-juridica, jurisprudencia, normativa, plazos-y-territorio(?:[^"\\]|\\.)*"\}\}\n\z'
 ! stderr 'HOME no está definido'
 exec sh -c 'kitlegal skills install -g --host codex --json; test $? -eq 2'
 stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*los hosts admitidos son claude y antigravity(?:[^"\\]|\\.)*"\}\}\n\z'
@@ -159,8 +160,8 @@ cmp stdout $WORK/antes.txt
 cd $WORK/precedencia
 arbol .
 cp stdout $WORK/antes.txt
-exec sh -c 'kitlegal skills install legal-core desconocida --json; test $? -eq 2'
-stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: boe-legislacion, jurisprudencia, legal-core(?:[^"\\]|\\.)*"\}\}\n\z'
+exec sh -c 'kitlegal skills install plazos-y-territorio desconocida --json; test $? -eq 2'
+stdout '"data":\{"clase":"argumentos","mensaje":"(?:[^"\\]|\\.)*no es ninguna skill de este binario; skills disponibles: consulta-juridica, jurisprudencia, normativa, plazos-y-territorio(?:[^"\\]|\\.)*"\}\}\n\z'
 ! stderr 'carpeta ajena'
 arbol .
 cmp stdout $WORK/antes.txt
@@ -183,5 +184,5 @@ stderr 'los hosts admitidos son claude y antigravity'
 arbol .
 cmp stdout $WORK/antes.txt
 
--- precedencia/.agents/skills/legal-core/mio.md --
+-- precedencia/.agents/skills/plazos-y-territorio/mio.md --
 Una carpeta que no instaló kitlegal.

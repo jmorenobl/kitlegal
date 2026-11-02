@@ -1,0 +1,81 @@
+# entrada.txtar
+# La skill de entrada viaja con las demás: kitlegal skills install, sin nombrar
+# ninguna, la deja instalada con los bytes que tiene en el repositorio. Ninguna
+# descripción de la entrega presenta su skill como de «derecho público»; cada
+# applet de capacidad está en el kitlegal-applets de exactamente una skill, y la
+# de entrada no declara ninguno; y ningún nombre de skill es el de una fuente.
+#
+# Cubre: US1 · FR-001 (empotrada e instalada), FR-004, FR-005, FR-007 · SC-017.
+#
+# Lee el repositorio por $KITLEGAL_SKILLS y el binario por $KITLEGAL_BIN. Un
+# frontmatter es del primer --- al que lo cierra; frontmatter.awk junta sus
+# líneas con un espacio y colapsa los blancos antes de buscar, porque la
+# descripción va cortada en varias líneas. Los awk salen siempre con 0: el
+# veredicto es el de stdout.
+
+# --- FR-001: install la instala con las demás, desde lo empotrado ---
+exec $KITLEGAL_BIN skills install --dir $WORK/instaladas --json
+stdout '"nombre":"consulta-juridica","ruta":"'${WORK@R}'/instaladas/consulta-juridica","estado":"instalada","enlaces":\[\]'
+exists $WORK/instaladas/consulta-juridica/SKILL.md
+cmp $WORK/instaladas/consulta-juridica/SKILL.md $KITLEGAL_SKILLS/consulta-juridica/SKILL.md
+
+# --- FR-004: ningún frontmatter de skills/ dice «derecho público» ---
+exec sh -c 'awk -f "$WORK/frontmatter.awk" "$KITLEGAL_SKILLS"/*/SKILL.md'
+stdout '^frontmatters: [1-9][0-9]* leídos, 0 con «derecho público»$'
+
+# --- FR-005: cada applet de capacidad, en exactamente una skill; ninguno en la de entrada ---
+exec sh -c 'awk -f "$WORK/applets.awk" "$KITLEGAL_SKILLS"/*/SKILL.md'
+stdout '^boe: 1$'
+stdout '^graph: 1$'
+stdout '^cita: 1$'
+stdout '^plazos: 1$'
+stdout '^territorio: 1$'
+stdout '^consulta-juridica: ninguno$'
+
+# --- FR-007: ningún nombre de skill contiene boe, cendoj ni eur ---
+exec ls $KITLEGAL_SKILLS
+stdout '^consulta-juridica$'
+! stdout 'boe|cendoj|eur'
+
+-- frontmatter.awk --
+# frontmatter.awk <SKILL.md>...: cuántos frontmatters, con sus líneas juntadas por
+# un espacio y los blancos colapsados, contienen «derecho público», y cuáles.
+function cerrar() {
+	gsub(/[ \t]+/, " ", texto)
+	if (index(texto, "derecho público")) { print "derecho público en " actual; con++ }
+}
+FNR == 1 { if (NR > 1) cerrar(); actual = FILENAME; texto = ""; d = 0; leidos++ }
+d < 2 { texto = texto " " $0; if ($0 == "---") d++ }
+END {
+	if (NR > 0) cerrar()
+	print "frontmatters: " leidos + 0 " leídos, " con + 0 " con «derecho público»"
+}
+-- applets.awk --
+# applets.awk <SKILL.md>...: el kitlegal-applets del frontmatter de cada skill,
+# en cuántas skills está cada applet de capacidad y qué declara la de entrada
+# («no está» si no hay skill con ese nombre).
+function cerrar(   n, i, applets) {
+	n = split(declarados, applets, /[ \t]+/)
+	print "skill " skill ": " (n ? declarados : "ninguno")
+	for (i = 1; i <= n; i++) cuenta[applets[i]]++
+	if (skill == "consulta-juridica") entrada = n ? declarados : "ninguno"
+}
+FNR == 1 {
+	if (NR > 1) cerrar()
+	skill = FILENAME; sub(/\/SKILL\.md$/, "", skill); sub(/.*\//, "", skill)
+	d = 0; declarados = ""
+}
+d < 2 && $0 == "---" { d++; next }
+d == 1 && /^[ \t]*kitlegal-applets:/ {
+	declarados = $0
+	sub(/^[ \t]*kitlegal-applets:[ \t]*/, "", declarados); gsub(/["']/, "", declarados); sub(/[ \t]+$/, "", declarados)
+}
+END {
+	if (NR > 0) cerrar()
+	print "boe: " cuenta["boe"] + 0
+	print "graph: " cuenta["graph"] + 0
+	print "cita: " cuenta["cita"] + 0
+	print "plazos: " cuenta["plazos"] + 0
+	print "territorio: " cuenta["territorio"] + 0
+	print "consulta-juridica: " (entrada == "" ? "no está" : entrada)
+}

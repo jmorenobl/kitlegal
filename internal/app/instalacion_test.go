@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -1219,15 +1220,48 @@ func TestEnsayoDeInstall(t *testing.T) {
 	assert.Empty(t, ensayoDeInstall(nil, "/home/x"))
 }
 
+// TestEnsayoDeInstallConRetiradas fija las líneas que --dry-run describe de las
+// skills de nombre retirado (contracts/instalacion-retiradas.md §2), con
+// nombres que no son los de ninguna entrega: la que se retiraría, con cada
+// entrada de host que se quitaría, y la que se conservaría, con su aviso tal
+// cual; las rutas de la línea, abreviadas como las demás.
+func TestEnsayoDeInstallConRetiradas(t *testing.T) {
+	t.Parallel()
+
+	skills := []instalacion.SkillInstalada{
+		{
+			Nombre: "antigua", Ruta: "/home/x/.agents/skills/antigua", Estado: instalacion.EstadoRetirada,
+			Enlaces: []instalacion.Enlace{
+				{Host: "claude", Ruta: "/home/x/.claude/skills/antigua", Modo: instalacion.ModoEnlace},
+				{Host: "antigravity", Ruta: "/home/x/.gemini/config/skills/antigua", Modo: instalacion.ModoCopia},
+			},
+		},
+		{Nombre: "sola", Ruta: ".agents/skills/sola", Estado: instalacion.EstadoRetirada, Enlaces: []instalacion.Enlace{}},
+		{
+			Nombre: "vieja", Ruta: "/home/x/.agents/skills/vieja", Estado: instalacion.EstadoSinRetirar,
+			Enlaces: []instalacion.Enlace{}, Aviso: "/home/x/.agents/skills/vieja: el aviso de vieja.",
+		},
+	}
+
+	assert.Equal(t, []string{
+		"retirar antigua de ~/.agents/skills/antigua; Claude Code ~/.claude/skills/antigua (enlace);" +
+			" Antigravity ~/.gemini/config/skills/antigua (copia)",
+		"retirar sola de .agents/skills/sola",
+		"conservar vieja en ~/.agents/skills/vieja: /home/x/.agents/skills/vieja: el aviso de vieja.",
+	}, ensayoDeInstall(skills, "/home/x"))
+}
+
 // TestSalidaDeSkillsContraSchemas es el punto 4 de la Definition of Done sobre
 // el applet skills (FR-053, FR-061, FR-067; contracts/applet-skills.md §4): el
 // sobre real que emite el kernel con --json, sobre el registro local, valida
 // contra la parte de su verbo leída de schemas/instalacion.json, y no contra lo
 // que emite --describe mientras se ejecuta el test. Lo hace toda salida correcta
 // de install, list y doctor —la de doctor, sin hallazgos—: cada estado y cada
-// modo de install, la lista de enlaces vacía, los tres ámbitos, la skill
-// declarada que el binario ya no lleva y, sin manifiesto, la de list y la de
-// doctor con la versión nula y la lista vacía, que el contrato tiene que admitir.
+// modo de install, también los de la skill de nombre retirado, la retirada y la
+// que no se retira con su aviso (H32, FR-026 y FR-027), la lista de enlaces
+// vacía, los tres ámbitos, la skill declarada que el binario ya no lleva y, sin
+// manifiesto, la de list y la de doctor con la versión nula y la lista vacía,
+// que el contrato tiene que admitir.
 // La validación restringe: el mismo sobre con una clave de más o de menos en su
 // data no valida.
 //
@@ -1293,6 +1327,14 @@ func salidasDeSkills() []salidaDeSkills {
 	soloAlfa := dependenciasDePrueba(disco.Enlazador{})
 	soloAlfa.Skills = sinLaSkill(skillsDePrueba(), "beta")
 
+	// Un binario anterior que aún empotra una skill de nombre retirado; su
+	// nombre sale de la lista, y no de un literal, por la búsqueda de FR-032.
+	retirado := slices.Sorted(maps.Keys(skillsRetiradas))[0]
+	conLaRetirada := dependenciasDePrueba(disco.Enlazador{})
+	empotradas := skillsDePrueba()
+	empotradas["skills/"+retirado+"/SKILL.md"] = &fstest.MapFile{Data: []byte("# " + retirado + "\n")}
+	conLaRetirada.Skills = empotradas
+
 	enlazada := `"modo":"enlace"`
 	copiada := `"modo":"copia"`
 	absoluta := `"ruta":"/`
@@ -1331,6 +1373,17 @@ func salidasDeSkills() []salidaDeSkills {
 			"install-dir", sinInstalar(".claude"),
 			[]string{"install", "--dir", "mis-skills"},
 			[]string{`"ruta":"mis-skills/alfa"`, `"enlaces":[]`},
+		},
+		{
+			"install-retirada", instaladoCon(conLaRetirada, sistema, nil, ".claude"),
+			[]string{"install"},
+			[]string{`"nombre":"` + retirado + `"`, `"estado":"retirada","enlaces":[{"host":"claude"`},
+		},
+		{
+			"install-sin-retirar-con-aviso",
+			conElSkillMdEditado(retirado, instaladoCon(conLaRetirada, sistema, nil, ".claude")),
+			[]string{"install"},
+			[]string{`"nombre":"` + retirado + `"`, `"estado":"sin retirar","enlaces":[],"aviso":"`},
 		},
 
 		{
@@ -1420,6 +1473,20 @@ func instaladoCon(antes, despues DependenciasDeSkills, argumentos []string, carp
 		require.Equal(t, 0, res.codigo, res.errores)
 
 		return registroDeSkills(t, despues)
+	}
+}
+
+// conElSkillMdEditado es la preparación con el SKILL.md de la skill de ese
+// nombre, en el ámbito local, editado después: su directorio ya no es lo que
+// declara el manifiesto.
+func conElSkillMdEditado(nombre string, prepara preparacionDeSkills) preparacionDeSkills {
+	return func(t *testing.T) *Registro {
+		t.Helper()
+
+		registro := prepara(t)
+		escribirEnElProyecto(t, filepath.Join(".agents", "skills", nombre, "SKILL.md"), "Editado a mano.\n")
+
+		return registro
 	}
 }
 

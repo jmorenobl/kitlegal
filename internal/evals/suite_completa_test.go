@@ -32,10 +32,10 @@ var instanteDeLaRelease = time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC)
 // etiquetado, como las da evalsDelCommit.
 var evalsDelCommitEtiquetado = []evalsDeUnaSkill{
 	{
-		skill:    "boe-legislacion",
+		skill:    "normativa",
 		ficheros: []string{"01-articulo.yaml", "02-indice.yaml", "03-vigencia.yaml", "04-derogada.yaml"},
 	},
-	{skill: "legal-core", ficheros: []string{"01-territorio.yaml", "02-plazo.yaml"}},
+	{skill: "plazos-y-territorio", ficheros: []string{"01-territorio.yaml", "02-plazo.yaml"}},
 }
 
 // errLecturaDeOtraComprobacion es el fallo de las lecturas de la plataforma en
@@ -360,15 +360,15 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 			// dadas de la más antigua a la más reciente.
 			nombre: "el-mensaje-del-contrato",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(18733990002, 3*time.Hour, cambiandoElInforme("boe-legislacion", func(informe *Informe) {
+				ejecucionCompleta(18733990002, 3*time.Hour, cambiandoElInforme("normativa", func(informe *Informe) {
 					conModo(origenConReutilizacion)(informe)
 					reutilizando("02-indice.yaml", "03-vigencia.yaml", "04-derogada.yaml")(informe)
 				})),
-				ejecucionCompleta(18734029311, time.Hour, conElTrabajo("legal-core", statusTerminado, conclusionDeFallo)),
+				ejecucionCompleta(18734029311, time.Hour, conElTrabajo("plazos-y-territorio", statusTerminado, conclusionDeFallo)),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 18734029311: el trabajo evals (legal-core) terminó en failure",
-				"- ejecución 18733990002: el informe de boe-legislacion es de una ejecución con reutilización "+
+				"- ejecución 18734029311: el trabajo evals (plazos-y-territorio) terminó en failure",
+				"- ejecución 18733990002: el informe de normativa es de una ejecución con reutilización "+
 					"(3 evals reutilizadas)",
 			),
 		},
@@ -388,87 +388,87 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 		{
 			nombre: "con-un-trabajo-en-failure",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, conElTrabajo("legal-core", statusTerminado, conclusionDeFallo)),
+				ejecucionCompleta(1001, time.Hour, conElTrabajo("plazos-y-territorio", statusTerminado, conclusionDeFallo)),
 			},
-			mensaje: mensajeDeLaSuiteIncompleta("- ejecución 1001: el trabajo evals (legal-core) terminó en failure"),
+			mensaje: mensajeDeLaSuiteIncompleta("- ejecución 1001: el trabajo evals (plazos-y-territorio) terminó en failure"),
 			sinLeer: []string{lecturaDelInforme(1001, 10011)},
 		},
 		{
 			nombre: "con-un-trabajo-saltado",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, conElTrabajo("boe-legislacion", statusTerminado, "skipped")),
+				ejecucionCompleta(1001, time.Hour, conElTrabajo("normativa", statusTerminado, "skipped")),
 			},
-			mensaje: mensajeDeLaSuiteIncompleta("- ejecución 1001: el trabajo evals (boe-legislacion) terminó en skipped"),
+			mensaje: mensajeDeLaSuiteIncompleta("- ejecución 1001: el trabajo evals (normativa) terminó en skipped"),
 		},
 		{
 			nombre: "con-un-trabajo-sin-terminar",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, conElTrabajo("legal-core", "in_progress", "")),
+				ejecucionCompleta(1001, time.Hour, conElTrabajo("plazos-y-territorio", "in_progress", "")),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el trabajo evals (legal-core) no ha terminado (status in_progress)"),
+				"- ejecución 1001: el trabajo evals (plazos-y-territorio) no ha terminado (status in_progress)"),
 		},
 		{
 			nombre:      "sin-el-trabajo-de-una-skill",
-			ejecuciones: []ejecucionDeLaRelease{ejecucionCompleta(1001, time.Hour, sinElTrabajo("legal-core"))},
-			mensaje:     mensajeDeLaSuiteIncompleta("- ejecución 1001: no tiene el trabajo evals (legal-core)"),
+			ejecuciones: []ejecucionDeLaRelease{ejecucionCompleta(1001, time.Hour, sinElTrabajo("plazos-y-territorio"))},
+			mensaje:     mensajeDeLaSuiteIncompleta("- ejecución 1001: no tiene el trabajo evals (plazos-y-territorio)"),
 		},
 		{
 			nombre:      "con-un-informe-que-falta",
-			ejecuciones: []ejecucionDeLaRelease{ejecucionCompleta(1001, time.Hour, sinElInforme("legal-core"))},
+			ejecuciones: []ejecucionDeLaRelease{ejecucionCompleta(1001, time.Hour, sinElInforme("plazos-y-territorio"))},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el registro del trabajo evals (legal-core) no trae su informe"),
+				"- ejecución 1001: el registro del trabajo evals (plazos-y-territorio) no trae su informe"),
 		},
 		{
 			nombre:      "con-un-informe-sin-origen",
-			ejecuciones: []ejecucionDeLaRelease{ejecucionCompleta(1001, time.Hour, cambiandoElInforme("legal-core", sinOrigen))},
+			ejecuciones: []ejecucionDeLaRelease{ejecucionCompleta(1001, time.Hour, cambiandoElInforme("plazos-y-territorio", sinOrigen))},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el informe de legal-core no dice cómo midió sus evals: no tiene el bloque origen"),
+				"- ejecución 1001: el informe de plazos-y-territorio no dice cómo midió sus evals: no tiene el bloque origen"),
 		},
 		{
 			nombre: "con-una-eval-reutilizada",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("boe-legislacion", reutilizando("02-indice.yaml"))),
+				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("normativa", reutilizando("02-indice.yaml"))),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el informe de boe-legislacion reutiliza la eval 02-indice.yaml"),
+				"- ejecución 1001: el informe de normativa reutiliza la eval 02-indice.yaml"),
 		},
 		{
 			nombre: "con-modo-reutilizacion",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("legal-core", func(informe *Informe) {
+				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("plazos-y-territorio", func(informe *Informe) {
 					conModo(origenConReutilizacion)(informe)
 					reutilizando("02-plazo.yaml")(informe)
 				})),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el informe de legal-core es de una ejecución con reutilización (1 eval reutilizada)"),
+				"- ejecución 1001: el informe de plazos-y-territorio es de una ejecución con reutilización (1 eval reutilizada)"),
 		},
 		{
 			// Con reutilización y todas medidas, porque la propuesta las eligió
 			// todas: tampoco es la suite completa.
 			nombre: "con-modo-reutilizacion-y-todas-medidas",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("legal-core", conModo(origenConReutilizacion))),
+				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("plazos-y-territorio", conModo(origenConReutilizacion))),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el informe de legal-core es de una ejecución con reutilización (0 evals reutilizadas)"),
+				"- ejecución 1001: el informe de plazos-y-territorio es de una ejecución con reutilización (0 evals reutilizadas)"),
 		},
 		{
 			nombre: "con-otro-modo",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("legal-core", conModo("parcial"))),
+				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("plazos-y-territorio", conModo("parcial"))),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				`- ejecución 1001: el informe de legal-core es de una ejecución de modo "parcial", no de la suite completa`),
+				`- ejecución 1001: el informe de plazos-y-territorio es de una ejecución de modo "parcial", no de la suite completa`),
 		},
 		{
 			nombre: "con-una-eval-del-commit-que-no-esta-en-el-informe",
 			ejecuciones: []ejecucionDeLaRelease{
-				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("legal-core", sinLaEvalEnElOrigen("02-plazo.yaml"))),
+				ejecucionCompleta(1001, time.Hour, cambiandoElInforme("plazos-y-territorio", sinLaEvalEnElOrigen("02-plazo.yaml"))),
 			},
 			mensaje: mensajeDeLaSuiteIncompleta(
-				"- ejecución 1001: el informe de legal-core no tiene la eval 02-plazo.yaml del commit"),
+				"- ejecución 1001: el informe de plazos-y-territorio no tiene la eval 02-plazo.yaml del commit"),
 		},
 		{
 			nombre:      "completa-y-en-verde",
@@ -481,7 +481,7 @@ func casosDeLaSuiteCompleta() []casoDeLaSuiteCompleta {
 			nombre: "la-mas-reciente-de-las-que-valen",
 			ejecuciones: []ejecucionDeLaRelease{
 				ejecucionCompleta(1001, 3*time.Hour),
-				ejecucionCompleta(1003, time.Hour, conElTrabajo("legal-core", statusTerminado, conclusionDeFallo)),
+				ejecucionCompleta(1003, time.Hour, conElTrabajo("plazos-y-territorio", statusTerminado, conclusionDeFallo)),
 				ejecucionCompleta(1002, 2*time.Hour),
 			},
 			vale:    1002,
@@ -621,13 +621,13 @@ func TestEvalsDelCommit(t *testing.T) {
 	t.Parallel()
 
 	arbol := fstest.MapFS{
-		"evals/legal-core/02-plazo.yaml":                       {},
-		"evals/legal-core/01-territorio.yaml":                  {},
-		"evals/boe-legislacion/01-articulo.yaml":               {},
-		"evals/boe-legislacion/expresiones-prohibidas.yaml":    {},
-		"evals/boe-legislacion/juez/clases.yaml":               {},
-		"evals/boe-legislacion/LEEME.md":                       {},
-		"evals/boe-legislacion/02-indice.yaml":                 {},
+		"evals/plazos-y-territorio/02-plazo.yaml":              {},
+		"evals/plazos-y-territorio/01-territorio.yaml":         {},
+		"evals/normativa/01-articulo.yaml":                     {},
+		"evals/normativa/expresiones-prohibidas.yaml":          {},
+		"evals/normativa/juez/clases.yaml":                     {},
+		"evals/normativa/LEEME.md":                             {},
+		"evals/normativa/02-indice.yaml":                       {},
 		"evals/sin-evals/LEEME.md":                             {},
 		"evals/notas.yaml":                                     {},
 		"evals/jurisprudencia/01-sentencia-sin-documento.yaml": {},
@@ -636,11 +636,11 @@ func TestEvalsDelCommit(t *testing.T) {
 	evals, err := evalsDelCommit(arbol)
 	require.NoError(t, err)
 	assert.Equal(t, []evalsDeUnaSkill{
-		{skill: "boe-legislacion", ficheros: []string{"01-articulo.yaml", "02-indice.yaml"}},
 		{skill: "jurisprudencia", ficheros: []string{"01-sentencia-sin-documento.yaml"}},
-		{skill: "legal-core", ficheros: []string{"01-territorio.yaml", "02-plazo.yaml"}},
+		{skill: "normativa", ficheros: []string{"01-articulo.yaml", "02-indice.yaml"}},
+		{skill: "plazos-y-territorio", ficheros: []string{"01-territorio.yaml", "02-plazo.yaml"}},
 	}, evals)
 
-	_, err = evalsDelCommit(fstest.MapFS{"skills/legal-core/SKILL.md": {}})
+	_, err = evalsDelCommit(fstest.MapFS{"skills/plazos-y-territorio/SKILL.md": {}})
 	require.ErrorContains(t, err, "evals/ no se puede listar")
 }

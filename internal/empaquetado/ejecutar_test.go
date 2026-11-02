@@ -39,7 +39,7 @@ var herramientasDeHoy = []string{
 
 // skillsDeHoy son los SKILL.md de las dos skills empotradas hoy (FR-020), con
 // su ruta en el plugin. Como herramientasDeHoy, tienen que estar.
-var skillsDeHoy = []string{"skills/boe-legislacion/SKILL.md", "skills/legal-core/SKILL.md"}
+var skillsDeHoy = []string{"skills/normativa/SKILL.md", "skills/plazos-y-territorio/SKILL.md"}
 
 // TestEjecutar es el control en `make ci` de la línea de órdenes del paso
 // (contracts/paso.md §1 y §7): `piezas`, con la composición de producción y

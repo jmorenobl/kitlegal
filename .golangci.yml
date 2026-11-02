@@ -374,6 +374,10 @@ linters:
         # vigenciaDeLaVersionAnterior (H24 FR-085); misspell lo lee como
         # «information».
         - informativo
+        # «Instaló», del aviso de la skill de nombre retirado que install no
+        # retira (H32, FR-027, contracts/instalacion-retiradas.md §2), que fija la
+        # suite de aceptación; misspell lee su raíz como «install».
+        - instal
         # «Inventario de tests», la sección de plan.md que cada tabla cita;
         # misspell lo lee como «Inventor».
         - inventario

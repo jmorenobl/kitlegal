@@ -54,6 +54,12 @@ type Norma struct {
 	// mapa del sistema legal, las que da references/leyes_vertebrales.md
 	// (data-model §4.1; FR-067, FR-070). La marca es opcional: sin ella, no lo es.
 	Vertebral bool `yaml:"vertebral"`
+
+	// Vertical es el nombre del paquete de materia que trae la norma, con la
+	// forma de un nombre de fichero (patrón del esquema), o vacío si no es de
+	// ninguno: la base y las materias sin paquete (contracts/paquetes.md §1 de
+	// H32; FR-022). El campo es opcional.
+	Vertical string `yaml:"vertical"`
 }
 
 // DefectoDeNorma es un defecto de una entrada de data/normas.yaml: nombra la
@@ -63,7 +69,7 @@ type DefectoDeNorma struct {
 	// de uno, la clave tal como la escribe la tabla.
 	Norma string
 
-	// Defecto dice qué falla, como «campo no declarado: vertical», «falta
+	// Defecto dice qué falla, como «campo no declarado: estado», «falta
 	// titulo», «materias vacía», «identificador con otra forma» o «repetido en
 	// las líneas 12 y 20».
 	Defecto string
@@ -118,7 +124,7 @@ func compilarEsquemaDeNormas(ruta string) (*jsonschema.Schema, error) {
 //     contra normas.yaml.json;
 //  2. atribuye cada defecto del lector a su norma, con un DefectoDeNorma que la
 //     nombra: «repetido en las líneas N y M» para un identificador repetido,
-//     «campo no declarado: vertical», «falta titulo», «materias vacía»,
+//     «campo no declarado: estado», «falta titulo», «materias vacía»,
 //     «identificador con otra forma» y los demás incumplimientos del esquema
 //     con sus propias palabras;
 //  3. un defecto que no es de ninguna norma —la tabla sin normas, con una clave

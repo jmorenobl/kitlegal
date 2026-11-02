@@ -28,7 +28,7 @@ var nombresDeMarca = map[string]string{
 }
 
 // preguntaDeEjemplo es con la que se invita a probar el agente tras instalar:
-// una pregunta a la que boe-legislacion responde con el texto vigente.
+// una pregunta a la que normativa responde con el texto vigente.
 const preguntaDeEjemplo = "«¿Qué dice el artículo 21 de la Ley 39/2015?»"
 
 // Las sangrías de la lista: dos espacios para cada skill y cuatro para cada
@@ -211,9 +211,14 @@ func avisosDeHostsSinEntrada(b *strings.Builder, ambito instalacion.Ambito, host
 // legibleDeInstall es lo que install cuenta: dónde han quedado las skills y
 // quién las lee de ahí, cada skill con su estado y sus entradas de host, los
 // agentes que no las verán y, para terminar, qué hacer ahora: probar el
-// agente, o nada, si ya estaban al día.
+// agente, o nada, si ya estaban al día. Debajo de la lista, una línea por
+// cada skill de nombre retirado: la que se ha retirado, con las herederas de
+// retiradas que la sustituyen, y la que no, con su aviso tal cual
+// (contracts/instalacion-retiradas.md §2). Una entrada de host quitada no es
+// una entrada del host, y la skill que no se retira no cambia nada.
 func legibleDeInstall(
 	skills []instalacion.SkillInstalada, ambito instalacion.Ambito, version string, h hogar,
+	retiradas instalacion.Retiradas,
 ) string {
 	var b strings.Builder
 
@@ -224,7 +229,23 @@ func legibleDeInstall(
 	enlacesPorSkill := make([][]instalacion.Enlace, 0, len(skills))
 	sinCambios := true
 
+	var deNombreRetirado []string
+
 	for _, skill := range skills {
+		switch skill.Estado {
+		case instalacion.EstadoRetirada:
+			deNombreRetirado = append(deNombreRetirado,
+				skill.Nombre+": retirada; la sustituye "+retiradas.Herederas(skill.Nombre))
+			sinCambios = false
+
+			continue
+		case instalacion.EstadoSinRetirar:
+			deNombreRetirado = append(deNombreRetirado, skill.Nombre+": sin retirar. "+skill.Aviso)
+
+			continue
+		case instalacion.EstadoInstalada, instalacion.EstadoActualizada, instalacion.EstadoSinCambios:
+		}
+
 		lineas = append(lineas, lineaDeSkill{
 			nombre:   skill.Nombre,
 			detalle:  string(skill.Estado),
@@ -235,6 +256,11 @@ func legibleDeInstall(
 	}
 
 	lista(&b, lineas)
+
+	for _, linea := range deNombreRetirado {
+		b.WriteString(sangriaDeSkill + linea + "\n")
+	}
+
 	b.WriteString("\n")
 	avisosDeHostsSinEntrada(&b, ambito, hostsSinEntrada(ambito, enlacesPorSkill))
 

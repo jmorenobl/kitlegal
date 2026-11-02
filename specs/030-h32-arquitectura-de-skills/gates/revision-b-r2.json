@@ -1,0 +1,88 @@
+{
+  "veredicto": "rechazado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log de la cabeza (513ea02) está en rojo: fmt-check y lint en verde (0 issues) y `go test -race -shuffle=on … ./...` roto por «panic: test timed out after 10m0s» en internal/evals (603,5 s; ci.log:33, 9835), sin ninguna aserción fallida: al saltar la alarma corrían TestSesionesPorModo/cada-modo (27 s) y siete subtests de TestUmbralesDelInforme (9-25 s), tests de main que el rango no toca, y los demás objetivos no llegaron a correr. Reproducido en un clon de 513ea02 en $TMPDIR, con la carga del otro juez en la máquina (load average entre 10 y 103): `go test -race -shuffle=on -count=1 -skip '^(TestMedidasDeTiempo|TestCosteDelGrafo)$' ./...` verde, 28 paquetes ok en 368 s (internal/evals 355,9 s; solo, 219,3 s); el mismo con -tags=integration, verde en 288 s (internal/evals 268,7 s); test-tiempos ok (60,4 s); TestEsquemasPublicados ok; skills-check (los siete tests sobre internal/app, internal/skills e internal/evals) ok; goreleaser check «1 configuration file(s) validated»; gitleaks «no leaks found»; govulncheck «No vulnerabilities found»; `go mod tidy -diff` sin salida y `go mod verify` «all modules verified». El rango añade a internal/evals dos subtests de 0,00 s: nada suyo explica un tope que no se reproduce. Árbol limpio salvo gates/ (modelos.jsonl, revision-cambios.md, supuestos.md, base-global-pendiente y revision-cambios-r2.diff), que escribe esta ronda del workflow."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Suite congelada intacta: sha256 de los seis specs/…/aceptacion/*.txtar y de internal/app/testdata/script/h32-*.txtar iguales a gates/aceptacion-congelada.json, y el rango d9ca963..HEAD no toca aceptacion/ ni testdata/ (7 ficheros: tres .go de producción, dos _test.go y dos .md); activada en 95570b3 y TestEntregaDelHito en verde en ci.log:16 (internal/app ok) y en el clon. Lo nuevo detecta lo que dice: TestJuzgarPlazos, 77 PASS sin mutar; con `Citas: ExtraerCitas(linea)` de vuelta en internal/evals/plazos.go:141, en rojo exactamente declaraciones-de-no-cubierto/con-la-forma-legible-en-los-corchetes (plazos_test.go:311) y eval-de-cobertura/con-la-forma-legible-en-los-corchetes (plazos_test.go:575-576). TestSalidaDeSkillsContraSchemas, 22 PASS con install-retirada e install-sin-retirar-con-aviso; con «sin retirar» cambiado en el enum de schemas/instalacion.json, en rojo solo install-sin-retirar-con-aviso («/data/2/estado: value must be one of …»); con la propiedad aviso renombrada, en rojo solo ese caso («/data/2: additional properties 'aviso' not allowed»). Sin nolint, t.Skip ni errores ignorados en el rango."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El rango no añade importaciones de red ni os.Exit ni fmt.Print*: internal/evals/citas.go sigue con regexp y strings (citas.go:3-6) y el test de internal/app solo suma maps, de la biblioteca estándar. La lista de nombres retirados sigue entrando por internal/app/retiradas.go (skillsRetiradas) y el test la toma de ahí (instalacion_test.go:1332). lint 0 issues sobre la cabeza en ci.log:9."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "Corregido el motivo de la ronda 1: salidasDeSkills() (internal/app/instalacion_test.go:1377-1388) añade install-retirada, con rasgos `\"estado\":\"retirada\",\"enlaces\":[{\"host\":\"claude\"`, e install-sin-retirar-con-aviso, con `\"estado\":\"sin retirar\",\"enlaces\":[],\"aviso\":\"`, preparados con un binario anterior que empotra la skill de nombre retirado (conLaRetirada, :1330-1335) y, en el segundo, con su SKILL.md editado (conElSkillMdEditado, :1482-1491); los dos pasan por exigirSalidaPublicada contra la parte de install de schemas/instalacion.json (:1298) y el comentario de :1254-1264 dice ya lo que cubre. Los dos mutantes del esquema publicado (enum y propiedad aviso) ponen el caso en rojo (criterio b). El nombre retirado sale de slices.Sorted(maps.Keys(skillsRetiradas))[0] y la ruta de filepath.Join, sin literal: h32-nombres-retirados sigue en verde (ci.log:16)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "El rango no toca ninguna ruta de error ni código de salida: internal/evals/citas.go y plazos.go cambian solo qué citas se guardan de una línea; lo demás son tests y documentos. Siguen vigentes las pruebas de la ronda 1: h32-retiradas.txtar:29-30,46-47,76-77,89-91 (0 al retirar, conservar y --dry-run; 2 con un nombre retirado pedido) y TestRetiradas/fallos_del_disco. Ningún panic en el rango."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "contracts/forma-de-cita.md §4 punto 2 dice ahora lo que hace el código: la pareja «entre corchetes que solo la contienen», extraída con citasEnLaFormaUnica, y que ExtraerCitas no cambia; tasks.md T011 registra el cambio de la revisión final; gates/supuestos.md:26 (supuesto de T011) y :48 (corrector_revision) lo recogen con su impacto (umbral 0 sigue decidiendo); el comentario de ResultadoDeEval.NoCubiertoDeclarado (juzgar.go:202) y los de plazos.go van alineados. CHANGELOG.md:157-158 y docs/SKILLS.md:264 («la norma esperada y la cita del precepto de su fila») siguen siendo ciertos: la única cita, según skills/normativa/references/como_se_cita.md:8-16, es la forma única. Sin fuente nueva ni URL nueva en el rango."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "El rango no toca internal/httpx, internal/source ni nada que abra red; no graba ni cambia datos externos (internal/evals/testdata/ y gates/grabaciones.md iguales que en la ronda 1). Sin secretos (gitleaks sobre el clon: no leaks found) ni datos de persona: la salida nueva validada lleva nombres de skill, rutas de t.TempDir() y el aviso."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": false,
+      "evidencia": "Motivo de la ronda 1 sin corregir: internal/core/instalacion/retiradas.go:35 sigue escribiendo el verbo del aviso como `\" no es lo que insta\" + \"ló kitlegal: …\"` con el comentario de :30-33 que explica que es para que misspell no lea «instal» como errata de «install», y internal/core/instalacion/retiradas_test.go:111 (avisoDeVieja) repite la partición; .golangci.yml:293-297 fija que el español se neutraliza en misspell.ignore-rules. gates/revision-pendiente.md explica que el corrector no puede tocar la configuración de lint y deja la receta a una persona. Lo demás del rango, limpio: sin nolint, t.Skip, TODO, error silenciado ni fixture retocado (los mutantes del criterio b se hicieron en copias)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango d9ca963..HEAD es exactamente la unión de los motivos de la ronda 1: los dos casos de install en internal/app/instalacion_test.go (motivo [d] de los dos jueces), la forma única en la medida de FR-014 en internal/evals/citas.go, plazos.go y juzgar.go con sus tests (motivo [f][i][l] del juez A) y los dos documentos que los describen (contracts/forma-de-cita.md, tasks.md). Nada más: ni applets, ni data/, ni schemas/, ni skills/. El supuesto 48 de gates/supuestos.md es la lectura conservadora que pide el spec (FR-014: la cita «en la forma única»; la medida se estrecha, ExtraerCitas y el umbral no cambian) y el 26 queda reescrito en coherencia."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida que consuma una skill o una persona: los cuerpos de las skills, las referencias, la línea ⚠ NO CUBIERTO: y lo que dice kitlegal skills install son los de la ronda 1 (consulta-juridica 3660; capacidades 10 858, 10 842 y 10 896; una entrada de data y una línea legible por nombre retirado, que cesa al quitar el directorio). Solo cambia qué cuenta como declarada en el job de evals, y en menos."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo del rango se traza a un FR: formaUnicaDeCita, citasEnLaFormaUnica, el común citasConLaForma y la constante parejaDeLaCita (citas.go:16-27, 46-67) a FR-014 con la forma de FR-010 (como_se_cita.md), sin duplicar la expresión ni tocar ExtraerCitas; conElSkillMdEditado y la preparación conLaRetirada (instalacion_test.go:1330-1335, 1482-1491) a los estados de FR-026 y FR-027 que el esquema publica; el nombre tomado de skillsRetiradas a FR-032. Ninguna opción, rama ni paquete nuevos, ningún caso para un estado que no cree el binario."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "La fila de FR-014/SC-011 tiene ahora el control que pide el spec: ExtraerNoCubierto guarda de cada línea solo las citas en la forma única (plazos.go:141) y declarada exige la pareja exacta de no_cubierto.precepto en la misma línea que la norma (plazos.go:153-156); con el mutante que vuelve a ExtraerCitas, TestJuzgarPlazos sale en rojo en los dos subtests nuevos. El umbral cobertura_sin_declarar sigue en 0 por modo con decide: true (umbrales.go sin cambios en el rango). Los demás controles de «Controles de umbral» de plan.md son los de la ronda 1, sin cambios en su código (gate del cuerpo, forma-de-cita, formas-compartidas, TestRegiones, TestVerticalDeEnsayo, TestSkillsRetiradas, guiones h32-*, TestEvalsDelRepositorio, TestDefinicionDelJob, TestUmbralesDeLasSkills, TestLimiteDeLaTasa), en verde en el clon (skills-check y la suite entera)."
+    }
+  ],
+  "motivos": [
+    "[h] internal/core/instalacion/retiradas.go:30-36 (avisoDeRetirada) e internal/core/instalacion/retiradas_test.go:111 (avisoDeVieja): el verbo del aviso sigue partido en `\" no es lo que insta\" + \"ló kitlegal: …\"` para esquivar misspell, con el comentario que lo explica; motivo de la ronda 1 sin corregir. El arreglo es el de gates/revision-pendiente.md: en .golangci.yml, misspell.ignore-rules, la entrada `- instal` con su comentario («instaló», del aviso de la retirada de H32; misspell lo lee como «install»), por orden alfabético entre las que hay, y los dos literales unidos sin el comentario de la partición; el texto emitido no cambia, así que h32-retiradas.txtar:47,60,80 y la salida legible siguen iguales. Es configuración de lint, que el corrector no puede tocar: queda para una persona antes de fusionar; el corrector deja gates/revision-pendiente.md tal cual y no cambia nada más por este motivo."
+  ],
+  "observaciones": [
+    "gates/ci.log de la cabeza está en rojo por «panic: test timed out after 10m0s» en internal/evals, sin ninguna aserción fallida y con la máquina en carga alta en esta sesión (load average de hasta 225 al empezar); en el clon la misma suite con -race y -shuffle pasa en 219-356 s y la suite entera de make ci, objetivo a objetivo, en verde (criterio a). La verificación de la ronda siguiente lo vuelve a escribir; si internal/evals vuelve a pasar de 10 min con la máquina sin otra carga, los tests que más tardan son de main y no de H32 (TestEjecutarSesionesEnParalelo 101 s, TestJuzgarSinLaLista/calibrado 79 s bajo -race) y el informe debe recogerlo como defecto del tiempo de la suite, no del hito.",
+    "El motivo [f][i][l] del juez A está corregido y no rompe nada: la medida exige la forma única, el mutante la delata, ExtraerCitas y el umbral no cambian, y contracts/forma-de-cita.md §4, tasks.md T011 y los supuestos 26 y 48 dicen lo mismo que el código.",
+    "scripts/workflow/guardian-diff.sh:43-73 admite sin declarar un diff de .golangci.yml que solo añade entradas a misspell.ignore-rules, mientras el prompt del corrector de la revisión (.specify/workflows/hito/workflow.yml:928) le prohíbe tocar la configuración de lint: por eso el motivo [h] queda para una persona. Es proceso, fuera de la rama del hito.",
+    "formaUnicaDeCita (citas.go:22) acepta el corchete interior de un texto que abre otro, como `[art. 46 [BOE-A-1998-16718, bloque a46]]`, igual que ExtraerCitas; ninguna skill lo produce y como_se_cita.md no lo contempla: no llega al umbral.",
+    "Siguen como en la ronda 1, para el informe final: CONTRIBUTING.md nombra boe-legislacion y legal-core como skills que se instalan y TestUmbralesDeLasTresSkills, fuera de alcance del spec; el supuesto de T017 sobre el README («Hay tres skills») lo superó el barrido d9ca963; no hay evidencias/H32/ porque la Ley 50/1980 entra desde la búsqueda grabada bajo internal/evals/testdata/ con su SHA-256 en gates/grabaciones.md.",
+    "No se reproduce en esta sesión nada del job de evals ni ninguna sesión con modelo (ADR 0032): los umbrales del job se juzgan por su código (umbralesDelInforme, decide: true), sin cambios en el rango."
+  ]
+}

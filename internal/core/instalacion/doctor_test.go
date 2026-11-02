@@ -27,10 +27,10 @@ const (
 // Las rutas de las pruebas de doctor en el ámbito local: el directorio de cada
 // skill en el directorio neutro y su entrada en el host claude.
 const (
-	neutroLc  = ".agents/skills/legal-core"
-	neutroBoe = ".agents/skills/boe-legislacion"
-	hostLc    = ".claude/skills/legal-core"
-	hostBoe   = ".claude/skills/boe-legislacion"
+	neutroPlazos    = ".agents/skills/plazos-y-territorio"
+	neutroNormativa = ".agents/skills/normativa"
+	hostPlazos      = ".claude/skills/plazos-y-territorio"
+	hostNormativa   = ".claude/skills/normativa"
 )
 
 // hallazgo es el hallazgo de esa clase, en esa ruta y con esa orden.
@@ -268,8 +268,8 @@ func hallazgosEsperados(esperados []instalacion.Hallazgo) []instalacion.Hallazgo
 // sin host: un fichero declarado editado, que falta o que ya no es un fichero
 // regular, y el directorio de la skill que no es un directorio real o falta.
 func casosDoctorDelNeutro() []casoDeDoctor {
-	instaladas := func(d *discoEnMemoria) { instalarLocal(d, "boe-legislacion", "legal-core").escribir() }
-	lc := instala("legal-core")
+	instaladas := func(d *discoEnMemoria) { instalarLocal(d, "normativa", "plazos-y-territorio").escribir() }
+	plazos := instala("plazos-y-territorio")
 
 	return []casoDeDoctor{
 		{nombre: "una instalación sin tocar", preparar: instaladas},
@@ -277,97 +277,97 @@ func casosDoctorDelNeutro() []casoDeDoctor {
 			nombre: "un fichero editado",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.fichero(neutroLc+"/SKILL.md", "editado a mano")
+				d.fichero(neutroPlazos+"/SKILL.md", "editado a mano")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, neutroLc+"/SKILL.md", rmY(neutroLc+"/SKILL.md", lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, neutroPlazos+"/SKILL.md", rmY(neutroPlazos+"/SKILL.md", plazos))},
 		},
 		{
 			nombre: "un fichero que falta",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.retirar(neutroLc + "/references/leyes_vertebrales.md")
+				d.retirar(neutroPlazos + "/references/leyes_vertebrales.md")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, neutroLc+"/references/leyes_vertebrales.md", lc)},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, neutroPlazos+"/references/leyes_vertebrales.md", plazos)},
 		},
 		{
 			nombre: "un fichero que es un enlace a una copia idéntica",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.fichero(temporal+"/SKILL.md", "# legal-core\n")
-				d.enlace(neutroLc+"/SKILL.md", temporal+"/SKILL.md")
+				d.fichero(temporal+"/SKILL.md", "# plazos-y-territorio\n")
+				d.enlace(neutroPlazos+"/SKILL.md", temporal+"/SKILL.md")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(editado, neutroLc+"/SKILL.md", rmY(neutroLc+"/SKILL.md", lc))},
+			esperados:    []instalacion.Hallazgo{hallazgo(editado, neutroPlazos+"/SKILL.md", rmY(neutroPlazos+"/SKILL.md", plazos))},
 			noExaminadas: []string{temporal + "/SKILL.md"},
 		},
 		{
 			nombre: "un fichero que es un directorio real",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.retirar(neutroLc + "/SKILL.md")
-				d.fichero(neutroLc+"/SKILL.md/nota.md", "no es de kitlegal")
+				d.retirar(neutroPlazos + "/SKILL.md")
+				d.fichero(neutroPlazos+"/SKILL.md/nota.md", "no es de kitlegal")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(editado, neutroLc+"/SKILL.md", rmRY(neutroLc+"/SKILL.md", lc))},
-			noExaminadas: []string{neutroLc + "/SKILL.md/nota.md"},
+			esperados:    []instalacion.Hallazgo{hallazgo(editado, neutroPlazos+"/SKILL.md", rmRY(neutroPlazos+"/SKILL.md", plazos))},
+			noExaminadas: []string{neutroPlazos + "/SKILL.md/nota.md"},
 		},
 		{
 			nombre: "un fichero que es una tubería",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.tuberia(neutroLc + "/SKILL.md")
+				d.tuberia(neutroPlazos + "/SKILL.md")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(editado, neutroLc+"/SKILL.md", rmY(neutroLc+"/SKILL.md", lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, neutroPlazos+"/SKILL.md", rmY(neutroPlazos+"/SKILL.md", plazos))},
 		},
 		{
 			nombre: "la skill es un enlace colgando",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.enlace(neutroLc, temporal+"/no-existe")
+				d.enlace(neutroPlazos, temporal+"/no-existe")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(colgando, neutroLc, rmY(neutroLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(colgando, neutroPlazos, rmY(neutroPlazos, plazos))},
 		},
 		{
 			nombre: "la skill es un enlace a una copia idéntica fuera del proyecto",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir(temporal), "legal-core")
+				instalarEn(d, instalacion.NuevoAmbitoDir(temporal), "plazos-y-territorio")
 				instaladas(d)
-				d.enlace(neutroLc, temporal+"/legal-core")
+				d.enlace(neutroPlazos, temporal+"/plazos-y-territorio")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, neutroLc, rmY(neutroLc, lc))},
-			noExaminadas: []string{temporal + "/legal-core"},
+			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, neutroPlazos, rmY(neutroPlazos, plazos))},
+			noExaminadas: []string{temporal + "/plazos-y-territorio"},
 		},
 		{
 			nombre: "la skill es un fichero",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.fichero(neutroLc, "no soy un directorio")
+				d.fichero(neutroPlazos, "no soy un directorio")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, neutroLc, rmY(neutroLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, neutroPlazos, rmY(neutroPlazos, plazos))},
 		},
 		{
 			nombre: "falta la skill entera",
 			preparar: func(d *discoEnMemoria) {
 				instaladas(d)
-				d.retirar(neutroLc)
+				d.retirar(neutroPlazos)
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, neutroLc+"/SKILL.md", lc),
-				hallazgo(editado, neutroLc+"/references/jerarquia_normativa.md", lc),
-				hallazgo(editado, neutroLc+"/references/leyes_vertebrales.md", lc),
+				hallazgo(editado, neutroPlazos+"/SKILL.md", plazos),
+				hallazgo(editado, neutroPlazos+"/references/jerarquia_normativa.md", plazos),
+				hallazgo(editado, neutroPlazos+"/references/leyes_vertebrales.md", plazos),
 			},
 		},
 		{
 			nombre: "lo que el manifiesto no declara no es un hallazgo",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").
-					olvidar("legal-core", "legal-core/references/leyes_vertebrales.md").escribir()
-				d.fichero(neutroLc+"/mio.md", "no es de kitlegal")
-				d.fichero(neutroLc+"/references/mio.md", "no es de kitlegal")
-				d.enlace(neutroLc+"/otro", "no-existe")
+				instalarLocal(d, "normativa", "plazos-y-territorio").
+					olvidar("plazos-y-territorio", "plazos-y-territorio/references/leyes_vertebrales.md").escribir()
+				d.fichero(neutroPlazos+"/mio.md", "no es de kitlegal")
+				d.fichero(neutroPlazos+"/references/mio.md", "no es de kitlegal")
+				d.enlace(neutroPlazos+"/otro", "no-existe")
 				d.fichero(".agents/skills/ajena/SKILL.md", "no es de kitlegal")
 			},
 			noExaminadas: []string{
-				neutroLc + "/mio.md", neutroLc + "/references/mio.md", neutroLc + "/otro",
-				neutroLc + "/references/leyes_vertebrales.md", ".agents/skills/ajena",
+				neutroPlazos + "/mio.md", neutroPlazos + "/references/mio.md", neutroPlazos + "/otro",
+				neutroPlazos + "/references/leyes_vertebrales.md", ".agents/skills/ajena",
 			},
 		},
 	}
@@ -377,20 +377,20 @@ func casosDoctorDelNeutro() []casoDeDoctor {
 // ficheros declarados, references, que no es un directorio real o falta: el
 // hallazgo es él, sin ninguno por los ficheros de debajo.
 func casosDoctorDentroDeUnaSkill() []casoDeDoctor {
-	instaladas := func(d *discoEnMemoria) { instalarLocal(d, "boe-legislacion", "legal-core").escribir() }
-	lc := instala("legal-core")
-	references := neutroLc + "/references"
+	instaladas := func(d *discoEnMemoria) { instalarLocal(d, "normativa", "plazos-y-territorio").escribir() }
+	plazos := instala("plazos-y-territorio")
+	references := neutroPlazos + "/references"
 
 	return []casoDeDoctor{
 		{
 			nombre: "references es un enlace a una copia idéntica",
 			preparar: func(d *discoEnMemoria) {
-				instalarEn(d, instalacion.NuevoAmbitoDir(temporal), "legal-core")
+				instalarEn(d, instalacion.NuevoAmbitoDir(temporal), "plazos-y-territorio")
 				instaladas(d)
-				d.enlace(references, temporal+"/legal-core/references")
+				d.enlace(references, temporal+"/plazos-y-territorio/references")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, references, rmY(references, lc))},
-			noExaminadas: []string{temporal + "/legal-core"},
+			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, references, rmY(references, plazos))},
+			noExaminadas: []string{temporal + "/plazos-y-territorio"},
 		},
 		{
 			nombre: "references es un enlace colgando",
@@ -398,7 +398,7 @@ func casosDoctorDentroDeUnaSkill() []casoDeDoctor {
 				instaladas(d)
 				d.enlace(references, "no-existe")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(colgando, references, rmY(references, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(colgando, references, rmY(references, plazos))},
 		},
 		{
 			nombre: "references es un fichero",
@@ -406,7 +406,7 @@ func casosDoctorDentroDeUnaSkill() []casoDeDoctor {
 				instaladas(d)
 				d.fichero(references, "no soy un directorio")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, references, rmY(references, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, references, rmY(references, plazos))},
 		},
 		{
 			nombre: "falta references",
@@ -415,17 +415,17 @@ func casosDoctorDentroDeUnaSkill() []casoDeDoctor {
 				d.retirar(references)
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, references+"/jerarquia_normativa.md", lc),
-				hallazgo(editado, references+"/leyes_vertebrales.md", lc),
+				hallazgo(editado, references+"/jerarquia_normativa.md", plazos),
+				hallazgo(editado, references+"/leyes_vertebrales.md", plazos),
 			},
 		},
 		{
 			nombre: "un manifiesto legible que declara SKILL.md como fichero y como directorio de otro",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").
-					declarar("legal-core", "legal-core/SKILL.md/nota.md", "no es de kitlegal").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").
+					declarar("plazos-y-territorio", "plazos-y-territorio/SKILL.md/nota.md", "no es de kitlegal").escribir()
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, neutroLc+"/SKILL.md", rmY(neutroLc+"/SKILL.md", lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, neutroPlazos+"/SKILL.md", rmY(neutroPlazos+"/SKILL.md", plazos))},
 		},
 	}
 }
@@ -436,11 +436,11 @@ func casosDoctorDentroDeUnaSkill() []casoDeDoctor {
 // real; y --host claude en las órdenes de las skills con entrada de host.
 func casosDoctorDelHost() []casoDeDoctor {
 	enlazadas := func(d *discoEnMemoria) {
-		instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").escribir()
+		instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio").escribir()
 	}
-	lc := conHostClaude(instala("legal-core"))
-	boe := conHostClaude(instala("boe-legislacion"))
-	lasDosEntradas := []instalacion.Hallazgo{hallazgo(aOtroSitio, hostBoe, boe), hallazgo(aOtroSitio, hostLc, lc)}
+	plazos := conHostClaude(instala("plazos-y-territorio"))
+	normativa := conHostClaude(instala("normativa"))
+	lasDosEntradas := []instalacion.Hallazgo{hallazgo(aOtroSitio, hostNormativa, normativa), hallazgo(aOtroSitio, hostPlazos, plazos)}
 
 	return []casoDeDoctor{
 		{nombre: "los enlaces sin tocar", preparar: enlazadas},
@@ -448,21 +448,21 @@ func casosDoctorDelHost() []casoDeDoctor {
 			nombre: "la skill es un enlace colgando, y su enlace de host cuelga",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.enlace(neutroLc, temporal+"/no-existe")
+				d.enlace(neutroPlazos, temporal+"/no-existe")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(colgando, neutroLc, rmY(neutroLc, lc)), hallazgo(colgando, hostLc, lc)},
+			esperados: []instalacion.Hallazgo{hallazgo(colgando, neutroPlazos, rmY(neutroPlazos, plazos)), hallazgo(colgando, hostPlazos, plazos)},
 		},
 		{
 			nombre: "falta la skill, y su enlace de host cuelga",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.retirar(neutroLc)
+				d.retirar(neutroPlazos)
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, neutroLc+"/SKILL.md", lc),
-				hallazgo(editado, neutroLc+"/references/jerarquia_normativa.md", lc),
-				hallazgo(editado, neutroLc+"/references/leyes_vertebrales.md", lc),
-				hallazgo(colgando, hostLc, lc),
+				hallazgo(editado, neutroPlazos+"/SKILL.md", plazos),
+				hallazgo(editado, neutroPlazos+"/references/jerarquia_normativa.md", plazos),
+				hallazgo(editado, neutroPlazos+"/references/leyes_vertebrales.md", plazos),
+				hallazgo(colgando, hostPlazos, plazos),
 			},
 		},
 		{
@@ -470,52 +470,52 @@ func casosDoctorDelHost() []casoDeDoctor {
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
 				d.fichero("otro-sitio/mio.md", "no es de kitlegal")
-				d.enlace(hostLc, "../../otro-sitio")
+				d.enlace(hostPlazos, "../../otro-sitio")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmY(hostLc, lc))},
+			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmY(hostPlazos, plazos))},
 			noExaminadas: []string{"otro-sitio"},
 		},
 		{
 			nombre: "un enlace de host con otro destino, que cuelga",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.enlace(hostLc, "../../no-existe")
+				d.enlace(hostPlazos, "../../no-existe")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmY(hostLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmY(hostPlazos, plazos))},
 		},
 		{
 			nombre: "un fichero en lugar del enlace de host",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.fichero(hostLc, "no es de kitlegal")
+				d.fichero(hostPlazos, "no es de kitlegal")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmY(hostLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmY(hostPlazos, plazos))},
 		},
 		{
 			nombre: "una tubería en lugar del enlace de host",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.tuberia(hostLc)
+				d.tuberia(hostPlazos)
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmY(hostLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmY(hostPlazos, plazos))},
 		},
 		{
 			nombre: "un directorio real en lugar del enlace de host",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.retirar(hostLc)
-				d.fichero(hostLc+"/nota.md", "no es de kitlegal")
+				d.retirar(hostPlazos)
+				d.fichero(hostPlazos+"/nota.md", "no es de kitlegal")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmRY(hostLc, lc))},
-			noExaminadas: []string{hostLc + "/nota.md"},
+			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmRY(hostPlazos, plazos))},
+			noExaminadas: []string{hostPlazos + "/nota.md"},
 		},
 		{
 			nombre: "falta la entrada de host",
 			preparar: func(d *discoEnMemoria) {
 				enlazadas(d)
-				d.retirar(hostLc)
+				d.retirar(hostPlazos)
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, lc)},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, plazos)},
 		},
 		{
 			nombre: "falta .claude/skills",
@@ -556,19 +556,19 @@ func casosDoctorDelHost() []casoDeDoctor {
 		{
 			nombre: "--host claude solo en la orden de la skill con entrada de host",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").escribir()
-				d.fichero(neutroBoe+"/SKILL.md", "editado a mano")
-				d.fichero(neutroLc+"/SKILL.md", "editado a mano")
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").escribir()
+				d.fichero(neutroNormativa+"/SKILL.md", "editado a mano")
+				d.fichero(neutroPlazos+"/SKILL.md", "editado a mano")
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, neutroBoe+"/SKILL.md", rmY(neutroBoe+"/SKILL.md", boe)),
-				hallazgo(editado, neutroLc+"/SKILL.md", rmY(neutroLc+"/SKILL.md", instala("legal-core"))),
+				hallazgo(editado, neutroNormativa+"/SKILL.md", rmY(neutroNormativa+"/SKILL.md", normativa)),
+				hallazgo(editado, neutroPlazos+"/SKILL.md", rmY(neutroPlazos+"/SKILL.md", instala("plazos-y-territorio"))),
 			},
 		},
 		{
 			nombre: "una skill que el binario no empotra, de otra versión, editada y sin su entrada de host",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio").
 					noEmpotrada("otra-skill", versionVieja).escribir()
 				d.fichero(".agents/skills/otra-skill/SKILL.md", "editado a mano")
 			},
@@ -583,26 +583,26 @@ func casosDoctorDelHost() []casoDeDoctor {
 // directorio neutro; y otra cosa en su lugar.
 func casosDoctorDeLaCopia() []casoDeDoctor {
 	conCopia := func(d *discoEnMemoria) {
-		instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").copiar("legal-core").escribir()
+		instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").copiar("plazos-y-territorio").escribir()
 	}
-	lc := conHostClaude(instala("legal-core"))
+	plazos := conHostClaude(instala("plazos-y-territorio"))
 	sonda := []string{".claude/skills"}
 
 	return []casoDeDoctor{
 		{
 			nombre:    "una copia donde ya se puede crear el enlace",
 			preparar:  conCopia,
-			esperados: []instalacion.Hallazgo{hallazgo(esCopia, hostLc, lc)},
+			esperados: []instalacion.Hallazgo{hallazgo(esCopia, hostPlazos, plazos)},
 			sondas:    sonda,
 		},
 		{
 			nombre: "dos copias, con una sola sonda",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").copiar("boe-legislacion").copiar("legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").copiar("normativa").copiar("plazos-y-territorio").escribir()
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(esCopia, hostBoe, conHostClaude(instala("boe-legislacion"))),
-				hallazgo(esCopia, hostLc, lc),
+				hallazgo(esCopia, hostNormativa, conHostClaude(instala("normativa"))),
+				hallazgo(esCopia, hostPlazos, plazos),
 			},
 			sondas: sonda,
 		},
@@ -616,31 +616,31 @@ func casosDoctorDeLaCopia() []casoDeDoctor {
 			nombre: "un fichero de la copia editado, sin enlaces",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.fichero(hostLc+"/SKILL.md", "editado a mano")
+				d.fichero(hostPlazos+"/SKILL.md", "editado a mano")
 			},
 			admite:    admiteNunca,
-			esperados: []instalacion.Hallazgo{hallazgo(editado, hostLc+"/SKILL.md", rmY(hostLc+"/SKILL.md", lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, hostPlazos+"/SKILL.md", rmY(hostPlazos+"/SKILL.md", plazos))},
 			sondas:    sonda,
 		},
 		{
 			nombre: "un fichero de la copia que falta, sin enlaces",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.retirar(hostLc + "/references/leyes_vertebrales.md")
+				d.retirar(hostPlazos + "/references/leyes_vertebrales.md")
 			},
 			admite:    admiteNunca,
-			esperados: []instalacion.Hallazgo{hallazgo(editado, hostLc+"/references/leyes_vertebrales.md", lc)},
+			esperados: []instalacion.Hallazgo{hallazgo(editado, hostPlazos+"/references/leyes_vertebrales.md", plazos)},
 			sondas:    sonda,
 		},
 		{
 			nombre: "un fichero de la copia editado, con enlaces",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.fichero(hostLc+"/SKILL.md", "editado a mano")
+				d.fichero(hostPlazos+"/SKILL.md", "editado a mano")
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, hostLc+"/SKILL.md", rmY(hostLc+"/SKILL.md", lc)),
-				hallazgo(esCopia, hostLc, lc),
+				hallazgo(editado, hostPlazos+"/SKILL.md", rmY(hostPlazos+"/SKILL.md", plazos)),
+				hallazgo(esCopia, hostPlazos, plazos),
 			},
 			sondas: sonda,
 		},
@@ -648,10 +648,10 @@ func casosDoctorDeLaCopia() []casoDeDoctor {
 			nombre: "references de la copia es un enlace colgando",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.enlace(hostLc+"/references", "no-existe")
+				d.enlace(hostPlazos+"/references", "no-existe")
 			},
 			admite:    admiteNunca,
-			esperados: []instalacion.Hallazgo{hallazgo(colgando, hostLc+"/references", rmY(hostLc+"/references", lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(colgando, hostPlazos+"/references", rmY(hostPlazos+"/references", plazos))},
 			sondas:    sonda,
 		},
 		{
@@ -659,10 +659,10 @@ func casosDoctorDeLaCopia() []casoDeDoctor {
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
 				d.directorio(temporal + "/references")
-				d.enlace(hostLc+"/references", temporal+"/references")
+				d.enlace(hostPlazos+"/references", temporal+"/references")
 			},
 			admite:       admiteNunca,
-			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc+"/references", rmY(hostLc+"/references", lc))},
+			esperados:    []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos+"/references", rmY(hostPlazos+"/references", plazos))},
 			sondas:       sonda,
 			noExaminadas: []string{temporal + "/references"},
 		},
@@ -670,47 +670,47 @@ func casosDoctorDeLaCopia() []casoDeDoctor {
 			nombre: "una entrada no declarada dentro de la copia, sin enlaces",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.fichero(hostLc+"/mio.md", "no es de kitlegal")
+				d.fichero(hostPlazos+"/mio.md", "no es de kitlegal")
 			},
 			admite:       admiteNunca,
 			sondas:       sonda,
-			noExaminadas: []string{hostLc + "/mio.md"},
+			noExaminadas: []string{hostPlazos + "/mio.md"},
 		},
 		{
 			nombre: "una entrada no declarada dentro de la copia, con enlaces",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.fichero(hostLc+"/mio.md", "no es de kitlegal")
+				d.fichero(hostPlazos+"/mio.md", "no es de kitlegal")
 			},
-			esperados:    []instalacion.Hallazgo{hallazgo(esCopia, hostLc, lc)},
+			esperados:    []instalacion.Hallazgo{hallazgo(esCopia, hostPlazos, plazos)},
 			sondas:       sonda,
-			noExaminadas: []string{hostLc + "/mio.md"},
-			excepcion:    hostLc + "/mio.md",
+			noExaminadas: []string{hostPlazos + "/mio.md"},
+			excepcion:    hostPlazos + "/mio.md",
 		},
 		{
 			nombre: "el enlace de FR-021 donde se declaró la copia",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.retirar(hostLc)
-				d.enlace(hostLc, "../../.agents/skills/legal-core")
+				d.retirar(hostPlazos)
+				d.enlace(hostPlazos, "../../.agents/skills/plazos-y-territorio")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmY(hostLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmY(hostPlazos, plazos))},
 		},
 		{
 			nombre: "un fichero donde se declaró la copia",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.fichero(hostLc, "no es de kitlegal")
+				d.fichero(hostPlazos, "no es de kitlegal")
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, rmY(hostLc, lc))},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, rmY(hostPlazos, plazos))},
 		},
 		{
 			nombre: "falta la copia",
 			preparar: func(d *discoEnMemoria) {
 				conCopia(d)
-				d.retirar(hostLc)
+				d.retirar(hostPlazos)
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostLc, lc)},
+			esperados: []instalacion.Hallazgo{hallazgo(aOtroSitio, hostPlazos, plazos)},
 		},
 	}
 }
@@ -722,39 +722,39 @@ func casosDoctorDeLaCopia() []casoDeDoctor {
 func casosDoctorDeLasVersiones() []casoDeDoctor {
 	const manifiesto = ".agents/skills/kitlegal.json"
 
-	lasDos := instala("boe-legislacion", "legal-core")
+	lasDos := instala("normativa", "plazos-y-territorio")
 
 	return []casoDeDoctor{
 		{
 			nombre: "el manifiesto y sus dos skills, de otra versión",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").deVersion(versionVieja).escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").deVersion(versionVieja).escribir()
 			},
 			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, manifiesto, lasDos)},
 		},
 		{
 			nombre: "el manifiesto de otra versión y una sola skill con entrada de host",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").deVersion(versionVieja).escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").deVersion(versionVieja).escribir()
 			},
 			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, manifiesto, conHostClaude(lasDos))},
 		},
 		{
 			nombre: "una sola skill de otra versión",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").skillDeVersion("boe-legislacion", versionVieja).escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").skillDeVersion("normativa", versionVieja).escribir()
 			},
-			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, neutroBoe, instala("boe-legislacion"))},
+			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, neutroNormativa, instala("normativa"))},
 		},
 		{
 			nombre: "las dos skills de otra versión y el manifiesto no",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").skillDeVersion("boe-legislacion", versionVieja).
-					skillDeVersion("legal-core", "v0.2.0").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").skillDeVersion("normativa", versionVieja).
+					skillDeVersion("plazos-y-territorio", "v0.2.0").escribir()
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(otraVersion, neutroBoe, instala("boe-legislacion")),
-				hallazgo(otraVersion, neutroLc, instala("legal-core")),
+				hallazgo(otraVersion, neutroNormativa, instala("normativa")),
+				hallazgo(otraVersion, neutroPlazos, instala("plazos-y-territorio")),
 			},
 		},
 		{
@@ -768,20 +768,20 @@ func casosDoctorDeLasVersiones() []casoDeDoctor {
 		{
 			nombre: "0.1.0 es la misma versión que v0.1.0",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").deVersion("0.1.0").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").deVersion("0.1.0").escribir()
 			},
 		},
 		{
 			nombre: "0.1.0+abc no es la misma versión que v0.1.0",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").deVersion("0.1.0+abc").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").deVersion("0.1.0+abc").escribir()
 			},
 			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, manifiesto, lasDos)},
 		},
 		{
 			nombre: "con un binario de desarrollo también se comparan",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").escribir()
+				instalarLocal(d, "normativa", "plazos-y-territorio").escribir()
 			},
 			version:   "dev",
 			esperados: []instalacion.Hallazgo{hallazgo(otraVersion, manifiesto, lasDos)},
@@ -789,27 +789,27 @@ func casosDoctorDeLasVersiones() []casoDeDoctor {
 		{
 			nombre: "un fichero editado y el manifiesto de otra versión: primero el que lleva rm",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").deVersion(versionVieja).escribir()
-				d.fichero(neutroLc+"/SKILL.md", "editado a mano")
+				instalarLocal(d, "normativa", "plazos-y-territorio").deVersion(versionVieja).escribir()
+				d.fichero(neutroPlazos+"/SKILL.md", "editado a mano")
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, neutroLc+"/SKILL.md", rmY(neutroLc+"/SKILL.md", instala("legal-core"))),
+				hallazgo(editado, neutroPlazos+"/SKILL.md", rmY(neutroPlazos+"/SKILL.md", instala("plazos-y-territorio"))),
 				hallazgo(otraVersion, manifiesto, lasDos),
 			},
 		},
 		{
 			nombre: "en cada grupo, por ruta y no por clase ni por skill",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "boe-legislacion", "legal-core").enlazar("boe-legislacion").enlazar("legal-core").
-					skillDeVersion("legal-core", versionVieja).escribir()
-				d.retirar(hostBoe)
-				d.fichero(neutroBoe+"/references/normas.md", "editado a mano")
+				instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("normativa").enlazar("plazos-y-territorio").
+					skillDeVersion("plazos-y-territorio", versionVieja).escribir()
+				d.retirar(hostNormativa)
+				d.fichero(neutroNormativa+"/references/normas.md", "editado a mano")
 			},
 			esperados: []instalacion.Hallazgo{
-				hallazgo(editado, neutroBoe+"/references/normas.md",
-					rmY(neutroBoe+"/references/normas.md", conHostClaude(instala("boe-legislacion")))),
-				hallazgo(otraVersion, neutroLc, conHostClaude(instala("legal-core"))),
-				hallazgo(aOtroSitio, hostBoe, conHostClaude(instala("boe-legislacion"))),
+				hallazgo(editado, neutroNormativa+"/references/normas.md",
+					rmY(neutroNormativa+"/references/normas.md", conHostClaude(instala("normativa")))),
+				hallazgo(otraVersion, neutroPlazos, conHostClaude(instala("plazos-y-territorio"))),
+				hallazgo(aOtroSitio, hostNormativa, conHostClaude(instala("normativa"))),
 			},
 		},
 	}
@@ -833,7 +833,7 @@ func probarDoctorSinManifiesto(t *testing.T) {
 		{
 			nombre: "el directorio neutro sin kitlegal.json, con una skill y .claude",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").copiar("legal-core")
+				instalarLocal(d, "plazos-y-territorio").copiar("plazos-y-territorio")
 			},
 			neutro: ".agents/skills",
 		},
@@ -869,7 +869,7 @@ func probarDoctorSinManifiesto(t *testing.T) {
 			}, diagnostico)
 			assert.Equal(t, antes, d.instantanea())
 			assert.Empty(t, enlazador.preguntados)
-			exigirNoExaminadas(t, d, neutroLc, ".claude")
+			exigirNoExaminadas(t, d, neutroPlazos, ".claude")
 		})
 	}
 }
@@ -882,10 +882,10 @@ func probarFallosDelDoctor(t *testing.T) {
 	t.Parallel()
 
 	enlazadas := func(d *discoEnMemoria) {
-		instalarLocal(d, "boe-legislacion", "legal-core").enlazar("legal-core").escribir()
+		instalarLocal(d, "normativa", "plazos-y-territorio").enlazar("plazos-y-territorio").escribir()
 	}
 	conCopia := func(d *discoEnMemoria) {
-		instalarLocal(d, "boe-legislacion", "legal-core").copiar("legal-core").escribir()
+		instalarLocal(d, "normativa", "plazos-y-territorio").copiar("plazos-y-territorio").escribir()
 	}
 
 	casos := []struct {
@@ -897,22 +897,22 @@ func probarFallosDelDoctor(t *testing.T) {
 	}{
 		{nombre: "una guarda", preparar: enlazadas, op: opExaminar, ruta: ".agents/skills"},
 		{nombre: "el manifiesto", preparar: enlazadas, op: opExaminar, ruta: ".agents/skills/kitlegal.json"},
-		{nombre: "el directorio de una skill", preparar: enlazadas, op: opExaminar, ruta: neutroLc},
-		{nombre: "un directorio intermedio", preparar: enlazadas, op: opExaminar, ruta: neutroLc + "/references"},
+		{nombre: "el directorio de una skill", preparar: enlazadas, op: opExaminar, ruta: neutroPlazos},
+		{nombre: "un directorio intermedio", preparar: enlazadas, op: opExaminar, ruta: neutroPlazos + "/references"},
 		{
 			nombre: "el de encima de un directorio intermedio",
 			preparar: func(d *discoEnMemoria) {
-				instalarLocal(d, "legal-core").declarar("legal-core", "legal-core/a/b/c.md", "no es de kitlegal").escribir()
+				instalarLocal(d, "plazos-y-territorio").declarar("plazos-y-territorio", "plazos-y-territorio/a/b/c.md", "no es de kitlegal").escribir()
 			},
 			op:   opExaminar,
-			ruta: neutroLc + "/a",
+			ruta: neutroPlazos + "/a",
 		},
-		{nombre: "un fichero declarado", preparar: enlazadas, op: opExaminar, ruta: neutroLc + "/SKILL.md"},
-		{nombre: "la huella de un fichero declarado", preparar: enlazadas, op: opHuella, ruta: neutroLc + "/SKILL.md"},
+		{nombre: "un fichero declarado", preparar: enlazadas, op: opExaminar, ruta: neutroPlazos + "/SKILL.md"},
+		{nombre: "la huella de un fichero declarado", preparar: enlazadas, op: opHuella, ruta: neutroPlazos + "/SKILL.md"},
 		{nombre: ".claude", preparar: enlazadas, op: opExaminar, ruta: ".claude"},
 		{nombre: ".claude/skills", preparar: enlazadas, op: opExaminar, ruta: ".claude/skills"},
-		{nombre: "una entrada de host", preparar: enlazadas, op: opExaminar, ruta: hostLc},
-		{nombre: "la huella de un fichero de una copia", preparar: conCopia, op: opHuella, ruta: hostLc + "/SKILL.md"},
+		{nombre: "una entrada de host", preparar: enlazadas, op: opExaminar, ruta: hostPlazos},
+		{nombre: "la huella de un fichero de una copia", preparar: conCopia, op: opHuella, ruta: hostPlazos + "/SKILL.md"},
 		{nombre: "la sonda del creador de enlaces", preparar: conCopia, sonda: errInyectado},
 	}
 
@@ -955,7 +955,7 @@ func probarVersionDelDoctor(t *testing.T) {
 			t.Parallel()
 
 			d := nuevoDiscoEnMemoria(t)
-			instalarLocal(d, "legal-core").escribir()
+			instalarLocal(d, "plazos-y-territorio").escribir()
 
 			_, err := instalacion.Diagnosticar(d, nuevoEnlazadorHonesto(d, admiteSiempre), ambitoLocal,
 				empotradasDePrueba(), version)
@@ -991,10 +991,10 @@ func probarSalidaDeDoctor(t *testing.T) {
 		assert.Equal(t, esperado, string(salida), "las claves en el orden del contrato")
 	}
 
-	salida, err := json.Marshal(hallazgo(editado, neutroLc+"/SKILL.md", instala("legal-core")))
+	salida, err := json.Marshal(hallazgo(editado, neutroPlazos+"/SKILL.md", instala("plazos-y-territorio")))
 	require.NoError(t, err)
-	assert.JSONEq(t, `{"clase": "fichero editado", "ruta": ".agents/skills/legal-core/SKILL.md",
-		"orden": "kitlegal skills install legal-core"}`, string(salida))
+	assert.JSONEq(t, `{"clase": "fichero editado", "ruta": ".agents/skills/plazos-y-territorio/SKILL.md",
+		"orden": "kitlegal skills install plazos-y-territorio"}`, string(salida))
 
 	campo, hay := reflect.TypeFor[instalacion.Diagnostico]().FieldByName("Version")
 	require.True(t, hay)

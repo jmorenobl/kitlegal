@@ -274,12 +274,12 @@ func probarRetiradaQueFalla(t *testing.T, directorio, _ string) {
 func probarEnlazar(t *testing.T, directorio, _ string) {
 	t.Helper()
 
-	ruta := filepath.Join(directorio, "boe-legislacion")
+	ruta := filepath.Join(directorio, "normativa")
 
-	require.NoError(t, Enlazador{}.Enlazar("../../.agents/skills/boe-legislacion", ruta))
+	require.NoError(t, Enlazador{}.Enlazar("../../.agents/skills/normativa", ruta))
 
 	assert.Equal(t, map[string]string{
-		".": "directorio", "boe-legislacion": "enlace -> ../../.agents/skills/boe-legislacion",
+		".": "directorio", "normativa": "enlace -> ../../.agents/skills/normativa",
 	}, arbolDe(t, directorio))
 }
 
@@ -290,7 +290,7 @@ func probarEnlazarDondeHayAlgo(t *testing.T, directorio, _ string) {
 	ruta := conFichero(t, directorio)
 	antes := arbolDe(t, directorio)
 
-	err := Enlazador{}.Enlazar("../../.agents/skills/boe-legislacion", ruta)
+	err := Enlazador{}.Enlazar("../../.agents/skills/normativa", ruta)
 
 	require.ErrorIs(t, err, fs.ErrExist)
 	assert.Equal(t, antes, arbolDe(t, directorio))
@@ -302,15 +302,15 @@ func probarEnlazarDondeHayAlgo(t *testing.T, directorio, _ string) {
 func probarEscritorEnlaza(t *testing.T, directorio, _ string) {
 	t.Helper()
 
-	ruta := filepath.Join(directorio, "boe-legislacion")
+	ruta := filepath.Join(directorio, "normativa")
 
-	err := NuevoEscritor(enlazadorQueFalla{}).Enlazar("../../.agents/skills/boe-legislacion", ruta)
+	err := NuevoEscritor(enlazadorQueFalla{}).Enlazar("../../.agents/skills/normativa", ruta)
 
 	require.ErrorIs(t, err, errSinEnlaces)
 	assert.Equal(t, map[string]string{".": "directorio"}, arbolDe(t, directorio))
 
-	require.NoError(t, NuevoEscritor(Enlazador{}).Enlazar("../../.agents/skills/boe-legislacion", ruta))
-	assert.Equal(t, "enlace -> ../../.agents/skills/boe-legislacion", arbolDe(t, directorio)["boe-legislacion"])
+	require.NoError(t, NuevoEscritor(Enlazador{}).Enlazar("../../.agents/skills/normativa", ruta))
+	assert.Equal(t, "enlace -> ../../.agents/skills/normativa", arbolDe(t, directorio)["normativa"])
 }
 
 // errSinEnlaces es el fallo de enlazadorQueFalla.
