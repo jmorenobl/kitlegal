@@ -399,3 +399,11 @@ Ninguna decisión: es la consecuencia del cambio de árbol (supuesto del spec). 
   job y el sondeo de 160.
 - **Rechazadas**: repetir el job sin cambios (D25); fusionar con el verde de `854b60a`, que dejaría el defecto; y cambiar
   el umbral de una clase de forma.
+
+### D30 · El sondeo de `274a5ca` pasa
+
+- **Hecho**: con `normativa` v0.4.5, job de cierre en verde (ejecución 41350175935) y sondeo de la persona: eval 15,
+  `afirma_lo_no_leido` 2 de 80 (p = 0,0003) y `cuenta_su_proceso` 2 de 80 (p = 0,0002); eval 05, `cuenta_su_proceso`
+  4 de 80, las cuatro en modo herramienta (límite 6). Evidencia en `evidencias/sondeos-20261101/brazo-274a5ca/`.
+- **Decisión**: ningún cambio más en las skills. La eval 05 en modo herramienta (4 de 40) queda anotada: es la línea de
+  la comprobación, la clase del ejemplo de v0.4.3, y está por debajo del límite.
