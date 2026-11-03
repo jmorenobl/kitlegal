@@ -361,6 +361,12 @@ linters:
         # «Descripcion» —Applet.Descripcion y Verbo.Descripcion—, el identificador que
         # fija el contrato del applet; misspell lo lee como «Description».
         - descripcion
+        # «Directorios de trabajo», los de una sesión de Claude Code, fuera de
+        # los cuales blockWritesOutsideWorkingDirectories no deja escribir a
+        # Write ni a Edit, en los motivos de los tests de
+        # internal/workflow/escrituras_test.go (ADR 0032, «Enmienda: la memoria
+        # del proyecto»); misspell lo lee como «directors».
+        - directorios
         # «Disposicion», el tramo que comparten disposicion_adicional,
         # disposicion_transitoria, disposicion_derogatoria y disposicion_final,
         # los tipos que TipoDesdeID infiere de ids como da3 o dt1, y la clave
