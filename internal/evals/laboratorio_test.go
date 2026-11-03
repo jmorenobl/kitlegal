@@ -711,3 +711,170 @@ func comprobarLaFormaDelProducto(t *testing.T, declarada declaracionDelLaborator
 		}
 	}
 }
+
+// evalDelLaboratorioEsperada es una eval del laboratorio tal como la fija
+// data-model §4 de H39: su fichero, la lectura que pide y la eval de normativa
+// de la que toma la pregunta, el comando y la cita (research V19 de H39).
+type evalDelLaboratorioEsperada struct {
+	fichero, norma, bloque, deNormativa string
+}
+
+// evalsDelLaboratorioEsperadas son las cuatro evals del laboratorio, en orden de
+// fichero (data-model §4 de H39; contracts/laboratorio.md §6 de H39).
+var evalsDelLaboratorioEsperadas = []evalDelLaboratorioEsperada{
+	{
+		fichero: "01-constitucion-articulo-140.yaml", norma: "BOE-A-1978-31229", bloque: "a140",
+		deNormativa: "09-constitucion-articulo-140.yaml",
+	},
+	{
+		fichero: "02-lgt-prescripcion.yaml", norma: "BOE-A-2003-23186", bloque: "a66",
+		deNormativa: "04-lgt-prescripcion.yaml",
+	},
+	{
+		fichero: "03-lrjsp-principio-de-legalidad.yaml", norma: "BOE-A-2015-10566", bloque: "a25",
+		deNormativa: "07-lrjsp-principio-de-legalidad.yaml",
+	},
+	{
+		fichero: "04-et-vacaciones.yaml", norma: "BOE-A-2015-11430", bloque: "a38",
+		deNormativa: "10-et-vacaciones.yaml",
+	},
+}
+
+// TestEvalsDelLaboratorio es el control de las evals del laboratorio (FR-012 de
+// H39; contracts/laboratorio.md §6 y §7 de H39; data-model §4 de H39):
+// LeerConjunto las lee bien formadas y son cuatro, cada una con la pregunta, el
+// comando y la cita de su eval de normativa; cada comando es una lectura de la
+// herramienta de la declaración, la que satisface una llamada a esa herramienta
+// con su norma y su bloque; y la unión de grabaciones de hoy sirve todas sus
+// consultas, primero al preparar la caché y después sin red. El laboratorio no
+// graba nada: lo que una eval pida y la grabación no tenga es un defecto de la
+// eval.
+func TestEvalsDelLaboratorio(t *testing.T) {
+	t.Parallel()
+
+	evalsDelLaboratorio := directorioDeLasEvalsDelLaboratorio(raizDelRepositorio)
+
+	conjunto, err := LeerConjunto(evalsDelLaboratorio)
+	require.NoError(t, err)
+
+	t.Run("bien formadas", func(t *testing.T) {
+		t.Parallel()
+
+		assert.Empty(t, conjunto.MalFormados, "cada fichero de %s es una eval bien formada", evalsDelLaboratorio)
+		assert.Nil(t, conjunto.Juez, "%s no tiene juez", evalsDelLaboratorio)
+		assert.Zero(t, conjunto.Prohibidas, "%s no tiene lista de expresiones prohibidas", evalsDelLaboratorio)
+		assert.Len(t, conjunto.Evals, len(evalsDelLaboratorioEsperadas), "%s tiene las cuatro evals",
+			evalsDelLaboratorio)
+	})
+
+	t.Run("las de normativa", func(t *testing.T) {
+		t.Parallel()
+
+		comprobarLasEvalsDeNormativa(t, conjunto.Evals)
+	})
+
+	t.Run("lecturas de la herramienta", func(t *testing.T) {
+		t.Parallel()
+
+		comprobarLasLecturasDeLaHerramienta(t, conjunto.Evals)
+	})
+
+	t.Run("grabado", func(t *testing.T) {
+		t.Parallel()
+
+		consultas := ConsultasNecesarias(conjunto.Evals)
+		require.NotEmpty(t, consultas, "las evals de %s necesitan alguna consulta", evalsDelLaboratorio)
+
+		dirCache := t.TempDir()
+
+		preparadas, err := Preparar(dirCache, UnionDeGrabaciones(), consultas)
+		require.NoError(t, err)
+		assert.Empty(t, preparadas, "consultas de las evals de %s sin su respuesta en las grabaciones %s:\n%s",
+			evalsDelLaboratorio, strings.Join(UnionDeGrabaciones(), " y "), presentarFaltas(preparadas))
+
+		comprobadas, err := ComprobarSinRed(dirCache, consultas)
+		require.NoError(t, err)
+		assert.Empty(t, comprobadas, "consultas de las evals de %s que la caché preparada no sirve sin red:\n%s",
+			evalsDelLaboratorio, presentarFaltas(comprobadas))
+	})
+}
+
+// comprobarLasEvalsDeNormativa: las evals del laboratorio son las de
+// evalsDelLaboratorioEsperadas, en su orden, y cada una tiene la pregunta, la
+// activación, los comandos y las citas de su eval de normativa, con un solo
+// comando, la lectura de su norma y su bloque, y una sola cita, la de ese bloque
+// (data-model §4 de H39; research V19 de H39).
+func comprobarLasEvalsDeNormativa(t *testing.T, evals []Eval) {
+	t.Helper()
+
+	deNormativa, err := LeerConjunto(evalsDeNormativa)
+	require.NoError(t, err)
+
+	porFichero := map[string]Eval{}
+	for _, eval := range deNormativa.Evals {
+		porFichero[eval.Fichero] = eval
+	}
+
+	ficheros := make([]string, 0, len(evals))
+	for _, eval := range evals {
+		ficheros = append(ficheros, eval.Fichero)
+	}
+
+	esperados := make([]string, 0, len(evalsDelLaboratorioEsperadas))
+	for _, esperada := range evalsDelLaboratorioEsperadas {
+		esperados = append(esperados, esperada.fichero)
+	}
+
+	require.Equal(t, esperados, ficheros, "las evals del laboratorio, en orden de fichero")
+
+	for posicion, esperada := range evalsDelLaboratorioEsperadas {
+		eval := evals[posicion]
+
+		origen, existe := porFichero[esperada.deNormativa]
+		require.True(t, existe, "la eval %s de %s existe", esperada.deNormativa, evalsDeNormativa)
+
+		assert.True(t, eval.Activa, "%s es una eval de activación", eval.Fichero)
+		assert.Equal(t, []ComandoEsperado{{Applet: appletDeLasNormas, Norma: esperada.norma, Bloque: esperada.bloque}},
+			eval.Comandos, "%s pide la lectura de %s %s", eval.Fichero, esperada.norma, esperada.bloque)
+		assert.Equal(t, []CitaEsperada{{Norma: esperada.norma, Bloque: esperada.bloque}}, eval.Citas,
+			"%s cita %s %s", eval.Fichero, esperada.norma, esperada.bloque)
+
+		assert.Equal(t, origen.Pregunta, eval.Pregunta, "%s tiene la pregunta de %s", eval.Fichero, origen.Fichero)
+		assert.Equal(t, origen.Activa, eval.Activa, "%s tiene la activación de %s", eval.Fichero, origen.Fichero)
+		assert.Equal(t, origen.Comandos, eval.Comandos, "%s tiene los comandos de %s", eval.Fichero, origen.Fichero)
+		assert.Equal(t, origen.Citas, eval.Citas, "%s tiene las citas de %s", eval.Fichero, origen.Fichero)
+	}
+}
+
+// comprobarLasLecturasDeLaHerramienta: cada comando de cada eval del laboratorio
+// es una lectura de la herramienta de la declaración (data-model §2 y §4 de H39;
+// FR-012 de H39): lo satisface, como lo juzga el juicio de una sesión en modo
+// herramienta, la llamada a esa herramienta con la norma y el bloque del comando
+// que termina sin error.
+func comprobarLasLecturasDeLaHerramienta(t *testing.T, evals []Eval) {
+	t.Helper()
+
+	declarada, err := leerLaDeclaracionDelRepositorio(raizDelRepositorio)
+	require.NoError(t, err)
+
+	verbos, err := verbosDeLasHerramientas()
+	require.NoError(t, err)
+
+	verbo, anunciada := verbos[declarada.Herramienta]
+	require.True(t, anunciada, "la herramienta %s la anuncia el servidor MCP de kitlegal", declarada.Herramienta)
+
+	for _, eval := range evals {
+		require.NotEmpty(t, eval.Comandos, "%s pide alguna lectura", eval.Fichero)
+
+		for _, comando := range eval.Comandos {
+			argumentos, err := json.Marshal(map[string]string{"norma": comando.Norma, "bloque": comando.Bloque})
+			require.NoError(t, err)
+
+			llamada := Llamada{Herramienta: declarada.Herramienta, Argumentos: argumentos, ConResultado: true}
+
+			assert.True(t, satisface(invocacionDeLaLlamada(llamada, verbo).Invocacion, comando, false),
+				"el comando %s de %s es una lectura de %s", textoDelComando(comando), eval.Fichero,
+				declarada.Herramienta)
+		}
+	}
+}

@@ -173,6 +173,18 @@ func directorioDeLaVariante(raiz, nombre string) string {
 	return filepath.Join(raiz, carpetaDelLaboratorio, carpetaDeLasVariantes, nombre)
 }
 
+// carpetaDeLasEvalsDelLaboratorio es la carpeta de las evals del laboratorio,
+// dentro de la suya (contracts/laboratorio.md §1 y §6 de H39).
+const carpetaDeLasEvalsDelLaboratorio = "evals"
+
+// directorioDeLasEvalsDelLaboratorio es el directorio de las evals del
+// laboratorio en el repositorio de esa raíz (data-model §4 de H39): las mismas
+// para todas las variantes, con el formato de las de evals/ y fuera de esa
+// carpeta, que es la que lee el job de evals.
+func directorioDeLasEvalsDelLaboratorio(raiz string) string {
+	return filepath.Join(raiz, carpetaDelLaboratorio, carpetaDeLasEvalsDelLaboratorio)
+}
+
 // partesDeUnaVarianteLeidas son las partes de una variante tal como están en su
 // directorio (data-model §3 de H39).
 type partesDeUnaVarianteLeidas struct {

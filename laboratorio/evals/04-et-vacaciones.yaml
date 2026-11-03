@@ -1,0 +1,10 @@
+# Eval de laboratorio de H39: la pregunta y la lectura de la eval 10 de normativa, servidas por testdata/evals/.
+pregunta: "¿Cuántos días de vacaciones anuales reconoce el artículo 38 del Estatuto de los Trabajadores?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-11430
+    bloque: a38
+citas:
+  - norma: BOE-A-2015-11430
+    bloque: a38
