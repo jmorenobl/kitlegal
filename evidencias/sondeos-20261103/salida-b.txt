@@ -1,0 +1,4 @@
+Sondeo del laboratorio en /Users/jorge/kitlegal-sondeos/20261103-pr222/h39/b, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- instrucciones, herramienta: 40 abiertas.
+- parametro, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/kitlegal-sondeos/20261103-pr222/h39/b

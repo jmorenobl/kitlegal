@@ -1,0 +1,60 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "2f004650f774b582a21153e0aee7cd073816b009daf0f468ed1c4b94da878bfa",
+      "bytes": 4136,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H39"
+    },
+    {
+      "fichero": "guiones/lanzar-560.sh",
+      "sha256": "87b664dc10b51cf543810e9f48e089786f7b205c65ce40ae99642a5fe85baf5a",
+      "bytes": 2742,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "guion del sondeo del 2026-11-03, fuera del producto"
+    },
+    {
+      "fichero": "guiones/turnos.py",
+      "sha256": "8aca0c20bf3e0fa8092721d23fc6af919b6e960965075b741868e908c7659673",
+      "bytes": 1611,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "guion de la cuenta de turnos del 2026-11-03, fuera del producto"
+    },
+    {
+      "fichero": "salida-a.txt",
+      "sha256": "8623b0e5cdba480edf7bf3ccbae7f4c0068829298389c42a76245842b4c1ed19",
+      "bytes": 742,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "salida del sondeo del laboratorio, lanzado por una persona el 2026-11-03 sobre la #222 (a593631b)"
+    },
+    {
+      "fichero": "salida-b.txt",
+      "sha256": "5f13f09dac3983623cdf996a2970ac5b2d3f9bf59911f2cbbedbc3e5a606e7a6",
+      "bytes": 300,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "salida del sondeo del laboratorio, lanzado por una persona el 2026-11-03 sobre la #222 (a593631b)"
+    },
+    {
+      "fichero": "tabla.md",
+      "sha256": "a34c4d174bf672012cc3fbabcd919d3d685d69cbc6c3349617ea6cf2f9c53d87",
+      "bytes": 51829,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "salida del sondeo del laboratorio, lanzado por una persona el 2026-11-03 sobre la #222 (a593631b)"
+    },
+    {
+      "fichero": "turnos.md",
+      "sha256": "332954cc9ec9e228e39fcdca6874709dcd1fda5a02e6d29ab4ecba9491fc798c",
+      "bytes": 747,
+      "fecha": "2026-11-03",
+      "versionado": "sí",
+      "origen": "cuenta de guiones/turnos.py sobre las sesiones del sondeo del 2026-11-03"
+    }
+  ]
+}
