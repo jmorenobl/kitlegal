@@ -56,7 +56,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources evals evals-sondeo evals-medir-juez skills-sync roadmap roadmap-sync workflow-registro secrets \
+	vuln schema-check skills-check verify-sources evals evals-sondeo evals-medir-juez laboratorio-tabla skills-sync roadmap roadmap-sync workflow-registro secrets \
 	mod-verify mod-tidy-check goreleaser-check release snapshot-check plugin-check web web-dev web-citas \
 	check-web-tools check-tools hooks ci help
 
@@ -153,6 +153,13 @@ evals-sondeo: check-tools
 ## evals-medir-juez: ejecuta la medida del juez de una skill con Claude Code e imprime medida.json, sin escribirla en el repositorio (consume la suscripción; fuera de ci)
 evals-medir-juez: check-tools
 	scripts/evals-medir-juez.sh "$(SKILL)"
+
+# La tabla de un sondeo del laboratorio de H39 la lee la persona, una vez, para escribir el ADR que precisa el 0046
+# (specs/031-h39-c-omo-se/contracts/tabla.md). DIRECTORIO no tiene valor por defecto: es un sondeo, o el directorio de
+# los sondeos que se juntan en una tabla.
+## laboratorio-tabla: cuenta las sesiones de un sondeo del laboratorio y escribe su tabla y su detalle (sin red, modelo ni credencial; fuera de ci)
+laboratorio-tabla: check-tools
+	@go run ./cmd/laboratorio tabla "$(DIRECTORIO)"
 
 ## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools
