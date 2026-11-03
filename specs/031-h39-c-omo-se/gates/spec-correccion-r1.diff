@@ -1,0 +1,126 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-03 09:31:04
++++ ahora/checklists/requirements.md	2026-11-03 09:32:01
+@@ -14,11 +14,11 @@
+ ## Requirement Completeness
+ 
+ - [x] No [NEEDS CLARIFICATION] markers remain — ninguno; las lecturas tomadas van en Assumptions.
+-- [x] Requirements are testable and unambiguous — cada FR nombra su comprobación (FR-004, FR-010 a FR-014, FR-028, FR-043) o su escenario Dado/Cuando/Entonces; «antes de la primera herramienta» se define por turnos en FR-041.
++- [x] Requirements are testable and unambiguous — cada FR nombra su comprobación (FR-004, FR-010 a FR-014, FR-028, FR-043) o su escenario Dado/Cuando/Entonces; «antes de la primera herramienta» se define por turnos en FR-041, y el turno es una respuesta del modelo (los bloques que emite antes de recibir el resultado de ninguna herramienta, en uno o varios mensajes `assistant`), numerada desde 1; «las que activan las dos» también es antes de la primera herramienta; FR-030 fija qué skills tiene instaladas cada sesión.
+ - [x] Success criteria are measurable — SC-001 a SC-008 con recuento o porcentaje y su control en `make ci` o en el job de evals; SC-009 lo comprueba la persona.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden lo que ve la persona o el agente (descripciones, ficheros instalados, recuentos, sesiones abiertas).
+ - [x] All acceptance scenarios are defined — escenarios en las cuatro historias, con los valores de Wilson de la historia 3.
+-- [x] Edge cases are identified — sesión sin herramienta, sin terminar, referencia abierta dos veces, variante sin referencia, transcripción ilegible (regla genérica, ADR 0023).
++- [x] Edge cases are identified — sesión sin herramienta, sin terminar, referencia abierta dos veces, variante sin referencia, variante con referencia que ninguna sesión abre, fila con n = 0 (FR-042, FR-043), transcripción ilegible (regla genérica, ADR 0023).
+ - [x] Scope is clearly bounded — «Fuera de alcance» con la reorganización, los topes, las instrucciones del producto, las banderas globales, el artefacto del job y el sondeo dentro del run.
+ - [x] Dependencies and assumptions identified — dependencia de H32 (evidencia de partida, `consulta-juridica`, grabaciones de las evals) y Assumptions.
+ 
+@@ -32,7 +32,7 @@
+ ## Criterios del hito y del juez
+ 
+ - [x] Los criterios de «Aceptación» y «Controles» del hito están literalmente en el spec — sección «Criterios del hito (literales)», trazados a FR-010, FR-014, FR-028, FR-001, FR-002, FR-050 a FR-053.
+-- [x] Cada umbral que se mide sin persona nombra la comprobación que sale en rojo — SC-001 a SC-007 (tests de `make ci`), FR-011 (forma y topes de la skill de laboratorio en `make ci`), SC-008 (job de evals del cierre); SC-009 y FR-050 los mide la persona.
++- [x] Cada umbral que se mide sin persona nombra la comprobación que sale en rojo — SC-001 a SC-007 (tests de `make ci`; SC-007 cubre también el reparto n/4 por eval y las 0 sesiones de una petición inválida de FR-030), FR-011 (forma y topes de la skill de laboratorio en `make ci`), SC-008 (job de evals del cierre); SC-009 y FR-050 los mide la persona.
+ - [x] Uso de fuera adentro — sección «Uso, de fuera adentro»: quién pide cada salida, cuántas veces, su tamaño (2373 caracteres como cota de las descripciones; 14 filas y 560 sesiones) y cuándo deja de leerse.
+ - [x] Ninguna decisión cerrada de CLAUDE.md se reabre — topes del ADR 0046, sesiones sin modelo en el run (ADR 0032), evals del job sin cambios, sin telemetría.
+ 
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-03 09:31:04
++++ ahora/spec.md	2026-11-03 09:31:54
+@@ -119,8 +119,8 @@
+    identificador completo, **Cuando** la persona lo lanza, **Entonces** sale con un código distinto de 0, dice qué no
+    coincide y no abre ninguna sesión (FR-031, SC-007).
+ 4. **Dado** que se pide una variante que solo se mide en modo herramienta (`instrucciones`, `parametro`) en modo
+-   orden, **Cuando** la persona lanza el arnés, **Entonces** sale con un código distinto de 0 sin abrir ninguna sesión
+-   (FR-030).
++   orden, o un número de sesiones que no es múltiplo de 4, **Cuando** la persona lanza el arnés, **Entonces** sale con
++   un código distinto de 0 sin abrir ninguna sesión (FR-030, SC-007).
+ 
+ ---
+ 
+@@ -156,6 +156,10 @@
+ - **Referencia abierta varias veces**: cuenta el turno de la primera apertura (FR-041).
+ - **Variante sin referencia** (`control`, `instrucciones`, `entrada`, `parametro`, `descripcion-sin-herramientas`):
+   las columnas de la referencia salen vacías, no a cero (FR-041).
++- **Variante con referencia que ninguna sesión abre**: las aperturas salen «0 de n» con su intervalo, y las columnas
++  del turno de primera apertura, vacías (FR-041, FR-043).
++- **Fila sin ninguna sesión terminada** (n = 0): la fila sale con su columna de sesiones sin terminar y los recuentos,
++  porcentajes e intervalos vacíos (FR-042, FR-043).
+ - **Transcripción que el guion no sabe leer** (manipulada a mano, truncada por algo que no es el arnés): defecto
+   `inesperado`, código 1 (ADR 0023), sin más casos.
+ 
+@@ -188,7 +192,7 @@
+   11 000 caracteres y descripción de como mucho 900, ADR 0046); `make ci` falla si una variante no la cumple.
+ - **FR-012**: Sus evals son cuatro, todas sobre la misma herramienta de kitlegal y sobre lecturas que ya están grabadas
+   para las evals de hoy (`testdata/evals/`), las mismas para todas las variantes, y ninguna pide una lectura que la
+-  grabación no sirve: `make ci` falla si una eval de laboratorio espera una orden que la grabación no tiene. El hito no graba nada: no añade ni
++  grabación no sirve: `make ci` falla si una eval de laboratorio espera una orden que la grabación no tiene. El run no graba nada: no añade ni
+   cambia ninguna grabación y no escribe en `evidencias/`.
+ - **FR-013**: La skill lleva una **regla testigo**: una regla de forma sobre la respuesta, inventada para el
+   laboratorio —no aparece en ninguna skill, referencia ni instrucción del producto—, que un guion decide sin modelo,
+@@ -230,7 +234,8 @@
+ 
+ - **FR-030**: El arnés lanza, para las variantes y los modos que la persona pide, el número de sesiones por variante y
+   modo que pide, repartidas por igual entre las cuatro evals de laboratorio (diez por eval con las 40 de la aceptación), en los dos modos de las evals del producto y con
+-  las sesiones servidas por la grabación, sin red a las fuentes (ADR 0043). Pedir una variante en un modo que FR-020 a
++  las sesiones servidas por la grabación, sin red a las fuentes (ADR 0043). Cada sesión tiene instalada solo la
++  skill de laboratorio de su variante y, en `entrada`, su skill de entrada: ninguna skill del producto. Pedir una variante en un modo que FR-020 a
+   FR-027 no le dan, o un número de sesiones que no es múltiplo de 4, es un error de argumentos: sale con un código
+   distinto de 0 sin abrir ninguna sesión.
+ - **FR-031**: El arnés recibe el modelo y la versión de Claude Code y, antes de abrir ninguna sesión, comprueba que la
+@@ -250,11 +255,14 @@
+ - **FR-041**: Por fila: las sesiones que activan la skill de laboratorio antes de la primera herramienta de kitlegal
+   (en un turno anterior al de la primera llamada a una herramienta de kitlegal en modo herramienta, o a la primera orden
+   `kitlegal` en modo orden; en el mismo turno no cuenta); en `entrada`, además, las que activan la skill de entrada
+-  antes de la primera herramienta y las que activan las dos; en las variantes con referencia, las que la abren, y el
++  antes de la primera herramienta y las que activan las dos antes de la primera herramienta; en las variantes con referencia, las que la abren, y el
+   turno de su primera apertura (en la tabla, la mediana —con un decimal si cae entre dos turnos— y los extremos; el de
+   cada sesión, en el detalle); y las que cumplen la
+   regla testigo según el guion de FR-013. Cada recuento va como «k de n» con su porcentaje y su intervalo de Wilson al
+   95 % (z = 1,96), en porcentaje con un decimal. Qué cuenta en cada caso, igual en todas las filas:
++  - **Turno**: una respuesta del modelo, es decir, los bloques que emite antes de recibir el resultado de ninguna
++    herramienta, vengan en uno o en varios mensajes `assistant` de la transcripción; se numeran desde 1 en el orden de
++    la sesión. «El turno de un bloque» es el de la respuesta que lo emite.
+   - **Activar una skill** (la de laboratorio y la de entrada): un bloque `tool_use` de la herramienta `Skill` cuyo
+     `input.skill` es su nombre. Leer su `SKILL.md`, con `Read` o con `Bash`, no la activa.
+   - **Primera herramienta de kitlegal, en modo herramienta**: el primer bloque `tool_use` que llama a una herramienta
+@@ -271,9 +279,12 @@
+     tramos (`offset` y `limit`), o de `Bash` cuya orden nombra su fichero (`references/<fichero>.md` de la skill de
+     laboratorio). `Grep` y `Glob` no cuentan. El turno de la primera apertura es el del primer bloque que cumple.
+   - **Las sesiones de una fila** son las de las evals de laboratorio de FR-012, repartidas por igual (FR-030).
+-- **FR-042**: Las sesiones que no terminan o terminan sin respuesta final van en su propia columna y no entran en `n`.
++- **FR-042**: Las sesiones que no terminan o terminan sin respuesta final van en su propia columna y no entran en `n`;
++  con `n` = 0, los recuentos, porcentajes e intervalos de la fila salen vacíos.
+ - **FR-043**: `make ci` comprueba el guion con transcripciones fijas de los dos modos que cubren cada columna, incluidos
+-  `Skill` y la primera herramienta en el mismo turno, una referencia abierta dos veces y una sesión sin terminar, y con
++  `Skill` y la primera herramienta en el mismo turno (también en mensajes separados de la transcripción), una
++  referencia abierta dos veces, una variante con referencia que ninguna sesión abre, una sesión sin terminar y una fila
++  sin ninguna sesión terminada, y con
+   los intervalos de la historia 3; el test falla si un recuento o un extremo de un intervalo difiere.
+ 
+ **La aceptación de la persona y las evals del producto**
+@@ -340,8 +351,11 @@
+   elige el job. Control: el test de FR-010 en `make ci`.
+ - **SC-006**: El guion da los recuentos exactos y los extremos de Wilson con un decimal de las transcripciones fijas de
+   FR-043. Control: su test en `make ci`.
+-- **SC-007**: Con la versión de Claude Code distinta de la pedida o un modelo que no es un id completo, el arnés abre 0
+-  sesiones. Control: un test de `make ci` con un sustituto de `claude` que cuenta sus invocaciones, sin modelo.
++- **SC-007**: Con la versión de Claude Code distinta de la pedida, un modelo que no es un id completo, una variante en
++  un modo que no le corresponde o un número de sesiones que no es múltiplo de 4, el arnés abre 0 sesiones; con una
++  petición válida, abre n/4 por eval en cada variante y modo pedidos. Control: un test de `make ci` con un sustituto de
++  `claude` que cuenta sus invocaciones, sin modelo, falla si una petición inválida abre alguna sesión o si una válida no
++  abre n/4 por eval en cada variante y modo.
+ - **SC-008**: Las evals de las skills del producto en verde en la medición del cierre. Control: el job de evals del
+   cierre sale en rojo si una no pasa su umbral, y el informe final da sus cifras (FR-053).
+ - **SC-009**: Antes de fusionar, la tabla de las 14 filas de 40 sesiones está en `evidencias/` y el ADR en `docs/ADR/`.
+@@ -370,8 +384,8 @@
+ - Las 440 sesiones de partida y la ejecución 41474010633 son las que cita el hito; esta sesión no las ha medido.
+ - «Argumento de un applet» son los argumentos y banderas que declara un verbo; las banderas globales del kernel quedan
+   como hoy (Fuera de alcance).
+-- «Antes de la primera herramienta» se mide por turnos del agente: el mismo turno no es antes, porque las llamadas de un
+-  turno se emiten sin haber leído el resultado de las otras (la evidencia de partida: `ToolSearch` en el mismo turno
++- «Antes de la primera herramienta» se mide por turnos del agente, cada uno una respuesta del modelo (FR-041): el mismo
++  turno no es antes, porque las llamadas de un turno se emiten sin haber leído el resultado de las otras (la evidencia de partida: `ToolSearch` en el mismo turno
+   que `Skill`).
+ - El modelo se pasa como identificador completo porque un alias lo resuelve el cliente (ADR 0031): solo así la tabla
+   dice qué modelo midió.
