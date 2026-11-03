@@ -12,6 +12,21 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Corregido
+
+- **Ninguna sesión de un paso del workflow escribe en la memoria de Claude Code** (workflow `hito` 2.11.1; enmienda
+  del ADR 0032, propuesta). En el run de H39 la sesión `reparar` de T010 editó con `Edit` un fichero de
+  `~/.claude/projects/<proyecto>/memory`, y desde H30 lo habían hecho otras cinco sesiones de paso: la memoria
+  automática iba encendida y pedía escribir en ella, `Write` y `Edit` no pasan por el sandbox y el gancho admitía ese
+  directorio. Ahora `scripts/claude-modelo.sh` abre cada sesión con la memoria automática apagada
+  (`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`), con `Write`, `Edit` y `NotebookEdit` cerrados por Claude Code al repositorio y
+  a los dos temporales que el sandbox ya deja escribir (`permissions.blockWritesOutsideWorkingDirectories` y
+  `--add-dir`), y con el directorio de Claude Code vedado a esas herramientas y el de sus proyectos a `Bash`; no abre
+  la sesión con un Claude Code anterior a la 2.1.314, que no conoce la clave. `scripts/workflow/politica-paso.sh`
+  deniega con su motivo cualquier escritura en el directorio de Claude Code. Lo comprueban
+  `TestLaSesionDeUnPasoSoloEscribeDondeDebe`, `TestLaSesionDeUnPasoPideUnClaudeCodeQueCierreLasEscrituras` y
+  `TestLaPoliticaDelPasoNoAdmiteEscribirEnLaMemoria`.
+
 ## [0.9.0] - 2026-11-02
 
 ### Añadido
