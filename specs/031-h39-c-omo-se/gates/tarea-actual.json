@@ -1,21 +1,16 @@
 {
-  "id": "T011",
-  "texto": "T011 [US3] La cadena con la que se lanza el arnés, que ni `make ci`, ni un gancho, ni el job de evals, ni un paso del workflow ejecutan (FR-030, FR-031, FR-032, FR-033; SC-007; contracts/arnes.md §1; research D8, V16). **Código**: en internal/evals/job_test.go (`//go:build evals`), `TestSondeoDelLaboratorio`, punto de entrada que lee sus argumentos tras `-args` (`-temporal` y los siete de `make`, reutilizando las banderas de `TestSondeo` cuando coinciden en nombre) y llama a `sondearElLaboratorio`, dejando un error de uso en `uso.txt` y la salida en `salida.txt` del temporal como `TestSondeo`; scripts/evals-laboratorio.sh, nuevo, como el guion del sondeo de hoy: crea su temporal `kitlegal-laboratorio.XXXXXX` y lo borra al salir, resuelve `DIRECTORIO` relativo desde la raíz, ejecuta la orden `go test -tags evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$'` del paquete de evals con `-args …` (contracts/arnes.md §1) con su registro en `go-test.log`, e imprime `uso.txt` en la salida de error con 1, el registro con 1, o `salida.txt` con 0; scripts/evals-sondeo-llavero.sh gana un primer argumento de una lista cerrada (`sondeo` → el guion del sondeo de hoy con sus cinco, `laboratorio` → el nuevo con los siete; otro, su uso y 1) sin cambiar cómo toma la credencial; el Makefile gana `evals-laboratorio` (`@scripts/evals-sondeo-llavero.sh laboratorio \"$(VARIANTES)\" \"$(MODOS)\" \"$(SESIONES)\" \"$(MODELO)\" \"$(CLAUDE_CODE)\" \"$(CONCURRENCIA)\" \"$(DIRECTORIO)\"`, con su comentario y su línea `##`, fuera de `ci`) y `evals-sondeo` llama al guion del llavero con `sondeo` delante. **Test**: `TestGuionDelLaboratorio` en internal/evals/laboratorio_sondeo_test.go, como `TestGuionDelSondeo`, con el sustituto de go delante en el `PATH` y un `TMPDIR` vacío: con siete argumentos ejecuta la orden `go test` de arriba con ellos tras `-args` y `-temporal`; con `uso.txt`, sale con 1 e imprime solo el uso; si `go test` falla, su registro con 1; si no, `salida.txt` con 0; sin siete argumentos, su uso y 1 sin ejecutar go; y el `TMPDIR` del test queda vacío. `TestRecetasDelSondeo` en internal/evals/laboratorio_sondeo_test.go, en `make ci` y sin modelo, el único control de las dos recetas: ejecuta con os/exec, con el directorio de trabajo en la raíz del repositorio y sin `MAKEFLAGS`, `MFLAGS` ni `MAKELEVEL` en su entorno (para que el `make` de `make ci` no le pase los suyos), `make -n evals-sondeo SKILL=normativa EVALS=01 MODELO=claude-sonnet-5-5 REPETICIONES=2 CONCURRENCIA=1` y `make -n evals-laboratorio VARIANTES=control,instrucciones MODOS=orden,herramienta SESIONES=8 MODELO=claude-sonnet-5-5 CLAUDE_CODE=2.1.284 CONCURRENCIA=2 DIRECTORIO=sondeo-de-prueba` (`-n` solo imprime: ni guion, ni credencial, ni sesión), y exige en cada salida una sola línea que empieza por `scripts/evals-sondeo-llavero.sh` e igual, carácter a carácter, a la orden de contracts/arnes.md §1 con esos valores: `scripts/evals-sondeo-llavero.sh sondeo` seguido de sus cinco argumentos entre comillas dobles en el orden `SKILL`, `EVALS`, `MODELO`, `REPETICIONES`, `CONCURRENCIA`, y `scripts/evals-sondeo-llavero.sh laboratorio` seguido de sus siete en el orden `VARIANTES`, `MODOS`, `SESIONES`, `MODELO`, `CLAUDE_CODE`, `CONCURRENCIA`, `DIRECTORIO`; las demás líneas (la receta de `check-tools`) no cuentan. Ver fallar `TestRecetasDelSondeo` con un mutante temporal de la receta de `evals-sondeo` en el Makefile (sin `sondeo` delante) y revertirlo; el test y su orden se escriben con Write o Edit, no desde la terminal, porque la política de las sesiones del run veda `make … evals-sondeo` como orden (scripts/workflow/politica-paso.sh). Comprobar además que `go vet -tags evals` del paquete de evals compila, que `bash -n` acepta los dos guiones y que `make -n evals-laboratorio …`, que la política admite, da la orden de arriba, y con `git grep` que ninguna definición de flujo de GitHub, ningún gancho y ningún guion del workflow `hito` nombran `evals-laboratorio` ni `TestSondeoDelLaboratorio` (FR-032)",
+  "id": "T012",
+  "texto": "T012 La documentación de lo que entra en el repositorio (FR-030, FR-032, FR-040; DoD §1 punto 6; plan.md «Project Structure»): CONTRIBUTING.md, en la tabla de objetivos, `make evals-laboratorio` (sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto; ningún paso del workflow `hito` lo lanza) y `make laboratorio-tabla` (sin red, sin modelo y sin credencial), y en «Sondeo local» un apartado del sondeo del laboratorio con su orden, sus siete argumentos y lo que se comprueba antes de abrir ninguna sesión (contracts/arnes.md §1 y §2), la tabla (contracts/tabla.md §1) y el primer argumento nuevo del guion del llavero; y CHANGELOG.md, en *Unreleased*, *Added*: la skill de laboratorio, en su directorio de primer nivel y fuera del producto, con sus ocho variantes y cuatro evals, `make evals-laboratorio` y `make laboratorio-tabla`. Comprobar con `make help` que las dos líneas `##` salen y con `make ci` en verde",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "ec6627ee1accb8a365c11405662b142dd935e9ea",
+  "base": "5549d5a5c6e14f96fc1118928bf15a2ed6b7d28b",
   "rutas": [
-    "Makefile",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
     "contracts/arnes.md",
-    "internal/evals/job_test.go",
-    "internal/evals/laboratorio_sondeo_test.go",
-    "os/exec",
-    "salida.txt",
-    "scripts/evals-laboratorio.sh",
-    "scripts/evals-sondeo-llavero.sh",
-    "scripts/workflow/politica-paso.sh",
-    "uso.txt"
+    "contracts/tabla.md",
+    "plan.md"
   ],
   "cierre": false,
   "converger": false,
