@@ -1,0 +1,8 @@
+{
+  "tarea": "T001",
+  "commit": "70e1bd036560befbcbd040cbcacc7ad9eeb9de62",
+  "ficheros": {
+    "specs/031-h39-c-omo-se/aceptacion/describe.txtar": "d04d831a113547de7c5e2c1ff0ef64ee58cd5f20b55ac6179dc41cd9181d86fa",
+    "internal/app/testdata/script/h39-describe.txtar": "d04d831a113547de7c5e2c1ff0ef64ee58cd5f20b55ac6179dc41cd9181d86fa"
+  }
+}

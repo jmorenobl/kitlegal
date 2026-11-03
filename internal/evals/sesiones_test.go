@@ -521,13 +521,16 @@ func TestGuionDeLaSesion(t *testing.T) {
 // el PATH de la base sin el directorio del binario; y la de la eval sin binario
 // ni servidor, ese mismo PATH y ningún servidor.json. Sin la ruta absoluta del
 // binario no se abre ninguna sesión, y una sesión cuyo servidor.json no se puede
-// escribir no se abre.
+// escribir no se abre. Con Servidor vacío, servidor.json es el de hoy, byte a
+// byte; con Servidor dado, su orden es la de Servidor y lo demás no cambia
+// (contracts/arnes.md §3.4 de H39).
 func TestSesionesPorModo(t *testing.T) {
 	t.Parallel()
 
 	t.Run("cada-modo", probarLaSesionDeCadaModo)
 	t.Run("binario-sin-ruta-absoluta", probarElBinarioSinRutaAbsoluta)
 	t.Run("servidor-que-no-se-escribe", probarElServidorQueNoSeEscribe)
+	t.Run("servidor-dado", probarElServidorDado)
 }
 
 // sesionDelModo es lo que el repartidor da a la sesión de un modo: su PATH, si
@@ -714,6 +717,56 @@ func probarElServidorQueNoSeEscribe(t *testing.T) {
 			assert.NoFileExists(t, filepath.Join(dir, ficheroDelCodigo))
 		})
 	}
+}
+
+// probarElServidorDado fija que, con Servidor dado, el servidor.json de la
+// sesión del modo herramienta arranca el programa de Servidor con sus
+// argumentos, en su orden y como textos de JSON, con el mismo env que el de
+// hoy; que la sesión se abre con él, con el PATH sin el directorio de Binario,
+// que no cambia; y que la del modo orden sigue sin servidor.json (contracts/
+// arnes.md §3.4 de H39).
+func probarElServidorDado(t *testing.T) {
+	t.Parallel()
+
+	s := escribirSustitutos(t)
+	ejecucion := sesionesEnDosModos(t, s)
+	require.Equal(t, []Modo{ModoOrden, ModoHerramienta}, modosDe(ejecucion.Plan[:2]),
+		"premisa: las dos primeras sesiones del plan son del modo orden y del modo herramienta")
+
+	ejecucion.Plan = ejecucion.Plan[:2]
+	ejecucion.Servidor = []string{
+		"/laboratorio-bin/laboratorio", "servidor", "-kitlegal", ejecucion.Binario,
+		"-instrucciones", `Activa la skill "articulos-del-boe" antes de la primera herramienta.`,
+	}
+
+	for _, sesion := range ejecucion.Plan {
+		s.escribirTranscript(t, sesion.Nombre, transcriptTerminado)
+	}
+
+	ejecutada, err := ejecutarSesiones(t.Context().Done(), ejecucion)
+	require.NoError(t, err)
+	require.Equal(t, nombresDe(ejecucion.Plan), ejecutada.Abiertas)
+
+	orden, herramienta := ejecucion.Plan[0], ejecucion.Plan[1]
+
+	assert.NoFileExists(t, filepath.Join(ejecucion.Sesiones, orden.Nombre, "servidor.json"),
+		"la sesión del modo orden no tiene servidor.json")
+
+	dir := filepath.Join(ejecucion.Sesiones, herramienta.Nombre)
+	assert.Equal(t,
+		`{"mcpServers":{"kitlegal":{"command":"/laboratorio-bin/laboratorio","args":["servidor","-kitlegal","`+
+			ejecucion.Binario+`","-instrucciones",`+
+			`"Activa la skill \"articulos-del-boe\" antes de la primera herramienta."],"env":{`+
+			`"KITLEGAL_CACHE_DIR":"`+dir+`/cache","HTTP_PROXY":"http://127.0.0.1:9",`+
+			`"HTTPS_PROXY":"http://127.0.0.1:9","http_proxy":"http://127.0.0.1:9",`+
+			`"https_proxy":"http://127.0.0.1:9","NO_PROXY":"api.anthropic.com","no_proxy":"api.anthropic.com"}}}}`+"\n",
+		contenidoDeLaSesion(t, dir, "servidor.json"))
+
+	exigirLosArgumentosDeLaSesion(t, s, herramienta.Nombre, conElServidor(ordenDeLaSesion(preguntaDeLaSesion(t, dir))), false)
+
+	sinElBinario := s.bin + string(os.PathListSeparator) + os.Getenv("PATH")
+	assert.Equal(t, sinElBinario, s.entorno(t, herramienta.Nombre)["PATH"],
+		"el PATH de la sesión sigue sin el directorio de Binario")
 }
 
 // repeticionesDelRepartidor son las de la eval sintética en los tests del

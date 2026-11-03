@@ -202,7 +202,9 @@ versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 | Prerrequisitos (`go`, `git`, toolchain fijado obtenible) | `make check-tools` | sí, como dependencia de las demás |
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`; desde H30, con el fichero de la decisión del trabajo en `DECISION_DE_EVALS`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
-| Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
+| Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh sondeo`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
+| Sondeo del laboratorio de H39: las sesiones de las cuatro evals del laboratorio con cada variante y modo pedidos, en los dos modos y sin juzgarlas, para la tabla de `make laboratorio-tabla` (`scripts/evals-sondeo-llavero.sh laboratorio`, que toma la credencial, y `scripts/evals-laboratorio.sh`; macOS o Linux; [El sondeo del laboratorio](#el-sondeo-del-laboratorio)) | `make evals-laboratorio` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
+| Tabla y detalle de un sondeo del laboratorio, contados de sus transcripciones (`go run ./cmd/laboratorio tabla`; [El sondeo del laboratorio](#el-sondeo-del-laboratorio)) | `make laboratorio-tabla` | no — sin red, sin modelo y sin credencial, pero lee un sondeo que solo da `make evals-laboratorio` |
 | Medida del juez con modelo de una skill, o del de las descripciones con `SKILL=descripciones`: vota sus casos etiquetados e imprime `medida.json`, sin escribirla en el repositorio (`scripts/evals-medir-juez.sh`; [Job de evals](#job-de-evals), «La medida del juez») | `make evals-medir-juez` | no — sesiones con modelo y credencial, fuera de `make ci`; la lanza una persona, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez` del flujo `evals`, y ningún paso del workflow `hito` la lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm`, las dos piezas de la instalación sin terminal —la extensión de escritorio, `kitlegal.mcpb`, y el plugin de Claude, `kitlegal-plugin.zip`— y `checksums.txt`, que lista también las dos piezas e `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`, que comprueba también las dos piezas: su huella, el manifiesto, los binarios, el icono y el servidor de la extensión, y las skills del plugin) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
@@ -1640,8 +1642,12 @@ vacía, no se abre ninguna sesión y el guion termina con `1` (`make` añade det
 con `2`); cualquier otro fallo imprime el registro entero de `go test`. Abre sesiones con modelo y consume la
 suscripción de quien lo lanza: ni `make ci` ni ningún flujo lo ejecutan.
 
-**La credencial no vive en un fichero** (ADR 0032). `make evals-sondeo` pasa por `scripts/evals-sondeo-llavero.sh`,
-que, si `CLAUDE_CODE_OAUTH_TOKEN` no está ya en el entorno, la lee en macOS de un llavero propio —no el de inicio de
+**La credencial no vive en un fichero** (ADR 0032). `make evals-sondeo` y `make evals-laboratorio` pasan por
+`scripts/evals-sondeo-llavero.sh`, cuyo primer argumento, de una lista cerrada, dice qué guion ejecuta con los demás:
+`sondeo`, `scripts/evals-sondeo.sh` con sus cinco (`SKILL`, `EVALS`, `MODELO`, `REPETICIONES` y `CONCURRENCIA`), y
+`laboratorio`, `scripts/evals-laboratorio.sh` con sus siete ([El sondeo del laboratorio](#el-sondeo-del-laboratorio));
+con otro, o sin ninguno, imprime su uso y termina con `1` sin tocar el llavero. Si `CLAUDE_CODE_OAUTH_TOKEN` no está
+ya en el entorno, el guion la lee en macOS de un llavero propio —no el de inicio de
 sesión— que está bloqueado: el sistema abre un diálogo que pide la contraseña del llavero, y el guion lo vuelve a
 bloquear en cuanto tiene el valor, de modo que cada sondeo la pide y sin una persona delante no hay credencial. En el
 diálogo se escribe la contraseña del llavero, nada más. El llavero se crea una vez, en un terminal:
@@ -1660,6 +1666,82 @@ entorno de esa orden y de ninguna otra. El token no se guarda en un fichero: una
 `cat` aunque una regla de permisos le niegue la herramienta de lectura, y así abrió el run de H7.4 42 sesiones que
 nadie había pedido. Por eso el guion no se ejecuta dentro de un paso del workflow `hito` ni con un run vivo sobre el
 árbol, y `scripts/hito.sh` no arranca si encuentra el token en el entorno o en `~/.config/kitlegal/claude-oauth-token`.
+
+#### El sondeo del laboratorio
+
+H39 trae un laboratorio en `laboratorio/`, un directorio de primer nivel **fuera del producto**: la skill de
+laboratorio, `articulos-del-boe`, con una regla testigo inventada para medirla —la respuesta termina con la línea
+`Sello de lectura: KL-7Q4`—, su skill de entrada, `consulta-legal`, la declaración `variantes.yaml` con la variante de
+control y otras siete que difieren de ella solo en lo que declaran, y cuatro evals en `laboratorio/evals/`, todas sobre
+`boe_articulo` y servidas por lo grabado. El binario no lo empotra, `kitlegal skills install` no lo instala y el job
+de evals no lo mide; `make ci` lo comprueba sin modelo, con los tests `TestReglaTestigo`, `TestVariantesDelLaboratorio`,
+`TestEvalsDelLaboratorio`, `TestLaboratorioFueraDelProducto` y `TestTablaDelLaboratorio`. El sondeo cuenta, por
+variante y modo, qué sesiones activan la skill antes de la primera herramienta de kitlegal, cuáles abren la referencia
+y cuáles cumplen la regla. Lo lanza una persona para la tabla con la que escribe el ADR que precisa el 0046:
+
+```sh
+make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
+  CONCURRENCIA=<c> DIRECTORIO=<ruta>
+```
+
+La cadena es `make` → `scripts/evals-sondeo-llavero.sh laboratorio` con los siete, que toma la credencial como en
+`make evals-sondeo` → `scripts/evals-laboratorio.sh`, que crea un temporal y lo borra al terminar → `go test -tags
+evals -count=1 -timeout 0 -run '^TestSondeoDelLaboratorio$' ./internal/evals/ -args …`. Ninguno de los siete
+argumentos tiene valor por defecto, porque cada uno cambia lo que se mide, y antes de abrir ninguna sesión se comprueban
+todos; los errores salen juntos, uno por línea y cada uno con el nombre de su argumento:
+
+| Argumento | Vale si | Mensaje si no |
+|---|---|---|
+| `VARIANTES` | nombres de `variantes.yaml`, separados por comas, sin repetir | `VARIANTES: «<v>» no es ninguna variante del laboratorio` o `VARIANTES: «<v>» se repite` |
+| `MODOS` | `orden`, `herramienta` o los dos, separados por comas, sin repetir | `MODOS: «<m>» no es orden ni herramienta` |
+| cada par variante × modo | el modo es de la variante: `instrucciones` y `parametro`, solo `herramienta`; las otras seis, los dos | `VARIANTES y MODOS: <v> no se mide en modo <m>` |
+| `SESIONES` | entero mayor o igual que 4 y múltiplo de 4: se reparten por igual entre las cuatro evals | `SESIONES: «<n>» no es un múltiplo de 4 mayor que 0` |
+| `MODELO` | identificador completo, `^claude-[a-z]+-[0-9]+(-[0-9]+)*$`, no un alias como `sonnet` | `MODELO: «<id>» no es un identificador completo de modelo (claude-<familia>-<versión>, como claude-sonnet-5-5)` |
+| `CLAUDE_CODE` | no vacía | `CLAUDE_CODE: está vacía` |
+| `CONCURRENCIA` | entero mayor o igual que 1 | `CONCURRENCIA: «<c>» no es un entero mayor o igual que 1` |
+| `DIRECTORIO` | no vacío y no existe; relativo, desde la raíz del repositorio | `DIRECTORIO: está vacío` o `DIRECTORIO: <ruta> ya existe` |
+
+Detrás, en este orden y solo si los argumentos valen: la credencial, `CLAUDE_CODE_OAUTH_TOKEN` no vacía, con el mensaje
+de `make evals-sondeo`; y el primer campo de `claude --version`, con el `PATH` de quien lo lanza, igual a
+`CLAUDE_CODE`: si no, `CLAUDE_CODE: la versión de Claude Code instalada es <v> y se pidió <pedida>`, o
+`CLAUDE_CODE: claude --version no se pudo ejecutar: <error>`. Cualquiera de ellos es un error de uso: no se abre
+ninguna sesión, no se construye nada y no se crea `DIRECTORIO`; la salida de error es solo el mensaje, sin el registro
+de `go test`, y el guion termina con `1` (`make` añade detrás su propia línea de error y termina con `2`). Cualquier
+otro fallo imprime el registro entero de `go test`.
+
+Si todo vale, construye en el temporal el `kitlegal` y el `laboratorio` del árbol de trabajo (`cmd/laboratorio`) y
+una copia de las skills de cada variante: cada sesión tiene instalada solo la skill de laboratorio de su variante y,
+en `entrada`, su skill de entrada, ninguna del producto. Crea `DIRECTORIO` con `sondeo.json`, que anota el modelo y la
+versión de Claude Code, y, por cada variante pedida en el orden de `variantes.yaml` y cada modo pedido, `orden` antes
+que `herramienta`, abre `SESIONES/4` sesiones de cada eval con el `MODELO` y deja cada una en
+`DIRECTORIO/<variante>/<modo>/<eval>-<nn>/`, servida por la grabación con los proxies que rechazan toda petición
+(ADR 0043). En modo herramienta el servidor es `kitlegal mcp serve`, salvo en `instrucciones` y `parametro`, donde lo
+envuelve `laboratorio servidor`, que solo cambia las instrucciones del servidor o la descripción del parámetro
+`bloque` de `boe_articulo` en esas sesiones: el binario que se distribuye anuncia las de siempre. Tras un reparto con
+sesiones sin abrir por el límite de uso de la cuenta, no abre más. La salida es una línea por variante y modo y la
+orden de la tabla:
+
+```text
+Sondeo del laboratorio en /Users/…/kitlegal-sondeos/h39-a, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- control, orden: 40 abiertas.
+- referencia-paso, herramienta: 25 abiertas, 15 sin abrir tras el límite de uso.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/…/kitlegal-sondeos/h39-a
+```
+
+No juzga nada, y las cifras son de la tabla, no de esta salida:
+
+```sh
+make laboratorio-tabla DIRECTORIO=<ruta>     # go run ./cmd/laboratorio tabla <ruta>
+```
+
+Sin red, sin modelo y sin credencial. `<ruta>` es un sondeo si tiene `sondeo.json`; si no, se leen como sondeos los
+subdirectorios que lo tienen, en orden de nombre, y así se juntan dos lanzamientos en una tabla. Escribe en la salida
+estándar la tabla —una fila por variante, modo, modelo y versión de Claude Code, con las sesiones sin terminar, que no
+entran en `n`, y cada recuento como `<k> de <n> · <p> % [<lo>–<hi> %]`, con el intervalo de Wilson al 95 %— y, tras
+`## Detalle`, una fila por sesión, y termina con `0`. Sin ningún sondeo, o con una sesión, un `sondeo.json` o un
+transcript que no sabe leer, lo dice en la salida de error con la ruta y termina con `1`, sin tabla. Qué cuenta cada
+columna lo fija `specs/031-h39-c-omo-se/contracts/tabla.md`, y `TestTablaDelLaboratorio` lo comprueba en `make ci`
+con sesiones fijas.
 
 ## `make vuln` necesita red
 

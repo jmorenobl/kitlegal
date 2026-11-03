@@ -283,6 +283,7 @@
               "type": "string"
             },
             "consulta": {
+              "description": "Nombre del municipio, o su código INE: cinco cifras, o seis con el dígito de control.",
               "type": "string"
             },
             "describe": {

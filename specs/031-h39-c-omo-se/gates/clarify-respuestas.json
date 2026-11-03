@@ -1,0 +1,54 @@
+{
+  "respuestas": [
+    {
+      "id": "Q1",
+      "opcion": "B",
+      "respuesta": "No. En modo herramienta, la primera herramienta de kitlegal es el primer bloque tool_use que llama a una herramienta del registro `<applet>_<verbo>` (por su nombre o por lo que sigue a su último «__», como las reconoce hoy internal/evals). `ToolSearch` es una herramienta de Claude Code que carga el esquema de una herramienta y no la llama: no cuenta. Una sesión con `Skill` y `ToolSearch` en el mismo turno y la primera llamada al registro en un turno posterior cuenta como activada antes; con `Skill` y la primera llamada en el mismo turno, no (FR-041). Lo que hace cargar las herramientas antes de leer el cuerpo lo miden las columnas de la referencia y de la regla testigo; no se añade ninguna columna.",
+      "criterio": "a",
+      "fuente": "Hito H39, Objetivo y Entrega («activan la skill … antes de la primera herramienta»; la evidencia distingue «carga las herramientas» de «va a boe_indice»); spec.md, Contexto (modo herramienta: «el agente llama a `<applet>_<verbo>` del servidor»), FR-041 («la primera llamada a una herramienta de kitlegal») y «Uso, de fuera adentro» (`ToolSearch` es «al cargar una herramienta»); internal/evals/sesion.go, leerAssistant y leerLlamada (solo anotan llamadas a herramientas del registro); internal/app/herramientas.go, NombresDeHerramientas.",
+      "alternativa_rechazada": "A: llama herramienta de kitlegal a una de Claude Code que no consulta nada; con la evidencia de partida (ToolSearch en el mismo turno que Skill en 240 de 240) dejaría la columna de activación casi a cero en todas las variantes en modo herramienta, midiendo cuándo se carga un esquema y no si la skill se activó antes de consultar, y no tiene equivalente en modo orden. C: añade una columna que el hito no enumera entre las de la tabla (constitución, Criterio de decisión autónoma, punto 2: lo no especificado no se implementa).",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q2",
+      "opcion": "C",
+      "respuesta": "En modo orden, la primera orden kitlegal es el primer bloque tool_use de Bash cuya orden invoca el binario `kitlegal` (como orden, o dentro de una tubería o una secuencia) con un verbo de un applet que da herramienta del servidor —los de `NombresDeHerramientas`: ni `mcp` ni `skills`— y que consulta: no pide la ayuda ni lleva `--describe` ni `--dry-run`, el criterio de `Invocacion.Consulta`. Cuenta termine como termine, igual que en modo herramienta cuenta la llamada aunque falle. No cuentan `which kitlegal`, `kitlegal --help`, `kitlegal --version`, `kitlegal boe articulo --describe`, `kitlegal skills list` ni un grep que nombra la palabra. El turno es el del bloque de Bash en el transcript, porque la traza no tiene un reloj común con él. Así «la primera herramienta» es el mismo hecho en los dos modos: la primera consulta de un verbo que en el otro modo es una herramienta, y leer su esquema (`--describe`, la ayuda; `ToolSearch` en modo herramienta, Q1) no lo es.",
+      "criterio": "c",
+      "fuente": "Hito H39 («antes de la primera herramienta», en modo orden y en modo herramienta); spec.md FR-041; respuesta a Q1; internal/evals/trazas.go:253-256 (`Invocacion.Consulta`: falso si pide la ayuda o si --describe o --dry-run valen verdadero); internal/app/herramientas.go:38 y 48-73 (appletsSinHerramientas, mcp y skills; verbosAnunciados, el único sitio que dice qué verbos dan herramienta); internal/evals/juzgar.go:605-609 (la traza y el transcript no tienen un reloj común).",
+      "alternativa_rechazada": "A: cuenta órdenes que no ejecutan el binario (which, un grep, una ruta que lleva la palabra): mide que se nombra kitlegal, no que se usa; la regla de leerOrdenDeBash recoge los textos que lee el juez y no define la primera herramienta. B: cuenta --help y --describe, que en modo orden hacen lo que ToolSearch en modo herramienta (leer el esquema del verbo); con Q1, los dos modos medirían hechos distintos y la comparación entre modos, que es lo que pide el hito, no valdría.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q3",
+      "opcion": "A",
+      "respuesta": "Activar una skill es un bloque tool_use de la herramienta Skill cuyo input.skill es su nombre, como `Sesion.Activada` en internal/evals y como cuenta `sin_activar`; vale igual para la skill de laboratorio y para la de entrada. Leer su SKILL.md con Read o con una orden de Bash no es activarla: si con esa lectura la regla llega al agente, lo recoge la columna de la regla testigo.",
+      "criterio": "a",
+      "fuente": "internal/evals/sesion.go:243-248 (`Activada`: «algún bloque tool_use de la herramienta Skill lleva su nombre en input.skill»; data-model §10.1); hito H39, Evidencia de partida y Controles (los rojos de partida son `sin_activar` y la eval 02 de `consulta-juridica`, medidos con esa regla) y Objetivo (separa «active la skill» de «lea y cumpla lo que va fuera del cuerpo»); spec.md FR-041.",
+      "alternativa_rechazada": "B y C: cuentan como activación lo que `sin_activar` no cuenta, y la tabla dejaría de hablar del defecto que el hito mide y que el ADR tiene que situar; B además trata distinto la misma lectura según la haga Read o Bash.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q4",
+      "opcion": "B",
+      "respuesta": "Abrir la referencia es un bloque tool_use de Read cuyo file_path es el de la referencia, entero o por tramos (offset y limit), o uno de Bash cuya orden nombra su fichero (`references/<fichero>.md` de la skill de laboratorio). El turno de la primera apertura es el del primer bloque que cumple, y la referencia abierta varias veces cuenta una vez (FR-041). Grep y Glob no cuentan.",
+      "criterio": "c",
+      "fuente": "Hito H39, Objetivo («lea y cumpla lo que va fuera del cuerpo») y Aceptación («si ninguna referencia se lee de forma fiable en modo herramienta»); spec.md FR-041 y Edge Cases (primera apertura); precedente: evidencias/sondeos-20261025/guiones/analizar.py:17-18, que contaba la referencia leída por file_path, path o command.",
+      "alternativa_rechazada": "A: daría por no abierta la referencia que el agente lee con cat, sed o head, y en modo orden el agente trabaja por Bash: el sesgo dependería del modo, que es lo que se compara. C: Glob solo lista nombres y Grep, por defecto (files_with_matches), solo devuelve la ruta; contaría como abierta una referencia cuyo texto no llegó al agente y adelantaría el turno de la primera apertura. El guion de 20261025 era de un sondeo, no un contrato.",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    },
+    {
+      "id": "Q5",
+      "opcion": "C",
+      "respuesta": "Cuatro evals de laboratorio, todas sobre la misma herramienta —la que lleva la regla en la descripción de su parámetro en la variante `parametro`— y con lecturas que ya sirve testdata/evals/: 10 sesiones de cada una por variante y modo con las 40 de la aceptación. FR-030 exige entonces que el número de sesiones por variante y modo que pide la persona sea múltiplo de 4; si no, sale con un código distinto de 0 sin abrir ninguna sesión.",
+      "criterio": "c",
+      "fuente": "Hito H39, Entrega («las mismas evals para todas», en plural; «en la descripción del parámetro de la herramienta», en singular); spec.md FR-012, FR-024 («la herramienta que piden las evals»), FR-028 y FR-030; testdata/evals/boe.legislacion-consolidada/ (ls en esta sesión: bloque, índice y metadatos grabados de al menos siete normas, entre ellas BOE-A-1978-31229 a140, BOE-A-2015-10566 a25 y BOE-A-2015-11430 a38).",
+      "alternativa_rechazada": "A: con una sola pregunta, lo medido puede ser de esa pregunta y no de la organización de la skill, y el ADR tiene que valer para cualquier skill; el hito habla de evals en plural. B: el mismo coste con la mitad de preguntas distintas. D: con varias herramientas, la variante parametro cambiaría la descripción de varios parámetros, contra FR-024 («la herramienta», en singular) y contra que cada variante difiera de la de control en una sola cosa (FR-028).",
+      "conservadora": false,
+      "impacto": "comportamiento"
+    }
+  ]
+}

@@ -52,8 +52,10 @@ var (
 			"de las sesiones que no son del modo orden")
 	banderaCommit    = flag.String("commit", "", "commit evaluado")
 	banderaSinPython = flag.String("sin-python", "", "ruta de sin-python.txt")
-	banderaSesiones  = flag.String("sesiones", "", "directorio en el que se crea el de cada sesión")
-	banderaInforme   = flag.String("informe", "", "directorio en el que se escriben informe.md e informe.json")
+	banderaSesiones  = flag.String("sesiones", "",
+		"en el job, directorio en el que se crea el de cada sesión; en el sondeo del laboratorio, sesiones de cada "+
+			"variante y modo")
+	banderaInforme = flag.String("informe", "", "directorio en el que se escriben informe.md e informe.json")
 )
 
 // Banderas con las que scripts/evals.sh invoca además, tras -args, la ejecución
@@ -81,6 +83,23 @@ var (
 	banderaEvals    = flag.String("evals", "", "números de las evals del sondeo, de dos cifras y separados por comas")
 	banderaModelo   = flag.String("modelo", "", "modelo con el que se abren las sesiones del sondeo")
 	banderaTemporal = flag.String("temporal", "", "directorio del sondeo, que crea y borra su guion")
+)
+
+// Banderas con las que scripts/evals-laboratorio.sh invoca, tras -args, el
+// sondeo del laboratorio (contracts/arnes.md §1 de H39), además de -modelo,
+// -concurrencia y -temporal, las del sondeo de una skill, y de -sesiones, la del
+// job, con SESIONES: los argumentos de make que no tienen, tal como los escribe
+// quien lo lanza, salvo DIRECTORIO relativo, que el guion recibe desde la raíz
+// del repositorio y pasa con ella delante. Son texto, como -repeticiones y
+// -concurrencia, para que un valor que no vale lo nombre sondearElLaboratorio
+// con su argumento de make (contracts/arnes.md §2 de H39).
+var (
+	banderaVariantes  = flag.String("variantes", "", "variantes del sondeo del laboratorio, separadas por comas")
+	banderaModos      = flag.String("modos", "", "modos del sondeo del laboratorio, separados por comas")
+	banderaClaudeCode = flag.String("claude-code", "",
+		"versión de Claude Code que pide el sondeo del laboratorio, la de claude --version")
+	banderaDirectorio = flag.String("directorio", "",
+		"directorio, que no puede existir, en el que el sondeo del laboratorio deja sus sesiones")
 )
 
 // Banderas con las que el paso decidir del trabajo tanda invoca, tras -args, la
@@ -646,6 +665,63 @@ func TestSondeo(t *testing.T) {
 			return votanteDelSondeo(senales, t, delVoto, juez, modelo)
 		},
 	})
+
+	dejarLaSalidaDelSondeo(t, salida, err)
+}
+
+// TestSondeoDelLaboratorio abre las sesiones de un sondeo del laboratorio de
+// H39 con los argumentos de make que recibe tras -args (contracts/arnes.md §1 a
+// §4 de H39; research D8 de H39; FR-030 a FR-033 de H39): sondearElLaboratorio,
+// con el entorno de quien lo lanza, la raíz del repositorio, el temporal de
+// -temporal, el guion de la sesión y la construcción de verdad de kitlegal y
+// laboratorio, que comprueba antes de construir nada los argumentos, la
+// credencial y la versión de Claude Code. SIGINT y SIGTERM cierran las sesiones
+// abiertas con la secuencia del tope, y el test falla con el error que nombra
+// cada una. Deja su salida, o el mensaje de un error de uso, en el temporal como
+// TestSondeo (dejarLaSalidaDelSondeo), y falla con cualquier otro error. Sin
+// -temporal falla antes de nada. Solo lo ejecuta scripts/evals-laboratorio.sh,
+// porque abre sesiones con modelo (FR-032 de H39); lo que decide lo fija
+// TestArnesDelLaboratorio, y la orden que lo ejecuta, TestGuionDelLaboratorio.
+func TestSondeoDelLaboratorio(t *testing.T) {
+	t.Parallel()
+
+	exigirBanderas(t, "temporal")
+
+	// El repartidor ejecuta el guion en el directorio de trabajo de cada sesión:
+	// su ruta relativa a este paquete no le serviría.
+	guion, err := filepath.Abs(guionDeLaSesion)
+	require.NoError(t, err)
+
+	senales, dejarDeEscuchar := signal.NotifyContext(t.Context(), syscall.SIGINT, syscall.SIGTERM)
+	defer dejarDeEscuchar()
+
+	salida, err := sondearElLaboratorio(senales.Done(), SondeoDelLaboratorio{
+		Argumentos: ArgumentosDelLaboratorio{
+			Variantes:    *banderaVariantes,
+			Modos:        *banderaModos,
+			Sesiones:     *banderaSesiones,
+			Modelo:       *banderaModelo,
+			ClaudeCode:   *banderaClaudeCode,
+			Concurrencia: *banderaConcurrencia,
+			Directorio:   *banderaDirectorio,
+		},
+		Entorno:               os.Environ(),
+		Raiz:                  raizDelRepositorio,
+		Temporal:              *banderaTemporal,
+		Guion:                 guion,
+		ConstruirLosProgramas: construirLosProgramasDelLaboratorio,
+	})
+
+	dejarLaSalidaDelSondeo(t, salida, err)
+}
+
+// dejarLaSalidaDelSondeo deja en el temporal de -temporal lo que su guion
+// imprime de un sondeo, de una skill o del laboratorio (contracts/sondeo.md §2
+// de H7.4; contracts/arnes.md §1 de H39): con un error de uso, su mensaje, con
+// un salto de línea final, en uso.txt, sin salida.txt; con otro error, falla
+// el test; y si no, la salida en salida.txt.
+func dejarLaSalidaDelSondeo(t *testing.T, salida string, err error) {
+	t.Helper()
 
 	var uso *errorDeUso
 	if errors.As(err, &uso) {

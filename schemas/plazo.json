@@ -246,15 +246,18 @@
               "type": "boolean"
             },
             "duracion": {
+              "description": "Duración, un entero positivo; solo, y siempre, en silencio y generico.",
               "type": "string"
             },
             "inicio": {
+              "description": "Fecha de inicio, AAAA-MM-DD: la de la notificación o la publicación; en silencio, la del acuerdo de iniciación o la de entrada de la solicitud.",
               "type": "string"
             },
             "json": {
               "type": "boolean"
             },
             "municipios": {
+              "description": "Municipios que cuentan, por su nombre o su código INE: el del interesado y el de la sede del órgano, o en contencioso el de la sede del juzgado.",
               "items": {
                 "type": "string"
               },
@@ -270,9 +273,11 @@
               "type": "string"
             },
             "tipo": {
+              "description": "Tipo de plazo: alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio o generico.",
               "type": "string"
             },
             "unidad": {
+              "description": "Unidad de la duración: meses, dias-habiles o dias-naturales; solo, y siempre, en silencio y generico.",
               "type": "string"
             },
             "verbose": {

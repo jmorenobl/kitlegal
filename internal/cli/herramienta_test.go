@@ -13,8 +13,12 @@ import (
 )
 
 // entradaDeArticulo es el esquema de entrada que contracts/servidor-mcp.md §2 da
-// como ejemplo para `boe_articulo`, carácter a carácter: 144 bytes (research V25).
-const entradaDeArticulo = `{"properties":{"norma":{"type":"string"},"bloque":{"type":"string"}},` +
+// como ejemplo para `boe_articulo`, carácter a carácter, con la ayuda de cada
+// argumento como `description` de su propiedad, detrás de su tipo
+// (contracts/esquemas.md §1 de H39): los 144 bytes de research V25 y los 85 de
+// las dos claves.
+const entradaDeArticulo = `{"properties":{"norma":{"type":"string","description":"Identificador de la norma."},` +
+	`"bloque":{"type":"string","description":"Identificador del bloque."}},` +
 	`"additionalProperties":false,"type":"object","required":["norma","bloque"]}`
 
 // entradaSinArgumentos es la de un verbo que no declara ninguno, como
@@ -301,7 +305,7 @@ func probarEntradaDelContrato(t *testing.T) {
 
 	entrada, _, _ := esquemasDePrueba(t, verboDeArticulo())
 	exigirByteAByte(t, entradaDeArticulo, entrada)
-	assert.Len(t, entrada, 144, "los bytes que mide research V25")
+	assert.Len(t, entrada, 229, "los bytes que mide research V25 y las dos description de H39")
 
 	// Un verbo sin argumentos tiene una entrada cerrada y vacía: los 62 bytes del
 	// mínimo de esa misma medida.

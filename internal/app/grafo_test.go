@@ -605,14 +605,21 @@ func compruebaAyudaDelGrafo(t *testing.T) {
 
 // compruebaEntradaDeCheck fija la entrada que describe --describe de check: la
 // norma, un texto, y los bloques, una lista de textos, ninguno de los dos en
-// required, porque los dos son opcionales (contracts/applet-graph.md §1).
+// required, porque los dos son opcionales (contracts/applet-graph.md §1); cada
+// uno con la ayuda de su argumento como description (contracts/esquemas.md §1 de
+// H39).
 func compruebaEntradaDeCheck(t *testing.T, documento map[string]any) {
 	t.Helper()
 
-	assert.Equal(t, map[string]any{"type": "string"},
-		valorDelEsquema(t, documento, "properties", "entrada", "properties", "norma"))
-	assert.Equal(t, map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
-		valorDelEsquema(t, documento, "properties", "entrada", "properties", "bloques"))
+	assert.Equal(t, map[string]any{
+		"type":        "string",
+		"description": "Identificador BOE de la norma, BOE-A-<año>-<número>; sin él, todo lo consultado.",
+	}, valorDelEsquema(t, documento, "properties", "entrada", "properties", "norma"))
+	assert.Equal(t, map[string]any{
+		"type":        "array",
+		"items":       map[string]any{"type": "string"},
+		"description": "Ids de bloque de esa norma, como a21; sin ellos, todos los suyos.",
+	}, valorDelEsquema(t, documento, "properties", "entrada", "properties", "bloques"))
 
 	entrada, esObjeto := valorDelEsquema(t, documento, "properties", "entrada").(map[string]any)
 	require.True(t, esObjeto, "la entrada es un objeto")

@@ -1,0 +1,720 @@
+package evals
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+)
+
+// Los argumentos de make evals-laboratorio que no tiene el sondeo de una skill,
+// con el nombre con que los nombran sus errores (contracts/arnes.md §2 de H39).
+// MODELO y CONCURRENCIA son los del sondeo.
+const (
+	argumentoVariantes  = "VARIANTES"
+	argumentoModos      = "MODOS"
+	argumentoSesiones   = "SESIONES"
+	argumentoClaudeCode = "CLAUDE_CODE"
+	argumentoDirectorio = "DIRECTORIO"
+)
+
+// separadorDeLaLista separa los elementos de VARIANTES y de MODOS.
+const separadorDeLaLista = ","
+
+// evalsDelLaboratorio es entre cuántas evals se reparten por igual las
+// SESIONES de cada variante y modo, las cuatro del laboratorio (FR-012 y FR-030
+// de H39): SESIONES tiene que ser múltiplo suyo.
+const evalsDelLaboratorio = 4
+
+// formaDelModeloCompleto es la de un identificador completo de modelo,
+// claude-<familia>-<versión>, y no la de un alias como sonnet (FR-031 de H39;
+// contracts/arnes.md §2 de H39).
+var formaDelModeloCompleto = regexp.MustCompile(`^claude-[a-z]+-[0-9]+(-[0-9]+)*$`)
+
+// Lo que el arnés prepara en su temporal, además del bin/ y el home/ del sondeo
+// (contracts/arnes.md §3.1 de H39): el programa del laboratorio, en una carpeta
+// fuera del PATH de las sesiones, y la copia de las skills de cada variante.
+const (
+	carpetaDelProgramaDelLaboratorio = "laboratorio-bin"
+	paqueteDelLaboratorio            = "./cmd/laboratorio"
+	programaDelLaboratorio           = "laboratorio"
+	carpetaDeLasSkillsDelSondeo      = "skills"
+)
+
+// ordenDelServidorDelLaboratorio es la orden de laboratorio con la que
+// servidor.json arranca el filtro en las variantes que cambian lo que anuncia el
+// servidor (contracts/arnes.md §3.4 y §5 de H39).
+const ordenDelServidorDelLaboratorio = "servidor"
+
+// Lo que el arnés pregunta a Claude Code antes de abrir ninguna sesión: su
+// versión, que escribe como <versión> (Claude Code) (research V22 y S1 de H39).
+const (
+	programaDeClaudeCode = "claude"
+	banderaDeLaVersion   = "--version"
+)
+
+// ArgumentosDelLaboratorio son los siete argumentos de make evals-laboratorio,
+// tal como llegan, sin interpretar (contracts/arnes.md §1 y §2 de H39).
+type ArgumentosDelLaboratorio struct {
+	Variantes    string
+	Modos        string
+	Sesiones     string
+	Modelo       string
+	ClaudeCode   string
+	Concurrencia string
+	Directorio   string
+}
+
+// SondeoDelLaboratorio es lo que sondearElLaboratorio necesita para abrir las
+// sesiones de un sondeo del laboratorio (contracts/arnes.md §3 de H39; research
+// D8 de H39).
+type SondeoDelLaboratorio struct {
+	// Argumentos son los de make, sin comprobar.
+	Argumentos ArgumentosDelLaboratorio
+
+	// Entorno es el de quien lanza el arnés: de él salen la credencial, el PATH
+	// con el que se pregunta la versión de Claude Code, el entorno del go install
+	// y lo poco que ven las sesiones, como en el sondeo de una skill.
+	Entorno []string
+
+	// Raiz es la del repositorio: la de la declaración del laboratorio, sus
+	// variantes y sus evals, y la del go install de kitlegal y laboratorio.
+	Raiz string
+
+	// Temporal es el directorio del arnés, que crea y borra su guion: lo que
+	// prepara va dentro; las sesiones, en DIRECTORIO.
+	Temporal string
+
+	// Guion es la ruta absoluta de scripts/evals-sesion.sh, que abre cada sesión.
+	Guion string
+
+	// ConstruirLosProgramas deja en el temporal, que recibe con su ruta
+	// absoluta, kitlegal en bin/ y laboratorio en laboratorio-bin/, construidos
+	// desde la raíz con el entorno de quien lanza el arnés como base:
+	// construirLosProgramasDelLaboratorio en el punto de entrada, y en los
+	// tests, un kitlegal y un laboratorio que no hacen nada, sin construir.
+	ConstruirLosProgramas func(raiz, temporal string, base []string) error
+}
+
+// parDelLaboratorio es una variante pedida en uno de sus modos: lo que abre un
+// reparto.
+type parDelLaboratorio struct {
+	variante varianteDelLaboratorio
+	modo     Modo
+}
+
+// laboratorioComprobado es un sondeo del laboratorio cuyos argumentos,
+// credencial y versión de Claude Code valen, con sus argumentos ya
+// interpretados.
+type laboratorioComprobado struct {
+	// declarada es la declaración del laboratorio, y pares, los pedidos, en el
+	// orden de la declaración y, dentro de cada variante, orden antes que
+	// herramienta.
+	declarada declaracionDelLaboratorio
+	pares     []parDelLaboratorio
+
+	// porEval son las sesiones de cada eval en cada par: SESIONES/4.
+	porEval int
+
+	modelo       string
+	claudeCode   string
+	concurrencia int
+	directorio   string
+}
+
+// resumenDelPar es lo que la salida dice de un par: cuántas sesiones abrió y
+// cuántas quedaron sin abrir tras el límite de uso.
+type resumenDelPar struct {
+	par      parDelLaboratorio
+	abiertas int
+	sinAbrir int
+}
+
+// sondearElLaboratorio abre las sesiones de un sondeo del laboratorio y devuelve
+// su salida (contracts/arnes.md §2, §3 y §4 de H39; data-model §6 de H39;
+// research D8 de H39; FR-030, FR-031, FR-033):
+//
+//  1. comprueba, antes de construir nada, los argumentos, la credencial y la
+//     versión de Claude Code (comprobarElLaboratorio);
+//  2. prepara en el temporal kitlegal, laboratorio, home/ y la copia de las
+//     skills de cada variante pedida;
+//  3. crea DIRECTORIO y su sondeo.json, con el modelo y la versión;
+//  4. por cada par, en su orden, abre con el repartidor, en
+//     DIRECTORIO/<variante>/<modo>/, SESIONES/4 sesiones de cada eval del
+//     laboratorio, en el orden de sus ficheros y de nombre <eval>-<nn>, con el
+//     modelo pedido y el modo del par: sin traza, con la copia de las skills de
+//     la variante, el entorno del sondeo de una skill (entornoDelSondeo) y el
+//     tope de 240 s con su margen de 10 s; en el modo herramienta, con el
+//     servidor de la variante (servidorDelPar). Tras un reparto que vuelve con
+//     sesiones sin abrir por el límite de uso, no abre ninguna más;
+//  5. compone la salida: una línea por par, con las abiertas y las que quedaron
+//     sin abrir.
+//
+// Vuelve sin error aunque la cuenta no deje abrir todas las sesiones: las
+// cifras son de la tabla, no de esta salida. El error es el de la comprobación
+// —solo el de los argumentos, la credencial y la versión es un errorDeUso, y con
+// él no construye nada, no abre ninguna sesión y no crea DIRECTORIO—, el de la
+// declaración o las evals del laboratorio que no se pueden leer, el de la
+// preparación, el de DIRECTORIO o el del repartidor, también tras la
+// interrupción, con interrupcion cerrado, que cierra las abiertas como en el
+// sondeo de una skill.
+func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) (string, error) {
+	comprobado, err := comprobarElLaboratorio(s)
+	if err != nil {
+		return "", err
+	}
+
+	temporal, err := filepath.Abs(s.Temporal)
+	if err != nil {
+		return "", fmt.Errorf("el temporal del sondeo del laboratorio %s no tiene ruta absoluta: %w", s.Temporal, err)
+	}
+
+	evals, err := leerEvalsBienFormadas(directorioDeLasEvalsDelLaboratorio(s.Raiz))
+	if err != nil {
+		return "", fmt.Errorf("las evals del laboratorio no se pueden leer: %w", err)
+	}
+
+	servidores := make([][]string, 0, len(comprobado.pares))
+
+	for _, par := range comprobado.pares {
+		servidor, err := servidorDelPar(s.Raiz, temporal, comprobado.declarada, par)
+		if err != nil {
+			return "", err
+		}
+
+		servidores = append(servidores, servidor)
+	}
+
+	if err := s.preparar(temporal, comprobado.pares); err != nil {
+		return "", err
+	}
+
+	if err := crearElSondeoDelLaboratorio(comprobado.directorio, comprobado.modelo, comprobado.claudeCode); err != nil {
+		return "", err
+	}
+
+	resumenes := make([]resumenDelPar, 0, len(comprobado.pares))
+	trasElLimite := false
+
+	for posicion, par := range comprobado.pares {
+		plan := planDelPar(evals, comprobado.porEval, comprobado.modelo, par.modo)
+
+		if trasElLimite {
+			resumenes = append(resumenes, resumenDelPar{par: par, sinAbrir: len(plan)})
+
+			continue
+		}
+
+		ejecucion, err := ejecutarSesiones(interrupcion, SesionesAEjecutar{
+			Plan:          plan,
+			Concurrencia:  comprobado.concurrencia,
+			Evals:         directorioDeLasEvalsDelLaboratorio(s.Raiz),
+			Sesiones:      filepath.Join(comprobado.directorio, par.variante.Nombre, string(par.modo)),
+			Skills:        filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, par.variante.Nombre),
+			Guion:         s.Guion,
+			Binario:       filepath.Join(temporal, carpetaDeBinarios, programaDeLasConsultas),
+			Servidor:      servidores[posicion],
+			Entorno:       entornoDelSondeo(s.Entorno, temporal),
+			Traza:         false,
+			Tope:          topeDeUnaSesion,
+			MargenDelTope: margenDelTopeDeUnaSesion,
+		})
+		if err != nil {
+			return "", err
+		}
+
+		resumenes = append(resumenes, resumenDelPar{
+			par: par, abiertas: len(ejecucion.Abiertas), sinAbrir: len(ejecucion.SinAbrir),
+		})
+		trasElLimite = len(ejecucion.SinAbrir) > 0
+	}
+
+	return salidaDelLaboratorio(comprobado, resumenes), nil
+}
+
+// comprobarElLaboratorio comprueba el sondeo del laboratorio antes de construir
+// nada, en este orden (contracts/arnes.md §2 de H39; FR-030, FR-031): lee la
+// declaración del laboratorio; comprueba sus argumentos, con todos sus errores
+// juntos; y, solo si valen, la credencial y, solo si está, que el primer campo
+// de claude --version, con el PATH de quien lo lanza, sea CLAUDE_CODE. Los
+// errores de los argumentos, el de la credencial y el de la versión van
+// envueltos en errorDeUso, con su mismo texto; el de una declaración que no se
+// puede leer, no.
+func comprobarElLaboratorio(s SondeoDelLaboratorio) (laboratorioComprobado, error) {
+	declarada, err := leerLaDeclaracionDelRepositorio(s.Raiz)
+	if err != nil {
+		return laboratorioComprobado{}, err
+	}
+
+	comprobado, err := s.Argumentos.comprobar(declarada)
+	if err != nil {
+		return laboratorioComprobado{}, &errorDeUso{causa: err}
+	}
+
+	if valorEnElEntorno(s.Entorno, variableDeLaSuscripcion) == "" {
+		return laboratorioComprobado{}, &errorDeUso{causa: errSinSuscripcion}
+	}
+
+	if err := comprobarLaVersionDeClaudeCode(s.Entorno, comprobado.claudeCode); err != nil {
+		return laboratorioComprobado{}, &errorDeUso{causa: err}
+	}
+
+	return comprobado, nil
+}
+
+// comprobar comprueba los argumentos del sondeo del laboratorio con su
+// declaración (contracts/arnes.md §2 de H39): VARIANTES, nombres de la
+// declaración separados por comas y sin repetir; MODOS, orden, herramienta o los
+// dos, separados por comas y sin repetir; cada par de una variante y un modo que
+// valen, un modo de los de la variante; SESIONES, un entero mayor que 0 y
+// múltiplo de 4; MODELO, un identificador completo; CLAUDE_CODE, no vacía;
+// CONCURRENCIA, un entero mayor o igual que 1; y DIRECTORIO, no vacío y que no
+// existe. Los errores de todos van juntos, uno por línea y en ese orden, para que
+// quien lanza la orden los corrija de una vez.
+func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio) (laboratorioComprobado, error) {
+	variantes, errDeLasVariantes := listaDelArgumento(argumentoVariantes, a.Variantes,
+		func(nombre string) bool { return varianteDeclarada(declarada, nombre) },
+		"no es ninguna variante del laboratorio")
+
+	modos, errDeLosModos := listaDelArgumento(argumentoModos, a.Modos,
+		func(modo Modo) bool { return modo == ModoOrden || modo == ModoHerramienta }, "no es orden ni herramienta")
+
+	pares, errDeLosPares := paresPedidos(declarada, variantes, modos)
+
+	porEval, errDeLasSesiones := sesionesDeCadaEval(a.Sesiones)
+	concurrencia, errDeLaConcurrencia := enteroDelArgumento(argumentoConcurrencia, a.Concurrencia)
+
+	errDeLaVersion := error(nil)
+	if a.ClaudeCode == "" {
+		errDeLaVersion = fmt.Errorf("%s: está vacía", argumentoClaudeCode)
+	}
+
+	err := errors.Join(slices.Concat(errDeLasVariantes, errDeLosModos, errDeLosPares, []error{
+		errDeLasSesiones, comprobarElModeloCompleto(a.Modelo), errDeLaVersion, errDeLaConcurrencia,
+		comprobarElDirectorioDelSondeo(a.Directorio),
+	})...)
+	if err != nil {
+		return laboratorioComprobado{}, err
+	}
+
+	return laboratorioComprobado{
+		declarada: declarada, pares: pares, porEval: porEval, modelo: a.Modelo, claudeCode: a.ClaudeCode,
+		concurrencia: concurrencia, directorio: a.Directorio,
+	}, nil
+}
+
+// listaDelArgumento son los elementos de la lista del argumento, separados por
+// comas, que valen y no se repiten, en su orden, y un error por cada uno que no
+// vale —«<argumento>: «<elemento>» <queNoEs>»— y por cada uno que se repite, una
+// sola vez por elemento —«<argumento>: «<elemento>» se repite»—, en el orden en
+// que aparecen. Un valor vacío es la lista de un elemento vacío, que no vale.
+func listaDelArgumento[T ~string](argumento, valor string, vale func(T) bool, queNoEs string) ([]T, []error) {
+	elementos := strings.Split(valor, separadorDeLaLista)
+
+	var (
+		validos []T
+		noValen []error
+	)
+
+	for posicion, elemento := range elementos {
+		anteriores := elementos[:posicion]
+
+		switch {
+		case slices.Contains(anteriores, elemento):
+			if vecesEn(anteriores, elemento) == 1 {
+				noValen = append(noValen, fmt.Errorf("%s: «%s» se repite", argumento, elemento))
+			}
+		case !vale(T(elemento)):
+			noValen = append(noValen, fmt.Errorf("%s: «%s» %s", argumento, elemento, queNoEs))
+		default:
+			validos = append(validos, T(elemento))
+		}
+	}
+
+	return validos, noValen
+}
+
+// vecesEn es cuántas veces está el elemento en la lista.
+func vecesEn(lista []string, elemento string) int {
+	veces := 0
+
+	for _, otro := range lista {
+		if otro == elemento {
+			veces++
+		}
+	}
+
+	return veces
+}
+
+// varianteDeclarada dice si la declaración tiene una variante con ese nombre.
+func varianteDeclarada(declarada declaracionDelLaboratorio, nombre string) bool {
+	return slices.ContainsFunc(declarada.Variantes, func(variante varianteDelLaboratorio) bool {
+		return variante.Nombre == nombre
+	})
+}
+
+// paresPedidos son los pares de las variantes y los modos pedidos que valen, en
+// el orden de la declaración y, dentro de cada variante, orden antes que
+// herramienta (contracts/arnes.md §3.3 de H39), y un error por cada par cuyo modo
+// no es uno de los de su variante (FR-020 a FR-027 de H39), en ese mismo orden.
+func paresPedidos(declarada declaracionDelLaboratorio, variantes []string, modos []Modo) (
+	[]parDelLaboratorio, []error,
+) {
+	var (
+		pares   []parDelLaboratorio
+		noValen []error
+	)
+
+	for _, variante := range declarada.Variantes {
+		if !slices.Contains(variantes, variante.Nombre) {
+			continue
+		}
+
+		for _, modo := range []Modo{ModoOrden, ModoHerramienta} {
+			switch {
+			case !slices.Contains(modos, modo):
+			case !slices.Contains(variante.Modos, modo):
+				noValen = append(noValen, fmt.Errorf("%s y %s: %s no se mide en modo %s", argumentoVariantes,
+					argumentoModos, variante.Nombre, modo))
+			default:
+				pares = append(pares, parDelLaboratorio{variante: variante, modo: modo})
+			}
+		}
+	}
+
+	return pares, noValen
+}
+
+// sesionesDeCadaEval son las sesiones de cada eval en cada par, SESIONES/4, si
+// SESIONES es un entero mayor que 0, escrito sin nada más, que cabe en un int y
+// es múltiplo de 4.
+func sesionesDeCadaEval(valor string) (int, error) {
+	sesiones, err := strconv.Atoi(valor)
+	if err != nil || !formaDeUnEnteroPositivo.MatchString(valor) || sesiones%evalsDelLaboratorio != 0 {
+		return 0, fmt.Errorf("%s: «%s» no es un múltiplo de %d mayor que 0", argumentoSesiones, valor,
+			evalsDelLaboratorio)
+	}
+
+	return sesiones / evalsDelLaboratorio, nil
+}
+
+// comprobarElModeloCompleto exige un MODELO con la forma de un identificador
+// completo de modelo (FR-031 de H39).
+func comprobarElModeloCompleto(modelo string) error {
+	if !formaDelModeloCompleto.MatchString(modelo) {
+		return fmt.Errorf("%s: «%s» no es un identificador completo de modelo (claude-<familia>-<versión>, "+
+			"como claude-sonnet-5-5)", argumentoModelo, modelo)
+	}
+
+	return nil
+}
+
+// comprobarElDirectorioDelSondeo exige un DIRECTORIO no vacío y que no exista:
+// el arnés lo crea, y uno que ya existe mezclaría las sesiones de dos
+// lanzamientos (research D8 de H39). Uno que no se puede mirar tampoco vale.
+func comprobarElDirectorioDelSondeo(directorio string) error {
+	if directorio == "" {
+		return fmt.Errorf("%s: está vacío", argumentoDirectorio)
+	}
+
+	_, err := os.Lstat(directorio)
+
+	switch {
+	case err == nil:
+		return fmt.Errorf("%s: %s ya existe", argumentoDirectorio, directorio)
+	case errors.Is(err, fs.ErrNotExist):
+		return nil
+	default:
+		return fmt.Errorf("%s: %s no se puede mirar: %w", argumentoDirectorio, directorio, err)
+	}
+}
+
+// comprobarLaVersionDeClaudeCode exige que el primer campo de lo que escribe
+// claude --version, con el entorno y el PATH de quien lanza el arnés, sea la
+// versión pedida (contracts/arnes.md §2 de H39; research S1 de H39; FR-031).
+func comprobarLaVersionDeClaudeCode(entorno []string, pedida string) error {
+	instalada, err := versionDeClaudeCode(entorno)
+	if err != nil {
+		return fmt.Errorf("%s: %s %s no se pudo ejecutar: %w", argumentoClaudeCode, programaDeClaudeCode,
+			banderaDeLaVersion, err)
+	}
+
+	if instalada != pedida {
+		return fmt.Errorf("%s: la versión de Claude Code instalada es %s y se pidió %s", argumentoClaudeCode,
+			instalada, pedida)
+	}
+
+	return nil
+}
+
+// versionDeClaudeCode es el primer campo de lo que escribe claude --version en
+// su salida estándar: el claude que resuelve el PATH del entorno, con ese
+// entorno. El error es el de un claude que no está en el PATH, el de uno que no
+// termina con 0, con lo que escribió en su salida de error, y el de uno que no
+// escribe nada.
+func versionDeClaudeCode(entorno []string) (string, error) {
+	claude, err := buscarEnLaRuta(valorEnElEntorno(entorno, variableDelPATH), programaDeClaudeCode)
+	if err != nil {
+		return "", err
+	}
+
+	orden := ordenDeLaVersion(claude)
+	orden.Env = entorno
+
+	salida, err := orden.Output()
+	if err != nil {
+		var terminado *exec.ExitError
+		if errors.As(err, &terminado) && len(bytes.TrimSpace(terminado.Stderr)) > 0 {
+			return "", fmt.Errorf("%w: %s", err, bytes.TrimSpace(terminado.Stderr))
+		}
+
+		return "", err
+	}
+
+	campos := strings.Fields(string(salida))
+	if len(campos) == 0 {
+		return "", errors.New("no escribió ninguna versión")
+	}
+
+	return campos[0], nil
+}
+
+// ordenDeLaVersion es claude --version con el claude de la ruta dada, el único
+// argumento que no es constante (gosec G204).
+func ordenDeLaVersion(claude string) *exec.Cmd {
+	return exec.CommandContext(context.Background(), claude, banderaDeLaVersion)
+}
+
+// buscarEnLaRuta es la ruta del programa en la primera carpeta de la lista de
+// rutas, como la de un PATH, que lo tiene como fichero ejecutable, como lo
+// resuelve una shell. Una carpeta relativa, también la vacía, que es la de
+// trabajo, no se mira: lo que se ejecuta no depende de dónde se lanza.
+func buscarEnLaRuta(ruta, programa string) (string, error) {
+	for _, carpeta := range filepath.SplitList(ruta) {
+		if !filepath.IsAbs(carpeta) {
+			continue
+		}
+
+		candidato := filepath.Join(carpeta, programa)
+
+		estado, err := os.Stat(candidato)
+		if err == nil && estado.Mode().IsRegular() && estado.Mode().Perm()&0o111 != 0 {
+			return candidato, nil
+		}
+	}
+
+	return "", fmt.Errorf("%s no está en ninguna carpeta del %s", programa, variableDelPATH)
+}
+
+// servidorDelPar es la orden del servidor de las sesiones del par
+// (contracts/arnes.md §3.4 de H39): vacía, la de hoy, salvo en el modo
+// herramienta de una variante que cambia las instrucciones o el parámetro, en la
+// que es laboratorio servidor, del laboratorio-bin/ del temporal, delante del
+// kitlegal de su bin/, con -instrucciones y el texto de su instrucciones.txt, o
+// con -herramienta y -parametro de la declaración y -descripcion y el texto de
+// su parametro.txt. El texto es el fichero sin su salto de línea final
+// (contracts/laboratorio.md §4 de H39). El error es el de un fichero que no se
+// puede leer.
+func servidorDelPar(raiz, temporal string, declarada declaracionDelLaboratorio, par parDelLaboratorio) (
+	[]string, error,
+) {
+	if par.modo != ModoHerramienta {
+		return nil, nil
+	}
+
+	directorio := directorioDeLaVariante(raiz, par.variante.Nombre)
+
+	var opciones []string
+
+	if slices.Contains(par.variante.Cambia, parteInstrucciones) {
+		texto, err := textoDeLaVariante(directorio, ficheroDeLasInstrucciones)
+		if err != nil {
+			return nil, err
+		}
+
+		opciones = append(opciones, "-"+banderaDeInstrucciones, texto)
+	}
+
+	if slices.Contains(par.variante.Cambia, parteParametro) {
+		texto, err := textoDeLaVariante(directorio, ficheroDelParametro)
+		if err != nil {
+			return nil, err
+		}
+
+		opciones = append(opciones, "-"+banderaDeLaHerramienta, declarada.Herramienta, "-"+banderaDelParametro,
+			declarada.Parametro, "-"+banderaDeLaDescripcion, texto)
+	}
+
+	if len(opciones) == 0 {
+		return nil, nil
+	}
+
+	return append([]string{
+		filepath.Join(temporal, carpetaDelProgramaDelLaboratorio, programaDelLaboratorio), ordenDelServidorDelLaboratorio,
+		"-" + banderaDelKitlegal, filepath.Join(temporal, carpetaDeBinarios, programaDeLasConsultas),
+	}, opciones...), nil
+}
+
+// textoDeLaVariante es el texto del fichero de la variante de ese directorio: el
+// fichero sin su salto de línea final.
+func textoDeLaVariante(directorio, fichero string) (string, error) {
+	contenido, err := leerFichero(filepath.Join(directorio, fichero))
+	if err != nil {
+		return "", fmt.Errorf("el texto de la variante %s no se puede leer: %w", filepath.Base(directorio), err)
+	}
+
+	return strings.TrimSuffix(string(contenido), "\n"), nil
+}
+
+// preparar deja en el temporal, que recibe con su ruta absoluta, lo que
+// necesitan las sesiones de los pares (contracts/arnes.md §3.1 de H39): kitlegal
+// y laboratorio, con ConstruirLosProgramas; home/, vacío, el HOME de las
+// sesiones; y en skills/<variante>/, una copia de las skills de cada variante de
+// los pares, el directorio de skills de sus repartos. El error nombra lo que no
+// se pudo hacer.
+func (s SondeoDelLaboratorio) preparar(temporal string, pares []parDelLaboratorio) error {
+	if err := s.ConstruirLosProgramas(s.Raiz, temporal, s.Entorno); err != nil {
+		return err
+	}
+
+	personal := filepath.Join(temporal, carpetaPersonal)
+	if err := os.Mkdir(personal, permisosDeLaSesion); err != nil {
+		return fmt.Errorf("el HOME del sondeo del laboratorio %s no se puede crear: %w", personal, err)
+	}
+
+	var copiadas []string
+
+	for _, par := range pares {
+		if slices.Contains(copiadas, par.variante.Nombre) {
+			continue
+		}
+
+		origen := filepath.Join(directorioDeLaVariante(s.Raiz, par.variante.Nombre), carpetaDeLasSkillsDeLaVariante)
+		destino := filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, par.variante.Nombre)
+
+		if err := os.CopyFS(destino, os.DirFS(origen)); err != nil {
+			return fmt.Errorf("las skills de la variante %s no se pueden copiar en %s: %w", par.variante.Nombre, destino,
+				err)
+		}
+
+		copiadas = append(copiadas, par.variante.Nombre)
+	}
+
+	return nil
+}
+
+// construirLosProgramasDelLaboratorio deja en el temporal del arnés, que recibe
+// con su ruta absoluta, kitlegal y laboratorio del árbol de trabajo de la raíz,
+// no los que tenga instalados quien lo lanza (contracts/arnes.md §3.1 de H39):
+// go install -trimpath de kitlegal en bin/ y de laboratorio en laboratorio-bin/,
+// con el entorno de la base, su GOBIN y CGO_ENABLED=0, como el sondeo de una
+// skill. El error nombra lo que no se pudo construir, con la orden y lo que
+// escribió.
+func construirLosProgramasDelLaboratorio(raiz, temporal string, base []string) error {
+	installs := []struct {
+		orden   *exec.Cmd
+		carpeta string
+	}{
+		{ordenDeConstruirElBinario(raiz), carpetaDeBinarios},
+		{ordenDeConstruirElLaboratorio(raiz), carpetaDelProgramaDelLaboratorio},
+	}
+
+	for _, install := range installs {
+		install.orden.Env = sobreLaBase(base, []string{
+			"GOBIN=" + filepath.Join(temporal, install.carpeta), "CGO_ENABLED=0",
+		})
+
+		if err := ejecutarLaOrdenDelArbol(install.orden); err != nil {
+			return fmt.Errorf("kitlegal y laboratorio no se pudieron construir para el sondeo del laboratorio: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ordenDeConstruirElLaboratorio es go install -trimpath del programa del
+// laboratorio en la raíz dada, toda con constantes (gosec G204).
+func ordenDeConstruirElLaboratorio(raiz string) *exec.Cmd {
+	orden := exec.CommandContext(context.Background(), "go", "install", "-trimpath", paqueteDelLaboratorio)
+	orden.Dir = raiz
+
+	return orden
+}
+
+// crearElSondeoDelLaboratorio crea DIRECTORIO, con las carpetas que le falten
+// delante, y su sondeo.json, con el modelo y la versión de Claude Code de todas
+// sus sesiones (contracts/arnes.md §3.2 de H39; data-model §6 de H39). DIRECTORIO
+// se crea él solo, así que uno que ya existe es un error: ningún sondeo escribe
+// donde escribe otro.
+func crearElSondeoDelLaboratorio(directorio, modelo, version string) error {
+	limpio := filepath.Clean(directorio)
+
+	if err := os.MkdirAll(filepath.Dir(limpio), permisosDeLaSesion); err != nil {
+		return fmt.Errorf("el directorio del sondeo del laboratorio %s no se puede crear: %w", directorio, err)
+	}
+
+	if err := os.Mkdir(limpio, permisosDeLaSesion); err != nil {
+		return fmt.Errorf("el directorio del sondeo del laboratorio %s no se puede crear: %w", directorio, err)
+	}
+
+	// sondeoLeido es lo que lee de sondeo.json el guion que cuenta el sondeo, y
+	// sus claves van en el orden de contracts/arnes.md §3.2 de H39.
+	contenido, err := json.Marshal(sondeoLeido{Modelo: modelo, ClaudeCode: version})
+	if err != nil {
+		return fmt.Errorf("%s no se puede codificar: %w", ficheroDelSondeo, err)
+	}
+
+	return escribirFichero(filepath.Join(limpio, ficheroDelSondeo), append(contenido, '\n'))
+}
+
+// planDelPar es el plan de un reparto (contracts/arnes.md §3.3 de H39): porEval
+// sesiones de cada eval, en su orden, con el modelo y el modo dados, de nombre
+// <eval sin .yaml>-<nn>, con nn desde 01 y dos cifras (data-model §6 de H39).
+func planDelPar(evals []Eval, porEval int, modelo string, modo Modo) []SesionPlanificada {
+	plan := make([]SesionPlanificada, 0, len(evals)*porEval)
+
+	for _, eval := range evals {
+		for numero := 1; numero <= porEval; numero++ {
+			plan = append(plan, SesionPlanificada{
+				Nombre:  fmt.Sprintf("%s-%02d", strings.TrimSuffix(eval.Fichero, extensionDeUnaEval), numero),
+				Fichero: eval.Fichero,
+				Modelo:  modelo,
+				Modo:    modo,
+			})
+		}
+	}
+
+	return plan
+}
+
+// salidaDelLaboratorio es la salida del sondeo del laboratorio
+// (contracts/arnes.md §4 de H39): la ruta, el modelo y la versión; una línea por
+// par, en su orden, con las sesiones abiertas y, si quedaron, las que no se
+// abrieron tras el límite de uso; y la orden que da la tabla.
+func salidaDelLaboratorio(comprobado laboratorioComprobado, resumenes []resumenDelPar) string {
+	lineas := []string{fmt.Sprintf("Sondeo del laboratorio en %s, con %s y Claude Code %s.", comprobado.directorio,
+		comprobado.modelo, comprobado.claudeCode)}
+
+	for _, resumen := range resumenes {
+		linea := fmt.Sprintf("- %s, %s: %d abiertas", resumen.par.variante.Nombre, resumen.par.modo, resumen.abiertas)
+		if resumen.sinAbrir > 0 {
+			linea += fmt.Sprintf(", %d %s", resumen.sinAbrir, descripcionSinAbrir)
+		}
+
+		lineas = append(lineas, linea+".")
+	}
+
+	lineas = append(lineas, "La tabla: make laboratorio-tabla "+argumentoDirectorio+"="+comprobado.directorio)
+
+	return strings.Join(lineas, "\n") + "\n"
+}

@@ -1,0 +1,80 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Cada punto de la Entrega del hito (docs/roadmap/done/H39-como-se-organiza-una-skill.md) tiene sus FR: descripción de los parámetros en `--describe` y en MCP y CHANGELOG (FR-001 a FR-005); skill de laboratorio fuera del producto, con regla testigo y lecturas ya grabadas (FR-010 a FR-014); las ocho variantes, con `instrucciones` y `parametro` solo en modo herramienta como dice el hito (FR-020 a FR-028); arnés con modelo y versión comprobados antes de abrir sesiones y anotados (FR-030 a FR-033); guion con activación (y la de entrada), apertura y turno, regla testigo y Wilson al 95 % (FR-040 a FR-043); aceptación de la persona y evals del producto (FR-050 a FR-053). Lo de «Fuera» del hito está en «## Fuera de alcance». Lo que añade la corrección r1 (definición del turno, celdas sin datos, skills instaladas en cada sesión) concreta lo que el hito pide medir y no amplía el alcance; lo ilegible sigue remitido a la regla genérica (Edge Cases: «defecto `inesperado`, código 1 (ADR 0023), sin más casos»)."
+    },
+    {
+      "id": "b",
+      "criterio": "fuera_de_alcance",
+      "cumple": true,
+      "evidencia": "«## Fuera de alcance» lista la reorganización y el texto de las skills del producto (también para los rojos de partida), los topes (11 000, 900, 512 bytes, umbrales del job), las instrucciones del servidor y las ayudas del producto, las banderas globales del kernel, el artefacto de sesiones del job, que el job mida el laboratorio o `make ci` abra sesiones, grabar o escribir en `evidencias/` desde el run, el sondeo y el ADR dentro del run, la columna de `ToolSearch` y la activación por lectura del `SKILL.md`, las evals sobre varias herramientas, las variantes combinadas, otros modelos y otros hosts. La exclusión de las skills del producto en las sesiones del sondeo es ahora un requisito (FR-030), no un hueco."
+    },
+    {
+      "id": "c",
+      "criterio": "clarificaciones",
+      "cumple": true,
+      "evidencia": "Las cinco respuestas de clarify-respuestas.json están en «## Clarifications» y en el cuerpo: Q1 en FR-041 («`ToolSearch` carga el esquema … no cuenta») y en Fuera de alcance; Q2 en FR-041 («Primera orden `kitlegal`, en modo orden», con lo que no cuenta); Q3 en FR-041 («Activar una skill … Leer su `SKILL.md` … no la activa») y en Fuera de alcance; Q4 en FR-041 («Abrir la referencia», `Grep` y `Glob` no cuentan) y en Edge Cases (primera apertura); Q5 en FR-012 (cuatro evals sobre la misma herramienta), FR-030 (múltiplo de 4, n/4 por eval) y Fuera de alcance. Ninguna es conservadora. La lectura conservadora que tomó el corrector para FR-030 (solo la skill de laboratorio y, en `entrada`, la de entrada) está registrada en gates/supuestos.md."
+    },
+    {
+      "id": "d",
+      "criterio": "aceptacion",
+      "cumple": true,
+      "evidencia": "«## Criterios del hito (literales)» reproduce Controles y Aceptación del hito y los traza a FR-014/SC-003, FR-028/SC-004, FR-010/SC-005, FR-001/FR-002/SC-001, FR-053/SC-008 y FR-050 a FR-052; las historias 1 a 4 los dan en Dado/Cuando/Entonces (la historia 3, escenario 4, cubre ahora también el n no múltiplo de 4) y SC-001 a SC-009 como condición con umbral (100 %, 0 bytes, 0 ficheros, 0 sesiones, n/4 por eval, extremos de Wilson, 14 filas de 40)."
+    },
+    {
+      "id": "e",
+      "criterio": "decisiones_cerradas",
+      "cumple": true,
+      "evidencia": "No toca los topes del ADR 0046 (Fuera de alcance; FR-004: «el diff del hito no toca `skills/`»); el sondeo lo lanza la persona y el run no abre sesiones con modelo (FR-032, FR-052; ADR 0032); la regla testigo es de forma y la decide un guion (FR-013; ADR 0037), sin lista de palabras sobre el significado; las herramientas MCP siguen saliendo de `--describe` (FR-002); el binario distribuido conserva las instrucciones de hoy (FR-029, `TestInstrucciones`); las skills de laboratorio no se empotran ni se instalan (FR-010; ADR 0019); sesiones servidas por la grabación (FR-030; ADR 0043); sin telemetría; fusionar lo decide la persona (FR-052)."
+    },
+    {
+      "id": "f",
+      "criterio": "checklist_veraz",
+      "cumple": true,
+      "evidencia": "gates/spec-precheck.txt está vacío y es posterior a la corrección (09:32:27, spec.md 09:31:54); no pude relanzar scripts/workflow/precheck.sh en esta sesión (pidió aprobación). Los 41 ids FR/SC se definen una vez cada uno (contado con grep). Las tres marcas que la ronda 1 dio por falsas son ciertas ahora: «Requirements are testable and unambiguous» (FR-041 define el turno como una respuesta del modelo numerada desde 1, «las que activan las dos antes de la primera herramienta», FR-030 fija las skills instaladas); «Edge cases are identified» (Edge Cases y FR-042/FR-043 añaden la variante con referencia que nadie abre y la fila con n = 0); «Cada umbral que se mide sin persona nombra la comprobación que sale en rojo» (SC-007 cubre el reparto n/4 y las 0 sesiones de una petición inválida de FR-030). Las demás marcas se apoyan en los FR y SC que citan."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_implementacion",
+      "cumple": true,
+      "evidencia": "No fija lenguaje, paquete, formato de fichero ni mecanismo del arnés, del guion ni del servidor de las sesiones (FR-029 solo dice qué no puede cambiar el binario distribuido). `tool_use`, `input.skill`, `file_path`, mensajes `assistant`, `Read`, `Bash`, `Skill` y `ToolSearch` son la forma externa de la transcripción de Claude Code que el guion consume; `TestInstrucciones`, `make schema-check` y la comprobación de deriva identifican comprobaciones que ya existen."
+    },
+    {
+      "id": "h",
+      "criterio": "derivable",
+      "cumple": true,
+      "evidencia": "Los seis motivos de la ronda 1 están corregidos (spec-correccion-r1.diff): FR-041 define el turno («una respuesta del modelo, es decir, los bloques que emite antes de recibir el resultado de ninguna herramienta, vengan en uno o en varios mensajes `assistant` … se numeran desde 1») y FR-043 lo prueba con `Skill` y la primera herramienta en mensajes separados; «las que activan las dos antes de la primera herramienta»; Edge Cases y FR-042 dan las celdas de una variante con referencia sin aperturas («0 de n» con su intervalo, turno vacío) y de una fila con n = 0 (recuentos, porcentajes e intervalos vacíos); FR-030 fija «solo la skill de laboratorio de su variante y, en `entrada`, su skill de entrada: ninguna skill del producto»; FR-012 dice «El run no graba nada», ya sin contradecir FR-050 y SC-009. De FR-001 a FR-053 se deriva un test; las cifras de Wilson de la historia 3 son correctas (0/40 → 0,0–8,8; 20/40 → 35,2–64,8; 40/40 → 91,2–100,0, recalculadas en esta sesión). No queda ninguna contradicción entre requisitos."
+    },
+    {
+      "id": "i",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "«Uso, de fuera adentro»: la descripción de los parámetros la pide el agente en modo herramienta al cargar una herramienta (`ToolSearch`), una vez por herramienta y sesión, y la lee al llamarla, donde la regla del bloque de `boe_articulo` llega a la llamada de la eval 04 (FR-001, FR-002). Cálculo: 28 ayudas, 2373 caracteres en total y 146 la mayor, así que por pregunta son como mucho 2373 caracteres aunque cargue todas; es texto fijo del binario, igual con cientos de normas y miles de bloques, en la consulta siguiente y al cabo de un mes, y no es una señal que caduque. Las tablas de comandos no cambian (FR-004). La tabla del sondeo (14 filas de unas diez columnas más el detalle de 560 sesiones) la lee una persona una vez para el ADR y un sondeo nuevo da otra; el veredicto de la regla testigo, una palabra por sesión, solo existe en el sondeo. La corrección r1 no añade salidas: solo concreta celdas de la misma tabla."
+    },
+    {
+      "id": "j",
+      "criterio": "umbral_con_control",
+      "cumple": true,
+      "evidencia": "Cada umbral medible sin persona nombra su comprobación en rojo: FR-011 (11 000 y 900: «`make ci` falla si una variante no la cumple»); FR-012 («`make ci` falla si una eval de laboratorio espera una orden que la grabación no tiene»); FR-014/SC-003 (100 % de respuestas fijas); FR-028/SC-004 (0 bytes fuera de lo declarado); FR-010/SC-005 (0 ficheros); SC-001 (100 % de las 28 ayudas, test que recorre el registro); SC-002 (deriva de las skills y guardián de diff); FR-043/SC-006 (recuentos y extremos de Wilson); FR-030/FR-031/SC-007 (ahora: «falla si una petición inválida abre alguna sesión o si una válida no abre n/4 por eval en cada variante y modo», con un sustituto de `claude` que cuenta invocaciones); SC-008 (job de evals del cierre en rojo si una eval no pasa su umbral). FR-050 y SC-009 los comprueba la persona antes de fusionar."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "La línea Input cita `docs/roadmap/in-progress/H39-como-se-organiza-una-skill.md`, pero la rama ya lo tiene en `docs/roadmap/done/` (commit 9fb32d0e).",
+    "La nota del checklist «las lecturas tomadas van en Assumptions» no es del todo cierta: la lectura conservadora de FR-030 (sin skills del producto en las sesiones) está en gates/supuestos.md y no en la sección Assumptions del spec; el requisito sí está en FR-030.",
+    "Las sesiones de las evals no prohíben la herramienta `Agent` (scripts/evals-sesion.sh:23 solo veta WebFetch y WebSearch), así que un subagente podría emitir bloques `tool_use` en la transcripción; la lectura literal de FR-041 los cuenta como de la sesión. No hay constancia de subagentes en las 440 sesiones de partida; si el arnés los veta o el guion los separa lo decide el plan.",
+    "FR-031: el patrón `claude-<familia>-<versión>` no dice si admite un id con sufijo de fecha; la aceptación usa `claude-sonnet-5-5` y no cambia nada observable en ella.",
+    "FR-012 fija cuatro evals sobre una sola herramienta y ninguna comprobación cuenta ni una cosa ni la otra; son artefactos que escribe el run una vez, no una medida que pueda moverse sin cambiar el código del hito.",
+    "FR-011 añade una comprobación de forma en `make ci` para la skill de laboratorio que la lista de Controles del hito no nombra; se traza al ADR 0046, para que lo medido valga para las skills del producto.",
+    "FR-040 lee el modelo y la versión de Claude Code de FR-031, pero FR-033 solo dice que el arnés conserva variante, modo y eval con cada transcripción; dónde los deja para el guion es del plan.",
+    "FR-021 no dice si las instrucciones de la variante `instrucciones` respetan los 512 bytes de las del producto; es un tope del producto y la variante solo existe en el sondeo: lo decide el plan.",
+    "Historia 3, escenario 4, y FR-050: el spec no dice si pedir todas las variantes en los dos modos omite las combinaciones que no existen o es un error; la interfaz del arnés es del plan, y las 14 filas de FR-050 fijan el resultado.",
+    "Con n = 0 en una variante con referencia, el spec no nombra las columnas del turno de primera apertura, pero salen vacías por la misma regla que la variante que ninguna sesión abre; no hay lectura con resultado distinto.",
+    "Las líneas de «## Clarifications» llevan la marca «(auto: criterio …)» al final y no como prefijo, como pide el punto 3 del Criterio de decisión autónoma; no cambia el contenido."
+  ],
+  "entrada": []
+}

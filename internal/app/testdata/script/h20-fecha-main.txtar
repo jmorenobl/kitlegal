@@ -19,6 +19,10 @@
 # es la salida del verbo: se compara el mensaje, sin las líneas que empiezan por
 # time=. Como en boe-codigos.txtar, el código exacto lo comprueba el intérprete
 # de órdenes.
+#
+# Desde H39, main-articulos.describe lleva además en norma y bloques la ayuda de
+# su argumento como description: es la salida del binario del árbol de ese hito
+# (contracts/esquemas.md §4 de H39).
 
 # Precondición: boe articulo admite --fecha (FR-001).
 exec kitlegal boe articulo --help
@@ -241,13 +245,15 @@ la norma "BOE-A-2015" no tiene la forma BOE-A-<año>-<número>, con cuatro dígi
     "entrada": {
       "properties": {
         "norma": {
-          "type": "string"
+          "type": "string",
+          "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>."
         },
         "bloques": {
           "items": {
             "type": "string"
           },
-          "type": "array"
+          "type": "array",
+          "description": "Ids de los bloques, del campo id de kitlegal boe indice, en el orden en que se quieren: no se componen con el número del artículo."
         },
         "json": {
           "type": "boolean"
