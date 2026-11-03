@@ -120,7 +120,7 @@ internal/evals/
 ├── sesiones.go                 # SesionesAEjecutar.Servidor (FR-021, FR-024)
 ├── job_test.go                 # TestSondeoDelLaboratorio (-tags evals) y sus banderas (FR-032)
 ├── laboratorio*_test.go        # los tests de §Gates
-└── testdata/laboratorio/       # NUEVO [datos]: respuestas/, sondeo/, transcripciones/, tabla.md
+└── testdata/laboratorio/       # NUEVO [datos]: respuestas/, sondeo/, tabla.md
 cmd/laboratorio/main.go         # NUEVO: `laboratorio servidor` y `laboratorio tabla`
 scripts/evals-laboratorio.sh    # NUEVO (contracts/arnes.md §1)
 scripts/evals-sondeo-llavero.sh # primer argumento `sondeo` o `laboratorio`
@@ -167,8 +167,9 @@ D12). Las historias 2 y 3 no tienen comportamiento visible del binario `kitlegal
   `TestServidorDelLaboratorio`; y el caso de `servidor.json` con `Servidor` en el test de hoy de `escribirElServidor`.
 - **Tests que cambian porque cambia lo que se fija**: los de `internal/cli` que comparan el esquema de un struct con
   `help`; `TestEsquemasPublicados` y los golden de `plazos` y de `h20-fecha-main.txtar`, regenerados.
-- **Fixtures**: `internal/evals/testdata/laboratorio/` (respuestas fijas, sesiones fijas de un sondeo, transcripciones
-  para montar las filas de 40 y `tabla.md`), escritos por las tareas, sin red; ninguna grabación nueva.
+- **Fixtures**: `internal/evals/testdata/laboratorio/` (respuestas fijas, sesiones fijas de un sondeo y `tabla.md`; la
+  fila de 40 la monta el test en un temporal con copias de dos sesiones fijas de `sondeo/`), escritos por las tareas,
+  sin red; ninguna grabación nueva.
 - **Fuera de `make ci`**: `TestSondeoDelLaboratorio` (`-tags evals`), la entrada de la persona.
 
 ## Datos externos

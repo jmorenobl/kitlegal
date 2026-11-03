@@ -26,8 +26,9 @@ completa de la release v0.9.0 (ejecución 41474010633, sobre `cd61442`) sale en 
 de `normativa`, `sin_activar` 1 de 60, y eval 02 de `consulta-juridica`, 1 de 3 con umbral 2.
 
 Comprobado en esta sesión, en el repositorio: los argumentos de los verbos declaran su ayuda (28 textos en
-`internal/app/{boe,cita,grafo,instalacion,plazos,territorio}.go`, 2373 caracteres en total, el más largo de 146), y las
-propiedades de `entrada` de `schemas/bloque.json`, generado desde `--describe`, no llevan `description`.
+`internal/app/{boe,cita,grafo,instalacion,plazos,territorio}.go`, 2373 caracteres en total, el más largo de 146), y, antes de
+este hito, las propiedades de `entrada` de `schemas/bloque.json`, generado desde `--describe`, no llevaban
+`description`.
 
 ## Clarifications
 
@@ -52,14 +53,15 @@ variante del sondeo que pone la regla en un parámetro.
 **Why this priority**: es un defecto de la base conocido desde H32, común a todas las herramientas, y la variante
 `parametro` (FR-024) no se puede medir sin él.
 
-**Independent Test**: `kitlegal boe articulo --describe` y la lista de herramientas de `kitlegal mcp serve` llevan, en
+**Independent Test**: `kitlegal boe articulo BOE-A-2015-10565 a21 --describe` y la lista de herramientas de `kitlegal mcp serve` llevan, en
 cada parámetro con ayuda, esa ayuda como descripción; ningún `SKILL.md` cambia.
 
 **Acceptance Scenarios**:
 
 1. **Dado** el verbo `boe articulo`, cuyo argumento `bloque` declara la ayuda «Id del bloque, del campo id de kitlegal
    boe indice (a21, da-3, a1-30…): no se compone con el número del artículo, que no siempre es su id.», **Cuando** se
-   pide `kitlegal boe articulo --describe`, **Entonces** la propiedad `bloque` del esquema de entrada lleva como
+   pide `kitlegal boe articulo BOE-A-2015-10565 a21 --describe` (sin sus dos argumentos sale con 2: el análisis va
+   antes que la descripción), **Entonces** la propiedad `bloque` del esquema de entrada lleva como
    `description` exactamente ese texto (FR-001).
 2. **Dado** el servidor `kitlegal mcp serve`, **Cuando** un cliente pide la lista de herramientas, **Entonces** el
    `inputSchema` de `boe_articulo` lleva en `bloque` la misma `description`, y lo mismo cada parámetro con ayuda de
@@ -170,7 +172,7 @@ fusionar, `evidencias/` tiene la tabla y `docs/ADR/` el ADR.
 **La descripción de los parámetros (la base)**
 
 - **FR-001**: Todo argumento o bandera que un verbo de un applet declara con una ayuda aparece en el esquema de entrada
-  que emite `kitlegal <applet> <verbo> --describe` con una `description` igual, carácter a carácter, a esa ayuda.
+  que emite `kitlegal <applet> <verbo> … --describe` (con sus argumentos obligatorios) con una `description` igual, carácter a carácter, a esa ayuda.
 - **FR-002**: El `inputSchema` de cada herramienta `<applet>_<verbo>` que anuncia `kitlegal mcp serve` lleva, en cada
   parámetro que corresponde a un argumento con ayuda, la misma `description` que FR-001.
 - **FR-003**: Un argumento sin ayuda declarada no gana `description`; ninguna ayuda se reescribe, se acorta ni se

@@ -43,7 +43,8 @@ sustituyen a este fichero.
 - Los parámetros de `--describe` y de las herramientas del servidor MCP llevan como `description` la ayuda de su
   argumento (H39). La lleva la propiedad de cada argumento o bandera propia de un verbo cuya ayuda no está vacía, tal
   cual y sin escapar `<`, `>` ni `&`; las ocho banderas globales no la llevan, y nada más del esquema cambia. Se
-  regeneran `schemas/` (todos menos `servidor.json`), el golden de `--describe` de `plazos calcular` y la sección de
+  regeneran los esquemas de `schemas/` que salen de `--describe` (los siete de los verbos con argumentos; `servidor.json`
+  no cambia), el golden de `--describe` de `plazos calcular` y la sección de
   `--describe` de `boe articulos` de `h20-fecha-main.txtar`.
 
 ## [0.9.0] - 2026-11-02

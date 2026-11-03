@@ -8,7 +8,7 @@ En la entrada de cada documento de `kitlegal <applet> <verbo> … --describe` y 
 `<applet>_<verbo>` de `kitlegal mcp serve`, la propiedad de cada argumento o bandera **propia del verbo** cuya etiqueta
 `help` no está vacía lleva `"description"` con ese texto, carácter a carácter una vez decodificado el JSON; en el
 documento de `--describe`, además, sin escapar `<`, `>` ni `&` (research V4); en el cable de MCP el SDK puede
-escribirlos como `<`… al serializar el `inputSchema` (`internal/mcp/servir.go:107`), que se decodifica igual. La
+escribirlos con su escape de JSON (barra invertida, `u` y `003c`…) al serializar el `inputSchema` (`internal/mcp/servir.go:107`), que se decodifica igual. La
 clave va detrás de las que ya lleva la propiedad (`type`, `items`, `$ref`…), en el orden de campos del esquema
 de invopop (`internal/cli`, research V3). Nada más cambia: ni las ocho banderas globales, que no la llevan; ni el orden
 de las propiedades, `required`, `additionalProperties`, `x-banderas` ni la salida. `description` de la raíz del

@@ -104,8 +104,10 @@ sale con 1. No importa el SDK de MCP (R7). `kitlegal` no gana ninguna bandera, v
 - `TestArnesDelLaboratorio` (`internal/evals`, en `make ci`, sin modelo): `sondearElLaboratorio` con la preparación del
   árbol sustituida y un sustituto de `claude` en el `PATH` que contesta a `--version` y anota cada sesión que abre. Con
   la versión distinta, con `MODELO=sonnet`, con `VARIANTES=instrucciones MODOS=orden` y con `SESIONES=6`, 0 sesiones y
-  el mensaje de §2; con una petición válida (dos variantes, una con un modo y otra con dos, `SESIONES=8`), dos sesiones
-  de cada eval en cada variante y modo pedidos, y ninguna más (FR-030, FR-031, SC-007).
+  el mensaje de §2; con una petición válida (`VARIANTES=instrucciones,control MODOS=herramienta SESIONES=8`, dos
+  variantes de las que una solo se mide en un modo y la otra en los dos), dos sesiones de cada eval en cada variante y
+  modo pedidos, y ninguna más; y con `SESIONES=4`, `entrada` en los dos modos, `parametro` y el límite de uso
+  (gates/supuestos.md, T010) (FR-030, FR-031, SC-007).
 - `TestRecetasDelSondeo` (`internal/evals`, en `make ci`, sin modelo): ejecuta desde la raíz del repositorio, sin el
   `MAKEFLAGS` del `make` que lo lanza, `make -n evals-sondeo …` y `make -n evals-laboratorio …` con valores fijos, y
   exige en cada salida una sola línea del guion del llavero, igual carácter a carácter a la cadena de §1:
