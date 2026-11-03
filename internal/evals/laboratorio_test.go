@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/fs"
 	"maps"
@@ -13,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/jmorenobl/kitlegal"
 	"github.com/jmorenobl/kitlegal/internal/app"
 	"github.com/jmorenobl/kitlegal/internal/cli"
 	"github.com/jmorenobl/kitlegal/internal/mcp"
@@ -876,5 +878,218 @@ func comprobarLasLecturasDeLaHerramienta(t *testing.T, evals []Eval) {
 				"el comando %s de %s es una lectura de %s", textoDelComando(comando), eval.Fichero,
 				declarada.Herramienta)
 		}
+	}
+}
+
+// TestLaboratorioFueraDelProducto comprueba que el laboratorio no es parte de
+// lo que kitlegal empotra, instala ni mide (FR-010 y SC-005 de H39;
+// contracts/laboratorio.md §1 y §7 de H39; research V9 y V10 de H39): ni lo que
+// el binario empotra ni lo que deja skills install --dir en un directorio vacío
+// tiene la ruta de una skill del laboratorio ni los bytes de un fichero de
+// laboratorio/; la definición del job de evals no ejecuta ninguna de sus skills
+// ni hay evals de kitlegal con su nombre; y ninguna ruta de laboratorio/ mide,
+// así que una propuesta que solo cambia el laboratorio no elige ninguna skill de
+// kitlegal.
+func TestLaboratorioFueraDelProducto(t *testing.T) {
+	t.Parallel()
+
+	laboratorio := leerElContenidoDelLaboratorio(t)
+
+	t.Run("empotrado", func(t *testing.T) {
+		t.Parallel()
+
+		comprobarQueNadaEsDelLaboratorio(t, kitlegal.Skills(), laboratorio, "lo empotrado")
+	})
+
+	t.Run("instalado", func(t *testing.T) {
+		t.Parallel()
+
+		directorio := t.TempDir()
+
+		var salida, errores bytes.Buffer
+
+		codigo := app.Arrancar([]string{"kitlegal", "skills", "install", "--dir", directorio},
+			app.RegistroDeProduccion, &salida, &errores, versionDeDesarrollo, commitDeDesarrollo, fechaDeDesarrollo)
+		require.Zero(t, codigo, "skills install --dir %s:\n%s", directorio, errores.String())
+
+		comprobarQueNadaEsDelLaboratorio(t, os.DirFS(directorio), laboratorio, "lo instalado con --dir")
+	})
+
+	t.Run("job de evals", func(t *testing.T) {
+		t.Parallel()
+
+		comprobarElJobDeEvals(t, laboratorio)
+	})
+
+	t.Run("rutas que miden", func(t *testing.T) {
+		t.Parallel()
+
+		comprobarLasRutasDelLaboratorio(t, laboratorio)
+	})
+}
+
+// La versión, el commit y la fecha con los que TestLaboratorioFueraDelProducto
+// arranca el binario: los de cmd/kitlegal compilado sin -ldflags. La versión,
+// sin forma SemVer, es la de un binario de desarrollo, que instala y no compara,
+// así que el aviso de versión no lee el disco (FR-073 de H19).
+const (
+	versionDeDesarrollo = "dev"
+	commitDeDesarrollo  = "none"
+	fechaDeDesarrollo   = "unknown"
+)
+
+// contenidoDelLaboratorio es lo que TestLaboratorioFueraDelProducto busca fuera
+// del laboratorio: los nombres de las skills de sus variantes, en orden y sin
+// repetir, y sus ficheros, por su ruta desde la raíz del repositorio y por su
+// contenido.
+type contenidoDelLaboratorio struct {
+	skills       []string
+	rutas        []string
+	porContenido map[string]string
+}
+
+// leerElContenidoDelLaboratorio lee de laboratorio/ los nombres de las skills de
+// todas sus variantes —los de variantes/*/skills/*, también los de una variante
+// que la declaración no tuviera— y todos sus ficheros. Exige las dos skills de la
+// declaración y algún fichero, para que ninguna comprobación pase en vacío.
+func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
+	t.Helper()
+
+	repositorio := os.DirFS(raizDelRepositorio)
+
+	deLasVariantes, err := fs.Glob(repositorio, path.Join(carpetaDelLaboratorio, carpetaDeLasVariantes, "*",
+		carpetaDeLasSkillsDeLaVariante, "*"))
+	require.NoError(t, err)
+
+	laboratorio := contenidoDelLaboratorio{porContenido: map[string]string{}}
+
+	for _, deUnaVariante := range deLasVariantes {
+		laboratorio.skills = append(laboratorio.skills, path.Base(deUnaVariante))
+	}
+
+	slices.Sort(laboratorio.skills)
+	laboratorio.skills = slices.Compact(laboratorio.skills)
+
+	require.Subset(t, laboratorio.skills, []string{skillDelLaboratorio, entradaDelLaboratorio},
+		"las variantes de %s tienen las dos skills de la declaración", carpetaDelLaboratorio)
+
+	err = fs.WalkDir(repositorio, carpetaDelLaboratorio, func(ruta string, entrada fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !entrada.Type().IsRegular() {
+			return nil
+		}
+
+		contenido, err := fs.ReadFile(repositorio, ruta)
+		if err != nil {
+			return err
+		}
+
+		laboratorio.rutas = append(laboratorio.rutas, ruta)
+		laboratorio.porContenido[string(contenido)] = ruta
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.NotEmpty(t, laboratorio.rutas, "%s tiene algún fichero", carpetaDelLaboratorio)
+
+	return laboratorio
+}
+
+// comprobarQueNadaEsDelLaboratorio: ninguna ruta del árbol tiene por componente
+// el nombre de una skill del laboratorio, ni ningún fichero suyo tiene los bytes
+// de un fichero del laboratorio. Exige algún fichero, para no pasar en vacío.
+func comprobarQueNadaEsDelLaboratorio(t *testing.T, arbol fs.FS, laboratorio contenidoDelLaboratorio,
+	donde string,
+) {
+	t.Helper()
+
+	var ficheros int
+
+	err := fs.WalkDir(arbol, ".", func(ruta string, entrada fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		for _, componente := range strings.Split(ruta, "/") {
+			assert.NotContains(t, laboratorio.skills, componente,
+				"%s: %s es la ruta de una skill del laboratorio", donde, ruta)
+		}
+
+		if !entrada.Type().IsRegular() {
+			return nil
+		}
+
+		contenido, err := fs.ReadFile(arbol, ruta)
+		if err != nil {
+			return err
+		}
+
+		ficheros++
+
+		delLaboratorio, igual := laboratorio.porContenido[string(contenido)]
+		assert.False(t, igual, "%s: %s tiene los bytes de %s", donde, ruta, delLaboratorio)
+
+		return nil
+	})
+	require.NoError(t, err)
+	require.Positive(t, ficheros, "%s tiene algún fichero", donde)
+}
+
+// comprobarElJobDeEvals: la definición del job de evals no ejecuta ninguna skill
+// del laboratorio —no está en la matriz ni en el include del trabajo evals ni en
+// los del trabajo de la medida del juez— y evals/ no tiene ninguna carpeta con su
+// nombre (FR-010 de H39; research D4 de H39).
+func comprobarElJobDeEvals(t *testing.T, laboratorio contenidoDelLaboratorio) {
+	t.Helper()
+
+	job, err := leerDefinicionDelJob(rutaDeLaDefinicionDelJob)
+	require.NoError(t, err)
+
+	ejecutadas := skillsQueEjecutaElJob(job)
+	require.NotEmpty(t, ejecutadas, "el job de evals ejecuta alguna skill")
+
+	entradas, err := fs.ReadDir(os.DirFS(raizDelRepositorio), directorioDeLasEvals)
+	require.NoError(t, err)
+
+	carpetas := make([]string, 0, len(entradas))
+	for _, entrada := range entradas {
+		carpetas = append(carpetas, entrada.Name())
+	}
+
+	require.NotEmpty(t, carpetas, "%s/ tiene las evals de kitlegal", directorioDeLasEvals)
+
+	for _, skill := range laboratorio.skills {
+		assert.NotContains(t, ejecutadas, skill, "el job de evals ejecuta la skill %s del laboratorio", skill)
+		assert.NotContains(t, carpetas, skill, "%s/ tiene evals de la skill %s del laboratorio",
+			directorioDeLasEvals, skill)
+	}
+}
+
+// skillsQueEjecutaElJob son las skills que nombra la definición del job de
+// evals: las de la matriz y el include del trabajo evals y, si lo tiene, las del
+// trabajo de la medida del juez.
+func skillsQueEjecutaElJob(job DefinicionDelJob) []string {
+	ejecutadas := slices.Concat(job.Skills, slices.Collect(maps.Keys(job.PorSkill)))
+
+	if job.Medida != nil {
+		ejecutadas = slices.Concat(ejecutadas, job.Medida.Skills,
+			slices.Collect(maps.Keys(job.Medida.ConcurrenciaPorSkill)))
+	}
+
+	return ejecutadas
+}
+
+// comprobarLasRutasDelLaboratorio: ninguna ruta de laboratorio/ mide
+// (rutaQueMide; research V9 de H39). Sin paquetes, porque los de los conjuntos
+// solo quitan de lo que mide los tests y los fixtures de su carpeta: la ruta que
+// no mide sin ninguno no mide con ninguno.
+func comprobarLasRutasDelLaboratorio(t *testing.T, laboratorio contenidoDelLaboratorio) {
+	t.Helper()
+
+	for _, ruta := range laboratorio.rutas {
+		assert.False(t, rutaQueMide(ruta, nil), "%s mide: un cambio suyo elegiría skills de kitlegal", ruta)
 	}
 }

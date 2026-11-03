@@ -1,18 +1,14 @@
 {
-  "id": "T006",
-  "texto": "T006 [US2] Las cuatro evals de laboratorio y su control (FR-012; contracts/laboratorio.md §6; data-model §4; research V19): laboratorio/evals/01-constitucion-articulo-140.yaml, laboratorio/evals/02-lgt-prescripcion.yaml, laboratorio/evals/03-lrjsp-principio-de-legalidad.yaml y laboratorio/evals/04-et-vacaciones.yaml, con la pregunta, `activa: true`, `comandos` y `citas` de las evals 09, 04, 07 y 10 de `normativa` (research V19) y el comentario de cabecera de §6; y `TestEvalsDelLaboratorio` en internal/evals/laboratorio_test.go (con lo que necesite de internal/evals/laboratorio.go): `LeerConjunto` las lee bien formadas, son cuatro, cada comando es una lectura de la `herramienta` de la declaración, y `Preparar` con la grabación de hoy (`UnionDeGrabaciones()`) no da faltas y `ComprobarSinRed` no da fallos; ver fallar el test con una eval temporal que pide un bloque que la grabación no tiene, y quitarla. Sin grabar nada",
+  "id": "T007",
+  "texto": "T007 [US2] El laboratorio fuera del producto: `TestLaboratorioFueraDelProducto` en internal/evals/laboratorio_test.go, con lo que necesite de internal/evals/laboratorio.go, sobre el código de hoy y lo de T005 y T006 (FR-010; SC-005; contracts/laboratorio.md §7; research V9, V10): ningún fichero de `kitlegal.Skills()` tiene la ruta de una skill del laboratorio (`articulos-del-boe`, `consulta-legal`) ni los bytes de un fichero del laboratorio; `app.Arrancar` con `skills install --dir <directorio vacío del test>` no deja ninguno; la definición del job de evals no ejecuta ninguna de las dos skills y no hay carpeta de evals del producto con el nombre de ninguna; y ninguna ruta del laboratorio mide (`rutaQueMide`). Ver fallar cada comprobación con un mutante temporal (una ruta del laboratorio en la lista que se mira) y revertirlo",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "1fb63844d170efe3f0b821df77d8173204541995",
+  "base": "e3385e7c4c45a7d55a03909362a0c770476368ef",
   "rutas": [
     "contracts/laboratorio.md",
     "internal/evals/laboratorio.go",
-    "internal/evals/laboratorio_test.go",
-    "laboratorio/evals/01-constitucion-articulo-140.yaml",
-    "laboratorio/evals/02-lgt-prescripcion.yaml",
-    "laboratorio/evals/03-lrjsp-principio-de-legalidad.yaml",
-    "laboratorio/evals/04-et-vacaciones.yaml"
+    "internal/evals/laboratorio_test.go"
   ],
   "cierre": false,
   "converger": false,
