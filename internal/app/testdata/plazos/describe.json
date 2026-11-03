@@ -232,22 +232,27 @@
     "entrada": {
       "properties": {
         "tipo": {
-          "type": "string"
+          "type": "string",
+          "description": "Tipo de plazo: alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio o generico."
         },
         "inicio": {
-          "type": "string"
+          "type": "string",
+          "description": "Fecha de inicio, AAAA-MM-DD: la de la notificación o la publicación; en silencio, la del acuerdo de iniciación o la de entrada de la solicitud."
         },
         "municipios": {
           "items": {
             "type": "string"
           },
-          "type": "array"
+          "type": "array",
+          "description": "Municipios que cuentan, por su nombre o su código INE: el del interesado y el de la sede del órgano, o en contencioso el de la sede del juzgado."
         },
         "duracion": {
-          "type": "string"
+          "type": "string",
+          "description": "Duración, un entero positivo; solo, y siempre, en silencio y generico."
         },
         "unidad": {
-          "type": "string"
+          "type": "string",
+          "description": "Unidad de la duración: meses, dias-habiles o dias-naturales; solo, y siempre, en silencio y generico."
         },
         "json": {
           "type": "boolean"

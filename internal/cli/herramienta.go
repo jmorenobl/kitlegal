@@ -38,6 +38,7 @@ func EsquemasDeHerramienta(def Verbo) (entrada, salida []byte, err error) {
 	g := nuevoGenerador()
 
 	esquemaDeEntrada := g.entrada(campos)
+	describirArgumentos(esquemaDeEntrada, campos)
 	esquemaDeEntrada.Definitions = g.retirarDefiniciones()
 
 	esquemaDeSalida, err := g.salida(def.Salida)

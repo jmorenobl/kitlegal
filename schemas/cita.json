@@ -214,15 +214,18 @@
               "type": "boolean"
             },
             "documento": {
+              "description": "Texto del documento, con su ficha; sin él, se lee de la entrada estándar.",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "ecli": {
+              "description": "ECLI de la sentencia, español: ECLI:ES:<órgano>:<año>:<número>.",
               "type": "string"
             },
             "fecha": {
+              "description": "Fecha de la resolución cuyo número da --resolucion.",
               "type": "string"
             },
             "json": {
@@ -235,9 +238,11 @@
               "type": "boolean"
             },
             "resolucion": {
+              "description": "Número de resolución de la sentencia, en lugar del ECLI; va con --fecha.",
               "type": "string"
             },
             "roj": {
+              "description": "ROJ de la sentencia, en lugar del ECLI: <siglas> <número>/<año>.",
               "type": "string"
             },
             "timeout": {
@@ -479,9 +484,11 @@
               "type": "boolean"
             },
             "ecli": {
+              "description": "ECLI de la sentencia, español: ECLI:ES:<órgano>:<año>:<número>.",
               "type": "string"
             },
             "fecha": {
+              "description": "Fecha de la resolución cuyo número da --resolucion.",
               "type": "string"
             },
             "json": {
@@ -494,12 +501,15 @@
               "type": "boolean"
             },
             "resolucion": {
+              "description": "Número de resolución de la sentencia, en lugar del ECLI; va con --fecha.",
               "type": "string"
             },
             "roj": {
+              "description": "ROJ de la sentencia, en lugar del ECLI: <siglas> <número>/<año>.",
               "type": "string"
             },
             "texto": {
+              "description": "Texto de una búsqueda por materia, en lugar de una referencia.",
               "type": "string"
             },
             "timeout": {

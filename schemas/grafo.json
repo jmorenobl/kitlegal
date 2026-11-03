@@ -131,6 +131,7 @@
               "type": "string"
             },
             "bloques": {
+              "description": "Ids de bloque de esa norma, como a21; sin ellos, todos los suyos.",
               "items": {
                 "type": "string"
               },
@@ -149,6 +150,7 @@
               "type": "boolean"
             },
             "norma": {
+              "description": "Identificador BOE de la norma, BOE-A-<año>-<número>; sin él, todo lo consultado.",
               "type": "string"
             },
             "offline": {
@@ -366,6 +368,7 @@
               "type": "boolean"
             },
             "id": {
+              "description": "Id del nodo: un ELI, «ine:<código>», un DIR3…",
               "type": "string"
             },
             "json": {

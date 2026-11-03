@@ -113,12 +113,14 @@
               "type": "boolean"
             },
             "dir": {
+              "description": "Directorio de skills en lugar de .agents/skills: el ámbito es esa ruta, sin hosts.",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "global": {
+              "description": "Actúa en el ámbito global: $HOME/.agents/skills y los hosts de HOME.",
               "type": "boolean"
             },
             "json": {
@@ -313,15 +315,18 @@
               "type": "boolean"
             },
             "dir": {
+              "description": "Directorio de skills en lugar de .agents/skills: el ámbito es esa ruta, sin hosts.",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "global": {
+              "description": "Actúa en el ámbito global: $HOME/.agents/skills y los hosts de HOME.",
               "type": "boolean"
             },
             "host": {
+              "description": "Enlaza en el host aunque su directorio no exista: claude o antigravity, que solo tiene directorio propio con -g; se puede repetir.",
               "items": {
                 "type": "string"
               },
@@ -337,6 +342,7 @@
               "type": "boolean"
             },
             "skill": {
+              "description": "Skills que se instalan; sin ninguna, todas las del binario.",
               "items": {
                 "type": "string"
               },
@@ -560,12 +566,14 @@
               "type": "boolean"
             },
             "dir": {
+              "description": "Directorio de skills en lugar de .agents/skills: el ámbito es esa ruta, sin hosts.",
               "type": "string"
             },
             "dry-run": {
               "type": "boolean"
             },
             "global": {
+              "description": "Actúa en el ámbito global: $HOME/.agents/skills y los hosts de HOME.",
               "type": "boolean"
             },
             "json": {
