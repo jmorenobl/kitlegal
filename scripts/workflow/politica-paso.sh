@@ -17,16 +17,20 @@
 #     `scripts/evals*.sh` y `TestSondeo`;
 #   · pedir una credencial: `security` sobre un llavero, o dar valor a
 #     CLAUDE_CODE_OAUTH_TOKEN, ANTHROPIC_API_KEY o ANTHROPIC_AUTH_TOKEN;
-#   · escribir, con Write, Edit, MultiEdit o NotebookEdit, fuera del repositorio, del
-#     directorio temporal y de la memoria del proyecto.
+#   · escribir, con Write, Edit, MultiEdit o NotebookEdit, fuera del repositorio y del
+#     directorio temporal, y en el directorio de Claude Code aunque estuviera dentro de
+#     ellos: sus ajustes, sus transcripts y la memoria de cada proyecto
+#     (~/.claude/projects/<proyecto>/memory), que en el run de H39 editó una sesión.
 #
 # Mira el texto de la orden, así que no ve lo que hace un guion ni un programa que la
 # sesión escriba y ejecute (en la reproducción del incidente, la sesión escribió el
 # guion dentro del repositorio, lo copió fuera con `cp` y lo lanzó con «&» desde otro).
 # Lo que hace cualquier orden de Bash, y todo lo que ejecuta, lo restringe el sandbox
 # con el que scripts/claude-modelo.sh abre estas sesiones: la red, la escritura y la
-# lectura de secretos. De este gancho dependen Write y Edit, que no pasan por el
-# sandbox; en lo demás da el motivo antes y en la propia sesión. La credencial del
+# lectura de secretos. Write y Edit no pasan por el sandbox: los cierra Claude Code con
+# los ajustes de scripts/claude-modelo.sh (blockWritesOutsideWorkingDirectories, la memoria
+# automática apagada y el directorio de Claude Code vedado), y este gancho da el motivo
+# antes y en la propia sesión. La credencial del
 # sondeo no está en ningún fichero (scripts/evals-sondeo-llavero.sh). Compatible con
 # bash 3.2 (macOS).
 set -euo pipefail
@@ -60,10 +64,21 @@ orden_vedada() {
   return 0
 }
 
-# Imprime el motivo y devuelve 1 si la ruta que se va a escribir cae fuera del repositorio,
-# del directorio temporal y de la memoria del proyecto. $1: la ruta.
+# La ruta absoluta $1 sin enlaces, aunque aún no exista: el directorio más profundo que ya
+# existe, resuelto, y detrás lo que falta por crear.
+fisica_de() {
+  local dir="$1" resto=""
+  while [ ! -d "$dir" ]; do
+    resto="/$(basename "$dir")$resto"
+    dir=$(dirname "$dir")
+  done
+  printf '%s%s' "$(cd "$dir" && pwd -P)" "$resto"
+}
+
+# Imprime el motivo y devuelve 1 si la ruta que se va a escribir cae fuera del repositorio y
+# del directorio temporal, o en el directorio de Claude Code. $1: la ruta.
 ruta_vedada() {
-  local ruta="$1" raiz dir resto="" fisica permitida
+  local ruta="$1" raiz fisica permitida configuracion
   raiz=$(pwd -P)
   case "$ruta" in
     /*) ;;
@@ -74,22 +89,22 @@ ruta_vedada() {
       echo "$regla: escribe la ruta sin «.» ni «..» ($1)."
       return 1;;
   esac
-  # El directorio más profundo que ya existe, sin enlaces; lo que falta por crear va detrás.
-  dir=$(dirname "$ruta")
-  while [ ! -d "$dir" ]; do
-    resto="/$(basename "$dir")$resto"
-    dir=$(dirname "$dir")
-  done
-  fisica="$(cd "$dir" && pwd -P)$resto/"
-  for permitida in "$raiz" /tmp /private/tmp /var/folders /private/var/folders "${TMPDIR:-/tmp}" \
-    "$HOME/.claude/projects/$(printf '%s' "$raiz" | sed -E 's/[^A-Za-z0-9]/-/g')/memory"; do
+  fisica="$(fisica_de "$(dirname "$ruta")")/$(basename "$ruta")/"
+  configuracion="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+  configuracion=$(fisica_de "${configuracion%/}")
+  case "$fisica" in
+    "$configuracion"/*)
+      echo "$regla: un paso del workflow no escribe en el directorio de Claude Code ($configuracion): ni sus ajustes, ni sus transcripts, ni la memoria de un proyecto. Lo que haya que recordar va al repositorio, en los artefactos del hito."
+      return 1;;
+  esac
+  for permitida in "$raiz" /tmp /private/tmp /var/folders /private/var/folders "${TMPDIR:-/tmp}"; do
     permitida="${permitida%/}"
     [ -d "$permitida" ] && permitida=$(cd "$permitida" && pwd -P)
     case "$fisica" in
       "$permitida"/*) return 0;;
     esac
   done
-  echo "$regla: un paso del workflow solo escribe en el repositorio, en el directorio temporal y en la memoria del proyecto, no en $1."
+  echo "$regla: un paso del workflow solo escribe en el repositorio y en el directorio temporal, no en $1."
   return 1
 }
 
@@ -162,7 +177,11 @@ case "${1:?uso: politica-paso.sh gancho | prueba}" in
     espera admite ruta "$(pwd -P)/internal/nuevo/paquete/fichero.go"
     espera admite ruta "/tmp/kitlegal-prototipo/main.go"
     espera admite ruta "${TMPDIR:-/tmp}/copia/x.go"
-    espera admite ruta "$HOME/.claude/projects/$(pwd -P | sed -E 's/[^A-Za-z0-9]/-/g')/memory/nota.md"
+    # La vía de H39: Edit sobre la memoria del proyecto (transcript 24dd805a del run 50b213d0).
+    espera deniega ruta "$HOME/.claude/projects/$(pwd -P | sed -E 's/[^A-Za-z0-9]/-/g')/memory/cotas-de-tiempo-runner-vs-local.md"
+    espera deniega ruta "$HOME/.claude/projects/$(pwd -P | sed -E 's/[^A-Za-z0-9]/-/g')/memory/MEMORY.md"
+    espera deniega ruta "$HOME/.claude/projects/-Users-x-otro/memory/nota.md"
+    espera deniega ruta "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/x/memory/nota.md"
     espera deniega ruta "/Users/x/Library/Logs/kitlegal/sondeo-c12.sh"
     espera deniega ruta "/Users/x/.config/kitlegal/claude-oauth-token"
     espera deniega ruta "/Users/x/.claude/settings.json"
