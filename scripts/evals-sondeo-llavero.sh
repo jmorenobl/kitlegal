@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
-# Entrada de `make evals-sondeo`: toma la credencial de la suscripción de quien lo lanza y ejecuta
-# scripts/evals-sondeo.sh con sus cinco argumentos (ADR 0032). El sondeo abre sesiones con modelo: lo lanza una
-# persona, o una sesión interactiva a petición suya; nunca un paso del workflow `hito`.
+# Entrada de `make evals-sondeo` y de `make evals-laboratorio`: toma la credencial de la suscripción de quien lo lanza
+# y ejecuta el guion que nombra su primer argumento, de una lista cerrada, con los demás (ADR 0032;
+# specs/031-h39-c-omo-se/contracts/arnes.md §1): `sondeo`, scripts/evals-sondeo.sh con sus cinco; `laboratorio`,
+# scripts/evals-laboratorio.sh con sus siete. Con otro, o sin ninguno, su uso y 1, sin tocar la credencial. Los dos
+# abren sesiones con modelo: los lanza una persona, o una sesión interactiva a petición suya; nunca un paso del
+# workflow `hito`.
 #
 #   make evals-sondeo SKILL=<skill> EVALS=<nn>[,<nn>…] MODELO=<id> REPETICIONES=<n> [CONCURRENCIA=<n>]
+#   make evals-laboratorio VARIANTES=<v>[,<v>…] MODOS=<m>[,<m>] SESIONES=<n> MODELO=<id> CLAUDE_CODE=<versión> \
+#     CONCURRENCIA=<c> DIRECTORIO=<ruta>
 #
 # La credencial no vive en ningún fichero que una sesión pueda leer. En H7.4 estaba en uno, y una sesión del run la
 # leyó con `cat` dentro de un guion —las reglas `deny` de Claude Code solo cubren su herramienta Read— y abrió con
@@ -15,7 +20,7 @@
 # El llavero está bloqueado: leerlo abre el diálogo del sistema, que pide su contraseña a la persona, y este guion lo
 # vuelve a bloquear en cuanto tiene el valor, así que cada sondeo la pide. Sin persona delante no hay credencial. Con
 # CLAUDE_CODE_OAUTH_TOKEN ya en el entorno (Linux, o quien prefiera ponerla a mano) no se toca el llavero. Sin una ni
-# otro, scripts/evals-sondeo.sh da su error de uso. El valor nunca se imprime. Cómo se crea el llavero:
+# otro, el guion que ejecuta da su error de uso. El valor nunca se imprime. Cómo se crea el llavero:
 # CONTRIBUTING.md, «Sondeo local». No usa nada posterior a bash 3.2, el de macOS.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -27,6 +32,21 @@ if [[ -n "${KITLEGAL_PASO_DE_WORKFLOW:-}" || -n "${KITLEGAL_RUN_TESTIGO:-}" ]]; 
 	exit 1
 fi
 scripts/workflow/sesion-unica.sh comprobar
+
+# El guion que se ejecuta con la credencial lo elige el primer argumento, de una lista cerrada, antes de tocar el
+# llavero: con otro, ninguno se ejecuta y no se pide la contraseña.
+guion=
+if [[ $# -ge 1 ]]; then
+	case "$1" in
+	sondeo) guion=scripts/evals-sondeo.sh ;;
+	laboratorio) guion=scripts/evals-laboratorio.sh ;;
+	esac
+fi
+if [[ -z "$guion" ]]; then
+	echo "evals-sondeo: uso: scripts/evals-sondeo-llavero.sh sondeo|laboratorio <los argumentos de su guion>" >&2
+	exit 1
+fi
+shift
 
 llavero="${KITLEGAL_LLAVERO:-$HOME/Library/Keychains/kitlegal-sondeo.keychain-db}"
 
@@ -50,4 +70,4 @@ if [[ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" && -f "$llavero" ]] && command -v securi
 	unset credencial
 fi
 
-exec scripts/evals-sondeo.sh "$@"
+exec "$guion" "$@"

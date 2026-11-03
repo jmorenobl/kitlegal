@@ -1,6 +1,7 @@
 package evals
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -758,4 +760,314 @@ func ordenDelServidorEscrito(t *testing.T, servidor string) []string {
 	kitlegal := declarado.MCPServers[nombreDelServidor]
 
 	return append([]string{kitlegal.Command}, kitlegal.Args...)
+}
+
+// guionDelLaboratorio es scripts/evals-laboratorio.sh, relativo al directorio
+// de este paquete, que es donde go test ejecuta los tests.
+const guionDelLaboratorio = "../../scripts/evals-laboratorio.sh"
+
+// nombreDelTemporalDelLaboratorio es el del directorio que el guion del
+// laboratorio crea en TMPDIR: la plantilla de mktemp,
+// kitlegal-laboratorio.XXXXXX, con sus seis caracteres sustituidos.
+var nombreDelTemporalDelLaboratorio = regexp.MustCompile(`^kitlegal-laboratorio\.[A-Za-z0-9]{6}$`)
+
+// Lo que el go que deja el uso escribe en uso.txt en los casos de
+// TestGuionDelLaboratorio, con el salto de línea final con el que lo escribe
+// TestSondeoDelLaboratorio (contracts/arnes.md §2 de H39): los errores de
+// SESIONES=6 y MODELO=sonnet, uno por línea y en el orden de los argumentos, y
+// el de DIRECTORIO vacío.
+const (
+	usoDelLaboratorioConDosArgumentos = "SESIONES: «6» no es un múltiplo de 4 mayor que 0\n" +
+		"MODELO: «sonnet» no es un identificador completo de modelo (claude-<familia>-<versión>, como " +
+		"claude-sonnet-5-5)\n"
+	usoDelLaboratorioSinDirectorio = "DIRECTORIO: está vacío\n"
+)
+
+// Los DIRECTORIO de los casos de TestGuionDelLaboratorio: uno relativo, que el
+// guion resuelve desde la raíz del repositorio, y uno absoluto, que pasa tal
+// cual. Ninguno se crea: lo crearía el arnés, y el sustituto de go no lo
+// ejecuta.
+const (
+	directorioRelativoDelLaboratorio = "sondeos/h39-a"
+	directorioAbsolutoDelLaboratorio = "/sondeos/del-laboratorio/h39-b"
+)
+
+// casoDelGuionDelLaboratorio es un caso de TestGuionDelLaboratorio: uno del
+// guion del sondeo, con la orden del guion del laboratorio, y si el DIRECTORIO
+// que recibe TestSondeoDelLaboratorio es el séptimo argumento del guion con la
+// raíz del repositorio delante, por ser relativo, o el séptimo tal cual.
+type casoDelGuionDelLaboratorio struct {
+	casoDelGuionDelSondeo
+
+	desdeLaRaiz bool
+}
+
+// TestGuionDelLaboratorio fija scripts/evals-laboratorio.sh (contracts/arnes.md
+// §1 de H39; FR-030, FR-032 de H39), como TestGuionDelSondeo el guion del sondeo
+// de una skill, con el sustituto de go delante en el PATH y un TMPDIR vacío del
+// test. Con siete argumentos, crea en TMPDIR su temporal con la plantilla
+// kitlegal-laboratorio.XXXXXX y ejecuta, en la raíz del repositorio y con el
+// tmp/ de ese temporal como TMPDIR, la orden go test de TestSondeoDelLaboratorio
+// con los siete tras -args, DIRECTORIO con la raíz delante si es relativo, y
+// -temporal con ese temporal, con sus dos salidas en su go-test.log. Si go test
+// sale con 0 y deja uso.txt, el guion sale con 1 e imprime solo uso.txt, en la
+// salida de error; si go test falla, aunque deje uso.txt, sale con 1 e imprime
+// su registro; si no, sale con 0 e imprime salida.txt. Sin siete argumentos, el
+// uso y el código 1, sin ejecutar go. En todos los casos, el TMPDIR del test
+// queda vacío: el guion borra su temporal.
+func TestGuionDelLaboratorio(t *testing.T) {
+	t.Parallel()
+
+	guion, err := filepath.Abs(guionDelLaboratorio)
+	require.NoError(t, err)
+
+	raiz, err := filepath.EvalSymlinks(filepath.Dir(filepath.Dir(guion)))
+	require.NoError(t, err)
+
+	for _, caso := range casosDelGuionDelLaboratorio() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElGuionDelLaboratorio(t, caso, guion, raiz)
+		})
+	}
+}
+
+// exigirElGuionDelLaboratorio ejecuta el guion del laboratorio de esa ruta con
+// la orden del caso, con un directorio común y un TMPDIR suyos, y exige lo que
+// el caso espera de su código, sus dos salidas, su TMPDIR y la orden de go.
+func exigirElGuionDelLaboratorio(t *testing.T, caso casoDelGuionDelLaboratorio, guion, raiz string) {
+	t.Helper()
+
+	comun, temporal := t.TempDir(), t.TempDir()
+	orden := caso.orden(t.Context(), guion)
+
+	codigo, salida, deError := ejecutarElGuionDelSondeo(t, orden, caso.casoDelGuionDelSondeo, comun, temporal)
+
+	assert.Equalf(t, caso.codigo, codigo, "el código del guion, con esta salida de error:\n%s", deError)
+	assert.Equal(t, caso.salida, salida, "la salida estándar del guion")
+	exigirLaSalidaDeErrorDelGuion(t, caso.casoDelGuionDelSondeo, deError)
+
+	entradas, err := os.ReadDir(temporal)
+	require.NoError(t, err)
+	assert.Empty(t, entradas, "el guion borra su temporal y el TMPDIR queda vacío")
+
+	anotaciones := filepath.Join(comun, sustitutoGo)
+	if caso.sinGo {
+		assert.NoDirExists(t, anotaciones, "sin siete argumentos, el guion no ejecuta go")
+
+		return
+	}
+
+	delGuion := orden.Args[1:]
+
+	directorio := delGuion[6]
+	if caso.desdeLaRaiz {
+		directorio = filepath.Join(raiz, directorio)
+	}
+
+	exigirElGoDelLaboratorio(t, leerElGoAnotado(t, anotaciones), delGuion, directorio, temporal, raiz)
+}
+
+// exigirElGoDelLaboratorio exige que el sustituto de go se haya ejecutado en la
+// raíz del repositorio con la orden de TestSondeoDelLaboratorio
+// (ordenDelLaboratorio), con los argumentos del guion, ese DIRECTORIO y un
+// temporal en el TMPDIR dado, con el nombre de la plantilla y que ya tenía su
+// go-test.log y su tmp/, y con ese tmp/ como TMPDIR.
+func exigirElGoDelLaboratorio(t *testing.T, anotado goAnotado, delGuion []string, directorio, temporal, raiz string) {
+	t.Helper()
+
+	require.NotEmpty(t, anotado.argumentos)
+
+	temporalDelGuion := anotado.argumentos[len(anotado.argumentos)-1]
+
+	fisico, err := filepath.EvalSymlinks(temporal)
+	require.NoError(t, err)
+
+	assert.Equal(t, fisico, filepath.Dir(temporalDelGuion), "el temporal del guion está en TMPDIR")
+	assert.Regexp(t, nombreDelTemporalDelLaboratorio, filepath.Base(temporalDelGuion))
+	assert.Equal(t, ordenDelLaboratorio(delGuion, directorio, temporalDelGuion), anotado.argumentos)
+	assert.Equal(t, raiz, anotado.directorio, "go test se ejecuta en la raíz del repositorio")
+	assert.Equal(t, filepath.Join(temporalDelGuion, "tmp"), anotado.tmpdir, "el TMPDIR de go test es el tmp/ del temporal")
+	assert.Equal(t, "go-test.log\ntmp", anotado.temporal, "el temporal ya tiene su go-test.log y su tmp/")
+}
+
+// ordenDelLaboratorio son los argumentos de go de la orden de
+// TestSondeoDelLaboratorio (contracts/arnes.md §1 de H39), con los seis
+// primeros del guion, en su orden, ese DIRECTORIO y su temporal.
+func ordenDelLaboratorio(argumentos []string, directorio, temporal string) []string {
+	return []string{
+		"test", "-tags", "evals", "-count=1", "-timeout", "0", "-run", "^TestSondeoDelLaboratorio$", "./internal/evals/",
+		"-args", "-variantes", argumentos[0], "-modos", argumentos[1], "-sesiones", argumentos[2], "-modelo",
+		argumentos[3], "-claude-code", argumentos[4], "-concurrencia", argumentos[5], "-directorio", directorio,
+		"-temporal", temporal,
+	}
+}
+
+// casosDelGuionDelLaboratorio son los casos de TestGuionDelLaboratorio: go test
+// sale con 0, con un DIRECTORIO relativo y con uno absoluto; sale con 1; sale
+// con 0 y deja uso.txt, con los errores de SESIONES=6 y MODELO=sonnet o con el
+// de DIRECTORIO vacío, que el guion pasa vacío; sale con 1 y deja uso.txt; y el
+// guion recibe seis argumentos.
+func casosDelGuionDelLaboratorio() []casoDelGuionDelLaboratorio {
+	registro := []string{registroDeGoEnSuSalida, registroDeGoEnLaDeError}
+
+	return []casoDelGuionDelLaboratorio{
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "go-test-sale-con-0-y-directorio-relativo",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "control,instrucciones", "orden,herramienta", "8",
+					modeloDelLaboratorio, versionDelClaudeDelLaboratorio, "2", directorioRelativoDelLaboratorio)
+			},
+			codigo: 0,
+			salida: salidaDelSustitutoDeGo,
+		}, desdeLaRaiz: true},
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "go-test-sale-con-0-y-directorio-absoluto",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "parametro", "herramienta", "4", modeloDelLaboratorio,
+					versionDelClaudeDelLaboratorio, "1", directorioAbsolutoDelLaboratorio)
+			},
+			codigo: 0,
+			salida: salidaDelSustitutoDeGo,
+		}},
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "go-test-sale-con-1",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
+					versionDelClaudeDelLaboratorio, "1", directorioRelativoDelLaboratorio)
+			},
+			codigoDeGo: 1,
+			codigo:     1,
+			deError:    registro,
+		}, desdeLaRaiz: true},
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "uso-con-dos-argumentos-que-no-valen",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "control", "orden", "6", "sonnet", versionDelClaudeDelLaboratorio,
+					"1", directorioAbsolutoDelLaboratorio)
+			},
+			uso:    usoDelLaboratorioConDosArgumentos,
+			codigo: 1,
+		}},
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "uso-sin-directorio",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
+					versionDelClaudeDelLaboratorio, "1", "")
+			},
+			uso:    usoDelLaboratorioSinDirectorio,
+			codigo: 1,
+		}},
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "go-test-sale-con-1-y-deja-uso",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "control", "orden", "6", "sonnet", versionDelClaudeDelLaboratorio,
+					"1", directorioRelativoDelLaboratorio)
+			},
+			codigoDeGo: 1,
+			uso:        usoDelLaboratorioConDosArgumentos,
+			codigo:     1,
+			deError:    registro,
+		}, desdeLaRaiz: true},
+		{casoDelGuionDelSondeo: casoDelGuionDelSondeo{
+			nombre: "sin-siete-argumentos",
+			orden: func(ctx context.Context, guion string) *exec.Cmd {
+				return exec.CommandContext(ctx, guion, "control", "orden", "4", modeloDelLaboratorio,
+					versionDelClaudeDelLaboratorio, "1")
+			},
+			codigo:  1,
+			deError: []string{"uso: scripts/evals-laboratorio.sh"},
+			sinGo:   true,
+		}},
+	}
+}
+
+// prefijoDeLaOrdenDelLlavero es con lo que empieza la orden de las recetas de
+// make evals-sondeo y make evals-laboratorio: el guion del llavero, que toma la
+// credencial (ADR 0032; contracts/arnes.md §1 de H39).
+const prefijoDeLaOrdenDelLlavero = "scripts/evals-sondeo-llavero.sh"
+
+// Las órdenes que TestRecetasDelSondeo espera de make -n en cada receta, con
+// los valores fijos de sus casos (contracts/arnes.md §1 de H39): el guion del
+// llavero con el nombre del guion que ejecuta y los argumentos de make detrás,
+// cada uno entre comillas dobles y en su orden; los cinco del sondeo de una
+// skill y los siete del laboratorio.
+const (
+	ordenDeLaRecetaDelSondeo      = `scripts/evals-sondeo-llavero.sh sondeo "normativa" "01" "claude-sonnet-5-5" "2" "1"`
+	ordenDeLaRecetaDelLaboratorio = `scripts/evals-sondeo-llavero.sh laboratorio "control,instrucciones" ` +
+		`"orden,herramienta" "8" "claude-sonnet-5-5" "2.1.284" "2" "sondeo-de-prueba"`
+)
+
+// variablesDelMakeQueLanzaElTest son las que el make que lanza go test, el de
+// make ci, pasa a sus hijos: TestRecetasDelSondeo las quita del entorno de su
+// make -n para que ni sus banderas ni su nivel cambien lo que imprime.
+var variablesDelMakeQueLanzaElTest = []string{"MAKEFLAGS", "MFLAGS", "MAKELEVEL"}
+
+// casoDeLasRecetasDelSondeo es un caso de TestRecetasDelSondeo: la receta, la
+// orden make -n que la imprime con valores fijos, escrita entera con
+// constantes (gosec G204), y la orden del guion del llavero que tiene que
+// imprimir.
+type casoDeLasRecetasDelSondeo struct {
+	receta   string
+	orden    func(ctx context.Context) *exec.Cmd
+	esperada string
+}
+
+// TestRecetasDelSondeo es el control de las recetas de make evals-sondeo y make
+// evals-laboratorio (contracts/arnes.md §1 y §6 de H39; FR-030, FR-033 de H39),
+// sin modelo: ejecuta en la raíz del repositorio, sin las variables del make
+// que lanza el test, make -n de cada una con valores fijos —-n solo imprime: ni
+// guion, ni credencial, ni sesión— y exige en su salida una sola línea que
+// empieza por el guion del llavero, igual carácter a carácter a la orden de la
+// cadena con esos valores. Las demás líneas, las de la receta de check-tools,
+// no cuentan. Es su único control: la política de las sesiones del run veda
+// make evals-sondeo como orden.
+func TestRecetasDelSondeo(t *testing.T) {
+	t.Parallel()
+
+	casos := []casoDeLasRecetasDelSondeo{
+		{
+			receta: "evals-sondeo",
+			orden: func(ctx context.Context) *exec.Cmd {
+				return exec.CommandContext(ctx, "make", "-n", "evals-sondeo", "SKILL=normativa", "EVALS=01",
+					"MODELO=claude-sonnet-5-5", "REPETICIONES=2", "CONCURRENCIA=1")
+			},
+			esperada: ordenDeLaRecetaDelSondeo,
+		},
+		{
+			receta: "evals-laboratorio",
+			orden: func(ctx context.Context) *exec.Cmd {
+				return exec.CommandContext(ctx, "make", "-n", "evals-laboratorio", "VARIANTES=control,instrucciones",
+					"MODOS=orden,herramienta", "SESIONES=8", "MODELO=claude-sonnet-5-5", "CLAUDE_CODE=2.1.284",
+					"CONCURRENCIA=2", "DIRECTORIO=sondeo-de-prueba")
+			},
+			esperada: ordenDeLaRecetaDelLaboratorio,
+		},
+	}
+
+	for _, caso := range casos {
+		t.Run(caso.receta, func(t *testing.T) {
+			t.Parallel()
+
+			orden := caso.orden(t.Context())
+			orden.Dir = raizDelRepositorio
+			orden.Env = sobreLaBase(os.Environ(), nil, variablesDelMakeQueLanzaElTest...)
+
+			codigo, salida, deError := codigoYSalidas(t, orden)
+			require.Equalf(t, 0, codigo, "make -n %s sale con 0; su salida de error:\n%s", caso.receta, deError)
+
+			var delLlavero []string
+
+			for linea := range strings.Lines(salida) {
+				if strings.HasPrefix(linea, prefijoDeLaOrdenDelLlavero) {
+					delLlavero = append(delLlavero, strings.TrimSuffix(linea, "\n"))
+				}
+			}
+
+			assert.Equalf(t, []string{caso.esperada}, delLlavero,
+				"make -n %s imprime una sola orden del guion del llavero, la de la cadena; su salida:\n%s", caso.receta,
+				salida)
+		})
+	}
 }
