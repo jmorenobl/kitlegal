@@ -1,0 +1,47 @@
+# describe.txtar
+# La ayuda de cada argumento de un verbo es la descripción de su propiedad en la
+# entrada del documento de --describe: el texto de su etiqueta help, carácter a
+# carácter y sin escapar < ni >, detrás de las claves que la propiedad ya lleva.
+# Las ocho banderas globales no la llevan y salen con los mismos bytes que antes
+# del hito (contracts/esquemas.md §1 y §2).
+#
+# Cubre: US1.1, US1.3 · FR-001, FR-003 · SC-001 (en `--describe`); FR-002 lo comprueba `TestAyudasDeLosArgumentos` (research D12)
+#
+# Describir un verbo exige darle sus argumentos obligatorios, porque el análisis
+# va antes que la descripción (research V5); con --describe no se ejecuta nada.
+# Cada ayuda va en el patrón con los metacaracteres de la expresión regular
+# escapados (. ( ) $), y <año> y <número> tal cual: el documento no los escapa
+# (research V4). Las comillas simples impiden que testscript expanda $HOME, que
+# en la ayuda de --global es texto (research V1). Cada propiedad se compara
+# entera, de su nombre a la llave que la cierra, con la sangría del documento.
+
+# --- boe articulo: norma, bloque y fecha, cada ayuda una sola vez ---
+exec $KITLEGAL_BIN boe articulo BOE-A-2015-10565 a21 --describe
+stdout -count=1 '^          "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>\."$'
+stdout -count=1 '^          "description": "Id del bloque, del campo id de kitlegal boe indice \(a21, da-3, a1-30…\): no se compone con el número del artículo, que no siempre es su id\."$'
+stdout -count=1 '^          "description": "Día cuya redacción del bloque se quiere, la que regía ese día, en lugar de la vigente\."$'
+stdout '^      "properties": \{\n        "norma": \{\n          "type": "string",\n          "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>\."\n        \},$'
+stdout '^        "bloque": \{\n          "type": "string",\n          "description": "Id del bloque, del campo id de kitlegal boe indice \(a21, da-3, a1-30…\): no se compone con el número del artículo, que no siempre es su id\."\n        \},$'
+stdout '^        "fecha": \{\n          "type": "string",\n          "description": "Día cuya redacción del bloque se quiere, la que regía ese día, en lugar de la vigente\."\n        \},$'
+
+# --- Las ocho banderas globales, con los bytes de antes del hito ---
+stdout '^        "json": \{\n          "type": "boolean"\n        \},$'
+stdout '^        "timeout": \{\n          "type": "string"\n        \},$'
+stdout '^        "offline": \{\n          "type": "boolean"\n        \},$'
+stdout '^        "dry-run": \{\n          "type": "boolean"\n        \},$'
+stdout '^        "describe": \{\n          "type": "boolean"\n        \},$'
+stdout '^        "no-graph": \{\n          "type": "boolean"\n        \},$'
+stdout '^        "asunto": \{\n          "type": "string"\n        \},$'
+stdout '^        "verbose": \{\n          "type": "boolean"\n        \}\n      \},$'
+
+# --- plazos calcular: tipo, inicio, municipios, duracion y unidad ---
+exec $KITLEGAL_BIN plazos calcular x x x --describe
+stdout '^        "tipo": \{\n          "type": "string",\n          "description": "Tipo de plazo: alzada, reposicion, contencioso, acceso-resolver, acceso-reclamar, silencio o generico\."\n        \},$'
+stdout '^        "inicio": \{\n          "type": "string",\n          "description": "Fecha de inicio, AAAA-MM-DD: la de la notificación o la publicación; en silencio, la del acuerdo de iniciación o la de entrada de la solicitud\."\n        \},$'
+stdout '^        "municipios": \{\n          "items": \{\n            "type": "string"\n          \},\n          "type": "array",\n          "description": "Municipios que cuentan, por su nombre o su código INE: el del interesado y el de la sede del órgano, o en contencioso el de la sede del juzgado\."\n        \},$'
+stdout '^        "duracion": \{\n          "type": "string",\n          "description": "Duración, un entero positivo; solo, y siempre, en silencio y generico\."\n        \},$'
+stdout '^        "unidad": \{\n          "type": "string",\n          "description": "Unidad de la duración: meses, dias-habiles o dias-naturales; solo, y siempre, en silencio y generico\."\n        \},$'
+
+# --- skills install: la ayuda de --global, con $HOME literal ---
+exec $KITLEGAL_BIN skills install --describe
+stdout '^        "global": \{\n          "type": "boolean",\n          "description": "Actúa en el ámbito global: \$HOME/\.agents/skills y los hosts de HOME\."\n        \},$'
