@@ -106,5 +106,11 @@ sale con 1. No importa el SDK de MCP (R7). `kitlegal` no gana ninguna bandera, v
   la versión distinta, con `MODELO=sonnet`, con `VARIANTES=instrucciones MODOS=orden` y con `SESIONES=6`, 0 sesiones y
   el mensaje de §2; con una petición válida (dos variantes, una con un modo y otra con dos, `SESIONES=8`), dos sesiones
   de cada eval en cada variante y modo pedidos, y ninguna más (FR-030, FR-031, SC-007).
+- `TestRecetasDelSondeo` (`internal/evals`, en `make ci`, sin modelo): ejecuta desde la raíz del repositorio, sin el
+  `MAKEFLAGS` del `make` que lo lanza, `make -n evals-sondeo …` y `make -n evals-laboratorio …` con valores fijos, y
+  exige en cada salida una sola línea del guion del llavero, igual carácter a carácter a la cadena de §1:
+  `scripts/evals-sondeo-llavero.sh sondeo` y sus cinco argumentos, y `scripts/evals-sondeo-llavero.sh laboratorio` y sus
+  siete, entre comillas dobles y en su orden. `-n` solo imprime: ningún guion, credencial ni sesión (FR-030, FR-033).
+  Es el control de las dos recetas: la política de las sesiones del run veda `make … evals-sondeo` como orden.
 - `TestServidorDelLaboratorio` (§5) y el test de hoy de `servidor.json` con `Servidor` vacío.
 - `TestSondeoDelLaboratorio` (`-tags evals`) no corre en `make ci`: es la entrada de la persona.
