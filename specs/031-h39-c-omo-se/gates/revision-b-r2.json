@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log termina en «ci: todos los controles en verde» y «kitlegal-verificacion exit=0», y su mtime (2026-11-03 19:55:49) es el del commit de la corrección 6121c82a, que es la cabeza. Reproducido en una copia fuera del repositorio (clon de HEAD en $TMPDIR): `go test ./internal/evals/ -count=1` ok en 57 s con 95,8 % de cobertura, y `golangci-lint run ./internal/evals/...` con la configuración del repositorio, 0 issues. El árbol solo lleva ficheros de gates/ del propio ciclo de revisión (base-global-pendiente borrado, modelos.jsonl y revision-cambios.md modificados, revision-cambios-r2.diff sin seguimiento); nada fuera de gates/."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Motivo 1 de la ronda 1 corregido: internal/evals/laboratorio_tabla_test.go:191-396 (TestOrdenesDeBash, 35 casos) fija las órdenes simples de ordenesSimples y si esDeKitlegal cuenta cada orden en el modo orden, que es el camino de «Activa antes» (laboratorio_tabla.go:446-472 anotarLosUsos y activaAntes → esDeKitlegal l. 496-518 → consultaKitlegal l. 526-546). Seis mutantes medidos en la copia con `go test -overlay` contra TestOrdenesDeBash, todos en rojo: quitar invocacion.Consulta (l. 544) → dry-run, describe y ayuda; dejar de partir por `|` (l. 1010) → redireccion, o y tuberia; dejar de partir por `&` y `&&` (l. 1013-1017) → y y segundo-plano; no saltar las comillas dentro de un paréntesis (l. 1110-1111) → parentesis-entre-comillas y comilla-sin-cerrar-en-el-parentesis; dejar los escapes de las dobles tal cual (l. 1128) → escapes-de-las-dobles y comilla-escapada-en-las-dobles; la barra con salto de línea sin continuación (l. 1037) → barra-y-salto-de-linea. Cobertura del lector al 100 % en todas sus funciones (ordenesSimples, leerDesde, leerLaBarra, leerElTramo, cierreDelTramo, cierreSinEscapar, cierreDelParentesis, sinEscapesDeLasDobles, l. 954-1222). La suite congelada sigue activada e intacta: desde 70e1bd0 solo la toca 889ac4a9 (la activación), `git diff 70e1bd0 HEAD -- specs/031-h39-c-omo-se/aceptacion/describe.txtar` vacío e idéntica a internal/app/testdata/script/h39-describe.txtar; el rango 44e009e..HEAD no toca testdata/, schemas/ ni data/ (git diff --stat vacío), y TestTablaDelLaboratorio pasa con tabla.md sin cambiar."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "El diff del rango (gates/revision-cambios-r2.diff) solo quita los imports bytes y unicode/utf8 de internal/evals y añade encoding/json y slices en el test; sin net/http, os.Exit ni fmt.Print fuera de los paquetes autorizados, y sin dependencia nueva entre paquetes."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún applet, el sobre ni --describe; vale lo juzgado en la ronda 1 (h39-describe.txtar y TestAyudasDeLosArgumentos intactos)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "leerElSondeo (laboratorio_tabla.go:266-281) envuelve con la ruta el error de lectura y el de json.Unmarshal, y tieneSondeo (l. 249-262) el de os.Stat distinto de ENOENT: el defecto genérico (1) de ADR 0023. Sin pánicos en el lector con tramos sin cerrar: cierreDelTramo, cierreSinEscapar y cierreDelParentesis devuelven len(orden) (l. 1069-1123) y leerElTramo recorta con min (l. 1051); los casos doble-sin-cerrar, simple-sin-cerrar, parentesis-sin-cerrar y comilla-sin-cerrar-en-el-parentesis del test los ejercen."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "Los comentarios de ordenesSimples (l. 943-953), leerElTramo, cierreDelTramo y leerElServidorDelLaboratorio dicen lo que hace el código corregido. contracts/tabla.md:26-31 y research.md:159-168 (D10) no prometen comentarios, recuperación de un tramo sin cerrar, la comprobación UTF-8 ni la forma estricta de sondeo.json; CHANGELOG.md (Unreleased) y CONTRIBUTING.md tampoco. gates/supuestos.md:41-43 registra las tres retiradas con su porqué; T008 ya no lleva la frase del UTF-8 y T009 (l. 28) deja fuera los comentarios como parte del analizador completo descartado."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Nada del rango toca HTTP, credenciales ni datos de persona; los datos siguen siendo los grabados (testdata/ sin cambios en el rango)."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "Sin nolint, t.Skip, TODO ni errores silenciados en el rango; ningún fixture ni tabla.md ajustados (git diff --stat del rango sobre testdata/ vacío); TestOrdenesDeBash lleva sus órdenes como constantes del test, con un intérprete por caso (l. 220-224)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El rango hace exactamente lo que pedían los dos veredictos: retira los mecanismos nombrados (finDeLaLinea, completas, errTextoQueNoEsUTF8, IsRegular, DisallowUnknownFields, More y la comprobación de vacíos) y añade el test de las reglas de FR-041; ninguna mejora de más. Los tres supuestos nuevos (gates/supuestos.md:41-43) son lecturas conservadoras coherentes con contracts/tabla.md §2 y research D10."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "El rango no cambia ninguna salida que consuma una skill o una persona (ni --describe, ni el servidor, ni la tabla con las sesiones fijas, que sigue byte a byte); vale la medida de la ronda 1."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Motivos 1 (2) y 2 de la ronda 1 corregidos: el diff quita el tratamiento del comentario (#), el campo completas y la recuperación de un tramo sin cerrar (ordenesSimples l. 954-964 lee hasta el final sin rama aparte), la comprobación UTF-8 de -instrucciones y -descripcion con sus dos subtests, la rama IsRegular de tieneSondeo y las tres de leerElSondeo. Cada caso de TestOrdenesDeBash se traza: separadores, comillas y barra, asignación y ruta a contracts/tabla.md §2 (l. 26-29); --describe, --help, --dry-run, skills list y which a §2 (l. 30-31) y a la clarificación de spec.md:38; subshell, $( ) y comillas invertidas a research D10 alternativa (c); los tramos sin cerrar y el # a la regla registrada en supuestos.md:41. Ningún mecanismo nuevo."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "El rango no toca ningún control de umbral; vale lo de la ronda 1 (filas de plan.md «Controles de umbral» con su control en código o en el job de evals)."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "[b] Las sesiones fijas de internal/evals/testdata/laboratorio/sondeo/ y tabla.md siguen sin distinguir las reglas de la primera orden (la activación va en un turno anterior, así que reconocer o no la orden da el mismo «sí»); la regresión la detecta ahora TestOrdenesDeBash y lo que queda —una sesión fija por regla con la orden kitlegal antes de la activación— lo deja gates/revision-pendiente.md para una propuesta que pueda tocar testdata/.",
+    "[k] Con el # como un carácter más (lectura conservadora pedida en la ronda 1; supuestos.md:41), un comentario con una comilla sin pareja antes de la orden la deja sin contar: medido en la copia, «# it's a test» seguido de salto de línea y «kitlegal boe articulo BOE-A-1978-31229 a140» da cuenta=false (antes de la corrección contaba), mientras «# comentario» en la línea anterior y «… a140 # comentario» en la misma dan cuenta=true. Sesga «Activa antes» hacia «sí» en una sesión así; rara en Claude Code y fuera de lo que contracts/tabla.md §2 enumera; conviene tenerlo en cuenta al leer el modo orden en el ADR.",
+    "[e] tieneSondeo (83,3 %) y leerElSondeo (75 %) dejan sin test la rama de os.Stat distinto de ENOENT y la de json.Unmarshal; son el defecto genérico (1) para un sondeo.json que el arnés no escribe, y un sondeo.json con otras claves o con modelo o claude_code vacíos ya no es un error: la fila sale con la celda vacía.",
+    "[a] El árbol lleva los ficheros de gates/ del propio ciclo de revisión (base-global-pendiente borrado; modelos.jsonl y revision-cambios.md modificados; revision-cambios-r2.diff sin seguimiento), que escribe el workflow al preparar a los jueces; nada fuera de gates/.",
+    "[f] El cable MCP sigue sin medir en esta sesión: CHANGELOG.md dice «tal cual y sin escapar» también de las herramientas MCP y contracts/esquemas.md §1 admite que el SDK escape <, > y & en el inputSchema; si lo hace, precisar la frase (el valor decodificado es el mismo).",
+    "[l] Las cuatro filas `evals:` de plan.md «Controles de umbral» (SC-008, FR-053) tienen su control en .github/workflows/evals.yml y en los umbrales de cada skill, que el hito no toca; las mide el job del cierre tras esta revisión, no make ci.",
+    "[e] `laboratorio servidor` y `laboratorio tabla` terminan con 1 también ante un error de uso, como fijan contracts/arnes.md §5 y tabla.md §1; `laboratorio` no es un applet ni se distribuye."
+  ]
+}
