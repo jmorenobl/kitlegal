@@ -241,8 +241,22 @@ successfully»). No fue la primera: los transcripts de las sesiones `sdk-cli` de
 **Validación.** Los tests nuevos fallan con los guiones de `main` y pasan con los de la propuesta; cada pieza del
 arreglo, quitada sola —la variable, la clave, la regla, el `denyWrite`, los `--add-dir`, un directorio de más, la
 comprobación de versión y las dos formas de volver a admitir la memoria en el gancho—, pone en rojo alguno de ellos.
-Lo que Claude Code hace con esos ajustes en una sesión con modelo lo comprueba una persona con la sonda de la
-propuesta de cambio, en un clon y sobre la memoria del clon, no la del proyecto.
+Lo que Claude Code hace con esos ajustes en una sesión con modelo lo comprobó Jorge el 2026-11-04 con dos sondas de
+una sesión cada una (`claude-sonnet-5-5`, Claude Code 2.1.317), abiertas por `scripts/claude-modelo.sh` en un clon de
+la rama, sin los ganchos del proyecto y sobre la memoria del clon, no la del proyecto; lo que vale es lo que quedó en
+disco:
+
+| Qué se pidió | Resultado |
+|---|---|
+| La palabra clave escrita en el `MEMORY.md` del clon | «no la sé»: la memoria no se carga |
+| `Write` y `Edit` sobre la memoria | «File is in a directory that is denied by your permission settings» (la regla `deny`), también con el clon de confianza, es decir, con el `Edit` sin ruta del `allow` del proyecto en vigor |
+| `Write` en el directorio personal | «the permissions.blockWritesOutsideWorkingDirectories setting blocks writes outside the working directories», con la lista: el clon, el temporal del usuario y `/private/tmp/claude` |
+| `rtk proxy sh <guion>` que escribe en la memoria o en el directorio personal, con el clon de confianza (la orden la admite `Bash(rtk:*)` y su texto no nombra la ruta) | «Operation not permitted»: lo para el sandbox |
+| `Write` en `/tmp/claude` y en el repositorio, y el mismo guion en `/tmp/claude` | Escriben |
+
+En la primera sonda el clon no era de confianza y Claude Code ignoró sus reglas `allow`; la segunda repitió con él de
+confianza lo que eso dejaba sin medir: la escritura de `Bash`, que solo podía parar el sandbox, y `Edit` con el `allow`
+del run.
 
 **Lo que se pierde, y se asume.** Las sesiones del run ya no cargan el índice de la memoria del proyecto, que
 llevaba trucos de herramientas medidos en runs anteriores. Eso es lo que el punto 7 ya temía —la memoria la escribe
