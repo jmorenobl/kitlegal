@@ -12,7 +12,6 @@ import (
 	"os"
 	"os/exec"
 	"slices"
-	"unicode/utf8"
 )
 
 // PrefijoDelLaboratorio es el principio de cada línea que el programa
@@ -113,9 +112,7 @@ func servirElLaboratorio(ctx context.Context, args []string, entrada io.Reader, 
 	return servidor.servir(ctx, entrada, salida, errores)
 }
 
-// leerElServidorDelLaboratorio lee los argumentos de laboratorio servidor. Un
-// texto de -instrucciones o de -descripcion que no es UTF-8 no cabe en un
-// mensaje del protocolo, y es un error que lo nombra.
+// leerElServidorDelLaboratorio lee los argumentos de laboratorio servidor.
 func leerElServidorDelLaboratorio(args []string) (servidorDelLaboratorio, error) {
 	analizador := flag.NewFlagSet("laboratorio servidor", flag.ContinueOnError)
 	// La orden escribe una sola línea, la suya: lo que flag escribiría por su
@@ -140,10 +137,6 @@ func leerElServidorDelLaboratorio(args []string) (servidorDelLaboratorio, error)
 	servidor := servidorDelLaboratorio{kitlegal: kitlegal}
 
 	if dadas[banderaDeInstrucciones] {
-		if !utf8.ValidString(instrucciones) {
-			return servidorDelLaboratorio{}, errTextoQueNoEsUTF8(banderaDeInstrucciones)
-		}
-
 		servidor.instrucciones = &instrucciones
 	}
 
@@ -153,20 +146,10 @@ func leerElServidorDelLaboratorio(args []string) (servidorDelLaboratorio, error)
 			return servidorDelLaboratorio{}, errUsoDelServidor
 		}
 
-		if !utf8.ValidString(descripcion) {
-			return servidorDelLaboratorio{}, errTextoQueNoEsUTF8(banderaDeLaDescripcion)
-		}
-
 		servidor.parametro = &parametroReescrito{herramienta: herramienta, parametro: parametro, descripcion: descripcion}
 	}
 
 	return servidor, nil
-}
-
-// errTextoQueNoEsUTF8 es el fallo de una bandera de texto cuyo valor no es
-// UTF-8.
-func errTextoQueNoEsUTF8(bandera string) error {
-	return fmt.Errorf("el texto de -%s no es UTF-8", bandera)
 }
 
 // servir arranca el hijo, filtra su salida y espera a que termine. Si el filtro

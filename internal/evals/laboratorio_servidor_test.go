@@ -233,9 +233,8 @@ func probarLoQueLaListaNoTrae(t *testing.T, lineas []string, lista int) {
 }
 
 // probarLosArgumentosSinLaForma fija que unos argumentos sin la forma de la
-// orden son un defecto antes de arrancar nada: la línea de uso, o la que dice
-// qué texto no es UTF-8, en la salida de error, nada en la estándar, 1 y ningún
-// hijo.
+// orden son un defecto antes de arrancar nada: la línea de uso en la salida de
+// error, nada en la estándar, 1 y ningún hijo.
 func probarLosArgumentosSinLaForma(t *testing.T, lineas []string) {
 	t.Helper()
 
@@ -278,20 +277,6 @@ func probarLosArgumentosSinLaForma(t *testing.T, lineas []string) {
 			nombre: "descripcion-sola",
 			args:   []string{"-kitlegal", sustituto.ruta, "-descripcion", descripcionDelLaboratorio},
 			linea:  uso,
-		},
-		{
-			nombre: "instrucciones-que-no-son-utf8",
-			args:   []string{"-kitlegal", sustituto.ruta, "-instrucciones", "activa\xff"},
-			linea:  "laboratorio: el texto de -instrucciones no es UTF-8\n",
-		},
-		{
-			nombre: "descripcion-que-no-es-utf8",
-			args: []string{
-				"-kitlegal", sustituto.ruta,
-				"-herramienta", herramientaDelLaboratorio, "-parametro", parametroDelLaboratorio,
-				"-descripcion", "id\xff",
-			},
-			linea: "laboratorio: el texto de -descripcion no es UTF-8\n",
 		},
 	}
 

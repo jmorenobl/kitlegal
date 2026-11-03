@@ -1,7 +1,6 @@
 package evals
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -245,27 +244,25 @@ func sondeosDeLaRuta(ruta string) ([]string, error) {
 	return sondeos, nil
 }
 
-// tieneSondeo dice si el directorio tiene sondeo.json. Un sondeo.json que no es
-// un fichero, o que no se puede mirar, es un error que lo nombra.
+// tieneSondeo dice si el directorio tiene sondeo.json. Un sondeo.json que no se
+// puede mirar es un error que lo nombra.
 func tieneSondeo(directorio string) (bool, error) {
 	fichero := filepath.Join(directorio, ficheroDelSondeo)
 
-	estado, err := os.Stat(fichero)
+	_, err := os.Stat(fichero)
 
 	switch {
 	case errors.Is(err, fs.ErrNotExist):
 		return false, nil
 	case err != nil:
 		return false, fmt.Errorf("%s no se puede leer: %w", fichero, err)
-	case !estado.Mode().IsRegular():
-		return false, fmt.Errorf("%s no es un fichero", fichero)
 	default:
 		return true, nil
 	}
 }
 
-// leerElSondeo lee el sondeo.json del sondeo: un objeto con el modelo y la
-// versión, los dos no vacíos, y nada más.
+// leerElSondeo lee el sondeo.json del sondeo, el objeto con el modelo y la
+// versión que escribe el arnés.
 func leerElSondeo(sondeo string) (sondeoLeido, error) {
 	fichero := filepath.Join(sondeo, ficheroDelSondeo)
 
@@ -274,21 +271,10 @@ func leerElSondeo(sondeo string) (sondeoLeido, error) {
 		return sondeoLeido{}, fmt.Errorf("%s no se puede leer: %w", fichero, err)
 	}
 
-	decodificador := json.NewDecoder(bytes.NewReader(contenido))
-	decodificador.DisallowUnknownFields()
-
 	var leido sondeoLeido
 
-	if err := decodificador.Decode(&leido); err != nil {
+	if err := json.Unmarshal(contenido, &leido); err != nil {
 		return sondeoLeido{}, fmt.Errorf("%s no es un objeto con modelo y claude_code: %w", fichero, err)
-	}
-
-	if decodificador.More() {
-		return sondeoLeido{}, fmt.Errorf("%s lleva algo detrás de su objeto", fichero)
-	}
-
-	if leido.Modelo == "" || leido.ClaudeCode == "" {
-		return sondeoLeido{}, fmt.Errorf("%s no tiene modelo y claude_code", fichero)
 	}
 
 	return leido, nil
@@ -959,25 +945,17 @@ type palabraDeSh struct {
 // separan |, ||, &&, ;, & y los saltos de línea, salvo el & de una redirección
 // como 2>&1; las palabras, los espacios y los tabuladores; y las comillas
 // simples y dobles y la barra invertida se quitan como en sh, con la barra
-// invertida seguida de un salto de línea como continuación. Un comentario, desde
-// un # al principio de una palabra hasta el salto de línea, no es nada; y una
-// subshell, una sustitución de orden —$( ) o comillas invertidas— y lo que va
-// dentro son parte de la palabra en que están, sin partir: el guion no cuenta
-// kitlegal dentro de ellas (research D10 de H39, alternativa c).
-//
-// Una comilla, un paréntesis o una comilla invertida sin cerrar dejan la orden
-// sin las órdenes de su línea y de las que siguen: sh no ejecuta una línea que no
-// puede leer, y sí las anteriores.
+// invertida seguida de un salto de línea como continuación. Una subshell, una
+// sustitución de orden —$( ) o comillas invertidas— y lo que va dentro son parte
+// de la palabra en que están, sin partir: el guion no cuenta kitlegal dentro de
+// ellas (research D10 de H39, alternativa c). Lo demás de sh no se distingue: un
+// # es un carácter más, y unas comillas, un paréntesis o unas comillas
+// invertidas sin cerrar llegan hasta el final de la orden.
 func ordenesSimples(orden string) [][]palabraDeSh {
 	lector := lectorDeSh{}
 
 	for posicion := 0; posicion < len(orden); {
-		siguiente, leida := lector.leerDesde(orden, posicion)
-		if !leida {
-			return lector.ordenes[:lector.completas]
-		}
-
-		posicion = siguiente
+		posicion = lector.leerDesde(orden, posicion)
 	}
 
 	lector.cerrarLaOrden()
@@ -1006,9 +984,6 @@ type lectorDeSh struct {
 	// ordenes son las órdenes simples ya cerradas que tienen alguna palabra.
 	ordenes [][]palabraDeSh
 
-	// completas es cuántas de ellas cerró el último salto de línea.
-	completas int
-
 	// actual son las palabras de la orden simple que se está leyendo.
 	actual []palabraDeSh
 
@@ -1023,26 +998,16 @@ type lectorDeSh struct {
 }
 
 // leerDesde lee lo que empieza en esa posición de la orden y devuelve la
-// posición siguiente, o falso si es una comilla, un paréntesis o una comilla
-// invertida sin cerrar.
-func (l *lectorDeSh) leerDesde(orden string, posicion int) (int, bool) {
+// posición siguiente.
+func (l *lectorDeSh) leerDesde(orden string, posicion int) int {
 	switch caracter := orden[posicion]; caracter {
 	case '\\':
-		return l.leerLaBarra(orden, posicion), true
+		return l.leerLaBarra(orden, posicion)
 	case '\'', '"', '`', '(':
 		return l.leerElTramo(orden, posicion)
-	case '#':
-		if !l.enLaPalabra {
-			return finDeLaLinea(orden, posicion), true
-		}
-
-		l.anadirSinComillas(caracter)
 	case ' ', '\t':
 		l.cerrarLaPalabra()
-	case '\n':
-		l.cerrarLaOrden()
-		l.completas = len(l.ordenes)
-	case ';', '|':
+	case '\n', ';', '|':
 		l.cerrarLaOrden()
 	case '&':
 		if !l.redireccion {
@@ -1056,17 +1021,7 @@ func (l *lectorDeSh) leerDesde(orden string, posicion int) (int, bool) {
 		l.anadirSinComillas(caracter)
 	}
 
-	return posicion + 1, true
-}
-
-// finDeLaLinea es la posición del salto de línea que cierra el comentario que
-// empieza en esa posición, o el final de la orden.
-func finDeLaLinea(orden string, posicion int) int {
-	if salto := strings.IndexByte(orden[posicion:], '\n'); salto >= 0 {
-		return posicion + salto
-	}
-
-	return len(orden)
+	return posicion + 1
 }
 
 // leerLaBarra lee la barra invertida de esa posición, fuera de comillas: con un
@@ -1090,12 +1045,10 @@ func (l *lectorDeSh) leerLaBarra(orden string, posicion int) int {
 // invertidas que empieza en esa posición y devuelve la posición que sigue a su
 // cierre: de unas comillas simples, su contenido tal cual; de unas dobles, su
 // contenido sin las barras invertidas que escapan; de lo demás, el tramo entero,
-// sin partir.
-func (l *lectorDeSh) leerElTramo(orden string, posicion int) (int, bool) {
-	cierre, cerrado := cierreDelTramo(orden, posicion)
-	if !cerrado {
-		return 0, false
-	}
+// sin partir. Sin cierre, el tramo llega hasta el final de la orden.
+func (l *lectorDeSh) leerElTramo(orden string, posicion int) int {
+	cierre := cierreDelTramo(orden, posicion)
+	siguiente := min(cierre+1, len(orden))
 
 	switch orden[posicion] {
 	case '\'':
@@ -1103,22 +1056,24 @@ func (l *lectorDeSh) leerElTramo(orden string, posicion int) (int, bool) {
 	case '"':
 		l.anadirEntrecomillado(sinEscapesDeLasDobles(orden[posicion+1 : cierre]))
 	default:
-		l.anadirEntrecomillado(orden[posicion : cierre+1])
+		l.anadirEntrecomillado(orden[posicion:siguiente])
 	}
 
-	return cierre + 1, true
+	return siguiente
 }
 
 // cierreDelTramo es la posición del carácter que cierra el tramo que empieza en
-// esa posición, y si lo hay: la comilla simple siguiente; la doble o la
-// invertida siguiente que no escapa una barra; o el paréntesis que cierra el de
-// apertura.
-func cierreDelTramo(orden string, posicion int) (int, bool) {
+// esa posición, o el final de la orden si no lo cierra ninguno: la comilla
+// simple siguiente; la doble o la invertida siguiente que no escapa una barra; o
+// el paréntesis que cierra el de apertura.
+func cierreDelTramo(orden string, posicion int) int {
 	switch orden[posicion] {
 	case '\'':
-		cierre := strings.IndexByte(orden[posicion+1:], '\'')
+		if cierre := strings.IndexByte(orden[posicion+1:], '\''); cierre >= 0 {
+			return posicion + 1 + cierre
+		}
 
-		return posicion + 1 + cierre, cierre >= 0
+		return len(orden)
 	case '(':
 		return cierreDelParentesis(orden, posicion)
 	default:
@@ -1127,25 +1082,25 @@ func cierreDelTramo(orden string, posicion int) (int, bool) {
 }
 
 // cierreSinEscapar es la posición del primer carácter igual al de esa posición
-// que no escapa una barra invertida: el cierre de unas comillas dobles o
-// invertidas.
-func cierreSinEscapar(orden string, posicion int) (int, bool) {
+// que no escapa una barra invertida, el cierre de unas comillas dobles o
+// invertidas, o el final de la orden.
+func cierreSinEscapar(orden string, posicion int) int {
 	for actual := posicion + 1; actual < len(orden); actual++ {
 		switch orden[actual] {
 		case '\\':
 			actual++
 		case orden[posicion]:
-			return actual, true
+			return actual
 		}
 	}
 
-	return 0, false
+	return len(orden)
 }
 
 // cierreDelParentesis es la posición del paréntesis que cierra el de esa
-// posición, saltando los tramos entre comillas que lleva dentro, que pueden
-// llevar paréntesis sin pareja.
-func cierreDelParentesis(orden string, posicion int) (int, bool) {
+// posición, o el final de la orden, saltando los tramos entre comillas que lleva
+// dentro, que pueden llevar paréntesis sin pareja.
+func cierreDelParentesis(orden string, posicion int) int {
 	profundidad := 0
 
 	for actual := posicion; actual < len(orden); actual++ {
@@ -1153,23 +1108,18 @@ func cierreDelParentesis(orden string, posicion int) (int, bool) {
 		case '\\':
 			actual++
 		case '\'', '"', '`':
-			cierre, cerrado := cierreDelTramo(orden, actual)
-			if !cerrado {
-				return 0, false
-			}
-
-			actual = cierre
+			actual = cierreDelTramo(orden, actual)
 		case '(':
 			profundidad++
 		case ')':
 			profundidad--
 			if profundidad == 0 {
-				return actual, true
+				return actual
 			}
 		}
 	}
 
-	return 0, false
+	return len(orden)
 }
 
 // sinEscapesDeLasDobles quita del contenido de unas comillas dobles las barras

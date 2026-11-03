@@ -2,9 +2,11 @@ package evals
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -169,6 +171,226 @@ func probarUnDirectorioSinSondeo(t *testing.T) {
 	assert.Contains(t, tabla.errores, respuestasDeLaReglaTestigo)
 	assert.True(t, strings.HasPrefix(tabla.errores, PrefijoDelLaboratorio), "con el prefijo del programa: %s",
 		tabla.errores)
+}
+
+// ordenQueConsulta es una orden kitlegal que consulta con una herramienta del
+// registro, boe_articulo, y palabrasQueConsultan, sus palabras.
+const ordenQueConsulta = "kitlegal boe articulo BOE-A-1978-31229 a140"
+
+var palabrasQueConsultan = []string{"kitlegal", "boe", "articulo", "BOE-A-1978-31229", "a140"}
+
+// casoDeOrdenDeBash es una orden de Bash del modo orden, sus órdenes simples y
+// si es la primera herramienta de kitlegal de la sesión.
+type casoDeOrdenDeBash struct {
+	nombre  string
+	orden   string
+	ordenes [][]palabraDeSh
+	cuenta  bool
+}
+
+// TestOrdenesDeBash fija cómo lee el guion de la tabla la orden de un Bash en
+// el modo orden (FR-041 de H39; contracts/tabla.md §2 de H39; research D10 de
+// H39): las órdenes simples en que la parte ordenesSimples, cada una con sus
+// palabras, y si la cuenta esDeKitlegal como primera herramienta de kitlegal,
+// que es lo que decide «Activa antes». La separan |, ||, &&, ;, & y el salto de
+// línea, pero no el & de 2>&1 ni lo escapado; la consulta es la de un verbo que
+// da herramienta, sin --describe, --help ni --dry-run; kitlegal dentro de una
+// subshell, de $( ) o de comillas invertidas no cuenta (alternativa c); un # es
+// un carácter más; y unas comillas, un paréntesis o unas comillas invertidas
+// sin cerrar llegan hasta el final de la orden.
+func TestOrdenesDeBash(t *testing.T) {
+	t.Parallel()
+
+	herramientas, err := herramientasDelRegistro()
+	require.NoError(t, err)
+
+	casos := slices.Concat(casosDeOrdenesQueSeParten(), casosDeOrdenesQueNoConsultan(), casosDeOrdenesSinPartir(),
+		casosDeOrdenesConEscapes())
+
+	for _, caso := range casos {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			// Un intérprete por caso: su analizador guarda lo que lee de cada
+			// invocación, y los casos corren a la vez.
+			interprete, err := nuevoInterprete()
+			require.NoError(t, err)
+
+			contador := contadorDelLaboratorio{herramientas: herramientas, interprete: interprete}
+
+			entrada, err := json.Marshal(map[string]string{"command": caso.orden})
+			require.NoError(t, err)
+
+			uso := usoDelTranscript{turno: 1, nombre: herramientaBash, entrada: entrada}
+
+			assert.Equal(t, caso.ordenes, ordenesSimples(caso.orden), "las órdenes simples de %q", caso.orden)
+			assert.Equal(t, caso.cuenta, contador.esDeKitlegal(uso, ModoOrden), "si %q cuenta", caso.orden)
+		})
+	}
+}
+
+// casosDeOrdenesQueSeParten son órdenes que se parten en órdenes simples y
+// cuentan por la que consulta.
+func casosDeOrdenesQueSeParten() []casoDeOrdenDeBash {
+	return []casoDeOrdenDeBash{
+		{nombre: "sola", orden: ordenQueConsulta, ordenes: [][]palabraDeSh{consultaCon()}, cuenta: true},
+		{
+			nombre: "tuberia", orden: "cat x | " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("cat", "x"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "o", orden: "false || " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("false"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "y", orden: "cd /tmp && " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("cd", "/tmp"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "segundo-plano", orden: "sleep 1 & " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("sleep", "1"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "punto-y-coma", orden: "echo x; " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "x"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "salto-de-linea", orden: "echo x\n" + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "x"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "redireccion", orden: ordenQueConsulta + " 2>&1 | tail -n 40",
+			ordenes: [][]palabraDeSh{consultaCon("2>&1"), palabrasDe("tail", "-n", "40")}, cuenta: true,
+		},
+		{
+			nombre: "asignacion-y-ruta", orden: `LANG="es ES" "/usr/local/bin/kitlegal" boe articulo BOE-A-1978-31229 a140`,
+			ordenes: [][]palabraDeSh{slices.Concat([]palabraDeSh{{texto: "LANG=es ES", asignacion: true}},
+				palabrasDe("/usr/local/bin/kitlegal", "boe", "articulo", "BOE-A-1978-31229", "a140"))},
+			cuenta: true,
+		},
+		{
+			nombre: "comilla-sin-cerrar-en-la-linea-siguiente", orden: ordenQueConsulta + "\necho \"sin cerrar",
+			ordenes: [][]palabraDeSh{consultaCon(), palabrasDe("echo", "sin cerrar")}, cuenta: true,
+		},
+		{
+			nombre: "parentesis-entre-comillas", orden: "echo $(echo ')' ) ; " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "$(echo ')' )"), consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "parentesis-escapado", orden: `echo $(echo \( ); ` + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", `$(echo \( )`), consultaCon()}, cuenta: true,
+		},
+	}
+}
+
+// casosDeOrdenesQueNoConsultan son órdenes kitlegal, o que lo nombran, que no
+// consultan con un verbo que da herramienta.
+func casosDeOrdenesQueNoConsultan() []casoDeOrdenDeBash {
+	return []casoDeOrdenDeBash{
+		{nombre: "describe", orden: ordenQueConsulta + " --describe", ordenes: [][]palabraDeSh{consultaCon("--describe")}},
+		{nombre: "ayuda", orden: ordenQueConsulta + " --help", ordenes: [][]palabraDeSh{consultaCon("--help")}},
+		{nombre: "dry-run", orden: ordenQueConsulta + " --dry-run", ordenes: [][]palabraDeSh{consultaCon("--dry-run")}},
+		{nombre: "skills-list", orden: "kitlegal skills list", ordenes: [][]palabraDeSh{palabrasDe("kitlegal", "skills", "list")}},
+		{nombre: "which", orden: "which kitlegal", ordenes: [][]palabraDeSh{palabrasDe("which", "kitlegal")}},
+		{
+			nombre: "solo-asignaciones", orden: "KITLEGAL=kitlegal",
+			ordenes: [][]palabraDeSh{{{texto: "KITLEGAL=kitlegal", asignacion: true}}},
+		},
+		{
+			nombre: "almohadilla-al-principio", orden: "# " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe(slices.Concat([]string{"#"}, palabrasQueConsultan)...)},
+		},
+		{
+			nombre: "almohadilla-detras", orden: "echo x # " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe(slices.Concat([]string{"echo", "x", "#"}, palabrasQueConsultan)...)},
+		},
+		{nombre: "almohadilla-en-la-palabra", orden: "echo a#b", ordenes: [][]palabraDeSh{palabrasDe("echo", "a#b")}},
+	}
+}
+
+// casosDeOrdenesSinPartir son órdenes con kitlegal dentro de un tramo que no se
+// parte: una subshell, una sustitución de orden o unas comillas, cerradas o no.
+func casosDeOrdenesSinPartir() []casoDeOrdenDeBash {
+	return []casoDeOrdenDeBash{
+		{
+			nombre: "subshell", orden: "(" + ordenQueConsulta + ")",
+			ordenes: [][]palabraDeSh{palabrasDe("(" + ordenQueConsulta + ")")},
+		},
+		{
+			nombre: "subshell-con-secuencia", orden: "( cd /tmp && " + ordenQueConsulta + " )",
+			ordenes: [][]palabraDeSh{palabrasDe("( cd /tmp && " + ordenQueConsulta + " )")},
+		},
+		{
+			nombre: "sustitucion", orden: "echo $(" + ordenQueConsulta + ")",
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "$("+ordenQueConsulta+")")},
+		},
+		{
+			nombre: "comillas-invertidas", orden: "echo `" + ordenQueConsulta + "`",
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "`"+ordenQueConsulta+"`")},
+		},
+		{
+			nombre: "doble-sin-cerrar", orden: `echo "x; ` + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "x; "+ordenQueConsulta)},
+		},
+		{
+			nombre: "simple-sin-cerrar", orden: "echo 'x; " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "x; "+ordenQueConsulta)},
+		},
+		{
+			nombre: "parentesis-sin-cerrar", orden: "echo $(cd /tmp; " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "$(cd /tmp; "+ordenQueConsulta)},
+		},
+		{
+			nombre: "comilla-sin-cerrar-en-el-parentesis", orden: "echo $(echo 'x); " + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "$(echo 'x); "+ordenQueConsulta)},
+		},
+	}
+}
+
+// casosDeOrdenesConEscapes son órdenes con barras invertidas, fuera y dentro de
+// las comillas dobles.
+func casosDeOrdenesConEscapes() []casoDeOrdenDeBash {
+	return []casoDeOrdenDeBash{
+		{
+			nombre: "separador-escapado", orden: `echo x\;` + ordenQueConsulta,
+			ordenes: [][]palabraDeSh{palabrasDe(slices.Concat([]string{"echo", "x;kitlegal"}, palabrasQueConsultan[1:])...)},
+		},
+		{
+			nombre: "comilla-escapada-en-las-dobles", orden: `echo "x\"; ` + ordenQueConsulta + `"`,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", `x"; `+ordenQueConsulta)},
+		},
+		{
+			nombre: "escapes-de-las-dobles", orden: "echo \"1\\$ 2\\` 3\\\\ 4\\q 5\\\n6\"",
+			ordenes: [][]palabraDeSh{palabrasDe("echo", "1$ 2` 3\\ 4\\q 56")},
+		},
+		{
+			nombre: "barra-al-final-de-las-dobles", orden: `echo "x\`,
+			ordenes: [][]palabraDeSh{palabrasDe("echo", `x\`)},
+		},
+		{
+			nombre: "barra-y-salto-de-linea", orden: "kitlegal boe \\\n  articulo BOE-A-1978-31229 a140",
+			ordenes: [][]palabraDeSh{consultaCon()}, cuenta: true,
+		},
+		{
+			nombre: "barra-al-final", orden: ordenQueConsulta + ` \`,
+			ordenes: [][]palabraDeSh{consultaCon(`\`)}, cuenta: true,
+		},
+	}
+}
+
+// palabrasDe son las palabras de una orden simple, ninguna una asignación.
+func palabrasDe(textos ...string) []palabraDeSh {
+	palabras := make([]palabraDeSh, 0, len(textos))
+	for _, texto := range textos {
+		palabras = append(palabras, palabraDeSh{texto: texto})
+	}
+
+	return palabras
+}
+
+// consultaCon son las palabras de ordenQueConsulta seguidas de esas.
+func consultaCon(detras ...string) []palabraDeSh {
+	return palabrasDe(slices.Concat(palabrasQueConsultan, detras)...)
 }
 
 // tablaContada es lo que devuelve el guion que cuenta un sondeo: su código, su
