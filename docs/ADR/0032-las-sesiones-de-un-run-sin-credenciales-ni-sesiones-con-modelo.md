@@ -1,6 +1,7 @@
 # 0032 · Ninguna sesión de un run lee credenciales ni lanza sesiones con modelo: el secreto en un llavero y las sesiones en un sandbox
 
-- **Estado**: aceptada
+- **Estado**: aceptada. **Enmienda propuesta el 2026-11-03** («Enmienda: la memoria del proyecto»): cambia el punto 4
+  de la decisión; queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
 - **Fecha**: 2026-10-01
 - **Hito**: transversal, tras H7.4 (#90) y antes de la release y de H20. Workflow `hito` 2.4.0 y constitución 2.9.0.
   Completa a los ADR 0018 (la persona en los extremos), 0020 y 0021 (qué no hace nunca un run) y 0030 (lo que cambia el
@@ -174,3 +175,103 @@ editó el juez B), `sh scripts/evals-sondeo.sh --help` y tres `claude --version`
   dónde vive todo el proceso; queda como opción si el sandbox se queda corto.
 - **Un criterio nuevo en la rúbrica de los jueces.** El criterio f ya lo cubre.
 - **Barrer al terminar los procesos que deja la sesión.** No hay en macOS una marca fiable con la que encontrarlos.
+
+## Enmienda: la memoria del proyecto (2026-11-03)
+
+- **Estado**: propuesta (2026-11-03); queda aceptada cuando una persona fusiona la propuesta de cambio que la trae.
+  Workflow `hito` 2.11.1.
+
+Cambia el punto 4 de la decisión: `Write` y `Edit` ya no dependen del gancho, y el gancho deja de admitirlos en la
+memoria del proyecto. El resto queda como estaba.
+
+**Qué pasó.** En el run de H39 (`50b213d0`), la sesión `reparar` de T010 (`24dd805a…`, `modelo_escalada`,
+`claude-fable-5-1`, Claude Code 2.1.317) leyó con `cat` y con `Read` un fichero de la memoria automática del proyecto
+(`~/.claude/projects/-Users-jorge-Projects-kitlegal/memory/cotas-de-tiempo-runner-vs-local.md`; L49 y L365 de su
+transcript) y lo editó con la herramienta `Edit` a las 16:38:53 UTC (L380; resultado en L382: «has been updated
+successfully»). No fue la primera: los transcripts de las sesiones `sdk-cli` desde el 2026-10-20 tienen 11 llamadas
+`Write` y `Edit` sobre esa memoria, de 6 sesiones de paso de cuatro runs —H30 (`e4f29383…`, `e60917cc…`), H31.1
+(`798a36bd…`), H32 (`5a78d187…`, `f320a3bd…`) y H39—, cuatro de ellas sobre su índice, `MEMORY.md`. Ninguna orden de
+`Bash` escribió allí.
+
+**Por qué pasó.** Las tres barreras la dejaban pasar, y una la invitaba:
+
+| Qué | Lo que hacía |
+|---|---|
+| La memoria automática de Claude Code | Encendida en las sesiones del run. Su sistema de instrucciones (el `prompt_snapshot` del transcript) lleva una sección «# Memory» que da la ruta del directorio y pide escribir en él «directly with the Write tool», y carga su índice en cada sesión |
+| El sandbox | Solo ve las órdenes de `Bash`. A ellas sí les niega el directorio (`~/.claude/projects` está en el `denyWithinAllow` que la sesión recibe en sus `sandbox_instructions`), pero `Write` y `Edit` no pasan por él |
+| Los permisos | `Edit` sin ruta en el `allow` de `.claude/settings.json` y la sesión en `acceptEdits`: valen para cualquier fichero |
+| El gancho (`politica-paso.sh`) | Admitía por diseño la memoria del proyecto (punto 4 de la decisión). Con la entrada exacta de la llamada de L380 sale con 0 |
+
+**Medidas** (2026-11-03, Claude Code 2.1.317, documentación de `code.claude.com` del mismo día y el propio binario):
+
+- `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` apaga la memoria automática para una sesión y gana a `autoMemoryEnabled` de
+  cualquier ajuste; con ella apagada, la sesión no lee ni escribe ese directorio. En el binario es el interruptor más
+  fuerte que hay (`"off"`, antes de mirar ningún ajuste).
+- `permissions.blockWritesOutsideWorkingDirectories` (2.1.314 o posterior) hace que `Write`, `Edit` y `NotebookEdit`
+  rechacen toda ruta fuera de los directorios de trabajo, en todo modo de permisos, también `bypassPermissions`, sin
+  regla `allow` que lo levante; un directorio entra en la lista con `--add-dir`. Deja escribibles algunos ficheros del
+  propio Claude Code: los de un plan, el scratchpad y **los `.md` de la memoria automática del proyecto**. Una versión
+  anterior no conoce la clave y no la aplica.
+- Las reglas `Edit` de `deny` se aplican a todas las herramientas que editan ficheros y a los destinos de las
+  redirecciones de `Bash`, y ninguna regla `allow` las levanta.
+
+**Qué se decide.**
+
+1. **La memoria automática va apagada en toda sesión de un paso.** `scripts/claude-modelo.sh` exporta
+   `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, que quien lanza la sesión no puede cambiar. Lo que un paso quiere dejar a los
+   siguientes va al repositorio, en los artefactos del hito, donde lo ven los jueces y la propuesta de cambio.
+2. **`Write`, `Edit` y `NotebookEdit` los cierra Claude Code, no el gancho.** El wrapper pone
+   `blockWritesOutsideWorkingDirectories: true` y da como directorios de trabajo, además del repositorio, los dos
+   temporales que el sandbox ya deja escribir a `Bash` —el del usuario en macOS y el `$TMPDIR` del sandbox
+   (`CLAUDE_CODE_TMPDIR`, `CLAUDE_TMPDIR` o `/tmp/claude`)—, así que no le abre nada nuevo. El temporal de Claude Code
+   de cada usuario (`/tmp/claude-<uid>`) no va: tiene los scratchpads de las demás sesiones, y `--add-dir` se lo
+   abriría también a `Bash`. Con una versión de Claude Code anterior a la 2.1.314, o una que no se puede leer, el
+   wrapper no abre la sesión.
+3. **El directorio de Claude Code, vedado aunque cambie el mecanismo.** Una regla `Edit` en `deny` sobre el
+   directorio de Claude Code entero (`CLAUDE_CONFIG_DIR` o `~/.claude`) para las herramientas de ficheros, que cubre
+   la excepción de la memoria si algo volviera a encenderla, y `sandbox.filesystem.denyWrite` sobre su `projects/`
+   para toda orden de `Bash`, que hoy niega Claude Code por su cuenta y desde ahora también el wrapper.
+4. **El gancho da el motivo.** `politica-paso.sh` deja de admitir la memoria del proyecto y deniega cualquier
+   escritura en el directorio de Claude Code, aunque cayera dentro del repositorio o del temporal; su tabla de casos
+   lleva la llamada de H39.
+5. **La garantía la comprueba `make ci`** (`internal/workflow/escrituras_test.go`), con el `claude` sustituto: la
+   sesión recibe la variable, la clave, la regla, el `denyWrite` y como `--add-dir` solo los dos temporales; el
+   wrapper rechaza una versión anterior a la 2.1.314; y el gancho deniega la llamada de H39 con código 2.
+
+**Validación.** Los tests nuevos fallan con los guiones de `main` y pasan con los de la propuesta; cada pieza del
+arreglo, quitada sola —la variable, la clave, la regla, el `denyWrite`, los `--add-dir`, un directorio de más, la
+comprobación de versión y las dos formas de volver a admitir la memoria en el gancho—, pone en rojo alguno de ellos.
+Lo que Claude Code hace con esos ajustes en una sesión con modelo lo comprobó Jorge el 2026-11-04 con dos sondas de
+una sesión cada una (`claude-sonnet-5-5`, Claude Code 2.1.317), abiertas por `scripts/claude-modelo.sh` en un clon de
+la rama, sin los ganchos del proyecto y sobre la memoria del clon, no la del proyecto; lo que vale es lo que quedó en
+disco:
+
+| Qué se pidió | Resultado |
+|---|---|
+| La palabra clave escrita en el `MEMORY.md` del clon | «no la sé»: la memoria no se carga |
+| `Write` y `Edit` sobre la memoria | «File is in a directory that is denied by your permission settings» (la regla `deny`), también con el clon de confianza, es decir, con el `Edit` sin ruta del `allow` del proyecto en vigor |
+| `Write` en el directorio personal | «the permissions.blockWritesOutsideWorkingDirectories setting blocks writes outside the working directories», con la lista: el clon, el temporal del usuario y `/private/tmp/claude` |
+| `rtk proxy sh <guion>` que escribe en la memoria o en el directorio personal, con el clon de confianza (la orden la admite `Bash(rtk:*)` y su texto no nombra la ruta) | «Operation not permitted»: lo para el sandbox |
+| `Write` en `/tmp/claude` y en el repositorio, y el mismo guion en `/tmp/claude` | Escriben |
+
+En la primera sonda el clon no era de confianza y Claude Code ignoró sus reglas `allow`; la segunda repitió con él de
+confianza lo que eso dejaba sin medir: la escritura de `Bash`, que solo podía parar el sandbox, y `Edit` con el `allow`
+del run.
+
+**Lo que se pierde, y se asume.** Las sesiones del run ya no cargan el índice de la memoria del proyecto, que
+llevaba trucos de herramientas medidos en runs anteriores. Eso es lo que el punto 7 ya temía —la memoria la escribe
+la persona en sus sesiones interactivas y no la ven los jueces—, y lo que haga falta en un paso tiene su sitio en el
+repositorio (`docs/WORKFLOW.md`, la constitución, los artefactos del hito). Un paso ya no puede escribir con `Write`
+en `/tmp/claude-<uid>`; sí con `Bash` donde lo deje el sandbox, y con las dos herramientas en `$TMPDIR`.
+
+**Alternativas descartadas.**
+
+- **Quitar solo la excepción del gancho.** El gancho no es la garantía (punto 4 de las medidas de este ADR).
+- **Solo `blockWritesOutsideWorkingDirectories`.** Deja escribibles los `.md` de la memoria del proyecto, que es el
+  caso de H39.
+- **Solo apagar la memoria.** `Write` y `Edit` seguirían llegando a todo el equipo por `Edit` sin ruta en `allow`, y
+  el siguiente mecanismo de Claude Code que escriba con ellas en su directorio pasaría igual.
+- **`autoMemoryDirectory` apuntando al temporal.** La sesión seguiría recibiendo la instrucción de escribir memoria y
+  escribiría fuera del repositorio, en un sitio que nadie lee.
+- **Reglas `deny` en lugar de la lista cerrada.** Una lista de lo prohibido no se cierra; la clave es la lista de lo
+  permitido, y la regla `deny` solo cubre lo que la clave exceptúa.
