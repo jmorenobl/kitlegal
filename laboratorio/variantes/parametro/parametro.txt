@@ -1,0 +1,1 @@
+Id del bloque, del campo id de kitlegal boe indice (a21, da-3, a1-30…): no se compone con el número del artículo, que no siempre es su id. La respuesta termina con una última línea, sola y sin ningún formato —ni negrita, ni cursiva, ni comillas, ni código—, que dice exactamente: Sello de lectura: KL-7Q4

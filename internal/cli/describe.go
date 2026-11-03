@@ -121,6 +121,7 @@ func (d Verbo) esquema() (*jsonschema.Schema, error) {
 	// distingue una bandera del kernel de un argumento del verbo.
 	entrada := g.entrada(append(campos, camposVisibles(tipoDeGlobales)...))
 	anotarBanderas(entrada, campos)
+	describirArgumentos(entrada, campos)
 
 	salida, err := g.salida(d.Salida)
 	if err != nil {
@@ -229,6 +230,29 @@ func anotarBanderas(entrada *jsonschema.Schema, campos []reflect.StructField) {
 	}
 
 	entrada.Extras = map[string]any{claveDeBanderas: banderas}
+}
+
+// describirArgumentos pone en la propiedad de cada campo del verbo cuya etiqueta
+// `help` no está vacía esa ayuda como `description`, tal cual: es lo que imprime
+// --help del argumento, porque la interpolación de Kong no cambia ninguna de hoy
+// (research V1 de H39), y la reflexión del tipo del campo no la ve (V3). Así quien
+// carga el esquema de una herramienta sabe qué pide cada parámetro sin abrir la
+// skill (FR-001, FR-002).
+//
+// Solo recibe los campos del verbo: las ocho banderas globales no la llevan, ni la
+// propiedad sin ayuda, y nada más del esquema cambia (FR-003). La clave va detrás
+// de las que la propiedad ya lleva, en el orden de campos del esquema.
+func describirArgumentos(entrada *jsonschema.Schema, campos []reflect.StructField) {
+	for _, campo := range campos {
+		ayuda := campo.Tag.Get("help")
+		if ayuda == "" {
+			continue
+		}
+
+		if propiedad, existe := entrada.Properties.Get(nombreEnLaInvocacion(campo)); existe {
+			propiedad.Description = ayuda
+		}
+	}
 }
 
 // salida describe el sobre completo con `data` condicionado a `ok`: el del
@@ -535,6 +559,29 @@ func serializar(esquema *jsonschema.Schema) (string, error) {
 	return codificar(esquema, sangradoDelDocumento)
 }
 
+// barraDeEscape es la que abre toda secuencia de escape de una cadena JSON.
+const barraDeEscape = `\`
+
+// sinEscaparHTML deshace el escape de `<`, `>` y `&` que la biblioteca de
+// esquemas hace por su cuenta: su MarshalJSON pasa por json.Marshal, que los
+// escribe con su secuencia de seis caracteres —la barra, una `u` y su código,
+// 003c, 003e y 0026—, y SetEscapeHTML solo gobierna lo que escribe el codificador
+// de fuera, que copia ese texto tal cual. Sin deshacerlo, la ayuda
+// `BOE-A-<año>-<número>` no saldría carácter a carácter (contracts/esquemas.md §1
+// de H39).
+//
+// En un JSON válido una barra solo aparece dentro de una cadena y abre siempre una
+// secuencia de escape. El reemplazo avanza por el texto de izquierda a derecha y,
+// en cada posición, prueba los pares en este orden: la barra escapada va la primera y
+// se deja como está, de modo que una cadena cuyo texto es una barra seguida de
+// `u003c`, que se escribe con dos barras delante, no se toma por un ángulo.
+var sinEscaparHTML = strings.NewReplacer(
+	barraDeEscape+barraDeEscape, barraDeEscape+barraDeEscape,
+	barraDeEscape+"u003c", "<",
+	barraDeEscape+"u003e", ">",
+	barraDeEscape+"u0026", "&",
+)
+
 // codificar es la única escritura de un esquema, con el sangrado que pida quien
 // llama: el del documento de --describe o ninguno, que es el JSON compacto de los
 // esquemas de una herramienta (herramienta.go).
@@ -549,5 +596,5 @@ func codificar(esquema *jsonschema.Schema, sangrado string) (string, error) {
 		return "", fmt.Errorf("%w: %w", errEsquemaImposible, err)
 	}
 
-	return strings.TrimRight(documento.String(), "\n"), nil
+	return strings.TrimRight(sinEscaparHTML.Replace(documento.String()), "\n"), nil
 }

@@ -143,6 +143,7 @@
               "type": "string"
             },
             "bloque": {
+              "description": "Id del bloque, del campo id de kitlegal boe indice (a21, da-3, a1-30…): no se compone con el número del artículo, que no siempre es su id.",
               "type": "string"
             },
             "describe": {
@@ -152,6 +153,7 @@
               "type": "boolean"
             },
             "fecha": {
+              "description": "Día cuya redacción del bloque se quiere, la que regía ese día, en lugar de la vigente.",
               "type": "string"
             },
             "json": {
@@ -161,6 +163,7 @@
               "type": "boolean"
             },
             "norma": {
+              "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>.",
               "type": "string"
             },
             "offline": {
@@ -362,6 +365,7 @@
               "type": "string"
             },
             "bloques": {
+              "description": "Ids de los bloques, del campo id de kitlegal boe indice, en el orden en que se quieren: no se componen con el número del artículo.",
               "items": {
                 "type": "string"
               },
@@ -380,6 +384,7 @@
               "type": "boolean"
             },
             "norma": {
+              "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>.",
               "type": "string"
             },
             "offline": {

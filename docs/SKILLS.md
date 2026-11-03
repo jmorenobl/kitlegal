@@ -2,10 +2,11 @@
 
 Para quien escribe o revisa una skill de `skills/` o un paquete de materia: qué skills hay, qué va en el cuerpo de
 `SKILL.md` y qué en una referencia, qué trae un paquete, cómo se escribe la descripción, qué presupuestos hay y por
-qué, y la regla de `references/`. La deciden el ADR 0046 y, en el reparto y el molde de un paquete, el ADR 0048, y la
-nombra el principio VIII de la constitución. `CONTRIBUTING.md` («Skills y evals») dice cómo se regenera lo generado y
-qué comprueba cada objetivo del `Makefile`; las reglas legales de cada skill —qué cita, qué avisa, qué declara no
-cubierto— no son de esta guía, sino de su `SKILL.md`, y las deciden sus evals.
+qué, y la regla de `references/`. La deciden el ADR 0046; en el reparto y el molde de un paquete, el ADR 0048, y en
+lo que se cumple en los dos modos, el ADR 0050. La nombra el principio VIII de la constitución. `CONTRIBUTING.md`
+(«Skills y evals») dice cómo se regenera lo generado y qué comprueba cada objetivo del `Makefile`; las reglas legales
+de cada skill —qué cita, qué avisa, qué declara no cubierto— no son de esta guía, sino de su `SKILL.md`, y las deciden
+sus evals.
 
 Lo que tiene forma lo comprueba `make ci` sin red ni modelo: `make skills-check` y los controles de contenido. Lo que
 es significado, la tercera persona de la descripción, lo juzga un modelo en el job de evals. Cada defecto de
@@ -108,6 +109,21 @@ consultadas el 2026-10-27: decir cuándo leer cada referencia, no solo que exist
 *when* to load each file»); explicar el porqué en vez de encadenar prohibiciones («Explain the why»); y quitar del
 cuerpo lo que el agente no haría mal sin ello («Would the agent get this wrong without this instruction? If the answer
 is no, cut it»).
+
+**En los dos modos.** Lo midió el sondeo de la skill de laboratorio de H39 (`evidencias/sondeos-20261103/`; ADR 0050),
+con una regla de forma que el agente solo puede sacar de donde se ponga, 40 sesiones por variante y modo:
+
+- En el cuerpo, o en una referencia que el cuerpo manda leer con una orden —como paso propio antes de la primera
+  llamada, o en el punto en que hace falta—, la regla se cumple en 39 o 40 de 40 en los dos modos. En una referencia
+  nombrada de pasada, en 37 de 40 en modo herramienta: una regla no va ahí.
+- En la descripción del parámetro de una herramienta, en 25 de 40, aunque las 40 sesiones llaman a la herramienta: la
+  descripción de un parámetro dice cómo se rellena y nada más.
+- Las instrucciones del servidor y una skill de entrada no mejoran la activación de una skill que se activa sola, y la
+  de entrada se salta en 13 y 23 de 40. Nombrar las herramientas en la descripción ni ayuda ni estorba.
+
+El laboratorio no reproduce el defecto de `normativa` en modo herramienta, donde las referencias casi no se abren: la
+causa está en algo que `normativa` tiene y el laboratorio no, y la mide el hito que reorganice las skills (ADR 0050,
+punto 5).
 
 El reparto (ADR 0048) sigue otras prácticas de las mismas dos guías, tal como las cita el hito H32. De la de la
 especificación, las skills como unidades coherentes, ni tan estrechas que una pregunta habitual cargue otra con

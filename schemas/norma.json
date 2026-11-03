@@ -156,6 +156,7 @@
               "type": "boolean"
             },
             "norma": {
+              "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>.",
               "type": "string"
             },
             "offline": {
@@ -319,6 +320,7 @@
               "type": "boolean"
             },
             "texto": {
+              "description": "Palabras del título, o una consulta con AND, OR, NOT, titulo:, materia: o comillas.",
               "items": {
                 "type": "string"
               },
@@ -505,6 +507,7 @@
               "type": "boolean"
             },
             "norma": {
+              "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>.",
               "type": "string"
             },
             "offline": {
@@ -729,6 +732,7 @@
               "type": "boolean"
             },
             "norma": {
+              "description": "Identificador de la norma en el BOE: BOE-A-<año>-<número>.",
               "type": "string"
             },
             "offline": {

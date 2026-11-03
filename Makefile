@@ -56,7 +56,7 @@ TOOL_MODULES := $(patsubst %/go.mod,%,$(wildcard tools/*/go.mod))
 .DEFAULT_GOAL := help
 
 .PHONY: build install test test-integration test-tiempos test-e2e lint lint-fast fmt fmt-check \
-	vuln schema-check skills-check verify-sources evals evals-sondeo evals-medir-juez skills-sync roadmap roadmap-sync workflow-registro secrets \
+	vuln schema-check skills-check verify-sources evals evals-sondeo evals-laboratorio evals-medir-juez laboratorio-tabla skills-sync roadmap roadmap-sync workflow-registro secrets \
 	mod-verify mod-tidy-check goreleaser-check release snapshot-check plugin-check web web-dev web-citas \
 	check-web-tools check-tools hooks ci help
 
@@ -142,7 +142,18 @@ evals: check-tools
 # en cada sondeo; ningún paso del workflow `hito` puede lanzarlo (docs/ADR/0032).
 ## evals-sondeo: sondeo local de unas evals de una skill con Claude Code, sin strace ni veredicto (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN)
 evals-sondeo: check-tools
-	@scripts/evals-sondeo-llavero.sh "$(SKILL)" "$(EVALS)" "$(MODELO)" "$(REPETICIONES)" "$(CONCURRENCIA)"
+	@scripts/evals-sondeo-llavero.sh sondeo "$(SKILL)" "$(EVALS)" "$(MODELO)" "$(REPETICIONES)" "$(CONCURRENCIA)"
+
+# El sondeo del laboratorio de H39 lo lanza una persona, una vez, para la tabla
+# con la que escribe el ADR que precisa el 0046; no es un veredicto
+# (specs/031-h39-c-omo-se/contracts/arnes.md). Ninguno de sus siete argumentos
+# tiene valor por defecto, porque cada uno cambia lo que se mide; DIRECTORIO,
+# relativo a la raíz del repositorio o absoluto, no puede existir. La credencial
+# la toma scripts/evals-sondeo-llavero.sh, como en evals-sondeo; ningún paso del
+# workflow `hito` puede lanzarlo (docs/ADR/0032).
+## evals-laboratorio: sondeo del laboratorio de H39 con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
+evals-laboratorio: check-tools
+	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)"
 
 # La medida del juez no es de una ejecución normal del job de evals: la lanza
 # una persona, con la etiqueta evals-medir-juez en una propuesta de cambio o con
@@ -153,6 +164,13 @@ evals-sondeo: check-tools
 ## evals-medir-juez: ejecuta la medida del juez de una skill con Claude Code e imprime medida.json, sin escribirla en el repositorio (consume la suscripción; fuera de ci)
 evals-medir-juez: check-tools
 	scripts/evals-medir-juez.sh "$(SKILL)"
+
+# La tabla de un sondeo del laboratorio de H39 la lee la persona, una vez, para escribir el ADR que precisa el 0046
+# (specs/031-h39-c-omo-se/contracts/tabla.md). DIRECTORIO no tiene valor por defecto: es un sondeo, o el directorio de
+# los sondeos que se juntan en una tabla.
+## laboratorio-tabla: cuenta las sesiones de un sondeo del laboratorio y escribe su tabla y su detalle (sin red, modelo ni credencial; fuera de ci)
+laboratorio-tabla: check-tools
+	@go run ./cmd/laboratorio tabla "$(DIRECTORIO)"
 
 ## skills-sync: regenera references/ y la tabla de comandos de SKILL.md de cada skill; una skill con scripts/ falla
 skills-sync: check-tools

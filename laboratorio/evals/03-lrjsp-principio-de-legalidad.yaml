@@ -1,0 +1,10 @@
+# Eval de laboratorio de H39: la pregunta y la lectura de la eval 07 de normativa, servidas por testdata/evals/.
+pregunta: "¿Qué dice el artículo 25 de la Ley 40/2015 sobre el principio de legalidad en la potestad sancionadora?"
+activa: true
+comandos:
+  - applet: boe
+    norma: BOE-A-2015-10566
+    bloque: a25
+citas:
+  - norma: BOE-A-2015-10566
+    bloque: a25

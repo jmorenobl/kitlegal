@@ -1,0 +1,109 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "constitution_check",
+      "cumple": true,
+      "evidencia": "gates/plan-precheck.txt vacío. Filas I a X y reglas 1 a 7 ciertas para este plan: `go list -deps ./cmd/kitlegal` no contiene internal/evals (0 coincidencias, ejecutado en esta sesión); `.golangci.yml:461-468` exime ^cmd/ de R4 y R5; `.goreleaser.yaml:30` construye solo ./cmd/kitlegal; el filtro no importa el SDK (R7, `internal/arch_test.go`); `internal/mcp/doc.go:5` no anuncia prompts ni resources. Están las seis reglas de ROADMAP §2 más R6 y R7 de arch_test.go; logs a stderr, en la fila de la regla 5."
+    },
+    {
+      "id": "b",
+      "criterio": "dependencias",
+      "cumple": true,
+      "evidencia": "Ninguna dependencia nueva: kong v1.16.1, invopop/jsonschema v0.14.0 y go-sdk v1.8.0 en go.mod (comprobado); el filtro usa os/exec, bufio y encoding/json; go-sdk sigue solo en internal/mcp."
+    },
+    {
+      "id": "c",
+      "criterio": "reglas_dependencia",
+      "cumple": true,
+      "evidencia": "El cambio de esquemas va en internal/cli (describe.go:111-148, herramienta.go:32-68). El código del laboratorio va en internal/evals, que ya importa internal/app y no está en el cierre del binario. os.Exit y los descriptores, solo en cmd/laboratorio (exento). Nada nuevo importa net/http ni SQLite. internal/evals escribe en el io.Writer que le inyectan."
+    },
+    {
+      "id": "d",
+      "criterio": "errores_exit_codes",
+      "cumple": true,
+      "evidencia": "kitlegal no cambia de códigos. `laboratorio tabla` y `laboratorio servidor` dan un defecto `inesperado`, código 1, sin casos sueltos (contracts/tabla.md §1, arnes.md §5). El arnés reutiliza errorDeUso y errSinSuscripcion del sondeo de hoy (`internal/evals/sondeo.go:43-49`, `:802-818`): uso → uso.txt → salida 1. Sin panic."
+    },
+    {
+      "id": "e",
+      "criterio": "tests_primero",
+      "cumple": true,
+      "evidencia": "Nombra aceptacion/describe.txtar (activado como h39-describe.txtar), que hoy falla por una aserción: `boe articulo BOE-A-2015-10565 a21 --describe` da solo \"type\" en norma, bloque y fecha (ejecutado: 4989 bytes, una sola description, la de la raíz). Da el motivo por el que FR-002 va en un test de Go: la orden mcp del arnés e2e solo escribe nombre y solo lectura (`e2e_test.go:2362-2381`). Nombra nueve tests nuevos, los que cambian, los fixtures de internal/evals/testdata/laboratorio/ y el sustituto de claude."
+    },
+    {
+      "id": "f",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "Todo se traza a FR-001…FR-053: esquemas, laboratorio, ocho variantes, cuatro evals, arnés, guion y CHANGELOG. No toca skills/, data/, evidencias/, el workflow ni ningún umbral. Lo de CONTRIBUTING.md es documentación de los objetivos nuevos de make."
+    },
+    {
+      "id": "g",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "No prevé ningún nolint, t.Skip, TODO ni error silenciado. TestSondeoDelLaboratorio va con -tags evals, como TestSondeo, que usa exigirBanderas y no salta (`job_test.go:614-617`)."
+    },
+    {
+      "id": "h",
+      "criterio": "mejor_alternativa",
+      "cumple": true,
+      "evidencia": "research documenta las alternativas rechazadas en D1 (reflector o modelo de Kong), D4 (internal/evals/laboratorio, testdata), D5 (diferencias que se componen), D6, D7 (bandera oculta, -overlay, volver a servir con el SDK), D8 y D10 (solo message.id, solo el resultado de una herramienta), y Complexity Tracking justifica las cuatro desviaciones."
+    },
+    {
+      "id": "i",
+      "criterio": "afirmaciones_verificadas",
+      "cumple": true,
+      "evidencia": "Comprobado en esta sesión: V1 (`kong@v1.16.1/tag.go:277`, `interpolate.go:8` y `:34-50`: un `$` suelto queda igual); V2 (28 ayudas, 2373 caracteres, la mayor de 146); V3, V4 y V5 (`go run … --describe` sin argumentos sale con 2, `expected \"<norma> <bloque>\"`); V7 (`comandos.go:283`, `:395-401`); V8 (`esquemas_test.go:62-71`, ocho ficheros); V9 (`dependencias.go:36-56`); V10 (`skills.go:24`); V12 (`sesiones.go:569-620`, `evals-sesion.sh:22`); V13 (`go-sdk@v1.8.0/mcp/transport.go:450-456`, ndjson); V14; V16 (`politica-paso.sh:52`); V18 (`trazas.go:311-332`, `herramientas.go:34-89`); V19 (las doce grabaciones están; `consultas.go:132` prepara índice y metadatos); V20 (`normativa.json` .evals[99]); y los nombres de los umbrales con decide: true en los informes de H32 (jq). S1 a S3 van declarados como supuestos."
+    },
+    {
+      "id": "j",
+      "criterio": "quickstart_ejecutable",
+      "cumple": true,
+      "evidencia": "§1: las líneas buscadas coinciden con las etiquetas help de `boe.go:193` e `instalacion.go:165`, y la tercera da 0 y sale con 1, porque `json` es global (`globales.go:35`). §2 a §4: tests y objetivos de make sin escritura fuera de los temporales. `TestEntregaDelHito` existe (`e2e_test.go:514`). §5: con la credencial en el entorno, el guion del llavero no toca el llavero y los argumentos se comprueban antes de nada, así que no se crea ningún directorio. §6 lo hace la persona. Los efectos colaterales coinciden con los declarados."
+    },
+    {
+      "id": "k",
+      "criterio": "datos_externos",
+      "cumple": true,
+      "evidencia": "No graba nada: no hay manifiesto ni TestGrabar*. Las sesiones se sirven de testdata/evals/, con proxies que rechazan toda petición (`sesiones.go:550-560`). Los fixtures del laboratorio son sintéticos. La respuesta del producto se lee del informe versionado de H32. Nada va a data/ ni a evidencias/."
+    },
+    {
+      "id": "l",
+      "criterio": "autonomia",
+      "cumple": true,
+      "evidencia": "Ninguna tarea necesita a una persona ni abre sesiones con modelo. El arnés lo lanza la persona después del run (FR-032). El guion del llavero se niega dentro de un paso (`evals-sondeo-llavero.sh:21-26`) y el sandbox es la garantía (ADR 0032)."
+    },
+    {
+      "id": "m",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Rehecho el cálculo. Las 22 ayudas de verbos con herramienta suman unos 1871 caracteres (2373 menos las 502 de skills), más 22×17 bytes de clave: unos 2,3 KB para la lista entera. Una pregunta de normativa (boe_indice y boe_articulo) añade 58+58+146+88 = 350 caracteres y 4×17 de clave, unos 420 bytes. `--describe` de boe articulo pasa de 4989 bytes (medido) a unos 5,4 KB. Es texto fijo, que no crece con normas ni bloques consultados, y no es una señal. La tabla: 14 filas de unos 200 B y el detalle de 560 sesiones a unos 110 B, que se lee una vez."
+    },
+    {
+      "id": "n",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada pieza tiene su requisito: describirArgumentos (FR-001/002/003); laboratorio/ (FR-010); cmd/laboratorio servidor (FR-021/024/029); tabla (FR-040); Servidor en SesionesAEjecutar (FR-021/024); el primer argumento del llavero (FR-032); sondeo.json (FR-031); DIRECTORIO nuevo (FR-033); juntar dos sondeos (FR-050, que se lanza en dos tandas); y message.id en el turno (FR-041, con una vía real, S2). Un fichero, una sesión o un transcript que no se pueden leer van a la regla genérica, código 1."
+    },
+    {
+      "id": "o",
+      "criterio": "controles_de_umbral",
+      "cumple": true,
+      "evidencia": "Cada umbral del spec tiene su fila con un control que se pone en rojo. SC-001: TestAyudasDeLosArgumentos, en --describe y en tools/list. FR-003: TestAyudaComoDescripcion. FR-004: TestEsquemasPublicados (`esquemas_test.go`). SC-002: TestSkillsDelRepositorio (`skills_test.go:88`). FR-029: TestInstrucciones, que fija 485 bytes y el texto carácter a carácter (`instrucciones_test.go:51-77`). SC-003 a SC-007: tests nuevos en internal/evals; el de SC-007 cubre las cuatro peticiones inválidas y el reparto n/4. FR-011 y FR-012 también tienen la suya. SC-008 usa umbrales del repositorio que el hito no toca; los nombres de las filas existen con decide: true en los informes de H32."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "Las filas de SC-008 nombran solo parte de los umbrales con decide: true de cada informe. Faltan, por ejemplo, redaccion_sin_fechar:…:orden y habla_en_primera_o_segunda_persona de normativa; cita_sin_documento y documento_sin_cotejar de jurisprudencia; y cobertura_sin_declarar, vigencia_sin_declarar y lectura_sin_intentar de plazos-y-territorio. Son umbrales del repositorio cuyo control vive en configuración que el hito no toca, y el veredicto del job sale en rojo con cualquiera.",
+    "La fila de consulta-juridica cita «sus series (ADR 0016)»: el rojo de partida de la eval 02 es una regla por serie, no un umbral del hito.",
+    "SC-002 (0 bytes en skills/): el control de make ci cubre las tablas regeneradas. En modo global (reparaciones, correctores, cierre), guardian-diff.sh no protege skills/, así que lo que pide FR-053 lo tiene que mirar la revisión final. El guardián es del workflow, que el hito no toca.",
+    "instrucciones.txt (485 bytes de mcp.Instrucciones, un espacio y unos 79 de la frase nueva) mide unos 565 bytes, por encima de los 512 del producto. Solo existe en el sondeo y Claude Code no lo corta ahí; si la variante gana, el ADR tendrá que hacerla caber en 512.",
+    "«Tras un límite de uso no abre más repartos» (arnes.md §3.5) no está en ningún FR: extiende a todos los repartos la regla que ejecutarSesiones ya aplica dentro de uno (FR-044 de H7.3).",
+    "CONCURRENCIA obligatoria no está en el spec. Para abrir las 560 sesiones de FR-050 en un tiempo razonable hace falta, y queda registrada en gates/supuestos.md.",
+    "contracts/tabla.md §6 enumera los casos de los fixtures sin nombrar una sesión de la variante entrada (columnas «Entrada antes» y «Las dos antes») ni respuestas que cumplan y que no cumplan la regla. FR-043 exige que cubran cada columna: lo tiene que recoger quien escriba el test.",
+    "make evals-laboratorio y TestSondeoDelLaboratorio no casan con la expresión de politica-paso.sh (V16). Los frenan el KITLEGAL_PASO_DE_WORKFLOW del guion del llavero y el sandbox, que es la garantía (ADR 0032).",
+    "FR-002 también podría ejercerse en e2e con `exec kitlegal mcp serve` y la entrada estándar del guion. El motivo de D12 vale solo para la orden mcp del arnés. TestAyudasDeLosArgumentos lo cubre en make ci.",
+    "Las sesiones del sondeo se quedan en DIRECTORIO con su caché. Sus enlaces claude/skills/ apuntan a la copia del temporal, que se borra al salir, y quedan colgando; el guion no los usa.",
+    "La línea Input del spec y la del plan citan docs/roadmap/in-progress/, pero en la rama el hito ya está en done/ (9fb32d0e)."
+  ]
+}

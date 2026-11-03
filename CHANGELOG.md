@@ -12,6 +12,41 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **Una skill de laboratorio para medir dónde va en una skill lo que hace que el agente la active y cumpla lo que pide**
+  (H39). Vive en `laboratorio/`, un directorio de primer nivel **fuera del producto**: el binario no la empotra,
+  `kitlegal skills install` no la instala y el job de evals no la mide, y `make ci` falla si algo de eso deja de
+  cumplirse. La skill, `articulos-del-boe`, lleva una regla testigo inventada para el laboratorio —la respuesta termina
+  con la línea `Sello de lectura: KL-7Q4`—, que decide un guion sin modelo; tiene una skill de entrada,
+  `consulta-legal`, y ocho variantes declaradas en `laboratorio/variantes.yaml`: `control` y siete que difieren de ella
+  solo en lo que declaran (`instrucciones`, `entrada`, `referencia-secundaria`, `parametro`, `referencia-paso`,
+  `referencia-en-el-punto` y `descripcion-sin-herramientas`). Sus cuatro evals, en `laboratorio/evals/`, piden todas
+  `boe_articulo` sobre lecturas ya grabadas. `make ci` comprueba la regla con respuestas fijas, la forma de cada
+  variante, que cada una difiere de la de control solo en lo que declara y que las evals no piden nada que la grabación
+  no sirve.
+- **`make evals-laboratorio`**, el sondeo del laboratorio (H39): abre, con el modelo y la versión de Claude Code que se
+  le piden, las sesiones de las cuatro evals con cada variante y modo pedidos y las deja en un directorio, sin
+  juzgarlas. Antes de abrir ninguna, comprueba sus siete argumentos (`VARIANTES`, `MODOS`, `SESIONES`, `MODELO`,
+  `CLAUDE_CODE`, `CONCURRENCIA` y `DIRECTORIO`), la credencial y que `claude --version` da la versión pedida; si algo
+  no vale, termina con un error de uso sin abrir ninguna sesión. Consume la suscripción de quien lo lanza y no es un
+  veredicto: ni `make ci`, ni un gancho, ni el job de evals, ni ningún paso del workflow `hito` lo ejecutan. Toma la
+  credencial como `make evals-sondeo`, con `scripts/evals-sondeo-llavero.sh`, que gana un primer argumento de una lista
+  cerrada, `sondeo` o `laboratorio`, para elegir el guion.
+- **`make laboratorio-tabla`** (H39), sin red, sin modelo y sin credencial: cuenta las transcripciones de un sondeo del
+  laboratorio y escribe una tabla con una fila por variante y modo —las sesiones que activan la skill antes de la
+  primera herramienta de kitlegal, las que abren la referencia y en qué turno, y las que cumplen la regla testigo, cada
+  recuento con su intervalo de Wilson al 95 %— y el detalle de cada sesión.
+
+### Cambiado
+
+- Los parámetros de `--describe` y de las herramientas del servidor MCP llevan como `description` la ayuda de su
+  argumento (H39). La lleva la propiedad de cada argumento o bandera propia de un verbo cuya ayuda no está vacía, tal
+  cual y sin escapar `<`, `>` ni `&`; las ocho banderas globales no la llevan, y nada más del esquema cambia. Se
+  regeneran los esquemas de `schemas/` que salen de `--describe` (los siete de los verbos con argumentos; `servidor.json`
+  no cambia), el golden de `--describe` de `plazos calcular` y la sección de
+  `--describe` de `boe articulos` de `h20-fecha-main.txtar`.
+
 ### Corregido
 
 - **Ninguna sesión de un paso del workflow escribe en la memoria de Claude Code** (workflow `hito` 2.11.1; enmienda

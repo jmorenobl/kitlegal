@@ -112,11 +112,19 @@ type SesionesAEjecutar struct {
 	Guion string
 
 	// Binario es la ruta absoluta de kitlegal: la orden del servidor de las
-	// sesiones del modo herramienta, y el binario cuyo directorio sale del PATH
-	// de toda sesión que no es del modo orden. Un plan con solo el modo orden,
-	// el del sondeo, no lo necesita (contracts/evals-en-dos-modos.md §2.2 de
-	// H21).
+	// sesiones del modo herramienta si Servidor está vacío, y el binario cuyo
+	// directorio sale del PATH de toda sesión que no es del modo orden. Un plan
+	// con solo el modo orden, el del sondeo, no lo necesita
+	// (contracts/evals-en-dos-modos.md §2.2 de H21).
 	Binario string
+
+	// Servidor es la orden, programa y argumentos, con la que servidor.json
+	// arranca el servidor MCP de las sesiones del modo herramienta: el filtro de
+	// laboratorio servidor delante de kitlegal en las variantes instrucciones y
+	// parametro del sondeo del laboratorio (contracts/arnes.md §3.4 de H39;
+	// research.md D7 de H39). Vacía, la de hoy, Binario mcp serve, y
+	// servidor.json queda byte a byte como sin ella.
+	Servidor []string
 
 	// Entorno es la base del entorno de cada sesión: el del job, entero, o la
 	// lista del sondeo. Lo de contracts/ejecucion-del-job.md §4 de H7.3 va
@@ -573,7 +581,7 @@ func disponerElModo(e SesionesAEjecutar, dir string, modo Modo) ([]string, error
 	}
 
 	if modo == ModoHerramienta {
-		if err := escribirElServidor(dir, e.Binario); err != nil {
+		if err := escribirElServidor(dir, ordenQueArrancaElServidor(e)); err != nil {
 			return nil, err
 		}
 	}
@@ -581,24 +589,41 @@ func disponerElModo(e SesionesAEjecutar, dir string, modo Modo) ([]string, error
 	return sinElDirectorioEnElPATH(entorno, filepath.Dir(e.Binario)), nil
 }
 
+// ordenQueArrancaElServidor es la orden, programa y argumentos, con la que
+// servidor.json arranca el servidor MCP: la de Servidor o, si está vacía, la de
+// hoy, Binario mcp serve (contracts/arnes.md §3.4 de H39).
+func ordenQueArrancaElServidor(e SesionesAEjecutar) []string {
+	if len(e.Servidor) > 0 {
+		return e.Servidor
+	}
+
+	return []string{e.Binario, appletDelServidor, verboDelServidor}
+}
+
 // escribirElServidor escribe servidor.json en el directorio de la sesión: la
-// declaración del servidor MCP de kitlegal para --mcp-config, con el binario
-// como orden, mcp serve como argumentos y, en su env, las variables de
-// variablesDeLasConsultas, de modo que el servidor usa la caché y el grafo de
-// la sesión y no tiene más red que la que tiene una orden (FR-041 de H21). Es
-// el JSON de contracts/evals-en-dos-modos.md §2.2 de H21, carácter a carácter y
-// con un salto de línea final: sus claves van en ese orden, y no en el de un
-// mapa. Un binario cuya ruta no es UTF-8 no cabe en él, y es un error.
-func escribirElServidor(dir, binario string) error {
+// declaración del servidor MCP de kitlegal para --mcp-config, con el programa de
+// la orden dada como command, el resto de la orden como args y, en su env, las
+// variables de variablesDeLasConsultas, de modo que el servidor usa la caché y
+// el grafo de la sesión y no tiene más red que la que tiene una orden (FR-041 de
+// H21). Con la orden de hoy, Binario mcp serve, es el JSON de
+// contracts/evals-en-dos-modos.md §2.2 de H21, carácter a carácter y con un
+// salto de línea final: sus claves van en ese orden, y no en el de un mapa. Una
+// orden con un texto que no es UTF-8, como la ruta de un binario, no cabe en él,
+// y es un error.
+func escribirElServidor(dir string, orden []string) error {
 	tokens := []jsontext.Token{
 		jsontext.BeginObject, jsontext.String("mcpServers"),
 		jsontext.BeginObject, jsontext.String(nombreDelServidor),
 		jsontext.BeginObject,
-		jsontext.String("command"), jsontext.String(binario),
-		jsontext.String("args"),
-		jsontext.BeginArray, jsontext.String(appletDelServidor), jsontext.String(verboDelServidor), jsontext.EndArray,
-		jsontext.String("env"), jsontext.BeginObject,
+		jsontext.String("command"), jsontext.String(orden[0]),
+		jsontext.String("args"), jsontext.BeginArray,
 	}
+
+	for _, argumento := range orden[1:] {
+		tokens = append(tokens, jsontext.String(argumento))
+	}
+
+	tokens = append(tokens, jsontext.EndArray, jsontext.String("env"), jsontext.BeginObject)
 
 	for _, variable := range variablesDeLasConsultas(dir) {
 		nombre, valor, _ := strings.Cut(variable, "=")
@@ -828,9 +853,10 @@ func senalAlGrupo(pid int, senal syscall.Signal) error {
 	}
 }
 
-// codigoDelProceso es el código con el que terminó el guion según lo que
-// devolvió su Wait: el de salida o, si lo terminó una señal, 128 más su número,
-// como lo da la shell. El error queda para una espera que no dice cómo terminó.
+// codigoDelProceso es el código con el que terminó un proceso —el guion de una
+// sesión, el kitlegal de laboratorio servidor— según lo que devolvió su Wait: el
+// de salida o, si lo terminó una señal, 128 más su número, como lo da la shell.
+// El error queda para una espera que no dice cómo terminó.
 func codigoDelProceso(errDeLaEspera error) (int, error) {
 	if errDeLaEspera == nil {
 		return 0, nil
@@ -838,7 +864,7 @@ func codigoDelProceso(errDeLaEspera error) (int, error) {
 
 	var salida *exec.ExitError
 	if !errors.As(errDeLaEspera, &salida) {
-		return 0, fmt.Errorf("la espera del guion ha fallado: %w", errDeLaEspera)
+		return 0, fmt.Errorf("la espera del proceso ha fallado: %w", errDeLaEspera)
 	}
 
 	if estado, ok := salida.Sys().(syscall.WaitStatus); ok && estado.Signaled() {

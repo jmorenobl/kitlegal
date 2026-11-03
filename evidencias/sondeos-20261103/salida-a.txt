@@ -1,0 +1,14 @@
+Sondeo del laboratorio en /Users/jorge/kitlegal-sondeos/20261103-pr222/h39/a, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- control, orden: 40 abiertas.
+- control, herramienta: 40 abiertas.
+- entrada, orden: 40 abiertas.
+- entrada, herramienta: 40 abiertas.
+- referencia-secundaria, orden: 40 abiertas.
+- referencia-secundaria, herramienta: 40 abiertas.
+- referencia-paso, orden: 40 abiertas.
+- referencia-paso, herramienta: 40 abiertas.
+- referencia-en-el-punto, orden: 40 abiertas.
+- referencia-en-el-punto, herramienta: 40 abiertas.
+- descripcion-sin-herramientas, orden: 40 abiertas.
+- descripcion-sin-herramientas, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/kitlegal-sondeos/20261103-pr222/h39/a

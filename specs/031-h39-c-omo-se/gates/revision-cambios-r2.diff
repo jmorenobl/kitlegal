@@ -1,0 +1,611 @@
+diff --git a/internal/evals/laboratorio_servidor.go b/internal/evals/laboratorio_servidor.go
+index dd8a8e3f..e3031d08 100644
+--- a/internal/evals/laboratorio_servidor.go
++++ b/internal/evals/laboratorio_servidor.go
+@@ -12,7 +12,6 @@ import (
+ 	"os"
+ 	"os/exec"
+ 	"slices"
+-	"unicode/utf8"
+ )
+ 
+ // PrefijoDelLaboratorio es el principio de cada línea que el programa
+@@ -113,9 +112,7 @@ func servirElLaboratorio(ctx context.Context, args []string, entrada io.Reader,
+ 	return servidor.servir(ctx, entrada, salida, errores)
+ }
+ 
+-// leerElServidorDelLaboratorio lee los argumentos de laboratorio servidor. Un
+-// texto de -instrucciones o de -descripcion que no es UTF-8 no cabe en un
+-// mensaje del protocolo, y es un error que lo nombra.
++// leerElServidorDelLaboratorio lee los argumentos de laboratorio servidor.
+ func leerElServidorDelLaboratorio(args []string) (servidorDelLaboratorio, error) {
+ 	analizador := flag.NewFlagSet("laboratorio servidor", flag.ContinueOnError)
+ 	// La orden escribe una sola línea, la suya: lo que flag escribiría por su
+@@ -140,10 +137,6 @@ func leerElServidorDelLaboratorio(args []string) (servidorDelLaboratorio, error)
+ 	servidor := servidorDelLaboratorio{kitlegal: kitlegal}
+ 
+ 	if dadas[banderaDeInstrucciones] {
+-		if !utf8.ValidString(instrucciones) {
+-			return servidorDelLaboratorio{}, errTextoQueNoEsUTF8(banderaDeInstrucciones)
+-		}
+-
+ 		servidor.instrucciones = &instrucciones
+ 	}
+ 
+@@ -153,22 +146,12 @@ func leerElServidorDelLaboratorio(args []string) (servidorDelLaboratorio, error)
+ 			return servidorDelLaboratorio{}, errUsoDelServidor
+ 		}
+ 
+-		if !utf8.ValidString(descripcion) {
+-			return servidorDelLaboratorio{}, errTextoQueNoEsUTF8(banderaDeLaDescripcion)
+-		}
+-
+ 		servidor.parametro = &parametroReescrito{herramienta: herramienta, parametro: parametro, descripcion: descripcion}
+ 	}
+ 
+ 	return servidor, nil
+ }
+ 
+-// errTextoQueNoEsUTF8 es el fallo de una bandera de texto cuyo valor no es
+-// UTF-8.
+-func errTextoQueNoEsUTF8(bandera string) error {
+-	return fmt.Errorf("el texto de -%s no es UTF-8", bandera)
+-}
+-
+ // servir arranca el hijo, filtra su salida y espera a que termine. Si el filtro
+ // falla, cierra la salida del hijo, que ya nadie lee, y lo mata antes de
+ // esperarlo: un servidor cuya respuesta no llega no sirve a la sesión.
+diff --git a/internal/evals/laboratorio_servidor_test.go b/internal/evals/laboratorio_servidor_test.go
+index 9e544cca..b218495c 100644
+--- a/internal/evals/laboratorio_servidor_test.go
++++ b/internal/evals/laboratorio_servidor_test.go
+@@ -233,9 +233,8 @@ func probarLoQueLaListaNoTrae(t *testing.T, lineas []string, lista int) {
+ }
+ 
+ // probarLosArgumentosSinLaForma fija que unos argumentos sin la forma de la
+-// orden son un defecto antes de arrancar nada: la línea de uso, o la que dice
+-// qué texto no es UTF-8, en la salida de error, nada en la estándar, 1 y ningún
+-// hijo.
++// orden son un defecto antes de arrancar nada: la línea de uso en la salida de
++// error, nada en la estándar, 1 y ningún hijo.
+ func probarLosArgumentosSinLaForma(t *testing.T, lineas []string) {
+ 	t.Helper()
+ 
+@@ -279,20 +278,6 @@ func probarLosArgumentosSinLaForma(t *testing.T, lineas []string) {
+ 			args:   []string{"-kitlegal", sustituto.ruta, "-descripcion", descripcionDelLaboratorio},
+ 			linea:  uso,
+ 		},
+-		{
+-			nombre: "instrucciones-que-no-son-utf8",
+-			args:   []string{"-kitlegal", sustituto.ruta, "-instrucciones", "activa\xff"},
+-			linea:  "laboratorio: el texto de -instrucciones no es UTF-8\n",
+-		},
+-		{
+-			nombre: "descripcion-que-no-es-utf8",
+-			args: []string{
+-				"-kitlegal", sustituto.ruta,
+-				"-herramienta", herramientaDelLaboratorio, "-parametro", parametroDelLaboratorio,
+-				"-descripcion", "id\xff",
+-			},
+-			linea: "laboratorio: el texto de -descripcion no es UTF-8\n",
+-		},
+ 	}
+ 
+ 	for _, caso := range casos {
+diff --git a/internal/evals/laboratorio_tabla.go b/internal/evals/laboratorio_tabla.go
+index ce18f65c..df829cb8 100644
+--- a/internal/evals/laboratorio_tabla.go
++++ b/internal/evals/laboratorio_tabla.go
+@@ -1,7 +1,6 @@
+ package evals
+ 
+ import (
+-	"bytes"
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
+@@ -245,27 +244,25 @@ func sondeosDeLaRuta(ruta string) ([]string, error) {
+ 	return sondeos, nil
+ }
+ 
+-// tieneSondeo dice si el directorio tiene sondeo.json. Un sondeo.json que no es
+-// un fichero, o que no se puede mirar, es un error que lo nombra.
++// tieneSondeo dice si el directorio tiene sondeo.json. Un sondeo.json que no se
++// puede mirar es un error que lo nombra.
+ func tieneSondeo(directorio string) (bool, error) {
+ 	fichero := filepath.Join(directorio, ficheroDelSondeo)
+ 
+-	estado, err := os.Stat(fichero)
++	_, err := os.Stat(fichero)
+ 
+ 	switch {
+ 	case errors.Is(err, fs.ErrNotExist):
+ 		return false, nil
+ 	case err != nil:
+ 		return false, fmt.Errorf("%s no se puede leer: %w", fichero, err)
+-	case !estado.Mode().IsRegular():
+-		return false, fmt.Errorf("%s no es un fichero", fichero)
+ 	default:
+ 		return true, nil
+ 	}
+ }
+ 
+-// leerElSondeo lee el sondeo.json del sondeo: un objeto con el modelo y la
+-// versión, los dos no vacíos, y nada más.
++// leerElSondeo lee el sondeo.json del sondeo, el objeto con el modelo y la
++// versión que escribe el arnés.
+ func leerElSondeo(sondeo string) (sondeoLeido, error) {
+ 	fichero := filepath.Join(sondeo, ficheroDelSondeo)
+ 
+@@ -274,23 +271,12 @@ func leerElSondeo(sondeo string) (sondeoLeido, error) {
+ 		return sondeoLeido{}, fmt.Errorf("%s no se puede leer: %w", fichero, err)
+ 	}
+ 
+-	decodificador := json.NewDecoder(bytes.NewReader(contenido))
+-	decodificador.DisallowUnknownFields()
+-
+ 	var leido sondeoLeido
+ 
+-	if err := decodificador.Decode(&leido); err != nil {
++	if err := json.Unmarshal(contenido, &leido); err != nil {
+ 		return sondeoLeido{}, fmt.Errorf("%s no es un objeto con modelo y claude_code: %w", fichero, err)
+ 	}
+ 
+-	if decodificador.More() {
+-		return sondeoLeido{}, fmt.Errorf("%s lleva algo detrás de su objeto", fichero)
+-	}
+-
+-	if leido.Modelo == "" || leido.ClaudeCode == "" {
+-		return sondeoLeido{}, fmt.Errorf("%s no tiene modelo y claude_code", fichero)
+-	}
+-
+ 	return leido, nil
+ }
+ 
+@@ -959,25 +945,17 @@ type palabraDeSh struct {
+ // separan |, ||, &&, ;, & y los saltos de línea, salvo el & de una redirección
+ // como 2>&1; las palabras, los espacios y los tabuladores; y las comillas
+ // simples y dobles y la barra invertida se quitan como en sh, con la barra
+-// invertida seguida de un salto de línea como continuación. Un comentario, desde
+-// un # al principio de una palabra hasta el salto de línea, no es nada; y una
+-// subshell, una sustitución de orden —$( ) o comillas invertidas— y lo que va
+-// dentro son parte de la palabra en que están, sin partir: el guion no cuenta
+-// kitlegal dentro de ellas (research D10 de H39, alternativa c).
+-//
+-// Una comilla, un paréntesis o una comilla invertida sin cerrar dejan la orden
+-// sin las órdenes de su línea y de las que siguen: sh no ejecuta una línea que no
+-// puede leer, y sí las anteriores.
++// invertida seguida de un salto de línea como continuación. Una subshell, una
++// sustitución de orden —$( ) o comillas invertidas— y lo que va dentro son parte
++// de la palabra en que están, sin partir: el guion no cuenta kitlegal dentro de
++// ellas (research D10 de H39, alternativa c). Lo demás de sh no se distingue: un
++// # es un carácter más, y unas comillas, un paréntesis o unas comillas
++// invertidas sin cerrar llegan hasta el final de la orden.
+ func ordenesSimples(orden string) [][]palabraDeSh {
+ 	lector := lectorDeSh{}
+ 
+ 	for posicion := 0; posicion < len(orden); {
+-		siguiente, leida := lector.leerDesde(orden, posicion)
+-		if !leida {
+-			return lector.ordenes[:lector.completas]
+-		}
+-
+-		posicion = siguiente
++		posicion = lector.leerDesde(orden, posicion)
+ 	}
+ 
+ 	lector.cerrarLaOrden()
+@@ -1006,9 +984,6 @@ type lectorDeSh struct {
+ 	// ordenes son las órdenes simples ya cerradas que tienen alguna palabra.
+ 	ordenes [][]palabraDeSh
+ 
+-	// completas es cuántas de ellas cerró el último salto de línea.
+-	completas int
+-
+ 	// actual son las palabras de la orden simple que se está leyendo.
+ 	actual []palabraDeSh
+ 
+@@ -1023,26 +998,16 @@ type lectorDeSh struct {
+ }
+ 
+ // leerDesde lee lo que empieza en esa posición de la orden y devuelve la
+-// posición siguiente, o falso si es una comilla, un paréntesis o una comilla
+-// invertida sin cerrar.
+-func (l *lectorDeSh) leerDesde(orden string, posicion int) (int, bool) {
++// posición siguiente.
++func (l *lectorDeSh) leerDesde(orden string, posicion int) int {
+ 	switch caracter := orden[posicion]; caracter {
+ 	case '\\':
+-		return l.leerLaBarra(orden, posicion), true
++		return l.leerLaBarra(orden, posicion)
+ 	case '\'', '"', '`', '(':
+ 		return l.leerElTramo(orden, posicion)
+-	case '#':
+-		if !l.enLaPalabra {
+-			return finDeLaLinea(orden, posicion), true
+-		}
+-
+-		l.anadirSinComillas(caracter)
+ 	case ' ', '\t':
+ 		l.cerrarLaPalabra()
+-	case '\n':
+-		l.cerrarLaOrden()
+-		l.completas = len(l.ordenes)
+-	case ';', '|':
++	case '\n', ';', '|':
+ 		l.cerrarLaOrden()
+ 	case '&':
+ 		if !l.redireccion {
+@@ -1056,17 +1021,7 @@ func (l *lectorDeSh) leerDesde(orden string, posicion int) (int, bool) {
+ 		l.anadirSinComillas(caracter)
+ 	}
+ 
+-	return posicion + 1, true
+-}
+-
+-// finDeLaLinea es la posición del salto de línea que cierra el comentario que
+-// empieza en esa posición, o el final de la orden.
+-func finDeLaLinea(orden string, posicion int) int {
+-	if salto := strings.IndexByte(orden[posicion:], '\n'); salto >= 0 {
+-		return posicion + salto
+-	}
+-
+-	return len(orden)
++	return posicion + 1
+ }
+ 
+ // leerLaBarra lee la barra invertida de esa posición, fuera de comillas: con un
+@@ -1090,12 +1045,10 @@ func (l *lectorDeSh) leerLaBarra(orden string, posicion int) int {
+ // invertidas que empieza en esa posición y devuelve la posición que sigue a su
+ // cierre: de unas comillas simples, su contenido tal cual; de unas dobles, su
+ // contenido sin las barras invertidas que escapan; de lo demás, el tramo entero,
+-// sin partir.
+-func (l *lectorDeSh) leerElTramo(orden string, posicion int) (int, bool) {
+-	cierre, cerrado := cierreDelTramo(orden, posicion)
+-	if !cerrado {
+-		return 0, false
+-	}
++// sin partir. Sin cierre, el tramo llega hasta el final de la orden.
++func (l *lectorDeSh) leerElTramo(orden string, posicion int) int {
++	cierre := cierreDelTramo(orden, posicion)
++	siguiente := min(cierre+1, len(orden))
+ 
+ 	switch orden[posicion] {
+ 	case '\'':
+@@ -1103,22 +1056,24 @@ func (l *lectorDeSh) leerElTramo(orden string, posicion int) (int, bool) {
+ 	case '"':
+ 		l.anadirEntrecomillado(sinEscapesDeLasDobles(orden[posicion+1 : cierre]))
+ 	default:
+-		l.anadirEntrecomillado(orden[posicion : cierre+1])
++		l.anadirEntrecomillado(orden[posicion:siguiente])
+ 	}
+ 
+-	return cierre + 1, true
++	return siguiente
+ }
+ 
+ // cierreDelTramo es la posición del carácter que cierra el tramo que empieza en
+-// esa posición, y si lo hay: la comilla simple siguiente; la doble o la
+-// invertida siguiente que no escapa una barra; o el paréntesis que cierra el de
+-// apertura.
+-func cierreDelTramo(orden string, posicion int) (int, bool) {
++// esa posición, o el final de la orden si no lo cierra ninguno: la comilla
++// simple siguiente; la doble o la invertida siguiente que no escapa una barra; o
++// el paréntesis que cierra el de apertura.
++func cierreDelTramo(orden string, posicion int) int {
+ 	switch orden[posicion] {
+ 	case '\'':
+-		cierre := strings.IndexByte(orden[posicion+1:], '\'')
++		if cierre := strings.IndexByte(orden[posicion+1:], '\''); cierre >= 0 {
++			return posicion + 1 + cierre
++		}
+ 
+-		return posicion + 1 + cierre, cierre >= 0
++		return len(orden)
+ 	case '(':
+ 		return cierreDelParentesis(orden, posicion)
+ 	default:
+@@ -1127,25 +1082,25 @@ func cierreDelTramo(orden string, posicion int) (int, bool) {
+ }
+ 
+ // cierreSinEscapar es la posición del primer carácter igual al de esa posición
+-// que no escapa una barra invertida: el cierre de unas comillas dobles o
+-// invertidas.
+-func cierreSinEscapar(orden string, posicion int) (int, bool) {
++// que no escapa una barra invertida, el cierre de unas comillas dobles o
++// invertidas, o el final de la orden.
++func cierreSinEscapar(orden string, posicion int) int {
+ 	for actual := posicion + 1; actual < len(orden); actual++ {
+ 		switch orden[actual] {
+ 		case '\\':
+ 			actual++
+ 		case orden[posicion]:
+-			return actual, true
++			return actual
+ 		}
+ 	}
+ 
+-	return 0, false
++	return len(orden)
+ }
+ 
+ // cierreDelParentesis es la posición del paréntesis que cierra el de esa
+-// posición, saltando los tramos entre comillas que lleva dentro, que pueden
+-// llevar paréntesis sin pareja.
+-func cierreDelParentesis(orden string, posicion int) (int, bool) {
++// posición, o el final de la orden, saltando los tramos entre comillas que lleva
++// dentro, que pueden llevar paréntesis sin pareja.
++func cierreDelParentesis(orden string, posicion int) int {
+ 	profundidad := 0
+ 
+ 	for actual := posicion; actual < len(orden); actual++ {
+@@ -1153,23 +1108,18 @@ func cierreDelParentesis(orden string, posicion int) (int, bool) {
+ 		case '\\':
+ 			actual++
+ 		case '\'', '"', '`':
+-			cierre, cerrado := cierreDelTramo(orden, actual)
+-			if !cerrado {
+-				return 0, false
+-			}
+-
+-			actual = cierre
++			actual = cierreDelTramo(orden, actual)
+ 		case '(':
+ 			profundidad++
+ 		case ')':
+ 			profundidad--
+ 			if profundidad == 0 {
+-				return actual, true
++				return actual
+ 			}
+ 		}
+ 	}
+ 
+-	return 0, false
++	return len(orden)
+ }
+ 
+ // sinEscapesDeLasDobles quita del contenido de unas comillas dobles las barras
+diff --git a/internal/evals/laboratorio_tabla_test.go b/internal/evals/laboratorio_tabla_test.go
+index 089a9600..bd7bb377 100644
+--- a/internal/evals/laboratorio_tabla_test.go
++++ b/internal/evals/laboratorio_tabla_test.go
+@@ -2,9 +2,11 @@ package evals
+ 
+ import (
+ 	"bytes"
++	"encoding/json"
+ 	"fmt"
+ 	"os"
+ 	"path/filepath"
++	"slices"
+ 	"strings"
+ 	"testing"
+ 
+@@ -171,6 +173,226 @@ func probarUnDirectorioSinSondeo(t *testing.T) {
+ 		tabla.errores)
+ }
+ 
++// ordenQueConsulta es una orden kitlegal que consulta con una herramienta del
++// registro, boe_articulo, y palabrasQueConsultan, sus palabras.
++const ordenQueConsulta = "kitlegal boe articulo BOE-A-1978-31229 a140"
++
++var palabrasQueConsultan = []string{"kitlegal", "boe", "articulo", "BOE-A-1978-31229", "a140"}
++
++// casoDeOrdenDeBash es una orden de Bash del modo orden, sus órdenes simples y
++// si es la primera herramienta de kitlegal de la sesión.
++type casoDeOrdenDeBash struct {
++	nombre  string
++	orden   string
++	ordenes [][]palabraDeSh
++	cuenta  bool
++}
++
++// TestOrdenesDeBash fija cómo lee el guion de la tabla la orden de un Bash en
++// el modo orden (FR-041 de H39; contracts/tabla.md §2 de H39; research D10 de
++// H39): las órdenes simples en que la parte ordenesSimples, cada una con sus
++// palabras, y si la cuenta esDeKitlegal como primera herramienta de kitlegal,
++// que es lo que decide «Activa antes». La separan |, ||, &&, ;, & y el salto de
++// línea, pero no el & de 2>&1 ni lo escapado; la consulta es la de un verbo que
++// da herramienta, sin --describe, --help ni --dry-run; kitlegal dentro de una
++// subshell, de $( ) o de comillas invertidas no cuenta (alternativa c); un # es
++// un carácter más; y unas comillas, un paréntesis o unas comillas invertidas
++// sin cerrar llegan hasta el final de la orden.
++func TestOrdenesDeBash(t *testing.T) {
++	t.Parallel()
++
++	herramientas, err := herramientasDelRegistro()
++	require.NoError(t, err)
++
++	casos := slices.Concat(casosDeOrdenesQueSeParten(), casosDeOrdenesQueNoConsultan(), casosDeOrdenesSinPartir(),
++		casosDeOrdenesConEscapes())
++
++	for _, caso := range casos {
++		t.Run(caso.nombre, func(t *testing.T) {
++			t.Parallel()
++
++			// Un intérprete por caso: su analizador guarda lo que lee de cada
++			// invocación, y los casos corren a la vez.
++			interprete, err := nuevoInterprete()
++			require.NoError(t, err)
++
++			contador := contadorDelLaboratorio{herramientas: herramientas, interprete: interprete}
++
++			entrada, err := json.Marshal(map[string]string{"command": caso.orden})
++			require.NoError(t, err)
++
++			uso := usoDelTranscript{turno: 1, nombre: herramientaBash, entrada: entrada}
++
++			assert.Equal(t, caso.ordenes, ordenesSimples(caso.orden), "las órdenes simples de %q", caso.orden)
++			assert.Equal(t, caso.cuenta, contador.esDeKitlegal(uso, ModoOrden), "si %q cuenta", caso.orden)
++		})
++	}
++}
++
++// casosDeOrdenesQueSeParten son órdenes que se parten en órdenes simples y
++// cuentan por la que consulta.
++func casosDeOrdenesQueSeParten() []casoDeOrdenDeBash {
++	return []casoDeOrdenDeBash{
++		{nombre: "sola", orden: ordenQueConsulta, ordenes: [][]palabraDeSh{consultaCon()}, cuenta: true},
++		{
++			nombre: "tuberia", orden: "cat x | " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("cat", "x"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "o", orden: "false || " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("false"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "y", orden: "cd /tmp && " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("cd", "/tmp"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "segundo-plano", orden: "sleep 1 & " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("sleep", "1"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "punto-y-coma", orden: "echo x; " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "x"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "salto-de-linea", orden: "echo x\n" + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "x"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "redireccion", orden: ordenQueConsulta + " 2>&1 | tail -n 40",
++			ordenes: [][]palabraDeSh{consultaCon("2>&1"), palabrasDe("tail", "-n", "40")}, cuenta: true,
++		},
++		{
++			nombre: "asignacion-y-ruta", orden: `LANG="es ES" "/usr/local/bin/kitlegal" boe articulo BOE-A-1978-31229 a140`,
++			ordenes: [][]palabraDeSh{slices.Concat([]palabraDeSh{{texto: "LANG=es ES", asignacion: true}},
++				palabrasDe("/usr/local/bin/kitlegal", "boe", "articulo", "BOE-A-1978-31229", "a140"))},
++			cuenta: true,
++		},
++		{
++			nombre: "comilla-sin-cerrar-en-la-linea-siguiente", orden: ordenQueConsulta + "\necho \"sin cerrar",
++			ordenes: [][]palabraDeSh{consultaCon(), palabrasDe("echo", "sin cerrar")}, cuenta: true,
++		},
++		{
++			nombre: "parentesis-entre-comillas", orden: "echo $(echo ')' ) ; " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "$(echo ')' )"), consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "parentesis-escapado", orden: `echo $(echo \( ); ` + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", `$(echo \( )`), consultaCon()}, cuenta: true,
++		},
++	}
++}
++
++// casosDeOrdenesQueNoConsultan son órdenes kitlegal, o que lo nombran, que no
++// consultan con un verbo que da herramienta.
++func casosDeOrdenesQueNoConsultan() []casoDeOrdenDeBash {
++	return []casoDeOrdenDeBash{
++		{nombre: "describe", orden: ordenQueConsulta + " --describe", ordenes: [][]palabraDeSh{consultaCon("--describe")}},
++		{nombre: "ayuda", orden: ordenQueConsulta + " --help", ordenes: [][]palabraDeSh{consultaCon("--help")}},
++		{nombre: "dry-run", orden: ordenQueConsulta + " --dry-run", ordenes: [][]palabraDeSh{consultaCon("--dry-run")}},
++		{nombre: "skills-list", orden: "kitlegal skills list", ordenes: [][]palabraDeSh{palabrasDe("kitlegal", "skills", "list")}},
++		{nombre: "which", orden: "which kitlegal", ordenes: [][]palabraDeSh{palabrasDe("which", "kitlegal")}},
++		{
++			nombre: "solo-asignaciones", orden: "KITLEGAL=kitlegal",
++			ordenes: [][]palabraDeSh{{{texto: "KITLEGAL=kitlegal", asignacion: true}}},
++		},
++		{
++			nombre: "almohadilla-al-principio", orden: "# " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe(slices.Concat([]string{"#"}, palabrasQueConsultan)...)},
++		},
++		{
++			nombre: "almohadilla-detras", orden: "echo x # " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe(slices.Concat([]string{"echo", "x", "#"}, palabrasQueConsultan)...)},
++		},
++		{nombre: "almohadilla-en-la-palabra", orden: "echo a#b", ordenes: [][]palabraDeSh{palabrasDe("echo", "a#b")}},
++	}
++}
++
++// casosDeOrdenesSinPartir son órdenes con kitlegal dentro de un tramo que no se
++// parte: una subshell, una sustitución de orden o unas comillas, cerradas o no.
++func casosDeOrdenesSinPartir() []casoDeOrdenDeBash {
++	return []casoDeOrdenDeBash{
++		{
++			nombre: "subshell", orden: "(" + ordenQueConsulta + ")",
++			ordenes: [][]palabraDeSh{palabrasDe("(" + ordenQueConsulta + ")")},
++		},
++		{
++			nombre: "subshell-con-secuencia", orden: "( cd /tmp && " + ordenQueConsulta + " )",
++			ordenes: [][]palabraDeSh{palabrasDe("( cd /tmp && " + ordenQueConsulta + " )")},
++		},
++		{
++			nombre: "sustitucion", orden: "echo $(" + ordenQueConsulta + ")",
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "$("+ordenQueConsulta+")")},
++		},
++		{
++			nombre: "comillas-invertidas", orden: "echo `" + ordenQueConsulta + "`",
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "`"+ordenQueConsulta+"`")},
++		},
++		{
++			nombre: "doble-sin-cerrar", orden: `echo "x; ` + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "x; "+ordenQueConsulta)},
++		},
++		{
++			nombre: "simple-sin-cerrar", orden: "echo 'x; " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "x; "+ordenQueConsulta)},
++		},
++		{
++			nombre: "parentesis-sin-cerrar", orden: "echo $(cd /tmp; " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "$(cd /tmp; "+ordenQueConsulta)},
++		},
++		{
++			nombre: "comilla-sin-cerrar-en-el-parentesis", orden: "echo $(echo 'x); " + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "$(echo 'x); "+ordenQueConsulta)},
++		},
++	}
++}
++
++// casosDeOrdenesConEscapes son órdenes con barras invertidas, fuera y dentro de
++// las comillas dobles.
++func casosDeOrdenesConEscapes() []casoDeOrdenDeBash {
++	return []casoDeOrdenDeBash{
++		{
++			nombre: "separador-escapado", orden: `echo x\;` + ordenQueConsulta,
++			ordenes: [][]palabraDeSh{palabrasDe(slices.Concat([]string{"echo", "x;kitlegal"}, palabrasQueConsultan[1:])...)},
++		},
++		{
++			nombre: "comilla-escapada-en-las-dobles", orden: `echo "x\"; ` + ordenQueConsulta + `"`,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", `x"; `+ordenQueConsulta)},
++		},
++		{
++			nombre: "escapes-de-las-dobles", orden: "echo \"1\\$ 2\\` 3\\\\ 4\\q 5\\\n6\"",
++			ordenes: [][]palabraDeSh{palabrasDe("echo", "1$ 2` 3\\ 4\\q 56")},
++		},
++		{
++			nombre: "barra-al-final-de-las-dobles", orden: `echo "x\`,
++			ordenes: [][]palabraDeSh{palabrasDe("echo", `x\`)},
++		},
++		{
++			nombre: "barra-y-salto-de-linea", orden: "kitlegal boe \\\n  articulo BOE-A-1978-31229 a140",
++			ordenes: [][]palabraDeSh{consultaCon()}, cuenta: true,
++		},
++		{
++			nombre: "barra-al-final", orden: ordenQueConsulta + ` \`,
++			ordenes: [][]palabraDeSh{consultaCon(`\`)}, cuenta: true,
++		},
++	}
++}
++
++// palabrasDe son las palabras de una orden simple, ninguna una asignación.
++func palabrasDe(textos ...string) []palabraDeSh {
++	palabras := make([]palabraDeSh, 0, len(textos))
++	for _, texto := range textos {
++		palabras = append(palabras, palabraDeSh{texto: texto})
++	}
++
++	return palabras
++}
++
++// consultaCon son las palabras de ordenQueConsulta seguidas de esas.
++func consultaCon(detras ...string) []palabraDeSh {
++	return palabrasDe(slices.Concat(palabrasQueConsultan, detras)...)
++}
++
+ // tablaContada es lo que devuelve el guion que cuenta un sondeo: su código, su
+ // salida y su salida de error.
+ type tablaContada struct {

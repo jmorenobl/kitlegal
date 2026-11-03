@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -690,7 +691,7 @@ func TestDescribeGramatica(t *testing.T) {
 		literal, _ := describirDePrueba(t, verboDeBusqueda(&argumentosConLiteral{}))
 		cadena, _ := describirDePrueba(t, verboDeBusqueda(&argumentosConCadena{}))
 
-		assert.Equal(t, map[string]any{"type": "string"},
+		assert.Equal(t, map[string]any{"type": "string", "description": "Lo que se busca."},
 			bajar(t, literal, "properties", "entrada", "properties", "id"))
 		assert.Equal(t, cadena, literal,
 			"el documento no distingue un Literal de un string, y no lo lleva a $defs")
@@ -886,5 +887,152 @@ func TestDescribeDefectosDelKernel(t *testing.T) {
 
 		require.ErrorIs(t, err, errEsquemaImposible)
 		assert.Empty(t, documento, "un documento a medias es peor que ninguno")
+	})
+}
+
+// ayudaConMetacaracteres es la ayuda de un argumento con lo que un esquema podría
+// reescribir al copiarla: los ángulos de `BOE-A-<año>-<número>` y el `&`, que el
+// codificador de JSON escapa si se le deja, y un `$` suelto como el de
+// `$HOME/.agents/skills`, que la interpolación de Kong deja igual (research V1,
+// V4). Escrita aquí y no leída de la etiqueta: es lo que el documento tiene que
+// llevar, carácter a carácter.
+const ayudaConMetacaracteres = "Identificador BOE-A-<año>-<número> & $HOME/.agents/skills."
+
+// Los argumentos de los verbos de TestAyudaComoDescripcion: los mismos campos,
+// con y sin etiqueta `help`. El primero reúne las tres formas que la regla
+// distingue —una ayuda, ninguna y una vacía—; el segundo es su gemelo sin ayudas,
+// el esquema de antes de que la ayuda llegara a la propiedad.
+type (
+	argumentosConAyudas struct {
+		ConAyuda   string   `arg:"" name:"con-ayuda" help:"Identificador BOE-A-<año>-<número> & $HOME/.agents/skills."`
+		SinAyuda   string   `optional:""`
+		AyudaVacia []string `help:""`
+	}
+
+	argumentosSinAyudas struct {
+		ConAyuda   string `arg:"" name:"con-ayuda"`
+		SinAyuda   string `optional:""`
+		AyudaVacia []string
+	}
+)
+
+// verboDeAyudas es la definición de un verbo con esos argumentos; los dos
+// gemelos solo se distinguen por ellos.
+func verboDeAyudas(argumentos any) Verbo {
+	return Verbo{
+		Applet:     nombreDePrueba,
+		Verbo:      "ayudar",
+		Ayuda:      "Ejerce las ayudas de los argumentos.",
+		Argumentos: argumentos,
+		Salida:     datosDeCuenta{},
+	}
+}
+
+// propiedadesConAyudas son las tres propiedades del verbo con ayudas tal y como
+// las tiene que describir cualquiera de los dos esquemas: la ayuda, detrás del
+// tipo; nada donde no hay ayuda o está vacía.
+func propiedadesConAyudas() map[string]any {
+	return map[string]any{
+		"con-ayuda":   map[string]any{"type": "string", "description": ayudaConMetacaracteres},
+		"sin-ayuda":   map[string]any{"type": "string"},
+		"ayuda-vacia": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+	}
+}
+
+// entradaConAyudas es el esquema de entrada de la herramienta de ese verbo, byte a
+// byte: la `description` va detrás de las claves que la propiedad ya llevaba, y
+// los ángulos, el `&` y el `$` salen sin escapar (contracts/esquemas.md §1 de H39).
+const entradaConAyudas = `{"properties":{"con-ayuda":{"type":"string","description":"` + ayudaConMetacaracteres +
+	`"},"sin-ayuda":{"type":"string"},"ayuda-vacia":{"items":{"type":"string"},"type":"array"}},` +
+	`"additionalProperties":false,"type":"object","required":["con-ayuda"]}`
+
+// sinLaAyuda quita la `description` de la propiedad que la lleva, que es lo único
+// que la ayuda puede añadir al esquema: lo que queda tiene que ser el esquema del
+// gemelo sin ayudas.
+func sinLaAyuda(t *testing.T, propiedades map[string]any) {
+	t.Helper()
+
+	delete(bajar(t, propiedades, "con-ayuda"), "description")
+}
+
+// TestAyudaComoDescripcion comprueba que la ayuda de cada argumento propio del
+// verbo es la `description` de su propiedad, tal cual, en el documento de
+// --describe y en el esquema de entrada de la herramienta; que no la lleva la
+// propiedad sin ayuda, ni la de ayuda vacía, ni ninguna de las ocho banderas
+// globales; y que nada más del esquema cambia (FR-001, FR-003; contracts/esquemas.md
+// §1 y §5 de H39).
+func TestAyudaComoDescripcion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("en el documento de --describe", func(t *testing.T) {
+		t.Parallel()
+
+		documento, doble := describirDePrueba(t, verboDeAyudas(&argumentosConAyudas{}))
+		propiedades := bajar(t, documento, "properties", "entrada", "properties")
+
+		for nombre, esperada := range propiedadesConAyudas() {
+			assert.Equal(t, esperada, propiedades[nombre], "la propiedad %s", nombre)
+		}
+
+		for _, global := range nombresDeLasOcho {
+			assert.NotContains(t, bajar(t, propiedades, global), "description",
+				"la bandera global %s no gana la ayuda (FR-003)", global)
+		}
+
+		assert.Contains(t, doble.salida.String(), `"description": "`+ayudaConMetacaracteres+`"`,
+			"la ayuda sale carácter a carácter, sin escapar ángulos, & ni $ (research V4)")
+
+		sinAyudas, _ := describirDePrueba(t, verboDeAyudas(&argumentosSinAyudas{}))
+		sinLaAyuda(t, propiedades)
+		assert.Equal(t, sinAyudas, documento,
+			"sin la ayuda, el documento es el del verbo sin ayudas: ni el orden de las "+
+				"propiedades, ni required, ni x-banderas, ni la salida cambian")
+	})
+
+	t.Run("en el esquema de entrada de la herramienta", func(t *testing.T) {
+		t.Parallel()
+
+		entrada, salida, leidos := esquemasDePrueba(t, verboDeAyudas(&argumentosConAyudas{}))
+		exigirByteAByte(t, entradaConAyudas, entrada)
+
+		propiedades := bajar(t, leidos[0], claveDePropiedades)
+		for nombre, esperada := range propiedadesConAyudas() {
+			assert.Equal(t, esperada, propiedades[nombre], "la propiedad %s", nombre)
+		}
+
+		for _, global := range nombresDeLasOcho {
+			assert.NotContains(t, propiedades, global, "la herramienta no recibe la bandera global %s", global)
+		}
+
+		_, salidaSinAyudas, sinAyudas := esquemasDePrueba(t, verboDeAyudas(&argumentosSinAyudas{}))
+		sinLaAyuda(t, propiedades)
+		assert.Equal(t, sinAyudas[0], leidos[0], "sin la ayuda, la entrada es la del verbo sin ayudas")
+		assert.Equal(t, string(salidaSinAyudas), string(salida), "la salida no cambia")
+	})
+
+	t.Run("la escritura deja los ángulos y el & y conserva toda otra secuencia", func(t *testing.T) {
+		t.Parallel()
+
+		// Una barra seguida del código del ángulo es texto de la ayuda, no un
+		// escape: sale con su barra escapada y se lee igual que se escribió. Las
+		// comillas y el salto de línea siguen escapados, que es lo que hace del
+		// documento un JSON válido.
+		const barra = `\`
+
+		ayuda := "<a> & " + barra + "u003c \"b\"\n"
+		escrita := `{"description":"<a> & ` + barra + barra + `u003c ` + barra + `"b` + barra + `"` + barra + `n"}`
+
+		for _, sangrado := range []string{"", sangradoDelDocumento} {
+			documento, err := codificar(&invopop.Schema{Description: ayuda}, sangrado)
+			require.NoError(t, err)
+
+			var compacto bytes.Buffer
+			require.NoError(t, json.Compact(&compacto, []byte(documento)))
+			assert.Equal(t, escrita, compacto.String(), "con el sangrado %q", sangrado)
+
+			var leida invopop.Schema
+			require.NoError(t, json.Unmarshal([]byte(documento), &leida))
+			assert.Equal(t, ayuda, leida.Description, "con el sangrado %q, se lee lo escrito", sangrado)
+		}
 	})
 }

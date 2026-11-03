@@ -1,0 +1,16 @@
+# Variantes de la skill de laboratorio de H39: la de control y siete que difieren de ella en las partes que declaran
+# (specs/031-h39-c-omo-se/data-model.md §2 y §3). Lo comprueba TestVariantesDelLaboratorio.
+skill: articulos-del-boe
+entrada: consulta-legal
+herramienta: boe_articulo
+parametro: bloque
+referencia: cierre.md
+variantes:
+  - {nombre: control, modos: [orden, herramienta], cambia: []}
+  - {nombre: instrucciones, modos: [herramienta], cambia: [instrucciones]}
+  - {nombre: entrada, modos: [orden, herramienta], cambia: [entrada]}
+  - {nombre: referencia-secundaria, modos: [orden, herramienta], cambia: [cuerpo, referencia]}
+  - {nombre: parametro, modos: [herramienta], cambia: [cuerpo, parametro]}
+  - {nombre: referencia-paso, modos: [orden, herramienta], cambia: [cuerpo, referencia]}
+  - {nombre: referencia-en-el-punto, modos: [orden, herramienta], cambia: [cuerpo, referencia]}
+  - {nombre: descripcion-sin-herramientas, modos: [orden, herramienta], cambia: [descripcion]}
