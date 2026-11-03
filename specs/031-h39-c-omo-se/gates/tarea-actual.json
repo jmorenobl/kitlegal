@@ -1,14 +1,20 @@
 {
-  "id": "T007",
-  "texto": "T007 [US2] El laboratorio fuera del producto: `TestLaboratorioFueraDelProducto` en internal/evals/laboratorio_test.go, con lo que necesite de internal/evals/laboratorio.go, sobre el código de hoy y lo de T005 y T006 (FR-010; SC-005; contracts/laboratorio.md §7; research V9, V10): ningún fichero de `kitlegal.Skills()` tiene la ruta de una skill del laboratorio (`articulos-del-boe`, `consulta-legal`) ni los bytes de un fichero del laboratorio; `app.Arrancar` con `skills install --dir <directorio vacío del test>` no deja ninguno; la definición del job de evals no ejecuta ninguna de las dos skills y no hay carpeta de evals del producto con el nombre de ninguna; y ninguna ruta del laboratorio mide (`rutaQueMide`). Ver fallar cada comprobación con un mutante temporal (una ruta del laboratorio en la lista que se mira) y revertirlo",
+  "id": "T008",
+  "texto": "T008 [P] [US3] El servidor de las sesiones de `instrucciones` y `parametro` y la orden de `servidor.json` (FR-021, FR-024, FR-029; contracts/arnes.md §3.4 y §5; research D7, V12, V13, V14, S3). **Código**: internal/evals/sesiones.go, `SesionesAEjecutar` gana `Servidor []string` (la orden de `servidor.json`; vacío, la de hoy, `Binario mcp serve`, byte a byte) y `escribirElServidor` la usa; internal/evals/laboratorio_servidor.go, nuevo, el filtro de `laboratorio servidor -kitlegal <ruta> [-instrucciones <texto>] [-herramienta <h> -parametro <p> -descripcion <texto>]`: arranca `<ruta> mcp serve` con el entorno del proceso (`os/exec`, sin el SDK de MCP, R7), copia su entrada al hijo sin tocarla, su salida de error a la propia, y de su salida, línea a línea, reescribe solo `result.instructions` de la respuesta a `initialize` y la `description` de `inputSchema.properties.<p>` de la herramienta `<h>` en la de `tools/list`, y deja las demás líneas byte a byte; termina con el código del hijo; argumentos sin esa forma, o una herramienta o un parámetro que la lista no trae, son defecto: lo dice en su salida de error y sale con 1; cmd/laboratorio/main.go, nuevo, con la orden `servidor` (y el uso con 1 ante una orden desconocida), que pasa `os.Stdin`, `os.Stdout`, `os.Stderr` y `os.Args` al paquete de evals y llama a `os.Exit` con su código. **Test**: `TestServidorDelLaboratorio` en internal/evals/laboratorio_servidor_test.go, con las líneas que escribe el servidor de producción en proceso (`mcptest.Sesion.Lineas`): sin opciones, la salida igual byte a byte; con `-instrucciones`, solo cambia ese campo; con `-herramienta boe_articulo -parametro bloque -descripcion …`, solo cambia esa `description` (la línea reescrita, decodificada, igual salvo ese campo); con una herramienta o un parámetro que no existen, 1 y su mensaje; y en internal/evals/sesiones_test.go, el caso de `servidor.json` con `Servidor` dado y el de hoy, igual byte a byte, con `Servidor` vacío. `TestInstrucciones` sigue en verde sin cambios (FR-029)",
   "intento": 1,
   "datos": false,
   "aceptacion": false,
-  "base": "e3385e7c4c45a7d55a03909362a0c770476368ef",
+  "base": "fd4c752d7b938006027a46b8395b25380d298aac",
   "rutas": [
-    "contracts/laboratorio.md",
-    "internal/evals/laboratorio.go",
-    "internal/evals/laboratorio_test.go"
+    "cmd/laboratorio/main.go",
+    "contracts/arnes.md",
+    "internal/evals/laboratorio_servidor.go",
+    "internal/evals/laboratorio_servidor_test.go",
+    "internal/evals/sesiones.go",
+    "internal/evals/sesiones_test.go",
+    "os/exec",
+    "servidor.json",
+    "tools/list"
   ],
   "cierre": false,
   "converger": false,
