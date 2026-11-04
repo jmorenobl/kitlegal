@@ -277,6 +277,12 @@
       "skillPath": "skills/golang-uber-fx/SKILL.md",
       "computedHash": "e08067cdc0bb745483dafe455d71b9f3172d5ef488be829bbce34b0526d3c541"
     },
+    "impeccable": {
+      "source": "pbakaus/impeccable",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/impeccable/SKILL.md",
+      "computedHash": "63f6fa8e8033e7555c6f8eb91f4049eb82b134053a1ebe749a6d014988a4156c"
+    },
     "uv": {
       "source": "astral-sh/claude-code-plugins",
       "sourceType": "github",
