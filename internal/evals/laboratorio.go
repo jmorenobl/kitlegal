@@ -173,6 +173,20 @@ func directorioDeLaVariante(raiz, nombre string) string {
 	return filepath.Join(raiz, carpetaDelLaboratorio, carpetaDeLasVariantes, nombre)
 }
 
+// familia es la familia del laboratorio de H39 que declara (data-model §1 de
+// H40): su skill y sus variantes, con sus modos, en laboratorio/variantes/, y
+// los repartos, con todas las evals del laboratorio. Lo demás de H39 —la skill de
+// entrada, la herramienta, el parámetro y la referencia— sigue en la
+// declaración.
+func (d declaracionDelLaboratorio) familia() familiaDelLaboratorio {
+	return familiaDelLaboratorio{
+		skill:     d.Skill,
+		carpeta:   path.Join(carpetaDelLaboratorio, carpetaDeLasVariantes),
+		variantes: d.Variantes,
+		evals:     path.Join(carpetaDelLaboratorio, carpetaDeLasEvalsDelLaboratorio),
+	}
+}
+
 // carpetaDeLasEvalsDelLaboratorio es la carpeta de las evals del laboratorio,
 // dentro de la suya (contracts/laboratorio.md §1 y §6 de H39).
 const carpetaDeLasEvalsDelLaboratorio = "evals"

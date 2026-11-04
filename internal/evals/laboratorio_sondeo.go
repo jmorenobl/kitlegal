@@ -116,10 +116,12 @@ type parDelLaboratorio struct {
 // credencial y versión de Claude Code valen, con sus argumentos ya
 // interpretados.
 type laboratorioComprobado struct {
-	// declarada es la declaración del laboratorio, y pares, los pedidos, en el
-	// orden de la declaración y, dentro de cada variante, orden antes que
-	// herramienta.
+	// declarada es la declaración del laboratorio de H39; familia, la de las
+	// variantes pedidas, de H39 o de normativa (FR-010 de H40); y pares, los
+	// pedidos, en el orden de la declaración de su familia y, dentro de cada
+	// variante, orden antes que herramienta.
 	declarada declaracionDelLaboratorio
+	familia   familiaDelLaboratorio
 	pares     []parDelLaboratorio
 
 	// porEval son las sesiones de cada eval en cada par: SESIONES/4.
@@ -140,22 +142,26 @@ type resumenDelPar struct {
 }
 
 // sondearElLaboratorio abre las sesiones de un sondeo del laboratorio y devuelve
-// su salida (contracts/arnes.md §2, §3 y §4 de H39; data-model §6 de H39;
-// research D8 de H39; FR-030, FR-031, FR-033):
+// su salida (contracts/arnes.md §2, §3 y §4 de H39 y de H40; data-model §6 de
+// H39 y §1 de H40; research D8 de H39 y D7 y D8 de H40; FR-030, FR-031, FR-033
+// de H39; FR-008 y FR-010 de H40):
 //
 //  1. comprueba, antes de construir nada, los argumentos, la credencial y la
-//     versión de Claude Code (comprobarElLaboratorio);
+//     versión de Claude Code (comprobarElLaboratorio), y lee las evals del
+//     directorio de evals de la familia pedida y, de ellas, las que planifica
+//     su sondeo (evalsDelPlan);
 //  2. prepara en el temporal kitlegal, laboratorio, home/ y la copia de las
-//     skills de cada variante pedida;
+//     skills de cada variante pedida, desde el directorio de su familia;
 //  3. crea DIRECTORIO y su sondeo.json, con el modelo y la versión;
 //  4. por cada par, en su orden, abre con el repartidor, en
 //     DIRECTORIO/<variante>/<modo>/, SESIONES/4 sesiones de cada eval del
-//     laboratorio, en el orden de sus ficheros y de nombre <eval>-<nn>, con el
-//     modelo pedido y el modo del par: sin traza, con la copia de las skills de
-//     la variante, el entorno del sondeo de una skill (entornoDelSondeo) y el
-//     tope de 240 s con su margen de 10 s; en el modo herramienta, con el
-//     servidor de la variante (servidorDelPar). Tras un reparto que vuelve con
-//     sesiones sin abrir por el límite de uso, no abre ninguna más;
+//     sondeo de la familia, en su orden y de nombre <eval>-<nn>, con el modelo
+//     pedido y el modo del par: preparadas con el directorio de evals de la
+//     familia, sin traza, con la copia de las skills de la variante, el entorno
+//     del sondeo de una skill (entornoDelSondeo) y el tope de 240 s con su
+//     margen de 10 s; en el modo herramienta, con el servidor de la variante
+//     (servidorDelPar). Tras un reparto que vuelve con sesiones sin abrir por el
+//     límite de uso, no abre ninguna más;
 //  5. compone la salida: una línea por par, con las abiertas y las que quedaron
 //     sin abrir.
 //
@@ -163,10 +169,11 @@ type resumenDelPar struct {
 // cifras son de la tabla, no de esta salida. El error es el de la comprobación
 // —solo el de los argumentos, la credencial y la versión es un errorDeUso, y con
 // él no construye nada, no abre ninguna sesión y no crea DIRECTORIO—, el de la
-// declaración o las evals del laboratorio que no se pueden leer, el de la
-// preparación, el de DIRECTORIO o el del repartidor, también tras la
-// interrupción, con interrupcion cerrado, que cierra las abiertas como en el
-// sondeo de una skill.
+// declaración o las evals del laboratorio que no se pueden leer, el de una eval
+// del sondeo de la familia que no está en su directorio de evals, también antes
+// de construir nada, el de la preparación, el de DIRECTORIO o el del repartidor,
+// también tras la interrupción, con interrupcion cerrado, que cierra las
+// abiertas como en el sondeo de una skill.
 func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) (string, error) {
 	comprobado, err := comprobarElLaboratorio(s)
 	if err != nil {
@@ -178,9 +185,16 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 		return "", fmt.Errorf("el temporal del sondeo del laboratorio %s no tiene ruta absoluta: %w", s.Temporal, err)
 	}
 
-	evals, err := leerEvalsBienFormadas(directorioDeLasEvalsDelLaboratorio(s.Raiz))
+	directorioDeLasEvals := filepath.Join(s.Raiz, filepath.FromSlash(comprobado.familia.evals))
+
+	leidas, err := leerEvalsBienFormadas(directorioDeLasEvals)
 	if err != nil {
 		return "", fmt.Errorf("las evals del laboratorio no se pueden leer: %w", err)
+	}
+
+	evals, err := comprobado.familia.evalsDelPlan(leidas)
+	if err != nil {
+		return "", err
 	}
 
 	servidores := make([][]string, 0, len(comprobado.pares))
@@ -194,7 +208,7 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 		servidores = append(servidores, servidor)
 	}
 
-	if err := s.preparar(temporal, comprobado.pares); err != nil {
+	if err := s.preparar(temporal, comprobado.familia, comprobado.pares); err != nil {
 		return "", err
 	}
 
@@ -217,7 +231,7 @@ func sondearElLaboratorio(interrupcion <-chan struct{}, s SondeoDelLaboratorio) 
 		ejecucion, err := ejecutarSesiones(interrupcion, SesionesAEjecutar{
 			Plan:          plan,
 			Concurrencia:  comprobado.concurrencia,
-			Evals:         directorioDeLasEvalsDelLaboratorio(s.Raiz),
+			Evals:         directorioDeLasEvals,
 			Sesiones:      filepath.Join(comprobado.directorio, par.variante.Nombre, string(par.modo)),
 			Skills:        filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, par.variante.Nombre),
 			Guion:         s.Guion,
@@ -271,24 +285,48 @@ func comprobarElLaboratorio(s SondeoDelLaboratorio) (laboratorioComprobado, erro
 	return comprobado, nil
 }
 
-// comprobar comprueba los argumentos del sondeo del laboratorio con su
-// declaración (contracts/arnes.md §2 de H39): VARIANTES, nombres de la
-// declaración separados por comas y sin repetir; MODOS, orden, herramienta o los
-// dos, separados por comas y sin repetir; cada par de una variante y un modo que
-// valen, un modo de los de la variante; SESIONES, un entero mayor que 0 y
-// múltiplo de 4; MODELO, un identificador completo; CLAUDE_CODE, no vacía;
-// CONCURRENCIA, un entero mayor o igual que 1; y DIRECTORIO, no vacío y que no
-// existe. Los errores de todos van juntos, uno por línea y en ese orden, para que
-// quien lanza la orden los corrija de una vez.
+// errSeMezclanLasFamilias es el error de unas VARIANTES que valen y no son todas
+// de una misma familia: la de H39 y la de normativa (FR-010 de H40;
+// contracts/arnes.md §2 de H40).
+var errSeMezclanLasFamilias = errors.New(argumentoVariantes +
+	": se mezclan variantes del laboratorio de H39 y variantes de normativa")
+
+// comprobar comprueba los argumentos del sondeo del laboratorio con las dos
+// familias, la de la declaración de H39 y la de normativa, en ese orden
+// (contracts/arnes.md §2 de H39 y de H40; research D8 de H40): VARIANTES,
+// nombres de una variante de alguna de las dos, separados por comas y sin
+// repetir; los que valen, todos de una sola familia; MODOS, orden, herramienta
+// o los dos, separados por comas y sin repetir; cada par de una variante y un
+// modo que valen, un modo de los de la variante, primero los de la familia de
+// H39; SESIONES, un entero mayor que 0 y múltiplo de 4; MODELO, un
+// identificador completo; CLAUDE_CODE, no vacía; CONCURRENCIA, un entero mayor o
+// igual que 1; y DIRECTORIO, no vacío y que no existe. Los errores de todos van
+// juntos, uno por línea y en ese orden, para que quien lanza la orden los
+// corrija de una vez.
 func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio) (laboratorioComprobado, error) {
+	familias := []familiaDelLaboratorio{declarada.familia(), familiaDeNormativa}
+
 	variantes, errDeLasVariantes := listaDelArgumento(argumentoVariantes, a.Variantes,
-		func(nombre string) bool { return varianteDeclarada(declarada, nombre) },
+		func(nombre string) bool {
+			return slices.ContainsFunc(familias, func(familia familiaDelLaboratorio) bool { return familia.tiene(nombre) })
+		},
 		"no es ninguna variante del laboratorio")
+
+	familia, errDeLaMezcla := familiaDeLasVariantes(familias, variantes)
 
 	modos, errDeLosModos := listaDelArgumento(argumentoModos, a.Modos,
 		func(modo Modo) bool { return modo == ModoOrden || modo == ModoHerramienta }, "no es orden ni herramienta")
 
-	pares, errDeLosPares := paresPedidos(declarada, variantes, modos)
+	var (
+		pares         []parDelLaboratorio
+		errDeLosPares []error
+	)
+
+	for _, deLaFamilia := range familias {
+		suyos, noValen := paresPedidos(deLaFamilia.variantes, variantes, modos)
+		pares = append(pares, suyos...)
+		errDeLosPares = append(errDeLosPares, noValen...)
+	}
 
 	porEval, errDeLasSesiones := sesionesDeCadaEval(a.Sesiones)
 	concurrencia, errDeLaConcurrencia := enteroDelArgumento(argumentoConcurrencia, a.Concurrencia)
@@ -298,18 +336,41 @@ func (a ArgumentosDelLaboratorio) comprobar(declarada declaracionDelLaboratorio)
 		errDeLaVersion = fmt.Errorf("%s: está vacía", argumentoClaudeCode)
 	}
 
-	err := errors.Join(slices.Concat(errDeLasVariantes, errDeLosModos, errDeLosPares, []error{
-		errDeLasSesiones, comprobarElModeloCompleto(a.Modelo), errDeLaVersion, errDeLaConcurrencia,
-		comprobarElDirectorioDelSondeo(a.Directorio),
-	})...)
+	err := errors.Join(slices.Concat(errDeLasVariantes, []error{errDeLaMezcla}, errDeLosModos, errDeLosPares,
+		[]error{
+			errDeLasSesiones, comprobarElModeloCompleto(a.Modelo), errDeLaVersion, errDeLaConcurrencia,
+			comprobarElDirectorioDelSondeo(a.Directorio),
+		})...)
 	if err != nil {
 		return laboratorioComprobado{}, err
 	}
 
 	return laboratorioComprobado{
-		declarada: declarada, pares: pares, porEval: porEval, modelo: a.Modelo, claudeCode: a.ClaudeCode,
-		concurrencia: concurrencia, directorio: a.Directorio,
+		declarada: declarada, familia: familia, pares: pares, porEval: porEval, modelo: a.Modelo,
+		claudeCode: a.ClaudeCode, concurrencia: concurrencia, directorio: a.Directorio,
 	}, nil
+}
+
+// familiaDeLasVariantes es la familia de las variantes pedidas que valen, y
+// errSeMezclanLasFamilias si son de más de una. Sin ninguna, es la familia
+// vacía, sin error: el de VARIANTES ya lo da su lista.
+func familiaDeLasVariantes(familias []familiaDelLaboratorio, variantes []string) (familiaDelLaboratorio, error) {
+	var pedidas []familiaDelLaboratorio
+
+	for _, familia := range familias {
+		if slices.ContainsFunc(variantes, familia.tiene) {
+			pedidas = append(pedidas, familia)
+		}
+	}
+
+	switch len(pedidas) {
+	case 0:
+		return familiaDelLaboratorio{}, nil
+	case 1:
+		return pedidas[0], nil
+	default:
+		return familiaDelLaboratorio{}, errSeMezclanLasFamilias
+	}
 }
 
 // listaDelArgumento son los elementos de la lista del argumento, separados por
@@ -356,18 +417,12 @@ func vecesEn(lista []string, elemento string) int {
 	return veces
 }
 
-// varianteDeclarada dice si la declaración tiene una variante con ese nombre.
-func varianteDeclarada(declarada declaracionDelLaboratorio, nombre string) bool {
-	return slices.ContainsFunc(declarada.Variantes, func(variante varianteDelLaboratorio) bool {
-		return variante.Nombre == nombre
-	})
-}
-
-// paresPedidos son los pares de las variantes y los modos pedidos que valen, en
-// el orden de la declaración y, dentro de cada variante, orden antes que
-// herramienta (contracts/arnes.md §3.3 de H39), y un error por cada par cuyo modo
-// no es uno de los de su variante (FR-020 a FR-027 de H39), en ese mismo orden.
-func paresPedidos(declarada declaracionDelLaboratorio, variantes []string, modos []Modo) (
+// paresPedidos son los pares de las variantes declaradas que se piden, con los
+// modos pedidos que valen, en el orden de la declaración y, dentro de cada
+// variante, orden antes que herramienta (contracts/arnes.md §3.3 de H39), y un
+// error por cada par cuyo modo no es uno de los de su variante (FR-020 a FR-027
+// de H39; FR-010 de H40), en ese mismo orden.
+func paresPedidos(declaradas []varianteDelLaboratorio, variantes []string, modos []Modo) (
 	[]parDelLaboratorio, []error,
 ) {
 	var (
@@ -375,7 +430,7 @@ func paresPedidos(declarada declaracionDelLaboratorio, variantes []string, modos
 		noValen []error
 	)
 
-	for _, variante := range declarada.Variantes {
+	for _, variante := range declaradas {
 		if !slices.Contains(variantes, variante.Nombre) {
 			continue
 		}
@@ -577,12 +632,14 @@ func textoDeLaVariante(directorio, fichero string) (string, error) {
 }
 
 // preparar deja en el temporal, que recibe con su ruta absoluta, lo que
-// necesitan las sesiones de los pares (contracts/arnes.md §3.1 de H39): kitlegal
-// y laboratorio, con ConstruirLosProgramas; home/, vacío, el HOME de las
-// sesiones; y en skills/<variante>/, una copia de las skills de cada variante de
-// los pares, el directorio de skills de sus repartos. El error nombra lo que no
-// se pudo hacer.
-func (s SondeoDelLaboratorio) preparar(temporal string, pares []parDelLaboratorio) error {
+// necesitan las sesiones de los pares (contracts/arnes.md §3.1 de H39 y §3.1 de
+// H40): kitlegal y laboratorio, con ConstruirLosProgramas; home/, vacío, el HOME
+// de las sesiones; y en skills/<variante>/, una copia de las skills de cada
+// variante de los pares, las de su directorio en la familia dada, el directorio
+// de skills de sus repartos. El error nombra lo que no se pudo hacer.
+func (s SondeoDelLaboratorio) preparar(temporal string, familia familiaDelLaboratorio,
+	pares []parDelLaboratorio,
+) error {
 	if err := s.ConstruirLosProgramas(s.Raiz, temporal, s.Entorno); err != nil {
 		return err
 	}
@@ -599,7 +656,8 @@ func (s SondeoDelLaboratorio) preparar(temporal string, pares []parDelLaboratori
 			continue
 		}
 
-		origen := filepath.Join(directorioDeLaVariante(s.Raiz, par.variante.Nombre), carpetaDeLasSkillsDeLaVariante)
+		origen := filepath.Join(s.Raiz, filepath.FromSlash(familia.directorioDeLaVariante(par.variante.Nombre)),
+			carpetaDeLasSkillsDeLaVariante)
 		destino := filepath.Join(temporal, carpetaDeLasSkillsDelSondeo, par.variante.Nombre)
 
 		if err := os.CopyFS(destino, os.DirFS(origen)); err != nil {
@@ -677,9 +735,10 @@ func crearElSondeoDelLaboratorio(directorio, modelo, version string) error {
 	return escribirFichero(filepath.Join(limpio, ficheroDelSondeo), append(contenido, '\n'))
 }
 
-// planDelPar es el plan de un reparto (contracts/arnes.md §3.3 de H39): porEval
-// sesiones de cada eval, en su orden, con el modelo y el modo dados, de nombre
-// <eval sin .yaml>-<nn>, con nn desde 01 y dos cifras (data-model §6 de H39).
+// planDelPar es el plan de un reparto (contracts/arnes.md §3.3 de H39 y §3.2 de
+// H40): porEval sesiones de cada eval dada, en su orden, con el modelo y el modo
+// dados, de nombre <eval sin .yaml>-<nn>, con nn desde 01 y dos cifras
+// (data-model §6 de H39).
 func planDelPar(evals []Eval, porEval int, modelo string, modo Modo) []SesionPlanificada {
 	plan := make([]SesionPlanificada, 0, len(evals)*porEval)
 

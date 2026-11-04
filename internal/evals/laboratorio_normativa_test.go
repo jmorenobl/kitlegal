@@ -87,7 +87,7 @@ func TestVariantesDeNormativa(t *testing.T) {
 	t.Run("nombres que no son de H39", func(t *testing.T) {
 		t.Parallel()
 
-		require.Equal(t, varianteDeControlDeNormativa, familiaDeNormativa.variantes[0],
+		require.Equal(t, varianteDeControlDeNormativa, familiaDeNormativa.nombres()[0],
 			"la primera variante de la familia de normativa es la de control")
 
 		declarada, err := leerLaDeclaracionDelRepositorio(raizDelRepositorio)
@@ -95,7 +95,7 @@ func TestVariantesDeNormativa(t *testing.T) {
 		require.NotEmpty(t, declarada.Variantes, "la declaración del laboratorio de H39 tiene variantes")
 
 		for _, deH39 := range declarada.Variantes {
-			assert.NotContains(t, familiaDeNormativa.variantes, deH39.Nombre,
+			assert.NotContains(t, familiaDeNormativa.nombres(), deH39.Nombre,
 				"%s es el nombre de una variante de %s y de una de la familia de normativa", deH39.Nombre,
 				path.Join(carpetaDelLaboratorio, ficheroDeLasVariantes))
 		}
@@ -370,7 +370,7 @@ func comprobarLosDirectoriosDeLaFamilia(t *testing.T, repositorio fs.FS) {
 		nombres = append(nombres, entrada.Name())
 	}
 
-	assert.ElementsMatch(t, familiaDeNormativa.variantes, nombres,
+	assert.ElementsMatch(t, familiaDeNormativa.nombres(), nombres,
 		"%s tiene un directorio por variante de la familia de normativa y nada más", familiaDeNormativa.carpeta)
 
 	declaradas := make([]string, 0, len(declaracionesDeNormativa))
@@ -378,7 +378,7 @@ func comprobarLosDirectoriosDeLaFamilia(t *testing.T, repositorio fs.FS) {
 		declaradas = append(declaradas, declarada.nombre)
 	}
 
-	assert.Equal(t, familiaDeNormativa.variantes[1:], declaradas,
+	assert.Equal(t, familiaDeNormativa.nombres()[1:], declaradas,
 		"hay una declaración por cada variante de la familia de normativa que no es la de control, en su orden")
 }
 
