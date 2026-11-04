@@ -1,0 +1,402 @@
+# laboratorio-tabla.txtar
+# La tabla de un sondeo con `laboratorio tabla`, el programa que lanza la
+# persona, sin red, modelo ni credencial (contracts/arnes-e2e.md §2;
+# contracts/tabla.md §1 a §4; research D13). Sobre las sesiones fijas de H39 de
+# `main`, con la declaración y la tabla esperada de `main`, la salida es esa
+# tabla, byte a byte: si el hito cambiara esas sesiones, esa tabla o los tests
+# de H39, este guion, congelado, seguiría comparando con las de `main`. Sobre
+# cinco sesiones fijas de las variantes de normativa, la tabla de la familia y
+# su detalle, byte a byte: una referencia abierta dos veces, por tramos, y otra
+# que ninguna sesión abre; `Skill` y la primera herramienta en el mismo turno;
+# una sesión sin terminar y una fila sin ninguna sesión terminada; una sesión
+# que cumple la regla testigo y otra que no; las columnas de la familia y la
+# celda vacía de la regla fuera de normativa-testigo-en-referencia.
+#
+# Cubre: US3.1, US3.2, US3.3, US3.4 · FR-020, FR-021, FR-023, FR-030 · SC-005, SC-007; los extremos de Wilson de 0, 20 y 40 de 40 los comprueba TestTablaDeNormativa
+#
+# La orden tabla lee la declaración del laboratorio de H39 del directorio en que
+# se ejecuta, que en un guion es $WORK: por eso laboratorio/variantes.yaml va en
+# el archivo. El programa no va en el PATH: el arnés da su ruta absoluta en
+# KITLEGAL_LABORATORIO_BIN (contracts/arnes-e2e.md §1).
+
+# --- La tabla de H39, la de main, sin cambiar una cifra ni una columna ---
+exec $KITLEGAL_LABORATORIO_BIN tabla h39
+cmp stdout h39-tabla.md
+! stderr .
+
+# --- La tabla de las variantes de normativa y su detalle ---
+# La primera invocación, a través del intérprete de órdenes, no hace fallar el
+# guion por su código: mientras la tabla no conozca la familia, el guion falla en
+# la comparación de lo que escribe con la tabla esperada. La segunda exige el
+# código 0, la misma tabla y la salida de error vacía.
+exec sh -c '"$KITLEGAL_LABORATORIO_BIN" tabla normativa > tabla-normativa.out || true'
+cmp tabla-normativa.out normativa-tabla.md
+exec $KITLEGAL_LABORATORIO_BIN tabla normativa
+cmp stdout normativa-tabla.md
+! stderr .
+
+-- laboratorio/variantes.yaml --
+# Variantes de la skill de laboratorio de H39: la de control y siete que difieren de ella en las partes que declaran
+# (specs/031-h39-c-omo-se/data-model.md §2 y §3). Lo comprueba TestVariantesDelLaboratorio.
+skill: articulos-del-boe
+entrada: consulta-legal
+herramienta: boe_articulo
+parametro: bloque
+referencia: cierre.md
+variantes:
+  - {nombre: control, modos: [orden, herramienta], cambia: []}
+  - {nombre: instrucciones, modos: [herramienta], cambia: [instrucciones]}
+  - {nombre: entrada, modos: [orden, herramienta], cambia: [entrada]}
+  - {nombre: referencia-secundaria, modos: [orden, herramienta], cambia: [cuerpo, referencia]}
+  - {nombre: parametro, modos: [herramienta], cambia: [cuerpo, parametro]}
+  - {nombre: referencia-paso, modos: [orden, herramienta], cambia: [cuerpo, referencia]}
+  - {nombre: referencia-en-el-punto, modos: [orden, herramienta], cambia: [cuerpo, referencia]}
+  - {nombre: descripcion-sin-herramientas, modos: [orden, herramienta], cambia: [descripcion]}
+-- h39/h39-a/control/herramienta/01-constitucion-articulo-140-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/herramienta/01-constitucion-articulo-140-01/sesion.err --
+-- h39/h39-a/control/herramienta/01-constitucion-articulo-140-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000005","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_b1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b1_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b1_1","content":"resultado de toolu_b1_1"}]},"session_id":"00000000-0000-4000-8039-000000000005"}
+{"type":"assistant","message":{"id":"msg_b1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b1_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a140","norma":"BOE-A-1978-31229"}}]},"session_id":"00000000-0000-4000-8039-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b1_2","content":"resultado de toolu_b1_2"}]},"session_id":"00000000-0000-4000-8039-000000000005"}
+{"type":"assistant","message":{"id":"msg_b1_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000005"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000005"}
+-- h39/h39-a/control/herramienta/02-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/herramienta/02-lgt-prescripcion-01/sesion.err --
+-- h39/h39-a/control/herramienta/02-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000006","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_b2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b2_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000006"}
+{"type":"assistant","message":{"id":"msg_b2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b2_2","name":"ToolSearch","input":{"query":"select:mcp__kitlegal__boe_articulo"}}]},"session_id":"00000000-0000-4000-8039-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b2_1","content":"resultado de toolu_b2_1"},{"type":"tool_result","tool_use_id":"toolu_b2_2","content":"resultado de toolu_b2_2"}]},"session_id":"00000000-0000-4000-8039-000000000006"}
+{"type":"assistant","message":{"id":"msg_b2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b2_3","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8039-000000000006"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b2_3","content":"resultado de toolu_b2_3"}]},"session_id":"00000000-0000-4000-8039-000000000006"}
+{"type":"assistant","message":{"id":"msg_b2_3","type":"message","role":"assistant","content":[{"type":"text","text":"Sello de lectura: KL-7Q4\n\nEl artículo citado dice lo que devuelve la herramienta."}]},"session_id":"00000000-0000-4000-8039-000000000006"}
+{"type":"result","subtype":"success","is_error":false,"result":"Sello de lectura: KL-7Q4\n\nEl artículo citado dice lo que devuelve la herramienta.","session_id":"00000000-0000-4000-8039-000000000006"}
+-- h39/h39-a/control/herramienta/03-lrjsp-principio-de-legalidad-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/herramienta/03-lrjsp-principio-de-legalidad-01/sesion.err --
+-- h39/h39-a/control/herramienta/03-lrjsp-principio-de-legalidad-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000007","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_b3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b3_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000007"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b3_1","content":"resultado de toolu_b3_1"}]},"session_id":"00000000-0000-4000-8039-000000000007"}
+{"type":"assistant","message":{"id":"msg_b3_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000007"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000007"}
+-- h39/h39-a/control/herramienta/04-et-vacaciones-01/codigo-de-la-sesion --
+124
+-- h39/h39-a/control/herramienta/04-et-vacaciones-01/sesion.err --
+-- h39/h39-a/control/herramienta/04-et-vacaciones-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000008","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_b4_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b4_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000008"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_b4_1","content":"resultado de toolu_b4_1"}]},"session_id":"00000000-0000-4000-8039-000000000008"}
+{"type":"assistant","message":{"id":"msg_b4_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_b4_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a38","norma":"BOE-A-2015-11430"}}]},"session_id":"00000000-0000-4000-8039-000000000008"}
+-- h39/h39-a/control/orden/01-constitucion-articulo-140-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/orden/01-constitucion-articulo-140-01/sesion.err --
+-- h39/h39-a/control/orden/01-constitucion-articulo-140-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000001","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_a1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a1_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a1_1","content":"resultado de toolu_a1_1"}]},"session_id":"00000000-0000-4000-8039-000000000001"}
+{"type":"assistant","message":{"id":"msg_a1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a1_2","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-1978-31229 a140 | head -n 60","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a1_2","content":"resultado de toolu_a1_2"}]},"session_id":"00000000-0000-4000-8039-000000000001"}
+{"type":"assistant","message":{"id":"msg_a1_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000001"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000001"}
+-- h39/h39-a/control/orden/02-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/orden/02-lgt-prescripcion-01/sesion.err --
+-- h39/h39-a/control/orden/02-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000002","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_a2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a2_1","name":"Bash","input":{"command":"which kitlegal && kitlegal --help","description":"Orden de la sesión"}},{"type":"tool_use","id":"toolu_a2_2","name":"Bash","input":{"command":"grep -rn 'kitlegal boe articulo' \"$HOME/.claude/skills\"","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a2_1","content":"resultado de toolu_a2_1"},{"type":"tool_result","tool_use_id":"toolu_a2_2","content":"resultado de toolu_a2_2"}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"assistant","message":{"id":"msg_a2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a2_3","name":"Skill","input":{"skill":"articulos-del-boe"}},{"type":"tool_use","id":"toolu_a2_4","name":"Bash","input":{"command":"kitlegal skills list","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a2_3","content":"resultado de toolu_a2_3"},{"type":"tool_result","tool_use_id":"toolu_a2_4","content":"resultado de toolu_a2_4"}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"assistant","message":{"id":"msg_a2_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a2_5","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2003-23186 a66 --describe","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a2_5","content":"resultado de toolu_a2_5"}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"assistant","message":{"id":"msg_a2_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a2_6","name":"Bash","input":{"command":"cd \"$HOME\" && kitlegal boe articulo BOE-A-2003-23186 a66","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a2_6","content":"resultado de toolu_a2_6"}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"assistant","message":{"id":"msg_a2_5","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8039-000000000002"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8039-000000000002"}
+-- h39/h39-a/control/orden/03-lrjsp-principio-de-legalidad-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/orden/03-lrjsp-principio-de-legalidad-01/sesion.err --
+-- h39/h39-a/control/orden/03-lrjsp-principio-de-legalidad-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000003","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_a3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a3_1","name":"Skill","input":{"skill":"articulos-del-boe"}},{"type":"tool_use","id":"toolu_a3_2","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2015-10566 a25","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a3_1","content":"resultado de toolu_a3_1"},{"type":"tool_result","tool_use_id":"toolu_a3_2","content":"resultado de toolu_a3_2"}]},"session_id":"00000000-0000-4000-8039-000000000003"}
+{"type":"assistant","message":{"id":"msg_a3_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000003"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000003"}
+-- h39/h39-a/control/orden/04-et-vacaciones-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/control/orden/04-et-vacaciones-01/sesion.err --
+-- h39/h39-a/control/orden/04-et-vacaciones-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000004","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_a4_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a4_1","name":"Bash","input":{"command":"LANG=C \"/usr/local/bin/kitlegal\" boe \\\n  articulo 'BOE-A-2015-11430' a38","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a4_1","content":"resultado de toolu_a4_1"}]},"session_id":"00000000-0000-4000-8039-000000000004"}
+{"type":"assistant","message":{"id":"msg_a4_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_a4_2","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_a4_2","content":"resultado de toolu_a4_2"}]},"session_id":"00000000-0000-4000-8039-000000000004"}
+{"type":"assistant","message":{"id":"msg_a4_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n**Sello de lectura: KL-7Q4**"}]},"session_id":"00000000-0000-4000-8039-000000000004"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n**Sello de lectura: KL-7Q4**","session_id":"00000000-0000-4000-8039-000000000004"}
+-- h39/h39-a/entrada/herramienta/01-constitucion-articulo-140-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/entrada/herramienta/01-constitucion-articulo-140-01/sesion.err --
+-- h39/h39-a/entrada/herramienta/01-constitucion-articulo-140-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000009","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_c1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c1_1","name":"Skill","input":{"skill":"consulta-legal"}}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c1_1","content":"resultado de toolu_c1_1"}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"assistant","message":{"id":"msg_c1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c1_2","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c1_2","content":"resultado de toolu_c1_2"}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"assistant","message":{"id":"msg_c1_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c1_3","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a140","norma":"BOE-A-1978-31229"}}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c1_3","content":"resultado de toolu_c1_3"}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"assistant","message":{"id":"msg_c1_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000009"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000009"}
+-- h39/h39-a/entrada/herramienta/02-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/entrada/herramienta/02-lgt-prescripcion-01/sesion.err --
+-- h39/h39-a/entrada/herramienta/02-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000010","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_c2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c2_1","name":"Skill","input":{"skill":"consulta-legal"}}]},"session_id":"00000000-0000-4000-8039-000000000010"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c2_1","content":"resultado de toolu_c2_1"}]},"session_id":"00000000-0000-4000-8039-000000000010"}
+{"type":"assistant","message":{"id":"msg_c2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c2_2","name":"Skill","input":{"skill":"articulos-del-boe"}},{"type":"tool_use","id":"toolu_c2_3","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8039-000000000010"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c2_2","content":"resultado de toolu_c2_2"},{"type":"tool_result","tool_use_id":"toolu_c2_3","content":"resultado de toolu_c2_3"}]},"session_id":"00000000-0000-4000-8039-000000000010"}
+{"type":"assistant","message":{"id":"msg_c2_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8039-000000000010"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8039-000000000010"}
+-- h39/h39-a/entrada/herramienta/03-lrjsp-principio-de-legalidad-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/entrada/herramienta/03-lrjsp-principio-de-legalidad-01/sesion.err --
+-- h39/h39-a/entrada/herramienta/03-lrjsp-principio-de-legalidad-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000011","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_c3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c3_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000011"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c3_1","content":"resultado de toolu_c3_1"}]},"session_id":"00000000-0000-4000-8039-000000000011"}
+{"type":"assistant","message":{"id":"msg_c3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_c3_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a25","norma":"BOE-A-2015-10566"}}]},"session_id":"00000000-0000-4000-8039-000000000011"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_c3_2","content":"resultado de toolu_c3_2"}]},"session_id":"00000000-0000-4000-8039-000000000011"}
+{"type":"assistant","message":{"id":"msg_c3_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n**Sello de lectura: KL-7Q4**"}]},"session_id":"00000000-0000-4000-8039-000000000011"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n**Sello de lectura: KL-7Q4**","session_id":"00000000-0000-4000-8039-000000000011"}
+-- h39/h39-a/referencia-paso/orden/01-constitucion-articulo-140-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/referencia-paso/orden/01-constitucion-articulo-140-01/sesion.err --
+-- h39/h39-a/referencia-paso/orden/01-constitucion-articulo-140-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000014","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_d1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d1_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d1_1","content":"resultado de toolu_d1_1"}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"assistant","message":{"id":"msg_d1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d1_2","name":"Read","input":{"file_path":"/tmp/kitlegal-laboratorio/claude/skills/articulos-del-boe/references/cierre.md","limit":20,"offset":1}}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d1_2","content":"resultado de toolu_d1_2"}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"assistant","message":{"id":"msg_d1_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d1_3","name":"Read","input":{"file_path":"/tmp/kitlegal-laboratorio/claude/skills/articulos-del-boe/references/cierre.md","limit":20,"offset":21}},{"type":"tool_use","id":"toolu_d1_4","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-1978-31229 a140","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d1_3","content":"resultado de toolu_d1_3"},{"type":"tool_result","tool_use_id":"toolu_d1_4","content":"resultado de toolu_d1_4"}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"assistant","message":{"id":"msg_d1_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d1_5","name":"Bash","input":{"command":"cat /tmp/kitlegal-laboratorio/claude/skills/articulos-del-boe/references/cierre.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d1_5","content":"resultado de toolu_d1_5"}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"assistant","message":{"id":"msg_d1_5","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000014"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000014"}
+-- h39/h39-a/referencia-paso/orden/02-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/referencia-paso/orden/02-lgt-prescripcion-01/sesion.err --
+-- h39/h39-a/referencia-paso/orden/02-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000015","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_d2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d2_1","name":"Skill","input":{"skill":"articulos-del-boe"}},{"type":"tool_use","id":"toolu_d2_2","name":"Grep","input":{"path":"/tmp/kitlegal-laboratorio/claude/skills/articulos-del-boe/references/cierre.md","pattern":"Sello"}}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d2_1","content":"resultado de toolu_d2_1"},{"type":"tool_result","tool_use_id":"toolu_d2_2","content":"resultado de toolu_d2_2"}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"assistant","message":{"id":"msg_d2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d2_3","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2003-23186 a66 2>&1 | tail -n 40","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d2_3","content":"resultado de toolu_d2_3"}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"assistant","message":{"id":"msg_d2_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d2_4","name":"Bash","input":{"command":"sed -n '1,80p' \"$HOME/.claude/skills/articulos-del-boe/references/cierre.md\"","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d2_4","content":"resultado de toolu_d2_4"}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"assistant","message":{"id":"msg_d2_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8039-000000000015"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8039-000000000015"}
+-- h39/h39-a/referencia-paso/orden/03-lrjsp-principio-de-legalidad-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/referencia-paso/orden/03-lrjsp-principio-de-legalidad-01/sesion.err --
+-- h39/h39-a/referencia-paso/orden/03-lrjsp-principio-de-legalidad-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000016","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_d3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d3_1","name":"Skill","input":{"skill":"articulos-del-boe"}},{"type":"tool_use","id":"toolu_d3_2","name":"Glob","input":{"pattern":"**/references/cierre.md"}}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d3_1","content":"resultado de toolu_d3_1"},{"type":"tool_result","tool_use_id":"toolu_d3_2","content":"resultado de toolu_d3_2"}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"assistant","message":{"id":"msg_d3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d3_3","name":"Read","input":{"file_path":"/tmp/kitlegal-laboratorio/claude/skills/otra-skill/references/cierre.md"}}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d3_3","content":"resultado de toolu_d3_3"}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"assistant","message":{"id":"msg_d3_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_d3_4","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2015-10566 a25","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_d3_4","content":"resultado de toolu_d3_4"}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"assistant","message":{"id":"msg_d3_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000016"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000016"}
+-- h39/h39-a/referencia-secundaria/herramienta/01-constitucion-articulo-140-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/referencia-secundaria/herramienta/01-constitucion-articulo-140-01/sesion.err --
+-- h39/h39-a/referencia-secundaria/herramienta/01-constitucion-articulo-140-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000012","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_e1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_e1_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000012"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_e1_1","content":"resultado de toolu_e1_1"}]},"session_id":"00000000-0000-4000-8039-000000000012"}
+{"type":"assistant","message":{"id":"msg_e1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_e1_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a140","norma":"BOE-A-1978-31229"}}]},"session_id":"00000000-0000-4000-8039-000000000012"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_e1_2","content":"resultado de toolu_e1_2"}]},"session_id":"00000000-0000-4000-8039-000000000012"}
+{"type":"assistant","message":{"id":"msg_e1_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000012"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000012"}
+-- h39/h39-a/referencia-secundaria/herramienta/02-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- h39/h39-a/referencia-secundaria/herramienta/02-lgt-prescripcion-01/sesion.err --
+-- h39/h39-a/referencia-secundaria/herramienta/02-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000013","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_e2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_e2_1","name":"ToolSearch","input":{"query":"select:mcp__kitlegal__boe_articulo"}}]},"session_id":"00000000-0000-4000-8039-000000000013"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_e2_1","content":"resultado de toolu_e2_1"}]},"session_id":"00000000-0000-4000-8039-000000000013"}
+{"type":"assistant","message":{"id":"msg_e2_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_e2_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8039-000000000013"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_e2_2","content":"resultado de toolu_e2_2"}]},"session_id":"00000000-0000-4000-8039-000000000013"}
+{"type":"assistant","message":{"id":"msg_e2_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8039-000000000013"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8039-000000000013"}
+-- h39/h39-a/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317"}
+-- h39/h39-b/control/herramienta/01-constitucion-articulo-140-02/codigo-de-la-sesion --
+0
+-- h39/h39-b/control/herramienta/01-constitucion-articulo-140-02/sesion.err --
+-- h39/h39-b/control/herramienta/01-constitucion-articulo-140-02/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000017","model":"claude-sonnet-5-5","claude_code_version":"2.1.300"}
+{"type":"assistant","message":{"id":"msg_f1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_f1_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000017"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_f1_1","content":"resultado de toolu_f1_1"}]},"session_id":"00000000-0000-4000-8039-000000000017"}
+{"type":"assistant","message":{"id":"msg_f1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_f1_2","name":"boe_articulo","input":{"bloque":"a140","norma":"BOE-A-1978-31229"}}]},"session_id":"00000000-0000-4000-8039-000000000017"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_f1_2","content":"resultado de toolu_f1_2"}]},"session_id":"00000000-0000-4000-8039-000000000017"}
+{"type":"assistant","message":{"id":"msg_f1_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8039-000000000017"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-1978-31229, bloque a140]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8039-000000000017"}
+-- h39/h39-b/descripcion-sin-herramientas/orden/02-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- h39/h39-b/descripcion-sin-herramientas/orden/02-lgt-prescripcion-01/sesion.err --
+-- h39/h39-b/descripcion-sin-herramientas/orden/02-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000020","model":"claude-sonnet-5-5","claude_code_version":"2.1.300"}
+{"type":"assistant","message":{"id":"msg_g1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_g1_1","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2003-23186 a66","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000020"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_g1_1","content":"resultado de toolu_g1_1"}]},"session_id":"00000000-0000-4000-8039-000000000020"}
+{"type":"result","subtype":"success","is_error":false,"result":"","session_id":"00000000-0000-4000-8039-000000000020"}
+-- h39/h39-b/descripcion-sin-herramientas/orden/03-lrjsp-principio-de-legalidad-01/codigo-de-la-sesion --
+0
+-- h39/h39-b/descripcion-sin-herramientas/orden/03-lrjsp-principio-de-legalidad-01/sesion.err --
+-- h39/h39-b/descripcion-sin-herramientas/orden/03-lrjsp-principio-de-legalidad-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000021","model":"claude-sonnet-5-5","claude_code_version":"2.1.300"}
+{"type":"assistant","message":{"id":"msg_g2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_g2_1","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2015-10566 a25","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8039-000000000021"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_g2_1","content":"resultado de toolu_g2_1"}]},"session_id":"00000000-0000-4000-8039-000000000021"}
+{"type":"assistant","message":{"id":"msg_g2_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8039-000000000021"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8039-000000000021"}
+-- h39/h39-b/parametro/herramienta/01-constitucion-articulo-140-01/codigo-de-la-sesion --
+1
+-- h39/h39-b/parametro/herramienta/01-constitucion-articulo-140-01/sesion.err --
+-- h39/h39-b/parametro/herramienta/01-constitucion-articulo-140-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000018","model":"claude-sonnet-5-5","claude_code_version":"2.1.300"}
+{"type":"assistant","message":{"id":"msg_f2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_f2_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000018"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_f2_1","content":"resultado de toolu_f2_1"}]},"session_id":"00000000-0000-4000-8039-000000000018"}
+{"type":"result","subtype":"success","is_error":true,"result":"API Error: 529 Overloaded","session_id":"00000000-0000-4000-8039-000000000018"}
+-- h39/h39-b/parametro/herramienta/04-et-vacaciones-01/codigo-de-la-sesion --
+0
+-- h39/h39-b/parametro/herramienta/04-et-vacaciones-01/sesion.err --
+-- h39/h39-b/parametro/herramienta/04-et-vacaciones-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8039-000000000019","model":"claude-sonnet-5-5","claude_code_version":"2.1.300"}
+{"type":"assistant","message":{"id":"msg_f3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_f3_1","name":"Skill","input":{"skill":"articulos-del-boe"}}]},"session_id":"00000000-0000-4000-8039-000000000019"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_f3_1","content":"resultado de toolu_f3_1"}]},"session_id":"00000000-0000-4000-8039-000000000019"}
+{"type":"assistant","message":{"id":"msg_f3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_f3_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a38","norma":"BOE-A-2015-11430"}}]},"session_id":"00000000-0000-4000-8039-000000000019"}
+-- h39/h39-b/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.300"}
+-- h39-tabla.md --
+# Sondeo de la skill de laboratorio
+
+| Variante | Modo | Modelo | Claude Code | Sin terminar | n | Activan antes | Entrada antes | Las dos antes | Abren la referencia | Turno de la primera apertura | Cumplen la regla |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| control | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 4 | 2 de 4 · 50,0 % [15,0–85,0 %] |  |  |  |  | 2 de 4 · 50,0 % [15,0–85,0 %] |
+| control | herramienta | claude-sonnet-5-5 | 2.1.300 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] |  |  |  |  | 1 de 1 · 100,0 % [20,7–100,0 %] |
+| control | herramienta | claude-sonnet-5-5 | 2.1.317 | 1 | 3 | 2 de 3 · 66,7 % [20,8–93,9 %] |  |  |  |  | 2 de 3 · 66,7 % [20,8–93,9 %] |
+| entrada | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 3 | 2 de 3 · 66,7 % [20,8–93,9 %] | 2 de 3 · 66,7 % [20,8–93,9 %] | 1 de 3 · 33,3 % [6,1–79,2 %] |  |  | 1 de 3 · 33,3 % [6,1–79,2 %] |
+| referencia-secundaria | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 2 | 1 de 2 · 50,0 % [9,5–90,5 %] |  |  | 0 de 2 · 0,0 % [0,0–65,8 %] |  | 1 de 2 · 50,0 % [9,5–90,5 %] |
+| parametro | herramienta | claude-sonnet-5-5 | 2.1.300 | 2 | 0 |  |  |  |  |  |  |
+| referencia-paso | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 3 | 3 de 3 · 100,0 % [43,8–100,0 %] |  |  | 2 de 3 · 66,7 % [20,8–93,9 %] | 2,5 (2–3) | 2 de 3 · 66,7 % [20,8–93,9 %] |
+| descripcion-sin-herramientas | orden | claude-sonnet-5-5 | 2.1.300 | 1 | 1 | 0 de 1 · 0,0 % [0,0–79,3 %] |  |  |  |  | 0 de 1 · 0,0 % [0,0–79,3 %] |
+
+## Detalle
+
+| Sesión | Terminada | Activa antes | Entrada antes | Abre la referencia | Cumple |
+|---|---|---|---|---|---|
+| h39-a/control/orden/01-constitucion-articulo-140-01 | sí | sí |  |  | sí |
+| h39-a/control/orden/02-lgt-prescripcion-01 | sí | sí |  |  | no |
+| h39-a/control/orden/03-lrjsp-principio-de-legalidad-01 | sí | no |  |  | sí |
+| h39-a/control/orden/04-et-vacaciones-01 | sí | no |  |  | no |
+| h39-b/control/herramienta/01-constitucion-articulo-140-02 | sí | sí |  |  | sí |
+| h39-a/control/herramienta/01-constitucion-articulo-140-01 | sí | no |  |  | sí |
+| h39-a/control/herramienta/02-lgt-prescripcion-01 | sí | sí |  |  | no |
+| h39-a/control/herramienta/03-lrjsp-principio-de-legalidad-01 | sí | sí |  |  | sí |
+| h39-a/control/herramienta/04-et-vacaciones-01 | no: tope de 240 s agotado (código 124) |  |  |  |  |
+| h39-a/entrada/herramienta/01-constitucion-articulo-140-01 | sí | sí | sí |  | sí |
+| h39-a/entrada/herramienta/02-lgt-prescripcion-01 | sí | no | sí |  | no |
+| h39-a/entrada/herramienta/03-lrjsp-principio-de-legalidad-01 | sí | sí | no |  | no |
+| h39-a/referencia-secundaria/herramienta/01-constitucion-articulo-140-01 | sí | sí |  | no | sí |
+| h39-a/referencia-secundaria/herramienta/02-lgt-prescripcion-01 | sí | no |  | no | no |
+| h39-b/parametro/herramienta/01-constitucion-articulo-140-01 | no: código 1: result con is_error: API Error: 529 Overloaded |  |  |  |  |
+| h39-b/parametro/herramienta/04-et-vacaciones-01 | no: sin mensaje result |  |  |  |  |
+| h39-a/referencia-paso/orden/01-constitucion-articulo-140-01 | sí | sí |  | turno 2 | sí |
+| h39-a/referencia-paso/orden/02-lgt-prescripcion-01 | sí | sí |  | turno 3 | no |
+| h39-a/referencia-paso/orden/03-lrjsp-principio-de-legalidad-01 | sí | sí |  | no | sí |
+| h39-b/descripcion-sin-herramientas/orden/02-lgt-prescripcion-01 | no: sin respuesta |  |  |  |  |
+| h39-b/descripcion-sin-herramientas/orden/03-lrjsp-principio-de-legalidad-01 | sí | no |  |  | no |
+-- normativa/h40-a/sondeo.json --
+{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317"}
+-- normativa/h40-a/normativa-control/orden/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- normativa/h40-a/normativa-control/orden/04-lgt-prescripcion-01/sesion.err --
+-- normativa/h40-a/normativa-control/orden/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8040-000000000001","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n1_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n1_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n1_1","content":"resultado de toolu_n1_1"}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"assistant","message":{"id":"msg_n1_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n1_2","name":"Bash","input":{"command":"cat /tmp/kitlegal-laboratorio/claude/skills/normativa/references/normas.md","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n1_2","content":"resultado de toolu_n1_2"}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"assistant","message":{"id":"msg_n1_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n1_3","name":"Bash","input":{"command":"kitlegal boe articulo BOE-A-2003-23186 a66 --json","description":"Orden de la sesión"}}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n1_3","content":"resultado de toolu_n1_3"}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"assistant","message":{"id":"msg_n1_4","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]"}]},"session_id":"00000000-0000-4000-8040-000000000001"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]","session_id":"00000000-0000-4000-8040-000000000001"}
+-- normativa/h40-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion --
+0
+-- normativa/h40-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err --
+-- normativa/h40-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8040-000000000002","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n2_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n2_1","name":"Skill","input":{"skill":"normativa"}},{"type":"tool_use","id":"toolu_n2_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a59","norma":"BOE-A-2004-4214"}}]},"session_id":"00000000-0000-4000-8040-000000000002"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n2_1","content":"resultado de toolu_n2_1"},{"type":"tool_result","tool_use_id":"toolu_n2_2","content":"resultado de toolu_n2_2"}]},"session_id":"00000000-0000-4000-8040-000000000002"}
+{"type":"assistant","message":{"id":"msg_n2_2","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2004-4214, bloque a59]"}]},"session_id":"00000000-0000-4000-8040-000000000002"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2004-4214, bloque a59]","session_id":"00000000-0000-4000-8040-000000000002"}
+-- normativa/h40-a/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/codigo-de-la-sesion --
+124
+-- normativa/h40-a/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/sesion.err --
+-- normativa/h40-a/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8040-000000000003","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n3_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n3_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8040-000000000003"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n3_1","content":"resultado de toolu_n3_1"}]},"session_id":"00000000-0000-4000-8040-000000000003"}
+{"type":"assistant","message":{"id":"msg_n3_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n3_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a17","norma":"BOE-A-2006-20764"}}]},"session_id":"00000000-0000-4000-8040-000000000003"}
+-- normativa/h40-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/codigo-de-la-sesion --
+0
+-- normativa/h40-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/sesion.err --
+-- normativa/h40-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8040-000000000004","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n4_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_1","content":"resultado de toolu_n4_1"}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_2","name":"Read","input":{"file_path":"/tmp/kitlegal-laboratorio/claude/skills/normativa/references/con_herramientas.md","limit":20,"offset":1}}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_2","content":"resultado de toolu_n4_2"}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_3","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_3","name":"Read","input":{"file_path":"/tmp/kitlegal-laboratorio/claude/skills/normativa/references/con_herramientas.md","limit":20,"offset":21}}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_3","content":"resultado de toolu_n4_3"}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_4","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n4_4","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a66","norma":"BOE-A-2003-23186"}}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n4_4","content":"resultado de toolu_n4_4"}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"assistant","message":{"id":"msg_n4_5","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]\n\nSello de lectura: KL-7Q4"}]},"session_id":"00000000-0000-4000-8040-000000000004"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2003-23186, bloque a66]\n\nSello de lectura: KL-7Q4","session_id":"00000000-0000-4000-8040-000000000004"}
+-- normativa/h40-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/codigo-de-la-sesion --
+0
+-- normativa/h40-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/sesion.err --
+-- normativa/h40-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01/sesion.jsonl --
+{"type":"system","subtype":"init","session_id":"00000000-0000-4000-8040-000000000005","model":"claude-sonnet-5-5","claude_code_version":"2.1.317"}
+{"type":"assistant","message":{"id":"msg_n5_1","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n5_1","name":"Skill","input":{"skill":"normativa"}}]},"session_id":"00000000-0000-4000-8040-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n5_1","content":"resultado de toolu_n5_1"}]},"session_id":"00000000-0000-4000-8040-000000000005"}
+{"type":"assistant","message":{"id":"msg_n5_2","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_n5_2","name":"mcp__kitlegal__boe_articulo","input":{"bloque":"a59","norma":"BOE-A-2004-4214"}}]},"session_id":"00000000-0000-4000-8040-000000000005"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_n5_2","content":"resultado de toolu_n5_2"}]},"session_id":"00000000-0000-4000-8040-000000000005"}
+{"type":"assistant","message":{"id":"msg_n5_3","type":"message","role":"assistant","content":[{"type":"text","text":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2004-4214, bloque a59]\n\n**Sello de lectura: KL-7Q4**"}]},"session_id":"00000000-0000-4000-8040-000000000005"}
+{"type":"result","subtype":"success","is_error":false,"result":"El artículo citado dice lo que devuelve la herramienta.\n\n[BOE-A-2004-4214, bloque a59]\n\n**Sello de lectura: KL-7Q4**","session_id":"00000000-0000-4000-8040-000000000005"}
+-- normativa-tabla.md --
+# Sondeo de las variantes de normativa
+
+| Variante | Modo | Modelo | Claude Code | Sin terminar | n | Activan antes | buscar_la_norma.md | como_se_cita.md | con_herramientas.md | lecturas_que_fallan.md | normas.md | redaccion_en_una_fecha.md | redaccion_modificada.md | varios_bloques.md | Cumplen la regla |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| normativa-control | orden | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 1 de 1 · 100,0 % [20,7–100,0 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 1 de 1 · 100,0 % [20,7–100,0 %] · turno 2 (2–2) | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  |
+| normativa-control | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 1 | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] | 0 de 1 · 0,0 % [0,0–79,3 %] |  |
+| normativa-cuerpo-corto | herramienta | claude-sonnet-5-5 | 2.1.317 | 1 | 0 |  |  |  |  |  |  |  |  |  |  |
+| normativa-testigo-en-referencia | herramienta | claude-sonnet-5-5 | 2.1.317 | 0 | 2 | 2 de 2 · 100,0 % [34,2–100,0 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 1 de 2 · 50,0 % [9,5–90,5 %] · turno 2 (2–2) | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 0 de 2 · 0,0 % [0,0–65,8 %] | 1 de 2 · 50,0 % [9,5–90,5 %] |
+
+## Detalle
+
+| Sesión | Terminada | Activa antes | buscar_la_norma.md | como_se_cita.md | con_herramientas.md | lecturas_que_fallan.md | normas.md | redaccion_en_una_fecha.md | redaccion_modificada.md | varios_bloques.md | Cumple |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| h40-a/normativa-control/orden/04-lgt-prescripcion-01 | sí | sí | no | no | no | no | turno 2 | no | no | no |  |
+| h40-a/normativa-control/herramienta/05-trlrhl-impuestos-municipales-01 | sí | no | no | no | no | no | no | no | no | no |  |
+| h40-a/normativa-cuerpo-corto/herramienta/15-irpf-rendimientos-por-materia-01 | no: tope de 240 s agotado (código 124) |  |  |  |  |  |  |  |  |  |  |
+| h40-a/normativa-testigo-en-referencia/herramienta/04-lgt-prescripcion-01 | sí | sí | no | no | turno 2 | no | no | no | no | no | sí |
+| h40-a/normativa-testigo-en-referencia/herramienta/05-trlrhl-impuestos-municipales-01 | sí | sí | no | no | no | no | no | no | no | no | no |
