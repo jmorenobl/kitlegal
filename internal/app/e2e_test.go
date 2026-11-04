@@ -51,6 +51,15 @@ const (
 	// FR-114, research.md D20).
 	paqueteDelBinario = "./ejemplo/kitlegal-e2e"
 
+	// paqueteDelLaboratorio es el programa del repositorio con el que se mide
+	// una skill de laboratorio, que no es un applet de kitlegal: el arnés lo
+	// construye para que un guion ejecute su orden tabla, como la lanza la
+	// persona (contracts/arnes-e2e.md §1 de H40; research.md D13 de H40). `go
+	// install` lo nombra por el último componente de su ruta,
+	// nombreDelLaboratorio, y con ese nombre se queda.
+	paqueteDelLaboratorio = "github.com/jmorenobl/kitlegal/cmd/laboratorio"
+	nombreDelLaboratorio  = "laboratorio"
+
 	// directorioDeGuiones es donde viven los guiones que describen la entrega del
 	// hito, relativo al directorio de este paquete.
 	directorioDeGuiones = "testdata/script"
@@ -156,6 +165,10 @@ const (
 	variableOrigen           = "KITLEGAL_ORIGEN"
 	variableVersionDelOrigen = "KITLEGAL_ORIGEN_VERSION"
 	variableArchivoDelOrigen = "KITLEGAL_ORIGEN_ARCHIVO"
+
+	// variableDelLaboratorio lleva a cada guion la ruta absoluta del programa
+	// laboratorio, que no va en el PATH (contracts/arnes-e2e.md §1 de H40).
+	variableDelLaboratorio = "KITLEGAL_LABORATORIO_BIN"
 
 	// variableDist es la ruta de dist/ tras make release (make
 	// snapshot-check): con ella, el origen sirve el snapshot (§5).
@@ -327,7 +340,8 @@ func preparar() func() {
 }
 
 // prepararEn construye en el temporal los siete binarios de
-// contracts/arnes-e2e.md §2 y el origen de release local de §5, antepone el de
+// contracts/arnes-e2e.md §2, el programa laboratorio (contracts/arnes-e2e.md §1
+// de H40) y el origen de release local de §5, antepone el de
 // desarrollo al PATH y devuelve las variables de §3 que comparten todos los
 // guiones. Con dist, el origen es el del snapshot; sin él, el del binario
 // v0.1.0.
@@ -382,17 +396,19 @@ func prepararEn(temporal, dist string) (map[string]string, error) {
 }
 
 // construirBinarios construye a la vez, cada uno en su carpeta del temporal,
-// los siete binarios del arnés, y devuelve la ruta absoluta de cada uno por su
-// variable. Construirlos a la vez solo reparte la espera: la caché de
-// compilación de Go admite varias órdenes a la vez, y cada una escribe en su
-// propia carpeta.
+// los siete binarios del arnés y el programa laboratorio, y devuelve la ruta
+// absoluta de cada uno por su variable. Construirlos a la vez solo reparte la
+// espera: la caché de compilación de Go admite varias órdenes a la vez, y cada
+// una escribe en su propia carpeta.
 func construirBinarios(temporal string) (map[string]string, error) {
 	var (
-		grupo   sync.WaitGroup
-		errores [len(binariosDelArnes)]error
+		grupo sync.WaitGroup
+		// errores lleva el de cada binario del arnés en su posición y, en la
+		// última, el del programa laboratorio.
+		errores [len(binariosDelArnes) + 1]error
 	)
 
-	rutas := make(map[string]string, len(binariosDelArnes))
+	rutas := make(map[string]string, len(binariosDelArnes)+1)
 
 	for i, binario := range binariosDelArnes {
 		carpeta := filepath.Join(temporal, binario.carpeta)
@@ -400,6 +416,11 @@ func construirBinarios(temporal string) (map[string]string, error) {
 
 		grupo.Go(func() { errores[i] = construir(binario, carpeta) })
 	}
+
+	laboratorio := filepath.Join(temporal, nombreDelLaboratorio)
+	rutas[variableDelLaboratorio] = filepath.Join(laboratorio, nombreDelLaboratorio)
+
+	grupo.Go(func() { errores[len(binariosDelArnes)] = construirElLaboratorio(laboratorio) })
 
 	grupo.Wait()
 
@@ -423,16 +444,8 @@ func construirBinarios(temporal string) (map[string]string, error) {
 // No toca la red: cuando `go test` llega hasta aquí, lo que el módulo necesita
 // está ya en la caché de módulos.
 func construir(binario binarioDelArnes, carpeta string) error {
-	if err := os.Mkdir(carpeta, 0o750); err != nil {
-		return fmt.Errorf("e2e: no se pudo crear la carpeta de %s: %w", binario.variable, err)
-	}
-
-	orden := binario.orden(context.Background())
-	orden.Env = append(os.Environ(), "GOBIN="+carpeta)
-
-	if salida, err := orden.CombinedOutput(); err != nil {
-		return fmt.Errorf("e2e: no se pudo construir %s para %s: %w: %s",
-			paqueteDelBinario, binario.variable, err, salida)
+	if err := instalar(binario.orden(context.Background()), carpeta, paqueteDelBinario, binario.variable); err != nil {
+		return err
 	}
 
 	// El ejecutable se instala con el nombre del directorio del paquete, y el
@@ -443,6 +456,35 @@ func construir(binario binarioDelArnes, carpeta string) error {
 	if err := os.Rename(filepath.Join(carpeta, nombreInstalado), filepath.Join(carpeta, nombreDelBinario)); err != nil {
 		return fmt.Errorf("e2e: no se pudo nombrar el binario de %s como %s: %w",
 			binario.variable, nombreDelBinario, err)
+	}
+
+	return nil
+}
+
+// construirElLaboratorio compila el programa laboratorio del repositorio y lo
+// deja en la carpeta que se le da con el nombre que le da `go install`,
+// laboratorio, sin -ldflags: los guiones lo invocan por su ruta absoluta y
+// ninguno elige con qué se construye (contracts/arnes-e2e.md §1 de H40). Como
+// la de construir, la orden va escrita entera con constantes y la carpeta viaja
+// por GOBIN.
+func construirElLaboratorio(carpeta string) error {
+	orden := exec.CommandContext(context.Background(), "go", "install", paqueteDelLaboratorio)
+
+	return instalar(orden, carpeta, paqueteDelLaboratorio, variableDelLaboratorio)
+}
+
+// instalar crea la carpeta y ejecuta en ella, por GOBIN, la orden de `go
+// install` que construye el paquete para la variable; el error nombra los dos y
+// lleva lo que la orden escribió.
+func instalar(orden *exec.Cmd, carpeta, paquete, variable string) error {
+	if err := os.Mkdir(carpeta, 0o750); err != nil {
+		return fmt.Errorf("e2e: no se pudo crear la carpeta de %s: %w", variable, err)
+	}
+
+	orden.Env = append(os.Environ(), "GOBIN="+carpeta)
+
+	if salida, err := orden.CombinedOutput(); err != nil {
+		return fmt.Errorf("e2e: no se pudo construir %s para %s: %w: %s", paquete, variable, err, salida)
 	}
 
 	return nil
@@ -1888,7 +1930,7 @@ func instalarNormativa(t *testing.T, binario, proyecto string) {
 
 // TestVariablesDeLosGuiones fija las variables de contracts/arnes-e2e.md §3 que
 // TestMain deja para todos los guiones: las rutas, absolutas —también las de
-// los tres binarios con reloj de H7—; el archivo de la plataforma y la versión
+// los tres binarios con reloj de H7 y la del programa laboratorio de H40—; el archivo de la plataforma y la versión
 // del origen; y los proxies cerrados.
 func TestVariablesDeLosGuiones(t *testing.T) {
 	t.Parallel()
@@ -1897,7 +1939,7 @@ func TestVariablesDeLosGuiones(t *testing.T) {
 
 	rutas := []string{
 		variableDelBinario, variableV1, variableV2, variableSinEnlaces, variableT0, variableT1, variableT8,
-		variableSkills, variableInstalador, variableOrigen,
+		variableSkills, variableInstalador, variableOrigen, variableDelLaboratorio,
 	}
 	for _, variable := range rutas {
 		assert.Truef(t, filepath.IsAbs(entorno.variables[variable]), "%s tiene que ser una ruta absoluta: %q",

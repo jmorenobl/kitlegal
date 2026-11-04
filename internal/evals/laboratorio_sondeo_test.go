@@ -249,12 +249,16 @@ type casoDeUsoDelArnes struct {
 	version    bool
 }
 
+// mensajeFijo es el mensaje de error de un caso de uso que no depende de sus
+// argumentos.
+func mensajeFijo(mensaje string) func(ArgumentosDelLaboratorio) string {
+	return func(ArgumentosDelLaboratorio) string { return mensaje }
+}
+
 // casosDeUsoDelArnes son los casos de TestArnesDelLaboratorio que son un error de
 // uso (contracts/arnes.md §2 de H39; FR-030, FR-031; SC-007).
 func casosDeUsoDelArnes() []casoDeUsoDelArnes {
-	fijo := func(mensaje string) func(ArgumentosDelLaboratorio) string {
-		return func(ArgumentosDelLaboratorio) string { return mensaje }
-	}
+	fijo := mensajeFijo
 
 	return []casoDeUsoDelArnes{
 		{
@@ -459,7 +463,7 @@ func casosValidosDelArnes() []casoValidoDelArnes {
 				t.Helper()
 
 				primera := path.Join(varianteDeControl, string(ModoOrden),
-					sesionesDelReparto(repartoEsperado{porEval: 1})[0])
+					sesionesDelReparto(evalsDelLaboratorioDelTest, 1)[0])
 
 				return map[string]string{primera: mensajeInit + mensajeResultConError(t, textoDelLimiteDeSesion)}
 			},
@@ -503,7 +507,7 @@ func TestArnesDelLaboratorio(t *testing.T) {
 		t.Run(caso.nombre, func(t *testing.T) {
 			t.Parallel()
 
-			exigirElSondeoDelArnes(t, caso)
+			exigirElSondeoDelArnes(t, caso, evalsDelLaboratorioDelTest, exigirLaSesionDelArnes)
 		})
 	}
 }
@@ -554,9 +558,17 @@ func exigirElErrorDeUsoDelArnes(t *testing.T, caso casoDeUsoDelArnes) {
 	}
 }
 
+// exigirLaSesionDelReparto exige lo que ve la sesión de ese directorio, de un
+// reparto de un caso válido del arnés.
+type exigirLaSesionDelReparto func(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string)
+
 // exigirElSondeoDelArnes ejecuta el arnés de un caso válido y exige sus
-// sesiones, su sondeo.json, su servidor.json y su salida.
-func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes) {
+// sesiones —las de cada una de las evals dadas, en su orden, en cada reparto, y
+// ninguna más—, su sondeo.json, lo que ve cada sesión, con exigirLaSesion, y su
+// salida.
+func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes, evals []string,
+	exigirLaSesion exigirLaSesionDelReparto,
+) {
 	t.Helper()
 
 	arnes := nuevoArnesDelTest(t, caso.argumentos, "")
@@ -597,13 +609,12 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes) {
 	var esperadas []string
 
 	for _, reparto := range caso.repartos {
-		plan := sesionesDelReparto(reparto)
+		plan := sesionesDelReparto(evals, reparto.porEval)
 		require.LessOrEqual(t, reparto.abiertas, len(plan), "el caso abre de las sesiones de su plan")
 
 		for _, sesion := range plan[:reparto.abiertas] {
 			esperadas = append(esperadas, filepath.Join(fisico, reparto.variante, string(reparto.modo), sesion))
-			exigirLaSesionDelArnes(t, arnes, reparto, filepath.Join(directorio, reparto.variante, string(reparto.modo),
-				sesion))
+			exigirLaSesion(t, arnes, reparto, filepath.Join(directorio, reparto.variante, string(reparto.modo), sesion))
 		}
 	}
 
@@ -613,12 +624,12 @@ func exigirElSondeoDelArnes(t *testing.T, caso casoValidoDelArnes) {
 }
 
 // sesionesDelReparto son los nombres de las sesiones que abre un reparto: las
-// porEval de cada eval del laboratorio, <eval>-<nn>.
-func sesionesDelReparto(reparto repartoEsperado) []string {
+// porEval de cada una de las evals dadas, en su orden, <eval>-<nn>.
+func sesionesDelReparto(evals []string, porEval int) []string {
 	var sesiones []string
 
-	for _, eval := range evalsDelLaboratorioDelTest {
-		for numero := 1; numero <= reparto.porEval; numero++ {
+	for _, eval := range evals {
+		for numero := 1; numero <= porEval; numero++ {
 			sesiones = append(sesiones, fmt.Sprintf("%s-%02d", strings.TrimSuffix(eval, ".yaml"), numero))
 		}
 	}
@@ -667,6 +678,282 @@ func exigirLaSesionDelArnes(t *testing.T, arnes arnesDelTest, reparto repartoEsp
 
 	assert.Equal(t, ordenEsperadaDelServidor(t, arnes.sondeo.Temporal, reparto.variante), ordenDelServidorEscrito(t,
 		servidor), "la orden del servidor de %s", sesion)
+}
+
+// evalsDeNormativaDelTest son los ficheros de las cuatro evals del sondeo de la
+// familia de normativa, de evals/normativa, en su orden (contracts/arnes.md §3
+// de H40; data-model §1 de H40).
+var evalsDeNormativaDelTest = []string{
+	"04-lgt-prescripcion.yaml", "05-trlrhl-impuestos-municipales.yaml", "15-irpf-rendimientos-por-materia.yaml",
+	"22-lcsp-contrato-menor-en-2019.yaml",
+}
+
+// Lo que piden los casos de TestArnesDeNormativa (contracts/arnes.md §1 y §5 de
+// H40): la variante de control de normativa, que se mide en los dos modos, y las
+// otras tres, que solo se miden en modo herramienta, en el orden de su
+// declaración; y la línea del error de una mezcla de las dos familias.
+const (
+	controlDeNormativaDelTest         = "normativa-control"
+	soloHerramientaDeNormativaDelTest = "normativa-remisiones-en-orden,normativa-cuerpo-corto," +
+		"normativa-testigo-en-referencia"
+	mezclaDeLasFamiliasDelTest = "VARIANTES: se mezclan variantes del laboratorio de H39 y variantes de normativa"
+)
+
+// casosDeUsoDeNormativa son los casos de TestArnesDeNormativa que son un error
+// de uso (contracts/arnes.md §2 y §5 de H40; FR-010, FR-011; SC-006): cada uno,
+// con su mensaje y nada hecho.
+func casosDeUsoDeNormativa() []casoDeUsoDelArnes {
+	return []casoDeUsoDelArnes{
+		{
+			nombre:     "con-una-variante-que-no-es-de-ninguna-familia",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) { a.Variantes = "normativa-otra" },
+			error:      mensajeFijo("VARIANTES: «normativa-otra» no es ninguna variante del laboratorio"),
+		},
+		{
+			// Los tres pares que no se miden, una línea por variante, en el orden de
+			// su declaración.
+			nombre: "las-tres-de-solo-herramienta-en-modo-orden",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos = soloHerramientaDeNormativaDelTest, "orden"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"VARIANTES y MODOS: normativa-remisiones-en-orden no se mide en modo orden",
+				"VARIANTES y MODOS: normativa-cuerpo-corto no se mide en modo orden",
+				"VARIANTES y MODOS: normativa-testigo-en-referencia no se mide en modo orden",
+			}, "\n")),
+		},
+		{
+			nombre: "con-sesiones-que-no-son-multiplo-de-4",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = controlDeNormativaDelTest, "orden,herramienta", "6"
+			},
+			error: mensajeFijo("SESIONES: «6» no es un múltiplo de 4 mayor que 0"),
+		},
+		{
+			nombre: "con-las-dos-familias",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes = "control," + controlDeNormativaDelTest
+			},
+			error: mensajeFijo(mezclaDeLasFamiliasDelTest),
+		},
+		{
+			// Con las dos familias, los pares de cada una se comprueban con su
+			// declaración, primero los de H39, aunque se pidan detrás.
+			nombre: "con-las-dos-familias-y-sus-pares",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes = "normativa-cuerpo-corto,instrucciones"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				mezclaDeLasFamiliasDelTest,
+				"VARIANTES y MODOS: instrucciones no se mide en modo orden",
+				"VARIANTES y MODOS: normativa-cuerpo-corto no se mide en modo orden",
+			}, "\n")),
+		},
+		{
+			// El ejemplo de contracts/arnes.md §2 de H40: la mezcla, tras las líneas
+			// de los nombres y antes de las de los pares.
+			nombre: "el-ejemplo-del-contrato",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Sesiones = "control,normativa-cuerpo-corto,normativa-otra", "6"
+			},
+			error: mensajeFijo(strings.Join([]string{
+				"VARIANTES: «normativa-otra» no es ninguna variante del laboratorio",
+				mezclaDeLasFamiliasDelTest,
+				"VARIANTES y MODOS: normativa-cuerpo-corto no se mide en modo orden",
+				"SESIONES: «6» no es un múltiplo de 4 mayor que 0",
+			}, "\n")),
+		},
+		{
+			nombre: "con-la-version-distinta",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.ClaudeCode = controlDeNormativaDelTest, "2.1.284"
+			},
+			error:   mensajeFijo("CLAUDE_CODE: la versión de Claude Code instalada es 2.1.317 y se pidió 2.1.284"),
+			version: true,
+		},
+		{
+			nombre: "con-un-alias-del-modelo",
+			argumentos: func(_ *testing.T, a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modelo = controlDeNormativaDelTest, "sonnet"
+			},
+			error: mensajeFijo("MODELO: «sonnet» no es un identificador completo de modelo " +
+				"(claude-<familia>-<versión>, como claude-sonnet-5-5)"),
+		},
+	}
+}
+
+// casosValidosDeNormativa son los casos de TestArnesDeNormativa en los que el
+// arnés abre sesiones: los dos lanzamientos de la aceptación con menos sesiones
+// (contracts/arnes.md §1 y §5 de H40; SC-006), que entre los dos piden los cinco
+// pares de la familia que se miden.
+func casosValidosDeNormativa() []casoValidoDelArnes {
+	enHerramienta := func(variante string) repartoEsperado {
+		return repartoEsperado{
+			variante: variante, modo: ModoHerramienta, porEval: 2, abiertas: 8,
+			linea: "- " + variante + ", herramienta: 8 abiertas.",
+		}
+	}
+
+	return []casoValidoDelArnes{
+		{
+			nombre: "el-primer-lanzamiento",
+			argumentos: func(a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = controlDeNormativaDelTest, "orden,herramienta", "4"
+			},
+			repartos: []repartoEsperado{
+				{
+					variante: controlDeNormativaDelTest, modo: ModoOrden, porEval: 1, abiertas: 4,
+					linea: "- normativa-control, orden: 4 abiertas.",
+				},
+				{
+					variante: controlDeNormativaDelTest, modo: ModoHerramienta, porEval: 1, abiertas: 4,
+					linea: "- normativa-control, herramienta: 4 abiertas.",
+				},
+			},
+		},
+		{
+			nombre: "el-segundo-lanzamiento",
+			argumentos: func(a *ArgumentosDelLaboratorio) {
+				a.Variantes, a.Modos, a.Sesiones = soloHerramientaDeNormativaDelTest, "herramienta", "8"
+			},
+			repartos: []repartoEsperado{
+				enHerramienta("normativa-remisiones-en-orden"), enHerramienta("normativa-cuerpo-corto"),
+				enHerramienta("normativa-testigo-en-referencia"),
+			},
+		},
+	}
+}
+
+// TestArnesDeNormativa fija el arnés del sondeo del laboratorio con la familia
+// de normativa, sin modelo (contracts/arnes.md §2, §3 y §5 de H40; data-model
+// §1, §4 y §5 de H40; research D7, D8 y D14 de H40; FR-008, FR-010, FR-011;
+// SC-006), con la construcción sustituida y el sustituto de claude de
+// TestArnesDelLaboratorio.
+//
+// Con una variante que no es de ninguna familia, las tres que solo se miden en
+// modo herramienta pedidas en modo orden, SESIONES=6, variantes de las dos
+// familias, una versión de Claude Code distinta o un alias del modelo, devuelve
+// un error de uso con su mensaje, no construye nada, no abre ninguna sesión y no
+// crea DIRECTORIO (exigirElErrorDeUsoDelArnes).
+//
+// Con los dos lanzamientos de la aceptación, con menos sesiones, abre
+// SESIONES/4 sesiones de cada una de las cuatro evals del sondeo de normativa en
+// cada variante y modo pedidos, y ninguna más; cada una ve solo normativa, la de
+// su variante, sin servidor.json en el modo orden y con kitlegal mcp serve en el
+// modo herramienta (exigirLaSesionDeNormativa).
+//
+// Sin una de las cuatro evals en evals/normativa, falla con su nombre antes de
+// construir nada, y no es un error de uso.
+func TestArnesDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	for _, caso := range casosDeUsoDeNormativa() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElErrorDeUsoDelArnes(t, caso)
+		})
+	}
+
+	for _, caso := range casosValidosDeNormativa() {
+		t.Run(caso.nombre, func(t *testing.T) {
+			t.Parallel()
+
+			exigirElSondeoDelArnes(t, caso, evalsDeNormativaDelTest, exigirLaSesionDeNormativa)
+		})
+	}
+
+	t.Run("sin-una-de-las-cuatro-evals", func(t *testing.T) {
+		t.Parallel()
+
+		exigirElSondeoSinUnaEvalDeNormativa(t, "15-irpf-rendimientos-por-materia.yaml")
+	})
+}
+
+// exigirLaSesionDeNormativa exige que la sesión de ese directorio vea solo la
+// skill normativa, enlazada a la copia de su variante y con el SKILL.md de
+// laboratorio/normativa/<variante>/ byte a byte; y que no tenga servidor.json en
+// el modo orden y, en el modo herramienta, uno que arranca kitlegal mcp serve
+// del bin/ del temporal, sin laboratorio servidor (contracts/arnes.md §3 y §5 de
+// H40; FR-008).
+func exigirLaSesionDeNormativa(t *testing.T, arnes arnesDelTest, reparto repartoEsperado, sesion string) {
+	t.Helper()
+
+	skills := filepath.Join(sesion, directorioDeClaude, directorioDeSkills)
+
+	enlazadas, err := os.ReadDir(skills)
+	require.NoError(t, err)
+
+	nombres := make([]string, 0, len(enlazadas))
+	for _, enlazada := range enlazadas {
+		nombres = append(nombres, enlazada.Name())
+	}
+
+	require.Equal(t, []string{"normativa"}, nombres, "la sesión %s ve solo normativa", sesion)
+
+	destino, err := os.Readlink(filepath.Join(skills, "normativa"))
+	require.NoError(t, err)
+	assert.Equal(t, filepath.Join(arnes.sondeo.Temporal, carpetaDeLasSkillsDelSondeo, reparto.variante, "normativa"),
+		destino, "la sesión %s enlaza la copia de su variante", sesion)
+
+	original, err := leerFichero(filepath.Join(raizDelRepositorio, "laboratorio", "normativa", reparto.variante,
+		"skills", "normativa", "SKILL.md"))
+	require.NoError(t, err)
+
+	copiado, err := leerFichero(filepath.Join(destino, "SKILL.md"))
+	require.NoError(t, err)
+	assert.Equal(t, string(original), string(copiado), "el SKILL.md de la sesión %s es el de %s", sesion,
+		reparto.variante)
+
+	servidor := filepath.Join(sesion, ficheroDelServidor)
+	if reparto.modo == ModoOrden {
+		assert.NoFileExists(t, servidor, "una sesión del modo orden no tiene servidor")
+
+		return
+	}
+
+	kitlegal := filepath.Join(arnes.sondeo.Temporal, carpetaDeBinarios, programaDeLasConsultas)
+	assert.Equal(t, []string{kitlegal, "mcp", "serve"}, ordenDelServidorEscrito(t, servidor),
+		"el servidor de %s es el de hoy", sesion)
+}
+
+// exigirElSondeoSinUnaEvalDeNormativa ejecuta el arnés con normativa-control en
+// los dos modos sobre un repositorio con la declaración de H39 y una copia de
+// evals/normativa sin la eval dada, y exige que falle con su nombre, sin que sea
+// un error de uso, antes de construir nada, abrir ninguna sesión, escribir en el
+// temporal o crear DIRECTORIO (contracts/arnes.md §3.2 de H40).
+func exigirElSondeoSinUnaEvalDeNormativa(t *testing.T, falta string) {
+	t.Helper()
+
+	raiz := t.TempDir()
+	evals := filepath.Join(raiz, "evals", "normativa")
+	require.NoError(t, os.CopyFS(evals, os.DirFS(filepath.Join(raizDelRepositorio, "evals", "normativa"))))
+	require.NoError(t, os.Remove(filepath.Join(evals, falta)))
+
+	deH39, err := leerFichero(filepath.Join(raizDelRepositorio, "laboratorio", "variantes.yaml"))
+	require.NoError(t, err)
+	require.NoError(t, os.Mkdir(filepath.Join(raiz, "laboratorio"), 0o700))
+	require.NoError(t, os.WriteFile(filepath.Join(raiz, "laboratorio", "variantes.yaml"), deH39, 0o600))
+
+	arnes := nuevoArnesDelTest(t, func(a *ArgumentosDelLaboratorio) {
+		a.Variantes, a.Modos = controlDeNormativaDelTest, "orden,herramienta"
+	}, "")
+	arnes.sondeo.Raiz = raiz
+
+	salida, err := sondearElLaboratorio(t.Context().Done(), arnes.sondeo)
+	require.EqualError(t, err, "evals/normativa no tiene la eval "+falta+" del sondeo")
+	assert.Empty(t, salida)
+
+	var uso *errorDeUso
+	assert.NotErrorAs(t, err, &uso, "una eval del sondeo que falta no es un error de uso")
+
+	assert.Empty(t, arnes.claude.sesiones(t), "no se abre ninguna sesión")
+	assert.False(t, *arnes.construido, "no se construye nada")
+
+	entradas, err := os.ReadDir(arnes.sondeo.Temporal)
+	require.NoError(t, err)
+	assert.Empty(t, entradas, "no se escribe nada en el temporal")
+	assert.NoDirExists(t, filepath.Dir(arnes.sondeo.Argumentos.Directorio), "no se crea DIRECTORIO ni su padre")
 }
 
 // TestConstruirLosProgramasDelLaboratorio construye de verdad kitlegal y

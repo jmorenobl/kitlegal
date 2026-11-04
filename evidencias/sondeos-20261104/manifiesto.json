@@ -1,0 +1,60 @@
+{
+  "ficheros": [
+    {
+      "fichero": "LEEME.md",
+      "sha256": "b9d0e2918edaa2e1b4327c8681ca8a0b2e45206274c0457c5254b53839b2b5af",
+      "bytes": 3787,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "evidencia del sondeo de la persona antes de fusionar H40"
+    },
+    {
+      "fichero": "guiones/lanzar-200.sh",
+      "sha256": "c47acd9d8ec03e9588baf60aa270b4dc51a079f4e9f58c2ce44a36be645fbd3d",
+      "bytes": 2646,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "guion del sondeo del 2026-11-04, fuera del producto"
+    },
+    {
+      "fichero": "guiones/recuento.py",
+      "sha256": "4479f4475ced8e322c324c3fa47e78825496aed3b27f012312c92e9de28a53f0",
+      "bytes": 3982,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "guion del recuento por eval y del recuento ampliado, fuera del producto"
+    },
+    {
+      "fichero": "recuento.md",
+      "sha256": "c46d419ce13f9e26f79eb484d655731827531b6f11fcf3ee74cfcb26e614d702",
+      "bytes": 2868,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "salida de guiones/recuento.py sobre las sesiones del sondeo"
+    },
+    {
+      "fichero": "salida-a.txt",
+      "sha256": "b9b528d7fc906ee8d890cd6d73cc87ea3ad167c1fb73eefae47370c8567fa0b2",
+      "bytes": 306,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "salida de make evals-laboratorio, parte a"
+    },
+    {
+      "fichero": "salida-b.txt",
+      "sha256": "78f1397e80443d16548b2486918baf8ebb75169c06a82d5b5ad17ed2b5d25df2",
+      "bytes": 390,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "salida de make evals-laboratorio, parte b"
+    },
+    {
+      "fichero": "tabla.md",
+      "sha256": "0bf913863f3962f6bc0fb33c5b1c87ec0582efc4236b6a4f39e728b5b3ecb6eb",
+      "bytes": 29921,
+      "fecha": "2026-11-04",
+      "versionado": "sí",
+      "origen": "salida de make laboratorio-tabla sobre las sesiones del sondeo"
+    }
+  ]
+}

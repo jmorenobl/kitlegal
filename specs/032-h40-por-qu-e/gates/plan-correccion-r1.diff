@@ -1,0 +1,108 @@
+diff antes/contracts/arnes.md ahora/contracts/arnes.md
+--- antes/contracts/arnes.md	2026-11-04 15:56:54
++++ ahora/contracts/arnes.md	2026-11-04 15:58:25
+@@ -96,14 +96,24 @@
+ 
+ - **`TestArnesDeNormativa`** (`internal/evals/laboratorio_sondeo_test.go`, en `make ci`, sin modelo; SC-006, FR-008,
+   FR-010, FR-011): `sondearElLaboratorio` con la preparación sin construir y el sustituto de `claude` de
+-  `TestArnesDelLaboratorio`.
+-  - Con `VARIANTES=normativa-otra`, con `VARIANTES=normativa-cuerpo-corto MODOS=orden`, con `SESIONES=6`, con
+-    `VARIANTES=control,normativa-control`, con la versión de Claude Code distinta y con `MODELO=sonnet`: 0 sesiones, nada
+-    construido, `DIRECTORIO` sin crear y, cada uno, su mensaje de §2 o el de H39.
+-  - Con `VARIANTES=normativa-control,normativa-cuerpo-corto MODOS=herramienta SESIONES=8`: dos sesiones de cada una de
+-    las cuatro evals de §3 en cada variante, en `DIRECTORIO/<variante>/herramienta/<eval>-0{1,2}/`, y ninguna más; en cada
+-    una, `claude/skills/` tiene solo `normativa`, y su `SKILL.md` es, byte a byte, el de su variante; y su `servidor.json`
+-    arranca `kitlegal mcp serve` del temporal, sin `laboratorio servidor`.
++  `TestArnesDelLaboratorio`. Sus dos casos válidos son los dos lanzamientos de la aceptación (§1) con menos sesiones,
++  así que entre los dos piden los cinco pares variante × modo que se miden; su caso inválido de modo pide los tres que
++  no se miden.
++  - Con `VARIANTES=normativa-otra`; con
++    `VARIANTES=normativa-remisiones-en-orden,normativa-cuerpo-corto,normativa-testigo-en-referencia MODOS=orden`, cuyo
++    mensaje son tres líneas `VARIANTES y MODOS: <v> no se mide en modo orden`, una por variante en el orden de su
++    declaración; con `SESIONES=6`; con `VARIANTES=control,normativa-control`; con la versión de Claude Code distinta; y
++    con `MODELO=sonnet`: 0 sesiones, nada construido, `DIRECTORIO` sin crear y, cada uno, su mensaje de §2 o el de H39.
++  - Con `VARIANTES=normativa-control MODOS=orden,herramienta SESIONES=4` (el primer lanzamiento): una sesión de cada
++    una de las cuatro evals de §3 en cada modo, en `DIRECTORIO/normativa-control/orden/<eval>-01/` y
++    `DIRECTORIO/normativa-control/herramienta/<eval>-01/`, y ninguna más.
++  - Con `VARIANTES=normativa-remisiones-en-orden,normativa-cuerpo-corto,normativa-testigo-en-referencia
++    MODOS=herramienta SESIONES=8` (el segundo): dos sesiones de cada una de las cuatro evals en cada variante, en
++    `DIRECTORIO/<variante>/herramienta/<eval>-0{1,2}/`, y ninguna más.
++  - En cada sesión de los dos casos válidos, `claude/skills/` tiene solo `normativa`, y su `SKILL.md` es, byte a byte,
++    el de su variante; en modo orden no hay `servidor.json`; en modo herramienta, `servidor.json` arranca
++    `kitlegal mcp serve` del temporal, sin `laboratorio servidor` (la comprobación por sesión de
++    `TestArnesDelLaboratorio`).
+ - **`TestArnesDelLaboratorio`**, **`TestRecetasDelSondeo`** y **`TestServidorDelLaboratorio`** (H39): sin cambiar ningún
+   valor esperado.
+ - **`TestSondeoDelLaboratorio`** (`-tags evals`): la entrada de la persona; no corre en `make ci`.
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-11-04 15:56:54
++++ ahora/plan.md	2026-11-04 15:58:42
+@@ -185,7 +185,7 @@
+ | SC-002, FR-003 a FR-006 | 0 bytes de diferencia fuera de lo declarado en cada una de las tres; 100 % de los textos declarados iguales al del hito; 0 declaraciones que ya no se aplican; 8 remisiones, una por referencia | Calcula cada variante desde control con su declaración y la compara byte a byte | ci:internal/evals/laboratorio_normativa_test.go:TestVariantesDeNormativa |
+ | SC-003, FR-001 | 0 ficheros de una variante en `kitlegal.Skills()`, en lo que instala `skills install --dir` y en lo que el job ejecuta o elige; 0 rutas de `laboratorio/` que midan | Recorre lo empotrado, una instalación en un temporal, la definición del job, `evals/` y `rutaQueMide` | ci:internal/evals/laboratorio_test.go:TestLaboratorioFueraDelProducto |
+ | FR-007 | Cuerpo de como mucho 11 000 caracteres en cada skill de `skills/` (sin cambios) | La forma de las skills del repositorio | ci:internal/app/skills_test.go:TestSkillsDelRepositorio |
+-| SC-006, FR-008, FR-010, FR-011 | 0 sesiones abiertas con una variante inexistente, una en un modo que no es suyo, `SESIONES` no múltiplo de 4, una mezcla de familias, otra versión de Claude Code o un alias de modelo; n/4 por eval en cada variante y modo pedidos con una válida; 1 skill, la de su variante, en cada sesión | Sustituto de `claude` que anota sus invocaciones | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDeNormativa |
++| SC-006, FR-008, FR-010, FR-011 | 0 sesiones abiertas con una variante inexistente, una en un modo que no es suyo, `SESIONES` no múltiplo de 4, una mezcla de familias, otra versión de Claude Code o un alias de modelo; n/4 por eval en cada variante y modo pedidos con una válida; 1 skill, la de su variante, en cada sesión | Sustituto de `claude` que anota sus invocaciones, con los dos lanzamientos de la aceptación (`normativa-control` en orden y herramienta; las otras tres en herramienta) y las tres variantes de solo herramienta en orden, de modo que se piden los ocho pares variante × modo de la familia; en cada sesión, solo `normativa` con el `SKILL.md` de su variante, sin `servidor.json` en orden y con `kitlegal mcp serve` en herramienta (contracts/arnes.md §5) | ci:internal/evals/laboratorio_sondeo_test.go:TestArnesDeNormativa |
+ | SC-004, FR-030 | 100 % de las respuestas fijas, y la de H32, con su veredicto | El guion de la regla sobre `respuestas/` y la respuesta del informe | ci:internal/evals/laboratorio_normativa_test.go:TestReglaTestigoDeNormativa |
+ | SC-005, FR-020 a FR-022 | 0 diferencias en recuentos, turnos y extremos de Wilson con un decimal; 0, 20 y 40 de 40 → `[0,0–8,8 %]`, `[35,2–64,8 %]`, `[91,2–100,0 %]` | La salida, byte a byte, contra `tabla.md`, y las celdas de las filas de 40 | ci:internal/evals/laboratorio_tabla_test.go:TestTablaDeNormativa |
+ | SC-005, SC-007, FR-020, FR-021, FR-023, FR-030 | 0 bytes de diferencia entre la salida de `laboratorio tabla` y las dos tablas del guion congelado (la de `normativa` y la de H39 de `main`) | El guion `h40-laboratorio-tabla.txtar` | ci:internal/app/e2e_test.go:TestEntregaDelHito |
+diff antes/quickstart.md ahora/quickstart.md
+--- antes/quickstart.md	2026-11-04 15:56:54
++++ ahora/quickstart.md	2026-11-04 15:58:44
+@@ -27,8 +27,9 @@
+ ```
+ 
+ Esperado: `ok`. `TestArnesDeNormativa` lanza el arnés con un sustituto de `claude` en temporales del test: con cada
+-petición inválida de contracts/arnes.md §5, ninguna sesión; con la válida, dos por eval en cada variante, cada una con
+-solo su variante instalada. `TestRecetasDelSondeo` ejecuta `make -n`, que solo imprime.
++petición inválida de contracts/arnes.md §5, ninguna sesión; con los dos lanzamientos de la aceptación con menos
++sesiones, `normativa-control` en los dos modos y las otras tres variantes en herramienta, `SESIONES/4` por eval en cada
++variante y modo, cada una con solo su variante instalada y el servidor solo en herramienta. `TestRecetasDelSondeo` ejecuta `make -n`, que solo imprime.
+ 
+ ## 3. La tabla y la regla testigo (historia 3; FR-020 a FR-023, FR-030)
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-04 15:56:54
++++ ahora/research.md	2026-11-04 15:58:39
+@@ -235,15 +235,24 @@
+ ### D14. El control del arnés: un sustituto de `claude`, como en H39
+ 
+ **Decisión.** `TestArnesDeNormativa` usa la preparación sin construir y el sustituto de `claude` de
+-`TestArnesDelLaboratorio`: con cada forma inválida de SC-006 (variante inexistente, una de `normativa` en modo orden,
+-`SESIONES=6`, una mezcla, la versión distinta y `MODELO=sonnet`), 0 sesiones y su mensaje; con
+-`VARIANTES=normativa-control,normativa-cuerpo-corto MODOS=herramienta SESIONES=8`, dos sesiones de cada una de las
+-cuatro evals en cada variante, cada una con `claude/skills/` con solo `normativa`, cuyo `SKILL.md` es el de su
+-variante, y `servidor.json` con la orden de hoy (contracts/arnes.md §5).
++`TestArnesDelLaboratorio`: con cada forma inválida de SC-006 (variante inexistente; las tres variantes que solo se
++miden en herramienta, pedidas juntas en modo orden, con una línea por variante; `SESIONES=6`; una mezcla; la versión
++distinta y `MODELO=sonnet`), 0 sesiones y su mensaje. Sus casos válidos son los dos lanzamientos de la aceptación con
++menos sesiones: `VARIANTES=normativa-control MODOS=orden,herramienta SESIONES=4`, una sesión de cada eval en cada modo,
++y las otras tres variantes con `MODOS=herramienta SESIONES=8`, dos de cada eval en cada variante. En cada sesión,
++`claude/skills/` tiene solo `normativa`, cuyo `SKILL.md` es el de su variante; sin `servidor.json` en orden y con la
++orden de hoy en herramienta (contracts/arnes.md §5).
+ 
+-**Por qué.** SC-006 y FR-008. El caso válido usa la carpeta real `evals/normativa`, así que también falla si una de las
+-cuatro evals deja de estar.
++**Por qué.** SC-006 y FR-008 prometen 0 sesiones con cada par variante × modo que no se mide y n/4 por eval en cada uno
++de los que sí: entre los tres casos se piden los ocho pares de la familia, cinco válidos y tres no, así que el test
++falla si la declaración de la familia da a una variante un modo que no es suyo o le quita el suyo, o si el camino de un
++modo instala otra skill que la de su variante. Los casos válidos usan la carpeta real `evals/normativa`, así que también
++fallan si una de las cuatro evals deja de estar.
+ 
++**Alternativas.** Un caso por par inválido: tres casos con la misma comprobación que uno, porque los errores de los
++pares se dan todos juntos (§2). Un solo caso válido con las cuatro variantes en los dos modos: el arnés lo rechaza, y
++no es ninguna orden que lance la persona.
++
+ ### D15. Documentación
+ 
+ La ayuda de `make evals-laboratorio` y `make laboratorio-tabla` en el `Makefile`, «El sondeo del laboratorio» de
+@@ -265,7 +274,8 @@
+   referencia se abre con un `Read` cuyo `file_path` termina en `normativa/references/<fichero>` o con un `Bash` que la
+   nombra. En el repositorio no hay transcripciones reales de `normativa` (las de los tests son sintéticas); la regla es
+   la de H39, con la que el sondeo real de H39 contó aperturas de 39 y 40 de 40 (`evidencias/sondeos-20261103/tabla.md`).
+-- **S3.** No se ha medido cuánto tarda `TestArnesDeNormativa`: cada sesión se prepara con las consultas de las 23 evals
++- **S3.** No se ha medido cuánto tarda `TestArnesDeNormativa`, cuyos dos casos válidos abren 8 y 24 sesiones con el
++  sustituto: cada sesión se prepara con las consultas de las 23 evals
+   de `evals/normativa`, más que las cuatro del laboratorio de H39, cuyo caso válido tarda 3,1 s (V22).
+ - **S4.** Que el sondeo de la persona, con la credencial, abra sus 200 sesiones lo comprueba la persona (FR-040); el run
+   no puede.

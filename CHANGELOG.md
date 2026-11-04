@@ -12,6 +12,24 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+### Añadido
+
+- **Cuatro variantes de `normativa` para medir por qué no lee sus referencias en modo herramienta** (H40). Viven en
+  `laboratorio/normativa/`, **fuera del producto** como el laboratorio de H39: el binario no las empotra,
+  `kitlegal skills install` no las instala y el job de evals no las mide. Cada una es una skill completa con el nombre
+  `normativa`: `normativa-control`, que es `skills/normativa` byte a byte y se mide en los dos modos, y
+  `normativa-remisiones-en-orden`, `normativa-cuerpo-corto` y `normativa-testigo-en-referencia`, que difieren de
+  control solo en lo que declaran y se miden en modo herramienta. `make ci` comprueba sin modelo que control es
+  `skills/normativa` y que cada una de las otras tres es la que da su declaración sobre control.
+- **`make evals-laboratorio` lanza también las variantes de `normativa`** (H40), con la misma orden, los mismos siete
+  argumentos y la misma credencial: las sesiones se reparten entre las evals 04, 05, 15 y 22 de `evals/normativa`,
+  servidas por lo grabado, y cada sesión tiene instalada solo la variante de su fila. Una invocación es de una sola
+  familia: mezclar variantes del laboratorio de H39 y de `normativa` es un error de uso y no abre ninguna sesión.
+- **`make laboratorio-tabla` cuenta también los sondeos de las variantes de `normativa`** (H40), sin red, modelo ni
+  credencial: una fila por variante, modo, modelo y versión de Claude Code con las sesiones que activan `normativa`
+  antes de la primera herramienta de kitlegal, las que abren cada una de sus ocho referencias y en qué turno, y, en
+  `normativa-testigo-en-referencia`, las que cumplen la regla testigo. La tabla de un sondeo de H39 no cambia.
+
 ## [0.9.0] - 2026-11-04
 
 ### Añadido

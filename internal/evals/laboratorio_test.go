@@ -3,6 +3,7 @@ package evals
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"maps"
 	"os"
@@ -883,13 +884,15 @@ func comprobarLasLecturasDeLaHerramienta(t *testing.T, evals []Eval) {
 
 // TestLaboratorioFueraDelProducto comprueba que el laboratorio no es parte de
 // lo que kitlegal empotra, instala ni mide (FR-010 y SC-005 de H39;
-// contracts/laboratorio.md §1 y §7 de H39; research V9 y V10 de H39): ni lo que
-// el binario empotra ni lo que deja skills install --dir en un directorio vacío
-// tiene la ruta de una skill del laboratorio ni los bytes de un fichero de
-// laboratorio/; la definición del job de evals no ejecuta ninguna de sus skills
-// ni hay evals de kitlegal con su nombre; y ninguna ruta de laboratorio/ mide,
-// así que una propuesta que solo cambia el laboratorio no elige ninguna skill de
-// kitlegal.
+// contracts/laboratorio.md §1 y §7 de H39; research V9 y V10 de H39; FR-001 y
+// SC-003 de H40; contracts/variantes.md §7 de H40; research D12 de H40): ni lo
+// que el binario empotra ni lo que deja skills install --dir en un directorio
+// vacío tiene por tramo de una ruta un nombre del laboratorio —el de una skill de
+// las variantes de H39 o el de una variante de normativa— ni los bytes de un
+// fichero de laboratorio/ que no sea copia de uno de skills/; la definición del
+// job de evals no ejecuta ninguna skill con uno de esos nombres ni hay evals de
+// kitlegal con él; y ninguna ruta de laboratorio/ mide, así que una propuesta que
+// solo cambia el laboratorio no elige ninguna skill de kitlegal.
 func TestLaboratorioFueraDelProducto(t *testing.T) {
 	t.Parallel()
 
@@ -939,19 +942,22 @@ const (
 )
 
 // contenidoDelLaboratorio es lo que TestLaboratorioFueraDelProducto busca fuera
-// del laboratorio: los nombres de las skills de sus variantes, en orden y sin
-// repetir, y sus ficheros, por su ruta desde la raíz del repositorio y por su
+// del laboratorio: los nombres que no pueden ser un tramo de una ruta de lo que
+// kitlegal empotra o instala, en orden y sin repetir; sus ficheros, por su ruta
+// desde la raíz del repositorio; y los que no son copia de uno de skills/, por su
 // contenido.
 type contenidoDelLaboratorio struct {
-	skills       []string
+	nombres      []string
 	rutas        []string
 	porContenido map[string]string
 }
 
-// leerElContenidoDelLaboratorio lee de laboratorio/ los nombres de las skills de
-// todas sus variantes —los de variantes/*/skills/*, también los de una variante
-// que la declaración no tuviera— y todos sus ficheros. Exige las dos skills de la
-// declaración y algún fichero, para que ninguna comprobación pase en vacío.
+// leerElContenidoDelLaboratorio lee de laboratorio/ sus nombres —los de las
+// skills de todas las variantes de H39, los de variantes/*/skills/*, también los
+// de una variante que la declaración no tuviera, y los de los directorios de las
+// variantes de normativa— y todos sus ficheros (research D12 de H40). Exige las
+// dos skills de la declaración de H39, la variante de control de normativa y
+// algún fichero, para que ninguna comprobación pase en vacío.
 func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
 	t.Helper()
 
@@ -961,17 +967,31 @@ func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
 		carpetaDeLasSkillsDeLaVariante, "*"))
 	require.NoError(t, err)
 
-	laboratorio := contenidoDelLaboratorio{porContenido: map[string]string{}}
-
+	skillsDeH39 := make([]string, 0, len(deLasVariantes))
 	for _, deUnaVariante := range deLasVariantes {
-		laboratorio.skills = append(laboratorio.skills, path.Base(deUnaVariante))
+		skillsDeH39 = append(skillsDeH39, path.Base(deUnaVariante))
 	}
 
-	slices.Sort(laboratorio.skills)
-	laboratorio.skills = slices.Compact(laboratorio.skills)
-
-	require.Subset(t, laboratorio.skills, []string{skillDelLaboratorio, entradaDelLaboratorio},
+	require.Subset(t, skillsDeH39, []string{skillDelLaboratorio, entradaDelLaboratorio},
 		"las variantes de %s tienen las dos skills de la declaración", carpetaDelLaboratorio)
+
+	deNormativa, err := fs.ReadDir(repositorio, familiaDeNormativa.carpeta)
+	require.NoError(t, err)
+
+	variantesDeNormativa := make([]string, 0, len(deNormativa))
+	for _, entrada := range deNormativa {
+		if entrada.IsDir() {
+			variantesDeNormativa = append(variantesDeNormativa, entrada.Name())
+		}
+	}
+
+	require.Contains(t, variantesDeNormativa, varianteDeControlDeNormativa,
+		"%s tiene la variante de control", familiaDeNormativa.carpeta)
+
+	nombres := slices.Concat(skillsDeH39, variantesDeNormativa)
+	slices.Sort(nombres)
+
+	laboratorio := contenidoDelLaboratorio{nombres: slices.Compact(nombres), porContenido: map[string]string{}}
 
 	err = fs.WalkDir(repositorio, carpetaDelLaboratorio, func(ruta string, entrada fs.DirEntry, err error) error {
 		if err != nil {
@@ -988,7 +1008,15 @@ func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
 		}
 
 		laboratorio.rutas = append(laboratorio.rutas, ruta)
-		laboratorio.porContenido[string(contenido)] = ruta
+
+		copia, err := esCopiaDeUnFicheroDeSkills(repositorio, ruta, contenido)
+		if err != nil {
+			return err
+		}
+
+		if !copia {
+			laboratorio.porContenido[string(contenido)] = ruta
+		}
 
 		return nil
 	})
@@ -998,9 +1026,51 @@ func leerElContenidoDelLaboratorio(t *testing.T) contenidoDelLaboratorio {
 	return laboratorio
 }
 
-// comprobarQueNadaEsDelLaboratorio: ninguna ruta del árbol tiene por componente
-// el nombre de una skill del laboratorio, ni ningún fichero suyo tiene los bytes
-// de un fichero del laboratorio. Exige algún fichero, para no pasar en vacío.
+// esCopiaDeUnFicheroDeSkills dice si el fichero de laboratorio/ de esa ruta es
+// copia de uno de skills/: su ruta tiene un tramo …/skills/<s>/<r> y
+// skills/<s>/<r> es un fichero con sus mismos bytes (research D12 de H40). Nada
+// distingue la copia de su original, así que sus bytes no dicen que un fichero
+// que kitlegal empotra o instala sea del laboratorio.
+func esCopiaDeUnFicheroDeSkills(repositorio fs.FS, ruta string, contenido []byte) (bool, error) {
+	tramos := strings.Split(ruta, "/")
+
+	for i := range len(tramos) - 2 {
+		if tramos[i] != carpetaDeLasSkillsDeLaVariante {
+			continue
+		}
+
+		original := path.Join(append([]string{directorioDeLasSkills}, tramos[i+1:]...)...)
+
+		delOriginal, err := fs.Stat(repositorio, original)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+
+		if err != nil {
+			return false, err
+		}
+
+		if !delOriginal.Mode().IsRegular() {
+			continue
+		}
+
+		delProducto, err := fs.ReadFile(repositorio, original)
+		if err != nil {
+			return false, err
+		}
+
+		if bytes.Equal(delProducto, contenido) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// comprobarQueNadaEsDelLaboratorio: ninguna ruta del árbol tiene por tramo un
+// nombre del laboratorio, ni ningún fichero suyo tiene los bytes de un fichero
+// del laboratorio que no sea copia de uno de skills/. Exige algún fichero, para
+// no pasar en vacío.
 func comprobarQueNadaEsDelLaboratorio(t *testing.T, arbol fs.FS, laboratorio contenidoDelLaboratorio,
 	donde string,
 ) {
@@ -1014,8 +1084,8 @@ func comprobarQueNadaEsDelLaboratorio(t *testing.T, arbol fs.FS, laboratorio con
 		}
 
 		for _, componente := range strings.Split(ruta, "/") {
-			assert.NotContains(t, laboratorio.skills, componente,
-				"%s: %s es la ruta de una skill del laboratorio", donde, ruta)
+			assert.NotContains(t, laboratorio.nombres, componente,
+				"%s: %s tiene por tramo un nombre del laboratorio", donde, ruta)
 		}
 
 		if !entrada.Type().IsRegular() {
@@ -1039,9 +1109,10 @@ func comprobarQueNadaEsDelLaboratorio(t *testing.T, arbol fs.FS, laboratorio con
 }
 
 // comprobarElJobDeEvals: la definición del job de evals no ejecuta ninguna skill
-// del laboratorio —no está en la matriz ni en el include del trabajo evals ni en
-// los del trabajo de la medida del juez— y evals/ no tiene ninguna carpeta con su
-// nombre (FR-010 de H39; research D4 de H39).
+// con un nombre del laboratorio —no está en la matriz ni en el include del
+// trabajo evals ni en los del trabajo de la medida del juez— y evals/ no tiene
+// ninguna carpeta con él (FR-010 de H39; research D4 de H39; research D12 de
+// H40).
 func comprobarElJobDeEvals(t *testing.T, laboratorio contenidoDelLaboratorio) {
 	t.Helper()
 
@@ -1061,10 +1132,11 @@ func comprobarElJobDeEvals(t *testing.T, laboratorio contenidoDelLaboratorio) {
 
 	require.NotEmpty(t, carpetas, "%s/ tiene las evals de kitlegal", directorioDeLasEvals)
 
-	for _, skill := range laboratorio.skills {
-		assert.NotContains(t, ejecutadas, skill, "el job de evals ejecuta la skill %s del laboratorio", skill)
-		assert.NotContains(t, carpetas, skill, "%s/ tiene evals de la skill %s del laboratorio",
-			directorioDeLasEvals, skill)
+	for _, nombre := range laboratorio.nombres {
+		assert.NotContains(t, ejecutadas, nombre, "el job de evals ejecuta la skill %s, un nombre del laboratorio",
+			nombre)
+		assert.NotContains(t, carpetas, nombre, "%s/ tiene evals de %s, un nombre del laboratorio",
+			directorioDeLasEvals, nombre)
 	}
 }
 

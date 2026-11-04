@@ -1,0 +1,55 @@
+diff antes/plan.md ahora/plan.md
+--- antes/plan.md	2026-11-04 16:16:22
++++ ahora/plan.md	2026-11-04 16:17:15
+@@ -203,10 +203,10 @@
+ ## Cierre y pendientes
+ 
+ - **FR-042**: el run no lanza el sondeo ni escribe el ADR; la propuesta de cambio queda pendiente de los dos, y el
+-  informe final lo dice por `gates/supuestos.md`.
++  informe final lo dice por su línea `[alcance]` en `gates/supuestos.md`; la propuesta no se fusiona sin ellos.
+ - **FR-043**: si la medición del cierre da un rojo de partida en modo herramienta (como la eval 04 de `normativa`,
+   `sin_activar`, en la ejecución 41474010633), la reparación no toca `skills/` ni reorganiza una skill del producto, y el
+-  informe da sus cifras para que decida una persona (anotado en `gates/supuestos.md`).
++  informe da sus cifras para que decida una persona (su línea `[alcance]` en `gates/supuestos.md`).
+ 
+ ## Complexity Tracking
+ 
+diff antes/research.md ahora/research.md
+--- antes/research.md	2026-11-04 16:16:22
++++ ahora/research.md	2026-11-04 16:17:17
+@@ -262,8 +262,9 @@
+ 
+ ### D16. Cierre
+ 
+-El run no lanza el sondeo ni escribe el ADR (FR-042): el informe final lo dice, por `gates/supuestos.md`. Si la medición
+-del cierre da un rojo de partida en modo herramienta (FR-043), la reparación no toca `skills/` ni reorganiza una skill, y
++El run no lanza el sondeo ni escribe el ADR (FR-042): el informe final lo dice, por la línea `[alcance]` de FR-042 en
++`gates/supuestos.md`, y la propuesta no se fusiona sin los dos. Si la medición del cierre da un rojo de partida en modo
++herramienta (FR-043; su línea `[alcance]` en `gates/supuestos.md`), la reparación no toca `skills/` ni reorganiza una skill, y
+ el informe da sus cifras para que decida una persona.
+ 
+ ## Supuestos no verificados (S)
+diff antes/tasks.md ahora/tasks.md
+--- antes/tasks.md	2026-11-04 16:16:22
++++ ahora/tasks.md	2026-11-04 16:17:29
+@@ -106,7 +106,8 @@
+ ## User Story 4 — La persona mide y decide antes de fusionar (P2)
+ 
+ Sin tareas: FR-040 y FR-041 se hacen fuera del run (ADR 0032), y FR-042 dice que el run no lanza el sondeo ni escribe
+-el ADR. El informe final lo deja pendiente por `gates/supuestos.md` (research D16). Lo que se ejecuta entonces es
++el ADR. El informe final lo deja pendiente por la línea `[alcance]` de FR-042 en `gates/supuestos.md`: la propuesta no
++se fusiona sin el sondeo de FR-040 ni el ADR de FR-041 (research D16). Lo que se ejecuta entonces es
+ quickstart.md, con lo que entregan T002 a T006.
+ 
+ ---
+@@ -177,7 +178,7 @@
+   hoy, y T006, que lo pone en verde; SC-007/FR-023 (`TestTablaDelLaboratorio`, de hoy), T006, sin cambiar ningún valor;
+   SC-008/FR-043, las tres filas `evals:`, las mide el job de evals del cierre, que hace el workflow tras la revisión
+   final con los umbrales de hoy, sin tarea que los toque.
+-- Requisitos sin tarea propia: FR-040 y FR-041 (fuera del run), FR-042 (anotado en `gates/supuestos.md`), FR-043 y
+-  SC-008 (el cierre del workflow), SC-009 (capa 3). FR-012 lo cumplen T004 (el arnés no lo ejecuta `make ci`: solo el
+-  sustituto) y T007 (la cadena documentada, sin recetas nuevas); FR-013, todas (ninguna graba ni escribe fuera del
++- Requisitos sin tarea propia: FR-040 y FR-041 (fuera del run), FR-042 (su línea `[alcance]` en `gates/supuestos.md`),
++  FR-043 (su línea `[alcance]` en `gates/supuestos.md`, y el cierre del workflow), SC-008 (el cierre del workflow) y
++  SC-009 (capa 3). FR-012 lo cumplen T004 (el arnés no lo ejecuta `make ci`: solo el sustituto) y T007 (la cadena documentada, sin recetas nuevas); FR-013, todas (ninguna graba ni escribe fuera del
+   repositorio y `$TMPDIR`).

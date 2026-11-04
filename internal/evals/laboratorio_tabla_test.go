@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -171,6 +172,225 @@ func probarUnDirectorioSinSondeo(t *testing.T) {
 	assert.Contains(t, tabla.errores, respuestasDeLaReglaTestigo)
 	assert.True(t, strings.HasPrefix(tabla.errores, PrefijoDelLaboratorio), "con el prefijo del programa: %s",
 		tabla.errores)
+}
+
+// Las sesiones fijas de dos sondeos de las variantes de normativa y la tabla
+// que el guion da de ellas, escrita a mano a partir de contracts/tabla.md §3 y
+// §4 de H40 y de esas sesiones, con los extremos de Wilson de research V21 de
+// H40 (FR-020 a FR-022 de H40; SC-005 de H40).
+//
+// Los dos sondeos, h40-a y h40-b, con el mismo modelo y otra versión de Claude
+// Code, cubren lo de contracts/tabla.md §7 de H40: los dos modos; una referencia
+// abierta dos veces con Read por tramos, otra con Bash en cada modo y otra
+// entera, en los turnos 2 y 3 de una misma fila; Grep y Glob sobre una
+// referencia, y el fichero del mismo nombre de otra skill; referencias que
+// ninguna sesión abre; Skill y la primera herramienta en el mismo turno, y Skill
+// después de la primera orden que consulta; una sesión que activa sin ninguna
+// herramienta; sesiones sin terminar por el tope, por un result con is_error y
+// sin respuesta; dos filas sin ninguna sesión terminada; y, en
+// normativa-testigo-en-referencia, sesiones que cumplen la regla testigo y una
+// que no, y fuera de ella, sesiones que la cumplen.
+const (
+	sondeosFijosDeNormativa = "testdata/laboratorio/normativa/sondeo"
+	tablaFijaDeNormativa    = "testdata/laboratorio/normativa/tabla.md"
+)
+
+// Las evals del sondeo de normativa de las sesiones fijas que copian los tests,
+// las dos primeras de familiaDeNormativa.evalsDelSondeo, y el sondeo fijo en que
+// están.
+const (
+	evalDeNormativaDeLaLGT   = "04-lgt-prescripcion.yaml"
+	evalDeNormativaDelTRLRHL = "05-trlrhl-impuestos-municipales.yaml"
+	sondeoFijoDeNormativa    = "h40-a"
+)
+
+// sesionDelLaboratorio es el nombre que el arnés del laboratorio da a la sesión
+// de ese número de la eval de ese fichero (contracts/arnes.md §3 de H39): el del
+// fichero sin su extensión y el número con dos cifras.
+func sesionDelLaboratorio(fichero string, numero int) string {
+	return fmt.Sprintf("%s-%02d", strings.TrimSuffix(fichero, extensionDeUnaEval), numero)
+}
+
+// sesionDeNormativa es la ruta, relativa a su sondeo, de la sesión de ese número
+// de esa eval en esa variante y ese modo.
+func sesionDeNormativa(variante string, modo Modo, eval string, numero int) string {
+	return path.Join(variante, string(modo), sesionDelLaboratorio(eval, numero))
+}
+
+// sesionFijaDeNormativa es la ruta, relativa a las sesiones fijas de
+// normativa, de la primera sesión de esa eval en esa variante y ese modo del
+// sondeo fijo h40-a.
+func sesionFijaDeNormativa(variante string, modo Modo, eval string) string {
+	return path.Join(sondeoFijoDeNormativa, sesionDeNormativa(variante, modo, eval, 1))
+}
+
+// Dos sesiones fijas de normativa-testigo-en-referencia, en el modo
+// herramienta, que activan normativa antes de la primera herramienta de
+// kitlegal: la de la eval de la LGT abre con_herramientas.md dos veces, la
+// primera en el turno 2, y cumple la regla testigo; la del TRLRHL no abre
+// ninguna referencia y no la cumple.
+var (
+	sesionFijaDeNormativaQueCumpleLaRegla = sesionFijaDeNormativa(varianteConLaReglaDeNormativa, ModoHerramienta,
+		evalDeNormativaDeLaLGT)
+	sesionFijaDeNormativaQueNoCumpleLaRegla = sesionFijaDeNormativa(varianteConLaReglaDeNormativa, ModoHerramienta,
+		evalDeNormativaDelTRLRHL)
+)
+
+// copiaDeNormativa es la ruta, relativa al sondeo de 40 de normativa, de la
+// sesión de ese número, todas de la eval de la LGT en
+// normativa-testigo-en-referencia, en el modo herramienta.
+func copiaDeNormativa(numero int) string {
+	return sesionDeNormativa(varianteConLaReglaDeNormativa, ModoHerramienta, evalDeNormativaDeLaLGT, numero)
+}
+
+// filaDeCuarentaSesionesDeNormativa es la fila de 40 sesiones de
+// normativa-testigo-en-referencia: 20 copias de cada una de las dos sesiones
+// fijas, todas activan antes, la mitad abre con_herramientas.md en el turno 2 y
+// cumple la regla, y ninguna abre otra referencia. Los extremos de Wilson de 40,
+// 0 y 20 de 40 son los de la historia 3 del spec de H40 (SC-005 de H40; research
+// V21 de H40).
+const filaDeCuarentaSesionesDeNormativa = "| normativa-testigo-en-referencia | herramienta | claude-sonnet-5-5 | 2.1.317 | " +
+	"0 | 40 | 40 de 40 · 100,0 % [91,2–100,0 %] | 0 de 40 · 0,0 % [0,0–8,8 %] | 0 de 40 · 0,0 % [0,0–8,8 %] | " +
+	"20 de 40 · 50,0 % [35,2–64,8 %] · turno 2 (2–2) | 0 de 40 · 0,0 % [0,0–8,8 %] | 0 de 40 · 0,0 % [0,0–8,8 %] | " +
+	"0 de 40 · 0,0 % [0,0–8,8 %] | 0 de 40 · 0,0 % [0,0–8,8 %] | 0 de 40 · 0,0 % [0,0–8,8 %] | " +
+	"20 de 40 · 50,0 % [35,2–64,8 %] |\n"
+
+// TestTablaDeNormativa fija la tabla de un sondeo de las variantes de normativa
+// (FR-020 a FR-022 de H40; SC-005 de H40; contracts/tabla.md §1 a §4 y §7 de
+// H40): sobre las sesiones fijas, su salida es, byte a byte, la tabla escrita a
+// mano; sobre un sondeo de 40 sesiones, las celdas de 0, 20 y 40 de 40 llevan
+// los extremos de Wilson del spec; y en una tabla de normativa, un directorio de
+// una variante de H39 o de un modo que no es de la variante es un defecto: lo
+// dice con la ruta en la salida de error y da 1 sin tabla, porque una tabla es
+// de una sola familia (FR-010 de H40).
+func TestTablaDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sondeos-fijos", probarLosSondeosFijosDeNormativa)
+	t.Run("cuarenta-sesiones", probarCuarentaSesionesDeNormativa)
+	t.Run("variante-de-h39-en-el-sondeo", probarUnaVarianteDeH39EnElSondeoDeNormativa)
+	t.Run("variante-de-h39-en-otro-sondeo", probarUnaVarianteDeH39EnOtroSondeo)
+	t.Run("modo-que-no-es-de-la-variante", probarUnModoQueNoEsDeLaVarianteDeNormativa)
+}
+
+// probarLosSondeosFijosDeNormativa fija la salida del guion sobre las sesiones
+// fijas de normativa: la de su tabla.md, byte a byte, y nada en la salida de
+// error.
+func probarLosSondeosFijosDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	esperada, err := os.ReadFile(tablaFijaDeNormativa)
+	require.NoError(t, err)
+
+	tabla := contarElSondeo(t, sondeosFijosDeNormativa)
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.Equal(t, string(esperada), tabla.salida, "la tabla de las sesiones fijas de normativa, byte a byte")
+	assert.Empty(t, tabla.errores)
+}
+
+// probarCuarentaSesionesDeNormativa fija los extremos de Wilson de 0, 20 y 40
+// de 40 en un sondeo que el test monta con 40 copias de dos sesiones fijas de
+// normativa-testigo-en-referencia, y el detalle de las 40: las 20 primeras,
+// copias de la que abre con_herramientas.md y cumple la regla, y las 20
+// siguientes, de la que no.
+func probarCuarentaSesionesDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	sondeo := t.TempDir()
+	escribirElSondeo(t, sondeo)
+
+	for numero := 1; numero <= sesionesDeCadaClaseDelSondeo; numero++ {
+		copiarLaSesionFijaDe(t, sondeosFijosDeNormativa, sesionFijaDeNormativaQueCumpleLaRegla, sondeo,
+			copiaDeNormativa(numero))
+		copiarLaSesionFijaDe(t, sondeosFijosDeNormativa, sesionFijaDeNormativaQueNoCumpleLaRegla, sondeo,
+			copiaDeNormativa(sesionesDeCadaClaseDelSondeo+numero))
+	}
+
+	tabla := contarElSondeo(t, sondeo)
+
+	require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+	assert.True(t, strings.HasPrefix(tabla.salida, "# Sondeo de las variantes de normativa\n"),
+		"con el título de la tabla de normativa: %s", tabla.salida)
+	assert.Contains(t, tabla.salida, filaDeCuarentaSesionesDeNormativa)
+	assert.Equal(t, 1, strings.Count(tabla.salida, "| normativa-testigo-en-referencia | herramienta |"), "una sola fila")
+	assert.Contains(t, tabla.salida, "| "+copiaDeNormativa(1)+
+		" | sí | sí | no | no | turno 2 | no | no | no | no | no | sí |\n")
+	assert.Contains(t, tabla.salida, "| "+copiaDeNormativa(2*sesionesDeCadaClaseDelSondeo)+
+		" | sí | sí | no | no | no | no | no | no | no | no | no |\n")
+	assert.Equal(t, 2*sesionesDeCadaClaseDelSondeo,
+		strings.Count(tabla.salida, "\n| normativa-testigo-en-referencia/herramienta/"),
+		"una línea del detalle por sesión, con la ruta relativa al sondeo")
+	assert.Empty(t, tabla.errores)
+}
+
+// probarUnaVarianteDeH39EnElSondeoDeNormativa fija que, en un sondeo cuya
+// primera variante es de normativa, el directorio de una variante de H39 que la
+// sigue en orden de nombre es un defecto: 1, ninguna tabla y su ruta en la
+// salida de error.
+func probarUnaVarianteDeH39EnElSondeoDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	sondeo := t.TempDir()
+	escribirElSondeo(t, sondeo)
+	copiarLaSesionFijaDe(t, sondeosFijosDeNormativa, sesionFijaDeNormativaQueCumpleLaRegla, sondeo,
+		sesionDeNormativa(varianteDeControlDeNormativa, ModoHerramienta, evalDeNormativaDeLaLGT, 1))
+	copiarLaSesionFija(t, "h39-a/referencia-paso/orden/03-lrjsp-principio-de-legalidad-01", sondeo,
+		"referencia-paso/orden/03-lrjsp-principio-de-legalidad-01")
+
+	tabla := contarElSondeo(t, sondeo)
+
+	assert.Equal(t, 1, tabla.codigo)
+	assert.Empty(t, tabla.salida, "sin tabla")
+	assert.Equal(t, PrefijoDelLaboratorio+filepath.Join(sondeo, "referencia-paso")+
+		" no es ninguna variante de normativa\n", tabla.errores)
+}
+
+// probarUnaVarianteDeH39EnOtroSondeo fija que, en una tabla de normativa, la
+// variante de H39 de un sondeo que sigue en orden de nombre al primero, de
+// normativa, es un defecto: 1, ninguna tabla y su ruta en la salida de error.
+func probarUnaVarianteDeH39EnOtroSondeo(t *testing.T) {
+	t.Parallel()
+
+	ruta := t.TempDir()
+
+	deNormativa := filepath.Join(ruta, "a")
+	require.NoError(t, os.Mkdir(deNormativa, 0o750))
+	escribirElSondeo(t, deNormativa)
+	copiarLaSesionFijaDe(t, sondeosFijosDeNormativa, sesionFijaDeNormativaQueCumpleLaRegla, deNormativa,
+		copiaDeNormativa(1))
+
+	deH39 := filepath.Join(ruta, "b")
+	require.NoError(t, os.Mkdir(deH39, 0o750))
+	escribirElSondeo(t, deH39)
+	copiarLaSesionFija(t, sesionFijaQueCumpleLaRegla, deH39, "control/herramienta/03-lrjsp-principio-de-legalidad-01")
+
+	tabla := contarElSondeo(t, ruta)
+
+	assert.Equal(t, 1, tabla.codigo)
+	assert.Empty(t, tabla.salida, "sin tabla")
+	assert.Equal(t, PrefijoDelLaboratorio+filepath.Join(deH39, "control")+" no es ninguna variante de normativa\n",
+		tabla.errores)
+}
+
+// probarUnModoQueNoEsDeLaVarianteDeNormativa fija que el directorio de un modo
+// que no es de la variante de normativa es el defecto de H39: 1, ninguna tabla y
+// su ruta en la salida de error.
+func probarUnModoQueNoEsDeLaVarianteDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	sondeo := t.TempDir()
+	escribirElSondeo(t, sondeo)
+	copiarLaSesionFijaDe(t, sondeosFijosDeNormativa,
+		sesionFijaDeNormativa(varianteDeControlDeNormativa, ModoOrden, evalDeNormativaDeLaLGT), sondeo,
+		sesionDeNormativa("normativa-cuerpo-corto", ModoOrden, evalDeNormativaDeLaLGT, 1))
+
+	tabla := contarElSondeo(t, sondeo)
+
+	assert.Equal(t, 1, tabla.codigo)
+	assert.Empty(t, tabla.salida, "sin tabla")
+	assert.Equal(t, PrefijoDelLaboratorio+filepath.Join(sondeo, "normativa-cuerpo-corto", "orden")+
+		" no es ningún modo de la variante normativa-cuerpo-corto\n", tabla.errores)
 }
 
 // ordenQueConsulta es una orden kitlegal que consulta con una herramienta del
@@ -421,13 +641,21 @@ func escribirElSondeo(t *testing.T, sondeo string) {
 }
 
 // copiarLaSesionFija copia la sesión fija de esa ruta, relativa a las sesiones
-// fijas, en la ruta dada del sondeo, y devuelve su directorio.
+// fijas de H39, en la ruta dada del sondeo, y devuelve su directorio.
 func copiarLaSesionFija(t *testing.T, fija, sondeo, ruta string) string {
+	t.Helper()
+
+	return copiarLaSesionFijaDe(t, sondeosFijosDelLaboratorio, fija, sondeo, ruta)
+}
+
+// copiarLaSesionFijaDe copia la sesión fija de esa ruta, relativa al directorio
+// de sesiones fijas dado, en la ruta dada del sondeo, y devuelve su directorio.
+func copiarLaSesionFijaDe(t *testing.T, fijas, fija, sondeo, ruta string) string {
 	t.Helper()
 
 	destino := filepath.Join(sondeo, filepath.FromSlash(ruta))
 	require.NoError(t, os.MkdirAll(filepath.Dir(destino), 0o750))
-	require.NoError(t, os.CopyFS(destino, os.DirFS(filepath.Join(sondeosFijosDelLaboratorio, filepath.FromSlash(fija)))))
+	require.NoError(t, os.CopyFS(destino, os.DirFS(filepath.Join(fijas, filepath.FromSlash(fija)))))
 
 	return destino
 }
