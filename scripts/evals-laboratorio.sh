@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Sondeo del laboratorio de H39 con Claude Code: abre las sesiones de las evals del laboratorio con cada variante y modo
-# pedidos y las deja en DIRECTORIO, sin juzgarlas, para la tabla de make laboratorio-tabla (FR-030 a FR-033 de H39;
-# specs/031-h39-c-omo-se/contracts/arnes.md §1 y §2; research.md D8 de H39). Como scripts/evals-sondeo.sh: crea su
+# Sondeo del laboratorio de H39, o de las variantes de normativa de H40 (una familia por invocación), con Claude Code:
+# abre las sesiones de las cuatro evals de la familia con cada variante y modo pedidos y las deja en DIRECTORIO, sin
+# juzgarlas, para la tabla de make laboratorio-tabla (FR-030 a FR-033 de H39; FR-010 de H40;
+# specs/031-h39-c-omo-se/contracts/arnes.md §1 y §2; specs/032-h40-por-qu-e/contracts/arnes.md §1 a §3; research.md D8
+# de H39). Como scripts/evals-sondeo.sh: crea su
 # directorio temporal y lo borra al terminar, con el código que sea; ejecuta con una sola orden de Go
 # TestSondeoDelLaboratorio, que comprueba los argumentos, la credencial y la versión de Claude Code antes de construir
 # nada, construye kitlegal y laboratorio del árbol de trabajo en el temporal, abre las sesiones y deja su salida en

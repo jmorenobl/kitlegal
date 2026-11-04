@@ -122,8 +122,9 @@ con una regla de forma que el agente solo puede sacar de donde se ponga, 40 sesi
   de entrada se salta en 13 y 23 de 40. Nombrar las herramientas en la descripción ni ayuda ni estorba.
 
 El laboratorio no reproduce el defecto de `normativa` en modo herramienta, donde las referencias casi no se abren: la
-causa está en algo que `normativa` tiene y el laboratorio no, y la mide el hito que reorganice las skills (ADR 0050,
-punto 5).
+causa está en algo que `normativa` tiene y el laboratorio no (ADR 0050, punto 5). La mide H40, antes de que ningún hito
+reorganice las skills, con cuatro variantes de `normativa` fuera del producto (`laboratorio/normativa/`; CONTRIBUTING.md,
+«El sondeo del laboratorio») y el sondeo que lanza la persona antes de fusionarlo.
 
 El reparto (ADR 0048) sigue otras prácticas de las mismas dos guías, tal como las cita el hito H32. De la de la
 especificación, las skills como unidades coherentes, ni tan estrechas que una pregunta habitual cargue otra con

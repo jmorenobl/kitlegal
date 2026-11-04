@@ -26,9 +26,9 @@ sustituyen a este fichero.
   servidas por lo grabado, y cada sesión tiene instalada solo la variante de su fila. Una invocación es de una sola
   familia: mezclar variantes del laboratorio de H39 y de `normativa` es un error de uso y no abre ninguna sesión.
 - **`make laboratorio-tabla` cuenta también los sondeos de las variantes de `normativa`** (H40), sin red, modelo ni
-  credencial: una fila por variante y modo con las sesiones que activan `normativa` antes de la primera herramienta de
-  kitlegal, las que abren cada una de sus ocho referencias y en qué turno, y, en `normativa-testigo-en-referencia`, las
-  que cumplen la regla testigo. La tabla de un sondeo de H39 no cambia.
+  credencial: una fila por variante, modo, modelo y versión de Claude Code con las sesiones que activan `normativa`
+  antes de la primera herramienta de kitlegal, las que abren cada una de sus ocho referencias y en qué turno, y, en
+  `normativa-testigo-en-referencia`, las que cumplen la regla testigo. La tabla de un sondeo de H39 no cambia.
 
 ## [0.9.0] - 2026-11-04
 

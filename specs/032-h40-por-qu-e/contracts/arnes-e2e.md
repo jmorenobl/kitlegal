@@ -25,16 +25,23 @@ los textos `usage: `, `unknown command`, `unexpected command` ni `cannot parse`.
 exec $KITLEGAL_LABORATORIO_BIN tabla h39
 cmp stdout h39-tabla.md
 ! stderr .
+exec sh -c '"$KITLEGAL_LABORATORIO_BIN" tabla normativa > tabla-normativa.out || true'
+cmp tabla-normativa.out normativa-tabla.md
 exec $KITLEGAL_LABORATORIO_BIN tabla normativa
 cmp stdout normativa-tabla.md
 ! stderr .
 ```
 
+La cuarta y la quinta órdenes van delante de las tres últimas, sin cambiarlas (`gates/supuestos.md`, T001): la primera
+invocación de `tabla normativa`, a través de `sh`, no hace fallar el guion por su código, así que el guion falla en la
+comparación de lo que escribe con la tabla esperada, y no con el texto `unexpected command failure` de testscript, que
+«rojo primero» da por ilegible; las tres últimas siguen exigiendo el código 0, la tabla y la salida de error vacía.
+
 Ficheros del archivo, en el directorio de trabajo del guion, que es donde `laboratorio tabla` lee la declaración de H39:
 
 - **`laboratorio/variantes.yaml`**: el de H39, copiado de `main`, byte a byte.
-- **`h39/h39-a/…`** y **`h39/h39-b/…`**: los 63 ficheros de `internal/evals/testdata/laboratorio/sondeo/` de `main`, con
-  sus rutas relativas, byte a byte (también los vacíos).
+- **`h39/h39-a/…`** y **`h39/h39-b/…`**: los 65 ficheros de `internal/evals/testdata/laboratorio/sondeo/` de `main` —los
+  63 de sus 21 sesiones y los dos `sondeo.json`—, con sus rutas relativas, byte a byte (también los vacíos).
 - **`h39-tabla.md`**: `internal/evals/testdata/laboratorio/tabla.md` de `main`, byte a byte. Es lo que FR-023 fija: si el
   hito cambiara esas sesiones, esa tabla o los tests de H39, este guion, congelado, seguiría comparando con las de `main`.
 - **`normativa/h40-a/sondeo.json`**: `{"modelo":"claude-sonnet-5-5","claude_code":"2.1.317"}` y su salto de línea.
@@ -57,8 +64,9 @@ turno, una sesión sin terminar, una fila sin ninguna sesión terminada, y una s
 que no (FR-020, FR-021, FR-030); las columnas de la familia y la celda vacía de la regla fuera de
 `normativa-testigo-en-referencia`; y la tabla de H39 de `main` (FR-023, SC-007).
 
-**Hoy falla por una aserción**: con el arnés del §1, la parte de H39 pasa, y `laboratorio tabla normativa` sale con 1
-(`… no es ninguna variante de la declaración del laboratorio`), que `exec` da por fallo.
+**Antes de la implementación fallaba por una aserción**: con el arnés del §1, la parte de H39 pasaba, y `laboratorio
+tabla normativa` salía con 1 (`… no es ninguna variante de la declaración del laboratorio`) y sin tabla, así que el guion
+fallaba en `cmp tabla-normativa.out normativa-tabla.md`. Con la tabla de la familia de `normativa` pasa entero.
 
 ## 3. Lo que no cubre
 

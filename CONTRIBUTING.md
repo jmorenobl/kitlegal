@@ -1788,8 +1788,9 @@ make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h40
 80 + 120 = 200 sesiones. La familia de una tabla es la de la primera variante que lee, con sondeos y variantes en orden
 de nombre: con una de H39, la tabla es la de H39, byte a byte; con una de `normativa`, su título es `# Sondeo de las
 variantes de normativa` y tiene una fila por variante, modo, modelo y versión de Claude Code, con 16 columnas —las seis
-primeras de H39, de «Variante» a `n`; «Activan antes», las sesiones que activan `normativa` antes de la primera herramienta de kitlegal; una por cada
-una de las ocho referencias, en orden de nombre de fichero, con su recuento y, si alguna sesión la abre,
+primeras de H39, de «Variante» a `n`; «Activan antes», las sesiones que activan `normativa` antes de la primera
+herramienta de kitlegal; una por cada una de las ocho referencias, en orden de nombre de fichero, con su recuento y, si
+alguna sesión la abre,
 `· turno <mediana> (<mínimo>–<máximo>)` del turno de la primera apertura; y «Cumplen la regla», solo en
 `normativa-testigo-en-referencia` y vacía en las otras tres—. En una tabla de `normativa`, un directorio de variante que
 no es de esta familia es un defecto: `laboratorio: <ruta> no es ninguna variante de normativa` en la salida de error,
