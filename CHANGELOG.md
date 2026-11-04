@@ -12,6 +12,8 @@ sustituyen a este fichero.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-04
+
 ### Añadido
 
 - **Una skill de laboratorio para medir dónde va en una skill lo que hace que el agente la active y cumpla lo que pide**
@@ -37,35 +39,6 @@ sustituyen a este fichero.
   laboratorio y escribe una tabla con una fila por variante y modo —las sesiones que activan la skill antes de la
   primera herramienta de kitlegal, las que abren la referencia y en qué turno, y las que cumplen la regla testigo, cada
   recuento con su intervalo de Wilson al 95 %— y el detalle de cada sesión.
-
-### Cambiado
-
-- Los parámetros de `--describe` y de las herramientas del servidor MCP llevan como `description` la ayuda de su
-  argumento (H39). La lleva la propiedad de cada argumento o bandera propia de un verbo cuya ayuda no está vacía, tal
-  cual y sin escapar `<`, `>` ni `&`; las ocho banderas globales no la llevan, y nada más del esquema cambia. Se
-  regeneran los esquemas de `schemas/` que salen de `--describe` (los siete de los verbos con argumentos; `servidor.json`
-  no cambia), el golden de `--describe` de `plazos calcular` y la sección de
-  `--describe` de `boe articulos` de `h20-fecha-main.txtar`.
-
-### Corregido
-
-- **Ninguna sesión de un paso del workflow escribe en la memoria de Claude Code** (workflow `hito` 2.11.1; enmienda
-  del ADR 0032, propuesta). En el run de H39 la sesión `reparar` de T010 editó con `Edit` un fichero de
-  `~/.claude/projects/<proyecto>/memory`, y desde H30 lo habían hecho otras cinco sesiones de paso: la memoria
-  automática iba encendida y pedía escribir en ella, `Write` y `Edit` no pasan por el sandbox y el gancho admitía ese
-  directorio. Ahora `scripts/claude-modelo.sh` abre cada sesión con la memoria automática apagada
-  (`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`), con `Write`, `Edit` y `NotebookEdit` cerrados por Claude Code al repositorio y
-  a los dos temporales que el sandbox ya deja escribir (`permissions.blockWritesOutsideWorkingDirectories` y
-  `--add-dir`), y con el directorio de Claude Code vedado a esas herramientas y el de sus proyectos a `Bash`; no abre
-  la sesión con un Claude Code anterior a la 2.1.314, que no conoce la clave. `scripts/workflow/politica-paso.sh`
-  deniega con su motivo cualquier escritura en el directorio de Claude Code. Lo comprueban
-  `TestLaSesionDeUnPasoSoloEscribeDondeDebe`, `TestLaSesionDeUnPasoPideUnClaudeCodeQueCierreLasEscrituras` y
-  `TestLaPoliticaDelPasoNoAdmiteEscribirEnLaMemoria`.
-
-## [0.9.0] - 2026-11-02
-
-### Añadido
-
 - **La skill de entrada, `consulta-juridica` v0.1: toda pregunta legal, de cualquier materia, entra por ella** (H32;
   ADR 0048). Su método dice qué tipo de pregunta es —lo que dice una norma, una sentencia, hasta cuándo, el territorio,
   qué hacer—, qué capacidad la resuelve y con qué skill, qué cubre la base, por capacidad y por paquete, y lo que no
@@ -163,6 +136,12 @@ sustituyen a este fichero.
 
 ### Cambiado
 
+- Los parámetros de `--describe` y de las herramientas del servidor MCP llevan como `description` la ayuda de su
+  argumento (H39). La lleva la propiedad de cada argumento o bandera propia de un verbo cuya ayuda no está vacía, tal
+  cual y sin escapar `<`, `>` ni `&`; las ocho banderas globales no la llevan, y nada más del esquema cambia. Se
+  regeneran los esquemas de `schemas/` que salen de `--describe` (los siete de los verbos con argumentos; `servidor.json`
+  no cambia), el golden de `--describe` de `plazos calcular` y la sección de
+  `--describe` de `boe articulos` de `h20-fecha-main.txtar`.
 - **Las skills se reparten por capacidad, y dos cambian de nombre** (H32; ADR 0048). Las de antes se llamaban por su
   fuente o por un núcleo, y `legal-core` llevaba lo administrativo en su cuerpo y en sus referencias. Ahora, junto a la
   skill de entrada, hay una skill por cada capacidad con herramienta, y cada applet de capacidad está en una sola:
@@ -398,6 +377,18 @@ sustituyen a este fichero.
 
 ### Corregido
 
+- **Ninguna sesión de un paso del workflow escribe en la memoria de Claude Code** (workflow `hito` 2.11.1; enmienda
+  del ADR 0032, propuesta). En el run de H39 la sesión `reparar` de T010 editó con `Edit` un fichero de
+  `~/.claude/projects/<proyecto>/memory`, y desde H30 lo habían hecho otras cinco sesiones de paso: la memoria
+  automática iba encendida y pedía escribir en ella, `Write` y `Edit` no pasan por el sandbox y el gancho admitía ese
+  directorio. Ahora `scripts/claude-modelo.sh` abre cada sesión con la memoria automática apagada
+  (`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`), con `Write`, `Edit` y `NotebookEdit` cerrados por Claude Code al repositorio y
+  a los dos temporales que el sandbox ya deja escribir (`permissions.blockWritesOutsideWorkingDirectories` y
+  `--add-dir`), y con el directorio de Claude Code vedado a esas herramientas y el de sus proyectos a `Bash`; no abre
+  la sesión con un Claude Code anterior a la 2.1.314, que no conoce la clave. `scripts/workflow/politica-paso.sh`
+  deniega con su motivo cualquier escritura en el directorio de Claude Code. Lo comprueban
+  `TestLaSesionDeUnPasoSoloEscribeDondeDebe`, `TestLaSesionDeUnPasoPideUnClaudeCodeQueCierreLasEscrituras` y
+  `TestLaPoliticaDelPasoNoAdmiteEscribirEnLaMemoria`.
 - **`normativa` v0.4: la respuesta no cuenta la comprobación ni pega materia a una remisión** (H32). Los dos defectos
   de la skill que quedaban tras H31.1, medidos en el sondeo de la persona (`evidencias/sondeos-20261028/`,
   `brazo-P80`) y en los jobs de evals de la #207:
