@@ -3,10 +3,10 @@
 Para quien escribe o revisa una skill de `skills/` o un paquete de materia: qué skills hay, qué va en el cuerpo de
 `SKILL.md` y qué en una referencia, qué trae un paquete, cómo se escribe la descripción, qué presupuestos hay y por
 qué, y la regla de `references/`. La deciden el ADR 0046; en el reparto y el molde de un paquete, el ADR 0048, y en
-lo que se cumple en los dos modos, el ADR 0050. La nombra el principio VIII de la constitución. `CONTRIBUTING.md`
-(«Skills y evals») dice cómo se regenera lo generado y qué comprueba cada objetivo del `Makefile`; las reglas legales
-de cada skill —qué cita, qué avisa, qué declara no cubierto— no son de esta guía, sino de su `SKILL.md`, y las deciden
-sus evals.
+lo que se cumple en los dos modos, los ADR 0050 y 0051. La nombra el principio VIII de la constitución.
+`CONTRIBUTING.md` («Skills y evals») dice cómo se regenera lo generado y qué comprueba cada objetivo del `Makefile`;
+las reglas legales de cada skill —qué cita, qué avisa, qué declara no cubierto— no son de esta guía, sino de su
+`SKILL.md`, y las deciden sus evals.
 
 Lo que tiene forma lo comprueba `make ci` sin red ni modelo: `make skills-check` y los controles de contenido. Lo que
 es significado, la tercera persona de la descripción, lo juzga un modelo en el job de evals. Cada defecto de
@@ -121,10 +121,20 @@ con una regla de forma que el agente solo puede sacar de donde se ponga, 40 sesi
 - Las instrucciones del servidor y una skill de entrada no mejoran la activación de una skill que se activa sola, y la
   de entrada se salta en 13 y 23 de 40. Nombrar las herramientas en la descripción ni ayuda ni estorba.
 
-El laboratorio no reproduce el defecto de `normativa` en modo herramienta, donde las referencias casi no se abren: la
-causa está en algo que `normativa` tiene y el laboratorio no (ADR 0050, punto 5). La mide H40, antes de que ningún hito
-reorganice las skills, con cuatro variantes de `normativa` fuera del producto (`laboratorio/normativa/`; CONTRIBUTING.md,
-«El sondeo del laboratorio») y el sondeo que lanza la persona antes de fusionarlo.
+**Cómo se remite.** El laboratorio no reproducía el defecto de `normativa` en modo herramienta, donde las referencias
+casi no se abren (ADR 0050, punto 5). H40 lo midió con cuatro variantes de `normativa` fuera del producto
+(`laboratorio/normativa/`; CONTRIBUTING.md, «El sondeo del laboratorio»; `evidencias/sondeos-20261104/`; ADR 0051),
+40 sesiones por variante en modo herramienta:
+
+- La causa es cómo se remite. Con cada remisión escrita como una orden —«lee», el enlace, cuándo y lo que trae—,
+  `con_herramientas.md` y `normas.md` se abren en 38 y 39 de 40, frente a 3 y 7 en la skill tal cual. Una referencia
+  nombrada dentro de otra orden («toma … de la tabla de [normas]»), tras una condición sobre el agente («si la tienes,
+  … tras leer [con_herramientas]»), entre rayas o como sitio de dudas no se lee.
+- La condición que pone el caso se queda («con una fecha en la pregunta, lee …»); la que pone el agente («si la
+  tienes») se quita, y lo que siempre hace falta se manda antes de la primera orden o llamada.
+- Ni un cuerpo de un tercio (10 y 13 de 40, casi todo en la eval con fecha) ni anunciar en la remisión lo que la
+  referencia trae (10 de 40) bastan. Una orden de leer una referencia de guía antes de escribir la respuesta se sigue
+  en 20 de 40: lo que toda respuesta necesita sigue en el cuerpo.
 
 El reparto (ADR 0048) sigue otras prácticas de las mismas dos guías, tal como las cita el hito H32. De la de la
 especificación, las skills como unidades coherentes, ni tan estrechas que una pregunta habitual cargue otra con

@@ -1,0 +1,4 @@
+Sondeo del laboratorio en /Users/jorge/kitlegal-sondeos/20261104-pr228/h40/a, con claude-sonnet-5-5 y Claude Code 2.1.317.
+- normativa-control, orden: 40 abiertas.
+- normativa-control, herramienta: 40 abiertas.
+La tabla: make laboratorio-tabla DIRECTORIO=/Users/jorge/kitlegal-sondeos/20261104-pr228/h40/a
