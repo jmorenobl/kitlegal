@@ -31,7 +31,16 @@ type familiaDelLaboratorio struct {
 	// evalsDelSondeo son los ficheros de las evals de evals que planifica el
 	// sondeo, en su orden; sin ninguno, las planifica todas, en orden de nombre.
 	evalsDelSondeo []string
+	// conLaRegla es la variante con regla testigo, la única en cuya fila y cuyo
+	// detalle la tabla de la familia escribe si la respuesta la cumple
+	// (contracts/tabla.md §3 y §4 de H40). En la de H39, cuya tabla la escribe en
+	// todas las variantes (contracts/tabla.md §3 de H39), va vacía.
+	conLaRegla string
 }
+
+// varianteConLaReglaDeNormativa es la variante de normativa cuya referencia
+// con_herramientas.md pide la regla testigo (contracts/variantes.md §5 de H40).
+const varianteConLaReglaDeNormativa = "normativa-testigo-en-referencia"
 
 // varianteDeControlDeNormativa es la variante de normativa que es
 // skills/normativa, ruta a ruta y byte a byte (FR-002 de H40;
@@ -51,8 +60,9 @@ const carpetaDeNormativa = "normativa"
 // Go porque la fija entera el hito (research D2, D3 y D7 de H40; data-model §1 de
 // H40; contracts/variantes.md §1; contracts/arnes.md §3 de H40): la de control,
 // en los dos modos, y las otras tres, solo en el modo herramienta; las evals de
-// sus repartos, las de evals/normativa, que son las del job; y las cuatro que
-// planifica el sondeo.
+// sus repartos, las de evals/normativa, que son las del job; las cuatro que
+// planifica el sondeo; y la variante con regla testigo, la única en que la tabla
+// la escribe (contracts/tabla.md §3 de H40).
 var familiaDeNormativa = familiaDelLaboratorio{
 	skill:   skillDeNormativa,
 	carpeta: path.Join(carpetaDelLaboratorio, carpetaDeNormativa),
@@ -60,8 +70,9 @@ var familiaDeNormativa = familiaDelLaboratorio{
 		{Nombre: varianteDeControlDeNormativa, Modos: []Modo{ModoOrden, ModoHerramienta}},
 		{Nombre: "normativa-remisiones-en-orden", Modos: []Modo{ModoHerramienta}},
 		{Nombre: "normativa-cuerpo-corto", Modos: []Modo{ModoHerramienta}},
-		{Nombre: "normativa-testigo-en-referencia", Modos: []Modo{ModoHerramienta}},
+		{Nombre: varianteConLaReglaDeNormativa, Modos: []Modo{ModoHerramienta}},
 	},
+	conLaRegla: varianteConLaReglaDeNormativa,
 	referencias: []string{
 		"buscar_la_norma.md",
 		"como_se_cita.md",
