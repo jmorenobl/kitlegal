@@ -97,9 +97,20 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 #         ~/.config/gh, ~/.ssh y los de KITLEGAL_SECRETOS (rutas absolutas separadas
 #         por «:»). Una regla `deny` de Read sola no basta: no cubre un `cat`.
 #   · Las mismas rutas, denegadas a la herramienta Read, que no pasa por el sandbox.
+#   · Write, Edit y NotebookEdit, que tampoco pasan por el sandbox, solo escriben en el
+#     repositorio y en los directorios temporales que el sandbox deja escribir: los cierra
+#     Claude Code (`blockWritesOutsideWorkingDirectories`, en todo modo de permisos y sin
+#     regla `allow` que lo levante), y los temporales se le abren con --add-dir. Esa
+#     barrera deja escribir los `.md` de la memoria automática del proyecto
+#     (~/.claude/projects/<proyecto>/memory), y la memoria va apagada
+#     (CLAUDE_CODE_DISABLE_AUTO_MEMORY, que gana a cualquier ajuste): ni se carga en la
+#     sesión ni se le pide que escriba en ella. Y el directorio de Claude Code entero queda
+#     vedado a esas herramientas (regla `deny` de Edit) y a toda orden de Bash el de sus
+#     proyectos (`denyWrite`), por si otra vía de Claude Code volviera a abrirlos. En el run
+#     de H39 una sesión `reparar` editó con Edit un fichero de esa memoria: la sesión la
+#     tenía encendida y el gancho la admitía.
 #   · La marca con la que el gancho PreToolUse le aplica scripts/workflow/politica-paso.sh,
-#     que cubre Write y Edit —tampoco pasan por el sandbox— y da el motivo de cada
-#     denegación en la propia sesión.
+#     que da el motivo de cada denegación en la propia sesión.
 #   · Sin segundo plano: Claude Code no ofrece `run_in_background` ni pasa una orden
 #     al fondo cuando vence su plazo.
 #   · El `claude` de su PATH, y del de todo lo que ejecute, es el de
@@ -127,6 +138,15 @@ export CLAUDE_CODE_ENTRYPOINT=sdk-cli
 raiz="$(cd "$(dirname "$0")/.." && pwd -P)"
 claude="$(command -v "${KITLEGAL_CLAUDE_BIN:-claude}")" \
   || { echo "claude-modelo: no encuentro '${KITLEGAL_CLAUDE_BIN:-claude}' en el PATH" >&2; exit 2; }
+# Una versión anterior a la 2.1.314 no conoce `blockWritesOutsideWorkingDirectories` y no la
+# aplica, y Write y Edit volverían a llegar a todo el equipo: la sesión no se abre.
+version="$("$claude" --version 2>/dev/null || true)"
+if [[ ! "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]] \
+  || [ $(( BASH_REMATCH[1] * 1000000 + BASH_REMATCH[2] * 1000 + BASH_REMATCH[3] )) -lt 2001314 ]; then
+  echo "claude-modelo: las sesiones de un paso necesitan Claude Code 2.1.314 o posterior, y '$claude --version' da '${version:-nada}'" >&2
+  exit 2
+fi
+configuracion="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
 
 base='{}'
 if [ -f "$ajustes_de_quien_llama" ]; then
@@ -140,6 +160,18 @@ case "$(uname -s)" in
   Darwin) caches="$HOME/Library/Caches"; temporal="$(getconf DARWIN_USER_TEMP_DIR 2>/dev/null || true)";;
   *) caches="${XDG_CACHE_HOME:-$HOME/.cache}"; temporal="";;
 esac
+# Los temporales en los que también escriben Write, Edit y NotebookEdit: el del usuario en
+# macOS y el $TMPDIR que el sandbox pone a cada orden (CLAUDE_CODE_TMPDIR, CLAUDE_TMPDIR o
+# /tmp/claude, como lo elige Claude Code), donde las sesiones dejan las copias de los jueces
+# y los prototipos. El sandbox ya deja escribir en los dos a las órdenes de Bash, así que
+# --add-dir no le abre nada más; el temporal de Claude Code de cada usuario
+# (/tmp/claude-<uid>, con los scratchpads de las demás sesiones) no va, porque sí lo haría.
+del_sandbox="${CLAUDE_CODE_TMPDIR:-${CLAUDE_TMPDIR:-/tmp/claude}}"
+mkdir -p "$del_sandbox" 2>/dev/null || true
+temporales=()
+for d in "$temporal" "$del_sandbox"; do
+  if [ -n "$d" ] && [ -d "$d" ]; then temporales+=(--add-dir "$(cd "$d" && pwd -P)"); fi
+done
 # Donde Go guarda lo que ya ha comprobado de la base de sumas (sum.golang.org): está junto
 # a la caché de módulos, no dentro, y sin poder escribir ahí `go get` y `go mod tidy` no
 # verifican ningún módulo que la caché no tenga ya. En H21 eso fijó la versión de una
@@ -153,7 +185,7 @@ gosumdb=""; [ -n "$gopath" ] && gosumdb="$gopath/pkg/sumdb"
 # `syncClaudeAiSkills: false`, que en --settings las bloquea y las oculta solo en esta
 # invocación, sin mover las ya sincronizadas.
 de_ajustes=()
-for f in "$raiz/.claude/settings.json" "${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"; do
+for f in "$raiz/.claude/settings.json" "$configuracion/settings.json"; do
   if [ -f "$f" ]; then de_ajustes+=("$f"); fi
 done
 plugins='{}'
@@ -166,7 +198,7 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
   --arg gocache "$(go env GOCACHE 2>/dev/null || true)" --arg gomodcache "$(go env GOMODCACHE 2>/dev/null || true)" \
   --arg gotelemetria "$(go env GOTELEMETRYDIR 2>/dev/null || true)" --arg gosumdb "$gosumdb" \
   --arg golangci "${GOLANGCI_LINT_CACHE:-$caches/golangci-lint}" --arg temporal "${temporal%/}" \
-  --arg marcas "$raiz/scripts/workflow/marcas.sh" '
+  --arg configuracion "${configuracion%/}" --arg marcas "$raiz/scripts/workflow/marcas.sh" '
   ([$home + "/.config/kitlegal", $home + "/.config/gh", $home + "/.ssh"]
     + ($secretos | split(":") | map(select(startswith("/"))))) as $vedados
   | {
@@ -178,6 +210,7 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
         enableWeakerNetworkIsolation: true,
         filesystem: {
           allowWrite: ([$temporal, $gocache, $gomodcache, $gosumdb, $gotelemetria, $golangci] | map(select(startswith("/")))),
+          denyWrite: [$configuracion + "/projects"],
           denyRead: $vedados
         },
         network: {
@@ -185,7 +218,10 @@ ajustes="$(jq -cn --argjson base "$base" --argjson plugins "$plugins" --arg home
           allowLocalBinding: true
         }
       },
-      permissions: {deny: ($vedados | map("Read(/" + . + "/**)"))},
+      permissions: {
+        blockWritesOutsideWorkingDirectories: true,
+        deny: (($vedados | map("Read(/" + . + "/**)")) + ["Edit(/" + $configuracion + "/**)"])
+      },
       enabledPlugins: $plugins,
       syncClaudeAiSkills: false,
       hooks: {PostToolUse: [{matcher: "*", hooks: [{type: "command", command: ($marcas | @sh)}]}]}
@@ -232,6 +268,8 @@ fi
 
 export KITLEGAL_PASO_DE_WORKFLOW=1
 export CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1
+export CLAUDE_CODE_DISABLE_AUTO_MEMORY=1
 export PATH="$raiz/scripts/workflow/sin-modelo:$PATH"
 
-exec "$claude" ${args[@]+"${args[@]}"} --strict-mcp-config ${mcp[@]+"${mcp[@]}"} --setting-sources user,project --settings "$ajustes"
+exec "$claude" ${args[@]+"${args[@]}"} --strict-mcp-config ${mcp[@]+"${mcp[@]}"} ${temporales[@]+"${temporales[@]}"} \
+  --setting-sources user,project --settings "$ajustes"

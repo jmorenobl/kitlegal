@@ -32,6 +32,12 @@ const (
 
 	// ficheroDelProducto es lo que el hito cambia fuera de gates/.
 	ficheroDelProducto = "producto.txt"
+
+	// temporalDelSandbox es, dentro del directorio de fuera del árbol, el
+	// $TMPDIR que el sandbox pondría a las órdenes de la sesión
+	// (CLAUDE_CODE_TMPDIR): scripts/claude-modelo.sh lo crea si no existe, y
+	// así no lo crea en /tmp/claude.
+	temporalDelSandbox = "temporal-del-sandbox"
 )
 
 // guionesDelArbol son los que el test copia al árbol temporal, con su ruta
@@ -45,6 +51,7 @@ var guionesDelArbol = []string{
 	"scripts/workflow/informe.sh",
 	"scripts/workflow/marcas.sh",
 	"scripts/workflow/modelos.sh",
+	"scripts/workflow/politica-paso.sh",
 	"scripts/workflow/precheck.sh",
 	"scripts/workflow/revision.sh",
 	"scripts/workflow/sesion-unica.sh",
@@ -93,7 +100,7 @@ func nuevoArbol(t *testing.T) *arbol {
 	t.Cleanup(func() { require.NoError(t, raiz.Close()) })
 
 	a := &arbol{t: t, dir: dir, raiz: raiz, config: filepath.Join(dir, ".config-claude"), fuera: t.TempDir()}
-	a.entorno = entornoDelArbol(a.config)
+	a.entorno = append(entornoDelArbol(a.config), "CLAUDE_CODE_TMPDIR="+filepath.Join(a.fuera, temporalDelSandbox))
 
 	for _, guion := range guionesDelArbol {
 		a.escribirEjecutable(guion, leerDelRepositorio(t, guion))

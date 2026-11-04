@@ -19,12 +19,16 @@ const (
 	registroDelHito   = gatesDelHito + "/modelos.jsonl"
 
 	// claudeSustituto es el Claude Code que encuentra el wrapper en el test
-	// (KITLEGAL_CLAUDE_BIN). No abre ninguna sesión: apunta sus argumentos,
-	// escribe el transcript de la sesión que le fija --session-id con una
-	// respuesta por cada modelo de KITLEGAL_TEST_MODELOS (vacío: ningún
-	// transcript), escribe en sus dos salidas y sale con KITLEGAL_TEST_SALIDA.
+	// (KITLEGAL_CLAUDE_BIN). No abre ninguna sesión: a --version responde con
+	// KITLEGAL_TEST_VERSION (por defecto, una que el wrapper admite); si no,
+	// apunta sus argumentos, y su entorno si hay KITLEGAL_TEST_ENTORNO, escribe
+	// el transcript de la sesión que le fija --session-id con una respuesta por
+	// cada modelo de KITLEGAL_TEST_MODELOS (vacío: ningún transcript), escribe
+	// en sus dos salidas y sale con KITLEGAL_TEST_SALIDA.
 	claudeSustituto = `#!/bin/sh
+if [ "$*" = --version ]; then printf '%s\n' "${KITLEGAL_TEST_VERSION:-2.1.317 (Claude Code)}"; exit 0; fi
 printf '%s\n' "$@" > "$KITLEGAL_TEST_ARGUMENTOS"
+if [ -n "${KITLEGAL_TEST_ENTORNO:-}" ]; then env > "$KITLEGAL_TEST_ENTORNO"; fi
 sesion=""; anterior=""
 for a in "$@"; do [ "$anterior" = --session-id ] && sesion="$a"; anterior="$a"; done
 if [ -n "${KITLEGAL_TEST_MODELOS:-}" ] && [ -n "$sesion" ]; then
