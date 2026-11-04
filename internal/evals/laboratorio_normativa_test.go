@@ -2,6 +2,7 @@ package evals
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -698,4 +699,113 @@ func frontmatterYCuerpo(contenido string) (string, string, error) {
 	corte := len(delimitador) + fin + 1 + len(delimitador)
 
 	return contenido[:corte], contenido[corte:], nil
+}
+
+// respuestasDeLaReglaTestigoDeNormativa es el directorio de las respuestas fijas
+// a las evals del sondeo de la familia de normativa con las que
+// TestReglaTestigoDeNormativa comprueba el guion de la regla testigo, cada una
+// con su veredicto en el nombre como en H39 (contracts/tabla.md §6 de H40).
+const respuestasDeLaReglaTestigoDeNormativa = "testdata/laboratorio/normativa/respuestas"
+
+// nombresDeLasRespuestasDeNormativa son las respuestas fijas de la regla testigo
+// a las evals del sondeo de normativa, cada una a la eval que dice
+// contracts/tabla.md §6 de H40: la que la cumple, a la 04, y una por cada forma
+// de no cumplirla que enumera FR-030 —sin la línea del sello, a la 05; la línea
+// en negrita, a la 15; entre comillas, a la 22; en código, a la 04; y antes del
+// final, a la 05— (research D11 de H40).
+var nombresDeLasRespuestasDeNormativa = []string{
+	"cumple.txt",
+	"no-cumple-sin-sello.txt",
+	"no-cumple-sello-en-negrita.txt",
+	"no-cumple-sello-entre-comillas.txt",
+	"no-cumple-sello-en-codigo.txt",
+	"no-cumple-sello-no-al-final.txt",
+}
+
+// evalDeLaSesionDeNormativaDeH32 es la eval de la respuesta de la skill
+// normativa de kitlegal con la que se comprueba la regla de su familia: la 05,
+// la del artículo 59 del TRLRHL, en la primera sesión de Sonnet en el modo orden
+// del informe de evals de normativa que versionó H32, el mismo que lee
+// TestReglaTestigo (research V18 de H40). Es la de control en el sentido del
+// spec: lo que responde normativa sin la regla.
+const evalDeLaSesionDeNormativaDeH32 = "05-trlrhl-impuestos-municipales.yaml"
+
+// TestReglaTestigoDeNormativa comprueba el guion de la regla testigo de H39, sin
+// cambios, con respuestas a las evals del sondeo de normativa (FR-030 y SC-004
+// de H40; contracts/tabla.md §6 y §7 de H40; research D11 y V18 de H40): el
+// directorio de las respuestas fijas tiene exactamente sus seis respuestas, el
+// guion da a cada una el veredicto de su nombre, y la respuesta de la skill
+// normativa de kitlegal a la eval 05, leída del informe versionado de H32, no la
+// cumple.
+func TestReglaTestigoDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	t.Run("respuestas fijas", comprobarLasRespuestasDeNormativa)
+	t.Run("respuesta de normativa a la eval 05", comprobarLaRespuestaDeNormativaDeH32)
+}
+
+// comprobarLasRespuestasDeNormativa: el directorio tiene exactamente las seis
+// respuestas fijas de normativa, y el guion da a cada una, en su subtest, el
+// veredicto de su nombre.
+func comprobarLasRespuestasDeNormativa(t *testing.T) {
+	t.Parallel()
+
+	entradas, err := os.ReadDir(respuestasDeLaReglaTestigoDeNormativa)
+	require.NoError(t, err, "el directorio %s de las respuestas fijas se lee", respuestasDeLaReglaTestigoDeNormativa)
+
+	nombres := make([]string, len(entradas))
+	for i, entrada := range entradas {
+		nombres[i] = entrada.Name()
+	}
+
+	require.ElementsMatch(t, nombresDeLasRespuestasDeNormativa, nombres,
+		"%s tiene las respuestas fijas de la regla testigo y ninguna más", respuestasDeLaReglaTestigoDeNormativa)
+
+	for _, nombre := range nombresDeLasRespuestasDeNormativa {
+		t.Run(nombre, func(t *testing.T) {
+			t.Parallel()
+
+			respuesta := string(contenidoDelFichero(t, path.Join(respuestasDeLaReglaTestigoDeNormativa, nombre)))
+			require.NotEmpty(t, strings.TrimSpace(respuesta), "la respuesta fija %s tiene texto", nombre)
+
+			assert.Equal(t, veredictoDelNombre(t, nombre), reglaTestigo(respuesta),
+				"el guion da a %s el veredicto de su nombre", nombre)
+		})
+	}
+}
+
+// comprobarLaRespuestaDeNormativaDeH32: la respuesta de la sesión de H32 a la
+// eval 05, leída del informe versionado, es la de una sesión de esa eval que
+// activó la skill normativa y tiene respuesta, y no cumple la regla.
+func comprobarLaRespuestaDeNormativaDeH32(t *testing.T) {
+	t.Parallel()
+
+	nombre := nombreDeSesion(evalDeLaSesionDeNormativaDeH32, modeloDeLaSesionDeH32, ModoOrden,
+		numeroDeLaSesionDeH32, false)
+	sesion := sesionDelInformeVersionado(t, informeDeNormativaDeH32, nombre)
+
+	require.Equal(t, evalDeLaSesionDeNormativaDeH32, sesion.Eval, "la sesión %s es de la eval 05", nombre)
+	require.True(t, sesion.Activada, "la sesión %s activó la skill normativa", nombre)
+	require.NotEmpty(t, strings.TrimSpace(sesion.Respuesta), "la sesión %s tiene respuesta", nombre)
+
+	assert.False(t, reglaTestigo(sesion.Respuesta),
+		"la respuesta de la skill normativa en la sesión %s no cumple la regla testigo", nombre)
+}
+
+// sesionDelInformeVersionado es la sesión del nombre dado en el informe
+// versionado de la ruta, que la tiene una vez y solo una.
+func sesionDelInformeVersionado(t *testing.T, ruta, nombre string) entradaDelInforme {
+	t.Helper()
+
+	var informe struct {
+		Evals []entradaDelInforme `json:"evals"`
+	}
+	require.NoError(t, json.Unmarshal(contenidoDelFichero(t, ruta), &informe), "%s es un informe del job de evals", ruta)
+
+	sesiones := slices.DeleteFunc(informe.Evals, func(entrada entradaDelInforme) bool {
+		return entrada.Sesion != nombre
+	})
+	require.Len(t, sesiones, 1, "el informe %s tiene una sesión %s", ruta, nombre)
+
+	return sesiones[0]
 }
