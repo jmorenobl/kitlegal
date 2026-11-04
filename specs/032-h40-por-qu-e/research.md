@@ -262,8 +262,9 @@ cuenta las dos familias. Ninguna receta cambia.
 
 ### D16. Cierre
 
-El run no lanza el sondeo ni escribe el ADR (FR-042): el informe final lo dice, por `gates/supuestos.md`. Si la medición
-del cierre da un rojo de partida en modo herramienta (FR-043), la reparación no toca `skills/` ni reorganiza una skill, y
+El run no lanza el sondeo ni escribe el ADR (FR-042): el informe final lo dice, por la línea `[alcance]` de FR-042 en
+`gates/supuestos.md`, y la propuesta no se fusiona sin los dos. Si la medición del cierre da un rojo de partida en modo
+herramienta (FR-043; su línea `[alcance]` en `gates/supuestos.md`), la reparación no toca `skills/` ni reorganiza una skill, y
 el informe da sus cifras para que decida una persona.
 
 ## Supuestos no verificados (S)

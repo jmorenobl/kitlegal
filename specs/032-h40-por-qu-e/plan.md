@@ -203,10 +203,10 @@ el de las demás. SC-009 lo comprueba la persona (capa 3).
 ## Cierre y pendientes
 
 - **FR-042**: el run no lanza el sondeo ni escribe el ADR; la propuesta de cambio queda pendiente de los dos, y el
-  informe final lo dice por `gates/supuestos.md`.
+  informe final lo dice por su línea `[alcance]` en `gates/supuestos.md`; la propuesta no se fusiona sin ellos.
 - **FR-043**: si la medición del cierre da un rojo de partida en modo herramienta (como la eval 04 de `normativa`,
   `sin_activar`, en la ejecución 41474010633), la reparación no toca `skills/` ni reorganiza una skill del producto, y el
-  informe da sus cifras para que decida una persona (anotado en `gates/supuestos.md`).
+  informe da sus cifras para que decida una persona (su línea `[alcance]` en `gates/supuestos.md`).
 
 ## Complexity Tracking
 
