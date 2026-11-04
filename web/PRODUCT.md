@@ -8,11 +8,11 @@ web
 
 ## Users
 
-- **Despachos pequeños (audiencia que manda en las decisiones de diseño).** Abogados y asesorías de 1 a 3 personas (78,5 % del sector según el Libro Blanco CGAE 2026). Buscan «IA para abogados» y «Claude para abogados»; los frenan la formación y la fiabilidad, y el miedo concreto es la jurisprudencia inventada. Página: `/despachos/`.
-- **Ciudadanía.** Personas con un asunto ante una administración: buscan su problema en primera persona, el plazo o el modelo de escrito, nunca el nombre de la ley. El silencio administrativo es el eje con más demanda. Hoy ocupa la portada (`/`).
+- **Juristas y despachos pequeños (la audiencia de la web).** Abogados y asesorías de 1 a 3 personas (78,5 % del sector según el Libro Blanco CGAE 2026). Buscan «IA para abogados» y «Claude para abogados»; los frenan la formación y la fiabilidad, y el miedo concreto es la jurisprudencia inventada. La portada `/` es suya desde la #148; `/despachos` y `/ciudadania` redirigen a `/`.
+- **Ciudadanía.** Personas con un asunto ante una administración: buscan su problema en primera persona, el plazo o el modelo de escrito, nunca el nombre de la ley. La portada las deriva a Ventanilla Legal (ventanillalegal.es, el proyecto cívico construido sobre kitlegal) y las páginas de `/consultas/` responden a sus preguntas con la norma citada. El objeto `ciudadania` de `src/data/audiencias.ts` ya no se publica.
 - **Fuera de público:** administraciones públicas (no pueden usarlo por el Esquema Nacional de Seguridad) y perfiles técnicos o integradores. La web no se dirige a ellos.
 
-Cuando las dos audiencias chocan, gana la de los despachos (decisión de Jorge, 2026-11-04). La ruta de cada portada no cambia por esto.
+Cuando las dos audiencias chocan en una decisión de diseño, ganan los despachos (decisión del 2026-11-04).
 
 ## Product Purpose
 
@@ -33,7 +33,7 @@ Una visita sale bien cuando la persona:
 ## Operating Context
 
 - Se usa dentro de un agente (Claude Code, Claude Desktop y otros hosts de skills o MCP local), no en la web: la web no ejecuta consultas.
-- Páginas: portadas por audiencia (`/`, `/despachos/`), una página por consulta en `/consultas/<slug>/`, `/instalar/` paso a paso, `/como-se-evalua/`, `/bot/` (identificación del rastreador), `/schemas/`, `llms.txt`.
+- Páginas: la portada para juristas y despachos (`/`, con la comparativa de mercado, el bloque de Ventanilla Legal y la invitación a escribir a `info@kitlegal.es`), una página por consulta en `/consultas/<slug>/`, `/instalar/` paso a paso, `/como-se-evalua/`, `/bot/` (identificación del rastreador), `/schemas/`, `llms.txt`.
 - La visibilidad se sigue en Search Console (`docs/SEO.md`).
 
 ## Capabilities and Constraints
