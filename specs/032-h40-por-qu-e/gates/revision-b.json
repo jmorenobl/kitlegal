@@ -1,0 +1,87 @@
+{
+  "veredicto": "aprobado",
+  "criterios": [
+    {
+      "id": "a",
+      "criterio": "dod_ci",
+      "cumple": true,
+      "evidencia": "gates/ci.log (ignorado por .gitignore:25; generado a las 20:00 del 2026-11-04, el minuto del último commit 522b667c, con las marcas 8:00PM de gitleaks en sus líneas 91-92): fmt, lint «0 issues» (l. 9), test, test-integration, medidas de tiempo, govulncheck, esquemas, skills-check, goreleaser, gitleaks «no leaks», mod verify y tidy, y «ci: todos los controles en verde» (l. 106), exit=0. Árbol: git status solo muestra gates/modelos.jsonl (M) y gates/revision-cambios.md y gates/revision-ciclo.json (??), escritos por el propio paso de revisión; nada fuera de gates/. Reproducido en una copia (clon de la rama bajo $TMPDIR): go test ./internal/evals -run con los tests de las dos familias, 89 passed; go test ./internal/app -run TestEntregaDelHito/h40-laboratorio-tabla, PASS (0,42 s)."
+    },
+    {
+      "id": "b",
+      "criterio": "dod_tests",
+      "cumple": true,
+      "evidencia": "Código nuevo con test offline: laboratorio_normativa.go → TestVariantesDeNormativa y TestReglaTestigoDeNormativa (internal/evals/laboratorio_normativa_test.go:29-104, 740-793); laboratorio_sondeo.go → TestArnesDeNormativa (laboratorio_sondeo_test.go:847-871, con exigirLaSesionDeNormativa 879-918 y exigirElSondeoSinUnaEvalDeNormativa 925-957); laboratorio_tabla.go → TestTablaDeNormativa (laboratorio_tabla_test.go:263-394); laboratorio_test.go → TestLaboratorioFueraDelProducto generalizado (896-932, con esCopiaDeUnFicheroDeSkills 1034-1070); e2e_test.go → TestVariablesDeLosGuiones con KITLEGAL_LABORATORIO_BIN. Mutantes en la copia, todos en rojo con el mensaje esperado: un byte en normativa-control/…/normas.md («difiere: la variante de control es skills/normativa»); un byte fuera de lo declarado en normativa-remisiones-en-orden/SKILL.md («la variante es la que da su declaración sobre normativa-control»); normativa-cuerpo-corto con ModoOrden en la familia (las-tres-de-solo-herramienta-en-modo-orden); familiaDeLasVariantes sin el error de mezcla (con-las-dos-familias); última apertura en vez de la primera en anotarLosUsos (TestTablaDeNormativa/sondeos-fijos y el guion congelado, h39-tabla.md «turno 4» vs «turno 2»); celda de la regla fuera de normativa-testigo-en-referencia (sondeos-fijos y la parte normativa del guion congelado, «| no |» vs «|  |»); activaAntes con <= (sondeos-fijos, TestTablaDelLaboratorio y el guion); copia de normativa-control en skills/normativa-control (TestLaboratorioFueraDelProducto/empotrado e /instalado); cumple.txt con el sello en negrita (TestReglaTestigoDeNormativa/respuestas_fijas/cumple.txt); tituloDeLaTabla de H39 cambiado (TestTablaDelLaboratorio y el guion en h39-tabla.md). Suite congelada: activada como internal/app/testdata/script/h40-laboratorio-tabla.txtar, idéntica a specs/032-h40-por-qu-e/aceptacion/laboratorio-tabla.txtar (git diff --no-index vacío) y sin cambios desde el commit que la congeló (git diff 4aadf843 HEAD sobre aceptacion/: vacío; gates/aceptacion-congelada.json, commit 4aadf843); sus órdenes son las de T001 con el envoltorio de gates/supuestos.md l. 7 (txtar l. 23-36); en verde en ci.log y en la copia. Los textos «hito» de declaracionesDeNormativa (laboratorio_normativa_test.go:266-354) coinciden carácter a carácter con FR-003.1-5 y FR-005 b del spec."
+    },
+    {
+      "id": "c",
+      "criterio": "dod_reglas",
+      "cumple": true,
+      "evidencia": "grep sobre las líneas añadidas de *.go del diff: ninguna con net/http, os.Exit, fmt.Print*, os.Stdout/Stderr/Stdin ni panic(. internal/evals escribe en el io.Writer que le inyecta cmd/laboratorio (TablaDelLaboratorio, laboratorio_tabla.go:274-290, sin cambios en firma); cmd/laboratorio/main.go solo cambia su comentario de paquete. Ningún import nuevo de database/sql, modernc.org/sqlite ni del SDK de MCP (laboratorio_normativa.go importa errors, fmt, path, slices). internal/core, internal/httpx, internal/mcp, internal/graph: fuera del diff. golangci-lint «0 issues» (ci.log l. 9)."
+    },
+    {
+      "id": "d",
+      "criterio": "dod_sobre",
+      "cumple": true,
+      "evidencia": "No aplica, con evidencia: el diff no toca ningún applet, sobre ni esquema (git diff main...HEAD --stat -- schemas internal/mcp: vacío; en internal/app solo e2e_test.go y el guion); laboratorio tabla es un programa del repositorio, no un applet (.goreleaser.yaml construye solo ./cmd/kitlegal; cmd/laboratorio/main.go l. 1-6). TestEsquemasPublicados en verde (ci.log l. 80-81)."
+    },
+    {
+      "id": "e",
+      "criterio": "dod_errores",
+      "cumple": true,
+      "evidencia": "laboratorio tabla: todo defecto es «laboratorio: <ruta> …» en la salida de error y código 1 sin tabla (TablaDelLaboratorio, laboratorio_tabla.go:274-290; mensaje de familia ajena en contarElSondeo l. 433-435); probado en TestTablaDeNormativa variante-de-h39-en-el-sondeo (l. 331-347), variante-de-h39-en-otro-sondeo (352-374) y modo-que-no-es-de-la-variante (379-394). Arnés: errores de argumentos como errorDeUso, juntos y uno por línea (comprobar, laboratorio_sondeo.go:306-359), sin construir ni crear DIRECTORIO (exigirElErrorDeUsoDelArnes); una eval del sondeo ausente falla antes de construir y de crear DIRECTORIO y no es errorDeUso (evalsDelPlan, laboratorio_normativa.go:127-153; orden en sondearElLaboratorio l. 188-217; test l. 925-957). Sin rutas de panic: aperturas se dimensiona con len(referencias) (laboratorio_tabla.go:567) y solo se lee en sesiones terminadas (deLaFila recibe terminadas; lineaDelDetalle comprueba motivo antes, l. 1129-1137); contarLaSesion devuelve antes de anotarLosUsos cuando no termina o no tiene respuesta (l. 534-543)."
+    },
+    {
+      "id": "f",
+      "criterio": "dod_docs",
+      "cumple": true,
+      "evidencia": "CHANGELOG.md Unreleased/Añadido, tres entradas (l. 15-31), cada una sostenida por el producto: variantes fuera del producto (TestLaboratorioFueraDelProducto), control byte a byte y las tres por su declaración (TestVariantesDeNormativa), el arnés con los mismos siete argumentos y la mezcla como error de uso (TestArnesDeNormativa), la tabla con las ocho referencias y la regla solo en testigo-en-referencia (TestTablaDeNormativa). CONTRIBUTING.md «El sondeo del laboratorio» (l. 1746-1798): la tabla de variantes y modos coincide con familiaDeNormativa (laboratorio_normativa.go:66-96); las 16 columnas coinciden con la cabecera de tablaDeNormativa (laboratorio_tabla.go); los mensajes citados coinciden con errSeMezclanLasFamilias (laboratorio_sondeo.go:291-292) y con «no es ninguna variante de normativa» (tablaDeNormativa.ajena); «falla antes de construir nada» coincide con el orden de sondearElLaboratorio. Makefile: solo las dos líneas ## (l. 154 y 171), recetas intactas. cmd/laboratorio/main.go: «ninguna variante de normativa lo usa» coincide con servidorDelPar (laboratorio_sondeo.go:583-621, sin opciones con Cambia vacío). Sin ADR: ninguna decisión cambia en el run (el ADR de FR-041 lo escribe la persona antes de fusionar, FR-042; gates/supuestos.md l. 4). docs/SOURCES.md sin tocar: ninguna fuente."
+    },
+    {
+      "id": "g",
+      "criterio": "frontera_humana",
+      "cumple": true,
+      "evidencia": "Ninguna petición HTTP nueva: el diff no toca internal/httpx ni añade net/http (grep de líneas añadidas); las sesiones del sondeo las abre la persona con el arnés de H39, con los proxies que rechazan toda petición (sin cambios). Sin grabaciones ni datos externos: git diff main...HEAD --stat sobre testdata/, internal/evals/testdata/laboratorio/{sondeo,tabla.md,respuestas}, evals/, skills/, data/, docs/SOURCES.md y .github: vacío; plan.md «Datos externos: ninguno». Fixtures nuevos: grep de /Users/, jorge, @gmail, NIF (8 cifras y letra), sk-ant y oauth sobre los ficheros nuevos de internal/evals/testdata y laboratorio/: sin coincidencias; las rutas de los Read/Grep son /tmp/kitlegal-laboratorio/… sintéticas; las respuestas fijas salen del informe versionado de H32 y no de texto legal escrito a mano (gates/supuestos.md l. 15). gitleaks «no leaks found» (ci.log l. 92). Ninguna identidad, NIF ni credencial."
+    },
+    {
+      "id": "h",
+      "criterio": "sin_atajos",
+      "cumple": true,
+      "evidencia": "grep sobre las líneas añadidas de *.go: ningún //nolint, t.Skip, TODO, FIXME ni «_ =» (el «_, _ = fmt.Fprintf» de TablaDelLaboratorio es de H39, con su decisión documentada en laboratorio_tabla.go:271-273). gates/cuarentena.json: tareas {} y 0 consecutivas. Ningún fixture ni golden de H39 retocado: diff vacío en internal/evals/testdata/laboratorio/sondeo, tabla.md y respuestas; la tabla de H39 sigue saliendo byte a byte (TestTablaDelLaboratorio sin cambiar valores y el guion congelado con h39-tabla.md de main). La suite congelada no se alteró tras T001 (git diff 4aadf843 HEAD sobre aceptacion/: vacío)."
+    },
+    {
+      "id": "i",
+      "criterio": "alcance",
+      "cumple": true,
+      "evidencia": "El diff se limita a lo que piden el spec y plan.md «Project Structure»: laboratorio/normativa/ (36 ficheros), internal/evals (laboratorio_normativa.go nuevo; laboratorio.go, laboratorio_sondeo.go, laboratorio_tabla.go; sus tests y fixtures bajo testdata/laboratorio/normativa/), internal/app/e2e_test.go con el guion congelado, cmd/laboratorio/main.go (comentario), Makefile (dos líneas ##), scripts/evals-laboratorio.sh (comentario), CONTRIBUTING.md, CHANGELOG.md, docs/SKILLS.md (3 líneas) y el fichero del hito en docs/roadmap/. Nada en skills/, evals/, internal/mcp, schemas/, data/, go.mod/go.sum (git diff --stat vacío), ningún argumento, bandera ni receta nueva. Los 18 supuestos de gates/supuestos.md son lecturas conservadoras coherentes con el spec: l. 1 retira una comprobación de forma no pedida; l. 7 conserva las tres órdenes del contrato en el guion; l. 14 fija el mensaje de una eval ausente sin convertirlo en error de uso; l. 16 toma por defecto la familia de H39, que es el comportamiento de hoy; l. 17 no añade tests que lean comentarios."
+    },
+    {
+      "id": "j",
+      "criterio": "uso",
+      "cumple": true,
+      "evidencia": "Nada de lo entregado lo consume una skill del producto ni el binario distribuido; lo consumen el agente del sondeo y la persona. Medido: una fila de la tabla con n=2, 442 bytes (testdata/laboratorio/normativa/tabla.md l. 11); una línea del detalle, 139 bytes (l. 27); la fila de 40 sesiones del test, unos 600 bytes (filaDeCuarentaSesionesDeNormativa). Para el sondeo de la aceptación (5 filas, 200 sesiones): unos 3 KB de tabla y unos 28 KB de detalle, unos 31 KB en total, que la persona lee una vez para el ADR (FR-040); el tamaño lo fijan variantes × modos × SESIONES pedidas, no el uso del producto, y un sondeo nuevo da otra tabla sin acumular la anterior. Variantes: SKILL.md de 12 214 / 12 364 / 4 453 / 12 260 bytes y con_herramientas.md de 2 442 (2 648 en testigo-en-referencia), leídas por el agente una vez por sesión; tamaño fijo, cambian solo si cambia skills/normativa (FR-002). Ninguna señal que se repita en cada consulta ni que no caduque: el veredicto de la regla es una palabra por sesión y solo existe en el sondeo."
+    },
+    {
+      "id": "k",
+      "criterio": "proporcionalidad",
+      "cumple": true,
+      "evidencia": "Cada mecanismo se traza a un FR: familiaDelLaboratorio y familiaDeNormativa (laboratorio_normativa.go:14-96) → FR-001/FR-010; evalsDelPlan (l. 127-153) → FR-010 «evals 04, 05, 15 y 22» y supuesto l. 14; familiaDeLasVariantes y errSeMezclanLasFamilias (laboratorio_sondeo.go:291-292, 362-379) → FR-010 mezcla; paresPedidos por familia (l. 326-334) → FR-010 modos; preparar con el directorio de la familia (l. 640-663) → FR-008; declaracionDelLaboratorio.familia() (laboratorio.go:176-189) → FR-023; familiaDeLaTabla, celdasDeLaFamilia y sus dos implementaciones (laboratorio_tabla.go:128-238, 931-1030) → FR-020 (16 columnas) frente a FR-023 (H39 byte a byte); aperturas []int (l. 80-82, 567, 582-585) → FR-020 ocho referencias; conLasVacias/celdasDe → FR-021 n=0; familiaDeLosSondeos/primeraVariante → contracts/tabla.md §1; construirElLaboratorio/instalar y KITLEGAL_LABORATORIO_BIN (e2e_test.go) → FR-023/SC-007. Ninguna opción, bandera, reintento ni estado que el spec no pida; el guard c.familia.entrada != \"\" (l. 577) es una línea para una familia sin skill de entrada. Tests: los casos variante-de-h39-en-otro-sondeo y modo-que-no-es-de-la-variante (laboratorio_tabla_test.go:352-394) prueban «una tabla es de una sola familia» (FR-010) sobre varios sondeos, que es como la persona junta a/ y b/ (CONTRIBUTING l. 1783), y el modo ajeno de H39 sobre la familia nueva; pequeños y trazados. Nada que retirar."
+    },
+    {
+      "id": "l",
+      "criterio": "umbrales_que_se_cumplen",
+      "cumple": true,
+      "evidencia": "Cada fila de «Controles de umbral» de plan.md tiene su control y lo he visto en rojo con un mutante en la copia: SC-001 y SC-002 → TestVariantesDeNormativa (un byte en control; un byte fuera de lo declarado); SC-003 → TestLaboratorioFueraDelProducto (copia en skills/normativa-control: empotrado e instalado en rojo); FR-007 → TestSkillsDelRepositorio de hoy, con skills/ sin cambios (ci.log l. 82-85); SC-006/FR-008/FR-010/FR-011 → TestArnesDeNormativa (modo orden añadido a cuerpo-corto; mezcla sin error); SC-004 → TestReglaTestigoDeNormativa (sello en negrita en cumple.txt); SC-005 → TestTablaDeNormativa, byte a byte y con los extremos 0,0–8,8 / 35,2–64,8 / 91,2–100,0 en filaDeCuarentaSesionesDeNormativa (última apertura en vez de la primera; celda de la regla fuera de su variante; Skill en el mismo turno como antes); SC-005/SC-007 → el guion congelado (los mismos tres y el título de H39); SC-007 → TestTablaDelLaboratorio (título de H39). SC-008 (evals del cierre con decide: true) vive en .github/workflows/evals.yml y las carpetas de evals, configuración que el hito no toca (.github fuera del diff): no entra, a observaciones."
+    }
+  ],
+  "motivos": [],
+  "observaciones": [
+    "gates/ci.log está ignorado por git (.gitignore:25): la evidencia de (a) es el fichero local generado a las 20:00 del 2026-11-04, el minuto del último commit 522b667c; no viaja en la propuesta de cambio.",
+    "Al revisar, el árbol tiene gates/modelos.jsonl modificado y gates/revision-cambios.md y gates/revision-ciclo.json sin seguimiento: los escribe el propio paso de revisión; nada fuera de gates/.",
+    "docs/SKILLS.md l. 124-127 dice que H40 mide la causa «con el sondeo que lanza la persona antes de fusionarlo»: la frase solo es cierta cuando el sondeo de FR-040 y el ADR de FR-041 estén en la propuesta, que es lo que FR-042 exige antes de fusionar; no lleva cifras. docs/SKILLS.md y scripts/evals-laboratorio.sh los cambió el commit de barrido 522b667c, no una línea de tarea; los dos son documentación o comentario coherentes con el producto.",
+    "SC-008 (evals de las skills del producto en verde en el cierre) la mide el job de evals con los umbrales de .github/workflows/evals.yml y de las carpetas de evals, que el hito no toca; el informe final debe dar sus cifras si hay un rojo de partida (FR-043, gates/supuestos.md l. 5).",
+    "El guion congelado se detiene en su primer cmp (la tabla de H39): un defecto que afecte a las dos familias aparece primero en esa parte, y la parte de normativa solo se ejercita cuando la de H39 pasa. He comprobado que la parte de normativa detecta por sí sola un mutante que solo toca a esa familia (la celda de la regla); no hace falta cambiar nada.",
+    "Las sesiones fijas de normativa llevan Read y Grep con rutas /tmp/kitlegal-laboratorio/claude/skills/normativa/references/…: sintéticas, sin datos personales; el Grep sobre redaccion_en_una_fecha.md y el Glob sobre references/*.md no cuentan como apertura en tabla.md, como pide FR-020.",
+    "La aceptación de la persona (FR-040, FR-041, SC-009) queda fuera de este veredicto por diseño: la propuesta no se fusiona sin la tabla en evidencias/ ni el ADR en docs/ADR/ (gates/supuestos.md l. 4)."
+  ]
+}
