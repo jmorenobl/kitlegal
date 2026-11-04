@@ -27,12 +27,43 @@ depende_de: [H39]
   - Variantes de `normativa` fuera de `skills/`, como el laboratorio: no se empotran, no se instalan y no entran en el
     job de evals. Cada una difiere de la de control en una sola de las tres diferencias:
     - `control`: `normativa` tal como está en `skills/`;
-    - `remisiones-en-orden`: cada remisión condicional del cuerpo pasa a ser una orden en el punto en que hace falta,
-      con lo demás igual;
-    - `cuerpo-corto`: el cuerpo, solo con lo que piden las evals del sondeo, con las mismas remisiones y las mismas
-      palabras;
-    - `testigo-en-referencia`: una regla testigo de forma, como la de H39, en `con_herramientas.md`, la referencia con
-      las reglas que fallaron en modo herramienta, con lo demás igual.
+    - `remisiones-en-orden`: cada remisión condicional del cuerpo pasa a ser una orden, «lee» y el enlace, en el punto
+      en que hace falta. Donde la condición la pone el caso (una fecha, varios bloques, una orden que falla, una
+      redacción modificada), la condición se queda y lo que cambia es la orden; donde no la pone, se quita. Cambian
+      solo el párrafo o la viñeta de cada remisión, con este texto; lo demás, byte a byte como en `control`:
+      - el del «Protocolo» empieza por `Antes de la primera orden o llamada, lee
+        [con_herramientas](references/con_herramientas.md).` y pierde «, tras leer [con_herramientas](…)»: el resto,
+        «Sigue los pasos en orden, … o, si la tienes, con su herramienta.», queda igual;
+      - el del paso 1 pasa a `Lee [normas](references/normas.md) y toma el BOE-A-… de su tabla; si no está, lee
+        [buscar_la_norma](references/buscar_la_norma.md) y búscala como dice.`, con `BOE-A-…` entre comillas
+        invertidas como en `control`;
+      - en el paso 2, «Sin fecha —con ella, [redaccion_en_una_fecha](…)—, lee cada bloque…» pasa a `Con una fecha en
+        la pregunta, lee [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md) antes de leer el bloque. Sin
+        fecha, lee cada bloque…`, con el resto de la viñeta igual;
+      - en el paso 2, la viñeta de varios bloques pasa a `Para leer varios bloques a la vez, lee antes
+        [varios_bloques](references/varios_bloques.md). Si una orden no termina con 0, lee
+        [lecturas_que_fallan](references/lecturas_que_fallan.md) antes de seguir.`, con `0` entre comillas
+        invertidas como en `control`;
+      - en «Cómo se cita», «repásalas, y las dudas, en [como_se_cita](…)» pasa a `. Antes de escribir la respuesta,
+        lee [como_se_cita](references/como_se_cita.md) y repasa con ella las citas.`, tras «también del remitido»;
+      - la de «Redacción modificada» ya es una orden en su punto («lee [redaccion_modificada](…)») y no cambia.
+    - `cuerpo-corto`: el cuerpo, con las mismas palabras y las mismas remisiones, sin lo que no hace falta para leer
+      y citar las cuatro evals del sondeo. Se queda, en el orden de `control`: el párrafo del «Protocolo»; los pasos
+      1 y 2 enteros; del paso 4, el encabezado y la viñeta «Cada afirmación sobre el contenido de una norma lleva su
+      cita…»; y las secciones «Cómo se cita», «Redacción en una fecha» y «Redacción modificada». Se quitan los pasos
+      3, 5 y 6, las demás viñetas del paso 4, la tabla de comandos con su sección y las «Reglas». Las líneas del
+      cuerpo son las de `control`, en su orden, sin añadir ni reescribir ninguna, salvo el número del encabezado del
+      paso 4, que pasa a 3. Quedan las ocho remisiones, el mismo frontmatter y las mismas referencias, byte a byte:
+      unos 3300 caracteres de cuerpo, frente a 10 929 en `control` y 1776 en el laboratorio;
+    - `testigo-en-referencia`: la regla testigo de H39, la misma frase de su `cierre.md` (última línea
+      `Sello de lectura: KL-7Q4`), al final de `con_herramientas.md`, la referencia con las reglas que fallaron en modo
+      herramienta, en una sección «Cómo termina la respuesta». La remisión del «Protocolo», en el mismo sitio y con la
+      misma condición, dice además lo que la referencia trae y el agente no puede saber: «…, tras leer
+      [con_herramientas](references/con_herramientas.md), que dice también cómo termina la respuesta.». Es la
+      diferencia que se mide: una referencia de la que el cuerpo solo dice lo que el agente cree saber (cómo se
+      llaman las herramientas) frente a una que anuncia lo que solo está en ella, como en el laboratorio. Sin ese
+      anuncio la variante no mide nada: el agente decide si abre la referencia antes de ver lo que contiene. Lo demás,
+      byte a byte como en `control`.
   - El arnés de H39 (`make evals-laboratorio`, `make laboratorio-tabla`) amplía lo que lanza a variantes de una skill
     del producto con sus evals reales. Las del sondeo son las evals 04, 05, 15 y 22 de `normativa`, que ya tienen sus
     lecturas grabadas: diez sesiones por eval, 40 por variante y modo. La tabla da, por variante y modo:
