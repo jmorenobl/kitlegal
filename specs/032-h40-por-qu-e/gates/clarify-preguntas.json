@@ -1,0 +1,12 @@
+{"preguntas":[
+{"id":"Q1","categoria":"Integration & External Dependencies","pregunta":"En cada sesión del sondeo, ¿qué skills tiene instaladas el agente además de la variante de su fila, que lleva el nombre `normativa`? (FR-008, marcador [NEEDS CLARIFICATION])","por_que_importa":"Decide el entorno de cada una de las 200 sesiones y, con él, si la tabla es comparable con el laboratorio de H39 (solo la skill de la variante) o con los sondeos de partida de la #214 (con `consulta-juridica` y las demás skills del producto); cambia lo que el arnés instala, lo que el test con el sustituto de `claude` comprueba y cómo se lee «activa `normativa` antes de la primera herramienta».","opciones":[
+{"id":"A","texto":"Solo la variante, con el nombre `normativa`, y ninguna otra skill del producto, como en el laboratorio de H39."},
+{"id":"B","texto":"Las cuatro skills del producto de `skills/` (`consulta-juridica`, `jurisprudencia`, `normativa`, `plazos-y-territorio`) con `normativa` sustituida por la variante, como en los sondeos de partida de la #214."},
+{"id":"C","texto":"La variante y solo la skill de entrada `consulta-juridica` de `skills/`, sin `jurisprudencia` ni `plazos-y-territorio`."}
+],"respuesta_corta_permitida":false},
+{"id":"Q2","categoria":"Interaction & UX Flow","pregunta":"¿Puede una misma invocación de `make evals-laboratorio` pedir a la vez variantes del laboratorio de H39 y variantes de `normativa`, y qué hace el arnés si las pide? (FR-010)","por_que_importa":"Es un argumento real de la persona con resultados observables distintos —código de salida, sesiones abiertas y filas de la tabla—, y fija qué casos de petición válida o inválida cubre el test de SC-006.","opciones":[
+{"id":"A","texto":"Sí: una invocación puede mezclarlas; abre las sesiones de todas y `make laboratorio-tabla` da en una sola tabla las filas de las dos familias."},
+{"id":"B","texto":"No: mezclarlas es un error de argumentos; sale con un código distinto de 0, dice qué no vale y no abre ninguna sesión."},
+{"id":"C","texto":"Sí al lanzar, pero cada familia deja sus transcripciones aparte y `make laboratorio-tabla` da una tabla por familia."}
+],"respuesta_corta_permitida":false}
+]}

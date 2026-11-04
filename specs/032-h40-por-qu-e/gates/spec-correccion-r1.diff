@@ -1,0 +1,64 @@
+diff antes/checklists/requirements.md ahora/checklists/requirements.md
+--- antes/checklists/requirements.md	2026-11-04 15:05:50
++++ ahora/checklists/requirements.md	2026-11-04 15:06:50
+@@ -19,8 +19,10 @@
+ 
+ - [x] No [NEEDS CLARIFICATION] markers remain — la de FR-008 (qué skills tiene instalada cada sesión del sondeo) la
+   cerró el paso clarify: solo la variante.
+-- [x] Requirements are testable and unambiguous — cada FR nombra su comprobación: FR-001, FR-002, FR-006, FR-007,
+-  FR-022, FR-023 y FR-030 en `make ci`; FR-010 y FR-011 en el test del arnés de SC-006; FR-040 a FR-042, la persona.
++- [x] Requirements are testable and unambiguous — cada FR nombra su comprobación: FR-001, FR-002, FR-006, FR-022,
++  FR-023 y FR-030 en `make ci` (FR-023, con la suite de aceptación congelada contra la tabla de H39 en `main`); FR-010
++  y FR-011 en el test del arnés de SC-006; FR-040 a FR-042, la persona. FR-007 no pide comprobación: solo dice que el
++  tope del ADR 0046 no rige las variantes y sigue igual para `skills/`.
+ - [x] Success criteria are measurable — SC-001 a SC-008 con recuento, porcentaje o bytes y su control; SC-009, capa 3.
+ - [x] Success criteria are technology-agnostic (no implementation details) — miden bytes, ficheros, sesiones abiertas y
+   cifras de la tabla, no cómo se calculan.
+@@ -44,8 +46,9 @@
+ 
+ - [x] Los criterios de «Aceptación» y «Controles» del hito están literalmente en el spec — sección «Criterios del hito
+   (literales)», con los FR y SC de cada uno.
+-- [x] Cada umbral que se mide sin persona nombra la comprobación que sale en rojo — SC-001 a SC-007, un test de
+-  `make ci`; SC-008, el job de evals del cierre; SC-009 lo mide la persona y lo dice.
++- [x] Cada umbral que se mide sin persona nombra la comprobación que sale en rojo — SC-001 a SC-006, un test de
++  `make ci`; SC-007, la comparación de la suite de aceptación congelada con la tabla esperada de H39 en `main`, que
++  sale en rojo aunque el hito cambie esa tabla o los tests de H39; SC-008, el job de evals del cierre; SC-009 lo mide la persona y lo dice.
+ - [x] Uso de fuera adentro — sección «Uso, de fuera adentro»: quién pide cada salida, cuántas veces, su tamaño (cinco
+   filas, 200 sesiones, variantes de tamaño fijo) y que no crece con el uso ni es una señal que caduque.
+ - [x] Ninguna decisión cerrada de CLAUDE.md se reabre — el tope de 11 000 del ADR 0046 sigue igual para `skills/`
+diff antes/spec.md ahora/spec.md
+--- antes/spec.md	2026-11-04 15:05:50
++++ ahora/spec.md	2026-11-04 15:06:32
+@@ -210,9 +210,7 @@
+ - **FR-006**: `make ci` compara cada una de las tres variantes con `control` según su declaración (FR-003 a FR-005): falla
+   si algo fuera de lo declarado difiere en un byte, si un texto declarado no es exactamente el que fija el hito, o si
+   la diferencia declarada ya no se puede aplicar sobre `control`.
+-- **FR-007**: Las variantes tienen la forma de las skills del producto que `make ci` comprueba —frontmatter de la
+-  especificación Agent Skills, `references/` plano y cada referencia enlazada desde el cuerpo—, y `make ci` falla si una
+-  no la tiene. El tope de cuerpo del ADR 0046 no se les aplica: el texto de `remisiones-en-orden` lo fija el hito y pasa
++- **FR-007**: El tope de cuerpo del ADR 0046 no se aplica a las variantes: el texto de `remisiones-en-orden` lo fija el hito y pasa
+   de 11 000 caracteres (Contexto). El tope sigue igual para `skills/`.
+ - **FR-008**: En las sesiones del sondeo, el servidor `kitlegal mcp serve` y el binario son los del árbol, con sus
+   instrucciones y las descripciones de sus parámetros de hoy: ninguna variante los cambia. Cada sesión tiene instalada solo la
+@@ -270,6 +268,9 @@
+   recuento, un turno o un extremo de un intervalo difiere.
+ - **FR-023**: Lo que H39 ya mide no cambia: con las transcripciones fijas del laboratorio de H39, el guion da las mismas
+   columnas y las mismas cifras que antes del hito, y sus tests en `make ci` pasan sin cambiar ningún valor esperado.
++  La suite de aceptación del hito, congelada en su primera tarea, pasa al guion las transcripciones fijas de H39 tal
++  como están en `main` y compara su salida con la tabla esperada de H39 tal como está en `main`; falla si difiere una
++  columna o una cifra, aunque el hito cambie esas transcripciones, esa tabla o los valores de los tests de H39.
+ 
+ **La regla testigo**
+ 
+@@ -341,8 +342,9 @@
+   con una petición válida, abre n/4 por eval en cada variante y modo pedidos. Control: un test de `make ci` con un
+   sustituto de `claude` que cuenta sus invocaciones, sin modelo, falla si una petición inválida abre alguna sesión o si
+   una válida no abre n/4 por eval en cada variante y modo.
+-- **SC-007**: 0 valores esperados cambiados en los tests del laboratorio de H39, y todos en verde. Control: esos tests en
+-  `make ci` fallan si el guion da otra columna u otra cifra para las transcripciones fijas de H39 (FR-023).
++- **SC-007**: 0 columnas y 0 cifras distintas de la tabla esperada de H39 en `main` para sus transcripciones fijas.
++  Control: la comparación de la suite de aceptación congelada de FR-023 en `make ci` falla con la primera que difiere,
++  también si el hito cambia la tabla esperada o los tests de H39.
+ - **SC-008**: Las evals de las skills del producto en verde en la medición del cierre. Control: el job de evals del
+   cierre sale en rojo si una no pasa su umbral, y el informe final da sus cifras (FR-043).
+ - **SC-009**: Antes de fusionar, la tabla de las cinco filas de 40 sesiones está en `evidencias/` y el ADR en
