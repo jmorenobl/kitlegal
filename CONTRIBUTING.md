@@ -203,8 +203,8 @@ versionado, así que se puede ejecutar con el árbol sucio sin miedo.
 | Verificación contra la fuente real (`scripts/verify-sources.sh`; requiere red) | `make verify-sources` | no — toca la red; lo ejecuta el trabajo `fuentes` del flujo nocturno, que abre o comenta una incidencia si falla |
 | Evals de una skill con Claude Code (`scripts/evals.sh`; Linux con `strace`, como root o con `sudo`; desde H30, con el fichero de la decisión del trabajo en `DECISION_DE_EVALS`) | `make evals` | no — sesiones con modelo y credencial, fuera de `make ci`; las lanza el job de evals |
 | Sondeo local de unas evals de una skill con un modelo, solo en el modo orden, sin `strace` ni veredicto (`scripts/evals-sondeo-llavero.sh sondeo`, que toma la credencial, y `scripts/evals-sondeo.sh`; macOS o Linux; [Sondeo local](#sondeo-local)) | `make evals-sondeo` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
-| Sondeo del laboratorio de H39: las sesiones de las cuatro evals del laboratorio con cada variante y modo pedidos, en los dos modos y sin juzgarlas, para la tabla de `make laboratorio-tabla` (`scripts/evals-sondeo-llavero.sh laboratorio`, que toma la credencial, y `scripts/evals-laboratorio.sh`; macOS o Linux; [El sondeo del laboratorio](#el-sondeo-del-laboratorio)) | `make evals-laboratorio` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
-| Tabla y detalle de un sondeo del laboratorio, contados de sus transcripciones (`go run ./cmd/laboratorio tabla`; [El sondeo del laboratorio](#el-sondeo-del-laboratorio)) | `make laboratorio-tabla` | no — sin red, sin modelo y sin credencial, pero lee un sondeo que solo da `make evals-laboratorio` |
+| Sondeo del laboratorio de H39 o de las variantes de `normativa` de H40, una familia por invocación: las sesiones de las cuatro evals de la familia con cada variante y modo pedidos, en los dos modos y sin juzgarlas, para la tabla de `make laboratorio-tabla` (`scripts/evals-sondeo-llavero.sh laboratorio`, que toma la credencial, y `scripts/evals-laboratorio.sh`; macOS o Linux; [El sondeo del laboratorio](#el-sondeo-del-laboratorio)) | `make evals-laboratorio` | no — sesiones con modelo que consumen la suscripción de quien lo lanza; no es un veredicto, y ningún paso del workflow `hito` lo lanza |
+| Tabla y detalle de un sondeo del laboratorio, de H39 o de las variantes de `normativa`, contados de sus transcripciones (`go run ./cmd/laboratorio tabla`; [El sondeo del laboratorio](#el-sondeo-del-laboratorio)) | `make laboratorio-tabla` | no — sin red, sin modelo y sin credencial, pero lee un sondeo que solo da `make evals-laboratorio` |
 | Medida del juez con modelo de una skill, o del de las descripciones con `SKILL=descripciones`: vota sus casos etiquetados e imprime `medida.json`, sin escribirla en el repositorio (`scripts/evals-medir-juez.sh`; [Job de evals](#job-de-evals), «La medida del juez») | `make evals-medir-juez` | no — sesiones con modelo y credencial, fuera de `make ci`; la lanza una persona, con la etiqueta `evals-medir-juez` o la entrada `medir_al_juez` del flujo `evals`, y ningún paso del workflow `hito` la lanza |
 | Snapshot de la release en `dist/` (`goreleaser release --snapshot --clean --skip=publish,sign,sbom`): seis archivos, los cuatro paquetes `.deb` y `.rpm`, las dos piezas de la instalación sin terminal —la extensión de escritorio, `kitlegal.mcpb`, y el plugin de Claude, `kitlegal-plugin.zip`— y `checksums.txt`, que lista también las dos piezas e `install.sh`, sin publicar, firmar ni SBOM | `make release` | no — construye seis plataformas; lo ejecuta el trabajo `snapshot` de CI |
 | Comprobación del snapshot (`TestSnapshot`, que comprueba también las dos piezas: su huella, el manifiesto, los binarios, el icono y el servidor de la extensión, y las skills del plugin) y guiones `instalador-` de `scripts/install.sh` contra él, sin red | `make snapshot-check` | no — necesita el `dist/` de `make release`; lo ejecuta el trabajo `snapshot` de CI |
@@ -1742,6 +1742,59 @@ entran en `n`, y cada recuento como `<k> de <n> · <p> % [<lo>–<hi> %]`, con e
 transcript que no sabe leer, lo dice en la salida de error con la ruta y termina con `1`, sin tabla. Qué cuenta cada
 columna lo fija `specs/031-h39-c-omo-se/contracts/tabla.md`, y `TestTablaDelLaboratorio` lo comprueba en `make ci`
 con sesiones fijas.
+
+H40 añade una segunda familia al mismo sondeo, para medir por qué `normativa` no lee sus referencias en modo
+herramienta: cuatro variantes de `normativa` en `laboratorio/normativa/<variante>/skills/normativa/`, también **fuera
+del producto**. Cada una es una skill completa con el nombre `normativa` —su `SKILL.md` y sus ocho referencias— y cada
+sesión de su fila la tiene instalada sola, sin ninguna otra skill; en modo herramienta, el servidor es siempre
+`kitlegal mcp serve`, con las instrucciones y las descripciones de parámetros de hoy:
+
+| Variante | Qué es | Modos |
+|---|---|---|
+| `normativa-control` | `skills/normativa` tal cual, ruta a ruta y byte a byte | `orden` y `herramienta` |
+| `normativa-remisiones-en-orden` | control con cinco párrafos o viñetas de `SKILL.md` que piden leer su referencia antes del paso que la usa | `herramienta` |
+| `normativa-cuerpo-corto` | control con el cuerpo de `SKILL.md` reducido a lo que hace falta para leer y citar las cuatro evals, con las ocho remisiones | `herramienta` |
+| `normativa-testigo-en-referencia` | control con la regla testigo de H39 al final de `references/con_herramientas.md`, en `## Cómo termina la respuesta`, y una remisión de `SKILL.md` que lo anuncia | `herramienta` |
+
+`make ci` las comprueba sin modelo: `TestVariantesDeNormativa` (control es `skills/normativa` byte a byte, y cada una de
+las otras tres es la que da su declaración aplicada sobre control, o el test falla con su motivo),
+`TestReglaTestigoDeNormativa`, `TestArnesDeNormativa`, `TestTablaDeNormativa` y `TestLaboratorioFueraDelProducto`, que
+mira también los nombres de esta familia. El tope de 11 000 caracteres de cuerpo no se aplica a las variantes.
+
+La orden, los siete argumentos y la cadena son los de arriba; cambia solo lo que vale en `VARIANTES`. Una invocación es
+de **una sola familia**: los nombres son de `variantes.yaml` o de las cuatro variantes de `normativa`, y mezclarlos es un
+error de uso más, `VARIANTES: se mezclan variantes del laboratorio de H39 y variantes de normativa`, detrás de los de los
+nombres. Cada par variante × modo se comprueba con su familia (`VARIANTES y MODOS: <v> no se mide en modo <m>`), y
+`SESIONES` sigue siendo múltiplo de 4, porque esta familia también tiene cuatro evals: `04-lgt-prescripcion.yaml`,
+`05-trlrhl-impuestos-municipales.yaml`, `15-irpf-rendimientos-por-materia.yaml` y `22-lcsp-contrato-menor-en-2019.yaml`
+de `evals/normativa`, las del job, sin copia, y en ese orden. Cada sesión se prepara como en el job, con las consultas de
+todas las evals de `evals/normativa` servidas por lo grabado y los proxies que rechazan toda petición (ADR 0043), y queda
+en `DIRECTORIO/<variante>/<modo>/<eval>-<nn>/`. Si una de las cuatro no está en `evals/normativa`, el arnés falla antes
+de construir nada, con su nombre y el registro de `go test`.
+
+La medida de H40 son cinco filas —`normativa-control` en los dos modos y las otras tres en modo herramienta— de 40
+sesiones, diez por eval: dos lanzamientos, uno por cada combinación de modos, y una tabla que los junta
+(`specs/032-h40-por-qu-e/contracts/arnes.md` §1):
+
+```sh
+make evals-laboratorio VARIANTES=normativa-control MODOS=orden,herramienta SESIONES=40 \
+  MODELO=claude-sonnet-5-5 CLAUDE_CODE=<versión> CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h40/a
+make evals-laboratorio \
+  VARIANTES=normativa-remisiones-en-orden,normativa-cuerpo-corto,normativa-testigo-en-referencia MODOS=herramienta \
+  SESIONES=40 MODELO=claude-sonnet-5-5 CLAUDE_CODE=<versión> CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h40/b
+make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h40
+```
+
+80 + 120 = 200 sesiones. La familia de una tabla es la de la primera variante que lee, con sondeos y variantes en orden
+de nombre: con una de H39, la tabla es la de H39, byte a byte; con una de `normativa`, su título es `# Sondeo de las
+variantes de normativa` y tiene una fila por variante, modo, modelo y versión de Claude Code, con 16 columnas —las seis
+primeras de H39, de «Variante» a `n`; «Activan antes», las sesiones que activan `normativa` antes de la primera herramienta de kitlegal; una por cada
+una de las ocho referencias, en orden de nombre de fichero, con su recuento y, si alguna sesión la abre,
+`· turno <mediana> (<mínimo>–<máximo>)` del turno de la primera apertura; y «Cumplen la regla», solo en
+`normativa-testigo-en-referencia` y vacía en las otras tres—. En una tabla de `normativa`, un directorio de variante que
+no es de esta familia es un defecto: `laboratorio: <ruta> no es ninguna variante de normativa` en la salida de error,
+código `1` y sin tabla. Qué cuenta cada columna lo fija `specs/032-h40-por-qu-e/contracts/tabla.md`, y
+`TestTablaDeNormativa` lo comprueba en `make ci` con sesiones fijas.
 
 ## `make vuln` necesita red
 
