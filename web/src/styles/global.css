@@ -44,15 +44,31 @@
   --text-estampa: 0.6875rem;
   --text-estampa--line-height: 1rem;
   --text-estampa--letter-spacing: 0.06em;
+
+  /* headline-lg y display de DESIGN.md: el h1 de la portada. */
+  --text-titular: 2.25rem;
+  --text-titular--line-height: 2.75rem;
+  --text-titular--letter-spacing: -0.02em;
+  --text-display: 3.25rem;
+  --text-display--line-height: 3.75rem;
+  --text-display--letter-spacing: -0.025em;
 }
 
 @layer base {
   html {
-    scroll-padding-top: 6rem;
+    scroll-padding-top: 8.5rem;
+
+    @media (width >= 48rem) {
+      scroll-padding-top: 6rem;
+    }
   }
 
   body {
     @apply bg-lienzo font-sans text-tinta antialiased;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   ::selection {

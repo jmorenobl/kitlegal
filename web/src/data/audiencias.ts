@@ -3,7 +3,7 @@
 // es la portada del sitio. Las citas se nombran por su id de citas.yaml: el
 // texto de la norma nunca se escribe aquí.
 
-import { formatoEntero, numeroDeMunicipios, REPOSITORIO } from "../lib/proyecto";
+import { REPOSITORIO } from "../lib/proyecto";
 
 export type Tono = "sello" | "derogada" | "agente" | "vigente";
 
@@ -22,8 +22,8 @@ export interface Audiencia {
   insignia: string;
   h1: string;
   subtitulo: string;
-  // El segundo botón de la cabecera de la portada: lo que esa audiencia hace
-  // después de ver cómo funciona.
+  // El botón principal de la cabecera de la portada: lo que esa audiencia hace
+  // (instalar, en la de despachos). «Ver cómo funciona» va a su lado como enlace.
   secundario: { texto: string; destino: string; icono: string };
   metricas: { etiqueta: string; valor: string; texto: string; tono: Tono }[];
   comparativa: {
@@ -42,7 +42,9 @@ export interface Audiencia {
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
     enlace?: { texto: string; destino: string };
-    pilares: { icono: string; tono: Tono; fondo: string; titulo: string; texto: string; pie: string }[];
+    // La garantía sobre las sentencias, destacada aparte: el miedo de un
+    // despacho es la jurisprudencia inventada.
+    sentencias?: { titulo: string; texto: string };
   };
   // `consulta` es el slug de la página de consultas.ts que desarrolla la
   // respuesta, si la hay.
@@ -55,17 +57,15 @@ export interface Audiencia {
     titulo: string;
     texto: string;
     peticiones: string[];
-    // Lo que hoy no hace, y por qué: una frase por cosa. `detalle` enlaza la
-    // explicación larga.
-    todavia: string[];
+    // Lo que hoy no hace, y por qué: una frase por cosa, o un resumen con su
+    // explicación plegada. `detalle` enlaza la explicación larga.
+    todavia: (string | { resumen: string; explicacion: string })[];
     detalle: { texto: string; destino: string };
     aviso: string;
     asunto: string;
   };
   cta: { titulo: string; texto: string };
 }
-
-const municipios = formatoEntero(numeroDeMunicipios());
 
 export const ciudadania: Audiencia = {
   ruta: "/",
@@ -127,34 +127,6 @@ export const ciudadania: Audiencia = {
     titulo: "Tres comprobaciones que hace un programa, no la memoria de la IA",
     texto:
       "Leer la ley, comprobar que sigue en vigor y situar tu municipio no se dejan a lo que la IA recuerde: lo hace un programa, siempre de la misma manera. Tu asistente razona sobre lo que el programa le devuelve.",
-    pilares: [
-      {
-        icono: "menu-book",
-        tono: "sello",
-        fondo: "bg-panel",
-        titulo: "Lee la ley en el BOE",
-        texto:
-          "Tu asistente no contesta de memoria: kitlegal descarga el texto oficial y actualizado de la norma, y la respuesta se apoya en esa redacción.",
-        pie: "Texto consolidado oficial",
-      },
-      {
-        icono: "history-toggle-off",
-        tono: "derogada",
-        fondo: "bg-derogada-fondo",
-        titulo: "Te avisa si ya no está en vigor",
-        texto:
-          "Si el BOE marca una norma como derogada o con la vigencia agotada, tu asistente te lo dice antes de citarla.",
-        pie: "Antes de citar",
-      },
-      {
-        icono: "location-city",
-        tono: "agente",
-        fondo: "bg-panel",
-        titulo: "Sabe de qué municipio hablas",
-        texto: `Sitúa cualquiera de los ${municipios} municipios de España en su provincia y su comunidad, y te dice qué boletines oficiales tiene configurados y cuáles todavía no.`,
-        pie: `${municipios} municipios del INE`,
-      },
-    ],
   },
   casos: [
     {
@@ -214,7 +186,7 @@ export const despachos: Audiencia = {
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma ni otra suscripción: kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
-  secundario: { texto: "Ver comparativa de mercado", destino: "#comparativa", icono: "balance" },
+  secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
   metricas: [
     {
       etiqueta: "Nada sin cita",
@@ -250,7 +222,7 @@ export const despachos: Audiencia = {
     insignia: "Norma derogada · plazo erróneo",
     alertaTitulo: "Dos errores en una frase",
     alertaTexto:
-      "La Ley 30/1992 está derogada. Y seis meses es el máximo que puede fijar la norma del procedimiento, salvo que una ley o el Derecho de la Unión Europea prevean más: si no fija ninguno, el plazo es de tres meses.",
+      "La Ley 30/1992 está derogada, y el plazo lo fija el art. 21.3 de la Ley 39/2015, que cita la respuesta con kitlegal.",
     pieMalo: "Sin fuente",
     cita: "lpacap-21",
   },
@@ -258,36 +230,12 @@ export const despachos: Audiencia = {
     antetitulo: "Arquitectura de confianza",
     titulo: "Tres garantías que da el programa, no el modelo",
     texto:
-      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y situar el territorio. El modelo razona sobre lo que el programa le devuelve.",
+      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y cotejar la sentencia que traes. El modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
-    pilares: [
-      {
-        icono: "menu-book",
-        tono: "sello",
-        fondo: "bg-panel",
-        titulo: "Cotejo contra el BOE",
-        texto:
-          "Tu asistente no responde de memoria: kitlegal descarga el texto consolidado oficial, lo guarda en una caché de tu equipo y la respuesta se apoya en esa redacción.",
-        pie: "Texto consolidado oficial",
-      },
-      {
-        icono: "history-toggle-off",
-        tono: "derogada",
-        fondo: "bg-derogada-fondo",
-        titulo: "Avisos de vigencia",
-        texto:
-          "kitlegal lee los metadatos del BOE y avisa si una norma está derogada, si su vigencia se ha agotado o si su consolidación no ha terminado.",
-        pie: "Antes de citar",
-      },
-      {
-        icono: "location-city",
-        tono: "agente",
-        fondo: "bg-panel",
-        titulo: "Territorio real",
-        texto: `Sitúa los ${municipios} municipios del INE en su provincia y su comunidad, con el código INE y el DIR3 del ayuntamiento, distingue régimen común y foral y dice qué boletines tiene configurados y cuáles no.`,
-        pie: `${municipios} municipios del INE`,
-      },
-    ],
+    sentencias: {
+      titulo: "Ninguna sentencia sin su documento",
+      texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
+    },
   },
   casos: [
     {
@@ -333,7 +281,11 @@ export const despachos: Audiencia = {
     ],
     todavia: [
       "No redacta escritos todavía. Lo hará: está en el plan.",
-      "No consulta jurisprudencia. La del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, y sus condiciones de uso no permiten consultarlo de forma masiva ni automatizada. Mientras no cambien, kitlegal no lo hará.",
+      {
+        resumen: "No consulta jurisprudencia.",
+        explicacion:
+          "La del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, y sus condiciones de uso no permiten consultarlo de forma masiva ni automatizada. Mientras no cambien, kitlegal no lo hará.",
+      },
       "Lo que sí puede llegar, por vías que lo permiten: las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE, y la jurisprudencia europea.",
     ],
     detalle: { texto: "Por qué, con detalle", destino: `${REPOSITORIO}#y-las-sentencias` },
@@ -343,8 +295,7 @@ export const despachos: Audiencia = {
   },
   cta: {
     titulo: "Dota a tu despacho de la ley vigente, con su cita.",
-    texto:
-      "Menos riesgo de citar una norma derogada o un artículo que no dice lo que se cree. Software libre y gratuito, para juristas exigentes.",
+    texto: "Tu asistente cita solo lo que acaba de leer en el BOE, y te avisa antes si la norma ya no está en vigor.",
   },
 };
 

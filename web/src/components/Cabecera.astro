@@ -15,7 +15,6 @@ const secciones = [
   { texto: "Cómo funciona", destino: `${inicio}#diferencia` },
   { texto: "Comparativa", destino: `${inicio}#comparativa` },
   { texto: "Garantías", destino: `${inicio}#pilares` },
-  { texto: "Portal cívico", destino: `${inicio}#accion-civica` },
   { texto: "Consultas", destino: "/consultas/" },
 ];
 ---
@@ -31,7 +30,7 @@ const secciones = [
         class="hidden items-center sm:inline-flex ml-1"
         title={`Última versión publicada: ${version}`}
       >
-        <span class="rounded-full border border-linea/80 bg-panel px-2.5 py-0.5 font-mono text-estampa font-semibold text-tinta">
+        <span class="rounded border border-linea/80 bg-panel px-2.5 py-0.5 font-mono text-estampa font-semibold text-tinta">
           {version}
         </span>
       </a>
@@ -70,4 +69,19 @@ const secciones = [
       </a>
     </div>
   </div>
+  <nav aria-label="Secciones" class="border-t border-linea/60 md:hidden">
+    {/* El borde derecho se desvanece: hay más secciones al desplazar. */}
+    <div class="flex gap-1 overflow-x-auto px-2 py-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]">
+      {
+        secciones.map(({ texto, destino }) => (
+          <a
+            href={destino}
+            class="shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-tenue transition-colors hover:bg-panel hover:text-tinta"
+          >
+            {texto}
+          </a>
+        ))
+      }
+    </div>
+  </nav>
 </header>

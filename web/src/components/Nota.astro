@@ -1,0 +1,13 @@
+---
+// La llamada a una nota de fuente: un número volado que enlaza con
+// `#fuente-N`, la lista de fuentes de la sección.
+interface Props {
+  numero: number;
+}
+
+const { numero } = Astro.props;
+---
+
+<sup><a href={`#fuente-${numero}`} class="ml-0.5 font-mono text-agente underline underline-offset-2"
+    ><span class="sr-only">Fuente </span>{numero}</a
+  ></sup>
