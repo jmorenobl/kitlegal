@@ -263,7 +263,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   <div
     id="pilares"
     aria-labelledby="titulo-pilares"
-    class="mt-16 grid grid-cols-1 gap-8 rounded-xl border border-linea bg-white p-6 shadow-sm sm:p-10 md:mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-6"
+    class="mt-16 grid grid-cols-1 gap-8 rounded-xl border border-linea bg-lienzo p-6 shadow-sm sm:p-10 md:mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-6"
   >
     <div>
       <h3 id="titulo-pilares" class="text-balance font-serif text-2xl font-semibold text-tinta md:text-3xl">{garantias.titulo}</h3>
@@ -317,7 +317,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   </div>
 </ComparativaMercado>
 
-<section id="casos" aria-labelledby="titulo-casos" class="border-t border-linea bg-white py-16 md:py-32">
+<section id="casos" aria-labelledby="titulo-casos" class="border-t border-linea bg-lienzo py-16 md:py-32">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
     <div class="mb-10 flex flex-col justify-between gap-4 md:mb-16 md:gap-6 md:flex-row md:items-end">
       <div>
@@ -333,7 +333,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     <div class="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8">
       {
         audiencia.casos.map(({ icono: nombre, etiqueta, pregunta, cita, consulta }) => (
-          <article class="flex flex-col rounded-lg border border-linea bg-lienzo p-6 sm:p-8">
+          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 sm:p-8">
             <div>
               <p class="mb-3 flex items-center gap-2">
                 <Icono nombre={nombre} class="size-[18px] text-sello" />
