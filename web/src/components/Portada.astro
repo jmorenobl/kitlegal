@@ -19,6 +19,10 @@ const { audiencia } = Astro.props;
 const { comparativa, garantias, contacto } = audiencia;
 const derogada = norma("ley-30-1992", "derogada");
 const avisoDerogada = derogada.avisos.find((aviso) => aviso.codigo === "derogada")!;
+// El aviso se parte por su primer «: »: el estado va en el sello y lo demás, detrás.
+const corte = avisoDerogada.texto.indexOf(": ");
+const avisoEstado = corte < 0 ? avisoDerogada.texto : avisoDerogada.texto.slice(0, corte + 1);
+const avisoResto = corte < 0 ? "" : avisoDerogada.texto.slice(corte + 1);
 const citaDestacada = articulo(comparativa.cita);
 
 // La fotografía del hero, en AVIF, WebP y JPEG a varios anchos. Las fuentes
@@ -178,9 +182,11 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 </span>
               </p>
               <p class="font-mono leading-relaxed">
-                <span class="box-decoration-clone rounded-sm border border-derogada-borde bg-derogada-fondo px-1.5 py-0.5 font-semibold text-derogada-tinta">
-                  {avisoDerogada.texto}
-                </span>{" "}
+                {/* El estado del sobre («⚠ NORMA DEROGADA») va en un sello que no se parte; el resto del aviso le sigue como texto. */}
+                <span class="whitespace-nowrap rounded-sm border border-derogada-borde bg-derogada-fondo px-1.5 py-0.5 font-semibold text-derogada-tinta">
+                  {avisoEstado}
+                </span>
+                {avisoResto && <span class="font-semibold text-derogada-tinta">{avisoResto}</span>}{" "}
                 <a href={derogada.enlace} class="enlace">
                   {derogada.referencia} <span class="whitespace-nowrap">[{derogada.norma}]</span>
                 </a>
@@ -204,13 +210,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 </p>
               </details>
             </div>
-          </div>
-          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 text-xs">
-            <span class="flex items-center gap-1.5 font-medium text-vigente-tinta">
-              <span class="size-1.5 rounded-full bg-vigente"></span>
-              Texto consolidado del BOE
-            </span>
-            <span class="font-semibold text-agente">Con fuente verificable</span>
           </div>
         </article>
       </div>
