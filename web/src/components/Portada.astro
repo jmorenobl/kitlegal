@@ -200,8 +200,20 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 <ComparativaMercado>
   <div
     id="pilares"
-    class="mt-8 flex flex-col gap-3 rounded-lg border border-linea bg-panel/40 p-5 sm:p-6 md:flex-row md:items-center md:justify-between md:gap-10"
+    class="mt-8 rounded-lg border border-linea bg-panel/40 p-5 sm:p-6"
   >
+    {
+      garantias.sentencias && (
+        <p class="mb-5 flex items-start gap-3 border-b border-linea pb-5">
+          <Icono nombre="gavel" class="mt-1 size-6 text-agente" />
+          <span>
+            <strong class="block font-serif text-xl font-semibold text-tinta">{garantias.sentencias.titulo}.</strong>
+            <span class="mt-1 block max-w-prose leading-relaxed text-tenue">{garantias.sentencias.texto}</span>
+          </span>
+        </p>
+      )
+    }
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-10">
     <p class="max-w-prose text-sm leading-relaxed text-tenue">
       <strong class="font-serif text-base font-semibold text-tinta">{garantias.titulo}.</strong>{" "}
       {garantias.texto}
@@ -217,6 +229,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         </a>
       )
     }
+    </div>
   </div>
 </ComparativaMercado>
 

@@ -3,7 +3,7 @@
 // es la portada del sitio. Las citas se nombran por su id de citas.yaml: el
 // texto de la norma nunca se escribe aquí.
 
-import { formatoEntero, numeroDeMunicipios, REPOSITORIO } from "../lib/proyecto";
+import { REPOSITORIO } from "../lib/proyecto";
 
 export type Tono = "sello" | "derogada" | "agente" | "vigente";
 
@@ -42,7 +42,9 @@ export interface Audiencia {
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
     enlace?: { texto: string; destino: string };
-    pilares: { icono: string; tono: Tono; fondo: string; titulo: string; texto: string; pie: string }[];
+    // La garantía sobre las sentencias, destacada aparte: el miedo de un
+    // despacho es la jurisprudencia inventada.
+    sentencias?: { titulo: string; texto: string };
   };
   // `consulta` es el slug de la página de consultas.ts que desarrolla la
   // respuesta, si la hay.
@@ -64,8 +66,6 @@ export interface Audiencia {
   };
   cta: { titulo: string; texto: string };
 }
-
-const municipios = formatoEntero(numeroDeMunicipios());
 
 export const ciudadania: Audiencia = {
   ruta: "/",
@@ -127,34 +127,6 @@ export const ciudadania: Audiencia = {
     titulo: "Tres comprobaciones que hace un programa, no la memoria de la IA",
     texto:
       "Leer la ley, comprobar que sigue en vigor y situar tu municipio no se dejan a lo que la IA recuerde: lo hace un programa, siempre de la misma manera. Tu asistente razona sobre lo que el programa le devuelve.",
-    pilares: [
-      {
-        icono: "menu-book",
-        tono: "sello",
-        fondo: "bg-panel",
-        titulo: "Lee la ley en el BOE",
-        texto:
-          "Tu asistente no contesta de memoria: kitlegal descarga el texto oficial y actualizado de la norma, y la respuesta se apoya en esa redacción.",
-        pie: "Texto consolidado oficial",
-      },
-      {
-        icono: "history-toggle-off",
-        tono: "derogada",
-        fondo: "bg-derogada-fondo",
-        titulo: "Te avisa si ya no está en vigor",
-        texto:
-          "Si el BOE marca una norma como derogada o con la vigencia agotada, tu asistente te lo dice antes de citarla.",
-        pie: "Antes de citar",
-      },
-      {
-        icono: "location-city",
-        tono: "agente",
-        fondo: "bg-panel",
-        titulo: "Sabe de qué municipio hablas",
-        texto: `Sitúa cualquiera de los ${municipios} municipios de España en su provincia y su comunidad, y te dice qué boletines oficiales tiene configurados y cuáles todavía no.`,
-        pie: `${municipios} municipios del INE`,
-      },
-    ],
   },
   casos: [
     {
@@ -260,35 +232,10 @@ export const despachos: Audiencia = {
     texto:
       "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y cotejar la sentencia que traes. El modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
-    pilares: [
-      {
-        icono: "menu-book",
-        tono: "sello",
-        fondo: "bg-panel",
-        titulo: "Cotejo contra el BOE",
-        texto:
-          "Tu asistente no responde de memoria: kitlegal descarga el texto consolidado oficial, lo guarda en una caché de tu equipo y la respuesta se apoya en esa redacción.",
-        pie: "Texto consolidado oficial",
-      },
-      {
-        icono: "history-toggle-off",
-        tono: "derogada",
-        fondo: "bg-derogada-fondo",
-        titulo: "Avisos de vigencia",
-        texto:
-          "kitlegal lee los metadatos del BOE y avisa si una norma está derogada, si su vigencia se ha agotado o si su consolidación no ha terminado.",
-        pie: "Antes de citar",
-      },
-      {
-        icono: "gavel",
-        tono: "agente",
-        fondo: "bg-panel",
-        titulo: "Sentencias, solo con su documento",
-        texto:
-          "No busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
-        pie: "Ninguna sentencia sin su documento",
-      },
-    ],
+    sentencias: {
+      titulo: "Ninguna sentencia sin su documento",
+      texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
+    },
   },
   casos: [
     {
