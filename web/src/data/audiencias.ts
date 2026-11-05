@@ -11,6 +11,10 @@ export interface Audiencia {
   titulo: string;
   descripcion: string;
   imagen: string;
+  // La fotografía del hero en escritorio (src/assets/ilustraciones/) y la parte
+  // de ella que se conserva al recortarla, como clase de `object-position`. En
+  // móvil no se pinta ni se descarga: el díptico va antes.
+  ilustracion: { nombre: string; alt: string; foco: string };
   h1: string;
   subtitulo: string;
   // El botón principal de la cabecera de la portada: lo que esa audiencia hace
@@ -71,6 +75,11 @@ export const despachos: Audiencia = {
   descripcion:
     "Tu asistente de IA cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Hoy, en Claude. Software libre y sin cuotas.",
   imagen: "despachos",
+  ilustracion: {
+    nombre: "portada-despachos",
+    alt: "Un escritorio de despacho con un portátil, un libro abierto con un marcapáginas ámbar y una lámpara.",
+    foco: "object-[78%_50%]",
+  },
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
