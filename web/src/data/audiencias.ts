@@ -250,7 +250,7 @@ export const despachos: Audiencia = {
     insignia: "Norma derogada · plazo erróneo",
     alertaTitulo: "Dos errores en una frase",
     alertaTexto:
-      "La Ley 30/1992 está derogada. Y seis meses es el máximo que puede fijar la norma del procedimiento, salvo que una ley o el Derecho de la Unión Europea prevean más: si no fija ninguno, el plazo es de tres meses.",
+      "La Ley 30/1992 está derogada, y el plazo lo fija el art. 21.3 de la Ley 39/2015, que cita la respuesta con kitlegal.",
     pieMalo: "Sin fuente",
     cita: "lpacap-21",
   },
