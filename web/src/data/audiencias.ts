@@ -34,6 +34,8 @@ export interface Audiencia {
     // La garantía sobre las sentencias, destacada aparte: el miedo de un
     // despacho es la jurisprudencia inventada.
     sentencias?: { titulo: string; texto: string };
+    // Dónde están los datos: lo que corre en el equipo y lo que no.
+    secreto: { titulo: string; texto: string };
   };
   // La etiqueta es la materia del caso, en neutro: el color de la portada es para
   // el estado de una norma (vigente, derogada), no para una categoría.
@@ -70,7 +72,7 @@ export const despachos: Audiencia = {
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
-  secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
+  secundario: { texto: "Instalar kitlegal", destino: "/instalar/", icono: "download" },
   comparativa: {
     consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
     respuesta:
@@ -91,6 +93,11 @@ export const despachos: Audiencia = {
     sentencias: {
       titulo: "Ninguna sentencia sin su documento",
       texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
+    },
+    secreto: {
+      titulo: "El secreto profesional",
+      texto:
+        "kitlegal es un programa que corre en tu ordenador: lee los datos abiertos del BOE y guarda las normas consultadas en tu disco, sin cuentas ni servidores de kitlegal por medio. Lo que escribes a tu asistente sigue las condiciones de ese asistente.",
     },
   },
   casos: [
@@ -132,13 +139,13 @@ export const despachos: Audiencia = {
     ],
     enMarcha: [
       "Redactar escritos.",
-      "Leer por sí mismo las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE. Hoy las cita si traes el documento.",
+      "Leer por sí mismo las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE.",
       "Consultar la jurisprudencia europea.",
     ],
     descartado: {
       resumen: "Consultar el CENDOJ de forma automática.",
       explicacion:
-        "La jurisprudencia del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, cuyas condiciones de uso no permiten consultarlo de forma masiva ni automatizada. kitlegal las respeta: tú buscas la sentencia con tu navegador, con la consulta que te prepara tu asistente, y kitlegal comprueba que el documento que traes es el que se pide antes de citarlo.",
+        "La jurisprudencia del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, cuyas condiciones de uso no permiten consultarlo de forma masiva ni automatizada. kitlegal las respeta: tú buscas la sentencia con tu navegador, con la consulta que te prepara tu asistente.",
     },
     detalle: { texto: "Por qué, con detalle", destino: `${REPOSITORIO}#y-las-sentencias` },
     aviso:

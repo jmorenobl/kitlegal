@@ -63,7 +63,7 @@
 
 @layer base {
   html {
-    scroll-padding-top: 8.5rem;
+    scroll-padding-top: 5rem;
 
     @media (width >= 48rem) {
       scroll-padding-top: 6rem;

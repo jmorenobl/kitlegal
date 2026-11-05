@@ -242,30 +242,12 @@ const filas: FilaComparativa[] = [
       }
     </ol>
 
-    <slot />
-
-    <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-      <div class="flex items-start gap-3.5 rounded-lg border border-linea bg-white p-5 shadow-xs">
-        <Icono nombre="gavel" class="mt-0.5 size-5 text-sello" />
-        <p class="text-sm leading-relaxed text-tenue">
-          <strong class="font-sans font-semibold text-tinta">Lo que responde quien firma.</strong> Los tribunales ya han
-          multado a abogados por citar sentencias inexistentes y han dado traslado al colegio<Nota numero={4} />. Con kitlegal, tu asistente solo cita una norma que acaba de leer en el BOE, y una sentencia, solo con
-          su documento delante, que traes tú.
-        </p>
-      </div>
-      <div class="flex items-start gap-3.5 rounded-lg border border-linea bg-white p-5 shadow-xs">
-        <Icono nombre="shield" class="mt-0.5 size-5 text-agente" />
-        <p class="text-sm leading-relaxed text-tenue">
-          <strong class="font-sans font-semibold text-tinta">El secreto profesional.</strong> kitlegal es un programa
-          que corre en tu ordenador: lee los datos abiertos del BOE y guarda las normas consultadas en tu disco, sin
-          cuentas ni servidores de kitlegal por medio. Lo que escribes a tu asistente sigue las condiciones de ese
-          asistente.
-        </p>
-      </div>
-    </div>
-
-    <div class="mt-10 border-t border-linea pt-6">
-      <h3 class="font-mono text-estampa font-semibold uppercase text-tinta">Fuentes de la comparativa</h3>
+    <details class="group mt-6">
+      <summary class="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-tenue underline decoration-linea-2 underline-offset-2 hover:text-tinta [&::-webkit-details-marker]:hidden">
+        Las {fuentes.length} fuentes de la comparativa, consultadas el {CONSULTA}
+        <Icono nombre="expand-more" class="size-4 transition-transform group-open:rotate-180" />
+      </summary>
+      {/* Plegadas: las llamadas `#fuente-N` de la tabla las abren al seguirlas. */}
       <ol class="mt-3 max-w-lectura space-y-2 text-xs leading-relaxed text-tenue">
         {
           fuentes.map(({ texto, enlaces }, indice) => (
@@ -286,6 +268,8 @@ const filas: FilaComparativa[] = [
           ))
         }
       </ol>
-    </div>
+    </details>
+
+    <slot />
   </div>
 </section>

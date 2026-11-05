@@ -1,4 +1,6 @@
 ---
+// En el móvil, la cabecera es el logo y el botón de instalar, en una fila: las
+// secciones de la portada se recorren bajando y las páginas están en el pie.
 import { REPOSITORIO, versionPublicada } from "../lib/proyecto";
 import Icono from "./Icono.astro";
 import Logo from "./Logo.astro";
@@ -20,7 +22,7 @@ const secciones = [
 ---
 
 <header class="fixed inset-x-0 top-0 z-50 border-b border-linea/60 bg-lienzo/90 backdrop-blur-md">
-  <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-10">
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-10 md:h-20">
     <div class="flex items-center gap-3">
       <a href="/" aria-label="kitlegal, inicio" class="transition-opacity hover:opacity-90">
         <Logo />
@@ -69,19 +71,4 @@ const secciones = [
       </a>
     </div>
   </div>
-  <nav aria-label="Secciones" class="border-t border-linea/60 md:hidden">
-    {/* El borde derecho se desvanece: hay más secciones al desplazar. */}
-    <div class="flex gap-1 overflow-x-auto px-2 py-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]">
-      {
-        secciones.map(({ texto, destino }) => (
-          <a
-            href={destino}
-            class="shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-tenue transition-colors hover:bg-panel hover:text-tinta"
-          >
-            {texto}
-          </a>
-        ))
-      }
-    </div>
-  </nav>
 </header>
