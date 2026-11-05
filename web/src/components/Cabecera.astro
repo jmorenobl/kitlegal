@@ -69,4 +69,18 @@ const secciones = [
       </a>
     </div>
   </div>
+  <nav aria-label="Secciones" class="border-t border-linea/60 md:hidden">
+    <div class="flex gap-1 overflow-x-auto px-2 py-1">
+      {
+        secciones.map(({ texto, destino }) => (
+          <a
+            href={destino}
+            class="shrink-0 rounded-md px-3 py-2 text-sm font-medium whitespace-nowrap text-tenue transition-colors hover:bg-panel hover:text-tinta"
+          >
+            {texto}
+          </a>
+        ))
+      }
+    </div>
+  </nav>
 </header>
