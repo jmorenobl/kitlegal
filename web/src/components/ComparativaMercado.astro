@@ -3,7 +3,6 @@
 // editoriales y a un asistente generalista sin fuentes. Lo que se dice de los
 // demás lleva su nota, con la fuente y la fecha de consulta; lo que no se ha
 // podido comprobar se dice así, sin suponerlo.
-import { formatoEntero, numeroDeMunicipios } from "../lib/proyecto";
 import Icono from "./Icono.astro";
 import Nota from "./Nota.astro";
 
@@ -63,8 +62,6 @@ const columnas = {
   editoriales: { nombre: "Bases de las editoriales", detalle: "Aranzadi LA LEY, Lefebvre, vLex" },
   generalista: { nombre: "Asistente sin fuentes", detalle: "Claude, ChatGPT o Copilot, sin kitlegal" },
 };
-
-const municipios = formatoEntero(numeroDeMunicipios());
 
 const filas: FilaComparativa[] = [
   {
@@ -131,21 +128,6 @@ const filas: FilaComparativa[] = [
     generalista: {
       destacado: "Sin comprobar",
       subtexto: "No lee el BOE, así que no sabe si una norma sigue en vigor.",
-    },
-  },
-  {
-    criterio: "Territorio",
-    kitlegal: {
-      destacado: `${municipios} municipios del INE`,
-      subtexto: "Provincia, comunidad, DIR3 del ayuntamiento y régimen común o foral.",
-    },
-    editoriales: {
-      destacado: "Sin comprobar",
-      subtexto: "No hemos encontrado en sus webs cómo lo resuelven.",
-    },
-    generalista: {
-      destacado: "De memoria",
-      subtexto: "Sin consultar el registro de municipios del INE.",
     },
   },
 ];
