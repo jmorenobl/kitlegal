@@ -433,23 +433,23 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   )
 }
 
-<section aria-labelledby="titulo-cta" class="border-t border-linea bg-lienzo py-16 md:py-32">
+<section aria-labelledby="titulo-cta" class="bg-noche py-16 text-white md:py-32">
   <div class="mx-auto max-w-4xl px-4 text-center sm:px-10">
-    <h2 id="titulo-cta" class="text-balance mb-6 font-serif text-3xl leading-tight font-semibold text-tinta md:text-5xl">{audiencia.cta.titulo}</h2>
-    <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-tenue">{audiencia.cta.texto}</p>
+    <h2 id="titulo-cta" class="text-balance mb-6 font-serif text-3xl leading-tight font-semibold md:text-5xl">{audiencia.cta.titulo}</h2>
+    <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-sobre-noche">{audiencia.cta.texto}</p>
     <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
       <a
         href="/instalar/"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-white px-7 py-3.5 text-sm font-semibold text-noche shadow-lg transition-colors hover:bg-panel sm:w-auto"
       >
         <Icono nombre="download" class="size-[18px] text-sello" />
         Instalar kitlegal
       </a>
       <a
         href="/como-se-evalua/"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-linea bg-white px-7 py-3.5 text-sm font-semibold text-tinta shadow-sm transition-colors hover:border-linea-2 hover:bg-papel sm:w-auto"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-codigo-borde bg-noche-2 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:border-sobre-noche/60 sm:w-auto"
       >
-        <Icono nombre="fact-check" class="size-[18px] text-tenue" />
+        <Icono nombre="fact-check" class="size-[18px] text-sobre-noche" />
         Ver cómo se comprueba
       </a>
     </div>
