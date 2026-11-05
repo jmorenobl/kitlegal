@@ -4,8 +4,6 @@
 
 import { REPOSITORIO } from "../lib/proyecto";
 
-export type Tono = "sello" | "derogada" | "agente" | "vigente";
-
 export interface Audiencia {
   ruta: string;
   // Cómo se nombra la audiencia en la imagen para compartir.
@@ -37,9 +35,11 @@ export interface Audiencia {
     // despacho es la jurisprudencia inventada.
     sentencias?: { titulo: string; texto: string };
   };
+  // La etiqueta es la materia del caso, en neutro: el color de la portada es para
+  // el estado de una norma (vigente, derogada), no para una categoría.
   // `consulta` es el slug de la página de consultas.ts que desarrolla la
   // respuesta, si la hay.
-  casos: { icono: string; tono: Tono; etiqueta: string; pregunta: string; cita: string; consulta?: string }[];
+  casos: { icono: string; etiqueta: string; pregunta: string; cita: string; consulta?: string }[];
   // La invitación a escribir al buzón del proyecto: kitlegal no recoge datos de
   // uso (ADR 0027), así que lo que le falta a una audiencia solo se sabe si lo
   // cuenta.
@@ -96,14 +96,12 @@ export const despachos: Audiencia = {
   casos: [
     {
       icono: "gavel",
-      tono: "sello",
       etiqueta: "Contratación pública",
       pregunta: "¿Cuál es el límite de un contrato menor?",
       cita: "lcsp-118",
     },
     {
       icono: "receipt-long",
-      tono: "vigente",
       etiqueta: "Derecho tributario",
       pregunta: "¿Cuándo prescribe una deuda tributaria?",
       cita: "lgt-66",
@@ -111,14 +109,12 @@ export const despachos: Audiencia = {
     },
     {
       icono: "account-balance",
-      tono: "agente",
       etiqueta: "Régimen local",
       pregunta: "¿Qué atribuciones corresponden al Pleno municipal?",
       cita: "lbrl-22",
     },
     {
       icono: "schedule",
-      tono: "sello",
       etiqueta: "Procedimiento administrativo",
       pregunta: "¿Qué efecto tiene el silencio en un procedimiento iniciado a solicitud?",
       cita: "lpacap-24",

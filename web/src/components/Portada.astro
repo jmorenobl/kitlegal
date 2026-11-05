@@ -1,7 +1,7 @@
 ---
 // La portada de una audiencia: las secciones de la maqueta de Stitch con los
 // datos de audiencias.ts, las citas de citas.yaml y las cifras de data/.
-import { type Audiencia, type Tono } from "../data/audiencias";
+import { type Audiencia } from "../data/audiencias";
 import { rutaDeConsulta } from "../data/consultas";
 import { articulo, fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { CORREO } from "../lib/proyecto";
@@ -18,19 +18,6 @@ const { comparativa, garantias, contacto } = audiencia;
 const derogada = norma("ley-30-1992", "derogada");
 const avisoDerogada = derogada.avisos.find((aviso) => aviso.codigo === "derogada")!;
 const citaDestacada = articulo(comparativa.cita);
-
-const tinta: Record<Tono, string> = {
-  sello: "text-sello-tinta",
-  derogada: "text-derogada-tinta",
-  agente: "text-agente",
-  vigente: "text-vigente-tinta",
-};
-const icono: Record<Tono, string> = {
-  sello: "text-sello",
-  derogada: "text-derogada",
-  agente: "text-agente",
-  vigente: "text-vigente",
-};
 
 // Lo que ocurre entre la pregunta y la respuesta, en orden: al lado del
 // titular, antes del díptico, que lo enseña con un caso.
@@ -280,12 +267,12 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
     <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
       {
-        audiencia.casos.map(({ icono: nombre, tono, etiqueta, pregunta, cita, consulta }) => (
+        audiencia.casos.map(({ icono: nombre, etiqueta, pregunta, cita, consulta }) => (
           <article class="flex flex-col rounded-lg border border-linea bg-white p-6 shadow-xs transition-shadow hover:shadow-md sm:p-8">
             <div>
               <p class="mb-3 flex items-center gap-2">
-                <Icono nombre={nombre} class:list={["size-[18px]", icono[tono]]} />
-                <span class:list={["font-mono text-estampa font-bold uppercase", tinta[tono]]}>{etiqueta}</span>
+                <Icono nombre={nombre} class="size-[18px] text-sello" />
+                <span class="font-mono text-estampa font-bold uppercase text-tenue">{etiqueta}</span>
               </p>
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
