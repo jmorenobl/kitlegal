@@ -22,8 +22,8 @@ export interface Audiencia {
   insignia: string;
   h1: string;
   subtitulo: string;
-  // El segundo botón de la cabecera de la portada: lo que esa audiencia hace
-  // después de ver cómo funciona.
+  // El botón principal de la cabecera de la portada: lo que esa audiencia hace
+  // (instalar, en la de despachos). «Ver cómo funciona» va a su lado como enlace.
   secundario: { texto: string; destino: string; icono: string };
   metricas: { etiqueta: string; valor: string; texto: string; tono: Tono }[];
   comparativa: {

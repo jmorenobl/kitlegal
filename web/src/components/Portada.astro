@@ -58,20 +58,17 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </h1>
     <p class="mb-10 max-w-prose text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
 
-    <div class="flex flex-col gap-4 sm:flex-row">
-      <a
-        href="#diferencia"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
-      >
-        <Icono nombre="find-in-page" class="size-[18px] text-sello" />
-        Ver cómo funciona
+    <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+      <a href={audiencia.secundario.destino} class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto">
+        <Icono nombre={audiencia.secundario.icono} class="size-[18px] text-sello" />
+        {audiencia.secundario.texto}
       </a>
       <a
-        href={audiencia.secundario.destino}
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-linea bg-white px-7 py-3.5 text-sm font-semibold text-tinta shadow-sm transition-colors hover:border-linea-2 hover:bg-papel sm:w-auto"
+        href="#diferencia"
+        class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
       >
-        <Icono nombre={audiencia.secundario.icono} class="size-[18px] text-tenue" />
-        {audiencia.secundario.texto}
+        Ver cómo funciona
+        <Icono nombre="arrow-downward" class="size-4" />
       </a>
     </div>
     </div>
@@ -197,22 +194,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </ol>
     </figure>
 
-    <div class="mt-12 grid grid-cols-1 gap-4 border-t border-linea pt-8 text-sm md:grid-cols-2">
-      <p class="flex items-start gap-3 text-tenue">
-        <Icono nombre="download" class="mt-0.5 size-5 text-sello" />
-        <span>
-          Se instala una vez en la app de escritorio de Claude, sin terminal.{" "}
-          <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Ver la guía paso a paso</a>
-        </span>
-      </p>
-      <p class="flex items-start gap-3 text-tenue">
-        <Icono nombre="mail" class="mt-0.5 size-5 text-sello" />
-        <span>
-          ¿Qué le falta para tu despacho? Escríbenos a{" "}
-          <a href={`mailto:${CORREO}`} class="font-semibold text-agente underline underline-offset-2">{CORREO}</a>.
-        </span>
-      </p>
-    </div>
   </div>
 </section>
 
@@ -393,23 +374,23 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   )
 }
 
-<section aria-labelledby="titulo-cta" class="relative overflow-hidden bg-noche py-24 text-white md:py-32">
-  <div class="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-10">
-    <h2 id="titulo-cta" class="text-balance mb-6 font-serif text-3xl leading-tight font-semibold md:text-5xl">{audiencia.cta.titulo}</h2>
-    <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-sobre-noche">{audiencia.cta.texto}</p>
+<section aria-labelledby="titulo-cta" class="border-t border-linea bg-lienzo py-24 md:py-32">
+  <div class="mx-auto max-w-4xl px-4 text-center sm:px-10">
+    <h2 id="titulo-cta" class="text-balance mb-6 font-serif text-3xl leading-tight font-semibold text-tinta md:text-5xl">{audiencia.cta.titulo}</h2>
+    <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-tenue">{audiencia.cta.texto}</p>
     <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">
       <a
         href="/instalar/"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-sello px-8 py-3.5 text-sm font-semibold text-noche shadow-lg transition-colors hover:bg-sello/90 sm:w-auto"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
       >
-        <Icono nombre="download" class="size-[18px]" />
+        <Icono nombre="download" class="size-[18px] text-sello" />
         Instalar kitlegal, paso a paso
       </a>
       <a
         href="/como-se-evalua/"
-        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-codigo-borde bg-noche-2 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-noche-2/80 sm:w-auto"
+        class="inline-flex w-full items-center justify-center gap-2 rounded-sm border border-linea bg-white px-7 py-3.5 text-sm font-semibold text-tinta shadow-sm transition-colors hover:border-linea-2 hover:bg-papel sm:w-auto"
       >
-        <Icono nombre="fact-check" class="size-[18px] text-sobre-noche" />
+        <Icono nombre="fact-check" class="size-[18px] text-tenue" />
         Ver cómo se comprueba
       </a>
     </div>
