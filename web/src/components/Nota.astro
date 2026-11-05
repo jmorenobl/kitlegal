@@ -1,6 +1,7 @@
 ---
 // La llamada a una nota de fuente: un número volado que enlaza con
-// `#fuente-N`, la lista de fuentes de la sección.
+// `#fuente-N`, la lista de fuentes de la sección. El cuerpo no baja de 11 px y
+// la zona táctil se amplía a unos 24 px con un ::after, sin mover el texto.
 interface Props {
   numero: number;
 }
@@ -8,6 +9,9 @@ interface Props {
 const { numero } = Astro.props;
 ---
 
-<sup><a href={`#fuente-${numero}`} class="ml-0.5 font-mono text-agente underline underline-offset-2"
+<sup class="leading-none"
+  ><a
+    href={`#fuente-${numero}`}
+    class="relative ml-0.5 text-[0.6875rem] font-semibold text-agente tabular-nums underline underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
     ><span class="sr-only">Fuente </span>{numero}</a
   ></sup>

@@ -4,8 +4,6 @@
 
 import { REPOSITORIO } from "../lib/proyecto";
 
-export type Tono = "sello" | "derogada" | "agente" | "vigente";
-
 export interface Audiencia {
   ruta: string;
   // Cómo se nombra la audiencia en la imagen para compartir.
@@ -33,13 +31,20 @@ export interface Audiencia {
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
     enlace?: { texto: string; destino: string };
-    // La garantía sobre las sentencias, destacada aparte: el miedo de un
-    // despacho es la jurisprudencia inventada.
-    sentencias?: { titulo: string; texto: string };
+    // Las tres garantías, en orden: leer la norma y comprobar su vigencia, y
+    // la de las sentencias, destacada: el miedo de un despacho es la
+    // jurisprudencia inventada.
+    norma: { titulo: string; texto: string };
+    vigencia: { titulo: string; texto: string };
+    sentencias: { titulo: string; texto: string };
+    // Dónde están los datos: lo que corre en el equipo y lo que no.
+    secreto: { titulo: string; texto: string };
   };
+  // La etiqueta es la materia del caso, en neutro: el color de la portada es para
+  // el estado de una norma (vigente, derogada), no para una categoría.
   // `consulta` es el slug de la página de consultas.ts que desarrolla la
   // respuesta, si la hay.
-  casos: { icono: string; tono: Tono; etiqueta: string; pregunta: string; cita: string; consulta?: string }[];
+  casos: { icono: string; etiqueta: string; pregunta: string; cita: string; consulta?: string }[];
   // La invitación a escribir al buzón del proyecto: kitlegal no recoge datos de
   // uso (ADR 0027), así que lo que le falta a una audiencia solo se sabe si lo
   // cuenta.
@@ -70,9 +75,9 @@ export const despachos: Audiencia = {
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
-  secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
+  secundario: { texto: "Instalar kitlegal", destino: "/instalar/", icono: "download" },
   comparativa: {
-    consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
+    consulta: "¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?",
     respuesta:
       "«Con carácter general, el plazo para resolver es de seis meses, según la Ley 30/1992 de Régimen Jurídico de las Administraciones Públicas.»",
     marcas: ["seis meses", "Ley 30/1992"],
@@ -86,24 +91,36 @@ export const despachos: Audiencia = {
   garantias: {
     titulo: "Tres garantías que da el programa, no el modelo",
     texto:
-      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y cotejar la sentencia que traes. El modelo razona sobre lo que el programa le devuelve.",
+      "Lo que no debe hacerse de memoria lo hace un programa determinista, y el modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
+    norma: {
+      titulo: "Cada artículo, leído en el BOE",
+      texto:
+        "Del texto consolidado, al responder: con su identificador, el bloque, la fecha de consulta y la huella del texto.",
+    },
+    vigencia: {
+      titulo: "La vigencia, antes de citar",
+      texto: "Si el BOE marca la norma como derogada o con la vigencia agotada, lo dice primero.",
+    },
     sentencias: {
       titulo: "Ninguna sentencia sin su documento",
       texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
+    },
+    secreto: {
+      titulo: "El secreto profesional",
+      texto:
+        "kitlegal es un programa que corre en tu ordenador: lee los datos abiertos del BOE y guarda las normas consultadas en tu disco, sin cuentas ni servidores de kitlegal por medio. Lo que escribes a tu asistente sigue las condiciones de ese asistente.",
     },
   },
   casos: [
     {
       icono: "gavel",
-      tono: "sello",
       etiqueta: "Contratación pública",
       pregunta: "¿Cuál es el límite de un contrato menor?",
       cita: "lcsp-118",
     },
     {
       icono: "receipt-long",
-      tono: "vigente",
       etiqueta: "Derecho tributario",
       pregunta: "¿Cuándo prescribe una deuda tributaria?",
       cita: "lgt-66",
@@ -111,14 +128,12 @@ export const despachos: Audiencia = {
     },
     {
       icono: "account-balance",
-      tono: "agente",
       etiqueta: "Régimen local",
       pregunta: "¿Qué atribuciones corresponden al Pleno municipal?",
       cita: "lbrl-22",
     },
     {
       icono: "schedule",
-      tono: "sello",
       etiqueta: "Procedimiento administrativo",
       pregunta: "¿Qué efecto tiene el silencio en un procedimiento iniciado a solicitud?",
       cita: "lpacap-24",
@@ -136,13 +151,13 @@ export const despachos: Audiencia = {
     ],
     enMarcha: [
       "Redactar escritos.",
-      "Leer por sí mismo las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE. Hoy las cita si traes el documento.",
+      "Leer por sí mismo las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE.",
       "Consultar la jurisprudencia europea.",
     ],
     descartado: {
       resumen: "Consultar el CENDOJ de forma automática.",
       explicacion:
-        "La jurisprudencia del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, cuyas condiciones de uso no permiten consultarlo de forma masiva ni automatizada. kitlegal las respeta: tú buscas la sentencia con tu navegador, con la consulta que te prepara tu asistente, y kitlegal comprueba que el documento que traes es el que se pide antes de citarlo.",
+        "La jurisprudencia del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, cuyas condiciones de uso no permiten consultarlo de forma masiva ni automatizada. kitlegal las respeta: tú buscas la sentencia con tu navegador, con la consulta que te prepara tu asistente.",
     },
     detalle: { texto: "Por qué, con detalle", destino: `${REPOSITORIO}#y-las-sentencias` },
     aviso:

@@ -1,7 +1,7 @@
 ---
 // La portada de una audiencia: las secciones de la maqueta de Stitch con los
 // datos de audiencias.ts, las citas de citas.yaml y las cifras de data/.
-import { type Audiencia, type Tono } from "../data/audiencias";
+import { type Audiencia } from "../data/audiencias";
 import { rutaDeConsulta } from "../data/consultas";
 import { articulo, fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { CORREO } from "../lib/proyecto";
@@ -18,19 +18,6 @@ const { comparativa, garantias, contacto } = audiencia;
 const derogada = norma("ley-30-1992", "derogada");
 const avisoDerogada = derogada.avisos.find((aviso) => aviso.codigo === "derogada")!;
 const citaDestacada = articulo(comparativa.cita);
-
-const tinta: Record<Tono, string> = {
-  sello: "text-sello-tinta",
-  derogada: "text-derogada-tinta",
-  agente: "text-agente",
-  vigente: "text-vigente-tinta",
-};
-const icono: Record<Tono, string> = {
-  sello: "text-sello",
-  derogada: "text-derogada",
-  agente: "text-agente",
-  vigente: "text-vigente",
-};
 
 // Lo que ocurre entre la pregunta y la respuesta, en orden: al lado del
 // titular, antes del díptico, que lo enseña con un caso.
@@ -86,7 +73,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         {
           pasos.map((paso, indice) => (
             <li class="relative flex items-baseline gap-3 py-2 pl-5">
-              <span class="font-mono text-estampa font-semibold text-sello-tinta">{indice + 1}</span>
+              <span class="text-xs font-semibold text-sello-tinta tabular-nums">{indice + 1}</span>
               <span class:list={[indice === pasos.length - 1 ? "font-semibold text-tinta" : "text-tenue"]}>{paso}</span>
             </li>
           ))
@@ -100,8 +87,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         <span class="mb-3 block text-sm font-medium text-tenue">
           La misma consulta, dos respuestas: de memoria y con kitlegal.
         </span>
-        <span class="block rounded-md border border-linea bg-white px-5 py-4 font-mono text-sm text-tinta">
-          <span class="font-sans font-semibold">Consulta:</span>{" "}
+        <span class="block rounded-md border border-linea bg-white px-5 py-4 font-serif text-lg font-semibold text-tinta">
+          <span class="font-sans text-sm text-tenue">Consulta:</span>{" "}
           {comparativa.consulta}
         </span>
       </figcaption>
@@ -144,12 +131,12 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               <p class="leading-relaxed">{comparativa.alertaTexto}</p>
             </div>
           </div>
-          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 text-xs">
             <span class="flex items-center gap-1.5 font-medium text-derogada-tinta">
               <span class="size-1.5 rounded-full bg-derogada"></span>
               Respuesta de memoria
             </span>
-            <span class="font-semibold text-derogada-tinta uppercase">{comparativa.pieMalo}</span>
+            <span class="font-semibold text-derogada-tinta">{comparativa.pieMalo}</span>
           </div>
         </article>
 
@@ -191,15 +178,21 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
             </div>
             <div>
               <CitaArticulo id={comparativa.cita} variante="destacada" />
-              <p class="mt-4 max-w-lectura text-xs leading-relaxed text-tenue">
-                Cómo se lee la cita: <span class="font-mono text-tinta">{citaDestacada.norma}</span> es el identificador
-                de la norma en el BOE, y el bloque <span class="font-mono text-tinta">{citaDestacada.bloque}</span>, la
-                parte del texto consolidado que contiene el artículo. La huella del texto (<span class="font-mono text-tinta">sha256</span>)
-                se calcula sobre lo leído: si el BOE cambia el artículo, la huella cambia y se nota.
-              </p>
+              <details class="group mt-4 max-w-lectura text-xs leading-relaxed text-tenue">
+                <summary class="inline-flex cursor-pointer list-none items-center gap-1 font-medium underline decoration-linea-2 underline-offset-2 hover:text-tinta [&::-webkit-details-marker]:hidden">
+                  Cómo se lee la cita
+                  <Icono nombre="expand-more" class="size-4 transition-transform group-open:rotate-180" />
+                </summary>
+                <p class="mt-2">
+                  <span class="font-mono text-tinta">{citaDestacada.norma}</span> es el identificador de la norma en el
+                  BOE, y el bloque <span class="font-mono text-tinta">{citaDestacada.bloque}</span>, la parte del texto
+                  consolidado que contiene el artículo. La huella del texto (<span class="font-mono text-tinta">sha256</span>)
+                  se calcula sobre lo leído: si el BOE cambia el artículo, la huella cambia y se nota.
+                </p>
+              </details>
             </div>
           </div>
-          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 text-xs">
             <span class="flex items-center gap-1.5 font-medium text-vigente-tinta">
               <span class="size-1.5 rounded-full bg-vigente"></span>
               Texto consolidado del BOE
@@ -214,8 +207,9 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <p class="flex items-start gap-3 text-tenue">
         <Icono nombre="download" class="mt-0.5 size-5 text-sello" />
         <span>
-          Se instala una vez en la app de escritorio de Claude, sin terminal.{" "}
-          <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Ver la guía paso a paso</a>
+          Se instala una vez en la app de escritorio de Claude, como una extensión: sin terminal y sin saber programar.
+          Con la app abierta, también puedes preguntar desde Claude en el móvil o en la web.{" "}
+          <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Instalar kitlegal</a>
         </span>
       </p>
       <p class="flex items-start gap-3 text-tenue">
@@ -230,38 +224,49 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 </section>
 
 <ComparativaMercado>
-  <div
-    id="pilares"
-    class="mt-8 rounded-lg border border-linea bg-panel/40 p-5 sm:p-6"
-  >
-    {
-      garantias.sentencias && (
-        <p class="mb-5 flex items-start gap-3 border-b border-linea pb-5">
-          <Icono nombre="gavel" class="mt-1 size-6 text-agente" />
-          <span>
-            <strong class="block font-serif text-xl font-semibold text-tinta">{garantias.sentencias.titulo}.</strong>
-            <span class="mt-1 block max-w-lectura leading-relaxed text-tenue">{garantias.sentencias.texto}</span>
-          </span>
+  <div id="pilares" aria-labelledby="titulo-pilares" class="mt-12 rounded-lg border border-linea bg-panel/40 p-5 sm:p-8">
+    <h3 id="titulo-pilares" class="text-balance font-serif text-2xl font-semibold text-tinta">{garantias.titulo}</h3>
+    <p class="mt-2 max-w-lectura leading-relaxed text-tenue">{garantias.texto}</p>
+    <ul class="mt-6 grid grid-cols-1 gap-x-10 gap-y-6 md:grid-cols-2">
+      <li class="flex items-start gap-3 border-y border-linea py-5 md:col-span-2">
+        <Icono nombre="gavel" class="mt-1 size-6 shrink-0 text-agente" />
+        <p>
+          <strong class="block font-serif text-xl font-semibold text-tinta">{garantias.sentencias.titulo}.</strong>
+          <span class="mt-1 block max-w-lectura leading-relaxed text-tenue">{garantias.sentencias.texto}</span>
         </p>
-      )
-    }
-    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-10">
-    <p class="max-w-lectura text-sm leading-relaxed text-tenue">
-      <strong class="font-serif text-base font-semibold text-tinta">{garantias.titulo}.</strong>{" "}
-      {garantias.texto}
-    </p>
+      </li>
+      {
+        [
+          { icono: "menu-book", ...garantias.norma },
+          { icono: "event-available", ...garantias.vigencia },
+        ].map(({ icono, titulo, texto }) => (
+          <li class="flex items-start gap-3 text-sm leading-relaxed text-tenue">
+            <Icono nombre={icono} class="mt-0.5 size-5 shrink-0 text-agente" />
+            <p>
+              <strong class="block font-serif text-base font-semibold text-tinta">{titulo}.</strong>
+              {texto}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
     {
       garantias.enlace && (
         <a
           href={garantias.enlace.destino}
-          class="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
+          class="mt-6 inline-block text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
         >
           {garantias.enlace.texto}
-          <Icono nombre="arrow-forward" class="size-4" />
+          <Icono nombre="arrow-forward" class="ml-1 inline size-4 align-[-0.2em]" />
         </a>
       )
     }
-    </div>
+    <p class="mt-6 flex max-w-lectura items-start gap-3 border-t border-linea pt-5 text-sm leading-relaxed text-tenue">
+      <Icono nombre="shield" class="mt-0.5 size-5 shrink-0 text-tenue" />
+      <span>
+        <strong class="font-semibold text-tinta">{garantias.secreto.titulo}.</strong> {garantias.secreto.texto}
+      </span>
+    </p>
   </div>
 </ComparativaMercado>
 
@@ -274,18 +279,18 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         </h2>
       </div>
       <p class="max-w-md text-sm leading-relaxed text-tenue">
-        Cuatro preguntas y el fragmento literal del BOE que las responde, con la norma y el bloque del que sale, tal
+        Cada pregunta lleva el fragmento literal del BOE que la responde, con la norma y el bloque del que sale, tal
         como lo devuelve kitlegal.
       </p>
     </div>
     <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
       {
-        audiencia.casos.map(({ icono: nombre, tono, etiqueta, pregunta, cita, consulta }) => (
-          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 shadow-xs transition-shadow hover:shadow-md sm:p-8">
+        audiencia.casos.map(({ icono: nombre, etiqueta, pregunta, cita, consulta }) => (
+          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 sm:p-8">
             <div>
               <p class="mb-3 flex items-center gap-2">
-                <Icono nombre={nombre} class:list={["size-[18px]", icono[tono]]} />
-                <span class:list={["font-mono text-estampa font-bold uppercase", tinta[tono]]}>{etiqueta}</span>
+                <Icono nombre={nombre} class="size-[18px] text-sello" />
+                <span class="text-sm font-medium text-tenue">{etiqueta}</span>
               </p>
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
@@ -311,62 +316,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         ))
       }
     </div>
-  </div>
-</section>
-
-<section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-lienzo py-24 md:py-32">
-  <div class="mx-auto max-w-7xl px-4 sm:px-10">
-    <div class="mx-auto mb-20 max-w-2xl text-center">
-      <h2 id="titulo-integracion" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        Se instala una vez y se usa preguntando
-      </h2>
-      <p class="mx-auto max-w-lectura leading-relaxed text-tenue">
-        Hace falta un asistente de IA que trabaje en tu ordenador: hoy, la app de escritorio de Claude o Claude Code.
-        Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web.
-      </p>
-    </div>
-    <ol class="mx-auto mb-14 grid max-w-5xl grid-cols-1 items-stretch gap-8 md:grid-cols-2">
-      <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
-        <div>
-          <div class="mb-6 flex items-center justify-between">
-            <span class="flex size-9 items-center justify-center rounded-lg bg-noche font-mono text-sm font-bold text-white">
-              1
-            </span>
-            <span class="font-mono text-xs font-semibold text-tenue uppercase">Una sola vez</span>
-          </div>
-          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal</h3>
-          <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Es un plugin, una extensión que se añade desde la propia app, sin terminal: trae las herramientas que leen el BOE y las instrucciones
-            con las que tu asistente lo cita. No hace falta saber programar, y la guía lo explica paso a paso.
-          </p>
-        </div>
-        <a
-          href="/instalar/"
-          class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-4 py-3 text-sm font-semibold text-white hover:bg-noche-2"
-        >
-          <Icono nombre="download" class="size-4 text-sello" />
-          Ver la guía de instalación
-        </a>
-      </li>
-      <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
-        <div>
-          <div class="mb-6 flex items-center justify-between">
-            <span class="flex size-9 items-center justify-center rounded-lg bg-noche font-mono text-sm font-bold text-white">
-              2
-            </span>
-            <span class="font-mono text-xs font-semibold text-tenue uppercase">En tu día a día</span>
-          </div>
-          <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Preguntas con tus palabras</h3>
-          <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Escribes en tu asistente como siempre. Él consulta kitlegal, lee el BOE y te responde con la cita: la norma,
-            el artículo y la fecha de consulta.
-          </p>
-        </div>
-        <p class="rounded-sm border border-linea bg-panel p-3 text-xs text-tinta italic">
-          «¿Cuál es el plazo para interponer un recurso de alzada según la ley vigente?»
-        </p>
-      </li>
-    </ol>
   </div>
 </section>
 
@@ -440,7 +389,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
       >
         <Icono nombre="download" class="size-[18px] text-sello" />
-        Instalar kitlegal, paso a paso
+        Instalar kitlegal
       </a>
       <a
         href="/como-se-evalua/"
