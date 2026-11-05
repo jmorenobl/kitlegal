@@ -50,15 +50,15 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 ---
 
 <section class="relative overflow-hidden bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-28 md:pb-20">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
-    <div class="text-center lg:text-left">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
+    <div>
 
-    <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:mx-0 lg:text-display">
+    <h1 class="text-balance mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:text-display">
       {audiencia.h1}
     </h1>
-    <p class="mx-auto mb-10 max-w-prose text-lg leading-relaxed text-tenue lg:mx-0">{audiencia.subtitulo}</p>
+    <p class="mb-10 max-w-prose text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
 
-    <div class="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
+    <div class="flex flex-col gap-4 sm:flex-row">
       <a
         href="#diferencia"
         class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto"
@@ -80,10 +80,10 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <figcaption class="mb-6 text-sm font-medium text-tenue">
         La misma consulta, dos respuestas: de memoria y con kitlegal.
       </figcaption>
-      <div class="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-2">
+      <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
         <article
           aria-labelledby="titulo-sin"
-          class="flex flex-col justify-between rounded-lg border border-derogada-borde/70 bg-white p-6 shadow-[0_2px_12px_rgba(239,68,68,0.05)] sm:p-8"
+          class="flex flex-col rounded-lg border border-derogada-borde/70 bg-white p-6 shadow-[0_2px_12px_rgba(239,68,68,0.05)] sm:p-8"
         >
           <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-linea pb-4">
@@ -134,7 +134,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 
         <article
           aria-labelledby="titulo-con"
-          class="flex flex-col justify-between rounded-lg border-2 border-vigente/40 bg-white p-6 shadow-[0_4px_20px_rgba(16,185,129,0.08)] sm:p-8"
+          class="flex flex-col rounded-lg border-2 border-vigente/40 bg-white p-6 shadow-[0_4px_20px_rgba(16,185,129,0.08)] sm:p-8"
         >
           <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-linea pb-4">
@@ -156,7 +156,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               role="note"
               class="rounded-md bg-derogada-fondo/70 p-3 font-mono text-xs text-derogada-tinta"
             >
-              <p class="mb-1.5 font-sans text-estampa font-semibold tracking-normal">
+              <p class="mb-1.5 font-sans text-xs font-semibold">
                 Lo detecta kitlegal antes de citar:
               </p>
               <p>
@@ -219,7 +219,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 <ComparativaMercado />
 
 <section id="pilares" aria-labelledby="titulo-pilares" class="border-y border-linea bg-panel/50 py-24 md:py-32">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
       <h2 id="titulo-pilares" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         {garantias.titulo}
@@ -257,7 +257,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 </section>
 
 <section id="casos" aria-labelledby="titulo-casos" class="bg-lienzo py-24 md:py-32">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
     <div class="mb-16 flex flex-col justify-between gap-6 md:flex-row md:items-end">
       <div>
         <h2 id="titulo-casos" class="text-balance font-serif text-3xl font-semibold text-tinta md:text-4xl">
@@ -296,18 +296,18 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 </section>
 
 <section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-panel/40 py-24 md:py-32">
-  <div class="mx-auto max-w-5xl px-4 sm:px-10">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
       <h2 id="titulo-integracion" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         Se instala una vez y se usa preguntando
       </h2>
       <p class="mx-auto max-w-prose leading-relaxed text-tenue">
         Hace falta un asistente de IA que trabaje en tu ordenador: hoy, la app de escritorio de Claude o Claude Code.
-        Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web. En ChatGPT y
-        Gemini todavía no funciona.
+        Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web. En ChatGPT,
+        Codex y Antigravity está <a href="/instalar/#sin-probar" class="text-agente underline underline-offset-2">sin probar</a>.
       </p>
     </div>
-    <ol class="mb-14 grid grid-cols-1 items-stretch gap-8 md:grid-cols-2">
+    <ol class="mx-auto mb-14 grid max-w-5xl grid-cols-1 items-stretch gap-8 md:grid-cols-2">
       <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
         <div>
           <div class="mb-6 flex items-center justify-between">
@@ -318,7 +318,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           </div>
           <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal</h3>
           <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Es un plugin, sin terminal y sin descargar nada: trae las herramientas que leen el BOE y las instrucciones
+            Es un plugin que se añade desde la propia app, sin terminal: trae las herramientas que leen el BOE y las instrucciones
             con las que tu asistente lo cita. No hace falta saber programar, y la guía lo explica paso a paso.
           </p>
         </div>
@@ -333,10 +333,10 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <li class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
         <div>
           <div class="mb-6 flex items-center justify-between">
-            <span class="flex size-9 items-center justify-center rounded-lg bg-sello font-mono text-sm font-bold text-noche">
+            <span class="flex size-9 items-center justify-center rounded-lg bg-noche font-mono text-sm font-bold text-white">
               2
             </span>
-            <span class="font-mono text-xs font-semibold text-vigente-tinta uppercase">En tu día a día</span>
+            <span class="font-mono text-xs font-semibold text-tenue uppercase">En tu día a día</span>
           </div>
           <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Preguntas con tus palabras</h3>
           <p class="mb-6 text-sm leading-relaxed text-tenue">
@@ -355,7 +355,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 {
   contacto && (
     <section id="contacto" aria-labelledby="titulo-contacto" class="border-t border-linea bg-lienzo py-24 md:py-32">
-      <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 sm:px-10 lg:grid-cols-2 lg:gap-16">
+      <div class="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-4 sm:px-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <h2 id="titulo-contacto" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
             {contacto.titulo}
@@ -374,7 +374,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           <ul class="mb-6 space-y-3 text-sm leading-relaxed text-tenue">
             {contacto.peticiones.map((peticion) => (
               <li class="flex items-start gap-2.5">
-                <Icono nombre="check-circle" class="mt-0.5 size-[18px] text-vigente" />
+                <Icono nombre="chat" class="mt-0.5 size-[18px] text-sello" />
                 <span>{peticion}</span>
               </li>
             ))}

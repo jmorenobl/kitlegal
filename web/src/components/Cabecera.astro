@@ -70,7 +70,8 @@ const secciones = [
     </div>
   </div>
   <nav aria-label="Secciones" class="border-t border-linea/60 md:hidden">
-    <div class="flex gap-1 overflow-x-auto px-2 py-1">
+    {/* El borde derecho se desvanece: hay más secciones al desplazar. */}
+    <div class="flex gap-1 overflow-x-auto px-2 py-1 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]">
       {
         secciones.map(({ texto, destino }) => (
           <a
