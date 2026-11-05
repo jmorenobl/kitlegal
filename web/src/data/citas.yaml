@@ -80,7 +80,7 @@ articulos:
   lau-36:
     norma: BOE-A-1994-26003
     bloque: a36
-    version: "20260930"
+    version: "20261007"
     referencia: Art. 36.4 Ley 29/1994 (LAU)
     fragmentos:
       - El saldo de la fianza en metálico que deba ser restituido al arrendatario al final del arriendo, devengará el interés legal, transcurrido un mes desde la entrega de las llaves por el mismo sin que se hubiere hecho efectiva dicha restitución.
@@ -215,7 +215,7 @@ articulos:
   lau-36-cuantia:
     norma: BOE-A-1994-26003
     bloque: a36
-    version: "20260930"
+    version: "20261007"
     referencia: Art. 36.1 Ley 29/1994 (LAU)
     fragmentos:
       - 1. A la celebración del contrato será obligatoria la exigencia y prestación de fianza en metálico en cantidad equivalente a una mensualidad de renta en el arrendamiento de viviendas y de dos en el arrendamiento para uso distinto del de vivienda.
@@ -224,7 +224,7 @@ articulos:
   lau-36-garantia:
     norma: BOE-A-1994-26003
     bloque: a36
-    version: "20260930"
+    version: "20261007"
     referencia: Art. 36.5 Ley 29/1994 (LAU)
     fragmentos:
       - 5. Las partes podrán pactar una garantía del cumplimiento por el arrendatario de sus obligaciones arrendaticias adicional a la fianza en metálico.
@@ -234,7 +234,7 @@ articulos:
   lau-36-finalizacion:
     norma: BOE-A-1994-26003
     bloque: a36
-    version: "20260930"
+    version: "20261007"
     referencia: Art. 36.7 Ley 29/1994 (LAU)
     fragmentos:
       - 7. A la finalización del contrato, las partes deberán dejar constancia por escrito del estado de la vivienda en el momento de entrega de la posesión mediante un documento de finalización del arrendamiento firmado por ambas partes.
@@ -243,10 +243,11 @@ articulos:
   lau-36-nota:
     norma: BOE-A-1994-26003
     bloque: a36
-    version: "20260930"
+    version: "20261007"
     referencia: Nota del BOE al art. 36 Ley 29/1994 (LAU)
     fragmentos:
-      - Se modifica el apartado 5 y se añade el 7 por el art. 3.17 y 18 del Real Decreto-ley 26/2026, de 29 de septiembre.
+      - Se modifica el apartado 5 y se añade el 7 por el art. 3.17 y 18 del Real Decreto-ley 29/2026, de 6 de octubre.
+      - Se deja sin efecto la modificación del apartado 5 y la adición del 7 por Resolución de 2 de octubre de 2026 que publica el Acuerdo del Congreso de los Diputados por el que se deroga el Real Decreto-ley 26/2026, de 29 de septiembre.
 
   et-49-denuncia:
     norma: BOE-A-2015-11430
