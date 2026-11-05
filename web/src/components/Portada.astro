@@ -52,7 +52,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 }));
 ---
 
-<section class="relative overflow-hidden bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-12 pb-14 md:pt-24 md:pb-20 lg:pt-10">
+<section class="relative overflow-hidden bg-lienzo pt-12 pb-14 md:pt-24 md:pb-20 lg:pt-10">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
     {/* En lg, la fotografía a la derecha del titular, a la altura de su columna. En móvil no se pinta. */}
     <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-x-12 xl:grid-cols-[minmax(0,1fr)_27rem]">
@@ -261,45 +261,58 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 </section>
 
 <ComparativaMercado>
-  <div id="pilares" aria-labelledby="titulo-pilares" class="mt-12 rounded-lg border border-linea bg-panel/40 p-5 sm:p-8">
-    <h3 id="titulo-pilares" class="text-balance font-serif text-2xl font-semibold text-tinta">{garantias.titulo}</h3>
-    <p class="mt-2 max-w-lectura leading-relaxed text-tenue">{garantias.texto}</p>
-    {/* Los dos frenos de un despacho, a la par y en la misma fila: la jurisprudencia inventada y adónde van sus asuntos. Debajo, las dos de la norma. */}
-    <ul class="mt-6 grid grid-cols-1 gap-x-10 border-t border-linea md:grid-cols-2">
-      {
-        [
-          { icono: "gavel", ...garantias.sentencias },
-          { icono: "shield", ...garantias.secreto },
-        ].map(({ icono, titulo, texto }) => (
-          <li class="flex items-start gap-3 border-b border-linea py-5">
-            <Icono nombre={icono} class="mt-1 size-6 shrink-0 text-sello" />
-            <p>
-              <strong class="block text-pretty font-serif text-xl font-semibold text-tinta">{titulo}.</strong>
-              <span class="mt-1 block max-w-lectura leading-relaxed text-tenue">{texto}</span>
-            </p>
-          </li>
-        ))
-      }
-      {
-        [
-          { icono: "menu-book", ...garantias.norma },
-          { icono: "event-available", ...garantias.vigencia },
-        ].map(({ icono, titulo, texto }) => (
-          <li class="flex items-start gap-3 pt-6 text-sm leading-relaxed text-tenue">
-            <Icono nombre={icono} class="mt-0.5 size-5 shrink-0 text-sello" />
-            <p>
-              <strong class="block font-serif text-base font-semibold text-tinta">{titulo}.</strong>
-              {texto}
-            </p>
-          </li>
-        ))
-      }
-    </ul>
+  {/*
+    Las garantías, con presencia propia: un bloque blanco sobre el panel de la
+    comparativa. En lg, el encabezado a la izquierda y las cuatro a la derecha.
+  */}
+  <div
+    id="pilares"
+    aria-labelledby="titulo-pilares"
+    class="mt-16 grid grid-cols-1 gap-8 rounded-xl border border-linea bg-white p-6 shadow-sm sm:p-10 md:mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] lg:grid-rows-[auto_1fr] lg:gap-x-14 lg:gap-y-6"
+  >
+    <div>
+      <h3 id="titulo-pilares" class="text-balance font-serif text-3xl font-semibold text-tinta">{garantias.titulo}</h3>
+      <p class="mt-3 max-w-lectura leading-relaxed text-tenue">{garantias.texto}</p>
+    </div>
+    <div class="lg:col-start-2 lg:row-span-2 lg:row-start-1">
+      {/* Los dos frenos de un despacho, a la par y en la misma fila: la jurisprudencia inventada y adónde van sus asuntos. Debajo, las dos de la norma. */}
+      <ul class="grid grid-cols-1 gap-x-10 md:grid-cols-2">
+        {
+          [
+            { icono: "gavel", ...garantias.sentencias },
+            { icono: "shield", ...garantias.secreto },
+          ].map(({ icono, titulo, texto }) => (
+            <li class="border-t-2 border-sello pt-5 pb-8">
+              <Icono nombre={icono} class="mb-3 size-8 text-sello" />
+              <p>
+                <strong class="block text-pretty font-serif text-2xl font-semibold text-tinta">{titulo}.</strong>
+                <span class="mt-2 block max-w-lectura leading-relaxed text-tenue">{texto}</span>
+              </p>
+            </li>
+          ))
+        }
+        {
+          [
+            { icono: "menu-book", ...garantias.norma },
+            { icono: "event-available", ...garantias.vigencia },
+          ].map(({ icono, titulo, texto }) => (
+            <li class="flex items-start gap-3 border-t border-linea py-5 text-sm leading-relaxed text-tenue">
+              <Icono nombre={icono} class="mt-0.5 size-5 shrink-0 text-sello" />
+              <p>
+                <strong class="block font-serif text-base font-semibold text-tinta">{titulo}.</strong>
+                {texto}
+              </p>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+    {/* En móvil, el enlace cierra el bloque; en lg va bajo el encabezado. */}
     {
       garantias.enlace && (
         <a
           href={garantias.enlace.destino}
-          class="mt-8 inline-block text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
+          class="self-start justify-self-start text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta lg:col-start-1 lg:row-start-2"
         >
           {garantias.enlace.texto}
           <Icono nombre="arrow-forward" class="ml-1 inline size-4 align-[-0.2em]" />
@@ -309,7 +322,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   </div>
 </ComparativaMercado>
 
-<section id="casos" aria-labelledby="titulo-casos" class="border-t border-linea bg-panel/40 py-16 md:py-32">
+<section id="casos" aria-labelledby="titulo-casos" class="border-t border-linea bg-white py-16 md:py-32">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
     <div class="mb-10 flex flex-col justify-between gap-4 md:mb-16 md:gap-6 md:flex-row md:items-end">
       <div>
@@ -325,7 +338,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     <div class="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8">
       {
         audiencia.casos.map(({ icono: nombre, etiqueta, pregunta, cita, consulta }) => (
-          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 sm:p-8">
+          <article class="flex flex-col rounded-lg border border-linea bg-lienzo p-6 sm:p-8">
             <div>
               <p class="mb-3 flex items-center gap-2">
                 <Icono nombre={nombre} class="size-[18px] text-sello" />
@@ -374,7 +387,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 
 {
   contacto && (
-    <section id="contacto" aria-labelledby="titulo-contacto" class="border-t border-linea bg-panel/40 py-16 md:py-32">
+    <section id="contacto" aria-labelledby="titulo-contacto" class="border-t border-linea bg-panel py-16 md:py-32">
       <div class="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 sm:px-10 lg:grid-cols-2 lg:gap-16">
         <div>
           <h2 id="titulo-contacto" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
