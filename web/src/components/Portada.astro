@@ -72,6 +72,11 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         <Icono nombre="arrow-downward" class="size-4" />
       </a>
     </div>
+    <p class="mt-6 max-w-lectura text-sm leading-relaxed text-tenue">
+      Hoy funciona en la app de escritorio de Claude y en Claude Code. En ChatGPT, Codex y Antigravity está{" "}
+      <a href="/instalar/#sin-probar" class="underline decoration-linea-2 underline-offset-2 hover:text-tinta">sin probar</a>:
+      si lo usas en otro asistente, <a href={`mailto:${CORREO}`} class="font-semibold text-agente underline underline-offset-2">cuéntanoslo</a>.
+    </p>
     </div>
     <div class="mt-14 lg:mt-0">
       <p id="titulo-pasos" class="mb-3 font-serif text-lg font-semibold text-tinta">
@@ -164,10 +169,13 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 Cita del BOE
               </span>
             </div>
-            <div role="note" class="rounded-md border border-linea bg-panel/40 p-3 text-xs">
-              <p class="mb-2 flex items-center gap-1.5 font-semibold text-tinta">
-                <Icono nombre="verified" class="size-4 text-vigente" />
-                Detectado antes de citar
+            <div role="note" class="border-b border-linea pb-6 text-xs">
+              <p class="mb-2 flex items-start gap-1.5 text-sm text-tinta">
+                <Icono nombre="verified" class="mt-0.5 size-4 shrink-0 text-vigente" />
+                <span>
+                  <strong class="font-semibold">Detectado antes de citar.</strong> Tu asistente iba a apoyarse en la
+                  Ley 30/1992; kitlegal consulta el BOE y le avisa:
+                </span>
               </p>
               <p class="font-mono leading-relaxed">
                 <span class="rounded-sm border border-derogada-borde bg-derogada-fondo px-1.5 py-0.5 font-semibold text-derogada-tinta">
@@ -181,9 +189,9 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 Metadatos del BOE · {fechaCorta(derogada.fechaConsulta)} · {huellaCorta(derogada.hash)}
               </p>
             </div>
-            <div class="border-t border-linea pt-6">
+            <div>
               <CitaArticulo id={comparativa.cita} variante="destacada" />
-              <p class="mt-4 text-xs leading-relaxed text-tenue">
+              <p class="mt-4 max-w-lectura text-xs leading-relaxed text-tenue">
                 Cómo se lee la cita: <span class="font-mono text-tinta">{citaDestacada.norma}</span> es el identificador
                 de la norma en el BOE, y el bloque <span class="font-mono text-tinta">{citaDestacada.bloque}</span>, la
                 parte del texto consolidado que contiene el artículo. La huella del texto (<span class="font-mono text-tinta">sha256</span>)
@@ -206,8 +214,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <p class="flex items-start gap-3 text-tenue">
         <Icono nombre="download" class="mt-0.5 size-5 text-sello" />
         <span>
-          Se instala una vez en la app de escritorio de Claude, sin terminal. En ChatGPT, Codex y Antigravity, sin
-          probar.{" "}
+          Se instala una vez en la app de escritorio de Claude, sin terminal.{" "}
           <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Ver la guía paso a paso</a>
         </span>
       </p>
@@ -315,8 +322,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </h2>
       <p class="mx-auto max-w-lectura leading-relaxed text-tenue">
         Hace falta un asistente de IA que trabaje en tu ordenador: hoy, la app de escritorio de Claude o Claude Code.
-        Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web. En ChatGPT,
-        Codex y Antigravity está <a href="/instalar/#sin-probar" class="text-agente underline underline-offset-2">sin probar</a>.
+        Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web.
       </p>
     </div>
     <ol class="mx-auto mb-14 grid max-w-5xl grid-cols-1 items-stretch gap-8 md:grid-cols-2">

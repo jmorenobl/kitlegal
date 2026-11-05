@@ -69,7 +69,7 @@ export const despachos: Audiencia = {
   imagen: "despachos",
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
-    "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. Funciona en la app de escritorio de Claude y en Claude Code. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
+    "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
   secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
   comparativa: {
     consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
