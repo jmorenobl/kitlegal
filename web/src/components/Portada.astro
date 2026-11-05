@@ -103,11 +103,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 <Icono nombre="cancel" class="size-5 text-derogada" />
                 Asistente de IA sin kitlegal
               </h2>
-              <span
-                class="rounded-sm border border-derogada-borde bg-derogada-fondo px-2.5 py-1 font-mono text-estampa font-bold text-derogada-tinta uppercase"
-              >
-                {comparativa.insignia}
-              </span>
+              {/* El juicio de la página, en Inter y sin forma de sello: la estampa en mono es para lo que llega del BOE. */}
+              <span class="text-xs font-semibold text-derogada-tinta">{comparativa.insignia}</span>
             </div>
             <div>
             <p class="mb-2 text-xs font-medium text-derogada-tinta">Respuesta de ejemplo: el error típico de citar de memoria</p>
@@ -167,11 +164,11 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 </span>
               </p>
               <p class="font-mono leading-relaxed">
-                <span class="rounded-sm border border-derogada-borde bg-derogada-fondo px-1.5 py-0.5 font-semibold text-derogada-tinta">
+                <span class="box-decoration-clone rounded-sm border border-derogada-borde bg-derogada-fondo px-1.5 py-0.5 font-semibold text-derogada-tinta">
                   {avisoDerogada.texto}
                 </span>{" "}
                 <a href={derogada.enlace} class="text-tenue underline decoration-linea-2 underline-offset-2 hover:text-tinta">
-                  {derogada.referencia} [{derogada.norma}]
+                  {derogada.referencia} <span class="whitespace-nowrap">[{derogada.norma}]</span>
                 </a>
               </p>
               <p class="mt-1.5 font-mono text-tenue">
@@ -294,7 +291,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 <Icono nombre={nombre} class="size-[18px] text-sello" />
                 <span class="text-sm font-medium text-tenue">{etiqueta}</span>
               </p>
-              <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
+              <h3 class="mb-3 text-pretty font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
             {/* En móvil, la cita se pliega para que se lean las cuatro preguntas de un vistazo; en escritorio va abierta. */}
             <details class="group border-t border-linea pt-3 md:hidden">

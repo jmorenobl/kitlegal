@@ -62,7 +62,7 @@ const anio = new Date().getFullYear();
       {
         columnas.map(({ titulo, enlaces }) => (
           <div class="space-y-3">
-            <h2 class="font-mono text-estampa font-semibold uppercase text-tinta">{titulo}</h2>
+            <h2 class="text-sm font-semibold text-tinta">{titulo}</h2>
             <ul class="space-y-2 text-sm text-tenue">
               {enlaces.map(({ texto, destino }) => (
                 <li>
@@ -81,7 +81,7 @@ const anio = new Date().getFullYear();
         <Icono nombre="gavel" class="mt-0.5 size-4 text-sello" />
         kitlegal consulta y cita fuentes oficiales; no presta asesoramiento jurídico ni sustituye a un profesional.
       </p>
-      <span class="shrink-0 font-mono">© {anio} kitlegal</span>
+      <span class="shrink-0">© {anio} kitlegal</span>
     </div>
   </div>
 </footer>
