@@ -74,7 +74,7 @@ export const despachos: Audiencia = {
   imagen: "despachos",
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
-    "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
+    "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
   secundario: { texto: "Instalar kitlegal", destino: "/instalar/", icono: "download" },
   comparativa: {
     consulta: "¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?",
@@ -166,7 +166,7 @@ export const despachos: Audiencia = {
   },
   cta: {
     titulo: "Dota a tu despacho de la ley vigente, con su cita.",
-    texto: "Tu asistente cita solo lo que acaba de leer en el BOE, y te avisa antes si la norma ya no está en vigor.",
+    texto: "Gratis, en tu equipo y sin cuentas: pruébalo con la próxima consulta que tengas que citar.",
   },
 };
 

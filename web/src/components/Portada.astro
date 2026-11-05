@@ -285,7 +285,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         como lo devuelve kitlegal.
       </p>
     </div>
-    <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8">
       {
         audiencia.casos.map(({ icono: nombre, etiqueta, pregunta, cita, consulta }) => (
           <article class="flex flex-col rounded-lg border border-linea bg-white p-6 sm:p-8">
@@ -296,7 +296,21 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               </p>
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
-            <CitaArticulo id={cita} />
+            {/* En móvil, la cita se pliega para que se lean las cuatro preguntas de un vistazo; en escritorio va abierta. */}
+            <details class="group border-t border-linea pt-3 md:hidden">
+              <summary class="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium text-tenue hover:text-tinta [&::-webkit-details-marker]:hidden">
+                <span>
+                  Ver la cita: <span class="text-sello-tinta">{articulo(cita).referencia}</span>
+                </span>
+                <Icono nombre="expand-more" class="size-5 shrink-0 transition-transform group-open:rotate-180" />
+              </summary>
+              <div class="mt-4">
+                <CitaArticulo id={cita} />
+              </div>
+            </details>
+            <div class="hidden md:flex md:flex-1 md:flex-col">
+              <CitaArticulo id={cita} />
+            </div>
             {consulta ? (
               <a
                 href={rutaDeConsulta(consulta)}
