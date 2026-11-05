@@ -344,8 +344,7 @@ export const despachos: Audiencia = {
   },
   cta: {
     titulo: "Dota a tu despacho de la ley vigente, con su cita.",
-    texto:
-      "Menos riesgo de citar una norma derogada o un artículo que no dice lo que se cree.",
+    texto: "Tu asistente cita solo lo que acaba de leer en el BOE, y te avisa antes si la norma ya no está en vigor.",
   },
 };
 
