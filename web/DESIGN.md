@@ -28,6 +28,7 @@ colors:
   canvas-ivory: '#F8FAFC'
   code-dark-bg: '#0A0E17'
   code-dark-border: '#1E293B'
+  code-dark-muted: '#94A3B8'
 typography:
   display:
     fontFamily: Newsreader
@@ -130,7 +131,7 @@ spacing:
   space-3xl: 4.5rem
 ---
 
-> **En kitlegal.es** (ADR 0024) estos tokens están en `web/src/styles/global.css`, con nombres en español. Los colores de estado y el ámbar tienen un tono de texto (`-text`, y `amber-parchment` para el ámbar) que alcanza el contraste 4,5:1 del nivel AA; el tono vivo es para iconos, bordes y rellenos. De la paleta generada que traía la exportación de Stitch solo quedan los neutros que usa la portada (`canvas`, `panel`, `panel-strong`, `ink`, `ink-muted`); el resto (`primary: #000000`, `secondary`, `tertiary`…) se ha quitado porque contradecía la marca.
+> **En kitlegal.es** (ADR 0024) estos tokens están en `web/src/styles/global.css`, con nombres en español. El texto secundario sobre el terminal oscuro, `code-dark-muted`, es `sobre-noche`. Los colores de estado y el ámbar tienen un tono de texto (`-text`, y `amber-parchment` para el ámbar) que alcanza el contraste 4,5:1 del nivel AA; el tono vivo es para iconos, bordes y rellenos. De la paleta generada que traía la exportación de Stitch solo quedan los neutros que usa la portada (`canvas`, `panel`, `panel-strong`, `ink`, `ink-muted`); el resto (`primary: #000000`, `secondary`, `tertiary`…) se ha quitado porque contradecía la marca.
 
 ## Brand & Style
 
@@ -164,7 +165,7 @@ Legal correctness is binary and mission-critical. Three unambiguous states gover
 3. **Norma Derogada (`#EF4444`)**: Repealed or invalidated provision; requires prominent, unmistakable visual alerts across both human and agent interfaces.
 
 ### Dark Code Shell
-Terminal panels, code viewers, and CLI outputs employ dedicated dark tokens (`code-dark-bg: #0A0E17`, `code-dark-border: #1E293B`) to establish a clean visual separation between statutory text and programmatic execution.
+Terminal panels, code viewers, and CLI outputs employ dedicated dark tokens (`code-dark-bg: #0A0E17`, `code-dark-border: #1E293B`, and `code-dark-muted: #94A3B8` for prompts, captions and secondary text on that ground, about 8:1 against it) to establish a clean visual separation between statutory text and programmatic execution.
 
 ## Typography
 
