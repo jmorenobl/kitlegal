@@ -74,7 +74,7 @@ export const despachos: Audiencia = {
     "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
   secundario: { texto: "Instalar kitlegal", destino: "/instalar/", icono: "download" },
   comparativa: {
-    consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
+    consulta: "¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?",
     respuesta:
       "«Con carácter general, el plazo para resolver es de seis meses, según la Ley 30/1992 de Régimen Jurídico de las Administraciones Públicas.»",
     marcas: ["seis meses", "Ley 30/1992"],

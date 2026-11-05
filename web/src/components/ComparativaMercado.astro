@@ -159,21 +159,21 @@ const filas: FilaComparativa[] = [
         </caption>
         <thead>
           <tr class="border-b border-linea bg-panel/60">
-            <th scope="col" class="w-1/5 p-5 align-top font-mono text-xs font-semibold uppercase text-tenue">Criterio</th>
+            <th scope="col" class="w-1/5 p-5 align-top text-xs font-semibold tracking-wide text-tenue">Criterio</th>
             <th scope="col" class="w-[30%] border-x-2 border-agente bg-panel-2/70 p-5 align-top">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-serif text-lg font-bold text-tinta">kitlegal</span>
-                <span class="rounded-sm border border-linea-2 bg-white px-2 py-0.5 font-mono text-estampa font-bold uppercase text-tinta">
+                <span class="rounded-sm border border-linea-2 bg-white px-2 py-0.5 text-xs font-semibold text-tinta">
                   Software libre
                 </span>
               </div>
-              <p class="mt-1 font-mono text-estampa font-medium text-agente">{columnas.kitlegal.detalle}</p>
+              <p class="mt-1 text-xs font-medium text-agente">{columnas.kitlegal.detalle}</p>
             </th>
             {
               [columnas.editoriales, columnas.generalista].map(({ nombre, detalle }) => (
                 <th scope="col" class="w-1/4 p-5 align-top">
                   <span class="font-serif text-base font-semibold text-tinta">{nombre}</span>
-                  <p class="mt-1 font-mono text-estampa font-normal text-tenue">{detalle}</p>
+                  <p class="mt-1 text-xs font-normal text-tenue">{detalle}</p>
                 </th>
               ))
             }
@@ -216,7 +216,7 @@ const filas: FilaComparativa[] = [
             <h3 class="border-b border-linea px-5 py-3 font-serif text-lg font-semibold text-tinta">{fila.criterio}</h3>
             <dl class="divide-y divide-linea">
               <div class="bg-panel/40 px-5 py-4">
-                <dt class="font-mono text-estampa font-semibold uppercase text-agente">kitlegal</dt>
+                <dt class="text-xs font-semibold text-agente">kitlegal</dt>
                 <dd class="mt-1 flex items-center gap-1.5 text-sm font-bold text-tinta">
                   <Icono nombre="check" class="size-4 text-tinta" />
                   {fila.kitlegal.destacado}
@@ -228,7 +228,7 @@ const filas: FilaComparativa[] = [
                 [columnas.generalista.nombre, fila.generalista] as const,
               ].map(([nombre, celda]) => (
                 <div class="px-5 py-4">
-                  <dt class="font-mono text-estampa font-semibold uppercase text-tenue">{nombre}</dt>
+                  <dt class="text-xs font-semibold text-tenue">{nombre}</dt>
                   <dd class="mt-1 text-sm font-medium text-tinta">{celda.destacado}</dd>
                   <dd class="mt-1 text-sm leading-relaxed text-tenue">
                     {celda.subtexto}

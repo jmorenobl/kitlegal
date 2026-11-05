@@ -73,7 +73,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         {
           pasos.map((paso, indice) => (
             <li class="relative flex items-baseline gap-3 py-2 pl-5">
-              <span class="font-mono text-estampa font-semibold text-sello-tinta">{indice + 1}</span>
+              <span class="text-xs font-semibold text-sello-tinta tabular-nums">{indice + 1}</span>
               <span class:list={[indice === pasos.length - 1 ? "font-semibold text-tinta" : "text-tenue"]}>{paso}</span>
             </li>
           ))
@@ -87,8 +87,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         <span class="mb-3 block text-sm font-medium text-tenue">
           La misma consulta, dos respuestas: de memoria y con kitlegal.
         </span>
-        <span class="block rounded-md border border-linea bg-white px-5 py-4 font-mono text-sm text-tinta">
-          <span class="font-sans font-semibold">Consulta:</span>{" "}
+        <span class="block rounded-md border border-linea bg-white px-5 py-4 font-serif text-lg font-semibold text-tinta">
+          <span class="font-sans text-sm text-tenue">Consulta:</span>{" "}
           {comparativa.consulta}
         </span>
       </figcaption>
@@ -131,12 +131,12 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               <p class="leading-relaxed">{comparativa.alertaTexto}</p>
             </div>
           </div>
-          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 text-xs">
             <span class="flex items-center gap-1.5 font-medium text-derogada-tinta">
               <span class="size-1.5 rounded-full bg-derogada"></span>
               Respuesta de memoria
             </span>
-            <span class="font-semibold text-derogada-tinta uppercase">{comparativa.pieMalo}</span>
+            <span class="font-semibold text-derogada-tinta">{comparativa.pieMalo}</span>
           </div>
         </article>
 
@@ -192,7 +192,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               </details>
             </div>
           </div>
-          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
+          <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 text-xs">
             <span class="flex items-center gap-1.5 font-medium text-vigente-tinta">
               <span class="size-1.5 rounded-full bg-vigente"></span>
               Texto consolidado del BOE
@@ -291,7 +291,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
             <div>
               <p class="mb-3 flex items-center gap-2">
                 <Icono nombre={nombre} class="size-[18px] text-sello" />
-                <span class="font-mono text-estampa font-bold uppercase text-tenue">{etiqueta}</span>
+                <span class="text-sm font-medium text-tenue">{etiqueta}</span>
               </p>
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
