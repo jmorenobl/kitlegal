@@ -160,14 +160,14 @@ const filas: FilaComparativa[] = [
         <thead>
           <tr class="border-b border-linea bg-panel/60">
             <th scope="col" class="w-1/5 p-5 align-top text-xs font-semibold tracking-wide text-tenue">Criterio</th>
-            <th scope="col" class="w-[30%] border-x-2 border-agente bg-panel-2/70 p-5 align-top">
+            <th scope="col" class="w-[30%] border-x-2 border-noche bg-noche p-5 align-top">
               <div class="flex items-center justify-between gap-2">
-                <span class="font-serif text-lg font-bold text-tinta">kitlegal</span>
-                <span class="rounded-sm border border-linea-2 bg-white px-2 py-0.5 text-xs font-semibold text-tinta">
+                <span class="font-serif text-lg font-bold text-white">kitlegal</span>
+                <span class="rounded-sm border border-sello/60 px-2 py-0.5 text-xs font-semibold text-white">
                   Software libre
                 </span>
               </div>
-              <p class="mt-1 text-xs font-medium text-agente">{columnas.kitlegal.detalle}</p>
+              <p class="mt-1 text-xs font-medium text-sobre-noche">{columnas.kitlegal.detalle}</p>
             </th>
             {
               [columnas.editoriales, columnas.generalista].map(({ nombre, detalle }) => (
@@ -186,7 +186,7 @@ const filas: FilaComparativa[] = [
                 <th scope="row" class="p-5 align-top font-sans text-sm font-semibold text-tinta">
                   {fila.criterio}
                 </th>
-                <td class="border-x-2 border-agente bg-panel/30 p-5 align-top">
+                <td class="border-x-2 border-noche bg-panel/40 p-5 align-top">
                   <p class="flex items-center gap-1.5 font-sans text-sm font-bold text-tinta">
                     <Icono nombre="check" class="size-4 text-tinta" />
                     <span>{fila.kitlegal.destacado}</span>
@@ -216,7 +216,7 @@ const filas: FilaComparativa[] = [
             <h3 class="border-b border-linea px-4 py-2.5 font-serif text-lg font-semibold text-tinta">{fila.criterio}</h3>
             <dl class="divide-y divide-linea">
               <div class="bg-panel/40 px-4 py-3">
-                <dt class="text-xs font-semibold text-agente">kitlegal</dt>
+                <dt class="text-xs font-semibold text-sello-tinta">kitlegal</dt>
                 <dd class="mt-1 flex items-center gap-1.5 text-sm font-bold text-tinta">
                   <Icono nombre="check" class="size-4 text-tinta" />
                   {fila.kitlegal.destacado}

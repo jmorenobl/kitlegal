@@ -79,7 +79,7 @@
   }
 
   ::selection {
-    @apply bg-panel-2 text-tinta;
+    @apply bg-sello/20 text-tinta;
   }
 
   :focus-visible {
