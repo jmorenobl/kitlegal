@@ -1,7 +1,8 @@
 ---
 // La llamada a una nota de fuente: un número volado que enlaza con
 // `#fuente-N`, la lista de fuentes de la sección. El cuerpo no baja de 11 px y
-// la zona táctil se amplía a unos 24 px con un ::after, sin mover el texto.
+// la zona táctil es un ::after centrado de 28 × 32 px (WCAG 2.5.8 pide 24),
+// que no mueve el texto ni se ve.
 interface Props {
   numero: number;
 }
@@ -12,6 +13,6 @@ const { numero } = Astro.props;
 <sup class="leading-none"
   ><a
     href={`#fuente-${numero}`}
-    class="relative ml-0.5 text-[0.6875rem] font-semibold tabular-nums enlace after:absolute after:-inset-x-2 after:-inset-y-2.5 after:content-['']"
+    class="relative ml-0.5 text-[0.6875rem] font-semibold tabular-nums enlace after:absolute after:top-1/2 after:left-1/2 after:h-8 after:w-7 after:-translate-1/2 after:content-['']"
     ><span class="sr-only">Fuente </span>{numero}</a
   ></sup>
