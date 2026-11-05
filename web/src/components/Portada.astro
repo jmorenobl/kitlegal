@@ -6,7 +6,7 @@ import { rutaDeConsulta } from "../data/consultas";
 import { articulo, fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { getImage } from "astro:assets";
 import { ilustracion } from "../lib/ilustraciones";
-import { CORREO, enlaceCorreo } from "../lib/proyecto";
+import { CORREO, enlaceCorreo, enlaceParaElOrdenador } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
 import ComparativaMercado from "./ComparativaMercado.astro";
@@ -66,11 +66,15 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </h1>
     <p class="mb-10 max-w-lectura text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
 
-    <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+    <div class="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center">
       <a href={audiencia.secundario.destino} class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto">
         <Icono nombre={audiencia.secundario.icono} class="size-[18px] text-sello" />
         {audiencia.secundario.texto}
       </a>
+      {/* Bajo el botón en móvil; de sm a md, en su propia línea tras los dos enlaces. */}
+      <p class="-mt-2 text-sm leading-relaxed text-tenue sm:order-last sm:w-full md:hidden">
+        {audiencia.avisoMovil.antes}<a href={enlaceParaElOrdenador()} class="enlace">{audiencia.avisoMovil.enlace}</a>{audiencia.avisoMovil.despues}
+      </p>
       <a
         href="#diferencia"
         class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold enlace"
@@ -150,7 +154,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               }
             </p>
             </div>
-            <div class="space-y-1.5 rounded-md bg-derogada-fondo/80 p-4 text-xs text-derogada-tinta">
+            <div class="space-y-1.5 rounded-md bg-derogada-fondo/80 p-4 text-sm text-derogada-tinta">
               <p class="flex items-center gap-1.5 text-sm font-bold">
                 <Icono nombre="error" class="size-[18px] text-derogada" />
                 {comparativa.alertaTitulo}

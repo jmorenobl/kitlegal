@@ -23,6 +23,13 @@ export function enlaceCorreo(asunto?: string): string {
   return `mailto:${CORREO}?${campos.join("&")}`;
 }
 
+// enlaceParaElOrdenador es un mailto sin destinatario con la dirección de la
+// web en el cuerpo: desde el móvil, uno se manda el enlace para abrirlo en el
+// ordenador, donde se instala kitlegal.
+export function enlaceParaElOrdenador(): string {
+  return `mailto:?subject=${encodeURIComponent("kitlegal")}&body=${encodeURIComponent(`${SITIO}/`)}`;
+}
+
 // La web se construye desde web/ (make web, el flujo de la web); la raíz del
 // repositorio es su padre. Si no lo es, la construcción falla aquí y no más
 // tarde con un dato vacío.

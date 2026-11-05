@@ -214,38 +214,47 @@ const filas: FilaComparativa[] = [
         filas.map((fila) => (
           <li class="rounded-lg border border-linea bg-white">
             <h3 class="border-b border-linea px-4 py-2.5 font-serif text-lg font-semibold text-tinta">{fila.criterio}</h3>
+            {/*
+              En móvil se compara: el valor de las tres columnas, a la vista; el
+              detalle de cada una, con su nota, se pliega bajo su propio valor.
+            */}
             <dl class="divide-y divide-linea">
-              <div class="bg-panel/40 px-4 py-3">
-                <dt class="text-xs font-semibold text-sello-tinta">kitlegal</dt>
-                <dd class="mt-1 flex items-center gap-1.5 text-sm font-bold text-tinta">
-                  <Icono nombre="check" class="size-4 text-tinta" />
-                  {fila.kitlegal.destacado}
+              <div class="bg-noche px-4 pt-3">
+                <dt class="text-xs font-semibold text-sello">kitlegal</dt>
+                <dd>
+                  <details class="group">
+                    <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 py-2 text-sm font-bold text-white [&::-webkit-details-marker]:hidden">
+                      <span class="flex items-center gap-1.5">
+                        <Icono nombre="check" class="size-4 shrink-0 text-sello" />
+                        {fila.kitlegal.destacado}
+                      </span>
+                      <Icono nombre="expand-more" class="size-5 shrink-0 text-sobre-noche transition-transform group-open:rotate-180" />
+                    </summary>
+                    <p class="pb-3 text-pretty text-[0.8125rem] leading-snug text-sobre-noche">{fila.kitlegal.subtexto}</p>
+                  </details>
                 </dd>
-                <dd class="mt-0.5 text-pretty text-[0.8125rem] leading-snug text-tenue">{fila.kitlegal.subtexto}</dd>
               </div>
+              {[
+                [columnas.editoriales.nombre, fila.editoriales] as const,
+                [columnas.generalista.nombre, fila.generalista] as const,
+              ].map(([nombre, celda]) => (
+                <div class="px-4 pt-3">
+                  <dt class="text-xs font-semibold text-tenue">{nombre}</dt>
+                  <dd>
+                    <details class="group">
+                      <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 py-2 text-sm font-medium text-tinta [&::-webkit-details-marker]:hidden">
+                        {celda.destacado}
+                        <Icono nombre="expand-more" class="size-5 shrink-0 text-tenue transition-transform group-open:rotate-180" />
+                      </summary>
+                      <p class="pb-3 text-pretty text-[0.8125rem] leading-snug text-tenue">
+                        {celda.subtexto}
+                        {celda.nota && <Nota numero={celda.nota} />}
+                      </p>
+                    </details>
+                  </dd>
+                </div>
+              ))}
             </dl>
-            {/* En móvil va abierta la celda de kitlegal; las otras dos columnas, con sus notas, se pliegan. */}
-            <details class="group border-t border-linea">
-              <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 px-4 py-2.5 text-xs font-medium text-tenue hover:text-tinta [&::-webkit-details-marker]:hidden">
-                Las editoriales y un asistente sin fuentes
-                <Icono nombre="expand-more" class="size-5 shrink-0 transition-transform group-open:rotate-180" />
-              </summary>
-              <dl class="divide-y divide-linea border-t border-linea">
-                {[
-                  [columnas.editoriales.nombre, fila.editoriales] as const,
-                  [columnas.generalista.nombre, fila.generalista] as const,
-                ].map(([nombre, celda]) => (
-                  <div class="px-4 py-3">
-                    <dt class="text-xs font-semibold text-tenue">{nombre}</dt>
-                    <dd class="mt-1 text-sm font-medium text-tinta">{celda.destacado}</dd>
-                    <dd class="mt-0.5 text-pretty text-[0.8125rem] leading-snug text-tenue">
-                      {celda.subtexto}
-                      {celda.nota && <Nota numero={celda.nota} />}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
           </li>
         ))
       }

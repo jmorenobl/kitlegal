@@ -20,6 +20,10 @@ export interface Audiencia {
   // El botón principal de la cabecera de la portada: lo que esa audiencia hace
   // (instalar, en la de despachos). «Ver cómo funciona» va a su lado como enlace.
   secundario: { texto: string; destino: string; icono: string };
+  // Solo en móvil, bajo el botón principal: kitlegal se instala en el
+  // ordenador, así que se ofrece mandarse el enlace (`enlace`, un mailto sin
+  // destinatario) para abrirlo allí.
+  avisoMovil: { antes: string; enlace: string; despues: string };
   comparativa: {
     consulta: string;
     respuesta: string;
@@ -84,6 +88,11 @@ export const despachos: Audiencia = {
   subtitulo:
     "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto y la fuente oficial. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
   secundario: { texto: "Instalar kitlegal", destino: "/instalar/", icono: "download" },
+  avisoMovil: {
+    antes: "kitlegal se instala en el ordenador. ",
+    enlace: "Envíate el enlace",
+    despues: " para abrirlo allí.",
+  },
   comparativa: {
     consulta: "¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?",
     respuesta:
