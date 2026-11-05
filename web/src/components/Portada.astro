@@ -109,8 +109,9 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 {comparativa.insignia}
               </span>
             </div>
+            <div>
+            <p class="mb-2 text-xs font-medium text-derogada-tinta">Respuesta de ejemplo: el error típico de citar de memoria</p>
             <p class="leading-relaxed text-tinta italic">
-              <span class="sr-only">Respuesta de ejemplo, sin fuente: </span>
               {
                 respuesta.map(({ texto, marcado }) =>
                   marcado ? (
@@ -123,6 +124,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 )
               }
             </p>
+            </div>
             <div class="space-y-1.5 rounded-md bg-derogada-fondo/80 p-4 text-xs text-derogada-tinta">
               <p class="flex items-center gap-1.5 text-sm font-bold">
                 <Icono nombre="error" class="size-[18px] text-derogada" />

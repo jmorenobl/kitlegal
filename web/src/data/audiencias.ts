@@ -70,7 +70,7 @@ export const despachos: Audiencia = {
   nombre: "Para despachos y juristas",
   titulo: "IA para juristas: cada cita, comprobada en el BOE | kitlegal",
   descripcion:
-    "No cambies de IA: kitlegal hace que tu asistente cite el texto consolidado del BOE, con el artículo exacto y su vigencia. Software libre y sin cuotas.",
+    "Tu asistente de IA cita el texto consolidado del BOE, con el artículo exacto y su vigencia. Hoy, en Claude. Software libre y sin cuotas.",
   imagen: "despachos",
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
