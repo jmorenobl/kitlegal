@@ -86,3 +86,12 @@
     @apply outline-2 outline-offset-2 outline-agente;
   }
 }
+
+/*
+ * El enlace de la portada y el pie: texto en tinta con el subrayado en ámbar de
+ * sello y el hover en sello-tinta. El azul del agente no es de los enlaces.
+ */
+@utility enlace {
+  @apply text-tinta underline decoration-sello underline-offset-[0.2em] hover:text-sello-tinta;
+  text-decoration-thickness: 0.11em;
+}

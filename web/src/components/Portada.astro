@@ -69,7 +69,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </a>
       <a
         href="#diferencia"
-        class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
+        class="inline-flex items-center justify-center gap-1.5 text-sm font-semibold enlace"
       >
         Ver cómo funciona
         <Icono nombre="arrow-downward" class="size-4" />
@@ -77,8 +77,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
     <p class="mt-6 max-w-lectura text-sm leading-relaxed text-tenue">
       Hoy funciona en la app de escritorio de Claude y en Claude Code. En ChatGPT, Codex y Antigravity está{" "}
-      <a href="/instalar/#sin-probar" class="underline decoration-linea-2 underline-offset-2 hover:text-tinta">sin probar</a>:
-      si lo usas en otro asistente, <a href={enlaceCorreo()} class="font-semibold text-agente underline underline-offset-2">cuéntanoslo</a>.
+      <a href="/instalar/#sin-probar" class="enlace">sin probar</a>:
+      si lo usas en otro asistente, <a href={enlaceCorreo()} class="font-semibold enlace">cuéntanoslo</a>.
     </p>
     </div>
     {/*
@@ -181,7 +181,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 <span class="box-decoration-clone rounded-sm border border-derogada-borde bg-derogada-fondo px-1.5 py-0.5 font-semibold text-derogada-tinta">
                   {avisoDerogada.texto}
                 </span>{" "}
-                <a href={derogada.enlace} class="text-tenue underline decoration-linea-2 underline-offset-2 hover:text-tinta">
+                <a href={derogada.enlace} class="enlace">
                   {derogada.referencia} <span class="whitespace-nowrap">[{derogada.norma}]</span>
                 </a>
               </p>
@@ -242,14 +242,14 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         <span>
           Se instala una vez en la app de escritorio de Claude, como una extensión: sin terminal y sin saber programar.
           Con la app abierta, también puedes preguntar desde Claude en el móvil o en la web.{" "}
-          <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Instalar kitlegal</a>
+          <a href="/instalar/" class="font-semibold enlace">Instalar kitlegal</a>
         </span>
       </p>
       <p class="flex items-start gap-3 text-tenue">
         <Icono nombre="mail" class="mt-0.5 size-5 text-sello" />
         <span>
           ¿Qué le falta para tu despacho? Escríbenos a{" "}
-          <a href={enlaceCorreo()} class="font-semibold text-agente underline underline-offset-2">{CORREO}</a>.
+          <a href={enlaceCorreo()} class="font-semibold enlace">{CORREO}</a>.
         </span>
       </p>
     </div>
@@ -308,7 +308,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       garantias.enlace && (
         <a
           href={garantias.enlace.destino}
-          class="self-start justify-self-start text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta lg:col-start-1 lg:row-start-2"
+          class="self-start justify-self-start text-sm font-semibold enlace lg:col-start-1 lg:row-start-2"
         >
           {garantias.enlace.texto}
           <Icono nombre="arrow-forward" class="ml-1 inline size-4 align-[-0.2em]" />
@@ -360,7 +360,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
             {consulta ? (
               <a
                 href={rutaDeConsulta(consulta)}
-                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
+                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold enlace"
               >
                 Ver la respuesta, punto por punto
                 <Icono nombre="arrow-forward" class="size-4" />
@@ -368,7 +368,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
             ) : (
               <a
                 href={articulo(cita).enlace}
-                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
+                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold enlace"
               >
                 Leer el artículo en boe.es
                 <Icono nombre="open-in-new" class="size-4" />
