@@ -52,15 +52,15 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 }));
 ---
 
-<section class="relative overflow-hidden bg-lienzo pt-12 pb-14 md:pt-24 md:pb-20 lg:pt-10">
+<section class="bg-lienzo pt-14 pb-16 md:pt-28 md:pb-32">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
-    {/* En lg, la fotografía a la derecha del titular, a la altura de su columna. En móvil no se pinta. */}
-    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-x-12 xl:grid-cols-[minmax(0,1fr)_27rem]">
+    {/* Como en df6163bc: el titular y la fotografía a la par, centrados. En móvil no hay foto. */}
+    <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
     <div>
-    <h1 class="text-balance mb-6 max-w-4xl font-serif text-titular font-semibold text-tinta xl:text-display">
+    <h1 class="text-balance mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:text-[2.75rem] lg:leading-[1.15]">
       {audiencia.h1}
     </h1>
-    <p class="mb-8 max-w-lectura text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
+    <p class="mb-10 max-w-lectura text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
 
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
       <a href={audiencia.secundario.destino} class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto">
@@ -81,14 +81,13 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       si lo usas en otro asistente, <a href={enlaceCorreo()} class="font-semibold text-agente underline underline-offset-2">cuéntanoslo</a>.
     </p>
     </div>
-
     {/*
       Solo las fuentes con `media` de escritorio llevan la fotografía: en móvil el
       <img> se queda con un píxel en línea y no se descarga nada.
     */}
     <picture class="hidden lg:block">
       {fotoFuentes.map(({ tipo, srcset }) => (
-        <source media="(min-width: 64rem)" type={tipo} srcset={srcset} sizes="60rem" />
+        <source media="(min-width: 64rem)" type={tipo} srcset={srcset} sizes="50rem" />
       ))}
       <img
         src={PIXEL}
@@ -97,20 +96,25 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         height={foto.height}
         fetchpriority="high"
         decoding="async"
-        class:list={["size-full rounded-xl border border-linea object-cover shadow-lg", audiencia.ilustracion.foco]}
+        class:list={["aspect-[4/3] w-full rounded-xl border border-linea object-cover shadow-lg", audiencia.ilustracion.foco]}
       />
     </picture>
     </div>
+  </div>
+</section>
 
+{/* El díptico, la primera sección bajo el hero: su frase de entrada es el título. */}
+<section id="diferencia" aria-labelledby="titulo-diferencia" class="border-t border-linea bg-panel py-16 md:py-24">
+  <div class="mx-auto max-w-7xl px-4 sm:px-10">
+    <h2 id="titulo-diferencia" class="text-balance mb-8 font-serif text-3xl font-semibold text-tinta md:mb-10 md:text-4xl">
+      La misma consulta, dos respuestas: de memoria y con kitlegal.
+    </h2>
     {/*
       El orden del DOM es el del móvil: la consulta, las dos tarjetas y los pasos.
       En lg los pasos suben, como leyenda, entre la consulta y las tarjetas.
     */}
-    <figure id="diferencia" aria-label="Cómo funciona: la misma consulta, de memoria y con kitlegal" class="mt-8 flex flex-col">
+    <figure aria-label="Cómo funciona: la misma consulta, de memoria y con kitlegal" class="flex flex-col">
       <figcaption>
-        <span class="mb-2 block text-sm font-medium text-tenue">
-          La misma consulta, dos respuestas: de memoria y con kitlegal.
-        </span>
         <span class="block rounded-md border border-linea bg-white px-5 py-4 font-serif text-lg font-semibold text-tinta">
           <span class="font-sans text-sm text-tenue">Consulta:</span>{" "}
           {comparativa.consulta}
@@ -123,10 +127,10 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         >
           <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-linea pb-4">
-              <h2 id="titulo-sin" class="flex items-center gap-2 text-sm font-semibold text-derogada-tinta">
+              <h3 id="titulo-sin" class="flex items-center gap-2 text-sm font-semibold text-derogada-tinta">
                 <Icono nombre="cancel" class="size-5 text-derogada" />
                 Asistente de IA sin kitlegal
-              </h2>
+              </h3>
               {/* El juicio de la página, en Inter y sin forma de sello: la estampa en mono es para lo que llega del BOE. */}
               <span class="text-xs font-semibold text-derogada-tinta">{comparativa.insignia}</span>
             </div>
@@ -162,10 +166,10 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         >
           <div class="space-y-6">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-linea pb-4">
-              <h2 id="titulo-con" class="flex items-center gap-2 text-sm font-semibold text-vigente-tinta">
+              <h3 id="titulo-con" class="flex items-center gap-2 text-sm font-semibold text-vigente-tinta">
                 <Icono nombre="verified" class="size-5 text-vigente" />
                 Tu asistente con kitlegal
-              </h2>
+              </h3>
               {/* Como la insignia roja: una etiqueta de la página, en Inter y sin forma de sello. */}
               <span class="text-xs font-semibold text-vigente-tinta">Cita del BOE</span>
             </div>
