@@ -61,10 +61,10 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </div>
     </div>
 
-    <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-4xl leading-[1.15] font-semibold tracking-tight text-tinta sm:text-5xl lg:mx-0 lg:text-[2.75rem]">
+    <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:mx-0 lg:text-display">
       {audiencia.h1}
     </h1>
-    <p class="mx-auto mb-10 max-w-3xl text-lg leading-relaxed text-tenue lg:mx-0">{audiencia.subtitulo}</p>
+    <p class="mx-auto mb-10 max-w-prose text-lg leading-relaxed text-tenue lg:mx-0">{audiencia.subtitulo}</p>
 
     <div class="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start">
       <a
@@ -100,7 +100,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 Asistente de IA sin kitlegal
               </h2>
               <span
-                class="rounded-sm border border-derogada-borde bg-derogada-fondo px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-derogada-tinta uppercase"
+                class="rounded-sm border border-derogada-borde bg-derogada-fondo px-2.5 py-1 font-mono text-estampa font-bold text-derogada-tinta uppercase"
               >
                 {comparativa.insignia}
               </span>
@@ -151,7 +151,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 Tu asistente con kitlegal
               </h2>
               <span
-                class="rounded-sm border border-vigente-borde bg-vigente-fondo px-2.5 py-1 font-mono text-[10px] font-bold tracking-wider text-vigente-tinta uppercase"
+                class="rounded-sm border border-vigente-borde bg-vigente-fondo px-2.5 py-1 font-mono text-estampa font-bold text-vigente-tinta uppercase"
               >
                 Cita del BOE
               </span>
@@ -164,6 +164,9 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               role="note"
               class="rounded-lg border border-derogada-borde bg-derogada-fondo/70 p-3 font-mono text-xs text-derogada-tinta"
             >
+              <p class="mb-1.5 font-sans text-estampa font-semibold tracking-normal">
+                Lo detecta kitlegal antes de citar:
+              </p>
               <p>
                 <strong>{avisoDerogada.texto}</strong>{" "}
                 <a href={derogada.enlace} class="underline decoration-derogada-borde underline-offset-2 hover:text-tinta">
@@ -215,7 +218,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <h2 id="titulo-diferencia" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         Qué pasa entre tu pregunta y la respuesta
       </h2>
-      <p class="leading-relaxed text-tenue">
+      <p class="max-w-prose leading-relaxed text-tenue">
         Un modelo generalista responde con lo que recuerda y no sabe qué normas siguen en vigor. Con kitlegal, tu
         asistente lee el texto consolidado del BOE antes de responder y te dice de dónde sale cada frase.
       </p>
@@ -251,7 +254,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <h2 id="titulo-pilares" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         {garantias.titulo}
       </h2>
-      <p class="leading-relaxed text-tenue">{garantias.texto}</p>
+      <p class="mx-auto max-w-prose leading-relaxed text-tenue">{garantias.texto}</p>
       {
         garantias.enlace && (
           <a
@@ -332,7 +335,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <h2 id="titulo-integracion" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         Se instala una vez y se usa preguntando
       </h2>
-      <p class="leading-relaxed text-tenue">
+      <p class="mx-auto max-w-prose leading-relaxed text-tenue">
         Hace falta un asistente de IA que trabaje en tu ordenador: hoy, la app de escritorio de Claude o Claude Code.
         Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web. En ChatGPT y
         Gemini todavía no funciona.
@@ -394,7 +397,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           <h2 id="titulo-contacto" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
             {contacto.titulo}
           </h2>
-          <p class="mb-8 leading-relaxed text-tenue">{contacto.texto}</p>
+          <p class="mb-8 max-w-prose leading-relaxed text-tenue">{contacto.texto}</p>
           <a
             href={`mailto:${CORREO}?subject=${encodeURIComponent(contacto.asunto)}`}
             class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2"
