@@ -31,14 +31,14 @@ export interface Audiencia {
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
     enlace?: { texto: string; destino: string };
-    // Las tres garantías, en orden: leer la norma y comprobar su vigencia, y
-    // la de las sentencias, destacada: el miedo de un despacho es la
-    // jurisprudencia inventada.
+    // Las garantías. Destacadas y a la par, los dos frenos de un despacho: la
+    // de las sentencias (el miedo es la jurisprudencia inventada) y el secreto
+    // profesional (dónde están los datos: lo que corre en el equipo y lo que
+    // no). Debajo, leer la norma y comprobar su vigencia.
+    sentencias: { titulo: string; texto: string };
+    secreto: { titulo: string; texto: string };
     norma: { titulo: string; texto: string };
     vigencia: { titulo: string; texto: string };
-    sentencias: { titulo: string; texto: string };
-    // Dónde están los datos: lo que corre en el equipo y lo que no.
-    secreto: { titulo: string; texto: string };
   };
   // La etiqueta es la materia del caso, en neutro: el color de la portada es para
   // el estado de una norma (vigente, derogada), no para una categoría.
@@ -89,7 +89,7 @@ export const despachos: Audiencia = {
     cita: "lpacap-21",
   },
   garantias: {
-    titulo: "Tres garantías que da el programa, no el modelo",
+    titulo: "Garantías que da el programa, no el modelo",
     texto:
       "Lo que no debe hacerse de memoria lo hace un programa determinista, y el modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
@@ -107,7 +107,7 @@ export const despachos: Audiencia = {
       texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
     },
     secreto: {
-      titulo: "El secreto profesional",
+      titulo: "Tus asuntos no salen de tu equipo",
       texto:
         "kitlegal es un programa que corre en tu ordenador: lee los datos abiertos del BOE y guarda las normas consultadas en tu disco, sin cuentas ni servidores de kitlegal por medio. Lo que escribes a tu asistente sigue las condiciones de ese asistente.",
     },
