@@ -194,6 +194,22 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </ol>
     </figure>
 
+    <div class="mt-12 grid grid-cols-1 gap-4 border-t border-linea pt-8 text-sm md:grid-cols-2">
+      <p class="flex items-start gap-3 text-tenue">
+        <Icono nombre="download" class="mt-0.5 size-5 text-sello" />
+        <span>
+          Se instala una vez en la app de escritorio de Claude, sin terminal.{" "}
+          <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Ver la guía paso a paso</a>
+        </span>
+      </p>
+      <p class="flex items-start gap-3 text-tenue">
+        <Icono nombre="mail" class="mt-0.5 size-5 text-sello" />
+        <span>
+          ¿Qué le falta para tu despacho? Escríbenos a{" "}
+          <a href={`mailto:${CORREO}`} class="font-semibold text-agente underline underline-offset-2">{CORREO}</a>.
+        </span>
+      </p>
+    </div>
   </div>
 </section>
 
