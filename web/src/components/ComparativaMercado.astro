@@ -139,7 +139,7 @@ const filas: FilaComparativa[] = [
       <h2 id="titulo-comparativa" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         kitlegal frente a las bases de datos de las editoriales y a un asistente sin fuentes
       </h2>
-      <p class="max-w-prose leading-relaxed text-tenue">
+      <p class="max-w-lectura leading-relaxed text-tenue">
         Las bases de datos de las editoriales ya traen su propia IA, dentro de su plataforma. Un asistente generalista
         responde de memoria. kitlegal no sustituye a ninguno de los dos: da al asistente que ya usas el texto consolidado
         del BOE y la cita de cada artículo.
@@ -159,19 +159,19 @@ const filas: FilaComparativa[] = [
         </caption>
         <thead>
           <tr class="border-b border-linea bg-panel/60">
-            <th scope="col" class="w-1/5 p-5 font-mono text-xs font-semibold uppercase text-tenue">Criterio</th>
-            <th scope="col" class="w-[30%] border-x-2 border-agente bg-panel-2/70 p-5">
+            <th scope="col" class="w-1/5 p-5 align-top font-mono text-xs font-semibold uppercase text-tenue">Criterio</th>
+            <th scope="col" class="w-[30%] border-x-2 border-agente bg-panel-2/70 p-5 align-top">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-serif text-lg font-bold text-tinta">kitlegal</span>
                 <span class="rounded-sm border border-vigente-borde bg-vigente-fondo px-2 py-0.5 font-mono text-estampa font-bold uppercase text-vigente-tinta">
                   Software libre
                 </span>
               </div>
-              <p class="mt-1 font-mono text-xs text-agente font-medium">{columnas.kitlegal.detalle}</p>
+              <p class="mt-1 font-mono text-estampa font-medium text-agente">{columnas.kitlegal.detalle}</p>
             </th>
             {
               [columnas.editoriales, columnas.generalista].map(({ nombre, detalle }) => (
-                <th scope="col" class="w-1/4 p-5">
+                <th scope="col" class="w-1/4 p-5 align-top">
                   <span class="font-serif text-base font-semibold text-tinta">{nombre}</span>
                   <p class="mt-1 font-mono text-estampa font-normal text-tenue">{detalle}</p>
                 </th>
@@ -266,7 +266,7 @@ const filas: FilaComparativa[] = [
 
     <div class="mt-10 border-t border-linea pt-6">
       <h3 class="font-mono text-estampa font-semibold uppercase text-tinta">Fuentes de la comparativa</h3>
-      <ol class="mt-3 max-w-prose space-y-2 text-xs leading-relaxed text-tenue">
+      <ol class="mt-3 max-w-lectura space-y-2 text-xs leading-relaxed text-tenue">
         {
           fuentes.map(({ texto, enlaces }, indice) => (
             <li id={`fuente-${indice + 1}`} class="flex gap-2 target:text-tinta">

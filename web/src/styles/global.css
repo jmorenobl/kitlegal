@@ -41,6 +41,13 @@
   --color-codigo: #0a0e17;
   --color-codigo-borde: #1e293b;
 
+  /*
+   * La medida de lectura: 34em da 65-75 caracteres con Inter en cualquier
+   * cuerpo, porque crece con la letra. max-w-prose (65ch) se mide con el «0»,
+   * más ancho que el carácter medio de Inter, y daba 86-89.
+   */
+  --container-lectura: 34em;
+
   --text-estampa: 0.6875rem;
   --text-estampa--line-height: 1rem;
   --text-estampa--letter-spacing: 0.06em;

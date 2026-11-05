@@ -32,14 +32,14 @@ const icono: Record<Tono, string> = {
   vigente: "text-vigente",
 };
 
-// Lo que ocurre entre la pregunta y la respuesta, en orden: una línea bajo el
-// díptico, que ya lo enseña con un caso.
+// Lo que ocurre entre la pregunta y la respuesta, en orden: al lado del
+// titular, antes del díptico, que lo enseña con un caso.
 const pasos = [
   "Preguntas con tus palabras",
-  "tu asistente llama a kitlegal",
-  "lee la norma en el BOE",
-  "comprueba su vigencia",
-  "recibes la respuesta con su cita",
+  "Tu asistente llama a kitlegal",
+  "kitlegal lee la norma en el BOE",
+  "Comprueba su vigencia",
+  "Recibes la respuesta con su cita",
 ];
 
 // La respuesta de memoria, partida alrededor de las marcas del error.
@@ -52,12 +52,12 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 
 <section class="relative overflow-hidden bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-28 md:pb-20">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
+    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-end lg:gap-16 xl:gap-24">
     <div>
-
     <h1 class="text-balance mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:text-display">
       {audiencia.h1}
     </h1>
-    <p class="mb-10 max-w-prose text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
+    <p class="mb-10 max-w-lectura text-lg leading-relaxed text-tenue">{audiencia.subtitulo}</p>
 
     <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
       <a href={audiencia.secundario.destino} class="inline-flex w-full items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2 sm:w-auto">
@@ -73,10 +73,32 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       </a>
     </div>
     </div>
+    <div class="mt-14 lg:mt-0">
+      <p id="titulo-pasos" class="mb-3 font-serif text-lg font-semibold text-tinta">
+        Entre la pregunta y la respuesta
+      </p>
+      <ol aria-labelledby="titulo-pasos" class="border-l border-linea-2 text-sm">
+        {
+          pasos.map((paso, indice) => (
+            <li class="relative flex items-baseline gap-3 py-2 pl-5">
+              <span class="font-mono text-estampa font-semibold text-sello-tinta">{indice + 1}</span>
+              <span class:list={[indice === pasos.length - 1 ? "font-semibold text-tinta" : "text-tenue"]}>{paso}</span>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+    </div>
 
     <figure id="diferencia" aria-label="Cómo funciona: la misma consulta, de memoria y con kitlegal" class="mt-16">
-      <figcaption class="mb-6 text-sm font-medium text-tenue">
-        La misma consulta, dos respuestas: de memoria y con kitlegal.
+      <figcaption class="mb-6">
+        <span class="mb-3 block text-sm font-medium text-tenue">
+          La misma consulta, dos respuestas: de memoria y con kitlegal.
+        </span>
+        <span class="block rounded-md border border-linea bg-white px-5 py-4 font-mono text-sm text-tinta">
+          <span class="font-sans font-semibold">Consulta:</span>{" "}
+          {comparativa.consulta}
+        </span>
       </figcaption>
       <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
         <article
@@ -95,10 +117,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 {comparativa.insignia}
               </span>
             </div>
-            <p class="rounded-md border border-linea/50 bg-panel/60 p-3.5 font-mono text-xs text-tenue">
-              <span class="font-sans font-semibold text-tinta">Consulta:</span>{" "}
-              {comparativa.consulta}
-            </p>
             <p class="leading-relaxed text-tinta italic">
               <span class="sr-only">Respuesta de ejemplo, sin fuente: </span>
               {
@@ -146,10 +164,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 Cita del BOE
               </span>
             </div>
-            <p class="rounded-md border border-linea/50 bg-panel/60 p-3.5 font-mono text-xs text-tenue">
-              <span class="font-sans font-semibold text-tinta">Consulta:</span>{" "}
-              {comparativa.consulta}
-            </p>
             <div role="note" class="rounded-md border border-linea bg-panel/40 p-3 text-xs">
               <p class="mb-2 flex items-center gap-1.5 font-semibold text-tinta">
                 <Icono nombre="verified" class="size-4 text-vigente" />
@@ -186,19 +200,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           </div>
         </article>
       </div>
-      <ol
-        aria-label="Cómo funciona, paso a paso"
-        class="mt-8 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tenue"
-      >
-        {
-          pasos.map((paso, indice) => (
-            <li class="flex items-center gap-2">
-              {indice > 0 && <Icono nombre="arrow-forward" class="size-4 text-sello" />}
-              <span class:list={[indice === pasos.length - 1 && "font-semibold text-tinta"]}>{paso}</span>
-            </li>
-          ))
-        }
-      </ol>
     </figure>
 
     <div class="mt-12 grid grid-cols-1 gap-4 border-t border-linea pt-8 text-sm md:grid-cols-2">
@@ -232,13 +233,13 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           <Icono nombre="gavel" class="mt-1 size-6 text-agente" />
           <span>
             <strong class="block font-serif text-xl font-semibold text-tinta">{garantias.sentencias.titulo}.</strong>
-            <span class="mt-1 block max-w-prose leading-relaxed text-tenue">{garantias.sentencias.texto}</span>
+            <span class="mt-1 block max-w-lectura leading-relaxed text-tenue">{garantias.sentencias.texto}</span>
           </span>
         </p>
       )
     }
     <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-10">
-    <p class="max-w-prose text-sm leading-relaxed text-tenue">
+    <p class="max-w-lectura text-sm leading-relaxed text-tenue">
       <strong class="font-serif text-base font-semibold text-tinta">{garantias.titulo}.</strong>{" "}
       {garantias.texto}
     </p>
@@ -312,7 +313,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <h2 id="titulo-integracion" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         Se instala una vez y se usa preguntando
       </h2>
-      <p class="mx-auto max-w-prose leading-relaxed text-tenue">
+      <p class="mx-auto max-w-lectura leading-relaxed text-tenue">
         Hace falta un asistente de IA que trabaje en tu ordenador: hoy, la app de escritorio de Claude o Claude Code.
         Con la app abierta en tu ordenador, también puedes preguntar desde Claude en el móvil o en la web. En ChatGPT,
         Codex y Antigravity está <a href="/instalar/#sin-probar" class="text-agente underline underline-offset-2">sin probar</a>.
@@ -371,7 +372,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           <h2 id="titulo-contacto" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
             {contacto.titulo}
           </h2>
-          <p class="mb-8 max-w-prose leading-relaxed text-tenue">{contacto.texto}</p>
+          <p class="mb-8 max-w-lectura leading-relaxed text-tenue">{contacto.texto}</p>
           <a
             href={`mailto:${CORREO}?subject=${encodeURIComponent(contacto.asunto)}`}
             class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2"
