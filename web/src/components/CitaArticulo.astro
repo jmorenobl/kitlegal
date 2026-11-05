@@ -46,9 +46,9 @@ const partes = cita.fragmentos.map((fragmento, indice) => {
             {union === "elision" && " […] "}
             {antes}
             {destacado && (
-              <strong class="font-medium not-italic text-tinta underline decoration-vigente decoration-2 underline-offset-2">
+              <mark class="rounded-sm bg-vigente-fondo px-1 font-semibold not-italic text-vigente-tinta">
                 {destacado}
-              </strong>
+              </mark>
             )}
             {despues}
           </>
