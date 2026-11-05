@@ -55,9 +55,9 @@ export interface Audiencia {
     titulo: string;
     texto: string;
     peticiones: string[];
-    // Lo que hoy no hace, y por qué: una frase por cosa. `detalle` enlaza la
-    // explicación larga.
-    todavia: string[];
+    // Lo que hoy no hace, y por qué: una frase por cosa, o un resumen con su
+    // explicación plegada. `detalle` enlaza la explicación larga.
+    todavia: (string | { resumen: string; explicacion: string })[];
     detalle: { texto: string; destino: string };
     aviso: string;
     asunto: string;
@@ -334,7 +334,11 @@ export const despachos: Audiencia = {
     ],
     todavia: [
       "No redacta escritos todavía. Lo hará: está en el plan.",
-      "No consulta jurisprudencia. La del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, y sus condiciones de uso no permiten consultarlo de forma masiva ni automatizada. Mientras no cambien, kitlegal no lo hará.",
+      {
+        resumen: "No consulta jurisprudencia.",
+        explicacion:
+          "La del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, y sus condiciones de uso no permiten consultarlo de forma masiva ni automatizada. Mientras no cambien, kitlegal no lo hará.",
+      },
       "Lo que sí puede llegar, por vías que lo permiten: las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE, y la jurisprudencia europea.",
     ],
     detalle: { texto: "Por qué, con detalle", destino: `${REPOSITORIO}#y-las-sentencias` },
