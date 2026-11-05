@@ -3,7 +3,7 @@
 // datos de audiencias.ts, las citas de citas.yaml y las cifras de data/.
 import { type Audiencia, type Tono } from "../data/audiencias";
 import { rutaDeConsulta } from "../data/consultas";
-import { fechaCorta, huellaCorta, norma } from "../lib/citas";
+import { articulo, fechaCorta, huellaCorta, norma } from "../lib/citas";
 import { CORREO, REPOSITORIO } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
@@ -52,14 +52,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 <section class="relative overflow-hidden border-b border-linea/50 bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-28 md:pb-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="text-center lg:text-left">
-    <div class="mb-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-start">
-      <div class="inline-flex items-center gap-2 rounded-full border border-linea bg-white px-3.5 py-1.5 shadow-xs">
-        <span class="flex size-2 rounded-full bg-sello motion-safe:animate-pulse"></span>
-        <span class="font-mono text-estampa font-semibold uppercase text-tinta">
-          Para juristas y despachos en España
-        </span>
-      </div>
-    </div>
 
     <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:mx-0 lg:text-display">
       {audiencia.h1}
@@ -123,7 +115,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 )
               }
             </p>
-            <div class="space-y-1.5 rounded-lg border border-derogada-borde/60 bg-derogada-fondo/80 p-4 text-xs text-derogada-tinta">
+            <div class="space-y-1.5 rounded-md bg-derogada-fondo/80 p-4 text-xs text-derogada-tinta">
               <p class="flex items-center gap-1.5 text-sm font-bold">
                 <Icono nombre="error" class="size-[18px] text-derogada" />
                 {comparativa.alertaTitulo}
@@ -162,7 +154,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
             </p>
             <div
               role="note"
-              class="rounded-lg border border-derogada-borde bg-derogada-fondo/70 p-3 font-mono text-xs text-derogada-tinta"
+              class="rounded-md bg-derogada-fondo/70 p-3 font-mono text-xs text-derogada-tinta"
             >
               <p class="mb-1.5 font-sans text-estampa font-semibold tracking-normal">
                 Lo detecta kitlegal antes de citar:
@@ -177,7 +169,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 </span>
               </p>
             </div>
-            <div class="rounded-lg border border-linea bg-papel p-5 shadow-xs">
+            <div class="border-t border-linea pt-6">
               <CitaArticulo id={comparativa.cita} variante="destacada" />
             </div>
           </div>
@@ -214,8 +206,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 <section id="diferencia" aria-labelledby="titulo-diferencia" class="bg-lienzo py-24 md:py-32">
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="mb-16 max-w-2xl">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">Contraste de rigor</p>
-      <h2 id="titulo-diferencia" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+      <h2 id="titulo-diferencia" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         Qué pasa entre tu pregunta y la respuesta
       </h2>
       <p class="max-w-prose leading-relaxed text-tenue">
@@ -250,8 +241,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 <section id="pilares" aria-labelledby="titulo-pilares" class="border-y border-linea bg-panel/50 py-24 md:py-32">
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">{garantias.antetitulo}</p>
-      <h2 id="titulo-pilares" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+      <h2 id="titulo-pilares" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         {garantias.titulo}
       </h2>
       <p class="mx-auto max-w-prose leading-relaxed text-tenue">{garantias.texto}</p>
@@ -269,13 +259,13 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
     <div class="grid grid-cols-1 gap-8 md:grid-cols-3">
       {
-        garantias.pilares.map(({ icono: nombre, tono, fondo, titulo, texto, pie }) => (
+        garantias.pilares.map(({ icono: nombre, tono, titulo, texto, pie }) => (
           <div class="flex flex-col justify-between rounded-lg border border-linea bg-white p-8 shadow-sm">
             <div class="space-y-4">
-              <div class:list={["flex size-12 items-center justify-center rounded-lg", fondo, icono[tono]]}>
-                <Icono nombre={nombre} class="size-[26px]" />
-              </div>
-              <h3 class="font-serif text-xl font-semibold text-tinta">{titulo}</h3>
+              <h3 class="flex items-center gap-2.5 font-serif text-xl font-semibold text-tinta">
+                <Icono nombre={nombre} class:list={["size-6", icono[tono]]} />
+                {titulo}
+              </h3>
               <p class="text-sm leading-relaxed text-tenue">{texto}</p>
             </div>
             <p class:list={["mt-6 border-t border-linea pt-6 font-mono text-xs font-semibold", tinta[tono]]}>{pie}</p>
@@ -290,8 +280,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="mb-16 flex flex-col justify-between gap-6 md:flex-row md:items-end">
       <div>
-        <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">Aplicación inmediata</p>
-        <h2 id="titulo-casos" class="text-balance mt-2 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+        <h2 id="titulo-casos" class="text-balance font-serif text-3xl font-semibold text-tinta md:text-4xl">
           Consultas habituales, con su cita
         </h2>
       </div>
@@ -312,15 +301,13 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
             <CitaArticulo id={cita} />
-            {consulta && (
-              <a
-                href={rutaDeConsulta(consulta)}
-                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline-offset-2 hover:underline"
-              >
-                Ver la respuesta, punto por punto
-                <Icono nombre="arrow-forward" class="size-4" />
-              </a>
-            )}
+            <a
+              href={consulta ? rutaDeConsulta(consulta) : articulo(cita).enlace}
+              class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline-offset-2 hover:underline"
+            >
+              {consulta ? "Ver la respuesta, punto por punto" : "Leer el artículo en el BOE"}
+              <Icono nombre="arrow-forward" class="size-4" />
+            </a>
           </article>
         ))
       }
@@ -331,8 +318,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 <section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-panel/40 py-24 md:py-32">
   <div class="mx-auto max-w-5xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
-      <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-agente">Qué necesitas</p>
-      <h2 id="titulo-integracion" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+      <h2 id="titulo-integracion" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
         Se instala una vez y se usa preguntando
       </h2>
       <p class="mx-auto max-w-prose leading-relaxed text-tenue">
@@ -391,10 +377,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     <section id="contacto" aria-labelledby="titulo-contacto" class="border-t border-linea bg-lienzo py-24 md:py-32">
       <div class="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-4 sm:px-10 lg:grid-cols-2 lg:gap-16">
         <div>
-          <p class="font-mono text-estampa font-semibold uppercase tracking-widest text-sello-tinta">
-            {contacto.antetitulo}
-          </p>
-          <h2 id="titulo-contacto" class="text-balance mt-2 mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
+          <h2 id="titulo-contacto" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
             {contacto.titulo}
           </h2>
           <p class="mb-8 max-w-prose leading-relaxed text-tenue">{contacto.texto}</p>
@@ -439,9 +422,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 
 <section aria-labelledby="titulo-cta" class="relative overflow-hidden bg-noche py-24 text-white md:py-32">
   <div class="relative z-10 mx-auto max-w-4xl px-4 text-center sm:px-10">
-    <div class="mx-auto mb-8 flex size-14 items-center justify-center rounded-xl border border-white/15 bg-white/5 text-sello">
-      <Icono nombre="balance" class="size-8" />
-    </div>
     <h2 id="titulo-cta" class="text-balance mb-6 font-serif text-3xl leading-tight font-semibold md:text-5xl">{audiencia.cta.titulo}</h2>
     <p class="mx-auto mb-10 max-w-2xl text-lg leading-relaxed font-light text-sobre-noche">{audiencia.cta.texto}</p>
     <div class="flex flex-col items-center justify-center gap-4 sm:flex-row">

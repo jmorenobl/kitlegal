@@ -67,6 +67,10 @@
     @apply bg-lienzo font-sans text-tinta antialiased;
   }
 
+  p {
+    text-wrap: pretty;
+  }
+
   ::selection {
     @apply bg-panel-2 text-tinta;
   }
