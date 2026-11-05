@@ -57,9 +57,12 @@ export interface Audiencia {
     titulo: string;
     texto: string;
     peticiones: string[];
-    // Lo que hoy no hace, y por qué: una frase por cosa, o un resumen con su
-    // explicación plegada. `detalle` enlaza la explicación larga.
-    todavia: (string | { resumen: string; explicacion: string })[];
+    // Lo que todavía no hace y está en el roadmap o en el backlog
+    // (docs/roadmap/), sin fechas: una frase por cosa.
+    enMarcha: string[];
+    // Lo que no hará por decisión, con su porqué plegado. `detalle` enlaza la
+    // explicación larga.
+    descartado: { resumen: string; explicacion: string };
     detalle: { texto: string; destino: string };
     aviso: string;
     asunto: string;
@@ -185,7 +188,7 @@ export const despachos: Audiencia = {
   insignia: "Para juristas y despachos en España · Software libre y gratuito",
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
-    "No es otra plataforma ni otra suscripción: kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
+    "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. Funciona en la app de escritorio de Claude y en Claude Code. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
   secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
   metricas: [
     {
@@ -279,15 +282,16 @@ export const despachos: Audiencia = {
       "Una fuente que echas de menos: jurisprudencia, consultas de la DGT, convenios colectivos, boletines autonómicos.",
       "Lo que te frena para usarlo: la instalación, la confidencialidad, la forma de la respuesta.",
     ],
-    todavia: [
-      "No redacta escritos todavía. Lo hará: está en el plan.",
-      {
-        resumen: "No consulta jurisprudencia.",
-        explicacion:
-          "La del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, y sus condiciones de uso no permiten consultarlo de forma masiva ni automatizada. Mientras no cambien, kitlegal no lo hará.",
-      },
-      "Lo que sí puede llegar, por vías que lo permiten: las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE, y la jurisprudencia europea.",
+    enMarcha: [
+      "Redactar escritos.",
+      "Leer por sí mismo las sentencias del Tribunal Constitucional y las del Supremo que anulan una disposición, que se publican en el BOE. Hoy las cita si traes el documento.",
+      "Consultar la jurisprudencia europea.",
     ],
+    descartado: {
+      resumen: "Consultar el CENDOJ de forma automática.",
+      explicacion:
+        "La jurisprudencia del Tribunal Supremo, la Audiencia Nacional, los tribunales superiores de justicia y las audiencias provinciales está en el CENDOJ, del Consejo General del Poder Judicial, cuyas condiciones de uso no permiten consultarlo de forma masiva ni automatizada. kitlegal las respeta: tú buscas la sentencia con tu navegador, con la consulta que te prepara tu asistente, y kitlegal comprueba que el documento que traes es el que se pide antes de citarlo.",
+    },
     detalle: { texto: "Por qué, con detalle", destino: `${REPOSITORIO}#y-las-sentencias` },
     aviso:
       "No incluyas datos de clientes ni de asuntos. Leemos tu mensaje solo para responderte y para decidir qué mejorar.",

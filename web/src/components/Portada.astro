@@ -17,6 +17,7 @@ const { audiencia } = Astro.props;
 const { comparativa, garantias, contacto } = audiencia;
 const derogada = norma("ley-30-1992", "derogada");
 const avisoDerogada = derogada.avisos.find((aviso) => aviso.codigo === "derogada")!;
+const citaDestacada = articulo(comparativa.cita);
 
 const tinta: Record<Tono, string> = {
   sello: "text-sello-tinta",
@@ -163,11 +164,17 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
                 </a>
               </p>
               <p class="mt-1.5 font-mono text-tenue">
-                kitlegal boe metadatos · {fechaCorta(derogada.fechaConsulta)} · {huellaCorta(derogada.hash)}
+                Metadatos del BOE · {fechaCorta(derogada.fechaConsulta)} · {huellaCorta(derogada.hash)}
               </p>
             </div>
             <div class="border-t border-linea pt-6">
               <CitaArticulo id={comparativa.cita} variante="destacada" />
+              <p class="mt-4 text-xs leading-relaxed text-tenue">
+                Cómo se lee la cita: <span class="font-mono text-tinta">{citaDestacada.norma}</span> es el identificador
+                de la norma en el BOE, y el bloque <span class="font-mono text-tinta">{citaDestacada.bloque}</span>, la
+                parte del texto consolidado que contiene el artículo. La huella del texto (<span class="font-mono text-tinta">sha256</span>)
+                se calcula sobre lo leído: si el BOE cambia el artículo, la huella cambia y se nota.
+              </p>
             </div>
           </div>
           <div class="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-linea pt-6 font-mono text-estampa">
@@ -198,7 +205,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       <p class="flex items-start gap-3 text-tenue">
         <Icono nombre="download" class="mt-0.5 size-5 text-sello" />
         <span>
-          Se instala una vez en la app de escritorio de Claude, sin terminal.{" "}
+          Se instala una vez en la app de escritorio de Claude, sin terminal. En ChatGPT, Codex y Antigravity, sin
+          probar.{" "}
           <a href="/instalar/" class="font-semibold text-agente underline underline-offset-2">Ver la guía paso a paso</a>
         </span>
       </p>
@@ -311,7 +319,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           </div>
           <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal</h3>
           <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Es un plugin que se añade desde la propia app, sin terminal: trae las herramientas que leen el BOE y las instrucciones
+            Es un plugin, una extensión que se añade desde la propia app, sin terminal: trae las herramientas que leen el BOE y las instrucciones
             con las que tu asistente lo cita. No hace falta saber programar, y la guía lo explica paso a paso.
           </p>
         </div>
@@ -372,30 +380,32 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               </li>
             ))}
           </ul>
-          <h3 class="mb-3 border-t border-linea pt-5 font-serif text-lg font-semibold text-tinta">Lo que hoy no hace</h3>
-          <ul class="mb-3 space-y-3 text-sm leading-relaxed text-tenue">
-            {contacto.todavia.map((frase) => (
+          <h3 class="mb-1 border-t border-linea pt-5 font-serif text-lg font-semibold text-tinta">Todavía no lo hace</h3>
+          <p class="mb-3 text-sm text-tenue">Estamos trabajando en ello:</p>
+          <ul class="mb-6 space-y-2.5 text-sm leading-relaxed text-tenue">
+            {contacto.enMarcha.map((frase) => (
               <li class="flex items-start gap-2.5">
-                <Icono nombre="info" class="mt-0.5 size-[18px] text-agente" />
-                {typeof frase === "string" ? (
-                  <span>{frase}</span>
-                ) : (
-                  <details class="group">
-                    <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-                      {frase.resumen}{" "}
-                      <span class="font-semibold text-agente underline underline-offset-2 group-open:hidden">Por qué</span>
-                    </summary>
-                    <p class="mt-1">{frase.explicacion}</p>
-                  </details>
-                )}
+                <Icono nombre="pending" class="mt-0.5 size-[18px] text-sello" />
+                <span>{frase}</span>
               </li>
             ))}
           </ul>
-          <p class="mb-5 text-sm">
-            <a href={contacto.detalle.destino} class="font-semibold text-agente underline underline-offset-2">
-              {contacto.detalle.texto}
-            </a>
-          </p>
+          <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">Lo que no hará</h3>
+          <div class="mb-6 flex items-start gap-2.5 text-sm leading-relaxed text-tenue">
+            <Icono nombre="block" class="mt-0.5 size-[18px] text-tinta" />
+            <details class="group">
+              <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                {contacto.descartado.resumen}{" "}
+                <span class="font-semibold text-tinta underline underline-offset-2 group-open:hidden">Por qué</span>
+              </summary>
+              <p class="mt-1">
+                {contacto.descartado.explicacion}{" "}
+                <a href={contacto.detalle.destino} class="font-semibold text-tinta underline underline-offset-2">
+                  {contacto.detalle.texto}
+                </a>
+              </p>
+            </details>
+          </div>
           <p class="text-xs leading-relaxed text-tenue">{contacto.aviso}</p>
         </div>
       </div>
