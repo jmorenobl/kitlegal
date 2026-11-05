@@ -23,7 +23,6 @@ export interface Audiencia {
     insignia: string;
     alertaTitulo: string;
     alertaTexto: string;
-    pieMalo: string;
     cita: string;
   };
   garantias: {
@@ -85,7 +84,6 @@ export const despachos: Audiencia = {
     alertaTitulo: "Dos errores en una frase",
     alertaTexto:
       "La Ley 30/1992 está derogada. Y seis meses es el máximo que puede fijar la norma del procedimiento (art. 21.2 de la Ley 39/2015); si no fija ninguno, el plazo es de tres meses (art. 21.3), como cita la respuesta con kitlegal.",
-    pieMalo: "Sin fuente",
     cita: "lpacap-21",
   },
   garantias: {
@@ -141,7 +139,7 @@ export const despachos: Audiencia = {
     },
   ],
   contacto: {
-    titulo: "¿Qué le falta para tu despacho?",
+    titulo: "Cuéntanos qué necesita tu despacho",
     texto:
       "kitlegal ya sirve para consultar y citar la legislación consolidada del BOE. Estamos trabajando para que sirva al trabajo diario de un despacho y, como no recoge ningún dato de uso, la única forma de saber qué necesitas es que nos lo cuentes.",
     peticiones: [
@@ -166,7 +164,7 @@ export const despachos: Audiencia = {
   },
   cta: {
     titulo: "Dota a tu despacho de la ley vigente, con su cita.",
-    texto: "Gratis, en tu equipo y sin cuentas: pruébalo con la próxima consulta que tengas que citar.",
+    texto: "Pruébalo con la próxima consulta que tengas que citar.",
   },
 };
 
