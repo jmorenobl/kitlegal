@@ -23,7 +23,6 @@ export interface Audiencia {
     insignia: string;
     alertaTitulo: string;
     alertaTexto: string;
-    pieMalo: string;
     cita: string;
   };
   garantias: {
@@ -31,14 +30,14 @@ export interface Audiencia {
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
     enlace?: { texto: string; destino: string };
-    // Las tres garantías, en orden: leer la norma y comprobar su vigencia, y
-    // la de las sentencias, destacada: el miedo de un despacho es la
-    // jurisprudencia inventada.
+    // Las garantías. Destacadas y a la par, los dos frenos de un despacho: la
+    // de las sentencias (el miedo es la jurisprudencia inventada) y el secreto
+    // profesional (dónde están los datos: lo que corre en el equipo y lo que
+    // no). Debajo, leer la norma y comprobar su vigencia.
+    sentencias: { titulo: string; texto: string };
+    secreto: { titulo: string; texto: string };
     norma: { titulo: string; texto: string };
     vigencia: { titulo: string; texto: string };
-    sentencias: { titulo: string; texto: string };
-    // Dónde están los datos: lo que corre en el equipo y lo que no.
-    secreto: { titulo: string; texto: string };
   };
   // La etiqueta es la materia del caso, en neutro: el color de la portada es para
   // el estado de una norma (vigente, derogada), no para una categoría.
@@ -85,11 +84,10 @@ export const despachos: Audiencia = {
     alertaTitulo: "Dos errores en una frase",
     alertaTexto:
       "La Ley 30/1992 está derogada. Y seis meses es el máximo que puede fijar la norma del procedimiento (art. 21.2 de la Ley 39/2015); si no fija ninguno, el plazo es de tres meses (art. 21.3), como cita la respuesta con kitlegal.",
-    pieMalo: "Sin fuente",
     cita: "lpacap-21",
   },
   garantias: {
-    titulo: "Tres garantías que da el programa, no el modelo",
+    titulo: "Garantías que da el programa, no el modelo",
     texto:
       "Lo que no debe hacerse de memoria lo hace un programa determinista, y el modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
@@ -107,7 +105,7 @@ export const despachos: Audiencia = {
       texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
     },
     secreto: {
-      titulo: "El secreto profesional",
+      titulo: "Tus asuntos no salen de tu equipo",
       texto:
         "kitlegal es un programa que corre en tu ordenador: lee los datos abiertos del BOE y guarda las normas consultadas en tu disco, sin cuentas ni servidores de kitlegal por medio. Lo que escribes a tu asistente sigue las condiciones de ese asistente.",
     },
@@ -141,7 +139,7 @@ export const despachos: Audiencia = {
     },
   ],
   contacto: {
-    titulo: "¿Qué le falta para tu despacho?",
+    titulo: "Cuéntanos qué necesita tu despacho",
     texto:
       "kitlegal ya sirve para consultar y citar la legislación consolidada del BOE. Estamos trabajando para que sirva al trabajo diario de un despacho y, como no recoge ningún dato de uso, la única forma de saber qué necesitas es que nos lo cuentes.",
     peticiones: [
@@ -166,7 +164,7 @@ export const despachos: Audiencia = {
   },
   cta: {
     titulo: "Dota a tu despacho de la ley vigente, con su cita.",
-    texto: "Gratis, en tu equipo y sin cuentas: pruébalo con la próxima consulta que tengas que citar.",
+    texto: "Pruébalo con la próxima consulta que tengas que citar.",
   },
 };
 
