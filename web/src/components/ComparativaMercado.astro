@@ -58,7 +58,7 @@ const fuentes = [
 ];
 
 const columnas = {
-  kitlegal: { nombre: "kitlegal", detalle: "En el asistente que ya usas" },
+  kitlegal: { nombre: "kitlegal", detalle: "En tu asistente (hoy, Claude)" },
   editoriales: { nombre: "Bases de las editoriales", detalle: "Aranzadi LA LEY, Lefebvre, vLex" },
   generalista: { nombre: "Asistente sin fuentes", detalle: "Claude, ChatGPT o Copilot, sin kitlegal" },
 };
@@ -221,7 +221,7 @@ const filas: FilaComparativa[] = [
                   <Icono nombre="check" class="size-4 text-tinta" />
                   {fila.kitlegal.destacado}
                 </dd>
-                <dd class="mt-0.5 text-[0.8125rem] leading-snug text-tenue">{fila.kitlegal.subtexto}</dd>
+                <dd class="mt-0.5 text-pretty text-[0.8125rem] leading-snug text-tenue">{fila.kitlegal.subtexto}</dd>
               </div>
               {[
                 [columnas.editoriales.nombre, fila.editoriales] as const,
@@ -230,7 +230,7 @@ const filas: FilaComparativa[] = [
                 <div class="px-4 py-3">
                   <dt class="text-xs font-semibold text-tenue">{nombre}</dt>
                   <dd class="mt-1 text-sm font-medium text-tinta">{celda.destacado}</dd>
-                  <dd class="mt-0.5 text-[0.8125rem] leading-snug text-tenue">
+                  <dd class="mt-0.5 text-pretty text-[0.8125rem] leading-snug text-tenue">
                     {celda.subtexto}
                     {celda.nota && <Nota numero={celda.nota} />}
                   </dd>
