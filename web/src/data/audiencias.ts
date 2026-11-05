@@ -258,7 +258,7 @@ export const despachos: Audiencia = {
     antetitulo: "Arquitectura de confianza",
     titulo: "Tres garantías que da el programa, no el modelo",
     texto:
-      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y situar el territorio. El modelo razona sobre lo que el programa le devuelve.",
+      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y cotejar la sentencia que traes. El modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
     pilares: [
       {
@@ -280,12 +280,13 @@ export const despachos: Audiencia = {
         pie: "Antes de citar",
       },
       {
-        icono: "location-city",
+        icono: "gavel",
         tono: "agente",
         fondo: "bg-panel",
-        titulo: "Territorio real",
-        texto: `Sitúa los ${municipios} municipios del INE en su provincia y su comunidad, con el código INE y el DIR3 del ayuntamiento, distingue régimen común y foral y dice qué boletines tiene configurados y cuáles no.`,
-        pie: `${municipios} municipios del INE`,
+        titulo: "Sentencias, solo con su documento",
+        texto:
+          "No busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",
+        pie: "Ninguna sentencia sin su documento",
       },
     ],
   },
