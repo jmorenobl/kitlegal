@@ -31,9 +31,12 @@ export interface Audiencia {
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
     enlace?: { texto: string; destino: string };
-    // La garantía sobre las sentencias, destacada aparte: el miedo de un
-    // despacho es la jurisprudencia inventada.
-    sentencias?: { titulo: string; texto: string };
+    // Las tres garantías, en orden: leer la norma y comprobar su vigencia, y
+    // la de las sentencias, destacada: el miedo de un despacho es la
+    // jurisprudencia inventada.
+    norma: { titulo: string; texto: string };
+    vigencia: { titulo: string; texto: string };
+    sentencias: { titulo: string; texto: string };
     // Dónde están los datos: lo que corre en el equipo y lo que no.
     secreto: { titulo: string; texto: string };
   };
@@ -88,8 +91,17 @@ export const despachos: Audiencia = {
   garantias: {
     titulo: "Tres garantías que da el programa, no el modelo",
     texto:
-      "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y cotejar la sentencia que traes. El modelo razona sobre lo que el programa le devuelve.",
+      "Lo que no debe hacerse de memoria lo hace un programa determinista, y el modelo razona sobre lo que el programa le devuelve.",
     enlace: { texto: "Cómo se comprueba, con sus resultados y sus errores", destino: "/como-se-evalua/" },
+    norma: {
+      titulo: "Cada artículo, leído en el BOE",
+      texto:
+        "Del texto consolidado, al responder: con su identificador, el bloque, la fecha de consulta y la huella del texto.",
+    },
+    vigencia: {
+      titulo: "La vigencia, antes de citar",
+      texto: "Si el BOE marca la norma como derogada o con la vigencia agotada, lo dice primero.",
+    },
     sentencias: {
       titulo: "Ninguna sentencia sin su documento",
       texto: "kitlegal no busca sentencias ni cita ninguna de memoria: solo cita la que traes, tras comprobar que es la que se pide.",

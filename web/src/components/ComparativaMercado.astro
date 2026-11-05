@@ -209,28 +209,28 @@ const filas: FilaComparativa[] = [
       </table>
     </div>
 
-    <ol class="space-y-6 md:hidden" aria-label="Comparativa, criterio por criterio">
+    <ol class="space-y-4 md:hidden" aria-label="Comparativa, criterio por criterio">
       {
         filas.map((fila) => (
           <li class="rounded-lg border border-linea bg-white">
-            <h3 class="border-b border-linea px-5 py-3 font-serif text-lg font-semibold text-tinta">{fila.criterio}</h3>
+            <h3 class="border-b border-linea px-4 py-2.5 font-serif text-lg font-semibold text-tinta">{fila.criterio}</h3>
             <dl class="divide-y divide-linea">
-              <div class="bg-panel/40 px-5 py-4">
+              <div class="bg-panel/40 px-4 py-3">
                 <dt class="text-xs font-semibold text-agente">kitlegal</dt>
                 <dd class="mt-1 flex items-center gap-1.5 text-sm font-bold text-tinta">
                   <Icono nombre="check" class="size-4 text-tinta" />
                   {fila.kitlegal.destacado}
                 </dd>
-                <dd class="mt-1 text-sm leading-relaxed text-tenue">{fila.kitlegal.subtexto}</dd>
+                <dd class="mt-0.5 text-[0.8125rem] leading-snug text-tenue">{fila.kitlegal.subtexto}</dd>
               </div>
               {[
                 [columnas.editoriales.nombre, fila.editoriales] as const,
                 [columnas.generalista.nombre, fila.generalista] as const,
               ].map(([nombre, celda]) => (
-                <div class="px-5 py-4">
+                <div class="px-4 py-3">
                   <dt class="text-xs font-semibold text-tenue">{nombre}</dt>
                   <dd class="mt-1 text-sm font-medium text-tinta">{celda.destacado}</dd>
-                  <dd class="mt-1 text-sm leading-relaxed text-tenue">
+                  <dd class="mt-0.5 text-[0.8125rem] leading-snug text-tenue">
                     {celda.subtexto}
                     {celda.nota && <Nota numero={celda.nota} />}
                   </dd>
@@ -252,7 +252,7 @@ const filas: FilaComparativa[] = [
         {
           fuentes.map(({ texto, enlaces }, indice) => (
             <li id={`fuente-${indice + 1}`} class="flex gap-2 target:text-tinta">
-              <span class="font-mono text-tinta">{indice + 1}.</span>
+              <span class="font-semibold text-tinta tabular-nums">{indice + 1}.</span>
               <span>
                 {texto}{" "}
                 {enlaces.map(({ texto: nombre, url }, orden) => (
