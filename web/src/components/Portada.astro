@@ -282,13 +282,23 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">{pregunta}</h3>
             </div>
             <CitaArticulo id={cita} />
-            <a
-              href={consulta ? rutaDeConsulta(consulta) : articulo(cita).enlace}
-              class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline-offset-2 hover:underline"
-            >
-              {consulta ? "Ver la respuesta, punto por punto" : "Leer el artículo en el BOE"}
-              <Icono nombre="arrow-forward" class="size-4" />
-            </a>
+            {consulta ? (
+              <a
+                href={rutaDeConsulta(consulta)}
+                class="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-agente underline-offset-2 hover:underline"
+              >
+                Ver la respuesta, punto por punto
+                <Icono nombre="arrow-forward" class="size-4" />
+              </a>
+            ) : (
+              <a
+                href={articulo(cita).enlace}
+                class="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-tenue underline decoration-linea-2 underline-offset-2 hover:text-tinta"
+              >
+                Leer el artículo en boe.es
+                <Icono nombre="open-in-new" class="size-4" />
+              </a>
+            )}
           </article>
         ))
       }

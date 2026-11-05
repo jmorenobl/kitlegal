@@ -1,7 +1,6 @@
-// Los textos de las dos portadas: una URL por audiencia, cada una con su
-// título, su descripción y sus ejemplos (ADR 0024 y 0034). La de la ciudadanía
-// es la portada del sitio. Las citas se nombran por su id de citas.yaml: el
-// texto de la norma nunca se escribe aquí.
+// Los textos de la portada, la de juristas y despachos: su título, su
+// descripción y sus ejemplos (ADR 0024 y 0034). Las citas se nombran por su id
+// de citas.yaml: el texto de la norma nunca se escribe aquí.
 
 import { REPOSITORIO } from "../lib/proyecto";
 
@@ -9,23 +8,16 @@ export type Tono = "sello" | "derogada" | "agente" | "vigente";
 
 export interface Audiencia {
   ruta: string;
-  // Cómo se nombra la audiencia en el selector de las portadas, en el pie y en
-  // la imagen para compartir.
+  // Cómo se nombra la audiencia en la imagen para compartir.
   nombre: string;
-  icono: string;
   titulo: string;
   descripcion: string;
   imagen: string;
-  // La fotografía de la cabecera (src/assets/ilustraciones/) y la parte de ella
-  // que se conserva al recortarla, como clase de `object-position`.
-  ilustracion: { nombre: string; alt: string; foco: string };
-  insignia: string;
   h1: string;
   subtitulo: string;
   // El botón principal de la cabecera de la portada: lo que esa audiencia hace
   // (instalar, en la de despachos). «Ver cómo funciona» va a su lado como enlace.
   secundario: { texto: string; destino: string; icono: string };
-  metricas: { etiqueta: string; valor: string; texto: string; tono: Tono }[];
   comparativa: {
     consulta: string;
     respuesta: string;
@@ -37,7 +29,6 @@ export interface Audiencia {
     cita: string;
   };
   garantias: {
-    antetitulo: string;
     titulo: string;
     texto: string;
     // La página que cuenta cómo se comprueba lo que se promete, si la hay.
@@ -53,7 +44,6 @@ export interface Audiencia {
   // uso (ADR 0027), así que lo que le falta a una audiencia solo se sabe si lo
   // cuenta.
   contacto?: {
-    antetitulo: string;
     titulo: string;
     texto: string;
     peticiones: string[];
@@ -70,153 +60,17 @@ export interface Audiencia {
   cta: { titulo: string; texto: string };
 }
 
-export const ciudadania: Audiencia = {
-  ruta: "/",
-  nombre: "Para ciudadanos y trámites",
-  icono: "person-outline",
-  titulo: "kitlegal: tus derechos y plazos, con la ley vigente del BOE",
-  descripcion:
-    "No necesitas otra IA: kitlegal hace que tu asistente lea el texto vigente del BOE antes de contestarte por un plazo, tu alquiler o tu trabajo. Gratis.",
-  imagen: "inicio",
-  ilustracion: {
-    nombre: "portada-ciudadania",
-    alt: "Una persona de espaldas, sentada a la mesa de la cocina con un portátil y un sobre.",
-    foco: "object-[72%_50%]",
-  },
-  insignia: "Legislación española · La ley vigente, con su cita",
-  h1: "Pregunta por tu plazo, tu alquiler o tu trabajo y recibe la ley vigente, con su cita.",
-  subtitulo:
-    "kitlegal hace que tu asistente de IA lea el texto vigente del BOE antes de contestarte: sabrás qué artículo lo dice, si la norma sigue en vigor y dónde comprobarlo. Es gratis y funciona en tu ordenador.",
-  secundario: { texto: "Ver consultas con su cita", destino: "/consultas/", icono: "menu-book" },
-  metricas: [
-    {
-      etiqueta: "Nada sin cita",
-      valor: "La ley, palabra por palabra",
-      texto: "Cada respuesta se apoya en el texto publicado en el BOE, con la norma y el artículo.",
-      tono: "sello",
-    },
-    {
-      etiqueta: "Vigencia",
-      valor: "Sin leyes caducadas",
-      texto: "Si una norma ya no está en vigor, tu asistente te lo avisa antes de nada.",
-      tono: "derogada",
-    },
-    {
-      etiqueta: "Precio",
-      valor: "Gratis",
-      texto: "Software libre: se instala y se usa sin pagar y sin registrarse.",
-      tono: "agente",
-    },
-    {
-      etiqueta: "Privacidad",
-      valor: "Sin cuentas",
-      texto: "kitlegal no guarda tus preguntas ni las envía a ningún servidor propio: solo consulta el BOE.",
-      tono: "vigente",
-    },
-  ],
-  comparativa: {
-    consulta: "«Me han notificado una resolución y quiero presentar recurso de alzada: ¿qué plazo tengo?»",
-    respuesta: "«Tiene tres meses para presentar el recurso de alzada, según la Ley 30/1992 de procedimiento administrativo.»",
-    marcas: ["tres meses", "Ley 30/1992"],
-    insignia: "Norma derogada · plazo erróneo",
-    alertaTitulo: "Un error que cuesta el recurso",
-    alertaTexto:
-      "La Ley 30/1992 está derogada. Y contra una resolución expresa el plazo es de un mes: quien espere a los tres meses llega tarde y la resolución queda firme.",
-    pieMalo: "Recurso fuera de plazo",
-    cita: "lpacap-122",
-  },
-  garantias: {
-    antetitulo: "Por qué fiarte",
-    titulo: "Tres comprobaciones que hace un programa, no la memoria de la IA",
-    texto:
-      "Leer la ley, comprobar que sigue en vigor y situar tu municipio no se dejan a lo que la IA recuerde: lo hace un programa, siempre de la misma manera. Tu asistente razona sobre lo que el programa le devuelve.",
-  },
-  casos: [
-    {
-      icono: "home",
-      tono: "sello",
-      etiqueta: "Alquiler y vivienda",
-      pregunta: "Mi casero no me devuelve la fianza. ¿Qué dice la ley?",
-      cita: "lau-36",
-      consulta: "devolucion-fianza-alquiler",
-    },
-    {
-      icono: "account-balance",
-      tono: "agente",
-      etiqueta: "Trámites con la Administración",
-      pregunta: "Presenté una solicitud y la Administración no contesta. ¿Se entiende concedida?",
-      cita: "lpacap-24",
-      consulta: "silencio-administrativo",
-    },
-    {
-      icono: "badge",
-      tono: "vigente",
-      etiqueta: "Trabajo",
-      pregunta: "Quiero dejar mi trabajo. ¿Cuánto preaviso tengo que dar?",
-      cita: "et-49",
-      consulta: "preaviso-baja-voluntaria",
-    },
-    {
-      icono: "receipt-long",
-      tono: "sello",
-      etiqueta: "Hacienda",
-      pregunta: "¿Cuánto tiempo tiene Hacienda para reclamarme una deuda?",
-      cita: "lgt-66",
-      consulta: "prescripcion-deudas-hacienda",
-    },
-  ],
-  cta: {
-    titulo: "Empieza a preguntar con la ley vigente delante.",
-    texto:
-      "Ten a mano la legislación del BOE en tus gestiones con la Administración, en el trabajo o con tu vivienda. Software libre y gratuito.",
-  },
-};
-
 export const despachos: Audiencia = {
   ruta: "/",
   nombre: "Para despachos y juristas",
-  icono: "balance",
   titulo: "IA para juristas: cada cita, comprobada en el BOE | kitlegal",
   descripcion:
     "No cambies de IA: kitlegal hace que tu asistente cite el texto consolidado del BOE, con el artículo exacto y su vigencia. Software libre y sin cuotas.",
   imagen: "despachos",
-  ilustracion: {
-    nombre: "portada-despachos",
-    alt: "Un escritorio de despacho con un portátil, un libro abierto con un marcapáginas ámbar y una lámpara.",
-    foco: "object-[78%_50%]",
-  },
-  insignia: "Para juristas y despachos en España · Software libre y gratuito",
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma: kitlegal conecta tu asistente de IA con el texto consolidado del BOE, y cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial. Funciona en la app de escritorio de Claude y en Claude Code. kitlegal es gratis y corre en tu equipo; el asistente se paga aparte.",
   secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
-  metricas: [
-    {
-      etiqueta: "Nada sin cita",
-      valor: "Norma, bloque y huella",
-      texto: "Cada artículo llega con su identificador del BOE, la fecha de consulta y una huella del texto.",
-      tono: "sello",
-    },
-    {
-      etiqueta: "Vigencia",
-      valor: "Aviso antes de citar",
-      texto: "Si el BOE marca una norma como derogada o con la vigencia agotada, tu asistente lo dice primero.",
-      tono: "derogada",
-    },
-    {
-      etiqueta: "Alcance",
-      valor: "Leyes, y tu sentencia",
-      texto:
-        "Lee la legislación consolidada del BOE. No busca sentencias: solo cita la que traes, tras comprobar que es la que se pide.",
-      tono: "agente",
-    },
-    {
-      etiqueta: "Gratis y libre",
-      valor: "EUPL-1.2",
-      texto: "El programa corre en tu equipo: sin cuotas, sin cuentas y sin servidores de kitlegal entre tú y el BOE.",
-      tono: "vigente",
-    },
-  ],
   comparativa: {
     consulta: "«¿En qué plazo tiene que resolver la Administración si la norma del procedimiento no fija ninguno?»",
     respuesta:
@@ -230,7 +84,6 @@ export const despachos: Audiencia = {
     cita: "lpacap-21",
   },
   garantias: {
-    antetitulo: "Arquitectura de confianza",
     titulo: "Tres garantías que da el programa, no el modelo",
     texto:
       "Lo que no debe hacerse de memoria lo hace un programa determinista: leer la norma, comprobar su vigencia y cotejar la sentencia que traes. El modelo razona sobre lo que el programa le devuelve.",
@@ -273,7 +126,6 @@ export const despachos: Audiencia = {
     },
   ],
   contacto: {
-    antetitulo: "Hecho con quien lo usa",
     titulo: "¿Qué le falta para tu despacho?",
     texto:
       "kitlegal ya sirve para consultar y citar la legislación consolidada del BOE. Estamos trabajando para que sirva al trabajo diario de un despacho y, como no recoge ningún dato de uso, la única forma de saber qué necesitas es que nos lo cuentes.",
