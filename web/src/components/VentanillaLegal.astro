@@ -1,0 +1,26 @@
+---
+// Ventanilla Legal, el proyecto cívico construido sobre kitlegal: una banda
+// cerca del pie para quien llega a la portada con un trámite y no es jurista.
+import Icono from "./Icono.astro";
+---
+
+<section id="ventanilla-legal" aria-labelledby="titulo-ventanilla" class="border-t border-linea bg-lienzo py-12">
+  <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:px-10 md:flex-row md:items-center md:justify-between">
+    <div class="max-w-prose">
+      <h2 id="titulo-ventanilla" class="font-serif text-lg font-semibold text-tinta">
+        ¿Tienes un trámite y no eres jurista?
+      </h2>
+      <p class="mt-1 text-sm leading-relaxed text-tenue">
+        Ventanilla Legal es el proyecto cívico construido sobre kitlegal, para personas con un asunto ante una
+        administración.
+      </p>
+    </div>
+    <a
+      href="https://ventanillalegal.es"
+      class="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-agente underline underline-offset-2 hover:text-tinta"
+    >
+      Ir a ventanillalegal.es
+      <Icono nombre="arrow-forward" class="size-4" />
+    </a>
+  </div>
+</section>

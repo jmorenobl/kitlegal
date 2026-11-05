@@ -344,7 +344,7 @@ export const despachos: Audiencia = {
   cta: {
     titulo: "Dota a tu despacho de la ley vigente, con su cita.",
     texto:
-      "Menos riesgo de citar una norma derogada o un artículo que no dice lo que se cree. Software libre y gratuito, para juristas exigentes.",
+      "Menos riesgo de citar una norma derogada o un artículo que no dice lo que se cree.",
   },
 };
 

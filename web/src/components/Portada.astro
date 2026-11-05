@@ -8,7 +8,7 @@ import { CORREO, REPOSITORIO } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
 import ComparativaMercado from "./ComparativaMercado.astro";
-import SinergiaVentanilla from "./SinergiaVentanilla.astro";
+import VentanillaLegal from "./VentanillaLegal.astro";
 
 interface Props {
   audiencia: Audiencia;
@@ -58,19 +58,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         <span class="font-mono text-estampa font-semibold uppercase text-tinta">
           Para juristas y despachos en España
         </span>
-        <span class="text-linea-2">·</span>
-        <span class="font-mono text-estampa font-medium text-tenue">
-          Software libre EUPL-1.2
-        </span>
       </div>
-      <a
-        href="#accion-civica"
-        class="group inline-flex items-center gap-1.5 rounded-full border border-agente/30 bg-panel px-3.5 py-1.5 text-xs font-medium text-agente shadow-xs transition-colors hover:bg-panel-2 hover:text-tinta"
-      >
-        <Icono nombre="diversity-3" class="size-3.5 text-agente" />
-        <span>¿Ciudadanía o prensa? Conoce Ventanilla Legal</span>
-        <Icono nombre="arrow-forward" class="size-3 transition-transform group-hover:translate-x-0.5" />
-      </a>
     </div>
 
     <h1 class="text-balance mx-auto mb-8 max-w-4xl font-serif text-4xl leading-[1.15] font-semibold tracking-tight text-tinta sm:text-5xl lg:mx-0 lg:text-[2.75rem]">
@@ -337,8 +325,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
   </div>
 </section>
 
-<SinergiaVentanilla />
-
 <section id="integracion" aria-labelledby="titulo-integracion" class="border-t border-linea bg-panel/40 py-24 md:py-32">
   <div class="mx-auto max-w-5xl px-4 sm:px-10">
     <div class="mx-auto mb-20 max-w-2xl text-center">
@@ -363,9 +349,8 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           </div>
           <h3 class="mb-3 font-serif text-xl font-semibold text-tinta">Instalas kitlegal</h3>
           <p class="mb-6 text-sm leading-relaxed text-tenue">
-            Es un plugin que se añade a la app de escritorio de Claude, sin terminal y sin descargar nada: trae las
-            herramientas que leen el BOE y las instrucciones con las que Claude lo cita. No hace falta saber programar,
-            y la guía lo explica paso a paso.
+            Es un plugin, sin terminal y sin descargar nada: trae las herramientas que leen el BOE y las instrucciones
+            con las que tu asistente lo cita. No hace falta saber programar, y la guía lo explica paso a paso.
           </p>
         </div>
         <a
@@ -395,13 +380,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         </p>
       </li>
     </ol>
-    <div class="flex flex-col items-center justify-between gap-4 rounded-lg border border-linea bg-white p-5 font-mono text-estampa text-tenue sm:flex-row">
-      <p class="flex items-center gap-2">
-        <Icono nombre="verified-user" class="size-[18px] text-vigente" />
-        Funciona en la app de escritorio de Claude y en Claude Code
-      </p>
-      <p class="text-tinta">kitlegal no envía tus consultas a ningún servidor propio</p>
-    </div>
   </div>
 </section>
 
@@ -481,3 +459,5 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
   </div>
 </section>
+
+<VentanillaLegal />
