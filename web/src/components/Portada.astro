@@ -4,7 +4,7 @@
 import { type Audiencia } from "../data/audiencias";
 import { rutaDeConsulta } from "../data/consultas";
 import { articulo, fechaCorta, huellaCorta, norma } from "../lib/citas";
-import { CORREO } from "../lib/proyecto";
+import { CORREO, enlaceCorreo } from "../lib/proyecto";
 import CitaArticulo from "./CitaArticulo.astro";
 import Icono from "./Icono.astro";
 import ComparativaMercado from "./ComparativaMercado.astro";
@@ -62,7 +62,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     <p class="mt-6 max-w-lectura text-sm leading-relaxed text-tenue">
       Hoy funciona en la app de escritorio de Claude y en Claude Code. En ChatGPT, Codex y Antigravity está{" "}
       <a href="/instalar/#sin-probar" class="underline decoration-linea-2 underline-offset-2 hover:text-tinta">sin probar</a>:
-      si lo usas en otro asistente, <a href={`mailto:${CORREO}`} class="font-semibold text-agente underline underline-offset-2">cuéntanoslo</a>.
+      si lo usas en otro asistente, <a href={enlaceCorreo()} class="font-semibold text-agente underline underline-offset-2">cuéntanoslo</a>.
     </p>
     </div>
     <div class="mt-14 lg:mt-3">
@@ -215,7 +215,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         <Icono nombre="mail" class="mt-0.5 size-5 text-sello" />
         <span>
           ¿Qué le falta para tu despacho? Escríbenos a{" "}
-          <a href={`mailto:${CORREO}`} class="font-semibold text-agente underline underline-offset-2">{CORREO}</a>.
+          <a href={enlaceCorreo()} class="font-semibold text-agente underline underline-offset-2">{CORREO}</a>.
         </span>
       </p>
     </div>
@@ -344,12 +344,14 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           </h2>
           <p class="mb-8 max-w-lectura leading-relaxed text-tenue">{contacto.texto}</p>
           <a
-            href={`mailto:${CORREO}?subject=${encodeURIComponent(contacto.asunto)}`}
+            href={enlaceCorreo(contacto.asunto)}
             class="inline-flex items-center justify-center gap-2 rounded-sm bg-noche px-7 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-noche-2"
           >
             <Icono nombre="mail" class="size-[18px] text-sello" />
             {CORREO}
           </a>
+          {/* El aviso, junto al botón que abre el correo: se lee antes de escribir. */}
+          <p class="mt-3.5 max-w-lectura text-xs leading-relaxed text-tenue">{contacto.aviso}</p>
         </div>
         <div class="rounded-lg border border-linea bg-white p-6 shadow-sm sm:p-8">
           <h3 class="mb-4 font-serif text-xl font-semibold text-tinta">Lo que más nos ayuda saber</h3>
@@ -372,7 +374,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
             ))}
           </ul>
           <h3 class="mb-3 font-serif text-lg font-semibold text-tinta">Lo que no hará</h3>
-          <div class="mb-6 flex items-start gap-2.5 text-sm leading-relaxed text-tenue">
+          <div class="flex items-start gap-2.5 text-sm leading-relaxed text-tenue">
             <Icono nombre="block" class="mt-0.5 size-[18px] text-tinta" />
             <details class="group">
               <summary class="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
@@ -387,7 +389,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
               </p>
             </details>
           </div>
-          <p class="text-xs leading-relaxed text-tenue">{contacto.aviso}</p>
         </div>
       </div>
     </section>

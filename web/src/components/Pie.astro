@@ -1,5 +1,5 @@
 ---
-import { CORREO, LICENCIA, REPOSITORIO } from "../lib/proyecto";
+import { CORREO, LICENCIA, REPOSITORIO, enlaceCorreo } from "../lib/proyecto";
 import Icono from "./Icono.astro";
 import Logo from "./Logo.astro";
 import VentanillaLegal from "./VentanillaLegal.astro";
@@ -12,7 +12,7 @@ const columnas = [
       { texto: "Consultas con su cita", destino: "/consultas/" },
       { texto: "Cómo se evalúa", destino: "/como-se-evalua/" },
       { texto: "Instalar", destino: "/instalar/" },
-      { texto: CORREO, destino: `mailto:${CORREO}` },
+      { texto: CORREO, destino: enlaceCorreo() },
     ],
   },
   {

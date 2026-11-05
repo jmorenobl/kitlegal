@@ -13,6 +13,16 @@ export const LICENCIA = "https://joinup.ec.europa.eu/collection/eupl/eupl-text-e
 // El buzón del proyecto: el único contacto que no pasa por GitHub.
 export const CORREO = "info@kitlegal.es";
 
+// enlaceCorreo es el mailto del buzón, con el aviso de no mandar datos de
+// clientes ya escrito en el cuerpo del mensaje: se lee donde se escribe.
+export function enlaceCorreo(asunto?: string): string {
+  const campos = [
+    ...(asunto ? [`subject=${encodeURIComponent(asunto)}`] : []),
+    `body=${encodeURIComponent("(No incluyas datos de clientes ni de asuntos.)")}`,
+  ];
+  return `mailto:${CORREO}?${campos.join("&")}`;
+}
+
 // La web se construye desde web/ (make web, el flujo de la web); la raíz del
 // repositorio es su padre. Si no lo es, la construcción falla aquí y no más
 // tarde con un dato vacío.
