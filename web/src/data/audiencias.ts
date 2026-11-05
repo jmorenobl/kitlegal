@@ -214,7 +214,7 @@ export const despachos: Audiencia = {
   h1: "La IA que ya usas en tu despacho, con cada artículo comprobado en el BOE antes de citarlo.",
   subtitulo:
     "No es otra plataforma ni otra suscripción: kitlegal conecta tu asistente de IA (la app de escritorio de Claude, o Claude Code) con el texto consolidado del BOE. Cada respuesta llega con el artículo exacto, su vigencia y la fuente oficial para contrastarla. Gratis, y en tu equipo.",
-  secundario: { texto: "Ver comparativa de mercado", destino: "#comparativa", icono: "balance" },
+  secundario: { texto: "Instalar, sin terminal", destino: "/instalar/", icono: "download" },
   metricas: [
     {
       etiqueta: "Nada sin cita",
