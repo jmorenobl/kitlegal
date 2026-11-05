@@ -287,7 +287,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     <div class="grid grid-cols-1 gap-8 md:grid-cols-2">
       {
         audiencia.casos.map(({ icono: nombre, etiqueta, pregunta, cita, consulta }) => (
-          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 shadow-xs transition-shadow hover:shadow-md sm:p-8">
+          <article class="flex flex-col rounded-lg border border-linea bg-white p-6 sm:p-8">
             <div>
               <p class="mb-3 flex items-center gap-2">
                 <Icono nombre={nombre} class="size-[18px] text-sello" />
