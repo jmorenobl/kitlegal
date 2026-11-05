@@ -37,9 +37,9 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 }));
 ---
 
-<section class="relative overflow-hidden bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-28 md:pb-20">
+<section class="relative overflow-hidden bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-24 md:pb-20 lg:pt-14">
   <div class="mx-auto max-w-7xl px-4 sm:px-10">
-    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-end lg:gap-16 xl:gap-24">
+    <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-start lg:gap-16 xl:gap-24">
     <div>
     <h1 class="text-balance mb-8 max-w-4xl font-serif text-titular font-semibold text-tinta lg:text-display">
       {audiencia.h1}
@@ -65,7 +65,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
       si lo usas en otro asistente, <a href={`mailto:${CORREO}`} class="font-semibold text-agente underline underline-offset-2">cuéntanoslo</a>.
     </p>
     </div>
-    <div class="mt-14 lg:mt-0">
+    <div class="mt-14 lg:mt-3">
       <p id="titulo-pasos" class="mb-3 font-serif text-lg font-semibold text-tinta">
         Entre la pregunta y la respuesta
       </p>
@@ -82,7 +82,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
     </div>
 
-    <figure id="diferencia" aria-label="Cómo funciona: la misma consulta, de memoria y con kitlegal" class="mt-16">
+    <figure id="diferencia" aria-label="Cómo funciona: la misma consulta, de memoria y con kitlegal" class="mt-16 lg:mt-12">
       <figcaption class="mb-6">
         <span class="mb-3 block text-sm font-medium text-tenue">
           La misma consulta, dos respuestas: de memoria y con kitlegal.
