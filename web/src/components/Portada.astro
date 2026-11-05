@@ -32,13 +32,14 @@ const icono: Record<Tono, string> = {
   vigente: "text-vigente",
 };
 
-// Lo que ocurre entre la pregunta y la respuesta, en orden.
+// Lo que ocurre entre la pregunta y la respuesta, en orden: una línea bajo el
+// díptico, que ya lo enseña con un caso.
 const pasos = [
-  { icono: "chat", texto: "Preguntas con tus palabras" },
-  { icono: "smart-toy", texto: "Tu asistente llama a kitlegal" },
-  { icono: "menu-book", texto: "kitlegal lee la norma en el BOE" },
-  { icono: "history-toggle-off", texto: "Comprueba si sigue en vigor" },
-  { icono: "verified", texto: "Recibes la respuesta con su cita" },
+  "Preguntas con tus palabras",
+  "tu asistente llama a kitlegal",
+  "lee la norma en el BOE",
+  "comprueba su vigencia",
+  "recibes la respuesta con su cita",
 ];
 
 // La respuesta de memoria, partida alrededor de las marcas del error.
@@ -49,7 +50,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
 }));
 ---
 
-<section class="relative overflow-hidden border-b border-linea/50 bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-28 md:pb-20">
+<section class="relative overflow-hidden bg-gradient-to-b from-lienzo via-lienzo to-panel/40 pt-20 pb-16 md:pt-28 md:pb-20">
   <div class="mx-auto max-w-6xl px-4 sm:px-10">
     <div class="text-center lg:text-left">
 
@@ -76,7 +77,7 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
     </div>
     </div>
 
-    <figure class="mt-16">
+    <figure id="diferencia" aria-label="Cómo funciona: la misma consulta, de memoria y con kitlegal" class="mt-16">
       <figcaption class="mb-6 text-sm font-medium text-tenue">
         La misma consulta, dos respuestas: de memoria y con kitlegal.
       </figcaption>
@@ -182,6 +183,19 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
           </div>
         </article>
       </div>
+      <ol
+        aria-label="Cómo funciona, paso a paso"
+        class="mt-8 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-tenue"
+      >
+        {
+          pasos.map((paso, indice) => (
+            <li class="flex items-center gap-2">
+              {indice > 0 && <Icono nombre="arrow-forward" class="size-4 text-sello" />}
+              <span class:list={[indice === pasos.length - 1 && "font-semibold text-tinta"]}>{paso}</span>
+            </li>
+          ))
+        }
+      </ol>
     </figure>
 
     <div class="mt-12 grid grid-cols-1 gap-4 border-t border-linea pt-8 text-sm md:grid-cols-2">
@@ -200,39 +214,6 @@ const respuesta = comparativa.respuesta.split(expresion).map((trozo) => ({
         </span>
       </p>
     </div>
-  </div>
-</section>
-
-<section id="diferencia" aria-labelledby="titulo-diferencia" class="bg-lienzo py-24 md:py-32">
-  <div class="mx-auto max-w-6xl px-4 sm:px-10">
-    <div class="mb-16 max-w-2xl">
-      <h2 id="titulo-diferencia" class="text-balance mb-4 font-serif text-3xl font-semibold text-tinta md:text-4xl">
-        Qué pasa entre tu pregunta y la respuesta
-      </h2>
-      <p class="max-w-prose leading-relaxed text-tenue">
-        Un modelo generalista responde con lo que recuerda y no sabe qué normas siguen en vigor. Con kitlegal, tu
-        asistente lee el texto consolidado del BOE antes de responder y te dice de dónde sale cada frase.
-      </p>
-    </div>
-
-    <ol class="mb-16 grid grid-cols-1 gap-3 sm:grid-cols-5 sm:gap-0" aria-label="Cómo funciona, paso a paso">
-      {
-        pasos.map(({ icono: nombre, texto }, indice) => (
-          <li class="relative flex items-center gap-4 rounded-lg border border-linea bg-white p-4 shadow-xs sm:mx-2 sm:flex-col sm:gap-3 sm:p-5 sm:text-center">
-            <span class="flex size-11 shrink-0 items-center justify-center rounded-lg bg-panel text-agente">
-              <Icono nombre={nombre} class="size-6" />
-            </span>
-            <span class="text-sm leading-snug font-medium text-tinta">{texto}</span>
-            {indice < pasos.length - 1 && (
-              <Icono
-                nombre="arrow-forward"
-                class="absolute top-1/2 -right-[1.1rem] z-10 hidden size-5 -translate-y-1/2 rounded-full bg-lienzo text-sello sm:block"
-              />
-            )}
-          </li>
-        ))
-      }
-    </ol>
   </div>
 </section>
 
