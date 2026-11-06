@@ -3,11 +3,13 @@ package evals
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io/fs"
 	"maps"
 	"os"
 	"path"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -265,4 +267,405 @@ func comprobarLasReferenciasDeLaFamilia(t *testing.T, repositorio fs.FS, familia
 
 	assert.Equal(t, ficheros, familia.referencias,
 		"las referencias de la familia de %s son los ficheros de %s, en orden de nombre", familia.skill, referencias)
+}
+
+// Lo que genera make skills-sync en una skill del producto y su control, que
+// TestSkillsDelProductoDesdeControl no compara (contracts/remisiones.md §8.1):
+// las referencias cuya primera línea empieza por la cabecera de lo generado, y,
+// en el SKILL.md, lo que hay entre las marcas de la región de los paquetes y
+// entre las de la tabla de comandos. Que sea lo que da make skills-sync lo
+// comprueba TestSkillsDelRepositorio (FR-009).
+const (
+	cabeceraDeLoGenerado = "<!-- generado desde "
+	inicioDeLosPaquetes  = "<!-- paquetes: "
+	finDeLosPaquetes     = "<!-- fin de los paquetes -->"
+)
+
+// regionesGeneradas: cada región del SKILL.md que genera make skills-sync, de la
+// línea que empieza por su marca de inicio a la que es su marca de fin.
+var regionesGeneradas = []struct{ inicio, fin string }{
+	{inicio: inicioDeLosPaquetes, fin: finDeLosPaquetes},
+	{inicio: inicioDeLaRegionGenerada, fin: finDeLaRegionGenerada},
+}
+
+// cambioDelCuerpo es un cambio del cuerpo del SKILL.md de una skill del producto
+// respecto al de su control: las líneas enteras de control que cambian, antes,
+// que están en él una sola vez, sin lo generado, y las que las sustituyen tras el
+// hito, despues (data-model §5).
+type cambioDelCuerpo struct {
+	antes, despues string
+}
+
+// movimientoALaReferencia es un texto que sale del SKILL.md de control, texto, y
+// llega al final de una de sus referencias, referencia, con los bytes que se le
+// añaden, enLaReferencia: el mismo texto con los blancos juntados, detrás de una
+// línea en blanco (data-model §5; contracts/remisiones.md §3).
+type movimientoALaReferencia struct {
+	texto, referencia, enLaReferencia string
+}
+
+// declaracionDelProducto es lo que una skill del producto cambia respecto a su
+// control: los cambios de su cuerpo, en el orden del fichero, y sus movimientos
+// (data-model §5). Nada más cambia: ni el frontmatter, ni lo generado, ni
+// ninguna otra referencia (FR-007, FR-009).
+type declaracionDelProducto struct {
+	cambios     []cambioDelCuerpo
+	movimientos []movimientoALaReferencia
+}
+
+// nadaDeOtraConversacion es la segunda viñeta del paso 4 del SKILL.md de control
+// de normativa, que sale del cuerpo a redaccion_modificada.md (M-a;
+// contracts/remisiones.md §3).
+const nadaDeOtraConversacion = "- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas " +
+	"solo va la línea\n" +
+	"  `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.\n"
+
+// siUnaLecturaFalla es la frase de la regla 2 del SKILL.md de control de
+// normativa que sale del cuerpo a lecturas_que_fallan.md (M-b;
+// contracts/remisiones.md §3).
+const siUnaLecturaFalla = "Si una lectura falla, di qué bloques faltan y por qué."
+
+// declaracionesDelProducto son, por skill, los cambios y los movimientos de las
+// skills del producto respecto a sus controles, con los bytes de
+// contracts/remisiones.md §2 a §4. plazos-y-territorio no tiene: es su control,
+// también lo generado (FR-010).
+var declaracionesDelProducto = map[string]declaracionDelProducto{
+	// Las siete remisiones de R1 a R6, con la «o» de R4 (research D1), y la
+	// salida de M-a y M-b (contracts/remisiones.md §2 y §3).
+	skillDeNormativa: {
+		cambios: []cambioDelCuerpo{
+			{
+				antes: "Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o, si la " +
+					"tienes, con su\n" +
+					"herramienta, tras leer [con_herramientas](references/con_herramientas.md).\n",
+				despues: "Antes de la primera orden o llamada, lee [con_herramientas](references/con_herramientas.md): " +
+					"cómo se pide cada\n" +
+					"una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el " +
+					"`PATH` o, si la\n" +
+					"tienes, con su herramienta.\n",
+			},
+			{
+				antes: "Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, búscala con\n" +
+					"[buscar_la_norma](references/buscar_la_norma.md).\n",
+				despues: "Lee [normas](references/normas.md) y toma el `BOE-A-…` de su tabla; si no está, lee\n" +
+					"[buscar_la_norma](references/buscar_la_norma.md) y búscala como dice.\n",
+			},
+			{
+				antes: "- Sin fecha —con ella, [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md)—, lee " +
+					"cada bloque una vez, con\n" +
+					"  su comprobación detrás, en la misma orden:\n",
+				despues: "- Con una fecha en la pregunta, lee " +
+					"[redaccion_en_una_fecha](references/redaccion_en_una_fecha.md) antes de leer el\n" +
+					"  bloque: cómo se lee. Sin fecha, lee cada bloque una vez, con su comprobación detrás, en la " +
+					"misma orden:\n",
+			},
+			{
+				antes: "  fecha van siempre.\n" +
+					"- Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no " +
+					"termina con `0`, antes de\n" +
+					"  seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).\n",
+				despues: "  fecha van siempre. Por cada entrada `version-obsoleta`, o si se pregunta qué cambió, lee\n" +
+					"  [redaccion_modificada](references/redaccion_modificada.md): qué se dice.\n" +
+					"- Con avisos o un id que termina en punto, lee [como_se_cita](references/como_se_cita.md): " +
+					"cómo se citan.\n" +
+					"- Para varios bloques a la vez, lee antes [varios_bloques](references/varios_bloques.md): su " +
+					"orden. Si una orden no\n" +
+					"  termina con `0`, lee [lecturas_que_fallan](references/lecturas_que_fallan.md) antes de " +
+					"seguir: qué hacer.\n",
+			},
+			{antes: nadaDeOtraConversacion},
+			{
+				antes: "más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`. Una cita por " +
+					"bloque, también del remitido;\n" +
+					"repásalas, y las dudas, en [como_se_cita](references/como_se_cita.md). Cada línea `⚠` va " +
+					"entera y con los datos de la lectura.\n",
+				despues: "más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`. Una cita por " +
+					"bloque, también del remitido.\n" +
+					"Cada línea `⚠` va entera y con los datos de la lectura.\n",
+			},
+			{
+				antes: "Por cada entrada `version-obsoleta` de `kitlegal graph check`, y si se pregunta qué " +
+					"cambió, lee\n" +
+					"[redaccion_modificada](references/redaccion_modificada.md):\n" +
+					"\n",
+			},
+			{
+				antes:   "2. **Nunca inventar contenido legal.** " + siUnaLecturaFalla + " Lo que lo leído no da\n",
+				despues: "2. **Nunca inventar contenido legal.** Lo que lo leído no da\n",
+			},
+		},
+		movimientos: []movimientoALaReferencia{
+			{
+				texto:      nadaDeOtraConversacion,
+				referencia: "redaccion_modificada.md",
+				enLaReferencia: "\n" +
+					"- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va " +
+					"la\n" +
+					"  línea `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.\n",
+			},
+			{
+				texto:          siUnaLecturaFalla,
+				referencia:     "lecturas_que_fallan.md",
+				enLaReferencia: "\nSi una lectura falla, di qué bloques faltan y por qué.\n",
+			},
+		},
+	},
+	// jurisprudencia, sin cambios ni movimientos: hoy es su control.
+	skillDeLaFamiliaDeJurisprudencia: {},
+}
+
+// TestSkillsDelProductoDesdeControl es el control de lo que cambian las skills
+// del producto respecto a sus controles (FR-006, FR-007, FR-009, FR-010; SC-003
+// a SC-005; contracts/remisiones.md §8; data-model §5): en las de una
+// declaración, su control sin lo generado, con sus cambios y sus movimientos,
+// es skills/<skill> sin lo generado, ruta a ruta y byte a byte; cada texto
+// movido está en su referencia y no en el SKILL.md; y el frontmatter es el de
+// control. plazos-y-territorio es su control, también lo generado.
+func TestSkillsDelProductoDesdeControl(t *testing.T) {
+	t.Parallel()
+
+	repositorio := os.DirFS(raizDelRepositorio)
+
+	for _, skill := range slices.Sorted(maps.Keys(declaracionesDelProducto)) {
+		t.Run(skill, func(t *testing.T) {
+			t.Parallel()
+
+			comprobarElProductoDesdeControl(t, repositorio, skill, declaracionesDelProducto[skill])
+		})
+	}
+
+	// Es así hasta H41.1, el hito que cambia plazos-y-territorio: hasta
+	// entonces, skills/plazos-y-territorio es su control, también lo generado
+	// (FR-010; contracts/remisiones.md §8.4; research D4).
+	t.Run(skillDeLaFamiliaDePlazos, func(t *testing.T) {
+		t.Parallel()
+
+		producto := path.Join(directorioDeLasSkills, skillDeLaFamiliaDePlazos)
+
+		deControl, err := leerLosFicheros(repositorio, directorioDelControl(t, skillDeLaFamiliaDePlazos))
+		require.NoError(t, err)
+
+		delProducto, err := leerLosFicheros(repositorio, producto)
+		require.NoError(t, err)
+
+		compararLosFicheros(t, deControl, delProducto, producto, "su control")
+	})
+}
+
+// comprobarElProductoDesdeControl comprueba skills/<skill> contra su control y
+// su declaración (contracts/remisiones.md §8.1 a §8.3).
+func comprobarElProductoDesdeControl(t *testing.T, repositorio fs.FS, skill string,
+	declarada declaracionDelProducto,
+) {
+	t.Helper()
+
+	producto := path.Join(directorioDeLasSkills, skill)
+
+	deControl, err := leerLosFicheros(repositorio, directorioDelControl(t, skill))
+	require.NoError(t, err)
+
+	delProducto, err := leerLosFicheros(repositorio, producto)
+	require.NoError(t, err)
+
+	t.Run("desde control", func(t *testing.T) {
+		t.Parallel()
+
+		controlSinLoGenerado, err := sinLoGenerado(deControl)
+		require.NoError(t, err, "el control de %s", skill)
+
+		esperados, err := conLaDeclaracion(controlSinLoGenerado, declarada)
+		require.NoError(t, err, "la declaración de %s", skill)
+
+		obtenidos, err := sinLoGenerado(delProducto)
+		require.NoError(t, err, "%s", producto)
+
+		compararLosFicheros(t, esperados, obtenidos, producto, "lo que dan su control y su declaración")
+	})
+
+	t.Run("movimientos", func(t *testing.T) {
+		t.Parallel()
+
+		cuerpoDeControl := juntarLosBlancos(string(deControl[ficheroDeLaSkill]))
+		cuerpoDelProducto := juntarLosBlancos(string(delProducto[ficheroDeLaSkill]))
+
+		for _, movimiento := range declarada.movimientos {
+			texto := juntarLosBlancos(movimiento.texto)
+			relativa := path.Join(directorioDeLasReferencias, movimiento.referencia)
+			referencia := path.Join(producto, relativa)
+
+			assert.Equal(t, texto, juntarLosBlancos(movimiento.enLaReferencia),
+				"lo que llega a %s es, con los blancos juntados, lo que sale del SKILL.md", referencia)
+			assert.Contains(t, cuerpoDeControl, texto, "lo que llega a %s sale del SKILL.md de control", referencia)
+			assert.NotContains(t, cuerpoDelProducto, texto, "lo que llega a %s no está en %s/%s", referencia,
+				producto, ficheroDeLaSkill)
+			assert.Contains(t, string(delProducto[relativa]), movimiento.enLaReferencia,
+				"lo que sale del SKILL.md está en %s", referencia)
+		}
+	})
+
+	t.Run("frontmatter", func(t *testing.T) {
+		t.Parallel()
+
+		deLaSkillDeControl, _, err := frontmatterYCuerpo(string(deControl[ficheroDeLaSkill]))
+		require.NoError(t, err, "el SKILL.md de control de %s", skill)
+
+		deLaSkillDelProducto, _, err := frontmatterYCuerpo(string(delProducto[ficheroDeLaSkill]))
+		require.NoError(t, err, "%s/%s", producto, ficheroDeLaSkill)
+
+		assert.Equal(t, deLaSkillDeControl, deLaSkillDelProducto, "el frontmatter de %s/%s es el de su control",
+			producto, ficheroDeLaSkill)
+	})
+}
+
+// directorioDelControl es el directorio de la skill de la variante de control de
+// la familia del producto de esa skill, desde la raíz del repositorio.
+func directorioDelControl(t *testing.T, skill string) string {
+	t.Helper()
+
+	posicion := slices.IndexFunc(familiasDelProducto, func(familia familiaDelLaboratorio) bool {
+		return familia.skill == skill
+	})
+	require.GreaterOrEqual(t, posicion, 0, "%s es la skill de una familia del producto", skill)
+
+	familia := familiasDelProducto[posicion]
+
+	return familia.directorioDeLaSkill(familia.nombres()[0])
+}
+
+// sinLoGenerado son los ficheros de una skill, por su ruta relativa a ella, sin
+// lo que genera make skills-sync: sin las referencias cuya primera línea empieza
+// por la cabecera de lo generado y con cada región generada del SKILL.md
+// reducida a sus marcas (contracts/remisiones.md §8.1).
+func sinLoGenerado(ficheros map[string][]byte) (map[string][]byte, error) {
+	sinGenerar := make(map[string][]byte, len(ficheros))
+
+	for relativa, contenido := range ficheros {
+		switch {
+		case relativa == ficheroDeLaSkill:
+			reducido, err := conLasRegionesGeneradasReducidas(string(contenido))
+			if err != nil {
+				return nil, fmt.Errorf("%s: %w", relativa, err)
+			}
+
+			sinGenerar[relativa] = []byte(reducido)
+		case strings.HasPrefix(relativa, directorioDeLasReferencias+"/") &&
+			strings.HasPrefix(string(contenido), cabeceraDeLoGenerado):
+			// Una referencia generada: no se compara.
+		default:
+			sinGenerar[relativa] = contenido
+		}
+	}
+
+	return sinGenerar, nil
+}
+
+// conLasRegionesGeneradasReducidas es el SKILL.md con cada región generada
+// reducida a sus marcas: la línea que empieza por la de inicio y la que es la de
+// fin, sin nada entre ellas.
+func conLasRegionesGeneradasReducidas(skill string) (string, error) {
+	var reducido strings.Builder
+
+	// fin es la marca de fin de la región abierta, o nada fuera de una.
+	fin := ""
+
+	for linea := range strings.Lines(skill) {
+		recortada := strings.TrimSuffix(linea, "\n")
+
+		switch {
+		case fin == "":
+			for _, region := range regionesGeneradas {
+				if strings.HasPrefix(recortada, region.inicio) {
+					fin = region.fin
+				}
+			}
+
+			reducido.WriteString(linea)
+		case recortada == fin:
+			fin = ""
+
+			reducido.WriteString(linea)
+		}
+	}
+
+	if fin != "" {
+		return "", fmt.Errorf("no tiene la línea %q que cierra una región generada", fin)
+	}
+
+	return reducido.String(), nil
+}
+
+// conLaDeclaracion son los ficheros de control, sin lo generado, con los cambios
+// de la declaración aplicados a su SKILL.md, en su orden, y los bytes de cada
+// movimiento añadidos al final de su referencia. El antes de cada cambio está una
+// sola vez en el SKILL.md, con los anteriores ya aplicados; si no, es un error
+// con su número.
+func conLaDeclaracion(control map[string][]byte, declarada declaracionDelProducto) (map[string][]byte, error) {
+	esperados := maps.Clone(control)
+
+	skill, laTiene := esperados[ficheroDeLaSkill]
+	if !laTiene {
+		return nil, fmt.Errorf("el control no tiene %s", ficheroDeLaSkill)
+	}
+
+	cuerpo := string(skill)
+
+	for numero, cambio := range declarada.cambios {
+		if veces := strings.Count(cuerpo, cambio.antes); veces != 1 {
+			return nil, fmt.Errorf("el antes del cambio %d está %d veces en el %s de control, y tiene que estar "+
+				"una: %q", numero+1, veces, ficheroDeLaSkill, cambio.antes)
+		}
+
+		cuerpo = strings.Replace(cuerpo, cambio.antes, cambio.despues, 1)
+	}
+
+	esperados[ficheroDeLaSkill] = []byte(cuerpo)
+
+	for _, movimiento := range declarada.movimientos {
+		relativa := path.Join(directorioDeLasReferencias, movimiento.referencia)
+
+		referencia, laTiene := esperados[relativa]
+		if !laTiene {
+			return nil, fmt.Errorf("el control no tiene %s, a la que llega un movimiento, entre sus referencias "+
+				"a mano", relativa)
+		}
+
+		esperados[relativa] = slices.Concat(referencia, []byte(movimiento.enLaReferencia))
+	}
+
+	return esperados, nil
+}
+
+// compararLosFicheros exige que los ficheros obtenidos de ese directorio sean,
+// ruta a ruta y byte a byte, los esperados, que son lo que dice queEs; falla con
+// la ruta del primero, en orden de ruta, que difiere, falta o sobra.
+func compararLosFicheros(t *testing.T, esperados, obtenidos map[string][]byte, directorio, queEs string) {
+	t.Helper()
+
+	rutas := slices.Concat(slices.Collect(maps.Keys(esperados)), slices.Collect(maps.Keys(obtenidos)))
+	slices.Sort(rutas)
+
+	for _, relativa := range slices.Compact(rutas) {
+		esperado, loEspera := esperados[relativa]
+		obtenido, loTiene := obtenidos[relativa]
+		ruta := path.Join(directorio, relativa)
+
+		switch {
+		case !loTiene:
+			assert.Fail(t, "falta", "%s falta: está en %s", ruta, queEs)
+
+			return
+		case !loEspera:
+			assert.Fail(t, "sobra", "%s sobra: no está en %s", ruta, queEs)
+
+			return
+		case !assert.Equal(t, string(esperado), string(obtenido), "%s difiere de %s", ruta, queEs):
+			return
+		}
+	}
+}
+
+// juntarLosBlancos es el texto con cada tramo de blancos —espacios, saltos de
+// línea— cambiado por un espacio, y sin blancos al principio ni al final.
+func juntarLosBlancos(texto string) string {
+	return strings.Join(strings.Fields(texto), " ")
 }
