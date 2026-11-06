@@ -27,12 +27,12 @@ Cuándo leer cada una:
 <!-- paquetes: lo genera make skills-sync -->
 - Si la pregunta es de lo administrativo, lee [administrativo](references/administrativo.md).
 <!-- fin de los paquetes -->
-- [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, con el autonómico de la
-  `comunidad` de `data`, y la norma que prevalece.
-- [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio o no sale con 0, y
-  para explicar su cobertura.
-- [calculo_de_plazos.md](references/calculo_de_plazos.md): en los municipios que cuentan, un plazo sin calcular y una
-  lectura fallida o con `redaccion_posterior`.
+- Para el nivel que regula algo, con el autonómico de la `comunidad` de `data`, y la norma que prevalece, lee
+  [jerarquia_normativa.md](references/jerarquia_normativa.md): rangos y reglas.
+- Al presentar un territorio, si falta el municipio o no sale con 0, y para explicar su cobertura, lee
+  [municipios.md](references/municipios.md): qué hacer.
+- En los municipios que cuentan, un plazo sin calcular y una lectura fallida o con `redaccion_posterior`, lee
+  [calculo_de_plazos.md](references/calculo_de_plazos.md): su detalle.
 
 ## Protocolo
 
@@ -64,8 +64,7 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    plazo ni ninguna fecha de vencimiento, y sin el 10.
 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
     `kitlegal boe articulo <identificador> <id> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
-    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
-    afirmar qué dice.
+    `⚠ REDACCIÓN A FECHA:`.
 11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
     la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
     `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.

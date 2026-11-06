@@ -15,7 +15,7 @@ FR-001 a FR-010; SC-001 a SC-004. Research D1 a D7, V2 a V6; data-model §5.
 | Skill | Cuerpo de control | Cuerpo tras el hito | Referencias | Movimientos |
 |---|---|---|---|---|
 | `normativa` | 10 929 | **10 926** | las ocho de hoy | dos (§3) |
-| `plazos-y-territorio` | 10 930 | **10 982** | las cuatro de hoy | ninguno |
+| `plazos-y-territorio` | 10 930 | **10 873** | las cuatro de hoy | uno (§4) |
 | `jurisprudencia` | 10 842 | **10 842** | las dos de hoy | ninguno |
 
 Medidas en esta sesión sobre copias con estos cambios (research V3). Ninguna referencia nueva.
@@ -24,6 +24,11 @@ Medidas en esta sesión sobre copias con estos cambios (research V3). Ninguna re
 al bloque de los paquetes de las tres skills, así que cada cuerpo, sin paquetes, cabe en 10 930 como mucho. Con los
 10 981 de arriba, `normativa` daba 11 051: su segundo movimiento (§3) la deja en 10 926. El 10 982 de
 `plazos-y-territorio` tampoco cabe con la vertical de ensayo.
+
+**Corrección de T004** (gates/supuestos.md): con P1 a P3, `plazos-y-territorio` tenía 10 982 caracteres y, con la
+vertical de ensayo, 11 052 (`TestVerticalDeEnsayo`, medido en T004). Un movimiento de FR-009, la frase del paso 10 sobre
+la lectura que sale con 4 o 5, que pasa al final de `references/calculo_de_plazos.md` (§4), lo deja en 10 873 (10 943
+con la vertical de ensayo).
 
 ## 2. `normativa` (FR-004)
 
@@ -210,6 +215,30 @@ cambia.
 La orden generada de `administrativo.md`, entre sus marcas, y la línea que la introduce no cambian (FR-005), y siguen
 donde se abren en 58 de 60 sesiones en modo herramienta (research D3).
 
+El movimiento (corrección de T004; FR-009): la frase del paso 10 sobre la lectura que sale con 4 o 5 llega al final de
+`references/calculo_de_plazos.md`, detrás de una línea en blanco y en una sola línea. Es el caso de una lectura fallida,
+que P3 pone como condición para leer esa referencia, y la referencia ya lo dice en «La lectura en la fecha de inicio».
+
+```diff
+@@ -64,8 +64,7 @@
+    plazo ni ninguna fecha de vencimiento, y sin el 10.
+ 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
+     `kitlegal boe articulo <identificador> <id> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
+-    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
+-    afirmar qué dice.
++    `⚠ REDACCIÓN A FECHA:`.
+ 11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
+```
+
+```diff
+--- control/references/calculo_de_plazos.md
++++ skills/plazos-y-territorio/references/calculo_de_plazos.md
+@@ -36 +36,3 @@
+   diría el régimen transitorio de la norma que la cambió, que no has leído. Dilo así.
++
++Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin afirmar qué dice.
+```
+
 ## 5. `jurisprudencia` (FR-006)
 
 ```diff
@@ -326,7 +355,7 @@ Que lo generado sea lo que da `make skills-sync` lo sigue comprobando `TestSkill
 
 ## 8. Uso, de fuera adentro
 
-- **El cuerpo.** Lo lee el agente una vez por pregunta, al activar la skill: 10 926, 10 982 y 10 842 caracteres (§1),
+- **El cuerpo.** Lo lee el agente una vez por pregunta, al activar la skill: 10 926, 10 873 y 10 842 caracteres (§1),
   nunca más de 11 000 (FR-008), tampoco con la línea de un paquete (corrección de T003). No crece con el uso: cientos de normas y miles de bloques consultados no lo tocan; el
   bloque de los paquetes crece con los paquetes declarados en `data/`, no con las consultas.
 - **Las referencias**, cada una una vez por pregunta, cuando llega su condición. `normativa`, en toda pregunta:
@@ -335,7 +364,7 @@ Que lo generado sea lo que da `make skills-sync` lo sigue comprobando `TestSkill
   (`lecturas_que_fallan.md`, con lo movido); `redaccion_modificada.md`, 2520 con lo movido, que deja de leerse en las preguntas sin
   entrada `version-obsoleta`. Una pregunta con fecha: cuerpo + 5952 + 2809 bytes. `plazos-y-territorio`: `administrativo.md`
   (9930) en toda pregunta de plazos o recursos, como hoy, y con su condición `municipios.md` (3944), `calculo_de_plazos.md`
-  (2760) y `jerarquia_normativa.md` (1543). `jurisprudencia`: `consulta_preparada.md` (2038) con una sentencia que no
+  (2869, con lo movido) y `jerarquia_normativa.md` (1543). `jurisprudencia`: `consulta_preparada.md` (2038) con una sentencia que no
   está delante o una pregunta por materia, `documento_aportado.md` (2805) con un documento. `normas.md` crece con las
   normas declaradas en `data/normas.yaml`, no con las consultadas; las demás, solo cuando un hito las cambia.
 - **Las invocaciones por pregunta** de la tabla de comandos no cambian: el hito no añade ni quita ninguna orden ni

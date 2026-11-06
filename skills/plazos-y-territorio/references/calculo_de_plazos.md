@@ -34,3 +34,5 @@ del plazo, sin ninguna fecha de vencimiento y sin nombrar de memoria la norma qu
   hoy, con la norma y la fecha de vigencia de ese campo. En un precepto de `data.preceptos`, `plazos` ya comprobó que su apartado decía lo mismo ese día: lo que cambió
   es otra parte del bloque. En la norma del silencio, la duración que pasaste es la de ese día, y si rige la de hoy lo
   diría el régimen transitorio de la norma que la cambió, que no has leído. Dilo así.
+
+Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin afirmar qué dice.

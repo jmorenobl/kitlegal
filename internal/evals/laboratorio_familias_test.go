@@ -319,10 +319,18 @@ const (
 	siUnaLecturaFalla = " Si una lectura falla, di qué bloques faltan y por qué."
 )
 
+// siLaLecturaSaleCon4o5 es la frase del paso 10 de plazos-y-territorio-control que
+// pasa al final de references/calculo_de_plazos.md, que ya lo dice en «La lectura en
+// la fecha de inicio» (gates/supuestos.md, T004).
+const siLaLecturaSaleCon4o5 = " Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, " +
+	"sin\n" +
+	"    afirmar qué dice."
+
 // reorganizacionesDelProducto son las de las familias del producto, por su skill,
-// con los bytes de contracts/remisiones.md §2 y §3: la de normativa, sus
-// remisiones R1 a R6 y sus dos movimientos; las de plazos-y-territorio y
-// jurisprudencia, vacías, que hoy son su control.
+// con los bytes de contracts/remisiones.md §2 a §5: la de normativa, sus
+// remisiones R1 a R6 y sus dos movimientos; la de plazos-y-territorio, sus
+// remisiones P1 a P3 y su movimiento; y la de jurisprudencia, sus remisiones J1 y
+// J2.
 var reorganizacionesDelProducto = map[string]reorganizacionDelProducto{
 	skillDeNormativa: {
 		cambios: []cambioDelCuerpo{
@@ -408,8 +416,90 @@ var reorganizacionesDelProducto = map[string]reorganizacionDelProducto{
 			},
 		},
 	},
-	skillDeLaFamiliaDePlazos:         {},
-	skillDeLaFamiliaDeJurisprudencia: {},
+	skillDeLaFamiliaDePlazos: {
+		cambios: []cambioDelCuerpo{
+			{ // P1
+				antes: "- [jerarquia_normativa.md](references/jerarquia_normativa.md): para el nivel que regula algo, " +
+					"con el autonómico de la\n" +
+					"  `comunidad` de `data`, y la norma que prevalece.\n",
+				despues: "- Para el nivel que regula algo, con el autonómico de la `comunidad` de `data`, y la norma que " +
+					"prevalece, lee\n" +
+					"  [jerarquia_normativa.md](references/jerarquia_normativa.md): rangos y reglas.\n",
+			},
+			{ // P2
+				antes: "- [municipios.md](references/municipios.md): al presentar un territorio, si falta el municipio o " +
+					"no sale con 0, y\n" +
+					"  para explicar su cobertura.\n",
+				despues: "- Al presentar un territorio, si falta el municipio o no sale con 0, y para explicar su " +
+					"cobertura, lee\n" +
+					"  [municipios.md](references/municipios.md): qué hacer.\n",
+			},
+			{ // P3
+				antes: "- [calculo_de_plazos.md](references/calculo_de_plazos.md): en los municipios que cuentan, un " +
+					"plazo sin calcular y una\n" +
+					"  lectura fallida o con `redaccion_posterior`.\n",
+				despues: "- En los municipios que cuentan, un plazo sin calcular y una lectura fallida o con " +
+					"`redaccion_posterior`, lee\n" +
+					"  [calculo_de_plazos.md](references/calculo_de_plazos.md): su detalle.\n",
+			},
+			{ // el movimiento, que sale del paso 10
+				antes:   siLaLecturaSaleCon4o5,
+				despues: "",
+			},
+		},
+		movimientos: []movimientoALaReferencia{
+			{
+				texto:      siLaLecturaSaleCon4o5,
+				referencia: "calculo_de_plazos.md",
+				enLaReferencia: "\n" +
+					"Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin afirmar " +
+					"qué dice.\n",
+			},
+		},
+	},
+	skillDeLaFamiliaDeJurisprudencia: {
+		cambios: []cambioDelCuerpo{
+			{ // J1, que entra en el paso 2 antes de la tabla de lo que se pide
+				antes: "Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Lo que se " +
+					"pide depende de cómo se\n" +
+					"dio la referencia:\n",
+				despues: "Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Antes de " +
+					"pedir una u otra, lee\n" +
+					"[references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada forma, " +
+					"cómo se dan las casillas\n" +
+					"y qué hacer con el equivalente que devuelva la operación. Lo que se pide depende de cómo se dio " +
+					"la referencia:\n",
+			},
+			{ // J1, que sale del final del paso 2
+				antes: "Antes de dar la consulta, lee [references/consulta_preparada.md](references/consulta_preparada.md): " +
+					"la orden de cada\n" +
+					"forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación.\n" +
+					"\n",
+				despues: "",
+			},
+			{ // J2, que entra al principio del paso 3
+				antes: "### 3. Con el documento delante: cotejar su ficha\n" +
+					"\n",
+				despues: "### 3. Con el documento delante: cotejar su ficha\n" +
+					"\n" +
+					"Con cada documento, antes del cotejo, lee " +
+					"[references/documento_aportado.md](references/documento_aportado.md): qué\n" +
+					"se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se " +
+					"corresponden o si no lleva\n" +
+					"ficha.\n" +
+					"\n",
+			},
+			{ // J2, que sale del final del paso 3
+				antes: "Con cada documento, antes del cotejo, lee " +
+					"[references/documento_aportado.md](references/documento_aportado.md): qué\n" +
+					"se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se " +
+					"corresponden o si no lleva\n" +
+					"ficha.\n" +
+					"\n",
+				despues: "",
+			},
+		},
+	},
 }
 
 // TestSkillsDelProductoDesdeControl es el control de la reorganización de las
