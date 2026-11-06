@@ -3,6 +3,8 @@
   "commit": "4f69d94d157ce2638d530b7ff1c3f8695174a658",
   "ficheros": {
     "specs/033-h41-las-skills-del/aceptacion/laboratorio-tabla.txtar": "770ffe9427f1c3959705e103a64d20a98ea596eeddd7609963b81e4bcd47011e",
-    "specs/033-h41-las-skills-del/aceptacion/remisiones.txtar": "8240ad05fdf5ea3ce7a1b4a457766108b21737a493796189e304653b28ffdb71"
+    "specs/033-h41-las-skills-del/aceptacion/remisiones.txtar": "8240ad05fdf5ea3ce7a1b4a457766108b21737a493796189e304653b28ffdb71",
+    "internal/app/testdata/script/h41-laboratorio-tabla.txtar": "770ffe9427f1c3959705e103a64d20a98ea596eeddd7609963b81e4bcd47011e",
+    "internal/app/testdata/script/h41-remisiones.txtar": "8240ad05fdf5ea3ce7a1b4a457766108b21737a493796189e304653b28ffdb71"
   }
 }

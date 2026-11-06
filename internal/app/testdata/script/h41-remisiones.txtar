@@ -1,0 +1,37 @@
+# remisiones.txtar
+# Lo que instala kitlegal de las tres skills del producto, que mandan leer sus
+# referencias (contracts/remisiones.md §2, §4 y §5; contracts/aceptacion.md §2;
+# ADR 0051): cada orden de leer está en el SKILL.md instalado, con su sitio
+# donde lo fija el texto que la rodea —la de con_herramientas.md, lo primero
+# del «Protocolo»; la de normas.md, lo primero del paso 1; la de
+# consulta_preparada.md, antes de la tabla de lo que se pide; la de
+# documento_aportado.md, lo primero del paso 3—; no queda ninguna de las
+# remisiones que el ADR 0051 no cuenta como órdenes; y lo movido está en su
+# referencia y no en el cuerpo.
+#
+# Cubre: US1.1, US1.2, US1.3, US2.1 · FR-001 a FR-006, FR-009 · SC-001, SC-004; el tope de 11 000, la regla sobre cada frase y el cálculo desde control los comprueban TestSkillsDelRepositorio, TestRemisionesDelRepositorio y TestSkillsDelProductoDesdeControl
+
+exec kitlegal skills install --dir destino --json
+
+# --- normativa: las órdenes de leer, en su sitio, y lo movido ---
+grep '## Protocolo\s+Antes de la primera orden o llamada, lee \[con_herramientas\]\(references/con_herramientas\.md\):' destino/normativa/SKILL.md
+grep '### 1\. Identificar la norma\s+Lee \[normas\]\(references/normas\.md\) y toma el `BOE-A-…` de su tabla; si no está, lee\s+\[buscar_la_norma\]\(references/buscar_la_norma\.md\)' destino/normativa/SKILL.md
+grep 'Con una fecha en la pregunta, lee \[redaccion_en_una_fecha\]\(references/redaccion_en_una_fecha\.md\) antes de leer el\s+bloque' destino/normativa/SKILL.md
+grep 'Por cada entrada `version-obsoleta`, y si se pregunta qué cambió, lee\s+\[redaccion_modificada\]\(references/redaccion_modificada\.md\)' destino/normativa/SKILL.md
+grep 'Con avisos o un id que termina en punto, lee \[como_se_cita\]\(references/como_se_cita\.md\)' destino/normativa/SKILL.md
+grep 'lee antes \[varios_bloques\]\(references/varios_bloques\.md\)' destino/normativa/SKILL.md
+grep 'lee \[lecturas_que_fallan\]\(references/lecturas_que_fallan\.md\) antes de seguir' destino/normativa/SKILL.md
+! grep 'tras leer \[con_herramientas\]' destino/normativa/SKILL.md
+! grep 'las dudas, en \[como_se_cita\]' destino/normativa/SKILL.md
+! grep 'Nada de otra conversación' destino/normativa/SKILL.md
+grep '\n- \*\*Nada de otra conversación\*\*, ni para afirmar, confirmar o desmentir' destino/normativa/references/redaccion_modificada.md
+
+# --- plazos-y-territorio: las órdenes de leer ---
+grep 'y la norma que prevalece, lee\s+\[jerarquia_normativa\.md\]\(references/jerarquia_normativa\.md\):' destino/plazos-y-territorio/SKILL.md
+grep 'para explicar su cobertura, lee\s+\[municipios\.md\]\(references/municipios\.md\):' destino/plazos-y-territorio/SKILL.md
+grep 'con `redaccion_posterior`, lee\s+\[calculo_de_plazos\.md\]\(references/calculo_de_plazos\.md\):' destino/plazos-y-territorio/SKILL.md
+
+# --- jurisprudencia: las órdenes de leer, en su sitio ---
+grep '(?s)Antes de pedir una u otra, lee\s+\[references/consulta_preparada\.md\]\(references/consulta_preparada\.md\).*\| Cómo se dio \| Qué se pide \|' destino/jurisprudencia/SKILL.md
+grep '### 3\. Con el documento delante: cotejar su ficha\s+Con cada documento, antes del cotejo, lee \[references/documento_aportado\.md\]' destino/jurisprudencia/SKILL.md
+! grep 'Antes de dar la consulta' destino/jurisprudencia/SKILL.md
