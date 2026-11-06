@@ -152,7 +152,9 @@ o dar la respuesta. De ahí, tres reglas más:
   `redaccion_modificada.md`, que se manda leer por cada entrada `version-obsoleta`, lo único que trae de otra
   conversación a una respuesta, y «Si una lectura falla, di qué bloques faltan y por qué» a `lecturas_que_fallan.md`;
   y en `plazos-y-territorio`, que `⚠ PLAZO:` se mantiene si la lectura de un precepto sale con 4 o 5, a
-  `calculo_de_plazos.md`. Lo que toda respuesta necesita sigue en el cuerpo.
+  `calculo_de_plazos.md`, que el paso 10 manda leer en ese caso, y «Si no lo dice, **pregúntalo** y espera» del paso
+  1, a `municipios.md`, que se manda leer antes de la primera llamada si falta el municipio, un caso que da la
+  conversación y no una llamada. Lo que toda respuesta necesita sigue en el cuerpo.
 - **`make ci` y `make skills-check` comprueban la frase de cada remisión** (`TestRemisionesDelRepositorio`,
   `internal/skills/remisiones_test.go`). En el cuerpo del `SKILL.md` de cada skill de `skills/` con `references/`, la
   frase de un enlace a una referencia va desde el final de la anterior —un punto seguido de un espacio o de un salto de

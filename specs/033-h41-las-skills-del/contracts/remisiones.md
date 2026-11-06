@@ -30,6 +30,11 @@ vertical de ensayo, 11 052 (`TestVerticalDeEnsayo`, medido en T004). Un movimien
 la lectura que sale con 4 o 5, que pasa al final de `references/calculo_de_plazos.md` (§4), lo deja en 10 873 (10 943
 con la vertical de ensayo).
 
+**Corrección de T009** (gates/supuestos.md): P4, la orden de leer `references/calculo_de_plazos.md` en el paso 10 si la
+lectura sale con 4 o 5 (§4), suma 111 caracteres: 10 984, y 11 054 con la vertical de ensayo. Un segundo movimiento de
+FR-009, la frase del paso 1 sobre el municipio que falta, que pasa al final de `references/municipios.md` (§4), lo deja
+en 10 893 (10 963 con la vertical de ensayo).
+
 ## 2. `normativa` (FR-004)
 
 ```diff
@@ -211,23 +216,27 @@ cambia.
 | P1 | `jerarquia_normativa.md` | «Referencias», antes del «Protocolo» y de toda llamada | el nivel que regula algo y la norma que prevalece | rangos y reglas |
 | P2 | `municipios.md` | ídem | presentar un territorio; un municipio que falta o no sale con 0; su cobertura | qué hacer |
 | P3 | `calculo_de_plazos.md` | ídem | los municipios que cuentan; un plazo sin calcular; una lectura fallida o con `redaccion_posterior` | su detalle |
+| P4 | `calculo_de_plazos.md` | el paso 10, detrás de la lectura de cada precepto | la lectura sale con 4 o 5 | qué hacer |
 
 La orden generada de `administrativo.md`, entre sus marcas, y la línea que la introduce no cambian (FR-005), y siguen
 donde se abren en 58 de 60 sesiones en modo herramienta (research D3).
 
+P4 (T009; FR-003 y FR-009; docs/SKILLS.md §1, «Cómo se remite»): la condición la da lo que devuelve la lectura del
+paso 10, así que la orden va en ese paso, detrás de ella, y dice que se lee «antes de seguir», como la de
+`lecturas_que_fallan.md` en el paso 2 de `normativa`. P3, antes del «Protocolo» y de toda llamada, no cambia.
+
 El movimiento (corrección de T004; FR-009): la frase del paso 10 sobre la lectura que sale con 4 o 5 llega al final de
-`references/calculo_de_plazos.md`, detrás de una línea en blanco y en una sola línea. Es el caso de una lectura fallida,
-que P3 pone como condición para leer esa referencia, y la referencia ya lo dice en «La lectura en la fecha de inicio».
+`references/calculo_de_plazos.md`, detrás de una línea en blanco y en una sola línea. Es el caso en que P4 manda leer
+esa referencia, y la referencia ya lo dice en «La lectura en la fecha de inicio». En el sitio de la frase, P4 (este
+tramo y los que siguen son los de `diff -U1` de control al producto):
 
 ```diff
-@@ -64,8 +64,7 @@
-    plazo ni ninguna fecha de vencimiento, y sin el 10.
- 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
+@@ -66,4 +65,4 @@
      `kitlegal boe articulo <identificador> <id> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
 -    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin
 -    afirmar qué dice.
-+    `⚠ REDACCIÓN A FECHA:`.
- 11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
++    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, lee [calculo_de_plazos.md](references/calculo_de_plazos.md)
++    antes de seguir: qué hacer.
 ```
 
 ```diff
@@ -237,6 +246,31 @@ que P3 pone como condición para leer esa referencia, y la referencia ya lo dice
    diría el régimen transitorio de la norma que la cambió, que no has leído. Dilo así.
 +
 +Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin afirmar qué dice.
+```
+
+El segundo movimiento (T009; FR-008 y FR-009): con P4, el cuerpo pasa de 10 930 caracteres sin paquetes y, con la línea
+de 70 de la vertical de ensayo de H32 (`TestVerticalDeEnsayo`), de 11 000; con él queda en 10 893.
+
+| De | A | Texto | Por qué |
+|---|---|---|---|
+| el paso 1, tras «de la conversación» | el final de `references/municipios.md`, detrás de una línea en blanco | «Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien usa el kit.» | es el caso en que P2 manda leer esa referencia («si falta el municipio»), que ya lo dice en «El municipio que falta»; la condición la da la conversación, no una llamada, y P2 va antes de la primera, que es la del paso 2; el paso 1 conserva de dónde sale el municipio |
+
+```diff
+@@ -40,4 +40,3 @@
+ 
+-1. **El municipio**, de la conversación. Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien
+-   usa el kit.
++1. **El municipio**, de la conversación.
+ 2. **Resolverlo** con `territorio_resolver` o `kitlegal territorio resolver <nombre o código INE> --json`, tal como lo
+```
+
+```diff
+--- control/references/municipios.md
++++ skills/plazos-y-territorio/references/municipios.md
+@@ -63 +63,3 @@
+ - Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.
++
++Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien usa el kit.
 ```
 
 ## 5. `jurisprudencia` (FR-006)

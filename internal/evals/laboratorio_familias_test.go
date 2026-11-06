@@ -332,11 +332,18 @@ const siLaLecturaSaleCon4o5 = " Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**:
 	"sin\n" +
 	"    afirmar qué dice."
 
+// siNoLoDice es la frase del paso 1 de plazos-y-territorio-control que pasa al
+// final de references/municipios.md, que ya lo dice en «El municipio que falta» y
+// que P2 manda leer si falta el municipio, antes de la primera llamada: deja
+// sitio a P4, la orden del paso 10 (gates/supuestos.md, T009).
+const siNoLoDice = " Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien\n" +
+	"   usa el kit."
+
 // reorganizacionesDelProducto son las de las familias del producto, por su skill,
 // con los bytes de contracts/remisiones.md §2 a §5: la de normativa, sus
 // remisiones R1 a R6 y sus dos movimientos; la de plazos-y-territorio, sus
-// remisiones P1 a P3 y su movimiento; y la de jurisprudencia, sus remisiones J1 y
-// J2.
+// remisiones P1 a P4 y sus dos movimientos; y la de jurisprudencia, sus
+// remisiones J1 y J2.
 var reorganizacionesDelProducto = map[string]reorganizacionDelProducto{
 	skillDeNormativa: {
 		cambios: []cambioDelCuerpo{
@@ -448,6 +455,18 @@ var reorganizacionesDelProducto = map[string]reorganizacionDelProducto{
 					"`redaccion_posterior`, lee\n" +
 					"  [calculo_de_plazos.md](references/calculo_de_plazos.md): su detalle.\n",
 			},
+			{ // el segundo movimiento, que sale del paso 1
+				antes:   siNoLoDice,
+				despues: "",
+			},
+			{ // P4, en el paso 10, detrás de la lectura que trae el 4 o el 5
+				antes: "y citarlo con\n" +
+					"    `⚠ REDACCIÓN A FECHA:`.",
+				despues: "y citarlo con\n" +
+					"    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, lee " +
+					"[calculo_de_plazos.md](references/calculo_de_plazos.md)\n" +
+					"    antes de seguir: qué hacer.",
+			},
 			{ // el movimiento, que sale del paso 10
 				antes:   siLaLecturaSaleCon4o5,
 				despues: "",
@@ -460,6 +479,12 @@ var reorganizacionesDelProducto = map[string]reorganizacionDelProducto{
 				enLaReferencia: "\n" +
 					"Si sale con 4 o 5, **`⚠ PLAZO:` se mantiene**: di aparte que no has podido leerlo, sin afirmar " +
 					"qué dice.\n",
+			},
+			{
+				texto:      siNoLoDice,
+				referencia: "municipios.md",
+				enLaReferencia: "\n" +
+					"Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien usa el kit.\n",
 			},
 		},
 	},

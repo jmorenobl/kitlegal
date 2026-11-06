@@ -59,14 +59,16 @@ sustituyen a este fichero.
   agente («si la tienes») o como sitio de dudas: en `normativa`, `con_herramientas.md` antes de la primera orden o
   llamada, `normas.md` y `buscar_la_norma.md` en el paso 1, y en el paso 2, detrás de la lectura y con el caso que la
   pide, `redaccion_en_una_fecha.md`, `redaccion_modificada.md`, `como_se_cita.md`, `varios_bloques.md` y
-  `lecturas_que_fallan.md`, esta «antes de seguir»; en `plazos-y-territorio`, las tres de «Cuándo leer cada una»; y en
-  `jurisprudencia`, `consulta_preparada.md` antes de pedir la consulta del paso 2 y `documento_aportado.md` al empezar
-  el paso 3, antes del cotejo. Lo que solo necesita un caso va a la referencia que se manda leer en ese caso, y así
-  las órdenes caben en el tope de 11 000 caracteres: en `normativa`, «Nada de otra conversación» pasa a
+  `lecturas_que_fallan.md`, esta «antes de seguir»; en `plazos-y-territorio`, las tres de «Cuándo leer cada una» y,
+  en el paso 10, detrás de la lectura de cada precepto, `calculo_de_plazos.md` «antes de seguir» si sale con 4 o 5;
+  y en `jurisprudencia`, `consulta_preparada.md` antes de pedir la consulta del paso 2 y `documento_aportado.md` al
+  empezar el paso 3, antes del cotejo. Lo que solo necesita un caso va a la referencia que se manda leer en ese caso,
+  y así las órdenes caben en el tope de 11 000 caracteres: en `normativa`, «Nada de otra conversación» pasa a
   `redaccion_modificada.md` y «Si una lectura falla, di qué bloques faltan y por qué», a `lecturas_que_fallan.md`; en
   `plazos-y-territorio`, que `⚠ PLAZO:` se mantiene si la lectura de un precepto sale con 4 o 5, a
-  `calculo_de_plazos.md`. Ni las descripciones, ni las tablas de comandos, ni las órdenes que piden las skills cambian,
-  y no hay ninguna referencia nueva. `make ci` y `make skills-check` comprueban que cada enlace del cuerpo a una
+  `calculo_de_plazos.md`, y que el municipio que no dice la conversación se pregunta, a `municipios.md`. Ni las
+  descripciones, ni las tablas de comandos, ni las órdenes que piden las skills cambian, y no hay ninguna referencia
+  nueva. `make ci` y `make skills-check` comprueban que cada enlace del cuerpo a una
   referencia va en una frase que manda leerla («lee» antes del enlace), sin «si la tienes», «antes de escribir la
   respuesta» ni «antes de dar la consulta», y que cada referencia tiene alguno.
 

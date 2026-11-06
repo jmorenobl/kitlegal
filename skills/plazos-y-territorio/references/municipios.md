@@ -61,3 +61,5 @@ dir3: <valor>
 - En `plazos`, el 2 o el 3 de un municipio se tratan igual, con los candidatos en `data.mensaje` tras el municipio. El
   3 con un `data.mensaje` que empieza por «el plazo de tipo» no es de un municipio: es el plazo sin calcular del paso 9.
 - Con cualquier otro código o `clase`, di que no se pudo resolver y no suplas sus datos.
+
+Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien usa el kit.

@@ -38,8 +38,7 @@ Cuándo leer cada una:
 
 Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 y, solo si hay plazo, del 8 al 11.
 
-1. **El municipio**, de la conversación. Si no lo dice, **pregúntalo** y espera: no lo supongas, tampoco el de quien
-   usa el kit.
+1. **El municipio**, de la conversación.
 2. **Resolverlo** con `territorio_resolver` o `kitlegal territorio resolver <nombre o código INE> --json`, tal como lo
    dio la persona. Sin herramienta ni binario, la regla 7.
 3. **Responder con `data`**, la cobertura en su forma fija y de cuándo son los datos (`fecha_consulta`). **Ningún
@@ -64,7 +63,8 @@ Territorio: del 1 al 4, y el 5 y el 6 si va más allá. Plazos o recursos: el 7 
    plazo ni ninguna fecha de vencimiento, y sin el 10.
 10. **Leer cada precepto de `data.preceptos` en la fecha de inicio**, con `boe_articulo` y `fecha` o
     `kitlegal boe articulo <identificador> <id> --fecha <inicio> --json`, sin `kitlegal graph check`, y citarlo con
-    `⚠ REDACCIÓN A FECHA:`.
+    `⚠ REDACCIÓN A FECHA:`. Si sale con 4 o 5, lee [calculo_de_plazos.md](references/calculo_de_plazos.md)
+    antes de seguir: qué hacer.
 11. **Responder**: `data.fecha` en la línea del plazo y ninguna otra fecha de vencimiento (regla 8); los festivos que
     la movieron, de `data.festivos`, con fecha, ámbito y, si es local, municipio; cada aviso de `data.avisos`, su
     `texto` tal cual; el alcance de los festivos, solo si lo dice un aviso.
