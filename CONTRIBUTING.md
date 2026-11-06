@@ -1751,13 +1751,14 @@ sesión de su fila la tiene instalada sola, sin ninguna otra skill; en modo herr
 
 | Variante | Qué es | Modos |
 |---|---|---|
-| `normativa-control` | `skills/normativa` tal cual, ruta a ruta y byte a byte | `orden` y `herramienta` |
+| `normativa-control` | `skills/normativa` de `v0.9.0`, ruta a ruta y byte a byte, congelada desde H41 (abajo) | `orden` y `herramienta` |
 | `normativa-remisiones-en-orden` | control con cinco párrafos o viñetas de `SKILL.md` que piden leer su referencia antes del paso que la usa | `herramienta` |
 | `normativa-cuerpo-corto` | control con el cuerpo de `SKILL.md` reducido a lo que hace falta para leer y citar las cuatro evals, con las ocho remisiones | `herramienta` |
 | `normativa-testigo-en-referencia` | control con la regla testigo de H39 al final de `references/con_herramientas.md`, en `## Cómo termina la respuesta`, y una remisión de `SKILL.md` que lo anuncia | `herramienta` |
 
-`make ci` las comprueba sin modelo: `TestVariantesDeNormativa` (control es `skills/normativa` byte a byte, y cada una de
-las otras tres es la que da su declaración aplicada sobre control, o el test falla con su motivo),
+`make ci` las comprueba sin modelo: `TestVariantesDeNormativa` (cada una de las otras tres es la que da su declaración
+aplicada sobre control, o el test falla con su motivo; que control no cambia lo comprueba, desde H41,
+`TestVariantesDeControl`),
 `TestReglaTestigoDeNormativa`, `TestArnesDeNormativa`, `TestTablaDeNormativa` y `TestLaboratorioFueraDelProducto`, que
 mira también los nombres de esta familia. El tope de 11 000 caracteres de cuerpo no se aplica a las variantes.
 
@@ -1796,6 +1797,84 @@ alguna sesión la abre,
 no es de esta familia es un defecto: `laboratorio: <ruta> no es ninguna variante de normativa` en la salida de error,
 código `1` y sin tabla. Qué cuenta cada columna lo fija `specs/032-h40-por-qu-e/contracts/tabla.md`, y
 `TestTablaDeNormativa` lo comprueba en `make ci` con sesiones fijas.
+
+H41 hace de la familia de `normativa` la primera de tres, una por skill del producto con referencias —`normativa`,
+`plazos-y-territorio` y `jurisprudencia`—, para medir si mandar leer cada referencia en su sitio hace que se lea
+(`specs/033-h41-las-skills-del/contracts/arnes.md`). Las declara `internal/evals/laboratorio_familias.go`, y cada una
+tiene dos variantes, que se miden en `orden` y en `herramienta`:
+
+| Variante | Qué es | Dónde está |
+|---|---|---|
+| `<skill>-control` | `skills/<skill>` de `v0.9.0`, la de `main` al lanzar H41, ruta a ruta y byte a byte, congelada: ya no se compara con `skills/<skill>` | `laboratorio/<skill>/<skill>-control/skills/<skill>/` |
+| `<skill>-producto` | `skills/<skill>` del árbol en el momento del sondeo: el arnés la instala desde `skills/` | en ningún sitio: no tiene copia versionada |
+
+Las tres variantes de H40 sin control siguen en la familia de `normativa`, en modo herramienta y comparadas con
+`normativa-control`. `make ci` lo comprueba sin modelo: `TestVariantesDeControl` (cada fichero de cada `<skill>-control`
+tiene la huella SHA-256 que se anotó al copiarlo de `v0.9.0`, y la carpeta de la familia no tiene ningún directorio
+`<skill>-producto`: falla con la ruta del que difiere, falta o sobra), `TestSkillsDelProductoDesdeControl` (cada skill
+de `skills/` es la que dan sobre su control los cambios que declara el hito), `TestArnesDeLasFamilias`,
+`TestTablaDeLasFamilias`, `TestLecturaConCd` y `TestLaboratorioFueraDelProducto`, que mira también estas familias:
+ninguna variante versionada se empotra en el binario, la pone `kitlegal skills install` ni la mide el job de evals. El
+tope de 11 000 caracteres rige `skills/`, no las variantes versionadas.
+
+La orden, los siete argumentos y la cadena son los de arriba. `VARIANTES` es de **una sola familia**: pedir variantes de
+varias es `VARIANTES: se mezclan variantes de <a> y variantes de <b>`, una por familia pedida y en el orden de las
+familias; la de H39 se nombra «del laboratorio de H39», así que la mezcla de H39 y `normativa` da el mensaje de H40.
+`SESIONES` sigue siendo múltiplo de 4: cada familia tiene cuatro evals de `evals/<skill>`, sin copia y en este orden, que
+entre las cuatro llegan a la condición del mayor número de remisiones de la skill (cuáles alcanza cada una,
+`specs/033-h41-las-skills-del/research.md`, D12):
+
+| Familia | Evals del sondeo |
+|---|---|
+| `normativa` | `04-lgt-prescripcion`, `05-trlrhl-impuestos-municipales`, `15-irpf-rendimientos-por-materia` y `22-lcsp-contrato-menor-en-2019` |
+| `plazos-y-territorio` | `02-territorio-municipio-no-cubierto`, `05-plazo-reposicion-leganes`, `10-plazo-reposicion-anterior-a-la-lpac` y `11-plazo-reposicion-sin-leer-el-precepto` |
+| `jurisprudencia` | `01-existe-con-numero-y-fecha`, `03-por-materia`, `04-documento-pegado` y `06-documento-que-no-es-el-pedido` |
+
+Cada sesión se prepara como en el job, servida por lo grabado y con los proxies que rechazan toda petición (ADR 0043),
+y tiene instalada solo la skill de su variante, con el nombre de la de la familia; en modo herramienta, el servidor es
+`kitlegal mcp serve` del árbol en todas. Con `<skill>-producto`, el arnés copia `skills/<skill>` del árbol en el
+temporal y anota en `sondeo.json` la clave `referencias_del_producto`: los nombres de los ficheros de su `references/`,
+en orden de nombre, y nada más de la skill. Sin `<skill>-producto`, `sondeo.json` es el de H39.
+
+La tabla de una familia del producto es la de H40 con la skill y las referencias de la familia, con el título
+`# Sondeo de las variantes de <skill>`. Las columnas de las referencias son las de las variantes versionadas, de su
+declaración, y las de `<skill>-producto`, de la lista de su `sondeo.json`, en orden de nombre; la celda de una
+referencia que la variante de la fila no tiene va vacía, no a cero, y «Cumplen la regla» solo va en la de `normativa`.
+En estas familias, además de un `Read` de la referencia y de una orden de `Bash` que contiene `references/<f>`, abre
+`<f>` una orden de `Bash` que hace `cd` a un directorio cuya ruta termina en `<skill>/references`, con o sin barra
+final, y después, en otra orden simple de la misma orden, nombra `<f>` por su nombre solo, `<f>` o `./<f>`:
+`cd …/normativa/references && cat normas.md` abre `normas.md`; `cat otra/normas.md` detrás del mismo `cd`, o el `cd` y
+el `cat` en dos órdenes de `Bash`, no. La familia de H39 se cuenta con su contrato, sin esta regla. En la tabla de una
+familia del producto, un directorio de variante de otra familia, también de H39, es
+`laboratorio: <ruta> no es ninguna variante de <skill>`, con código `1` y sin tabla. Qué cuenta cada columna lo fija
+`specs/033-h41-las-skills-del/contracts/tabla.md`.
+
+La medida de H41, de la que depende que su propuesta de cambio se fusione, son trece filas de 40 sesiones, diez por
+eval —`<skill>-control` y `<skill>-producto` de cada familia en los dos modos y `normativa-remisiones-en-orden` en modo
+herramienta—: cuatro lanzamientos y tres tablas, una por familia. La lanza una persona antes de fusionar, con la
+credencial del sondeo y Claude Code en el `PATH`, y deja las sesiones fuera del repositorio:
+
+```sh
+V=$(claude --version | awk '{print $1}')
+make evals-laboratorio VARIANTES=normativa-control,normativa-producto MODOS=orden,herramienta SESIONES=40 \
+  MODELO=claude-sonnet-5-5 CLAUDE_CODE=$V CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41/normativa/a
+make evals-laboratorio VARIANTES=normativa-remisiones-en-orden MODOS=herramienta SESIONES=40 \
+  MODELO=claude-sonnet-5-5 CLAUDE_CODE=$V CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41/normativa/b
+make evals-laboratorio VARIANTES=plazos-y-territorio-control,plazos-y-territorio-producto MODOS=orden,herramienta \
+  SESIONES=40 MODELO=claude-sonnet-5-5 CLAUDE_CODE=$V CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41/plazos-y-territorio
+make evals-laboratorio VARIANTES=jurisprudencia-control,jurisprudencia-producto MODOS=orden,herramienta \
+  SESIONES=40 MODELO=claude-sonnet-5-5 CLAUDE_CODE=$V CONCURRENCIA=5 DIRECTORIO=../kitlegal-sondeos/h41/jurisprudencia
+make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h41/normativa
+make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h41/plazos-y-territorio
+make laboratorio-tabla DIRECTORIO=../kitlegal-sondeos/h41/jurisprudencia
+```
+
+160 + 40 + 160 + 160 = 520 sesiones. Las tres tablas van a `evidencias/`, con el modelo y la versión de Claude Code, y
+su lectura a la propuesta de cambio, que no se fusiona sin ellas. La reorganización vale si, en modo herramienta, el
+intervalo de `normativa-producto` en `con_herramientas.md` y en `normas.md` no se toca con el de `normativa-control` y sí
+con el de `normativa-remisiones-en-orden`, y si en ninguna familia y modo `producto` queda por debajo de `control`, con
+intervalos que no se tocan, en «Activan antes» ni en las referencias a cuya condición llegan las evals. Si no, la
+propuesta no se fusiona y lo medido va a un ADR que dice qué medir después.
 
 ## `make vuln` necesita red
 

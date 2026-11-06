@@ -151,7 +151,7 @@ evals-sondeo: check-tools
 # relativo a la raíz del repositorio o absoluto, no puede existir. La credencial
 # la toma scripts/evals-sondeo-llavero.sh, como en evals-sondeo; ningún paso del
 # workflow `hito` puede lanzarlo (docs/ADR/0032).
-## evals-laboratorio: sondeo del laboratorio de H39 o de las variantes de normativa (una familia por invocación) con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
+## evals-laboratorio: sondeo del laboratorio de H39 o de las variantes de normativa, plazos-y-territorio o jurisprudencia (una familia por invocación) con Claude Code, sin veredicto, para make laboratorio-tabla (macOS o Linux; consume la suscripción; la credencial, del llavero o de CLAUDE_CODE_OAUTH_TOKEN; fuera de ci)
 evals-laboratorio: check-tools
 	@scripts/evals-sondeo-llavero.sh laboratorio "$(VARIANTES)" "$(MODOS)" "$(SESIONES)" "$(MODELO)" "$(CLAUDE_CODE)" "$(CONCURRENCIA)" "$(DIRECTORIO)"
 
@@ -168,7 +168,7 @@ evals-medir-juez: check-tools
 # La tabla de un sondeo del laboratorio de H39 la lee la persona, una vez, para escribir el ADR que precisa el 0046
 # (specs/031-h39-c-omo-se/contracts/tabla.md). DIRECTORIO no tiene valor por defecto: es un sondeo, o el directorio de
 # los sondeos que se juntan en una tabla.
-## laboratorio-tabla: cuenta las sesiones de un sondeo del laboratorio, de H39 o de las variantes de normativa, y escribe su tabla y su detalle (sin red, modelo ni credencial; fuera de ci)
+## laboratorio-tabla: cuenta las sesiones de un sondeo del laboratorio, de H39 o de las variantes de normativa, plazos-y-territorio o jurisprudencia, y escribe su tabla y su detalle (sin red, modelo ni credencial; fuera de ci)
 laboratorio-tabla: check-tools
 	@go run ./cmd/laboratorio tabla "$(DIRECTORIO)"
 

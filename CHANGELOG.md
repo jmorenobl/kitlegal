@@ -17,10 +17,10 @@ sustituyen a este fichero.
 - **Cuatro variantes de `normativa` para medir por qué no lee sus referencias en modo herramienta** (H40). Viven en
   `laboratorio/normativa/`, **fuera del producto** como el laboratorio de H39: el binario no las empotra,
   `kitlegal skills install` no las instala y el job de evals no las mide. Cada una es una skill completa con el nombre
-  `normativa`: `normativa-control`, que es `skills/normativa` byte a byte y se mide en los dos modos, y
+  `normativa`: `normativa-control`, que es `skills/normativa` de `v0.9.0` byte a byte y se mide en los dos modos, y
   `normativa-remisiones-en-orden`, `normativa-cuerpo-corto` y `normativa-testigo-en-referencia`, que difieren de
-  control solo en lo que declaran y se miden en modo herramienta. `make ci` comprueba sin modelo que control es
-  `skills/normativa` y que cada una de las otras tres es la que da su declaración sobre control.
+  control solo en lo que declaran y se miden en modo herramienta. `make ci` comprueba sin modelo que control no cambia
+  y que cada una de las otras tres es la que da su declaración sobre control.
 - **`make evals-laboratorio` lanza también las variantes de `normativa`** (H40), con la misma orden, los mismos siete
   argumentos y la misma credencial: las sesiones se reparten entre las evals 04, 05, 15 y 22 de `evals/normativa`,
   servidas por lo grabado, y cada sesión tiene instalada solo la variante de su fila. Una invocación es de una sola
@@ -29,6 +29,46 @@ sustituyen a este fichero.
   credencial: una fila por variante, modo, modelo y versión de Claude Code con las sesiones que activan `normativa`
   antes de la primera herramienta de kitlegal, las que abren cada una de sus ocho referencias y en qué turno, y, en
   `normativa-testigo-en-referencia`, las que cumplen la regla testigo. La tabla de un sondeo de H39 no cambia.
+- **`make evals-laboratorio` mide las tres skills del producto, `normativa`, `plazos-y-territorio` y
+  `jurisprudencia`** (H41), una familia por invocación, con la misma orden, los mismos siete argumentos y la misma
+  credencial. Cada familia tiene `<skill>-control`, la skill de `v0.9.0` congelada en
+  `laboratorio/<skill>/<skill>-control/`, y `<skill>-producto`, que el arnés instala desde `skills/` al lanzar el
+  sondeo, sin copia versionada en ningún sitio; las dos se miden en los dos modos, y las tres variantes de H40 sin
+  control, en modo herramienta. `normativa-control` deja de compararse con `skills/normativa`: `make ci` falla, con la
+  ruta, si un fichero de una `<skill>-control` cambia, falta o sobra, y si una skill del producto no es la que dan
+  sobre su control los cambios que declara el hito. Las sesiones se reparten entre cuatro evals de cada familia,
+  servidas por lo grabado —04, 05, 15 y 22 de `evals/normativa`; 02, 05, 10 y 11 de `evals/plazos-y-territorio`; 01,
+  03, 04 y 06 de `evals/jurisprudencia`—, y cada sesión tiene instalada solo la skill de su variante. Pedir variantes
+  de dos familias es un error de uso, `VARIANTES: se mezclan variantes de <a> y variantes de <b>`, y no abre ninguna
+  sesión. Con `<skill>-producto`, `sondeo.json` anota en `referencias_del_producto` los nombres de las referencias que
+  instaló, y nada más de la skill.
+- **`make laboratorio-tabla` cuenta los sondeos de las tres familias del producto** (H41), con las reglas de H40 y la
+  skill y las referencias de la familia: las de `<skill>-producto`, de la lista de su `sondeo.json`, en orden de
+  nombre, y la celda de una referencia que la variante de la fila no tiene va vacía, no a cero. En esas familias,
+  una orden de `Bash` que hace `cd` al directorio `references` de la skill y después, en la misma orden, nombra la
+  referencia por su nombre solo, como `cd …/normativa/references && cat normas.md`, también la abre; la tabla de un
+  sondeo de H39 no cambia. «Cumplen la regla» solo va en la de `normativa`. En la tabla de una familia del producto,
+  un directorio de variante de otra familia es un defecto, `laboratorio: <ruta> no es ninguna variante de <skill>`,
+  con código 1 y sin tabla.
+
+### Cambiado
+
+- **`normativa`, `plazos-y-territorio` y `jurisprudencia` mandan leer cada referencia en el sitio en que hace falta**
+  (H41). Cada remisión del cuerpo de su `SKILL.md` es una orden de leer —«lee», el enlace, cuándo y lo que trae—
+  puesta donde llega su condición, y no una referencia nombrada dentro de otra orden, tras una condición sobre el
+  agente («si la tienes») o como sitio de dudas: en `normativa`, `con_herramientas.md` antes de la primera orden o
+  llamada, `normas.md` y `buscar_la_norma.md` en el paso 1, y en el paso 2, detrás de la lectura y con el caso que la
+  pide, `redaccion_en_una_fecha.md`, `redaccion_modificada.md`, `como_se_cita.md`, `varios_bloques.md` y
+  `lecturas_que_fallan.md`, esta «antes de seguir»; en `plazos-y-territorio`, las tres de «Cuándo leer cada una»; y en
+  `jurisprudencia`, `consulta_preparada.md` antes de pedir la consulta del paso 2 y `documento_aportado.md` al empezar
+  el paso 3, antes del cotejo. Lo que solo necesita un caso va a la referencia que se manda leer en ese caso, y así
+  las órdenes caben en el tope de 11 000 caracteres: en `normativa`, «Nada de otra conversación» pasa a
+  `redaccion_modificada.md` y «Si una lectura falla, di qué bloques faltan y por qué», a `lecturas_que_fallan.md`; en
+  `plazos-y-territorio`, que `⚠ PLAZO:` se mantiene si la lectura de un precepto sale con 4 o 5, a
+  `calculo_de_plazos.md`. Ni las descripciones, ni las tablas de comandos, ni las órdenes que piden las skills cambian,
+  y no hay ninguna referencia nueva. `make ci` y `make skills-check` comprueban que cada enlace del cuerpo a una
+  referencia va en una frase que manda leerla («lee» antes del enlace), sin «si la tienes», «antes de escribir la
+  respuesta» ni «antes de dar la consulta», y que cada referencia tiene alguno.
 
 ## [0.9.0] - 2026-11-04
 
