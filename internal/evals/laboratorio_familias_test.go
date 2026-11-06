@@ -18,6 +18,13 @@ import (
 	"github.com/jmorenobl/kitlegal/internal/skills"
 )
 
+// familiaDeNormativa es la familia de normativa, la primera de
+// familiasDelProducto, con sus variantes versionadas, las de H40: la de control,
+// en los dos modos, y las otras tres, solo en el modo herramienta, cada una con
+// su directorio (data-model §1 de H40). Es la que miran los tests de las
+// variantes de normativa; el arnés y la tabla usan la familia entera.
+var familiaDeNormativa = familiasDelProducto[0].versionada()
+
 // huellasDeLosControles son las huellas SHA-256 de los ficheros de la variante de
 // control de cada familia del producto, por su skill y por su ruta desde el
 // directorio de la variante, escritas al copiarlos de skills/ en v0.9.0 (research

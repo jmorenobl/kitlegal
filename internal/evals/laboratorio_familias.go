@@ -151,14 +151,6 @@ var familiasDelProducto = []familiaDelLaboratorio{
 	},
 }
 
-// familiaDeNormativa es la familia de normativa, la primera de
-// familiasDelProducto, con sus variantes versionadas, las de H40: la de control,
-// en los dos modos, y las otras tres, solo en el modo herramienta, cada una con
-// su directorio (data-model §1 de H40). Con ella el arnés y la tabla dan, para
-// las variantes de H40, lo mismo que antes de que la familia tuviera variante del
-// producto.
-var familiaDeNormativa = familiasDelProducto[0].versionada()
-
 // versionada es la familia con solo sus variantes versionadas, las de un
 // directorio de su carpeta, en su orden, y sin variante del producto; la de H39,
 // que no tiene, es la misma.
