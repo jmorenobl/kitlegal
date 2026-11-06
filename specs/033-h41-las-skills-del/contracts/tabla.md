@@ -101,7 +101,10 @@ pide.
   las sesiones fijas de `internal/evals/testdata/laboratorio/familias/<skill>/sondeo/` de cada familia —los dos modos;
   lecturas con `cd` que cuentan y que no; una referencia de la lista del producto que la familia no declara; una sesión
   sin terminar— la salida es, byte a byte, su `tabla.md`. Y el defecto de §1 que se alcanza sin editar el sondeo a
-  mano: un directorio de variante de otra familia en un sondeo del producto, con código 1, sin tabla y su mensaje.
+  mano: un directorio de variante de otra familia en un sondeo del producto, con código 1, sin tabla y su mensaje, sobre
+  `internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/` (`normativa-control`, la primera variante, y
+  `plazos-y-territorio-control`, de otra familia; sin `tabla.md`). Las tres familias las nombra el test; `mezcla/` no es
+  una familia.
 - **`TestLecturaConCd`** (`internal/evals/laboratorio_tabla_test.go`; FR-041, SC-005): la tabla de §2, orden a orden, con
   la familia de `normativa`, y la de H39 con la lectura con `cd`, que no la abre.
 - **`TestTablaDeNormativa`**, **`TestTablaDelLaboratorio`**, **`TestReglaTestigo`** y **`TestOrdenesDeBash`** (H39 y

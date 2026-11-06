@@ -114,10 +114,11 @@ internal/evals/laboratorio_familias_test.go                 # NUEVO: TestVariant
 internal/evals/laboratorio_normativa_test.go                # TestVariantesDeNormativa sin los dos subtests que pasan a TestVariantesDeControl
 internal/evals/laboratorio_sondeo.go                        # cuatro familias, la mezcla, `<skill>-producto` desde skills/, la lista
 internal/evals/laboratorio_sondeo_test.go                   # + TestArnesDeLasFamilias
-internal/evals/laboratorio_tabla.go                         # tabla de una familia del producto, sus referencias, la lectura con cd
+internal/evals/laboratorio_tabla.go                         # `sondeoLeido` + `referencias_del_producto` (T005); tabla de una familia del producto, sus referencias, la lectura con cd
 internal/evals/laboratorio_tabla_test.go                    # + TestTablaDeLasFamilias, TestLecturaConCd
 internal/evals/laboratorio_test.go                          # TestLaboratorioFueraDelProducto, generalizado
 internal/evals/testdata/laboratorio/familias/{normativa,plazos-y-territorio,jurisprudencia}/   # NUEVO [datos]: sondeo/, tabla.md
+internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/   # NUEVO [datos]: normativa-control y plazos-y-territorio-control, sin tabla.md
 cmd/laboratorio/main.go                                     # comentario de paquete: las cuatro familias
 scripts/evals-laboratorio.sh                                # cabecera: las cuatro familias (comentario)
 Makefile                                                    # skills-check: + TestRemisionesDelRepositorio; ayuda de evals-laboratorio y laboratorio-tabla
@@ -201,7 +202,8 @@ La historia 3 abre sesiones con modelo y credencial: su aceptación es `TestArne
 - **Suites congeladas**: las dos de H41 (contracts/aceptacion.md); las de H39 y H40 y `h32-normativa.txtar`, sin cambiar
   un fichero (FR-042; research V4).
 - **Fixtures** (tareas `[datos]`, sin red): `internal/evals/testdata/laboratorio/familias/<skill>/sondeo/` (sesiones fijas
-  de los dos modos y sus `sondeo.json`) y `…/tabla.md`, por familia. Ninguna grabación; ningún fichero de `testdata/`
+  de los dos modos y sus `sondeo.json`) y `…/tabla.md`, por familia; y `internal/evals/testdata/laboratorio/familias/mezcla/sondeo/h41/`,
+  un sondeo de `normativa` con un directorio de `plazos-y-territorio`, sin `tabla.md`. Ninguna grabación; ningún fichero de `testdata/`
   existente cambia.
 - **Fuera de `make ci`**: `TestSondeoDelLaboratorio` (`-tags evals`), la entrada de la persona.
 

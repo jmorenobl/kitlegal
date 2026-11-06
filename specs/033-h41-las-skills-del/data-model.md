@@ -45,7 +45,9 @@ No tiene directorio en el repositorio. En cada sondeo que la pide, el arnés cop
 
 ## 4. `sondeo.json` (FR-033)
 
-El de H39 (`{"modelo","claude_code"}`), con una clave más, solo si el sondeo pide `<skill>-producto`:
+El de H39 (`{"modelo","claude_code"}`), con una clave más, solo si el sondeo pide `<skill>-producto`. Un solo tipo lo
+escribe y lo lee: `sondeoLeido` (`internal/evals/laboratorio_tabla.go`), con el que el arnés lo codifica hoy, gana el
+campo `ReferenciasDelProducto []string` con `json:"referencias_del_producto,omitempty"`, tras `Modelo` y `ClaudeCode`:
 
 | Clave | Tipo | Cuándo |
 |---|---|---|

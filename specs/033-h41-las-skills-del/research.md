@@ -224,9 +224,12 @@ fija entero el hito.
 **Decisión.** Al preparar un sondeo con `<skill>-producto`, el arnés copia `skills/<skill>` del árbol en
 `<temporal>/skills/<skill>-producto/<skill>` con `os.CopyFS` (V8) y escribe en `sondeo.json` la clave
 `referencias_del_producto`: los nombres de los ficheros de `references/` de la copia, en orden de nombre (`os.ReadDir`,
-V8). Sin `<skill>-producto` en la petición la clave no va (`omitempty`), y `sondeo.json` es el de hoy byte a byte. Los
+V8). La clave es un campo más de `sondeoLeido` (`internal/evals/laboratorio_tabla.go`), el tipo con el que el arnés
+escribe hoy el fichero y la tabla lo lee: un solo tipo para `sondeo.json`. Sin `<skill>-producto` en la petición la
+clave no va (`omitempty`), y `sondeo.json` es el de hoy byte a byte. Los
 guiones de H39 y H40 leen de `sondeo.json` el modelo y la versión y no ven la clave (V8: claves sin campo, ignoradas),
-así que sus suites siguen igual (FR-033, FR-042). Rechazadas: un fichero aparte (otro lector y otro defecto) y una copia
+así que sus suites siguen igual (FR-033, FR-042). Rechazadas: un fichero aparte (otro lector y otro defecto), un segundo tipo en `laboratorio_sondeo.go` para escribirlo
+(dos contratos del mismo fichero) y una copia
 o una huella de la skill (fuera de alcance).
 
 ### D11 · El error de una mezcla de familias
