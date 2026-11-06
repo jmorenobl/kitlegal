@@ -19,7 +19,7 @@
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@fontsource-variable/newsreader": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
-    "astro": "^7.4.2",
+    "astro": "^7.4.4",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
     "yaml": "^2.9.1"
@@ -28,7 +28,7 @@
     "@astrojs/check": "^0.9.12",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/newsreader": "^5.3.0",
-    "@iconify-json/material-symbols": "^1.2.95",
+    "@iconify-json/material-symbols": "^1.2.97",
     "@resvg/resvg-js": "^2.6.2",
     "satori": "^0.63.2",
     "typescript": "^6.0.3"
