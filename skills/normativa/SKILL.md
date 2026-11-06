@@ -17,13 +17,14 @@ metadata:
 
 ## Protocolo
 
-Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o, si la tienes, con su
-herramienta, tras leer [con_herramientas](references/con_herramientas.md).
+Antes de la primera orden o llamada, lee [con_herramientas](references/con_herramientas.md): cómo se pide cada
+una con herramienta. Sigue los pasos en orden, cada operación con `kitlegal … --json` desde el `PATH` o, si la
+tienes, con su herramienta.
 
 ### 1. Identificar la norma
 
-Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, búscala con
-[buscar_la_norma](references/buscar_la_norma.md).
+Lee [normas](references/normas.md) y toma el `BOE-A-…` de su tabla; si no está, lee
+[buscar_la_norma](references/buscar_la_norma.md) y búscala como dice.
 
 <!-- paquetes: lo genera make skills-sync -->
 <!-- fin de los paquetes -->
@@ -33,8 +34,8 @@ Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, 
 - El id de cada bloque sale del índice, con fecha o sin ella: `kitlegal boe indice BOE-A-1978-31229 --json`. Copia el
   id de la entrada cuyo `titulo` es el artículo; nunca lo compongas con su número ni lo tomes de la pregunta: no
   siempre es su id.
-- Sin fecha —con ella, [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md)—, lee cada bloque una vez, con
-  su comprobación detrás, en la misma orden:
+- Con una fecha en la pregunta, lee [redaccion_en_una_fecha](references/redaccion_en_una_fecha.md) antes de leer el
+  bloque: cómo se lee. Sin fecha, lee cada bloque una vez, con su comprobación detrás, en la misma orden:
   ```bash
   kitlegal boe articulo BOE-A-1978-31229 a140 --json && kitlegal graph check BOE-A-1978-31229 a140 --json
   ```
@@ -45,9 +46,11 @@ Toma el `BOE-A-…` de la tabla de [normas](references/normas.md); si no está, 
   La comprobación, nunca sin argumentos, ni antes, ni con fecha; sin fecha, si faltó, pídela ya. Habla de otras
   conversaciones, que quien pregunta no conoce: un bloque sin entrada `version-obsoleta` no da nada a la respuesta, ni
   una línea, ni una frase junto a los avisos o a la fecha de vigencia. Ni «no consta otra redacción». Las líneas de una
-  fecha van siempre.
-- Varios bloques a la vez: [varios_bloques](references/varios_bloques.md). Si una orden no termina con `0`, antes de
-  seguir: [lecturas_que_fallan](references/lecturas_que_fallan.md).
+  fecha van siempre. Por cada entrada `version-obsoleta`, y si se pregunta qué cambió, lee
+  [redaccion_modificada](references/redaccion_modificada.md): qué se dice.
+- Con avisos o un id que termina en punto, lee [como_se_cita](references/como_se_cita.md): cómo se citan.
+- Para varios bloques a la vez, lee antes [varios_bloques](references/varios_bloques.md): su orden. Si una orden no
+  termina con `0`, lee [lecturas_que_fallan](references/lecturas_que_fallan.md) antes de seguir: qué hacer.
 
 ### 3. Completar
 
@@ -70,8 +73,6 @@ leído: si te parece útil decirlo, esa es la señal de que hay que leerlo.
   cita, sus avisos y las líneas `⚠` de cada bloque: escribe como quien tiene el BOE delante,
   «el artículo no lleva avisos de vigencia» y no «la lectura no trajo avisos», la norma por su nombre e identificador,
   sin decir de dónde sale, qué has hecho o vas a hacer ni qué ha devuelto o no una orden: no le sirve.
-- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la línea
-  `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
 - Cada afirmación sobre el contenido de una norma lleva su cita, de lo que `kitlegal boe` devolvió en esta
   conversación.
 - **Ley y reglamento**: di el `rango` de cada una y que la ley prevalece sobre su reglamento.
@@ -105,8 +106,8 @@ Envía la respuesta corregida, no la primera.
 ## Cómo se cita
 
 La forma legible y, en la misma línea, entre corchetes, el identificador y el id como los da `kitlegal boe`, y nada
-más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`. Una cita por bloque, también del remitido;
-repásalas, y las dudas, en [como_se_cita](references/como_se_cita.md). Cada línea `⚠` va entera y con los datos de la lectura.
+más: `art. 140 de la Constitución Española [BOE-A-1978-31229, bloque a140]`. Una cita por bloque, también del remitido.
+Cada línea `⚠` va entera y con los datos de la lectura.
 
 ## Redacción en una fecha
 
@@ -120,9 +121,6 @@ sola:
 ```
 
 ## Redacción modificada
-
-Por cada entrada `version-obsoleta` de `kitlegal graph check`, y si se pregunta qué cambió, lee
-[redaccion_modificada](references/redaccion_modificada.md):
 
 ```text
 ⚠ REDACCIÓN MODIFICADA: <forma legible> [<identificador>, bloque <id>]: la redacción con fecha de vigencia AAAAMMDD, la que se consultó antes, ha sido sustituida por la de AAAAMMDD, que es la que se cita.
@@ -158,7 +156,7 @@ Banderas comunes: `--json`, `--timeout <valor>`, `--offline`, `--dry-run`, `--de
 ## Reglas
 
 1. **No concluir que algo no existe.** Una búsqueda vacía, o una norma fuera de la tabla, no prueba que no exista.
-2. **Nunca inventar contenido legal.** Si una lectura falla, di qué bloques faltan y por qué. Lo que lo leído no da
+2. **Nunca inventar contenido legal.** Lo que lo leído no da
    —un plazo, un órgano, una vía— no está cubierto: dilo, sin suplirlo de memoria ni con el procedimiento común.
 3. **Trasladar la vigencia.** Cada aviso, con su frase o una explicación: `⚠ NORMA DEROGADA:`, `⚠ VIGENCIA AGOTADA:`
    o `⚠ TEXTO POSIBLEMENTE DESACTUALIZADO:`, y la fecha de vigencia del bloque que no encaja con lo preguntado; una

@@ -14,11 +14,16 @@ FR-001 a FR-010; SC-001 a SC-004. Research D1 a D7, V2 a V6; data-model §5.
 
 | Skill | Cuerpo de control | Cuerpo tras el hito | Referencias | Movimientos |
 |---|---|---|---|---|
-| `normativa` | 10 929 | **10 981** | las ocho de hoy | uno (§3) |
+| `normativa` | 10 929 | **10 926** | las ocho de hoy | dos (§3) |
 | `plazos-y-territorio` | 10 930 | **10 982** | las cuatro de hoy | ninguno |
 | `jurisprudencia` | 10 842 | **10 842** | las dos de hoy | ninguno |
 
 Medidas en esta sesión sobre copias con estos cambios (research V3). Ninguna referencia nueva.
+
+**Corrección de T003** (gates/supuestos.md): la vertical de ensayo de H32 (`TestVerticalDeEnsayo`) añade 70 caracteres
+al bloque de los paquetes de las tres skills, así que cada cuerpo, sin paquetes, cabe en 10 930 como mucho. Con los
+10 981 de arriba, `normativa` daba 11 051: su segundo movimiento (§3) la deja en 10 926. El 10 982 de
+`plazos-y-territorio` tampoco cabe con la vertical de ensayo.
 
 ## 2. `normativa` (FR-004)
 
@@ -127,7 +132,9 @@ siguen en sus bloques `text`, y los pasos 3 y 6 y la primera viñeta del paso 4,
 |---|---|---|---|
 | el paso 4, su segunda viñeta | el final de `references/redaccion_modificada.md`, detrás de una línea en blanco | «Nada de otra conversación» (abajo) | lo único que llega de otra conversación a una respuesta es una entrada `version-obsoleta`, y es el caso en que R4 manda leer esa referencia; sin entrada lo cubre la frase del paso 2 que no se mueve (research D2) |
 
-Sale del `SKILL.md` (las dos líneas `-` del quinto tramo de §2) y llega así, byte a byte, como sus tres últimas líneas:
+Sale del `SKILL.md` (las dos líneas `-` del quinto tramo de §2) y llega así como sus tres últimas líneas, partida tras
+«la» y no tras «línea»: el control 7 de H31 no deja que una línea de una referencia a mano empiece por `⚠` sin ser una
+de `SKILL.md`, y FR-009 deja cambiar los saltos de línea (corrección de T003):
 
 ```diff
 --- control/references/redaccion_modificada.md
@@ -137,12 +144,36 @@ Sale del `SKILL.md` (las dos líneas `-` del quinto tramo de §2) y llega así, 
  
  La respuesta dice que cita la redacción vigente y que la de antes no la ha leído.
 +
-+- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la línea
-+  `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
++- **Nada de otra conversación**, ni para afirmar, confirmar o desmentir: de ellas solo va la
++  línea `⚠ REDACCIÓN MODIFICADA:` de cada bloque que la trae.
 ```
 
-Ningún otro byte de ninguna referencia de las tres skills cambia. La referencia pasa de 2359 a 2520 bytes y de 44 a 47
-líneas, lejos de las 100 a partir de las que `skills-check` le pide un índice.
+La referencia pasa de 2359 a 2520 bytes y de 44 a 47 líneas, lejos de las 100 a partir de las que `skills-check` le
+pide un índice.
+
+El segundo movimiento (corrección de T003; §1):
+
+| De | A | Texto | Por qué |
+|---|---|---|---|
+| la regla 2, tras su enunciado | el final de `references/lecturas_que_fallan.md`, detrás de una línea en blanco | «Si una lectura falla, di qué bloques faltan y por qué.» | es el caso en que R6 manda leer esa referencia («Si una orden no termina con `0`»), que ya lo dice en «Qué dice la respuesta»; la regla 2 conserva su enunciado y lo no cubierto |
+
+```diff
+--- control/SKILL.md
++++ skills/normativa/SKILL.md
+@@ -161 +159 @@
+-2. **Nunca inventar contenido legal.** Si una lectura falla, di qué bloques faltan y por qué. Lo que lo leído no da
++2. **Nunca inventar contenido legal.** Lo que lo leído no da
+--- control/references/lecturas_que_fallan.md
++++ skills/normativa/references/lecturas_que_fallan.md
+@@ -51,2 +51,4 @@
+ La frase es solo de ese caso: con `0`, la respuesta no la lleva, ni afirmada, ni negada, ni con otras palabras. Si lo
+ que falla es la lectura, la orden termina ahí, sin `kitlegal graph check`, y vale la regla 2.
++
++Si una lectura falla, di qué bloques faltan y por qué.
+```
+
+La referencia pasa de 2776 a 2834 bytes y de 52 a 54 líneas. Ningún otro byte de ninguna referencia de las tres skills
+cambia.
 
 ## 4. `plazos-y-territorio` (FR-005)
 
@@ -295,13 +326,13 @@ Que lo generado sea lo que da `make skills-sync` lo sigue comprobando `TestSkill
 
 ## 8. Uso, de fuera adentro
 
-- **El cuerpo.** Lo lee el agente una vez por pregunta, al activar la skill: 10 981, 10 982 y 10 842 caracteres (§1),
-  nunca más de 11 000 (FR-008). No crece con el uso: cientos de normas y miles de bloques consultados no lo tocan; el
+- **El cuerpo.** Lo lee el agente una vez por pregunta, al activar la skill: 10 926, 10 982 y 10 842 caracteres (§1),
+  nunca más de 11 000 (FR-008), tampoco con la línea de un paquete (corrección de T003). No crece con el uso: cientos de normas y miles de bloques consultados no lo tocan; el
   bloque de los paquetes crece con los paquetes declarados en `data/`, no con las consultas.
 - **Las referencias**, cada una una vez por pregunta, cuando llega su condición. `normativa`, en toda pregunta:
   `con_herramientas.md` (2442 bytes) y `normas.md` (3510): 5952 bytes, lo que hoy casi nunca se lee en modo herramienta
-  y es lo que el hito quiere que se lea (research S1). Con su condición, de 909 (`varios_bloques.md`) a 2809
-  (`redaccion_en_una_fecha.md`); `redaccion_modificada.md`, 2520 con lo movido, que deja de leerse en las preguntas sin
+  y es lo que el hito quiere que se lea (research S1). Con su condición, de 909 (`varios_bloques.md`) a 2834
+  (`lecturas_que_fallan.md`, con lo movido); `redaccion_modificada.md`, 2520 con lo movido, que deja de leerse en las preguntas sin
   entrada `version-obsoleta`. Una pregunta con fecha: cuerpo + 5952 + 2809 bytes. `plazos-y-territorio`: `administrativo.md`
   (9930) en toda pregunta de plazos o recursos, como hoy, y con su condición `municipios.md` (3944), `calculo_de_plazos.md`
   (2760) y `jerarquia_normativa.md` (1543). `jurisprudencia`: `consulta_preparada.md` (2038) con una sentencia que no
