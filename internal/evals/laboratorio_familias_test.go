@@ -325,6 +325,20 @@ const nadaDeOtraConversacion = "- **Nada de otra conversación**, ni para afirma
 // contracts/remisiones.md §3).
 const siUnaLecturaFalla = "Si una lectura falla, di qué bloques faltan y por qué."
 
+// pasoTresDeJurisprudencia es el encabezado del paso 3 del SKILL.md de
+// jurisprudencia, al que llega la remisión a documento_aportado.md (J2;
+// contracts/remisiones.md §4).
+const pasoTresDeJurisprudencia = "### 3. Con el documento delante: cotejar su ficha\n"
+
+// antesDelCotejo es la remisión a documento_aportado.md del SKILL.md de
+// jurisprudencia, que pasa, sin cambiar, del final al principio del paso 3 (J2;
+// contracts/remisiones.md §4).
+const antesDelCotejo = "Con cada documento, antes del cotejo, lee " +
+	"[references/documento_aportado.md](references/documento_aportado.md): qué\n" +
+	"se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se corresponden o si no " +
+	"lleva\n" +
+	"ficha.\n"
+
 // declaracionesDelProducto son, por skill, los cambios y los movimientos de las
 // skills del producto respecto a sus controles, con los bytes de
 // contracts/remisiones.md §2 a §4. plazos-y-territorio no tiene: es su control,
@@ -410,8 +424,40 @@ var declaracionesDelProducto = map[string]declaracionDelProducto{
 			},
 		},
 	},
-	// jurisprudencia, sin cambios ni movimientos: hoy es su control.
-	skillDeLaFamiliaDeJurisprudencia: {},
+	// La remisión a consulta_preparada.md pasa del final del paso 2 a la frase que
+	// nombra cita_preparar (J1), y la de documento_aportado.md, del final al
+	// principio del paso 3 (J2); ningún movimiento (contracts/remisiones.md §4).
+	skillDeLaFamiliaDeJurisprudencia: {
+		cambios: []cambioDelCuerpo{
+			{
+				antes: "Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Lo que se " +
+					"pide depende de cómo se\n" +
+					"dio la referencia:\n",
+				despues: "Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Antes de " +
+					"pedir una u otra, lee\n" +
+					"[references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada forma, " +
+					"cómo se dan las casillas\n" +
+					"y qué hacer con el equivalente que devuelva la operación. Lo que se pide depende de cómo se dio " +
+					"la referencia:\n",
+			},
+			{
+				antes: "Antes de dar la consulta, lee [references/consulta_preparada.md](references/consulta_preparada.md): " +
+					"la orden de cada\n" +
+					"forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación.\n" +
+					"\n" +
+					pasoTresDeJurisprudencia +
+					"\n",
+				despues: pasoTresDeJurisprudencia +
+					"\n" +
+					antesDelCotejo +
+					"\n",
+			},
+			{
+				antes:   antesDelCotejo + "\n### 4. Citar\n",
+				despues: "### 4. Citar\n",
+			},
+		},
+	},
 }
 
 // TestSkillsDelProductoDesdeControl es el control de lo que cambian las skills

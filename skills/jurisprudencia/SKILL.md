@@ -57,8 +57,9 @@ principio de una línea —`⚠`, la etiqueta `SENTENCIA NO COMPROBADA`, dos pun
 ⚠ SENTENCIA NO COMPROBADA: STS 1088/2023, de 4 de julio
 ```
 
-Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Lo que se pide depende de cómo se
-dio la referencia:
+Y debajo, la consulta para encontrarla, que sale de `cita_preparar` o de su orden. Antes de pedir una u otra, lee
+[references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada forma, cómo se dan las casillas
+y qué hacer con el equivalente que devuelva la operación. Lo que se pide depende de cómo se dio la referencia:
 
 | Cómo se dio | Qué se pide |
 |---|---|
@@ -75,10 +76,11 @@ dio la referencia:
 - **La respuesta no dice que la sentencia existe ni que no existe**: nadie lo ha comprobado. Tampoco dice de qué
   trata, qué resolvió ni si es firme (paso 5).
 
-Antes de dar la consulta, lee [references/consulta_preparada.md](references/consulta_preparada.md): la orden de cada
-forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la operación.
-
 ### 3. Con el documento delante: cotejar su ficha
+
+Con cada documento, antes del cotejo, lee [references/documento_aportado.md](references/documento_aportado.md): qué
+se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se corresponden o si no lleva
+ficha.
 
 - **El cotejo es lo primero** que se hace con un documento que está en la conversación, sea su texto pegado o un PDF
   que has leído: su ficha va a `cita_cotejar`, o a su orden, antes de escribir ninguna frase sobre él.
@@ -89,10 +91,6 @@ forma, cómo se dan las casillas y qué hacer con el equivalente que devuelva la
   `resolucion` con `fecha`).
 - **Si el documento no es el pedido, no lo cites como si fuera el pedido.** La sentencia pedida sigue sin estar
   delante: va por el paso 2, con su línea y su consulta, preparada en la forma en que se pidió.
-
-Con cada documento, antes del cotejo, lee [references/documento_aportado.md](references/documento_aportado.md): qué
-se pasa del documento y cómo, y qué se dice si no es la pedida, si su ROJ y su ECLI no se corresponden o si no lleva
-ficha.
 
 ### 4. Citar
 
