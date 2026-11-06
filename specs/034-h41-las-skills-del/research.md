@@ -312,7 +312,7 @@ dos referencias; los guiones de la #245, que se reescriben (contracts/aceptacion
 referencias_del_producto de la variante …»): solo una edición a mano llega a ese estado, porque el arnés siempre
 escribe la lista (FR-032), y no cambia nada que vea una persona o una skill (D17).
 
-### D21 · reparar_cierre: la sesión sin activar de la eval 04 no tiene arreglo dentro de lo que el hito puede tocar
+### D21 · reparar_cierre: la sesión sin activar de la eval 04 no tiene arreglo dentro de lo que el hito puede tocar, y va a la persona como serie
 
 - **Evidencia**: la medición de cierre de la cabeza `69f5ecd1` (ejecución 42288846648, trabajo `evals (normativa)`
   128137471691; `gates/cierre.json`, `gates/evals/normativa.json`) sale en rojo por un solo umbral que decide:
@@ -326,41 +326,59 @@ escribe la lista (FR-032), y no cambia nada que vea una persona o una skill (D17
   `redaccion_sin_fechar` 0 de 6 en cada modo, la medida del juez, las duraciones). El frontmatter de `normativa` —la
   descripción, lo único de la skill que el agente ve antes de activarla— es byte a byte el de `normativa-control`, la
   de `v0.9.0` (FR-009; `TestSkillsDelProductoDesdeControl`): nada de lo que cambia este hito interviene en la
-  activación, porque las remisiones del cuerpo se leen después de activar. Misma eval, mismo modo y misma forma en la
-  primera medición de H32 (`specs/030-h32-arquitectura-de-skills/gates/supuestos.md`; research D23 de H32: sesión
-  `-02`, 1 de 60), y 0 de 60 en H39 y H40 (`specs/031-h39-c-omo-se/` y `specs/032-h40-por-qu-e/`,
-  `gates/evals/normativa.json`): dos sesiones sin activar de las doce de la eval 04 en modo herramienta de los cuatro
-  cierres desde H32, los cuatro con Claude Code 2.1.284 (`versiones_de_claude_code` de los cuatro informes;
-  `VERSION_DE_CLAUDE_CODE` de `.github/workflows/evals.yml`). En los sondeos de la persona con Claude Code 2.1.317
-  (`evidencias/sondeos-20261104/tabla.md` y `evidencias/sondeos-20261106/tabla-normativa.md`), las 70 sesiones de la
-  eval 04 en modo herramienta (40 y 30, de todas las variantes, `normativa-control` y `normativa-producto` entre
-  ellas) activaron la skill antes de la primera herramienta. El informe del job no registra qué skills activó la
-  sesión, así que no se sabe si activó `consulta-juridica`.
-- **Decisión**: no se cambia ninguna skill ni el binario; lo mide el job en la medición siguiente, y en esta sesión no
-  se mide nada. Es la lectura conservadora del «Criterio de decisión autónoma» (punto 4): cada sitio desde el que se
-  puede actuar sobre la activación está cerrado por la entrada del hito o por una decisión anterior. La descripción de
-  `normativa` está fuera del hito por su fichero («Fuera: cambiar la descripción de una skill: la activación ya se mide
-  en 40 de 40 en los dos modos»), y FR-009 y SC-003 la fijan byte a byte a la de control para que el sondeo de FR-052
-  mida solo las remisiones; `consulta-juridica` está fuera por el mismo fichero, y su paso 2 ya pide activar la skill
-  de la capacidad antes de pedir nada a kitlegal desde la reparación de H32 (research D23 de H32), con esta sesión sin
-  activar después de ella; las instrucciones del servidor MCP y la descripción de las herramientas y de sus parámetros
-  son texto fuera de la skill, que el ADR 0050 (puntos 2 y 3) descarta para asegurar la activación, y la `Descripcion`
+  activación, porque las remisiones del cuerpo se leen después de activar. No es la primera vez: el repositorio
+  registra cuatro caídas de la misma eval, en el mismo modo y con la misma forma (`boe_articulo` sin activar la
+  skill). Son la sesión `-02` de la medición de cierre de `7f8ef89` en H32 (ejecución 41024981954; research D23 de H32
+  y `specs/030-h32-arquitectura-de-skills/gates/evals/normativa.json`), la sesión `-01` de la de `75bf303` en H32
+  (ejecución 41303272174; research D27 de H32 y su línea en `specs/030-h32-arquitectura-de-skills/gates/supuestos.md`),
+  una sesión de la suite completa de la release v0.9.0 (`docs/USO.md`, entrada del 2026-11-02: «va a `boe_articulo`
+  sin activar ninguna skill») y esta. `docs/HISTORIAL.md` dejó abierta la de H32 («`sin_activar` en la eval 04 en modo
+  herramienta (1 de 60 en dos mediciones)»). Las cuatro son ejecuciones de `.github/workflows/evals.yml`, que fija
+  `VERSION_DE_CLAUDE_CODE: 2.1.284` desde `0bd5afbd` (2026-09-30); los `versiones_de_claude_code` de los informes de
+  `7f8ef89` y `69f5ecd1` lo confirman. En los cierres de H39 y H40 dio 0 de 60 (`specs/031-h39-c-omo-se/` y
+  `specs/032-h40-por-qu-e/`, `gates/evals/normativa.json`). La serie no tiene un denominador cerrado: H32 midió su
+  cierre ocho veces (la del run y siete más a mano; `docs/HISTORIAL.md`), y su `gates/` guarda solo el informe de la
+  primera; de la suite de v0.9.0 no hay informe en el repositorio. En los sondeos de la persona con Claude Code
+  2.1.317 (`evidencias/sondeos-20261104/tabla.md` y `evidencias/sondeos-20261106/tabla-normativa.md`), las 70 sesiones
+  de la eval 04 en modo herramienta (40 y 30, de todas las variantes, `normativa-control` y `normativa-producto` entre
+  ellas) activaron la skill antes de la primera herramienta. Con la serie así contada, la diferencia de versión de
+  Claude Code entre el job y los sondeos sigue sin estar probada como causa. El informe del job no registra qué skills
+  activó la sesión, así que no se sabe si activó `consulta-juridica`.
+- **Decisión**: no se cambia ninguna skill ni el binario, y se aplica lo que una persona decidió para esta misma caída
+  en D27 de H32: «Para `sin_activar` no se cambia nada: si la eval 04 vuelve a caer, se lleva como serie a una
+  persona, porque tocar su umbral pediría un ADR». La caída va a la persona como serie, con las cuatro mediciones, en
+  el informe final (la línea `reparar_cierre` de `gates/supuestos.md`), y una medición siguiente del workflow en verde
+  no la cierra: decide la persona, con un ADR sobre el umbral o con un hito que mida la activación en modo herramienta.
+  En esta sesión no se mide nada. Que no se cambie ninguna skill ni el binario es la lectura conservadora del
+  «Criterio de decisión autónoma» (punto 4): cada sitio desde el que se puede actuar sobre la activación está cerrado
+  por la entrada del hito o por una decisión anterior. La descripción de `normativa` está fuera del hito por su
+  fichero («Fuera: cambiar la descripción de una skill: la activación ya se mide en 40 de 40 en los dos modos»), y
+  FR-009 y SC-003 la fijan byte a byte a la de control para que el sondeo de FR-052 mida solo las remisiones;
+  `consulta-juridica` está fuera por el mismo fichero, y su paso 2 ya pide activar la skill de la capacidad antes de
+  pedir nada a kitlegal desde la reparación de H32 (research D23 de H32), y tres de las cuatro caídas son posteriores
+  a ella (`75bf303`, la suite de v0.9.0 y esta, con ese paso en su `SKILL.md`); las instrucciones del servidor MCP y
+  la descripción de las herramientas y de sus parámetros son texto fuera de la skill, que el ADR 0050 (puntos 2 y 3)
+  descarta para asegurar la activación, y la `Descripcion`
   del verbo `articulo` llega además a `schemas/bloque.json` y a la tabla de comandos de la skill; la eval, el umbral y
   la medida no se tocan (ADR 0029 y 0038); y la versión de Claude Code del job se fija con el modelo en una propuesta
   propia (ADR 0031), no en una reparación.
 - **Por qué**: la causa no está en nada que este hito cambie, y lo que la mediría, el sondeo, ya la ha medido con la
   misma descripción: 40 de 40 en cada variante y modo. Una frase más en la descripción, sin medir, contra la entrada
   del hito y confundiendo el sondeo de aceptación (`normativa-producto` dejaría de diferir de `normativa-control` solo
-  en las remisiones), no es la mejor solución sino un atajo. Lo que deja esta medición para la persona: la diferencia
-  entre las dos versiones de Claude Code es una observación, no una causa probada (2 de 12 frente a 0 de 70, con
-  condiciones que difieren en más que la versión); y el informe del job sigue sin registrar las skills activadas, el
-  punto ciego que ya anotó H32; guardar las sesiones del job como artefacto está en
-  `docs/roadmap/backlog/medida-de-las-skills.md`.
+  en las remisiones), no es la mejor solución sino un atajo. Y la serie es de la persona porque así lo decidió una
+  persona en D27 de H32: lo que queda por decidir es el umbral, que pide un ADR, o un hito que mida la activación,
+  y ninguna de las dos cosas cabe en una reparación. Lo que deja esta medición para la persona: la serie de cuatro
+  caídas; que la diferencia entre las dos versiones de Claude Code (2.1.284 en el job, 2.1.317 en los sondeos) es una
+  observación, no una causa probada, con condiciones que difieren en más que la versión y sin un denominador cerrado
+  en el job; y que el informe del job sigue sin registrar las skills activadas, el punto ciego que ya anotó H32;
+  guardar las sesiones del job como artefacto está en `docs/roadmap/backlog/medida-de-las-skills.md`.
 - **Rechazadas**: cambiar la descripción de `normativa` y, para conservar FR-009, la de su control y la de las
   variantes de H40, que FR-020 y FR-021 fijan a `v0.9.0`; cambiar `consulta-juridica`; añadir a `Instrucciones` del
   servidor o a la descripción de `boe_articulo` que exigen la skill activa (ADR 0050); registrar `skills_activadas` en
   el informe del job, instrumentación que el hito no pide (criterio, punto 2); tocar la eval 04, el umbral o
-  `evals.yml`.
+  `evals.yml`; y tratar la medición siguiente del workflow como remedio: es repetir el job sin cambios, «que sería
+  medir para ver si sale en verde» (D25 y D27 de H32), y una medición en verde cerraría sin la persona la serie que
+  D27 de H32 le reserva.
 
 ## Fuentes externas
 
