@@ -739,6 +739,85 @@ func casosDeLecturaConCdDeH39(declarada declaracionDelLaboratorio) []casoDeLectu
 	}
 }
 
+// Las sesiones fijas de las tres familias del producto, cada una en
+// familias/<skill>/sondeo/ con la tabla que el guion da de ellas en
+// familias/<skill>/tabla.md, escrita a partir de contracts/tabla.md §2 y §3 de
+// H41 y de esas sesiones, con los extremos de Wilson de H40 (FR-040, FR-041;
+// SC-005). Cubren los dos modos; lecturas con cd que cuentan —con comillas
+// dobles y simples, con ./, con head, con una barra final y dos referencias en
+// una orden— y que no —el cd en otro Bash, el nombre antes del cd, el cd al
+// directorio de la skill o al de otra, el nombre con otra carpeta, un prefijo o
+// un sufijo—; en normativa, un sondeo con la lista del producto con una
+// referencia que la familia no declara (nueva.md) y otro sin lista, de otra
+// versión de Claude Code, sin normativa-producto; una sesión sin terminar por el
+// tope (código 124) en cada familia; sesiones que activan la skill después de
+// la primera herramienta, también de territorio, plazos y cita y en los dos
+// modos; una referencia abierta por dos sesiones en turnos distintos, con la
+// mediana de dos; y la regla testigo, cumplida en
+// normativa-testigo-en-referencia y en otra variante, cuya celda va vacía.
+const sesionesFijasDeLasFamilias = "testdata/laboratorio/familias"
+
+// Lo que hay en cada familia de las sesiones fijas: sus sondeos y su tabla.
+const (
+	sondeosDeUnaFamilia = "sondeo"
+	tablaDeUnaFamilia   = "tabla.md"
+)
+
+// El sondeo de normativa con un directorio de variante de otra familia: en
+// familias/mezcla/sondeo/, que no es ninguna familia, el sondeo h41 tiene
+// normativa-control, la primera variante en orden de nombre, que hace de
+// normativa la familia de la tabla, y la variante de control de
+// plazos-y-territorio, que es el defecto.
+const (
+	sesionesFijasDeLaMezcla         = "mezcla"
+	sondeoDeLaMezcla                = "h41"
+	varianteDeOtraFamiliaDeLaMezcla = "plazos-y-territorio-control"
+)
+
+// TestTablaDeLasFamilias fija la tabla de un sondeo de cada familia del
+// producto (FR-040, FR-041; SC-005; contracts/tabla.md §1 a §3 y §5): sobre las
+// sesiones fijas de cada una de las tres, que nombra el test y no salen de leer
+// familias/, su salida es, byte a byte, su tabla.md, con 0 y nada en la salida
+// de error; y en un sondeo de normativa, el directorio de una variante de otra
+// familia del producto es un defecto: lo dice con su ruta en la salida de error
+// y da 1 sin tabla.
+func TestTablaDeLasFamilias(t *testing.T) {
+	t.Parallel()
+
+	for _, skill := range []string{"normativa", "plazos-y-territorio", "jurisprudencia"} {
+		t.Run(skill, func(t *testing.T) {
+			t.Parallel()
+
+			familia := filepath.Join(sesionesFijasDeLasFamilias, skill)
+
+			// filepath.Clean es lo que el control de rutas reconoce como saneado
+			// (gosec G304): la familia es una de las tres que nombra el test, bajo
+			// una constante, y el fichero, otra constante del test.
+			esperada, err := os.ReadFile(filepath.Clean(filepath.Join(familia, tablaDeUnaFamilia)))
+			require.NoError(t, err)
+
+			tabla := contarElSondeo(t, filepath.Join(familia, sondeosDeUnaFamilia))
+
+			require.Zerof(t, tabla.codigo, "salida de error: %s", tabla.errores)
+			assert.Equal(t, string(esperada), tabla.salida, "la tabla de las sesiones fijas de %s, byte a byte", skill)
+			assert.Empty(t, tabla.errores)
+		})
+	}
+
+	t.Run("variante-de-otra-familia", func(t *testing.T) {
+		t.Parallel()
+
+		ruta := filepath.Join(sesionesFijasDeLasFamilias, sesionesFijasDeLaMezcla, sondeosDeUnaFamilia)
+
+		tabla := contarElSondeo(t, ruta)
+
+		assert.Equal(t, 1, tabla.codigo)
+		assert.Empty(t, tabla.salida, "sin tabla")
+		assert.Equal(t, PrefijoDelLaboratorio+filepath.Join(ruta, sondeoDeLaMezcla, varianteDeOtraFamiliaDeLaMezcla)+
+			" no es ninguna variante de normativa\n", tabla.errores)
+	})
+}
+
 // tablaContada es lo que devuelve el guion que cuenta un sondeo: su código, su
 // salida y su salida de error.
 type tablaContada struct {
